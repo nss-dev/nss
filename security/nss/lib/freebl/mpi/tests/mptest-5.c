@@ -70,9 +70,10 @@ int main(int argc, char *argv[])
 
   mp_gcd(&a, &b, &c);
   printf("Euclid: c = "); mp_print(&c, stdout); fputc('\n', stdout);
+/*
   mp_bgcd(&a, &b, &c);
   printf("Binary: c = "); mp_print(&c, stdout); fputc('\n', stdout);
-
+*/
   mp_init(&x);
   mp_init(&y);
   printf("\nc = (a, b) = ax + by\n");
