@@ -174,9 +174,13 @@
 #endif
 
 #ifdef __QNX__
+#ifdef __QNXNTO__
+#include <sys/param.h>
+#else
 #define LITTLE_ENDIAN	1234
 #define BIG_ENDIAN	4321
 #define BYTE_ORDER	LITTLE_ENDIAN
+#endif
 #endif
 
 #ifdef SNI
@@ -208,11 +212,7 @@
 #define MAXPATHLEN 	1024              
 #endif
 
-#ifdef macintosh
-#include <unix.h>
-#else
 #include <fcntl.h>
-#endif
 
 #if defined(_WINDOWS) || defined(XP_OS2)
 #include <stdio.h>
@@ -220,8 +220,6 @@
 
 #ifndef XP_OS2 
 #define MAXPATHLEN 	1024               
-#else
-#include <dirent.h>
 #endif
 
 #define	EFTYPE		EINVAL		/* POSIX 1003.1 format errno. */
@@ -242,9 +240,9 @@
 #include "xp_mcom.h"
 #define O_ACCMODE       3       /* Mask for file access modes */
 #define EFTYPE 2000
-XP_BEGIN_PROTOS
+PR_BEGIN_EXTERN_C
 int mkstemp(const char *path);
-XP_END_PROTOS
+PR_END_EXTERN_C
 #endif	/* MACINTOSH */
 
 #if !defined(_WINDOWS) && !defined(macintosh) && !defined(XP_OS2)
