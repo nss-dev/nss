@@ -4600,7 +4600,7 @@ done:
  *		copy of the private key, so the caller remains responsible
  *		for destroying its copy after this function returns.
  *
- *	certChain  Chain of signers for cert.
+ *	certChain  DER-encoded certs, client cert and its signers.
  *		Note: ssl takes this reference, and does not copy the chain.
  *		The caller should drop its reference without destroying the
  *		chain.  SSL will free the chain when it is done with it.
@@ -6316,8 +6316,10 @@ ssl3_SendCertificate(sslSocket *ss)
 	certChain              = sc->serverCertChain;
 	ss->sec->authKeyBits   = sc->serverKeyBits;
 	ss->sec->authAlgorithm = ss->ssl3->hs.kea_def->signKeyType;
+	ss->sec->localCert     = CERT_DupCertificate(sc->serverCert);
     } else {
-	certChain            = ss->ssl3->clientCertChain;
+	certChain          = ss->ssl3->clientCertChain;
+	ss->sec->localCert = CERT_DupCertificate(ss->ssl3->clientCertificate);
     }
 
     if (certChain) {
