@@ -79,8 +79,15 @@ NSSCertificate_Destroy
   NSSCertificate *c
 )
 {
+    PRBool destroyed;
     if (c) {
-	nssPKIObject_Destroy(&c->object);
+	nssDecodedCert *dc = c->decoding;
+	destroyed = nssPKIObject_Destroy(&c->object);
+	if (destroyed) {
+	    if (dc) {
+		nssDecodedCert_Destroy(dc);
+	    }
+	}
     }
     return PR_SUCCESS;
 }
@@ -178,8 +185,7 @@ nssCertificate_GetDecoding
 )
 {
     if (!c->decoding) {
-	c->decoding = nssDecodedCert_Create(c->object.arena, 
-	                                    &c->encoding, c->type);
+	c->decoding = nssDecodedCert_Create(NULL, &c->encoding, c->type);
     }
     return c->decoding;
 }

@@ -179,6 +179,9 @@ nssDecodedCert_Destroy
   nssDecodedCert *dc
 )
 {
+    if (!dc) {
+	return PR_FAILURE;
+    }
     switch(dc->type) {
     case NSSCertificateType_PKIX:
 	return nssDecodedPKIXCertificate_Destroy(dc);
