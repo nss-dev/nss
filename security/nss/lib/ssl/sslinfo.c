@@ -40,7 +40,6 @@ SECStatus
 SSL_GetChannelInfo(PRFileDesc *fd, SSLChannelInfo *info, PRUintn len)
 {
     sslSocket *      ss;
-    sslSecurityInfo *sec;
     SSLChannelInfo   inf;
     sslSessionID *   sid;
 
@@ -58,14 +57,13 @@ SSL_GetChannelInfo(PRFileDesc *fd, SSLChannelInfo *info, PRUintn len)
     memset(&inf, 0, sizeof inf);
     inf.length = PR_MIN(sizeof inf, len);
 
-    sec = ss->sec;
-    if (ss->useSecurity && ss->firstHsDone && sec) {
-        sid = sec->ci.sid;
+    if (ss->useSecurity && ss->firstHsDone) {
+        sid = ss->sec.ci.sid;
 	inf.protocolVersion  = ss->version;
-	inf.authKeyBits      = ss->sec->authKeyBits;
-	inf.keaKeyBits       = ss->sec->keaKeyBits;
+	inf.authKeyBits      = ss->sec.authKeyBits;
+	inf.keaKeyBits       = ss->sec.keaKeyBits;
 	if (ss->version < SSL_LIBRARY_VERSION_3_0) { /* SSL2 */
-	    inf.cipherSuite      = ss->sec->cipherType | 0xff00;
+	    inf.cipherSuite      = ss->sec.cipherType | 0xff00;
 	} else if (ss->ssl3) { 		/* SSL3 and TLS */
 
 	    /* XXX  These should come from crSpec */

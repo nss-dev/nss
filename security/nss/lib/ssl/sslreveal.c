@@ -54,8 +54,8 @@ SSL_RevealCert(PRFileDesc * fd)
   /* CERT_DupCertificate increases reference count and returns pointer to 
    * the same cert
    */
-  if (sslsocket && sslsocket->sec)
-    cert = CERT_DupCertificate(sslsocket->sec->peerCert);
+  if (sslsocket && sslsocket->sec.peerCert)
+    cert = CERT_DupCertificate(sslsocket->sec.peerCert);
   
   return cert;
 }
