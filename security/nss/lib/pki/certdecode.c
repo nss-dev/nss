@@ -54,6 +54,7 @@ nssPKIObject_Destroy
 {
     nssList_Destroy(object->instanceList);
     nssArena_Destroy(object->arena);
+    return PR_SUCCESS;
 }
 
 #ifdef NSS_3_4_CODE

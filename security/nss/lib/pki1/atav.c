@@ -1745,7 +1745,8 @@ nssATAV_Compare
     return PR_SUCCESS;
   }
 
-  return nsslibc_compare(atav1->value, atav2->value, len1, equalp);
+  *equalp = nsslibc_memequal(atav1->value, atav2->value, len1, &status);
+  return status;
 }
 
 

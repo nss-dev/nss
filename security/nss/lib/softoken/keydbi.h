@@ -71,7 +71,7 @@ SEC_BEGIN_PROTOS
 **      "f" is the user function to call for each key
 **      "udata" is the user's data, which is passed through to "f"
 */
-extern SECStatus NSSLOWKEY_TraverseKeys(NSSLOWKEYDBHandle *handle, 
+extern SECStatus nsslowkey_TraverseKeys(NSSLOWKEYDBHandle *handle, 
 				NSSLOWKEYTraverseKeysFunc f,
 				void *udata);
 

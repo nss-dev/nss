@@ -324,7 +324,7 @@ oid_hash_compare
 
   PRUint32 size = (i1->size < i2->size) ? i1->size : i2->size;
 
-  rv = (PRIntn)nsslibc_memcmp(i1->data, i2->data, size, (PRStatus *)NULL);
+  rv = (PRIntn)nsslibc_memequal(i1->data, i2->data, size, (PRStatus *)NULL);
   if( 0 == rv ) {
     rv = i1->size - i2->size;
   }

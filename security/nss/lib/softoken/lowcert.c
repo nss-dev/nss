@@ -117,18 +117,6 @@ const SEC_ASN1Template nsslowcert_DHPublicKeyTemplate[] = {
     { 0, }
 };
 
-
-NSSLOWCERTCertificate *
-nsslowcert_DupCertificate(NSSLOWCERTCertificate *c)
-{
-    if (c) {
-	nsslowcert_LockCertRefCount(c);
-	++c->referenceCount;
-	nsslowcert_UnlockCertRefCount(c);
-    }
-    return c;
-}
-
 /*
  * Allow use of default cert database, so that apps(such as mozilla) don't
  * have to pass the handle all over the place.

@@ -59,13 +59,6 @@ extern NSSLOWKEYDBHandle *nsslowkey_OpenKeyDBFilename(char *filename,
 						   PRBool readOnly);
 
 /*
-** Update the database
-*/
-extern SECStatus nsslowkey_UpdateKeyDBPass1(NSSLOWKEYDBHandle *handle);
-extern SECStatus nsslowkey_UpdateKeyDBPass2(NSSLOWKEYDBHandle *handle,
-					 SECItem *pwitem);
-
-/*
  * Clear out all the keys in the existing database
  */
 extern SECStatus nsslowkey_ResetKeyDB(NSSLOWKEYDBHandle *handle);

@@ -62,6 +62,7 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 
 #ifdef NSS_3_4_CODE
 #include "pkim.h" /* for cert decoding */
+#include "pk11func.h" /* for PK11_HasRootCerts */
 #endif
 
 /* The number of object handles to grab during each call to C_FindObjects */
@@ -75,7 +76,7 @@ nssToken_DeleteStoredObject
 {
     CK_RV ckrv;
     PRStatus nssrv;
-    PRBool createdSession;
+    PRBool createdSession = PR_FALSE;
     NSSToken *token = instance->token;
     nssSession *session = NULL;
     if (nssCKObject_IsAttributeTrue(instance->handle, CKA_TOKEN, 

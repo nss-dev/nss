@@ -86,9 +86,9 @@ nssCKObject_GetAttributes
   NSSSlot *slot
 )
 {
-    nssArenaMark *mark;
+    nssArenaMark *mark = NULL;
     CK_SESSION_HANDLE hSession;
-    CK_ULONG i;
+    CK_ULONG i = 0;
     CK_RV ckrv;
     PRStatus nssrv;
     PRBool alloced = PR_FALSE;

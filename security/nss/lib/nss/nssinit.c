@@ -270,7 +270,10 @@ nss_Init(const char *configdir, const char *certPrefix, const char *keyPrefix,
     char *moduleSpec = NULL;
     char *flags = NULL;
     SECStatus rv = SECFailure;
-    char *lconfigdir,*lcertPrefix,*lkeyPrefix,*lsecmodName;
+    char *lconfigdir = NULL;
+    char *lcertPrefix = NULL;
+    char *lkeyPrefix = NULL;
+    char *lsecmodName = NULL;
 
     flags = nss_makeFlags(readOnly,noCertDB,noModDB,forceOpen,
 						pk11_password_required);

@@ -595,7 +595,7 @@ SEC_LookupCrls(CERTCertDBHandle *handle, CERTCrlHeadNode **nodes, int type)
     /* Look up the proper crl types */
     *nodes = head;
 
-    rv = PK11_LookupCrls(nodes, type, NULL);
+    rv = PK11_LookupCrls(head, type, NULL);
     
     if (rv != SECSuccess) {
 	if ( arena ) {
