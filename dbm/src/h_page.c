@@ -292,7 +292,8 @@ __split_page(HTAB *hashp, uint32 obucket, uint32 nbucket)
 	DBT key, val;
     uint16 n, ndx;
 	int retval;
-	uint16 copyto, diff, off, moved;
+	uint16 copyto, diff, moved;
+	size_t off;
 	char *op;
 
 	copyto = (uint16)hashp->BSIZE;
@@ -343,7 +344,7 @@ __split_page(HTAB *hashp, uint32 obucket, uint32 nbucket)
 			if (diff) {
 				copyto = ino[n + 1] + diff;
 				memmove(op + copyto, op + ino[n + 1],
-				    (size_t)(off - ino[n + 1]));
+				    off - ino[n + 1]);
 				ino[ndx] = copyto + ino[n] - ino[n + 1];
 				ino[ndx + 1] = copyto;
 			} else
@@ -691,7 +692,8 @@ __get_page(HTAB *hashp,
 	int is_disk, 
 	int is_bitmap)
 {
-	register int fd, page, size;
+	register int fd, page;
+	size_t size;
 	int rsize;
 	uint16 *bp;
 
@@ -707,14 +709,14 @@ __get_page(HTAB *hashp,
 	else
 		page = OADDR_TO_PAGE(bucket);
 	if ((MY_LSEEK(fd, (off_t)page << hashp->BSHIFT, SEEK_SET) == -1) ||
-	    ((rsize = read(fd, p, (size_t)size)) == -1))
+	    ((rsize = read(fd, p, size)) == -1))
 		return (-1);
 
 	bp = (uint16 *)p;
 	if (!rsize)
 		bp[0] = 0;	/* We hit the EOF, so initialize a new page */
 	else
-		if (rsize != size) {
+		if ((size_t)rsize != size) {
 			errno = EFTYPE;
 			return (-1);
 		}
@@ -755,7 +757,7 @@ __get_page(HTAB *hashp,
 	     		 * the maximum number of entries
 	     		 * in the array
 	     		 */
-				if(max > (size / (int)sizeof(uint16)))
+				if((size_t)max > (size / sizeof(uint16)))
 					return(DATABASE_CORRUPTED_ERROR);
 
 				/* do the byte order swap
@@ -826,7 +828,8 @@ __get_page(HTAB *hashp,
 extern int
 __put_page(HTAB *hashp, char *p, uint32 bucket, int is_bucket, int is_bitmap)
 {
-	register int fd, page, size;
+	register int fd, page;
+	size_t size;
 	int wsize;
 	off_t offset;
 
@@ -850,7 +853,7 @@ __put_page(HTAB *hashp, char *p, uint32 bucket, int is_bucket, int is_bitmap)
              * the maximum number of entries
              * in the array
              */
-            if(max > (size / (int)sizeof(uint16)))
+            if((size_t)max > (size / sizeof(uint16)))
                 return(DATABASE_CORRUPTED_ERROR);
 
 			for (i = 0; i <= max; i++)
@@ -865,10 +868,10 @@ __put_page(HTAB *hashp, char *p, uint32 bucket, int is_bucket, int is_bitmap)
 		page = OADDR_TO_PAGE(bucket);
 	offset = (off_t)page << hashp->BSHIFT;
 	if ((MY_LSEEK(fd, offset, SEEK_SET) == -1) ||
-	    ((wsize = write(fd, p, (size_t)size)) == -1))
+	    ((wsize = write(fd, p, size)) == -1))
 		/* Errno is set */
 		return (-1);
-	if (wsize != size) {
+	if ((size_t)wsize != size) {
 		errno = EFTYPE;
 		return (-1);
 	}
