@@ -33,7 +33,9 @@
 
 /* Library identity and versioning */
 
+#if 0
 #include "nss.h"
+#endif
 
 #if defined(DEBUG)
 #define _DEBUG_STRING " (debug)"
@@ -43,13 +45,19 @@
 
 #define _CLIENT_STRING ""
 
+#define NSS_STVERSION  "4.0 Preview"
+#define NSS_STVMAJOR   0
+#define NSS_STVMINOR   0
+#define NSS_STVPATCH   0
+#define NSS_STBETA     PR_TRUE
+
 /*
  * Version information for the 'ident' and 'what commands
  *
  * NOTE: the first component of the concatenated rcsid string
  * must not end in a '$' to prevent rcs keyword substitution.
  */
-const char __nss_softokn_rcsid[] = "$Header: NSS " NSS_VERSION _CLIENT_STRING _DEBUG_STRING
+const char __nss_softokn_rcsid[] = "$Header: NSS " NSS_STVERSION _CLIENT_STRING _DEBUG_STRING
         "  " __DATE__ " " __TIME__ " $";
-const char __nss_softokn_sccsid[] = "@(#)NSS " NSS_VERSION _CLIENT_STRING _DEBUG_STRING
+const char __nss_softokn_sccsid[] = "@(#)NSS " NSS_STVERSION _CLIENT_STRING _DEBUG_STRING
         "  " __DATE__ " " __TIME__;
