@@ -348,7 +348,7 @@ struct CERTCertificateRequestStr {
     SECItem version;
     CERTName subject;
     CERTSubjectPublicKeyInfo subjectPublicKeyInfo;
-    SECItem **attributes;
+    CERTAttribute **attributes;
 };
 #define SEC_CERTIFICATE_REQUEST_VERSION		0	/* what we *create* */
 
@@ -858,6 +858,7 @@ SEC_ASN1_CHOOSER_DECLARE(CERT_CertificateTemplate)
 SEC_ASN1_CHOOSER_DECLARE(CERT_CrlTemplate)
 SEC_ASN1_CHOOSER_DECLARE(CERT_IssuerAndSNTemplate)
 SEC_ASN1_CHOOSER_DECLARE(CERT_NameTemplate)
+SEC_ASN1_CHOOSER_DECLARE(CERT_SequenceOfCertExtensionTemplate)
 SEC_ASN1_CHOOSER_DECLARE(CERT_SetOfSignedCrlTemplate)
 SEC_ASN1_CHOOSER_DECLARE(CERT_SignedDataTemplate)
 SEC_ASN1_CHOOSER_DECLARE(CERT_SubjectPublicKeyInfoTemplate)
