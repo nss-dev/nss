@@ -1936,8 +1936,8 @@ static int SortCRLsByThisUpdate(const void* arg1, const void* arg2)
     SECStatus rv = SECSuccess;
     CachedCrl* a, *b;
 
-    a = (CachedCrl*) arg1;
-    b = (CachedCrl*) arg2;
+    a = *(CachedCrl**) arg1;
+    b = *(CachedCrl**) arg2;
 
     if (!a || !b)
     {
@@ -1982,8 +1982,8 @@ static int SortImperfectCRLs(const void* arg1, const void* arg2)
 {
     CachedCrl* a, *b;
 
-    a = (CachedCrl*) arg1;
-    b = (CachedCrl*) arg2;
+    a = *(CachedCrl**) arg1;
+    b = *(CachedCrl**) arg2;
 
     if (!a || !b)
     {
