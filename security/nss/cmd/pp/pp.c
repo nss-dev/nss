@@ -152,8 +152,10 @@ int main(int argc, char **argv)
 			     SECU_PrintCertificateRequest);
     } else if (PORT_Strcmp (typeTag, SEC_CT_CRL) == 0) {
 	rv = SECU_PrintSignedData (outFile, &data, "CRL", 0, SECU_PrintCrl);
+#ifdef HAVE_EPV_TEMPLATE
     } else if (PORT_Strcmp(typeTag, SEC_CT_PRIVATE_KEY) == 0) {
 	rv = SECU_PrintPrivateKey(outFile, &data, "Private Key", 0);
+#endif
     } else if (PORT_Strcmp(typeTag, SEC_CT_PUBLIC_KEY) == 0) {
 	rv = SECU_PrintPublicKey(outFile, &data, "Public Key", 0);
     } else if (PORT_Strcmp(typeTag, SEC_CT_PKCS7) == 0) {
