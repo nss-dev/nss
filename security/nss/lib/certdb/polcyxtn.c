@@ -84,7 +84,7 @@ const SEC_ASN1Template CERT_PolicyInfoTemplate[] = {
 	  0, NULL, sizeof(CERTPolicyInfo) },
     { SEC_ASN1_OBJECT_ID,
 	  offsetof(CERTPolicyInfo, policyID) },
-    { SEC_ASN1_SEQUENCE_OF,
+    { SEC_ASN1_SEQUENCE_OF | SEC_ASN1_OPTIONAL,
 	  offsetof(CERTPolicyInfo, policyQualifiers),
 	  CERT_PolicyQualifierTemplate },
     { 0 }
