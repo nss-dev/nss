@@ -81,8 +81,12 @@ nssToken_SearchCerts
   PRBool *notPresentOpt
 );
 
+/* renewInstances -- if the cached token certs have multiple instances,
+ * don't destroy them.  If this parameter is false, they will be destroyed
+ * anyway (used for clean shutdown).
+ */
 NSS_EXTERN void
-nssToken_DestroyCertList(NSSToken *token);
+nssToken_DestroyCertList(NSSToken *token, PRBool renewInstances);
 
 NSS_EXTERN void
 nssCertificateList_DestroyTokenCerts(nssList *certList, NSSToken *token);
