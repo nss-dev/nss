@@ -78,6 +78,19 @@ CERT_StartCRLExtensions(CERTCrl *crl)
     return (cert_StartExtensions ((void *)crl, crl->arena, SetCrlExts));
 }
 
+static void
+SetCrlEntryExts(void *object, CERTCertExtension **exts)
+{
+    CERTCrlEntry *crlEntry = (CERTCrlEntry *)object;
+
+    crlEntry->extensions = exts;
+}
+
+void *
+CERT_StartCRLEntryExtensions(CERTCrl *crl, CERTCrlEntry *entry)
+{
+    return (cert_StartExtensions (entry, crl->arena, SetCrlEntryExts));
+}
 
 SECStatus CERT_FindCRLNumberExten (CERTCrl *crl, CERTCrlNumber *value)
 {

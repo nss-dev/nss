@@ -977,7 +977,20 @@ extern SECStatus CERT_FindCRLExtension
 extern SECStatus
    CERT_FindInvalidDateExten (CERTCrl *crl, int64 *value);
 
-extern void *CERT_StartCRLExtensions (CERTCrl *crl);
+/*
+** Set up a crl for adding X509v3 extensions.  Returns an opaque handle
+** used by routines that take an exthandle (void*) argument .
+**	"crl" is the CRL we are adding extensions to
+*/
+extern void *CERT_StartCRLExtensions(CERTCrl *crl);
+
+/*
+** Set up a crl entry for adding X509v3 extensions.  Returns an opaque handle
+** used by routines that take an exthandle (void*) argument .
+**	"crl" is the crl we are adding certs entries to
+**      "entry" is the crl entry we are adding extensions to
+*/
+extern void *CERT_StartCRLEntryExtensions(CERTCrl *crl, CERTCrlEntry *entry);
 
 extern CERTCertNicknames *CERT_GetCertNicknames (CERTCertDBHandle *handle,
 						 int what, void *wincx);
