@@ -354,10 +354,13 @@ CERT_DecodeDERCrl(PRArenaPool *narena, SECItem *derSignedCrl, int type)
 	if (rv != SECSuccess)
 	    break;
 
+#ifdef notdef
+	/*this is a bogus check. all these fields are optional in a V2 cert.*/
 	/* If the version is set to v2, make sure that it contains at
 	   least 1 critical extension either the crl extensions or
 	   crl entry extensions. */
 	rv =  cert_check_crl_version (&crl->crl);
+#endif
 	break;
 
     case SEC_KRL_TYPE:

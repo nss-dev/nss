@@ -70,7 +70,8 @@ endif
 
 include $(CORE_DEPTH)/coreconf/rules.mk
 
-certdata.c: certdata.txt certdata.perl
+# Generate certdata.c.
+generate:
 	perl certdata.perl < certdata.txt
 
 # This'll need some help from a build person.

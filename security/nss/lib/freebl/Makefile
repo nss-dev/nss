@@ -82,11 +82,18 @@ ifneq ($(OS_TARGET),WIN16)
 endif
 endif
 
+ifeq ($(OS_ARCH),OS2)
+CPORLN = cp
+endif
 
 ifeq ($(OS_ARCH),IRIX)
 ifeq ($(USE_N32),1)
     ASFILES  = mpi_mips.s
+ifeq ($(NS_USE_GCC),1)
+    ASFLAGS = -Wp,-P -Wp,-traditional -O -mips3
+else
     ASFLAGS = -O -OPT:Olimit=4000 -dollar -fullwarn -xansi -n32 -mips3 
+endif
     DEFINES += -DMP_ASSEMBLY_MULTIPLY -DMP_ASSEMBLY_SQUARE
     DEFINES += -DMP_USE_UINT_DIGIT
 else
@@ -185,6 +192,17 @@ else
 endif
 endif
 endif
+else
+# Solaris x86
+    DEFINES += -DMP_USE_UINT_DIGIT
+    DEFINES += -DMP_ASSEMBLY_MULTIPLY -DMP_ASSEMBLY_SQUARE -DMP_ASSEMBLY_DIV_2DX1D
+    ASFILES  = mpi_i86pc.s
+ifdef NS_USE_GCC
+    LD = gcc
+    AS = gcc
+    ASFLAGS =
+endif
+
 endif
 endif
 

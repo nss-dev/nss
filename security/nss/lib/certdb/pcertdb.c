@@ -3988,8 +3988,6 @@ UpdateV5DB(CERTCertDBHandle *handle, DB *updatedb)
 
     (* updatedb->close)(updatedb);
     return(SECSuccess);
-    
-    return(rv);
 }
 
 static PRBool
@@ -4720,7 +4718,7 @@ cert_parseNickname(char *nickname)
 
 	for (cp=nickname; *cp && *cp != ':'; cp++);
 
-	if (*cp == ':') return cp++;
+	if (*cp == ':') return cp+1;
 	return nickname;
 }
 

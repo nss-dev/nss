@@ -614,7 +614,7 @@ CERT_ImportCAChain (SECItem *certs, int numcerts, SECCertUsage certUsage);
 **	"f" is the callback function
 **	"arg" is the callback argument
 */
-typedef SECStatus (*CERTImportCertificateFunc)
+typedef SECStatus (PR_CALLBACK *CERTImportCertificateFunc)
    (void *arg, SECItem **certs, int numcerts);
 
 extern SECStatus
@@ -1075,6 +1075,14 @@ CERT_AddCertToListTail(CERTCertList *certs, CERTCertificate *cert);
 
 SECStatus
 CERT_AddCertToListHead(CERTCertList *certs, CERTCertificate *cert);
+
+SECStatus
+CERT_AddCertToListTailWithData(CERTCertList *certs, CERTCertificate *cert,
+							 void *appData);
+
+SECStatus
+CERT_AddCertToListHeadWithData(CERTCertList *certs, CERTCertificate *cert,
+							 void *appData);
 
 typedef PRBool (* CERTSortCallback)(CERTCertificate *certa,
 				    CERTCertificate *certb,
