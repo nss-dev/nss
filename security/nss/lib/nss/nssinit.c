@@ -481,7 +481,6 @@ loser:
 #endif
 	pk11sdr_Init();
 	cert_CreateSubjectKeyIDHashTable();
-	SECMOD_InitCallOnce();
 	nss_IsInitted = PR_TRUE;
     }
     return rv;
@@ -555,7 +554,6 @@ NSS_Shutdown(void)
     SECOID_Shutdown();
     status = STAN_Shutdown();
     cert_DestroySubjectKeyIDHashTable();
-    SECMOD_CleanupCallOnce();
     rv = SECMOD_Shutdown();
     pk11sdr_Shutdown();
     if (status == PR_FAILURE) {
