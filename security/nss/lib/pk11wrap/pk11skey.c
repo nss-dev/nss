@@ -4133,7 +4133,7 @@ finalize:
     }
 
     /* try to finalize the session with a buffer */
-    if (buffer == NULL && count > 0) { 
+    if (buffer == NULL) { 
 	if (count < sizeof stackBuf) {
 	    buffer = stackBuf;
 	    goto finalize;
