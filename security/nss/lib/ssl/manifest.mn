@@ -51,7 +51,9 @@ EXPORTS = \
 MODULE = security
 MAPFILE = $(OBJDIR)/ssl.def
 
-CSRCS = \
+CSRCS = $(NULL)
+
+NO_CSRCS = \
 	emulate.c \
 	prelib.c \
 	ssl3con.c \
@@ -79,5 +81,5 @@ CSRCS = \
 
 REQUIRES = security dbm
 
-LIBRARY_NAME = ssl
-LIBRARY_VERSION = 3
+#LIBRARY_NAME = ssl
+#LIBRARY_VERSION = 3

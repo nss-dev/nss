@@ -52,7 +52,7 @@ EXPORTS = \
 PRIVATE_EXPORTS = \
 	$(NULL)
 
-LIBSRCS = \
+NO_LIBSRCS = \
 	sechash.c \
 	seckey.c  \
 	secsign.c \
@@ -60,5 +60,5 @@ LIBSRCS = \
 	dsautil.c \
 	$(NULL)
 
-CSRCS = $(LIBSRCS)
+CSRCS = $(NULL)
 

@@ -47,7 +47,9 @@ PRIVATE_EXPORTS = \
 MODULE = security
 MAPFILE = $(OBJDIR)/smime.def
 
-CSRCS = \
+CSRCS = $(NULL)
+
+NO_CSRCS = \
 	cmsarray.c \
 	cmsasn1.c \
 	cmsattr.c \
@@ -73,5 +75,5 @@ CSRCS = \
 
 REQUIRES = security dbm
 
-LIBRARY_NAME = smime
-LIBRARY_VERSION = 3
+#LIBRARY_NAME = smime
+#LIBRARY_VERSION = 3

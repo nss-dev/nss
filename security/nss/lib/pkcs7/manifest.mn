@@ -45,7 +45,9 @@ PRIVATE_EXPORTS = \
 
 MODULE = security
 
-CSRCS = \
+CSRCS = $(NULL)
+
+NO_CSRCS = \
 	certread.c \
 	p7common.c \
 	p7create.c \

@@ -48,7 +48,9 @@ PRIVATE_EXPORTS = \
 
 MODULE = security
 
-CSRCS = \
+CSRCS = $(NULL)
+
+NO_CSRCS = \
 	dev3hack.c \
 	pk11cert.c \
 	pk11err.c  \

@@ -46,7 +46,9 @@ PRIVATE_EXPORTS = \
 
 MODULE = security
 
-CSRCS = \
+CSRCS = $(NULL)
+
+NO_CSRCS = \
 	alg1485.c \
 	certdb.c \
 	certv3.c \
@@ -59,7 +61,6 @@ CSRCS = \
 	xauthkid.c \
 	xbsconst.c \
 	xconst.c \
-	$(NULL)
 
 REQUIRES = security dbm
 
