@@ -344,6 +344,7 @@ NSS_CMSSignerInfo_Verify(NSSCMSSignerInfo *signerinfo,
     CERTCertificate *cert;
     NSSCMSVerificationStatus vs = NSSCMSVS_Unverified;
     PLArenaPool *poolp;
+    SECOidTag    tag;
 
     if (signerinfo == NULL)
 	return SECFailure;
@@ -370,10 +371,13 @@ NSS_CMSSignerInfo_Verify(NSSCMSSignerInfo *signerinfo,
      * and we would Just Work.  So this check should just be removed,
      * but not until the VFY code is better at setting errors.
      */
-    switch (SECOID_GetAlgorithmTag(&(signerinfo->digestEncAlg))) {
+    tag = SECOID_GetAlgorithmTag(&(signerinfo->digestEncAlg));
+    switch (tag) {
     case SEC_OID_PKCS1_RSA_ENCRYPTION:
     case SEC_OID_ANSIX9_DSA_SIGNATURE:
     case SEC_OID_ANSIX9_DSA_SIGNATURE_WITH_SHA1_DIGEST:
+    case SEC_OID_PKCS1_SHA1_WITH_RSA_ENCRYPTION:
+    case SEC_OID_PKCS1_MD5_WITH_RSA_ENCRYPTION:
 	/* ok */
 	break;
     case SEC_OID_UNKNOWN:
