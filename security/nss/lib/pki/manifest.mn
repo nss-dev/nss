@@ -55,6 +55,7 @@ CSRCS =		        \
 	tdcache.c       \
 	certdecode.c    \
 	pkistore.c      \
+	pkibase.c       \
 	$(NULL)
 
 ifndef PURE_STAN_BUILD

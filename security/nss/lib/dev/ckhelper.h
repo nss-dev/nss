@@ -86,6 +86,12 @@ NSS_EXTERN_DATA const NSSItem g_ck_class_privkey;
     (pattr)->ulValueLen = (CK_ULONG)sizeof(var);      \
     (pattr)++;
 
+#define NSS_CK_SET_ATTRIBUTE_NULL(pattr, kind)        \
+    (pattr)->type = kind;                             \
+    (pattr)->pValue = (CK_VOID_PTR)NULL;              \
+    (pattr)->ulValueLen = 0;                          \
+    (pattr)++;
+
 #define NSS_CK_TEMPLATE_FINISH(_template, attr, size) \
     size = (attr) - (_template);                      \
     PR_ASSERT(size <= sizeof(_template)/sizeof(_template[0]));
@@ -127,7 +133,7 @@ nssCKObject_GetAttributes
   CK_ULONG count,
   NSSArena *arenaOpt,
   nssSession *session,
-  NSSSlot  *slot
+  NSSSlot *slot
 );
 
 /* Get a single attribute as an item. */

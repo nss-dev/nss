@@ -50,7 +50,6 @@ MODULE = security
 CSRCS =		        \
 	devmod.c        \
 	devslot.c       \
-	devobject.c     \
 	devtoken.c      \
 	devutil.c       \
 	ckhelper.c      \
