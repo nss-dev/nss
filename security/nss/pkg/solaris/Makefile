@@ -32,8 +32,6 @@ ifeq ($(MACH), sparc)
 	$(ROOT)/usr/sfw/bin/sparcv9
 endif
 
-DIST64 = $(shell echo $(DIST) | sed -e "s|_OPT|_64_OPT|g" -e "s|_DBG|_64_DBG|g")
-
 ifeq ($(USE_64), 1)
 ifeq ($(MACH), sparc)
 # Sparc
