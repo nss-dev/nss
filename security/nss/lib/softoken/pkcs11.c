@@ -52,14 +52,13 @@
 #include "pkcs11.h"
 #include "pkcs11i.h"
 #include "softoken.h"
-#include "cert.h"
-#include "keylow.h"
+#include "lowkeyi.h"
 #include "blapi.h"
 #include "secder.h"
 #include "secport.h"
-#include "certdb.h"
+#include "pcert.h"
 
-#include "private.h"
+#include "keydbi.h" 
 
  
 /*
@@ -481,7 +480,7 @@ pk11_configure(char *man, char *libdes, char *tokdes, char *ptokdes,
 
 /* Handle to give the password to the database. user arg should be a pointer
  * to the slot. */
-static SECItem *pk11_givePass(void *sp,SECKEYKeyDBHandle *handle)
+static SECItem *pk11_givePass(void *sp,NSSLOWKEYDBHandle *handle)
 {
     PK11Slot *slot = (PK11Slot *)sp;
 
@@ -494,18 +493,16 @@ static SECItem *pk11_givePass(void *sp,SECKEYKeyDBHandle *handle)
  * see if the key DB password is enabled
  */
 PRBool
-pk11_hasNullPassword(SECItem **pwitem)
+pk11_hasNullPassword(NSSLOWKEYDBHandle *keydb,SECItem **pwitem)
 {
     PRBool pwenabled;
-    SECKEYKeyDBHandle *keydb;
     
-    keydb = SECKEY_GetDefaultKeyDB();
     pwenabled = PR_FALSE;
     *pwitem = NULL;
-    if (SECKEY_HasKeyDBPassword (keydb) == SECSuccess) {
-	*pwitem = SECKEY_HashPassword("", keydb->global_salt);
+    if (nsslowkey_HasKeyDBPassword (keydb) == SECSuccess) {
+	*pwitem = nsslowkey_HashPassword("", keydb->global_salt);
 	if ( *pwitem ) {
-	    if (SECKEY_CheckKeyDBPassword (keydb, *pwitem) == SECSuccess) {
+	    if (nsslowkey_CheckKeyDBPassword (keydb, *pwitem) == SECSuccess) {
 		pwenabled = PR_TRUE;
 	    } else {
 	    	SECITEM_ZfreeItem(*pwitem, PR_TRUE);
@@ -567,8 +564,8 @@ pk11_handleCertObject(PK11Session *session,PK11Object *object)
     CK_CERTIFICATE_TYPE type;
     SECItem derCert;
     char *label;
-    CERTCertDBHandle *handle;
-    CERTCertificate *cert;
+    NSSLOWCERTCertDBHandle *handle;
+    NSSLOWCERTCertificate *cert;
     CK_RV crv;
 
     /* certificates must have a type */
@@ -603,32 +600,16 @@ pk11_handleCertObject(PK11Session *session,PK11Object *object)
 	return CKR_TEMPLATE_INCOMPLETE;
     }
 
-    /*
-     * now parse the certificate
-     */
-    handle = CERT_GetDefaultCertDB();
-
     /* get the nickname */
     label = pk11_getString(object,CKA_LABEL);
     object->label = label;
     if (label == NULL) {
 	return CKR_HOST_MEMORY;
     }
-  
-    /* get the der cert */ 
-    attribute = pk11_FindAttribute(object,CKA_VALUE);
-    derCert.data = (unsigned char *)attribute->attrib.pValue;
-    derCert.len = attribute->attrib.ulValueLen ;
-    
-    cert = CERT_NewTempCertificate(handle, &derCert, label, PR_FALSE, PR_TRUE);
-    pk11_FreeAttribute(attribute);
-    if (cert == NULL) {
-	return CKR_ATTRIBUTE_VALUE_INVALID;
-    }
 
     /* add it to the object */
     object->objectInfo = cert;
-    object->infoFree = (PK11Free) CERT_DestroyCertificate;
+    object->infoFree = (PK11Free) nsslowcert_DestroyCertificate;
     
     /* now just verify the required date fields */
     crv = pk11_defaultAttribute(object, CKA_ID, NULL, 0);
@@ -642,8 +623,41 @@ pk11_handleCertObject(PK11Session *session,PK11Object *object)
 
 
     if (pk11_isTrue(object,CKA_TOKEN)) {
-	SECCertUsage *certUsage = NULL;
-	CERTCertTrust trust = { CERTDB_USER, CERTDB_USER, CERTDB_USER };
+	NSSLOWCERTCertTrust trust = { CERTDB_USER, CERTDB_USER, CERTDB_USER };
+
+	if (slot->certDB == NULL) {
+	    return CKR_READONLY;
+	}
+
+	if (slot->keyDB && 
+	    ((nsslowkey_KeyForCertExists(slot->keyDB, cert) == SECSuccess))) {
+	    isUser = PR_TRUE;
+	}
+
+	/* if cert exists */
+	/* {   update trust if isUser, done } */
+
+	
+
+
+/* MORE WORK HERE!!!! */
+
+    /*
+     * now parse the certificate
+     */
+    handle = nsslowcert_GetDefaultCertDB(); /* GET HANDLE FROM SESSION 3.4 */
+
+    /* get the der cert */ 
+    attribute = pk11_FindAttribute(object,CKA_VALUE);
+    derCert.data = (unsigned char *)attribute->attrib.pValue;
+    derCert.len = attribute->attrib.ulValueLen ;
+
+	cert=lookupcert(cert);
+    pk11_FreeAttribute(attribute);
+    if (cert == NULL) {
+	return CKR_ATTRIBUTE_VALUE_INVALID;
+    }
+    
 
 	attribute = pk11_FindAttribute(object,CKA_NETSCAPE_TRUST);
 	if(attribute) {
@@ -662,20 +676,15 @@ pk11_handleCertObject(PK11Session *session,PK11Object *object)
 	    PORT_Memcpy(cert->nickname, label, PORT_Strlen(label));
 	}
 
-	/* only add certs that have a private key */
-	if (SECKEY_KeyForCertExists(SECKEY_GetDefaultKeyDB(),cert) 
-							!= SECSuccess) {
-	    return CKR_ATTRIBUTE_VALUE_INVALID;
-	}
 	if (!cert->isperm) {
-	    if (CERT_AddTempCertToPerm(cert, label, &trust) != SECSuccess) {
+	    if (nsslowcert_AddTempCertToPerm(cert, label, &trust) != SECSuccess) {
 		return CKR_HOST_MEMORY;
 	    }
         } else {
-	    CERT_ChangeCertTrust(cert->dbhandle,cert,&trust);
+	    nsslowcert_ChangeCertTrust(cert->dbhandle,cert,&trust);
 	}
 	if(certUsage) {
-	    if(CERT_ChangeCertTrustByUsage(CERT_GetDefaultCertDB(),
+	    if(nsslowcert_ChangeCertTrustByUsage(nsslowcert_GetDefaultCertDB(),
 				cert, *certUsage) != SECSuccess) {
 		return CKR_HOST_MEMORY;
 	    }
@@ -690,7 +699,7 @@ pk11_handleCertObject(PK11Session *session,PK11Object *object)
     return CKR_OK;
 }
 
-SECKEYLowPublicKey * pk11_GetPubKey(PK11Object *object,CK_KEY_TYPE key);
+NSSLOWKEYPublicKey * pk11_GetPubKey(PK11Object *object,CK_KEY_TYPE key);
 /*
  * check the consistancy and initialize a Public Key Object 
  */
@@ -748,7 +757,7 @@ pk11_handlePublicKeyObject(PK11Object *object,CK_KEY_TYPE key_type)
     if (crv != CKR_OK)  return crv; 
 
     object->objectInfo = pk11_GetPubKey(object,key_type);
-    object->infoFree = (PK11Free) SECKEY_LowDestroyPublicKey;
+    object->infoFree = (PK11Free) nsslowkey_DestroyPublicKey;
 
     if (pk11_isTrue(object,CKA_TOKEN)) {
         object->handle |= (PK11_TOKEN_MAGIC | PK11_TOKEN_TYPE_PUB);
@@ -762,15 +771,18 @@ pk11_handlePublicKeyObject(PK11Object *object,CK_KEY_TYPE key_type)
  * should include this comment.
  */
 static SECItem *
-pk11_GetPubItem(SECKEYPublicKey *pubKey) {
+pk11_GetPubItem(NSSLOWKEYPublicKey *pubKey) {
     SECItem *pubItem = NULL;
     /* get value to compare from the cert's public key */
     switch ( pubKey->keyType ) {
-    case rsaKey:
+    case NSSLOWKEYRSAKey:
 	    pubItem = &pubKey->u.rsa.modulus;
 	    break;
-    case dsaKey:
+    case NSSLOWKEYDSAKey:
 	    pubItem = &pubKey->u.dsa.publicValue;
+	    break;
+    case NSSLOWKEYDHKey:
+	    pubItem = &pubKey->u.dh.publicValue;
 	    break;
     default:
 	    break;
@@ -778,35 +790,16 @@ pk11_GetPubItem(SECKEYPublicKey *pubKey) {
     return pubItem;
 }
 
-/* convert a high key type to a low key type. This will go away when
- * the last SECKEYPublicKey structs go away.
- */
-LowKeyType
-seckeyLow_KeyType(KeyType keyType)
-{
-    switch (keyType) {
-    case rsaKey:
-	return lowRSAKey;
-    case dsaKey:
-	return lowDSAKey;
-    case dhKey:
-	return lowDHKey;
-    default:
-	break;
-    }
-    return lowNullKey;
-}
-
 typedef struct {
-    CERTCertificate *cert;
+    NSSLOWCERTCertificate *cert;
     SECItem *pubKey;
 } find_cert_callback_arg;
 
 static SECStatus
-find_cert_by_pub_key(CERTCertificate *cert, SECItem *k, void *arg)
+find_cert_by_pub_key(NSSLOWCERTCertificate *cert, SECItem *k, void *arg)
 {
     find_cert_callback_arg *cbarg;
-    SECKEYPublicKey *pubKey = NULL;
+    NSSLOWKEYPublicKey *pubKey = NULL;
     SECItem *pubItem;
 
     if((cert == NULL) || (arg == NULL)) {
@@ -823,7 +816,7 @@ find_cert_by_pub_key(CERTCertificate *cert, SECItem *k, void *arg)
     }
 
     /* get cert's public key */
-    pubKey = CERT_ExtractPublicKey(cert);
+    pubKey = nsslowcert_ExtractPublicKey(cert);
     if ( pubKey == NULL ) {
 	goto done;
     }
@@ -838,19 +831,19 @@ find_cert_by_pub_key(CERTCertificate *cert, SECItem *k, void *arg)
     cbarg = (find_cert_callback_arg *)arg;
 
     if(SECITEM_CompareItem(pubItem, cbarg->pubKey) == SECEqual) {
-	cbarg->cert = CERT_DupCertificate(cert);
+	cbarg->cert = nsslowcert_DupCertificate(cert);
 	return SECFailure;
     }
 
 done:
     if ( pubKey ) {
-	SECKEY_DestroyPublicKey(pubKey);
+	nsslowkey_DestroyPublicKey(pubKey);
     }
 
     return (SECSuccess);
 }
 
-static PK11Object *pk11_importCertificate(PK11Slot *slot,CERTCertificate *cert,
+static PK11Object *pk11_importCertificate(PK11Slot *slot,NSSLOWCERTCertificate *cert,
 		 unsigned char *data, unsigned int size, PRBool needCert);
 /* 
  * find a cert associated with the key and load it.
@@ -860,31 +853,27 @@ reload_existing_certificate(PK11Object *privKeyObject,SECItem *pubKey)
 {
     find_cert_callback_arg cbarg;
     SECItem nickName;
-    CERTCertificate *cert = NULL;
+    NSSLOWCERTCertificate *cert = NULL;
     CK_RV crv;
     SECStatus rv;
+
+    PORT_Assert(privKeyObject->slot->certdb);
+    if (privKeyObject->slot->certdb == NULL) return SECFailure;
 		    
     cbarg.pubKey = pubKey;
     cbarg.cert = NULL;
-    SEC_TraversePermCerts(CERT_GetDefaultCertDB(),
+    nsslowcert_TraversePermCerts(privKeyObject->slot->certdb,
 				       find_cert_by_pub_key, (void *)&cbarg);
     if (cbarg.cert != NULL) {
-	CERTCertificate *cert = NULL;
-	/* can anyone tell me why this is call is necessary? rjr */
-	cert = CERT_FindCertByDERCert(CERT_GetDefaultCertDB(),
-							&cbarg.cert->derCert);
+	NSSLOWCERTCertificate *cert = NULL;
+	cert = cbarg.cert
 
-	/* does the certificate in the database have a 
-	 * nickname?  if not, it probably was inserted 
-	 * through SMIME and a nickname needs to be 
-	 * set.
-	 */
 	if (cert && !cert->nickname) {
 	    crv=pk11_Attribute2SecItem(NULL,&nickName,privKeyObject,CKA_LABEL);
 	    if (crv != CKR_OK) {
 		goto loser;
 	    }
-	    rv = CERT_AddPermNickname(cert, (char *)nickName.data);
+	    rv = nsslowcert_AddPermNickname(cert, (char *)nickName.data);
 	    SECITEM_ZfreeItem(&nickName, PR_FALSE);
 	    if (rv != SECSuccess) {
 		goto loser;
@@ -898,12 +887,11 @@ reload_existing_certificate(PK11Object *privKeyObject,SECItem *pubKey)
 
     return SECSuccess;
 loser:
-    if (cert) CERT_DestroyCertificate(cert);
-    if (cbarg.cert) CERT_DestroyCertificate(cbarg.cert);
+    if (cbarg.cert) nsslowcert_DestroyCertificate(cbarg.cert);
     return SECFailure;
 }
 
-static SECKEYLowPrivateKey * pk11_mkPrivKey(PK11Object *object,CK_KEY_TYPE key);
+static NSSLOWKEYPrivateKey * pk11_mkPrivKey(PK11Object *object,CK_KEY_TYPE key);
 /*
  * check the consistancy and initialize a Private Key Object 
  */
@@ -1001,7 +989,7 @@ pk11_handlePrivateKeyObject(PK11Object *object,CK_KEY_TYPE key_type)
     if (crv != CKR_OK)  return crv; 
 
     if (pk11_isTrue(object,CKA_TOKEN)) {
-	SECKEYLowPrivateKey *privKey;
+	NSSLOWKEYPrivateKey *privKey;
 	char *label;
 	SECStatus rv = SECSuccess;
 	SECItem pubKey;
@@ -1012,9 +1000,10 @@ pk11_handlePrivateKeyObject(PK11Object *object,CK_KEY_TYPE key_type)
 
 	crv = pk11_Attribute2SecItem(NULL,&pubKey,object,CKA_NETSCAPE_DB);
 	if (crv == CKR_OK) {
-	    rv = SECKEY_StoreKeyByPublicKey(SECKEY_GetDefaultKeyDB(),
+	    PORT_Assert(object->slot->keydb);
+	    rv = nsslowkey_StoreKeyByPublicKey(object->slot->keydb,
 			privKey, &pubKey, label,
-			(SECKEYLowGetPasswordKey) pk11_givePass, object->slot);
+			(NSSLOWKEYGetPasswordKey) pk11_givePass, object->slot);
 
 	    /* check for the existance of an existing certificate and activate
 	     * it if necessary */
@@ -1027,14 +1016,14 @@ pk11_handlePrivateKeyObject(PK11Object *object,CK_KEY_TYPE key_type)
 	    rv = SECFailure;
 	}
 
-	SECKEY_LowDestroyPrivateKey(privKey);
+	nsslowkey_DestroyPrivateKey(privKey);
 	if (rv != SECSuccess) return CKR_DEVICE_ERROR;
 	object->inDB = PR_TRUE;
         object->handle |= (PK11_TOKEN_MAGIC | PK11_TOKEN_TYPE_PRIV);
     } else {
 	object->objectInfo = pk11_mkPrivKey(object,key_type);
 	if (object->objectInfo == NULL) return CKR_HOST_MEMORY;
-	object->infoFree = (PK11Free) SECKEY_LowDestroyPrivateKey;
+	object->infoFree = (PK11Free) nsslowkey_DestroyPrivateKey;
     }
     /* now NULL out the sensitive attributes */
     if (pk11_isTrue(object,CKA_SENSITIVE)) {
@@ -1050,7 +1039,7 @@ pk11_handlePrivateKeyObject(PK11Object *object,CK_KEY_TYPE key_type)
 
 /* forward delcare the DES formating function for handleSecretKey */
 void pk11_FormatDESKey(unsigned char *key, int length);
-static SECKEYLowPrivateKey *pk11_mkSecretKeyRep(PK11Object *object);
+static NSSLOWKEYPrivateKey *pk11_mkSecretKeyRep(PK11Object *object);
 
 /* Validate secret key data, and set defaults */
 static CK_RV
@@ -1136,7 +1125,7 @@ pk11_handleSecretKeyObject(PK11Object *object,CK_KEY_TYPE key_type,
 								PRBool isFIPS)
 {
     CK_RV crv;
-    SECKEYLowPrivateKey *privKey = NULL;
+    NSSLOWKEYPrivateKey *privKey = NULL;
     SECItem pubKey;
 
     pubKey.data = 0;
@@ -1158,9 +1147,10 @@ pk11_handleSecretKeyObject(PK11Object *object,CK_KEY_TYPE key_type,
 	crv = pk11_Attribute2SecItem(NULL,&pubKey,object,CKA_ID);  /* Should this be ID? */
 	if (crv != CKR_OK) goto loser;
 
-	rv = SECKEY_StoreKeyByPublicKey(SECKEY_GetDefaultKeyDB(),
+	PORT_Assert(object->slot->keydb);
+	rv = nsslowkey_StoreKeyByPublicKey(object->slot->keydb,
 			privKey, &pubKey, label,
-			(SECKEYLowGetPasswordKey) pk11_givePass, object->slot);
+			(NSSLOWKEYGetPasswordKey) pk11_givePass, object->slot);
 	if (rv != SECSuccess) {
 	    crv = CKR_DEVICE_ERROR;
 	}
@@ -1170,7 +1160,7 @@ pk11_handleSecretKeyObject(PK11Object *object,CK_KEY_TYPE key_type,
     }
 
 loser:
-    if (privKey) SECKEY_LowDestroyPrivateKey(privKey);
+    if (privKey) nsslowkey_DestroyPrivateKey(privKey);
     if (pubKey.data) PORT_Free(pubKey.data);
 
     return crv;
@@ -1323,7 +1313,7 @@ pk11_handleObject(PK11Object *object, PK11Session *session)
  * because we the private key came from the key DB and we don't want to
  * write back out again */
 static PK11Object *
-pk11_importPrivateKey(PK11Slot *slot,SECKEYLowPrivateKey *lowPriv,
+pk11_importPrivateKey(PK11Slot *slot,NSSLOWKEYPrivateKey *lowPriv,
 							SECItem *dbKey)
 {
     PK11Object *privateKey;
@@ -1438,7 +1428,7 @@ pk11_importPrivateKey(PK11Slot *slot,SECKEYLowPrivateKey *lowPriv,
      * will look them up again from the database when it needs them.
      */
     switch (lowPriv->keyType) {
-    case lowRSAKey:
+    case NSSLOWKEYRSAKey:
 	/* format the keys */
 	key_type = CKK_RSA;
 	sign = CK_TRUE;
@@ -1464,7 +1454,7 @@ pk11_importPrivateKey(PK11Slot *slot,SECKEYLowPrivateKey *lowPriv,
 	if (crv != CKR_OK)  break;
         crv = pk11_AddAttributeType(privateKey,CKA_COEFFICIENT,NULL,0);
 	break;
-    case lowDSAKey:
+    case NSSLOWKEYDSAKey:
 	key_type = CKK_DSA;
 	sign = CK_TRUE;
 	recover = CK_FALSE;
@@ -1482,13 +1472,20 @@ pk11_importPrivateKey(PK11Slot *slot,SECKEYLowPrivateKey *lowPriv,
 	crv = pk11_AddAttributeType(privateKey,CKA_VALUE,NULL,0);
 	if (crv != CKR_OK) break;
 	break;
-    case lowDHKey:
+    case NSSLOWKEYDHKey:
 	key_type = CKK_DH;
 	sign = CK_FALSE;
 	decrypt = CK_FALSE;
 	recover = CK_FALSE;
 	derive = CK_TRUE;
-	crv = CKR_MECHANISM_INVALID;
+	crv = pk11_AddAttributeType(privateKey,CKA_PRIME,
+			   pk11_item_expand(&lowPriv->u.dh.prime));
+	if (crv != CKR_OK) break;
+	crv = pk11_AddAttributeType(privateKey,CKA_BASE,
+			   pk11_item_expand(&lowPriv->u.dh.base));
+	if (crv != CKR_OK) break;
+	crv = pk11_AddAttributeType(privateKey,CKA_VALUE,NULL,0);
+	if (crv != CKR_OK) break;
 	break;
     default:
 	crv = CKR_MECHANISM_INVALID;
@@ -1544,7 +1541,7 @@ pk11_importPrivateKey(PK11Slot *slot,SECKEYLowPrivateKey *lowPriv,
 /* import a private key or cert as a public key object.*/
 static PK11Object *
 pk11_importPublicKey(PK11Slot *slot,
-	SECKEYLowPrivateKey *lowPriv, CERTCertificate *cert, SECItem *dbKey)
+	NSSLOWKEYPrivateKey *lowPriv, NSSLOWCERTCertificate *cert, SECItem *dbKey)
 {
     PK11Object *publicKey = NULL;
     CK_KEY_TYPE key_type;
@@ -1557,13 +1554,13 @@ pk11_importPublicKey(PK11Slot *slot,
     CK_RV crv = CKR_OK;
     CK_OBJECT_CLASS pubClass = CKO_PUBLIC_KEY;
     unsigned char cka_id[SHA1_LENGTH];
-    LowKeyType keyType = nullKey;
-    SECKEYPublicKey *pubKey = NULL;
+    NSSLOWKEYType keyType = NSSLOWKEYNullKey;
+    NSSLOWKEYPublicKey *pubKey = NULL;
     CK_ATTRIBUTE theTemplate[2];
     PK11ObjectListElement *objectList = NULL;
 
     if (lowPriv == NULL) {
-	pubKey = CERT_ExtractPublicKey(cert);
+	pubKey = nsslowcert_ExtractPublicKey(cert);
 	if (pubKey == NULL) {
 	    goto failed;
 	}
@@ -1656,15 +1653,14 @@ pk11_importPublicKey(PK11Slot *slot,
 
     /* Now Set up the parameters to generate the key (based on mechanism) */
     if (lowPriv == NULL) {
-
-	keyType = seckeyLow_KeyType(pubKey->keyType); 
+	keyType = pubKey->keyType; 
     } else {
 	keyType = lowPriv->keyType;
     } 
 
 
     switch (keyType) {
-    case lowRSAKey:
+    case NSSLOWKEYRSAKey:
 	/* format the keys */
 	key_type = CKK_RSA;
 	verify = CK_TRUE;
@@ -1688,7 +1684,7 @@ pk11_importPublicKey(PK11Slot *slot,
 	    if (crv != CKR_OK) break;
 	}
 	break;
-    case lowDSAKey:
+    case NSSLOWKEYDSAKey:
 	key_type = CKK_DSA;
 	verify = CK_TRUE;
 	recover = CK_FALSE;
@@ -1722,20 +1718,40 @@ pk11_importPublicKey(PK11Slot *slot,
 	    if (crv != CKR_OK) break;
 	}
 	break;
-    case lowDHKey:
+    case NSSLOWKEYDHKey:
 	key_type = CKK_DH;
 	verify = CK_FALSE;
 	encrypt = CK_FALSE;
 	recover = CK_FALSE;
 	derive = CK_TRUE;
-	crv = CKR_MECHANISM_INVALID;
+ 	if (lowPriv) {
+	    crv = pk11_AddAttributeType(publicKey,CKA_PRIME,
+			   pk11_item_expand(&lowPriv->u.dh.prime));
+	    if (crv != CKR_OK) break;
+	    crv = pk11_AddAttributeType(publicKey,CKA_BASE,
+			   pk11_item_expand(&lowPriv->u.dh.base));
+	    if (crv != CKR_OK) break;
+	    crv = pk11_AddAttributeType(publicKey,CKA_VALUE,
+			   pk11_item_expand(&lowPriv->u.dh.publicValue));
+	    if (crv != CKR_OK) break;
+	} else {
+	    crv = pk11_AddAttributeType(publicKey,CKA_PRIME,
+			   pk11_item_expand(&pubKey->u.dh.prime));
+	    if (crv != CKR_OK) break;
+	    crv = pk11_AddAttributeType(publicKey,CKA_BASE,
+			   pk11_item_expand(&pubKey->u.dh.base));
+	    if (crv != CKR_OK) break;
+	    crv = pk11_AddAttributeType(publicKey,CKA_VALUE,
+			   pk11_item_expand(&pubKey->u.dh.publicValue));
+	    if (crv != CKR_OK) break;
+	}
 	break;
     default:
 	crv = CKR_MECHANISM_INVALID;
     }
 
     if (pubKey) {
-	SECKEY_DestroyPublicKey(pubKey);
+	nsslowkey_DestroyPublicKey(pubKey);
 	pubKey = NULL;
     }
 
@@ -1777,7 +1793,7 @@ pk11_importPublicKey(PK11Slot *slot,
 
     return publicKey;
 failed:
-    if (pubKey) SECKEY_DestroyPublicKey(pubKey);
+    if (pubKey) nsslowkey_DestroyPublicKey(pubKey);
     if (publicKey) pk11_FreeObject(publicKey);
     return NULL;
 }
@@ -1789,7 +1805,7 @@ failed:
  * the database.
  */
 static PK11Object *
-pk11_importCertificate(PK11Slot *slot, CERTCertificate *cert, 
+pk11_importCertificate(PK11Slot *slot, NSSLOWCERTCertificate *cert, 
 		unsigned char *data, unsigned int size, PRBool needObject)
 {
     PK11Object *certObject = NULL;
@@ -1830,7 +1846,7 @@ pk11_importCertificate(PK11Slot *slot, CERTCertificate *cert,
 
     /* First set the CKA_ID */
     if (data == NULL) {
-	SECKEYPublicKey *pubKey = CERT_ExtractPublicKey(cert);
+	NSSLOWKEYPublicKey *pubKey = nsslowcert_ExtractPublicKey(cert);
 	SECItem *pubItem;
 	if (pubKey == NULL) {
 	    pk11_FreeObject(certObject);
@@ -1842,13 +1858,13 @@ pk11_importCertificate(PK11Slot *slot, CERTCertificate *cert,
 	 */
 	pubItem =pk11_GetPubItem(pubKey);
 	if (pubItem == NULL)  {
-	    SECKEY_DestroyPublicKey(pubKey);
+	    nsslowkey_DestroyPublicKey(pubKey);
 	    pk11_FreeObject(certObject);
 	    return NULL;
 	} 
     	SHA1_HashBuf(cka_id, (unsigned char *)pubItem->data, 
 							(uint32)pubItem->len);
-	SECKEY_DestroyPublicKey(pubKey);
+	nsslowkey_DestroyPublicKey(pubKey);
     } else {
 	SHA1_HashBuf(cka_id, (unsigned char *)data, (uint32)size);
     }
@@ -1911,8 +1927,8 @@ pk11_importCertificate(PK11Slot *slot, CERTCertificate *cert,
     }
 
   
-    certObject->objectInfo = CERT_DupCertificate(cert);
-    certObject->infoFree = (PK11Free) CERT_DestroyCertificate;
+    certObject->objectInfo = NULL;
+    certObject->infoFree = (PK11Free) NULL;
     
     /* now just verify the required date fields */
     PK11_USE_THREADS(PZ_Lock(slot->objectLock);)
@@ -1936,9 +1952,9 @@ pk11_importCertificate(PK11Slot *slot, CERTCertificate *cert,
  * ******************** Public Key Utilities ***************************
  */
 /* Generate a low public key structure from an object */
-SECKEYLowPublicKey *pk11_GetPubKey(PK11Object *object,CK_KEY_TYPE key_type)
+NSSLOWKEYPublicKey *pk11_GetPubKey(PK11Object *object,CK_KEY_TYPE key_type)
 {
-    SECKEYLowPublicKey *pubKey;
+    NSSLOWKEYPublicKey *pubKey;
     PLArenaPool *arena;
     CK_RV crv;
 
@@ -1948,15 +1964,15 @@ SECKEYLowPublicKey *pk11_GetPubKey(PK11Object *object,CK_KEY_TYPE key_type)
 
     /* If we already have a key, use it */
     if (object->objectInfo) {
-	return (SECKEYLowPublicKey *)object->objectInfo;
+	return (NSSLOWKEYPublicKey *)object->objectInfo;
     }
 
     /* allocate the structure */
     arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
     if (arena == NULL) return NULL;
 
-    pubKey = (SECKEYLowPublicKey *)
-			PORT_ArenaAlloc(arena,sizeof(SECKEYLowPublicKey));
+    pubKey = (NSSLOWKEYPublicKey *)
+			PORT_ArenaAlloc(arena,sizeof(NSSLOWKEYPublicKey));
     if (pubKey == NULL) {
     	PORT_FreeArena(arena,PR_FALSE);
 	return NULL;
@@ -1966,7 +1982,7 @@ SECKEYLowPublicKey *pk11_GetPubKey(PK11Object *object,CK_KEY_TYPE key_type)
     pubKey->arena = arena;
     switch (key_type) {
     case CKK_RSA:
-	pubKey->keyType = lowRSAKey;
+	pubKey->keyType = NSSLOWKEYRSAKey;
 	crv = pk11_Attribute2SSecItem(arena,&pubKey->u.rsa.modulus,
 							object,CKA_MODULUS);
     	if (crv != CKR_OK) break;
@@ -1974,7 +1990,7 @@ SECKEYLowPublicKey *pk11_GetPubKey(PK11Object *object,CK_KEY_TYPE key_type)
 						object,CKA_PUBLIC_EXPONENT);
 	break;
     case CKK_DSA:
-	pubKey->keyType = lowDSAKey;
+	pubKey->keyType = NSSLOWKEYDSAKey;
 	crv = pk11_Attribute2SSecItem(arena,&pubKey->u.dsa.params.prime,
 							object,CKA_PRIME);
     	if (crv != CKR_OK) break;
@@ -1988,7 +2004,7 @@ SECKEYLowPublicKey *pk11_GetPubKey(PK11Object *object,CK_KEY_TYPE key_type)
 							object,CKA_VALUE);
 	break;
     case CKK_DH:
-	pubKey->keyType = lowDHKey;
+	pubKey->keyType = NSSLOWKEYDHKey;
 	crv = pk11_Attribute2SSecItem(arena,&pubKey->u.dh.prime,
 							object,CKA_PRIME);
     	if (crv != CKR_OK) break;
@@ -2008,15 +2024,15 @@ SECKEYLowPublicKey *pk11_GetPubKey(PK11Object *object,CK_KEY_TYPE key_type)
     }
 
     object->objectInfo = pubKey;
-    object->infoFree = (PK11Free) SECKEY_LowDestroyPublicKey;
+    object->infoFree = (PK11Free) nsslowkey_DestroyPublicKey;
     return pubKey;
 }
 
 /* make a private key from a verified object */
-static SECKEYLowPrivateKey *
+static NSSLOWKEYPrivateKey *
 pk11_mkPrivKey(PK11Object *object,CK_KEY_TYPE key_type)
 {
-    SECKEYLowPrivateKey *privKey;
+    NSSLOWKEYPrivateKey *privKey;
     PLArenaPool *arena;
     CK_RV crv = CKR_OK;
     SECStatus rv;
@@ -2024,8 +2040,8 @@ pk11_mkPrivKey(PK11Object *object,CK_KEY_TYPE key_type)
     arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
     if (arena == NULL) return NULL;
 
-    privKey = (SECKEYLowPrivateKey *)
-			PORT_ArenaAlloc(arena,sizeof(SECKEYLowPrivateKey));
+    privKey = (NSSLOWKEYPrivateKey *)
+			PORT_ArenaAlloc(arena,sizeof(NSSLOWKEYPrivateKey));
     if (privKey == NULL)  {
 	PORT_FreeArena(arena,PR_FALSE);
 	return NULL;
@@ -2035,7 +2051,7 @@ pk11_mkPrivKey(PK11Object *object,CK_KEY_TYPE key_type)
     privKey->arena = arena;
     switch (key_type) {
     case CKK_RSA:
-	privKey->keyType = lowRSAKey;
+	privKey->keyType = NSSLOWKEYRSAKey;
 	crv=pk11_Attribute2SSecItem(arena,&privKey->u.rsa.modulus,
 							object,CKA_MODULUS);
 	if (crv != CKR_OK) break;
@@ -2061,12 +2077,12 @@ pk11_mkPrivKey(PK11Object *object,CK_KEY_TYPE key_type)
 							      CKA_COEFFICIENT);
 	if (crv != CKR_OK) break;
         rv = DER_SetUInteger(privKey->arena, &privKey->u.rsa.version,
-                          SEC_PRIVATE_KEY_VERSION);
+                          NSSLOWKEY_VERSION);
 	if (rv != SECSuccess) crv = CKR_HOST_MEMORY;
 	break;
 
     case CKK_DSA:
-	privKey->keyType = lowDSAKey;
+	privKey->keyType = NSSLOWKEYDSAKey;
 	crv = pk11_Attribute2SSecItem(arena,&privKey->u.dsa.params.prime,
 							object,CKA_PRIME);
     	if (crv != CKR_OK) break;
@@ -2085,7 +2101,7 @@ pk11_mkPrivKey(PK11Object *object,CK_KEY_TYPE key_type)
 	break;
 
     case CKK_DH:
-	privKey->keyType = lowDHKey;
+	privKey->keyType = NSSLOWKEYDHKey;
 	crv = pk11_Attribute2SSecItem(arena,&privKey->u.dh.prime,
 							object,CKA_PRIME);
     	if (crv != CKR_OK) break;
@@ -2094,6 +2110,9 @@ pk11_mkPrivKey(PK11Object *object,CK_KEY_TYPE key_type)
     	if (crv != CKR_OK) break;
     	crv = pk11_Attribute2SSecItem(arena,&privKey->u.dh.privateValue,
 							object,CKA_VALUE);
+    	if (crv != CKR_OK) break;
+    	crv = pk11_Attribute2SSecItem(arena,&privKey->u.dh.publicValue,
+							object,CKA_NETSCAPE_DB);
 	break;
     default:
 	crv = CKR_KEY_TYPE_INCONSISTENT;
@@ -2108,16 +2127,16 @@ pk11_mkPrivKey(PK11Object *object,CK_KEY_TYPE key_type)
 
 
 /* Generate a low private key structure from an object */
-SECKEYLowPrivateKey *
+NSSLOWKEYPrivateKey *
 pk11_GetPrivKey(PK11Object *object,CK_KEY_TYPE key_type)
 {
-    SECKEYLowPrivateKey *priv = NULL;
+    NSSLOWKEYPrivateKey *priv = NULL;
 
     if (object->objclass != CKO_PRIVATE_KEY) {
 	return NULL;
     }
     if (object->objectInfo) {
-	return (SECKEYLowPrivateKey *)object->objectInfo;
+	return (NSSLOWKEYPrivateKey *)object->objectInfo;
     }
 
     if (pk11_isTrue(object,CKA_TOKEN)) {
@@ -2129,9 +2148,10 @@ pk11_GetPrivKey(PK11Object *object,CK_KEY_TYPE key_type)
 	 *  RSA */
 	crv=pk11_Attribute2SecItem(NULL,&pubKey,object,CKA_NETSCAPE_DB);
 	if (crv != CKR_OK) return NULL;
-	
-	priv=SECKEY_FindKeyByPublicKey(SECKEY_GetDefaultKeyDB(),&pubKey,
-				       (SECKEYLowGetPasswordKey) pk11_givePass,
+
+	PORT_Assert(object->slot->keydb);	
+	priv=nsslowkey_FindKeyByPublicKey(object->slot->keydb,&pubKey,
+				       (NSSLOWKEYGetPasswordKey) pk11_givePass,
 				       object->slot);
 	if (!priv && pubKey.data[0] == 0) {
 	    /* Because of legacy code issues, sometimes the public key has
@@ -2141,8 +2161,8 @@ pk11_GetPrivKey(PK11Object *object,CK_KEY_TYPE key_type)
 	    SECItem tmpPubKey;
 	    tmpPubKey.data = pubKey.data + 1;
 	    tmpPubKey.len = pubKey.len - 1;
-	    priv=SECKEY_FindKeyByPublicKey(SECKEY_GetDefaultKeyDB(),&tmpPubKey,
-				           (SECKEYLowGetPasswordKey) pk11_givePass,
+	    priv=nsslowkey_FindKeyByPublicKey(object->slot->keydb,
+			&tmpPubKey, (NSSLOWKEYGetPasswordKey) pk11_givePass,
 				           object->slot);
 	}
 	if (pubKey.data) PORT_Free(pubKey.data);
@@ -2153,7 +2173,7 @@ pk11_GetPrivKey(PK11Object *object,CK_KEY_TYPE key_type)
 
     priv = pk11_mkPrivKey(object, key_type);
     object->objectInfo = priv;
-    object->infoFree = (PK11Free) SECKEY_LowDestroyPrivateKey;
+    object->infoFree = (PK11Free) nsslowkey_DestroyPrivateKey;
     return priv;
 }
 
@@ -2218,10 +2238,10 @@ pk11_IsWeakKey(unsigned char *key,CK_KEY_TYPE key_type)
 
 
 /* make a fake private key representing a symmetric key */
-static SECKEYLowPrivateKey *
+static NSSLOWKEYPrivateKey *
 pk11_mkSecretKeyRep(PK11Object *object)
 {
-    SECKEYLowPrivateKey *privKey;
+    NSSLOWKEYPrivateKey *privKey;
     PLArenaPool *arena = 0;
     CK_RV crv;
     SECStatus rv;
@@ -2230,8 +2250,8 @@ pk11_mkSecretKeyRep(PK11Object *object)
     arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
     if (arena == NULL) { crv = CKR_HOST_MEMORY; goto loser; }
 
-    privKey = (SECKEYLowPrivateKey *)
-			PORT_ArenaAlloc(arena,sizeof(SECKEYLowPrivateKey));
+    privKey = (NSSLOWKEYPrivateKey *)
+			PORT_ArenaAlloc(arena,sizeof(NSSLOWKEYPrivateKey));
     if (privKey == NULL) { crv = CKR_HOST_MEMORY; goto loser; }
 
     privKey->arena = arena;
@@ -2245,7 +2265,7 @@ pk11_mkSecretKeyRep(PK11Object *object)
      *      is used for the key.
      *   all others - set to integer 0
      */
-    privKey->keyType = lowRSAKey;
+    privKey->keyType = NSSLOWKEYRSAKey;
 
     /* The modulus is set to the key id of the symmetric key */
     crv=pk11_Attribute2SecItem(arena,&privKey->u.rsa.modulus,object,CKA_ID);
@@ -2277,7 +2297,8 @@ pk11_mkSecretKeyRep(PK11Object *object)
     if (crv != CKR_OK) goto loser;
 
     /* Private key version field set normally for compatibility */
-    rv = DER_SetUInteger(privKey->arena, &privKey->u.rsa.version,SEC_PRIVATE_KEY_VERSION);
+    rv = DER_SetUInteger(privKey->arena, 
+			&privKey->u.rsa.version, NSSLOWKEY_VERSION);
     if (rv != SECSuccess) { crv = CKR_HOST_MEMORY; goto loser; }
 
 loser:
@@ -2290,10 +2311,11 @@ loser:
 }
 
 static PRBool
-isSecretKey(SECKEYLowPrivateKey *privKey)
+isSecretKey(NSSLOWKEYPrivateKey *privKey)
 {
-  if (privKey->keyType == lowRSAKey && privKey->u.rsa.publicExponent.len == 1 &&
-      privKey->u.rsa.publicExponent.data[0] == 0)
+  if (privKey->keyType == NSSLOWKEYRSAKey && 
+		privKey->u.rsa.publicExponent.len == 1 &&
+      				privKey->u.rsa.publicExponent.data[0] == 0)
     return PR_TRUE;
 
   return PR_FALSE;
@@ -2301,7 +2323,7 @@ isSecretKey(SECKEYLowPrivateKey *privKey)
 
 /* Import a Secret Key */
 static PRBool
-importSecretKey(PK11Slot *slot, SECKEYLowPrivateKey *priv)
+importSecretKey(PK11Slot *slot, NSSLOWKEYPrivateKey *priv)
 {
     PK11Object *object;
     CK_OBJECT_CLASS secretClass = CKO_SECRET_KEY;
@@ -2397,7 +2419,8 @@ CK_RV NSC_GetFunctionList(CK_FUNCTION_LIST_PTR *pFunctionList)
  * initialize one of the slot structures. figure out which by the ID
  */
 CK_RV
-PK11_SlotInit(CK_SLOT_ID slotID, PRBool needLogin)
+PK11_SlotInit(CK_SLOT_ID slotID, PRBool needLogin, 
+		NSSLOWCERTDBHandle *certdb, NSSLOWKEYDBHandle *keydb)
 {
     int i;
     PK11Slot *slot = pk11_SlotFromID(slotID);
@@ -2427,9 +2450,11 @@ PK11_SlotInit(CK_SLOT_ID slotID, PRBool needLogin)
     slot->ssoLoggedIn = PR_FALSE;
     slot->DB_loaded = PR_FALSE;
     slot->slotID = slotID;
+    slot->certDB = certDB;
+    slot->keyDB = keyDB;
     if (needLogin) {
 	/* if the data base is initialized with a null password,remember that */
-	slot->needLogin = (PRBool)!pk11_hasNullPassword(&slot->password);
+	slot->needLogin = (PRBool)!pk11_hasNullPassword(keydb,&slot->password);
     }
     return CKR_OK;
 }
@@ -2450,7 +2475,7 @@ CK_RV PK11_LowInitialize(CK_VOID_PTR pReserved)
      */
 
     /* initialize the key and cert db's */
-    SECKEY_SetDefaultKeyDBAlg(SEC_OID_PKCS12_PBE_WITH_SHA1_AND_TRIPLE_DES_CBC);
+    nsslowkey_SetDefaultKeyDBAlg(SEC_OID_PKCS12_PBE_WITH_SHA1_AND_TRIPLE_DES_CBC);
 
     if ((init_args && init_args->LibraryParameters)) {
 	pk11_parameters paramStrings;
@@ -2522,9 +2547,10 @@ CK_RV NSC_Initialize(CK_VOID_PTR pReserved)
 
     /* intialize all the slots */
     if (!init) {
-	crv = PK11_SlotInit(NETSCAPE_SLOT_ID,PR_FALSE);
+	crv = PK11_SlotInit(NETSCAPE_SLOT_ID,PR_FALSE,NULL,NULL);
 	if (crv != CKR_OK) return crv;
-	crv = PK11_SlotInit(PRIVATE_KEY_SLOT_ID,PR_TRUE);
+	crv = PK11_SlotInit(PRIVATE_KEY_SLOT_ID,PR_TRUE,
+		nsslowcert_GetDefaultCertDB(), nsslowkey_GetDefaultKeyDB());
 	init = PR_TRUE;
     }
 
@@ -2582,7 +2608,7 @@ CK_RV NSC_GetSlotInfo(CK_SLOT_ID slotID, CK_SLOT_INFO_PTR pInfo)
 	PORT_Memcpy(pInfo->slotDescription,privSlotDescription,64);
 	pInfo->flags = CKF_TOKEN_PRESENT;
 	/* ok we really should read it out of the keydb file. */
-        pInfo->hardwareVersion.major = PRIVATE_KEY_DB_FILE_VERSION;
+        pInfo->hardwareVersion.major = NSSLOWKEY_DB_FILE_VERSION;
         pInfo->hardwareVersion.minor = 0;
 	return CKR_OK;
     default:
@@ -2598,7 +2624,7 @@ CK_RV NSC_GetSlotInfo(CK_SLOT_ID slotID, CK_SLOT_INFO_PTR pInfo)
 CK_RV NSC_GetTokenInfo(CK_SLOT_ID slotID,CK_TOKEN_INFO_PTR pInfo)
 {
     PK11Slot *slot = pk11_SlotFromID(slotID);
-    SECKEYKeyDBHandle *handle;
+    NSSLOWKEYDBHandle *handle;
 
     if (slot == NULL) return CKR_SLOT_ID_INVALID;
 
@@ -2626,7 +2652,7 @@ CK_RV NSC_GetTokenInfo(CK_SLOT_ID slotID,CK_TOKEN_INFO_PTR pInfo)
 	return CKR_OK;
     case PRIVATE_KEY_SLOT_ID:
 	PORT_Memcpy(pInfo->label,privTokDescription,32);
-    	handle = SECKEY_GetDefaultKeyDB();
+    	handle = slot->keyDB;
 	/*
 	 * we have three possible states which we may be in:
 	 *   (1) No DB password has been initialized. This also means we
@@ -2636,7 +2662,7 @@ CK_RV NSC_GetTokenInfo(CK_SLOT_ID slotID,CK_TOKEN_INFO_PTR pInfo)
 	 *   (3) Finally we have an initialized password whicn is not NULL, and
 	 *   we will need to prompt for it.
 	 */
-	if (SECKEY_HasKeyDBPassword(handle) == SECFailure) {
+	if (nsslowkey_HasKeyDBPassword(handle) == SECFailure) {
 	    pInfo->flags = CKF_THREAD_SAFE | CKF_LOGIN_REQUIRED;
 	} else if (!slot->needLogin) {
 	    pInfo->flags = CKF_THREAD_SAFE | CKF_USER_PIN_INITIALIZED;
@@ -2730,19 +2756,19 @@ CK_RV NSC_GetMechanismInfo(CK_SLOT_ID slotID, CK_MECHANISM_TYPE type,
 }
 
 static SECStatus
-pk11_TurnOffUser(CERTCertificate *cert, SECItem *k, void *arg)
+pk11_TurnOffUser(NSSLOWCERTCertificate *cert, SECItem *k, void *arg)
 {
-   CERTCertTrust trust;
+   NSSLOWCERTCertTrust trust;
    SECStatus rv;
 
-   rv = CERT_GetCertTrust(cert,&trust);
+   rv = nsslowcert_GetCertTrust(cert,&trust);
    if (rv == SECSuccess && ((trust.emailFlags & CERTDB_USER) ||
 			    (trust.sslFlags & CERTDB_USER) ||
 			    (trust.objectSigningFlags & CERTDB_USER))) {
 	trust.emailFlags &= ~CERTDB_USER;
 	trust.sslFlags &= ~CERTDB_USER;
 	trust.objectSigningFlags &= ~CERTDB_USER;
-	CERT_ChangeCertTrust(cert->dbhandle,cert,&trust);
+	nsslowcert_ChangeCertTrust(cert->dbhandle,cert,&trust);
    }
    return SECSuccess;
 }
@@ -2751,8 +2777,8 @@ pk11_TurnOffUser(CERTCertificate *cert, SECItem *k, void *arg)
 CK_RV NSC_InitToken(CK_SLOT_ID slotID,CK_CHAR_PTR pPin,
  				CK_ULONG ulPinLen,CK_CHAR_PTR pLabel) {
     PK11Slot *slot = pk11_SlotFromID(slotID);
-    SECKEYKeyDBHandle *handle;
-    CERTCertDBHandle *certHandle;
+    NSSLOWKEYDBHandle *handle;
+    NSSLOWCERTCertDBHandle *certHandle;
     SECStatus rv;
     int i;
     PK11Object *object;
@@ -2789,19 +2815,19 @@ CK_RV NSC_InitToken(CK_SLOT_ID slotID,CK_CHAR_PTR pPin,
     PK11_USE_THREADS(PZ_Unlock(slot->objectLock);)
 
     /* then clear out the key database */
-    handle = SECKEY_GetDefaultKeyDB();
+    handle = slot->keyDB;
     if (handle == NULL) {
 	return CKR_TOKEN_WRITE_PROTECTED;
     }
 
     /* what to do on an error here? */
-    rv = SECKEY_ResetKeyDB(handle);
+    rv = nsslowkey_ResetKeyDB(handle);
 
     /* finally  mark all the user certs as non-user certs */
-    certHandle = CERT_GetDefaultCertDB();
+    certHandle = slot->certDB;
     if (certHandle == NULL) return CKR_OK;
 
-    SEC_TraversePermCerts(certHandle,pk11_TurnOffUser, NULL);
+    nsslowcert_TraversePermCerts(certHandle,pk11_TurnOffUser, NULL);
 
     return CKR_OK; /*is this the right function for not implemented*/
 }
@@ -2813,7 +2839,7 @@ CK_RV NSC_InitPIN(CK_SESSION_HANDLE hSession,
 {
     PK11Session *sp;
     PK11Slot *slot;
-    SECKEYKeyDBHandle *handle;
+    NSSLOWKEYDBHandle *handle;
     SECItem *newPin;
     char newPinStr[256];
     SECStatus rv;
@@ -2849,11 +2875,11 @@ CK_RV NSC_InitPIN(CK_SESSION_HANDLE hSession,
 	return CKR_PIN_LEN_RANGE;
     }
 
-    handle = SECKEY_GetDefaultKeyDB();
+    handle = slot->keyDB;
     if (handle == NULL) {
 	return CKR_TOKEN_WRITE_PROTECTED;
     }
-    if (SECKEY_HasKeyDBPassword(handle) != SECFailure) {
+    if (nsslowkey_HasKeyDBPassword(handle) != SECFailure) {
 	return CKR_DEVICE_ERROR;
     }
 
@@ -2862,11 +2888,11 @@ CK_RV NSC_InitPIN(CK_SESSION_HANDLE hSession,
     newPinStr[ulPinLen] = 0; 
 
     /* build the hashed pins which we pass around */
-    newPin = SECKEY_HashPassword(newPinStr,handle->global_salt);
+    newPin = nsslowkey_HashPassword(newPinStr,handle->global_salt);
     PORT_Memset(newPinStr,0,sizeof(newPinStr));
 
     /* change the data base */
-    rv = SECKEY_SetKeyDBPassword(handle,newPin);
+    rv = nsslowkey_SetKeyDBPassword(handle,newPin);
 
     /* Now update our local copy of the pin */
     if (rv == SECSuccess) {
@@ -2889,7 +2915,7 @@ CK_RV NSC_SetPIN(CK_SESSION_HANDLE hSession, CK_CHAR_PTR pOldPin,
 {
     PK11Session *sp;
     PK11Slot *slot;
-    SECKEYKeyDBHandle *handle;
+    NSSLOWKEYDBHandle *handle;
     SECItem *newPin;
     SECItem *oldPin;
     char newPinStr[256],oldPinStr[256];
@@ -2928,7 +2954,7 @@ CK_RV NSC_SetPIN(CK_SESSION_HANDLE hSession, CK_CHAR_PTR pOldPin,
     }
 
 
-    handle = SECKEY_GetDefaultKeyDB();
+    handle = slot->keyDB;
     if (handle == NULL) {
 	return CKR_TOKEN_WRITE_PROTECTED;
     }
@@ -2940,13 +2966,13 @@ CK_RV NSC_SetPIN(CK_SESSION_HANDLE hSession, CK_CHAR_PTR pOldPin,
     oldPinStr[ulOldLen] = 0; 
 
     /* build the hashed pins which we pass around */
-    newPin = SECKEY_HashPassword(newPinStr,handle->global_salt);
-    oldPin = SECKEY_HashPassword(oldPinStr,handle->global_salt);
+    newPin = nsslowkey_HashPassword(newPinStr,handle->global_salt);
+    oldPin = nsslowkey_HashPassword(oldPinStr,handle->global_salt);
     PORT_Memset(newPinStr,0,sizeof(newPinStr));
     PORT_Memset(oldPinStr,0,sizeof(oldPinStr));
 
     /* change the data base */
-    rv = SECKEY_ChangeKeyDBPassword(handle,oldPin,newPin);
+    rv = nsslowkey_ChangeKeyDBPassword(handle,oldPin,newPin);
 
     /* Now update our local copy of the pin */
     SECITEM_ZfreeItem(oldPin, PR_TRUE);
@@ -3106,7 +3132,7 @@ CK_RV NSC_Login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType,
 {
     PK11Slot *slot;
     PK11Session *session;
-    SECKEYKeyDBHandle *handle;
+    NSSLOWKEYDBHandle *handle;
     SECItem *pin;
     char pinStr[256];
 
@@ -3134,14 +3160,17 @@ CK_RV NSC_Login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType,
     PORT_Memcpy(pinStr,pPin,ulPinLen);
     pinStr[ulPinLen] = 0; 
 
-    handle = SECKEY_GetDefaultKeyDB();
+    handle = slot->keyDB;
+    if (handle == NULL) {
+	 return CKR_USER_TYPE_INVALID;
+    }
 
     /*
      * Deal with bootstrap. We allow the SSO to login in with a NULL
      * password if and only if we haven't initialized the KEY DB yet.
      * We only allow this on a RW session.
      */
-    if (SECKEY_HasKeyDBPassword(handle) == SECFailure) {
+    if (nsslowkey_HasKeyDBPassword(handle) == SECFailure) {
 	/* allow SSO's to log in only if there is not password on the
 	 * key database */
 	if (((userType == CKU_SO) && (session->info.flags & CKF_RW_SESSION))
@@ -3170,10 +3199,10 @@ CK_RV NSC_Login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType,
 
 
     /* build the hashed pins which we pass around */
-    pin = SECKEY_HashPassword(pinStr,handle->global_salt);
+    pin = nsslowkey_HashPassword(pinStr,handle->global_salt);
     if (pin == NULL) return CKR_HOST_MEMORY;
 
-    if (SECKEY_CheckKeyDBPassword(handle,pin) == SECSuccess) {
+    if (nsslowkey_CheckKeyDBPassword(handle,pin) == SECSuccess) {
 	SECItem *tmp;
 	PK11_USE_THREADS(PZ_Lock(slot->sessionLock);)
 	tmp = slot->password;
@@ -3509,12 +3538,12 @@ CK_RV NSC_SetAttributeValue (CK_SESSION_HANDLE hSession,
 #define KEYDB_PW_CHECK_STRING   "password-check"
 #define KEYDB_PW_CHECK_LEN      14
 
-SECKEYLowPrivateKey * SECKEY_DecryptKey(DBT *key, SECItem *pwitem,
-					SECKEYKeyDBHandle *handle);
+NSSLOWKEYPrivateKey * nsslowkey_DecryptKey(DBT *key, SECItem *pwitem,
+					NSSLOWKEYDBHandle *handle);
 typedef struct pk11keyNodeStr {
     struct pk11keyNodeStr *next;
-    SECKEYLowPrivateKey *privKey;
-    CERTCertificate *cert;
+    NSSLOWKEYPrivateKey *privKey;
+    NSSLOWCERTCertificate *cert;
     SECItem *pubItem;
 } pk11keyNode;
 
@@ -3530,12 +3559,13 @@ add_key_to_list(DBT *key, DBT *data, void *arg)
     keyList *keylist;
     pk11keyNode *node;
     void *keydata;
-    SECKEYLowPrivateKey *privKey = NULL;
+    NSSLOWKEYPrivateKey *privKey = NULL;
     
     keylist = (keyList *)arg;
 
-    privKey = SECKEY_DecryptKey(key, keylist->slot->password,
-				SECKEY_GetDefaultKeyDB());
+    PORT_Assert(keylist->slot->keyDB);
+    privKey = nsslowkey_DecryptKey(key, keylist->slot->password,
+				keylist->slot->keyDB);
     if ( privKey == NULL ) {
 	goto loser;
     }
@@ -3558,11 +3588,14 @@ add_key_to_list(DBT *key, DBT *data, void *arg)
     
     node->privKey = privKey;
     switch (privKey->keyType) {
-      case lowRSAKey:
+      case NSSLOWKEYRSAKey:
 	node->pubItem = &privKey->u.rsa.modulus;
 	break;
-      case lowDSAKey:
+      case NSSLOWKEYDSAKey:
 	node->pubItem = &privKey->u.dsa.publicValue;
+	break;
+      case NSSLOWKEYDHKey:
+	node->pubItem = &privKey->u.dh.publicValue;
 	break;
       default:
 	break;
@@ -3571,7 +3604,7 @@ add_key_to_list(DBT *key, DBT *data, void *arg)
     return(SECSuccess);
 loser:
     if ( privKey ) {
-	SECKEY_LowDestroyPrivateKey(privKey);
+	nsslowkey_DestroyPrivateKey(privKey);
     }
     return(SECSuccess);
 }
@@ -3582,13 +3615,13 @@ loser:
  * If the cert matches one on the list, then save it.
  */
 static SECStatus
-add_cert_to_list(CERTCertificate *cert, SECItem *k, void *pdata)
+add_cert_to_list(NSSLOWCERTCertificate *cert, SECItem *k, void *pdata)
 {
     keyList *keylist;
     pk11keyNode *node;
-    SECKEYPublicKey *pubKey = NULL;
+    NSSLOWKEYPublicKey *pubKey = NULL;
     SECItem *pubItem;
-    CERTCertificate *oldcert;
+    NSSLOWCERTCertificate *oldcert;
     
     keylist = (keyList *)pdata;
     
@@ -3599,7 +3632,7 @@ add_cert_to_list(CERTCertificate *cert, SECItem *k, void *pdata)
 	( cert->nickname != NULL ) ) {
 
 	/* get cert's public key */
-	pubKey = CERT_ExtractPublicKey(cert);
+	pubKey = nsslowcert_ExtractPublicKey(cert);
 	if ( pubKey == NULL ) {
 	    goto done;
 	}
@@ -3614,7 +3647,7 @@ add_cert_to_list(CERTCertificate *cert, SECItem *k, void *pdata)
 	node = keylist->head;
 	while ( node ) {
 	    /* if key type is different, then there is no match */
-	    if (node->privKey->keyType == seckeyLow_KeyType(pubKey->keyType)) { 
+	    if (node->privKey->keyType == pubKey->keyType) { 
 
 		/* compare public value from cert with public value from
 		 * the key
@@ -3625,8 +3658,11 @@ add_cert_to_list(CERTCertificate *cert, SECItem *k, void *pdata)
 		    /* if no cert has yet been found for this key, or this
 		     * cert is newer, then save this cert
 		     */
-		    if ( ( node->cert == NULL ) || 
-			CERT_IsNewer(cert, node->cert ) ) {
+		    if ( ( node->cert == NULL ) 
+#ifdef notdef 
+			|| CERT_IsNewer(cert, node->cert )
+#endif
+								 ) {
 
 			oldcert = node->cert;
 			
@@ -3636,13 +3672,15 @@ add_cert_to_list(CERTCertificate *cert, SECItem *k, void *pdata)
 			 */
 
 			/* We need a better way to deal with this */
+			PORT_Assert(keylist->slot->certDB);
 			node->cert =
-			    CERT_FindCertByKeyNoLocking(CERT_GetDefaultCertDB(),
+			    nsslowcert_FindCertByKeyNoLocking(
+							keylist->slot->certDB,
 						        &cert->certKey);
 
 			/* free the old cert if there was one */
 			if ( oldcert ) {
-			    CERT_DestroyCertificate(oldcert);
+			    nsslowcert_DestroyCertificate(oldcert);
 			}
 		    }
 		}
@@ -3653,7 +3691,7 @@ add_cert_to_list(CERTCertificate *cert, SECItem *k, void *pdata)
     }
 done:
     if ( pubKey ) {
-	SECKEY_DestroyPublicKey(pubKey);
+	nsslowkey_DestroyPublicKey(pubKey);
     }
 
     return(SECSuccess);
@@ -3797,7 +3835,8 @@ pk11_importKeyDB(PK11Slot *slot)
     keylist.slot = slot;
 	
     /* collect all of the keys */
-    rv = SECKEY_TraverseKeys(SECKEY_GetDefaultKeyDB(),
+    PORT_Assert(slot->keyDB);
+    rv = nsslowkey_TraverseKeys(slot->keyDB,
 			      add_key_to_list, (void *)&keylist);
     if (rv != SECSuccess) {
 	PORT_FreeArena(keylist.arena, PR_FALSE);
@@ -3805,7 +3844,8 @@ pk11_importKeyDB(PK11Slot *slot)
     }
 
     /* find certs that match any of the keys */
-    crv = SEC_TraversePermCerts(CERT_GetDefaultCertDB(),
+    PORT_Assert(slot->certDB);
+    crv = nsslowcert_TraversePermCerts(slot->certDB,
 				       add_cert_to_list, (void *)&keylist);
     if ( crv != SECSuccess ) {
 	PORT_FreeArena(keylist.arena, PR_FALSE);
@@ -3864,9 +3904,9 @@ pk11_importKeyDB(PK11Slot *slot)
 	pk11_AddSlotObject(slot, privateKeyObject);
 
 end_loop:
-	SECKEY_LowDestroyPrivateKey(node->privKey);
+	nsslowkey_DestroyPrivateKey(node->privKey);
 	if ( node->cert ) {
-	    CERT_DestroyCertificate(node->cert);
+	    nsslowcert_DestroyCertificate(node->cert);
 	}
 		
     }
@@ -3881,14 +3921,14 @@ end_loop:
 typedef struct pk11CertDataStr {
     int cert_count;
     int max_cert_count;
-    CERTCertificate **certs;
+    NSSLOWCERTCertificate **certs;
 } pk11CertData;
 
 /*
  * collect all the certs from the traverse call.
  */	
 static SECStatus
-pk11_cert_collect(CERTCertificate *cert,void *arg) {
+pk11_cert_collect(NSSLOWCERTCertificate *cert,void *arg) {
     pk11CertData *cd = (pk11CertData *)arg;
 
     /* shouldn't happen, but don't crash if it does */
@@ -3897,7 +3937,7 @@ pk11_cert_collect(CERTCertificate *cert,void *arg) {
 	return SECFailure;
     }
 
-    cd->certs[cd->cert_count++] = CERT_DupCertificate(cert);
+    cd->certs[cd->cert_count++] = nsslowcert_DupCertificate(cert);
     return SECSuccess;
 }
 
@@ -3910,23 +3950,23 @@ pk11_searchCerts(PK11Slot *slot, CK_ATTRIBUTE *pTemplate, CK_LONG ulCount) {
     SECItem derCert = { siBuffer, NULL, 0 };
     SECItem derSubject = { siBuffer, NULL, 0 };
     SECItem name = { siBuffer, NULL, 0 };
-    CERTIssuerAndSN issuerSN = {
+    NSSLOWCERTIssuerAndSN issuerSN = {
 	{ siBuffer, NULL, 0 },
 	{ NULL, NULL },
 	{ siBuffer, NULL, 0 }
     };
     SECItem *copy = NULL;
-    CERTCertDBHandle *handle = NULL;
-    SECKEYKeyDBHandle *keyHandle = NULL;
+    NSSLOWCERTCertDBHandle *handle = NULL;
+    NSSLOWKEYDBHandle *keyHandle = NULL;
     pk11CertData certData;
 
 
     /*
      * These should be stored in the slot some day in the future
      */
-    handle = CERT_GetDefaultCertDB();
+    handle = slot->certDB;
     if (handle == NULL) return;
-    keyHandle = SECKEY_GetDefaultKeyDB();
+    keyHandle = slot->keyDB;
     if (keyHandle == NULL) return;
 
     /*
@@ -3986,14 +4026,14 @@ pk11_searchCerts(PK11Slot *slot, CK_ATTRIBUTE *pTemplate, CK_LONG ulCount) {
     certData.cert_count = 0;
 
     if (derCert.data != NULL) {
-	CERTCertificate *cert = CERT_FindCertByDERCert(handle,&derCert);
+	NSSLOWCERTCertificate *cert = nsslowcert_FindCertByDERCert(handle,&derCert);
 	if (cert != NULL) {
 	   certData.certs = 
-		(CERTCertificate **) PORT_Alloc(sizeof (CERTCertificate *));
+		(NSSLOWCERTCertificate **) PORT_Alloc(sizeof (NSSLOWCERTCertificate *));
 	   if (certData.certs) {
 		certData.certs[0] = cert;
 	   	certData.cert_count = 1;
-	   } else CERT_DestroyCertificate(cert);
+	   } else nsslowcert_DestroyCertificate(cert);
 	}
     } else if (name.data != NULL) {
 	char *tmp_name = (char*)PORT_Alloc(name.len+1);
@@ -4004,12 +4044,12 @@ pk11_searchCerts(PK11Slot *slot, CK_ATTRIBUTE *pTemplate, CK_LONG ulCount) {
 	PORT_Memcpy(tmp_name,name.data,name.len);
 	tmp_name[name.len] = 0;
 
-	certData.max_cert_count=CERT_NumPermCertsForNickname(handle,tmp_name);
+	certData.max_cert_count=nsslowcert_NumPermCertsForNickname(handle,tmp_name);
 	if (certData.max_cert_count > 0) {
-	    certData.certs = (CERTCertificate **) 
-		PORT_Alloc(certData.max_cert_count *sizeof(CERTCertificate *));
+	    certData.certs = (NSSLOWCERTCertificate **) 
+		PORT_Alloc(certData.max_cert_count *sizeof(NSSLOWCERTCertificate *));
 	    if (certData.certs) {
-	    	CERT_TraversePermCertsForNickname(handle,tmp_name,
+	    	nsslowcert_TraversePermCertsForNickname(handle,tmp_name,
 				pk11_cert_collect, &certData);
 	    }
 	   
@@ -4017,35 +4057,39 @@ pk11_searchCerts(PK11Slot *slot, CK_ATTRIBUTE *pTemplate, CK_LONG ulCount) {
 
 	PORT_Free(tmp_name);
     } else if (derSubject.data != NULL) {
-	certData.max_cert_count=CERT_NumPermCertsForSubject(handle,&derSubject);
+	certData.max_cert_count=nsslowcert_NumPermCertsForSubject(handle,&derSubject);
 	if (certData.max_cert_count > 0) {
-	    certData.certs = (CERTCertificate **) 
-		PORT_Alloc(certData.max_cert_count *sizeof(CERTCertificate *));
+	    certData.certs = (NSSLOWCERTCertificate **) 
+		PORT_Alloc(certData.max_cert_count *sizeof(NSSLOWCERTCertificate *));
 	    if (certData.certs) {
-	    	CERT_TraversePermCertsForSubject(handle,&derSubject,
+	    	nsslowcert_TraversePermCertsForSubject(handle,&derSubject,
 				pk11_cert_collect, &certData);
 	    }
 	}
     } else if ((issuerSN.derIssuer.data != NULL) && 
 			(issuerSN.serialNumber.data != NULL)) {
-	CERTCertificate *cert = CERT_FindCertByIssuerAndSN(handle,&issuerSN);
+	NSSLOWCERTCertificate *cert = nsslowcert_FindCertByIssuerAndSN(handle,&issuerSN);
 
 	if (cert != NULL) {
 	   certData.certs = 
-		(CERTCertificate **) PORT_Alloc(sizeof (CERTCertificate *));
+		(NSSLOWCERTCertificate **) PORT_Alloc(sizeof (NSSLOWCERTCertificate *));
 	   if (certData.certs) {
 		certData.certs[0] = cert;
 	   	certData.cert_count = 1;
-	   } else CERT_DestroyCertificate(cert);
+	   } else nsslowcert_DestroyCertificate(cert);
 	}
     } else {
 	/* PORT_Assert(0); may get called when not looking for certs */
 	/* look up all the certs sometime, and get rid of the assert */;
+
+/* we need to search on email address and S/MIME data */
+/* we also need to add CRL searching code */
+/* we also need to add TRUST searching code */
     }
 
 
     for (i=0 ; i < certData.cert_count ; i++) {
-	CERTCertificate *cert = certData.certs[i];
+	NSSLOWCERTCertificate *cert = certData.certs[i];
 
 	/* we are only interested in permanment user certs here */
 	if ((cert->isperm) && (cert->trust) && 
@@ -4053,13 +4097,13 @@ pk11_searchCerts(PK11Slot *slot, CK_ATTRIBUTE *pTemplate, CK_LONG ulCount) {
 	   ( cert->trust->emailFlags & CERTDB_USER ) ||
 	   ( cert->trust->objectSigningFlags & CERTDB_USER )) &&
 	  ( cert->nickname != NULL )  &&
-		(SECKEY_KeyForCertExists(keyHandle, cert) == SECSuccess)) {
+		(nsslowkey_KeyForCertExists(keyHandle, cert) == SECSuccess)) {
 	    PK11Object *obj;
 	    pk11_importCertificate(slot, cert, NULL, 0, PR_FALSE);
 	    obj = pk11_importPublicKey(slot, NULL, cert, NULL);
 	    if (obj) pk11_AddSlotObject(slot, obj);
 	}
-	CERT_DestroyCertificate(cert);
+	nsslowcert_DestroyCertificate(cert);
     }
     if (certData.certs) PORT_Free(certData.certs);
 
