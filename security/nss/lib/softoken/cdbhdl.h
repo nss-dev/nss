@@ -64,15 +64,19 @@ struct NSSLOWCERTCertDBHandleStr {
 
 typedef DB * (*rdbfunc)(const char *appName, const char *prefix, 
 				const char *type, int flags);
+typedef int (*rdbstatusfunc)(void);
+
+#define RDB_FAIL 1
+#define RDB_RETRY 2
 
 DB * rdbopen(const char *appName, const char *prefix, 
-				const char *type, int flags);
+				const char *type, int flags, int *status);
 
 DB *dbsopen (const char *dbname , int flags, int mode, DBTYPE type, 
 						const void * appData);
 SECStatus db_Copy(DB *dest,DB *src);
 int db_BeginTransaction(DB *db);
 int db_FinishTransaction(DB *db, PRBool abort);
-
+int db_InitComplete(DB *db);
 
 #endif
