@@ -35,6 +35,7 @@ MANIFEST_CVS_ID = "@(#) $RCSfile$ $Revision$ $Date$ $Name$"
 CORE_DEPTH = ../../../..
 
 MODULE = nss
+MAPFILE = $(OBJDIR)/nssckbi.def
 
 EXPORTS =		\
 	nssckbi.h	\
