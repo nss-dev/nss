@@ -474,6 +474,7 @@ loser:
 	    }
 	}
 #endif
+	pk11sdr_Init();
 	nss_IsInitted = PR_TRUE;
     }
     return rv;
@@ -544,6 +545,7 @@ NSS_Shutdown(void)
     SECOID_Shutdown();
     STAN_Shutdown();
     rv = SECMOD_Shutdown();
+    pk11sdr_Shutdown();
     nss_IsInitted = PR_FALSE;
     return rv;
 }
