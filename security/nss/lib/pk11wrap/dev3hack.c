@@ -154,6 +154,15 @@ nssToken_CreateFromPK11SlotInfo(NSSTrustDomain *td, PK11SlotInfo *nss3slot)
     return rvToken;
 }
 
+NSS_IMPLEMENT PRBool
+nssSlot_IsPermanent
+(
+  NSSSlot *slot
+)
+{
+    return slot->pk11slot->isPerm;
+}
+
 NSS_IMPLEMENT PRStatus
 nssSlot_Refresh
 (

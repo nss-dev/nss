@@ -158,6 +158,12 @@ nssSlot_Destroy
   NSSSlot *slot
 );
 
+NSS_EXTERN PRBool
+nssSlot_IsPermanent
+(
+  NSSSlot *slot
+);
+
 NSS_EXTERN PRStatus
 nssSlot_Refresh
 (
