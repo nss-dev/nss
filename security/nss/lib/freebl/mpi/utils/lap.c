@@ -67,7 +67,9 @@ int main(int argc, char *argv[])
   mp_init_copy(&k, &a);
 
   signal(SIGINT, sig_catch);
+#ifndef __OS2__
   signal(SIGHUP, sig_catch);
+#endif
   signal(SIGTERM, sig_catch);
 
   while(mp_cmp(&p, &m) < 0) {

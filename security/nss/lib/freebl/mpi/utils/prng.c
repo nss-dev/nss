@@ -42,7 +42,12 @@
 #include <limits.h>
 #include <time.h>
 
+#ifdef __OS2__
+#include <types.h>
+#include <process.h>
+#else
 #include <unistd.h>
+#endif
 
 #include "bbs_rand.h"
 
