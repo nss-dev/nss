@@ -108,7 +108,7 @@ CERT_FindCertURLExtension(CERTCertificate *cert, int tag, int catag)
     char *urlstring;
     char *str;
     int len;
-    int i;
+    unsigned int i;
     
     urlstring = NULL;
 

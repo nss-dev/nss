@@ -701,7 +701,7 @@ nss_certificate_hash
   const void *key
 )
 {
-    int i;
+    unsigned int i;
     PLHashNumber h;
     NSSCertificate *c = (NSSCertificate *)key;
     h = 0;

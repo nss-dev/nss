@@ -128,10 +128,10 @@ nsslowcert_GetDefaultCertDB(void)
  * simple cert decoder to avoid the cost of asn1 engine
  */ 
 static unsigned char *
-nsslowcert_dataStart(unsigned char *buf, int length, 
+nsslowcert_dataStart(unsigned char *buf, unsigned int length, 
 			unsigned int *data_length, PRBool includeTag) {
     unsigned char tag;
-    int used_length= 0;
+    unsigned int used_length= 0;
 
     tag = buf[used_length++];
 
