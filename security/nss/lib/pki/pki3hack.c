@@ -496,12 +496,12 @@ fill_CERTCertificateFields(NSSCertificate *c, CERTCertificate *cc)
 	    cc->trust = nssTrust_GetCERTCertTrustForCert(c, cc);
 	}
     } else if (instance) {
-	/* trust */
-	cc->trust = nssTrust_GetCERTCertTrustForCert(c, cc);
 	/* slot */
 	cc->slot = instance->token->pk11slot;
 	/* pkcs11ID */
 	cc->pkcs11ID = instance->handle;
+	/* trust */
+	cc->trust = nssTrust_GetCERTCertTrustForCert(c, cc);
     } 
     /* database handle is now the trust domain */
     cc->dbhandle = c->object.trustDomain;
