@@ -115,3 +115,9 @@ else
 endif
 endif
 
+DIST_GARBAGE = config.cache config.log config.status \
+   coreconf
+
+distclean::
+	cat unallmakefiles | $(XARGS) rm -f
+	rm -rf unallmakefiles $(DIST_GARBAGE)
