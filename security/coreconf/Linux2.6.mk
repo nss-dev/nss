@@ -1,4 +1,3 @@
-#! gmake
 #
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
@@ -31,15 +30,20 @@
 # may use your version of this file under either the MPL or the
 # GPL.
 #
+# Config stuff for Linux 2.6 (ELF)
+#
 
-CORE_DEPTH = ..
+include $(CORE_DEPTH)/coreconf/Linux.mk
 
-MODULE = dbm
+OS_REL_CFLAGS   += -DLINUX2_1
+MKSHLIB         = $(CC) -shared -Wl,-soname -Wl,$(@:$(OBJDIR)/%.so=%.so)
+ifdef BUILD_OPT
+            OPTIMIZER       = -O2
+endif
 
-IMPORTS = nspr20/v4.1.2
+ifdef MAPFILE
+	MKSHLIB += -Wl,--version-script,$(MAPFILE)
+endif
+PROCESS_MAP_FILE = grep -v ';-' $(LIBRARY_NAME).def | \
+        sed -e 's,;+,,' -e 's; DATA ;;' -e 's,;;,,' -e 's,;.*,;,' > $@
 
-RELEASE = dbm
-
-DIRS =  include \
-        src     \
-	$(NULL)

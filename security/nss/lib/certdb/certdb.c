@@ -523,7 +523,7 @@ findOIDinOIDSeqByTagNum(CERTOidSequence *seq, SECOidTag tagnum)
  * fill in nsCertType field of the cert based on the cert extension
  */
 SECStatus
-CERT_GetCertType(CERTCertificate *cert)
+cert_GetCertType(CERTCertificate *cert)
 {
     SECStatus rv;
     SECItem tmpitem;
@@ -531,6 +531,12 @@ CERT_GetCertType(CERTCertificate *cert)
     CERTOidSequence *extKeyUsage = NULL;
     PRBool basicConstraintPresent = PR_FALSE;
     CERTBasicConstraints basicConstraint;
+    unsigned int nsCertType = 0;
+
+    if (cert->nsCertType) {
+        /* once set, no need to recalculate */
+        return SECSuccess;
+    }
 
     tmpitem.data = NULL;
     CERT_FindNSCertTypeExtension(cert, &tmpitem);
@@ -545,9 +551,9 @@ CERT_GetCertType(CERTCertificate *cert)
     }
     if (tmpitem.data != NULL || extKeyUsage != NULL) {
 	if (tmpitem.data == NULL) {
-	    cert->nsCertType = 0;
+	    nsCertType = 0;
 	} else {
-	    cert->nsCertType = tmpitem.data[0];
+	    nsCertType = tmpitem.data[0];
 	}
 
 	/* free tmpitem data pointer to avoid memory leak */
@@ -558,16 +564,16 @@ CERT_GetCertType(CERTCertificate *cert)
 	 * for this release, we will allow SSL certs with an email address
 	 * to be used for email
 	 */
-	if ( ( cert->nsCertType & NS_CERT_TYPE_SSL_CLIENT ) &&
+	if ( ( nsCertType & NS_CERT_TYPE_SSL_CLIENT ) &&
 	    cert->emailAddr ) {
-	    cert->nsCertType |= NS_CERT_TYPE_EMAIL;
+	    nsCertType |= NS_CERT_TYPE_EMAIL;
 	}
 	/*
 	 * for this release, we will allow SSL intermediate CAs to be
 	 * email intermediate CAs too.
 	 */
-	if ( cert->nsCertType & NS_CERT_TYPE_SSL_CA ) {
-	    cert->nsCertType |= NS_CERT_TYPE_EMAIL_CA;
+	if ( nsCertType & NS_CERT_TYPE_SSL_CA ) {
+	    nsCertType |= NS_CERT_TYPE_EMAIL_CA;
 	}
 	/*
 	 * allow a cert with the extended key usage of EMail Protect
@@ -579,9 +585,9 @@ CERT_GetCertType(CERTCertificate *cert)
 	    SECSuccess) {
 	    if (basicConstraintPresent == PR_TRUE &&
 		(basicConstraint.isCA)) {
-		cert->nsCertType |= NS_CERT_TYPE_EMAIL_CA;
+		nsCertType |= NS_CERT_TYPE_EMAIL_CA;
 	    } else {
-		cert->nsCertType |= NS_CERT_TYPE_EMAIL;
+		nsCertType |= NS_CERT_TYPE_EMAIL;
 	    }
 	}
 	if (findOIDinOIDSeqByTagNum(extKeyUsage, 
@@ -589,9 +595,9 @@ CERT_GetCertType(CERTCertificate *cert)
 	    SECSuccess){
 	    if (basicConstraintPresent == PR_TRUE &&
 		(basicConstraint.isCA)) {
-		cert->nsCertType |= NS_CERT_TYPE_SSL_CA;
+		nsCertType |= NS_CERT_TYPE_SSL_CA;
 	    } else {
-		cert->nsCertType |= NS_CERT_TYPE_SSL_SERVER;
+		nsCertType |= NS_CERT_TYPE_SSL_SERVER;
 	    }
 	}
 	if (findOIDinOIDSeqByTagNum(extKeyUsage,
@@ -599,9 +605,9 @@ CERT_GetCertType(CERTCertificate *cert)
 	    SECSuccess){
 	    if (basicConstraintPresent == PR_TRUE &&
 		(basicConstraint.isCA)) {
-		cert->nsCertType |= NS_CERT_TYPE_SSL_CA;
+		nsCertType |= NS_CERT_TYPE_SSL_CA;
 	    } else {
-		cert->nsCertType |= NS_CERT_TYPE_SSL_CLIENT;
+		nsCertType |= NS_CERT_TYPE_SSL_CLIENT;
 	    }
 	}
 	if (findOIDinOIDSeqByTagNum(extKeyUsage,
@@ -609,43 +615,43 @@ CERT_GetCertType(CERTCertificate *cert)
 	    SECSuccess) {
 	    if (basicConstraintPresent == PR_TRUE &&
 		(basicConstraint.isCA)) {
-		cert->nsCertType |= NS_CERT_TYPE_OBJECT_SIGNING_CA;
+		nsCertType |= NS_CERT_TYPE_OBJECT_SIGNING_CA;
 	    } else {
-		cert->nsCertType |= NS_CERT_TYPE_OBJECT_SIGNING;
+		nsCertType |= NS_CERT_TYPE_OBJECT_SIGNING;
 	    }
 	}
 	if (findOIDinOIDSeqByTagNum(extKeyUsage,
 				    SEC_OID_EXT_KEY_USAGE_TIME_STAMP) ==
 	    SECSuccess) {
-	    cert->nsCertType |= EXT_KEY_USAGE_TIME_STAMP;
+	    nsCertType |= EXT_KEY_USAGE_TIME_STAMP;
 	}
 	if (findOIDinOIDSeqByTagNum(extKeyUsage,
 				    SEC_OID_OCSP_RESPONDER) == 
 	    SECSuccess) {
-	    cert->nsCertType |= EXT_KEY_USAGE_STATUS_RESPONDER;
+	    nsCertType |= EXT_KEY_USAGE_STATUS_RESPONDER;
 	}
     } else {
 	/* if no extension, then allow any ssl or email (no ca or object
 	 * signing)
 	 */
-	cert->nsCertType = NS_CERT_TYPE_SSL_CLIENT | NS_CERT_TYPE_SSL_SERVER |
+	nsCertType = NS_CERT_TYPE_SSL_CLIENT | NS_CERT_TYPE_SSL_SERVER |
 	    NS_CERT_TYPE_EMAIL;
 
 	/* if the basic constraint extension says the cert is a CA, then
 	   allow SSL CA and EMAIL CA and Status Responder */
 	if ((basicConstraintPresent == PR_TRUE)
 	    && (basicConstraint.isCA)) {
-		cert->nsCertType |= NS_CERT_TYPE_SSL_CA;
-		cert->nsCertType |= NS_CERT_TYPE_EMAIL_CA;
-		cert->nsCertType |= EXT_KEY_USAGE_STATUS_RESPONDER;
+		nsCertType |= NS_CERT_TYPE_SSL_CA;
+		nsCertType |= NS_CERT_TYPE_EMAIL_CA;
+		nsCertType |= EXT_KEY_USAGE_STATUS_RESPONDER;
 	} else if (CERT_IsCACert(cert, NULL) == PR_TRUE) {
-		cert->nsCertType |= EXT_KEY_USAGE_STATUS_RESPONDER;
+		nsCertType |= EXT_KEY_USAGE_STATUS_RESPONDER;
 	}
 
 	/* if the cert is a fortezza CA cert, then allow SSL CA and EMAIL CA */
 	if (fortezzaIsCA(cert)) {
-		cert->nsCertType |= NS_CERT_TYPE_SSL_CA;
-		cert->nsCertType |= NS_CERT_TYPE_EMAIL_CA;
+		nsCertType |= NS_CERT_TYPE_SSL_CA;
+		nsCertType |= NS_CERT_TYPE_EMAIL_CA;
 	}
     }
 
@@ -653,6 +659,7 @@ CERT_GetCertType(CERTCertificate *cert)
 	PORT_Free(encodedExtKeyUsage.data);
 	CERT_DestroyOidSequence(extKeyUsage);
     }
+    PR_AtomicSet(&cert->nsCertType, nsCertType);
     return(SECSuccess);
 }
 
@@ -877,7 +884,7 @@ CERT_DecodeDERCertificate(SECItem *derSignedCert, PRBool copyDER,
     }
 
     /* initialize the certType */
-    rv = CERT_GetCertType(cert);
+    rv = cert_GetCertType(cert);
     if ( rv != SECSuccess ) {
 	goto loser;
     }
@@ -1193,13 +1200,15 @@ loser:
 SECStatus
 CERT_CheckKeyUsage(CERTCertificate *cert, unsigned int requiredUsage)
 {
-    SECKEYPublicKey *key;
-    
+    if (!cert) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+	return SECFailure;
+    }
     /* choose between key agreement or key encipherment based on key
      * type in cert
      */
     if ( requiredUsage & KU_KEY_AGREEMENT_OR_ENCIPHERMENT ) {
-	key = CERT_ExtractPublicKey(cert);
+	SECKEYPublicKey *key = CERT_ExtractPublicKey(cert);
 	if (!key)
 	    return SECFailure;
 	if ( ( key->keyType == keaKey ) || ( key->keyType == fortezzaKey ) ||
@@ -2566,10 +2575,7 @@ CERT_FilterCertListByUsage(CERTCertList *certList, SECCertUsage usage,
     unsigned int requiredKeyUsage;
     unsigned int requiredCertType;
     CERTCertListNode *node, *savenode;
-    PRBool bad;
     SECStatus rv;
-    unsigned int certType;
-    PRBool dummyret;
     
     if (certList == NULL) goto loser;
 
@@ -2583,26 +2589,28 @@ CERT_FilterCertListByUsage(CERTCertList *certList, SECCertUsage usage,
 	
     while ( !CERT_LIST_END(node, certList) ) {
 
-	bad = PR_FALSE;
+	PRBool bad = (PRBool)(!node->cert);
 
-	/* bad key usage */
-	if ( CERT_CheckKeyUsage(node->cert, requiredKeyUsage )
-	    != SECSuccess ) {
+	/* bad key usage ? */
+	if ( !bad && 
+	     CERT_CheckKeyUsage(node->cert, requiredKeyUsage) != SECSuccess ) {
 	    bad = PR_TRUE;
 	}
-	/* bad cert type */
-	if ( ca ) {
-	    /* This function returns a more comprehensive cert type that
-	     * takes trust flags into consideration.  Should probably
-	     * fix the cert decoding code to do this.
-	     */
-	    dummyret = CERT_IsCACert(node->cert, &certType);
-	} else {
-	    certType = node->cert->nsCertType;
-	}
-	
-	if ( ! ( certType & requiredCertType ) ) {
-	    bad = PR_TRUE;
+	/* bad cert type ? */
+	if ( !bad ) {
+	    unsigned int certType = 0;
+	    if ( ca ) {
+		/* This function returns a more comprehensive cert type that
+		 * takes trust flags into consideration.  Should probably
+		 * fix the cert decoding code to do this.
+		 */
+		PRBool dummyret = CERT_IsCACert(node->cert, &certType);
+	    } else {
+		certType = node->cert->nsCertType;
+	    }
+	    if ( !( certType & requiredCertType ) ) {
+		bad = PR_TRUE;
+	    }
 	}
 
 	if ( bad ) {
@@ -2622,9 +2630,10 @@ loser:
 
 PRBool CERT_IsUserCert(CERTCertificate* cert)
 {
-    if ( (cert->trust->sslFlags & CERTDB_USER ) ||
+    if ( cert->trust &&
+        ((cert->trust->sslFlags & CERTDB_USER ) ||
          (cert->trust->emailFlags & CERTDB_USER ) ||
-         (cert->trust->objectSigningFlags & CERTDB_USER ) ) {
+         (cert->trust->objectSigningFlags & CERTDB_USER )) ) {
         return PR_TRUE;
     } else {
         return PR_FALSE;
