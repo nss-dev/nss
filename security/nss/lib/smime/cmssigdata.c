@@ -1028,8 +1028,10 @@ NSS_CMSSignedData_GetDigestValue(NSSCMSSignedData *sigd, SECOidTag digestalgtag)
         return NULL;
     }
 
-    if (sigd->digestAlgorithms == NULL)
+    if (sigd->digestAlgorithms == NULL || sigd->digests == NULL) {
+        PORT_SetError(SEC_ERROR_DIGEST_NOT_FOUND);
 	return NULL;
+    }
 
     n = NSS_CMSAlgArray_GetIndexByAlgTag(sigd->digestAlgorithms, digestalgtag);
 
