@@ -5553,7 +5553,7 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	goto loser;		/* malformed */
     }
 
-    if (sidBytes.len > 0) {
+    if (sidBytes.len > 0 && !ss->noCache) {
 	SSL_TRC(7, ("%d: SSL3[%d]: server, lookup client session-id for 0x%08x%08x%08x%08x",
                     SSL_GETPID(), ss->fd, ss->sec.ci.peer.pr_s6_addr32[0],
 		    ss->sec.ci.peer.pr_s6_addr32[1], 
@@ -7687,7 +7687,7 @@ ssl3_HandleFinished(sslSocket *ss, SSL3Opaque *b, PRUint32 length,
     PRBool            isServer     = ss->sec.isServer;
     PRBool            isTLS;
     PRBool            doStepUp;
-    CK_MECHANISM_TYPE mechanism;
+    CK_MECHANISM_TYPE mechanism    = CKM_INVALID_MECHANISM;
     SSL3KEAType       effectiveExchKeyType;
 
     PORT_Assert( ssl_HaveRecvBufLock(ss) );
@@ -7843,8 +7843,8 @@ xmit_loser:
 	    	PK11_SetWrapKey(symKeySlot, wrapKeyIndex, wrappingKey);
 	    }
 	}
-    } else {
-	/* server. */
+    } else if (!ss->noCache) {
+	/* server socket using session cache. */
 	mechanism = PK11_GetBestWrapMechanism(symKeySlot);
 	if (mechanism != CKM_INVALID_MECHANISM) {
 	    wrappingKey =
