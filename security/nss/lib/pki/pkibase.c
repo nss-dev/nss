@@ -47,6 +47,8 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #include "pki3hack.h"
 #endif
 
+extern const NSSError NSS_ERROR_NOT_FOUND;
+
 NSS_IMPLEMENT nssPKIObject *
 nssPKIObject_Create (
   NSSArena *arenaOpt,
@@ -840,6 +842,7 @@ nssPKIObjectCollection_GetObjects (
     PRUint32 i = 0;
     PRCList *link = PR_NEXT_LINK(&collection->head);
     pkiObjectCollectionNode *node;
+    int error=0;
     while ((i < rvSize) && (link != &collection->head)) {
 	node = (pkiObjectCollectionNode *)link;
 	if (!node->haveObject) {
@@ -849,12 +852,16 @@ nssPKIObjectCollection_GetObjects (
 		link = PR_NEXT_LINK(link);
 		/*remove bogus object from list*/
 		nssPKIObjectCollection_RemoveNode(collection,node);
+		error++;
 		continue;
 	    }
 	    node->haveObject = PR_TRUE;
 	}
 	rvObjects[i++] = nssPKIObject_AddRef(node->object);
 	link = PR_NEXT_LINK(link);
+    }
+    if (!error && *rvObjects == NULL) {
+	nss_SetError(NSS_ERROR_NOT_FOUND);
     }
     return PR_SUCCESS;
 }
