@@ -33,7 +33,7 @@ endif
 
 include Makefile.com
 
-awk_pkginfo-$MACH): bld_awk_pkginfo
+awk_pkginfo-$(MACH): bld_awk_pkginfo
 	./bld_awk_pkginfo -m $(MACH) -p "$(PRODUCT_VERSION)" -o $@ -v $(PRODUCT_VERSION)
 
 all:: awk_pkginfo-$(MACH) $(PROTO)
