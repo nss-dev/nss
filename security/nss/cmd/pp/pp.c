@@ -48,6 +48,7 @@ extern int fprintf(FILE *, char *, ...);
 
 #include "pk11func.h"
 #include "nspr.h"
+#include "nss.h"
 
 static void Usage(char *progName)
 {
@@ -126,10 +127,17 @@ int main(int argc, char **argv)
     if (!outFile) outFile = stdout;
 
     PR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
-    SECU_PKCS11Init(PR_FALSE);
-    SEC_Init();
+    rv = NSS_NoDB_Init(NULL);
+    if (rv != SECSuccess) {
+	fprintf(stderr, "%s: NSS_NoDB_Init failed\n", progName);
+	exit(1);
+    }
 
     rv = SECU_ReadDERFromFile(&der, inFile, ascii);
+    if (rv != SECSuccess) {
+	fprintf(stderr, "%s: SECU_ReadDERFromFile failed\n", progName);
+	exit(1);
+    }
 
     /* Data is untyped, using the specified type */
     data.data = der.data;
