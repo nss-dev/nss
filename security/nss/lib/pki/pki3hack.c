@@ -366,7 +366,13 @@ nssDecodedPKIXCertificate_Destroy
   nssDecodedCert *dc
 )
 {
-    /*CERT_DestroyCertificate((CERTCertificate *)dc->data);*/
+    CERTCertificate *cert = (CERTCertificate *)dc->data;
+    PRArenaPool *arena  = cert->arena;
+    /* zero cert before freeing. Any stale references to this cert
+     * after this point will probably cause an exception.  */
+    PORT_Memset(cert, 0, sizeof *cert);
+    /* free the arena that contains the cert. */
+    PORT_FreeArena(arena, PR_FALSE);
     nss_ZFreeIf(dc);
     return PR_SUCCESS;
 }
