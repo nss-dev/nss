@@ -797,8 +797,8 @@ pk11_fips_RSA_PowerUpSelfTest( void )
     unsigned int          rsa_bytes_signed;
     SECStatus             rsa_status;
 
-    SECKEYLowPublicKey    low_public_key   = { NULL, rsaKey, };
-    SECKEYLowPrivateKey   low_private_key  = { NULL, rsaKey, };
+    SECKEYLowPublicKey    low_public_key   = { NULL, lowRSAKey, };
+    SECKEYLowPrivateKey   low_private_key  = { NULL, lowRSAKey, };
     PRUint8               rsa_computed_ciphertext[FIPS_RSA_ENCRYPT_LENGTH];
     PRUint8               rsa_computed_plaintext[FIPS_RSA_DECRYPT_LENGTH];
     PRUint8               rsa_computed_signature[FIPS_RSA_SIGNATURE_LENGTH];
