@@ -39,6 +39,7 @@
 
 #include "nss.h"
 #include "cert.h"
+#include "certdb.h"
 #include "secutil.h"
 #include "pk11func.h"
 
@@ -71,7 +72,7 @@ char *getTrustString(unsigned int trust)
     }
     return "CKT_NETSCAPE_VALID"; /* not reached */
 }
-	
+
 static SECStatus
 ConvertCertificate(SECItem *sdder, char *nickname, CERTCertTrust *trust)
 {
