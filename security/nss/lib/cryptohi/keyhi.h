@@ -251,6 +251,23 @@ SECKEY_AddPrivateKeyToListTail( SECKEYPrivateKeyList *list,
 #define PRIVKEY_LIST_NEXT(n) ((SECKEYPrivateKeyListNode *)n->links.next)
 #define PRIVKEY_LIST_END(n,l) (((void *)n) == ((void *)&l->list))
 
+SECKEYPublicKeyList*
+SECKEY_NewPublicKeyList(void);
+
+void
+SECKEY_DestroyPublicKeyList(SECKEYPublicKeyList *keys);
+
+void
+SECKEY_RemovePublicKeyListNode(SECKEYPublicKeyListNode *node);
+
+SECStatus
+SECKEY_AddPublicKeyToListTail( SECKEYPublicKeyList *list,
+                                SECKEYPublicKey *key);
+
+#define PUBKEY_LIST_HEAD(l) ((SECKEYPublicKeyListNode*)PR_LIST_HEAD(&l->list))
+#define PUBKEY_LIST_NEXT(n) ((SECKEYPublicKeyListNode *)n->links.next)
+#define PUBKEY_LIST_END(n,l) (((void *)n) == ((void *)&l->list))
+
 SEC_END_PROTOS
 
 #endif /* _KEYHI_H_ */
