@@ -1370,7 +1370,7 @@ nssTokenObjectCache_ImportObject
     return status;
 }
 
-NSS_IMPLEMENT PRStatus
+NSS_IMPLEMENT void
 nssTokenObjectCache_RemoveObject
 (
   nssTokenObjectCache *cache,
@@ -1408,7 +1408,6 @@ nssTokenObjectCache_RemoveObject
 	cache->objects[oType] = NULL;
     }
     PZ_Unlock(cache->lock);
-    return PR_SUCCESS;
 }
 
 /* XXX of course this doesn't belong here */

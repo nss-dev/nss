@@ -208,7 +208,7 @@ nssTokenObjectCache_ImportObject
   CK_ULONG otlen
 );
 
-NSS_EXTERN PRStatus
+NSS_EXTERN void
 nssTokenObjectCache_RemoveObject
 (
   nssTokenObjectCache *cache,
