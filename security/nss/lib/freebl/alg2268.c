@@ -140,8 +140,8 @@ static const PRUint8 S[256] = {
 ** chaining" mode.
 */
 RC2Context *
-RC2_CreateContext(unsigned char *key, unsigned int len,
-		  unsigned char *input, int mode, unsigned efLen8)
+RC2_CreateContext(const unsigned char *key, unsigned int len,
+		  const unsigned char *input, int mode, unsigned efLen8)
 {
     RC2Context *cx;
     PRUint8    *L,*L2;
