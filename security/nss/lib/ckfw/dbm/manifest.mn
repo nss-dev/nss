@@ -34,7 +34,7 @@ MANIFEST_CVS_ID = "@(#) $RCSfile$ $Revision$ $Date$ $Name$"
 
 CORE_DEPTH = ../../../..
 
-MODULE = security
+MODULE = nss
 
 CSRCS =		   \
 	anchor.c   \
@@ -47,7 +47,7 @@ CSRCS =		   \
 	db.c	   \
 	$(NULL)
 
-REQUIRES = security dbm nspr
+REQUIRES = dbm nspr
 
 LIBRARY_NAME = nssckdbm
 
