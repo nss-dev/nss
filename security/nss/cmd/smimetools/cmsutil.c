@@ -418,13 +418,17 @@ sign(FILE *out, FILE *infile, char *progName, struct optionsStr options, struct 
 
     if (signOptions.signingTime) {
 	if (NSS_CMSSignerInfo_AddSigningTime(signerinfo, PR_Now()) != SECSuccess) {
-	    fprintf(stderr, "ERROR: cannot create CMS signerInfo object.\n");
+	    fprintf(stderr, "ERROR: cannot add signingTime attribute.\n");
 	    NSS_CMSMessage_Destroy(cmsg);
 	    return SECFailure;
 	}
     }
     if (signOptions.smimeProfile) {
-	/* TBD */
+	if (NSS_CMSSignerInfo_AddSMIMECaps(signerinfo) != SECSuccess) {
+	    fprintf(stderr, "ERROR: cannot add SMIMECaps attribute.\n");
+	    NSS_CMSMessage_Destroy(cmsg);
+	    return SECFailure;
+	}
     }
     if (signOptions.encryptionKeyPreferenceNick) {
 	/* TBD */

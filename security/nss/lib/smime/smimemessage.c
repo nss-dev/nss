@@ -50,24 +50,6 @@
 #include "secerr.h"
 
 
-SECStatus
-NSS_SMIMESignerInfo_AddSMIMEProfile(NSSCMSSignerInfo *signerinfo, CERTCertificate *cert)
-{
-    SECItem *smimecapsdata;
-    NSSCMSAttribute *smimecapsattr;
-
-    if ((smimecapsdata = NSS_SMIMEUtil_GetSMIMECapabilities(cert)) == NULL)
-	return SECFailure;
-
-    smimecapsattr = NSS_CMSAttribute_Create(signerinfo->cmsg->poolp,
-				    SEC_OID_PKCS9_SMIME_CAPABILITIES,
-				    smimecapsdata, PR_TRUE);
-    if (smimecapsattr == NULL)
-	return SECFailure;
-
-    return NSS_CMSSignerInfo_AddAuthAttr(signerinfo, smimecapsattr);
-}
-
 #if 0
 /*
  * NSS_SMIMEMessage_CreateEncrypted - start an S/MIME encrypting context.

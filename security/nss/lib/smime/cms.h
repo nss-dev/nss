@@ -706,6 +706,16 @@ NSS_CMSSignerInfo_AddUnauthAttr(NSSCMSSignerInfo *signerinfo, NSSCMSAttribute *a
 extern SECStatus
 NSS_CMSSignerInfo_AddSigningTime(NSSCMSSignerInfo *signerinfo, PRTime t);
 
+/*
+ * NSS_CMSSignerInfo_AddSMIMECaps - add a SMIMECapabilities attribute to the
+ * authenticated (i.e. signed) attributes of "signerinfo".
+ *
+ * This is expected to be included in outgoing signed
+ * messages for email (S/MIME).
+ */
+extern SECStatus
+NSS_CMSSignerInfo_AddSMIMECaps(NSSCMSSignerInfo *signerinfo);
+
 /* 
  * NSS_CMSSignerInfo_AddCounterSignature - countersign a signerinfo
  *
