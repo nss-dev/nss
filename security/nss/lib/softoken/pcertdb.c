@@ -2850,7 +2850,6 @@ AddPermSubjectNode(certDBEntrySubject *entry, NSSLOWCERTCertificate *cert,
     }
     DeleteDBSubjectEntry(cert->dbhandle, &cert->derSubject);
     rv = WriteDBSubjectEntry(cert->dbhandle, entry);
-    DestroyDBEntry((certDBEntry *)entry);
     return(rv);
 }
 
