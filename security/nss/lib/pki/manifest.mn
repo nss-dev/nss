@@ -59,8 +59,8 @@ CSRCS =		        \
 
 ifndef PURE_STAN_BUILD
 CSRCS += pki3hack.c
-PRIVATE_EXPORTS += pki3hack.h pkitm.h pkim.h
-DEFINES = -DNSS_3_4_CODE
+PRIVATE_EXPORTS += pkistore.h pki3hack.h pkitm.h pkim.h
+DEFINES = -DNSS_3_4_CODE -DDEBUG_CACHE
 endif
 
 REQUIRES = security nspr
