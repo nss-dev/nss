@@ -870,8 +870,14 @@ ssl_DestroySecurityInfo(sslSecurityInfo *sec)
 	PORT_ZFree(sec->writeBuf.buf, sec->writeBuf.space);
 	sec->writeBuf.buf = 0;
 
-	CERT_DestroyCertificate(sec->peerCert);
-	sec->peerCert = NULL;
+	if (sec->peerCert) {
+	    CERT_DestroyCertificate(sec->peerCert);
+	    sec->peerCert = NULL;
+	}
+	if (sec->peerKey) {
+	    SECKEY_DestroyPublicKey(sec->peerKey);
+	    sec->peerKey = NULL;
+	}
 
 	PORT_ZFree(sec->ci.sendBuf.buf, sec->ci.sendBuf.space);
 	if (sec->ci.sid != NULL) {
