@@ -3687,3 +3687,25 @@ loser:
     return SECFailure;
 }
 
+extern const char __nss_ssl_rcsid[];
+extern const char __nss_ssl_sccsid[];
+
+PRBool
+NSSSSL_VersionCheck(const char *importedVersion)
+{
+    /*
+     * This is the secret handshake algorithm.
+     *
+     * This release has a simple version compatibility
+     * check algorithm.  This release is not backward
+     * compatible with previous major releases.  It is
+     * not compatible with future major, minor, or
+     * patch releases.
+     */
+    int vmajor = 0, vminor = 0, vpatch = 0;
+    const char *ptr = importedVersion;
+    volatile char c; /* force a reference that won't get optimized away */
+
+    c = __nss_ssl_rcsid[0] + __nss_ssl_sccsid[0]; 
+    return NSS_VersionCheck(importedVersion);
+}
