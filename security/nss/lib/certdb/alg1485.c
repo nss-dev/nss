@@ -1130,11 +1130,13 @@ cert_GetCertificateEmailAddresses(CERTCertificate *cert)
     }
     /* now copy superstring to cert's arena */
     finalLen = (pBuf - addrBuf) + 1;
-    pBuf = PORT_ArenaAlloc(cert->arena, finalLen);
-    if (pBuf) {
-    	PORT_Memcpy(pBuf, addrBuf, finalLen);
+    pBuf = NULL;
+    if (finalLen > 1) {
+	pBuf = PORT_ArenaAlloc(cert->arena, finalLen);
+	if (pBuf) {
+	    PORT_Memcpy(pBuf, addrBuf, finalLen);
+	}
     }
-     
 loser:
     if (tmpArena)
 	PORT_FreeArena(tmpArena, PR_FALSE);
