@@ -96,7 +96,8 @@ set_whatnspr
 NSS_IMPLEMENT PRStatus
 nss_NewThreadPrivateIndex
 (
-  PRUintn *ip
+  PRUintn *ip,
+  PRThreadPrivateDTOR dtor
 )
 {
   switch( WHATNSPR ) {
@@ -114,7 +115,7 @@ nss_NewThreadPrivateIndex
     }
   case 2:
   default:
-    return PR_NewThreadPrivateIndex(ip, NULL);
+    return PR_NewThreadPrivateIndex(ip, dtor);
   }
 }
 

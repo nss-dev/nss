@@ -54,6 +54,7 @@ static const char BASE_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #endif /* NSSBASE_H */
 
 #include "plhash.h"
+#include "prthread.h"
 
 PR_BEGIN_EXTERN_C
 
@@ -1386,7 +1387,8 @@ extern const NSSError NSS_ERROR_INVALID_POINTER;
 NSS_EXTERN PRStatus
 nss_NewThreadPrivateIndex
 (
-  PRUintn *ip
+  PRUintn *ip,
+  PRThreadPrivateDTOR dtor
 );
 
 /*
