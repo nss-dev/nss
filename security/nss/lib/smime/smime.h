@@ -122,10 +122,8 @@ extern PRBool NSS_SMIMEUtil_EncryptionPossible(void);
  *
  * scans the list of allowed and enabled ciphers and construct a PKCS9-compliant
  * S/MIME capabilities attribute value.
- *
- * "cert" - sender's certificate
  */
-extern SECItem *NSS_SMIMEUtil_GetSMIMECapabilities(CERTCertificate *cert);
+extern SECStatus NSS_SMIMEUtil_GetSMIMECapabilities(PLArenaPool *poolp, SECItem *dest, PRBool includeFortezzaCiphers);
 
 /*
  * NSS_SMIMEUtil_FindBulkAlgForRecipients - find bulk algorithm suitable for all recipients
