@@ -69,14 +69,14 @@ else
 #	$(DIST)/lib/libdbm.a 
 #	$(DIST)/lib/libnspr3.a 
 #
-CRYPTO_LIB = $(DIST)/lib/libfreebl.$(LIB_SUFFIX) 
+CRYPTO_LIB = $(DIST)/lib/libfreebl_3.$(LIB_SUFFIX) 
 
 ifdef MOZILLA_SECURITY_BUILD
 CRYPTO_LIB = $(DIST)/lib/libcrypto.$(LIB_SUFFIX)
 endif
 ifdef MOZILLA_BSAFE_BUILD
 CRYPTO_LIB += $(DIST)/lib/libbsafe.$(LIB_SUFFIX)
-CRYPTO_LIB += $(DIST)/lib/libfreebl.$(LIB_SUFFIX)
+CRYPTO_LIB += $(DIST)/lib/libfreebl_3.$(LIB_SUFFIX)
 endif
 
 ifeq ($(OS_ARCH), OS2)
