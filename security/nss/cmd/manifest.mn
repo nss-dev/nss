@@ -69,6 +69,7 @@ DIRS = lib  \
  swfort  \
  tstclnt  \
  modutil \
+ dbtest \
  $(NULL)
 
 TEMPORARILY_DONT_BUILD = \
