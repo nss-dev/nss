@@ -67,11 +67,6 @@ EXTRA_LIBS += \
 endif
 
 
-ifeq ($(OS_ARCH), WINNT)
-	SHARED_LIBRARY = $(OBJDIR)/$(LIBRARY_NAME)$(LIBRARY_VERSION).dll
-	IMPORT_LIBRARY = $(OBJDIR)/$(LIBRARY_NAME)$(LIBRARY_VERSION).lib
-endif
-
 
 include $(CORE_DEPTH)/coreconf/rules.mk
 

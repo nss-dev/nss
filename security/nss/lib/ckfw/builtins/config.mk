@@ -32,6 +32,20 @@
 #
 CONFIG_CVS_ID = "@(#) $RCSfile$ $Revision$ $Date$ $Name$"
 
+#
+#  Override TARGETS variable so that only shared libraries
+#  are specifed as dependencies within rules.mk.
+#
+
+TARGETS        = $(SHARED_LIBRARY)
+LIBRARY        =
+IMPORT_LIBRARY =
+PROGRAM        =
+
+ifeq ($(OS_ARCH), WINNT)
+	SHARED_LIBRARY = $(OBJDIR)/$(LIBRARY_NAME)$(LIBRARY_VERSION).dll
+endif
+
 ifdef BUILD_IDG
 DEFINES += -DNSSDEBUG
 endif
