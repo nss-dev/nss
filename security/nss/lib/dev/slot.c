@@ -176,7 +176,7 @@ nssSlot_Destroy
 )
 {
     if (--slot->refCount == 0) {
-	/*NSSToken_Destroy(slot->token);*/
+	nssToken_Destroy(slot->token);
 	return NSSArena_Destroy(slot->arena);
     }
     return PR_SUCCESS;
