@@ -732,8 +732,7 @@ nssCryptokiCertificate_GetAttributes
   NSSDER *encodingOpt,
   NSSDER *issuerOpt,
   NSSDER *serialOpt,
-  NSSDER *subjectOpt,
-  NSSASCII7 **emailOpt
+  NSSDER *subjectOpt
 );
 
 NSS_EXTERN PRStatus
