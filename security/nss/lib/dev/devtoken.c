@@ -1029,8 +1029,7 @@ nssToken_ImportTrust
     /* import the trust object onto the token */
     object = import_object(tok, sessionOpt, trust_tmpl, tsize);
     if (object && tok->cache) {
-	nssTokenObjectCache_ImportObject(tok->cache, object,
-	                                 CKO_CERTIFICATE,
+	nssTokenObjectCache_ImportObject(tok->cache, object, tobjc,
 	                                 trust_tmpl, tsize);
     }
     return object;
@@ -1167,8 +1166,7 @@ nssToken_ImportCRL
     /* import the crl object onto the token */
     object = import_object(token, sessionOpt, crl_tmpl, crlsize);
     if (object && token->cache) {
-	nssTokenObjectCache_ImportObject(token->cache, object,
-	                                 CKO_CERTIFICATE,
+	nssTokenObjectCache_ImportObject(token->cache, object, crlobjc,
 	                                 crl_tmpl, crlsize);
     }
     return object;

@@ -506,6 +506,9 @@ static PRBool is_user_cert(NSSCertificate *c, CERTCertificate *cc)
     PRBool isUser = PR_FALSE;
     nssCryptokiObject **ip;
     nssCryptokiObject **instances = nssPKIObject_GetInstances(&c->object);
+    if (!instances) {
+	return PR_FALSE;
+    }
     for (ip = instances; *ip; ip++) {
 	nssCryptokiObject *instance = *ip;
 	if (PK11_IsUserCert(instance->token->pk11slot, cc, instance->handle)) {
