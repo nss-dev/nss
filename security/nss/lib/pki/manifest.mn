@@ -35,6 +35,8 @@ MANIFEST_CVS_ID = "@(#) $RCSfile$ $Revision$ $Date$ $Name$"
 CORE_DEPTH = ../../..
 
 PRIVATE_EXPORTS = \
+	pki.h      \
+	pkit.h     \
 	$(NULL)
 
 EXPORTS =	   \
@@ -55,3 +57,4 @@ CSRCS =		        \
 REQUIRES = security nspr
 
 LIBRARY_NAME = nsspki
+LIBRARY_VERSION = 3
