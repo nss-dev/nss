@@ -1142,6 +1142,9 @@ main(int argc, char **argv)
 	}
     }
 
+    if (mode == UNKNOWN)
+	Usage(progName);
+
     if (mode != CERTSONLY)
 	SECU_FileToItem(&input, inFile);
     if (inFile != PR_STDIN)
