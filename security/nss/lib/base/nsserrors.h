@@ -38,47 +38,52 @@
 static const char NSSERRORS_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #endif /* DEBUG */
 
-#define NSS_ERROR_NO_ERROR                         0
-#define NSS_ERROR_INTERNAL_ERROR                   1
-#define NSS_ERROR_NO_MEMORY                        2
-#define NSS_ERROR_INVALID_POINTER                  3
-#define NSS_ERROR_INVALID_ARENA                    4
-#define NSS_ERROR_INVALID_ARENA_MARK               5
-#define NSS_ERROR_ARENA_MARKED_BY_ANOTHER_THREAD  10
-#define NSS_ERROR_VALUE_TOO_LARGE                 11
-#define NSS_ERROR_UNSUPPORTED_TYPE                12
-#define NSS_ERROR_BUFFER_TOO_SHORT                13
-#define NSS_ERROR_INVALID_ATOB_CONTEXT            14
-#define NSS_ERROR_INVALID_BASE64                  15
-#define NSS_ERROR_INVALID_BTOA_CONTEXT            16
-#define NSS_ERROR_INVALID_ITEM                    17
-#define NSS_ERROR_INVALID_STRING                  18
-#define NSS_ERROR_INVALID_ASN1ENCODER             19
-#define NSS_ERROR_INVALID_ASN1DECODER             20
+#define NSS_ERROR_NO_ERROR                                   0
+#define NSS_ERROR_INTERNAL_ERROR                             1
+#define NSS_ERROR_NO_MEMORY                                  2
+#define NSS_ERROR_INVALID_POINTER                            3
+#define NSS_ERROR_INVALID_ARENA                              4
+#define NSS_ERROR_INVALID_ARENA_MARK                         5
+#define NSS_ERROR_ARENA_MARKED_BY_ANOTHER_THREAD            10
+#define NSS_ERROR_VALUE_TOO_LARGE                           11
+#define NSS_ERROR_UNSUPPORTED_TYPE                          12
+#define NSS_ERROR_BUFFER_TOO_SHORT                          13
+#define NSS_ERROR_INVALID_ATOB_CONTEXT                      14
+#define NSS_ERROR_INVALID_BASE64                            15
+#define NSS_ERROR_INVALID_BTOA_CONTEXT                      16
+#define NSS_ERROR_INVALID_ITEM                              17
+#define NSS_ERROR_INVALID_STRING                            18
+#define NSS_ERROR_INVALID_ASN1ENCODER                       19
+#define NSS_ERROR_INVALID_ASN1DECODER                       20
 
-#define NSS_ERROR_INVALID_BER                     21
-#define NSS_ERROR_INVALID_ATAV                    22
-#define NSS_ERROR_INVALID_ARGUMENT                23
-#define NSS_ERROR_INVALID_UTF8                    24
-#define NSS_ERROR_INVALID_NSSOID                  25
-#define NSS_ERROR_UNKNOWN_ATTRIBUTE               26
+#define NSS_ERROR_INVALID_BER                               21
+#define NSS_ERROR_INVALID_ATAV                              22
+#define NSS_ERROR_INVALID_ARGUMENT                          23
+#define NSS_ERROR_INVALID_UTF8                              24
+#define NSS_ERROR_INVALID_NSSOID                            25
+#define NSS_ERROR_UNKNOWN_ATTRIBUTE                         26
 
-#define NSS_ERROR_NOT_FOUND                       27
+#define NSS_ERROR_NOT_FOUND                                 27
 
-#define NSS_ERROR_INVALID_PASSWORD                28
-#define NSS_ERROR_USER_CANCELED                   29
+#define NSS_ERROR_INVALID_PASSWORD                          28
+#define NSS_ERROR_USER_CANCELED                             29
 
-#define NSS_ERROR_MAXIMUM_FOUND                   30
-#define NSS_ERROR_INVALID_SIGNATURE               31
-#define NSS_ERROR_INVALID_DATA                    32
+#define NSS_ERROR_MAXIMUM_FOUND                             30
+#define NSS_ERROR_INVALID_SIGNATURE                         31
+#define NSS_ERROR_INVALID_DATA                              32
 
 /* token errors */
-#define NSS_ERROR_TOKEN_FAILURE                   100
+#define NSS_ERROR_TOKEN_FAILURE                            100
 
 /* certificate errors */
-#define NSS_ERROR_CERTIFICATE_ISSUER_NOT_FOUND    500
+#define NSS_ERROR_INVALID_CERTIFICATE                      500
+#define NSS_ERROR_CERTIFICATE_ISSUER_NOT_FOUND             501
+#define NSS_ERROR_CERTIFICATE_USAGE_INSUFFICIENT           502
+#define NSS_ERROR_CERTIFICATE_EXCEEDED_PATH_LENGTH_CONSTRAINT 503
+#define NSS_ERROR_CERTIFICATE_HAS_NO_TRUSTED_ISSUER        504
+#define NSS_ERROR_CERTIFICATE_NOT_VALID_AT_TIME            505
 
 /* crypto context errors */
-#define NSS_ERROR_INVALID_CRYPTO_CONTEXT          800
+#define NSS_ERROR_INVALID_CRYPTO_CONTEXT                   800
 
 #endif /* NSSERRORS_H */

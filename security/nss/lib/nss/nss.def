@@ -307,6 +307,8 @@ NSSTrustDomain_TraversePrivateKeys;
 ;+#
 nss_SetError;
 nss_ClearErrorStack;
+nss_HoldErrorStack;
+nss_ResumeErrorStack;
 nss_ZAlloc;
 nss_ZFreeIf;
 nss_ZRealloc;

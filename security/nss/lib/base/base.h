@@ -482,6 +482,18 @@ nss_ClearErrorStack
   void
 );
 
+NSS_EXTERN PRStatus
+nss_HoldErrorStack
+(
+  void
+);
+
+NSS_EXTERN PRStatus
+nss_ResumeErrorStack
+(
+  void
+);
+
 /*
  * NSSItem
  *

@@ -56,6 +56,7 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 struct stack_header_str {
   PRUint16 space;
   PRUint16 count;
+  PRInt32  holdCount;
 };
 
 struct error_stack_str {
@@ -245,7 +246,7 @@ NSS_GetErrorStack
  * nss_SetError
  *
  * This routine places a new error code on the top of the calling 
- * thread's error stack.  Calling this routine wiht an error code
+ * thread's error stack.  Calling this routine with an error code
  * of zero will clear the error stack.
  */
 
@@ -288,6 +289,11 @@ nss_ClearErrorStack
   error_stack *es = error_get_my_stack();
   if( (error_stack *)NULL == es ) {
     /* Oh, well. */
+    return;
+  }
+
+  if (es->header.holdCount > 0) {
+    /* The stack is on hold, don't clear it. */
     return;
   }
 
@@ -351,5 +357,35 @@ nss_ReleaseErrorStack
   es->header.count = mark;
   es->stack[ es->header.count ] = 0;
   return PR_SUCCESS;
+}
+
+NSS_IMPLEMENT PRStatus
+nss_HoldErrorStack
+(
+  void
+)
+{
+  error_stack *es = error_get_my_stack();
+  if( (error_stack *)NULL == es ) {
+    /* Oh, well. */
+    return PR_FAILURE;
+  }
+
+  es->header.holdCount++;  /* thread-private data, this is safe */
+}
+
+NSS_IMPLEMENT PRStatus
+nss_ResumeErrorStack
+(
+  void
+)
+{
+  error_stack *es = error_get_my_stack();
+  if( (error_stack *)NULL == es ) {
+    /* Oh, well. */
+    return PR_FAILURE;
+  }
+
+  es->header.holdCount--; /* thread-private data, this is safe */
 }
 

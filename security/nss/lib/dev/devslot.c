@@ -114,7 +114,7 @@ nssSlot_Create
     CK_SLOT_INFO slotInfo;
     CK_RV ckrv;
     void *epv;
-    arena = NSSArena_Create();
+    arena = nssArena_Create();
     if(!arena) {
 	return (NSSSlot *)NULL;
     }

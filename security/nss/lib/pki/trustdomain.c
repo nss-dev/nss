@@ -75,7 +75,7 @@ NSSTrustDomain_Create
 {
     NSSArena *arena;
     NSSTrustDomain *rvTD;
-    arena = NSSArena_Create();
+    arena = nssArena_Create();
     if(!arena) {
 	return (NSSTrustDomain *)NULL;
     }

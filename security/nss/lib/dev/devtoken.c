@@ -76,7 +76,7 @@ nssToken_Create
     PRBool readWrite;
     CK_RV ckrv;
     void *epv = nssSlot_GetCryptokiEPV(peer);
-    arena = NSSArena_Create();
+    arena = nssArena_Create();
     if(!arena) {
 	return (NSSToken *)NULL;
     }

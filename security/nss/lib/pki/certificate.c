@@ -677,9 +677,7 @@ validate_and_discover_trust
     if (!nssCertificate_IsValidAtTime(c, time, &status)) {
 	if (status == PR_SUCCESS) {
 	    /* The function was successful, so we own the error */
-#if 0
 	    nss_SetError(NSS_ERROR_CERTIFICATE_NOT_VALID_AT_TIME);
-#endif
 	} /* else the function failed and owns the error */
 	return PR_FAILURE;
     }
@@ -702,9 +700,7 @@ validate_and_discover_trust
 	valid = ((certUsages->peer & usage) == usage);
     }
     if (!valid) {
-#if 0
-	nss_SetError(NSS_ERROR_CERTIFICATE_INSUFFICIENT_USAGE);
-#endif
+	nss_SetError(NSS_ERROR_CERTIFICATE_USAGE_INSUFFICIENT);
 	return PR_FAILURE;
     }
 
@@ -845,6 +841,7 @@ nssCertificate_Validate
 check_revocation:
     if (!trusted) {
 	/* the last cert checked in the chain must be trusted */
+	nss_SetError(NSS_ERROR_CERTIFICATE_HAS_NO_TRUSTED_ISSUER);
 	status = PR_FAILURE;
     }
 #if 0

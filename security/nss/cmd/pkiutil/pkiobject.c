@@ -384,7 +384,7 @@ ValidateCert
                                                      NULL,
                                                      NULL);
     if (!c) {
-	PR_fprintf(PR_STDERR, "Failed to locate cert %s\n", nickname);
+	CMD_PrintError("Failed to locate cert %s", nickname);
 	return PR_FAILURE;
     }
 

@@ -61,10 +61,13 @@ pkix_Decode
 )
 {
     NSSPKIXCertificate *pkixCert;
+
+    nss_HoldErrorStack();
+
     pkixCert = nssPKIXCertificate_Decode(arenaOpt, encoding);
-    if (!pkixCert) {
-	return (void *)NULL;
-    }
+
+    nss_ResumeErrorStack();
+
     return (void *)pkixCert;
 }
 
@@ -77,24 +80,32 @@ pkix_GetSubject
     NSSPKIXCertificate *pkixCert = (NSSPKIXCertificate *)cert;
     NSSPKIXTBSCertificate *tbsCert;
     NSSPKIXName *subject;
+    NSSBER *subjectBER = NULL;
+
+    nss_HoldErrorStack();
+
     /*
      * cert->tbsCert
      */
     tbsCert = nssPKIXCertificate_GetTBSCertificate(pkixCert);
     if (!tbsCert) {
-	return (NSSBER *)NULL;
+	goto finish;
     }
     /*
      * tbsCert->subject
      */
     subject = nssPKIXTBSCertificate_GetSubject(tbsCert);
     if (!subject) {
-	return (NSSBER *)NULL;
+	goto finish;
     }
     /*
      * subject->der
      */
-    return nssPKIXName_Encode(subject);
+    subjectBER = nssPKIXName_Encode(subject);
+
+finish:
+    nss_ResumeErrorStack();
+    return subjectBER;
 }
 
 static NSSBER *
@@ -106,24 +117,32 @@ pkix_GetIssuer
     NSSPKIXCertificate *pkixCert = (NSSPKIXCertificate *)cert;
     NSSPKIXTBSCertificate *tbsCert;
     NSSPKIXName *issuer;
+    NSSBER *issuerBER = NULL;
+
+    nss_HoldErrorStack();
+
     /*
      * cert->tbsCert
      */
     tbsCert = nssPKIXCertificate_GetTBSCertificate(pkixCert);
     if (!tbsCert) {
-	return (NSSBER *)NULL;
+	goto finish;
     }
     /*
      * tbsCert->issuer
      */
     issuer = nssPKIXTBSCertificate_GetIssuer(tbsCert);
     if (!issuer) {
-	return (NSSBER *)NULL;
+	goto finish;
     }
     /*
      * issuer->der
      */
-    return nssPKIXName_Encode(issuer);
+    issuerBER = nssPKIXName_Encode(issuer);
+
+finish:
+    nss_ResumeErrorStack();
+    return issuerBER;
 }
 
 static NSSBER *
@@ -134,17 +153,25 @@ pkix_GetSerialNumber
 {
     NSSPKIXCertificate *pkixCert = (NSSPKIXCertificate *)cert;
     NSSPKIXTBSCertificate *tbsCert;
+    NSSBER *snBER;
+
+    nss_HoldErrorStack();
+
     /*
      * cert->tbsCert
      */
     tbsCert = nssPKIXCertificate_GetTBSCertificate(pkixCert);
     if (!tbsCert) {
-	return (NSSBER *)NULL;
+	goto finish;
     }
     /*
      * tbsCert->serialNumber
      */
-    return nssPKIXTBSCertificate_GetSerialNumber(tbsCert);
+    snBER = nssPKIXTBSCertificate_GetSerialNumber(tbsCert);
+
+finish:
+    nss_ResumeErrorStack();
+    return snBER;
 }
 
 static NSSASCII7 *
@@ -169,43 +196,51 @@ pkix_GetValidityPeriod
     NSSPKIXTBSCertificate *tbsCert;
     NSSPKIXValidity *validity;
     NSSPKIXTime *pkixTime;
+
+    nss_HoldErrorStack();
+
     /*
      * cert->tbsCert
      */
     tbsCert = nssPKIXCertificate_GetTBSCertificate(pkixCert);
     if (!tbsCert) {
-	return PR_FAILURE;
+	goto loser;
     }
     /*
      * tbsCert->validity
      */
     validity = nssPKIXTBSCertificate_GetValidity(tbsCert);
     if (!validity) {
-	return PR_FAILURE;
+	goto loser;
     }
     /*
      * validity->notBefore
      */
     pkixTime = nssPKIXValidity_GetNotBefore(validity);
     if (!pkixTime) {
-	return PR_FAILURE;
+	goto loser;
     }
     *notBefore = nssPKIXTime_GetTime(pkixTime, &status);
     if (status == PR_FAILURE) {
-	return PR_FAILURE;
+	goto loser;
     }
     /*
      * validity->notAfter
      */
     pkixTime = nssPKIXValidity_GetNotAfter(validity);
     if (!pkixTime) {
-	return PR_FAILURE;
+	goto loser;
     }
     *notAfter = nssPKIXTime_GetTime(pkixTime, &status);
     if (status == PR_FAILURE) {
-	return PR_FAILURE;
+	goto loser;
     }
+
+    nss_ResumeErrorStack();
     return PR_SUCCESS;
+loser:
+    nss_ResumeErrorStack();
+    return PR_FAILURE;
 }
 
 /*
@@ -344,6 +379,8 @@ pkix_GetUsages
     NSSPKIXnetscapeCertType *nsCertType;
     NSSUsages usages;
 
+    nss_HoldErrorStack();
+
     /* start with everything */
     usages.ca = NSSUsage_All;
     usages.peer = NSSUsage_All;
@@ -352,14 +389,14 @@ pkix_GetUsages
      */
     tbsCert = nssPKIXCertificate_GetTBSCertificate(pkixCert);
     if (!tbsCert) {
-	return PR_FAILURE;
+	goto loser;
     }
     /*
      * tbsCert->extensions
      */
     extensions = nssPKIXTBSCertificate_GetExtensions(tbsCert);
     if (!extensions) {
-	return PR_FAILURE;
+	goto loser;
     }
     /*
      * extensions[keyUsage]
@@ -383,7 +420,12 @@ pkix_GetUsages
 	get_usages_from_ns_cert_type(nsCertType, &usages);
     }
     *rvUsages = usages;
+
+    nss_ResumeErrorStack();
     return PR_SUCCESS;
+loser:
+    nss_ResumeErrorStack();
+    return PR_FAILURE;
 }
 
 static NSSPolicies *
@@ -409,33 +451,35 @@ pkix_GetPublicKeyInfo
     NSSPKIXAlgorithmIdentifier *algID;
     NSSBitString *spk;
 
+    nss_HoldErrorStack();
+
     /*
      * cert->tbsCert
      */
     tbsCert = nssPKIXCertificate_GetTBSCertificate(pkixCert);
     if (!tbsCert) {
-	return PR_FAILURE;
+	goto loser;
     }
     /*
      * tbsCert->subjectPublicKeyInfo
      */
     spki = nssPKIXTBSCertificate_GetSubjectPublicKeyInfo(tbsCert);
     if (!spki) {
-	return PR_FAILURE;
+	goto loser;
     }
     /*
      * subjectPublicKeyInfo->algorithm
      */
     algID = nssPKIXSubjectPublicKeyInfo_GetAlgorithm(spki);
     if (!algID) {
-	return PR_FAILURE;
+	goto loser;
     }
     /*
      * algorithm->algorithm (OID)
      */
     *keyType = nssPKIXAlgorithmIdentifier_GetAlgorithm(algID);
     if (!*keyType) {
-	return PR_FAILURE;
+	goto loser;
     }
     /* XXX parameters ? */
     /*
@@ -443,10 +487,15 @@ pkix_GetPublicKeyInfo
      */
     spk = nssPKIXSubjectPublicKeyInfo_GetSubjectPublicKey(spki);
     if (!spk) {
-	return PR_FAILURE;
+	goto loser;
     }
     *keyData = *spk;
+
+    nss_ResumeErrorStack();
     return PR_SUCCESS;
+loser:
+    nss_ResumeErrorStack();
+    return PR_FAILURE;
 }
 
 #if 0
@@ -515,6 +564,7 @@ check_basic_constraints
     NSSPKIXTBSCertificate *tbsCert;
     NSSPKIXExtensions *extensions;
     NSSPKIXBasicConstraints *bc;
+
     /*
      * cert->tbsCert
      */
@@ -540,18 +590,14 @@ check_basic_constraints
     if (bc) {
 	PRInt32 plc;
 	if (!nssPKIXBasicConstraints_IsCA(bc)) {
-#if 0
 	    nss_SetError(NSS_ERROR_INVALID_CERTIFICATE);
-#endif
 	    return PR_FAILURE;
 	}
 	plc = nssPKIXBasicConstraints_GetPathLengthConstraint(bc);
 	if (plc != NSSPKIXBasicConstraints_UNLIMITED_PATH_CONSTRAINT &&
 	    plc <= validationData->pathLen) 
 	{
-#if 0
-	    nss_SetError(NSS_ERROR_EXCEEDED_PATH_LEN_CONSTRAINT);
-#endif
+	    nss_SetError(NSS_ERROR_CERTIFICATE_EXCEEDED_PATH_LENGTH_CONSTRAINT);
 	    return PR_FAILURE;
 	}
     }
@@ -644,9 +690,11 @@ pkix_ValidateChainLink
     struct nss_pkix_validation_data_str *validationData = 
       (struct nss_pkix_validation_data_str *)vData;
 
+    nss_HoldErrorStack();
+
     pkixIssuer = (NSSPKIXCertificate *)NSSCertificate_GetDecoding(issuer);
     if (!pkixIssuer) {
-	return PR_FAILURE;
+	goto loser;
     }
 
     /*
@@ -655,7 +703,7 @@ pkix_ValidateChainLink
      */
     status = check_basic_constraints(pkixIssuer, validationData);
     if (status == PR_FAILURE) {
-	return PR_FAILURE;
+	goto loser;
     }
 
     /* Check the Name Constraints extension against the name */
@@ -666,7 +714,11 @@ pkix_ValidateChainLink
      */
     status = verify_signature(pkixCert, pkixIssuer, issuer);
 
+    nss_ResumeErrorStack();
     return status;
+loser:
+    nss_ResumeErrorStack();
+    return PR_FAILURE;
 }
 
 static void
@@ -684,7 +736,12 @@ pkix_Destroy
 )
 {
     NSSPKIXCertificate *pkixCert = (NSSPKIXCertificate *)cert;
-    NSSPKIXCertificate_Destroy(pkixCert);
+
+    nss_HoldErrorStack();
+
+    nssPKIXCertificate_Destroy(pkixCert);
+
+    nss_ResumeErrorStack();
 }
 
 NSSCertificateMethods g_pkix_methods;
