@@ -910,8 +910,8 @@ ssl3_VerifySignedHashes(SSL3Hashes *hash, NSSCert *cert,
          == PR_FAILURE) 
     {
 	ssl_MapLowLevelError(SSL_ERROR_BAD_HANDSHAKE_HASH_VALUE);
-	rv = PR_FAILURE;
-    }
+	rv = SECFailure;
+    } else rv = SECSuccess;
     NSSPublicKey_Destroy(key);
     if (signature) {
     	nss_ZFreeIf(signature->data);

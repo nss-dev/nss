@@ -2138,6 +2138,7 @@ CK_RV NSC_Sign(CK_SESSION_HANDLE hSession,
 
     if (!pSignature) {
 	*pulSignatureLen = context->maxLen;
+	rv = SECSuccess;
 	goto finish;
     }
 

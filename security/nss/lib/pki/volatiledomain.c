@@ -674,7 +674,7 @@ nssVolatileDomain_FindCertsByNickname (
 {
     PRStatus status;
     PRUint32 i;
-    NSSCert **certs, **tdCerts;
+    NSSCert **certs, **tdCerts = NULL;
     NSSUTF8 *cNick;
     struct cert_array_str cert_array;
 
@@ -693,10 +693,18 @@ nssVolatileDomain_FindCertsByNickname (
     }
     PZ_Unlock(vd->objectLock);
 
+    if (maximumOpt) { 
+	maximumOpt -= cert_array.count;
+	if (maximumOpt == 0) { /* already full */
+	    goto finish;
+	}
+    }
+
     tdCerts = nssTrustDomain_FindCertsByNickname(vd->td, name, 
                                    rvOpt ? rvOpt + cert_array.count : NULL,
-                                   maximumOpt - cert_array.count, arenaOpt);
+                                   maximumOpt, arenaOpt);
 
+finish:
     return finish_cert_array(&cert_array, status, tdCerts);
 }
 
@@ -804,7 +812,7 @@ nssVolatileDomain_FindCertsBySubject (
 {
     PRStatus status;
     PRUint32 i;
-    NSSCert **certs, **tdCerts;
+    NSSCert **certs, **tdCerts = NULL;
     NSSDER *certSubject;
     struct cert_array_str cert_array;
 
@@ -823,10 +831,18 @@ nssVolatileDomain_FindCertsBySubject (
     }
     PZ_Unlock(vd->objectLock);
 
+    if (maximumOpt) { 
+	maximumOpt -= cert_array.count;
+	if (maximumOpt == 0) { /* already full */
+	    goto finish;
+	}
+    }
+
     tdCerts = nssTrustDomain_FindCertsBySubject(vd->td, subject, 
                                    rvOpt ? rvOpt + cert_array.count : NULL,
-                                   maximumOpt - cert_array.count, arenaOpt);
+                                   maximumOpt, arenaOpt);
 
+finish:
     return finish_cert_array(&cert_array, status, tdCerts);
 }
 
@@ -925,7 +941,7 @@ nssVolatileDomain_FindCertsByEmail (
 {
     PRStatus status;
     PRUint32 i;
-    NSSCert **certs, **tdCerts;
+    NSSCert **certs, **tdCerts = NULL;
     NSSASCII7 *cEmail;
     struct cert_array_str cert_array;
 
@@ -944,10 +960,18 @@ nssVolatileDomain_FindCertsByEmail (
     }
     PZ_Unlock(vd->objectLock);
 
+    if (maximumOpt) { 
+	maximumOpt -= cert_array.count;
+	if (maximumOpt == 0) { /* already full */
+	    goto finish;
+	}
+    }
+
     tdCerts = nssTrustDomain_FindCertsByEmail(vd->td, email, 
                                    rvOpt ? rvOpt + cert_array.count : NULL,
-                                   maximumOpt - cert_array.count, arenaOpt);
+                                   maximumOpt, arenaOpt);
 
+finish:
     return finish_cert_array(&cert_array, status, tdCerts);
 }
 
