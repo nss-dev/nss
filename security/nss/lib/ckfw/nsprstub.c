@@ -245,6 +245,7 @@ nss_ClearErrorStack(void)
     return;
 }
 
+#ifdef DEBUG
 /*
  * replace the pointer tracking stuff for the same reasons.
  *  If you want to turn pointer tracking on, simply ifdef out this code and 
@@ -280,6 +281,7 @@ nssPointerTracker_verify(nssPointerTracker *tracker, const void *pointer)
 {
      return PR_SUCCESS;
 }
+#endif
 
 PR_IMPLEMENT(PRThread *)
 PR_GetCurrentThread(void)
