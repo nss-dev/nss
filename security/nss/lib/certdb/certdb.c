@@ -2311,7 +2311,7 @@ CERT_ImportCerts(CERTCertDBHandle *certdb, SECCertUsage usage,
 	}
     }
 
-    return (fcerts ? SECSuccess : SECFailure);
+    return ((fcerts || !ncerts) ? SECSuccess : SECFailure);
 }
 
 /*
