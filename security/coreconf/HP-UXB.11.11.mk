@@ -36,7 +36,6 @@
 
 ifeq ($(OS_RELEASE),B.11.11)
 OS_CFLAGS		+= -DHPUX10
-OS_CFLAGS               += -D_USE_BIG_FDS
 DEFAULT_IMPL_STRATEGY = _PTH
 endif
 
