@@ -617,7 +617,7 @@ SEC_PKCS7AddSigningTime (SEC_PKCS7ContentInfo *cinfo)
     if (signerinfos == NULL || signerinfos[0] == NULL)
 	return SECFailure;
 
-    rv = CERT_EncodeTimeChoice(NULL, &stime, PR_Now());
+    rv = DER_EncodeTimeChoice(NULL, &stime, PR_Now());
     if (rv != SECSuccess)
 	return rv;
 

@@ -1875,7 +1875,7 @@ CERT_CheckCRL(CERTCertificate* cert, CERTCertificate* issuer, SECItem* dp,
             /* check the time if we have one */
             if (entry->revocationDate.data && entry->revocationDate.len) {
                 int64 revocationDate = 0;
-                if (SECSuccess == CERT_DecodeTimeChoice(&revocationDate,
+                if (SECSuccess == DER_DecodeTimeChoice(&revocationDate,
                                                         &entry->revocationDate)) {
                     /* we got a good revocation date, only consider the
                        certificate revoked if the time we are inquiring about

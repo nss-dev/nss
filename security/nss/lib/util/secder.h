@@ -206,12 +206,12 @@ extern char *CERT_GenTime2FormattedAscii (int64 genTime, char *format);
 ** or a SEC_ASN1_UTC_TIME
 */
 
-extern SECStatus CERT_DecodeTimeChoice(PRTime* output, const SECItem* input);
+extern SECStatus DER_DecodeTimeChoice(PRTime* output, const SECItem* input);
 
 /* encode a PRTime to an ASN.1 DER SECItem containing either a
    SEC_ASN1_GENERALIZED_TIME or a SEC_ASN1_UTC_TIME */
 
-extern SECStatus CERT_EncodeTimeChoice(PRArenaPool* arena, SECItem* output,
+extern SECStatus DER_EncodeTimeChoice(PRArenaPool* arena, SECItem* output,
                                        PRTime input);
 
 SEC_END_PROTOS
