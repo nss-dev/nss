@@ -546,6 +546,39 @@ nss_ClearErrorStack
 );
 
 /*
+ * NSSItem
+ *
+ * nssItem_Create
+ * nssItem_Duplicate
+ * nssItem_Equal
+ */
+
+NSS_EXTERN NSSItem *
+nssItem_Create
+(
+  NSSArena *arenaOpt,
+  NSSItem *rvOpt,
+  PRUint32 length,
+  const void *data
+);
+
+NSS_EXTERN NSSItem *
+nssItem_Duplicate
+(
+  NSSItem *obj,
+  NSSArena *arenaOpt,
+  NSSItem *rvOpt
+);
+
+NSS_EXTERN PRBool
+nssItem_Equal
+(
+  const NSSItem *one,
+  const NSSItem *two,
+  PRStatus *statusOpt
+);
+
+/*
  * NSSUTF8
  *
  *  nssUTF8_CaseIgnoreMatch
