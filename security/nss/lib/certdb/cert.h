@@ -968,9 +968,10 @@ CERT_DupCertList(CERTCertificateList * oldList);
 
 extern void CERT_DestroyCertificateList(CERTCertificateList *list);
 
-/* is cert a user cert ? ie. does it have CERTDB_USER trust,
-   ie. a private key
- */
+/*
+** is cert a user cert? i.e. does it have CERTDB_USER trust,
+** i.e. a private key?
+*/
 PRBool CERT_IsUserCert(CERTCertificate* cert);
 
 /* is cert a newer than cert b? */
