@@ -112,6 +112,15 @@ EXTRA_LIBS += \
 
 ifeq ($(OS_ARCH), SunOS) 
 EXTRA_SHARED_LIBS += -R '$$ORIGIN/../lib' -R '$$ORIGIN/..'
+ifeq ($(USE_64), 1)
+EXTRA_SHARED_LIBS += -R '/usr/lib/mps/secv1/sparcv9'
+else
+EXTRA_SHARED_LIBS += -R '/usr/lib/mps/secv1'
+endif
+endif
+
+ifeq ($(OS_ARCH), Linux)
+EXTRA_SHARED_LIBS += -Wl,-rpath,/opt/sun/private/lib
 endif
 
 ifeq ($(OS_ARCH), AIX) 
