@@ -170,7 +170,9 @@ nssCKObject_GetAttributes
 	 * of the attributes we passed. For those tokens read them one at
 	 * a time */
 	for (i=0; i < count; i++) {
-	    if (obj_template[i].ulValueLen == 0) {
+	    if ((obj_template[i].ulValueLen == 0) 
+				|| (obj_template[i].ulValueLen == -1)) {
+		obj_template[i].ulValueLen=0;
 		(void) nssCKObject_GetAttributes(object,&obj_template[i], 1,
 			arenaOpt, session, slot);
 	    }
