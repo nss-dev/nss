@@ -42,8 +42,8 @@
 # variables, utilities and shellfunctions global to NSS QA
 # needs to work on all Unix and Windows platforms
 #
-# included from (don't expect this to be up to date)
-# --------------------------------------------------
+# included from 
+# -------------
 #   all.sh
 #   ssl.sh
 #   sdr.sh
@@ -52,6 +52,7 @@
 #   cert.sh
 #   smime.sh
 #   tools.sh
+#   fips.sh
 #
 # special strings
 # ---------------
@@ -71,6 +72,7 @@
 
 if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ]; then
 
+# Exit shellfunction to clean up at exit (error, regular or signal)
     Exit()
     {
         if [ -n "$1" ] ; then
@@ -97,6 +99,7 @@ if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ]; then
         esac
     }
 
+#html functions to give the resultfiles a consistant look
     html() #########################    write the results.html file
     {      # 3 functions so we can put targets in the output.log easier
         echo $* >>${RESULTS}
@@ -129,7 +132,11 @@ if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ]; then
             fi
         fi
     }
+    HTML_FAILED='</TD><TD bgcolor=red>Failed</TD><TR>'
+    HTML_PASSED='</TD><TD bgcolor=lightGreen>Passed</TD><TR>'
 
+
+#directory name init
     SCRIPTNAME=init.sh
 
     mozilla_root=`(cd ../../../..; pwd)`
@@ -149,12 +156,16 @@ if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ]; then
     OS_ARCH=`(cd $COMMON; gmake os_arch)`
     OS_NAME=`uname -s | sed -e "s/-[0-9]*\.[0-9]*//"`
 
+#in case of backward comp. tests the calling scripts set the
+#PATH and LD_LIBRARY_PATH and do not want them to be changed
     if [ -z "${DON_T_SET_PATHS}" -o "${DON_T_SET_PATHS}" != "TRUE" ] ; then
         if [ "${OS_ARCH}" = "WINNT" -a "$OS_NAME"  != "CYGWIN_NT" ]; then
-            PATH=${DIST}/${OBJDIR}/bin\;${DIST}/${OBJDIR}/lib\;$PATH
+            PATH=.\;${DIST}/${OBJDIR}/bin\;${DIST}/${OBJDIR}/lib\;$PATH
             PATH=`perl ../path_uniq -d ';' "$PATH"`
         else
-            PATH=${DIST}/${OBJDIR}/bin:${DIST}/${OBJDIR}/lib:$PATH
+            PATH=.:/bin:/usr/bin:${DIST}/${OBJDIR}/bin:${DIST}/${OBJDIR}/lib:$PATH
+            # added /bin and /usr/bin in the beginning so a local perl will 
+            # be used
             PATH=`perl ../path_uniq -d ':' "$PATH"`
         fi
 
@@ -168,6 +179,7 @@ if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ]; then
         mkdir -p ${TESTDIR}
     fi
 
+#HOST and DOMSUF are needed for the server cert 
     case $HOST in
         *\.*)
             HOST=`echo $HOST | sed -e "s/\..*//"`
@@ -175,8 +187,18 @@ if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ]; then
         ?*)
             ;;
         *)
-            echo "$SCRIPTNAME: Fatal HOST environment variable is not defined."
-            exit 1 #does not need to be Exit, very early in script
+            HOST=`uname -n`
+            case $HOST in
+                *\.*)
+                    HOST=`echo $HOST | sed -e "s/\..*//"`
+                    ;;
+                ?*)
+                    ;;
+                *)
+                    echo "$SCRIPTNAME: Fatal HOST environment variable is not defined."
+                    exit 1 #does not need to be Exit, very early in script
+                    ;;
+            esac
             ;;
     esac
 
@@ -187,14 +209,17 @@ if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ]; then
             exit 1 #does not need to be Exit, very early in script
         fi
     fi
+#HOSTADDR was a workaround for the dist. stress test, and is probably 
+#not needed anymore (purpose: be able to use IP address for the server 
+#cert instead of PC name which was not in the DNS because of dyn IP address
     if [ -z "$USE_IP" -o "$USE_IP" != "TRUE" ] ; then
         HOSTADDR=${HOST}.${DOMSUF}
     else
         HOSTADDR=${IP_ADDRESS}
     fi
 
-    #if running remote side of the distributed stress test we need to use the files that
-    #the server side gives us...
+#if running remote side of the distributed stress test we need to use 
+#the files that the server side gives us...
     if [ -n "$DO_REM_ST" -a "$DO_REM_ST" = "TRUE" ] ; then
         for w in `ls -rtd ${TESTDIR}/${HOST}.[0-9]* 2>/dev/null |
             sed -e "s/.*${HOST}.//"` ; do
@@ -210,6 +235,7 @@ if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ]; then
         fi
     fi
 
+#find the HOSTDIR, where the results are supposed to go
     if [ -n "${HOSTDIR}" ]; then
         version=`echo $HOSTDIR | sed  -e "s/.*${HOST}.//"` 
     else
@@ -218,6 +244,8 @@ if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ]; then
         else
             version=1
         fi
+#file has a tendency to disappear, messing up the rest of QA - 
+#workaround to find the next higher number if version file is not there
         if [ -z "${version}" ]; then    # for some strange reason this file
                                         # gets truncated at times... Windos
             for w in `ls -d ${TESTDIR}/${HOST}.[0-9]* 2>/dev/null |
@@ -235,6 +263,7 @@ if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ]; then
         mkdir -p ${HOSTDIR}
     fi
 
+#result and log file and filename init,
     if [ -z "${LOGFILE}" ]; then
         LOGFILE=${HOSTDIR}/output.log
     fi
@@ -272,6 +301,8 @@ if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ]; then
 
     KILL="kill"
     if  [ "${OS_ARCH}" = "Linux" ]; then
+#on linux the selfserv needs up to 30 seconds to fully die and free 
+#the socket
         SLEEP="sleep 30"
     fi
     if [ `uname -s` = "SunOS" ]; then
@@ -279,7 +310,9 @@ if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ]; then
     else
         PS="ps"
     fi
-    #found 3 rsh's so far that do not work as expected - cygnus mks6 (restricted sh) and mks 7
+#found 3 rsh's so far that do not work as expected - cygnus mks6 
+#(restricted sh) and mks 7 - if it is not in c:/winnt/system32 it
+#needs to be set in the environ.ksh
     if [ -z "$RSH" ]; then
         if [ "${OS_ARCH}" = "WINNT" -a "$OS_NAME"  = "CYGWIN_NT" ]; then
             RSH=/cygdrive/c/winnt/system32/rsh
@@ -291,10 +324,8 @@ if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ]; then
     fi
    
 
+#more filename and directoryname init
     CURDIR=`pwd`
-
-    HTML_FAILED='</TD><TD bgcolor=red>Failed</TD><TR>'
-    HTML_PASSED='</TD><TD bgcolor=lightGreen>Passed</TD><TR>'
 
     CU_ACTION='Unknown certutil action'
 
@@ -302,6 +333,8 @@ if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ]; then
     # are "leftovers" - another possibility ${HOSTDIR}/tmp
 
     TMP=${HOSTDIR}      #TMP=${TMP-/tmp}
+    TEMP=${TMP}
+    TMPDIR=${TMP}
 
     CADIR=${HOSTDIR}/CA
     SERVERDIR=${HOSTDIR}/server
@@ -309,9 +342,15 @@ if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ]; then
     ALICEDIR=${HOSTDIR}/alicedir
     BOBDIR=${HOSTDIR}/bobdir
     DAVEDIR=${HOSTDIR}/dave
+    FIPSDIR=${HOSTDIR}/fips
 
     PWFILE=${TMP}/tests.pw.$$
     NOISE_FILE=${TMP}/tests_noise.$$
+
+    FIPSPWFILE=${TMP}/tests.fipspw.$$
+    FIPSBADPWFILE=${TMP}/tests.fipsbadpw.$$
+    FIPSP12PWFILE=${TMP}/tests.fipsp12pw.$$
+    FIPSCERTNICK="FIPS_PUB_140-1_Test_Certificate"
 
     # we need relative pathnames of these files abd directories, since our 
     # tools can't handle the unix style absolut pathnames on cygnus
@@ -326,6 +365,14 @@ if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ]; then
     R_PWFILE=../tests.pw.$$
     R_NOISE_FILE=../tests_noise.$$
 
+    R_FIPSPWFILE=../tests.fipspw.$$
+    R_FIPSBADPWFILE=../tests.fipsbadpw.$$
+    R_FIPSP12PWFILE=../tests.fipsp12pw.$$
+
+    echo "fips140" > ${FIPSPWFILE}
+    echo "fips104" > ${FIPSBADPWFILE}
+    echo "pkcs12fips140" > ${FIPSP12PWFILE}
+
     # a new log file, short - fast to search, mostly for tools to
     # see if their portion of the cert has succeeded, also for me -
     CERT_LOG_FILE=${HOSTDIR}/cert.log      #the output.log is so crowded...
@@ -339,10 +386,16 @@ if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ]; then
     export MOZILLA_ROOT SECURITY_ROOT DIST TESTDIR OBJDIR HOSTDIR QADIR
     export LOGFILE SCRIPTNAME
 
+#used for the distributed stress test, the server generates certificates 
+#from GLOB_MIN_CERT to GLOB_MAX_CERT 
+# NOTE - this variable actually gets initialized by directly by the 
+# ssl_dist_stress.shs sl_ds_init() before init is called - need to change 
+# in  both places. speaking of data encapsulatioN...
+
     if [ -z "$GLOB_MIN_CERT" ] ; then
         GLOB_MIN_CERT=0
     fi
-    if [ -z "$GLOBMAX_CERT" ] ; then
+    if [ -z "$GLOB_MAX_CERT" ] ; then
         GLOB_MAX_CERT=200
     fi
     if [ -z "$MIN_CERT" ] ; then

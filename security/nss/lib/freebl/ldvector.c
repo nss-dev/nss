@@ -112,7 +112,9 @@ static const struct FREEBLVectorStr vector = {
     RNG_RNGShutdown,
     PQG_ParamGen,
     PQG_ParamGenSeedLen,
-    PQG_VerifyParams
+    PQG_VerifyParams,
+    RSA_PrivateKeyOpDoubleChecked,
+    RSA_PrivateKeyCheck,
 };
 
 

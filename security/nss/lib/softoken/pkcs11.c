@@ -416,7 +416,7 @@ static CK_RV pk11_importKeyDB(PK11Slot *slot);
 
 
 static char *
-pk11_setStringName(char *inString, char *buffer, int buffer_length) {
+pk11_setStringName(const char *inString, char *buffer, int buffer_length) {
     int full_length, string_length;
 
     full_length = buffer_length -1;
@@ -424,15 +424,16 @@ pk11_setStringName(char *inString, char *buffer, int buffer_length) {
     if (string_length > full_length) string_length = full_length;
     PORT_Memset(buffer,' ',full_length);
     buffer[full_length] = 0;
-    PORT_Memcpy(buffer,inString,full_length);
+    PORT_Memcpy(buffer,inString,string_length);
     return buffer;
 }
 /*
  * Configuration utils
  */
 void
-PK11_ConfigurePKCS11(char *man, char *libdes, char *tokdes, char *ptokdes,
-	char *slotdes, char *pslotdes, char *fslotdes, char *fpslotdes,
+PK11_ConfigurePKCS11(const char *man, const char *libdes, const char *tokdes,
+	const char *ptokdes, const char *slotdes, const char *pslotdes,
+	const char *fslotdes, const char *fpslotdes,
 	int minPwd, int pwRequired) 
 {
 
@@ -976,6 +977,8 @@ pk11_handlePrivateKeyObject(PK11Object *object,CK_KEY_TYPE key_type)
 						&ckfalse,sizeof(CK_BBOOL));
     if (crv != CKR_OK)  return crv; 
 
+    /* should we check the non-token RSA private keys? */
+
     if (pk11_isTrue(object,CKA_TOKEN)) {
 	SECKEYLowPrivateKey *privKey;
 	char *label;
@@ -984,6 +987,13 @@ pk11_handlePrivateKeyObject(PK11Object *object,CK_KEY_TYPE key_type)
 
 	privKey=pk11_mkPrivKey(object,key_type);
 	if (privKey == NULL) return CKR_HOST_MEMORY;
+
+        if (key_type == CKK_RSA) {
+	    rv = RSA_PrivateKeyCheck(&privKey->u.rsa);
+	    if (rv == SECFailure) {
+		goto fail;
+	    }
+	}
 	label = object->label = pk11_getString(object,CKA_LABEL);
 
 	crv = pk11_Attribute2SecItem(NULL,&pubKey,object,CKA_NETSCAPE_DB);
@@ -1003,6 +1013,7 @@ pk11_handlePrivateKeyObject(PK11Object *object,CK_KEY_TYPE key_type)
 	    rv = SECFailure;
 	}
 
+fail:
 	SECKEY_LowDestroyPrivateKey(privKey);
 	if (rv != SECSuccess) return CKR_DEVICE_ERROR;
 	object->inDB = PR_TRUE;

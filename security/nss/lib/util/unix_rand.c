@@ -43,6 +43,7 @@
 #include <assert.h>
 #include "secrng.h"
 
+size_t RNG_FileUpdate(const char *fileName, size_t limit);
 
 /*
  * When copying data to the buffer we want the least signicant bytes
@@ -154,7 +155,6 @@ GetHighResClock(void *buf, size_t maxbytes)
 }
 #else /* SunOS (Sun, but not SVR4) */
 
-#include <sys/wait.h>
 extern long sysconf(int name);
 
 static size_t
@@ -177,7 +177,6 @@ GiveSystemInfo(void)
 
 #if defined(__hpux)
 #include <sys/unistd.h>
-#include <sys/wait.h>
 
 #define getdtablesize() sysconf(_SC_OPEN_MAX)
 
@@ -207,7 +206,6 @@ GiveSystemInfo(void)
 #if defined(OSF1)
 #include <sys/types.h>
 #include <sys/sysinfo.h>
-#include <sys/wait.h>
 #include <sys/systeminfo.h>
 #include <c_asm.h>
 
@@ -474,7 +472,6 @@ GiveSystemInfo(void)
 #endif /* sony */
 
 #if defined(sinix)
-#include <unistd.h>
 #include <sys/systeminfo.h>
 #include <sys/times.h>
 
@@ -726,10 +723,10 @@ void RNG_SystemInfoForRNG(void)
     FILE *fp;
     char buf[BUFSIZ];
     size_t bytes;
-    extern char **environ;
-    char **cp;
+    extern char ** environ;
+    const char * const *cp;
     char *randfile;
-    char *files[] = {
+    static const char * const files[] = {
 	"/etc/passwd",
 	"/etc/utmp",
 	"/tmp",
@@ -775,7 +772,7 @@ for the small amount of entropy it provides.
      * execution environment of the user and on the platform the program
      * is running on.
      */
-    cp = environ;
+    cp = (const char * const *)environ;
     while (*cp) {
 	RNG_RandomUpdate(*cp, strlen(*cp));
 	cp++;
@@ -787,6 +784,9 @@ for the small amount of entropy it provides.
 	RNG_RandomUpdate(buf, strlen(buf));
     }
     GiveSystemInfo();
+
+    /* grab some data from system's PRNG before any other files. */
+    RNG_FileUpdate("/dev/urandom", 1024);
 
     /* If the user points us to a random file, pass it through the rng */
     randfile = getenv("NSRANDFILE");
@@ -859,26 +859,36 @@ void RNG_SystemInfoForRNG(void)
 }
 #endif
 
-void RNG_FileForRNG(char *fileName)
+#define TOTAL_FILE_LIMIT 1000000	/* one million */
+
+size_t RNG_FileUpdate(const char *fileName, size_t limit)
 {
-    struct stat stat_buf;
+    FILE *        file;
+    size_t        bytes;
+    size_t        fileBytes = 0;
+    struct stat   stat_buf;
     unsigned char buffer[BUFSIZ];
-    size_t bytes;
-    FILE *file;
     static size_t totalFileBytes = 0;
     
     if (stat((char *)fileName, &stat_buf) < 0)
-	return;
+	return fileBytes;
     RNG_RandomUpdate(&stat_buf, sizeof(stat_buf));
     
     file = fopen((char *)fileName, "r");
     if (file != NULL) {
-	for (;;) {
-	    bytes = fread(buffer, 1, sizeof(buffer), file);
-	    if (bytes == 0) break;
+	while (limit > fileBytes) {
+	    bytes = PR_MIN(sizeof buffer, limit - fileBytes);
+	    bytes = fread(buffer, 1, bytes, file);
+	    if (bytes == 0) 
+		break;
 	    RNG_RandomUpdate(buffer, bytes);
+	    fileBytes      += bytes;
 	    totalFileBytes += bytes;
-	    if (totalFileBytes > 1024*1024) break;
+	    /* after TOTAL_FILE_LIMIT has been reached, only read in first
+	    ** buffer of data from each subsequent file.
+	    */
+	    if (totalFileBytes > TOTAL_FILE_LIMIT) 
+		break;
 	}
 	fclose(file);
     }
@@ -888,4 +898,10 @@ void RNG_FileForRNG(char *fileName)
      */
     bytes = RNG_GetNoise(buffer, sizeof(buffer));
     RNG_RandomUpdate(buffer, bytes);
+    return fileBytes;
+}
+
+void RNG_FileForRNG(const char *fileName)
+{
+    RNG_FileUpdate(fileName, TOTAL_FILE_LIMIT);
 }
