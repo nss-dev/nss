@@ -1290,6 +1290,10 @@ main(int argc, char **argv)
 	    }
 	    break;
 	case 'i':
+	    if (!optstate->value) {
+	        fprintf(stderr, "-i option requires filename argument\n");
+	        exit(1);
+	    }
 	    inFile = PR_Open(optstate->value, PR_RDONLY, 00660);
 	    if (inFile == NULL) {
 		fprintf(stderr, "%s: unable to open \"%s\" for reading\n",
