@@ -114,4 +114,6 @@ extern void pk11sdr_Shutdown(void);
 SEC_END_PROTOS
 
 #endif
+PRBool pk11_LoginStillRequired(PK11SlotInfo *slot, void *wincx);
+
 

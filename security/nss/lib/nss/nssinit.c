@@ -568,6 +568,11 @@ NSS_Shutdown(void)
 
 
 extern const char __nss_base_rcsid[];
+PRBool
+NSS_IsInitialized(void)
+{
+    return nss_IsInitted;
+}
 extern const char __nss_base_sccsid[];
 
 PRBool
