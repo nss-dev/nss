@@ -232,6 +232,10 @@ pkix_GetValidityPeriod
     return PR_SUCCESS;
 }
 
+/*
+ * restrict the set of usages based on the value of the key usage
+ * extension
+ */
 static void
 get_usages_from_key_usage
 (
@@ -241,29 +245,33 @@ get_usages_from_key_usage
 {
     NSSPKIXKeyUsageValue ku;
     ku = nssPKIXKeyUsage_GetValue(keyUsage);
+
     if ((ku & NSSPKIXKeyUsage_DigitalSignature) == 0) {
-	*usages &= ~NSSUsage_SSLClient;
-	*usages &= ~NSSUsage_CodeSigning;
-	*usages &= ~NSSUsage_StatusResponder;
+	usages->peer &= ~(NSSUsage_EmailSigner |
+	                  NSSUsage_CodeSigner |
+	                  NSSUsage_StatusResponder);
+    }
+    if ((ku & (NSSPKIXKeyUsage_DigitalSignature |
+               NSSPKIXKeyUsage_KeyAgreement)) == 0)
+    {
+	usages->peer &= ~NSSUsage_SSLClient;
     }
 #if 0
     if ((ku & NSSPKIXKeyUsage_NonRepudiation) == 0) {
     }
 #endif
-    if ((ku & NSSPKIXKeyUsage_KeyEncipherment) == 0) {
+    if ((ku & (NSSPKIXKeyUsage_KeyEncipherment |
+               NSSPKIXKeyUsage_KeyAgreement)) == 0) 
+    {
 	/* XXX ku_key_agreement_or_encipherment */
-	*usages &= ~NSSUsage_SSLServer;
+	usages->peer &= ~(NSSUsage_SSLServer | NSSUsage_EmailRecipient);
     }
 #if 0
     if ((ku & NSSPKIXKeyUsage_DataEncipherment) == 0) {
     }
 #endif
-    if ((ku & NSSPKIXKeyUsage_KeyAgreement) == 0) {
-	/* XXX ku_key_agreement_or_encipherment */
-	*usages &= ~NSSUsage_SSLServer;
-    }
     if ((ku & NSSPKIXKeyUsage_KeyCertSign) == 0) {
-	*usages &= ~NSSUsage_AllCA;
+	usages->ca = 0;
     }
 #if 0
     if ((ku & NSSPKIXKeyUsage_CRLSign) == 0) {
@@ -273,6 +281,53 @@ get_usages_from_key_usage
     if ((ku & NSSPKIXKeyUsage_DecipherOnly) == 0) {
     }
 #endif
+    /* XXX ssl step-up */
+}
+
+/*
+ * restrict the set of usages based on the value of the basic constraints
+ * extension
+ */
+static void
+get_usages_from_basic_constraints
+(
+  NSSPKIXBasicConstraints *basicConstraints,
+  NSSUsages *usages
+)
+{
+    if (!nssPKIXBasicConstraints_IsCA(basicConstraints)) {
+	usages->ca = 0;
+    }
+}
+
+/*
+ * restrict the set of usages based on the value of the netscape cert type
+ * extension
+ */
+static void
+get_usages_from_ns_cert_type
+(
+  NSSPKIXnetscapeCertType *nsCertType,
+  NSSUsages *usages
+)
+{
+    NSSPKIXnetscapeCertTypeValue nsct;
+    nsct = nssPKIXnetscapeCertType_GetValue(nsCertType);
+    if ((nsct & NSSPKIXnetscapeCertType_SSLClient) == 0) {
+	usages->peer &= ~NSSUsage_SSLClient;
+    }
+    if ((nsct & NSSPKIXnetscapeCertType_SSLServer) == 0) {
+	usages->peer &= ~NSSUsage_SSLServer;
+    }
+    if ((nsct & NSSPKIXnetscapeCertType_SSLCA) == 0) {
+	usages->ca &= ~(NSSUsage_SSLClient | NSSUsage_SSLServer);
+    }
+    if ((nsct & NSSPKIXnetscapeCertType_Email) == 0) {
+	usages->peer &= ~(NSSUsage_EmailSigner | NSSUsage_EmailRecipient);
+    }
+    if ((nsct & NSSPKIXnetscapeCertType_EmailCA) == 0) {
+	usages->ca &= ~(NSSUsage_EmailSigner | NSSUsage_EmailRecipient);
+    }
     /* XXX ssl step-up */
 }
 
@@ -289,7 +344,11 @@ pkix_GetUsages
     NSSPKIXBasicConstraints *basicConstraints;
     NSSPKIXKeyUsage *keyUsage;
     NSSPKIXnetscapeCertType *nsCertType;
-    NSSUsages usages = NSSUsage_Any;
+    NSSUsages usages;
+
+    /* start with everything */
+    usages.ca = NSSUsage_All;
+    usages.peer = NSSUsage_All;
     /*
      * cert->tbsCert
      */
@@ -312,14 +371,20 @@ pkix_GetUsages
 	get_usages_from_key_usage(keyUsage, &usages);
     }
     /*
+     * extensions[basicConstraints]
+     */
+    basicConstraints = nssPKIXExtensions_GetBasicConstraints(extensions);
+    if (basicConstraints) {
+	get_usages_from_basic_constraints(basicConstraints, &usages);
+    }
+    /*
      * extensions[nsCertType]
      */
     nsCertType = nssPKIXExtensions_GetNetscapeCertType(extensions);
     if (nsCertType) {
-#if 0
 	get_usages_from_ns_cert_type(nsCertType, &usages);
-#endif
     }
+    *rvUsages = usages;
     return PR_SUCCESS;
 }
 
@@ -390,7 +455,7 @@ pkix_ValidateChainLink
     
     NSSCertificate_Destroy(signingCert);
 #endif
-    return PR_FAILURE;
+    return PR_SUCCESS;
 
 }
 

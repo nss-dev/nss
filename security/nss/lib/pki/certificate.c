@@ -381,7 +381,7 @@ NSSCertificate_GetType
     return c->kind;
 }
 
-NSS_IMPLEMENT NSSUsages
+NSS_IMPLEMENT NSSUsages *
 nssCertificate_GetUsages
 (
   NSSCertificate *c,
@@ -400,7 +400,7 @@ nssCertificate_GetUsages
 	if (statusOpt) *statusOpt = PR_FAILURE;
 	return 0; /* XXX */
     }
-    return dc->usages;
+    return &dc->usages;
 }
 
 static PRStatus
@@ -616,84 +616,60 @@ loser:
     return PR_FAILURE;
 }
 
-#if 0
-NSS_IMPLEMENT PRBool
-nssCertificate_IsValidAtTime
+static NSSUsage
+get_trusted_usage
 (
   NSSCertificate *c,
-  NSSTime *time,
-  PRStatus *statusOpt
+  PRBool asCA,
+  PRStatus *status
 )
 {
-    PRStatus status = PR_FAILURE;
-    nssDecodedCertificate *dc;
+    nssTrust *trust;
+    nssTrustLevel checkLevel;
+    NSSUsage usage = 0;
 
-    dc = nssCertificate_GetDecoding(c);
-    if (!dc) {
-	if (statusOpt) *statusOpt = PR_FAILURE;
-	return PR_FALSE;
+    *status = PR_SUCCESS;
+    checkLevel = asCA ? nssTrustLevel_TrustedDelegator :
+                        nssTrustLevel_Trusted;
+    /* XXX needs to be cached with cert */
+    trust = nssTrustDomain_FindTrustForCertificate(c->object.trustDomain, c);
+    if (!trust) {
+	/* XXX check for error */
+	*status = PR_FAILURE;
+	return 0;
     }
-
-    /* Get the validity period from the decoded certificate */
-    if (!dc->haveValidityPeriod) {
-	/* First time it has been asked for, go and get it from the
-	 * certificate handler
-	 */
-	status = dc->GetValidTimes(dc->cert, &dc->notBefore, &dc->notAfter);
-	if (status != PR_SUCCESS) {
-	    if (statusOpt) *statusOpt = PR_FAILURE;
-	    return PR_FALSE;
-	}
-	dc->haveValidityPeriod = PR_TRUE;
+    if (trust->clientAuth == checkLevel) {
+	usage |= NSSUsage_SSLClient;
     }
-
-    return nssTime_WithinRange(time, dc->notBefore, dc->notAfter);
-}
-
-NSS_IMPLEMENT PRBool
-nssCertificate_IsCapableOfUsage
-(
-  NSSCertificate *c,
-  NSSUsage *usage,
-  PRStatus *statusOpt
-)
-{
-    PRStatus status = PR_FAILURE;
-    nssDecodedCertificate *dc;
-
-    dc = nssCertificate_GetDecoding(c);
-    if (!dc) {
-	if (statusOpt) *statusOpt = PR_FAILURE;
-	return PR_FALSE;
+    if (trust->serverAuth == checkLevel) {
+	usage |= NSSUsage_SSLServer;
     }
-
-    /* Get the set of usages from the decoded certificate */
-    if (!dc->haveUsages) {
-	/* First time they have been asked for, go and get them from the
-	 * certificate handler
-	 */
-	status = dc->GetUsages(dc->cert, &dc->usages);
-	if (status != PR_SUCCESS) {
-	    if (statusOpt) *statusOpt = PR_FAILURE;
-	    return PR_FALSE;
-	}
-	dc->haveUsages = PR_TRUE;
+    if (trust->emailProtection == checkLevel) {
+	usage |= NSSUsage_EmailSigner | NSSUsage_EmailRecipient;
     }
-
-    return (usage & dc->usages) ? PR_TRUE : PR_FALSE;
+    if (trust->codeSigning == nssTrustLevel_Trusted) {
+	usage |= NSSUsage_CodeSigner;
+    }
+    nssTrust_Destroy(trust);
+    /* XXX should check user cert */
+    return usage;
 }
 
 static PRStatus
 validate_and_discover_trust
 (
   NSSCertificate *c,
-  NSSTime *time,
-  NSSUsage *usage,
+  NSSTime time,
+  NSSUsage usage,
   NSSPolicies *policiesOpt,
+  PRBool asCA,
   PRBool *trusted
 )
 {
     PRStatus status;
+    NSSUsage trustedUsage;
+    NSSUsages *certUsages;
+    PRBool valid;
 
     *trusted = PR_FALSE;
 
@@ -701,23 +677,35 @@ validate_and_discover_trust
     if (!nssCertificate_IsValidAtTime(c, time, &status)) {
 	if (status == PR_SUCCESS) {
 	    /* The function was successful, so we own the error */
+#if 0
 	    nss_SetError(NSS_ERROR_CERTIFICATE_NOT_VALID_AT_TIME);
+#endif
 	} /* else the function failed and owns the error */
 	return PR_FAILURE;
     }
 
-    /* Verify the cert is capable of the desired usage */
-    if (!nssCertificate_IsCapableOfUsage(c, usage, &status)) {
-	if (status == PR_SUCCESS) {
-	    /* The function was successful, so we own the error */
-	    nss_SetError(NSS_ERROR_CERTIFICATE_INSUFFICIENT_USAGE);
-	} /* else the function failed and owns the error */
-	return PR_FAILURE;
-    }
-
-    /* See if the cert is trusted */
-    if (nssCertificate_IsTrustedForUsage(c, usage, &status)) {
+    /* See if the cert is trusted, overrides cert's usage */
+    trustedUsage = get_trusted_usage(c, asCA, &status);
+    if (trustedUsage && (trustedUsage & usage) == usage) {
 	*trusted = PR_TRUE;
+	return PR_SUCCESS;
+    }
+
+    /* Verify the cert is capable of the desired set of usages */
+    certUsages = nssCertificate_GetUsages(c, &status);
+    if (status == PR_FAILURE) {
+	return PR_FAILURE;
+    }
+    if (asCA) {
+	valid = ((certUsages->ca & usage) == usage);
+    } else {
+	valid = ((certUsages->peer & usage) == usage);
+    }
+    if (!valid) {
+#if 0
+	nss_SetError(NSS_ERROR_CERTIFICATE_INSUFFICIENT_USAGE);
+#endif
+	return PR_FAILURE;
     }
 
     return status;
@@ -728,43 +716,43 @@ validate_chain_link
 (
   NSSCertificate *subjectCert,
   NSSCertificate *issuerCert,
-  void **vData,
-  PRBool *finished
+  void **vData
 )
 {
     PRStatus status;
     nssCertDecoding *dcs, *dci;
 
-    *finished = PR_FALSE;
-    if (nssCertificate_Equal(subjectCert, issuerCert)) {
-	*finished = PR_TRUE;
-    }
-
     dcs = nssCertificate_GetDecoding(subjectCert);
-    if (!dc) {
+    if (!dcs) {
 	return PR_FAILURE;
     }
 
     dci = nssCertificate_GetDecoding(issuerCert);
-    if (!dc) {
+    if (!dci) {
 	return PR_FAILURE;
     }
 
     if (!*vData) {
-	*vData = dc->StartChainValidation();
+	*vData = dcs->methods->startChainValidation();
+#if 0
 	if (!*vData) {
 	    return PR_FAILURE;
 	}
+#endif
     }
 
-    status = dc->ValidateChainLink(dcs->cert, dci->cert, *vData);
+    status = dcs->methods->validateChainLink(dcs->data, dci->data, *vData);
 
+#if 0
     if (*finished) {
-	dc->FreeChainValidationData(*vData);
+	dcs->methods->freeChainValidationData(*vData);
 	*vData = NULL;
     }
+#endif
+    return status;
 }
 
+#if 0
 static PRBool
 cert_in_chain_revoked
 (
@@ -781,52 +769,58 @@ cert_in_chain_revoked
 	}
     }
     /* If OCSP is enabled, check revocation status of the cert */
-    if (NSS_GetIsOCSPEnabled() == PR_TRUE) {
+    if (NSS_IsOCSPEnabled()) {
 	nssOCSPResponder *responder = get_ocsp_responder(chain[0]);
 	if (responder) {
-	    status = nssOCSPResponder_CheckStatus(responder, chain[0]));
+	    status = nssOCSPResponder_CheckStatus(responder, chain[0]);
 	}
     }
 }
+#endif
 
 NSS_IMPLEMENT PRStatus
 nssCertificate_Validate
 (
   NSSCertificate *c,
   NSSTime time,
-  NSSUsage *usage,
+  NSSUsages *usages,
   NSSPolicies *policiesOpt
 )
 {
     PRStatus status;
-    PRBool trusted;
+    PRBool trusted = PR_FALSE;
+    PRBool asCA = PR_FALSE;
+    PRBool atRoot = PR_FALSE;
     NSSCertificate **cp, **chain;
     NSSCertificate *subjectCert = NULL;
     NSSCertificate *issuerCert = NULL;
+    NSSUsage usage;
     void *vData = NULL;
 
-    if (!time) {
-	time = NSSTime_Now();
-    }
-
     /* Build the chain (this cert will be first) */
-    chain = nssCertificate_BuildChain(c, time, usage, policiesOpt,
+    chain = nssCertificate_BuildChain(c, time, usages, policiesOpt,
                                       NULL, 0, NULL, &status);
     if (status == PR_FAILURE) {
 	return PR_FAILURE;
     }
 
     /* Validate the chain */
-    for (cp = chain; *cp; cp++) {
-	subjectCert = *cp;
+    usage = usages->ca ? usages->ca : usages->peer; /* XXX only one... */
+    subjectCert = chain[0];
+    for (cp = chain + 1; !atRoot; cp++) {
+	if (*cp) {
+	    issuerCert = *cp;
+	} else {
+	    atRoot = PR_TRUE;
+	}
 	status = validate_and_discover_trust(subjectCert,
 	                                     time, usage, policiesOpt,
-	                                     &trusted);
+	                                     asCA, &trusted);
 	if (status == PR_FAILURE) {
 	    goto done;
 	}
 	if (trusted) {
-	    if (issuerCert == NULL) {
+	    if (subjectCert == chain[0]) {
 		/* The cert we are validating is explicitly trusted */
 		goto done;
 	    } else {
@@ -836,53 +830,64 @@ nssCertificate_Validate
 		goto check_revocation;
 	    }
 	}
-	if (issuerCert) {
-	    status = validate_chain_link(subjectCert, issuerCert, 
-	                                 &vData, &finished);
-	    if (status == PR_FAILURE) {
-		goto done;
-	    }
-	}
-	if (finished) {
+	if (atRoot) {
 	    break;
 	}
-	usage = nssUsage_GetRequiredCAUsage(usage);
-	issuerCert = subjectCert;
+	status = validate_chain_link(subjectCert, issuerCert, &vData);
+	if (status == PR_FAILURE) {
+	    goto done;
+	}
+	asCA = PR_TRUE;
+	subjectCert = issuerCert;
     }
 
 check_revocation:
+    if (!trusted) {
+	/* the last cert checked in the chain must be trusted */
+	status = PR_FAILURE;
+    }
+#if 0
     if (cert_in_chain_revoked(chain, &status)) {
 	if (status == PR_SUCCESS) {
 	    /* The status check succeeded, set the error */
 	    nss_SetError(NSS_ERROR_CERTIFICATE_REVOKED);
 	}
     }
+#endif
 
 done:
     nssCertificateArray_Destroy(chain);
     return status;
 }
-#endif
 
 NSS_IMPLEMENT PRStatus
 NSSCertificate_Validate
 (
   NSSCertificate *c,
   NSSTime time,
-  NSSUsage *usage,
+  NSSUsages *usages,
   NSSPolicies *policiesOpt
 )
 {
-    /*return nssCertificate_Validate(c, time, usage, policiesOpt);*/
-return PR_FAILURE;
+    return nssCertificate_Validate(c, time, usages, policiesOpt);
 }
+
+#if 0
+struct NSSValidationErrorStr
+{
+  NSSCertificate *c;
+  NSSUsage usage;
+  NSSError error;
+  PRUint32 level;
+};
+#endif
 
 NSS_IMPLEMENT void ** /* void *[] */
 NSSCertificate_ValidateCompletely
 (
   NSSCertificate *c,
   NSSTime time, /* NULL for "now" */
-  NSSUsage *usage,
+  NSSUsage *usages,
   NSSPolicies *policiesOpt, /* NULL for none */
   void **rvOpt, /* NULL for allocate */
   PRUint32 rvLimit, /* zero for no limit */
@@ -959,7 +964,7 @@ find_cert_issuer
 (
   NSSCertificate *c,
   NSSTime time,
-  NSSUsages usages,
+  NSSUsages *usagesOpt,
   NSSPolicies *policiesOpt
 )
 {
@@ -972,11 +977,6 @@ find_cert_issuer
     NSSCryptoContext *cc;
     cc = c->object.cryptoContext; /* NSSCertificate_GetCryptoContext(c); */
     td = nssCertificate_GetTrustDomain(c);
-#ifdef NSS_3_4_CODE
-    if (!td) {
-	td = STAN_GetDefaultTrustDomain();
-    }
-#endif
     arena = nssArena_Create();
     if (!arena) {
 	return (NSSCertificate *)NULL;
@@ -1007,7 +1007,7 @@ find_cert_issuer
 	} else {
 	    issuer = nssCertificateArray_FindBestCertificate(certs,
 	                                                     time,
-	                                                     usages,
+	                                                     usagesOpt,
 	                                                     policiesOpt);
 	}
 	nssCertificateArray_Destroy(certs);
@@ -1025,7 +1025,7 @@ nssCertificate_BuildChain
 (
   NSSCertificate *c,
   NSSTime time,
-  NSSUsages usages,
+  NSSUsages *usagesOpt,
   NSSPolicies *policiesOpt,
   NSSCertificate **rvOpt,
   PRUint32 rvLimit,
@@ -1035,18 +1035,14 @@ nssCertificate_BuildChain
 {
     PRStatus status;
     NSSCertificate **rvChain;
-#ifdef NSS_3_4_CODE
-    NSSCertificate *cp;
-#endif
     NSSTrustDomain *td;
     nssPKIObjectCollection *collection;
+    NSSUsages usages = { 0 };
+
     td = NSSCertificate_GetTrustDomain(c);
-#ifdef NSS_3_4_CODE
-    if (!td) {
-	td = STAN_GetDefaultTrustDomain();
-    }
-#endif
     if (statusOpt) *statusOpt = PR_SUCCESS;
+
+    /* initialize the collection with the current cert */
     collection = nssCertificateCollection_Create(td, NULL);
     if (!collection) {
 	if (statusOpt) *statusOpt = PR_FAILURE;
@@ -1056,21 +1052,14 @@ nssCertificate_BuildChain
     if (rvLimit == 1) {
 	goto finish;
     }
+    /* going from peer to CA */
+    if (usagesOpt) {
+	usages.ca = usagesOpt->peer;
+	usagesOpt = &usages;
+    }
+    /* walk the chain */
     while (!nssItem_Equal(&c->subject, &c->issuer, &status)) {
-	c = find_cert_issuer(c, time, usages, policiesOpt);
-#ifdef NSS_3_4_CODE
-	if (!c) {
-	    PRBool tmpca = usage->nss3lookingForCA;
-	    usage->nss3lookingForCA = PR_TRUE;
-	    c = find_cert_issuer(c, time, usages, policiesOpt);
-	    if (!c && !usage->anyUsage) {
-		usage->anyUsage = PR_TRUE;
-		c = find_cert_issuer(c, time, usages, policiesOpt);
-		usage->anyUsage = PR_FALSE;
-	    }
-	    usage->nss3lookingForCA = tmpca;
-	}
-#endif /* NSS_3_4_CODE */
+	c = find_cert_issuer(c, time, usagesOpt, policiesOpt);
 	if (c) {
 	    nssPKIObjectCollection_AddObject(collection, (nssPKIObject *)c);
 	    nssCertificate_Destroy(c); /* collection has it */
@@ -1099,7 +1088,7 @@ NSSCertificate_BuildChain
 (
   NSSCertificate *c,
   NSSTime time,
-  NSSUsages usages,
+  NSSUsages *usagesOpt,
   NSSPolicies *policiesOpt,
   NSSCertificate **rvOpt,
   PRUint32 rvLimit, /* zero for no limit */
@@ -1107,7 +1096,7 @@ NSSCertificate_BuildChain
   PRStatus *statusOpt
 )
 {
-    return nssCertificate_BuildChain(c, time, usages, policiesOpt,
+    return nssCertificate_BuildChain(c, time, usagesOpt, policiesOpt,
                                      rvOpt, rvLimit, arenaOpt, statusOpt);
 }
 
@@ -1443,17 +1432,7 @@ NSSUserCertificate_DeriveSymmetricKey
     return NULL;
 }
 
-struct NSSTrustStr 
-{
-    nssPKIObject object;
-    NSSCertificate *certificate;
-    nssTrustLevel serverAuth;
-    nssTrustLevel clientAuth;
-    nssTrustLevel emailProtection;
-    nssTrustLevel codeSigning;
-};
-
-NSS_IMPLEMENT NSSTrust *
+NSS_IMPLEMENT nssTrust *
 nssTrust_Create
 (
   nssPKIObject *object
@@ -1463,14 +1442,14 @@ nssTrust_Create
     PRUint32 i;
     PRUint32 lastTrustOrder, myTrustOrder;
     NSSModule *module;
-    NSSTrust *rvt;
+    nssTrust *rvt;
     nssCryptokiObject *instance;
     nssTrustLevel serverAuth, clientAuth, codeSigning, emailProtection;
     lastTrustOrder = 1<<16; /* just make it big */
     PR_ASSERT(object->instances != NULL && object->numInstances > 0);
-    rvt = nss_ZNEW(object->arena, NSSTrust);
+    rvt = nss_ZNEW(object->arena, nssTrust);
     if (!rvt) {
-	return (NSSTrust *)NULL;
+	return (nssTrust *)NULL;
     }
     rvt->object = *object;
     /* trust has to peek into the base object members */
@@ -1489,7 +1468,7 @@ nssTrust_Create
 	                                        &emailProtection);
 	if (status != PR_SUCCESS) {
 	    PZ_Unlock(object->lock);
-	    return (NSSTrust *)NULL;
+	    return (nssTrust *)NULL;
 	}
 	if (rvt->serverAuth == nssTrustLevel_Unknown ||
 	    myTrustOrder < lastTrustOrder) 
@@ -1517,10 +1496,10 @@ nssTrust_Create
     return rvt;
 }
 
-NSS_IMPLEMENT NSSTrust *
+NSS_IMPLEMENT nssTrust *
 nssTrust_AddRef
 (
-  NSSTrust *trust
+  nssTrust *trust
 )
 {
     if (trust) {
@@ -1532,7 +1511,7 @@ nssTrust_AddRef
 NSS_IMPLEMENT PRStatus
 nssTrust_Destroy
 (
-  NSSTrust *trust
+  nssTrust *trust
 )
 {
     if (trust) {

@@ -121,6 +121,17 @@ typedef struct
   void *arg;
 } nssPKIObjectCallback;
 
+/* XXX */
+struct nssTrustStr 
+{
+    nssPKIObject object;
+    NSSCertificate *certificate;
+    nssTrustLevel serverAuth;
+    nssTrustLevel clientAuth;
+    nssTrustLevel emailProtection;
+    nssTrustLevel codeSigning;
+};
+
 PR_END_EXTERN_C
 
 #endif /* PKITM_H */

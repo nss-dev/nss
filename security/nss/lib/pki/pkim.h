@@ -274,10 +274,10 @@ NSS_EXTERN PRStatus
 nssCertificate_SetCertTrust
 (
   NSSCertificate *c,
-  NSSTrust *trust
+  nssTrust *trust
 );
 
-NSS_EXTERN NSSTrust *
+NSS_EXTERN nssTrust *
 nssTrust_Create
 (
   nssPKIObject *object
@@ -484,7 +484,7 @@ nssCertificateArray_FindBestCertificate
 (
   NSSCertificate **certs, 
   NSSTime time,
-  NSSUsages usages,
+  NSSUsages *usagesOpt,
   NSSPolicies *policiesOpt
 );
 

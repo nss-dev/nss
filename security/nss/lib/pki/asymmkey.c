@@ -828,7 +828,7 @@ nssPublicKey_FindBestCertificate
 (
   NSSPublicKey *bk,
   NSSTime time,
-  NSSUsage *usageOpt,
+  NSSUsages *usageOpt,
   NSSPolicies *policiesOpt
 )
 {

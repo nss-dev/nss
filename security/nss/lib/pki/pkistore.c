@@ -84,7 +84,7 @@ typedef struct certificate_hash_entry_str certificate_hash_entry;
 struct certificate_hash_entry_str
 {
     NSSCertificate *cert;
-    NSSTrust *trust;
+    nssTrust *trust;
     nssSMIMEProfile *profile;
 };
 
@@ -698,7 +698,7 @@ NSS_EXTERN PRStatus
 nssCertificateStore_AddTrust
 (
   nssCertificateStore *store,
-  NSSTrust *trust
+  nssTrust *trust
 )
 {
 #if 0
@@ -717,7 +717,7 @@ nssCertificateStore_AddTrust
     return PR_FAILURE;
 }
 
-NSS_IMPLEMENT NSSTrust *
+NSS_IMPLEMENT nssTrust *
 nssCertificateStore_FindTrustForCertificate
 (
   nssCertificateStore *store,
@@ -725,7 +725,7 @@ nssCertificateStore_FindTrustForCertificate
 )
 {
     certificate_hash_entry *entry;
-    NSSTrust *rvTrust = NULL;
+    nssTrust *rvTrust = NULL;
     PZ_Lock(store->lock);
     entry = (certificate_hash_entry *)
                               nssHash_Lookup(store->issuer_and_serial, cert);

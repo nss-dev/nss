@@ -481,6 +481,36 @@ CMD_Usage(char *progName, cmdCommand *cmd)
     nprintf(&ps, "\n");
 }
 
+void
+CMD_InteractiveUsage(char *progName, cmdCommand *cmd)
+{
+    int i, j;
+    PRBool first;
+    cmdPrintState ps;
+    init_print_ps(&ps, PR_STDERR, 80, 0);
+    ps.indent = 1;
+    print_ps_to_indent(&ps);
+    for (i=0; i<cmd->ncmd; i++) {
+	nprintf(&ps, "%s", cmd->cmd[i].s);
+	first = PR_TRUE;
+	for (j=0; j<cmd->nopt; j++) {
+	    if (cmd->cmd[i].req[ZERO] & CMDBIT(j)) {
+		nprintf(&ps, " %s", cmd->opt[j].s);
+	    }
+	}
+	first = PR_TRUE;
+	for (j=0; j<cmd->nopt; j++) {
+	    if (cmd->cmd[i].opt[ZERO] & CMDBIT(j) && 
+	         cmd->opt[j].argUse != CMDNoArg) {
+		 nprintf(&ps, " [%s]", cmd->opt[j].s, cmd->opt[j].s);
+	    }
+	}
+	print_ps_indent(&ps);
+    }
+    ps.indent = 0;
+    nprintf(&ps, "\n");
+}
+
 int
 CMD_Interactive(cmdCommand *cmd)
 {

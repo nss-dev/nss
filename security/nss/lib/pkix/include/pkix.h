@@ -4732,6 +4732,13 @@ nssPKIXTime_GetPRTime
   PRStatus *statusOpt
 );
 
+NSS_EXTERN NSSTime
+nssPKIXTime_GetTime
+(
+  NSSPKIXTime *time,
+  PRStatus *statusOpt
+);
+
 /*
  * nssPKIXTime_GetUTF8Encoding
  *

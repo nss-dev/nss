@@ -89,7 +89,7 @@ NSSAlgorithmAndParameters_CreateKeyGen;
 NSSAlgorithmAndParameters_Destroy;
 NSSCertificate_Destroy;
 NSSCertificate_DeleteStoredObject;
-;+#NSSCertificate_Validate;
+NSSCertificate_Validate;
 ;+#NSSCertificate_ValidateCompletely;
 ;+#NSSCertificate_ValidateAndDiscoverUsagesAndPolicies;
 ;+#NSSCertificate_Encode;

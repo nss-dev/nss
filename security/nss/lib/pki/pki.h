@@ -76,7 +76,7 @@ nssTrustDomain_FindCertificatesBySubject
   NSSArena *arenaOpt
 );
 
-NSS_EXTERN NSSTrust *
+NSS_EXTERN nssTrust *
 nssTrustDomain_FindTrustForCertificate
 (
   NSSTrustDomain *td,
@@ -152,6 +152,42 @@ nssCertificate_FindPrivateKey
   NSSCallback *uhh
 );
 
+NSS_EXTERN NSSUsages *
+nssCertificate_GetUsages
+(
+  NSSCertificate *c,
+  PRStatus *statusOpt
+);
+
+NSS_EXTERN PRBool
+nssCertificate_IsValidAtTime
+(
+  NSSCertificate *c,
+  NSSTime time,
+  PRStatus *statusOpt
+);
+
+NSS_EXTERN PRBool
+nssCertificate_IsNewer
+(
+  NSSCertificate *c1,
+  NSSCertificate *c2,
+  PRStatus *statusOpt
+);
+
+NSS_EXTERN NSSCertificate **
+nssCertificate_BuildChain
+(
+  NSSCertificate *c,
+  NSSTime time,
+  NSSUsages *usagesOpt,
+  NSSPolicies *policiesOpt,
+  NSSCertificate **rvOpt,
+  PRUint32 rvLimit,
+  NSSArena *arenaOpt,
+  PRStatus *statusOpt
+);
+
 NSS_EXTERN NSSPrivateKey *
 nssPrivateKey_AddRef
 (
@@ -210,10 +246,10 @@ NSS_EXTERN PRStatus
 nssCryptoContext_ImportTrust
 (
   NSSCryptoContext *cc,
-  NSSTrust *trust
+  nssTrust *trust
 );
 
-NSS_EXTERN NSSTrust *
+NSS_EXTERN nssTrust *
 nssCryptoContext_FindTrustForCertificate
 (
   NSSCryptoContext *cc,
@@ -234,16 +270,16 @@ nssCryptoContext_FindSMIMEProfileForCertificate
   NSSCertificate *cert
 );
 
-NSS_EXTERN NSSTrust *
+NSS_EXTERN nssTrust *
 nssTrust_AddRef
 (
-  NSSTrust *trust
+  nssTrust *trust
 );
 
 NSS_EXTERN PRStatus
 nssTrust_Destroy
 (
-  NSSTrust *trust
+  nssTrust *trust
 );
 
 NSS_EXTERN nssSMIMEProfile *
@@ -264,6 +300,21 @@ nssSMIMEProfile_Create
   NSSCertificate *cert,
   NSSItem *profileTime,
   NSSItem *profileData
+);
+
+NSS_EXTERN PRBool
+nssTime_WithinRange
+(
+  NSSTime time,
+  NSSTime start,
+  NSSTime finish
+);
+
+NSS_EXTERN PRBool
+nssTime_IsAfter
+(
+  NSSTime time,
+  NSSTime compareTime
 );
 
 PR_END_EXTERN_C

@@ -184,45 +184,41 @@ typedef struct NSSCRLStr NSSCRL;
 
 typedef PRTime NSSTime;
 
-struct NSSTrustStr;
-typedef struct NSSTrustStr NSSTrust;
-
 /*
  * NSSUsage
  *
- * This is trickier than originally planned; I'll write up a
- * doc on it.
- *
- * We'd still like nsspki.h to have a list of common usages,
- * e.g.:
- *
- *  extern const NSSUsage *NSSUsage_ClientAuth;
- *  extern const NSSUsage *NSSUsage_ServerAuth;
- *  extern const NSSUsage *NSSUsage_SignEmail;
- *  extern const NSSUsage *NSSUsage_EncryptEmail;
- *  etc.
  */
 
-struct NSSUsageStr;
-typedef struct NSSUsageStr NSSUsage;
+typedef PRUint32 NSSUsage;
 
-typedef PRUint32 NSSUsages;
+#define NSSUsage_SSLClient               0x00000001
+#define NSSUsage_SSLServer               0x00000002
+#define NSSUsage_SSLServerWithStepUp     0x00000004
+#define NSSUsage_EmailSigner             0x00000008
+#define NSSUsage_EmailRecipient          0x00000010
+#define NSSUsage_CodeSigner              0x00000020
+#define NSSUsage_StatusResponder         0x00000040
+#define NSSUsage_TimeStamping            0x00000080
 
-#define NSSUsage_Any                     0x0000
-#define NSSUsage_SSLClient               0x0001
-#define NSSUsage_SSLServer               0x0002
-#define NSSUsage_SSLServerWithStepUp     0x0004
-#define NSSUsage_SSLCA                   0x0008
-#define NSSUsage_EmailSigning            0x0010
-#define NSSUsage_EmailRecipient          0x0020
-#define NSSUsage_EmailCA                 0x0040
-#define NSSUsage_CodeSigning             0x0080
-#define NSSUsage_CodeSigningCA           0x0100
-#define NSSUsage_StatusResponder         0x0200
-#define NSSUsage_TimeStamping            0x0400
+#define NSSUsage_All                                \
+  NSSUsage_SSLClient | NSSUsage_SSLServer |         \
+  NSSUsage_SSLServerWithStepUp |                    \
+  NSSUsage_EmailSigner | NSSUsage_EmailRecipient |  \
+  NSSUsage_CodeSigner | NSSUsage_StatusResponder |  \
+  NSSUsage_TimeStamping
 
-#define NSSUsage_AllCA \
-  NSSUsage_SSLCA | NSSUsage_EmailCA | NSSUsage_CodeSigningCA
+/*
+ * NSSUsages
+ *
+ */
+
+struct NSSUsagesStr
+{
+  NSSUsage ca;
+  NSSUsage peer;
+};
+
+typedef struct NSSUsagesStr NSSUsages;
 
 /*
  * NSSPolicies

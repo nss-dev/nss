@@ -341,6 +341,15 @@ nssPKIXBasicConstraints_Duplicate
 }
 #endif
 
+NSS_IMPLEMENT PRBool
+nssPKIXBasicConstraints_IsCA
+(
+  NSSPKIXBasicConstraints *basicConstraints
+)
+{
+    return basicConstraints->cA;
+}
+
 /*
  * NSSPKIXBasicConstraints_Create
  *

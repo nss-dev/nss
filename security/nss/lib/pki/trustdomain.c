@@ -645,7 +645,7 @@ nssTrustDomain_FindBestCertificateByNickname
   NSSTrustDomain *td,
   NSSUTF8 *name,
   NSSTime time,
-  NSSUsages usages,
+  NSSUsages *usagesOpt,
   NSSPolicies *policiesOpt
 )
 {
@@ -658,7 +658,7 @@ nssTrustDomain_FindBestCertificateByNickname
     if (nicknameCerts) {
 	rvCert = nssCertificateArray_FindBestCertificate(nicknameCerts,
                                                          time,
-                                                         usages,
+                                                         usagesOpt,
                                                          policiesOpt);
 	nssCertificateArray_Destroy(nicknameCerts);
     }
@@ -671,14 +671,14 @@ NSSTrustDomain_FindBestCertificateByNickname
   NSSTrustDomain *td,
   NSSUTF8 *name,
   NSSTime time,
-  NSSUsages usages,
+  NSSUsages *usagesOpt,
   NSSPolicies *policiesOpt
 )
 {
     return nssTrustDomain_FindBestCertificateByNickname(td,
                                                         name,
                                                         time,
-                                                        usages,
+                                                        usagesOpt,
                                                         policiesOpt);
 }
 
@@ -804,7 +804,7 @@ nssTrustDomain_FindBestCertificateBySubject
   NSSTrustDomain *td,
   NSSDER *subject,
   NSSTime time,
-  NSSUsages usages,
+  NSSUsages *usagesOpt,
   NSSPolicies *policiesOpt
 )
 {
@@ -817,7 +817,7 @@ nssTrustDomain_FindBestCertificateBySubject
     if (subjectCerts) {
 	rvCert = nssCertificateArray_FindBestCertificate(subjectCerts,
                                                          time,
-                                                         usages,
+                                                         usagesOpt,
                                                          policiesOpt);
 	nssCertificateArray_Destroy(subjectCerts);
     }
@@ -830,14 +830,14 @@ NSSTrustDomain_FindBestCertificateBySubject
   NSSTrustDomain *td,
   NSSDER *subject,
   NSSTime time,
-  NSSUsages usages,
+  NSSUsages *usagesOpt,
   NSSPolicies *policiesOpt
 )
 {
     return nssTrustDomain_FindBestCertificateBySubject(td,
                                                        subject,
                                                        time,
-                                                       usages,
+                                                       usagesOpt,
                                                        policiesOpt);
 }
 
@@ -1297,7 +1297,7 @@ loser:
     return NULL;
 }
 
-NSS_IMPLEMENT NSSTrust *
+NSS_IMPLEMENT nssTrust *
 nssTrustDomain_FindTrustForCertificate
 (
   NSSTrustDomain *td,
@@ -1314,20 +1314,26 @@ nssTrustDomain_FindTrustForCertificate
     nssTokenSearchType tokenOnly = nssTokenSearchType_TokenOnly;
     nssCryptokiObject *to = NULL;
     nssPKIObject *pkio = NULL;
-    NSSTrust *rvt = NULL;
+    nssTrust *rvt = NULL;
     nssUpdateLevel updateLevel;
     slots = nssTrustDomain_GetActiveSlots(td, &updateLevel);
     if (!slots) {
-	return (NSSTrust *)NULL;
+	return (nssTrust *)NULL;
     }
     for (slotp = slots; *slotp; slotp++) {
 	token = nssSlot_GetToken(*slotp);
 	if (token) {
-	    to = nssToken_FindTrustForCertificate(token, NULL, 
+		/* XXX */
+	    nssSession *session = nssToken_CreateSession(token, PR_FALSE);
+	    if (!session) {
+		continue;
+	    }
+	    to = nssToken_FindTrustForCertificate(token, session, 
 	                                          encoding,
 	                                          issuer,
 	                                          serial,
 	                                          tokenOnly);
+	    nssSession_Destroy(session);
 	    if (to) {
 		if (!pkio) {
 		    pkio = nssPKIObject_Create(NULL, to, td, NULL);
@@ -1360,7 +1366,7 @@ loser:
     if (pkio) {
 	nssPKIObject_Destroy(pkio);
     }
-    return (NSSTrust *)NULL;
+    return (nssTrust *)NULL;
 }
 
 NSS_IMPLEMENT NSSCRL **

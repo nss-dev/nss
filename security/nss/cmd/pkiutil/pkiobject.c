@@ -125,7 +125,7 @@ list_nickname_certs
 	cert[0] = NSSTrustDomain_FindBestCertificateByNickname(td,
 	                                                       nickname, 
 	                                                       NSSTime_Now(),
-	                                                       NSSUsage_Any,
+	                                                       NULL,
 	                                                       NULL);
 	cert[1] = NULL;
 	certs = cert;
@@ -251,7 +251,8 @@ dump_cert_chain
     PRUint32 i, j;
     NSSCertificate **chain, **chainp;
 
-    chain = NSSCertificate_BuildChain(c, NSSTime_Now(), NSSUsage_Any,
+    chain = NSSCertificate_BuildChain(c, NSSTime_Now(), 
+                                      NULL, /* usage      */
                                       NULL, /* policies   */
                                       NULL, /* certs[]    */
                                       0,    /* rvLimit    */
@@ -315,14 +316,14 @@ DumpObject
 	if (chain) {
 	    c = NSSTrustDomain_FindBestCertificateByNickname(td, nickname, 
 	                                                     NSSTime_Now(), 
-	                                                     NSSUsage_Any,
+	                                                     NULL,
 	                                                     NULL);
 	    status = dump_cert_chain(td, c, rtData);
 	    NSSCertificate_Destroy(c);
 	} else if (info) {
 	    c = NSSTrustDomain_FindBestCertificateByNickname(td, nickname, 
 	                                                     NSSTime_Now(), 
-	                                                     NSSUsage_Any,
+	                                                     NULL,
 	                                                     NULL);
 	    status = dump_cert_info(td, c, rtData);
 	    NSSCertificate_Destroy(c);
@@ -342,44 +343,54 @@ DumpObject
     return status;
 }
 
-/* XXX make NSSItem methods public */
-#if 0
-static NSSItem *
-read_input
+PRStatus
+ValidateCert
 (
-  RunTimeData *rtData
+  NSSTrustDomain *td,
+  char *nickname,
+  char *usageStr,
+  PRBool info,
+  CMDRunTimeData *rtData
 )
 {
-    PRFileInfo info;
-    PRInt32 numBytes;
     PRStatus status;
-    NSSItem *dest = NULL;
-    PRFileDesc *src = rtData->input.file;
-    /* XXX handle base64 input */
-#ifdef nodef
-    if (src == PR_STDIN)
-	return secu_StdinToItem(dst);
-#endif
-    status = PR_GetOpenFileInfo(src, &info);
-    if (status != PR_SUCCESS) {
-	goto loser;
+    NSSCertificate *c;
+    char usage;
+    NSSUsages usages = { 0 };
+
+    if (usageStr) {
+	while ((usage = *usageStr++)) {
+	    switch (usage) {
+	    case 'c':  usages.peer |= NSSUsage_SSLClient;      break;
+	    case 'v':  usages.peer |= NSSUsage_SSLServer;      break;
+	    case 'r':  usages.peer |= NSSUsage_EmailRecipient; break;
+	    case 's':  usages.peer |= NSSUsage_EmailSigner;    break;
+	    case 'C':  usages.ca |= NSSUsage_SSLClient;        break;
+	    case 'V':  usages.ca |= NSSUsage_SSLServer;        break;
+	    case 'R':  usages.ca |= NSSUsage_EmailRecipient;   break;
+	    case 'S':  usages.ca |= NSSUsage_EmailSigner;      break;
+	    }
+	}
     }
-    dest = PR_NEWZAP(NSSItem);
-    if (!dest) {
-	goto loser;
+
+    c = NSSTrustDomain_FindBestCertificateByNickname(td, nickname, 
+                                                     NSSTime_Now(), 
+                                                     NULL,
+                                                     NULL);
+    if (!c) {
+	PR_fprintf(PR_STDERR, "Failed to locate cert %s\n", nickname);
+	return PR_FAILURE;
     }
-    numBytes = PR_Read(src, dest->data, info.size);
-    if (numBytes != info.size) {
-	goto loser;
+
+    status = NSSCertificate_Validate(c, NSSTime_Now(), &usages, NULL);
+    if (status == PR_SUCCESS) {
+	PR_fprintf(PR_STDOUT, "Certificate validated.\n");
+    } else {
+	PR_fprintf(PR_STDERR, "Validation failed.\n");
     }
-    return PR_SUCCESS;
-loser:
-    if (dest) {
-	PR_Free(dest);
-    }
-    return PR_FAILURE;
+
+    return status;
 }
-#endif
 
 static PRStatus
 import_certificate

@@ -57,6 +57,16 @@ DumpObject
 );
 
 PRStatus
+ValidateCert
+(
+  NSSTrustDomain *td,
+  char *nickname,
+  char *usages,
+  PRBool info,
+  CMDRunTimeData *rtData
+);
+
+PRStatus
 DeleteOrphanedKeyPairs
 (
   NSSTrustDomain *td,

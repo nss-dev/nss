@@ -68,13 +68,11 @@ typedef struct nssSMIMEProfileStr nssSMIMEProfile;
 
 struct NSSSymmetricKeyStr;
 
-struct NSSTimeStr {
-    PRTime prTime;
-};
-
 struct NSSPoliciesStr;
 
 struct NSSPKIXCertificateStr;
+
+typedef struct nssTrustStr nssTrust;
 
 PR_END_EXTERN_C
 

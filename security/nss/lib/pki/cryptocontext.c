@@ -314,7 +314,7 @@ NSS_IMPLEMENT PRStatus
 nssCryptoContext_ImportTrust
 (
   NSSCryptoContext *cc,
-  NSSTrust *trust
+  nssTrust *trust
 )
 {
     PRStatus nssrv;
@@ -687,7 +687,7 @@ NSSCryptoContext_FindUserCertificatesForEmailSigning
     return NULL;
 }
 
-NSS_IMPLEMENT NSSTrust *
+NSS_IMPLEMENT nssTrust *
 nssCryptoContext_FindTrustForCertificate
 (
   NSSCryptoContext *cc,

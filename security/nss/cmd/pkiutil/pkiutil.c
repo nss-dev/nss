@@ -58,6 +58,7 @@ enum {
     cmd_Interactive,
     cmd_List,
     cmd_Print,
+    cmd_Validate,
     cmd_Version,
     pkiutil_num_commands
 };
@@ -77,6 +78,7 @@ enum {
     opt_Binary,
     opt_Trust,
     opt_Type,
+    opt_Usages,
     pkiutil_num_options
 };
 
@@ -97,9 +99,11 @@ static cmdCommandLineArg pkiutil_commands[] =
  { /* cmd_Delete */
    'D', "delete", 
    CMDNoArg, 0, PR_FALSE, 
-   { 0, 0, 0, 0 },
-   {
+   { 
      CMDBIT(opt_Nickname) |
+     0, 0, 0 
+   },
+   {
      CMDBIT(opt_ProfileDir) | 
      CMDBIT(opt_Orphans) | 
      CMDBIT(opt_TokenName),
@@ -167,10 +171,23 @@ static cmdCommandLineArg pkiutil_commands[] =
      CMDBIT(opt_Chain) | 
      CMDBIT(opt_Info) | 
      CMDBIT(opt_ProfileDir) | 
-     CMDBIT(opt_Nickname) | 
      CMDBIT(opt_OutputFile) | 
      CMDBIT(opt_Binary) | 
      CMDBIT(opt_Type),
+     0, 0, 0
+   },
+ },
+ { /* cmd_Validate */
+   'V', "validate", 
+   CMDNoArg, 0, PR_FALSE,
+   {
+     CMDBIT(opt_Nickname),
+     0, 0, 0
+   },
+   {
+     CMDBIT(opt_Info) | 
+     CMDBIT(opt_ProfileDir) | 
+     CMDBIT(opt_Usages) | 
      0, 0, 0
    },
  },
@@ -197,6 +214,7 @@ static cmdCommandLineOpt pkiutil_options[] =
  { /* opt_Binary      */  'r', "raw",      CMDNoArg  },
  { /* opt_Trust       */  't', "trust",    CMDArgReq },
  { /* opt_Type        */   0 , "type",     CMDArgReq },
+ { /* opt_Usages      */  'u', "usages",   CMDArgReq },
 };
 
 void pkiutil_usage(cmdPrintState *ps, 
@@ -322,7 +340,7 @@ main(int argc, char **argv)
 	while (PR_TRUE) {
 	    cmdToRun = CMD_Interactive(&pkiutil);
 	    if (cmdToRun == cmd_Help) {
-		CMD_Usage(progName, &pkiutil);
+		CMD_InteractiveUsage(progName, &pkiutil);
 		continue;
 	    } else if (cmdToRun < 0) {
 		break;
@@ -423,6 +441,13 @@ pkiutil_command_dispatcher(cmdCommand *pkiutil, int cmdToRun)
 			    pkiutil->opt[opt_Info].on,
 	                    pkiutil->opt[opt_Chain].on,
 	                    &rtData);
+	break;
+    case cmd_Validate:
+	status = ValidateCert(td,
+	                      pkiutil->opt[opt_Nickname].arg,
+			      pkiutil->opt[opt_Usages].arg,
+			      pkiutil->opt[opt_Info].on,
+	                      &rtData);
 	break;
     default:
 	status = PR_FAILURE;

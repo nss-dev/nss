@@ -43,10 +43,6 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #include "pkim.h"
 #endif /* PKIM_H */
 
-#ifdef NSS_3_4_CODE
-#include "pki3hack.h"
-#endif
-
 NSS_IMPLEMENT nssPKIObject *
 nssPKIObject_Create
 (
@@ -505,7 +501,7 @@ nssCertificateArray_FindBestCertificate
 (
   NSSCertificate **certs, 
   NSSTime time,
-  NSSUsages usages,
+  NSSUsages *usagesOpt,
   NSSPolicies *policiesOpt
 )
 {
@@ -516,13 +512,13 @@ nssCertificateArray_FindBestCertificate
     }
     for (; *certs; certs++) {
 	NSSCertificate *c = *certs;
-	NSSUsages certUsages = nssCertificate_GetUsages(c, &status);
+	NSSUsages *certUsages = nssCertificate_GetUsages(c, &status);
 	if (status == PR_FAILURE) {
 	    return (NSSCertificate *)NULL;
 	}
 	if (!bestCert) {
-	    /* take the first cert with matching usage */
-	    if ((usages & certUsages) == usages) {
+	    /* take the first cert with matching usage (if provided) */
+	    if (!usagesOpt || nssUsages_Match(usagesOpt, certUsages)) {
 		bestCert = nssCertificate_AddRef(c);
 	    }
 	    continue;
@@ -531,7 +527,7 @@ nssCertificateArray_FindBestCertificate
 	     * the correct usage, continue
 	     * if ths cert does match usage, defer to time/policies
 	     */
-	    if ((usages & certUsages) != usages) {
+	    if (usagesOpt && !nssUsages_Match(usagesOpt, certUsages)) {
 		continue;
 	    }
 	}
@@ -556,9 +552,11 @@ nssCertificateArray_FindBestCertificate
 	/* either they are both valid at time, or neither valid; 
 	 * take the newer one
 	 */
-	if (nssCertificate_IsNewer(c, bestCert)) {
+	if (nssCertificate_IsNewer(c, bestCert, &status)) {
 	    nssCertificate_Destroy(bestCert);
 	    bestCert = nssCertificate_AddRef(c);
+	} else if (status == PR_FAILURE) {
+	    return (NSSCertificate *)NULL;
 	}
 	/* policies */
 	/* XXX later -- defer to policies */
@@ -601,6 +599,17 @@ nssCRLArray_Destroy
 	}
 	nss_ZFreeIf(crls);
     }
+}
+
+NSS_IMPLEMENT PRBool
+nssUsages_Match
+(
+  NSSUsages *usages,
+  NSSUsages *testUsages
+)
+{
+   return (((usages->ca & testUsages->ca) == usages->ca) &&
+           ((usages->peer & testUsages->peer) == usages->peer));
 }
 
 /*

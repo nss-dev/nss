@@ -155,10 +155,10 @@ NSS_EXTERN PRStatus
 nssCertificateStore_AddTrust
 (
   nssCertificateStore *store,
-  NSSTrust *trust
+  nssTrust *trust
 );
 
-NSS_EXTERN NSSTrust *
+NSS_EXTERN nssTrust *
 nssCertificateStore_FindTrustForCertificate
 (
   nssCertificateStore *store,
