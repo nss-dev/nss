@@ -190,7 +190,7 @@ GetHighResClock(void *buf, size_t maxbytes)
     PRUint64 t;
 
     t = _Asm_mov_from_ar(_AREG44);    
-    return _pr_CopyLowBits(buf, maxbytes, &t, sizeof(t));
+    return CopyLowBits(buf, maxbytes, &t, sizeof(t));
 }
 #else
 static size_t
