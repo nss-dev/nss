@@ -492,6 +492,9 @@ RNG_UpdateAndEnd_FIPS186_1(SHA1Context *ctx,
 SECStatus 
 DSA_RandomUpdate(void *data, size_t bytes, unsigned char *q)
 {
+    if( q && (*q == 0) ) {
+        ++q;
+    }
     return prng_RandomUpdate(globalrng, data, bytes, q);
 }
 
@@ -502,5 +505,8 @@ DSA_RandomUpdate(void *data, size_t bytes, unsigned char *q)
 SECStatus 
 DSA_GenerateGlobalRandomBytes(void *dest, size_t len, unsigned char *q)
 {
+    if( q && (*q == 0) ) {
+        ++q;
+    }
     return prng_GenerateGlobalRandomBytes(globalrng, dest, len, q);
 }
