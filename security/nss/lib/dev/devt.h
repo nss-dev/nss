@@ -64,6 +64,8 @@ typedef struct NSSSlotStr NSSSlot;
 
 typedef struct NSSTokenStr NSSToken;
 
+typedef struct nssSessionStr nssSession;
+
 /* The list of boolean flags used to describe properties of a
  * module.
  */
@@ -89,34 +91,34 @@ struct NSSModuleStr {
 
 struct NSSSlotStr
 {
-    NSSArena  *arena;
-    PRInt32    refCount;
-    NSSModule *module; /* Parent */
-    NSSToken  *token;  /* Child (or peer, if you will) */
-    NSSUTF8   *name;
-    void      *epv;
-    CK_FLAGS   ckFlags; /* from CK_SLOT_INFO.flags */
-    PRUint32   flags;
+    NSSArena   *arena;
+    PRInt32     refCount;
+    NSSModule  *module; /* Parent */
+    NSSToken   *token;  /* Child (or peer, if you will) */
+    NSSUTF8    *name;
+    CK_SLOT_ID  slotID;
+    void       *epv;
+    CK_FLAGS    ckFlags; /* from CK_SLOT_INFO.flags */
+    PRUint32    flags;
 };
 
 struct NSSTokenStr
 {
-    NSSArena *arena;
-    PRInt32   refCount;
-    NSSSlot  *slot;  /* Parent (or peer, if you will) */
-    NSSUTF8  *name;
-    CK_FLAGS  ckFlags; /* from CK_TOKEN_INFO.flags */
-    PRUint32  flags;
-    struct {
-	/* according to PK11SlotInfoStr, a default session for "quick-and-dirty"
-	 * functions
-	 */
-	CK_SESSION_HANDLE  handle;
-	PZLock            *lock;
-    } session;
+    NSSArena   *arena;
+    PRInt32     refCount;
+    NSSSlot    *slot;  /* Parent (or peer, if you will) */
+    NSSUTF8    *name;
+    CK_FLAGS    ckFlags; /* from CK_TOKEN_INFO.flags */
+    PRUint32    flags;
+    nssSession *defaultSession;
 };
 
-struct NSSTokenStr;
+struct nssSessionStr
+{
+    PZLock *lock;
+    CK_SESSION_HANDLE handle;
+    NSSSlot *slot;
+};
 
 PR_END_EXTERN_C
 

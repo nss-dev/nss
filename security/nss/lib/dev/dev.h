@@ -60,6 +60,11 @@ static const char DEV_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
  *  |-----------|---> NSSSlot <--> NSSToken
  */
 
+/* XXX These should probably all be "nss" not "NSS".  Though the types are
+ *     exposed, the API's should not be (with the exception of functions
+ *     put in a friend header.
+ */
+
 #ifndef DEVT_H
 #include "devt.h"
 #endif /* DEVT_H */
@@ -162,6 +167,14 @@ NSSSlot_Logout
  * NSSSlot_ChangePassword
  */
 
+NSS_EXTERN nssSession *
+NSSSlot_CreateSession
+(
+  NSSSlot *slot,
+  NSSArena *arenaOpt,
+  PRBool readOnly /* so far, this is the only flag used */
+);
+
 NSS_EXTERN NSSToken *
 NSSToken_Create
 (
@@ -184,41 +197,47 @@ NSS_EXTERN NSSCertificate *
 NSSToken_ImportCertificate
 (
   NSSToken *tok,
-  CK_ATTRIBUTE *cktemplate
+  nssSession *sessionOpt,
+  CK_ATTRIBUTE_PTR cktemplate
 );
 
 NSS_EXTERN NSSPublicKey *
 NSSToken_ImportPublicKey
 (
   NSSToken *tok,
-  CK_ATTRIBUTE *cktemplate
+  nssSession *sessionOpt,
+  CK_ATTRIBUTE_PTR cktemplate
 );
 
 NSS_EXTERN NSSPrivateKey *
 NSSToken_ImportPrivateKey
 (
   NSSToken *tok,
-  CK_ATTRIBUTE *cktemplate
+  nssSession *sessionOpt,
+  CK_ATTRIBUTE_PTR cktemplate
 );
 
 NSS_EXTERN NSSSymmetricKey *
 NSSToken_ImportSymmetricKey
 (
   NSSToken *tok,
-  CK_ATTRIBUTE *cktemplate
+  nssSession *sessionOpt,
+  CK_ATTRIBUTE_PTR cktemplate
 );
 
 NSS_EXTERN NSSPublicKey *
 NSSToken_GenerateKeyPair
 (
-  NSSToken *tok
+  NSSToken *tok,
+  nssSession *sessionOpt
   /* algorithm and parameters */
 );
 
 NSS_EXTERN NSSSymmetricKey *
 NSSToken_GenerateSymmetricKey
 (
-  NSSToken *tok
+  NSSToken *tok,
+  nssSession *sessionOpt
   /* algorithm and parameters */
 );
 
@@ -227,7 +246,17 @@ NSS_EXTERN PRStatus
 NSSToken_DeleteStoredObject
 (
   NSSToken *tok,
+  nssSession *sessionOpt,
   CK_OBJECT_HANDLE object
+);
+
+NSS_EXTERN NSSCertificate **
+NSSToken_FindCertificatesByTemplate
+(
+  NSSToken *tok,
+  nssSession *sessionOpt,
+  CK_ATTRIBUTE_PTR cktemplate,
+  CK_ULONG ctsize
 );
 
 /* again, a questionable function.  maybe some tokens allow this? */
@@ -235,8 +264,29 @@ NSS_EXTERN PRStatus *
 NSSToken_TraverseCertificates
 (
   NSSToken *tok,
+  nssSession *sessionOpt,
   PRStatus (*callback)(NSSCertificate *c, void *arg),
   void *arg
+);
+
+NSS_EXTERN PRStatus
+nssSession_Destroy
+(
+  nssSession *s
+);
+
+/* would like to inline */
+NSS_EXTERN PRStatus
+nssSession_EnterMonitor
+(
+  nssSession *s
+);
+
+/* would like to inline */
+NSS_EXTERN PRStatus
+nssSession_ExitMonitor
+(
+  nssSession *s
 );
 
 #ifdef DEBUG
