@@ -429,17 +429,14 @@ nssDecodedPKIXCertificate_Destroy
 )
 {
     CERTCertificate *cert = (CERTCertificate *)dc->data;
-    PRBool freeSlot = PR_FALSE; 
-    PK11SlotInfo *slot = NULL;
-    PRArenaPool *arena;
 
     /* The decoder may only be half initialized (the case where we find we 
      * could not decode the certificate). In this case, there is not cert to
      * free, just free the dc structure. */
     if (cert) {
-	freeSlot = cert->ownSlot;
-	slot = cert->slot;
-	arena  = cert->arena;
+	PRBool freeSlot = cert->ownSlot;
+	PK11SlotInfo *slot = cert->slot;
+	PRArenaPool *arena  = cert->arena;
 	/* zero cert before freeing. Any stale references to this cert
 	 * after this point will probably cause an exception.  */
 	PORT_Memset(cert, 0, sizeof *cert);
