@@ -66,7 +66,6 @@ PK11SlotListElement *PK11_FindSlotElement(PK11SlotList *list,
  * Generic Slot Management
  ************************************************************/
 PK11SlotInfo *PK11_ReferenceSlot(PK11SlotInfo *slot);
-PK11SlotInfo *PK11_FindSlotByID(SECMODModuleID modID,CK_SLOT_ID slotID);
 void PK11_FreeSlot(PK11SlotInfo *slot);
 SECStatus PK11_DestroyObject(PK11SlotInfo *slot,CK_OBJECT_HANDLE object);
 SECStatus PK11_DestroyTokenObject(PK11SlotInfo *slot,CK_OBJECT_HANDLE object);
@@ -84,7 +83,7 @@ CK_SESSION_HANDLE PK11_GetRWSession(PK11SlotInfo *slot);
 void PK11_RestoreROSession(PK11SlotInfo *slot,CK_SESSION_HANDLE rwsession);
 PRBool PK11_RWSessionHasLock(PK11SlotInfo *slot,
 					 CK_SESSION_HANDLE session_handle);
-PK11SlotInfo *PK11_NewSlotInfo(void);
+PK11SlotInfo *PK11_NewSlotInfo(SECMODModule *mod);
 SECStatus PK11_Logout(PK11SlotInfo *slot);
 void PK11_LogoutAll(void);
 void PK11_EnterSlotMonitor(PK11SlotInfo *);
@@ -131,6 +130,7 @@ SECStatus pk11_CheckVerifyTest(PK11SlotInfo *slot);
 SECStatus PK11_InitToken(PK11SlotInfo *slot, PRBool loadCerts);
 SECStatus PK11_Authenticate(PK11SlotInfo *slot, PRBool loadCerts, void *wincx);
 void PK11_InitSlot(SECMODModule *mod,CK_SLOT_ID slotID,PK11SlotInfo *slot);
+SECStatus PK11_TokenRefresh(PK11SlotInfo *slot);
 
 
 /******************************************************************
@@ -461,6 +461,8 @@ SECStatus PK11_TraverseCertsForSubjectInSlot(CERTCertificate *cert,
 	void *arg);
 CERTCertificate *PK11_FindCertFromDERCert(PK11SlotInfo *slot, 
 					  CERTCertificate *cert, void *wincx);
+CERTCertificate *PK11_FindCertFromDERCertItem(PK11SlotInfo *slot, 
+					  SECItem *derCert, void *wincx);
 CERTCertificate *PK11_FindCertFromDERSubjectAndNickname(
 					PK11SlotInfo *slot, 
 					CERTCertificate *cert, char *nickname,

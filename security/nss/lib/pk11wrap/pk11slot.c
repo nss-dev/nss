@@ -378,7 +378,7 @@ PK11_FindSlotElement(PK11SlotList *list,PK11SlotInfo *slot)
  * Create a new slot structure
  */
 PK11SlotInfo *
-PK11_NewSlotInfo(void)
+PK11_NewSlotInfo(SECMODModule *mod)
 {
     PK11SlotInfo *slot;
 
@@ -391,7 +391,8 @@ PK11_NewSlotInfo(void)
 	PORT_Free(slot);
 	return slot;
     }
-    slot->sessionLock = PZ_NewLock(nssILockSession);
+    slot->sessionLock = mod->isThreadSafe ?
+	PZ_NewLock(nssILockSession) : (PZLock *)mod->refLock;
     if (slot->sessionLock == NULL) {
 	PZ_DestroyLock(slot->refLock);
 	PORT_Free(slot);
@@ -399,7 +400,9 @@ PK11_NewSlotInfo(void)
     }
     slot->freeListLock = PZ_NewLock(nssILockFreelist);
     if (slot->freeListLock == NULL) {
-	PZ_DestroyLock(slot->sessionLock);
+	if (mod->isThreadSafe) {
+	    PZ_DestroyLock(slot->sessionLock);
+	}
 	PZ_DestroyLock(slot->refLock);
 	PORT_Free(slot);
 	return slot;
@@ -478,25 +481,25 @@ PK11_DestroySlot(PK11SlotInfo *slot)
    if (slot->mechanismList) {
 	PORT_Free(slot->mechanismList);
    }
-
-   /* finally Tell our parent module that we've gone away so it can unload */
-   if (slot->module) {
-	SECMOD_SlotDestroyModule(slot->module,PR_TRUE);
-   }
 #ifdef PKCS11_USE_THREADS
    if (slot->refLock) {
 	PZ_DestroyLock(slot->refLock);
 	slot->refLock = NULL;
    }
-   if (slot->sessionLock) {
+   if (slot->isThreadSafe && slot->sessionLock) {
 	PZ_DestroyLock(slot->sessionLock);
-	slot->sessionLock = NULL;
    }
+   slot->sessionLock = NULL;
    if (slot->freeListLock) {
 	PZ_DestroyLock(slot->freeListLock);
 	slot->freeListLock = NULL;
    }
 #endif
+
+   /* finally Tell our parent module that we've gone away so it can unload */
+   if (slot->module) {
+	SECMOD_SlotDestroyModule(slot->module,PR_TRUE);
+   }
 
    /* ok, well not quit finally... now we free the memory */
    PORT_Free(slot);
@@ -1846,6 +1849,45 @@ PK11_InitToken(PK11SlotInfo *slot, PRBool loadCerts)
     }
 
 	
+    return SECSuccess;
+}
+
+/*
+ * initialize a new token
+ * unlike initialize slot, this can be called multiple times in the lifetime
+ * of NSS. It reads the information associated with a card or token,
+ * that is not going to change unless the card or token changes.
+ */
+SECStatus
+PK11_TokenRefresh(PK11SlotInfo *slot)
+{
+    CK_TOKEN_INFO tokenInfo;
+    CK_RV crv;
+    SECStatus rv;
+
+    /* set the slot flags to the current token values */
+    if (!slot->isThreadSafe) PK11_EnterSlotMonitor(slot);
+    crv = PK11_GETTAB(slot)->C_GetTokenInfo(slot->slotID,&tokenInfo);
+    if (!slot->isThreadSafe) PK11_ExitSlotMonitor(slot);
+    if (crv != CKR_OK) {
+	PORT_SetError(PK11_MapError(crv));
+	return SECFailure;
+    }
+
+    slot->flags = tokenInfo.flags;
+    slot->needLogin = ((tokenInfo.flags & CKF_LOGIN_REQUIRED) ? 
+							PR_TRUE : PR_FALSE);
+    slot->readOnly = ((tokenInfo.flags & CKF_WRITE_PROTECTED) ? 
+							PR_TRUE : PR_FALSE);
+    slot->hasRandom = ((tokenInfo.flags & CKF_RNG) ? PR_TRUE : PR_FALSE);
+    slot->protectedAuthPath =
+    		((tokenInfo.flags & CKF_PROTECTED_AUTHENTICATION_PATH) 
+	 						? PR_TRUE : PR_FALSE);
+    /* on some platforms Active Card incorrectly sets the 
+     * CKF_PROTECTED_AUTHENTICATION_PATH bit when it doesn't mean to. */
+    if (slot->isActiveCard) {
+	slot->protectedAuthPath = PR_FALSE;
+    }
     return SECSuccess;
 }
 
@@ -4639,7 +4681,7 @@ PK11_WaitForTokenEvent(PK11SlotInfo *slot, PK11TokenEvent event,
 	if (timeout == PR_INTERVAL_NO_WAIT) {
 	    return waitForRemoval ? PK11TokenPresent : PK11TokenRemoved;
 	}
-	if (timeout == PR_INTERVAL_NO_TIMEOUT ) {
+	if (timeout != PR_INTERVAL_NO_TIMEOUT ) {
 	    interval = PR_IntervalNow();
 	    if (!first_time_set) {
 		first_time = interval;
