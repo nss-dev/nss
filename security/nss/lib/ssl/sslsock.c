@@ -1770,6 +1770,7 @@ ssl_NewSocket(void)
 	ss->specLock           = NSSRWLock_New(SSL_LOCK_RANK_SPEC, NULL);
 	ss->recvBufLock        = PZ_NewMonitor(nssILockSSL);
 	ss->xmitBufLock        = PZ_NewMonitor(nssILockSSL);
+	ss->writerThread       = NULL;
 	if (ssl_lock_readers) {
 	    ss->recvLock       = PZ_NewLock(nssILockSSL);
 	    ss->sendLock       = PZ_NewLock(nssILockSSL);

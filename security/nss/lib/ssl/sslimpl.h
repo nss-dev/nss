@@ -344,6 +344,8 @@ const unsigned char *  preferredCipher;
     */
     CERTCertDBHandle * dbHandle;
 
+    PRThread *  writerThread;   /* thread holds SSL_LOCK_WRITER lock */
+
     PRUint16	shutdownHow; 	/* See ssl_SHUTDOWN defines below. */
 
     PRUint16	allowedByPolicy;          /* copy of global policy bits. */
