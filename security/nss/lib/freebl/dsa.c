@@ -80,7 +80,7 @@ dsa_NewKey(const PQGParams *params, DSAPrivateKey **privKey,
     PRArenaPool *arena;
     DSAPrivateKey *key;
     /* Check args. */
-    if (!params || !privKey || *privKey) {
+    if (!params || !privKey) {
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
 	return SECFailure;
     }
