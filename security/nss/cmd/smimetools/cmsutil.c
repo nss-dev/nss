@@ -52,6 +52,11 @@
 #include <unistd.h>
 #endif
 
+#if defined(_WIN32)
+#include "fcntl.h"
+#include "io.h"
+#endif
+
 #include <stdio.h>
 #include <string.h>
 
@@ -1153,7 +1158,7 @@ main(int argc, char **argv)
     fprintf(stderr, "Got default certdb\n");
 #endif
 
-#if defined(WIN32)
+#if defined(_WIN32)
     /*if (outFile == stdout && mode != DECODE) {*/
     if (outFile == stdout) {
 	/* If we're going to write binary data to stdout, we must put stdout
