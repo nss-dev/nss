@@ -223,7 +223,7 @@ int      s_mp_ispow2d(mp_digit d);             /* is d a power of 2?      */
 int      s_mp_tovalue(char ch, int r);          /* convert ch to value    */
 char     s_mp_todigit(mp_digit val, int r, int low); /* convert val to digit */
 int      s_mp_outlen(int bits, int r);          /* output length in bytes */
-mp_digit s_mp_invmod_32b(mp_digit P);   /* returns (P ** -1) mod (2 ** 32) */
+mp_digit s_mp_invmod_radix(mp_digit P);   /* returns (P ** -1) mod RADIX */
 
 /* ------ mpv functions, operate on arrays of digits, not on mp_int's ------ */
 void     s_mpv_mul_d(const mp_digit *a, mp_size a_len, mp_digit b, mp_digit *c);

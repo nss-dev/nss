@@ -103,7 +103,7 @@ int main(int argc, char *argv[])
     mpp_random_size(&m, prec);
     /* set msb and lsb of m */
     DIGIT(&m,0) |= 1;
-    DIGIT(&m, USED(&m)-1) |= 1L << (DIGIT_BIT - 1);
+    DIGIT(&m, USED(&m)-1) |= (mp_digit)1 << (DIGIT_BIT - 1);
     if (mp_cmp(&a, &m) > 0)
       mp_sub(&a, &m, &a);
 
