@@ -681,3 +681,16 @@ nssHash_CreateCertificate
                           PL_CompareValues);
 }
 
+NSS_IMPLEMENT void
+nssCertificateStore_DumpStoreInfo
+(
+  nssCertificateStore *store,
+  void (* cert_dump_iter)(const void *, void *, void *),
+  void *arg
+)
+{
+    PZ_Lock(store->lock);
+    nssHash_Iterate(store->issuer_and_serial, cert_dump_iter, arg);
+    PZ_Unlock(store->lock);
+}
+

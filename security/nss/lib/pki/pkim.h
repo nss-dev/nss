@@ -321,6 +321,14 @@ NSSTime_GetPRTime
   NSSTime *time
 );
 
+NSS_EXTERN void
+nssTrustDomain_DumpCacheInfo
+(
+  NSSTrustDomain *td,
+  void (* cert_dump_iter)(const void *, void *, void *),
+  void *arg
+);
+
 PR_END_EXTERN_C
 
 #endif /* PKIM_H */

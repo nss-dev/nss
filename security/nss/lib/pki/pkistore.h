@@ -165,6 +165,14 @@ nssCertificateStore_FindSMIMEProfileForCertificate
   NSSCertificate *cert
 );
 
+NSS_EXTERN void
+nssCertificateStore_DumpStoreInfo
+(
+  nssCertificateStore *store,
+  void (* cert_dump_iter)(const void *, void *, void *),
+  void *arg
+);
+
 PR_END_EXTERN_C
 
 #endif /* PKISTORE_H */

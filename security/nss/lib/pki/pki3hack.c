@@ -959,3 +959,26 @@ nssTrustDomain_AddTempCertToPerm
 #endif
     return PR_FAILURE;
 }
+
+static void cert_dump_iter(const void *k, void *v, void *a)
+{
+    NSSCertificate *c = (NSSCertificate *)k;
+    CERTCertificate *cert = STAN_GetCERTCertificate(c);
+    printf("[%2d] \"%s\"\n", c->object.refCount, cert->subjectName);
+}
+
+void
+nss_DumpCertificateCacheInfo()
+{
+    NSSTrustDomain *td;
+    NSSCryptoContext *cc;
+    td = STAN_GetDefaultTrustDomain();
+    cc = STAN_GetDefaultCryptoContext();
+    printf("\n\nCertificates in the cache:\n");
+    nssTrustDomain_DumpCacheInfo(td, cert_dump_iter, NULL);
+    printf("\n\nCertificates in the temporary store:\n");
+    if (cc->certStore) {
+	nssCertificateStore_DumpStoreInfo(cc->certStore, cert_dump_iter, NULL);
+    }
+}
+

@@ -1026,3 +1026,15 @@ nssTrustDomain_GetCertsFromCache
     return rvArray;
 }
 
+NSS_IMPLEMENT void
+nssTrustDomain_DumpCacheInfo
+(
+  NSSTrustDomain *td,
+  void (* cert_dump_iter)(const void *, void *, void *),
+  void *arg
+)
+{
+    PZ_Lock(td->cache->lock);
+    nssHash_Iterate(td->cache->issuerAndSN, cert_dump_iter, arg);
+    PZ_Unlock(td->cache->lock);
+}
