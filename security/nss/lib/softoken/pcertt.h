@@ -154,7 +154,7 @@ struct NSSLOWCERTCertificateStr {
     int referenceCount;
 
     char nicknameSpace[200];
-    char certKeySpace[512];
+    unsigned char certKeySpace[512];
 };
 
 #define SEC_CERTIFICATE_VERSION_1		0	/* default created */
