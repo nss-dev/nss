@@ -56,7 +56,6 @@ NSS_CMSEnvelopedData_Create(NSSCMSMessage *cmsg, SECOidTag algorithm, int keysiz
     void *mark;
     NSSCMSEnvelopedData *envd;
     PLArenaPool *poolp;
-    SECAlgorithmID *pbe_algid;
     SECStatus rv;
 
     poolp = cmsg->poolp;
@@ -314,7 +313,6 @@ NSS_CMSEnvelopedData_Decode_BeforeData(NSSCMSEnvelopedData *envd)
     PK11SymKey *bulkkey = NULL;
     SECOidTag bulkalgtag;
     SECAlgorithmID *bulkalg;
-    int i, bulkLength = 0;
     SECStatus rv = SECFailure;
     NSSCMSContentInfo *cinfo;
     NSSCMSRecipient **recipient_list;

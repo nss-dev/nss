@@ -183,7 +183,6 @@ NSS_SMIMEMessage_CreateSigned(CERTCertificate *scert,
     NSSCMSMessage *cmsg;
     NSSCMSSignedData *sigd;
     NSSCMSSignerInfo *signerinfo;
-    SECStatus rv;
 
     /* See note in header comment above about digestalg. */
     PORT_Assert (digestalgtag == SEC_OID_SHA1);

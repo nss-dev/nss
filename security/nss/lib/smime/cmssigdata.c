@@ -496,7 +496,6 @@ NSS_CMSSignedData_VerifySignerInfo(NSSCMSSignedData *sigd, int i,
     NSSCMSSignerInfo *signerinfo;
     NSSCMSContentInfo *cinfo;
     SECOidData *algiddata;
-    SECStatus rv = SECFailure;
     SECItem *contentType, *digest;
 
     cinfo = &(sigd->contentInfo);
@@ -699,7 +698,6 @@ NSS_CMSSignedData_SetDigestValue(NSSCMSSignedData *sigd,
 				SECItem *digestdata)
 {
     SECItem *digest = NULL;
-    SECAlgorithmID *digestalg;
     PLArenaPool *poolp;
     void *mark;
     int n;
@@ -743,7 +741,6 @@ NSS_CMSSignedData_AddDigest(PRArenaPool *poolp,
 {
     SECAlgorithmID *digestalg;
     void *mark;
-    int n;
 
     mark = PORT_ArenaMark(poolp);
 

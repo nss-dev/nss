@@ -824,7 +824,7 @@ NSS_CMSEnvelopedData_Decode_AfterEnd(NSSCMSEnvelopedData *envd);
 extern NSSCMSRecipientInfo *
 NSS_CMSRecipientInfo_Create(NSSCMSMessage *cmsg, CERTCertificate *cert);
 
-extern SECStatus
+extern void
 NSS_CMSRecipientInfo_Destroy(NSSCMSRecipientInfo *ri);
 
 extern int
@@ -843,6 +843,159 @@ NSS_CMSRecipientInfo_WrapBulkKey(NSSCMSRecipientInfo *ri, PK11SymKey *bulkkey, S
 extern PK11SymKey *
 NSS_CMSRecipientInfo_UnwrapBulkKey(NSSCMSRecipientInfo *ri, int subIndex,
 		CERTCertificate *cert, SECKEYPrivateKey *privkey, SECOidTag bulkalgtag);
+
+/************************************************************************
+ * cmsencdata.c - CMS encryptedData methods
+ ************************************************************************/
+/*
+ * NSS_CMSEncryptedData_Create - create an empty encryptedData object.
+ *
+ * "algorithm" specifies the bulk encryption algorithm to use.
+ * "keysize" is the key size.
+ * 
+ * An error results in a return value of NULL and an error set.
+ * (Retrieve specific errors via PORT_GetError()/XP_GetError().)
+ */
+extern NSSCMSEncryptedData *
+NSS_CMSEncryptedData_Create(NSSCMSMessage *cmsg, SECOidTag algorithm, int keysize);
+
+/*
+ * NSS_CMSEncryptedData_Destroy - destroy an encryptedData object
+ */
+extern void
+NSS_CMSEncryptedData_Destroy(NSSCMSEncryptedData *encd);
+
+/*
+ * NSS_CMSEncryptedData_GetContentInfo - return pointer to encryptedData object's contentInfo
+ */
+extern NSSCMSContentInfo *
+NSS_CMSEncryptedData_GetContentInfo(NSSCMSEncryptedData *encd);
+
+/*
+ * NSS_CMSEncryptedData_Encode_BeforeStart - do all the necessary things to a EncryptedData
+ *     before encoding begins.
+ *
+ * In particular:
+ *  - set the correct version value.
+ *  - get the encryption key
+ */
+extern SECStatus
+NSS_CMSEncryptedData_Encode_BeforeStart(NSSCMSEncryptedData *encd);
+
+/*
+ * NSS_CMSEncryptedData_Encode_BeforeData - set up encryption
+ */
+extern SECStatus
+NSS_CMSEncryptedData_Encode_BeforeData(NSSCMSEncryptedData *encd);
+
+/*
+ * NSS_CMSEncryptedData_Encode_AfterData - finalize this encryptedData for encoding
+ */
+extern SECStatus
+NSS_CMSEncryptedData_Encode_AfterData(NSSCMSEncryptedData *encd);
+
+/*
+ * NSS_CMSEncryptedData_Decode_BeforeData - find bulk key & set up decryption
+ */
+extern SECStatus
+NSS_CMSEncryptedData_Decode_BeforeData(NSSCMSEncryptedData *encd);
+
+/*
+ * NSS_CMSEncryptedData_Decode_AfterData - finish decrypting this encryptedData's content
+ */
+extern SECStatus
+NSS_CMSEncryptedData_Decode_AfterData(NSSCMSEncryptedData *encd);
+
+/*
+ * NSS_CMSEncryptedData_Decode_AfterEnd - finish decoding this encryptedData
+ */
+extern SECStatus
+NSS_CMSEncryptedData_Decode_AfterEnd(NSSCMSEncryptedData *encd);
+
+/************************************************************************
+ * cmsdigdata.c - CMS encryptedData methods
+ ************************************************************************/
+/*
+ * NSS_CMSDigestedData_Create - create a digestedData object (presumably for encoding)
+ *
+ * version will be set by NSS_CMSDigestedData_Encode_BeforeStart
+ * digestAlg is passed as parameter
+ * contentInfo must be filled by the user
+ * digest will be calculated while encoding
+ */
+extern NSSCMSDigestedData *
+NSS_CMSDigestedData_Create(NSSCMSMessage *cmsg, SECAlgorithmID *digestalg);
+
+/*
+ * NSS_CMSDigestedData_Destroy - destroy a digestedData object
+ */
+extern void
+NSS_CMSDigestedData_Destroy(NSSCMSDigestedData *digd);
+
+/*
+ * NSS_CMSDigestedData_GetContentInfo - return pointer to digestedData object's contentInfo
+ */
+extern NSSCMSContentInfo *
+NSS_CMSDigestedData_GetContentInfo(NSSCMSDigestedData *digd);
+
+/*
+ * NSS_CMSDigestedData_Encode_BeforeStart - do all the necessary things to a DigestedData
+ *     before encoding begins.
+ *
+ * In particular:
+ *  - set the right version number. The contentInfo's content type must be set up already.
+ */
+extern SECStatus
+NSS_CMSDigestedData_Encode_BeforeStart(NSSCMSDigestedData *digd);
+
+/*
+ * NSS_CMSDigestedData_Encode_BeforeData - do all the necessary things to a DigestedData
+ *     before the encapsulated data is passed through the encoder.
+ *
+ * In detail:
+ *  - set up the digests if necessary
+ */
+extern SECStatus
+NSS_CMSDigestedData_Encode_BeforeData(NSSCMSDigestedData *digd);
+
+/*
+ * NSS_CMSDigestedData_Encode_AfterData - do all the necessary things to a DigestedData
+ *     after all the encapsulated data was passed through the encoder.
+ *
+ * In detail:
+ *  - finish the digests
+ */
+extern SECStatus
+NSS_CMSDigestedData_Encode_AfterData(NSSCMSDigestedData *digd);
+
+/*
+ * NSS_CMSDigestedData_Decode_BeforeData - do all the necessary things to a DigestedData
+ *     before the encapsulated data is passed through the encoder.
+ *
+ * In detail:
+ *  - set up the digests if necessary
+ */
+extern SECStatus
+NSS_CMSDigestedData_Decode_BeforeData(NSSCMSDigestedData *digd);
+
+/*
+ * NSS_CMSDigestedData_Decode_AfterData - do all the necessary things to a DigestedData
+ *     after all the encapsulated data was passed through the encoder.
+ *
+ * In detail:
+ *  - finish the digests
+ */
+extern SECStatus
+NSS_CMSDigestedData_Decode_AfterData(NSSCMSDigestedData *digd);
+
+/*
+ * NSS_CMSDigestedData_Decode_AfterEnd - finalize a digestedData.
+ *
+ * In detail:
+ *  - check the digests for equality
+ */
+extern SECStatus
+NSS_CMSDigestedData_Decode_AfterEnd(NSSCMSDigestedData *digd);
 
 /************************************************************************
  * cmsdigest.c - digestion routines

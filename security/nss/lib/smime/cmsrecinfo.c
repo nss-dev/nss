@@ -191,7 +191,7 @@ loser:
     return NULL;
 }
 
-SECStatus
+void
 NSS_CMSRecipientInfo_Destroy(NSSCMSRecipientInfo *ri)
 {
     /* version was allocated on the pool, so no need to destroy it */
@@ -273,11 +273,8 @@ SECStatus
 NSS_CMSRecipientInfo_WrapBulkKey(NSSCMSRecipientInfo *ri, PK11SymKey *bulkkey, SECOidTag bulkalgtag)
 {
     CERTCertificate *cert;
-    SECOidTag certalgtag, encalgtag;
+    SECOidTag certalgtag;
     SECStatus rv;
-    int data_len;
-    unsigned long version;
-    SECItem *dummy;
     SECItem *params = NULL;
     NSSCMSRecipientEncryptedKey *rek;
     NSSCMSOriginatorIdentifierOrKey *oiok;
@@ -351,8 +348,6 @@ NSS_CMSRecipientInfo_WrapBulkKey(NSSCMSRecipientInfo *ri, PK11SymKey *bulkkey, S
 	rv = SECFailure;
 	break;
     }
-
-loser:
     return rv;
 }
 

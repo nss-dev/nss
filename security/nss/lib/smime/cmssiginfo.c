@@ -47,6 +47,7 @@
 #include "pk11func.h"
 #include "prtime.h"
 #include "secerr.h"
+#include "cryptohi.h"
 
 /* =============================================================================
  * SIGNERINFO
@@ -144,9 +145,7 @@ NSS_CMSSignerInfo_Sign(NSSCMSSignerInfo *signerinfo, SECItem *digest, SECItem *c
     signalgtag = PK11_FortezzaMapSig(signalgtag);
 
     if (signerinfo->authAttr != NULL) {
-	NSSCMSAttribute *attr;
 	SECItem encoded_attrs;
-	SECItem *dummy;
 
 	/* find and fill in the message digest attribute. */
 	rv = NSS_CMSAttributeArray_SetAttr(poolp, &(signerinfo->authAttr), SEC_OID_PKCS9_MESSAGE_DIGEST, digest, PR_FALSE);
@@ -262,7 +261,6 @@ NSS_CMSSignerInfo_Verify(NSSCMSSignerInfo *signerinfo, SECItem *digest, SECItem 
 {
     SECKEYPublicKey *publickey = NULL;
     NSSCMSAttribute *attr;
-    SECItem *value;
     SECItem encoded_attrs;
     CERTCertificate *cert;
     NSSCMSVerificationStatus vs = NSSCMSVS_Unverified;
@@ -371,10 +369,7 @@ NSS_CMSSignerInfo_Verify(NSSCMSSignerInfo *signerinfo, SECItem *digest, SECItem 
 	PORT_FreeArena(poolp, PR_FALSE);	/* awkward memory management :-( */
 
     } else {
-
 	SECItem *sig;
-	SECItem holder;
-	SECStatus rv;
 
 	/* No authenticated attributes. The signature is based on the plain message digest. */
 	sig = &(signerinfo->encDigest);
@@ -482,10 +477,12 @@ NSS_CMSSignerInfo_GetSigningTime(NSSCMSSignerInfo *sinfo, PRTime *stime)
     SECItem *value;
 
     if (sinfo == NULL)
-	return NULL;
+	return SECFailure;
 
-    if (sinfo->signingTime != 0)
-	return sinfo->signingTime;	/* cached copy */
+    if (sinfo->signingTime != 0) {
+	*stime = sinfo->signingTime;	/* cached copy */
+	return SECSuccess;
+    }
 
     attr = NSS_CMSAttributeArray_FindAttrByOidTag(sinfo->authAttr, SEC_OID_PKCS9_SIGNING_TIME, PR_TRUE);
     /* XXXX multi-valued attributes NIH */
@@ -620,7 +617,7 @@ NSS_CMSSignerInfo_AddUnauthAttr(NSSCMSSignerInfo *signerinfo, NSSCMSAttribute *a
 SECStatus
 NSS_CMSSignerInfo_AddSigningTime(NSSCMSSignerInfo *signerinfo, PRTime t)
 {
-    NSSCMSAttribute *attr, *oattr;
+    NSSCMSAttribute *attr;
     SECItem stime;
     void *mark;
     PLArenaPool *poolp;

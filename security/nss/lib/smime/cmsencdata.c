@@ -215,9 +215,6 @@ SECStatus
 NSS_CMSEncryptedData_Decode_BeforeData(NSSCMSEncryptedData *encd)
 {
     PK11SymKey *bulkkey = NULL;
-    SECOidTag bulkalgtag;
-    PK11SlotInfo *slot;
-    int i, bulkLength = 0;
     NSSCMSContentInfo *cinfo;
     SECAlgorithmID *bulkalg;
     SECStatus rv = SECFailure;

@@ -82,7 +82,6 @@ nss_cms_decoder_notify(void *arg, PRBool before, void *dest, int depth)
     NSSCMSDecoderContext *p7dcx;
     NSSCMSContentInfo *rootcinfo, *cinfo;
     PRBool after = !before;
-    SECStatus rv;
 
     p7dcx = (NSSCMSDecoderContext *)arg;
     rootcinfo = &(p7dcx->cmsg->contentInfo);
@@ -204,8 +203,6 @@ nss_cms_before_data(NSSCMSDecoderContext *p7dcx)
 {
     SECStatus rv;
     SECOidTag childtype;
-    void *childmsg;
-    PK11SymKey *bulkkey;
     PLArenaPool *poolp;
     NSSCMSDecoderContext *childp7dcx;
     NSSCMSContentInfo *cinfo;
@@ -415,7 +412,6 @@ nss_cms_decoder_work_data(NSSCMSDecoderContext *p7dcx,
     unsigned int offset;
     SECStatus rv;
     SECItem *storage;
-    int i;
 
     /*
      * We should really have data to process, or we should be trying
@@ -672,7 +668,6 @@ NSS_CMSDecoder_Finish(NSSCMSDecoderContext *p7dcx)
 	cmsg = NULL;
     }
 
-loser:
     PORT_Free(p7dcx);
     return cmsg;
 }

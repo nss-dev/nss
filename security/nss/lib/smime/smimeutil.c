@@ -235,7 +235,6 @@ nss_smime_get_cipher_for_alg_and_key(SECAlgorithmID *algid, PK11SymKey *key, uns
 static PRBool
 nss_smime_cipher_allowed(unsigned long which)
 {
-    unsigned long mask;
     int mapi;
 
     mapi = smime_mapi_by_cipher(which);
@@ -367,8 +366,7 @@ smime_choose_cipher(CERTCertificate *scert, CERTCertificate **rcerts)
     for (rcount = 0; rcerts[rcount] != NULL; rcount++) {
 	SECItem *profile;
 	NSSSMIMECapability **caps;
-	int capi, pref;
-	SECStatus dstat;
+	int pref;
 
 	/* the first cipher that matches in the user's SMIME profile gets
 	 * "smime_cipher_map_count" votes; the next one gets "smime_cipher_map_count" - 1
@@ -466,27 +464,6 @@ done:
 }
 
 /*
- * NSS_SMIMEUtil_FindBulkAlgForRecipients - find bulk algorithm suitable for all recipients
- *
- * it would be great for UI purposes if there would be a way to find out which recipients
- * prevented a strong cipher from being used...
- */
-SECStatus
-NSS_SMIMEUtil_FindBulkAlgForRecipients(CERTCertificate **rcerts, SECOidTag *bulkalgtag, int *keysize)
-{
-    unsigned long cipher;
-    int mapi;
-
-    cipher = smime_choose_cipher(NULL, rcerts);
-    mapi = smime_mapi_by_cipher(cipher);
-
-    *bulkalgtag = smime_cipher_map[mapi].algtag;
-    *keysize = smime_keysize_by_cipher(smime_cipher_map[mapi].algtag);
-
-    return SECSuccess;
-}
-
-/*
  * XXX This is a hack for now to satisfy our current interface.
  * Eventually, with more parameters needing to be specified, just
  * looking up the keysize is not going to be sufficient.
@@ -521,6 +498,27 @@ smime_keysize_by_cipher (unsigned long which)
     }
 
     return keysize;
+}
+
+/*
+ * NSS_SMIMEUtil_FindBulkAlgForRecipients - find bulk algorithm suitable for all recipients
+ *
+ * it would be great for UI purposes if there would be a way to find out which recipients
+ * prevented a strong cipher from being used...
+ */
+SECStatus
+NSS_SMIMEUtil_FindBulkAlgForRecipients(CERTCertificate **rcerts, SECOidTag *bulkalgtag, int *keysize)
+{
+    unsigned long cipher;
+    int mapi;
+
+    cipher = smime_choose_cipher(NULL, rcerts);
+    mapi = smime_mapi_by_cipher(cipher);
+
+    *bulkalgtag = smime_cipher_map[mapi].algtag;
+    *keysize = smime_keysize_by_cipher(smime_cipher_map[mapi].algtag);
+
+    return SECSuccess;
 }
 
 static SECStatus
@@ -581,8 +579,6 @@ smime_init_caps(PRBool isFortezza)
     */
     capIndex = 0;
     for (i = 0; i < smime_cipher_map_count; i++) {
-	int mapi;
-
 	/* Find the corresponding entry in the cipher map. */
 	map = &(smime_cipher_map[i]);
 

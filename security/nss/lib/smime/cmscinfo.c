@@ -323,8 +323,5 @@ NSS_CMSContentInfo_GetBulkKey(NSSCMSContentInfo *cinfo)
 int
 NSS_CMSContentInfo_GetBulkKeySize(NSSCMSContentInfo *cinfo)
 {
-    if (cinfo->bulkkey == NULL)
-	return NULL;
-
     return cinfo->keysize;
 }

@@ -66,7 +66,6 @@ NSS_CMSDigestContext_StartMultiple(SECAlgorithmID **digestalgs)
     SECHashObject *digobj;
     void *digcx;
     int digcnt;
-    void *mark;
     int i;
 
     digcnt = (digestalgs == NULL) ? 0 : NSS_CMSArray_Count((void **)digestalgs);

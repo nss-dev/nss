@@ -48,39 +48,7 @@
 #include "prtime.h"
 #include "secerr.h"
 
-NSSCMSRecipient **
-nss_cms_recipient_list_create(NSSCMSRecipientInfo **recipientinfos)
-{
-    int count, rv;
-    NSSCMSRecipient **recipient_list;
-
-    /* count the number of recipient identifiers */
-    count = nss_cms_recipients_traverse(recipientinfos, NULL);
-    if (count <= 0) {
-	/* no recipients? */
-	PORT_SetError(SEC_ERROR_BAD_DATA);
-#if 0
-	PORT_SetErrorString("Cannot find recipient data in envelope.");
-#endif
-	return NULL;
-    }
-
-    /* allocate an array of pointers */
-    recipient_list = (NSSCMSRecipient **)
-		    PORT_ZAlloc((count + 1) * sizeof(NSSCMSRecipient *));
-    if (recipient_list == NULL)
-	return NULL;
-
-    /* now fill in the recipient_list */
-    rv = nss_cms_recipients_traverse(recipientinfos, recipient_list);
-    if (rv < 0) {
-	nss_cms_recipient_list_destroy(recipient_list);
-	return NULL;
-    }
-    return recipient_list;
-}
-
-int
+static int
 nss_cms_recipients_traverse(NSSCMSRecipientInfo **recipientinfos, NSSCMSRecipient **recipient_list)
 {
     int count = 0;
@@ -161,6 +129,38 @@ nss_cms_recipients_traverse(NSSCMSRecipientInfo **recipientinfos, NSSCMSRecipien
     }
 }
 
+NSSCMSRecipient **
+nss_cms_recipient_list_create(NSSCMSRecipientInfo **recipientinfos)
+{
+    int count, rv;
+    NSSCMSRecipient **recipient_list;
+
+    /* count the number of recipient identifiers */
+    count = nss_cms_recipients_traverse(recipientinfos, NULL);
+    if (count <= 0) {
+	/* no recipients? */
+	PORT_SetError(SEC_ERROR_BAD_DATA);
+#if 0
+	PORT_SetErrorString("Cannot find recipient data in envelope.");
+#endif
+	return NULL;
+    }
+
+    /* allocate an array of pointers */
+    recipient_list = (NSSCMSRecipient **)
+		    PORT_ZAlloc((count + 1) * sizeof(NSSCMSRecipient *));
+    if (recipient_list == NULL)
+	return NULL;
+
+    /* now fill in the recipient_list */
+    rv = nss_cms_recipients_traverse(recipientinfos, recipient_list);
+    if (rv < 0) {
+	nss_cms_recipient_list_destroy(recipient_list);
+	return NULL;
+    }
+    return recipient_list;
+}
+
 void
 nss_cms_recipient_list_destroy(NSSCMSRecipient **recipient_list)
 {
@@ -183,7 +183,5 @@ nss_cms_recipient_list_destroy(NSSCMSRecipient **recipient_list)
 NSSCMSRecipientEncryptedKey *
 NSS_CMSRecipientEncryptedKey_Create(PLArenaPool *poolp)
 {
-    NSSCMSRecipientEncryptedKey *rek;
-
     return (NSSCMSRecipientEncryptedKey *)PORT_ArenaZAlloc(poolp, sizeof(NSSCMSRecipientEncryptedKey));
 }

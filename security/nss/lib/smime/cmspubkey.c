@@ -124,9 +124,8 @@ NSS_CMSUtil_EncryptSymKey_MISSI(PLArenaPool *poolp, CERTCertificate *cert, PK11S
 {
     SECOidTag certalgtag;	/* the certificate's encryption algorithm */
     SECOidTag encalgtag;	/* the algorithm used for key exchange/agreement */
-    SECStatus rv = SECFailure, ret;
+    SECStatus rv = SECFailure;
     SECItem *params = NULL;
-    int data_len;
     SECStatus err;
     PK11SymKey *tek;
     CERTCertificate *ourCert;
@@ -387,7 +386,7 @@ NSS_CMSUtil_EncryptSymKey_ESDH(PLArenaPool *poolp, CERTCertificate *cert, PK11Sy
     publickey = CERT_ExtractPublicKey(cert);
     if (publickey == NULL) goto loser;
 
-    /* XXXX generate a DH key pair on a PKCS11 module (XXX which parameters???) */
+    /* XXXX generate a DH key pair on a PKCS11 module (XXX which parameters?) */
     /* XXXX */ourCert = PK11_FindBestKEAMatch(cert, wincx);
     if (ourCert == NULL) goto loser;
 

@@ -109,7 +109,7 @@ NSS_CMSUtil_DERCompare(void *a, void *b)
 {
     SECItem *der1 = (SECItem *)a;
     SECItem *der2 = (SECItem *)b;
-    int i, j;
+    int j;
 
     /*
      * Find the lowest (lexigraphically) encoding.  One that is

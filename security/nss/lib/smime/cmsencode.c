@@ -221,9 +221,7 @@ nss_cms_before_data(NSSCMSEncoderContext *p7ecx)
 {
     SECStatus rv;
     SECOidTag childtype;
-    void *childmsg;
     NSSCMSContentInfo *cinfo;
-    PK11SymKey *bulkkey;
     PLArenaPool *poolp;
     NSSCMSEncoderContext *childp7ecx;
     const SEC_ASN1Template *template;
@@ -339,10 +337,8 @@ nss_cms_before_data(NSSCMSEncoderContext *p7ecx)
 	/* this will kick off the encoding process & encode everything up to the content bytes,
 	 * at which point the notify function sets streaming mode (and possibly creates
 	 * another child encoder). */
-	if (SEC_ASN1EncoderUpdate(childp7ecx->ecx, NULL, 0) != SECSuccess) {
-	    PORT_Free (p7ecx);
-	    return NULL;
-	}
+	if (SEC_ASN1EncoderUpdate(childp7ecx->ecx, NULL, 0) != SECSuccess)
+	    goto loser;
 
 	p7ecx->childp7ecx = childp7ecx;
 	break;
@@ -360,6 +356,8 @@ nss_cms_before_data(NSSCMSEncoderContext *p7ecx)
 
 loser:
     if (childp7ecx) {
+	if (childp7ecx->ecx)
+	    SEC_ASN1EncoderFinish(childp7ecx->ecx);
 	PORT_Free(childp7ecx);
     }
     return SECFailure;

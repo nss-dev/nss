@@ -43,6 +43,7 @@
 #include "secitem.h"
 #include "pk11func.h"
 #include "secerr.h"
+#include "secpkcs5.h"
 
 /*
  * -------------------------------------------------------------------
@@ -82,7 +83,6 @@ NSS_CMSCipherContext_StartDecrypt(PK11SymKey *key, SECAlgorithmID *algid)
     CK_MECHANISM_TYPE mechanism;
     SECItem *param;
     PK11SlotInfo *slot;
-    PRBool dummy;
     SECOidTag algtag;
 
     algtag = SECOID_GetAlgorithmTag(algid);
@@ -90,7 +90,7 @@ NSS_CMSCipherContext_StartDecrypt(PK11SymKey *key, SECAlgorithmID *algid)
     /* set param and mechanism */
     if (SEC_PKCS5IsAlgorithmPBEAlg(algid)) {
 	CK_MECHANISM pbeMech, cryptoMech;
-	SECItem *pbeParams, *pwitem;
+	SECItem *pbeParams;
 	SEC_PKCS5KeyAndPassword *keyPwd;
 
 	PORT_Memset(&pbeMech, 0, sizeof(CK_MECHANISM));
@@ -184,7 +184,7 @@ NSS_CMSCipherContext_StartEncrypt(PRArenaPool *poolp, PK11SymKey *key, SECAlgori
     /* set param and mechanism */
     if (SEC_PKCS5IsAlgorithmPBEAlg(algid)) {
 	CK_MECHANISM pbeMech, cryptoMech;
-	SECItem *pbeParams, *pwitem;
+	SECItem *pbeParams;
 	SEC_PKCS5KeyAndPassword *keyPwd;
 
 	PORT_Memset(&pbeMech, 0, sizeof(CK_MECHANISM));

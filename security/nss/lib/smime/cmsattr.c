@@ -143,7 +143,6 @@ SECOidTag
 NSS_CMSAttribute_GetType(NSSCMSAttribute *attr)
 {
     SECOidData *typetag;
-    SECOidTag type;
 
     typetag = SECOID_FindOID(&(attr->type));
     if (typetag == NULL)
@@ -387,7 +386,6 @@ SECStatus
 NSS_CMSAttributeArray_AddAttr(PLArenaPool *poolp, NSSCMSAttribute ***attrs, NSSCMSAttribute *attr)
 {
     NSSCMSAttribute *oattr;
-    SECItem stime;
     void *mark;
     SECOidTag type;
 

@@ -43,6 +43,7 @@
 #include "secasn1.h"
 #include "secitem.h"
 #include "secoid.h"
+#include "pk11func.h"
 #include "secerr.h"
 
 /*
@@ -221,9 +222,6 @@ NSS_CMSMessage_ContentLevel(NSSCMSMessage *cmsg, int n)
 PRBool
 NSS_CMSMessage_ContainsCertsOrCrls(NSSCMSMessage *cmsg)
 {
-    SECOidTag kind;
-    SECItem **certs;
-    CERTSignedCrl **crls;
     NSSCMSContentInfo *cinfo;
 
     /* descend into CMS message */
@@ -256,6 +254,7 @@ NSS_CMSMessage_IsEncrypted(NSSCMSMessage *cmsg)
 	    break;
 	}
     }
+    return PR_FALSE;
 }
 
 /*
