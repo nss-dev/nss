@@ -219,7 +219,7 @@ typedef struct {
 #endif
 } ssl3CipherSuiteCfg;
 
-#define ssl_V3_SUITES_IMPLEMENTED 13
+#define ssl_V3_SUITES_IMPLEMENTED 14
 
 typedef struct sslOptionsStr {
     unsigned int useSecurity		: 1;  /*  1 */
