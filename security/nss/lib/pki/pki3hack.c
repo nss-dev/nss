@@ -87,6 +87,8 @@ STAN_GetDefaultCryptoContext()
     return g_default_crypto_context;
 }
 
+extern const NSSError NSS_ERROR_ALREADY_INITIALIZED;
+
 NSS_IMPLEMENT PRStatus
 STAN_LoadDefaultNSS3TrustDomain (
   void
@@ -98,6 +100,11 @@ STAN_LoadDefaultNSS3TrustDomain (
     SECMODListLock *moduleLock = SECMOD_GetDefaultModuleListLock();
     int i;
 
+    if (g_default_trust_domain || g_default_crypto_context) {
+	/* Stan is already initialized or a previous shutdown failed. */
+	nss_SetError(NSS_ERROR_ALREADY_INITIALIZED);
+	return PR_FAILURE;
+    }
     td = NSSTrustDomain_Create(NULL, NULL, NULL, NULL);
     if (!td) {
 	return PR_FAILURE;
@@ -160,15 +167,25 @@ STAN_RemoveModuleFromDefaultTrustDomain (
     return SECSuccess;
 }
 
-NSS_IMPLEMENT void
+NSS_IMPLEMENT PRStatus
 STAN_Shutdown()
 {
+    PRStatus status = PR_SUCCESS;
     if (g_default_trust_domain) {
-	NSSTrustDomain_Destroy(g_default_trust_domain);
+	if (NSSTrustDomain_Destroy(g_default_trust_domain) == PR_SUCCESS) {
+	    g_default_trust_domain = NULL;
+	} else {
+	    status = PR_FAILURE;
+	}
     }
     if (g_default_crypto_context) {
-	NSSCryptoContext_Destroy(g_default_crypto_context);
+	if (NSSCryptoContext_Destroy(g_default_crypto_context) == PR_SUCCESS) {
+	    g_default_crypto_context = NULL;
+	} else {
+	    status = PR_FAILURE;
+	}
     }
+    return status;
 }
 
 /* this function should not be a hack; it will be needed in 4.0 (rename) */

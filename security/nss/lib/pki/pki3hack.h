@@ -72,7 +72,7 @@ STAN_LoadDefaultNSS3TrustDomain
   void
 );
 
-NSS_EXTERN void
+NSS_EXTERN PRStatus
 STAN_Shutdown();
 
 NSS_EXTERN SECStatus

@@ -160,11 +160,17 @@ loser:
     return NULL;
 }
 
-NSS_IMPLEMENT void
+extern const NSSError NSS_ERROR_BUSY;
+
+NSS_IMPLEMENT PRStatus
 nssCertificateStore_Destroy (
   nssCertificateStore *store
 )
 {
+    if (nssHash_Count(store->issuer_and_serial) > 0) {
+	nss_SetError(NSS_ERROR_BUSY);
+	return PR_FAILURE;
+    }
     PZ_DestroyLock(store->lock);
     nssHash_Destroy(store->issuer_and_serial);
     nssHash_Destroy(store->subject);
@@ -173,6 +179,7 @@ nssCertificateStore_Destroy (
     } else {
 	nss_ZFreeIf(store);
     }
+    return PR_SUCCESS;
 }
 
 static PRStatus
