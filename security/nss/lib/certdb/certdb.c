@@ -899,7 +899,7 @@ CERT_GetCertTimes(CERTCertificate *c, int64 *notBefore, int64 *notAfter)
 SECCertTimeValidity
 CERT_CheckCertValidTimes(CERTCertificate *c, int64 t, PRBool allowOverride)
 {
-    int64 notBefore, notAfter, llPendingSlop;
+    PRTime notBefore, notAfter, llPendingSlop, tmp1;
     SECStatus rv;
 
     /* if cert is already marked OK, then don't bother to check */
@@ -914,6 +914,9 @@ CERT_CheckCertValidTimes(CERTCertificate *c, int64 t, PRBool allowOverride)
     }
     
     LL_I2L(llPendingSlop, pendingSlop);
+    /* convert to micro seconds */
+    LL_I2L(tmp1, PR_USEC_PER_SEC);
+    LL_MUL(llPendingSlop, llPendingSlop, tmp1);
     LL_SUB(notBefore, notBefore, llPendingSlop);
     if ( LL_CMP( t, <, notBefore ) ) {
 	PORT_SetError(SEC_ERROR_EXPIRED_CERTIFICATE);
@@ -956,7 +959,7 @@ SEC_GetCrlTimes(CERTCrl *date, int64 *notBefore, int64 *notAfter)
  */
 SECCertTimeValidity
 SEC_CheckCrlTimes(CERTCrl *crl, int64 t) {
-    int64 notBefore, notAfter, llPendingSlop;
+    PRTime notBefore, notAfter, llPendingSlop, tmp1;
     SECStatus rv;
 
     rv = SEC_GetCrlTimes(crl, &notBefore, &notAfter);
@@ -966,6 +969,9 @@ SEC_CheckCrlTimes(CERTCrl *crl, int64 t) {
     }
 
     LL_I2L(llPendingSlop, pendingSlop);
+    /* convert to micro seconds */
+    LL_I2L(tmp1, PR_USEC_PER_SEC);
+    LL_MUL(llPendingSlop, llPendingSlop, tmp1);
     LL_SUB(notBefore, notBefore, llPendingSlop);
     if ( LL_CMP( t, <, notBefore ) ) {
 	return(secCertTimeNotValidYet);
