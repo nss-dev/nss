@@ -50,7 +50,7 @@
  */
 
 SECStatus 
-nss_InitLock(   PZLock    **ppLock, nssILockType ltype )
+__nss_InitLock(   PZLock    **ppLock, nssILockType ltype )
 {
     static PRInt32  initializers;
 
@@ -69,6 +69,12 @@ nss_InitLock(   PZLock    **ppLock, nssILockType ltype )
     }
 
     return (*ppLock != NULL) ? SECSuccess : SECFailure;
+}
+
+SECStatus 
+nss_InitLock(   PZLock    **ppLock, nssILockType ltype )
+{
+    return __nss_InitLock(ppLock, ltype);
 }
 
 /* Given the address of a (global) pointer to a PZMonitor, 

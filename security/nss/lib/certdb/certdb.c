@@ -720,7 +720,7 @@ cert_GetKeyID(CERTCertificate *cert)
  * take a DER certificate and decode it into a certificate structure
  */
 CERTCertificate *
-CERT_DecodeDERCertificate(SECItem *derSignedCert, PRBool copyDER,
+__CERT_DecodeDERCertificate(SECItem *derSignedCert, PRBool copyDER,
 			 char *nickname)
 {
     CERTCertificate *cert;
@@ -840,6 +840,13 @@ loser:
     }
     
     return(0);
+}
+
+CERTCertificate *
+CERT_DecodeDERCertificate(SECItem *derSignedCert, PRBool copyDER,
+			 char *nickname)
+{
+    return(__CERT_DecodeDERCertificate(derSignedCert, copyDER, nickname));
 }
 
 /*

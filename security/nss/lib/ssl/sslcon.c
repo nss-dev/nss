@@ -35,6 +35,7 @@
  * $Id$
  */
 
+#include "nssrenam.h"
 #include "cert.h"
 #include "secitem.h"
 #include "sechash.h"

@@ -3330,7 +3330,8 @@ AddPermSubjectNode(CERTCertificate *cert, char *nickname)
 
 
 SECStatus
-CERT_TraversePermCertsForSubject(CERTCertDBHandle *handle, SECItem *derSubject,
+__CERT_TraversePermCertsForSubject(CERTCertDBHandle *handle,
+				 SECItem *derSubject,
 				 CERTCertCallback cb, void *cbarg)
 {
     certDBEntrySubject *entry;
@@ -3358,6 +3359,13 @@ CERT_TraversePermCertsForSubject(CERTCertDBHandle *handle, SECItem *derSubject,
     return(rv);
 }
 
+SECStatus
+CERT_TraversePermCertsForSubject(CERTCertDBHandle *handle, SECItem *derSubject,
+				 CERTCertCallback cb, void *cbarg)
+{
+    return(__CERT_TraversePermCertsForSubject(handle, derSubject, cb, cbarg));
+}
+
 int
 CERT_NumPermCertsForSubject(CERTCertDBHandle *handle, SECItem *derSubject)
 {
@@ -3378,7 +3386,7 @@ CERT_NumPermCertsForSubject(CERTCertDBHandle *handle, SECItem *derSubject)
 }
 
 SECStatus
-CERT_TraversePermCertsForNickname(CERTCertDBHandle *handle, char *nickname,
+__CERT_TraversePermCertsForNickname(CERTCertDBHandle *handle, char *nickname,
 				  CERTCertCallback cb, void *cbarg)
 {
     certDBEntryNickname *nnentry = NULL;
@@ -3411,6 +3419,13 @@ CERT_TraversePermCertsForNickname(CERTCertDBHandle *handle, char *nickname,
     }
     
     return(rv);
+}
+
+SECStatus
+CERT_TraversePermCertsForNickname(CERTCertDBHandle *handle, char *nickname,
+				  CERTCertCallback cb, void *cbarg)
+{
+    return(__CERT_TraversePermCertsForNickname(handle, nickname, cb, cbarg));
 }
 
 int
@@ -4618,7 +4633,7 @@ SEC_TraversePermCerts(CERTCertDBHandle *handle,
  * Close the database
  */
 void
-CERT_ClosePermCertDB(CERTCertDBHandle *handle)
+__CERT_ClosePermCertDB(CERTCertDBHandle *handle)
 {
     if ( handle ) {
 	if ( handle->permCertDB ) {
@@ -4633,6 +4648,12 @@ CERT_ClosePermCertDB(CERTCertDBHandle *handle)
 	}
     }
     return;
+}
+
+void
+CERT_ClosePermCertDB(CERTCertDBHandle *handle)
+{
+    __CERT_ClosePermCertDB(handle);
 }
 
 /*
@@ -5095,11 +5116,19 @@ loser:
  * This is the public entry point and does locking.
  */
 CERTCertificate *
-CERT_NewTempCertificate(CERTCertDBHandle *handle, SECItem *derCert,
+__CERT_NewTempCertificate(CERTCertDBHandle *handle, SECItem *derCert,
 			char *nickname, PRBool isperm, PRBool copyDER)
 {
     return( NewTempCertificate(handle, derCert, nickname, isperm, copyDER,
 			       PR_TRUE) );
+}
+
+CERTCertificate *
+CERT_NewTempCertificate(CERTCertDBHandle *handle, SECItem *derCert,
+			char *nickname, PRBool isperm, PRBool copyDER)
+{
+    return( __CERT_NewTempCertificate(handle, derCert, nickname,
+                                      isperm, copyDER) );
 }
 
 /*
