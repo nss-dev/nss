@@ -213,11 +213,13 @@ typedef CK_ULONG          CK_TRUST;
  * The function 'ADD' takes a PKCS #11 initialization string and stores it.
  * The function 'DEL' takes a 'name= library=' value and deletes the associated
  *  string.
+ * The function 'RELEASE' frees the array returned by 'FIND'
  */
 #define SECMOD_MODULE_DB_FUNCTION_FIND  0
 #define SECMOD_MODULE_DB_FUNCTION_ADD   1
 #define SECMOD_MODULE_DB_FUNCTION_DEL   2
+#define SECMOD_MODULE_DB_FUNCTION_RELEASE 3 
 typedef char ** (PR_CALLBACK *SECMODModuleDBFunc)(unsigned long function,
-                                        char *parameters, char *moduleSpec);
+                                        char *parameters, void *moduleSpec);
 
 #endif /* _PKCS11N_H_ */
