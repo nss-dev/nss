@@ -353,7 +353,7 @@ NSS_IMPLEMENT nssListIterator *
 nssList_CreateIterator(nssList *list)
 {
     nssListIterator *rvIterator;
-    rvIterator = nss_ZNEW(list->arena, nssListIterator);
+    rvIterator = nss_ZNEW(NULL, nssListIterator);
     if (!rvIterator) {
 	return NULL;
     }
