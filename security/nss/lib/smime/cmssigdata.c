@@ -528,13 +528,17 @@ NSS_CMSSignedData_VerifyCertsOnly(NSSCMSSignedData *sigd,
     SECStatus rv = SECSuccess;
     int i;
 
-    if (!sigd || !certdb) {
+    if (!sigd || !certdb || !sigd->rawCerts) {
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
 	return SECFailure;
     }
 
-    for (i=0; i < NSS_CMSArray_Count((void**)sigd->certs); i++) {
-	cert = sigd->certs[i];
+    for (i=0; i < NSS_CMSArray_Count((void**)sigd->rawCerts); i++) {
+	if (sigd->certs && sigd->certs[i]) {
+	    cert = sigd->certs[i];
+	} else {
+	    cert = CERT_FindCertByDERCert(certdb, sigd->rawCerts[i]);
+	}
 	rv |= CERT_VerifyCert(certdb, cert, PR_TRUE, usage, PR_Now(), 
                               NULL, NULL);
     }
