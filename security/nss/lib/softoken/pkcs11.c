@@ -2046,7 +2046,7 @@ pk11_getDefSlotName(CK_SLOT_ID slotID)
 	 "NSS User Private Key and Certificate Services                   ";
     case FIPS_SLOT_ID:
         return 
-         "Netscape FIPS-140-1 User Private Key Services                   ";
+         "NSS FIPS-140-1 User Private Key Services                        ";
     default:
 	break;
     }
