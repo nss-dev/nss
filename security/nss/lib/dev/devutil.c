@@ -1056,7 +1056,7 @@ find_objects_in_array
   PRUint32 maximumOpt
 )
 {
-    PRIntn oi;
+    PRIntn oi = 0;
     PRUint32 i, j;
     PRBool match;
     NSSArena *arena;
@@ -1078,6 +1078,7 @@ find_objects_in_array
     if (maximumOpt == 0) maximumOpt = ~0;
     for (; *objArray && numMatches < maximumOpt; objArray++) {
 	nssCryptokiObjectAndAttributes *obj = *objArray;
+	match = PR_FALSE;
 	for (i=0; i<otlen; i++) {
 	    for (j=0; j<obj->numAttributes; j++) {
 		if (ot[i].type == obj->attributes[j].type) {
@@ -1087,8 +1088,6 @@ find_objects_in_array
 			                 ot[i].ulValueLen, NULL))
 		    {
 			match = PR_TRUE;
-		    } else {
-			match = PR_FALSE;
 		    }
 		    break;
 		}
