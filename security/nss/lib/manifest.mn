@@ -33,11 +33,14 @@
 CORE_DEPTH = ../..
 DEPTH      = ../..
 
-DIRS = crmf jar \
+DIRS = util freebl softoken \
     certhigh pk11wrap cryptohi \
-    softoken certdb crypto \
-    util freebl nss pkcs12 fortcrypt \
-    base ckfw pkcs7 smime ssl
+    certdb crypto nss \
+    pkcs12 pkcs7 smime\
+    ssl \
+    base ckfw \
+    crmf jar \
+    fortcrypt
 
 ifdef BUILD_STAN
 DIRS = base asn1 dev pki pki1
