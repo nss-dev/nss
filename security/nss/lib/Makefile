@@ -80,9 +80,9 @@ export::
 	    $(NSINSTALL) -D crypto; \
 	    for file in $(FILES) ; do \
 		if test -f $$file; then \
-		    $(INSTALL) -m 444 $$file crypto; \
+		    $(NSINSTALL) -m 444 $$file crypto; \
 		fi; \
 	    done;  \
-	    $(INSTALL) -m 444 crypto/nscertinit.c certdb; \
+		$(NSINSTALL) -m 444 crypto/nscertinit.c certdb; \
 	fi
 endif
