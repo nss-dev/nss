@@ -178,7 +178,9 @@ SECItem *
 NSS_CMSMessage_GetContent(NSSCMSMessage *cmsg)
 {
     /* this is a shortcut */
-    return NSS_CMSContentInfo_GetInnerContent(NSS_CMSMessage_GetContentInfo(cmsg));
+    NSSCMSContentInfo * cinfo = NSS_CMSMessage_GetContentInfo(cmsg);
+    SECItem           * pItem = NSS_CMSContentInfo_GetInnerContent(cinfo);
+    return pItem;
 }
 
 /*
