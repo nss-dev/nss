@@ -187,6 +187,8 @@ mp_err   s_mp_mod_d(mp_int *mp, mp_digit d, mp_digit *r);
 mp_err   s_mp_reduce(mp_int *x, mp_int *m, mp_int *mu);
                                                /* Barrett reduction       */
 mp_err   s_mp_add(mp_int *a, mp_int *b);       /* magnitude addition      */
+mp_err   s_mp_add_offset(mp_int *a, mp_int *b, mp_size offset);
+                                               /* a += b * RADIX^offset   */
 mp_err   s_mp_sub(mp_int *a, mp_int *b);       /* magnitude subtract      */
 mp_err   s_mp_mul(mp_int *a, mp_int *b);       /* magnitude multiply      */
 #if MP_SQUARE
