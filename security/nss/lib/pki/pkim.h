@@ -289,6 +289,12 @@ nssCertificateList_DoCallback
   void *arg
 );
 
+NSS_EXTERN void
+nssCertificateList_AddReferences
+(
+  nssList *certList
+);
+
 NSS_EXTERN PRStatus
 nssPKIObject_Initialize
 (

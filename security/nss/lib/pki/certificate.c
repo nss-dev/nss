@@ -847,3 +847,18 @@ nssCertificateList_DoCallback
     return PR_SUCCESS;
 }
 
+static PRStatus add_ref_callback(NSSCertificate *c, void *a)
+{
+    nssCertificate_AddRef(c);
+    return PR_SUCCESS;
+}
+
+NSS_IMPLEMENT void
+nssCertificateList_AddReferences
+(
+  nssList *certList
+)
+{
+    (void)nssCertificateList_DoCallback(certList, add_ref_callback, NULL);
+}
+
