@@ -60,6 +60,7 @@ extern SECStatus SECMOD_AddPermDB(SECMODModule *module);
 extern int secmod_PrivateModuleCount;
 
 extern void SECMOD_Init(void);
+SECStatus secmod_ModuleInit(SECMODModule *mod);
 
 /* list managment */
 extern SECStatus SECMOD_AddModuleToList(SECMODModule *newModule);

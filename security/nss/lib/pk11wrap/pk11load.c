@@ -79,12 +79,47 @@ CK_RV PR_CALLBACK secmodUnlockMutext(CK_VOID_PTR mutext) {
 }
 
 static SECMODModuleID  nextModuleID = 1;
-static CK_C_INITIALIZE_ARGS secmodLockFunctions = {
+static const CK_C_INITIALIZE_ARGS secmodLockFunctions = {
     secmodCreateMutext, secmodDestroyMutext, secmodLockMutext, 
     secmodUnlockMutext, CKF_LIBRARY_CANT_CREATE_OS_THREADS|
 	CKF_OS_LOCKING_OK
     ,NULL
 };
+
+/*
+ * collect the steps we need to initialize a module in a single function
+ */
+SECStatus
+secmod_ModuleInit(SECMODModule *mod)
+{
+    CK_C_INITIALIZE_ARGS moduleArgs;
+    CK_VOID_PTR pInitArgs;
+    CK_RV crv;
+
+    if (mod->isThreadSafe == PR_FALSE) {
+	pInitArgs = NULL;
+    } else if (mod->libraryParams == NULL) {
+	pInitArgs = (void *) &secmodLockFunctions;
+    } else {
+	moduleArgs = secmodLockFunctions;
+	moduleArgs.LibraryParameters = (void *) mod->libraryParams;
+	pInitArgs = &moduleArgs;
+    }
+    crv = PK11_GETTAB(mod)->C_Initialize(pInitArgs);
+    if (crv != CKR_OK) {
+	if (pInitArgs == NULL) {
+	    PORT_SetError(PK11_MapError(crv));
+	    return SECFailure;
+	}
+	mod->isThreadSafe = PR_FALSE;
+    	crv = PK11_GETTAB(mod)->C_Initialize(NULL);
+    	if (crv != CKR_OK)  {
+	    PORT_SetError(PK11_MapError(crv));
+	    return SECFailure;
+	}
+    }
+    return SECSuccess;
+}
 
 /*
  * set the hasRootCerts flags in the module so it can be stored back
@@ -138,7 +173,7 @@ SECMOD_LoadPKCS11Module(SECMODModule *mod) {
     char * full_name;
     CK_INFO info;
     CK_ULONG slotCount = 0;
-
+    SECStatus rv;
 
     if (mod->loaded) return SECSuccess;
 
@@ -223,17 +258,12 @@ SECMOD_LoadPKCS11Module(SECMODModule *mod) {
 #endif
 
     mod->isThreadSafe = PR_TRUE;
-    /* Now we initialize the module */
-    if (mod->libraryParams) {
-	secmodLockFunctions.LibraryParameters = (void *) mod->libraryParams;
-    } else {
-	secmodLockFunctions.LibraryParameters = NULL;
-    }
-    if (PK11_GETTAB(mod)->C_Initialize(&secmodLockFunctions) != CKR_OK) {
-	mod->isThreadSafe = PR_FALSE;
-    	if (PK11_GETTAB(mod)->C_Initialize(NULL) != CKR_OK) goto fail;
-    }
 
+    /* Now we initialize the module */
+    rv = secmod_ModuleInit(mod);
+    if (rv != SECSuccess) {
+	goto fail;
+    }
     /* check the version number */
     if (PK11_GETTAB(mod)->C_GetInfo(&info) != CKR_OK) goto fail2;
     if (info.cryptokiVersion.major != 2) goto fail2;
@@ -253,7 +283,7 @@ SECMOD_LoadPKCS11Module(SECMODModule *mod) {
     if (PK11_GETTAB(mod)->C_GetSlotList(CK_FALSE, NULL, &slotCount) == CKR_OK) {
 	CK_SLOT_ID *slotIDs;
 	int i;
-	CK_RV rv;
+	CK_RV crv;
 
 	mod->slots = (PK11SlotInfo **)PORT_ArenaAlloc(mod->arena,
 					sizeof(PK11SlotInfo *) * slotCount);
@@ -263,8 +293,8 @@ SECMOD_LoadPKCS11Module(SECMODModule *mod) {
 	if (slotIDs == NULL) {
 	    goto fail2;
 	}  
-	rv = PK11_GETTAB(mod)->C_GetSlotList(CK_FALSE, slotIDs, &slotCount);
-	if (rv != CKR_OK) {
+	crv = PK11_GETTAB(mod)->C_GetSlotList(CK_FALSE, slotIDs, &slotCount);
+	if (crv != CKR_OK) {
 	    PORT_Free(slotIDs);
 	    goto fail2;
 	}

@@ -797,3 +797,12 @@ PK11_UnlinkGenericObject;
 ;+    local:
 ;+       *;
 ;+};
+;+NSS_3.9.3 { 	# NSS 3.9.3 release
+;+    global:
+SECMOD_CancelWait;
+SECMOD_HasRemovableSlots;
+SECMOD_UpdateSlotList;
+SECMOD_WaitForAnyTokenEvent;
+;+    local:
+;+       *;
+;+};

@@ -52,6 +52,8 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #include "pki3hack.h"
 #endif
 
+#include "nssrwlk.h"
+
 #define NSSTRUSTDOMAIN_DEFAULT_CACHE_SIZE 32
 
 #ifdef PURE_STAN_BUILD
@@ -90,6 +92,11 @@ NSSTrustDomain_Create (
     if (!rvTD) {
 	goto loser;
     }
+    /* protect the token list and the token iterator */
+    rvTD->tokensLock = NSSRWLock_New(100, "tokens");
+    if (!rvTD->tokensLock) {
+	goto loser;
+    }
     nssTrustDomain_InitializeCache(rvTD, NSSTRUSTDOMAIN_DEFAULT_CACHE_SIZE);
     rvTD->arena = arena;
     rvTD->refCount = 1;
@@ -98,6 +105,9 @@ NSSTrustDomain_Create (
 #endif
     return rvTD;
 loser:
+    if (rvTD && rvTD->tokensLock) {
+	NSSRWLock_Destroy(rvTD->tokensLock);
+    }
     nssArena_Destroy(arena);
     return (NSSTrustDomain *)NULL;
 }
@@ -124,6 +134,7 @@ NSSTrustDomain_Destroy (
 	    nssList_Clear(td->tokenList, token_destructor);
 	    nssList_Destroy(td->tokenList);
 	}
+	NSSRWLock_Destroy(td->tokensLock);
 	status = nssTrustDomain_DestroyCache(td);
 	if (status == PR_FAILURE) {
 	    return status;
@@ -145,17 +156,21 @@ nssTrustDomain_GetActiveSlots (
     NSSSlot **slots = NULL;
     NSSToken **tp, **tokens;
     *updateLevel = 1;
+    NSSRWLock_LockRead(td->tokensLock);
     count = nssList_Count(td->tokenList);
     tokens = nss_ZNEWARRAY(NULL, NSSToken *, count + 1);
     if (!tokens) {
+	NSSRWLock_UnlockRead(td->tokensLock);
 	return NULL;
     }
     slots = nss_ZNEWARRAY(NULL, NSSSlot *, count + 1);
     if (!slots) {
+	NSSRWLock_UnlockRead(td->tokensLock);
 	nss_ZFreeIf(tokens);
 	return NULL;
     }
     nssList_GetArray(td->tokenList, (void **)tokens, count);
+    NSSRWLock_UnlockRead(td->tokensLock);
     count = 0;
     for (tp = tokens; *tp; tp++) {
 	slots[count++] = nssToken_GetSlot(*tp);
@@ -272,6 +287,7 @@ NSSTrustDomain_FindTokenByName (
     PRStatus nssrv;
     NSSUTF8 *myName;
     NSSToken *tok = NULL;
+    NSSRWLock_LockRead(td->tokensLock);
     for (tok  = (NSSToken *)nssListIterator_Start(td->tokens);
          tok != (NSSToken *)NULL;
          tok  = (NSSToken *)nssListIterator_Next(td->tokens))
@@ -282,6 +298,7 @@ NSSTrustDomain_FindTokenByName (
 	}
     }
     nssListIterator_Finish(td->tokens);
+    NSSRWLock_UnlockRead(td->tokensLock);
     return tok;
 }
 
