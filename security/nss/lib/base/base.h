@@ -1023,6 +1023,40 @@ extern const NSSError NSS_ERROR_INVALID_POINTER;
 
 #define nsslibc_offsetof(str, memb) ((PRPtrdiff)(&(((str *)0)->memb)))
 
+/*
+ * nss_NewThreadPrivateIndex
+ * 
+ */
+
+NSS_EXTERN PRStatus
+nss_NewThreadPrivateIndex
+(
+  PRUintn *ip
+);
+
+/*
+ * nss_GetThreadPrivate
+ *
+ */
+
+NSS_EXTERN void *
+nss_GetThreadPrivate
+(
+  PRUintn i
+);
+
+/*
+ * nss_SetThreadPrivate
+ *
+ */
+
+NSS_EXTERN void
+nss_SetThreadPrivate
+(
+  PRUintn i,
+  void *v
+);
+
 
 PR_END_EXTERN_C
 
