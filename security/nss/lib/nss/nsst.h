@@ -107,7 +107,7 @@ typedef struct
    */
   void (PR_CALLBACK *destroy)(void *cert);
 }
-NSSCertificateMethods;
+NSSCertMethods;
 
 PR_END_EXTERN_C
 

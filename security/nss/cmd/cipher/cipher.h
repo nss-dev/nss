@@ -72,8 +72,8 @@ Encrypt
   CMDRunTimeData *rtData
 );
 
-NSSSymmetricKey *
-GenerateSymmetricKey
+NSSSymKey *
+GenerateSymKey
 (
   NSSTrustDomain *td,
   /*NSSCryptoContext *cc,*/

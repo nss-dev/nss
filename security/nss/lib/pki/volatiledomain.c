@@ -117,10 +117,10 @@ nssVolatileDomain_Destroy (
     PRStatus status = PR_SUCCESS;
     PZ_DestroyLock(vd->objectLock);
     nssTokenSessionHash_Destroy(vd->tokenSessionHash);
-    nssCertificateArray_Destroy((NSSCertificate **)vd->certs.array);
+    nssCertArray_Destroy((NSSCert **)vd->certs.array);
     nssPublicKeyArray_Destroy((NSSPublicKey **)vd->bkeys.array);
     nssPrivateKeyArray_Destroy((NSSPrivateKey **)vd->vkeys.array);
-    nssSymmetricKeyArray_Destroy((NSSSymmetricKey **)vd->mkeys.array);
+    nssSymKeyArray_Destroy((NSSSymKey **)vd->mkeys.array);
     status |= nssArena_Destroy(vd->arena);
     return status;
 }
@@ -200,9 +200,9 @@ NSSVolatileDomain_GetTrustDomain (
 }
 
 NSS_IMPLEMENT PRStatus
-nssVolatileDomain_ImportCertificate (
+nssVolatileDomain_ImportCert (
   NSSVolatileDomain *vd,
-  NSSCertificate *c
+  NSSCert *c
 )
 {
     PZ_Lock(vd->objectLock);
@@ -210,13 +210,13 @@ nssVolatileDomain_ImportCertificate (
 	if (vd->certs.size == 0) {
 	    /* need to alloc new array */
 	    vd->certs.array = (void **)nss_ZNEWARRAY(vd->arena, 
-	                                             NSSCertificate *, 
+	                                             NSSCert *, 
 	                                             DEFAULT_ARRAY_SIZE);
 	} else {
 	    /* array is full, realloc */
 	    vd->certs.size *= 2;
 	    vd->certs.array = (void **)nss_ZREALLOCARRAY(vd->certs.array, 
-	                                                 NSSCertificate *, 
+	                                                 NSSCert *, 
 	                                                 vd->certs.size);
 	}
 	if (!vd->certs.array) {
@@ -224,59 +224,59 @@ nssVolatileDomain_ImportCertificate (
 	    return PR_FAILURE;
 	}
     }
-    vd->certs.array[vd->certs.count++] = (void *)nssCertificate_AddRef(c);
+    vd->certs.array[vd->certs.count++] = (void *)nssCert_AddRef(c);
     PZ_Unlock(vd->objectLock);
-    nssCertificate_SetVolatileDomain(c, vd);
+    nssCert_SetVolatileDomain(c, vd);
     return PR_SUCCESS;
 }
 
 NSS_IMPLEMENT PRStatus
-NSSVolatileDomain_ImportCertificate (
+NSSVolatileDomain_ImportCert (
   NSSVolatileDomain *vd,
-  NSSCertificate *c
+  NSSCert *c
 )
 {
-    return nssVolatileDomain_ImportCertificate(vd, c);
+    return nssVolatileDomain_ImportCert(vd, c);
 }
 
-NSS_IMPLEMENT NSSCertificate *
-nssVolatileDomain_ImportEncodedCertificate (
+NSS_IMPLEMENT NSSCert *
+nssVolatileDomain_ImportEncodedCert (
   NSSVolatileDomain *vd,
   NSSBER *ber,
   NSSUTF8 *nickOpt
 )
 {
-    NSSCertificate *c;
+    NSSCert *c;
 
-    c = nssCertificate_Decode(ber);
+    c = nssCert_Decode(ber);
     if (!c) {
-	return (NSSCertificate *)NULL;
+	return (NSSCert *)NULL;
     }
     if (nickOpt) {
-	nssCertificate_SetNickname(c, NULL, nickOpt);
+	nssCert_SetNickname(c, NULL, nickOpt);
     }
-    if (nssVolatileDomain_ImportCertificate(vd, c) == PR_FAILURE) {
-	nssCertificate_Destroy(c);
-	return (NSSCertificate *)NULL;
+    if (nssVolatileDomain_ImportCert(vd, c) == PR_FAILURE) {
+	nssCert_Destroy(c);
+	return (NSSCert *)NULL;
     }
     return c;
 }
 
-NSS_IMPLEMENT NSSCertificate *
-NSSVolatileDomain_ImportEncodedCertificate (
+NSS_IMPLEMENT NSSCert *
+NSSVolatileDomain_ImportEncodedCert (
   NSSVolatileDomain *vd,
   NSSBER *ber,
   NSSUTF8 *nickOpt
 )
 {
-    return nssVolatileDomain_ImportEncodedCertificate(vd, ber, nickOpt);
+    return nssVolatileDomain_ImportEncodedCert(vd, ber, nickOpt);
 }
 
 NSS_IMPLEMENT PRStatus
-NSSVolatileDomain_ImportEncodedCertificateChain (
+NSSVolatileDomain_ImportEncodedCertChain (
   NSSVolatileDomain *vd,
   NSSBER *ber,
-  NSSCertificateType certType
+  NSSCertType certType
 )
 {
     nss_SetError(NSS_ERROR_NOT_FOUND);
@@ -329,12 +329,12 @@ nssVolatileDomain_ImportSMIMEProfile (
 {
     PRStatus nssrv;
     if (!vd->certStore) {
-	vd->certStore = nssCertificateStore_Create(vd->arena);
+	vd->certStore = nssCertStore_Create(vd->arena);
 	if (!vd->certStore) {
 	    return PR_FAILURE;
 	}
     }
-    nssrv = nssCertificateStore_AddSMIMEProfile(vd->certStore, profile);
+    nssrv = nssCertStore_AddSMIMEProfile(vd->certStore, profile);
 #if 0
     if (nssrv == PR_SUCCESS) {
 	profile->object.cryptoContext = vd;
@@ -345,7 +345,7 @@ nssVolatileDomain_ImportSMIMEProfile (
 #endif
 
 struct cert_array_str {
-  NSSCertificate **array;
+  NSSCert **array;
   PRUint32 count;
   PRUint32 size;
   PRBool grow;
@@ -362,7 +362,7 @@ struct cert_array_str {
     (cert_array)->mark = NULL;
 
 static PRStatus
-add_to_cert_array(struct cert_array_str *car, NSSCertificate *c)
+add_to_cert_array(struct cert_array_str *car, NSSCert *c)
 {
     if (!car->array) {
 	if (car->arenaOpt) {
@@ -374,26 +374,26 @@ add_to_cert_array(struct cert_array_str *car, NSSCertificate *c)
 	if (!car->size) {
 	    car->size = DEFAULT_RETURN_ARRAY;
 	}
-	car->array = nss_ZNEWARRAY(car->arenaOpt, NSSCertificate *, 
+	car->array = nss_ZNEWARRAY(car->arenaOpt, NSSCert *, 
 	                           car->size + 1);
     } else if (car->count == car->size) {
 	if (!car->grow) {
 	    return PR_FAILURE; /* this will terminate the loop */
 	}
 	car->size *= 2;
-	car->array = nss_ZREALLOCARRAY(car->array, NSSCertificate *, 
+	car->array = nss_ZREALLOCARRAY(car->array, NSSCert *, 
 	                               car->size + 1);
     }
     if (!car->array) {
 	return PR_FAILURE;
     }
-    car->array[car->count++] = nssCertificate_AddRef(c);
+    car->array[car->count++] = nssCert_AddRef(c);
     return PR_SUCCESS;
 }
 
-static NSSCertificate **
+static NSSCert **
 finish_cert_array(struct cert_array_str *car, PRStatus status,
-                  NSSCertificate **tdCerts)
+                  NSSCert **tdCerts)
 {
     if (status == PR_FAILURE) {
 	if (!car->grow) {
@@ -409,7 +409,7 @@ finish_cert_array(struct cert_array_str *car, PRStatus status,
 	car->array = NULL;
     } else if (car->mark) {
 	if (tdCerts) {
-	    car->array = nssCertificateArray_Join(car->array, tdCerts);
+	    car->array = nssCertArray_Join(car->array, tdCerts);
 	}
 	nssArena_Unmark(car->arenaOpt, car->mark);
     }
@@ -417,27 +417,27 @@ finish_cert_array(struct cert_array_str *car, PRStatus status,
     return car->array;
 }
 
-NSS_IMPLEMENT NSSCertificate **
-nssVolatileDomain_FindCertificatesByNickname (
+NSS_IMPLEMENT NSSCert **
+nssVolatileDomain_FindCertsByNickname (
   NSSVolatileDomain *vd,
   NSSUTF8 *name,
-  NSSCertificate **rvOpt,
+  NSSCert **rvOpt,
   PRUint32 maximumOpt,
   NSSArena *arenaOpt
 )
 {
     PRStatus status;
     PRUint32 i;
-    NSSCertificate **certs, **tdCerts;
+    NSSCert **certs, **tdCerts;
     NSSUTF8 *cNick;
     struct cert_array_str cert_array;
 
     INIT_CERT_ARRAY(&cert_array, rvOpt, maximumOpt, arenaOpt);
 
     PZ_Lock(vd->objectLock);
-    certs = (NSSCertificate **)vd->certs.array;
+    certs = (NSSCert **)vd->certs.array;
     for (i=0; i<vd->certs.count; i++) {
-	cNick = nssCertificate_GetNickname(certs[i], NULL);
+	cNick = nssCert_GetNickname(certs[i], NULL);
 	if (nssUTF8_Equal(name, cNick, NULL)) { 
 	    status = add_to_cert_array(&cert_array, certs[i]);
 	    if (status == PR_FAILURE) {
@@ -447,28 +447,28 @@ nssVolatileDomain_FindCertificatesByNickname (
     }
     PZ_Unlock(vd->objectLock);
 
-    tdCerts = nssTrustDomain_FindCertificatesByNickname(vd->td, name, 
+    tdCerts = nssTrustDomain_FindCertsByNickname(vd->td, name, 
                                    rvOpt ? rvOpt + cert_array.count : NULL,
                                    maximumOpt - cert_array.count, arenaOpt);
 
     return finish_cert_array(&cert_array, status, tdCerts);
 }
 
-NSS_IMPLEMENT NSSCertificate **
-NSSVolatileDomain_FindCertificatesByNickname (
+NSS_IMPLEMENT NSSCert **
+NSSVolatileDomain_FindCertsByNickname (
   NSSVolatileDomain *vd,
   NSSUTF8 *name,
-  NSSCertificate *rvOpt[],
+  NSSCert *rvOpt[],
   PRUint32 maximumOpt, /* 0 for no max */
   NSSArena *arenaOpt
 )
 {
-    return nssVolatileDomain_FindCertificatesByNickname(vd, name, rvOpt,
+    return nssVolatileDomain_FindCertsByNickname(vd, name, rvOpt,
                                                         maximumOpt, arenaOpt);
 }
 
-NSS_IMPLEMENT NSSCertificate *
-nssVolatileDomain_FindBestCertificateByNickname (
+NSS_IMPLEMENT NSSCert *
+nssVolatileDomain_FindBestCertByNickname (
   NSSVolatileDomain *vd,
   NSSUTF8 *name,
   NSSTime time, /* NULL for "now" */
@@ -476,23 +476,23 @@ nssVolatileDomain_FindBestCertificateByNickname (
   NSSPolicies *policiesOpt /* NULL for none */
 )
 {
-    NSSCertificate **certs;
-    NSSCertificate *rvCert = NULL;
+    NSSCert **certs;
+    NSSCert *rvCert = NULL;
 
     /* search the volatile (and trust) domain by nickname */
-    certs = nssVolatileDomain_FindCertificatesByNickname(vd, name, 
+    certs = nssVolatileDomain_FindCertsByNickname(vd, name, 
                                                          NULL, 0, NULL);
     if (certs) {
 	/* find the best one */
-	rvCert = nssCertificateArray_FindBestCertificate(certs, time, 
+	rvCert = nssCertArray_FindBestCert(certs, time, 
 	                                                 usages, policiesOpt);
-	nssCertificateArray_Destroy(certs);
+	nssCertArray_Destroy(certs);
     }
     return rvCert;
 }
 
-NSS_IMPLEMENT NSSCertificate *
-NSSVolatileDomain_FindBestCertificateByNickname (
+NSS_IMPLEMENT NSSCert *
+NSSVolatileDomain_FindBestCertByNickname (
   NSSVolatileDomain *vd,
   NSSUTF8 *name,
   NSSTime time, /* NULL for "now" */
@@ -500,76 +500,76 @@ NSSVolatileDomain_FindBestCertificateByNickname (
   NSSPolicies *policiesOpt /* NULL for none */
 )
 {
-    return nssVolatileDomain_FindBestCertificateByNickname(vd, name,
+    return nssVolatileDomain_FindBestCertByNickname(vd, name,
                                                            time, usages,
                                                            policiesOpt);
 }
 
-NSS_IMPLEMENT NSSCertificate *
-nssVolatileDomain_FindCertificateByIssuerAndSerialNumber (
+NSS_IMPLEMENT NSSCert *
+nssVolatileDomain_FindCertByIssuerAndSerialNumber (
   NSSVolatileDomain *vd,
   NSSDER *issuer,
   NSSDER *serial
 )
 {
     PRUint32 i;
-    NSSCertificate **certs;
+    NSSCert **certs;
     NSSDER *cIssuer, *cSerial;
-    NSSCertificate *rvCert = NULL;
+    NSSCert *rvCert = NULL;
 
     PZ_Lock(vd->objectLock);
-    certs = (NSSCertificate **)vd->certs.array;
+    certs = (NSSCert **)vd->certs.array;
     for (i=0; i<vd->certs.count; i++) {
-	cIssuer = nssCertificate_GetIssuer(certs[i]);
-	cSerial = nssCertificate_GetSerialNumber(certs[i]);
+	cIssuer = nssCert_GetIssuer(certs[i]);
+	cSerial = nssCert_GetSerialNumber(certs[i]);
 	if (nssItem_Equal(cIssuer, issuer, NULL) &&
 	    nssItem_Equal(cSerial, serial, NULL)) 
 	{
-	    rvCert = nssCertificate_AddRef(certs[i]);
+	    rvCert = nssCert_AddRef(certs[i]);
 	    break;
 	}
     }
     PZ_Unlock(vd->objectLock);
     if (!rvCert) {
-	rvCert = nssTrustDomain_FindCertificateByIssuerAndSerialNumber(vd->td,
+	rvCert = nssTrustDomain_FindCertByIssuerAndSerialNumber(vd->td,
 	                                                      issuer, serial);
     }
     return rvCert;
 }
 
-NSS_IMPLEMENT NSSCertificate *
-NSSVolatileDomain_FindCertificateByIssuerAndSerialNumber (
+NSS_IMPLEMENT NSSCert *
+NSSVolatileDomain_FindCertByIssuerAndSerialNumber (
   NSSVolatileDomain *vd,
   NSSDER *issuer,
   NSSDER *serial
 )
 {
-    return nssVolatileDomain_FindCertificateByIssuerAndSerialNumber(vd,
+    return nssVolatileDomain_FindCertByIssuerAndSerialNumber(vd,
                                                                     issuer,
                                                                     serial);
 }
 
-NSS_IMPLEMENT NSSCertificate **
-nssVolatileDomain_FindCertificatesBySubject (
+NSS_IMPLEMENT NSSCert **
+nssVolatileDomain_FindCertsBySubject (
   NSSVolatileDomain *vd,
   NSSDER *subject,
-  NSSCertificate *rvOpt[],
+  NSSCert *rvOpt[],
   PRUint32 maximumOpt, /* 0 for no max */
   NSSArena *arenaOpt
 )
 {
     PRStatus status;
     PRUint32 i;
-    NSSCertificate **certs, **tdCerts;
+    NSSCert **certs, **tdCerts;
     NSSDER *certSubject;
     struct cert_array_str cert_array;
 
     INIT_CERT_ARRAY(&cert_array, rvOpt, maximumOpt, arenaOpt);
 
     PZ_Lock(vd->objectLock);
-    certs = (NSSCertificate **)vd->certs.array;
+    certs = (NSSCert **)vd->certs.array;
     for (i=0; i<vd->certs.count; i++) {
-	certSubject = nssCertificate_GetSubject(certs[i]);
+	certSubject = nssCert_GetSubject(certs[i]);
 	if (nssItem_Equal(certSubject, subject, NULL)) {
 	    status = add_to_cert_array(&cert_array, certs[i]);
 	    if (status == PR_FAILURE) {
@@ -579,29 +579,29 @@ nssVolatileDomain_FindCertificatesBySubject (
     }
     PZ_Unlock(vd->objectLock);
 
-    tdCerts = nssTrustDomain_FindCertificatesBySubject(vd->td, subject, 
+    tdCerts = nssTrustDomain_FindCertsBySubject(vd->td, subject, 
                                    rvOpt ? rvOpt + cert_array.count : NULL,
                                    maximumOpt - cert_array.count, arenaOpt);
 
     return finish_cert_array(&cert_array, status, tdCerts);
 }
 
-NSS_IMPLEMENT NSSCertificate **
-NSSVolatileDomain_FindCertificatesBySubject (
+NSS_IMPLEMENT NSSCert **
+NSSVolatileDomain_FindCertsBySubject (
   NSSVolatileDomain *vd,
   NSSDER *subject,
-  NSSCertificate *rvOpt[],
+  NSSCert *rvOpt[],
   PRUint32 maximumOpt, /* 0 for no max */
   NSSArena *arenaOpt
 )
 {
-    return nssVolatileDomain_FindCertificatesBySubject(vd, subject,
+    return nssVolatileDomain_FindCertsBySubject(vd, subject,
                                                       rvOpt, maximumOpt,
                                                       arenaOpt);
 }
 
-NSS_IMPLEMENT NSSCertificate *
-nssVolatileDomain_FindBestCertificateBySubject (
+NSS_IMPLEMENT NSSCert *
+nssVolatileDomain_FindBestCertBySubject (
   NSSVolatileDomain *vd,
   NSSDER *subject,
   NSSTime time,
@@ -609,23 +609,23 @@ nssVolatileDomain_FindBestCertificateBySubject (
   NSSPolicies *policiesOpt
 )
 {
-    NSSCertificate **certs;
-    NSSCertificate *rvCert = NULL;
+    NSSCert **certs;
+    NSSCert *rvCert = NULL;
 
     /* search the volatile (and trust) domain by subject */
-    certs = nssVolatileDomain_FindCertificatesBySubject(vd, subject, 
+    certs = nssVolatileDomain_FindCertsBySubject(vd, subject, 
                                                           NULL, 0, NULL);
     if (certs) {
 	/* find the best one */
-	rvCert = nssCertificateArray_FindBestCertificate(certs, time, 
+	rvCert = nssCertArray_FindBestCert(certs, time, 
 	                                                 usages, policiesOpt);
-	nssCertificateArray_Destroy(certs);
+	nssCertArray_Destroy(certs);
     }
     return rvCert;
 }
 
-NSS_IMPLEMENT NSSCertificate *
-NSSVolatileDomain_FindBestCertificateBySubject (
+NSS_IMPLEMENT NSSCert *
+NSSVolatileDomain_FindBestCertBySubject (
   NSSVolatileDomain *vd,
   NSSDER *subject,
   NSSTime time,
@@ -633,69 +633,69 @@ NSSVolatileDomain_FindBestCertificateBySubject (
   NSSPolicies *policiesOpt
 )
 {
-    return nssVolatileDomain_FindBestCertificateBySubject(vd, subject,
+    return nssVolatileDomain_FindBestCertBySubject(vd, subject,
                                                 time, usages, policiesOpt);
 }
 
-NSS_IMPLEMENT NSSCertificate *
-nssVolatileDomain_FindCertificateByEncodedCertificate (
+NSS_IMPLEMENT NSSCert *
+nssVolatileDomain_FindCertByEncodedCert (
   NSSVolatileDomain *vd,
   NSSBER *encodedCert
 )
 {
     PRUint32 i;
     NSSBER *certEnc;
-    NSSCertificate **certs;
-    NSSCertificate *rvCert = NULL;
+    NSSCert **certs;
+    NSSCert *rvCert = NULL;
 
     PZ_Lock(vd->objectLock);
-    certs = (NSSCertificate **)vd->certs.array;
+    certs = (NSSCert **)vd->certs.array;
     for (i=0; i<vd->certs.count; i++) {
-	certEnc = nssCertificate_GetEncoding(certs[i]);
+	certEnc = nssCert_GetEncoding(certs[i]);
 	if (nssItem_Equal(certEnc, encodedCert, NULL)) {
-	    rvCert = nssCertificate_AddRef(certs[i]);
+	    rvCert = nssCert_AddRef(certs[i]);
 	    break;
 	}
     }
     PZ_Unlock(vd->objectLock);
     if (!rvCert) {
-	rvCert = nssTrustDomain_FindCertificateByEncodedCertificate(vd->td,
+	rvCert = nssTrustDomain_FindCertByEncodedCert(vd->td,
 	                                                      encodedCert);
     }
     return rvCert;
 }
 
-NSS_IMPLEMENT NSSCertificate *
-NSSVolatileDomain_FindCertificateByEncodedCertificate (
+NSS_IMPLEMENT NSSCert *
+NSSVolatileDomain_FindCertByEncodedCert (
   NSSVolatileDomain *vd,
   NSSBER *encodedCert
 )
 {
-    return nssVolatileDomain_FindCertificateByEncodedCertificate(vd,
+    return nssVolatileDomain_FindCertByEncodedCert(vd,
                                                           encodedCert);
 }
 
-NSS_IMPLEMENT NSSCertificate **
-nssVolatileDomain_FindCertificatesByEmail (
+NSS_IMPLEMENT NSSCert **
+nssVolatileDomain_FindCertsByEmail (
   NSSVolatileDomain *vd,
   NSSASCII7 *email,
-  NSSCertificate *rvOpt[],
+  NSSCert *rvOpt[],
   PRUint32 maximumOpt, /* 0 for no max */
   NSSArena *arenaOpt
 )
 {
     PRStatus status;
     PRUint32 i;
-    NSSCertificate **certs, **tdCerts;
+    NSSCert **certs, **tdCerts;
     NSSASCII7 *cEmail;
     struct cert_array_str cert_array;
 
     INIT_CERT_ARRAY(&cert_array, rvOpt, maximumOpt, arenaOpt);
 
     PZ_Lock(vd->objectLock);
-    certs = (NSSCertificate **)vd->certs.array;
+    certs = (NSSCert **)vd->certs.array;
     for (i=0; i<vd->certs.count; i++) {
-	cEmail = nssCertificate_GetEmailAddress(certs[i]);
+	cEmail = nssCert_GetEmailAddress(certs[i]);
 	if (nssUTF8_Equal(cEmail, email, NULL)) {
 	    status = add_to_cert_array(&cert_array, certs[i]);
 	    if (status == PR_FAILURE) {
@@ -705,28 +705,28 @@ nssVolatileDomain_FindCertificatesByEmail (
     }
     PZ_Unlock(vd->objectLock);
 
-    tdCerts = nssTrustDomain_FindCertificatesByEmail(vd->td, email, 
+    tdCerts = nssTrustDomain_FindCertsByEmail(vd->td, email, 
                                    rvOpt ? rvOpt + cert_array.count : NULL,
                                    maximumOpt - cert_array.count, arenaOpt);
 
     return finish_cert_array(&cert_array, status, tdCerts);
 }
 
-NSS_IMPLEMENT NSSCertificate **
-NSSVolatileDomain_FindCertificatesByEmail (
+NSS_IMPLEMENT NSSCert **
+NSSVolatileDomain_FindCertsByEmail (
   NSSVolatileDomain *vd,
   NSSASCII7 *email,
-  NSSCertificate *rvOpt[],
+  NSSCert *rvOpt[],
   PRUint32 maximumOpt, /* 0 for no max */
   NSSArena *arenaOpt
 )
 {
-    return nssVolatileDomain_FindCertificatesByEmail(vd, email, rvOpt,
+    return nssVolatileDomain_FindCertsByEmail(vd, email, rvOpt,
                                                      maximumOpt, arenaOpt);
 }
 
-NSS_IMPLEMENT NSSCertificate *
-nssVolatileDomain_FindBestCertificateByEmail (
+NSS_IMPLEMENT NSSCert *
+nssVolatileDomain_FindBestCertByEmail (
   NSSVolatileDomain *vd,
   NSSASCII7 *email,
   NSSTime time,
@@ -734,23 +734,23 @@ nssVolatileDomain_FindBestCertificateByEmail (
   NSSPolicies *policiesOpt
 )
 {
-    NSSCertificate **certs;
-    NSSCertificate *rvCert = NULL;
+    NSSCert **certs;
+    NSSCert *rvCert = NULL;
 
     /* search the volatile domain by email */
-    certs = nssVolatileDomain_FindCertificatesByEmail(vd, email, 
+    certs = nssVolatileDomain_FindCertsByEmail(vd, email, 
                                                       NULL, 0, NULL);
     if (certs) {
 	/* find the best one */
-	rvCert = nssCertificateArray_FindBestCertificate(certs, time, 
+	rvCert = nssCertArray_FindBestCert(certs, time, 
 	                                                 usages, policiesOpt);
-	nssCertificateArray_Destroy(certs);
+	nssCertArray_Destroy(certs);
     }
     return rvCert;
 }
 
-NSS_IMPLEMENT NSSCertificate *
-NSSVolatileDomain_FindBestCertificateByEmail (
+NSS_IMPLEMENT NSSCert *
+NSSVolatileDomain_FindBestCertByEmail (
   NSSVolatileDomain *vd,
   NSSASCII7 *email,
   NSSTime time,
@@ -758,12 +758,12 @@ NSSVolatileDomain_FindBestCertificateByEmail (
   NSSPolicies *policiesOpt
 )
 {
-    return nssVolatileDomain_FindBestCertificateByEmail(vd, email,
+    return nssVolatileDomain_FindBestCertByEmail(vd, email,
                                               time, usages, policiesOpt);
 }
 
-NSS_IMPLEMENT NSSCertificate *
-NSSVolatileDomain_FindBestUserCertificate (
+NSS_IMPLEMENT NSSCert *
+NSSVolatileDomain_FindBestUserCert (
   NSSVolatileDomain *vd,
   NSSTime time,
   NSSUsages *usages,
@@ -774,13 +774,13 @@ NSSVolatileDomain_FindBestUserCertificate (
     return NULL;
 }
 
-NSS_IMPLEMENT NSSCertificate **
-NSSVolatileDomain_FindUserCertificates (
+NSS_IMPLEMENT NSSCert **
+NSSVolatileDomain_FindUserCerts (
   NSSVolatileDomain *vd,
   NSSTime time,
   NSSUsages *usagesOpt,
   NSSPolicies *policiesOpt,
-  NSSCertificate **rvOpt,
+  NSSCert **rvOpt,
   PRUint32 rvLimit, /* zero for no limit */
   NSSArena *arenaOpt
 )
@@ -789,8 +789,8 @@ NSSVolatileDomain_FindUserCertificates (
     return NULL;
 }
 
-NSS_IMPLEMENT NSSCertificate *
-NSSVolatileDomain_FindBestUserCertificateForSSLClientAuth (
+NSS_IMPLEMENT NSSCert *
+NSSVolatileDomain_FindBestUserCertForSSLClientAuth (
   NSSVolatileDomain *vd,
   NSSUTF8 *sslHostOpt,
   NSSDER *rootCAsOpt[], /* null pointer for none */
@@ -803,15 +803,15 @@ NSSVolatileDomain_FindBestUserCertificateForSSLClientAuth (
     return NULL;
 }
 
-NSS_IMPLEMENT NSSCertificate **
-NSSVolatileDomain_FindUserCertificatesForSSLClientAuth (
+NSS_IMPLEMENT NSSCert **
+NSSVolatileDomain_FindUserCertsForSSLClientAuth (
   NSSVolatileDomain *vd,
   NSSUTF8 *sslHostOpt,
   NSSDER *rootCAsOpt[], /* null pointer for none */
   PRUint32 rootCAsMaxOpt, /* zero means list is null-terminated */
   const NSSAlgNParam *apOpt,
   NSSPolicies *policiesOpt,
-  NSSCertificate **rvOpt,
+  NSSCert **rvOpt,
   PRUint32 rvLimit, /* zero for no limit */
   NSSArena *arenaOpt
 )
@@ -820,8 +820,8 @@ NSSVolatileDomain_FindUserCertificatesForSSLClientAuth (
     return NULL;
 }
 
-NSS_IMPLEMENT NSSCertificate *
-NSSVolatileDomain_FindBestUserCertificateForEmailSigning (
+NSS_IMPLEMENT NSSCert *
+NSSVolatileDomain_FindBestUserCertForEmailSigning (
   NSSVolatileDomain *vd,
   NSSASCII7 *signerOpt,
   NSSASCII7 *recipientOpt,
@@ -834,15 +834,15 @@ NSSVolatileDomain_FindBestUserCertificateForEmailSigning (
     return NULL;
 }
 
-NSS_IMPLEMENT NSSCertificate *
-NSSVolatileDomain_FindUserCertificatesForEmailSigning (
+NSS_IMPLEMENT NSSCert *
+NSSVolatileDomain_FindUserCertsForEmailSigning (
   NSSVolatileDomain *vd,
   NSSASCII7 *signerOpt, /* fgmr or a more general name? */
   NSSASCII7 *recipientOpt,
   /* anything more here? */
   const NSSAlgNParam *apOpt,
   NSSPolicies *policiesOpt,
-  NSSCertificate **rvOpt,
+  NSSCert **rvOpt,
   PRUint32 rvLimit, /* zero for no limit */
   NSSArena *arenaOpt
 )
@@ -897,8 +897,8 @@ NSSVolatileDomain_GenerateKeyPair (
                                             destination, uhhOpt);
 }
 
-NSS_IMPLEMENT NSSSymmetricKey *
-nssVolatileDomain_GenerateSymmetricKey (
+NSS_IMPLEMENT NSSSymKey *
+nssVolatileDomain_GenerateSymKey (
   NSSVolatileDomain *vd,
   const NSSAlgNParam *ap,
   PRUint32 keysize,
@@ -917,7 +917,7 @@ nssVolatileDomain_GenerateSymmetricKey (
     creator.session = nssTokenSessionHash_GetSession(vd->tokenSessionHash,
                                                      destination, PR_FALSE);
     if (!creator.session) {
-	return (NSSSymmetricKey *)NULL;
+	return (NSSSymKey *)NULL;
     }
     creator.persistent = PR_FALSE;
     creator.ap = ap;
@@ -925,11 +925,11 @@ nssVolatileDomain_GenerateSymmetricKey (
     creator.nickname = nicknameOpt;
     creator.properties = properties;
     creator.operations = operations;
-    return nssPKIObjectCreator_GenerateSymmetricKey(&creator, keysize);
+    return nssPKIObjectCreator_GenerateSymKey(&creator, keysize);
 }
 
-NSS_IMPLEMENT NSSSymmetricKey *
-NSSVolatileDomain_GenerateSymmetricKey (
+NSS_IMPLEMENT NSSSymKey *
+NSSVolatileDomain_GenerateSymKey (
   NSSVolatileDomain *vd,
   const NSSAlgNParam *ap,
   PRUint32 keysize,
@@ -940,14 +940,14 @@ NSSVolatileDomain_GenerateSymmetricKey (
   NSSCallback *uhhOpt
 )
 {
-    return nssVolatileDomain_GenerateSymmetricKey(vd, ap, keysize,
+    return nssVolatileDomain_GenerateSymKey(vd, ap, keysize,
                                                  labelOpt, 
                                                  operations, properties,
                                                  destination, uhhOpt);
 }
 
-NSS_IMPLEMENT NSSSymmetricKey *
-NSSVolatileDomain_GenerateSymmetricKeyFromPassword (
+NSS_IMPLEMENT NSSSymKey *
+NSSVolatileDomain_GenerateSymKeyFromPassword (
   NSSVolatileDomain *vd,
   const NSSAlgNParam *ap,
   NSSUTF8 *passwordOpt, /* if null, prompt */
@@ -959,8 +959,8 @@ NSSVolatileDomain_GenerateSymmetricKeyFromPassword (
     return NULL;
 }
 
-NSS_IMPLEMENT NSSSymmetricKey *
-NSSVolatileDomain_FindSymmetricKeyByAlgorithmAndKeyID (
+NSS_IMPLEMENT NSSSymKey *
+NSSVolatileDomain_FindSymKeyByAlgorithmAndKeyID (
   NSSVolatileDomain *vd,
   NSSOID *algorithm,
   NSSItem *keyID,
@@ -972,27 +972,27 @@ NSSVolatileDomain_FindSymmetricKeyByAlgorithmAndKeyID (
 }
 
 /* XXX at a lower layer, or with OID? */
-static NSSSymmetricKeyType
+static NSSSymKeyType
 get_sym_key_type(const NSSOID *symKeyAlg)
 {
     switch (nssOID_GetTag(symKeyAlg)) {
     case NSS_OID_DES_ECB:
     case NSS_OID_DES_CBC:
     case NSS_OID_DES_MAC:
-	return NSSSymmetricKeyType_DES;
+	return NSSSymKeyType_DES;
     case NSS_OID_DES_EDE3_CBC:
-	return NSSSymmetricKeyType_TripleDES;
+	return NSSSymKeyType_TripleDES;
     case NSS_OID_RC2_CBC:
-	return NSSSymmetricKeyType_RC2;
+	return NSSSymKeyType_RC2;
     case NSS_OID_RC4:
-	return NSSSymmetricKeyType_RC4;
+	return NSSSymKeyType_RC4;
     default:
-	return NSSSymmetricKeyType_Unknown;
+	return NSSSymKeyType_Unknown;
     }
 }
 
-NSS_IMPLEMENT NSSSymmetricKey *
-nssVolatileDomain_UnwrapSymmetricKey (
+NSS_IMPLEMENT NSSSymKey *
+nssVolatileDomain_UnwrapSymKey (
   NSSVolatileDomain *vd,
   const NSSAlgNParam *ap,
   NSSPrivateKey *wrapKey,
@@ -1004,23 +1004,23 @@ nssVolatileDomain_UnwrapSymmetricKey (
 )
 {
     nssCryptokiObject *vko, *mko;
-    NSSSymmetricKey *mkey = NULL;
-    NSSSymmetricKeyType keyType = get_sym_key_type(targetKeyAlg);
+    NSSSymKey *mkey = NULL;
+    NSSSymKeyType keyType = get_sym_key_type(targetKeyAlg);
 
     /* find a token to do it on */
     vko = nssPrivateKey_FindInstanceForAlgorithm(wrapKey, ap);
     if (!vko) {
-	return (NSSSymmetricKey *)NULL;
+	return (NSSSymKey *)NULL;
     }
     /* do the unwrap for a session object */
-    mko = nssToken_UnwrapSymmetricKey(vko->token, vko->session, ap, vko,
+    mko = nssToken_UnwrapSymKey(vko->token, vko->session, ap, vko,
                                       wrappedKey, PR_FALSE, 
                                       operations, properties, keyType);
     /* done with the private key */
     nssCryptokiObject_Destroy(vko);
     /* create a new symkey in the volatile domain */
     if (mko) {
-	mkey = nssSymmetricKey_CreateFromInstance(mko, vd->td, vd);
+	mkey = nssSymKey_CreateFromInstance(mko, vd->td, vd);
 	if (!mkey) {
 	    nssCryptokiObject_Destroy(mko);
 	}
@@ -1028,8 +1028,8 @@ nssVolatileDomain_UnwrapSymmetricKey (
     return mkey;
 }
 
-NSS_IMPLEMENT NSSSymmetricKey *
-NSSVolatileDomain_UnwrapSymmetricKey (
+NSS_IMPLEMENT NSSSymKey *
+NSSVolatileDomain_UnwrapSymKey (
   NSSVolatileDomain *vd,
   const NSSAlgNParam *ap,
   NSSPrivateKey *wrapKey,
@@ -1040,14 +1040,14 @@ NSSVolatileDomain_UnwrapSymmetricKey (
   NSSProperties properties
 )
 {
-    return nssVolatileDomain_UnwrapSymmetricKey(vd, ap, wrapKey,
+    return nssVolatileDomain_UnwrapSymKey(vd, ap, wrapKey,
                                                 wrappedKey, targetKeyAlg,
                                                 uhhOpt, operations, 
                                                 properties);
 }
 
-NSS_IMPLEMENT NSSSymmetricKey *
-NSSVolatileDomain_DeriveSymmetricKey (
+NSS_IMPLEMENT NSSSymKey *
+NSSVolatileDomain_DeriveSymKey (
   NSSVolatileDomain *vd,
   NSSPublicKey *bk,
   const NSSAlgNParam *apOpt,
@@ -1063,10 +1063,10 @@ NSSVolatileDomain_DeriveSymmetricKey (
 
 #if 0
 NSS_IMPLEMENT NSSItem *
-nssVolatileDomain_WrapSymmetricKey (
+nssVolatileDomain_WrapSymKey (
   NSSVolatileDomain *vd,
   const NSSAlgNParam *apOpt,
-  NSSSymmetricKey *keyToWrap,
+  NSSSymKey *keyToWrap,
   NSSCallback *uhhOpt,
   NSSItem *rvOpt,
   NSSArena *arenaOpt
@@ -1078,7 +1078,7 @@ nssVolatileDomain_WrapSymmetricKey (
 	return (NSSItem *)NULL;
     }
     /* set the context's symkey to the key to wrap */
-    vd->mk = nssSymmetricKey_AddRef(keyToWrap);
+    vd->mk = nssSymKey_AddRef(keyToWrap);
     /* initialize the context with the symkey first */
     if (prepare_context_symmetric_key(vd, ap) == PR_FAILURE) {
 	/* didn't find a token that could do the operation */
@@ -1095,10 +1095,10 @@ nssVolatileDomain_WrapSymmetricKey (
 }
 
 NSS_IMPLEMENT NSSItem *
-NSSVolatileDomain_WrapSymmetricKey (
+NSSVolatileDomain_WrapSymKey (
   NSSVolatileDomain *vd,
   const NSSAlgNParam *apOpt,
-  NSSSymmetricKey *keyToWrap,
+  NSSSymKey *keyToWrap,
   NSSCallback *uhhOpt,
   NSSItem *rvOpt,
   NSSArena *arenaOpt
@@ -1108,7 +1108,7 @@ NSSVolatileDomain_WrapSymmetricKey (
 	nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
 	return (NSSItem *)NULL;
     }
-    return nssVolatileDomain_WrapSymmetricKey(vd, apOpt, keyToWrap,
+    return nssVolatileDomain_WrapSymKey(vd, apOpt, keyToWrap,
                                              uhhOpt, rvOpt, arenaOpt);
 }
 #endif

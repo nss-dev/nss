@@ -70,163 +70,163 @@ nssTrustDomain_GetDefaultCallback (
   PRStatus *statusOpt
 );
 
-NSS_EXTERN NSSCertificate **
-nssTrustDomain_FindCertificatesByNickname (
+NSS_EXTERN NSSCert **
+nssTrustDomain_FindCertsByNickname (
   NSSTrustDomain *td,
   NSSUTF8 *name,
-  NSSCertificate *rvOpt[],
+  NSSCert *rvOpt[],
   PRUint32 maximumOpt, /* 0 for no max */
   NSSArena *arenaOpt
 );
 
-NSS_EXTERN NSSCertificate **
-nssTrustDomain_FindCertificatesBySubject (
+NSS_EXTERN NSSCert **
+nssTrustDomain_FindCertsBySubject (
   NSSTrustDomain *td,
   NSSDER *subject,
-  NSSCertificate *rvOpt[],
+  NSSCert *rvOpt[],
   PRUint32 maximumOpt,
   NSSArena *arenaOpt
 );
 
-NSS_EXTERN NSSCertificate *
-nssTrustDomain_FindCertificateByIssuerAndSerialNumber (
+NSS_EXTERN NSSCert *
+nssTrustDomain_FindCertByIssuerAndSerialNumber (
   NSSTrustDomain *td,
   NSSDER *issuer,
   NSSDER *serialNumber
 );
 
-NSS_EXTERN NSSCertificate **
-nssTrustDomain_FindCertificatesByEmail (
+NSS_EXTERN NSSCert **
+nssTrustDomain_FindCertsByEmail (
   NSSTrustDomain *td,
   NSSASCII7 *email,
-  NSSCertificate *rvOpt[],
+  NSSCert *rvOpt[],
   PRUint32 maximumOpt, /* 0 for no max */
   NSSArena *arenaOpt
 );
 
-NSS_EXTERN NSSCertificate *
-nssTrustDomain_FindCertificateByEncodedCertificate (
+NSS_EXTERN NSSCert *
+nssTrustDomain_FindCertByEncodedCert (
   NSSTrustDomain *td,
-  NSSBER *encodedCertificate
+  NSSBER *encodedCert
 );
 
 NSS_EXTERN PRStatus *
-nssTrustDomain_TraverseCertificates (
+nssTrustDomain_TraverseCerts (
   NSSTrustDomain *td,
-  PRStatus (*callback)(NSSCertificate *c, void *arg),
+  PRStatus (*callback)(NSSCert *c, void *arg),
   void *arg
 );
 
 NSS_EXTERN nssTrust *
-nssTrustDomain_FindTrustForCertificate (
+nssTrustDomain_FindTrustForCert (
   NSSTrustDomain *td,
-  NSSCertificate *c
+  NSSCert *c
 );
 
-NSS_EXTERN NSSCertificate *
-nssCertificate_Decode (
+NSS_EXTERN NSSCert *
+nssCert_Decode (
   NSSBER *ber
 );
 
-NSS_EXTERN NSSCertificate *
-nssCertificate_AddRef (
-  NSSCertificate *c
+NSS_EXTERN NSSCert *
+nssCert_AddRef (
+  NSSCert *c
 );
 
 NSS_EXTERN PRStatus
-nssCertificate_Destroy (
-  NSSCertificate *c
+nssCert_Destroy (
+  NSSCert *c
 );
 
 NSS_EXTERN NSSDER *
-nssCertificate_GetEncoding (
-  NSSCertificate *c
+nssCert_GetEncoding (
+  NSSCert *c
 );
 
 NSS_EXTERN NSSDER *
-nssCertificate_GetIssuer (
-  NSSCertificate *c
+nssCert_GetIssuer (
+  NSSCert *c
 );
 
 NSS_EXTERN NSSDER *
-nssCertificate_GetSerialNumber (
-  NSSCertificate *c
+nssCert_GetSerialNumber (
+  NSSCert *c
 );
 
 NSS_EXTERN NSSDER *
-nssCertificate_GetSubject (
-  NSSCertificate *c
+nssCert_GetSubject (
+  NSSCert *c
 );
 
 NSS_EXTERN PRStatus
-nssCertificate_SetNickname (
-  NSSCertificate *c,
+nssCert_SetNickname (
+  NSSCert *c,
   NSSToken *tokenOpt,
   NSSUTF8 *nickname
 );
 
 NSS_EXTERN NSSUTF8 *
-nssCertificate_GetNickname (
-  NSSCertificate *c,
+nssCert_GetNickname (
+  NSSCert *c,
   NSSToken *tokenOpt
 );
 
 NSS_EXTERN NSSASCII7 *
-nssCertificate_GetEmailAddress (
-  NSSCertificate *c
+nssCert_GetEmailAddress (
+  NSSCert *c
 );
 
 NSS_EXTERN PRBool
-nssCertificate_IssuerAndSerialEqual (
-  NSSCertificate *c1,
-  NSSCertificate *c2
+nssCert_IssuerAndSerialEqual (
+  NSSCert *c1,
+  NSSCert *c2
 );
 
 NSS_EXTERN NSSPublicKey *
-nssCertificate_GetPublicKey (
-  NSSCertificate *c
+nssCert_GetPublicKey (
+  NSSCert *c
 );
 
 NSS_EXTERN NSSPrivateKey *
-nssCertificate_FindPrivateKey (
-  NSSCertificate *c,
+nssCert_FindPrivateKey (
+  NSSCert *c,
   NSSCallback *uhh
 );
 
 NSS_EXTERN PRBool
-nssCertificate_IsPrivateKeyAvailable (
-  NSSCertificate *c,
+nssCert_IsPrivateKeyAvailable (
+  NSSCert *c,
   NSSCallback *uhh,
   PRStatus *statusOpt
 );
 
 NSS_EXTERN NSSUsages *
-nssCertificate_GetUsages (
-  NSSCertificate *c,
+nssCert_GetUsages (
+  NSSCert *c,
   PRStatus *statusOpt
 );
 
 NSS_EXTERN PRBool
-nssCertificate_IsValidAtTime (
-  NSSCertificate *c,
+nssCert_IsValidAtTime (
+  NSSCert *c,
   NSSTime time,
   PRStatus *statusOpt
 );
 
 NSS_EXTERN PRBool
-nssCertificate_IsNewer (
-  NSSCertificate *c1,
-  NSSCertificate *c2,
+nssCert_IsNewer (
+  NSSCert *c1,
+  NSSCert *c2,
   PRStatus *statusOpt
 );
 
-NSS_EXTERN NSSCertificate **
-nssCertificate_BuildChain (
-  NSSCertificate *c,
+NSS_EXTERN NSSCert **
+nssCert_BuildChain (
+  NSSCert *c,
   NSSTime time,
   NSSUsages *usagesOpt,
   NSSPolicies *policiesOpt,
-  NSSCertificate **rvOpt,
+  NSSCert **rvOpt,
   PRUint32 rvLimit,
   NSSArena *arenaOpt,
   PRStatus *statusOpt
@@ -282,29 +282,29 @@ nssPublicKey_GetID (
 );
 
 NSS_EXTERN NSSItem *
-nssPublicKey_WrapSymmetricKey (
+nssPublicKey_WrapSymKey (
   NSSPublicKey *bk,
   const NSSAlgNParam *ap,
-  NSSSymmetricKey *keyToWrap,
+  NSSSymKey *keyToWrap,
   NSSCallback *uhh,
   NSSItem *rvOpt,
   NSSArena *arenaOpt
 );
 
-NSS_EXTERN NSSSymmetricKey *
-nssSymmetricKey_AddRef (
-  NSSSymmetricKey *mk
+NSS_EXTERN NSSSymKey *
+nssSymKey_AddRef (
+  NSSSymKey *mk
 );
 
 NSS_EXTERN PRStatus
-nssSymmetricKey_DeriveSSLSessionKeys (
-  NSSSymmetricKey *masterSecret,
+nssSymKey_DeriveSSLSessionKeys (
+  NSSSymKey *masterSecret,
   const NSSAlgNParam *ap,
-  NSSSymmetricKeyType bulkKeyType,
+  NSSSymKeyType bulkKeyType,
   NSSOperations operations,
   NSSProperties properties,
   PRUint32 keySize,
-  NSSSymmetricKey **sessionKeys
+  NSSSymKey **sessionKeys
 );
 
 NSS_EXTERN NSSVolatileDomain *
@@ -313,11 +313,11 @@ nssVolatileDomain_Create (
   NSSCallback *uhhOpt
 );
 
-NSS_EXTERN NSSCertificate **
-nssVolatileDomain_FindCertificatesBySubject (
+NSS_EXTERN NSSCert **
+nssVolatileDomain_FindCertsBySubject (
   NSSVolatileDomain *vd,
   NSSDER *subject,
-  NSSCertificate *rvOpt[],
+  NSSCert *rvOpt[],
   PRUint32 maximumOpt, /* 0 for no max */
   NSSArena *arenaOpt
 );
@@ -333,8 +333,8 @@ nssPrivateKeyArray_Destroy (
 );
 
 NSS_EXTERN void
-nssSymmetricKeyArray_Destroy (
-  NSSSymmetricKey **mkeys
+nssSymKeyArray_Destroy (
+  NSSSymKey **mkeys
 );
 
 NSS_EXTERN nssTrust *
@@ -359,7 +359,7 @@ nssSMIMEProfile_Destroy (
 
 NSS_EXTERN nssSMIMEProfile *
 nssSMIMEProfile_Create (
-  NSSCertificate *cert,
+  NSSCert *cert,
   NSSItem *profileTime,
   NSSItem *profileData
 );

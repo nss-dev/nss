@@ -52,7 +52,7 @@ get_object_class(char *type)
     }
     if (strcmp(type, "certificate") == 0 || strcmp(type, "cert") == 0 ||
         strcmp(type, "Certificate") == 0 || strcmp(type, "Cert") == 0) {
-	return PKICertificate;
+	return PKICert;
     } else if (strcmp(type, "public-key") == 0 || 
                strcmp(type, "PublicKey") == 0) {
 	return PKIPublicKey;
@@ -103,23 +103,23 @@ get_key_pair_alg(char *type)
 
 /* XXX */
 static NSSItem *
-get_cert_serial_number(NSSCertificate *c)
+get_cert_serial_number(NSSCert *c)
 {
     NSSPKIXCertificate *pkixCert;
     NSSPKIXTBSCertificate *tbsCert;
-    pkixCert = (NSSPKIXCertificate *)NSSCertificate_GetDecoding(c);
+    pkixCert = (NSSPKIXCertificate *)NSSCert_GetDecoding(c);
     tbsCert = NSSPKIXCertificate_GetTBSCertificate(pkixCert);
     return NSSPKIXTBSCertificate_GetSerialNumber(tbsCert);
 }
 
 /* XXX should have a filter function */
-static NSSCertificate *
+static NSSCert *
 find_nick_cert_by_sn(NSSTrustDomain *td, char *nickname, char *serial)
 {
     int i = 0;
-    NSSCertificate **certs;
-    NSSCertificate *c = NULL;
-    certs = NSSTrustDomain_FindCertificatesByNickname(td, nickname,
+    NSSCert **certs;
+    NSSCert *c = NULL;
+    certs = NSSTrustDomain_FindCertsByNickname(td, nickname,
                                                       NULL, 0, NULL);
     if (certs) {
 	while (certs[i]) {
@@ -138,22 +138,22 @@ find_nick_cert_by_sn(NSSTrustDomain *td, char *nickname, char *serial)
 	    }
 	    i++;
 	}
-	NSSCertificateArray_Destroy(certs);
+	NSSCertArray_Destroy(certs);
     }
     return c;
 }
 
 static PRStatus
-print_cert_callback(NSSCertificate *c, void *arg)
+print_cert_callback(NSSCert *c, void *arg)
 {
     CMDRunTimeData *rtData = (CMDRunTimeData *)arg;
     CMDPrinter printer;
-    NSSUTF8 *nickname = nssCertificate_GetNickname(c, NULL);
+    NSSUTF8 *nickname = nssCert_GetNickname(c, NULL);
     NSSItem *serialNumber;
     NSSUsages usages;
-    PRBool isUserCert = NSSCertificate_IsPrivateKeyAvailable(c, NULL, NULL);
+    PRBool isUserCert = NSSCert_IsPrivateKeyAvailable(c, NULL, NULL);
     serialNumber = get_cert_serial_number(c);
-    if (NSSCertificate_GetTrustedUsages(c, &usages) == NULL) {
+    if (NSSCert_GetTrustedUsages(c, &usages) == NULL) {
 	CMD_PrintError("Failed to obtain trusted usages");
 	return PR_FAILURE;
     }
@@ -168,18 +168,18 @@ print_cert_callback(NSSCertificate *c, void *arg)
 }
 
 static PRStatus
-print_decoded_cert(CMDRunTimeData *rtData, NSSCertificate *c)
+print_decoded_cert(CMDRunTimeData *rtData, NSSCert *c)
 {
     CMDPrinter printer;
 
     CMD_InitPrinter(&printer, rtData->output.file, 
                     DEFAULT_LEFT_MARGIN, DEFAULT_RIGHT_MARGIN);
 
-    if (NSSCertificate_GetType(c) == NSSCertificateType_PKIX) {
+    if (NSSCert_GetType(c) == NSSCertType_PKIX) {
 	NSSPKIXCertificate *pkixCert;
-	pkixCert = (NSSPKIXCertificate *)NSSCertificate_GetDecoding(c);
+	pkixCert = (NSSPKIXCertificate *)NSSCert_GetDecoding(c);
 	if (pkixCert) {
-	    CMD_PrintPKIXCertificate(&printer, pkixCert, "Certificate");
+	    CMD_PrintPKIXCertificate(&printer, pkixCert, "Cert");
 	}
     }
     /* XXX */
@@ -188,7 +188,7 @@ print_decoded_cert(CMDRunTimeData *rtData, NSSCertificate *c)
 }
 
 static PRStatus
-dump_cert_callback(NSSCertificate *c, void *arg)
+dump_cert_callback(NSSCert *c, void *arg)
 {
     CMDRunTimeData *rtData = (CMDRunTimeData *)arg;
     print_decoded_cert(rtData, c);
@@ -200,17 +200,17 @@ print_privkey_callback(NSSPrivateKey *vk, void *arg)
 {
     CMDRunTimeData *rtData = (CMDRunTimeData *)arg;
     NSSUTF8 *nickname = nssPrivateKey_GetNickname(vk, NULL);
-    NSSCertificate **certs, **cp;
+    NSSCert **certs, **cp;
     NSSPublicKey *pubkey;
     PR_fprintf(rtData->output.file, "Listing %s", nickname);
-    certs = NSSPrivateKey_FindCertificates(vk, NULL, 0, NULL);
+    certs = NSSPrivateKey_FindCerts(vk, NULL, 0, NULL);
     if (certs) {
 	PR_fprintf(rtData->output.file, " for certs ");
 	for (cp = certs; *cp; cp++) {
-	    nickname = nssCertificate_GetNickname(*cp, NULL);
+	    nickname = nssCert_GetNickname(*cp, NULL);
 	    PR_fprintf(rtData->output.file, "%s ", nickname);
 	}
-	NSSCertificateArray_Destroy(certs);
+	NSSCertArray_Destroy(certs);
     }
     printf("\n");
     return PR_SUCCESS;
@@ -256,15 +256,15 @@ list_nickname_certs
   NSSTrustDomain *td,
   char *nickname,
   PRUint32 maximumOpt,
-  PRStatus (* callback)(NSSCertificate *c, void *arg),
+  PRStatus (* callback)(NSSCert *c, void *arg),
   void *arg
 )
 {
-    NSSCertificate **certs = NULL;
-    NSSCertificate **certp;
-    NSSCertificate *cert[2];
+    NSSCert **certs = NULL;
+    NSSCert **certp;
+    NSSCert *cert[2];
     if (maximumOpt == 1) {
-	cert[0] = NSSTrustDomain_FindBestCertificateByNickname(td,
+	cert[0] = NSSTrustDomain_FindBestCertByNickname(td,
 	                                                       nickname, 
 	                                                       NSSTime_Now(),
 	                                                       NULL,
@@ -272,7 +272,7 @@ list_nickname_certs
 	cert[1] = NULL;
 	certs = cert;
     } else {
-	certs = NSSTrustDomain_FindCertificatesByNickname(td,
+	certs = NSSTrustDomain_FindCertsByNickname(td,
 	                                                  nickname, 
 	                                                  NULL,
 	                                                  maximumOpt,
@@ -284,16 +284,16 @@ list_nickname_certs
     for (certp = certs; *certp; certp++) {
 	(*callback)(*certp, arg);
 	{
-	    NSSDER *encoding = nssCertificate_GetEncoding(*certp);
-	    NSSCertificate *c;
-	    c = NSSTrustDomain_FindCertificateByEncodedCertificate(td,
+	    NSSDER *encoding = nssCert_GetEncoding(*certp);
+	    NSSCert *c;
+	    c = NSSTrustDomain_FindCertByEncodedCert(td,
                                                                    encoding);
 	}
     }
     if (maximumOpt == 1) {
-	NSSCertificate_Destroy(cert[0]);
+	NSSCert_Destroy(cert[0]);
     } else {
-	NSSCertificateArray_Destroy(certs);
+	NSSCertArray_Destroy(certs);
     }
     return PR_SUCCESS;
 }
@@ -306,7 +306,7 @@ list_certs
   CMDRunTimeData *rtData
 )
 {
-    (void)NSSTrustDomain_TraverseCertificates(td,
+    (void)NSSTrustDomain_TraverseCerts(td,
                                               print_cert_callback,
                                               rtData);
     return PR_SUCCESS;
@@ -344,7 +344,7 @@ ListObjects
     PKIObjectType objectKind;
     objectKind = get_object_class(objectTypeOpt);
     switch (objectKind) {
-    case PKICertificate:
+    case PKICert:
 	if (nicknameOpt) {
 	    status = list_nickname_certs(td, nicknameOpt, 0,
 	                                  print_cert_callback, rtData);
@@ -393,13 +393,13 @@ ListChain
 {
     int i;
     PRStatus status;
-    NSSCertificate *c;
-    NSSCertificate **chain;
+    NSSCert *c;
+    NSSCert **chain;
 
     if (serial) {
 	c = find_nick_cert_by_sn(td, nickname, serial);
     } else {
-	c = NSSTrustDomain_FindBestCertificateByNickname(td, nickname, 
+	c = NSSTrustDomain_FindBestCertByNickname(td, nickname, 
 	                                                 NSSTime_Now(), 
 	                                                 NULL, NULL);
     }
@@ -409,7 +409,7 @@ ListChain
 	return PR_FAILURE;
     }
 
-    chain = NSSCertificate_BuildChain(c, NSSTime_Now(), 
+    chain = NSSCert_BuildChain(c, NSSTime_Now(), 
                                       NULL, /* usage      */
                                       NULL, /* policies   */
                                       NULL, /* certs[]    */
@@ -422,7 +422,7 @@ ListChain
 	--i;
 	status = print_cert_callback(chain[i], rtData);
     }
-    NSSCertificateArray_Destroy(chain);
+    NSSCertArray_Destroy(chain);
     return PR_SUCCESS;
 }
 
@@ -430,7 +430,7 @@ static PRStatus
 dump_cert_info
 (
   NSSTrustDomain *td,
-  NSSCertificate *c,
+  NSSCert *c,
   CMDRunTimeData *rtData
 )
 {
@@ -443,22 +443,22 @@ dump_cert_info
      * different label will not match.  Should the library do the
      * this workaround?
      */
-    NSSDER *issuer = NSSCertificate_GetIssuer(c);
-    NSSDER *serial = NSSCertificate_GetSerialNumber(c);
-    NSSCertificate *cp = NSSTrustDomain_FindCertificateByIssuerAndSerialNumber(td, issuer, serial);
+    NSSDER *issuer = NSSCert_GetIssuer(c);
+    NSSDER *serial = NSSCert_GetSerialNumber(c);
+    NSSCert *cp = NSSTrustDomain_FindCertByIssuerAndSerialNumber(td, issuer, serial);
 
-    tokens = NSSCertificate_GetTokens(cp, NULL);
+    tokens = NSSCert_GetTokens(cp, NULL);
     if (tokens) {
 	for (tp = tokens; *tp; tp++) {
 	    PR_fprintf(rtData->output.file, 
 	               "nickname \"%s\" on token \"%s\"\n",
-	               NSSCertificate_GetNickname(cp, *tp),
+	               NSSCert_GetNickname(cp, *tp),
 	               NSSToken_GetName(*tp));
 	}
 	NSSTokenArray_Destroy(tokens);
 	PR_fprintf(rtData->output.file, "\n");
     }
-    NSSCertificate_Destroy(cp);
+    NSSCert_Destroy(cp);
     return PR_SUCCESS;
 }
 
@@ -474,24 +474,24 @@ DumpObject
 )
 {
     PRStatus status;
-    NSSCertificate *c;
+    NSSCert *c;
     NSSPrivateKey *vkey;
     NSSPublicKey *bkey;
 
     switch (get_object_class(objectType)) {
-    case PKICertificate:
+    case PKICert:
     case PKIAny:         /* default to certificate */
 	if (serialOpt) {
 	    c = find_nick_cert_by_sn(td, nickname, serialOpt);
 	    status = dump_cert_info(td, c, rtData);
-	    NSSCertificate_Destroy(c);
+	    NSSCert_Destroy(c);
 	} else if (info) {
-	    c = NSSTrustDomain_FindBestCertificateByNickname(td, nickname, 
+	    c = NSSTrustDomain_FindBestCertByNickname(td, nickname, 
 	                                                     NSSTime_Now(), 
 	                                                     NULL,
 	                                                     NULL);
 	    status = dump_cert_info(td, c, rtData);
-	    NSSCertificate_Destroy(c);
+	    NSSCert_Destroy(c);
 	} else {
 	    status = list_nickname_certs(td, nickname, 1,
 	                                 dump_cert_callback, rtData);
@@ -499,17 +499,17 @@ DumpObject
 	break;
     case PKIPublicKey:
 	/* XXX this ain't the right way */
-	c = NSSTrustDomain_FindBestCertificateByNickname(td, nickname, 
+	c = NSSTrustDomain_FindBestCertByNickname(td, nickname, 
 	                                                 NSSTime_Now(), 
 	                                                 NULL,
 	                                                 NULL);
 	if (c) {
-	    bkey = NSSCertificate_GetPublicKey(c);
+	    bkey = NSSCert_GetPublicKey(c);
 	    if (bkey) {
 		print_public_key_info(bkey, rtData);
 		NSSPublicKey_Destroy(bkey);
 	    }
-	    NSSCertificate_Destroy(c);
+	    NSSCert_Destroy(c);
 	}
 	break;
     case PKIPrivateKey:
@@ -558,7 +558,7 @@ ValidateCert
 )
 {
     PRStatus status;
-    NSSCertificate *c;
+    NSSCert *c;
     NSSUsages usages;
 
     if (usageStr) {
@@ -568,7 +568,7 @@ ValidateCert
     if (serial) {
 	c = find_nick_cert_by_sn(td, nickname, serial);
     } else {
-	c = NSSTrustDomain_FindBestCertificateByNickname(td, nickname, 
+	c = NSSTrustDomain_FindBestCertByNickname(td, nickname, 
 	                                                 NSSTime_Now(), 
 	                                                 NULL,
 	                                                 NULL);
@@ -578,9 +578,9 @@ ValidateCert
 	return PR_FAILURE;
     }
 
-    status = NSSCertificate_Validate(c, NSSTime_Now(), &usages, NULL);
+    status = NSSCert_Validate(c, NSSTime_Now(), &usages, NULL);
     if (status == PR_SUCCESS) {
-	PR_fprintf(PR_STDOUT, "Certificate validated.\n");
+	PR_fprintf(PR_STDOUT, "Cert validated.\n");
     } else {
 	CMD_PrintError("Validation failed");
     }
@@ -599,7 +599,7 @@ SetCertTrust
 {
     PRStatus status;
     NSSUsages usages;
-    NSSCertificate *c;
+    NSSCert *c;
 
 
     get_usages_from_string(trustedUsages, &usages);
@@ -614,7 +614,7 @@ SetCertTrust
     if (serial) {
 	c = find_nick_cert_by_sn(td, nickname, serial);
     } else {
-	c = NSSTrustDomain_FindBestCertificateByNickname(td, nickname, 
+	c = NSSTrustDomain_FindBestCertByNickname(td, nickname, 
 	                                                 NSSTime_Now(), 
 	                                                 NULL,
 	                                                 NULL);
@@ -624,9 +624,9 @@ SetCertTrust
 	return PR_FAILURE;
     }
 
-    status = NSSCertificate_SetTrustedUsages(c, &usages);
+    status = NSSCert_SetTrustedUsages(c, &usages);
 
-    NSSCertificate_Destroy(c);
+    NSSCert_Destroy(c);
     return status;
 }
 
@@ -641,17 +641,17 @@ import_certificate
 {
     PRStatus status;
     NSSItem *encoding;
-    NSSCertificate *cert;
+    NSSCert *cert;
 
     /* get the encoded cert from the input source */
     encoding = CMD_GetInput(rtData);
     /* import into trust domain */
-    cert = NSSTrustDomain_ImportEncodedCertificate(td, encoding,
+    cert = NSSTrustDomain_ImportEncodedCert(td, encoding,
                                                    token, nickname);
     if (cert) {
 	PR_fprintf(PR_STDOUT, "Import successful.\n");
 	dump_cert_info(td, cert, rtData);
-	NSSCertificate_Destroy(cert);
+	NSSCert_Destroy(cert);
 	status = PR_SUCCESS;
     } else {
 	PR_fprintf(PR_STDERR, "Import failed!\n");
@@ -733,7 +733,7 @@ ImportObject
     objectKind = get_object_class(objectTypeOpt);
     switch (objectKind) {
     case PKIAny: /* default to certificate */
-    case PKICertificate:
+    case PKICert:
 	status = import_certificate(td, token, nickname, rtData);
 	break;
     case PKIPublicKey:
@@ -793,13 +793,13 @@ private_key_chooser(NSSPrivateKey **vkeys)
 static void
 cert_choice(void *arg)
 {
-    NSSCertificate *c = (NSSCertificate *)arg;
-    NSSUTF8 *nickname = nssCertificate_GetNickname(c, NULL);
+    NSSCert *c = (NSSCert *)arg;
+    NSSUTF8 *nickname = nssCert_GetNickname(c, NULL);
     PR_fprintf(PR_STDOUT, "%s", nickname);
 }
 
-static NSSCertificate *
-cert_chooser(NSSCertificate **certs)
+static NSSCert *
+cert_chooser(NSSCert **certs)
 {
     int choice = 0;
     if (certs[1]) {
@@ -821,17 +821,17 @@ export_certificate (
 )
 {
     PRStatus status = PR_FAILURE;
-    NSSCertificate *cert, **certs;
-    certs = NSSTrustDomain_FindCertificatesByNickname(td, nickname, 
+    NSSCert *cert, **certs;
+    certs = NSSTrustDomain_FindCertsByNickname(td, nickname, 
                                                       NULL, 0, NULL);
     if (certs) {
 	cert = cert_chooser(certs);
 	if (cert) {
-	    NSSDER *enc = nssCertificate_GetEncoding(cert);
+	    NSSDER *enc = nssCert_GetEncoding(cert);
 	    CMD_DumpOutput(enc, rtData);
 	    status = PR_SUCCESS;
 	}
-	NSSCertificateArray_Destroy(certs);
+	NSSCertArray_Destroy(certs);
     }
     return status;
 }
@@ -855,7 +855,7 @@ export_private_key (
 {
     PRStatus status = PR_FAILURE;
     NSSPrivateKey *vkey, **vkeys;
-    NSSCertificate *ucert, **ucerts;
+    NSSCert *ucert, **ucerts;
 
     vkey = NULL;
 #if 0
@@ -866,13 +866,13 @@ vkeys = NULL;
     if (vkeys) {
 	vkey = private_key_chooser(vkeys);
     } else {
-	ucerts = NSSTrustDomain_FindUserCertificates(td, NULL, 0, NULL);
+	ucerts = NSSTrustDomain_FindUserCerts(td, NULL, 0, NULL);
 	if (ucerts) {
 	    ucert = cert_chooser(ucerts);
 	    if (ucert) {
-		vkey = NSSCertificate_FindPrivateKey(ucert, NULL);
+		vkey = NSSCert_FindPrivateKey(ucert, NULL);
 	    }
-	    NSSCertificateArray_Destroy(ucerts);
+	    NSSCertArray_Destroy(ucerts);
 	}
     }
     if (vkey) {
@@ -922,7 +922,7 @@ ExportObject (
     objectKind = get_object_class(objectTypeOpt);
     switch (objectKind) {
     case PKIAny: /* default to certificate */
-    case PKICertificate:
+    case PKICert:
 	status = export_certificate(td, tokenOpt, nickname, rtData);
 	break;
     case PKIPrivateKey:
@@ -1038,21 +1038,21 @@ delete_certificates
 )
 {
     PRStatus status;
-    NSSCertificate **certs, **cp;
-    cp = certs = NSSTrustDomain_FindCertificatesByNickname(td,
+    NSSCert **certs, **cp;
+    cp = certs = NSSTrustDomain_FindCertsByNickname(td,
                                                            nickname, 
                                                            NULL,
                                                            0,
                                                            NULL);
     while (cp && *cp) {
-	status = NSSCertificate_DeleteStoredObject(*cp, NULL);
+	status = NSSCert_DeleteStoredObject(*cp, NULL);
 	if (status != PR_SUCCESS) {
 	    fprintf(stderr, "Failed to delete certificate %s\n", nickname);
 	    break;
 	}
 	cp++;
     }
-    NSSCertificateArray_Destroy(certs);
+    NSSCertArray_Destroy(certs);
     return status;
 }
 
@@ -1070,7 +1070,7 @@ DeleteObject
     objectKind = get_object_class(objectTypeOpt);
     switch (objectKind) {
     case PKIAny: /* default to certificate */
-    case PKICertificate:
+    case PKICert:
 	status = delete_certificates(td, tokenOpt, nickname);
 	break;
     case PKIPublicKey:
@@ -1090,12 +1090,12 @@ delete_orphan_callback(NSSPrivateKey *vk, void *arg)
     PRStatus status;
     CMDRunTimeData *rtData = (CMDRunTimeData *)arg;
     NSSUTF8 *nickname = nssPrivateKey_GetNickname(vk, NULL);
-    NSSCertificate **certs;
+    NSSCert **certs;
     NSSPublicKey *pubkey;
     PR_fprintf(rtData->output.file, "Deleting %s\n", nickname);
-    certs = NSSPrivateKey_FindCertificates(vk, NULL, 0, NULL);
+    certs = NSSPrivateKey_FindCerts(vk, NULL, 0, NULL);
     if (certs) {
-	NSSCertificateArray_Destroy(certs);
+	NSSCertArray_Destroy(certs);
 	return PR_SUCCESS; /* not an orphan */
     }
     pubkey = NSSPrivateKey_FindPublicKey(vk);

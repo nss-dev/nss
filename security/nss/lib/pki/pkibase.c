@@ -487,35 +487,35 @@ nssPKIObject_GetWriteToken (
 }
 
 NSS_IMPLEMENT void
-nssCertificateArray_Destroy (
-  NSSCertificate **certs
+nssCertArray_Destroy (
+  NSSCert **certs
 )
 {
     if (certs) {
-	NSSCertificate **certp;
+	NSSCert **certp;
 	for (certp = certs; *certp; certp++) {
-	    nssCertificate_Destroy(*certp);
+	    nssCert_Destroy(*certp);
 	}
 	nss_ZFreeIf(certs);
     }
 }
 
 NSS_IMPLEMENT void
-NSSCertificateArray_Destroy (
-  NSSCertificate **certs
+NSSCertArray_Destroy (
+  NSSCert **certs
 )
 {
-    nssCertificateArray_Destroy(certs);
+    nssCertArray_Destroy(certs);
 }
 
-NSS_IMPLEMENT NSSCertificate **
-nssCertificateArray_Join (
-  NSSCertificate **certs1,
-  NSSCertificate **certs2
+NSS_IMPLEMENT NSSCert **
+nssCertArray_Join (
+  NSSCert **certs1,
+  NSSCert **certs2
 )
 {
     if (certs1 && certs2) {
-	NSSCertificate **certs, **cp;
+	NSSCert **certs, **cp;
 	PRUint32 count = 0;
 	PRUint32 count1 = 0;
 	cp = certs1;
@@ -523,11 +523,11 @@ nssCertificateArray_Join (
 	count = count1;
 	cp = certs2;
 	while (*cp++) count++;
-	certs = nss_ZREALLOCARRAY(certs1, NSSCertificate *, count + 1);
+	certs = nss_ZREALLOCARRAY(certs1, NSSCert *, count + 1);
 	if (!certs) {
 	    nss_ZFreeIf(certs1);
 	    nss_ZFreeIf(certs2);
-	    return (NSSCertificate **)NULL;
+	    return (NSSCert **)NULL;
 	}
 	for (cp = certs2; *cp; cp++, count1++) {
 	    certs[count1] = *cp;
@@ -541,29 +541,29 @@ nssCertificateArray_Join (
     }
 }
 
-NSS_IMPLEMENT NSSCertificate * 
-nssCertificateArray_FindBestCertificate (
-  NSSCertificate **certs, 
+NSS_IMPLEMENT NSSCert * 
+nssCertArray_FindBestCert (
+  NSSCert **certs, 
   NSSTime time,
   NSSUsages *usagesOpt,
   NSSPolicies *policiesOpt
 )
 {
     PRStatus status;
-    NSSCertificate *bestCert = NULL;
+    NSSCert *bestCert = NULL;
     if (!certs) {
-	return (NSSCertificate *)NULL;
+	return (NSSCert *)NULL;
     }
     for (; *certs; certs++) {
-	NSSCertificate *c = *certs;
-	NSSUsages *certUsages = nssCertificate_GetUsages(c, &status);
+	NSSCert *c = *certs;
+	NSSUsages *certUsages = nssCert_GetUsages(c, &status);
 	if (status == PR_FAILURE) {
-	    return (NSSCertificate *)NULL;
+	    return (NSSCert *)NULL;
 	}
 	if (!bestCert) {
 	    /* take the first cert with matching usage (if provided) */
 	    if (!usagesOpt || nssUsages_Match(usagesOpt, certUsages)) {
-		bestCert = nssCertificate_AddRef(c);
+		bestCert = nssCert_AddRef(c);
 	    }
 	    continue;
 	} else {
@@ -576,31 +576,31 @@ nssCertificateArray_FindBestCertificate (
 	    }
 	}
 	/* time */
-	if (nssCertificate_IsValidAtTime(bestCert, time, &status)) {
+	if (nssCert_IsValidAtTime(bestCert, time, &status)) {
 	    /* The current best cert is valid at time */
-	    if (!nssCertificate_IsValidAtTime(c, time, &status)) {
+	    if (!nssCert_IsValidAtTime(c, time, &status)) {
 		/* If the new cert isn't valid at time, it's not better */
 		continue;
 	    }
 	} else {
 	    if (status == PR_FAILURE) {
-		return (NSSCertificate *)NULL;
+		return (NSSCert *)NULL;
 	    }
 	    /* The current best cert is not valid at time */
-	    if (nssCertificate_IsValidAtTime(c, time, NULL)) {
+	    if (nssCert_IsValidAtTime(c, time, NULL)) {
 		/* If the new cert is valid at time, it's better */
-		nssCertificate_Destroy(bestCert);
-		bestCert = nssCertificate_AddRef(c);
+		nssCert_Destroy(bestCert);
+		bestCert = nssCert_AddRef(c);
 	    }
 	}
 	/* either they are both valid at time, or neither valid; 
 	 * take the newer one
 	 */
-	if (nssCertificate_IsNewer(c, bestCert, &status)) {
-	    nssCertificate_Destroy(bestCert);
-	    bestCert = nssCertificate_AddRef(c);
+	if (nssCert_IsNewer(c, bestCert, &status)) {
+	    nssCert_Destroy(bestCert);
+	    bestCert = nssCert_AddRef(c);
 	} else if (status == PR_FAILURE) {
-	    return (NSSCertificate *)NULL;
+	    return (NSSCert *)NULL;
 	}
 	/* policies */
 	/* XXX later -- defer to policies */
@@ -609,15 +609,15 @@ nssCertificateArray_FindBestCertificate (
 }
 
 NSS_IMPLEMENT PRStatus
-nssCertificateArray_Traverse (
-  NSSCertificate **certs,
-  PRStatus (* callback)(NSSCertificate *c, void *arg),
+nssCertArray_Traverse (
+  NSSCert **certs,
+  PRStatus (* callback)(NSSCert *c, void *arg),
   void *arg
 )
 {
     PRStatus status = PR_SUCCESS;
     if (certs) {
-	NSSCertificate **certp;
+	NSSCert **certp;
 	for (certp = certs; *certp; certp++) {
 	    status = (*callback)(*certp, arg);
 	    if (status != PR_SUCCESS) {
@@ -659,7 +659,7 @@ nssUsages_Match (
 
 typedef enum
 {
-  pkiObjectType_Certificate = 0,
+  pkiObjectType_Cert = 0,
   pkiObjectType_CRL = 1,
   pkiObjectType_PrivateKey = 2,
   pkiObjectType_PublicKey = 3
@@ -668,7 +668,7 @@ typedef enum
 /* Each object is defined by a set of items that uniquely identify it.
  * Here are the uid sets:
  *
- * NSSCertificate ==>  { issuer, serial }
+ * NSSCert ==>  { issuer, serial }
  * NSSPrivateKey
  *         (RSA) ==> { modulus, public exponent }
  *
@@ -996,8 +996,8 @@ nssPKIObjectCollection_Traverse (
 	    node->haveObject = PR_TRUE;
 	}
 	switch (collection->objectType) {
-	case pkiObjectType_Certificate: 
-	    status = (*callback->func.cert)((NSSCertificate *)node->object, 
+	case pkiObjectType_Cert: 
+	    status = (*callback->func.cert)((NSSCert *)node->object, 
 	                                    callback->arg);
 	    break;
 	case pkiObjectType_CRL: 
@@ -1042,23 +1042,23 @@ nssPKIObjectCollection_AddInstanceAsObject (
 }
 
 /*
- * Certificate collections
+ * Cert collections
  */
 
 static void
 cert_destroyObject(nssPKIObject *o)
 {
-    NSSCertificate *c = (NSSCertificate *)o;
-    nssCertificate_Destroy(c);
+    NSSCert *c = (NSSCert *)o;
+    nssCert_Destroy(c);
 }
 
 static PRStatus
 cert_getUIDFromObject(nssPKIObject *o, NSSItem *uid)
 {
-    NSSCertificate *c = (NSSCertificate *)o;
+    NSSCert *c = (NSSCert *)o;
     NSSDER *issuer, *serial;
-    issuer = nssCertificate_GetIssuer(c);
-    serial = nssCertificate_GetSerialNumber(c);
+    issuer = nssCert_GetIssuer(c);
+    serial = nssCert_GetSerialNumber(c);
     uid[0] = *issuer;
     uid[1] = *serial;
     return PR_SUCCESS;
@@ -1068,7 +1068,7 @@ static PRStatus
 cert_getUIDFromInstance(nssCryptokiObject *instance, NSSItem *uid, 
                         NSSArena *arena)
 {
-    return nssCryptokiCertificate_GetAttributes(instance,
+    return nssCryptokiCert_GetAttributes(instance,
                                                 arena, /* arena    */
                                                 NULL,  /* type     */
                                                 NULL,  /* id       */
@@ -1082,21 +1082,21 @@ cert_getUIDFromInstance(nssCryptokiObject *instance, NSSItem *uid,
 static nssPKIObject *
 cert_createObject(nssPKIObject *o)
 {
-    NSSCertificate *cert;
-    cert = nssCertificate_Create(o);
+    NSSCert *cert;
+    cert = nssCert_Create(o);
     return (nssPKIObject *)cert;
 }
 
 NSS_IMPLEMENT nssPKIObjectCollection *
-nssCertificateCollection_Create (
+nssCertCollection_Create (
   NSSTrustDomain *td,
-  NSSCertificate **certsOpt
+  NSSCert **certsOpt
 )
 {
     PRStatus status;
     nssPKIObjectCollection *collection;
     collection = nssPKIObjectCollection_Create(td);
-    collection->objectType = pkiObjectType_Certificate;
+    collection->objectType = pkiObjectType_Cert;
     collection->destroyObject = cert_destroyObject;
     collection->getUIDFromObject = cert_getUIDFromObject;
     collection->getUIDFromInstance = cert_getUIDFromInstance;
@@ -1110,10 +1110,10 @@ nssCertificateCollection_Create (
     return collection;
 }
 
-NSS_IMPLEMENT NSSCertificate **
-nssPKIObjectCollection_GetCertificates (
+NSS_IMPLEMENT NSSCert **
+nssPKIObjectCollection_GetCerts (
   nssPKIObjectCollection *collection,
-  NSSCertificate **rvOpt,
+  NSSCert **rvOpt,
   PRUint32 maximumOpt,
   NSSArena *arenaOpt
 )
@@ -1122,7 +1122,7 @@ nssPKIObjectCollection_GetCertificates (
     PRUint32 rvSize;
     PRBool allocated = PR_FALSE;
     if (collection->size == 0) {
-	return (NSSCertificate **)NULL;
+	return (NSSCert **)NULL;
     }
     if (maximumOpt == 0) {
 	rvSize = collection->size;
@@ -1130,9 +1130,9 @@ nssPKIObjectCollection_GetCertificates (
 	rvSize = PR_MIN(collection->size, maximumOpt);
     }
     if (!rvOpt) {
-	rvOpt = nss_ZNEWARRAY(arenaOpt, NSSCertificate *, rvSize + 1);
+	rvOpt = nss_ZNEWARRAY(arenaOpt, NSSCert *, rvSize + 1);
 	if (!rvOpt) {
-	    return (NSSCertificate **)NULL;
+	    return (NSSCert **)NULL;
 	}
 	allocated = PR_TRUE;
     }
@@ -1143,7 +1143,7 @@ nssPKIObjectCollection_GetCertificates (
 	if (allocated) {
 	    nss_ZFreeIf(rvOpt);
 	}
-	return (NSSCertificate **)NULL;
+	return (NSSCert **)NULL;
     }
     return rvOpt;
 }
@@ -1562,8 +1562,8 @@ loser:
     return PR_FAILURE;
 }
 
-NSS_IMPLEMENT NSSSymmetricKey *
-nssPKIObjectCreator_GenerateSymmetricKey (
+NSS_IMPLEMENT NSSSymKey *
+nssPKIObjectCreator_GenerateSymKey (
   nssPKIObjectCreator *creator,
   PRUint32 keysize
 )
@@ -1573,7 +1573,7 @@ nssPKIObjectCreator_GenerateSymmetricKey (
     NSSToken *source;
     nssSession *session = NULL;
     nssCryptokiObject *key = NULL;
-    NSSSymmetricKey *rvKey = NULL;
+    NSSSymKey *rvKey = NULL;
     NSSSlot *slot;
 
     /* search the trust domain for a usable token for the keygen */
@@ -1581,7 +1581,7 @@ nssPKIObjectCreator_GenerateSymmetricKey (
                                             creator->ap, 
                                             creator->destination);
     if (!source) {
-	return (NSSSymmetricKey *)NULL;
+	return (NSSSymKey *)NULL;
     }
     /* If we want a persistent object but the destination token can't
      * do the math, then create a temporary object on the source token
@@ -1610,7 +1610,7 @@ nssPKIObjectCreator_GenerateSymmetricKey (
     }
 
     /* XXX */
-    key = nssToken_GenerateSymmetricKey(source, session, creator->ap, 
+    key = nssToken_GenerateSymKey(source, session, creator->ap, 
                                         keysize, NULL, !temporary, 0, 0);
     if (!key) {
 	goto loser;
@@ -1631,7 +1631,7 @@ nssPKIObjectCreator_GenerateSymmetricKey (
 		goto loser;
 	    }
 	}
-	destKey = nssCryptokiSymmetricKey_Copy(key, session,
+	destKey = nssCryptokiSymKey_Copy(key, session,
 	                                       creator->destination, 
 	                                       copySession, 
 	                                       creator->persistent);
@@ -1646,7 +1646,7 @@ nssPKIObjectCreator_GenerateSymmetricKey (
 	key = destKey;
     }
 
-    rvKey = nssSymmetricKey_CreateFromInstance(key, creator->td, creator->vd);
+    rvKey = nssSymKey_CreateFromInstance(key, creator->td, creator->vd);
     if (!rvKey) {
 	goto loser;
     }
@@ -1664,7 +1664,7 @@ loser:
 	nssCryptokiObject_Destroy(key);
     }
     nssToken_Destroy(source);
-    return (NSSSymmetricKey *)NULL;
+    return (NSSSymKey *)NULL;
 }
 
 struct nssTokenSessionHashStr {

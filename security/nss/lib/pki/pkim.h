@@ -224,11 +224,11 @@ nssTrustDomain_FindSourceToken (
   NSSToken *candidate
 );
 
-NSS_EXTERN NSSCertificate **
-nssTrustDomain_FindCertificatesByID (
+NSS_EXTERN NSSCert **
+nssTrustDomain_FindCertsByID (
   NSSTrustDomain *td,
   NSSItem *id,
-  NSSCertificate **rvOpt,
+  NSSCert **rvOpt,
   PRUint32 maximumOpt,
   NSSArena *arenaOpt
 );
@@ -249,35 +249,35 @@ nssCryptoContext_Create (
 );
 
 NSS_EXTERN NSSCryptoContext *
-nssCryptoContext_CreateForSymmetricKey (
-  NSSSymmetricKey *mk,
+nssCryptoContext_CreateForSymKey (
+  NSSSymKey *mk,
   const NSSAlgNParam *apOpt,
   NSSCallback *uhh
 );
 
 /* XXX for the collection */
-NSS_EXTERN NSSCertificate *
-nssCertificate_Create (
+NSS_EXTERN NSSCert *
+nssCert_Create (
   nssPKIObject *object
 );
 
 /* XXX XXX most of these belong in pki.h */
 
 NSS_EXTERN nssCryptokiObject *
-nssCertificate_FindInstanceForAlgorithm (
-  NSSCertificate *c,
+nssCert_FindInstanceForAlgorithm (
+  NSSCert *c,
   NSSAlgNParam *ap
 );
 
 NSS_EXTERN void
-nssCertificate_SetVolatileDomain (
-  NSSCertificate *c,
+nssCert_SetVolatileDomain (
+  NSSCert *c,
   NSSVolatileDomain *vd
 );
 
 NSS_EXTERN PRStatus
-nssCertificate_CopyToToken (
-  NSSCertificate *c,
+nssCert_CopyToToken (
+  NSSCert *c,
   NSSToken *token,
   NSSUTF8 *nicknameOpt
 );
@@ -308,57 +308,57 @@ nssCRL_DeleteStoredObject (
   NSSCallback *uhh
 );
 
-NSS_EXTERN NSSSymmetricKey *
-nssSymmetricKey_Create (
+NSS_EXTERN NSSSymKey *
+nssSymKey_Create (
   nssPKIObject *object
 );
 
-NSS_EXTERN NSSSymmetricKey *
-nssSymmetricKey_CreateFromInstance (
+NSS_EXTERN NSSSymKey *
+nssSymKey_CreateFromInstance (
   nssCryptokiObject *instance,
   NSSTrustDomain *td,
   NSSVolatileDomain *vdOpt
 );
 
 NSS_EXTERN PRStatus
-nssSymmetricKey_Destroy (
-  NSSSymmetricKey *mk
+nssSymKey_Destroy (
+  NSSSymKey *mk
 );
 
 NSS_IMPLEMENT nssCryptokiObject *
-nssSymmetricKey_CopyToToken (
-  NSSSymmetricKey *mk,
+nssSymKey_CopyToToken (
+  NSSSymKey *mk,
   NSSToken *destination,
   PRBool asPersistentObject
 );
 
 NSS_EXTERN NSSToken **
-nssSymmetricKey_GetTokens (
-  NSSSymmetricKey *mk,
+nssSymKey_GetTokens (
+  NSSSymKey *mk,
   PRStatus *statusOpt
 );
 
 NSS_EXTERN NSSTrustDomain *
-nssSymmetricKey_GetTrustDomain (
-  NSSSymmetricKey *mk,
+nssSymKey_GetTrustDomain (
+  NSSSymKey *mk,
   PRStatus *statusOpt
 );
 
 NSS_EXTERN PRBool
-nssSymmetricKey_IsOnToken (
-  NSSSymmetricKey *mk,
+nssSymKey_IsOnToken (
+  NSSSymKey *mk,
   NSSToken *token
 );
 
 NSS_EXTERN nssCryptokiObject *
-nssSymmetricKey_GetInstance (
-  NSSSymmetricKey *mk,
+nssSymKey_GetInstance (
+  NSSSymKey *mk,
   NSSToken *token
 );
 
 NSS_EXTERN nssCryptokiObject *
-nssSymmetricKey_FindInstanceForAlgorithm (
-  NSSSymmetricKey *mk,
+nssSymKey_FindInstanceForAlgorithm (
+  NSSSymKey *mk,
   const NSSAlgNParam *ap
 );
 
@@ -448,29 +448,29 @@ nssUsages_Match (
   NSSUsages *testUsages
 );
 
-/* nssCertificateArray
+/* nssCertArray
  *
  * These are being thrown around a lot, might as well group together some
  * functionality.
  *
- * nssCertificateArray_Destroy
- * nssCertificateArray_Join
- * nssCertificateArray_FindBestCertificate
- * nssCertificateArray_Traverse
+ * nssCertArray_Destroy
+ * nssCertArray_Join
+ * nssCertArray_FindBestCert
+ * nssCertArray_Traverse
  */
 
-/* nssCertificateArray_Destroy
+/* nssCertArray_Destroy
  *
  * Will destroy the array and the certs within it.  If the array was created
  * in an arena, will *not* (of course) destroy the arena.  However, is safe
  * to call this method on an arena-allocated array.
  */
 NSS_EXTERN void
-nssCertificateArray_Destroy (
-  NSSCertificate **certs
+nssCertArray_Destroy (
+  NSSCert **certs
 );
 
-/* nssCertificateArray_Join
+/* nssCertArray_Join
  *
  * Join two arrays into one.  The two arrays, certs1 and certs2, should
  * be considered invalid after a call to this function (they may be destroyed
@@ -478,34 +478,34 @@ nssCertificateArray_Destroy (
  * call with arrays allocated in an arena, the result will also be in the
  * arena.
  */
-NSS_EXTERN NSSCertificate **
-nssCertificateArray_Join (
-  NSSCertificate **certs1,
-  NSSCertificate **certs2
+NSS_EXTERN NSSCert **
+nssCertArray_Join (
+  NSSCert **certs1,
+  NSSCert **certs2
 );
 
-/* nssCertificateArray_FindBestCertificate
+/* nssCertArray_FindBestCert
  *
  * Use the usual { time, usage, policies } to find the best cert in the
  * array.
  */
-NSS_EXTERN NSSCertificate * 
-nssCertificateArray_FindBestCertificate (
-  NSSCertificate **certs, 
+NSS_EXTERN NSSCert * 
+nssCertArray_FindBestCert (
+  NSSCert **certs, 
   NSSTime time,
   NSSUsages *usagesOpt,
   NSSPolicies *policiesOpt
 );
 
-/* nssCertificateArray_Traverse
+/* nssCertArray_Traverse
  *
  * Do the callback for each cert, terminate the traversal if the callback
  * fails.
  */
 NSS_EXTERN PRStatus
-nssCertificateArray_Traverse (
-  NSSCertificate **certs,
-  PRStatus (* callback)(NSSCertificate *c, void *arg),
+nssCertArray_Traverse (
+  NSSCert **certs,
+  PRStatus (* callback)(NSSCert *c, void *arg),
   void *arg
 );
 
@@ -521,7 +521,7 @@ nssCRLArray_Destroy (
  * objects instances on tokens, where the actual object hasn't 
  * been formed yet.
  *
- * nssCertificateCollection_Create
+ * nssCertCollection_Create
  * nssPrivateKeyCollection_Create
  * nssPublicKeyCollection_Create
  *
@@ -529,7 +529,7 @@ nssCRLArray_Destroy (
  * inherit all of the following methods.  Instead, there is only one
  * type (nssPKIObjectCollection), shared among all.  This may cause
  * confusion; an alternative would be to define all of the methods
- * for each subtype (nssCertificateCollection_Destroy, ...), but that doesn't
+ * for each subtype (nssCertCollection_Destroy, ...), but that doesn't
  * seem worth the code bloat..  It is left up to the caller to remember 
  * what type of collection he/she is dealing with.
  *
@@ -541,21 +541,21 @@ nssCRLArray_Destroy (
  *
  * Back to type-specific methods.
  *
- * nssPKIObjectCollection_GetCertificates
+ * nssPKIObjectCollection_GetCerts
  * nssPKIObjectCollection_GetCRLs
  * nssPKIObjectCollection_GetPrivateKeys
  * nssPKIObjectCollection_GetPublicKeys
  */
 
-/* nssCertificateCollection_Create
+/* nssCertCollection_Create
  *
  * Create a collection of certificates in the specified trust domain.
  * Optionally provide a starting set of certs.
  */
 NSS_EXTERN nssPKIObjectCollection *
-nssCertificateCollection_Create (
+nssCertCollection_Create (
   NSSTrustDomain *td,
-  NSSCertificate **certsOpt
+  NSSCert **certsOpt
 );
 
 /* nssCRLCollection_Create
@@ -638,7 +638,7 @@ nssPKIObjectCollection_Traverse (
 );
 
 /* This function is being added for NSS 3.5.  It corresponds to the function
- * nssToken_TraverseCertificates.  The idea is to use the collection during
+ * nssToken_TraverseCerts.  The idea is to use the collection during
  * a traversal, creating certs each time a new instance is added for which
  * a cert does not already exist.
  */
@@ -648,14 +648,14 @@ nssPKIObjectCollection_AddInstanceAsObject (
   nssCryptokiObject *instance
 );
 
-/* nssPKIObjectCollection_GetCertificates
+/* nssPKIObjectCollection_GetCerts
  *
  * Get all of the certificates in the collection. 
  */
-NSS_EXTERN NSSCertificate **
-nssPKIObjectCollection_GetCertificates (
+NSS_EXTERN NSSCert **
+nssPKIObjectCollection_GetCerts (
   nssPKIObjectCollection *collection,
-  NSSCertificate **rvOpt,
+  NSSCert **rvOpt,
   PRUint32 maximumOpt,
   NSSArena *arenaOpt
 );
@@ -691,14 +691,14 @@ nssPKIObjectCreator_GenerateKeyPair (
   NSSPrivateKey **pvkOpt
 );
 
-NSS_EXTERN NSSSymmetricKey *
-nssPKIObjectCreator_GenerateSymmetricKey (
+NSS_EXTERN NSSSymKey *
+nssPKIObjectCreator_GenerateSymKey (
   nssPKIObjectCreator *creator,
   PRUint32 keysize
 );
 
 NSS_EXTERN nssHash *
-nssHash_CreateCertificate (
+nssHash_CreateCert (
   NSSArena *arenaOpt,
   PRUint32 numBuckets
 );

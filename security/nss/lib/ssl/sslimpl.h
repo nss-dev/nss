@@ -389,8 +389,8 @@ typedef struct {
 
 typedef struct {
     SSL3Opaque write_iv[MAX_IV_LENGTH];
-    NSSSymmetricKey *write_key;
-    /* NSSSymmetricKey *write_mac_key; */
+    NSSSymKey *write_key;
+    /* NSSSymKey *write_mac_key; */
     NSSCryptoContext *write_mac_context;
 } ssl3KeyMaterial;
 
@@ -417,7 +417,7 @@ typedef struct {
     SSLCipher          decode;
     void *             decodeContext;
     SSLDestroy         destroy;
-    NSSSymmetricKey *  master_secret;
+    NSSSymKey *  master_secret;
     ssl3KeyMaterial    client;
     ssl3KeyMaterial    server;
     SSL3SequenceNumber write_seq_num;

@@ -34,29 +34,29 @@
 #include "nss.h"
 #include "nssdevt.h"
 
-static NSSCertificateMethods *pkixMethods = NULL;
+static NSSCertMethods *pkixMethods = NULL;
 
 NSS_IMPLEMENT PRStatus
-NSS_SetDefaultCertificateHandler (
-  NSSCertificateType certType,
-  NSSCertificateMethods *certMethods
+NSS_SetDefaultCertHandler (
+  NSSCertType certType,
+  NSSCertMethods *certMethods
 )
 {
-    if (certType == NSSCertificateType_PKIX) {
+    if (certType == NSSCertType_PKIX) {
 	pkixMethods = certMethods;
 	return PR_SUCCESS;
     }
     return PR_FAILURE;
 }
 
-NSS_IMPLEMENT NSSCertificateMethods *
+NSS_IMPLEMENT NSSCertMethods *
 nss_GetMethodsForType (
-  NSSCertificateType certType
+  NSSCertType certType
 )
 {
-    if (certType == NSSCertificateType_PKIX) {
+    if (certType == NSSCertType_PKIX) {
 	return pkixMethods;
     }
-    return (NSSCertificateMethods *)NULL;
+    return (NSSCertMethods *)NULL;
 }
 

@@ -49,18 +49,18 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 
 /* taking from certificate implementation... move to pkim.h? */
 NSS_EXTERN PRUint32
-nssCertificate_Hash (
-  NSSCertificate *c
+nssCert_Hash (
+  NSSCert *c
 );
 
-NSS_EXTERN NSSCertificate *
-nssCertificate_CreateIndexCert (
+NSS_EXTERN NSSCert *
+nssCert_CreateIndexCert (
   NSSDER *issuer,
   NSSDER *serial
 );
 
 /* 
- * Certificate Store
+ * Cert Store
  *
  * This differs from the cache in that it is a true storage facility.  Items
  * stay in until they are explicitly removed.  It is only used by crypto
@@ -68,7 +68,7 @@ nssCertificate_CreateIndexCert (
  *
  */
 
-struct nssCertificateStoreStr 
+struct nssCertStoreStr 
 {
     PRBool i_allocated_arena;
     NSSArena *arena;
@@ -81,22 +81,22 @@ typedef struct certificate_hash_entry_str certificate_hash_entry;
 
 struct certificate_hash_entry_str
 {
-    NSSCertificate *cert;
+    NSSCert *cert;
     nssTrust *trust;
     nssSMIMEProfile *profile;
 };
 
 #if 0
 /* XXX This a common function that should be moved out, possibly an
- *     nssSubjectCertificateList should be created?
+ *     nssSubjectCertList should be created?
  */
 /* sort the subject list from newest to oldest */
 static PRIntn subject_list_sort(void *v1, void *v2)
 {
-    NSSCertificate *c1 = (NSSCertificate *)v1;
-    NSSCertificate *c2 = (NSSCertificate *)v2;
-    nssDecodedCert *dc1 = nssCertificate_GetDecoding(c1);
-    nssDecodedCert *dc2 = nssCertificate_GetDecoding(c2);
+    NSSCert *c1 = (NSSCert *)v1;
+    NSSCert *c2 = (NSSCert *)v2;
+    nssDecodedCert *dc1 = nssCert_GetDecoding(c1);
+    nssDecodedCert *dc2 = nssCert_GetDecoding(c2);
     if (dc1->isNewerThan(dc1, dc2)) {
 	return -1;
     } else {
@@ -108,7 +108,7 @@ static PRIntn subject_list_sort(void *v1, void *v2)
 struct subject_list_node_str
 {
     PRCList link;
-    NSSCertificate *cert;
+    NSSCert *cert;
 };
 
 struct subject_hash_entry_str
@@ -146,7 +146,7 @@ subject_hash_entry_destroy (
 static PRStatus
 subject_hash_entry_add (
   subject_hash_entry *entry,
-  NSSCertificate *cert
+  NSSCert *cert
 )
 {
     struct subject_list_node_str *node;
@@ -154,7 +154,7 @@ subject_hash_entry_add (
     /* XXX sort by validity */
     while (link != &entry->head) {
 	node = (struct subject_list_node_str *)link;
-	if (nssCertificate_IssuerAndSerialEqual(cert, node->cert)) {
+	if (nssCert_IssuerAndSerialEqual(cert, node->cert)) {
 	    /* cert already in */
 	    return PR_FAILURE;
 	}
@@ -174,7 +174,7 @@ subject_hash_entry_add (
 static void
 subject_hash_entry_remove (
   subject_hash_entry *entry,
-  NSSCertificate *cert
+  NSSCert *cert
 )
 {
     struct subject_list_node_str *node;
@@ -194,7 +194,7 @@ subject_hash_entry_remove (
 static void
 get_subject_entry_certs (
   subject_hash_entry *entry, 
-  NSSCertificate **array, 
+  NSSCert **array, 
   PRUint32 count
 )
 {
@@ -203,18 +203,18 @@ get_subject_entry_certs (
     PRCList *link = PR_NEXT_LINK(&entry->head);
     while (link != &entry->head && i < count) {
 	node = (struct subject_list_node_str *)link;
-	array[i++] = nssCertificate_AddRef(node->cert);
+	array[i++] = nssCert_AddRef(node->cert);
 	link = PR_NEXT_LINK(link);
     }
 }
 
-NSS_IMPLEMENT nssCertificateStore *
-nssCertificateStore_Create (
+NSS_IMPLEMENT nssCertStore *
+nssCertStore_Create (
   NSSArena *arenaOpt
 )
 {
     NSSArena *arena;
-    nssCertificateStore *store;
+    nssCertStore *store;
     PRBool i_allocated_arena;
     if (arenaOpt) {
 	arena = arenaOpt;
@@ -226,7 +226,7 @@ nssCertificateStore_Create (
 	}
 	i_allocated_arena = PR_TRUE;
     }
-    store = nss_ZNEW(arena, nssCertificateStore);
+    store = nss_ZNEW(arena, nssCertStore);
     if (!store) {
 	goto loser;
     }
@@ -235,7 +235,7 @@ nssCertificateStore_Create (
 	goto loser;
     }
     /* Create the issuer/serial --> {cert, trust, S/MIME profile } hash */
-    store->issuer_and_serial = nssHash_CreateCertificate(arena, 0);
+    store->issuer_and_serial = nssHash_CreateCert(arena, 0);
     if (!store->issuer_and_serial) {
 	goto loser;
     }
@@ -266,8 +266,8 @@ loser:
 }
 
 NSS_IMPLEMENT void
-nssCertificateStore_Destroy (
-  nssCertificateStore *store
+nssCertStore_Destroy (
+  nssCertStore *store
 )
 {
     PZ_DestroyLock(store->lock);
@@ -282,8 +282,8 @@ nssCertificateStore_Destroy (
 
 static PRStatus
 add_certificate_entry (
-  nssCertificateStore *store,
-  NSSCertificate *cert
+  nssCertStore *store,
+  NSSCert *cert
 )
 {
     PRStatus status;
@@ -302,13 +302,13 @@ add_certificate_entry (
 
 static PRStatus
 add_subject_entry (
-  nssCertificateStore *store,
-  NSSCertificate *cert
+  nssCertStore *store,
+  NSSCert *cert
 )
 {
     PRStatus status;
     subject_hash_entry *entry;
-    NSSDER *subject = nssCertificate_GetSubject(cert);
+    NSSDER *subject = nssCert_GetSubject(cert);
     entry = (subject_hash_entry *)nssHash_Lookup(store->subject, subject);
     if (entry) {
 	/* The subject is already in, add this cert to the list */
@@ -333,14 +333,14 @@ add_subject_entry (
 /* declared below */
 static void
 remove_certificate_entry (
-  nssCertificateStore *store,
-  NSSCertificate *cert
+  nssCertStore *store,
+  NSSCert *cert
 );
 
 NSS_IMPLEMENT PRStatus
-nssCertificateStore_Add (
-  nssCertificateStore *store,
-  NSSCertificate *cert
+nssCertStore_Add (
+  nssCertStore *store,
+  NSSCert *cert
 )
 {
     PRStatus status;
@@ -353,7 +353,7 @@ nssCertificateStore_Add (
     if (status == PR_SUCCESS) {
 	status = add_subject_entry(store, cert);
 	if (status == PR_SUCCESS) {
-	    nssCertificate_AddRef(cert); /* obtain a reference for the store */
+	    nssCert_AddRef(cert); /* obtain a reference for the store */
 	} else {
 	    remove_certificate_entry(store, cert);
 	}
@@ -364,8 +364,8 @@ nssCertificateStore_Add (
 
 static void
 remove_certificate_entry (
-  nssCertificateStore *store,
-  NSSCertificate *cert
+  nssCertStore *store,
+  NSSCert *cert
 )
 {
     certificate_hash_entry *entry;
@@ -385,12 +385,12 @@ remove_certificate_entry (
 
 static void
 remove_subject_entry (
-  nssCertificateStore *store,
-  NSSCertificate *cert
+  nssCertStore *store,
+  NSSCert *cert
 )
 {
     subject_hash_entry *entry;
-    NSSDER *subject = nssCertificate_GetSubject(cert);
+    NSSDER *subject = nssCert_GetSubject(cert);
     /* Get the subject list for the cert's subject */
     entry = (subject_hash_entry *)nssHash_Lookup(store->subject, subject);
     if (entry) {
@@ -404,9 +404,9 @@ remove_subject_entry (
 }
 
 NSS_IMPLEMENT void
-nssCertificateStore_Remove (
-  nssCertificateStore *store,
-  NSSCertificate *cert
+nssCertStore_Remove (
+  nssCertStore *store,
+  NSSCert *cert
 )
 {
     certificate_hash_entry *entry;
@@ -416,23 +416,23 @@ nssCertificateStore_Remove (
     if (entry && entry->cert == cert) {
 	remove_certificate_entry(store, cert);
 	remove_subject_entry(store, cert);
-	NSSCertificate_Destroy(cert); /* release the store's reference */
+	NSSCert_Destroy(cert); /* release the store's reference */
     }
     PZ_Unlock(store->lock);
 }
 
-static NSSCertificate **
+static NSSCert **
 get_certs_from_entry (
   subject_hash_entry *entry,
-  NSSCertificate *rvOpt[],
+  NSSCert *rvOpt[],
   PRUint32 maximumOpt,
   NSSArena *arenaOpt
 )
 {
     PRUint32 count;
-    NSSCertificate **rvArray = NULL;
+    NSSCert **rvArray = NULL;
     if (entry->count == 0) {
-	return (NSSCertificate **)NULL;
+	return (NSSCert **)NULL;
     }
     if (maximumOpt > 0) {
 	count = PR_MIN(maximumOpt, entry->count);
@@ -440,7 +440,7 @@ get_certs_from_entry (
     if (rvOpt) {
 	rvArray = rvOpt;
     } else {
-	rvArray = nss_ZNEWARRAY(arenaOpt, NSSCertificate *, count + 1);
+	rvArray = nss_ZNEWARRAY(arenaOpt, NSSCert *, count + 1);
     }
     if (rvArray) {
 	get_subject_entry_certs(entry, rvArray, count);
@@ -448,16 +448,16 @@ get_certs_from_entry (
     return rvArray;
 }
 
-NSS_IMPLEMENT NSSCertificate **
-nssCertificateStore_FindCertificatesBySubject (
-  nssCertificateStore *store,
+NSS_IMPLEMENT NSSCert **
+nssCertStore_FindCertsBySubject (
+  nssCertStore *store,
   NSSDER *subject,
-  NSSCertificate *rvOpt[],
+  NSSCert *rvOpt[],
   PRUint32 maximumOpt,
   NSSArena *arenaOpt
 )
 {
-    NSSCertificate **rvArray = NULL;
+    NSSCert **rvArray = NULL;
     subject_hash_entry *entry;
     PZ_Lock(store->lock);
     entry = (subject_hash_entry *)nssHash_Lookup(store->subject, subject);
@@ -493,7 +493,7 @@ static void match_nickname(const void *k, void *v, void *a)
     subject_hash_entry *entry = (subject_hash_entry *)v;
     struct subject_list_node_str *node;
     node = (struct subject_list_node_str *)PR_NEXT_LINK(&entry->head);
-    nickname = nssCertificate_GetNickname(node->cert, NULL);
+    nickname = nssCert_GetNickname(node->cert, NULL);
     if (status == PR_SUCCESS && nickname &&
          nssUTF8_Equal(nickname, nt->nickname, &status)) 
     {
@@ -504,16 +504,16 @@ static void match_nickname(const void *k, void *v, void *a)
 /*
  * Find all cached certs with this label.
  */
-NSS_IMPLEMENT NSSCertificate **
-nssCertificateStore_FindCertificatesByNickname (
-  nssCertificateStore *store,
+NSS_IMPLEMENT NSSCert **
+nssCertStore_FindCertsByNickname (
+  nssCertStore *store,
   NSSUTF8 *nickname,
-  NSSCertificate *rvOpt[],
+  NSSCert *rvOpt[],
   PRUint32 maximumOpt,
   NSSArena *arenaOpt
 )
 {
-    NSSCertificate **rvArray = NULL;
+    NSSCert **rvArray = NULL;
     struct nickname_template_str nt;
     nt.nickname = nickname;
     nt.entry = NULL;
@@ -531,7 +531,7 @@ struct email_template_str
     NSSASCII7 *email;
     NSSArena *arena;
     PRUint32 maximum;
-    NSSCertificate **certs;
+    NSSCert **certs;
     PRUint32 numCerts;
 };
 
@@ -543,18 +543,18 @@ static void match_email(const void *k, void *v, void *a)
     subject_hash_entry *entry = (subject_hash_entry *)v;
     struct subject_list_node_str *node;
     node = (struct subject_list_node_str *)PR_NEXT_LINK(&entry->head);
-    email = nssCertificate_GetEmailAddress(node->cert);
+    email = nssCert_GetEmailAddress(node->cert);
     if (nssUTF8_Equal(email, et->email, &status)) {
 	PRUint32 i, count = entry->count;
 	if (et->numCerts == 0 && !et->certs) {
 	    /* First encounter with matching certs, and need to allocate
 	     * an array for them
 	     */
-	    et->certs = nss_ZNEWARRAY(et->arena, NSSCertificate *, count + 1);
+	    et->certs = nss_ZNEWARRAY(et->arena, NSSCert *, count + 1);
 	} else if (et->maximum == 0 && et->certs) {
 	    /* Already have matching certs, need to realloc */
 	    et->certs = nss_ZREALLOCARRAY(et->certs, 
-	                                  NSSCertificate *, 
+	                                  NSSCert *, 
 	                                  et->numCerts + count + 1);
 	}
 	if (!et->certs) {
@@ -566,7 +566,7 @@ static void match_email(const void *k, void *v, void *a)
 	    count = et->maximum - et->numCerts;
 	}
 	for (i=0; i<count; i++) {
-	    et->certs[et->numCerts++] = nssCertificate_AddRef(node->cert);
+	    et->certs[et->numCerts++] = nssCert_AddRef(node->cert);
 	}
     }
 }
@@ -574,11 +574,11 @@ static void match_email(const void *k, void *v, void *a)
 /*
  * Find all cached certs with this email address.
  */
-NSS_IMPLEMENT NSSCertificate **
-nssCertificateStore_FindCertificatesByEmail (
-  nssCertificateStore *store,
+NSS_IMPLEMENT NSSCert **
+nssCertStore_FindCertsByEmail (
+  nssCertStore *store,
   NSSASCII7 *email,
-  NSSCertificate *rvOpt[],
+  NSSCert *rvOpt[],
   PRUint32 maximumOpt,
   NSSArena *arenaOpt
 )
@@ -595,22 +595,22 @@ nssCertificateStore_FindCertificatesByEmail (
     return et.certs;
 }
 
-NSS_IMPLEMENT NSSCertificate *
-nssCertificateStore_FindCertificateByIssuerAndSerialNumber (
-  nssCertificateStore *store,
+NSS_IMPLEMENT NSSCert *
+nssCertStore_FindCertByIssuerAndSerialNumber (
+  nssCertStore *store,
   NSSDER *issuer,
   NSSDER *serial
 )
 {
     certificate_hash_entry *entry;
-    NSSCertificate *index;
-    NSSCertificate *rvCert = NULL;
-    index = nssCertificate_CreateIndexCert(issuer, serial);
+    NSSCert *index;
+    NSSCert *rvCert = NULL;
+    index = nssCert_CreateIndexCert(issuer, serial);
     PZ_Lock(store->lock);
     entry = (certificate_hash_entry *)
                            nssHash_Lookup(store->issuer_and_serial, &index);
     if (entry) {
-	rvCert = nssCertificate_AddRef(entry->cert);
+	rvCert = nssCert_AddRef(entry->cert);
     }
     PZ_Unlock(store->lock);
     nss_ZFreeIf(index);
@@ -646,22 +646,22 @@ issuer_and_serial_from_encoding (
 }
 #endif
 
-NSS_IMPLEMENT NSSCertificate *
-nssCertificateStore_FindCertificateByEncodedCertificate (
-  nssCertificateStore *store,
+NSS_IMPLEMENT NSSCert *
+nssCertStore_FindCertByEncodedCert (
+  nssCertStore *store,
   NSSDER *encoding
 )
 {
     PRStatus status = PR_FAILURE;
     NSSDER issuer, serial;
-    NSSCertificate *rvCert = NULL;
+    NSSCert *rvCert = NULL;
 #ifdef NSS_3_4_CODE
     status = issuer_and_serial_from_encoding(encoding, &issuer, &serial);
 #endif
     if (status != PR_SUCCESS) {
 	return NULL;
     }
-    rvCert = nssCertificateStore_FindCertificateByIssuerAndSerialNumber(store, 
+    rvCert = nssCertStore_FindCertByIssuerAndSerialNumber(store, 
                                                                      &issuer, 
                                                                      &serial);
 #ifdef NSS_3_4_CODE
@@ -672,13 +672,13 @@ nssCertificateStore_FindCertificateByEncodedCertificate (
 }
 
 NSS_EXTERN PRStatus
-nssCertificateStore_AddTrust (
-  nssCertificateStore *store,
+nssCertStore_AddTrust (
+  nssCertStore *store,
   nssTrust *trust
 )
 {
 #if 0
-    NSSCertificate *cert;
+    NSSCert *cert;
     certificate_hash_entry *entry;
     cert = trust->certificate;
     PZ_Lock(store->lock);
@@ -694,9 +694,9 @@ nssCertificateStore_AddTrust (
 }
 
 NSS_IMPLEMENT nssTrust *
-nssCertificateStore_FindTrustForCertificate (
-  nssCertificateStore *store,
-  NSSCertificate *cert
+nssCertStore_FindTrustForCert (
+  nssCertStore *store,
+  NSSCert *cert
 )
 {
     certificate_hash_entry *entry;
@@ -712,13 +712,13 @@ nssCertificateStore_FindTrustForCertificate (
 }
 
 NSS_EXTERN PRStatus
-nssCertificateStore_AddSMIMEProfile (
-  nssCertificateStore *store,
+nssCertStore_AddSMIMEProfile (
+  nssCertStore *store,
   nssSMIMEProfile *profile
 )
 {
 #if 0
-    NSSCertificate *cert;
+    NSSCert *cert;
     certificate_hash_entry *entry;
     cert = profile->certificate;
     PZ_Lock(store->lock);
@@ -734,9 +734,9 @@ nssCertificateStore_AddSMIMEProfile (
 }
 
 NSS_IMPLEMENT nssSMIMEProfile *
-nssCertificateStore_FindSMIMEProfileForCertificate (
-  nssCertificateStore *store,
-  NSSCertificate *cert
+nssCertStore_FindSMIMEProfileForCert (
+  nssCertStore *store,
+  NSSCert *cert
 )
 {
     certificate_hash_entry *entry;
@@ -754,18 +754,18 @@ nssCertificateStore_FindSMIMEProfileForCertificate (
 static PLHashNumber
 nss_certificate_hash(const void *c)
 {
-    return (PLHashNumber)nssCertificate_Hash((NSSCertificate *)c);
+    return (PLHashNumber)nssCert_Hash((NSSCert *)c);
 }
 
 static int
 nss_compare_certs(const void *v1, const void *v2)
 {
-    return nssCertificate_IssuerAndSerialEqual((NSSCertificate *)v1,
-                                               (NSSCertificate *)v2);
+    return nssCert_IssuerAndSerialEqual((NSSCert *)v1,
+                                               (NSSCert *)v2);
 }
 
 NSS_IMPLEMENT nssHash *
-nssHash_CreateCertificate (
+nssHash_CreateCert (
   NSSArena *arenaOpt,
   PRUint32 numBuckets
 )
@@ -778,8 +778,8 @@ nssHash_CreateCertificate (
 }
 
 NSS_IMPLEMENT void
-nssCertificateStore_DumpStoreInfo (
-  nssCertificateStore *store,
+nssCertStore_DumpStoreInfo (
+  nssCertStore *store,
   void (* cert_dump_iter)(const void *, void *, void *),
   void *arg
 )

@@ -350,7 +350,7 @@ cipher_command_dispatcher(cmdCommand *cipher, int cmdToRun)
     char *inMode;
     char *outMode;
     unsigned int size;
-NSSSymmetricKey *symkey;
+NSSSymKey *symkey;
 
     if (cipher->opt[opt_Ascii].on) {
 	inMode = outMode = "ascii";
@@ -426,7 +426,7 @@ NSSSymmetricKey *symkey;
 	if (cipher->opt[opt_Size].on) {
 	    size = atoi(cipher->opt[opt_Size].arg);
 	} else size = 0;
-	symkey = GenerateSymmetricKey(td, /*cc, */ token, 
+	symkey = GenerateSymKey(td, /*cc, */ token, 
 	                              cipher->opt[opt_Cipher].arg, 
 	                              size, NULL);
 	break;

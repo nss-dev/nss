@@ -358,30 +358,30 @@ nssCKTemplate_SetPropertyAttributes (
     return numSet;
 }
 
-static NSSCertificateType
+static NSSCertType
 nss_cert_type_from_ck_attrib(CK_ATTRIBUTE_PTR attrib)
 {
     CK_CERTIFICATE_TYPE ckCertType;
     if (!attrib->pValue) {
 	/* default to PKIX */
-	return NSSCertificateType_PKIX;
+	return NSSCertType_PKIX;
     }
     ckCertType = *((CK_ULONG *)attrib->pValue);
     switch (ckCertType) {
     case CKC_X_509:
-	return NSSCertificateType_PKIX;
+	return NSSCertType_PKIX;
     default:
 	break;
     }
-    return NSSCertificateType_Unknown;
+    return NSSCertType_Unknown;
 }
 
 /* incoming pointers must be valid */
 NSS_IMPLEMENT PRStatus
-nssCryptokiCertificate_GetAttributes (
+nssCryptokiCert_GetAttributes (
   nssCryptokiObject *certObject,
   NSSArena *arenaOpt,
-  NSSCertificateType *certTypeOpt,
+  NSSCertType *certTypeOpt,
   NSSItem *idOpt,
   NSSDER *encodingOpt,
   NSSDER *issuerOpt,
@@ -751,7 +751,7 @@ nssCryptokiCRL_GetAttributes (
 }
 
 NSS_IMPLEMENT PRStatus
-nssCryptokiPrivateKey_SetCertificate (
+nssCryptokiPrivateKey_SetCert (
   nssCryptokiObject *keyObject,
   nssSession *session,
   NSSUTF8 *nickname,
@@ -782,29 +782,29 @@ nssCryptokiPrivateKey_SetCertificate (
     return (ckrv == CKR_OK) ? PR_SUCCESS : PR_FAILURE;
 }
 
-static NSSSymmetricKeyType
+static NSSSymKeyType
 nss_symm_key_type_from_ck_attrib(CK_ATTRIBUTE_PTR attrib)
 {
     CK_KEY_TYPE ckKeyType;
     PR_ASSERT(attrib->pValue);
     ckKeyType = *((CK_ULONG *)attrib->pValue);
     switch (ckKeyType) {
-    case CKK_DES:  return NSSSymmetricKeyType_DES;
-    case CKK_DES3: return NSSSymmetricKeyType_TripleDES;
-    case CKK_RC2:  return NSSSymmetricKeyType_RC2;
-    case CKK_RC4:  return NSSSymmetricKeyType_RC4;
-    case CKK_RC5:  return NSSSymmetricKeyType_RC5;
-    case CKK_AES:  return NSSSymmetricKeyType_AES;
+    case CKK_DES:  return NSSSymKeyType_DES;
+    case CKK_DES3: return NSSSymKeyType_TripleDES;
+    case CKK_RC2:  return NSSSymKeyType_RC2;
+    case CKK_RC4:  return NSSSymKeyType_RC4;
+    case CKK_RC5:  return NSSSymKeyType_RC5;
+    case CKK_AES:  return NSSSymKeyType_AES;
     default: break;
     }
     return NSSKeyPairType_Unknown;
 }
 
 NSS_IMPLEMENT PRStatus
-nssCryptokiSymmetricKey_GetAttributes (
+nssCryptokiSymKey_GetAttributes (
   nssCryptokiObject *keyObject,
   NSSArena *arenaOpt,
-  NSSSymmetricKeyType *keyTypeOpt,
+  NSSSymKeyType *keyTypeOpt,
   PRUint32 *keyLengthOpt,
   NSSOperations *opsOpt
 )
@@ -892,7 +892,7 @@ nssCryptokiSymmetricKey_GetAttributes (
 }
 
 NSS_IMPLEMENT nssCryptokiObject *
-nssCryptokiSymmetricKey_Copy (
+nssCryptokiSymKey_Copy (
   nssCryptokiObject *sourceKey,
   nssSession *sourceSession,
   NSSToken *destination,
@@ -960,16 +960,16 @@ loser:
 
 NSS_IMPLEMENT CK_KEY_TYPE
 nssCK_GetSymKeyType (
-  NSSSymmetricKeyType keyType
+  NSSSymKeyType keyType
 )
 {
     switch (keyType) {
-    case NSSSymmetricKeyType_DES:       return CKK_DES;
-    case NSSSymmetricKeyType_TripleDES: return CKK_DES3;
-    case NSSSymmetricKeyType_AES:       return CKK_AES;
-    case NSSSymmetricKeyType_RC2:       return CKK_RC2;
-    case NSSSymmetricKeyType_RC4:       return CKK_RC4;
-    case NSSSymmetricKeyType_RC5:       return CKK_RC5;
+    case NSSSymKeyType_DES:       return CKK_DES;
+    case NSSSymKeyType_TripleDES: return CKK_DES3;
+    case NSSSymKeyType_AES:       return CKK_AES;
+    case NSSSymKeyType_RC2:       return CKK_RC2;
+    case NSSSymKeyType_RC4:       return CKK_RC4;
+    case NSSSymKeyType_RC5:       return CKK_RC5;
     default:                            return CKK_GENERIC_SECRET;
     }
 }

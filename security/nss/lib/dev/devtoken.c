@@ -573,10 +573,10 @@ find_objects_by_template (
 }
 
 NSS_IMPLEMENT nssCryptokiObject *
-nssToken_ImportCertificate (
+nssToken_ImportCert (
   NSSToken *tok,
   nssSession *session,
-  NSSCertificateType certType,
+  NSSCertType certType,
   NSSItem *id,
   NSSUTF8 *nickname,
   NSSDER *encoding,
@@ -594,7 +594,7 @@ nssToken_ImportCertificate (
     nssTokenSearchType searchType;
     nssCryptokiObject *rvObject = NULL;
 
-    if (certType == NSSCertificateType_PKIX) {
+    if (certType == NSSCertType_PKIX) {
 	cert_type = CKC_X_509;
     } else {
 	return (nssCryptokiObject *)NULL;
@@ -626,7 +626,7 @@ nssToken_ImportCertificate (
     }
     NSS_CK_TEMPLATE_FINISH(cert_tmpl, attr, ctsize);
     /* see if the cert is already there */
-    rvObject = nssToken_FindCertificateByIssuerAndSerialNumber(tok,
+    rvObject = nssToken_FindCertByIssuerAndSerialNumber(tok,
                                                                session,
                                                                issuer,
                                                                serial,
@@ -672,7 +672,7 @@ nssToken_ImportCertificate (
  * has been marked as "traversable"
  */
 NSS_IMPLEMENT nssCryptokiObject **
-nssToken_FindCertificates (
+nssToken_FindCerts (
   NSSToken *token,
   nssSession *session,
   nssTokenSearchType searchType,
@@ -708,7 +708,7 @@ nssToken_FindCertificates (
 }
 
 NSS_IMPLEMENT nssCryptokiObject **
-nssToken_FindCertificatesBySubject (
+nssToken_FindCertsBySubject (
   NSSToken *token,
   nssSession *session,
   NSSDER *subject,
@@ -739,7 +739,7 @@ nssToken_FindCertificatesBySubject (
 }
 
 NSS_IMPLEMENT nssCryptokiObject **
-nssToken_FindCertificatesByNickname (
+nssToken_FindCertsByNickname (
   NSSToken *token,
   nssSession *session,
   NSSUTF8 *name,
@@ -788,7 +788,7 @@ nssToken_FindCertificatesByNickname (
  * it just won't return a value for it.
  */
 NSS_IMPLEMENT nssCryptokiObject **
-nssToken_FindCertificatesByEmail (
+nssToken_FindCertsByEmail (
   NSSToken *token,
   nssSession *session,
   NSSASCII7 *email,
@@ -831,7 +831,7 @@ nssToken_FindCertificatesByEmail (
 }
 
 NSS_IMPLEMENT nssCryptokiObject **
-nssToken_FindCertificatesByID (
+nssToken_FindCertsByID (
   NSSToken *token,
   nssSession *session,
   NSSItem *id,
@@ -904,7 +904,7 @@ nssToken_decodeSerialItem(NSSItem *serial, NSSItem *serialDecode)
 }
 
 NSS_IMPLEMENT nssCryptokiObject *
-nssToken_FindCertificateByIssuerAndSerialNumber (
+nssToken_FindCertByIssuerAndSerialNumber (
   NSSToken *token,
   nssSession *session,
   NSSDER *issuer,
@@ -979,10 +979,10 @@ nssToken_FindCertificateByIssuerAndSerialNumber (
 }
 
 NSS_IMPLEMENT nssCryptokiObject *
-nssToken_FindCertificateByEncodedCertificate (
+nssToken_FindCertByEncodedCert (
   NSSToken *token,
   nssSession *session,
-  NSSBER *encodedCertificate,
+  NSSBER *encodedCert,
   nssTokenSearchType searchType,
   PRStatus *statusOpt
 )
@@ -1000,7 +1000,7 @@ nssToken_FindCertificateByEncodedCertificate (
 	NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_TOKEN, &g_ck_true);
     }
     NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_CLASS, &g_ck_class_cert);
-    NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_VALUE, encodedCertificate);
+    NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_VALUE, encodedCert);
     NSS_CK_TEMPLATE_FINISH(cert_template, attr, ctsize);
     /* get the object handle */
     objects = find_objects_by_template(token, session,
@@ -1273,7 +1273,7 @@ nssToken_FindTrustObjects (
 }
 
 NSS_IMPLEMENT nssCryptokiObject *
-nssToken_FindTrustForCertificate (
+nssToken_FindTrustForCert (
   NSSToken *token,
   nssSession *session,
   NSSDER *certEncoding,
@@ -1610,7 +1610,7 @@ nssToken_GenerateKeyPair (
 }
 
 NSS_IMPLEMENT nssCryptokiObject *
-nssToken_GenerateSymmetricKey (
+nssToken_GenerateSymKey (
   NSSToken *token,
   nssSession *session,
   const NSSAlgNParam *ap,
@@ -1775,7 +1775,7 @@ nssToken_UnwrapPrivateKey (
 }
 
 NSS_IMPLEMENT nssCryptokiObject *
-nssToken_UnwrapSymmetricKey (
+nssToken_UnwrapSymKey (
   NSSToken *token,
   nssSession *session,
   const NSSAlgNParam *ap,
@@ -1784,7 +1784,7 @@ nssToken_UnwrapSymmetricKey (
   PRBool asTokenObject,
   NSSOperations operations,
   NSSProperties properties,
-  NSSSymmetricKeyType symKeyType
+  NSSSymKeyType symKeyType
 )
 {
     CK_KEY_TYPE keyType = nssCK_GetSymKeyType(symKeyType);
@@ -1924,7 +1924,7 @@ nssToken_DeriveSSLSessionKeys (
   nssSession *session,
   const NSSAlgNParam *ap,
   nssCryptokiObject *masterSecret,
-  NSSSymmetricKeyType bulkKeyType,
+  NSSSymKeyType bulkKeyType,
   NSSOperations operations,
   NSSProperties properties,
   PRUint32 keySizeOpt,
@@ -2903,7 +2903,7 @@ nssToken_FinishDigest (
  * increasing the likelihood that the cache takes care of it.
  */
 NSS_IMPLEMENT PRStatus
-nssToken_TraverseCertificates (
+nssToken_TraverseCerts (
   NSSToken *token,
   nssSession *session,
   nssTokenSearchType searchType,

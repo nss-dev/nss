@@ -85,9 +85,9 @@ struct NSSCallbackStr {
 };
 
 typedef enum {
-  NSSCertificateType_Unknown = 0,
-  NSSCertificateType_PKIX = 1
-} NSSCertificateType;
+  NSSCertType_Unknown = 0,
+  NSSCertType_PKIX = 1
+} NSSCertType;
 
 typedef enum
 {
@@ -134,16 +134,16 @@ NSSPublicKeyInfo;
 
 typedef enum
 {
-  NSSSymmetricKeyType_Unknown = 0,
-  NSSSymmetricKeyType_DES = 1,
-  NSSSymmetricKeyType_TripleDES = 2,
-  NSSSymmetricKeyType_RC2 = 3,
-  NSSSymmetricKeyType_RC4 = 4,
-  NSSSymmetricKeyType_RC5 = 5,
-  NSSSymmetricKeyType_AES = 6,
-  NSSSymmetricKeyType_SSLPMS = 7,
-  NSSSymmetricKeyType_SSLMS = 8
-} NSSSymmetricKeyType;
+  NSSSymKeyType_Unknown = 0,
+  NSSSymKeyType_DES = 1,
+  NSSSymKeyType_TripleDES = 2,
+  NSSSymKeyType_RC2 = 3,
+  NSSSymKeyType_RC4 = 4,
+  NSSSymKeyType_RC5 = 5,
+  NSSSymKeyType_AES = 6,
+  NSSSymKeyType_SSLPMS = 7,
+  NSSSymKeyType_SSLMS = 8
+} NSSSymKeyType;
 
 /*
  * RSA

@@ -322,8 +322,9 @@ nssPrivateKey_Encode (
 	return (NSSItem *)NULL;
     }
 
+    /* XXX use GenByPassword!!! */
     /* use the supplied PBE alg/param to create a wrapping key */
-    pbeKey = nssToken_GenerateSymmetricKey(vkey->token, vkey->session, ap,
+    pbeKey = nssToken_GenerateSymKey(vkey->token, vkey->session, ap,
                                            0, NULL, PR_FALSE,
                                            NSSOperations_WRAP, 0);
     nss_ZFreeIf(password);
@@ -460,7 +461,7 @@ nssPrivateKey_Decode (
     }
 
     /* use the supplied PBE alg/param to create a wrapping key */
-    pbeKey = nssToken_GenerateSymmetricKey(destination, session, pbeAP,
+    pbeKey = nssToken_GenerateSymKey(destination, session, pbeAP,
                                            0, NULL, PR_FALSE,
                                            NSSOperations_UNWRAP, 0);
     nss_ZFreeIf(password);
@@ -608,8 +609,8 @@ NSSPrivateKey_SignRecover (
     return NULL;
 }
 
-NSS_IMPLEMENT NSSSymmetricKey *
-NSSPrivateKey_UnwrapSymmetricKey (
+NSS_IMPLEMENT NSSSymKey *
+NSSPrivateKey_UnwrapSymKey (
   NSSPrivateKey *vk,
   const NSSAlgNParam *apOpt,
   NSSItem *wrappedKey,
@@ -620,8 +621,8 @@ NSSPrivateKey_UnwrapSymmetricKey (
     return NULL;
 }
 
-NSS_IMPLEMENT NSSSymmetricKey *
-NSSPrivateKey_DeriveSymmetricKey (
+NSS_IMPLEMENT NSSSymKey *
+NSSPrivateKey_DeriveSymKey (
   NSSPrivateKey *vk,
   NSSPublicKey *bk,
   const NSSAlgNParam *apOpt,
@@ -711,32 +712,32 @@ NSSPrivateKey_CreateCryptoContext (
     return NULL;
 }
 
-NSS_IMPLEMENT NSSCertificate **
-nssPrivateKey_FindCertificates (
+NSS_IMPLEMENT NSSCert **
+nssPrivateKey_FindCerts (
   NSSPrivateKey *vk,
-  NSSCertificate **rvOpt,
+  NSSCert **rvOpt,
   PRUint32 maximumOpt,
   NSSArena *arenaOpt
 )
 {
     NSSTrustDomain *td = nssPrivateKey_GetTrustDomain(vk, NULL);
-    return nssTrustDomain_FindCertificatesByID(td, &vk->id, 
+    return nssTrustDomain_FindCertsByID(td, &vk->id, 
                                                rvOpt, maximumOpt, arenaOpt);
 }
 
-NSS_IMPLEMENT NSSCertificate **
-NSSPrivateKey_FindCertificates (
+NSS_IMPLEMENT NSSCert **
+NSSPrivateKey_FindCerts (
   NSSPrivateKey *vk,
-  NSSCertificate **rvOpt,
+  NSSCert **rvOpt,
   PRUint32 maximumOpt,
   NSSArena *arenaOpt
 )
 {
-    return nssPrivateKey_FindCertificates(vk, rvOpt, maximumOpt, arenaOpt);
+    return nssPrivateKey_FindCerts(vk, rvOpt, maximumOpt, arenaOpt);
 }
 
-NSS_IMPLEMENT NSSCertificate *
-NSSPrivateKey_FindBestCertificate (
+NSS_IMPLEMENT NSSCert *
+NSSPrivateKey_FindBestCert (
   NSSPrivateKey *vk,
   NSSTime time,
   NSSUsages *usagesOpt,
@@ -1216,10 +1217,10 @@ nssPublicKey_GetInstanceForAlgorithmAndObject (
 }
 
 NSS_IMPLEMENT NSSItem *
-nssPublicKey_WrapSymmetricKey (
+nssPublicKey_WrapSymKey (
   NSSPublicKey *bk,
   const NSSAlgNParam *ap,
-  NSSSymmetricKey *keyToWrap,
+  NSSSymKey *keyToWrap,
   NSSCallback *uhh,
   NSSItem *rvOpt,
   NSSArena *arenaOpt
@@ -1240,16 +1241,16 @@ nssPublicKey_WrapSymmetricKey (
 }
 
 NSS_IMPLEMENT NSSItem *
-NSSPublicKey_WrapSymmetricKey (
+NSSPublicKey_WrapSymKey (
   NSSPublicKey *bk,
   const NSSAlgNParam *ap,
-  NSSSymmetricKey *keyToWrap,
+  NSSSymKey *keyToWrap,
   NSSCallback *uhh,
   NSSItem *rvOpt,
   NSSArena *arenaOpt
 )
 {
-    return nssPublicKey_WrapSymmetricKey(bk, ap, keyToWrap,
+    return nssPublicKey_WrapSymKey(bk, ap, keyToWrap,
                                          uhh, rvOpt, arenaOpt);
 }
 
@@ -1264,60 +1265,60 @@ NSSPublicKey_CreateCryptoContext (
     return NULL;
 }
 
-NSS_IMPLEMENT NSSCertificate **
-nssPublicKey_FindCertificates (
+NSS_IMPLEMENT NSSCert **
+nssPublicKey_FindCerts (
   NSSPublicKey *bk,
-  NSSCertificate **rvOpt,
+  NSSCert **rvOpt,
   PRUint32 maximumOpt,
   NSSArena *arenaOpt
 )
 {
     NSSTrustDomain *td = nssPublicKey_GetTrustDomain(bk, NULL);
-    return nssTrustDomain_FindCertificatesByID(td, &bk->id, 
+    return nssTrustDomain_FindCertsByID(td, &bk->id, 
                                                rvOpt, maximumOpt, arenaOpt);
 }
 
-NSS_IMPLEMENT NSSCertificate **
-NSSPublicKey_FindCertificates (
+NSS_IMPLEMENT NSSCert **
+NSSPublicKey_FindCerts (
   NSSPublicKey *bk,
-  NSSCertificate **rvOpt,
+  NSSCert **rvOpt,
   PRUint32 maximumOpt,
   NSSArena *arenaOpt
 )
 {
-    return nssPublicKey_FindCertificates(bk, rvOpt, maximumOpt, arenaOpt);
+    return nssPublicKey_FindCerts(bk, rvOpt, maximumOpt, arenaOpt);
 }
 
-NSS_IMPLEMENT NSSCertificate *
-nssPublicKey_FindBestCertificate (
+NSS_IMPLEMENT NSSCert *
+nssPublicKey_FindBestCert (
   NSSPublicKey *bk,
   NSSTime time,
   NSSUsages *usageOpt,
   NSSPolicies *policiesOpt
 )
 {
-    NSSCertificate *rvCert = NULL;
-    NSSCertificate **certs;
+    NSSCert *rvCert = NULL;
+    NSSCert **certs;
 
-    certs = nssPublicKey_FindCertificates(bk, NULL, 0, NULL);
+    certs = nssPublicKey_FindCerts(bk, NULL, 0, NULL);
     if (!certs) {
-	return (NSSCertificate *)NULL;
+	return (NSSCert *)NULL;
     }
-    rvCert = nssCertificateArray_FindBestCertificate(certs, time, 
+    rvCert = nssCertArray_FindBestCert(certs, time, 
                                                      usageOpt, policiesOpt);
-    nssCertificateArray_Destroy(certs);
+    nssCertArray_Destroy(certs);
     return rvCert;
 }
 
-NSS_IMPLEMENT NSSCertificate *
-NSSPublicKey_FindBestCertificate (
+NSS_IMPLEMENT NSSCert *
+NSSPublicKey_FindBestCert (
   NSSPublicKey *bk,
   NSSTime time,
   NSSUsages *usageOpt,
   NSSPolicies *policiesOpt
 )
 {
-    return nssPublicKey_FindBestCertificate(bk, time, 
+    return nssPublicKey_FindBestCert(bk, time, 
                                             usageOpt, policiesOpt);
 }
 

@@ -51,9 +51,9 @@ static const char NSSPKIT_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 PR_BEGIN_EXTERN_C
 
 /*
- * NSSCertificate
+ * NSSCert
  *
- * This is the public representation of a Certificate.  The certificate
+ * This is the public representation of a Cert.  The certificate
  * may be one found on a smartcard or other token, one decoded from data
  * received as part of a protocol, one constructed from constituent
  * parts, etc.  Usually it is associated with ("in") a trust domain; as
@@ -65,11 +65,11 @@ PR_BEGIN_EXTERN_C
  * by implementing public-key crypto operations as methods on this type.
  */
 
-struct NSSCertificateStr;
-typedef struct NSSCertificateStr NSSCertificate;
+struct NSSCertStr;
+typedef struct NSSCertStr NSSCert;
 
 /*
- * NSSUserCertificate
+ * NSSUserCert
  *
  * A ``User'' certificate is one for which the private key is available.
  * People speak of "using my certificate to sign my email" and "using
@@ -86,7 +86,7 @@ typedef struct NSSCertificateStr NSSCertificate;
  * Open design question: should these types be more firmly separated?
  */
 
-typedef NSSCertificate NSSUserCertificate;
+typedef NSSCert NSSUserCert;
 
 /*
  * NSSPrivateKey
@@ -108,12 +108,12 @@ struct NSSPublicKeyStr;
 typedef struct NSSPublicKeyStr NSSPublicKey;
 
 /*
- * NSSSymmetricKey
+ * NSSSymKey
  *
  */
 
-struct NSSSymmetricKeyStr;
-typedef struct NSSSymmetricKeyStr NSSSymmetricKey;
+struct NSSSymKeyStr;
+typedef struct NSSSymKeyStr NSSSymKey;
 
 /*
  * NSSTrustDomain
@@ -140,8 +140,8 @@ typedef struct NSSTrustDomainStr NSSTrustDomain;
 typedef struct NSSVolatileDomainStr NSSVolatileDomain;
 
 /* special case of volatile domain */
-struct NSSCertificateChainStr;
-typedef struct NSSCertificateChainStr NSSCertificateChain;
+struct NSSCertChainStr;
+typedef struct NSSCertChainStr NSSCertChain;
 
 /*
  * NSSCryptoContext
@@ -245,7 +245,7 @@ typedef struct NSSUsagesStr NSSUsages;
 struct NSSPoliciesStr;
 typedef struct NSSPoliciesStr NSSPolicies;
 
-struct NSSPKIXCertificateStr;
+struct NSSPKIXCertStr;
 
 PR_END_EXTERN_C
 

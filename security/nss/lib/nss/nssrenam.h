@@ -34,12 +34,12 @@
 #ifndef __nssrenam_h_
 #define __nssrenam_h_
 
-#define CERT_NewTempCertificate __CERT_NewTempCertificate
+#define CERT_NewTempCert __CERT_NewTempCert
 #define PK11_CreateContextByRawKey __PK11_CreateContextByRawKey
 #define PK11_GetKeyData __PK11_GetKeyData
 #define nss_InitLock __nss_InitLock
 #define CERT_ClosePermCertDB __CERT_ClosePermCertDB
-#define CERT_DecodeDERCertificate __CERT_DecodeDERCertificate
+#define CERT_DecodeDERCert __CERT_DecodeDERCert
 #define CERT_TraversePermCertsForNickname __CERT_TraversePermCertsForNickname
 #define CERT_TraversePermCertsForSubject __CERT_TraversePermCertsForSubject
 #define PBE_CreateContext __PBE_CreateContext

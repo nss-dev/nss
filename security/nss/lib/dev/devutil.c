@@ -896,7 +896,7 @@ get_token_certs_for_cache (
 	return PR_SUCCESS;
     }
     session = nssToken_GetDefaultSession(cache->token); /* XXX */
-    objects = nssToken_FindCertificates(cache->token, session,
+    objects = nssToken_FindCerts(cache->token, session,
                                         nssTokenSearchType_TokenForced,
 				        MAX_LOCAL_CACHE_OBJECTS, &status);
     if (status != PR_SUCCESS) {

@@ -55,22 +55,22 @@ static const char PKIT_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 PR_BEGIN_EXTERN_C
 
 /* XXX */
-typedef struct nssCertificateCacheStr nssCertificateCache;
+typedef struct nssCertCacheStr nssCertCache;
 
 typedef PRUint32 nssUpdateLevel;
 
 typedef struct nssDecodedCertStr nssDecodedCert;
 
-typedef struct nssCertificateStoreStr nssCertificateStore;
+typedef struct nssCertStoreStr nssCertStore;
 
 /* How wide is the scope of this? */
 typedef struct nssSMIMEProfileStr nssSMIMEProfile;
 
-struct NSSSymmetricKeyStr;
+struct NSSSymKeyStr;
 
 struct NSSPoliciesStr;
 
-struct NSSPKIXCertificateStr;
+struct NSSPKIXCertStr;
 
 typedef struct nssTrustStr nssTrust;
 

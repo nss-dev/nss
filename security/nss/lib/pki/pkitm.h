@@ -102,10 +102,10 @@ struct nssPKIObjectStr
 
 typedef struct nssPKIObjectStr nssPKIObject;
 
-/* nssCertificateCollection
+/* nssCertCollection
  *
  * You guessed it; a collection of certs.  Each entry may be either an
- * NSSCertificate or an nssProtoCertificate.
+ * NSSCert or an nssProtoCert.
  */
 
 typedef struct nssPKIObjectCollectionStr nssPKIObjectCollection;
@@ -113,7 +113,7 @@ typedef struct nssPKIObjectCollectionStr nssPKIObjectCollection;
 typedef struct
 {
   union {
-    PRStatus (*  cert)(NSSCertificate *c, void *arg);
+    PRStatus (*  cert)(NSSCert *c, void *arg);
     PRStatus (*   crl)(NSSCRL       *crl, void *arg);
     PRStatus (* pvkey)(NSSPrivateKey *vk, void *arg);
     PRStatus (* pbkey)(NSSPublicKey  *bk, void *arg);
@@ -125,7 +125,7 @@ typedef struct
 struct nssTrustStr 
 {
     nssPKIObject object;
-    NSSCertificate *certificate;
+    NSSCert *certificate;
     nssTrustLevel serverAuth;
     nssTrustLevel clientAuth;
     nssTrustLevel emailProtection;

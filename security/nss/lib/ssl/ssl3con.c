@@ -296,7 +296,7 @@ static const ssl3BulkCipherDef bulk_cipher_defs[] = {
        AES,
         s_aes_ap,      16, 16, type_block,  16,16, kg_strong},
     { cipher_aes_256,
-       NSSSymmetricKeyType_AES,
+       NSSSymKeyType_AES,
         s_aes_ap,      32, 32, type_block,  16,16, kg_strong},
 #endif
     { cipher_missing,
@@ -1043,7 +1043,7 @@ static void
 ssl3_CleanupKeyMaterial(ssl3KeyMaterial *mat)
 {
     if (mat->write_key != NULL) {
-	NSSSymmetricKey_Destroy(mat->write_key);
+	NSSSymKey_Destroy(mat->write_key);
 	mat->write_key = NULL;
     }
 #if 0
@@ -1074,7 +1074,7 @@ ssl3_DestroyCipherSpec(ssl3CipherSpec *spec)
 	spec->decodeContext = NULL;
     }
     if (spec->master_secret != NULL) {
-	NSSSymmetricKey_Destroy(spec->master_secret);
+	NSSSymKey_Destroy(spec->master_secret);
 	spec->master_secret = NULL;
     }
     ssl3_CleanupKeyMaterial(&spec->client);
@@ -1968,14 +1968,14 @@ ssl3_HandleChangeCipherSpecs(sslSocket *ss, sslBuffer *buf)
     (it)->size = sizeof(buf);
 
 static PRStatus
-ssl3_DeriveMasterSecret(sslSocket *ss, NSSSymmetricKey *pmsOpt);
+ssl3_DeriveMasterSecret(sslSocket *ss, NSSSymKey *pmsOpt);
 {
     PRBool isTLS  = (PRBool)(kea_def->tls_keygen ||
                              (pwSpec->version > SSL_LIBRARY_VERSION_3_0));
     PRBool isDH = (PRBool) (ss->ssl3->hs.kea_def->exchKeyType == ssl_kea_dh);
     NSSAlgNParam *msDerive = NULL;
-    NSSSymmetricKey *ms = ssl->ssl3->pwSpec->master_secret;
-    NSSSymmetricKey *fpms = NULL;
+    NSSSymKey *ms = ssl->ssl3->pwSpec->master_secret;
+    NSSSymKey *fpms = NULL;
     NSSSSLMSParameters msParams;
     PRStatus status;
 
@@ -1997,31 +1997,31 @@ ssl3_DeriveMasterSecret(sslSocket *ss, NSSSymmetricKey *pmsOpt);
 
     if (pmsOpt) {
 	/* generating master secret from existing pre-master secret */
-	ms = NSSSymmetricKey_DeriveSymmetricKey(pmsOpt, msDerive,
-	                                        NSSSymmetricKeyType_SSLMS,
+	ms = NSSSymKey_DeriveSymKey(pmsOpt, msDerive,
+	                                        NSSSymKeyType_SSLMS,
 	                                        0, keyOps, NULL);
 	if (ms && !isDH && ss->detectRollBack) {
 	    SSL3ProtocolVersion client_version;
 	    client_version = pms_version.major << 8 | pms_version.minor;
 	    if (client_version != ss->clientHelloVersion) {
 		/* Destroy it.  Version roll-back detected. */
-		NSSSymmetricKey_Destroy(ms);
+		NSSSymKey_Destroy(ms);
 		ms = NULL;
 	    }
 	}
 	if (!ms) {
 	    /* Generate a faux master secret in the same slot as the old one. */
 	    NSSToken *pmsToken;
-	    (void)NSSSymmetricKey_GetTokens(pmsOpt, &pmsToken, 1, &status);
+	    (void)NSSSymKey_GetTokens(pmsOpt, &pmsToken, 1, &status);
 	    if (status == PR_FAILURE) {
 		goto loser;
 	    }
 	    fpms = ssl3_GenerateRSAPMS(ss, pwSpec, pmsToken);
 	    if (fpms) {
-		ms = NSSSymmetricKey_DeriveSymmetricKey(fpms, msDerive,
-	                                           NSSSymmetricKeyType_SSLMS,
+		ms = NSSSymKey_DeriveSymKey(fpms, msDerive,
+	                                           NSSSymKeyType_SSLMS,
 	                                           0, keyOps, NULL);
-		NSSSymmetricKey_Destroy(fpms);
+		NSSSymKey_Destroy(fpms);
 	    }
 	    NSSToken_Destroy(pmsToken);
 	}
@@ -2033,11 +2033,11 @@ ssl3_DeriveMasterSecret(sslSocket *ss, NSSSymmetricKey *pmsOpt);
 	/* generate a faux master secret in the internal slot */
 	fpms = ssl3_GenerateRSAPMS(ss, pwSpec, internal);
 	if (fpms) {
-	    ms = NSSSymmetricKey_DeriveSymmetricKey(fpms, msDerive,
-	                                       NSSSymmetricKeyType_SSLMS,
+	    ms = NSSSymKey_DeriveSymKey(fpms, msDerive,
+	                                       NSSSymKeyType_SSLMS,
 	                                       0, keyOps, NULL);
 	    if (ms) {
-		NSSSymmetricKey_Destroy(fpms);
+		NSSSymKey_Destroy(fpms);
 	    } else {
 		ms = fpms;
 	    }
@@ -2068,7 +2068,7 @@ loser:
  * ssl3_InitPendingCipherSpec does that.
  */
 static PRStatus
-ssl3_GenerateSessionKeys(sslSocket *ss, NSSSymmetricKey *pmsOpt)
+ssl3_GenerateSessionKeys(sslSocket *ss, NSSSymKey *pmsOpt)
 {
     ssl3CipherSpec *         pwSpec     = ss->ssl3->pwSpec;
     const ssl3BulkCipherDef *cipher_def = pwSpec->cipher_def;
@@ -2077,11 +2077,11 @@ ssl3_GenerateSessionKeys(sslSocket *ss, NSSSymmetricKey *pmsOpt)
     PRBool skipKeysAndIVs = (PRBool)((cipher_def->calg == calg_fortezza) ||
                                      (cipher_def->calg == calg_null));
     SSLCipherAlgorithm calg;
-    NSSSymmetricKeyType bulkKeyType;
+    NSSSymKeyType bulkKeyType;
     NSSSSLSessionKeyParameters skParams = { 0 };
     NSSAlgNParam *skDerive = NULL;
     NSSOperations keyOps;
-    NSSSymmetricKey *sessionKeys[4];
+    NSSSymKey *sessionKeys[4];
 
     PORT_Assert( ssl_HaveSSL3HandshakeLock(ss));
     PORT_Assert( ssl_HaveSpecWriteLock(ss));
@@ -2121,7 +2121,7 @@ ssl3_GenerateSessionKeys(sslSocket *ss, NSSSymmetricKey *pmsOpt)
 	goto loser;
     }
 
-    status = nssSymmetricKey_DeriveSSLSessionKeys(pwSpec->masterSecret,
+    status = nssSymKey_DeriveSSLSessionKeys(pwSpec->masterSecret,
                                                   skDerive, bulkKeyType,
                                                   NSSOperations_ENCRYPT,
                                                   0, keySize, sessionKeys);
@@ -2131,16 +2131,16 @@ ssl3_GenerateSessionKeys(sslSocket *ss, NSSSymmetricKey *pmsOpt)
     }
 
     pwSpec->client.write_mac_cx = 
-      NSSSymmetricKey_CreateCryptoContext(sessionKeys[0], , );
+      NSSSymKey_CreateCryptoContext(sessionKeys[0], , );
 
     pwSpec->server.write_mac_cx = 
-      NSSSymmetricKey_CreateCryptoContext(sessionKeys[1], , );
+      NSSSymKey_CreateCryptoContext(sessionKeys[1], , );
 
     pwSpec->client.write_cx     = 
-      NSSSymmetricKey_CreateCryptoContext(sessionKeys[2], , );
+      NSSSymKey_CreateCryptoContext(sessionKeys[2], , );
 
     pwSpec->server.write_cx     = 
-      NSSSymmetricKey_CreateCryptoContext(sessionKeys[3], , );
+      NSSSymKey_CreateCryptoContext(sessionKeys[3], , );
 
     NSSAlgNParam_Destroy(skDerive);
 
@@ -6122,11 +6122,11 @@ fortezza_loser:
  *		ssl3_HandleRSAClientKeyExchange()  (below)
  * Caller must hold the SpecWriteLock, the SSL3HandshakeLock
  */
-static NSSSymmetricKey *
+static NSSSymKey *
 ssl3_GenerateRSAPMS(sslSocket *ss, ssl3CipherSpec *spec,
                     NSSToken *serverKeyToken)
 {
-    NSSSymmetricKey * pms   = NULL;
+    NSSSymKey * pms   = NULL;
     NSSToken *        token = serverKeyToken;
     const NSSAlgNParam *pmsAlg = ssl3_GetPMSAlg(ss->clientHelloVersion);
 
@@ -6153,14 +6153,14 @@ ssl3_GenerateRSAPMS(sslSocket *ss, ssl3CipherSpec *spec,
 	return (NSSCryptoContext *)NULL;
     }
 
-    pms = NSSCryptoContext_GenerateSymmetricKey(pmsCx, NULL, 0, token, NULL);
+    pms = NSSCryptoContext_GenerateSymKey(pmsCx, NULL, 0, token, NULL);
     if (!pms) {
 	ssl_MapLowLevelError(SSL_ERROR_CLIENT_KEY_EXCHANGE_FAILURE);
 	NSSCryptoContext_Destroy(pmsCx);
 	return (NSSCryptoContext *)NULL;
     }
 
-    NSSSymmetricKey_Destroy(pms); /* part of context */
+    NSSSymKey_Destroy(pms); /* part of context */
     if (!serverKeyToken) {
 	NSSToken_Destroy(token);
     }
@@ -6185,7 +6185,7 @@ ssl3_HandleRSAClientKeyExchange(sslSocket *ss,
 				PRUint32 length,
 				NSSPrivateKey *serverKey)
 {
-    NSSSymmetricKey  *pms;
+    NSSSymKey  *pms;
     NSSCryptoContext *pmsCx;
     SECStatus         rv;
     NSSItem           enc_pms;
@@ -6210,7 +6210,7 @@ ssl3_HandleRSAClientKeyExchange(sslSocket *ss,
     /*
      * decrypt pms out of the incoming buffer
      */
-    pms = NSSPrivateKey_UnwrapSymmetricKey(serverKey, rsaUnwrap, 
+    pms = NSSPrivateKey_UnwrapSymKey(serverKey, rsaUnwrap, 
                                            &emc_pms, NULL);
     if (pms) {
 	    /* XXX
@@ -6218,12 +6218,12 @@ ssl3_HandleRSAClientKeyExchange(sslSocket *ss,
 		       PK11_GetKeyData(pms)->data,
 		       PK11_GetKeyData(pms)->size));
 		       */
-	pmsCx = NSSSymmetricKey_CreateCryptoContext(pms, NULL, NULL);
+	pmsCx = NSSSymKey_CreateCryptoContext(pms, NULL, NULL);
 	if (!pmsCx) {
 	    ssl_MapLowLevelError(SSL_ERROR_CLIENT_KEY_EXCHANGE_FAILURE);
 	    return SECFailure;
 	}
-	NSSSymmetricKey_Destroy(pms); /* context has it */
+	NSSSymKey_Destroy(pms); /* context has it */
     } else {
 	/* unwrap failed.  Generate a bogus pre-master secret and carry on. */
 	NSSToken *token = NSSPrivateKey_GetAToken(serverKey);

@@ -71,10 +71,10 @@ struct NSSCryptoContextStr
   nssCryptokiObject *key; /* key used for crypto */
   nssCryptokiObject *bkey; /* public key of user cert */
   union {
-    NSSSymmetricKey *mkey;
+    NSSSymKey *mkey;
     NSSPublicKey *bkey;
     NSSPrivateKey *vkey;
-    NSSCertificate *cert;
+    NSSCert *cert;
   } u; /* the distinguished object */
   pki_object_type which;
 };
@@ -116,19 +116,19 @@ nssCryptoContext_Create (
 }
 
 NSS_IMPLEMENT NSSCryptoContext *
-nssCryptoContext_CreateForSymmetricKey (
-  NSSSymmetricKey *mkey,
+nssCryptoContext_CreateForSymKey (
+  NSSSymKey *mkey,
   const NSSAlgNParam *apOpt,
   NSSCallback *uhhOpt
 )
 {
     NSSCryptoContext *rvCC;
-    NSSTrustDomain *td = nssSymmetricKey_GetTrustDomain(mkey, NULL);
+    NSSTrustDomain *td = nssSymKey_GetTrustDomain(mkey, NULL);
 
     rvCC = nssCryptoContext_Create(td, apOpt, uhhOpt);
     if (rvCC) {
 	rvCC->which = a_symkey;
-	rvCC->u.mkey = nssSymmetricKey_AddRef(mkey);
+	rvCC->u.mkey = nssSymKey_AddRef(mkey);
     }
     return rvCC;
 }
@@ -140,10 +140,10 @@ nssCryptoContext_Destroy (
 {
     PRStatus status = PR_SUCCESS;
     switch (cc->which) {
-    case a_cert: nssCertificate_Destroy(cc->u.cert); break;
+    case a_cert: nssCert_Destroy(cc->u.cert); break;
     case a_pubkey: nssPublicKey_Destroy(cc->u.bkey); break;
     case a_privkey: nssPrivateKey_Destroy(cc->u.vkey); break;
-    case a_symkey: nssSymmetricKey_Destroy(cc->u.mkey); break;
+    case a_symkey: nssSymKey_Destroy(cc->u.mkey); break;
     default: break;
     }
     if (cc->key) {
@@ -282,7 +282,7 @@ prepare_context_symmetric_key (
 	    /* and the token can do the operation */
 	    if (!cc->key) {
 		/* get a key instance from it */
-		cc->key = nssSymmetricKey_GetInstance(cc->u.mkey, cc->token);
+		cc->key = nssSymKey_GetInstance(cc->u.mkey, cc->token);
 	    } /* else we already have a key instance */
 	} else {
 	    /* the token can't do the math, so this context won't work */
@@ -290,7 +290,7 @@ prepare_context_symmetric_key (
 	}
     } else {
 	/* find an instance of the key that will do the operation */
-	cc->key = nssSymmetricKey_FindInstanceForAlgorithm(cc->u.mkey, cc->ap);
+	cc->key = nssSymKey_FindInstanceForAlgorithm(cc->u.mkey, cc->ap);
 	if (cc->key) {
 	    /* okay, now we know what token to use */
 	    cc->token = nssToken_AddRef(cc->key->token);
@@ -307,7 +307,7 @@ prepare_context_symmetric_key (
      * the token, copy it there as a temp (session) object
      */
     if (!cc->key) {
-	cc->key = nssSymmetricKey_CopyToToken(cc->u.mkey, cc->token, 
+	cc->key = nssSymKey_CopyToToken(cc->u.mkey, cc->token, 
 	                                      PR_FALSE);
 	if (!cc->key) {
 	    goto loser;
@@ -335,7 +335,7 @@ prepare_context_private_key (
     NSSPrivateKey *vkey = NULL;
     if (cc->which == a_cert) {
 	/* try to get the key from the cert */
-	vkey = nssCertificate_FindPrivateKey(cc->u.cert, cc->callback);
+	vkey = nssCert_FindPrivateKey(cc->u.cert, cc->callback);
 	if (!vkey) {
 	    goto loser;
 	}
@@ -410,7 +410,7 @@ prepare_context_public_key (
     NSSPublicKey *bkey = NULL;
     if (cc->which == a_cert) {
 	/* try to get the key from the cert */
-	bkey = nssCertificate_GetPublicKey(cc->u.cert);
+	bkey = nssCert_GetPublicKey(cc->u.cert);
 	if (!bkey) {
 	    goto loser;
 	}
@@ -891,8 +891,8 @@ NSSCryptoContext_SignRecover (
 }
 
 #if 0
-NSS_IMPLEMENT NSSSymmetricKey *
-nssCryptoContext_UnwrapSymmetricKey (
+NSS_IMPLEMENT NSSSymKey *
+nssCryptoContext_UnwrapSymKey (
   NSSCryptoContext *cc,
   const NSSAlgNParam *apOpt,
   NSSItem *wrappedKey,
@@ -904,11 +904,11 @@ nssCryptoContext_UnwrapSymmetricKey (
     const NSSAlgNParam *ap = apOpt ? apOpt : cc->ap;
     if (!ap) {
 	nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
-	return (NSSSymmetricKey *)NULL;
+	return (NSSSymKey *)NULL;
     }
     /* set up the private key */
     if (prepare_context_private_key(cc, ap) == PR_FAILURE) {
-	return (NSSSymmetricKey *)NULL;
+	return (NSSSymKey *)NULL;
     }
     /* do the unwrap */
     cc->mko = nssToken_UnwrapKey(cc->token, cc->session, ap, cc->vko,
@@ -921,12 +921,12 @@ nssCryptoContext_UnwrapSymmetricKey (
 	if (!pkio) {
 	    goto loser;
 	}
-	cc->mk = nssSymmetricKey_Create(pkio);
+	cc->mk = nssSymKey_Create(pkio);
 	if (!cc->mk) {
 	    nssPKIObject_Destroy(pkio);
 	    goto loser;
 	}
-	return nssSymmetricKey_AddRef(cc->mk);
+	return nssSymKey_AddRef(cc->mk);
     }
 loser:
     if (cc->mko) {
@@ -934,11 +934,11 @@ loser:
 	cc->mko = NULL;
     }
     nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
-    return (NSSSymmetricKey *)NULL;
+    return (NSSSymKey *)NULL;
 }
 
-NSS_IMPLEMENT NSSSymmetricKey *
-NSSCryptoContext_UnwrapSymmetricKey (
+NSS_IMPLEMENT NSSSymKey *
+NSSCryptoContext_UnwrapSymKey (
   NSSCryptoContext *cc,
   const NSSAlgNParam *apOpt,
   NSSItem *wrappedKey,
@@ -949,9 +949,9 @@ NSSCryptoContext_UnwrapSymmetricKey (
 {
     if (!cc->vk && !cc->cert) {
 	nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
-	return (NSSSymmetricKey *)NULL;
+	return (NSSSymKey *)NULL;
     }
-    return nssCryptoContext_UnwrapSymmetricKey(cc, apOpt, 
+    return nssCryptoContext_UnwrapSymKey(cc, apOpt, 
                                                wrappedKey, uhhOpt, 
                                                operations, properties);
 }
@@ -1115,10 +1115,10 @@ NSSCryptoContext_VerifyRecover (
 
 #if 0
 NSS_IMPLEMENT NSSItem *
-nssCryptoContext_WrapSymmetricKey (
+nssCryptoContext_WrapSymKey (
   NSSCryptoContext *cc,
   const NSSAlgNParam *apOpt,
-  NSSSymmetricKey *keyToWrap,
+  NSSSymKey *keyToWrap,
   NSSCallback *uhhOpt,
   NSSItem *rvOpt,
   NSSArena *arenaOpt
@@ -1130,7 +1130,7 @@ nssCryptoContext_WrapSymmetricKey (
 	return (NSSItem *)NULL;
     }
     /* set the context's symkey to the key to wrap */
-    cc->mk = nssSymmetricKey_AddRef(keyToWrap);
+    cc->mk = nssSymKey_AddRef(keyToWrap);
     /* initialize the context with the symkey first */
     if (prepare_context_symmetric_key(cc, ap) == PR_FAILURE) {
 	/* didn't find a token that could do the operation */
@@ -1147,10 +1147,10 @@ nssCryptoContext_WrapSymmetricKey (
 }
 
 NSS_IMPLEMENT NSSItem *
-NSSCryptoContext_WrapSymmetricKey (
+NSSCryptoContext_WrapSymKey (
   NSSCryptoContext *cc,
   const NSSAlgNParam *apOpt,
-  NSSSymmetricKey *keyToWrap,
+  NSSSymKey *keyToWrap,
   NSSCallback *uhhOpt,
   NSSItem *rvOpt,
   NSSArena *arenaOpt
@@ -1160,7 +1160,7 @@ NSSCryptoContext_WrapSymmetricKey (
 	nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
 	return (NSSItem *)NULL;
     }
-    return nssCryptoContext_WrapSymmetricKey(cc, apOpt, keyToWrap,
+    return nssCryptoContext_WrapSymKey(cc, apOpt, keyToWrap,
                                              uhhOpt, rvOpt, arenaOpt);
 }
 #endif

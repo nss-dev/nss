@@ -706,7 +706,7 @@ static PRStatus
 verify_signature (
   NSSPKIXCertificate *cert,
   NSSPKIXCertificate *issuerCert,
-  NSSCertificate *issuer
+  NSSCert *issuer
 )
 {
     PRStatus status;
@@ -750,7 +750,7 @@ verify_signature (
 	return PR_FAILURE;
     }
 
-    verifyKey = NSSCertificate_GetPublicKey(issuer);
+    verifyKey = NSSCert_GetPublicKey(issuer);
     if (!verifyKey) {
 	return PR_FAILURE;
     }
@@ -774,7 +774,7 @@ verify_signature (
 static PRStatus
 pkix_ValidateChainLink (
   void *cert,
-  NSSCertificate *issuer,
+  NSSCert *issuer,
   void *vData
 )
 {
@@ -786,7 +786,7 @@ pkix_ValidateChainLink (
 
     nss_HoldErrorStack();
 
-    pkixIssuer = (NSSPKIXCertificate *)NSSCertificate_GetDecoding(issuer);
+    pkixIssuer = (NSSPKIXCertificate *)NSSCert_GetDecoding(issuer);
     if (!pkixIssuer) {
 	goto loser;
     }
@@ -836,7 +836,7 @@ pkix_Destroy (
     nss_ResumeErrorStack();
 }
 
-NSSCertificateMethods g_pkix_methods;
+NSSCertMethods g_pkix_methods;
 
 NSS_IMPLEMENT PRStatus
 NSS_EnablePKIXCertificates (
@@ -860,6 +860,5 @@ NSS_EnablePKIXCertificates (
     g_pkix_methods.freeChainValidationData = pkix_FreeChainValidationData;
     g_pkix_methods.destroy = pkix_Destroy;
 
-    return NSS_SetDefaultCertificateHandler(NSSCertificateType_PKIX, 
-                                            &g_pkix_methods);
+    return NSS_SetDefaultCertHandler(NSSCertType_PKIX, &g_pkix_methods);
 }

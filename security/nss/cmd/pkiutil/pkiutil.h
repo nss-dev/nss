@@ -8,7 +8,7 @@ extern char *progName;
 typedef enum 
 {
     PKIUnknown = -1,
-    PKICertificate,
+    PKICert,
     PKIPublicKey,
     PKIPrivateKey,
     PKIAny

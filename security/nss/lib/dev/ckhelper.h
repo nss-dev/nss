@@ -202,7 +202,7 @@ nssCKObject_IsTokenObjectTemplate (
 
 NSS_EXTERN CK_KEY_TYPE
 nssCK_GetSymKeyType (
-  NSSSymmetricKeyType keyType
+  NSSSymKeyType keyType
 );
 
 NSS_EXTERN CK_KEY_TYPE

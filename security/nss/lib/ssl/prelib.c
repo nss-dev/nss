@@ -59,7 +59,7 @@ static unsigned char fromHex(char x) {
 PEHeader *SSL_PreencryptedStreamToFile(PRFileDesc *fd, PEHeader *inHeader, 
 								int *headerSize)
 {
-    NSSSymmetricKey *key, *tek, *Ks;
+    NSSSymKey *key, *tek, *Ks;
     sslSocket *ss;
     NSSToken **tokens;
     NSSToken *token;
@@ -125,7 +125,7 @@ PEHeader *SSL_PreencryptedStreamToFile(PRFileDesc *fd, PEHeader *inHeader,
 	}
 
 	/* get the token and the serial number */
-	tokens = NSSSymmetricKey_GetTokens(tek, NULL);
+	tokens = NSSSymKey_GetTokens(tek, NULL);
 	if (tokens == NULL) {
 	    PORT_Free(header);
 	    return NULL;
@@ -150,21 +150,21 @@ PEHeader *SSL_PreencryptedStreamToFile(PRFileDesc *fd, PEHeader *inHeader,
 	skipjack = NSSOID_CreateFromTag(NSS_OID_FORTEZZA_SKIPJACK);
 	if (!skipjack) {
 	    PORT_Free(header);
-	    NSSSymmetricKey_Destroy(Ks);
+	    NSSSymKey_Destroy(Ks);
 	    return NULL;
 	}
 	skipjackWrap = NSSAlgNParam_CreateWrap(NULL,
 	                             NSSAlgorithmType_Skipjack, NULL);
 	if (!skipjackWrap) {
 	    PORT_Free(header);
-	    NSSSymmetricKey_Destroy(Ks);
+	    NSSSymKey_Destroy(Ks);
 	    return NULL;
 	}
 
 	/* unwrap the key with the TEK */
 	item.data = inHeader->u.fortezza.key;
 	item.size = sizeof(inHeader->u.fortezza.key);
-	key = NSSSymmetricKey_UnwrapSymmetricKey(tek,
+	key = NSSSymKey_UnwrapSymKey(tek,
 	                                         skipjackWrap,
 	                                         &item,
 	                                         skipjack,
@@ -175,7 +175,7 @@ PEHeader *SSL_PreencryptedStreamToFile(PRFileDesc *fd, PEHeader *inHeader,
 #endif
 	if (key == NULL) {
 	    PORT_Free(header);
-	    NSSSymmetricKey_Destroy(Ks);
+	    NSSSymKey_Destroy(Ks);
 	    NSSAlgNParam_Destroy(skipjackWrap);
 	    return NULL;
 	}
@@ -183,13 +183,13 @@ PEHeader *SSL_PreencryptedStreamToFile(PRFileDesc *fd, PEHeader *inHeader,
 	/* rewrap with the local Ks */
 	item.data = header->u.fortezza.key;
 	item.size = sizeof(header->u.fortezza.key);
-	rv = NSSSymmetricKey_Wrap(Ks, skipjackWrap, key,
+	rv = NSSSymKey_Wrap(Ks, skipjackWrap, key,
 	                          ss->pinCallback, &item, NULL);
 #if 0
 	rv = PK11_WrapSymKey(CKM_SKIPJACK_WRAP, NULL, Ks, key, &item);
 #endif
-	NSSSymmetricKey_Destroy(Ks);
-	NSSSymmetricKey_Destroy(key);
+	NSSSymKey_Destroy(Ks);
+	NSSSymKey_Destroy(key);
 	NSSAlgNParam_Destroy(skipjackWrap);
 	if (rv != SECSuccess) {
 	    PORT_Free(header);
@@ -218,7 +218,7 @@ PEHeader *SSL_PreencryptedStreamToFile(PRFileDesc *fd, PEHeader *inHeader,
 PEHeader *SSL_PreencryptedFileToStream(PRFileDesc *fd, PEHeader *header, 
 							int *headerSize)
 {
-    NSSSymmetricKey *key, *tek, *Ks;
+    NSSSymKey *key, *tek, *Ks;
     sslSocket *ss;
     NSSToken **tokens;
     NSSToken *token;
@@ -252,7 +252,7 @@ PEHeader *SSL_PreencryptedFileToStream(PRFileDesc *fd, PEHeader *header,
 
     slot = PK11_GetSlotFromKey(tek);
     /* get the token and the serial number */
-    tokens = NSSSymmetricKey_GetTokens(tek, NULL);
+    tokens = NSSSymKey_GetTokens(tek, NULL);
     if (tokens == NULL) {
 	return NULL;
     }
@@ -267,13 +267,13 @@ PEHeader *SSL_PreencryptedFileToStream(PRFileDesc *fd, PEHeader *header,
     /* set up the algorithms */
     skipjack = NSSOID_CreateFromTag(NSS_OID_FORTEZZA_SKIPJACK);
     if (!skipjack) {
-	NSSSymmetricKey_Destroy(Ks);
+	NSSSymKey_Destroy(Ks);
 	return NULL;
     }
     skipjackWrap = NSSAlgNParam_CreateWrap(NULL,
                                               NSSAlgorithmType_Skipjack, NULL);
     if (!skipjackWrap) {
-	NSSSymmetricKey_Destroy(Ks);
+	NSSSymKey_Destroy(Ks);
 	return NULL;
     }
 
@@ -281,7 +281,7 @@ PEHeader *SSL_PreencryptedFileToStream(PRFileDesc *fd, PEHeader *header,
     item.data = header->u.fortezza.key;
     item.size = sizeof(header->u.fortezza.key);
     /* rewrap the key with the TEK */
-    key = NSSSymmetricKey_UnwrapSymmetricKey(Ks, skipjackWrap,
+    key = NSSSymKey_UnwrapSymKey(Ks, skipjackWrap,
                                              &item, skipjack,
                                              NSSOperations_DECRYPT, 0);
 #if 0
@@ -289,17 +289,17 @@ PEHeader *SSL_PreencryptedFileToStream(PRFileDesc *fd, PEHeader *header,
                         NULL, &item, CKM_SKIPJACK_CBC64, CKA_DECRYPT, 0);
 #endif
     if (key == NULL) {
-	NSSSymmetricKey_Destroy(Ks);
+	NSSSymKey_Destroy(Ks);
 	return NULL;
     }
 
-    rv = NSSSymmetricKey_Wrap(tek, skipjackWrap, key,
+    rv = NSSSymKey_Wrap(tek, skipjackWrap, key,
                               ss->pinCallback, &item, NULL);
 #if 0
     rv = PK11_WrapSymKey(CKM_SKIPJACK_WRAP, NULL, tek, key, &item);
 #endif
-    NSSSymmetricKey_Destroy(Ks);
-    NSSSymmetricKey_Destroy(key);
+    NSSSymKey_Destroy(Ks);
+    NSSSymKey_Destroy(key);
     if (rv != SECSuccess) {
 	return NULL;
     }

@@ -105,7 +105,7 @@ PR_BEGIN_EXTERN_C
  */
 
 /*
- * NSSCertificate
+ * NSSCert
  *
  * These things can do crypto ops like public keys, except that the trust, 
  * usage, and other constraints are checked.  These objects are "high-level,"
@@ -115,18 +115,18 @@ PR_BEGIN_EXTERN_C
  */
 
 /*
- * NSSCertificate_Destroy
+ * NSSCert_Destroy
  *
  * Free a pointer to a certificate object.
  */
 
 NSS_EXTERN PRStatus
-NSSCertificate_Destroy (
-  NSSCertificate *c
+NSSCert_Destroy (
+  NSSCert *c
 );
 
 /*
- * NSSCertificate_DeleteStoredObject
+ * NSSCert_DeleteStoredObject
  *
  * Permanently remove this certificate from storage.  If this is the
  * only (remaining) certificate corresponding to a private key, 
@@ -135,31 +135,31 @@ NSSCertificate_Destroy (
  */
 
 NSS_EXTERN PRStatus
-NSSCertificate_DeleteStoredObject (
-  NSSCertificate *c,
+NSSCert_DeleteStoredObject (
+  NSSCert *c,
   NSSCallback *uhh
 );
 
 /*
- * NSSCertificate_Validate
+ * NSSCert_Validate
  *
  * Verify that this certificate is trusted, for the specified usage(s), 
  * at the specified time, {word word} the specified policies.
  */
 
 NSS_EXTERN PRStatus
-NSSCertificate_Validate (
-  NSSCertificate *c,
+NSSCert_Validate (
+  NSSCert *c,
   NSSTime time,
   NSSUsages *usages,
   NSSPolicies *policiesOpt /* NULL for none */
 );
 
 /*
- * NSSCertificate_ValidateCompletely
+ * NSSCert_ValidateCompletely
  *
  * Verify that this certificate is trusted.  The difference between
- * this and the previous call is that NSSCertificate_Validate merely
+ * this and the previous call is that NSSCert_Validate merely
  * returns success or failure with an appropriate error stack.
  * However, there may be (and often are) multiple problems with a
  * certificate.  This routine returns an array of errors, specifying
@@ -173,8 +173,8 @@ NSSCertificate_Validate (
  */
 
 NSS_EXTERN void ** /* void *[] */
-NSSCertificate_ValidateCompletely (
-  NSSCertificate *c,
+NSSCert_ValidateCompletely (
+  NSSCert *c,
   NSSTime time, /* NULL for "now" */
   NSSUsages *usages,
   NSSPolicies *policiesOpt, /* NULL for none */
@@ -184,14 +184,14 @@ NSSCertificate_ValidateCompletely (
 );
 
 /*
- * NSSCertificate_ValidateAndDiscoverUsagesAndPolicies
+ * NSSCert_ValidateAndDiscoverUsagesAndPolicies
  *
  * Returns PR_SUCCESS if the certificate is valid for at least something.
  */
 
 NSS_EXTERN PRStatus
-NSSCertificate_ValidateAndDiscoverUsagesAndPolicies (
-  NSSCertificate *c,
+NSSCert_ValidateAndDiscoverUsagesAndPolicies (
+  NSSCert *c,
   NSSTime **notBeforeOutOpt,
   NSSTime **notAfterOutOpt,
   void *allowedUsages,
@@ -203,33 +203,33 @@ NSSCertificate_ValidateAndDiscoverUsagesAndPolicies (
 );
 
 NSS_EXTERN NSSUsages *
-NSSCertificate_GetTrustedUsages (
-  NSSCertificate *c,
+NSSCert_GetTrustedUsages (
+  NSSCert *c,
   NSSUsages *usagesOpt
 );
 
 NSS_EXTERN PRStatus
-NSSCertificate_SetTrustedUsages (
-  NSSCertificate *c,
+NSSCert_SetTrustedUsages (
+  NSSCert *c,
   NSSUsages *usages
 );
 
 /*
- * NSSCertificate_Encode
+ * NSSCert_Encode
  *
  */
 
 NSS_EXTERN NSSDER *
-NSSCertificate_Encode (
-  NSSCertificate *c,
+NSSCert_Encode (
+  NSSCert *c,
   NSSDER *rvOpt,
   NSSArena *arenaOpt
 );
 
 /*
- * NSSCertificate_BuildChain
+ * NSSCert_BuildChain
  *
- * This routine returns NSSCertificate *'s for each certificate
+ * This routine returns NSSCert *'s for each certificate
  * in the "chain" starting from the specified one up to and
  * including the root.  The zeroth element in the array is the
  * specified ("leaf") certificate.
@@ -242,86 +242,86 @@ NSSCertificate_Encode (
  */
 
 
-NSS_EXTERN NSSCertificate **
-NSSCertificate_BuildChain (
-  NSSCertificate *c,
+NSS_EXTERN NSSCert **
+NSSCert_BuildChain (
+  NSSCert *c,
   NSSTime time,
   NSSUsages *usagesOpt,
   NSSPolicies *policiesOpt,
-  NSSCertificate **rvOpt,
+  NSSCert **rvOpt,
   PRUint32 rvLimit, /* zero for no limit */
   NSSArena *arenaOpt,
   PRStatus *statusOpt
 );
 
 /*
- * NSSCertificate_GetTrustDomain
+ * NSSCert_GetTrustDomain
  *
  */
 
 NSS_EXTERN NSSTrustDomain *
-NSSCertificate_GetTrustDomain (
-  NSSCertificate *c
+NSSCert_GetTrustDomain (
+  NSSCert *c
 );
 
 /*
- * NSSCertificate_GetToken
+ * NSSCert_GetToken
  *
  * There doesn't have to be any.
  */
 
 NSS_EXTERN NSSToken **
-NSSCertificate_GetTokens (
-  NSSCertificate *c,
+NSSCert_GetTokens (
+  NSSCert *c,
   PRStatus *statusOpt
 );
 
 /*
- * NSSCertificate_GetSlot
+ * NSSCert_GetSlot
  *
  * There doesn't have to be one.
  */
 
 NSS_EXTERN NSSSlot *
-NSSCertificate_GetSlot (
-  NSSCertificate *c,
+NSSCert_GetSlot (
+  NSSCert *c,
   PRStatus *statusOpt
 );
 
 /*
- * NSSCertificate_GetModule
+ * NSSCert_GetModule
  *
  * There doesn't have to be one.
  */
 
 NSS_EXTERN NSSModule *
-NSSCertificate_GetModule (
-  NSSCertificate *c,
+NSSCert_GetModule (
+  NSSCert *c,
   PRStatus *statusOpt
 );
 
 /* XXX make sure this is right */
 NSS_EXTERN void *
-NSSCertificate_GetDecoding (
-  NSSCertificate *c
+NSSCert_GetDecoding (
+  NSSCert *c
 );
 
 /* XXX make sure this is right */
-NSS_EXTERN NSSCertificateType
-NSSCertificate_GetType (
-  NSSCertificate *c
+NSS_EXTERN NSSCertType
+NSSCert_GetType (
+  NSSCert *c
 );
 
 /*
- * NSSCertificate_Encrypt
+ * NSSCert_Encrypt
  *
  * Encrypt a single chunk of data with the public key corresponding to
  * this certificate.
  */
 
 NSS_EXTERN NSSItem *
-NSSCertificate_Encrypt (
-  NSSCertificate *c,
+NSSCert_Encrypt (
+  NSSCert *c,
   const NSSAlgNParam *apOpt,
   NSSItem *data,
   NSSTime time,
@@ -333,13 +333,13 @@ NSSCertificate_Encrypt (
 );
 
 /*
- * NSSCertificate_Verify
+ * NSSCert_Verify
  *
  */
 
 NSS_EXTERN PRStatus
-NSSCertificate_Verify (
-  NSSCertificate *c,
+NSSCert_Verify (
+  NSSCert *c,
   const NSSAlgNParam *apOpt,
   NSSItem *data,
   NSSItem *signature,
@@ -350,13 +350,13 @@ NSSCertificate_Verify (
 );
 
 /*
- * NSSCertificate_VerifyRecover
+ * NSSCert_VerifyRecover
  *
  */
 
 NSS_EXTERN NSSItem *
-NSSCertificate_VerifyRecover (
-  NSSCertificate *c,
+NSSCert_VerifyRecover (
+  NSSCert *c,
   const NSSAlgNParam *apOpt,
   NSSItem *signature,
   NSSTime time,
@@ -368,7 +368,7 @@ NSSCertificate_VerifyRecover (
 );
 
 /*
- * NSSCertificate_WrapSymmetricKey
+ * NSSCert_WrapSymKey
  *
  * This method tries very hard to to succeed, even in situations 
  * involving sensitive keys and multiple modules.
@@ -376,10 +376,10 @@ NSSCertificate_VerifyRecover (
  */
 
 NSS_EXTERN NSSItem *
-NSSCertificate_WrapSymmetricKey (
-  NSSCertificate *c,
+NSSCert_WrapSymKey (
+  NSSCert *c,
   const NSSAlgNParam *ap,
-  NSSSymmetricKey *keyToWrap,
+  NSSSymKey *keyToWrap,
   NSSTime time,
   NSSUsages *usages,
   NSSPolicies *policiesOpt,
@@ -389,15 +389,15 @@ NSSCertificate_WrapSymmetricKey (
 );
 
 /*
- * NSSCertificate_CreateCryptoContext
+ * NSSCert_CreateCryptoContext
  *
  * Create a crypto context, in this certificate's trust domain, with this
  * as the distinguished certificate.
  */
 
 NSS_EXTERN NSSCryptoContext *
-NSSCertificate_CreateCryptoContext (
-  NSSCertificate *c,
+NSSCert_CreateCryptoContext (
+  NSSCert *c,
   const NSSAlgNParam *apOpt,
   NSSTime time,
   NSSUsages *usages,
@@ -406,68 +406,68 @@ NSSCertificate_CreateCryptoContext (
 );
 
 /*
- * NSSCertificate_GetPublicKey
+ * NSSCert_GetPublicKey
  *
  * Returns the public key corresponding to this certificate.
  */
 
 NSS_EXTERN NSSPublicKey *
-NSSCertificate_GetPublicKey (
-  NSSCertificate *c
+NSSCert_GetPublicKey (
+  NSSCert *c
 );
 
 /*
- * NSSCertificate_FindPrivateKey
+ * NSSCert_FindPrivateKey
  *
  * Finds and returns the private key corresponding to this certificate,
  * if it is available.
  *
- * { Should this hang off of NSSUserCertificate? }
+ * { Should this hang off of NSSUserCert? }
  */
 
 NSS_EXTERN NSSPrivateKey *
-NSSCertificate_FindPrivateKey (
-  NSSCertificate *c,
+NSSCert_FindPrivateKey (
+  NSSCert *c,
   NSSCallback *uhh
 );
 
 /*
- * NSSCertificate_IsPrivateKeyAvailable
+ * NSSCert_IsPrivateKeyAvailable
  *
  * Returns success if the private key corresponding to this certificate
  * is available to be used.
  *
- * { Should *this* hang off of NSSUserCertificate?? }
+ * { Should *this* hang off of NSSUserCert?? }
  */
 
 NSS_EXTERN PRBool
-NSSCertificate_IsPrivateKeyAvailable (
-  NSSCertificate *c,
+NSSCert_IsPrivateKeyAvailable (
+  NSSCert *c,
   NSSCallback *uhh,
   PRStatus *statusOpt
 );
 
 /*
- * If we make NSSUserCertificate not a typedef of NSSCertificate, 
+ * If we make NSSUserCert not a typedef of NSSCert, 
  * then we'll need implementations of the following:
  *
- *  NSSUserCertificate_Destroy
- *  NSSUserCertificate_DeleteStoredObject
- *  NSSUserCertificate_Validate
- *  NSSUserCertificate_ValidateCompletely
- *  NSSUserCertificate_ValidateAndDiscoverUsagesAndPolicies
- *  NSSUserCertificate_Encode
- *  NSSUserCertificate_BuildChain
- *  NSSUserCertificate_GetTrustDomain
- *  NSSUserCertificate_GetToken
- *  NSSUserCertificate_GetSlot
- *  NSSUserCertificate_GetModule
- *  NSSUserCertificate_GetCryptoContext
- *  NSSUserCertificate_GetPublicKey
+ *  NSSUserCert_Destroy
+ *  NSSUserCert_DeleteStoredObject
+ *  NSSUserCert_Validate
+ *  NSSUserCert_ValidateCompletely
+ *  NSSUserCert_ValidateAndDiscoverUsagesAndPolicies
+ *  NSSUserCert_Encode
+ *  NSSUserCert_BuildChain
+ *  NSSUserCert_GetTrustDomain
+ *  NSSUserCert_GetToken
+ *  NSSUserCert_GetSlot
+ *  NSSUserCert_GetModule
+ *  NSSUserCert_GetCryptoContext
+ *  NSSUserCert_GetPublicKey
  */
 
 /*
- * NSSUserCertificate_IsStillPresent
+ * NSSUserCert_IsStillPresent
  *
  * Verify that if this certificate lives on a token, that the token
  * is still present and the certificate still exists.  This is a
@@ -477,21 +477,21 @@ NSSCertificate_IsPrivateKeyAvailable (
  */
 
 NSS_EXTERN PRBool
-NSSUserCertificate_IsStillPresent (
-  NSSUserCertificate *uc,
+NSSUserCert_IsStillPresent (
+  NSSUserCert *uc,
   PRStatus *statusOpt
 );
 
 /*
- * NSSUserCertificate_Decrypt
+ * NSSUserCert_Decrypt
  *
  * Decrypt a single chunk of data with the private key corresponding
  * to this certificate.
  */
 
 NSS_EXTERN NSSItem *
-NSSUserCertificate_Decrypt (
-  NSSUserCertificate *uc,
+NSSUserCert_Decrypt (
+  NSSUserCert *uc,
   const NSSAlgNParam *apOpt,
   NSSItem *data,
   NSSTime time,
@@ -503,13 +503,13 @@ NSSUserCertificate_Decrypt (
 );
 
 /*
- * NSSUserCertificate_Sign
+ * NSSUserCert_Sign
  *
  */
 
 NSS_EXTERN NSSItem *
-NSSUserCertificate_Sign (
-  NSSUserCertificate *uc,
+NSSUserCert_Sign (
+  NSSUserCert *uc,
   const NSSAlgNParam *apOpt,
   NSSItem *data,
   NSSTime time,
@@ -521,13 +521,13 @@ NSSUserCertificate_Sign (
 );
 
 /*
- * NSSUserCertificate_SignRecover
+ * NSSUserCert_SignRecover
  *
  */
 
 NSS_EXTERN NSSItem *
-NSSUserCertificate_SignRecover (
-  NSSUserCertificate *uc,
+NSSUserCert_SignRecover (
+  NSSUserCert *uc,
   const NSSAlgNParam *apOpt,
   NSSItem *data,
   NSSTime time,
@@ -539,13 +539,13 @@ NSSUserCertificate_SignRecover (
 );
 
 /*
- * NSSUserCertificate_UnwrapSymmetricKey
+ * NSSUserCert_UnwrapSymKey
  *
  */
 
-NSS_EXTERN NSSSymmetricKey *
-NSSUserCertificate_UnwrapSymmetricKey (
-  NSSUserCertificate *uc,
+NSS_EXTERN NSSSymKey *
+NSSUserCert_UnwrapSymKey (
+  NSSUserCert *uc,
   const NSSAlgNParam *apOpt,
   NSSItem *wrappedKey,
   NSSTime time,
@@ -557,14 +557,14 @@ NSSUserCertificate_UnwrapSymmetricKey (
 );
 
 /*
- * NSSUserCertificate_DeriveSymmetricKey
+ * NSSUserCert_DeriveSymKey
  *
  */
 
-NSS_EXTERN NSSSymmetricKey *
-NSSUserCertificate_DeriveSymmetricKey (
-  NSSUserCertificate *uc, /* provides private key */
-  NSSCertificate *c, /* provides public key */
+NSS_EXTERN NSSSymKey *
+NSSUserCert_DeriveSymKey (
+  NSSUserCert *uc, /* provides private key */
+  NSSCert *c, /* provides public key */
   const NSSAlgNParam *apOpt,
   NSSOID *target,
   PRUint32 keySizeOpt, /* zero for best allowed */
@@ -746,12 +746,12 @@ NSSPrivateKey_SignRecover (
 );
 
 /*
- * NSSPrivateKey_UnwrapSymmetricKey
+ * NSSPrivateKey_UnwrapSymKey
  *
  */
 
-NSS_EXTERN NSSSymmetricKey *
-NSSPrivateKey_UnwrapSymmetricKey (
+NSS_EXTERN NSSSymKey *
+NSSPrivateKey_UnwrapSymKey (
   NSSPrivateKey *vk,
   const NSSAlgNParam *apOpt,
   NSSItem *wrappedKey,
@@ -759,12 +759,12 @@ NSSPrivateKey_UnwrapSymmetricKey (
 );
 
 /*
- * NSSPrivateKey_DeriveSymmetricKey
+ * NSSPrivateKey_DeriveSymKey
  *
  */
 
-NSS_EXTERN NSSSymmetricKey *
-NSSPrivateKey_DeriveSymmetricKey (
+NSS_EXTERN NSSSymKey *
+NSSPrivateKey_DeriveSymKey (
   NSSPrivateKey *vk,
   NSSPublicKey *bk,
   const NSSAlgNParam *apOpt,
@@ -800,30 +800,30 @@ NSSPrivateKey_CreateCryptoContext (
 );
 
 /*
- * NSSPrivateKey_FindCertificates
+ * NSSPrivateKey_FindCerts
  *
  * Note that there may be more than one certificate for this
- * private key.  { FilterCertificates function to further
+ * private key.  { FilterCerts function to further
  * reduce the list. }
  */
 
-NSS_EXTERN NSSCertificate **
-NSSPrivateKey_FindCertificates (
+NSS_EXTERN NSSCert **
+NSSPrivateKey_FindCerts (
   NSSPrivateKey *vk,
-  NSSCertificate *rvOpt[],
+  NSSCert *rvOpt[],
   PRUint32 maximumOpt, /* 0 for no max */
   NSSArena *arenaOpt
 );
 
 /*
- * NSSPrivateKey_FindBestCertificate
+ * NSSPrivateKey_FindBestCert
  *
  * The parameters for this function will depend on what the users
  * need.  This is just a starting point.
  */
 
-NSS_EXTERN NSSCertificate *
-NSSPrivateKey_FindBestCertificate (
+NSS_EXTERN NSSCert *
+NSSPrivateKey_FindBestCert (
   NSSPrivateKey *vk,
   NSSTime time,
   NSSUsages *usagesOpt,
@@ -972,15 +972,15 @@ NSSPublicKey_VerifyRecover (
 );
 
 /*
- * NSSPublicKey_WrapSymmetricKey
+ * NSSPublicKey_WrapSymKey
  *
  */
 
 NSS_EXTERN NSSItem *
-NSSPublicKey_WrapSymmetricKey (
+NSSPublicKey_WrapSymKey (
   NSSPublicKey *bk,
   const NSSAlgNParam *ap,
-  NSSSymmetricKey *keyToWrap,
+  NSSSymKey *keyToWrap,
   NSSCallback *uhh,
   NSSItem *rvOpt,
   NSSArena *arenaOpt
@@ -1001,33 +1001,33 @@ NSSPublicKey_CreateCryptoContext (
 );
 
 /*
- * NSSPublicKey_FindCertificates
+ * NSSPublicKey_FindCerts
  *
  * Note that there may be more than one certificate for this
  * public key.  The current implementation may not find every
  * last certificate available for this public key: that would
  * involve trolling e.g. huge ldap databases, which will be
  * grossly inefficient and not generally useful.
- * { FilterCertificates function to further reduce the list }
+ * { FilterCerts function to further reduce the list }
  */
 
-NSS_EXTERN NSSCertificate **
-NSSPublicKey_FindCertificates (
+NSS_EXTERN NSSCert **
+NSSPublicKey_FindCerts (
   NSSPublicKey *bk,
-  NSSCertificate *rvOpt[],
+  NSSCert *rvOpt[],
   PRUint32 maximumOpt, /* 0 for no max */
   NSSArena *arenaOpt
 );
 
 /*
- * NSSPrivateKey_FindBestCertificate
+ * NSSPrivateKey_FindBestCert
  *
  * The parameters for this function will depend on what the users
  * need.  This is just a starting point.
  */
 
-NSS_EXTERN NSSCertificate *
-NSSPublicKey_FindBestCertificate (
+NSS_EXTERN NSSCert *
+NSSPublicKey_FindBestCert (
   NSSPublicKey *bk,
   NSSTime time,
   NSSUsages *usagesOpt,
@@ -1046,119 +1046,119 @@ NSSPublicKey_FindPrivateKey (
 );
 
 /*
- * NSSSymmetricKey
+ * NSSSymKey
  *
  */
 
 /*
- * NSSSymmetricKey_Destroy
+ * NSSSymKey_Destroy
  *
  * Free a pointer to a symmetric key object.
  */
 
 NSS_EXTERN PRStatus
-NSSSymmetricKey_Destroy (
-  NSSSymmetricKey *mk
+NSSSymKey_Destroy (
+  NSSSymKey *mk
 );
 
 /*
- * NSSSymmetricKey_DeleteStoredObject
+ * NSSSymKey_DeleteStoredObject
  *
  * Permanently remove this object.
  */
 
 NSS_EXTERN PRStatus
-NSSSymmetricKey_DeleteStoredObject (
-  NSSSymmetricKey *mk,
+NSSSymKey_DeleteStoredObject (
+  NSSSymKey *mk,
   NSSCallback *uhh
 );
 
 /*
- * NSSSymmetricKey_GetKeyLength
+ * NSSSymKey_GetKeyLength
  *
  */
 
 NSS_EXTERN PRUint32
-NSSSymmetricKey_GetKeyLength (
-  NSSSymmetricKey *mk
+NSSSymKey_GetKeyLength (
+  NSSSymKey *mk
 );
 
 /*
- * NSSSymmetricKey_GetKeyStrength
+ * NSSSymKey_GetKeyStrength
  *
  */
 
 NSS_EXTERN PRUint32
-NSSSymmetricKey_GetKeyStrength (
-  NSSSymmetricKey *mk
+NSSSymKey_GetKeyStrength (
+  NSSSymKey *mk
 );
 
 /*
- * NSSSymmetricKey_IsStillPresent
+ * NSSSymKey_IsStillPresent
  *
  */
 
 NSS_EXTERN PRStatus
-NSSSymmetricKey_IsStillPresent (
-  NSSSymmetricKey *mk
+NSSSymKey_IsStillPresent (
+  NSSSymKey *mk
 );
 
 /*
- * NSSSymmetricKey_GetTrustDomain
+ * NSSSymKey_GetTrustDomain
  *
  * There doesn't have to be one.
  */
 
 NSS_EXTERN NSSTrustDomain *
-NSSSymmetricKey_GetTrustDomain (
-  NSSSymmetricKey *mk,
+NSSSymKey_GetTrustDomain (
+  NSSSymKey *mk,
   PRStatus *statusOpt
 );
 
 /*
- * NSSSymmetricKey_GetToken
+ * NSSSymKey_GetToken
  *
  * There doesn't have to be one.
  */
 
 NSS_EXTERN NSSToken *
-NSSSymmetricKey_GetToken (
-  NSSSymmetricKey *mk,
+NSSSymKey_GetToken (
+  NSSSymKey *mk,
   PRStatus *statusOpt
 );
 
 /*
- * NSSSymmetricKey_GetSlot
+ * NSSSymKey_GetSlot
  *
  * There doesn't have to be one.
  */
 
 NSS_EXTERN NSSSlot *
-NSSSymmetricKey_GetSlot (
-  NSSSymmetricKey *mk,
+NSSSymKey_GetSlot (
+  NSSSymKey *mk,
   PRStatus *statusOpt
 );
 
 /*
- * NSSSymmetricKey_GetModule
+ * NSSSymKey_GetModule
  *
  * There doesn't have to be one.
  */
 
 NSS_EXTERN NSSModule *
-NSSSymmetricKey_GetModule (
-  NSSSymmetricKey *mk,
+NSSSymKey_GetModule (
+  NSSSymKey *mk,
   PRStatus *statusOpt
 );
 
 /*
- * NSSSymmetricKey_Encrypt
+ * NSSSymKey_Encrypt
  *
  */
 
 NSS_EXTERN NSSItem *
-NSSSymmetricKey_Encrypt (
-  NSSSymmetricKey *mk,
+NSSSymKey_Encrypt (
+  NSSSymKey *mk,
   const NSSAlgNParam *ap,
   NSSItem *data,
   NSSCallback *uhh,
@@ -1167,13 +1167,13 @@ NSSSymmetricKey_Encrypt (
 );
 
 /*
- * NSSSymmetricKey_Decrypt
+ * NSSSymKey_Decrypt
  *
  */
 
 NSS_EXTERN NSSItem *
-NSSSymmetricKey_Decrypt (
-  NSSSymmetricKey *mk,
+NSSSymKey_Decrypt (
+  NSSSymKey *mk,
   const NSSAlgNParam *ap,
   NSSItem *encryptedData,
   NSSCallback *uhh,
@@ -1182,13 +1182,13 @@ NSSSymmetricKey_Decrypt (
 );
 
 /*
- * NSSSymmetricKey_Sign
+ * NSSSymKey_Sign
  *
  */
 
 NSS_EXTERN NSSItem *
-NSSSymmetricKey_Sign (
-  NSSSymmetricKey *mk,
+NSSSymKey_Sign (
+  NSSSymKey *mk,
   const NSSAlgNParam *ap,
   NSSItem *data,
   NSSCallback *uhh,
@@ -1197,13 +1197,13 @@ NSSSymmetricKey_Sign (
 );
 
 /*
- * NSSSymmetricKey_Verify
+ * NSSSymKey_Verify
  *
  */
 
 NSS_EXTERN PRStatus
-NSSSymmetricKey_Verify (
-  NSSSymmetricKey *mk,
+NSSSymKey_Verify (
+  NSSSymKey *mk,
   const NSSAlgNParam *ap,
   NSSItem *data,
   NSSItem *signature,
@@ -1211,28 +1211,28 @@ NSSSymmetricKey_Verify (
 );
 
 /*
- * NSSSymmetricKey_WrapSymmetricKey
+ * NSSSymKey_WrapSymKey
  *
  */
 
 NSS_EXTERN NSSItem *
-NSSSymmetricKey_WrapSymmetricKey (
-  NSSSymmetricKey *wrappingKey,
+NSSSymKey_WrapSymKey (
+  NSSSymKey *wrappingKey,
   const NSSAlgNParam *ap,
-  NSSSymmetricKey *keyToWrap,
+  NSSSymKey *keyToWrap,
   NSSCallback *uhh,
   NSSItem *rvOpt,
   NSSArena *arenaOpt
 );
 
 /*
- * NSSSymmetricKey_WrapPrivateKey
+ * NSSSymKey_WrapPrivateKey
  *
  */
 
 NSS_EXTERN NSSItem *
-NSSSymmetricKey_WrapPrivateKey (
-  NSSSymmetricKey *wrappingKey,
+NSSSymKey_WrapPrivateKey (
+  NSSSymKey *wrappingKey,
   const NSSAlgNParam *ap,
   NSSPrivateKey *keyToWrap,
   NSSCallback *uhh,
@@ -1241,13 +1241,13 @@ NSSSymmetricKey_WrapPrivateKey (
 );
 
 /*
- * NSSSymmetricKey_UnwrapSymmetricKey
+ * NSSSymKey_UnwrapSymKey
  *
  */
 
-NSS_EXTERN NSSSymmetricKey *
-NSSSymmetricKey_UnwrapSymmetricKey (
-  NSSSymmetricKey *wrappingKey,
+NSS_EXTERN NSSSymKey *
+NSSSymKey_UnwrapSymKey (
+  NSSSymKey *wrappingKey,
   const NSSAlgNParam *ap,
   NSSItem *wrappedKey,
   NSSOID *target,
@@ -1257,13 +1257,13 @@ NSSSymmetricKey_UnwrapSymmetricKey (
 );
 
 /*
- * NSSSymmetricKey_UnwrapPrivateKey
+ * NSSSymKey_UnwrapPrivateKey
  *
  */
 
 NSS_EXTERN NSSPrivateKey *
-NSSSymmetricKey_UnwrapPrivateKey (
-  NSSSymmetricKey *wrappingKey,
+NSSSymKey_UnwrapPrivateKey (
+  NSSSymKey *wrappingKey,
   const NSSAlgNParam *ap,
   NSSItem *wrappedKey,
   NSSUTF8 *labelOpt,
@@ -1275,30 +1275,30 @@ NSSSymmetricKey_UnwrapPrivateKey (
 );
 
 /*
- * NSSSymmetricKey_DeriveSymmetricKey
+ * NSSSymKey_DeriveSymKey
  *
  */
 
-NSS_EXTERN NSSSymmetricKey *
-NSSSymmetricKey_DeriveSymmetricKey (
-  NSSSymmetricKey *originalKey,
+NSS_EXTERN NSSSymKey *
+NSSSymKey_DeriveSymKey (
+  NSSSymKey *originalKey,
   const NSSAlgNParam *ap,
-  NSSSymmetricKeyType target,
+  NSSSymKeyType target,
   PRUint32 keySizeOpt,
   NSSOperations operations,
   NSSCallback *uhh
 );
 
 /*
- * NSSSymmetricKey_CreateCryptoContext
+ * NSSSymKey_CreateCryptoContext
  *
  * Create a crypto context, in this key's trust domain,
  * with this as the distinguished symmetric key.
  */
 
 NSS_EXTERN NSSCryptoContext *
-NSSSymmetricKey_CreateCryptoContext (
-  NSSSymmetricKey *mk,
+NSSSymKey_CreateCryptoContext (
+  NSSSymKey *mk,
   const NSSAlgNParam *apOpt,
   NSSCallback *uhh
 );
@@ -1526,39 +1526,39 @@ NSSTrustDomain_Logout (
 /* Importing things */
 
 /*
- * NSSTrustDomain_ImportCertificate
+ * NSSTrustDomain_ImportCert
  *
  * The implementation will pull some data out of the certificate
  * (e.g. e-mail address) for use in pkcs#11 object attributes.
  */
 
-NSS_EXTERN NSSCertificate *
-NSSTrustDomain_ImportCertificate (
+NSS_EXTERN NSSCert *
+NSSTrustDomain_ImportCert (
   NSSTrustDomain *td,
-  NSSCertificate *c,
+  NSSCert *c,
   NSSToken *destinationOpt
 );
 
 /*
- * NSSTrustDomain_ImportPKIXCertificate
+ * NSSTrustDomain_ImportPKIXCert
  *
  */
 
-NSS_EXTERN NSSCertificate *
-NSSTrustDomain_ImportPKIXCertificate (
+NSS_EXTERN NSSCert *
+NSSTrustDomain_ImportPKIXCert (
   NSSTrustDomain *td,
   /* declared as a struct until these "data types" are defined */
-  struct NSSPKIXCertificateStr *pc
+  struct NSSPKIXCertStr *pc
 );
 
 /*
- * NSSTrustDomain_ImportEncodedCertificate
+ * NSSTrustDomain_ImportEncodedCert
  *
  * Imports any type of certificate we support.
  */
 
-NSS_EXTERN NSSCertificate *
-NSSTrustDomain_ImportEncodedCertificate (
+NSS_EXTERN NSSCert *
+NSSTrustDomain_ImportEncodedCert (
   NSSTrustDomain *td,
   NSSBER *ber,
   NSSToken *destinationOpt,
@@ -1566,16 +1566,16 @@ NSSTrustDomain_ImportEncodedCertificate (
 );
 
 /*
- * NSSTrustDomain_ImportEncodedCertificateChain
+ * NSSTrustDomain_ImportEncodedCertChain
  *
  * If you just want the leaf, pass in a maximum of one.
  */
 
-NSS_EXTERN NSSCertificate **
-NSSTrustDomain_ImportEncodedCertificateChain (
+NSS_EXTERN NSSCert **
+NSSTrustDomain_ImportEncodedCertChain (
   NSSTrustDomain *td,
   NSSBER *ber,
-  NSSCertificate *rvOpt[],
+  NSSCert *rvOpt[],
   PRUint32 maximumOpt, /* 0 for no max */
   NSSArena *arenaOpt,
   NSSToken *destinationOpt
@@ -1620,12 +1620,12 @@ NSSTrustDomain_ImportEncodedCRL (
 /* Other importations: S/MIME capabilities */
 
 /*
- * NSSTrustDomain_FindBestCertificateByNickname
+ * NSSTrustDomain_FindBestCertByNickname
  *
  */
 
-NSS_EXTERN NSSCertificate *
-NSSTrustDomain_FindBestCertificateByNickname (
+NSS_EXTERN NSSCert *
+NSSTrustDomain_FindBestCertByNickname (
   NSSTrustDomain *td,
   NSSUTF8 *name,
   NSSTime time,
@@ -1634,33 +1634,33 @@ NSSTrustDomain_FindBestCertificateByNickname (
 );
 
 /*
- * NSSTrustDomain_FindCertificatesByNickname
+ * NSSTrustDomain_FindCertsByNickname
  *
  */
 
-NSS_EXTERN NSSCertificate **
-NSSTrustDomain_FindCertificatesByNickname (
+NSS_EXTERN NSSCert **
+NSSTrustDomain_FindCertsByNickname (
   NSSTrustDomain *td,
   NSSUTF8 *name,
-  NSSCertificate *rvOpt[],
+  NSSCert *rvOpt[],
   PRUint32 maximumOpt, /* 0 for no max */
   NSSArena *arenaOpt
 );
 
 /*
- * NSSTrustDomain_FindCertificateByIssuerAndSerialNumber
+ * NSSTrustDomain_FindCertByIssuerAndSerialNumber
  *
  */
 
-NSS_EXTERN NSSCertificate *
-NSSTrustDomain_FindCertificateByIssuerAndSerialNumber (
+NSS_EXTERN NSSCert *
+NSSTrustDomain_FindCertByIssuerAndSerialNumber (
   NSSTrustDomain *td,
   NSSDER *issuer,
   NSSDER *serialNumber
 );
 
 /*
- * NSSTrustDomain_FindCertificatesByIssuerAndSerialNumber
+ * NSSTrustDomain_FindCertsByIssuerAndSerialNumber
  *
  * Theoretically, this should never happen.  However, some companies
  * we know have issued duplicate certificates with the same issuer
@@ -1668,13 +1668,13 @@ NSSTrustDomain_FindCertificateByIssuerAndSerialNumber (
  */
 
 /*
- * NSSTrustDomain_FindBestCertificateBySubject
+ * NSSTrustDomain_FindBestCertBySubject
  *
  * This does not search through alternate names hidden in extensions.
  */
 
-NSS_EXTERN NSSCertificate *
-NSSTrustDomain_FindBestCertificateBySubject (
+NSS_EXTERN NSSCert *
+NSSTrustDomain_FindBestCertBySubject (
   NSSTrustDomain *td,
   NSSDER *subject,
   NSSTime time,
@@ -1683,22 +1683,22 @@ NSSTrustDomain_FindBestCertificateBySubject (
 );
 
 /*
- * NSSTrustDomain_FindCertificatesBySubject
+ * NSSTrustDomain_FindCertsBySubject
  *
  * This does not search through alternate names hidden in extensions.
  */
 
-NSS_EXTERN NSSCertificate **
-NSSTrustDomain_FindCertificatesBySubject (
+NSS_EXTERN NSSCert **
+NSSTrustDomain_FindCertsBySubject (
   NSSTrustDomain *td,
   NSSDER *subject,
-  NSSCertificate *rvOpt[],
+  NSSCert *rvOpt[],
   PRUint32 maximumOpt, /* 0 for no max */
   NSSArena *arenaOpt
 );
 
 /*
- * NSSTrustDomain_FindBestCertificateByNameComponents
+ * NSSTrustDomain_FindBestCertByNameComponents
  *
  * This call does try several tricks, including a pseudo pkcs#11 
  * attribute for the ldap module to try as a query.  Eventually
@@ -1706,8 +1706,8 @@ NSSTrustDomain_FindCertificatesBySubject (
  * It will search through alternate names hidden in extensions.
  */
 
-NSS_EXTERN NSSCertificate *
-NSSTrustDomain_FindBestCertificateByNameComponents (
+NSS_EXTERN NSSCert *
+NSSTrustDomain_FindBestCertByNameComponents (
   NSSTrustDomain *td,
   NSSUTF8 *nameComponents,
   NSSTime time,
@@ -1716,40 +1716,40 @@ NSSTrustDomain_FindBestCertificateByNameComponents (
 );
 
 /*
- * NSSTrustDomain_FindCertificatesByNameComponents
+ * NSSTrustDomain_FindCertsByNameComponents
  *
  * This call, too, tries several tricks.  It will stop on the first
  * attempt that generates results, so it won't e.g. traverse the
  * entire ldap database.
  */
 
-NSS_EXTERN NSSCertificate **
-NSSTrustDomain_FindCertificatesByNameComponents (
+NSS_EXTERN NSSCert **
+NSSTrustDomain_FindCertsByNameComponents (
   NSSTrustDomain *td,
   NSSUTF8 *nameComponents,
-  NSSCertificate *rvOpt[],
+  NSSCert *rvOpt[],
   PRUint32 maximumOpt, /* 0 for no max */
   NSSArena *arenaOpt
 );
 
 /*
- * NSSTrustDomain_FindCertificateByEncodedCertificate
+ * NSSTrustDomain_FindCertByEncodedCert
  *
  */
 
-NSS_EXTERN NSSCertificate *
-NSSTrustDomain_FindCertificateByEncodedCertificate (
+NSS_EXTERN NSSCert *
+NSSTrustDomain_FindCertByEncodedCert (
   NSSTrustDomain *td,
-  NSSBER *encodedCertificate
+  NSSBER *encodedCert
 );
 
 /*
- * NSSTrustDomain_FindBestCertificateByEmail
+ * NSSTrustDomain_FindBestCertByEmail
  *
  */
 
-NSS_EXTERN NSSCertificate *
-NSSTrustDomain_FindBestCertificateByEmail (
+NSS_EXTERN NSSCert *
+NSSTrustDomain_FindBestCertByEmail (
   NSSTrustDomain *td,
   NSSASCII7 *email,
   NSSTime time,
@@ -1758,33 +1758,33 @@ NSSTrustDomain_FindBestCertificateByEmail (
 );
 
 /*
- * NSSTrustDomain_FindCertificatesByEmail
+ * NSSTrustDomain_FindCertsByEmail
  *
  */
 
-NSS_EXTERN NSSCertificate **
-NSSTrustDomain_FindCertificatesByEmail (
+NSS_EXTERN NSSCert **
+NSSTrustDomain_FindCertsByEmail (
   NSSTrustDomain *td,
   NSSASCII7 *email,
-  NSSCertificate *rvOpt[],
+  NSSCert *rvOpt[],
   PRUint32 maximumOpt, /* 0 for no max */
   NSSArena *arenaOpt
 );
 
 /*
- * NSSTrustDomain_FindCertificateByOCSPHash
+ * NSSTrustDomain_FindCertByOCSPHash
  *
  * There can be only one.
  */
 
-NSS_EXTERN NSSCertificate *
-NSSTrustDomain_FindCertificateByOCSPHash (
+NSS_EXTERN NSSCert *
+NSSTrustDomain_FindCertByOCSPHash (
   NSSTrustDomain *td,
   NSSItem *hash
 );
 
 /*
- * NSSTrustDomain_TraverseCertificates
+ * NSSTrustDomain_TraverseCerts
  *
  * This function descends from one in older versions of NSS which
  * traverses the certs in the permanent database.  That function
@@ -1802,19 +1802,19 @@ NSSTrustDomain_FindCertificateByOCSPHash (
  * needed in a "friend" header file?
  */
 NSS_EXTERN PRStatus *
-NSSTrustDomain_TraverseCertificates (
+NSSTrustDomain_TraverseCerts (
   NSSTrustDomain *td,
-  PRStatus (*callback)(NSSCertificate *c, void *arg),
+  PRStatus (*callback)(NSSCert *c, void *arg),
   void *arg
 );
 
 /*
- * NSSTrustDomain_FindBestUserCertificate
+ * NSSTrustDomain_FindBestUserCert
  *
  */
 
-NSS_EXTERN NSSCertificate *
-NSSTrustDomain_FindBestUserCertificate (
+NSS_EXTERN NSSCert *
+NSSTrustDomain_FindBestUserCert (
   NSSTrustDomain *td,
   NSSTime time,
   NSSUsages *usages,
@@ -1822,25 +1822,25 @@ NSSTrustDomain_FindBestUserCertificate (
 );
 
 /*
- * NSSTrustDomain_FindUserCertificates
+ * NSSTrustDomain_FindUserCerts
  *
  */
 
-NSS_EXTERN NSSCertificate **
-NSSTrustDomain_FindUserCertificates (
+NSS_EXTERN NSSCert **
+NSSTrustDomain_FindUserCerts (
   NSSTrustDomain *td,
-  NSSCertificate **rvOpt,
+  NSSCert **rvOpt,
   PRUint32 rvLimit, /* zero for no limit */
   NSSArena *arenaOpt
 );
 
 /*
- * NSSTrustDomain_FindBestUserCertificateForSSLClientAuth
+ * NSSTrustDomain_FindBestUserCertForSSLClientAuth
  *
  */
 
-NSS_EXTERN NSSCertificate *
-NSSTrustDomain_FindBestUserCertificateForSSLClientAuth (
+NSS_EXTERN NSSCert *
+NSSTrustDomain_FindBestUserCertForSSLClientAuth (
   NSSTrustDomain *td,
   NSSUTF8 *sslHostOpt,
   NSSDER *rootCAsOpt[], /* null pointer for none */
@@ -1850,30 +1850,30 @@ NSSTrustDomain_FindBestUserCertificateForSSLClientAuth (
 );
 
 /*
- * NSSTrustDomain_FindUserCertificatesForSSLClientAuth
+ * NSSTrustDomain_FindUserCertsForSSLClientAuth
  *
  */
 
-NSS_EXTERN NSSCertificate **
-NSSTrustDomain_FindUserCertificatesForSSLClientAuth (
+NSS_EXTERN NSSCert **
+NSSTrustDomain_FindUserCertsForSSLClientAuth (
   NSSTrustDomain *td,
   NSSUTF8 *sslHostOpt,
   NSSDER *rootCAsOpt[], /* null pointer for none */
   PRUint32 rootCAsMaxOpt, /* zero means list is null-terminated */
   const NSSAlgNParam *apOpt,
   NSSPolicies *policiesOpt,
-  NSSCertificate **rvOpt,
+  NSSCert **rvOpt,
   PRUint32 rvLimit, /* zero for no limit */
   NSSArena *arenaOpt
 );
 
 /*
- * NSSTrustDomain_FindBestUserCertificateForEmailSigning
+ * NSSTrustDomain_FindBestUserCertForEmailSigning
  *
  */
 
-NSS_EXTERN NSSCertificate *
-NSSTrustDomain_FindBestUserCertificateForEmailSigning (
+NSS_EXTERN NSSCert *
+NSSTrustDomain_FindBestUserCertForEmailSigning (
   NSSTrustDomain *td,
   NSSASCII7 *signerOpt,
   NSSASCII7 *recipientOpt,
@@ -1883,25 +1883,25 @@ NSSTrustDomain_FindBestUserCertificateForEmailSigning (
 );
 
 /*
- * NSSTrustDomain_FindUserCertificatesForEmailSigning
+ * NSSTrustDomain_FindUserCertsForEmailSigning
  *
  */
 
-NSS_EXTERN NSSCertificate **
-NSSTrustDomain_FindUserCertificatesForEmailSigning (
+NSS_EXTERN NSSCert **
+NSSTrustDomain_FindUserCertsForEmailSigning (
   NSSTrustDomain *td,
   NSSASCII7 *signerOpt,
   NSSASCII7 *recipientOpt,
   /* anything more here? */
   const NSSAlgNParam *apOpt,
   NSSPolicies *policiesOpt,
-  NSSCertificate **rvOpt,
+  NSSCert **rvOpt,
   PRUint32 rvLimit, /* zero for no limit */
   NSSArena *arenaOpt
 );
 
 /*
- * Here is where we'd add more Find[Best]UserCertificate[s]For<usage>
+ * Here is where we'd add more Find[Best]UserCert[s]For<usage>
  * routines.
  */
 
@@ -1946,12 +1946,12 @@ NSSTrustDomain_TraversePrivateKeys (
 /* Symmetric Keys */
 
 /*
- * NSSTrustDomain_GenerateSymmetricKey
+ * NSSTrustDomain_GenerateSymKey
  *
  */
 
-NSS_EXTERN NSSSymmetricKey *
-NSSTrustDomain_GenerateSymmetricKey (
+NSS_EXTERN NSSSymKey *
+NSSTrustDomain_GenerateSymKey (
   NSSTrustDomain *td,
   const NSSAlgNParam *ap,
   PRUint32 keysize,
@@ -1960,12 +1960,12 @@ NSSTrustDomain_GenerateSymmetricKey (
 );
 
 /*
- * NSSTrustDomain_GenerateSymmetricKeyFromPassword
+ * NSSTrustDomain_GenerateSymKeyFromPassword
  *
  */
 
-NSS_EXTERN NSSSymmetricKey *
-NSSTrustDomain_GenerateSymmetricKeyFromPassword (
+NSS_EXTERN NSSSymKey *
+NSSTrustDomain_GenerateSymKeyFromPassword (
   NSSTrustDomain *td,
   const NSSAlgNParam *ap,
   NSSUTF8 *passwordOpt, /* if null, prompt */
@@ -1974,12 +1974,12 @@ NSSTrustDomain_GenerateSymmetricKeyFromPassword (
 );
 
 /*
- * NSSTrustDomain_FindSymmetricKeyByAlgorithm
+ * NSSTrustDomain_FindSymKeyByAlgorithm
  *
  * Is this still needed?
  * 
- * NSS_EXTERN NSSSymmetricKey *
- * NSSTrustDomain_FindSymmetricKeyByAlgorithm
+ * NSS_EXTERN NSSSymKey *
+ * NSSTrustDomain_FindSymKeyByAlgorithm
  * (
  *   NSSTrustDomain *td,
  *   NSSOID *algorithm,
@@ -1988,12 +1988,12 @@ NSSTrustDomain_GenerateSymmetricKeyFromPassword (
  */
 
 /*
- * NSSTrustDomain_FindSymmetricKeyByAlgorithmAndKeyID
+ * NSSTrustDomain_FindSymKeyByAlgorithmAndKeyID
  *
  */
 
-NSS_EXTERN NSSSymmetricKey *
-NSSTrustDomain_FindSymmetricKeyByAlgorithmAndKeyID (
+NSS_EXTERN NSSSymKey *
+NSSTrustDomain_FindSymKeyByAlgorithmAndKeyID (
   NSSTrustDomain *td,
   NSSOID *algorithm,
   NSSItem *keyID,
@@ -2001,14 +2001,14 @@ NSSTrustDomain_FindSymmetricKeyByAlgorithmAndKeyID (
 );
 
 /*
- * NSSTrustDomain_TraverseSymmetricKeys
+ * NSSTrustDomain_TraverseSymKeys
  *
  * 
  * NSS_EXTERN PRStatus *
- * NSSTrustDomain_TraverseSymmetricKeys
+ * NSSTrustDomain_TraverseSymKeys
  * (
  *   NSSTrustDomain *td,
- *   PRStatus (*callback)(NSSSymmetricKey *mk, void *arg),
+ *   PRStatus (*callback)(NSSSymKey *mk, void *arg),
  *   void *arg
  * );
  */
@@ -2069,12 +2069,12 @@ NSSVolatileDomain_Destroy (
 );
 
 /*
- * NSSVolatileDomain_FindBestCertificateByNickname
+ * NSSVolatileDomain_FindBestCertByNickname
  *
  */
 
-NSS_EXTERN NSSCertificate *
-NSSVolatileDomain_FindBestCertificateByNickname (
+NSS_EXTERN NSSCert *
+NSSVolatileDomain_FindBestCertByNickname (
   NSSVolatileDomain *vd,
   NSSUTF8 *name,
   NSSTime time, /* NULL for "now" */
@@ -2083,39 +2083,39 @@ NSSVolatileDomain_FindBestCertificateByNickname (
 );
 
 /*
- * NSSVolatileDomain_FindCertificatesByNickname
+ * NSSVolatileDomain_FindCertsByNickname
  *
  */
 
-NSS_EXTERN NSSCertificate **
-NSSVolatileDomain_FindCertificatesByNickname (
+NSS_EXTERN NSSCert **
+NSSVolatileDomain_FindCertsByNickname (
   NSSVolatileDomain *vd,
   NSSUTF8 *name,
-  NSSCertificate *rvOpt[],
+  NSSCert *rvOpt[],
   PRUint32 maximumOpt, /* 0 for no max */
   NSSArena *arenaOpt
 );
 
 /*
- * NSSVolatileDomain_FindCertificateByIssuerAndSerialNumber
+ * NSSVolatileDomain_FindCertByIssuerAndSerialNumber
  *
  */
 
-NSS_EXTERN NSSCertificate *
-NSSVolatileDomain_FindCertificateByIssuerAndSerialNumber (
+NSS_EXTERN NSSCert *
+NSSVolatileDomain_FindCertByIssuerAndSerialNumber (
   NSSVolatileDomain *vd,
   NSSDER *issuer,
   NSSDER *serialNumber
 );
 
 /*
- * NSSVolatileDomain_FindBestCertificateBySubject
+ * NSSVolatileDomain_FindBestCertBySubject
  *
  * This does not search through alternate names hidden in extensions.
  */
 
-NSS_EXTERN NSSCertificate *
-NSSVolatileDomain_FindBestCertificateBySubject (
+NSS_EXTERN NSSCert *
+NSSVolatileDomain_FindBestCertBySubject (
   NSSVolatileDomain *vd,
   NSSDER *subject,
   NSSTime time,
@@ -2124,38 +2124,38 @@ NSSVolatileDomain_FindBestCertificateBySubject (
 );
 
 /*
- * NSSVolatileDomain_FindCertificatesBySubject
+ * NSSVolatileDomain_FindCertsBySubject
  *
  * This does not search through alternate names hidden in extensions.
  */
 
-NSS_EXTERN NSSCertificate **
-NSSVolatileDomain_FindCertificatesBySubject (
+NSS_EXTERN NSSCert **
+NSSVolatileDomain_FindCertsBySubject (
   NSSVolatileDomain *vd,
   NSSDER *subject,
-  NSSCertificate *rvOpt[],
+  NSSCert *rvOpt[],
   PRUint32 maximumOpt, /* 0 for no max */
   NSSArena *arenaOpt
 );
 
 /*
- * NSSVolatileDomain_FindCertificateByEncodedCertificate
+ * NSSVolatileDomain_FindCertByEncodedCert
  *
  */
 
-NSS_EXTERN NSSCertificate *
-NSSVolatileDomain_FindCertificateByEncodedCertificate (
+NSS_EXTERN NSSCert *
+NSSVolatileDomain_FindCertByEncodedCert (
   NSSVolatileDomain *vd,
-  NSSBER *encodedCertificate
+  NSSBER *encodedCert
 );
 
 /*
- * NSSVolatileDomain_FindBestCertificateByEmail
+ * NSSVolatileDomain_FindBestCertByEmail
  *
  */
 
-NSS_EXTERN NSSCertificate *
-NSSVolatileDomain_FindBestCertificateByEmail (
+NSS_EXTERN NSSCert *
+NSSVolatileDomain_FindBestCertByEmail (
   NSSVolatileDomain *vd,
   NSSASCII7 *email,
   NSSTime time,
@@ -2164,39 +2164,39 @@ NSSVolatileDomain_FindBestCertificateByEmail (
 );
 
 /*
- * NSSVolatileDomain_FindCertificatesByEmail
+ * NSSVolatileDomain_FindCertsByEmail
  *
  */
 
-NSS_EXTERN NSSCertificate **
-NSSVolatileDomain_FindCertificatesByEmail (
+NSS_EXTERN NSSCert **
+NSSVolatileDomain_FindCertsByEmail (
   NSSVolatileDomain *vd,
   NSSASCII7 *email,
-  NSSCertificate *rvOpt[],
+  NSSCert *rvOpt[],
   PRUint32 maximumOpt, /* 0 for no max */
   NSSArena *arenaOpt
 );
 
 /*
- * NSSVolatileDomain_TraverseCertificates
+ * NSSVolatileDomain_TraverseCerts
  *
  * 
  * NSS_EXTERN PRStatus *
- * NSSVolatileDomain_TraverseCertificates
+ * NSSVolatileDomain_TraverseCerts
  * (
  *   NSSVolatileDomain *vd,
- *   PRStatus (*callback)(NSSCertificate *c, void *arg),
+ *   PRStatus (*callback)(NSSCert *c, void *arg),
  *   void *arg
  * );
  */
 
 /*
- * NSSVolatileDomain_FindBestUserCertificate
+ * NSSVolatileDomain_FindBestUserCert
  *
  */
 
-NSS_EXTERN NSSCertificate *
-NSSVolatileDomain_FindBestUserCertificate (
+NSS_EXTERN NSSCert *
+NSSVolatileDomain_FindBestUserCert (
   NSSVolatileDomain *vd,
   NSSTime time,
   NSSUsages *usages,
@@ -2204,28 +2204,28 @@ NSSVolatileDomain_FindBestUserCertificate (
 );
 
 /*
- * NSSVolatileDomain_FindUserCertificates
+ * NSSVolatileDomain_FindUserCerts
  *
  */
 
-NSS_EXTERN NSSCertificate **
-NSSVolatileDomain_FindUserCertificates (
+NSS_EXTERN NSSCert **
+NSSVolatileDomain_FindUserCerts (
   NSSVolatileDomain *vd,
   NSSTime time,
   NSSUsages *usagesOpt,
   NSSPolicies *policiesOpt,
-  NSSCertificate **rvOpt,
+  NSSCert **rvOpt,
   PRUint32 rvLimit, /* zero for no limit */
   NSSArena *arenaOpt
 );
 
 /*
- * NSSVolatileDomain_FindBestUserCertificateForSSLClientAuth
+ * NSSVolatileDomain_FindBestUserCertForSSLClientAuth
  *
  */
 
-NSS_EXTERN NSSCertificate *
-NSSVolatileDomain_FindBestUserCertificateForSSLClientAuth (
+NSS_EXTERN NSSCert *
+NSSVolatileDomain_FindBestUserCertForSSLClientAuth (
   NSSVolatileDomain *vd,
   NSSUTF8 *sslHostOpt,
   NSSDER *rootCAsOpt[], /* null pointer for none */
@@ -2235,30 +2235,30 @@ NSSVolatileDomain_FindBestUserCertificateForSSLClientAuth (
 );
 
 /*
- * NSSVolatileDomain_FindUserCertificatesForSSLClientAuth
+ * NSSVolatileDomain_FindUserCertsForSSLClientAuth
  *
  */
 
-NSS_EXTERN NSSCertificate **
-NSSVolatileDomain_FindUserCertificatesForSSLClientAuth (
+NSS_EXTERN NSSCert **
+NSSVolatileDomain_FindUserCertsForSSLClientAuth (
   NSSVolatileDomain *vd,
   NSSUTF8 *sslHostOpt,
   NSSDER *rootCAsOpt[], /* null pointer for none */
   PRUint32 rootCAsMaxOpt, /* zero means list is null-terminated */
   const NSSAlgNParam *apOpt,
   NSSPolicies *policiesOpt,
-  NSSCertificate **rvOpt,
+  NSSCert **rvOpt,
   PRUint32 rvLimit, /* zero for no limit */
   NSSArena *arenaOpt
 );
 
 /*
- * NSSVolatileDomain_FindBestUserCertificateForEmailSigning
+ * NSSVolatileDomain_FindBestUserCertForEmailSigning
  *
  */
 
-NSS_EXTERN NSSCertificate *
-NSSVolatileDomain_FindBestUserCertificateForEmailSigning (
+NSS_EXTERN NSSCert *
+NSSVolatileDomain_FindBestUserCertForEmailSigning (
   NSSVolatileDomain *vd,
   NSSASCII7 *signerOpt,
   NSSASCII7 *recipientOpt,
@@ -2268,19 +2268,19 @@ NSSVolatileDomain_FindBestUserCertificateForEmailSigning (
 );
 
 /*
- * NSSVolatileDomain_FindUserCertificatesForEmailSigning
+ * NSSVolatileDomain_FindUserCertsForEmailSigning
  *
  */
 
-NSS_EXTERN NSSCertificate *
-NSSVolatileDomain_FindUserCertificatesForEmailSigning (
+NSS_EXTERN NSSCert *
+NSSVolatileDomain_FindUserCertsForEmailSigning (
   NSSVolatileDomain *vd,
   NSSASCII7 *signerOpt, /* fgmr or a more general name? */
   NSSASCII7 *recipientOpt,
   /* anything more here? */
   const NSSAlgNParam *apOpt,
   NSSPolicies *policiesOpt,
-  NSSCertificate **rvOpt,
+  NSSCert **rvOpt,
   PRUint32 rvLimit, /* zero for no limit */
   NSSArena *arenaOpt
 );
@@ -2288,38 +2288,38 @@ NSSVolatileDomain_FindUserCertificatesForEmailSigning (
 /* Importing things */
 
 /*
- * NSSVolatileDomain_ImportCertificate
+ * NSSVolatileDomain_ImportCert
  *
  */
 
 NSS_EXTERN PRStatus
-NSSVolatileDomain_ImportCertificate (
+NSSVolatileDomain_ImportCert (
   NSSVolatileDomain *vd,
-  NSSCertificate *c
+  NSSCert *c
 );
 
 /*
- * NSSVolatileDomain_ImportEncodedCertificate
+ * NSSVolatileDomain_ImportEncodedCert
  *
  */
 
-NSS_EXTERN NSSCertificate *
-NSSVolatileDomain_ImportEncodedCertificate (
+NSS_EXTERN NSSCert *
+NSSVolatileDomain_ImportEncodedCert (
   NSSVolatileDomain *vd,
   NSSBER *ber,
   NSSUTF8 *nicknameOpt
 );
 
 /*
- * NSSVolatileDomain_ImportEncodedCertificateChain
+ * NSSVolatileDomain_ImportEncodedCertChain
  *
  */
 
 NSS_EXTERN PRStatus
-NSSVolatileDomain_ImportEncodedCertificateChain (
+NSSVolatileDomain_ImportEncodedCertChain (
   NSSVolatileDomain *vd,
   NSSBER *ber,
-  NSSCertificateType certType
+  NSSCertType certType
 );
 
 /*
@@ -2381,12 +2381,12 @@ NSSVolatileDomain_GenerateKeyPair (
 /* Symmetric Keys */
 
 /*
- * NSSVolatileDomain_GenerateSymmetricKey
+ * NSSVolatileDomain_GenerateSymKey
  *
  */
 
-NSS_EXTERN NSSSymmetricKey *
-NSSVolatileDomain_GenerateSymmetricKey (
+NSS_EXTERN NSSSymKey *
+NSSVolatileDomain_GenerateSymKey (
   NSSVolatileDomain *vd,
   const NSSAlgNParam *ap,
   PRUint32 keysize,
@@ -2398,12 +2398,12 @@ NSSVolatileDomain_GenerateSymmetricKey (
 );
 
 /*
- * NSSVolatileDomain_GenerateSymmetricKeyFromPassword
+ * NSSVolatileDomain_GenerateSymKeyFromPassword
  *
  */
 
-NSS_EXTERN NSSSymmetricKey *
-NSSVolatileDomain_GenerateSymmetricKeyFromPassword (
+NSS_EXTERN NSSSymKey *
+NSSVolatileDomain_GenerateSymKeyFromPassword (
   NSSVolatileDomain *vd,
   const NSSAlgNParam *ap,
   NSSUTF8 *passwordOpt, /* if null, prompt */
@@ -2412,11 +2412,11 @@ NSSVolatileDomain_GenerateSymmetricKeyFromPassword (
 );
 
 /*
- * NSSVolatileDomain_FindSymmetricKeyByAlgorithm
+ * NSSVolatileDomain_FindSymKeyByAlgorithm
  *
  * 
- * NSS_EXTERN NSSSymmetricKey *
- * NSSVolatileDomain_FindSymmetricKeyByType
+ * NSS_EXTERN NSSSymKey *
+ * NSSVolatileDomain_FindSymKeyByType
  * (
  *   NSSVolatileDomain *vd,
  *   NSSOID *type,
@@ -2425,12 +2425,12 @@ NSSVolatileDomain_GenerateSymmetricKeyFromPassword (
  */
 
 /*
- * NSSVolatileDomain_FindSymmetricKeyByAlgorithmAndKeyID
+ * NSSVolatileDomain_FindSymKeyByAlgorithmAndKeyID
  *
  */
 
-NSS_EXTERN NSSSymmetricKey *
-NSSVolatileDomain_FindSymmetricKeyByAlgorithmAndKeyID (
+NSS_EXTERN NSSSymKey *
+NSSVolatileDomain_FindSymKeyByAlgorithmAndKeyID (
   NSSVolatileDomain *vd,
   NSSOID *algorithm,
   NSSItem *keyID,
@@ -2438,12 +2438,12 @@ NSSVolatileDomain_FindSymmetricKeyByAlgorithmAndKeyID (
 );
 
 /*
- * NSSVolatileDomain_UnwrapSymmetricKey
+ * NSSVolatileDomain_UnwrapSymKey
  *
  */
 
-NSS_EXTERN NSSSymmetricKey *
-NSSVolatileDomain_UnwrapSymmetricKey (
+NSS_EXTERN NSSSymKey *
+NSSVolatileDomain_UnwrapSymKey (
   NSSVolatileDomain *vd,
   const NSSAlgNParam *ap,
   NSSPrivateKey *wrapKey,
@@ -2455,25 +2455,25 @@ NSSVolatileDomain_UnwrapSymmetricKey (
 );
 
 /*
- * NSSVolatileDomain_TraverseSymmetricKeys
+ * NSSVolatileDomain_TraverseSymKeys
  *
  * 
  * NSS_EXTERN PRStatus *
- * NSSVolatileDomain_TraverseSymmetricKeys
+ * NSSVolatileDomain_TraverseSymKeys
  * (
  *   NSSVolatileDomain *vd,
- *   PRStatus (*callback)(NSSSymmetricKey *mk, void *arg),
+ *   PRStatus (*callback)(NSSSymKey *mk, void *arg),
  *   void *arg
  * );
  */
 
 /*
- * NSSVolatileDomain_DeriveSymmetricKey
+ * NSSVolatileDomain_DeriveSymKey
  *
  */
 
-NSS_EXTERN NSSSymmetricKey *
-NSSVolatileDomain_DeriveSymmetricKey (
+NSS_EXTERN NSSSymKey *
+NSSVolatileDomain_DeriveSymKey (
   NSSVolatileDomain *vd,
   NSSPublicKey *bkOpt,
   const NSSAlgNParam *apOpt,
@@ -2815,15 +2815,15 @@ NSSCryptoContext_VerifyRecover (
 );
 
 /*
- * NSSCryptoContext_WrapSymmetricKey
+ * NSSCryptoContext_WrapSymKey
  *
  */
 
 NSS_EXTERN NSSItem *
-NSSCryptoContext_WrapSymmetricKey (
+NSSCryptoContext_WrapSymKey (
   NSSCryptoContext *cc,
   const NSSAlgNParam *apOpt,
-  NSSSymmetricKey *keyToWrap,
+  NSSSymKey *keyToWrap,
   NSSCallback *uhhOpt,
   NSSItem *rvOpt,
   NSSArena *arenaOpt
@@ -2871,7 +2871,7 @@ NSSCryptoContext_ContinueDigest (
 NSS_EXTERN PRStatus
 NSSCryptoContext_DigestKey (
   NSSCryptoContext *cc,
-  NSSSymmetricKey *mkOpt
+  NSSSymKey *mkOpt
 );
 
 /*
@@ -2918,14 +2918,14 @@ NSSCryptoContext_Release (
 );
 
 /*
- * ..._SignTBSCertificate
+ * ..._SignTBSCert
  *
  * This requires feedback from the cert server team.
  */
 
 /*
- * PRBool NSSCertificate_GetIsTrustedFor{xxx}(NSSCertificate *c);
- * PRStatus NSSCertificate_SetIsTrustedFor{xxx}(NSSCertificate *c, PRBool trusted);
+ * PRBool NSSCert_GetIsTrustedFor{xxx}(NSSCert *c);
+ * PRStatus NSSCert_SetIsTrustedFor{xxx}(NSSCert *c, PRBool trusted);
  *
  * These will be helper functions which get the trust object for a cert,
  * and then call the corresponding function(s) on it.
@@ -2942,8 +2942,8 @@ NSSCryptoContext_Release (
  * like "EmailSigning."
  *
  *
- * NSSPKIXTrust *NSSCertificate_GetPKIXTrustObject(NSSCertificate *c);
- * PRStatus NSSCertificate_SetPKIXTrustObject(NSSCertificate *c, NSPKIXTrust *t);
+ * NSSPKIXTrust *NSSCert_GetPKIXTrustObject(NSSCert *c);
+ * PRStatus NSSCert_SetPKIXTrustObject(NSSCert *c, NSPKIXTrust *t);
  *
  * I want to hold off on any general trust object until we've investigated
  * other models more thoroughly.

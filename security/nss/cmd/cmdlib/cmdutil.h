@@ -216,7 +216,7 @@ void
 CMD_PrintHex(CMDPrinter *printer, NSSItem *item, char *message);
 
 void
-CMD_PrintPKIXCertificate(CMDPrinter *printer, NSSPKIXCertificate *pkixCert,
+CMD_PrintPKIXCert(CMDPrinter *printer, NSSPKIXCertificate *pkixCert,
                          char *message);
 
 void

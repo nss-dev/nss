@@ -141,7 +141,7 @@ static cmdCommandLineArg pkiutil_commands[] =
    },
    "Export an object from the profile/token\n"
    "  private-key ==> PKCS#8 Encrypted Private Key Info\n"
-   "  certificate ==> DER-encoded Certificate"
+   "  certificate ==> DER-encoded Cert"
  },
  { /* cmd_GenerateKeyPair */  
    'G', "generate-key-pair", 

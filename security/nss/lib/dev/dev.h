@@ -298,18 +298,18 @@ nssSlot_CreateSession (
  * nssToken_NeedsPINInitialization
  *
  *   ------ certificate objects --------
- * nssToken_ImportCertificate
- * nssToken_FindCertificates
- * nssToken_FindCertificatesBySubject
- * nssToken_FindCertificatesByNickname
- * nssToken_FindCertificatesByEmail
- * nssToken_FindCertificateByIssuerAndSerialNumber
- * nssToken_FindCertificateByEncodedCertificate
+ * nssToken_ImportCert
+ * nssToken_FindCerts
+ * nssToken_FindCertsBySubject
+ * nssToken_FindCertsByNickname
+ * nssToken_FindCertsByEmail
+ * nssToken_FindCertByIssuerAndSerialNumber
+ * nssToken_FindCertByEncodedCert
  *
  *   ------ trust objects --------
  * nssToken_ImportTrust
  * nssToken_FindTrustObjects
- * nssToken_FindTrustForCertificate
+ * nssToken_FindTrustForCert
  *
  *   ------ CRL objects --------
  * nssToken_ImportCRL
@@ -323,11 +323,11 @@ nssSlot_CreateSession (
  * nssToken_FindPublicKeyByID
  *
  *   ------ secret key objects --------
- * nssToken_GenerateSymmetricKey
+ * nssToken_GenerateSymKey
  *
  *   ------ generic key stuff -------
  * nssToken_UnwrapPrivateKey
- * nssToken_UnwrapSymmetricKey
+ * nssToken_UnwrapSymKey
  * nssToken_WrapKey
  * nssToken_DeriveKey
  *
@@ -404,10 +404,10 @@ nssToken_NeedsPINInitialization (
 );
 
 NSS_EXTERN nssCryptokiObject *
-nssToken_ImportCertificate (
+nssToken_ImportCert (
   NSSToken *tok,
   nssSession *session,
-  NSSCertificateType certType,
+  NSSCertType certType,
   NSSItem *id,
   NSSUTF8 *nickname,
   NSSDER *encoding,
@@ -419,7 +419,7 @@ nssToken_ImportCertificate (
 );
 
 NSS_EXTERN nssCryptokiObject **
-nssToken_FindCertificates (
+nssToken_FindCerts (
   NSSToken *token,
   nssSession *session,
   nssTokenSearchType searchType,
@@ -428,7 +428,7 @@ nssToken_FindCertificates (
 );
 
 NSS_EXTERN nssCryptokiObject **
-nssToken_FindCertificatesBySubject (
+nssToken_FindCertsBySubject (
   NSSToken *token,
   nssSession *session,
   NSSDER *subject,
@@ -438,7 +438,7 @@ nssToken_FindCertificatesBySubject (
 );
 
 NSS_EXTERN nssCryptokiObject **
-nssToken_FindCertificatesByNickname (
+nssToken_FindCertsByNickname (
   NSSToken *token,
   nssSession *session,
   NSSUTF8 *name,
@@ -448,7 +448,7 @@ nssToken_FindCertificatesByNickname (
 );
 
 NSS_EXTERN nssCryptokiObject **
-nssToken_FindCertificatesByEmail (
+nssToken_FindCertsByEmail (
   NSSToken *token,
   nssSession *session,
   NSSASCII7 *email,
@@ -458,7 +458,7 @@ nssToken_FindCertificatesByEmail (
 );
 
 NSS_EXTERN nssCryptokiObject **
-nssToken_FindCertificatesByID (
+nssToken_FindCertsByID (
   NSSToken *token,
   nssSession *session,
   NSSItem *id,
@@ -468,7 +468,7 @@ nssToken_FindCertificatesByID (
 );
 
 NSS_EXTERN nssCryptokiObject *
-nssToken_FindCertificateByIssuerAndSerialNumber (
+nssToken_FindCertByIssuerAndSerialNumber (
   NSSToken *token,
   nssSession *session,
   NSSDER *issuer,
@@ -478,10 +478,10 @@ nssToken_FindCertificateByIssuerAndSerialNumber (
 );
 
 NSS_EXTERN nssCryptokiObject *
-nssToken_FindCertificateByEncodedCertificate (
+nssToken_FindCertByEncodedCert (
   NSSToken *token,
   nssSession *session,
-  NSSBER *encodedCertificate,
+  NSSBER *encodedCert,
   nssTokenSearchType searchType,
   PRStatus *statusOpt
 );
@@ -510,7 +510,7 @@ nssToken_FindTrustObjects (
 );
 
 NSS_EXTERN nssCryptokiObject *
-nssToken_FindTrustForCertificate (
+nssToken_FindTrustForCert (
   NSSToken *token,
   nssSession *session,
   NSSDER *certEncoding,
@@ -594,7 +594,7 @@ nssToken_FindPublicKeyByID (
 );
 
 NSS_EXTERN nssCryptokiObject *
-nssToken_GenerateSymmetricKey (
+nssToken_GenerateSymKey (
   NSSToken *token,
   nssSession *session,
   const NSSAlgNParam *ap,
@@ -619,7 +619,7 @@ nssToken_UnwrapPrivateKey (
 );
 
 NSS_IMPLEMENT nssCryptokiObject *
-nssToken_UnwrapSymmetricKey (
+nssToken_UnwrapSymKey (
   NSSToken *token,
   nssSession *session,
   const NSSAlgNParam *ap,
@@ -628,7 +628,7 @@ nssToken_UnwrapSymmetricKey (
   PRBool asTokenObject,
   NSSOperations operations,
   NSSProperties properties,
-  NSSSymmetricKeyType symKeyType
+  NSSSymKeyType symKeyType
 );
 
 NSS_EXTERN NSSItem *
@@ -666,7 +666,7 @@ nssToken_DeriveSSLSessionKeys (
   nssSession *session,
   const NSSAlgNParam *ap,
   nssCryptokiObject *masterSecret,
-  NSSSymmetricKeyType bulkKeyType,
+  NSSSymKeyType bulkKeyType,
   NSSOperations operations,
   NSSProperties properties,
   PRUint32 keySizeOpt,
@@ -988,12 +988,12 @@ nssSession_IsReadWrite (
  * nssCryptokiObject_DeleteStoredObject
  * nssCryptokiObject_Equal
  * nssCryptokiObject_Clone
- * nssCryptokiCertificate_GetAttributes
+ * nssCryptokiCert_GetAttributes
  * nssCryptokiPrivateKey_GetAttributes
  * nssCryptokiPublicKey_GetAttributes
  * nssCryptokiTrust_GetAttributes
  * nssCryptokiCRL_GetAttributes
- * nssCryptokiSymmetricKey_GetAttributes
+ * nssCryptokiSymKey_GetAttributes
  */
 
 NSS_EXTERN void
@@ -1038,10 +1038,10 @@ nssCryptokiObject_WeakClone (
 );
 
 NSS_EXTERN PRStatus
-nssCryptokiCertificate_GetAttributes (
+nssCryptokiCert_GetAttributes (
   nssCryptokiObject *object,
   NSSArena *arenaOpt,
-  NSSCertificateType *certTypeOpt,
+  NSSCertType *certTypeOpt,
   NSSItem *idOpt,
   NSSDER *encodingOpt,
   NSSDER *issuerOpt,
@@ -1085,16 +1085,16 @@ nssCryptokiCRL_GetAttributes (
 );
 
 NSS_EXTERN PRStatus
-nssCryptokiSymmetricKey_GetAttributes (
+nssCryptokiSymKey_GetAttributes (
   nssCryptokiObject *keyObject,
   NSSArena *arenaOpt,
-  NSSSymmetricKeyType *keyTypeOpt,
+  NSSSymKeyType *keyTypeOpt,
   PRUint32 *keyLengthOpt,
   NSSOperations *opsOpt
 );
 
 NSS_EXTERN nssCryptokiObject *
-nssCryptokiSymmetricKey_Copy (
+nssCryptokiSymKey_Copy (
   nssCryptokiObject *sourceKey,
   nssSession *sourceSession,
   NSSToken *destination,
@@ -1107,7 +1107,7 @@ nssCryptokiSymmetricKey_Copy (
  * associate it with a cert.  Does it stay like this for 4.0?
  */
 NSS_EXTERN PRStatus
-nssCryptokiPrivateKey_SetCertificate (
+nssCryptokiPrivateKey_SetCert (
   nssCryptokiObject *keyObject,
   nssSession *session,
   NSSUTF8 *nickname,
@@ -1268,7 +1268,7 @@ nssSlotList_GetBestTokenForAlgorithm (
 );
 
 NSS_EXTERN PRStatus
-nssToken_TraverseCertificates (
+nssToken_TraverseCerts (
   NSSToken *token,
   nssSession *session,
   nssTokenSearchType searchType,

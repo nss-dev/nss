@@ -127,8 +127,8 @@ GetSymKeyGenAP(char *cipher)
     return ap;
 }
 
-NSSSymmetricKey *
-GenerateSymmetricKey
+NSSSymKey *
+GenerateSymKey
 (
   NSSTrustDomain *td,
   /*NSSCryptoContext *cc,*/
@@ -139,14 +139,14 @@ GenerateSymmetricKey
 )
 {
     NSSAlgNParam *keygen;
-    NSSSymmetricKey *skey;
+    NSSSymKey *skey;
 
     keygen = GetSymKeyGenAP(cipher);
     if (!keygen) {
 	return NULL;
     }
 
-    skey = NSSTrustDomain_GenerateSymmetricKey(td, keygen, length, 
+    skey = NSSTrustDomain_GenerateSymKey(td, keygen, length, 
                                                token, NULL);
 
     NSSAlgNParam_Destroy(keygen);
