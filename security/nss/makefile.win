@@ -76,7 +76,9 @@ all:: export libs install
 
 install:: moz_import
 
-export libs install clobber clobber_all clean depend::
+depend::
+
+export libs install clobber clobber_all clean::
 !if "$(MOZ_BITS)" == "16"
 	set PATH=%WATCPATH%
 	set INCLUDE=%WATC_INC%
