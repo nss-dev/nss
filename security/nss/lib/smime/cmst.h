@@ -283,7 +283,8 @@ struct NSSCMSOriginatorInfoStr {
  */
 typedef enum {
     NSSCMSRecipientID_IssuerSN = 0,
-    NSSCMSRecipientID_SubjectKeyID = 1
+    NSSCMSRecipientID_SubjectKeyID = 1,
+    NSSCMSRecipientID_BrandNew = 2
 } NSSCMSRecipientIDSelector;
 
 struct NSSCMSRecipientIdentifierStr {
