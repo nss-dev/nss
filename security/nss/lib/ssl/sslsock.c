@@ -155,6 +155,8 @@ static PRStatus   ssl_PushIOLayer(sslSocket *ns, PRFileDesc *stack,
 
 /*
 ** Lookup a socket structure from a file descriptor.
+** Only functions called through the PRIOMethods table should use this.
+** Other app-callable functions should use ssl_FindSocket.
 */
 static sslSocket *
 ssl_GetPrivate(PRFileDesc *fd)
@@ -1281,7 +1283,7 @@ SSL_SetSockPeerID(PRFileDesc *fd, char *peerID)
 {
     sslSocket *ss;
 
-    ss = ssl_GetPrivate(fd);
+    ss = ssl_FindSocket(fd);
     if (!ss) {
 	SSL_DBG(("%d: SSL[%d]: bad socket in SSL_SetCacheIndex",
 		 SSL_GETPID(), fd));
