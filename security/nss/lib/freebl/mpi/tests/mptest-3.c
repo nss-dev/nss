@@ -68,8 +68,8 @@ int main(int argc, char *argv[])
   mp_init(&a);
   mp_init(&b);
 
-  mp_read_radix(&a, argv[1], 10);
-  mp_read_radix(&b, argv[2], 10);
+  mp_read_variable_radix(&a, argv[1], 10);
+  mp_read_variable_radix(&b, argv[2], 10);
   printf("a = "); mp_print(&a, stdout); fputc('\n', stdout);
   printf("b = "); mp_print(&b, stdout); fputc('\n', stdout);
   
