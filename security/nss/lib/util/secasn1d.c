@@ -959,7 +959,7 @@ sec_asn1d_parse_more_length (sec_asn1d_state *state,
     count = 0;
 
     while (len && state->pending) {
-	if (HIGH_BITS (state->contents_length, 8) != 0) {
+	if (HIGH_BITS (state->contents_length, 9) != 0) {
 	    /*
 	     * The given full content length overflows our container;
 	     * just give up.
