@@ -49,16 +49,13 @@ LIBRARY ssl3 ;-
 EXPORTS ;-
 SSL_ImplementedCiphers DATA ;
 SSL_NumImplementedCiphers DATA ;
-NSS_CmpCertChainWCANames;
-NSS_FindCertKEAType;
-NSS_GetClientAuthData;
+;+#NSS_GetClientAuthData;
 NSS_SetDomesticPolicy;
 NSS_SetExportPolicy;
 NSS_SetFrancePolicy;
 SSL_AuthCertificate;
 SSL_AuthCertificateHook;
 SSL_BadCertHook;
-SSL_CertDBHandleSet;
 SSL_CipherPolicyGet;
 SSL_CipherPolicySet;
 SSL_CipherPrefGet;
@@ -83,8 +80,8 @@ SSL_OptionGetDefault;
 SSL_OptionSet;
 SSL_OptionSetDefault;
 SSL_PeerCertificate;
-SSL_PreencryptedFileToStream;
-SSL_PreencryptedStreamToFile;
+;+#SSL_PreencryptedFileToStream;
+;+#SSL_PreencryptedStreamToFile;
 SSL_ReHandshake;
 SSL_ResetHandshake;
 SSL_RestartHandshakeAfterCertReq;
@@ -109,9 +106,9 @@ NSSSSL_VersionCheck;
 ;+    global:
 SSL_GetChannelInfo;
 SSL_GetCipherSuiteInfo;
-SSL_GetMaxServerCacheLocks;
+;+#SSL_GetMaxServerCacheLocks;
 SSL_LocalCertificate;
-SSL_SetMaxServerCacheLocks;
+;+#SSL_SetMaxServerCacheLocks;
 ;+    local:
 ;+*;
 ;+};

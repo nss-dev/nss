@@ -37,6 +37,7 @@ ifeq ($(OS_ARCH), WINNT)
 # $(PROGRAM) has explicit dependencies on $(EXTRA_LIBS)
 EXTRA_LIBS += \
 	$(DIST)/lib/cmdutil.lib \
+	$(DIST)/lib/ssl4.lib \
 	$(DIST)/lib/nsspkix4.lib \
 	$(DIST)/lib/nss4.lib \
 	$(DIST)/lib/$(NSPR31_LIB_PREFIX)plc4.lib \

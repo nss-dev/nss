@@ -241,31 +241,6 @@ nssPrivateKey_CopyToToken (
 }
 
 NSS_IMPLEMENT PRUint32
-nssPrivateKey_GetSignatureLength (
-  NSSPrivateKey *vk
-)
-{
-    /* XXX based on PK11_SignatureLen */
-    switch (vk->kind) {
-    case NSSKeyPairType_RSA:
-	/* old function had fallback for non-compliant tokens, still needed? */
-	return nssPrivateKey_GetPrivateModulusLength(vk);
-    case NSSKeyPairType_DSA:
-	return 40;
-    default:
-	return 0;
-    }
-}
-
-NSS_IMPLEMENT PRUint32
-NSSPrivateKey_GetSignatureLength (
-  NSSPrivateKey *vk
-)
-{
-    return nssPrivateKey_GetSignatureLength(vk);
-}
-
-NSS_IMPLEMENT PRUint32
 nssPrivateKey_GetPrivateModulusLength (
   NSSPrivateKey *vk
 )
@@ -288,6 +263,31 @@ NSSPrivateKey_GetPrivateModulusLength (
 )
 {
     return nssPrivateKey_GetPrivateModulusLength(vk);
+}
+
+NSS_IMPLEMENT PRUint32
+nssPrivateKey_GetSignatureLength (
+  NSSPrivateKey *vk
+)
+{
+    /* XXX based on PK11_SignatureLen */
+    switch (vk->kind) {
+    case NSSKeyPairType_RSA:
+	/* old function had fallback for non-compliant tokens, still needed? */
+	return nssPrivateKey_GetPrivateModulusLength(vk);
+    case NSSKeyPairType_DSA:
+	return 40;
+    default:
+	return 0;
+    }
+}
+
+NSS_IMPLEMENT PRUint32
+NSSPrivateKey_GetSignatureLength (
+  NSSPrivateKey *vk
+)
+{
+    return nssPrivateKey_GetSignatureLength(vk);
 }
 
 NSS_IMPLEMENT PRBool
@@ -1307,7 +1307,7 @@ nssPublicKey_Encrypt (
     NSSItem *rvIt = NULL;
 
     if (apOpt) {
-	ap = apOpt;
+	ap = (NSSAlgNParam *)apOpt; /* XXX hmmmm.... */
     } else {
 	NSSOIDTag alg;
 	/* XXX are these defaults reasonable? */

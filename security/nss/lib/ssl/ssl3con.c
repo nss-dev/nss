@@ -69,6 +69,10 @@
 
 #include "nsslocks.h"
 
+/* XXX move to base.h!!! */
+#define NSSITEM_DATA(it, i) \
+    ((unsigned char *)(it)->data)[i]
+
 /* XXX */
 #define SSL_ERROR_INVALID_KEY_TYPE 5555
 #define SSL_ERROR_UNSUPPORTED_KEY_EXCHANGE_ALG 5556
@@ -5062,10 +5066,6 @@ ssl3_SendServerHelloSequence(sslSocket *ss)
                                                : wait_client_key;
     return SECSuccess;
 }
-
-/* XXX move to base.h!!! */
-#define NSSITEM_DATA(it, i) \
-    ((unsigned char *)(it)->data)[i]
 
 /* Called from ssl3_HandleHandshakeMessage() when it has deciphered a complete
  * ssl3 Client Hello message.

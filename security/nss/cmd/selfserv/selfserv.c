@@ -1287,7 +1287,8 @@ readBigFile(const char * fileName)
 
 	memcpy(bigBuf.data, outHeader, hdrLen);
 
-	count = PR_Read(local_file_fd, bigBuf.data + hdrLen, info.size);
+	count = PR_Read(local_file_fd, 
+	                (unsigned char *)bigBuf.data + hdrLen, info.size);
 	if (count != info.size) {
 	    errWarn("PR_Read local file");
 	    goto done;
@@ -1414,9 +1415,9 @@ main(int argc, char **argv)
     PRBool               debugCache = PR_FALSE; /* bug 90518 */
     NSSTrustDomain *     td = NULL;
     NSSUsages            serverUsage = { 0, NSSUsage_SSLServer };
+    NSSCallback *pwcb;
 #ifdef LINUX  /* bug 119340 */
     struct sigaction     act;
-    NSSCallback *pwcb;
 
     act.sa_handler = sigterm_handler;
     sigemptyset(&act.sa_mask);

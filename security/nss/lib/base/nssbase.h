@@ -157,7 +157,7 @@ NSS_GetErrorStack (
 );
 
 #define NSSITEM_INIT(it, b, l) \
-  (it)->data = (void *)b;      \
+  (it)->data = (void *)(b);      \
   (it)->size = l;
 
 NSS_EXTERN NSSItem *

@@ -171,7 +171,6 @@ NSSPublicKey_GetKeyInfo;
 ;+#NSSPublicKey_GetToken;
 ;+#NSSPublicKey_GetSlot;
 ;+#NSSPublicKey_GetModule;
-NSSPublicKey_GetInfo;
 NSSPublicKey_GetKeyType;
 NSSPublicKey_GetKeyStrength;
 NSSPublicKey_Encrypt;
