@@ -258,6 +258,7 @@ traverse_objects_by_template
 	    }
 	}
 	nssListIterator_Finish(objects);
+	nssListIterator_Destroy(objects);
 	count = OBJECT_STACK_SIZE;
     }
     for (i=0; i<count; i++) {
