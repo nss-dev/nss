@@ -48,7 +48,11 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #endif /* CKHELPER_H */
 
 /* measured in seconds */
+#ifdef DARWIN
+#define NSSSLOT_TOKEN_DELAY_TIME 3
+#else
 #define NSSSLOT_TOKEN_DELAY_TIME 1
+#endif
 
 /* this should track global and per-transaction login information */
 
@@ -257,8 +261,7 @@ within_token_delay_period(NSSSlot *slot)
     }
     time = PR_IntervalNow();
     lastTime = slot->lastTokenPing;
-    if ((lastTime) &&
-	(time > lastTime) && ((time - lastTime) < s_token_delay_time)) {
+    if ((lastTime) && ((time - lastTime) < s_token_delay_time)) {
 	return PR_TRUE;
     }
     slot->lastTokenPing = time;
@@ -285,6 +288,7 @@ nssSlot_IsTokenPresent
     if (within_token_delay_period(slot)) {
 	return (PRBool)((slot->ckFlags & CKF_TOKEN_PRESENT) != 0);
     }
+
     /* First obtain the slot info */
 #ifdef PURE_STAN_BUILD
     epv = nssModule_GetCryptokiEPV(slot->module);
