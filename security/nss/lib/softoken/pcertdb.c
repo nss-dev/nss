@@ -3080,6 +3080,8 @@ AddCertToPermDB(NSSLOWCERTCertDBHandle *handle, NSSLOWCERTCertificate *cert,
     }
     
     state = 2;
+
+    cert->dbhandle = handle;
     
     /* add to or create new subject entry */
     if ( subjectEntry ) {
