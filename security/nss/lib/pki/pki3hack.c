@@ -274,7 +274,7 @@ nss3certificate_matchIdentifier(nssDecodedCert *dc, void *id)
 	    /* this is some kind of error, so treat it as unknown */
 	    return nssCertIDMatch_Unknown;
 	}
-	if (SECITEM_ItemsAreEqual(&c->derSubject, caName) &&
+	if (SECITEM_ItemsAreEqual(&c->derIssuer, caName) &&
 	    SECITEM_ItemsAreEqual(&c->serialNumber, caSN)) 
 	{
 	    /* change the state to positive match, but keep going */
