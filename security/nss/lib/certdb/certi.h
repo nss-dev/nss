@@ -59,6 +59,7 @@ struct OpaqueCRLFieldsStr {
     PRBool badExtensions;
     PRBool deleted;
     PRBool heapDER;
+    PRBool unverified;
 };
 
 typedef struct PreAllocatorStr PreAllocator;
@@ -87,6 +88,9 @@ struct CRLEntryCacheStr {
 #define CRL_CACHE_LAST_FETCH_FAILED         0x0002 /* this state will be set
         if the last CRL fetch encountered an error. Can be cleared if a
         new fetch succeeds */
+
+#define CRL_CACHE_OUT_OF_MEMORY             0x0004 /* this state will be set
+        if we don't have enough memory to build the hash table of entries */
 
 /*  CRL distribution point cache object
     This is a cache of CRL entries for a given distribution point of an issuer
