@@ -327,6 +327,10 @@ extern SECStatus CERT_KeyFromDERCert(PRArenaPool *arena, SECItem *derCert, SECIt
 extern SECStatus CERT_KeyFromIssuerAndSN(PRArenaPool *arena, SECItem *issuer,
 					 SECItem *sn, SECItem *key);
 
+extern SECStatus CERT_SerialNumberFromDERCert(SECItem *derCert, 
+						SECItem *derName);
+
+
 /*
 ** Generate a database search key for a crl, based on the
 ** issuer.

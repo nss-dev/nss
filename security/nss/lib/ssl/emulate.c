@@ -202,7 +202,7 @@ ssl_EmulateTransmitFile(    PRFileDesc *        sd,
 			    PRTransmitFileFlags flags,
 			    PRIntervalTime      timeout)
 {
-    void *            addr;
+    void *            addr = NULL;
     PRFileMap *       mapHandle = NULL;
     PRInt32           count     = 0;
     PRInt32           index     = 0;
@@ -461,7 +461,7 @@ PRInt32
 ssl_EmulateSendFile(PRFileDesc *sd, PRSendFileData *sfd,
                     PRTransmitFileFlags flags, PRIntervalTime timeout)
 {
-    void *            addr;
+    void *            addr = NULL;
     PRFileMap *       mapHandle  	= NULL;
     PRInt32           count 		= 0;
     PRInt32           file_bytes;
@@ -528,6 +528,13 @@ ssl_EmulateSendFile(PRFileDesc *sd, PRSendFileData *sfd,
         mmap_len = PR_MIN(file_bytes + addr_offset, SENDFILE_MMAP_CHUNK);
         len      = mmap_len - addr_offset;
     }
+    /*
+     * OK I've convinced myself that length has to be possitive (file_bytes is 
+     * negative or  SENDFILE_MMAP_CHUNK is less than pagesize). Just assert 
+     * that this is the case so we catch problems in debug builds.
+     */
+    PORT_Assert(len >= 0);
+
     /*
      * Map in (part of) file. Take care of zero-length files.
      */

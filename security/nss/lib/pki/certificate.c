@@ -90,8 +90,8 @@ NSSCertificate_Destroy
     if (--c->refCount == 0) {
 	return nssPKIObject_Destroy(&c->object);
     }
-#endif
     return PR_SUCCESS;
+#endif
 }
 
 NSS_IMPLEMENT PRStatus

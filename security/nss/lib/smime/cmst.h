@@ -444,6 +444,7 @@ struct NSSCMSEncryptedDataStr {
 /* An enumerated type used to select templates based on the encryption
    scenario and data specifics. */
 typedef enum {
+    NSSCMSKEAInvalid = -1,
     NSSCMSKEAUsesSkipjack = 0,
     NSSCMSKEAUsesNonSkipjack = 1,
     NSSCMSKEAUsesNonSkipjackWithPaddedEncKey = 2

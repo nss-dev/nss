@@ -51,6 +51,10 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #include "base.h"
 #endif /* BASE_H */
 
+#ifdef NSS_3_4_CODE
+#include "cert.h"
+#endif
+
 #ifdef DEBUG_CACHE
 static PRLogModuleInfo *s_log = NULL;
 #endif
@@ -823,7 +827,7 @@ nssTrustDomain_GetCertsForEmailAddressFromCache
 {
     NSSCertificate **rvArray = NULL;
     cache_entry *ce;
-    nssList *collectList;
+    nssList *collectList = NULL;
 #ifdef DEBUG_CACHE
     PR_LOG(s_log, PR_LOG_DEBUG, ("looking for cert by email %s", email));
 #endif
@@ -854,7 +858,7 @@ nssTrustDomain_GetCertsForEmailAddressFromCache
 	nssListIterator_Finish(iter);
 	nssListIterator_Destroy(iter);
     }
-    if (!certListOpt) {
+    if (!certListOpt && collectList) {
 	PRUint32 count = nssList_Count(collectList);
 	rvArray = nss_ZNEWARRAY(NULL, NSSCertificate *, count);
 	if (rvArray) {

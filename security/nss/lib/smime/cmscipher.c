@@ -43,7 +43,7 @@
 #include "secitem.h"
 #include "pk11func.h"
 #include "secerr.h"
-/*#include "secpkcs5.h" */
+#include "secpkcs5.h"
 
 /*
  * -------------------------------------------------------------------

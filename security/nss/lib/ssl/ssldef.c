@@ -88,7 +88,7 @@ int ssl_DefRecv(sslSocket *ss, unsigned char *buf, int len, int flags)
 
     rv = lower->methods->recv(lower, (void *)buf, len, flags, ss->rTimeout);
     if (rv < 0) {
-	PRErrorCode err = PR_GetError();
+	/* PRErrorCode err = PR_GetError(); */
 	MAP_ERROR(PR_SOCKET_SHUTDOWN_ERROR, PR_CONNECT_RESET_ERROR)
     } else if (rv > len) {
 	PORT_Assert(rv <= len);
@@ -152,7 +152,7 @@ int ssl_DefRead(sslSocket *ss, unsigned char *buf, int len)
 
     rv = lower->methods->read(lower, (void *)buf, len);
     if (rv < 0) {
-	PRErrorCode err = PR_GetError();
+	/* PRErrorCode err = PR_GetError(); */
 	MAP_ERROR(PR_SOCKET_SHUTDOWN_ERROR, PR_CONNECT_RESET_ERROR)
     }
     return rv;

@@ -43,10 +43,8 @@
 #include "pcertt.h"
 #include "lowkeyi.h"
 #include "pcert.h"
-/*#include "secmodi.h" */
 #include "secrng.h"
 #include "cdbhdl.h"
-/*#include "pk11func.h" */
 #include "pkcs11i.h"
 
 static char *
@@ -108,7 +106,7 @@ static CK_RV
 pk11_OpenCertDB(const char * configdir, const char *prefix, PRBool readOnly,
     					    NSSLOWCERTCertDBHandle **certdbPtr)
 {
-    NSSLOWCERTCertDBHandle *certdb;
+    NSSLOWCERTCertDBHandle *certdb = NULL;
     CK_RV        crv = CKR_CERTDB_FAILED;
     SECStatus    rv;
     char * name = NULL;

@@ -67,9 +67,9 @@ nssToken_Create
 )
 {
     NSSArena *arena;
-    nssArenaMark *mark;
+    nssArenaMark *mark = NULL;
     NSSToken *rvToken;
-    nssSession *session;
+    nssSession *session = NULL;
     NSSUTF8 *tokenName = NULL;
     PRUint32 length;
     PRBool newArena;
@@ -134,9 +134,11 @@ nssToken_Create
     rvToken->name = tokenName;
     rvToken->ckFlags = tokenInfo.flags;
     rvToken->defaultSession = session;
-    nssrv = nssArena_Unmark(arena, mark);
-    if (nssrv != PR_SUCCESS) {
-	goto loser;
+    if (mark) {
+	nssrv = nssArena_Unmark(arena, mark);
+	if (nssrv != PR_SUCCESS) {
+	    goto loser;
+	}
     }
     return rvToken;
 loser:

@@ -149,6 +149,12 @@ nssTrustDomain_FlushCache
   PRFloat64 threshold
 );
 
+NSS_IMPLEMENT PRStatus
+nssTrustDomain_DestroyCache
+(
+  NSSTrustDomain *td
+);
+
 /* 
  * Remove all certs for the given token from the cache.  This is
  * needed if the token is removed.

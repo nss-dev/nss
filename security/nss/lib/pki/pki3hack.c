@@ -232,7 +232,7 @@ nss3certificate_matchIdentifier(nssDecodedCert *dc, NSSItem *id)
 static NSSUsage *
 nss3certificate_getUsage(nssDecodedCert *dc)
 {
-    CERTCertificate *c = (CERTCertificate *)dc->data;
+    /* CERTCertificate *c = (CERTCertificate *)dc->data; */
     return NULL;
 }
 
@@ -659,7 +659,7 @@ nssTrustDomain_TraverseCertificatesBySubject
   void *arg
 )
 {
-    PRStatus nssrv;
+    PRStatus nssrv = PR_SUCCESS;
     NSSArena *tmpArena;
     NSSCertificate **subjectCerts;
     NSSCertificate *c;
@@ -687,7 +687,7 @@ nssTrustDomain_TraverseCertificatesByNickname
   void *arg
 )
 {
-    PRStatus nssrv;
+    PRStatus nssrv = PR_SUCCESS;
     NSSArena *tmpArena;
     NSSCertificate **nickCerts;
     NSSCertificate *c;
@@ -714,7 +714,7 @@ nssTrustDomain_TraverseCertificates
   void *arg
 )
 {
-    PRStatus nssrv;
+    PRStatus nssrv = PR_SUCCESS;
     NSSToken *token;
     nssList *certList;
     nssTokenCertSearch search;

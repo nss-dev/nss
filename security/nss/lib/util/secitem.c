@@ -275,8 +275,6 @@ SECITEM_Hash ( const void *key)
 PRIntn PR_CALLBACK
 SECITEM_HashCompare ( const void *k1, const void *k2)
 {
-    PRIntn rv;
-
     const SECItem *i1 = (const SECItem *)k1;
     const SECItem *i2 = (const SECItem *)k2;
 

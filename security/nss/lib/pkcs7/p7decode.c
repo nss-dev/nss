@@ -58,7 +58,7 @@
 #include "secerr.h"
 #include "sechash.h"	/* for HASH_GetHashObject() */
 #include "secder.h"
-/*#include "secpkcs5.h" */
+#include "secpkcs5.h"
 
 struct sec_pkcs7_decoder_worker {
     int depth;

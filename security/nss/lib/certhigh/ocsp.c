@@ -2726,8 +2726,8 @@ ocsp_CertIDsMatch(CERTCertDBHandle *handle,
     PRBool match = PR_FALSE;
     SECItem *foundHash = NULL;
     SECOidTag hashAlg;
-    SECItem *keyHash;
-    SECItem *nameHash;
+    SECItem *keyHash = NULL;
+    SECItem *nameHash = NULL;
 
     /*
      * In order to match, they must have the same issuer and the same
@@ -2770,12 +2770,14 @@ ocsp_CertIDsMatch(CERTCertDBHandle *handle,
 	nameHash = &certID1->issuerMD2NameHash;
 	break;
     default:
-	foundHash == NULL;
+	foundHash = NULL;
+	break;
     }
 
     if (foundHash == NULL) {
 	goto done;
     }
+    PORT_Assert(keyHash && nameHash);
 
     if ((SECITEM_CompareItem(nameHash, &certID2->issuerNameHash) == SECEqual)
       && (SECITEM_CompareItem(keyHash, &certID2->issuerKeyHash) == SECEqual)) {
