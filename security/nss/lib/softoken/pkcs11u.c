@@ -239,13 +239,14 @@ pk11_DestroyAttribute(PK11Attribute *attribute)
     PORT_Assert(attribute->refCount == 0);
     PK11_USE_THREADS(PZ_DestroyLock(attribute->refLock);)
 #endif
-    if (attribute->attrib.pValue) {
-	 /* clear out the data in the attribute value... it may have been
-	  * sensitive data */
-	 PORT_Memset(attribute->attrib.pValue,0,attribute->attrib.ulValueLen);
-    }
     if (attribute->freeData) {
-	 PORT_Free(attribute->attrib.pValue);
+	if (attribute->attrib.pValue) {
+	    /* clear out the data in the attribute value... it may have been
+	     * sensitive data */
+	    PORT_Memset(attribute->attrib.pValue, 0,
+						attribute->attrib.ulValueLen);
+	}
+	PORT_Free(attribute->attrib.pValue);
     }
     PORT_Free(attribute);
 }
@@ -289,6 +290,28 @@ static const PK11Attribute pk11_StaticTrueAttr =
 static const PK11Attribute pk11_StaticFalseAttr = 
   PK11_DEF_ATTRIBUTE(&pk11_staticFalseValue,sizeof(pk11_staticFalseValue));
 static const PK11Attribute pk11_StaticNullAttr = PK11_DEF_ATTRIBUTE(NULL,0);
+
+
+CK_TRUST pk11_staticTrustedValue = CKT_NETSCAPE_TRUSTED;
+CK_TRUST pk11_staticTrustedDelegatorValue = CKT_NETSCAPE_TRUSTED_DELEGATOR;
+CK_TRUST pk11_staticUnTrustedValue = CKT_NETSCAPE_UNTRUSTED;
+CK_TRUST pk11_staticTrustUnknownValue = CKT_NETSCAPE_TRUST_UNKNOWN;
+CK_TRUST pk11_staticMustVerifyValue = CKT_NETSCAPE_MUST_VERIFY;
+static const PK11Attribute pk11_StaticTrustedAttr =
+  PK11_DEF_ATTRIBUTE(&pk11_staticTrustedValue,
+				sizeof(pk11_staticTrustedValue));
+static const PK11Attribute pk11_StaticTrustedDelegatorAttr =
+  PK11_DEF_ATTRIBUTE(&pk11_staticTrustedDelegatorValue,
+				sizeof(pk11_staticTrustedDelegatorValue));
+static const PK11Attribute pk11_StaticUnTrustedAttr =
+  PK11_DEF_ATTRIBUTE(&pk11_staticUnTrustedValue,
+				sizeof(pk11_staticUnTrustedValue));
+static const PK11Attribute pk11_StaticTrustUnknownAttr =
+  PK11_DEF_ATTRIBUTE(&pk11_staticTrustUnknownValue,
+				sizeof(pk11_staticTrustUnknownValue));
+static const PK11Attribute pk11_StaticMustVerifyAttr =
+  PK11_DEF_ATTRIBUTE(&pk11_staticMustVerifyValue,
+				sizeof(pk11_staticMustVerifyValue));
 
 SECItem *
 pk11_getCrl(PK11TokenObject *object)
@@ -734,6 +757,7 @@ pk11_FindTrustAttribute(PK11TokenObject *object, CK_ATTRIBUTE_TYPE type)
     unsigned char hash[SHA1_LENGTH];
     SECItem *item;
     PK11Attribute *attr;
+    unsigned int trustFlags;
 
     switch (type) {
     case CKA_PRIVATE:
@@ -763,11 +787,32 @@ pk11_FindTrustAttribute(PK11TokenObject *object, CK_ATTRIBUTE_TYPE type)
 	attr = pk11_NewTokenAttribute(type, item->data, item->len, PR_TRUE);
 	SECITEM_FreeItem(item,PR_TRUE);
 	return attr;
-    case CKA_TRUST_SERVER_AUTH:
     case CKA_TRUST_CLIENT_AUTH:
+	trustFlags = cert->trust->sslFlags & CERTDB_TRUSTED_CLIENT_CA ?
+		cert->trust->sslFlags | CERTDB_TRUSTED_CA : 0 ;
+	goto trust;
+    case CKA_TRUST_SERVER_AUTH:
+	trustFlags = cert->trust->sslFlags;
+	goto trust;
     case CKA_TRUST_EMAIL_PROTECTION:
+	trustFlags = cert->trust->emailFlags;
+	goto trust;
     case CKA_TRUST_CODE_SIGNING:
-	/* XXXXXX */
+	trustFlags = cert->trust->objectSigningFlags;
+trust:
+	if (trustFlags & CERTDB_TRUSTED_CA ) {
+	    return (PK11Attribute *)&pk11_StaticTrustedDelegatorAttr;
+	}
+	if (trustFlags & CERTDB_TRUSTED) {
+	    return (PK11Attribute *)&pk11_StaticTrustedAttr;
+	}
+	if (trustFlags & CERTDB_NOT_TRUSTED) {
+	    return (PK11Attribute *)&pk11_StaticUnTrustedAttr;
+	}
+	if (trustFlags & CERTDB_TRUSTED_UNKNOWN) {
+	    return (PK11Attribute *)&pk11_StaticTrustUnknownAttr;
+	}
+	return (PK11Attribute *)&pk11_StaticMustVerifyAttr;
     default:
 	break;
     }
@@ -2148,8 +2193,9 @@ pk11_mkHandle(PK11Slot *slot, SECItem *dbKey, CK_OBJECT_HANDLE class)
     SECItem *key;
 
     SHA1_HashBuf(hashBuf,dbKey->data,dbKey->len);
-    handle = PK11_TOKEN_MASK | class | (hashBuf[0] << 24) | hashBuf[1] << 16
-						| hashBuf[2] << 8 ;
+    handle = (hashBuf[0] << 24) | (hashBuf[1] << 16) | 
+					(hashBuf[2] << 8)  | hashBuf[3];
+    handle = PK11_TOKEN_MASK | class | (handle & ~PK11_TOKEN_TYPE_MASK);
 
     pk11_tokenKeyLock(slot);
     while (key = pk11_lookupTokenKeyByHandle(slot,handle)) {
@@ -2161,6 +2207,7 @@ pk11_mkHandle(PK11Slot *slot, SECItem *dbKey, CK_OBJECT_HANDLE class)
     }
     pk11_addTokenKeyByHandle(slot,handle,dbKey);
     pk11_tokenKeyUnlock(slot);
+    return handle;
 }
 
 void

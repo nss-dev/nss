@@ -608,6 +608,9 @@ pk11_handleCertObject(PK11Session *session,PK11Object *object)
  	NSSLOWCERTCertTrust *trust = NULL;
  	NSSLOWCERTCertTrust userTrust = 
 		{ CERTDB_USER, CERTDB_USER, CERTDB_USER };
+ 	NSSLOWCERTCertTrust defTrust = 
+		{ CERTDB_TRUSTED_UNKNOWN, 
+			CERTDB_TRUSTED_UNKNOWN, CERTDB_TRUSTED_UNKNOWN };
 	SECStatus rv;
 
 	if (slot->certDB == NULL) {
@@ -629,6 +632,7 @@ pk11_handleCertObject(PK11Session *session,PK11Object *object)
 	    trust = &userTrust;
 	}
 	if (!nsslowcert_CertDBKeyConflict(&derCert,slot->certDB)) {
+	    if (!trust) trust = &defTrust;
 	    rv = nsslowcert_AddPermCert(cert,label, trust);
 	} else {
 	    rv = trust ? nsslowcert_ChangeCertTrust(slot->certDB,cert,trust) :
@@ -3244,10 +3248,10 @@ pk11_searchTokenList(PK11Slot *slot, PK11SearchResults *search,
 		classFlags &= NSC_CERT;
 		break;
 	    case CKO_NETSCAPE_TRUST:
-		classFlags &= NSC_CERT;
+		classFlags &= NSC_TRUST;
 		break;
 	    case CKO_NETSCAPE_CRL:
-		classFlags &= NSC_CERT;
+		classFlags &= NSC_CRL;
 		break;
 	    case CKO_PRIVATE_KEY:
 		classFlags &= NSC_PRIVATE;
