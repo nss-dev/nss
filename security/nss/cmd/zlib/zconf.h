@@ -183,7 +183,7 @@ typedef uLong FAR uLongf;
 #  define EXPORT
 #endif
 
-#define PR_PUBLIC_API(type) type
+/* #define PR_PUBLIC_API(type) type */
 
 #endif /* MOZILLA_CLIENT */
 
