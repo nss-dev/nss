@@ -889,6 +889,7 @@ NSSTrustDomain_TraverseCertificates
     NSSToken *token;
     nssList *certList;
     nssTokenCertSearch search;
+    certList = nssList_Create(NULL, PR_FALSE);
     (void *)nssTrustDomain_GetCertsFromCache(td, certList);
     /* set the search criteria */
     search.callback = callback;
