@@ -14,7 +14,7 @@ dist_bindir	= @dist_bindir@
 dist_includedir = @dist_includedir@
 dist_libdir	= @dist_libdir@
 
-#DIST		= $(dist_prefix)
+DIST		= $(dist_prefix)
 
 CORECONF_SOURCE	= @CORECONF_SOURCE@
 
