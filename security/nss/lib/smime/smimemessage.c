@@ -120,7 +120,6 @@ NSS_SMIMEMessage_CreateEncrypted(CERTCertificate *scert,
 
     return cinfo;
 }
-#endif
 
 
 /*
@@ -213,3 +212,4 @@ loser:
 	NSS_CMSMessage_Destroy(cmsg);
     return NULL;
 }
+#endif
