@@ -92,7 +92,7 @@ EXTRA_LIBS += \
 	$(DIST)/lib/libnssb.a \
 	$(NULL)
 
-EXTRA_SHARED_LIBS = -L$(DIST)/lib -lplc4 -lplds4
+EXTRA_SHARED_LIBS = $(NSPR_LIBS)
 
 endif
 endif

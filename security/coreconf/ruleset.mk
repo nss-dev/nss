@@ -254,16 +254,10 @@ else
 	JDK_STUB_DIR = _stubs
 endif
 
-#
-# If this is an "official" build, try to build everything.
-# I.e., don't exit on errors.
-#
-
+EXIT_ON_ERROR	= -e
 ifdef BUILD_OFFICIAL
-	EXIT_ON_ERROR		= +e
 	CLICK_STOPWATCH		= date
 else
-	EXIT_ON_ERROR		= -e
 	CLICK_STOPWATCH		= true
 endif
 
@@ -278,6 +272,12 @@ else
 		INCLUDES         += $(PRIVATE_INCLUDES)
 	endif
 endif
+endif
+
+ifdef NSPR_CFLAGS
+INCLUDES += $(NSPR_CFLAGS)
+else
+INCLUDES += -I$(SYSTEM_XP_DIR)/include/nspr
 endif
 
 ifdef SYSTEM_INCL_DIR

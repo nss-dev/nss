@@ -106,7 +106,9 @@ ifeq ($(OS_ARCH),OS2)
 	cp -rf $(DIST)/../lib $(DIST)
 	cp -f $(DIST)/lib/libmozdbm_s.$(LIB_SUFFIX) $(DIST)/lib/libdbm.$(LIB_SUFFIX)
 else
-	cp -du $(DIST)/lib/libmozdbm_s.a $(DIST)/lib/libdbm.$(LIB_SUFFIX)
+	if [ ! -f $(DIST)/lib/libdbm.$(LIB_SUFFIX) ]; then \
+		cp -du $(DIST)/lib/libmozdbm_s.a $(DIST)/lib/libdbm.$(LIB_SUFFIX) ; \
+	fi
 endif
 endif
 

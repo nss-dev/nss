@@ -59,6 +59,8 @@ include $(topsrcdir)/coreconf/config.mk
 # (3) Include "component" configuration information. (OPTIONAL)       #
 #######################################################################
 
+INCLUDES += -I$(srcdir)
+
 #######################################################################
 # (4) Include "local" platform-dependent assignments (OPTIONAL).      #
 #######################################################################

@@ -1,6 +1,21 @@
 USE_AUTOCONF	= 1
 NO_MDUPDATE	= 1
 OBJDIR_NAME	= .
+
+prefix		= @prefix@
+exec_prefix	= @exec_prefix@
+bindir		= @bindir@
+includedir	= @includedir@
+libdir		= @libdir@
+datadir		= @datadir@
+
+dist_prefix	= @dist_prefix@
+dist_bindir	= @dist_bindir@
+dist_includedir = @dist_includedir@
+dist_libdir	= @dist_libdir@
+
+#DIST		= $(dist_prefix)
+
 MOZILLA_CLIENT  = @MOZILLA_CLIENT@
 ENABLE_CMD	= @ENABLE_CMD@
 ENABLE_PSM	= @ENABLE_PSM@
@@ -46,3 +61,5 @@ OS_LIBS		= @OS_LIBS@
 RC		= @RC@
 DLLFLAGS	= @DLLFLAGS@
 
+NSPR_CFLAGS	= @NSPR_CFLAGS@
+NSPR_LIBS	= @NSPR_LIBS@
