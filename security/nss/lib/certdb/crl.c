@@ -1915,7 +1915,6 @@ SEC_FindCrlByName(CERTCertDBHandle *handle, SECItem *crlKey, int type)
 
 void CERT_CRLCacheRefreshIssuer(CERTCertDBHandle* dbhandle, SECItem* crlKey)
 {
-    CERTSignedCrl* acrl = NULL;
     CRLDPCache* cache = NULL;
     SECStatus rv = SECSuccess;
     PRBool writeLocked = PR_FALSE;
