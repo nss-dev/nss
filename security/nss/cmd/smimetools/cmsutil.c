@@ -325,9 +325,18 @@ decode(FILE *out, FILE *infile, char *progName, struct optionsStr options, struc
     }
 
     if (!decodeOptions.suppressContent) {
-	/* XXX only if we do not have detached content... */
-	if ((item = NSS_CMSMessage_GetContent(cmsg)) != NULL) {
-	    fwrite(item->data, item->len, 1, out);
+	if (decodeOptions.contentFile) {
+	    char buffer[4096];
+	    size_t nbytes;
+	    /* detached content: print content file */
+	    fseek(decodeOptions.contentFile, 0, SEEK_SET);
+	    while ((nbytes = fread(buffer, 1, sizeof(buffer), decodeOptions.contentFile)) != 0) {
+		fwrite(buffer, nbytes, 1, out);
+	    }
+	} else {
+	    if ((item = NSS_CMSMessage_GetContent(cmsg)) != NULL) {
+		fwrite(item->data, item->len, 1, out);
+	    }
 	}
     }
 
