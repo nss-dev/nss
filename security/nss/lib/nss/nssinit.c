@@ -458,8 +458,8 @@ void
 NSS_Shutdown(void)
 {
     SECOID_Shutdown();
-    SECMOD_Shutdown();
     STAN_Shutdown();
+    SECMOD_Shutdown();
     nss_IsInitted = PR_FALSE;
 }
 
