@@ -1205,6 +1205,8 @@ nssCKFWMechanism_GetInHardware
  *  nssCKFWSession_SetMDSession
  *  nssCKFWSession_SetHandle
  *  nssCKFWSession_GetHandle
+ *  nssCKFWSession_RegisterSessionObject
+ *  nssCKFWSession_DeregisterSessionObject
  *
  *  -- module fronts --
  *  nssCKFWSession_GetDeviceError
@@ -1371,6 +1373,28 @@ NSS_EXTERN CK_SESSION_HANDLE
 nssCKFWSession_GetHandle
 (
   NSSCKFWSession *fwSession
+);
+
+/*
+ * nssCKFWSession_RegisterSessionObject
+ *
+ */
+NSS_EXTERN CK_RV
+nssCKFWSession_RegisterSessionObject
+(
+  NSSCKFWSession *fwSession,
+  NSSCKFWObject *fwObject
+);
+
+/*
+ * nssCKFWSession_DeregisterSessionObject
+ *
+ */
+NSS_EXTERN CK_RV
+nssCKFWSession_DeregisterSessionObject
+(
+  NSSCKFWSession *fwSession,
+  NSSCKFWObject *fwObject
 );
 
 /*
