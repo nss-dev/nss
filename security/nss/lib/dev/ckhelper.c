@@ -616,14 +616,12 @@ nssCryptokiCRL_GetAttributes
     PRStatus status;
     NSSSlot *slot;
     nssSession *session;
-    CK_BBOOL isToken;
     CK_ATTRIBUTE_PTR attr;
     CK_ATTRIBUTE crl_template[5];
     CK_ULONG crl_size;
     PRUint32 i;
 
     NSS_CK_TEMPLATE_START(crl_template, attr, crl_size);
-    /* NSS_CK_SET_ATTRIBUTE_VAR(attr, CKA_TOKEN, isToken); */
     if (encodingOpt) {
 	NSS_CK_SET_ATTRIBUTE_NULL(attr, CKA_VALUE);
     }
