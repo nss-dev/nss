@@ -1662,7 +1662,7 @@ loser:
     return PR_FAILURE;
 }
 
-NSS_IMPLEMENT PRStatus
+NSS_IMPLEMENT PRBool
 nssToken_IsPrivateKeyAvailable
 (
   NSSToken *token,
