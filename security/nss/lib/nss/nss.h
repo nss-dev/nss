@@ -131,6 +131,13 @@ SECStatus NSS_NoDB_Init(const char *configdir);
  */
 extern void NSS_Shutdown(void);
 
+/*
+ * set the PKCS #11 strings for the internal token.
+ */
+void PK11_ConfigurePKCS11(char *man, char *libdes, char *tokdes, char *ptokdes,
+        char *slotdes, char *pslotdes, char *fslotdes, char *fpslotdes,
+        int minPwd, int pwRequired);
+
 SEC_END_PROTOS
 
 #endif /* __nss_h_ */
