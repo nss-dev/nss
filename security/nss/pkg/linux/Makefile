@@ -14,7 +14,6 @@ VERSION     = `grep NSS_VERSION $(CORE_DEPTH)/../dist/public/nss/nss.h \
 				| sed -e 's/"$$//' -e 's/.*"//' -e 's/ .*//'`
 
 include $(CORE_DEPTH)/coreconf/config.mk
-include $(CORE_DEPTH)/coreconf/rules.mk
 
 publish:
 	$(MAKE) clean
@@ -56,3 +55,5 @@ clean::
 	rm -rf RPMS SRPMS usr
 	rm -f temp.spec
 	rm -f $(NAME)-$(VERSION).tar.gz
+
+include $(CORE_DEPTH)/coreconf/rules.mk
