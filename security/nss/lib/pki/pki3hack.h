@@ -69,10 +69,16 @@ STAN_LoadDefaultNSS3TrustDomain
 NSS_EXTERN void
 STAN_Shutdown();
 
-NSS_EXTERN PRStatus
-STAN_AddNewSlotToDefaultTD
+NSS_EXTERN SECStatus
+STAN_AddModuleToDefaultTrustDomain
 (
-  PK11SlotInfo *sl
+  SECMODModule *module
+);
+
+NSS_IMPLEMENT SECStatus
+STAN_RemoveModuleFromDefaultTrustDomain
+(
+  SECMODModule *module
 );
 
 NSS_EXTERN CERTCertificate *
