@@ -513,6 +513,12 @@ NSS_CMSSignerInfo_GetDigestAlgTag(NSSCMSSignerInfo *signerinfo)
 {
     SECOidData *algdata;
 
+    PORT_Assert(signerinfo);
+    if (!signerinfo) {
+        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+        return SEC_OID_UNKNOWN;
+    }
+
     algdata = SECOID_FindOID (&(signerinfo->digestAlg.algorithm));
     if (algdata != NULL)
 	return algdata->offset;
