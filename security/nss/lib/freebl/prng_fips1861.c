@@ -371,8 +371,7 @@ prng_GenerateGlobalRandomBytes(RNGContext *rng,
      */
     if (rng->seedCount < MIN_SEED_COUNT) {
 	PR_Unlock(rng->lock);
-	/* XXX this should be a new error code */
-	PORT_SetError(SEC_ERROR_INVALID_ARGS);
+	PORT_SetError(SEC_ERROR_NEED_RANDOM);
 	return SECFailure;
     }
     /*
