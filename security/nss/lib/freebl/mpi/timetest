@@ -125,5 +125,7 @@ done
 
 $ECHO "<done>"
 
+trap 'rm -f tt*.tmp timing-results.txt' INT HUP
+
 exit 0
-    
+
