@@ -58,6 +58,10 @@
 #include "unistd.h"
 #include "sys/types.h"
 #include "sys/stat.h"
+
+#ifndef MAXPATHLEN
+#define MAXPATHLEN 1024
+#endif
 #endif
 
 static void
