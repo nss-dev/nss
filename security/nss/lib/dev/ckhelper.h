@@ -50,10 +50,6 @@ static const char CKHELPER_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 
 PR_BEGIN_EXTERN_C
 
-/* Shortcut to cryptoki API functions. */
-#define CKAPI(x) \
-    ((CK_FUNCTION_LIST_PTR)((x)->epv))
-
 /* Some globals to keep from constantly redeclaring common cryptoki
  * attribute types on the stack.
  */
