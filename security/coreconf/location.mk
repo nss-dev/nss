@@ -42,13 +42,23 @@
 BUILD         = $(PLATFORM)
 OBJDIR        = $(PLATFORM)
 
-DIST          = $(CORE_DEPTH)/../dist/$(PLATFORM)
+ifdef MOZILLA_CLIENT
+DIST          = $(CORE_DEPTH)/../dist
+else
+DIST          = $(CORE_DEPTH)/dist
+endif
 
-VPATH         = $(NSINSTALL_DIR)/$(PLATFORM)
 DEPENDENCIES  = $(PLATFORM)/.md
+MKDEPEND_DIR = $(CORE_DEPTH)/coreconf/mkdepend
+MKDEPEND_SRCDIR = $(topsrcdir)/coreconf/mkdepend
+MKDEPEND = $(MKDEPEND_DIR)/mkdepend
+MKDEPENDENCIES = depend.mk
+NSINSTALL_DIR = $(CORE_DEPTH)/coreconf/nsinstall
 
 ifdef BUILD_DEBUG_GC
 	DEFINES += -DDEBUG_GC
 endif
 
 GARBAGE += $(DEPENDENCIES) core $(wildcard core.[0-9]*)
+BUILD_TOOLS = $(topsrcdir)/build/unix
+AUTOCONF_TOOLS = $(topsrcdir)/build/autoconf

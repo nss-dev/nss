@@ -36,16 +36,32 @@
 # can be overridden in <arch>.mk                                      #
 #######################################################################
 
-AS            = $(CC)
-ASFLAGS      += $(CFLAGS)
 CCF           = $(CC) $(CFLAGS)
 LINK_DLL      = $(LINK) $(OS_DLLFLAGS) $(DLLFLAGS)
 LINK_EXE      = $(LINK) $(OS_LFLAGS) $(LFLAGS)
 NFSPWD        = $(NSINSTALL_DIR)/nfspwd
 CFLAGS       += $(OPTIMIZER) $(OS_CFLAGS) $(XP_DEFINE) $(DEFINES) $(INCLUDES) \
 		$(XCFLAGS)
-RANLIB        = echo
+CXXFLAGS       += $(DEFINES) $(INCLUDES) $(XCFLAGS)
 TAR           = /bin/tar
+
+NSINSTALL = $(NSINSTALL_DIR)/nsinstall
+ifeq ($(NSDISTMODE),copy)
+        # copy files, but preserve source mtime
+        INSTALL  = $(NSINSTALL)
+        INSTALL += -t
+else
+        ifeq ($(NSDISTMODE),absolute_symlink)
+                # install using absolute symbolic links
+                INSTALL  = $(NSINSTALL)
+                INSTALL += -L `$(NFSPWD)`
+        else
+                # install using relative symbolic links
+                INSTALL  = $(NSINSTALL)
+                INSTALL += -R
+        endif
+endif
+
 #
 # For purify
 #

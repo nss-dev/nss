@@ -39,7 +39,11 @@
 # <user_source_tree> master import/export directory prefix
 #
 
+ifdef MOZILLA_CLIENT
 SOURCE_PREFIX = $(CORE_DEPTH)/../dist
+else # !MOZILLA_CLIENT
+SOURCE_PREFIX = $(CORE_DEPTH)/dist
+endif # MOZILLA_CLIENT
 
 #
 # <user_source_tree> cross-platform (xp) master import/export directory
@@ -79,33 +83,6 @@ SOURCE_MDHEADERS_DIR = $(SOURCE_MD_DIR)/include
 #######################################################################
 # Master <component>-specific source release directories and files    #
 #######################################################################
-
-#
-# <user_source_tree> source-side master release directory prefix
-# NOTE:  export control policy enforced for XP and MD files released to
-#        the staging area
-#
-
-ifeq ($(POLICY), domestic)
-	SOURCE_RELEASE_PREFIX = $(SOURCE_PREFIX)/release/domestic
-else
-	ifeq ($(POLICY), export)
-		SOURCE_RELEASE_PREFIX = $(SOURCE_PREFIX)/release/export
-	else
-		ifeq ($(POLICY), france)
-			SOURCE_RELEASE_PREFIX = $(SOURCE_PREFIX)/release/france
-		else
-#We shouldn't have to put another directory under here, but without it the perl
-#script for releasing doesn't find the directory. It thinks it doesn't exist.
-#So we're adding this no-policy directory so that the script for releasing works
-#in all casese when policy is not set. This doesn't affect where the final jar
-#files land, only where they are placed in the local tree when building the jar
-#files. When there is no policy, the jar files will still land in
-#<dist>/<module>/<date>/<platform> like they used to.
-			SOURCE_RELEASE_PREFIX = $(SOURCE_PREFIX)/release/no-policy
-		endif
-	endif
-endif
 
 #
 # <user_source_tree> cross-platform (xp) source-side master release directory

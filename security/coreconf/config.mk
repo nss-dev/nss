@@ -34,117 +34,94 @@
 #
 
 #######################################################################
-# [1.0] Master "Core Components" source and release <architecture>    #
-#       tags                                                          #
-#######################################################################
-
-include $(CORE_DEPTH)/coreconf/arch.mk
-
-#######################################################################
-# [2.0] Master "Core Components" default command macros               #
+# [1.0] Master "Core Components" default command macros               #
 #       (NOTE: may be overridden in $(OS_CONFIG).mk)                  #
 #######################################################################
 
-include $(CORE_DEPTH)/coreconf/command.mk
+include $(topsrcdir)/coreconf/command.mk
 
 #######################################################################
-# [3.0] Master "Core Components" <architecture>-specific macros       #
-#       (dependent upon <architecture> tags)                          #
-#                                                                     #
-#       We are moving towards just having a $(OS_TARGET).mk file      #
-#       as opposed to multiple $(OS_CONFIG).mk files, one for         #
-#       each OS release.                                              #
-#######################################################################
-
-ifeq (,$(filter-out BSD_OS NetBSD OS2,$(OS_TARGET)))
-include $(CORE_DEPTH)/coreconf/$(OS_TARGET).mk
-else
-include $(CORE_DEPTH)/coreconf/$(OS_CONFIG).mk
-endif
-
-#######################################################################
-# [4.0] Master "Core Components" source and release <platform> tags   #
+# [2.0] Master "Core Components" source and release <platform> tags   #
 #       (dependent upon <architecture> tags)                          #
 #######################################################################
 
-include $(CORE_DEPTH)/coreconf/platform.mk
+include $(topsrcdir)/coreconf/platform.mk
 
 #######################################################################
-# [5.0] Master "Core Components" release <tree> tags                  #
+# [3.0] Master "Core Components" release <tree> tags                  #
 #       (dependent upon <architecture> tags)                          #
 #######################################################################
 
-include $(CORE_DEPTH)/coreconf/tree.mk
+include $(topsrcdir)/coreconf/tree.mk
 
 #######################################################################
-# [6.0] Master "Core Components" source and release <component> tags  #
+# [4.0] Master "Core Components" source and release <component> tags  #
 #       NOTE:  A component is also called a module or a subsystem.    #
 #       (dependent upon $(MODULE) being defined on the                #
 #        command line, as an environment variable, or in individual   #
 #        makefiles, or more appropriately, manifest.mn)               #
 #######################################################################
 
-include $(CORE_DEPTH)/coreconf/module.mk
+include $(topsrcdir)/coreconf/module.mk
 
 #######################################################################
-# [7.0] Master "Core Components" release <version> tags               #
+# [5.0] Master "Core Components" release <version> tags               #
 #       (dependent upon $(MODULE) being defined on the                #
 #        command line, as an environment variable, or in individual   #
 #        makefiles, or more appropriately, manifest.mn)               #
 #######################################################################
 
-include $(CORE_DEPTH)/coreconf/version.mk
+include $(topsrcdir)/coreconf/version.mk
 
 #######################################################################
-# [8.0] Master "Core Components" macros to figure out                 #
+# [6.0] Master "Core Components" macros to figure out                 #
 #       binary code location                                          #
 #       (dependent upon <platform> tags)                              #
 #######################################################################
 
-include $(CORE_DEPTH)/coreconf/location.mk
+include $(topsrcdir)/coreconf/location.mk
 
 #######################################################################
-# [9.0] Master "Core Components" <component>-specific source path     #
+# [7.0] Master "Core Components" <component>-specific source path     #
 #       (dependent upon <user_source_tree>, <source_component>,       #
 #        <version>, and <platform> tags)                              #
 #######################################################################
 
-include $(CORE_DEPTH)/coreconf/source.mk
+include $(topsrcdir)/coreconf/source.mk
 
 #######################################################################
-# [10.0] Master "Core Components" include switch for support header   #
+# [8.0] Master "Core Components" include switch for support header    #
 #        files                                                        #
 #        (dependent upon <tree>, <component>, <version>,              #
 #         and <platform> tags)                                        #
 #######################################################################
 
-include $(CORE_DEPTH)/coreconf/headers.mk
+include $(topsrcdir)/coreconf/headers.mk
 
 #######################################################################
-# [11.0] Master "Core Components" for computing program prefixes      #
+# [9.0] Master "Core Components" for computing program prefixes       #
 #######################################################################
 
-include $(CORE_DEPTH)/coreconf/prefix.mk
+include $(topsrcdir)/coreconf/prefix.mk
 
 #######################################################################
-# [12.0] Master "Core Components" for computing program suffixes      #
+# [10.0] Master "Core Components" for computing program suffixes      #
 #        (dependent upon <architecture> tags)                         #
 #######################################################################
 
-include $(CORE_DEPTH)/coreconf/suffix.mk
+include $(topsrcdir)/coreconf/suffix.mk
 
 #######################################################################
-# [13.0] Master "Core Components" for defining JDK                    #
+# [11.0] Master "Core Components" for defining JDK                    #
 #        (dependent upon <architecture>, <source>, and <suffix>  tags)#
 #######################################################################
 
-include $(CORE_DEPTH)/coreconf/jdk.mk
+include $(topsrcdir)/coreconf/jdk.mk
 
 #######################################################################
-# [14.0] Master "Core Components" rule set                            #
+# [12.0] Master "Core Components" rule set                            #
 #        (should always be the last file included by config.mk)       #
 #######################################################################
 
-include $(CORE_DEPTH)/coreconf/ruleset.mk
--include $(MKDEPENDENCIES)
+include $(topsrcdir)/coreconf/ruleset.mk
 
