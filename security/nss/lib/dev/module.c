@@ -222,8 +222,12 @@ nssModule_Destroy
   NSSModule *mod
 )
 {
+    PRUint32 i;
     if (--mod->refCount == 0) {
 	/* Ignore any failure here.  */
+	for (i=0; i<mod->numSlots; i++) {
+	    nssSlot_Destroy(mod->slots[i]);
+	}
 	(void)nssModule_Unload(mod);
 	return NSSArena_Destroy(mod->arena);
     }

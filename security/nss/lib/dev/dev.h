@@ -50,6 +50,10 @@ static const char DEV_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #include "nsspkit.h"
 #endif /* NSSPKIT_H */
 
+#ifndef BASET_H
+#include "baset.h"
+#endif /* BASET_H */
+
 /*
  * nssdev.h
  *
@@ -274,12 +278,12 @@ nssToken_DeleteStoredObject
   CK_OBJECT_HANDLE object
 );
 
-NSS_EXTERN NSSCertificate **
+NSS_EXTERN PRStatus
 nssToken_FindCertificatesByTemplate
 (
   NSSToken *tok,
   nssSession *sessionOpt,
-  NSSCertificate *rvOpt[],
+  nssList *certList,
   PRUint32 maximumOpt,
   NSSArena *arenaOpt,
   CK_ATTRIBUTE_PTR cktemplate,
