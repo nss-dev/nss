@@ -165,47 +165,47 @@ print CFILE "};\n\n";
 
 print CFILE "const PRUint32 nss_builtin_oid_count = ", ($count+1), ";\n\n";
 
-for( $i = 0; $i <= $count; $i++ ) {
-  %y = %{$x[$i]};
-  if( defined($y{NAME}) ) {
-    print CFILE "const NSSOID *$y{NAME} = (NSSOID *)&nss_builtin_oids[$i];\n";
-  }
-}
+#for( $i = 0; $i <= $count; $i++ ) {
+#  %y = %{$x[$i]};
+#  if( defined($y{NAME}) ) {
+#    print CFILE "const NSSOID *$y{NAME} = (NSSOID *)&nss_builtin_oids[$i];\n";
+#  }
+#}
 
 print CFILE "\n";
 
-$attrcount = -1;
-for( $i = 0; $i <= $count; $i++ ) {
-  %y = %{$x[$i]};
-  if( defined($y{ATTR}) ) {
-    if( defined($y{NAME}) ) {
-      $attrcount++;
-      $attr[$attrcount]{ATTR} = $y{ATTR};
-      $attr[$attrcount]{NAME} = $y{NAME};
-    } else {
-      warn "Attribute $y{ATTR} has no name, and will be omitted!";
-    }
-  }
-}
+#$attrcount = -1;
+#for( $i = 0; $i <= $count; $i++ ) {
+#  %y = %{$x[$i]};
+#  if( defined($y{ATTR}) ) {
+#    if( defined($y{NAME}) ) {
+#      $attrcount++;
+#      $attr[$attrcount]{ATTR} = $y{ATTR};
+#      $attr[$attrcount]{NAME} = $y{NAME};
+#    } else {
+#      warn "Attribute $y{ATTR} has no name, and will be omitted!";
+#    }
+#  }
+#}
 
-print CFILE "const nssAttributeTypeAliasTable nss_attribute_type_aliases[] = {\n";
+#print CFILE "const nssAttributeTypeAliasTable nss_attribute_type_aliases[] = {\n";
 
-for( $i = 0; $i <= $attrcount; $i++ ) {
-  %y = %{$attr[$i]};
-  print CFILE "  {\n";
-  print CFILE "    \"$y{ATTR}\",\n";
-  print CFILE "    &$y{NAME}\n";
+#for( $i = 0; $i <= $attrcount; $i++ ) {
+#  %y = %{$attr[$i]};
+#  print CFILE "  {\n";
+#  print CFILE "    \"$y{ATTR}\",\n";
+#  print CFILE "    &$y{NAME}\n";
+#
+#  if( $i == $attrcount ) {
+#    print CFILE "  }\n";
+#  } else {
+#    print CFILE "  },\n";
+##  }
+#}
 
-  if( $i == $attrcount ) {
-    print CFILE "  }\n";
-  } else {
-    print CFILE "  },\n";
-  }
-}
+#print CFILE "};\n\n";
 
-print CFILE "};\n\n";
-
-print CFILE "const PRUint32 nss_attribute_type_alias_count = ", ($attrcount+1), ";\n\n";
+#print CFILE "const PRUint32 nss_attribute_type_alias_count = ", ($attrcount+1), ";\n\n";
 
 print HFILE <<EOD
 /* THIS IS A GENERATED FILE */
@@ -262,12 +262,18 @@ extern const PRUint32 nss_builtin_oid_count;
 EOD
     ;
 
+$nextline="";
+print HFILE "enum NSSOIDTagEnum {\n";
 for( $i = 0; $i <= $count; $i++ ) {
   %y = %{$x[$i]};
   if( defined($y{NAME}) ) {
-    print HFILE "extern const NSSOID *$y{NAME};\n";
+#    print HFILE "extern const NSSOID *$y{NAME};\n";
+    print HFILE "$nextline   $y{NAME} = $i";
+    $nextline=",\n";
   }
 }
+print HFILE "\n};\n";
+print HFILE "\ntypedef enum NSSOIDTagEnum NSSOIDTag;\n";
 
 print HFILE <<EOD
 

@@ -80,6 +80,19 @@ NSSOID_Create
   NSSItem *oidData
 );
 
+NSS_EXTERN NSSOID *
+NSSOID_CreateFromTag
+(
+  NSSOIDTag tag
+);
+
+NSS_EXTERN PRBool
+NSSOID_IsTag
+(
+  const NSSOID *oid,
+  NSSOIDTag tag
+);
+
 /*
  * NSSOID_CreateFromBER
  *

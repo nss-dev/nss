@@ -70,6 +70,8 @@ NSSUTF8_Duplicate;
 NSSASN1_EncodeItem;
 NSSASN1_DecodeBER;
 NSSOID_Create;
+NSSOID_CreateFromTag;
+NSSOID_IsTag;
 NSSTime_Now;
 NSSTime_CreateFromUTCTime;
 NSSTime_GetUTCTime;
@@ -299,9 +301,6 @@ NSSTrustDomain_TraversePrivateKeys;
 ;;NSSAlgorithmAndParameters_MD2  DATA ;
 ;;NSSAlgorithmAndParameters_MD5  DATA ;
 ;;NSSAlgorithmAndParameters_SHA1 DATA ;
-;;NSS_OID_X509_BASIC_CONSTRAINTS DATA ;
-;;NSS_OID_X509_KEY_USAGE DATA ;
-;;NSS_OID_NS_CERT_EXT_CERT_TYPE DATA ;
 ;;nssASN1Template_BitString DATA ;
 ;+#
 ;+# friendly functions for libpkix -- DO NOT USE!

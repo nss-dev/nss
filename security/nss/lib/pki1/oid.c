@@ -86,6 +86,53 @@ const NSSOID *NSS_OID_UNKNOWN = (NSSOID *)NULL;
  * First, the public "wrappers"
  */
 
+NSS_IMPLEMENT NSSOID *
+nssOID_CreateFromTag
+(
+  NSSOIDTag tag
+)
+{
+  if (tag >= 0 && tag < nss_builtin_oid_count) {
+    return (NSSOID *)&nss_builtin_oids[tag];
+  }
+  return (NSSOID *)NULL;
+}
+
+NSS_IMPLEMENT NSSOID *
+NSSOID_CreateFromTag
+(
+  NSSOIDTag tag
+)
+{
+    return nssOID_CreateFromTag(tag);
+}
+
+NSS_IMPLEMENT PRBool
+nssOID_IsTag
+(
+  const NSSOID *oid,
+  NSSOIDTag tag
+)
+{
+    NSSOID *tagOID;
+
+    tagOID = nssOID_CreateFromTag(tag);
+    if (tagOID) {
+	return (tagOID == oid);
+    }
+    return PR_FALSE;
+}
+
+NSS_IMPLEMENT PRBool
+NSSOID_IsTag
+(
+  const NSSOID *oid,
+  NSSOIDTag tag
+)
+{
+    return nssOID_IsTag(oid, tag);
+}
+
 NSS_EXTERN NSSOID *
 nssOID_Create
 (

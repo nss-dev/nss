@@ -381,7 +381,7 @@ nssPKIXExtensions_GetBasicConstraints
     extns = extensions->extensions;
     for (i = 0; i < extensions->count; i++) {
 	extnOID = nssPKIXExtension_GetExtensionID(extns[i]);
-	if (extnOID == NSS_OID_X509_BASIC_CONSTRAINTS) {
+	if (NSSOID_IsTag(extnOID, NSS_OID_X509_BASIC_CONSTRAINTS)) {
 	    if (extns[i]->extnData) {
 		return (NSSPKIXBasicConstraints *)extns[i]->extnData;
 	    }
@@ -414,7 +414,7 @@ nssPKIXExtensions_GetKeyUsage
     extns = extensions->extensions;
     for (i = 0; i < extensions->count; i++) {
 	extnOID = nssPKIXExtension_GetExtensionID(extns[i]);
-	if (extnOID == NSS_OID_X509_KEY_USAGE) {
+	if (NSSOID_IsTag(extnOID, NSS_OID_X509_KEY_USAGE)) {
 	    if (extns[i]->extnData) {
 		return (NSSPKIXKeyUsage *)extns[i]->extnData;
 	    }
@@ -447,7 +447,7 @@ nssPKIXExtensions_GetNetscapeCertType
     extns = extensions->extensions;
     for (i = 0; i < extensions->count; i++) {
 	extnOID = nssPKIXExtension_GetExtensionID(extns[i]);
-	if (extnOID == NSS_OID_NS_CERT_EXT_CERT_TYPE) {
+	if (NSSOID_IsTag(extnOID, NSS_OID_NS_CERT_EXT_CERT_TYPE)) {
 	    if (extns[i]->extnData) {
 		return (NSSPKIXnetscapeCertType *)extns[i]->extnData;
 	    }
