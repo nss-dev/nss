@@ -1659,6 +1659,7 @@ CERT_IsCADERCert(SECItem *derCert, unsigned int *type) {
     CERTCertificate *cert;
     PRBool isCA;
 
+    /* This is okay -- only looks at extensions */
     cert = CERT_DecodeDERCertificate(derCert, PR_FALSE, NULL);
     if (cert == NULL) return PR_FALSE;
 
