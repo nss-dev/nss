@@ -1,4 +1,3 @@
-#! gmake
 #
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
@@ -31,25 +30,16 @@
 # may use your version of this file under either the MPL or the
 # GPL.
 #
+# Config stuff for Solaris 2.5.1 on x86
+# 
 
-CORE_DEPTH = ../..
+SOL_CFLAGS	= -D_SVID_GETTOD
 
-MODULE = dbm
+include $(CORE_DEPTH)/coreconf/SunOS5.mk
 
-EXPORTS =	nsres.h   \
-		cdefs.h   \
-		mcom_db.h \
-		ncompat.h \
-		winfile.h \
-		$(NULL)
+CPU_ARCH		= x86
+OS_DEFINES		+= -Di386
 
-PRIVATE_EXPORTS =	hsearch.h \
-			page.h    \
-			extern.h  \
-			ndbm.h    \
-			queue.h   \
-			hash.h    \
-			mpool.h   \
-			search.h  \
-			$(NULL)
-
+ifeq ($(OS_RELEASE),5.5.1_i86pc)
+	OS_DEFINES += -DSOLARIS2_5
+endif
