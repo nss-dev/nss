@@ -149,17 +149,19 @@ if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ]; then
     OS_ARCH=`(cd $COMMON; gmake os_arch)`
     OS_NAME=`uname -s | sed -e "s/-[0-9]*\.[0-9]*//"`
 
-    if [ "${OS_ARCH}" = "WINNT" -a "$OS_NAME"  != "CYGWIN_NT" ]; then
-        PATH=${DIST}/${OBJDIR}/bin\;${DIST}/${OBJDIR}/lib\;$PATH
-        PATH=`perl ../path_uniq -d ';' "$PATH"`
-    else
-        PATH=${DIST}/${OBJDIR}/bin:${DIST}/${OBJDIR}/lib:$PATH
-        PATH=`perl ../path_uniq -d ':' "$PATH"`
-    fi
+    if [ -z "${DON_T_SET_PATHS}" -o "${DON_T_SET_PATHS}" != "TRUE" ] ; then
+        if [ "${OS_ARCH}" = "WINNT" -a "$OS_NAME"  != "CYGWIN_NT" ]; then
+            PATH=${DIST}/${OBJDIR}/bin\;${DIST}/${OBJDIR}/lib\;$PATH
+            PATH=`perl ../path_uniq -d ';' "$PATH"`
+        else
+            PATH=${DIST}/${OBJDIR}/bin:${DIST}/${OBJDIR}/lib:$PATH
+            PATH=`perl ../path_uniq -d ':' "$PATH"`
+        fi
 
-    LD_LIBRARY_PATH=${DIST}/${OBJDIR}/lib
-    SHLIB_PATH=${DIST}/${OBJDIR}/lib
-    LIBPATH=${DIST}/${OBJDIR}/lib
+        LD_LIBRARY_PATH=${DIST}/${OBJDIR}/lib
+        SHLIB_PATH=${DIST}/${OBJDIR}/lib
+        LIBPATH=${DIST}/${OBJDIR}/lib
+    fi
 
     if [ ! -d "${TESTDIR}" ]; then
         echo "$SCRIPTNAME init: Creating ${TESTDIR}"
@@ -173,7 +175,7 @@ if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ]; then
         ?*)
             ;;
         *)
-            echo "$SCRIPTNAME: HOST environment variable is not defined."
+            echo "$SCRIPTNAME: Fatal HOST environment variable is not defined."
             exit 1 #does not need to be Exit, very early in script
             ;;
     esac
@@ -181,16 +183,36 @@ if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ]; then
     if [ -z "${DOMSUF}" ]; then
         DOMSUF=`domainname`
         if  [ -z "${DOMSUF}" ]; then
-            echo "$SCRIPTNAME: DOMSUF environment variable is not defined."
+            echo "$SCRIPTNAME: Fatal DOMSUF env. variable is not defined."
+            exit 1 #does not need to be Exit, very early in script
+        fi
+    fi
+    if [ -z "$USE_IP" -o "$USE_IP" != "TRUE" ] ; then
+        HOSTADDR=${HOST}.${DOMSUF}
+    else
+        HOSTADDR=${IP_ADDRESS}
+    fi
+
+    #if running remote side of the distributed stress test we need to use the files that
+    #the server side gives us...
+    if [ -n "$DO_REM_ST" -a "$DO_REM_ST" = "TRUE" ] ; then
+        for w in `ls -rtd ${TESTDIR}/${HOST}.[0-9]* 2>/dev/null |
+            sed -e "s/.*${HOST}.//"` ; do
+                version=$w
+        done
+        HOSTDIR=${TESTDIR}/${HOST}.$version
+        echo "$SCRIPTNAME init: HOSTDIR $HOSTDIR"
+        echo $HOSTDIR
+        if [ ! -d $HOSTDIR ] ; then
+            echo "$SCRIPTNAME: Fatal: Remote side of dist. stress test "
+            echo "       - server HOSTDIR $HOSTDIR does not exist"
             exit 1 #does not need to be Exit, very early in script
         fi
     fi
 
-#NOTE - this HOSTDIR migh not be set at the time of this test!!!
-# the original had a -s maybe meant -z???? - first replaced it with -d
-#which worked, but resulted in [ ! -d "" ] which doesn't make a lot of sense
-
-    if [ -z "${HOSTDIR}" ]; then
+    if [ -n "${HOSTDIR}" ]; then
+        version=`echo $HOSTDIR | sed  -e "s/.*${HOST}.//"` 
+    else
         if [ -f "${TESTDIR}/${HOST}" ]; then
             version=`cat ${TESTDIR}/${HOST}`
         else
@@ -213,6 +235,12 @@ if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ]; then
         mkdir -p ${HOSTDIR}
     fi
 
+    if [ -z "${LOGFILE}" ]; then
+        LOGFILE=${HOSTDIR}/output.log
+    fi
+    if [ ! -f "${LOGFILE}" ]; then
+        touch ${LOGFILE}
+    fi
     if [ -z "${RESULTS}" ]; then
         RESULTS=${HOSTDIR}/results.html
     fi
@@ -220,20 +248,27 @@ if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ]; then
         cp ${COMMON}/results_header.html ${RESULTS}
         html "<H4>Platform: ${OBJDIR}<BR>" 
         html "Test Run: ${HOST}.$version</H4>" 
+        html "${BC_ACTION}"
         html "<HR><BR>" 
         html "<HTML><BODY>" 
 
-        echo "********************************************"
-        echo "   Platform: ${OBJDIR}"
-        echo "   Results: ${HOST}.$version"
-        echo "********************************************"
+        echo "********************************************" | tee ${LOGFILE}
+        echo "   Platform: ${OBJDIR}" | tee ${LOGFILE}
+        echo "   Results: ${HOST}.$version" | tee ${LOGFILE}
+        echo "********************************************" | tee ${LOGFILE}
+	echo "$BC_ACTION" | tee ${LOGFILE}
+    #if running remote side of the distributed stress test let the user know who it is...
+    elif [ -n "$DO_REM_ST" -a "$DO_REM_ST" = "TRUE" ] ; then
+        echo "********************************************" | tee ${LOGFILE}
+        echo "   Platform: ${OBJDIR}" | tee ${LOGFILE}
+        echo "   Results: ${HOST}.$version" | tee ${LOGFILE}
+        echo "   remote side of distributed stress test " | tee ${LOGFILE}
+        echo "   `uname -n -s`" | tee ${LOGFILE}
+        echo "********************************************" | tee ${LOGFILE}
     fi
-    if [ -z "${LOGFILE}" ]; then
-        LOGFILE=${HOSTDIR}/output.log
-    fi
-    if [ ! -f "${LOGFILE}" ]; then
-        touch ${LOGFILE}
-    fi
+
+    echo "$SCRIPTNAME init: Testing PATH $PATH against LIB $LD_LIBRARY_PATH" |
+        tee ${LOGFILE}
 
     KILL="kill"
     if  [ "${OS_ARCH}" = "Linux" ]; then
@@ -243,6 +278,16 @@ if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ]; then
         PS="/usr/5bin/ps"
     else
         PS="ps"
+    fi
+    #found 3 rsh's so far that do not work as expected - cygnus mks6 (restricted sh) and mks 7
+    if [ -z "$RSH" ]; then
+        if [ "${OS_ARCH}" = "WINNT" -a "$OS_NAME"  = "CYGWIN_NT" ]; then
+            RSH=/cygdrive/c/winnt/system32/rsh
+        elif [ "${OS_ARCH}" = "WINNT" ]; then
+            RSH=c:/winnt/system32/rsh
+        else
+            RSH=rsh
+        fi
     fi
    
 
@@ -289,11 +334,23 @@ if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ]; then
     trap "Exit $0 Signal_caught" 2 3
 
     export PATH LD_LIBRARY_PATH SHLIB_PATH LIBPATH
-    export DOMSUF
+    export DOMSUF HOSTADDR
     export KILL SLEEP PS
     export MOZILLA_ROOT SECURITY_ROOT DIST TESTDIR OBJDIR HOSTDIR QADIR
     export LOGFILE SCRIPTNAME
 
+    if [ -z "$GLOB_MIN_CERT" ] ; then
+        GLOB_MIN_CERT=0
+    fi
+    if [ -z "$GLOBMAX_CERT" ] ; then
+        GLOB_MAX_CERT=200
+    fi
+    if [ -z "$MIN_CERT" ] ; then
+        MIN_CERT=$GLOB_MIN_CERT
+    fi
+    if [ -z "$MAX_CERT" ] ; then
+        MAX_CERT=$GLOB_MAX_CERT
+    fi
 
     SCRIPTNAME=$0
     INIT_SOURCED=TRUE   #whatever one does - NEVER export this one please
