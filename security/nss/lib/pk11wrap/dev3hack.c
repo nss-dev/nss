@@ -151,7 +151,17 @@ nssToken_CreateFromPK11SlotInfo(NSSTrustDomain *td, PK11SlotInfo *nss3slot)
     rvToken->slot = nssSlot_CreateFromPK11SlotInfo(td, nss3slot);
     rvToken->slot->token = rvToken;
     rvToken->defaultSession->slot = rvToken->slot;
+    rvToken->arena = td->arena;
     return rvToken;
+}
+
+NSS_IMPLEMENT void
+nssToken_UpdateName(NSSToken *token)
+{
+    if (!token) {
+	return;
+    }
+    token->name = nssUTF8_Duplicate(token->pk11slot->token_name,token->arena);
 }
 
 NSS_IMPLEMENT PRBool
