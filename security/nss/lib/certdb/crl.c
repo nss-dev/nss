@@ -41,7 +41,6 @@
 #include "certi.h"
 #include "secder.h"
 #include "secasn1.h"
-#include "quickder.h"
 #include "secoid.h"
 #include "certdb.h"
 #include "certxutl.h"
