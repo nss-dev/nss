@@ -243,6 +243,8 @@ struct NSSCMSSignerInfoStr {
     CERTCertificateList *	certList;
     PRTime			signingTime;
     NSSCMSVerificationStatus	verificationStatus;
+    SECKEYPrivateKey *          signingKey; /* Used if we're using subjKeyID*/
+    SECKEYPublicKey *           pubKey;
 };
 #define NSS_CMS_SIGNER_INFO_VERSION_ISSUERSN	1	/* what we *create* */
 #define NSS_CMS_SIGNER_INFO_VERSION_SUBJKEY	3	/* what we *create* */

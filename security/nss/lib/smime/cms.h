@@ -598,6 +598,8 @@ NSS_CMSSignedData_CreateCertsOnly(NSSCMSMessage *cmsg, CERTCertificate *cert, PR
 
 extern NSSCMSSignerInfo *
 NSS_CMSSignerInfo_Create(NSSCMSMessage *cmsg, CERTCertificate *cert, SECOidTag digestalgtag);
+extern NSSCMSSignerInfo *
+NSS_CMSSignerInfo_CreateWithSubjKeyID(NSSCMSMessage *cmsg, SECItem *subjKeyID, SECKEYPublicKey *pubKey, SECKEYPrivateKey *signingKey, SECOidTag digestalgtag);
 
 /*
  * NSS_CMSSignerInfo_Destroy - destroy a SignerInfo data structure
