@@ -1552,7 +1552,7 @@ pk11_DestroySessionObjectData(PK11SessionObject *so)
 	    so->head[i] = NULL;
 	}
 #endif
-	PK11_USE_THREADS(PZ_DestroyLock(so->attributeLock));
+/*	PK11_USE_THREADS(PZ_DestroyLock(so->attributeLock));*/
 	return CKR_OK;
 }
 
@@ -2187,7 +2187,7 @@ static const CK_OBJECT_HANDLE pk11_classArray[] = {
      CKO_CERTIFICATE };
 
 #define handleToClass(handle) \
-    pk11_classArray[((handle & PK11_TOKEN_TYPE_MASK))>>24]
+    pk11_classArray[((handle & PK11_TOKEN_TYPE_MASK))>>28]
 
 PK11Object *
 pk11_NewTokenObject(PK11Slot *slot, SECItem *dbKey, CK_OBJECT_HANDLE handle)
@@ -2278,6 +2278,7 @@ pk11_convertSessionToToken(PK11SessionObject *so)
     SECStatus rv;
 
     pk11_DestroySessionObjectData(so);
+    PK11_USE_THREADS(PZ_DestroyLock(so->attributeLock));
     if (to == NULL) {
 	return NULL;
     }
