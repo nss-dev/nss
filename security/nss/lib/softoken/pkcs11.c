@@ -1956,9 +1956,13 @@ SECKEYLowPublicKey *pk11_GetPubKey(PK11Object *object,CK_KEY_TYPE key_type)
 	pubKey->keyType = rsaKey;
 	crv = pk11_Attribute2SSecItem(arena,&pubKey->u.rsa.modulus,
 							object,CKA_MODULUS);
+	if (pubKey->u.rsa.modulus.len == 0)
+	    crv = CKR_ARGUMENTS_BAD;
     	if (crv != CKR_OK) break;
     	crv = pk11_Attribute2SSecItem(arena,&pubKey->u.rsa.publicExponent,
 						object,CKA_PUBLIC_EXPONENT);
+	if (pubKey->u.rsa.publicExponent.len == 0)
+	    crv = CKR_ARGUMENTS_BAD;
 	break;
     case CKK_DSA:
 	pubKey->keyType = dsaKey;

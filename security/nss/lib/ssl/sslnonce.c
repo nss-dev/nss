@@ -219,6 +219,11 @@ CacheSID(sslSessionID *sid)
     if (sid->cached == in_client_cache)
 	return;
 
+    if (!sid->urlSvrName) {
+        /* don't cache this SID because it can never be matched */
+        return;
+    }
+
     /* XXX should be different trace for version 2 vs. version 3 */
     if (sid->version < SSL_LIBRARY_VERSION_3_0) {
 	expirationPeriod = ssl_sid_timeout;

@@ -438,7 +438,8 @@ CERT_ParseRFC1485AVA(PRArenaPool *arena, char **pbp, char *endptr,
                 } else if (Is7Bit((unsigned char *)valBuf, valLen)) {
                     vt = SEC_ASN1_T61_STRING;
 		} else {
-		    vt = SEC_ASN1_UNIVERSAL_STRING;
+		    /* according to RFC3280, UTF8String is preferred encoding */
+		    vt = SEC_ASN1_UTF8_STRING;
 		}
 	    }
 	    a = CERT_CreateAVA(arena, n2k->kind, vt, (char *) valBuf);
@@ -623,6 +624,11 @@ get_oid_string
     /* end points to one past the legitimate data */
     end = &d[ oid->len ];
 
+    if (oid->len > 1024) {
+	PORT_SetError(SEC_ERROR_NO_MEMORY);
+	return (char *)NULL;
+    }
+
     /*
      * Check for our pseudo-encoded single-digit OIDs
      */
@@ -774,6 +780,7 @@ AppendAVA(char **bufp, unsigned *buflenp, CERTAVA *ava)
       default:
  	/* handle unknown attribute types per RFC 2253 */
  	tagName = unknownTag = get_oid_string(&ava->type);
+	if (!tagName) return SECFailure;
  	maxLen = 256;
  	break;
     }
@@ -791,6 +798,7 @@ AppendAVA(char **bufp, unsigned *buflenp, CERTAVA *ava)
     /* Check value length */
     if (avaValue->len > maxLen) {
  	if (unknownTag) PR_smprintf_free(unknownTag);
+	SECITEM_FreeItem(avaValue, PR_TRUE);
 	PORT_SetError(SEC_ERROR_INVALID_AVA);
 	return SECFailure;
     }
@@ -798,6 +806,7 @@ AppendAVA(char **bufp, unsigned *buflenp, CERTAVA *ava)
     len = PORT_Strlen(tagName);
     if (len+1 > sizeof(tmpBuf)) {
 	if (unknownTag) PR_smprintf_free(unknownTag);
+	SECITEM_FreeItem(avaValue, PR_TRUE);
 	PORT_SetError(SEC_ERROR_OUTPUT_LEN);
 	return SECFailure;
     }
