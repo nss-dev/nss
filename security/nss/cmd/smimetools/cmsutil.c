@@ -261,7 +261,7 @@ decode(FILE *out, SECItem *output, SECItem *input,
 	    /* if we have a content file, but no digests for this signedData */
 	    if (decodeOptions.contentFile != NULL && !NSS_CMSSignedData_HasDigests(sigd)) {
 		if ((poolp = PORT_NewArena(1024)) == NULL) {
-		    fprintf(stderr, "Out of memory.\n");
+		    fprintf(stderr, "cmsutil: Out of memory.\n");
 		    goto loser;
 		}
 		digestalgs = NSS_CMSSignedData_GetDigestAlgs(sigd);
@@ -306,7 +306,7 @@ decode(FILE *out, SECItem *output, SECItem *input,
 		                             decodeOptions.options->certHandle, 
 		                             decodeOptions.options->certUsage);
 		if (rv != SECSuccess) {
-		    fprintf(stderr, "Verify certs-only failed!\n");
+		    fprintf(stderr, "cmsutil: Verify certs-only failed!\n");
 		    goto loser;
 		}
 		return cmsg;

@@ -316,6 +316,7 @@ NSS_CMSEnvelopedData_Decode_BeforeData(NSSCMSEnvelopedData *envd)
     SECStatus rv = SECFailure;
     NSSCMSContentInfo *cinfo;
     NSSCMSRecipient **recipient_list;
+    NSSCMSRecipient *recipient;
     int rlIndex;
 
     if (NSS_CMSArray_Count((void **)envd->recipientInfos) == 0) {
@@ -347,14 +348,19 @@ NSS_CMSEnvelopedData_Decode_BeforeData(NSSCMSEnvelopedData *envd)
 	goto loser;
     }
 
+    recipient = recipient_list[rlIndex];
+    if (!recipient->cert || !recipient->privkey) {
+	/* XXX should set an error code ?!? */
+	goto loser;
+    }
     /* get a pointer to "our" recipientinfo */
-    ri = envd->recipientInfos[recipient_list[rlIndex]->riIndex];
+    ri = envd->recipientInfos[recipient->riIndex];
 
     cinfo = &(envd->contentInfo);
     bulkalgtag = NSS_CMSContentInfo_GetContentEncAlgTag(cinfo);
-    bulkkey = NSS_CMSRecipientInfo_UnwrapBulkKey(ri,recipient_list[rlIndex]->subIndex,
-						    recipient_list[rlIndex]->cert,
-						    recipient_list[rlIndex]->privkey,
+    bulkkey = NSS_CMSRecipientInfo_UnwrapBulkKey(ri,recipient->subIndex,
+						    recipient->cert,
+						    recipient->privkey,
 						    bulkalgtag);
     if (bulkkey == NULL) {
 	/* no success finding a bulk key */
