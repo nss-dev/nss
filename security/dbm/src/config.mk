@@ -48,16 +48,18 @@ PURE_LIBRARY   =
 PROGRAM        =
 
 ifdef SHARED_LIBRARY
-	ifeq (,$(filter-out WINNT WIN95 WINCE,$(OS_TARGET))) # list omits WIN16
-		DLLBASE=/BASE:0x30000000
-		RES=$(OBJDIR)/dbm.res
-		RESNAME=../include/dbm.rc
+	ifeq ($(OS_ARCH),WINNT)
+		ifneq ($(OS_TARGET),WIN16)
+			DLLBASE=/BASE:0x30000000
+			RES=$(OBJDIR)/dbm.res
+			RESNAME=../include/dbm.rc
+		endif
 	endif
 	ifeq ($(DLL_SUFFIX),dll)
 		DEFINES += -D_DLL
 	endif
 endif
 
-ifeq ($(OS_TARGET),AIX)
+ifeq ($(OS_ARCH),AIX)
 	OS_LIBS += -lc_r
 endif
