@@ -101,10 +101,6 @@ nssHash_Create
   NSSArena *arena;
 
 #ifdef NSSDEBUG
-  if( (PRStatus *)NULL == pError ) {
-    return (nssHash *)NULL;
-  }
-
   if( arenaOpt && PR_SUCCESS != nssArena_verifyPointer(arenaOpt) ) {
     nss_SetError(NSS_ERROR_INVALID_POINTER);
     return (nssHash *)NULL;
