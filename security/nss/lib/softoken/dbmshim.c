@@ -365,7 +365,7 @@ dbs_readBlob(DBS *dbsp, DBT *data)
     PRFileMap *mapfile = NULL;
     unsigned char *addr = NULL;
     int error;
-    int len;
+    int len = -1;
 
     file = dbs_getBlobFilePath(dbsp->blobdir, data);
     if (!file) {
@@ -405,9 +405,10 @@ loser:
     error = PR_GetError();
     if (addr) {
 	if (mapfile) {
+	    PORT_Assert(len != -1);
 	    PR_MemUnmap(addr,len);
 	} else {
-	     PORT_Free(addr);
+	    PORT_Free(addr);
 	}
     }
     if (mapfile) {
