@@ -656,6 +656,7 @@ nssCKFWSlot_GetToken
     }
 
     fwToken = nssCKFWToken_Create(fwSlot, mdToken, pError);
+    fwSlot->fwToken = fwToken;
   } else {
     fwToken = fwSlot->fwToken;
   }

@@ -908,6 +908,8 @@ findfcn
       if( mdso->types[j] == p->type ) {
         if( !items_match(&mdso->attributes[j], p->pValue, p->ulValueLen) ) {
           return;
+        } else {
+          break;
         }
       }
     }
@@ -1061,6 +1063,7 @@ nss_ckmdFindSessionObjects_Next
 )
 {
   nssCKMDFindSessionObjects *mdfso;
+  NSSCKMDObject *rv = (NSSCKMDObject *)NULL;
 
 #ifdef NSSDEBUG
   if( CKR_OK != nss_ckmdFindSessionObjects_verifyPointer(mdFindObjects) ) {
@@ -1070,18 +1073,18 @@ nss_ckmdFindSessionObjects_Next
 
   mdfso = (nssCKMDFindSessionObjects *)mdFindObjects->etc;
 
-  while( 1 ) {
+  while( (NSSCKMDObject *)NULL == rv ) {
     if( (struct nodeStr *)NULL == mdfso->list ) {
       *pError = CKR_OK;
       return (NSSCKMDObject *)NULL;
     }
 
     if( nssCKFWHash_Exists(mdfso->hash, mdfso->list->mdObject) ) {
-      break;
+      rv = mdfso->list->mdObject;
     }
 
     mdfso->list = mdfso->list->next;
   }
 
-  return mdfso->list->mdObject;
+  return rv;
 }

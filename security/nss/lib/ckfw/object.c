@@ -278,7 +278,7 @@ nssCKFWObject_Destroy
   (void)nssCKFWMutex_Destroy(fwObject->mutex);
 
   if( (void *)NULL != (void *)fwObject->mdObject->Destroy ) {
-    fwObject->mdObject->Finalize(fwObject->mdObject, fwObject,
+    fwObject->mdObject->Destroy(fwObject->mdObject, fwObject,
       fwObject->mdSession, fwObject->fwSession, fwObject->mdToken,
       fwObject->fwToken, fwObject->mdInstance, fwObject->fwInstance);
   }

@@ -250,7 +250,7 @@ nssCKFWToken_Create
     goto loser;
   }
 
-  if( CK_TRUE == nssCKFWInstance_GetModuleHandlesSessionObjects(
+  if( CK_TRUE != nssCKFWInstance_GetModuleHandlesSessionObjects(
                    fwToken->fwInstance) ) {
     fwToken->sessionObjectHash = nssCKFWHash_Create(fwToken->fwInstance, 
                                    arena, pError);

@@ -216,11 +216,6 @@ nss_builtins_FindObjectsInit
     }
   }
 
-  if( 0 == fo->n ) {
-    *pError = CKR_OK;
-    goto loser;
-  }
-
   fo->objs = nss_ZNEWARRAY(arena, builtinsInternalObject *, fo->n);
   if( (builtinsInternalObject **)NULL == temp ) {
     *pError = CKR_HOST_MEMORY;
