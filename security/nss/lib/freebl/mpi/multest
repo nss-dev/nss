@@ -41,12 +41,12 @@
 #
 
 ECHO=/bin/echo
-
+MAKE=gmake
 
 $ECHO "\n** Running multiply and square timing tests\n"
 
 $ECHO "Bringing 'mulsqr' up to date ... "
-if make mulsqr ; then
+if $MAKE mulsqr ; then
     :
 else
     $ECHO "\nMake failed to build mulsqr.\n"
@@ -79,7 +79,7 @@ rm -f tt$$.tmp
 $ECHO "\n** Running Karatsuba-Ofman multiplication tests\n"
 
 $ECHO "Brining 'karatsuba' up to date ... "
-if make karatsuba ; then
+if $MAKE karatsuba ; then
     :
 else
     $ECHO "\nMake failed to build karatsuba.\n"
