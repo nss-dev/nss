@@ -64,9 +64,6 @@ typedef struct NSSLOWKEYDBHandleStr NSSLOWKEYDBHandle;
 /*
 ** Typedef for callback to get a password "key".
 */
-typedef SECItem * (* NSSLOWKEYGetPasswordKey)(void *arg,
-					   NSSLOWKEYDBHandle *handle);
-
 extern const SEC_ASN1Template nsslowkey_PQGParamsTemplate[];
 extern const SEC_ASN1Template nsslowkey_RSAPrivateKeyTemplate[];
 extern const SEC_ASN1Template nsslowkey_DSAPrivateKeyTemplate[];
@@ -76,20 +73,7 @@ extern const SEC_ASN1Template nsslowkey_DHPrivateKeyExportTemplate[];
 
 extern const SEC_ASN1Template nsslowkey_PrivateKeyInfoTemplate[];
 extern const SEC_ASN1Template nsslowkey_EncryptedPrivateKeyInfoTemplate[];
-extern const SEC_ASN1Template nsslowkey_AttributeTemplate[];
 
-/* These functions simply return the address of the above-declared templates.
-** This is necessary for Windows DLLs.  Sigh.
-extern SEC_ASN1TemplateChooser NSS_Get_nsslowkey_EncryptedPrivateKeyInfoTemplate; */
-
-/*
-** Attributes
-*/
-struct NSSLOWKEYAttributeStr {
-    SECItem attrType;
-    SECItem **attrValue;
-};
-typedef struct NSSLOWKEYAttributeStr NSSLOWKEYAttribute;
 
 /*
 ** A PKCS#8 private key info object
@@ -99,10 +83,9 @@ struct NSSLOWKEYPrivateKeyInfoStr {
     SECItem version;
     SECAlgorithmID algorithm;
     SECItem privateKey;
-    NSSLOWKEYAttribute **attributes;
 };
 typedef struct NSSLOWKEYPrivateKeyInfoStr NSSLOWKEYPrivateKeyInfo;
-#define NSS_LOW_KEY_INFO_VERSION		0	/* what we *create* */
+#define NSSLOWKEY_PRIVATE_KEY_INFO_VERSION	0	/* what we *create* */
 
 /*
 ** A PKCS#8 private key info object

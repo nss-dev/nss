@@ -50,8 +50,6 @@
 #include "prlong.h"
 #include "secerr.h"
 #include "secpkcs5.h"
-#define NSSCKT_H /* we included pkcs11t.h, so block ckt.h from including nssckt.h */
-#include "ckt.h"
 
 
 /*************************************************************
@@ -419,7 +417,7 @@ PK11_NewSlotInfo(void)
     slot->series = 0;
     slot->wrapKey = 0;
     slot->wrapMechanism = CKM_INVALID_MECHANISM;
-    slot->refKeys[0] = CK_INVALID_KEY;
+    slot->refKeys[0] = CK_INVALID_HANDLE;
     slot->reason = PK11_DIS_NONE;
     slot->readOnly = PR_TRUE;
     slot->needLogin = PR_FALSE;
@@ -466,9 +464,6 @@ PK11_DestroySlot(PK11SlotInfo *slot)
    if (slot->functionList) {
 	PK11_GETTAB(slot)->C_CloseAllSessions(slot->slotID);
    }
-
-   /* now free up all the certificates we grabbed on this slot */
-   PK11_FreeSlotCerts(slot);
 
    /* free up the cached keys and sessions */
    PK11_CleanKeyList(slot);
@@ -1082,9 +1077,6 @@ PK11_DoPassword(PK11SlotInfo *slot, PRBool loadCerts, void *wincx)
 	if (rv != SECWouldBlock) break;
     }
     if (rv == SECSuccess) {
-	if ((loadCerts) && (!slot->isInternal) && (slot->cert_count == 0)) {
-	    PK11_ReadSlotCerts(slot);
-	}
 	rv = pk11_CheckVerifyTest(slot);
     } else if (!attempt) PORT_SetError(SEC_ERROR_BAD_PASSWORD);
     return rv;
@@ -1715,14 +1707,6 @@ PK11_InitToken(PK11SlotInfo *slot, PRBool loadCerts)
 	if (!slot->isThreadSafe) PK11_ExitSlotMonitor(slot);
     }
 
-    /*if we have cached slotcerts, free them they are almost certainly stale*/
-    PK11_FreeSlotCerts(slot);
-
-    if (loadCerts && (!slot->isInternal) && 
-       ((!slot->needLogin) || (slot->defaultFlags & SECMOD_FRIENDLY_FLAG))) {
-	PK11_ReadSlotCerts(slot);
-    }
-
     if (!(slot->needLogin)) {
 	return pk11_CheckVerifyTest(slot);
     }
@@ -1783,7 +1767,7 @@ pk11_isRootSlot(PK11SlotInfo *slot)
     PORT_Assert(tsize <= sizeof(findTemp)/sizeof(CK_ATTRIBUTE));
 
     handle = pk11_FindObjectByTemplate(slot,findTemp,tsize);
-    if (handle == CK_INVALID_KEY) {
+    if (handle == CK_INVALID_HANDLE) {
 	return PR_FALSE;
     }
     return PR_TRUE;
@@ -1891,7 +1875,6 @@ pk11_IsPresentCertLoad(PK11SlotInfo *slot, PRBool loadCerts)
 	    PK11_GETTAB(slot)->C_CloseSession(slot->session);
 	    slot->session = CK_INVALID_SESSION;
 	    /* force certs to be freed */
-	    PK11_FreeSlotCerts(slot);
 	}
         if (!slot->isThreadSafe) PK11_ExitSlotMonitor(slot);
 	return PR_FALSE;
@@ -1904,7 +1887,6 @@ pk11_IsPresentCertLoad(PK11SlotInfo *slot, PRBool loadCerts)
 	if (crv != CKR_OK) {
 	    PK11_GETTAB(slot)->C_CloseSession(slot->session);
 	    slot->session = CK_INVALID_SESSION;
-	    PK11_FreeSlotCerts(slot);
 	}
     }
     if (!slot->isThreadSafe) PK11_ExitSlotMonitor(slot);
@@ -3341,6 +3323,7 @@ static unsigned long  rc2_unmap(unsigned long x)
 SECStatus
 pk11_pbe_decode(SECAlgorithmID *algid, SECItem *mech)
 {
+#ifdef notdef
     CK_PBE_PARAMS *pbe_params = NULL;
     SEC_PKCS5PBEParameter *p5_param;
     SECItem *p5_misc = NULL;
@@ -3385,6 +3368,7 @@ loser:
     }
     PORT_Free(pbe_params);
     SEC_PKCS5DestroyPBEParameter(p5_param);
+#endif
     return SECFailure;
 }
 
@@ -4285,7 +4269,6 @@ PK11_ResetToken(PK11SlotInfo *slot, char *sso_pwd)
     /* first shutdown the token. Existing sessions will get closed here */
     PK11_GETTAB(slot)->C_CloseAllSessions(slot->slotID);
     slot->session = CK_INVALID_SESSION;
-    PK11_FreeSlotCerts(slot);
 
     /* now re-init the token */ 
     crv = PK11_GETTAB(slot)->C_InitToken(slot->slotID,
@@ -4357,6 +4340,7 @@ PK11_MapPBEMechanismToCryptoMechanism(CK_MECHANISM_PTR pPBEMechanism,
     SECAlgorithmID temp_algid;
     SECItem param, *iv;
 
+#ifdef notdef
     if((pPBEMechanism == CK_NULL_PTR) || (pCryptoMechanism == CK_NULL_PTR)) {
 	return CKR_HOST_MEMORY;
     }
@@ -4392,6 +4376,7 @@ PK11_MapPBEMechanismToCryptoMechanism(CK_MECHANISM_PTR pPBEMechanism,
 	    }
 	}
     }
+#endif
 
     switch(pPBEMechanism->mechanism) {
 	case CKM_PBE_MD2_DES_CBC:

@@ -43,11 +43,61 @@
 #include "pkcs11t.h"
 #include "pcertt.h"
 
-#define PKCS11_USE_THREADS
 
-#define NO_ARENA
-#define MAX_OBJS_ATTRS 45
-#define ATTR_SPACE 50  /* hold up to a SSL premaster secret */
+/* 
+ * Configuration Defines 
+ *
+ * The following defines affect the space verse speed trade offs of
+ * the PKCS #11 module. For the most part the current settings are optimized
+ * for web servers, where we want faster speed and lower lock contention at
+ * the expense of space.
+ */
+
+#define PKCS11_USE_THREADS	/* set to true of you are need threads */
+/* 
+ *  Attribute Allocation strategy:
+ *
+ * 1) static allocation (PKCS11_STATIC_ATTRIBUTES set
+ *			 PKCS11_REF_COUNT_ATTRIBUTES not set)
+ *   Attributes are pre-allocated as part of the session object and used from
+ *   the object array.
+ *
+ * 2) heap allocation with ref counting (PKCS11_STATIC_ATTRIBUTES not set
+ *			 		PKCS11_REF_COUNT_ATTRIBUTES set)
+ *   Attributes are allocated from the heap when needed and freed when their
+ *   reference count goes to zero.
+ *
+ * 3) arena allocation (PKCS11_STATIC_ATTRIBUTES  not set
+ *			 PKCS11_REF_COUNT_ATTRIBUTE not set)
+ *   Attributes are allocated from the arena when needed and freed only when
+ *   the object goes away.
+ */
+#define PKCS11_STATIC_ATTRIBUTES	
+/*#define   PKCS11_REF_COUNT_ATTRIBUTES		 */
+/* the next two are only active if PKCS11_STATIC_ATTRIBUTES is set */
+#define MAX_OBJS_ATTRS 45	/* number of attributes to preallocate in
+				 * the object (must me the absolute max) */
+#define ATTR_SPACE 50  		/* Maximum size of attribute data before extra
+				 * data needs to be allocated. This is set to
+				 * enough space to hold an SSL MASTER secret */
+
+#define NSC_STRICT      PR_FALSE  /* forces the code to do strict template
+				   * matching when doing C_FindObject on token
+				   * objects. This will slow down search in
+				   * NSS. */
+/* default search block allocations and increments */
+#define NSC_CERT_BLOCK_SIZE     50
+#define NSC_SEARCH_BLOCK_SIZE   5 
+/* these are data base storage hashes, not cryptographic hashes.. The define
+ * the effective size of the various object hash tables */
+#define ATTRIBUTE_HASH_SIZE 32
+#define SESSION_OBJECT_HASH_SIZE 32
+#define TOKEN_OBJECT_HASH_SIZE 1024
+#define SESSION_HASH_SIZE 512
+#define MAX_OBJECT_LIST_SIZE 800  /* how many objects to keep on the free list
+				   * before we start freeing them */
+#define MAX_KEY_LEN 256
+
 
 
 #ifdef PKCS11_USE_THREADS
@@ -61,6 +111,8 @@ typedef struct PK11AttributeStr PK11Attribute;
 typedef struct PK11ObjectListStr PK11ObjectList;
 typedef struct PK11ObjectListElementStr PK11ObjectListElement;
 typedef struct PK11ObjectStr PK11Object;
+typedef struct PK11SessionObjectStr PK11SessionObject;
+typedef struct PK11TokenObjectStr PK11TokenObject;
 typedef struct PK11SessionStr PK11Session;
 typedef struct PK11SlotStr PK11Slot;
 typedef struct PK11SessionContextStr PK11SessionContext;
@@ -78,17 +130,6 @@ typedef SECStatus (*PK11Verify)(void *,void *,unsigned int,void *,unsigned int);
 typedef void (*PK11Hash)(void *,void *,unsigned int);
 typedef void (*PK11End)(void *,void *,unsigned int *,unsigned int);
 typedef void (*PK11Free)(void *);
-
-/*
- * these are data base storage hashes, not cryptographic hashes.. The define
- * the effective size of the various object hash tables
- */
-#define ATTRIBUTE_HASH_SIZE 32
-#define SESSION_OBJECT_HASH_SIZE 32
-#define TOKEN_OBJECT_HASH_SIZE 1024
-#define SESSION_HASH_SIZE 512
-#define MAX_KEY_LEN 256
-#define MAX_OBJECT_LIST_SIZE 800
 
 /* Value to tell if an attribute is modifiable or not.
  *    NEVER: attribute is only set on creation.
@@ -119,14 +160,16 @@ typedef enum {
 struct PK11AttributeStr {
     PK11Attribute  	*next;
     PK11Attribute  	*prev;
-#ifdef REF_COUNT_ATTRIBUTE
+    PRBool		freeAttr;
+    PRBool		freeData;
+#ifdef PKCS11_REF_COUNT_ATTRIBUTES
     int 		refCount;
     PZLock 		*refLock;
 #endif
     /*must be called handle to make pk11queue_find work */
     CK_ATTRIBUTE_TYPE	handle;
     CK_ATTRIBUTE 	attrib;
-#ifdef NO_ARENA
+#ifdef PKCS11_STATIC_ATTRIBUTES
     unsigned char space[ATTR_SPACE];
 #endif
 };
@@ -146,27 +189,33 @@ struct PK11ObjectListStr {
  */
 struct PK11ObjectStr {
     PK11Object *next;
-    PK11Object *prev;
-    PK11ObjectList sessionList;
-    CK_OBJECT_HANDLE handle;
-#ifdef NO_ARENA
-    int nextAttr;
-#else
-    PLArenaPool	*arena;
-#endif
-    int refCount;
-    PZLock 		*refLock;
-    PZLock		*attributeLock;
-    PK11Session   	*session;
-    PK11Slot	   	*slot;
+    PK11Object	*prev;
     CK_OBJECT_CLASS 	objclass;
+    CK_OBJECT_HANDLE	handle;
+    int 		refCount;
+    PZLock 		*refLock;
+    PK11Slot	   	*slot;
     void 		*objectInfo;
     PK11Free 		infoFree;
-    char		*label;
-    PRBool		inDB;
+#ifndef PKCS11_STATIC_ATTRIBUTES
+    PLArenaPool	*arena;
+#endif
+};
+
+struct PK11TokenObjectStr {
+    PK11Object  obj;
+    SECItem	dbKey;
+};
+
+struct PK11SessionObjectStr {
+    PK11Object	   obj;
+    PK11ObjectList sessionList;
+    PZLock		*attributeLock;
+    PK11Session   	*session;
     PRBool		wasDerived;
     PK11Attribute 	*head[ATTRIBUTE_HASH_SIZE];
-#ifdef NO_ARENA
+#ifdef PKCS11_STATIC_ATTRIBUTES
+    int nextAttr;
     PK11Attribute	attrList[MAX_OBJS_ATTRS];
 #endif
 };
@@ -186,6 +235,7 @@ struct PK11SearchResultsStr {
     CK_OBJECT_HANDLE	*handles;
     int			size;
     int			index;
+    int			array_size;
 };
 
 
@@ -271,6 +321,7 @@ struct PK11SlotStr {
     int			sessionCount;
     int			rwSessionCount;
     int			tokenIDCount;
+    PLHashTable		*tokenHashTable;
     PK11Object		*tokObjects[TOKEN_OBJECT_HASH_SIZE];
     PK11Session		*head[SESSION_HASH_SIZE];
 };
@@ -312,9 +363,15 @@ struct PK11SSLMACInfoStr {
 #define PK11_TOKEN_MASK		0x80000000L
 #define PK11_TOKEN_MAGIC	0x80000000L
 #define PK11_TOKEN_TYPE_MASK	0x70000000L
-#define PK11_TOKEN_TYPE_CERT	0x00000000L
+/* keydb (high bit == 0) */
 #define PK11_TOKEN_TYPE_PRIV	0x10000000L
 #define PK11_TOKEN_TYPE_PUB	0x20000000L
+#define PK11_TOKEN_TYPE_KEY	0x30000000L
+/* certdb (high bit == 1) */
+#define PK11_TOKEN_TYPE_TRUST	0x40000000L
+#define PK11_TOKEN_TYPE_CRL	0x50000000L
+#define PK11_TOKEN_TYPE_SMIME	0x60000000L
+#define PK11_TOKEN_TYPE_CERT	0x70000000L
 
 /* how big a password/pin we can deal with */
 #define PK11_MAX_PIN	255
@@ -426,14 +483,14 @@ extern CK_RV pk11_defaultAttribute(PK11Object *object, CK_ATTRIBUTE_TYPE type,
 extern PK11Object *pk11_NewObject(PK11Slot *slot);
 extern CK_RV pk11_CopyObject(PK11Object *destObject, PK11Object *srcObject);
 extern PK11FreeStatus pk11_FreeObject(PK11Object *object);
-extern void pk11_DeleteObject(PK11Session *session, PK11Object *object);
+extern CK_RV pk11_DeleteObject(PK11Session *session, PK11Object *object);
 extern void pk11_ReferenceObject(PK11Object *object);
 extern PK11Object *pk11_ObjectFromHandle(CK_OBJECT_HANDLE handle,
 					 PK11Session *session);
 extern void pk11_AddSlotObject(PK11Slot *slot, PK11Object *object);
 extern void pk11_AddObject(PK11Session *session, PK11Object *object);
 
-extern CK_RV pk11_searchObjectList(PK11ObjectListElement **objectList,
+extern CK_RV pk11_searchObjectList(PK11SearchResults *search,
 				   PK11Object **head, PZLock *lock,
 				   CK_ATTRIBUTE_PTR inTemplate, int count,
 				   PRBool isLoggedIn);
@@ -488,7 +545,22 @@ CK_RV pk11_DBInit(const char *configdir, const char *certPrefix,
 	 const char *keyPrefix, const char *secmodName, PRBool readOnly, 
 			PRBool noCertDB, PRBool noModDB, PRBool forceOpen);
 
+/*
+ * narrow objects
+ */
+PK11SessionObject * pk11_narrowToSessionObject(PK11Object *);
+PK11TokenObject * pk11_narrowToTokenObject(PK11Object *);
 
+/*
+ * token object utilities
+ */
+void pk11_addHandle(PK11SearchResults *search, CK_OBJECT_HANDLE handle);
+PRBool pk11_tokenMatch(PK11Slot *slot, SECItem *dbKey, CK_OBJECT_HANDLE class,
+                                        CK_ATTRIBUTE_PTR theTemplate,int count);
+CK_OBJECT_HANDLE pk11_mkHandle(PK11Slot *slot, 
+					SECItem *dbKey, CK_OBJECT_HANDLE class);
+PK11Object * pk11_NewTokenObject(PK11Slot *slot, SECItem *dbKey, 
+						CK_OBJECT_HANDLE handle);
 SEC_END_PROTOS
 
 #endif /* _PKCS11I_H_ */

@@ -36,8 +36,9 @@ MODULE = security
 
 REQUIRES = dbm
 
-LIBRARY_NAME = softoken
+LIBRARY_NAME = softokn
 LIBRARY_VERSION = 3
+MAPFILE = $(OBJDIR)/softokn.def
 
 
 EXPORTS = \
@@ -45,6 +46,7 @@ EXPORTS = \
 	pkcs11f.h \
 	pkcs11p.h \
 	pkcs11t.h \
+	pkcs11n.h \
 	pkcs11u.h \
 	secpkcs5.h \
 	$(NULL)
@@ -73,5 +75,3 @@ CSRCS = \
 	secpkcs5.c \
 	pcertdb.c \
 	$(NULL)
-
-

@@ -1448,17 +1448,19 @@ pk11_HMACCmp(CK_ULONG *copyLen,unsigned char *sig,unsigned int sigLen,
  * common HMAC initalization routine
  */
 static CK_RV
-pk11_doHMACInit(PK11SessionContext *context,SECOidTag oid,
+pk11_doHMACInit(PK11SessionContext *context,HASH_HashType hash,
 					PK11Object *key, CK_ULONG mac_size)
 {
     PK11Attribute *keyval;
     HMACContext *HMACcontext;
     CK_ULONG *intpointer;
+    const SECHashObject *hashObj = &SECRawHashObjects[hash];
 
     keyval = pk11_FindAttribute(key,CKA_VALUE);
     if (keyval == NULL) return CKR_KEY_SIZE_RANGE;
 
-    HMACcontext = HMAC_Create(oid, (const unsigned char*)keyval->attrib.pValue,
+    HMACcontext = HMAC_Create(hashObj, 
+		(const unsigned char*)keyval->attrib.pValue,
 						 keyval->attrib.ulValueLen);
     context->hashInfo = HMACcontext;
     context->multi = PR_TRUE;
@@ -2103,25 +2105,25 @@ finish_rsa:
 
 	break;
     case CKM_MD2_HMAC_GENERAL:
-	crv = pk11_doHMACInit(context,SEC_OID_MD2,key,
+	crv = pk11_doHMACInit(context,HASH_AlgMD2,key,
 				*(CK_ULONG *)pMechanism->pParameter);
 	break;
     case CKM_MD2_HMAC:
-	crv = pk11_doHMACInit(context,SEC_OID_MD2,key,MD2_LENGTH);
+	crv = pk11_doHMACInit(context,HASH_AlgMD2,key,MD2_LENGTH);
 	break;
     case CKM_MD5_HMAC_GENERAL:
-	crv = pk11_doHMACInit(context,SEC_OID_MD5,key,
+	crv = pk11_doHMACInit(context,HASH_AlgMD5,key,
 				*(CK_ULONG *)pMechanism->pParameter);
 	break;
     case CKM_MD5_HMAC:
-	crv = pk11_doHMACInit(context,SEC_OID_MD5,key,MD5_LENGTH);
+	crv = pk11_doHMACInit(context,HASH_AlgMD5,key,MD5_LENGTH);
 	break;
     case CKM_SHA_1_HMAC_GENERAL:
-	crv = pk11_doHMACInit(context,SEC_OID_SHA1,key,
+	crv = pk11_doHMACInit(context,HASH_AlgSHA1,key,
 				*(CK_ULONG *)pMechanism->pParameter);
 	break;
     case CKM_SHA_1_HMAC:
-	crv = pk11_doHMACInit(context,SEC_OID_SHA1,key,SHA1_LENGTH);
+	crv = pk11_doHMACInit(context,HASH_AlgSHA1,key,SHA1_LENGTH);
 	break;
     case CKM_SSL3_MD5_MAC:
 	crv = pk11_doSSLMACInit(context,SEC_OID_MD5,key,
@@ -2508,25 +2510,25 @@ finish_rsa:
 	break;
 
     case CKM_MD2_HMAC_GENERAL:
-	crv = pk11_doHMACInit(context,SEC_OID_MD2,key,
+	crv = pk11_doHMACInit(context,HASH_AlgMD2,key,
 				*(CK_ULONG *)pMechanism->pParameter);
 	break;
     case CKM_MD2_HMAC:
-	crv = pk11_doHMACInit(context,SEC_OID_MD2,key,MD2_LENGTH);
+	crv = pk11_doHMACInit(context,HASH_AlgMD2,key,MD2_LENGTH);
 	break;
     case CKM_MD5_HMAC_GENERAL:
-	crv = pk11_doHMACInit(context,SEC_OID_MD5,key,
+	crv = pk11_doHMACInit(context,HASH_AlgMD5,key,
 				*(CK_ULONG *)pMechanism->pParameter);
 	break;
     case CKM_MD5_HMAC:
-	crv = pk11_doHMACInit(context,SEC_OID_MD5,key,MD5_LENGTH);
+	crv = pk11_doHMACInit(context,HASH_AlgMD5,key,MD5_LENGTH);
 	break;
     case CKM_SHA_1_HMAC_GENERAL:
-	crv = pk11_doHMACInit(context,SEC_OID_SHA1,key,
+	crv = pk11_doHMACInit(context,HASH_AlgSHA1,key,
 				*(CK_ULONG *)pMechanism->pParameter);
 	break;
     case CKM_SHA_1_HMAC:
-	crv = pk11_doHMACInit(context,SEC_OID_SHA1,key,SHA1_LENGTH);
+	crv = pk11_doHMACInit(context,HASH_AlgSHA1,key,SHA1_LENGTH);
 	break;
     case CKM_SSL3_MD5_MAC:
 	crv = pk11_doSSLMACInit(context,SEC_OID_MD5,key,
@@ -2755,105 +2757,52 @@ CK_RV NSC_GenerateRandom(CK_SESSION_HANDLE hSession,
  **************************** Key Functions:  ************************
  */
 
-CK_RV
-pk11_pbe_hmac_key_gen(CK_MECHANISM_PTR pMechanism, char *buf, 
-                      unsigned long *len, PRBool faultyPBE3DES)
-{
-    PBEBitGenContext *pbeCx;
-    SECItem pwd, salt, *key;
-    SECOidTag hashAlg;
-    unsigned long keylenbits;
-    CK_PBE_PARAMS *pbe_params = NULL;
-    pbe_params = (CK_PBE_PARAMS *)pMechanism->pParameter;
-    pwd.data = (unsigned char *)pbe_params->pPassword;
-    pwd.len = (unsigned int)pbe_params->ulPasswordLen;
-    salt.data = (unsigned char *)pbe_params->pSalt;
-    salt.len = (unsigned int)pbe_params->ulSaltLen;
-    switch (pMechanism->mechanism) {
-    case CKM_NETSCAPE_PBE_SHA1_HMAC_KEY_GEN:
-	hashAlg = SEC_OID_SHA1; keylenbits = 160; break;
-    case CKM_NETSCAPE_PBE_MD5_HMAC_KEY_GEN:
-	hashAlg = SEC_OID_MD5;  keylenbits = 128; break;
-    case CKM_NETSCAPE_PBE_MD2_HMAC_KEY_GEN:
-	hashAlg = SEC_OID_MD2;  keylenbits = 128; break;
-    default:
-	return CKR_MECHANISM_INVALID;
-    }
-    pbeCx = PBE_CreateContext(hashAlg, pbeBitGenIntegrityKey, &pwd,
-                              &salt, keylenbits, pbe_params->ulIteration);
-    key = PBE_GenerateBits(pbeCx);
-    PORT_Memcpy(buf, key->data, key->len);
-    *len = key->len;
-    PBE_DestroyContext(pbeCx);
-    SECITEM_ZfreeItem(key, PR_TRUE);
-    return CKR_OK;
-}
 
 /*
  * generate a password based encryption key. This code uses
- * PKCS5 to do the work. Note that it calls PBE_PK11ParamToAlgid, which is
- * a utility function in secpkcs5.c.  This function is used in here
- * and in PK11_ParamToAlgid.
+ * PKCS5 to do the work.
  */
-CK_RV
-pk11_pbe_key_gen(SECOidTag algtag,CK_MECHANISM_PTR pMechanism,
-				char *buf,CK_ULONG *key_length, PRBool faulty3DES)
+static CK_RV
+nsc_pbe_key_gen(NSSPKCS5PBEParameter *pkcs5_pbe, CK_MECHANISM_PTR pMechanism,
+			char *buf, CK_ULONG *key_length, PRBool faulty3DES)
 {
     SECAlgorithmID algid;
-    SECItem *pbe_key = NULL, mech;
+    SECItem *pbe_key = NULL, iv, pwitem;
     CK_PBE_PARAMS *pbe_params = NULL;
     SECStatus pbe_rv;
 
     *key_length = 0;
+    iv.data = NULL; iv.len = 0;
 
-    mech.data = (unsigned char *)pMechanism->pParameter;
-    mech.len = (unsigned int)pMechanism->ulParameterLen;
-
-    /* A common routine to map from Params to AlgIDs for PBE
-     * algorithms was created in secpkcs5.c.  This function is
-     * called both by PK11_ParamToAlgid and this function.
-     */
-    pbe_rv = PBE_PK11ParamToAlgid(algtag, &mech, NULL, &algid);
-    if (pbe_rv != SECSuccess) {
-	return CKR_DATA_INVALID;
-    }
     pbe_params = (CK_PBE_PARAMS *)pMechanism->pParameter;
-    mech.data = (unsigned char *)pbe_params->pPassword;
-    mech.len = (unsigned int)pbe_params->ulPasswordLen;
-    pbe_key = SEC_PKCS5GetKey(&algid, &mech, faulty3DES);
+
+    pwitem.data = (unsigned char *)pbe_params->pPassword;
+    pwitem.len = (unsigned int)pbe_params->ulPasswordLen;
+    pbe_key = nsspkcs5_ComputeKeyAndIV(pkcs5_pbe, &pwitem, &iv, faulty3DES);
     if (pbe_key == NULL) {
-	SECOID_DestroyAlgorithmID(&algid, PR_FALSE);
 	return CKR_HOST_MEMORY;
     }
+
     PORT_Memcpy(buf, pbe_key->data, pbe_key->len);
     *key_length = pbe_key->len;
     SECITEM_ZfreeItem(pbe_key, PR_TRUE);
     pbe_key = NULL;
 
-    if (pbe_params->pInitVector == NULL) {
-	pbe_key = SEC_PKCS5GetIV(&algid, &mech, faulty3DES);
-	if (pbe_key == NULL) {
-	    SECOID_DestroyAlgorithmID(&algid, PR_FALSE);
-	    SECITEM_ZfreeItem(pbe_key, PR_TRUE);
-	    return CKR_HOST_MEMORY;
-	}
+    if (iv.data && pbe_params->pInitVector == NULL) {
 	pbe_params->pInitVector = (CK_CHAR_PTR)PORT_ZAlloc(pbe_key->len);
 	if (pbe_params->pInitVector == NULL) {
-	    SECOID_DestroyAlgorithmID(&algid, PR_FALSE);
-	    SECITEM_ZfreeItem(pbe_key, PR_TRUE);
 	    return CKR_HOST_MEMORY;
 	}
-	PORT_Memcpy(pbe_params->pInitVector, pbe_key->data, pbe_key->len);
+	PORT_Memcpy(pbe_params->pInitVector, iv.data, iv.len);
     }
-    SECITEM_ZfreeItem(pbe_key, PR_TRUE);
-    SECOID_DestroyAlgorithmID(&algid, PR_FALSE);
     return CKR_OK;
 }
 
 
 static CK_RV
-nsc_SetupBulkKeyGen(CK_MECHANISM_TYPE mechanism,
-			CK_KEY_TYPE *key_type,CK_ULONG *key_length) {
+nsc_SetupBulkKeyGen(CK_MECHANISM_TYPE mechanism, CK_KEY_TYPE *key_type,
+							CK_ULONG *key_length)
+{
     CK_RV crv = CKR_OK;
 
     switch (mechanism) {
@@ -2904,81 +2853,112 @@ nsc_SetupBulkKeyGen(CK_MECHANISM_TYPE mechanism,
     return crv;
 }
 
-static CK_RV
-nsc_SetupPBEKeyGen(CK_MECHANISM_TYPE mechanism,SECOidTag *algtag,
-			CK_KEY_TYPE *key_type,CK_ULONG *key_length) {
-    CK_RV crv = CKR_OK;
+CK_RV
+nsc_SetupHMACKeyGen(CK_MECHANISM_PTR pMechanism, NSSPKCS5PBEParameter **pbe)
+{
+    SECItem pwd, salt, *key;
+    HASH_HashType hashType;
+    unsigned long keylenbits;
+    CK_PBE_PARAMS *pbe_params = NULL;
+    NSSPKCS5PBEParameter *params;
+    PRArenaPool *arena = NULL;
+    SECStatus rv;
 
-    switch (mechanism) {
-    case CKM_PBE_MD2_DES_CBC:
-	*algtag = SEC_OID_PKCS5_PBE_WITH_MD2_AND_DES_CBC;
+    *pbe == NULL;
+
+    arena = PORT_NewArena(SEC_ASN1_DEFAULT_ARENA_SIZE);
+    if (arena == NULL) {
+	return CKR_HOST_MEMORY;
+    }
+
+    params = (NSSPKCS5PBEParameter *) PORT_ArenaZAlloc(arena,
+				sizeof(NSSPKCS5PBEParameter));
+    if (params == NULL) {
+	PORT_FreeArena(arena,PR_TRUE);
+	return CKR_HOST_MEMORY;
+    }
+
+    params->ivLen = 0;
+    params->pbeType = NSSPKCS5_PKCS12_V2;
+    params->hashType = HASH_AlgSHA1;
+    params->encAlg = SEC_OID_SHA1; /* any invalid value */
+    params->is2KeyDES = PR_FALSE;
+    params->keyID = pbeBitGenIntegrityKey;
+    params->iter = pbe_params->ulIteration;
+
+    pbe_params = (CK_PBE_PARAMS *)pMechanism->pParameter;
+    salt.data = (unsigned char *)pbe_params->pSalt;
+    salt.len = (unsigned int)pbe_params->ulSaltLen;
+    rv = SECITEM_CopyItem(arena,&params->salt,&salt);
+    if (rv != SECSuccess) {
+	PORT_FreeArena(arena,PR_TRUE);
+	return CKR_HOST_MEMORY;
+    }
+    switch (pMechanism->mechanism) {
+    case CKM_NETSCAPE_PBE_SHA1_HMAC_KEY_GEN:
+	params->hashType = HASH_AlgSHA1; 
+	params->keyLen = 20;
+	break;
+    case CKM_NETSCAPE_PBE_MD5_HMAC_KEY_GEN:
+	params->hashType = HASH_AlgMD5; 
+	params->keyLen = 16;
+	break;
+    case CKM_NETSCAPE_PBE_MD2_HMAC_KEY_GEN:
+	params->hashType = HASH_AlgMD2; 
+	params->keyLen = 16;
+	break;
+    default:
+	PORT_FreeArena(arena,PR_TRUE);
+	return CKR_MECHANISM_INVALID;
+    }
+    *pbe = params;
+    return CKR_OK;
+}
+/* maybe this should be table driven? */
+static CK_RV
+nsc_SetupPBEKeyGen(CK_MECHANISM_PTR pMechanism, NSSPKCS5PBEParameter  **pbe,
+							CK_KEY_TYPE *key_type)
+{
+    CK_RV crv = CKR_OK;
+    SECOidData *oid;
+    CK_PBE_PARAMS *pbe_params;
+    NSSPKCS5PBEParameter *params;
+    SECItem salt;
+
+    oid = SECOID_FindOIDByMechanism(pMechanism->mechanism);
+    if (oid == NULL) {
+	return CKR_MECHANISM_INVALID;
+    }
+
+    pbe_params = (CK_PBE_PARAMS *)pMechanism->pParameter;
+    salt.data = (unsigned char *)pbe_params->pSalt;
+    salt.len = (unsigned int)pbe_params->ulSaltLen;
+
+    params=nsspkcs5_NewParam(oid->offset, &salt, pbe_params->ulIteration);
+    if (params == NULL) {
+	return CKR_MECHANISM_INVALID;
+    }
+
+
+    switch (params->encAlg) {
+    case SEC_OID_DES_CBC:
 	*key_type = CKK_DES;
 	break;
+    case SEC_OID_DES_EDE3_CBC:
+	*key_type = params->is2KeyDES ? CKK_DES2 : CKK_DES3;
     case CKM_PBE_MD5_DES_CBC:
-	*algtag = SEC_OID_PKCS5_PBE_WITH_MD5_AND_DES_CBC;
 	*key_type = CKK_DES;
 	break;
-    case CKM_PBE_SHA1_RC4_40:
-	*algtag = SEC_OID_PKCS12_V2_PBE_WITH_SHA1_AND_40_BIT_RC4;
-	*key_length = 5;
+    case SEC_OID_RC2_CBC:
 	*key_type = CKK_RC4;
 	break;
-    case CKM_PBE_SHA1_RC4_128:
-	*algtag = SEC_OID_PKCS12_V2_PBE_WITH_SHA1_AND_128_BIT_RC4;
-	*key_length = 16;
-	*key_type = CKK_RC4;
-	break;
-    case CKM_PBE_SHA1_RC2_40_CBC:
-	*algtag = SEC_OID_PKCS12_V2_PBE_WITH_SHA1_AND_40_BIT_RC2_CBC;
-	*key_length = 5;
-	*key_type = CKK_RC2;
-	break;
-    case CKM_PBE_SHA1_RC2_128_CBC:
-	*algtag = SEC_OID_PKCS12_V2_PBE_WITH_SHA1_AND_128_BIT_RC2_CBC;
-	*key_length = 16;
-	*key_type = CKK_RC2;
-	break;
-    case CKM_PBE_SHA1_DES3_EDE_CBC:
-	*algtag = SEC_OID_PKCS12_V2_PBE_WITH_SHA1_AND_3KEY_TRIPLE_DES_CBC;
-	*key_length = 24;
-	*key_type = CKK_DES3;
-	break;
-    case CKM_PBE_SHA1_DES2_EDE_CBC:
-	*algtag = SEC_OID_PKCS12_V2_PBE_WITH_SHA1_AND_2KEY_TRIPLE_DES_CBC;
-	*key_length = 16;
-	*key_type = CKK_DES2;
-	break;
-    case CKM_NETSCAPE_PBE_SHA1_DES_CBC:
-	*algtag = SEC_OID_PKCS5_PBE_WITH_SHA1_AND_DES_CBC;
-	*key_type = CKK_DES;
-	break;
-    case CKM_NETSCAPE_PBE_SHA1_FAULTY_3DES_CBC:
-    case CKM_NETSCAPE_PBE_SHA1_TRIPLE_DES_CBC:
-	*algtag = SEC_OID_PKCS12_PBE_WITH_SHA1_AND_TRIPLE_DES_CBC;
-	*key_type = CKK_DES3;
-	break;
-    case CKM_NETSCAPE_PBE_SHA1_40_BIT_RC2_CBC:
-	*algtag = SEC_OID_PKCS12_PBE_WITH_SHA1_AND_40_BIT_RC2_CBC;
-	*key_type = CKK_RC2;
-	break;
-    case CKM_NETSCAPE_PBE_SHA1_128_BIT_RC2_CBC:
-	*algtag = SEC_OID_PKCS12_PBE_WITH_SHA1_AND_128_BIT_RC2_CBC;
-	*key_type = CKK_RC2;
-	break;
-    case CKM_NETSCAPE_PBE_SHA1_40_BIT_RC4:
-	*algtag = SEC_OID_PKCS12_PBE_WITH_SHA1_AND_40_BIT_RC4;
-	*key_type = CKK_RC4;
-	break;
-    case CKM_NETSCAPE_PBE_SHA1_128_BIT_RC4:
-	*algtag = SEC_OID_PKCS12_PBE_WITH_SHA1_AND_128_BIT_RC4;
+    case SEC_OID_RC4:
 	*key_type = CKK_RC4;
 	break;
     default:
-	PORT_Assert(0);
 	crv = CKR_MECHANISM_INVALID;
 	break;
     }
-
     return crv;
 }
 
@@ -2998,8 +2978,8 @@ CK_RV NSC_GenerateKey(CK_SESSION_HANDLE hSession,
     int i;
     PK11Slot *slot = pk11_SlotFromSessionHandle(hSession);
     char buf[MAX_KEY_LEN];
-    enum {pk11_pbe, pk11_pbe_hmac, pk11_ssl, pk11_bulk} key_gen_type;
-    SECOidTag algtag = SEC_OID_UNKNOWN;
+    enum {nsc_pbe, nsc_ssl, nsc_bulk} key_gen_type;
+    NSSPKCS5PBEParameter *pbe_param;
     SSL3RSAPreMasterSecret *rsa_pms;
     CK_VERSION *version;
     /* in very old versions of NSS, there were implementation errors with key 
@@ -3040,7 +3020,7 @@ CK_RV NSC_GenerateKey(CK_SESSION_HANDLE hSession,
     pk11_DeleteAttributeType(key,CKA_VALUE);
 
     /* Now Set up the parameters to generate the key (based on mechanism) */
-    key_gen_type = pk11_bulk; /* bulk key by default */
+    key_gen_type = nsc_bulk; /* bulk key by default */
     switch (pMechanism->mechanism) {
     case CKM_CDMF_KEY_GEN:
     case CKM_DES_KEY_GEN:
@@ -3059,16 +3039,17 @@ CK_RV NSC_GenerateKey(CK_SESSION_HANDLE hSession,
     case CKM_SSL3_PRE_MASTER_KEY_GEN:
 	key_type = CKK_GENERIC_SECRET;
 	key_length = 48;
-	key_gen_type = pk11_ssl;
+	key_gen_type = nsc_ssl;
 	break;
-    case CKM_NETSCAPE_PBE_SHA1_FAULTY_3DES_CBC:
-	faultyPBE3DES = PR_TRUE;
     case CKM_NETSCAPE_PBE_SHA1_HMAC_KEY_GEN:
     case CKM_NETSCAPE_PBE_MD5_HMAC_KEY_GEN:
     case CKM_NETSCAPE_PBE_MD2_HMAC_KEY_GEN:
-	key_gen_type = pk11_pbe_hmac;
+	key_gen_type = nsc_pbe;
 	key_type = CKK_GENERIC_SECRET;
+	crv = nsc_SetupHMACKeyGen(pMechanism, &pbe_param);
 	break;
+    case CKM_NETSCAPE_PBE_SHA1_FAULTY_3DES_CBC:
+	faultyPBE3DES = PR_TRUE;
     case CKM_NETSCAPE_PBE_SHA1_TRIPLE_DES_CBC:
     case CKM_NETSCAPE_PBE_SHA1_40_BIT_RC2_CBC:
     case CKM_NETSCAPE_PBE_SHA1_DES_CBC:
@@ -3083,9 +3064,8 @@ CK_RV NSC_GenerateKey(CK_SESSION_HANDLE hSession,
     case CKM_PBE_SHA1_RC4_40:
     case CKM_PBE_MD5_DES_CBC:
     case CKM_PBE_MD2_DES_CBC:
-	key_gen_type = pk11_pbe;
-	crv = nsc_SetupPBEKeyGen(pMechanism->mechanism,&algtag,
-							&key_type,&key_length);
+	key_gen_type = nsc_pbe;
+	crv = nsc_SetupPBEKeyGen(pMechanism,&pbe_param, &key_type);
 	break;
     default:
 	crv = CKR_MECHANISM_INVALID;
@@ -3109,15 +3089,11 @@ CK_RV NSC_GenerateKey(CK_SESSION_HANDLE hSession,
      * now to the actual key gen.
      */
     switch (key_gen_type) {
-    case pk11_pbe_hmac:
-	crv = pk11_pbe_hmac_key_gen(pMechanism, buf, &key_length,
-	                            faultyPBE3DES);
-	break;
-    case pk11_pbe:
-	crv = pk11_pbe_key_gen(algtag, pMechanism, buf, &key_length,
+    case nsc_pbe:
+	crv = nsc_pbe_key_gen(pbe_param, pMechanism, buf, &key_length,
 			       faultyPBE3DES);
 	break;
-    case pk11_ssl:
+    case nsc_ssl:
 	rsa_pms = (SSL3RSAPreMasterSecret *)buf;
 	version = (CK_VERSION *)pMechanism->pParameter;
 	rsa_pms->client_version[0] = version->major;
@@ -3125,7 +3101,7 @@ CK_RV NSC_GenerateKey(CK_SESSION_HANDLE hSession,
         crv = 
 	    NSC_GenerateRandom(0,&rsa_pms->random[0], sizeof(rsa_pms->random));
 	break;
-    case pk11_bulk:
+    case nsc_bulk:
 	/* get the key, check for weak keys and repeat if found */
 	do {
             crv = NSC_GenerateRandom(0, (unsigned char *)buf, key_length);
@@ -3609,7 +3585,7 @@ static SECItem *pk11_PackagePrivateKey(PK11Object *key)
     }
 
     dummy = SEC_ASN1EncodeInteger(arena, &pki->version,
-				  SEC_PRIVATE_KEY_INFO_VERSION);
+				  NSSLOWKEY_PRIVATE_KEY_INFO_VERSION);
     if(!dummy) {
 	rv = SECFailure;
 	goto loser;
@@ -4080,10 +4056,10 @@ pk11_buildSSLKey(CK_SESSION_HANDLE hSession, PK11Object *baseKey,
     /*
      * now lets create an object to hang the attributes off of
      */
-    *keyHandle = CK_INVALID_KEY;
+    *keyHandle = CK_INVALID_HANDLE;
     key = pk11_NewObject(baseKey->slot); 
     if (key == NULL) return CKR_HOST_MEMORY;
-    key->wasDerived = PR_TRUE;
+    pk11_narrowToSessionObject(key)->wasDerived = PR_TRUE;
 
     crv = pk11_CopyObject(key,baseKey);
     if (crv != CKR_OK) goto loser;
@@ -4131,16 +4107,16 @@ loser:
 static void
 pk11_freeSSLKeys(CK_SESSION_HANDLE session,
 				CK_SSL3_KEY_MAT_OUT *returnedMaterial ) {
-	if (returnedMaterial->hClientMacSecret != CK_INVALID_KEY) {
+	if (returnedMaterial->hClientMacSecret != CK_INVALID_HANDLE) {
 	   NSC_DestroyObject(session,returnedMaterial->hClientMacSecret);
 	}
-	if (returnedMaterial->hServerMacSecret != CK_INVALID_KEY) {
+	if (returnedMaterial->hServerMacSecret != CK_INVALID_HANDLE) {
 	   NSC_DestroyObject(session, returnedMaterial->hServerMacSecret);
 	}
-	if (returnedMaterial->hClientKey != CK_INVALID_KEY) {
+	if (returnedMaterial->hClientKey != CK_INVALID_HANDLE) {
 	   NSC_DestroyObject(session, returnedMaterial->hClientKey);
 	}
-	if (returnedMaterial->hServerKey != CK_INVALID_KEY) {
+	if (returnedMaterial->hServerKey != CK_INVALID_HANDLE) {
 	   NSC_DestroyObject(session, returnedMaterial->hServerKey);
 	}
 }
@@ -4233,7 +4209,7 @@ pk11_MapKeySize(CK_KEY_TYPE keyType) {
 
 /* TLS P_hash function */
 static SECStatus
-pk11_P_hash(SECOidTag alg, const SECItem *secret, const char *label, 
+pk11_P_hash(HASH_HashType hashType, const SECItem *secret, const char *label, 
 	SECItem *seed, SECItem *result)
 {
     unsigned char state[PHASH_STATE_MAX_LEN];
@@ -4244,6 +4220,7 @@ pk11_P_hash(SECOidTag alg, const SECItem *secret, const char *label,
     SECStatus status;
     HMACContext *cx;
     SECStatus rv = SECFailure;
+    const SECHashObject *hashObj = &SECRawHashObjects[hashType];
 
     PORT_Assert((secret != NULL) && (secret->data != NULL || !secret->len));
     PORT_Assert((seed != NULL) && (seed->data != NULL));
@@ -4255,7 +4232,7 @@ pk11_P_hash(SECOidTag alg, const SECItem *secret, const char *label,
     if (label != NULL)
 	label_len = PORT_Strlen(label);
 
-    cx = HMAC_Create(alg, secret->data, secret->len);
+    cx = HMAC_Create(hashObj, secret->data, secret->len);
     if (cx == NULL)
 	goto loser;
 
@@ -4330,11 +4307,11 @@ pk11_PRF(const SECItem *secret, const char *label, SECItem *seed,
 	goto loser;
     tmp.len = result->len;
 
-    status = pk11_P_hash(SEC_OID_MD5, &S1, label, seed, result);
+    status = pk11_P_hash(HASH_AlgMD5, &S1, label, seed, result);
     if (status != SECSuccess)
 	goto loser;
 
-    status = pk11_P_hash(SEC_OID_SHA1, &S2, label, seed, &tmp);
+    status = pk11_P_hash(HASH_AlgSHA1, &S2, label, seed, &tmp);
     if (status != SECSuccess)
 	goto loser;
 
@@ -4404,7 +4381,7 @@ CK_RV NSC_DeriveKey( CK_SESSION_HANDLE hSession,
     /*
      * now lets create an object to hang the attributes off of
      */
-    if (phKey) *phKey = CK_INVALID_KEY;
+    if (phKey) *phKey = CK_INVALID_HANDLE;
 
     key = pk11_NewObject(slot); /* fill in the handle later */
     if (key == NULL) {
@@ -4513,9 +4490,10 @@ CK_RV NSC_DeriveKey( CK_SESSION_HANDLE hSession,
 	ssl3_master = (CK_SSL3_MASTER_KEY_DERIVE_PARAMS *)
 					pMechanism->pParameter;
 	if (ssl3_master->pVersion) {
+	    PK11SessionObject *sessKey = pk11_narrowToSessionObject(key);
 	    rsa_pms = (SSL3RSAPreMasterSecret *) att->attrib.pValue;
 	    /* don't leak more key material then necessary for SSL to work */
-	    if (key->wasDerived) {
+	    if ((sessKey == NULL) || sessKey->wasDerived) {
 		ssl3_master->pVersion->major = 0xff;
 		ssl3_master->pVersion->minor = 0xff;
 	    } else {
@@ -4652,10 +4630,10 @@ CK_RV NSC_DeriveKey( CK_SESSION_HANDLE hSession,
 	 * clear out our returned keys so we can recover on failure
 	 */
 	ssl3_keys_out = ssl3_keys->pReturnedKeyMaterial;
-	ssl3_keys_out->hClientMacSecret = CK_INVALID_KEY;
-	ssl3_keys_out->hServerMacSecret = CK_INVALID_KEY;
-	ssl3_keys_out->hClientKey       = CK_INVALID_KEY;
-	ssl3_keys_out->hServerKey       = CK_INVALID_KEY;
+	ssl3_keys_out->hClientMacSecret = CK_INVALID_HANDLE;
+	ssl3_keys_out->hServerMacSecret = CK_INVALID_HANDLE;
+	ssl3_keys_out->hClientKey       = CK_INVALID_HANDLE;
+	ssl3_keys_out->hServerKey       = CK_INVALID_HANDLE;
 
 	/*
 	 * generate the key material: This looks amazingly similar to the
@@ -5222,8 +5200,10 @@ key_and_mac_derive_fail:
 
     /* link the key object into the list */
     if (key) {
+	PK11SessionObject *sessKey = pk11_narrowToSessionObject(key);
+	PORT_Assert(sessKey);
 	/* get the session */
-	key->wasDerived = PR_TRUE;
+	sessKey->wasDerived = PR_TRUE;
 	session = pk11_SessionFromHandle(hSession);
 	if (session == NULL) {
 	    pk11_FreeObject(key);

@@ -548,8 +548,7 @@ ConvertToSID(sidCacheEntry *from, certCacheEntry *pcce,
 	    derCert.len  = pcce->certLength;
 	    derCert.data = pcce->cert;
 
-	    to->peerCert = CERT_NewTempCertificate(dbHandle, &derCert, NULL,
-					           PR_FALSE, PR_TRUE);
+	    to->peerCert = CERT_DecodeDERCertificate(&derCert, NULL, PR_FALSE);
 	    if (to->peerCert == NULL)
 		goto loser;
 	}

@@ -418,16 +418,9 @@ CERT_GetCertNicknames(CERTCertDBHandle *handle, int what, void *wincx)
     names->what = what;
     names->totallen = 0;
     
-    rv = SEC_TraversePermCerts(handle, CollectNicknames, (void *)names);
+    rv = PK11_TraverseSlotCerts(CollectNicknames, (void *)names, wincx);
     if ( rv ) {
 	goto loser;
-    }
-
-    if ( wincx != NULL ) {
-	rv = PK11_TraverseSlotCerts(CollectNicknames, (void *)names, wincx);
-	if ( rv ) {
-	    goto loser;
-	}
     }
 
     if ( names->numnicknames ) {
@@ -562,7 +555,7 @@ CERT_GetSSLCACerts(CERTCertDBHandle *handle)
     names->names = NULL;
     
     /* collect the names from the database */
-    rv = SEC_TraversePermCerts(handle, CollectDistNames, (void *)names);
+    rv = PK11_TraverseSlotCerts(CollectDistNames, (void *)names, NULL);
     if ( rv ) {
 	goto loser;
     }
@@ -781,22 +774,6 @@ cert_ImportCAChain(SECItem *certs, int numcerts, SECCertUsage certUsage, PRBool 
     while (numcerts--) {
 	derCert = certs;
 	certs++;
-	
-	/* get the key (issuer+cn) from the cert */
-	rv = CERT_KeyFromDERCert(arena, derCert, &certKey);
-	if ( rv != SECSuccess ) {
-	    goto loser;
-	}
-
-	/* same cert already exists in the database, don't need to do
-	 * anything more with it
-	 */
-	cert = CERT_FindCertByKey(handle, &certKey);
-	if ( cert ) {
-	    CERT_DestroyCertificate(cert);
-	    cert = NULL;
-	    continue;
-	}
 
 	/* decode my certificate */
 	newcert = CERT_DecodeDERCertificate(derCert, PR_FALSE, NULL);
@@ -860,7 +837,7 @@ cert_ImportCAChain(SECItem *certs, int numcerts, SECCertUsage certUsage, PRBool 
 	    }
 	}
 	
-	cert = CERT_NewTempCertificate(handle, derCert, NULL, PR_FALSE, PR_TRUE);
+	cert = CERT_DecodeDERCertificate(derCert, PR_FALSE, NULL);
 	if ( cert == NULL ) {
 	    goto loser;
 	}
@@ -868,7 +845,10 @@ cert_ImportCAChain(SECItem *certs, int numcerts, SECCertUsage certUsage, PRBool 
 	/* get a default nickname for it */
 	nickname = CERT_MakeCANickname(cert);
 
-	rv = CERT_AddTempCertToPerm(cert, nickname, &trust);
+	cert->trust = &trust;
+	rv = PK11_ImportCert(PK11_GetInternalKeySlot(), cert, 
+			CK_INVALID_HANDLE, nickname, PR_TRUE);
+
 	/* free the nickname */
 	if ( nickname ) {
 	    PORT_Free(nickname);

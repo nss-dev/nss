@@ -1964,8 +1964,7 @@ ssl2_ClientHandleServerCert(sslSocket *ss, PRUint8 *certData, int certLen)
     certItem.len  = certLen;
 
     /* decode the certificate */
-    cert = CERT_NewTempCertificate(ss->dbHandle, &certItem, NULL,
-				   PR_FALSE, PR_TRUE);
+    cert = CERT_DecodeDERCertificate(&certItem, NULL, PR_FALSE);
     
     if (cert == NULL) {
 	SSL_DBG(("%d: SSL[%d]: decode of server certificate fails",
@@ -2472,8 +2471,7 @@ ssl2_HandleClientCertificate(sslSocket *    ss,
     certItem.data = cd;
     certItem.len  = cdLen;
 
-    cert = CERT_NewTempCertificate(ss->dbHandle, &certItem, NULL,
-			 	   PR_FALSE, PR_TRUE);
+    cert = CERT_DecodeDERCertificate(&certItem, NULL, PR_FALSE);
     if (cert == NULL) {
 	goto loser;
     }

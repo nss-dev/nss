@@ -1875,15 +1875,6 @@ sec_pkcs12_get_existing_nick_for_dn(sec_PKCS12SafeBag *cert, void *wincx)
     /* if the token is local, first traverse the cert database 
      * then traverse the token.
      */
-    if(PK11_IsInternal(cert->slot)) {
-	if(CERT_TraversePermCertsForSubject(CERT_GetDefaultCertDB(), 
-					&tempCert->derSubject, gatherNicknames,
-					nickArg) != SECSuccess) {
-	    returnDn = NULL;
-	    goto loser;
-	}
-    }
-
     if(PK11_TraverseCertsForSubjectInSlot(tempCert, cert->slot, gatherNicknames,
 			(void *)nickArg) != SECSuccess) {
 	returnDn = NULL;
@@ -1944,12 +1935,6 @@ sec_pkcs12_certs_for_nickname_exist(SECItem *nickname, PK11SlotInfo *slot)
     }
 
     /* we want to check the local database first if we are importing to it */
-    if(PK11_IsInternal(slot)) {
-	CERT_TraversePermCertsForNickname(CERT_GetDefaultCertDB(), 
-				      (char *)nickname->data,
-				      countCertificate, (void *)&nCerts);
-    }
-
     PK11_TraverseCertsForNicknameInSlot(nickname, slot, countCertificate, 
 					(void *)&nCerts);
     if(nCerts) return PR_TRUE;

@@ -288,6 +288,14 @@ typedef union {
 #define CERTDB_TRUSTED_CLIENT_CA (1<<7) /* trusted for issuing client certs */
 #define CERTDB_INVISIBLE_CA	(1<<8) /* don't show in UI */
 #define CERTDB_GOVT_APPROVED_CA	(1<<9) /* can do strong crypto in export ver */
+#define CERTDB_NOT_TRUSTED	(1<<10) /* explicitly don't trust this cert */
+#define CERTDB_TRUSTED_UNKNOWN	(1<<11) /* accept trust from another source */
+
+/* bits not affected by the CKO_NETSCAPE_TRUST object */
+#define CERTDB_PRESERVE_TRUST_BITS (CERTDB_USER | CERTDB_VALID_PEER | \
+        CERTDB_NS_TRUSTED_CA | CERTDB_VALID_CA | CERTDB_INVISIBLE_CA | \
+                                        CERTDB_GOVT_APPROVED_CA)
+
 
 SEC_BEGIN_PROTOS
 
@@ -328,73 +336,19 @@ nsslowcert_TraversePermCerts(NSSLOWCERTCertDBHandle *handle,
 		      PermCertCallback certfunc,
 		      void *udata );
 
-SECStatus
-SEC_AddTempNickname(NSSLOWCERTCertDBHandle *handle, char *nickname, SECItem *certKey);
-
-SECStatus
-SEC_DeleteTempNickname(NSSLOWCERTCertDBHandle *handle, char *nickname);
-
 PRBool
-SEC_CertNicknameConflict(char *nickname, SECItem *derSubject,
-			 NSSLOWCERTCertDBHandle *handle);
+nsslowcert_CertDBKeyConflict(SECItem *derCert, NSSLOWCERTCertDBHandle *handle);
 
-PRBool
-SEC_CertDBKeyConflict(SECItem *derCert, NSSLOWCERTCertDBHandle *handle);
-
-SECStatus
-SEC_GetCrlTimes(NSSLOWCERTCrl *dates, PRTime *notBefore, PRTime *notAfter);
-
-SECCertTimeValidity
-SEC_CheckCrlTimes(NSSLOWCERTCrl *crl, PRTime t);
-
-PRBool
-SEC_CrlIsNewer(NSSLOWCERTCrl *inNew, NSSLOWCERTCrl *old);
-
-NSSLOWCERTSignedCrl *
-SEC_AddPermCrlToTemp(NSSLOWCERTCertDBHandle *handle, certDBEntryRevocation *entry);
+SECItem *
+nsslowcert_FindCrlByKey(NSSLOWCERTCertDBHandle *handle, SECItem *crlKey,
+				 		char **urlp, PRBool isKRL);
 
 SECStatus
-SEC_DeleteTempCrl(NSSLOWCERTSignedCrl *crl);
-
-NSSLOWCERTSignedCrl *
-SEC_FindCrlByKey(NSSLOWCERTCertDBHandle *handle, SECItem *crlKey, int type);
-
-NSSLOWCERTSignedCrl *
-SEC_FindCrlByName(NSSLOWCERTCertDBHandle *handle, SECItem *crlKey, int type);
-
-NSSLOWCERTSignedCrl *
-SEC_FindCrlByDERCert(NSSLOWCERTCertDBHandle *handle, SECItem *derCrl, int type);
-
-SECStatus 
-SEC_DestroyCrl(NSSLOWCERTSignedCrl *crl);
-
-NSSLOWCERTSignedCrl *
-SEC_NewCrl(NSSLOWCERTCertDBHandle *handle, char *url, SECItem *derCrl, int type);
-
-NSSLOWCERTSignedCrl *
-cert_DBInsertCRL
-   (NSSLOWCERTCertDBHandle *handle, char *url,
-    NSSLOWCERTSignedCrl *newCrl, SECItem *derCrl, int type);
-
-#ifdef ntodef
+nsslowcert_DeletePermCRL(NSSLOWCERTCertDBHandle *handle,SECItem *derName,
+								PRBool isKRL);
 SECStatus
-SEC_CheckKRL(NSSLOWCERTCertDBHandle *handle,NSSLOWKEYPublicKey *key,
-	     NSSLOWCERTCertificate *rootCert, int64 t, void *wincx);
-
-SECStatus
-SEC_CheckCRL(NSSLOWCERTCertDBHandle *handle,NSSLOWCERTCertificate *cert,
-	     NSSLOWCERTCertificate *caCert, int64 t, void *wincx);
-
-SECStatus
-SEC_DeletePermCRL(NSSLOWCERTSignedCrl *crl);
-
-
-SECStatus
-SEC_LookupCrls(NSSLOWCERTCertDBHandle *handle, NSSLOWCERTCrlHeadNode **nodes, int type);
-
-SECStatus
-SEC_CrlReplaceUrl(NSSLOWCERTSignedCrl *crl,char *url);
-#endif
+nsslowcert_AddCrl(NSSLOWCERTCertDBHandle *handle, SECItem *derCrl ,
+				SECItem *derKey, char *url, PRBool isKRL);
 
 NSSLOWCERTCertDBHandle *nsslowcert_GetDefaultCertDB();
 NSSLOWKEYPublicKey *nsslowcert_ExtractPublicKey(NSSLOWCERTCertificate *);
@@ -414,7 +368,7 @@ void nsslowcert_DestroyCertificate(NSSLOWCERTCertificate *cert);
  * traversal.
  */
 NSSLOWCERTCertificate *
-nsslowcert_FindCertByKeyNoLocking(NSSLOWCERTCertDBHandle *handle, SECItem *certKey);
+nsslowcert_FindCertByKey(NSSLOWCERTCertDBHandle *handle, SECItem *certKey);
 
 /*
 ** Generate a certificate key from the issuer and serialnumber, then look it
@@ -444,20 +398,9 @@ char *nsslowcert_FixupEmailAddr(char *emailAddr);
 */
 extern NSSLOWCERTCertificate *
 nsslowcert_DecodeDERCertificate (SECItem *derSignedCert, PRBool copyDER, char *nickname);
-/*
-** Decode a DER encoded CRL/KRL into an NSSLOWCERTSignedCrl structure
-**      "derSignedCrl" is the DER encoded signed crl/krl.
-**      "type" is this a CRL or KRL.
-*/
-#define SEC_CRL_TYPE    1
-#define SEC_KRL_TYPE    0
-
-extern NSSLOWCERTSignedCrl *
-nsslowcert_DecodeDERCrl (PRArenaPool *arena, SECItem *derSignedCrl,int type);
 
 SECStatus
 nsslowcert_KeyFromDERCert(PRArenaPool *arena, SECItem *derCert, SECItem *key);
-
 
 SEC_END_PROTOS
 

@@ -32,11 +32,11 @@
  */
 
 #include "secoid.h"
-#include "mcom_db.h"
 #include "pkcs11t.h"
 #include "secmodt.h"
 #include "secitem.h"
 #include "secerr.h"
+#include "plhash.h"
 
 /* MISSI Mosaic Object ID space */
 #define MISSI	0x60, 0x86, 0x48, 0x01, 0x65, 0x02, 0x01, 0x01
@@ -1222,7 +1222,7 @@ static SECOidData oids[] = {
  *  and gets modified if the user loads new crypto modules.
  */
 
-static DB *oid_d_hash = 0;
+static PLHashTable *oid_d_hash = 0;
 static SECOidData **secoidDynamicTable = NULL;
 static int secoidDynamicTableSize = 0;
 static int secoidLastDynamicEntry = 0;
@@ -1231,15 +1231,14 @@ static int secoidLastHashEntry = 0;
 static SECStatus
 secoid_DynamicRehash(void)
 {
-    DBT key;
-    DBT data;
-    int rv;
     SECOidData *oid;
+    PLHashEntry *entry;
     int i;
     int last = secoidLastDynamicEntry;
 
     if (!oid_d_hash) {
-        oid_d_hash = dbopen( 0, O_RDWR | O_CREAT, 0600, DB_HASH, 0 );
+        oid_d_hash = PL_NewHashTable(0, SECITEM_Hash, SECITEM_HashCompare,
+			PL_CompareValues, NULL, NULL);
     }
 
 
@@ -1251,18 +1250,8 @@ secoid_DynamicRehash(void)
     for ( i = secoidLastHashEntry; i < last; i++ ) {
 	oid = secoidDynamicTable[i];
 
-	/* invalid assert ... guarrenteed not to be true */
-	/* PORT_Assert ( oid->offset == i ); */
-
-	key.data = oid->oid.data;
-	key.size = oid->oid.len;
-	
-	data.data = &oid;
-	data.size = sizeof(oid);
-
-	rv = (* oid_d_hash->put)( oid_d_hash, &key, &data, R_NOOVERWRITE );
-	if ( rv ) {
-	    PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+	entry = PL_HashTableAdd( oid_d_hash, &oid->oid.data, oid );
+	if ( entry == NULL ) {
 	    return(SECFailure);
 	}
     }
@@ -1270,24 +1259,29 @@ secoid_DynamicRehash(void)
     return(SECSuccess);
 }
 
+
+
 /*
  * Lookup a Dynamic OID. Dynamic OID's still change slowly, so it's
  * cheaper to rehash the table when it changes than it is to do the loop
  * each time. Worry: what about thread safety here? Global Static data with
  * no locks.... (sigh).
  */
-static SECStatus
-secoid_FindDynamic(DBT *key, DBT *data) {
+static SECOidData *
+secoid_FindDynamic(SECItem *key) {
+    SECOidData *ret = NULL;
     if (secoidDynamicTable == NULL) {
-	return SECFailure;
+	/* PORT_SetError! */
+	return NULL;
     }
     if (secoidLastHashEntry != secoidLastDynamicEntry) {
 	SECStatus rv = secoid_DynamicRehash();
 	if ( rv != SECSuccess ) {
-	    return rv;
+	    return NULL;
 	}
     }
-    return (SECStatus)(* oid_d_hash->get)( oid_d_hash, key, data, 0 );
+    ret = (SECOidData *)PL_HashTableLookup (oid_d_hash, key);
+    return ret;
 	
 }
 
@@ -1364,20 +1358,22 @@ SECOID_AddEntry(SECItem *oid, char *description, unsigned long mech) {
 	
 
 /* normal static table processing */
-static DB *oidhash     = NULL;
-static DB *oidmechhash = NULL;
+static PLHashTable *oidhash     = NULL;
+static PLHashTable *oidmechhash = NULL;
 
 static SECStatus
 InitOIDHash(void)
 {
-    DBT key;
-    DBT data;
+    SECItem key;
+    PLHashEntry *entry;
     int rv;
     SECOidData *oid;
     int i;
     
-    oidhash = dbopen( 0, O_RDWR | O_CREAT, 0600, DB_HASH, 0 );
-    oidmechhash = dbopen( 0, O_RDWR | O_CREAT, 0600, DB_HASH, 0 );
+    oidhash = PL_NewHashTable(0, SECITEM_Hash, SECITEM_HashCompare,
+			PL_CompareValues, NULL, NULL);
+    oidmechhash = PL_NewHashTable(0, SECITEM_Hash, SECITEM_HashCompare,
+			PL_CompareValues, NULL, NULL);
 
     if ( !oidhash || !oidmechhash) {
 	PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
@@ -1390,29 +1386,19 @@ InitOIDHash(void)
 
 	PORT_Assert ( oid->offset == i );
 
-	key.data = oid->oid.data;
-	key.size = oid->oid.len;
-	
-	data.data = &oid;
-	data.size = sizeof(oid);
-
-	rv = (* oidhash->put)( oidhash, &key, &data, R_NOOVERWRITE );
-	if ( rv ) {
+	entry = PL_HashTableAdd( oidhash, &oid->oid.data, oid );
+	if ( entry == NULL ) {
 	    PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
             PORT_Assert(0); /*This function should never fail. */
 	    return(SECFailure);
 	}
 
 	if ( oid->mechanism != CKM_INVALID_MECHANISM ) {
-	    key.data = &oid->mechanism;
-	    key.size = sizeof(oid->mechanism);
+	    key.data = (unsigned char *)&oid->mechanism;
+	    key.len = sizeof(oid->mechanism);
 
-	    rv = (* oidmechhash->put)( oidmechhash, &key, &data, R_NOOVERWRITE);
-	    /* Only error out if the error value returned is not
-	     * RET_SPECIAL, ie the mechanism already has a registered 
-	     * OID.
-	     */
-	    if ( rv && rv != RET_SPECIAL) {
+	    entry = PL_HashTableAdd( oidmechhash, &key, oid );
+	    if ( entry ) {
 	        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
                 PORT_Assert(0); /* This function should never fail. */
 		return(SECFailure);
@@ -1428,8 +1414,7 @@ InitOIDHash(void)
 SECOidData *
 SECOID_FindOIDByMechanism(unsigned long mechanism)
 {
-    DBT key;
-    DBT data;
+    SECItem key;
     SECOidData *ret;
     int rv;
 
@@ -1440,15 +1425,13 @@ SECOID_FindOIDByMechanism(unsigned long mechanism)
 	    return NULL;
 	}
     }
-    key.data = &mechanism;
-    key.size = sizeof(mechanism);
+    key.data = (unsigned char *)&mechanism;
+    key.len = sizeof(mechanism);
 
-    rv = (* oidmechhash->get)( oidmechhash, &key, &data, 0 );
-    if ( rv || ( data.size != sizeof(unsigned long) ) ) {
+    ret = PL_HashTableLookup ( oidmechhash, &key);
+    if ( ret == NULL ) {
         PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
-	return NULL;
     }
-    PORT_Memcpy(&ret, data.data, data.size);
 
     return (ret);
 }
@@ -1456,8 +1439,6 @@ SECOID_FindOIDByMechanism(unsigned long mechanism)
 SECOidData *
 SECOID_FindOID(SECItem *oid)
 {
-    DBT key;
-    DBT data;
     SECOidData *ret;
     int rv;
     
@@ -1469,19 +1450,13 @@ SECOID_FindOID(SECItem *oid)
 	}
     }
     
-    key.data = oid->data;
-    key.size = oid->len;
-    
-    rv = (* oidhash->get)( oidhash, &key, &data, 0 );
-    if ( rv || ( data.size != sizeof(SECOidData*) ) ) {
-	rv = secoid_FindDynamic(&key, &data);
-	if (rv != SECSuccess) {
+    ret = PL_HashTableLookup ( oidhash, oid );
+    if ( ret == NULL ) {
+	ret  = secoid_FindDynamic(oid);
+	if (ret == NULL) {
 	    PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
-	    return(0);
 	}
     }
-
-    PORT_Memcpy(&ret, data.data, data.size);
 
     return(ret);
 }
@@ -1538,13 +1513,29 @@ SECOID_FindOIDTagDescription(SECOidTag tagnum)
 SECStatus
 SECOID_Shutdown(void)
 {
+    int i;
+
     if (oidhash) {
-	(oidhash->close)(oidhash);
+	PL_HashTableDestroy(oidhash);
 	oidhash = NULL;
     }
     if (oidmechhash) {
-	(oidmechhash->close)(oidmechhash);
+	PL_HashTableDestroy(oidmechhash);
 	oidmechhash = NULL;
+    }
+    if (oid_d_hash) {
+	PL_HashTableDestroy(oid_d_hash);
+	oid_d_hash = NULL;
+    }
+    if (secoidDynamicTable) {
+	for (i=0; i < secoidLastDynamicEntry; i++) {
+	    PORT_Free(secoidDynamicTable[i]);
+	}
+	PORT_Free(secoidDynamicTable);
+	secoidDynamicTable = NULL;
+	secoidDynamicTableSize = 0;
+	secoidLastDynamicEntry = 0;
+	secoidLastHashEntry = 0;
     }
     return SECSuccess;
 }

@@ -50,36 +50,28 @@ typedef enum {
     pbeBitGenIntegrityKey = 0x03
 } PBEBitGenID;
 
-typedef struct _pbeBitGenParameters {
-    unsigned int u, v;
-    SECOidTag hashAlgorithm;
-} pbeBitGenParameters;
+typedef enum {
+    NSSPKCS5_PBKDF1 = 0,
+    NSSPKCS5_PBKDF2 = 1,
+    NSSPKCS5_PKCS12_V2 = 2
+} NSSPKCS5PBEType;
 
-typedef struct _PBEBitGenContext {
-    PRArenaPool *arena;
+typedef struct NSSPKCS5PBEParameterStr NSSPKCS5PBEParameter;
 
-    /* hash algorithm information */
-    pbeBitGenParameters pbeParams;
-    const SECHashObject *hashObject;
-    void *hash;
-
-    /* buffers used in generation of bits */
-    SECItem D, S, P, I, A, B;
-    unsigned int c, n;
-    unsigned int iterations;
-} PBEBitGenContext;
-
-extern const SEC_ASN1Template SEC_PKCS5PBEParameterTemplate[];
-typedef struct SEC_PKCS5PBEParameterStr SEC_PKCS5PBEParameter;
-
-struct SEC_PKCS5PBEParameterStr {
+struct NSSPKCS5PBEParameterStr {
     PRArenaPool *poolp;
     SECItem	salt;		/* octet string */
     SECItem	iteration;	/* integer */
 
     /* used locally */
-    SECOidTag	algorithm;
     int		iter;
+    int 	keyLen;
+    int		ivLen;
+    HASH_HashType hashType;
+    NSSPKCS5PBEType pbeType;
+    PBEBitGenID	keyID;
+    SECOidTag	encAlg;
+    PRBool	is2KeyDES;
 };
 
 
@@ -87,46 +79,32 @@ SEC_BEGIN_PROTOS
 /* Create a PKCS5 Algorithm ID
  * The algorithm ID is set up using the PKCS #5 parameter structure
  *  algorithm is the PBE algorithm ID for the desired algorithm
- *  salt can be specified or can be NULL, if salt is NULL then the
- *    salt is generated from random bytes
- *  iteration is the number of iterations for which to perform the
- *    hash prior to key and iv generation.
+ *  pbe is a pbe param block with all the info needed to create the 
+ *   algorithm id.
  * If an error occurs or the algorithm specified is not supported 
  * or is not a password based encryption algorithm, NULL is returned.
  * Otherwise, a pointer to the algorithm id is returned.
  */
 extern SECAlgorithmID *
-SEC_PKCS5CreateAlgorithmID(SECOidTag algorithm,
-			   SECItem *salt, 
-			   int iteration);
+nsspkcs5_CreateAlgorithmID(PRArenaPool *arena, SECOidTag algorithm, 
+						NSSPKCS5PBEParameter *pbe);
 
-/* Get the initialization vector.  The password is passed in, hashing
- * is performed, and the initialization vector is returned.
- *  algid is a pointer to a PBE algorithm ID
- *  pwitem is the password
- * If an error occurs or the algorithm id is not a PBE algrithm,
- * NULL is returned.  Otherwise, the iv is returned in a secitem.
+/*
+ * Convert an Algorithm ID to a PBE Param.
+ * NOTE: this does not suppport PKCS 5 v2 because it's only used for the
+ * keyDB which only support PKCS 5 v1, PFX, and PKCS 12.
  */
-extern SECItem *
-SEC_PKCS5GetIV(SECAlgorithmID *algid, SECItem *pwitem, PRBool faulty3DES);
+NSSPKCS5PBEParameter *
+nsspkcs5_AlgidToParam(SECAlgorithmID *algid);
 
-/* Get the key.  The password is passed in, hashing is performed,
- * and the key is returned.
- *  algid is a pointer to a PBE algorithm ID
- *  pwitem is the password
- * If an error occurs or the algorithm id is not a PBE algrithm,
- * NULL is returned.  Otherwise, the key is returned in a secitem.
+/*
+ * Convert an Algorithm ID to a PBE Param.
+ * NOTE: this does not suppport PKCS 5 v2 because it's only used for the
+ * keyDB which only support PKCS 5 v1, PFX, and PKCS 12.
  */
-extern SECItem *
-SEC_PKCS5GetKey(SECAlgorithmID *algid, SECItem *pwitem, PRBool faulty3DES);
+NSSPKCS5PBEParameter *
+nsspkcs5_NewParam(SECOidTag alg, SECItem *salt, int iterator);
 
-/* Get PBE salt.  The salt for the password based algorithm is returned.
- *  algid is the PBE algorithm identifier
- * If an error occurs NULL is returned, otherwise the salt is returned
- * in a SECItem.
- */
-extern SECItem *
-SEC_PKCS5GetSalt(SECAlgorithmID *algid);
 
 /* Encrypt/Decrypt data using password based encryption.  
  *  algid is the PBE algorithm identifier,
@@ -138,48 +116,17 @@ SEC_PKCS5GetSalt(SECAlgorithmID *algid);
  * is returned, otherwise the ciphered contents is returned.
  */
 extern SECItem *
-SEC_PKCS5CipherData(SECAlgorithmID *algid, SECItem *pwitem,
+nsspkcs5_CipherData(NSSPKCS5PBEParameter *, SECItem *pwitem,
 		    SECItem *src, PRBool encrypt, PRBool *update);
 
-/* Checks to see if algid algorithm is a PBE algorithm.  If
- * so, PR_TRUE is returned, otherwise PR_FALSE is returned.
- */
-extern PRBool 
-SEC_PKCS5IsAlgorithmPBEAlg(SECAlgorithmID *algid);
+extern SECItem *
+nsspkcs5_ComputeKeyAndIV(NSSPKCS5PBEParameter *, SECItem *pwitem,
+		    			SECItem *iv, PRBool faulty3DES);
 
 /* Destroys PBE parameter */
 extern void
-SEC_PKCS5DestroyPBEParameter(SEC_PKCS5PBEParameter *param);
+nsspkcs5_DestroyPBEParameter(NSSPKCS5PBEParameter *param);
 
-/* Convert Algorithm ID to PBE parameter */
-extern SEC_PKCS5PBEParameter *
-SEC_PKCS5GetPBEParameter(SECAlgorithmID *algid);
-
-/* Determine how large the key generated is */
-extern int
-SEC_PKCS5GetKeyLength(SECAlgorithmID *algid);
-
-/* map crypto algorithm to pbe algorithm, assume sha 1 hashing for DES
- */
-extern SECOidTag
-SEC_PKCS5GetPBEAlgorithm(SECOidTag algTag, int keyLen);
-
-/* return the underlying crypto algorithm */
-extern SECOidTag
-SEC_PKCS5GetCryptoAlgorithm(SECAlgorithmID *algid);
-
-extern PBEBitGenContext *
-PBE_CreateContext(SECOidTag hashAlgorithm, PBEBitGenID bitGenPurpose,
-		  SECItem *pwitem, SECItem *salt, unsigned int bitsNeeded,
-		  unsigned int interations);
-		
-extern SECItem *
-PBE_GenerateBits(PBEBitGenContext *pbeCtxt);
-
-extern void PBE_DestroyContext(PBEBitGenContext *pbeCtxt);
-
-extern SECStatus PBE_PK11ParamToAlgid(SECOidTag algTag, SECItem *param,
-				  PRArenaPool *arena, SECAlgorithmID *algId);
 SEC_END_PROTOS
 
 #endif

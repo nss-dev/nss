@@ -46,7 +46,7 @@
 #include "seccomon.h"
 #include "prprf.h"
 #include "secmodt.h"
-#include "secmodti.h"
+#include "pk11init.h"
 
 #define PK11_ARG_LIBRARY_PARAMETER "library="
 #define PK11_ARG_NAME_PARAMETER "name="

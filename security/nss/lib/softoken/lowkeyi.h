@@ -118,16 +118,11 @@ extern SECStatus nsslowkey_StoreKeyByPublicKey(NSSLOWKEYDBHandle *handle,
 					    NSSLOWKEYPrivateKey *pk,
 					    SECItem *pubKeyData,
 					    char *nickname,
-					    NSSLOWKEYGetPasswordKey f,
-					    void *arg);
+					    SECItem *arg);
 
 /* does the key for this cert exist in the database filed by modulus */
 extern SECStatus nsslowkey_KeyForCertExists(NSSLOWKEYDBHandle *handle,
 					 NSSLOWCERTCertificate *cert);
-
-NSSLOWKEYPrivateKey *
-nsslowkey_FindKeyByCert(NSSLOWKEYDBHandle *handle, NSSLOWCERTCertificate *cert,
-		     NSSLOWKEYGetPasswordKey f, void *arg);
 
 extern SECStatus nsslowkey_HasKeyDBPassword(NSSLOWKEYDBHandle *handle);
 extern SECStatus nsslowkey_SetKeyDBPassword(NSSLOWKEYDBHandle *handle,
@@ -226,7 +221,7 @@ nsslowkey_StoreKeyByPublicKeyAlg(NSSLOWKEYDBHandle *handle,
 			      NSSLOWKEYPrivateKey *privkey, 
 			      SECItem *pubKeyData,
 			      char *nickname,
-			      NSSLOWKEYGetPasswordKey f, void *arg,
+			      SECItem *arg,
 			      SECOidTag algorithm); 
 
 /* Find key by modulus.  This function is the inverse of store key
@@ -237,7 +232,7 @@ nsslowkey_StoreKeyByPublicKeyAlg(NSSLOWKEYDBHandle *handle,
  */
 extern NSSLOWKEYPrivateKey *
 nsslowkey_FindKeyByPublicKey(NSSLOWKEYDBHandle *handle, SECItem *modulus, 
-			  NSSLOWKEYGetPasswordKey f, void *arg);
+			  SECItem *arg);
 
 /* Make a copy of a low private key in it's own arena.
  * a return of NULL indicates an error.

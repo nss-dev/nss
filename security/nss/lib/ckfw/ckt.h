@@ -128,6 +128,8 @@ static const char CKT_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #define CKA_TRUST_IPSEC_TUNNEL          (CKA_TRUST + 13)
 #define CKA_TRUST_IPSEC_USER            (CKA_TRUST + 14)
 #define CKA_TRUST_TIME_STAMPING         (CKA_TRUST + 15)
+
+/* locate the Trust entry */
 #define CKA_CERT_SHA1_HASH	        (CKA_TRUST + 100)
 #define CKA_CERT_MD5_HASH		(CKA_TRUST + 101)
 
@@ -187,6 +189,7 @@ typedef CK_ULONG          CK_TRUST;
 #define CKT_NETSCAPE_TRUSTED            (CKT_NETSCAPE + 1)
 #define CKT_NETSCAPE_TRUSTED_DELEGATOR  (CKT_NETSCAPE + 2)
 #define CKT_NETSCAPE_UNTRUSTED          (CKT_NETSCAPE + 3)
+#define CKT_NETSCAPE_MUST_VERIFY        (CKT_NETSCAPE + 4)
 
 /* 
  * These may well remain Netscape-specific; I'm only using them

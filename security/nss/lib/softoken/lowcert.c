@@ -45,6 +45,7 @@
 #include "lowkeyi.h"
 #include "pcert.h"
 #include "secasn1.h"
+#include "secoid.h"
 
 /* should have been in a 'util' header */
 extern const SEC_ASN1Template CERT_ValidityTemplate[];
@@ -313,7 +314,7 @@ nsslowcert_DecodeDERCertificate(SECItem *derSignedCert, PRBool copyDER,
     rv = SEC_ASN1DecodeItem(arena, cert, nsslowcert_SignedCertificateTemplate,
                     &cert->derCert);
 
-    /* cert->subjectKeyID;	/* x509v3 subject key identifier */
+    /* cert->subjectKeyID;	 x509v3 subject key identifier */
     cert->dbEntry = NULL;
     cert ->trust = NULL;
 

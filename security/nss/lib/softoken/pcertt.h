@@ -41,7 +41,7 @@
 #include "prclist.h"
 #include "pkcs11t.h"
 #include "seccomon.h"
-#include "secmodt.h"
+/*#include "secmodt.h" */
 #include "secoidt.h"
 #include "plarena.h"
 #include "prcvar.h"
@@ -113,21 +113,6 @@ struct NSSLOWCERTCertTrustStr {
     unsigned int emailFlags;
     unsigned int objectSigningFlags;
 };
-
-/*
- * defined the types of trust that exist
- */
-typedef enum {
-    trustSSL = 0,
-    trustEmail = 1,
-    trustObjectSigning = 2,
-    trustTypeNone = 3
-} SECTrustType;
-
-#define SEC_GET_TRUST_FLAGS(trust,type) \
-        (((type)==trustSSL)?((trust)->sslFlags): \
-	 (((type)==trustEmail)?((trust)->emailFlags): \
-	  (((type)==trustObjectSigning)?((trust)->objectSigningFlags):0)))
 
 /*
 ** An X.509 certificate object (the unsigned form)

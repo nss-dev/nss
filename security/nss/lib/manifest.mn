@@ -36,8 +36,8 @@ DEPTH      = ../..
 DIRS = util freebl softoken \
     certhigh pk11wrap cryptohi \
     certdb crypto nss \
-    pkcs12 pkcs7 smime\
     ssl \
+    pkcs12 pkcs7 smime\
     base ckfw \
     crmf jar \
     fortcrypt

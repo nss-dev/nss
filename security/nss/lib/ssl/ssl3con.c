@@ -65,7 +65,8 @@
 #endif
 
 static PK11SymKey *ssl3_GenerateRSAPMS(sslSocket *ss, ssl3CipherSpec *spec,
-                                       PK11SlotInfo * serverKeySlot);
+                                       PK11SlotInfo * serverKeySlot,
+                                       PRBool isTls);
 static SECStatus ssl3_GenerateSessionKeys(sslSocket *ss, const PK11SymKey *pms);
 static SECStatus ssl3_HandshakeFailure(      sslSocket *ss);
 static SECStatus ssl3_InitState(             sslSocket *ss);
@@ -2023,7 +2024,7 @@ ssl3_GenerateSessionKeys(sslSocket *ss, const PK11SymKey *pms)
 	if (pwSpec->master_secret == NULL) {
 	    /* Generate a faux master secret in the same slot as the old one. */
 	    PK11SlotInfo * slot = PK11_GetSlotFromKey((PK11SymKey *)pms);
-	    PK11SymKey *   fpms = ssl3_GenerateRSAPMS(ss, pwSpec, slot);
+	    PK11SymKey *   fpms = ssl3_GenerateRSAPMS(ss, pwSpec, slot, isTLS);
 
 	    PK11_FreeSlot(slot);
 	    if (fpms != NULL) {
@@ -2037,7 +2038,7 @@ ssl3_GenerateSessionKeys(sslSocket *ss, const PK11SymKey *pms)
     if (pwSpec->master_secret == NULL) {
 	/* Generate a faux master secret from the internal slot. */
 	PK11SlotInfo *  slot = PK11_GetInternalSlot();
-	PK11SymKey *    fpms = ssl3_GenerateRSAPMS(ss, pwSpec, slot);
+	PK11SymKey *    fpms = ssl3_GenerateRSAPMS(ss, pwSpec, slot, isTLS);
 
 	PK11_FreeSlot(slot);
 	if (fpms != NULL) {
@@ -3183,7 +3184,7 @@ sendRSAClientKeyExchange(sslSocket * ss, SECKEYPublicKey * svrPubKey)
     ssl_GetSpecWriteLock(ss);
     isTLS = (PRBool)(ss->ssl3->pwSpec->version > SSL_LIBRARY_VERSION_3_0);
 
-    pms = ssl3_GenerateRSAPMS(ss, ss->ssl3->pwSpec, NULL);
+    pms = ssl3_GenerateRSAPMS(ss, ss->ssl3->pwSpec, NULL, isTLS);
     ssl_ReleaseSpecWriteLock(ss);
     if (pms == NULL) {
 	ssl_MapLowLevelError(SSL_ERROR_CLIENT_KEY_EXCHANGE_FAILURE);
@@ -4267,7 +4268,7 @@ ssl3_HandleServerKeyExchange(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	peerKey->arena              = arena;
 	peerKey->keyType            = rsaKey;
 	peerKey->pkcs11Slot         = NULL;
-	peerKey->pkcs11ID           = CK_INVALID_KEY;
+	peerKey->pkcs11ID           = CK_INVALID_HANDLE;
 	if (SECITEM_CopyItem(arena, &peerKey->u.rsa.modulus,        &modulus) ||
 	    SECITEM_CopyItem(arena, &peerKey->u.rsa.publicExponent, &exponent))
 	{
@@ -4349,7 +4350,7 @@ ssl3_HandleServerKeyExchange(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	peerKey->arena              = arena;
 	peerKey->keyType            = dhKey;
 	peerKey->pkcs11Slot         = NULL;
-	peerKey->pkcs11ID           = CK_INVALID_KEY;
+	peerKey->pkcs11ID           = CK_INVALID_HANDLE;
 
 	if (SECITEM_CopyItem(arena, &peerKey->u.dh.prime,        &dh_p) ||
 	    SECITEM_CopyItem(arena, &peerKey->u.dh.base,         &dh_g) ||
@@ -6059,7 +6060,7 @@ fortezza_loser:
  */
 static PK11SymKey *
 ssl3_GenerateRSAPMS(sslSocket *ss, ssl3CipherSpec *spec,
-                    PK11SlotInfo * serverKeySlot)
+                    PK11SlotInfo * serverKeySlot, PRBool isTLS)
 {
     PK11SymKey *      pms		= NULL;
     PK11SlotInfo *    slot		= serverKeySlot;
@@ -6067,8 +6068,11 @@ ssl3_GenerateRSAPMS(sslSocket *ss, ssl3CipherSpec *spec,
     SECItem           param;
     CK_VERSION 	      version;
     CK_MECHANISM_TYPE mechanism_array[3];
+    CK_MECHANISM_TYPE keygen;
 
     PORT_Assert( ssl_HaveSSL3HandshakeLock(ss) );
+
+    keygen = isTLS ? CKM_TLS_PRE_MASTER_KEY_GEN: CKM_SSL3_PRE_MASTER_KEY_GEN;
 
     if (slot == NULL) {
 	SSLCipherAlgorithm calg;
@@ -6083,7 +6087,7 @@ ssl3_GenerateRSAPMS(sslSocket *ss, ssl3CipherSpec *spec,
 	PORT_Assert(alg2Mech[calg].calg == calg);
 
 	/* First get an appropriate slot.  */
-	mechanism_array[0] = CKM_SSL3_PRE_MASTER_KEY_GEN;
+	mechanism_array[0] = keygen;
 	mechanism_array[1] = CKM_RSA_PKCS;
 	mechanism_array[2] = alg2Mech[calg].cmech;
 
@@ -6105,7 +6109,7 @@ ssl3_GenerateRSAPMS(sslSocket *ss, ssl3CipherSpec *spec,
     param.data = (unsigned char *)&version;
     param.len  = sizeof version;
 
-    pms = PK11_KeyGen(slot, CKM_SSL3_PRE_MASTER_KEY_GEN, &param, 0, pwArg);
+    pms = PK11_KeyGen(slot, keygen, &param, 0, pwArg);
     if (!serverKeySlot)
 	PK11_FreeSlot(slot);
     if (pms == NULL) {
@@ -6135,6 +6139,7 @@ ssl3_HandleRSAClientKeyExchange(sslSocket *ss,
     PK11SymKey *      pms;
     SECStatus         rv;
     SECItem           enc_pms;
+    PRBool            isTLS = PR_FALSE;
 
     PORT_Assert( ssl_HaveRecvBufLock(ss) );
     PORT_Assert( ssl_HaveSSL3HandshakeLock(ss) );
@@ -6152,6 +6157,7 @@ ssl3_HandleRSAClientKeyExchange(sslSocket *ss,
 	if ((unsigned)kLen < enc_pms.len) {
 	    enc_pms.len = kLen;
 	}
+	isTLS = PR_TRUE;
     }
     /*
      * decrypt pms out of the incoming buffer
@@ -6170,7 +6176,7 @@ ssl3_HandleRSAClientKeyExchange(sslSocket *ss,
 	PK11SlotInfo *  slot   = PK11_GetSlotFromPrivateKey(serverKey);
 
 	ssl_GetSpecWriteLock(ss);
-	pms = ssl3_GenerateRSAPMS(ss, ss->ssl3->prSpec, slot);
+	pms = ssl3_GenerateRSAPMS(ss, ss->ssl3->prSpec, slot, isTLS);
 	ssl_ReleaseSpecWriteLock(ss);
 
 	PK11_FreeSlot(slot);
@@ -6447,8 +6453,7 @@ ssl3_HandleCertificate(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     if (rv != SECSuccess)
 	goto loser;	/* fatal alert already sent by ConsumeHandshake. */
 
-    sec->peerCert = CERT_NewTempCertificate(ss->dbHandle, &certItem, NULL,
-                                            PR_FALSE, PR_TRUE);
+    sec->peerCert = CERT_DecodeDERCertificate(&certItem, NULL, PR_FALSE);
     if (sec->peerCert == NULL) {
 	/* We should report an alert if the cert was bad, but not if the
 	 * problem was just some local problem, like memory error.
@@ -6486,8 +6491,7 @@ ssl3_HandleCertificate(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	    goto loser;	/* don't send alerts on memory errors */
 	}
 
-	c->cert = CERT_NewTempCertificate(ss->dbHandle, &certItem, NULL,
-	                                  PR_FALSE, PR_TRUE);
+	c->cert = CERT_DecodeDERCertificate(&certItem, NULL, PR_FALSE);
 	if (c->cert == NULL) {
 	    goto ambiguous_err;
 	}

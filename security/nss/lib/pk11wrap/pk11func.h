@@ -483,6 +483,14 @@ PK11_GetLowLevelKeyIDForCert(PK11SlotInfo *slot,
 SECItem *
 PK11_GetLowLevelKeyIDForPrivateKey(SECKEYPrivateKey *key);
 
+SECItem *
+PK11_FindCrlByName(PK11SlotInfo **slot, CK_OBJECT_HANDLE *handle,
+						SECItem *derName, int type);
+
+CK_OBJECT_HANDLE
+PK11_PutCrl(PK11SlotInfo *slot, SECItem *crl, 
+				SECItem *name, char *url, int type);
+
 SEC_END_PROTOS
 
 #endif

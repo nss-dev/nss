@@ -1078,21 +1078,16 @@ loser:
 
 
 static SECStatus
-WriteDBCrlEntry(NSSLOWCERTCertDBHandle *handle, certDBEntryRevocation *entry )
+WriteDBCrlEntry(NSSLOWCERTCertDBHandle *handle, certDBEntryRevocation *entry,
+				SECItem *crlKey )
 {
     SECItem dbkey;
     PRArenaPool *tmparena = NULL;
-    SECItem tmpitem,encodedEntry;
+    SECItem encodedEntry;
     SECStatus rv;
     
     tmparena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
     if ( tmparena == NULL ) {
-	goto loser;
-    }
-
-    /* get the database key and format it */
-    rv = nsslowcert_KeyFromDERCrl(tmparena, &entry->derCrl, &tmpitem);
-    if ( rv == SECFailure ) {
 	goto loser;
     }
 
@@ -1101,7 +1096,7 @@ WriteDBCrlEntry(NSSLOWCERTCertDBHandle *handle, certDBEntryRevocation *entry )
 	goto loser;
     }
 
-    rv = EncodeDBGenericKey(&tmpitem, tmparena, &dbkey, entry->common.type);
+    rv = EncodeDBGenericKey(crlKey, tmparena, &dbkey, entry->common.type);
     if ( rv == SECFailure ) {
 	goto loser;
     }
@@ -2769,7 +2764,7 @@ AddPermSubjectNode(certDBEntrySubject *entry, NSSLOWCERTCertificate *cert,
     }
 
     for ( i = 0; i < ncerts; i++ ) {
-	cmpcert = nsslowcert_FindCertByKeyNoLocking(cert->dbhandle,
+	cmpcert = nsslowcert_FindCertByKey(cert->dbhandle,
 						  &entry->certKeys[i]);
 	PORT_Assert(cmpcert);
 	if ( nsslowcert_IsNewer(cert, cmpcert) ) {
@@ -2846,7 +2841,7 @@ nsslowcert_TraversePermCertsForSubject(NSSLOWCERTCertDBHandle *handle,
     }
     
     for( i = 0; i < entry->ncerts; i++ ) {
-	cert = nsslowcert_FindCertByKeyNoLocking(handle, &entry->certKeys[i]);
+	cert = nsslowcert_FindCertByKey(handle, &entry->certKeys[i]);
 	rv = (* cb)(cert, cbarg);
 	nsslowcert_DestroyCertificate(cert);
 	if ( rv == SECFailure ) {
@@ -4215,7 +4210,7 @@ loser:
  * Lookup a certificate in the databases without locking
  */
 NSSLOWCERTCertificate *
-nsslowcert_FindCertByKeyNoLocking(NSSLOWCERTCertDBHandle *handle, SECItem *certKey)
+nsslowcert_FindCertByKey(NSSLOWCERTCertDBHandle *handle, SECItem *certKey)
 {
     return(FindCertByKey(handle, certKey, PR_FALSE));
 }
@@ -4245,7 +4240,7 @@ nsslowcert_FindCertByIssuerAndSN(NSSLOWCERTCertDBHandle *handle, NSSLOWCERTIssue
     PORT_Memcpy( &certKey.data[issuerAndSN->serialNumber.len],
 	      issuerAndSN->derIssuer.data, issuerAndSN->derIssuer.len);
 
-    cert = nsslowcert_FindCertByKeyNoLocking(handle, &certKey);
+    cert = nsslowcert_FindCertByKey(handle, &certKey);
     
     PORT_Free(certKey.data);
     
@@ -4276,7 +4271,7 @@ nsslowcert_FindCertByDERCert(NSSLOWCERTCertDBHandle *handle, SECItem *derCert)
     }
 
     /* find the certificate */
-    cert = nsslowcert_FindCertByKeyNoLocking(handle, &certKey);
+    cert = nsslowcert_FindCertByKey(handle, &certKey);
     
 loser:
     PORT_FreeArena(arena, PR_FALSE);
@@ -4345,24 +4340,24 @@ nsslowcert_DestroyCertificateNoLocking(NSSLOWCERTCertificate *cert)
     return;
 }
 
-#ifdef notdef
 /*
  * Lookup a CRL in the databases. We mirror the same fast caching data base
  *  caching stuff used by certificates....?
  */
-NSSLOWCERTSignedCrl *
-SEC_FindCrlByKey(NSSLOWCERTCertDBHandle *handle, SECItem *crlKey, int type)
+SECItem *
+nsslowcert_FindCrlByKey(NSSLOWCERTCertDBHandle *handle, SECItem *crlKey, 
+		char **url, PRBool isKRL)
 {
     DBT tmpdata;
     int ret;
     SECItem keyitem;
     DBT key;
     SECStatus rv;
-    NSSLOWCERTSignedCrl *crl = NULL;
+    SECItem *crl = NULL;
     PRArenaPool *arena = NULL;
     certDBEntryRevocation *entry;
-    certDBEntryType crlType = (type == SEC_CRL_TYPE) ?
-	 certDBEntryTypeRevocation : certDBEntryTypeKeyRevocation;
+    certDBEntryType crlType = isKRL ? certDBEntryTypeKeyRevocation  
+					: certDBEntryTypeRevocation;
     
     arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
     if ( arena == NULL ) {
@@ -4376,199 +4371,90 @@ SEC_FindCrlByKey(NSSLOWCERTCertDBHandle *handle, SECItem *crlKey, int type)
     
     key.data = keyitem.data;
     key.size = keyitem.len;
-    
-    /* lookup in the temporary database */
-    ret = certdb_Get( handle->tempCertDB, &key, &tmpdata, 0 );
 
-    /* error accessing the database */
-    if ( ret < 0 ) {
-	PORT_SetError(SEC_ERROR_BAD_DATABASE);
+    /* find in perm database */
+    entry = ReadDBCrlEntry(handle, crlKey, crlType);
+	
+    if ( entry == NULL ) {
 	goto loser;
     }
 
-    if ( ret == 0 ) {	/* found in temp database */
-	if ( tmpdata.size != sizeof(NSSLOWCERTSignedCrl *) ) {
-	    PORT_SetError(SEC_ERROR_BAD_DATABASE);
-	    goto loser;
-	}
-	
-	PORT_Memcpy(&crl, tmpdata.data, tmpdata.size);
-	crl->referenceCount++;
-    } else {		/* not found in temporary database */
-
-	/* find in perm database */
-	entry = ReadDBCrlEntry(handle, crlKey, crlType);
-	
-	if ( entry == NULL ) {
-	    goto loser;
-	}
+    if (entry->url) {
+	*url = PORT_Strdup(entry->url);
     }
+    crl = SECITEM_DupItem(&entry->derCrl);
+
 loser:
     if ( arena ) {
 	PORT_FreeArena(arena, PR_FALSE);
     }
+    if (entry) {
+	DestroyDBEntry((certDBEntry *)entry);
+    }
     
     return(crl);
-}
-
-
-NSSLOWCERTSignedCrl *
-SEC_FindCrlByName(NSSLOWCERTCertDBHandle *handle, SECItem *crlKey, int type)
-{
-	return SEC_FindCrlByKey(handle,crlKey,type);
-}
-
-NSSLOWCERTSignedCrl *
-SEC_FindCrlByDERCert(NSSLOWCERTCertDBHandle *handle, SECItem *derCrl, int type)
-{
-    PRArenaPool *arena;
-    SECItem crlKey;
-    SECStatus rv;
-    NSSLOWCERTSignedCrl *crl = NULL;
-    
-    /* create a scratch arena */
-    arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
-    if ( arena == NULL ) {
-	return(NULL);
-    }
-    
-    /* extract the database key from the cert */
-    rv = nsslowcert_KeyFromDERCrl(arena, derCrl, &crlKey);
-    if ( rv != SECSuccess ) {
-	goto loser;
-    }
-
-    /* find the crl */
-    crl = SEC_FindCrlByKey(handle, &crlKey, type);
-    
-loser:
-    PORT_FreeArena(arena, PR_FALSE);
-    return(crl);
-}
-
-
-SECStatus
-SEC_DestroyCrl(NSSLOWCERTSignedCrl *crl)
-{
-    if (crl) {
-	if (crl->referenceCount-- <= 1) {
-	    if (!crl->keep) {
-		if (crl->dbEntry) {
-		    DestroyDBEntry((certDBEntry *)crl->dbEntry);
-		}
-		PORT_FreeArena(crl->arena, PR_FALSE);
-	    }
-	}
-    }
-    return SECSuccess;
-}
-
-NSSLOWCERTSignedCrl *
-cert_DBInsertCRL (NSSLOWCERTCertDBHandle *handle, char *url,
-		  NSSLOWCERTSignedCrl *newCrl, SECItem *derCrl, int type)
-{
-    NSSLOWCERTSignedCrl *oldCrl = NULL, *crl = NULL;
-    certDBEntryRevocation *entry = NULL;
-    PRArenaPool *arena = NULL;
-    SECCertTimeValidity validity;
-    certDBEntryType crlType = (type == SEC_CRL_TYPE) ?
-	 certDBEntryTypeRevocation : certDBEntryTypeKeyRevocation;
-    SECStatus rv;
-
-    arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
-    if (arena == NULL) goto done;
-
-    oldCrl = SEC_FindCrlByKey(handle, derName, type);
-
-    /* if there is an old crl, make sure the one we are installing
-     * is newer. If not, exit out, otherwise delete the old crl.
-     */
-    if (oldCrl != NULL) {
-	if (!SEC_CrlIsNewer(derNewCRL,oldEntry->crl)) {
-
-	    if (type == SEC_CRL_TYPE) {
-		PORT_SetError(SEC_ERROR_OLD_CRL);
-	    } else {
-		PORT_SetError(SEC_ERROR_OLD_KRL);
-	    }
-
-	    goto done;
-	}
-
-	if ((SECITEM_CompareItem(derName,derOldName) != SECEqual) &&
-	    (type == SEC_KRL_TYPE) ) {
-	    
-	    PORT_SetError(SEC_ERROR_CKL_CONFLICT);
-	    goto done;
-	}
-
-	/* if we have a url in the database, use that one */
-	if (oldEntry->url) {
-	    int nnlen = PORT_Strlen(oldCrl->url) + 1;
-	    url  = (char *)PORT_ArenaAlloc(arena, nnlen);
-	    if ( url != NULL ) {
-	        PORT_Memcpy(url, oldCrl->url, nnlen);
-	    }
-	}
-
-
-	/* really destroy this crl */
-	/* first drum it out of the permanment Data base */
-	SEC_DeletePermCRL(oldCrl);
-
-    }
-
-    /* Write the new entry into the data base */
-    entry = NewDBCrlEntry(derCrl, url, crlType, 0);
-    if (entry == NULL) goto done;
-
-    rv = WriteDBCrlEntry(handle, entry);
-    if (rv != SECSuccess) goto done;
-
-done:
-    if (entry) DestroyDBEntry((certDBEntry *)entry);
-    if (arena) PORT_FreeArena(arena, PR_FALSE);
-    if (oldCrl) /* SEC_DestroyCrl(oldCrl); */
-
-    return crl;
 }
 
 /*
  * replace the existing URL in the data base with a new one
  */
 SECStatus
-NSSLOWCERT_CrlReplaceUrl(NSSLOWCERTDBHandle *handle, SECItem *derCrl,char *url,
-	int type)
+nsslowcert_AddCrl(NSSLOWCERTCertDBHandle *handle, SECItem *derCrl, 
+			SECItem *crlKey, char *url, PRBool isKRL)
 {
     SECStatus rv = SECFailure;
     certDBEntryRevocation *entry = NULL;
+    certDBEntryType crlType = isKRL ? certDBEntryTypeKeyRevocation  
+					: certDBEntryTypeRevocation;
     int nnlen=0;
 
-    SEC_DeletePermCRL(crl);
+    DeleteDBCrlEntry(handle, crlKey, crlType);
 
     /* Write the new entry into the data base */
-    entry = NewDBCrlEntry(derCrl, url, type, 0);
+    entry = NewDBCrlEntry(derCrl, url, crlType, 0);
     if (entry == NULL) goto done;
 
-    rv = WriteDBCrlEntry(handle, entry);
+    rv = WriteDBCrlEntry(handle, entry, crlKey);
     if (rv != SECSuccess) goto done;
 
 done:
+    if (entry) {
+	DestroyDBEntry((certDBEntry *)entry);
+    }
     return rv;
 }
 
 SECStatus
-NSSLOWCERT_DeletePermCRL(NSSLOWCERTDBHandle *handle,SECItem *derName,int type)
+nsslowcert_DeletePermCRL(NSSLOWCERTCertDBHandle *handle, SECItem *derName,
+								 PRBool isKRL)
 {
     SECStatus rv;
+    certDBEntryType crlType = isKRL ? certDBEntryTypeKeyRevocation  
+					: certDBEntryTypeRevocation;
     
-    rv = DeleteDBCrlEntry(handle, derName, type);
+    rv = DeleteDBCrlEntry(handle, derName, crlType);
     if (rv != SECSuccess) goto done;
   
 done:
     return rv;
 }
 
+
+PRBool
+nsslowcert_hasTrust(NSSLOWCERTCertificate *cert)
+{
+    NSSLOWCERTCertTrust *trust;
+
+    if (cert->trust == NULL) {
+	return PR_FALSE;
+    }
+    trust = cert->trust;
+    return !((trust->sslFlags & CERTDB_TRUSTED_UNKNOWN) && 
+		(trust->emailFlags & CERTDB_TRUSTED_UNKNOWN) && 
+			(trust->objectSigningFlags & CERTDB_TRUSTED_UNKNOWN));
+}
+
+#ifdef notdef
 /*
  * find a cert by email address
  *

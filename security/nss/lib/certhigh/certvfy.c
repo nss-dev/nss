@@ -351,14 +351,16 @@ CERT_FindCertIssuer(CERTCertificate *cert, int64 validTime, SECCertUsage usage)
 	     */
 
 	    if (caName != NULL) {
-		rv = CERT_KeyFromIssuerAndSN(tmpArena, caName,
-					     &authorityKeyID->authCertSerialNumber,
-					     &issuerCertKey);
-		if ( rv == SECSuccess ) {
-		    issuerCert = CERT_FindCertByKey(cert->dbhandle,
-						    &issuerCertKey);
-		}
-		
+		CERTIssuerAndSN issuerSN;
+
+		issuerSN.derIssuer.data = caName->data;
+		issuerSN.derIssuer.len = caName->len;
+		issuerSN.serialNumber.data = 
+			authorityKeyID->authCertSerialNumber.data;
+		issuerSN.serialNumber.len = 
+			authorityKeyID->authCertSerialNumber.len;
+		issuerCert = CERT_FindCertByIssuerAndSN(cert->dbhandle,
+								&issuerSN);
 		if ( issuerCert == NULL ) {
 		    PORT_SetError (SEC_ERROR_UNKNOWN_ISSUER);
 		    goto loser;
@@ -964,13 +966,15 @@ CERT_VerifyCert(CERTCertDBHandle *handle, CERTCertificate *cert,
     PRBool       allowOverride;
     SECCertTimeValidity validity;
     CERTStatusConfig *statusConfig;
-    
+   
+#ifdef notdef 
     /* check if this cert is in the Evil list */
     rv = CERT_CheckForEvilCert(cert);
     if ( rv != SECSuccess ) {
 	PORT_SetError(SEC_ERROR_REVOKED_CERTIFICATE);
 	LOG_ERROR_OR_EXIT(log,cert,0,0);
     }
+#endif
     
     /* make sure that the cert is valid at time t */
     allowOverride = (PRBool)((certUsage == certUsageSSLServer) ||

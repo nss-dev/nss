@@ -48,9 +48,8 @@ ifeq ($(OS_ARCH), WINNT)
 SHARED_LIBRARY = $(OBJDIR)/$(LIBRARY_NAME)$(LIBRARY_VERSION).dll
 IMPORT_LIBRARY = $(OBJDIR)/$(LIBRARY_NAME)$(LIBRARY_VERSION).lib
 
-DLLFLAGS += -DEF:nss.def
-RES = $(OBJDIR)/nss.res
-RESNAME = nss.rc
+RES = $(OBJDIR)/$(LIBRARY_NAME).res
+RESNAME = $(LIBRARY_NAME).rc
 
 # $(PROGRAM) has explicit dependencies on $(EXTRA_LIBS)
 CRYPTOLIB=$(DIST)/lib/freebl.lib
@@ -65,11 +64,6 @@ EXTRA_SHARED_LIBRARY_LIBS += \
 	$(DIST)/lib/secutil.lib \
 	$(NULL)
 
-#SHARED_LIBRARY_DIRS = \
-#	$(CRYPTODIR) \
-#	../util \
-#	$(NULL)
-
 EXTRA_LIBS += \
 	$(DIST)/lib/dbm.lib \
 	$(NULL)
@@ -83,12 +77,6 @@ EXTRA_SHARED_LIBS += \
 	$(DIST)/lib/$(NSPR31_LIB_PREFIX)plds4.lib \
 	$(DIST)/lib/$(NSPR31_LIB_PREFIX)nspr4.lib \
 	$(NULL)
-
-# $(PROGRAM) has NO explicit dependencies on $(OS_LIBS)
-#OS_LIBS += \
-#	wsock32.lib \
-#	winmm.lib \
-#	$(NULL)
 else
 
 # $(PROGRAM) has explicit dependencies on $(EXTRA_LIBS)
@@ -101,17 +89,11 @@ endif
 EXTRA_LIBS += \
 	$(CRYPTOLIB) \
 	$(DIST)/lib/libsecutil.$(LIB_SUFFIX) \
-	$(NULL)
-EXTRA_LIBS += \
 	$(DIST)/lib/libdbm.$(LIB_SUFFIX) \
 	$(NULL)
 ifdef MOZILLA_BSAFE_BUILD
 	EXTRA_LIBS+=$(DIST)/lib/libbsafe.$(LIB_SUFFIX)
 endif
-#SHARED_LIBRARY_DIRS = \
-#	$(CRYPTODIR) \
-#	../util \
-#	$(NULL)
 
 # $(PROGRAM) has NO explicit dependencies on $(EXTRA_SHARED_LIBS)
 # $(EXTRA_SHARED_LIBS) come before $(OS_LIBS), except on AIX.
@@ -123,43 +105,12 @@ EXTRA_SHARED_LIBS += \
 	$(NULL)
 endif
 
-#ifeq ($(OS_ARCH),SunOS)
-#MAPFILE = $(OBJDIR)/nssmap.sun
-#ALL_TRASH += $(MAPFILE)
-#MKSHLIB += -M $(MAPFILE)
-#ifndef USE_64
-#ifeq ($(CPU_ARCH),sparc)
-## The -R '$ORIGIN' linker option instructs libnss3.so to search for its
-## dependencies (libfreebl_*.so) in the same directory where it resides.
-#MKSHLIB += -R '$$ORIGIN'
-#endif
-#endif
-#endif
-#
-#ifeq ($(OS_ARCH),AIX)
-#MAPFILE = $(OBJDIR)/nssmap.aix
-#ALL_TRASH += $(MAPFILE)
-#EXPORT_RULES = -bexport:$(MAPFILE)
-#endif
-#
-#ifeq ($(OS_ARCH),HP-UX)
-#MAPFILE = $(OBJDIR)/nssmap.hp
-#ALL_TRASH += $(MAPFILE)
-#MKSHLIB += -c $(MAPFILE)
-#endif
-#
-#ifeq ($(OS_ARCH), OSF1)
-#MAPFILE = $(OBJDIR)/nssmap.osf
-#ALL_TRASH += $(MAPFILE)
-#MKSHLIB += -hidden -input $(MAPFILE)
-#endif
-#
-#ifeq ($(OS_ARCH),Linux)
-#MAPFILE = $(OBJDIR)/nssmap.linux
-#ALL_TRASH += $(MAPFILE)
-#MKSHLIB += -Wl,--version-script,$(MAPFILE)
-#endif
-#
-#
-	
-
+ifeq ($(OS_ARCH),SunOS)
+ifndef USE_64
+ifeq ($(CPU_ARCH),sparc)
+# The -R '$ORIGIN' linker option instructs libnss3.so to search for its
+# dependencies (libfreebl_*.so) in the same directory where it resides.
+MKSHLIB += -R '$$ORIGIN'
+endif
+endif
+endif

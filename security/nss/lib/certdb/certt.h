@@ -392,8 +392,10 @@ struct CERTCrlKeyStr {
 struct CERTSignedCrlStr {
     PRArenaPool *arena;
     CERTCrl crl;
-    certDBEntryRevocation *dbEntry;	/* database entry struct */
-    PRBool keep;			/* keep this crl in the cache for the  session*/
+    /*certDBEntryRevocation *dbEntry;	 database entry struct */
+    PK11SlotInfo *slot;
+    /* PRBool keep;		 keep this crl in the cache for the  session*/
+    CK_OBJECT_HANDLE pkcs11ID;
     PRBool isperm;
     PRBool istemp;
     int referenceCount;
