@@ -2822,6 +2822,9 @@ CK_RV nsc_CommonInitialize(CK_VOID_PTR pReserved, PRBool isFIPS)
 loser:
 	secmod_freeParams(&paramStrings);
     }
+    if (CKR_OK == crv) {
+        pk11_InitFreeLists();
+    }
 
     return crv;
 }
