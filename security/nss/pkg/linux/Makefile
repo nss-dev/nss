@@ -19,10 +19,10 @@ include $(CORE_DEPTH)/coreconf/config.mk
 publish:
 	$(MAKE) clean
 	mkdir -p SOURCES SRPMS RPMS BUILD
-	mkdir -p usr/lib/mps
+	mkdir -p usr/lib/mps/secv1
 	find $(CORE_DEPTH)/../dist/$(OBJDIR)/lib -type l \
 		\( -name "*.so" -o -name "*.chk" \) \
-        -exec cp {} usr/lib/mps \;
+        -exec cp {} usr/lib/mps/secv1 \;
 	(cd $(CORE_DEPTH)/../dist/public && tar cphf - .) \
 		| (mkdir -p usr/include/mps && cd usr/include/mps && tar xvfBp -)
 	tar czvf $(NAME)-$(VERSION).tar.gz usr
@@ -37,6 +37,7 @@ publish:
 	echo "%dir /usr" >>temp.spec
 	echo "%dir /usr/lib" >>temp.spec
 	echo "%dir /usr/lib/mps" >>temp.spec
+	echo "%dir /usr/lib/mps/secv1" >>temp.spec
 	find usr \( -name "*.so" -o -name "*.chk" \) \
 		| sed -e "s-^-/-" >>temp.spec
 	echo "" >>temp.spec
