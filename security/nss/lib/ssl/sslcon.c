@@ -1573,6 +1573,7 @@ ssl2_CreateSessionCypher(sslSocket *ss, sslSessionID *sid, PRBool isClient)
 	if (readcx)  (*sec->destroy)(readcx, PR_TRUE);
 	if (writecx) (*sec->destroy)(writecx, PR_TRUE);
     }
+    sec->destroy = NULL;
     if (slot) PK11_FreeSlot(slot);
 
   sec_loser:
@@ -2531,7 +2532,7 @@ ssl2_HandleMessage(sslSocket *ss)
 	    goto bad_peer;
 	}
 
-	if (gs->recordLen - 1 != SSL2_SESSIONID_BYTES) {
+	if (gs->recordLen - 1 != SSL_SESSIONID_BYTES) {
 	    SSL_DBG(("%d: SSL[%d]: bad server-finished message, len=%d",
 		     SSL_GETPID(), ss->fd, gs->recordLen));
 	    goto bad_peer;
@@ -2976,7 +2977,24 @@ ssl2_BeginClientHandshake(sslSocket *ss)
     /* Get peer name of server */
     rv = ssl_GetPeerInfo(ss);
     if (rv < 0) {
+#ifdef HPUX11
+        /*
+         * On some HP-UX B.11.00 systems, getpeername() occasionally
+         * fails with ENOTCONN after a successful completion of
+         * non-blocking connect.  I found that if we do a write()
+         * and then retry getpeername(), it will work.
+         */
+        if (PR_GetError() == PR_NOT_CONNECTED_ERROR) {
+            char dummy;
+            (void) PR_Write(ss->fd->lower, &dummy, 0);
+            rv = ssl_GetPeerInfo(ss);
+            if (rv < 0) {
+                goto loser;
+            }
+        }
+#else
 	goto loser;
+#endif
     }
 
     SSL_TRC(3, ("%d: SSL[%d]: sending client-hello", SSL_GETPID(), ss->fd));
@@ -3549,7 +3567,7 @@ ssl2_HandleClientHelloMessage(sslSocket *ss)
 
 	/* Invent a session-id */
 	ci->sid = sid;
-	PK11_GenerateRandom(sid->u.ssl2.sessionID+2, SSL2_SESSIONID_BYTES-2);
+	PK11_GenerateRandom(sid->u.ssl2.sessionID+2, SSL_SESSIONID_BYTES-2);
 
 	pid = SSL_GETPID();
 	sid->u.ssl2.sessionID[0] = MSB(pid);

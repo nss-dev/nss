@@ -459,8 +459,12 @@ CERT_CreateName;
 ;+};
 ;+NSS_3.3 { 	# NSS 3.3. release
 ;+    global:
-SECKEY_CreateDHPrivateKey;
 CERT_CheckCertUsage;
+CERT_FindCertIssuer;
+PK11_GetModule;
+SECKEY_CreateDHPrivateKey;
+SECKEY_GetPublicKeyType;
+SECMOD_AddNewModule;
 ;+#
 ;+# The following symbols are exported only to make JSS work.
 ;+# These are still private!!!
@@ -481,6 +485,7 @@ PK11_CheckSSOPassword;
 PK11_CopySymKeyForSigning;
 PK11_DeleteTokenCertAndKey;
 PK11_DEREncodePublicKey;
+PK11_ExtractKeyValue;
 PK11_FindCertsFromNickname;
 PK11_FindKeyByKeyID;
 PK11_GetIVLength;
@@ -488,12 +493,16 @@ PK11_GetKeyData;
 PK11_GetKeyType;
 PK11_GetLowLevelKeyIDForCert;
 PK11_GetLowLevelKeyIDForPrivateKey;
+PK11_GetSlotPWValues;
 PK11_ImportCertForKey;
 PK11_ImportDERCertForKey;
 PK11_ImportDERPrivateKeyInfo;
+PK11_ImportSymKey;
 PK11_IsLoggedIn;
 PK11_KeyForDERCertExists;
 PK11_KeyForCertExists;
+PK11_ListPrivateKeysInSlot;
+PK11_ListCertsInSlot;
 PK11_Logout;
 PK11_NeedPWInit;
 PK11_MakeIDFromPubKey;
@@ -510,15 +519,13 @@ PK11_PQG_NewVerify;
 PK11_PQG_ParamGen;
 PK11_PQG_ParamGenSeedLen;
 PK11_PQG_VerifyParams;
+PK11_ReferenceSlot;
 PK11_SeedRandom;
 PK11_UnwrapPrivKey;
 PK11_VerifyRecover;
 PK11_WrapPrivKey;
-PK11_ReferenceSlot;
-PK11_GetSlotPWValues;
-PK11_ImportSymKey;
-PK11_ExtractKeyValue;
 SEC_CertNicknameConflict;
+SEC_PKCS5GetIV;
 SECMOD_DeleteInternalModule;
 SECMOD_DestroyModule;
 SECMOD_GetDefaultModuleList;
@@ -527,19 +534,27 @@ SECMOD_GetInternalModule;
 SECMOD_GetReadLock;
 SECMOD_ReferenceModule;
 SECMOD_ReleaseReadLock;
-SECKEY_GetPrivateKeyType;
+SECKEY_AddPrivateKeyToListTail;
 SECKEY_EncodeDERSubjectPublicKeyInfo;
 SECKEY_ExtractPublicKey;
+SECKEY_DestroyPrivateKeyList;
+SECKEY_GetPrivateKeyType;
 SECKEY_HashPassword;
 SECKEY_ImportDERPublicKey;
 SECKEY_NewPrivateKeyList;
-SECKEY_DestroyPrivateKeyList;
 SECKEY_RemovePrivateKeyListNode;
-SECKEY_AddPrivateKeyToListTail;
-SEC_PKCS5GetIV;
-PK11_ListPrivateKeysInSlot;
-PK11_ListCertsInSlot;
 VFY_EndWithSignature;
+;+    local:
+;+       *;
+;+};
+;+NSS_3.3.1 { 	# NSS 3.3.1 release
+;+    global:
+;+#
+;+# The following symbols are exported only to make libsmime3.so work. 
+;+# These are still private!!!
+;+#
+PK11_CreatePBEParams;
+PK11_DestroyPBEParams;
 ;+    local:
 ;+       *;
 ;+};
