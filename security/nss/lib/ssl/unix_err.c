@@ -48,7 +48,7 @@
 #include "prerror.h"
 #endif
 
-#if defined (__bsdi__) || defined(NTO)
+#if defined (__bsdi__) || defined(NTO) || defined(DARWIN)
 #undef _PR_POLL_AVAILABLE
 #endif
 

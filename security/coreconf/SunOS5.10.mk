@@ -1,4 +1,3 @@
-#! gmake
 #
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
@@ -31,15 +30,15 @@
 # may use your version of this file under either the MPL or the
 # GPL.
 #
+# Config stuff for SunOS5.10
+#
 
-CORE_DEPTH = ..
+SOL_CFLAGS += -D_SVID_GETTOD
 
-MODULE = dbm
+include $(CORE_DEPTH)/coreconf/SunOS5.mk
 
-IMPORTS = nspr20/v4.1.2
+ifeq ($(OS_RELEASE),5.10)
+	OS_DEFINES += -DSOLARIS2_10
+endif
 
-RELEASE = dbm
-
-DIRS =  include \
-        src     \
-	$(NULL)
+OS_LIBS += -lthread -lnsl -lsocket -lposix4 -ldl -lc 

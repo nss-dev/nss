@@ -1,4 +1,3 @@
-#! gmake
 #
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
@@ -31,35 +30,41 @@
 # may use your version of this file under either the MPL or the
 # GPL.
 #
-
-DEFINES += -DMEMMOVE -D__DBINTERFACE_PRIVATE $(SECURITY_FLAG)
-
-INCLUDES += -I$(CORE_DEPTH)/../dbm/include
-
-#
-#  Currently, override TARGETS variable so that only static libraries
-#  are specifed as dependencies within rules.mk.
+# Config stuff for Darwin.
 #
 
-TARGETS        = $(LIBRARY)
-SHARED_LIBRARY =
-IMPORT_LIBRARY =
-PURE_LIBRARY   =
-PROGRAM        =
+include $(CORE_DEPTH)/coreconf/UNIX.mk
 
-ifdef SHARED_LIBRARY
-	ifeq ($(OS_ARCH),WINNT)
-		ifneq ($(OS_TARGET),WIN16)
-			DLLBASE=/BASE:0x30000000
-			RES=$(OBJDIR)/dbm.res
-			RESNAME=../include/dbm.rc
-		endif
-	endif
-	ifeq ($(DLL_SUFFIX),dll)
-		DEFINES += -D_DLL
-	endif
+CC		= cc
+CCC		= c++
+RANLIB		= ranlib
+
+ifeq (86,$(findstring 86,$(OS_TEST)))
+OS_REL_CFLAGS	= -Di386
+CPU_ARCH	= i386
+else
+OS_REL_CFLAGS	= -Dppc
+CPU_ARCH	= ppc
 endif
 
-ifeq ($(OS_ARCH),AIX)
-	OS_LIBS += -lc_r
-endif
+# "Commons" are tentative definitions in a global scope, like this:
+#     int x;
+# The meaning of a common is ambiguous.  It may be a true definition:
+#     int x = 0;
+# or it may be a declaration of a symbol defined in another file:
+#     extern int x;
+# Use the -fno-common option to force all commons to become true
+# definitions so that the linker can catch multiply-defined symbols.
+# Also, common symbols are not allowed with Darwin dynamic libraries.
+
+OS_CFLAGS	= $(DSO_CFLAGS) $(OS_REL_CFLAGS) -Wmost -fpascal-strings -traditional-cpp -fno-common -pipe -DDARWIN -DHAVE_STRERROR -DHAVE_BSD_FLOCK
+
+ARCH		= darwin
+
+# May override this with -bundle to create a loadable module.
+DSO_LDOPTS	= -dynamiclib -compatibility_version 1 -current_version 1
+
+MKSHLIB		= $(CC) -arch $(CPU_ARCH) $(DSO_LDOPTS)
+DLL_SUFFIX	= dylib
+
+G++INCLUDES	= -I/usr/include/g++
