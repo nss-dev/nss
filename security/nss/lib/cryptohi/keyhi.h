@@ -46,7 +46,7 @@
 #include "secdert.h"
 #include "keythi.h"
 #include "certt.h"
-#include "secpkcs5.h"
+/*#include "secpkcs5.h" */
 
 SEC_BEGIN_PROTOS
 
@@ -108,7 +108,7 @@ SECKEYPrivateKey *SECKEY_CreateRSAPrivateKey(int keySizeInBits,
 /*
  * create a new DH key pair. The private Key is returned...
  */
-SECKEYPrivateKey *SECKEY_CreateDHPrivateKey(DHParams *param,
+SECKEYPrivateKey *SECKEY_CreateDHPrivateKey(SECKEYDHParams *param,
 					   SECKEYPublicKey **pubk, void *cx);
 /*
 ** Create a subject-public-key-info based on a public key.

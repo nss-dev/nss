@@ -38,9 +38,6 @@
 #ifndef _KEYT_H_
 #define _KEYT_H_
 
-#include "keytlow.h"
-#include "keytboth.h"
 #include "keythi.h"
-#include "keydbt.h"
 
 #endif /* _KEYT_H_ */
