@@ -253,6 +253,16 @@ mp_err   MPI_ASM_DECL s_mpv_div_2dx1d(mp_digit Nhi, mp_digit Nlo,
 #define s_mp_mul_d_add_offset(a, b, c, off) \
 (s_mpv_mul_d_add_prop(MP_DIGITS(a), MP_USED(a), b, MP_DIGITS(c) + off), MP_OKAY)
 
+typedef struct {
+  mp_int       N;	/* modulus N */
+  mp_digit     n0prime; /* n0' = - (n0 ** -1) mod MP_RADIX */
+  mp_size      b;	/* R == 2 ** b,  also b = # significant bits in N */
+} mp_mont_modulus;
+
+mp_err s_mp_mul_mont(const mp_int *a, const mp_int *b, mp_int *c, 
+	               mp_mont_modulus *mmm);
+mp_err s_mp_redc(mp_int *T, mp_mont_modulus *mmm);
+
 /* }}} */
 #endif
 
