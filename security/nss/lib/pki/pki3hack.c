@@ -87,16 +87,6 @@ STAN_GetDefaultCryptoContext()
     return g_default_crypto_context;
 }
 
-NSS_IMPLEMENT NSSToken *
-STAN_GetDefaultCryptoToken
-(
-  void
-)
-{
-    PK11SlotInfo *pk11slot = PK11_GetInternalSlot();
-    return PK11Slot_GetNSSToken(pk11slot);
-}
-
 NSS_IMPLEMENT PRStatus
 STAN_LoadDefaultNSS3TrustDomain
 (
