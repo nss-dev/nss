@@ -489,6 +489,7 @@ nssPKIObject_GetWriteToken (
     PRUint32 i;
     NSSToken *token = NULL;
     nssCryptokiObject *instance;
+    *rvSessionOpt = NULL;
     PZ_Lock(object->lock);
     for (i=0; i<object->numInstances; i++) {
 	instance = object->instances[i];

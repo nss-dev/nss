@@ -59,6 +59,7 @@ else
 # $(EXTRA_SHARED_LIBS) come before $(OS_LIBS), except on AIX.
 EXTRA_SHARED_LIBS += \
 	-L$(DIST)/lib/ \
+	-lsoftokn3 \
 	-lnss4 \
 	-lplc4 \
 	-lplds4 \
