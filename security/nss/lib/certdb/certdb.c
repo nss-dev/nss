@@ -1345,8 +1345,7 @@ cert_VerifySubjectAltName(CERTCertificate *cert, const char *hn)
 		    if (!cn)
 			goto finish;
 		}
-		PORT_Memcpy(cn, current->name.other.data, 
-		                current->name.other.len);
+		PORT_Memcpy(cn, current->name.other.data, cnLen);
 		cn[cnLen] = 0;
 		rv = cert_TestHostName(cn ,hn);
 		if (rv == SECSuccess)
