@@ -138,7 +138,7 @@ nssCKObject_GetAttributes
 	for (i=0; i<count; i++) {
 	    CK_ULONG ulValueLen = obj_template[i].ulValueLen;
 	    if (ulValueLen == 0) continue;
-	    if (ulValueLen < 0) {
+	    if (ulValueLen == (CK_ULONG) -1) {
 		obj_template[i].ulValueLen = 0;
 		continue;
 	    }
