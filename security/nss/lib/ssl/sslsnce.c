@@ -93,6 +93,7 @@
 #include <syslog.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <errno.h>
 #include "unix_err.h"
 
 #else /* XP_WIN32 */
