@@ -1204,7 +1204,7 @@ nssATAV_CreateFromUTF8
       return (NSSATAV *)NULL;
     }
 
-    oidder = nssOID_GetDEREncoding(rv->oid, a);
+    oidder = nssOID_GetDEREncoding(rv->oid, (NSSDER *)NULL, a);
     if( (NSSDER *)NULL == oidder ) {
       (void)NSSArena_Destroy(a);
       (void)nss_ZFreeIf(rv->value);
