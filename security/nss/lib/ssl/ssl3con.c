@@ -3760,8 +3760,8 @@ sendECDHClientKeyExchange(sslSocket * ss, SECKEYPublicKey * svrPubKey)
 
     /*  Determine the PMS */
     pms = PK11_PubDeriveExtended(privKey, svrPubKey, PR_FALSE, NULL, NULL,
-			    CKM_ECDH1_DERIVE, target, CKA_DERIVE, 0, NULL,
-			    kdf, NULL);
+			    CKM_ECDH1_DERIVE, target, CKA_DERIVE, 0,
+			    kdf, NULL, NULL);
 
     if (pms == NULL) {
 	ssl_MapLowLevelError(SSL_ERROR_CLIENT_KEY_EXCHANGE_FAILURE);
@@ -6984,8 +6984,8 @@ ssl3_HandleECDHClientKeyExchange(sslSocket *ss, SSL3Opaque *b,
 
     /*  Determine the PMS */
     pms = PK11_PubDeriveExtended(srvrPrivKey, &clntPubKey, PR_FALSE, NULL, NULL,
-			    CKM_ECDH1_DERIVE, target, CKA_DERIVE, 0, NULL,
-			    kdf, NULL);
+			    CKM_ECDH1_DERIVE, target, CKA_DERIVE, 0,
+			    kdf, NULL, NULL);
 
     PORT_Free(clntPubKey.u.ec.publicValue.data);
 
