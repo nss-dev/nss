@@ -467,7 +467,7 @@ CERT_DecodeDERCrlEx(PRArenaPool *narena, SECItem *derSignedCrl, int type,
 	break;
 
     case SEC_KRL_TYPE:
-	rv = SEC_ASN1DecodeItem
+	rv = SEC_QuickDERDecodeItem
 	     (arena, crl, cert_SignedKrlTemplate, derSignedCrl);
 	break;
     default:
