@@ -4640,6 +4640,17 @@ CERT_GetCertTrust(CERTCertificate *cert, CERTCertTrust *trust)
     return(rv);
 }
 
+static char *
+cert_parseNickname(char *nickname)
+{
+	char *cp;
+
+	for (cp=nickname; *cp && *cp != ':'; cp++);
+
+	if (*cp == ':') return cp++;
+	return nickname;
+}
+
 /*
  * Change the trust attributes of a certificate and make them permanent
  * in the database.
@@ -4663,6 +4674,10 @@ CERT_ChangeCertTrust(CERTCertDBHandle *handle, CERTCertificate *cert,
     *cert->trust = *trust;
     if ( cert->dbEntry == NULL ) {
 	ret = SECSuccess; /* not in permanent database */
+	if ((cert->slot)  && PK11_IsReadOnly(cert->slot)) {
+	    char *nickname = cert_parseNickname(cert->nickname);
+	    ret = CERT_AddTempCertToPerm(cert, nickname, trust);
+	} 
 	goto done;
     }
     
