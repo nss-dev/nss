@@ -1256,123 +1256,6 @@ finish:
 }
 
 SECStatus
-SHA256_restart(unsigned char *dest, const unsigned char *src, uint32 src_length)
-{
-    SECStatus rv = SECSuccess;
-    SHA256Context *cx, *cx_cpy;
-    unsigned char *cxbytes;
-    unsigned int len;
-    unsigned int i, quarter;
-    cx = SHA256_NewContext();
-    SHA256_Begin(cx);
-    /* divide message by 4, restarting 3 times */
-    quarter = (src_length + 3)/ 4;
-    for (i=0; i < 4 && src_length > 0; i++) {
-	SHA256_Update(cx, src + i*quarter, PR_MIN(quarter, src_length));
-	len = SHA256_FlattenSize(cx);
-	cxbytes = PORT_Alloc(len);
-	SHA256_Flatten(cx, cxbytes);
-	cx_cpy = SHA256_Resurrect(cxbytes, NULL);
-	if (!cx_cpy) {
-	    PR_fprintf(PR_STDERR, "%s: SHA256_Resurrect failed!\n", progName);
-	    rv = SECFailure;
-	    goto finish;
-	}
-	rv = PORT_Memcmp(cx, cx_cpy, len);
-	if (rv) {
-	    SHA256_DestroyContext(cx_cpy, PR_TRUE);
-	    PR_fprintf(PR_STDERR, "%s: SHA256_restart failed!\n", progName);
-	    goto finish;
-	}
-	SHA256_DestroyContext(cx_cpy, PR_TRUE);
-	PORT_Free(cxbytes);
-	src_length -= quarter;
-    }
-    SHA256_End(cx, dest, &len, MD5_LENGTH);
-finish:
-    SHA256_DestroyContext(cx, PR_TRUE);
-    return rv;
-}
-
-SECStatus
-SHA384_restart(unsigned char *dest, const unsigned char *src, uint32 src_length)
-{
-    SECStatus rv = SECSuccess;
-    SHA384Context *cx, *cx_cpy;
-    unsigned char *cxbytes;
-    unsigned int len;
-    unsigned int i, quarter;
-    cx = SHA384_NewContext();
-    SHA384_Begin(cx);
-    /* divide message by 4, restarting 3 times */
-    quarter = (src_length + 3)/ 4;
-    for (i=0; i < 4 && src_length > 0; i++) {
-	SHA384_Update(cx, src + i*quarter, PR_MIN(quarter, src_length));
-	len = SHA384_FlattenSize(cx);
-	cxbytes = PORT_Alloc(len);
-	SHA384_Flatten(cx, cxbytes);
-	cx_cpy = SHA384_Resurrect(cxbytes, NULL);
-	if (!cx_cpy) {
-	    PR_fprintf(PR_STDERR, "%s: SHA384_Resurrect failed!\n", progName);
-	    rv = SECFailure;
-	    goto finish;
-	}
-	rv = PORT_Memcmp(cx, cx_cpy, len);
-	if (rv) {
-	    SHA384_DestroyContext(cx_cpy, PR_TRUE);
-	    PR_fprintf(PR_STDERR, "%s: SHA384_restart failed!\n", progName);
-	    goto finish;
-	}
-	SHA384_DestroyContext(cx_cpy, PR_TRUE);
-	PORT_Free(cxbytes);
-	src_length -= quarter;
-    }
-    SHA384_End(cx, dest, &len, MD5_LENGTH);
-finish:
-    SHA384_DestroyContext(cx, PR_TRUE);
-    return rv;
-}
-
-SECStatus
-SHA512_restart(unsigned char *dest, const unsigned char *src, uint32 src_length)
-{
-    SECStatus rv = SECSuccess;
-    SHA512Context *cx, *cx_cpy;
-    unsigned char *cxbytes;
-    unsigned int len;
-    unsigned int i, quarter;
-    cx = SHA512_NewContext();
-    SHA512_Begin(cx);
-    /* divide message by 4, restarting 3 times */
-    quarter = (src_length + 3)/ 4;
-    for (i=0; i < 4 && src_length > 0; i++) {
-	SHA512_Update(cx, src + i*quarter, PR_MIN(quarter, src_length));
-	len = SHA512_FlattenSize(cx);
-	cxbytes = PORT_Alloc(len);
-	SHA512_Flatten(cx, cxbytes);
-	cx_cpy = SHA512_Resurrect(cxbytes, NULL);
-	if (!cx_cpy) {
-	    PR_fprintf(PR_STDERR, "%s: SHA512_Resurrect failed!\n", progName);
-	    rv = SECFailure;
-	    goto finish;
-	}
-	rv = PORT_Memcmp(cx, cx_cpy, len);
-	if (rv) {
-	    SHA512_DestroyContext(cx_cpy, PR_TRUE);
-	    PR_fprintf(PR_STDERR, "%s: SHA512_restart failed!\n", progName);
-	    goto finish;
-	}
-	SHA512_DestroyContext(cx_cpy, PR_TRUE);
-	PORT_Free(cxbytes);
-	src_length -= quarter;
-    }
-    SHA512_End(cx, dest, &len, MD5_LENGTH);
-finish:
-    SHA512_DestroyContext(cx, PR_TRUE);
-    return rv;
-}
-
-SECStatus
 pubkeyInitKey(bltestCipherInfo *cipherInfo, PRFileDesc *file,
 	      int keysize, int exponent)
 {
@@ -1488,29 +1371,8 @@ cipherInit(bltestCipherInfo *cipherInfo, PRBool encrypt)
 	return SECSuccess;
 	break;
     case bltestSHA256:
-	restart = cipherInfo->params.hash.restart;
-	SECITEM_AllocItem(cipherInfo->arena, &cipherInfo->output.buf,
-			  SHA256_LENGTH);
-	cipherInfo->cipher.hashCipher = (restart) ? SHA256_restart 
-	                                          : SHA256_HashBuf;
-	return SECSuccess;
-	break;
     case bltestSHA384:
-	restart = cipherInfo->params.hash.restart;
-	SECITEM_AllocItem(cipherInfo->arena, &cipherInfo->output.buf,
-			  SHA384_LENGTH);
-	cipherInfo->cipher.hashCipher = (restart) ? SHA384_restart 
-	                                          : SHA384_HashBuf;
-	return SECSuccess;
-	break;
     case bltestSHA512:
-	restart = cipherInfo->params.hash.restart;
-	SECITEM_AllocItem(cipherInfo->arena, &cipherInfo->output.buf,
-			  SHA512_LENGTH);
-	cipherInfo->cipher.hashCipher = (restart) ? SHA512_restart 
-	                                          : SHA512_HashBuf;
-	return SECSuccess;
-	break;
     default:
 	return SECFailure;
     }
