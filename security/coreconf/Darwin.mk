@@ -17,6 +17,7 @@
 # Rights Reserved.
 # 
 # Contributor(s):
+#  Chase Phillips <cmp@mozilla.org>
 # 
 # Alternatively, the contents of this file may be used under the
 # terms of the GNU General Public License Version 2 or later (the
@@ -34,6 +35,17 @@
 #
 
 include $(CORE_DEPTH)/coreconf/UNIX.mk
+
+# Install files with absolute symlinks.  Manually override the INSTALL
+# variable from UNIX.mk.  This works around a problem where shlibsign and
+# mangle were being installed as relative links on MacOS X.
+# - cmp@mozilla.org 
+#
+# XXXcmp Why does UNIX.mk's absolute_symlink use nfspwd?
+# XXXcmp Is using pwd 100% safe?
+#
+INSTALL  = $(NSINSTALL)
+INSTALL += -L `pwd`
 
 DEFAULT_COMPILER = cc
 
