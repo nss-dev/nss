@@ -33,6 +33,7 @@
 MAKEFILE_CVS_ID = "@(#) $RCSfile$ $Revision$ $Date$ $Name$"
 
 include manifest.mn
+include $(CORE_DEPTH)/coreconf/config.mk
 include config.mk
 # can't do this in manifest.mn because OS_ARCH isn't defined there.
 ifeq ($(OS_ARCH), WINNT)
@@ -65,7 +66,6 @@ endif
 
 
 
-include $(CORE_DEPTH)/coreconf/config.mk
 include $(CORE_DEPTH)/coreconf/rules.mk
 
 certdata.c: certdata.txt certdata.perl
