@@ -105,6 +105,8 @@ nssVolatileDomain_Create (
     rvVD->arena = arena;
     if (uhhOpt) {
 	rvVD->callback = uhhOpt;
+    } else {
+	rvVD->callback = nssTrustDomain_GetDefaultCallback(td, NULL);
     }
     return rvVD;
 }
@@ -1092,4 +1094,30 @@ NSSVolatileDomain_WrapSymKey (
                                              uhhOpt, rvOpt, arenaOpt);
 }
 #endif
+
+NSS_IMPLEMENT NSSCryptoContext *
+nssVolatileDomain_CreateCryptoContext (
+  NSSVolatileDomain *vd,
+  const NSSAlgNParam *apOpt,
+  NSSCallback *uhhOpt
+)
+{
+    NSSCallback *uhh;
+    if (uhhOpt) {
+	uhh = uhhOpt;
+    } else {
+	uhh = vd->callback;
+    }
+    return nssCryptoContext_Create(vd->td, vd, apOpt, uhh);
+}
+
+NSS_IMPLEMENT NSSCryptoContext *
+NSSVolatileDomain_CreateCryptoContext (
+  NSSVolatileDomain *vd,
+  const NSSAlgNParam *apOpt,
+  NSSCallback *uhhOpt
+)
+{
+    return nssVolatileDomain_CreateCryptoContext(vd, apOpt, uhhOpt);
+}
 

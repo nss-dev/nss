@@ -1722,7 +1722,7 @@ nssTrustDomain_CreateCryptoContext (
     } else {
 	uhh = td->callback;
     }
-    return nssCryptoContext_Create(td, apOpt, uhh);
+    return nssCryptoContext_Create(td, NULL, apOpt, uhh);
 }
 
 NSS_IMPLEMENT NSSCryptoContext *

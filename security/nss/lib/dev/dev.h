@@ -870,6 +870,13 @@ nssToken_ContinueDigest (
   NSSItem *item
 );
 
+NSS_EXTERN PRStatus
+nssToken_DigestKey (
+  NSSToken *tok,
+  nssSession *session,
+  nssCryptokiObject *key
+);
+
 NSS_EXTERN NSSItem *
 nssToken_FinishDigest (
   NSSToken *tok,
@@ -973,6 +980,24 @@ nssSession_ExitMonitor (
 /* would like to inline */
 NSS_EXTERN PRBool
 nssSession_IsReadWrite (
+  nssSession *s
+);
+
+NSS_EXTERN PRStatus
+nssSession_Save (
+  nssSession *s,
+  NSSItem *state,
+  NSSArena *arenaOpt
+);
+
+NSS_EXTERN PRStatus
+nssSession_Restore (
+  nssSession *s,
+  NSSItem *state
+);
+
+NSS_EXTERN nssSession *
+nssSession_Clone (
   nssSession *s
 );
 

@@ -243,6 +243,6 @@ int ssl_DefClose(sslSocket *ss)
     ssl_FreeSocket(ss);
 
     SSL_TRC(5, ("%d: SSL[%d]: closing, rv=%d errno=%d",
-		SSL_GETPID(), fd, rv, PORT_GetError()));
+		SSL_GETPID(), fd, rv, NSS_GetError()));
     return rv;
 }

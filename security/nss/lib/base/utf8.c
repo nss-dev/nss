@@ -650,3 +650,20 @@ nssUTF8_Equal (
 
   return nsslibc_memequal(a, b, la, statusOpt);
 }
+
+NSS_IMPLEMENT PRStatus
+nssUTF8_Destroy (
+  NSSUTF8 *string
+)
+{
+    return nss_ZFreeIf(string);
+}
+
+NSS_IMPLEMENT PRStatus
+NSSUTF8_Destroy (
+  NSSUTF8 *string
+)
+{
+    return nssUTF8_Destroy(string);
+}
+

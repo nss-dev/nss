@@ -62,17 +62,15 @@ SSL_GetClientAuthData(void *                       arg,
   
   if (chosenNickName) {
     NSSUsages sslClientAuth = { 0, NSSUsage_SSLClient };
-    cert = NSSTrustDomain_FindBestCertificateByNickname(td, chosenNickName,
-                                                        NSSTime_Now(),
-                                                        sslClientAuth,
-                                                        NULL);
+    cert = NSSTrustDomain_FindBestCertByNickname(td, chosenNickName,
+                                                 NSSTime_Now(), 
+                                                 &sslClientAuth, 
+                                                 NULL);
   } else { /* no name given, automatically find the right cert. */
-    cert = NSSTrustDomain_FindBestUserCertificateForSSLClientAuth(td,
-                                           /* sslHostOpt? */      NULL,
-                                                                  caNames,
-                                                                  0,
-                                                                  NULL,
-                                                                  NULL);
+    cert = NSSTrustDomain_FindBestUserCertForSSLClientAuth(td, 
+                                    /* sslHostOpt? */      NULL,
+                                                           caNames, 0, 
+                                                           NULL, NULL);
   }
   if (cert) {
     privkey = NSSCert_FindPrivateKey(cert, pinCallback);

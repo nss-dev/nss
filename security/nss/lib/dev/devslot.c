@@ -927,48 +927,96 @@ nssSession_Destroy (
     return (ckrv == CKR_OK) ? PR_SUCCESS : PR_FAILURE;
 }
 
-static PRStatus
-save_session_state(nssSession *s)
+/* XXX these need to handle multiplexing */
+NSS_IMPLEMENT PRStatus
+nssSession_Save (
+  nssSession *s,
+  NSSItem *state,
+  NSSArena *arenaOpt
+)
 {
     CK_RV ckrv;
     CK_ULONG stateLen;
     void *epv = nssSlot_GetCryptokiEPV(s->slot);
     ckrv = CKAPI(epv)->C_GetOperationState(s->handle, NULL, &stateLen);
     if (ckrv == CKR_OK && stateLen > 0) {
-	s->state.data = nss_ZAlloc(NULL, stateLen);
-	if (!s->state.data) {
+	state->data = nss_ZAlloc(arenaOpt, stateLen);
+	if (!state->data) {
 	    return PR_FAILURE;
 	}
 	ckrv = CKAPI(epv)->C_GetOperationState(s->handle,
-	                                       (CK_BYTE_PTR)s->state.data,
-	                                       (CK_ULONG_PTR)&s->state.size);
+	                                       (CK_BYTE_PTR)state->data,
+	                                       (CK_ULONG_PTR)&state->size);
 	if (ckrv != CKR_OK) {
-	    nss_ZFreeIf(s->state.data);
-	    s->state.data = NULL;
-	    s->state.size = 0;
+	    nss_ZFreeIf(state->data);
+	    state->data = NULL;
+	    state->size = 0;
 	}
     }
     return (ckrv == CKR_OK) ? PR_SUCCESS : PR_FAILURE;
 }
 
-static PRStatus
-restore_session_state(nssSession *s)
+NSS_IMPLEMENT PRStatus
+nssSession_Restore (
+  nssSession *s,
+  NSSItem *state
+)
 {
     CK_RV ckrv;
     void *epv = nssSlot_GetCryptokiEPV(s->slot);
-    if (s->state.size > 0) {
+    if (state->size > 0) {
 	ckrv = CKAPI(epv)->C_SetOperationState(s->handle, 
-	                                       (CK_BYTE_PTR)s->state.data,
-	                                       (CK_ULONG)s->state.size,
+	                                       (CK_BYTE_PTR)state->data,
+	                                       (CK_ULONG)state->size,
 	                                       CK_INVALID_HANDLE,
 	                                       CK_INVALID_HANDLE);
 	if (ckrv == CKR_OK) {
-	    nss_ZFreeIf(s->state.data);
-	    s->state.data = NULL;
-	    s->state.size = 0;
+	    nss_ZFreeIf(state->data);
+	    state->data = NULL;
+	    state->size = 0;
 	}
     }
     return (ckrv == CKR_OK) ? PR_SUCCESS : PR_FAILURE;
+}
+
+NSS_IMPLEMENT nssSession *
+nssSession_Clone (
+  nssSession *s
+)
+{
+    PRStatus status;
+    NSSItem state;
+    nssSession *rvSession = NULL;
+
+    /* Get a new session with the same properties as the original one */
+    rvSession = nssSlot_CreateSession(s->slot, s->isRW);
+    if (rvSession) {
+	/* save the original session's state */
+	status = nssSession_Save(s, &state, NULL);
+	if (status == PR_SUCCESS) {
+	    /* and restore it into the new session */
+	    status = nssSession_Restore(rvSession, &state);
+	    /* free the saved state */
+	    nss_ZFreeIf(state.data);
+	    if (status == PR_SUCCESS) {
+		return rvSession;
+	    }
+	}
+	nssSession_Destroy(rvSession);
+    }
+    return (nssSession *)NULL;
+}
+
+static PRStatus
+save_session_state(nssSession *s)
+{
+    return nssSession_Save(s, &s->state, NULL);
+}
+
+static PRStatus
+restore_session_state(nssSession *s)
+{
+    return nssSession_Restore(s, &s->state);
 }
 
 NSS_IMPLEMENT PRStatus

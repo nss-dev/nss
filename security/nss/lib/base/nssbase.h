@@ -187,6 +187,11 @@ NSSItem_Equal (
   PRStatus *statusOpt
 );
 
+NSS_EXTERN PRStatus
+NSSUTF8_Destroy (
+  NSSUTF8 *string
+);
+
 NSS_EXTERN NSSUTF8 *
 NSSUTF8_Duplicate (
   const NSSUTF8 *s,

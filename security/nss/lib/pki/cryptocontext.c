@@ -63,6 +63,7 @@ struct NSSCryptoContextStr
   /* these are set when the context is created */
   NSSArena *arena;
   NSSTrustDomain *td;
+  NSSVolatileDomain *vd;
   NSSCallback *callback; /* this can be changed or overriden */
   /* these are set when the context is used for an operation */
   NSSToken *token;
@@ -88,6 +89,7 @@ struct NSSCryptoContextMarkStr
 NSS_IMPLEMENT NSSCryptoContext *
 nssCryptoContext_Create (
   NSSTrustDomain *td,
+  NSSVolatileDomain *vdOpt,
   const NSSAlgNParam *apOpt,
   NSSCallback *uhhOpt
 )
@@ -124,8 +126,9 @@ nssCryptoContext_CreateForSymKey (
 {
     NSSCryptoContext *rvCC;
     NSSTrustDomain *td = nssSymKey_GetTrustDomain(mkey, NULL);
+    NSSVolatileDomain *vd = nssSymKey_GetVolatileDomain(mkey, NULL);
 
-    rvCC = nssCryptoContext_Create(td, apOpt, uhhOpt);
+    rvCC = nssCryptoContext_Create(td, vd, apOpt, uhhOpt);
     if (rvCC) {
 	rvCC->which = a_symkey;
 	rvCC->u.mkey = nssSymKey_AddRef(mkey);
@@ -1248,6 +1251,43 @@ NSSCryptoContext_ContinueDigest (
     return nssCryptoContext_ContinueDigest(cc, item);
 }
 
+NSS_IMPLEMENT PRStatus
+nssCryptoContext_DigestKey (
+  NSSCryptoContext *cc,
+  NSSSymKey *mkOpt
+)
+{
+    nssCryptokiObject *mko;
+    if (mkOpt) {
+	/* The context is being asked to digest a key that may not be
+	 * within its scope.  Copy the key if needed.
+	 */
+	mko = nssSymKey_GetInstance(mkOpt, cc->token);
+	if (!mko) {
+	    mko = nssSymKey_CopyToToken(mkOpt, cc->token, PR_FALSE);
+	    if (!mko) {
+		return PR_FAILURE;
+	    }
+	}
+    } else {
+	if (cc->which != a_symkey) {
+	    nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
+	    return PR_FAILURE;
+	}
+	mko = cc->key;
+    }
+    return nssToken_DigestKey(cc->token, cc->session, mko);
+}
+
+NSS_IMPLEMENT PRStatus
+NSSCryptoContext_DigestKey (
+  NSSCryptoContext *cc,
+  NSSSymKey *mkOpt
+)
+{
+    return nssCryptoContext_DigestKey(cc, mkOpt);
+}
+
 NSS_IMPLEMENT NSSItem *
 nssCryptoContext_FinishDigest (
   NSSCryptoContext *cc,
@@ -1270,11 +1310,125 @@ NSSCryptoContext_FinishDigest (
 }
 
 NSS_IMPLEMENT NSSCryptoContext *
+nssCryptoContext_Clone (
+  NSSCryptoContext *cc
+)
+{
+    NSSCryptoContext *rvCC;
+    rvCC = nssCryptoContext_Create(cc->td, cc->vd, cc->ap, cc->callback);
+    if (!rvCC) {
+	return (NSSCryptoContext *)NULL;
+    }
+    if (cc->token) {
+	rvCC->token = nssToken_AddRef(cc->token);
+    }
+    if (cc->session) {
+	rvCC->session = nssSession_Clone(cc->session);
+    }
+    rvCC->which = cc->which;
+    switch (cc->which) {
+    case a_cert:    rvCC->u.cert = nssCert_AddRef(cc->u.cert);       break;
+    case a_symkey:  rvCC->u.mkey = nssSymKey_AddRef(cc->u.mkey);     break;
+    case a_pubkey:  rvCC->u.bkey = nssPublicKey_AddRef(cc->u.bkey);  break;
+    case a_privkey: rvCC->u.vkey = nssPrivateKey_AddRef(cc->u.vkey); break;
+    default: break;
+    }
+    /* XXX key, bkey */
+    return rvCC;
+}
+
+NSS_IMPLEMENT NSSCryptoContext *
 NSSCryptoContext_Clone (
   NSSCryptoContext *cc
 )
 {
-    nss_SetError(NSS_ERROR_NOT_FOUND);
-    return NULL;
+    return nssCryptoContext_Clone(cc);
+}
+
+NSS_IMPLEMENT NSSCryptoContextMark *
+nssCryptoContext_Mark (
+  NSSCryptoContext *cc
+)
+{
+    PRStatus status;
+    NSSArena *arena;
+    NSSCryptoContextMark *rvMark;
+
+    if (!cc->session) {
+	/* correct? */
+	return (NSSCryptoContextMark *)NULL;
+    }
+
+    arena = nssArena_Create();
+    if (!arena) {
+	return (NSSCryptoContextMark *)NULL;
+    }
+    rvMark = nss_ZNEW(arena, NSSCryptoContextMark);
+    if (!rvMark) {
+	nssArena_Destroy(arena);
+	return (NSSCryptoContextMark *)NULL;
+    }
+    rvMark->arena = arena;
+
+    status = nssSession_Save(cc->session, &rvMark->state, arena);
+    if (status == PR_FAILURE) {
+	nssArena_Destroy(arena);
+	return (NSSCryptoContextMark *)NULL;
+    }
+
+    return rvMark;
+}
+
+NSS_IMPLEMENT NSSCryptoContextMark *
+NSSCryptoContext_Mark (
+  NSSCryptoContext *cc
+)
+{
+    return nssCryptoContext_Mark(cc);
+}
+
+/* unmark means keep the changes, so just free the mark */
+NSS_IMPLEMENT PRStatus
+nssCryptoContext_Unmark (
+  NSSCryptoContext *cc,
+  NSSCryptoContextMark *mark
+)
+{
+    nssArena_Destroy(mark->arena);
+}
+
+NSS_IMPLEMENT PRStatus
+NSSCryptoContext_Unmark (
+  NSSCryptoContext *cc,
+  NSSCryptoContextMark *mark
+)
+{
+    return nssCryptoContext_Unmark(cc, mark);
+} 
+
+/* release means throw away the changes and go back to the mark's state */
+NSS_IMPLEMENT PRStatus
+nssCryptoContext_Release (
+  NSSCryptoContext *cc,
+  NSSCryptoContextMark *mark
+)
+{
+    PRStatus status;
+    if (!cc->session) {
+	/* correct? create new session? */
+	return PR_FAILURE;
+    }
+    status = nssSession_Restore(cc->session, &mark->state);
+    nssArena_Destroy(mark->arena);
+    return status;
+}
+
+NSS_IMPLEMENT PRStatus
+NSSCryptoContext_Release (
+  NSSCryptoContext *cc,
+  NSSCryptoContextMark *mark
+)
+{
+    return nssCryptoContext_Release(cc, mark);
 }
 

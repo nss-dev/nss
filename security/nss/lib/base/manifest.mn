@@ -55,6 +55,7 @@ UTIL_CSRCS =      \
 	nssb64d.c \
 	nssb64e.c \
 	nsslocks.c \
+	nssrwlk.c \
 	$(NULL)
 
 PRIVATE_EXPORTS = \

@@ -246,6 +246,7 @@ nssTrustDomain_FindCRLsBySubject (
 NSS_EXTERN NSSCryptoContext *
 nssCryptoContext_Create (
   NSSTrustDomain *td,
+  NSSVolatileDomain *vdOpt,
   const NSSAlgNParam *apOpt,
   NSSCallback *uhhOpt
 );

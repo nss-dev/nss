@@ -251,8 +251,7 @@ SSL_AuthCertificate(void *arg, PRFileDesc *fd, PRBool checkSig, PRBool isServer)
     usage.peer = isServer ? NSSUsage_SSLClient : NSSUsage_SSLServer;
 
     /* XXX checkSig? */
-    status = NSSCertificate_Validate(ss->sec.peerCert,
-                                     NSSTime_Now(), &usage, NULL);
+    status = NSSCert_Validate(ss->sec.peerCert, NSSTime_Now(), &usage, NULL);
 
     if ( status == PR_FAILURE || isServer )
 	return rv;

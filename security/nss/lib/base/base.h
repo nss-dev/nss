@@ -525,6 +525,11 @@ nssItem_Equal (
  *  nssUTF8_CopyIntoFixedBuffer
  */
 
+NSS_EXTERN PRStatus
+nssUTF8_Destroy (
+  NSSUTF8 *string
+);
+
 /*
  * nssUTF8_CaseIgnoreMatch
  * 

@@ -4712,7 +4712,8 @@ ssl3_HandleCertificateRequest(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	/* Setting ssl3->clientCertChain non-NULL will cause
 	 * ssl3_HandleServerHelloDone to call SendCertificate.
 	 */
-	ssl3->clientCertChain = NSSCert_BuildChain(ssl3->clientCertificate,
+	ssl3->clientCertChain = NSSVolatileDomain_BuildCertChain(
+	                                           ssl3->clientCertificate,
 	                                           NSSTime_Now(),
 	                                           &s_ssl_client_usage,
 	                                           NULL, NULL, 0,

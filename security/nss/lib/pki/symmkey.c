@@ -178,6 +178,9 @@ NSSSymKey_DeleteStoredObject (
     return nssSymKey_DeleteStoredObject(mk, uhh);
 }
 
+/* XXX should take session as arg?  crypto contexts copy instances in
+ * their own session?
+ */
 NSS_IMPLEMENT nssCryptokiObject *
 nssSymKey_CopyToToken (
   NSSSymKey *mk,

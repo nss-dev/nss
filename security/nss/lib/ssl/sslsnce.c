@@ -35,7 +35,35 @@
  * $Id$
  */
 
-#ifdef IMPLEMENT_SESSION_ID_CACHE
+#ifndef IMPLEMENT_SESSION_ID_CACHE
+
+#include "nspr.h"
+
+int
+SSL_InheritMPServerSIDCache(const char * envString)
+{
+    return -1;
+}
+
+int
+SSL_ConfigMPServerSIDCache(	int      maxCacheEntries, 
+				PRUint32 ssl2_timeout,
+			       	PRUint32 ssl3_timeout, 
+		          const char *   directory)
+{
+    return -1;
+}
+
+int
+SSL_ConfigServerSessionIDCache(	int      maxCacheEntries, 
+				PRUint32 ssl2_timeout,
+			       	PRUint32 ssl3_timeout, 
+			  const char *   directory)
+{
+    return -1;
+}
+
+#else
 
 /* Note: ssl_FreeSID() in sslnonce.c gets used for both client and server 
  * cache sids!

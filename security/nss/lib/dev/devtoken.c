@@ -2853,6 +2853,22 @@ nssToken_ContinueDigest (
     return (ckrv == CKR_OK) ? PR_SUCCESS : PR_FAILURE;
 }
 
+NSS_IMPLEMENT PRStatus
+nssToken_DigestKey (
+  NSSToken *tok,
+  nssSession *session,
+  nssCryptokiObject *key
+)
+{
+    CK_RV ckrv;
+    void *epv = nssToken_GetCryptokiEPV(tok);
+
+    nssSession_EnterMonitor(session);
+    ckrv = CKAPI(epv)->C_DigestKey(session->handle, key->handle);
+    nssSession_ExitMonitor(session);
+    return (ckrv == CKR_OK) ? PR_SUCCESS : PR_FAILURE;
+}
+
 NSS_IMPLEMENT NSSItem *
 nssToken_FinishDigest (
   NSSToken *tok,

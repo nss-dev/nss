@@ -48,7 +48,7 @@
 int
 ssl_MapLowLevelError(int hiLevelError)
 {
-    int oldErr	= PORT_GetError();
+    int oldErr	= NSS_GetError();
 
     switch (oldErr) {
 
