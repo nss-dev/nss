@@ -85,7 +85,7 @@ static void DisplayCRL (CERTCertDBHandle *certHandle, char *nickName, int crlTyp
     }
 }
 
-static void ListCRLNames (CERTCertDBHandle *certHandle, int crlType)
+static void ListCRLNames (CERTCertDBHandle *certHandle, int crlType, PRBool deletecrls)
 {
     CERTCrlHeadNode *crlList = NULL;
     CERTCrlNode *crlNode = NULL;
@@ -134,6 +134,15 @@ static void ListCRLNames (CERTCertDBHandle *certHandle, int crlType)
 	    }
 		
 	    fprintf (stdout, "\n%-40s %-5s\n", CERT_NameToAscii(name), "CRL");
+            if ( PR_TRUE == deletecrls) {
+                CERTSignedCrl* acrl = NULL;
+                SECItem* issuer = &crlNode->crl->crl.derName;
+                acrl = SEC_FindCrlByName(certHandle, issuer, crlType);
+                if (acrl)
+                {
+                    SEC_DeletePermCRL(acrl);
+                }
+            }
 	    crlNode = crlNode->next;
 	    PORT_ArenaRelease (arena, mark);
 	} 
@@ -147,7 +156,7 @@ static void ListCRLNames (CERTCertDBHandle *certHandle, int crlType)
 static void ListCRL (CERTCertDBHandle *certHandle, char *nickName, int crlType)
 {
     if (nickName == NULL)
-	ListCRLNames (certHandle, crlType);
+	ListCRLNames (certHandle, crlType, PR_FALSE);
     else
 	DisplayCRL (certHandle, nickName, crlType);
 }
@@ -268,6 +277,7 @@ int main(int argc, char **argv)
     PLOptState *optstate;
     PLOptStatus status;
     SECStatus secstatus;
+    PRBool erase;
 
     progName = strrchr(argv[0], '/');
     progName = progName ? progName+1 : argv[0];
@@ -305,7 +315,11 @@ int main(int argc, char **argv)
 	  case 'L':
 	      listCRL = 1;
 	      break;
-	           
+
+	  case 'E':
+	      erase = PR_TRUE;
+	      break;
+
 	  case 'd':
 	    SECU_ConfigDirectory(optstate->value);
 	    break;
@@ -342,7 +356,7 @@ int main(int argc, char **argv)
     }
 
     if (deleteCRL && !nickName) Usage (progName);
-    if (!(listCRL || deleteCRL || importCRL)) Usage (progName);
+    if (!(listCRL || deleteCRL || importCRL || erase)) Usage (progName);
     if (importCRL && !inFile) Usage (progName);
     
     PR_Init( PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
@@ -365,6 +379,8 @@ int main(int argc, char **argv)
 	ListCRL (certHandle, nickName, crlType);
     else if (importCRL) 
 	rv = ImportCRL (certHandle, url, crlType, inFile);
+    else if (erase)
+	ListCRLNames (certHandle, crlType, PR_TRUE);
     
     return (rv);
 }
