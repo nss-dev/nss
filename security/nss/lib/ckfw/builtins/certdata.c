@@ -9859,10 +9859,10 @@ static const NSSItem nss_builtins_items_177 [] = {
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)"E-Certify CA", (PRUint32)13 },
-  { (void *)"\240\035\017\100\020\154\001\100\100\002\000\000\363\116\012\010"
-"\330\356\020\010"
+  { (void *)"\133\330\153\206\375\275\330\206\371\233\310\120\106\350\052\112"
+"\211\152\317\357"
 , (PRUint32)20 },
-  { (void *)"\260\367\377\277\260\331\000\100\001\000\000\000\240\344\004\010"
+  { (void *)"\256\065\177\222\227\106\174\217\023\051\341\333\236\102\145\152"
 , (PRUint32)16 },
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
@@ -9950,10 +9950,10 @@ static const NSSItem nss_builtins_items_179 [] = {
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)"E-Certify RA", (PRUint32)13 },
-  { (void *)"\240\035\017\100\020\154\001\100\100\002\000\000\363\116\012\010"
-"\330\356\020\010"
+  { (void *)"\217\051\011\013\006\302\070\314\160\305\251\355\227\147\210\315"
+"\066\332\335\131"
 , (PRUint32)20 },
-  { (void *)"\260\367\377\277\260\331\000\100\001\000\000\000\240\344\004\010"
+  { (void *)"\245\273\012\243\320\307\124\025\130\336\153\122\020\121\272\050"
 , (PRUint32)16 },
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
