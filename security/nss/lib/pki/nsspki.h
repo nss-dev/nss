@@ -48,6 +48,14 @@ static const char NSSPKI_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #include "nsspkit.h"
 #endif /* NSSPKIT_H */
 
+#ifndef NSSPKI1_H
+#include "nsspki1.h"
+#endif /* NSSPKIT_H */
+
+#ifndef BASE_H
+#include "base.h"
+#endif /* BASE_H */
+
 PR_BEGIN_EXTERN_C
 
 /*
@@ -787,7 +795,7 @@ NSSPrivateKey_FindPublicKey
 NSS_EXTERN NSSCryptoContext *
 NSSPrivateKey_CreateCryptoContext
 (
-  NSSPrivateKey *vk
+  NSSPrivateKey *vk,
   NSSAlgorithmAndParameters *apOpt,
   NSSCallback *uhh
 );
@@ -1002,7 +1010,7 @@ NSSPublicKey_WrapSymmetricKey
 NSS_EXTERN NSSCryptoContext *
 NSSPublicKey_CreateCryptoContext
 (
-  NSSPublicKey *bk
+  NSSPublicKey *bk,
   NSSAlgorithmAndParameters *apOpt,
   NSSCallback *uhh
 );
@@ -1826,7 +1834,7 @@ NSSTrustDomain_FindCertificateByEmail
  */
 
 NSS_EXTERN NSSCertificate **
-NSSTrustDomain_FindCertificateByEmail
+NSSTrustDomain_FindCertificatesByEmail
 (
   NSSTrustDomain *td,
   NSSASCII7 *email,
@@ -2416,7 +2424,7 @@ NSS_EXTERN NSSCertificate *
 NSSCryptoContext_FindCertificateByOCSPHash
 (
   NSSCryptoContext *cc,
-  NSSITem *hash
+  NSSItem *hash
 );
 
 /*
@@ -2756,7 +2764,7 @@ NSSCryptoContext_BeginSign
  */
 
 NSS_EXTERN PRStatus
-NSSCryptoContext_BeginSign
+NSSCryptoContext_ContinueSign
 (
   NSSCryptoContext *cc,
   NSSItem *data

@@ -256,6 +256,10 @@ typedef PRUint32 NSSOperations;
 #define NSSOperations_VERIFY            0x0040
 #define NSSOperations_VERIFY_RECOVER    0x0080
 
+/* Presumably, this doesn't belong here.  But for now... */
+typedef struct NSSTokenStr NSSToken;
+struct NSSPKIXCertificateStr;
+
 PR_END_EXTERN_C
 
 #endif /* NSSPKIT_H */
