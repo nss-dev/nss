@@ -103,11 +103,15 @@ sslMutex_Init(sslMutex *pMutex, int shared)
 	goto loser;
 #endif
 
-    /* Pipe starts out empty */
-
     pMutex->mPipes[2] = SSL_MUTEX_MAGIC;
 
+#if defined(LINUX) && defined(i386)
+    /* Pipe starts out empty */
     return SECSuccess;
+#else
+    /* Pipe starts with one byte. */
+    return sslMutex_Unlock(pMutex);
+#endif
 
 loser:
     nss_MD_unix_map_default_error(errno);
@@ -133,6 +137,9 @@ sslMutex_Destroy(sslMutex *pMutex)
 
     return SECSuccess;
 }
+
+#if defined(LINUX) && defined(i386)
+/* No memory barrier needed for this platform */
 
 SECStatus 
 sslMutex_Unlock(sslMutex *pMutex)
@@ -189,6 +196,65 @@ sslMutex_Lock(sslMutex *pMutex)
     }
     return SECSuccess;
 }
+
+#else
+
+/* Using Atomic operations requires the use of a memory barrier instruction 
+** on PowerPC, Sparc, and Alpha.  NSPR's PR_Atomic functions do not perform
+** them, and NSPR does not provide a function that does them (e.g. PR_Barrier).
+** So, we don't use them on those platforms. 
+*/
+
+SECStatus 
+sslMutex_Unlock(sslMutex *pMutex)
+{
+    int  cc;
+    char c  = 1;
+
+    if (pMutex->mPipes[2] != SSL_MUTEX_MAGIC) {
+	PORT_SetError(PR_INVALID_ARGUMENT_ERROR);
+	return SECFailure;
+    }
+    do {
+	cc = write(pMutex->mPipes[1], &c, 1);
+    } while (cc < 0 && (errno == EINTR || errno == EAGAIN));
+    if (cc != 1) {
+	if (cc < 0)
+	    nss_MD_unix_map_default_error(errno);
+	else
+	    PORT_SetError(PR_UNKNOWN_ERROR);
+	return SECFailure;
+    }
+
+    return SECSuccess;
+}
+
+SECStatus 
+sslMutex_Lock(sslMutex *pMutex)
+{
+    int   cc;
+    char  c;
+
+    if (pMutex->mPipes[2] != SSL_MUTEX_MAGIC) {
+	PORT_SetError(PR_INVALID_ARGUMENT_ERROR);
+	return SECFailure;
+    }
+
+    do {
+	cc = read(pMutex->mPipes[0], &c, 1);
+    } while (cc < 0 && errno == EINTR);
+    if (cc != 1) {
+	if (cc < 0)
+	    nss_MD_unix_map_default_error(errno);
+	else
+	    PORT_SetError(PR_UNKNOWN_ERROR);
+	return SECFailure;
+    }
+
+    return SECSuccess;
+}
+
+#endif
 
 #elif defined(WIN32)
 
