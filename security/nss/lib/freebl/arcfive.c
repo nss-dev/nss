@@ -86,7 +86,7 @@ RC5_DestroyContext(RC5Context *cx, PRBool freeit)
 SECStatus 
 RC5_Encrypt(RC5Context *cx, unsigned char *output, unsigned int *outputLen, 
 	    unsigned int maxOutputLen, 
-	    unsigned char *input, unsigned int inputLen)
+	    const unsigned char *input, unsigned int inputLen)
 {
     PORT_SetError(PR_NOT_IMPLEMENTED_ERROR);
     return SECFailure;
@@ -106,7 +106,7 @@ RC5_Encrypt(RC5Context *cx, unsigned char *output, unsigned int *outputLen,
 SECStatus 
 RC5_Decrypt(RC5Context *cx, unsigned char *output, unsigned int *outputLen, 
 	    unsigned int maxOutputLen,
-            unsigned char *input, unsigned int inputLen)
+            const unsigned char *input, unsigned int inputLen)
 {
     PORT_SetError(PR_NOT_IMPLEMENTED_ERROR);
     return SECFailure;
