@@ -1093,13 +1093,14 @@ void
 nsslowkey_CloseKeyDB(NSSLOWKEYDBHandle *handle)
 {
     if (handle != NULL) {
-	if (handle == nsslowkey_GetDefaultKeyDB()) {
-	    nsslowkey_SetDefaultKeyDB(NULL);
-	}
 	if (handle->db != NULL) {
 	    (* handle->db->close)(handle->db);
 	}
 	if (handle->dbname) PORT_Free(handle->dbname);
+	if (handle->global_salt) {
+	    SECITEM_FreeItem(handle->global_salt,PR_TRUE);
+	}
+	    
 	PORT_Free(handle);
     }
 }
@@ -1111,25 +1112,6 @@ nsslowkey_GetKeyDBVersion(NSSLOWKEYDBHandle *handle)
     PORT_Assert(handle != NULL);
 
     return handle->version;
-}
-
-/*
- * Allow use of default key database, so that apps (such as mozilla) do
- * not have to pass the handle all over the place.
- */
-
-static NSSLOWKEYDBHandle *sec_default_key_db = NULL;
-
-void
-nsslowkey_SetDefaultKeyDB(NSSLOWKEYDBHandle *handle)
-{
-    sec_default_key_db = handle;
-}
-
-NSSLOWKEYDBHandle *
-nsslowkey_GetDefaultKeyDB(void)
-{
-    return sec_default_key_db;
 }
 
 /*
