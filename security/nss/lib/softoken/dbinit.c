@@ -118,11 +118,6 @@ pk11_keydb_name_cb(void *arg, int dbVersion)
     return dbname;
 }
 
-/* for now... we need to define vendor specific codes here.
- */
-#define CKR_CERTDB_FAILED	CKR_DEVICE_ERROR
-#define CKR_KEYDB_FAILED	CKR_DEVICE_ERROR
-
 const char *
 pk11_EvaluateConfigDir(const char *configdir,char **appName)
 {
@@ -151,7 +146,7 @@ pk11_OpenCertDB(const char * configdir, const char *prefix, PRBool readOnly,
     					    NSSLOWCERTCertDBHandle **certdbPtr)
 {
     NSSLOWCERTCertDBHandle *certdb = NULL;
-    CK_RV        crv = CKR_CERTDB_FAILED;
+    CK_RV        crv = CKR_NETSCAPE_CERTDB_FAILED;
     SECStatus    rv;
     char * name = NULL;
     char * appName = NULL;
@@ -205,7 +200,7 @@ pk11_OpenKeyDB(const char * configdir, const char *prefix, PRBool readOnly,
     PR_smprintf_free(name);
     if (appName) PORT_Free(appName);
     if (keydb == NULL)
-	return CKR_KEYDB_FAILED;
+	return CKR_NETSCAPE_KEYDB_FAILED;
     *keydbPtr = keydb;
 
     return CKR_OK;
