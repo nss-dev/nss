@@ -1123,9 +1123,10 @@ main(int argc, char **argv)
     }
 
 #if defined(WIN32)
-    if (outFile == stdout && mode != DECODE) {
+    /*if (outFile == stdout && mode != DECODE) {*/
+    if (outFile == stdout) {
 	/* If we're going to write binary data to stdout, we must put stdout
-	** into O_BINARY mode or else incoming \r\n's will become \n's.
+	** into O_BINARY mode or else outgoing \r\n's will become \n's.
 	*/
 	int smrv = _setmode(_fileno(stdout), _O_BINARY);
 	if (smrv == -1) {
