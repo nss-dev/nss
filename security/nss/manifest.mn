@@ -39,6 +39,8 @@ IMPORTS =	nspr20/$(NSPR_IMPORT_VERSION) \
 
 RELEASE = security
 
-DIRS = lib cmd
+DIRS = lib
 
-
+ifdef ENABLE_CMD
+DIRS += cmd
+endif

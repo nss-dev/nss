@@ -56,7 +56,6 @@ DIRS = lib  \
  p7verify  \
  pk12util \
  pp  \
- rngtest \
  rsaperf \
  sdrtest \
  selfserv  \
