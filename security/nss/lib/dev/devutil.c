@@ -1088,6 +1088,8 @@ find_objects_in_array
 			                 ot[i].ulValueLen, NULL))
 		    {
 			match = PR_TRUE;
+		    } else {
+			match = PR_FALSE;
 		    }
 		    break;
 		}
