@@ -229,14 +229,25 @@ mp_err   s_mp_invmod_2d(    const mp_int *a, mp_size k,       mp_int *c);
 mp_err   s_mp_invmod_even_m(const mp_int *a, const mp_int *m, mp_int *c);
 
 /* ------ mpv functions, operate on arrays of digits, not on mp_int's ------ */
-void     s_mpv_mul_d(const mp_digit *a, mp_size a_len, mp_digit b, mp_digit *c);
-void     s_mpv_mul_d_add(const mp_digit *a, mp_size a_len, mp_digit b, 
-			 mp_digit *c);
-void     s_mpv_mul_d_add_prop(const mp_digit *a, mp_size a_len, mp_digit b, 
-			      mp_digit *c);
-void     s_mpv_sqr_add_prop(const mp_digit *a, mp_size a_len, mp_digit *sqrs);
-mp_err   s_mpv_div_2dx1d(mp_digit Nhi, mp_digit Nlo, mp_digit divisor, 
-		         mp_digit *quot, mp_digit *rem);
+#if defined (__OS2__) && defined (__IBMC__)
+#define MPI_ASM_DECL __cdecl
+#else
+#define MPI_ASM_DECL
+#endif
+
+void     MPI_ASM_DECL s_mpv_mul_d(const mp_digit *a, mp_size a_len,
+                                        mp_digit b, mp_digit *c);
+void     MPI_ASM_DECL s_mpv_mul_d_add(const mp_digit *a, mp_size a_len,
+                                            mp_digit b, mp_digit *c);
+void     MPI_ASM_DECL s_mpv_mul_d_add_prop(const mp_digit *a,
+                                                mp_size a_len, mp_digit b, 
+			                        mp_digit *c);
+void     MPI_ASM_DECL s_mpv_sqr_add_prop(const mp_digit *a,
+                                                mp_size a_len,
+                                                mp_digit *sqrs);
+
+mp_err   MPI_ASM_DECL s_mpv_div_2dx1d(mp_digit Nhi, mp_digit Nlo,
+                            mp_digit divisor, mp_digit *quot, mp_digit *rem);
 
 /* c += a * b * (MP_RADIX ** offset);  */
 #define s_mp_mul_d_add_offset(a, b, c, off) \
