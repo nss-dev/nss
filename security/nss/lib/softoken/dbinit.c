@@ -115,6 +115,10 @@ pk11_OpenCertDB(const char * configdir,  const char *prefix, PRBool readOnly)
     if (certdb)
     	return CKR_OK;	/* idempotency */
 
+    if (prefix == NULL) {
+	prefix = "";
+    }
+
     name = PR_smprintf("%s" PATH_SEPARATOR "%s",configdir,prefix);
     if (name == NULL) goto loser;
 
@@ -145,6 +149,9 @@ pk11_OpenKeyDB(const char * configdir, const char *prefix, PRBool readOnly)
     keydb = nsslowkey_GetDefaultKeyDB();
     if (keydb)
     	return SECSuccess;
+    if (prefix == NULL) {
+	prefix = "";
+    }
     name = PR_smprintf("%s" PATH_SEPARATOR "%s",configdir,prefix);	
     if (name == NULL) 
 	return SECFailure;
