@@ -280,6 +280,7 @@ typedef struct sslOptionsStr {
     unsigned int fdx			: 1;  /* 12 */
     unsigned int v2CompatibleHello	: 1;  /* 13 */
     unsigned int detectRollBack  	: 1;  /* 14 */
+    unsigned int noStepDown             : 1;  /* 15 */
 } sslOptions;
 
 typedef enum { sslHandshakingUndetermined = 0,
@@ -506,7 +507,7 @@ struct sslSessionIDStr {
 	    unsigned char         sessionID[SSL2_SESSIONID_BYTES];
 
 	    /* Stuff used to recreate key and read/write cipher objects */
-	    SECItem               masterKey;
+	    SECItem               masterKey;        /* never wrapped */
 	    int                   cipherType;
 	    SECItem               cipherArg;
 	    int                   keyBits;
@@ -895,6 +896,7 @@ struct sslSocketStr {
     unsigned int     TCPconnected       : 1;
     unsigned int     handshakeBegun     : 1;
     unsigned int     delayDisabled      : 1; /* Nagle delay disabled */
+    unsigned int     noStepDown         : 1;
 
     /* version of the protocol to use */
     SSL3ProtocolVersion version;
@@ -1295,6 +1297,12 @@ ssl_EmulateSendFile( PRFileDesc *        sd,
 		     PRSendFileData *    sfd,
                      PRTransmitFileFlags flags, 
 		     PRIntervalTime      timeout);
+
+
+SECStatus SSL_DisableDefaultExportCipherSuites(void);
+SECStatus SSL_DisableExportCipherSuites(PRFileDesc * fd);
+PRBool    SSL_IsExportCipherSuite(PRUint16 cipherSuite);
+
 
 #ifdef TRACE
 #define SSL_TRACE(msg) ssl_Trace msg

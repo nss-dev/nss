@@ -223,3 +223,58 @@ SECStatus SSL_GetCipherSuiteInfo(PRUint16 cipherSuite,
     PORT_SetError(SEC_ERROR_INVALID_ARGS);
     return SECFailure;
 }
+
+/* This function might be a candidate to be public. 
+ * Disables all export ciphers in the default set of enabled ciphers.
+ */
+SECStatus 
+SSL_DisableDefaultExportCipherSuites(void)
+{
+    const SSLCipherSuiteInfo * pInfo = suiteInfo;
+    unsigned int i;
+    SECStatus rv;
+
+    for (i = 0; i < NUM_SUITEINFOS; ++i, ++pInfo) {
+    	if (pInfo->isExportable) {
+	    rv = SSL_CipherPrefSetDefault(pInfo->cipherSuite, PR_FALSE);
+	    PORT_Assert(rv == SECSuccess);
+	}
+    }
+    return SECSuccess;
+}
+
+/* This function might be a candidate to be public, 
+ * except that it takes an sslSocket pointer as an argument.
+ * A Public version would take a PRFileDesc pointer.
+ * Disables all export ciphers in the default set of enabled ciphers.
+ */
+SECStatus 
+SSL_DisableExportCipherSuites(PRFileDesc * fd)
+{
+    const SSLCipherSuiteInfo * pInfo = suiteInfo;
+    unsigned int i;
+    SECStatus rv;
+
+    for (i = 0; i < NUM_SUITEINFOS; ++i, ++pInfo) {
+    	if (pInfo->isExportable) {
+	    rv = SSL_CipherPrefSet(fd, pInfo->cipherSuite, PR_FALSE);
+	    PORT_Assert(rv == SECSuccess);
+	}
+    }
+    return SECSuccess;
+}
+
+/* Tells us if the named suite is exportable 
+ * returns false for unknown suites.
+ */
+PRBool
+SSL_IsExportCipherSuite(PRUint16 cipherSuite)
+{
+    unsigned int i;
+    for (i = 0; i < NUM_SUITEINFOS; i++) {
+    	if (suiteInfo[i].cipherSuite == cipherSuite) {
+	    return (PRBool)(suiteInfo[i].isExportable);
+	}
+    }
+    return PR_FALSE;
+}
