@@ -564,11 +564,11 @@ sec_port_iso88591_utf8_conversion_function
   unsigned int *outBufLen
 )
 {
+  unsigned int i, len = 0;
+
 #ifndef TEST_UTF8
   PORT_Assert((unsigned int *)NULL != outBufLen);
 #endif /* TEST_UTF8 */
-
-  unsigned int i, len = 0;
 
   for( i = 0; i < inBufLen; i++) {
     if( (inBuf[i] & 0x80) == 0x00 ) len += 1;
