@@ -477,7 +477,7 @@ __ADJOIN(MODULE_NAME,C_GetFunctionList)
   return CKR_OK;
 }
 
-#ifdef DECLARE_STRICT_CRYPTOKI_NAMES
+/* This one is always present */
 CK_RV CK_ENTRY
 C_GetFunctionList
 (
@@ -486,7 +486,6 @@ C_GetFunctionList
 {
   return __ADJOIN(MODULE_NAME,C_GetFunctionList)(ppFunctionList);
 }
-#endif /* DECLARE_STRICT_CRYPTOKI_NAMES */
 
 #undef __ADJOIN
 

@@ -51,3 +51,5 @@ CSRCS =			\
 REQUIRES = security nspr
 
 LIBRARY_NAME = nssckbi
+
+EXTRA_SHARED_LIBS = -L$(DIST)/lib -lnssckfw -lnssb -lnspr4 -lplc4 -lplds4
