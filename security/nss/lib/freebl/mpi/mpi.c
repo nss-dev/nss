@@ -3364,6 +3364,9 @@ mp_err   s_mp_div_d(mp_int *mp, mp_digit d, mp_digit *r)
 #else
   {
     mp_digit p;
+#if !defined(MP_ASSEMBLY_DIV_2DX1D)
+    mp_digit norm;
+#endif
 
     MP_CHECKOK( mp_init_copy(&rem, mp) );
 
