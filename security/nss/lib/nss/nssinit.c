@@ -35,7 +35,9 @@
  # $Id$
  */
 
+#include <ctype.h>
 #include "seccomon.h"
+#include "prinit.h"
 #include "prprf.h"
 #include "prmem.h"
 #include "cert.h"
@@ -265,3 +267,52 @@ NSS_Shutdown(void)
      */
 }
 
+PRBool
+NSS_VersionCheck(const char *importedVersion)
+{
+    /*
+     * This is the secret handshake algorithm.
+     *
+     * This release has a simple version compatibility
+     * check algorithm.  This release is not backward
+     * compatible with previous major releases.  It is
+     * not compatible with future major, minor, or
+     * patch releases.
+     */
+    int vmajor = 0, vminor = 0, vpatch = 0;
+    const char *ptr = importedVersion;
+
+    while (isdigit(*ptr)) {
+        vmajor = 10 * vmajor + *ptr - '0';
+        ptr++;
+    }
+    if (*ptr == '.') {
+        ptr++;
+        while (isdigit(*ptr)) {
+            vminor = 10 * vminor + *ptr - '0';
+            ptr++;
+        }
+        if (*ptr == '.') {
+            ptr++;
+            while (isdigit(*ptr)) {
+                vpatch = 10 * vpatch + *ptr - '0';
+                ptr++;
+            }
+        }
+    }
+
+    if (vmajor != NSS_VMAJOR) {
+        return PR_FALSE;
+    }
+    if (vmajor == NSS_VMAJOR && vminor > NSS_VMINOR) {
+        return PR_FALSE;
+    }
+    if (vmajor == NSS_VMAJOR && vminor == NSS_VMINOR && vpatch > NSS_VPATCH) {
+        return PR_FALSE;
+    }
+    /* Check dependent libraries */
+    if (PR_VersionCheck(PR_VERSION) == PR_FALSE) {
+        return PR_FALSE;
+    }
+    return PR_TRUE;
+}
