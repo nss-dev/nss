@@ -44,6 +44,9 @@ CC         = cc
 CCC        = CC
 OS_CFLAGS  += -Ae $(DSO_CFLAGS) -DHPUX -D$(CPU_ARCH) -D_HPUX_SOURCE
 
+#bug 188441
+OS_CFLAGS += -D_USE_BIG_FDS
+
 ifeq ($(DEFAULT_IMPL_STRATEGY),_PTH)
 	USE_PTHREADS = 1
 	ifeq ($(CLASSIC_NSPR),1)
