@@ -327,15 +327,15 @@ main(int argc, char **argv)
 	exit(1);
     }
 
-    /* -d */
-    if (pkiutil.opt[opt_ProfileDir].on) {
-	profiledir = strdup(pkiutil.opt[opt_ProfileDir].arg);
-    }
-
     /* Display version info and exit */
     if (cmdToRun == cmd_Version) {
 	printf("%s\nNSS Version %s\n", PKIUTIL_VERSION_STRING, NSS_VERSION);
 	return PR_SUCCESS;
+    }
+
+    /* -d */
+    if (pkiutil.opt[opt_ProfileDir].on) {
+	profiledir = strdup(pkiutil.opt[opt_ProfileDir].arg);
     }
 
     /* initialize */
@@ -372,6 +372,10 @@ main(int argc, char **argv)
 
 shutdown:
     NSS_Shutdown();
+
+    if (pkiutil.opt[opt_ProfileDir].on) {
+	free(profiledir);
+    }
 
     return rv;
 }

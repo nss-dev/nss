@@ -274,47 +274,6 @@ nssVolatileDomain_ImportSMIMEProfile (
 }
 #endif
 
-NSS_IMPLEMENT NSSCertificate *
-nssVolatileDomain_FindBestCertificateByNickname (
-  NSSVolatileDomain *vd,
-  NSSUTF8 *name,
-  NSSTime time, /* NULL for "now" */
-  NSSUsages *usages,
-  NSSPolicies *policiesOpt /* NULL for none */
-)
-{
-    NSSCertificate **vdCerts, **tdCerts;
-    NSSCertificate **certs;
-    NSSCertificate *rvCert = NULL;
-
-    /* search the volatile domain by nickname */
-    vdCerts = nssVolatileDomain_FindCertificatesByNickname(vd, name, 
-                                                           NULL, 0, NULL);
-    /* search the trust domain domain by nickname */
-    tdCerts = nssTrustDomain_FindCertificatesByNickname(vd->td, name,
-                                                        NULL, 0, NULL);
-    /* combine the results */
-    certs = nssCertificateArray_Join(vdCerts, tdCerts);
-    /* find the best one */
-    rvCert = nssCertificateArray_FindBestCertificate(certs, time, 
-                                                     usages, policiesOpt);
-    return rvCert;
-}
-
-NSS_IMPLEMENT NSSCertificate *
-NSSVolatileDomain_FindBestCertificateByNickname (
-  NSSVolatileDomain *vd,
-  NSSUTF8 *name,
-  NSSTime time, /* NULL for "now" */
-  NSSUsages *usages,
-  NSSPolicies *policiesOpt /* NULL for none */
-)
-{
-    return nssVolatileDomain_FindBestCertificateByNickname(vd, name,
-                                                           time, usages,
-                                                           policiesOpt);
-}
-
 struct cert_array_str {
   NSSCertificate **array;
   PRUint32 count;
@@ -363,7 +322,8 @@ add_to_cert_array(struct cert_array_str *car, NSSCertificate *c)
 }
 
 static NSSCertificate **
-finish_cert_array(struct cert_array_str *car, PRStatus status)
+finish_cert_array(struct cert_array_str *car, PRStatus status,
+                  NSSCertificate **tdCerts)
 {
     if (status == PR_FAILURE) {
 	if (!car->grow) {
@@ -378,6 +338,9 @@ finish_cert_array(struct cert_array_str *car, PRStatus status)
 	}
 	car->array = NULL;
     } else if (car->mark) {
+	if (tdCerts) {
+	    car->array = nssCertificateArray_Join(car->array, tdCerts);
+	}
 	nssArena_Unmark(car->arenaOpt, car->mark);
     }
 
@@ -395,7 +358,7 @@ nssVolatileDomain_FindCertificatesByNickname (
 {
     PRStatus status;
     PRUint32 i;
-    NSSCertificate **certs;
+    NSSCertificate **certs, **tdCerts;
     NSSUTF8 *cNick;
     struct cert_array_str cert_array;
 
@@ -414,7 +377,11 @@ nssVolatileDomain_FindCertificatesByNickname (
     }
     PZ_Unlock(vd->objectLock);
 
-    return finish_cert_array(&cert_array, status);
+    tdCerts = nssTrustDomain_FindCertificatesByNickname(vd->td, name, 
+                                   rvOpt ? rvOpt + cert_array.count : NULL,
+                                   maximumOpt - cert_array.count, arenaOpt);
+
+    return finish_cert_array(&cert_array, status, tdCerts);
 }
 
 NSS_IMPLEMENT NSSCertificate **
@@ -428,6 +395,44 @@ NSSVolatileDomain_FindCertificatesByNickname (
 {
     return nssVolatileDomain_FindCertificatesByNickname(vd, name, rvOpt,
                                                         maximumOpt, arenaOpt);
+}
+
+NSS_IMPLEMENT NSSCertificate *
+nssVolatileDomain_FindBestCertificateByNickname (
+  NSSVolatileDomain *vd,
+  NSSUTF8 *name,
+  NSSTime time, /* NULL for "now" */
+  NSSUsages *usages,
+  NSSPolicies *policiesOpt /* NULL for none */
+)
+{
+    NSSCertificate **certs;
+    NSSCertificate *rvCert = NULL;
+
+    /* search the volatile (and trust) domain by nickname */
+    certs = nssVolatileDomain_FindCertificatesByNickname(vd, name, 
+                                                         NULL, 0, NULL);
+    if (certs) {
+	/* find the best one */
+	rvCert = nssCertificateArray_FindBestCertificate(certs, time, 
+	                                                 usages, policiesOpt);
+	nssCertificateArray_Destroy(certs);
+    }
+    return rvCert;
+}
+
+NSS_IMPLEMENT NSSCertificate *
+NSSVolatileDomain_FindBestCertificateByNickname (
+  NSSVolatileDomain *vd,
+  NSSUTF8 *name,
+  NSSTime time, /* NULL for "now" */
+  NSSUsages *usages,
+  NSSPolicies *policiesOpt /* NULL for none */
+)
+{
+    return nssVolatileDomain_FindBestCertificateByNickname(vd, name,
+                                                           time, usages,
+                                                           policiesOpt);
 }
 
 NSS_IMPLEMENT NSSCertificate *
@@ -445,8 +450,8 @@ nssVolatileDomain_FindCertificateByIssuerAndSerialNumber (
     PZ_Lock(vd->objectLock);
     certs = (NSSCertificate **)vd->certs.array;
     for (i=0; i<vd->certs.count; i++) {
-	issuer = nssCertificate_GetIssuer(certs[i]);
-	serial = nssCertificate_GetSerialNumber(certs[i]);
+	cIssuer = nssCertificate_GetIssuer(certs[i]);
+	cSerial = nssCertificate_GetSerialNumber(certs[i]);
 	if (nssItem_Equal(cIssuer, issuer, NULL) &&
 	    nssItem_Equal(cSerial, serial, NULL)) 
 	{
@@ -474,46 +479,6 @@ NSSVolatileDomain_FindCertificateByIssuerAndSerialNumber (
                                                                     serial);
 }
 
-NSS_IMPLEMENT NSSCertificate *
-nssVolatileDomain_FindBestCertificateBySubject (
-  NSSVolatileDomain *vd,
-  NSSDER *subject,
-  NSSTime time,
-  NSSUsages *usages,
-  NSSPolicies *policiesOpt
-)
-{
-    NSSCertificate **vdCerts, **tdCerts;
-    NSSCertificate **certs;
-    NSSCertificate *rvCert = NULL;
-
-    /* search the volatile domain by subject */
-    vdCerts = nssVolatileDomain_FindCertificatesBySubject(vd, subject, 
-                                                          NULL, 0, NULL);
-    /* search the trust domain domain by subject */
-    tdCerts = nssTrustDomain_FindCertificatesBySubject(vd->td, subject,
-                                                       NULL, 0, NULL);
-    /* combine the results */
-    certs = nssCertificateArray_Join(vdCerts, tdCerts);
-    /* find the best one */
-    rvCert = nssCertificateArray_FindBestCertificate(certs, time, 
-                                                     usages, policiesOpt);
-    return rvCert;
-}
-
-NSS_IMPLEMENT NSSCertificate *
-NSSVolatileDomain_FindBestCertificateBySubject (
-  NSSVolatileDomain *vd,
-  NSSDER *subject,
-  NSSTime time,
-  NSSUsages *usages,
-  NSSPolicies *policiesOpt
-)
-{
-    return nssVolatileDomain_FindBestCertificateBySubject(vd, subject,
-                                                time, usages, policiesOpt);
-}
-
 NSS_IMPLEMENT NSSCertificate **
 nssVolatileDomain_FindCertificatesBySubject (
   NSSVolatileDomain *vd,
@@ -525,7 +490,7 @@ nssVolatileDomain_FindCertificatesBySubject (
 {
     PRStatus status;
     PRUint32 i;
-    NSSCertificate **certs;
+    NSSCertificate **certs, **tdCerts;
     NSSDER *certSubject;
     struct cert_array_str cert_array;
 
@@ -544,7 +509,11 @@ nssVolatileDomain_FindCertificatesBySubject (
     }
     PZ_Unlock(vd->objectLock);
 
-    return finish_cert_array(&cert_array, status);
+    tdCerts = nssTrustDomain_FindCertificatesBySubject(vd->td, subject, 
+                                   rvOpt ? rvOpt + cert_array.count : NULL,
+                                   maximumOpt - cert_array.count, arenaOpt);
+
+    return finish_cert_array(&cert_array, status, tdCerts);
 }
 
 NSS_IMPLEMENT NSSCertificate **
@@ -559,6 +528,43 @@ NSSVolatileDomain_FindCertificatesBySubject (
     return nssVolatileDomain_FindCertificatesBySubject(vd, subject,
                                                       rvOpt, maximumOpt,
                                                       arenaOpt);
+}
+
+NSS_IMPLEMENT NSSCertificate *
+nssVolatileDomain_FindBestCertificateBySubject (
+  NSSVolatileDomain *vd,
+  NSSDER *subject,
+  NSSTime time,
+  NSSUsages *usages,
+  NSSPolicies *policiesOpt
+)
+{
+    NSSCertificate **certs;
+    NSSCertificate *rvCert = NULL;
+
+    /* search the volatile (and trust) domain by subject */
+    certs = nssVolatileDomain_FindCertificatesBySubject(vd, subject, 
+                                                          NULL, 0, NULL);
+    if (certs) {
+	/* find the best one */
+	rvCert = nssCertificateArray_FindBestCertificate(certs, time, 
+	                                                 usages, policiesOpt);
+	nssCertificateArray_Destroy(certs);
+    }
+    return rvCert;
+}
+
+NSS_IMPLEMENT NSSCertificate *
+NSSVolatileDomain_FindBestCertificateBySubject (
+  NSSVolatileDomain *vd,
+  NSSDER *subject,
+  NSSTime time,
+  NSSUsages *usages,
+  NSSPolicies *policiesOpt
+)
+{
+    return nssVolatileDomain_FindBestCertificateBySubject(vd, subject,
+                                                time, usages, policiesOpt);
 }
 
 NSS_IMPLEMENT NSSCertificate *
@@ -599,46 +605,6 @@ NSSVolatileDomain_FindCertificateByEncodedCertificate (
                                                           encodedCert);
 }
 
-NSS_IMPLEMENT NSSCertificate *
-nssVolatileDomain_FindBestCertificateByEmail (
-  NSSVolatileDomain *vd,
-  NSSASCII7 *email,
-  NSSTime time,
-  NSSUsages *usages,
-  NSSPolicies *policiesOpt
-)
-{
-    NSSCertificate **vdCerts, **tdCerts;
-    NSSCertificate **certs;
-    NSSCertificate *rvCert = NULL;
-
-    /* search the volatile domain by email */
-    vdCerts = nssVolatileDomain_FindCertificatesByEmail(vd, email, 
-                                                          NULL, 0, NULL);
-    /* search the trust domain domain by email */
-    tdCerts = nssTrustDomain_FindCertificatesByEmail(vd->td, email,
-                                                       NULL, 0, NULL);
-    /* combine the results */
-    certs = nssCertificateArray_Join(vdCerts, tdCerts);
-    /* find the best one */
-    rvCert = nssCertificateArray_FindBestCertificate(certs, time, 
-                                                     usages, policiesOpt);
-    return rvCert;
-}
-
-NSS_IMPLEMENT NSSCertificate *
-NSSVolatileDomain_FindBestCertificateByEmail (
-  NSSVolatileDomain *vd,
-  NSSASCII7 *email,
-  NSSTime time,
-  NSSUsages *usages,
-  NSSPolicies *policiesOpt
-)
-{
-    return nssVolatileDomain_FindBestCertificateByEmail(vd, email,
-                                              time, usages, policiesOpt);
-}
-
 NSS_IMPLEMENT NSSCertificate **
 nssVolatileDomain_FindCertificatesByEmail (
   NSSVolatileDomain *vd,
@@ -650,7 +616,7 @@ nssVolatileDomain_FindCertificatesByEmail (
 {
     PRStatus status;
     PRUint32 i;
-    NSSCertificate **certs;
+    NSSCertificate **certs, **tdCerts;
     NSSASCII7 *cEmail;
     struct cert_array_str cert_array;
 
@@ -669,7 +635,11 @@ nssVolatileDomain_FindCertificatesByEmail (
     }
     PZ_Unlock(vd->objectLock);
 
-    return finish_cert_array(&cert_array, status);
+    tdCerts = nssTrustDomain_FindCertificatesByEmail(vd->td, email, 
+                                   rvOpt ? rvOpt + cert_array.count : NULL,
+                                   maximumOpt - cert_array.count, arenaOpt);
+
+    return finish_cert_array(&cert_array, status, tdCerts);
 }
 
 NSS_IMPLEMENT NSSCertificate **
@@ -683,6 +653,43 @@ NSSVolatileDomain_FindCertificatesByEmail (
 {
     return nssVolatileDomain_FindCertificatesByEmail(vd, email, rvOpt,
                                                      maximumOpt, arenaOpt);
+}
+
+NSS_IMPLEMENT NSSCertificate *
+nssVolatileDomain_FindBestCertificateByEmail (
+  NSSVolatileDomain *vd,
+  NSSASCII7 *email,
+  NSSTime time,
+  NSSUsages *usages,
+  NSSPolicies *policiesOpt
+)
+{
+    NSSCertificate **certs;
+    NSSCertificate *rvCert = NULL;
+
+    /* search the volatile domain by email */
+    certs = nssVolatileDomain_FindCertificatesByEmail(vd, email, 
+                                                      NULL, 0, NULL);
+    if (certs) {
+	/* find the best one */
+	rvCert = nssCertificateArray_FindBestCertificate(certs, time, 
+	                                                 usages, policiesOpt);
+	nssCertificateArray_Destroy(certs);
+    }
+    return rvCert;
+}
+
+NSS_IMPLEMENT NSSCertificate *
+NSSVolatileDomain_FindBestCertificateByEmail (
+  NSSVolatileDomain *vd,
+  NSSASCII7 *email,
+  NSSTime time,
+  NSSUsages *usages,
+  NSSPolicies *policiesOpt
+)
+{
+    return nssVolatileDomain_FindBestCertificateByEmail(vd, email,
+                                              time, usages, policiesOpt);
 }
 
 NSS_IMPLEMENT NSSCertificate *

@@ -31,7 +31,15 @@
  * GPL.
  */
 
+/* XXX idm
 #include "nss.h"
+*/
+#define NSS_VERSION  "4.0 Preview"
+#define NSS_VMAJOR   0
+#define NSS_VMINOR   0
+#define NSS_VPATCH   0
+#define NSS_BETA     PR_TRUE
+
 #include <winver.h>
 
 #define MY_LIBNAME "softokn"

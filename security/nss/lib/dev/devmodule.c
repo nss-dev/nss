@@ -312,8 +312,10 @@ nssModule_Unload (
 )
 {
     PRStatus nssrv = PR_SUCCESS;
-    if (mod->library) {
+    if (mod->epv) {
 	(void)CKAPI(mod->epv)->C_Finalize(NULL);
+    }
+    if (mod->library) {
 	nssrv = PR_UnloadLibrary(mod->library);
     }
     /* Free the slots, yes? */
@@ -728,6 +730,7 @@ nssModule_Destroy (
     PRUint32 i, numSlots;
     PR_AtomicDecrement(&mod->base.refCount);
     if (mod->base.refCount == 0) {
+	PZ_DestroyLock(mod->base.lock);
 	if (mod->numSlots == 0) {
 	    (void)nssModule_Unload(mod);
 	    return nssArena_Destroy(mod->base.arena);

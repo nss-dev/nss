@@ -363,6 +363,7 @@ nssSlotList_Destroy (
 {
     PRCList *link;
     struct nssSlotListNodeStr *node;
+    PZ_DestroyLock(slotList->lock);
     if (slotList) {
 	link = PR_NEXT_LINK(&slotList->head);
 	while (link != &slotList->head) {
@@ -450,6 +451,7 @@ nssSlotList_AddModuleSlots (
     }
     PZ_Unlock(slotList->lock);
     nssArena_Unmark(slotList->arena, mark);
+    nss_ZFreeIf(slots);
     return PR_SUCCESS;
 loser:
     PZ_Unlock(slotList->lock);

@@ -159,8 +159,8 @@ static const struct error_strings_str error_strings[] = {
     "invalid data"
   },
   {
-    NSS_ERROR_TOKEN_FAILURE,
-    "token failure"
+    NSS_ERROR_DEVICE_ERROR,
+    "token device failure"
   },
   {
     NSS_ERROR_INVALID_CERTIFICATE,

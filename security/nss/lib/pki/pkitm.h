@@ -93,9 +93,9 @@ struct nssPKIObjectStr
     nssCryptokiObject **instances;
     PRUint32 numInstances;
     /* The object must live in a trust domain */
-    NSSTrustDomain *trustDomain;
-    /* The object may live in a crypto context */
-    NSSCryptoContext *cryptoContext;
+    NSSTrustDomain *td;
+    /* The object may live in a volatile domain */
+    NSSVolatileDomain *vd;
     /* XXX added so temp certs can have nickname, think more ... */
     NSSUTF8 *tempName;
 };

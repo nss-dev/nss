@@ -48,7 +48,7 @@ nssPKIObject_Create (
   NSSArena *arenaOpt,
   nssCryptokiObject *instanceOpt,
   NSSTrustDomain *td,
-  NSSCryptoContext *cc
+  NSSVolatileDomain *vdOpt
 )
 {
     NSSArena *arena;
@@ -68,8 +68,8 @@ nssPKIObject_Create (
 	goto loser;
     }
     object->arena = arena;
-    object->trustDomain = td; /* XXX */
-    object->cryptoContext = cc;
+    object->td = td; /* XXX */
+    object->vd = vdOpt;
     object->lock = PZ_NewLock(nssILockOther);
     if (!object->lock) {
 	goto loser;
@@ -240,7 +240,7 @@ nssPKIObject_DeleteStoredObject (
 {
     PRUint32 i, numNotDestroyed;
     PRStatus status = PR_SUCCESS;
-    NSSTrustDomain *td = object->trustDomain;
+    NSSTrustDomain *td = object->td;
     NSSCallback *pwcb = uhh ?  /* is this optional? */
                         uhh : 
                         nssTrustDomain_GetDefaultCallback(td, NULL);
@@ -412,7 +412,7 @@ nssPKIObject_GetTrustDomain (
     if (statusOpt) {
 	*statusOpt = PR_SUCCESS;
     }
-    return object->trustDomain;
+    return object->td;
 }
 
 NSS_IMPLEMENT NSSToken *
@@ -1002,16 +1002,6 @@ nssPKIObjectCollection_AddInstanceAsObject (
 	}
 	node->haveObject = PR_TRUE;
     }
-#ifdef NSS_3_4_CODE
-    else {
-	/* The instance was added to a pre-existing node.  This
-	 * function is *only* being used for certificates, and having
-	 * multiple instances of certs in 3.X requires updating the
-	 * CERTCertificate.
-	 */
-	STAN_ForceCERTCertificateUpdate((NSSCertificate *)node->object);
-    }
-#endif
     return PR_SUCCESS;
 }
 
@@ -1023,15 +1013,6 @@ static void
 cert_destroyObject(nssPKIObject *o)
 {
     NSSCertificate *c = (NSSCertificate *)o;
-#ifdef NSS_3_4_CODE
-    if (c->decoding) {
-	CERTCertificate *cc = STAN_GetCERTCertificate(c);
-	if (cc) {
-	    CERT_DestroyCertificate(cc);
-	    return;
-	} /* else destroy it as NSSCertificate below */
-    }
-#endif
     nssCertificate_Destroy(c);
 }
 
@@ -1039,25 +1020,11 @@ static PRStatus
 cert_getUIDFromObject(nssPKIObject *o, NSSItem *uid)
 {
     NSSCertificate *c = (NSSCertificate *)o;
-#ifdef NSS_3_4_CODE
-    /* The builtins are still returning decoded serial numbers.  Until
-     * this compatibility issue is resolved, use the full DER of the
-     * cert to uniquely identify it.
-     */
-    NSSDER *derCert;
-    derCert = nssCertificate_GetEncoding(c);
-    uid[0].data = NULL; uid[0].size = 0;
-    uid[1].data = NULL; uid[1].size = 0;
-    if (derCert != NULL) {
-	uid[0] = *derCert;
-    }
-#else
     NSSDER *issuer, *serial;
     issuer = nssCertificate_GetIssuer(c);
     serial = nssCertificate_GetSerialNumber(c);
     uid[0] = *issuer;
     uid[1] = *serial;
-#endif /* NSS_3_4_CODE */
     return PR_SUCCESS;
 }
 
@@ -1065,22 +1032,6 @@ static PRStatus
 cert_getUIDFromInstance(nssCryptokiObject *instance, NSSItem *uid, 
                         NSSArena *arena)
 {
-#ifdef NSS_3_4_CODE
-    /* The builtins are still returning decoded serial numbers.  Until
-     * this compatibility issue is resolved, use the full DER of the
-     * cert to uniquely identify it.
-     */
-    uid[1].data = NULL; uid[1].size = 0;
-    return nssCryptokiCertificate_GetAttributes(instance,
-                                                arena, /* arena    */
-                                                NULL,  /* type     */
-                                                NULL,  /* id       */
-                                                &uid[0], /* encoding */
-                                                NULL,  /* issuer   */
-                                                NULL,  /* serial   */
-                                                NULL,  /* subject  */
-                                                NULL); /* email    */
-#else
     return nssCryptokiCertificate_GetAttributes(instance,
                                                 arena, /* arena    */
                                                 NULL,  /* type     */
@@ -1090,7 +1041,6 @@ cert_getUIDFromInstance(nssCryptokiObject *instance, NSSItem *uid,
                                                 &uid[1], /* serial */
                                                 NULL,  /* subject  */
                                                 NULL); /* email    */
-#endif /* NSS_3_4_CODE */
 }
 
 static nssPKIObject *
@@ -1098,20 +1048,6 @@ cert_createObject(nssPKIObject *o)
 {
     NSSCertificate *cert;
     cert = nssCertificate_Create(o);
-#ifdef NSS_3_4_CODE
-/*    if (STAN_GetCERTCertificate(cert) == NULL) {
-	nssCertificate_Destroy(cert);
-	return (nssPKIObject *)NULL;
-    } */
-    /* In 3.4, have to maintain uniqueness of cert pointers by caching all
-     * certs.  Cache the cert here, before returning.  If it is already
-     * cached, take the cached entry.
-     */
-    {
-	NSSTrustDomain *td = o->trustDomain;
-	nssTrustDomain_AddCertsToCache(td, &cert, 1);
-    }
-#endif
     return (nssPKIObject *)cert;
 }
 

@@ -247,13 +247,13 @@ NSSPrivateKey_Encode (
     return NULL;
 }
 
-NSS_IMPLEMENT NSSCryptoContext *
-nssPrivateKey_GetCryptoContext (
+NSS_IMPLEMENT NSSVolatileDomain *
+nssPrivateKey_GetVolatileDomain (
   NSSPrivateKey *vk,
   PRStatus *statusOpt
 )
 {
-    return vk->object.cryptoContext;
+    return vk->object.vd;
 }
 
 NSS_IMPLEMENT NSSTrustDomain *
@@ -262,7 +262,7 @@ nssPrivateKey_GetTrustDomain (
   PRStatus *statusOpt
 )
 {
-    return vk->object.trustDomain;
+    return vk->object.td;
 }
 
 NSS_IMPLEMENT NSSTrustDomain *
@@ -482,6 +482,20 @@ NSSPrivateKey_FindBestCertificate (
     return NULL;
 }
 
+NSS_IMPLEMENT void
+nssPrivateKeyArray_Destroy (
+  NSSPrivateKey **vkeys
+)
+{
+    NSSPrivateKey **vk = vkeys;
+    if (vkeys) {
+	while (vk++) {
+	    nssPrivateKey_Destroy(*vk);
+	}
+    }
+    nss_ZFreeIf(vkeys);
+}
+
 struct NSSPublicKeyStr
 {
   nssPKIObject object;
@@ -532,7 +546,7 @@ const NSSASN1Template NSSASN1Template_RSAPublicKey[] =
 NSS_IMPLEMENT NSSPublicKey *
 nssPublicKey_CreateFromInfo (
   NSSTrustDomain *td,
-  NSSCryptoContext *cc,
+  NSSVolatileDomain *vd,
   NSSOID *keyAlg,
   NSSBitString *keyBits
 )
@@ -574,15 +588,15 @@ nssPublicKey_CreateFromInfo (
 	goto loser;
     }
 
-    session = nssToken_CreateSession(token, (cc != NULL));
+    session = nssToken_CreateSession(token, (vd != NULL));
     if (!session) {
 	goto loser;
     }
 
-    bko = nssToken_ImportPublicKey(token, session, &bki, (cc != NULL));
+    bko = nssToken_ImportPublicKey(token, session, &bki, (vd != NULL));
     if (bko) {
 	nssPKIObject *pkio;
-	pkio = nssPKIObject_Create(arena, bko, td, cc);
+	pkio = nssPKIObject_Create(arena, bko, td, vd);
 	if (pkio) {
 	    rvbk = nssPublicKey_Create(pkio);
 	    if (!rvbk) {
@@ -735,7 +749,7 @@ nssPublicKey_GetTrustDomain (
   PRStatus *statusOpt
 )
 {
-    return bk->object.trustDomain;
+    return bk->object.td;
 }
 
 NSS_IMPLEMENT NSSTrustDomain *
@@ -938,5 +952,19 @@ NSSPublicKey_FindPrivateKey (
 {
     nss_SetError(NSS_ERROR_NOT_FOUND);
     return NULL;
+}
+
+NSS_IMPLEMENT void
+nssPublicKeyArray_Destroy (
+  NSSPublicKey **bkeys
+)
+{
+    NSSPublicKey **bk = bkeys;
+    if (bkeys) {
+	while (bk++) {
+	    nssPublicKey_Destroy(*bk);
+	}
+    }
+    nss_ZFreeIf(bkeys);
 }
 

@@ -71,12 +71,43 @@ nssTrustDomain_GetDefaultCallback (
 );
 
 NSS_EXTERN NSSCertificate **
+nssTrustDomain_FindCertificatesByNickname (
+  NSSTrustDomain *td,
+  NSSUTF8 *name,
+  NSSCertificate *rvOpt[],
+  PRUint32 maximumOpt, /* 0 for no max */
+  NSSArena *arenaOpt
+);
+
+NSS_EXTERN NSSCertificate **
 nssTrustDomain_FindCertificatesBySubject (
   NSSTrustDomain *td,
   NSSDER *subject,
   NSSCertificate *rvOpt[],
   PRUint32 maximumOpt,
   NSSArena *arenaOpt
+);
+
+NSS_EXTERN NSSCertificate *
+nssTrustDomain_FindCertificateByIssuerAndSerialNumber (
+  NSSTrustDomain *td,
+  NSSDER *issuer,
+  NSSDER *serialNumber
+);
+
+NSS_EXTERN NSSCertificate **
+nssTrustDomain_FindCertificatesByEmail (
+  NSSTrustDomain *td,
+  NSSASCII7 *email,
+  NSSCertificate *rvOpt[],
+  PRUint32 maximumOpt, /* 0 for no max */
+  NSSArena *arenaOpt
+);
+
+NSS_EXTERN NSSCertificate *
+nssTrustDomain_FindCertificateByEncodedCertificate (
+  NSSTrustDomain *td,
+  NSSBER *encodedCertificate
 );
 
 NSS_EXTERN nssTrust *
@@ -228,37 +259,27 @@ nssSymmetricKey_DeriveSSLSessionKeys (
 );
 
 NSS_EXTERN NSSCertificate **
-nssCryptoContext_FindCertificatesBySubject (
-  NSSCryptoContext *cc,
+nssVolatileDomain_FindCertificatesBySubject (
+  NSSVolatileDomain *vd,
   NSSDER *subject,
   NSSCertificate *rvOpt[],
   PRUint32 maximumOpt, /* 0 for no max */
   NSSArena *arenaOpt
 );
 
-/* putting here for now, needs more thought */
-NSS_EXTERN PRStatus
-nssCryptoContext_ImportTrust (
-  NSSCryptoContext *cc,
-  nssTrust *trust
+NSS_EXTERN void
+nssPublicKeyArray_Destroy (
+  NSSPublicKey **bkeys
 );
 
-NSS_EXTERN nssTrust *
-nssCryptoContext_FindTrustForCertificate (
-  NSSCryptoContext *cc,
-  NSSCertificate *cert
+NSS_EXTERN void
+nssPrivateKeyArray_Destroy (
+  NSSPrivateKey **vkeys
 );
 
-NSS_EXTERN PRStatus
-nssCryptoContext_ImportSMIMEProfile (
-  NSSCryptoContext *cc,
-  nssSMIMEProfile *profile
-);
-
-NSS_EXTERN nssSMIMEProfile *
-nssCryptoContext_FindSMIMEProfileForCertificate (
-  NSSCryptoContext *cc,
-  NSSCertificate *cert
+NSS_EXTERN void
+nssSymmetricKeyArray_Destroy (
+  NSSSymmetricKey **mkeys
 );
 
 NSS_EXTERN nssTrust *

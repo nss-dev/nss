@@ -564,7 +564,6 @@ nssSymmetricKey_CreateCryptoContext (
 {
     NSSCryptoContext *cc;
     cc = nssCryptoContext_CreateForSymmetricKey(mk, apOpt, uhh);
-    mk->object.cryptoContext = cc;
     return cc;
 }
 
@@ -604,8 +603,8 @@ nssSymmetricKey_DeriveSSLSessionKeys (
     }
     for (i=0; i<4; i++) {
 	sessionKeys[i] = nssSymmetricKey_CreateFromInstance(skeys[i],
-                                         masterSecret->object.trustDomain,
-	                                 masterSecret->object.cryptoContext);
+                                         masterSecret->object.td,
+	                                 masterSecret->object.vd);
 	if (!sessionKeys[i]) break;
     }
     if (i < 4) {
@@ -616,5 +615,19 @@ nssSymmetricKey_DeriveSSLSessionKeys (
 	status = PR_FAILURE;
     }
     return status;
+}
+
+NSS_IMPLEMENT void
+nssSymmetricKeyArray_Destroy (
+  NSSSymmetricKey **mkeys
+)
+{
+    NSSSymmetricKey **mk = mkeys;
+    if (mkeys) {
+	while (mk++) {
+	    nssSymmetricKey_Destroy(*mk);
+	}
+    }
+    nss_ZFreeIf(mkeys);
 }
 

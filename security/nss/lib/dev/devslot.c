@@ -169,10 +169,15 @@ nssSlot_Destroy (
   NSSSlot *slot
 )
 {
+    void *epv;
     if (slot) {
 	PR_AtomicDecrement(&slot->base.refCount);
 	if (slot->base.refCount == 0) {
 	    nssToken_Destroy(slot->token);
+	    epv = nssModule_GetCryptokiEPV(slot->module);
+	    if (epv) {
+		(void)CKAPI(epv)->C_CloseAllSessions(slot->slotID);
+	    }
 	    nssModule_DestroyFromSlot(slot->module, slot);
 	    PZ_DestroyLock(slot->base.lock);
 	    return nssArena_Destroy(slot->base.arena);

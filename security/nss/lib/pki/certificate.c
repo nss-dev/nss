@@ -247,7 +247,7 @@ nssCertificate_Hash (
   NSSCertificate *c
 )
 {
-    int i;
+    PRUint32 i;
     PRUint32 h = 0;
     for (i=0; i<c->issuer.size; i++)
 	h = (h >> 28) ^ (h << 4) ^ ((unsigned char *)c->issuer.data)[i];
@@ -463,20 +463,20 @@ nssCertificate_IssuerAndSerialEqual (
 }
 
 NSS_IMPLEMENT void
-nssCertificate_SetCryptoContext (
+nssCertificate_SetVolatileDomain (
   NSSCertificate *c,
-  NSSCryptoContext *cc
+  NSSVolatileDomain *vd
 )
 {
-    c->object.cryptoContext = cc;
+    c->object.vd = vd;
 }
 
-NSS_IMPLEMENT NSSCryptoContext *
-nssCertificate_GetCryptoContext (
+NSS_IMPLEMENT NSSVolatileDomain *
+nssCertificate_GetVolatileDomain (
   NSSCertificate *c
 )
 {
-    return c->object.cryptoContext;
+    return c->object.vd;
 }
 
 NSS_IMPLEMENT NSSTrustDomain *
@@ -484,7 +484,7 @@ nssCertificate_GetTrustDomain (
   NSSCertificate *c
 )
 {
-    return c->object.trustDomain;
+    return c->object.td;
 }
 
 NSS_IMPLEMENT NSSTrustDomain *
@@ -607,7 +607,7 @@ get_trusted_usage (
     checkLevel = asCA ? nssTrustLevel_TrustedDelegator :
                         nssTrustLevel_Trusted;
     /* XXX needs to be cached with cert */
-    trust = nssTrustDomain_FindTrustForCertificate(c->object.trustDomain, c);
+    trust = nssTrustDomain_FindTrustForCertificate(c->object.td, c);
     if (!trust) {
 	if (NSS_GetError() == NSS_ERROR_NO_ERROR) {
 	    *status = PR_SUCCESS;
@@ -1014,7 +1014,7 @@ nssCertificate_SetTrustedUsages (
     nssCryptokiObject *instance;
 
     /* XXX needs to be cached with cert */
-    trust = nssTrustDomain_FindTrustForCertificate(c->object.trustDomain, c);
+    trust = nssTrustDomain_FindTrustForCertificate(c->object.td, c);
     if (trust) {
 	token = nssTrust_GetWriteToken(trust, &session);
 	nssTrust_Clear(trust);
@@ -1024,7 +1024,7 @@ nssCertificate_SetTrustedUsages (
 	}
 	/* XXX something better */
 	/* create a new trust object */
-	trust = nssTrust_CreateNull(c->object.trustDomain);
+	trust = nssTrust_CreateNull(c->object.td);
 	if (!trust) {
 	    return PR_FAILURE;
 	}
@@ -1116,33 +1116,26 @@ find_cert_issuer (
   NSSPolicies *policiesOpt
 )
 {
-    NSSArena *arena;
-    NSSCertificate **certs = NULL;
-    NSSCertificate **ccIssuers = NULL;
-    NSSCertificate **tdIssuers = NULL;
+    NSSCertificate **issuers = NULL;
     NSSCertificate *issuer = NULL;
     NSSTrustDomain *td;
-    NSSCryptoContext *cc;
-    cc = c->object.cryptoContext; /* NSSCertificate_GetCryptoContext(c); */
+    NSSVolatileDomain *vd;
+    vd = nssCertificate_GetVolatileDomain(c);
     td = nssCertificate_GetTrustDomain(c);
-    arena = nssArena_Create();
-    if (!arena) {
-	return (NSSCertificate *)NULL;
+    if (vd) {
+	issuers = nssVolatileDomain_FindCertificatesBySubject(vd,
+	                                                      &c->issuer,
+	                                                      NULL,
+	                                                      0,
+	                                                      NULL);
+    } else {
+	issuers = nssTrustDomain_FindCertificatesBySubject(td,
+                                                           &c->issuer,
+                                                           NULL,
+                                                           0,
+                                                           NULL);
     }
-    if (cc) {
-	ccIssuers = nssCryptoContext_FindCertificatesBySubject(cc,
-	                                                       &c->issuer,
-	                                                       NULL,
-	                                                       0,
-	                                                       arena);
-    }
-    tdIssuers = nssTrustDomain_FindCertificatesBySubject(td,
-                                                         &c->issuer,
-                                                         NULL,
-                                                         0,
-                                                         arena);
-    certs = nssCertificateArray_Join(ccIssuers, tdIssuers);
-    if (certs) {
+    if (issuers) {
 	nssCertDecoding *dc = NULL;
 	void *issuerID = NULL;
 	dc = nssCertificate_GetDecoding(c);
@@ -1150,17 +1143,16 @@ find_cert_issuer (
 	    issuerID = dc->methods->getIssuerIdentifier(dc->data);
 	}
 	if (issuerID) {
-	    issuer = filter_subject_certs_for_id(certs, issuerID);
+	    issuer = filter_subject_certs_for_id(issuers, issuerID);
 	    dc->methods->freeIdentifier(issuerID);
 	} else {
-	    issuer = nssCertificateArray_FindBestCertificate(certs,
+	    issuer = nssCertificateArray_FindBestCertificate(issuers,
 	                                                     time,
 	                                                     usagesOpt,
 	                                                     policiesOpt);
 	}
-	nssCertificateArray_Destroy(certs);
+	nssCertificateArray_Destroy(issuers);
     }
-    nssArena_Destroy(arena);
     return issuer;
 }
 
@@ -1669,6 +1661,7 @@ nssSMIMEProfile_Create (
   NSSItem *profileData
 )
 {
+#if 0
     NSSArena *arena;
     nssSMIMEProfile *rvProfile;
     nssPKIObject *object;
@@ -1699,6 +1692,7 @@ nssSMIMEProfile_Create (
     return rvProfile;
 loser:
     nssPKIObject_Destroy(object);
+#endif
     return (nssSMIMEProfile *)NULL;
 }
 

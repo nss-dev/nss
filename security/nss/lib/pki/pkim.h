@@ -73,14 +73,14 @@ PR_BEGIN_EXTERN_C
 /* nssPKIObject_Create
  *
  * A generic PKI object.  It must live in a trust domain.  It may be
- * initialized with a token instance, or alternatively in a crypto context.
+ * initialized with a token instance, or alternatively in a volatile domain.
  */
 NSS_EXTERN nssPKIObject *
 nssPKIObject_Create (
   NSSArena *arenaOpt,
   nssCryptokiObject *instanceOpt,
   NSSTrustDomain *td,
-  NSSCryptoContext *ccOpt
+  NSSVolatileDomain *vdOpt
 );
 
 /* nssPKIObject_AddRef
@@ -256,9 +256,9 @@ nssCertificate_FindInstanceForAlgorithm (
 );
 
 NSS_EXTERN void
-nssCertificate_SetCryptoContext (
+nssCertificate_SetVolatileDomain (
   NSSCertificate *c,
-  NSSCryptoContext *cc
+  NSSVolatileDomain *vd
 );
 
 NSS_EXTERN PRStatus
@@ -353,7 +353,7 @@ nssPublicKey_Create (
 NSS_EXTERN NSSPublicKey *
 nssPublicKey_CreateFromInfo (
   NSSTrustDomain *td,
-  NSSCryptoContext *cc,
+  NSSVolatileDomain *vdOpt,
   NSSOID *keyAlg,
   NSSBitString *keyBits
 );

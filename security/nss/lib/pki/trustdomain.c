@@ -1079,7 +1079,7 @@ NSSTrustDomain_FindBestCertificateByEmail (
 }
 
 NSS_IMPLEMENT NSSCertificate **
-NSSTrustDomain_FindCertificatesByEmail (
+nssTrustDomain_FindCertificatesByEmail (
   NSSTrustDomain *td,
   NSSASCII7 *email,
   NSSCertificate *rvOpt[],
@@ -1089,6 +1089,19 @@ NSSTrustDomain_FindCertificatesByEmail (
 {
     nss_SetError(NSS_ERROR_NOT_FOUND);
     return NULL;
+}
+
+NSS_IMPLEMENT NSSCertificate **
+NSSTrustDomain_FindCertificatesByEmail (
+  NSSTrustDomain *td,
+  NSSASCII7 *email,
+  NSSCertificate *rvOpt[],
+  PRUint32 maximumOpt, /* 0 for no max */
+  NSSArena *arenaOpt
+)
+{
+    return nssTrustDomain_FindCertificatesByEmail(td, email, rvOpt,
+                                                  maximumOpt, arenaOpt);
 }
 
 NSS_IMPLEMENT NSSCertificate *
@@ -1241,6 +1254,7 @@ NSSTrustDomain_TraverseCertificates (
 	                                           collector,
 	                                           collection);
 	    nssToken_Destroy(token);
+	    nssSession_Destroy(session);
 	    if (status != PR_SUCCESS) {
 		goto loser;
 	    }
