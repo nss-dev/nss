@@ -134,9 +134,19 @@ NSSTime_Now
   NSSTime *timeOpt
 )
 {
+    return NSSTime_SetPRTime(timeOpt, PR_Now());
+}
+
+NSS_IMPLEMENT NSSTime *
+NSSTime_SetPRTime
+(
+  NSSTime *timeOpt,
+  PRTime prTime
+)
+{
     NSSTime *rvTime;
     rvTime = (timeOpt) ? timeOpt : nss_ZNEW(NULL, NSSTime);
-    rvTime->prTime = PR_Now();
+    rvTime->prTime = prTime;
     return rvTime;
 }
 

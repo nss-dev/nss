@@ -443,6 +443,7 @@ traverse_certificates_by_template
 	    return PR_FAILURE;
 	}
     }
+    nssListIterator_Finish(td->tokens);
     return PR_SUCCESS;
 }
 

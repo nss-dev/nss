@@ -245,6 +245,13 @@ NSSTime_Now
   NSSTime *timeOpt
 );
 
+NSS_EXTERN NSSTime *
+NSSTime_SetPRTime
+(
+  NSSTime *timeOpt,
+  PRTime prTime
+);
+
 NSS_EXTERN PRTime
 NSSTime_GetPRTime
 (
