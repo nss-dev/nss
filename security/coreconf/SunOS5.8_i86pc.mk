@@ -13,7 +13,7 @@
 # 
 # The Initial Developer of the Original Code is Netscape
 # Communications Corporation.  Portions created by Netscape are 
-# Copyright (C) 1994-2000 Netscape Communications Corporation.  All
+# Copyright (C) 2000 Netscape Communications Corporation.  All
 # Rights Reserved.
 # 
 # Contributor(s):
@@ -30,30 +30,18 @@
 # may use your version of this file under either the MPL or the
 # GPL.
 #
+# Config stuff for Solaris 8 on x86
+# 
 
-DEPTH		= ../..
-CORE_DEPTH	= ../..
+SOL_CFLAGS	= -D_SVID_GETTOD
 
-MODULE		= coreconf
+include $(CORE_DEPTH)/coreconf/SunOS5.mk
 
-CSRCS		= nsinstall.c pathsub.c
+CPU_ARCH		= x86
+OS_DEFINES		+= -Di386
 
-PLSRCS		= nfspwd.pl
-
-PROGRAM		= nsinstall
-
-include $(DEPTH)/coreconf/config.mk
-
-ifeq (,$(filter-out OS2 WINNT,$(OS_ARCH)))
-PROGRAM		=
-else
-TARGETS		= $(PROGRAM) $(PLSRCS:.pl=)
+ifeq ($(OS_RELEASE),5.8_i86pc)
+	OS_DEFINES += -DSOLARIS2_8
 endif
 
-include $(DEPTH)/coreconf/rules.mk
-
-# Redefine MAKE_OBJDIR for just this directory
-define MAKE_OBJDIR
-if test ! -d $(@D); then rm -rf $(@D); mkdir $(@D); fi
-endef
-
+OS_LIBS += -lthread -lnsl -lsocket -lposix4 -ldl -lc
