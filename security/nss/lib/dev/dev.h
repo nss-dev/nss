@@ -158,6 +158,12 @@ nssSlot_Destroy
   NSSSlot *slot
 );
 
+NSS_EXTERN PRStatus
+nssSlot_Refresh
+(
+  NSSSlot *slot
+);
+
 NSS_EXTERN NSSSlot *
 nssSlot_AddRef
 (
@@ -230,6 +236,12 @@ NSS_EXTERN PRStatus
 nssToken_Destroy
 (
   NSSToken *tok
+);
+
+NSS_EXTERN PRBool
+nssToken_IsPresent
+(
+  NSSToken *token
 );
 
 NSS_EXTERN NSSToken *

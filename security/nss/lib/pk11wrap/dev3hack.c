@@ -154,6 +154,24 @@ nssToken_CreateFromPK11SlotInfo(NSSTrustDomain *td, PK11SlotInfo *nss3slot)
     return rvToken;
 }
 
+NSS_IMPLEMENT PRStatus
+nssSlot_Refresh
+(
+  NSSSlot *slot
+)
+{
+    PK11SlotInfo *nss3slot = slot->pk11slot;
+    if (PK11_InitToken(nss3slot, PR_FALSE) != SECSuccess) {
+	return PR_FAILURE;
+    }
+    slot->token->defaultSession = nssSession_ImportNSS3Session(slot->arena,
+                                                       nss3slot->session,
+                                                       nss3slot->sessionLock,
+                                                       nss3slot->defRWSession);
+    nssToken_DestroyCertList(slot->token);
+    return nssToken_LoadCerts(slot->token);
+}
+
 
 NSSTrustDomain *
 nssToken_GetTrustDomain(NSSToken *token)
