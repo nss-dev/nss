@@ -106,6 +106,28 @@ nssCKObject_GetAttributes
   NSSSlot  *slot
 );
 
+/* Get a single attribute as an item. */
+NSS_EXTERN PRStatus
+nssCKObject_GetAttributeItem
+(
+  CK_OBJECT_HANDLE object,
+  CK_ATTRIBUTE_TYPE attribute,
+  NSSArena *arenaOpt,
+  nssSession *session,
+  NSSSlot *slot,
+  NSSItem *rvItem
+);
+
+NSS_EXTERN PRBool
+nssCKObject_IsAttributeTrue
+(
+  CK_OBJECT_HANDLE object,
+  CK_ATTRIBUTE_TYPE attribute,
+  nssSession *session,
+  NSSSlot *slot,
+  PRStatus *rvStatus
+);
+
 PR_END_EXTERN_C
 
 #endif /* CKHELPER_H */
