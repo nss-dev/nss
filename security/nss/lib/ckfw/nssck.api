@@ -1874,7 +1874,7 @@ __ADJOIN(MODULE_NAME,C_GetFunctionList)
 }
 
 /* This one is always present */
-#ifdef WIN32
+#if defined(WIN32) || defined(XP_OS2_VACPP)
 CK_RV _declspec(dllexport)
 #else
 CK_RV CK_ENTRY
