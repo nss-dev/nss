@@ -258,6 +258,8 @@ sub usage {
     print STDERR "  -p passwd          use \"passwd\" as security module password\n";
     print STDERR " -E rec1[,rec2...]   generate encrypted message for recipients\n";
     print STDERR " -D                  decode a S/MIME message\n";
+    print STDERR "  -p passwd          use \"passwd\" as security module password\n";
+    print STDERR "                     (required for decrypting only)\n";
     print STDERR " -C pathname         set pathname of \"cmsutil\"\n";
     print STDERR " -d directory        set directory containing certificate db\n";
     print STDERR "                     (default: ~/.netscape)\n";
