@@ -51,6 +51,8 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #include "dev.h"
 #endif /* DEV_H */
 
+#include "pkistore.h"
+
 #ifdef NSS_3_4_CODE
 #include "pki3hack.h"
 #include "pk11func.h"
@@ -116,13 +118,43 @@ nssCertificate_Destroy (
   NSSCertificate *c
 )
 {
-    PRBool destroyed;
     if (c) {
+	PRUint32 i;
 	nssDecodedCert *dc = c->decoding;
-	destroyed = nssPKIObject_Destroy(&c->object);
-	if (destroyed) {
-	    if (dc) {
-		nssDecodedCert_Destroy(dc);
+	NSSTrustDomain *td = STAN_GetDefaultTrustDomain();
+	NSSCryptoContext *cc = c->object.cryptoContext;
+
+	PR_ASSERT(c->object.refCount > 0);
+
+	/* --- LOCK storage --- */
+	if (cc) {
+	    nssCertificateStore_Lock(cc->certStore);
+	} else {
+	    nssTrustDomain_LockCertCache(td);
+	}
+	PR_AtomicDecrement(&c->object.refCount);
+	if (c->object.refCount == 0) {
+	    /* --- remove cert and UNLOCK storage --- */
+	    if (cc) {
+		nssCertificateStore_RemoveCertLOCKED(cc->certStore, c);
+		nssCertificateStore_Unlock(cc->certStore);
+	    } else {
+		nssTrustDomain_RemoveCertFromCacheLOCKED(td, c);
+		nssTrustDomain_UnlockCertCache(td);
+	    }
+	    /* free cert data */
+	    for (i=0; i<c->object.numInstances; i++) {
+		nssCryptokiObject_Destroy(c->object.instances[i]);
+	    }
+	    PZ_DestroyLock(c->object.lock);
+	    nssArena_Destroy(c->object.arena);
+	    nssDecodedCert_Destroy(dc);
+	} else {
+	    /* --- UNLOCK storage --- */
+	    if (cc) {
+		nssCertificateStore_Unlock(cc->certStore);
+	    } else {
+		nssTrustDomain_UnlockCertCache(td);
 	    }
 	}
     }
