@@ -42,22 +42,7 @@ include <$(DEPTH)\config\config.mak>
 
 GMAKE = gmake.exe
 
-GMAKE_FLAGS = OBJDIR_NAME=$(OBJDIR) MOZILLA_CLIENT=1
-
-#
-# The Client's debug build uses MSVC's debug runtime library (/MDd).
-#
-
-!ifndef MOZ_DEBUG
-GMAKE_FLAGS = $(GMAKE_FLAGS) BUILD_OPT=1
-!endif
-
-GMAKE_FLAGS = $(GMAKE_FLAGS) OS_TARGET=WIN95
-!ifdef MOZ_DEBUG
-!ifndef MOZ_NO_DEBUG_RTL
-GMAKE_FLAGS = $(GMAKE_FLAGS) USE_DEBUG_RTL=1
-!endif
-!endif
+MOZ_SRC_FLIPPED = $(MOZ_SRC:\=/)
 
 #
 # The rules.  Simply invoke gmake with the same target.
@@ -73,7 +58,7 @@ install:: moz_import install_roots
 depend::
 
 export libs install clobber clobber_all clean::
-	$(GMAKE) -C lib $(GMAKE_FLAGS) $@
+	$(GMAKE) -f gmakefile.win $@ MOZ_SRC_FLIPPED=$(MOZ_SRC_FLIPPED)
 
 moz_import::
 	copy $(DIST)\lib\dbm32.lib $(DIST)\lib\dbm.lib

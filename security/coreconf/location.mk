@@ -55,10 +55,15 @@ MKDEPEND = $(MKDEPEND_DIR)/mkdepend
 MKDEPENDENCIES = depend.mk
 NSINSTALL_DIR = $(MOD_DEPTH)/coreconf/nsinstall
 
+ifeq ($(OS_ARCH),WINNT)
+NSINSTALL	= nsinstall
+MKDEPEND	= $(MKDEPEND_DIR)/mkdepend.exe
+endif
+
 ifdef BUILD_DEBUG_GC
 	DEFINES += -DDEBUG_GC
 endif
 
-GARBAGE += $(DEPENDENCIES) core $(wildcard core.[0-9]*)
+GARBAGE += $(DEPENDENCIES) core $(wildcard core.[0-9]*) vc20.pdb vc40.pdb
 BUILD_TOOLS = $(topsrcdir)/build/unix
 AUTOCONF_TOOLS = $(topsrcdir)/build/autoconf
