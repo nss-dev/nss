@@ -75,3 +75,7 @@ const NSSError NSS_ERROR_INVALID_NSSOID                 = 25;
 const NSSError NSS_ERROR_UNKNOWN_ATTRIBUTE              = 26;
 
 const NSSError NSS_ERROR_NOT_FOUND                      = 27;
+
+const NSSError NSS_ERROR_INVALID_PASSWORD               = 28;
+const NSSError NSS_ERROR_USER_CANCELED                  = 29;
+
