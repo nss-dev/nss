@@ -83,6 +83,7 @@ typedef struct nssDecodedCertStr nssDecodedCert;
 struct NSSTrustStr 
 {
     CK_TRUST serverAuth;
+    CK_TRUST clientAuth;
     CK_TRUST emailProtection;
     CK_TRUST codeSigning;
 };
