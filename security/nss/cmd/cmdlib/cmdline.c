@@ -479,5 +479,87 @@ CMD_Usage(char *progName, cmdCommand *cmd)
     }
     ps.indent = 0;
     nprintf(&ps, "\n");
-    exit(1);
+}
+
+int
+CMD_Interactive(cmdCommand *cmd)
+{
+    int i, clen, remaining;
+    int cmdToRun = -1;
+    char commandBuf[256];
+    char *mark, *token, *opt;
+    PRBool quoted = PR_FALSE;
+    /* clear the state */
+    for (i=0; i<cmd->ncmd; i++) {
+	cmd->cmd[i].on = PR_FALSE;
+    }
+    for (i=0; i<cmd->nopt; i++) {
+	cmd->opt[i].on = PR_FALSE;
+	cmd->opt[i].arg = NULL;
+    }
+    PR_fprintf(PR_STDOUT, "\n> ");
+read_command:
+    /* read command from user */
+    clen = PR_Read(PR_STDIN, commandBuf, sizeof commandBuf);
+    if (clen < 0) {
+	/* error occurred */
+	return -1;
+    } else if (clen == 0) {
+	/* empty line, try again */
+	goto read_command;
+    }
+    mark = token = commandBuf;
+    remaining = clen;
+    /* skip to whitespace or EOL */
+    while (!isspace(*mark) && (mark - token < remaining)) mark++;
+    *mark++ = '\0';
+    /* find the command */
+    for (i=0; i<cmd->ncmd; i++) {
+	if (strcmp(token, cmd->cmd[i].s) == 0) {
+	    cmdToRun = i;
+	}
+    }
+    if (cmdToRun < 0) { 
+	if (strcmp(token, "quit") == 0 || strcmp(token, "q")) {
+	    /* this one applies to all */
+	    return -2;
+	} else {
+	    return -1;
+	}
+    }
+    remaining -= mark - token;
+    token = mark;
+    /* read options */
+    while (remaining > 0) {
+	quoted = PR_FALSE;
+	/* skip to end of whitespace */
+	while (isspace(*mark) && (mark - token < remaining)) mark++;
+	/* skip to = */
+	while (*mark != '=' && (mark - token < remaining)) mark++;
+	opt = token;
+	*mark++ = '\0';
+	token = mark;
+	if (*mark == '\"') {
+	    quoted = PR_TRUE;
+	    token = ++mark;
+	}
+	/* skip to whitespace or EOL */
+	if (quoted) {
+	    while (*mark != '\"' && (mark - token < remaining)) mark++;
+	    *mark++ = '\0';
+	} else {
+	    while (!isspace(*mark) && (mark - token < remaining)) mark++;
+	}
+	*mark++ = '\0';
+	/* find the option */
+	for (i=0; i<cmd->nopt; i++) {
+	    if (strcmp(opt, cmd->opt[i].s) == 0) {
+		cmd->opt[i].on = PR_TRUE;
+		cmd->opt[i].arg = strdup(token); /* XXX */
+	    }
+	}
+	remaining -= mark - opt;
+	token = mark;
+    }
+    return cmdToRun;
 }

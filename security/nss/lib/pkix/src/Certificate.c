@@ -578,9 +578,7 @@ NSSPKIXCertificate_GetTBSCertificate
 NSS_IMPLEMENT NSSItem *
 NSSPKIXCertificate_GetSignature
 (
-  NSSPKIXCertificate *cert,
-  NSSItem *rvOpt,
-  NSSArena *arenaOpt
+  NSSPKIXCertificate *cert
 )
 {
     nss_ClearErrorStack();

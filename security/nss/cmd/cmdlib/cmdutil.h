@@ -38,6 +38,7 @@
 #include "nspr.h"
 #include "nssbase.h"
 #include "nssdevt.h"
+#include "nsspkixt.h"
 
 NSSCallback *
 CMD_GetDefaultPasswordCallback
@@ -164,5 +165,37 @@ CMD_LongUsage(char *progName, cmdCommand *cmd, cmdUsageCallback use);
 
 void 
 CMD_PrintUsageString(cmdPrintState *ps, char *str);
+
+int
+CMD_Interactive(cmdCommand *cmd);
+
+/* XXX */
+struct CMDPrinterStr {
+  PRFileDesc *out;
+  int start;
+  int stop;
+  int offset;
+  int col;
+}; 
+
+typedef struct CMDPrinterStr CMDPrinter;
+
+#define INDENT_MULTIPLE 4
+/*
+#define DEFAULT_LEFT_MARGIN  0
+#define DEFAULT_RIGHT_MARGIN 72
+*/
+#define DEFAULT_LEFT_MARGIN  5
+#define DEFAULT_RIGHT_MARGIN 60
+
+void
+CMD_InitPrinter(CMDPrinter *printer, PRFileDesc *out, int start, int stop);
+
+void
+CMD_PrintHex(CMDPrinter *printer, NSSItem *item, char *message);
+
+void
+CMD_PrintPKIXCertificate(CMDPrinter *printer, NSSPKIXCertificate *pkixCert,
+                         char *message);
 
 #endif /* _CMDUTIL_H_ */

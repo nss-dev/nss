@@ -420,15 +420,32 @@ NSSTrustDomain_ImportCertificate
 }
 
 NSS_IMPLEMENT NSSCertificate *
-NSSTrustDomain_ImportPKIXCertificate
+nssTrustDomain_ImportEncodedCertificate
 (
   NSSTrustDomain *td,
-  /* declared as a struct until these "data types" are defined */
-  struct NSSPKIXCertificateStr *pc
+  NSSBER *ber,
+  NSSToken *destinationOpt,
+  NSSUTF8 *nicknameOpt
 )
 {
-    nss_SetError(NSS_ERROR_NOT_FOUND);
-    return NULL;
+    PRStatus status;
+    NSSCertificate *c = NULL;
+    NSSToken *destination = destinationOpt; /* XXX */
+
+    c = nssCertificate_Decode(ber);
+    if (!c) {
+	goto loser;
+    }
+    status = nssCertificate_CopyToToken(c, destination, nicknameOpt);
+    if (status == PR_FAILURE) {
+	goto loser;
+    }
+    return c;
+loser:
+    if (c) {
+	nssCertificate_Destroy(c);
+    }
+    return (NSSCertificate *)NULL;
 }
 
 NSS_IMPLEMENT NSSCertificate *
@@ -436,11 +453,12 @@ NSSTrustDomain_ImportEncodedCertificate
 (
   NSSTrustDomain *td,
   NSSBER *ber,
-  NSSToken *destinationOpt
+  NSSToken *destinationOpt,
+  NSSUTF8 *nicknameOpt
 )
 {
-    nss_SetError(NSS_ERROR_NOT_FOUND);
-    return NULL;
+    return nssTrustDomain_ImportEncodedCertificate(td, ber, destinationOpt,
+                                                   nicknameOpt);
 }
 
 NSS_IMPLEMENT NSSCertificate **
@@ -627,7 +645,7 @@ nssTrustDomain_FindBestCertificateByNickname
 (
   NSSTrustDomain *td,
   NSSUTF8 *name,
-  NSSTime *timeOpt,
+  NSSTime time,
   NSSUsages usages,
   NSSPolicies *policiesOpt
 )
@@ -640,7 +658,7 @@ nssTrustDomain_FindBestCertificateByNickname
                                                               NULL);
     if (nicknameCerts) {
 	rvCert = nssCertificateArray_FindBestCertificate(nicknameCerts,
-                                                         timeOpt,
+                                                         time,
                                                          usages,
                                                          policiesOpt);
 	nssCertificateArray_Destroy(nicknameCerts);
@@ -653,14 +671,14 @@ NSSTrustDomain_FindBestCertificateByNickname
 (
   NSSTrustDomain *td,
   NSSUTF8 *name,
-  NSSTime *timeOpt,
+  NSSTime time,
   NSSUsages usages,
   NSSPolicies *policiesOpt
 )
 {
     return nssTrustDomain_FindBestCertificateByNickname(td,
                                                         name,
-                                                        timeOpt,
+                                                        time,
                                                         usages,
                                                         policiesOpt);
 }
@@ -786,7 +804,7 @@ nssTrustDomain_FindBestCertificateBySubject
 (
   NSSTrustDomain *td,
   NSSDER *subject,
-  NSSTime *timeOpt,
+  NSSTime time,
   NSSUsages usages,
   NSSPolicies *policiesOpt
 )
@@ -799,7 +817,7 @@ nssTrustDomain_FindBestCertificateBySubject
                                                             NULL);
     if (subjectCerts) {
 	rvCert = nssCertificateArray_FindBestCertificate(subjectCerts,
-                                                         timeOpt,
+                                                         time,
                                                          usages,
                                                          policiesOpt);
 	nssCertificateArray_Destroy(subjectCerts);
@@ -812,14 +830,14 @@ NSSTrustDomain_FindBestCertificateBySubject
 (
   NSSTrustDomain *td,
   NSSDER *subject,
-  NSSTime *timeOpt,
+  NSSTime time,
   NSSUsages usages,
   NSSPolicies *policiesOpt
 )
 {
     return nssTrustDomain_FindBestCertificateBySubject(td,
                                                        subject,
-                                                       timeOpt,
+                                                       time,
                                                        usages,
                                                        policiesOpt);
 }
@@ -829,7 +847,7 @@ NSSTrustDomain_FindBestCertificateByNameComponents
 (
   NSSTrustDomain *td,
   NSSUTF8 *nameComponents,
-  NSSTime *timeOpt,
+  NSSTime time,
   NSSUsage *usage,
   NSSPolicies *policiesOpt
 )
@@ -1076,7 +1094,7 @@ NSSTrustDomain_FindBestCertificateByEmail
 (
   NSSTrustDomain *td,
   NSSASCII7 *email,
-  NSSTime *timeOpt,
+  NSSTime time,
   NSSUsage *usage,
   NSSPolicies *policiesOpt
 )
@@ -1113,7 +1131,7 @@ NSS_IMPLEMENT NSSCertificate *
 NSSTrustDomain_FindBestUserCertificate
 (
   NSSTrustDomain *td,
-  NSSTime *timeOpt,
+  NSSTime time,
   NSSUsage *usage,
   NSSPolicies *policiesOpt
 )
@@ -1126,7 +1144,7 @@ NSS_IMPLEMENT NSSCertificate **
 NSSTrustDomain_FindUserCertificates
 (
   NSSTrustDomain *td,
-  NSSTime *timeOpt,
+  NSSTime time,
   NSSUsage *usageOpt,
   NSSPolicies *policiesOpt,
   NSSCertificate **rvOpt,

@@ -51,9 +51,11 @@ static PRStatus pkiutil_command_dispatcher(cmdCommand *, int);
 
 /*  pkiutil commands  */
 enum {
-    cmd_Add = 0,
-    cmd_ChangePassword,
+    cmd_ChangePassword = 0,
     cmd_Delete,
+    cmd_Help,
+    cmd_Import,
+    cmd_Interactive,
     cmd_List,
     cmd_Print,
     cmd_Version,
@@ -68,6 +70,7 @@ enum {
     opt_ProfileDir,
     opt_TokenName,
     opt_InputFile,
+    opt_Info,
     opt_Nickname,
     opt_OutputFile,
     opt_Orphans,
@@ -79,24 +82,6 @@ enum {
 
 static cmdCommandLineArg pkiutil_commands[] =
 {
- { /* cmd_Add */  
-   'A', "add", 
-   CMDNoArg, 0, PR_FALSE, 
-   {
-     CMDBIT(opt_Nickname) | 
-     CMDBIT(opt_Trust), 
-     0, 0, 0
-   },
-   {
-     CMDBIT(opt_Ascii) | 
-     CMDBIT(opt_ProfileDir) | 
-     CMDBIT(opt_TokenName) | 
-     CMDBIT(opt_InputFile) | 
-     CMDBIT(opt_Binary) | 
-     CMDBIT(opt_Type),
-     0, 0, 0
-   },
- },
  { /* cmd_ChangePassword */
     0 , "change-password",
    CMDNoArg, 0, PR_FALSE,
@@ -119,6 +104,39 @@ static cmdCommandLineArg pkiutil_commands[] =
      CMDBIT(opt_Orphans) | 
      CMDBIT(opt_TokenName),
      0, 0, 0
+   },
+ },
+ { /* cmd_Help */
+   '?', "help", 
+   CMDNoArg, 0, PR_FALSE, 
+   { 0, 0, 0, 0 },
+   { 0, 0, 0, 0 },
+ },
+ { /* cmd_Import */  
+   'I', "import", 
+   CMDNoArg, 0, PR_FALSE, 
+   {
+     CMDBIT(opt_Nickname) | 
+     CMDBIT(opt_Trust), 
+     0, 0, 0
+   },
+   {
+     CMDBIT(opt_Ascii) | 
+     CMDBIT(opt_ProfileDir) | 
+     CMDBIT(opt_TokenName) | 
+     CMDBIT(opt_InputFile) | 
+     CMDBIT(opt_Binary) | 
+     CMDBIT(opt_Type),
+     0, 0, 0
+   },
+ },
+ { /* cmd_Interactive */
+   'D', "interactive", 
+   CMDNoArg, 0, PR_FALSE, 
+   { 0, 0, 0, 0 },
+   { 
+     CMDBIT(opt_ProfileDir),
+     0, 0, 0 
    },
  },
  { /* cmd_List */  
@@ -147,8 +165,8 @@ static cmdCommandLineArg pkiutil_commands[] =
    {
      CMDBIT(opt_Ascii) | 
      CMDBIT(opt_Chain) | 
+     CMDBIT(opt_Info) | 
      CMDBIT(opt_ProfileDir) | 
-     CMDBIT(opt_TokenName) | 
      CMDBIT(opt_Nickname) | 
      CMDBIT(opt_OutputFile) | 
      CMDBIT(opt_Binary) | 
@@ -166,18 +184,19 @@ static cmdCommandLineArg pkiutil_commands[] =
 
 static cmdCommandLineOpt pkiutil_options[] =
 {
- { /* opt_Help        */  '?', "help",     CMDNoArg,   0, PR_FALSE },
- { /* opt_Ascii       */  'a', "ascii",    CMDNoArg,   0, PR_FALSE },
- { /* opt_Chain       */   0 , "chain",    CMDNoArg,   0, PR_FALSE },
- { /* opt_ProfileDir  */  'd', "dbdir",    CMDArgReq,  0, PR_FALSE },
- { /* opt_TokenName   */  'h', "token",    CMDArgReq,  0, PR_FALSE },
- { /* opt_InputFile   */  'i', "infile",   CMDArgReq,  0, PR_FALSE },
- { /* opt_Nickname    */  'n', "nickname", CMDArgReq,  0, PR_FALSE },
- { /* opt_OutputFile  */  'o', "outfile",  CMDArgReq,  0, PR_FALSE },
- { /* opt_Orphans     */   0 , "orphans",  CMDNoArg,   0, PR_FALSE },
- { /* opt_Binary      */  'r', "raw",      CMDNoArg,   0, PR_FALSE },
- { /* opt_Trust       */  't', "trust",    CMDArgReq,  0, PR_FALSE },
- { /* opt_Type        */   0 , "type",     CMDArgReq,  0, PR_FALSE }
+ { /* opt_Help        */  '?', "help",     CMDNoArg  },
+ { /* opt_Ascii       */  'a', "ascii",    CMDNoArg  },
+ { /* opt_Chain       */   0 , "chain",    CMDNoArg  },
+ { /* opt_ProfileDir  */  'd', "dbdir",    CMDArgReq },
+ { /* opt_TokenName   */  'h', "token",    CMDArgReq },
+ { /* opt_InputFile   */  'i', "infile",   CMDArgReq },
+ { /* opt_Info        */   0 , "info",     CMDNoArg  },
+ { /* opt_Nickname    */  'n', "nickname", CMDArgReq },
+ { /* opt_OutputFile  */  'o', "outfile",  CMDArgReq },
+ { /* opt_Orphans     */   0 , "orphans",  CMDNoArg  },
+ { /* opt_Binary      */  'r', "raw",      CMDNoArg  },
+ { /* opt_Trust       */  't', "trust",    CMDArgReq },
+ { /* opt_Type        */   0 , "type",     CMDArgReq },
 };
 
 void pkiutil_usage(cmdPrintState *ps, 
@@ -198,8 +217,8 @@ void pkiutil_usage(cmdPrintState *ps,
 	*/
     } else if (cmd) {
 	switch(num) {
-	case cmd_Add:     
-	    pusg(ps, "Add an object to the profile/token"); break;
+	case cmd_Import:     
+	    pusg(ps, "Import an object onto the profile/token"); break;
 	case cmd_Delete:     
 	    pusg(ps, "Delete an object from the profile/token"); break;
 	case cmd_List:    
@@ -274,8 +293,10 @@ main(int argc, char **argv)
     if (pkiutil.opt[opt_Help].on)
 	CMD_LongUsage(progName, &pkiutil, pkiutil_usage);
 
-    if (cmdToRun < 0)
+    if (cmdToRun < 0) {
 	CMD_Usage(progName, &pkiutil);
+	exit(1);
+    }
 
     /* -d */
     if (pkiutil.opt[opt_ProfileDir].on) {
@@ -297,7 +318,20 @@ main(int argc, char **argv)
     /* XXX */
     NSS_EnablePKIXCertificates();
 
-    rv = pkiutil_command_dispatcher(&pkiutil, cmdToRun);
+    if (cmdToRun == cmd_Interactive) {
+	while (PR_TRUE) {
+	    cmdToRun = CMD_Interactive(&pkiutil);
+	    if (cmdToRun == cmd_Help) {
+		CMD_Usage(progName, &pkiutil);
+		continue;
+	    } else if (cmdToRun < 0) {
+		break;
+	    }
+	    rv = pkiutil_command_dispatcher(&pkiutil, cmdToRun);
+	}
+    } else {
+	rv = pkiutil_command_dispatcher(&pkiutil, cmdToRun);
+    }
 
     NSS_Shutdown();
 
@@ -354,13 +388,6 @@ pkiutil_command_dispatcher(cmdCommand *pkiutil, int cmdToRun)
 	}
     }
     switch (cmdToRun) {
-    case cmd_Add:
-	status = AddObject(td,
-	                   NULL,
-	                   NULL,
-	                   pkiutil->opt[opt_Nickname].arg,
-	                   &rtData);
-	break;
     case cmd_ChangePassword:
 	status = CMD_ChangeSlotPassword(slot);
 	break;
@@ -374,6 +401,13 @@ pkiutil_command_dispatcher(cmdCommand *pkiutil, int cmdToRun)
 	                      NULL,
 	                      pkiutil->opt[opt_Nickname].arg);
 	break;
+    case cmd_Import:
+	status = ImportObject(td,
+	                      token,
+	                      NULL,
+	                      pkiutil->opt[opt_Nickname].arg,
+	                      &rtData);
+	break;
     case cmd_List:
 	status = ListObjects(td,
 	                     NULL,
@@ -385,8 +419,8 @@ pkiutil_command_dispatcher(cmdCommand *pkiutil, int cmdToRun)
     case cmd_Print:
 	status = DumpObject(td,
 	                    NULL,
-	                    NULL,
 	                    pkiutil->opt[opt_Nickname].arg,
+			    pkiutil->opt[opt_Info].on,
 	                    pkiutil->opt[opt_Chain].on,
 	                    &rtData);
 	break;

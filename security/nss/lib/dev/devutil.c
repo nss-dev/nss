@@ -122,10 +122,10 @@ nssCryptokiObject_DeleteStoredObject
 	}
     }
 
-    nssSession_EnterMonitor(object->session);
-    ckrv = CKAPI(epv)->C_DestroyObject(object->session->handle, 
+    nssSession_EnterMonitor(rwSession);
+    ckrv = CKAPI(epv)->C_DestroyObject(rwSession->handle, 
                                        object->handle);
-    nssSession_ExitMonitor(object->session);
+    nssSession_ExitMonitor(rwSession);
     /* Destroying the object's data.  The object is useless at this point
      * anyway.
      */

@@ -124,6 +124,75 @@ nssCertificate_Create
     return rvCert;
 }
 
+NSS_IMPLEMENT NSSCertificate *
+nssCertificate_Decode
+(
+  NSSBER *ber
+)
+{
+    NSSArena *arena;
+    NSSCertificate *rvCert;
+    NSSCertificateMethods *decoder;
+    void *decoding;
+    NSSItem *it;
+
+    /* create the PKIObject */
+    arena = nssArena_Create();
+    if (!arena) {
+	return (NSSCertificate *)NULL;
+    }
+    rvCert = nss_ZNEW(arena, NSSCertificate);
+    if (!rvCert) {
+	goto loser;
+    }
+    rvCert->object.arena = arena;
+    rvCert->object.refCount = 1;
+    rvCert->object.lock = PZ_NewLock(nssILockOther);
+    if (!rvCert->object.lock) {
+	goto loser;
+    }
+    /* try to decode it */
+    decoder = nss_GetMethodsForType(NSSCertificateType_PKIX);
+    decoding = decoder->decode(arena, ber);
+    if (decoding) {
+	/* it's a PKIX cert */
+	rvCert->decoding.methods = decoder;
+	rvCert->decoding.data = decoding;
+	rvCert->kind = NSSCertificateType_PKIX;
+    } else {
+	goto loser;
+    }
+    /* copy the BER encoding */
+    it = nssItem_Duplicate(ber, arena, &rvCert->encoding);
+    if (!it) {
+	goto loser;
+    }
+    /* obtain the issuer from the decoding */
+    it = decoder->getIssuer(decoding);
+    if (!it) {
+	goto loser;
+    }
+    rvCert->issuer = *it;
+    /* obtain the serial number from the decoding */
+    it = decoder->getSerialNumber(decoding);
+    if (!it) {
+	goto loser;
+    }
+    rvCert->serial = *it;
+    /* obtain the subject from the decoding */
+    it = decoder->getSubject(decoding);
+    if (!it) {
+	goto loser;
+    }
+    rvCert->subject = *it;
+    /* obtain the email address from the decoding */
+    rvCert->email = decoder->getEmailAddress(decoding);
+    return rvCert;
+loser:
+    nssArena_Destroy(arena);
+    return (NSSCertificate *)NULL;
+}
+
 /* XXX */
 NSS_IMPLEMENT NSSCertificate *
 nssCertificate_CreateIndexCert
@@ -258,6 +327,16 @@ nssCertificate_GetNickname
     return nssPKIObject_GetNicknameForToken(&c->object, tokenOpt);
 }
 
+NSS_IMPLEMENT NSSUTF8 *
+NSSCertificate_GetNickname
+(
+  NSSCertificate *c,
+  NSSToken *tokenOpt
+)
+{
+    return nssCertificate_GetNickname(c, tokenOpt);
+}
+
 NSS_IMPLEMENT NSSASCII7 *
 nssCertificate_GetEmailAddress
 (
@@ -277,6 +356,30 @@ nssCertificate_GetDecoding
 	c->decoding.data = c->decoding.methods->decode(NULL, &c->encoding);
     }
     return &c->decoding;
+}
+
+NSS_IMPLEMENT void *
+NSSCertificate_GetDecoding
+(
+  NSSCertificate *c
+)
+{
+    nssCertDecoding *dc;
+
+    dc = nssCertificate_GetDecoding(c);
+    if (dc) {
+	return dc->data;
+    }
+    return (void *)NULL;
+}
+
+NSS_EXTERN NSSCertificateType
+NSSCertificate_GetType
+(
+  NSSCertificate *c
+)
+{
+    return c->kind;
 }
 
 NSS_IMPLEMENT NSSUsages
@@ -479,6 +582,41 @@ NSSCertificate_DeleteStoredObject
     return nssPKIObject_DeleteStoredObject(&c->object, uhh, PR_TRUE);
 }
 
+NSS_IMPLEMENT PRStatus
+nssCertificate_CopyToToken
+(
+  NSSCertificate *c,
+  NSSToken *token,
+  NSSUTF8 *nicknameOpt
+)
+{
+    PRStatus status;
+    nssCryptokiObject *instance;
+    nssSession *rwSession;
+
+    rwSession = nssToken_CreateSession(token, PR_TRUE);
+    if (!rwSession) {
+	return PR_FAILURE;
+    }
+    instance = nssToken_ImportCertificate(token, rwSession,
+                                          c->kind, NULL, nicknameOpt,
+                                          &c->encoding, &c->issuer, 
+                                          &c->subject, &c->serial,
+                                          c->email, PR_TRUE);
+    if (!instance) {
+	goto loser;
+    }
+    status = nssPKIObject_AddInstance(&c->object, instance);
+    if (status == PR_FAILURE) {
+	goto loser;
+    }
+    nssSession_Destroy(rwSession);
+    return PR_SUCCESS;
+loser:
+    nssSession_Destroy(rwSession);
+    return PR_FAILURE;
+}
+
 #if 0
 NSS_IMPLEMENT PRBool
 nssCertificate_IsValidAtTime
@@ -561,7 +699,7 @@ validate_and_discover_trust
     *trusted = PR_FALSE;
 
     /* First verify the time is within the cert's validity period */
-    if (!nssCertificate_IsValidAtTime(c, timeOpt, &status)) {
+    if (!nssCertificate_IsValidAtTime(c, time, &status)) {
 	if (status == PR_SUCCESS) {
 	    /* The function was successful, so we own the error */
 	    nss_SetError(NSS_ERROR_CERTIFICATE_NOT_VALID_AT_TIME);
@@ -656,7 +794,7 @@ NSS_IMPLEMENT PRStatus
 nssCertificate_Validate
 (
   NSSCertificate *c,
-  NSSTime *timeOpt,
+  NSSTime time,
   NSSUsage *usage,
   NSSPolicies *policiesOpt
 )
@@ -668,12 +806,12 @@ nssCertificate_Validate
     NSSCertificate *issuerCert = NULL;
     void *vData = NULL;
 
-    if (!timeOpt) {
-	timeOpt = NSSTime_Now();
+    if (!time) {
+	time = NSSTime_Now();
     }
 
     /* Build the chain (this cert will be first) */
-    chain = nssCertificate_BuildChain(c, timeOpt, usage, policiesOpt,
+    chain = nssCertificate_BuildChain(c, time, usage, policiesOpt,
                                       NULL, 0, NULL, &status);
     if (status == PR_FAILURE) {
 	return PR_FAILURE;
@@ -683,7 +821,7 @@ nssCertificate_Validate
     for (cp = chain; *cp; cp++) {
 	subjectCert = *cp;
 	status = validate_and_discover_trust(subjectCert,
-	                                     timeOpt, usage, policiesOpt,
+	                                     time, usage, policiesOpt,
 	                                     &trusted);
 	if (status == PR_FAILURE) {
 	    goto done;
@@ -731,12 +869,12 @@ NSS_IMPLEMENT PRStatus
 NSSCertificate_Validate
 (
   NSSCertificate *c,
-  NSSTime *timeOpt,
+  NSSTime time,
   NSSUsage *usage,
   NSSPolicies *policiesOpt
 )
 {
-    /*return nssCertificate_Validate(c, timeOpt, usage, policiesOpt);*/
+    /*return nssCertificate_Validate(c, time, usage, policiesOpt);*/
 return PR_FAILURE;
 }
 
@@ -744,7 +882,7 @@ NSS_IMPLEMENT void ** /* void *[] */
 NSSCertificate_ValidateCompletely
 (
   NSSCertificate *c,
-  NSSTime *timeOpt, /* NULL for "now" */
+  NSSTime time, /* NULL for "now" */
   NSSUsage *usage,
   NSSPolicies *policiesOpt, /* NULL for none */
   void **rvOpt, /* NULL for allocate */
@@ -821,7 +959,7 @@ static NSSCertificate *
 find_cert_issuer
 (
   NSSCertificate *c,
-  NSSTime *timeOpt,
+  NSSTime time,
   NSSUsages usages,
   NSSPolicies *policiesOpt
 )
@@ -869,7 +1007,7 @@ find_cert_issuer
 	    dc->methods->freeIdentifier(issuerID);
 	} else {
 	    issuer = nssCertificateArray_FindBestCertificate(certs,
-	                                                     timeOpt,
+	                                                     time,
 	                                                     usages,
 	                                                     policiesOpt);
 	}
@@ -887,7 +1025,7 @@ NSS_IMPLEMENT NSSCertificate **
 nssCertificate_BuildChain
 (
   NSSCertificate *c,
-  NSSTime *timeOpt,
+  NSSTime time,
   NSSUsages usages,
   NSSPolicies *policiesOpt,
   NSSCertificate **rvOpt,
@@ -920,15 +1058,15 @@ nssCertificate_BuildChain
 	goto finish;
     }
     while (!nssItem_Equal(&c->subject, &c->issuer, &status)) {
-	c = find_cert_issuer(c, timeOpt, usages, policiesOpt);
+	c = find_cert_issuer(c, time, usages, policiesOpt);
 #ifdef NSS_3_4_CODE
 	if (!c) {
 	    PRBool tmpca = usage->nss3lookingForCA;
 	    usage->nss3lookingForCA = PR_TRUE;
-	    c = find_cert_issuer(c, timeOpt, usages, policiesOpt);
+	    c = find_cert_issuer(c, time, usages, policiesOpt);
 	    if (!c && !usage->anyUsage) {
 		usage->anyUsage = PR_TRUE;
-		c = find_cert_issuer(c, timeOpt, usages, policiesOpt);
+		c = find_cert_issuer(c, time, usages, policiesOpt);
 		usage->anyUsage = PR_FALSE;
 	    }
 	    usage->nss3lookingForCA = tmpca;
@@ -961,7 +1099,7 @@ NSS_IMPLEMENT NSSCertificate **
 NSSCertificate_BuildChain
 (
   NSSCertificate *c,
-  NSSTime *timeOpt,
+  NSSTime time,
   NSSUsages usages,
   NSSPolicies *policiesOpt,
   NSSCertificate **rvOpt,
@@ -970,7 +1108,7 @@ NSSCertificate_BuildChain
   PRStatus *statusOpt
 )
 {
-    return nssCertificate_BuildChain(c, timeOpt, usages, policiesOpt,
+    return nssCertificate_BuildChain(c, time, usages, policiesOpt,
                                      rvOpt, rvLimit, arenaOpt, statusOpt);
 }
 
@@ -980,7 +1118,7 @@ NSSCertificate_Encrypt
   NSSCertificate *c,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *data,
-  NSSTime *timeOpt,
+  NSSTime time,
   NSSUsage *usage,
   NSSPolicies *policiesOpt,
   NSSCallback *uhh,
@@ -999,7 +1137,7 @@ NSSCertificate_Verify
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *data,
   NSSItem *signature,
-  NSSTime *timeOpt,
+  NSSTime time,
   NSSUsage *usage,
   NSSPolicies *policiesOpt,
   NSSCallback *uhh
@@ -1015,7 +1153,7 @@ NSSCertificate_VerifyRecover
   NSSCertificate *c,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *signature,
-  NSSTime *timeOpt,
+  NSSTime time,
   NSSUsage *usage,
   NSSPolicies *policiesOpt,
   NSSCallback *uhh,
@@ -1033,7 +1171,7 @@ NSSCertificate_WrapSymmetricKey
   NSSCertificate *c,
   const NSSAlgorithmAndParameters *apOpt,
   NSSSymmetricKey *keyToWrap,
-  NSSTime *timeOpt,
+  NSSTime time,
   NSSUsage *usage,
   NSSPolicies *policiesOpt,
   NSSCallback *uhh,
@@ -1050,7 +1188,7 @@ NSSCertificate_CreateCryptoContext
 (
   NSSCertificate *c,
   const NSSAlgorithmAndParameters *apOpt,
-  NSSTime *timeOpt,
+  NSSTime time,
   NSSUsage *usage,
   NSSPolicies *policiesOpt,
   NSSCallback *uhh  
@@ -1224,7 +1362,7 @@ NSSUserCertificate_Decrypt
   NSSUserCertificate *uc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *data,
-  NSSTime *timeOpt,
+  NSSTime time,
   NSSUsage *usage,
   NSSPolicies *policiesOpt,
   NSSCallback *uhh,
@@ -1242,7 +1380,7 @@ NSSUserCertificate_Sign
   NSSUserCertificate *uc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *data,
-  NSSTime *timeOpt,
+  NSSTime time,
   NSSUsage *usage,
   NSSPolicies *policiesOpt,
   NSSCallback *uhh,
@@ -1260,7 +1398,7 @@ NSSUserCertificate_SignRecover
   NSSUserCertificate *uc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *data,
-  NSSTime *timeOpt,
+  NSSTime time,
   NSSUsage *usage,
   NSSPolicies *policiesOpt,
   NSSCallback *uhh,
@@ -1278,7 +1416,7 @@ NSSUserCertificate_UnwrapSymmetricKey
   NSSUserCertificate *uc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *wrappedKey,
-  NSSTime *timeOpt,
+  NSSTime time,
   NSSUsage *usage,
   NSSPolicies *policiesOpt,
   NSSCallback *uhh,

@@ -3262,6 +3262,8 @@ NSSPKIXDirectoryString_Encode
   NSSArena *arenaOpt
 );
 
+#endif /* nodef */
+
 /*
  * Certificate
  *
@@ -3376,6 +3378,7 @@ NSSPKIXCertificate_Destroy
  *  NULL upon failure
  */
 
+#ifdef nodef
 NSS_EXTERN NSSBER *
 NSSPKIXCertificate_Encode
 (
@@ -3384,6 +3387,7 @@ NSSPKIXCertificate_Encode
   NSSBER *rvOpt,
   NSSArena *arenaOpt
 );
+#endif
 
 /*
  * NSSPKIXCertificate_GetTBSCertificate
@@ -3490,9 +3494,7 @@ NSSPKIXCertificate_SetAlgorithmIdentifier
 NSS_EXTERN NSSItem *
 NSSPKIXCertificate_GetSignature
 (
-  NSSPKIXCertificate *cert,
-  NSSItem *rvOpt,
-  NSSArena *arenaOpt
+  NSSPKIXCertificate *cert
 );
 
 /*
@@ -3717,6 +3719,7 @@ NSSPKIXTBSCertificate_Destroy
  *  NULL upon failure
  */
 
+#ifdef nodef
 NSS_EXTERN NSSBER *
 NSSPKIXTBSCertificate_Encode
 (
@@ -3725,6 +3728,7 @@ NSSPKIXTBSCertificate_Encode
   NSSBER *rvOpt,
   NSSArena *arenaOpt
 );
+#endif
 
 /*
  * NSSPKIXTBSCertificate_GetVersion
@@ -4355,6 +4359,8 @@ NSSPKIXTBSCertificate_Duplicate
   NSSPKIXTBSCertificate *tbsCert,
   NSSArena *arenaOpt
 );
+
+#ifdef nodef
 
 /*
  * CertificateSerialNumber

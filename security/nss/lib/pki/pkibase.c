@@ -259,7 +259,6 @@ nssPKIObject_DeleteStoredObject
     PZ_Lock(object->lock);
     for (i=0; i<object->numInstances; i++) {
 	nssCryptokiObject *instance = object->instances[i];
-#ifndef NSS_3_4_CODE
 	NSSSlot *slot = nssToken_GetSlot(instance->token);
 	/* If both the operation and the slot are friendly, login is
 	 * not required.  If either or both are not friendly, it is
@@ -268,16 +267,14 @@ nssPKIObject_DeleteStoredObject
 	if (!(isFriendly && nssSlot_IsFriendly(slot))) {
 	    status = nssSlot_Login(slot, pwcb);
 	    nssSlot_Destroy(slot);
-	    if (status == PR_SUCCESS) {
-		/* XXX this should be fixed to understand read-only tokens,
-		 * for now, to handle the builtins, just make the attempt.
-		 */
-		status = nssCryptokiObject_DeleteStoredObject(instance);
+	    if (status == PR_FAILURE) {
+		return PR_FAILURE;
 	    }
 	}
-#else
-	status = nssToken_DeleteStoredObject(instance);
-#endif
+	status = nssCryptokiObject_DeleteStoredObject(instance);
+	/* XXX this should be fixed to understand read-only tokens,
+	 * for now, to handle the builtins, just make the attempt.
+	 */
 	object->instances[i] = NULL;
 	if (status == PR_SUCCESS) {
 	    nssCryptokiObject_Destroy(instance);
@@ -508,20 +505,13 @@ NSS_IMPLEMENT NSSCertificate *
 nssCertificateArray_FindBestCertificate
 (
   NSSCertificate **certs, 
-  NSSTime *timeOpt,
+  NSSTime time,
   NSSUsages usages,
   NSSPolicies *policiesOpt
 )
 {
     PRStatus status;
     NSSCertificate *bestCert = NULL;
-    NSSTime *time, sTime;
-    if (timeOpt) {
-	time = timeOpt;
-    } else {
-	sTime = NSSTime_Now();
-	time = &sTime;
-    }
     if (!certs) {
 	return (NSSCertificate *)NULL;
     }

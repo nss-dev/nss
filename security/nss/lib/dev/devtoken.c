@@ -597,14 +597,20 @@ nssToken_ImportCertificate
 	NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_TOKEN, &g_ck_false);
 	searchType = nssTokenSearchType_SessionOnly;
     }
+    /* required attributes */
     NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_CLASS,            &g_ck_class_cert);
     NSS_CK_SET_ATTRIBUTE_VAR( attr, CKA_CERTIFICATE_TYPE,  cert_type);
-    NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_ID,                id);
-    NSS_CK_SET_ATTRIBUTE_UTF8(attr, CKA_LABEL,             nickname);
     NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_VALUE,             encoding);
     NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_ISSUER,            issuer);
     NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_SUBJECT,           subject);
     NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_SERIAL_NUMBER,     serial);
+    /* optional attributes */
+    if (id) {
+	NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_ID, id);
+    }
+    if (nickname) {
+	NSS_CK_SET_ATTRIBUTE_UTF8(attr, CKA_LABEL, nickname);
+    }
     if (email) {
 	NSS_CK_SET_ATTRIBUTE_UTF8(attr, CKA_NETSCAPE_EMAIL,    email);
     }

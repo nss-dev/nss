@@ -483,7 +483,7 @@ NSS_EXTERN NSSCertificate *
 nssCertificateArray_FindBestCertificate
 (
   NSSCertificate **certs, 
-  NSSTime *timeOpt,
+  NSSTime time,
   NSSUsages usages,
   NSSPolicies *policiesOpt
 );

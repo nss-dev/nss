@@ -362,7 +362,7 @@ NSSCryptoContext_FindBestCertificateByNickname
 (
   NSSCryptoContext *cc,
   NSSUTF8 *name,
-  NSSTime *timeOpt, /* NULL for "now" */
+  NSSTime time, /* NULL for "now" */
   NSSUsage *usage,
   NSSPolicies *policiesOpt /* NULL for none */
 )
@@ -377,7 +377,7 @@ NSSCryptoContext_FindBestCertificateByNickname
                                                            NULL, 0, NULL);
     if (certs) {
 	rvCert = nssCertificateArray_FindBestCertificate(certs,
-	                                                 timeOpt,
+	                                                 time,
 	                                                 usage,
 	                                                 policiesOpt);
 	nssCertificateArray_Destroy(certs);
@@ -429,7 +429,7 @@ NSSCryptoContext_FindBestCertificateBySubject
 (
   NSSCryptoContext *cc,
   NSSDER *subject,
-  NSSTime *timeOpt,
+  NSSTime time,
   NSSUsage *usage,
   NSSPolicies *policiesOpt
 )
@@ -444,7 +444,7 @@ NSSCryptoContext_FindBestCertificateBySubject
                                                           NULL, 0, NULL);
     if (certs) {
 	rvCert = nssCertificateArray_FindBestCertificate(certs,
-	                                                 timeOpt,
+	                                                 time,
 	                                                 usage,
 	                                                 policiesOpt);
 	nssCertificateArray_Destroy(certs);
@@ -494,7 +494,7 @@ NSSCryptoContext_FindBestCertificateByNameComponents
 (
   NSSCryptoContext *cc,
   NSSUTF8 *nameComponents,
-  NSSTime *timeOpt,
+  NSSTime time,
   NSSUsage *usage,
   NSSPolicies *policiesOpt
 )
@@ -537,7 +537,7 @@ NSSCryptoContext_FindBestCertificateByEmail
 (
   NSSCryptoContext *cc,
   NSSASCII7 *email,
-  NSSTime *timeOpt,
+  NSSTime time,
   NSSUsage *usage,
   NSSPolicies *policiesOpt
 )
@@ -552,7 +552,7 @@ NSSCryptoContext_FindBestCertificateByEmail
                                                         NULL, 0, NULL);
     if (certs) {
 	rvCert = nssCertificateArray_FindBestCertificate(certs,
-	                                                 timeOpt,
+	                                                 time,
 	                                                 usage,
 	                                                 policiesOpt);
 	nssCertificateArray_Destroy(certs);
@@ -597,7 +597,7 @@ NSS_IMPLEMENT NSSCertificate *
 NSSCryptoContext_FindBestUserCertificate
 (
   NSSCryptoContext *cc,
-  NSSTime *timeOpt,
+  NSSTime time,
   NSSUsage *usage,
   NSSPolicies *policiesOpt
 )
@@ -610,7 +610,7 @@ NSS_IMPLEMENT NSSCertificate **
 NSSCryptoContext_FindUserCertificates
 (
   NSSCryptoContext *cc,
-  NSSTime *timeOpt,
+  NSSTime time,
   NSSUsage *usageOpt,
   NSSPolicies *policiesOpt,
   NSSCertificate **rvOpt,

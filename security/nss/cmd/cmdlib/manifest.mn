@@ -37,8 +37,6 @@ LIBRARY_NAME = cmdutil
 # MODULE public and private header  directories are implicitly REQUIRED.
 MODULE = seccmd
 
-DEFINES	= -DNSPR20
-
 EXPORTS =         \
 	cmdutil.h \
 	$(NULL)
@@ -47,7 +45,8 @@ CSRCS =             \
 	cmdpasswd.c \
 	cmdio.c     \
 	cmdline.c   \
+	cmdpp.c     \
 	$(NULL)
 
-REQUIRES = security nspr dbm
+REQUIRES = security nspr
 

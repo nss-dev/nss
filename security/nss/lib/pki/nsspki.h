@@ -153,7 +153,7 @@ NSS_EXTERN PRStatus
 NSSCertificate_Validate
 (
   NSSCertificate *c,
-  NSSTime *timeOpt, /* NULL for "now" */
+  NSSTime time, /* NULL for "now" */
   NSSUsage *usage,
   NSSPolicies *policiesOpt /* NULL for none */
 );
@@ -179,7 +179,7 @@ NSS_EXTERN void ** /* void *[] */
 NSSCertificate_ValidateCompletely
 (
   NSSCertificate *c,
-  NSSTime *timeOpt, /* NULL for "now" */
+  NSSTime time, /* NULL for "now" */
   NSSUsage *usage,
   NSSPolicies *policiesOpt, /* NULL for none */
   void **rvOpt, /* NULL for allocate */
@@ -241,7 +241,7 @@ NSS_EXTERN NSSCertificate **
 NSSCertificate_BuildChain
 (
   NSSCertificate *c,
-  NSSTime *timeOpt,
+  NSSTime time,
   NSSUsages usages,
   NSSPolicies *policiesOpt,
   NSSCertificate **rvOpt,
@@ -300,6 +300,20 @@ NSSCertificate_GetModule
   PRStatus *statusOpt
 );
 
+/* XXX make sure this is right */
+NSS_EXTERN void *
+NSSCertificate_GetDecoding
+(
+  NSSCertificate *c
+);
+
+/* XXX make sure this is right */
+NSS_EXTERN NSSCertificateType
+NSSCertificate_GetType
+(
+  NSSCertificate *c
+);
+
 /*
  * NSSCertificate_Encrypt
  *
@@ -313,7 +327,7 @@ NSSCertificate_Encrypt
   NSSCertificate *c,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *data,
-  NSSTime *timeOpt,
+  NSSTime time,
   NSSUsage *usage,
   NSSPolicies *policiesOpt,
   NSSCallback *uhh,
@@ -333,7 +347,7 @@ NSSCertificate_Verify
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *data,
   NSSItem *signature,
-  NSSTime *timeOpt,
+  NSSTime time,
   NSSUsage *usage,
   NSSPolicies *policiesOpt,
   NSSCallback *uhh
@@ -350,7 +364,7 @@ NSSCertificate_VerifyRecover
   NSSCertificate *c,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *signature,
-  NSSTime *timeOpt,
+  NSSTime time,
   NSSUsage *usage,
   NSSPolicies *policiesOpt,
   NSSCallback *uhh,
@@ -372,7 +386,7 @@ NSSCertificate_WrapSymmetricKey
   NSSCertificate *c,
   const NSSAlgorithmAndParameters *apOpt,
   NSSSymmetricKey *keyToWrap,
-  NSSTime *timeOpt,
+  NSSTime time,
   NSSUsage *usage,
   NSSPolicies *policiesOpt,
   NSSCallback *uhh,
@@ -392,7 +406,7 @@ NSSCertificate_CreateCryptoContext
 (
   NSSCertificate *c,
   const NSSAlgorithmAndParameters *apOpt,
-  NSSTime *timeOpt,
+  NSSTime time,
   NSSUsage *usage,
   NSSPolicies *policiesOpt,
   NSSCallback *uhh  
@@ -492,7 +506,7 @@ NSSUserCertificate_Decrypt
   NSSUserCertificate *uc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *data,
-  NSSTime *timeOpt,
+  NSSTime time,
   NSSUsage *usage,
   NSSPolicies *policiesOpt,
   NSSCallback *uhh,
@@ -511,7 +525,7 @@ NSSUserCertificate_Sign
   NSSUserCertificate *uc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *data,
-  NSSTime *timeOpt,
+  NSSTime time,
   NSSUsage *usage,
   NSSPolicies *policiesOpt,
   NSSCallback *uhh,
@@ -530,7 +544,7 @@ NSSUserCertificate_SignRecover
   NSSUserCertificate *uc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *data,
-  NSSTime *timeOpt,
+  NSSTime time,
   NSSUsage *usage,
   NSSPolicies *policiesOpt,
   NSSCallback *uhh,
@@ -549,7 +563,7 @@ NSSUserCertificate_UnwrapSymmetricKey
   NSSUserCertificate *uc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *wrappedKey,
-  NSSTime *timeOpt,
+  NSSTime time,
   NSSUsage *usage,
   NSSPolicies *policiesOpt,
   NSSCallback *uhh,
@@ -841,7 +855,7 @@ NSS_EXTERN NSSCertificate *
 NSSPrivateKey_FindBestCertificate
 (
   NSSPrivateKey *vk,
-  NSSTime *timeOpt,
+  NSSTime time,
   NSSUsage *usageOpt,
   NSSPolicies *policiesOpt
 );
@@ -1059,7 +1073,7 @@ NSS_EXTERN NSSCertificate *
 NSSPublicKey_FindBestCertificate
 (
   NSSPublicKey *bk,
-  NSSTime *timeOpt,
+  NSSTime time,
   NSSUsage *usageOpt,
   NSSPolicies *policiesOpt
 );
@@ -1631,7 +1645,8 @@ NSSTrustDomain_ImportEncodedCertificate
 (
   NSSTrustDomain *td,
   NSSBER *ber,
-  NSSToken *destinationOpt
+  NSSToken *destinationOpt,
+  NSSUTF8 *nicknameOpt
 );
 
 /*
@@ -1699,7 +1714,7 @@ NSSTrustDomain_FindBestCertificateByNickname
 (
   NSSTrustDomain *td,
   NSSUTF8 *name,
-  NSSTime *timeOpt, /* NULL for "now" */
+  NSSTime time,
   NSSUsages usages,
   NSSPolicies *policiesOpt /* NULL for none */
 );
@@ -1751,7 +1766,7 @@ NSSTrustDomain_FindBestCertificateBySubject
 (
   NSSTrustDomain *td,
   NSSDER *subject,
-  NSSTime *timeOpt,
+  NSSTime time,
   NSSUsages usages,
   NSSPolicies *policiesOpt
 );
@@ -1786,7 +1801,7 @@ NSSTrustDomain_FindBestCertificateByNameComponents
 (
   NSSTrustDomain *td,
   NSSUTF8 *nameComponents,
-  NSSTime *timeOpt,
+  NSSTime time,
   NSSUsage *usage,
   NSSPolicies *policiesOpt
 );
@@ -1831,7 +1846,7 @@ NSSTrustDomain_FindBestCertificateByEmail
 (
   NSSTrustDomain *td,
   NSSASCII7 *email,
-  NSSTime *timeOpt,
+  NSSTime time,
   NSSUsage *usage,
   NSSPolicies *policiesOpt
 );
@@ -1899,7 +1914,7 @@ NSS_EXTERN NSSCertificate *
 NSSTrustDomain_FindBestUserCertificate
 (
   NSSTrustDomain *td,
-  NSSTime *timeOpt,
+  NSSTime time,
   NSSUsage *usage,
   NSSPolicies *policiesOpt
 );
@@ -1913,7 +1928,7 @@ NSS_EXTERN NSSCertificate **
 NSSTrustDomain_FindUserCertificates
 (
   NSSTrustDomain *td,
-  NSSTime *timeOpt,
+  NSSTime time,
   NSSUsage *usageOpt,
   NSSPolicies *policiesOpt,
   NSSCertificate **rvOpt,
@@ -2280,7 +2295,7 @@ NSSCryptoContext_FindBestCertificateByNickname
 (
   NSSCryptoContext *cc,
   NSSUTF8 *name,
-  NSSTime *timeOpt, /* NULL for "now" */
+  NSSTime time, /* NULL for "now" */
   NSSUsage *usage,
   NSSPolicies *policiesOpt /* NULL for none */
 );
@@ -2324,7 +2339,7 @@ NSSCryptoContext_FindBestCertificateBySubject
 (
   NSSCryptoContext *cc,
   NSSDER *subject,
-  NSSTime *timeOpt,
+  NSSTime time,
   NSSUsage *usage,
   NSSPolicies *policiesOpt
 );
@@ -2359,7 +2374,7 @@ NSSCryptoContext_FindBestCertificateByNameComponents
 (
   NSSCryptoContext *cc,
   NSSUTF8 *nameComponents,
-  NSSTime *timeOpt,
+  NSSTime time,
   NSSUsage *usage,
   NSSPolicies *policiesOpt
 );
@@ -2404,7 +2419,7 @@ NSSCryptoContext_FindBestCertificateByEmail
 (
   NSSCryptoContext *cc,
   NSSASCII7 *email,
-  NSSTime *timeOpt,
+  NSSTime time,
   NSSUsage *usage,
   NSSPolicies *policiesOpt
 );
@@ -2458,7 +2473,7 @@ NSS_EXTERN NSSCertificate *
 NSSCryptoContext_FindBestUserCertificate
 (
   NSSCryptoContext *cc,
-  NSSTime *timeOpt,
+  NSSTime time,
   NSSUsage *usage,
   NSSPolicies *policiesOpt
 );
@@ -2472,7 +2487,7 @@ NSS_EXTERN NSSCertificate **
 NSSCryptoContext_FindUserCertificates
 (
   NSSCryptoContext *cc,
-  NSSTime *timeOpt,
+  NSSTime time,
   NSSUsage *usageOpt,
   NSSPolicies *policiesOpt,
   NSSCertificate **rvOpt,

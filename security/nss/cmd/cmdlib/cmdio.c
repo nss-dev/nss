@@ -239,6 +239,7 @@ CMD_ReadFile(PRFileDesc *file, int *flen)
 	memcpy(writeBuf + len, readBuf, nb);
 	len += nb;
     }
+    *flen = len;
     return writeBuf;
 }
 

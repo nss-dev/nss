@@ -1,10 +1,11 @@
 
 #include <string.h>
 #include "nssbase.h"
-#include "nsspki.h"
 #include "nssdev.h"
+#include "nsspki.h"
 /* hmmm...*/
 #include "pki.h"
+#include "nsspkix.h"
 
 #include "pkiutil.h"
 
@@ -48,21 +49,32 @@ print_cert_callback(NSSCertificate *c, void *arg)
 }
 
 static PRStatus
+print_decoded_cert(CMDRunTimeData *rtData, NSSCertificate *c)
+{
+    CMDPrinter printer;
+
+    CMD_InitPrinter(&printer, rtData->output.file, 
+                    DEFAULT_LEFT_MARGIN, DEFAULT_RIGHT_MARGIN);
+
+    if (NSSCertificate_GetType(c) == NSSCertificateType_PKIX) {
+	NSSPKIXCertificate *pkixCert;
+	pkixCert = (NSSPKIXCertificate *)NSSCertificate_GetDecoding(c);
+	if (pkixCert) {
+	    CMD_PrintPKIXCertificate(&printer, pkixCert, "Certificate");
+	}
+    }
+    /* XXX */
+    PR_fprintf(printer.out, "\n");
+    return PR_FAILURE;
+}
+
+static PRStatus
 dump_cert_callback(NSSCertificate *c, void *arg)
 {
     CMDRunTimeData *rtData = (CMDRunTimeData *)arg;
     NSSUTF8 *nickname = nssCertificate_GetNickname(c, NULL);
     if (rtData->output.mode == CMDFileMode_PrettyPrint) {
-	NSSToken **tokens, **tp;
-	PR_fprintf(rtData->output.file, "Dumping %s\n", nickname);
-	tokens = NSSCertificate_GetTokens(c, NULL);
-	if (tokens) {
-	    for (tp = tokens; *tp; tp++) {
-		PR_fprintf(rtData->output.file, "\ton token: \"%s\"\n",
-		                                   NSSToken_GetName(*tp));
-	    }
-	}
-	NSSTokenArray_Destroy(tokens);
+	print_decoded_cert(rtData, c);
     } else if (rtData->output.mode == CMDFileMode_Binary) {
 	NSSDER *encoding = nssCertificate_GetEncoding(c);
 	PR_Write(rtData->output.file, encoding->data, encoding->size);
@@ -100,7 +112,6 @@ static PRStatus
 list_nickname_certs
 (
   NSSTrustDomain *td,
-  NSSToken *tokenOpt,
   char *nickname,
   PRUint32 maximumOpt,
   PRStatus (* callback)(NSSCertificate *c, void *arg),
@@ -113,8 +124,8 @@ list_nickname_certs
     if (maximumOpt == 1) {
 	cert[0] = NSSTrustDomain_FindBestCertificateByNickname(td,
 	                                                       nickname, 
-	                                                       NULL,
-	                                                       NULL,
+	                                                       NSSTime_Now(),
+	                                                       NSSUsage_Any,
 	                                                       NULL);
 	cert[1] = NULL;
 	certs = cert;
@@ -193,7 +204,7 @@ ListObjects
     switch (objectKind) {
     case PKICertificate:
 	if (nicknameOpt) {
-	    status = list_nickname_certs(td, tokenOpt, nicknameOpt, 0,
+	    status = list_nickname_certs(td, nicknameOpt, 0,
 	                                  print_cert_callback, rtData);
 	} else {
 	    status = list_certs(td, tokenOpt, rtData);
@@ -215,7 +226,7 @@ ListObjects
 	break;
     case PKIAny:
 	if (nicknameOpt) {
-	    status = list_nickname_certs(td, tokenOpt, nicknameOpt, 0,
+	    status = list_nickname_certs(td, nicknameOpt, 0,
 	                                  print_cert_callback, rtData);
 	} else {
 	    status = list_certs(td, tokenOpt, rtData);
@@ -261,8 +272,8 @@ dump_cert_chain
     while (certp && *certp) {
 	NSSCertificate **chain, **chainp;
 	chain = NSSCertificate_BuildChain(*certp, 
-	                                  NULL, /* time = now */
-	                                  NULL, /* usage      */
+	                                  NSSTime_Now(),
+	                                  NSSUsage_Any,
 	                                  NULL, /* policies   */
 	                                  NULL, /* certs[]    */
 	                                  0,    /* rvLimit    */
@@ -283,13 +294,45 @@ dump_cert_chain
     return PR_SUCCESS;
 }
 
+static PRStatus
+dump_cert_info
+(
+  NSSTrustDomain *td,
+  char *nickname,
+  CMDRunTimeData *rtData
+)
+{
+    PRStatus status;
+    PRUint32 i, j;
+    NSSCertificate *c;
+    c = NSSTrustDomain_FindBestCertificateByNickname(td, nickname, 
+                                                     NSSTime_Now(), 
+                                                     NSSUsage_Any,
+                                                     NULL);
+    if (c) {
+	NSSToken **tokens, **tp;
+	tokens = NSSCertificate_GetTokens(c, NULL);
+	if (tokens) {
+	    for (tp = tokens; *tp; tp++) {
+		PR_fprintf(rtData->output.file, 
+		           "nickname \"%s\" on token \"%s\"\n",
+		           NSSCertificate_GetNickname(c, *tp),
+		           NSSToken_GetName(*tp));
+	    }
+	}
+	NSSTokenArray_Destroy(tokens);
+	PR_fprintf(rtData->output.file, "\n");
+    }
+    return PR_SUCCESS;
+}
+
 PRStatus
 DumpObject
 (
   NSSTrustDomain *td,
-  NSSToken *tokenOpt,
   char *objectType,
   char *nickname,
+  PRBool info,
   PRBool chain,
   CMDRunTimeData *rtData
 )
@@ -302,8 +345,10 @@ DumpObject
     case PKIAny:         /* default to certificate */
 	if (chain) {
 	    status = dump_cert_chain(td, nickname, rtData);
+	} else if (info) {
+	    status = dump_cert_info(td, nickname, rtData);
 	} else {
-	    status = list_nickname_certs(td, tokenOpt, nickname, 1,
+	    status = list_nickname_certs(td, nickname, 1,
 	                                 dump_cert_callback, rtData);
 	}
 	break;
@@ -367,17 +412,25 @@ import_certificate
 )
 {
     PRStatus status;
-#if 0
     NSSItem *encoding;
-    encoding = read_input(rtData);
-    status = NSSTrustDomain_ImportEncodedCertificate(td, encoding);
-#endif
-status = PR_FAILURE;
+    NSSCertificate *cert;
+
+    /* get the encoded cert from the input source */
+    encoding = CMD_GetInput(rtData);
+    /* import into trust domain */
+    cert = NSSTrustDomain_ImportEncodedCertificate(td, encoding,
+                                                   tokenOpt, nickname);
+    if (cert) {
+	PR_fprintf(PR_STDOUT, "Import successful.\n");
+	dump_cert_info(td, cert, rtData);
+    } else {
+	PR_fprintf(PR_STDERR, "Import failed!\n");
+    }
     return status;
 }
 
 PRStatus
-AddObject
+ImportObject
 (
   NSSTrustDomain *td,
   NSSToken *tokenOpt,

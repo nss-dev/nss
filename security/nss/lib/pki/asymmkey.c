@@ -498,7 +498,7 @@ NSS_IMPLEMENT NSSCertificate *
 NSSPrivateKey_FindBestCertificate
 (
   NSSPrivateKey *vk,
-  NSSTime *timeOpt,
+  NSSTime time,
   NSSUsage *usageOpt,
   NSSPolicies *policiesOpt
 )
@@ -828,7 +828,7 @@ NSS_IMPLEMENT NSSCertificate *
 nssPublicKey_FindBestCertificate
 (
   NSSPublicKey *bk,
-  NSSTime *timeOpt,
+  NSSTime time,
   NSSUsage *usageOpt,
   NSSPolicies *policiesOpt
 )
@@ -840,7 +840,7 @@ nssPublicKey_FindBestCertificate
     if (!certs) {
 	return (NSSCertificate *)NULL;
     }
-    rvCert = nssCertificateArray_FindBestCertificate(certs, timeOpt, 
+    rvCert = nssCertificateArray_FindBestCertificate(certs, time, 
                                                      usageOpt, policiesOpt);
     nssCertificateArray_Destroy(certs);
     return rvCert;
@@ -850,12 +850,12 @@ NSS_IMPLEMENT NSSCertificate *
 NSSPublicKey_FindBestCertificate
 (
   NSSPublicKey *bk,
-  NSSTime *timeOpt,
+  NSSTime time,
   NSSUsage *usageOpt,
   NSSPolicies *policiesOpt
 )
 {
-    return nssPublicKey_FindBestCertificate(bk, timeOpt, 
+    return nssPublicKey_FindBestCertificate(bk, time, 
                                             usageOpt, policiesOpt);
 }
 

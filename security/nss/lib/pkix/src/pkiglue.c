@@ -398,6 +398,16 @@ pkix_FreeChainValidationData
 {
 }
 
+static void
+pkix_Destroy
+(
+  void *cert
+)
+{
+    NSSPKIXCertificate *pkixCert = (NSSPKIXCertificate *)cert;
+    NSSPKIXCertificate_Destroy(pkixCert);
+}
+
 NSSCertificateMethods g_pkix_methods;
 
 NSS_IMPLEMENT PRStatus
@@ -420,6 +430,7 @@ NSS_EnablePKIXCertificates
     g_pkix_methods.startChainValidation = pkix_StartChainValidation;
     g_pkix_methods.validateChainLink = pkix_ValidateChainLink;
     g_pkix_methods.freeChainValidationData = pkix_FreeChainValidationData;
+    g_pkix_methods.destroy = pkix_Destroy;
 
     return NSS_SetDefaultCertificateHandler(NSSCertificateType_PKIX, 
                                             &g_pkix_methods);

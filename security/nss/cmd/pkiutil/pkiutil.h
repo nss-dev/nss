@@ -15,7 +15,7 @@ typedef enum
 } PKIObjectType;
 
 PRStatus
-AddObject
+ImportObject
 (
   NSSTrustDomain *td,
   NSSToken *tokenOpt,
@@ -49,9 +49,9 @@ PRStatus
 DumpObject
 (
   NSSTrustDomain *td,
-  NSSToken *tokenOpt,
   char *objectType,
   char *nickname,
+  PRBool info,
   PRBool chain,
   CMDRunTimeData *rtData
 );
