@@ -161,10 +161,15 @@ SECITEM_CompareItem(const SECItem *a, const SECItem *b)
 PRBool
 SECITEM_ItemsAreEqual(const SECItem *a, const SECItem *b)
 {
-    if (SECITEM_CompareItem(a, b) == SECEqual)
-	return PR_TRUE;
-
-    return PR_FALSE;
+    if (a->len != b->len)
+        return PR_FALSE;
+    if (!a->len)
+    	return PR_TRUE;
+    if (!a->data || !b->data) {
+        /* avoid null pointer crash. */
+	return (PRBool)(a->data == b->data);
+    }
+    return (PRBool)!PORT_Memcmp(a->data, b->data, a->len);
 }
 
 SECItem *
