@@ -111,10 +111,11 @@ nssPKIX509_GetIssuerAndSerialFromDER(NSSDER *der, NSSArena *arena,
                                      NSSDER *issuer, NSSDER *serial);
 
 NSS_EXTERN char *
-STAN_GetCERTCertificateName(NSSCertificate *c);
+STAN_GetCERTCertificateName(PLArenaPool *arenaOpt, NSSCertificate *c);
 
 NSS_EXTERN char *
-STAN_GetCERTCertificateNameForInstance(NSSCertificate *c,
+STAN_GetCERTCertificateNameForInstance(PLArenaPool *arenaOpt,
+                                       NSSCertificate *c,
                                        nssCryptokiInstance *instance);
 
 /* exposing this */
