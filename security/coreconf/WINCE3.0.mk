@@ -1,4 +1,3 @@
-#! gmake
 #
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
@@ -32,14 +31,69 @@
 # GPL.
 #
 
-CORE_DEPTH = ..
+#
+# Config stuff for WINCE 3.0 (MS Pocket PC 2002)
+#
+# CPU_ARCH must already be defined to one of:
+#   x86, ARM
+#
+# This makefile defines the following variables:
+# OS_CFLAGS, and OS_DLLFLAGS.
 
-MODULE = dbm
+include $(CORE_DEPTH)/coreconf/WINCE.mk
 
-IMPORTS = nspr20/v4.1.2
+CEVersion  = 300
+CePlatform = WIN32_PLATFORM_PSPC=310
 
-RELEASE = dbm
+ifeq ($(CPU_ARCH), x86)
+    DEFINES += -D_X86_ -D_i386_ -Di_386_ -Dx86
+    OS_CFLAGS += -Gs8192 -GF
+    OS_DLLFLAGS += -machine:IX86
+else 
+ifeq ($(CPU_ARCH), ARM)
+    DEFINES += -DARM -D_ARM_
+    OS_DLLFLAGS += -machine:ARM
+else 
+    include CPU_ARCH_is_undefined
+endif
+endif
 
-DIRS =  include \
-        src     \
-	$(NULL)
+DEFINES += -D_WIN32_WCE=300 -DUNDER_CE=300
+DEFINES += -DWIN32_PLATFORM_PSPC=310
+DEFINES += -DUNICODE -D_UNICODE
+OS_CFLAGS += -W3 -nologo
+
+OS_DLLFLAGS += -DLL 
+
+LINKFLAGS = -nologo -PDB:NONE -subsystem:windowsce,3.00 \
+ -nodefaultlib:libc.lib \
+ -nodefaultlib:libcd.lib \
+ -nodefaultlib:libcmt.lib \
+ -nodefaultlib:libcmtd.lib \
+ -nodefaultlib:msvcrt.lib \
+ -nodefaultlib:msvcrtd.lib \
+ -nodefaultlib:oldnames.lib \
+ $(NULL)
+
+LINK    += $(LINKFLAGS)
+LDFLAGS += $(LINKFLAGS)
+
+OS_LIBS= coredll.lib corelibc.lib
+
+#DLLBASE = -base:"0x00100000" -stack:0x10000,0x1000 -entry:"_DllMainCRTStartup"
+DLLBASE += -align:"4096"
+
+#SUB_SHLOBJS =
+#EXTRA_LIBS =
+#EXTRA_SHARED_LIBS =
+#OS_LIBS=
+#LD_LIBS=
+
+#
+# Win NT needs -GT so that fibers can work
+#
+#OS_CFLAGS += -GT
+#DEFINES += -DWINNT
+
+# WINNT uses the lib prefix, Win95 and WinCE don't
+#NSPR31_LIB_PREFIX = lib
