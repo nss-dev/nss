@@ -242,30 +242,21 @@ endif
 release_policy::
 	+$(LOOP_OVER_DIRS)
 
-ifndef NO_MD_RELEASE
-    ifdef LIBRARY
-        MD_LIB_RELEASE_FILES +=  $(LIBRARY)
-    endif
-    ifdef SHARED_LIBRARY
-        MD_LIB_RELEASE_FILES +=  $(SHARED_LIBRARY)
-    endif
-    ifdef IMPORT_LIBRARY
-        MD_LIB_RELEASE_FILES +=  $(IMPORT_LIBRARY)
-    endif
-    ifdef PROGRAM
-        MD_BIN_RELEASE_FILES +=  $(PROGRAM)
-    endif
-    ifdef PROGRAMS
-        MD_BIN_RELEASE_FILES +=  $(PROGRAMS)
-    endif
-endif
-
 release_md::
-ifneq ($(MD_LIB_RELEASE_FILES),)
-	$(INSTALL) -m 444 $(MD_LIB_RELEASE_FILES) $(SOURCE_RELEASE_PREFIX)/$(SOURCE_RELEASE_LIB_DIR)
+ifdef LIBRARY
+	$(INSTALL) -m 444 $(LIBRARY) $(SOURCE_RELEASE_PREFIX)/$(SOURCE_RELEASE_LIB_DIR)
 endif
-ifneq ($(MD_BIN_RELEASE_FILES),)
-	$(INSTALL) -m 555 $(MD_BIN_RELEASE_FILES) $(SOURCE_RELEASE_PREFIX)/$(SOURCE_RELEASE_BIN_DIR)
+ifdef SHARED_LIBRARY
+	$(INSTALL) -m 555 $(SHARED_LIBRARY) $(SOURCE_RELEASE_PREFIX)/$(SOURCE_RELEASE_LIB_DIR)
+endif
+ifdef IMPORT_LIBRARY
+	$(INSTALL) -m 555 $(IMPORT_LIBRARY) $(SOURCE_RELEASE_PREFIX)/$(SOURCE_RELEASE_LIB_DIR)
+endif
+ifdef PROGRAM
+	$(INSTALL) -m 555 $(PROGRAM) $(SOURCE_RELEASE_PREFIX)/$(SOURCE_RELEASE_BIN_DIR)
+endif
+ifdef PROGRAMS
+	$(INSTALL) -m 555 $(PROGRAMS) $(SOURCE_RELEASE_PREFIX)/$(SOURCE_RELEASE_BIN_DIR)
 endif
 	+$(LOOP_OVER_DIRS)
 
@@ -417,22 +408,14 @@ WCCFLAGS3 := $(subst -D,-d,$(WCCFLAGS2))
 $(OBJDIR)/$(PROG_PREFIX)%$(OBJ_SUFFIX): %.c
 	@$(MAKE_OBJDIR)
 ifdef USE_NT_C_SYNTAX
-ifdef XP_OS2_VACPP
-	$(CC) -Fo$@ -c $(CFLAGS) $(subst /,\\,$(shell pwd)/$<)
-else
 	$(CC) -Fo$@ -c $(CFLAGS) $(subst /,\\,$<)
-endif
 else
 	$(CC) -o $@ -c $(CFLAGS) $<
 endif
 
 $(PROG_PREFIX)%$(OBJ_SUFFIX): %.c
 ifdef USE_NT_C_SYNTAX
-ifdef XP_OS2_VACPP
-	$(CC) -Fo$@ -c $(CFLAGS) $(subst /,\\,$(shell pwd)/$<)
-else
 	$(CC) -Fo$@ -c $(CFLAGS) $(subst /,\\,$<)
-endif
 else
 	$(CC) -o $@ -c $(CFLAGS) $<
 endif
@@ -445,11 +428,7 @@ endif
 
 $(OBJDIR)/$(PROG_PREFIX)%$(OBJ_SUFFIX): %.asm
 	@$(MAKE_OBJDIR)
-ifdef XP_OS2_VACPP
-	cd $(OBJDIR) ; $(AS) $(ASFLAGS) $(subst /,\\,$(shell pwd)/$<)
-else
 	$(AS) -Fo$@ $(ASFLAGS) -c $<
-endif
 
 $(OBJDIR)/$(PROG_PREFIX)%$(OBJ_SUFFIX): %.S
 	@$(MAKE_OBJDIR)
@@ -458,11 +437,7 @@ $(OBJDIR)/$(PROG_PREFIX)%$(OBJ_SUFFIX): %.S
 $(OBJDIR)/$(PROG_PREFIX)%: %.cpp
 	@$(MAKE_OBJDIR)
 ifdef USE_NT_C_SYNTAX
-ifdef XP_OS2_VACPP
-	$(CCC) -Fo$@ -c $(CFLAGS) $(subst /,\\,$(shell pwd)/$<)
-else
 	$(CCC) -Fo$@ -c $(CFLAGS) $<
-endif
 else
 	$(CCC) -o $@ -c $(CFLAGS) $<
 endif
@@ -482,11 +457,7 @@ ifdef STRICT_CPLUSPLUS_SUFFIX
 	rm -f $(OBJDIR)/t_$*.cc
 else
 ifdef USE_NT_C_SYNTAX
-ifdef XP_OS2_VACPP
-	$(CCC) -Fo$@ -c $(CFLAGS) $(subst /,\\,$(shell pwd)/$<)
-else
 	$(CCC) -Fo$@ -c $(CFLAGS) $<
-endif
 else
 	$(CCC) -o $@ -c $(CFLAGS) $<
 endif

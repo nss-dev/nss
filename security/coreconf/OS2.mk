@@ -117,8 +117,6 @@ else    # XP_OS2_VACPP
 # On OS/2 we proudly support gbash...
 #
 SHELL = GBASH.EXE
-AS = alp.exe
-ASFLAGS = -Od
 CCC			= icc -q -DXP_OS2 -DOS2=4 -N10
 LINK			= -ilink
 AR		= -ilib /NOL /NOI /O:$(subst /,\\,$@)
