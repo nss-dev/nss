@@ -33,8 +33,8 @@
 MAKEFILE_CVS_ID = "@(#) $RCSfile$ $Revision$ $Date$ $Name$"
 
 include manifest.mn
-include config.mk
 include $(CORE_DEPTH)/coreconf/config.mk
+include config.mk
 include $(CORE_DEPTH)/coreconf/rules.mk
 
 # Generate oiddata.h and oiddata.c.
