@@ -157,9 +157,11 @@ nssToken_LoadCerts(NSSToken *token)
 	search.cbarg = token;
 	search.cached = NULL;
 	search.searchType = nssTokenSearchType_TokenOnly;
-	token->certList = nssList_Create(token->arena, PR_FALSE);
 	if (!token->certList) {
-	    return PR_FAILURE;
+	    token->certList = nssList_Create(token->arena, PR_FALSE);
+	    if (!token->certList) {
+		return PR_FAILURE;
+	    }
 	}
 	/* ignore the rv, just work without the list */
 	(void)nssToken_TraverseCertificates(token, NULL, &search);
@@ -167,6 +169,13 @@ nssToken_LoadCerts(NSSToken *token)
 	 * any be imported.  Having the pointer will also prevent searches,
 	 * see below.
 	 */
+	if (nssList_Count(token->certList) == 0 &&
+	    !PK11_IsLoggedIn(token->pk11slot, NULL)) {
+	    /* If the token is not logged in, that may be the reason no
+	     * certs were found.
+	     */
+	    token->loggedIn = PR_FALSE;
+	}
     }
     return nssrv;
 }
@@ -179,7 +188,17 @@ nssToken_SearchCerts
 {
     if (!nssToken_IsPresent(token)) {
 	nssToken_DestroyCertList(token); /* will free cached certs */
-    } 
+    } else if (token->certList && 
+	       nssList_Count(token->certList) == 0 &&
+	       !token->loggedIn) {
+	/* If the token has no cached certs, but wasn't logged in, check
+	 * to see if it is logged in now and retry
+	 */
+	if (PK11_IsLoggedIn(token->pk11slot, NULL)) {
+	    token->loggedIn = PR_TRUE;
+	    nssToken_LoadCerts(token);
+	}
+    }
     return (PRBool) (token->certList == NULL);
 }
 
