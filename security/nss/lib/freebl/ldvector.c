@@ -113,53 +113,9 @@ static const struct FREEBLVectorStr vector = {
     PQG_ParamGen,
     PQG_ParamGenSeedLen,
     PQG_VerifyParams,
-
-    /* End of Version 3.001. */
-
     RSA_PrivateKeyOpDoubleChecked,
     RSA_PrivateKeyCheck,
     BL_Cleanup,
-
-    /* End of Version 3.002. */
-
-    SHA256_NewContext,
-    SHA256_DestroyContext,
-    SHA256_Begin,
-    SHA256_Update,
-    SHA256_End,
-    SHA256_HashBuf,
-    SHA256_Hash,
-    SHA256_TraceState,
-    SHA256_FlattenSize,
-    SHA256_Flatten,
-    SHA256_Resurrect,
-
-    SHA512_NewContext,
-    SHA512_DestroyContext,
-    SHA512_Begin,
-    SHA512_Update,
-    SHA512_End,
-    SHA512_HashBuf,
-    SHA512_Hash,
-    SHA512_TraceState,
-    SHA512_FlattenSize,
-    SHA512_Flatten,
-    SHA512_Resurrect,
-
-    SHA384_NewContext,
-    SHA384_DestroyContext,
-    SHA384_Begin,
-    SHA384_Update,
-    SHA384_End,
-    SHA384_HashBuf,
-    SHA384_Hash,
-    SHA384_TraceState,
-    SHA384_FlattenSize,
-    SHA384_Flatten,
-    SHA384_Resurrect,
-
-    /* End of Version 3.003. */
-
 };
 
 
