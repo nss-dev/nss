@@ -37,6 +37,7 @@ CORE_DEPTH = ../../..
 MODULE = security 
 
 CSRCS = \
+	pkiobject.c \
 	pkiutil.c \
 	$(NULL)
 

@@ -1,4 +1,4 @@
-#
+# 
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -31,26 +31,19 @@
 # GPL.
 #
 
-# $(PROGRAM) has explicit dependencies on $(EXTRA_LIBS)
-EXTRA_LIBS += \
-	$(DIST)/lib/libcmdutil.$(LIB_SUFFIX) \
+CORE_DEPTH = ../../..
+
+# MODULE public and private header  directories are implicitly REQUIRED.
+MODULE = security 
+
+CSRCS = \
+	ciphertests.c \
+	cipherutil.c  \
+	cipher.c      \
 	$(NULL)
 
-ifeq ($(OS_ARCH), AIX) 
-EXTRA_SHARED_LIBS += -brtl 
-endif
+# The MODULE is always implicitly required.
+# Listing it here in REQUIRES makes it appear twice in the cc command line.
+REQUIRES = dbm seccmd
 
-#	-lnsspki3 \
-#
-
-# $(PROGRAM) has NO explicit dependencies on $(EXTRA_SHARED_LIBS)
-# $(EXTRA_SHARED_LIBS) come before $(OS_LIBS), except on AIX.
-EXTRA_SHARED_LIBS += \
-	-L$(DIST)/lib/ \
-	-lnss4 \
-	-lsoftokn3 \
-	-lplc4 \
-	-lplds4 \
-	-lnspr4 \
-	$(NULL)
-
+PROGRAM = cipher

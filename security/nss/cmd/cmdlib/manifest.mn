@@ -32,18 +32,22 @@
 #
 CORE_DEPTH	= ../../..
 
-LIBRARY_NAME	= cmdutil
+LIBRARY_NAME = cmdutil
 
 # MODULE public and private header  directories are implicitly REQUIRED.
-MODULE		= seccmd
+MODULE = seccmd
 
-DEFINES		= -DNSPR20
+DEFINES	= -DNSPR20
 
-EXPORTS		= cmdutil.h \
-		  $(NULL)
+EXPORTS =         \
+	cmdutil.h \
+	$(NULL)
 
-CSRCS		= cmdline.c \
-		$(NULL)
+CSRCS =             \
+	cmdpasswd.c \
+	cmdio.c     \
+	cmdline.c   \
+	$(NULL)
 
-REQUIRES	= security nspr dbm
+REQUIRES = security nspr dbm
 

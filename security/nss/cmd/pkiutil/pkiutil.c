@@ -31,79 +31,29 @@
  * GPL.
  */
 
+#include <string.h>
 #include "nspr.h"
 #include "prtypes.h"
 #include "prtime.h"
 #include "prlong.h"
 #include "nss.h"
-#include "cmdutil.h"
 #include "nsspki.h"
-/* hmmm...*/
-#include "pki.h"
 
-#define PKIUTIL_VERSION_STRING "pkiutil version 0.1"
+#include "dev.h"
 
-char *progName = NULL;
+#include "pkiutil.h"
 
-typedef struct {
-    PRBool      raw;
-    PRBool      ascii;
-    char       *name;
-    PRFileDesc *file;
-} objOutputMode;
+char *progName;
 
-typedef enum {
-    PKIUnknown = -1,
-    PKICertificate,
-    PKIPublicKey,
-    PKIPrivateKey,
-    PKIAny
-} PKIObjectType;
-
-static PKIObjectType
-get_object_class(char *type)
-{
-    if (strcmp(type, "certificate") == 0 || strcmp(type, "cert") == 0 ||
-        strcmp(type, "Certificate") == 0 || strcmp(type, "Cert") == 0) {
-	return PKICertificate;
-    } else if (strcmp(type, "public_key") == 0 || 
-               strcmp(type, "PublicKey") == 0) {
-	return PKIPublicKey;
-    } else if (strcmp(type, "private_key") == 0 || 
-               strcmp(type, "PrivateKey") == 0) {
-	return PKIPrivateKey;
-    } else if (strcmp(type, "all") == 0 || strcmp(type, "any") == 0) {
-	return PKIAny;
-    }
-    fprintf(stderr, "%s: \"%s\" is not a valid PKCS#11 object type.\n",
-                     progName, type);
-    return PKIUnknown;
-}
-
-static PRStatus
-print_cert_callback(NSSCertificate *c, void *arg)
-{
-    int i;
-    NSSUTF8 *label;
-    NSSItem *id;
-    label = NSSCertificate_GetLabel(c);
-    printf("%s\n", label);
-    nss_ZFreeIf((void*)label);
-#if 0
-    id = NSSCertificate_GetID(c);
-    for (i=0; i<id->size; i++) {
-	printf("%c", ((char *)id->data)[i]);
-    }
-    printf("\n");
-#endif
-    return PR_SUCCESS;
-}
+static PRStatus pkiutil_command_dispatcher(cmdCommand *, int);
 
 /*  pkiutil commands  */
 enum {
     cmd_Add = 0,
-    cmd_Dump,
+    cmd_ChangePassword,
+    cmd_Delete,
     cmd_List,
+    cmd_Print,
     cmd_Version,
     pkiutil_num_commands
 };
@@ -112,11 +62,13 @@ enum {
 enum {
     opt_Help = 0,
     opt_Ascii,
+    opt_Chain,
     opt_ProfileDir,
     opt_TokenName,
     opt_InputFile,
     opt_Nickname,
     opt_OutputFile,
+    opt_Orphans,
     opt_Binary,
     opt_Trust,
     opt_Type,
@@ -125,32 +77,102 @@ enum {
 
 static cmdCommandLineArg pkiutil_commands[] =
 {
- { /* cmd_Add         */  'A', "add", CMDNoArg, 0, PR_FALSE, 
-                           CMDBIT(opt_Nickname) | CMDBIT(opt_Trust), 
-                           CMDBIT(opt_Ascii) | CMDBIT(opt_ProfileDir) 
-                           | CMDBIT(opt_TokenName) | CMDBIT(opt_InputFile) 
-                           | CMDBIT(opt_Binary) | CMDBIT(opt_Type) },
- { /* cmd_Dump        */   0 , "dump", CMDNoArg, 0, PR_FALSE,
-                           CMDBIT(opt_Nickname),
-                           CMDBIT(opt_Ascii) | CMDBIT(opt_ProfileDir) 
-                           | CMDBIT(opt_TokenName) | CMDBIT(opt_Binary)
-                           | CMDBIT(opt_Type) },
- { /* cmd_List        */  'L', "list", CMDNoArg, 0, PR_FALSE, 0, 
-                           CMDBIT(opt_Ascii) | CMDBIT(opt_ProfileDir) 
-                           | CMDBIT(opt_TokenName) | CMDBIT(opt_Binary)
-                           | CMDBIT(opt_Nickname) | CMDBIT(opt_Type) },
- { /* cmd_Version     */  'Y', "version", CMDNoArg, 0, PR_FALSE, 0, 0 }
+ { /* cmd_Add */  
+   'A', "add", 
+   CMDNoArg, 0, PR_FALSE, 
+   {
+     CMDBIT(opt_Nickname) | 
+     CMDBIT(opt_Trust), 
+     0, 0, 0
+   },
+   {
+     CMDBIT(opt_Ascii) | 
+     CMDBIT(opt_ProfileDir) | 
+     CMDBIT(opt_TokenName) | 
+     CMDBIT(opt_InputFile) | 
+     CMDBIT(opt_Binary) | 
+     CMDBIT(opt_Type),
+     0, 0, 0
+   },
+ },
+ { /* cmd_ChangePassword */
+    0 , "change-password",
+   CMDNoArg, 0, PR_FALSE,
+   { 
+     CMDBIT(opt_TokenName), 
+     0, 0, 0 
+   },
+   { 
+     CMDBIT(opt_ProfileDir),
+     0, 0, 0 
+   },
+ },
+ { /* cmd_Delete */
+   'D', "delete", 
+   CMDNoArg, 0, PR_FALSE, 
+   { 0, 0, 0, 0 },
+   {
+     CMDBIT(opt_Nickname) |
+     CMDBIT(opt_ProfileDir) | 
+     CMDBIT(opt_Orphans) | 
+     CMDBIT(opt_TokenName),
+     0, 0, 0
+   },
+ },
+ { /* cmd_List */  
+   'L', "list", 
+   CMDNoArg, 0, PR_FALSE, 
+   { 
+     0, 0, 0, 0 
+   },
+   {
+     CMDBIT(opt_Ascii) | 
+     CMDBIT(opt_ProfileDir) | 
+     CMDBIT(opt_TokenName) | 
+     CMDBIT(opt_Binary) | 
+     CMDBIT(opt_Nickname) | 
+     CMDBIT(opt_Type),
+     0, 0, 0
+   },
+ },
+ { /* cmd_Print */
+   'P', "print", 
+   CMDNoArg, 0, PR_FALSE,
+   {
+     CMDBIT(opt_Nickname),
+     0, 0, 0
+   },
+   {
+     CMDBIT(opt_Ascii) | 
+     CMDBIT(opt_Chain) | 
+     CMDBIT(opt_ProfileDir) | 
+     CMDBIT(opt_TokenName) | 
+     CMDBIT(opt_Nickname) | 
+     CMDBIT(opt_OutputFile) | 
+     CMDBIT(opt_Binary) | 
+     CMDBIT(opt_Type),
+     0, 0, 0
+   },
+ },
+ { /* cmd_Version */  
+   0, "version", 
+   CMDNoArg, 0, PR_FALSE, 
+   { 0, 0, 0, 0 }, 
+   { 0, 0, 0, 0 }
+ }
 };
 
 static cmdCommandLineOpt pkiutil_options[] =
 {
  { /* opt_Help        */  '?', "help",     CMDNoArg,   0, PR_FALSE },
  { /* opt_Ascii       */  'a', "ascii",    CMDNoArg,   0, PR_FALSE },
+ { /* opt_Chain       */   0 , "chain",    CMDNoArg,   0, PR_FALSE },
  { /* opt_ProfileDir  */  'd', "dbdir",    CMDArgReq,  0, PR_FALSE },
  { /* opt_TokenName   */  'h', "token",    CMDArgReq,  0, PR_FALSE },
  { /* opt_InputFile   */  'i', "infile",   CMDArgReq,  0, PR_FALSE },
  { /* opt_Nickname    */  'n', "nickname", CMDArgReq,  0, PR_FALSE },
  { /* opt_OutputFile  */  'o', "outfile",  CMDArgReq,  0, PR_FALSE },
+ { /* opt_Orphans     */   0 , "orphans",  CMDNoArg,   0, PR_FALSE },
  { /* opt_Binary      */  'r', "raw",      CMDNoArg,   0, PR_FALSE },
  { /* opt_Trust       */  't', "trust",    CMDArgReq,  0, PR_FALSE },
  { /* opt_Type        */   0 , "type",     CMDArgReq,  0, PR_FALSE }
@@ -175,11 +197,13 @@ void pkiutil_usage(cmdPrintState *ps,
     } else if (cmd) {
 	switch(num) {
 	case cmd_Add:     
-	    pusg(ps, "Add an object to the token"); break;
-	case cmd_Dump:
-	    pusg(ps, "Dump a single object"); break;
+	    pusg(ps, "Add an object to the profile/token"); break;
+	case cmd_Delete:     
+	    pusg(ps, "Delete an object from the profile/token"); break;
 	case cmd_List:    
 	    pusg(ps, "List objects on the token (-n for single object)"); break;
+	case cmd_Print:
+	    pusg(ps, "Print or dump a single object"); break;
 	case cmd_Version: 
 	    pusg(ps, "Report version"); break;
 	default:
@@ -214,17 +238,8 @@ void pkiutil_usage(cmdPrintState *ps,
 int 
 main(int argc, char **argv)
 {
-    PRFileDesc     *infile        = NULL;
-    PRFileDesc     *outfile       = NULL;
-    char           *profiledir       = "./";
-#if 0
-    secuPWData      pwdata        = { PW_NONE, 0 };
-#endif
-    int             objclass      = 3; /* ANY */
-    NSSTrustDomain *root_cert_td  = NULL;
-    char           *rootpath      = NULL;
-    char            builtin_name[]= "libnssckbi.so"; /* temporary hardcode */
-    PRStatus        rv            = PR_SUCCESS;
+    char     *profiledir = "./";
+    PRStatus  rv         = PR_SUCCESS;
 
     int cmdToRun;
     cmdCommand pkiutil;
@@ -234,6 +249,9 @@ main(int argc, char **argv)
     pkiutil.opt = pkiutil_options;
 
     progName = strrchr(argv[0], '/');
+    if (!progName) {
+	progName = strrchr(argv[0], '\\');
+    }
     progName = progName ? progName+1 : argv[0];
 
     cmdToRun = CMD_ParseCommandLine(argc, argv, progName, &pkiutil);
@@ -262,110 +280,125 @@ main(int argc, char **argv)
 	profiledir = strdup(pkiutil.opt[opt_ProfileDir].arg);
     }
 
-    /* -i */
-    if (pkiutil.opt[opt_InputFile].on) {
-	char *fn = pkiutil.opt[opt_InputFile].arg;
-	infile = PR_Open(fn, PR_RDONLY, 0660);
-    } else {
-	infile = PR_STDIN;
-    }
-
-    /* -o */
-    if (pkiutil.opt[opt_OutputFile].on) {
-	char *fn = pkiutil.opt[opt_OutputFile].arg;
-	outfile = PR_Open(fn, PR_WRONLY | PR_CREATE_FILE, 0660);
-    } else {
-	outfile = PR_STDOUT;
-    }
-
-    /* --type can be found on many options */
-    if (pkiutil.opt[opt_Type].on)
-	objclass = get_object_class(pkiutil.opt[opt_Type].arg);
-    else if (cmdToRun == cmd_Dump && pkiutil.cmd[cmd_Dump].arg)
-	objclass = get_object_class(pkiutil.cmd[cmd_Dump].arg);
-    else if (cmdToRun == cmd_List && pkiutil.cmd[cmd_List].arg)
-	objclass = get_object_class(pkiutil.cmd[cmd_List].arg);
-    else if (cmdToRun == cmd_Add && pkiutil.cmd[cmd_Add].arg)
-	objclass = get_object_class(pkiutil.cmd[cmd_Add].arg);
-    if (objclass < 0)
-	goto done;
-
-    /* --print is an alias for --list --nickname */
-    if (cmdToRun == cmd_Dump) cmdToRun = cmd_List;
-
-    /* if list has raw | ascii must have -n.  can't have both raw and ascii */
-    if (pkiutil.opt[opt_Binary].on || pkiutil.opt[opt_Ascii].on) {
-	if (cmdToRun == cmd_List && !pkiutil.opt[opt_Nickname].on) {
-	    fprintf(stderr, "%s: specify a object to output with -n\n", 
-	                     progName);
-	    CMD_LongUsage(progName, &pkiutil, pkiutil_usage);
-	}
+    /* Display version info and exit */
+    if (cmdToRun == cmd_Version) {
+	printf("%s\nNSS Version %s\n", PKIUTIL_VERSION_STRING, NSS_VERSION);
+	return PR_SUCCESS;
     }
 
     /* initialize */
     PR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
-    /* NSS_InitReadWrite(profiledir); */
-    NSS_NoDB_Init(NULL);
 
-    /* Display version info and exit */
-    if (cmdToRun == cmd_Version) {
-	printf("%s\nNSS Version %s\n", PKIUTIL_VERSION_STRING, NSS_VERSION);
-	goto done;
-    }
+    /* XXX allow for read-only and no-db */
+    NSS_InitReadWrite(profiledir);
 
-    /* XXX okay - bootstrap stan by loading the root cert module for testing */
-    root_cert_td = NSSTrustDomain_Create(NULL, NULL, NULL, NULL);
-    {
-	int rootpathlen = strlen(profiledir) + strlen(builtin_name) + 1;
-	rootpath = (char *)malloc(rootpathlen);
-	memcpy(rootpath, profiledir, strlen(profiledir));
-	memcpy(rootpath + strlen(profiledir), 
-               builtin_name, strlen(builtin_name));
-	rootpath[rootpathlen - 1] = '\0';
-    }
-    NSSTrustDomain_LoadModule(root_cert_td, "Builtin Root Module", rootpath, 
-                              NULL, NULL);
+    rv = pkiutil_command_dispatcher(&pkiutil, cmdToRun);
 
-    printf("\n");
-    if (pkiutil.opt[opt_Nickname].on) {
-	int i;
-	NSSCertificate **certs;
-	NSSCertificate *cert;
-	certs = NSSTrustDomain_FindCertificatesByNickname(root_cert_td,
-			pkiutil.opt[opt_Nickname].arg, NULL, 0, NULL);
-	i = 0;
-	while ((cert = certs[i++]) != NULL) {
-	    printf("Found cert:\n");
-	    print_cert_callback(cert, NULL);
-	}
-    } else {
-        NSSTrustDomain_TraverseCertificates(root_cert_td, print_cert_callback, 0);
-    }
+    nss_DumpCertificateCacheInfo();
 
-    NSSTrustDomain_Destroy(root_cert_td);
-
-    /* List token objects */
-    if (cmdToRun == cmd_List)  {
-#if 0
-	rv = list_token_objects(slot, objclass, 
-	                        pkiutil.opt[opt_Nickname].arg,
-	                        pkiutil.opt[opt_Binary].on,
-	                        pkiutil.opt[opt_Ascii].on,
-	                        outfile, &pwdata);
-#endif
-	goto done;
-    }
-
-#if 0
-    /* Import an object into the token. */
-    if (cmdToRun == cmd_Add) {
-	rv = add_object_to_token(slot, object);
-	goto done;
-    }
-#endif
-
-done:
     NSS_Shutdown();
 
     return rv;
 }
+
+static PRStatus 
+pkiutil_command_dispatcher(cmdCommand *pkiutil, int cmdToRun)
+{
+    PRStatus status;
+    CMDRunTimeData rtData;
+    NSSTrustDomain *td = NSS_GetDefaultTrustDomain();
+    NSSSlot *slot = NULL;
+    NSSToken *token = NULL;
+    NSSCallback *pwcb;
+    char *inMode;
+    char *outMode;
+
+    if (pkiutil->opt[opt_Ascii].on) {
+	inMode = outMode = "ascii";
+    } else if (pkiutil->opt[opt_Binary].on) {
+	inMode = outMode = "binary";
+    } else {
+	/* default I/O is binary input, pretty-print output */
+	inMode = "binary";
+	outMode = "pretty-print";
+    }
+
+    pwcb = CMD_GetDefaultPasswordCallback(NULL, NULL);
+    if (!pwcb) {
+	return PR_FAILURE;
+    }
+    status = NSSTrustDomain_SetDefaultCallback(td, pwcb, NULL);
+    if (status != PR_SUCCESS) {
+	return status;
+    }
+    status = CMD_SetRunTimeData(pkiutil->opt[opt_InputFile].arg, NULL, inMode,
+                                pkiutil->opt[opt_OutputFile].arg, outMode,
+                                &rtData);
+    if (status != PR_SUCCESS) {
+	return status;
+    }
+    if (pkiutil->opt[opt_TokenName].on) {
+	NSSUTF8 *tokenOrSlotName = pkiutil->opt[opt_TokenName].arg;
+	/* First try by slot name */
+	slot = NSSTrustDomain_FindSlotByName(td, tokenOrSlotName);
+	if (slot) {
+	    token = NSSSlot_GetToken(slot);
+	} else {
+	    token = NSSTrustDomain_FindTokenByName(td, tokenOrSlotName);
+	    if (token) {
+		slot = NSSToken_GetSlot(token);
+	    }
+	}
+    }
+    switch (cmdToRun) {
+    case cmd_Add:
+	status = AddObject(td,
+	                   NULL,
+	                   NULL,
+	                   pkiutil->opt[opt_Nickname].arg,
+	                   &rtData);
+	break;
+    case cmd_ChangePassword:
+	status = CMD_ChangeSlotPassword(slot);
+	break;
+    case cmd_Delete:
+	if (pkiutil->opt[opt_Orphans].on) {
+	    status = DeleteOrphanedKeyPairs(td, NULL, &rtData);
+	    break;
+	}
+	status = DeleteObject(td,
+	                      NULL,
+	                      NULL,
+	                      pkiutil->opt[opt_Nickname].arg);
+	break;
+    case cmd_List:
+	status = ListObjects(td,
+	                     NULL,
+	                     pkiutil->opt[opt_Type].arg,
+	                     pkiutil->opt[opt_Nickname].arg,
+	                     0,
+	                     &rtData);
+	break;
+    case cmd_Print:
+	status = DumpObject(td,
+	                    NULL,
+	                    NULL,
+	                    pkiutil->opt[opt_Nickname].arg,
+	                    pkiutil->opt[opt_Chain].on,
+	                    &rtData);
+	break;
+    default:
+	status = PR_FAILURE;
+	break;
+    }
+    CMD_FinishRunTimeData(&rtData);
+    CMD_DestroyCallback(pwcb);
+    if (slot) {
+	NSSSlot_Destroy(slot);
+    }
+    if (token) {
+	NSSToken_Destroy(token);
+    }
+    return status;
+}
+

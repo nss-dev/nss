@@ -36,6 +36,9 @@
 
 #include "cmdutil.h"
 
+/* XXX */
+#define ZERO 0
+
 static int s_indent_size = 4;
 
 void
@@ -193,26 +196,29 @@ command_line_okay(cmdCommand *cmd, char *progName)
 	CMD_Usage(progName, cmd);
     }
     for (i=0; i<cmd->nopt; i++) {
-	if (cmd->cmd[c].req & CMDBIT(i)) {
+	if (cmd->cmd[c].req[ZERO] & CMDBIT(i)) {
 	    /* command requires this option */
 	    if (!cmd->opt[i].on) {
 		/* but it ain't there */
 		fprintf(stderr, "%s: command --%s requires option --%s.\n",
 		                 progName, cmd->cmd[c].s, cmd->opt[i].s);
+		CMD_Usage(progName, cmd);
 	    } else {
 		/* okay, its there, but does it have an arg? */
 		if (cmd->opt[i].argUse == CMDArgReq && !cmd->opt[i].arg) {
 		    fprintf(stderr, "%s: option --%s requires an argument.\n",
 		                     progName, cmd->opt[i].s);
+		    CMD_Usage(progName, cmd);
 		}
 	    }
-	} else if (cmd->cmd[c].opt & CMDBIT(i)) {
+	} else if (cmd->cmd[c].opt[ZERO] & CMDBIT(i)) {
 	   /* this option is optional */
 	    if (cmd->opt[i].on) {
 		/* okay, its there, but does it have an arg? */
 		if (cmd->opt[i].argUse == CMDArgReq && !cmd->opt[i].arg) {
 		    fprintf(stderr, "%s: option --%s requires an argument.\n",
 		                     progName, cmd->opt[i].s);
+		    CMD_Usage(progName, cmd);
 		}
 	    }
 	} else {
@@ -221,6 +227,7 @@ command_line_okay(cmdCommand *cmd, char *progName)
 		/* so why the h--- is it on? */
 		fprintf(stderr, "%s: option --%s not used with command --%s.\n",
 		                 progName, cmd->opt[i].s, cmd->cmd[c].s);
+		CMD_Usage(progName, cmd);
 	   }
 	}
     }
@@ -299,12 +306,14 @@ CMD_ParseCommandLine(int argc, char **argv, char *progName, cmdCommand *cmd)
 	    arg = strchr(fl, '=');
 	    if (arg) {
 		*arg++ = '\0';
+#if 0
 	    } else {
 		arg = strchr(fl, '-');
 		if (arg) {
 		    hyphened = PR_TRUE; /* watch this, see below */
 		    *arg++ = '\0';
 		}
+#endif
 	    }
 	    for (k=0; k<cmd->ncmd; k++) {
 		if (strcmp(fl, cmd->cmd[k].s) == 0) {
@@ -361,7 +370,7 @@ CMD_LongUsage(char *progName, cmdCommand *cmd, cmdUsageCallback usage)
 	    ps.indent += 20;
 	    usage(&ps, i, PR_TRUE, PR_FALSE, PR_FALSE);
 	    for (j=0; j<cmd->nopt; j++) {
-		if (cmd->cmd[i].req & CMDBIT(j)) {
+		if (cmd->cmd[i].req[ZERO] & CMDBIT(j)) {
 		    ps.indent = 0;
 		    print_ps_indent(&ps);
 		    nprintf(&ps, "%3s* ", "");
@@ -376,7 +385,7 @@ CMD_LongUsage(char *progName, cmdCommand *cmd, cmdUsageCallback usage)
 		}
 	    }
 	    for (j=0; j<cmd->nopt; j++) {
-		if (cmd->cmd[i].opt & CMDBIT(j)) {
+		if (cmd->cmd[i].opt[ZERO] & CMDBIT(j)) {
 		    ps.indent = 0;
 		    print_ps_indent(&ps);
 		    nprintf(&ps, "%5s", "");
@@ -423,7 +432,7 @@ CMD_Usage(char *progName, cmdCommand *cmd)
 	ps.indent += inc;
 	print_ps_to_indent(&ps);
 	for (j=0; j<cmd->nopt; j++) {
-	    if (cmd->cmd[i].req & CMDBIT(j)) {
+	    if (cmd->cmd[i].req[ZERO] & CMDBIT(j)) {
 		if (cmd->opt[j].c != 0 && cmd->opt[j].argUse == CMDNoArg) {
 		    if (first) {
 			nprintf(&ps, "-");
@@ -434,7 +443,7 @@ CMD_Usage(char *progName, cmdCommand *cmd)
 	    }
 	}
 	for (j=0; j<cmd->nopt; j++) {
-	    if (cmd->cmd[i].req & CMDBIT(j)) {
+	    if (cmd->cmd[i].req[ZERO] & CMDBIT(j)) {
 		if (cmd->opt[j].c != 0)
 		    nprintf(&ps, "-%c ", cmd->opt[j].c);
 		else
@@ -445,7 +454,7 @@ CMD_Usage(char *progName, cmdCommand *cmd)
 	}
 	first = PR_TRUE;
 	for (j=0; j<cmd->nopt; j++) {
-	    if (cmd->cmd[i].opt & CMDBIT(j)) {
+	    if (cmd->cmd[i].opt[ZERO] & CMDBIT(j)) {
 		if (cmd->opt[j].c != 0 && cmd->opt[j].argUse == CMDNoArg) {
 		    if (first) {
 			nprintf(&ps, "[-");
@@ -457,7 +466,7 @@ CMD_Usage(char *progName, cmdCommand *cmd)
 	}
 	if (!first) nprintf(&ps, "] ");
 	for (j=0; j<cmd->nopt; j++) {
-	    if (cmd->cmd[i].opt & CMDBIT(j) && 
+	    if (cmd->cmd[i].opt[ZERO] & CMDBIT(j) && 
 	         cmd->opt[j].argUse != CMDNoArg) {
 		if (cmd->opt[j].c != 0)
 		    nprintf(&ps, "[-%c %s] ", cmd->opt[j].c, cmd->opt[j].s);

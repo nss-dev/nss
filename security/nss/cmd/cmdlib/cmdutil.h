@@ -37,10 +37,63 @@
 #include <stdio.h>
 #include "nspr.h"
 #include "nssbase.h"
+#include "nssdevt.h"
 
-typedef int 
-(* CMD_PPFunc)(PRFileDesc *out, NSSItem *item, char *msg, int level);
+NSSCallback *
+CMD_GetDefaultPasswordCallback
+(
+  char *password,
+  char *passwordFile
+);
 
+void
+CMD_DestroyCallback
+(
+  NSSCallback *callback
+);
+
+PRStatus
+CMD_ChangeSlotPassword(NSSSlot *slot);
+
+typedef enum
+{
+  CMDFileMode_Binary = 0,               /* binary  yyy...            */
+  CMDFileMode_Hex,                      /* hex stream YZYZ... (y=YZ) */
+  CMDFileMode_HexWithSpace,             /* hex stream YZ YZ ...      */
+  CMDFileMode_HexConvertedWithSpace,    /* hex stream 0xYZ 0xYZ ...  */
+  CMDFileMode_Ascii,                    /* Base-64 encoded           */
+  CMDFileMode_PrettyPrint               /* for output only           */
+} CMDFileMode;
+
+typedef struct 
+{
+  CMDFileMode  mode;
+  char        *name;
+  PRFileDesc  *file;
+  char        *str;
+}
+CMDFileData;
+
+typedef struct
+{
+  CMDFileData input;
+  CMDFileData output;
+} 
+CMDRunTimeData;
+
+PRStatus
+CMD_SetRunTimeData(char *inputFileName, char *input, char *inMode,
+                   char *outputFileName, char *outMode,
+                   CMDRunTimeData *rtData);
+
+void 
+CMD_FinishRunTimeData(CMDRunTimeData *rtData);
+
+NSSItem *
+CMD_GetInput(CMDRunTimeData *rtData);
+
+void
+CMD_DumpOutput(NSSItem *output, CMDRunTimeData *rtData);
 
 /*
  * Command Line Parsing routines
@@ -71,8 +124,8 @@ struct cmdCommandLineArgStr {
     CMDArg   argUse; /* flag takes an argument          */
     char    *arg;    /* argument given for flag         */
     PRBool   on;     /* flag was issued at command-line */
-    int      req;    /* required arguments for commands */
-    int      opt;    /* optional arguments for commands */
+    int      req[4]; /* required arguments for commands */
+    int      opt[4]; /* optional arguments for commands */
 };
 
 struct cmdCommandLineOptStr {
