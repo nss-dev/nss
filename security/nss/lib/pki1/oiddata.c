@@ -1347,6 +1347,16 @@ const NSSOID nss_builtin_oids[] = {
   },
   {
 #ifdef DEBUG
+    "md5-hmac",
+    "MD5-HMAC",
+#endif /* DEBUG */
+    { "\x2a\x86\x48\x86\xf7\x0d\x02\x05\x01", 9 },
+    CKK_INVALID_KEY_TYPE,
+    CKM_MD5_HMAC_GENERAL,
+    PR_FALSE
+  },
+  {
+#ifdef DEBUG
     "cipher",
     "RSA cipher algorithm",
 #endif /* DEBUG */
@@ -2103,6 +2113,16 @@ const NSSOID nss_builtin_oids[] = {
     { "\x2b\x0e\x03\x02\x1a", 5 },
     CKK_INVALID_KEY_TYPE,
     CKM_SHA_1,
+    PR_FALSE
+  },
+  {
+#ifdef DEBUG
+    "sha1-hmac",
+    "SHA-1 HMAC",
+#endif /* DEBUG */
+    { "\x2b\x0e\x03\x02\x1a\x01", 6 },
+    CKK_INVALID_KEY_TYPE,
+    CKM_SHA_1_HMAC_GENERAL,
     PR_FALSE
   },
   {
@@ -3837,6 +3857,6 @@ const NSSOID nss_builtin_oids[] = {
   }
 };
 
-const PRUint32 nss_builtin_oid_count = 379;
+const PRUint32 nss_builtin_oid_count = 381;
 
 

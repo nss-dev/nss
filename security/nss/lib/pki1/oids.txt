@@ -762,6 +762,13 @@ EXPL "MD5"
 NAME NSS_OID_MD5
 CKM CKM_MD5
 
+# XXX idm - I'm making this up for testing
+OID 1.2.840.113549.2.5.1
+TAG md5-hmac
+EXPL "MD5-HMAC"
+NAME NSS_OID_MD5_HMAC
+CKM CKM_MD5_HMAC_GENERAL
+
 OID 1.2.840.113549.3 
 TAG cipher
 EXPL "RSA cipher algorithm"
@@ -1188,6 +1195,13 @@ TAG sha1
 EXPL "SHA-1"
 NAME NSS_OID_SHA1
 CKM CKM_SHA_1
+
+# XXX idm -- I'm making this up for testing
+OID 1.3.14.3.2.26.1
+TAG sha1-hmac
+EXPL "SHA-1 HMAC"
+NAME NSS_OID_SHA1_HMAC
+CKM CKM_SHA_1_HMAC_GENERAL
 
 OID 1.3.14.3.2.27
 TAG bogusDSASignatureWithSHA1Digest

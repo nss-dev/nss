@@ -909,13 +909,6 @@ nssAlgNParam_Decode (
   NSSBER *algIDber
 );
 
-/* devf.h? */
-NSS_EXTERN NSSAlgNParam *
-nssAlgNParam_CreateSSLSessionKeyDerivation (
-  NSSArena *arenaOpt,
-  NSSSSLSessionKeyParameters *parameters
-);
-
 NSS_EXTERN NSSAlgNParam *
 nssAlgNParam_Clone (
   const NSSAlgNParam *ap,

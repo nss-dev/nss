@@ -322,6 +322,7 @@ NSSTrustDomain_FindTokenBySlotName (
     return NULL;
 }
 
+/* XXX should use mech for algNparams that don't have an OID */
 NSS_IMPLEMENT NSSToken *
 nssTrustDomain_FindTokenForAlgNParam (
   NSSTrustDomain *td,
@@ -329,6 +330,15 @@ nssTrustDomain_FindTokenForAlgNParam (
 )
 {
     return nssSlotList_GetBestTokenForAlgorithm(td->slots.forCerts, ap);
+}
+
+NSS_IMPLEMENT NSSToken *
+NSSTrustDomain_FindTokenForAlgNParam (
+  NSSTrustDomain *td,
+  const NSSAlgNParam *ap
+)
+{
+    return nssTrustDomain_FindTokenForAlgNParam(td, ap);
 }
 
 NSS_IMPLEMENT NSSToken *

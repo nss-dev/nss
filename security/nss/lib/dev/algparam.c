@@ -755,6 +755,11 @@ set_cryptoki_mechanism (
 	break;
     case NSS_OID_RC5_CBC_PAD:
 	return set_rc5_mechanism(ap, mech, params, encodedParams, keygen);
+    case NSS_OID_MD5_HMAC:
+    case NSS_OID_SHA1_HMAC:
+	/* XXX should be doing some checking here (ever encoded?) */
+	ap->mechanism.mechanism = algorithm->mechanism;
+	return set_ulong_parameter(&ap->mechanism, params->hmac, ap->arena);
     case NSS_OID_PKCS5_PBE_WITH_MD2_AND_DES_CBC:
     case NSS_OID_PKCS5_PBE_WITH_MD5_AND_DES_CBC:
     case NSS_OID_PKCS5_PBE_WITH_SHA1_AND_DES_CBC:
@@ -1344,6 +1349,22 @@ NSSAlgNParam_CreateForSSL (
 )
 {
     return nssAlgNParam_CreateForSSL(arena, alg, params);
+}
+
+NSS_EXTERN NSSSSLVersion
+nssAlgNParam_GetSSLVersionFromMSDerive (
+  const NSSAlgNParam *ap
+)
+{
+    CK_SSL3_MASTER_KEY_DERIVE_PARAMS_PTR params;
+    params = (CK_SSL3_MASTER_KEY_DERIVE_PARAMS_PTR)ap->mechanism.pParameter;
+    if (params->pVersion->major == 2 && params->pVersion->minor == 0) 
+	return NSSSSLVersion_SSLv2;
+    else if (params->pVersion->major == 3 && params->pVersion->minor == 0) 
+	return NSSSSLVersion_SSLv3;
+    else if (params->pVersion->major == 3 && params->pVersion->minor == 1) 
+	return NSSSSLVersion_TLS;
+    else return -1; /* XXX */
 }
 
 NSS_IMPLEMENT void
