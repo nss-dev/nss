@@ -3370,7 +3370,7 @@ pk11ListCertCallback(NSSCertificate *c, void *arg)
     if (isUnique) {
 	CERT_DupCertificate(newCert);
 
-	nickname = STAN_GetCERTCertificateName(c);
+	nickname = STAN_GetCERTCertificateName(certList->arena, c);
 
 	/* put slot certs at the end */
 	if (newCert->slot && !PK11_IsInternal(newCert->slot)) {
@@ -3392,7 +3392,8 @@ pk11ListCertCallback(NSSCertificate *c, void *arg)
 	    /* put the same CERTCertificate in the list for all instances */
 	    CERT_DupCertificate(newCert);
 
-	    nickname = STAN_GetCERTCertificateNameForInstance(c, instance);
+	    nickname = STAN_GetCERTCertificateNameForInstance(
+			certList->arena, c, instance);
 
 	    /* put slot certs at the end */
 	    if (slot && !PK11_IsInternal(slot)) {
