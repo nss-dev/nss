@@ -135,10 +135,11 @@ main (int argc, char **argv)
     }
 
     PR_fprintf(pr_stderr,"Changing byte 0x%08x (%d): from %02x (%d) to ", 
-					offset, offset, cbuf, cbuf);
+		offset, offset, (unsigned char)cbuf, (unsigned char)cbuf);
     /* change it */
     cbuf ^= 1 << bitOffset;
-    PR_fprintf(pr_stderr,"%02x (%d)\n", cbuf, cbuf);
+    PR_fprintf(pr_stderr,"%02x (%d)\n", (
+				unsigned char)cbuf, (unsigned char)cbuf);
 
     /* write it back out */
     pos = PR_Seek(fd, offset, PR_SEEK_SET);
