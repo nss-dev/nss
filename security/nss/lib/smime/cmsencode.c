@@ -304,6 +304,9 @@ nss_cms_before_data(NSSCMSEncoderContext *p7ecx)
 	case SEC_OID_PKCS7_DATA:
 	    rv = SECSuccess;
 	    break;
+	default:
+	    PORT_Assert(0);
+	    break;
 	}
 	if (rv != SECSuccess)
 	    goto loser;
@@ -366,7 +369,7 @@ loser:
 static SECStatus
 nss_cms_after_data(NSSCMSEncoderContext *p7ecx)
 {
-    SECStatus rv;
+    SECStatus rv = SECFailure;
 
     switch (p7ecx->type) {
     case SEC_OID_PKCS7_SIGNED_DATA:
