@@ -57,6 +57,7 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 
 #ifdef NSS_3_4_CODE
 #include "cert.h"
+#include "pki3hack.h"
 #endif
 
 extern const NSSError NSS_ERROR_NOT_FOUND;
@@ -866,7 +867,7 @@ NSSTrustDomain_FindUserCertificatesForEmailSigning
     return NULL;
 }
 
-static struct traverse_arg 
+struct traverse_arg 
 {
   PRStatus (*callback)(NSSCertificate *c, void *arg);
   nssList *cached;
