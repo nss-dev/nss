@@ -56,6 +56,12 @@ HMAC_Destroy(HMACContext *cx)
     PORT_ZFree(cx, sizeof(HMACContext));
 }
 
+int
+HMAC_GetLength(HMACContext *cx)
+{
+    return cx->hashobj->length;
+}
+
 HMACContext *
 HMAC_Create(SECOidTag      hash_alg, 
       const unsigned char *secret, 

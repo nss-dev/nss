@@ -180,11 +180,6 @@ pk11_getKeyFromList(PK11SlotInfo *slot) {
     if (symKey == NULL) {
 	return NULL;
     }
-    symKey->refLock = PZ_NewLock(nssILockRefLock);
-    if (symKey->refLock == NULL) {
-	PORT_Free(symKey);
-	return NULL;
-    }
     symKey->session = pk11_GetNewSession(slot,&symKey->sessionOwner);
     symKey->next = NULL;
     return symKey;
@@ -199,7 +194,6 @@ PK11_CleanKeyList(PK11SlotInfo *slot)
     	symKey = slot->freeSymKeysHead;
 	slot->freeSymKeysHead = symKey->next;
 	pk11_CloseSession(slot, symKey->session,symKey->sessionOwner);
-	PK11_USE_THREADS(PZ_DestroyLock(symKey->refLock);)
 	PORT_Free(symKey);
     };
     return;
@@ -243,17 +237,15 @@ PK11_CreateSymKey(PK11SlotInfo *slot, CK_MECHANISM_TYPE type, void *wincx)
 void
 PK11_FreeSymKey(PK11SymKey *symKey)
 {
-    PRBool destroy = PR_FALSE;
     PK11SlotInfo *slot;
     PRBool freeit = PR_TRUE;
 
-    PK11_USE_THREADS(PZ_Lock(symKey->refLock);)
-     if (symKey->refCount-- == 1) {
-	destroy= PR_TRUE;
-    }
-    PK11_USE_THREADS(PZ_Unlock(symKey->refLock);)
-    if (destroy) {
+    if (PR_AtomicDecrement(&symKey->refCount) == 0) {
+#if 0
 	if ((symKey->owner) && symKey->objectID != CK_INVALID_KEY) {
+#else
+	if ((symKey->owner) && symKey->objectID != CK_INVALID_HANDLE) {
+#endif
 	    pk11_EnterKeyMonitor(symKey);
 	    (void) PK11_GETTAB(symKey->slot)->
 		C_DestroyObject(symKey->session, symKey->objectID);
@@ -276,7 +268,6 @@ PK11_FreeSymKey(PK11SymKey *symKey)
         if (freeit) {
 	    pk11_CloseSession(symKey->slot, symKey->session,
 							symKey->sessionOwner);
-	    PK11_USE_THREADS(PZ_DestroyLock(symKey->refLock);)
 	    PORT_Free(symKey);
 	}
 	PK11_FreeSlot(slot);
@@ -286,9 +277,7 @@ PK11_FreeSymKey(PK11SymKey *symKey)
 PK11SymKey *
 PK11_ReferenceSymKey(PK11SymKey *symKey)
 {
-    PK11_USE_THREADS(PZ_Lock(symKey->refLock);)
-    symKey->refCount++;
-    PK11_USE_THREADS(PZ_Unlock(symKey->refLock);)
+    PR_AtomicIncrement(&symKey->refCount);
     return symKey;
 }
 
@@ -313,17 +302,6 @@ PK11_SymKeyFromHandle(PK11SlotInfo *slot, PK11SymKey *parent, PK11Origin origin,
     symKey->objectID = keyID;
     symKey->origin = origin;
     symKey->owner = owner;
-
-    /* adopt the parent's session */
-    /* This is only used by SSL. What we really want here is a session
-     * structure with a ref count so  the session goes away only after all the
-     * keys do. */
-    if (owner && parent) {
-	pk11_CloseSession(symKey->slot, symKey->session,symKey->sessionOwner);
-	symKey->sessionOwner = parent->sessionOwner;
-	symKey->session = parent->session;
-	parent->sessionOwner = PR_FALSE;
-    }
 
     return symKey;
 }
@@ -3167,7 +3145,20 @@ PK11_ExitContextMonitor(PK11Context *cx) {
 void
 PK11_DestroyContext(PK11Context *context, PRBool freeit)
 {
+    SECStatus rv = SECFailure;
+    if (context->ownSession && context->key && /* context owns session & key */
+        context->key->session == context->session && /* sharing session */
+        !context->key->sessionOwner)              /* sanity check */
+    {
+	/* session still valid, let the key free it as necessary */
+        rv = PK11_Finalize(context); /* end any ongoing activity */
+	if (rv == SECSuccess) {
+	    context->key->sessionOwner = PR_TRUE;
+	} /* else couldn't finalize the session, close it */
+    }
+    if (rv == SECFailure) {
     pk11_CloseSession(context->slot,context->session,context->ownSession);
+    }
     /* initialize the critical fields of the context */
     if (context->savedData != NULL ) PORT_Free(context->savedData);
     if (context->key) PK11_FreeSymKey(context->key);
@@ -3180,46 +3171,46 @@ PK11_DestroyContext(PK11Context *context, PRBool freeit)
 /*
  * save the current context. Allocate Space if necessary.
  */
-static void *
-pk11_saveContextHelper(PK11Context *context, void *space, 
-	unsigned long *savedLength, PRBool staticBuffer, PRBool recurse)
+static unsigned char *
+pk11_saveContextHelper(PK11Context *context, unsigned char *buffer, 
+                       unsigned long *savedLength)
 {
-    CK_ULONG length;
     CK_RV crv;
 
-    if (staticBuffer) PORT_Assert(space != NULL);
-
-    if (space == NULL) {
-	crv =PK11_GETTAB(context->slot)->C_GetOperationState(context->session,
-				NULL,&length);
-	if (crv != CKR_OK) {
-	    PORT_SetError( PK11_MapError(crv) );
-	    return NULL;
-	}
-	space = PORT_Alloc(length);
-	if (space == NULL) return NULL;
-	*savedLength = length;
-    }
+    /* If buffer is NULL, this will get the length */
     crv = PK11_GETTAB(context->slot)->C_GetOperationState(context->session,
-					(CK_BYTE_PTR)space,savedLength);
-    if (!staticBuffer && !recurse && (crv == CKR_BUFFER_TOO_SMALL)) {
-	if (!staticBuffer) PORT_Free(space);
-	return pk11_saveContextHelper(context, NULL, 
-					savedLength, PR_FALSE, PR_TRUE);
+                                                          (CK_BYTE_PTR)buffer,
+                                                          savedLength);
+    if (!buffer || (crv == CKR_BUFFER_TOO_SMALL)) {
+	/* the given buffer wasn't big enough (or was NULL), but we 
+	 * have the length, so try again with a new buffer and the 
+	 * correct length
+	 */
+	unsigned long bufLen = *savedLength;
+	buffer = PORT_Alloc(bufLen);
+	if (buffer == NULL) {
+	    return (unsigned char *)NULL;
+	}
+	crv = PK11_GETTAB(context->slot)->C_GetOperationState(
+	                                                  context->session,
+                                                          (CK_BYTE_PTR)buffer,
+                                                          savedLength);
+	if (crv != CKR_OK) {
+	    PORT_ZFree(buffer, bufLen);
+	}
     }
     if (crv != CKR_OK) {
-	if (!staticBuffer) PORT_Free(space);
 	PORT_SetError( PK11_MapError(crv) );
-	return NULL;
+	return (unsigned char *)NULL;
     }
-    return space;
+    return buffer;
 }
 
 void *
 pk11_saveContext(PK11Context *context, void *space, unsigned long *savedLength)
 {
-	return pk11_saveContextHelper(context, space, 
-					savedLength, PR_FALSE, PR_FALSE);
+    return pk11_saveContextHelper(context, 
+                                  (unsigned char *)space, savedLength);
 }
 
 /*
@@ -3351,7 +3342,14 @@ static PK11Context *pk11_CreateNewContextInSlot(CK_MECHANISM_TYPE type,
     context->operation = operation;
     context->key = symKey ? PK11_ReferenceSymKey(symKey) : NULL;
     context->slot = PK11_ReferenceSlot(slot);
-    context->session = pk11_GetNewSession(slot,&context->ownSession);
+    if (symKey && symKey->sessionOwner) {
+	/* The symkey owns a session.  Adopt that session. */
+	context->session = symKey->session;
+	context->ownSession = symKey->sessionOwner;
+	symKey->sessionOwner = PR_FALSE;
+    } else {
+	context->session = pk11_GetNewSession(slot, &context->ownSession);
+    }
     context->cx = symKey ? symKey->cx : NULL;
     /* get our session */
     context->savedData = NULL;
@@ -3557,8 +3555,7 @@ PK11_SaveContext(PK11Context *cx,unsigned char *save,int *len, int saveLength)
 
     if (cx->ownSession) {
         PK11_EnterContextMonitor(cx);
-	data = (unsigned char*)pk11_saveContextHelper(cx,save,&length,
-							PR_FALSE,PR_FALSE);
+	data = pk11_saveContextHelper(cx, save, &length);
         PK11_ExitContextMonitor(cx);
 	if (data) *len = length;
     } else if (saveLength >= cx->savedLength) {
@@ -3568,7 +3565,14 @@ PK11_SaveContext(PK11Context *cx,unsigned char *save,int *len, int saveLength)
 	}
 	*len = cx->savedLength;
     }
-    return (data != NULL) ? SECSuccess : SECFailure;
+    if (data != NULL) {
+	if (cx->ownSession) {
+	    PORT_ZFree(data, length);
+	}
+	return SECSuccess;
+    } else {
+	return SECFailure;
+    }
 }
 
 /*
@@ -3945,31 +3949,34 @@ pk11_Finalize(PK11Context *context)
 {
     CK_ULONG count = 0;
     CK_RV crv;
+    unsigned char stackBuf[256];
+    unsigned char *buffer = NULL;
 
     if (!context->ownSession) {
 	return SECSuccess;
     }
 
+finalize:
     switch (context->operation) {
     case CKA_ENCRYPT:
 	crv=PK11_GETTAB(context->slot)->C_EncryptFinal(context->session,
-				NULL,&count);
+	                                               buffer, &count);
 	break;
     case CKA_DECRYPT:
 	crv = PK11_GETTAB(context->slot)->C_DecryptFinal(context->session,
-				NULL,&count);
+	                                                 buffer, &count);
 	break;
     case CKA_SIGN:
 	crv=PK11_GETTAB(context->slot)->C_SignFinal(context->session,
-				NULL,&count);
+	                                            buffer, &count);
 	break;
     case CKA_VERIFY:
 	crv=PK11_GETTAB(context->slot)->C_VerifyFinal(context->session,
-				NULL,count);
+	                                              buffer, count);
 	break;
     case CKA_DIGEST:
 	crv=PK11_GETTAB(context->slot)->C_DigestFinal(context->session,
-				NULL,&count);
+	                                              buffer, &count);
 	break;
     default:
 	crv = CKR_OPERATION_NOT_INITIALIZED;
@@ -3977,8 +3984,22 @@ pk11_Finalize(PK11Context *context)
     }
 
     if (crv != CKR_OK) {
+	if (crv == CKR_OPERATION_NOT_INITIALIZED) {
+	    /* if there's no operation, it is finalized */
+	    return SECSuccess;
+	}
         PORT_SetError( PK11_MapError(crv) );
         return SECFailure;
+    }
+
+    /* try to finalize the session with a buffer */
+    if (buffer == NULL && count > 0) { 
+	if (count < sizeof stackBuf) {
+	    buffer = stackBuf;
+	    goto finalize;
+	} else {
+	    return SECFailure;
+	}
     }
     return SECSuccess;
 }
