@@ -72,6 +72,9 @@ nss_certdb_name_cb(void *arg, int dbVersion)
     const char *dbver;
 
     switch (dbVersion) {
+      case 8:
+	dbver = "8";
+	break;
       case 7:
 	dbver = "7";
 	break;

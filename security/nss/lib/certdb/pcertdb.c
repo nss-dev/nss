@@ -238,7 +238,11 @@ ReadDBEntry(CERTCertDBHandle *handle, certDBEntryCommon *entry,
 	goto loser;
     }
     buf = (unsigned char *)data.data;
-    if ( buf[0] != (unsigned char)CERT_DB_FILE_VERSION ) {
+    /* version 7 uses the shame scheme, we may be using a v7 db if we
+     * opened the dbs readonly
+     */
+    if ( !((buf[0] == (unsigned char)CERT_DB_FILE_VERSION) ||
+           (buf[0] == (unsigned char)CERT_DB_V7_FILE_VERSION)) ) {
 	PORT_SetError(SEC_ERROR_BAD_DATABASE);
 	goto loser;
     }
@@ -445,6 +449,7 @@ DecodeDBCertEntry(certDBEntryCert *entry, SECItem *dbentry)
 	lenoff = 3;
 	break;
       case 7:
+      case 8:
 	headerlen = DB_CERT_ENTRY_HEADER_LEN;
 	lenoff = 6;
 	break;
@@ -3774,6 +3779,144 @@ loser:
     return(NULL);
 }
 
+/* forward declaration */
+static SECStatus
+UpdateV7DB(CERTCertDBHandle *handle, DB *updatedb);
+
+/*
+ * version 8 uses the same schema as version 7. The only differences are
+ * 1) version 8 db uses the blob shim to store data entries > 32k.
+ * 2) version 8 db sets the db block size to 32k.
+ * both of these are dealt with by the handle.
+ */
+
+static SECStatus
+UpdateV8DB(CERTCertDBHandle *handle, DB *updatedb)
+{
+    return UpdateV7DB(handle,updatedb);
+}
+
+
+/*
+ * we could just blindly sequence through reading key data pairs and writing
+ * them back out, but some cert.db's have gotten quite large and may have some
+ * subtle corruption problems, so instead we cycle through the certs and
+ * CRL's and S/MIME profiles and rebuild our subject lists from those records.
+ */
+static SECStatus
+UpdateV7DB(CERTCertDBHandle *handle, DB *updatedb)
+{
+    DBT key, data;
+    int ret;
+    CERTCertificate *cert;
+    PRBool isKRL = PR_FALSE;
+    certDBEntryType entryType;
+    SECItem dbEntry, dbKey;
+    certDBEntryRevocation crlEntry;
+    certDBEntryCert certEntry;
+    certDBEntrySMime smimeEntry;
+    SECStatus rv;
+
+    ret = (* updatedb->seq)(updatedb, &key, &data, R_FIRST);
+
+    if ( ret ) {
+	return(SECFailure);
+    }
+    
+    do {
+	unsigned char *dataBuf = (unsigned char *)data.data;
+	unsigned char *keyBuf = (unsigned char *)key.data;
+	dbEntry.data = &dataBuf[SEC_DB_ENTRY_HEADER_LEN];
+	dbEntry.len = data.size - SEC_DB_ENTRY_HEADER_LEN;
+ 	entryType = (certDBEntryType) keyBuf[0];
+	dbKey.data = &keyBuf[SEC_DB_KEY_HEADER_LEN];
+	dbKey.len = key.size - SEC_DB_KEY_HEADER_LEN;
+	if ((dbEntry.len <= 0) || (dbKey.len <= 0)) {
+	    continue;
+	}
+
+	switch (entryType) {
+	/* these entries will get regenerated as we read the 
+	 * rest of the data from the database */
+	case certDBEntryTypeVersion:
+	case certDBEntryTypeSubject:
+	case certDBEntryTypeContentVersion:
+	case certDBEntryTypeNickname:
+	/*default: */
+	    break;
+
+	case certDBEntryTypeCert:
+	    /* decode Entry */
+    	    certEntry.common.version = (unsigned int)dataBuf[0];
+	    certEntry.common.type = entryType;
+	    certEntry.common.flags = (unsigned int)dataBuf[2];
+	    certEntry.common.arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
+	    if (certEntry.common.arena == NULL) {
+		break;
+	    }
+	    rv = DecodeDBCertEntry(&certEntry,&dbEntry);
+	    if (rv != SECSuccess) {
+		break;
+	    }
+	    /* should we check for existing duplicates? */
+	    cert = CERT_DecodeDERCertificate(&certEntry.derCert, PR_FALSE,
+	                                     certEntry.nickname);
+	    if (cert) {
+		AddCertToPermDB(handle, cert, certEntry.nickname,
+		                &certEntry.trust);
+		CERT_DestroyCertificate(cert);
+	    }
+	    /* free data allocated by the decode */
+	    PORT_FreeArena(certEntry.common.arena, PR_FALSE);
+	    certEntry.common.arena = NULL;
+	    break;
+
+	case certDBEntryTypeKeyRevocation:
+	    isKRL = PR_TRUE;
+	    /* fall through */
+	case certDBEntryTypeRevocation:
+    	    crlEntry.common.version = (unsigned int)dataBuf[0];
+	    crlEntry.common.type = entryType;
+	    crlEntry.common.flags = (unsigned int)dataBuf[2];
+	    crlEntry.common.arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
+	    if (crlEntry.common.arena == NULL) {
+		break;
+	    }
+	    rv = DecodeDBCrlEntry(&crlEntry,&dbEntry);
+	    if (rv != SECSuccess) {
+		break;
+	    }
+
+	    rv = WriteDBCrlEntry(handle, &crlEntry);
+	    if (rv != SECSuccess) {
+		break;
+	    }
+	    /* free data allocated by the decode */
+	    PORT_FreeArena(crlEntry.common.arena, PR_FALSE);
+	    crlEntry.common.arena = NULL;
+	    break;
+
+	case certDBEntryTypeSMimeProfile:
+    	    smimeEntry.common.version = (unsigned int)dataBuf[0];
+	    smimeEntry.common.type = entryType;
+	    smimeEntry.common.flags = (unsigned int)dataBuf[2];
+	    smimeEntry.common.arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
+	    rv = DecodeDBSMimeEntry(&smimeEntry,&dbEntry,(char *)dbKey.data);
+	    /* decode entry */
+	    WriteDBSMimeEntry(handle, &smimeEntry);
+	    PORT_FreeArena(smimeEntry.common.arena, PR_FALSE);
+	    smimeEntry.common.arena = NULL;
+	    break;
+	}
+    } while ( (* updatedb->seq)(updatedb, &key, &data, R_NEXT) == 0 );
+
+    (* updatedb->close)(updatedb);
+
+    /* a database update is a good time to go back and verify the integrity of
+     * the keys and certs */
+    return(SECSuccess);
+}
+
 /*
  * NOTE - Version 6 DB did not go out to the real world in a release,
  * so we can remove this function in a later release.
@@ -4261,7 +4404,7 @@ SEC_OpenPermCertDB(CERTCertDBHandle *handle, PRBool readOnly,
     /*
      * first open the permanent file based database.
      */
-    handle->permCertDB = dbopen( certdbname, openflags, 0600, DB_HASH, 0 );
+    handle->permCertDB = dbsopen( certdbname, openflags, 0600, DB_HASH, 0 );
 
     /* check for correct version number */
     if ( handle->permCertDB ) {
@@ -4284,14 +4427,34 @@ SEC_OpenPermCertDB(CERTCertDBHandle *handle, PRBool readOnly,
     /* if first open fails, try to create a new DB */
     if ( handle->permCertDB == NULL ) {
 
-	/* don't create if readonly */
 	if ( readOnly ) {
-	    goto loser;
+	    /* if opening read-only and cert8.db does not exist, 
+	     * use cert7.db
+	     */
+	    tmpname = (* namecb)(cbarg, 7); /* get v7 db name */
+	    if (!tmpname) {
+		goto loser;
+	    }
+	    handle->permCertDB = dbopen(tmpname, O_RDONLY, 0600, DB_HASH, 0);
+	    PORT_Free(tmpname);
+	    if (!handle->permCertDB) {
+		goto loser;
+	    }
+	    versionEntry = ReadDBVersionEntry(handle);
+	    if ( versionEntry == NULL ) {
+		/* no version number */
+		goto loser;
+	    } else if ( versionEntry->common.version != 7 ) {
+		DestroyDBEntry((certDBEntry *)versionEntry);
+		goto loser;
+	    }
+	    PORT_Free(certdbname);
+	    return SECSuccess;
 	}
-	
-	handle->permCertDB = dbopen(certdbname,
-				    O_RDWR | O_CREAT | O_TRUNC,
-				    0600, DB_HASH, 0);
+	/* create a new database */
+	handle->permCertDB = dbsopen(certdbname,
+                                     O_RDWR | O_CREAT | O_TRUNC,
+                                     0600, DB_HASH, 0);
 
 	/* if create fails then we lose */
 	if ( handle->permCertDB == 0 ) {
@@ -4309,6 +4472,21 @@ SEC_OpenPermCertDB(CERTCertDBHandle *handle, PRBool readOnly,
 
 	if ( rv != SECSuccess ) {
 	    goto loser;
+	}
+
+	/* try to upgrade old db here */
+	tmpname = (* namecb)(cbarg, 7);	/* get v7 db name */
+	if ( tmpname ) {
+	    updatedb = dbopen( tmpname, O_RDONLY, 0600, DB_HASH, 0 );
+	    PORT_Free(tmpname);
+	    if ( updatedb ) {
+		rv = UpdateV7DB(handle, updatedb);
+		if ( rv != SECSuccess ) {
+		    goto loser;
+		}
+		updated = PR_TRUE;
+		goto update_finished;
+	    }
 	}
 
 	/* try to upgrade old db here */
@@ -4358,6 +4536,7 @@ SEC_OpenPermCertDB(CERTCertDBHandle *handle, PRBool readOnly,
 		}
 	    }
 	}
+update_finished:
 
 	/* initialize the database with our well known certificates
 	 * or in the case of update, just fall down to CERT_AddNewCerts()
