@@ -2392,6 +2392,10 @@ ssl3_ComputeHandshakeHashes(sslSocket *     ss,
     PORT_Assert( ssl_HaveSSL3HandshakeLock(ss) );
 
     isTLS = (PRBool)(spec->version > SSL_LIBRARY_VERSION_3_0);
+    if (!spec->master_secret) {
+        PORT_SetError(SSL_ERROR_RX_UNEXPECTED_HANDSHAKE);
+        return SECFailure;
+    }
 
     md5 = PK11_CloneContext(ssl3->hs.md5);
     if (md5 == NULL) {
