@@ -83,3 +83,5 @@ const NSSError NSS_ERROR_MAXIMUM_FOUND                  = 30;
 
 const NSSError NSS_ERROR_CERTIFICATE_ISSUER_NOT_FOUND   = 31;
 
+const NSSError NSS_ERROR_CERTIFICATE_IN_CACHE           = 32;
+
