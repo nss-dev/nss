@@ -626,6 +626,8 @@ loser:
 
 SECStatus SEC_DestroyCrl(CERTSignedCrl *crl);
 
+void RefreshIssuer(SECItem* crlKey);
+
 CERTSignedCrl *
 crl_storeCRL (PK11SlotInfo *slot,char *url,
                   CERTSignedCrl *newCrl, SECItem *derCrl, int type)
@@ -685,7 +687,7 @@ crl_storeCRL (PK11SlotInfo *slot,char *url,
     }
 
     /* invalidate CRL cache for this issuer */
-    CERT_CRLCacheRefreshIssuer(NULL, &newCrl->crl.derName);
+    RefreshIssuer(&newCrl->crl.derName);
     /* Write the new entry into the data base */
     crlHandle = PK11_PutCrl(slot, derCrl, &newCrl->crl.derName, url, type);
     if (crlHandle != CK_INVALID_HANDLE) {
@@ -1887,14 +1889,12 @@ SEC_FindCrlByName(CERTCertDBHandle *handle, SECItem *crlKey, int type)
     return acrl;
 }
 
-void CERT_CRLCacheRefreshIssuer(CERTCertDBHandle* dbhandle, SECItem* crlKey)
+void RefreshIssuer(SECItem* crlKey)
 {
     CERTSignedCrl* acrl = NULL;
     CRLDPCache* cache = NULL;
     SECStatus rv = SECSuccess;
     PRBool writeLocked = PR_FALSE;
-
-    (void) dbhandle; /* silence compiler warnings */
 
     rv = AcquireDPCache(NULL, crlKey, NULL, 0, NULL, &cache, &writeLocked);
     if (SECSuccess != rv)
