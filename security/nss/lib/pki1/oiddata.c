@@ -34,6 +34,7 @@
  * the terms of any one of the MPL, the GPL or the LGPL.
  *
  * ***** END LICENSE BLOCK ***** */
+
 #ifdef DEBUG
 static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ ; @(#) $RCSfile$ $Revision$ $Date$";
 #endif /* DEBUG */
