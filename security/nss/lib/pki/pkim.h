@@ -303,6 +303,13 @@ nssTrustDomain_FindCRLsBySubject (
 );
 
 NSS_EXTERN PRStatus
+nssTrustDomain_GetCertTrust (
+  NSSTrustDomain *td,
+  NSSCert *c,
+  nssTrust *rvTrust
+);
+
+NSS_EXTERN PRStatus
 nssTrustDomain_SetCertTrust (
   NSSTrustDomain *td,
   NSSCert *c,
@@ -754,7 +761,7 @@ nssPKIDatabase_FindCertByEncodedCert (
 );
 
 NSS_EXTERN PRStatus
-nssPKIDatabase_FindTrustForCert (
+nssPKIDatabase_GetCertTrust (
   nssPKIDatabase *pkidb,
   NSSCert *cert,
   nssTrust *rvTrust

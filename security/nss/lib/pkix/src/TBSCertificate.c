@@ -56,12 +56,18 @@ static const NSSASN1Template sub_any[] = {
   { NSSASN1_ANY }
 };
 
+static const NSSASN1Template sub_integer[] = {
+  { NSSASN1_INTEGER }
+};
+
 const NSSASN1Template nssPKIXTBSCertificate_template[] = 
 {
  { NSSASN1_SEQUENCE,   0, NULL, sizeof(NSSPKIXTBSCertificate) },
  { NSSASN1_EXPLICIT | NSSASN1_OPTIONAL | 
    NSSASN1_CONSTRUCTED | NSSASN1_CONTEXT_SPECIFIC | 0, 0, skipper },
- { NSSASN1_INTEGER, offsetof(NSSPKIXTBSCertificate, serialNumber) },
+ { NSSASN1_SAVE, offsetof(NSSPKIXTBSCertificate, serialNumber.der) },
+ { NSSASN1_INLINE, offsetof(NSSPKIXTBSCertificate, serialNumber.serialNumber),
+      sub_integer },
  { NSSASN1_SKIP }, /* XXX signature */
  { NSSASN1_ANY, offsetof(NSSPKIXTBSCertificate, issuer.der) },
  { NSSASN1_ANY, offsetof(NSSPKIXTBSCertificate, validity.der) },
@@ -271,7 +277,7 @@ nssPKIXTBSCertificate_GetSerialNumber (
   NSSPKIXTBSCertificate *tbsCert
 )
 {
-    if (NSSITEM_IS_EMPTY(&tbsCert->serialNumber)) {
+    if (NSSITEM_IS_EMPTY(&tbsCert->serialNumber.der)) {
 	if (NSSITEM_IS_EMPTY(&tbsCert->der) ||
 	    decode_me(tbsCert) == PR_FAILURE)
 	{
@@ -618,5 +624,22 @@ NSSPKIXTBSCertificate_GetExtensions (
 )
 {
     return nssPKIXTBSCertificate_GetExtensions(tbsCert);
+}
+
+/* XXX move */
+NSS_IMPLEMENT NSSItem *
+nssPKIXCertificateSerialNumber_GetSerialNumber (
+  NSSPKIXCertificateSerialNumber *sn
+)
+{
+    return &sn->serialNumber;
+}
+
+NSS_IMPLEMENT NSSItem *
+NSSPKIXCertificateSerialNumber_GetSerialNumber (
+  NSSPKIXCertificateSerialNumber *sn
+)
+{
+    return nssPKIXCertificateSerialNumber_GetSerialNumber(sn);
 }
 

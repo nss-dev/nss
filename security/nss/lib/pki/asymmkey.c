@@ -947,8 +947,15 @@ nssPublicKey_CreateFromInstance (
 	goto loser;
     }
     pkio->objectType = pkiObjectType_PublicKey;
-    pkio->numIDs = 1;
-    pkio->uid[0] = &rvKey->id;
+    switch (rvKey->info.kind) {
+    case NSSKeyPairType_RSA:
+	pkio->numIDs = 1;
+	pkio->uid[0] = &rvKey->info.u.rsa.modulus;
+	break;
+    default:
+	PR_ASSERT(0);
+	goto loser;
+    }
     pkio->copyToToken = copy_public_key_to_token;
     rvKey = (NSSPublicKey *)nssPKIObjectTable_Add(objectTable, pkio);
     if (!rvKey) {
@@ -1031,6 +1038,7 @@ nssPublicKey_CreateFromInfo (
 
     bko = nssToken_ImportPublicKey(token, session, &bki, PR_FALSE);
     if (bko) {
+	    /* XXX this re-gets the info from the token :( */
 	rvbk = nssPublicKey_CreateFromInstance(bko, td, vd);
 	if (!rvbk) {
 	    nssCryptokiObject_Destroy(bko);
@@ -1092,50 +1100,6 @@ nssPublicKey_GetID (
     } else {
 	return (NSSItem *)NULL;
     }
-}
-
-NSS_IMPLEMENT PRBool
-nssPublicKey_HasInstanceOnToken (
-  NSSPublicKey *bk,
-  NSSToken *token
-)
-{
-    return nssPKIObject_HasInstanceOnToken(&bk->object, token);
-}
-
-NSS_IMPLEMENT nssCryptokiObject *
-nssPublicKey_GetInstance (
-  NSSPublicKey *bk,
-  NSSToken *token
-)
-{
-    return nssPKIObject_GetInstance(&bk->object, token);
-}
-
-NSS_IMPLEMENT PRStatus
-nssPublicKey_RemoveInstanceForToken (
-  NSSPublicKey *bk,
-  NSSToken *token
-)
-{
-    return nssPKIObject_RemoveInstanceForToken(&bk->object, token);
-}
-
-NSS_IMPLEMENT PRIntn
-nssPublicKey_CountInstances (
-  NSSPublicKey *bk
-)
-{
-    return nssPKIObject_CountInstances(&bk->object);
-}
-
-NSS_IMPLEMENT void
-nssPublicKey_SetVolatileDomain (
-  NSSPublicKey *bk,
-  NSSVolatileDomain *vd
-)
-{
-    nssPKIObject_SetVolatileDomain(&bk->object, vd);
 }
 
 NSS_IMPLEMENT PRStatus
@@ -1426,7 +1390,7 @@ nssPublicKey_GetInstanceForAlgorithmAndObject (
 	for (tp = tokens; *tp; tp++) {
 	    if (nssToken_DoesAlgNParam(*tp, ap)) {
 		/* found one for the algorithm */
-		instance = nssPublicKey_GetInstance(bk, *tp);
+		instance = nssPKIObject_GetInstance(PKIOBJECT(bk), *tp);
 		if (instance) {
 		    /* and the public key is there as well, done */
 		    break;

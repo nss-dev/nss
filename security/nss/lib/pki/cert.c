@@ -190,9 +190,12 @@ nssCert_CreateFromInstance (
 	    goto loser;
 	}
     }
-    /* token certs trusted by default */
-    rvCert->trust.trustedUsages.ca = rvCert->trust.trustedUsages.peer = ~0;
-    /* XXX or check trust here by looking at db? */
+    status = nssTrustDomain_GetCertTrust(td, rvCert, &rvCert->trust);
+    if (status == PR_FAILURE) {
+	/* XXX this should check whether is was not found err */
+	/* token certs trusted by default */
+	rvCert->trust.trustedUsages.ca = rvCert->trust.trustedUsages.peer = ~0;
+    }
     return rvCert;
 loser:
     nssCert_Destroy(rvCert);
@@ -279,7 +282,14 @@ nssCert_Decode (
 	rvCert = (NSSCert *)pkio;
 	goto loser;
     } else if ((nssPKIObject *)rvCert != pkio) {
+	/* XXX sigh, leak it for now, until fix table removal
 	nssCert_Destroy((NSSCert *)pkio);
+	*/
+    } else {
+	/* XXX */
+	    /* XXX this hits a lock during traversal 
+	(void)nssTrustDomain_GetCertTrust(td, rvCert, &rvCert->trust);
+	*/
     }
     return rvCert;
 loser:

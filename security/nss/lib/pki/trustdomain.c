@@ -141,8 +141,8 @@ nssTrustDomain_Destroy (
 	nssSlotList_Destroy(td->slots.forCerts);
 	nssSlotList_Destroy(td->slots.forCiphers);
 	nssSlotList_Destroy(td->slots.forTrust);
-	nssPKIObjectTable_Destroy(td->objectTable);
 	nssTokenStore_Destroy(td->tokenStore);
+	nssPKIObjectTable_Destroy(td->objectTable);
 	nssPKIDatabase_Close(td->pkidb);
 	/* Destroy the trust domain */
 	nssArena_Destroy(td->arena);
@@ -1315,6 +1315,16 @@ NSSTrustDomain_CreateCryptoContextForAlgorithm (
 {
     nss_SetError(NSS_ERROR_NOT_FOUND);
     return NULL;
+}
+
+NSS_IMPLEMENT PRStatus
+nssTrustDomain_GetCertTrust (
+  NSSTrustDomain *td,
+  NSSCert *c,
+  nssTrust *rvTrust
+)
+{
+    return nssPKIDatabase_GetCertTrust(td->pkidb, c, rvTrust);
 }
 
 NSS_IMPLEMENT PRStatus

@@ -850,7 +850,7 @@ nssPKIDatabase_FindCertByEncodedCert (
 }
 
 NSS_IMPLEMENT PRStatus
-nssPKIDatabase_FindTrustForCert (
+nssPKIDatabase_GetCertTrust (
   nssPKIDatabase *pkidb,
   NSSCert *cert,
   nssTrust *rvTrust
@@ -912,6 +912,7 @@ nssPKIDatabase_TraverseCerts (
 		    if (status == PR_FAILURE) {
 			break; /* allow for early termination */
 		    }
+		    nssCert_Destroy(cert);
 		} /* else ? */
 	    } /* else ? */
 	}

@@ -388,7 +388,8 @@ CMD_PrintPKIXTBSCertificate(CMDPrinter *printer,
 
     serialNum = NSSPKIXTBSCertificate_GetSerialNumber(tbsCert);
     if (serialNum) {
-	CMD_PrintInteger(printer, serialNum, "Serial Number");
+	NSSItem *sn = NSSPKIXCertificateSerialNumber_GetSerialNumber(serialNum);
+	CMD_PrintInteger(printer, sn, "Serial Number");
 	newline_reset(printer);
     }
 

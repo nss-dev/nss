@@ -99,6 +99,12 @@ loser:
     return (nssPKIObject *)NULL;
 }
 
+static PRStatus
+nssPKIObjectTable_DestroyAndRemove (
+  nssPKIObjectTable *table,
+  nssPKIObject *object
+);
+
 NSS_IMPLEMENT PRStatus
 nssPKIObject_Destroy (
   nssPKIObject *object
@@ -106,10 +112,14 @@ nssPKIObject_Destroy (
 {
     PRUint32 i;
     PRStatus status;
+    nssPKIObjectTable *table = nssTrustDomain_GetObjectTable(object->td);
 
     PR_ASSERT(object->refCount > 0);
+    /*
     PR_AtomicDecrement(&object->refCount);
     status = PR_SUCCESS;
+    */
+    status = nssPKIObjectTable_DestroyAndRemove(table, object);
     if (object->refCount == 0) {
 	for (i=0; i<object->numInstances; i++) {
 	    nssCryptokiObject_Destroy(object->instances[i]);
@@ -995,15 +1005,15 @@ static int
 nss_compare_pkiobjects(const void *v1, const void *v2)
 {
     int i;
-    int rv = 0;
+    int rv = 1;
     nssPKIObject *pkio1 = (nssPKIObject *)v1;
     nssPKIObject *pkio2 = (nssPKIObject *)v2;
     if (pkio1->objectType != pkio2->objectType) {
-	return 1;
+	return 0;
     }
     for (i = 0; i < pkio1->numIDs; i++) {
-	if (!nssItem_Equal(pkio1->uid[i], pkio1->uid[i], NULL)) {
-	    rv = 1;
+	if (!nssItem_Equal(pkio1->uid[i], pkio2->uid[i], NULL)) {
+	    rv = 0;
 	    break;
 	}
     }
@@ -1062,6 +1072,7 @@ nssPKIObjectTable_Add (
     pkio = (nssPKIObject *)PL_HashTableLookup(table->hash, object);
     if (pkio) {
 	pkio = nssPKIObject_Merge(pkio, object);
+	nssPKIObject_AddRef(pkio);
     } else {
 	he = PL_HashTableAdd(table->hash, object, object);
 	if( (PLHashEntry *)NULL == he ) {
@@ -1077,13 +1088,28 @@ nssPKIObjectTable_Add (
     return pkio;
 }
 
+static PRStatus
+nssPKIObjectTable_DestroyAndRemove (
+  nssPKIObjectTable *table,
+  nssPKIObject *object
+)
+{
+    PRStatus status = PR_SUCCESS;
+    PZ_Lock(table->lock);
+    PR_AtomicDecrement(&object->refCount);
+    if (object->refCount == 0) {
+	status = PL_HashTableRemove(table->hash, object);
+    }
+    PZ_Unlock(table->lock);
+    return status;
+}
+
 NSS_IMPLEMENT PRStatus
 nssPKIObjectTable_Remove (
   nssPKIObjectTable *table,
   nssPKIObject *object
 )
 {
-
     PRStatus status;
     PZ_Lock(table->lock);
     status = PL_HashTableRemove(table->hash, object);

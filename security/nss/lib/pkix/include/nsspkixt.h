@@ -484,7 +484,7 @@ typedef enum NSSPKIXVersionEnum NSSPKIXVersion;
  *
  */
 
-typedef NSSItem NSSPKIXCertificateSerialNumber;
+typedef struct NSSPKIXCertificateSerialNumberStr NSSPKIXCertificateSerialNumber;
 
 /*
  * Validity

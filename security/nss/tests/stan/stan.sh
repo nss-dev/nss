@@ -285,4 +285,8 @@ nssu --dump-token -d ${CERTDIR}
 CIPHER_ACTION="Run Symmetric Key Self-Tests"
 ciph -T
 
+# set trust (stuck on token for now)
+pkiutil -M -d server -n root -u "CV"
+pkiutil -M -d client -n root -u "CV"
+
 cert_cleanup

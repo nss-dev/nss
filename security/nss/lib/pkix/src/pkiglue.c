@@ -53,6 +53,9 @@ static const char CVS_ID[] = "@(#) $Source$ $Revision$ $Date$ $Name$";
 
 #include "nss.h"
 
+/* XXX for sn hack */
+#include "../include/pkixtm.h"
+
 static void *
 pkix_Decode (
   NSSArena *arenaOpt,
@@ -163,7 +166,8 @@ pkix_GetSerialNumber (
     /*
      * tbsCert->serialNumber
      */
-    snBER = nssPKIXTBSCertificate_GetSerialNumber(tbsCert);
+    /* XXX hack for now */
+    snBER = &tbsCert->serialNumber.der;
 
 finish:
     nss_ResumeErrorStack();

@@ -107,9 +107,11 @@ get_cert_serial_number(NSSCert *c)
 {
     NSSPKIXCertificate *pkixCert;
     NSSPKIXTBSCertificate *tbsCert;
+    NSSPKIXCertificateSerialNumber *serialNumber;
     pkixCert = (NSSPKIXCertificate *)NSSCert_GetDecoding(c);
     tbsCert = NSSPKIXCertificate_GetTBSCertificate(pkixCert);
-    return NSSPKIXTBSCertificate_GetSerialNumber(tbsCert);
+    serialNumber = NSSPKIXTBSCertificate_GetSerialNumber(tbsCert);
+    return NSSPKIXCertificateSerialNumber_GetSerialNumber(serialNumber);
 }
 
 /* XXX should have a filter function */
@@ -149,10 +151,10 @@ print_cert_callback(NSSCert *c, void *arg)
     CMDRunTimeData *rtData = (CMDRunTimeData *)arg;
     CMDPrinter printer;
     NSSUTF8 *nickname = nssCert_GetNickname(c, NULL);
-    NSSItem *serialNumber;
+    NSSItem *sn;
     NSSUsages usages;
     PRBool isUserCert = NSSCert_IsPrivateKeyAvailable(c, NULL, NULL);
-    serialNumber = get_cert_serial_number(c);
+    sn = get_cert_serial_number(c);
     if (NSSCert_GetTrustedUsages(c, &usages) == NULL) {
 	CMD_PrintError("Failed to obtain trusted usages");
 	return PR_FAILURE;
@@ -161,7 +163,7 @@ print_cert_callback(NSSCert *c, void *arg)
     CMD_InitPrinter(&printer, rtData->output.file, 0, 80);
     CMD_PrintCertificateTrust(&printer, &usages, NULL);
     PR_fprintf(rtData->output.file, " %-40s", nickname);
-    CMD_PrintHex(&printer, serialNumber, NULL);
+    CMD_PrintHex(&printer, sn, NULL);
     PR_fprintf(rtData->output.file, "    ");
     PR_fprintf(rtData->output.file, "\n");
     return PR_SUCCESS;

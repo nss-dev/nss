@@ -55,6 +55,7 @@ NSSPKIXBasicConstraints_GetPathLengthConstraint;
 NSSPKIXCertificate_Decode;
 NSSPKIXCertificate_GetSignature;
 NSSPKIXCertificate_GetTBSCertificate;
+NSSPKIXCertificateSerialNumber_GetSerialNumber;
 NSSPKIXName_Encode;
 NSSPKIXTBSCertificate_Encode;
 NSSPKIXTBSCertificate_GetSerialNumber;

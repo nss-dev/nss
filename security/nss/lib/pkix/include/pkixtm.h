@@ -377,6 +377,13 @@ struct NSSPKIXExtensionsStr {
   NSSPKIXExtension **extensions;
 };
 
+struct NSSPKIXCertificateSerialNumberStr {
+  NSSArena *arena;
+  PRBool i_allocated_arena;
+  NSSDER der;
+  NSSItem serialNumber;
+};
+
 /*
  * TBSCertificate
  *
