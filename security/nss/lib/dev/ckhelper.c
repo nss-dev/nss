@@ -76,7 +76,7 @@ NSS_IMPLEMENT_DATA const NSSItem
 g_ck_class_privkey = { (CK_VOID_PTR)&s_class_privkey, sizeof(s_class_privkey) };
 
 NSS_IMPLEMENT PRStatus 
-NSSCKObject_GetAttributes
+nssCKObject_GetAttributes
 (
   CK_OBJECT_HANDLE object,
   CK_ATTRIBUTE_PTR obj_template,

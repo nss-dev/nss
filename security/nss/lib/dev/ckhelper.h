@@ -77,7 +77,7 @@ NSS_EXTERN_DATA const NSSItem g_ck_class_privkey;
 
 /* Get an array of attributes from an object. */
 NSS_EXTERN PRStatus 
-NSSCKObject_GetAttributes
+nssCKObject_GetAttributes
 (
   CK_OBJECT_HANDLE object,
   CK_ATTRIBUTE_PTR obj_template,
