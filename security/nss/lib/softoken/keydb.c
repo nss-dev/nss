@@ -956,7 +956,7 @@ nsslowkey_OpenKeyDB(PRBool readOnly, const char *appName, const char *prefix,
     }
 
     handle->appname = appName ? PORT_Strdup(appName) : NULL ;
-    handle->dbname = appName ? PORT_Strdup(dbname) : 
+    handle->dbname = (appName == NULL) ? PORT_Strdup(dbname) : 
 			(prefix ? PORT_Strdup(prefix) : NULL);
     handle->readOnly = readOnly;
    
