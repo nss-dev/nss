@@ -715,7 +715,7 @@ sec_asn1d_init_state_based_on_template (sec_asn1d_state *state)
     return state;
 }
 
-PRBool
+static PRBool
 sec_asn1d_parent_is_indefinite(sec_asn1d_state *state)
 {
     for (state = state->parent; state; state = state->parent) {
