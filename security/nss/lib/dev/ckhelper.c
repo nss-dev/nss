@@ -620,7 +620,7 @@ nssCryptokiCRL_GetAttributes
     PRUint32 i;
 
     NSS_CK_TEMPLATE_START(crl_template, attr, crl_size);
-    NSS_CK_SET_ATTRIBUTE_VAR(attr, CKA_TOKEN, isToken);
+    /* NSS_CK_SET_ATTRIBUTE_VAR(attr, CKA_TOKEN, isToken); */
     if (encodingOpt) {
 	NSS_CK_SET_ATTRIBUTE_NULL(attr, CKA_VALUE);
     }
