@@ -831,11 +831,11 @@ print_response (FILE *out_file, SECItem *data, CERTCertDBHandle *handle)
     if (response == NULL)
 	return SECFailure;
 
-    PORT_Assert (response->statusValue <= ocspResponse_other);
+    PORT_Assert (response->statusValue <= OCSPResponse_other);
     fprintf (out_file, "Response Status: %s\n",
 	     responseStatusNames[response->statusValue]);
 
-    if (response->statusValue == ocspResponse_successful) {
+    if (response->statusValue == OCSPResponse_successful) {
 	ocspResponseBytes *responseBytes = response->responseBytes;
 	SECStatus sigStatus;
 	CERTCertificate *signerCert = NULL;
