@@ -112,10 +112,6 @@ NSSSlot_Create
 	    goto loser;
 	}
     }
-    /* Initialize the token if present. */
-    if (slotInfo.flags & CKF_TOKEN_PRESENT) {
-	token = NSSToken_Create(arena, slotID, rvSlot);
-    }
     if (!arenaOpt) {
 	/* Avoid confusion now - only set the slot's arena to a non-NULL value
 	 * if a new arena is created.  Otherwise, depend on the caller (having
@@ -128,10 +124,12 @@ NSSSlot_Create
     rvSlot->module = parent;
     rvSlot->name = slotName;
     rvSlot->ckFlags = slotInfo.flags;
-    /* Get the token for the slot */
-    token = NSSToken_Create(arenaOpt, slotID, rvSlot);
-    if (!token) {
-	goto loser;
+    /* Initialize the token if present. */
+    if (slotInfo.flags & CKF_TOKEN_PRESENT) {
+	token = NSSToken_Create(arena, slotID, rvSlot);
+	if (!token) {
+	    goto loser;
+	}
     }
     rvSlot->token = token;
 #ifdef arena_mark_bug_fixed
