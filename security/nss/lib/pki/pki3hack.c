@@ -586,9 +586,12 @@ get_cert_instance(NSSCertificate *c)
 }
 
 char * 
-STAN_GetCERTCertificateName(NSSCertificate *c)
+STAN_GetCERTCertificateNameForInstance (
+  PLArenaPool *arenaOpt,
+  NSSCertificate *c,
+  nssCryptokiInstance *instance
+)
 {
-    nssCryptokiInstance *instance = get_cert_instance(c);
     NSSCryptoContext *context = c->object.cryptoContext;
     PRStatus nssrv;
     int nicklen, tokenlen, len;
@@ -613,7 +616,11 @@ STAN_GetCERTCertificateName(NSSCertificate *c)
 	}
 	nicklen = nssUTF8_Size(stanNick, &nssrv);
 	len = tokenlen + nicklen;
-	nickname = PORT_Alloc(len);
+	if (arenaOpt) {
+	    nickname = PORT_ArenaAlloc(arenaOpt, len);
+	} else {
+	    nickname = PORT_Alloc(len);
+	}
 	nick = nickname;
 	if (tokenName) {
 	    memcpy(nick, tokenName, tokenlen-1);
@@ -626,6 +633,12 @@ STAN_GetCERTCertificateName(NSSCertificate *c)
     return nickname;
 }
 
+char * 
+STAN_GetCERTCertificateName(PLArenaPool *arenaOpt, NSSCertificate *c)
+{
+    nssCryptokiInstance *instance = get_cert_instance(c);
+    return STAN_GetCERTCertificateNameForInstance(arenaOpt, c, instance);
+}
 
 static void
 fill_CERTCertificateFields(NSSCertificate *c, CERTCertificate *cc, PRBool forced)

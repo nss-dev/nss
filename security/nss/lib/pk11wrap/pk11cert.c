@@ -3308,19 +3308,6 @@ struct listCertsStr {
     CERTCertList *certList;
 };
 
-static PRBool
-isOnList(CERTCertList *certList,NSSCertificate *c)
-{
-	CERTCertListNode *cln;
-
-	for (cln = CERT_LIST_HEAD(certList); !CERT_LIST_END(cln,certList);
-			cln = CERT_LIST_NEXT(cln)) {
-	    if (cln->cert->nssCertificate == c) {
-		return PR_TRUE;
-	    }
-	}
-	return PR_FALSE;
-}
 static PRStatus
 pk11ListCertCallback(NSSCertificate *c, void *arg)
 {
@@ -3353,12 +3340,6 @@ pk11ListCertCallback(NSSCertificate *c, void *arg)
 	return PR_SUCCESS;
     }
 
-    /* if we want Unique certs and we already have it on our list, skip it */
-    if ( isUnique && isOnList(certList,c) ) {
-	return PR_SUCCESS;
-    }
-
-
     newCert = STAN_GetCERTCertificate(c);
     if (!newCert) {
 	return PR_SUCCESS;
@@ -3367,15 +3348,42 @@ pk11ListCertCallback(NSSCertificate *c, void *arg)
     if( isCA  && (!CERT_IsCACert(newCert, &certType)) ) {
 	return PR_SUCCESS;
     }
-    CERT_DupCertificate(newCert);
+    if (isUnique) {
+	CERT_DupCertificate(newCert);
 
-    nickname = STAN_GetCERTCertificateName(c);
+	nickname = STAN_GetCERTCertificateName(certList->arena, c);
 
-    /* put slot certs at the end */
-    if (newCert->slot && !PK11_IsInternal(newCert->slot)) {
-    	CERT_AddCertToListTailWithData(certList,newCert,nickname);
+	/* put slot certs at the end */
+	if (newCert->slot && !PK11_IsInternal(newCert->slot)) {
+	    CERT_AddCertToListTailWithData(certList,newCert,nickname);
+	} else {
+	    CERT_AddCertToListHeadWithData(certList,newCert,nickname);
+	}
     } else {
-    	CERT_AddCertToListHeadWithData(certList,newCert,nickname);
+	/* add multiple instances to the cert list */
+	nssCryptokiObject **ip;
+	nssCryptokiObject **instances = nssPKIObject_GetInstances(&c->object);
+	if (!instances) {
+	    return PR_SUCCESS;
+	}
+	for (ip = instances; *ip; ip++) {
+	    nssCryptokiObject *instance = *ip;
+	    PK11SlotInfo *slot = instance->token->pk11slot;
+
+	    /* put the same CERTCertificate in the list for all instances */
+	    CERT_DupCertificate(newCert);
+
+	    nickname = STAN_GetCERTCertificateNameForInstance(
+			certList->arena, c, instance);
+
+	    /* put slot certs at the end */
+	    if (slot && !PK11_IsInternal(slot)) {
+		CERT_AddCertToListTailWithData(certList,newCert,nickname);
+	    } else {
+		CERT_AddCertToListHeadWithData(certList,newCert,nickname);
+	    }
+	}
+	nssCryptokiObjectArray_Destroy(instances);
     }
     return PR_SUCCESS;
 }

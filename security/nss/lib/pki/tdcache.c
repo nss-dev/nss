@@ -488,11 +488,15 @@ nssTrustDomain_RemoveTokenCertsFromCache (
     for (i=0; i<dtor.numCerts; i++) {
 	if (dtor.certs[i]->object.numInstances == 0) {
 	    nssTrustDomain_RemoveCertFromCacheLOCKED(td, dtor.certs[i]);
-	} else {
-	    STAN_ForceCERTCertificateUpdate(dtor.certs[i]);
+	    dtor.certs[i] = NULL;  /* skip this cert in the second for loop */
 	}
     }
     PZ_Unlock(td->cache->lock);
+    for (i=0; i<dtor.numCerts; i++) {
+	if (dtor.certs[i]) {
+	    STAN_ForceCERTCertificateUpdate(dtor.certs[i]);
+	}
+    }
     nss_ZFreeIf(dtor.certs);
     return PR_SUCCESS;
 }
