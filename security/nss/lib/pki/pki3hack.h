@@ -38,6 +38,10 @@
 static const char PKINSS3HACK_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #endif /* DEBUG */
 
+#ifndef NSSDEVT_H
+#include "nssdevt.h"
+#endif /* NSSDEVT_H */
+
 #ifndef NSSPKIT_H
 #include "nsspkit.h"
 #endif /* NSSPKIT_H */

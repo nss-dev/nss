@@ -38,10 +38,10 @@ PRIVATE_EXPORTS = \
 	ckhelper.h \
 	devt.h     \
 	dev.h      \
+	nssdevt.h  \
 	$(NULL)
 
 EXPORTS =	   \
-	nssdevt.h  \
 	$(NULL)
 
 MODULE = security

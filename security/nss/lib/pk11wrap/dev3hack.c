@@ -47,6 +47,7 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #include "devt.h"
 #endif /* DEVT_H */
 
+#include "pki3hack.h"
 #include "dev3hack.h"
 
 #ifndef BASE_H
@@ -186,7 +187,7 @@ nssToken_Refresh(NSSToken *token)
                                                        nss3slot->session,
                                                        nss3slot->sessionLock,
                                                        nss3slot->defRWSession);
-    nssToken_DestroyCertList(token);
+    nssToken_DestroyCertList(token, PR_TRUE);
     return nssToken_LoadCerts(token);
 }
 
