@@ -2044,7 +2044,7 @@ RNG_RNGInit(void)
 }
 
 SECStatus 
-RNG_RandomUpdate(void *data, size_t bytes)
+RNG_RandomUpdate(const void *data, size_t bytes)
 {
 	int status;
 	if (data == NULL || bytes <= 0) {

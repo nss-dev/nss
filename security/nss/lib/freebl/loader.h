@@ -235,7 +235,7 @@ struct FREEBLVectorStr {
 
  SECStatus (* p_RNG_RNGInit)(void);
 
- SECStatus (* p_RNG_RandomUpdate)(void *data, size_t bytes);
+ SECStatus (* p_RNG_RandomUpdate)(const void *data, size_t bytes);
 
  SECStatus (* p_RNG_GenerateGlobalRandomBytes)(void *dest, size_t len);
 

@@ -725,7 +725,7 @@ extern SECStatus RNG_RNGInit(void);
 ** Update the global random number generator with more seeding
 ** material
 */
-extern SECStatus RNG_RandomUpdate(void *data, size_t bytes);
+extern SECStatus RNG_RandomUpdate(const void *data, size_t bytes);
 
 /*
 ** Generate some random bytes, using the global random number generator
