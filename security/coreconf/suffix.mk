@@ -43,11 +43,7 @@ ifndef OBJ_SUFFIX
 	ifeq ($(OS_ARCH), WINNT)
 		OBJ_SUFFIX = .obj
 	else
-	    ifeq ($(OS_ARCH), OS2)
-		OBJ_SUFFIX = .obj
-	    else
 		OBJ_SUFFIX = .o
-	    endif
 	endif
 endif
 
@@ -131,10 +127,6 @@ ifndef PROG_SUFFIX
 	ifeq ($(OS_ARCH), WINNT)
 		PROG_SUFFIX = .exe
 	else
-	    ifeq ($(OS_ARCH), OS2)
-		PROG_SUFFIX = .exe
-	    else
 		PROG_SUFFIX =
-	    endif
 	endif
 endif

@@ -53,10 +53,10 @@ ifndef RELEASE_TREE
 			ifdef USE_SHIPS
 				RELEASE_TREE = $(NTBUILD_SHIP)
 			else
-				RELEASE_TREE = //iridium/components
+				RELEASE_TREE = //helium/dist
 			endif
 		else
-			RELEASE_TREE = //iridium/components
+			RELEASE_TREE = //helium/dist
 		endif
 		endif
 	
@@ -65,10 +65,10 @@ ifndef RELEASE_TREE
 			ifdef USE_SHIPS
 				RELEASE_TREE = $(NTBUILD_SHIP)
 			else
-				RELEASE_TREE = //iridium/components
+				RELEASE_TREE = //helium/dist
 			endif
 		else
-			RELEASE_TREE = //iridium/components
+			RELEASE_TREE = //helium/dist
 		endif
 	endif
 	ifeq ($(OS_TARGET), WIN16)
@@ -76,10 +76,10 @@ ifndef RELEASE_TREE
 		ifdef USE_SHIPS
 			RELEASE_TREE = $(NTBUILD_SHIP)
 		else
-			RELEASE_TREE = //iridium/components
+			RELEASE_TREE = //helium/dist
 		endif
 	else
-		RELEASE_TREE = //iridium/components
+		RELEASE_TREE = //helium/dist
 	endif
 	endif
 endif
