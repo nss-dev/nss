@@ -383,7 +383,6 @@ filter_certs_for_valid_issuers (
     NSSCertificate **cp;
     nssDecodedCert *dcp;
     int nextOpenSlot = 0;
-    int i;
 
     for (cp = certs; *cp; cp++) {
 	dcp = nssCertificate_GetDecoding(*cp);

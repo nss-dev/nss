@@ -394,7 +394,8 @@ static NSSASCII7 *
 nss3certificate_getEmailAddress(nssDecodedCert *dc)
 {
     CERTCertificate *cc = (CERTCertificate *)dc->data;
-    return cc ? (NSSASCII7 *)cc->emailAddr : NULL;
+    return (cc && cc->emailAddr && cc->emailAddr[0])
+	    ? (NSSASCII7 *)cc->emailAddr : NULL;
 }
 
 static PRStatus
@@ -865,7 +866,7 @@ STAN_GetNSSCertificate(CERTCertificate *cc)
 	nssItem_Create(arena, &c->serial, derSerial.len, derSerial.data);
 	PORT_Free(derSerial.data);
     }
-    if (cc->emailAddr) {
+    if (cc->emailAddr && cc->emailAddr[0]) {
         c->email = nssUTF8_Create(arena,
                                   nssStringType_PrintableString,
                                   (NSSUTF8 *)cc->emailAddr,

@@ -565,7 +565,7 @@ cert_GetCertType(CERTCertificate *cert)
 	 * to be used for email
 	 */
 	if ( ( nsCertType & NS_CERT_TYPE_SSL_CLIENT ) &&
-	    cert->emailAddr ) {
+	    cert->emailAddr && cert->emailAddr[0]) {
 	    nsCertType |= NS_CERT_TYPE_EMAIL;
 	}
 	/*
@@ -2164,7 +2164,7 @@ CERT_SaveImportedCert(CERTCertificate *cert, SECCertUsage usage,
 		trust.emailFlags = CERTDB_VALID_CA;
 	    }
 	} else {
-	    if ( cert->emailAddr == NULL ) {
+	    if ( !cert->emailAddr || !cert->emailAddr[0] ) {
 		saveit = PR_FALSE;
 	    }
 	    
