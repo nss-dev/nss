@@ -169,7 +169,7 @@ main(int argc, char **argv)
     struct recipient *recipients, *rcpt;
     PLOptState *optstate;
     PLOptStatus status;
-	SECStatus rv;
+    SECStatus rv;
 
     progName = strrchr(argv[0], '/');
     progName = progName ? progName+1 : argv[0];
