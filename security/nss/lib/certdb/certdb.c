@@ -1200,6 +1200,8 @@ CERT_CheckKeyUsage(CERTCertificate *cert, unsigned int requiredUsage)
      */
     if ( requiredUsage & KU_KEY_AGREEMENT_OR_ENCIPHERMENT ) {
 	key = CERT_ExtractPublicKey(cert);
+	if (!key)
+	    return SECFailure;
 	if ( ( key->keyType == keaKey ) || ( key->keyType == fortezzaKey ) ||
 	     ( key->keyType == dhKey ) ) {
 	    requiredUsage |= KU_KEY_AGREEMENT;
