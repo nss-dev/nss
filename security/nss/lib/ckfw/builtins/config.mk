@@ -49,3 +49,10 @@ endif
 ifdef BUILD_IDG
 DEFINES += -DNSSDEBUG
 endif
+
+#
+# To create a loadable module on Darwin, we must use -bundle.
+#
+ifeq ($(OS_ARCH),Darwin)
+DSO_LDOPTS := $(subst -dynamiclib,-bundle,$(DSO_LDOPTS))
+endif
