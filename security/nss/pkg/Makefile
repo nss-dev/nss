@@ -1,3 +1,4 @@
+#! gmake
 #
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
@@ -30,26 +31,25 @@
 # may use your version of this file under either the MPL or the
 # GPL.
 #
-# On HP-UX 10.30 and 11.00, the default implementation strategy is
-# pthreads.  Classic nspr and pthreads-user are also available.
-#
 
-ifeq ($(OS_RELEASE),B.11.00)
-OS_CFLAGS		+= -DHPUX10
-DEFAULT_IMPL_STRATEGY = _PTH
+CORE_DEPTH = ../..
+DEPTH      = ../..
+
+include $(CORE_DEPTH)/coreconf/config.mk
+
+publish:
+ifeq ($(OS_TARGET),Linux)
+	rm -rf $(OBJDIR)
+	cp -r linux $(OBJDIR)
+	$(MAKE) -C $(OBJDIR) publish
+endif
+ifeq ($(OS_TARGET),SunOS)
+	rm -rf $(OBJDIR)
+	cp -r solaris $(OBJDIR)
+	$(MAKE) -C $(OBJDIR) publish
 endif
 
-#
-# To use the true pthread (kernel thread) library on 10.30 and
-# 11.00, we should define _POSIX_C_SOURCE to be 199506L.
-# The _REENTRANT macro is deprecated.
-#
+clean::
+	rm -rf $(OBJDIR)
 
-ifdef USE_PTHREADS
-	OS_CFLAGS	+= -D_POSIX_C_SOURCE=199506L
-endif
-
-#
-# Config stuff for HP-UXB.11.00.
-#
-include $(CORE_DEPTH)/coreconf/HP-UXB.11.mk
+include $(CORE_DEPTH)/coreconf/rules.mk
