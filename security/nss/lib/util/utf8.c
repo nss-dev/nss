@@ -1806,7 +1806,7 @@ test_iso88591_chars
     struct ucs2 *e = &ucs2[i];
     PRBool result;
     unsigned char iso88591;
-    unsigned char utf8[8];
+    unsigned char utf8[3];
     unsigned int len = 0;
 
     if (e->c > 0xFF) continue;
