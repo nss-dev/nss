@@ -48,11 +48,7 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #endif /* CKHELPER_H */
 
 /* measured in seconds */
-#ifdef DARWIN
-#define NSSSLOT_TOKEN_DELAY_TIME 3
-#else
 #define NSSSLOT_TOKEN_DELAY_TIME 1
-#endif
 
 /* this should track global and per-transaction login information */
 
