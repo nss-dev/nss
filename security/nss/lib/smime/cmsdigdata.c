@@ -151,15 +151,17 @@ NSS_CMSDigestedData_Encode_BeforeData(NSSCMSDigestedData *digd)
 SECStatus
 NSS_CMSDigestedData_Encode_AfterData(NSSCMSDigestedData *digd)
 {
+    SECStatus rv = SECSuccess;
     /* did we have digest calculation going on? */
     if (digd->contentInfo.digcx) {
-	if (NSS_CMSDigestContext_FinishSingle(digd->contentInfo.digcx,
-				    digd->cmsg->poolp, &(digd->digest)) != SECSuccess)
-	    return SECFailure;		/* error has been set by NSS_CMSDigestContext_FinishSingle */
+	rv = NSS_CMSDigestContext_FinishSingle(digd->contentInfo.digcx,
+				               digd->cmsg->poolp, 
+					       &(digd->digest));
+	/* error has been set by NSS_CMSDigestContext_FinishSingle */
 	digd->contentInfo.digcx = NULL;
     }
 
-    return SECSuccess;
+    return rv;
 }
 
 /*
@@ -193,15 +195,17 @@ NSS_CMSDigestedData_Decode_BeforeData(NSSCMSDigestedData *digd)
 SECStatus
 NSS_CMSDigestedData_Decode_AfterData(NSSCMSDigestedData *digd)
 {
+    SECStatus rv = SECSuccess;
     /* did we have digest calculation going on? */
     if (digd->contentInfo.digcx) {
-	if (NSS_CMSDigestContext_FinishSingle(digd->contentInfo.digcx,
-				    digd->cmsg->poolp, &(digd->cdigest)) != SECSuccess)
-	    return SECFailure;		/* error has been set by NSS_CMSDigestContext_FinishSingle */
+	rv = NSS_CMSDigestContext_FinishSingle(digd->contentInfo.digcx,
+				               digd->cmsg->poolp, 
+					       &(digd->cdigest));
+	/* error has been set by NSS_CMSDigestContext_FinishSingle */
 	digd->contentInfo.digcx = NULL;
     }
 
-    return SECSuccess;
+    return rv;
 }
 
 /*
