@@ -191,6 +191,37 @@ nssPKIObject_HasInstance (
     return hasIt;
 }
 
+NSS_IMPLEMENT PRBool
+nssPKIObject_HasInstanceOnToken (
+  nssPKIObject *object,
+  NSSToken *token
+)
+{
+    PRUint32 i;
+    PRBool hasIt = PR_FALSE;;
+    PZ_Lock(object->lock);
+    for (i=0; i<object->numInstances; i++) {
+	if (object->instances[i]->token == token) {
+	    hasIt = PR_TRUE;
+	    break;
+	}
+    }
+    PZ_Unlock(object->lock);
+    return hasIt;
+}
+
+NSS_IMPLEMENT PRIntn
+nssPKIObject_CountInstances (
+  nssPKIObject *object
+)
+{
+    PRIntn count;
+    PZ_Lock(object->lock);
+    count = object->numInstances;
+    PZ_Unlock(object->lock);
+    return count;
+}
+
 NSS_IMPLEMENT PRStatus
 nssPKIObject_RemoveInstanceForToken (
   nssPKIObject *object,
@@ -511,6 +542,34 @@ nssPKIObject_GetWriteToken (
 	}
     }
     return token;
+}
+
+NSS_IMPLEMENT NSSCert **
+nssCertArray_CreateFromInstances (
+  nssCryptokiObject **instances,
+  NSSTrustDomain *td,
+  NSSVolatileDomain *vdOpt,
+  NSSArena *arenaOpt
+)
+{
+    PRIntn i, count;
+    nssCryptokiObject **ip;
+    NSSCert **rvCerts;
+
+    for (ip = instances, count = 0; *ip; ip++, count++);
+    rvCerts = nss_ZNEWARRAY(arenaOpt, NSSCert *, count + 1);
+    if (!rvCerts) {
+	return (NSSCert **)NULL;
+    }
+    for (i = 0; i < count; i++) {
+	rvCerts[i] = nssCert_CreateFromInstance(instances[i], td, 
+	                                        vdOpt, NULL);
+	if (!rvCerts[i]) {
+	    nssCertArray_Destroy(rvCerts); /* it's NULL-terminated */
+	    return (NSSCert **)NULL;
+	}
+    }
+    return rvCerts;
 }
 
 NSS_IMPLEMENT void

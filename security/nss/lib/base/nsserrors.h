@@ -67,6 +67,7 @@ static const char NSSERRORS_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$"
 
 #define NSS_ERROR_INVALID_PASSWORD                          28
 #define NSS_ERROR_USER_CANCELED                             29
+#define NSS_ERROR_LOGIN_REQUIRED                            35 /* XXX */
 
 #define NSS_ERROR_MAXIMUM_FOUND                             30
 #define NSS_ERROR_INVALID_SIGNATURE                         31
@@ -77,6 +78,7 @@ static const char NSSERRORS_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$"
 #define NSS_ERROR_DEVICE_ERROR                             101
 #define NSS_ERROR_DEVICE_REMOVED                           102
 #define NSS_ERROR_SESSION_IN_USE                           103
+#define NSS_ERROR_DEVICE_NOT_FOUND                         104
 
 #define NSS_ERROR_INVALID_ALGORITHM                        200
 

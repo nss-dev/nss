@@ -1602,13 +1602,6 @@ main(int argc, char **argv)
     if (fileName)
     	readBigFile(fileName);
 
-    /* Call the libsec initialization routines */
-    rv = NSS_Init(dir);
-    if (rv != SECSuccess) {
-    	fputs("NSS_Init failed.\n", stderr);
-		exit(8);
-    }
-
     /* XXX */
     rv = NSS_EnablePKIXCertificates();
     if (rv == PR_FAILURE) {
@@ -1616,6 +1609,14 @@ main(int argc, char **argv)
 	/* goto shutdown; */
 	exit(4);
     }
+
+    /* Call the libsec initialization routines */
+    rv = NSS_Init(dir);
+    if (rv != SECSuccess) {
+    	fputs("NSS_Init failed.\n", stderr);
+		exit(8);
+    }
+
     td = NSS_GetDefaultTrustDomain();
     pwcb = CMD_GetDefaultPasswordCallback(passwd, NULL);
     if (!pwcb) {

@@ -158,6 +158,11 @@ nssCert_GetSubject (
   NSSCert *c
 );
 
+NSS_EXTERN NSSItem *
+nssCert_GetID (
+  NSSCert *c
+);
+
 NSS_EXTERN PRStatus
 nssCert_SetNickname (
   NSSCert *c,

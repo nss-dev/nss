@@ -301,21 +301,11 @@ nssSlot_CreateSession (
  *   ------ certificate objects --------
  * nssToken_ImportCert
  * nssToken_FindCerts
- * nssToken_FindCertsBySubject
- * nssToken_FindCertsByNickname
- * nssToken_FindCertsByEmail
- * nssToken_FindCertByIssuerAndSerialNumber
- * nssToken_FindCertByEncodedCert
  *
  *   ------ trust objects --------
  * nssToken_ImportTrust
  * nssToken_FindTrustObjects
  * nssToken_FindTrustForCert
- *
- *   ------ CRL objects --------
- * nssToken_ImportCRL
- * nssToken_FindCRLs
- * nssToken_FindCRLsBySubject
  *
  *   ------ public/private key objects --------
  * nssToken_GenerateKeyPair
@@ -435,65 +425,6 @@ nssToken_FindCerts (
   PRStatus *statusOpt
 );
 
-NSS_EXTERN nssCryptokiObject **
-nssToken_FindCertsBySubject (
-  NSSToken *token,
-  nssSession *session,
-  NSSDER *subject,
-  nssTokenSearchType searchType,
-  PRUint32 maximumOpt,
-  PRStatus *statusOpt
-);
-
-NSS_EXTERN nssCryptokiObject **
-nssToken_FindCertsByNickname (
-  NSSToken *token,
-  nssSession *session,
-  NSSUTF8 *name,
-  nssTokenSearchType searchType,
-  PRUint32 maximumOpt,
-  PRStatus *statusOpt
-);
-
-NSS_EXTERN nssCryptokiObject **
-nssToken_FindCertsByEmail (
-  NSSToken *token,
-  nssSession *session,
-  NSSASCII7 *email,
-  nssTokenSearchType searchType,
-  PRUint32 maximumOpt,
-  PRStatus *statusOpt
-);
-
-NSS_EXTERN nssCryptokiObject **
-nssToken_FindCertsByID (
-  NSSToken *token,
-  nssSession *session,
-  NSSItem *id,
-  nssTokenSearchType searchType,
-  PRUint32 maximumOpt,
-  PRStatus *statusOpt
-);
-
-NSS_EXTERN nssCryptokiObject *
-nssToken_FindCertByIssuerAndSerialNumber (
-  NSSToken *token,
-  nssSession *session,
-  NSSDER *issuer,
-  NSSDER *serial,
-  nssTokenSearchType searchType,
-  PRStatus *statusOpt
-);
-
-NSS_EXTERN nssCryptokiObject *
-nssToken_FindCertByEncodedCert (
-  NSSToken *token,
-  nssSession *session,
-  NSSBER *encodedCert,
-  nssTokenSearchType searchType,
-  PRStatus *statusOpt
-);
-
 NSS_EXTERN nssCryptokiObject *
 nssToken_ImportTrust (
   NSSToken *tok,
@@ -525,36 +456,6 @@ nssToken_FindTrustForCert (
   NSSDER *certIssuer,
   NSSDER *certSerial,
   nssTokenSearchType searchType
-);
-
-NSS_EXTERN nssCryptokiObject *
-nssToken_ImportCRL (
-  NSSToken *token,
-  nssSession *session,
-  NSSDER *subject,
-  NSSDER *encoding,
-  PRBool isKRL,
-  NSSUTF8 *url,
-  PRBool asTokenObject
-);
-
-NSS_EXTERN nssCryptokiObject **
-nssToken_FindCRLs (
-  NSSToken *token,
-  nssSession *session,
-  nssTokenSearchType searchType,
-  PRUint32 maximumOpt,
-  PRStatus *statusOpt
-);
-
-NSS_EXTERN nssCryptokiObject **
-nssToken_FindCRLsBySubject (
-  NSSToken *token,
-  nssSession *session,
-  NSSDER *subject,
-  nssTokenSearchType searchType,
-  PRUint32 maximumOpt,
-  PRStatus *statusOpt
 );
 
 NSS_EXTERN PRStatus

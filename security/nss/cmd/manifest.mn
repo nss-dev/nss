@@ -45,6 +45,8 @@ DIRS =            \
 	pkiutil   \
 	selfserv  \
 	tstclnt   \
+	strsclnt  \
+	ssltap    \
  $(NULL)
 
 TEMPORARILY_DONT_BUILD = \

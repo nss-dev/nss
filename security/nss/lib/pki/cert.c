@@ -123,6 +123,33 @@ nssCert_Create (
 }
 
 NSS_IMPLEMENT NSSCert *
+nssCert_CreateFromInstance (
+  nssCryptokiObject *instance,
+  NSSTrustDomain *td,
+  NSSVolatileDomain *vdOpt,
+  NSSArena *arenaOpt
+)
+{
+    PRStatus status;
+    nssPKIObject *pkio;
+    NSSCert *rvCert = NULL;
+
+    pkio = nssPKIObject_Create(arenaOpt, instance, td, vdOpt);
+    if (!pkio) {
+	return (NSSCert *)NULL;
+    }
+    rvCert = nssCert_Create(pkio);
+    if (rvCert && vdOpt) {
+	status = nssVolatileDomain_ImportCert(vdOpt, rvCert);
+	if (status == PR_FAILURE) {
+	    nssCert_Destroy(rvCert);
+	    rvCert = NULL;
+	}
+    }
+    return rvCert;
+}
+
+NSS_IMPLEMENT NSSCert *
 nssCert_Decode (
   NSSBER *ber
 )
@@ -240,6 +267,32 @@ nssCert_Destroy (
 }
 
 NSS_IMPLEMENT PRStatus
+nssCert_RemoveInstanceForToken (
+  NSSCert *c,
+  NSSToken *token
+)
+{
+    return nssPKIObject_RemoveInstanceForToken(&c->object, token);
+}
+
+NSS_IMPLEMENT PRBool
+nssCert_HasInstanceOnToken (
+  NSSCert *c,
+  NSSToken *token
+)
+{
+    return nssPKIObject_HasInstanceOnToken(&c->object, token);
+}
+
+NSS_IMPLEMENT PRIntn
+nssCert_CountInstances (
+  NSSCert *c
+)
+{
+    return nssPKIObject_CountInstances(&c->object);
+}
+
+NSS_IMPLEMENT PRStatus
 NSSCert_Destroy (
   NSSCert *c
 )
@@ -322,6 +375,18 @@ nssCert_GetSubject (
 	return &c->subject;
     } else {
 	return (NSSDER *)NULL;
+    }
+}
+
+NSS_IMPLEMENT NSSItem *
+nssCert_GetID (
+  NSSCert *c
+)
+{
+    if (c->id.size > 0 && c->id.data) {
+	return &c->id;
+    } else {
+	return (NSSItem *)NULL;
     }
 }
 
@@ -729,10 +794,10 @@ nssCert_CopyToToken (
 	return PR_FAILURE;
     }
     instance = nssToken_ImportCert(token, rwSession,
-                                          c->kind, NULL, nicknameOpt,
-                                          &c->encoding, &c->issuer, 
-                                          &c->subject, &c->serial,
-                                          c->email, PR_TRUE);
+                                   c->kind, NULL, nicknameOpt,
+                                   &c->encoding, &c->issuer, 
+                                   &c->subject, &c->serial,
+                                   c->email, PR_TRUE);
     nssSession_Destroy(rwSession);
     if (!instance) {
 	return PR_FAILURE;

@@ -121,6 +121,11 @@ nssPKIObject_HasInstance (
   nssCryptokiObject *instance
 );
 
+NSS_EXTERN PRIntn
+nssPKIObject_CountInstances (
+  nssPKIObject *object
+);
+
 /* nssPKIObject_GetTokens
  *
  * Get all tokens which have an instance of the object.
@@ -277,6 +282,14 @@ nssCert_Create (
   nssPKIObject *object
 );
 
+NSS_EXTERN NSSCert *
+nssCert_CreateFromInstance (
+  nssCryptokiObject *instance,
+  NSSTrustDomain *td,
+  NSSVolatileDomain *vdOpt,
+  NSSArena *arenaOpt
+);
+
 /* XXX XXX most of these belong in pki.h */
 
 NSS_EXTERN nssCryptokiObject *
@@ -289,6 +302,23 @@ NSS_EXTERN void
 nssCert_SetVolatileDomain (
   NSSCert *c,
   NSSVolatileDomain *vd
+);
+
+NSS_EXTERN PRStatus
+nssCert_RemoveInstanceForToken (
+  NSSCert *c,
+  NSSToken *token
+);
+
+NSS_EXTERN PRBool
+nssCert_HasInstanceOnToken (
+  NSSCert *c,
+  NSSToken *token
+);
+
+NSS_EXTERN PRIntn
+nssCert_CountInstances (
+  NSSCert *c
 );
 
 NSS_EXTERN PRStatus
@@ -486,6 +516,14 @@ nssUsages_Match (
  * nssCertArray_FindBestCert
  * nssCertArray_Traverse
  */
+
+NSS_EXTERN NSSCert **
+nssCertArray_CreateFromInstances (
+  nssCryptokiObject **instances,
+  NSSTrustDomain *td,
+  NSSVolatileDomain *vdOpt,
+  NSSArena *arenaOpt
+);
 
 /* nssCertArray_Destroy
  *
@@ -752,6 +790,111 @@ nssTokenSessionHash_GetSession (
   nssTokenSessionHash *tsHash,
   NSSToken *token,
   PRBool readWrite
+);
+
+NSS_EXTERN nssTokenStore *
+nssTokenObjectStore_Create (
+  NSSToken **tokens
+);
+
+NSS_EXTERN void
+nssTokenStore_Destroy (
+  nssTokenStore *store
+);
+
+NSS_EXTERN void
+nssTokenStore_Refresh (
+  nssTokenStore *store
+);
+
+NSS_EXTERN PRStatus
+nssTokenStore_ImportCert (
+  nssTokenStore *store,
+  NSSCert *cert,
+  NSSUTF8 *nicknameOpt,
+  NSSToken *destination
+);
+
+NSS_EXTERN NSSCert *
+nssTokenStore_ImportPrivateKey (
+  nssTokenStore *store,
+  NSSPrivateKey *vkey,
+  NSSUTF8 *nicknameOpt,
+  NSSUTF8 *passwordOpt,
+  NSSOperations operations,
+  NSSProperties properties,
+  NSSCallback uhhOpt,
+  NSSToken *destination
+);
+
+/* XXX Delete */
+NSS_EXTERN void
+nssTokenStore_RemoveCert (
+  nssTokenStore *store,
+  NSSCert *cert
+);
+
+NSS_EXTERN PRStatus
+nssTokenStore_DeletePrivateKey (
+  nssTokenStore *store,
+  NSSPrivateKey *vkey,
+  NSSToken *source
+);
+
+NSS_EXTERN NSSCert **
+nssTokenStore_FindCertsByNickname (
+  nssTokenStore *store,
+  NSSUTF8 *name,
+  NSSCert **rvOpt,
+  PRUint32 maximumOpt,
+  NSSArena *arenaOpt
+);
+
+NSS_EXTERN NSSCert **
+nssTokenStore_FindCertsBySubject (
+  nssTokenStore *store,
+  NSSBER *subject,
+  NSSCert **rvOpt,
+  PRUint32 maximumOpt,
+  NSSArena *arenaOpt
+);
+
+NSS_EXTERN NSSCert **
+nssTokenStore_FindCertsByEmail (
+  nssTokenStore *store,
+  NSSASCII7 *email,
+  NSSCert **rvOpt,
+  PRUint32 maximumOpt,
+  NSSArena *arenaOpt
+);
+
+NSS_EXTERN NSSCert *
+nssTokenStore_FindCertByIssuerAndSerialNumber (
+  nssTokenStore *store,
+  NSSBER *issuer,
+  NSSBER *serial
+);
+
+NSS_EXTERN NSSCert *
+nssTokenStore_FindCertByEncodedCert (
+  nssTokenStore *store,
+  NSSBER *ber
+);
+
+NSS_EXTERN NSSCert **
+nssTokenStore_FindCertsByID (
+  nssTokenStore *store,
+  NSSItem *id,
+  NSSCert **rvOpt,
+  PRUint32 maximumOpt,
+  NSSArena *arenaOpt
+);
+
+NSS_EXTERN PRStatus
+nssTokenStore_TraverseCerts (
+  nssTokenStore *store,
+  PRStatus (*callback)(NSSCert *c, void *arg),
+  void *arg
 );
 
 PR_END_EXTERN_C

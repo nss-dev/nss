@@ -148,6 +148,8 @@ typedef struct nssPKIObjectCreatorStr
 
 typedef struct nssTokenSessionHashStr nssTokenSessionHash;
 
+typedef struct nssTokenStoreStr nssTokenStore;
+
 PR_END_EXTERN_C
 
 #endif /* PKITM_H */

@@ -53,12 +53,12 @@
 
 #include "nspr.h"
 #include "plstr.h"
-#include "secutil.h"
 #include <memory.h>	/* for memcpy, etc. */
 #include <string.h>
 #include <time.h>
 
 #include "plgetopt.h"
+#include "cmdutil.h"
 
 #define VERSIONSTRING "$Revision$ ($Date$) $Author$"
 
@@ -1047,15 +1047,11 @@ void Usage(void) {
 void
 showErr(const char * msg) {
   PRErrorCode  err       = PR_GetError();
-  const char * errString;
 
   if (err == PR_UNKNOWN_ERROR)
     err = PR_CONNECT_RESET_ERROR;	/* bug in NSPR. */
-  errString = SECU_Strerror(err);
 
-  if (!errString)
-    errString = "(no text available)";
-  PR_fprintf(PR_STDERR, "Error %d: %s: %s", err, errString, msg);
+  CMD_PrintError("Error (NSPR=%d)", err);
 }
 
 int main(int argc,  char *argv[])

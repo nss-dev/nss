@@ -43,10 +43,6 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #include "pkim.h"
 #endif /* PKIM_H */
 
-#ifndef PKISTORE_H
-#include "pkistore.h"
-#endif /* PKISTORE_H */
-
 typedef enum {
   no_object = 0,
   a_cert,

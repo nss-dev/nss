@@ -381,19 +381,19 @@ int main(int argc, char **argv)
 
     PR_Init( PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
 
-    /* initialize NSS */
-    status = NSS_Init(certDir);
-    if (status == PR_FAILURE) {
-	CMD_PrintError("Failed to initialize NSS");
-	return 1;
-    }
-
     /* XXX */
     status = NSS_EnablePKIXCertificates();
     if (status == PR_FAILURE) {
 	CMD_PrintError("Failed to load PKIX module");
 	/* goto shutdown; */
 	exit(4);
+    }
+
+    /* initialize NSS */
+    status = NSS_Init(certDir);
+    if (status == PR_FAILURE) {
+	CMD_PrintError("Failed to initialize NSS");
+	return 1;
     }
     td = NSS_GetDefaultTrustDomain();
     pwcb = CMD_GetDefaultPasswordCallback(password, NULL);

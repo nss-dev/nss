@@ -316,17 +316,17 @@ main(int argc, char **argv)
     /* initialize */
     PR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
 
-    if (noDB) {
-	NSS_NoDB_Init(profiledir);
-    } else {
-	NSS_InitReadWrite(profiledir);
-    }
-
     /* XXX */
     rv = NSS_EnablePKIXCertificates();
     if (rv == PR_FAILURE) {
 	CMD_PrintError("Failed to load PKIX module");
 	goto shutdown;
+    }
+
+    if (noDB) {
+	NSS_NoDB_Init(profiledir);
+    } else {
+	NSS_InitReadWrite(profiledir);
     }
 
     rv = cipher_command_dispatcher(&cipher, cmdToRun);

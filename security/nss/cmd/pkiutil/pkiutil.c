@@ -416,6 +416,13 @@ main(int argc, char **argv)
     /* initialize */
     PR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
 
+    /* XXX */
+    rv = NSS_EnablePKIXCertificates();
+    if (rv == PR_FAILURE) {
+	CMD_PrintError("Failed to load PKIX module");
+	goto shutdown;
+    }
+
     /* XXX allow for read-only and no-db */
     rv = NSS_InitReadWrite(profiledir);
     if (rv == PR_FAILURE) {
@@ -425,13 +432,6 @@ main(int argc, char **argv)
 
     if (cmdToRun == cmd_NewDBs) {
 	/* just creating new dbs, done */
-	goto shutdown;
-    }
-
-    /* XXX */
-    rv = NSS_EnablePKIXCertificates();
-    if (rv == PR_FAILURE) {
-	CMD_PrintError("Failed to load PKIX module");
 	goto shutdown;
     }
 

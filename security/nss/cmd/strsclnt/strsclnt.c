@@ -1030,19 +1030,19 @@ main(int argc, char **argv)
     if (fileName)
     	readBigFile(fileName);
 
-    /* initialize NSS */
-    status = NSS_Init(dir);
-    if (status == PR_FAILURE) {
-	CMD_PrintError("Failed to initialize NSS");
-	return 1;
-    }
-
     /* XXX */
     status = NSS_EnablePKIXCertificates();
     if (status == PR_FAILURE) {
 	CMD_PrintError("Failed to load PKIX module");
 	/* goto shutdown; */
 	exit(4);
+    }
+
+    /* initialize NSS */
+    status = NSS_Init(dir);
+    if (status == PR_FAILURE) {
+	CMD_PrintError("Failed to initialize NSS");
+	return 1;
     }
     td = NSS_GetDefaultTrustDomain();
     pwcb = CMD_GetDefaultPasswordCallback(passwd, NULL);
