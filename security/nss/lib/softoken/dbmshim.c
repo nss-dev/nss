@@ -45,7 +45,7 @@
 #include "prprf.h"
 #include "cdbhdl.h"
 
-/* Call to PK11_FreeSlot below */
+/* Call to SFTK_FreeSlot below */
 
 #include "pcertt.h"
 #include "secasn1.h"
