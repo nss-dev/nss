@@ -206,7 +206,7 @@ sub usage {
 #
 # process command line options
 #
-unless (getopts('S:E:p:C:')) {
+unless (getopts('S:E:p:C:D')) {
     usage();
     exit 1;
 }
@@ -262,6 +262,7 @@ if ($mimeentity eq "") {
     $mimeentity .= "Content-Type: text/plain; charset=us-ascii\n";
     $mimeentity .= "Content-Transfer-Encoding: 7bit\n";
 }
+
 #
 # generate end of header-LF/LF pair
 #
@@ -275,33 +276,50 @@ $/ = undef;
 $mimeentity .= <STDIN>;
 $/ = $saveRS;
 
-#
-# canonicalize entity (rudimentary yet)
-#
-$mimeentity =~ s/\n/\r\n/mg;
+if (defined $opt_D) {
+    #
+    # decode
+    #
 
-#
-# now do the wrapping
-# we sign first, then encrypt because that's what Communicator needs
-#
-if (defined($opt_S)) {
-    $mimeentity = signentity($mimeentity, $signopts);
+    
+
+} else {
+    #
+    # encode
+    #
+
+    #
+    # canonicalize inner entity (rudimentary yet)
+    # convert single LFs to CRLF
+    # if no Content-Transfer-Encoding header present:
+    #  if 8 bit chars present, use Content-Transfer-Encoding: quoted-printable
+    #  otherwise, use Content-Transfer-Encoding: 7bit
+    #
+    $mimeentity =~ s/\n/\r\n/mg;
+
+    #
+    # now do the wrapping
+    # we sign first, then encrypt because that's what Communicator needs
+    #
+    if (defined($opt_S)) {
+	$mimeentity = signentity($mimeentity, $signopts);
+    }
+
+    if (defined($opt_E)) {
+	$mimeentity = encryptentity($mimeentity, $encryptopts);	
+    }
+
+    #
+    # XXX sign again to do triple wrapping (RFC2634)
+    #
+
+    #
+    # now write out the RFC822 headers
+    # followed by the final $mimeentity
+    #
+    print $rfc822headers;
+    print "MIME-Version: 1.0 (NSS SMIME - http://www.mozilla.org/projects/security)\n";	# set up the flag
+    print $mimeentity;
 }
-
-if (defined($opt_E)) {
-    $mimeentity = encryptentity($mimeentity, $encryptopts);	
-}
-
-#
-# XXX sign again to do triple wrapping (RFC2634)
-#
-
-#
-# now write out the RFC822 headers
-# followed by the final $mimeentity
-#
-print $rfc822headers;
-print "MIME-Version: 1.0 (NSS SMIME - http://www.mozilla.org/projects/security)\n";	# set up the flag
-print $mimeentity;
 
 exit 0;

@@ -108,7 +108,8 @@ Usage(char *progName)
     fprintf(stderr, "  -N nick      use certificate named \"nick\" for signing\n");
     fprintf(stderr, "  -T           do not include content in CMS message\n");
     fprintf(stderr, "  -G           include a signing time attribute\n");
-    fprintf(stderr, "  -P           include a S/MIME profile attribute\n");
+    fprintf(stderr, "  -P           include a SMIMECapabilities attribute\n");
+    fprintf(stderr, "  -Y nick      include a EncryptionKeyPreference attribute with cert\n");
     fprintf(stderr, " -E            create a CMS enveloped message (NYI)\n");
     fprintf(stderr, "  -r id,...    create envelope for these recipients,\n");
     fprintf(stderr, "               where id can be a certificate nickname or email address\n");
@@ -173,6 +174,7 @@ struct decodeOptionsStr {
 
 struct signOptionsStr {
     char *nickname;
+    char *encryptionKeyPreferenceNick;
     PRBool signingTime;
     PRBool smimeProfile;
     PRBool detached;
@@ -424,6 +426,10 @@ sign(FILE *out, FILE *infile, char *progName, struct optionsStr options, struct 
     if (signOptions.smimeProfile) {
 	/* TBD */
     }
+    if (signOptions.encryptionKeyPreferenceNick) {
+	/* TBD */
+	/* get the cert, add it to the message */
+    }
 
     if (NSS_CMSSignedData_AddSignerInfo(sigd, signerinfo) != SECSuccess) {
 	fprintf(stderr, "ERROR: cannot add CMS signerInfo object.\n");
@@ -631,12 +637,13 @@ main(int argc, char **argv)
     signOptions.detached = PR_FALSE;
     signOptions.signingTime = PR_FALSE;
     signOptions.smimeProfile = PR_FALSE;
+    signOptions.encryptionKeyPreferenceNick = NULL;
     envelopeOptions.recipients = NULL;
 
     /*
      * Parse command line arguments
      */
-    optstate = PL_CreateOptState(argc, argv, "DSEnN:TGPh:p:i:c:d:o:s:u:r:");
+    optstate = PL_CreateOptState(argc, argv, "DSEnN:TGPY:h:p:i:c:d:o:s:u:r:");
     while ((status = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
 	switch (optstate->option) {
 	case '?':
@@ -669,6 +676,15 @@ main(int argc, char **argv)
 		exit(1);
 	    }
 	    signOptions.nickname = strdup(optstate->value);
+	    break;
+
+	case 'Y':
+	    if (mode != SIGN) {
+		fprintf(stderr, "%s: option -Y only supported with option -S.\n", progName);
+		Usage(progName);
+		exit(1);
+	    }
+	    signOptions.encryptionKeyPreferenceNick = strdup(optstate->value);
 	    break;
 
 	case 'T':
