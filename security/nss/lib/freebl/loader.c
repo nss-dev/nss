@@ -1262,7 +1262,7 @@ AESKeyWrap_Encrypt(AESKeyWrapContext *cx, unsigned char *output,
 		   const unsigned char *input, unsigned int inputLen)
 {
   if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
-      return NULL;
+      return SECFailure;
   return vector->p_AESKeyWrap_Encrypt(cx, output, outputLen, maxOutputLen,
                                       input, inputLen);
 }
@@ -1272,7 +1272,7 @@ AESKeyWrap_Decrypt(AESKeyWrapContext *cx, unsigned char *output,
 		   const unsigned char *input, unsigned int inputLen)
 {
   if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
-      return NULL;
+      return SECFailure;
   return vector->p_AESKeyWrap_Decrypt(cx, output, outputLen, maxOutputLen,
 		                      input, inputLen);
 }
