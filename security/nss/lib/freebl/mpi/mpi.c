@@ -2003,6 +2003,12 @@ mp_err s_mp_almost_inverse(const mp_int *a, const mp_int *p, mp_int *c)
       MP_CHECKOK( mp_add(c,  &d,  c) );	/* c = c + d */
     }
   }
+  if (res >= 0) {
+    while (MP_SIGN(c) != MP_ZPOS) {
+      MP_CHECKOK( mp_add(c, p, c) );
+    }
+    res = k;
+  }
 
 CLEANUP:
   mp_clear(&d);
@@ -2092,10 +2098,25 @@ mp_err mp_invmod(mp_int *a, mp_int *m, mp_int *c)
 
   if (mp_isodd(m)) {
     int k;
+
+    if (a == c) {
+      if ((res = mp_init_copy(&x, a)) != MP_OKAY)
+	return res;
+      if (a == m) 
+	m = &x;
+      a = &x;
+    } else if (m == c) {
+      if ((res = mp_init_copy(&x, m)) != MP_OKAY)
+	return res;
+      m = &x;
+    } else {
+      MP_DIGITS(&x) = 0;
+    }
+
     MP_CHECKOK( s_mp_almost_inverse(a, m, c) );
     k = res;
     MP_CHECKOK( s_mp_fixup_reciprocal(c, m, k, c) );
-    return res;
+    goto CLEANUP;
   }
 
   MP_CHECKOK( mp_init(&x) );
