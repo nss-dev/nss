@@ -785,6 +785,11 @@ extern SECStatus CERT_EncodeAndAddExtension
 extern SECStatus CERT_EncodeAndAddBitStrExtension
    (void *exthandle, int idtag, SECItem *value, PRBool critical);
 
+
+extern SECStatus
+CERT_EncodeAltNameExtension(PRArenaPool *arena,  CERTGeneralName  *value, SECItem *encodedValue);
+
+
 /*
 ** Finish adding cert extensions.  Does final processing on extension
 ** data, putting it in the right format, and freeing any temporary
