@@ -454,27 +454,27 @@ cleanup:
 static SECStatus 
 rsa_PrivateKeyOpCRTCheckedPubKey(RSAPrivateKey *key, mp_int *m, mp_int *c)
 {
-    mp_int n, e, s;
+    mp_int n, e, v;
     mp_err   err = MP_OKAY;
     SECStatus rv = SECSuccess;
     MP_DIGITS(&n) = 0;
     MP_DIGITS(&e) = 0;
-    MP_DIGITS(&s) = 0;
+    MP_DIGITS(&v) = 0;
     CHECK_MPI_OK( mp_init(&n) );
     CHECK_MPI_OK( mp_init(&e) );
-    CHECK_MPI_OK( mp_init(&s) );
+    CHECK_MPI_OK( mp_init(&v) );
     CHECK_SEC_OK( rsa_PrivateKeyOpCRTNoCheck(key, m, c) );
     SECITEM_TO_MPINT(key->modulus,        &n);
     SECITEM_TO_MPINT(key->publicExponent, &e);
-    /* Perform a public key operation c = m ** e mod n */
-    CHECK_MPI_OK( mp_exptmod(m, &e, &n, &s) );
-    if (mp_cmp(&s, c) != 0) {
+    /* Perform a public key operation v = m ** e mod n */
+    CHECK_MPI_OK( mp_exptmod(m, &e, &n, &v) );
+    if (mp_cmp(&v, c) != 0) {
 	rv = SECFailure;
     }
 cleanup:
     mp_clear(&n);
     mp_clear(&e);
-    mp_clear(&s);
+    mp_clear(&v);
     if (err) {
 	MP_TO_SEC_ERROR(err);
 	rv = SECFailure;
@@ -748,6 +748,29 @@ RSA_PrivateKeyOpDoubleChecked(RSAPrivateKey *key,
     return rsa_PrivateKeyOp(key, output, input, PR_TRUE);
 }
 
+static SECStatus
+swap_in_key_value(PRArenaPool *arena, mp_int *mpval, SECItem *buffer)
+{
+    int len;
+    mp_err err = MP_OKAY;
+    memset(buffer->data, 0, buffer->len);
+    len = mp_unsigned_octet_size(mpval);
+    if (len <= 0) return SECFailure;
+    if ((unsigned int)len <= buffer->len) {
+	/* The new value is no longer than the old buffer, so use it */
+	err = mp_to_unsigned_octets(mpval, buffer->data, len);
+	buffer->len = len;
+    } else if (arena) {
+	/* The new value is longer, but working within an arena */
+	(void)SECITEM_AllocItem(arena, buffer, len);
+	err = mp_to_unsigned_octets(mpval, buffer->data, len);
+    } else {
+	/* The new value is longer, no arena, can't handle this key */
+	return SECFailure;
+    }
+    return (err == MP_OKAY) ? SECSuccess : SECFailure;
+}
+
 SECStatus
 RSA_PrivateKeyCheck(RSAPrivateKey *key)
 {
@@ -784,15 +807,15 @@ RSA_PrivateKeyCheck(RSAPrivateKey *key)
     SECITEM_TO_MPINT(key->coefficient,     &qInv);
     /* p > q  */
     if (mp_cmp(&p, &q) <= 0) {
-	/* mind the p's and q's */
+	/* mind the p's and q's (and d_p's and d_q's) */
 	SECItem tmp;
 	mp_exch(&p, &q);
-	tmp.data = key->prime1.data;
-	tmp.len = key->prime1.len;
-	key->prime1.data = key->prime2.data;
-	key->prime1.len = key->prime2.len;
-	key->prime2.data = tmp.data;
-	key->prime2.len = tmp.len;
+	tmp = key->prime1;
+	key->prime1 = key->prime2;
+	key->prime2 = tmp;
+	tmp = key->exponent1;
+	key->exponent1 = key->exponent2;
+	key->exponent2 = tmp;
     }
 #define VERIFY_MPI_EQUAL(m1, m2) \
     if (mp_cmp(m1, m2) != 0) {   \
@@ -831,23 +854,20 @@ RSA_PrivateKeyCheck(RSAPrivateKey *key)
     CHECK_MPI_OK( mp_mod(&d, &psub1, &res) );
     if (mp_cmp(&d_p, &res) != 0) {
 	/* swap in the correct value */
-	SECITEM_ZfreeItem(&key->exponent1, PR_FALSE);
-	MPINT_TO_SECITEM(&res, &key->exponent1, key->arena);
+	CHECK_SEC_OK( swap_in_key_value(key->arena, &res, &key->exponent1) );
     }
     /* d_q == d mod q-1 */
     CHECK_MPI_OK( mp_mod(&d, &qsub1, &res) );
     if (mp_cmp(&d_q, &res) != 0) {
 	/* swap in the correct value */
-	SECITEM_ZfreeItem(&key->exponent2, PR_FALSE);
-	MPINT_TO_SECITEM(&res, &key->exponent2, key->arena);
+	CHECK_SEC_OK( swap_in_key_value(key->arena, &res, &key->exponent2) );
     }
     /* q * q**-1 == 1 mod p */
     CHECK_MPI_OK( mp_mulmod(&q, &qInv, &p, &res) );
     if (mp_cmp_d(&res, 1) != 0) {
 	/* compute the correct value */
 	CHECK_MPI_OK( mp_invmod(&q, &p, &qInv) );
-	SECITEM_ZfreeItem(&key->coefficient, PR_FALSE);
-	MPINT_TO_SECITEM(&res, &key->coefficient, key->arena);
+	CHECK_SEC_OK( swap_in_key_value(key->arena, &qInv, &key->coefficient) );
     }
 cleanup:
     mp_clear(&n);
