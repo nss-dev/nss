@@ -133,6 +133,7 @@ struct NSSTrustStr
     nssTrustLevel clientAuth;
     nssTrustLevel emailProtection;
     nssTrustLevel codeSigning;
+    PRBool stepUpApproved;
 };
 
 struct nssSMIMEProfileStr
