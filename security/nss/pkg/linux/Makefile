@@ -23,6 +23,10 @@ publish:
 	find $(CORE_DEPTH)/../dist/$(OBJDIR)/lib -type l \
 		\( -name "*.so" -o -name "*.chk" \) \
         -exec cp {} opt/sun/private/lib \;
+	mkdir -p opt/sun/private/bin
+	(cd $(CORE_DEPTH)/../dist/$(OBJDIR)/bin && tar cphf - \
+		certutil cmsutil crlutil modutil pk12util signtool \
+		signver ssltap ) | (cd opt/sun/private/bin && tar xvfBp -)
 	(cd $(CORE_DEPTH)/../dist/public && tar cphf - .) \
 		| (mkdir -p opt/sun/private/include && cd opt/sun/private/include && tar xvfBp -)
 
@@ -39,8 +43,9 @@ publish:
 	echo "%dir /opt/sun" >>temp.spec
 	echo "%dir /opt/sun/private" >>temp.spec
 	echo "%dir /opt/sun/private/lib" >>temp.spec
-	find opt \( -name "*.so" -o -name "*.chk" \) \
-		| sed -e "s-^-/-" >>temp.spec
+	echo "%dir /opt/sun/private/bin" >>temp.spec
+	find opt \( -name "*.so" -o -name "*.chk" -o -type f \
+		-perm u=rwx,g=rx,o=rx \) | sed -e "s-^-/-" >>temp.spec
 	echo "" >>temp.spec
 	echo "%files devel" >>temp.spec
 	echo "%defattr(-,root,root)" >>temp.spec
