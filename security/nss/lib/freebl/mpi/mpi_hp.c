@@ -67,11 +67,6 @@ s_mpv_sqr_add_prop(const mp_digit *pa, mp_size a_len, mp_digit *ps)
 #define MAX_STACK_DIGITS 258
 #define MULTACC512_LEN   (512 / MP_DIGIT_BIT)
 #define HP_MPY_ADD_FN    (a_len == MULTACC512_LEN ? multacc512 : maxpy_little)
-/* temporary hack XXX 
-** prime generator fails when using multacc512 so disable it for now. 
-*/
-#undef  HP_MPY_ADD_FN
-#define HP_MPY_ADD_FN    maxpy_little
 
 /* c = a * b */
 void 
