@@ -47,17 +47,15 @@ EXPORTS =	   \
 MODULE = security
 
 CSRCS =		        \
-	module.c        \
-	slot.c          \
-	token.c         \
-	util.c          \
+	devmod.c        \
+	devslot.c          \
+	devtoken.c         \
+	devutil.c          \
 	ckhelper.c      \
 	$(NULL)
 
 # here is where the 3.4 glue code is added
 ifndef PURE_STAN_BUILD
-CSRCS += nss3hack.c
-PRIVATE_EXPORTS += devnss3hack.h
 DEFINES = -DNSS_3_4_CODE
 endif
 

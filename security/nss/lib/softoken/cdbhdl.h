@@ -1,4 +1,4 @@
-/* 
+/*
  * The contents of this file are subject to the Mozilla Public
  * License Version 1.1 (the "License"); you may not use this file
  * except in compliance with the License. You may obtain a copy of
@@ -30,37 +30,25 @@
  * may use your version of this file under either the MPL or the
  * GPL.
  */
+/*
+ * cdbhdl.h - certificate database handle
+ *   private to the certdb module
+ *
+ * $Id$
+ */
+#ifndef _CDBHDL_H_
+#define _CDBHDL_H_
+
+#include "nspr.h"
+#include "mcom_db.h"
+#include "pcertt.h"
 
 /*
- * This file is in part derived from a file "pkcs11t.h" made available
- * by RSA Security at ftp://ftp.rsasecurity.com/pub/pkcs/pkcs-11/pkcs11t.h
+ * Handle structure for open certificate databases
  */
+struct NSSLOWCERTCertDBHandleStr {
+    DB *permCertDB;
+    PZMonitor *dbMon;
+};
 
-#ifndef NSSCKP_H
-#define NSSCKP_H
-
-#ifdef DEBUG
-static const char NSSCKP_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
-#endif /* DEBUG */
-
-#endif /* NSSCKP_H */
-
-/*
- * These platform-dependent packing rules are required by all PKCS#11
- * modules, to be binary compatible.  These rules have been placed in 
- * separate header files (nssckp.h to enable the packing, nsscku.h to 
- * disable) for consistancy.  These files can be included many times,
- * so the bodies should *NOT* be in the multiple-inclusion-preventing
- * #ifndef/#endif area above.
- */
-
-/*
- * WIN32 is defined (when appropriate) in NSPR's prcpucfg.h.
- */
-
-#ifdef WIN32
-#pragma warning(disable:4103)
-#pragma pack(push, cryptoki, 1)
-#endif /* WIN32 */
-
-/* End of nssckp.h */
+#endif

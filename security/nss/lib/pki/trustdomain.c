@@ -393,11 +393,8 @@ get_best_cert(NSSCertificate *c, void *arg)
     }
     /* either they are both valid at time, or neither valid; take the newer */
     /* XXX later -- defer to policies */
-    if (bestdc->isNewerThan(bestdc, dc)) {
-	return PR_SUCCESS;
-    } else {
+    if (!bestdc->isNewerThan(bestdc, dc)) {
 	best->cert = c;
-	return PR_SUCCESS;
     }
     /* policies */
     return PR_SUCCESS;
@@ -721,7 +718,7 @@ NSSTrustDomain_FindCertificateByIssuerAndSerialNumber
 	{
 	    object = nssToken_FindObjectByTemplate(tok, NULL,
 	                                           cert_template, ctsize);
-	    if (object != CK_INVALID_KEY) {
+	    if (object != CK_INVALID_HANDLE) {
 		/* Could not find cert, so create it */
 		rvCert = nssCertificate_CreateFromHandle(NULL, object, 
 		                                         NULL, tok->slot);
@@ -864,7 +861,7 @@ NSSTrustDomain_FindCertificateByEncodedCertificate
 	{
 	    object = nssToken_FindObjectByTemplate(tok, NULL,
 	                                           cert_template, ctsize);
-	    if (object != CK_INVALID_KEY) {
+	    if (object != CK_INVALID_HANDLE) {
 		/* Could not find cert, so create it */
 		rvCert = nssCertificate_CreateFromHandle(NULL, object, 
 		                                         NULL, tok->slot);

@@ -54,9 +54,7 @@ EXPORTS =	   \
 	nssckfwt.h \
 	nssckg.h   \
 	nssckmdt.h \
-	nssckp.h   \
 	nssckt.h   \
-	nsscku.h   \
 	$(NULL)
 
 MODULE = security

@@ -30,46 +30,17 @@
  * may use your version of this file under either the MPL or the
  * GPL.
  */
-#ifndef _KEYTLOW_H_
-#define _KEYTLOW_H_ 1
 
-#include "blapit.h"
-
-typedef enum { 
-    lowNullKey = 0, 
-    lowRSAKey = 1, 
-    lowDSAKey = 2, 
-    lowDHKey = 4
-} LowKeyType;
-
-/*
-** An RSA public key object.
-*/
-struct SECKEYLowPublicKeyStr {
-    PLArenaPool *arena;
-    LowKeyType keyType ;
-    union {
-        RSAPublicKey rsa;
-	DSAPublicKey dsa;
-	DHPublicKey  dh;
-    } u;
-};
-typedef struct SECKEYLowPublicKeyStr SECKEYLowPublicKey;
-
-/*
-** Low Level private key object
-** This is only used by the raw Crypto engines (crypto), keydb (keydb),
-** and PKCS #11. Everyone else uses the high level key structure.
-*/
-struct SECKEYLowPrivateKeyStr {
-    PLArenaPool *arena;
-    LowKeyType keyType;
-    union {
-        RSAPrivateKey rsa;
-	DSAPrivateKey dsa;
-	DHPrivateKey  dh;
-    } u;
-};
-typedef struct SECKEYLowPrivateKeyStr SECKEYLowPrivateKey;
-
-#endif	/* _KEYTLOW_H_ */
+#include "seccomon.h"
+#ifdef XP_UNIX
+#include "unix_rand.c"
+#endif
+#ifdef XP_WIN
+#include "win_rand.c"
+#endif
+#ifdef XP_MAC
+#include "mac_rand.c"
+#endif
+#ifdef XP_OS2
+#include "os2_rand.c"
+#endif

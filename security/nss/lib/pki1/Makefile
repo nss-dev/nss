@@ -38,8 +38,10 @@ include config.mk
 include $(CORE_DEPTH)/coreconf/rules.mk
 
 # Generate oiddata.h and oiddata.c.
-generate:
-	perl oidgen.perl < oids.txt
+$(OBJDIR)/oiddata.c $(OBJDIR)/oiddata.h: oidgen.perl oids.txt
+	@$(MAKE_OBJDIR)
+	rm -f $(OBJDIR)/oiddata.c $(OBJDIR)/oiddata.h
+	perl oidgen.perl $(OBJDIR)/oiddata.c $(OBJDIR)/oiddata.h oids.txt
 
-export:: generate private_export 
+export::  private_export 
 

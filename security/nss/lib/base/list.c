@@ -91,7 +91,10 @@ nsslist_get_matching_element(nssList *list, void *data)
 	    break;
 	}
 	link = &node->link;
-	if (link == PR_LIST_TAIL(&list->head->link)) break;
+	if (link == PR_LIST_TAIL(&list->head->link)) {
+	    node = NULL;
+	    break;
+	}
 	node = (nssListElement *)PR_NEXT_LINK(&node->link);
     }
     return node;
