@@ -1757,13 +1757,9 @@ ocsp_ConnectToHost(const char *host, PRUint16 port)
 	hostIndex = 0;
 	do {
 	    hostIndex = PR_EnumerateHostEnt(hostIndex, &hostEntry, port, &addr);
-	    if (hostIndex < 0)
+	    if (hostIndex <= 0)
 		goto loser;
-	} while (PR_Connect(sock, &addr, timeout) != PR_SUCCESS
-		 && hostIndex > 0);
-
-        if (hostIndex == 0)
-	    goto loser;
+	} while (PR_Connect(sock, &addr, timeout) != PR_SUCCESS);
 
 	PORT_Free(netdbbuf);
     } else {
