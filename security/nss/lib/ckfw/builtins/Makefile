@@ -78,6 +78,10 @@ ifeq ($(OS_ARCH), WINNT)
 	IMPORT_LIBRARY = $(OBJDIR)/$(LIBRARY_NAME)$(LIBRARY_VERSION).lib
 endif
 
+ifeq ($(OS_ARCH),OS2)
+	SHARED_LIBRARY = $(OBJDIR)/$(LIBRARY_NAME)$(LIBRARY_VERSION).dll
+endif
+
 
 include $(CORE_DEPTH)/coreconf/rules.mk
 
