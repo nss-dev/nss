@@ -87,9 +87,11 @@ typedef unsigned int      mp_digit;
 
 #if MP_ULONG_LONG_MAX == ULONG_MAX
 typedef unsigned long     mp_word;
+typedef          long     mp_sword;
 #define MP_WORD_MAX       ULONG_MAX
 #else
 typedef unsigned long long mp_word;
+typedef          long long mp_sword;
 #define MP_WORD_MAX       MP_ULONG_LONG_MAX
 #endif
 #endif
@@ -99,11 +101,13 @@ typedef unsigned long long mp_word;
 #if ULONG_MAX == UINT_MAX
 typedef unsigned short    mp_digit;
 typedef unsigned int      mp_word;
+typedef          int      mp_sword;
 #define MP_DIGIT_MAX      USHRT_MAX
 #define MP_WORD_MAX       UINT_MAX
 #else
 typedef unsigned int      mp_digit;
 typedef unsigned long     mp_word;
+typedef          long     mp_sword;
 #define MP_DIGIT_MAX      UINT_MAX
 #define MP_WORD_MAX       ULONG_MAX
 #endif
