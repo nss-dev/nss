@@ -234,12 +234,20 @@ loser:
  * clean shutdown, it is necessary for there to be no certs in the cache.
  */
 
+extern const NSSError NSS_ERROR_INTERNAL_ERROR;
+extern const NSSError NSS_ERROR_BUSY;
+
 NSS_IMPLEMENT PRStatus
 nssTrustDomain_DestroyCache (
   NSSTrustDomain *td
 )
 {
     if (!td->cache) {
+	nss_SetError(NSS_ERROR_INTERNAL_ERROR);
+	return PR_FAILURE;
+    }
+    if (nssHash_Count(td->cache->issuerAndSN) > 0) {
+	nss_SetError(NSS_ERROR_BUSY);
 	return PR_FAILURE;
     }
     PZ_DestroyLock(td->cache->lock);
