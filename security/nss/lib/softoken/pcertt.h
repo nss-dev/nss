@@ -41,7 +41,6 @@
 #include "prclist.h"
 #include "pkcs11t.h"
 #include "seccomon.h"
-/*#include "secmodt.h" */
 #include "secoidt.h"
 #include "plarena.h"
 #include "prcvar.h"
@@ -52,19 +51,11 @@
 /* Non-opaque objects */
 typedef struct NSSLOWCERTCertDBHandleStr               NSSLOWCERTCertDBHandle;
 typedef struct NSSLOWCERTCertKeyStr                    NSSLOWCERTCertKey;
-typedef struct NSSLOWCERTCertListStr                   NSSLOWCERTCertList;
-typedef struct NSSLOWCERTCertListNodeStr               NSSLOWCERTCertListNode;
-typedef struct NSSLOWCERTCertNicknamesStr              NSSLOWCERTCertNicknames;
+
 typedef struct NSSLOWCERTCertTrustStr                  NSSLOWCERTCertTrust;
 typedef struct NSSLOWCERTCertificateStr                NSSLOWCERTCertificate;
 typedef struct NSSLOWCERTCertificateListStr            NSSLOWCERTCertificateList;
-typedef struct NSSLOWCERTCrlStr                        NSSLOWCERTCrl;
-typedef struct NSSLOWCERTCrlKeyStr                     NSSLOWCERTCrlKey;
-typedef struct NSSLOWCERTCrlNodeStr                    NSSLOWCERTCrlNode;
-typedef struct NSSLOWCERTDERCertsStr                   NSSLOWCERTDERCerts;
 typedef struct NSSLOWCERTIssuerAndSNStr                NSSLOWCERTIssuerAndSN;
-typedef struct NSSLOWCERTNameStr                       NSSLOWCERTName;
-typedef struct NSSLOWCERTSignedCrlStr                  NSSLOWCERTSignedCrl;
 typedef struct NSSLOWCERTSignedDataStr                 NSSLOWCERTSignedData;
 typedef struct NSSLOWCERTSubjectPublicKeyInfoStr       NSSLOWCERTSubjectPublicKeyInfo;
 typedef struct NSSLOWCERTValidityStr                   NSSLOWCERTValidity;
@@ -131,10 +122,8 @@ struct NSSLOWCERTCertificateStr {
     SECItem derIssuer;			/* DER for issuer name */
     SECItem serialNumber;
     SECItem derSubject;			/* DER for subject name */
-    SECItem derPublicKey;		/* DER for the public key */
     NSSLOWCERTSubjectPublicKeyInfo subjectPublicKeyInfo;
     SECItem certKey;			/* database key for this cert */
-    SECItem version;
     NSSLOWCERTValidity validity;
     certDBEntryCert *dbEntry;		/* database entry struct */
     SECItem subjectKeyID;	/* x509v3 subject key identifier */
@@ -153,87 +142,6 @@ struct NSSLOWCERTCertificateStr {
 
 #define SEC_CRL_VERSION_1		0	/* default */
 #define SEC_CRL_VERSION_2		1	/* v2 extensions */
-
-/*
- * used to identify class of cert in mime stream code
- */
-#define SEC_CERT_CLASS_CA	1
-#define SEC_CERT_CLASS_SERVER	2
-#define SEC_CERT_CLASS_USER	3
-#define SEC_CERT_CLASS_EMAIL	4
-
-struct NSSLOWCERTDERCertsStr {
-    PRArenaPool *arena;
-    int numcerts;
-    SECItem *rawCerts;
-};
-
-
-
-struct NSSLOWCERTCrlStr {
-    PRArenaPool *arena;
-    SECItem version;
-    SECAlgorithmID signatureAlg;
-    SECItem derName;
-};
-
-struct NSSLOWCERTCrlKeyStr {
-    SECItem derName;
-    SECItem dummy;			/* The decoder can not skip a primitive,
-					   this serves as a place holder for the
-					   decoder to finish its task only
-					*/
-};
-
-struct NSSLOWCERTSignedCrlStr {
-    PRArenaPool *arena;
-    NSSLOWCERTCrl crl;
-    certDBEntryRevocation *dbEntry;	/* database entry struct */
-    PRBool keep;			/* keep this crl in the cache for the  session*/
-    PRBool isperm;
-    PRBool istemp;
-    int referenceCount;
-    NSSLOWCERTCertDBHandle *dbhandle;
-    NSSLOWCERTSignedData signatureWrap;	/* XXX */
-    char *url;
-};
-
-/*
- * Does the cert belong to the user, a peer, or a CA.
- */
-typedef enum {
-    certOwnerUser = 0,
-    certOwnerPeer = 1,
-    certOwnerCA = 2
-} NSSLOWCERTCertOwner;
-
-/*
- * This enum represents the state of validity times of a certificate
- */
-typedef enum {
-    secCertTimeValid = 0,
-    secCertTimeExpired = 1,
-    secCertTimeNotValidYet = 2
-} SECCertTimeValidity;
-
-/*
- * Interface for getting certificate nickname strings out of the database
- */
-
-/* these are values for the what argument below */
-#define SEC_CERT_NICKNAMES_ALL		1
-#define SEC_CERT_NICKNAMES_USER		2
-#define SEC_CERT_NICKNAMES_SERVER	3
-#define SEC_CERT_NICKNAMES_CA		4
-
-struct NSSLOWCERTCertNicknamesStr {
-    PRArenaPool *arena;
-    void *head;
-    int numnicknames;
-    char **nicknames;
-    int what;
-    int totallen;
-};
 
 struct NSSLOWCERTIssuerAndSNStr {
     SECItem derIssuer;
