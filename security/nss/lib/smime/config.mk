@@ -49,7 +49,7 @@ ifeq ($(OS_ARCH), WINNT)
 SHARED_LIBRARY = $(OBJDIR)/$(LIBRARY_NAME)$(LIBRARY_VERSION).dll
 IMPORT_LIBRARY = $(OBJDIR)/$(LIBRARY_NAME)$(LIBRARY_VERSION).lib
 
-DLLFLAGS += -DEF:smime.def
+DLLFLAGS += -DEF:$(srcdir)/smime.def
 RES = $(OBJDIR)/smime.res
 RESNAME = smime.rc
 
@@ -122,5 +122,5 @@ MKSHLIB += -Wl,--version-script,$(MAPFILE)
 endif
 
 
-	
+
 

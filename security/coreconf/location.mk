@@ -40,7 +40,7 @@
 #
 
 BUILD         = $(PLATFORM)
-OBJDIR        = $(PLATFORM)
+OBJDIR        = .
 
 DEPENDENCIES  = $(PLATFORM)/.md
 MKDEPEND_DIR = $(MOD_DEPTH)/coreconf/mkdepend

@@ -57,7 +57,7 @@ install:: moz_import install_roots
 
 depend::
 
-export libs install clobber clobber_all clean::
+export libs install clobber clobber_all clean distclean::
 	$(GMAKE) -f gmakefile.win $@ MOZ_SRC_FLIPPED=$(MOZ_SRC_FLIPPED)
 
 moz_import::
