@@ -1465,6 +1465,7 @@ nssCertificate_FindPrivateKey
     NSSToken **tokens, **tp;
     nssCryptokiObject *instance;
     NSSTrustDomain *td = nssCertificate_GetTrustDomain(c);
+
     tokens = nssPKIObject_GetTokens(&c->object, &status);
     if (!tokens) {
 	return PR_FALSE; /* actually, should defer to crypto context */
@@ -1483,11 +1484,10 @@ nssCertificate_FindPrivateKey
 	{
 	    nssSession *session = nssToken_CreateSession(*tp, PR_FALSE);
 	    instance = nssToken_FindPrivateKeyByID(*tp, session, &c->id);
+	    nssSession_Destroy(session);
 	    if (instance) {
-		nssCryptokiObject_Destroy(instance);
 		break;
 	    }
-	    nssSession_Destroy(session);
 	}
     }
     /* also search on other tokens? */
@@ -1528,16 +1528,8 @@ nssCertificate_IsPrivateKeyAvailable
   PRStatus *statusOpt
 )
 {
-    NSSPrivateKey *vk;
-    vk = nssCertificate_FindPrivateKey(c, uhh);
-    if (!vk) {
-	if (statusOpt) {
-	    *statusOpt = PR_FAILURE;
-	}
-	return PR_FALSE;
-    }
-    nssPrivateKey_Destroy(vk);
-    return PR_TRUE;
+    /* this works with the softoken, does it work everywhere?  */
+    return (c->id.size > 0);
 }
 
 NSS_IMPLEMENT PRBool

@@ -82,7 +82,7 @@ print_cert_callback(NSSCertificate *c, void *arg)
     NSSUTF8 *nickname = nssCertificate_GetNickname(c, NULL);
     NSSItem *serialNumber;
     NSSUsages usages;
-#if 0
+#if 1
     PRBool isUserCert = NSSCertificate_IsPrivateKeyAvailable(c, NULL, NULL);
 #else
     PRBool isUserCert = PR_FALSE;
@@ -92,13 +92,12 @@ print_cert_callback(NSSCertificate *c, void *arg)
 	CMD_PrintError("Failed to obtain trusted usages");
 	return PR_FAILURE;
     }
-    PR_fprintf(rtData->output.file, "%c %-40s", 
-                                    (isUserCert) ? '*' : ' ',
-                                    nickname);
+    PR_fprintf(rtData->output.file, " %c", (isUserCert) ? 'u' : '-');
     CMD_InitPrinter(&printer, rtData->output.file, 0, 80);
+    CMD_PrintCertificateTrust(&printer, &usages, NULL);
+    PR_fprintf(rtData->output.file, " %-40s", nickname);
     CMD_PrintHex(&printer, serialNumber, NULL);
     PR_fprintf(rtData->output.file, "    ");
-    CMD_PrintCertificateTrust(&printer, &usages, NULL);
     PR_fprintf(rtData->output.file, "\n");
     return PR_SUCCESS;
 }
