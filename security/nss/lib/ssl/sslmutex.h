@@ -63,8 +63,12 @@ typedef int    sslPID;
 #elif defined(LINUX) || defined(AIX)
 
 #include <sys/types.h>
+#include "prtypes.h"
 
-typedef struct { int ps[3]; } sslMutex;
+typedef struct { 
+    int      mPipes[3]; 
+    PRInt32  nWaiters;
+} sslMutex;
 typedef pid_t sslPID;
 
 #elif defined(XP_UNIX) /* other types of Unix */
