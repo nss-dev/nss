@@ -21,10 +21,12 @@ dnl
 dnl Process this file with autoconf to produce a configure script.
 dnl
 AC_PREREQ(2.12)
-AC_INIT(coreconf/rules.mk)
+AC_INIT(../coreconf/rules.mk)
 
 AC_CONFIG_AUX_DIR(${srcdir}/build/autoconf)
 AC_CANONICAL_SYSTEM
+
+CORECONF_SOURCE='$(topsrcdir)/../coreconf'
 
 dnl Set this define to make fixes w/o breaking anything else.
 AC_DEFINE(USE_AUTOCONF)
@@ -497,6 +499,7 @@ dnl ========================================================
 dnl Build options
 AC_SUBST(MOZILLA_CLIENT)
 AC_SUBST(ENABLE_CMD)
+AC_SUBST(CORECONF_SOURCE)
 
 dnl Program locations
 AC_SUBST(HOST_CC)
@@ -548,7 +551,9 @@ echo $MAKEFILES | $PERL $srcdir/build/autoconf/acoutput-fast.pl > conftest.sh
 . ./conftest.sh
 rm conftest.sh
 
-echo $MAKEFILES > unallmakefiles
+dnl ========================================================
+dnl Remove :template files from MAKEFILES
+dnl ========================================================
+echo $MAKEFILES | $PERL -e 'while (<STDIN>) { chomp; foreach $f (split(/\s+/)) { $f =~ s/:.*//; print "$f "; } } print "\n";' > unallmakefiles
 
 AC_OUTPUT($MAKEFILES)
-
