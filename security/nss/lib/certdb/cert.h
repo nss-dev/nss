@@ -478,6 +478,10 @@ CERT_FindCertByKeyID (CERTCertDBHandle *handle, SECItem *name, SECItem *keyID);
 extern CERTCertificate *
 CERT_FindCertByIssuerAndSN (CERTCertDBHandle *handle, CERTIssuerAndSN *issuerAndSN);
 
+/*
+** Find a certificate in the database by a subject key ID
+**	"subjKeyID" is the subject Key ID to look for
+*/
 extern CERTCertificate *
 CERT_FindCertBySubjectKeyID (CERTCertDBHandle *handle, SECItem *subjKeyID);
 
