@@ -102,6 +102,7 @@ typedef struct nssArenaMarkStr nssArenaMark;
 typedef struct nssListStr nssList;
 typedef struct nssListIteratorStr nssListIterator;
 typedef PRBool (* nssListCompareFunc)(void *a, void *b);
+typedef PRIntn (* nssListSortFunc)(void *a, void *b);
 typedef void (* nssListElementDestructorFunc)(void *el);
 
 typedef struct nssHashStr nssHash;
