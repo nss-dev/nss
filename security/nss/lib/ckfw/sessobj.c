@@ -870,7 +870,7 @@ attributes_match
     return 0;
   }
 
-  if( PR_TRUE == nsslibc_memequal(a->data, b->data, a->size, (PRStatus *)NULL) ) {
+  if( PR_TRUE == nsslibc_memequal(a->data, b_data, a->size, (PRStatus *)NULL) ) {
     return 1;
   } else {
     return 0;
