@@ -215,6 +215,8 @@ nss_OpenVolatileSecModDB() {
       return rv;
 }
 
+extern SECStatus secoid_Init(void);
+
 /*
  * OK there are now lots of options here, lets go through them all:
  *
@@ -248,6 +250,10 @@ nss_Init(const char *configdir, const char *certPrefix, const char *keyPrefix,
     if (status != SECSuccess)
 	goto loser;
     RNG_SystemInfoForRNG();
+    
+    if (secoid_Init() != SECSuccess) {
+	goto loser;
+    }
 
     if (noCertDB) {
 	status = nss_OpenVolatileCertDB();

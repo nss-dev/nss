@@ -1367,14 +1367,18 @@ SECOID_AddEntry(SECItem *oid, char *description, unsigned long mech) {
 static DB *oidhash     = NULL;
 static DB *oidmechhash = NULL;
 
-static SECStatus
-InitOIDHash(void)
+SECStatus
+secoid_Init(void)
 {
     DBT key;
     DBT data;
     int rv;
     SECOidData *oid;
     int i;
+    
+    if (oidhash) {
+	return PR_SUCCESS;
+    }
     
     oidhash = dbopen( 0, O_RDWR | O_CREAT, 0600, DB_HASH, 0 );
     oidmechhash = dbopen( 0, O_RDWR | O_CREAT, 0600, DB_HASH, 0 );
@@ -1432,14 +1436,9 @@ SECOID_FindOIDByMechanism(unsigned long mechanism)
     DBT data;
     SECOidData *ret;
     int rv;
+    
+    PR_ASSERT(oidhash != NULL);
 
-    if ( !oidhash ) {
-        rv = InitOIDHash();
-	if ( rv != SECSuccess ) {
-	    PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
-	    return NULL;
-	}
-    }
     key.data = &mechanism;
     key.size = sizeof(mechanism);
 
@@ -1461,13 +1460,7 @@ SECOID_FindOID(SECItem *oid)
     SECOidData *ret;
     int rv;
     
-    if ( !oidhash ) {
-	rv = InitOIDHash();
-	if ( rv != SECSuccess ) {
-	    PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
-	    return NULL;
-	}
-    }
+    PR_ASSERT(oidhash != NULL);
     
     key.data = oid->data;
     key.size = oid->len;
