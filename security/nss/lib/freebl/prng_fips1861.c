@@ -166,8 +166,6 @@ alg_fips186_1_x3_1(RNGContext *rng,
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
 	return SECFailure;
     }
-    /* initialize the SHA1 context */
-    memset(&sha1cx, 0, sizeof(sha1cx));
     /* 
      * <Step 2> Initialize t, taken care of in SHA-1 (same initial values) 
      */
