@@ -868,6 +868,7 @@ mp_err   mp_sqr(const mp_int *a, mp_int *sqr)
     a = &tmp;
   } else {
     DIGITS(&tmp) = 0;
+    res = MP_OKAY;
   }
 
   ix = 2 * MP_USED(a);
