@@ -1016,7 +1016,7 @@ ssl_SecureSend(sslSocket *ss, const unsigned char *buf, int len, int flags)
     if (ss->pendingBuf.len != 0) {
 	PORT_Assert(ss->pendingBuf.len > 0);
 	rv = ssl_SendSavedWriteData(ss, &ss->pendingBuf, ssl_DefSend);
-	if (ss->pendingBuf.len != 0) {
+	if (rv >= 0 && ss->pendingBuf.len != 0) {
 	    PORT_Assert(ss->pendingBuf.len > 0);
 	    PORT_SetError(PR_WOULD_BLOCK_ERROR);
 	    rv = SECFailure;
