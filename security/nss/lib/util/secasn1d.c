@@ -916,10 +916,9 @@ sec_asn1d_prepare_for_contents (sec_asn1d_state *state)
 	} else {
 	    /*
 	     * A group of zero; we are done.
-	     * XXX Should we store a NULL here?  Or set state to
-	     * afterGroup and let that code do it?
+	     * Set state to afterGroup and let that code plant the NULL.
 	     */
-	    state->place = afterEndOfContents;
+	    state->place = afterGroup;
 	}
 	return;
     }
@@ -1914,7 +1913,8 @@ sec_asn1d_concat_group (sec_asn1d_state *state)
     PORT_Assert (state->place == afterGroup);
 
     placep = (const void***)state->dest;
-    if (state->subitems_head != NULL) {
+    PORT_Assert(state->subitems_head == NULL || placep != NULL);
+    if (placep != NULL) {
 	struct subitem *item;
 	const void **group;
 	int count;
@@ -1934,7 +1934,6 @@ sec_asn1d_concat_group (sec_asn1d_state *state)
 	    return;
 	}
 
-	PORT_Assert (placep != NULL);
 	*placep = group;
 
 	item = state->subitems_head;
@@ -1950,8 +1949,6 @@ sec_asn1d_concat_group (sec_asn1d_state *state)
 	 * a memory leak (it is just temporarily left dangling).
 	 */
 	state->subitems_head = state->subitems_tail = NULL;
-    } else if (placep != NULL) {
-	*placep = NULL;
     }
 
     state->place = afterEndOfContents;
