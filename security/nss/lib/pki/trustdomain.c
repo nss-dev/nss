@@ -88,6 +88,9 @@ NSSTrustDomain_Create
     rvTD->arena = arena;
     rvTD->refCount = 1;
     nssTrustDomain_InitializeCache(rvTD, NSSTRUSTDOMAIN_DEFAULT_CACHE_SIZE);
+#ifdef NSS_3_4_CODE
+    rvTD->statusConfig = NULL;
+#endif
     return rvTD;
 loser:
     nssArena_Destroy(arena);
