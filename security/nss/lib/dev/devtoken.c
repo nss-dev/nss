@@ -53,6 +53,8 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #include "secerr.h"
 #endif
 
+extern const NSSError NSS_ERROR_NOT_FOUND;
+
 /* The number of object handles to grab during each call to C_FindObjects */
 #define OBJECT_STACK_SIZE 16
 
