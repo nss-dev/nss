@@ -404,8 +404,10 @@ NSS_CMSSignedData_Decode_AfterEnd(NSSCMSSignedData *sigd)
     signerinfos = sigd->signerInfos;
 
     /* set cmsg for all the signerinfos */
-    for (i = 0; signerinfos[i] != NULL; i++)
-	signerinfos[i]->cmsg = sigd->cmsg;
+    if (signerinfos) {
+	for (i = 0; signerinfos[i] != NULL; i++)
+	    signerinfos[i]->cmsg = sigd->cmsg;
+    }
 
     return SECSuccess;
 }
