@@ -448,7 +448,7 @@ RSA_Sign(NSSLOWKEYPrivateKey *key,
     if (rv != SECSuccess) 
     	goto done;
 
-    rv = RSA_PrivateKeyOp(&key->u.rsa, output, formatted.data);
+    rv = RSA_PrivateKeyOpDoubleChecked(&key->u.rsa, output, formatted.data);
     *output_len = modulus_len;
 
     goto done;
@@ -704,7 +704,7 @@ RSA_SignRaw(NSSLOWKEYPrivateKey *key,
     if (rv != SECSuccess) 
     	goto done;
 
-    rv = RSA_PrivateKeyOp(&key->u.rsa, output, formatted.data);
+    rv = RSA_PrivateKeyOpDoubleChecked(&key->u.rsa, output, formatted.data);
     *output_len = modulus_len;
 
 done:
