@@ -42,7 +42,7 @@
 typedef SECStatus AESFunc(AESContext *cx, unsigned char *output,
                           unsigned int *outputLen, unsigned int maxOutputLen,
                           const unsigned char *input, unsigned int inputLen, 
-                          int blocksize);
+                          unsigned int blocksize);
 
 typedef SECStatus AESBlockFunc(AESContext *cx, 
                                unsigned char *output,
