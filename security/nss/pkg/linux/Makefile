@@ -8,7 +8,7 @@
 CORE_DEPTH = ../../..
 
 NAME        = sun-nss
-RELEASE     = 1
+RELEASE     = 2
 VERSION     = `grep NSS_VERSION $(CORE_DEPTH)/../dist/public/security/nss.h \
 		| sed -e 's/"$$//' -e 's/.*"//' -e 's/ .*//'`
 PWD         = `pwd`

@@ -1,9 +1,11 @@
 Summary: Network Security Services
 Name: NAME_REPLACE
-Vendor: Sun Microsystems
+Vendor: Sun Microsystems, Inc.
 Version: VERSION_REPLACE
 Release: RELEASE_REPLACE
 Copyright: MPL/GPL
+Distribution: Sun Java(TM) Enterprise System
+URL: http://www.sun.com
 Group: System Environment/Base
 Source: %{name}-%{version}.tar.gz
 ExclusiveOS: Linux
