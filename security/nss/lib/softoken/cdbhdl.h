@@ -51,4 +51,19 @@ struct NSSLOWCERTCertDBHandleStr {
     PZMonitor *dbMon;
 };
 
+#ifdef DBM_USING_NSPR
+#define NO_RDONLY	PR_RDONLY
+#define NO_RDWR		PR_RDWR
+#define NO_CREATE	(PR_RDWR | PR_CREATE_FILE | PR_TRUNCATE)
+#else
+#define NO_RDONLY	O_RDONLY
+#define NO_RDWR		O_RDWR
+#define NO_CREATE	(O_RDWR | O_CREAT | O_TRUNC)
+#endif
+
+typedef DB * (*rdbfunc)(const char *appName, const char *prefix, 
+				const char *type, int flags);
+
+DB * rdbopen(const char *appName, const char *prefix, 
+				const char *type, int flags);
 #endif
