@@ -163,7 +163,7 @@ builtins_mdObject_GetAttributeSize
   return 0;
 }
 
-static NSSItem *
+static const NSSItem *
 builtins_mdObject_GetAttribute
 (
   NSSCKMDObject *mdObject,

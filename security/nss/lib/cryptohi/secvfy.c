@@ -116,7 +116,7 @@ struct VFYContextStr {
     unsigned char digest[DSA_SIGNATURE_LEN];
     void * wincx;
     void *hashcx;
-    SECHashObject *hashobj;
+    const SECHashObject *hashobj;
 };
 
 VFYContext *

@@ -247,7 +247,7 @@ struct sslSocketStr {
     PRFileDesc *	fd;
 
     /* Pointer to operations vector for this socket */
-    sslSocketOps *	ops;
+    const sslSocketOps * ops;
 
     /* State flags */
     unsigned int     useSocks		: 1;
@@ -552,7 +552,7 @@ struct sslSecurityInfoStr {
     uint32           rcvSequence;		/*recvBufLock*/	/* ssl2 only */
 
     /* Hash information; used for one-way-hash functions (MD2, MD5, etc.) */
-    SECHashObject   *hash;			/* Spec Lock */ /* ssl2 only */
+    const SECHashObject   *hash;		/* Spec Lock */ /* ssl2 only */
     void            *hashcx;			/* Spec Lock */	/* ssl2 only */
 
     SECItem          sendSecret;		/* Spec Lock */	/* ssl2 only */

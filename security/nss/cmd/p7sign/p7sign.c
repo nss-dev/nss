@@ -45,6 +45,7 @@
 #include "cert.h"
 #include "certdb.h"
 #include "cdbhdl.h"
+#include "sechash.h"	/* for HASH_GetHashObject() */
 
 #if defined(XP_UNIX)
 #include <unistd.h>
@@ -127,11 +128,11 @@ SignOut(void *arg, const char *buf, unsigned long len)
 static int
 CreateDigest(SECItem *data, char *digestdata, unsigned int *len, unsigned int maxlen)
 {
-    SECHashObject *hashObj;
+    const SECHashObject *hashObj;
     void *hashcx;
 
     /* XXX probably want to extend interface to allow other hash algorithms */
-    hashObj = &SECHashObjects[HASH_AlgSHA1];
+    hashObj = HASH_GetHashObject(HASH_AlgSHA1);
 
     hashcx = (* hashObj->create)();
     if (hashcx == NULL)
