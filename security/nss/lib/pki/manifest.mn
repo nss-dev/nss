@@ -34,7 +34,7 @@ MANIFEST_CVS_ID = "@(#) $RCSfile$ $Revision$ $Date$ $Name$"
 
 CORE_DEPTH = ../../..
 
-PRIVATE_EXPORTS = \
+PRIVATE_EXPORTS =  \
 	pki.h      \
 	pkit.h     \
 	$(NULL)
@@ -49,6 +49,7 @@ MODULE = nss
 CSRCS =		         \
 	pkibase.c        \
 	pkistore.c       \
+	pkidb.c          \
 	asymmkey.c       \
 	cert.c           \
 	cryptocontext.c  \
@@ -58,6 +59,6 @@ CSRCS =		         \
 	volatiledomain.c \
 	$(NULL)
 
-REQUIRES = security nspr
+REQUIRES = security nspr dbm
 
 LIBRARY_NAME = nsspki

@@ -117,15 +117,19 @@ nssTrustDomain_TraverseCerts (
   void *arg
 );
 
-NSS_EXTERN nssTrust *
-nssTrustDomain_FindTrustForCert (
+NSS_EXTERN NSSPublicKey *
+nssTrustDomain_FindPublicKeyByID (
   NSSTrustDomain *td,
-  NSSCert *c
+  NSSItem *keyID
 );
 
 NSS_EXTERN NSSCert *
 nssCert_Decode (
-  NSSBER *ber
+  NSSBER *ber,
+  NSSItem *nicknameOpt,
+  nssTrust *trustOpt,
+  NSSTrustDomain *td,
+  NSSVolatileDomain *vdOpt
 );
 
 NSS_EXTERN NSSCert *
@@ -271,6 +275,18 @@ nssPrivateKey_GetNickname (
   NSSToken *tokenOpt
 );
 
+NSS_EXTERN NSSTrustDomain *
+nssPrivateKey_GetTrustDomain (
+  NSSPrivateKey *vk,
+  PRStatus *statusOpt
+);
+
+NSS_EXTERN NSSVolatileDomain *
+nssPrivateKey_GetVolatileDomain (
+  NSSPrivateKey *vk,
+  PRStatus *statusOpt
+);
+
 NSS_EXTERN NSSPublicKey *
 nssPublicKey_AddRef (
   NSSPublicKey *bk
@@ -284,6 +300,11 @@ nssPublicKey_Destroy (
 NSS_EXTERN NSSItem *
 nssPublicKey_GetID (
   NSSPublicKey *vk
+);
+
+NSS_EXTERN NSSKeyPairType
+nssPublicKey_GetKeyType (
+  NSSPublicKey *bk
 );
 
 NSS_EXTERN NSSItem *
@@ -302,9 +323,42 @@ nssSymKey_AddRef (
 );
 
 NSS_EXTERN NSSVolatileDomain *
+nssSymKey_GetVolatileDomain (
+  NSSSymKey *mk,
+  PRStatus *statusOpt
+);
+
+NSS_EXTERN NSSVolatileDomain *
 nssVolatileDomain_Create (
   NSSTrustDomain *td,
   NSSCallback *uhhOpt
+);
+
+NSS_EXTERN NSSVolatileDomain *
+nssVolatileDomain_AddRef (
+  NSSVolatileDomain *vd
+);
+
+NSS_EXTERN PRStatus
+nssVolatileDomain_Destroy (
+  NSSVolatileDomain *vd
+);
+
+NSS_EXTERN NSSTrustDomain *
+nssVolatileDomain_GetTrustDomain (
+  NSSVolatileDomain *vd
+);
+
+NSS_EXTERN PRStatus
+nssVolatileDomain_ImportCert (
+  NSSVolatileDomain *vd,
+  NSSCert *c
+);
+
+NSS_EXTERN PRStatus
+nssVolatileDomain_ImportPrivateKey (
+  NSSVolatileDomain *vd,
+  NSSPrivateKey *vk
 );
 
 NSS_EXTERN NSSCert **
@@ -314,6 +368,30 @@ nssVolatileDomain_FindCertsBySubject (
   NSSCert *rvOpt[],
   PRUint32 maximumOpt, /* 0 for no max */
   NSSArena *arenaOpt
+);
+
+NSS_EXTERN PRStatus
+nssVolatileDomain_ImportPublicKey (
+  NSSVolatileDomain *vd,
+  NSSPublicKey *bk
+);
+
+NSS_EXTERN PRStatus
+nssVolatileDomain_ImportSymKey (
+  NSSVolatileDomain *vd,
+  NSSSymKey *mk
+);
+
+NSS_EXTERN NSSSymKey *
+nssVolatileDomain_UnwrapSymKey (
+  NSSVolatileDomain *vd,
+  const NSSAlgNParam *ap,
+  NSSPrivateKey *wrapKey,
+  NSSItem *wrappedKey,
+  NSSSymKeyType targetSymKeyType,
+  NSSCallback *uhhOpt,
+  NSSOperations operations,
+  NSSProperties properties
 );
 
 NSS_EXTERN void

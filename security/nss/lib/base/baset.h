@@ -106,25 +106,6 @@ typedef void (PR_CALLBACK *nssHashIterator)(const void *key,
                                             void *arg);
 
 /*
- * nssPointerTracker
- *
- * This type is used in debug builds (both external and internal) to
- * track our object pointers.  Objects of this type must be statically
- * allocated, which means the structure size must be available to the
- * compiler.  Therefore we must expose the contents of this structure.
- * But please don't access elements directly; use the accessors.
- */
-
-#ifdef DEBUG
-struct nssPointerTrackerStr {
-  PRCallOnceType once;
-  PZLock *lock;
-  PLHashTable *table;
-};
-typedef struct nssPointerTrackerStr nssPointerTracker;
-#endif /* DEBUG */
-
-/*
  * nssStringType
  *
  * There are several types of strings in the real world.  We try to

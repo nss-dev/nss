@@ -73,6 +73,7 @@ struct NSSCertStr
   NSSDER serial;
   NSSASCII7 *email;
   NSSPublicKey *bk; /* for ephemeral decoded pubkeys */
+  nssTrust trust;
   nssCertDecoding decoding;
 };
 
@@ -82,106 +83,91 @@ nss_GetMethodsForType (
   NSSCertType certType
 );
 
-/* Creates a certificate from a base object */
-NSS_IMPLEMENT NSSCert *
-nssCert_Create (
-  nssPKIObject *object
-)
-{
-    PRStatus status;
-    NSSCert *rvCert;
-    /* mark? */
-    NSSArena *arena = object->arena;
-    PR_ASSERT(object->instances != NULL && object->numInstances > 0);
-    rvCert = nss_ZNEW(arena, NSSCert);
-    if (!rvCert) {
-	return (NSSCert *)NULL;
-    }
-    rvCert->object = *object;
-    /* XXX should choose instance based on some criteria */
-    status = nssCryptokiCert_GetAttributes(object->instances[0],
-                                           arena,
-                                           &rvCert->kind,
-                                           &rvCert->id,
-                                           &rvCert->encoding,
-                                           &rvCert->issuer,
-                                           &rvCert->serial,
-                                           &rvCert->subject,
-                                           &rvCert->email);
-    if (status != PR_SUCCESS) {
-	return (NSSCert *)NULL;
-    }
-    /* all certs need an encoding value */
-    if (rvCert->encoding.data == NULL) {
-	return (NSSCert *)NULL;
-    }
-    rvCert->decoding.methods = nss_GetMethodsForType(rvCert->kind);
-    if (!rvCert->decoding.methods) {
-	return (NSSCert *)NULL;
-    }
-    return rvCert;
-}
-
 NSS_IMPLEMENT NSSCert *
 nssCert_CreateFromInstance (
   nssCryptokiObject *instance,
   NSSTrustDomain *td,
-  NSSVolatileDomain *vdOpt,
-  NSSArena *arenaOpt
+  NSSVolatileDomain *vdOpt
 )
 {
     PRStatus status;
     nssPKIObject *pkio;
     NSSCert *rvCert = NULL;
+    nssPKIObjectTable *objectTable = nssTrustDomain_GetObjectTable(td);
 
-    pkio = nssPKIObject_Create(arenaOpt, instance, td, vdOpt);
-    if (!pkio) {
+    rvCert = nssPKIObject_CREATE(td, instance, NSSCert);
+    if (!rvCert) {
 	return (NSSCert *)NULL;
     }
-    rvCert = nssCert_Create(pkio);
+    pkio = &rvCert->object;
+    status = nssCryptokiCert_GetAttributes(instance, pkio->arena,
+                                           &rvCert->kind,
+                                           &rvCert->id,
+                                           &rvCert->encoding,
+                                           &rvCert->issuer,
+                                           &rvCert->serial,
+                                           &rvCert->subject);
+    if (status != PR_SUCCESS) {
+	goto loser;
+    }
+    pkio->objectType = pkiObjectType_Cert;
+    pkio->numIDs = 2;
+    pkio->uid[0] = &rvCert->issuer;
+    pkio->uid[1] = &rvCert->serial;
+    rvCert = (NSSCert *)nssPKIObjectTable_Add(objectTable, pkio);
+    if (!rvCert) {
+	rvCert = (NSSCert *)pkio;
+	goto loser;
+    } else if ((nssPKIObject *)rvCert != pkio) {
+	nssCert_Destroy((NSSCert *)pkio);
+    }
+    rvCert->decoding.methods = nss_GetMethodsForType(rvCert->kind);
+    if (!rvCert->decoding.methods) {
+	goto loser;
+    }
     if (rvCert && vdOpt) {
 	status = nssVolatileDomain_ImportCert(vdOpt, rvCert);
 	if (status == PR_FAILURE) {
-	    nssCert_Destroy(rvCert);
-	    rvCert = NULL;
+	    goto loser;
 	}
     }
+    /* token certs trusted by default */
+    rvCert->trust.trustedUsages.ca = rvCert->trust.trustedUsages.peer = ~0;
+    /* XXX or check trust here by looking at db? */
     return rvCert;
+loser:
+    nssCert_Destroy(rvCert);
+    return (NSSCert *)NULL;
 }
 
 NSS_IMPLEMENT NSSCert *
 nssCert_Decode (
-  NSSBER *ber
+  NSSBER *ber,
+  NSSItem *nicknameOpt,
+  nssTrust *trustOpt,
+  NSSTrustDomain *td,
+  NSSVolatileDomain *vdOpt
 )
 {
-    NSSArena *arena;
+    nssPKIObject *pkio;
     NSSCert *rvCert;
     NSSCertMethods *decoder;
     void *decoding;
     NSSItem *it;
+    nssPKIObjectTable *objectTable = nssTrustDomain_GetObjectTable(td);
 
-    /* create the PKIObject */
-    arena = nssArena_Create();
-    if (!arena) {
+    rvCert = nssPKIObject_CREATE(td, NULL, NSSCert);
+    if (!rvCert) {
 	return (NSSCert *)NULL;
     }
-    rvCert = nss_ZNEW(arena, NSSCert);
-    if (!rvCert) {
-	goto loser;
-    }
-    rvCert->object.arena = arena;
-    rvCert->object.refCount = 1;
-    rvCert->object.lock = PZ_NewLock(nssILockOther);
-    if (!rvCert->object.lock) {
-	goto loser;
-    }
+    pkio = &rvCert->object;
     /* try to decode it */
     decoder = nss_GetMethodsForType(NSSCertType_PKIX);
     if (!decoder) {
 	/* nss_SetError(UNKNOWN_CERT_TYPE); */
 	goto loser;
     }
-    decoding = decoder->decode(arena, ber);
+    decoding = decoder->decode(pkio->arena, ber);
     if (decoding) {
 	/* it's a PKIX cert */
 	rvCert->decoding.methods = decoder;
@@ -191,7 +177,7 @@ nssCert_Decode (
 	goto loser;
     }
     /* copy the BER encoding */
-    it = nssItem_Duplicate(ber, arena, &rvCert->encoding);
+    it = nssItem_Duplicate(ber, pkio->arena, &rvCert->encoding);
     if (!it) {
 	goto loser;
     }
@@ -215,9 +201,28 @@ nssCert_Decode (
     rvCert->subject = *it;
     /* obtain the email address from the decoding */
     rvCert->email = decoder->getEmailAddress(decoding);
+    /* set the nickname to the supplied one */
+    if (nicknameOpt) {
+	pkio->nickname = nssUTF8_Create(pkio->arena, nssStringType_UTF8String,
+	                                nicknameOpt->data, nicknameOpt->size);
+    }
+    if (trustOpt) {
+	rvCert->trust = *trustOpt;
+    }
+    pkio->objectType = pkiObjectType_Cert;
+    pkio->numIDs = 2;
+    pkio->uid[0] = &rvCert->issuer;
+    pkio->uid[1] = &rvCert->serial;
+    rvCert = (NSSCert *)nssPKIObjectTable_Add(objectTable, pkio);
+    if (!rvCert) {
+	rvCert = (NSSCert *)pkio;
+	goto loser;
+    } else if ((nssPKIObject *)rvCert != pkio) {
+	nssCert_Destroy((NSSCert *)pkio);
+    }
     return rvCert;
 loser:
-    nssArena_Destroy(arena);
+    nssCert_Destroy(rvCert);
     return (NSSCert *)NULL;
 }
 
@@ -809,47 +814,6 @@ nssCert_CopyToToken (
     return PR_SUCCESS;
 }
 
-static NSSUsage
-get_trusted_usage (
-  NSSCert *c,
-  PRBool asCA,
-  PRStatus *status
-)
-{
-    nssTrust *trust;
-    nssTrustLevel checkLevel;
-    NSSUsage usage = 0;
-
-    *status = PR_SUCCESS;
-    checkLevel = asCA ? nssTrustLevel_TrustedDelegator :
-                        nssTrustLevel_Trusted;
-    /* XXX needs to be cached with cert */
-    trust = nssTrustDomain_FindTrustForCert(c->object.td, c);
-    if (!trust) {
-	if (NSS_GetError() == NSS_ERROR_NO_ERROR) {
-	    *status = PR_SUCCESS;
-	} else {
-	    *status = PR_FAILURE;
-	}
-	return 0;
-    }
-    if (trust->clientAuth == checkLevel) {
-	usage |= NSSUsage_SSLClient;
-    }
-    if (trust->serverAuth == checkLevel) {
-	usage |= NSSUsage_SSLServer;
-    }
-    if (trust->emailProtection == checkLevel) {
-	usage |= NSSUsage_EmailSigner | NSSUsage_EmailRecipient;
-    }
-    if (trust->codeSigning == checkLevel) {
-	usage |= NSSUsage_CodeSigner;
-    }
-    nssTrust_Destroy(trust);
-    /* XXX should check user cert */
-    return usage;
-}
-
 static PRStatus
 validate_and_discover_trust (
   NSSCert *c,
@@ -861,7 +825,6 @@ validate_and_discover_trust (
 )
 {
     PRStatus status;
-    NSSUsage trustedUsage;
     NSSUsages *certUsages;
     PRBool valid;
 
@@ -877,8 +840,9 @@ validate_and_discover_trust (
     }
 
     /* See if the cert is trusted, overrides cert's usage */
-    trustedUsage = get_trusted_usage(c, asCA, &status);
-    if (trustedUsage && (trustedUsage & usage) == usage) {
+    if ((asCA && c->trust.trustedUsages.ca & usage) ||
+        c->trust.trustedUsages.peer & usage) 
+    {
 	*trusted = PR_TRUE;
 	return PR_SUCCESS;
     }
@@ -1108,7 +1072,6 @@ nssCert_GetTrustedUsages (
   NSSUsages *usagesOpt
 )
 {
-    PRStatus status;
     PRBool freeIt = PR_FALSE;
     if (!usagesOpt) {
 	usagesOpt = nss_ZNEW(NULL, NSSUsages);
@@ -1117,16 +1080,7 @@ nssCert_GetTrustedUsages (
 	}
 	freeIt = PR_TRUE;
     }
-    usagesOpt->ca = get_trusted_usage(c, PR_TRUE, &status);
-    if (status == PR_FAILURE) {
-	if (freeIt) nss_ZFreeIf(usagesOpt);
-	return (NSSUsages *)NULL;
-    }
-    usagesOpt->peer = get_trusted_usage(c, PR_FALSE, &status);
-    if (status == PR_FAILURE) {
-	if (freeIt) nss_ZFreeIf(usagesOpt);
-	return (NSSUsages *)NULL;
-    }
+    *usagesOpt = c->trust.trustedUsages;
     return usagesOpt;
 }
 
@@ -1146,76 +1100,13 @@ nssCert_IsTrustedForUsages (
   PRStatus *statusOpt
 )
 {
-    NSSUsages certUsages;
-    if (nssCert_GetTrustedUsages(c, &certUsages) == NULL) {
-	if (statusOpt) *statusOpt = PR_FAILURE;
+    if (c->trust.trustedUsages.ca == usages->ca &&
+        c->trust.trustedUsages.peer == usages->peer)
+    {
+	return PR_TRUE;
+    } else {
 	return PR_FALSE;
     }
-    return nssUsages_Match(usages, &certUsages);
-}
-
-static void
-set_trust_for_usage (
-  NSSUsage usage,
-  nssTrust *trust,
-  nssTrustLevel setLevel
-)
-{
-    if (usage & NSSUsage_SSLClient) {
-	trust->clientAuth = setLevel;
-    }
-    if (usage & NSSUsage_SSLServer) {
-	trust->serverAuth = setLevel;
-    }
-    if (usage & (NSSUsage_EmailSigner | NSSUsage_EmailRecipient)) {
-	trust->emailProtection = setLevel;
-    }
-    if (usage & NSSUsage_CodeSigner) {
-	trust->codeSigning = setLevel;
-    }
-}
-
-/* XXX move */
-NSS_IMPLEMENT NSSToken *
-nssTrust_GetWriteToken (
-  nssTrust *t,
-  nssSession **rvSessionOpt
-)
-{
-    return nssPKIObject_GetWriteToken(&t->object, rvSessionOpt);
-}
-
-/* XXX move */
-NSS_IMPLEMENT void
-nssTrust_Clear (
-  nssTrust *trust
-)
-{
-    trust->clientAuth = nssTrustLevel_NotTrusted;
-    trust->serverAuth = nssTrustLevel_NotTrusted;
-    trust->emailProtection = nssTrustLevel_NotTrusted;
-    trust->codeSigning = nssTrustLevel_NotTrusted;
-}
-
-/* XXX move */
-NSS_IMPLEMENT nssTrust *
-nssTrust_CreateNull (
-  NSSTrustDomain *td
-)
-{
-    nssPKIObject *pkio;
-    nssTrust *trust = NULL;
-    pkio = nssPKIObject_Create(NULL, NULL, td, NULL);
-    if (pkio) {
-	trust = nss_ZNEW(pkio->arena, nssTrust);
-	if (trust) {
-	    trust->object = *pkio;
-	    nssTrust_Clear(trust);
-	} else {
-	    nssPKIObject_Destroy(pkio);
-	}
-    }
-    return trust;
 }
 
 NSS_IMPLEMENT PRStatus
@@ -1224,56 +1115,22 @@ nssCert_SetTrustedUsages (
   NSSUsages *usages
 )
 {
-    PRStatus status;
-    nssTrust *trust;
-    NSSToken *token;
-    nssSession *session;
-    nssCryptokiObject *instance;
-
-    /* XXX needs to be cached with cert */
-    trust = nssTrustDomain_FindTrustForCert(c->object.td, c);
-    if (trust) {
-	token = nssTrust_GetWriteToken(trust, &session);
-	nssTrust_Clear(trust);
-    } else {
-	if (NSS_GetError() != NSS_ERROR_NO_ERROR) {
-	    return PR_FAILURE;
-	}
-	/* XXX something better */
-	/* create a new trust object */
-	trust = nssTrust_CreateNull(c->object.td);
-	if (!trust) {
-	    return PR_FAILURE;
-	}
-	token = nssCert_GetWriteToken(c, &session);
-	if (!token) {
-	    /* XXX should extract from trust domain */
-	    PR_ASSERT(0);
-	    return PR_FAILURE;
-	}
+    NSSTrustDomain *td;
+    if (c->trust.trustedUsages.ca == usages->ca &&
+        c->trust.trustedUsages.peer == usages->peer) 
+    {
+	/* already set to desired value */
+	return PR_SUCCESS;
     }
-    /* set the new trust values */
-    set_trust_for_usage(usages->ca, trust, nssTrustLevel_TrustedDelegator);
-    set_trust_for_usage(usages->peer, trust, nssTrustLevel_Trusted);
-    /* import (set) the trust values on the token */
-    instance = nssToken_ImportTrust(token, session, &c->encoding,
-                                    &c->issuer, &c->serial,
-                                    trust->serverAuth,
-                                    trust->clientAuth,
-                                    trust->codeSigning,
-                                    trust->emailProtection,
-                                    PR_TRUE);
-    /* clean up */
-    nssSession_Destroy(session);
-    nssToken_Destroy(token);
-    if (instance) {
-	nssCryptokiObject_Destroy(instance);
-	status = PR_SUCCESS;
-    } else {
-	status = PR_FAILURE;
-    }
-    nssTrust_Destroy(trust);
-    return status;
+    /* XXX lock here? */
+    /* set the new trusted usages */
+    c->trust.trustedUsages = *usages;
+    /* clear the not trusted usages of all bits from the new trust */
+    c->trust.notTrustedUsages.ca &= usages->ca;
+    c->trust.notTrustedUsages.peer &= usages->peer;
+    /* reflect the change in the db */
+    td = nssCert_GetTrustDomain(c);
+    return nssTrustDomain_SetCertTrust(td, c, &c->trust);
 }
 
 NSS_IMPLEMENT PRStatus
@@ -1383,24 +1240,26 @@ nssCert_BuildChain (
 )
 {
     PRStatus status;
+    PRUint32 i, size;
     NSSCert **rvChain;
     NSSTrustDomain *td;
-    nssPKIObjectCollection *collection;
     NSSUsages usages = { 0 };
 
     td = NSSCert_GetTrustDomain(c);
     if (statusOpt) *statusOpt = PR_SUCCESS;
 
-    /* initialize the collection with the current cert */
-    collection = nssCertCollection_Create(td, NULL);
-    if (!collection) {
+    if (rvLimit) {
+	size = rvLimit;
+    } else {
+	size = 4;
+    }
+    rvChain = nss_ZNEWARRAY(arenaOpt, NSSCert *, size + 1);
+    if (!rvChain) {
 	if (statusOpt) *statusOpt = PR_FAILURE;
 	return (NSSCert **)NULL;
     }
-    nssPKIObjectCollection_AddObject(collection, (nssPKIObject *)c);
-    if (rvLimit == 1) {
-	goto finish;
-    }
+    i = 0; /* begin the chain with the cert passed in */
+    rvChain[i++] = nssCert_AddRef(c);
     /* going from peer to CA */
     if (usagesOpt) {
 	usages.ca = usagesOpt->peer;
@@ -1410,12 +1269,22 @@ nssCert_BuildChain (
     while (!nssItem_Equal(&c->subject, &c->issuer, &status)) {
 	c = find_cert_issuer(c, time, usagesOpt, policiesOpt);
 	if (c) {
-	    nssPKIObjectCollection_AddObject(collection, (nssPKIObject *)c);
-	    nssCert_Destroy(c); /* collection has it */
-	    if (rvLimit > 0 &&
-	        nssPKIObjectCollection_Count(collection) == rvLimit) 
-	    {
+	    rvChain[i++] = c;
+	    if (rvLimit > 0 && i == rvLimit) {
+		/* reached the limit of certs asked for */
 		break;
+	    }
+	    if (i == size) {
+		/* unlimited search, but array is full */
+		NSSCert **test;
+		size *= 2;
+		test = nss_ZREALLOCARRAY(rvChain, NSSCert *, size + 1);
+		if (!test) {
+		    nssCertArray_Destroy(rvChain);
+		    if (statusOpt) *statusOpt = PR_FAILURE;
+		    return (NSSCert **)NULL;
+		}
+		rvChain = test;
 	    }
 	} else {
 	    nss_SetError(NSS_ERROR_CERTIFICATE_ISSUER_NOT_FOUND);
@@ -1423,12 +1292,6 @@ nssCert_BuildChain (
 	    break;
 	}
     }
-finish:
-    rvChain = nssPKIObjectCollection_GetCerts(collection, 
-                                                     rvOpt, 
-                                                     rvLimit, 
-                                                     arenaOpt);
-    nssPKIObjectCollection_Destroy(collection);
     return rvChain;
 }
 
@@ -1565,44 +1428,17 @@ nssCert_GetPublicKey (
 )
 {
     PRStatus status;
-    NSSToken **tokens, **tp;
-    nssCryptokiObject *instance = NULL;
     NSSTrustDomain *td = nssCert_GetTrustDomain(c);
     NSSVolatileDomain *vd = nssCert_GetVolatileDomain(c, NULL);
 
-    /* first look for a persistent object in the trust domain */
-    tokens = nssPKIObject_GetTokens(&c->object, NULL, 0, &status);
-    if (tokens) {
-	for (tp = tokens; *tp; tp++) {
-	    /* XXX need to iterate over cert instances to have session */
-	    nssSession *session = nssToken_CreateSession(*tp, PR_FALSE);
-	    if (!session) {
-		break;
-	    }
-	    instance = nssToken_FindPublicKeyByID(*tp, session, &c->id);
-	    nssSession_Destroy(session);
-	    if (instance) {
-		break;
-	    }
-	}
-	/* also search on other tokens? */
-	nssTokenArray_Destroy(tokens);
+    if (!c->bk && c->id.size > 0) {
+	/* first try looking for a persistent object */
+	c->bk = nssTrustDomain_FindPublicKeyByID(td, &c->id);
     }
-    if (instance) {
-	NSSPublicKey *bk = NULL;
-	/* found a persistent instance of the pubkey, return it */
-	bk = nssPublicKey_CreateFromInstance(instance, td, vd, NULL);
-	if (!bk) {
-	    nssCryptokiObject_Destroy(instance);
-	    nssVolatileDomain_Destroy(vd);
-	    return (NSSPublicKey *)NULL;
-	}
-	return bk;
-    } else {
+    if (!c->bk) {
 	NSSOIDTag keyAlg;
 	NSSBitString keyBits;
 	nssCertDecoding *dc = nssCert_GetDecoding(c);
-
 	/* create an ephemeral pubkey object, either in the cert's
 	 * volatile domain (if it exists), or as a standalone object
 	 * that will be destroyed with the cert
@@ -1610,11 +1446,12 @@ nssCert_GetPublicKey (
 	status = dc->methods->getPublicKeyInfo(dc->data, &keyAlg, &keyBits);
 	if (status == PR_SUCCESS) {
 	    c->bk = nssPublicKey_CreateFromInfo(td, vd, keyAlg, &keyBits);
-	    nssVolatileDomain_Destroy(vd);
-	    return c->bk;
 	}
     }
     nssVolatileDomain_Destroy(vd);
+    if (c->bk) {
+	return nssPublicKey_AddRef(c->bk);
+    }
     return (NSSPublicKey *)NULL;
 }
 
@@ -1632,53 +1469,12 @@ nssCert_FindPrivateKey (
   NSSCallback *uhh
 )
 {
-    PRStatus status;
-    NSSToken **tokens, **tp;
-    nssCryptokiObject *instance;
     NSSTrustDomain *td = nssCert_GetTrustDomain(c);
-
-    tokens = nssPKIObject_GetTokens(&c->object, NULL, 0, &status);
-    if (!tokens) {
-	return PR_FALSE; /* actually, should defer to crypto context */
+    if (c->id.size > 0) {
+	return nssTrustDomain_FindPrivateKeyByID(td, &c->id);
+    } else {
+	return (NSSPrivateKey *)NULL;
     }
-    for (tp = tokens; *tp; tp++) {
-	NSSSlot *slot = nssToken_GetSlot(*tp);
-	NSSCallback *pwcb = uhh ? 
-	                    uhh : 
-	                    nssTrustDomain_GetDefaultCallback(td, NULL);
-	status = nssSlot_Login(slot, pwcb);
-	nssSlot_Destroy(slot);
-	if (status != PR_SUCCESS) {
-	    break;
-	}
-	/* XXX need to iterate over cert instances to have session */
-	{
-	    nssSession *session = nssToken_CreateSession(*tp, PR_FALSE);
-	    instance = nssToken_FindPrivateKeyByID(*tp, session, &c->id);
-	    nssSession_Destroy(session);
-	    if (instance) {
-		break;
-	    }
-	}
-    }
-    /* also search on other tokens? */
-    nssTokenArray_Destroy(tokens);
-    if (instance) {
-	nssPKIObject *pkio;
-	NSSPrivateKey *vk = NULL;
-	pkio = nssPKIObject_Create(NULL, instance, td, /* XXX cc */ NULL);
-	if (!pkio) {
-	    nssCryptokiObject_Destroy(instance);
-	    return (NSSPrivateKey *)NULL;
-	}
-	vk = nssPrivateKey_Create(pkio);
-	if (!vk) {
-	    nssPKIObject_Destroy(pkio);
-	    return (NSSPrivateKey *)NULL;
-	}
-	return vk;
-    }
-    return (NSSPrivateKey *)NULL;
 }
 
 NSS_IMPLEMENT NSSPrivateKey *
@@ -1697,38 +1493,11 @@ nssCert_IsPrivateKeyAvailable (
   PRStatus *statusOpt
 )
 {
-    PRStatus status;
-    NSSToken **tokens, **tp;
-    nssCryptokiObject *instance = NULL;
-    NSSTrustDomain *td = nssCert_GetTrustDomain(c);
-    PRBool isLoggedIn;
-    tokens = nssPKIObject_GetTokens(&c->object, NULL, 0, &status);
-    if (!tokens) {
-	return PR_FALSE; /* can't have private key w/o a token instance */
-    }
-    for (tp = tokens; *tp; tp++) {
-	NSSSlot *slot;
-	/* XXX need to iterate over cert instances to have session */
-	nssSession *session = nssToken_CreateSession(*tp, PR_FALSE);
-	if (!session) {
-	    break;
-	}
-	slot = nssToken_GetSlot(*tp);
-	isLoggedIn = nssSlot_IsLoggedIn(slot);
-	nssSlot_Destroy(slot);
-	if (isLoggedIn) {
-	    instance = nssToken_FindPrivateKeyByID(*tp, session, &c->id);
-	} else {
-	    instance = nssToken_FindPublicKeyByID(*tp, session, &c->id);
-	}
-	nssSession_Destroy(session);
-	if (instance) {
-	    break;
-	}
-    }
-    nssTokenArray_Destroy(tokens);
-    if (instance) {
-	nssCryptokiObject_Destroy(instance);
+    NSSPrivateKey *vk;
+    /* XXX would be nice to "ping" the tokens w/o actually building the key */
+    vk = nssCert_FindPrivateKey(c, uhh);
+    if (vk) {
+	nssPrivateKey_Destroy(vk);
 	return PR_TRUE;
     } else {
 	return PR_FALSE;
@@ -1836,91 +1605,6 @@ NSSUserCert_DeriveSymKey (
 {
     nss_SetError(NSS_ERROR_NOT_FOUND);
     return NULL;
-}
-
-NSS_IMPLEMENT nssTrust *
-nssTrust_Create (
-  nssPKIObject *object
-)
-{
-    PRStatus status;
-    PRUint32 i;
-    PRUint32 lastTrustOrder, myTrustOrder;
-    NSSModule *module;
-    nssTrust *rvt;
-    nssCryptokiObject *instance;
-    nssTrustLevel serverAuth, clientAuth, codeSigning, emailProtection;
-    lastTrustOrder = 1<<16; /* just make it big */
-    PR_ASSERT(object->instances != NULL && object->numInstances > 0);
-    rvt = nss_ZNEW(object->arena, nssTrust);
-    if (!rvt) {
-	return (nssTrust *)NULL;
-    }
-    rvt->object = *object;
-    /* trust has to peek into the base object members */
-    PZ_Lock(object->lock);
-    for (i=0; i<object->numInstances; i++) {
-	/* get the trust order from the token's module */
-	instance = object->instances[i];
-	module = nssToken_GetModule(instance->token);
-	myTrustOrder = nssModule_GetTrustOrder(module);
-	nssModule_Destroy(module);
-	/* get the trust values from this token */
-	status = nssCryptokiTrust_GetAttributes(instance,
-	                                        &serverAuth,
-	                                        &clientAuth,
-	                                        &codeSigning,
-	                                        &emailProtection);
-	if (status != PR_SUCCESS) {
-	    PZ_Unlock(object->lock);
-	    return (nssTrust *)NULL;
-	}
-	if (rvt->serverAuth == nssTrustLevel_Unknown ||
-	    myTrustOrder < lastTrustOrder) 
-	{
-	    rvt->serverAuth = serverAuth;
-	}
-	if (rvt->clientAuth == nssTrustLevel_Unknown ||
-	    myTrustOrder < lastTrustOrder) 
-	{
-	    rvt->clientAuth = clientAuth;
-	}
-	if (rvt->emailProtection == nssTrustLevel_Unknown ||
-	    myTrustOrder < lastTrustOrder) 
-	{
-	    rvt->emailProtection = emailProtection;
-	}
-	if (rvt->codeSigning == nssTrustLevel_Unknown ||
-	    myTrustOrder < lastTrustOrder) 
-	{
-	    rvt->codeSigning = codeSigning;
-	}
-	lastTrustOrder = myTrustOrder;
-    }
-    PZ_Unlock(object->lock);
-    return rvt;
-}
-
-NSS_IMPLEMENT nssTrust *
-nssTrust_AddRef (
-  nssTrust *trust
-)
-{
-    if (trust) {
-	nssPKIObject_AddRef(&trust->object);
-    }
-    return trust;
-}
-
-NSS_IMPLEMENT PRStatus
-nssTrust_Destroy (
-  nssTrust *trust
-)
-{
-    if (trust) {
-	(void)nssPKIObject_Destroy(&trust->object);
-    }
-    return PR_SUCCESS;
 }
 
 struct nssSMIMEProfileStr

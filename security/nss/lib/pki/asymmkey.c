@@ -81,31 +81,6 @@ struct NSSPrivateKeyStr
 };
 
 NSS_IMPLEMENT NSSPrivateKey *
-nssPrivateKey_Create (
-  nssPKIObject *object
-)
-{
-    PRStatus status;
-    NSSPrivateKey *rvKey;
-    NSSArena *arena = object->arena;
-    PR_ASSERT(object->instances != NULL && object->numInstances > 0);
-    rvKey = nss_ZNEW(arena, NSSPrivateKey);
-    if (!rvKey) {
-	return (NSSPrivateKey *)NULL;
-    }
-    rvKey->object = *object;
-    /* XXX should choose instance based on some criteria */
-    status = nssCryptokiPrivateKey_GetAttributes(object->instances[0],
-                                                 arena,
-                                                 &rvKey->kind,
-                                                 &rvKey->id);
-    if (status != PR_SUCCESS) {
-	return (NSSPrivateKey *)NULL;
-    }
-    return rvKey;
-}
-
-NSS_IMPLEMENT NSSPrivateKey *
 nssPrivateKey_CreateFromInstance (
   nssCryptokiObject *instance,
   NSSTrustDomain *td,
@@ -115,12 +90,29 @@ nssPrivateKey_CreateFromInstance (
     PRStatus status;
     nssPKIObject *pkio;
     NSSPrivateKey *rvKey = NULL;
+    nssPKIObjectTable *objectTable = nssTrustDomain_GetObjectTable(td);
 
-    pkio = nssPKIObject_Create(NULL, instance, td, vdOpt);
-    if (!pkio) {
-	return (NSSPrivateKey *)NULL;
+    rvKey = nssPKIObject_CREATE(td, instance, NSSPrivateKey);
+    if (!rvKey) {
+	goto loser;
     }
-    rvKey = nssPrivateKey_Create(pkio);
+    pkio = &rvKey->object;
+    status = nssCryptokiPrivateKey_GetAttributes(instance, pkio->arena,
+                                                 &rvKey->kind,
+                                                 &rvKey->id);
+    if (status != PR_SUCCESS) {
+	goto loser;
+    }
+    pkio->objectType = pkiObjectType_PrivateKey;
+    pkio->numIDs = 1;
+    pkio->uid[0] = &rvKey->id;
+    rvKey = (NSSPrivateKey *)nssPKIObjectTable_Add(objectTable, pkio);
+    if (!rvKey) {
+	rvKey = (NSSPrivateKey *)pkio;
+	goto loser;
+    } else if ((nssPKIObject *)rvKey != pkio) {
+	nssPrivateKey_Destroy((NSSPrivateKey *)pkio);
+    }
     if (rvKey && vdOpt) {
 	status = nssVolatileDomain_ImportPrivateKey(vdOpt, rvKey);
 	if (status == PR_FAILURE) {
@@ -129,6 +121,9 @@ nssPrivateKey_CreateFromInstance (
 	}
     }
     return rvKey;
+loser:
+    nssPrivateKey_Destroy(rvKey);
+    return (NSSPrivateKey *)NULL;
 }
 
 NSS_IMPLEMENT NSSPrivateKey *
@@ -188,12 +183,12 @@ nssPrivateKey_GetNickname (
 }
 
 NSS_IMPLEMENT PRBool
-nssPrivateKey_IsOnToken (
+nssPrivateKey_HasInstanceOnToken (
   NSSPrivateKey *vk,
   NSSToken *token
 )
 {
-    return nssPKIObject_IsOnToken(&vk->object, token);
+    return nssPKIObject_HasInstanceOnToken(&vk->object, token);
 }
 
 NSS_IMPLEMENT nssCryptokiObject *
@@ -212,6 +207,23 @@ nssPrivateKey_FindInstanceForAlgorithm (
 )
 {
     return nssPKIObject_FindInstanceForAlgorithm(&vk->object, ap);
+}
+
+NSS_IMPLEMENT PRStatus
+nssPrivateKey_RemoveInstanceForToken (
+  NSSPrivateKey *vk,
+  NSSToken *token
+)
+{
+    return nssPKIObject_RemoveInstanceForToken(&vk->object, token);
+}
+
+NSS_IMPLEMENT PRIntn
+nssPrivateKey_CountInstances (
+  NSSPrivateKey *vk
+)
+{
+    return nssPKIObject_CountInstances(&vk->object);
 }
 
 NSS_IMPLEMENT void
@@ -427,6 +439,7 @@ NSSPrivateKey_Encode (
                                 rvOpt, arenaOpt);
 }
 
+#if 0
 /* XXX move to a lower layer to avoid extra translation? */
 /* or keep data with oid? */
 static NSSKeyPairType
@@ -449,6 +462,7 @@ get_key_pair_type(NSSOID *kpAlg)
 	return NSSKeyPairType_Unknown;
     }
 }
+#endif
 
 NSS_IMPLEMENT NSSPrivateKey *
 nssPrivateKey_Decode (
@@ -642,7 +656,7 @@ nssPrivateKey_Decrypt (
     NSSItem *rvIt = NULL;
 
     if (apOpt) {
-	ap = apOpt;
+	ap = (NSSAlgNParam *)apOpt;
     } else {
 	NSSOIDTag alg;
 	/* XXX are these defaults reasonable? */
@@ -823,56 +837,8 @@ nssPrivateKey_FindPublicKey (
   NSSPrivateKey *vk
 )
 {
-    PRStatus status;
-    NSSItem *id;
-    NSSPublicKey *rvPubKey = NULL;
-    nssPKIObjectCollection *collection = NULL;
-    id = nssPrivateKey_GetID(vk);
-    if (id) {
-	/* XXX
-	 * This would ostensibly search the trust domain.  However, that
-	 * means searching every active token for the key, when it is
-	 * almost assuredly only on the token with the private key.  Even
-	 * if not, the token that has the pair is the most desirable.
-	 * In general, this is another place where multiple instances
-	 * can be confusing/non-optimal, so needs to be handled correctly.
-	 * For now, restricting the search to the private key's tokens.
-	 */
-	NSSToken **tokens, **tp;
-	nssCryptokiObject *instance;
-	NSSTrustDomain *td = nssPrivateKey_GetTrustDomain(vk, NULL);
-	tokens = nssPKIObject_GetTokens(&vk->object, NULL, 0, &status);
-	if (!tokens) {
-	    return (NSSPublicKey *)NULL; /* defer to trust domain ??? */
-	}
-	for (tp = tokens; *tp; tp++) {
-	    /* XXX think of something better */
-	    nssCryptokiObject *vko;
-	    vko = nssPKIObject_GetInstance(&vk->object, *tp);
-	    if (!vko) {
-		continue;
-	    }
-	    instance = nssToken_FindPublicKeyByID(*tp, vko->session, id);
-	    nssCryptokiObject_Destroy(vko);
-	    if (instance) {
-		if (!collection) {
-		    collection = nssPublicKeyCollection_Create(td, NULL);
-		    if (!collection) {
-			nssCryptokiObject_Destroy(instance);
-			return (NSSPublicKey *)NULL;
-		    }
-		}
-		status = nssPKIObjectCollection_AddInstances(collection, 
-		                                             &instance, 1);
-	    }
-	}
-    }
-    if (collection) {
-	(void)nssPKIObjectCollection_GetPublicKeys(collection, 
-	                                           &rvPubKey, 1, NULL);
-	nssPKIObjectCollection_Destroy(collection);
-    }
-    return rvPubKey;
+    NSSTrustDomain *td = nssPrivateKey_GetTrustDomain(vk, NULL);
+    return nssTrustDomain_FindPublicKeyByID(td, &vk->id);
 }
 
 NSS_IMPLEMENT NSSPublicKey *
@@ -955,48 +921,38 @@ struct NSSPublicKeyStr
 };
 
 NSS_IMPLEMENT NSSPublicKey *
-nssPublicKey_Create (
-  nssPKIObject *object
-)
-{
-    PRStatus status;
-    NSSPublicKey *rvKey;
-    NSSArena *arena = object->arena;
-    PR_ASSERT(object->instances != NULL && object->numInstances > 0);
-    rvKey = nss_ZNEW(arena, NSSPublicKey);
-    if (!rvKey) {
-	return (NSSPublicKey *)NULL;
-    }
-    rvKey->object = *object;
-    /* XXX should choose instance based on some criteria */
-    status = nssCryptokiPublicKey_GetAttributes(object->instances[0],
-                                                arena,
-                                                &rvKey->info,
-                                                &rvKey->id);
-    if (status != PR_SUCCESS) {
-	nssPublicKey_Destroy(rvKey);
-	return (NSSPublicKey *)NULL;
-    }
-    return rvKey;
-}
-
-NSS_IMPLEMENT NSSPublicKey *
 nssPublicKey_CreateFromInstance (
   nssCryptokiObject *instance,
   NSSTrustDomain *td,
-  NSSVolatileDomain *vdOpt,
-  NSSArena *arenaOpt
+  NSSVolatileDomain *vdOpt
 )
 {
     PRStatus status;
     nssPKIObject *pkio;
     NSSPublicKey *rvKey = NULL;
+    nssPKIObjectTable *objectTable = nssTrustDomain_GetObjectTable(td);
 
-    pkio = nssPKIObject_Create(arenaOpt, instance, td, vdOpt);
-    if (!pkio) {
-	return (NSSPublicKey *)NULL;
+    rvKey = nssPKIObject_CREATE(td, instance, NSSPublicKey);
+    if (!rvKey) {
+	goto loser;
     }
-    rvKey = nssPublicKey_Create(pkio);
+    pkio = &rvKey->object;
+    status = nssCryptokiPublicKey_GetAttributes(instance, pkio->arena,
+                                                &rvKey->info,
+                                                &rvKey->id);
+    if (status != PR_SUCCESS) {
+	goto loser;
+    }
+    pkio->objectType = pkiObjectType_PublicKey;
+    pkio->numIDs = 1;
+    pkio->uid[0] = &rvKey->id;
+    rvKey = (NSSPublicKey *)nssPKIObjectTable_Add(objectTable, pkio);
+    if (!rvKey) {
+	rvKey = (NSSPublicKey *)pkio;
+	goto loser;
+    } else if ((nssPKIObject *)rvKey != pkio) {
+	nssPublicKey_Destroy((NSSPublicKey *)pkio);
+    }
     if (rvKey && vdOpt) {
 	status = nssVolatileDomain_ImportPublicKey(vdOpt, rvKey);
 	if (status == PR_FAILURE) {
@@ -1005,6 +961,9 @@ nssPublicKey_CreateFromInstance (
 	}
     }
     return rvKey;
+loser:
+    nssPublicKey_Destroy(rvKey);
+    return (NSSPublicKey *)NULL;
 }
 
 /* XXX same here */
@@ -1068,12 +1027,13 @@ nssPublicKey_CreateFromInfo (
 
     bko = nssToken_ImportPublicKey(token, session, &bki, PR_FALSE);
     if (bko) {
-	rvbk = nssPublicKey_CreateFromInstance(bko, td, vd, arena);
+	rvbk = nssPublicKey_CreateFromInstance(bko, td, vd);
 	if (!rvbk) {
 	    nssCryptokiObject_Destroy(bko);
 	}
     }
 
+    /* XXX leak arena */
     nssSession_Destroy(session);
     nssToken_Destroy(token);
     return rvbk;
@@ -1139,12 +1099,12 @@ nssPublicKey_GetID (
 }
 
 NSS_IMPLEMENT PRBool
-nssPublicKey_IsOnToken (
+nssPublicKey_HasInstanceOnToken (
   NSSPublicKey *bk,
   NSSToken *token
 )
 {
-    return nssPKIObject_IsOnToken(&bk->object, token);
+    return nssPKIObject_HasInstanceOnToken(&bk->object, token);
 }
 
 NSS_IMPLEMENT nssCryptokiObject *
@@ -1163,6 +1123,23 @@ nssPublicKey_FindInstanceForAlgorithm (
 )
 {
     return nssPKIObject_FindInstanceForAlgorithm(&bk->object, ap);
+}
+
+NSS_IMPLEMENT PRStatus
+nssPublicKey_RemoveInstanceForToken (
+  NSSPublicKey *bk,
+  NSSToken *token
+)
+{
+    return nssPKIObject_RemoveInstanceForToken(&bk->object, token);
+}
+
+NSS_IMPLEMENT PRIntn
+nssPublicKey_CountInstances (
+  NSSPublicKey *bk
+)
+{
+    return nssPKIObject_CountInstances(&bk->object);
 }
 
 NSS_IMPLEMENT void
@@ -1587,7 +1564,7 @@ nssPublicKey_FindCerts (
 {
     NSSTrustDomain *td = nssPublicKey_GetTrustDomain(bk, NULL);
     return nssTrustDomain_FindCertsByID(td, &bk->id, 
-                                               rvOpt, maximumOpt, arenaOpt);
+                                        rvOpt, maximumOpt, arenaOpt);
 }
 
 NSS_IMPLEMENT NSSCert **

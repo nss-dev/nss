@@ -1674,6 +1674,8 @@ main(int argc, char **argv)
 	    fprintf(stderr, "selfserv: Can't find certificate %s\n", nickName);
 	    exit(10);
 	}
+	/* XXX */
+	NSSTrustDomain_Login(td, NULL);
 	privKey[ssl_kea_rsa] = NSSCert_FindPrivateKey(cert[ssl_kea_rsa], NULL);
 	if (privKey[ssl_kea_rsa] == NULL) {
 	    fprintf(stderr, "selfserv: Can't find Private Key for cert %s\n", 

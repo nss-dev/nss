@@ -302,19 +302,15 @@ nssSlot_CreateSession (
  * nssToken_ImportCert
  * nssToken_FindCerts
  *
- *   ------ trust objects --------
- * nssToken_ImportTrust
- * nssToken_FindTrustObjects
- * nssToken_FindTrustForCert
- *
  *   ------ public/private key objects --------
  * nssToken_GenerateKeyPair
  * nssToken_FindPrivateKeys
- * nssToken_FindPrivateKeyByID
- * nssToken_FindPublicKeyByID
+ * nssToken_FindPublicKeys
  *
  *   ------ secret key objects --------
+ * nssToken_ImportRawSymKey
  * nssToken_GenerateSymKey
+ * nssToken_FindSymKeys
  *
  *   ------ generic key stuff -------
  * nssToken_UnwrapPrivateKey
@@ -420,42 +416,8 @@ NSS_EXTERN nssCryptokiObject **
 nssToken_FindCerts (
   NSSToken *token,
   nssSession *session,
-  nssTokenSearchType searchType,
   PRUint32 maximumOpt,
   PRStatus *statusOpt
-);
-
-NSS_EXTERN nssCryptokiObject *
-nssToken_ImportTrust (
-  NSSToken *tok,
-  nssSession *session,
-  NSSDER *certEncoding,
-  NSSDER *certIssuer,
-  NSSDER *certSerial,
-  nssTrustLevel serverAuth,
-  nssTrustLevel clientAuth,
-  nssTrustLevel codeSigning,
-  nssTrustLevel emailProtection,
-  PRBool asTokenObject
-);
-
-NSS_EXTERN nssCryptokiObject **
-nssToken_FindTrustObjects (
-  NSSToken *token,
-  nssSession *session,
-  nssTokenSearchType searchType,
-  PRUint32 maximumOpt,
-  PRStatus *statusOpt
-);
-
-NSS_EXTERN nssCryptokiObject *
-nssToken_FindTrustForCert (
-  NSSToken *token,
-  nssSession *session,
-  NSSDER *certEncoding,
-  NSSDER *certIssuer,
-  NSSDER *certSerial,
-  nssTokenSearchType searchType
 );
 
 NSS_EXTERN PRStatus
@@ -480,26 +442,19 @@ nssToken_ImportPublicKey (
 );
 
 NSS_EXTERN nssCryptokiObject **
-nssToken_FindPrivateKeys (
+nssToken_FindPublicKeys (
   NSSToken *token,
   nssSession *session,
-  nssTokenSearchType searchType,
   PRUint32 maximumOpt,
   PRStatus *statusOpt
 );
 
-NSS_EXTERN nssCryptokiObject *
-nssToken_FindPrivateKeyByID (
+NSS_EXTERN nssCryptokiObject **
+nssToken_FindPrivateKeys (
   NSSToken *token,
   nssSession *session,
-  NSSItem *keyID
-);
-
-NSS_EXTERN nssCryptokiObject *
-nssToken_FindPublicKeyByID (
-  NSSToken *token,
-  nssSession *session,
-  NSSItem *keyID
+  PRUint32 maximumOpt,
+  PRStatus *statusOpt
 );
 
 NSS_EXTERN nssCryptokiObject *
@@ -512,6 +467,14 @@ nssToken_GenerateSymKey (
   PRBool asTokenObject,
   NSSOperations operations,
   NSSProperties properties
+);
+
+NSS_EXTERN nssCryptokiObject **
+nssToken_FindSymKeys (
+  NSSToken *token,
+  nssSession *session,
+  PRUint32 maximumOpt,
+  PRStatus *statusOpt
 );
 
 NSS_EXTERN nssCryptokiObject *
@@ -934,7 +897,6 @@ nssSession_Clone (
  * nssCryptokiCert_GetAttributes
  * nssCryptokiPrivateKey_GetAttributes
  * nssCryptokiPublicKey_GetAttributes
- * nssCryptokiTrust_GetAttributes
  * nssCryptokiCRL_GetAttributes
  * nssCryptokiSymKey_GetAttributes
  */
@@ -989,8 +951,7 @@ nssCryptokiCert_GetAttributes (
   NSSDER *encodingOpt,
   NSSDER *issuerOpt,
   NSSDER *serialOpt,
-  NSSDER *subjectOpt,
-  NSSASCII7 **emailOpt
+  NSSDER *subjectOpt
 );
 
 NSS_EXTERN PRStatus
@@ -1007,15 +968,6 @@ nssCryptokiPublicKey_GetAttributes (
   NSSArena *arenaOpt,
   NSSPublicKeyInfo *keyInfoOpt,
   NSSItem *idOpt
-);
-
-NSS_EXTERN PRStatus
-nssCryptokiTrust_GetAttributes (
-  nssCryptokiObject *trustObject,
-  nssTrustLevel *serverAuth,
-  nssTrustLevel *clientAuth,
-  nssTrustLevel *codeSigning,
-  nssTrustLevel *emailProtection
 );
 
 NSS_EXTERN PRStatus
@@ -1213,15 +1165,6 @@ NSS_EXTERN NSSToken *
 nssSlotList_GetBestTokenForAlgorithm (
   nssSlotList *slotList,
   NSSOIDTag alg
-);
-
-NSS_EXTERN PRStatus
-nssToken_TraverseCerts (
-  NSSToken *token,
-  nssSession *session,
-  nssTokenSearchType searchType,
-  PRStatus (* callback)(nssCryptokiObject *instance, void *arg),
-  void *arg
 );
 
 PR_END_EXTERN_C

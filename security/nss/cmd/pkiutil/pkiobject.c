@@ -723,21 +723,18 @@ ImportObject
 {
     PRStatus status;
     PKIObjectType objectKind;
-    NSSToken *token;
-
-    /* XXX */
-    token = tokenOpt ? tokenOpt : nss_GetDefaultDatabaseToken();
 
     objectKind = get_object_class(objectTypeOpt);
     switch (objectKind) {
     case PKIAny: /* default to certificate */
     case PKICert:
-	status = import_certificate(td, token, nickname, rtData);
+	status = import_certificate(td, tokenOpt, nickname, rtData);
 	break;
     case PKIPublicKey:
 	break;
     case PKIPrivateKey:
-	status = import_private_key(td, token, nickname, keyTypeOpt,
+	tokenOpt = tokenOpt ? tokenOpt : nss_GetDefaultDatabaseToken();
+	status = import_private_key(td, tokenOpt, nickname, keyTypeOpt,
 	                            keypass, rtData);
 	break;
     case PKIUnknown:

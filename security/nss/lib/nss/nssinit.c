@@ -455,7 +455,7 @@ loser:
 	}
     }
 
-    g_default_trust_domain = NSSTrustDomain_Create(NULL, NULL, NULL, NULL);
+    g_default_trust_domain = nssTrustDomain_Create(configdir, NULL, NULL, NULL);
 
     modules = nss_GetLoadedModules();
     if (!modules) {
@@ -463,7 +463,7 @@ loser:
     }
 
     for (mp = modules; *mp; mp++) {
-	nssrv = NSSTrustDomain_AddModule(g_default_trust_domain, *mp);
+	nssrv = nssTrustDomain_AddModule(g_default_trust_domain, *mp);
     }
     nssModuleArray_Destroy(modules);
 
@@ -554,7 +554,7 @@ NSS_Shutdown(void)
     PRStatus rv = PR_SUCCESS;
     nss_DumpModuleLog();
     nss_FreeOIDTable();
-    NSSTrustDomain_Destroy(g_default_trust_domain);
+    nssTrustDomain_Destroy(g_default_trust_domain);
     nss_DestroyGlobalModuleList();
     nss_IsInitted = PR_FALSE;
     return rv;

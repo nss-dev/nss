@@ -81,22 +81,6 @@ typedef struct nssSessionStr nssSession;
 
 typedef struct nssSlotListStr nssSlotList;
 
-typedef enum {
-  nssTrustLevel_Unknown = 0,
-  nssTrustLevel_NotTrusted = 1,
-  nssTrustLevel_Trusted = 2,
-  nssTrustLevel_TrustedDelegator = 3,
-  nssTrustLevel_Valid = 4,
-  nssTrustLevel_ValidDelegator = 5
-} nssTrustLevel;
-
-typedef enum {
-  nssTokenSearchType_AllObjects = 0,
-  nssTokenSearchType_SessionOnly = 1,
-  nssTokenSearchType_TokenOnly = 2,
-  nssTokenSearchType_PrivateTokenOnly = 3
-} nssTokenSearchType;
-
 struct nssCryptokiObjectStr
 {
   CK_OBJECT_HANDLE handle;

@@ -386,8 +386,7 @@ nssCryptokiCert_GetAttributes (
   NSSDER *encodingOpt,
   NSSDER *issuerOpt,
   NSSDER *serialOpt,
-  NSSDER *subjectOpt,
-  NSSASCII7 **emailOpt
+  NSSDER *subjectOpt
 )
 {
     PRStatus status;
@@ -416,9 +415,6 @@ nssCryptokiCert_GetAttributes (
     }
     if (subjectOpt) {
 	NSS_CK_SET_ATTRIBUTE_NULL(attr, CKA_SUBJECT);
-    }
-    if (emailOpt) {
-	NSS_CK_SET_ATTRIBUTE_NULL(attr, CKA_NETSCAPE_EMAIL);
     }
     NSS_CK_TEMPLATE_FINISH(cert_template, attr, template_size);
     if (template_size == 0) {
@@ -456,9 +452,6 @@ nssCryptokiCert_GetAttributes (
     }
     if (subjectOpt) {
 	NSS_CK_ATTRIBUTE_TO_ITEM(&cert_template[i], subjectOpt); i++;
-    }
-    if (emailOpt) {
-	NSS_CK_ATTRIBUTE_TO_UTF8(&cert_template[i], *emailOpt); i++;
     }
     return PR_SUCCESS;
 }
@@ -622,71 +615,6 @@ nssCryptokiPublicKey_GetAttributes (
 	return PR_FAILURE;
     }
     return status;
-}
-
-static nssTrustLevel 
-get_nss_trust (
-  CK_TRUST ckt
-)
-{
-    nssTrustLevel t;
-    switch (ckt) {
-    case CKT_NETSCAPE_UNTRUSTED: t = nssTrustLevel_NotTrusted; break;
-    case CKT_NETSCAPE_TRUSTED_DELEGATOR: t = nssTrustLevel_TrustedDelegator; 
-	break;
-    case CKT_NETSCAPE_VALID_DELEGATOR: t = nssTrustLevel_ValidDelegator; break;
-    case CKT_NETSCAPE_TRUSTED: t = nssTrustLevel_Trusted; break;
-    case CKT_NETSCAPE_VALID: t = nssTrustLevel_Valid; break;
-    case CKT_NETSCAPE_MUST_VERIFY:
-    case CKT_NETSCAPE_TRUST_UNKNOWN:
-    default:
-	t = nssTrustLevel_Unknown; break;
-    }
-    return t;
-}
-
-NSS_IMPLEMENT PRStatus
-nssCryptokiTrust_GetAttributes (
-  nssCryptokiObject *trustObject,
-  nssTrustLevel *serverAuth,
-  nssTrustLevel *clientAuth,
-  nssTrustLevel *codeSigning,
-  nssTrustLevel *emailProtection
-)
-{
-    PRStatus status;
-    NSSSlot *slot;
-    CK_BBOOL isToken;
-    CK_TRUST saTrust, caTrust, epTrust, csTrust;
-    CK_ATTRIBUTE_PTR attr;
-    CK_ATTRIBUTE trust_template[5];
-    CK_ULONG trust_size;
-
-    /* Use the trust object to find the trust settings */
-    NSS_CK_TEMPLATE_START(trust_template, attr, trust_size);
-    NSS_CK_SET_ATTRIBUTE_VAR(attr, CKA_TOKEN,                  isToken);
-    NSS_CK_SET_ATTRIBUTE_VAR(attr, CKA_TRUST_SERVER_AUTH,      saTrust);
-    NSS_CK_SET_ATTRIBUTE_VAR(attr, CKA_TRUST_CLIENT_AUTH,      caTrust);
-    NSS_CK_SET_ATTRIBUTE_VAR(attr, CKA_TRUST_EMAIL_PROTECTION, epTrust);
-    NSS_CK_SET_ATTRIBUTE_VAR(attr, CKA_TRUST_CODE_SIGNING,     csTrust);
-    NSS_CK_TEMPLATE_FINISH(trust_template, attr, trust_size);
-
-    {
-	slot = nssToken_GetSlot(trustObject->token);
-	status = nssCKObject_GetAttributes(trustObject->handle,
-	                                   trust_template, trust_size,
-	                                   NULL, trustObject->session, slot);
-	nssSlot_Destroy(slot);
-	if (status != PR_SUCCESS) {
-	    return status;
-	}
-    }
-
-    *serverAuth = get_nss_trust(saTrust);
-    *clientAuth = get_nss_trust(caTrust);
-    *emailProtection = get_nss_trust(epTrust);
-    *codeSigning = get_nss_trust(csTrust);
-    return PR_SUCCESS;
 }
 
 NSS_IMPLEMENT PRStatus

@@ -700,6 +700,8 @@ struct nssTokenObjectStoreStr
   PRBool isFriendly;
   PZLock *lock;           /* protects everything below */
   NSSCert **certs;        /* token certs               */
+  NSSPublicKey **bkeys;   /* token public keys         */
+  NSSPrivateKey **vkeys;  /* token private keys        */
   PRBool wasLoggedIn;     /* token was authenticated last time
                            * we accessed it
 			   */
@@ -715,11 +717,108 @@ struct nssTokenStoreStr
 {
   NSSTrustDomain *td;
   nssCertStore *certs;
+  NSSPublicKey **bkeys;
+  NSSPrivateKey **vkeys;
+  NSSSymKey **mkeys;
   PZLock *lock; /* protects the arena, array, and counter */
   NSSArena *arena;
   nssTokenObjectStore **tokens;
   PRUint32 numTokens;
 };
+
+static PRStatus 
+add_pubkey_to_store(nssTokenStore *store, NSSPublicKey *bk)
+{
+    PRIntn count;
+    PZ_Lock(store->lock);
+    if (!store->bkeys) {
+	store->bkeys = nss_ZNEWARRAY(NULL, NSSPublicKey *, 5);
+	count = 0;
+    } else {
+	count = nssObjectArray_Count((void **)store->bkeys);
+	if (count > 0 && count % 4 == 0) {
+	    NSSPublicKey **test;
+	    test = nss_ZREALLOCARRAY(store->bkeys, NSSPublicKey *, count + 5);
+	    if (!test) {
+		PZ_Unlock(store->lock);
+		return PR_FAILURE;
+	    }
+	    store->bkeys = test;
+	}
+    }
+    store->bkeys[count] = nssPublicKey_AddRef(bk);
+    PZ_Unlock(store->lock);
+    return PR_SUCCESS;
+}
+
+static PRStatus 
+add_privkey_to_store(nssTokenStore *store, NSSPrivateKey *vk)
+{
+    PRIntn count;
+    PZ_Lock(store->lock);
+    if (!store->vkeys) {
+	store->vkeys = nss_ZNEWARRAY(NULL, NSSPrivateKey *, 5);
+	count = 0;
+    } else {
+	count = nssObjectArray_Count((void **)store->bkeys);
+	if (count > 0 && count % 4 == 0) {
+	    NSSPrivateKey **test;
+	    test = nss_ZREALLOCARRAY(store->vkeys, NSSPrivateKey *, count + 5);
+	    if (!test) {
+		PZ_Unlock(store->lock);
+		return PR_FAILURE;
+	    }
+	    store->vkeys = test;
+	}
+    }
+    store->vkeys[count] = nssPrivateKey_AddRef(vk);
+    PZ_Unlock(store->lock);
+    return PR_SUCCESS;
+}
+
+static void 
+remove_pubkey_from_store(nssTokenStore *store, NSSPublicKey *bk)
+{
+    PRBool foundIt = PR_FALSE;
+    NSSPublicKey **bkp;
+    PZ_Lock(store->lock);
+    for (bkp = store->bkeys; bkp && *bkp; bkp++) {
+	if (*bkp == bk) {
+	    nssPublicKey_Destroy(*bkp);
+	    foundIt = PR_TRUE;
+	    break;
+	}
+    }
+    if (foundIt) {
+	NSSPublicKey **removed = bkp;
+	for (; bkp[1]; bkp++);
+	*removed = *bkp;
+	*bkp = NULL;
+    }
+    PZ_Unlock(store->lock);
+}
+
+static void 
+remove_privkey_from_store(nssTokenStore *store, NSSPrivateKey *vk)
+{
+    PRBool foundIt = PR_FALSE;
+    NSSPrivateKey **vkp;
+    PZ_Lock(store->lock);
+    for (vkp = store->vkeys; vkp && *vkp; vkp++) {
+	if (*vkp == vk) {
+	    nssPrivateKey_Destroy(*vkp);
+	    foundIt = PR_TRUE;
+	    break;
+	}
+    }
+    if (foundIt) {
+	NSSPrivateKey **removed = vkp;
+	for (; vkp[1]; vkp++);
+	*removed = *vkp;
+	*vkp = NULL;
+    }
+    PZ_Unlock(store->lock);
+}
 
 static void
 unload_token_certs(nssTokenObjectStore *objectStore, nssTokenStore *store)
@@ -758,7 +857,7 @@ load_token_certs(nssTokenObjectStore *objectStore, nssTokenStore *store)
      * on the token
      */
     tokenCerts = nssToken_FindCerts(objectStore->token, objectStore->session,
-                                    nssTokenSearchType_TokenOnly, 0, &status);
+                                    0, &status);
     if (status == PR_FAILURE) {
 	return PR_FAILURE;
     }
@@ -767,7 +866,7 @@ load_token_certs(nssTokenObjectStore *objectStore, nssTokenStore *store)
 	                                                      store->td, 
 	                                                      NULL, NULL);
 	if (!objectStore->certs) {
-	    nssCryptokiObjectArray_Destroy(tokenCerts);
+	    /* XXX nssCryptokiObjectArray_Destroy(tokenCerts); */
 	    return PR_FAILURE;
 	}
 	nss_ZFreeIf(tokenCerts);
@@ -780,6 +879,130 @@ load_token_certs(nssTokenObjectStore *objectStore, nssTokenStore *store)
     }
     return PR_SUCCESS;
 }
+
+static void
+unload_token_bkeys(nssTokenObjectStore *objectStore, nssTokenStore *store)
+{
+    NSSPublicKey **bkp;
+    if (objectStore->bkeys) {
+	/* notify the objects that the token is removed */
+	for (bkp = objectStore->bkeys; *bkp; bkp++) {
+	    nssPublicKey_RemoveInstanceForToken(*bkp, objectStore->token);
+	    if (nssPublicKey_CountInstances(*bkp) == 0) {
+		/* the key now has no token instances, remove it from
+		 * the token store
+		 */
+		remove_pubkey_from_store(store, *bkp);
+	    }
+	}
+	/* clear the array of token certs */
+	nssPublicKeyArray_Destroy(objectStore->bkeys);
+	objectStore->bkeys = NULL;
+    }
+}
+
+static PRStatus
+load_token_bkeys(nssTokenObjectStore *objectStore, nssTokenStore *store)
+{
+    PRStatus status;
+    nssCryptokiObject **tokenBKeys;
+    NSSPublicKey **bkp;
+
+    if (objectStore->bkeys) {
+	/* clear the existing array of token bkeys */
+	nssPublicKeyArray_Destroy(objectStore->bkeys);
+	objectStore->bkeys = NULL;
+    }
+    /* find all peristent cert instances (PKCS #11 "token objects")
+     * on the token
+     */
+    tokenBKeys = nssToken_FindPublicKeys(objectStore->token, 
+                                         objectStore->session,
+                                         0, &status);
+    if (status == PR_FAILURE) {
+	return PR_FAILURE;
+    }
+    if (tokenBKeys) {
+	objectStore->bkeys = nssPublicKeyArray_CreateFromInstances(tokenBKeys,
+	                                                           store->td, 
+	                                                           NULL, NULL);
+	if (!objectStore->bkeys) {
+	    /* XXX nssCryptokiObjectArray_Destroy(tokenBKeys); */
+	    return PR_FAILURE;
+	}
+	for (bkp = objectStore->bkeys; *bkp; bkp++) {
+	    status = add_pubkey_to_store(store, *bkp);
+	    if (status == PR_FAILURE) {
+		unload_token_bkeys(objectStore, store);
+	    }
+	}
+    }
+    return PR_SUCCESS;
+}
+
+static void
+unload_token_vkeys(nssTokenObjectStore *objectStore, nssTokenStore *store)
+{
+    NSSPrivateKey **vkp;
+    if (objectStore->vkeys) {
+	/* notify the objects that the token is removed */
+	for (vkp = objectStore->vkeys; *vkp; vkp++) {
+	    nssPrivateKey_RemoveInstanceForToken(*vkp, objectStore->token);
+	    if (nssPrivateKey_CountInstances(*vkp) == 0) {
+		/* the key now has no token instances, remove it from
+		 * the token store
+		 */
+		remove_privkey_from_store(store, *vkp);
+	    }
+	}
+	/* clear the array of token certs */
+	nssPrivateKeyArray_Destroy(objectStore->vkeys);
+	objectStore->vkeys = NULL;
+    }
+}
+
+static PRStatus
+load_token_vkeys(nssTokenObjectStore *objectStore, nssTokenStore *store)
+{
+    PRStatus status;
+    nssCryptokiObject **tokenVKeys;
+    NSSPrivateKey **vkp;
+
+    if (objectStore->vkeys) {
+	/* clear the existing array of token bkeys */
+	nssPrivateKeyArray_Destroy(objectStore->vkeys);
+	objectStore->vkeys = NULL;
+    }
+    /* find all peristent cert instances (PKCS #11 "token objects")
+     * on the token
+     */
+    tokenVKeys = nssToken_FindPrivateKeys(objectStore->token, 
+                                          objectStore->session,
+                                          0, &status);
+    if (status == PR_FAILURE) {
+	return PR_FAILURE;
+    }
+    if (tokenVKeys) {
+	objectStore->vkeys = nssPrivateKeyArray_CreateFromInstances(tokenVKeys,
+	                                                           store->td, 
+	                                                           NULL, NULL);
+	if (!objectStore->vkeys) {
+	    /* XXX nssCryptokiObjectArray_Destroy(tokenVKeys); */
+	    return PR_FAILURE;
+	}
+	for (vkp = objectStore->vkeys; *vkp; vkp++) {
+	    status = add_privkey_to_store(store, *vkp);
+	    if (status == PR_FAILURE) {
+		unload_token_vkeys(objectStore, store);
+	    }
+	}
+    }
+    return PR_SUCCESS;
+}
+
+static void
+refresh_token_object_store(nssTokenObjectStore *objectStore, 
+                           nssTokenStore *store);
 
 static nssTokenObjectStore *
 create_token_object_store(nssTokenStore *store, NSSToken *token)
@@ -803,18 +1026,9 @@ create_token_object_store(nssTokenStore *store, NSSToken *token)
     rvObjectStore->token = nssToken_AddRef(token);
     rvObjectStore->slot = nssToken_GetSlot(token);
     rvObjectStore->isFriendly = nssSlot_IsFriendly(rvObjectStore->slot);
-    if (load_token_certs(rvObjectStore, store) == PR_SUCCESS) {
-	rvObjectStore->wasPresent = PR_TRUE;
-    } else {
-	NSSError e = NSS_GetError();
-	if (e == NSS_ERROR_DEVICE_REMOVED) {
-	    rvObjectStore->wasPresent = PR_FALSE;
-	} else if (e == NSS_ERROR_LOGIN_REQUIRED) {
-	    rvObjectStore->wasLoggedIn = PR_FALSE;
-	} else {
-	    rvObjectStore->error = e;
-	}
-    }
+    rvObjectStore->wasPresent = PR_FALSE;
+    rvObjectStore->wasLoggedIn = PR_FALSE;
+    refresh_token_object_store(rvObjectStore, store);
     return rvObjectStore;
 }
 
@@ -847,6 +1061,8 @@ refresh_token_object_store(nssTokenObjectStore *objectStore,
 	if (objectStore->wasPresent) {
 	    /* token has been removed since the last search */
 	    unload_token_certs(objectStore, store);
+	    unload_token_bkeys(objectStore, store);
+	    unload_token_vkeys(objectStore, store);
 	} /* else it wasn't present before, so do nothing */
     } else if (!objectStore->wasPresent) {
 	/* token has been inserted since the last search */
@@ -855,18 +1071,30 @@ refresh_token_object_store(nssTokenObjectStore *objectStore,
 	     * be available
 	     */
 	    status = load_token_certs(objectStore, store);
+	    status = load_token_bkeys(objectStore, store);
+	    if (isLoggedIn) {
+		status = load_token_vkeys(objectStore, store);
+	    }
 	}
     } else if (!isLoggedIn) {
 	/* token is present but not authenticated */
-	if (!objectStore->isFriendly && objectStore->wasLoggedIn) {
-	    /* it is not friendly, and was previously authenticated, so
+	if (objectStore->wasLoggedIn) {
+	    /* it was previously authenticated, so
 	     * we have private objects that need to be unloaded
 	     */
-	    unload_token_certs(objectStore, store);
+	    unload_token_vkeys(objectStore, store);
+	    if (!objectStore->isFriendly) {
+		unload_token_certs(objectStore, store);
+		unload_token_bkeys(objectStore, store);
+	    }
 	} /* else it wasn't authenticated before, so do nothing */
-    } else if (!objectStore->isFriendly && !objectStore->wasLoggedIn) {
-	/* token is present and authenticated, load private objects */
-	status = load_token_certs(objectStore, store);
+    } else if (!objectStore->wasLoggedIn) {
+	/* token is present and (now) authenticated, load private objects */
+	status = load_token_vkeys(objectStore, store);
+	if (!objectStore->isFriendly) {
+	    status = load_token_certs(objectStore, store);
+	    status = load_token_bkeys(objectStore, store);
+	}
     }
     if (status == PR_FAILURE) {
 	e = NSS_GetError();
@@ -876,6 +1104,8 @@ refresh_token_object_store(nssTokenObjectStore *objectStore,
 	     * move on.
 	     */
 	    unload_token_certs(objectStore, store);
+	    unload_token_bkeys(objectStore, store);
+	    unload_token_vkeys(objectStore, store);
 	    e = NSS_ERROR_NO_ERROR; /* override the error */
 	}
     }
@@ -917,38 +1147,6 @@ find_store_for_token(nssTokenStore *store, NSSToken *token)
 	nss_SetError(NSS_ERROR_DEVICE_NOT_FOUND);
     }
     return objectStore;
-}
-
-NSS_IMPLEMENT PRStatus
-nssTokenStore_AddToken (
-  nssTokenStore *store,
-  NSSToken *token
-)
-{
-    PRStatus status = PR_SUCCESS;
-    PZ_Lock(store->lock);
-    if (store->numTokens == 0) {
-	store->tokens = nss_ZNEWARRAY(NULL, 
-	                              nssTokenObjectStore *, 
-                                      store->numTokens + 1);
-    } else {
-	store->tokens = nss_ZREALLOCARRAY(store->tokens, 
-	                                  nssTokenObjectStore *, 
-                                          store->numTokens + 1);
-    }
-    if (store->tokens) {
-	store->tokens[store->numTokens] = create_token_object_store(store, 
-	                                                            token);
-	if (!store->tokens[store->numTokens]) {
-	    status = PR_FAILURE;
-	} else {
-	    store->numTokens++;
-	}
-    } else  {
-	status = PR_FAILURE;
-    }
-    PZ_Unlock(store->lock);
-    return status;
 }
 
 NSS_IMPLEMENT nssTokenStore *
@@ -1021,6 +1219,38 @@ nssTokenStore_Destroy (
     PZ_DestroyLock(store->lock);
     nssCertStore_Destroy(store->certs);
     nssArena_Destroy(store->arena);
+}
+
+NSS_IMPLEMENT PRStatus
+nssTokenStore_AddToken (
+  nssTokenStore *store,
+  NSSToken *token
+)
+{
+    PRStatus status = PR_SUCCESS;
+    PZ_Lock(store->lock);
+    if (store->numTokens == 0) {
+	store->tokens = nss_ZNEWARRAY(NULL, 
+	                              nssTokenObjectStore *, 
+                                      store->numTokens + 1);
+    } else {
+	store->tokens = nss_ZREALLOCARRAY(store->tokens, 
+	                                  nssTokenObjectStore *, 
+                                          store->numTokens + 1);
+    }
+    if (store->tokens) {
+	store->tokens[store->numTokens] = create_token_object_store(store, 
+	                                                            token);
+	if (!store->tokens[store->numTokens]) {
+	    status = PR_FAILURE;
+	} else {
+	    store->numTokens++;
+	}
+    } else  {
+	status = PR_FAILURE;
+    }
+    PZ_Unlock(store->lock);
+    return status;
 }
 
 NSS_IMPLEMENT PRStatus
@@ -1103,6 +1333,7 @@ nssTokenStore_ImportCert (
 	return PR_SUCCESS;
     }
     /* copy it onto the token and add it to the store */
+    /* XXX use session */
     status = nssCert_CopyToToken(cert, destination, nicknameOpt);
     if (status == PR_SUCCESS) {
 	status = nssCertStore_AddCert(store->certs, cert);
@@ -1130,6 +1361,7 @@ nssTokenStore_RemoveCert (
   NSSCert *cert
 )
 {
+    /* XXX destroy session objects */
     (void)nssCertStore_RemoveCert(store->certs, cert);
 }
 
@@ -1220,5 +1452,81 @@ nssTokenStore_TraverseCerts (
 {
     nssTokenStore_Refresh(store);
     return nssCertStore_TraverseCerts(store->certs, callback, arg);
+}
+
+NSS_IMPLEMENT NSSPublicKey *
+nssTokenStore_FindPublicKeyByID (
+  nssTokenStore *store,
+  NSSItem *id
+)
+{
+    NSSPublicKey **bkp;
+    NSSPublicKey *rvBK = NULL;
+    NSSItem *bkID;
+
+    nssTokenStore_Refresh(store);
+    PZ_Lock(store->lock);
+    for (bkp = store->bkeys; bkp && *bkp; bkp++) {
+	bkID = nssPublicKey_GetID(*bkp);
+	if (nssItem_Equal(bkID, id, NULL)) {
+	    rvBK = nssPublicKey_AddRef(*bkp);
+	    break;
+	}
+    }
+    PZ_Unlock(store->lock);
+    return rvBK;
+}
+
+NSS_IMPLEMENT NSSPrivateKey *
+nssTokenStore_FindPrivateKeyByID (
+  nssTokenStore *store,
+  NSSItem *id
+)
+{
+    NSSPrivateKey **vkp;
+    NSSPrivateKey *rvVK = NULL;
+    NSSItem *vkID;
+
+    nssTokenStore_Refresh(store);
+    PZ_Lock(store->lock);
+    for (vkp = store->vkeys; vkp && *vkp; vkp++) {
+	vkID = nssPrivateKey_GetID(*vkp);
+	if (nssItem_Equal(vkID, id, NULL)) {
+	    rvVK = nssPrivateKey_AddRef(*vkp);
+	    break;
+	}
+    }
+    PZ_Unlock(store->lock);
+    return rvVK;
+}
+
+NSS_IMPLEMENT PRStatus *
+nssTokenStore_TraversePrivateKeys (
+  nssTokenStore *store,
+  PRStatus (*callback)(NSSPrivateKey *vk, void *arg),
+  void *arg
+)
+{
+    NSSPrivateKey **vkp;
+    NSSPrivateKey **vkeys;
+    PRUint32 count;
+
+    nssTokenStore_Refresh(store);
+    /* XXX ugly */
+    PZ_Lock(store->lock);
+    for (vkp = store->vkeys, count = 0; vkp && *vkp; vkp++, count++);
+    if (count > 0) {
+	vkeys = nss_ZNEWARRAY(NULL, NSSPrivateKey *, count + 1);
+	if (vkeys) {
+	    for (vkp = store->vkeys, count = 0; *vkp; vkp++, count++)
+		vkeys[count++] = nssPrivateKey_AddRef(*vkp);
+	}
+    }
+    PZ_Unlock(store->lock);
+    for (vkp = vkeys; vkp && *vkp; vkp++) {
+	(*callback)(*vkp, arg);
+    }
+    nssPrivateKeyArray_Destroy(vkeys);
+    return NULL;
 }
 

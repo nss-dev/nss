@@ -255,8 +255,6 @@ PR_GetCurrentThread(void)
     return (PRThread *)1;
 }
 
-
-
 PR_IMPLEMENT(void)
 PR_Assert(const char *expr, const char *file, int line) {
     return; 

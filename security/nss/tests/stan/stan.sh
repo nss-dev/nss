@@ -158,7 +158,7 @@ ciph()
 {
   echo ""
   echo ">>>>>>>>>>>>>> ${CIPHER_ACTION} <<<<<<<<<<<<<<"
-  echo "pkiutil $*"
+  echo "cipher $*"
   cipher $*
   RET=$?
   if [ "$RET" -ne 0 ]; then

@@ -53,32 +53,6 @@ struct NSSSymKeyStr
 };
 
 NSS_IMPLEMENT NSSSymKey *
-nssSymKey_Create (
-  nssPKIObject *object
-)
-{
-    PRStatus status;
-    NSSSymKey *rvKey;
-    NSSArena *arena = object->arena;
-    PR_ASSERT(object->instances != NULL && object->numInstances > 0);
-    rvKey = nss_ZNEW(arena, NSSSymKey);
-    if (!rvKey) {
-	return (NSSSymKey *)NULL;
-    }
-    rvKey->object = *object;
-    /* XXX should choose instance based on some criteria */
-    status = nssCryptokiSymKey_GetAttributes(object->instances[0],
-                                             arena,
-                                             &rvKey->kind,
-                                             &rvKey->length,
-                                             &rvKey->operations);
-    if (status != PR_SUCCESS) {
-	return (NSSSymKey *)NULL;
-    }
-    return rvKey;
-}
-
-NSS_IMPLEMENT NSSSymKey *
 nssSymKey_CreateFromInstance (
   nssCryptokiObject *instance,
   NSSTrustDomain *td,
@@ -89,19 +63,31 @@ nssSymKey_CreateFromInstance (
     nssPKIObject *pkio;
     NSSSymKey *rvKey = NULL;
 
-    pkio = nssPKIObject_Create(NULL, instance, td, vdOpt);
-    if (!pkio) {
+    rvKey = nssPKIObject_CREATE(td, instance, NSSSymKey);
+    if (!rvKey) {
 	return (NSSSymKey *)NULL;
     }
-    rvKey = nssSymKey_Create(pkio);
+    pkio = &rvKey->object;
+    status = nssCryptokiSymKey_GetAttributes(instance, pkio->arena,
+                                             &rvKey->kind,
+                                             &rvKey->length,
+                                             &rvKey->operations);
+    if (status != PR_SUCCESS) {
+	goto loser;
+    }
+    pkio->objectType = pkiObjectType_SymKey;
+    pkio->numIDs = 0; /* XXX */
+    /* XXX not adding to table w/o uid... */
     if (rvKey && vdOpt) {
 	status = nssVolatileDomain_ImportSymKey(vdOpt, rvKey);
 	if (status == PR_FAILURE) {
-	    nssSymKey_Destroy(rvKey);
-	    rvKey = NULL;
+	    goto loser;
 	}
     }
     return rvKey;
+loser:
+    nssSymKey_Destroy(rvKey);
+    return (NSSSymKey *)NULL;
 }
 
 NSS_IMPLEMENT NSSSymKey *
@@ -184,12 +170,12 @@ nssSymKey_FindInstanceForAlgorithm (
 }
 
 NSS_IMPLEMENT PRBool
-nssSymKey_IsOnToken (
+nssSymKey_HasInstanceOnToken (
   NSSSymKey *mk,
   NSSToken *token
 )
 {
-    return nssPKIObject_IsOnToken(&mk->object, token);
+    return nssPKIObject_HasInstanceOnToken(&mk->object, token);
 }
 
 NSS_IMPLEMENT PRStatus

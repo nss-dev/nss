@@ -182,6 +182,7 @@ null_settor (
  * Decoding IV parameters
  */
 
+/* XXX 
 static PRStatus
 decode_iv(NSSAlgNParam *ap, const NSSItem *params)
 {
@@ -196,6 +197,7 @@ decode_iv(NSSAlgNParam *ap, const NSSItem *params)
     }
     return status;
 }
+*/
 
 /*
  * RSA key generation
@@ -303,6 +305,7 @@ set_dsa_mechanism (
  */
 
 /* set template parameters for Diffie-Hellman key generation */
+#if 0
 static PRIntn
 dh_keygen_settor (
   const NSSAlgNParam *ap,
@@ -325,6 +328,7 @@ dh_keygen_settor (
     }
     return attr - aTemplate;
 }
+#endif
 
 /*
  * Diffie-Hellman key derivation
@@ -428,6 +432,7 @@ set_des3_mechanism (
     return PR_SUCCESS;
 }
 
+#if 0
 /*
  * AES
  */
@@ -464,6 +469,7 @@ set_aes_mechanism (
     }
     return PR_SUCCESS;
 }
+#endif
 
 /*
  * RC2

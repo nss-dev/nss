@@ -38,6 +38,10 @@
 #  are specifed as dependencies within rules.mk.
 #
 
+EXTRA_LIBS += \
+	$(DIST)/lib/$(LIB_PREFIX)dbm.$(LIB_SUFFIX) \
+	$(NULL)
+
 # can't do this in manifest.mn because OS_TARGET isn't defined there.
 ifeq (,$(filter-out WIN%,$(OS_TARGET)))
 

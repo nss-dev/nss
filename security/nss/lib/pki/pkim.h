@@ -64,7 +64,7 @@ PR_BEGIN_EXTERN_C
  * nssPKIObject_AddInstance
  * nssPKIObject_HasInstance
  * nssPKIObject_GetTokens
- * nssPKIObject_IsOnToken
+ * nssPKIObject_HasInstanceOnToken
  * nssPKIObject_SetNickname
  * nssPKIObject_GetNickname
  * nssPKIObject_RemoveInstanceForToken
@@ -78,11 +78,13 @@ PR_BEGIN_EXTERN_C
  */
 NSS_EXTERN nssPKIObject *
 nssPKIObject_Create (
-  NSSArena *arenaOpt,
-  nssCryptokiObject *instanceOpt,
   NSSTrustDomain *td,
-  NSSVolatileDomain *vdOpt
+  nssCryptokiObject *instanceOpt,
+  PRUint32 size
 );
+
+#define nssPKIObject_CREATE(td, instanceOpt, type) \
+    (type *)nssPKIObject_Create(td, instanceOpt, sizeof(type))
 
 /* nssPKIObject_AddRef
  */
@@ -139,7 +141,7 @@ nssPKIObject_GetTokens (
 );
 
 NSS_EXTERN PRBool
-nssPKIObject_IsOnToken (
+nssPKIObject_HasInstanceOnToken (
   nssPKIObject *object,
   NSSToken *token
 );
@@ -237,6 +239,26 @@ nssTrustDomain_FindSourceToken (
   NSSToken *candidate
 );
 
+/* XXX */
+NSS_EXTERN nssSession *
+nssTrustDomain_GetSessionForToken (
+  NSSTrustDomain *td,
+  NSSToken *token,
+  PRBool readWrite
+);
+
+/* XXX */
+NSS_EXTERN NSSSlot **
+nssTrustDomain_GetActiveSlots (
+  NSSTrustDomain *td,
+  nssUpdateLevel *updateLevel
+);
+
+NSS_EXTERN nssPKIObjectTable *
+nssTrustDomain_GetObjectTable (
+  NSSTrustDomain *td
+);
+
 NSS_EXTERN NSSCert **
 nssTrustDomain_FindCertsByID (
   NSSTrustDomain *td,
@@ -246,10 +268,23 @@ nssTrustDomain_FindCertsByID (
   NSSArena *arenaOpt
 );
 
+NSS_EXTERN NSSPrivateKey *
+nssTrustDomain_FindPrivateKeyByID (
+  NSSTrustDomain *td,
+  NSSItem *keyID
+);
+
 NSS_EXTERN NSSCRL **
 nssTrustDomain_FindCRLsBySubject (
   NSSTrustDomain *td,
   NSSDER *subject
+);
+
+NSS_EXTERN PRStatus
+nssTrustDomain_SetCertTrust (
+  NSSTrustDomain *td,
+  NSSCert *c,
+  nssTrust *trust
 );
 
 /* module-private nsspki methods */
@@ -276,18 +311,11 @@ nssCryptoContext_CreateForPrivateKey (
   NSSCallback *uhhOpt
 );
 
-/* XXX for the collection */
-NSS_EXTERN NSSCert *
-nssCert_Create (
-  nssPKIObject *object
-);
-
 NSS_EXTERN NSSCert *
 nssCert_CreateFromInstance (
   nssCryptokiObject *instance,
   NSSTrustDomain *td,
-  NSSVolatileDomain *vdOpt,
-  NSSArena *arenaOpt
+  NSSVolatileDomain *vdOpt
 );
 
 /* XXX XXX most of these belong in pki.h */
@@ -338,16 +366,6 @@ nssCert_HasCANameInChain (
   NSSPolicies *policiesOpt
 );
 
-NSS_EXTERN nssTrust *
-nssTrust_Create (
-  nssPKIObject *object
-);
-
-NSS_EXTERN NSSCRL *
-nssCRL_Create (
-  nssPKIObject *object
-);
-
 NSS_EXTERN NSSCRL *
 nssCRL_AddRef (
   NSSCRL *crl
@@ -365,11 +383,6 @@ nssCRL_DeleteStoredObject (
 );
 
 NSS_EXTERN NSSSymKey *
-nssSymKey_Create (
-  nssPKIObject *object
-);
-
-NSS_EXTERN NSSSymKey *
 nssSymKey_CreateFromInstance (
   nssCryptokiObject *instance,
   NSSTrustDomain *td,
@@ -379,6 +392,12 @@ nssSymKey_CreateFromInstance (
 NSS_EXTERN PRStatus
 nssSymKey_Destroy (
   NSSSymKey *mk
+);
+
+NSS_EXTERN void
+nssSymKey_SetVolatileDomain (
+  NSSSymKey *mk,
+  NSSVolatileDomain *vd
 );
 
 NSS_IMPLEMENT nssCryptokiObject *
@@ -403,7 +422,7 @@ nssSymKey_GetTrustDomain (
 );
 
 NSS_EXTERN PRBool
-nssSymKey_IsOnToken (
+nssSymKey_HasInstanceOnToken (
   NSSSymKey *mk,
   NSSToken *token
 );
@@ -426,11 +445,6 @@ nssCRL_GetEncoding (
 );
 
 NSS_EXTERN NSSPublicKey *
-nssPublicKey_Create (
-  nssPKIObject *object
-);
-
-NSS_EXTERN NSSPublicKey *
 nssPublicKey_CreateFromInfo (
   NSSTrustDomain *td,
   NSSVolatileDomain *vdOpt,
@@ -442,12 +456,17 @@ NSS_EXTERN NSSPublicKey *
 nssPublicKey_CreateFromInstance (
   nssCryptokiObject *instance,
   NSSTrustDomain *td,
-  NSSVolatileDomain *vdOpt,
-  NSSArena *arenaOpt
+  NSSVolatileDomain *vdOpt
+);
+
+NSS_EXTERN void
+nssPublicKey_SetVolatileDomain (
+  NSSPublicKey *bk,
+  NSSVolatileDomain *vd
 );
 
 NSS_EXTERN PRBool
-nssPublicKey_IsOnToken (
+nssPublicKey_HasInstanceOnToken (
   NSSPublicKey *bk,
   NSSToken *token
 );
@@ -464,6 +483,17 @@ nssPublicKey_FindInstanceForAlgorithm (
   const NSSAlgNParam *ap
 );
 
+NSS_EXTERN PRStatus
+nssPublicKey_RemoveInstanceForToken (
+  NSSPublicKey *bk,
+  NSSToken *token
+);
+
+NSS_EXTERN PRIntn
+nssPublicKey_CountInstances (
+  NSSPublicKey *bk
+);
+
 NSS_EXTERN nssCryptokiObject *
 nssPublicKey_CopyToToken (
   NSSPublicKey *bk,
@@ -472,12 +502,20 @@ nssPublicKey_CopyToToken (
 );
 
 NSS_EXTERN NSSPrivateKey *
-nssPrivateKey_Create (
-  nssPKIObject *o
+nssPrivateKey_CreateFromInstance (
+  nssCryptokiObject *instance,
+  NSSTrustDomain *td,
+  NSSVolatileDomain *vdOpt
+);
+
+NSS_EXTERN void
+nssPrivateKey_SetVolatileDomain (
+  NSSPrivateKey *vk,
+  NSSVolatileDomain *vd
 );
 
 NSS_EXTERN PRBool
-nssPrivateKey_IsOnToken (
+nssPrivateKey_HasInstanceOnToken (
   NSSPrivateKey *vk,
   NSSToken *token
 );
@@ -494,16 +532,26 @@ nssPrivateKey_FindInstanceForAlgorithm (
   const NSSAlgNParam *ap
 );
 
+NSS_EXTERN PRStatus
+nssPrivateKey_RemoveInstanceForToken (
+  NSSPrivateKey *vk,
+  NSSToken *token
+);
+
+NSS_EXTERN PRIntn
+nssPrivateKey_CountInstances (
+  NSSPrivateKey *vk
+);
+
 NSS_EXTERN nssCryptokiObject *
 nssPrivateKey_CopyToToken (
   NSSPrivateKey *vk,
   NSSToken *destination
 );
 
-NSS_EXTERN PRBool
-nssUsages_Match (
-  const NSSUsages *usages,
-  const NSSUsages *testUsages
+NSS_EXTERN PRIntn
+nssObjectArray_Count (
+  void **objects
 );
 
 /* nssCertArray
@@ -586,173 +634,19 @@ nssCRLArray_Destroy (
   NSSCRL **crls
 );
 
-/* nssPKIObjectCollection
- *
- * This is a handy way to group objects together and perform operations
- * on them.  It can also handle "proto-objects"-- references to
- * objects instances on tokens, where the actual object hasn't 
- * been formed yet.
- *
- * nssCertCollection_Create
- * nssPrivateKeyCollection_Create
- * nssPublicKeyCollection_Create
- *
- * If this was a language that provided for inheritance, each type would
- * inherit all of the following methods.  Instead, there is only one
- * type (nssPKIObjectCollection), shared among all.  This may cause
- * confusion; an alternative would be to define all of the methods
- * for each subtype (nssCertCollection_Destroy, ...), but that doesn't
- * seem worth the code bloat..  It is left up to the caller to remember 
- * what type of collection he/she is dealing with.
- *
- * nssPKIObjectCollection_Destroy
- * nssPKIObjectCollection_Count
- * nssPKIObjectCollection_AddObject
- * nssPKIObjectCollection_AddInstances
- * nssPKIObjectCollection_Traverse
- *
- * Back to type-specific methods.
- *
- * nssPKIObjectCollection_GetCerts
- * nssPKIObjectCollection_GetCRLs
- * nssPKIObjectCollection_GetPrivateKeys
- * nssPKIObjectCollection_GetPublicKeys
- */
-
-/* nssCertCollection_Create
- *
- * Create a collection of certificates in the specified trust domain.
- * Optionally provide a starting set of certs.
- */
-NSS_EXTERN nssPKIObjectCollection *
-nssCertCollection_Create (
-  NSSTrustDomain *td,
-  NSSCert **certsOpt
-);
-
-/* nssCRLCollection_Create
- *
- * Create a collection of CRLs/KRLs in the specified trust domain.
- * Optionally provide a starting set of CRLs.
- */
-NSS_EXTERN nssPKIObjectCollection *
-nssCRLCollection_Create (
-  NSSTrustDomain *td,
-  NSSCRL **crlsOpt
-);
-
-/* nssPrivateKeyCollection_Create
- *
- * Create a collection of private keys in the specified trust domain.
- * Optionally provide a starting set of keys.
- */
-NSS_EXTERN nssPKIObjectCollection *
-nssPrivateKeyCollection_Create (
-  NSSTrustDomain *td,
-  NSSPrivateKey **pvkOpt
-);
-
-/* nssPublicKeyCollection_Create
- *
- * Create a collection of public keys in the specified trust domain.
- * Optionally provide a starting set of keys.
- */
-NSS_EXTERN nssPKIObjectCollection *
-nssPublicKeyCollection_Create (
-  NSSTrustDomain *td,
-  NSSPublicKey **pvkOpt
-);
-
-/* nssPKIObjectCollection_Destroy
- */
-NSS_EXTERN void
-nssPKIObjectCollection_Destroy (
-  nssPKIObjectCollection *collection
-);
-
-/* nssPKIObjectCollection_Count
- */
-NSS_EXTERN PRUint32
-nssPKIObjectCollection_Count (
-  nssPKIObjectCollection *collection
-);
-
-NSS_EXTERN PRStatus
-nssPKIObjectCollection_AddObject (
-  nssPKIObjectCollection *collection,
-  nssPKIObject *object
-);
-
-/* nssPKIObjectCollection_AddInstances
- *
- * Add a set of object instances to the collection.  The instances
- * will be sorted into any existing certs/proto-certs that may be in
- * the collection.  The instances will be absorbed by the collection,
- * the array should not be used after this call (except to free it).
- *
- * Failure means the collection is in an invalid state.
- *
- * numInstances = 0 means the array is NULL-terminated
- */
-NSS_EXTERN PRStatus
-nssPKIObjectCollection_AddInstances (
-  nssPKIObjectCollection *collection,
+NSS_EXTERN NSSPublicKey **
+nssPublicKeyArray_CreateFromInstances (
   nssCryptokiObject **instances,
-  PRUint32 numInstances
-);
-
-/* nssPKIObjectCollection_Traverse
- */
-NSS_EXTERN PRStatus
-nssPKIObjectCollection_Traverse (
-  nssPKIObjectCollection *collection,
-  nssPKIObjectCallback *callback
-);
-
-/* This function is being added for NSS 3.5.  It corresponds to the function
- * nssToken_TraverseCerts.  The idea is to use the collection during
- * a traversal, creating certs each time a new instance is added for which
- * a cert does not already exist.
- */
-NSS_EXTERN PRStatus
-nssPKIObjectCollection_AddInstanceAsObject (
-  nssPKIObjectCollection *collection,
-  nssCryptokiObject *instance
-);
-
-/* nssPKIObjectCollection_GetCerts
- *
- * Get all of the certificates in the collection. 
- */
-NSS_EXTERN NSSCert **
-nssPKIObjectCollection_GetCerts (
-  nssPKIObjectCollection *collection,
-  NSSCert **rvOpt,
-  PRUint32 maximumOpt,
-  NSSArena *arenaOpt
-);
-
-NSS_EXTERN NSSCRL **
-nssPKIObjectCollection_GetCRLs (
-  nssPKIObjectCollection *collection,
-  NSSCRL **rvOpt,
-  PRUint32 maximumOpt,
+  NSSTrustDomain *td,
+  NSSVolatileDomain *vdOpt,
   NSSArena *arenaOpt
 );
 
 NSS_EXTERN NSSPrivateKey **
-nssPKIObjectCollection_GetPrivateKeys (
-  nssPKIObjectCollection *collection,
-  NSSPrivateKey **rvOpt,
-  PRUint32 maximumOpt,
-  NSSArena *arenaOpt
-);
-
-NSS_EXTERN NSSPublicKey **
-nssPKIObjectCollection_GetPublicKeys (
-  nssPKIObjectCollection *collection,
-  NSSPublicKey **rvOpt,
-  PRUint32 maximumOpt,
+nssPrivateKeyArray_CreateFromInstances (
+  nssCryptokiObject **instances,
+  NSSTrustDomain *td,
+  NSSVolatileDomain *vdOpt,
   NSSArena *arenaOpt
 );
 
@@ -793,7 +687,8 @@ nssTokenSessionHash_GetSession (
 );
 
 NSS_EXTERN nssTokenStore *
-nssTokenObjectStore_Create (
+nssTokenStore_Create (
+  NSSTrustDomain *td,
   NSSToken **tokens
 );
 
@@ -805,6 +700,12 @@ nssTokenStore_Destroy (
 NSS_EXTERN void
 nssTokenStore_Refresh (
   nssTokenStore *store
+);
+
+NSS_EXTERN PRStatus
+nssTokenStore_AddToken (
+  nssTokenStore *store,
+  NSSToken *token
 );
 
 NSS_EXTERN PRStatus
@@ -895,6 +796,135 @@ nssTokenStore_TraverseCerts (
   nssTokenStore *store,
   PRStatus (*callback)(NSSCert *c, void *arg),
   void *arg
+);
+
+NSS_EXTERN NSSPublicKey *
+nssTokenStore_FindPublicKeyByID (
+  nssTokenStore *store,
+  NSSItem *id
+);
+
+NSS_EXTERN NSSPrivateKey *
+nssTokenStore_FindPrivateKeyByID (
+  nssTokenStore *store,
+  NSSItem *id
+);
+
+NSS_EXTERN PRStatus *
+nssTokenStore_TraversePrivateKeys (
+  nssTokenStore *store,
+  PRStatus (*callback)(NSSPrivateKey *vk, void *arg),
+  void *arg
+);
+
+NSS_EXTERN nssPKIDatabase *
+nssPKIDatabase_Open (
+  NSSTrustDomain *td,
+  const char *path,
+  PRUint32 flags
+);
+
+NSS_EXTERN PRStatus
+nssPKIDatabase_Close (
+  nssPKIDatabase *pkidb
+);
+
+NSS_EXTERN PRStatus
+nssPKIDatabase_ImportCert (
+  nssPKIDatabase *pkidb,
+  NSSCert *cert,
+  NSSUTF8 *nicknameOpt,
+  nssTrust *trustOpt
+);
+
+NSS_EXTERN PRStatus
+nssPKIDatabase_ImportCertTrust (
+  nssPKIDatabase *pkidb,
+  NSSCert *cert,
+  nssTrust *trust
+);
+
+NSS_EXTERN PRStatus
+nssPKIDatabase_DeleteCert (
+  nssPKIDatabase *pkidb,
+  NSSCert *cert
+);
+
+NSS_EXTERN PRStatus
+nssPKIDatabase_SetCertTrust (
+  nssPKIDatabase *pkidb,
+  NSSCert *cert,
+  nssTrust *trust
+);
+
+NSS_EXTERN NSSCert **
+nssPKIDatabase_FindCertsByNickname (
+  nssPKIDatabase *pkidb,
+  NSSUTF8 *nickname,
+  NSSCert **rvOpt,
+  PRUint32 maximumOpt,
+  NSSArena *arenaOpt
+);
+
+NSS_EXTERN NSSCert **
+nssPKIDatabase_FindCertsBySubject (
+  nssPKIDatabase *pkidb,
+  NSSBER *subject,
+  NSSCert **rvOpt,
+  PRUint32 maximumOpt,
+  NSSArena *arenaOpt
+);
+
+NSS_EXTERN NSSCert **
+nssPKIDatabase_FindCertsByEmail (
+  nssPKIDatabase *pkidb,
+  NSSASCII7 *email,
+  NSSCert **rvOpt,
+  PRUint32 maximumOpt,
+  NSSArena *arenaOpt
+);
+
+NSS_EXTERN NSSCert *
+nssPKIDatabase_FindCertByIssuerAndSerialNumber (
+  nssPKIDatabase *pkidb,
+  NSSBER *issuer,
+  NSSBER *serial
+);
+
+NSS_EXTERN NSSCert *
+nssPKIDatabase_FindCertByEncodedCert (
+  nssPKIDatabase *pkidb,
+  NSSBER *ber
+);
+
+NSS_EXTERN PRStatus
+nssPKIDatabase_FindTrustForCert (
+  nssPKIDatabase *pkidb,
+  NSSCert *cert,
+  nssTrust *rvTrust
+);
+
+NSS_EXTERN PRStatus
+nssPKIDatabase_TraverseCerts (
+  nssPKIDatabase *pkidb,
+  PRStatus (*callback)(NSSCert *c, void *arg),
+  void *arg
+);
+
+NSS_EXTERN nssPKIObjectTable *
+nssPKIObjectTable_Create (
+  NSSArena *arena
+);
+
+NSS_EXTERN void
+nssPKIObjectTable_Destroy (
+  nssPKIObjectTable *table
+);
+
+NSS_EXTERN nssPKIObject *
+nssPKIObjectTable_Add (
+  nssPKIObjectTable *table,
+  nssPKIObject *object
 );
 
 PR_END_EXTERN_C

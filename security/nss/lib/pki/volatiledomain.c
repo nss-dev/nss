@@ -267,13 +267,18 @@ nssVolatileDomain_ImportEncodedCert (
 )
 {
     NSSCert *c;
+    NSSItem nickIt;
+    NSSItem *pNick = NULL;
 
-    c = nssCert_Decode(ber);
+    if (nickOpt) {
+	nickIt.data = nickOpt;
+	nickIt.size = nickOpt ? nssUTF8_Length(nickOpt, NULL) : 0;
+	pNick = &nickIt;
+    }
+
+    c = nssCert_Decode(ber, pNick, NULL, vd->td, vd);
     if (!c) {
 	return (NSSCert *)NULL;
-    }
-    if (nickOpt) {
-	nssCert_SetNickname(c, NULL, nickOpt);
     }
     if (nssVolatileDomain_ImportCert(vd, c) == PR_FAILURE) {
 	nssCert_Destroy(c);
@@ -369,7 +374,7 @@ nssVolatileDomain_ImportPublicKeyByInfo (
 
     bko = nssToken_ImportPublicKey(token, session, keyInfo, PR_FALSE);
     if (bko) {
-	rvbk = nssPublicKey_CreateFromInstance(bko, vd->td, vd, NULL);
+	rvbk = nssPublicKey_CreateFromInstance(bko, vd->td, vd);
 	if (!rvbk) {
 	    nssCryptokiObject_Destroy(bko);
 	}

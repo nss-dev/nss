@@ -58,20 +58,16 @@ static const char PKITM_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 
 PR_BEGIN_EXTERN_C
 
-/*
- * A note on ephemeral certs
- *
- * The key objects defined here can only be created on tokens, and can only
- * exist on tokens.  Therefore, any instance of a key object must have
- * a corresponding cryptoki instance.  OTOH, certificates created in 
- * crypto contexts need not be stored as session objects on the token.
- * There are good performance reasons for not doing so.  The certificate
- * and trust objects have been defined with a cryptoContext field to
- * allow for ephemeral certs, which may have a single instance in a crypto
- * context along with any number (including zero) of cryptoki instances.
- * Since contexts may not share objects, there can be only one context
- * for each object.
- */
+typedef enum
+{
+  pkiObjectType_Cert = 0,
+  pkiObjectType_CRL = 1,
+  pkiObjectType_PrivateKey = 2,
+  pkiObjectType_PublicKey = 3,
+  pkiObjectType_SymKey = 4
+} pkiObjectType;
+
+#define MAX_ITEMS_FOR_UID 2
 
 /* nssPKIObject
  *
@@ -86,51 +82,27 @@ struct nssPKIObjectStr
     PRInt32 refCount;
     /* lock protects the array of nssCryptokiInstance's of the object */
     PZLock *lock;
-    /* XXX with LRU cache, this cannot be guaranteed up-to-date.  It cannot
-     * be compared against the update level of the trust domain, since it is
-     * also affected by import/export.  Where is this array needed?
-     */
+    /* the set of token instances (if any) for the object */
     nssCryptokiObject **instances;
     PRUint32 numInstances;
     /* The object must live in a trust domain */
     NSSTrustDomain *td;
     /* The object may live in a volatile domain */
     NSSVolatileDomain *vd;
-    /* XXX added so temp certs can have nickname, think more ... */
-    NSSUTF8 *tempName;
+    /* The "meta"-name of the object (token instance labels may differ) */
+    NSSUTF8 *nickname;
+    /* The following data index the UID for the object.  The UID is used
+     * in the table of active token objects, to ensure that the same object
+     * never appears as two different objects.
+     */
+    pkiObjectType objectType;
+    NSSItem *uid[MAX_ITEMS_FOR_UID];
+    PRUint32 numIDs;
 };
 
 typedef struct nssPKIObjectStr nssPKIObject;
 
-/* nssCertCollection
- *
- * You guessed it; a collection of certs.  Each entry may be either an
- * NSSCert or an nssProtoCert.
- */
-
-typedef struct nssPKIObjectCollectionStr nssPKIObjectCollection;
-
-typedef struct
-{
-  union {
-    PRStatus (*  cert)(NSSCert *c, void *arg);
-    PRStatus (*   crl)(NSSCRL       *crl, void *arg);
-    PRStatus (* pvkey)(NSSPrivateKey *vk, void *arg);
-    PRStatus (* pbkey)(NSSPublicKey  *bk, void *arg);
-  } func;
-  void *arg;
-} nssPKIObjectCallback;
-
-/* XXX */
-struct nssTrustStr 
-{
-    nssPKIObject object;
-    NSSCert *certificate;
-    nssTrustLevel serverAuth;
-    nssTrustLevel clientAuth;
-    nssTrustLevel emailProtection;
-    nssTrustLevel codeSigning;
-};
+typedef struct nssPKIObjectTableStr nssPKIObjectTable;
 
 typedef struct nssPKIObjectCreatorStr
 {
@@ -146,9 +118,17 @@ typedef struct nssPKIObjectCreatorStr
   NSSOperations operations;
 } nssPKIObjectCreator;
 
+struct nssTrustStr
+{
+  NSSUsages trustedUsages;
+  NSSUsages notTrustedUsages;
+};
+
 typedef struct nssTokenSessionHashStr nssTokenSessionHash;
 
 typedef struct nssTokenStoreStr nssTokenStore;
+
+typedef struct nssPKIDatabaseStr nssPKIDatabase;
 
 PR_END_EXTERN_C
 

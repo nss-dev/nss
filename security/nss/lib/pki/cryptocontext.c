@@ -775,10 +775,10 @@ nssCryptoContext_Sign (
     }
     if (cc->which == a_symkey) {
 	if (prepare_context_symmetric_key(cc, ap) == PR_FAILURE)
-	    return PR_FAILURE;
+	    return (NSSItem *)NULL;
     } else {
 	if (prepare_context_private_key(cc, ap) == PR_FAILURE)
-	    return PR_FAILURE;
+	    return (NSSItem *)NULL;
     }
     return nssToken_Sign(cc->token, cc->session, ap, cc->key,
                          data, rvOpt, arenaOpt);
@@ -1468,7 +1468,7 @@ nssCryptoContext_Unmark (
   NSSCryptoContextMark *mark
 )
 {
-    nssArena_Destroy(mark->arena);
+    return nssArena_Destroy(mark->arena);
 }
 
 NSS_IMPLEMENT PRStatus

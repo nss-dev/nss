@@ -70,8 +70,6 @@ struct NSSSymKeyStr;
 
 struct NSSPoliciesStr;
 
-struct NSSPKIXCertStr;
-
 typedef struct nssTrustStr nssTrust;
 
 PR_END_EXTERN_C

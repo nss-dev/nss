@@ -1067,6 +1067,8 @@ main(int argc, char **argv)
 	    exit(1);
 	}
 
+	/* XXX */
+	NSSTrustDomain_Login(td, NULL);
 	privKey[ssl_kea_rsa] = NSSCert_FindPrivateKey(cert[ssl_kea_rsa], NULL);
 	if (privKey[ssl_kea_rsa] == NULL) {
 	    fprintf(stderr, "strsclnt: Can't find Private Key for cert %s\n", 

@@ -73,6 +73,8 @@ SSL_GetClientAuthData(void *                       arg,
                                                            NULL, NULL);
   }
   if (cert) {
+    /* XXX */
+    NSSTrustDomain_Login(td, NULL);
     privkey = NSSCert_FindPrivateKey(cert, NULL /*XXX pinCallback*/);
     if (privkey) {
       *pRetCert = cert;

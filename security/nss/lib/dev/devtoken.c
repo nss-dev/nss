@@ -47,6 +47,10 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #include "ckhelper.h"
 #endif /* CKHELPER_H */
 
+#ifndef PKI1_H
+#include "pki1.h"
+#endif /* PKI1_H */
+
 /* The number of object handles to grab during each call to C_FindObjects */
 #define OBJECT_STACK_SIZE 16
 
@@ -550,7 +554,6 @@ nssToken_ImportCert (
     CK_ATTRIBUTE_PTR attr;
     CK_ATTRIBUTE cert_tmpl[10];
     CK_ULONG ctsize;
-    nssTokenSearchType searchType;
     nssCryptokiObject *rvObject = NULL, **objs;
 
     if (certType == NSSCertType_PKIX) {
@@ -561,10 +564,8 @@ nssToken_ImportCert (
     NSS_CK_TEMPLATE_START(cert_tmpl, attr, ctsize);
     if (asTokenObject) {
 	NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_TOKEN, &g_ck_true);
-	searchType = nssTokenSearchType_TokenOnly;
     } else {
 	NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_TOKEN, &g_ck_false);
-	searchType = nssTokenSearchType_SessionOnly;
     }
     /* required attributes */
     NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_CLASS,            &g_ck_class_cert);
@@ -625,7 +626,6 @@ NSS_IMPLEMENT nssCryptokiObject **
 nssToken_FindCerts (
   NSSToken *token,
   nssSession *session,
-  nssTokenSearchType searchType,
   PRUint32 maximumOpt,
   PRStatus *statusOpt
 )
@@ -635,12 +635,7 @@ nssToken_FindCerts (
     CK_ULONG ctsize;
 
     NSS_CK_TEMPLATE_START(cert_template, attr, ctsize);
-    /* Set the search to token/session only if provided */
-    if (searchType == nssTokenSearchType_SessionOnly) {
-	NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_TOKEN, &g_ck_false);
-    } else if (searchType == nssTokenSearchType_TokenOnly) {
-	NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_TOKEN, &g_ck_true);
-    }
+    NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_TOKEN, &g_ck_true);
     NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_CLASS, &g_ck_class_cert);
     NSS_CK_TEMPLATE_FINISH(cert_template, attr, ctsize);
 
@@ -702,10 +697,33 @@ nssToken_ImportPublicKey (
 }
 
 NSS_IMPLEMENT nssCryptokiObject **
+nssToken_FindPublicKeys (
+  NSSToken *token,
+  nssSession *session,
+  PRUint32 maximumOpt,
+  PRStatus *statusOpt
+)
+{
+    CK_ATTRIBUTE_PTR attr;
+    CK_ATTRIBUTE key_template[2];
+    CK_ULONG ktsize;
+    nssCryptokiObject **objects;
+
+    NSS_CK_TEMPLATE_START(key_template, attr, ktsize);
+    NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_CLASS, &g_ck_class_pubkey);
+    NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_TOKEN, &g_ck_true);
+    NSS_CK_TEMPLATE_FINISH(key_template, attr, ktsize);
+
+    objects = find_objects_by_template(token, session,
+                                       key_template, ktsize, 
+                                       maximumOpt, statusOpt);
+    return objects;
+}
+
+NSS_IMPLEMENT nssCryptokiObject **
 nssToken_FindPrivateKeys (
   NSSToken *token,
   nssSession *session,
-  nssTokenSearchType searchType,
   PRUint32 maximumOpt,
   PRStatus *statusOpt
 )
@@ -717,227 +735,13 @@ nssToken_FindPrivateKeys (
 
     NSS_CK_TEMPLATE_START(key_template, attr, ktsize);
     NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_CLASS, &g_ck_class_privkey);
-    if (searchType == nssTokenSearchType_SessionOnly) {
-	NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_TOKEN, &g_ck_false);
-    } else if (searchType == nssTokenSearchType_TokenOnly) {
-	NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_TOKEN, &g_ck_true);
-    }
+    NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_TOKEN, &g_ck_true);
     NSS_CK_TEMPLATE_FINISH(key_template, attr, ktsize);
 
     objects = find_objects_by_template(token, session,
                                        key_template, ktsize, 
                                        maximumOpt, statusOpt);
     return objects;
-}
-
-/* XXX ?there are no session cert objects, so only search token objects */
-NSS_IMPLEMENT nssCryptokiObject *
-nssToken_FindPrivateKeyByID (
-  NSSToken *token,
-  nssSession *session,
-  NSSItem *keyID
-)
-{
-    CK_ATTRIBUTE_PTR attr;
-    CK_ATTRIBUTE key_template[3];
-    CK_ULONG ktsize;
-    nssCryptokiObject **objects;
-    nssCryptokiObject *rvKey = NULL;
-
-    NSS_CK_TEMPLATE_START(key_template, attr, ktsize);
-    NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_CLASS, &g_ck_class_privkey);
-    NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_TOKEN, &g_ck_true);
-    NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_ID, keyID);
-    NSS_CK_TEMPLATE_FINISH(key_template, attr, ktsize);
-
-    objects = find_objects_by_template(token, session,
-                                       key_template, ktsize, 
-                                       1, NULL);
-    if (objects) {
-	rvKey = objects[0];
-	nss_ZFreeIf(objects);
-    }
-    return rvKey;
-}
-
-/* XXX ?there are no session cert objects, so only search token objects */
-NSS_IMPLEMENT nssCryptokiObject *
-nssToken_FindPublicKeyByID (
-  NSSToken *token,
-  nssSession *session,
-  NSSItem *keyID
-)
-{
-    CK_ATTRIBUTE_PTR attr;
-    CK_ATTRIBUTE key_template[3];
-    CK_ULONG ktsize;
-    nssCryptokiObject **objects;
-    nssCryptokiObject *rvKey = NULL;
-
-    NSS_CK_TEMPLATE_START(key_template, attr, ktsize);
-    NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_CLASS, &g_ck_class_pubkey);
-    NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_TOKEN, &g_ck_true);
-    NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_ID, keyID);
-    NSS_CK_TEMPLATE_FINISH(key_template, attr, ktsize);
-
-    objects = find_objects_by_template(token, session,
-                                       key_template, ktsize, 
-                                       1, NULL);
-    if (objects) {
-	rvKey = objects[0];
-#ifndef SOFTOKEN_RETURNS_PUBKEY_BUG
-	{
-	    /* XXX the softoken will return a valid key handle when it
-	     *     only has the cert, not the pubkey
-	     */
-	    PRStatus status;
-	    NSSPublicKeyInfo keyInfo;
-	    NSSArena *tmparena = nssArena_Create();
-	    if (tmparena) {
-		status = nssCryptokiPublicKey_GetAttributes(rvKey, tmparena, 
-		                                            &keyInfo, NULL);
-		nssArena_Destroy(tmparena);
-	    } else {
-		status = PR_FAILURE;
-	    }
-	    if (status == PR_FAILURE) {
-		nssCryptokiObject_Destroy(rvKey);
-		rvKey = NULL;
-	    }
-	}
-#endif /* SOFTOKEN_RETURNS_PUBKEY_BUG */
-	nss_ZFreeIf(objects);
-    }
-    return rvKey;
-}
-
-static CK_TRUST
-get_ck_trust (
-  nssTrustLevel nssTrust
-)
-{
-    CK_TRUST t;
-    switch (nssTrust) {
-    case nssTrustLevel_Unknown: t = CKT_NETSCAPE_TRUST_UNKNOWN; break;
-    case nssTrustLevel_NotTrusted: t = CKT_NETSCAPE_UNTRUSTED; break;
-    case nssTrustLevel_TrustedDelegator: t = CKT_NETSCAPE_TRUSTED_DELEGATOR; 
-	break;
-    case nssTrustLevel_ValidDelegator: t = CKT_NETSCAPE_VALID_DELEGATOR; break;
-    case nssTrustLevel_Trusted: t = CKT_NETSCAPE_TRUSTED; break;
-    case nssTrustLevel_Valid: t = CKT_NETSCAPE_VALID; break;
-    }
-    return t;
-}
- 
-NSS_IMPLEMENT nssCryptokiObject *
-nssToken_ImportTrust (
-  NSSToken *tok,
-  nssSession *session,
-  NSSDER *certEncoding,
-  NSSDER *certIssuer,
-  NSSDER *certSerial,
-  nssTrustLevel serverAuth,
-  nssTrustLevel clientAuth,
-  nssTrustLevel codeSigning,
-  nssTrustLevel emailProtection,
-  PRBool asTokenObject
-)
-{
-    nssCryptokiObject *object;
-    CK_OBJECT_CLASS tobjc = CKO_NETSCAPE_TRUST;
-    CK_TRUST ckSA, ckCA, ckCS, ckEP;
-    CK_ATTRIBUTE_PTR attr;
-    CK_ATTRIBUTE trust_tmpl[10];
-    CK_ULONG tsize;
-    ckSA = get_ck_trust(serverAuth);
-    ckCA = get_ck_trust(clientAuth);
-    ckCS = get_ck_trust(codeSigning);
-    ckEP = get_ck_trust(emailProtection);
-    NSS_CK_TEMPLATE_START(trust_tmpl, attr, tsize);
-    if (asTokenObject) {
-	NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_TOKEN, &g_ck_true);
-    } else {
-	NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_TOKEN, &g_ck_false);
-    }
-    NSS_CK_SET_ATTRIBUTE_VAR( attr, CKA_CLASS,           tobjc);
-    NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_ISSUER,          certIssuer);
-    NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_SERIAL_NUMBER,   certSerial);
-    /* now set the trust values */
-    NSS_CK_SET_ATTRIBUTE_VAR(attr, CKA_TRUST_SERVER_AUTH,      ckSA);
-    NSS_CK_SET_ATTRIBUTE_VAR(attr, CKA_TRUST_CLIENT_AUTH,      ckCA);
-    NSS_CK_SET_ATTRIBUTE_VAR(attr, CKA_TRUST_CODE_SIGNING,     ckCS);
-    NSS_CK_SET_ATTRIBUTE_VAR(attr, CKA_TRUST_EMAIL_PROTECTION, ckEP);
-    NSS_CK_TEMPLATE_FINISH(trust_tmpl, attr, tsize);
-    /* import the trust object onto the token */
-    object = import_object(tok, session, trust_tmpl, tsize);
-    return object;
-}
-
-NSS_IMPLEMENT nssCryptokiObject **
-nssToken_FindTrustObjects (
-  NSSToken *token,
-  nssSession *session,
-  nssTokenSearchType searchType,
-  PRUint32 maximumOpt,
-  PRStatus *statusOpt
-)
-{
-    CK_OBJECT_CLASS tobjc = CKO_NETSCAPE_TRUST;
-    CK_ATTRIBUTE_PTR attr;
-    CK_ATTRIBUTE tobj_template[2];
-    CK_ULONG tobj_size;
-    nssCryptokiObject **objects;
-
-    NSS_CK_TEMPLATE_START(tobj_template, attr, tobj_size);
-    if (searchType == nssTokenSearchType_SessionOnly) {
-	NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_TOKEN, &g_ck_false);
-    } else if (searchType == nssTokenSearchType_TokenOnly) {
-	NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_TOKEN, &g_ck_true);
-    }
-    NSS_CK_SET_ATTRIBUTE_VAR( attr, CKA_CLASS, tobjc);
-    NSS_CK_TEMPLATE_FINISH(tobj_template, attr, tobj_size);
-
-    objects = find_objects_by_template(token, session,
-                                       tobj_template, tobj_size,
-                                       maximumOpt, statusOpt);
-    return objects;
-}
-
-NSS_IMPLEMENT nssCryptokiObject *
-nssToken_FindTrustForCert (
-  NSSToken *token,
-  nssSession *session,
-  NSSDER *certEncoding,
-  NSSDER *certIssuer,
-  NSSDER *certSerial,
-  nssTokenSearchType searchType
-)
-{
-    CK_OBJECT_CLASS tobjc = CKO_NETSCAPE_TRUST;
-    CK_ATTRIBUTE_PTR attr;
-    CK_ATTRIBUTE tobj_template[5];
-    CK_ULONG tobj_size;
-    nssCryptokiObject *object, **objects;
-
-    NSS_CK_TEMPLATE_START(tobj_template, attr, tobj_size);
-    if (searchType == nssTokenSearchType_SessionOnly) {
-	NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_TOKEN, &g_ck_false);
-    } else if (searchType == nssTokenSearchType_TokenOnly) {
-	NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_TOKEN, &g_ck_true);
-    }
-    NSS_CK_SET_ATTRIBUTE_VAR( attr, CKA_CLASS,          tobjc);
-    NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_ISSUER,         certIssuer);
-    NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_SERIAL_NUMBER , certSerial);
-    NSS_CK_TEMPLATE_FINISH(tobj_template, attr, tobj_size);
-    object = NULL;
-    objects = find_objects_by_template(token, session,
-                                       tobj_template, tobj_size,
-                                       1, NULL);
-    if (objects) {
-	object = objects[0];
-	nss_ZFreeIf(objects);
-    }
-    return object;
 }
 
 NSS_IMPLEMENT PRStatus
@@ -1680,7 +1484,6 @@ nssToken_ContinueEncrypt (
 )
 {
     CK_RV ckrv;
-    CK_ULONG bufLen;
     PRBool freeit = PR_FALSE;
     void *epv = nssToken_GetCryptokiEPV(token);
 
@@ -1850,7 +1653,6 @@ nssToken_ContinueDecrypt (
 )
 {
     CK_RV ckrv;
-    CK_ULONG bufLen;
     PRBool freeit = PR_FALSE;
     void *epv = nssToken_GetCryptokiEPV(token);
 
