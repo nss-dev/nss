@@ -52,6 +52,13 @@ endif
 platform::
 	@echo $(OBJDIR_NAME)
 
+ifeq ($(OS_ARCH), WINNT)
+USE_NT_C_SYNTAX=1
+endif
+
+ifdef XP_OS2_VACPP
+USE_NT_C_SYNTAX=1
+endif
 
 #
 # IMPORTS will always be associated with a component.  Therefore,
@@ -304,7 +311,7 @@ ifeq ($(OS_TARGET),WIN16)
 	$(LINK) @w16link.
 	rm w16link
 else
-	$(MKPROG) $(OBJS) -Fe$@ -link $(LDFLAGS) $(EXTRA_LIBS) $(EXTRA_SHARED_LIBS) $(OS_LIBS)
+	$(MKPROG) $(subst /,\\,$(OBJS)) -Fe$@ -link $(LDFLAGS) $(subst /,\\,$(EXTRA_LIBS) $(EXTRA_SHARED_LIBS) $(OS_LIBS))
 endif
 else
 ifdef XP_OS2_VACPP
@@ -323,7 +330,11 @@ get_objs:
 $(LIBRARY): $(OBJS)
 	@$(MAKE_OBJDIR)
 	rm -f $@
+ifeq ($(OS_ARCH), WINNT)
+	$(AR) $(subst /,\\,$(OBJS))
+else
 	$(AR) $(OBJS)
+endif
 	$(RANLIB) $@
 
 ifeq ($(OS_TARGET), WIN16)
@@ -339,7 +350,11 @@ $(IMPORT_LIBRARY): $(SHARED_LIBRARY)
 endif
 
 ifdef SHARED_LIBRARY_LIBS
+ifdef BUILD_TREE
+SUB_SHLOBJS = $(foreach dir,$(SHARED_LIBRARY_DIRS),$(shell $(MAKE) -C $(dir) --no-print-directory get_objs))
+else
 SUB_SHLOBJS = $(foreach dir,$(SHARED_LIBRARY_DIRS),$(addprefix $(dir)/,$(shell $(MAKE) -C $(dir) --no-print-directory get_objs)))
+endif
 endif
 
 $(SHARED_LIBRARY): $(OBJS) $(MAPFILE)
@@ -369,7 +384,7 @@ ifeq ($(OS_TARGET), WIN16)
 	$(LINK) @w16link.
 	rm w16link
 else
-	$(LINK_DLL) -MAP $(DLLBASE) $(OBJS) $(SUB_SHLOBJS) $(EXTRA_LIBS) $(EXTRA_SHARED_LIBS) $(OS_LIBS) $(LD_LIBS)
+	$(LINK_DLL) -MAP $(DLLBASE) $(subst /,\\,$(OBJS) $(SUB_SHLOBJS) $(EXTRA_LIBS) $(EXTRA_SHARED_LIBS) $(OS_LIBS) $(LD_LIBS))
 endif
 else
 ifeq ($(OS_ARCH),OS2)
@@ -453,39 +468,29 @@ WCCFLAGS3 := $(subst -D,-d,$(WCCFLAGS2))
 
 $(OBJDIR)/$(PROG_PREFIX)%$(OBJ_SUFFIX): %.c
 	@$(MAKE_OBJDIR)
-ifeq ($(OS_ARCH), WINNT)
-ifeq ($(OS_TARGET), WIN16)
-	echo $(WCCFLAGS3) >w16wccf
-	$(CC) -zq -fo$(OBJDIR)\\$(PROG_PREFIX)$*$(OBJ_SUFFIX)  @w16wccf $*.c
-	rm w16wccf
+ifdef USE_NT_C_SYNTAX
+	$(CC) -Fo$@ -c $(CFLAGS) $(subst /,\\,$<)
 else
-	$(CC) -Fo$@ -c $(CFLAGS) $*.c
-endif
-else
-ifdef XP_OS2_VACPP
-	$(CC) -Fo$@ -c $(CFLAGS) $*.c
-else
-	$(CC) -o $@ -c $(CFLAGS) $*.c
-endif
+	$(CC) -o $@ -c $(CFLAGS) $<
 endif
 
 ifneq ($(OS_ARCH), WINNT)
 $(OBJDIR)/$(PROG_PREFIX)%$(OBJ_SUFFIX): %.s
 	@$(MAKE_OBJDIR)
-	$(AS) -o $@ $(ASFLAGS) -c $*.s
+	$(AS) -o $@ $(ASFLAGS) -c $<
 endif
 
 $(OBJDIR)/$(PROG_PREFIX)%$(OBJ_SUFFIX): %.asm
 	@$(MAKE_OBJDIR)
-	$(AS) -Fo$@ $(ASFLAGS) -c $*.asm
+	$(AS) -Fo$@ $(ASFLAGS) -c $<
 
 $(OBJDIR)/$(PROG_PREFIX)%$(OBJ_SUFFIX): %.S
 	@$(MAKE_OBJDIR)
-	$(AS) -o $@ $(ASFLAGS) -c $*.S
+	$(AS) -o $@ $(ASFLAGS) -c $<
 
 $(OBJDIR)/$(PROG_PREFIX)%: %.cpp
 	@$(MAKE_OBJDIR)
-ifeq ($(OS_ARCH), WINNT)
+ifdef USE_NT_C_SYNTAX
 	$(CCC) -Fo$@ -c $(CFLAGS) $<
 else
 	$(CCC) -o $@ -c $(CFLAGS) $<
@@ -496,23 +501,19 @@ endif
 #
 $(OBJDIR)/$(PROG_PREFIX)%$(OBJ_SUFFIX): %.cc
 	@$(MAKE_OBJDIR)
-	$(CCC) -o $@ -c $(CFLAGS) $*.cc
+	$(CCC) -o $@ -c $(CFLAGS) $<
 
 $(OBJDIR)/$(PROG_PREFIX)%$(OBJ_SUFFIX): %.cpp
 	@$(MAKE_OBJDIR)
 ifdef STRICT_CPLUSPLUS_SUFFIX
-	echo "#line 1 \"$*.cpp\"" | cat - $*.cpp > $(OBJDIR)/t_$*.cc
+	echo "#line 1 \"$<\"" | cat - $< > $(OBJDIR)/t_$*.cc
 	$(CCC) -o $@ -c $(CFLAGS) $(OBJDIR)/t_$*.cc
 	rm -f $(OBJDIR)/t_$*.cc
 else
-ifeq ($(OS_ARCH),WINNT)
-	$(CCC) -Fo$@ -c $(CFLAGS) $*.cpp
+ifdef USE_NT_C_SYNTAX
+	$(CCC) -Fo$@ -c $(CFLAGS) $<
 else
-ifdef XP_OS2_VACPP
-	$(CCC) -Fo$@ -c $(CFLAGS) $*.cpp
-else
-	$(CCC) -o $@ -c $(CFLAGS) $*.cpp
-endif
+	$(CCC) -o $@ -c $(CFLAGS) $<
 endif
 endif #STRICT_CPLUSPLUS_SUFFIX
 
@@ -837,7 +838,7 @@ $(PUBLIC_EXPORT_DIR)::
 		$(NSINSTALL) -D $@; \
 	fi
 
-export:: $(EXPORTS) $(PUBLIC_EXPORT_DIR)
+export:: $(EXPORTS) $(PUBLIC_EXPORT_DIR) $(BUILT_SRCS)
 	$(INSTALL) -m 444 $(EXPORTS) $(PUBLIC_EXPORT_DIR)
 endif
 
@@ -1002,5 +1003,5 @@ endif
 # Fake targets.  Always run these rules, even if a file/directory with that
 # name already exists.
 #
-.PHONY: all all_platforms alltags boot clean clobber clobber_all export install libs realclean release $(OBJDIR) $(DIRS)
+.PHONY: all all_platforms alltags boot clean clobber clobber_all export install libs program realclean release $(OBJDIR) $(DIRS)
 
