@@ -51,6 +51,10 @@ static const char NSSPKIXT_CVS_ID[] = "@(#) $Source$ $Revision$ $Date$ $Name$";
 #include "nssbaset.h"
 #endif /* NSSBASET_H */
 
+#ifndef NSSPKI1T_H
+#include "nsspki1t.h"
+#endif /* NSSPKI1T_H */
+
 PR_BEGIN_EXTERN_C
 
 /*
@@ -125,8 +129,8 @@ typedef NSSItem NSSPKIXAttributeValue;
  * 
  */
 
-struct NSSPKIXAttributeTypeAndValueStr;
-typedef struct NSSPKIXAttributeTypeAndValueStr NSSPKIXAttributeTypeAndValue;
+struct NSSPKIXATAVStr;
+typedef struct NSSPKIXATAVStr NSSPKIXATAV;
 
 /*
  * X520Name
@@ -384,8 +388,8 @@ typedef NSSPKIXRDNSequence NSSPKIXDistinguishedName;
  *
  */
 
-struct NSSPKIXRelativeDistinguishedNameStr;
-typedef struct NSSPKIXRelativeDistinguishedNameStr NSSPKIXRelativeDistinguishedName;
+struct NSSPKIXRDNStr;
+typedef struct NSSPKIXRDNStr NSSPKIXRDN;
 
 /*
  * DirectoryString
@@ -480,7 +484,7 @@ typedef enum NSSPKIXVersionEnum NSSPKIXVersion;
  *
  */
 
-typedef NSSBER NSSPKIXCertificateSerialNumber;
+typedef NSSItem NSSPKIXCertificateSerialNumber;
 
 /*
  * Validity
@@ -541,7 +545,7 @@ typedef NSSBitString NSSPKIXUniqueIdentifier;
  */
 
 struct NSSPKIXSubjectPublicKeyInfoStr;
-typedef NSSPKIXSubjectPublicKeyInfoStr NSSPKIXSubjectPublicKeyInfo;
+typedef struct NSSPKIXSubjectPublicKeyInfoStr NSSPKIXSubjectPublicKeyInfo;
 
 /*
  * Extensions
@@ -673,7 +677,7 @@ typedef struct NSSPKIXrevokedCertificateStr NSSPKIXrevokedCertificate;
  */
 
 struct NSSPKIXAlgorithmIdentifierStr;
-typedef NSSPKIXAlgorithmIdentifierStr NSSPKIXAlgorithmIdentifier;
+typedef struct NSSPKIXAlgorithmIdentifierStr NSSPKIXAlgorithmIdentifier;
 
 /*
  * -- types related to NSSPKIXAlgorithmIdentifiers:
@@ -886,7 +890,7 @@ typedef struct NSSPKIXNumericUserIdentifierStr NSSPKIXNumericUserIdentifier;
  */
 
 struct NSSPKIXPersonalNameStr;
-typedef NSSPKIXPersonalNameStr NSSPKIXPersonalName;
+typedef struct NSSPKIXPersonalNameStr NSSPKIXPersonalName;
 
 /*
  * OrganizationalUnitNames
@@ -901,7 +905,7 @@ typedef NSSPKIXPersonalNameStr NSSPKIXPersonalName;
  */
 
 struct NSSPKIXOrganizationalUnitNamesStr;
-typedef NSSPKIXOrganizationalUnitNamesStr NSSPKIXOrganizationalUnitNames;
+typedef struct NSSPKIXOrganizationalUnitNamesStr NSSPKIXOrganizationalUnitNames;
 
 /*
  * OrganizationalUnitName
@@ -1659,7 +1663,7 @@ typedef NSSOID NSSPKIXCertPolicyId;
  */
 
 struct NSSPKIXPolicyQualifierInfoStr;
-typedef NSSPKIXPolicyQualifierInfoStr NSSPKIXPolicyQualifierInfo;
+typedef struct NSSPKIXPolicyQualifierInfoStr NSSPKIXPolicyQualifierInfo;
 
 /*
  * PolicyQualifierId
@@ -1989,7 +1993,7 @@ typedef PRInt32 NSSPKIXBaseDistance;
  */
 
 struct NSSPKIXPolicyConstraintsStr;
-typedef NSSPKIXPolicyConstraintsStr NSSPKIXPolicyConstraints;
+typedef struct NSSPKIXPolicyConstraintsStr NSSPKIXPolicyConstraints;
 
 /*
  * SkipCerts
@@ -2094,6 +2098,7 @@ typedef struct NSSPKIXReasonFlagsStr NSSPKIXReasonFlags;
  */
 
 typedef PRInt32 NSSPKIXReasonFlagsMask;
+#if 0
 const NSSPKIXReasonFlagsMask NSSPKIXReasonFlagsMask_NSSinvalid          =  -1;
 const NSSPKIXReasonFlagsMask NSSPKIXReasonFlagsMask_KeyCompromise       =  0x02;
 const NSSPKIXReasonFlagsMask NSSPKIXReasonFlagsMask_CACompromise        =  0x04;
@@ -2101,6 +2106,7 @@ const NSSPKIXReasonFlagsMask NSSPKIXReasonFlagsMask_AffiliationChanged  =  0x08;
 const NSSPKIXReasonFlagsMask NSSPKIXReasonFlagsMask_Superseded          =  0x10;
 const NSSPKIXReasonFlagsMask NSSPKIXReasonFlagsMask_CessationOfOperation=  0x20;
 const NSSPKIXReasonFlagsMask NSSPKIXReasonFlagsMask_CertificateHold     =  0x40;
+#endif
 
 /*
  * ExtKeyUsageSyntax
@@ -2275,6 +2281,27 @@ typedef NSSOID NSSPKIXHoldInstructionCode;
  */
 
 typedef PRTime NSSPKIXInvalidityDate;
+
+/*
+ *
+ * XXX Netscape extensions (here?)
+ *
+ */
+
+enum NSSPKIXnetscapeCertTypeEnum {
+  NSSPKIXnetscapeCertType_NSSinvalid = 0,
+  NSSPKIXnetscapeCertType_SSLClient       = 0x001,
+  NSSPKIXnetscapeCertType_SSLServer       = 0x002,
+  NSSPKIXnetscapeCertType_Email           = 0x004,
+  NSSPKIXnetscapeCertType_ObjectSigning   = 0x008,
+  NSSPKIXnetscapeCertType_reserved        = 0x010,
+  NSSPKIXnetscapeCertType_SSLCA           = 0x020,
+  NSSPKIXnetscapeCertType_EmailCA         = 0x040,
+  NSSPKIXnetscapeCertType_ObjectSigningCA = 0x080,
+};
+typedef enum NSSPKIXnetscapeCertTypeEnum NSSPKIXnetscapeCertTypeValue;
+
+typedef struct NSSPKIXnetscapeCertTypeStr NSSPKIXnetscapeCertType;
 
 PR_END_EXTERN_C
 

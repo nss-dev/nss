@@ -57,7 +57,17 @@ static const char PKIX_CVS_ID[] = "@(#) $Source$ $Revision$ $Date$ $Name$";
 #include "asn1t.h"
 #endif /* ASN1T_H */
 
+#ifndef BASE_H
+#include "base.h"
+#endif /* BASE_H */
+
 PR_BEGIN_EXTERN_C
+
+/* XXX argh */
+extern const nssASN1Template nssPKIXATAV_template[];
+extern const nssASN1Template nssPKIXTime_template[];
+extern const nssASN1Template nssPKIXExtension_template[];
+extern const nssASN1Template nssPKIXExtensions_template[];
 
 /*
  * Attribute
@@ -104,6 +114,7 @@ PR_BEGIN_EXTERN_C
 
 extern const nssASN1Template nssPKIXAttribute_template[];
 
+#ifdef nodef
 /*
  * nssPKIXAttribute_Decode
  *
@@ -572,7 +583,7 @@ nssPKIXAttribute_verifyPointer
  * AttributeTypeAndValue
  *
  * This structure contains an attribute type (indicated by an OID), 
- * and the type-specific value.  RelativeDistinguishedNames consist
+ * and the type-specific value.  RDNs consist
  * of a set of these.  These are distinct from Attributes (which have
  * SET of values), from AttributeDescriptions (which have qualifiers
  * on the types), and from AttributeValueAssertions (which assert a
@@ -586,26 +597,26 @@ nssPKIXAttribute_verifyPointer
  * 
  * The private calls for the type:
  *
- *  nssPKIXAttributeTypeAndValue_Decode
- *  nssPKIXAttributeTypeAndValue_CreateFromUTF8
- *  nssPKIXAttributeTypeAndValue_Create
- *  nssPKIXAttributeTypeAndValue_Destroy
- *  nssPKIXAttributeTypeAndValue_Encode
- *  nssPKIXAttributeTypeAndValue_GetUTF8Encoding
- *  nssPKIXAttributeTypeAndValue_GetType
- *  nssPKIXAttributeTypeAndValue_SetType
- *  nssPKIXAttributeTypeAndValue_GetValue
- *  nssPKIXAttributeTypeAndValue_SetValue
- *  nssPKIXAttributeTypeAndValue_Equal
- *  nssPKIXAttributeTypeAndValue_Duplicate
+ *  nssPKIXATAV_Decode
+ *  nssPKIXATAV_CreateFromUTF8
+ *  nssPKIXATAV_Create
+ *  nssPKIXATAV_Destroy
+ *  nssPKIXATAV_Encode
+ *  nssPKIXATAV_GetUTF8Encoding
+ *  nssPKIXATAV_GetType
+ *  nssPKIXATAV_SetType
+ *  nssPKIXATAV_GetValue
+ *  nssPKIXATAV_SetValue
+ *  nssPKIXATAV_Equal
+ *  nssPKIXATAV_Duplicate
  *
  * In debug builds, the following call is available:
  *
- *  nssPKIXAttributeTypeAndValue_verifyPointer
+ *  nssPKIXATAV_verifyPointer
  */
 
 /*
- * nssPKIXAttributeTypeAndValue_Decode
+ * nssPKIXATAV_Decode
  *
  * 
  *
@@ -615,19 +626,19 @@ nssPKIXAttribute_verifyPointer
  *  NSS_ERROR_INVALID_ARENA
  *
  * Return value:
- *  A valid pointer to an NSSPKIXAttributeTypeAndValue upon success
+ *  A valid pointer to an NSSPKIXATAV upon success
  *  NULL upon failure
  */
 
-NSS_EXTERN NSSPKIXAttributeTypeAndValue *
-nssPKIXAttributeTypeAndValue_Decode
+NSS_EXTERN NSSPKIXATAV *
+nssPKIXATAV_Decode
 (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
 
 /*
- * nssPKIXAttributeTypeAndValue_CreateFromUTF8
+ * nssPKIXATAV_CreateFromUTF8
  *
  * 
  *
@@ -638,19 +649,19 @@ nssPKIXAttributeTypeAndValue_Decode
  *  NSS_ERROR_UNKNOWN_ATTRIBUTE
  *
  * Return value:
- *  A valid pointer to an NSSPKIXAttributeTypeAndValue upon success
+ *  A valid pointer to an NSSPKIXATAV upon success
  *  NULL upon failure
  */
 
-NSS_EXTERN NSSPKIXAttributeTypeAndValue *
-nssPKIXAttributeTypeAndValue_CreateFromUTF8
+NSS_EXTERN NSSPKIXATAV *
+nssPKIXATAV_CreateFromUTF8
 (
   NSSArena *arenaOpt,
   NSSUTF8 *string
 );
 
 /*
- * nssPKIXAttributeTypeAndValue_Create
+ * nssPKIXATAV_Create
  *
  * 
  *
@@ -661,12 +672,12 @@ nssPKIXAttributeTypeAndValue_CreateFromUTF8
  *  NSS_ERROR_INVALID_ITEM
  *
  * Return value:
- *  A valid pointer to an NSSPKIXAttributeTypeAndValue upon success
+ *  A valid pointer to an NSSPKIXATAV upon success
  *  NULL upon failure
  */
 
-NSS_EXTERN NSSPKIXAttributeTypeAndValue *
-nssPKIXAttributeTypeAndValue_Create
+NSS_EXTERN NSSPKIXATAV *
+nssPKIXATAV_Create
 (
   NSSArena *arenaOpt,
   NSSPKIXAttributeType *typeOid,
@@ -674,7 +685,7 @@ nssPKIXAttributeTypeAndValue_Create
 );
 
 /*
- * nssPKIXAttributeTypeAndValue_Destroy
+ * nssPKIXATAV_Destroy
  *
  * 
  *
@@ -687,13 +698,13 @@ nssPKIXAttributeTypeAndValue_Create
  */
 
 NSS_EXTERN PRStatus
-nssPKIXAttributeTypeAndValue_Destroy
+nssPKIXATAV_Destroy
 (
-  NSSPKIXAttributeTypeAndValue *atav
+  NSSPKIXATAV *atav
 );
 
 /*
- * nssPKIXAttributeTypeAndValue_Encode
+ * nssPKIXATAV_Encode
  *
  * 
  *
@@ -708,16 +719,16 @@ nssPKIXAttributeTypeAndValue_Destroy
  */
 
 NSS_EXTERN NSSBER *
-nssPKIXAttributeTypeAndValue_Encode
+nssPKIXATAV_Encode
 (
-  NSSPKIXAttributeTypeAndValue *atav,
+  NSSPKIXATAV *atav,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
   NSSArena *arenaOpt
 );
 
 /*
- * nssPKIXAttributeTypeAndValue_GetUTF8Encoding
+ * nssPKIXATAV_GetUTF8Encoding
  *
  * 
  *
@@ -732,14 +743,14 @@ nssPKIXAttributeTypeAndValue_Encode
  */
 
 NSS_EXTERN NSSUTF8 *
-nssPKIXAttributeTypeAndValue_GetUTF8Encoding
+nssPKIXATAV_GetUTF8Encoding
 (
-  NSSPKIXAttributeTypeAndValue *atav,
+  NSSPKIXATAV *atav,
   NSSArena *arenaOpt
 );
 
 /*
- * nssPKIXAttributeTypeAndValue_GetType
+ * nssPKIXATAV_GetType
  *
  * 
  *
@@ -753,13 +764,13 @@ nssPKIXAttributeTypeAndValue_GetUTF8Encoding
  */
 
 NSS_EXTERN NSSPKIXAttributeType *
-nssPKIXAttributeTypeAndValue_GetType
+nssPKIXATAV_GetType
 (
-  NSSPKIXAttributeTypeAndValue *atav
+  NSSPKIXATAV *atav
 );
 
 /*
- * nssPKIXAttributeTypeAndValue_SetType
+ * nssPKIXATAV_SetType
  *
  * 
  *
@@ -773,14 +784,14 @@ nssPKIXAttributeTypeAndValue_GetType
  */
 
 NSS_EXTERN PRStatus
-nssPKIXAttributeTypeAndValue_SetType
+nssPKIXATAV_SetType
 (
-  NSSPKIXAttributeTypeAndValue *atav,
+  NSSPKIXATAV *atav,
   NSSPKIXAttributeType *attributeType
 );
 
 /*
- * nssPKIXAttributeTypeAndValue_GetValue
+ * nssPKIXATAV_GetValue
  *
  * 
  *
@@ -795,15 +806,15 @@ nssPKIXAttributeTypeAndValue_SetType
  */
 
 NSS_EXTERN NSSPKIXAttributeValue *
-nssPKIXAttributeTypeAndValue_GetValue
+nssPKIXATAV_GetValue
 (
-  NSSPKIXAttributeTypeAndValue *atav,
+  NSSPKIXATAV *atav,
   NSSPKIXAttributeValue *itemOpt,
   NSSArena *arenaOpt
 );
 
 /*
- * nssPKIXAttributeTypeAndValue_SetValue
+ * nssPKIXATAV_SetValue
  *
  * 
  *
@@ -818,14 +829,14 @@ nssPKIXAttributeTypeAndValue_GetValue
  */
 
 NSS_EXTERN PRStatus
-nssPKIXAttributeTypeAndValue_SetValue
+nssPKIXATAV_SetValue
 (
-  NSSPKIXAttributeTypeAndValue *atav,
+  NSSPKIXATAV *atav,
   NSSPKIXAttributeValue *value
 );
 
 /*
- * nssPKIXAttributeTypeAndValue_Equal
+ * nssPKIXATAV_Equal
  *
  * 
  *
@@ -839,15 +850,15 @@ nssPKIXAttributeTypeAndValue_SetValue
  */
 
 NSS_EXTERN PRBool
-nssPKIXAttributeTypeAndValue_Equal
+nssPKIXATAV_Equal
 (
-  NSSPKIXAttributeTypeAndValue *atav1,
-  NSSPKIXAttributeTypeAndValue *atav2,
+  NSSPKIXATAV *atav1,
+  NSSPKIXATAV *atav2,
   PRStatus *statusOpt
 );
 
 /*
- * nssPKIXAttributeTypeAndValue_Duplicate
+ * nssPKIXATAV_Duplicate
  *
  * 
  *
@@ -857,24 +868,24 @@ nssPKIXAttributeTypeAndValue_Equal
  *  NSS_ERROR_NO_MEMORY
  *
  * Return value:
- *  A valid pointer to an NSSPKIXAttributeTypeAndValue upon success
+ *  A valid pointer to an NSSPKIXATAV upon success
  *  NULL upon failure
  */
 
-NSS_EXTERN NSSPKIXAttributeTypeAndValue *
-nssPKIXAttributeTypeAndValue_Duplicate
+NSS_EXTERN NSSPKIXATAV *
+nssPKIXATAV_Duplicate
 (
-  NSSPKIXAttributeTypeAndValue *atav,
+  NSSPKIXATAV *atav,
   NSSArena *arenaOpt
 );
 
 #ifdef DEBUG
 /*
- * nssPKIXAttributeTypeAndValue_verifyPointer
+ * nssPKIXATAV_verifyPointer
  *
  * This method is only present in debug builds.
  *
- * If the specified pointer is a valid pointer to an NSSPKIXAttributeTypeAndValue
+ * If the specified pointer is a valid pointer to an NSSPKIXATAV
  * object, this routine will return PR_SUCCESS.  Otherwise, it will 
  * put an error on the error stack and return PR_FAILURE.
  *
@@ -887,9 +898,9 @@ nssPKIXAttributeTypeAndValue_Duplicate
  */
 
 NSS_EXTERN PRStatus
-nssPKIXAttributeTypeAndValue_verifyPointer
+nssPKIXATAV_verifyPointer
 (
-  NSSPKIXAttributeTypeAndValue *p
+  NSSPKIXATAV *p
 );
 #endif /* DEBUG */
 
@@ -2061,6 +2072,8 @@ nssPKIXPkcs9email_Encode
   NSSArena *arenaOpt
 );
 
+#endif /* nodef */
+
 /*
  * Name
  *
@@ -2096,6 +2109,8 @@ nssPKIXPkcs9email_Encode
  *  nssPKIXName_verifyPointer
  *
  */
+
+extern const nssASN1Template nssPKIXName_template[];
 
 /*
  * nssPKIXName_Decode
@@ -2225,10 +2240,7 @@ nssPKIXName_Destroy
 NSS_EXTERN NSSBER *
 nssPKIXName_Encode
 (
-  NSSPKIXName *name,
-  NSSASN1EncodingType encoding,
-  NSSBER *rvOpt,
-  NSSArena *arenaOpt
+  NSSPKIXName *name
 );
 
 /*
@@ -2363,40 +2375,15 @@ nssPKIXName_Duplicate
   NSSArena *arenaOpt
 );
 
-#ifdef DEBUG
-/*
- * nssPKIXName_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXName
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_NAME
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXName_verifyPointer
-(
-  NSSPKIXName *p
-);
-#endif /* DEBUG */
-
 /*
  * RDNSequence
  *
- * This structure contains a sequence of RelativeDistinguishedName
+ * This structure contains a sequence of RDN
  * objects.
  *
  * From RFC 2459:
  *
- *  RDNSequence     ::=   SEQUENCE OF RelativeDistinguishedName
+ *  RDNSequence     ::=   SEQUENCE OF RDN
  *
  * The private calls for this type:
  *
@@ -2407,15 +2394,15 @@ nssPKIXName_verifyPointer
  *  nssPKIXRDNSequence_Destroy
  *  nssPKIXRDNSequence_Encode
  *  nssPKIXRDNSequence_GetUTF8Encoding
- *  nssPKIXRDNSequence_GetRelativeDistinguishedNameCount
- *  nssPKIXRDNSequence_GetRelativeDistinguishedNames
- *  nssPKIXRDNSequence_SetRelativeDistinguishedNames
- *  nssPKIXRDNSequence_GetRelativeDistinguishedName
- *  nssPKIXRDNSequence_SetRelativeDistinguishedName
- *  nssPKIXRDNSequence_AppendRelativeDistinguishedName
- *  nssPKIXRDNSequence_InsertRelativeDistinguishedName
- *  nssPKIXRDNSequence_RemoveRelativeDistinguishedName
- *  nssPKIXRDNSequence_FindRelativeDistinguishedName
+ *  nssPKIXRDNSequence_GetRDNCount
+ *  nssPKIXRDNSequence_GetRDNs
+ *  nssPKIXRDNSequence_SetRDNs
+ *  nssPKIXRDNSequence_GetRDN
+ *  nssPKIXRDNSequence_SetRDN
+ *  nssPKIXRDNSequence_AppendRDN
+ *  nssPKIXRDNSequence_InsertRDN
+ *  nssPKIXRDNSequence_RemoveRDN
+ *  nssPKIXRDNSequence_FindRDN
  *  nssPKIXRDNSequence_Equal
  *  nssPKIXRDNSequence_Duplicate
  * 
@@ -2424,6 +2411,8 @@ nssPKIXName_verifyPointer
  *  nssPKIXRDNSequence_verifyPointer
  *
  */
+
+extern const nssASN1Template nssPKIXRDNSequence_template[];
 
 /*
  * nssPKIXRDNSequence_Decode
@@ -2490,7 +2479,7 @@ nssPKIXRDNSequence_CreateFromArray
 (
   NSSArena *arenaOpt,
   PRUint32 count,
-  NSSPKIXRelativeDistinguishedName *rdn1
+  NSSPKIXRDN **rdns
 );
 
 /*
@@ -2512,7 +2501,7 @@ NSS_EXTERN NSSPKIXRDNSequence *
 nssPKIXRDNSequence_Create
 (
   NSSArena *arenaOpt,
-  NSSPKIXRelativeDistinguishedName *rdn1,
+  NSSPKIXRDN *rdn1,
   ...
 );
 
@@ -2582,7 +2571,7 @@ nssPKIXRDNSequence_GetUTF8Encoding
 );
 
 /*
- * nssPKIXRDNSequence_GetRelativeDistinguishedNameCount
+ * nssPKIXRDNSequence_GetRDNCount
  *
  * -- fgmr comments --
  *
@@ -2596,13 +2585,13 @@ nssPKIXRDNSequence_GetUTF8Encoding
  */
 
 NSS_EXTERN PRInt32
-nssPKIXRDNSequence_GetRelativeDistinguishedNameCount
+nssPKIXRDNSequence_GetRDNCount
 (
   NSSPKIXRDNSequence *rdnseq
 );
 
 /*
- * nssPKIXRDNSequence_GetRelativeDistinguishedNames
+ * nssPKIXRDNSequence_GetRDNs
  *
  * This routine returns all of the relative distinguished names in the
  * specified RDN Sequence.  {...} If the array is allocated, or if the
@@ -2615,22 +2604,22 @@ nssPKIXRDNSequence_GetRelativeDistinguishedNameCount
  *  NSS_ERROR_ARRAY_TOO_SMALL
  *
  * Return value:
- *  A valid pointer to an array of NSSPKIXRelativeDistinguishedName 
+ *  A valid pointer to an array of NSSPKIXRDN 
  *      pointers upon success
  *  NULL upon failure.
  */
 
-NSS_EXTERN NSSPKIXRelativeDistinguishedName **
-nssPKIXRDNSequence_GetRelativeDistinguishedNames
+NSS_EXTERN NSSPKIXRDN **
+nssPKIXRDNSequence_GetRDNs
 (
   NSSPKIXRDNSequence *rdnseq,
-  NSSPKIXRelativeDistinguishedName *rvOpt[],
+  NSSPKIXRDN *rvOpt[],
   PRInt32 limit,
   NSSArena *arenaOpt
 );
 
 /*
- * nssPKIXRDNSequence_SetRelativeDistinguishedNames
+ * nssPKIXRDNSequence_SetRDNs
  *
  * -- fgmr comments --
  * If the array pointer itself is null, the set is considered empty.
@@ -2647,15 +2636,15 @@ nssPKIXRDNSequence_GetRelativeDistinguishedNames
  */
 
 NSS_EXTERN PRStatus
-nssPKIXRDNSequence_SetRelativeDistinguishedNames
+nssPKIXRDNSequence_SetRDNs
 (
   NSSPKIXRDNSequence *rdnseq,
-  NSSPKIXRelativeDistinguishedName *rdns[],
+  NSSPKIXRDN *rdns[],
   PRInt32 countOpt
 );
 
 /*
- * nssPKIXRDNSequence_GetRelativeDistinguishedName
+ * nssPKIXRDNSequence_GetRDN
  *
  * -- fgmr comments --
  *
@@ -2666,12 +2655,12 @@ nssPKIXRDNSequence_SetRelativeDistinguishedNames
  *  NSS_ERROR_INVALID_ARENA
  *
  * Return value:
- *  A valid pointer to an NSSPKIXRelativeDistinguishedName upon success
+ *  A valid pointer to an NSSPKIXRDN upon success
  *  NULL upon failure
  */
 
-NSS_EXTERN NSSPKIXRelativeDistinguishedName *
-nssPKIXRDNSequence_GetRelativeDistinguishedName
+NSS_EXTERN NSSPKIXRDN *
+nssPKIXRDNSequence_GetRDN
 (
   NSSPKIXRDNSequence *rdnseq,
   PRInt32 i,
@@ -2679,7 +2668,7 @@ nssPKIXRDNSequence_GetRelativeDistinguishedName
 );
 
 /*
- * nssPKIXRDNSequence_SetRelativeDistinguishedName
+ * nssPKIXRDNSequence_SetRDN
  *
  * -- fgmr comments --
  *
@@ -2695,15 +2684,15 @@ nssPKIXRDNSequence_GetRelativeDistinguishedName
  */
 
 NSS_EXTERN PRStatus
-nssPKIXRDNSequence_SetRelativeDistinguishedName
+nssPKIXRDNSequence_SetRDN
 (
   NSSPKIXRDNSequence *rdnseq,
   PRInt32 i,
-  NSSPKIXRelativeDistinguishedName *rdn
+  NSSPKIXRDN *rdn
 );
 
 /*
- * nssPKIXRDNSequence_AppendRelativeDistinguishedName
+ * nssPKIXRDNSequence_AppendRDN
  *
  * -- fgmr comments --
  *
@@ -2718,14 +2707,14 @@ nssPKIXRDNSequence_SetRelativeDistinguishedName
  */
 
 NSS_EXTERN PRStatus
-nssPKIXRDNSequence_AppendRelativeDistinguishedName
+nssPKIXRDNSequence_AppendRDN
 (
   NSSPKIXRDNSequence *rdnseq,
-  NSSPKIXRelativeDistinguishedName *rdn
+  NSSPKIXRDN *rdn
 );
 
 /*
- * nssPKIXRDNSequence_InsertRelativeDistinguishedName
+ * nssPKIXRDNSequence_InsertRDN
  *
  * -- fgmr comments --
  *
@@ -2741,15 +2730,15 @@ nssPKIXRDNSequence_AppendRelativeDistinguishedName
  */
 
 NSS_EXTERN PRStatus
-nssPKIXRDNSequence_InsertRelativeDistinguishedName
+nssPKIXRDNSequence_InsertRDN
 (
   NSSPKIXRDNSequence *rdnseq,
   PRInt32 i,
-  NSSPKIXRelativeDistinguishedName *rdn
+  NSSPKIXRDN *rdn
 );
 
 /*
- * nssPKIXRDNSequence_RemoveRelativeDistinguishedName
+ * nssPKIXRDNSequence_RemoveRDN
  *
  * -- fgmr comments --
  *
@@ -2763,14 +2752,14 @@ nssPKIXRDNSequence_InsertRelativeDistinguishedName
  */
 
 NSS_EXTERN PRStatus
-nssPKIXRDNSequence_RemoveRelativeDistinguishedName
+nssPKIXRDNSequence_RemoveRDN
 (
   NSSPKIXRDNSequence *rdnseq,
   PRInt32 i
 );
 
 /*
- * nssPKIXRDNSequence_FindRelativeDistinguishedName
+ * nssPKIXRDNSequence_FindRDN
  *
  * -- fgmr comments --
  *
@@ -2786,10 +2775,10 @@ nssPKIXRDNSequence_RemoveRelativeDistinguishedName
  */
 
 NSS_EXTERN PRInt32
-nssPKIXRDNSequence_FindRelativeDistinguishedName
+nssPKIXRDNSequence_FindRDN
 (
   NSSPKIXRDNSequence *rdnseq,
-  NSSPKIXRelativeDistinguishedName *rdn
+  NSSPKIXRDN *rdn
 );
 
 /*
@@ -2836,30 +2825,7 @@ nssPKIXRDNSequence_Duplicate
   NSSArena *arenaOpt
 );
 
-#ifdef DEBUG
-/*
- * nssPKIXRDNSequence_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXRDNSequence
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_RDN_SEQUENCE
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXRDNSequence_verifyPointer
-(
-  NSSPKIXRDNSequence *p
-);
-#endif /* DEBUG */
+#ifdef nodef
 
 /*
  * DistinguishedName
@@ -2874,7 +2840,7 @@ nssPKIXRDNSequence_verifyPointer
  */
 
 /*
- * RelativeDistinguishedName
+ * RDN
  *
  * This structure contains an unordered set of AttributeTypeAndValue 
  * objects.  RDNs are used to distinguish a set of objects underneath 
@@ -2891,42 +2857,42 @@ nssPKIXRDNSequence_verifyPointer
  *
  * From RFC 2459:
  *
- *  RelativeDistinguishedName  ::=
+ *  RDN  ::=
  *                      SET SIZE (1 .. MAX) OF AttributeTypeAndValue
  *
  * The private calls for this type:
  *
- *  nssPKIXRelativeDistinguishedName_Decode
- *  nssPKIXRelativeDistinguishedName_CreateFromUTF8
- *  nssPKIXRelativeDistinguishedName_Create
- *  nssPKIXRelativeDistinguishedName_CreateFromArray
- *  nssPKIXRelativeDistinguishedName_Destroy
- *  nssPKIXRelativeDistinguishedName_Encode
- *  nssPKIXRelativeDistinguishedName_GetUTF8Encoding
- *  nssPKIXRelativeDistinguishedName_GetAttributeTypeAndValueCount
- *  nssPKIXRelativeDistinguishedName_GetAttributeTypeAndValues
- *  nssPKIXRelativeDistinguishedName_SetAttributeTypeAndValues
- *  nssPKIXRelativeDistinguishedName_GetAttributeTypeAndValue
- *  nssPKIXRelativeDistinguishedName_SetAttributeTypeAndValue
- *  nssPKIXRelativeDistinguishedName_AddAttributeTypeAndValue
- *  nssPKIXRelativeDistinguishedName_RemoveAttributeTypeAndValue
- *  nssPKIXRelativeDistinguishedName_FindAttributeTypeAndValue
- *  nssPKIXRelativeDistinguishedName_Equal
- *  nssPKIXRelativeDistinguishedName_Duplicate
+ *  nssPKIXRDN_Decode
+ *  nssPKIXRDN_CreateFromUTF8
+ *  nssPKIXRDN_Create
+ *  nssPKIXRDN_CreateFromArray
+ *  nssPKIXRDN_Destroy
+ *  nssPKIXRDN_Encode
+ *  nssPKIXRDN_GetUTF8Encoding
+ *  nssPKIXRDN_GetAttributeTypeAndValueCount
+ *  nssPKIXRDN_GetAttributeTypeAndValues
+ *  nssPKIXRDN_SetAttributeTypeAndValues
+ *  nssPKIXRDN_GetAttributeTypeAndValue
+ *  nssPKIXRDN_SetAttributeTypeAndValue
+ *  nssPKIXRDN_AddAttributeTypeAndValue
+ *  nssPKIXRDN_RemoveAttributeTypeAndValue
+ *  nssPKIXRDN_FindAttributeTypeAndValue
+ *  nssPKIXRDN_Equal
+ *  nssPKIXRDN_Duplicate
  * 
  * fgmr: Logical additional functions include
  *
- *  NSSPKIXRelativeDistinguishedName_FindAttributeTypeAndValueByType
+ *  NSSPKIXRDN_FindAttributeTypeAndValueByType
  *    returns PRInt32
- *  NSSPKIXRelativeDistinguishedName_FindAttributeTypeAndValuesByType
+ *  NSSPKIXRDN_FindAttributeTypeAndValuesByType
  *    returns array of PRInt32
- *  NSSPKIXRelativeDistinguishedName_GetAttributeTypeAndValueForType
- *    returns NSSPKIXAttributeTypeAndValue
- *  NSSPKIXRelativeDistinguishedName_GetAttributeTypeAndValuesForType
- *    returns array of NSSPKIXAttributeTypeAndValue
- *  NSSPKIXRelativeDistinguishedName_GetAttributeValueForType
+ *  NSSPKIXRDN_GetAttributeTypeAndValueForType
+ *    returns NSSPKIXATAV
+ *  NSSPKIXRDN_GetAttributeTypeAndValuesForType
+ *    returns array of NSSPKIXATAV
+ *  NSSPKIXRDN_GetAttributeValueForType
  *    returns NSSPKIXAttributeValue
- *  NSSPKIXRelativeDistinguishedName_GetAttributeValuesForType
+ *  NSSPKIXRDN_GetAttributeValuesForType
  *    returns array of NSSPKIXAttributeValue
  *
  * NOTE: the "return array" versions are only meaningful if an RDN may
@@ -2935,12 +2901,14 @@ nssPKIXRDNSequence_verifyPointer
  *
  * In debug builds, the following call is available:
  *
- *  nssPKIXRelativeDistinguishedName_verifyPointer
+ *  nssPKIXRDN_verifyPointer
  *
  */
 
+extern const nssASN1Template nssPKIXRDN_template[];
+
 /*
- * nssPKIXRelativeDistinguishedName_Decode
+ * nssPKIXRDN_Decode
  *
  * -- fgmr comments --
  *
@@ -2950,19 +2918,19 @@ nssPKIXRDNSequence_verifyPointer
  *  NSS_ERROR_INVALID_ARENA
  *
  * Return value:
- *  A valid pointer to an NSSPKIXRelativeDistinguishedName upon success
+ *  A valid pointer to an NSSPKIXRDN upon success
  *  NULL upon failure
  */
 
-NSS_EXTERN NSSPKIXRelativeDistinguishedName *
-nssPKIXRelativeDistinguishedName_Decode
+NSS_EXTERN NSSPKIXRDN *
+nssPKIXRDN_Decode
 (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
 
 /*
- * nssPKIXRelativeDistinguishedName_CreateFromUTF8
+ * nssPKIXRDN_CreateFromUTF8
  *
  * -- fgmr comments --
  *
@@ -2973,19 +2941,19 @@ nssPKIXRelativeDistinguishedName_Decode
  *  NSS_ERROR_UNKNOWN_ATTRIBUTE
  *
  * Return value:
- *  A valid pointer to an NSSPKIXRelativeDistinguishedName upon success
+ *  A valid pointer to an NSSPKIXRDN upon success
  *  NULL upon failure
  */
 
-NSS_EXTERN NSSPKIXRelativeDistinguishedName *
-nssPKIXRelativeDistinguishedName_CreateFromUTF8
+NSS_EXTERN NSSPKIXRDN *
+nssPKIXRDN_CreateFromUTF8
 (
   NSSArena *arenaOpt,
   NSSUTF8 *string
 );
 
 /*
- * nssPKIXRelativeDistinguishedName_Create
+ * nssPKIXRDN_Create
  *
  * -- fgmr comments --
  *
@@ -2995,20 +2963,20 @@ nssPKIXRelativeDistinguishedName_CreateFromUTF8
  *  NSS_ERROR_INVALID_ATAV
  *
  * Return value:
- *  A valid pointer to an NSSPKIXRelativeDistinguishedName upon success
+ *  A valid pointer to an NSSPKIXRDN upon success
  *  NULL upon failure
  */
 
-NSS_EXTERN NSSPKIXRelativeDistinguishedName *
-nssPKIXRelativeDistinguishedName_Create
+NSS_EXTERN NSSPKIXRDN *
+nssPKIXRDN_Create
 (
   NSSArena *arenaOpt,
-  NSSPKIXAttributeTypeAndValue *atav1,
+  NSSPKIXATAV *atav1,
   ...
 );
 
 /*
- * nssPKIXRelativeDistinguishedName_CreateFromArray
+ * nssPKIXRDN_CreateFromArray
  *
  * -- fgmr comments --
  *
@@ -3018,20 +2986,20 @@ nssPKIXRelativeDistinguishedName_Create
  *  NSS_ERROR_INVALID_ATAV
  *
  * Return value:
- *  A valid pointer to an NSSPKIXRelativeDistinguishedName upon success
+ *  A valid pointer to an NSSPKIXRDN upon success
  *  NULL upon failure
  */
 
-NSS_EXTERN NSSPKIXRelativeDistinguishedName *
-nssPKIXRelativeDistinguishedName_CreateFromArray
+NSS_EXTERN NSSPKIXRDN *
+nssPKIXRDN_CreateFromArray
 (
   NSSArena *arenaOpt,
   PRUint32 count,
-  NSSPKIXAttributeTypeAndValue *atavs
+  NSSPKIXATAV *atavs
 );
 
 /*
- * nssPKIXRelativeDistinguishedName_Destroy
+ * nssPKIXRDN_Destroy
  *
  * -- fgmr comments --
  *
@@ -3044,13 +3012,13 @@ nssPKIXRelativeDistinguishedName_CreateFromArray
  */
 
 NSS_EXTERN PRStatus
-nssPKIXRelativeDistinguishedName_Destroy
+nssPKIXRDN_Destroy
 (
-  NSSPKIXRelativeDistinguishedName *rdn
+  NSSPKIXRDN *rdn
 );
 
 /*
- * nssPKIXRelativeDistinguishedName_Encode
+ * nssPKIXRDN_Encode
  *
  * -- fgmr comments --
  *
@@ -3065,16 +3033,16 @@ nssPKIXRelativeDistinguishedName_Destroy
  */
 
 NSS_EXTERN NSSBER *
-nssPKIXRelativeDistinguishedName_Encode
+nssPKIXRDN_Encode
 (
-  NSSPKIXRelativeDistinguishedName *rdn,
+  NSSPKIXRDN *rdn,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
   NSSArena *arenaOpt
 );
 
 /*
- * nssPKIXRelativeDistinguishedName_GetUTF8Encoding
+ * nssPKIXRDN_GetUTF8Encoding
  *
  * -- fgmr comments --
  *
@@ -3089,14 +3057,14 @@ nssPKIXRelativeDistinguishedName_Encode
  */
 
 NSS_EXTERN NSSUTF8 *
-nssPKIXRelativeDistinguishedName_GetUTF8Encoding
+nssPKIXRDN_GetUTF8Encoding
 (
-  NSSPKIXRelativeDistinguishedName *rdn,
+  NSSPKIXRDN *rdn,
   NSSArena *arenaOpt
 );
 
 /*
- * nssPKIXRelativeDistinguishedName_GetAttributeTypeAndValueCount
+ * nssPKIXRDN_GetAttributeTypeAndValueCount
  *
  * -- fgmr comments --
  *
@@ -3110,13 +3078,13 @@ nssPKIXRelativeDistinguishedName_GetUTF8Encoding
  */
 
 NSS_EXTERN PRInt32
-nssPKIXRelativeDistinguishedName_GetAttributeTypeAndValueCount
+nssPKIXRDN_GetAttributeTypeAndValueCount
 (
-  NSSPKIXRelativeDistinguishedName *rdn
+  NSSPKIXRDN *rdn
 );
 
 /*
- * nssPKIXRelativeDistinguishedName_GetAttributeTypeAndValues
+ * nssPKIXRDN_GetAttributeTypeAndValues
  *
  * -- fgmr comments --
  *
@@ -3127,22 +3095,22 @@ nssPKIXRelativeDistinguishedName_GetAttributeTypeAndValueCount
  *  NSS_ERROR_ARRAY_TOO_SMALL
  *
  * Return value:
- *  A valid pointer to an array of NSSPKIXAttributeTypeAndValue 
+ *  A valid pointer to an array of NSSPKIXATAV 
  *      pointers upon success
  *  NULL upon failure
  */
 
-NSS_EXTERN NSSPKIXAttributeTypeAndValue **
-nssPKIXRelativeDistinguishedName_GetAttributeTypeAndValues
+NSS_EXTERN NSSPKIXATAV **
+nssPKIXRDN_GetAttributeTypeAndValues
 (
-  NSSPKIXRelativeDistinguishedName *rdn,
-  NSSPKIXAttributeTypeAndValue *rvOpt[],
+  NSSPKIXRDN *rdn,
+  NSSPKIXATAV *rvOpt[],
   PRInt32 limit,
   NSSArena *arenaOpt
 );
 
 /*
- * nssPKIXRelativeDistinguishedName_SetAttributeTypeAndValues
+ * nssPKIXRDN_SetAttributeTypeAndValues
  *
  * -- fgmr comments --
  *
@@ -3156,15 +3124,15 @@ nssPKIXRelativeDistinguishedName_GetAttributeTypeAndValues
  */
 
 NSS_EXTERN PRStatus
-nssPKIXRelativeDistinguishedName_SetAttributeTypeAndValues
+nssPKIXRDN_SetAttributeTypeAndValues
 (
-  NSSPKIXRelativeDistinguishedName *rdn,
-  NSSPKIXAttributeTypeAndValue *atavs[],
+  NSSPKIXRDN *rdn,
+  NSSPKIXATAV *atavs[],
   PRInt32 countOpt
 );
 
 /*
- * nssPKIXRelativeDistinguishedName_GetAttributeTypeAndValue
+ * nssPKIXRDN_GetAttributeTypeAndValue
  *
  * -- fgmr comments --
  *
@@ -3175,20 +3143,20 @@ nssPKIXRelativeDistinguishedName_SetAttributeTypeAndValues
  *  NSS_ERROR_INVALID_ARENA
  *
  * Return value:
- *  A valid pointer to an NSSPKIXAttributeTypeAndValue upon success
+ *  A valid pointer to an NSSPKIXATAV upon success
  *  NULL upon failure
  */
 
-NSS_EXTERN NSSPKIXAttributeTypeAndValue *
-nssPKIXRelativeDistinguishedName_GetAttributeTypeAndValue
+NSS_EXTERN NSSPKIXATAV *
+nssPKIXRDN_GetAttributeTypeAndValue
 (
-  NSSPKIXRelativeDistinguishedName *rdn,
+  NSSPKIXRDN *rdn,
   PRInt32 i,
   NSSArena *arenaOpt
 );
 
 /*
- * nssPKIXRelativeDistinguishedName_SetAttributeTypeAndValue
+ * nssPKIXRDN_SetAttributeTypeAndValue
  *
  * -- fgmr comments --
  *
@@ -3204,15 +3172,15 @@ nssPKIXRelativeDistinguishedName_GetAttributeTypeAndValue
  */
 
 NSS_EXTERN PRStatus
-nssPKIXRelativeDistinguishedName_SetAttributeTypeAndValue
+nssPKIXRDN_SetAttributeTypeAndValue
 (
-  NSSPKIXRelativeDistinguishedName *rdn,
+  NSSPKIXRDN *rdn,
   PRInt32 i,
-  NSSPKIXAttributeTypeAndValue *atav
+  NSSPKIXATAV *atav
 );
 
 /*
- * nssPKIXRelativeDistinguishedName_AddAttributeTypeAndValue
+ * nssPKIXRDN_AddAttributeTypeAndValue
  *
  * -- fgmr comments --
  *
@@ -3227,14 +3195,14 @@ nssPKIXRelativeDistinguishedName_SetAttributeTypeAndValue
  */
 
 NSS_EXTERN PRStatus
-nssPKIXRelativeDistinguishedName_AddAttributeTypeAndValue
+nssPKIXRDN_AddAttributeTypeAndValue
 (
-  NSSPKIXRelativeDistinguishedName *rdn,
-  NSSPKIXAttributeTypeAndValue *atav
+  NSSPKIXRDN *rdn,
+  NSSPKIXATAV *atav
 );
 
 /*
- * nssPKIXRelativeDistinguishedName_RemoveAttributeTypeAndValue
+ * nssPKIXRDN_RemoveAttributeTypeAndValue
  *
  * -- fgmr comments --
  *
@@ -3249,14 +3217,14 @@ nssPKIXRelativeDistinguishedName_AddAttributeTypeAndValue
  */
 
 NSS_EXTERN PRStatus
-nssPKIXRelativeDistinguishedName_RemoveAttributeTypeAndValue
+nssPKIXRDN_RemoveAttributeTypeAndValue
 (
-  NSSPKIXRelativeDistinguishedName *rdn,
+  NSSPKIXRDN *rdn,
   PRInt32 i
 );
 
 /*
- * nssPKIXRelativeDistinguishedName_FindAttributeTypeAndValue
+ * nssPKIXRDN_FindAttributeTypeAndValue
  *
  * -- fgmr comments --
  *
@@ -3272,14 +3240,14 @@ nssPKIXRelativeDistinguishedName_RemoveAttributeTypeAndValue
  */
 
 NSS_EXTERN PRInt32
-nssPKIXRelativeDistinguishedName_FindAttributeTypeAndValue
+nssPKIXRDN_FindAttributeTypeAndValue
 (
-  NSSPKIXRelativeDistinguishedName *rdn,
-  NSSPKIXAttributeTypeAndValue *atav
+  NSSPKIXRDN *rdn,
+  NSSPKIXATAV *atav
 );
 
 /*
- * nssPKIXRelativeDistinguishedName_Equal
+ * nssPKIXRDN_Equal
  *
  * -- fgmr comments --
  *
@@ -3293,15 +3261,15 @@ nssPKIXRelativeDistinguishedName_FindAttributeTypeAndValue
  */
 
 NSS_EXTERN PRBool
-nssPKIXRelativeDistinguishedName_Equal
+nssPKIXRDN_Equal
 (
-  NSSPKIXRelativeDistinguishedName *one,
-  NSSPKIXRelativeDistinguishedName *two,
+  NSSPKIXRDN *one,
+  NSSPKIXRDN *two,
   PRStatus *statusOpt
 );
 
 /*
- * nssPKIXRelativeDistinguishedName_Duplicate
+ * nssPKIXRDN_Duplicate
  *
  * -- fgmr comments --
  *
@@ -3311,24 +3279,24 @@ nssPKIXRelativeDistinguishedName_Equal
  *  NSS_ERROR_NO_MEMORY
  *
  * Return value:
- *  A valid pointer to an NSSPKIXRelativeDistinguishedName upon success
+ *  A valid pointer to an NSSPKIXRDN upon success
  *  NULL upon failure
  */
 
-NSS_EXTERN NSSPKIXRelativeDistinguishedName *
-nssPKIXRelativeDistinguishedName_Duplicate
+NSS_EXTERN NSSPKIXRDN *
+nssPKIXRDN_Duplicate
 (
-  NSSPKIXRelativeDistinguishedName *rdn,
+  NSSPKIXRDN *rdn,
   NSSArena *arenaOpt
 );
 
 #ifdef DEBUG
 /*
- * nssPKIXRelativeDistinguishedName_verifyPointer
+ * nssPKIXRDN_verifyPointer
  *
  * This method is only present in debug builds.
  *
- * If the specified pointer is a valid pointer to an NSSPKIXRelativeDistinguishedName
+ * If the specified pointer is a valid pointer to an NSSPKIXRDN
  * object, this routine will return PR_SUCCESS.  Otherwise, it will 
  * put an error on the error stack and return PR_FAILURE.
  *
@@ -3341,9 +3309,9 @@ nssPKIXRelativeDistinguishedName_Duplicate
  */
 
 NSS_EXTERN PRStatus
-nssPKIXRelativeDistinguishedName_verifyPointer
+nssPKIXRDN_verifyPointer
 (
-  NSSPKIXRelativeDistinguishedName *p
+  NSSPKIXRDN *p
 );
 #endif /* DEBUG */
 
@@ -3470,6 +3438,9 @@ nssPKIXDirectoryString_Encode
  *  nssPKIXCertificate_verifyPointer
  *
  */
+#endif
+
+extern const nssASN1Template nssPKIXCertificate_template[];
 
 /*
  * nssPKIXCertificate_Decode
@@ -3581,8 +3552,7 @@ nssPKIXCertificate_Encode
 NSS_EXTERN NSSPKIXTBSCertificate *
 nssPKIXCertificate_GetTBSCertificate
 (
-  NSSPKIXCertificate *cert,
-  NSSArena *arenaOpt
+  NSSPKIXCertificate *cert
 );
 
 /*
@@ -3600,7 +3570,7 @@ nssPKIXCertificate_GetTBSCertificate
  *  PR_FAILURE upon failure
  */
 
-NSS_EXTERN PRStatus
+NSS_EXTERN void
 nssPKIXCertificate_SetTBSCertificate
 (
   NSSPKIXCertificate *cert,
@@ -3625,8 +3595,7 @@ nssPKIXCertificate_SetTBSCertificate
 NSS_EXTERN NSSPKIXAlgorithmIdentifier *
 nssPKIXCertificate_GetAlgorithmIdentifier
 (
-  NSSPKIXCertificate *cert,
-  NSSArena *arenaOpt
+  NSSPKIXCertificate *cert
 );
 
 /*
@@ -3644,11 +3613,11 @@ nssPKIXCertificate_GetAlgorithmIdentifier
  *  PR_FAILURE upon failure
  */
 
-NSS_EXTERN PRStatus
+NSS_EXTERN void
 nssPKIXCertificate_SetAlgorithmIdentifier
 (
   NSSPKIXCertificate *cert,
-  NSSPKIXAlgorithmIdentifier *algid,
+  NSSPKIXAlgorithmIdentifier *algid
 );
 
 /*
@@ -3669,9 +3638,7 @@ nssPKIXCertificate_SetAlgorithmIdentifier
 NSS_EXTERN NSSItem *
 nssPKIXCertificate_GetSignature
 (
-  NSSPKIXCertificate *cert,
-  NSSItem *rvOpt,
-  NSSArena *arenaOpt
+  NSSPKIXCertificate *cert
 );
 
 /*
@@ -3689,7 +3656,7 @@ nssPKIXCertificate_GetSignature
  *  PR_FAILURE upon failure
  */
 
-NSS_EXTERN PRStatus
+NSS_EXTERN void
 nssPKIXCertificate_SetSignature
 (
   NSSPKIXCertificate *cert,
@@ -3740,30 +3707,7 @@ nssPKIXCertificate_Duplicate
   NSSArena *arenaOpt
 );
 
-#ifdef DEBUG
-/*
- * nssPKIXCertificate_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXCertificate
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_CERTIFICATE
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXCertificate_verifyPointer
-(
-  NSSPKIXCertificate *p
-);
-#endif /* DEBUG */
+extern const nssASN1Template nssPKIXTBSCertificate_template[];
 
 /*
  * TBSCertificate
@@ -3993,9 +3937,7 @@ nssPKIXTBSCertificate_SetVersion
 NSS_EXTERN NSSPKIXCertificateSerialNumber *
 nssPKIXTBSCertificate_GetSerialNumber
 (
-  NSSPKIXTBSCertificate *tbsCert,
-  NSSPKIXCertificateSerialNumber *snOpt,
-  NSSArena *arenaOpt
+  NSSPKIXTBSCertificate *tbsCert
 );
 
 /*
@@ -4086,8 +4028,7 @@ nssPKIXTBSCertificate_SetSignature
 NSS_EXTERN NSSPKIXName *
 nssPKIXTBSCertificate_GetIssuer
 (
-  NSSPKIXTBSCertificate *tbsCert,
-  NSSArena *arenaOpt
+  NSSPKIXTBSCertificate *tbsCert
 );
 
 /*
@@ -4140,8 +4081,7 @@ nssPKIXTBSCertificate_SetIssuer
 NSS_EXTERN NSSPKIXValidity *
 nssPKIXTBSCertificate_GetValidity
 (
-  NSSPKIXTBSCertificate *tbsCert,
-  NSSArena *arenaOpt
+  NSSPKIXTBSCertificate *tbsCert
 );
 
 /*
@@ -4188,8 +4128,7 @@ nssPKIXTBSCertificate_SetValidity
 NSS_EXTERN NSSPKIXName *
 nssPKIXTBSCertificate_GetSubject
 (
-  NSSPKIXTBSCertificate *tbsCert,
-  NSSArena *arenaOpt
+  NSSPKIXTBSCertificate *tbsCert
 );
 
 /*
@@ -4472,8 +4411,7 @@ nssPKIXTBSCertificate_HasExtensions
 NSS_EXTERN NSSPKIXExtensions *
 nssPKIXTBSCertificate_GetExtensions
 (
-  NSSPKIXTBSCertificate *tbsCert,
-  NSSArena *arenaOpt
+  NSSPKIXTBSCertificate *tbsCert
 );
 
 /*
@@ -4630,11 +4568,6 @@ nssPKIXTBSCertificate_verifyPointer
  *  nssPKIXValidity_Equal
  *  nssPKIXValidity_Compare
  *  nssPKIXValidity_Duplicate
- * 
- * In debug builds, the following call is available:
- *
- *  nssPKIXValidity_verifyPointer
- *
  */
 
 /*
@@ -4678,8 +4611,8 @@ NSS_EXTERN NSSPKIXValidity *
 nssPKIXValidity_Create
 (
   NSSArena *arenaOpt,
-  NSSPKIXTime notBefore,
-  NSSPKIXTime notAfter
+  NSSPKIXTime *notBefore,
+  NSSPKIXTime *notAfter
 );
 
 /*
@@ -4739,7 +4672,7 @@ nssPKIXValidity_Encode
  *  {we need to rethink NSSPKIXTime}
  */
 
-NSS_EXTERN NSSPKIXTime
+NSS_EXTERN NSSPKIXTime *
 nssPKIXValidity_GetNotBefore
 (
   NSSPKIXValidity *validity
@@ -4764,7 +4697,7 @@ NSS_EXTERN PRStatus
 nssPKIXValidity_SetNotBefore
 (
   NSSPKIXValidity *validity,
-  NSSPKIXTime notBefore
+  NSSPKIXTime *notBefore
 );
 
 /*
@@ -4781,7 +4714,7 @@ nssPKIXValidity_SetNotBefore
  *  {we need to rethink NSSPKIXTime}
  */
 
-NSS_EXTERN NSSPKIXTime
+NSS_EXTERN NSSPKIXTime *
 nssPKIXValidity_GetNotAfter
 (
   NSSPKIXValidity *validity
@@ -4805,7 +4738,7 @@ NSS_EXTERN PRStatus
 nssPKIXValidity_SetNotAfter
 (
   NSSPKIXValidity *validity,
-  NSSPKIXTime notAfter
+  NSSPKIXTime *notAfter
 );
 
 /*
@@ -4874,31 +4807,6 @@ nssPKIXValidity_Duplicate
   NSSArena *arenaOpt
 );
 
-#ifdef DEBUG
-/*
- * nssPKIXValidity_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXValidity
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_VALIDITY
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXValidity_verifyPointer
-(
-  NSSPKIXValidity *p
-);
-#endif /* DEBUG */
-
 /*
  * Time
  *
@@ -4922,11 +4830,6 @@ nssPKIXValidity_verifyPointer
  *  nssPKIXTime_Equal
  *  nssPKIXTime_Duplicate
  *  nssPKIXTime_Compare
- *
- * In debug builds, the following call is available:
- *
- *  nssPKIXTime_verifyPointer
- *
  */
 
 /*
@@ -4980,7 +4883,7 @@ nssPKIXTime_CreateFromUTF8
  *
  */
 
-NSS_EXTERN PR_STATUS
+NSS_EXTERN PRStatus
 nssPKIXTime_Destroy
 (
   NSSPKIXTime *time
@@ -5031,10 +4934,10 @@ nssPKXITime_GetUTF8Encoding
  */
 
 NSS_EXTERN PRBool
-nssPKXITime_Equal
+nssPKIXTime_Equal
 (
-  NSSPKXITime *time1,
-  NSSPKXITime *time2,
+  NSSPKIXTime *time1,
+  NSSPKIXTime *time2,
   PRStatus *statusOpt
 );
 
@@ -5044,7 +4947,7 @@ nssPKXITime_Equal
  */
 
 NSS_EXTERN NSSPKIXTime *
-nssPKXITime_Duplicate
+nssPKIXTime_Duplicate
 (
   NSSPKIXTime *time,
   NSSArena *arenaOpt
@@ -5065,18 +4968,7 @@ nssPKIXTime_Compare
   PRStatus *statusOpt
 );
 
-#ifdef DEBUG
-/*
- * nssPKIXTime_verifyPointer
- *
- */
-
-NSS_EXTERN PRStatus
-nssPKIXTime_verifyPointer
-(
-  NSSPKIXTime *time
-);
-#endif /* DEBUG */
+#ifdef nodef
 
 /*
  * UniqueIdentifier
@@ -15617,6 +15509,8 @@ nssPKIXAuthorityKeyIdentifier_verifyPointer
 );
 #endif /* DEBUG */
 
+#endif /* nodef */
+
 /*
  * KeyUsage
  *
@@ -15795,11 +15689,11 @@ nssPKIXKeyUsage_GetUTF8Encoding
  *  NSS_ERROR_INVALID_PKIX_KEY_USAGE
  *
  * Return value:
- *  A set of NSSKeyUsageValue values OR-d together upon success
+ *  A set of NSSPKIXKeyUsageValue values OR-d together upon success
  *  NSSKeyUsage_NSSinvalid upon failure
  */
 
-NSS_EXTERN NSSKeyUsageValue
+NSS_EXTERN NSSPKIXKeyUsageValue
 nssPKIXKeyUsage_GetValue
 (
   NSSPKIXKeyUsage *keyUsage
@@ -15870,30 +15764,7 @@ nssPKIXKeyUsage_Duplicate
   NSSArena *arenaOpt
 );
 
-#ifdef DEBUG
-/*
- * nssPKIXKeyUsage_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXKeyUsage
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_KEY_USAGE
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXKeyUsage_verifyPointer
-(
-  NSSPKIXKeyUsage *p
-);
-#endif /* DEBUG */
+#ifdef nodef
 
 /*
  * PrivateKeyUsagePeriod
@@ -21249,6 +21120,8 @@ nssPKIXSubjectDirectoryAttributes_verifyPointer
 );
 #endif /* DEBUG */
 
+#endif /* nodef */
+
 /*
  * BasicConstraints
  *
@@ -21275,11 +21148,6 @@ nssPKIXSubjectDirectoryAttributes_verifyPointer
  *  nssPKIXBasicConstraints_Equal
  *  nssPKIXBasicConstraints_Duplicate
  *  nssPKIXBasicConstraints_CompareToPathLenConstraint
- * 
- * In debug builds, the following call is available:
- *
- *  nssPKIXBasicConstraints_verifyPointer
- *
  */
 
 /*
@@ -21538,31 +21406,6 @@ nssPKIXBasicConstraints_Duplicate
   NSSArena *arenaOpt
 );
 
-#ifdef DEBUG
-/*
- * nssPKIXBasicConstraints_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXBasicConstraints
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_BASIC_CONSTRAINTS
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXBasicConstraints_verifyPointer
-(
-  NSSPKIXBasicConstraints *p
-);
-#endif /* DEBUG */
-
 /*
  * nssPKIXBasicConstraints_CompareToPathLenConstraint
  *
@@ -21585,6 +21428,8 @@ nssPKIXBasicConstraints_CompareToPathLenConstraint
   NSSPKIXBasicConstraints *basicConstraints,
   PRInt32 value
 );
+
+#ifdef nodef
 
 /*
  * NameConstraints
@@ -23959,7 +23804,7 @@ nssPKIXDistributionPoint_verifyPointer
  *
  *  DistributionPointName ::= CHOICE {
  *       fullName                [0]     GeneralNames,
- *       nameRelativeToCRLIssuer [1]     RelativeDistinguishedName }
+ *       nameRelativeToCRLIssuer [1]     RDN }
  *
  * The private calls for this type:
  *
@@ -24069,7 +23914,7 @@ NSS_EXTERN NSSPKIXDistributionPointName *
 nssPKIXDistributionPointName_CreateFromNameRelativeToCRLIssuer
 (
   NSSArena *arenaOpt,
-  NSSPKIXRelativeDistinguishedName *nameRelativeToCRLIssuer
+  NSSPKIXRDN *nameRelativeToCRLIssuer
 );
 
 /*
@@ -24169,12 +24014,12 @@ nssPKIXDistributionPointName_GetFullName
  *  NSS_ERROR_NO_MEMORY
  * 
  * Return value:
- *  A valid pointer to an NSSPKIXRelativeDistinguishedName upon
+ *  A valid pointer to an NSSPKIXRDN upon
  *      success
  *  NULL upon failure
  */
 
-NSS_EXTERN NSSPKIXRelativeDistinguishedName *
+NSS_EXTERN NSSPKIXRDN *
 nssPKIXDistributionPointName_GetNameRelativeToCRLIssuer
 (
   NSSPKIXDistributionPointName *dpn,
@@ -26080,6 +25925,8 @@ nssPKIXIssuingDistributionPoint_verifyPointer
   NSSPKIXIssuingDistributionPoint *p
 );
 #endif /* DEBUG */
+
+#endif /* nodef */
 
 PR_END_EXTERN_C
 

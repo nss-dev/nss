@@ -50,7 +50,12 @@ static const char PKIXTM_CVS_ID[] = "@(#) $Source$ $Revision$ $Date$ $Name$";
 #include "nsspkixt.h"
 #endif /* NSSPKIXT_H */
 
+/* XXX for time... */
+#include "nsspkit.h"
+
 PR_BEGIN_EXTERN_C
+
+#ifdef nodef
 
 /*
  * Attribute
@@ -77,6 +82,8 @@ struct NSSPKIXAttributeStr {
   PRUint32 valuesCount;
 };
 
+#endif /* nodef */
+
 /*
  * AttributeTypeAndValue
  *
@@ -95,15 +102,21 @@ struct NSSPKIXAttributeStr {
  * 
  */
 
-struct NSSPKIXAttributeTypeAndValueStr {
+struct NSSPKIXATAVStr {
   NSSArena *arena;
   PRBool i_allocated_arena;
   NSSDER *der;
+#if 0
   nssASN1Item asn1type;
   nssASN1Item asn1value;
   NSSPKIXAttributeType *type;
+#endif
+  NSSItem type;
+  NSSItem value;
   NSSUTF8 *utf8;
 };
+
+#ifdef nodef
 
 /*
  * X520Name
@@ -147,30 +160,7 @@ struct NSSPKIXX520NameStr {
 struct NSSPKIXX520CommonNameStr {
 };
 
-/*
- * Name
- *
- * This structure contains a union of the possible name formats,
- * which at the moment is limited to an RDNSequence.
- *
- * From RFC 2459:
- *
- *  Name            ::=   CHOICE { -- only one possibility for now --
- *                                   rdnSequence  RDNSequence }
- *
- */
-
-struct NSSPKIXNameStr {
-  NSSArena *arena;
-  PRBool i_allocated_arena;
-  NSSDER *ber;
-  NSSDER *der;
-  NSSUTF8 *utf;
-  NSSPKIXNameChoice choice;
-  union {
-    NSSPKIXRDNSequence *rdnSequence;
-  } u;
-};
+#endif /* XXX nodef */
 
 /*
  * RDNSequence
@@ -187,11 +177,10 @@ struct NSSPKIXNameStr {
 struct NSSPKIXRDNSequenceStr {
   NSSArena *arena;
   PRBool i_allocated_arena;
-  NSSBER *ber;
   NSSDER *der;
   NSSUTF8 *utf8;
   PRUint32 count;
-  NSSPKIXRelativeDistinguishedName **rdns;
+  NSSPKIXRDN **rdns;
 };
 
 /*
@@ -217,37 +206,151 @@ struct NSSPKIXRDNSequenceStr {
  *
  */
 
-struct NSSPKIXRelativeDistinguishedNameStr {
+struct NSSPKIXRDNStr {
   NSSArena *arena;
   PRBool i_allocated_arena;
   NSSDER *der;
-  NSSBER *ber;
   NSSUTF8 *utf8;
   PRUint32 count;
-  NSSPKIXAttributeTypeAndValue **atavs;
+  NSSPKIXATAV **atavs;
 };
 
 /*
- * Certificate
+ * Name
+ *
+ * This structure contains a union of the possible name formats,
+ * which at the moment is limited to an RDNSequence.
+ *
+ * From RFC 2459:
+ *
+ *  Name            ::=   CHOICE { -- only one possibility for now --
+ *                                   rdnSequence  RDNSequence }
+ *
+ */
+
+struct NSSPKIXNameStr {
+  NSSArena *arena;
+  PRBool i_allocated_arena;
+  NSSDER der;
+  NSSUTF8 *utf8;
+  NSSPKIXNameChoice choice;
+  union {
+    NSSPKIXRDNSequence *rdnSequence;
+  } u;
+};
+
+/*
+ * AlgorithmIdentifier
  *
  * -- fgmr comments --
  *
  * From RFC 2459:
  *
- *  Certificate  ::=  SEQUENCE  {
- *       tbsCertificate       TBSCertificate,
- *       signatureAlgorithm   AlgorithmIdentifier,
- *       signature            BIT STRING  }
+ * (1988 syntax)
+ *
+ *  AlgorithmIdentifier  ::=  SEQUENCE  {
+ *       algorithm               OBJECT IDENTIFIER,
+ *       parameters              ANY DEFINED BY algorithm OPTIONAL  }
+ *                                  -- contains a value of the type
+ *                                  -- registered for use with the
+ *                                  -- algorithm object identifier value
+ *
  *
  */
 
-struct NSSPKIXCertificateStr {
+struct NSSPKIXAlgorithmIdentifierStr {
   NSSArena *arena;
   PRBool i_allocated_arena;
-  NSSDER *der;
-  NSSPKIXTBSCertificate *tbsCertificate;
-  NSSPKIXAlgorithmIdentifier *signatureAlgorithm;
-  NSSItem *signature;
+  NSSDER der;
+  NSSOID *algorithm;
+  NSSItem parameters;
+};
+
+/*
+ * Time
+ *
+ * -- fgmr comments --
+ *
+ * From RFC 2459:
+ *
+ *  Time ::= CHOICE {
+ *       utcTime        UTCTime,
+ *       generalTime    GeneralizedTime }
+ *
+ */
+
+struct NSSPKIXTimeStr {
+  NSSArena *arena;
+  PRBool i_allocated_arena;
+  NSSDER der;
+  NSSItem utcTime;
+  NSSItem generalizedTime;
+  NSSTime time;
+  PRBool timeValid;
+};
+
+/*
+ * Validity
+ *
+ * -- fgmr comments --
+ *
+ * From RFC 2459:
+ *
+ *  Validity ::= SEQUENCE {
+ *       notBefore      Time,
+ *       notAfter       Time }
+ *
+ */
+
+struct NSSPKIXValidityStr {
+  NSSArena *arena;
+  PRBool i_allocated_arena;
+  NSSDER der;
+  NSSPKIXTime notBefore;
+  NSSPKIXTime notAfter;
+};
+
+/*
+ * Extension
+ *
+ * -- fgmr comments --
+ *
+ * From RFC 2459:
+ *
+ *  Extension  ::=  SEQUENCE  {
+ *       extnID      OBJECT IDENTIFIER,
+ *       critical    BOOLEAN DEFAULT FALSE,
+ *       extnValue   OCTET STRING  }
+ *
+ */
+
+struct NSSPKIXExtensionStr {
+  NSSArena *arena;
+  PRBool i_allocated_arena;
+  NSSDER der;
+  NSSItem extnID;
+  PRBool critical;
+  NSSItem extnValue;
+  void *extnData; /* XXX yes? */
+};
+
+/*
+ * Extensions
+ *
+ * -- fgmr comments --
+ *
+ * From RFC 2459:
+ *
+ *  Extensions  ::=  SEQUENCE SIZE (1..MAX) OF Extension
+ *
+ */
+
+struct NSSPKIXExtensionsStr {
+  NSSArena *arena;
+  PRBool i_allocated_arena;
+  NSSDER der;
+  PRUint32 count;
+  NSSPKIXExtension **extensions;
 };
 
 /*
@@ -277,61 +380,101 @@ struct NSSPKIXCertificateStr {
 struct NSSPKIXTBSCertificateStr {
   NSSArena *arena;
   PRBool i_allocated_arena;
-  NSSDER *der;
+  NSSDER der;
   NSSPKIXVersion version;
   NSSPKIXCertificateSerialNumber serialNumber;
+#if 0
   NSSPKIXAlgorithmIdentifier *signature;
-  NSSPKIXName *issuer;
-  NSSPKIXValidity *validity;
-  NSSPKIXName *subject;
+#endif
+  NSSPKIXName issuer;
+  NSSPKIXValidity validity;
+  NSSPKIXName subject;
+#if 0
   NSSPKIXSubjectPublicKeyInfo *subjectPublicKeyInfo;
   NSSPKIXUniqueIdentifier *issuerUniqueID;
   NSSPKIXUniqueIdentifier *subjectUniqueID;
+#endif
+#if 0
   NSSPKIXExtensions *extensions;
+#endif
+  NSSPKIXExtensions extensions;
 };
 
 /*
- * Validity
+ * Certificate
  *
  * -- fgmr comments --
  *
  * From RFC 2459:
  *
- *  Validity ::= SEQUENCE {
- *       notBefore      Time,
- *       notAfter       Time }
+ *  Certificate  ::=  SEQUENCE  {
+ *       tbsCertificate       TBSCertificate,
+ *       signatureAlgorithm   AlgorithmIdentifier,
+ *       signature            BIT STRING  }
  *
  */
 
-struct NSSPKIXValidityStr {
+struct NSSPKIXCertificateStr {
   NSSArena *arena;
   PRBool i_allocated_arena;
-  NSSDER *der;
-  ...
+  NSSDER der;
+  NSSPKIXTBSCertificate tbsCertificate;
+  NSSPKIXAlgorithmIdentifier signatureAlgorithm;
+  NSSBitString signature;
 };
 
 /*
- * Time
+ * BasicConstraints
  *
  * -- fgmr comments --
  *
  * From RFC 2459:
  *
- *  Time ::= CHOICE {
- *       utcTime        UTCTime,
- *       generalTime    GeneralizedTime }
+ *  BasicConstraints ::= SEQUENCE {
+ *       cA                      BOOLEAN DEFAULT FALSE,
+ *       pathLenConstraint       INTEGER (0..MAX) OPTIONAL }
  *
  */
 
-struct NSSPKIXTimeStr {
+struct NSSPKIXBasicConstraintsStr {
   NSSArena *arena;
   PRBool i_allocated_arena;
-  NSSDER *der;
-  NSSBER *ber;
-  nssASN1Item asn1item;
-  PRTime prTime;
-  PRBool prTimeValid;
+  NSSDER der;
+  PRBool cA;
+  PRInt32 pathLenConstraint;
+  NSSItem plcItem; /* XXX */
 };
+
+/*
+ * KeyUsage
+ *
+ * -- fgmr comments --
+ *
+ * From RFC 2459:
+ *
+ *  KeyUsage ::= BIT STRING {
+ *       digitalSignature        (0),
+ *       nonRepudiation          (1),
+ *       keyEncipherment         (2),
+ *       dataEncipherment        (3),
+ *       keyAgreement            (4),
+ *       keyCertSign             (5),
+ *       cRLSign                 (6),
+ *       encipherOnly            (7),
+ *       decipherOnly            (8) }
+ *
+ */
+
+struct NSSPKIXKeyUsageStr {
+  NSSArena *arena;
+  PRBool i_allocated_arena;
+  NSSDER der;
+  NSSPKIXKeyUsageValue keyUsage;
+};
+
+#define NSSPKIX_UNLIMITED_PATH_CONSTRAINT -2
+
+#ifdef nodef
 
 /*
  * SubjectPublicKeyInfo
@@ -352,47 +495,6 @@ struct NSSPKIXSubjectPublicKeyInfoStr {
   NSSDER *der;
   NSSPKIXAlgorithmIdentifier *algorithm;
   NSSItem *subjectPublicKey;
-};
-
-/*
- * Extensions
- *
- * -- fgmr comments --
- *
- * From RFC 2459:
- *
- *  Extensions  ::=  SEQUENCE SIZE (1..MAX) OF Extension
- *
- */
-
-struct NSSPKIXExtensionsStr {
-  NSSArena *arena;
-  PRBool i_allocated_arena;
-  NSSDER *der;
-  ...
-};
-
-/*
- * Extension
- *
- * -- fgmr comments --
- *
- * From RFC 2459:
- *
- *  Extension  ::=  SEQUENCE  {
- *       extnID      OBJECT IDENTIFIER,
- *       critical    BOOLEAN DEFAULT FALSE,
- *       extnValue   OCTET STRING  }
- *
- */
-
-struct NSSPKIXExtensionStr {
-  NSSArena *arena;
-  PRBool i_allocated_arena;
-  NSSDER *der;
-  NSSOID *extnID;
-  PRBool critical;
-  NSSItem *extnValue;
 };
 
 /*
@@ -498,34 +600,6 @@ struct NSSPKIXrevokedCertificateStr {
   NSSPKIXCertificateSerialNumber *userCertificate;
   -time- revocationDate;
   NSSPKIXExtensions *crlEntryExtensions;
-};
-
-/*
- * AlgorithmIdentifier
- *
- * -- fgmr comments --
- *
- * From RFC 2459:
- *
- * (1988 syntax)
- *
- *  AlgorithmIdentifier  ::=  SEQUENCE  {
- *       algorithm               OBJECT IDENTIFIER,
- *       parameters              ANY DEFINED BY algorithm OPTIONAL  }
- *                                  -- contains a value of the type
- *                                  -- registered for use with the
- *                                  -- algorithm object identifier value
- *
- *
- */
-
-struct NSSPKIXAlgorithmIdentifierStr {
-  NSSArena *arena;
-  PRBool i_allocated_arena;
-  NSSDER *der;
-  NSSBER *ber;
-  NSSOID *algorithm;
-  NSSItem *parameters;
 };
 
 /*
@@ -986,33 +1060,6 @@ struct NSSPKIXAuthorityKeyIdentifierStr {
 };
 
 /*
- * KeyUsage
- *
- * -- fgmr comments --
- *
- * From RFC 2459:
- *
- *  KeyUsage ::= BIT STRING {
- *       digitalSignature        (0),
- *       nonRepudiation          (1),
- *       keyEncipherment         (2),
- *       dataEncipherment        (3),
- *       keyAgreement            (4),
- *       keyCertSign             (5),
- *       cRLSign                 (6),
- *       encipherOnly            (7),
- *       decipherOnly            (8) }
- *
- */
-
-struct NSSPKIXKeyUsageStr {
-  NSSArena *arena;
-  PRBool i_allocated_arena;
-  NSSDER *der;
-  NSSPKIXKeyUsageValue keyUsage;
-};
-
-/*
  * PrivateKeyUsagePeriod
  *
  * -- fgmr comments --
@@ -1298,27 +1345,6 @@ struct NSSPKIXSubjectDirectoryAttributesStr {
 };
 
 /*
- * BasicConstraints
- *
- * -- fgmr comments --
- *
- * From RFC 2459:
- *
- *  BasicConstraints ::= SEQUENCE {
- *       cA                      BOOLEAN DEFAULT FALSE,
- *       pathLenConstraint       INTEGER (0..MAX) OPTIONAL }
- *
- */
-
-struct NSSPKIXBasicConstraintsStr {
-  NSSArena *arena;
-  PRBool i_allocated_arena;
-  NSSDER *der;
-  PRBool cA;
-  PRInt32 pathLenConstraint; --fgmr--
-};
-
-/*
  * NameConstraints
  *
  * -- fgmr comments --
@@ -1575,6 +1601,8 @@ struct NSSPKIXIssuingDistributionPointStr {
   NSSPKIXReasonFlags onlySomeReasons;
   PRBool indirectCRL;
 };
+
+#endif /* nodef */
 
 PR_END_EXTERN_C
 

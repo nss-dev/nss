@@ -51,6 +51,19 @@ static const char NSSPKIX_CVS_ID[] = "@(#) $Source$ $Revision$ $Date$ $Name$";
 
 PR_BEGIN_EXTERN_C
 
+#ifdef nodef
+
+/*
+ * part    Decode(arenaOpt, ber)
+ * part    Create(arenaOpt, ...) [list of subtype pointers]
+ * subpart Get<SubPart>(part)
+ * status  Set<SubPart>(part, subpart)
+ * part    Duplicate(part)
+ * ber     Encode(part, encoding, rvOpt, arenaOpt)
+ * ber     GetBEREncoding(part)
+ * status  SetBEREncoding(part)
+ */
+
 /*
  * Attribute
  *
@@ -542,22 +555,22 @@ NSSPKIXAttribute_Duplicate
  * 
  * The public calls for the type:
  *
- *  NSSPKIXAttributeTypeAndValue_Decode
- *  NSSPKIXAttributeTypeAndValue_CreateFromUTF8
- *  NSSPKIXAttributeTypeAndValue_Create
- *  NSSPKIXAttributeTypeAndValue_Destroy
- *  NSSPKIXAttributeTypeAndValue_Encode
- *  NSSPKIXAttributeTypeAndValue_GetUTF8Encoding
- *  NSSPKIXAttributeTypeAndValue_GetType
- *  NSSPKIXAttributeTypeAndValue_SetType
- *  NSSPKIXAttributeTypeAndValue_GetValue
- *  NSSPKIXAttributeTypeAndValue_SetValue
- *  NSSPKIXAttributeTypeAndValue_Equal
- *  NSSPKIXAttributeTypeAndValue_Duplicate
+ *  NSSPKIXATAV_Decode
+ *  NSSPKIXATAV_CreateFromUTF8
+ *  NSSPKIXATAV_Create
+ *  NSSPKIXATAV_Destroy
+ *  NSSPKIXATAV_Encode
+ *  NSSPKIXATAV_GetUTF8Encoding
+ *  NSSPKIXATAV_GetType
+ *  NSSPKIXATAV_SetType
+ *  NSSPKIXATAV_GetValue
+ *  NSSPKIXATAV_SetValue
+ *  NSSPKIXATAV_Equal
+ *  NSSPKIXATAV_Duplicate
  */
 
 /*
- * NSSPKIXAttributeTypeAndValue_Decode
+ * NSSPKIXATAV_Decode
  *
  * 
  *
@@ -567,19 +580,19 @@ NSSPKIXAttribute_Duplicate
  *  NSS_ERROR_INVALID_ARENA
  *
  * Return value:
- *  A valid pointer to an NSSPKIXAttributeTypeAndValue upon success
+ *  A valid pointer to an NSSPKIXATAV upon success
  *  NULL upon failure
  */
 
-NSS_EXTERN NSSPKIXAttributeTypeAndValue *
-NSSPKIXAttributeTypeAndValue_Decode
+NSS_EXTERN NSSPKIXATAV *
+NSSPKIXATAV_Decode
 (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
 
 /*
- * NSSPKIXAttributeTypeAndValue_CreateFromUTF8
+ * NSSPKIXATAV_CreateFromUTF8
  *
  * 
  *
@@ -590,19 +603,19 @@ NSSPKIXAttributeTypeAndValue_Decode
  *  NSS_ERROR_UNKNOWN_ATTRIBUTE
  *
  * Return value:
- *  A valid pointer to an NSSPKIXAttributeTypeAndValue upon success
+ *  A valid pointer to an NSSPKIXATAV upon success
  *  NULL upon failure
  */
 
-NSS_EXTERN NSSPKIXAttributeTypeAndValue *
-NSSPKIXAttributeTypeAndValue_CreateFromUTF8
+NSS_EXTERN NSSPKIXATAV *
+NSSPKIXATAV_CreateFromUTF8
 (
   NSSArena *arenaOpt,
   NSSUTF8 *string
 );
 
 /*
- * NSSPKIXAttributeTypeAndValue_Create
+ * NSSPKIXATAV_Create
  *
  * 
  *
@@ -613,12 +626,12 @@ NSSPKIXAttributeTypeAndValue_CreateFromUTF8
  *  NSS_ERROR_INVALID_ITEM
  *
  * Return value:
- *  A valid pointer to an NSSPKIXAttributeTypeAndValue upon success
+ *  A valid pointer to an NSSPKIXATAV upon success
  *  NULL upon failure
  */
 
-NSS_EXTERN NSSPKIXAttributeTypeAndValue *
-NSSPKIXAttributeTypeAndValue_Create
+NSS_EXTERN NSSPKIXATAV *
+NSSPKIXATAV_Create
 (
   NSSArena *arenaOpt,
   NSSPKIXAttributeType *typeOid,
@@ -626,7 +639,7 @@ NSSPKIXAttributeTypeAndValue_Create
 );
 
 /*
- * NSSPKIXAttributeTypeAndValue_Destroy
+ * NSSPKIXATAV_Destroy
  *
  * 
  *
@@ -639,13 +652,13 @@ NSSPKIXAttributeTypeAndValue_Create
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXAttributeTypeAndValue_Destroy
+NSSPKIXATAV_Destroy
 (
-  NSSPKIXAttributeTypeAndValue *atav
+  NSSPKIXATAV *atav
 );
 
 /*
- * NSSPKIXAttributeTypeAndValue_Encode
+ * NSSPKIXATAV_Encode
  *
  * 
  *
@@ -660,16 +673,16 @@ NSSPKIXAttributeTypeAndValue_Destroy
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXAttributeTypeAndValue_Encode
+NSSPKIXATAV_Encode
 (
-  NSSPKIXAttributeTypeAndValue *atav,
+  NSSPKIXATAV *atav,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
   NSSArena *arenaOpt
 );
 
 /*
- * NSSPKIXAttributeTypeAndValue_GetUTF8Encoding
+ * NSSPKIXATAV_GetUTF8Encoding
  *
  * 
  *
@@ -684,14 +697,14 @@ NSSPKIXAttributeTypeAndValue_Encode
  */
 
 NSS_EXTERN NSSUTF8 *
-NSSPKIXAttributeTypeAndValue_GetUTF8Encoding
+NSSPKIXATAV_GetUTF8Encoding
 (
-  NSSPKIXAttributeTypeAndValue *atav,
+  NSSPKIXATAV *atav,
   NSSArena *arenaOpt
 );
 
 /*
- * NSSPKIXAttributeTypeAndValue_GetType
+ * NSSPKIXATAV_GetType
  *
  * 
  *
@@ -705,13 +718,13 @@ NSSPKIXAttributeTypeAndValue_GetUTF8Encoding
  */
 
 NSS_EXTERN NSSPKIXAttributeType *
-NSSPKIXAttributeTypeAndValue_GetType
+NSSPKIXATAV_GetType
 (
-  NSSPKIXAttributeTypeAndValue *atav
+  NSSPKIXATAV *atav
 );
 
 /*
- * NSSPKIXAttributeTypeAndValue_SetType
+ * NSSPKIXATAV_SetType
  *
  * 
  *
@@ -725,14 +738,14 @@ NSSPKIXAttributeTypeAndValue_GetType
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXAttributeTypeAndValue_SetType
+NSSPKIXATAV_SetType
 (
-  NSSPKIXAttributeTypeAndValue *atav,
+  NSSPKIXATAV *atav,
   NSSPKIXAttributeType *attributeType
 );
 
 /*
- * NSSPKIXAttributeTypeAndValue_GetValue
+ * NSSPKIXATAV_GetValue
  *
  * 
  *
@@ -747,15 +760,15 @@ NSSPKIXAttributeTypeAndValue_SetType
  */
 
 NSS_EXTERN NSSPKIXAttributeValue *
-NSSPKIXAttributeTypeAndValue_GetValue
+NSSPKIXATAV_GetValue
 (
-  NSSPKIXAttributeTypeAndValue *atav,
+  NSSPKIXATAV *atav,
   NSSPKIXAttributeValue *itemOpt,
   NSSArena *arenaOpt
 );
 
 /*
- * NSSPKIXAttributeTypeAndValue_SetValue
+ * NSSPKIXATAV_SetValue
  *
  * 
  *
@@ -770,14 +783,14 @@ NSSPKIXAttributeTypeAndValue_GetValue
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXAttributeTypeAndValue_SetValue
+NSSPKIXATAV_SetValue
 (
-  NSSPKIXAttributeTypeAndValue *atav,
+  NSSPKIXATAV *atav,
   NSSPKIXAttributeValue *value
 );
 
 /*
- * NSSPKIXAttributeTypeAndValue_Equal
+ * NSSPKIXATAV_Equal
  *
  * 
  *
@@ -791,15 +804,15 @@ NSSPKIXAttributeTypeAndValue_SetValue
  */
 
 NSS_EXTERN PRBool
-NSSPKIXAttributeTypeAndValue_Equal
+NSSPKIXATAV_Equal
 (
-  NSSPKIXAttributeTypeAndValue *atav1,
-  NSSPKIXAttributeTypeAndValue *atav2,
+  NSSPKIXATAV *atav1,
+  NSSPKIXATAV *atav2,
   PRStatus *statusOpt
 );
 
 /*
- * NSSPKIXAttributeTypeAndValue_Duplicate
+ * NSSPKIXATAV_Duplicate
  *
  * 
  *
@@ -809,14 +822,14 @@ NSSPKIXAttributeTypeAndValue_Equal
  *  NSS_ERROR_NO_MEMORY
  *
  * Return value:
- *  A valid pointer to an NSSPKIXAttributeTypeAndValue upon success
+ *  A valid pointer to an NSSPKIXATAV upon success
  *  NULL upon failure
  */
 
-NSS_EXTERN NSSPKIXAttributeTypeAndValue *
-NSSPKIXAttributeTypeAndValue_Duplicate
+NSS_EXTERN NSSPKIXATAV *
+NSSPKIXATAV_Duplicate
 (
-  NSSPKIXAttributeTypeAndValue *atav,
+  NSSPKIXATAV *atav,
   NSSArena *arenaOpt
 );
 
@@ -2763,9 +2776,9 @@ NSSPKIXRDNSequence_Duplicate
  *  NSSPKIXRelativeDistinguishedName_FindAttributeTypeAndValuesByType
  *    returns array of PRInt32
  *  NSSPKIXRelativeDistinguishedName_GetAttributeTypeAndValueForType
- *    returns NSSPKIXAttributeTypeAndValue
+ *    returns NSSPKIXATAV
  *  NSSPKIXRelativeDistinguishedName_GetAttributeTypeAndValuesForType
- *    returns array of NSSPKIXAttributeTypeAndValue
+ *    returns array of NSSPKIXATAV
  *  NSSPKIXRelativeDistinguishedName_GetAttributeValueForType
  *    returns NSSPKIXAttributeValue
  *  NSSPKIXRelativeDistinguishedName_GetAttributeValuesForType
@@ -2841,7 +2854,7 @@ NSS_EXTERN NSSPKIXRelativeDistinguishedName *
 NSSPKIXRelativeDistinguishedName_Create
 (
   NSSArena *arenaOpt,
-  NSSPKIXAttributeTypeAndValue *atav1,
+  NSSPKIXATAV *atav1,
   ...
 );
 
@@ -2865,7 +2878,7 @@ NSSPKIXRelativeDistinguishedName_CreateFromArray
 (
   NSSArena *arenaOpt,
   PRUint32 count,
-  NSSPKIXAttributeTypeAndValue *atavs[]
+  NSSPKIXATAV *atavs[]
 );
 
 /*
@@ -2965,16 +2978,16 @@ NSSPKIXRelativeDistinguishedName_GetAttributeTypeAndValueCount
  *  NSS_ERROR_ARRAY_TOO_SMALL
  *
  * Return value:
- *  A valid pointer to an array of NSSPKIXAttributeTypeAndValue 
+ *  A valid pointer to an array of NSSPKIXATAV 
  *      pointers upon success
  *  NULL upon failure
  */
 
-NSS_EXTERN NSSPKIXAttributeTypeAndValue **
+NSS_EXTERN NSSPKIXATAV **
 NSSPKIXRelativeDistinguishedName_GetAttributeTypeAndValues
 (
   NSSPKIXRelativeDistinguishedName *rdn,
-  NSSPKIXAttributeTypeAndValue *rvOpt[],
+  NSSPKIXATAV *rvOpt[],
   PRInt32 limit,
   NSSArena *arenaOpt
 );
@@ -2997,7 +3010,7 @@ NSS_EXTERN PRStatus
 NSSPKIXRelativeDistinguishedName_SetAttributeTypeAndValues
 (
   NSSPKIXRelativeDistinguishedName *rdn,
-  NSSPKIXAttributeTypeAndValue *atavs[],
+  NSSPKIXATAV *atavs[],
   PRInt32 countOpt
 );
 
@@ -3013,11 +3026,11 @@ NSSPKIXRelativeDistinguishedName_SetAttributeTypeAndValues
  *  NSS_ERROR_INVALID_ARENA
  *
  * Return value:
- *  A valid pointer to an NSSPKIXAttributeTypeAndValue upon success
+ *  A valid pointer to an NSSPKIXATAV upon success
  *  NULL upon failure
  */
 
-NSS_EXTERN NSSPKIXAttributeTypeAndValue *
+NSS_EXTERN NSSPKIXATAV *
 NSSPKIXRelativeDistinguishedName_GetAttributeTypeAndValue
 (
   NSSPKIXRelativeDistinguishedName *rdn,
@@ -3046,7 +3059,7 @@ NSSPKIXRelativeDistinguishedName_SetAttributeTypeAndValue
 (
   NSSPKIXRelativeDistinguishedName *rdn,
   PRInt32 i,
-  NSSPKIXAttributeTypeAndValue *atav
+  NSSPKIXATAV *atav
 );
 
 /*
@@ -3068,7 +3081,7 @@ NSS_EXTERN PRStatus
 NSSPKIXRelativeDistinguishedName_AddAttributeTypeAndValue
 (
   NSSPKIXRelativeDistinguishedName *rdn,
-  NSSPKIXAttributeTypeAndValue *atav
+  NSSPKIXATAV *atav
 );
 
 /*
@@ -3113,7 +3126,7 @@ NSS_EXTERN PRInt32
 NSSPKIXRelativeDistinguishedName_FindAttributeTypeAndValue
 (
   NSSPKIXRelativeDistinguishedName *rdn,
-  NSSPKIXAttributeTypeAndValue *atav
+  NSSPKIXATAV *atav
 );
 
 /*
@@ -3390,8 +3403,7 @@ NSSPKIXCertificate_Encode
 NSS_EXTERN NSSPKIXTBSCertificate *
 NSSPKIXCertificate_GetTBSCertificate
 (
-  NSSPKIXCertificate *cert,
-  NSSArena *arenaOpt
+  NSSPKIXCertificate *cert
 );
 
 /*
@@ -3457,7 +3469,7 @@ NSS_EXTERN PRStatus
 NSSPKIXCertificate_SetAlgorithmIdentifier
 (
   NSSPKIXCertificate *cert,
-  NSSPKIXAlgorithmIdentifier *algid,
+  NSSPKIXAlgorithmIdentifier *algid
 );
 
 /*
@@ -3866,8 +3878,7 @@ NSSPKIXTBSCertificate_SetSignature
 NSS_EXTERN NSSPKIXName *
 NSSPKIXTBSCertificate_GetIssuer
 (
-  NSSPKIXTBSCertificate *tbsCert,
-  NSSArena *arenaOpt
+  NSSPKIXTBSCertificate *tbsCert
 );
 
 /*
@@ -4252,8 +4263,7 @@ NSSPKIXTBSCertificate_HasExtensions
 NSS_EXTERN NSSPKIXExtensions *
 NSSPKIXTBSCertificate_GetExtensions
 (
-  NSSPKIXTBSCertificate *tbsCert,
-  NSSArena *arenaOpt
+  NSSPKIXTBSCertificate *tbsCert
 );
 
 /*
@@ -24371,6 +24381,8 @@ NSSPKIXIssuingDistributionPoint_Duplicate
   NSSPKIXIssuingDistributionPoint *idp,
   NSSArena *arenaOpt
 );
+
+#endif /* nodef */
 
 PR_END_EXTERN_C
 
