@@ -46,8 +46,10 @@ LIBRARY        =
 IMPORT_LIBRARY =
 PROGRAM        =
 
-ifeq (,$(filter-out OS2 WIN%,$(OS_TARGET)))
+ifeq (,$(filter-out WIN%,$(OS_TARGET)))
     SHARED_LIBRARY = $(OBJDIR)/$(DLL_PREFIX)$(LIBRARY_NAME)$(LIBRARY_VERSION).$(DLL_SUFFIX)
+    RES = $(OBJDIR)/$(LIBRARY_NAME).res
+    RESNAME = $(LIBRARY_NAME).rc
 endif
 
 ifdef BUILD_IDG
