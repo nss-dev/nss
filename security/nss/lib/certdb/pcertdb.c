@@ -4223,16 +4223,6 @@ SEC_CertNicknameConflict(char *nickname, SECItem *derSubject,
     return(rv);
 }
 
-#define DBM_DEFAULT 0
-static const HASHINFO cert_hashInfo = {
-        DBM_DEFAULT,    /* bucket size */
-        DBM_DEFAULT,    /* fill factor */
-        DBM_DEFAULT,    /* number of elements */
-        1024 * 1024, 	/* (1 M) bytes to cache */
-        DBM_DEFAULT,    /* hash function */
-        DBM_DEFAULT     /* byte order */
-};
-
 /*
  * Open the certificate database and index databases.  Create them if
  * they are not there or bad.
@@ -4264,8 +4254,7 @@ SEC_OpenPermCertDB(CERTCertDBHandle *handle, PRBool readOnly,
     /*
      * first open the permanent file based database.
      */
-    handle->permCertDB = dbopen( certdbname, openflags, 0600, DB_HASH, 
-							&cert_hashInfo );
+    handle->permCertDB = dbopen( certdbname, openflags, 0600, DB_HASH, 0 );
 
     /* check for correct version number */
     if ( handle->permCertDB ) {
@@ -4295,7 +4284,7 @@ SEC_OpenPermCertDB(CERTCertDBHandle *handle, PRBool readOnly,
 	
 	handle->permCertDB = dbopen(certdbname,
 				    O_RDWR | O_CREAT | O_TRUNC,
-				    0600, DB_HASH, &cert_hashInfo);
+				    0600, DB_HASH, 0);
 
 	/* if create fails then we lose */
 	if ( handle->permCertDB == 0 ) {
@@ -4861,6 +4850,15 @@ CERT_OpenCertDB(CERTCertDBHandle *handle, PRBool readOnly,
 		CERTDBNameFunc namecb, void *cbarg)
 {
     int rv;
+#define DBM_DEFAULT 0
+    static const HASHINFO hashInfo = {
+        DBM_DEFAULT,    /* bucket size */
+        DBM_DEFAULT,    /* fill factor */
+        DBM_DEFAULT,    /* number of elements */
+        256 * 1024, 	/* bytes to cache */
+        DBM_DEFAULT,    /* hash function */
+        DBM_DEFAULT     /* byte order */
+    };
 
     certdb_InitDBLock();
     
@@ -4873,8 +4871,7 @@ CERT_OpenCertDB(CERTCertDBHandle *handle, PRBool readOnly,
     /*
      * Open the memory resident decoded cert database.
      */
-    handle->tempCertDB = dbopen(0, O_RDWR | O_CREAT, 0600, DB_HASH, 
-							&cert_hashInfo);
+    handle->tempCertDB = dbopen(0, O_RDWR | O_CREAT, 0600, DB_HASH, &hashInfo);
     if ( !handle->tempCertDB ) {
 	goto loser;
     }
