@@ -720,4 +720,3 @@ CERT_CRLCacheRefreshIssuer;
 ;+    local:
 ;+       *;
 ;+};
-
