@@ -193,17 +193,30 @@ CERT_CreateGeneralNameList(CERTGeneralName *name) {
     }
     list = (CERTGeneralNameList *)
 	PORT_ArenaZAlloc(arena, sizeof(CERTGeneralNameList));
+    if (!list)
+    	goto loser;
     if (name != NULL) {
+	SECStatus rv;
 	list->name = (CERTGeneralName *)
 	    PORT_ArenaZAlloc(arena, sizeof(CERTGeneralName));
+	if (!list->name)
+	    goto loser;
 	list->name->l.next = list->name->l.prev = &list->name->l;
-	CERT_CopyGeneralName(arena, list->name, name);
+	rv = CERT_CopyGeneralName(arena, list->name, name);
+	if (rv != SECSuccess)
+	    goto loser;
     }
     list->lock = PZ_NewLock(nssILockList);
+    if (!list->lock)
+    	goto loser;
     list->arena = arena;
     list->refCount = 1;
 done:
     return list;
+
+loser:
+    PORT_FreeArena(arena, PR_FALSE);
+    return NULL;
 }
 
 CERTGeneralName *
@@ -243,7 +256,6 @@ cert_get_prev_name_constraint(CERTNameConstraint *current)
 SECItem *
 CERT_EncodeGeneralName(CERTGeneralName *genName, SECItem *dest, PRArenaPool *arena)
 {
-
 
     PORT_Assert(arena);
     if (arena == NULL) {
@@ -290,9 +302,12 @@ CERT_EncodeGeneralName(CERTGeneralName *genName, SECItem *dest, PRArenaPool *are
       case certDirectoryName:
 	  if (genName->derDirectoryName.data == NULL) {
 	      /* The field hasn't been encoded yet. */
+	      SECItem * pre_dest =
 	      SEC_ASN1EncodeItem (arena, &(genName->derDirectoryName),
 				  &(genName->name.directoryName), 
 				  CERT_NameTemplate);
+	      if (!pre_dest)
+		  goto loser;
 	  }
 	  if (genName->derDirectoryName.data == NULL) {
 	      goto loser;
@@ -570,10 +585,10 @@ cert_DecodeNameConstraint(PRArenaPool       *arena,
     SECStatus              rv = SECSuccess;
     CERTGeneralName        *temp;
 
-
-
     PORT_Assert(arena);
     constraint = (CERTNameConstraint *) PORT_ArenaZAlloc(arena, sizeof(CERTNameConstraint));
+    if (!constraint)
+    	goto loser;
     rv = SEC_ASN1DecodeItem(arena, constraint, CERTNameConstraintTemplate, encodedConstraint);
     if (rv != SECSuccess) {
 	goto loser;
@@ -700,6 +715,8 @@ CERT_CopyGeneralName(PRArenaPool      *arena,
 	      rv = SECITEM_CopyItem(arena, &dest->name.other, &src->name.other);
 	  }
 	}
+	if (rv != SECSuccess)
+	    return rv;
 	src = cert_get_next_general_name(src);
 	/* if there is only one general name, we shouldn't do this */
 	if (src != srcHead) {
@@ -711,6 +728,8 @@ CERT_CopyGeneralName(PRArenaPool      *arena,
 		    temp = (CERTGeneralName *)
 		      PORT_ZAlloc(sizeof(CERTGeneralName));
 		}
+		if (!temp)
+		    return SECFailure;
 		temp->l.next = &destHead->l;
 		temp->l.prev = &dest->l;
 		destHead->l.prev = &temp->l;
