@@ -2595,6 +2595,7 @@ main(int argc, char **argv)
 	    SECU_PrintError(progName, "unable to generate key(s)\n");
 	    return -1;
 	}
+	privkey->wincx = &pwdata;
 	PORT_Assert(pubkey != NULL);
 
 	/*  If all that was needed was keygen, exit.  */
