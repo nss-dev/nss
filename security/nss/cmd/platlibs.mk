@@ -111,7 +111,7 @@ EXTRA_LIBS += \
 	$(NULL)
 
 ifeq ($(OS_ARCH), SunOS) 
-EXTRA_SHARED_LIBS += '$$ORIGIN/../lib' -R '$$ORIGIN/..'
+EXTRA_SHARED_LIBS += -R '$$ORIGIN/../lib' -R '$$ORIGIN/..'
 endif
 
 ifeq ($(OS_ARCH), AIX) 
