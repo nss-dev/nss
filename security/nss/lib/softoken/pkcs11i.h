@@ -291,7 +291,7 @@ struct PK11SlotStr {
     int			sessionIDCount;
     int                 sessionIDConflict;
     int			sessionCount;
-    int			rwSessionCount;
+    PRInt32             rwSessionCount;
     int			tokenIDCount;
     PK11Object		*tokObjects[TOKEN_OBJECT_HASH_SIZE];
     PK11Session		*head[SESSION_HASH_SIZE];
