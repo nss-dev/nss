@@ -450,7 +450,7 @@ mp_err mpl_get_bit(mp_int *a, unsigned int bitNum)
   ARGCHK(a != NULL, MP_BADARG);
 
   ix = bitNum / MP_DIGIT_BIT;
-  ARGCHK(ix > MP_USED(a) - 1, MP_RANGE);
+  ARGCHK(ix <= MP_USED(a) - 1, MP_RANGE);
 
   bit   = bitNum % MP_DIGIT_BIT;
   rv = (mp_err)(MP_DIGIT(a, ix) >> bit) & 1;
