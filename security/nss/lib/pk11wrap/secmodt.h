@@ -62,6 +62,7 @@ typedef struct PK11SlotListElementStr PK11SlotListElement;
 typedef struct PK11RSAGenParamsStr PK11RSAGenParams;
 typedef unsigned long SECMODModuleID;
 typedef struct PK11DefaultArrayEntryStr PK11DefaultArrayEntry;
+typedef struct PK11GenericObjectStr PK11GenericObject;
 
 struct SECMODModuleStr {
     PRArenaPool	*arena;
@@ -92,7 +93,25 @@ struct SECMODModuleStr {
     PRBool	moduleDBOnly;	/* this module only has lists of PKCS #11 modules */
     int		trustOrder;	/* order for this module's certificate trust rollup */
     int		cipherOrder;	/* order for cipher operations */
+    unsigned long evControlMask; /* control the running and shutdown of slot
+				  * events (SECMOD_WaitForAnyTokenEvent) */
 };
+
+/* evControlMask flags */
+/*
+ * These bits tell the current state of a SECMOD_WaitForAnyTokenEvent.
+ *
+ * SECMOD_WAIT_PKCS11_EVENT - we're waiting in the PKCS #11 module in
+ *  C_WaitForSlotEvent().
+ * SECMOD_WAIT_SIMULATED_EVENT - we're waiting in the NSS simulation code
+ *  which polls for token insertion and removal events.
+ * SECMOD_END_WAIT - SECMOD_CancelWait has been called while the module is
+ *  waiting in SECMOD_WaitForAnyTokenEvent. SECMOD_WaitForAnyTokenEvent
+ *  should return immediately to it's caller.
+ */ 
+#define SECMOD_END_WAIT 	    0x01
+#define SECMOD_WAIT_SIMULATED_EVENT 0x02 
+#define SECMOD_WAIT_PKCS11_EVENT    0x04
 
 struct SECMODModuleListStr {
     SECMODModuleList	*next;
@@ -211,6 +230,17 @@ typedef enum {
     PK11_DIS_TOKEN_VERIFY_FAILED = 3,
     PK11_DIS_TOKEN_NOT_PRESENT = 4
 } PK11DisableReasons;
+
+/* types of PKCS #11 objects */
+typedef enum {
+   PK11_TypeGeneric = 0,
+   PK11_TypePrivKey = 1,
+   PK11_TypePubKey = 2,
+   PK11_TypeCert = 3,
+   PK11_TypeSymKey = 4
+} PK11ObjectType;
+
+
 
 /* function pointer type for password callback function.
  * This type is passed in to PK11_SetPasswordFunc() 

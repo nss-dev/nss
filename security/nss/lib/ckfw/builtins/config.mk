@@ -42,8 +42,10 @@ LIBRARY        =
 IMPORT_LIBRARY =
 PROGRAM        =
 
-ifeq (,$(filter-out OS2 WIN%,$(OS_TARGET)))
+ifeq (,$(filter-out WIN%,$(OS_TARGET)))
     SHARED_LIBRARY = $(OBJDIR)/$(DLL_PREFIX)$(LIBRARY_NAME)$(LIBRARY_VERSION).$(DLL_SUFFIX)
+    RES = $(OBJDIR)/$(LIBRARY_NAME).res
+    RESNAME = $(LIBRARY_NAME).rc
 endif
 
 ifdef BUILD_IDG
@@ -56,3 +58,10 @@ endif
 ifeq ($(OS_TARGET),Darwin)
 DSO_LDOPTS = -bundle
 endif
+
+ifeq ($(OS_TARGET),SunOS)
+# The -R '$ORIGIN' linker option instructs this library to search for its
+# dependencies in the same directory where it resides.
+MKSHLIB += -R '$$ORIGIN'
+endif
+

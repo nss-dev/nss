@@ -60,6 +60,7 @@ extern SECStatus SECMOD_AddPermDB(SECMODModule *module);
 extern int secmod_PrivateModuleCount;
 
 extern void SECMOD_Init(void);
+SECStatus secmod_ModuleInit(SECMODModule *mod);
 
 /* list managment */
 extern SECStatus SECMOD_AddModuleToList(SECMODModule *newModule);
@@ -114,4 +115,6 @@ extern void pk11sdr_Shutdown(void);
 SEC_END_PROTOS
 
 #endif
+PRBool pk11_LoginStillRequired(PK11SlotInfo *slot, void *wincx);
+
 
