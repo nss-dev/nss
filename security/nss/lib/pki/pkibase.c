@@ -145,6 +145,23 @@ nssPKIObject_AddInstance
 	for (i=0; i<object->numInstances; i++) {
 	    if (nssCryptokiObject_Equal(object->instances[i], instance)) {
 		PZ_Unlock(object->lock);
+		if (instance->label) {
+		    if (!object->instances[i]->label ||
+		        !nssUTF8_Equal(instance->label,
+		                       object->instances[i]->label, NULL))
+		    {
+			/* Either the old instance did not have a label,
+			 * or the label has changed.
+			 */
+			nss_ZFreeIf(object->instances[i]->label);
+			object->instances[i]->label = instance->label;
+			instance->label = NULL;
+		    }
+		} else if (object->instances[i]->label) {
+		    /* The old label was removed */
+		    nss_ZFreeIf(object->instances[i]->label);
+		    object->instances[i]->label = NULL;
+		}
 		nssCryptokiObject_Destroy(instance);
 		return PR_SUCCESS;
 	    }
