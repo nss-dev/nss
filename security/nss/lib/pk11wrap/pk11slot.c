@@ -51,6 +51,7 @@
 #include "secerr.h"
 #define NSSCKT_H /* we included pkcs11t.h, so block ckt.h from including nssckt.h */
 #include "ckt.h"
+#include "pratom.h"
 
 
 /*************************************************************
@@ -382,27 +383,19 @@ PK11_NewSlotInfo(void)
     if (slot == NULL) return slot;
 
 #ifdef PKCS11_USE_THREADS
-    slot->refLock = PZ_NewLock(nssILockSlot);
-    if (slot->refLock == NULL) {
-	PORT_Free(slot);
-	return slot;
-    }
     slot->sessionLock = PZ_NewLock(nssILockSession);
     if (slot->sessionLock == NULL) {
-	PZ_DestroyLock(slot->refLock);
 	PORT_Free(slot);
 	return slot;
     }
     slot->freeListLock = PZ_NewLock(nssILockFreelist);
     if (slot->freeListLock == NULL) {
 	PZ_DestroyLock(slot->sessionLock);
-	PZ_DestroyLock(slot->refLock);
 	PORT_Free(slot);
 	return slot;
     }
 #else
     slot->sessionLock = NULL;
-    slot->refLock = NULL;
     slot->freeListLock = NULL;
 #endif
     slot->freeSymKeysHead = NULL;
@@ -451,9 +444,7 @@ PK11_NewSlotInfo(void)
 PK11SlotInfo *
 PK11_ReferenceSlot(PK11SlotInfo *slot)
 {
-    PK11_USE_THREADS(PZ_Lock(slot->refLock);)
-    slot->refCount++;
-    PK11_USE_THREADS(PZ_Unlock(slot->refLock);)
+    PR_AtomicIncrement(&slot->refCount);
     return slot;
 }
 
@@ -472,15 +463,15 @@ PK11_DestroySlot(PK11SlotInfo *slot)
    /* free up the cached keys and sessions */
    PK11_CleanKeyList(slot);
 
+   if (slot->mechanismList) {
+	PORT_Free(slot->mechanismList);
+   }
+
    /* finally Tell our parent module that we've gone away so it can unload */
    if (slot->module) {
 	SECMOD_SlotDestroyModule(slot->module,PR_TRUE);
    }
 #ifdef PKCS11_USE_THREADS
-   if (slot->refLock) {
-	PZ_DestroyLock(slot->refLock);
-	slot->refLock = NULL;
-   }
    if (slot->sessionLock) {
 	PZ_DestroyLock(slot->sessionLock);
 	slot->sessionLock = NULL;
@@ -500,13 +491,9 @@ PK11_DestroySlot(PK11SlotInfo *slot)
 void
 PK11_FreeSlot(PK11SlotInfo *slot)
 {
-    PRBool freeit = PR_FALSE;
-
-    PK11_USE_THREADS(PZ_Lock(slot->refLock);)
-    if (slot->refCount-- == 1) freeit = PR_TRUE;
-    PK11_USE_THREADS(PZ_Unlock(slot->refLock);)
-
-    if (freeit) PK11_DestroySlot(slot);
+    if (PR_AtomicDecrement(&slot->refCount) == 0) {
+	PK11_DestroySlot(slot);
+    }
 }
 
 void
@@ -3650,10 +3637,10 @@ PK11_GenerateRandom(unsigned char *data,int len) {
     slot = PK11_GetBestSlot(CKM_FAKE_RANDOM,NULL);
     if (slot == NULL) return SECFailure;
 
-    PK11_EnterSlotMonitor(slot);
+    if (!slot->isInternal) PK11_EnterSlotMonitor(slot);
     crv = PK11_GETTAB(slot)->C_GenerateRandom(slot->session,data, 
 							(CK_ULONG)len);
-    PK11_ExitSlotMonitor(slot);
+    if (!slot->isInternal) PK11_ExitSlotMonitor(slot);
     PK11_FreeSlot(slot);
     return (crv != CKR_OK) ? SECFailure : SECSuccess;
 }

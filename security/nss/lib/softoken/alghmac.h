@@ -85,6 +85,9 @@ HMAC_Finish(HMACContext *cx, unsigned char *result, unsigned int *result_len,
 extern HMACContext *
 HMAC_Clone(HMACContext *cx);
 
+extern int
+HMAC_GetLength(HMACContext *cx);
+
 SEC_END_PROTOS
 
 #endif

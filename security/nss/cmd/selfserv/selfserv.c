@@ -88,6 +88,10 @@ static int handle_connection( PRFileDesc *, PRFileDesc *, int );
 static const char envVarName[] = { SSL_ENV_VAR_NAME };
 static const char inheritableSockName[] = { "SELFSERV_LISTEN_SOCKET" };
 
+static PRBool logStats = PR_FALSE;
+static int logPeriod = 30;
+static PRUint32 loggerOps = 0;
+
 
 const int ssl2CipherSuites[] = {
     SSL_EN_RC4_128_WITH_MD5,			/* A */
@@ -114,6 +118,17 @@ const int ssl3CipherSuites[] = {
     TLS_RSA_EXPORT1024_WITH_DES_CBC_SHA,	/* l */
     TLS_RSA_EXPORT1024_WITH_RC4_56_SHA,	        /* m */
     SSL_RSA_WITH_RC4_128_SHA,			/* n */
+    TLS_DHE_DSS_WITH_RC4_128_SHA,		/* o */
+    SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA,		/* p */
+    SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA,		/* q */
+    SSL_DHE_RSA_WITH_DES_CBC_SHA,		/* r */
+    SSL_DHE_DSS_WITH_DES_CBC_SHA,		/* s */
+    TLS_DHE_DSS_WITH_AES_128_CBC_SHA, 	    	/* t */
+    TLS_DHE_RSA_WITH_AES_128_CBC_SHA,       	/* u */
+    TLS_RSA_WITH_AES_128_CBC_SHA,     	    	/* v */
+    TLS_DHE_DSS_WITH_AES_256_CBC_SHA, 	    	/* w */
+    TLS_DHE_RSA_WITH_AES_256_CBC_SHA,       	/* x */
+    TLS_RSA_WITH_AES_256_CBC_SHA,     	    	/* y */
     0
 };
 
@@ -157,7 +172,7 @@ Usage(const char *progName)
 
 "Usage: %s -n rsa_nickname -p port [-3DRTmrvx] [-w password] [-t threads]\n"
 "         [-i pid_file] [-c ciphers] [-d dbdir] [-f fortezza_nickname] \n"
-"         [-M maxProcs] \n"
+"         [-L [seconds]] [-M maxProcs] \n"
 "-3 means disable SSL v3\n"
 "-D means disable Nagle delays in TCP\n"
 "-T means disable TLS\n"
@@ -170,6 +185,7 @@ Usage(const char *progName)
 "    4 -r's mean request  and require, cert on second handshake.\n"
 "-v means verbose output\n"
 "-x means use export policy.\n"
+"-L seconds means log statistics every 'seconds' seconds (default=30).\n"
 "-M maxProcs tells how many processes to run in a multi-process server\n"
 "-t threads -- specify the number of threads to use for connections.\n"
 "-i pid_file file to write the process id of selfserve\n"
@@ -195,6 +211,8 @@ Usage(const char *progName)
 "l    SSL3 RSA EXPORT WITH DES CBC SHA\t(new)\n"
 "m    SSL3 RSA EXPORT WITH RC4 56 SHA\t(new)\n"
 "n    SSL3 RSA WITH RC4 128 SHA\n"
+"v    TLS_RSA_WITH_AES_128_CBC_SHA\n"
+"y    TLS_RSA_WITH_AES_256_CBC_SHA\n"
 	,progName);
 }
 
@@ -490,6 +508,36 @@ terminateWorkerThreads(void)
     PR_Free(threads);
 }
 
+static void 
+logger(void *arg)
+{
+    PRFloat64 seconds;
+    PRFloat64 opsPerSec;
+    PRIntervalTime period;
+    PRIntervalTime previousTime;
+    PRIntervalTime latestTime;
+    PRUint32 previousOps;
+    PRUint32 ops;
+    PRIntervalTime logPeriodTicks = PR_SecondsToInterval(logPeriod);
+    PRFloat64 secondsPerTick = 1.0 / (PRFloat64)PR_TicksPerSecond();
+
+    previousOps = loggerOps;
+    previousTime = PR_IntervalNow();
+ 
+    for (;;) {
+    	PR_Sleep(logPeriodTicks);
+        latestTime = PR_IntervalNow();
+        ops = loggerOps;
+        period = latestTime - previousTime;
+        seconds = (PRFloat64) period*secondsPerTick;
+        opsPerSec = (ops - previousOps) / seconds;
+        printf("%.2f ops/second, %d threads\n", 
+	       opsPerSec, threadCount);
+        fflush(stdout);
+        previousOps = ops;
+        previousTime = latestTime;
+    }
+}
 
 /**************************************************************************
 ** End   thread management routines.
@@ -979,6 +1027,10 @@ do_accepts(
 
         VLOG(("selfserv: do_accept: Got connection\n"));
 
+	if (logStats) {
+            loggerOps++;
+        }
+
 	PZ_Lock(qLock);
 	while (PR_CLIST_IS_EMPTY(&freeJobs) && !stopping) {
             PZ_WaitCondVar(freeListNotEmptyCv, PR_INTERVAL_NO_TIMEOUT);
@@ -1288,6 +1340,7 @@ main(int argc, char **argv)
     PRBool               useExportPolicy = PR_FALSE;
     PLOptState		*optstate;
     PLOptStatus          status;
+    PRThread             *loggerThread;
 
 
     tmp = strrchr(argv[0], '/');
@@ -1297,7 +1350,7 @@ main(int argc, char **argv)
 
     PR_Init( PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
 
-    optstate = PL_CreateOptState(argc, argv, "2:3DM:RTc:d:p:mn:hi:f:rt:vw:x");
+    optstate = PL_CreateOptState(argc, argv, "2:3DL:M:RTc:d:p:mn:hi:f:rt:vw:x");
     while ((status = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
 	++optionsFound;
 	switch(optstate->option) {
@@ -1306,6 +1359,16 @@ main(int argc, char **argv)
 	case '3': disableSSL3 = PR_TRUE; break;
 
 	case 'D': noDelay = PR_TRUE; break;
+
+        case 'L':
+            logStats = PR_TRUE;
+	    if (optstate->value == NULL) {
+	    	logPeriod = 30;
+	    } else {
+            logPeriod  = PORT_Atoi(optstate->value);
+                if (logPeriod <= 0) logPeriod = 30;
+	    }
+            break;
 
 	case 'M': 
 	    maxProcs = PORT_Atoi(optstate->value); 
@@ -1495,6 +1558,17 @@ main(int argc, char **argv)
 
     /* allocate the array of thread slots, and launch the worker threads. */
     rv = launch_threads(&jobLoop, 0, 0, requestCert);
+
+    if (rv == SECSuccess && logStats) {
+        loggerThread = PR_CreateThread(PR_USER_THREAD,
+                        logger, NULL, PR_PRIORITY_NORMAL,
+                        PR_GLOBAL_THREAD,
+                        PR_UNJOINABLE_THREAD, 0);
+        if (loggerThread == NULL) {
+            fprintf(stderr, "selfserv: Failed to launch logger thread!\n");
+            rv = SECFailure;
+        }
+    }
 
     if ( rv == SECSuccess) {
 	server_main(listen_sock, requestCert, privKey, cert);

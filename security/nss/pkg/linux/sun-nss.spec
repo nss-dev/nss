@@ -7,8 +7,9 @@ Copyright: MPL/GPL
 Group: System Environment/Base
 Source: %{name}-%{version}.tar.gz
 ExclusiveOS: Linux
-BuildRoot: /var/tmp/%{name}-root
-Requires: sun-nspr >= 4.3
+BuildRoot: %_topdir/%{name}-root
+
+Requires: sun-nspr >= 4.1.2
         
 %description
 Network Security Services (NSS) is a set of libraries designed

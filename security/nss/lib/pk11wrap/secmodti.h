@@ -81,8 +81,7 @@ struct PK11SlotInfoStr {
     unsigned long defaultFlags;
     /* keep track of who is using us so we don't accidently get freed while
      * still in use */
-    int refCount;
-    PZLock *refLock;
+    PRInt32 refCount;    /* to be in/decremented by atomic calls ONLY! */
     PZLock *freeListLock;
     PK11SymKey *freeSymKeysHead;
     int keyCount;
@@ -144,8 +143,7 @@ struct PK11SymKeyStr {
     SECItem	data;		/* raw key data if available */
     CK_SESSION_HANDLE session;
     PRBool	sessionOwner;
-    int		refCount;	/* number of references to this key */
-    PZLock	*refLock;
+    PRInt32	refCount;	/* number of references to this key */
     int		size;		/* key size in bytes */
     PK11Origin	origin;		/* where this key came from 
 						(see def in secmodt.h) */
