@@ -35,6 +35,9 @@
  * $Id$
  */
 
+#ifndef _CMSRECLIST_H
+#define _CMSRECLIST_H
+
 struct NSSCMSRecipientStr {
     int				riIndex;	/* this recipient's index in recipientInfo array */
     int				subIndex;	/* index into recipientEncryptedKeys */
@@ -52,3 +55,5 @@ struct NSSCMSRecipientStr {
 };
 
 typedef struct NSSCMSRecipientStr NSSCMSRecipient;
+
+#endif /* _CMSRECLIST_H */

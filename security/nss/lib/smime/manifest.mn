@@ -37,6 +37,7 @@ EXPORTS = \
 	cms.h \
 	cmst.h \
 	smime.h \
+	cmsreclist.h \
 	$(NULL)
 
 PRIVATE_EXPORTS = \
