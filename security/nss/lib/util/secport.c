@@ -49,6 +49,7 @@
 #include "prmon.h"
 #include "nsslocks.h"
 #include "secport.h"
+#include "prvrsion.h"
 
 #ifdef DEBUG
 #define THREADMARK
@@ -187,8 +188,6 @@ PORT_GetError(void)
 
 /********************* Arena code follows *****************************/
 
-PZMonitor * arenaMonitor;
-
 PLArenaPool *
 PORT_NewArena(unsigned long chunksize)
 {
@@ -262,11 +261,25 @@ PORT_FreeArena(PLArenaPool *arena, PRBool zero)
 {
     PORTArenaPool *pool = (PORTArenaPool *)arena;
     PRLock *       lock = (PRLock *)0;
+    extern const PRVersionDescription * libVersionPoint(void);
+    static const PRVersionDescription * pvd;
+    static PRBool  doFreeArenaPool;
 
     if (ARENAPOOL_MAGIC == pool->magic ) {
 	lock = pool->lock;
 	PZ_Lock(lock);
     }
+    if (!pvd) {
+	/* no need for thread protection here */
+	pvd = libVersionPoint();
+	if ((pvd->vMajor > 4) || 
+	    (pvd->vMajor == 4 && pvd->vMinor > 1) ||
+	    (pvd->vMajor == 4 && pvd->vMinor == 1 && pvd->vPatch >= 1)) {
+	    doFreeArenaPool = PR_TRUE;
+	}
+    }
+    if (doFreeArenaPool)
+	PL_FreeArenaPool(arena);
     PL_FinishArenaPool(arena);
     PORT_ZFree(pool, sizeof(*pool));
     if (lock) {
