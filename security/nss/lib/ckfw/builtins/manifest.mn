@@ -34,7 +34,7 @@ MANIFEST_CVS_ID = "@(#) $RCSfile$ $Revision$ $Date$ $Name$"
 
 CORE_DEPTH = ../../../..
 
-MODULE = security
+MODULE = nss
 
 EXPORTS =		\
 	nssckbi.h	\
@@ -52,7 +52,7 @@ CSRCS =			\
 	certdata.c	\
 	$(NULL)
 
-REQUIRES = security nspr
+REQUIRES = nspr
 
 LIBRARY_NAME = nssckbi
 

@@ -45,7 +45,7 @@ PRIVATE_EXPORTS = \
 EXPORTS =	   \
 	$(NULL)
 
-MODULE = security
+MODULE = nss
 
 CSRCS =		        \
 	devmod.c        \
@@ -61,6 +61,6 @@ DEFINES = -DNSS_3_4_CODE
 PRIVATE_EXPORTS += devm.h devtm.h
 endif
 
-REQUIRES = security nspr
+REQUIRES = nspr
 
 LIBRARY_NAME = nssdev
