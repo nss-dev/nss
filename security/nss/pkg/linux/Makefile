@@ -9,25 +9,28 @@ CORE_DEPTH = ../../..
 
 NAME        = sun-nss
 RELEASE     = 1
-TOPDIR      = /usr/src/redhat
-VERSION     = `grep NSS_VERSION $(CORE_DEPTH)/../dist/public/nss/nss.h \
-				| sed -e 's/"$$//' -e 's/.*"//' -e 's/ .*//'`
+VERSION     = `grep NSS_VERSION $(CORE_DEPTH)/../dist/public/security/nss.h \
+		| sed -e 's/"$$//' -e 's/.*"//' -e 's/ .*//'`
+PWD         = `pwd`
+BUILDROOT   = $(PWD)\/$(NAME)-root
 
 include $(CORE_DEPTH)/coreconf/config.mk
 
 publish:
 	$(MAKE) clean
+	mkdir -p SOURCES SRPMS RPMS BUILD
 	mkdir -p usr/lib/mps
 	find $(CORE_DEPTH)/../dist/$(OBJDIR)/lib -type l \
 		\( -name "*.so" -o -name "*.chk" \) \
-		-exec cp -L {} usr/lib/mps \;
-	mkdir -p usr/include/mps
-	cp -Lr $(CORE_DEPTH)/../dist/public/* usr/include/mps
+        -exec cp {} usr/lib/mps \;
+	(cd $(CORE_DEPTH)/../dist/public && tar cphf - .) \
+		| (mkdir -p usr/include/mps && cd usr/include/mps && tar xvfBp -)
 	tar czvf $(NAME)-$(VERSION).tar.gz usr
+	echo "%define _topdir `pwd`" >temp.spec
 	sed -e "s/NAME_REPLACE/$(NAME)/" \
 		-e "s/VERSION_REPLACE/$(VERSION)/" \
 		-e "s/RELEASE_REPLACE/$(RELEASE)/" \
-	<$(NAME).spec >temp.spec
+	<$(NAME).spec >>temp.spec
 	echo "" >>temp.spec
 	echo "%files" >>temp.spec
 	echo "%defattr(-,root,root)" >>temp.spec
@@ -42,17 +45,12 @@ publish:
 	find usr -type d | sed -e "s-^-%dir /-" >>temp.spec
 	find usr -type f ! \( -name "*.so" -o -name "*.chk" \) \
 		| sed -e "s-^-/-" >>temp.spec
-	cp $(NAME)-$(VERSION).tar.gz $(TOPDIR)/SOURCES
+	cp $(NAME)-$(VERSION).tar.gz SOURCES
 	rpm -ba temp.spec
-	if [ ! -d RPMS ] ; then mkdir -p RPMS ; fi
-	if [ ! -d SRPMS ] ; then mkdir -p SRPMS ; fi
-	cp -v $(TOPDIR)/RPMS/i386/$(NAME)-$(VERSION)-* RPMS
-	cp -v $(TOPDIR)/RPMS/i386/$(NAME)-devel-$(VERSION)-* RPMS
-	cp -v $(TOPDIR)/SRPMS/$(NAME)-$(VERSION)-* SRPMS
 
 clean::
-	rm -rf $(TOPDIR)/BUILD/$(NAME)
-	rm -rf RPMS SRPMS usr
+	rm -rf SOURCES SRPMS RPMS BUILD
+	rm -rf usr
 	rm -f temp.spec
 	rm -f $(NAME)-$(VERSION).tar.gz
 
