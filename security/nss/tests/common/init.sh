@@ -52,7 +52,7 @@ fi
 
 KILL="kill"
 if  [ ${OS_ARCH} = "Linux" ]; then
-        KILL="kill -kill"
+        SLEEP="sleep 30"
 fi
 
 export  KILL
