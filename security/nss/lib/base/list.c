@@ -63,6 +63,7 @@ struct nssListStr {
 };
 
 struct nssListIteratorStr {
+    PZLock *lock;
     nssList *list;
     nssListElement *current;
 };
@@ -316,26 +317,56 @@ nssList_GetArray(nssList *list, void **rvArray, PRUint32 maxElements)
     return PR_SUCCESS;
 }
 
+NSS_IMPLEMENT nssList *
+nssList_Clone(nssList *list)
+{
+    nssList *rvList;
+    nssListElement *node;
+    rvList = nssList_Create(list->arena, (list->lock != NULL));
+    if (!rvList) {
+	return NULL;
+    }
+    NSSLIST_LOCK_IF(list);
+    if (list->count > 0) {
+	node = list->head;
+	while (PR_TRUE) {
+	    nssList_Add(rvList, node->data);
+	    node = (nssListElement *)PR_NEXT_LINK(&node->link);
+	    if (node == list->head) {
+		break;
+	    }
+	}
+    }
+    NSSLIST_UNLOCK_IF(list);
+    return rvList;
+}
+
 NSS_IMPLEMENT nssListIterator *
 nssList_CreateIterator(nssList *list)
 {
     nssListIterator *rvIterator;
     rvIterator = nss_ZNEW(list->arena, nssListIterator);
-    rvIterator->list = list;
-    rvIterator->current = list->head;
+    rvIterator->list = nssList_Clone(list);
+    rvIterator->current = rvIterator->list->head;
+    if (list->lock) {
+	rvIterator->lock = PZ_NewLock(nssILockOther);
+    }
     return rvIterator;
 }
 
 NSS_IMPLEMENT void
 nssListIterator_Destroy(nssListIterator *iter)
 {
+    if (iter->lock) {
+	(void)PZ_DestroyLock(iter->lock);
+    }
     nss_ZFreeIf(iter);
 }
 
 NSS_IMPLEMENT void *
 nssListIterator_Start(nssListIterator *iter)
 {
-    NSSLIST_LOCK_IF(iter->list);
+    NSSLIST_LOCK_IF(iter);
     if (iter->list->count == 0) {
 	return NULL;
     }
@@ -369,6 +400,6 @@ NSS_IMPLEMENT PRStatus
 nssListIterator_Finish(nssListIterator *iter)
 {
     iter->current = iter->list->head;
-    return (iter->list->lock) ? PZ_Unlock(iter->list->lock) : PR_SUCCESS;
+    return (iter->lock) ? PZ_Unlock(iter->lock) : PR_SUCCESS;
 }
 
