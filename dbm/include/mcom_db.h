@@ -174,13 +174,9 @@
 #endif
 
 #ifdef __QNX__
-#ifdef __QNXNTO__
-#include <sys/param.h>
-#else
 #define LITTLE_ENDIAN	1234
 #define BIG_ENDIAN	4321
 #define BYTE_ORDER	LITTLE_ENDIAN
-#endif
 #endif
 
 #ifdef SNI
@@ -212,7 +208,11 @@
 #define MAXPATHLEN 	1024              
 #endif
 
+#ifdef macintosh
+#include <unix.h>
+#else
 #include <fcntl.h>
+#endif
 
 #if defined(_WINDOWS) || defined(XP_OS2)
 #include <stdio.h>
@@ -220,6 +220,8 @@
 
 #ifndef XP_OS2 
 #define MAXPATHLEN 	1024               
+#else
+#include <dirent.h>
 #endif
 
 #define	EFTYPE		EINVAL		/* POSIX 1003.1 format errno. */
