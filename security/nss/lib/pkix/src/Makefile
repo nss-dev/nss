@@ -1,4 +1,5 @@
-# 
+#! gmake
+#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -30,10 +31,48 @@
 # may use your version of this file under either the MPL or the
 # GPL.
 #
-MAKEFILE_CVS_ID = "@(#) $RCSfile$ $Revision$ $Date$ $Name$"
+
+#######################################################################
+# (1) Include initial platform-independent assignments (MANDATORY).   #
+#######################################################################
 
 include manifest.mn
+
+#######################################################################
+# (2) Include "global" configuration information. (OPTIONAL)          #
+#######################################################################
+
+include $(CORE_DEPTH)/coreconf/arch.mk
+
 include $(CORE_DEPTH)/coreconf/config.mk
-include ../config.mk
+
+#######################################################################
+# (3) Include "component" configuration information. (OPTIONAL)       #
+#######################################################################
+
+
+
+#######################################################################
+# (4) Include "local" platform-dependent assignments (OPTIONAL).      #
+#######################################################################
+include config.mk
+
+
+#######################################################################
+# (5) Execute "global" rules. (OPTIONAL)                              #
+#######################################################################
+
 include $(CORE_DEPTH)/coreconf/rules.mk
+
+#######################################################################
+# (6) Execute "component" rules. (OPTIONAL)                           #
+#######################################################################
+
+
+
+#######################################################################
+# (7) Execute "local" rules. (OPTIONAL).                              #
+#######################################################################
+
+export:: private_export
 
