@@ -485,16 +485,22 @@ SEC_PKCS7EncryptContents(PRArenaPool *poolp,
 	rv = SECFailure;
 	goto loser;
     }
-    eKey = PK11_PBEKeyGen(slot, algid, key, PR_FALSE, wincx);
+    pbeMech.mechanism = PK11_AlgtagToMechanism(algtag);
+    result = PK11_ParamFromAlgid(algid);
+    if (result == NULL) {
+	rv = SECFailure;
+	goto loser;
+    }
+    pbeMech.pParameter = result->data;
+    pbeMech.ulParameterLen = result->len;
+
+    eKey = PK11_RawPBEKeyGen(slot, pbeMech.mechanism, result, key, PR_FALSE,
+								 wincx);
     if(eKey == NULL) {
 	rv = SECFailure;
 	goto loser;
     }
 
-    pbeMech.mechanism = PK11_AlgtagToMechanism(algtag);
-    result = PK11_ParamFromAlgid(algid);
-    pbeMech.pParameter = result->data;
-    pbeMech.ulParameterLen = result->len;
     if(PK11_MapPBEMechanismToCryptoMechanism(&pbeMech, &cryptoMech, key, 
 			PR_FALSE) != CKR_OK) {
 	rv = SECFailure;
@@ -646,16 +652,20 @@ SEC_PKCS7DecryptContents(PRArenaPool *poolp,
 	rv = SECFailure;
 	goto loser;
     }
-    eKey = PK11_PBEKeyGen(slot, algid, key, PR_FALSE, wincx);
+    pbeMech.mechanism = PK11_AlgtagToMechanism(algtag);
+    result = PK11_ParamFromAlgid(algid);
+    if (result == NULL) {
+	rv = SECFailure;
+	goto loser;
+    }
+    pbeMech.pParameter = result->data;
+    pbeMech.ulParameterLen = result->len;
+    eKey = PK11_RawPBEKeyGen(slot,pbeMech.mechanism,result,key,PR_FALSE,wincx);
     if(eKey == NULL) {
 	rv = SECFailure;
 	goto loser;
     }
 
-    pbeMech.mechanism = PK11_AlgtagToMechanism(algtag);
-    result = PK11_ParamFromAlgid(algid);
-    pbeMech.pParameter = result->data;
-    pbeMech.ulParameterLen = result->len;
     if(PK11_MapPBEMechanismToCryptoMechanism(&pbeMech, &cryptoMech, key,
 			PR_FALSE) != CKR_OK) {
 	rv = SECFailure;

@@ -35,8 +35,8 @@
  * $Id$
  */
 
-#ifndef _PRIVATE_H_
-#define _PRIVATE_H_
+#ifndef _KEYDBI_H_
+#define _KEYDBI_H_
 
 #include "nspr.h"
 #include "seccomon.h"
@@ -45,7 +45,7 @@
 /*
  * Handle structure for open key databases
  */
-struct SECKEYKeyDBHandleStr {
+struct NSSLOWKEYDBHandleStr {
     DB *db;
     DB *updatedb;		/* used when updating an old version */
     SECItem *global_salt;	/* password hashing salt for this db */
@@ -60,7 +60,7 @@ struct SECKEYKeyDBHandleStr {
 **      "data" is the key data
 **      "pdata" is the user's data 
 */
-typedef SECStatus (* SECKEYTraverseKeysFunc)(DBT *key, DBT *data, void *pdata);
+typedef SECStatus (* NSSLOWKEYTraverseKeysFunc)(DBT *key, DBT *data, void *pdata);
 
 
 SEC_BEGIN_PROTOS
@@ -71,10 +71,10 @@ SEC_BEGIN_PROTOS
 **      "f" is the user function to call for each key
 **      "udata" is the user's data, which is passed through to "f"
 */
-extern SECStatus SECKEY_TraverseKeys(SECKEYKeyDBHandle *handle, 
-				SECKEYTraverseKeysFunc f,
+extern SECStatus NSSLOWKEY_TraverseKeys(NSSLOWKEYDBHandle *handle, 
+				NSSLOWKEYTraverseKeysFunc f,
 				void *udata);
 
 SEC_END_PROTOS
 
-#endif /* _PRIVATE_H_ */
+#endif /* _KEYDBI_H_ */

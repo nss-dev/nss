@@ -46,7 +46,7 @@
 #include "secoid.h"
 #include "pk11func.h"
 #include "secerr.h"
-#include "secpkcs5.h"
+/*#include "secpkcs5.h" */
 
 /*
  * NSS_CMSEnvelopedData_Create - create an enveloped data message

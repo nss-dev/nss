@@ -1,4 +1,4 @@
-/* 
+/*
  * The contents of this file are subject to the Mozilla Public
  * License Version 1.1 (the "License"); you may not use this file
  * except in compliance with the License. You may obtain a copy of
@@ -30,42 +30,34 @@
  * may use your version of this file under either the MPL or the
  * GPL.
  */
-
 /*
- * This file is in part derived from a file "pkcs11t.h" made available
- * by RSA Security at ftp://ftp.rsasecurity.com/pub/pkcs/pkcs-11/pkcs11t.h
- *
- * Copyright (C) 1994-1999 RSA Security Inc. Licence to copy this document
- * is granted provided that it is identified as "RSA Security Inc. Public-Key
- * Cryptography Standards (PKCS)" in all material mentioning or referencing
- * this document.
+ * Internal header file included in pk11wrap dir, or in softoken
  */
+#ifndef _PK11_INIT_H_
+#define _PK11_INIT_H_ 1
 
-#ifndef NSSCKU_H
-#define NSSCKU_H
+/* hold slot default flags until we initialize a slot. This structure is only
+ * useful between the time we define a module (either by hand or from the
+ * database) and the time the module is loaded. Not reference counted  */
+struct PK11PreSlotInfoStr {
+    CK_SLOT_ID slotID;  	/* slot these flags are for */
+    unsigned long defaultFlags; /* bit mask of default implementation this slot
+				 * provides */
+    int askpw;			/* slot specific password bits */
+    long timeout;		/* slot specific timeout value */
+    char hasRootCerts;		/* is this the root cert PKCS #11 module? */
+    char hasRootTrust;		/* is this the root cert PKCS #11 module? */
+};
 
-#ifdef DEBUG
-static const char NSSCKU_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
-#endif /* DEBUG */
+#define SECMOD_SLOT_FLAGS "slotFlags=[RSA,DSA,DH,RC2,RC4,DES,RANDOM,SHA1,MD5,MD2,SSL,TLS,AES]"
 
-#endif /* NSSCKU_H */
+#define SECMOD_MAKE_NSS_FLAGS(fips,slot) \
+"Flags=internal,critical"fips" slotparams=("#slot"={"SECMOD_SLOT_FLAGS"})"
 
-/*
- * These platform-dependent packing rules are required by all PKCS#11
- * modules, to be binary compatible.  These rules have been placed in 
- * separate header files (nssckp.h to enable the packing, nsscku.h to 
- * disable) for consistancy.  These files can be included many times,
- * so the bodies should *NOT* be in the multiple-inclusion-preventing
- * #ifndef/#endif area above.
- */
+#define SECMOD_INT_NAME "NSS Internal PKCS #11 Module"
+#define SECMOD_INT_FLAGS SECMOD_MAKE_NSS_FLAGS("",1)
+#define SECMOD_FIPS_NAME "NSS Internal FIPS PKCS #11 Module"
+#define SECMOD_FIPS_FLAGS SECMOD_MAKE_NSS_FLAGS(",fips",3)
 
-/*
- * WIN32 is defined (when appropriate) in NSPR's prcpucfg.h.
- */
 
-#ifdef WIN32
-#pragma warning(disable:4103)
-#pragma pack(pop, cryptoki)
-#endif /* WIN32 */
-
-/* End of nsscku.h */
+#endif /* _PK11_INIT_H_ 1 */

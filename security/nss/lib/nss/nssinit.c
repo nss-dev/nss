@@ -50,7 +50,7 @@
 #include "secrng.h"
 #include "pk11func.h"
 
-#include "pkinss3hack.h"
+#include "pki3hack.h"
 
 #define NSS_MAX_FLAG_SIZE  sizeof("readOnly")+sizeof("noCertDB")+ \
 	sizeof("noModDB")+sizeof("forceOpen")+sizeof("passwordRequired")
@@ -241,6 +241,8 @@ nss_Init(const char *configdir, const char *certPrefix, const char *keyPrefix,
     }
 
     STAN_LoadDefaultNSS3TrustDomain();
+    CERT_SetDefaultCertDB((CERTCertDBHandle *)
+				STAN_GetDefaultTrustDomain());
     return rv;
 }
 

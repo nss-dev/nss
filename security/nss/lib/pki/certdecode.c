@@ -114,7 +114,7 @@ nssDecodedCert_Destroy
 #if 0
 	nss_SetError(NSS_ERROR_INVALID_ARGUMENT);
 #endif
-	return PR_FAILURE;
+	break;
     }
     return PR_FAILURE;
 }

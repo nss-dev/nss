@@ -1,4 +1,4 @@
-/*
+/* 
  * The contents of this file are subject to the Mozilla Public
  * License Version 1.1 (the "License"); you may not use this file
  * except in compliance with the License. You may obtain a copy of
@@ -30,42 +30,29 @@
  * may use your version of this file under either the MPL or the
  * GPL.
  */
-#ifndef _KEYTBOTH_H_
-#define _KEYTBOTH_H_ 1
 
-#include "blapit.h"
-#include "secoidt.h"
+#ifndef DEVNSS3HACK_H
+#define DEVNSS3HACK_H
 
-/*
-** Attributes
-*/
-struct SECKEYAttributeStr {
-    SECItem attrType;
-    SECItem **attrValue;
-};
-typedef struct SECKEYAttributeStr SECKEYAttribute;
+#ifdef DEBUG
+static const char DEVNSS3HACK_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
+#endif /* DEBUG */
 
-/*
-** A PKCS#8 private key info object
-*/
-struct PrivateKeyInfoStr {
-    PLArenaPool *arena;
-    SECItem version;
-    SECAlgorithmID algorithm;
-    SECItem privateKey;
-    SECKEYAttribute **attributes;
-};
-typedef struct PrivateKeyInfoStr PrivateKeyInfo;
-#define SEC_PRIVATE_KEY_INFO_VERSION		0	/* what we *create* */
+#include "cert.h"
 
-/*
-** A PKCS#8 private key info object
-*/
-struct EncryptedPrivateKeyInfoStr {
-    PLArenaPool *arena;
-    SECAlgorithmID algorithm;
-    SECItem encryptedData;
-};
-typedef struct EncryptedPrivateKeyInfoStr EncryptedPrivateKeyInfo;
+PR_BEGIN_EXTERN_C
 
-#endif /* _KEYT_H_ */
+NSS_EXTERN NSSToken *
+nssToken_CreateFromPK11SlotInfo(NSSTrustDomain *td, PK11SlotInfo *nss3slot);
+
+NSSTrustDomain *
+nssToken_GetTrustDomain(NSSToken *token);
+
+void PK11Slot_SetNSSToken(PK11SlotInfo *sl, NSSToken *nsst);
+
+NSSToken * PK11Slot_GetNSSToken(PK11SlotInfo *sl);
+
+
+PR_END_EXTERN_C
+
+#endif /* DEVNSS3HACK_H */

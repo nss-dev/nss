@@ -96,7 +96,6 @@ sec_pkcs7_encoder_start_encrypt (SEC_PKCS7ContentInfo *cinfo,
     void *mark, *wincx;
     int i;
     PRArenaPool *arena = NULL;
-    unsigned char zero = 0;
 
     /* Get the context in case we need it below. */
     wincx = cinfo->pwfn_arg;

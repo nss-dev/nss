@@ -42,13 +42,9 @@ static const char DEV_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #include "devt.h"
 #endif /* DEVT_H */
 
-#ifdef NSS_3_4_CODE
-#include "pkcs11t.h"
-#else
 #ifndef NSSCKT_H
 #include "nssckt.h"
 #endif /* NSSCKT_H */
-#endif /* NSS_3_4_CODE */
 
 #ifndef NSSPKIT_H
 #include "nsspkit.h"

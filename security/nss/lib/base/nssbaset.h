@@ -138,7 +138,7 @@ typedef NSSItem NSSBitString;
  * Character strings encoded in UTF-8, as defined by RFC 2279.
  */
 
-typedef PRUint8 NSSUTF8;
+typedef char NSSUTF8;
 
 /*
  * NSSASCII7
@@ -146,7 +146,7 @@ typedef PRUint8 NSSUTF8;
  * Character strings guaranteed to be 7-bit ASCII.
  */
 
-typedef PRUint8 NSSASCII7;
+typedef char NSSASCII7;
 
 PR_END_EXTERN_C
 

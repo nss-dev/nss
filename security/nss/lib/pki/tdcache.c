@@ -398,7 +398,7 @@ collect_subject_certs
 )
 {
     NSSCertificate *c;
-    NSSCertificate **rvArray;
+    NSSCertificate **rvArray = NULL;
     PRUint32 count;
     if (rvCertListOpt) {
 	nssListIterator *iter = nssList_CreateIterator(subjectList);
@@ -409,15 +409,13 @@ collect_subject_certs
 	}
 	nssListIterator_Finish(iter);
 	nssListIterator_Destroy(iter);
-	return (NSSCertificate **)NULL;
     } else {
 	count = nssList_Count(subjectList);
 	rvArray = nss_ZNEWARRAY(NULL, NSSCertificate *, count);
 	if (!rvArray) return (NSSCertificate **)NULL;
 	nssList_GetArray(subjectList, (void **)rvArray, count);
-	return rvArray;
     }
-    return (NSSCertificate **)NULL;
+    return rvArray;
 }
 
 /*

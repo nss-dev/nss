@@ -4272,7 +4272,7 @@ ssl3_HandleServerKeyExchange(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	peerKey->arena              = arena;
 	peerKey->keyType            = rsaKey;
 	peerKey->pkcs11Slot         = NULL;
-	peerKey->pkcs11ID           = CK_INVALID_KEY;
+	peerKey->pkcs11ID           = CK_INVALID_HANDLE;
 	if (SECITEM_CopyItem(arena, &peerKey->u.rsa.modulus,        &modulus) ||
 	    SECITEM_CopyItem(arena, &peerKey->u.rsa.publicExponent, &exponent))
 	{
@@ -4354,7 +4354,7 @@ ssl3_HandleServerKeyExchange(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	peerKey->arena              = arena;
 	peerKey->keyType            = dhKey;
 	peerKey->pkcs11Slot         = NULL;
-	peerKey->pkcs11ID           = CK_INVALID_KEY;
+	peerKey->pkcs11ID           = CK_INVALID_HANDLE;
 
 	if (SECITEM_CopyItem(arena, &peerKey->u.dh.prime,        &dh_p) ||
 	    SECITEM_CopyItem(arena, &peerKey->u.dh.base,         &dh_g) ||
