@@ -227,7 +227,15 @@ NSSCertificate_Encode
  * in the "chain" starting from the specified one up to and
  * including the root.  The zeroth element in the array is the
  * specified ("leaf") certificate.
+ *
+ * If statusOpt is supplied, and is returned as PR_FAILURE, possible
+ * error values are:
+ *
+ * NSS_ERROR_CERTIFICATE_ISSUER_NOT_FOUND - the chain is incomplete
+ *
  */
+
+extern const NSSError NSS_ERROR_CERTIFICATE_ISSUER_NOT_FOUND;
 
 NSS_EXTERN NSSCertificate **
 NSSCertificate_BuildChain
@@ -238,7 +246,8 @@ NSSCertificate_BuildChain
   NSSPolicies *policiesOpt,
   NSSCertificate **rvOpt,
   PRUint32 rvLimit, /* zero for no limit */
-  NSSArena *arenaOpt
+  NSSArena *arenaOpt,
+  PRStatus *statusOpt
 );
 
 /*
