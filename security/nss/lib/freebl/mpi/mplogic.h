@@ -72,4 +72,10 @@ mp_err mpl_num_set(mp_int *a, int *num);         /* count set bits    */
 mp_err mpl_num_clear(mp_int *a, int *num);       /* count clear bits  */
 mp_err mpl_parity(mp_int *a);                    /* determine parity  */
 
+/* Get & Set the value of a bit */
+
+mp_err mpl_set_bit(mp_int *a, unsigned int bitNum, unsigned int value);
+mp_err mpl_get_bit(mp_int *a, unsigned int bitNum);
+mp_err mpl_significant_bits(mp_int *a);
+
 #endif /* end _H_MPLOGIC_ */
