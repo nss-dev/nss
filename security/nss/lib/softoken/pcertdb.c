@@ -4343,7 +4343,7 @@ nsslowcert_FindCrlByKey(NSSLOWCERTCertDBHandle *handle, SECItem *crlKey,
 	goto loser;
     }
 
-    if (entry->url) {
+    if (url && entry->url) {
 	*url = PORT_Strdup(entry->url);
     }
     crl = SECITEM_DupItem(&entry->derCrl);
