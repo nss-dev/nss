@@ -259,6 +259,7 @@ RSA_NewKey(int keySizeInBits, SECItem *publicExponent)
     SECITEM_TO_MPINT(*publicExponent, &e);
     kiter = 0;
     do {
+	prerr = 0;
 	PORT_SetError(0);
 	CHECK_SEC_OK( generate_prime(&p, primeLen) );
 	CHECK_SEC_OK( generate_prime(&q, primeLen) );
