@@ -55,6 +55,11 @@
 #endif
 
 #include <limits.h>
+
+#if defined(BSDI)
+#undef ULLONG_MAX
+#endif
+
 #ifdef macintosh
 #include <Types.h>
 #else
