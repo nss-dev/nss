@@ -292,6 +292,7 @@ NSS_CMSSignerInfo_Verify(NSSCMSSignerInfo *signerinfo, SECItem *digest, SECItem 
     switch (SECOID_GetAlgorithmTag(&(signerinfo->digestEncAlg))) {
     case SEC_OID_PKCS1_RSA_ENCRYPTION:
     case SEC_OID_ANSIX9_DSA_SIGNATURE:
+    case SEC_OID_ANSIX9_DSA_SIGNATURE_WITH_SHA1_DIGEST:
 	/* ok */
 	break;
     case SEC_OID_UNKNOWN:
