@@ -844,7 +844,7 @@ case "$target" in
     CPU_ARCH=mips
     RANLIB=/bin/true
     MKSHLIB='$(LD) $(DSO_LDOPTS) -sahred -soname $(@:$(OBJDIR)/%.so=%.so)'
-    DSO_LDOPTS='-elf shared -all'
+    DSO_LDOPTS='-elf -shared -all'
     if test "$USE_N32"; then
         DSO_LDOPTS="$DSO_LDOPTS -n32 -mips3"
     fi
