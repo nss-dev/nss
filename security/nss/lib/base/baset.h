@@ -103,6 +103,11 @@ typedef struct nssListStr nssList;
 typedef struct nssListIteratorStr nssListIterator;
 typedef PRBool (* nssListCompareFunc)(void *a, void *b);
 
+typedef struct nssHashStr nssHash;
+typedef void (PR_CALLBACK *nssHashIterator)(const void *key, 
+                                            void *value, 
+                                            void *arg);
+
 /*
  * nssPointerTracker
  *
