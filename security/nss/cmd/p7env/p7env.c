@@ -168,7 +168,6 @@ main(int argc, char **argv)
     FILE *inFile, *outFile;
     char *certName;
     CERTCertDBHandle *certHandle;
-    CERTCertificate *cert;
     struct recipient *recipients, *rcpt;
     PLOptState *optstate;
     PLOptStatus status;

@@ -131,7 +131,6 @@ static int
 SignFile(FILE *outFile, PRFileDesc *inFile, CERTCertificate *cert, 
          PRBool encapsulated)
 {
-    int nb;
     char digestdata[32];
     unsigned int len;
     SECItem digest, data2sign;
