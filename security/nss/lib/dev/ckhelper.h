@@ -118,6 +118,11 @@ NSS_EXTERN_DATA const NSSItem g_ck_class_privkey;
 	}                                                \
     }
 
+#define NSS_CK_ATTRIBUTE_TO_ULONG(attrib, ulongvar)      \
+    if ((attrib)->ulValueLen > 0) {                      \
+	ulongvar = *((CK_ULONG*)(attrib)->pValue);       \
+    }
+
 /* NSS_CK_ATTRIBUTE_TO_UTF8(attrib, str)
  *
  * Convert a CK_ATTRIBUTE to a string.

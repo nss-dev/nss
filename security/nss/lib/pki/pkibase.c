@@ -1157,6 +1157,8 @@ crl_getUIDFromInstance(nssCryptokiObject *instance, NSSItem *uid,
                                         NULL,    /* XXX sessionOpt */
                                         arena,   /* arena    */
                                         &uid[0], /* encoding */
+                                        NULL,    /* subject  */
+                                        NULL,    /* class    */
                                         NULL,    /* url      */
                                         NULL);   /* isKRL    */
 }
