@@ -507,7 +507,6 @@ NSS_CMSCipherContext_Decrypt(NSSCMSCipherContext *cc, unsigned char *output,
 	 * If we do not, there is something wrong, either with our own
 	 * logic or with (length of) the data given to us.
 	 */
-	PORT_Assert ((padsize == 0) || (pcount % padsize) == 0);
 	if ((padsize != 0) && (pcount % padsize) != 0) {
 	    PORT_Assert (final);	
 	    PORT_SetError (SEC_ERROR_BAD_DATA);
