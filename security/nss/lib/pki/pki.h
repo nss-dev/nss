@@ -52,6 +52,13 @@ static const char PKI_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 
 PR_BEGIN_EXTERN_C
 
+NSS_EXTERN NSSToken *
+nssTrustDomain_FindTokenForAlgorithm
+(
+  NSSTrustDomain *td,
+  const NSSAlgorithmAndParameters *ap
+);
+
 NSS_EXTERN NSSCallback *
 nssTrustDomain_GetDefaultCallback
 (
@@ -132,6 +139,19 @@ nssCertificate_IssuerAndSerialEqual
   NSSCertificate *c2
 );
 
+NSS_EXTERN NSSPublicKey *
+nssCertificate_GetPublicKey
+(
+  NSSCertificate *c
+);
+
+NSS_EXTERN NSSPrivateKey *
+nssCertificate_FindPrivateKey
+(
+  NSSCertificate *c,
+  NSSCallback *uhh
+);
+
 NSS_EXTERN NSSPrivateKey *
 nssPrivateKey_AddRef
 (
@@ -167,6 +187,12 @@ NSS_EXTERN NSSItem *
 nssPublicKey_GetID
 (
   NSSPublicKey *vk
+);
+
+NSS_EXTERN NSSSymmetricKey *
+nssSymmetricKey_AddRef
+(
+  NSSSymmetricKey *mk
 );
 
 NSS_EXTERN NSSCertificate **

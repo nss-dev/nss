@@ -145,6 +145,7 @@ nssPKIObject_AddInstance
 	for (i=0; i<object->numInstances; i++) {
 	    if (nssCryptokiObject_Equal(object->instances[i], instance)) {
 		PZ_Unlock(object->lock);
+		/* Object already has the instance */
 		if (instance->label) {
 		    if (!object->instances[i]->label ||
 		        !nssUTF8_Equal(instance->label,
@@ -262,7 +263,7 @@ nssPKIObject_DeleteStoredObject
 	NSSSlot *slot = nssToken_GetSlot(instance->token);
 	/* If both the operation and the slot are friendly, login is
 	 * not required.  If either or both are not friendly, it is
-	 * required.
+	 * required. XXX session objects?
 	 */
 	if (!(isFriendly && nssSlot_IsFriendly(slot))) {
 	    status = nssSlot_Login(slot, pwcb);
@@ -271,7 +272,7 @@ nssPKIObject_DeleteStoredObject
 		/* XXX this should be fixed to understand read-only tokens,
 		 * for now, to handle the builtins, just make the attempt.
 		 */
-		status = nssToken_DeleteStoredObject(instance);
+		status = nssCryptokiObject_DeleteStoredObject(instance);
 	    }
 	}
 #else
@@ -340,7 +341,6 @@ nssPKIObject_GetNicknameForToken
     return nickname;
 }
 
-#ifdef NSS_3_4_CODE
 NSS_IMPLEMENT nssCryptokiObject **
 nssPKIObject_GetInstances
 (
@@ -363,7 +363,79 @@ nssPKIObject_GetInstances
     PZ_Unlock(object->lock);
     return instances;
 }
-#endif
+
+NSS_IMPLEMENT nssCryptokiObject *
+nssPKIObject_GetInstance
+(
+  nssPKIObject *object,
+  NSSToken *token
+)
+{
+    nssCryptokiObject *instance = NULL;
+    PRUint32 i;
+    PZ_Lock(object->lock);
+    for (i=0; i<object->numInstances; i++) {
+	if (object->instances[i]->token == token) {
+	    instance = nssCryptokiObject_Clone(object->instances[i]);
+	    break;
+	}
+    }
+    PZ_Unlock(object->lock);
+    return instance;
+}
+
+NSS_IMPLEMENT nssCryptokiObject *
+nssPKIObject_FindInstanceForAlgorithm
+(
+  nssPKIObject *object,
+  NSSAlgorithmAndParameters *ap
+)
+{
+    nssCryptokiObject *instance = NULL;
+    PRUint32 i;
+    PZ_Lock(object->lock);
+    for (i=0; i<object->numInstances; i++) {
+	if (nssToken_DoesAlgorithm(object->instances[i]->token, ap)) {
+	    instance = nssCryptokiObject_Clone(object->instances[i]);
+	    break;
+	}
+    }
+    PZ_Unlock(object->lock);
+    return instance;
+}
+
+NSS_IMPLEMENT PRBool
+nssPKIObject_IsOnToken
+(
+  nssPKIObject *object,
+  NSSToken *token
+)
+{
+    PRUint32 i;
+    PRBool foundIt = PR_FALSE;
+    PZ_Lock(object->lock);
+    for (i=0; i<object->numInstances; i++) {
+	if (object->instances[i]->token == token) {
+	    foundIt = PR_TRUE;
+	    break;
+	}
+    }
+    PZ_Unlock(object->lock);
+    return foundIt;
+}
+
+NSS_IMPLEMENT NSSTrustDomain *
+nssPKIObject_GetTrustDomain
+(
+  nssPKIObject *object,
+  PRStatus *statusOpt
+)
+{
+    if (statusOpt) {
+	*statusOpt = PR_SUCCESS;
+    }
+    return object->trustDomain;
+}
 
 NSS_IMPLEMENT void
 nssCertificateArray_Destroy
@@ -437,10 +509,11 @@ nssCertificateArray_FindBestCertificate
 (
   NSSCertificate **certs, 
   NSSTime *timeOpt,
-  NSSUsage *usage,
+  NSSUsages usages,
   NSSPolicies *policiesOpt
 )
 {
+    PRStatus status;
     NSSCertificate *bestCert = NULL;
     NSSTime *time, sTime;
     if (timeOpt) {
@@ -453,21 +526,15 @@ nssCertificateArray_FindBestCertificate
 	return (NSSCertificate *)NULL;
     }
     for (; *certs; certs++) {
-	nssDecodedCert *dc, *bestdc;
 	NSSCertificate *c = *certs;
-	dc = nssCertificate_GetDecoding(c);
+	NSSUsages certUsages = nssCertificate_GetUsages(c, &status);
+	if (status == PR_FAILURE) {
+	    return (NSSCertificate *)NULL;
+	}
 	if (!bestCert) {
 	    /* take the first cert with matching usage */
-#ifdef NSS_3_4_CODE
-	    if (usage->anyUsage) {
-#else
-	    if (!usage || usage->anyUsage) {
-#endif
+	    if ((usages & certUsages) == usages) {
 		bestCert = nssCertificate_AddRef(c);
-	    } else {
-		if (dc->matchUsage(dc, usage)) {
-		    bestCert = nssCertificate_AddRef(c);
-		}
 	    }
 	    continue;
 	} else {
@@ -475,25 +542,23 @@ nssCertificateArray_FindBestCertificate
 	     * the correct usage, continue
 	     * if ths cert does match usage, defer to time/policies
 	     */
-#ifdef NSS_3_4_CODE
-	    if (!usage->anyUsage && !dc->matchUsage(dc, usage)) {
-#else
-	    if (PR_TRUE) {
-#endif
+	    if ((usages & certUsages) != usages) {
 		continue;
 	    }
 	}
-	bestdc = nssCertificate_GetDecoding(bestCert);
 	/* time */
-	if (bestdc->isValidAtTime(bestdc, time)) {
+	if (nssCertificate_IsValidAtTime(bestCert, time, &status)) {
 	    /* The current best cert is valid at time */
-	    if (!dc->isValidAtTime(dc, time)) {
+	    if (!nssCertificate_IsValidAtTime(c, time, &status)) {
 		/* If the new cert isn't valid at time, it's not better */
 		continue;
 	    }
 	} else {
+	    if (status == PR_FAILURE) {
+		return (NSSCertificate *)NULL;
+	    }
 	    /* The current best cert is not valid at time */
-	    if (dc->isValidAtTime(dc, time)) {
+	    if (nssCertificate_IsValidAtTime(c, time, NULL)) {
 		/* If the new cert is valid at time, it's better */
 		nssCertificate_Destroy(bestCert);
 		bestCert = nssCertificate_AddRef(c);
@@ -502,7 +567,7 @@ nssCertificateArray_FindBestCertificate
 	/* either they are both valid at time, or neither valid; 
 	 * take the newer one
 	 */
-	if (!bestdc->isNewerThan(bestdc, dc)) {
+	if (nssCertificate_IsNewer(c, bestCert)) {
 	    nssCertificate_Destroy(bestCert);
 	    bestCert = nssCertificate_AddRef(c);
 	}
@@ -1019,7 +1084,6 @@ cert_getUIDFromInstance(nssCryptokiObject *instance, NSSItem *uid,
      */
     uid[1].data = NULL; uid[1].size = 0;
     return nssCryptokiCertificate_GetAttributes(instance,
-                                                NULL,  /* XXX sessionOpt */
                                                 arena, /* arena    */
                                                 NULL,  /* type     */
                                                 NULL,  /* id       */
@@ -1030,7 +1094,6 @@ cert_getUIDFromInstance(nssCryptokiObject *instance, NSSItem *uid,
                                                 NULL); /* email    */
 #else
     return nssCryptokiCertificate_GetAttributes(instance,
-                                                NULL,  /* XXX sessionOpt */
                                                 arena, /* arena    */
                                                 NULL,  /* type     */
                                                 NULL,  /* id       */
@@ -1154,7 +1217,6 @@ crl_getUIDFromInstance(nssCryptokiObject *instance, NSSItem *uid,
                        NSSArena *arena)
 {
     return nssCryptokiCRL_GetAttributes(instance,
-                                        NULL,    /* XXX sessionOpt */
                                         arena,   /* arena    */
                                         &uid[0], /* encoding */
                                         NULL,    /* url      */
@@ -1230,7 +1292,6 @@ nssPKIObjectCollection_GetCRLs
     return rvOpt;
 }
 
-#ifdef PURE_STAN_BUILD
 /*
  * PrivateKey collections
  */
@@ -1257,7 +1318,6 @@ privkey_getUIDFromInstance(nssCryptokiObject *instance, NSSItem *uid,
                            NSSArena *arena)
 {
     return nssCryptokiPrivateKey_GetAttributes(instance,
-                                               NULL,  /* XXX sessionOpt */
                                                arena,
                                                NULL, /* type */
                                                &uid[0]);
@@ -1360,7 +1420,6 @@ pubkey_getUIDFromInstance(nssCryptokiObject *instance, NSSItem *uid,
                           NSSArena *arena)
 {
     return nssCryptokiPublicKey_GetAttributes(instance,
-                                              NULL,  /* XXX sessionOpt */
                                               arena,
                                               NULL, /* type */
                                               &uid[0]);
@@ -1435,40 +1494,5 @@ nssPKIObjectCollection_GetPublicKeys
 	return (NSSPublicKey **)NULL;
     }
     return rvOpt;
-}
-#endif /* PURE_STAN_BUILD */
-
-/* how bad would it be to have a static now sitting around, updated whenever
- * this was called?  would avoid repeated allocs...
- */
-NSS_IMPLEMENT NSSTime *
-NSSTime_Now
-(
-  NSSTime *timeOpt
-)
-{
-    return NSSTime_SetPRTime(timeOpt, PR_Now());
-}
-
-NSS_IMPLEMENT NSSTime *
-NSSTime_SetPRTime
-(
-  NSSTime *timeOpt,
-  PRTime prTime
-)
-{
-    NSSTime *rvTime;
-    rvTime = (timeOpt) ? timeOpt : nss_ZNEW(NULL, NSSTime);
-    rvTime->prTime = prTime;
-    return rvTime;
-}
-
-NSS_IMPLEMENT PRTime
-NSSTime_GetPRTime
-(
-  NSSTime *time
-)
-{
-  return time->prTime;
 }
 

@@ -38,13 +38,13 @@
 static const char PKISTORE_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #endif /* DEBUG */
 
-#ifndef NSSPKIT_H
-#include "nsspkit.h"
-#endif /* NSSPKIT_H */
-
 #ifndef BASE_H
 #include "base.h"
 #endif /* BASE_H */
+
+#ifndef NSSPKIT_H
+#include "nsspkit.h"
+#endif /* NSSPKIT_H */
 
 PR_BEGIN_EXTERN_C
 
@@ -64,6 +64,20 @@ PR_BEGIN_EXTERN_C
  * Within a crypto context, mappings of cert to trust and cert to S/MIME
  * profile are always 1-1.  Therefore, it is reasonable to store all objects
  * in a single collection, indexed by the certificate.
+ *
+ * nssCertificateStore_Create
+ * nssCertificateStore_Destroy
+ * nssCertificateStore_Add
+ * nssCertificateStore_Remove
+ * nssCertificateStore_FindCertificatesBySubject
+ * nssCertificateStore_FindCertificatesByNickname
+ * nssCertificateStore_FindCertificatesByEmail
+ * nssCertificateStore_FindCertificateByIssuerAndSerialNumber
+ * nssCertificateStore_FindCertificateByEncodedCertificate
+ * nssCertificateStore_AddTrust
+ * nssCertificateStore_FindTrustForCertificate
+ * nssCertificateStore_AddSMIMEProfile
+ * nssCertificateStore_FindSMIMEProfileForCertificate
  */
 
 NSS_EXTERN nssCertificateStore *

@@ -64,6 +64,7 @@ PR_BEGIN_EXTERN_C
  * nssPKIObject_AddInstance
  * nssPKIObject_HasInstance
  * nssPKIObject_GetTokens
+ * nssPKIObject_IsOnToken
  * nssPKIObject_GetNicknameForToken
  * nssPKIObject_RemoveInstanceForToken
  * nssPKIObject_DeleteStoredObject
@@ -135,6 +136,20 @@ nssPKIObject_GetTokens
   PRStatus *statusOpt
 );
 
+NSS_EXTERN PRBool
+nssPKIObject_IsOnToken
+(
+  nssPKIObject *object,
+  NSSToken *token
+);
+
+NSS_EXTERN nssCryptokiObject *
+nssPKIObject_GetInstance
+(
+  nssPKIObject *object,
+  NSSToken *token
+);
+
 /* nssPKIObject_GetNicknameForToken
  *
  * tokenOpt == NULL means take the first available, otherwise return the
@@ -163,10 +178,10 @@ nssPKIObject_RemoveInstanceForToken
  * Delete all token instances of the object, as well as any crypto context
  * instances (TODO).  If any of the instances are read-only, or if the
  * removal fails, the object will keep those instances.  'isFriendly' refers
- * to the object -- can this object be removed from a friendly token without
- * login?  For example, certificates are friendly, private keys are not.
- * Note that if the token is not friendly, authentication will be required
- * regardless of the value of 'isFriendly'.
+ * to the object -- can this object be permanently removed from a friendly 
+ * token without login?  For example, softoken certificates are friendly, 
+ * private keys are not.  Note that if the token is not friendly, 
+ * authentication will be required regardless of the value of 'isFriendly'.
  */
 NSS_EXTERN PRStatus
 nssPKIObject_DeleteStoredObject
@@ -176,13 +191,33 @@ nssPKIObject_DeleteStoredObject
   PRBool isFriendly
 );
 
-#ifdef NSS_3_4_CODE
+NSS_EXTERN NSSTrustDomain *
+nssPKIObject_GetTrustDomain
+(
+  nssPKIObject *object,
+  PRStatus *statusOpt
+);
+
 NSS_EXTERN nssCryptokiObject **
 nssPKIObject_GetInstances
 (
   nssPKIObject *object
 );
-#endif
+
+NSS_EXTERN nssCryptokiObject *
+nssPKIObject_FindInstanceForAlgorithm
+(
+  nssPKIObject *object,
+  NSSAlgorithmAndParameters *ap
+);
+
+NSS_EXTERN NSSToken *
+nssTrustDomain_FindSourceToken
+(
+  NSSTrustDomain *td,
+  const NSSAlgorithmAndParameters *ap,
+  NSSToken *candidate
+);
 
 NSS_EXTERN NSSCertificate **
 nssTrustDomain_FindCertificatesByID
@@ -207,7 +242,16 @@ NSS_EXTERN NSSCryptoContext *
 nssCryptoContext_Create
 (
   NSSTrustDomain *td,
+  const NSSAlgorithmAndParameters *apOpt,
   NSSCallback *uhhOpt
+);
+
+NSS_EXTERN NSSCryptoContext *
+nssCryptoContext_CreateForSymmetricKey
+(
+  NSSSymmetricKey *mk,
+  const NSSAlgorithmAndParameters *apOpt,
+  NSSCallback *uhh
 );
 
 /* XXX for the collection */
@@ -217,31 +261,20 @@ nssCertificate_Create
   nssPKIObject *object
 );
 
+/* XXX XXX most of these belong in pki.h */
+
+NSS_EXTERN nssCryptokiObject *
+nssCertificate_FindInstanceForAlgorithm
+(
+  NSSCertificate *c,
+  NSSAlgorithmAndParameters *ap
+);
+
 NSS_EXTERN PRStatus
 nssCertificate_SetCertTrust
 (
   NSSCertificate *c,
   NSSTrust *trust
-);
-
-NSS_EXTERN nssDecodedCert *
-nssCertificate_GetDecoding
-(
-  NSSCertificate *c
-);
-
-NSS_EXTERN nssDecodedCert *
-nssDecodedCert_Create
-(
-  NSSArena *arenaOpt,
-  NSSDER *encoding,
-  NSSCertificateType type
-);
-
-NSS_EXTERN PRStatus
-nssDecodedCert_Destroy
-(
-  nssDecodedCert *dc
 );
 
 NSS_EXTERN NSSTrust *
@@ -275,10 +308,58 @@ nssCRL_DeleteStoredObject
   NSSCallback *uhh
 );
 
-NSS_EXTERN NSSPrivateKey *
-nssPrivateKey_Create
+NSS_EXTERN NSSSymmetricKey *
+nssSymmetricKey_Create
 (
-  nssPKIObject *o
+  nssPKIObject *object
+);
+
+NSS_EXTERN PRStatus
+nssSymmetricKey_Destroy
+(
+  NSSSymmetricKey *mk
+);
+
+NSS_EXTERN NSSSymmetricKey *
+nssSymmetricKey_Copy
+(
+  NSSSymmetricKey *mk,
+  NSSToken *destination
+);
+
+NSS_EXTERN NSSToken **
+nssSymmetricKey_GetTokens
+(
+  NSSSymmetricKey *mk,
+  PRStatus *statusOpt
+);
+
+NSS_EXTERN NSSTrustDomain *
+nssSymmetricKey_GetTrustDomain
+(
+  NSSSymmetricKey *mk,
+  PRStatus *statusOpt
+);
+
+NSS_EXTERN PRBool
+nssSymmetricKey_IsOnToken
+(
+  NSSSymmetricKey *mk,
+  NSSToken *token
+);
+
+NSS_EXTERN nssCryptokiObject *
+nssSymmetricKey_GetInstance
+(
+  NSSSymmetricKey *mk,
+  NSSToken *token
+);
+
+NSS_EXTERN nssCryptokiObject *
+nssSymmetricKey_FindInstanceForAlgorithm
+(
+  NSSSymmetricKey *mk,
+  NSSAlgorithmAndParameters *ap
 );
 
 NSS_EXTERN NSSDER *
@@ -291,6 +372,68 @@ NSS_EXTERN NSSPublicKey *
 nssPublicKey_Create
 (
   nssPKIObject *object
+);
+
+NSS_EXTERN PRBool
+nssPublicKey_IsOnToken
+(
+  NSSPublicKey *bk,
+  NSSToken *token
+);
+
+NSS_EXTERN nssCryptokiObject *
+nssPublicKey_GetInstance
+(
+  NSSPublicKey *bk,
+  NSSToken *token
+);
+
+NSS_EXTERN nssCryptokiObject *
+nssPublicKey_FindInstanceForAlgorithm
+(
+  NSSPublicKey *bk,
+  NSSAlgorithmAndParameters *ap
+);
+
+NSS_EXTERN NSSPublicKey *
+nssPublicKey_Copy
+(
+  NSSPublicKey *bk,
+  NSSToken *destination
+);
+
+NSS_EXTERN NSSPrivateKey *
+nssPrivateKey_Create
+(
+  nssPKIObject *o
+);
+
+NSS_EXTERN PRBool
+nssPrivateKey_IsOnToken
+(
+  NSSPrivateKey *vk,
+  NSSToken *token
+);
+
+NSS_EXTERN nssCryptokiObject *
+nssPrivateKey_GetInstance
+(
+  NSSPrivateKey *vk,
+  NSSToken *token
+);
+
+NSS_EXTERN nssCryptokiObject *
+nssPrivateKey_FindInstanceForAlgorithm
+(
+  NSSPrivateKey *vk,
+  NSSAlgorithmAndParameters *ap
+);
+
+NSS_EXTERN NSSPrivateKey *
+nssPrivateKey_Copy
+(
+  NSSPrivateKey *vk,
+  NSSToken *destination
 );
 
 /* nssCertificateArray
@@ -341,7 +484,7 @@ nssCertificateArray_FindBestCertificate
 (
   NSSCertificate **certs, 
   NSSTime *timeOpt,
-  NSSUsage *usage,
+  NSSUsages usages,
   NSSPolicies *policiesOpt
 );
 
@@ -548,23 +691,9 @@ nssPKIObjectCollection_GetPublicKeys
   NSSArena *arenaOpt
 );
 
-NSS_EXTERN NSSTime *
+NSS_EXTERN NSSTime
 NSSTime_Now
 (
-  NSSTime *timeOpt
-);
-
-NSS_EXTERN NSSTime *
-NSSTime_SetPRTime
-(
-  NSSTime *timeOpt,
-  PRTime prTime
-);
-
-NSS_EXTERN PRTime
-NSSTime_GetPRTime
-(
-  NSSTime *time
 );
 
 NSS_EXTERN nssHash *
@@ -572,140 +701,6 @@ nssHash_CreateCertificate
 (
   NSSArena *arenaOpt,
   PRUint32 numBuckets
-);
-
-/* 3.4 Certificate cache routines */
-
-NSS_EXTERN PRStatus
-nssTrustDomain_InitializeCache
-(
-  NSSTrustDomain *td,
-  PRUint32 cacheSize
-);
-
-NSS_EXTERN PRStatus
-nssTrustDomain_AddCertsToCache
-(
-  NSSTrustDomain *td,
-  NSSCertificate **certs,
-  PRUint32 numCerts
-);
-
-NSS_EXTERN void
-nssTrustDomain_RemoveCertFromCache
-(
-  NSSTrustDomain *td,
-  NSSCertificate *cert
-);
-
-NSS_EXTERN void
-nssTrustDomain_FlushCache
-(
-  NSSTrustDomain *td,
-  PRFloat64 threshold
-);
-
-NSS_IMPLEMENT PRStatus
-nssTrustDomain_DestroyCache
-(
-  NSSTrustDomain *td
-);
-
-/* 
- * Remove all certs for the given token from the cache.  This is
- * needed if the token is removed.
- */
-NSS_EXTERN PRStatus
-nssTrustDomain_RemoveTokenCertsFromCache
-(
-  NSSTrustDomain *td,
-  NSSToken *token
-);
-
-NSS_EXTERN PRStatus
-nssTrustDomain_UpdateCachedTokenCerts
-(
-  NSSTrustDomain *td,
-  NSSToken *token
-);
-
-/*
- * Find all cached certs with this nickname (label).
- */
-NSS_EXTERN NSSCertificate **
-nssTrustDomain_GetCertsForNicknameFromCache
-(
-  NSSTrustDomain *td,
-  NSSUTF8 *nickname,
-  nssList *certListOpt
-);
-
-/*
- * Find all cached certs with this email address.
- */
-NSS_EXTERN NSSCertificate **
-nssTrustDomain_GetCertsForEmailAddressFromCache
-(
-  NSSTrustDomain *td,
-  NSSASCII7 *email,
-  nssList *certListOpt
-);
-
-/*
- * Find all cached certs with this subject.
- */
-NSS_EXTERN NSSCertificate **
-nssTrustDomain_GetCertsForSubjectFromCache
-(
-  NSSTrustDomain *td,
-  NSSDER *subject,
-  nssList *certListOpt
-);
-
-/*
- * Look for a specific cert in the cache.
- */
-NSS_EXTERN NSSCertificate *
-nssTrustDomain_GetCertForIssuerAndSNFromCache
-(
-  NSSTrustDomain *td,
-  NSSDER *issuer,
-  NSSDER *serialNum
-);
-
-/*
- * Look for a specific cert in the cache.
- */
-NSS_EXTERN NSSCertificate *
-nssTrustDomain_GetCertByDERFromCache
-(
-  NSSTrustDomain *td,
-  NSSDER *der
-);
-
-/* Get all certs from the cache */
-/* XXX this is being included to make some old-style calls word, not to
- *     say we should keep it
- */
-NSS_EXTERN NSSCertificate **
-nssTrustDomain_GetCertsFromCache
-(
-  NSSTrustDomain *td,
-  nssList *certListOpt
-);
-
-NSS_EXTERN void
-nssTrustDomain_DumpCacheInfo
-(
-  NSSTrustDomain *td,
-  void (* cert_dump_iter)(const void *, void *, void *),
-  void *arg
-);
-
-NSS_EXTERN void
-nssCertificateList_AddReferences
-(
-  nssList *certList
 );
 
 PR_END_EXTERN_C

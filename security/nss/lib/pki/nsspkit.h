@@ -162,6 +162,8 @@ typedef struct NSSTrustDomainStr NSSTrustDomain;
 
 typedef struct NSSCryptoContextStr NSSCryptoContext;
 
+typedef struct NSSCRLStr NSSCRL;
+
 /*
  * fgmr others
  */
@@ -180,8 +182,7 @@ typedef struct NSSCryptoContextStr NSSCryptoContext;
  * Failing that, let's have an NSSTime_CompareRanges function.
  */
 
-struct NSSTimeStr;
-typedef struct NSSTimeStr NSSTime;
+typedef PRTime NSSTime;
 
 struct NSSTrustStr;
 typedef struct NSSTrustStr NSSTrust;
@@ -205,6 +206,24 @@ typedef struct NSSTrustStr NSSTrust;
 struct NSSUsageStr;
 typedef struct NSSUsageStr NSSUsage;
 
+typedef PRUint32 NSSUsages;
+
+#define NSSUsage_Any                     0x0000
+#define NSSUsage_SSLClient               0x0001
+#define NSSUsage_SSLServer               0x0002
+#define NSSUsage_SSLServerWithStepUp     0x0004
+#define NSSUsage_SSLCA                   0x0008
+#define NSSUsage_EmailSigning            0x0010
+#define NSSUsage_EmailRecipient          0x0020
+#define NSSUsage_EmailCA                 0x0040
+#define NSSUsage_CodeSigning             0x0080
+#define NSSUsage_CodeSigningCA           0x0100
+#define NSSUsage_StatusResponder         0x0200
+#define NSSUsage_TimeStamping            0x0400
+
+#define NSSUsage_AllCA \
+  NSSUsage_SSLCA | NSSUsage_EmailCA | NSSUsage_CodeSigningCA
+
 /*
  * NSSPolicies
  *
@@ -213,56 +232,6 @@ typedef struct NSSUsageStr NSSUsage;
 
 struct NSSPoliciesStr;
 typedef struct NSSPoliciesStr NSSPolicies;
-
-/*
- * NSSAlgorithmAndParameters
- *
- * Algorithm is an OID
- * Parameters depend on the algorithm
- */
-
-struct NSSAlgorithmAndParametersStr;
-typedef struct NSSAlgorithmAndParametersStr NSSAlgorithmAndParameters;
-
-/*
- * NSSCallback
- *
- * At minimum, a "challenge" method and a closure argument.
- * Usually the challenge will just be prompting for a password.
- * How OO do we want to make it?
- */
-
-typedef struct NSSCallbackStr NSSCallback;
-
-struct NSSCallbackStr {
-    /* Prompt for a password to initialize a slot.  */
-    PRStatus (* getInitPW)(NSSUTF8 *slotName, void *arg, 
-                           NSSUTF8 **ssoPW, NSSUTF8 **userPW); 
-    /* Prompt for oldPW and newPW in order to change the 
-     * password on a slot.  
-     */
-    PRStatus (* getNewPW)(NSSUTF8 *slotName, PRUint32 *retries, void *arg,
-                          NSSUTF8 **oldPW, NSSUTF8 **newPW); 
-    /* Prompt for slot password.  */
-    PRStatus (* getPW)(NSSUTF8 *slotName, PRUint32 *retries, void *arg,
-                       NSSUTF8 **password); 
-    void *arg;
-};
-
-/* set errors - user cancelled, ... */
-
-typedef PRUint32 NSSOperations;
-/* 1) Do we want these to be preprocessor definitions or constants? */
-/* 2) What is the correct and complete list? */
-
-#define NSSOperations_ENCRYPT           0x0001
-#define NSSOperations_DECRYPT           0x0002
-#define NSSOperations_WRAP              0x0004
-#define NSSOperations_UNWRAP            0x0008
-#define NSSOperations_SIGN              0x0010
-#define NSSOperations_SIGN_RECOVER      0x0020
-#define NSSOperations_VERIFY            0x0040
-#define NSSOperations_VERIFY_RECOVER    0x0080
 
 struct NSSPKIXCertificateStr;
 

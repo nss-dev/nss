@@ -48,6 +48,10 @@ static const char PKITM_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #include "baset.h"
 #endif /* BASET_H */
 
+#ifndef DEVT_H
+#include "devt.h"
+#endif /* DEVT_H */
+
 #ifndef PKIT_H
 #include "pkit.h"
 #endif /* PKIT_H */
@@ -55,54 +59,54 @@ static const char PKITM_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 PR_BEGIN_EXTERN_C
 
 /*
- * nssDecodedCert
+ * A note on ephemeral certs
  *
- * This is an interface to allow the PKI module access to certificate
- * information that can only be found by decoding.  The interface is
- * generic, allowing each certificate type its own way of providing
- * the information
+ * The key objects defined here can only be created on tokens, and can only
+ * exist on tokens.  Therefore, any instance of a key object must have
+ * a corresponding cryptoki instance.  OTOH, certificates created in 
+ * crypto contexts need not be stored as session objects on the token.
+ * There are good performance reasons for not doing so.  The certificate
+ * and trust objects have been defined with a cryptoContext field to
+ * allow for ephemeral certs, which may have a single instance in a crypto
+ * context along with any number (including zero) of cryptoki instances.
+ * Since contexts may not share objects, there can be only one context
+ * for each object.
  */
-struct nssDecodedCertStr {
-    NSSCertificateType type;
-    void *data;
-    /* returns the unique identifier for the cert */
-    NSSItem *  (*getIdentifier)(nssDecodedCert *dc);
-    /* returns the unique identifier for this cert's issuer */
-    NSSItem *  (*getIssuerIdentifier)(nssDecodedCert *dc);
-    /* is id the identifier for this cert? */
-    PRBool     (*matchIdentifier)(nssDecodedCert *dc, NSSItem *id);
-    /* returns the cert usage */
-    NSSUsage * (*getUsage)(nssDecodedCert *dc);
-    /* is time within the validity period of the cert? */
-    PRBool     (*isValidAtTime)(nssDecodedCert *dc, NSSTime *time);
-    /* is the validity period of this cert newer than cmpdc? */
-    PRBool     (*isNewerThan)(nssDecodedCert *dc, nssDecodedCert *cmpdc);
-    /* does the usage for this cert match the requested usage? */
-    PRBool     (*matchUsage)(nssDecodedCert *dc, NSSUsage *usage);
-    /* extract the email address */
-    NSSASCII7 *(*getEmailAddress)(nssDecodedCert *dc);
-    /* extract the DER-encoded serial number */
-    PRStatus   (*getDERSerialNumber)(nssDecodedCert *dc,
-                                     NSSDER *derSerial, NSSArena *arena);
+
+/* nssPKIObject
+ *
+ * This is the base object class, common to all PKI objects defined in
+ * nsspkit.h
+ */
+struct nssPKIObjectStr 
+{
+    /* The arena for all object memory */
+    NSSArena *arena;
+    /* Atomically incremented/decremented reference counting */
+    PRInt32 refCount;
+    /* lock protects the array of nssCryptokiInstance's of the object */
+    PZLock *lock;
+    /* XXX with LRU cache, this cannot be guaranteed up-to-date.  It cannot
+     * be compared against the update level of the trust domain, since it is
+     * also affected by import/export.  Where is this array needed?
+     */
+    nssCryptokiObject **instances;
+    PRUint32 numInstances;
+    /* The object must live in a trust domain */
+    NSSTrustDomain *trustDomain;
+    /* The object may live in a crypto context */
+    NSSCryptoContext *cryptoContext;
+    /* XXX added so temp certs can have nickname, think more ... */
+    NSSUTF8 *tempName;
 };
 
-struct NSSUsageStr {
-    PRBool anyUsage;
-#ifdef NSS_3_4_CODE
-    SECCertUsage nss3usage;
-    PRBool nss3lookingForCA;
-#endif
-};
+typedef struct nssPKIObjectStr nssPKIObject;
 
-typedef struct nssBestCertificateCBStr nssBestCertificateCB;
-
-struct nssBestCertificateCBStr {
-    NSSCertificate *cert;
-    NSSTime *time;
-    NSSTime sTime; /* to avoid allocating when unnecessary */
-    NSSUsage *usage;
-    NSSPolicies *policies;
-};
+/* nssCertificateCollection
+ *
+ * You guessed it; a collection of certs.  Each entry may be either an
+ * NSSCertificate or an nssProtoCertificate.
+ */
 
 typedef struct nssPKIObjectCollectionStr nssPKIObjectCollection;
 
@@ -112,7 +116,7 @@ typedef struct
     PRStatus (*  cert)(NSSCertificate *c, void *arg);
     PRStatus (*   crl)(NSSCRL       *crl, void *arg);
     PRStatus (* pvkey)(NSSPrivateKey *vk, void *arg);
-    PRStatus (* pbkey)(NSSPublicKey *bk, void *arg);
+    PRStatus (* pbkey)(NSSPublicKey  *bk, void *arg);
   } func;
   void *arg;
 } nssPKIObjectCallback;

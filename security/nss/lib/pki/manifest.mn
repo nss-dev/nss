@@ -37,11 +37,11 @@ CORE_DEPTH = ../../..
 PRIVATE_EXPORTS = \
 	pki.h      \
 	pkit.h     \
-	nsspkit.h  \
-	nsspki.h   \
 	$(NULL)
 
 EXPORTS =	   \
+	nsspki.h   \
+	nsspkit.h  \
 	$(NULL)
 
 MODULE = security
@@ -52,20 +52,12 @@ CSRCS =		        \
 	cryptocontext.c \
 	symmkey.c       \
 	trustdomain.c   \
-	tdcache.c       \
-	certdecode.c    \
+	certcache.c     \
 	pkistore.c      \
 	pkibase.c       \
+	time.c          \
 	$(NULL)
-
-ifndef PURE_STAN_BUILD
-CSRCS += pki3hack.c
-PRIVATE_EXPORTS += pkistore.h pki3hack.h pkitm.h pkim.h
-#DEFINES = -DNSS_3_4_CODE -DDEBUG_CACHE
-DEFINES = -DNSS_3_4_CODE
-endif
 
 REQUIRES = security nspr
 
 LIBRARY_NAME = nsspki
-LIBRARY_VERSION = 3
