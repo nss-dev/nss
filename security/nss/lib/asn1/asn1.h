@@ -806,7 +806,7 @@ extern const nssASN1Template *nssASN1Template_Boolean;
 extern const nssASN1Template *nssASN1Template_Enumerated;
 extern const nssASN1Template *nssASN1Template_GeneralizedTime;
 extern const nssASN1Template *nssASN1Template_IA5String;
-extern const nssASN1Template *nssASN1Template_Integer;
+extern const nssASN1Template nssASN1Template_Integer[];
 extern const nssASN1Template *nssASN1Template_Null;
 extern const nssASN1Template *nssASN1Template_ObjectID;
 extern const nssASN1Template *nssASN1Template_OctetString;

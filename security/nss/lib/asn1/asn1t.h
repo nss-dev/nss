@@ -81,6 +81,7 @@ typedef struct nssASN1ItemStr nssASN1Item;
  * pass anyway.
  */
 
+/* XXX made public, left here for now */
 typedef SEC_ASN1Template nssASN1Template;
 
 #define nssASN1_TAG_MASK               SEC_ASN1_TAG_MASK

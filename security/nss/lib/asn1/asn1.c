@@ -254,7 +254,6 @@ nssASN1Decoder_Create
 )
 {
   SEC_ASN1DecoderContext *rv;
-  PLArenaPool *hack = (PLArenaPool *)arenaOpt;
 
 #ifdef DEBUG
   if( (NSSArena *)NULL != arenaOpt ) {
@@ -274,9 +273,11 @@ nssASN1Decoder_Create
   }
 #endif /* DEBUG */
 
-  rv = SEC_ASN1DecoderStart(hack, destination, template);
+  rv = SEC_ASN1DecoderStart(arenaOpt, destination, template);
   if( (SEC_ASN1DecoderContext *)NULL == rv ) {
+#if 0
     nss_SetError(PORT_GetError()); /* also evil */
+#endif
     return (nssASN1Decoder *)NULL;
   }
 
@@ -333,7 +334,9 @@ nssASN1Decoder_Update
                              (const char *)data,
                              (unsigned long)amount);
   if( SECSuccess != rv ) {
+#if 0
     nss_SetError(PORT_GetError()); /* ugly */
+#endif
     return PR_FAILURE;
   }
 
@@ -373,7 +376,9 @@ nssASN1Decoder_Finish
   srv = SEC_ASN1DecoderFinish((SEC_ASN1DecoderContext *)decoder);
 
   if( SECSuccess != srv ) {
+#if 0
     nss_SetError(PORT_GetError()); /* ugly */
+#endif
     rv = PR_FAILURE;
   }
 
@@ -711,6 +716,7 @@ nssASN1Encoder_Create
   }
 #endif /* DEBUG */
 
+#ifdef nodef
   switch( encoding ) {
   case NSSASN1BER:
   case NSSASN1DER:
@@ -720,6 +726,7 @@ nssASN1Encoder_Create
   case NSSASN1PER:
   case NSSASN1UnknownEncoding:
   default:
+/* XXX fix this */
     nss_SetError(NSS_ERROR_ENCODING_NOT_SUPPORTED);
     return (nssASN1Encoder *)NULL;
   }
@@ -727,10 +734,13 @@ nssASN1Encoder_Create
   rv = SEC_ASN1EncoderStart((void *)source, template, 
                             (SEC_ASN1WriteProc)sink, argument);
   if( (SEC_ASN1EncoderContext *)NULL == rv ) {
+#if 0
     nss_SetError(PORT_GetError()); /* ugly */
+#endif
     return (nssASN1Encoder *)NULL;
   }
 
+/* XXX fix this */
   if( NSSASN1DER == encoding ) {
     sec_ASN1EncoderSetDER(rv);
   }
@@ -743,6 +753,8 @@ nssASN1Encoder_Create
 #endif /* DEBUG */
 
   return (nssASN1Encoder *)rv;
+#endif /* nodef */
+  return NULL;
 }
 
 /*
@@ -781,7 +793,9 @@ nssASN1Encoder_Update
                              (const char *)data, 
                              (unsigned long)length);
   if( SECSuccess != rv ) {
+#if 0
     nss_SetError(PORT_GetError()); /* ugly */
+#endif
     return PR_FAILURE;
   }
 
@@ -1284,8 +1298,7 @@ nssASN1_GetDERFromPRUint32
 )
 {
   NSSDER *rv;
-  PLArenaPool *hack = (PLArenaPool *)arenaOpt;
-  SECItem *item;
+  NSSItem *item;
 
 #ifdef DEBUG
   if( (NSSArena *)NULL != arenaOpt ) {
@@ -1304,13 +1317,15 @@ nssASN1_GetDERFromPRUint32
     rv = rvOpt;
   }
 
-  item = SEC_ASN1EncodeUnsignedInteger(hack, (SECItem *)rv, value);
-  if( (SECItem *)NULL == item ) {
+  item = SEC_ASN1EncodeUnsignedInteger(arenaOpt, (NSSItem *)rv, value);
+  if( (NSSItem *)NULL == item ) {
     if( (NSSDER *)NULL == rvOpt ) {
       (void)nss_ZFreeIf(rv);
     }
 
+#if 0
     nss_SetError(PORT_GetError()); /* ugly */
+#endif
     return (NSSDER *)NULL;
   }
 
@@ -1347,8 +1362,7 @@ nssASN1_GetDERFromPRInt32
 )
 {
   NSSDER *rv;
-  PLArenaPool *hack = (PLArenaPool *)arenaOpt;
-  SECItem *item;
+  NSSItem *item;
 
 #ifdef DEBUG
   if( (NSSArena *)NULL != arenaOpt ) {
@@ -1367,13 +1381,15 @@ nssASN1_GetDERFromPRInt32
     rv = rvOpt;
   }
 
-  item = SEC_ASN1EncodeInteger(hack, (SECItem *)rv, value);
-  if( (SECItem *)NULL == item ) {
+  item = SEC_ASN1EncodeInteger(arenaOpt, (NSSItem *)rv, value);
+  if( (NSSItem *)NULL == item ) {
     if( (NSSDER *)NULL == rvOpt ) {
       (void)nss_ZFreeIf(rv);
     }
 
+#if 0
     nss_SetError(PORT_GetError()); /* ugly */
+#endif
     return (NSSDER *)NULL;
   }
 
@@ -1401,7 +1417,12 @@ const nssASN1Template *nssASN1Template_Boolean =                         (nssASN
 const nssASN1Template *nssASN1Template_Enumerated =                      (nssASN1Template *)SEC_EnumeratedTemplate;
 const nssASN1Template *nssASN1Template_GeneralizedTime =                 (nssASN1Template *)SEC_GeneralizedTimeTemplate;
 const nssASN1Template *nssASN1Template_IA5String =                       (nssASN1Template *)SEC_IA5StringTemplate;
+const nssASN1Template nssASN1Template_Integer[] = {
+  { nssASN1_INTEGER, 0, NULL, sizeof(NSSItem) }
+};
+/*
 const nssASN1Template *nssASN1Template_Integer =                         (nssASN1Template *)SEC_IntegerTemplate;
+*/
 const nssASN1Template *nssASN1Template_Null =                            (nssASN1Template *)SEC_NullTemplate;
 const nssASN1Template *nssASN1Template_ObjectID =                        (nssASN1Template *)SEC_ObjectIDTemplate;
 const nssASN1Template *nssASN1Template_OctetString =                     (nssASN1Template *)SEC_OctetStringTemplate;
@@ -1725,3 +1746,29 @@ nssUTF8_GetDEREncoding
   (void)NSSArena_Destroy(a);
   return rv;
 }
+
+NSS_IMPLEMENT PRStatus
+NSSASN1_DecodeBER
+(
+  NSSArena *arenaOpt,
+  void *destination,
+  const NSSASN1Template template[],
+  const NSSBER *data
+)
+{
+    return nssASN1_DecodeBER(arenaOpt, destination, template, data);
+}
+
+NSS_IMPLEMENT NSSDER *
+NSSASN1_EncodeItem
+(
+  NSSArena *arenaOpt,
+  NSSDER *rvOpt,
+  const void *source,
+  const NSSASN1Template template[],
+  NSSASN1EncodingType encoding
+)
+{
+    return nssASN1_EncodeItem(arenaOpt, rvOpt, source, template, encoding);
+}
+
