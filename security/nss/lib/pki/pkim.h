@@ -232,7 +232,7 @@ nssCertificate_GetDecoding
   NSSCertificate *c
 );
 
-NSS_IMPLEMENT nssDecodedCert *
+NSS_EXTERN nssDecodedCert *
 nssDecodedCert_Create
 (
   NSSArena *arenaOpt,
@@ -240,10 +240,16 @@ nssDecodedCert_Create
   NSSCertificateType type
 );
 
-NSS_IMPLEMENT PRStatus
+NSS_EXTERN PRStatus
 nssDecodedCert_Destroy
 (
   nssDecodedCert *dc
+);
+
+NSS_EXTERN PRStatus
+nssPKIObject_Destroy
+(
+  nssPKIObject *object
 );
 
 NSS_EXTERN NSSTime *

@@ -117,6 +117,7 @@ NSSTrustDomain_Destroy
 	    nssList_Clear(td->tokenList, token_destructor);
 	    nssList_Destroy(td->tokenList);
 	}
+	nssTrustDomain_DestroyCache(td);
 	/* Destroy the trust domain */
 	nssArena_Destroy(td->arena);
     }
@@ -982,6 +983,7 @@ NSSTrustDomain_CreateCryptoContext
 	return NULL;
     }
     rvCC->td = td;
+    rvCC->arena = arena;
     return rvCC;
 }
 

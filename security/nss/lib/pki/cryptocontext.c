@@ -57,11 +57,11 @@ extern const NSSError NSS_ERROR_NOT_FOUND;
 NSS_IMPLEMENT PRStatus
 NSSCryptoContext_Destroy
 (
-  NSSCryptoContext *td
+  NSSCryptoContext *cc
 )
 {
-    nss_SetError(NSS_ERROR_NOT_FOUND);
-    return PR_FAILURE;
+    nssArena_Destroy(cc->arena);
+    return PR_SUCCESS;
 }
 
 NSS_IMPLEMENT PRStatus

@@ -247,7 +247,14 @@ nssTrustDomain_DestroyCache
   NSSTrustDomain *td
 )
 {
+    if (!td->cache) {
+	return PR_FAILURE;
+    }
     PZ_DestroyLock(td->cache->lock);
+    nssHash_Destroy(td->cache->issuerAndSN);
+    nssHash_Destroy(td->cache->subject);
+    nssHash_Destroy(td->cache->nickname);
+    nssHash_Destroy(td->cache->email);
     nssArena_Destroy(td->cache->arena);
     td->cache = NULL;
 #ifdef DEBUG_CACHE

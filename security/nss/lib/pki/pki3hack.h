@@ -57,14 +57,17 @@ PR_BEGIN_EXTERN_C
 NSS_EXTERN NSSTrustDomain *
 STAN_GetDefaultTrustDomain();
 
-NSSCryptoContext *
+NSS_EXTERN NSSCryptoContext *
 STAN_GetDefaultCryptoContext();
 
-NSS_IMPLEMENT void
+NSS_EXTERN void
 STAN_LoadDefaultNSS3TrustDomain
 (
   void
 );
+
+NSS_EXTERN void
+STAN_Shutdown();
 
 NSS_EXTERN PRStatus
 STAN_AddNewSlotToDefaultTD

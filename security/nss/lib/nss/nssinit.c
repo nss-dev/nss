@@ -388,6 +388,7 @@ NSS_Shutdown(void)
 
     isInitialized = PR_FALSE;
 #endif
+    STAN_Shutdown();
 }
 
 

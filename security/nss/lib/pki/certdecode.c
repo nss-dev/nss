@@ -43,6 +43,19 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #include "pkim.h"
 #endif /* PKIM_H */
 
+/* XXX
+ * move this to a more appropriate location
+ */
+NSS_IMPLEMENT PRStatus
+nssPKIObject_Destroy
+(
+  nssPKIObject *object
+)
+{
+    nssList_Destroy(object->instanceList);
+    nssArena_Destroy(object->arena);
+}
+
 #ifdef NSS_3_4_CODE
 /* This is defined in nss3hack.c */
 NSS_EXTERN nssDecodedCert *

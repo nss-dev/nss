@@ -110,6 +110,17 @@ STAN_LoadDefaultNSS3TrustDomain
     g_default_crypto_context = NSSTrustDomain_CreateCryptoContext(td, NULL);
 }
 
+NSS_IMPLEMENT void
+STAN_Shutdown()
+{
+    if (g_default_trust_domain) {
+	NSSTrustDomain_Destroy(g_default_trust_domain);
+    }
+    if (g_default_crypto_context) {
+	NSSCryptoContext_Destroy(g_default_crypto_context);
+    }
+}
+
 NSS_IMPLEMENT PRStatus
 STAN_AddNewSlotToDefaultTD
 (
@@ -386,6 +397,7 @@ nssTrust_GetCERTCertTrustForCert(NSSCertificate *c, NSSToken *token,
 	rvTrust->emailFlags |= CERTDB_USER;
 	rvTrust->objectSigningFlags |= CERTDB_USER;
     }
+    (void)nssPKIObject_Destroy(&t->object);
     return rvTrust;
 }
 
@@ -567,7 +579,7 @@ STAN_ChangeCertTrust(CERTCertificate *cc, CERTCertTrust *trust)
     /* maybe GetDefaultTrustToken()? */
     nssrv = nssToken_ImportTrust(instance->cryptoki.token, NULL, &nssTrust, 
                               instance->trustDomain, instance->cryptoContext);
-    nssArena_Destroy(nssTrust.object.arena);
+    (void)nssPKIObject_Destroy(&nssTrust.object);
     return nssrv;
 }
 
