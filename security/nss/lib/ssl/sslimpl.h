@@ -847,10 +847,6 @@ struct sslSecurityInfoStr {
 
     /* These are used during a connection handshake */
     sslConnectInfo   ci;					/* ssl 2 & 3 */
-    PRIntervalTime   lastTime;			/* last time smart card 
-						 * checked */ /* ssl3 only */  
-    PRBool           lastState;	                /* last state of client auth 
-						 * smart card present (ssl 3) */
 
 };
 
