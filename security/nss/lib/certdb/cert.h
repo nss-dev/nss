@@ -1087,6 +1087,33 @@ CERT_DestroyCertificatePoliciesExtension(CERTCertificatePolicies *policies);
 CERTUserNotice *
 CERT_DecodeUserNotice(SECItem *noticeItem);
 
+extern CERTGeneralName *
+CERT_DecodeAltNameExtension(PRArenaPool *arena, SECItem *EncodedAltName);
+
+extern CERTNameConstraints *
+CERT_DecodeNameConstraintsExtension(PRArenaPool *arena, 
+                                    SECItem *encodedConstraints);
+
+/* returns addr of a NULL termainated array of pointers to CERTAuthInfoAccess */
+extern CERTAuthInfoAccess **
+CERT_DecodeAuthInfoAccessExtension(PRArenaPool *arena,
+				   SECItem     *encodedExtension);
+
+extern CERTPrivKeyUsagePeriod *
+CERT_DecodePrivKeyUsagePeriodExtension(PLArenaPool *arena, SECItem *extnValue);
+
+extern CERTGeneralName *
+CERT_GetNextGeneralName(CERTGeneralName *current);
+
+extern CERTGeneralName *
+CERT_GetPrevGeneralName(CERTGeneralName *current);
+
+CERTNameConstraint *
+CERT_GetNextNameConstraint(CERTNameConstraint *current);
+
+CERTNameConstraint *
+CERT_GetPrevNameConstraint(CERTNameConstraint *current);
+
 void
 CERT_DestroyUserNotice(CERTUserNotice *userNotice);
 
