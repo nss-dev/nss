@@ -3345,7 +3345,7 @@ pk11_pbe_decode(SECAlgorithmID *algid, SECItem *mech)
     p5_misc = &p5_param->salt;
     paramSize = sizeof(CK_PBE_PARAMS);
 
-    pbe_params = (CK_PBE_PARAMS *)PORT_ZAlloc(paramSize) + p5_misc->len;
+    pbe_params = (CK_PBE_PARAMS *)PORT_ZAlloc(paramSize + p5_misc->len);
     if (pbe_params == NULL) {
 	SEC_PKCS5DestroyPBEParameter(p5_param);
 	return SECFailure;
