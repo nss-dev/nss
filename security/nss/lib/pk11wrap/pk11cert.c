@@ -3308,19 +3308,6 @@ struct listCertsStr {
     CERTCertList *certList;
 };
 
-static PRBool
-isOnList(CERTCertList *certList,NSSCertificate *c)
-{
-	CERTCertListNode *cln;
-
-	for (cln = CERT_LIST_HEAD(certList); !CERT_LIST_END(cln,certList);
-			cln = CERT_LIST_NEXT(cln)) {
-	    if (cln->cert->nssCertificate == c) {
-		return PR_TRUE;
-	    }
-	}
-	return PR_FALSE;
-}
 static PRStatus
 pk11ListCertCallback(NSSCertificate *c, void *arg)
 {
@@ -3352,12 +3339,6 @@ pk11ListCertCallback(NSSCertificate *c, void *arg)
 		NSSCertificate_IsPrivateKeyAvailable(c, NULL,NULL)) {
 	return PR_SUCCESS;
     }
-
-    /* if we want Unique certs and we already have it on our list, skip it */
-    if ( isUnique && isOnList(certList,c) ) {
-	return PR_SUCCESS;
-    }
-
 
     newCert = STAN_GetCERTCertificate(c);
     if (!newCert) {
