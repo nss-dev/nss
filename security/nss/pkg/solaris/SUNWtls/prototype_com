@@ -15,6 +15,7 @@
 #!<param>=<value>			# puts parameter in pkg environment
 
 # packaging files
+i copyright
 i pkginfo
 i depend=pkgdepend
 #

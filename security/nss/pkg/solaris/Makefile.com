@@ -15,7 +15,7 @@ ROOT = $(subst ../../../,,$(CORE_DEPTH))/ROOT-$(OBJDIR_NAME)
 endif
 
 PKGARCHIVE = $(PUBLISH_ROOT)/pkgarchive
-DATAFILES = 
+DATAFILES = copyright
 FILES = $(DATAFILES) pkginfo
 
 PACKAGE = $(shell basename `pwd`)
