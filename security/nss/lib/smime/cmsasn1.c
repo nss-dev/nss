@@ -305,7 +305,7 @@ static const SEC_ASN1Template NSSCMSOriginatorIdentifierOrKeyTemplate[] = {
     { 0 }
 };
 
-static const SEC_ASN1Template NSSCMSRecipientKeyIdentifierTemplate[] = {
+const SEC_ASN1Template NSSCMSRecipientKeyIdentifierTemplate[] = {
     { SEC_ASN1_SEQUENCE,
 	  0, NULL, sizeof(NSSCMSRecipientKeyIdentifier) },
     { SEC_ASN1_OCTET_STRING,
