@@ -459,7 +459,7 @@ smime_choose_cipher (CERTCertificate *scert, CERTCertificate **rcerts)
 	profile = CERT_FindSMimeProfile (rcerts[rcount]);
 	if (profile != NULL && profile->data != NULL && profile->len > 0) {
 	    caps = NULL;
-	    dstat = SEC_ASN1DecodeItem (poolp, &caps,
+	    dstat = SEC_QuickDERDecodeItem (poolp, &caps,
 					smime_capabilities_template,
 					profile);
 	    if (dstat == SECSuccess && caps != NULL) {
