@@ -66,6 +66,8 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #include "base.h"
 #endif /* BASE_H */
 
+extern const NSSError NSS_ERROR_NOT_FOUND;
+
 /* Hm, sadly, I'm using PK11_HashBuf...  Need to get crypto context going to
  * get rid of that
  */

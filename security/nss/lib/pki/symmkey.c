@@ -39,6 +39,8 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #include "nsspki.h"
 #endif /* NSSPKI_H */
 
+extern const NSSError NSS_ERROR_NOT_FOUND;
+
 NSS_IMPLEMENT PRStatus
 NSSSymmetricKey_Destroy
 (
