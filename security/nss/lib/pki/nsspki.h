@@ -1747,7 +1747,7 @@ NSS_EXTERN NSSCertificate *
 NSSTrustDomain_FindBestCertificateBySubject
 (
   NSSTrustDomain *td,
-  NSSUTF8 *subject,
+  NSSDER /*NSSUTF8*/ *subject,
   NSSTime *timeOpt,
   NSSUsage *usage,
   NSSPolicies *policiesOpt
@@ -1763,7 +1763,7 @@ NSS_EXTERN NSSCertificate **
 NSSTrustDomain_FindCertificatesBySubject
 (
   NSSTrustDomain *td,
-  NSSUTF8 *subject,
+  NSSDER /*NSSUTF8*/ *subject,
   NSSCertificate *rvOpt[],
   PRUint32 maximumOpt, /* 0 for no max */
   NSSArena *arenaOpt
