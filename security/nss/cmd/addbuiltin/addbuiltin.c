@@ -40,10 +40,7 @@
 #include "nss.h"
 #include "cert.h"
 #include "secutil.h"
-#include "blapi.h"
-
-extern SECStatus 
-CERT_SerialNumberFromDERCert(SECItem *derCert, SECItem *derName);
+#include "pk11func.h"
 
 void dumpbytes(unsigned char *buf, int len)
 {
@@ -109,8 +106,8 @@ ConvertCertificate(SECItem *sdder, char *nickname, CERTCertTrust *trust)
     dumpbytes(sdder->data,sdder->len);
     printf("END\n");
 
-    SHA1_HashBuf(sha1_hash,sdder->data,sdder->len);
-    MD5_HashBuf(md5_hash,sdder->data,sdder->len);
+    PK11_HashBuf(SEC_OID_SHA1, sha1_hash, sdder->data, sdder->len);
+    PK11_HashBuf(SEC_OID_MD5, md5_hash, sdder->data, sdder->len);
     printf("\n# Trust for Certificate \"%s\"\n",nickname);
     printf("CKA_CLASS CK_OBJECT_CLASS CKO_NETSCAPE_TRUST\n");
     printf("CKA_TOKEN CK_BBOOL CK_TRUE\n");
