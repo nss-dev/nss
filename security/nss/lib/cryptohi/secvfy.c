@@ -54,11 +54,10 @@
 ** XXX this is assuming that the signature algorithm has WITH_RSA_ENCRYPTION
 */
 static SECStatus
-DecryptSigBlock(int *tagp, unsigned char *digest, SECKEYPublicKey *key,
+DecryptSigBlock(SECOidTag *tagp, unsigned char *digest, SECKEYPublicKey *key,
 		SECItem *sig, char *wincx)
 {
     SGNDigestInfo *di   = NULL;
-    unsigned char *dsig = NULL;
     unsigned char *buf  = NULL;
     SECStatus      rv;
     SECOidTag      tag;
@@ -70,10 +69,6 @@ DecryptSigBlock(int *tagp, unsigned char *digest, SECKEYPublicKey *key,
     if (!it.len) goto loser;
     it.data = buf = (unsigned char *)PORT_Alloc(it.len);
     if (!buf) goto loser;
-
-    /* Decrypt signature block */
-    dsig = (unsigned char*) PORT_Alloc(sig->len);
-    if (dsig == NULL) goto loser;
 
     /* decrypt the block */
     rv = PK11_VerifyRecover(key, sig, &it, wincx);
@@ -104,7 +99,6 @@ DecryptSigBlock(int *tagp, unsigned char *digest, SECKEYPublicKey *key,
 
   done:
     if (di   != NULL) SGN_DestroyDigestInfo(di);
-    if (dsig != NULL) PORT_Free(dsig);
     if (buf  != NULL) PORT_Free(buf);
     
     return rv;
@@ -251,9 +245,9 @@ VFY_CreateContext(SECKEYPublicKey *key, SECItem *sig, SECOidTag algid,
 	    cx->type = VFY_RSA;
 	    cx->key = SECKEY_CopyPublicKey(key); /* extra safety precautions */
 	    if (sig) {
-		int hashid;
+		SECOidTag hashid = SEC_OID_UNKNOWN;
 	    	rv = DecryptSigBlock(&hashid, &cx->digest[0], 
-						key, sig, (char*)wincx);
+						cx->key, sig, (char*)wincx);
 		cx->alg = hashid;
 	    } else {
 		rv = decodeSigAlg(algid,&cx->alg);
@@ -398,7 +392,7 @@ VFY_EndWithSignature(VFYContext *cx, SECItem *sig)
 	break;
       case VFY_RSA:
 	if (sig) {
-	    int hashid;
+	    SECOidTag hashid = SEC_OID_UNKNOWN;
 	    rv = DecryptSigBlock(&hashid, &cx->digest[0], 
 					    cx->key, sig, (char*)cx->wincx);
 	    if ((rv != SECSuccess) || (hashid != cx->alg)) {
