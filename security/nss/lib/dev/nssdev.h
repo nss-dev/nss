@@ -182,27 +182,7 @@ NSSToken_GetInfo (
  * 
  */
 
-NSS_EXTERN NSSAlgorithmAndParameters *
-NSSAlgorithmAndParameters_Create (
-  NSSArena *arenaOpt,
-  NSSAlgorithmType algorithm,
-  NSSParameters *parameters
-);
-
-NSS_EXTERN NSSAlgorithmAndParameters *
-NSSAlgorithmAndParameters_CreateKeyPairGen (
-  NSSArena *arenaOpt,
-  NSSKeyPairType keyPairType,
-  NSSParameters *parametersOpt
-);
-
-NSS_EXTERN NSSAlgorithmAndParameters *
-NSSAlgorithmAndParameters_CreateSymKeyGen (
-  NSSArena *arenaOpt,
-  NSSSymmetricKeyType symKeyType,
-  NSSParameters *parametersOpt
-);
-
+#if 0
 NSS_EXTERN NSSAlgorithmAndParameters *
 NSSAlgorithmAndParameters_CreateMAC (
   NSSArena *arenaOpt,
@@ -227,6 +207,7 @@ NSS_EXTERN NSSItem *
 NSSAlgorithmAndParameters_GetParameters (
   NSSAlgorithmAndParameters *ap
 );
+#endif
 
 /* NSSAlgorithmAndParameters_Destroy
  *

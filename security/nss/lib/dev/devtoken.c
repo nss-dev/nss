@@ -1516,6 +1516,9 @@ nssToken_GenerateKeyPair (
     CK_ULONG btsize, vtsize;
     CK_OBJECT_HANDLE bkeyh, vkeyh;
     void *epv = nssToken_GetCryptokiEPV(token);
+    PRUint32 numLeft;
+    PRUint32 numBK = sizeof(bk_template) / sizeof(bk_template[0]);
+    PRUint32 numVK = sizeof(vk_template) / sizeof(vk_template[0]);
 
     mechanism = nssAlgorithmAndParameters_GetMechanism(ap);
 
@@ -1533,19 +1536,17 @@ nssToken_GenerateKeyPair (
     }
     if (properties) {
 	PRUint32 bkProps = operations & PUBLIC_KEY_PROPS_MASK;
-	attr += nssCKTemplate_SetPropertyAttributes(attr,
-	                                            attr - bk_template,
-                                                    bkProps);
+	numLeft = numBK - (attr - bk_template);
+	attr += nssCKTemplate_SetPropertyAttributes(attr, numLeft, bkProps);
     }
     if (operations) {
 	PRUint32 bkOps = operations & PUBLIC_KEY_OPS_MASK;
-	attr += nssCKTemplate_SetOperationAttributes(attr, 
-	                                             attr - bk_template,
-	                                             bkOps);
+	numLeft = numBK - (attr - bk_template);
+	attr += nssCKTemplate_SetOperationAttributes(attr, numLeft, bkOps);
     }
     /* Set algorithm-dependent values in the template */
-    attr += nssAlgorithmAndParameters_SetTemplateValues(ap, attr,
-                                                        bk_template - attr);
+    numLeft = numBK - (attr - bk_template);
+    attr += nssAlgorithmAndParameters_SetTemplateValues(ap, attr, numLeft);
     NSS_CK_TEMPLATE_FINISH(bk_template, attr, btsize);
 
     /*
@@ -1563,15 +1564,13 @@ nssToken_GenerateKeyPair (
     }
     if (properties) {
 	PRUint32 vkProps = operations & PRIVATE_KEY_PROPS_MASK;
-	attr += nssCKTemplate_SetPropertyAttributes(attr,
-	                                            attr - vk_template,
-                                                    vkProps);
+	numLeft = numVK - (attr - vk_template);
+	attr += nssCKTemplate_SetPropertyAttributes(attr, numLeft, vkProps);
     }
     if (operations) {
 	PRUint32 vkOps = operations & PRIVATE_KEY_OPS_MASK;
-	attr += nssCKTemplate_SetOperationAttributes(attr, 
-	                                             attr - vk_template,
-	                                             vkOps);
+	numLeft = numVK - (attr - vk_template);
+	attr += nssCKTemplate_SetOperationAttributes(attr, numLeft, vkOps);
     }
 #if 0
     /* XXX */
@@ -1627,7 +1626,9 @@ nssToken_GenerateSymmetricKey (
     CK_ULONG tsize;
     CK_OBJECT_HANDLE keyh;
     void *epv = nssToken_GetCryptokiEPV(token);
-    nssCryptokiObject *key;
+    nssCryptokiObject *key = NULL;
+    PRUint32 numLeft;
+    PRUint32 numkt = sizeof(keyTemplate) / sizeof(keyTemplate[0]);
 
     /* Set up the symmetric key's template */
     NSS_CK_TEMPLATE_START(keyTemplate, attr, tsize);
@@ -1640,13 +1641,13 @@ nssToken_GenerateSymmetricKey (
 	NSS_CK_SET_ATTRIBUTE_UTF8(attr, CKA_LABEL, labelOpt);
     }
     if (operations) {
-	attr += nssCKTemplate_SetOperationAttributes(attr, 
-	                                             attr - keyTemplate,
+	numLeft = numkt - (attr - keyTemplate);
+	attr += nssCKTemplate_SetOperationAttributes(attr, numLeft,
 	                                             operations);
     }
     if (properties) {
-	attr += nssCKTemplate_SetPropertyAttributes(attr,
-	                                            attr - keyTemplate,
+	numLeft = numkt - (attr - keyTemplate);
+	attr += nssCKTemplate_SetPropertyAttributes(attr, numLeft,
                                                     properties);
     }
     if (keysize > 0) {
@@ -1704,11 +1705,15 @@ nssToken_UnwrapKey (
     CK_RV ckrv;
     CK_MECHANISM_PTR mechanism;
     CK_OBJECT_HANDLE keyH;
-    CK_ATTRIBUTE keyTemplate[14];
+    CK_ATTRIBUTE keyTemplate[16];
     CK_ATTRIBUTE_PTR attr = keyTemplate;
     CK_ULONG ktSize;
     nssCryptokiObject *unwrappedKey = NULL;
     void *epv = nssToken_GetCryptokiEPV(token);
+    PRUint32 numLeft;
+    PRUint32 numkt = sizeof(keyTemplate) / sizeof(keyTemplate[0]);
+    CK_OBJECT_CLASS class = CKO_PRIVATE_KEY; /* XXX */
+    CK_KEY_TYPE keyType = CKK_RSA; /* XXX */
 
     mechanism = nssAlgorithmAndParameters_GetMechanism(ap);
 
@@ -1719,15 +1724,20 @@ nssToken_UnwrapKey (
     } else {
 	NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_TOKEN, &g_ck_false);
     }
+    /* XXX mondo hack, the private key alg is in the pki, but can't
+     *     access pkcs#8 via pkcs#11, doing this for testing only
+     */
+    NSS_CK_SET_ATTRIBUTE_VAR(attr, CKA_CLASS, class);
+    NSS_CK_SET_ATTRIBUTE_VAR(attr, CKA_KEY_TYPE, keyType);
     if (operations) {
-	attr += nssCKTemplate_SetOperationAttributes(attr, 
-	                                             keyTemplate - attr,
+	numLeft = numkt - (attr - keyTemplate);
+	attr += nssCKTemplate_SetOperationAttributes(attr, numLeft,
 	                                             operations);
     }
 
     if (properties) {
-	attr += nssCKTemplate_SetPropertyAttributes(attr,
-	                                            keyTemplate - attr,
+	numLeft = numkt - (attr - keyTemplate);
+	attr += nssCKTemplate_SetPropertyAttributes(attr, numLeft,
                                                     properties);
     }
     NSS_CK_TEMPLATE_FINISH(keyTemplate, attr, ktSize);
@@ -1767,12 +1777,19 @@ nssToken_WrapKey (
 
     nssSession_EnterMonitor(session);
     /* Get the length of the output buffer */
+#ifdef SOFTOKEN_CANT_GIVE_WRAP_LEN_BUG
+/* NSS 3.X guessed the wrap len from the pubkey size, what about the
+ * implicit PKCS#8 encoding done on pubkeys?
+ */
     ckrv = CKAPI(epv)->C_WrapKey(session->handle, mechanism,
                                  wrappingKey->handle, targetKey->handle,
                                  NULL, &wrapLen);
     if (ckrv != CKR_OK) {
 	goto loser;
     }
+#else
+    wrapLen = 8192; /* XXX this will boink out at > 8k keys */
+#endif
     /* Set up the output buffer */
     if (arenaOpt) {
 	mark = nssArena_Mark(arenaOpt);
@@ -1825,6 +1842,8 @@ nssToken_DeriveKey (
     CK_ULONG ktSize;
     nssCryptokiObject *derivedKey = NULL;
     void *epv = nssToken_GetCryptokiEPV(token);
+    PRUint32 numLeft;
+    PRUint32 numkt = sizeof(keyTemplate) / sizeof(keyTemplate[0]);
 
     mechanism = nssAlgorithmAndParameters_GetMechanism(ap);
 
@@ -1836,12 +1855,14 @@ nssToken_DeriveKey (
 	NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_TOKEN, &g_ck_false);
     }
     if (operations) {
+	numLeft = numkt - (attr - keyTemplate);
 	attr += nssCKTemplate_SetOperationAttributes(attr, 
 	                                             keyTemplate - attr,
 	                                             operations);
     }
 
     if (properties) {
+	numLeft = numkt - (attr - keyTemplate);
 	attr += nssCKTemplate_SetPropertyAttributes(attr,
 	                                            keyTemplate - attr,
                                                     properties);
@@ -1880,6 +1901,8 @@ nssToken_DeriveSSLSessionKeys (
     CK_ULONG ktSize;
     CK_KEY_TYPE ckKeyType;
     void *epv = nssToken_GetCryptokiEPV(token);
+    PRUint32 numLeft;
+    PRUint32 numkt = sizeof(keyTemplate) / sizeof(keyTemplate[0]);
 
     mechanism = nssAlgorithmAndParameters_GetMechanism(ap);
 
@@ -1888,14 +1911,14 @@ nssToken_DeriveSSLSessionKeys (
     NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_TOKEN, &g_ck_false);
     NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_CLASS, &g_ck_class_symkey);
     if (operations) {
-	attr += nssCKTemplate_SetOperationAttributes(attr, 
-	                                             keyTemplate - attr,
+	numLeft = numkt - (attr - keyTemplate);
+	attr += nssCKTemplate_SetOperationAttributes(attr,  numLeft,
 	                                             operations);
     }
 
     if (properties) {
-	attr += nssCKTemplate_SetPropertyAttributes(attr,
-	                                            keyTemplate - attr,
+	numLeft = numkt - (attr - keyTemplate);
+	attr += nssCKTemplate_SetPropertyAttributes(attr, numLeft,
                                                     properties);
     }
     ckKeyType = nssCK_GetSymKeyType(bulkKeyType);

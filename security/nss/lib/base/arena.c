@@ -806,6 +806,14 @@ nss_ZFreeIf (
   /*NOTREACHED*/
 }
 
+NSS_IMPLEMENT PRStatus
+NSS_ZFreeIf (
+  void *pointer
+)
+{
+    return nss_ZFreeIf(pointer);
+}
+
 /*
  * nss_ZRealloc
  *

@@ -722,12 +722,14 @@ pk11_handleTrustObject(PK11Session *session,PK11Object *object)
     if ( !pk11_hasAttribute(object,CKA_SERIAL_NUMBER) ) {
 	return CKR_TEMPLATE_INCOMPLETE;
     }
+#if 0
     if ( !pk11_hasAttribute(object,CKA_CERT_SHA1_HASH) ) {
 	return CKR_TEMPLATE_INCOMPLETE;
     }
     if ( !pk11_hasAttribute(object,CKA_CERT_MD5_HASH) ) {
 	return CKR_TEMPLATE_INCOMPLETE;
     }
+#endif
 
     if (pk11_isTrue(object,CKA_TOKEN)) {
 	PK11Slot *slot = session->slot;

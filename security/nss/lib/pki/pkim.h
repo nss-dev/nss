@@ -214,7 +214,7 @@ nssPKIObject_GetInstances (
 NSS_EXTERN nssCryptokiObject *
 nssPKIObject_FindInstanceForAlgorithm (
   nssPKIObject *object,
-  NSSAlgorithmAndParameters *ap
+  const NSSAlgorithmAndParameters *ap
 );
 
 NSS_EXTERN NSSToken *
@@ -358,7 +358,7 @@ nssSymmetricKey_GetInstance (
 NSS_EXTERN nssCryptokiObject *
 nssSymmetricKey_FindInstanceForAlgorithm (
   NSSSymmetricKey *mk,
-  NSSAlgorithmAndParameters *ap
+  const NSSAlgorithmAndParameters *ap
 );
 
 NSS_EXTERN NSSDER *
@@ -394,7 +394,7 @@ nssPublicKey_GetInstance (
 NSS_EXTERN nssCryptokiObject *
 nssPublicKey_FindInstanceForAlgorithm (
   NSSPublicKey *bk,
-  NSSAlgorithmAndParameters *ap
+  const NSSAlgorithmAndParameters *ap
 );
 
 NSS_EXTERN nssCryptokiObject *
@@ -423,7 +423,7 @@ nssPrivateKey_GetInstance (
 NSS_EXTERN nssCryptokiObject *
 nssPrivateKey_FindInstanceForAlgorithm (
   NSSPrivateKey *vk,
-  NSSAlgorithmAndParameters *ap
+  const NSSAlgorithmAndParameters *ap
 );
 
 NSS_EXTERN nssCryptokiObject *

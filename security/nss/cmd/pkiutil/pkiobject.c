@@ -1,8 +1,11 @@
 
 #include <string.h>
+#include "nss.h"
 #include "nssbase.h"
 #include "nssdev.h"
 #include "nsspki.h"
+#include "oiddata.h"
+#include "nsspki1.h"
 /* hmmm...*/
 #include "pki.h"
 #include "nsspkix.h"
@@ -122,13 +125,7 @@ static PRStatus
 dump_cert_callback(NSSCertificate *c, void *arg)
 {
     CMDRunTimeData *rtData = (CMDRunTimeData *)arg;
-    NSSUTF8 *nickname = nssCertificate_GetNickname(c, NULL);
-    if (rtData->output.mode == CMDFileMode_PrettyPrint) {
-	print_decoded_cert(rtData, c);
-    } else if (rtData->output.mode == CMDFileMode_Binary) {
-	NSSDER *encoding = nssCertificate_GetEncoding(c);
-	PR_Write(rtData->output.file, encoding->data, encoding->size);
-    }
+    print_decoded_cert(rtData, c);
     return PR_SUCCESS;
 }
 
@@ -540,6 +537,35 @@ import_certificate
     return status;
 }
 
+static PRStatus
+import_private_key
+(
+  NSSTrustDomain *td,
+  NSSToken *tokenOpt,
+  char *nickname,
+  CMDRunTimeData *rtData
+)
+{
+    PRStatus status;
+    NSSItem *encoding;
+    NSSPrivateKey *vkey;
+
+    /* get the encoded key from the input source */
+    encoding = CMD_GetInput(rtData);
+    /* import into trust domain */
+    vkey = NSSTrustDomain_ImportEncodedPrivateKey(td, encoding, NULL,
+                                              CMD_PWCallbackForKeyEncoding(), 
+                                                  tokenOpt/*, nickname */);
+    if (vkey) {
+	PR_fprintf(PR_STDOUT, "Import successful.\n");
+	/* dump_cert_info(td, cert, rtData); */
+	NSSPrivateKey_Destroy(vkey);
+    } else {
+	PR_fprintf(PR_STDERR, "Import failed!\n");
+    }
+    return status;
+}
+
 PRStatus
 ImportObject
 (
@@ -561,7 +587,182 @@ ImportObject
     case PKIPublicKey:
 	break;
     case PKIPrivateKey:
+	status = import_private_key(td, tokenOpt, nickname, rtData);
 	break;
+    case PKIUnknown:
+	status = PR_FAILURE;
+	break;
+    }
+    return status;
+}
+
+static int
+numbered_menu_choice (
+  void (* display_info)(void *item),
+  void **array
+)
+{
+    int i, nb, num;
+    void **it;
+    char buf[5];
+    for (i=0, it = array; *it; it++, i++) {
+	PR_fprintf(PR_STDOUT, "%d - ", i);
+	(*display_info)(*it);
+	PR_fprintf(PR_STDOUT, "\n");
+    }
+    PR_fprintf(PR_STDOUT, "\nSelection:  ");
+    nb = PR_Read(PR_STDIN, buf, sizeof buf);
+    num = atoi(buf);
+    if (num < 0 || num >= i) {
+	return -1;
+    }
+    return num;
+}
+
+#if 0
+static void
+private_key_choice
+#endif
+
+static NSSPrivateKey *
+private_key_chooser(NSSPrivateKey **vkeys)
+{
+#if 0
+    int choice;
+    choice = numbered_menu_choice(private_key_choice, (void **)vkeys);
+    if (choice >= 0) {
+	return vkeys[choice];
+    }
+#endif
+    return NULL;
+}
+
+static void
+cert_choice(void *arg)
+{
+    NSSCertificate *c = (NSSCertificate *)arg;
+    NSSUTF8 *nickname = nssCertificate_GetNickname(c, NULL);
+    PR_fprintf(PR_STDOUT, "%s", nickname);
+}
+
+static NSSCertificate *
+cert_chooser(NSSCertificate **certs)
+{
+    int choice = 0;
+    if (certs[1]) {
+	/* more than one to choose from, prompt user */
+	choice = numbered_menu_choice(cert_choice, (void **)certs);
+    }
+    if (choice >= 0) {
+	return certs[choice];
+    }
+    return NULL;
+}
+
+static PRStatus
+export_certificate (
+  NSSTrustDomain *td,
+  NSSToken *tokenOpt,
+  char *nickname,
+  CMDRunTimeData *rtData
+)
+{
+    NSSCertificate *cert, **certs;
+    certs = NSSTrustDomain_FindCertificatesByNickname(td, nickname, 
+                                                      NULL, 0, NULL);
+    if (certs) {
+	cert = cert_chooser(certs);
+	if (cert) {
+	    NSSDER *enc = nssCertificate_GetEncoding(cert);
+	    CMD_DumpOutput(enc, rtData);
+	}
+	NSSCertificateArray_Destroy(certs);
+    }
+}
+
+static PRStatus
+generate_salt(NSSItem *salt)
+{
+    salt->data = NSS_GenerateRandom(16, NULL, NULL);
+    salt->size = 16;
+}
+
+static PRStatus
+export_private_key (
+  NSSTrustDomain *td,
+  NSSToken *tokenOpt,
+  char *nickname,
+  CMDRunTimeData *rtData
+)
+{
+    NSSPrivateKey *vkey, **vkeys;
+    NSSCertificate *ucert, **ucerts;
+
+#if 0
+    vkeys = NSSTrustDomain_FindPrivateKeysByNickname(td, nickname);
+#else
+vkeys = NULL;
+#endif
+    if (vkeys) {
+	vkey = private_key_chooser(vkeys);
+    } else {
+	ucerts = NSSTrustDomain_FindUserCertificates(td, NULL, 0, NULL);
+	if (ucerts) {
+	    ucert = cert_chooser(ucerts);
+	    if (ucert) {
+		vkey = NSSCertificate_FindPrivateKey(ucert, NULL);
+	    }
+	    NSSCertificateArray_Destroy(ucerts);
+	}
+    }
+    if (vkey) {
+	NSSAlgorithmAndParameters *pbe;
+	NSSParameters params;
+	NSSOID *pbeAlg;
+	NSSItem *encKey;
+	params.pbe.iteration = 1;
+	generate_salt(&params.pbe.salt);
+	pbeAlg = NSSOID_CreateFromTag(NSS_OID_PKCS5_PBE_WITH_MD5_AND_DES_CBC);
+	if (!pbeAlg) {
+	    return PR_FAILURE;
+	}
+	pbe = NSSOID_CreateAlgorithmAndParameters(pbeAlg, &params, NULL);
+	if (!pbe) {
+	    return PR_FAILURE;
+	}
+	encKey = NSSPrivateKey_Encode(vkey, pbe, NULL,
+	                              CMD_PWCallbackForKeyEncoding(), 
+	                              NULL, NULL);
+	NSS_ZFreeIf(params.pbe.salt.data);
+	NSSAlgorithmAndParameters_Destroy(pbe);
+	if (encKey) {
+	    CMD_DumpOutput(encKey, rtData);
+	    NSSItem_Destroy(encKey);
+	}
+    }
+}
+
+PRStatus
+ExportObject (
+  NSSTrustDomain *td,
+  NSSToken *tokenOpt,
+  char *objectTypeOpt,
+  char *nickname,
+  CMDRunTimeData *rtData
+)
+{
+    PRStatus status;
+    PKIObjectType objectKind;
+    objectKind = get_object_class(objectTypeOpt);
+    switch (objectKind) {
+    case PKIAny: /* default to certificate */
+    case PKICertificate:
+	status = export_certificate(td, tokenOpt, nickname, rtData);
+	break;
+    case PKIPrivateKey:
+	status = export_private_key(td, tokenOpt, nickname, rtData);
+	break;
+    case PKIPublicKey: /* don't handle this one */
     case PKIUnknown:
 	status = PR_FAILURE;
 	break;

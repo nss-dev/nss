@@ -47,6 +47,9 @@ CMD_GetDefaultPasswordCallback
   char *passwordFile
 );
 
+NSSCallback *
+CMD_PWCallbackForKeyEncoding(void);
+
 void
 CMD_DestroyCallback
 (

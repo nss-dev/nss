@@ -55,6 +55,7 @@ enum {
     cmd_Delete,
     cmd_Import,
     cmd_Interactive,
+    cmd_Export,
     cmd_List,
     cmd_ListChain,
     cmd_ModifyTrust,
@@ -117,8 +118,7 @@ static cmdCommandLineArg pkiutil_commands[] =
    'I', "import", 
    CMDNoArg, 0, PR_FALSE, 
    {
-     CMDBIT(opt_Nickname) | 
-     CMDBIT(opt_Trust), 
+     CMDBIT(opt_Nickname),
      0, 0, 0
    },
    {
@@ -141,6 +141,26 @@ static cmdCommandLineArg pkiutil_commands[] =
      0, 0, 0 
    },
    "Use interactive mode"
+ },
+ { /* cmd_Export */  
+   'E', "export", 
+   CMDNoArg, 0, PR_FALSE, 
+   {
+     CMDBIT(opt_Nickname) |
+     CMDBIT(opt_Type),
+     0, 0, 0
+   },
+   {
+     CMDBIT(opt_Ascii) | 
+     CMDBIT(opt_ProfileDir) | 
+     CMDBIT(opt_TokenName) | 
+     CMDBIT(opt_OutputFile) | 
+     CMDBIT(opt_Binary),
+     0, 0, 0
+   },
+   "Export an object from the profile/token\n"
+   "  private-key ==> PKCS#8 Encrypted Private Key Info\n"
+   "  certificate ==> DER-encoded Certificate"
  },
  { /* cmd_List */  
    'L', "list", 
@@ -196,11 +216,9 @@ static cmdCommandLineArg pkiutil_commands[] =
      0, 0, 0
    },
    {
-     CMDBIT(opt_Ascii) | 
      CMDBIT(opt_Info) | 
      CMDBIT(opt_ProfileDir) | 
      CMDBIT(opt_OutputFile) | 
-     CMDBIT(opt_Binary) | 
      CMDBIT(opt_Serial) | 
      CMDBIT(opt_Type),
      0, 0, 0
@@ -446,7 +464,14 @@ pkiutil_command_dispatcher(cmdCommand *pkiutil, int cmdToRun)
     case cmd_Import:
 	status = ImportObject(td,
 	                      token,
-	                      NULL,
+	                      pkiutil->opt[opt_Type].arg,
+	                      pkiutil->opt[opt_Nickname].arg,
+	                      &rtData);
+	break;
+    case cmd_Export:
+	status = ExportObject(td,
+	                      token,
+	                      pkiutil->opt[opt_Type].arg,
 	                      pkiutil->opt[opt_Nickname].arg,
 	                      &rtData);
 	break;

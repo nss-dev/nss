@@ -103,6 +103,22 @@ nssPrivateKey_Create (
 }
 
 NSS_IMPLEMENT NSSPrivateKey *
+nssPrivateKey_CreateFromInstance (
+  nssCryptokiObject *instance,
+  NSSTrustDomain *td,
+  NSSVolatileDomain *vdOpt
+)
+{
+    nssPKIObject *pkio;
+
+    pkio = nssPKIObject_Create(NULL, instance, td, vdOpt);
+    if (pkio) {
+	return nssPrivateKey_Create(pkio);
+    }
+    return (NSSPrivateKey *)NULL;
+}
+
+NSS_IMPLEMENT NSSPrivateKey *
 nssPrivateKey_AddRef (
   NSSPrivateKey *vk
 )
@@ -179,7 +195,7 @@ nssPrivateKey_GetInstance (
 NSS_IMPLEMENT nssCryptokiObject *
 nssPrivateKey_FindInstanceForAlgorithm (
   NSSPrivateKey *vk,
-  NSSAlgorithmAndParameters *ap
+  const NSSAlgorithmAndParameters *ap
 )
 {
     return nssPKIObject_FindInstanceForAlgorithm(&vk->object, ap);
@@ -233,18 +249,213 @@ NSSPrivateKey_IsStillPresent (
     return PR_FALSE;
 }
 
+typedef struct {
+  NSSItem encAlg;
+  NSSItem encData;
+} EPKI;
+
+static const NSSASN1Template encrypted_private_key_info_tmpl[] =
+{
+ { NSSASN1_SEQUENCE, 0, NULL, sizeof(EPKI) },
+ { NSSASN1_ANY,          offsetof(EPKI, encAlg)  },
+ { NSSASN1_OCTET_STRING, offsetof(EPKI, encData) },
+ { 0 }
+};
+
 NSS_IMPLEMENT NSSItem *
-NSSPrivateKey_Encode (
+nssPrivateKey_Encode (
   NSSPrivateKey *vk,
-  const NSSAlgorithmAndParameters *ap,
-  NSSItem *passwordOpt, /* NULL will cause a callback; "" for no password */
+  NSSAlgorithmAndParameters *ap,
+  NSSUTF8 *passwordOpt,
   NSSCallback *uhhOpt,
   NSSItem *rvOpt,
   NSSArena *arenaOpt
 )
 {
-    nss_SetError(NSS_ERROR_NOT_FOUND);
-    return NULL;
+    PRStatus status;
+    nssCryptokiObject *pbeKey;
+    nssCryptokiObject *vkey;
+    NSSAlgorithmAndParameters *wrapAP;
+    NSSItem *wrap;
+    EPKI epki;
+    NSSBER *pbeAlgBER;
+    NSSItem *epkiData = NULL;
+    NSSUTF8 *password;
+
+    /* get the encryption password */
+    if (passwordOpt) {
+	password = passwordOpt;
+    } else {
+	NSSCallback *uhh;
+	uhh = uhhOpt ? uhhOpt : 
+	      nssTrustDomain_GetDefaultCallback(vk->object.td, NULL);
+	status = uhh->getPW(NULL, NULL, uhh->arg, &password);
+	if (status == PR_FAILURE) {
+	    return (NSSItem *)NULL;
+	}
+    }
+    (void)nssAlgorithmAndParameters_SetPBEPassword(ap, password);
+
+    vkey = nssPrivateKey_FindInstanceForAlgorithm(vk, ap);
+    if (!vkey) {
+	/* XXX defer to trust domain? */
+	nss_ZFreeIf(password);
+	return (NSSItem *)NULL;
+    }
+
+    /* use the supplied PBE alg/param to create a wrapping key */
+    pbeKey = nssToken_GenerateSymmetricKey(vkey->token, vkey->session, ap,
+                                           0, NULL, PR_FALSE,
+                                           NSSOperations_WRAP, 0);
+    nss_ZFreeIf(password);
+    if (!pbeKey) {
+	return (NSSItem *)NULL;
+    }
+
+    /* convert the PBE alg/param to a corresponding encryption alg/param */
+    wrapAP = nssAlgorithmAndParameters_ConvertPBEToCrypto(ap, PR_TRUE);
+    if (!wrapAP) {
+	return (NSSItem *)NULL;
+    }
+
+    /* wrap the private key with the PBE key */
+    wrap = nssToken_WrapKey(vkey->token, vkey->session, wrapAP, 
+                            pbeKey, vkey, 
+                            rvOpt, arenaOpt);
+    nssAlgorithmAndParameters_Destroy(wrapAP);
+    nssCryptokiObject_Destroy(pbeKey);
+    nssCryptokiObject_Destroy(vkey);
+    if (!wrap) {
+	return (NSSItem *)NULL;
+    }
+
+    /* encode result in PKCS#8 format */
+    pbeAlgBER = nssAlgorithmAndParameters_Encode(ap, &epki.encAlg, arenaOpt);
+    if (!pbeAlgBER) {
+	return (NSSItem *)NULL;
+    }
+    epki.encData = *wrap;
+    epkiData = nssASN1_EncodeItem(arenaOpt, rvOpt, &epki,
+                                  encrypted_private_key_info_tmpl, 
+                                  NSSASN1DER);
+
+    return epkiData;
+}
+
+NSS_IMPLEMENT NSSItem *
+NSSPrivateKey_Encode (
+  NSSPrivateKey *vk,
+  NSSAlgorithmAndParameters *ap,
+  NSSUTF8 *passwordOpt,
+  NSSCallback *uhhOpt,
+  NSSItem *rvOpt,
+  NSSArena *arenaOpt
+)
+{
+    return nssPrivateKey_Encode(vk, ap, passwordOpt, uhhOpt, 
+                                rvOpt, arenaOpt);
+}
+
+NSS_IMPLEMENT NSSPrivateKey *
+nssPrivateKey_Decode (
+  NSSBER *ber,
+  NSSUTF8 *passwordOpt,
+  NSSCallback *uhhOpt,
+  NSSToken *destination,
+  NSSTrustDomain *td
+)
+{
+    PRStatus status;
+    nssCryptokiObject *pbeKey = NULL;
+    nssCryptokiObject *vkey = NULL;
+    NSSAlgorithmAndParameters *wrapAP = NULL;
+    NSSAlgorithmAndParameters *pbeAP = NULL;
+    EPKI epki = { 0 };
+    NSSItem *epkiData = NULL;
+    NSSUTF8 *password = NULL;
+    nssSession *session = NULL;
+    NSSArena *tmparena;
+    NSSPrivateKey *rvKey = NULL;
+    NSSSlot *slot;
+
+    tmparena = nssArena_Create();
+    if (!tmparena) {
+	return (NSSPrivateKey *)NULL;
+    }
+
+    /* decode PKCS#8 formatted encoded key */
+    status = nssASN1_DecodeBER(tmparena, &epki,
+                               encrypted_private_key_info_tmpl, ber);
+    if (status == PR_FAILURE) {
+	goto cleanup;
+    }
+    pbeAP = nssAlgorithmAndParameters_Decode(NULL, &epki.encAlg);
+    if (!pbeAP) {
+	goto cleanup;
+    }
+
+    /* get the encryption password */
+    if (passwordOpt) {
+	password = passwordOpt;
+    } else {
+	NSSCallback *uhh;
+	uhh = uhhOpt ? uhhOpt : nssTrustDomain_GetDefaultCallback(td, NULL);
+	status = uhh->getPW(NULL, NULL, uhh->arg, &password);
+	if (status == PR_FAILURE) {
+	    goto cleanup;
+	}
+    }
+    (void)nssAlgorithmAndParameters_SetPBEPassword(pbeAP, password);
+
+    session = nssToken_CreateSession(destination, PR_TRUE);
+    if (!session) {
+	goto cleanup;
+    }
+
+    /* use the supplied PBE alg/param to create a wrapping key */
+    pbeKey = nssToken_GenerateSymmetricKey(destination, session, pbeAP,
+                                           0, NULL, PR_FALSE,
+                                           NSSOperations_UNWRAP, 0);
+    nss_ZFreeIf(password);
+    if (!pbeKey) {
+	goto cleanup;
+    }
+
+    /* convert the PBE alg/param to a corresponding encryption alg/param */
+    wrapAP = nssAlgorithmAndParameters_ConvertPBEToCrypto(pbeAP, PR_TRUE);
+    if (!wrapAP) {
+	goto cleanup;
+    }
+
+    slot = nssToken_GetSlot(destination);
+    status = nssSlot_Login(slot, 
+                           nssTrustDomain_GetDefaultCallback(td, NULL));
+    nssSlot_Destroy(slot);
+
+    /* unwrap the private key with the PBE key */
+    vkey = nssToken_UnwrapKey(destination, session, wrapAP, 
+                              pbeKey, &epki.encData, PR_TRUE, 0, 0);
+    if (!vkey) {
+	goto cleanup;
+    }
+
+    rvKey = nssPrivateKey_CreateFromInstance(vkey, td, NULL);
+
+cleanup:
+    if (session) {
+	nssSession_Destroy(session);
+    }
+    if (pbeAP) {
+	nssAlgorithmAndParameters_Destroy(pbeAP);
+    }
+    if (wrapAP) {
+	nssAlgorithmAndParameters_Destroy(wrapAP);
+    }
+    if (pbeKey) {
+	nssCryptokiObject_Destroy(pbeKey);
+    }
+    nssArena_Destroy(tmparena);
+    return rvKey;
 }
 
 NSS_IMPLEMENT NSSVolatileDomain *
@@ -506,6 +717,7 @@ struct NSSPublicKeyStr
   PRUint32 flags;
   NSSDER subject;
 #endif
+  PRUint32 modulusBits;
   NSSPublicKeyInfo info;
 };
 
@@ -695,7 +907,7 @@ nssPublicKey_GetInstance (
 NSS_IMPLEMENT nssCryptokiObject *
 nssPublicKey_FindInstanceForAlgorithm (
   NSSPublicKey *bk,
-  NSSAlgorithmAndParameters *ap
+  const NSSAlgorithmAndParameters *ap
 )
 {
     return nssPKIObject_FindInstanceForAlgorithm(&bk->object, ap);

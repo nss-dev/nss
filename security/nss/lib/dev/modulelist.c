@@ -346,3 +346,31 @@ NSS_FindModuleByName (
     return nssGlobalModuleList_FindModuleByName(name);
 }
 
+NSS_IMPLEMENT PRUint8 *
+nss_GenerateRandom (
+  PRUint32 numBytes,
+  PRUint8 *rvOpt,
+  NSSArena *arenaOpt
+)
+{
+    NSSToken *randToken;
+    PRUint8 *rv = NULL;
+    /* XXX using internal until have some method for choosing rand token */
+    randToken = nss_GetDefaultCryptoToken();
+    if (randToken) {
+	rv = nssToken_GenerateRandom(randToken, rvOpt, numBytes, arenaOpt);
+	nssToken_Destroy(randToken);
+    }
+    return rv;
+}
+
+NSS_IMPLEMENT PRUint8 *
+NSS_GenerateRandom (
+  PRUint32 numBytes,
+  PRUint8 *rvOpt,
+  NSSArena *arenaOpt
+)
+{
+    return nss_GenerateRandom(numBytes, rvOpt, arenaOpt);
+}
+

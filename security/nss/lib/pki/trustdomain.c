@@ -471,16 +471,28 @@ NSSTrustDomain_ImportEncodedCertificateChain (
 }
 
 NSS_IMPLEMENT NSSPrivateKey *
-NSSTrustDomain_ImportEncodedPrivateKey (
+nssTrustDomain_ImportEncodedPrivateKey (
   NSSTrustDomain *td,
   NSSBER *ber,
-  NSSItem *passwordOpt, /* NULL will cause a callback */
+  NSSUTF8 *passwordOpt,
   NSSCallback *uhhOpt,
   NSSToken *destination
 )
 {
-    nss_SetError(NSS_ERROR_NOT_FOUND);
-    return NULL;
+    return nssPrivateKey_Decode(ber, passwordOpt, uhhOpt, destination, td);
+}
+
+NSS_IMPLEMENT NSSPrivateKey *
+NSSTrustDomain_ImportEncodedPrivateKey (
+  NSSTrustDomain *td,
+  NSSBER *ber,
+  NSSUTF8 *passwordOpt,
+  NSSCallback *uhhOpt,
+  NSSToken *destination
+)
+{
+    return nssTrustDomain_ImportEncodedPrivateKey(td, ber, passwordOpt,
+                                                  uhhOpt, destination);
 }
 
 NSS_IMPLEMENT NSSPublicKey *
@@ -1127,19 +1139,71 @@ NSSTrustDomain_FindBestUserCertificate (
     return NULL;
 }
 
+/* XXX don't keep this */
+struct stuff_str {
+  NSSCertificate **rv;
+  PRUint32 rvCount;
+  PRUint32 rvSize;
+  PRUint32 rvLimit;
+  NSSArena *arenaOpt;
+};
+
+static PRStatus
+get_user(NSSCertificate *c, void *arg)
+{
+    struct stuff_str *stuff = (struct stuff_str *)arg;
+    if (nssCertificate_IsPrivateKeyAvailable(c, NULL, NULL)) {
+	if (stuff->rvSize == 0) {
+	    stuff->rvSize = 2;
+	    stuff->rv = nss_ZNEWARRAY(stuff->arenaOpt, NSSCertificate *,
+	                              stuff->rvSize + 1);
+	    if (!stuff->rv) return PR_FAILURE;
+	} else if (stuff->rvCount == stuff->rvSize && stuff->rvLimit == 0) {
+	    stuff->rvSize *= 2;
+	    stuff->rv = nss_ZREALLOCARRAY(stuff->rv, NSSCertificate *,
+	                                  stuff->rvSize + 1);
+	    if (!stuff->rv) return PR_FAILURE;
+	} else {
+	    return PR_SUCCESS;
+	}
+	stuff->rv[stuff->rvCount++] = nssCertificate_AddRef(c);
+    }
+    return PR_SUCCESS;
+}
+
 NSS_IMPLEMENT NSSCertificate **
-NSSTrustDomain_FindUserCertificates (
+nssTrustDomain_FindUserCertificates (
   NSSTrustDomain *td,
-  NSSTime time,
-  NSSUsages *usagesOpt,
-  NSSPolicies *policiesOpt,
   NSSCertificate **rvOpt,
-  PRUint32 rvLimit, /* zero for no limit */
+  PRUint32 rvLimit,
   NSSArena *arenaOpt
 )
 {
-    nss_SetError(NSS_ERROR_NOT_FOUND);
-    return NULL;
+    PRStatus *status;
+    /* XXX need something more efficient */
+    struct stuff_str stuff;
+    stuff.rv = rvOpt;
+    stuff.rvCount = 0;
+    stuff.rvSize = rvOpt ? rvLimit : 0;
+    stuff.rvLimit = rvLimit;
+    stuff.arenaOpt = arenaOpt;
+    status = nssTrustDomain_TraverseCertificates(td, get_user, &stuff);
+    if (status && *status == PR_FAILURE) {
+	nssCertificateArray_Destroy(stuff.rv);
+	stuff.rv = NULL;
+    }
+    return stuff.rv;
+}
+
+NSS_IMPLEMENT NSSCertificate **
+NSSTrustDomain_FindUserCertificates (
+  NSSTrustDomain *td,
+  NSSCertificate **rvOpt,
+  PRUint32 rvLimit,
+  NSSArena *arenaOpt
+)
+{
+    return nssTrustDomain_FindUserCertificates(td, rvOpt, rvLimit, arenaOpt);
 }
 
 NSS_IMPLEMENT NSSCertificate *
@@ -1212,7 +1276,7 @@ collector(nssCryptokiObject *instance, void *arg)
 }
 
 NSS_IMPLEMENT PRStatus *
-NSSTrustDomain_TraverseCertificates (
+nssTrustDomain_TraverseCertificates (
   NSSTrustDomain *td,
   PRStatus (*callback)(NSSCertificate *c, void *arg),
   void *arg
@@ -1278,6 +1342,16 @@ loser:
 	nssPKIObjectCollection_Destroy(collection);
     }
     return NULL;
+}
+
+NSS_IMPLEMENT PRStatus *
+NSSTrustDomain_TraverseCertificates (
+  NSSTrustDomain *td,
+  PRStatus (*callback)(NSSCertificate *c, void *arg),
+  void *arg
+)
+{
+    return nssTrustDomain_TraverseCertificates(td, callback, arg);
 }
 
 NSS_IMPLEMENT nssTrust *

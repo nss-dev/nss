@@ -190,13 +190,12 @@ NSSOID_GetUTF8Encoding (
  * NSSOID_GetAlgorithmAndParameters
  */
 
-#ifdef nodef
 NSS_EXTERN NSSAlgorithmAndParameters *
-NSSOID_GetAlgorithmAndParameters (
-  const NSSOID *oid
+NSSOID_CreateAlgorithmAndParameters (
+  const NSSOID *oid,
+  NSSParameters *parameters,
   NSSArena *arenaOpt
 );
-#endif
 
 /*
  * NSSATAV

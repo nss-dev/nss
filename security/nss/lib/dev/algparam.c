@@ -47,6 +47,19 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #include "asn1.h"
 #endif /* ASN1_H */
 
+#ifndef PKI1_H
+#include "pki1.h"
+#endif /* PKI1_H */
+
+#ifndef OIDDATA_H
+#include "oiddata.h"
+#endif /* OIDDATA_H */
+
+/* XXX grr -- not defined in stan header yet */
+#ifndef CKM_INVALID_MECHANISM
+#define CKM_INVALID_MECHANISM 0xffffffff
+#endif
+
 /*
  * NSSAlgorithmAndParametersStr
  *
@@ -66,22 +79,19 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
  * created.  The template values are set upon request, and are extracted
  * from the the params field.
  *
- * Once an AlgorithmAndParamters is created, it is considered read-only.
+ * We also need to move back and forth between AlgorithmIDs and AlgParams.
+ * Each algorithm that has a template for params will set it when the
+ * AlgParam is created.
+ *
+ * Once an AlgorithmAndParameters is created, it is considered read-only.
  * Thus is it used as 'const' throughout the API.
- *
- * An AlgorithmAndParameters can be created the following ways:
- *
- * 1) from an { NSSAlgorithmType, NSSParameters } pair (generic crypto),
- * 2) from an { NSSKeyPairType, NSSParameters } pair (key pair generation),
- * 3) from an { NSSSymmetricKeyType, NSSParameters } pair (symkey gen),
- * 4) from an { CK_MECHANISM_TYPE, NSSParameters } pair
- *     --- this is a 'friendly' method used to convert OID's to Alg&Params
  */
 struct NSSAlgorithmAndParametersStr
 {
   NSSArena *arena;
   CK_MECHANISM mechanism; /* alg&param in cryptoki terms */
-  NSSParameters params;   /* template values kept here */
+  const NSSOID *alg;      /* NSS algorithm */
+  NSSParameters params;   /* NSS params (template values kept here) */
 
   /* every happy algorithm sets a mechanism the same way, but each
    * unhappy one sets a template a different way.
@@ -89,17 +99,19 @@ struct NSSAlgorithmAndParametersStr
   PRIntn (* set_template)(const NSSAlgorithmAndParameters *ap,
                           CK_ATTRIBUTE_PTR aTemplate,
                           CK_ULONG templateSize);
+
+  /* ASN.1 template for BER en/decoding parameters */
+  const NSSASN1Template *paramTemplate;
 };
 
 /*
  * For each algorithm that requires a parameter, the following methods
  * may exist (depending on what kind of parameters it requires):
  *
- * set_xxx_mechanism -- convert an NSSParameters to a CK_MECHANISM
- *                      for algorithm xxx
- * xxx_settor -- callback function to set template values for xxx
- * decode_xxx -- decode an octet string into parameters for
- *               algorithm xxx (used when creating from OID's)
+ * set_xxx_mechanism -- convert an OID and NSSParameters to a 
+ *                      CK_MECHANISM for algorithm xxx
+ * xxx_settor -- callback function to set PKCS#11 template values for xxx
+ * xxx_param_template -- ASN.1 template for parameters
  */
 
 /* For all mechanisms where the only parameter is an IV */
@@ -195,40 +207,23 @@ rsa_keygen_settor (
 }
 
 /* 
- * RSA cipher
+ * RSA
  */
 static PRStatus
 set_rsa_mechanism (
-  CK_MECHANISM_PTR mechPtr,
-  NSSParameters *parameters
+  NSSAlgorithmAndParameters *ap,
+  CK_MECHANISM_TYPE mech,
+  NSSParameters *parameters,
+  NSSItem *encodedParams,
+  PRBool keygen
 )
 {
-    NSSParameters defaultParams;
-    if (!parameters) {
-	defaultParams.rsa = NSSRSABlockFormat_Raw;
-	parameters = &defaultParams;
-    }
-    switch (parameters->rsa) {
-    case NSSRSABlockFormat_Raw:
-	mechPtr->mechanism = CKM_RSA_X_509;
-	break;
-    case NSSRSABlockFormat_PKCS1:
-	mechPtr->mechanism = CKM_RSA_PKCS;
-	break;
-    case NSSRSABlockFormat_PKCS1_WITH_MD2:
-	mechPtr->mechanism = CKM_MD2_RSA_PKCS;
-	break;
-    case NSSRSABlockFormat_PKCS1_WITH_MD5:
-	mechPtr->mechanism = CKM_MD5_RSA_PKCS;
-	break;
-    case NSSRSABlockFormat_PKCS1_WITH_SHA1:
-	mechPtr->mechanism = CKM_SHA1_RSA_PKCS;
-	break;
-    case NSSRSABlockFormat_PKCS1_OAEP:
-	mechPtr->mechanism = CKM_RSA_PKCS_OAEP;
-	break;
-    default:
-	return PR_FAILURE;
+    if (keygen) {
+	ap->mechanism.mechanism = CKM_RSA_PKCS_KEY_PAIR_GEN;
+	ap->params.rsakg = parameters->rsakg;
+	ap->set_template = rsa_keygen_settor;
+    } else {
+	ap->mechanism.mechanism = mech;
     }
     return PR_SUCCESS;
 }
@@ -261,28 +256,31 @@ dsa_keygen_settor (
 }
 
 /*
- * DSA cipher
+ * DSA
  */
 static PRStatus
 set_dsa_mechanism (
-  CK_MECHANISM_PTR mechPtr,
-  NSSParameters *parameters
+  NSSAlgorithmAndParameters *ap,
+  CK_MECHANISM_TYPE mech,
+  NSSParameters *parameters,
+  NSSItem *encodedParams,
+  PRBool keygen
 )
 {
-    NSSParameters defaultParams;
-    if (!parameters) {
-	defaultParams.dsa = NSSAlgorithmType_NULL;
-	parameters = &defaultParams;
-    }
-    switch (parameters->dsa) {
-    case NSSAlgorithmType_NULL:
-	mechPtr->mechanism = CKM_DSA;
-	break;
-    case NSSAlgorithmType_SHA1:
-	mechPtr->mechanism = CKM_DSA_SHA1;
-	break;
-    default:
-	return PR_FAILURE;
+    if (keygen) {
+	ap->mechanism.mechanism = CKM_DSA_KEY_PAIR_GEN;
+	ap->params.dsakg.primeBits = parameters->dsakg.primeBits;
+	if (parameters->dsakg.p.data != NULL) {
+	    nssItem_Duplicate(&parameters->dsakg.p, ap->arena,
+	                      &ap->params.dsakg.p);
+	    nssItem_Duplicate(&parameters->dsakg.q, ap->arena,
+	                      &ap->params.dsakg.q);
+	    nssItem_Duplicate(&parameters->dsakg.g, ap->arena,
+	                      &ap->params.dsakg.g);
+	}
+	ap->set_template = dsa_keygen_settor;
+    } else {
+	ap->mechanism.mechanism = mech;
     }
     return PR_SUCCESS;
 }
@@ -320,10 +318,25 @@ dh_keygen_settor (
  */
 static PRStatus
 set_dh_mechanism (
-  CK_MECHANISM_PTR mechPtr,
-  NSSParameters *parameters
+  NSSAlgorithmAndParameters *ap,
+  CK_MECHANISM_TYPE mech,
+  NSSParameters *parameters,
+  NSSItem *encodedParams,
+  PRBool keygen
 )
 {
+#if 0
+	mechPtr->mechanism = CKM_DH_PKCS_KEY_PAIR_GEN;
+	ap->params.dhkg.valueBits = parameters->dhkg.valueBits;
+	ap->params.dhkg.primeBits = parameters->dhkg.primeBits;
+	if (parameters->dhkg.p.data != NULL) {
+	    nssItem_Duplicate(&parameters->dhkg.p, ap->arena,
+	                      &ap->params.dhkg.p);
+	    nssItem_Duplicate(&parameters->dhkg.g, ap->arena,
+	                      &ap->params.dhkg.g);
+	}
+	ap->set_template = dh_keygen_settor;
+#endif
 	/* XXX */
     return PR_FAILURE;
 }
@@ -333,20 +346,22 @@ set_dh_mechanism (
  */
 static PRStatus
 set_des_mechanism (
-  CK_MECHANISM_PTR mechPtr,
+  NSSAlgorithmAndParameters *ap,
+  CK_MECHANISM_TYPE mech,
   NSSParameters *parameters,
-  NSSArena *arena
+  NSSItem *encodedParams,
+  PRBool keygen
 )
 {
-    if (parameters) {
-	if (parameters->des.pkcsPad) {
-	    mechPtr->mechanism = CKM_DES_CBC_PAD;
-	} else {
-	    mechPtr->mechanism = CKM_DES_CBC;
-	}
-	return set_iv_parameter(mechPtr, &parameters->des.iv, arena);
+    if (keygen) {
+	ap->mechanism.mechanism = CKM_DES_KEY_GEN;
     } else {
-	mechPtr->mechanism = CKM_DES_ECB;
+	ap->mechanism.mechanism = mech;
+	if (mech == CKM_DES_CBC) {
+	    PR_ASSERT(parameters != NULL);
+	    return set_iv_parameter(&ap->mechanism, 
+	                            &parameters->des.iv, ap->arena);
+	}
     }
     return PR_SUCCESS;
 }
@@ -356,20 +371,20 @@ set_des_mechanism (
  */
 static PRStatus
 set_des3_mechanism (
-  CK_MECHANISM_PTR mechPtr,
+  NSSAlgorithmAndParameters *ap,
+  CK_MECHANISM_TYPE mech,
   NSSParameters *parameters,
-  NSSArena *arena
+  NSSItem *encodedParams,
+  PRBool keygen
 )
 {
-    if (parameters) {
-	if (parameters->des.pkcsPad) {
-	    mechPtr->mechanism = CKM_DES3_CBC_PAD;
-	} else {
-	    mechPtr->mechanism = CKM_DES3_CBC;
-	}
-	return set_iv_parameter(mechPtr, &parameters->des.iv, arena);
+    if (keygen) {
+	ap->mechanism.mechanism = CKM_DES3_KEY_GEN;
     } else {
-	mechPtr->mechanism = CKM_DES3_ECB;
+	ap->mechanism.mechanism = mech;
+	PR_ASSERT(mech == CKM_DES3_CBC && parameters != NULL);
+	return set_iv_parameter(&ap->mechanism, 
+	                        &parameters->des.iv, ap->arena);
     }
     return PR_SUCCESS;
 }
@@ -379,20 +394,22 @@ set_des3_mechanism (
  */
 static PRStatus
 set_aes_mechanism (
-  CK_MECHANISM_PTR mechPtr,
+  NSSAlgorithmAndParameters *ap,
+  CK_MECHANISM_TYPE mech,
   NSSParameters *parameters,
-  NSSArena *arena
+  NSSItem *encodedParams,
+  PRBool keygen
 )
 {
-    if (parameters) {
-	if (parameters->aes.pkcsPad) {
-	    mechPtr->mechanism = CKM_AES_CBC_PAD;
-	} else {
-	    mechPtr->mechanism = CKM_AES_CBC;
-	}
-	return set_iv_parameter(mechPtr, &parameters->des.iv, arena);
+    if (keygen) {
+	ap->mechanism.mechanism = CKM_AES_KEY_GEN;
     } else {
-	mechPtr->mechanism = CKM_AES_ECB;
+	ap->mechanism.mechanism = mech;
+	if (mech == CKM_AES_CBC) {
+	    PR_ASSERT(parameters != NULL);
+	    return set_iv_parameter(&ap->mechanism, 
+	                            &parameters->aes.iv, ap->arena);
+	}
     }
     return PR_SUCCESS;
 }
@@ -401,130 +418,93 @@ set_aes_mechanism (
  * RC2
  */
 
-/* setting mechanism */
-
-static PRStatus
-set_rc2_mechanism (
-  CK_MECHANISM_PTR mechPtr,
-  NSSParameters *parameters,
-  NSSArena *arena
-)
-{
-    if (parameters) {
-	CK_RC2_CBC_PARAMS_PTR rc2p;
-	if (parameters->rc2.pkcsPad) {
-	    mechPtr->mechanism = CKM_RC2_CBC_PAD;
-	} else {
-	    mechPtr->mechanism = CKM_RC2_CBC;
-	}
-	rc2p = nss_ZNEW(arena, CK_RC2_CBC_PARAMS);
-	if (!rc2p) {
-	    return PR_FAILURE;
-	}
-	nsslibc_memcpy(rc2p->iv, 
-	               parameters->rc2.iv.data, 
-	               parameters->rc2.iv.size);
-	rc2p->ulEffectiveBits = parameters->rc2.effectiveKeySizeInBits;
-	mechPtr->pParameter = rc2p;
-	mechPtr->ulParameterLen = sizeof(rc2p);
-    } else {
-	mechPtr->mechanism = CKM_RC2_ECB;
-	return set_bits_parameter(mechPtr, 
-	                          parameters->rc2.effectiveKeySizeInBits, 
-	                          arena);
-    }
-    return PR_SUCCESS;
-}
-
-/* decoding */
-
-struct rc2_param_str {
-  NSSItem version; /* number? */
-  NSSItem iv;
-};
+/* en/decoding */
 
 static const nssASN1Template rc2_ecb_param_tmpl[] = {
-  { nssASN1_SEQUENCE, 0, NULL, sizeof(struct rc2_param_str)  },
-  { nssASN1_INTEGER, offsetof(struct rc2_param_str, version) },
+  { nssASN1_SEQUENCE, 0, NULL, sizeof(NSSRC2Parameters)  },
+  { nssASN1_INTEGER, offsetof(NSSRC2Parameters, version) },
   { 0 }
 };
 
 static const nssASN1Template rc2_cbc_param_tmpl[] = {
-  { nssASN1_SEQUENCE, 0, NULL, sizeof(struct rc2_param_str)  },
-  { nssASN1_INTEGER, offsetof(struct rc2_param_str, version) },
-  { nssASN1_OCTET_STRING, offsetof(struct rc2_param_str, iv) },
+  { nssASN1_SEQUENCE, 0, NULL, sizeof(NSSRC2Parameters)  },
+  { nssASN1_INTEGER, offsetof(NSSRC2Parameters, version) },
+  { nssASN1_OCTET_STRING, offsetof(NSSRC2Parameters, iv) },
   { 0 }
 };
 
-static CK_ULONG rc2_map(NSSItem *version)
+static PRStatus rc2_map(NSSRC2Parameters *params)
 {
     PRStatus status;
     PRUint32 x;
-    status = nssASN1_CreatePRUint32FromBER(version, &x);
+    status = nssASN1_CreatePRUint32FromBER(&params->version, &x);
     if (status == PR_SUCCESS) {
 	switch (x) {
-	case 120: return  64;
-	case 160: return  40;
+	case 120: params->effectiveKeySizeInBits =  64; break;
+	case 160: params->effectiveKeySizeInBits =  40; break;
 	case 58:
-	default:  return 128;
+	default:  params->effectiveKeySizeInBits = 128; break;
 	}
     }
-    return -1;
+    return status;
 }
 
-static PRStatus
-decode_rc2_ecb(NSSAlgorithmAndParameters *ap, const NSSItem *params)
+static PRStatus rc2_unmap(NSSRC2Parameters *params)
 {
-    PRStatus status;
-    CK_RC2_PARAMS *ckrc2p;
-    struct rc2_param_str rc2p;
-
-    status = nssASN1_DecodeBER(ap->arena, &rc2p, rc2_ecb_param_tmpl, params);
-    if (status == PR_FAILURE) {
-	return PR_FAILURE;
-    }
-    ckrc2p = nss_ZNEW(ap->arena, CK_RC2_PARAMS);
-    if (!ckrc2p) {
-	return PR_FAILURE;
-    }
-    *ckrc2p = rc2_map(&rc2p.version);
-    if (*ckrc2p == (CK_ULONG)-1) {
-	return PR_FAILURE;
-    }
-    ap->mechanism.pParameter = (void *)ckrc2p;
-    ap->mechanism.ulParameterLen = sizeof(CK_RC2_PARAMS);
-    return PR_SUCCESS;
+    PRStatus status = PR_FAILURE; /* XXX */
+    return status;
 }
 
+/* constructor */
+
 static PRStatus
-decode_rc2_cbc(NSSAlgorithmAndParameters *ap, const NSSItem *params)
+rc2_constructor (
+  NSSAlgorithmAndParameters *ap,
+  CK_MECHANISM_TYPE mech,
+  NSSParameters *parameters,
+  NSSItem *encodedParams,
+  PRBool keygen
+)
 {
     PRStatus status;
-    CK_RC2_CBC_PARAMS *ckrc2p;
-    struct rc2_param_str rc2p;
-
-    status = nssASN1_DecodeBER(ap->arena, &rc2p, rc2_cbc_param_tmpl, params);
-    if (status == PR_FAILURE) {
-	return PR_FAILURE;
+    if (keygen) {
+	ap->mechanism.mechanism = CKM_RC2_KEY_GEN;
+    } else {
+	CK_RC2_CBC_PARAMS_PTR rc2p;
+	PR_ASSERT(mech == CKM_RC2_CBC && parameters != NULL);
+	ap->mechanism.mechanism = mech;
+	if (mech == CKM_RC2_ECB) {
+	    ap->paramTemplate = rc2_ecb_param_tmpl;
+	} else if (mech == CKM_RC2_CBC) {
+	    ap->paramTemplate = rc2_cbc_param_tmpl;
+	} else {
+	    return PR_FAILURE;
+	}
+	if (encodedParams) {
+	    status = nssASN1_DecodeBER(ap->arena, &ap->params.rc2, 
+	                               ap->paramTemplate, encodedParams);
+	    if (status == PR_FAILURE) {
+		return PR_FAILURE;
+	    }
+	    status = rc2_map(&ap->params.rc2);
+	} else {
+	    status = rc2_unmap(&ap->params.rc2);
+	    /* XXX generate IV somehow */
+	}
+	if (status == PR_FAILURE) {
+	    return PR_FAILURE;
+	}
+	rc2p = nss_ZNEW(ap->arena, CK_RC2_CBC_PARAMS);
+	if (!rc2p) {
+	    return PR_FAILURE;
+	}
+	nsslibc_memcpy(rc2p->iv, 
+	               ap->params.rc2.iv.data, 
+	               ap->params.rc2.iv.size);
+	rc2p->ulEffectiveBits = parameters->rc2.effectiveKeySizeInBits;
+	ap->mechanism.pParameter = rc2p;
+	ap->mechanism.ulParameterLen = sizeof(CK_RC2_CBC_PARAMS);
     }
-    ckrc2p = nss_ZNEW(ap->arena, CK_RC2_CBC_PARAMS);
-    if (!ckrc2p) {
-	return PR_FAILURE;
-    }
-    ckrc2p->ulEffectiveBits = rc2_map(&rc2p.version);
-    if (ckrc2p->ulEffectiveBits == (CK_ULONG)-1) {
-	return PR_FAILURE;
-    }
-
-    /* sanity check before copying iv */
-    PR_ASSERT(rc2p.iv.size == sizeof(ckrc2p->iv));
-    if (rc2p.iv.size != sizeof(ckrc2p->iv)) {
-	return PR_FAILURE;
-    }
-    nsslibc_memcpy(ckrc2p->iv, rc2p.iv.data, sizeof(ckrc2p->iv));
-
-    ap->mechanism.pParameter = (void *)ckrc2p;
-    ap->mechanism.ulParameterLen = sizeof(CK_RC2_CBC_PARAMS);
     return PR_SUCCESS;
 }
 
@@ -533,11 +513,14 @@ decode_rc2_cbc(NSSAlgorithmAndParameters *ap, const NSSItem *params)
  */
 static PRStatus
 set_rc5_mechanism (
-  CK_MECHANISM_PTR mechPtr,
+  NSSAlgorithmAndParameters *ap,
+  CK_MECHANISM_TYPE mech,
   NSSParameters *parameters,
-  NSSArena *arena
+  NSSItem *encodedParams,
+  PRBool keygen
 )
 {
+#if 0
     if (parameters) {
 	CK_RC5_CBC_PARAMS_PTR rc5p;
 	if (parameters->rc5.pkcsPad) {
@@ -573,6 +556,84 @@ set_rc5_mechanism (
 	mechPtr->pParameter = rc5p;
 	mechPtr->ulParameterLen = sizeof(rc5p);
     }
+    return PR_SUCCESS;
+#endif
+return PR_FAILURE;
+}
+
+/*
+ * PBE
+ */
+
+static const NSSASN1Template pkcs5_pbe_param_tmpl[] =
+{
+ { NSSASN1_SEQUENCE, 0, NULL, sizeof(NSSPBEParameters)      },
+ { NSSASN1_OCTET_STRING, offsetof(NSSPBEParameters, salt)   },
+ { NSSASN1_INTEGER,      offsetof(NSSPBEParameters, iterIt) },
+ { 0 }
+};
+
+/* XXX
+have password come in later (& iv)?
+not really part of params
+*/
+static PRStatus
+pbe_constructor (
+  NSSAlgorithmAndParameters *ap,
+  CK_MECHANISM_TYPE mech,
+  NSSParameters *parameters,
+  NSSItem *encodedParams
+)
+{
+    PRStatus status;
+    CK_PBE_PARAMS_PTR pbeParam;
+    PR_ASSERT(parameters != NULL || encodedParams != NULL);
+    ap->mechanism.mechanism = mech;
+    ap->paramTemplate = pkcs5_pbe_param_tmpl;
+    if (encodedParams) {
+        PRUint8 itit;
+	status = nssASN1_DecodeBER(ap->arena, &ap->params.pbe, 
+	                           ap->paramTemplate, encodedParams);
+	if (status == PR_FAILURE) {
+	    return PR_FAILURE;
+	}
+	/* XXX until asn.1 decodes ints */
+	itit = *(PRUint8*)ap->params.pbe.iterIt.data;
+	ap->params.pbe.iteration = (PRUint32)itit;
+    } else {
+	/* XXX copy? */
+	ap->params.pbe = parameters->pbe;
+	/* XXX hacky */
+	ap->params.pbe.iterIt.data = nss_ZAlloc(ap->arena, 1);
+	*((PRUint8*)ap->params.pbe.iterIt.data) = parameters->pbe.iteration;
+	ap->params.pbe.iterIt.size = 1;
+    }
+    pbeParam = nss_ZNEW(ap->arena, CK_PBE_PARAMS);
+    if (!pbeParam) {
+	return PR_FAILURE;
+    }
+    /* PR_ASSERT(ap->params.pbe.iv.size == PBE_IV_LENGTH); */
+    pbeParam->pInitVector = (CK_CHAR_PTR)ap->params.pbe.iv;
+    pbeParam->pSalt = (CK_CHAR_PTR)ap->params.pbe.salt.data;
+    pbeParam->ulSaltLen = (CK_ULONG)ap->params.pbe.salt.size;
+    pbeParam->ulIteration = (CK_ULONG)ap->params.pbe.iteration;
+    ap->mechanism.pParameter = pbeParam;
+    ap->mechanism.ulParameterLen = sizeof(CK_PBE_PARAMS);
+    return PR_SUCCESS;
+}
+
+NSS_IMPLEMENT PRStatus
+nssAlgorithmAndParameters_SetPBEPassword (
+  NSSAlgorithmAndParameters *ap,
+  NSSUTF8 *password
+)
+{
+    CK_PBE_PARAMS_PTR pbeParam;
+    /* soft check for correctness */
+    PR_ASSERT(ap->mechanism.ulParameterLen == sizeof(CK_PBE_PARAMS));
+    pbeParam = (CK_PBE_PARAMS_PTR)ap->mechanism.pParameter;
+    pbeParam->pPassword = (CK_CHAR_PTR)password;
+    pbeParam->ulPasswordLen = (CK_ULONG)nssUTF8_Length(password, NULL);
     return PR_SUCCESS;
 }
 
@@ -752,137 +813,58 @@ set_sslsession_derive_mechanism (
  */
 static PRStatus
 set_cryptoki_mechanism (
-  CK_MECHANISM_PTR mechPtr,
-  NSSAlgorithmType algorithm,
-  NSSParameters *parameters,
-  NSSArena *arena
+  NSSAlgorithmAndParameters *ap,
+  const NSSOID *algorithm,
+  NSSParameters *params,
+  NSSItem *encodedParams,
+  PRBool keygen
 )
 {
-    switch (algorithm) {
-    case NSSAlgorithmType_RSA: 
-	return set_rsa_mechanism(mechPtr, parameters);
-    case NSSAlgorithmType_DSA:
-	return set_dsa_mechanism(mechPtr, parameters);
-    case NSSAlgorithmType_DH:
-	return set_dh_mechanism(mechPtr, parameters);
-    case NSSAlgorithmType_DES:
-	return set_des_mechanism(mechPtr, parameters, arena);
-    case NSSAlgorithmType_3DES:
-	return set_des3_mechanism(mechPtr, parameters, arena);
-    case NSSAlgorithmType_AES:
-	return set_aes_mechanism(mechPtr, parameters, arena);
-    case NSSAlgorithmType_RC2:
-	return set_rc2_mechanism(mechPtr, parameters, arena);
-    case NSSAlgorithmType_RC4:
-	mechPtr->mechanism = CKM_RC4;
-	break;
-    case NSSAlgorithmType_RC5:
-	return set_rc5_mechanism(mechPtr, parameters, arena);
-    case NSSAlgorithmType_MD2:
-	mechPtr->mechanism = CKM_MD2;
-	break;
-    case NSSAlgorithmType_MD5:
-	mechPtr->mechanism = CKM_MD5;
-	break;
-    case NSSAlgorithmType_SHA1:
-	mechPtr->mechanism = CKM_SHA_1;
-	break;
-    case NSSAlgorithmType_PBE:
-    case NSSAlgorithmType_MAC:
-    case NSSAlgorithmType_HMAC:
-    default:
-	return PR_FAILURE;
-    }
-    return PR_SUCCESS;
-}
+    NSSOIDTag algTag = nssOID_GetTag(algorithm);
+    CK_MECHANISM_TYPE mech = algorithm->mechanism;
 
+    switch (algTag) {
+    /* RSA */
+    case NSS_OID_PKCS1_RSA_ENCRYPTION:
+    case NSS_OID_PKCS1_MD2_WITH_RSA_ENCRYPTION:
+    case NSS_OID_PKCS1_MD5_WITH_RSA_ENCRYPTION:
+    case NSS_OID_PKCS1_SHA1_WITH_RSA_ENCRYPTION:
+    case NSS_OID_X500_RSA_ENCRYPTION:
+	return set_rsa_mechanism(ap, mech, params, encodedParams, keygen);
+    /* DSA */
+    case NSS_OID_ANSIX9_DSA_SIGNATURE:
+    case NSS_OID_ANSIX9_DSA_SIGNATURE_WITH_SHA1_DIGEST:
+	return set_dsa_mechanism(ap, mech, params, encodedParams, keygen);
+    case NSS_OID_X942_DIFFIE_HELLMAN_KEY:
+	return set_dh_mechanism(ap, mech, params, encodedParams, keygen);
+    case NSS_OID_DES_ECB:
+    case NSS_OID_DES_CBC:
+	return set_des_mechanism(ap, mech, params, encodedParams, keygen);
+    case NSS_OID_DES_EDE3_CBC:
+	return set_des3_mechanism(ap, mech, params, encodedParams, keygen);
 /*
- * convert a keypair type and keypair-specific parameters to a
- * CK_MECHANISM.
- */
-static PRStatus
-set_cryptoki_mechanism_for_keypair_gen (
-  NSSAlgorithmAndParameters *ap,
-  NSSKeyPairType keyPairType,
-  NSSParameters *parameters
-)
-{
-    CK_MECHANISM_PTR mechPtr = &ap->mechanism;
-    switch (keyPairType) {
-    case NSSKeyPairType_RSA:
-	mechPtr->mechanism = CKM_RSA_PKCS_KEY_PAIR_GEN;
-	ap->params.rsakg = parameters->rsakg;
-	ap->set_template = rsa_keygen_settor;
-	break;
-    case NSSAlgorithmType_DSA:
-	mechPtr->mechanism = CKM_DSA_KEY_PAIR_GEN;
-	ap->params.dsakg.primeBits = parameters->dsakg.primeBits;
-	if (parameters->dsakg.p.data != NULL) {
-	    nssItem_Duplicate(&parameters->dsakg.p, ap->arena,
-	                      &ap->params.dsakg.p);
-	    nssItem_Duplicate(&parameters->dsakg.q, ap->arena,
-	                      &ap->params.dsakg.q);
-	    nssItem_Duplicate(&parameters->dsakg.g, ap->arena,
-	                      &ap->params.dsakg.g);
-	}
-	ap->set_template = dsa_keygen_settor;
-	break;
-    case NSSAlgorithmType_DH:
-	mechPtr->mechanism = CKM_DH_PKCS_KEY_PAIR_GEN;
-	ap->params.dhkg.valueBits = parameters->dhkg.valueBits;
-	ap->params.dhkg.primeBits = parameters->dhkg.primeBits;
-	if (parameters->dhkg.p.data != NULL) {
-	    nssItem_Duplicate(&parameters->dhkg.p, ap->arena,
-	                      &ap->params.dhkg.p);
-	    nssItem_Duplicate(&parameters->dhkg.g, ap->arena,
-	                      &ap->params.dhkg.g);
-	}
-	ap->set_template = dh_keygen_settor;
-	break;
-    case NSSAlgorithmType_DES:
-	mechPtr->mechanism = CKM_DES_KEY_GEN;
-	break;
-    case NSSAlgorithmType_3DES:
-	mechPtr->mechanism = CKM_DES3_KEY_GEN;
-	break;
-    case NSSAlgorithmType_AES:
-	mechPtr->mechanism = CKM_AES_KEY_GEN;
-	break;
-    case NSSAlgorithmType_RC2:
-	mechPtr->mechanism = CKM_RC2_KEY_GEN;
-	break;
-    case NSSAlgorithmType_RC4:
-	mechPtr->mechanism = CKM_RC4_KEY_GEN;
-	break;
-    case NSSAlgorithmType_RC5:
-	mechPtr->mechanism = CKM_RC5_KEY_GEN;
-	break;
-    case NSSAlgorithmType_PBE:
-    case NSSAlgorithmType_MAC:
-    case NSSAlgorithmType_HMAC:
+    case NSS_OID_AES_ECB:
+    case NSS_OID_AES_CBC:
+	return set_aes_mechanism(mechPtr, mech, parameters, arena);
+*/
+    case NSS_OID_RC2_CBC:
+	return rc2_constructor(ap, mech, params, encodedParams, keygen);
+    case NSS_OID_RC5_CBC_PAD:
+	return set_rc5_mechanism(ap, mech, params, encodedParams, keygen);
+    case NSS_OID_PKCS5_PBE_WITH_MD2_AND_DES_CBC:
+    case NSS_OID_PKCS5_PBE_WITH_MD5_AND_DES_CBC:
+    case NSS_OID_PKCS5_PBE_WITH_SHA1_AND_DES_CBC:
+	return pbe_constructor(ap, mech, params, encodedParams);
     default:
+	if (mech != CKM_INVALID_MECHANISM) {
+	    /* algorithms that need no parameters go here */
+	    PR_ASSERT(params == NULL && encodedParams == NULL);
+	    ap->mechanism.mechanism = mech;
+	    break;
+	}
 	return PR_FAILURE;
     }
     return PR_SUCCESS;
-}
-
-static PRStatus
-set_cryptoki_mechanism_for_symkey_gen (
-  NSSAlgorithmAndParameters *ap,
-  NSSSymmetricKeyType symKeyType,
-  NSSParameters *parameters
-)
-{
-    CK_MECHANISM_PTR mechPtr = &ap->mechanism;
-    switch (symKeyType) {
-    case NSSSymmetricKeyType_SSLPMS:
-	return set_sslpms_mechanism(mechPtr, parameters, ap->arena);
-    case NSSSymmetricKeyType_SSLMS:
-	return set_sslms_mechanism(mechPtr, parameters, ap->arena);
-    default:
-	/* XXX invalid args */
-	return PR_FAILURE;
-    }
 }
 
 static NSSAlgorithmAndParameters *
@@ -945,7 +927,7 @@ finish_create_algparam (
 NSS_IMPLEMENT NSSAlgorithmAndParameters *
 nssAlgorithmAndParameters_Create (
   NSSArena *arenaOpt,
-  NSSAlgorithmType algorithm,
+  const NSSOID *algorithm,
   NSSParameters *parametersOpt
 )
 {
@@ -958,16 +940,17 @@ nssAlgorithmAndParameters_Create (
 	return (NSSAlgorithmAndParameters *)NULL;
     }
 
-    status = set_cryptoki_mechanism(&rvAP->mechanism, 
-                                    algorithm, parametersOpt, rvAP->arena);
+    status = set_cryptoki_mechanism(rvAP, algorithm, 
+                                    parametersOpt, NULL, PR_FALSE);
+    rvAP->alg = algorithm;
 
     return finish_create_algparam(rvAP, rvAP->arena, mark, status);
 }
 
 NSS_IMPLEMENT NSSAlgorithmAndParameters *
-nssAlgorithmAndParameters_CreateKeyPairGen (
+nssAlgorithmAndParameters_CreateForKeyGen (
   NSSArena *arenaOpt,
-  NSSKeyPairType keyPairType,
+  const NSSOID *algorithm,
   NSSParameters *parametersOpt
 )
 {
@@ -980,11 +963,89 @@ nssAlgorithmAndParameters_CreateKeyPairGen (
 	return (NSSAlgorithmAndParameters *)NULL;
     }
 
-    status = set_cryptoki_mechanism_for_keypair_gen(rvAP, 
-                                                    keyPairType, 
-                                                    parametersOpt);
+    status = set_cryptoki_mechanism(rvAP, algorithm, 
+                                    parametersOpt, NULL, PR_TRUE);
+    rvAP->alg = algorithm;
 
     return finish_create_algparam(rvAP, rvAP->arena, mark, status);
+}
+
+typedef struct {
+  NSSItem algorithmOID;
+  NSSItem parameters;
+} nssAlgorithmID;
+
+const NSSASN1Template nssASN1Template_AlgorithmID[] =
+{
+ { NSSASN1_SEQUENCE, 0, NULL, sizeof(nssAlgorithmID) },
+ { NSSASN1_OBJECT_ID, offsetof(nssAlgorithmID, algorithmOID) },
+ { NSSASN1_OPTIONAL |
+    NSSASN1_ANY,      offsetof(nssAlgorithmID, parameters) },
+ { 0 }
+};
+
+NSS_IMPLEMENT NSSAlgorithmAndParameters *
+nssAlgorithmAndParameters_Decode (
+  NSSArena *arenaOpt,
+  NSSBER *algIDber
+)
+{
+    PRStatus status;
+    nssArenaMark *mark = NULL;
+    NSSAlgorithmAndParameters *rvAP = NULL;
+    NSSOID *alg;
+    nssAlgorithmID algID = { 0 };
+
+    rvAP = create_algparam(arenaOpt, &mark);
+    if (!rvAP) {
+	return (NSSAlgorithmAndParameters *)NULL;
+    }
+
+    status = nssASN1_DecodeBER(rvAP->arena, &algID, 
+                               nssASN1Template_AlgorithmID, algIDber);
+    if (status == PR_FAILURE) {
+	goto finish;
+    }
+    alg = nssOID_CreateFromBER(&algID.algorithmOID);
+    if (!alg) {
+	status = PR_FAILURE;
+	goto finish;
+    }
+
+    status = set_cryptoki_mechanism(rvAP, alg, NULL, 
+                                    &algID.parameters, PR_TRUE);
+    rvAP->alg = alg;
+
+finish:
+    return finish_create_algparam(rvAP, rvAP->arena, mark, status);
+}
+
+NSS_IMPLEMENT NSSBER *
+nssAlgorithmAndParameters_Encode (
+  NSSAlgorithmAndParameters *ap,
+  NSSBER *rvOpt,
+  NSSArena *arenaOpt
+)
+{
+    nssAlgorithmID algID = { 0 };
+    NSSBER *params = NULL;
+    NSSBER *rvBER = NULL;
+
+    algID.algorithmOID = ap->alg->data;
+    if (ap->paramTemplate) {
+	params = nssASN1_EncodeItem(NULL, &algID.parameters, 
+	                            &ap->params, ap->paramTemplate, 
+	                            NSSASN1BER);
+	if (!params) {
+	    return (NSSBER *)NULL;
+	}
+    }
+    rvBER = nssASN1_EncodeItem(arenaOpt, rvOpt, &algID,
+                               nssASN1Template_AlgorithmID, NSSASN1BER);
+    if (params) {
+	nss_ZFreeIf(params->data);
+    }
+    return rvBER;
 }
 
 NSS_IMPLEMENT NSSAlgorithmAndParameters *
@@ -1007,91 +1068,6 @@ nssAlgorithmAndParameters_CreateSSLSessionKeyDerivation (
                                              rvAP->arena);
 
     return finish_create_algparam(rvAP, rvAP->arena, mark, status);
-}
-
-/* this is how it was done in 3.X, but something not involving a
- * huge switch would be nicer
- */
-static PRStatus
-decode_params(NSSAlgorithmAndParameters *ap, const NSSItem *params)
-{
-    /* Algorithms that only take an IV parameter */
-    switch (ap->mechanism.mechanism) {
-    case CKM_AES_CBC:
-    case CKM_AES_CBC_PAD:
-    case CKM_DES_CBC:
-    case CKM_DES_CBC_PAD:
-    case CKM_DES3_CBC:
-    case CKM_DES3_CBC_PAD:
-    case CKM_IDEA_CBC:
-    case CKM_IDEA_CBC_PAD:
-    case CKM_CDMF_CBC:
-    case CKM_CDMF_CBC_PAD:
-    case CKM_CAST_CBC:
-    case CKM_CAST_CBC_PAD:
-    case CKM_CAST3_CBC:
-    case CKM_CAST3_CBC_PAD:
-    case CKM_CAST5_CBC:
-    case CKM_CAST5_CBC_PAD:
-    case CKM_SKIPJACK_CFB8:
-    case CKM_SKIPJACK_CFB16:
-    case CKM_SKIPJACK_CFB32:
-    case CKM_SKIPJACK_ECB64:
-    case CKM_SKIPJACK_CBC64:
-    case CKM_SKIPJACK_OFB64:
-    case CKM_SKIPJACK_CFB64:
-    case CKM_BATON_ECB96:
-    case CKM_BATON_ECB128:
-    case CKM_BATON_CBC128:
-    case CKM_BATON_COUNTER:
-    case CKM_BATON_SHUFFLE:
-    case CKM_JUNIPER_ECB128:
-    case CKM_JUNIPER_CBC128:
-    case CKM_JUNIPER_COUNTER:
-    case CKM_JUNIPER_SHUFFLE:  
-	return decode_iv(ap, params);
-    default: /* keep going */
-	break;
-    }
-
-    /* Algorithms that take more complicated parameters */
-    switch (ap->mechanism.mechanism) {
-    case CKM_RC2_ECB:          return decode_rc2_ecb(ap, params);
-    case CKM_RC2_CBC:
-    case CKM_RC2_CBC_PAD:      return decode_rc2_cbc(ap, params);
-    default:
-	/* XXX unsupported alg or something */
-	return PR_FAILURE;
-    }
-}
-
-NSS_IMPLEMENT NSSAlgorithmAndParameters *
-nssAlgorithmAndParameters_CreateFromOID (
-  NSSArena *arenaOpt,
-  CK_MECHANISM_TYPE algorithm,
-  const NSSItem *parametersOpt
-)
-{
-    PRStatus status;
-    NSSArena *arena;
-    nssArenaMark *mark = NULL;
-    NSSAlgorithmAndParameters *rvAP = NULL;
-
-    rvAP = create_algparam(arenaOpt, &mark);
-    if (!rvAP) {
-	return (NSSAlgorithmAndParameters *)NULL;
-    }
-
-    rvAP->mechanism.mechanism = algorithm;
-
-    if (parametersOpt) {
-	status = decode_params(rvAP, parametersOpt);
-    } else {
-	/* XXX not catching algorithms that require parameters here */
-	status = PR_SUCCESS;
-    }
-
-    return finish_create_algparam(rvAP, arena, mark, status);
 }
 
 NSS_IMPLEMENT void
@@ -1160,7 +1136,6 @@ nssAlgorithmAndParameters_Clone (
 )
 {
     PRStatus status;
-    NSSArena *arena;
     nssArenaMark *mark = NULL;
     NSSAlgorithmAndParameters *rvAP = NULL;
 
@@ -1171,31 +1146,83 @@ nssAlgorithmAndParameters_Clone (
 
     status = copy_algparam(rvAP, ap);
 
-    return finish_create_algparam(rvAP, arena, mark, status);
+    return finish_create_algparam(rvAP, rvAP->arena, mark, status);
 }
 
-NSS_IMPLEMENT NSSAlgorithmAndParameters *
-NSSAlgorithmAndParameters_Create (
-  NSSArena *arenaOpt,
-  NSSAlgorithmType algorithm,
-  NSSParameters *parametersOpt
+/*
+ * convert a PBE mechanism used to generate a key to a crypto mechanism
+ * that can use the key
+ */
+NSS_EXTERN NSSAlgorithmAndParameters *
+nssAlgorithmAndParameters_ConvertPBEToCrypto (
+  const NSSAlgorithmAndParameters *ap,
+  PRBool usePadding
 )
 {
-    return nssAlgorithmAndParameters_Create(arenaOpt, 
-                                            algorithm, 
-                                            parametersOpt);
-}
+    PRStatus status = PR_SUCCESS;
+    CK_RC2_CBC_PARAMS_PTR rc2p;
+    CK_PBE_PARAMS_PTR pPBE;
+    CK_MECHANISM_PTR mech;
+    NSSAlgorithmAndParameters *rvAP = NULL;
 
-NSS_IMPLEMENT NSSAlgorithmAndParameters *
-NSSAlgorithmAndParameters_CreateKeyPairGen (
-  NSSArena *arenaOpt,
-  NSSKeyPairType keyPairType,
-  NSSParameters *parametersOpt
-)
-{
-    return nssAlgorithmAndParameters_CreateKeyPairGen(arenaOpt, 
-                                                      keyPairType, 
-                                                      parametersOpt);
+    rvAP = create_algparam(NULL, NULL);
+    if (!rvAP) {
+	return (NSSAlgorithmAndParameters *)NULL;
+    }
+    mech = &rvAP->mechanism;
+    pPBE = (CK_PBE_PARAMS_PTR)ap->mechanism.pParameter;
+
+    switch (ap->mechanism.mechanism) {
+    /* DES */
+    case CKM_PBE_MD2_DES_CBC:
+    case CKM_PBE_MD5_DES_CBC:
+    case CKM_NETSCAPE_PBE_SHA1_DES_CBC:
+	mech->mechanism = usePadding ? CKM_DES_CBC_PAD : CKM_DES_CBC;
+	mech->pParameter = pPBE->pInitVector;
+	mech->ulParameterLen = PBE_IV_LENGTH;
+	break;
+    /* Triple-DES */
+    case CKM_PBE_SHA1_DES3_EDE_CBC:
+    case CKM_NETSCAPE_PBE_SHA1_TRIPLE_DES_CBC:
+	mech->mechanism = usePadding ? CKM_DES3_CBC_PAD : CKM_DES3_CBC;
+	mech->pParameter = pPBE->pInitVector;
+	mech->ulParameterLen = PBE_IV_LENGTH;
+	break;
+    /* RC4 */
+    case CKM_PBE_SHA1_RC4_40:
+    case CKM_PBE_SHA1_RC4_128:
+    case CKM_NETSCAPE_PBE_SHA1_40_BIT_RC4:
+    case CKM_NETSCAPE_PBE_SHA1_128_BIT_RC4:
+	mech->mechanism = CKM_RC4;
+	break;
+    /* RC2 */
+    case CKM_PBE_SHA1_RC2_40_CBC:
+    case CKM_NETSCAPE_PBE_SHA1_40_BIT_RC2_CBC:
+    case CKM_NETSCAPE_PBE_SHA1_128_BIT_RC2_CBC:
+	mech->mechanism = (usePadding) ? CKM_RC2_CBC_PAD : CKM_RC2_CBC;
+	mech->pParameter = nss_ZNEW(rvAP->arena, CK_RC2_CBC_PARAMS);
+	if (mech->pParameter == NULL) {
+	    status = PR_FAILURE;
+	    break;
+	}
+	mech->ulParameterLen = (CK_ULONG)sizeof(CK_RC2_CBC_PARAMS);
+	rc2p = (CK_RC2_CBC_PARAMS_PTR)mech->pParameter;
+	nsslibc_memcpy(rc2p->iv, pPBE->pInitVector, PBE_IV_LENGTH);
+	if (ap->mechanism.mechanism == 
+	          CKM_NETSCAPE_PBE_SHA1_128_BIT_RC2_CBC) 
+        {
+	    rc2p->ulEffectiveBits = 128;
+	} else {
+	    rc2p->ulEffectiveBits = 40;
+	}
+	break;
+    default:
+	status = PR_FAILURE;
+	nss_SetError(NSS_ERROR_INVALID_ALGORITHM);
+	break;
+    }
+
+    return finish_create_algparam(rvAP, rvAP->arena, NULL, status);
 }
 
 NSS_IMPLEMENT void

@@ -138,6 +138,14 @@ PRStatus NSS_NoDB_Init(const char *configdir);
  */
 extern PRStatus NSS_Shutdown(void);
 
+/* random API is global */
+NSS_EXTERN PRUint8 *
+NSS_GenerateRandom (
+  PRUint32 numBytes,
+  PRUint8 *rvOpt,
+  NSSArena *arenaOpt
+);
+
 /*
  * set the PKCS #11 strings for the internal token.
  */

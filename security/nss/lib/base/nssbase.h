@@ -104,6 +104,11 @@ NSSArena_Destroy (
   NSSArena *arena
 );
 
+NSS_EXTERN PRStatus
+NSS_ZFreeIf (
+  void *pointer
+);
+
 /*
  * The error stack
  *

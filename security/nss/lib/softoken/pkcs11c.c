@@ -852,6 +852,7 @@ CK_RV NSC_Encrypt (CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData,
 
     if (!pEncryptedData) {
 	*pulEncryptedDataLen = ulDataLen + 2 * context->blockSize;
+	rv = SECSuccess;
 	goto finish;
     }
 

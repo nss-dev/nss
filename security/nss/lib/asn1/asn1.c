@@ -438,7 +438,6 @@ nssASN1Encoder_Create (
   void *argument
 )
 {
-#ifdef nodef
   SEC_ASN1EncoderContext *rv;
 
   switch( encoding ) {
@@ -451,7 +450,9 @@ nssASN1Encoder_Create (
   case NSSASN1UnknownEncoding:
   default:
 /* XXX fix this */
+#if 0
     nss_SetError(NSS_ERROR_ENCODING_NOT_SUPPORTED);
+#endif
     return (nssASN1Encoder *)NULL;
   }
 
@@ -465,13 +466,13 @@ nssASN1Encoder_Create (
   }
 
 /* XXX fix this */
+#if 0
   if( NSSASN1DER == encoding ) {
     sec_ASN1EncoderSetDER(rv);
   }
+#endif
 
   return (nssASN1Encoder *)rv;
-#endif /* nodef */
-  return NULL;
 }
 
 /*

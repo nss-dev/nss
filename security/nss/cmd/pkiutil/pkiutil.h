@@ -24,6 +24,16 @@ ImportObject
   CMDRunTimeData *rtData
 );
 
+PRStatus
+ExportObject
+(
+  NSSTrustDomain *td,
+  NSSToken *tokenOpt,
+  char *objectTypeOpt,
+  char *nickname,
+  CMDRunTimeData *rtData
+);
+
 /* XXX need to be more specific (serial number?) */
 PRStatus
 DeleteObject

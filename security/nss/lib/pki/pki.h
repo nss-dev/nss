@@ -110,6 +110,13 @@ nssTrustDomain_FindCertificateByEncodedCertificate (
   NSSBER *encodedCertificate
 );
 
+NSS_EXTERN PRStatus *
+nssTrustDomain_TraverseCertificates (
+  NSSTrustDomain *td,
+  PRStatus (*callback)(NSSCertificate *c, void *arg),
+  void *arg
+);
+
 NSS_EXTERN nssTrust *
 nssTrustDomain_FindTrustForCertificate (
   NSSTrustDomain *td,
@@ -186,6 +193,13 @@ nssCertificate_FindPrivateKey (
   NSSCallback *uhh
 );
 
+NSS_EXTERN PRBool
+nssCertificate_IsPrivateKeyAvailable (
+  NSSCertificate *c,
+  NSSCallback *uhh,
+  PRStatus *statusOpt
+);
+
 NSS_EXTERN NSSUsages *
 nssCertificate_GetUsages (
   NSSCertificate *c,
@@ -221,6 +235,15 @@ nssCertificate_BuildChain (
 NSS_EXTERN NSSPrivateKey *
 nssPrivateKey_AddRef (
   NSSPrivateKey *vk
+);
+
+NSS_EXTERN NSSPrivateKey *
+nssPrivateKey_Decode (
+  NSSBER *ber,
+  NSSUTF8 *passwordOpt,
+  NSSCallback *uhhOpt,
+  NSSToken *destination,
+  NSSTrustDomain *td
 );
 
 NSS_EXTERN PRStatus

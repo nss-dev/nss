@@ -145,27 +145,6 @@ typedef enum
   NSSSymmetricKeyType_SSLMS = 8
 } NSSSymmetricKeyType;
 
-/* set errors - user cancelled, ... */
-
-typedef enum {
-  NSSAlgorithmType_NULL   =  0,
-  NSSAlgorithmType_RSA    =  1,
-  NSSAlgorithmType_DSA    =  2,
-  NSSAlgorithmType_DH     =  3,
-  NSSAlgorithmType_DES    =  4,
-  NSSAlgorithmType_3DES   =  5,
-  NSSAlgorithmType_AES    =  6,
-  NSSAlgorithmType_RC2    =  7,
-  NSSAlgorithmType_RC4    =  8,
-  NSSAlgorithmType_RC5    =  9,
-  NSSAlgorithmType_MD2    = 10,
-  NSSAlgorithmType_MD5    = 11,
-  NSSAlgorithmType_SHA1   = 12,
-  NSSAlgorithmType_PBE    = 13,
-  NSSAlgorithmType_MAC    = 14,
-  NSSAlgorithmType_HMAC   = 15,
-} NSSAlgorithmType;
-
 /*
  * RSA
  */
@@ -179,21 +158,6 @@ typedef struct NSSRSAKeyGenParametersStr
 NSSRSAKeyGenParameters;
 
 /*
- * cipher operations
- * DEFAULT: RAW (X.509)
- */
-typedef enum {
-  NSSRSABlockFormat_Raw              = 0,
-  NSSRSABlockFormat_PKCS1            = 1,
-  NSSRSABlockFormat_PKCS1_WITH_MD2   = 2,
-  NSSRSABlockFormat_PKCS1_WITH_MD5   = 3,
-  NSSRSABlockFormat_PKCS1_WITH_SHA1  = 4,
-  NSSRSABlockFormat_PKCS1_OAEP       = 5
-} NSSRSABlockFormat;
-
-typedef NSSRSABlockFormat NSSRSAParameters;
-
-/*
  * DSA
  */
 
@@ -204,12 +168,6 @@ typedef struct NSSDSAKeyGenParametersStr
   NSSItem p, q, g;          /* set of PQG parameters (can be zero)    */
 }
 NSSDSAKeyGenParameters;
-
-/*
- * signature/verification
- * DEFAULT: "raw" (no hashing)
- */
-typedef NSSAlgorithmType NSSDSAParameters; /* hash algorithm */
 
 /*
  * Diffie-Hellman
@@ -257,7 +215,6 @@ typedef struct NSSAESParametersStr
   /* PKCS #11 is assuming 128-bit blocks */
   PRUint32 blockSizeInBits;
 #endif
-  PRBool pkcsPad;
   NSSItem iv;
 }
 NSSAESParameters;
@@ -270,8 +227,8 @@ NSSAESParameters;
 typedef struct NSSRC2ParametersStr
 {
   PRUint32 effectiveKeySizeInBits;
-  PRBool pkcsPad;
   NSSItem iv;
+  NSSItem version; /* IGNORE */
 }
 NSSRC2Parameters;
 
@@ -288,7 +245,6 @@ typedef struct NSSRC5ParametersStr
 {
   PRUint32 wordSize;
   PRUint32 numRounds;
-  PRBool pkcsPad;
   NSSItem iv;
 }
 NSSRC5Parameters;
@@ -316,15 +272,16 @@ NSSKeyDerivationParameters;
  * PBE key generation
  */
 
-/* NSS will always copy from this data */
-typedef struct NSSPBEKeyGenParametersStr
+#define PBE_IV_LENGTH 8
+
+typedef struct NSSPBEParametersStr
 {
-  NSSItem iv;
-  NSSUTF8 *password;
+  unsigned char iv[PBE_IV_LENGTH];
   NSSItem salt;
-  PRUint32 iterations;
+  PRUint32 iteration;
+  NSSItem iterIt; /* XXX until ASN.1 decodes ints */
 }
-NSSPBEKeyGenParameters;
+NSSPBEParameters;
 
 /*
  * SSL
@@ -368,14 +325,12 @@ typedef union
   NSSRSAKeyGenParameters rsakg;
   NSSDSAKeyGenParameters dsakg;
   NSSDHKeyGenParameters  dhkg;
-  NSSPBEKeyGenParameters pbekg;
-  NSSRSAParameters       rsa;
-  NSSDSAParameters       dsa;
   NSSDESParameters       des;
   NSSAESParameters       aes;
   NSSRC2Parameters       rc2;
   NSSRC5Parameters       rc5;
   NSSHMACParameters      hmac;
+  NSSPBEParameters       pbe;
   NSSSSLPreMasterSecretParameters sslpms;
   NSSSSLMasterSecretParameters    sslms;
 }

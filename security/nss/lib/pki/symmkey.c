@@ -143,7 +143,7 @@ nssSymmetricKey_GetInstance (
 NSS_IMPLEMENT nssCryptokiObject *
 nssSymmetricKey_FindInstanceForAlgorithm (
   NSSSymmetricKey *mk,
-  NSSAlgorithmAndParameters *ap
+  const NSSAlgorithmAndParameters *ap
 )
 {
     return nssPKIObject_FindInstanceForAlgorithm(&mk->object, ap);

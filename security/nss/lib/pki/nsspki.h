@@ -646,8 +646,8 @@ NSSPrivateKey_IsStillPresent (
 NSS_EXTERN NSSItem *
 NSSPrivateKey_Encode (
   NSSPrivateKey *vk,
-  const NSSAlgorithmAndParameters *ap,
-  NSSItem *passwordOpt, /* NULL will cause a callback; "" for no password */
+  NSSAlgorithmAndParameters *ap,
+  NSSUTF8 *passwordOpt, /* NULL means prompt */
   NSSCallback *uhhOpt,
   NSSItem *rvOpt,
   NSSArena *arenaOpt
@@ -1585,7 +1585,7 @@ NSS_EXTERN NSSPrivateKey *
 NSSTrustDomain_ImportEncodedPrivateKey (
   NSSTrustDomain *td,
   NSSBER *ber,
-  NSSItem *passwordOpt, /* NULL will cause a callback */
+  NSSUTF8 *passwordOpt, /* NULL will cause a callback */
   NSSCallback *uhhOpt,
   NSSToken *destination
 );
@@ -1821,9 +1821,6 @@ NSSTrustDomain_FindBestUserCertificate (
 NSS_EXTERN NSSCertificate **
 NSSTrustDomain_FindUserCertificates (
   NSSTrustDomain *td,
-  NSSTime time,
-  NSSUsages *usagesOpt,
-  NSSPolicies *policiesOpt,
   NSSCertificate **rvOpt,
   PRUint32 rvLimit, /* zero for no limit */
   NSSArena *arenaOpt

@@ -468,3 +468,26 @@ CMD_DestroyCallback
     }
 }
 
+NSSCallback pwCallbackForKeyEncoding;
+
+static PRStatus
+key_enc_callback
+(
+  NSSUTF8 *slotName,
+  PRBool *retry,
+  void *arg,
+  NSSUTF8 **password
+)
+{
+    /* XXX different text */
+    *password = get_password_from_tty("private key");
+    return PR_SUCCESS;
+}
+
+NSSCallback *
+CMD_PWCallbackForKeyEncoding(void)
+{
+    pwCallbackForKeyEncoding.getPW = key_enc_callback;
+    return &pwCallbackForKeyEncoding;
+}
+

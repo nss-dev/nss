@@ -56,6 +56,10 @@ static const char DEV_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #include "devt.h"
 #endif /* DEVT_H */
 
+#ifndef PKI1T_H
+#include "pki1t.h"
+#endif /* PKI1T_H */
+
 PR_BEGIN_EXTERN_C
 
 /* the global module list
@@ -919,10 +923,23 @@ nssToken_FinishDigest (
  */
 
 NSS_EXTERN NSSAlgorithmAndParameters *
-nssAlgorithmAndParameters_CreateFromOID (
+nssAlgorithmAndParameters_Create (
   NSSArena *arenaOpt,
-  CK_MECHANISM_TYPE algorithm,
-  const NSSItem *parametersOpt
+  const NSSOID *algorithm,
+  NSSParameters *parametersOpt
+);
+
+NSS_EXTERN NSSAlgorithmAndParameters *
+nssAlgorithmAndParameters_CreateForKeyGen (
+  NSSArena *arenaOpt,
+  const NSSOID *algorithm,
+  NSSParameters *parametersOpt
+);
+
+NSS_EXTERN NSSAlgorithmAndParameters *
+nssAlgorithmAndParameters_Decode (
+  NSSArena *arenaOpt,
+  NSSBER *algIDber
 );
 
 /* devf.h? */
@@ -936,6 +953,25 @@ NSS_EXTERN NSSAlgorithmAndParameters *
 nssAlgorithmAndParameters_Clone (
   const NSSAlgorithmAndParameters *ap,
   NSSArena *arenaOpt
+);
+
+NSS_EXTERN NSSBER *
+nssAlgorithmAndParameters_Encode (
+  NSSAlgorithmAndParameters *ap,
+  NSSBER *rvOpt,
+  NSSArena *arenaOpt
+);
+
+NSS_EXTERN NSSAlgorithmAndParameters *
+nssAlgorithmAndParameters_ConvertPBEToCrypto (
+  const NSSAlgorithmAndParameters *ap,
+  PRBool usePadding
+);
+
+NSS_EXTERN PRStatus
+nssAlgorithmAndParameters_SetPBEPassword (
+  NSSAlgorithmAndParameters *ap,
+  NSSUTF8 *password
 );
 
 NSS_EXTERN void

@@ -157,8 +157,8 @@ nssOID_CreateAlgorithmAndParameters (
 )
 {
     if (oid->mechanism != CKM_INVALID_MECHANISM) {
-	return nssAlgorithmAndParameters_CreateFromOID(NULL, oid->mechanism,
-	                                               NULL /* XXX */);
+	return nssAlgorithmAndParameters_Create(arenaOpt, oid, 
+	                                        parameters);
     } else {
 	nss_SetError(NSS_ERROR_INVALID_NSSOID);
     }

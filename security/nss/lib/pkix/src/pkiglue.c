@@ -755,7 +755,7 @@ verify_signature (
 	return PR_FAILURE;
     }
 
-    ap = NSSOID_CreateAlgorithmAndParameters(alg, params);
+    ap = NSSOID_CreateAlgorithmAndParameters(alg, params, NULL);
     if (!ap) {
 	NSSPublicKey_Destroy(verifyKey);
 	return PR_FAILURE;
