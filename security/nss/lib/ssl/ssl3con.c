@@ -337,6 +337,8 @@ const char * const ssl3_cipherName[] = {
     "DES-CBC-40",
     "IDEA-CBC",
     "FORTEZZA",
+    "AES-128",
+    "AES-256",
     "missing"
 };
 
