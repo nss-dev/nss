@@ -238,10 +238,28 @@ mp_err   s_mp_invmod_even_m(const mp_int *a, const mp_int *m, mp_int *c);
 #define MPI_ASM_DECL
 #endif
 
+#ifdef MPI_AMD64
+
+mp_digit MPI_ASM_DECL s_mpv_mul_set_vec64(mp_digit*, mp_digit *, mp_size, mp_digit);
+mp_digit MPI_ASM_DECL s_mpv_mul_add_vec64(mp_digit*, const mp_digit*, mp_size, mp_digit);
+
+/* c = a * b */
+#define s_mpv_mul_d(a, a_len, b, c) \
+	((unsigned long*)c)[a_len] = s_mpv_mul_set_vec64(c, a, a_len, b)
+
+/* c += a * b */
+#define s_mpv_mul_d_add(a, a_len, b, c) \
+	((unsigned long*)c)[a_len] = s_mpv_mul_add_vec64(c, a, a_len, b)
+
+#else
+
 void     MPI_ASM_DECL s_mpv_mul_d(const mp_digit *a, mp_size a_len,
                                         mp_digit b, mp_digit *c);
 void     MPI_ASM_DECL s_mpv_mul_d_add(const mp_digit *a, mp_size a_len,
                                             mp_digit b, mp_digit *c);
+
+#endif
+
 void     MPI_ASM_DECL s_mpv_mul_d_add_prop(const mp_digit *a,
                                                 mp_size a_len, mp_digit b, 
 			                        mp_digit *c);
