@@ -364,7 +364,7 @@ __big_return(
 	BUFHEAD *save_p;
 	uint16 *bp, len, off, save_addr;
 	char *tp;
-	int save_flags;
+	char save_flags;
 
 	bp = (uint16 *)bufp->page;
 	while (bp[ndx + 1] == PARTIAL_KEY) {
@@ -429,7 +429,7 @@ __big_return(
 			return (0);
 		}
 
-	/* pin our saved buf so that we don't loose if 
+	/* pin our saved buf so that we don't lose if 
 	 * we run out of buffers */
  	save_flags = save_p->flags;
 	save_p->flags |= BUF_PIN;
@@ -452,7 +452,7 @@ __big_return(
  * Count how big the total datasize is by looping through the pages.  Then
  * allocate a buffer and copy the data in the second loop. NOTE: Our caller
  * may already have a bp which it is holding onto. The caller is
- * responsible for copying that bp into our temp_buffer. 'len' is how must
+ * responsible for copying that bp into our temp buffer. 'len' is how much
  * space to reserve for that buffer.
  */
 static int
@@ -463,11 +463,11 @@ collect_data(
 {
 	register uint16 *bp;
 	BUFHEAD *save_bufp;
-	int save_flags;
+	char save_flags;
 	int mylen, totlen;
 
 	/*
-	 * save the input buf head because we need to walk the list twice
+	 * save the input buf head because we need to walk the list twice.
 	 * pin it to make sure it doesn't leave the buffer pool. 
 	 * This has the effect of growing the buffer pool if necessary.
 	 */
@@ -490,8 +490,8 @@ collect_data(
 	}
 
  	if (!bufp) {
-	    save_bufp->flags = save_flags;
-	    return (-1);
+		save_bufp->flags = save_flags;
+		return (-1);
 	}
 
 	/* allocate a temp buf */
