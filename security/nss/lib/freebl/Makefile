@@ -142,7 +142,6 @@ endif
 endif
 ifeq (5.5.1,$(firstword $(sort 5.5.1 $(OS_RELEASE))))
     SYSV_SPARC = 1
-    OS_CFLAGS += /DNEW_SYSV_SPARC
 endif
 ifeq ($(SYSV_SPARC),1)
 SOLARIS_AS = /usr/ccs/bin/as
