@@ -1206,7 +1206,7 @@ PK11_TokenKeyGen(PK11SlotInfo *slot, CK_MECHANISM_TYPE type, SECItem *param,
     int keySize, SECItem *keyid, PRBool isToken, void *wincx)
 {
     PK11SymKey *symKey;
-    CK_ATTRIBUTE genTemplate[4];
+    CK_ATTRIBUTE genTemplate[5];
     CK_ATTRIBUTE *attrs = genTemplate;
     int count = sizeof(genTemplate)/sizeof(genTemplate[0]);
     CK_SESSION_HANDLE session;
@@ -1240,6 +1240,8 @@ PK11_TokenKeyGen(PK11SlotInfo *slot, CK_MECHANISM_TYPE type, SECItem *param,
     if (isToken) {
         PK11_SETATTRS(attrs, CKA_TOKEN, &cktrue, sizeof(cktrue));  attrs++;
     }
+
+    PK11_SETATTRS(attrs, CKA_SIGN, &cktrue, sizeof(cktrue));  attrs++;
 
     count = attrs - genTemplate;
     PR_ASSERT(count <= sizeof(genTemplate)/sizeof(CK_ATTRIBUTE));
