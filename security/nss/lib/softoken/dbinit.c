@@ -275,7 +275,7 @@ static int rdbmapflags(int flags);
 static rdbfunc pk11_rdbfunc;
 
 /* NOTE: SHLIB_SUFFIX is defined on the command line */
-#define RDBLIB "rdb."SHLIB_SUFFIX
+#define RDBLIB SHLIB_PREFIX"rdb."SHLIB_SUFFIX
 
 DB * rdbopen(const char *appName, const char *prefix, 
 				const char *type, int flags)
