@@ -2427,6 +2427,12 @@ PK11_PubWrapSymKey(CK_MECHANISM_TYPE type, SECKEYPublicKey *pubKey,
     mechanism.ulParameterLen = 0;
 
     id = PK11_ImportPublicKey(slot,pubKey,PR_FALSE);
+    if (id == CK_INVALID_HANDLE) {
+	if (newKey) {
+	    PK11_FreeSymKey(newKey);
+	}
+	return SECFailure;   /* Error code has been set. */
+    }
 
     session = pk11_GetNewSession(slot,&owner);
     if (!owner || !(slot->isThreadSafe)) PK11_EnterSlotMonitor(slot);
@@ -3267,7 +3273,8 @@ pk11_AnyUnwrapKey(PK11SlotInfo *slot, CK_OBJECT_HANDLE wrappingKey,
     /* initialize the mechanism structure */
     mechanism.mechanism = wrapType;
     /* use NULL IV's for wrapping */
-    if (param == NULL) param = param_free = PK11_ParamFromIV(wrapType,NULL);
+    if (param == NULL) 
+	param = param_free = PK11_ParamFromIV(wrapType,NULL);
     if (param) {
 	mechanism.pParameter = param->data;
 	mechanism.ulParameterLen = param->len;
@@ -3290,7 +3297,8 @@ pk11_AnyUnwrapKey(PK11SlotInfo *slot, CK_OBJECT_HANDLE wrappingKey,
 	 * with this module.
 	 */
 	if (crv == CKR_DEVICE_ERROR){
-	   return NULL;
+	    if (param_free) SECITEM_FreeItem(param_free,PR_TRUE);
+	    return NULL;
 	}
 	/* fall through, maybe they incorrectly set CKF_DECRYPT */
     }
