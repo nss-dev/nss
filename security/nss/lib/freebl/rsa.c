@@ -328,8 +328,20 @@ RSA_PublicKeyOp(RSAPublicKey  *key,
     CHECK_MPI_OK( mp_init(&c) );
     modLen = rsa_modulusLen(&key->modulus);
     /* 1.  Obtain public key (n, e) */
+    if (rsa_modulusLen(&key->publicExponent) > modLen) {
+	/* exponent should not be greater than modulus */
+    	PORT_SetError(SEC_ERROR_INVALID_KEY);
+	rv = SECFailure;
+	goto cleanup;
+    }
     SECITEM_TO_MPINT(key->modulus, &n);
     SECITEM_TO_MPINT(key->publicExponent, &e);
+    if (e.used > n.used) {
+	/* exponent should not be greater than modulus */
+    	PORT_SetError(SEC_ERROR_INVALID_KEY);
+	rv = SECFailure;
+	goto cleanup;
+    }
     /* 2.  Represent message as integer in range [0..n-1] */
     CHECK_MPI_OK( mp_read_unsigned_octets(&m, input, modLen) );
     /* 3.  Compute c = m**e mod n */
