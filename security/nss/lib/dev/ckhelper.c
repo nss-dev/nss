@@ -237,16 +237,6 @@ nssCKObject_SetAttributes
     }
 }
 
-/*
-NSS_IMPLEMENT PRBool
-nssCKObject_IsTokenObject
-(
-  CK_OBJECT_HANDLE object
-)
-{
-}
-*/
-
 NSS_IMPLEMENT PRBool
 nssCKObject_IsTokenObjectTemplate
 (
