@@ -1050,11 +1050,14 @@ main(int argc, char **argv)
 	    break;
 
 	case 'o':
+#if 0
 	    if (mode == DECODE) {
 		outFile = fopen(optstate->value, "w");
 	    } else {
 		outFile = fopen(optstate->value, "wb");
 	    }
+#endif
+	    outFile = fopen(optstate->value, "wb");
 	    if (outFile == NULL) {
 		fprintf(stderr, "%s: unable to open \"%s\" for writing\n",
 			progName, optstate->value);
