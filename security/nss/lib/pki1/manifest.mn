@@ -35,7 +35,7 @@ MANIFEST_CVS_ID = "@(#) $RCSfile$ $Revision$ $Date$ $Name$"
 CORE_DEPTH = ../../..
 
 PRIVATE_EXPORTS = \
-	$(OBJDIR)/oiddata.h \
+	oiddata.h \
 	pki1.h	  \
 	pki1t.h	  \
 	$(NULL)
@@ -46,9 +46,6 @@ EXPORTS =	   \
 	$(NULL)
 
 MODULE = security
-
-BUILT_CSRCS = oiddata.c \
-	$(NULL)
 
 CSRCS =		  \
 	atav.c	  \
