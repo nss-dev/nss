@@ -253,7 +253,8 @@ struct CERTCertificateStr {
     unsigned int keyUsage;	/* what uses are allowed for this cert */
     unsigned int rawKeyUsage;	/* value of the key usage extension */
     PRBool keyUsagePresent;	/* was the key usage extension present */
-    unsigned int nsCertType;	/* value of the ns cert type extension */
+    PRUint32 nsCertType;	/* value of the ns cert type extension */
+				/* must be 32-bit for PR_AtomicSet */
 
     /* these values can be set by the application to bypass certain checks
      * or to keep the cert in memory for an entire session.
