@@ -86,3 +86,8 @@ $(OBJDIR)/pk11slot.o: pk11slot.c
 endif
 endif
 endif
+ifdef XP_OS2_VACPP
+$(OBJDIR)/pk11skey.obj: pk11skey.c
+	@$(MAKE_OBJDIR)
+	$(CC) -Fo$@ -c $(filter-out /O+, $(CFLAGS)) $(call abspath,$<)
+endif
