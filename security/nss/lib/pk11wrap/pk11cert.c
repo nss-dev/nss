@@ -1015,7 +1015,9 @@ pk11_TraverseAllSlots( SECStatus (*callback)(PK11SlotInfo *,void *),
              rv = PK11_Authenticate(le->slot, PR_FALSE, wincx);
              if (rv != SECSuccess) continue;
 	}
-	(*callback)(le->slot,arg);
+	if (callback) {
+	    (*callback)(le->slot,arg);
+	}
     }
 
     PK11_FreeSlotList(list);
@@ -3440,7 +3442,18 @@ PK11_ListCerts(PK11CertListType type, void *pwarg)
     listCerts.certList = certList;
     pk11cb.callback = pk11ListCertCallback;
     pk11cb.arg = &listCerts;
-    NSSTrustDomain_TraverseCertificates(defaultTD, convert_cert, &pk11cb);
+
+    /* authenticate to the slots */
+    (void) pk11_TraverseAllSlots( NULL, NULL, pwarg);
+#ifdef notdef
+    if (type == PK11CertListUser) {
+	NSSTrustDomain_TraverseUserCertificates(defaultTD, convert_cert &pk11cb);
+    } else {
+	NSSTrustDomain_TraverseCertificates(defaultTD, convert_cert, &pk11cb);
+    }
+#else
+	NSSTrustDomain_TraverseCertificates(defaultTD, convert_cert, &pk11cb);
+#endif
     return certList;
 #endif
 }

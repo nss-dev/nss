@@ -673,6 +673,14 @@ pk11_CheckPassword(PK11SlotInfo *slot,char *pw)
 	PORT_SetError(PK11_MapError(crv));
 	rv = SECFailure; /* some failure we can't fix by retrying */
     }
+    if (rv == SECSuccess) {
+	rv = pk11_CheckVerifyTest(slot);
+	if (rv == SECSuccess && slot->nssToken && !PK11_IsFriendly(slot)) {
+	    /* notify stan about the login if certs are not public readable */
+	    nssToken_LoadCerts(slot->nssToken);
+	    nssToken_UpdateTrustForCerts(slot->nssToken);
+	}
+    }
     return rv;
 }
 
@@ -714,6 +722,14 @@ PK11_CheckUserPassword(PK11SlotInfo *slot,char *pw)
     default:
 	PORT_SetError(PK11_MapError(crv));
 	rv = SECFailure; /* some failure we can't fix by retrying */
+    }
+    if (rv == SECSuccess) {
+	rv = pk11_CheckVerifyTest(slot);
+	if (rv == SECSuccess && slot->nssToken && !PK11_IsFriendly(slot)) {
+	    /* notify stan about the login if certs are not public readable */
+	    nssToken_LoadCerts(slot->nssToken);
+	    nssToken_UpdateTrustForCerts(slot->nssToken);
+	}
     }
     return rv;
 }
