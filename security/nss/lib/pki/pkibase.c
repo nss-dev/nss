@@ -145,6 +145,23 @@ nssPKIObject_AddInstance
 	for (i=0; i<object->numInstances; i++) {
 	    if (nssCryptokiObject_Equal(object->instances[i], instance)) {
 		PZ_Unlock(object->lock);
+		if (instance->label) {
+		    if (!object->instances[i]->label ||
+		        !nssUTF8_Equal(instance->label,
+		                       object->instances[i]->label, NULL))
+		    {
+			/* Either the old instance did not have a label,
+			 * or the label has changed.
+			 */
+			nss_ZFreeIf(object->instances[i]->label);
+			object->instances[i]->label = instance->label;
+			instance->label = NULL;
+		    }
+		} else if (object->instances[i]->label) {
+		    /* The old label was removed */
+		    nss_ZFreeIf(object->instances[i]->label);
+		    object->instances[i]->label = NULL;
+		}
 		nssCryptokiObject_Destroy(instance);
 		return PR_SUCCESS;
 	    }
@@ -360,7 +377,9 @@ nssCertificateArray_Destroy
 #ifdef NSS_3_4_CODE
 	    if ((*certp)->decoding) {
 		CERTCertificate *cc = STAN_GetCERTCertificate(*certp);
-		CERT_DestroyCertificate(cc);
+		if (cc) {
+		    CERT_DestroyCertificate(cc);
+		}
 		continue;
 	    }
 #endif
@@ -906,6 +925,9 @@ nssPKIObjectCollection_AddInstanceAsObject
     }
     if (!node->haveObject) {
 	node->object = (*collection->createObject)(node->object);
+	if (!node->object) {
+	    return PR_FAILURE;
+	}
 	node->haveObject = PR_TRUE;
     }
 #ifdef NSS_3_4_CODE
@@ -932,8 +954,10 @@ cert_destroyObject(nssPKIObject *o)
 #ifdef NSS_3_4_CODE
     if (c->decoding) {
 	CERTCertificate *cc = STAN_GetCERTCertificate(c);
-	CERT_DestroyCertificate(cc);
-	return;
+	if (cc) {
+	    CERT_DestroyCertificate(cc);
+	    return;
+	} /* else destroy it as NSSCertificate below */
     }
 #endif
     nssCertificate_Destroy(c);
@@ -1002,7 +1026,10 @@ cert_createObject(nssPKIObject *o)
     NSSCertificate *cert;
     cert = nssCertificate_Create(o);
 #ifdef NSS_3_4_CODE
-    (void)STAN_GetCERTCertificate(cert);
+    if (STAN_GetCERTCertificate(cert) == NULL) {
+	nssCertificate_Destroy(cert);
+	return (nssPKIObject *)NULL;
+    }
     /* In 3.4, have to maintain uniqueness of cert pointers by caching all
      * certs.  Cache the cert here, before returning.  If it is already
      * cached, take the cached entry.
