@@ -33,10 +33,14 @@
 
 #include "secoid.h"
 #include "pkcs11t.h"
-#include "secmodt.h"
 #include "secitem.h"
 #include "secerr.h"
 #include "plhash.h"
+
+/* XXX from secmodt.h */
+#ifndef CKM_INVALID_MECHANISM
+#define CKM_INVALID_MECHANISM 0xffffffffL
+#endif /* CKM_INVALID_MECHANISM */
 
 /* MISSI Mosaic Object ID space */
 #define USGOV                   0x60, 0x86, 0x48, 0x01, 0x65

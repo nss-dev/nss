@@ -1,3 +1,5 @@
+#ifndef _HASH_H_
+#define _HASH_H_
 /*
  * The contents of this file are subject to the Mozilla Public
  * License Version 1.1 (the "License"); you may not use this file
@@ -29,22 +31,56 @@
  * the GPL.  If you do not delete the provisions above, a recipient
  * may use your version of this file under either the MPL or the
  * GPL.
- */
-/*
- * certt.h - public data structures for the certificate library
+ *
+ * hash.h - public data structures and prototypes for the hashing library
  *
  * $Id$
  */
-#ifndef _CERTI_H_
-#define _CERTI_H_
 
-#include "certt.h"
+#include "seccomon.h"
+#include "hasht.h"
+#include "secoidt.h"
 
-typedef struct OpaqueCRLFieldsStr                OpaqueCRLFields;
+SEC_BEGIN_PROTOS
 
-struct OpaqueCRLFieldsStr {
-    /* these fields are subject to change */
-    PRBool partial;
-};
+/*
+** Generic hash api.  
+*/
 
-#endif /* _CERTI_H_ */
+extern unsigned int  HASH_ResultLen(HASH_HashType type);
+
+extern unsigned int  HASH_ResultLenContext(HASHContext *context);
+
+extern unsigned int  HASH_ResultLenByOidTag(SECOidTag hashOid);
+
+extern SECStatus     HASH_HashBuf(HASH_HashType type,
+				 unsigned char *dest,
+				 unsigned char *src,
+				 uint32 src_len);
+
+extern HASHContext * HASH_Create(HASH_HashType type);
+
+extern HASHContext * HASH_Clone(HASHContext *context);
+
+extern void          HASH_Destroy(HASHContext *context);
+
+extern void          HASH_Begin(HASHContext *context);
+
+extern void          HASH_Update(HASHContext *context,
+				const unsigned char *src,
+				unsigned int len);
+
+extern void          HASH_End(HASHContext *context,
+			     unsigned char *result,
+			     unsigned int *result_len,
+			     unsigned int max_result_len);
+
+extern const SECHashObject * HASH_GetHashObject(HASH_HashType type);
+
+extern const SECHashObject * HASH_GetHashObjectByOidTag(SECOidTag hashOid);
+
+extern HASH_HashType HASH_GetHashTypeByOidTag(SECOidTag hashOid);
+
+SEC_END_PROTOS
+
+#endif /* _HASH_H_ */

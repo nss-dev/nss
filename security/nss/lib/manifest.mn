@@ -38,14 +38,11 @@ BASE_DIRS =        \
 	base       \
 	$(NULL)
 
-# softoken seems to depend on just about everything in old NSS
+# softoken continues to depend on util
 SOFTOKEN_DIRS =    \
 	util       \
 	freebl     \
-	cryptohi   \
-	pk11wrap   \
 	softoken   \
-	certdb     \
 	$(NULL)
 
 # core stan libraries

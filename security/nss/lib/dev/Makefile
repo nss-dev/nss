@@ -52,9 +52,5 @@ endif
 
 #export:: private_export
 
-export:: copy_files private_export
-
-# XXX hack to share module debug file for now
-copy_files::
-	$(INSTALL) -m 444 ../pk11wrap/debug_module.c ./
+export:: private_export
 

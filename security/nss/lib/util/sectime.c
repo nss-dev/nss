@@ -34,8 +34,19 @@
 #include "prlong.h"
 #include "prtime.h"
 #include "secder.h"
-#include "cert.h"
 #include "secitem.h"
+#include "secasn1.h"
+
+/* XXX from certt.h */
+/*
+** An X.509 validity object
+*/
+struct CERTValidityStr {
+    PRArenaPool *arena;
+    SECItem notBefore;
+    SECItem notAfter;
+};
+typedef struct CERTValidityStr CERTValidity;
 
 const SEC_ASN1Template CERT_ValidityTemplate[] = {
     { SEC_ASN1_SEQUENCE,
