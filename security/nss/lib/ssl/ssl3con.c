@@ -4549,7 +4549,7 @@ ssl3_HandleCertificateRequest(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 
     ca_list.nnames = nnames;
     ca_list.names  = (SECItem*)PORT_ArenaAlloc(arena, nnames * sizeof(SECItem));
-    if (ca_list.names == NULL)
+    if (nnames > 0 && ca_list.names == NULL)
         goto no_mem;
 
     for(i = 0, node = (dnameNode*)ca_list.head;
