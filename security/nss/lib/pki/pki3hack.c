@@ -264,6 +264,9 @@ nssToken_LoadCerts(NSSToken *token)
 	}
 	/* ignore the rv, just work without the list */
 	(void)nssToken_TraverseCertificates(token, NULL, &search);
+	(void)nssToken_SetTrustCache(token);
+	(void)nssToken_SetCrlCache(token);
+
 	/* even if there are no certs, leave a valid list pointer should
 	 * any be imported.  Having the pointer will also prevent searches,
 	 * see below.
