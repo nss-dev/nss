@@ -55,6 +55,7 @@ SEC_BEGIN_PROTOS
 #define NSS_VPATCH   0
 #define NSS_BETA     PR_FALSE
 
+
 /*
  * Return a boolean that indicates whether the underlying library
  * will perform as the caller expects.
@@ -93,12 +94,32 @@ extern SECStatus NSS_InitReadWrite(const char *configdir);
  * and an alternate name for the secmod database. NOTE: In future releases,
  * the database prefixes my not necessarily map to database names.
  *
+ * configdir - base directory where all the cert, key, and module datbases live.
+ * certPrefix - prefix added to the beginning of the cert database example: "
+ * 			"https-server1-"
+ * keyPrefix - prefix added to the beginning of the key database example: "
+ * 			"https-server1-"
+ * secmodName - name of the security module database (usually "secmod.db").
+ * flags - change the open options of NSS_Initialize as follows:
+ * 	NSS_INIT_READONLY - Open the databases read only.
+ * 	NSS_INIT_NOCERTDB - Don't open the cert DB and key DB's, just 
+ * 			initialize the volatile certdb.
+ * 	NSS_INIT_NOMODDB  - Don't open the security module DB, just 
+ *			initialize the 	PKCS #11 module.
+ *      NSS_INIT_FORCEOPEN - Continue to force initializations even if the 
+ * 			databases cannot be opened.
+ *
  * Also NOTE: This is not the recommended method for initializing NSS. 
  * The prefered method is NSS_init().
  */
+#define NSS_INIT_READONLY	0x1
+#define NSS_INIT_NOCERTDB	0x2
+#define NSS_INIT_NOMODDB	0x4
+#define NSS_INIT_FORCEOPEN	0x8
+
 extern SECStatus NSS_Initialize(const char *configdir, 
-	const char *certPrefix, const char *keyPrefix, const char *secmodName,
-	PRBool readOnly, PRBool noCertDB, PRBool noModDB, PRBool forceOpen);
+	const char *certPrefix, const char *keyPrefix, 
+	const char *secmodName, PRUint32 flags);
 
 /*
  * initialize NSS without a creating cert db's, key db's, or secmod db's.
