@@ -234,8 +234,8 @@ cms_attr_choose_attr_value_template(void *src_or_dest, PRBool encoding)
 	theTemplate = SEC_ASN1_GET(SEC_AnyTemplate);
     } else {
 	switch (oiddata->offset) {
-	SEC_OID_PKCS9_SMIME_CAPABILITIES:
-	SEC_OID_SMIME_ENCRYPTION_KEY_PREFERENCE:
+	case SEC_OID_PKCS9_SMIME_CAPABILITIES:
+	case SEC_OID_SMIME_ENCRYPTION_KEY_PREFERENCE:
 	    /* these guys need to stay DER-encoded */
 	default:
 	    /* same goes for OIDs that are not handled here */
