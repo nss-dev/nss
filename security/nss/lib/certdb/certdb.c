@@ -1215,6 +1215,8 @@ loser:
 SECStatus
 CERT_CheckKeyUsage(CERTCertificate *cert, unsigned int requiredUsage)
 {
+    unsigned int certKeyUsage;
+
     if (!cert) {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
 	return SECFailure;
@@ -1249,8 +1251,12 @@ CERT_CheckKeyUsage(CERTCertificate *cert, unsigned int requiredUsage)
 	}
     }
 
-    if ( (cert->keyUsage & requiredUsage) == requiredUsage ) 
+    certKeyUsage = cert->keyUsage;
+    if (certKeyUsage & KU_NON_REPUDIATION)
+        certKeyUsage |= KU_DIGITAL_SIGNATURE;
+    if ( (certKeyUsage & requiredUsage) == requiredUsage ) 
     	return SECSuccess;
+
 loser:
     PORT_SetError(SEC_ERROR_INADEQUATE_KEY_USAGE);
     return SECFailure;
