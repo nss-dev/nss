@@ -72,4 +72,7 @@ include $(CORE_DEPTH)/coreconf/rules.mk
 # (7) Execute "local" rules. (OPTIONAL).                              #
 #######################################################################
 
+errorgen: errorgen.perl errors.txt
+	rm -f cmderrors.c
+	perl errorgen.perl cmderrors.c errors.txt
 

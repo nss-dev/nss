@@ -46,6 +46,7 @@ CSRCS =             \
 	cmdio.c     \
 	cmdline.c   \
 	cmdpp.c     \
+	cmderrors.c \
 	$(NULL)
 
 REQUIRES = security nspr

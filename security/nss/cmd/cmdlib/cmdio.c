@@ -326,20 +326,3 @@ CMD_DumpOutput(NSSItem *output, CMDRunTimeData *rtData)
     }
 }
 
-/* XXX only error codes, and the top level error, for now */
-void
-CMD_PrintError(char *message, ...)
-{
-    NSSError e;
-    va_list args;
-
-    e = NSS_GetError();
-
-    va_start(args, message);
-
-    PR_vfprintf(PR_STDERR, message, args);
-    PR_fprintf(PR_STDERR, ": (%d)\n", e);
-
-    va_end(args);
-}
-
