@@ -50,6 +50,8 @@
 #include "secrng.h"
 #include "pk11func.h"
 
+#include "pkinss3hack.h"
+
 #define NSS_MAX_FLAG_SIZE  sizeof("readOnly")+sizeof("noCertDB")+ \
 	sizeof("noModDB")+sizeof("forceOpen")+sizeof("passwordRequired")
 #define NSS_DEFAULT_MOD_NAME "NSS Internal Module"
@@ -238,6 +240,7 @@ nss_Init(const char *configdir, const char *certPrefix, const char *keyPrefix,
 	}
     }
 
+    STAN_LoadDefaultNSS3TrustDomain();
     return rv;
 }
 
@@ -374,5 +377,4 @@ NSS_VersionCheck(const char *importedVersion)
     }
     return PR_TRUE;
 }
-
 
