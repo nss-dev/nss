@@ -52,6 +52,7 @@
 #include "lowpbe.h"
 #include "secerr.h"
 #include "cdbhdl.h"
+#include "nsslocks.h"
 
 #include "keydbi.h"
 
