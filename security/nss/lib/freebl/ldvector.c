@@ -160,6 +160,13 @@ static const struct FREEBLVectorStr vector = {
 
     /* End of Version 3.003. */
 
+    AESKeyWrap_CreateContext,
+    AESKeyWrap_DestroyContext,
+    AESKeyWrap_Encrypt,
+    AESKeyWrap_Decrypt,
+
+    /* End of Version 3.004. */
+
 };
 
 
