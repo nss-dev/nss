@@ -54,13 +54,14 @@ static const SEC_ASN1Template nsslowcert_CertKeyTemplate[] = {
     { SEC_ASN1_SEQUENCE,
 	  0, NULL, sizeof(NSSLOWCERTCertKey) },
     { SEC_ASN1_EXPLICIT | SEC_ASN1_OPTIONAL | SEC_ASN1_CONSTRUCTED | 
-	  SEC_ASN1_CONTEXT_SPECIFIC | 0, 0 },	/* version */ 
+	  SEC_ASN1_CONTEXT_SPECIFIC | 0, 0, SEC_SkipTemplate },	/* version */ 
     { SEC_ASN1_INTEGER, offsetof(NSSLOWCERTCertKey,serialNumber) },
     { SEC_ASN1_SKIP },		/* signature algorithm */
     { SEC_ASN1_ANY, offsetof(NSSLOWCERTCertKey,derIssuer) },
     { SEC_ASN1_SKIP_REST },
     { 0 }
 };
+
 const SEC_ASN1Template nsslowcert_SubjectPublicKeyInfoTemplate[] = {
     { SEC_ASN1_SEQUENCE, 0, NULL, sizeof(NSSLOWCERTSubjectPublicKeyInfo) },
     { SEC_ASN1_INLINE, offsetof(NSSLOWCERTSubjectPublicKeyInfo,algorithm),
@@ -69,11 +70,12 @@ const SEC_ASN1Template nsslowcert_SubjectPublicKeyInfoTemplate[] = {
           offsetof(NSSLOWCERTSubjectPublicKeyInfo,subjectPublicKey), },
     { 0, }
 };
+
 const SEC_ASN1Template nsslowcert_CertificateTemplate[] = {
     { SEC_ASN1_SEQUENCE,
       0, NULL, sizeof(NSSLOWCERTCertificate) },
     { SEC_ASN1_EXPLICIT | SEC_ASN1_OPTIONAL | SEC_ASN1_CONSTRUCTED |
-          SEC_ASN1_CONTEXT_SPECIFIC | 0, 0}, /* version */
+          SEC_ASN1_CONTEXT_SPECIFIC | 0, 0, SEC_SkipTemplate }, /* version */
     { SEC_ASN1_INTEGER, offsetof(NSSLOWCERTCertificate,serialNumber) },
     { SEC_ASN1_SKIP }, /* Signature algorithm */
     { SEC_ASN1_ANY, offsetof(NSSLOWCERTCertificate,derIssuer) },
@@ -81,7 +83,6 @@ const SEC_ASN1Template nsslowcert_CertificateTemplate[] = {
           offsetof(NSSLOWCERTCertificate,validity),
           CERT_ValidityTemplate },
     { SEC_ASN1_ANY, offsetof(NSSLOWCERTCertificate,derSubject) },
-    { SEC_ASN1_SAVE, offsetof(NSSLOWCERTCertificate,derPublicKey) },
     { SEC_ASN1_INLINE,
           offsetof(NSSLOWCERTCertificate,subjectPublicKeyInfo),
           nsslowcert_SubjectPublicKeyInfoTemplate },
@@ -98,6 +99,7 @@ const SEC_ASN1Template nsslowcert_SignedCertificateTemplate[] =
 const SEC_ASN1Template nsslowcert_SignedDataTemplate[] = {
     { SEC_ASN1_SEQUENCE, 0, NULL, sizeof(NSSLOWCERTSignedData) },
     { SEC_ASN1_ANY, offsetof(NSSLOWCERTSignedData,data), },
+    { SEC_ASN1_SKIP_REST },
     { 0, }
 };
 const SEC_ASN1Template nsslowcert_RSAPublicKeyTemplate[] = {
@@ -467,7 +469,7 @@ loser:
 NSSLOWKEYPublicKey *
 nsslowcert_ExtractPublicKey(NSSLOWCERTCertificate *cert)
 {
-    NSSLOWCERTSubjectPublicKeyInfo *spki;
+    NSSLOWCERTSubjectPublicKeyInfo *spki = &cert->subjectPublicKeyInfo;
     NSSLOWKEYPublicKey *pubk;
     SECItem os;
     SECStatus rv;
@@ -488,7 +490,7 @@ nsslowcert_ExtractPublicKey(NSSLOWCERTCertificate *cert)
     pubk->arena = arena;
 
     /* Convert bit string length from bits to bytes */
-    os = cert->subjectPublicKeyInfo.subjectPublicKey;
+    os = spki->subjectPublicKey;
     DER_ConvertBitString (&os);
 
     tag = SECOID_GetAlgorithmTag(&spki->algorithm);
