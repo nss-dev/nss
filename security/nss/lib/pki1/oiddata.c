@@ -182,7 +182,7 @@ const NSSOID nss_builtin_oids[] = {
     "ucl",
     "RFC 1327 ucl",
 #endif /* DEBUG */
-    { "\x09\x92\x26\x86\xe8\xc4\xb5\xbe\x7f", 9 }
+    { "\x09\x92\x26\x86\xe8\xc4\xb5\xbe\x2c", 9 }
   },
   {
 #ifdef DEBUG
