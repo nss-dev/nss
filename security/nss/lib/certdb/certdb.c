@@ -2037,7 +2037,6 @@ CERT_ImportCerts(CERTCertDBHandle *certdb, SECCertUsage usage,
 	}
 
 	if ( keepCerts ) {
-	    PK11SlotInfo *intSlot = PK11_GetInternalKeySlot();
 	    for ( i = 0; i < fcerts; i++ ) {
 		SECKEY_UpdateCertPQG(certs[i]);
 		if(CERT_IsCACert(certs[i], NULL) && (fcerts > 1)) {
@@ -2055,7 +2054,6 @@ CERT_ImportCerts(CERTCertDBHandle *certdb, SECCertUsage usage,
 		}
 		/* don't care if it fails - keep going */
 	    }
-	    PK11_FreeSlot(intSlot);
 	}
     }
 
