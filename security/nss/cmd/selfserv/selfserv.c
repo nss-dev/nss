@@ -222,6 +222,10 @@ errWarn(char * funcString)
     PRErrorCode  perr      = PR_GetError();
     const char * errString = SECU_Strerror(perr);
 
+    if (!errString) {
+        errString = "";
+    }
+
     fprintf(stderr, "selfserv: %s returned error %d:\n%s\n",
             funcString, perr, errString);
     return errString;
