@@ -282,6 +282,8 @@ dbs_freemap(void)
 	dbs_len = 0;
     } else if (dbs_addr) {
 	PORT_Free(dbs_addr);
+	dbs_addr = NULL;
+	dbs_len = 0;
     }
     return;
 }
