@@ -391,9 +391,6 @@ CERT_KeyFromDERCert(PRArenaPool *arena, SECItem *derCert, SECItem *key)
     CERTSignedData sd;
     CERTCertKey certkey;
 
-    PORT_Memset(&sd, 0, sizeof(CERTSignedData));    
-    PORT_Memset(&certkey, 0, sizeof(CERTCertKey));    
-
     PORT_Memset(&sd, 0, sizeof(CERTSignedData));
     rv = SEC_ASN1DecodeItem(arena, &sd, CERT_SignedDataTemplate, derCert);
     
