@@ -192,6 +192,7 @@ secu_PrintUserNoticeQualifier(FILE *out, SECItem * qualifierValue,
 	    SECU_PrintString(out,&userNotice->displayText,
 			     "Display Text", level+1);
 	}
+	CERT_DestroyUserNotice(userNotice);
 	return SECSuccess;
     }
     return SECFailure;	/* caller will print this value */
