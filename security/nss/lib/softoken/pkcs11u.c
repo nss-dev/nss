@@ -282,6 +282,9 @@ static const PK11Attribute pk11_StaticFalseAttr =
   PK11_DEF_ATTRIBUTE(&pk11_staticFalseValue,sizeof(pk11_staticFalseValue));
 static const PK11Attribute pk11_StaticNullAttr = PK11_DEF_ATTRIBUTE(NULL,0);
 
+CK_CERTIFICATE_TYPE pk11_staticX509Value = CKC_X_509;
+static const PK11Attribute pk11_StaticX509Attr =
+  PK11_DEF_ATTRIBUTE(&pk11_staticX509Value, sizeof(pk11_staticX509Value));
 
 CK_TRUST pk11_staticTrustedValue = CKT_NETSCAPE_TRUSTED;
 CK_TRUST pk11_staticTrustedDelegatorValue = CKT_NETSCAPE_TRUSTED_DELEGATOR;
@@ -944,6 +947,9 @@ pk11_FindCertAttribute(PK11TokenObject *object, CK_ATTRIBUTE_TYPE type)
 	return NULL;
     }
     switch (type) {
+    case CKA_CERTIFICATE_TYPE:
+	/* hardcoding X.509 into here */
+	return (PK11Attribute *)&pk11_StaticX509Attr;
     case CKA_VALUE:
 	return pk11_NewTokenAttribute(type,cert->derCert.data,
 						cert->derCert.len,PR_FALSE);
