@@ -74,7 +74,7 @@ GMAKE_FLAGS = $(GMAKE_FLAGS) USE_DEBUG_RTL=1
 
 all:: export libs install
 
-install:: moz_import
+install:: moz_import install_roots
 
 depend::
 
@@ -94,3 +94,6 @@ export libs install clobber clobber_all clean::
 
 moz_import::
 	copy $(DIST)\lib\dbm32.lib $(DIST)\lib\dbm.lib
+
+install_roots::
+	$(MAKE_INSTALL) $(DIST)\lib\nssckbi.dll $(DIST)\bin
