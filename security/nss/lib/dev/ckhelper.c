@@ -533,13 +533,16 @@ get_nss_trust
 {
     nssTrustLevel t;
     switch (ckt) {
-    case CKT_NETSCAPE_TRUST_UNKNOWN: t = nssTrustLevel_Unknown; break;
     case CKT_NETSCAPE_UNTRUSTED: t = nssTrustLevel_NotTrusted; break;
     case CKT_NETSCAPE_TRUSTED_DELEGATOR: t = nssTrustLevel_TrustedDelegator; 
 	break;
     case CKT_NETSCAPE_VALID_DELEGATOR: t = nssTrustLevel_ValidDelegator; break;
     case CKT_NETSCAPE_TRUSTED: t = nssTrustLevel_Trusted; break;
     case CKT_NETSCAPE_VALID: t = nssTrustLevel_Valid; break;
+    case CKT_NETSCAPE_MUST_VERIFY:
+    case CKT_NETSCAPE_TRUST_UNKNOWN:
+    default:
+	t = nssTrustLevel_Unknown; break;
     }
     return t;
 }
