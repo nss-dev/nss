@@ -234,7 +234,9 @@ static PRBool isMultiProcess  = PR_FALSE;
 #define MIN_SSL3_TIMEOUT          5   /* seconds  */
 
 #if defined(AIX) || defined(LINUX)
-#define MAX_SID_CACHE_LOCKS 8
+#define MAX_SID_CACHE_LOCKS 8	/* two FDs per lock */
+#elif defined(OSF1)
+#define MAX_SID_CACHE_LOCKS 16	/* one FD per lock */
 #else
 #define MAX_SID_CACHE_LOCKS 256
 #endif
@@ -1037,8 +1039,12 @@ SSL_ConfigServerSessionIDCacheInstance(	cacheDesc *cache,
 {
     SECStatus rv;
 
-/*  printf("sizeof(sidCacheEntry) == %u\n", sizeof(sidCacheEntry)); */
+#if defined(DEBUG_nelsonb)
+    printf("sizeof(sidCacheEntry) == %u\n", sizeof(sidCacheEntry));
+#endif
+#if !(defined(SOLARIS) && defined(i386))
     PORT_Assert(sizeof(sidCacheEntry) % 8 == 0);
+#endif
     PORT_Assert(sizeof(certCacheEntry) == 4096);
 
     myPid = SSL_GETPID();
