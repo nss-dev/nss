@@ -125,7 +125,7 @@ NSSCryptoContext_ImportCertificate
 	return PR_FAILURE;
     }
 #endif
-    return nssToken_ImportCertificate(token, session, c, NULL, cc);
+    return nssToken_ImportCertificate(token, session, c, PR_FALSE);
 }
 
 NSS_IMPLEMENT NSSCertificate *

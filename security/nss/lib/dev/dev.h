@@ -250,8 +250,7 @@ nssToken_ImportCertificate
   NSSToken *tok,
   nssSession *sessionOpt,
   NSSCertificate *cert,
-  NSSTrustDomain *td,
-  NSSCryptoContext *cc
+  PRBool asTokenObject
 );
  
 NSS_EXTERN PRStatus
@@ -260,8 +259,7 @@ nssToken_ImportTrust
   NSSToken *tok,
   nssSession *sessionOpt,
   NSSTrust *trust,
-  NSSTrustDomain *trustDomain,
-  NSSCryptoContext *cryptoContext
+  PRBool asTokenObject
 );
 
 NSS_EXTERN NSSPublicKey *
@@ -292,7 +290,8 @@ nssToken_FindTrustForCert
 (
   NSSToken *token,
   nssSession *sessionOpt,
-  NSSCertificate *c
+  NSSCertificate *c,
+  nssTokenSearchType searchType
 );
 
 NSS_EXTERN PRStatus
@@ -336,7 +335,8 @@ nssToken_FindCertificateByIssuerAndSerialNumber
   NSSToken *token,
   nssSession *sessionOpt,
   NSSDER *issuer,
-  NSSDER *serial
+  NSSDER *serial,
+  nssTokenSearchType searchType
 );
 
 NSS_EXTERN NSSCertificate *
@@ -344,7 +344,8 @@ nssToken_FindCertificateByEncodedCertificate
 (
   NSSToken *token,
   nssSession *sessionOpt,
-  NSSBER *encodedCertificate
+  NSSBER *encodedCertificate,
+  nssTokenSearchType searchType
 );
 
 NSS_EXTERN NSSTrust *
@@ -352,7 +353,8 @@ nssToken_FindTrustForCert
 (
   NSSToken *token,
   nssSession *session,
-  NSSCertificate *c
+  NSSCertificate *c,
+  nssTokenSearchType searchType
 );
 
 NSS_EXTERN NSSItem *

@@ -49,7 +49,7 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 NSS_IMPLEMENT PRStatus
 nssPKIObject_Destroy
 (
-  nssPKIObject *object
+  struct nssPKIObjectBaseStr *object
 )
 {
     nssList_Destroy(object->instanceList);

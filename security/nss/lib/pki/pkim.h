@@ -261,7 +261,7 @@ nssDecodedCert_Destroy
 NSS_EXTERN PRStatus
 nssPKIObject_Destroy
 (
-  nssPKIObject *object
+  struct nssPKIObjectBaseStr *object
 );
 
 NSS_EXTERN NSSTime *
