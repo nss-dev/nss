@@ -1162,7 +1162,7 @@ finish_des:
 	    (unsigned char*)att->attrib.pValue,
 	    (unsigned char*)pMechanism->pParameter,
 	    pMechanism->mechanism == CKM_AES_ECB ? NSS_AES : NSS_AES_CBC,
-	    PR_TRUE, att->attrib.ulValueLen,16);
+	    PR_FALSE, att->attrib.ulValueLen,16);
 	pk11_FreeAttribute(att);
 	if (context->cipherInfo == NULL) {
 	    crv = CKR_HOST_MEMORY;
@@ -4486,8 +4486,17 @@ loser:
 /*
  * SSL Key generation given pre master secret
  */
-static char *mixers[] = { "A", "BB", "CCC", "DDDD", "EEEEE", "FFFFFF", "GGGGGGG"};
-#define NUM_MIXERS 7
+#define NUM_MIXERS 9
+static const char * const mixers[NUM_MIXERS] = { 
+    "A", 
+    "BB", 
+    "CCC", 
+    "DDDD", 
+    "EEEEE", 
+    "FFFFFF", 
+    "GGGGGGG",
+    "HHHHHHHH",
+    "IIIIIIIII" };
 #define SSL3_PMS_LENGTH 48
 #define SSL3_MASTER_SECRET_LENGTH 48
 
@@ -4913,6 +4922,7 @@ CK_RV NSC_DeriveKey( CK_SESSION_HANDLE hSession,
 		                &key_block[i], IVSize);
 	    	    i += IVSize;
 		}
+		PORT_Assert(i <= sizeof key_block);
 
 	    } else if (!isTLS) {
 
