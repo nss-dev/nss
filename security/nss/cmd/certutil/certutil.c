@@ -1550,7 +1550,7 @@ AddBasicConstraint(void *extHandle)
 static SECItem *
 SignCert(CERTCertDBHandle *handle, 
 CERTCertificate *cert, PRBool selfsign, 
-SECKEYPrivateKey *selfsignprivkey, char *issuerNickName)
+SECKEYPrivateKey *selfsignprivkey, char *issuerNickName, void *pwarg)
 {
     SECItem der;
     SECItem *result = NULL;
@@ -1564,14 +1564,14 @@ SECKEYPrivateKey *selfsignprivkey, char *issuerNickName)
       caPrivateKey = selfsignprivkey;
     } else {
       /*CERTCertificate *issuer = CERT_FindCertByNickname(handle, issuerNickName);*/
-      CERTCertificate *issuer = PK11_FindCertFromNickname(issuerNickName, NULL);
+      CERTCertificate *issuer = PK11_FindCertFromNickname(issuerNickName, pwarg);
       if( (CERTCertificate *)NULL == issuer ) {
         SECU_PrintError(progName, "unable to find issuer with nickname %s", 
 	                issuerNickName);
         return (SECItem *)NULL;
       }
 
-      caPrivateKey = PK11_FindKeyByAnyCert(issuer, (void *)NULL);
+      caPrivateKey = PK11_FindKeyByAnyCert(issuer, pwarg);
     if (caPrivateKey == NULL) {
 	SECU_PrintError(progName, "unable to retrieve key %s", issuerNickName);
 	return NULL;
@@ -1817,6 +1817,7 @@ CreateCert(
 	int     serialNumber, 
 	int     warpmonths,
 	int     validitylength,
+	void	*pwarg,
 	PRBool  selfsign,
 	PRBool	keyUsage, 
 	PRBool  extKeyUsage,
@@ -1901,7 +1902,7 @@ CreateCert(
 
 	CERT_FinishExtensions(extHandle);
 
-	certDER = SignCert (handle, subjectCert, selfsign, selfsignprivkey, issuerNickName);
+	certDER = SignCert (handle, subjectCert, selfsign, selfsignprivkey, issuerNickName, pwarg);
 
 	if (certDER)
 	   PR_Write(outFile, certDER->data, certDER->len);
@@ -2480,10 +2481,15 @@ main(int argc, char **argv)
     /*  Create a certificate (-C or -S).  */
     if (certutil.commands[cmd_CreateAndAddCert].activated ||
          certutil.commands[cmd_CreateNewCert].activated) {
+	if ( certutil.options[opt_PasswordFile].arg) {
+	    pwdata.source = PW_FROMFILE;
+	    pwdata.data = certutil.options[opt_PasswordFile].arg;
+	}
 	rv = CreateCert(certHandle, 
 	                certutil.options[opt_IssuerName].arg,
 	                inFile, outFile, privkey, 
 	                serialNumber, warpmonths, validitylength,
+			&pwdata,
 	                certutil.options[opt_SelfSign].activated,
 	                certutil.options[opt_AddKeyUsageExt].activated,
 	                certutil.options[opt_AddExtKeyUsageExt].activated,
