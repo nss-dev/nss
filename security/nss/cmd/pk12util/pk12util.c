@@ -89,13 +89,6 @@ p12u_DestroyExportFileInfo(p12uContext **exp_ptr, PRBool removeFile)
     if(!exp_ptr || !(*exp_ptr)) {
 	return;
     }
-#if defined(_WIN32) 
-    if ((*exp_ptr)->hasBufferData) {
-	(*exp_ptr)->hasBufferData = PR_FALSE;
-    	PR_Write((*exp_ptr)->file, (*exp_ptr)->bufferData, (int32)1);
-	/* what about failure? */
-    }
-#endif
 
     if((*exp_ptr)->file != NULL) {
 	PR_Close((*exp_ptr)->file);
@@ -136,9 +129,6 @@ p12u_InitFile(PRBool fileImport, char *filename)
     p12cxt->error = PR_FALSE;
     p12cxt->errorValue = 0;
     p12cxt->filename = strdup(filename);
-#if defined(_WIN32) 
-    p12cxt->hasBufferData = PR_FALSE;
-#endif
 
     if(!p12u_OpenExportFile(p12cxt, fileImport)) {
 	PR_SetError(p12cxt->errorValue, 0);
@@ -190,9 +180,6 @@ p12u_CreateTemporaryDigestFile(void)
     p12cxt->filename = filename;
 #else
     p12cxt->filename = strdup("/tmp/"TEMPFILE); 
-#endif
-#if defined(_WIN32) 
-    p12cxt->hasBufferData = PR_FALSE;
 #endif
 
     if (!p12cxt->filename) {
@@ -688,16 +675,6 @@ p12u_WriteToExportFile(void *arg, const char *buf, unsigned long len)
     if(!p12cxt || (p12cxt->error == PR_TRUE)) {
 	return;
     }
-#if defined(_WIN32) 
-    /* Windows 2000 treats single byte writes as double byte characters!
-     * hack to deal with this until we figure out how to tell it not to in
-     * nspr */
-    if ((len == 1) && (p12cxt->hasBufferData == PR_FALSE)) {
-	p12cxt->bufferData[0] = (unsigned char) *buf;
-	p12cxt->hasBufferData = PR_TRUE;
-	return;
-    }
-#endif
 
     if(p12cxt->file == NULL) {
 	p12cxt->errorValue = SEC_ERROR_PKCS12_UNABLE_TO_WRITE;
@@ -705,23 +682,6 @@ p12u_WriteToExportFile(void *arg, const char *buf, unsigned long len)
 	return;
     }
 
-#if defined(_WIN32) 
-    if (p12cxt->hasBufferData) {
-	p12cxt->hasBufferData = PR_FALSE;
-	p12cxt->bufferData[1] = (unsigned char) *buf++;
-	len--;
-    	writeLen = PR_Write(p12cxt->file, p12cxt->bufferData, (int32)2);
-	if (writeLen != 2) {
-	    PR_Close(p12cxt->file);
-	    PR_Free(p12cxt->filename);
-	    p12cxt->filename = NULL;
-	    p12cxt->file = NULL;
-	    p12cxt->errorValue = SEC_ERROR_PKCS12_UNABLE_TO_WRITE;
-	    p12cxt->error = PR_TRUE;
-	}
-    }  
-    if (len != 0) {
-#endif
     writeLen = PR_Write(p12cxt->file, (unsigned char *)buf, (int32)len);
 
     if(writeLen != (int)len) {
@@ -732,9 +692,6 @@ p12u_WriteToExportFile(void *arg, const char *buf, unsigned long len)
 	p12cxt->errorValue = SEC_ERROR_PKCS12_UNABLE_TO_WRITE;
 	p12cxt->error = PR_TRUE;
     }
-#if defined(_WIN32) 
-    }
-#endif
 }
 
 void
