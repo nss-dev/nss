@@ -36,6 +36,7 @@ dnl ========================================================
 dnl = Defaults
 dnl ========================================================
 USE_PTHREADS=
+USE_64=
 ENABLE_CMD=1
 MOZILLA_CLIENT=
 _OPTIMIZE_FLAGS=-O
@@ -168,6 +169,12 @@ AC_ARG_ENABLE(debug,
     [	if test "$enableval" = "no"; then
     	    MOZ_DEBUG=
 	    fi])
+
+AC_ARG_ENABLE(64bit,
+    [  --enable-64bit          Enable 64-bit support (on certain platforms)],
+    [ if test "$enableval" = "yes"; then
+	    USE_64=1
+      fi ])
 
 dnl AC_ARG_ENABLE(shared,
 dnl    [  --disable-shared        Do not compile into shared libraries])
@@ -569,11 +576,71 @@ dnl Override of system specific target options
 dnl ========================================================
 case "$target" in
 
+*-aix*)
+    AC_DEFINE(XP_UNIX)
+    AC_DEFINE(AIX)
+    AC_DEFINE(SYSV)
+    CPU_ARCH=rs6000
+    if test -z "$GNU_CC"; then
+        CFLAGS="$CFLAGS -qarch=com"
+    fi
+    AIX_WRAP='$(DIST)/lib/aixwrap.o'
+    AIX_TMP='./_aix_tmp.o'
+    OS_LIBS="$OS_LIBS -lsvld"
+
+    case "${target_os}" in
+        aix4.1*)
+            LDFLAGS="$LDFLAGS -bnso -berok"
+            DLL_SUFFIX=a
+            ;;
+        aix4.2*)
+            AC_DEFINE(AIX4_2)
+            DSO_LDOPTS='-brtl -bM:SRE -bnoentry $(EXPORT_RULES)'
+            MKSHLIB='$(LD) $(DSO_LDOPTS) -lsvld -L/usr/lpp/xlC/lib -lc -lm'
+            OS_LIBS="$OS_LIBS -L/usr/lpp/xlC/lib -lc -lm"
+            EXPORT_RULES=-bexpall
+            ;;
+        aix4.3*)
+            if test -n "$USE_64"; then
+                AC_DEFINE(AIX_64BIT)
+                OBJECT_MODE=64
+            fi
+            ;;
+    esac
+    ;;
+    
 *-beos*)
     AC_DEFINE(XP_BEOS)
     AC_DEFINE(BEOS)
     MKSHLIB='$(CC) -nostart -Wl,-soname -Wl,$(notdir $@)'
     OS_LIBS="${OS_LIBS} -lbe"
+    ;;
+
+*-bsdi*)
+    AC_DEFINE(XP_UNIX)
+    AC_DEFINE(BSD_OS)
+    AC_DEFINE(BSDI)
+    AC_DEFINE(HAVE_STRERROR)
+    AC_DEFINE(HAVE_BSD_FLOCK)
+    DSO_CFLAGS='-fPIC -DPIC'
+    DSO_LDOPTS='-shared -Wl,-soname,lib$(LIBRARY_NAME)$(LIBRARY_VERSION).$(DLL_SUFFIX)'
+    MKSHLIB='$(CC) $(DSO_LDOPTS)'
+    
+    if test "$OS_TEST" = "i386"; then
+        AC_DEFINE(__i386__)
+        CPU_ARCH=x86
+    elif test "$OS_TEST" = "ppc"; then
+        AC_DEFINE(__ppc__)
+        CPU_ARCH=ppc
+    elif test "$OS_TEST" = "sparc" || test "$OS_TEST" = "sparc_v9"; then
+        AC_DEFINE(__sparc__)
+        CPU_ARCH=sparc
+    fi
+
+    if test -n "$LIBRUNPATH"; then
+        DSO_LDOPTS="$DSO_LDOPTS -Wl,-R\$(LIBRUNPATH)"
+    fi
+    CFLAGS="$CFLAGS -I/usr/X11R6/include -I/usr/include/g++"
     ;;
 
 *-cygwin*|*-msvc*)
@@ -655,27 +722,185 @@ case "$target" in
     esac
     ;;
 
+*-freebsd*)
+    AC_DEFINE(XP_UNIX)
+    AC_DEFINE(FREEBSD)
+    AC_DEFINE(HAVE_STRERROR)
+    AC_DEFINE(HAVE_BSD_FLOCK)
+    CFLAGS="$CFLAGS -fPIC -ansi -Wall -pipe -I/usr/include/g++ -I/usr/X11R6/include"
+    DSO_LDOPTS=-Bshareable
+    MKSHLIB='$(LD) $(DSO_LDOPTS)'
+
+    if test "$OS_TEST" = "alpha"; then
+        CPU_ARCH=alpha
+    else
+        CPU_ARCH=x86
+        AC_DEFINE(i386)
+    fi
+
+    if test -z "$CLASSIC_NSPR"; then
+        USE_PTHREADS=1
+        AC_DEFINE(_THREAD_SAFE)
+        CFLAGS="$CFLAGS -pthread"
+    fi
+
+    MOZ_OBJFORMAT=`test -x /usr/bin/objformat && /usr/bin/objformat || echo aout`
+    if test "$MOZ_OBJFORMAT" != "elf"; then
+        DLL_SUFFIX=so.1.0
+    fi
+    ;;
+
+*-hpux*)
+    AC_DEFINE(XP_UNIX)
+    AC_DEFINE(HPUX)
+    AC_DEFINE(hppa)
+    AC_DEFINE(_HPUX_SOURCE)
+    CPU_ARCH=hppa
+    DLL_SUFFIX=sl
+    CFLAGS="$CFLAGS -Ae +Z"
+    LDFLAGS="$LDFLAGS -z -Wl,+s"
+    MKSHLIB='$(LD) $(DSO_LDOPTS)'
+    DSO_LDOPTS='-b +h $(notdir $@)'
+
+    if echo "$OS_RELEASE" | grep ^A.09 >/dev/null; then
+        AC_DEFINE(HPUX9)
+        if echo "$OS_RELEASE" | egrep '^A.09.(03|07)' >/dev/null; then
+            DEFAULT_IMPL_STRATEGY=_CLASSIC
+        fi
+    elif echo "$OS_RELEASE" | grep ^B.10 >/dev/null; then
+        AC_DEFINE(HPUX10)
+        OS_LIBS="$OS_LIBS -lpthread -lm"
+        if echo "$OS_RELEASE" | grep '^B.10.01' >/dev/null; then
+            DEFAULT_IMPL_STRATEGY=_CLASSIC
+        elif echo "$OS_RELEASE" | grep '^B.10.10' >/dev/null; then
+            AC_DEFINE(HPUX10_10)
+            DEFAULT_IMPL_STRATEGY=_PTH
+        elif echo "$OS_RELEASE" | grep '^B.10.20' >/dev/null; then
+            AC_DEFINE(HPUX10_20)
+            DEFAULT_IMPL_STRATEGY=_PTH
+        elif echo "$OS_RELEASE" | grep '^B.10.30' >/dev/null; then
+            AC_DEFINE(HPUX10_30)
+            DEFAULT_IMPL_STRATEGY=_PTH
+        fi
+    elif echo "$OS_RELEASE" | grep ^B.11 >/dev/null; then
+        AC_DEFINE(HPUX11)
+        OS_LIBS="$OS_LIBS -lpthread -lm -lrt"
+        HPUX=1
+        if test -n "$USE_LONG_LONGS"; then
+            USE_HYBRID=1
+        fi
+        if test -z "$GNU_CC"; then
+            if test "$USE_64"; then
+                CFLAGS="$CFLAGS -Ae +e +DA2.0W +DS2.0 +DChpux"
+            else
+                if test -n "$USE_HYBRID"; then
+                    CFLAGS="$CFLAGS -Aa +e +DA2.0 +DS2.0"
+                else
+                    CFLAGS="$CFLAGS +DAportable +DS2.0"
+                fi
+            fi
+        fi
+    fi
+
+    if test "$DEFAULT_IMPL_STRATEGY" = "_PTH"; then
+        USE_PTHREADS=1
+        if test -n "$CLASSIC_NSPR"; then
+            USE_PTHREADS=
+            IMPL_STRATEGY=_CLASSIC
+        fi
+        if test -n "$PTHREADS_USER"; then
+            USE_PTHREADS=
+            IMPL_STRATEGY=_PTH_USER
+        fi
+    fi
+
+    if test -n "$PTHREADS_USER"; then
+        AC_DEFINE(_POSIX_C_SOURCE,199506L)
+    fi
+
+    if test -n "$USE_PTHREADS"; then
+        if echo "$OS_RELEASE" | egrep '^B.10.(10|20)' >/dev/null; then
+            AC_DEFINE(_REENTRANT)
+        elif echo "$OS_RELEASE" | grep '^B.10.30' >/dev/null; then
+            AC_DEFINE(_POSIX_C_SOURCE,199506L)
+        fi
+    fi
+    ;;
+
 *-irix*)
     AC_DEFINE(XP_UNIX)
     AC_DEFINE(IRIX)
-    CFLAGS="$CFLAGS "
-    CXXFLAGS="$CXXFLAGS -ansiW"
-    DSO_CFLAGS=-KPIC
-    DSO_LDOPTS=-shared
-    _OPTIMIZE_FLAGS=-O2
-
-    if test -n "$USE_PTHREADS"; then
-	AC_DEFINE(_REENTRANT)
-	OS_LIBS="-lpthread $OS_LIBS"
+    AC_DEFINE(SVR4)
+    AC_DEFINE(_SGI_MP_SOURCE)
+    CPU_ARCH=mips
+    RANLIB=/bin/true
+    MKSHLIB='$(LD) $(DSO_LDOPTS) -sahred -soname $(@:$(OBJDIR)/%.so=%.so)'
+    DSO_LDOPTS='-elf shared -all'
+    if test "$USE_N32"; then
+        DSO_LDOPTS="$DSO_LDOPTS -n32 -mips3"
+    fi
+    if test "$DSO_BACKEND"; then
+        DSO_LDOPTS="$DSO_LDOPTS -soname \$(DSO_NAME)"
     fi
 
-    OS_LIBS="$OS_LIBS -ldl -lc"
-
-    case "$OS_RELEASE" in
-    6.5)
+    case "$target_os" in
+    irix5.3*)
+        AC_DEFINE(IRIX5_3)
+        ;;
+    irix6.2*)
+        AC_DEFINE(IRIX6_2)
+        DSO_LDOPTS="$DSO_LDOPTS -no_unresolved"
+        ;;
+    irix6.3*)
+        AC_DEFINE(IRIX6_3)
+        DSO_LDOPTS="$DSO_LDOPTS -no_unresolved"
+        ;;
+    irix6.5*)
         AC_DEFINE(IRIX6_5)
+        CFLAGS="$CFLAGS -mips3"
+        DSO_LDOPTS="$DSO_LDOPTS -no_unresolved"
         ;;
     esac
+
+
+    if test -n "$USE_PTHREADS"; then
+        if test "$USE_N32"; then
+            IMPL_STRATEGY=_n32_PTH
+        else
+            IMPL_STRATEGY=_PTH
+        fi
+        case "$target_os" in
+        irix6*)
+            OS_LIBS="$OS_LIBS -lpthread"
+            ;;
+        esac
+    fi
+
+    if test -n "$GNU_CC"; then
+        AS='$(CC) -x assembler-with-cpp'
+        CFLAGS="$CFLAGS -Wall -Wno-format"
+        _OPTIMIZE_FLAGS=-O6
+    else
+        CFLAGS="$CFLAGS -fullwarn -xansi"
+        if test "$USE_N32"; then
+            _OPTIMIZE_FLAGS='-O -OPT:Olimit=4000'
+        else
+            _OPTIMIZE_FLAGS='-O -Olimit 4000'
+        fi
+        if echo "$OS_RELEASE" | grep ^6. >/dev/null; then
+            if test "$USE_N32"; then
+                CFLAGS="$CFLAGS -n32 -mips3 -exceptions"
+            else
+                CFLAGS="$CFLAGS -32"
+            fi
+            CFLAGS="$CFLAGS -multigot"
+        else
+            CFLAGS="$CFLAGS -xgot"
+        fi
+        if test "$USE_N32"; then
+            CFLAGS="$CFLAGS -dollar"
+        fi
+    fi
     ;;
 
 *-linux*)
