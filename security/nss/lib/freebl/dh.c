@@ -213,7 +213,7 @@ DH_Derive(SECItem *publicValue,
 {
     mp_int p, Xa, Yb, ZZ;
     mp_err err = MP_OKAY;
-    unsigned int len, nb;
+    unsigned int len = 0, nb;
     unsigned char *secret = NULL;
     if (!publicValue || !prime || !privateValue || !derivedSecret) {
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
@@ -278,7 +278,7 @@ KEA_Derive(SECItem *prime,
     mp_int p, Y, R, r, x, t, u, w;
     mp_err err;
     unsigned char *secret = NULL;
-    unsigned int len, offset;
+    unsigned int len = 0, offset;
     if (!prime || !public1 || !public2 || !private1 || !private2 ||
         !derivedSecret) {
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
