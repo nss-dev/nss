@@ -156,7 +156,9 @@ typedef struct SSLCipherSuiteInfoStr {
     PRUint16             macBits;
 
     PRUintn              isFIPS       : 1;
-    PRUintn              reservedBits :31;
+    PRUintn              isExportable : 1;
+    PRUintn              nonStandard  : 1;
+    PRUintn              reservedBits :29;
 
 } SSLCipherSuiteInfo;
 
