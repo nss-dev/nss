@@ -1098,6 +1098,8 @@ nssCRL_Create
                                           NULL,  /* XXX sessionOpt */
                                           arena,
                                           &rvCRL->encoding,
+                                          NULL, /* subject */
+                                          NULL, /* class */
                                           &rvCRL->url,
                                           &rvCRL->isKRL);
     if (status != PR_SUCCESS) {

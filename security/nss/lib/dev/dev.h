@@ -755,6 +755,8 @@ nssCryptokiCRL_GetAttributes
   nssSession *sessionOpt,
   NSSArena *arenaOpt,
   NSSItem *encodingOpt,
+  NSSItem * subjectOpt,
+  CK_ULONG * crl_class,
   NSSUTF8 **urlOpt,
   PRBool *isKRLOpt
 );
