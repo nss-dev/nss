@@ -1362,7 +1362,8 @@ nssTokenObjectCache_RemoveObject
 	    break;
 	}
     }
-    if (cache->objects[oType] && cache->objects[oType][0] == NULL) {
+    if ((oType <3) &&
+		cache->objects[oType] && cache->objects[oType][0] == NULL) {
 	nss_ZFreeIf(cache->objects[oType]); /* no entries remaining */
 	cache->objects[oType] = NULL;
     }
