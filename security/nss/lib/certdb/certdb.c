@@ -986,6 +986,10 @@ CERT_CheckCertValidTimes(CERTCertificate *c, PRTime t, PRBool allowOverride)
     PRTime notBefore, notAfter, llPendingSlop, tmp1;
     SECStatus rv;
 
+    if (!c) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return(secCertTimeUndetermined);
+    }
     /* if cert is already marked OK, then don't bother to check */
     if ( allowOverride && c->timeOK ) {
 	return(secCertTimeValid);
