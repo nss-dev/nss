@@ -606,17 +606,18 @@ static PRStatus ssl_get_client_CA_names(NSSCert *c, void *arg)
     if (usages.peer == NSSUsage_SSLClient) {
 	if (calist->count == 0) {
 	    calist->size = 4;
-	    calist->list = nss_ZNEWARRAY(NULL, NSSCert *, calist->size + 1);
+	    calist->list = nss_ZNEWARRAY(NULL, NSSDER *, calist->size + 1);
 	    if (!calist->list) return PR_FAILURE;
 	} else if (calist->count == calist->size) {
 	    calist->size *= 2;
-	    calist->list = nss_ZREALLOCARRAY(calist->list, NSSCert *, 
+	    calist->list = nss_ZREALLOCARRAY(calist->list, NSSDER *, 
 	                                     calist->size + 1);
 	    if (!calist->list) return PR_FAILURE;
 	}
 	subject = nssCert_GetSubject(c);
 	calist->list[calist->count++] = NSSItem_Duplicate(subject, NULL, NULL);
     }
+    return PR_SUCCESS;
 }
 
 /* XXX need to protect the data that gets changed here.!! */
@@ -693,12 +694,14 @@ SSL_ConfigSecureServer(PRFileDesc *fd, NSSCert *cert,
 	    goto loser;
     }
 
+#ifdef IMPLEMENT_SSL_STEP_DOWN
     if (kea == ssl_kea_rsa) {
         rv = ssl3_CreateRSAStepDownKeys(ss);
 	if (rv != SECSuccess) {
 	    return SECFailure;	/* err set by ssl3_CreateRSAStepDownKeys */
 	}
     }
+#endif /* IMPLEMENT_SSL_STEP_DOWN */
 
     /* Only do this once because it's global. */
     if (ssl3_server_ca_list == NULL) {
@@ -787,10 +790,6 @@ ssl_CopySecurityInfo(sslSocket *ss, sslSocket *os)
     PORT_Assert(os->sec.writecx == 0);
     ss->sec.readcx     		= os->sec.readcx;
     ss->sec.writecx    		= os->sec.writecx;
-    ss->sec.destroy    		= 0;	
-
-    ss->sec.enc        		= os->sec.enc;
-    ss->sec.dec        		= os->sec.dec;
 
     ss->sec.blockShift 		= os->sec.blockShift;
     ss->sec.blockSize  		= os->sec.blockSize;
@@ -816,9 +815,9 @@ ssl_ResetSecurityInfo(sslSecurityInfo *sec)
     nss_ZFreeIf(sec->rcvSecret.data);
 
     /* Destroy ciphers */
-    if (sec->destroy) {
-	(*sec->destroy)(sec->readcx, PR_TRUE);
-	(*sec->destroy)(sec->writecx, PR_TRUE);
+    if (sec->readcx) {
+	NSSCryptoContext_Destroy(sec->readcx);
+	NSSCryptoContext_Destroy(sec->writecx);
 	sec->readcx = NULL;
 	sec->writecx = NULL;
     } else {
@@ -1255,10 +1254,8 @@ SSL_RestartHandshakeAfterCertReq(sslSocket *         ss,
 
     if (ss->version >= SSL_LIBRARY_VERSION_3_0) {
 	ret = ssl3_RestartHandshakeAfterCertReq(ss, cert, key, certChain);
-#ifdef IMPLEMENT_SSL2
     } else {
     	ret = ssl2_RestartHandshakeAfterCertReq(ss, cert, key);
-#endif /* IMPLEMENT_SSL2 */
     }
 
     ssl_Release1stHandshakeLock(ss);  /************************************/

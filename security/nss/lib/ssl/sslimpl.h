@@ -809,17 +809,15 @@ struct sslSecurityInfoStr {
 #if 0
     const SECHashObject   *hash;		/* Spec Lock */ /* ssl2 only */
 #endif
+    PRUint32         hashLength;
     void            *hashcx;			/* Spec Lock */	/* ssl2 only */
 
     NSSItem          sendSecret;		/* Spec Lock */	/* ssl2 only */
     NSSItem          rcvSecret;			/* Spec Lock */	/* ssl2 only */
 
     /* Session cypher contexts; one for each direction */
-    void            *readcx;			/* Spec Lock */	/* ssl2 only */
-    void            *writecx;			/* Spec Lock */	/* ssl2 only */
-    SSLCipher        enc;			/* Spec Lock */	/* ssl2 only */
-    SSLCipher        dec;			/* Spec Lock */	/* ssl2 only */
-    void           (*destroy)(void *, PRBool);	/* Spec Lock */	/* ssl2 only */
+    NSSCryptoContext *readcx;			/* Spec Lock */	/* ssl2 only */
+    NSSCryptoContext *writecx;			/* Spec Lock */	/* ssl2 only */
 
     /* Blocking information for the session cypher */
     int              blockShift;		/* Spec Lock */	/* ssl2 only */

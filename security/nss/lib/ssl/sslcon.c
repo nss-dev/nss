@@ -43,7 +43,11 @@
 #include "prinit.h"
 #include "prtime.h" 	/* for PR_Now() */
 
-#ifdef IMPLEMENT_SSL2
+#include "base.h"
+#include "nss.h"
+#include "nsspki.h"
+#include "nsspki1.h"
+#include "nssdev.h"
 
 #define XXX
 static PRBool policyWasSet;
@@ -83,7 +87,7 @@ typedef struct ssl2SpecsStr {
     PRUint8           nkd; /* size of readKey and writeKey in bytes. */
     PRUint8           blockSize;
     PRUint8           blockShift;
-    CK_MECHANISM_TYPE mechanism;
+    NSSOIDTag         algorithm;
     PRUint8           keyLen;	/* cipher symkey size in bytes. */
     PRUint8           pubLen;	/* publicly reveal this many bytes of key. */
     PRUint8           ivLen;	/* length of IV data at *ca.	*/
@@ -93,19 +97,19 @@ static const ssl2Specs ssl_Specs[] = {
 /* NONE                                 */ 
 				{  0,  0, 0, 0, },
 /* SSL_CK_RC4_128_WITH_MD5		*/ 
-				{  2, 16, 1, 0, CKM_RC4,       16,   0, 0, },
+				{  2, 16, 1, 0, NSS_OID_RC4,       16,   0, 0, },
 /* SSL_CK_RC4_128_EXPORT40_WITH_MD5	*/ 
-				{  2, 16, 1, 0, CKM_RC4,       16,  11, 0, },
+				{  2, 16, 1, 0, NSS_OID_RC4,       16,  11, 0, },
 /* SSL_CK_RC2_128_CBC_WITH_MD5		*/ 
-				{  2, 16, 8, 3, CKM_RC2_CBC,   16,   0, 8, },
+				{  2, 16, 8, 3, NSS_OID_RC2_CBC,   16,   0, 8, },
 /* SSL_CK_RC2_128_CBC_EXPORT40_WITH_MD5	*/ 
-				{  2, 16, 8, 3, CKM_RC2_CBC,   16,  11, 8, },
+				{  2, 16, 8, 3, NSS_OID_RC2_CBC,   16,  11, 8, },
 /* SSL_CK_IDEA_128_CBC_WITH_MD5		*/ 
 				{  0,  0, 0, 0, },
 /* SSL_CK_DES_64_CBC_WITH_MD5		*/ 
-				{  1,  8, 8, 3, CKM_DES_CBC,    8,   0, 8, },
+				{  1,  8, 8, 3, NSS_OID_DES_CBC,    8,   0, 8, },
 /* SSL_CK_DES_192_EDE3_CBC_WITH_MD5	*/ 
-				{  3, 24, 8, 3, CKM_DES3_CBC,  24,   0, 8, },
+				{  3, 24, 8, 3, NSS_OID_DES_EDE3_CBC,  24,   0, 8, },
 };
 
 #define SET_ERROR_CODE	  /* reminder */
@@ -177,10 +181,10 @@ ssl2_ConstructCipherSpecs(sslSocket *ss)
     int 		i;
     SECStatus 		rv;
 
-    PORT_Assert( ssl_Have1stHandshakeLock(ss) );
+    PR_ASSERT( ssl_Have1stHandshakeLock(ss) );
 
     count = 0;
-    PORT_Assert(ss != 0);
+    PR_ASSERT(ss != 0);
     allowed = !ss->enableSSL2 ? 0 :
     	(ss->allowedByPolicy & ss->chosenPreference & SSL_CB_IMPLEMENTED);
     while (allowed) {
@@ -204,14 +208,14 @@ ssl2_ConstructCipherSpecs(sslSocket *ss)
 
     /* Allocate memory to hold cipher specs */
     if (count > 0)
-	cs = (PRUint8*) PORT_Alloc(count * 3);
+	cs = (PRUint8*) nss_ZAlloc(NULL, count * 3);
     else
-	PORT_SetError(SSL_ERROR_SSL_DISABLED);
+	nss_SetError(SSL_ERROR_SSL_DISABLED);
     if (cs == NULL)
     	return SECFailure;
 
     if (ss->cipherSpecs != NULL) {
-	PORT_Free(ss->cipherSpecs);
+	nss_ZFreeIf(ss->cipherSpecs);
     }
     ss->cipherSpecs     = cs;
     ss->sizeCipherSpecs = count * 3;
@@ -276,7 +280,7 @@ ssl2_CheckConfigSanity(sslSocket *ss)
 	SSL_DBG(("%d: SSL[%d]: Can't handshake! both v2 and v3 disabled.",
 		 SSL_GETPID(), ss->fd));
 disabled:
-	PORT_SetError(SSL_ERROR_SSL_DISABLED);
+	nss_SetError(SSL_ERROR_SSL_DISABLED);
 	return SECFailure;
     }
     return SECSuccess;
@@ -296,7 +300,7 @@ ssl2_SetPolicy(PRInt32 which, PRInt32 policy)
     bitMask = 1 << which;
 
     if (!(bitMask & SSL_CB_IMPLEMENTED)) {
-    	PORT_SetError(SSL_ERROR_UNKNOWN_CIPHER_SUITE);
+    	nss_SetError(SSL_ERROR_UNKNOWN_CIPHER_SUITE);
     	return SECFailure;
     }
 
@@ -328,7 +332,7 @@ ssl2_GetPolicy(PRInt32 which, PRInt32 *oPolicy)
 
     /* Caller assures oPolicy is not null. */
     if (!(bitMask & SSL_CB_IMPLEMENTED)) {
-    	PORT_SetError(SSL_ERROR_UNKNOWN_CIPHER_SUITE);
+    	nss_SetError(SSL_ERROR_UNKNOWN_CIPHER_SUITE);
 	*oPolicy = SSL_NOT_ALLOWED;
     	return SECFailure;
     }
@@ -358,7 +362,7 @@ ssl2_CipherPrefSetDefault(PRInt32 which, PRBool enabled)
     bitMask = 1 << which;
 
     if (!(bitMask & SSL_CB_IMPLEMENTED)) {
-    	PORT_SetError(SSL_ERROR_UNKNOWN_CIPHER_SUITE);
+    	nss_SetError(SSL_ERROR_UNKNOWN_CIPHER_SUITE);
     	return SECFailure;
     }
 
@@ -381,7 +385,7 @@ ssl2_CipherPrefGetDefault(PRInt32 which, PRBool *enabled)
     bitMask = 1 << which;
 
     if (!(bitMask & SSL_CB_IMPLEMENTED)) {
-    	PORT_SetError(SSL_ERROR_UNKNOWN_CIPHER_SUITE);
+    	nss_SetError(SSL_ERROR_UNKNOWN_CIPHER_SUITE);
 	*enabled = PR_FALSE;
     	return SECFailure;
     }
@@ -400,7 +404,7 @@ ssl2_CipherPrefSet(sslSocket *ss, PRInt32 which, PRBool enabled)
     bitMask = 1 << which;
 
     if (!(bitMask & SSL_CB_IMPLEMENTED)) {
-    	PORT_SetError(SSL_ERROR_UNKNOWN_CIPHER_SUITE);
+    	nss_SetError(SSL_ERROR_UNKNOWN_CIPHER_SUITE);
     	return SECFailure;
     }
 
@@ -423,7 +427,7 @@ ssl2_CipherPrefGet(sslSocket *ss, PRInt32 which, PRBool *enabled)
     bitMask = 1 << which;
 
     if (!(bitMask & SSL_CB_IMPLEMENTED)) {
-    	PORT_SetError(SSL_ERROR_UNKNOWN_CIPHER_SUITE);
+    	nss_SetError(SSL_ERROR_UNKNOWN_CIPHER_SUITE);
 	*enabled = PR_FALSE;
     	return SECFailure;
     }
@@ -449,9 +453,10 @@ ssl2_InitSocketPolicy(sslSocket *ss)
 /* Called from ssl2_CreateSessionCypher(), which already holds handshake lock.
  */
 static SECStatus
-ssl2_CreateMAC(sslSecurityInfo *sec, SECItem *readKey, SECItem *writeKey, 
+ssl2_CreateMAC(sslSocket *ss, NSSItem *readKey, NSSItem *writeKey, 
           int cipherChoice)
 {
+    NSSAlgNParam *ap = NULL;
     switch (cipherChoice) {
 
       case SSL_CK_RC2_128_CBC_EXPORT40_WITH_MD5:
@@ -460,17 +465,22 @@ ssl2_CreateMAC(sslSecurityInfo *sec, SECItem *readKey, SECItem *writeKey,
       case SSL_CK_RC4_128_WITH_MD5:
       case SSL_CK_DES_64_CBC_WITH_MD5:
       case SSL_CK_DES_192_EDE3_CBC_WITH_MD5:
-	sec->hash = HASH_GetHashObject(HASH_AlgMD5);
-	SECITEM_CopyItem(0, &sec->sendSecret, writeKey);
-	SECITEM_CopyItem(0, &sec->rcvSecret, readKey);
+	ap = NSSOIDTag_CreateAlgNParam(NSS_OID_MD5, NULL, NULL);
+	ss->sec.hashLength = 16; /* XXX */
+	NSSItem_Duplicate(writeKey, NULL, &ss->sec.sendSecret);
+	NSSItem_Duplicate(readKey, NULL, &ss->sec.rcvSecret);
 	break;
 
       default:
-	PORT_SetError(SSL_ERROR_NO_CYPHER_OVERLAP);
+	nss_SetError(SSL_ERROR_NO_CYPHER_OVERLAP);
 	return SECFailure;
     }
-    sec->hashcx = (*sec->hash->create)();
-    if (sec->hashcx == NULL)
+    if (ap) {
+	ss->sec.hashcx = NSSTrustDomain_CreateCryptoContext(ss->td, 
+	                                                    ap, NULL);
+	NSSAlgNParam_Destroy(ap);
+    }
+    if (ss->sec.hashcx == NULL)
 	return SECFailure;
     return SECSuccess;
 }
@@ -486,7 +496,7 @@ ssl2_GetSendBuffer(sslSocket *ss, unsigned int len)
 {
     SECStatus rv = SECSuccess;
 
-    PORT_Assert(ssl_HaveXmitBufLock(ss));
+    PR_ASSERT(ssl_HaveXmitBufLock(ss));
 
     if (len < 128) {
 	len = 128;
@@ -521,7 +531,7 @@ ssl2_SendErrorMessage(sslSocket *ss, int error)
     int rv;
     PRUint8 msg[SSL_HL_ERROR_HBYTES];
 
-    PORT_Assert( ssl_Have1stHandshakeLock(ss) );
+    PR_ASSERT( ssl_Have1stHandshakeLock(ss) );
 
     msg[0] = SSL_MT_ERROR;
     msg[1] = MSB(error);
@@ -550,7 +560,7 @@ ssl2_SendClientFinishedMessage(sslSocket *ss)
     int              sent;
     PRUint8    msg[1 + SSL_CONNECTIONID_BYTES];
 
-    PORT_Assert( ssl_Have1stHandshakeLock(ss) );
+    PR_ASSERT( ssl_Have1stHandshakeLock(ss) );
 
     ssl_GetXmitBufLock(ss);    /***************************************/
 
@@ -561,7 +571,7 @@ ssl2_SendClientFinishedMessage(sslSocket *ss)
 		    SSL_GETPID(), ss->fd));
 
 	msg[0] = SSL_MT_CLIENT_FINISHED;
-	PORT_Memcpy(msg+1, ss->sec.ci.connectionID, 
+	memcpy(msg+1, ss->sec.ci.connectionID, 
 	            sizeof(ss->sec.ci.connectionID));
 
 	DUMP_MSG(29, (ss, msg, 1 + sizeof(ss->sec.ci.connectionID)));
@@ -586,7 +596,7 @@ ssl2_SendServerVerifyMessage(sslSocket *ss)
     int              sent;
     SECStatus        rv;
 
-    PORT_Assert( ssl_Have1stHandshakeLock(ss) );
+    PR_ASSERT( ssl_Have1stHandshakeLock(ss) );
 
     ssl_GetXmitBufLock(ss);    /***************************************/
 
@@ -598,7 +608,7 @@ ssl2_SendServerVerifyMessage(sslSocket *ss)
 
     msg = ss->sec.ci.sendBuf.buf;
     msg[0] = SSL_MT_SERVER_VERIFY;
-    PORT_Memcpy(msg+1, ss->sec.ci.clientChallenge, SSL_CHALLENGE_BYTES);
+    memcpy(msg+1, ss->sec.ci.clientChallenge, SSL_CHALLENGE_BYTES);
 
     DUMP_MSG(29, (ss, msg, sendLen));
     sent = (*ss->sec.send)(ss, msg, sendLen, 0);
@@ -621,13 +631,13 @@ ssl2_SendServerFinishedMessage(sslSocket *ss)
     int              sendLen, sent;
     SECStatus        rv    = SECSuccess;
 
-    PORT_Assert( ssl_Have1stHandshakeLock(ss) );
+    PR_ASSERT( ssl_Have1stHandshakeLock(ss) );
 
     ssl_GetXmitBufLock(ss);    /***************************************/
 
     if (ss->sec.ci.sentFinished == 0) {
 	ss->sec.ci.sentFinished = 1;
-	PORT_Assert(ss->sec.ci.sid != 0);
+	PR_ASSERT(ss->sec.ci.sid != 0);
 	sid = ss->sec.ci.sid;
 
 	SSL_TRC(3, ("%d: SSL[%d]: sending server-finished",
@@ -641,7 +651,7 @@ ssl2_SendServerFinishedMessage(sslSocket *ss)
 
 	msg = ss->sec.ci.sendBuf.buf;
 	msg[0] = SSL_MT_SERVER_FINISHED;
-	PORT_Memcpy(msg+1, sid->u.ssl2.sessionID,
+	memcpy(msg+1, sid->u.ssl2.sessionID,
 		    sizeof(sid->u.ssl2.sessionID));
 
 	DUMP_MSG(29, (ss, msg, sendLen));
@@ -680,7 +690,7 @@ ssl2_SendSessionKeyMessage(sslSocket *ss, int cipher, int keySize,
     int              sent;
     SECStatus        rv;
 
-    PORT_Assert( ssl_Have1stHandshakeLock(ss) );
+    PR_ASSERT( ssl_Have1stHandshakeLock(ss) );
 
     ssl_GetXmitBufLock(ss);    /***************************************/
 
@@ -703,9 +713,9 @@ ssl2_SendSessionKeyMessage(sslSocket *ss, int cipher, int keySize,
     msg[7] = LSB(ekLen);
     msg[8] = MSB(caLen);
     msg[9] = LSB(caLen);
-    PORT_Memcpy(msg+SSL_HL_CLIENT_MASTER_KEY_HBYTES, ck, ckLen);
-    PORT_Memcpy(msg+SSL_HL_CLIENT_MASTER_KEY_HBYTES+ckLen, ek, ekLen);
-    PORT_Memcpy(msg+SSL_HL_CLIENT_MASTER_KEY_HBYTES+ckLen+ekLen, ca, caLen);
+    memcpy(msg+SSL_HL_CLIENT_MASTER_KEY_HBYTES, ck, ckLen);
+    memcpy(msg+SSL_HL_CLIENT_MASTER_KEY_HBYTES+ckLen, ek, ekLen);
+    memcpy(msg+SSL_HL_CLIENT_MASTER_KEY_HBYTES+ckLen+ekLen, ca, caLen);
 
     DUMP_MSG(29, (ss, msg, sendLen));
     sent = (*ss->sec.send)(ss, msg, sendLen, 0);
@@ -726,7 +736,7 @@ ssl2_SendCertificateRequestMessage(sslSocket *ss)
     int              sendLen;
     SECStatus        rv;
 
-    PORT_Assert( ssl_Have1stHandshakeLock(ss) );
+    PR_ASSERT( ssl_Have1stHandshakeLock(ss) );
 
     ssl_GetXmitBufLock(ss);    /***************************************/
 
@@ -739,12 +749,12 @@ ssl2_SendCertificateRequestMessage(sslSocket *ss)
 		SSL_GETPID(), ss->fd));
 
     /* Generate random challenge for client to encrypt */
-    PK11_GenerateRandom(ss->sec.ci.serverChallenge, SSL_CHALLENGE_BYTES);
+    NSS_GenerateRandom(SSL_CHALLENGE_BYTES, ss->sec.ci.serverChallenge, NULL);
 
     msg = ss->sec.ci.sendBuf.buf;
     msg[0] = SSL_MT_REQUEST_CERTIFICATE;
     msg[1] = SSL_AT_MD5_WITH_RSA_ENCRYPTION;
-    PORT_Memcpy(msg + SSL_HL_REQUEST_CERTIFICATE_HBYTES, 
+    memcpy(msg + SSL_HL_REQUEST_CERTIFICATE_HBYTES, 
                 ss->sec.ci.serverChallenge, SSL_CHALLENGE_BYTES);
 
     DUMP_MSG(29, (ss, msg, sendLen));
@@ -760,17 +770,17 @@ done:
  * Acquires and releases the socket's xmitBufLock.
  */
 static int
-ssl2_SendCertificateResponseMessage(sslSocket *ss, SECItem *cert, 
-                                    SECItem *encCode)
+ssl2_SendCertificateResponseMessage(sslSocket *ss, NSSBER *cert, 
+                                    NSSItem *encCode)
 {
     PRUint8 *msg;
     int rv, sendLen;
 
-    PORT_Assert( ssl_Have1stHandshakeLock(ss) );
+    PR_ASSERT( ssl_Have1stHandshakeLock(ss) );
 
     ssl_GetXmitBufLock(ss);    /***************************************/
 
-    sendLen = SSL_HL_CLIENT_CERTIFICATE_HBYTES + encCode->len + cert->len;
+    sendLen = SSL_HL_CLIENT_CERTIFICATE_HBYTES + encCode->size + cert->size;
     rv = ssl2_GetSendBuffer(ss, sendLen);
     if (rv) 
     	goto done;
@@ -781,13 +791,13 @@ ssl2_SendCertificateResponseMessage(sslSocket *ss, SECItem *cert,
     msg = ss->sec.ci.sendBuf.buf;
     msg[0] = SSL_MT_CLIENT_CERTIFICATE;
     msg[1] = SSL_CT_X509_CERTIFICATE;
-    msg[2] = MSB(cert->len);
-    msg[3] = LSB(cert->len);
-    msg[4] = MSB(encCode->len);
-    msg[5] = LSB(encCode->len);
-    PORT_Memcpy(msg + SSL_HL_CLIENT_CERTIFICATE_HBYTES, cert->data, cert->len);
-    PORT_Memcpy(msg + SSL_HL_CLIENT_CERTIFICATE_HBYTES + cert->len,
-	      encCode->data, encCode->len);
+    msg[2] = MSB(cert->size);
+    msg[3] = LSB(cert->size);
+    msg[4] = MSB(encCode->size);
+    msg[5] = LSB(encCode->size);
+    memcpy(msg + SSL_HL_CLIENT_CERTIFICATE_HBYTES, cert->data, cert->size);
+    memcpy(msg + SSL_HL_CLIENT_CERTIFICATE_HBYTES + cert->size,
+	      encCode->data, encCode->size);
 
     DUMP_MSG(29, (ss, msg, sendLen));
     rv = (*ss->sec.send)(ss, msg, sendLen, 0);
@@ -816,41 +826,41 @@ ssl2_CalcMAC(PRUint8             * result,
 	     unsigned int          dataLen,
 	     unsigned int          paddingLen)
 {
-    const PRUint8 *      secret		= sec->sendSecret.data;
-    unsigned int         secretLen	= sec->sendSecret.len;
     unsigned long        sequenceNumber = sec->sendSequence;
-    unsigned int         nout;
     PRUint8              seq[4];
     PRUint8              padding[32];/* XXX max blocksize? */
+    NSSItem it;
 
-    if (!sec->hash || !sec->hash->length)
-    	return SECSuccess;
     if (!sec->hashcx)
     	return SECFailure;
 
     /* Reset hash function */
-    (*sec->hash->begin)(sec->hashcx);
+    NSSCryptoContext_BeginDigest(sec->hashcx, NULL, NULL);
 
     /* Feed hash the data */
-    (*sec->hash->update)(sec->hashcx, secret, secretLen);
-    (*sec->hash->update)(sec->hashcx, data, dataLen);
-    PORT_Memset(padding, paddingLen, paddingLen);
-    (*sec->hash->update)(sec->hashcx, padding, paddingLen);
+    NSSCryptoContext_ContinueDigest(sec->hashcx, &sec->sendSecret);
+    NSSITEM_INIT(&it, data, dataLen);
+    NSSCryptoContext_ContinueDigest(sec->hashcx, &it);
+    memset(padding, paddingLen, paddingLen);
+    NSSITEM_INIT(&it, padding, paddingLen);
+    NSSCryptoContext_ContinueDigest(sec->hashcx, &it);
 
     seq[0] = (PRUint8) (sequenceNumber >> 24);
     seq[1] = (PRUint8) (sequenceNumber >> 16);
     seq[2] = (PRUint8) (sequenceNumber >> 8);
     seq[3] = (PRUint8) (sequenceNumber);
 
-    PRINT_BUF(60, (0, "calc-mac secret:", secret, secretLen));
+    PRINT_BUF(60, (0, "calc-mac secret:", sec->sendSecret.data, sec->sendSecret.size));
     PRINT_BUF(60, (0, "calc-mac data:", data, dataLen));
     PRINT_BUF(60, (0, "calc-mac padding:", padding, paddingLen));
     PRINT_BUF(60, (0, "calc-mac seq:", seq, 4));
 
-    (*sec->hash->update)(sec->hashcx, seq, 4);
+    NSSITEM_INIT(&it, seq, 4);
+    NSSCryptoContext_ContinueDigest(sec->hashcx, &it);
 
     /* Get result */
-    (*sec->hash->end)(sec->hashcx, result, &nout, sec->hash->length);
+    NSSITEM_INIT(&it, result, sec->hashLength);
+    NSSCryptoContext_FinishDigest(sec->hashcx, &it, NULL);
 
     return SECSuccess;
 }
@@ -878,7 +888,7 @@ ssl2_SendClear(sslSocket *ss, const PRUint8 *in, PRInt32 len, PRInt32 flags)
     int               amount;
     int               count	= 0;
 
-    PORT_Assert( ssl_HaveXmitBufLock(ss) );
+    PR_ASSERT( ssl_HaveXmitBufLock(ss) );
 
     SSL_TRC(10, ("%d: SSL[%d]: sending %d bytes in the clear",
 		 SSL_GETPID(), ss->fd, len));
@@ -900,12 +910,12 @@ ssl2_SendClear(sslSocket *ss, const PRUint8 *in, PRInt32 len, PRInt32 flags)
 	*/
 	out[0] = 0x80 | MSB(amount);
 	out[1] = LSB(amount);
-	PORT_Memcpy(&out[2], in, amount);
+	memcpy(&out[2], in, amount);
 
 	/* Now send the data */
 	rv = ssl_DefSend(ss, out, amount + 2, flags & ~ssl_SEND_FLAG_MASK);
 	if (rv < 0) {
-	    if (PORT_GetError() == PR_WOULD_BLOCK_ERROR) {
+	    if (NSS_GetError() == PR_WOULD_BLOCK_ERROR) {
 		rv = 0;
 	    } else {
 		/* Return short write if some data already went out... */
@@ -952,8 +962,9 @@ ssl2_SendStream(sslSocket *ss, const PRUint8 *in, PRInt32 len, PRInt32 flags)
     PRUint8          macLen;
     int              nout;
     int              buflen;
+    NSSItem          inIt, outIt;
 
-    PORT_Assert( ssl_HaveXmitBufLock(ss) );
+    PR_ASSERT( ssl_HaveXmitBufLock(ss) );
 
     SSL_TRC(10, ("%d: SSL[%d]: sending %d bytes using stream cipher",
 		 SSL_GETPID(), ss->fd, len));
@@ -962,7 +973,7 @@ ssl2_SendStream(sslSocket *ss, const PRUint8 *in, PRInt32 len, PRInt32 flags)
     while (len) {
 	ssl_GetSpecReadLock(ss);  /*************************************/
 
-	macLen = ss->sec.hash->length;
+	macLen = ss->sec.hashLength;
 	amount = PR_MIN( len, MAX_STREAM_CYPHER_LEN );
 	buflen = amount + 2 + macLen;
 	if (buflen > ss->sec.writeBuf.space) {
@@ -985,12 +996,18 @@ ssl2_SendStream(sslSocket *ss, const PRUint8 *in, PRInt32 len, PRInt32 flags)
 	    goto loser;
 
 	/* Encrypt MAC */
-	rv = (*ss->sec.enc)(ss->sec.writecx, out+2, &nout, macLen, out+2, macLen);
-	if (rv) goto loser;
+	NSSITEM_INIT(&inIt, out+2, macLen);
+	outIt = inIt; /* in place */
+	if (NSSCryptoContext_ContinueEncrypt(ss->sec.writecx, 
+	                                     &inIt, &outIt, NULL) == NULL) 
+	    goto loser;
 
 	/* Encrypt data from caller */
-	rv = (*ss->sec.enc)(ss->sec.writecx, out+2+macLen, &nout, amount, in, amount);
-	if (rv) goto loser;
+	NSSITEM_INIT(&inIt, in, amount);
+	NSSITEM_INIT(&outIt, out+2+macLen, amount);
+	if (NSSCryptoContext_ContinueEncrypt(ss->sec.writecx,
+	                                     &inIt, &outIt, NULL) == NULL) 
+	    goto loser;
 
 	ssl_ReleaseSpecReadLock(ss);  /*************************************/
 
@@ -998,13 +1015,13 @@ ssl2_SendStream(sslSocket *ss, const PRUint8 *in, PRInt32 len, PRInt32 flags)
 
 	rv = ssl_DefSend(ss, out, buflen, flags & ~ssl_SEND_FLAG_MASK);
 	if (rv < 0) {
-	    if (PORT_GetError() == PR_WOULD_BLOCK_ERROR) {
+	    if (NSS_GetError() == PR_WOULD_BLOCK_ERROR) {
 		SSL_TRC(50, ("%d: SSL[%d]: send stream would block, "
 			     "saving data", SSL_GETPID(), ss->fd));
 		rv = 0;
 	    } else {
 		SSL_TRC(10, ("%d: SSL[%d]: send stream error %d",
-			     SSL_GETPID(), ss->fd, PORT_GetError()));
+			     SSL_GETPID(), ss->fd, NSS_GetError()));
 		/* Return short write if some data already went out... */
 		if (count == 0)
 		    count = rv;
@@ -1057,8 +1074,9 @@ ssl2_SendBlock(sslSocket *ss, const PRUint8 *in, PRInt32 len, PRInt32 flags)
     unsigned int     padding;		    /* add this many padding byte.   */
     int              nout;		    /* ciphertext size after header. */
     int              buflen;		    /* size of generated record.     */
+    NSSItem inIt, outIt;
 
-    PORT_Assert( ssl_HaveXmitBufLock(ss) );
+    PR_ASSERT( ssl_HaveXmitBufLock(ss) );
 
     SSL_TRC(10, ("%d: SSL[%d]: sending %d bytes using block cipher",
 		 SSL_GETPID(), ss->fd, len));
@@ -1067,7 +1085,7 @@ ssl2_SendBlock(sslSocket *ss, const PRUint8 *in, PRInt32 len, PRInt32 flags)
     while (len) {
 	ssl_GetSpecReadLock(ss);  /*************************************/
 
-	macLen = ss->sec.hash->length;
+	macLen = ss->sec.hashLength;
 	/* Figure out how much to send, including mac and padding */
 	amount  = PR_MIN( len, MAX_BLOCK_CYPHER_LEN );
 	nout    = amount + macLen;
@@ -1110,17 +1128,18 @@ ssl2_SendBlock(sslSocket *ss, const PRUint8 *in, PRInt32 len, PRInt32 flags)
 
 	/* Copy in the input data */
 	/* XXX could eliminate the copy by folding it into the encryption */
-	PORT_Memcpy(op, in, amount);
+	memcpy(op, in, amount);
 	op += amount;
 	if (padding) {
-	    PORT_Memset(op, padding, padding);
+	    memset(op, padding, padding);
 	    op += padding;
 	}
 
 	/* Encrypt result */
-	rv = (*ss->sec.enc)(ss->sec.writecx, out+hlen, &nout, buflen-hlen,
-			 out+hlen, op - (out + hlen));
-	if (rv) 
+	NSSITEM_INIT(&inIt, out+hlen, op - (out + hlen));
+	NSSITEM_INIT(&outIt, out+hlen, buflen - hlen);
+	if (NSSCryptoContext_ContinueEncrypt(ss->sec.writecx, 
+	                                     &inIt, &outIt, NULL) == NULL)
 	    goto loser;
 
 	ssl_ReleaseSpecReadLock(ss);  /*************************************/
@@ -1129,11 +1148,11 @@ ssl2_SendBlock(sslSocket *ss, const PRUint8 *in, PRInt32 len, PRInt32 flags)
 
 	rv = ssl_DefSend(ss, out, op - out, flags & ~ssl_SEND_FLAG_MASK);
 	if (rv < 0) {
-	    if (PORT_GetError() == PR_WOULD_BLOCK_ERROR) {
+	    if (NSS_GetError() == PR_WOULD_BLOCK_ERROR) {
 		rv = 0;
 	    } else {
 		SSL_TRC(10, ("%d: SSL[%d]: send block error %d",
-			     SSL_GETPID(), ss->fd, PORT_GetError()));
+			     SSL_GETPID(), ss->fd, NSS_GetError()));
 		/* Return short write if some data already went out... */
 		if (count == 0)
 		    count = rv;
@@ -1178,7 +1197,7 @@ static void
 ssl2_UseEncryptedSendFunc(sslSocket *ss)
 {
     ssl_GetXmitBufLock(ss);
-    PORT_Assert(ss->sec.hashcx != 0);
+    PR_ASSERT(ss->sec.hashcx != 0);
 
     ss->gs.encrypted = 1;
     ss->sec.send = (ss->sec.blockSize > 1) ? ssl2_SendBlock : ssl2_SendStream;
@@ -1193,8 +1212,6 @@ ssl2_UseClearSendFunc(sslSocket *ss)
 {
     ss->sec.send = ssl2_SendClear;
 }
-
-#endif /* IMPLEMENT_SSL2 */
 
 /************************************************************************
 ** 			END of Send functions.                          * 
@@ -1244,7 +1261,7 @@ ssl_GatherRecord1stHandshake(sslSocket *ss)
 {
     int rv;
 
-    PORT_Assert( ssl_Have1stHandshakeLock(ss) );
+    PR_ASSERT( ssl_Have1stHandshakeLock(ss) );
 
     ssl_GetRecvBufLock(ss);
 
@@ -1269,7 +1286,7 @@ ssl_GatherRecord1stHandshake(sslSocket *ss)
 	}
 	if (rv == 0) {
 	    /* EOF. Loser  */
-	    PORT_SetError(PR_END_OF_FILE_ERROR);
+	    nss_SetError(PR_END_OF_FILE_ERROR);
 	}
 	return SECFailure;	/* rv is < 0 here. */
     }
@@ -1280,8 +1297,6 @@ ssl_GatherRecord1stHandshake(sslSocket *ss)
     ss->handshake = 0;	/* makes ssl_Do1stHandshake call ss->nextHandshake.*/
     return SECSuccess;
 }
-
-#ifdef IMPLEMENT_SSL2
 
 /************************************************************************/
 
@@ -1302,20 +1317,20 @@ ssl2_FillInSID(sslSessionID * sid,
 	  SSLKEAType     keaType,
 	  PRUint32       keaKeyBits)
 {
-    PORT_Assert(sid->references == 1);
-    PORT_Assert(sid->cached == never_cached);
-    PORT_Assert(sid->u.ssl2.masterKey.data == 0);
-    PORT_Assert(sid->u.ssl2.cipherArg.data == 0);
+    PR_ASSERT(sid->references == 1);
+    PR_ASSERT(sid->cached == never_cached);
+    PR_ASSERT(sid->u.ssl2.masterKey.data == 0);
+    PR_ASSERT(sid->u.ssl2.cipherArg.data == 0);
 
     sid->version = SSL_LIBRARY_VERSION_2;
 
     sid->u.ssl2.cipherType = cipher;
-    sid->u.ssl2.masterKey.data = (PRUint8*) PORT_Alloc(keyLen);
+    sid->u.ssl2.masterKey.data = (PRUint8*) nss_ZAlloc(NULL, keyLen);
     if (!sid->u.ssl2.masterKey.data) {
 	return SECFailure;
     }
-    PORT_Memcpy(sid->u.ssl2.masterKey.data, keyData, keyLen);
-    sid->u.ssl2.masterKey.len = keyLen;
+    memcpy(sid->u.ssl2.masterKey.data, keyData, keyLen);
+    sid->u.ssl2.masterKey.size = keyLen;
     sid->u.ssl2.keyBits       = keyBits;
     sid->u.ssl2.secretKeyBits = secretKeyBits;
     sid->authAlgorithm        = authAlgorithm;
@@ -1326,12 +1341,12 @@ ssl2_FillInSID(sslSessionID * sid,
     sid->expirationTime = sid->creationTime + ssl_sid_timeout;
 
     if (caLen) {
-	sid->u.ssl2.cipherArg.data = (PRUint8*) PORT_Alloc(caLen);
+	sid->u.ssl2.cipherArg.data = (PRUint8*) nss_ZAlloc(NULL, caLen);
 	if (!sid->u.ssl2.cipherArg.data) {
 	    return SECFailure;
 	}
-	sid->u.ssl2.cipherArg.len = caLen;
-	PORT_Memcpy(sid->u.ssl2.cipherArg.data, ca, caLen);
+	sid->u.ssl2.cipherArg.size = caLen;
+	memcpy(sid->u.ssl2.cipherArg.data, ca, caLen);
     }
     return SECSuccess;
 }
@@ -1344,58 +1359,69 @@ ssl2_FillInSID(sslSessionID * sid,
 */
 static SECStatus
 ssl2_ProduceKeys(sslSocket *    ss, 
-            SECItem *      readKey, 
-	    SECItem *      writeKey,
-	    SECItem *      masterKey, 
-	    PRUint8 *      challenge,
-	    PRUint8 *      nonce, 
-	    int            cipherType)
+                 NSSItem *      readKey, 
+                 NSSItem *      writeKey,
+                 NSSItem *      masterKey, 
+                 PRUint8 *      challenge,
+                 PRUint8 *      nonce, 
+                 int            cipherType)
 {
-    PK11Context * cx        = 0;
+    NSSCryptoContext * cx   = NULL;
     unsigned      nkm       = 0; /* number of hashes to generate key mat. */
     unsigned      nkd       = 0; /* size of readKey and writeKey. */
-    unsigned      part;
     unsigned      i;
     unsigned      off;
     SECStatus     rv;
     PRUint8       countChar;
     PRUint8       km[3*16];	/* buffer for key material. */
+    NSSAlgNParam *ap = NULL;
+    NSSItem it;
 
     readKey->data = 0;
     writeKey->data = 0;
 
-    PORT_Assert( ssl_Have1stHandshakeLock(ss) );
+    PR_ASSERT( ssl_Have1stHandshakeLock(ss) );
 
     rv = SECSuccess;
-    cx = PK11_CreateDigestContext(SEC_OID_MD5);
+    ap = NSSOIDTag_CreateAlgNParam(NSS_OID_MD5, NULL, NULL);
+    if (ap == NULL)
+	goto loser;
+
+    cx = NSSTrustDomain_CreateCryptoContext(ss->td, ap, NULL);
     if (cx == NULL) {
 	ssl_MapLowLevelError(SSL_ERROR_MD5_DIGEST_FAILURE);
-	return SECFailure;
+	goto loser;
     }
 
     nkm = ssl_Specs[cipherType].nkm;
     nkd = ssl_Specs[cipherType].nkd;
 
-    readKey->data = (PRUint8*) PORT_Alloc(nkd);
+    readKey->data = (PRUint8*) nss_ZAlloc(NULL, nkd);
     if (!readKey->data) 
     	goto loser;
-    readKey->len = nkd;
+    readKey->size = nkd;
 
-    writeKey->data = (PRUint8*) PORT_Alloc(nkd);
+    writeKey->data = (PRUint8*) nss_ZAlloc(NULL, nkd);
     if (!writeKey->data) 
     	goto loser;
-    writeKey->len = nkd;
+    writeKey->size = nkd;
 
     /* Produce key material */
     countChar = '0';
     for (i = 0, off = 0; i < nkm; i++, off += 16) {
-	rv  = PK11_DigestBegin(cx);
-	rv |= PK11_DigestOp(cx, masterKey->data, masterKey->len);
-	rv |= PK11_DigestOp(cx, &countChar,      1);
-	rv |= PK11_DigestOp(cx, challenge,       SSL_CHALLENGE_BYTES);
-	rv |= PK11_DigestOp(cx, nonce,           SSL_CONNECTIONID_BYTES);
-	rv |= PK11_DigestFinal(cx, km+off, &part, MD5_LENGTH);
-	if (rv != SECSuccess) {
+	PRStatus status;
+	status  = NSSCryptoContext_BeginDigest(cx, NULL, NULL);
+	status |= NSSCryptoContext_ContinueDigest(cx, masterKey);
+	NSSITEM_INIT(&it, &countChar, 1);
+	status |= NSSCryptoContext_ContinueDigest(cx, &it);
+	NSSITEM_INIT(&it, challenge, SSL_CHALLENGE_BYTES);
+	status |= NSSCryptoContext_ContinueDigest(cx, &it);
+	NSSITEM_INIT(&it, nonce, SSL_CONNECTIONID_BYTES);
+	status |= NSSCryptoContext_ContinueDigest(cx, &it);
+	NSSITEM_INIT(&it, km+off, 16 /* XXX MD5_LENGTH */);
+	if (status == PR_FAILURE ||
+	    NSSCryptoContext_FinishDigest(cx, &it, NULL) == NULL)
+	{
 	    ssl_MapLowLevelError(SSL_ERROR_MD5_DIGEST_FAILURE);
 	    rv = SECFailure;
 	    goto loser;
@@ -1404,11 +1430,12 @@ ssl2_ProduceKeys(sslSocket *    ss,
     }
 
     /* Produce keys */
-    PORT_Memcpy(readKey->data,  km,       nkd);
-    PORT_Memcpy(writeKey->data, km + nkd, nkd);
+    memcpy(readKey->data,  km,       nkd);
+    memcpy(writeKey->data, km + nkd, nkd);
 
 loser:
-    PK11_DestroyContext(cx, PR_TRUE);
+    if (ap) NSSAlgNParam_Destroy(ap);
+    if (cx) NSSCryptoContext_Destroy(cx);
     return rv;
 }
 
@@ -1421,22 +1448,24 @@ loser:
 static SECStatus
 ssl2_CreateSessionCypher(sslSocket *ss, sslSessionID *sid, PRBool isClient)
 {
-    SECItem         * rk = NULL;
-    SECItem         * wk = NULL;
-    SECItem *         param;
+    NSSItem         * rk = NULL;
+    NSSItem         * wk = NULL;
     SECStatus         rv;
     int               cipherType  = sid->u.ssl2.cipherType;
-    PK11SlotInfo *    slot        = NULL;
-    CK_MECHANISM_TYPE mechanism;
-    SECItem           readKey;
-    SECItem           writeKey;
+    NSSOIDTag         algorithm;
+    NSSItem           readKey;
+    NSSItem           writeKey;
+    NSSCryptoContext *readcx = NULL;
+    NSSCryptoContext *writecx = NULL;
+    NSSAlgNParam     *ap = NULL;
+    NSSSymKey        *symKey = NULL;
+    NSSSymKeyType     keyType;
+    NSSParameters     params;
 
-    void *readcx = 0;
-    void *writecx = 0;
     readKey.data = 0;
     writeKey.data = 0;
 
-    PORT_Assert( ssl_Have1stHandshakeLock(ss) );
+    PR_ASSERT( ssl_Have1stHandshakeLock(ss) );
     if((ss->sec.ci.sid == 0))
     	goto sec_loser;	/* don't crash if asserts are off */
 
@@ -1455,7 +1484,7 @@ ssl2_CreateSessionCypher(sslSocket *ss, sslSessionID *sid, PRBool isClient)
     default:
 	SSL_DBG(("%d: SSL[%d]: ssl2_CreateSessionCypher: unknown cipher=%d",
 		 SSL_GETPID(), ss->fd, cipherType));
-	PORT_SetError(isClient ? SSL_ERROR_BAD_SERVER : SSL_ERROR_BAD_CLIENT);
+	nss_SetError(isClient ? SSL_ERROR_BAD_SERVER : SSL_ERROR_BAD_CLIENT);
 	goto sec_loser;
     }
  
@@ -1468,15 +1497,15 @@ ssl2_CreateSessionCypher(sslSocket *ss, sslSessionID *sid, PRBool isClient)
 		     cipherType);
     if (rv != SECSuccess) 
 	goto loser;
-    PRINT_BUF(7, (ss, "Session read-key: ", rk->data, rk->len));
-    PRINT_BUF(7, (ss, "Session write-key: ", wk->data, wk->len));
+    PRINT_BUF(7, (ss, "Session read-key: ", rk->data, rk->size));
+    PRINT_BUF(7, (ss, "Session write-key: ", wk->data, wk->size));
 
-    PORT_Memcpy(ss->sec.ci.readKey, readKey.data, readKey.len);
-    PORT_Memcpy(ss->sec.ci.writeKey, writeKey.data, writeKey.len);
-    ss->sec.ci.keySize = readKey.len;
+    memcpy(ss->sec.ci.readKey, readKey.data, readKey.size);
+    memcpy(ss->sec.ci.writeKey, writeKey.data, writeKey.size);
+    ss->sec.ci.keySize = readKey.size;
 
     /* Setup the MAC */
-    rv = ssl2_CreateMAC(&ss->sec, rk, wk, cipherType);
+    rv = ssl2_CreateMAC(ss, rk, wk, cipherType);
     if (rv != SECSuccess) 
     	goto loser;
 
@@ -1485,41 +1514,41 @@ ssl2_CreateSessionCypher(sslSocket *ss, sslSessionID *sid, PRBool isClient)
 	    ssl_cipherName[cipherType]));
 
 
-    mechanism  = ssl_Specs[cipherType].mechanism;
+    algorithm  = ssl_Specs[cipherType].algorithm;
+    keyType = NSSOIDTag_GetSymKeyType(algorithm);
 
-    /* set destructer before we call loser... */
-    ss->sec.destroy = (void (*)(void*, PRBool)) PK11_DestroyContext;
-    slot = PK11_GetBestSlot(mechanism, ss->pkcs11PinArg);
-    if (slot == NULL)
+    /* XXX fix for other ciphers, RC2, RC5 */
+    params.iv = sid->u.ssl2.cipherArg;
+    ap = NSSOIDTag_CreateAlgNParam(algorithm, &params, NULL);
+    if (ap == NULL)
+	goto loser;
+    symKey = NSSVolatileDomain_ImportSymKey(ss->vd, rk, keyType,
+                                            NULL,
+                                            NSSOperations_DECRYPT,
+                                            0, NULL, NULL);
+    if (symKey == NULL)
 	goto loser;
 
-    param = PK11_ParamFromIV(mechanism, &sid->u.ssl2.cipherArg);
-    if (param == NULL)
-	goto loser;
-    readcx = PK11_CreateContextByRawKey(slot, mechanism, PK11_OriginUnwrap,
-					CKA_DECRYPT, rk, param,
-					ss->pkcs11PinArg);
-    SECITEM_FreeItem(param, PR_TRUE);
+    readcx = NSSSymKey_CreateCryptoContext(symKey, ap, NULL);
     if (readcx == NULL)
 	goto loser;
+    NSSSymKey_Destroy(symKey); symKey = NULL;
 
     /* build the client context */
-    param = PK11_ParamFromIV(mechanism, &sid->u.ssl2.cipherArg);
-    if (param == NULL)
+    symKey = NSSVolatileDomain_ImportSymKey(ss->vd, wk, keyType,
+                                            NULL,
+                                            NSSOperations_ENCRYPT,
+                                            0, NULL, NULL);
+    if (!symKey)
 	goto loser;
-    writecx = PK11_CreateContextByRawKey(slot, mechanism, PK11_OriginUnwrap,
-					 CKA_ENCRYPT, wk, param,
-					 ss->pkcs11PinArg);
-    SECITEM_FreeItem(param,PR_TRUE);
+
+    writecx = NSSSymKey_CreateCryptoContext(symKey, ap, NULL);
     if (writecx == NULL)
 	goto loser;
-    PK11_FreeSlot(slot);
 
     rv = SECSuccess;
-    ss->sec.enc           = (SSLCipher) PK11_CipherOp;
-    ss->sec.dec           = (SSLCipher) PK11_CipherOp;
-    ss->sec.readcx        = (void *) readcx;
-    ss->sec.writecx       = (void *) writecx;
+    ss->sec.readcx        = readcx;
+    ss->sec.writecx       = writecx;
     ss->sec.blockSize     = ssl_Specs[cipherType].blockSize;
     ss->sec.blockShift    = ssl_Specs[cipherType].blockShift;
     ss->sec.cipherType    = sid->u.ssl2.cipherType;
@@ -1528,23 +1557,17 @@ ssl2_CreateSessionCypher(sslSocket *ss, sslSessionID *sid, PRBool isClient)
     goto done;
 
   loser:
-    if (ss->sec.destroy) {
-	if (readcx)  (*ss->sec.destroy)(readcx, PR_TRUE);
-	if (writecx) (*ss->sec.destroy)(writecx, PR_TRUE);
-    }
-    ss->sec.destroy = NULL;
-    if (slot) PK11_FreeSlot(slot);
+    if (readcx)  NSSCryptoContext_Destroy(readcx);
+    if (writecx) NSSCryptoContext_Destroy(writecx);
+    if (symKey)  NSSSymKey_Destroy(symKey);
 
   sec_loser:
     rv = SECFailure;
 
   done:
-    if (rk) {
-	SECITEM_ZfreeItem(rk, PR_FALSE);
-    }
-    if (wk) {
-	SECITEM_ZfreeItem(wk, PR_FALSE);
-    }
+    if (ap) NSSAlgNParam_Destroy(ap);
+    if (rk) nss_ZFreeIf(rk);
+    if (wk) nss_ZFreeIf(wk);
     return rv;
 }
 
@@ -1584,12 +1607,13 @@ ssl2_ServerSetupSessionCypher(sslSocket *ss, int cipher, unsigned int keyBits,
     unsigned int      modulusLen;
     SECStatus         rv;
     PRUint8           mkbuf[SSL_MAX_MASTER_KEY_BYTES];
-    sslServerCerts  * sc = ss->serverCerts + kt_rsa;
+    sslServerCerts  * sc = ss->serverCerts + ssl_kea_rsa;
+    NSSItem in, out;
 
-    PORT_Assert( ssl_Have1stHandshakeLock(ss) );
-    PORT_Assert( ssl_HaveRecvBufLock(ss)   );
-    PORT_Assert((sc->serverKey != 0));
-    PORT_Assert((ss->sec.ci.sid != 0));
+    PR_ASSERT( ssl_Have1stHandshakeLock(ss) );
+    PR_ASSERT( ssl_HaveRecvBufLock(ss)   );
+    PR_ASSERT((sc->serverKey != 0));
+    PR_ASSERT((ss->sec.ci.sid != 0));
     sid = ss->sec.ci.sid;
 
     keySize = (keyBits + 7) >> 3;
@@ -1599,7 +1623,7 @@ ssl2_ServerSetupSessionCypher(sslSocket *ss, int cipher, unsigned int keyBits,
 	SSL_DBG(("%d: SSL[%d]: keySize=%d ckLen=%d max session key size=%d",
 		 SSL_GETPID(), ss->fd, keySize, ckLen,
 		 SSL_MAX_MASTER_KEY_BYTES));
-	PORT_SetError(SSL_ERROR_BAD_CLIENT);
+	nss_SetError(SSL_ERROR_BAD_CLIENT);
 	goto loser;
     }
 
@@ -1619,7 +1643,7 @@ ssl2_ServerSetupSessionCypher(sslSocket *ss, int cipher, unsigned int keyBits,
     default:
 	SSL_DBG(("%d: SSL[%d]: ssl2_ServerSetupSessionCypher: unknown cipher=%d",
 		 SSL_GETPID(), ss->fd, cipher));
-	PORT_SetError(SSL_ERROR_BAD_CLIENT);
+	nss_SetError(SSL_ERROR_BAD_CLIENT);
 	goto loser;
     }
 
@@ -1628,13 +1652,13 @@ ssl2_ServerSetupSessionCypher(sslSocket *ss, int cipher, unsigned int keyBits,
 	SSL_DBG(("%d: SSL[%d]: odd secret key size, keySize=%d ckLen=%d!",
 		 SSL_GETPID(), ss->fd, keySize, ckLen));
 	/* Somebody tried to sneak by a strange secret key */
-	PORT_SetError(SSL_ERROR_BAD_CLIENT);
+	nss_SetError(SSL_ERROR_BAD_CLIENT);
 	goto loser;
     }
 
     /* allocate the buffer to hold the decrypted portion of the key. */
     /* XXX Haven't done any range check on ekLen. */
-    kbuf = (PRUint8*) PORT_Alloc(ekLen);
+    kbuf = (PRUint8*) nss_ZAlloc(NULL, ekLen);
     if (!kbuf) {
 	goto loser;
     }
@@ -1646,11 +1670,14 @@ ssl2_ServerSetupSessionCypher(sslSocket *ss, int cipher, unsigned int keyBits,
     ** NOTE: PK11_PubDecryptRaw will barf on a non-RSA key. This is
     ** desired behavior here.
     */
-    rv = PK11_PubDecryptRaw(sc->serverKey, kbuf, &el1, ekLen, ek, ekLen);
-    if (rv != SECSuccess) 
+    NSSITEM_INIT(&in, ek, ekLen);
+    NSSITEM_INIT(&out, kbuf, ekLen);
+    if (NSSPrivateKey_Decrypt(sc->serverKey, NULL, &in, NULL, &out, NULL)
+          == NULL)
 	goto hide_loser;
+    el1 = out.size;
 
-    modulusLen = PK11_GetPrivateModulusLen(sc->serverKey);
+    modulusLen = NSSPrivateKey_GetPrivateModulusLength(sc->serverKey);
     if (modulusLen == -1) {
 	/* If the key was really bad, then PK11_pubDecryptRaw
 	 * would have failed, therefore the we must assume that the card
@@ -1669,7 +1696,7 @@ ssl2_ServerSetupSessionCypher(sslSocket *ss, int cipher, unsigned int keyBits,
 	/* Tsk tsk. */
 	SSL_DBG(("%d: SSL[%d]: strange encryption block",
 		 SSL_GETPID(), ss->fd));
-	PORT_SetError(SSL_ERROR_BAD_CLIENT);
+	nss_SetError(SSL_ERROR_BAD_CLIENT);
 	goto hide_loser;
     }
 
@@ -1678,8 +1705,8 @@ ssl2_ServerSetupSessionCypher(sslSocket *ss, int cipher, unsigned int keyBits,
 	PRUint8 threes[8] = { 0x03, 0x03, 0x03, 0x03,
 			      0x03, 0x03, 0x03, 0x03 };
 	
-	if (PORT_Memcmp(kk - 8 - 1, threes, 8) == 0) {
-	    PORT_SetError(SSL_ERROR_BAD_CLIENT);
+	if (memcmp(kk - 8 - 1, threes, 8) == 0) {
+	    nss_SetError(SSL_ERROR_BAD_CLIENT);
 	    goto hide_loser;
 	}
     }
@@ -1690,7 +1717,7 @@ hide_loser:
 	 * was erroneous.  Don't send any error messages.
 	 * Instead, Generate a completely bogus master key .
 	 */
-	PK11_GenerateRandom(kbuf, ekLen);
+	NSS_GenerateRandom(ekLen, kbuf, NULL);
 	if (!kk) {
 	    kk = kbuf + ekLen - (keySize-ckLen);
 	}
@@ -1700,9 +1727,9 @@ hide_loser:
     ** Construct master key out of the pieces.
     */
     if (ckLen) {
-	PORT_Memcpy(mkbuf, ck, ckLen);
+	memcpy(mkbuf, ck, ckLen);
     }
-    PORT_Memcpy(mkbuf+ckLen, kk, keySize-ckLen);
+    memcpy(mkbuf+ckLen, kk, keySize-ckLen);
 
     /* Fill in session-id */
     rv = ssl2_FillInSID(sid, cipher, mkbuf, keySize, ca, caLen,
@@ -1729,7 +1756,7 @@ hide_loser:
     rv = SECFailure;
 
   done:
-    PORT_Free(kbuf);
+    nss_ZFreeIf(kbuf);
     return rv;
 }
 
@@ -1758,8 +1785,8 @@ ssl2_QualifyCypherSpecs(sslSocket *ss,
     int          hc;
     PRUint8      qualifiedSpecs[ssl2_NUM_SUITES_IMPLEMENTED * 3];
 
-    PORT_Assert( ssl_Have1stHandshakeLock(ss) );
-    PORT_Assert( ssl_HaveRecvBufLock(ss)   );
+    PR_ASSERT( ssl_Have1stHandshakeLock(ss) );
+    PR_ASSERT( ssl_HaveRecvBufLock(ss)   );
 
     if (!ss->cipherSpecs) {
 	ssl2_ConstructCipherSpecs(ss);
@@ -1786,7 +1813,7 @@ ssl2_QualifyCypherSpecs(sslSocket *ss,
     }
     hc = qs - qualifiedSpecs;
     PRINT_BUF(10, (ss, "qualified specs from client:", qualifiedSpecs, hc));
-    PORT_Memcpy(cs, qualifiedSpecs, hc);
+    memcpy(cs, qualifiedSpecs, hc);
     return hc;
 }
 
@@ -1819,8 +1846,8 @@ ssl2_ChooseSessionCypher(sslSocket *ss,
     int             realKeySize;
     PRUint8 *       ohs               = hs;
 
-    PORT_Assert( ssl_Have1stHandshakeLock(ss) );
-    PORT_Assert( ssl_HaveRecvBufLock(ss)   );
+    PR_ASSERT( ssl_Have1stHandshakeLock(ss) );
+    PR_ASSERT( ssl_HaveRecvBufLock(ss)   );
 
     if (!ss->cipherSpecs) {
 	ssl2_ConstructCipherSpecs(ss);
@@ -1892,12 +1919,12 @@ ssl2_ChooseSessionCypher(sslSocket *ss,
 	*/
 	if ((ohs[0] == SSL_CK_RC4_128_WITH_MD5) ||
 	    (ohs[0] == SSL_CK_RC2_128_CBC_WITH_MD5)) {
-	    PORT_SetError(SSL_ERROR_US_ONLY_SERVER);
+	    nss_SetError(SSL_ERROR_US_ONLY_SERVER);
 	} else if ((ohs[0] == SSL_CK_RC4_128_EXPORT40_WITH_MD5) ||
 		   (ohs[0] == SSL_CK_RC2_128_CBC_EXPORT40_WITH_MD5)) {
-	    PORT_SetError(SSL_ERROR_EXPORT_ONLY_SERVER);
+	    nss_SetError(SSL_ERROR_EXPORT_ONLY_SERVER);
 	} else {
-	    PORT_SetError(SSL_ERROR_NO_CYPHER_OVERLAP);
+	    nss_SetError(SSL_ERROR_NO_CYPHER_OVERLAP);
 	}
 	SSL_DBG(("%d: SSL[%d]: no cipher overlap", SSL_GETPID(), ss->fd));
 	goto loser;
@@ -1912,20 +1939,19 @@ ssl2_ChooseSessionCypher(sslSocket *ss,
 static SECStatus
 ssl2_ClientHandleServerCert(sslSocket *ss, PRUint8 *certData, int certLen)
 {
-    CERTCertificate *cert      = NULL;
-    SECItem          certItem;
+    NSSCert *cert = NULL;
+    NSSBER   berCert;
 
-    certItem.data = certData;
-    certItem.len  = certLen;
+    berCert.data = certData;
+    berCert.size = certLen;
 
     /* decode the certificate */
-    cert = CERT_NewTempCertificate(ss->dbHandle, &certItem, NULL,
-				   PR_FALSE, PR_TRUE);
+    cert = NSSVolatileDomain_ImportEncodedCert(ss->vd, &berCert, NULL, NULL);
     
     if (cert == NULL) {
 	SSL_DBG(("%d: SSL[%d]: decode of server certificate fails",
 		 SSL_GETPID(), ss->fd));
-	PORT_SetError(SSL_ERROR_BAD_CERTIFICATE);
+	nss_SetError(SSL_ERROR_BAD_CERTIFICATE);
 	return SECFailure;
     }
 
@@ -1934,14 +1960,14 @@ ssl2_ClientHandleServerCert(sslSocket *ss, PRUint8 *certData, int certLen)
 	if (ssl_trace >= 1) {
 	    char *issuer;
 	    char *subject;
-	    issuer = CERT_NameToAscii(&cert->issuer);
-	    subject = CERT_NameToAscii(&cert->subject);
+	    (void)NSSCert_GetIssuerNames(cert, &issuer, 1, NULL);
+	    (void)NSSCert_GetNames(cert, &subject, 1, NULL);
 	    SSL_TRC(1,("%d: server certificate issuer: '%s'",
 		       SSL_GETPID(), issuer ? issuer : "OOPS"));
 	    SSL_TRC(1,("%d: server name: '%s'",
 		       SSL_GETPID(), subject ? subject : "OOPS"));
-	    PORT_Free(issuer);
-	    PORT_Free(subject);
+	    NSSUTF8_Destroy(issuer);
+	    NSSUTF8_Destroy(subject);
 	}
     }
 #endif
@@ -1961,7 +1987,7 @@ ssl2_ClientHandleServerCert(sslSocket *ss, PRUint8 *certData, int certLen)
 #define RSA_BLOCK_AFTER_PAD_OCTET       0x00
 #define RSA_BLOCK_PUBLIC_OCTET       	0x02
 unsigned char *
-ssl_FormatSSL2Block(unsigned modulusLen, SECItem *data)
+ssl_FormatSSL2Block(unsigned modulusLen, NSSItem *data)
 {
     unsigned char *block;
     unsigned char *bp;
@@ -1969,8 +1995,8 @@ ssl_FormatSSL2Block(unsigned modulusLen, SECItem *data)
     SECStatus rv;
     int i;
 
-    PORT_Assert (data->len <= (modulusLen - (3 + RSA_BLOCK_MIN_PAD_LEN)));
-    block = (unsigned char *) PORT_Alloc(modulusLen);
+    PR_ASSERT (data->size <= (modulusLen - (3 + RSA_BLOCK_MIN_PAD_LEN)));
+    block = (unsigned char *) nss_ZAlloc(NULL, modulusLen);
     if (block == NULL)
 	return NULL;
 
@@ -1985,27 +2011,27 @@ ssl_FormatSSL2Block(unsigned modulusLen, SECItem *data)
 
     /*
      * 0x00 || BT || Pad || 0x00 || ActualData
-     *   1      1   padLen    1      data->len
+     *   1      1   padLen    1      data->size
      * Pad is all non-zero random bytes.
      */
-    padLen = modulusLen - data->len - 3;
-    PORT_Assert (padLen >= RSA_BLOCK_MIN_PAD_LEN);
-    rv = PK11_GenerateRandom(bp, padLen);
-    if (rv == SECFailure) goto loser;
+    padLen = modulusLen - data->size - 3;
+    PR_ASSERT (padLen >= RSA_BLOCK_MIN_PAD_LEN);
+    if(NSS_GenerateRandom(padLen, bp, NULL) == NULL) 
+	goto loser;
     /* replace all the 'zero' bytes */
     for (i = 0; i < padLen; i++) {
 	while (bp[i] == RSA_BLOCK_AFTER_PAD_OCTET) {
-    	    rv = PK11_GenerateRandom(bp+i, 1);
-	    if (rv == SECFailure) goto loser;
+    	    if (NSS_GenerateRandom(1, bp+i, NULL) == NULL)
+		goto loser;
 	}
     }
     bp += padLen;
     *bp++ = RSA_BLOCK_AFTER_PAD_OCTET;
-    PORT_Memcpy (bp, data->data, data->len);
+    memcpy (bp, data->data, data->size);
 
     return block;
 loser:
-    if (block) PORT_Free(block);
+    if (block) nss_ZFreeIf(block);
     return NULL;
 }
 
@@ -2022,9 +2048,9 @@ ssl2_ClientSetupSessionCypher(sslSocket *ss, PRUint8 *cs, int csLen)
 {
     sslSessionID *    sid;
     PRUint8 *         ca;	/* points to iv data, or NULL if none. */
-    PRUint8 *         ekbuf 		= 0;
-    CERTCertificate * cert 		= 0;
-    SECKEYPublicKey * serverKey 	= 0;
+    PRUint8 *         ekbuf             = NULL;
+    NSSCert *         cert              = NULL;
+    NSSPublicKey *    serverKey         = NULL;
     unsigned          modulusLen 	= 0;
     SECStatus         rv;
     int               cipher;
@@ -2034,25 +2060,26 @@ ssl2_ClientSetupSessionCypher(sslSocket *ss, PRUint8 *cs, int csLen)
     int               nc;
 
     unsigned char *eblock;	/* holds unencrypted PKCS#1 formatted key. */
-    SECItem           rek;	/* holds portion of symkey to be encrypted. */
+    NSSItem           rek;	/* holds portion of symkey to be encrypted. */
 
     PRUint8           keyData[SSL_MAX_MASTER_KEY_BYTES];
     PRUint8           iv     [8];
+    NSSItem in, out;
 
-    PORT_Assert( ssl_Have1stHandshakeLock(ss) );
+    PR_ASSERT( ssl_Have1stHandshakeLock(ss) );
 
     eblock = NULL;
 
     sid = ss->sec.ci.sid;
-    PORT_Assert(sid != 0);
+    PR_ASSERT(sid != 0);
 
     cert = ss->sec.peerCert;
     
-    serverKey = CERT_ExtractPublicKey(cert);
+    serverKey = NSSCert_GetPublicKey(cert);
     if (!serverKey) {
 	SSL_DBG(("%d: SSL[%d]: extract public key failed: error=%d",
-		 SSL_GETPID(), ss->fd, PORT_GetError()));
-	PORT_SetError(SSL_ERROR_BAD_CERTIFICATE);
+		 SSL_GETPID(), ss->fd, NSS_GetError()));
+	nss_SetError(SSL_ERROR_BAD_CERTIFICATE);
 	rv = SECFailure;
 	goto loser2;
     }
@@ -2060,7 +2087,7 @@ ssl2_ClientSetupSessionCypher(sslSocket *ss, PRUint8 *cs, int csLen)
     ss->sec.authAlgorithm = ssl_sign_rsa;
     ss->sec.keaType       = ssl_kea_rsa;
     ss->sec.keaKeyBits    = \
-    ss->sec.authKeyBits   = SECKEY_PublicKeyStrength(serverKey) * BPB;
+    ss->sec.authKeyBits   = NSSPublicKey_GetKeyStrength(serverKey);
 
     /* Choose a compatible cipher with the server */
     nc = csLen / 3;
@@ -2072,7 +2099,7 @@ ssl2_ClientSetupSessionCypher(sslSocket *ss, PRUint8 *cs, int csLen)
     }
 
     /* Generate the random keys */
-    PK11_GenerateRandom(keyData, sizeof(keyData));
+    NSS_GenerateRandom(sizeof(keyData), keyData, NULL);
 
     /*
     ** Next, carve up the keys into clear and encrypted portions. The
@@ -2089,8 +2116,8 @@ ssl2_ClientSetupSessionCypher(sslSocket *ss, PRUint8 *cs, int csLen)
     ckLen = ssl_Specs[cipher].pubLen;	/* cleartext key length. */
     caLen = ssl_Specs[cipher].ivLen;	/* IV length.		*/
     if (caLen) {
-	PORT_Assert(sizeof iv >= caLen);
-    	PK11_GenerateRandom(iv, caLen);
+	PR_ASSERT(sizeof iv >= caLen);
+    	NSS_GenerateRandom(caLen, iv, NULL);
 	ca = iv;
     }
 
@@ -2117,9 +2144,11 @@ ssl2_ClientSetupSessionCypher(sslSocket *ss, PRUint8 *cs, int csLen)
     ** Fill in the encryption buffer with some random bytes. Then 
     ** copy in the portion of the session key we are encrypting.
     */
-    modulusLen = SECKEY_PublicKeyStrength(serverKey);
-    rek.data   = keyData + ckLen;
-    rek.len    = keyLen  - ckLen;
+    modulusLen = NSSPublicKey_GetKeyStrength(serverKey);
+    /* XXX sanity check this */
+    modulusLen = (modulusLen / 8) + (modulusLen % 8 > 0) ? 1 : 0;
+    rek.data = keyData + ckLen;
+    rek.size = keyLen  - ckLen;
     eblock = ssl_FormatSSL2Block(modulusLen, &rek);
     if (eblock == NULL) 
     	goto loser;
@@ -2127,19 +2156,19 @@ ssl2_ClientSetupSessionCypher(sslSocket *ss, PRUint8 *cs, int csLen)
     /* Set up the padding for version 2 rollback detection. */
     /* XXX We should really use defines here */
     if (ss->enableSSL3 || ss->enableTLS) {
-	PORT_Assert((modulusLen - rek.len) > 12);
-	PORT_Memset(eblock + modulusLen - rek.len - 8 - 1, 0x03, 8);
+	PR_ASSERT((modulusLen - rek.size) > 12);
+	memset(eblock + modulusLen - rek.size - 8 - 1, 0x03, 8);
     }
-    ekbuf = (PRUint8*) PORT_Alloc(modulusLen);
+    ekbuf = (PRUint8*) nss_ZAlloc(NULL, modulusLen);
     if (!ekbuf) 
 	goto loser;
     PRINT_BUF(10, (ss, "master key encryption block:",
 		   eblock, modulusLen));
 
     /* Encrypt ekitem */
-    rv = PK11_PubEncryptRaw(serverKey, ekbuf, eblock, modulusLen,
-						ss->pkcs11PinArg);
-    if (rv) 
+    NSSITEM_INIT(&in, eblock, modulusLen);
+    NSSITEM_INIT(&out, ekbuf, modulusLen);
+    if (NSSPublicKey_Encrypt(serverKey, NULL, &in, NULL, &out, NULL) == NULL)
     	goto loser;
 
     /*  Now we have everything ready to send */
@@ -2156,10 +2185,10 @@ ssl2_ClientSetupSessionCypher(sslSocket *ss, PRUint8 *cs, int csLen)
 
   loser2:
   done:
-    PORT_Memset(keyData, 0, sizeof(keyData));
-    PORT_ZFree(ekbuf, modulusLen);
-    PORT_ZFree(eblock, modulusLen);
-    SECKEY_DestroyPublicKey(serverKey);
+    memset(keyData, 0, sizeof(keyData));
+    nss_ZFreeIf(ekbuf);
+    nss_ZFreeIf(eblock);
+    NSSPublicKey_Destroy(serverKey);
     return rv;
 }
 
@@ -2176,8 +2205,8 @@ ssl2_ClientRegSessionID(sslSocket *ss, PRUint8 *s)
 
     /* Record entry in nonce cache */
     if (sid->peerCert == NULL) {
-	PORT_Memcpy(sid->u.ssl2.sessionID, s, sizeof(sid->u.ssl2.sessionID));
-	sid->peerCert = CERT_DupCertificate(ss->sec.peerCert);
+	memcpy(sid->u.ssl2.sessionID, s, sizeof(sid->u.ssl2.sessionID));
+	sid->peerCert = nssCert_AddRef(ss->sec.peerCert);
 
     }
     if (!ss->noCache)
@@ -2190,7 +2219,7 @@ ssl2_TriggerNextMessage(sslSocket *ss)
 {
     SECStatus        rv;
 
-    PORT_Assert( ssl_Have1stHandshakeLock(ss) );
+    PR_ASSERT( ssl_Have1stHandshakeLock(ss) );
 
     if ((ss->sec.ci.requiredElements & CIS_HAVE_CERTIFICATE) &&
 	!(ss->sec.ci.sentElements & CIS_HAVE_CERTIFICATE)) {
@@ -2218,7 +2247,7 @@ ssl2_TryToFinish(sslSocket *ss)
     SECStatus        rv;
     char             e, ef;
 
-    PORT_Assert( ssl_Have1stHandshakeLock(ss) );
+    PR_ASSERT( ssl_Have1stHandshakeLock(ss) );
 
     e = ss->sec.ci.elements;
     ef = e | CIS_HAVE_FINISHED;
@@ -2247,46 +2276,52 @@ ssl2_TryToFinish(sslSocket *ss)
 **             ssl2_RestartHandshakeAfterCertReq
 */
 static SECStatus
-ssl2_SignResponse(sslSocket *ss,
-	     SECKEYPrivateKey *key,
-	     SECItem *response)
+ssl2_SignResponse(sslSocket *ss, NSSPrivateKey *key, NSSItem *response)
 {
-    SGNContext *     sgn = NULL;
-    PRUint8 *        challenge;
-    unsigned int     len;
+    NSSCryptoContext *sgn = NULL;
     SECStatus        rv		= SECFailure;
+    NSSItem it;
+    NSSItem *berCert;
+    NSSAlgNParam *ap;
     
-    PORT_Assert( ssl_Have1stHandshakeLock(ss) );
+    PR_ASSERT( ssl_Have1stHandshakeLock(ss) );
 
-    challenge = ss->sec.ci.serverChallenge;
-    len = ss->sec.ci.serverChallengeLen;
-    
+    ap = NSSOIDTag_CreateAlgNParam(NSS_OID_PKCS1_MD5_WITH_RSA_ENCRYPTION,
+                                   NULL, NULL);
+    if (!ap)
+	goto done;
     /* Sign the expected data... */
-    sgn = SGN_NewContext(SEC_OID_PKCS1_MD5_WITH_RSA_ENCRYPTION,key);
-    if (!sgn) 
+    sgn = NSSPrivateKey_CreateCryptoContext(key, ap, NULL);
+    if (!sgn)
     	goto done;
-    rv = SGN_Begin(sgn);
+    rv = NSSCryptoContext_BeginSign(sgn, NULL, NULL);
     if (rv != SECSuccess) 
     	goto done;
-    rv = SGN_Update(sgn, ss->sec.ci.readKey, ss->sec.ci.keySize);
+    NSSITEM_INIT(&it, ss->sec.ci.readKey, ss->sec.ci.keySize);
+    rv = NSSCryptoContext_ContinueSign(sgn, &it);
     if (rv != SECSuccess) 
     	goto done;
-    rv = SGN_Update(sgn, ss->sec.ci.writeKey, ss->sec.ci.keySize);
+    NSSITEM_INIT(&it, ss->sec.ci.writeKey, ss->sec.ci.keySize);
+    rv = NSSCryptoContext_ContinueSign(sgn, &it);
     if (rv != SECSuccess) 
     	goto done;
-    rv = SGN_Update(sgn, challenge, len);
+    NSSITEM_INIT(&it, ss->sec.ci.serverChallenge, 
+                      ss->sec.ci.serverChallengeLen);
+    rv = NSSCryptoContext_ContinueSign(sgn, &it);
     if (rv != SECSuccess) 
     	goto done;
-    rv = SGN_Update(sgn, ss->sec.peerCert->derCert.data, 
-                         ss->sec.peerCert->derCert.len);
+    berCert = nssCert_GetEncoding(ss->sec.peerCert);
+    rv = NSSCryptoContext_ContinueSign(sgn, berCert);
     if (rv != SECSuccess) 
     	goto done;
-    rv = SGN_End(sgn, response);
-    if (rv != SECSuccess) 
+    if (NSSCryptoContext_FinishSign(sgn, response, NULL) == NULL) {
+	rv = SECFailure;
     	goto done;
+    }
 
 done:
-    SGN_DestroyContext(sgn, PR_TRUE);
+    if (ap) NSSAlgNParam_Destroy(ap);
+    if (sgn) NSSCryptoContext_Destroy(sgn);
     return rv == SECSuccess ? SECSuccess : SECFailure;
 }
 
@@ -2300,12 +2335,13 @@ done:
 static int
 ssl2_HandleRequestCertificate(sslSocket *ss)
 {
-    CERTCertificate * cert	= NULL;	/* app-selected client cert. */
-    SECKEYPrivateKey *key	= NULL;	/* priv key for cert. */
+    NSSCert * cert     = NULL;	/* app-selected client cert. */
+    NSSPrivateKey *key = NULL;	/* priv key for cert. */
     SECStatus         rv;
-    SECItem           response;
+    NSSItem           response;
     int               ret	= 0;
     PRUint8           authType;
+    NSSBER *          berCert;
 
 
     /*
@@ -2329,7 +2365,7 @@ ssl2_HandleRequestCertificate(sslSocket *ss)
 	goto no_cert_error;
     }
     ret = (*ss->getClientAuthData)(ss->getClientAuthDataArg, ss->fd,
-				   NULL, &cert, &key);
+				   ss->td, NULL, &cert, &key);
     if ( ret == SECWouldBlock ) {
 	ssl_SetAlwaysBlock(ss);
 	goto done;
@@ -2346,16 +2382,17 @@ ssl2_HandleRequestCertificate(sslSocket *ss)
     }
 
     /* Send response message */
-    ret = ssl2_SendCertificateResponseMessage(ss, &cert->derCert, &response);
+    berCert = nssCert_GetEncoding(cert);
+    ret = ssl2_SendCertificateResponseMessage(ss, berCert, &response);
 
     /* Now, remember the cert we sent. But first, forget any previous one. */
     if (ss->sec.localCert) {
-	CERT_DestroyCertificate(ss->sec.localCert);
+	NSSCert_Destroy(ss->sec.localCert);
     }
-    ss->sec.localCert = CERT_DupCertificate(cert);
-    PORT_Assert(!ss->sec.ci.sid->localCert);
+    ss->sec.localCert = nssCert_AddRef(cert);
+    PR_ASSERT(!ss->sec.ci.sid->localCert);
     if (ss->sec.ci.sid->localCert) {
-	CERT_DestroyCertificate(ss->sec.ci.sid->localCert);
+	NSSCert_Destroy(ss->sec.ci.sid->localCert);
     }
     ss->sec.ci.sid->localCert = cert;
     cert = NULL;
@@ -2370,13 +2407,13 @@ ssl2_HandleRequestCertificate(sslSocket *ss)
   loser:
   done:
     if ( cert ) {
-	CERT_DestroyCertificate(cert);
+	NSSCert_Destroy(cert);
     }
     if ( key ) {
-	SECKEY_DestroyPrivateKey(key);
+	NSSPrivateKey_Destroy(key);
     }
     if ( response.data ) {
-	PORT_Free(response.data);
+	nss_ZFreeIf(response.data);
     }
     
     return ret;
@@ -2395,23 +2432,27 @@ ssl2_HandleClientCertificate(sslSocket *    ss,
 			     PRUint8 *      response,
 			     unsigned int   responseLen)
 {
-    CERTCertificate *cert	= NULL;
-    SECKEYPublicKey *pubKey	= NULL;
-    VFYContext *     vfy	= NULL;
-    SECItem *        derCert;
+    NSSCert *          cert   = NULL;
+    NSSPublicKey *     pubKey = NULL;
+    NSSCryptoContext * vfy    = NULL;
+    NSSItem *        berCert;
     SECStatus        rv		= SECFailure;
-    SECItem          certItem;
-    SECItem          rep;
+    NSSItem          certItem;
+    NSSItem          rep;
+    NSSAlgNParam *   ap = NULL;
+    PRStatus         status;
+    NSSItem          in;
+    NSSCertChain *   chain;
+    NSSCert *        serverCert;
 
-    PORT_Assert( ssl_Have1stHandshakeLock(ss) );
-    PORT_Assert( ssl_HaveRecvBufLock(ss)   );
+    PR_ASSERT( ssl_Have1stHandshakeLock(ss) );
+    PR_ASSERT( ssl_HaveRecvBufLock(ss)   );
 
     /* Extract the certificate */
     certItem.data = cd;
-    certItem.len  = cdLen;
+    certItem.size = cdLen;
 
-    cert = CERT_NewTempCertificate(ss->dbHandle, &certItem, NULL,
-			 	   PR_FALSE, PR_TRUE);
+    cert = NSSVolatileDomain_ImportEncodedCert(ss->vd, &certItem, NULL, NULL);
     if (cert == NULL) {
 	goto loser;
     }
@@ -2420,39 +2461,49 @@ ssl2_HandleClientCertificate(sslSocket *    ss,
     ss->sec.peerCert = cert;
 
     /* Extract the public key */
-    pubKey = CERT_ExtractPublicKey(cert);
+    pubKey = NSSCert_GetPublicKey(cert);
     if (!pubKey) 
     	goto loser;
     
     /* Verify the response data... */
     rep.data = response;
-    rep.len = responseLen;
+    rep.size = responseLen;
     /* SSL 2.0 only supports RSA certs, so we don't have to worry about
      * DSA here. */
-    vfy = VFY_CreateContext(pubKey, &rep, SEC_OID_PKCS1_RSA_ENCRYPTION,
-			    ss->pkcs11PinArg);
+    ap = NSSOIDTag_CreateAlgNParam(NSS_OID_PKCS1_RSA_ENCRYPTION, NULL, NULL);
+    if (!ap)
+	goto loser;
+
+    vfy = NSSTrustDomain_CreateCryptoContext(ss->td, ap, NULL);
     if (!vfy) 
     	goto loser;
-    rv = VFY_Begin(vfy);
-    if (rv) 
+    status = NSSCryptoContext_BeginVerify(vfy, NULL, NULL);
+    if (status == PR_FAILURE) 
     	goto loser;
 
-    rv = VFY_Update(vfy, ss->sec.ci.readKey, ss->sec.ci.keySize);
-    if (rv) 
+    NSSITEM_INIT(&in, ss->sec.ci.readKey, ss->sec.ci.keySize);
+    status = NSSCryptoContext_ContinueVerify(vfy, &in);
+    if (status == PR_FAILURE) 
     	goto loser;
-    rv = VFY_Update(vfy, ss->sec.ci.writeKey, ss->sec.ci.keySize);
-    if (rv) 
+    NSSITEM_INIT(&in, ss->sec.ci.writeKey, ss->sec.ci.keySize);
+    status = NSSCryptoContext_ContinueVerify(vfy, &in);
+    if (status == PR_FAILURE) 
     	goto loser;
-    rv = VFY_Update(vfy, ss->sec.ci.serverChallenge, SSL_CHALLENGE_BYTES);
-    if (rv) 
+    NSSITEM_INIT(&in, &ss->sec.ci.serverChallenge, SSL_CHALLENGE_BYTES);
+    status = NSSCryptoContext_ContinueVerify(vfy, &in);
+    if (status == PR_FAILURE) 
     	goto loser;
 
-    derCert = &ss->serverCerts[kt_rsa].serverCert->derCert;
-    rv = VFY_Update(vfy, derCert->data, derCert->len);
-    if (rv) 
+    chain = ss->serverCerts[ssl_kea_rsa].serverCertChain;
+    serverCert = NSSCertChain_GetCert(chain, 0);
+    berCert = nssCert_GetEncoding(serverCert);
+    NSSCert_Destroy(serverCert);
+
+    status = NSSCryptoContext_ContinueVerify(vfy, berCert);
+    if (status == PR_FAILURE) 
     	goto loser;
-    rv = VFY_End(vfy);
-    if (rv) 
+    status = NSSCryptoContext_FinishVerify(vfy, &rep);
+    if (status == PR_FAILURE) 
     	goto loser;
 
     /* Now ask the server application if it likes the certificate... */
@@ -2464,11 +2515,12 @@ ssl2_HandleClientCertificate(sslSocket *    ss,
 
 loser:
     ss->sec.peerCert = NULL;
-    CERT_DestroyCertificate(cert);
+    NSSCert_Destroy(cert);
 
 done:
-    VFY_DestroyContext(vfy, PR_TRUE);
-    SECKEY_DestroyPublicKey(pubKey);
+    if (ap) NSSAlgNParam_Destroy(ap);
+    if (pubKey) NSSPublicKey_Destroy(pubKey);
+    if (vfy) NSSCryptoContext_Destroy(vfy);
     return rv;
 }
 
@@ -2491,7 +2543,7 @@ ssl2_HandleMessage(sslSocket *ss)
     int              rv;
     int              rv2;
 
-    PORT_Assert( ssl_Have1stHandshakeLock(ss) );
+    PR_ASSERT( ssl_Have1stHandshakeLock(ss) );
 
     ssl_GetRecvBufLock(ss);
 
@@ -2516,7 +2568,7 @@ ssl2_HandleMessage(sslSocket *ss)
 	len = ss->gs.recordLen - 1;
 	cid = data + 1;
 	if ((len != sizeof(ss->sec.ci.connectionID)) ||
-	    (PORT_Memcmp(ss->sec.ci.connectionID, cid, len) != 0)) {
+	    (memcmp(ss->sec.ci.connectionID, cid, len) != 0)) {
 	    SSL_DBG(("%d: SSL[%d]: bad connection-id", SSL_GETPID(), ss->fd));
 	    PRINT_BUF(5, (ss, "sent connection-id",
 			  ss->sec.ci.connectionID, 
@@ -2563,7 +2615,7 @@ ssl2_HandleMessage(sslSocket *ss)
 	/* save auth request info */
 	ss->sec.ci.authType           = data[1];
 	ss->sec.ci.serverChallengeLen = len;
-	PORT_Memcpy(ss->sec.ci.serverChallenge, data + 2, len);
+	memcpy(ss->sec.ci.serverChallenge, data + 2, len);
 	
 	rv = ssl2_HandleRequestCertificate(ss);
 	if (rv == SECWouldBlock) {
@@ -2582,7 +2634,7 @@ ssl2_HandleMessage(sslSocket *ss)
     case SSL_MT_CLIENT_CERTIFICATE:
 	if (!ss->authCertificate) {
 	    /* Server asked for authentication and can't handle it */
-	    PORT_SetError(SSL_ERROR_BAD_SERVER);
+	    nss_SetError(SSL_ERROR_BAD_SERVER);
 	    goto loser;
 	}
 	if (ss->gs.recordLen < SSL_HL_CLIENT_CERTIFICATE_HBYTES) {
@@ -2593,7 +2645,7 @@ ssl2_HandleMessage(sslSocket *ss)
 	certLen     = (data[2] << 8) | data[3];
 	responseLen = (data[4] << 8) | data[5];
 	if (certType != SSL_CT_X509_CERTIFICATE) {
-	    PORT_SetError(SSL_ERROR_UNSUPPORTED_CERTIFICATE_TYPE);
+	    nss_SetError(SSL_ERROR_UNSUPPORTED_CERTIFICATE_TYPE);
 	    goto loser;
 	}
 	rv = ssl2_HandleClientCertificate(ss, data[1],
@@ -2632,7 +2684,7 @@ ssl2_HandleMessage(sslSocket *ss)
 	    goto bad_peer;
 	}
 	/* XXX make certificate-request optionally fail... */
-	PORT_SetError(rv);
+	nss_SetError(rv);
 	goto loser;
 
     default:
@@ -2661,7 +2713,7 @@ ssl2_HandleMessage(sslSocket *ss)
     return ssl2_TriggerNextMessage(ss);
 
   bad_peer:
-    PORT_SetError(ss->sec.isServer ? SSL_ERROR_BAD_CLIENT : SSL_ERROR_BAD_SERVER);
+    nss_SetError(ss->sec.isServer ? SSL_ERROR_BAD_CLIENT : SSL_ERROR_BAD_SERVER);
     /* FALL THROUGH */
 
   loser:
@@ -2680,16 +2732,16 @@ ssl2_HandleVerifyMessage(sslSocket *ss)
     PRUint8 *        data;
     SECStatus        rv;
 
-    PORT_Assert( ssl_Have1stHandshakeLock(ss) );
+    PR_ASSERT( ssl_Have1stHandshakeLock(ss) );
     ssl_GetRecvBufLock(ss);
 
     data = ss->gs.buf.buf + ss->gs.recordOffset;
     DUMP_MSG(29, (ss, data, ss->gs.recordLen));
     if ((ss->gs.recordLen != 1 + SSL_CHALLENGE_BYTES) ||
 	(data[0] != SSL_MT_SERVER_VERIFY) ||
-	PORT_Memcmp(data+1, ss->sec.ci.clientChallenge, SSL_CHALLENGE_BYTES)) {
+	memcmp(data+1, ss->sec.ci.clientChallenge, SSL_CHALLENGE_BYTES)) {
 	/* Bad server */
-	PORT_SetError(SSL_ERROR_BAD_SERVER);
+	nss_SetError(SSL_ERROR_BAD_SERVER);
 	goto loser;
     }
     ss->sec.ci.elements |= CIS_HAVE_VERIFY;
@@ -2732,16 +2784,16 @@ ssl2_HandleServerHelloMessage(sslSocket *ss)
     SECStatus        rv; 
     int              needed, sidHit, certLen, csLen, cidLen, certType, err;
 
-    PORT_Assert( ssl_Have1stHandshakeLock(ss) );
+    PR_ASSERT( ssl_Have1stHandshakeLock(ss) );
 
     if (!ss->enableSSL2) {
-	PORT_SetError(SSL_ERROR_SSL2_DISABLED);
+	nss_SetError(SSL_ERROR_SSL2_DISABLED);
 	return SECFailure;
     }
 
     ssl_GetRecvBufLock(ss);
 
-    PORT_Assert(ss->sec.ci.sid != 0);
+    PR_ASSERT(ss->sec.ci.sid != 0);
     sid = ss->sec.ci.sid;
 
     data = ss->gs.buf.buf + ss->gs.recordOffset;
@@ -2753,7 +2805,7 @@ ssl2_HandleServerHelloMessage(sslSocket *ss)
 	if ((data[0] == SSL_MT_ERROR) && (ss->gs.recordLen == 3)) {
 	    err = (data[1] << 8) | data[2];
 	    if (err == SSL_PE_NO_CYPHERS) {
-		PORT_SetError(SSL_ERROR_NO_CYPHER_OVERLAP);
+		nss_SetError(SSL_ERROR_NO_CYPHER_OVERLAP);
 		goto loser;
 	    }
 	}
@@ -2782,13 +2834,13 @@ ssl2_HandleServerHelloMessage(sslSocket *ss)
 	  SSL_TRC(1, ("%d: SSL[%d]: server version is %x (we are %x)",
 		    SSL_GETPID(), ss->fd, ss->version, SSL_LIBRARY_VERSION_2));
 	  /* server claims to be newer but does not follow protocol */
-	  PORT_SetError(SSL_ERROR_UNSUPPORTED_VERSION);
+	  nss_SetError(SSL_ERROR_UNSUPPORTED_VERSION);
 	  goto loser;
 	}
     }
 
     /* Save connection-id for later */
-    PORT_Memcpy(ss->sec.ci.connectionID, cs + csLen, 
+    memcpy(ss->sec.ci.connectionID, cs + csLen, 
                 sizeof(ss->sec.ci.connectionID));
 
     /* See if session-id hit */
@@ -2805,7 +2857,7 @@ ssl2_HandleServerHelloMessage(sslSocket *ss)
 	SSL_TRC(1, ("%d: SSL[%d]: client, using nonce for peer=0x%08x "
 		    "port=0x%04x",
 		    SSL_GETPID(), ss->fd, ss->sec.ci.peer, ss->sec.ci.port));
-	ss->sec.peerCert = CERT_DupCertificate(sid->peerCert);
+	ss->sec.peerCert = nssCert_AddRef(sid->peerCert);
         ss->sec.authAlgorithm = sid->authAlgorithm;
 	ss->sec.authKeyBits   = sid->authKeyBits;
 	ss->sec.keaType       = sid->keaType;
@@ -2816,11 +2868,11 @@ ssl2_HandleServerHelloMessage(sslSocket *ss)
 	}
     } else {
 	if (certType != SSL_CT_X509_CERTIFICATE) {
-	    PORT_SetError(SSL_ERROR_UNSUPPORTED_CERTIFICATE_TYPE);
+	    nss_SetError(SSL_ERROR_UNSUPPORTED_CERTIFICATE_TYPE);
 	    goto loser;
 	}
 	if (csLen == 0) {
-	    PORT_SetError(SSL_ERROR_NO_CYPHER_OVERLAP);
+	    nss_SetError(SSL_ERROR_NO_CYPHER_OVERLAP);
 	    SSL_DBG(("%d: SSL[%d]: no cipher overlap",
 		     SSL_GETPID(), ss->fd));
 	    goto loser;
@@ -2837,7 +2889,7 @@ ssl2_HandleServerHelloMessage(sslSocket *ss)
 			SSL_GETPID(), ss->fd));
 	    (*ss->sec.uncache)(sid);
 	    ssl_FreeSID(sid);
-	    ss->sec.ci.sid = sid = (sslSessionID*) PORT_ZAlloc(sizeof(sslSessionID));
+	    ss->sec.ci.sid = sid = nss_ZNEW(NULL, sslSessionID);
 	    if (!sid) {
 		goto loser;
 	    }
@@ -2849,7 +2901,7 @@ ssl2_HandleServerHelloMessage(sslSocket *ss)
 	/* decode the server's certificate */
 	rv = ssl2_ClientHandleServerCert(ss, cert, certLen);
 	if (rv != SECSuccess) {
-	    if (PORT_GetError() == SSL_ERROR_BAD_CERTIFICATE) {
+	    if (NSS_GetError() == SSL_ERROR_BAD_CERTIFICATE) {
 		(void) ssl2_SendErrorMessage(ss, SSL_PE_BAD_CERTIFICATE);
 	    }
 	    goto loser;
@@ -2858,7 +2910,7 @@ ssl2_HandleServerHelloMessage(sslSocket *ss)
 	/* Setup new session cipher */
 	rv = ssl2_ClientSetupSessionCypher(ss, cs, csLen);
 	if (rv != SECSuccess) {
-	    if (PORT_GetError() == SSL_ERROR_BAD_CERTIFICATE) {
+	    if (NSS_GetError() == SSL_ERROR_BAD_CERTIFICATE) {
 		(void) ssl2_SendErrorMessage(ss, SSL_PE_BAD_CERTIFICATE);
 	    }
 	    goto loser;
@@ -2888,14 +2940,14 @@ ssl2_HandleServerHelloMessage(sslSocket *ss)
 		}
 		/* cert is bad */
 		SSL_DBG(("%d: SSL[%d]: server certificate is no good: error=%d",
-			 SSL_GETPID(), ss->fd, PORT_GetError()));
+			 SSL_GETPID(), ss->fd, NSS_GetError()));
 		goto loser;
 
 	    }
 	    /* cert is good */
 	} else {
 	    SSL_DBG(("%d: SSL[%d]: server certificate is no good: error=%d",
-		     SSL_GETPID(), ss->fd, PORT_GetError()));
+		     SSL_GETPID(), ss->fd, NSS_GetError()));
 	    goto loser;
 	}
     }
@@ -2927,7 +2979,7 @@ ssl2_HandleServerHelloMessage(sslSocket *ss)
     return SECSuccess;
 
   bad_server:
-    PORT_SetError(SSL_ERROR_BAD_SERVER);
+    nss_SetError(SSL_ERROR_BAD_SERVER);
     /* FALL THROUGH */
 
   loser:
@@ -2950,7 +3002,7 @@ ssl2_BeginClientHandshake(sslSocket *ss)
     int               sendLen, sidLen = 0;
     SECStatus         rv;
 
-    PORT_Assert( ssl_Have1stHandshakeLock(ss) );
+    PR_ASSERT( ssl_Have1stHandshakeLock(ss) );
 
     ss->sec.isServer     = 0;
     ss->sec.sendSequence = 0;
@@ -2995,6 +3047,7 @@ ssl2_BeginClientHandshake(sslSocket *ss)
 
     SSL_TRC(3, ("%d: SSL[%d]: sending client-hello", SSL_GETPID(), ss->fd));
 
+#ifdef IMPLEMENT_SESSION_ID_CACHE
     /* Try to find server in our session-id cache */
     if (ss->noCache) {
 	sid = NULL;
@@ -3029,16 +3082,17 @@ ssl2_BeginClientHandshake(sslSocket *ss)
 	PRINT_BUF(4, (ss, "client, found session-id:", sid->u.ssl2.sessionID,
 		      sidLen));
 	ss->version = sid->version;
-	PORT_Assert(!ss->sec.localCert);
+	PR_ASSERT(!ss->sec.localCert);
 	if (ss->sec.localCert) {
 	    CERT_DestroyCertificate(ss->sec.localCert);
 	}
 	ss->sec.localCert     = CERT_DupCertificate(sid->localCert);
 	break;  /* this isn't really a loop */
     } 
+#endif /* IMPLEMENT_SESSION_ID_CACHE */
     if (!sid) {
 	sidLen = 0;
-	sid = (sslSessionID*) PORT_ZAlloc(sizeof(sslSessionID));
+	sid = nss_ZNEW(NULL, sslSessionID);
 	if (!sid) {
 	    goto loser;
 	}
@@ -3047,15 +3101,15 @@ ssl2_BeginClientHandshake(sslSocket *ss)
 	sid->addr       = ss->sec.ci.peer;
 	sid->port       = ss->sec.ci.port;
 	if (ss->peerID != NULL) {
-	    sid->peerID = PORT_Strdup(ss->peerID);
+	    sid->peerID = NSSUTF8_Duplicate(ss->peerID, NULL);
 	}
 	if (ss->url != NULL) {
-	    sid->urlSvrName = PORT_Strdup(ss->url);
+	    sid->urlSvrName = NSSUTF8_Duplicate(ss->url, NULL);
 	}
     }
     ss->sec.ci.sid = sid;
 
-    PORT_Assert(sid != NULL);
+    PR_ASSERT(sid != NULL);
 
     if ((sid->version >= SSL_LIBRARY_VERSION_3_0 || !ss->v2CompatibleHello) &&
         (ss->enableSSL3 || ss->enableTLS)) {
@@ -3088,7 +3142,7 @@ ssl2_BeginClientHandshake(sslSocket *ss)
 	SSL_CHALLENGE_BYTES;
 
     /* Generate challenge bytes for server */
-    PK11_GenerateRandom(ss->sec.ci.clientChallenge, SSL_CHALLENGE_BYTES);
+    NSS_GenerateRandom(SSL_CHALLENGE_BYTES, ss->sec.ci.clientChallenge, NULL);
 
     ssl_GetXmitBufLock(ss);    /***************************************/
 
@@ -3116,13 +3170,13 @@ ssl2_BeginClientHandshake(sslSocket *ss)
     msg[7] = MSB(SSL_CHALLENGE_BYTES);
     msg[8] = LSB(SSL_CHALLENGE_BYTES);
     cp += SSL_HL_CLIENT_HELLO_HBYTES;
-    PORT_Memcpy(cp, localCipherSpecs, localCipherSize);
+    memcpy(cp, localCipherSpecs, localCipherSize);
     cp += localCipherSize;
     if (sidLen) {
-	PORT_Memcpy(cp, sid->u.ssl2.sessionID, sidLen);
+	memcpy(cp, sid->u.ssl2.sessionID, sidLen);
 	cp += sidLen;
     }
-    PORT_Memcpy(cp, ss->sec.ci.clientChallenge, SSL_CHALLENGE_BYTES);
+    memcpy(cp, ss->sec.ci.clientChallenge, SSL_CHALLENGE_BYTES);
 
     /* Send it to the server */
     DUMP_MSG(29, (ss, msg, sendLen));
@@ -3235,7 +3289,7 @@ ssl2_HandleClientSessionKeyMessage(sslSocket *ss)
 
 bad_client:
     ssl_ReleaseRecvBufLock(ss);
-    PORT_SetError(SSL_ERROR_BAD_CLIENT);
+    nss_SetError(SSL_ERROR_BAD_CLIENT);
     /* FALLTHROUGH */
 
 loser:
@@ -3258,13 +3312,14 @@ loser:
  * Caller holds 1stHandshakeLock.
  */
 int
-ssl2_RestartHandshakeAfterCertReq(sslSocket *          ss,
-				  CERTCertificate *    cert, 
-				  SECKEYPrivateKey *   key)
+ssl2_RestartHandshakeAfterCertReq(sslSocket *     ss,
+				  NSSCert *       cert, 
+				  NSSPrivateKey * key)
 {
     int              ret;
     SECStatus        rv          = SECSuccess;
-    SECItem          response;
+    NSSItem          response;
+    NSSBER *berCert;
 
     if (ss->version >= SSL_LIBRARY_VERSION_3_0) 
     	return SECFailure;
@@ -3283,7 +3338,8 @@ ssl2_RestartHandshakeAfterCertReq(sslSocket *          ss,
     }
     
     /* Send response message */
-    ret = ssl2_SendCertificateResponseMessage(ss, &cert->derCert, &response);
+    berCert = nssCert_GetEncoding(cert);
+    ret = ssl2_SendCertificateResponseMessage(ss, berCert, &response);
     if (ret) {
 	goto no_cert;
     }
@@ -3320,7 +3376,7 @@ loser:
 done:
     /* free allocated data */
     if ( response.data ) {
-	PORT_Free(response.data);
+	nss_ZFreeIf(response.data);
     }
     
     return ret;
@@ -3379,7 +3435,7 @@ ssl2_HandleClientHelloMessage(sslSocket *ss)
 {
     sslSessionID    *sid;
     sslServerCerts * sc;
-    CERTCertificate *serverCert;
+    NSSCert *        serverCert;
     PRUint8         *msg;
     PRUint8         *data;
     PRUint8         *cs;
@@ -3402,10 +3458,10 @@ ssl2_HandleClientHelloMessage(sslSocket *ss)
 #endif
     PRUint8         csImpl[sizeof implementedCipherSuites];
 
-    PORT_Assert( ssl_Have1stHandshakeLock(ss) );
+    PR_ASSERT( ssl_Have1stHandshakeLock(ss) );
 
-    sc = ss->serverCerts + kt_rsa;
-    serverCert = sc->serverCert;
+    sc = ss->serverCerts + ssl_kea_rsa;
+    serverCert = NSSCertChain_GetCert(sc->serverCertChain, 0);
 
     ssl_GetRecvBufLock(ss);
 
@@ -3495,7 +3551,7 @@ ssl2_HandleClientHelloMessage(sslSocket *ss)
 	} else {
 	    SSL_TRC(1, ("%d: SSL[%d]: client version is %x (we are %x)",
 		SSL_GETPID(), ss->fd, ss->version, SSL_LIBRARY_VERSION_2));
-	    PORT_SetError(SSL_ERROR_UNSUPPORTED_VERSION);
+	    nss_SetError(SSL_ERROR_UNSUPPORTED_VERSION);
 	    goto loser;
 	}
     }
@@ -3506,12 +3562,12 @@ ssl2_HandleClientHelloMessage(sslSocket *ss)
 	/* no overlap, send client our list of supported SSL v2 ciphers. */
         cs    = csImpl;
 	csLen = sizeof implementedCipherSuites;
-    	PORT_Memcpy(cs, implementedCipherSuites, csLen);
+    	memcpy(cs, implementedCipherSuites, csLen);
 	csLen = ssl2_QualifyCypherSpecs(ss, cs, csLen);
 	if (csLen == 0) {
 	  /* We don't support any SSL v2 ciphers! */
 	  ssl2_SendErrorMessage(ss, SSL_PE_NO_CYPHERS);
-	  PORT_SetError(SSL_ERROR_NO_CYPHER_OVERLAP);
+	  nss_SetError(SSL_ERROR_NO_CYPHER_OVERLAP);
 	  goto loser;
 	}
 	/* Since this handhsake is going to fail, don't cache it. */
@@ -3519,10 +3575,11 @@ ssl2_HandleClientHelloMessage(sslSocket *ss)
     }
 
     /* Squirrel away the challenge for later */
-    PORT_Memcpy(ss->sec.ci.clientChallenge, challenge, challengeLen);
+    memcpy(ss->sec.ci.clientChallenge, challenge, challengeLen);
 
     /* Examine message and see if session-id is good */
     ss->sec.ci.elements = 0;
+#ifdef IMPLEMENT_SESSION_ID_CACHE
     if (sdLen > 0 && !ss->noCache) {
 	SSL_TRC(7, ("%d: SSL[%d]: server, lookup client session-id for 0x%08x%08x%08x%08x",
 		    SSL_GETPID(), ss->fd, ss->sec.ci.peer.pr_s6_addr32[0],
@@ -3555,7 +3612,9 @@ ssl2_HandleClientHelloMessage(sslSocket *ss)
 	    goto loser;
 	}
     } else {
-	SECItem * derCert   = &serverCert->derCert;
+#endif /* IMPLEMENT_SESSION_ID_CACHE */
+    {
+	NSSBER * derCert   = nssCert_GetEncoding(serverCert);
 
 	SSL_TRC(7, ("%d: SSL[%d]: server, lookup nonce missed",
 		    SSL_GETPID(), ss->fd));
@@ -3564,7 +3623,7 @@ ssl2_HandleClientHelloMessage(sslSocket *ss)
 	    goto loser;
 	}
 	hit = 0;
-	sid = (sslSessionID*) PORT_ZAlloc(sizeof(sslSessionID));
+	sid = nss_ZNEW(NULL, sslSessionID);
 	if (!sid) {
 	    goto loser;
 	}
@@ -3574,34 +3633,35 @@ ssl2_HandleClientHelloMessage(sslSocket *ss)
 
 	/* Invent a session-id */
 	ss->sec.ci.sid = sid;
-	PK11_GenerateRandom(sid->u.ssl2.sessionID+2, SSL2_SESSIONID_BYTES-2);
+	NSS_GenerateRandom(SSL2_SESSIONID_BYTES-2, 
+	                   sid->u.ssl2.sessionID+2, NULL);
 
 	pid = SSL_GETPID();
 	sid->u.ssl2.sessionID[0] = MSB(pid);
 	sid->u.ssl2.sessionID[1] = LSB(pid);
 	cert    = derCert->data;
-	certLen = derCert->len;
+	certLen = derCert->size;
 
 	/* pretend that server sids remember the local cert. */
-	PORT_Assert(!sid->localCert);
+	PR_ASSERT(!sid->localCert);
 	if (sid->localCert) {
-	    CERT_DestroyCertificate(sid->localCert);
+	    NSSCert_Destroy(sid->localCert);
 	}
-	sid->localCert     = CERT_DupCertificate(serverCert);
+	sid->localCert     = nssCert_AddRef(serverCert);
 
 	ss->sec.authAlgorithm = ssl_sign_rsa;
 	ss->sec.keaType       = ssl_kea_rsa;
 	ss->sec.keaKeyBits    = \
-	ss->sec.authKeyBits   = ss->serverCerts[kt_rsa].serverKeyBits;
+	ss->sec.authKeyBits   = ss->serverCerts[ssl_kea_rsa].serverKeyBits;
     }
 
     /* server sids don't remember the local cert, so whether we found
     ** a sid or not, just "remember" we used the rsa server cert.
     */
     if (ss->sec.localCert) {
-	CERT_DestroyCertificate(ss->sec.localCert);
+	NSSCert_Destroy(ss->sec.localCert);
     }
-    ss->sec.localCert     = CERT_DupCertificate(serverCert);
+    ss->sec.localCert     = nssCert_AddRef(serverCert);
 
     /* Build up final list of required elements */
     ss->sec.ci.requiredElements = CIS_HAVE_MASTER_KEY | CIS_HAVE_FINISHED;
@@ -3636,12 +3696,12 @@ ssl2_HandleClientHelloMessage(sslSocket *ss)
     msg[9] = MSB(SSL_CONNECTIONID_BYTES);
     msg[10] = LSB(SSL_CONNECTIONID_BYTES);
     if (certLen) {
-	PORT_Memcpy(msg+SSL_HL_SERVER_HELLO_HBYTES, cert, certLen);
+	memcpy(msg+SSL_HL_SERVER_HELLO_HBYTES, cert, certLen);
     }
     if (csLen) {
-	PORT_Memcpy(msg+SSL_HL_SERVER_HELLO_HBYTES+certLen, cs, csLen);
+	memcpy(msg+SSL_HL_SERVER_HELLO_HBYTES+certLen, cs, csLen);
     }
-    PORT_Memcpy(msg+SSL_HL_SERVER_HELLO_HBYTES+certLen+csLen, 
+    memcpy(msg+SSL_HL_SERVER_HELLO_HBYTES+certLen+csLen, 
                 ss->sec.ci.connectionID, SSL_CONNECTIONID_BYTES);
 
     DUMP_MSG(29, (ss, msg, sendLen));
@@ -3674,7 +3734,7 @@ ssl2_HandleClientHelloMessage(sslSocket *ss)
     return SECSuccess;
 
   bad_client:
-    PORT_SetError(SSL_ERROR_BAD_CLIENT);
+    nss_SetError(SSL_ERROR_BAD_CLIENT);
     /* FALLTHROUGH */
 
   loser:
@@ -3691,17 +3751,19 @@ SECStatus
 ssl2_BeginServerHandshake(sslSocket *ss)
 {
     SECStatus        rv;
-    sslServerCerts * rsaAuth = ss->serverCerts + kt_rsa;
+    sslServerCerts * rsaAuth = ss->serverCerts + ssl_kea_rsa;
 
     ss->sec.isServer = 1;
     ssl_ChooseSessionIDProcs(&ss->sec);
     ss->sec.sendSequence = 0;
     ss->sec.rcvSequence = 0;
 
+#if 0
     /* don't turn on SSL2 if we don't have an RSA key and cert */
     if (!rsaAuth->serverKey || !rsaAuth->serverCert) {
 	ss->enableSSL2 = PR_FALSE;
     }
+#endif
 
     if (!ss->cipherSpecs) {
 	rv = ssl2_ConstructCipherSpecs(ss);
@@ -3721,8 +3783,8 @@ ssl2_BeginServerHandshake(sslSocket *ss)
     ** immediately. This way the random number generator is always
     ** rolling around, every time we get a connection.
     */
-    PK11_GenerateRandom(ss->sec.ci.connectionID, 
-                        sizeof(ss->sec.ci.connectionID));
+    NSS_GenerateRandom(sizeof(ss->sec.ci.connectionID),
+                       ss->sec.ci.connectionID, NULL);
 
     ss->gs.recordLen = 0;
     ss->handshake     = ssl_GatherRecord1stHandshake;
@@ -3732,8 +3794,6 @@ ssl2_BeginServerHandshake(sslSocket *ss)
 loser:
     return SECFailure;
 }
-
-#endif /* IMPLEMENT_SSL2 */
 
 /* This function doesn't really belong in this file.
 ** It's here to keep AIX compilers from optimizing it away, 

@@ -138,6 +138,29 @@ ssl_FreeSID(sslSessionID *sid)
     UNLOCK_CACHE;
 }
 
+/* XXX revisit */
+static PRStatus ssl_VerifyCertName(NSSCert *c, NSSUTF8 *name)
+{
+    NSSUTF8 **names, **nm;
+    PRStatus status = PR_FAILURE;
+    NSSArena *arena;
+
+    arena = NSSArena_Create();
+    if (!arena) return PR_FAILURE;
+    names = NSSCert_GetNames(c, NULL, 0, arena);
+    if (!names) goto finish;
+    for (nm = names; *nm; nm++) {
+	/* XXX need short name */
+	if (strstr(*nm, name)) {
+	    status = PR_SUCCESS;
+	    break;
+	}
+    }
+finish:
+    NSSArena_Destroy(arena);
+    return status;
+}
+
 /************************************************************************/
 
 /*
