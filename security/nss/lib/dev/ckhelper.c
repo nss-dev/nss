@@ -929,3 +929,17 @@ loser:
     return (nssCryptokiObject *)NULL;
 }
 
+NSS_IMPLEMENT void
+nss_SetGenericDeviceError (
+  CK_RV ckrv
+)
+{
+    NSSError e;
+    switch (ckrv) {
+    case CKR_DEVICE_REMOVED: e = NSS_ERROR_DEVICE_REMOVED; break;
+    case CKR_HOST_MEMORY:
+    case CKR_DEVICE_MEMORY:  e = NSS_ERROR_NO_MEMORY;      break;
+    default:                 e = NSS_ERROR_DEVICE_ERROR;   break;
+    }
+    nss_SetError(e);
+}

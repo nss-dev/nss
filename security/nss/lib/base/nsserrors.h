@@ -72,8 +72,10 @@ static const char NSSERRORS_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$"
 #define NSS_ERROR_INVALID_SIGNATURE                         31
 #define NSS_ERROR_INVALID_DATA                              32
 
-/* token errors */
-#define NSS_ERROR_TOKEN_FAILURE                            100
+/* token device errors */
+#define NSS_ERROR_INVALID_DEVICE                           100
+#define NSS_ERROR_DEVICE_ERROR                             101
+#define NSS_ERROR_DEVICE_REMOVED                           102
 
 /* certificate errors */
 #define NSS_ERROR_INVALID_CERTIFICATE                      500

@@ -758,6 +758,39 @@ nssToken_DeriveKey
   NSSProperties properties
 );
 
+/*
+ *
+ * rvSessionKeys -- [0] client MAC
+ *                  [1] server MAC
+ *                  [2] client write
+ *                  [3] server write
+ */
+NSS_EXTERN PRStatus
+nssToken_DeriveSSLSessionKeys
+(
+  NSSToken *token,
+  nssSession *session,
+  const NSSAlgorithmAndParameters *ap,
+  nssCryptokiObject *masterSecret,
+  NSSOperations operations,
+  NSSProperties properties,
+  nssCryptokiObject **rvSessionKeys /* [4] */
+);
+
+NSS_EXTERN PRStatus
+nssToken_SeedRandom (
+  NSSToken *token,
+  NSSItem *seed
+);
+
+NSS_EXTERN PRUint8 *
+nssToken_GenerateRandom (
+  NSSToken *token,
+  PRUint8 *rvOpt,
+  PRUint32 numBytes,
+  NSSArena *arenaOpt
+);
+
 NSS_EXTERN NSSItem *
 nssToken_Encrypt
 (
@@ -983,6 +1016,13 @@ nssAlgorithmAndParameters_CreateFromOID
   NSSArena *arenaOpt,
   CK_MECHANISM_TYPE algorithm,
   const NSSItem *parametersOpt
+);
+
+NSS_EXTERN NSSAlgorithmAndParameters *
+nssAlgorithmAndParameters_CreateSSLSessionKeyDerivation
+(
+  NSSArena *arenaOpt,
+  NSSSSLSessionParameters *parameters
 );
 
 NSS_EXTERN NSSAlgorithmAndParameters *

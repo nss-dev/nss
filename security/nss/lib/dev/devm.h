@@ -169,12 +169,17 @@ nssAlgorithmAndParameters_GetMechanism
   const NSSAlgorithmAndParameters *ap
 );
 
-NSS_EXTERN PRUint32
+NSS_EXTERN PRIntn
 nssAlgorithmAndParameters_SetTemplateValues
 (
   const NSSAlgorithmAndParameters *ap,
   CK_ATTRIBUTE_PTR aTemplate,
   CK_ULONG templateSize
+);
+
+NSS_EXTERN void
+nss_SetGenericDeviceError (
+  CK_RV ckrv
 );
 
 NSS_EXTERN nssTokenObjectCache *

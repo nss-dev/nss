@@ -1178,40 +1178,6 @@ nssToken_FindPublicKeyByID
     return rvKey;
 }
 
-static void
-sha1_hash(NSSItem *input, NSSItem *output)
-{
-#ifdef NSS_3_4_CODE
-    PK11SlotInfo *internal = PK11_GetInternalSlot();
-    NSSToken *token = PK11Slot_GetNSSToken(internal);
-#else
-    NSSToken *token = nss_GetDefaultCryptoToken();
-#endif
-    (void)nssToken_Digest(token, token->defaultSession,
-                          NSSAlgorithmAndParameters_SHA1,
-                          input, output, NULL);
-#ifdef NSS_3_4_CODE
-    PK11_FreeSlot(token->pk11slot);
-#endif
-}
-
-static void
-md5_hash(NSSItem *input, NSSItem *output)
-{
-#ifdef NSS_3_4_CODE
-    PK11SlotInfo *internal = PK11_GetInternalSlot();
-    NSSToken *token = PK11Slot_GetNSSToken(internal);
-#else
-    NSSToken *token = nss_GetDefaultCryptoToken();
-#endif
-    (void)nssToken_Digest(token, token->defaultSession,
-                          NSSAlgorithmAndParameters_MD5,
-                          input, output, NULL);
-#ifdef NSS_3_4_CODE
-    PK11_FreeSlot(token->pk11slot);
-#endif
-}
-
 static CK_TRUST
 get_ck_trust
 (
@@ -1252,13 +1218,6 @@ nssToken_ImportTrust
     CK_ATTRIBUTE_PTR attr;
     CK_ATTRIBUTE trust_tmpl[10];
     CK_ULONG tsize;
-    PRUint8 sha1[20]; /* this is cheating... */
-    PRUint8 md5[16];
-    NSSItem sha1_result, md5_result;
-    sha1_result.data = sha1; sha1_result.size = sizeof sha1;
-    md5_result.data = md5; md5_result.size = sizeof md5;
-    sha1_hash(certEncoding, &sha1_result);
-    md5_hash(certEncoding, &md5_result);
     ckSA = get_ck_trust(serverAuth);
     ckCA = get_ck_trust(clientAuth);
     ckCS = get_ck_trust(codeSigning);
@@ -1272,8 +1231,6 @@ nssToken_ImportTrust
     NSS_CK_SET_ATTRIBUTE_VAR( attr, CKA_CLASS,           tobjc);
     NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_ISSUER,          certIssuer);
     NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_SERIAL_NUMBER,   certSerial);
-    NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_CERT_SHA1_HASH, &sha1_result);
-    NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_CERT_MD5_HASH,  &md5_result);
     /* now set the trust values */
     NSS_CK_SET_ATTRIBUTE_VAR(attr, CKA_TRUST_SERVER_AUTH,      ckSA);
     NSS_CK_SET_ATTRIBUTE_VAR(attr, CKA_TRUST_CLIENT_AUTH,      ckCA);
@@ -1479,6 +1436,64 @@ nssToken_FindCRLsBySubject
                                        crlobj_template, crlobj_size,
                                        maximumOpt, statusOpt);
     return objects;
+}
+
+NSS_IMPLEMENT PRStatus
+nssToken_SeedRandom (
+  NSSToken *token,
+  NSSItem *seed
+)
+{
+    CK_RV ckrv;
+    void *epv = nssToken_GetCryptokiEPV(token);
+    nssSession *session = token->defaultSession;
+
+    nssSession_EnterMonitor(session);
+    ckrv = CKAPI(epv)->C_SeedRandom(session->handle, seed->data, seed->size);
+    nssSession_ExitMonitor(session);
+    if (ckrv != CKR_OK) {
+	if (ckrv == CKR_RANDOM_SEED_NOT_SUPPORTED ||
+	    ckrv == CKR_RANDOM_NO_RNG) 
+	{
+	    nss_SetError(NSS_ERROR_INVALID_DEVICE);
+	} else {
+	    nss_SetGenericDeviceError(ckrv);
+	}
+	return PR_FAILURE;
+    }
+    return PR_SUCCESS;
+}
+
+NSS_IMPLEMENT PRUint8 *
+nssToken_GenerateRandom (
+  NSSToken *token,
+  PRUint8 *rvOpt,
+  PRUint32 numBytes,
+  NSSArena *arenaOpt
+)
+{
+    CK_RV ckrv;
+    void *epv = nssToken_GetCryptokiEPV(token);
+    nssSession *session = token->defaultSession;
+
+    if (!rvOpt) {
+	rvOpt = nss_ZAlloc(arenaOpt, numBytes);
+	if (!rvOpt) {
+	    return (PRUint8 *)NULL;
+	}
+    }
+    nssSession_EnterMonitor(session);
+    ckrv = CKAPI(epv)->C_GenerateRandom(session->handle, rvOpt, numBytes);
+    nssSession_ExitMonitor(session);
+    if (ckrv != CKR_OK) {
+	if (ckrv == CKR_RANDOM_NO_RNG) {
+	    nss_SetError(NSS_ERROR_INVALID_DEVICE);
+	} else {
+	    nss_SetGenericDeviceError(ckrv);
+	}
+	return (PRUint8 *)NULL;
+    }
+    return rvOpt;
 }
 
 #define PUBLIC_KEY_PROPS_MASK \
@@ -1865,6 +1880,87 @@ nssToken_DeriveKey
 	derivedKey = nssCryptokiObject_Create(token, session, keyH);
     }
     return derivedKey;
+}
+
+NSS_IMPLEMENT PRStatus
+nssToken_DeriveSSLSessionKeys
+(
+  NSSToken *token,
+  nssSession *session,
+  const NSSAlgorithmAndParameters *ap,
+  nssCryptokiObject *masterSecret,
+  NSSOperations operations,
+  NSSProperties properties,
+  nssCryptokiObject **rvSessionKeys /* [4] */
+)
+{
+    CK_RV ckrv;
+    CK_MECHANISM_PTR mechanism;
+    CK_OBJECT_HANDLE keyH;
+    CK_ATTRIBUTE keyTemplate[14];
+    CK_ATTRIBUTE_PTR attr = keyTemplate;
+    CK_ULONG ktSize;
+    void *epv = nssToken_GetCryptokiEPV(token);
+
+    mechanism = nssAlgorithmAndParameters_GetMechanism(ap);
+
+    /* set up the key template */
+    NSS_CK_TEMPLATE_START(keyTemplate, attr, ktSize);
+    NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_TOKEN, &g_ck_false);
+    if (operations) {
+	attr += nssCKTemplate_SetOperationAttributes(attr, 
+	                                             keyTemplate - attr,
+	                                             operations);
+    }
+
+    if (properties) {
+	attr += nssCKTemplate_SetPropertyAttributes(attr,
+	                                            keyTemplate - attr,
+                                                    properties);
+    }
+    NSS_CK_TEMPLATE_FINISH(keyTemplate, attr, ktSize);
+    /* ready to do the derivation */
+    nssSession_EnterMonitor(session);
+    ckrv = CKAPI(epv)->C_DeriveKey(session->handle, mechanism,
+                                   masterSecret->handle,
+                                   keyTemplate, ktSize, &keyH);
+    nssSession_ExitMonitor(session);
+    if (ckrv == CKR_OK) {
+	CK_SSL3_KEY_MAT_PARAMS *kmp;
+	CK_SSL3_KEY_MAT_OUT_PTR kmo;
+
+	kmp = (CK_SSL3_KEY_MAT_PARAMS *)mechanism->pParameter;
+	kmo = kmp->pReturnedKeyMaterial;
+	/* XXX all in the same session? */
+	rvSessionKeys[0] = nssCryptokiObject_Create(token, session, 
+	                                            kmo->hClientMacSecret);
+	if (!rvSessionKeys[0]) {
+	    return PR_FAILURE;
+	}
+	rvSessionKeys[1] = nssCryptokiObject_Create(token, session, 
+	                                            kmo->hServerMacSecret);
+	if (!rvSessionKeys[1]) {
+	    nssCryptokiObject_Destroy(rvSessionKeys[0]);
+	    return PR_FAILURE;
+	}
+	rvSessionKeys[2] = nssCryptokiObject_Create(token, session, 
+	                                            kmo->hClientKey);
+	if (!rvSessionKeys[2]) {
+	    nssCryptokiObject_Destroy(rvSessionKeys[0]);
+	    nssCryptokiObject_Destroy(rvSessionKeys[1]);
+	    return PR_FAILURE;
+	}
+	rvSessionKeys[3] = nssCryptokiObject_Create(token, session, 
+	                                            kmo->hServerKey);
+	if (!rvSessionKeys[3]) {
+	    nssCryptokiObject_Destroy(rvSessionKeys[0]);
+	    nssCryptokiObject_Destroy(rvSessionKeys[1]);
+	    nssCryptokiObject_Destroy(rvSessionKeys[2]);
+	    return PR_FAILURE;
+	}
+	return PR_SUCCESS;
+    }
+    return PR_FAILURE;
 }
 
 NSS_IMPLEMENT NSSItem *
@@ -2480,7 +2576,7 @@ nssToken_Verify
 	     */
 	    nss_SetError(NSS_ERROR_INVALID_DATA);
 	} else {
-	    nss_SetError(NSS_ERROR_TOKEN_FAILURE);
+	    nss_SetGenericDeviceError(ckrv);
 	}
 	return PR_FAILURE;
     }
@@ -2552,7 +2648,7 @@ nssToken_FinishVerify
 	     */
 	    nss_SetError(NSS_ERROR_INVALID_DATA);
 	} else {
-	    nss_SetError(NSS_ERROR_TOKEN_FAILURE);
+	    nss_SetGenericDeviceError(ckrv);
 	}
 	return PR_FAILURE;
     }

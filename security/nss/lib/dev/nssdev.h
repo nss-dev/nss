@@ -208,10 +208,18 @@ NSSAlgorithmAndParameters_Create
 );
 
 NSS_EXTERN NSSAlgorithmAndParameters *
-NSSAlgorithmAndParameters_CreateKeyGen
+NSSAlgorithmAndParameters_CreateKeyPairGen
 (
   NSSArena *arenaOpt,
-  NSSAlgorithmType algorithm,
+  NSSKeyPairType keyPairType,
+  NSSParameters *parametersOpt
+);
+
+NSS_EXTERN NSSAlgorithmAndParameters *
+NSSAlgorithmAndParameters_CreateSymKeyGen
+(
+  NSSArena *arenaOpt,
+  NSSSymmetricKeyType symKeyType,
   NSSParameters *parametersOpt
 );
 
