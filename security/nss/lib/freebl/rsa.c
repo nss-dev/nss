@@ -116,7 +116,7 @@ rsa_keygen_from_primes(mp_int *p, mp_int *q, mp_int *e, RSAPrivateKey *key,
     /* 1.  Compute n = p*q */
     CHECK_MPI_OK( mp_mul(p, q, &n) );
     /*     verify that the modulus has the desired number of bits */
-    if (mpl_significant_bits(&n) != keySizeInBits) {
+    if ((unsigned)mpl_significant_bits(&n) != keySizeInBits) {
 	PORT_SetError(SEC_ERROR_NEED_RANDOM);
 	rv = SECFailure;
 	goto cleanup;
@@ -277,7 +277,7 @@ rsa_modulusLen(SECItem *modulus)
 SECStatus 
 RSA_PublicKeyOp(RSAPublicKey  *key, 
                 unsigned char *output, 
-                unsigned char *input)
+                const unsigned char *input)
 {
     unsigned int modLen;
     mp_int n, e, m, c;
@@ -590,7 +590,7 @@ cleanup:
 SECStatus 
 RSA_PrivateKeyOp(RSAPrivateKey *key, 
                  unsigned char *output, 
-                 unsigned char *input)
+                 const unsigned char *input)
 {
     unsigned int modLen;
     unsigned int offset;
