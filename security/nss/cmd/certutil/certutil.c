@@ -511,7 +511,6 @@ printCertCB(CERTCertificate *cert, void *arg)
 {
     SECStatus rv;
     SECItem data;
-    CERTCertTrust *trust = (CERTCertTrust *)arg;
     
     data.data = cert->derCert.data;
     data.len = cert->derCert.len;
@@ -522,13 +521,8 @@ printCertCB(CERTCertificate *cert, void *arg)
 	SECU_PrintError(progName, "problem printing certificate");
 	return(SECFailure);
     }
-    if (trust) {
-	SECU_PrintTrustFlags(stdout, trust,
-	                     "Certificate Trust Flags", 1);
-    } else {
-	SECU_PrintTrustFlags(stdout, &cert->dbEntry->trust,
-	                     "Certificate Trust Flags", 1);
-    }
+    SECU_PrintTrustFlags(stdout, &cert->dbEntry->trust,
+			 "Certificate Trust Flags", 1);
 
     printf("\n");
 
@@ -587,17 +581,7 @@ listCerts(CERTCertDBHandle *handle, char *name, PK11SlotInfo *slot,
 	/* List certs on a non-internal slot. */
 	if (PK11_NeedLogin(slot))
 	    PK11_Authenticate(slot, PR_TRUE, pwarg);
-	if (name) {
-	    CERTCertificate *the_cert;
-	    the_cert = PK11_FindCertFromNickname(name, NULL);
-	    if (!the_cert) {
-		SECU_PrintError(progName, "Could not find: %s\n", name);
-		return SECFailure;
-	    }
-	    rv = printCertCB(the_cert, the_cert->trust);
-	} else {
-	    rv = PK11_TraverseCertsInSlot(slot, SECU_PrintCertNickname, stdout);
-	}
+	rv = PK11_TraverseCertsInSlot(slot, SECU_PrintCertNickname, stdout);
 	if (rv) {
 	    SECU_PrintError(progName, "problem printing certificate nicknames");
 	    return SECFailure;
@@ -659,7 +643,7 @@ DeleteCert(CERTCertDBHandle *handle, char *name)
 
 static SECStatus
 ValidateCert(CERTCertDBHandle *handle, char *name, char *date,
-	     char *certUsage, PRBool checkSig, PRBool logit, secuPWData *pwdata)
+	     char *certUsage, PRBool checkSig, PRBool logit)
 {
     SECStatus rv;
     CERTCertificate *cert;
@@ -717,7 +701,7 @@ ValidateCert(CERTCertDBHandle *handle, char *name, char *date,
 	}
  
 	rv = CERT_VerifyCert(handle, cert, checkSig, usage,
-			     timeBoundary, pwdata, log);
+			     timeBoundary, NULL, log);
 	if ( log ) {
 	    if ( log->head == NULL ) {
 		fprintf(stdout, "%s: certificate is valid\n", progName);
@@ -935,24 +919,19 @@ ListKeys(PK11SlotInfo *slot, char *keyname, int index,
     return rv;
 }
 
+#ifdef notdef
 static SECStatus
-DeleteKey(char *nickname, secuPWData *pwdata)
+DeleteKey(SECKEYKeyDBHandle *handle, char *nickname)
 {
     SECStatus rv;
-    CERTCertificate *cert;
-    PK11SlotInfo *slot;
 
-    slot = PK11_GetInternalKeySlot();
-    if (PK11_NeedLogin(slot))
-	PK11_Authenticate(slot, PR_TRUE, pwdata);
-    cert = PK11_FindCertFromNickname(nickname, pwdata);
-    if (!cert) return SECFailure;
-    rv = PK11_DeleteTokenCertAndKey(cert, pwdata);
+    rv = SECU_DeleteKeyByName(handle, nickname);
     if (rv != SECSuccess) {
 	SECU_PrintError("problem deleting private key \"%s\"\n", nickname);
     }
     return rv;
 }
+#endif
 
 
 /*
@@ -2538,11 +2517,13 @@ main(int argc, char **argv)
 	rv = DeleteCert(certHandle, name);
 	return !rv - 1;
     }
+#ifdef notdef
     /*  Delete key (-F)  */
     if (certutil.commands[cmd_DeleteKey].activated) {
-	rv = DeleteKey(name, &pwdata);
+	rv = DeleteKey(keyHandle, name);
 	return !rv - 1;
     }
+#endif
     /*  Modify trust attribute for cert (-M)  */
     if (certutil.commands[cmd_ModifyCertTrust].activated) {
 	rv = ChangeTrustAttributes(certHandle, name, 
@@ -2556,22 +2537,11 @@ main(int argc, char **argv)
     }
     /*  Check cert validity against current time (-V)  */
     if (certutil.commands[cmd_CheckCertValidity].activated) {
-	/* XXX temporary hack for fips - must log in to get priv key */
-	if (certutil.options[opt_VerifySig].activated) {
-	    secuPWData pwdata = { PW_NONE, 0 };
-	    if (certutil.options[opt_PasswordFile].arg) {
-		pwdata.source = PW_FROMFILE;
-		pwdata.data = certutil.options[opt_PasswordFile].arg;
-	    }
-	    if (PK11_NeedLogin(slot))
-		PK11_Authenticate(slot, PR_TRUE, &pwdata);
-	}
 	rv = ValidateCert(certHandle, name, 
 	                  certutil.options[opt_ValidityTime].arg,
 			  certutil.options[opt_Usage].arg,
 			  certutil.options[opt_VerifySig].activated,
-			  certutil.options[opt_DetailedInfo].activated,
-	                  &pwdata);
+			  certutil.options[opt_DetailedInfo].activated);
 	return !rv - 1;
     }
 
@@ -2616,7 +2586,6 @@ main(int argc, char **argv)
 		     outFile ? outFile : PR_STDOUT);
 	if (rv) 
 	    return -1;
-	privkey->wincx = &pwdata;
     }
 
     /*

@@ -68,14 +68,13 @@ extern char *sys_errlist[];
 
 #define ERROR_BREAK rv = SECFailure;break;
 
-/* returns 0 for success, -1 for failure (EOF encountered) */
-static int
+
+static void
 UpdateRNG(void)
 {
     char *         randbuf;
     int            fd, i, count;
-    int            c;
-    int            rv		= 0;
+    char           c;
 #ifdef XP_UNIX
     cc_t           orig_cc_min;
     cc_t           orig_cc_time;
@@ -122,10 +121,6 @@ UpdateRNG(void)
 #else
 	c = getch();
 #endif
-	if (c == EOF) {
-	    rv = -1;
-	    break;
-	}
 	RNG_GetNoise(&randbuf[1], sizeof(randbuf)-1);
 	RNG_RandomUpdate(randbuf, sizeof(randbuf));
 	if (c != randbuf[0]) {
@@ -144,14 +139,12 @@ UpdateRNG(void)
     FPS "\n\n");
     FPS "Finished.  Press enter to continue: ");
 #if defined(VMS)
-    while((c = GENERIC_GETCHAR_NO_ECHO()) != '\r' && c != EOF)
+    while(GENERIC_GETCHAR_NO_ECHO() != '\r')
 	;
 #else
-    while ((c = getc(stdin)) != '\n' && c != EOF)
+    while (getc(stdin) != '\n')
 	;
 #endif
-    if (c == EOF) 
-	rv = -1;
     FPS "\n");
 
 #undef FPS
@@ -163,7 +156,6 @@ UpdateRNG(void)
     tio.c_cc[VTIME] = orig_cc_time;
     tcsetattr(fd, TCSAFLUSH, &tio);
 #endif
-    return rv;
 }
 
 
@@ -253,18 +245,18 @@ done:
 static char *
 SECU_GetpqgString(char *filename)
 {
-    char phrase[400];
+    unsigned char phrase[400];
     FILE *fh;
     char *rv;
 
     fh = fopen(filename,"r");
-    rv = fgets (phrase, sizeof(phrase), fh);
+    rv = fgets ((char*) phrase, sizeof(phrase), fh);
 
     fclose(fh);
     if (phrase[strlen(phrase)-1] == '\n')
 	phrase[strlen(phrase)-1] = '\0';
     if (rv) {
-	return (char*) PORT_Strdup(phrase);
+	return (char*) PORT_Strdup((char*)phrase);
     }
     fprintf(stderr,"pqg file contain no data\n");
     return NULL;
@@ -314,7 +306,6 @@ CERTUTIL_GeneratePrivateKey(KeyType keytype, PK11SlotInfo *slot, int size,
     PQGParams *dsaparams = NULL;
     void *params;
     secuPWData pwdata = { PW_NONE, 0 };
-    PRArenaPool *dsaparena;
 
     /*
      * Do some random-number initialization.
@@ -324,11 +315,7 @@ CERTUTIL_GeneratePrivateKey(KeyType keytype, PK11SlotInfo *slot, int size,
     if (noise) {
     	RNG_FileForRNG(noise);
     } else {
-	int rv = UpdateRNG();
-	if (rv) {
-	    PORT_SetError(PR_END_OF_FILE_ERROR);
-	    return NULL;
-	}
+	UpdateRNG();
     }
 
     switch (keytype) {
@@ -345,20 +332,9 @@ CERTUTIL_GeneratePrivateKey(KeyType keytype, PK11SlotInfo *slot, int size,
 	if (pqgFile) {
 	    dsaparams = getpqgfromfile(size, pqgFile);
 	} else {
-	    dsaparena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
-	    if (dsaparena == NULL) return NULL;
-	    dsaparams = PORT_ArenaZAlloc(dsaparena, sizeof(PQGParams));
-	    if (dsaparams == NULL) return NULL;
-	    dsaparams->arena = dsaparena;
-	    SECITEM_AllocItem(dsaparena, &dsaparams->prime, sizeof P);
-	    SECITEM_AllocItem(dsaparena, &dsaparams->subPrime, sizeof Q);
-	    SECITEM_AllocItem(dsaparena, &dsaparams->base, sizeof G);
-	    PORT_Memcpy(dsaparams->prime.data, P, dsaparams->prime.len);
-	    PORT_Memcpy(dsaparams->subPrime.data, Q, dsaparams->subPrime.len);
-	    PORT_Memcpy(dsaparams->base.data, G, dsaparams->base.len);
+	    dsaparams = &default_pqg_params;
 	}
 	params = dsaparams;
-	break;
       default:
 	return NULL;
     }
@@ -379,7 +355,7 @@ CERTUTIL_GeneratePrivateKey(KeyType keytype, PK11SlotInfo *slot, int size,
 
     return PK11_GenerateKeyPair(slot, mechanism, params, pubkeyp,
 				PR_TRUE /*isPerm*/, PR_TRUE /*isSensitive*/, 
-				&pwdata /*wincx*/);
+				NULL /*wincx*/);
 }
 
 /*
