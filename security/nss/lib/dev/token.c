@@ -116,7 +116,7 @@ NSSToken_Create
 	}
     }
     /* Open a default session handle for the token. */
-    session = NSSSlot_CreateSession(parent, arena, PR_TRUE);
+    session = NSSSlot_CreateSession(parent, arena, PR_FALSE);
     if (session == NULL) {
 	goto loser;
     }

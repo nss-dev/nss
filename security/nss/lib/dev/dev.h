@@ -150,21 +150,50 @@ NSSSlot_Destroy
   NSSSlot *slot
 );
 
+NSS_EXTERN NSSUTF8 *
+NSSSlot_GetName
+(
+  NSSSlot *slot,
+  NSSArena *arenaOpt
+);
+
 NSS_EXTERN PRStatus
 NSSSlot_Login
 (
-  NSSSlot *slot
+  NSSSlot *slot,
+  PRBool asSO,
+  NSSCallback pwcb
 );
+extern const NSSError NSS_ERROR_INVALID_PASSWORD;
+extern const NSSError NSS_ERROR_USER_CANCELED;
 
 NSS_EXTERN PRStatus
 NSSSlot_Logout
 (
-  NSSSlot *slot
+  NSSSlot *slot,
+  nssSession *sessionOpt
 );
+
+#define NSSSLOT_ASK_PASSWORD_FIRST_TIME -1
+#define NSSSLOT_ASK_PASSWORD_EVERY_TIME  0
+NSS_EXTERN void
+NSSSlot_SetPasswordDefaults
+(
+  NSSSlot *slot,
+  PRInt32 askPasswordTimeout
+);
+
+NSS_EXTERN PRStatus
+NSSSlot_SetPassword
+(
+  NSSSlot *slot,
+  NSSCallback pwcb
+);
+extern const NSSError NSS_ERROR_INVALID_PASSWORD;
+extern const NSSError NSS_ERROR_USER_CANCELED;
 
 /*
  * NSSSlot_IsLoggedIn
- * NSSSlot_ChangePassword
  */
 
 NSS_EXTERN nssSession *
@@ -172,7 +201,7 @@ NSSSlot_CreateSession
 (
   NSSSlot *slot,
   NSSArena *arenaOpt,
-  PRBool readOnly /* so far, this is the only flag used */
+  PRBool readWrite /* so far, this is the only flag used */
 );
 
 NSS_EXTERN NSSToken *
