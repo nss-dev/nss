@@ -145,7 +145,7 @@ const char * const ssl_cipherName[] = {
     "DES-CBC",
     "DES-EDE3-CBC",
     "unknown",
-    "unknown", /* was fortezza, NO LONGER USED */
+    "Fortezza",
 };
 
 
