@@ -74,22 +74,15 @@
 #ifndef _DB_H_
 #define	_DB_H_
 
-#ifndef macintosh
-#include <sys/types.h>
+#ifndef HAVE_SYS_CDEFS_H
+#include "cdefs.h"
+#else
+#include <sys/cdefs.h>
 #endif
 #include "prtypes.h"
 
-#include <limits.h>
-
-#ifdef __DBINTERFACE_PRIVATE
-
-#ifdef HAVE_SYS_CDEFS_H
-#include <sys/cdefs.h>
-#else
-#include "cdefs.h"
-#endif
-
 #ifdef HAVE_SYS_BYTEORDER_H
+#include <sys/types.h>
 #include <sys/byteorder.h>
 #endif
 
@@ -106,6 +99,7 @@
 #define BYTE_ORDER BIG_ENDIAN
 #define BIG_ENDIAN      4321
 #define LITTLE_ENDIAN   1234            /* LSB first: i386, vax, all NT risc */
+#define	__BIT_TYPES_DEFINED__
 #endif
 
 #ifdef __sun
@@ -142,32 +136,6 @@
 #endif /* !BYTE_ORDER */
 #endif /* __sun */
 
-#if defined(__hpux) || defined(__hppa)
-#define BYTE_ORDER BIG_ENDIAN
-#define BIG_ENDIAN      4321
-#define LITTLE_ENDIAN   1234            /* LSB first: i386, vax, all NT risc */
-#endif
-
-#if defined(AIXV3) || defined(AIX)
-/* BYTE_ORDER, LITTLE_ENDIAN, BIG_ENDIAN are all defined here */
-#include <sys/machine.h>
-#endif
-
-/* Digital Unix */
-#ifdef __osf__
-#include <machine/endian.h>
-#endif
-
-#ifdef __alpha
-#ifndef WIN32
-#else
-/* Alpha NT */
-#define BYTE_ORDER LITTLE_ENDIAN
-#define BIG_ENDIAN      4321
-#define LITTLE_ENDIAN   1234 
-#endif
-#endif
-
 #ifdef NCR
 #include <sys/endian.h>
 #endif
@@ -178,33 +146,16 @@
 #define BYTE_ORDER	LITTLE_ENDIAN
 #endif
 
+#ifdef SCO
+#include <sys/bitypes.h>
+#define MAXPATHLEN 	1024              
+#endif
+
 #ifdef SNI
 /* #include <sys/hetero.h> */
 #define BYTE_ORDER BIG_ENDIAN
 #define BIG_ENDIAN      4321
 #define LITTLE_ENDIAN   1234
-#endif
-
-#if defined(_WINDOWS) || defined(XP_OS2)
-#ifdef BYTE_ORDER
-#undef BYTE_ORDER
-#endif
-
-#define BYTE_ORDER LITTLE_ENDIAN
-#define LITTLE_ENDIAN   1234            /* LSB first: i386, vax, all NT risc */
-#define BIG_ENDIAN      4321
-#endif
-
-#ifdef macintosh
-#define BIG_ENDIAN 4321
-#define LITTLE_ENDIAN 1234
-#define BYTE_ORDER BIG_ENDIAN
-#endif
-
-#endif  /* __DBINTERFACE_PRIVATE */
-
-#ifdef SCO
-#define MAXPATHLEN 	1024              
 #endif
 
 #ifdef macintosh
@@ -216,6 +167,7 @@
 #if defined(_WINDOWS) || defined(XP_OS2)
 #include <stdio.h>
 #include <io.h>
+#include <limits.h>
 
 #ifndef XP_OS2 
 #define MAXPATHLEN 	1024               
@@ -234,11 +186,28 @@
 #ifndef O_ACCMODE			/* POSIX 1003.1 access mode mask. */
 #define	O_ACCMODE	(O_RDONLY|O_WRONLY|O_RDWR)
 #endif
+
+#ifdef BYTE_ORDER
+#undef BYTE_ORDER
 #endif
+
+#define BYTE_ORDER LITTLE_ENDIAN
+#define LITTLE_ENDIAN   1234            /* LSB first: i386, vax, all NT risc */
+#define BIG_ENDIAN      4321
+#endif
+
+#if defined(_WINDOWS) && !defined(_WIN32)
+/* 16 bit windows defines */
+#define	MAX_PAGE_NUMBER	0xffffffff	/* >= # of pages in a file */
+#endif
+
 
 #ifdef macintosh
 #include <stdio.h>
 #include "xp_mcom.h"
+#define BIG_ENDIAN 4321
+#define LITTLE_ENDIAN 1234
+#define BYTE_ORDER BIG_ENDIAN
 #define O_ACCMODE       3       /* Mask for file access modes */
 #define EFTYPE 2000
 XP_BEGIN_PROTOS
@@ -246,19 +215,33 @@ int mkstemp(const char *path);
 XP_END_PROTOS
 #endif	/* MACINTOSH */
 
+#if defined(XP_OS2)
+/* #include <xp_mcom.h> */
+/* XP_BEGIN_PROTOS */
+/* int mkstemp(char *path); */
+/* XP_END_PROTOS */
+#endif
+
+#ifndef macintosh
+#include <sys/types.h>
+#endif
+
 #if !defined(_WINDOWS) && !defined(macintosh) && !defined(XP_OS2)
 #include <sys/stat.h>
 #include <errno.h>
 #endif
 
-/* define EFTYPE since most don't */
-#ifndef EFTYPE
-#define EFTYPE      EINVAL      /* POSIX 1003.1 format errno. */
+#ifndef _WINDOWS  /* included above to prevent spurious warnings chouck 12-Sep-95 */
+#include <limits.h>
 #endif
 
 #define	RET_ERROR	-1		/* Return values. */
 #define	RET_SUCCESS	 0
 #define	RET_SPECIAL	 1
+
+#if defined(__386BSD__) || defined(SCO)
+#define	__BIT_TYPES_DEFINED__
+#endif
 
 #define	MAX_PAGE_NUMBER	0xffffffff	/* >= # of pages in a file */
 
@@ -270,6 +253,11 @@ typedef uint32	pgno_t;
 typedef uint16	indx_t;
 #define	MAX_REC_NUMBER	0xffffffff	/* >= # of records in a tree */
 typedef uint32	recno_t;
+
+/* define EFTYPE since most don't */
+#ifndef EFTYPE
+#define EFTYPE      EINVAL      /* POSIX 1003.1 format errno. */
+#endif
 
 /* Key/data structure -- a Data-Base Thang. */
 typedef struct {
@@ -376,7 +364,7 @@ typedef struct {
 	char	*bfname;	/* btree file name */ 
 } RECNOINFO;
 
-#ifdef __DBINTERFACE_PRIVATE
+/* #ifdef __DBINTERFACE_PRIVATE */
 /*
  * Little endian <==> big endian 32-bit swap macros.
  *	M_32_SWAP	swap a memory location
@@ -424,9 +412,9 @@ typedef struct {
 	((char *)&(b))[0] = ((char *)&(a))[1];				\
 	((char *)&(b))[1] = ((char *)&(a))[0];				\
 }
-#endif
+/* #endif */
 
-PR_BEGIN_EXTERN_C
+__BEGIN_DECLS
 #if defined(__WATCOMC__) || defined(__WATCOM_CPLUSPLUS__)
 extern DB *
 #else
@@ -439,13 +427,39 @@ dbopen (const char *, int, int, DBTYPE, const void *);
  */
 void dbSetOrClearDBLock(DBLockFlagEnum type);
 
-#ifdef __DBINTERFACE_PRIVATE
+/* #ifdef __DBINTERFACE_PRIVATE */
 DB	*__bt_open (const char *, int, int, const BTREEINFO *, int);
 DB	*__hash_open (const char *, int, int, const HASHINFO *, int);
 DB	*__rec_open (const char *, int, int, const RECNOINFO *, int);
 void	 __dbpanic (DB *dbp);
+/* #endif */
+
+__END_DECLS
+
+#if defined(__hpux) || defined(__hppa)
+#define BYTE_ORDER BIG_ENDIAN
+#define BIG_ENDIAN      4321
+#define LITTLE_ENDIAN   1234            /* LSB first: i386, vax, all NT risc */
 #endif
 
-PR_END_EXTERN_C
+#if defined(AIXV3) || defined(AIX)
+/* BYTE_ORDER, LITTLE_ENDIAN, BIG_ENDIAN are all defined here */
+#include <sys/machine.h>
+#endif
+
+/* Digital Unix */
+#ifdef __osf__
+#include <machine/endian.h>
+#endif
+
+#ifdef __alpha
+#ifndef WIN32
+#else
+/* Alpha NT */
+#define BYTE_ORDER LITTLE_ENDIAN
+#define BIG_ENDIAN      4321
+#define LITTLE_ENDIAN   1234 
+#endif
+#endif
 
 #endif /* !_DB_H_ */
