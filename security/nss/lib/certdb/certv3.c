@@ -144,14 +144,14 @@ CERT_FindCertURLExtension(CERTCertificate *cert, int tag, int catag)
 	goto loser;
     }
 
-    rv = SEC_ASN1DecodeItem(arena, &urlstringitem, SEC_IA5StringTemplate, 
+    rv = SEC_QuickDERDecodeItem(arena, &urlstringitem, SEC_IA5StringTemplate, 
 			    &urlitem);
 
     if ( rv != SECSuccess ) {
 	goto loser;
     }
     if ( hasbase ) {
-	rv = SEC_ASN1DecodeItem(arena, &basestringitem, SEC_IA5StringTemplate,
+	rv = SEC_QuickDERDecodeItem(arena, &basestringitem, SEC_IA5StringTemplate,
 				&baseitem);
 
 	if ( rv != SECSuccess ) {
@@ -249,7 +249,7 @@ CERT_FindNSStringExtension(CERTCertificate *cert, int oidtag)
 	goto loser;
     }
 
-    rv = SEC_ASN1DecodeItem(arena, &tmpItem, SEC_IA5StringTemplate, 
+    rv = SEC_QuickDERDecodeItem(arena, &tmpItem, SEC_IA5StringTemplate, 
 			    &wrapperItem);
 
     if ( rv != SECSuccess ) {
