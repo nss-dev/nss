@@ -49,8 +49,14 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #include "nssckt.h"
 #endif /* NSSCKT_H */
 
+#ifndef NSSCKBI_H
+#include "nssckbi.h"
+#endif /* NSSCKBI_H */
+
 NSS_IMPLEMENT_DATA const CK_VERSION
-nss_builtins_CryptokiVersion = { 2, 1 };
+nss_builtins_CryptokiVersion =  {
+		NSS_BUILTINS_CRYPTOKI_VERSION_MAJOR,
+		NSS_BUILTINS_CRYPTOKI_VERSION_MINOR };
 
 NSS_IMPLEMENT_DATA const NSSUTF8 *
 nss_builtins_ManufacturerID = (NSSUTF8 *) "Netscape Communications Corp.";
@@ -59,16 +65,22 @@ NSS_IMPLEMENT_DATA const NSSUTF8 *
 nss_builtins_LibraryDescription = (NSSUTF8 *) "NSS Builtin Object Cryptoki Module";
 
 NSS_IMPLEMENT_DATA const CK_VERSION
-nss_builtins_LibraryVersion = { 1, 2 };
+nss_builtins_LibraryVersion = {
+	NSS_BUILTINS_LIBRARY_VERISON_MAJOR,
+	NSS_BUILTINS_LIBRARY_VERISON_MINOR};
 
 NSS_IMPLEMENT_DATA const NSSUTF8 *
 nss_builtins_SlotDescription = (NSSUTF8 *) "";
 
 NSS_IMPLEMENT_DATA const CK_VERSION
-nss_builtins_HardwareVersion = { 1, 0 };
+nss_builtins_HardwareVersion = { 
+	NSS_BUILTINS_HARDWARE_VERISON_MAJOR,
+	NSS_BUILTINS_HARDWARE_VERISON_MINOR };
 
 NSS_IMPLEMENT_DATA const CK_VERSION
-nss_builtins_FirmwareVersion = { 1, 0 };
+nss_builtins_FirmwareVersion = { 
+	NSS_BUILTINS_FIRMWARE_VERISON_MAJOR,
+	NSS_BUILTINS_FIRMWARE_VERISON_MINOR };
 
 NSS_IMPLEMENT_DATA const NSSUTF8 *
 nss_builtins_TokenLabel = (NSSUTF8 *) "Builtin Object Token";

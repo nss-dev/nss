@@ -36,11 +36,15 @@ CORE_DEPTH = ../../../..
 
 MODULE = security
 
+EXPORTS =		\
+	nssckbi.h	\
+	$(NULL)
+
 CSRCS =			\
 	anchor.c	\
 	constants.c	\
 	bfind.c		\
-	binst.c	\
+	binst.c 	\
 	bobject.c	\
 	bsession.c	\
 	bslot.c		\
