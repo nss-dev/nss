@@ -85,6 +85,12 @@ typedef CK_BYTE           CK_CHAR;
 /* a BYTE-sized Boolean flag */
 typedef CK_BYTE           CK_BBOOL;
 
+/* an unsigned value, at least 16 bits long */
+typedef unsigned short int CK_USHORT;
+
+/* a signed value, the same size as a CK_USHORT */
+typedef short int         CK_SHORT;
+
 /* an unsigned value, at least 32 bits long */
 typedef unsigned long int CK_ULONG;
 
