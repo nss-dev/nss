@@ -1545,9 +1545,24 @@ CERT_MakeCANickname(CERTCertificate *cert)
 	}
 
 	org = CERT_GetOrgName(&cert->issuer);
-	if ( org == NULL ) {
+	if (org == NULL) {
+	    org = CERT_GetDomainComponentName(&cert->issuer);
+	    if (org == NULL) {
+		if (firstname) {
+		    org = firstname;
+		    firstname = NULL;
+		} else {
+		    org = PORT_Strdup("Unknown CA");
+		}
+	    }
+	}
+
+	/* can only fail if PORT_Strdup fails, in which case
+	 * we're having memory problems. */
+	if (org == NULL) {
 	    goto loser;
 	}
+
     
 	count = 1;
 	while ( 1 ) {
