@@ -424,7 +424,8 @@ smime_choose_cipher(CERTCertificate *scert, CERTCertificate **rcerts)
 	    /* we have a profile (still DER-encoded) */
 	    caps = NULL;
 	    /* decode it */
-	    if (SEC_QuickDERDecodeItem(poolp, &caps, NSSSMIMECapabilitiesTemplate, profile) == SECSuccess &&
+	    if (SEC_QuickDERDecodeItem(poolp, &caps,
+                    NSSSMIMECapabilitiesTemplate, profile) == SECSuccess &&
 		    caps != NULL)
 	    {
 		/* walk the SMIME capabilities for this recipient */
@@ -737,7 +738,8 @@ NSS_SMIMEUtil_GetCertFromEncryptionKeyPreference(CERTCertDBHandle *certdb, SECIt
 	return NULL;
 
     /* decode DERekp */
-    if (SEC_QuickDERDecodeItem(tmppoolp, &ekp, smime_encryptionkeypref_template, DERekp) != SECSuccess)
+    if (SEC_QuickDERDecodeItem(tmppoolp, &ekp, smime_encryptionkeypref_template,
+                               DERekp) != SECSuccess)
 	goto loser;
 
     /* find cert */
