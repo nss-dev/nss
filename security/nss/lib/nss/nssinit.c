@@ -47,6 +47,7 @@
 #include "nss.h"
 #include "secrng.h"
 #include "cdbhdl.h"	/* ??? */
+#include "pk11func.h"
 
 
 

@@ -1384,6 +1384,10 @@ extern SECItem *
 CERT_SPKDigestValueForCert(PRArenaPool *arena, CERTCertificate *cert,
 			   SECOidTag digestAlg, SECItem *fill);
 
+/*
+ * fill in nsCertType field of the cert based on the cert extension
+ */
+extern SECStatus CERT_GetCertType(CERTCertificate *cert);
 
 SEC_END_PROTOS
 

@@ -46,6 +46,7 @@
 #include "blapi.h"
 #include "mpi.h"
 #include "mpprime.h"
+#include "mplogic.h"
 #include "secmpi.h"
 #include "secitem.h"
 

@@ -43,6 +43,7 @@
 #include "nssilock.h"
 #include "secitem.h"
 #include "sha_fast.h"
+#include "secrng.h"	/* for RNG_GetNoise() */
 
 /*
  * The minimum amount of seed data required before the generator will
