@@ -55,6 +55,10 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #include "ckhelper.h"
 #endif /* CKHELPER_H */
 
+#ifdef NSS_3_4_CODE
+#include "cert.h"
+#endif
+
 extern const NSSError NSS_ERROR_NOT_FOUND;
 
 #define NSSTRUSTDOMAIN_DEFAULT_CACHE_SIZE 32
@@ -884,6 +888,18 @@ static PRStatus traverse_callback(NSSCertificate *c, void *arg)
     }
     return nssrv;
 }
+
+#ifdef NSS_3_4_CODE
+static void cert_destructor_with_cache(void *el)
+{
+    NSSCertificate *c = (NSSCertificate *)el;
+    CERTCertificate *cert = STAN_GetCERTCertificate(c);
+    /* It's already been obtained as a CERTCertificate, so it must
+     * be destroyed as one
+     */
+    CERT_DestroyCertificate(cert);
+}
+#endif
  
 NSS_IMPLEMENT PRStatus *
 NSSTrustDomain_TraverseCertificates
@@ -918,7 +934,11 @@ NSSTrustDomain_TraverseCertificates
 	nssrv = nssToken_TraverseCertificates(token, NULL, &search);
     }
     nssListIterator_Finish(td->tokens);
+#ifdef NSS_3_4_CODE
+    nssList_Clear(certList, cert_destructor_with_cache);
+#else
     nssList_Clear(certList, cert_destructor);
+#endif
     nssList_Destroy(certList);
     return NULL;
 }
