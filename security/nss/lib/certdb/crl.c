@@ -639,7 +639,7 @@ crl_storeCRL (PK11SlotInfo *slot,char *url,
 {
     CERTSignedCrl *oldCrl = NULL, *crl = NULL;
     PRBool deleteOldCrl = PR_FALSE;
-    CK_OBJECT_HANDLE crlHandle;
+    CK_OBJECT_HANDLE crlHandle = CK_INVALID_HANDLE;
 
     PORT_Assert(newCrl);
     PORT_Assert(derCrl);
