@@ -32,4 +32,4 @@
 #
 # Config stuff for ReliantUNIX5.4
 #
-include $(CORE_DEPTH)/coreconf/ReliantUNIX.mk
+include $(CORECONF_SOURCE)/ReliantUNIX.mk

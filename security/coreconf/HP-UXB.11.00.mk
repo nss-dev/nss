@@ -52,4 +52,4 @@ endif
 #
 # Config stuff for HP-UXB.11.00.
 #
-include $(CORE_DEPTH)/coreconf/HP-UXB.11.mk
+include $(CORECONF_SOURCE)/HP-UXB.11.mk

@@ -37,4 +37,4 @@ endif
 #
 # Config stuff for HP-UXB.10.01
 #
-include $(CORE_DEPTH)/coreconf/HP-UXB.10.mk
+include $(CORECONF_SOURCE)/HP-UXB.10.mk

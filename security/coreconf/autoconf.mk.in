@@ -1,0 +1,71 @@
+USE_AUTOCONF	= 1
+NO_MDUPDATE	= 1
+OBJDIR_NAME	= .
+
+prefix		= @prefix@
+exec_prefix	= @exec_prefix@
+bindir		= @bindir@
+includedir	= @includedir@
+libdir		= @libdir@
+datadir		= @datadir@
+
+dist_prefix	= @dist_prefix@
+dist_bindir	= @dist_bindir@
+dist_includedir = @dist_includedir@
+dist_libdir	= @dist_libdir@
+
+DIST		= $(dist_prefix)
+
+CORECONF_SOURCE	= @CORECONF_SOURCE@
+
+MOZILLA_CLIENT  = @MOZILLA_CLIENT@
+ENABLE_CMD	= @ENABLE_CMD@
+
+GNU_CC		= @GNU_CC@
+GNU_CXX		= @GNU_CXX@
+CC		= @CC@
+CCC		= @CXX@
+OS_CFLAGS	= @CFLAGS@ @DSO_CFLAGS@
+CXXFLAGS	= @CXXFLAGS@ @DSO_CFLAGS@
+HOST_CC		= @HOST_CC@
+HOST_CFLAGS	= @HOST_CFLAGS@
+LDFLAGS		= @LDFLAGS@
+
+COMPILER_DEPEND	= @COMPILER_DEPEND@
+MDDEPDIR	:= @MDDEPDIR@
+
+USE_PTHREADS	= @USE_PTHREADS@
+
+LIB_SUFFIX	= @LIB_SUFFIX@
+DLL_SUFFIX	= @DLL_SUFFIX@
+MKSHLIB		= @MKSHLIB@
+DSO_CFLAGS	= @DSO_CFLAGS@
+DSO_LDOPTS	= @DSO_LDOPTS@
+
+CPU_ARCH	= @CPU_ARCH@
+
+OS_TARGET	= @OS_TARGET@
+OS_ARCH		= @OS_ARCH@
+OS_RELEASE	= @OS_RELEASE@
+OS_TEST		= @OS_TEST@
+
+DEFINES		= @DEFINES@ @DEFS@
+AR		= @AR@
+AR_FLAGS	= @AR_FLAGS@
+AS		= @AS@
+ASFLAGS		= @ASFLAGS@
+LD		= @LD@
+RANLIB		= @RANLIB@
+PERL		= @PERL@
+XARGS		= @XARGS@
+
+OS_LIBS		= @OS_LIBS@
+
+RC		= @RC@
+DLLFLAGS	= @DLLFLAGS@
+
+NSPR_CFLAGS	= @NSPR_CFLAGS@
+NSPR_LIBS	= @NSPR_LIBS@
+
+DBM_CFLAGS	= @DBM_CFLAGS@
+DBM_LIBS	= @DBM_LIBS@

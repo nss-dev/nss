@@ -33,7 +33,7 @@
 # Config stuff for Linux 2.4 (ELF)
 #
 
-include $(CORE_DEPTH)/coreconf/Linux.mk
+include $(CORECONF_SOURCE)/Linux.mk
 
 OS_REL_CFLAGS   += -DLINUX2_1
 MKSHLIB         = $(CC) -shared -Wl,-soname -Wl,$(@:$(OBJDIR)/%.so=%.so)

@@ -19,4 +19,4 @@
 # Config stuff for Compaq OpenVMS
 #
 
-include $(CORE_DEPTH)/coreconf/OpenVMS.mk
+include $(CORECONF_SOURCE)/OpenVMS.mk

@@ -32,7 +32,7 @@
 #
 # Config stuff for DEC OSF/1 V4.0D
 #
-include $(CORE_DEPTH)/coreconf/OSF1V4.0.mk
+include $(CORECONF_SOURCE)/OSF1V4.0.mk
 DEFINES	+= -DOSF1V4D
 
 OS_LIBS += -lpthread -lrt

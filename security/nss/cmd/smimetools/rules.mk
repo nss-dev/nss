@@ -34,4 +34,4 @@
 #
 
 install::
-	$(INSTALL) -m 755 $(SCRIPTS) $(SOURCE_BIN_DIR)
+	$(INSTALL) -m 755 $(addprefix $(srcdir)/, $(SCRIPTS)) $(SOURCE_BIN_DIR)

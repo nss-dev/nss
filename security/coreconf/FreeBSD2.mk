@@ -33,4 +33,4 @@
 # Config stuff for FreeBSD2
 #
 
-include $(CORE_DEPTH)/coreconf/FreeBSD.mk
+include $(CORECONF_SOURCE)/FreeBSD.mk

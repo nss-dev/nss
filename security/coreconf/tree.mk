@@ -35,7 +35,7 @@
 # Master "Core Components" file system "release" prefixes             #
 #######################################################################
 
-#	RELEASE_TREE = $(CORE_DEPTH)/../coredist
+#	RELEASE_TREE = $(MOD_DEPTH)/../coredist
 
 
 ifndef RELEASE_TREE
@@ -83,30 +83,6 @@ ifndef RELEASE_TREE
 	endif
 	endif
 endif
-
-#
-# NOTE:  export control policy enforced for XP and MD files
-#        released to the binary release tree
-#
-
-ifeq ($(POLICY), domestic)
-	RELEASE_XP_DIR = domestic
-	RELEASE_MD_DIR = domestic/$(PLATFORM)
-else
-	ifeq ($(POLICY), export)
-		RELEASE_XP_DIR = export
-		RELEASE_MD_DIR = export/$(PLATFORM)
-	else
-		ifeq ($(POLICY), france)
-			RELEASE_XP_DIR = france
-			RELEASE_MD_DIR = france/$(PLATFORM)
-		else
-			RELEASE_XP_DIR = 
-			RELEASE_MD_DIR = $(PLATFORM)
-		endif
-	endif
-endif
-
 
 REPORTER_TREE = $(subst \,\\,$(RELEASE_TREE))
 

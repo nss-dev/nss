@@ -118,7 +118,7 @@ SHARED_LIBRARY_LIBS = \
 	$(DIST)/lib/libsecutil.$(LIB_SUFFIX) \
 	$(NULL)
 EXTRA_LIBS += \
-	$(DIST)/lib/libdbm.$(LIB_SUFFIX) \
+	$(DBM_LIBS) \
 	$(NULL)
 ifdef MOZILLA_BSAFE_BUILD
 	EXTRA_LIBS+=$(DIST)/lib/libbsafe.$(LIB_SUFFIX)
@@ -136,10 +136,7 @@ SHARED_LIBRARY_DIRS = \
 # $(PROGRAM) has NO explicit dependencies on $(EXTRA_SHARED_LIBS)
 # $(EXTRA_SHARED_LIBS) come before $(OS_LIBS), except on AIX.
 EXTRA_SHARED_LIBS += \
-	-L$(DIST)/lib/ \
-	-lplc4 \
-	-lplds4 \
-	-lnspr4 \
+	$(NSPR_LIBS) \
 	$(NULL)
 endif
 
@@ -181,5 +178,4 @@ MKSHLIB += -Wl,--version-script,$(MAPFILE)
 endif
 
 
-	
 

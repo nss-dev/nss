@@ -64,7 +64,7 @@ platform::
 
 import::
 	@echo "== import.pl =="
-	@perl -I$(CORE_DEPTH)/coreconf $(CORE_DEPTH)/coreconf/import.pl \
+	@perl -I$(CORECONF_SOURCE) $(CORECONF_SOURCE)/import.pl \
 		"RELEASE_TREE=$(RELEASE_TREE)"   \
 		"IMPORTS=$(IMPORTS)"             \
 		"VERSION=$(VERSION)" \
@@ -81,19 +81,26 @@ import::
 		"$(MDHEADER_JAR)=$(IMPORT_MD_DIR)|$(SOURCE_MD_DIR)/include|"        \
 		"$(MDBINARY_JAR)=$(IMPORT_MD_DIR)|$(SOURCE_MD_DIR)|"
 
-export::
+makefiles: $(SUBMAKEFILES)
+ifdef DIRS
+	@for d in $(filter-out $(STATIC_MAKEFILES), $(DIRS)); do\
+		$(MAKE) -C $$d $@                               \
+	done
+endif
+
+export:: $(SUBMAKEFILES) $(MAKE_DIRS)
 	+$(LOOP_OVER_DIRS)
 
-private_export::
+private_export:: $(SUBMAKEFILES)
 	+$(LOOP_OVER_DIRS)
 
-release_export::
+release_export:: $(SUBMAKEFILES)
 	+$(LOOP_OVER_DIRS)
 
-release_classes::
+release_classes:: $(SUBMAKEFILES)
 	+$(LOOP_OVER_DIRS)
 
-libs program install:: $(TARGETS)
+libs program install:: $(SUBMAKEFILES) $(TARGETS) $(MAKE_DIRS)
 ifdef LIBRARY
 	$(INSTALL) -m 664 $(LIBRARY) $(SOURCE_LIB_DIR)
 endif
@@ -114,16 +121,24 @@ ifdef PROGRAMS
 endif
 	+$(LOOP_OVER_DIRS)
 
-tests::
+tests:: $(SUBMAKEFILES)
 	+$(LOOP_OVER_DIRS)
 
-clean clobber::
+clean clobber:: $(SUBMAKEFILES)
 	rm -rf $(ALL_TRASH)
 	+$(LOOP_OVER_DIRS)
 
-realclean clobber_all::
+realclean clobber_all:: $(SUBMAKEFILES)
 	rm -rf $(wildcard *.OBJ) dist $(ALL_TRASH)
 	+$(LOOP_OVER_DIRS)
+
+distclean:: $(SUBMAKEFILES)
+	+$(LOOP_OVER_DIRS)
+	rm -rf $(ALL_TRASH) ; \
+	rm -rf $(wildcard *.map) \
+	Makefile .HSancillary \
+	$(wildcard *.$(OBJ_SUFFIX)) $(wildcard *.ho) \
+	$(wildcard *.$(LIB_SUFFIX)) $(wildcard *.$(DLL_SUFFIX))
 
 #ifdef ALL_PLATFORMS
 #all_platforms:: $(NFSPWD)
@@ -146,14 +161,14 @@ realclean clobber_all::
 #######################################################################
 
 
-release_clean::
+release_clean:: $(SUBMAKEFILES)
 	rm -rf $(SOURCE_XP_DIR)/release/$(RELEASE_MD_DIR)
 
-release:: release_clean release_export release_classes release_policy release_md release_jars release_cpdistdir
+release:: release_clean release_export release_classes release_md release_jars release_cpdistdir
 
-release_cpdistdir::
+release_cpdistdir:: $(SUBMAKEFILES)
 	@echo "== cpdist.pl =="
-	@perl -I$(CORE_DEPTH)/coreconf $(CORE_DEPTH)/coreconf/cpdist.pl \
+	@perl -I$(CORECONF_SOURCE) $(CORECONF_SOURCE)/cpdist.pl \
 		"RELEASE_TREE=$(RELEASE_TREE)" \
 		"CORE_DEPTH=$(CORE_DEPTH)" \
 		"MODULE=${MODULE}" \
@@ -177,9 +192,9 @@ release_cpdistdir::
 # $(SOURCE_RELEASE_xxx_JAR) is a name like yyy.jar
 # $(SOURCE_RELEASE_xx_DIR)  is a name like 
 
-release_jars::
+release_jars:: $(SUBMAKEFILES)
 	@echo "== release.pl =="
-	@perl -I$(CORE_DEPTH)/coreconf $(CORE_DEPTH)/coreconf/release.pl \
+	@perl -I$(CORECONF_SOURCE) $(CORECONF_SOURCE)/release.pl \
 		"RELEASE_TREE=$(RELEASE_TREE)" \
 		"PLATFORM=$(PLATFORM)" \
 		"OS_ARCH=$(OS_ARCH)" \
@@ -232,29 +247,6 @@ endif
 
 endif
 
-ifneq ($(POLICY),)
-release_policy::
-ifdef LIBRARY
-	-$(PLCYPATCH) $(PLCYPATCH_ARGS) $(LIBRARY)
-endif
-ifdef SHARED_LIBRARY
-	-$(PLCYPATCH) $(PLCYPATCH_ARGS) $(SHARED_LIBRARY)
-endif
-ifdef IMPORT_LIBRARY
-	-$(PLCYPATCH) $(PLCYPATCH_ARGS) $(IMPORT_LIBRARY)
-endif
-ifdef PROGRAM
-	-$(PLCYPATCH) $(PLCYPATCH_ARGS) $(PROGRAM)
-endif
-ifdef PROGRAMS
-	-$(PLCYPATCH) $(PLCYPATCH_ARGS) $(PROGRAMS)
-endif
-	+$(LOOP_OVER_DIRS)
-else
-release_policy::
-	+$(LOOP_OVER_DIRS)
-endif
-
 release_md::
 ifdef LIBRARY
 	$(INSTALL) -m 444 $(LIBRARY) $(SOURCE_RELEASE_PREFIX)/$(SOURCE_RELEASE_LIB_DIR)
@@ -280,7 +272,6 @@ alltags:
 	find . -name dist -prune -o \( -name '*.[hc]' -o -name '*.cp' -o -name '*.cpp' \) -print | xargs ctags -a
 
 $(PROGRAM): $(OBJS) $(EXTRA_LIBS)
-	@$(MAKE_OBJDIR)
 ifeq ($(OS_ARCH),WINNT)
 ifeq ($(OS_TARGET),WIN16)
 	echo system windows >w16link
@@ -306,17 +297,13 @@ else
 	$(MKPROG) -o $@ $(CFLAGS) $(OBJS) $(LDFLAGS) $(EXTRA_LIBS) $(EXTRA_SHARED_LIBS) $(OS_LIBS)
 endif
 endif
-ifneq ($(POLICY),)
-	-$(PLCYPATCH) $(PLCYPATCH_ARGS) $@
-endif
 
 get_objs:
 	@echo $(OBJS)
 
-$(LIBRARY): $(OBJS)
-	@$(MAKE_OBJDIR)
+$(LIBRARY): $(OBJS) Makefile Makefile.in
 	rm -f $@
-	$(AR) $(OBJS)
+	$(AR) $(AR_FLAGS) $(OBJS)
 	$(RANLIB) $@
 
 ifeq ($(OS_TARGET), WIN16)
@@ -332,11 +319,10 @@ $(IMPORT_LIBRARY): $(OBJS)
 endif
 
 ifdef SHARED_LIBRARY_LIBS
-SUB_SHLOBJS = $(foreach dir,$(SHARED_LIBRARY_DIRS),$(addprefix $(dir)/,$(shell $(MAKE) -C $(dir) --no-print-directory get_objs)))
+SUB_SHLOBJS = $(foreach dir,$(SHARED_LIBRARY_DIRS),$(addprefix $(dir)/,$(shell $(MAKE) -C $(dir) --no-print-directory get_objs MDDEPEND_FILES=)))
 endif
 
-$(SHARED_LIBRARY): $(OBJS) $(MAPFILE)
-	@$(MAKE_OBJDIR)
+$(SHARED_LIBRARY): $(OBJS) $(MAPFILE) Makefile Makefile.in
 	rm -f $@
 ifeq ($(OS_ARCH)$(OS_RELEASE), AIX4.1)
 	echo "#!" > $(OBJDIR)/lib$(LIBRARY_NAME)_syms
@@ -384,45 +370,39 @@ ifeq ($(OS_ARCH),OpenVMS)
 endif
 endif
 endif
-ifneq ($(POLICY),)
-	-$(PLCYPATCH) $(PLCYPATCH_ARGS) $@
-endif
 
 ifeq ($(OS_ARCH), WINNT)
 $(RES): $(RESNAME)
-	@$(MAKE_OBJDIR)
 # The resource compiler does not understand the -U option.
 	$(RC) $(filter-out -U%,$(DEFINES)) $(INCLUDES) -Fo$@ $<
 	@echo $(RES) finished
 endif
 
 $(MAPFILE): $(LIBRARY_NAME).def
-	@$(MAKE_OBJDIR)
 ifeq ($(OS_ARCH),SunOS)
-	grep -v ';-' $(LIBRARY_NAME).def | \
+	grep -v ';-' $(srcdir)/$(LIBRARY_NAME).def | \
 	 sed -e 's,;+,,' -e 's; DATA ;;' -e 's,;;,,' -e 's,;.*,;,' > $@
 endif
 ifeq ($(OS_ARCH),Linux)
-	grep -v ';-' $(LIBRARY_NAME).def | \
+	grep -v ';-' $(srcdir)/$(LIBRARY_NAME).def | \
 	 sed -e 's,;+,,' -e 's; DATA ;;' -e 's,;;,,' -e 's,;.*,;,' > $@
 endif
 ifeq ($(OS_ARCH),AIX)
-	grep -v ';+' $(LIBRARY_NAME).def | grep -v ';-' | \
+	grep -v ';+' $(srcdir)/$(LIBRARY_NAME).def | grep -v ';-' | \
 		sed -e 's; DATA ;;' -e 's,;;,,' -e 's,;.*,,' > $@
 endif
 ifeq ($(OS_ARCH), HP-UX)
-	grep -v ';+' $(LIBRARY_NAME).def | grep -v ';-' | \
+	grep -v ';+' $(srcdir)/$(LIBRARY_NAME).def | grep -v ';-' | \
 	 sed -e 's; DATA ;;' -e 's,;;,,' -e 's,;.*,,' -e 's,^,+e ,' > $@
 endif
 ifeq ($(OS_ARCH), OSF1)
-	grep -v ';+' $(LIBRARY_NAME).def | grep -v ';-' | \
+	grep -v ';+' $(srcdir)/$(LIBRARY_NAME).def | grep -v ';-' | \
  sed -e 's; DATA ;;' -e 's,;;,,' -e 's,;.*,,' -e 's,^,-exported_symbol ,' > $@
 endif
 
 
 
 $(OBJDIR)/$(PROG_PREFIX)%$(PROG_SUFFIX): $(OBJDIR)/$(PROG_PREFIX)%$(OBJ_SUFFIX)
-	@$(MAKE_OBJDIR)
 ifeq ($(OS_ARCH),WINNT)
 	$(MKPROG) $(OBJDIR)/$(PROG_PREFIX)$*$(OBJ_SUFFIX) -Fe$@ -link \
 	$(LDFLAGS) $(EXTRA_LIBS) $(EXTRA_SHARED_LIBS) $(OS_LIBS)
@@ -436,66 +416,59 @@ WCCFLAGS2 := $(subst -I,-i=,$(WCCFLAGS1))
 WCCFLAGS3 := $(subst -D,-d,$(WCCFLAGS2))
 
 $(OBJDIR)/$(PROG_PREFIX)%$(OBJ_SUFFIX): %.c
-	@$(MAKE_OBJDIR)
 ifeq ($(OS_ARCH), WINNT)
 ifeq ($(OS_TARGET), WIN16)
 	echo $(WCCFLAGS3) >w16wccf
 	$(CC) -zq -fo$(OBJDIR)\\$(PROG_PREFIX)$*$(OBJ_SUFFIX)  @w16wccf $*.c
 	rm w16wccf
 else
-	$(CC) -Fo$@ -c $(CFLAGS) $*.c
+	$(CC) -Fo$@ -c $(CFLAGS) $<
 endif
 else
 ifdef XP_OS2_VACPP
-	$(CC) -Fo$@ -c $(CFLAGS) $*.c
+	$(CC) -Fo$@ -c $(CFLAGS) $<
 else
-	$(CC) -o $@ -c $(CFLAGS) $*.c
+	$(CC) -o $@ -c $(CFLAGS) $<
 endif
 endif
 
 ifneq ($(OS_ARCH), WINNT)
 $(OBJDIR)/$(PROG_PREFIX)%$(OBJ_SUFFIX): %.s
-	@$(MAKE_OBJDIR)
-	$(AS) -o $@ $(ASFLAGS) -c $*.s
+	$(AS) -o $@ $(ASFLAGS) -c $<
 endif
 
 $(OBJDIR)/$(PROG_PREFIX)%$(OBJ_SUFFIX): %.asm
-	@$(MAKE_OBJDIR)
-	$(AS) -Fo$@ $(ASFLAGS) -c $*.asm
+	$(AS) -Fo$@ $(ASFLAGS) -c $<
 
 $(OBJDIR)/$(PROG_PREFIX)%$(OBJ_SUFFIX): %.S
-	@$(MAKE_OBJDIR)
-	$(AS) -o $@ $(ASFLAGS) -c $*.S
+	$(AS) -o $@ $(ASFLAGS) -c $<
 
 $(OBJDIR)/$(PROG_PREFIX)%: %.cpp
-	@$(MAKE_OBJDIR)
 ifeq ($(OS_ARCH), WINNT)
-	$(CCC) -Fo$@ -c $(CFLAGS) $<
+	$(CCC) -Fo$@ -c $(CXXFLAGS) $<
 else
-	$(CCC) -o $@ -c $(CFLAGS) $<
+	$(CCC) -o $@ -c $(CXXFLAGS) $<
 endif
 
 #
 # Please keep the next two rules in sync.
 #
 $(OBJDIR)/$(PROG_PREFIX)%$(OBJ_SUFFIX): %.cc
-	@$(MAKE_OBJDIR)
 	$(CCC) -o $@ -c $(CFLAGS) $*.cc
 
 $(OBJDIR)/$(PROG_PREFIX)%$(OBJ_SUFFIX): %.cpp
-	@$(MAKE_OBJDIR)
 ifdef STRICT_CPLUSPLUS_SUFFIX
 	echo "#line 1 \"$*.cpp\"" | cat - $*.cpp > $(OBJDIR)/t_$*.cc
-	$(CCC) -o $@ -c $(CFLAGS) $(OBJDIR)/t_$*.cc
+	$(CCC) -o $@ -c $(CXXFLAGS) $(OBJDIR)/t_$*.cc
 	rm -f $(OBJDIR)/t_$*.cc
 else
 ifeq ($(OS_ARCH),WINNT)
-	$(CCC) -Fo$@ -c $(CFLAGS) $*.cpp
+	$(CCC) -Fo$@ -c $(CXXFLAGS) $<
 else
 ifdef XP_OS2_VACPP
-	$(CCC) -Fo$@ -c $(CFLAGS) $*.cpp
+	$(CCC) -Fo$@ -c $(CXXFLAGS) $<
 else
-	$(CCC) -o $@ -c $(CFLAGS) $*.cpp
+	$(CCC) -o $@ -c $(CXXFLAGS) $<
 endif
 endif
 endif #STRICT_CPLUSPLUS_SUFFIX
@@ -503,16 +476,16 @@ endif #STRICT_CPLUSPLUS_SUFFIX
 %.i: %.cpp
 ifeq ($(OS_TARGET), WIN16)
 	echo $(WCCFLAGS3) >w16wccf
-	$(CCC) -pl -fo=$* @w16wccf $*.cpp
+	$(CCC) -pl -fo=$* @w16wccf $<
 	rm w16wccf
 else
-	$(CCC) -C -E $(CFLAGS) $< > $*.i
+	$(CCC) -C -E $(CXXFLAGS) $< > $*.i
 endif
 
 %.i: %.c
 ifeq ($(OS_TARGET), WIN16)
 	echo $(WCCFLAGS3) >w16wccf
-	$(CC) -pl -fo=$* @w16wccf $*.c
+	$(CC) -pl -fo=$* @w16wccf $<
 	rm w16wccf
 else
 ifeq ($(OS_ARCH),WINNT)
@@ -528,10 +501,20 @@ ifneq ($(OS_ARCH), WINNT)
 endif
 
 %: %.pl
-	rm -f $@; cp $*.pl $@; chmod +x $@
+	rm -f $@; cp $< $@; chmod +x $@
 
 %: %.sh
-	rm -f $@; cp $*.sh $@; chmod +x $@
+	rm -f $@; cp $< $@; chmod +x $@
+
+# Cancel these implicit rules
+#
+%: %,v
+
+%: RCS/%,v
+
+%: s.%      
+
+%: SCCS/s.%
 
 ifdef DIRS
 $(DIRS)::
@@ -544,6 +527,25 @@ $(DIRS)::
 		echo "Skipping non-directory $@...";	\
 	fi;						\
 	$(CLICK_STOPWATCH)
+endif
+
+###############################################################################
+# Update Makefiles
+###############################################################################
+# Note: Passing depth to make-makefile is optional.
+#       It saves the script some work, though.
+Makefile: Makefile.in $(topsrcdir)/configure
+	@$(PERL) $(AUTOCONF_TOOLS)/make-makefile -t $(topsrcdir) -d $(MOD_DEPTH)
+
+ifdef SUBMAKEFILES
+# VPATH does not work on some machines in this case, so add $(srcdir)
+$(SUBMAKEFILES):
+	@$(PERL) $(AUTOCONF_TOOLS)/make-makefile -t $(topsrcdir) -d $(MOD_DEPTH) $@
+endif
+
+ifdef AUTOUPDATE_CONFIGURE
+$(topsrcdir)/configure: $(topsrcdir)/configure.in
+	(cd $(topsrcdir) && $(AUTOCONF)) && (cd $(DEPTH) && ./config.status --recheck)
 endif
 
 ################################################################################
@@ -585,7 +587,7 @@ ifdef NETLIBDEPTH
 	CORE_DEPTH := $(NETLIBDEPTH)
 endif
 
-JAVA_EXPORT_SRCS=$(shell perl $(CORE_DEPTH)/coreconf/outofdate.pl $(PERLARG)	-d $(JAVA_DESTPATH)/$(PACKAGE) $(JSRCS) $(PRIVATE_JSRCS))
+JAVA_EXPORT_SRCS=$(shell perl $(CORECONF_SOURCE)/outofdate.pl $(PERLARG)	-d $(JAVA_DESTPATH)/$(PACKAGE) $(JSRCS) $(PRIVATE_JSRCS))
 
 export:: $(JAVA_DESTPATH) $(JAVA_DESTPATH)/$(PACKAGE)
 ifneq ($(JAVA_EXPORT_SRCS),)
@@ -621,7 +623,7 @@ export:: $(JAVA_DESTPATH) $(JAVA_DESTPATH)/$(PACKAGE)
 		if test -d $$d; then						\
 			set $(EXIT_ON_ERROR);					\
 			files=`echo $$d/*.java`;				\
-			list=`perl $(CORE_DEPTH)/coreconf/outofdate.pl $(PERLARG)	\
+			list=`perl $(CORECONF_SOURCE)/outofdate.pl $(PERLARG)	 \
 				    -d $(JAVA_DESTPATH)/$(PACKAGE) $$files`;	\
 			if test "$${list}x" != "x"; then			\
 			    echo Building all java files in $$d;		\
@@ -673,15 +675,15 @@ export::
 	@echo Generating/Updating JDK stubs
 	$(JAVAH) -stubs -d $(JDK_STUB_DIR) $(JDK_PACKAGE_CLASSES)
 ifndef NO_MAC_JAVA_SHIT
-	@if test ! -d $(CORE_DEPTH)/lib/mac/Java/; then						\
+	@if test ! -d $(topsrcdir)/lib/mac/Java/; then						\
 		echo "!!! You need to have a ns/lib/mac/Java directory checked out.";		\
 		echo "!!! This allows us to automatically update generated files for the mac.";	\
 		echo "!!! If you see any modified files there, please check them in.";		\
 	fi
 	@echo Generating/Updating JDK headers for the Mac
-	$(JAVAH) -mac -d $(CORE_DEPTH)/lib/mac/Java/_gen $(JDK_PACKAGE_CLASSES)
+	$(JAVAH) -mac -d $(topsrcdir)/lib/mac/Java/_gen $(JDK_PACKAGE_CLASSES)
 	@echo Generating/Updating JDK stubs for the Mac
-	$(JAVAH) -mac -stubs -d $(CORE_DEPTH)/lib/mac/Java/_stubs $(JDK_PACKAGE_CLASSES)
+	$(JAVAH) -mac -stubs -d $(topsrcdir)/lib/mac/Java/_stubs $(JDK_PACKAGE_CLASSES)
 endif
 endif
 endif
@@ -722,15 +724,15 @@ export::
 	@echo Generating/Updating JRI stubs
 	$(JAVAH) -jri -stubs -d $(JRI_GEN_DIR) $(JRI_PACKAGE_CLASSES)
 ifndef NO_MAC_JAVA_SHIT
-	@if test ! -d $(CORE_DEPTH)/lib/mac/Java/; then						\
+	@if test ! -d $(topsrcdir)/lib/mac/Java/; then						\
 		echo "!!! You need to have a ns/lib/mac/Java directory checked out.";		\
 		echo "!!! This allows us to automatically update generated files for the mac.";	\
 		echo "!!! If you see any modified files there, please check them in.";		\
 	fi
 	@echo Generating/Updating JRI headers for the Mac
-	$(JAVAH) -jri -mac -d $(CORE_DEPTH)/lib/mac/Java/_jri $(JRI_PACKAGE_CLASSES)
+	$(JAVAH) -jri -mac -d $(TOPSRCDIR)/lib/mac/Java/_jri $(JRI_PACKAGE_CLASSES)
 	@echo Generating/Updating JRI stubs for the Mac
-	$(JAVAH) -jri -mac -stubs -d $(CORE_DEPTH)/lib/mac/Java/_jri $(JRI_PACKAGE_CLASSES)
+	$(JAVAH) -jri -mac -stubs -d $(TOPSRCDIR)/lib/mac/Java/_jri $(JRI_PACKAGE_CLASSES)
 endif
 endif
 endif
@@ -750,7 +752,7 @@ export::
 		$(JAVAH) -jni -d $(JNI_GEN_DIR) $(JNI_GEN);				\
 	else										\
 		echo "Checking for out of date header files" ;                          \
-		cmd="perl $(CORE_DEPTH)/coreconf/jniregen.pl $(PERLARG)			\
+		cmd="perl $(CORECONF_SOURCE)/jniregen.pl $(PERLARG)			\
 				-d $(JAVA_DESTPATH) $(JNI_GEN)";			\
 		echo $$cmd;								\
 		list=`$$cmd`;								\
@@ -797,7 +799,6 @@ $(JMC_GEN_DIR)/M%.c: $(JMCSRCDIR)/%.class
 	$(JMC) -d $(JMC_GEN_DIR) -module $(JMC_GEN_FLAGS) $(?F:.class=)
 
 $(OBJDIR)/M%$(OBJ_SUFFIX): $(JMC_GEN_DIR)/M%.h $(JMC_GEN_DIR)/M%.c
-	@$(MAKE_OBJDIR)
 	$(CC) -o $@ -c $(CFLAGS) $(JMC_GEN_DIR)/M$*.c
 
 export:: $(JMC_HEADERS) $(JMC_STUBS)
@@ -815,6 +816,8 @@ endif
 endif
 
 ifneq ($(EXPORTS),)
+EXPORTS := $(addprefix $(srcdir)/, $(EXPORTS))
+EXPORTS += $(GEN_EXPORTS)
 $(PUBLIC_EXPORT_DIR)::
 	@if test ! -d $@; then	    \
 		echo Creating $@;   \
@@ -841,6 +844,7 @@ $(PRIVATE_EXPORT_DIR)::
 		$(NSINSTALL) -D $@; \
 	fi
 
+PRIVATE_EXPORTS := $(addprefix $(srcdir)/, $(PRIVATE_EXPORTS))
 private_export:: $(PRIVATE_EXPORTS) $(PRIVATE_EXPORT_DIR)
 	$(INSTALL) -m 444 $(PRIVATE_EXPORTS) $(PRIVATE_EXPORT_DIR)
 else
@@ -894,6 +898,7 @@ endif
 
 ################################################################################
 
+ifndef NO_MDUPDATE
 -include $(DEPENDENCIES)
 
 ifneq (,$(filter-out OS2 WINNT,$(OS_ARCH)))
@@ -928,6 +933,7 @@ ifneq (,$(filter-out OS2 WINNT,$(OS_ARCH)))
 		exit(1);                                                      \
 	    }'
 endif
+endif
 
 #############################################################################
 # X dependency system
@@ -936,21 +942,23 @@ endif
 ifdef MKDEPENDENCIES
 
 # For Windows, $(MKDEPENDENCIES) must be -included before including rules.mk
+DEPEND_SOURCES = $(addprefix $(srcdir)/, $(CSRCS) $(CPPSRCS) $(ASFILES))
 
 $(MKDEPENDENCIES)::
-	@$(MAKE_OBJDIR)
 	touch $(MKDEPENDENCIES) 
 	chmod u+w $(MKDEPENDENCIES) 
 #on NT, the preceeding touch command creates a read-only file !?!?!
 #which is why we have to explicitly chmod it.
-	$(MKDEPEND) -p$(OBJDIR_NAME)/ -o'$(OBJ_SUFFIX)' -f$(MKDEPENDENCIES) \
-$(NOMD_CFLAGS) $(YOPT) $(CSRCS) $(CPPSRCS) $(ASFILES)
+	$(MKDEPEND) $(OBJDIR_OPTION) -o'$(OBJ_SUFFIX)' -f$(MKDEPENDENCIES) \
+$(NOMD_CFLAGS) $(YOPT) $(DEPEND_SOURCES)
+	@mv $(MKDEPENDENCIES) depend.mk.old && cat depend.mk.old | sed "s|^$(srcdir)/||g" > $(MKDEPENDENCIES) && rm -f depend.mk.old
 
-$(MKDEPEND):: $(MKDEPEND_DIR)/*.c $(MKDEPEND_DIR)/*.h
+$(MKDEPEND):: $(MKDEPEND_SRCDIR)/*.c $(MKDEPEND_SRCDIR)/*.h
+	cd $(NSINSTALL_DIR); $(MAKE) nsinstall
 	cd $(MKDEPEND_DIR); $(MAKE)
 
 ifdef OBJS
-depend:: $(MKDEPEND) $(MKDEPENDENCIES)
+depend:: $(SUBMAKEFILES) $(MAKE_DIRS) $(MKDEPEND) $(MKDEPENDENCIES)
 else
 depend::
 endif
@@ -960,10 +968,42 @@ dependclean::
 	rm -f $(MKDEPENDENCIES)
 	+$(LOOP_OVER_DIRS)
 
-#-include $(NSINSTALL_DIR)/$(OBJDIR)/depend.mk
+-include $(MKDEPENDENCIES)
 
 else
 depend::
+endif
+
+#############################################################################
+# Yet another depend system: -MD (configure switch: --enable-md)
+ifdef COMPILER_DEPEND
+ifdef OBJS
+# MDDEPDIR is the subdirectory where all the dependency files are placed.
+#   This uses a make rule (instead of a macro) to support parallel
+#   builds (-jN). If this were done in the LOOP_OVER_DIRS macro, two
+#   processes could simultaneously try to create the same directory.
+#   
+$(MDDEPDIR):
+	@if test ! -d $@; then echo Creating $@; rm -rf $@; mkdir $@; else true; fi
+
+MDDEPEND_FILES          := $(wildcard $(MDDEPDIR)/*.pp)
+
+ifdef MDDEPEND_FILES
+ifdef PERL
+# The script mddepend.pl checks the dependencies and writes to stdout
+# one rule to force out-of-date objects. For example,
+#   foo.o boo.o: FORCE
+# The script has an advantage over including the *.pp files directly
+# because it handles the case when header files are removed from the build.
+# 'make' would complain that there is no way to build missing headers.   
+$(MDDEPDIR)/.all.pp: FORCE
+	@$(PERL) $(BUILD_TOOLS)/mddepend.pl $@ $(MDDEPEND_FILES)
+-include $(MDDEPDIR)/.all.pp
+else
+include $(MDDEPEND_FILES)
+endif
+endif
+endif
 endif
 
 ################################################################################
@@ -975,7 +1015,7 @@ endif
 # hundreds of built-in suffix rules for stuff we don't need.
 #
 .SUFFIXES:
-.SUFFIXES: .out .a .ln .o .obj .c .cc .C .cpp .y .l .s .S .h .sh .i .pl .class .java .html .asm
+.SUFFIXES: .out .a .ln .o .obj .c .cc .C .cpp .y .l .s .S .h .sh .i .pl .class .java .html .asm .pp .mk .in .mn
 
 #
 # Don't delete these files if we get killed.
@@ -986,5 +1026,8 @@ endif
 # Fake targets.  Always run these rules, even if a file/directory with that
 # name already exists.
 #
-.PHONY: all all_platforms alltags boot clean clobber clobber_all export install libs realclean release $(OBJDIR) $(DIRS)
+.PHONY: all all_platforms alltags boot clean clobber clobber_all export install libs realclean release $(OBJDIR) $(DIRS) FORCE
+
+# Used as a dependency to force targets to rebuild
+FORCE:
 

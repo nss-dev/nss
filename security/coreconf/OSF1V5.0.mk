@@ -44,4 +44,4 @@ endif
 #
 # Config stuff for DEC OSF/1 V5.0
 #
-include $(CORE_DEPTH)/coreconf/OSF1.mk
+include $(CORECONF_SOURCE)/OSF1.mk
