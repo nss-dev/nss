@@ -412,6 +412,7 @@ PQG_ParamGenSeedLen(unsigned int j, unsigned int seedBytes,
     arena = PORT_NewArena(NSS_FREEBL_DEFAULT_CHUNKSIZE);
     if (!arena) {
 	PORT_SetError(SEC_ERROR_NO_MEMORY);
+	PORT_FreeArena(params->arena, PR_TRUE);
 	return SECFailure;
     }
     verify = (PQGVerify *)PORT_ArenaZAlloc(arena, sizeof(PQGVerify));
