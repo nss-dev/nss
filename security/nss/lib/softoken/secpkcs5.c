@@ -1074,7 +1074,7 @@ nsspkcs5_CipherData(NSSPKCS5PBEParameter *pbe_param, SECItem *pwitem,
 	break;
     }
 
-    if(cryptof) {
+    if (cryptof == NULL) {
 	goto loser;
     }
 
