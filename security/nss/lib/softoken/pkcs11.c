@@ -524,7 +524,6 @@ pk11_handleCertObject(PK11Session *session,PK11Object *object)
 {
     CK_CERTIFICATE_TYPE type;
     PK11Attribute *attribute;
-    char *label;
     CK_RV crv;
     PK11SessionObject *sessObject = pk11_narrowToSessionObject(object);
 
@@ -590,6 +589,7 @@ pk11_handleCertObject(PK11Session *session,PK11Object *object)
  	NSSLOWCERTCertTrust defTrust = 
 		{ CERTDB_TRUSTED_UNKNOWN, 
 			CERTDB_TRUSTED_UNKNOWN, CERTDB_TRUSTED_UNKNOWN };
+	char *label;
 	SECStatus rv;
 	int strlen;
 
@@ -599,17 +599,16 @@ pk11_handleCertObject(PK11Session *session,PK11Object *object)
 
 	/* get the der cert */ 
 	attribute = pk11_FindAttribute(object,CKA_VALUE);
+	PORT_Assert(attribute);
+
 	derCert.data = (unsigned char *)attribute->attrib.pValue;
 	derCert.len = attribute->attrib.ulValueLen ;
 
-	attribute = pk11_FindAttribute(object,CKA_LABEL);
-	strlen = attribute->attrib.ulValueLen;
-	if (*((char *)attribute->attrib.pValue + strlen) != '\0') strlen++;
-	label = PORT_ZAlloc(strlen);
-	memcpy(label, attribute->attrib.pValue, attribute->attrib.ulValueLen);
+	label = pk11_getString(object,CKA_LABEL);
 
 	cert = nsslowcert_DecodeDERCertificate(&derCert,PR_FALSE,label);
 	if (cert == NULL) {
+	    if (label) PORT_Free(label);
     	    pk11_FreeAttribute(attribute);
 	    return CKR_ATTRIBUTE_VALUE_INVALID;
 	}
@@ -626,6 +625,7 @@ pk11_handleCertObject(PK11Session *session,PK11Object *object)
 	}
 	PORT_ZFree(label, PR_TRUE);
 
+	if (label) PORT_Free(label);
 	pk11_FreeAttribute(attribute);
 	if (rv != SECSuccess) {
 	    nsslowcert_DestroyCertificate(cert);
@@ -671,7 +671,6 @@ pk11_handleTrustObject(PK11Session *session,PK11Object *object)
     PK11Attribute *attribute;
     CK_CERTIFICATE_TYPE type;
     SECItem derCert;
-    char *label;
     NSSLOWCERTCertDBHandle *handle;
     NSSLOWCERTCertificate *cert;
     NSSLOWCERTIssuerAndSN issuerSN;
@@ -795,7 +794,6 @@ pk11_handleTrustObject(PK11Session *session,PK11Object *object)
 static CK_RV
 pk11_handleSMimeObject(PK11Session *session,PK11Object *object)
 {
-    char *label;
 
     /* we can't store any certs private */
     if (pk11_isTrue(object,CKA_PRIVATE)) {
@@ -877,7 +875,6 @@ pk11_handleSMimeObject(PK11Session *session,PK11Object *object)
 static CK_RV
 pk11_handleCrlObject(PK11Session *session,PK11Object *object)
 {
-    char *label;
 
     /* we can't store any certs private */
     if (pk11_isTrue(object,CKA_PRIVATE)) {
@@ -925,7 +922,7 @@ pk11_handleCrlObject(PK11Session *session,PK11Object *object)
 	rv = nsslowcert_AddCrl(slot->certDB, &derCrl, &derSubj, url, isKRL);
 
 	if (url) {
-	    PORT_Free(label);
+	    PORT_Free(url);
 	}
     	pk11_FreeAttribute(crl);
 	if (rv != SECSuccess) {
@@ -1156,13 +1153,14 @@ pk11_handlePrivateKeyObject(PK11Session *session,PK11Object *object,CK_KEY_TYPE 
 
 	crv = pk11_Attribute2SecItem(NULL,&pubKey,object,CKA_NETSCAPE_DB);
 	if (crv != CKR_OK) {
+	    if (label) PORT_Free(label);
 	    nsslowkey_DestroyPrivateKey(privKey);
 	    return CKR_TEMPLATE_INCOMPLETE;
 	}
 	rv = nsslowkey_StoreKeyByPublicKey(object->slot->keyDB,
 			privKey, &pubKey, label, object->slot->password);
 
-
+	if (label) PORT_Free(label);
 	object->handle = pk11_mkHandle(slot,&pubKey,PK11_TOKEN_TYPE_PRIV);
 	if (pubKey.data) PORT_Free(pubKey.data);
 	nsslowkey_DestroyPrivateKey(privKey);
@@ -1280,6 +1278,7 @@ pk11_handleSecretKeyObject(PK11Session *session,PK11Object *object,
     CK_RV crv;
     NSSLOWKEYPrivateKey *privKey = NULL;
     SECItem pubKey;
+    char *label = NULL;
 
     pubKey.data = 0;
 
@@ -1290,7 +1289,6 @@ pk11_handleSecretKeyObject(PK11Session *session,PK11Object *object,
     /* If the object is a TOKEN object, store in the database */
     if (pk11_isTrue(object,CKA_TOKEN)) {
 	PK11Slot *slot = session->slot;
-	char *label;
 	SECStatus rv = SECSuccess;
 
 	if (slot->keyDB == NULL) {
@@ -1317,6 +1315,7 @@ pk11_handleSecretKeyObject(PK11Session *session,PK11Object *object,
     }
 
 loser:
+    if (label) PORT_Free(label);
     if (privKey) nsslowkey_DestroyPrivateKey(privKey);
     if (pubKey.data) PORT_Free(pubKey.data);
 
