@@ -17,7 +17,6 @@
 # Rights Reserved.
 # 
 # Contributor(s):
-#  Chase Phillips <cmp@mozilla.org>
 # 
 # Alternatively, the contents of this file may be used under the
 # terms of the GNU General Public License Version 2 or later (the
@@ -33,12 +32,6 @@
 #
 # Config stuff for Darwin.
 #
-
-# Set the standard mode for distribution to absolute symbolic links.  This
-# should work around a problem where shlibsign and mangle were being installed
-# as relative links on MacOS X.  The variable NSDISTMODE is used in UNIX.mk.
-# - cmp@mozilla.org
-NSDISTMODE = absolute_symlink
 
 include $(CORE_DEPTH)/coreconf/UNIX.mk
 
