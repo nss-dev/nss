@@ -741,8 +741,10 @@ nssTrustDomain_AddCertsToCache
 		c = nssTrustDomain_GetCertForIssuerAndSNFromCache(td,
 		                                            &certs[i]->issuer,
 		                                            &certs[i]->serial);
-		NSSCertificate_Destroy(certs[i]);
-		certs[i] = c;
+		if (c != certs[i]) {
+		    NSSCertificate_Destroy(certs[i]);
+		    certs[i] = c;
+		}
 		nss_ClearErrorStack();
 		continue;
 	    }
