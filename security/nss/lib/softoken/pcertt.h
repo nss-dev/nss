@@ -184,12 +184,9 @@ typedef char * (*NSSLOWCERTDBNameFunc)(void *arg, int dbVersion);
  */
 
 /* version number of certificate database */
-#define CERT_DB_FILE_VERSION		7
-#ifdef USE_NS_ROOTS
-#define CERT_DB_CONTENT_VERSION		28
-#else
+#define CERT_DB_FILE_VERSION		8
+#define CERT_DB_V7_FILE_VERSION		7
 #define CERT_DB_CONTENT_VERSION		2
-#endif
 
 #define SEC_DB_ENTRY_HEADER_LEN		3
 #define SEC_DB_KEY_HEADER_LEN		1
