@@ -191,7 +191,7 @@ SSL_IMPORT SECStatus SSL_SecurityStatus(PRFileDesc *fd, int *on, char **cipher,
 ** if the client had no certificate when asked.
 **	"fd" the socket "file" descriptor
 */
-SSL_IMPORT NSSCertificate * SSL_PeerCertificate(PRFileDesc *fd);
+SSL_IMPORT NSSCert * SSL_PeerCertificate(PRFileDesc *fd);
 
 /*
 ** Authenticate certificate hook. Called when a certificate comes in
@@ -218,10 +218,10 @@ SSL_IMPORT SECStatus SSL_AuthCertificate(void *arg, PRFileDesc *fd,
  *	pRetKey - pointer to key pointer, for return of key
  */
 typedef SECStatus (PR_CALLBACK *SSLGetClientAuthData)(void *arg,
-                                NSSTrustDomain *td,
                                 PRFileDesc *fd,
+                                NSSTrustDomain *td,
                                 NSSDER **caNames,
-                                NSSCertificate **pRetCert,/*return */
+                                NSSCert **pRetCert,/*return */
                                 NSSPrivateKey **pRetKey);/* return */
 
 /*
@@ -257,7 +257,7 @@ SSL_IMPORT SECStatus SSL_BadCertHook(PRFileDesc *fd, SSLBadCertHandler f,
 ** are copied.
 */
 SSL_IMPORT SECStatus SSL_ConfigSecureServer(
-				PRFileDesc *fd, NSSCertificate *cert,
+				PRFileDesc *fd, NSSCert *cert,
 				NSSPrivateKey *key, SSLKEAType kea);
 
 /*
@@ -373,7 +373,7 @@ SSL_IMPORT SECStatus SSL_SetSockPeerID(PRFileDesc *fd, char *peerID);
 /*
 ** Reveal the security information for the peer. 
 */
-SSL_IMPORT NSSCertificate * SSL_RevealCert(PRFileDesc * socket);
+SSL_IMPORT NSSCert * SSL_RevealCert(PRFileDesc * socket);
 SSL_IMPORT void * SSL_RevealPinArg(PRFileDesc * socket);
 SSL_IMPORT char * SSL_RevealURL(PRFileDesc * socket);
 
@@ -392,7 +392,7 @@ NSS_GetClientAuthData(void *                       arg,
                       NSSTrustDomain *             td,
                       PRFileDesc *                 socket,
                       NSSDER **                    caNames,
-                      NSSCertificate **            pRetCert,
+                      NSSCert **            pRetCert,
                       NSSPrivateKey **             pRetKey);
 
 /* Set cipher policies to a predefined Domestic (U.S.A.) policy.
@@ -431,7 +431,7 @@ SSL_IMPORT SECStatus SSL_GetCipherSuiteInfo(PRUint16 cipherSuite,
 ** Return a new reference to the certificate that was most recently sent
 ** to the peer on this SSL/TLS connection, or NULL if none has been sent.
 */
-SSL_IMPORT NSSCertificate * SSL_LocalCertificate(PRFileDesc *fd);
+SSL_IMPORT NSSCert * SSL_LocalCertificate(PRFileDesc *fd);
 
 PR_END_EXTERN_C
 

@@ -50,20 +50,20 @@
 #include "ssl.h"	/* for SSLKEAType */
 
 SSLKEAType
-SSL_FindCertKEAType(NSSCertificate *cert)
+SSL_FindCertKEAType(NSSCert *cert)
 {
   SSLKEAType keaType = kt_null; 
   int tag;
   
   if (!cert) goto loser;
   
-  if (NSSCertificate_GetType(cert) == NSSCertificateType_PKIX) {
+  if (NSSCert_GetType(cert) == NSSCertType_PKIX) {
     NSSPKIXCertificate *pkixCert;
     NSSPKIXTBSCertificate *tbsCert;
     NSSPKIXSubjectPublicKeyInfo *spki;
     NSSPKIXAlgorithmIdentifier *bkAlg;
 
-    pkixCert = (NSSPKIXCertificate *)NSSCertificate_GetDecoding(cert);
+    pkixCert = (NSSPKIXCertificate *)NSSCert_GetDecoding(cert);
     if (!pkixCert) {
 	goto loser;
     }

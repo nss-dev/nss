@@ -246,7 +246,7 @@ typedef enum { sslHandshakingUndetermined = 0,
 
 typedef struct sslServerCertsStr {
     /* Configuration state for server sockets */
-    NSSCertificateChain * serverCertChain;
+    NSSCertChain * serverCertChain;
     NSSPrivateKey *       serverKey;
     unsigned int          serverKeyBits;
 } sslServerCerts;
@@ -434,10 +434,10 @@ typedef enum {	never_cached,
 struct sslSessionIDStr {
     sslSessionID *        next;   /* chain used for client sockets, only */
 
-    NSSCertificate *      peerCert;
+    NSSCert *      peerCert;
     const char *          peerID;     /* client only */
     const char *          urlSvrName; /* client only */
-    NSSCertificate *      localCert;
+    NSSCert *      localCert;
 
     PRIPv6Addr            addr;
     PRUint16              port;
@@ -468,7 +468,6 @@ struct sslSessionIDStr {
 	    int                   secretKeyBits;
 	} ssl2;
 	struct {
-#if 0
 	    /* values that are copied into the server's on-disk SID cache. */
 	    uint8                 sessionIDLength;
 	    SSL3Opaque            sessionID[SSL3_SESSIONID_BYTES];
@@ -479,6 +478,7 @@ struct sslSessionIDStr {
 	    int                   policy;
 	    PRBool                hasFortezza;
 	    ssl3SidKeys           keys;
+#ifdef IMPLEMENT_SSL_SESSION_ID_CACHE
 	    CK_MECHANISM_TYPE     masterWrapMech;
 				  /* mechanism used to wrap master secret */
             SSL3KEAType           exchKeyType;
@@ -511,7 +511,7 @@ struct sslSessionIDStr {
 	    SECMODModuleID    clAuthModuleID;
 	    CK_SLOT_ID        clAuthSlotID;
 	    PRUint16          clAuthSeries;
-#endif
+#endif /* IMPLEMENT_SSL_SESSION_ID_CACHE */
 
             char              masterValid;
 	    char              clAuthValid;
@@ -649,9 +649,9 @@ struct ssl3StateStr {
 
     SSL3HandshakeState   hs;
 
-    NSSCertificate *     clientCertificate;  /* used by client */
+    NSSCert *     clientCertificate;  /* used by client */
     NSSPrivateKey *      clientPrivateKey;   /* used by client */
-    NSSCertificateChain *clientCertChain;    /* used by client */
+    NSSCertChain *clientCertChain;    /* used by client */
     PRBool               sendEmptyCert;      /* used by client */
 
     int                  policy;
@@ -780,8 +780,8 @@ struct sslSecurityInfoStr {
     int              cipherType;				/* ssl 2 & 3 */
     int              keyBits;					/* ssl 2 & 3 */
     int              secretKeyBits;				/* ssl 2 & 3 */
-    NSSCertificate * localCert;					/* ssl 2 & 3 */
-    NSSCertificate * peerCert;					/* ssl 2 & 3 */
+    NSSCert * localCert;					/* ssl 2 & 3 */
+    NSSCert * peerCert;					/* ssl 2 & 3 */
     NSSPublicKey *   peerKey;					/* ssl3 only */
 
     SSLSignType      authAlgorithm;
@@ -1114,22 +1114,22 @@ extern SECStatus ssl_EnableNagleDelay(sslSocket *ss, PRBool enabled);
 extern int ssl2_SendErrorMessage(struct sslSocketStr *ss, int error);
 extern int SSL_RestartHandshakeAfterServerCert(struct sslSocketStr *ss);
 extern int SSL_RestartHandshakeAfterCertReq(struct sslSocketStr *ss,
-					    NSSCertificate *cert,
+					    NSSCert *cert,
 					    NSSPrivateKey *key,
-					    NSSCertificateChain *certChain);
+					    NSSCertChain *certChain);
 extern sslSocket *ssl_FindSocket(PRFileDesc *fd);
 extern void ssl_FreeSocket(struct sslSocketStr *ssl);
 extern SECStatus SSL3_SendAlert(sslSocket *ss, SSL3AlertLevel level,
 				SSL3AlertDescription desc);
 
 extern int ssl2_RestartHandshakeAfterCertReq(sslSocket *          ss,
-					     NSSCertificate *     cert, 
+					     NSSCert *     cert, 
 					     NSSPrivateKey *      key);
 
 extern SECStatus ssl3_RestartHandshakeAfterCertReq(sslSocket *    ss,
-					     NSSCertificate *     cert, 
+					     NSSCert *     cert, 
 					     NSSPrivateKey *      key,
-					     NSSCertificateChain *certChain);
+					     NSSCertChain *certChain);
 
 extern int ssl2_RestartHandshakeAfterServerCert(sslSocket *ss);
 extern int ssl3_RestartHandshakeAfterServerCert(sslSocket *ss);

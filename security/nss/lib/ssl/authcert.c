@@ -47,13 +47,13 @@
  */
 NSS_IMPLEMENT PRStatus 
 SSL_GetClientAuthData(void *                       arg, 
-                      NSSTrustDomain *             td,
                       PRFileDesc *                 socket, 
+                      NSSTrustDomain *             td,
                       NSSDER **                    caNames,
-                      NSSCertificate **            pRetCert,
+                      NSSCert **                   pRetCert,
                       NSSPrivateKey **             pRetKey);
 {
-  NSSCertificate *   cert = NULL;
+  NSSCert *   cert = NULL;
   NSSPrivateKey *    privkey = NULL;
   NSSUTF8 *          chosenNickName = (NSSUTF8 *)arg;    /* CONST */
   NSSCallback        pinCallback  = NULL;
@@ -75,13 +75,13 @@ SSL_GetClientAuthData(void *                       arg,
                                                                   NULL);
   }
   if (cert) {
-    privkey = NSSCertificate_FindPrivateKey(cert, pinCallback);
+    privkey = NSSCert_FindPrivateKey(cert, pinCallback);
     if (privkey) {
       *pRetCert = cert;
       *pRetKey = privkey;
       return PR_SUCCESS;
     } else {
-      NSSCertificate_Destroy(cert);
+      NSSCert_Destroy(cert);
     }
   }
   return PR_FAILURE;
