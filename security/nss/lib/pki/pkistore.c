@@ -288,7 +288,7 @@ remove_subject_entry
 	/* Remove the cert from the subject hash */
 	nssList_Remove(subjectList, cert);
 	if (nssList_Count(subjectList) == 0) {
-	    nssHash_Remove(store->subject, subjectList);
+	    nssHash_Remove(store->subject, &cert->subject);
 	    nssList_Destroy(subjectList);
 	    /* XXX need to deref objects here in 4.0 */
 	}
