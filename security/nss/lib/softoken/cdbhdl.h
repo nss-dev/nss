@@ -49,6 +49,7 @@
 struct NSSLOWCERTCertDBHandleStr {
     DB *permCertDB;
     PZMonitor *dbMon;
+    PRBool dbVerify;
 };
 
 #ifdef DBM_USING_NSPR
