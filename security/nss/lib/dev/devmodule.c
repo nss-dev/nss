@@ -51,6 +51,11 @@ extern void FC_GetFunctionList(void);
 extern void NSC_GetFunctionList(void);
 extern void NSC_ModuleDBFunc(void);
 
+/* XXX */
+#ifdef DEBUG_MOD_XXX
+#include "debug_module.c"
+#endif /* DEBUG */
+
 /* The list of boolean flags used to describe properties of a
  * module.
  */
@@ -253,6 +258,15 @@ nssModule_Load
     if (ckrv != CKR_OK) {
 	goto loser;
     }
+#ifdef DEBUG_MODULE_XXX
+    if (PR_TRUE) {
+	NSSUTF8 *modToDBG = (NSSUTF8 *)PR_GetEnv("NSS_DEBUG_MODULE");
+	if (modToDBG && nssUTF8_Equal(mod->base.name, modToDBG, NULL)) {
+	    mod->epv = (void *)nss_InsertDeviceLog(
+	                                     (CK_FUNCTION_LIST_PTR)mod->epv);
+	}
+    }
+#endif /* DEBUG */
     /* Initialize the module */
     if (mod->libraryParams) {
 	s_ck_initialize_args.LibraryParameters = (void *)mod->libraryParams;
@@ -260,15 +274,15 @@ nssModule_Load
 	s_ck_initialize_args.LibraryParameters = NULL;
     }
     ckrv = CKAPI(mod->epv)->C_Initialize(&s_ck_initialize_args);
-    if (ckrv != CKR_OK) {
+    if (ckrv == CKR_CANT_LOCK) {
 	/* Apparently the token is not thread safe.  Retry without 
 	 * threading parameters. 
 	 */
         mod->base.flags |= NSSMODULE_FLAGS_NOT_THREADSAFE;
 	ckrv = CKAPI(mod->epv)->C_Initialize((CK_VOID_PTR)NULL);
-	if (ckrv != CKR_OK) {
-	    goto loser;
-	}
+    }
+    if (ckrv != CKR_OK) {
+	goto loser;
     }
     /* TODO: check the version # using C_GetInfo */
     ckrv = CKAPI(mod->epv)->C_GetInfo(&mod->info);
@@ -741,6 +755,15 @@ nssModule_Destroy
 }
 
 NSS_IMPLEMENT PRStatus
+NSSModule_Destroy
+(
+  NSSModule *mod
+)
+{
+    return nssModule_Destroy(mod);
+}
+
+NSS_IMPLEMENT PRStatus
 nssModule_DestroyFromSlot
 (
   NSSModule *mod,
@@ -891,7 +914,16 @@ nssModule_GetCertOrder
   NSSModule *module
 )
 {
-    return 1; /* XXX */
+    return module->order.certStorage;
+}
+
+NSS_IMPLEMENT PRInt32
+nssModule_GetTrustOrder
+(
+  NSSModule *module
+)
+{
+    return module->order.trust;
 }
 
 NSS_IMPLEMENT void
@@ -928,6 +960,19 @@ NSSModule_GetInfo
                                                 len);
     moduleInfo->libraryVersion.major = info->libraryVersion.major;
     moduleInfo->libraryVersion.minor = info->libraryVersion.minor;
+    moduleInfo->numSlots = module->numSlots;
+    if (module->numSlots > 0) {
+	PRUint32 i;
+	NSSUTF8 *slotName, **slotNames;
+	slotNames = nss_ZNEWARRAY(NULL, NSSUTF8 *, module->numSlots);
+	for (i=0; i<module->numSlots; i++) {
+	    slotName = nssSlot_GetName(module->slots[i]);
+	    if (slotName) {
+		slotNames[i] = nssUTF8_Duplicate(slotName, NULL);
+	    }
+	}
+	moduleInfo->slotNames = slotNames;
+    }
 }
 
 NSS_IMPLEMENT void
