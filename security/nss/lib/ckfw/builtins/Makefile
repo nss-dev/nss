@@ -73,7 +73,7 @@ endif
 endif
 
 
-ifeq ($(OS_ARCH), WINNT)
+ifeq (,$(filter-out OS2 WINNT,$(OS_ARCH)))
 	SHARED_LIBRARY = $(OBJDIR)/$(LIBRARY_NAME)$(LIBRARY_VERSION).dll
 	IMPORT_LIBRARY = $(OBJDIR)/$(LIBRARY_NAME)$(LIBRARY_VERSION).lib
 endif
