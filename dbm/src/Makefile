@@ -22,6 +22,10 @@ CSRCS = db.c	   \
 
 LIBRARY_NAME = dbm
 
+ifeq ($(subst /,,$(shell uname -s)),OS2)
+LOCAL_PREINCLUDES += -I../include
+endif
+
 include $(DEPTH)/config/rules.mk
 
 DEFINES += -DMEMMOVE -D__DBINTERFACE_PRIVATE $(SECURITY_FLAG) -DNSPR20=1
