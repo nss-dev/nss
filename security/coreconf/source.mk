@@ -39,11 +39,7 @@
 # <user_source_tree> master import/export directory prefix
 #
 
-ifdef MOZILLA_CLIENT
-SOURCE_PREFIX = $(MOD_DEPTH)/../../dist
-else # !MOZILLA_CLIENT
-SOURCE_PREFIX = $(MOD_DEPTH)/../dist
-endif # MOZILLA_CLIENT
+SOURCE_PREFIX = $(DIST)
 
 #
 # <user_source_tree> cross-platform (xp) master import/export directory

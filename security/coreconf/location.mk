@@ -42,12 +42,6 @@
 BUILD         = $(PLATFORM)
 OBJDIR        = $(PLATFORM)
 
-ifdef MOZILLA_CLIENT
-DIST          = $(MOD_DEPTH)/../../dist
-else
-DIST          = $(MOD_DEPTH)/../dist
-endif
-
 DEPENDENCIES  = $(PLATFORM)/.md
 MKDEPEND_DIR = $(MOD_DEPTH)/coreconf/mkdepend
 MKDEPEND_SRCDIR = $(CORECONF_SOURCE)/mkdepend
