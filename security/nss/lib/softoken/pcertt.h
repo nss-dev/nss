@@ -163,7 +163,6 @@ typedef char * (*NSSLOWCERTDBNameFunc)(void *arg, int dbVersion);
 SEC_BEGIN_PROTOS
 
 extern const SEC_ASN1Template nsslowcert_CertificateTemplate[];
-extern const SEC_ASN1Template SEC_SignedCertificateTemplate[];
 extern const SEC_ASN1Template nsslowcert_SignedDataTemplate[];
 extern const SEC_ASN1Template NSSLOWKEY_PublicKeyTemplate[];
 extern const SEC_ASN1Template nsslowcert_SubjectPublicKeyInfoTemplate[];
