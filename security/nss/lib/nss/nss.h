@@ -131,6 +131,13 @@ SECStatus NSS_NoDB_Init(const char *configdir);
  */
 extern void NSS_Shutdown(void);
 
+/*
+ * Returns PR_TRUE if NSS has already been successfully initialized,
+ * PR_FALSE otherwise.
+ */
+PRBool NSS_IsInitialized();
+
+
 SEC_END_PROTOS
 
 #endif /* __nss_h_ */
