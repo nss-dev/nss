@@ -692,7 +692,10 @@ stan_GetCERTCertificate(NSSCertificate *c, PRBool forceUpdate)
 NSS_IMPLEMENT CERTCertificate *
 STAN_ForceCERTCertificateUpdate(NSSCertificate *c)
 {
-    return stan_GetCERTCertificate(c, PR_TRUE);
+    if (c->decoding) {
+	return stan_GetCERTCertificate(c, PR_TRUE);
+    }
+    return NULL;
 }
 
 NSS_IMPLEMENT CERTCertificate *
