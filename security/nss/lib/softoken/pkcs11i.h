@@ -41,6 +41,7 @@
 #include "secoidt.h"
 #include "lowkeyti.h"
 #include "pkcs11t.h"
+#include "pcertt.h"
 
 #define PKCS11_USE_THREADS
 
@@ -264,8 +265,8 @@ struct PK11SlotStr {
     PRBool		ssoLoggedIn;
     PRBool		needLogin;
     PRBool		DB_loaded;
-    NSSLOWCERTDBHandle	*certdb;
-    NSSLOWKEYDBHandle	*keydb;
+    NSSLOWCERTCertDBHandle *certDB;
+    NSSLOWKEYDBHandle	*keyDB;
     int			sessionIDCount;
     int			sessionCount;
     int			rwSessionCount;
@@ -391,7 +392,8 @@ SEC_BEGIN_PROTOS
 
 /* shared functions between PKCS11.c and PK11FIPS.c */
 extern CK_RV PK11_LowInitialize(CK_VOID_PTR pReserved);
-extern CK_RV PK11_SlotInit(CK_SLOT_ID slotID, PRBool needLogin);
+extern CK_RV PK11_SlotInit(CK_SLOT_ID slotID, PRBool needLogin,
+	NSSLOWCERTCertDBHandle *certdb, NSSLOWKEYDBHandle *keydb);
 
 /* internal utility functions used by pkcs11.c */
 extern PK11Attribute *pk11_FindAttribute(PK11Object *object,
