@@ -365,6 +365,11 @@ SSL_IMPORT SECItem *SSL_GetSessionID(PRFileDesc *fd);
 SSL_IMPORT void SSL_ClearSessionCache(void);
 
 /*
+** Close the server's SSL session cache.
+*/
+SSL_IMPORT SECStatus SSL_ShutdownServerSessionIDCache(void);
+
+/*
 ** Set peer information so we can correctly look up SSL session later.
 ** You only have to do this if you're tunneling through a proxy.
 */

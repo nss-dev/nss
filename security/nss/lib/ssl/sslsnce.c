@@ -1158,6 +1158,21 @@ SSL_ConfigServerSessionIDCache(	int      maxCacheEntries,
     		maxCacheEntries, ssl2_timeout, ssl3_timeout, directory, PR_FALSE);
 }
 
+SECStatus
+SSL_ShutdownServerSessionIDCacheInstance(cacheDesc *cache)
+{
+    /* if single process, close down, clean up.
+    ** if multi-process, TBD.
+    */
+}
+
+SECStatus
+SSL_ShutdownServerSessionIDCache(void)
+{
+    SSL3_ShutdownServerCache();
+    return SSL_ShutdownServerSessionIDCacheInstance(&globalCache);
+}
+
 /* Use this function, instead of SSL_ConfigServerSessionIDCache,
  * if the cache will be shared by multiple processes.
  */
