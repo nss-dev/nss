@@ -416,7 +416,7 @@ static CK_RV pk11_importKeyDB(PK11Slot *slot);
 
 
 static char *
-pk11_setStringName(char *inString, char *buffer, int buffer_length) {
+pk11_setStringName(const char *inString, char *buffer, int buffer_length) {
     int full_length, string_length;
 
     full_length = buffer_length -1;
@@ -424,15 +424,16 @@ pk11_setStringName(char *inString, char *buffer, int buffer_length) {
     if (string_length > full_length) string_length = full_length;
     PORT_Memset(buffer,' ',full_length);
     buffer[full_length] = 0;
-    PORT_Memcpy(buffer,inString,full_length);
+    PORT_Memcpy(buffer,inString,string_length);
     return buffer;
 }
 /*
  * Configuration utils
  */
 void
-PK11_ConfigurePKCS11(char *man, char *libdes, char *tokdes, char *ptokdes,
-	char *slotdes, char *pslotdes, char *fslotdes, char *fpslotdes,
+PK11_ConfigurePKCS11(const char *man, const char *libdes, const char *tokdes,
+	const char *ptokdes, const char *slotdes, const char *pslotdes,
+	const char *fslotdes, const char *fpslotdes,
 	int minPwd, int pwRequired) 
 {
 

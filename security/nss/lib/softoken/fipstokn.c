@@ -54,9 +54,9 @@
 
 /* The next two strings must be exactly 64 characters long, with the
    first 32 characters meaningful  */
-static char *slotDescription     = 
+static const char *slotDescription     = 
 	"Netscape Internal FIPS-140-1 Cryptographic Services             ";
-static char *privSlotDescription = 
+static const char *privSlotDescription = 
 	"Netscape FIPS-140-1 User Private Key Services                   ";
 
 
@@ -64,7 +64,7 @@ static char *privSlotDescription =
  * Configuration utils
  */
 void
-PK11_ConfigureFIPS(char *slotdes, char *pslotdes) 
+PK11_ConfigureFIPS(const char *slotdes, const char *pslotdes) 
 {
     if (slotdes && (PORT_Strlen(slotdes) == 65)) {
 	slotDescription = slotdes;
