@@ -1142,7 +1142,8 @@ main(int argc, char **argv)
 	}
     }
 
-    SECU_FileToItem(&input, inFile);
+    if (mode != CERTSONLY)
+	SECU_FileToItem(&input, inFile);
     if (inFile != PR_STDIN)
 	PR_Close(inFile);
 #ifdef DEBUG
