@@ -91,13 +91,13 @@ endif
 export:: $(SUBMAKEFILES) $(MAKE_DIRS)
 	+$(LOOP_OVER_DIRS)
 
-private_export:: $(SUBMAKEFILES) $(MAKE_DIRS)
+private_export:: $(SUBMAKEFILES)
 	+$(LOOP_OVER_DIRS)
 
-release_export:: $(SUBMAKEFILES) $(MAKE_DIRS)
+release_export:: $(SUBMAKEFILES)
 	+$(LOOP_OVER_DIRS)
 
-release_classes:: $(SUBMAKEFILES) $(MAKE_DIRS)
+release_classes:: $(SUBMAKEFILES)
 	+$(LOOP_OVER_DIRS)
 
 libs program install:: $(SUBMAKEFILES) $(TARGETS) $(MAKE_DIRS)
