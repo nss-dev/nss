@@ -250,7 +250,7 @@ pk11_DBInit(const char *configdir, const char *certPrefix,
 
 loser:
     if (crv != CKR_OK) {
-	NSS_Shutdown();
+	pk11_Shutdown();
     }
     return crv;
 }
