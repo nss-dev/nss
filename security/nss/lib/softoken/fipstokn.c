@@ -48,7 +48,8 @@
  */
 #include "seccomon.h"
 #include "softoken.h"
-#include "key.h"
+#include "lowkeyi.h"
+#include "pcert.h"
 #include "pkcs11.h"
 #include "pkcs11i.h"
 

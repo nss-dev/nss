@@ -38,6 +38,7 @@
 
 #include "pk11pars.h"
 #include "pkcs11i.h"
+#include "mcom_db.h"
 
 #define FREE_CLEAR(p) if (p) { PORT_Free(p); p = NULL; }
 
