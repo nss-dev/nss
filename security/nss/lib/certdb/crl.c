@@ -239,10 +239,6 @@ SECStatus cert_check_crl_version (CERTCrl *crl)
 
 	
     if (crl->entries == NULL) {
-	if (hasCriticalExten == PR_FALSE && version == SEC_CRL_VERSION_2) {
-	    PORT_SetError (SEC_ERROR_BAD_DER);
-	    return (SECFailure);
-	}
         return (SECSuccess);
     }
     /* Look in the crl entry extensions.  If there is a critical extension,
