@@ -42,6 +42,7 @@ f none usr/include/mps/crmf.h 0644 root bin
 f none usr/include/mps/crmft.h 0644 root bin
 f none usr/include/mps/cryptohi.h 0644 root bin
 f none usr/include/mps/cryptoht.h 0644 root bin
+f none usr/include/mps/ecl-exp.h 0644 root bin
 f none usr/include/mps/hasht.h 0644 root bin
 f none usr/include/mps/jar-ds.h 0644 root bin
 f none usr/include/mps/jar.h 0644 root bin
