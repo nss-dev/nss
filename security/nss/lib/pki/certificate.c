@@ -313,7 +313,7 @@ NSSCertificate_BuildChain
     }
 #endif
     chain = nssList_Create(NULL, PR_FALSE);
-    nssList_Add(chain, c);
+    nssList_Add(chain, nssCertificate_AddRef(c));
     if (statusOpt) *statusOpt = PR_SUCCESS;
     if (rvLimit == 1) goto finish;
     while (!nssItem_Equal(&c->subject, &c->issuer, &nssrv)) {
