@@ -89,7 +89,7 @@ dsa_NewKey(PQGParams *params, DSAPrivateKey **privKey, unsigned char *xb)
 	PORT_SetError(SEC_ERROR_NO_MEMORY);
 	return SECFailure;
     }
-    key = (DSAPrivateKey *)PORT_ArenaAlloc(arena, sizeof(DSAPrivateKey));
+    key = (DSAPrivateKey *)PORT_ArenaZAlloc(arena, sizeof(DSAPrivateKey));
     if (!key) {
 	PORT_SetError(SEC_ERROR_NO_MEMORY);
 	PORT_FreeArena(arena, PR_TRUE);
