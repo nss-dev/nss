@@ -55,7 +55,11 @@
 #endif
 
 #include <limits.h>
+#ifdef macintosh
+#include <Types.h>
+#else
 #include <sys/types.h>
+#endif
 
 #define  MP_NEG    1
 #define  MP_ZPOS   0
