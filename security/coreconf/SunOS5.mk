@@ -53,22 +53,28 @@ endif
 
 ifeq ($(USE_64), 1)
   ifdef NS_USE_GCC
-      ARCHFLAG= UNKNOWN 
+      ARCHFLAG=-m64
   else
-      ARCHFLAG=-xarch=v9
+      ifeq ($(OS_TEST),i86pc)
+        ARCHFLAG=-xarch=amd64
+      else
+        ARCHFLAG=-xarch=v9
+      endif
   endif
 else
-  ifdef NS_USE_GCC
-    ifdef USE_HYBRID
-      ARCHFLAG=-mcpu=v9 -Wa,-xarch=v8plus
+  ifneq ($(OS_TEST),i86pc)
+    ifdef NS_USE_GCC
+      ifdef USE_HYBRID
+        ARCHFLAG=-mcpu=v9 -Wa,-xarch=v8plus
+      else
+        ARCHFLAG=-mcpu=v8
+      endif
     else
-      ARCHFLAG=-mcpu=v8
-    endif
-  else
-    ifdef USE_HYBRID
-      ARCHFLAG=-xarch=v8plus
-    else
-      ARCHFLAG=-xarch=v8
+      ifdef USE_HYBRID
+        ARCHFLAG=-xarch=v8plus
+      else
+        ARCHFLAG=-xarch=v8
+      endif
     endif
   endif
 endif
@@ -104,6 +110,9 @@ ifdef NS_USE_GCC
 		OS_CFLAGS += -MDupdate $(DEPENDENCIES)
 	endif
 	OS_CFLAGS += $(ARCHFLAG)
+	ifdef BUILD_OPT
+	    OPTIMIZER = -O2
+	endif
 else
 	CC         = cc
 	CCC        = CC
@@ -157,10 +166,17 @@ PROCESS_MAP_FILE = grep -v ';-' $(LIBRARY_NAME).def | \
 # -G: produce a shared object
 # -z defs: no unresolved symbols allowed
 ifdef NS_USE_GCC
+ifeq ($(USE_64), 1)
+	DSO_LDOPTS += -m64
+endif
 	DSO_LDOPTS += -shared -h $(notdir $@)
 else
 ifeq ($(USE_64), 1)
-	DSO_LDOPTS += -xarch=v9
+	ifeq ($(OS_TEST),i86pc)
+	    DSO_LDOPTS +=-xarch=amd64
+	else
+	    DSO_LDOPTS +=-xarch=v9
+	endif
 endif
 	DSO_LDOPTS += -G -h $(notdir $@)
 endif
