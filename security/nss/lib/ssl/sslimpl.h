@@ -407,6 +407,7 @@ typedef enum {
     cipher_aes_128,
     cipher_aes_256,
     cipher_missing              /* reserved for no such supported cipher */
+    /* This enum must match ssl3_cipherName[] in ssl3con.c.  */
 } SSL3BulkCipher;
 
 typedef enum { type_stream, type_block } CipherType;
