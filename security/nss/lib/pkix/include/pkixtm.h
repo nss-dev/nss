@@ -1034,6 +1034,26 @@ struct NSSPKIXTeletexDomainDefinedAttributeStr {
   NSSUTF8 *value;
 };
 
+#endif /* nodef */
+
+/*
+ * GeneralNames
+ *
+ * This structure contains a sequence of GeneralName objects.
+ *
+ * From RFC 2459:
+ *
+ *  GeneralNames ::= SEQUENCE SIZE (1..MAX) OF GeneralName
+ *
+ */
+
+struct NSSPKIXGeneralNamesStr {
+  NSSArena *arena;
+  PRBool i_allocated_arena;
+  NSSDER der;
+  /* ... */
+};
+
 /*
  * AuthorityKeyIdentifier
  *
@@ -1053,11 +1073,13 @@ struct NSSPKIXTeletexDomainDefinedAttributeStr {
 struct NSSPKIXAuthorityKeyIdentifierStr {
   NSSArena *arena;
   PRBool i_allocated_arena;
-  NSSDER *der;
-  NSSPKIXKeyIdentifier *keyIdentifier;
-  NSSPKIXGeneralNames *authorityCertIssuer;
-  NSSPKIXCertificateSerialNumber *authorityCertSerialNumber;
+  NSSDER der;
+  NSSPKIXKeyIdentifier keyIdentifier;
+  NSSPKIXGeneralNames authorityCertIssuer;
+  NSSPKIXCertificateSerialNumber authorityCertSerialNumber;
 };
+
+#ifdef nodef
 
 /*
  * PrivateKeyUsagePeriod
@@ -1263,24 +1285,6 @@ struct NSSPKIXGeneralNameStr {
     NSSItem *iPAddress;
     NSSOID *registeredID;
   } u;
-};
-
-/*
- * GeneralNames
- *
- * This structure contains a sequence of GeneralName objects.
- *
- * From RFC 2459:
- *
- *  GeneralNames ::= SEQUENCE SIZE (1..MAX) OF GeneralName
- *
- */
-
-struct NSSPKIXGeneralNamesStr {
-  NSSArena *arena;
-  PRBool i_allocated_arena;
-  NSSDER *der;
-  ...
 };
 
 /*

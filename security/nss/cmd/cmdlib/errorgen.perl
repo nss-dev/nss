@@ -134,15 +134,19 @@ CMD_PrintError(char *message, ...)
     va_list args;
 
     e = NSS_GetError();
-    text = get_error_text(e);
 
     va_start(args, message);
 
     PR_vfprintf(PR_STDERR, message, args);
-    if (text) {
-	PR_fprintf(PR_STDERR, ": %s\\n", text);
+    if (e) {
+	text = get_error_text(e);
+	if (text) {
+	    PR_fprintf(PR_STDERR, ": %s\\n", text);
+	} else {
+	    PR_fprintf(PR_STDERR, ": (%d)\\n", e);
+	}
     } else {
-	PR_fprintf(PR_STDERR, ": (%d)\\n", e);
+	PR_fprintf(PR_STDERR, "\\n");
     }
 
     va_end(args);

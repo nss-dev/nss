@@ -112,7 +112,8 @@ CMD_PrintHex(CMDPrinter *printer, NSSItem *item, char *message)
     int i;
     unsigned char *buf = (unsigned char *)item->data;
 
-    print_heading(printer, message);
+    if (message)
+	print_heading(printer, message);
     for (i = 0; i < item->size; i++) {
 	if (i < item->size - 1) {
 	    PR_fprintf(printer->out, "%02x:", buf[i]);
@@ -237,6 +238,44 @@ CMD_PrintPKIXKeyUsage(CMDPrinter *printer, NSSPKIXKeyUsage *keyUsage,
 }
 
 void
+CMD_PrintPKIXBasicConstraints(CMDPrinter *printer, 
+                              NSSPKIXBasicConstraints *bc, 
+                              char *message)
+{
+    print_heading(printer, message);
+    newline_reset(printer);
+    indent(printer);
+
+    if (NSSPKIXBasicConstraints_IsCA(bc)) {
+	PR_fprintf(printer->out, "Certificate is CA");
+	newline(printer);
+	PR_fprintf(printer->out, "With maximum path length %d",
+	           NSSPKIXBasicConstraints_GetPathLengthConstraint(bc));
+    } else {
+	PR_fprintf(printer->out, "Certificate is not CA");
+    }
+
+    unindent(printer);
+}
+
+void
+CMD_PrintPKIXAuthorityKeyID(CMDPrinter *printer, 
+                            NSSPKIXAuthorityKeyIdentifier *akid, 
+                            char *message)
+{
+    NSSPKIXKeyIdentifier *kid;
+
+    print_heading(printer, message);
+    newline_reset(printer);
+    indent(printer);
+
+    kid = NSSPKIXAuthorityKeyIdentifier_GetKeyIdentifier(akid);
+    CMD_PrintHex(printer, kid, "Key Identifier");
+
+    unindent(printer);
+}
+
+void
 CMD_PrintPKIXnsCertType(CMDPrinter *printer, 
                         NSSPKIXnetscapeCertType *nsCertType, 
                         char *message)
@@ -293,6 +332,9 @@ CMD_PrintPKIXExtensions(CMDPrinter *printer, NSSPKIXExtensions *extensions,
                         char *message)
 {
     NSSPKIXKeyUsage *keyUsage;
+    NSSPKIXBasicConstraints *bc;
+    NSSPKIXAuthorityKeyIdentifier *akid;
+    NSSPKIXSubjectKeyIdentifier *skid;
     NSSPKIXnetscapeCertType *nsCertType;
 
     print_heading(printer, message);
@@ -302,6 +344,24 @@ CMD_PrintPKIXExtensions(CMDPrinter *printer, NSSPKIXExtensions *extensions,
     keyUsage = NSSPKIXExtensions_GetKeyUsage(extensions);
     if (keyUsage) {
 	CMD_PrintPKIXKeyUsage(printer, keyUsage, "Key Usage");
+	newline_reset(printer);
+    }
+
+    bc = NSSPKIXExtensions_GetBasicConstraints(extensions);
+    if (bc) {
+	CMD_PrintPKIXBasicConstraints(printer, bc, "Basic Constraints");
+	newline_reset(printer);
+    }
+
+    akid = NSSPKIXExtensions_GetAuthorityKeyIdentifier(extensions);
+    if (akid) {
+	CMD_PrintPKIXAuthorityKeyID(printer, akid, "Authority Key Identifier");
+	newline_reset(printer);
+    }
+
+    skid = NSSPKIXExtensions_GetSubjectKeyIdentifier(extensions);
+    if (skid) {
+	CMD_PrintHex(printer, skid, "Subject Key Identifier");
 	newline_reset(printer);
     }
 

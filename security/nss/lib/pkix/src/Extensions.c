@@ -43,6 +43,12 @@ static const char CVS_ID[] = "@(#) $Source$ $Revision$ $Date$ $Name$";
 #include "nsspki1.h"
 #endif /* NSSPKI1_H */
 
+/* XXX move to common location */
+static const NSSASN1Template NSSASN1Template_OctetString[] =
+{
+  { NSSASN1_OCTET_STRING | NSSASN1_MAY_STREAM, 0, NULL, sizeof(NSSItem) }
+};
+
 /*
  * nssPKIXExtensions_template
  *
@@ -428,6 +434,82 @@ nssPKIXExtensions_GetKeyUsage
     return rv;
 }
 
+NSS_IMPLEMENT NSSPKIXAuthorityKeyIdentifier *
+nssPKIXExtensions_GetAuthorityKeyIdentifier
+(
+  NSSPKIXExtensions *extensions
+)
+{
+    NSSOID *extnOID;
+    NSSPKIXAuthorityKeyIdentifier *rv = NULL;
+    NSSPKIXExtension **extns;
+    PRIntn i;
+    if (extensions->count == 0) {
+	count_me(extensions);
+	if (extensions->count < 0) {
+	    return (NSSPKIXAuthorityKeyIdentifier *)NULL;
+	}
+    }
+    extns = extensions->extensions;
+    for (i = 0; i < extensions->count; i++) {
+	extnOID = nssPKIXExtension_GetExtensionID(extns[i]);
+	if (NSSOID_IsTag(extnOID, NSS_OID_X509_AUTH_KEY_ID)) {
+	    if (extns[i]->extnData) {
+		return (NSSPKIXAuthorityKeyIdentifier *)extns[i]->extnData;
+	    }
+	    rv = nssPKIXAuthorityKeyIdentifier_Decode(extns[i]->arena,
+	                                              &extns[i]->extnValue);
+	    if (rv) {
+		extns[i]->extnData = (void *)rv;
+	    }
+	}
+    }
+    return rv;
+}
+
+NSS_IMPLEMENT NSSPKIXKeyIdentifier *
+nssPKIXExtensions_GetSubjectKeyIdentifier
+(
+  NSSPKIXExtensions *extensions
+)
+{
+    PRStatus status;
+    NSSOID *extnOID;
+    NSSPKIXSubjectKeyIdentifier *rv = NULL;
+    NSSPKIXExtension **extns;
+    PRIntn i;
+    if (extensions->count == 0) {
+	count_me(extensions);
+	if (extensions->count < 0) {
+	    return (NSSPKIXSubjectKeyIdentifier *)NULL;
+	}
+    }
+    extns = extensions->extensions;
+    for (i = 0; i < extensions->count; i++) {
+	extnOID = nssPKIXExtension_GetExtensionID(extns[i]);
+	if (NSSOID_IsTag(extnOID, NSS_OID_X509_SUBJECT_KEY_ID)) {
+	    if (extns[i]->extnData) {
+		return (NSSPKIXKeyIdentifier *)extns[i]->extnData;
+	    }
+	    /* XXX this doesn't seem right */
+	    rv = NSSItem_Create(extns[i]->arena, NULL, 0, NULL);
+	    if (!rv) {
+		return (NSSPKIXSubjectKeyIdentifier *)NULL;
+	    }
+	    status = NSSASN1_DecodeBER(extns[i]->arena, rv,
+	                               NSSASN1Template_OctetString,
+	                               &extns[i]->extnValue);
+	    if (status == PR_FAILURE) {
+		return (NSSPKIXKeyIdentifier *)NULL;
+	    }
+	    if (rv) {
+		extns[i]->extnData = (void *)rv;
+	    }
+	}
+    }
+    return rv;
+}
+
 NSS_IMPLEMENT NSSPKIXnetscapeCertType *
 nssPKIXExtensions_GetNetscapeCertType
 (
@@ -585,6 +667,15 @@ NSSPKIXExtensions_GetExtensionCount
     return nssPKIXExtensions_GetExtensionCount(extensions);
 }
 
+NSS_IMPLEMENT NSSPKIXKeyUsage *
+NSSPKIXExtensions_GetKeyUsage
+(
+  NSSPKIXExtensions *extensions
+)
+{
+    return nssPKIXExtensions_GetKeyUsage(extensions);
+}
+
 NSS_IMPLEMENT NSSPKIXBasicConstraints *
 NSSPKIXExtensions_GetBasicConstraints
 (
@@ -594,13 +685,22 @@ NSSPKIXExtensions_GetBasicConstraints
     return nssPKIXExtensions_GetBasicConstraints(extensions);
 }
 
-NSS_IMPLEMENT NSSPKIXKeyUsage *
-NSSPKIXExtensions_GetKeyUsage
+NSS_IMPLEMENT NSSPKIXAuthorityKeyIdentifier *
+NSSPKIXExtensions_GetAuthorityKeyIdentifier
 (
   NSSPKIXExtensions *extensions
 )
 {
-    return nssPKIXExtensions_GetKeyUsage(extensions);
+    return nssPKIXExtensions_GetAuthorityKeyIdentifier(extensions);
+}
+
+NSS_IMPLEMENT NSSPKIXKeyIdentifier *
+NSSPKIXExtensions_GetSubjectKeyIdentifier
+(
+  NSSPKIXExtensions *extensions
+)
+{
+    return nssPKIXExtensions_GetSubjectKeyIdentifier(extensions);
 }
 
 NSS_IMPLEMENT NSSPKIXnetscapeCertType *

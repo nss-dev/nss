@@ -449,7 +449,8 @@ nssCertificate_IsNewer
   PRStatus *statusOpt
 )
 {
-    nssCertDecoding *dc1, *dc2;
+    nssCertDecoding *dc1 = nssCertificate_GetDecoding(c1);
+    nssCertDecoding *dc2 = nssCertificate_GetDecoding(c2);
     if (statusOpt) *statusOpt = PR_SUCCESS;
     /* get the times from the decoding */
     if (get_validity_period(dc1) == PR_FAILURE) {

@@ -14312,6 +14312,8 @@ nssPKIXTeletexDomainDefinedAttribute_Duplicate
   NSSArena *arenaOpt
 );
 
+#endif /* nodef */
+
 /*
  * AuthorityKeyIdentifier
  *
@@ -14476,9 +14478,7 @@ nssPKIXAuthorityKeyIdentifier_HasKeyIdentifier
 NSS_EXTERN NSSPKIXKeyIdentifier *
 nssPKIXAuthorityKeyIdentifier_GetKeyIdentifier
 (
-  NSSPKIXAuthorityKeyIdentifier *aki,
-  NSSPKIXKeyIdentifier *rvOpt,
-  NSSArena *arenaOpt
+  NSSPKIXAuthorityKeyIdentifier *aki
 );
 
 /*
@@ -14678,8 +14678,6 @@ nssPKIXAuthorityKeyIdentifier_Duplicate
   NSSPKIXAuthorityKeyIdentifier *aki,
   NSSArena *arenaOpt
 );
-
-#endif /* nodef */
 
 /*
  * KeyUsage

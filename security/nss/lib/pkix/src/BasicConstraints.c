@@ -480,6 +480,25 @@ NSSPKIXBasicConstraints_Encode
     PKIX_Assert(am_i_complete(basicConstraints));
 #endif
 
-    return nssPKIXBasicConstraints_Encode(basicConstraints, encoding, rvOpt, arenaOpt);
+    return nssPKIXBasicConstraints_Encode(basicConstraints, encoding, 
+                                          rvOpt, arenaOpt);
+}
+
+NSS_IMPLEMENT PRBool
+NSSPKIXBasicConstraints_IsCA
+(
+  NSSPKIXBasicConstraints *basicConstraints
+)
+{
+    return nssPKIXBasicConstraints_IsCA(basicConstraints);
+}
+
+NSS_IMPLEMENT PRInt32
+NSSPKIXBasicConstraints_GetPathLengthConstraint
+(
+  NSSPKIXBasicConstraints *basicConstraints
+)
+{
+    return nssPKIXBasicConstraints_GetPathLengthConstraint(basicConstraints);
 }
 

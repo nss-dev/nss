@@ -49,6 +49,9 @@
 LIBRARY nsspkix4;-
 EXPORTS		;-
 NSS_EnablePKIXCertificates;
+NSSPKIXAuthorityKeyIdentifier_GetKeyIdentifier;
+NSSPKIXBasicConstraints_IsCA;
+NSSPKIXBasicConstraints_GetPathLengthConstraint;
 NSSPKIXCertificate_Decode;
 NSSPKIXCertificate_GetSignature;
 NSSPKIXCertificate_GetTBSCertificate;
@@ -63,6 +66,9 @@ NSSPKIXValidity_GetNotBefore;
 NSSPKIXValidity_GetNotAfter;
 NSSPKIXExtensions_GetExtensionCount;
 NSSPKIXExtensions_GetKeyUsage;
+NSSPKIXExtensions_GetBasicConstraints;
+NSSPKIXExtensions_GetAuthorityKeyIdentifier;
+NSSPKIXExtensions_GetSubjectKeyIdentifier;
 NSSPKIXExtensions_GetNetscapeCertType;
 NSSPKIXKeyUsage_GetValue;
 NSSPKIXnetscapeCertType_GetValue;

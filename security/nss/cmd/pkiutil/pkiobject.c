@@ -32,19 +32,67 @@ get_object_class(char *type)
     return PKIUnknown;
 }
 
+/* XXX */
+static NSSItem *
+get_cert_serial_number(NSSCertificate *c)
+{
+    NSSPKIXCertificate *pkixCert;
+    NSSPKIXTBSCertificate *tbsCert;
+    pkixCert = (NSSPKIXCertificate *)NSSCertificate_GetDecoding(c);
+    tbsCert = NSSPKIXCertificate_GetTBSCertificate(pkixCert);
+    return NSSPKIXTBSCertificate_GetSerialNumber(tbsCert);
+}
+
+/* XXX should have a filter function */
+static NSSCertificate *
+find_nick_cert_by_sn(NSSTrustDomain *td, char *nickname, char *serial)
+{
+    int i = 0;
+    NSSCertificate **certs;
+    NSSCertificate *c = NULL;
+    certs = NSSTrustDomain_FindCertificatesByNickname(td, nickname,
+                                                      NULL, 0, NULL);
+    if (certs) {
+	while (certs[i]) {
+	    NSSItem *sn = get_cert_serial_number(certs[i]);
+	    NSSItem *ser;
+	    CMDFileMode mode = CMDFileMode_Hex;
+	    ser = CMD_GetDataFromBuffer(serial, strlen(serial), &mode);
+	    if (NSSItem_Equal(sn, ser, NULL)) {
+		int j = i;
+		c = certs[i];
+		/* XXX super-hack while not filter */
+		while (certs[i+1]) i++;
+		certs[j] = certs[i];
+		certs[i] = NULL;
+		break;
+	    }
+	    i++;
+	}
+	NSSCertificateArray_Destroy(certs);
+    }
+    return c;
+}
+
 static PRStatus
 print_cert_callback(NSSCertificate *c, void *arg)
 {
     CMDRunTimeData *rtData = (CMDRunTimeData *)arg;
+    CMDPrinter printer;
     NSSUTF8 *nickname = nssCertificate_GetNickname(c, NULL);
+    NSSItem *serialNumber;
 #if 0
     PRBool isUserCert = NSSCertificate_IsPrivateKeyAvailable(c, NULL, NULL);
 #else
     PRBool isUserCert = PR_FALSE;
 #endif
-    PR_fprintf(rtData->output.file, "Listing %c %s\n", 
+    serialNumber = get_cert_serial_number(c);
+    PR_fprintf(rtData->output.file, "%c %-40s", 
                                     (isUserCert) ? '*' : ' ',
                                     nickname);
+    CMD_InitPrinter(&printer, rtData->output.file, 0, 80);
+    CMD_PrintHex(&printer, serialNumber, NULL);
+    PR_fprintf(rtData->output.file, "\n");
     return PR_SUCCESS;
 }
 
@@ -239,17 +287,33 @@ ListObjects
     return status;
 }
 
-static PRStatus
-dump_cert_chain
+PRStatus
+ListChain
 (
   NSSTrustDomain *td,
-  NSSCertificate *c,
+  char *nickname,
+  char *serial,
+  PRUint32 maximumOpt,
   CMDRunTimeData *rtData
 )
 {
+    int i;
     PRStatus status;
-    PRUint32 i, j;
-    NSSCertificate **chain, **chainp;
+    NSSCertificate *c;
+    NSSCertificate **chain;
+
+    if (serial) {
+	c = find_nick_cert_by_sn(td, nickname, serial);
+    } else {
+	c = NSSTrustDomain_FindBestCertificateByNickname(td, nickname, 
+	                                                 NSSTime_Now(), 
+	                                                 NULL, NULL);
+    }
+
+    if (!c) {
+	CMD_PrintError("Failed to find certificate %s", nickname);
+	return PR_FAILURE;
+    }
 
     chain = NSSCertificate_BuildChain(c, NSSTime_Now(), 
                                       NULL, /* usage      */
@@ -258,13 +322,11 @@ dump_cert_chain
                                       0,    /* rvLimit    */
                                       NULL, /* arena      */
                                       &status);
-    chainp = chain;
     i = 0;
-    while (chainp && *chainp) {
-	for (j=0; j<i; j++) PR_fprintf(rtData->output.file, " ");
-	status = print_cert_callback(*chainp, rtData);
-	i++;
-	chainp++;
+    while (chain[++i]);
+    while (i > 0) {
+	--i;
+	status = print_cert_callback(chain[i], rtData);
     }
     NSSCertificateArray_Destroy(chain);
     return PR_SUCCESS;
@@ -302,8 +364,8 @@ DumpObject
   NSSTrustDomain *td,
   char *objectType,
   char *nickname,
+  char *serialOpt,
   PRBool info,
-  PRBool chain,
   CMDRunTimeData *rtData
 )
 {
@@ -313,12 +375,9 @@ DumpObject
     switch (get_object_class(objectType)) {
     case PKICertificate:
     case PKIAny:         /* default to certificate */
-	if (chain) {
-	    c = NSSTrustDomain_FindBestCertificateByNickname(td, nickname, 
-	                                                     NSSTime_Now(), 
-	                                                     NULL,
-	                                                     NULL);
-	    status = dump_cert_chain(td, c, rtData);
+	if (serialOpt) {
+	    c = find_nick_cert_by_sn(td, nickname, serialOpt);
+	    status = dump_cert_info(td, c, rtData);
 	    NSSCertificate_Destroy(c);
 	} else if (info) {
 	    c = NSSTrustDomain_FindBestCertificateByNickname(td, nickname, 
@@ -348,6 +407,7 @@ ValidateCert
 (
   NSSTrustDomain *td,
   char *nickname,
+  char *serial,
   char *usageStr,
   PRBool info,
   CMDRunTimeData *rtData
@@ -355,6 +415,7 @@ ValidateCert
 {
     PRStatus status;
     NSSCertificate *c;
+    NSSCertificate **certs = NULL;
     char usage;
     NSSUsages usages = { 0 };
 
@@ -379,12 +440,19 @@ ValidateCert
 	}
     }
 
-    c = NSSTrustDomain_FindBestCertificateByNickname(td, nickname, 
-                                                     NSSTime_Now(), 
-                                                     NULL,
-                                                     NULL);
+    if (serial) {
+	c = find_nick_cert_by_sn(td, nickname, serial);
+    } else {
+	c = NSSTrustDomain_FindBestCertificateByNickname(td, nickname, 
+	                                                 NSSTime_Now(), 
+	                                                 NULL,
+	                                                 NULL);
+    }
     if (!c) {
 	CMD_PrintError("Failed to locate cert %s", nickname);
+	if (certs) {
+	    NSSCertificateArray_Destroy(certs);
+	}
 	return PR_FAILURE;
     }
 
@@ -393,6 +461,10 @@ ValidateCert
 	PR_fprintf(PR_STDOUT, "Certificate validated.\n");
     } else {
 	CMD_PrintError("Validation failed");
+    }
+
+    if (certs) {
+	NSSCertificateArray_Destroy(certs);
     }
 
     return status;

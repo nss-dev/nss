@@ -498,10 +498,10 @@ loser:
     return PR_FAILURE;
 }
 
-#if 0
-struct nss_pkix_issuer_id_str {
+struct pkix_issuer_id_str {
+  NSSArena *arena;
+  NSSPKIXAuthorityKeyIdentifier *authKeyID;
 };
-#endif
 
 static void *
 pkix_GetIssuerIdentifier
@@ -509,7 +509,72 @@ pkix_GetIssuerIdentifier
   void *cert
 )
 {
-    return NULL;
+    NSSArena *arena = NULL;
+    NSSPKIXTBSCertificate *tbsCert;
+    NSSPKIXExtensions *extns;
+    NSSPKIXCertificate *pkixCert = (NSSPKIXCertificate *)cert;
+    NSSPKIXAuthorityKeyIdentifier *authKeyID;
+    struct pkix_issuer_id_str *issuer_id = NULL;
+
+    nss_HoldErrorStack();
+
+    /*
+     * cert->tbsCert
+     */
+    tbsCert = nssPKIXCertificate_GetTBSCertificate(pkixCert);
+    if (!tbsCert) {
+	goto loser;
+    }
+    /*
+     * tbsCert->extensions
+     */
+    extns = nssPKIXTBSCertificate_GetExtensions(tbsCert);
+    if (!extns) {
+	if (NSS_GetError() == NSS_ERROR_INVALID_BER) {
+	    goto loser;
+	} else {
+	    /* no extensions */
+	    nss_ResumeErrorStack();
+	    return (void *)NULL;
+	}
+    }
+
+    /*
+     * extensions[authorityKeyIdentifier]
+     */
+    authKeyID = nssPKIXExtensions_GetAuthorityKeyIdentifier(extns);
+    if (!authKeyID) {
+	if (NSS_GetError() == NSS_ERROR_INVALID_BER) {
+	    goto loser;
+	} else {
+	    /* authKeyID extension not present XXX should check code */
+	    nss_ResumeErrorStack();
+	    return (void *)NULL;
+	}
+    }
+
+    arena = NSSArena_Create();
+    if (!arena) {
+	goto loser;
+    }
+
+    issuer_id = nss_ZNEW(arena, struct pkix_issuer_id_str);
+    if (!issuer_id) {
+	goto loser;
+    }
+
+    issuer_id->arena = arena;
+    issuer_id->authKeyID = nssPKIXAuthorityKeyIdentifier_Duplicate(authKeyID,
+                                                                   arena);
+
+    nss_ResumeErrorStack();
+    return (void *)issuer_id;
+loser:
+    if (arena) {
+	NSSArena_Destroy(arena);
+    }
+    nss_ResumeErrorStack();
+    return (void *)NULL;
 }
 
 static PRBool
@@ -519,6 +584,50 @@ pkix_IsMyIdentifier
   void *id
 )
 {
+    NSSPKIXTBSCertificate *tbsCert;
+    NSSPKIXExtensions *extns;
+    NSSPKIXCertificate *pkixCert = (NSSPKIXCertificate *)cert;
+    NSSPKIXKeyIdentifier *skID, *akID;
+    struct pkix_issuer_id_str *iid = (struct pkix_issuer_id *)id;
+
+    nss_HoldErrorStack();
+
+    /*
+     * cert->tbsCert
+     */
+    tbsCert = nssPKIXCertificate_GetTBSCertificate(pkixCert);
+    if (!tbsCert) {
+	goto loser;
+    }
+    /*
+     * tbsCert->extensions
+     */
+    extns = nssPKIXTBSCertificate_GetExtensions(tbsCert);
+    if (!extns) {
+	if (NSS_GetError() == NSS_ERROR_INVALID_BER) {
+	    goto loser;
+	} else {
+	    nss_ResumeErrorStack();
+	    return (void *)NULL;
+	}
+    }
+    /*
+     * extensions[subjectKeyIdentifier]
+     */
+    skID = nssPKIXExtensions_GetSubjectKeyIdentifier(extns);
+    if (!skID) {
+	if (NSS_GetError() == NSS_ERROR_INVALID_BER) {
+	    goto loser;
+	}
+    }
+
+    akID = nssPKIXAuthorityKeyIdentifier_GetKeyIdentifier(iid->authKeyID);
+    if (akID) {
+	return NSSItem_Equal(skID, akID, NULL);
+    }
+    /* XXX under construction */
+loser:
+    nss_ResumeErrorStack();
     return PR_FALSE;
 }
 
@@ -528,6 +637,11 @@ pkix_FreeIdentifier
   void *id
 )
 {
+    struct pkix_issuer_id_str *iid = (struct pkix_issuer_id *)id;
+
+    nss_HoldErrorStack();
+    NSSArena_Destroy(iid->arena);
+    nss_ResumeErrorStack();
 }
 
 struct nss_pkix_validation_data_str 

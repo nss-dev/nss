@@ -14351,6 +14351,8 @@ NSSPKIXTeletexDomainDefinedAttribute_Duplicate
   NSSArena *arenaOpt
 );
 
+#endif /* nodef */
+
 /*
  * AuthorityKeyIdentifier
  *
@@ -14467,6 +14469,7 @@ NSSPKIXAuthorityKeyIdentifier_Destroy
  *  NULL upon failure
  */
 
+#ifdef nodef
 NSS_EXTERN NSSBER *
 NSSPKIXAuthorityKeyIdentifier_Encode
 (
@@ -14475,6 +14478,7 @@ NSSPKIXAuthorityKeyIdentifier_Encode
   NSSBER *rvOpt,
   NSSArena *arenaOpt
 );
+#endif
 
 /*
  * NSSPKIXAuthorityKeyIdentifier_HasKeyIdentifier
@@ -14516,9 +14520,7 @@ NSSPKIXAuthorityKeyIdentifier_HasKeyIdentifier
 NSS_EXTERN NSSPKIXKeyIdentifier *
 NSSPKIXAuthorityKeyIdentifier_GetKeyIdentifier
 (
-  NSSPKIXAuthorityKeyIdentifier *aki,
-  NSSPKIXKeyIdentifier *rvOpt,
-  NSSArena *arenaOpt
+  NSSPKIXAuthorityKeyIdentifier *aki
 );
 
 /*
@@ -14853,6 +14855,7 @@ NSSPKIXKeyUsage_Destroy
  *  NULL upon failure
  */
 
+#ifdef nodef
 NSS_EXTERN NSSBER *
 NSSPKIXKeyUsage_Encode
 (
@@ -14861,6 +14864,7 @@ NSSPKIXKeyUsage_Encode
   NSSBER *rvOpt,
   NSSArena *arenaOpt
 );
+#endif
 
 /*
  * NSSPKIXKeyUsage_GetUTF8Encoding
@@ -14897,12 +14901,12 @@ NSSPKIXKeyUsage_GetUTF8Encoding
  *  NSSKeyUsage_NSSinvalid upon failure
  */
 
-#endif /* nodef */
 NSS_EXTERN NSSPKIXKeyUsageValue
 NSSPKIXKeyUsage_GetValue
 (
   NSSPKIXKeyUsage *keyUsage
 );
+
 #ifdef nodef
 
 /*

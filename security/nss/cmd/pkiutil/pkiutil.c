@@ -56,6 +56,7 @@ enum {
     cmd_Import,
     cmd_Interactive,
     cmd_List,
+    cmd_ListChain,
     cmd_Print,
     cmd_Validate,
     cmd_Version,
@@ -66,7 +67,6 @@ enum {
 enum {
     opt_Help = 0,
     opt_Ascii,
-    opt_Chain,
     opt_ProfileDir,
     opt_TokenName,
     opt_InputFile,
@@ -75,6 +75,7 @@ enum {
     opt_OutputFile,
     opt_Orphans,
     opt_Binary,
+    opt_Serial,
     opt_Trust,
     opt_Type,
     opt_Usages,
@@ -157,6 +158,20 @@ static cmdCommandLineArg pkiutil_commands[] =
    },
    "List objects on the token"
  },
+ { /* cmd_ListChain */  
+    0 , "list-chain", 
+   CMDNoArg, 0, PR_FALSE, 
+   { 
+     CMDBIT(opt_Nickname),
+     0, 0, 0 
+   },
+   {
+     CMDBIT(opt_ProfileDir) |
+     CMDBIT(opt_Serial),
+     0, 0, 0
+   },
+   "List a certificate chain"
+ },
  { /* cmd_Print */
    'P', "print", 
    CMDNoArg, 0, PR_FALSE,
@@ -166,11 +181,11 @@ static cmdCommandLineArg pkiutil_commands[] =
    },
    {
      CMDBIT(opt_Ascii) | 
-     CMDBIT(opt_Chain) | 
      CMDBIT(opt_Info) | 
      CMDBIT(opt_ProfileDir) | 
      CMDBIT(opt_OutputFile) | 
      CMDBIT(opt_Binary) | 
+     CMDBIT(opt_Serial) | 
      CMDBIT(opt_Type),
      0, 0, 0
    },
@@ -186,6 +201,7 @@ static cmdCommandLineArg pkiutil_commands[] =
    {
      CMDBIT(opt_Info) | 
      CMDBIT(opt_ProfileDir) | 
+     CMDBIT(opt_Serial) | 
      CMDBIT(opt_Usages) | 
      0, 0, 0
    },
@@ -204,7 +220,6 @@ static cmdCommandLineOpt pkiutil_options[] =
 {
  { /* opt_Help        */  '?', "help",     CMDNoArg  },
  { /* opt_Ascii       */  'a', "ascii",    CMDNoArg  },
- { /* opt_Chain       */   0 , "chain",    CMDNoArg  },
  { /* opt_ProfileDir  */  'd', "dbdir",    CMDArgReq },
  { /* opt_TokenName   */  'h', "token",    CMDArgReq },
  { /* opt_InputFile   */  'i', "infile",   CMDArgReq },
@@ -213,6 +228,7 @@ static cmdCommandLineOpt pkiutil_options[] =
  { /* opt_OutputFile  */  'o', "outfile",  CMDArgReq },
  { /* opt_Orphans     */   0 , "orphans",  CMDNoArg  },
  { /* opt_Binary      */  'r', "raw",      CMDNoArg  },
+ { /* opt_Serial      */   0 , "serial",   CMDArgReq },
  { /* opt_Trust       */  't', "trust",    CMDArgReq },
  { /* opt_Type        */   0 , "type",     CMDArgReq },
  { /* opt_Usages      */  'u', "usages",   CMDArgReq },
@@ -222,7 +238,6 @@ static char * pkiutil_options_help[] =
 {
  "get help for command",
  "use ascii (base-64 encoded) mode for I/O",
- "list the certificate path (chain)",
  "directory containing security databases (default: \"./\")",
  "name of PKCS#11 token to use (default: internal)",
  "file for input (default: stdin)",
@@ -422,17 +437,25 @@ pkiutil_command_dispatcher(cmdCommand *pkiutil, int cmdToRun)
 	                     0,
 	                     &rtData);
 	break;
+    case cmd_ListChain:
+	status = ListChain(td,
+	                   pkiutil->opt[opt_Nickname].arg,
+	                   pkiutil->opt[opt_Serial].arg,
+	                   0,
+	                   &rtData);
+	break;
     case cmd_Print:
 	status = DumpObject(td,
 	                    NULL,
 	                    pkiutil->opt[opt_Nickname].arg,
+	                    pkiutil->opt[opt_Serial].arg,
 			    pkiutil->opt[opt_Info].on,
-	                    pkiutil->opt[opt_Chain].on,
 	                    &rtData);
 	break;
     case cmd_Validate:
 	status = ValidateCert(td,
 	                      pkiutil->opt[opt_Nickname].arg,
+	                      pkiutil->opt[opt_Serial].arg,
 			      pkiutil->opt[opt_Usages].arg,
 			      pkiutil->opt[opt_Info].on,
 	                      &rtData);

@@ -46,13 +46,23 @@ ListObjects
 );
 
 PRStatus
+ListChain
+(
+  NSSTrustDomain *td,
+  char *nickname,
+  char *serial,
+  PRUint32 maximumOpt,
+  CMDRunTimeData *rtData
+);
+
+PRStatus
 DumpObject
 (
   NSSTrustDomain *td,
   char *objectType,
   char *nickname,
+  char *serialOpt,
   PRBool info,
-  PRBool chain,
   CMDRunTimeData *rtData
 );
 
@@ -61,6 +71,7 @@ ValidateCert
 (
   NSSTrustDomain *td,
   char *nickname,
+  char *serial,
   char *usages,
   PRBool info,
   CMDRunTimeData *rtData
