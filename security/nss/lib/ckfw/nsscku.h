@@ -40,7 +40,6 @@
  * Cryptography Standards (PKCS)" in all material mentioning or referencing
  * this document.
  */
- */
 
 #ifndef NSSCKU_H
 #define NSSCKU_H
