@@ -718,7 +718,6 @@ CERT_DecodeDERCertificate(SECItem *derSignedCert, PRBool copyDER,
 ** extract various element strings from a distinguished name.
 **	"name" the distinguished name
 */
-extern char *CERT_GetCommonName(CERTName *name);
 
 extern char *CERT_GetCertificateEmailAddress(CERTCertificate *cert);
 
@@ -1167,8 +1166,6 @@ CERT_CheckForEvilCert(CERTCertificate *cert);
 CERTGeneralName *
 CERT_GetCertificateNames(CERTCertificate *cert, PRArenaPool *arena);
 
-int
-CERT_GetNamesLength(CERTGeneralName *names);
 
 SECStatus 
 CERT_EncodeSubjectKeyID(PRArenaPool *arena, char *value, int len, SECItem *encodedValue);
