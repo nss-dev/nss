@@ -93,7 +93,7 @@ typedef struct hashhdr {		/* Disk resident portion */
 	int32		ffactor;	/* Fill factor */
 	int32		nkeys;		/* Number of keys in hash table */
 	int32		hdrpages;	/* Size of table header */
-	int32		h_charkey;	/* value of hash(CHARKEY) */
+	uint32		h_charkey;	/* value of hash(CHARKEY) */
 #define NCACHED	32			/* number of bit maps and spare 
 					 * points */
 	int32		spares[NCACHED];/* spare pages for overflow */
@@ -131,7 +131,7 @@ typedef struct htab	 {		/* Memory resident data structure */
 	SEGMENT 	*dir;		/* Hash Bucket directory */
 	off_t		file_size;	/* in bytes */
 	char		is_temp;	/* unlink file on close */
-	char		updateEOF;	/* close and reopen on flush */
+	char		updateEOF;	/* force EOF update on flush */
 } HTAB;
 
 /*

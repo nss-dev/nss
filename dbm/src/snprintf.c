@@ -5,10 +5,10 @@
 #include <stddef.h>
 #include <stdio.h>
 
-#if defined(_WINDOWS) || defined(SOLARIS) || defined(AIXV3) || defined(AIX) || defined(OSF1) || defined(NEC) || !defined(HAVE_SYS_CDEFS_H)
-#include "cdefs.h"
-#elif !defined(HPUX) && !defined(UNIXWARE) && !defined(SNI)
+#ifdef HAVE_SYS_CDEFS_H
 #include <sys/cdefs.h>
+#else
+#include "cdefs.h"
 #endif
 
 #include "prtypes.h"

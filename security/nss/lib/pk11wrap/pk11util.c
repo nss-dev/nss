@@ -76,7 +76,7 @@ static PRBool secmod_ModuleHasRoots(SECMODModule *module)
  */
 
 static char *dllnames[]= {
-#if defined(XP_WIN32)
+#if defined(XP_WIN32) || defined(XP_OS2)
 	"nssckbi.dll",
 	"roots.dll", 
 	"netckbi.dll",
@@ -232,6 +232,12 @@ SECMOD_GetInternalModule(void) {
 void
 SECMOD_SetInternalModule( SECMODModule *mod) {
    internalModule = SECMOD_ReferenceModule(mod);
+   modules = SECMOD_NewModuleListElement();
+   modules->module = SECMOD_ReferenceModule(mod);
+   modules->next = NULL;
+   if (!moduleLock) {
+       moduleLock = SECMOD_NewListLock();
+   }
 }
 
 /*

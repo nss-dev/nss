@@ -406,6 +406,9 @@ static struct mechanismList mechanisms[] = {
      {CKM_PBE_SHA1_RC2_128_CBC,		     {128,128, CKF_GENERATE}, PR_TRUE},
      {CKM_PBE_SHA1_RC4_40,		     {40,40, CKF_GENERATE}, PR_TRUE},
      {CKM_PBE_SHA1_RC4_128,		     {128,128, CKF_GENERATE}, PR_TRUE},
+     {CKM_NETSCAPE_PBE_SHA1_HMAC_KEY_GEN,    {1,32, CKF_GENERATE}, PR_TRUE},
+     {CKM_NETSCAPE_PBE_MD5_HMAC_KEY_GEN,     {1,32, CKF_GENERATE}, PR_TRUE},
+     {CKM_NETSCAPE_PBE_MD2_HMAC_KEY_GEN,     {1,32, CKF_GENERATE}, PR_TRUE},
 };
 static CK_ULONG mechanismCount = sizeof(mechanisms)/sizeof(mechanisms[0]);
 /* load up our token database */
@@ -664,8 +667,12 @@ pk11_handleCertObject(PK11Session *session,PK11Object *object)
 							!= SECSuccess) {
 	    return CKR_ATTRIBUTE_VALUE_INVALID;
 	}
-	if (CERT_AddTempCertToPerm(cert, label, &trust) != SECSuccess) {
-	    return CKR_HOST_MEMORY;
+	if (!cert->isperm) {
+	    if (CERT_AddTempCertToPerm(cert, label, &trust) != SECSuccess) {
+		return CKR_HOST_MEMORY;
+	    }
+	} else {
+	    CERT_ChangeCertTrust(cert->dbhandle,cert,&trust);
 	}
 	if(certUsage) {
 	    if(CERT_ChangeCertTrustByUsage(CERT_GetDefaultCertDB(),
@@ -2108,6 +2115,18 @@ pk11_GetPrivKey(PK11Object *object,CK_KEY_TYPE key_type)
 	priv=SECKEY_FindKeyByPublicKey(SECKEY_GetDefaultKeyDB(),&pubKey,
 				       (SECKEYGetPasswordKey) pk11_givePass,
 				       object->slot);
+	if (!priv && pubKey.data[0] == 0) {
+	    /* Because of legacy code issues, sometimes the public key has
+	     * a '0' prepended to it, forcing it to be unsigned.  The database
+	     * may not store that '0', so remove it and try again.
+	     */
+	    SECItem tmpPubKey;
+	    tmpPubKey.data = pubKey.data + 1;
+	    tmpPubKey.len = pubKey.len - 1;
+	    priv=SECKEY_FindKeyByPublicKey(SECKEY_GetDefaultKeyDB(),&tmpPubKey,
+				           (SECKEYGetPasswordKey) pk11_givePass,
+				           object->slot);
+	}
 	if (pubKey.data) PORT_Free(pubKey.data);
 
 	/* don't 'cache' DB private keys */
@@ -2689,6 +2708,7 @@ CK_RV NSC_InitToken(CK_SLOT_ID slotID,CK_CHAR_PTR pPin,
 	    if (object) pk11_FreeObject(object);
 	} while (object != NULL);
     }
+    slot->DB_loaded = PR_FALSE;
     PK11_USE_THREADS(PZ_Unlock(slot->objectLock);)
 
     /* then clear out the key database */
