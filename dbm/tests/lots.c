@@ -134,9 +134,9 @@ DBT * MakeLargeKey(int32 num)
 
 	/* malloc a string low_bits wide */
 	size = low_bits*sizeof(char);
-	string_rv = (char *)malloc(size);
+	string_rv = (char *)malloc((size_t)size);
 
-	memset(string_rv, rep_char, size);
+	memset(string_rv, rep_char, (size_t)size);
 
 	rv.data = string_rv;
 	rv.size = size;
@@ -151,7 +151,7 @@ DBT * MakeSmallKey(int32 num)
 
 	rv.data = data_string;
 
-	sprintf(data_string, "%ld", num);
+	sprintf(data_string, "%ld", (long)num);
 	rv.size = strlen(data_string);
 
 	return(&rv);
@@ -251,7 +251,6 @@ VerifyData(DBT *data, int32 num, key_type_enum key_type)
 int
 VerifyRange(int32 low, int32 high, int32 should_exist, key_type_enum key_type)
 {
-	char key_buf[128];
 	DBT *key, data;
 	int32 num;
 	int status;
@@ -327,7 +326,7 @@ GenData(int32 num)
 
 	
 	size = sizeof(int32)*(n+1);
-	int32_array = (int32 *) malloc(size);
+	int32_array = (int32 *) malloc((size_t)size);
 
 	memcpy(&int32_array[0], &n, sizeof(int32));
 
@@ -348,9 +347,10 @@ GenData(int32 num)
 int
 AddOrDelRange(int32 low, int32 high, int action, key_type_enum key_type)
 {
-	char key_buf[128];
 	DBT *key, *data;
+#if 0 /* only do this if your really analy checking the puts */
 	DBT tmp_data;
+#endif 
 	int32 num;
 	int status;
 
