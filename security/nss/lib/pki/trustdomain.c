@@ -511,6 +511,30 @@ NSSTrustDomain_FindCertificateByIssuerAndSerialNumber
 	                                                         issuer,
 	                                                         serialNumber,
 	                                        nssTokenSearchType_TokenOnly);
+#ifdef NSS_3_4_CODE
+	if (!rvCert) {
+	    /* Some tokens expect a decoded serial number.  For compatibility,
+	     * try the search again.
+	     */
+	    NSSDER decodedSerial;
+	    SECItem ds = { 0 };
+	    SECItem sn;
+	    SECStatus secrv;
+	    sn.data = serialNumber->data;
+	    sn.len = serialNumber->size;
+	    secrv = SEC_ASN1DecodeItem(NULL, &ds, SEC_IntegerTemplate, &sn);
+	    if (secrv == SECSuccess) {
+		decodedSerial.data = ds.data;
+		decodedSerial.size = ds.len;
+		rvCert = nssToken_FindCertificateByIssuerAndSerialNumber(tok,
+	                                        NULL,
+	                                        issuer,
+	                                        &decodedSerial,
+	                                        nssTokenSearchType_TokenOnly);
+		PORT_Free(ds.data);
+	    }
+	}
+#endif
 	if (rvCert) {
 	    /* cache it */
 	    nssTrustDomain_AddCertsToCache(td, &rvCert, 1);

@@ -81,6 +81,9 @@ struct nssDecodedCertStr {
     PRBool     (*matchUsage)(nssDecodedCert *dc, NSSUsage *usage);
     /* extract the email address */
     NSSASCII7 *(*getEmailAddress)(nssDecodedCert *dc);
+    /* extract the DER-encoded serial number */
+    PRStatus   (*getDERSerialNumber)(nssDecodedCert *dc,
+                                     NSSDER *derSerial, NSSArena *arena);
 };
 
 struct NSSUsageStr {
