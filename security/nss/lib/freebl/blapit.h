@@ -73,6 +73,7 @@
 #define SHA256_LENGTH 		32 	/* bytes */
 #define SHA384_LENGTH 		48 	/* bytes */
 #define SHA512_LENGTH 		64 	/* bytes */
+#define HASH_LENGTH_MAX         SHA512_LENGTH
 
 /*
  * Input block size for each hash algorithm.
