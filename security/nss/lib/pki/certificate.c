@@ -649,8 +649,21 @@ nssBestCertificate_Callback
     dc = nssCertificate_GetDecoding(c);
     if (!best->cert) {
 	/* usage */
-	if (best->usage->anyUsage || dc->matchUsage(dc, best->usage)) {
+	if (best->usage->anyUsage) {
 	    best->cert = nssCertificate_AddRef(c);
+	} else {
+#ifdef NSS_3_4_CODE
+	    /* For this to work in NSS 3.4, we have to go out and fill in
+	     * all of the CERTCertificate fields.  Why?  Because the
+	     * matchUsage function calls CERT_IsCACert, which needs to know
+	     * what the trust values are for the cert.
+	     * Ignore the returned pointer, the refcount is in c anyway.
+	     */
+	    (void)STAN_GetCERTCertificate(c);
+#endif
+	    if (dc->matchUsage(dc, best->usage)) {
+		best->cert = nssCertificate_AddRef(c);
+	    }
 	}
 	return PR_SUCCESS;
     }
