@@ -39,12 +39,12 @@ MODULE = security
 CSRCS =			\
 	anchor.c	\
 	constants.c	\
-	find.c		\
-	instance.c	\
-	object.c	\
-	session.c	\
-	slot.c		\
-	token.c		\
+	bfind.c		\
+	binst.c	\
+	bobject.c	\
+	bsession.c	\
+	bslot.c		\
+	btoken.c	\
 	certdata.c	\
 	$(NULL)
 

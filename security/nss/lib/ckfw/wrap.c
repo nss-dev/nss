@@ -2513,10 +2513,12 @@ NSSCKFWC_FindObjects
     goto loser;
   }
 
+#ifdef notdef
   arena = nssCKFWSession_GetArena(fwSession, &error);
   if( (NSSArena *)NULL == arena ) {
     goto loser;
   }
+#endif
 
   if( (CK_OBJECT_HANDLE_PTR)CK_NULL_PTR == phObject ) {
     error = CKR_ARGUMENTS_BAD;
@@ -2536,7 +2538,7 @@ NSSCKFWC_FindObjects
 
   for( i = 0; i < ulMaxObjectCount; i++ ) {
     NSSCKFWObject *fwObject = nssCKFWFindObjects_Next(fwFindObjects,
-                                arena, &error);
+                                NULL, &error);
     if( (NSSCKFWObject *)NULL == fwObject ) {
       break;
     }

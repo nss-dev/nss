@@ -57,10 +57,11 @@ struct builtinsInternalObjectStr {
   CK_ULONG n;
   const CK_ATTRIBUTE_TYPE *types;
   const NSSItem *items;
+  NSSCKMDObject mdObject;
 };
 typedef struct builtinsInternalObjectStr builtinsInternalObject;
 
-NSS_EXTERN_DATA const builtinsInternalObject nss_builtins_data[];
+NSS_EXTERN_DATA builtinsInternalObject nss_builtins_data[];
 NSS_EXTERN_DATA const PRUint32               nss_builtins_nObjects;
 
 NSS_EXTERN_DATA const CK_VERSION   nss_builtins_CryptokiVersion;

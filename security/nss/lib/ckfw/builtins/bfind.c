@@ -67,9 +67,13 @@ builtins_mdFindObjects_Final
 )
 {
   struct builtinsFOStr *fo = (struct builtinsFOStr *)mdFindObjects->etc;
+  NSSArena *arena = fo->arena;
 
   nss_ZFreeIf(fo->objs);
   nss_ZFreeIf(fo);
+  if ((NSSArena *)NULL != arena) {
+    NSSArena_Destroy(arena);
+  }
 
   return;
 }
@@ -175,7 +179,7 @@ nss_builtins_FindObjectsInit
   builtinsInternalObject **temp = (builtinsInternalObject **)NULL;
   PRUint32 i;
 
-  arena = NSSCKFWSession_GetArena(fwSession, pError);
+  arena = NSSArena_Create();
   if( (NSSArena *)NULL == arena ) {
     goto loser;
   }
