@@ -866,7 +866,6 @@ case "$target" in
         ;;
     irix6.5*)
         AC_DEFINE(IRIX6_5)
-        CFLAGS="$CFLAGS -mips3"
         DSO_LDOPTS="$DSO_LDOPTS -no_unresolved"
         ;;
     esac
