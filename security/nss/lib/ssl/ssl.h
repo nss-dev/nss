@@ -425,6 +425,8 @@ SSL_IMPORT SSL3Statistics * SSL_GetStatistics(void);
 */
 SSL_IMPORT SECStatus SSL_GetChannelInfo(PRFileDesc *fd, SSLChannelInfo *info,
                                         PRUintn len);
+SSL_IMPORT SECStatus SSL_GetCipherSuiteInfo(PRUint16 cipherSuite, 
+                                        SSLCipherSuiteInfo *info, PRUintn len);
 
 SEC_END_PROTOS
 

@@ -718,7 +718,9 @@ struct sslSessionIDStr {
 
     SSL3ProtocolVersion   version;
 
-    PRUint32              time;
+    PRUint32              creationTime;		/* seconds since Jan 1, 1970 */
+    PRUint32              lastAccessTime;	/* seconds since Jan 1, 1970 */
+    PRUint32              expirationTime;	/* seconds since Jan 1, 1970 */
     Cached                cached;
     int                   references;
 
