@@ -143,6 +143,11 @@ SECITEM_CompareItem(const SECItem *a, const SECItem *b)
     unsigned m;
     SECComparison rv;
 
+    if (!a || !a->len || !a->data) 
+        return (!b || !b->len || !b->data) ? SECEqual : SECLessThan;
+    if (!b || !b->len || !b->data) 
+    	return SECGreaterThan;
+
     m = ( ( a->len < b->len ) ? a->len : b->len );
     
     rv = (SECComparison) PORT_Memcmp(a->data, b->data, m);
