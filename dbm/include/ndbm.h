@@ -71,7 +71,7 @@ long	 dbm_forder (DBM *, datum);
 datum	 dbm_nextkey (DBM *);
 DBM	*dbm_open (const char *, int, int);
 int	 dbm_store (DBM *, datum, datum, int);
-int	 dbm_dirfno (DBM *);
+DBFILE_PTR dbm_dirfno (DBM *);
 __END_DECLS
 
 #endif /* !_NDBM_H_ */

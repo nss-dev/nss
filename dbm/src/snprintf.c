@@ -1,7 +1,9 @@
 #ifndef HAVE_SNPRINTF
 
 #include "watcomfx.h"
+#if !defined(WINCE)
 #include <sys/types.h>
+#endif
 #include <stddef.h>
 #include <stdio.h>
 
@@ -16,14 +18,16 @@
 #include <ncompat.h>
 
 /* The OS/2 VAC compiler doesn't appear to define __STDC__ and won't let us define it either */
-#if defined(__STDC__) || defined(XP_OS2_VACPP)
+#if !defined(WINCE)
+#if defined(__STDC__) || defined(XP_OS2_VACPP) || defined(WINCE)
 #include <stdarg.h>
 #else
 #include <varargs.h>
 #endif
+#endif
 
 int
-#if defined(__STDC__) || defined(XP_OS2_VACPP)
+#if defined(__STDC__) || defined(XP_OS2_VACPP) || defined(WINCE)
 snprintf(char *str, size_t n, const char *fmt, ...)
 #else
 snprintf(str, n, fmt, va_alist)
@@ -39,7 +43,7 @@ snprintf(str, n, fmt, va_alist)
 #else
 	int rval;
 #endif
-#if defined(__STDC__) || defined(XP_OS2_VACPP)
+#if defined(__STDC__) || defined(XP_OS2_VACPP) || defined(WINCE)
 	va_start(ap, fmt);
 #else
 	va_start(ap);

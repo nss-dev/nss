@@ -134,7 +134,11 @@ __get_buf(HTAB *hashp, uint32 addr, BUFHEAD *prev_bp, int newpage)
 		/* valid segment ensured by __call_hash() */
 		segp = hashp->dir[addr >> hashp->SSHIFT];
 #ifdef DEBUG
+#if !defined(WINCE)
 		assert(segp != NULL);
+#else
+		PR_ASSERT(segp != NULL);
+#endif
 #endif  
 
 		bp = PTROF(segp[segment_ndx]);
@@ -269,7 +273,11 @@ newbuf(HTAB *hashp, uint32 addr, BUFHEAD *prev_bp)
 				segment_ndx = bp->addr & (hashp->SGSIZE - 1);
 				segp = hashp->dir[bp->addr >> hashp->SSHIFT];
 #ifdef DEBUG
+#if !defined(WINCE)
 				assert(segp != NULL);
+#else
+				PR_ASSERT(segp != NULL);
+#endif
 #endif
 
 				if (hashp->new_file &&

@@ -36,7 +36,9 @@
 #ifndef	_COMPAT_H_
 #define	_COMPAT_H_
 
+#if !defined(WINCE)
 #include <sys/types.h>
+#endif
 
 /*
  * If your system doesn't typedef u_long, u_short, or u_char, change

@@ -95,7 +95,7 @@ static int   flush_meta __P((HTAB *));
 static int   hash_access __P((HTAB *, ACTION, DBT *, DBT *));
 static int   hash_close __P((DB *));
 static int   hash_delete __P((const DB *, const DBT *, uint));
-static int   hash_fd __P((const DB *));
+static DBFILE_PTR hash_fd __P((const DB *));
 static int   hash_get __P((const DB *, const DBT *, DBT *, uint));
 static int   hash_put __P((const DB *, DBT *, const DBT *, uint));
 static void *hash_realloc __P((SEGMENT **, size_t, size_t));
@@ -139,7 +139,11 @@ __remove_database(DB *dbp)
 {
 	HTAB *hashp = (HTAB *)dbp->internal;
 
+#if !defined(WINCE)
 	assert(0);
+#else
+    PR_ASSERT(0);
+#endif
 
 	if (!hashp)
 		return;
@@ -192,7 +196,11 @@ __hash_open(const char *file, int flags, int mode, const HASHINFO *info, int dfl
 		RETURN_ERROR(ENOMEM, error0);
 	hashp->fp = NO_FILE;
 	if(file)
+#if !defined(WINCE)
 		hashp->filename = strdup(file);
+#else
+		hashp->filename = _strdup(file);
+#endif
 
 	/*
 	 * Even if user wants write only, we need to be able to read
@@ -239,7 +247,7 @@ __hash_open(const char *file, int flags, int mode, const HASHINFO *info, int dfl
 #else
             DBFILE_OPEN(file, flags, mode)
 #endif
-            ) == -1)
+            ) == NO_FILE)
 			RETURN_ERROR(errno, error0);
 #else
  	if ((hashp->fp = open(file, flags, mode)) == -1)
@@ -433,7 +441,7 @@ hash_close(DB *dbp)
 	return (retval);
 }
 
-static int hash_fd(const DB *dbp)
+static DBFILE_PTR hash_fd(const DB *dbp)
 {
 	HTAB *hashp;
 
@@ -444,11 +452,11 @@ static int hash_fd(const DB *dbp)
 	if(!hashp)
 		return (DBM_ERROR);
 
-	if (hashp->fp == -1) {
+	if (hashp->fp == NO_FILE) {
 #if !defined(WINCE)
 		errno = ENOENT;
 #endif
-		return (-1);
+		return (NO_FILE);
 	}
 	return (hashp->fp);
 }
@@ -637,7 +645,7 @@ hdestroy(HTAB *hashp)
 		if (hashp->mapp[i])
 			free(hashp->mapp[i]);
 
-	if (hashp->fp != -1)
+	if (hashp->fp != NO_FILE)
 		(void)close(hashp->fp);
 
 	if(hashp->filename) {
@@ -697,7 +705,7 @@ update_EOF(HTAB *hashp)
 	hashp->file_size = file_size;
 	return 0;
 #else
-	int    fd        = hashp->fp;
+	DBFILE_PTR    fd        = hashp->fp;
 	off_t  file_size = lseek(fd, (off_t)0, SEEK_END);
 	HANDLE handle    = (HANDLE)_get_osfhandle(fd);
 	BOOL   cool      = FlushFileBuffers(handle);
@@ -771,7 +779,8 @@ flush_meta(HTAB *hashp)
 #if BYTE_ORDER == LITTLE_ENDIAN
 	HASHHDR whdr;
 #endif
-	int fp, i, wsize;
+    DBFILE_PTR fp;
+	int i, wsize;
 
 	if (!hashp->save_file)
 		return (0);
@@ -1154,8 +1163,13 @@ hash_seq(
 			bp = (uint16 *)hashp->cpage->page;
 
 #ifdef DEBUG
+#if !defined(WINCE)
 		assert(bp);
 		assert(bufp);
+#else
+		PR_ASSERT(bp);
+		PR_ASSERT(bufp);
+#endif
 #endif
 		while (bp[hashp->cndx + 1] == OVFLPAGE) {
 			bufp = hashp->cpage =

@@ -230,6 +230,14 @@ typedef PROffset32 off_t;
 #include <io.h>
 #endif
 
+#if !defined(WINCE)
+typedef int DBFILE_PTR;
+#define NO_FILE -1
+#else
+typedef PRFileDesc* DBFILE_PTR;
+#define NO_FILE NULL
+#endif
+
 #ifndef XP_OS2 
 #define MAXPATHLEN 	1024               
 #endif
@@ -253,7 +261,7 @@ typedef PROffset32 off_t;
 #define O_ACCMODE       3       /* Mask for file access modes */
 #define EFTYPE 2000
 XP_BEGIN_PROTOS
-int mkstemp(const char *path);
+DBFILE_PTR mkstemp(const char *path);
 XP_END_PROTOS
 #endif	/* MACINTOSH */
 
@@ -338,7 +346,7 @@ typedef struct __db {
 	int (*seq)	(const struct __db *, DBT *, DBT *, uint);
 	int (*sync)	(const struct __db *, uint);
 	void *internal;			/* Access method private. */
-	int (*fd)	(const struct __db *);
+	DBFILE_PTR (*fd)	(const struct __db *);
 } DB;
 
 #define	BTREEMAGIC	0x053162

@@ -65,13 +65,15 @@ struct _bufhead {
 
 typedef BUFHEAD **SEGMENT;
 
-typedef int DBFILE_PTR;
-#define NO_FILE -1
 #ifdef macintosh
 #define DBFILE_OPEN(path, flag,mode) open((path), flag)
 #define EXISTS(path)
 #else
+#if !defined(WINCE)
 #define DBFILE_OPEN(path, flag,mode) open((path), (flag), (mode))
+#else
+#define DBFILE_OPEN(path, flag,mode) PR_Open((path), (flag), (mode))
+#endif
 #endif
 /* Hash Table Information */
 typedef struct hashhdr {		/* Disk resident portion */

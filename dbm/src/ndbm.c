@@ -192,7 +192,7 @@ dbm_clearerr(DBM *db)
 	return (0);
 }
 
-extern int
+extern DBFILE_PTR
 dbm_dirfno(DBM *db)
 {
 	return(((HTAB *)db->internal)->fp);
