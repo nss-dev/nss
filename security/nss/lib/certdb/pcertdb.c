@@ -4686,6 +4686,10 @@ __CERT_ClosePermCertDB(CERTCertDBHandle *handle)
 	    certdb_Close( handle->permCertDB );
 	    handle->permCertDB = 0;
 	}
+	if (handle->dbMon) {
+	    PZ_DestroyMonitor(handle->dbMon);
+	    handle->dbMon = NULL;
+	}
     }
     return;
 }
