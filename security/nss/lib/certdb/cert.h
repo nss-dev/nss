@@ -323,6 +323,14 @@ extern SECStatus CERT_NameFromDERCert(SECItem *derCert, SECItem *derName);
 extern SECStatus CERT_IssuerNameFromDERCert(SECItem *derCert, 
 					    SECItem *derName);
 
+extern SECItem *
+CERT_EncodeGeneralName(CERTGeneralName *genName, SECItem *dest,
+		       PRArenaPool *arena);
+
+extern CERTGeneralName *
+CERT_DecodeGeneralName(PRArenaPool *arena, SECItem *encodedName,
+		       CERTGeneralName  *genName);
+
 
 
 /*
