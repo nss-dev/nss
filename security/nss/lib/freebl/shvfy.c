@@ -50,7 +50,7 @@ freebl_GetLibraryFilePathname(const char *name, PRFuncPtr addr);
 #define freebl_GetLibraryFilePathname NSPR_GetLibraryFilePathname
 #endif
 
-#define DEBUG_SHVERIFY 1
+/* #define DEBUG_SHVERIFY 1 */
 
 static char *
 mkCheckFileName(const char *libName)
