@@ -716,7 +716,7 @@ __get_page(HTAB *hashp,
 	if (!rsize)
 		bp[0] = 0;	/* We hit the EOF, so initialize a new page */
 	else
-		if ((size_t)rsize != size) {
+		if ((unsigned)rsize != size) {
 			errno = EFTYPE;
 			return (-1);
 		}
@@ -757,7 +757,7 @@ __get_page(HTAB *hashp,
 	     		 * the maximum number of entries
 	     		 * in the array
 	     		 */
-				if((size_t)max > (size / sizeof(uint16)))
+				if((unsigned)max > (size / sizeof(uint16)))
 					return(DATABASE_CORRUPTED_ERROR);
 
 				/* do the byte order swap
@@ -853,7 +853,7 @@ __put_page(HTAB *hashp, char *p, uint32 bucket, int is_bucket, int is_bitmap)
              * the maximum number of entries
              * in the array
              */
-            if((size_t)max > (size / sizeof(uint16)))
+            if((unsigned)max > (size / sizeof(uint16)))
                 return(DATABASE_CORRUPTED_ERROR);
 
 			for (i = 0; i <= max; i++)
@@ -871,7 +871,7 @@ __put_page(HTAB *hashp, char *p, uint32 bucket, int is_bucket, int is_bitmap)
 	    ((wsize = write(fd, p, size)) == -1))
 		/* Errno is set */
 		return (-1);
-	if ((size_t)wsize != size) {
+	if ((unsigned)wsize != size) {
 		errno = EFTYPE;
 		return (-1);
 	}
@@ -957,7 +957,7 @@ overflow_page(HTAB *hashp)
 	register uint32 *freep=NULL;
 	register int max_free, offset, splitnum;
 	uint16 addr;
-	int i;
+	uint32 i;
 	int bit, first_page, free_bit, free_page, in_use_bits, j;
 #ifdef DEBUG2
 	int tmp1, tmp2;
@@ -970,16 +970,16 @@ overflow_page(HTAB *hashp)
 
 	/* Look through all the free maps to find the first free block */
 	first_page = hashp->LAST_FREED >>(hashp->BSHIFT + BYTE_SHIFT);
-	for ( i = first_page; i <= free_page; i++ ) {
+	for ( i = first_page; i <= (unsigned)free_page; i++ ) {
 		if (!(freep = (uint32 *)hashp->mapp[i]) &&
-		    !(freep = fetch_bitmap(hashp, (uint32)i)))
+		    !(freep = fetch_bitmap(hashp, i)))
 			return (0);
-		if (i == free_page)
+		if (i == (unsigned)free_page)
 			in_use_bits = free_bit;
 		else
 			in_use_bits = (hashp->BSIZE << BYTE_SHIFT) - 1;
 		
-		if (i == first_page) {
+		if (i == (unsigned)first_page) {
 			bit = hashp->LAST_FREED &
 			    ((hashp->BSIZE << BYTE_SHIFT) - 1);
 			j = bit / BITS_PER_MAP;
@@ -1088,7 +1088,7 @@ found:
 		hashp->LAST_FREED = bit - 1;
 
 	/* Calculate the split number for this page */
-	for (i = 0; (i < splitnum) && (bit > hashp->SPARES[i]); i++) {}
+	for (i = 0; (i < (unsigned)splitnum) && (bit > hashp->SPARES[i]); i++) {}
 	offset = (i ? bit - hashp->SPARES[i - 1] : bit);
 	if (offset >= SPLITMASK)
 		return (0);	/* Out of overflow pages */
