@@ -40,7 +40,7 @@
 
 #include "blapi.h"
 
-#define FREEBL_VERSION 0x0304
+#define FREEBL_VERSION 0x0305
 
 struct FREEBLVectorStr {
 
@@ -329,6 +329,10 @@ struct FREEBLVectorStr {
 
   /* Version 3.004 came to here */
 
+ PRBool (*p_BLAPI_SHVerify)(const char *name, PRFuncPtr addr);
+ PRBool (*p_BLAPI_VerifySelf)(const char *name);
+
+  /* Version 3.005 came to here */
 };
 
 typedef struct FREEBLVectorStr FREEBLVector;
