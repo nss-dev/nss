@@ -569,6 +569,13 @@ dnl Override of system specific target options
 dnl ========================================================
 case "$target" in
 
+*-beos*)
+    AC_DEFINE(XP_BEOS)
+    AC_DEFINE(BEOS)
+    MKSHLIB='$(CC) -nostart -Wl,-soname -Wl,$(notdir $@)'
+    OS_LIBS="${OS_LIBS} -lbe"
+    ;;
+
 *-cygwin*|*-msvc*)
     AC_DEFINE(XP_PC)
     AC_DEFINE(WIN32)
