@@ -604,11 +604,8 @@ size_t RNG_GetNoise(void *buf, size_t maxbytes)
     int n = 0;
     int c;
 
-printf("RNG_GetNoise buf %p sizeofbuf %d\n", buf, maxbytes); fflush(stdout);
     n = GetHighResClock(buf, maxbytes);
-printf("RNG_GetNoise buf %p sizeofbuf %d GetHighResClock %d\n", buf, maxbytes, n); fflush(stdout);
     maxbytes -= n;
-printf("RNG_GetNoise buf %p sizeofbuf %d\n", buf, maxbytes); fflush(stdout);
 
 #if defined(__sun) && (defined(_svr4) || defined(SVR4)) || defined(sony)
     (void)gettimeofday(&tv);
