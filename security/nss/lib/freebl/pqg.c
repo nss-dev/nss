@@ -320,8 +320,8 @@ makeGfromH(const mp_int *P,     /* input.  */
     CHECK_MPI_OK( mp_init(&exp) );
     CHECK_MPI_OK( mp_init(&pm1) );
     CHECK_MPI_OK( mp_sub_d(P, 1, &pm1) );        /* P - 1            */
-    if ( mp_cmp(&H, &pm1) > 0)                   /* H = H mod (P-1)  */
-	CHECK_MPI_OK( mp_sub(&H, &pm1, &H) );
+    if ( mp_cmp(H, &pm1) > 0)                   /* H = H mod (P-1)  */
+	CHECK_MPI_OK( mp_sub(H, &pm1, H) );
     /* Let b = 2**n (smallest power of 2 greater than P).
     ** Since P-1 >= b/2, and H < b, quotient(H/(P-1)) = 0 or 1
     ** so the above operation safely computes H mod (P-1)
@@ -572,7 +572,7 @@ PQG_VerifyParams(const PQGParams *params,
                  const PQGVerify *vfy, SECStatus *result)
 {
     SECStatus rv = SECSuccess;
-    SECStatus passed;
+    int passed;
     unsigned int g, n, L, offset;
     mp_int P, Q, G, P_, Q_, G_, r, h;
     mp_err err = MP_OKAY;
