@@ -45,7 +45,7 @@
  * This callback used by SSL to pull client certificate upon
  * server request
  */
-NSS_IMPLEMENT PRStatus 
+PRStatus 
 SSL_GetClientAuthData(void *                       arg, 
                       PRFileDesc *                 socket, 
                       NSSTrustDomain *             td,

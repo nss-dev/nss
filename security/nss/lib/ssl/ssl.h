@@ -218,7 +218,7 @@ SSL_IMPORT SECStatus SSL_AuthCertificate(void *arg, PRFileDesc *fd,
  *	pRetCert - pointer to pointer to cert, for return of cert
  *	pRetKey - pointer to key pointer, for return of key
  */
-typedef SECStatus (PR_CALLBACK *SSLGetClientAuthData)(void *arg,
+typedef PRStatus (PR_CALLBACK *SSLGetClientAuthData)(void *arg,
                                 PRFileDesc *fd,
                                 NSSTrustDomain *td,
                                 NSSDER **caNames,
