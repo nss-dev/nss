@@ -115,6 +115,19 @@ PORT_ZFree(void *ptr, size_t len)
     }
 }
 
+char *
+PORT_Strdup(const char *str)
+{
+    size_t len = PORT_Strlen(str)+1;
+    char *newstr;
+
+    newstr = (char *)PORT_Alloc(len);
+    if (newstr) {
+        PORT_Memcpy(newstr, str, len);
+    }
+    return newstr;
+}
+
 void
 PORT_SetError(int value)
 {	
@@ -210,7 +223,7 @@ PORT_ArenaUnmark(PLArenaPool *arena, void *mark)
 }
 
 char *
-PORT_ArenaStrdup(PLArenaPool *arena,char *str) {
+PORT_ArenaStrdup(PLArenaPool *arena,const char *str) {
     int len = PORT_Strlen(str)+1;
     char *newstr;
 

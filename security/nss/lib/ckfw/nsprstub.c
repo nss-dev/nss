@@ -200,7 +200,7 @@ PORT_ArenaUnmark(PLArenaPool *arena, void *mark)
 }
 
 char *
-PORT_ArenaStrdup(PLArenaPool *arena,char *str) {
+PORT_ArenaStrdup(PLArenaPool *arena,const char *str) {
     int len = PORT_Strlen(str)+1;
     char *newstr;
 
