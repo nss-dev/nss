@@ -39,7 +39,7 @@
 #include <sys/systeminfo.h>
 #include <strings.h>
 
-/* In the functions below,
+/* In the functions below, */
 /* vector y must be 8-byte aligned, and n must be even */
 /* returns carry out of high order word of result */
 /* maximum n is 256 */
