@@ -19,12 +19,12 @@ ifeq ($(USE_64), 1)
 DIRS = \
     SUNWtlsx \
     SUNWtlsux \
-    SUNWtlsx-devl
+    SUNWtlsdx
 else
 DIRS = \
     SUNWtls \
     SUNWtlsu \
-    SUNWtls-devl
+    SUNWtlsd
 endif
 
 PROTO = \

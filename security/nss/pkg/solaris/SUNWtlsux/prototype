@@ -21,9 +21,9 @@ i depend=pkgdepend
 #
 # source locations relative to the prototype file
 #
-# SUNWtlsu
+# SUNWtlsux
 #
-d none usr 0755 root bin
+d none usr 0755 root sys
 d none usr/lib 0755 root bin
 d none usr/lib/mps 0755 root bin
 d none usr/lib/mps/bin 0755 root bin
