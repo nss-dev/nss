@@ -73,7 +73,6 @@ PEHeader *SSL_PreencryptedStreamToFile(PRFileDesc *fd, PEHeader *inHeader,
     
     ss = ssl_FindSocket(fd);
     if (ss == NULL) {
-        /* XXX set an error */
         return NULL;
     }
     
@@ -201,7 +200,6 @@ PEHeader *SSL_PreencryptedFileToStream(PRFileDesc *fd, PEHeader *header,
     
     ss = ssl_FindSocket(fd);
     if (ss == NULL) {
-        /* XXX set an error */
         return NULL;
     }
     

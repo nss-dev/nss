@@ -174,8 +174,10 @@ ssl_FindSocket(PRFileDesc *fd)
     PORT_Assert(ssl_layer_id != 0);
 
     layer = PR_GetIdentitiesLayer(fd, ssl_layer_id);
-    if (layer == NULL)
+    if (layer == NULL) {
+	PORT_SetError(PR_BAD_DESCRIPTOR_ERROR);
 	return NULL;
+    }
 
     ss = (sslSocket *)layer->secret;
     ss->fd = layer;
@@ -426,7 +428,6 @@ SSL_OptionSet(PRFileDesc *fd, PRInt32 which, PRBool on)
 
     if (!ss) {
 	SSL_DBG(("%d: SSL[%d]: bad socket in Enable", SSL_GETPID(), fd));
-	PORT_SetError(PR_BAD_DESCRIPTOR_ERROR);
 	return SECFailure;
     }
 
@@ -550,7 +551,6 @@ SSL_OptionGet(PRFileDesc *fd, PRInt32 which, PRBool *pOn)
     }
     if (!ss) {
 	SSL_DBG(("%d: SSL[%d]: bad socket in Enable", SSL_GETPID(), fd));
-	PORT_SetError(PR_BAD_DESCRIPTOR_ERROR);
 	*pOn = PR_FALSE;
 	return SECFailure;
     }
@@ -810,7 +810,6 @@ SSL_CipherPrefSet(PRFileDesc *fd, PRInt32 which, PRBool enabled)
     
     if (!ss) {
 	SSL_DBG(("%d: SSL[%d]: bad socket in CipherPrefSet", SSL_GETPID(), fd));
-	PORT_SetError(PR_BAD_DESCRIPTOR_ERROR);
 	return SECFailure;
     }
     if (SSL_IS_SSL2_CIPHER(which)) {
@@ -833,7 +832,6 @@ SSL_CipherPrefGet(PRFileDesc *fd, PRInt32 which, PRBool *enabled)
     }
     if (!ss) {
 	SSL_DBG(("%d: SSL[%d]: bad socket in CipherPrefGet", SSL_GETPID(), fd));
-	PORT_SetError(PR_BAD_DESCRIPTOR_ERROR);
 	*enabled = PR_FALSE;
 	return SECFailure;
     }
@@ -908,7 +906,6 @@ SSL_ImportFD(PRFileDesc *model, PRFileDesc *fd)
 	if (ss == NULL) {
 	    SSL_DBG(("%d: SSL[%d]: bad model socket in ssl_ImportFD", 
 	    	      SSL_GETPID(), model));
-	    SET_ERROR_CODE
 	    return NULL;
 	}
 	ns = ssl_DupSocket(ss);
