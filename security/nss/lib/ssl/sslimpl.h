@@ -1264,6 +1264,10 @@ ssl_SetWrappingKey(SSLWrappedSymWrappingKey *wswk);
 /* get rid of the symmetric wrapping key references. */
 extern SECStatus SSL3_ShutdownServerCache(void);
 
+extern void ssl_InitClientSessionCacheLock(void);
+
+extern void ssl_InitSymWrapKeysLock(void);
+
 /********************** misc calls *********************/
 
 extern int ssl_MapLowLevelError(int hiLevelError);

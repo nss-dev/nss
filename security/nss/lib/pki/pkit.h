@@ -69,6 +69,10 @@ static const char PKIT_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #include "devt.h"
 #endif /* DEVT_H */
 
+#ifndef nssrwlkt_h__
+#include "nssrwlkt.h"
+#endif /* nssrwlkt_h__ */
+
 PR_BEGIN_EXTERN_C
 
 /*
@@ -170,6 +174,7 @@ struct NSSTrustDomainStr {
     nssList *tokenList;
     nssListIterator *tokens;
     nssTDCertificateCache *cache;
+    NSSRWLock *tokensLock;
 #ifdef NSS_3_4_CODE
     void *spkDigestInfo;
     CERTStatusConfig *statusConfig;

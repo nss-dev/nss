@@ -41,22 +41,44 @@
  * this release on NSS. To determine the version numbers of the builtin
  * module you are using, use the appropriate PKCS #11 calls.
  *
- * These version number details changes to the PKCS #11 interface. They map
+ * These version numbers detail changes to the PKCS #11 interface. They map
  * to the PKCS #11 spec versions.
  */
 #define NSS_BUILTINS_CRYPTOKI_VERSION_MAJOR 2
 #define NSS_BUILTINS_CRYPTOKI_VERSION_MINOR 1
 
-/* These are the  correct verion numbers that details the changes 
- * to the list of trusted certificates.  */
+/* These version numbers detail the changes 
+ * to the list of trusted certificates.
+ *
+ * The NSS_BUILTINS_LIBRARY_VERSION_MINOR macro needs to be bumped
+ * for each NSS minor release AND whenever we change the list of
+ * trusted certificates.  10 minor versions are allocated for each
+ * NSS 3.x branch as follows, allowing us to change the list of
+ * trusted certificates up to 9 times on each branch.
+ *   - NSS 3.5 branch:  3-9
+ *   - NSS 3.6 branch:  10-19
+ *   - NSS 3.7 branch:  20-29
+ *   - NSS 3.8 branch:  30-39
+ *   - NSS 3.9 branch:  40-49
+ *   - NSS 3.10 branch: 50-59
+ *     ...
+ *   - NSS 3.14 branch: 90-99
+ *     ...
+ *   - NSS 3.30 branch: 250-255
+ *
+ * NSS_BUILTINS_LIBRARY_VERSION_MINOR is a CK_BYTE.  It's not clear
+ * whether we may use its full range (0-255) or only 0-99 because
+ * of the comment in the CK_VERSION type definition.
+ */
 #define NSS_BUILTINS_LIBRARY_VERSION_MAJOR 1
-#define NSS_BUILTINS_LIBRARY_VERSION_MINOR 40
+#define NSS_BUILTINS_LIBRARY_VERSION_MINOR 41
+#define NSS_BUILTINS_LIBRARY_VERSION "1.41"
 
-/* These verion numbers that details the semantic changes to the ckfw engine. */
+/* These version numbers detail the semantic changes to the ckfw engine. */
 #define NSS_BUILTINS_HARDWARE_VERSION_MAJOR 1
 #define NSS_BUILTINS_HARDWARE_VERSION_MINOR 0
 
-/* These verion numbers that details the semantic changes to ckbi itself 
+/* These version numbers detail the semantic changes to ckbi itself 
  * (new PKCS #11 objects), etc. */
 #define NSS_BUILTINS_FIRMWARE_VERSION_MAJOR 1
 #define NSS_BUILTINS_FIRMWARE_VERSION_MINOR 0

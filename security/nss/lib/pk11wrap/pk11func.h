@@ -415,11 +415,21 @@ SECKEYPrivateKey * PK11_FindKeyByKeyID(PK11SlotInfo *slot, SECItem *keyID,
 CK_OBJECT_HANDLE PK11_FindObjectForCert(CERTCertificate *cert,
 					void *wincx, PK11SlotInfo **pSlot);
 int PK11_GetPrivateModulusLen(SECKEYPrivateKey *key); 
+
+/* note: despite the name, this function takes a private key. */
 SECStatus PK11_PubDecryptRaw(SECKEYPrivateKey *key, unsigned char *data,
    unsigned *outLen, unsigned int maxLen, unsigned char *enc, unsigned encLen);
-/* The encrypt version of the above function */
+#define PK11_PrivDecryptRaw PK11_PubDecryptRaw
+/* The encrypt function that complements the above decrypt function. */
 SECStatus PK11_PubEncryptRaw(SECKEYPublicKey *key, unsigned char *enc,
                 unsigned char *data, unsigned dataLen, void *wincx);
+
+SECStatus PK11_PrivDecryptPKCS1(SECKEYPrivateKey *key, unsigned char *data,
+   unsigned *outLen, unsigned int maxLen, unsigned char *enc, unsigned encLen);
+/* The encrypt function that complements the above decrypt function. */
+SECStatus PK11_PubEncryptPKCS1(SECKEYPublicKey *key, unsigned char *enc,
+                unsigned char *data, unsigned dataLen, void *wincx);
+
 SECStatus PK11_ImportPrivateKeyInfo(PK11SlotInfo *slot, 
 		SECKEYPrivateKeyInfo *pki, SECItem *nickname,
 		SECItem *publicValue, PRBool isPerm, PRBool isPrivate,
@@ -651,6 +661,21 @@ PK11_GetPBEIV(SECAlgorithmID *algid, SECItem *pwitem);
 PK11DefaultArrayEntry * PK11_GetDefaultArray(int *);
 SECStatus PK11_UpdateSlotAttribute(PK11SlotInfo *, PK11DefaultArrayEntry *,
 							PRBool );
+
+/**********************************************************************
+ * Functions to look at PKCS #11 dependent data
+ **********************************************************************/
+PK11GenericObject *PK11_FindGenericObjects(PK11SlotInfo *slot, 
+						CK_OBJECT_CLASS objClass);
+PK11GenericObject *PK11_GetNextGenericObject(PK11GenericObject *object);
+PK11GenericObject *PK11_GetPrevtGenericObject(PK11GenericObject *object);
+SECStatus PK11_UnlinkGenericObject(PK11GenericObject *object);
+SECStatus PK11_LinkGenericObject(PK11GenericObject *list,
+				 PK11GenericObject *object);
+SECStatus PK11_DestroyGenericObjects(PK11GenericObject *object);
+SECStatus PK11_DestroyGenericObject(PK11GenericObject *object);
+SECStatus PK11_ReadRawAttribute(PK11ObjectType type, void *object, 
+				CK_ATTRIBUTE_TYPE attr, SECItem *item);
 
 
 /**********************************************************************

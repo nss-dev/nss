@@ -1,5 +1,5 @@
 #
-# Copyright 2002 Sun Microsystems, Inc.  All rights reserved.
+# Copyright 2004 Sun Microsystems, Inc.  All rights reserved.
 # Use is subject to license terms.
 #
 #ident	"$Id$"
@@ -16,7 +16,7 @@ endif
 
 PKGARCHIVE = $(PUBLISH_ROOT)/pkgarchive
 DATAFILES = copyright
-FILES = $(DATAFILES) pkginfo
+FILES = $(DATAFILES) pkginfo prototype
 
 PACKAGE = $(shell basename `pwd`)
 
@@ -24,6 +24,7 @@ PRODUCT_VERSION = $(shell grep NSS_VERSION $(CORE_DEPTH)/../dist/public/nss/nss.
 	| sed -e 's/"$$//' -e 's/.*"//' -e 's/ .*//')
 
 LN = /usr/bin/ln
+CP = /usr/bin/cp
 
 CLOBBERFILES = $(FILES)
 
