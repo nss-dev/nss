@@ -358,6 +358,7 @@ prng_GenerateGlobalRandomBytes(RNGContext *rng,
 {
     PRUint8 num;
     SECStatus rv;
+    unsigned char *output = dest;
     /* check for a valid global RNG context */
     PORT_Assert(rng != NULL);
     if (rng == NULL) {
@@ -386,10 +387,10 @@ prng_GenerateGlobalRandomBytes(RNGContext *rng,
 	/* number of bytes to obtain on this iteration (max of 20) */
 	num = PR_MIN(rng->avail, len);
 	/* if avail < BSIZE, the first avail bytes have already been used. */
-	memcpy(dest, rng->Xj + (BSIZE - rng->avail), num);
+	memcpy(output, rng->Xj + (BSIZE - rng->avail), num);
 	rng->avail -= num;
 	len -= num;
-	dest += num;
+	output += num;
     }
     PR_Unlock(rng->lock);
     /* --- UNLOCKED --- */
