@@ -81,7 +81,11 @@
   1 = runtime checks, continue execution and return an error to caller
   2 = assertions; dump core on parameter errors
  */
+#ifdef DEBUG
 #define MP_ARGCHK     2  /* how to check input arguments        */
+#else
+#define MP_ARGCHK     1  /* how to check input arguments        */
+#endif
 #endif
 
 #ifndef MP_DEBUG
@@ -89,7 +93,7 @@
 #endif
 
 #ifndef MP_DEFPREC
-#define MP_DEFPREC    32 /* default precision, in digits        */
+#define MP_DEFPREC    64 /* default precision, in digits        */
 #endif
 
 #ifndef MP_MACRO
