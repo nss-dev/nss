@@ -86,4 +86,5 @@ const NSSError NSS_ERROR_CERTIFICATE_ISSUER_NOT_FOUND   = 31;
 const NSSError NSS_ERROR_CERTIFICATE_IN_CACHE           = 32;
 
 const NSSError NSS_ERROR_HASH_COLLISION                 = 33;
+const NSSError NSS_ERROR_DEVICE_ERROR                   = 34;
 

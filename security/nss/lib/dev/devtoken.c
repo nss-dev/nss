@@ -469,6 +469,7 @@ find_objects
 	objects = create_objects_from_handles(tok, session,
 	                                      objectHandles, numHandles);
     } else {
+	nss_SetError(NSS_ERROR_NOT_FOUND);
 	objects = NULL;
     }
     if (objectHandles && objectHandles != staticObjects) {
