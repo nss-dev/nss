@@ -238,6 +238,12 @@ PR_Calloc(PRUint32 blocks, PRUint32 bytes) { return calloc(blocks,bytes); }
 PR_IMPLEMENT(void)
 PR_Free(void *ptr) { free(ptr); }
 
+PR_IMPLEMENT(void)
+PR_SetError(PRErrorCode errorCode, PRInt32 oserr) { return; }
+
+PR_IMPLEMENT(void)
+PR_SetErrorText(PRIntn textLength, const char *text) { return; }
+
 
 /* Old template; want to expunge it eventually. */
 #include "secasn1.h"
