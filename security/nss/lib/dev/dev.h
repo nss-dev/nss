@@ -450,6 +450,18 @@ NSSAlgorithmAndParameters_CreateMD5Digest
   NSSArena *arenaOpt
 );
 
+#ifdef NSS_3_4_CODE
+/* exposing this for the smart card cache code */
+NSS_IMPLEMENT nssCryptokiInstance *
+nssCryptokiInstance_Create
+(
+  NSSArena *arena,
+  NSSToken *t, 
+  CK_OBJECT_HANDLE h,
+  PRBool isTokenObject
+);
+#endif
+
 PR_END_EXTERN_C
 
 #endif /* DEV_H */
