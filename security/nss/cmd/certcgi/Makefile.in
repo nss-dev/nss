@@ -36,7 +36,7 @@
 # (0) Initialize autoconf variables                                   #
 #######################################################################
 
-CORE_DEPTH	= ../../..
+MOD_DEPTH	= ../..
 topsrcdir	= @top_srcdir@
 srcdir		= @srcdir@
 VPATH		= @srcdir@
@@ -51,8 +51,8 @@ include $(srcdir)/manifest.mn
 # (2) Include "global" configuration information. (OPTIONAL)          #
 #######################################################################
 
-include $(CORE_DEPTH)/coreconf/autoconf.mk
-include $(topsrcdir)/coreconf/config.mk
+include $(MOD_DEPTH)/coreconf/autoconf.mk
+include $(CORECONF_SOURCE)/config.mk
 
 #######################################################################
 # (3) Include "component" configuration information. (OPTIONAL)       #
@@ -68,7 +68,7 @@ include $(srcdir)/../platlibs.mk
 # (5) Execute "global" rules. (OPTIONAL)                              #
 #######################################################################
 
-include $(topsrcdir)/coreconf/rules.mk
+include $(CORECONF_SOURCE)/rules.mk
 
 #######################################################################
 # (6) Execute "component" rules. (OPTIONAL)                           #

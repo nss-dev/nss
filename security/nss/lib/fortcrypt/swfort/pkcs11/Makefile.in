@@ -36,12 +36,12 @@
 # (0) Initialize autoconf variables                                   #
 #######################################################################
 
-CORE_DEPTH	= ../../../../..
+MOD_DEPTH	= ../../../..
 topsrcdir	= @top_srcdir@
 srcdir		= @srcdir@
 VPATH		= @srcdir@:@srcdir@/../..
 
-include $(CORE_DEPTH)/coreconf/autoconf.mk
+include $(MOD_DEPTH)/coreconf/autoconf.mk
 
 #######################################################################
 # (1) Include initial platform-independent assignments (MANDATORY).   #
@@ -53,7 +53,7 @@ include $(srcdir)/manifest.mn
 # (2) Include "global" configuration information. (OPTIONAL)          #
 #######################################################################
 
-include $(topsrcdir)/coreconf/config.mk
+include $(CORECONF_SOURCE)/config.mk
 
 #######################################################################
 # (3) Include "component" configuration information. (OPTIONAL)       #
@@ -211,7 +211,7 @@ INCLUDES += -I$(srcdir)/../..
 #######################################################################
 
 ifneq ($(OS_TARGET), WIN16)
-include $(topsrcdir)/coreconf/rules.mk
+include $(CORECONF_SOURCE)/rules.mk
 endif
 
 #######################################################################

@@ -33,7 +33,7 @@ MODULE = security
 
 LIBRARY_NAME = jar
 
-CORE_DEPTH = ../../..
+MOD_DEPTH = ../..
 
 CSRCS =	\
 	jarver.c \
