@@ -2737,8 +2737,8 @@ RemovePermSubjectNode(NSSLOWCERTCertificate *cert)
  * add a cert to the perm subject list
  */
 static SECStatus
-AddPermSubjectNode(certDBEntrySubject *entry, NSSLOWCERTCertificate *cert, 
-								char *nickname)
+AddPermSubjectNode(NSSLOWCERTCertDBHandle *dbhandle,
+	certDBEntrySubject *entry, NSSLOWCERTCertificate *cert, char *nickname)
 {
     SECItem *newCertKeys, *newKeyIDs;
     int i;
@@ -2777,8 +2777,7 @@ AddPermSubjectNode(certDBEntrySubject *entry, NSSLOWCERTCertificate *cert,
     }
 
     for ( i = 0; i < ncerts; i++ ) {
-	cmpcert = nsslowcert_FindCertByKey(cert->dbhandle,
-						  &entry->certKeys[i]);
+	cmpcert = nsslowcert_FindCertByKey(dbhandle, &entry->certKeys[i]);
 	PORT_Assert(cmpcert);
 	if ( nsslowcert_IsNewer(cert, cmpcert) ) {
 	    /* insert before cmpcert */
@@ -2831,8 +2830,8 @@ AddPermSubjectNode(certDBEntrySubject *entry, NSSLOWCERTCertificate *cert,
 	/* increment count */
 	entry->ncerts++;
     }
-    DeleteDBSubjectEntry(cert->dbhandle, &cert->derSubject);
-    rv = WriteDBSubjectEntry(cert->dbhandle, entry);
+    DeleteDBSubjectEntry(dbhandle, &cert->derSubject);
+    rv = WriteDBSubjectEntry(dbhandle, entry);
     return(rv);
 }
 
@@ -3072,7 +3071,7 @@ AddCertToPermDB(NSSLOWCERTCertDBHandle *handle, NSSLOWCERTCertificate *cert,
     /* add to or create new subject entry */
     if ( subjectEntry ) {
 	/* REWRITE BASED ON SUBJECT ENTRY */
-	rv = AddPermSubjectNode(subjectEntry, cert, nickname);
+	rv = AddPermSubjectNode(handle, subjectEntry, cert, nickname);
 	if ( rv != SECSuccess ) {
 	    goto loser;
 	}
