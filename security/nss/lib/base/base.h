@@ -853,6 +853,18 @@ nssList_SetCompareFunction
 );
 
 /*
+ * nssList_SetSortFunction
+ *
+ * Sort function to use for an ordered list.
+ */
+NSS_EXTERN void
+nssList_SetSortFunction
+(
+  nssList *list, 
+  nssListSortFunc sortFunc
+);
+
+/*
  * nssList_Add
  */
 NSS_EXTERN PRStatus
