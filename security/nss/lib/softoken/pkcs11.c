@@ -974,7 +974,6 @@ pk11_handleCrlObject(PK11Session *session,PK11Object *object)
     return CKR_OK;
 }
 
-NSSLOWKEYPublicKey * pk11_GetPubKey(PK11Object *object,CK_KEY_TYPE key);
 /*
  * check the consistancy and initialize a Public Key Object 
  */
@@ -1042,7 +1041,10 @@ pk11_handlePublicKeyObject(PK11Session *session, PK11Object *object,
     crv = pk11_defaultAttribute(object,CKA_DERIVE,&derive,sizeof(CK_BBOOL));
     if (crv != CKR_OK)  return crv; 
 
-    object->objectInfo = pk11_GetPubKey(object,key_type);
+    object->objectInfo = pk11_GetPubKey(object,key_type, &crv);
+    if (object->objectInfo == NULL) {
+	return crv;
+    }
     object->infoFree = (PK11Free) nsslowkey_DestroyPublicKey;
 
     if (pk11_isTrue(object,CKA_TOKEN)) {
@@ -1706,13 +1708,15 @@ pk11_handleObject(PK11Object *object, PK11Session *session)
  * ******************** Public Key Utilities ***************************
  */
 /* Generate a low public key structure from an object */
-NSSLOWKEYPublicKey *pk11_GetPubKey(PK11Object *object,CK_KEY_TYPE key_type)
+NSSLOWKEYPublicKey *pk11_GetPubKey(PK11Object *object,CK_KEY_TYPE key_type,
+								CK_RV *crvp)
 {
     NSSLOWKEYPublicKey *pubKey;
     PLArenaPool *arena;
     CK_RV crv;
 
     if (object->objclass != CKO_PUBLIC_KEY) {
+	*crvp = CKR_KEY_TYPE_INCONSISTENT;
 	return NULL;
     }
 
@@ -1722,16 +1726,21 @@ NSSLOWKEYPublicKey *pk11_GetPubKey(PK11Object *object,CK_KEY_TYPE key_type)
 
     /* If we already have a key, use it */
     if (object->objectInfo) {
+	*crvp = CKR_OK;
 	return (NSSLOWKEYPublicKey *)object->objectInfo;
     }
 
     /* allocate the structure */
     arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
-    if (arena == NULL) return NULL;
+    if (arena == NULL) {
+	*crvp = CKR_HOST_MEMORY;
+	return NULL;
+    }
 
     pubKey = (NSSLOWKEYPublicKey *)
 			PORT_ArenaAlloc(arena,sizeof(NSSLOWKEYPublicKey));
     if (pubKey == NULL) {
+	*crvp = CKR_HOST_MEMORY;
     	PORT_FreeArena(arena,PR_FALSE);
 	return NULL;
     }
@@ -1769,13 +1778,14 @@ NSSLOWKEYPublicKey *pk11_GetPubKey(PK11Object *object,CK_KEY_TYPE key_type)
 	crv = pk11_Attribute2SSecItem(arena,&pubKey->u.dh.base,
 							object,CKA_BASE);
     	if (crv != CKR_OK) break;
-    	crv = pk11_Attribute2SSecItem(arena,&pubKey->u.dsa.publicValue,
+    	crv = pk11_Attribute2SSecItem(arena,&pubKey->u.dh.publicValue,
 							object,CKA_VALUE);
 	break;
     default:
 	crv = CKR_KEY_TYPE_INCONSISTENT;
 	break;
     }
+    *crvp = crv;
     if (crv != CKR_OK) {
     	PORT_FreeArena(arena,PR_FALSE);
 	return NULL;

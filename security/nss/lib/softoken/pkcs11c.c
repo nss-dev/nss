@@ -494,7 +494,7 @@ pk11_CryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
 	}
 	context->multi = PR_FALSE;
 	context->cipherInfo =  isEncrypt ? 
-			(void *)pk11_GetPubKey(key,CKK_RSA) :
+			(void *)pk11_GetPubKey(key,CKK_RSA,&crv) :
 				(void *)pk11_GetPrivKey(key,CKK_RSA,&crv);
 	if (context->cipherInfo == NULL) {
 	    break;
@@ -2317,9 +2317,8 @@ finish_rsa:
 	    crv = CKR_KEY_TYPE_INCONSISTENT;
 	    break;
 	}
-	pubKey = pk11_GetPubKey(key,CKK_RSA);
+	pubKey = pk11_GetPubKey(key,CKK_RSA,&crv);
 	if (pubKey == NULL) {
-	    crv = CKR_HOST_MEMORY;
 	    break;
 	}
 	if (info) {
@@ -2342,9 +2341,8 @@ finish_rsa:
 	    break;
 	}
 	context->multi = PR_FALSE;
-	pubKey = pk11_GetPubKey(key,CKK_DSA);
+	pubKey = pk11_GetPubKey(key,CKK_DSA,&crv);
 	if (pubKey == NULL) {
-	    crv = CKR_HOST_MEMORY;
 	    break;
 	}
 	context->cipherInfo = pubKey;
@@ -2516,9 +2514,8 @@ CK_RV NSC_VerifyRecoverInit(CK_SESSION_HANDLE hSession,
 	    break;
 	}
 	context->multi = PR_FALSE;
-	pubKey = pk11_GetPubKey(key,CKK_RSA);
+	pubKey = pk11_GetPubKey(key,CKK_RSA,&crv);
 	if (pubKey == NULL) {
-	    crv = CKR_HOST_MEMORY;
 	    break;
 	}
 	context->cipherInfo = pubKey;
@@ -3472,6 +3469,7 @@ static SECItem *pk11_PackagePrivateKey(PK11Object *key, CK_RV *crvp)
     arena = PORT_NewArena(2048); 	/* XXX different size? */
     if(!arena) {
 	rv = SECFailure;
+	*crvp = CKR_HOST_MEMORY;
 	goto loser;
     }
 
@@ -3509,6 +3507,7 @@ static SECItem *pk11_PackagePrivateKey(PK11Object *key, CK_RV *crvp)
  
     if(!dummy || ((lk->keyType == NSSLOWKEYDSAKey) && !param)) {
 	*crvp = CKR_DEVICE_ERROR; /* should map NSS SECError */
+	rv = SECFailure;
 	goto loser;
     }
 

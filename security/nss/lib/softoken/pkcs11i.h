@@ -602,7 +602,7 @@ extern void pk11_FreeContext(PK11SessionContext *context);
 extern void pk11_CleanupFreeLists(void);
 
 extern NSSLOWKEYPublicKey *pk11_GetPubKey(PK11Object *object,
-					  CK_KEY_TYPE key_type);
+					  CK_KEY_TYPE key_type, CK_RV *crvp);
 extern NSSLOWKEYPrivateKey *pk11_GetPrivKey(PK11Object *object,
 					    CK_KEY_TYPE key_type, CK_RV *crvp);
 extern void pk11_FormatDESKey(unsigned char *key, int length);
