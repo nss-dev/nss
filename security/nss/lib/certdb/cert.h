@@ -575,6 +575,9 @@ extern CERTCertificate *CERT_DecodeCertFromPackage(char *certbuf, int certlen);
 extern SECStatus
 CERT_ImportCAChain (SECItem *certs, int numcerts, SECCertUsage certUsage);
 
+extern SECStatus
+CERT_ImportCAChainTrusted(SECItem *certs, int numcerts, SECCertUsage certUsage);
+
 /*
 ** Read a certificate chain in some foreign format, and pass it to a 
 ** callback function.

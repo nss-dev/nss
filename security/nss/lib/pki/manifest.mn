@@ -37,11 +37,11 @@ CORE_DEPTH = ../../..
 PRIVATE_EXPORTS = \
 	pki.h      \
 	pkit.h     \
+	nsspkit.h  \
+	nsspki.h   \
 	$(NULL)
 
 EXPORTS =	   \
-	nsspkit.h \
-	nsspki.h  \
 	$(NULL)
 
 MODULE = security
