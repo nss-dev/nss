@@ -237,7 +237,8 @@ within_token_delay_period(NSSSlot *slot)
     }
     time = PR_IntervalNow();
     lastTime = slot->lastTokenPing;
-    if ((time > lastTime) && ((time - lastTime) < s_token_delay_time)) {
+    if ((lastTime) &&
+	(time > lastTime) && ((time - lastTime) < s_token_delay_time)) {
 	return PR_TRUE;
     }
     slot->lastTokenPing = time;
