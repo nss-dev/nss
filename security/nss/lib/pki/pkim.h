@@ -345,7 +345,7 @@ nssCertificateArray_FindBestCertificate
 (
   NSSCertificate **certs, 
   NSSTime *timeOpt,
-  NSSUsage *usage,
+  const NSSUsage *usage,
   NSSPolicies *policiesOpt
 );
 

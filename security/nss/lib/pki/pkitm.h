@@ -89,7 +89,7 @@ struct nssDecodedCertStr {
     /* is the validity period of this cert newer than cmpdc? */
     PRBool     (*isNewerThan)(nssDecodedCert *dc, nssDecodedCert *cmpdc);
     /* does the usage for this cert match the requested usage? */
-    PRBool     (*matchUsage)(nssDecodedCert *dc, NSSUsage *usage);
+    PRBool     (*matchUsage)(nssDecodedCert *dc, const NSSUsage *usage);
     /* extract the email address */
     NSSASCII7 *(*getEmailAddress)(nssDecodedCert *dc);
     /* extract the DER-encoded serial number */
