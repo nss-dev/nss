@@ -84,6 +84,10 @@ nssSlot_CreateSession
     }
     if (readWrite) {
 	rvSession->handle = PK11_GetRWSession(slot->pk11slot);
+	if (rvSession->handle == CK_INVALID_HANDLE) {
+	    nss_ZFreeIf(rvSession);
+	    return NULL;
+	}
 	rvSession->isRW = PR_TRUE;
 	rvSession->slot = slot;
 	return rvSession;
