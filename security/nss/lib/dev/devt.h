@@ -96,6 +96,7 @@ struct NSSTokenStr
     NSSTrustDomain *trustDomain;
     PRIntervalTime lastTime;
     nssTokenObjectCache *cache;
+    PZLock *lock;
 #ifdef NSS_3_4_CODE
     PK11SlotInfo *pk11slot;
 #endif
@@ -124,6 +125,7 @@ struct NSSSlotStr
   CK_FLAGS ckFlags; /* from CK_SLOT_INFO.flags */
   struct nssSlotAuthInfoStr authInfo;
   PRIntervalTime lastTokenPing;
+  PZLock *lock;
 #ifdef NSS_3_4_CODE
   void *epv;
   PK11SlotInfo *pk11slot;
@@ -136,6 +138,7 @@ struct nssSessionStr
   CK_SESSION_HANDLE handle;
   NSSSlot *slot;
   PRBool isRW;
+  PRBool ownLock;
 };
 
 typedef enum {
