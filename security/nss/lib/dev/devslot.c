@@ -795,7 +795,7 @@ nssSlot_CreateSession
 	return (nssSession *)NULL;
     }
     if (nssModule_IsThreadSafe(slot->module)) {
-	/* If the parent module is not threadsafe, 
+	/* If the parent module is threadsafe, 
          * create lock to protect just this session.
 	 */
 	rvSession->lock = PZ_NewLock(nssILockOther);
