@@ -51,11 +51,11 @@ CSRCS		= \
 ifeq ($(OS_ARCH),WINNT)
 CSRCS		+= memmove.c snprintf.c
 else
-ifeq (,$(filter -DHAVE_MEMMOVE=1,$(ACDEFINES)))
+ifeq (,$(filter -DHAVE_MEMMOVE=1,$(DEFS)))
 CSRCS += memmove.c
 endif
 
-ifeq (,$(filter -DHAVE_SNPRINTF=1,$(ACDEFINES)))
+ifeq (,$(filter -DHAVE_SNPRINTF=1,$(DEFS)))
 CSRCS += snprintf.c
 endif
 endif # WINNT
@@ -63,11 +63,13 @@ endif # WINNT
 LOCAL_INCLUDES	= -I$(srcdir)/../include
 
 FORCE_STATIC_LIB = 1
-FORCE_USE_PIC = 1
 
 include $(topsrcdir)/config/rules.mk
 
 DEFINES		+= -DMEMMOVE -D__DBINTERFACE_PRIVATE $(SECURITY_FLAG)
+ifeq ($(OS_ARCH), Linux)
+DEFINES         += -D_BSD_SOURCE
+endif
 
 ifeq ($(OS_ARCH),AIX)
 OS_LIBS		+= -lc_r
