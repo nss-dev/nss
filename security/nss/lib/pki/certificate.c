@@ -189,6 +189,11 @@ get_cert_trust_handle
     tobj_template[1].ulValueLen = (CK_ULONG)SHA1_LENGTH;
     NSS_CK_SET_ATTRIBUTE_ITEM(tobj_template, 2, &c->issuer);
     NSS_CK_SET_ATTRIBUTE_ITEM(tobj_template, 3, &c->serial);
+#ifdef NSS_3_4_CODE
+    if (PK11_HasRootCerts(c->token->pk11slot)) {
+	tobj_size -= 2;
+    }
+#endif
 
     /*
      * we need to arrange for the built-in token to loose the bottom 2 
@@ -533,6 +538,10 @@ nssCertificate_GetDecoding
     if (!c->decoding) {
 	c->decoding = nssDecodedCert_Create(NULL, &c->encoding, c->type);
     }
+#ifdef NSS_3_4_CODE
+    /* cause the trust bits to get updated in the encoded cert */
+    (void) STAN_GetCERTCertificate(c);
+#endif
     return c->decoding;
 }
 
@@ -558,7 +567,7 @@ find_issuer_cert_for_identifier(NSSCertificate *c, NSSItem *id)
 		/* this cert has the correct identifier */
 		rvCert = p;
 		/* now free all the remaining subject certs */
-		while ((p = subjectCerts[++i])) {
+		while ((p = subjectCerts[i++])) {
 		    NSSCertificate_Destroy(p);
 		}
 		/* and exit */
