@@ -699,12 +699,12 @@ struct CERTOKDomainNameStr {
 };
 
 
-typedef SECStatus PR_CALLBACK (*CERTStatusChecker) (CERTCertDBHandle *handle,
+typedef SECStatus (PR_CALLBACK *CERTStatusChecker) (CERTCertDBHandle *handle,
 						    CERTCertificate *cert,
 						    int64 time,
 						    void *pwArg);
 
-typedef SECStatus PR_CALLBACK (*CERTStatusDestroy) (CERTStatusConfig *handle);
+typedef SECStatus (PR_CALLBACK *CERTStatusDestroy) (CERTStatusConfig *handle);
 
 struct CERTStatusConfigStr {
     CERTStatusChecker statusChecker;	/* NULL means no checking enabled */
