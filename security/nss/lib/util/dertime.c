@@ -119,6 +119,11 @@ DER_AsciiToTime(int64 *dst, char *string)
 {
     long year, month, mday, hour, minute, second, hourOff, minOff, days;
     int64 result, tmp1, tmp2;
+
+    PORT_Assert(string != NULL);
+    if (string == NULL) {
+	goto loser;
+    }
     
     /* Verify time is formatted properly and capture information */
     second = 0;

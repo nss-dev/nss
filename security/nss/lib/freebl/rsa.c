@@ -226,7 +226,9 @@ RSA_NewKey(int keySizeInBits, SECItem *publicExponent)
     RSAPrivateKey *key = NULL;
     PRArenaPool *arena = NULL;
     /* Require key size to be a multiple of 16 bits. */
-    if (!publicExponent || keySizeInBits % 16 != 0) {
+    if (!publicExponent || keySizeInBits % 16 != 0 || 
+	 keySizeInBits == 0 || publicExponent->len == 0 ||
+	 (publicExponent->len == 1 && publicExponent->data[0] == 1)) {
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
 	return NULL;
     }
