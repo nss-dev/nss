@@ -247,6 +247,12 @@ nssSlot_AddRef
   NSSSlot *slot
 );
 
+NSS_EXTERN void
+nssSlot_ResetDelay
+(
+  NSSSlot *slot
+);
+
 NSS_EXTERN NSSUTF8 *
 nssSlot_GetName
 (
