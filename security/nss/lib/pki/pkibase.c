@@ -987,7 +987,7 @@ cert_getUIDFromObject(nssPKIObject *o, NSSItem *uid)
     derCert = nssCertificate_GetEncoding(c);
     uid[0].data = NULL; uid[0].size = 0;
     uid[1].data = NULL; uid[1].size = 0;
-    if (derCert == NULL) {
+    if (derCert != NULL) {
 	uid[0] = *derCert;
     }
 #else
