@@ -209,5 +209,8 @@ cert_DestroySubjectKeyIDHashTable(void);
 SECItem*
 cert_FindDERCertBySubjectKeyID(SECItem *subjKeyID);
 
+/* return maximum length of AVA value based on its type OID tag. */
+extern int cert_AVAOidTagToMaxLen(SECOidTag tag);
+
 #endif /* _CERTI_H_ */
 
