@@ -312,13 +312,14 @@ int main(int argc, char **argv)
     PRStatus prStatus;
     NSSCallback *pwcb;
     NSSTrustDomain *td = NULL;
+    PRFileDesc *infile = NULL;
 
     progName = strrchr(argv[0], '/');
     if (!progName)
 	progName = strrchr(argv[0], '\\');
     progName = progName ? progName+1 : argv[0];
 
-    optstate = PL_CreateOptState(argc, argv, "23Tfc:h:p:d:m:n:oqvw:x");
+    optstate = PL_CreateOptState(argc, argv, "23Tfc:h:i:p:d:m:n:oqvw:x");
     while ((optstatus = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
 	switch (optstate->option) {
 	  case '?':
@@ -338,6 +339,8 @@ int main(int argc, char **argv)
 #else
 	  case 'f': break;
 #endif
+
+	  case 'i': infile = PR_Open(optstate->value, PR_RDONLY, 0); break;
 
 	  case 'd':
 	    certDir = strdup(optstate->value);
@@ -607,7 +610,7 @@ int main(int argc, char **argv)
 
     pollset[0].fd        = s;
     pollset[0].in_flags  = PR_POLL_READ;
-    pollset[1].fd        = PR_GetSpecialFD(PR_StandardInput);
+    pollset[1].fd        = infile ? infile : PR_GetSpecialFD(PR_StandardInput);
     pollset[1].in_flags  = PR_POLL_READ;
     npds                 = 2;
     std_out              = PR_GetSpecialFD(PR_StandardOutput);
@@ -730,6 +733,6 @@ int main(int argc, char **argv)
     PR_Close(s);
     SSL_ClearSessionCache();
     NSS_Shutdown();
-    PR_Cleanup();
+    /* XXX idm PR_Cleanup(); */
     return error;
 }

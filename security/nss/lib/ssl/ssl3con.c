@@ -88,9 +88,7 @@ static NSSSymKey *ssl3_GenerateRSAPMS(sslSocket *ss,
 static PRStatus  ssl3_GenerateSessionKeys(   sslSocket *ss, NSSSymKey *pmsOpt);
 static SECStatus ssl3_HandshakeFailure(      sslSocket *ss);
 static SECStatus ssl3_InitState(             sslSocket *ss);
-#ifdef IMPLEMENT_SESSION_ID_CACHE
 static sslSessionID *ssl3_NewSessionID(      sslSocket *ss, PRBool is_server);
-#endif /* IMPLEMENT_SESSION_ID_CACHE */
 static SECStatus ssl3_SendCertificate(       sslSocket *ss);
 static SECStatus ssl3_SendEmptyCertificate(  sslSocket *ss);
 static SECStatus ssl3_SendCertificateRequest(sslSocket *ss);
@@ -2921,12 +2919,10 @@ ssl3_SendClientHello(sslSocket *ss)
 	if (rv != SECSuccess)
 	    return rv;	/* error code was set */
 
-#ifdef IMPLEMENT_SSL_SESSION_ID_CACHE
 	sid = ssl3_NewSessionID(ss, PR_FALSE);
 	if (!sid) {
 	    return SECFailure;	/* memory error is set */
         }
-#endif /* IMPLEMENT_SSL_SESSION_ID_CACHE */
     }
 
     ssl_GetSpecWriteLock(ss);
@@ -5470,6 +5466,7 @@ compression_found:
 	sid = NULL;
     }
     ++ssl3stats.hch_sid_cache_misses;
+#endif /* IMPLEMENT_SESSION_ID_CACHE */
 
     sid = ssl3_NewSessionID(ss, PR_TRUE);
     if (sid == NULL) {
@@ -5477,7 +5474,6 @@ compression_found:
 	goto loser;	/* memory error is set. */
     }
     ss->sec.ci.sid = sid;
-#endif /* IMPLEMENT_SESSION_ID_CACHE */
 
     ssl3->hs.isResuming = PR_FALSE;
     ssl_GetXmitBufLock(ss);

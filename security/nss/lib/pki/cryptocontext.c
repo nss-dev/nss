@@ -162,10 +162,10 @@ nssCryptoContext_Destroy (
 {
     PRStatus status = PR_SUCCESS;
     switch (cc->which) {
-    case a_cert: nssCert_Destroy(cc->u.cert); break;
-    case a_pubkey: nssPublicKey_Destroy(cc->u.bkey); break;
+    case a_cert:    nssCert_Destroy(cc->u.cert);       break;
+    case a_pubkey:  nssPublicKey_Destroy(cc->u.bkey);  break;
     case a_privkey: nssPrivateKey_Destroy(cc->u.vkey); break;
-    case a_symkey: nssSymKey_Destroy(cc->u.mkey); break;
+    case a_symkey:  nssSymKey_Destroy(cc->u.mkey);     break;
     default: break;
     }
     if (cc->key) {

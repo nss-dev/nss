@@ -1556,6 +1556,7 @@ ssl2_CreateSessionCypher(sslSocket *ss, sslSessionID *sid, PRBool isClient)
     writecx = NSSSymKey_CreateCryptoContext(symKey, ap, NULL);
     if (writecx == NULL)
 	goto loser;
+    NSSSymKey_Destroy(symKey); symKey = NULL;
 
     status = NSSCryptoContext_BeginEncrypt(writecx, NULL, NULL);
     if (status == PR_FAILURE)
@@ -3107,6 +3108,8 @@ ssl2_BeginClientHandshake(sslSocket *ss)
 	ss->sec.localCert     = CERT_DupCertificate(sid->localCert);
 	break;  /* this isn't really a loop */
     } 
+#else
+    sid = NULL;
 #endif /* IMPLEMENT_SESSION_ID_CACHE */
     if (!sid) {
 	sidLen = 0;

@@ -620,8 +620,7 @@ nssVolatileDomain_FindBestCertByNickname (
                                                          NULL, 0, NULL);
     if (certs) {
 	/* find the best one */
-	rvCert = nssCertArray_FindBestCert(certs, time, 
-	                                                 usages, policiesOpt);
+	rvCert = nssCertArray_FindBestCert(certs, time, usages, policiesOpt);
 	nssCertArray_Destroy(certs);
     }
     return rvCert;
@@ -637,8 +636,8 @@ NSSVolatileDomain_FindBestCertByNickname (
 )
 {
     return nssVolatileDomain_FindBestCertByNickname(vd, name,
-                                                           time, usages,
-                                                           policiesOpt);
+                                                    time, usages,
+                                                    policiesOpt);
 }
 
 NSS_IMPLEMENT NSSCert *
@@ -681,8 +680,7 @@ NSSVolatileDomain_FindCertByIssuerAndSerialNumber (
 )
 {
     return nssVolatileDomain_FindCertByIssuerAndSerialNumber(vd,
-                                                                    issuer,
-                                                                    serial);
+                                                             issuer, serial);
 }
 
 NSS_IMPLEMENT NSSCert **
@@ -748,8 +746,7 @@ nssVolatileDomain_FindBestCertBySubject (
     NSSCert *rvCert = NULL;
 
     /* search the volatile (and trust) domain by subject */
-    certs = nssVolatileDomain_FindCertsBySubject(vd, subject, 
-                                                          NULL, 0, NULL);
+    certs = nssVolatileDomain_FindCertsBySubject(vd, subject, NULL, 0, NULL);
     if (certs) {
 	/* find the best one */
 	rvCert = nssCertArray_FindBestCert(certs, time, usages, policiesOpt);
