@@ -607,7 +607,7 @@ nssCKFWSession_GetHandle
 {
 #ifdef NSSDEBUG
   if( CKR_OK != nssCKFWSession_verifyPointer(fwSession) ) {
-    return (NSSCKMDSession *)NULL;
+    return NULL;
   }
 #endif /* NSSDEBUG */
 
