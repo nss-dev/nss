@@ -363,6 +363,10 @@ NSS_NoDB_Init(const char * configdir)
 	   return rv;
       }
       RNG_SystemInfoForRNG();
+    
+      if (secoid_Init() != SECSuccess) {
+	   return rv;
+      }
 
       rv = nss_OpenVolatileCertDB();
       if (rv != SECSuccess) {
