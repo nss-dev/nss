@@ -1315,7 +1315,7 @@ nssCKFWToken_OpenSession
 
   if( CK_TRUE == rw ) {
     /* Read-write session desired */
-    if( CK_TRUE != nssCKFWToken_GetIsWriteProtected(fwToken) ) {
+    if( CK_TRUE == nssCKFWToken_GetIsWriteProtected(fwToken) ) {
       *pError = CKR_TOKEN_WRITE_PROTECTED;
       goto done;
     }
