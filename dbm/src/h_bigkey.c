@@ -62,13 +62,17 @@ static char sccsid[] = "@(#)hash_bigkey.c	8.3 (Berkeley) 5/31/94";
 #include <sys/param.h>
 #endif
 
+#if !defined(WINCE)
 #include <errno.h>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #ifdef DEBUG
+#if !defined(WINCE)
 #include <assert.h>
+#endif
 #endif
 
 #include "mcom_db.h"
@@ -433,7 +437,9 @@ __big_return(
 		return (-1);
 	if (save_p->addr != save_addr) {
 		/* We are pretty short on buffers. */
+#if !defined(WINCE)
 		errno = EINVAL;			/* OUT OF BUFFERS */
+#endif
 		return (-1);
 	}
 	memmove(hashp->tmp_buf, (save_p->page) + off, len);
@@ -497,7 +503,9 @@ collect_data(
 			return (-1);
 	}
 	if (bufp->addr != save_addr) {
+#if !defined(WINCE)
 		errno = EINVAL;			/* Out of buffers. */
+#endif
 		return (-1);
 	}
 	memmove(&hashp->tmp_buf[len], (bufp->page) + bp[1], (size_t)mylen);
@@ -558,7 +566,9 @@ collect_key(
 			return (-1);
 	}
 	if (bufp->addr != save_addr) {
+#if !defined(WINCE)
 		errno = EINVAL;		/* MIS -- OUT OF BUFFERS */
+#endif
 		return (-1);
 	}
 	memmove(&hashp->tmp_key[len], (bufp->page) + bp[1], (size_t)mylen);
@@ -604,7 +614,11 @@ __big_split(
 
 	/* Now make one of np/op point to the big key/data pair */
 #ifdef DEBUG
+#if !defined(WINCE)
 	assert(np->ovfl == NULL);
+#else
+	PR_ASSERT(np->ovfl == NULL);
+#endif
 #endif
 	if (change)
 		tmpp = np;

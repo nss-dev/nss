@@ -63,19 +63,23 @@ static char sccsid[] = "@(#)hash_page.c	8.7 (Berkeley) 8/16/94";
  *	open_temp
  */
 #ifndef macintosh
+#if !defined(WINCE)
 #include <sys/types.h>
+#endif
 #endif
 
 #if defined(macintosh)
 #include <unistd.h>
 #endif
 
+#if !defined(WINCE)
 #include <errno.h>
 #include <fcntl.h>
 #if defined(_WIN32) || defined(_WINDOWS) 
 #include <io.h>
 #endif
 #include <signal.h>
+#endif /* WINCE */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -84,7 +88,9 @@ static char sccsid[] = "@(#)hash_page.c	8.7 (Berkeley) 8/16/94";
 #include <unistd.h>
 #endif
 
+#if !defined(WINCE)
 #include <assert.h>
+#endif
 
 #include "mcom_db.h"
 #include "hash.h"
@@ -717,7 +723,9 @@ __get_page(HTAB *hashp,
 		bp[0] = 0;	/* We hit the EOF, so initialize a new page */
 	else
 		if ((unsigned)rsize != size) {
+#if !defined(WINCE)
 			errno = EFTYPE;
+#endif
 			return (-1);
 		}
 
@@ -872,7 +880,9 @@ __put_page(HTAB *hashp, char *p, uint32 bucket, int is_bucket, int is_bitmap)
 		/* Errno is set */
 		return (-1);
 	if ((unsigned)wsize != size) {
+#if !defined(WINCE)
 		errno = EFTYPE;
+#endif
 		return (-1);
 	}
 #if defined(_WIN32) || defined(_WINDOWS) 
@@ -1200,7 +1210,13 @@ open_temp(HTAB *hashp)
 #endif
 
 #if defined(_WIN32) || defined(_WINDOWS)
-	if ((hashp->fp = mkstempflags(filename, _O_BINARY|_O_TEMPORARY)) != -1) {
+	if ((hashp->fp = mkstempflags(filename,
+#if !defined(WINCE)
+        _O_BINARY|_O_TEMPORARY
+#else
+        0
+#endif
+        )) != -1) {
 		if (hashp->filename) {
 			free(hashp->filename);
 		}

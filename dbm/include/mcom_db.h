@@ -81,6 +81,10 @@
 #endif
 #include "prtypes.h"
 
+#if defined(WINCE)
+typedef PROffset32 off_t;
+#endif
+
 #include <limits.h>
 
 #ifdef __DBINTERFACE_PRIVATE
@@ -216,6 +220,8 @@
 
 #if !defined(WINCE)
 #include <fcntl.h>
+#else
+#include "nspr.h"
 #endif
 
 #if defined(_WINDOWS) || defined(XP_OS2)

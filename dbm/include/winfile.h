@@ -16,8 +16,10 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #else
+#if !defined(WINCE)
 #include <sys\types.h>
 #include <sys\stat.h>
+#endif
 #endif
 
 typedef struct DIR_Struct {

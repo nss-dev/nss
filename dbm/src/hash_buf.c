@@ -59,14 +59,19 @@ static char sccsid[] = "@(#)hash_buf.c	8.5 (Berkeley) 7/15/94";
 #include <sys/param.h>
 #endif
 
+#if !defined(WINCE)
 #include <errno.h>
+#endif
+
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #ifdef DEBUG
+#if !defined(WINCE)
 #include <assert.h>
+#endif
 #endif
 
 #include "mcom_db.h"

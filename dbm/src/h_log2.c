@@ -42,7 +42,9 @@ static char sccsid[] = "@(#)hash_log2.c	8.2 (Berkeley) 5/31/94";
 
 #include <stdio.h>
 #ifndef macintosh
+#if !defined(WINCE)
 #include <sys/types.h>
+#endif
 #endif
 #include "mcom_db.h"
 

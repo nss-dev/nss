@@ -48,7 +48,9 @@ static char sccsid[] = "@(#)hash.c	8.9 (Berkeley) 6/16/94";
 #ifdef XP_OS2_EMX
 #include <sys/types.h>
 #endif
+#if !defined(WINCE)
 #include <sys/stat.h>
+#endif
 #endif
 
 #if defined(macintosh)
@@ -56,8 +58,11 @@ static char sccsid[] = "@(#)hash.c	8.9 (Berkeley) 6/16/94";
 #include <unistd.h>
 #endif
 
+#if !defined(WINCE)
 #include <errno.h>
 #include <fcntl.h>
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -74,7 +79,9 @@ static char sccsid[] = "@(#)hash.c	8.9 (Berkeley) 6/16/94";
 #define EPERM SOCEPERM
 #endif
 
+#if !defined(WINCE)
 #include <assert.h>
+#endif
 
 #include "mcom_db.h"
 #include "hash.h"
@@ -105,7 +112,12 @@ static void  swap_header_copy __P((HASHHDR *, HASHHDR *));
 /* Fast arithmetic, relying on powers of 2, */
 #define MOD(x, y)		((x) & ((y) - 1))
 
+#if !defined(WINCE)
 #define RETURN_ERROR(ERR, LOC)	{ save_errno = ERR; goto LOC; }
+#else
+#define RETURN_ERROR(ERR, LOC)	{ goto LOC; }
+#define PR_ACCMODE (PR_RDONLY | PR_WRONLY | PR_RDWR)
+#endif
 
 /* Return values */
 #define	SUCCESS	 (0)
@@ -143,20 +155,38 @@ extern DB *
 __hash_open(const char *file, int flags, int mode, const HASHINFO *info, int dflags)
 {
 	HTAB *hashp=NULL;
+#if !defined(WINCE)
 	struct stat statbuf;
+#else
+    PRFileInfo prInfo;
+    PRStatus infoResult;
+#endif
 	DB *dbp;
-	int bpages, hdrsize, new_table, nsegs, save_errno;
+	int bpages, hdrsize, new_table, nsegs;
+#if !defined(WINCE)
+    int save_errno;
+#endif
 
+#if !defined(WINCE)
 	if ((flags & O_ACCMODE) == O_WRONLY) {
 		errno = EINVAL;
 		RETURN_ERROR(ENOMEM, error0);
 	}
+#else
+	if ((flags & PR_ACCMODE) == PR_WRONLY) {
+		RETURN_ERROR(ENOMEM/*???*/, error0);
+	}
+#endif
 
 	/* zero the statbuffer so that
 	 * we can check it for a non-zero
 	 * date to see if stat succeeded
 	 */
+#if !defined(WINCE)
 	memset(&statbuf, 0, sizeof(struct stat));
+#else
+	memset(&prInfo, 0, sizeof(prInfo));
+#endif
 
 	if (!(hashp = (HTAB *)calloc(1, sizeof(HTAB))))
 		RETURN_ERROR(ENOMEM, error0);
@@ -173,25 +203,43 @@ __hash_open(const char *file, int flags, int mode, const HASHINFO *info, int dfl
 	hashp->flags = flags;
 
 	new_table = 0;
-	if (!file || (flags & O_TRUNC) 	|| (stat(file, &statbuf)  && (errno == ENOENT))) 
-	{
+#if !defined(WINCE)
+	if (!file || (flags & O_TRUNC) 	|| (stat(file, &statbuf) && (errno == ENOENT))) {
 		if (errno == ENOENT)
 			errno = 0; /* Just in case someone looks at errno */
 		new_table = 1;
 	}
-	else if(statbuf.st_mtime && statbuf.st_size == 0)
-	{
+	else if(statbuf.st_mtime && statbuf.st_size == 0) {
 		/* check for a zero length file and delete it
 	 	 * if it exists
 	 	 */
 		new_table = 1;
 	}
 	hashp->file_size = statbuf.st_size;
+#else
+    infoResult = PR_GetFileInfo(file, &prInfo);
+	if (!file || (flags & PR_TRUNCATE) || (PR_FAILURE == PR_Access(file, PR_ACCESS_EXISTS))) {
+		new_table = 1;
+	}
+	else if(PR_SUCCESS == infoResult && 0 == prInfo.size) {
+		/* check for a zero length file and delete it
+	 	 * if it exists
+	 	 */
+		new_table = 1;
+	}
+	hashp->file_size = prInfo.size;
+#endif
 
 	if (file) {				 
 
 #if defined(_WIN32) || defined(_WINDOWS) || defined (macintosh)  || defined(XP_OS2_VACPP)
-		if ((hashp->fp = DBFILE_OPEN(file, flags | O_BINARY, mode)) == -1)
+		if ((hashp->fp =
+#if !defined(WINCE)
+            DBFILE_OPEN(file, flags | O_BINARY, mode)
+#else
+            DBFILE_OPEN(file, flags, mode)
+#endif
+            ) == -1)
 			RETURN_ERROR(errno, error0);
 #else
  	if ((hashp->fp = open(file, flags, mode)) == -1)
@@ -297,13 +345,21 @@ __hash_open(const char *file, int flags, int mode, const HASHINFO *info, int dfl
 #ifdef macintosh
 	hashp->save_file = file && !(hashp->flags & O_RDONLY);
 #else
+#if !defined(WINCE)
 	hashp->save_file = file && (hashp->flags & O_RDWR);
+#else
+	hashp->save_file = file && (hashp->flags & PR_RDWR);
+#endif
 #endif
 	hashp->cbucket = -1;
 	if (!(dbp = (DB *)malloc(sizeof(DB)))) {
+#if !defined(WINCE)
 		save_errno = errno;
+#endif
 		hdestroy(hashp);
+#if !defined(WINCE)
 		errno = save_errno;
+#endif
 		RETURN_ERROR(ENOMEM, error0);
 	}
 	dbp->internal = hashp;
@@ -353,7 +409,9 @@ error1:
 
 error0:
 	free(hashp);
+#if !defined(WINCE)
 	errno = save_errno;
+#endif
 	return (NULL);
 }
 
@@ -387,7 +445,9 @@ static int hash_fd(const DB *dbp)
 		return (DBM_ERROR);
 
 	if (hashp->fp == -1) {
+#if !defined(WINCE)
 		errno = ENOENT;
+#endif
 		return (-1);
 	}
 	return (hashp->fp);
@@ -397,7 +457,9 @@ static int hash_fd(const DB *dbp)
 static HTAB *
 init_hash(HTAB *hashp, const char *file, HASHINFO *info)
 {
-	struct stat statbuf;
+#if !defined(WINCE)
+    struct stat statbuf;
+#endif
 	int nelem;
 
 	nelem = 1;
@@ -415,8 +477,15 @@ init_hash(HTAB *hashp, const char *file, HASHINFO *info)
 
 	/* Fix bucket size to be optimal for file system */
 	if (file != NULL) {
+#if !defined(WINCE)
 		if (stat(file, &statbuf))
 			return (NULL);
+#else
+        if(PR_FAILURE == PR_Access(file, PR_ACCESS_EXISTS))
+        {
+            return(NULL);
+        }
+#endif
 
 #if !defined(_WIN32) && !defined(_WINDOWS) && !defined(macintosh) && !defined(VMS) && !defined(XP_OS2)
 #if defined(__QNX__) && !defined(__QNXNTO__)
@@ -440,7 +509,9 @@ init_hash(HTAB *hashp, const char *file, HASHINFO *info)
 			hashp->BSHIFT = __log2(info->bsize);
 			hashp->BSIZE = 1 << hashp->BSHIFT;
 			if (hashp->BSIZE > MAX_BSIZE) {
+#if !defined(WINCE)
 				errno = EINVAL;
+#endif
 				return (NULL);
 			}
 		}
@@ -453,7 +524,9 @@ init_hash(HTAB *hashp, const char *file, HASHINFO *info)
 		if (info->lorder) {
 			if (info->lorder != BIG_ENDIAN &&
 			    info->lorder != LITTLE_ENDIAN) {
+#if !defined(WINCE)
 				errno = EINVAL;
+#endif
 				return (NULL);
 			}
 			hashp->LORDER = info->lorder;
@@ -541,7 +614,11 @@ hdestroy(HTAB *hashp)
 	 * write them to disk.
 	 */
 	if (__buf_free(hashp, 1, hashp->save_file))
+#if !defined(WINCE)
 		save_errno = errno;
+#else
+		save_errno = __LINE__;
+#endif
 	if (hashp->dir) {
 		free(*hashp->dir);	/* Free initial segments */
 		/* Free extra segments */
@@ -550,7 +627,11 @@ hdestroy(HTAB *hashp)
 		free(hashp->dir);
 	}
 	if (flush_meta(hashp) && !save_errno)
+#if !defined(WINCE)
 		save_errno = errno;
+#else
+		save_errno = __LINE__;
+#endif
 	/* Free Bigmaps */
 	for (i = 0; i < hashp->nmaps; i++)
 		if (hashp->mapp[i])
@@ -570,7 +651,9 @@ hdestroy(HTAB *hashp)
 	free(hashp);
 
 	if (save_errno) {
+#if !defined(WINCE)
 		errno = save_errno;
+#endif
 		return (DBM_ERROR);
 	}
 	return (SUCCESS);
@@ -647,7 +730,9 @@ hash_sync(const DB *dbp, uint flags)
 	HTAB *hashp;
 
 	if (flags != 0) {
+#if !defined(WINCE)
 		errno = EINVAL;
+#endif
 		return (DBM_ERROR);
 	}
 
@@ -705,8 +790,12 @@ flush_meta(HTAB *hashp)
 		return (-1);
 	else
 		if (wsize != sizeof(HASHHDR)) {
+#if !defined(WINCE)
 			errno = EFTYPE;
 			hashp->dbmerrno = errno;
+#else
+    		hashp->dbmerrno = __LINE__;
+#endif
 			return (-1);
 		}
 	for (i = 0; i < NCACHED; i++)
@@ -741,7 +830,11 @@ hash_get(
 		return (DBM_ERROR);
 
 	if (flag) {
+#if !defined(WINCE)
 		hashp->dbmerrno = errno = EINVAL;
+#else
+		hashp->dbmerrno = __LINE__;
+#endif
 		return (DBM_ERROR);
 	}
 
@@ -773,13 +866,24 @@ hash_put(
 		return (DBM_ERROR);
 
 	if (flag && flag != R_NOOVERWRITE) {
+#if !defined(WINCE)
 		hashp->dbmerrno = errno = EINVAL;
+#else
+		hashp->dbmerrno = __LINE__;
+#endif
 		return (DBM_ERROR);
 	}
+#if !defined(WINCE)
 	if ((hashp->flags & O_ACCMODE) == O_RDONLY) {
 		hashp->dbmerrno = errno = EPERM;
 		return (DBM_ERROR);
 	}
+#else
+	if ((hashp->flags & PR_ACCMODE) == PR_RDONLY) {
+		hashp->dbmerrno = __LINE__;
+		return (DBM_ERROR);
+	}
+#endif
 
 	rv =  hash_access(hashp, flag == R_NOOVERWRITE ?
 	    HASH_PUTNEW : HASH_PUT, (DBT *)key, (DBT *)data);
@@ -809,13 +913,24 @@ hash_delete(
 		return (DBM_ERROR);
 
 	if (flag && flag != R_CURSOR) {
+#if !defined(WINCE)
 		hashp->dbmerrno = errno = EINVAL;
+#else
+		hashp->dbmerrno = __LINE__;
+#endif
 		return (DBM_ERROR);
 	}
+#if !defined(WINCE)
 	if ((hashp->flags & O_ACCMODE) == O_RDONLY) {
 		hashp->dbmerrno = errno = EPERM;
 		return (DBM_ERROR);
 	}
+#else
+	if ((hashp->flags & PR_ACCMODE) == PR_RDONLY) {
+		hashp->dbmerrno = __LINE__;
+		return (DBM_ERROR);
+	}
+#endif
 	rv = hash_access(hashp, HASH_DELETE, (DBT *)key, NULL);
 
 	if(rv == DATABASE_CORRUPTED_ERROR)
@@ -975,7 +1090,11 @@ found:
 			return (DBM_ERROR);
 		break;
 	default:
+#if !defined(WINCE)
 		abort();
+#else
+        PR_Abort();
+#endif
 	}
 	save_bufp->flags &= ~BUF_PIN;
 	return (SUCCESS);
@@ -997,7 +1116,11 @@ hash_seq(
 		return (DBM_ERROR);
 
 	if (flag && flag != R_FIRST && flag != R_NEXT) {
+#if !defined(WINCE)
 		hashp->dbmerrno = errno = EINVAL;
+#else
+		hashp->dbmerrno = __LINE__;
+#endif
 		return (DBM_ERROR);
 	}
 #ifdef HASH_STATISTICS
@@ -1170,21 +1293,31 @@ alloc_segs(
 	register int i;
 	register SEGMENT store;
 
+#if !defined(WINCE)
 	int save_errno;
+#endif
 
 	if ((hashp->dir =
 	    (SEGMENT *)calloc((size_t)hashp->DSIZE, sizeof(SEGMENT *))) == NULL) {
+#if !defined(WINCE)
 		save_errno = errno;
+#endif
 		(void)hdestroy(hashp);
+#if !defined(WINCE)
 		errno = save_errno;
+#endif
 		return (-1);
 	}
 	/* Allocate segments */
 	if ((store =
 	    (SEGMENT)calloc((size_t)nsegs << hashp->SSHIFT, sizeof(SEGMENT))) == NULL) {
+#if !defined(WINCE)
 		save_errno = errno;
+#endif
 		(void)hdestroy(hashp);
+#if !defined(WINCE)
 		errno = save_errno;
+#endif
 		return (-1);
 	}
 	for (i = 0; i < nsegs; i++, hashp->nsegs++)

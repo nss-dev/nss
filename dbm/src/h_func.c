@@ -41,7 +41,9 @@ static char sccsid[] = "@(#)hash_func.c	8.2 (Berkeley) 2/21/94";
 #include "watcomfx.h"
 
 #ifndef macintosh
+#if !defined(WINCE)
 #include <sys/types.h>
+#endif
 #endif
 #include "mcom_db.h"
 #include "hash.h"

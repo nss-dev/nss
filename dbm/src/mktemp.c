@@ -37,6 +37,7 @@ static char sccsid[] = "@(#)mktemp.c	8.1 (Berkeley) 6/4/93";
 
 #include "watcomfx.h"
 
+#if !defined(WINCE)
 #ifdef macintosh
 #include <unix.h>
 #else
@@ -45,6 +46,7 @@ static char sccsid[] = "@(#)mktemp.c	8.1 (Berkeley) 6/4/93";
 #endif
 #include <fcntl.h>
 #include <errno.h>
+#endif /* WINCE */
 #include <stdio.h>
 #include <ctype.h>
 #include "mcom_db.h"
@@ -60,7 +62,9 @@ static char sccsid[] = "@(#)mktemp.c	8.1 (Berkeley) 6/4/93";
 #endif
 
 #ifdef _WINDOWS
+#if !defined(WINCE)
 #include <process.h>
+#endif
 #include "winfile.h"
 #endif
 
