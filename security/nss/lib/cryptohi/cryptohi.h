@@ -40,8 +40,6 @@
 
 #include "blapi.h"
 
-#include "mcom_db.h"
-
 #include "seccomon.h"
 #include "secrngt.h"
 #include "secoidt.h"

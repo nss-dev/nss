@@ -41,7 +41,6 @@
 #define _CMS_H_
 
 #include "seccomon.h"
-#include "mcom_db.h"	/* needed by certt.h */
 
 #include "secoidt.h"
 #include "secder.h"	/* needed by certt.h; XXX go away when possible */
