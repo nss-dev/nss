@@ -2225,19 +2225,25 @@ PK11Slot * pk11_NewSlotFromID(CK_SLOT_ID slotID, int moduleIndex)
 static SECStatus
 pk11_set_user(NSSLOWCERTCertificate *cert, SECItem *dummy, void *arg)
 {
-    NSSLOWKEYDBHandle *keydb = (NSSLOWKEYDBHandle *)arg;
+    PK11Slot  *slot = (PK11Slot *)arg;
+    NSSLOWCERTCertTrust trust = *cert->trust;
 
-    if (nsslowkey_KeyForCertExists(keydb,cert)) {
-	cert->trust->sslFlags |= CERTDB_USER;
-	cert->trust->emailFlags |= CERTDB_USER;
-	cert->trust->objectSigningFlags |= CERTDB_USER;
+    if (nsslowkey_KeyForCertExists(slot->keyDB,cert)) {
+	trust.sslFlags |= CERTDB_USER;
+	trust.emailFlags |= CERTDB_USER;
+	trust.objectSigningFlags |= CERTDB_USER;
     } else {
-	cert->trust->sslFlags &= ~CERTDB_USER;
-	cert->trust->emailFlags &= ~CERTDB_USER;
-	cert->trust->objectSigningFlags &= ~CERTDB_USER;
+	trust.sslFlags &= ~CERTDB_USER;
+	trust.emailFlags &= ~CERTDB_USER;
+	trust.objectSigningFlags &= ~CERTDB_USER;
+    }
+
+    if (PORT_Memcmp(&trust,cert->trust, sizeof (trust)) != 0) {
+	nsslowcert_ChangeCertTrust(slot->certDB,cert, &trust);
     }
 
     /* should check for email address and make sure we have an s/mime profile */
+    return SECSuccess;
 }
 
 static  void
@@ -2246,7 +2252,7 @@ pk11_DBVerify(PK11Slot *slot)
     /* walk through all the certs and check to see if there are any 
      * user certs, and make sure there are s/mime profiles for all certs with
      * email addresses */
-    nsslowcert_TraversePermCerts(slot->certDB,pk11_set_user,slot->keyDB);
+    nsslowcert_TraversePermCerts(slot->certDB,pk11_set_user,slot);
 
     return;
 }
@@ -2732,6 +2738,29 @@ CK_RV NSC_GetSlotInfo(CK_SLOT_ID slotID, CK_SLOT_INFO_PTR pInfo)
 
 #define CKF_THREAD_SAFE 0x8000 /* for now */
 
+/*
+ * check the current state of the 'needLogin' flag in case the database has
+ * been changed underneath us.
+ */
+static PRBool
+pk11_checkNeedLogin(PK11Slot *slot)
+{
+    if (slot->password) {
+	if (nsslowkey_CheckKeyDBPassword(slot->keyDB,slot->password) 
+							== SECSuccess) {
+	    return slot->needLogin;
+	} else {
+	    SECITEM_FreeItem(slot->password, PR_TRUE);
+	    slot->password = NULL;
+	    slot->isLoggedIn = PR_FALSE;
+	}
+    }
+    slot->needLogin = 
+		(PRBool)!pk11_hasNullPassword(slot->keyDB,&slot->password);
+    return (slot->needLogin);
+}
+
+
 /* NSC_GetTokenInfo obtains information about a particular token in 
  * the system. */
 CK_RV NSC_GetTokenInfo(CK_SLOT_ID slotID,CK_TOKEN_INFO_PTR pInfo)
@@ -2774,7 +2803,7 @@ CK_RV NSC_GetTokenInfo(CK_SLOT_ID slotID,CK_TOKEN_INFO_PTR pInfo)
 	 */
 	if (nsslowkey_HasKeyDBPassword(handle) == SECFailure) {
 	    pInfo->flags = CKF_THREAD_SAFE | CKF_LOGIN_REQUIRED;
-	} else if (!slot->needLogin) {
+	} else if (!pk11_checkNeedLogin(slot)) {
 	    pInfo->flags = CKF_THREAD_SAFE | CKF_USER_PIN_INITIALIZED;
 	} else {
 	    pInfo->flags = CKF_THREAD_SAFE | 
@@ -2794,8 +2823,6 @@ CK_RV NSC_GetTokenInfo(CK_SLOT_ID slotID,CK_TOKEN_INFO_PTR pInfo)
     }
     return CKR_OK;
 }
-
-
 
 /* NSC_GetMechanismList obtains a list of mechanism types 
  * supported by a token. */

@@ -115,7 +115,6 @@ Usage(char *progName)
     fprintf(stderr, "  -G           include a signing time attribute\n");
     fprintf(stderr, "  -P           include a SMIMECapabilities attribute\n");
     fprintf(stderr, "  -Y nick      include a EncryptionKeyPreference attribute with cert\n");
-    fprintf(stderr, "                 (use \"NONE\" to omit)\n");
     fprintf(stderr, " -E            create a CMS enveloped message (NYI)\n");
     fprintf(stderr, "  -r id,...    create envelope for these recipients,\n");
     fprintf(stderr, "               where id can be a certificate nickname or email address\n");
@@ -417,7 +416,7 @@ signed_data(struct signOptionsStr *signOptions)
     }
     if ((cert = CERT_FindUserCertByUsage(signOptions->options->certHandle, 
                                          signOptions->nickname,
-                                         signOptions->options->certUsage,
+                                         certUsageEmailSigner,
                                          PR_FALSE,
                                          NULL)) == NULL) {
 	SECU_PrintError(progName, 
@@ -493,7 +492,35 @@ signed_data(struct signOptionsStr *signOptions)
 	}
     }
 
-    if (!signOptions->encryptionKeyPreferenceNick) {
+    if (signOptions->encryptionKeyPreferenceNick) {
+	/* get the cert, add it to the message */
+	if ((ekpcert = CERT_FindUserCertByUsage(
+                                     signOptions->options->certHandle, 
+	                             signOptions->encryptionKeyPreferenceNick,
+                                     certUsageEmailRecipient, PR_FALSE, NULL))
+	      == NULL) {
+	    SECU_PrintError(progName, 
+	               "the corresponding cert for key \"%s\" does not exist",
+	                signOptions->encryptionKeyPreferenceNick);
+	    goto loser;
+	}
+	if (NSS_CMSSignerInfo_AddSMIMEEncKeyPrefs(signerinfo, ekpcert, 
+	                                     signOptions->options->certHandle)
+	      != SECSuccess) {
+	    fprintf(stderr, "ERROR: cannot add SMIMEEncKeyPrefs attribute.\n");
+	    goto loser;
+	}
+	if (NSS_CMSSignerInfo_AddMSSMIMEEncKeyPrefs(signerinfo, ekpcert, 
+	                                     signOptions->options->certHandle)
+	      != SECSuccess) {
+	    fprintf(stderr, "ERROR: cannot add MS SMIMEEncKeyPrefs attribute.\n");
+	    goto loser;
+	}
+	if (NSS_CMSSignedData_AddCertificate(sigd, ekpcert) != SECSuccess) {
+	    fprintf(stderr, "ERROR: cannot add encryption certificate.\n");
+	    goto loser;
+	}
+    } else {
 	/* check signing cert for fitness as encryption cert */
         SECStatus FitForEncrypt = CERT_CheckCertUsage(cert,
                                                       certUsageEmailRecipient);
@@ -548,36 +575,6 @@ signed_data(struct signOptionsStr *signOptions)
                 goto loser;
             }
         }
-    } else if (PL_strcmp(signOptions->encryptionKeyPreferenceNick, "NONE") == 0) {
-        /* No action */
-    } else {
-	/* get the cert, add it to the message */
-	if ((ekpcert = CERT_FindUserCertByUsage(
-                                     signOptions->options->certHandle, 
-	                             signOptions->encryptionKeyPreferenceNick,
-                                     certUsageEmailRecipient, PR_FALSE, NULL))
-	      == NULL) {
-	    SECU_PrintError(progName, 
-	               "the corresponding cert for key \"%s\" does not exist",
-	                signOptions->encryptionKeyPreferenceNick);
-	    goto loser;
-	}
-	if (NSS_CMSSignerInfo_AddSMIMEEncKeyPrefs(signerinfo, ekpcert, 
-	                                     signOptions->options->certHandle)
-	      != SECSuccess) {
-	    fprintf(stderr, "ERROR: cannot add SMIMEEncKeyPrefs attribute.\n");
-	    goto loser;
-	}
-	if (NSS_CMSSignerInfo_AddMSSMIMEEncKeyPrefs(signerinfo, ekpcert, 
-	                                     signOptions->options->certHandle)
-	      != SECSuccess) {
-	    fprintf(stderr, "ERROR: cannot add MS SMIMEEncKeyPrefs attribute.\n");
-	    goto loser;
-	}
-	if (NSS_CMSSignedData_AddCertificate(sigd, ekpcert) != SECSuccess) {
-	    fprintf(stderr, "ERROR: cannot add encryption certificate.\n");
-	    goto loser;
-	}
     }
 
     if (NSS_CMSSignedData_AddSignerInfo(sigd, signerinfo) != SECSuccess) {
@@ -962,6 +959,17 @@ loser:
 
 typedef enum { UNKNOWN, DECODE, SIGN, ENCRYPT, ENVELOPE, CERTSONLY } Mode;
 
+#if 0
+void
+parse_message_for_recipients(PRFileDesc *inFile, 
+                             struct envelopeOptionsStr *envelopeOptions)
+{
+    SECItem filedata;
+    SECStatus rv;
+    rv = SECU_FileToItem(&filedata, inFile);
+}
+#endif
+
 int
 main(int argc, char **argv)
 {
@@ -1019,7 +1027,7 @@ main(int argc, char **argv)
      * Parse command line arguments
      */
     optstate = PL_CreateOptState(argc, argv, 
-                                 "CDSEOnN:TGPY:vh:p:i:c:d:e:o:s:u:r:");
+                                 "CDSEOnN:TGPYv:h:p:i:c:d:e:o:s:u:r:");
     while ((status = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
 	switch (optstate->option) {
 	case '?':
@@ -1162,6 +1170,13 @@ main(int argc, char **argv)
 	    break;
 
 	case 'o':
+#if 0
+	    if (mode == DECODE) {
+		outFile = fopen(optstate->value, "w");
+	    } else {
+		outFile = fopen(optstate->value, "wb");
+	    }
+#endif
 	    outFile = fopen(optstate->value, "wb");
 	    if (outFile == NULL) {
 		fprintf(stderr, "%s: unable to open \"%s\" for writing\n",
@@ -1176,6 +1191,9 @@ main(int argc, char **argv)
 		Usage(progName);
 		exit(1);
 	    }
+#if 0
+	    fprintf(stderr, "recipient = %s\n", optstate->value);
+#endif
 	    envelopeOptions.recipients = ptrarray;
 	    str = (char *)optstate->value;
 	    do {
@@ -1242,6 +1260,7 @@ main(int argc, char **argv)
     }
 
 #if defined(_WIN32)
+    /*if (outFile == stdout && mode != DECODE) {*/
     if (outFile == stdout) {
 	/* If we're going to write binary data to stdout, we must put stdout
 	** into O_BINARY mode or else outgoing \n's will become \r\n's.
@@ -1337,6 +1356,10 @@ main(int argc, char **argv)
 	break;
     case ENVELOPE:
 	envelopeOptions.options = &options;
+#if 0
+	if (!envelopeOptions.recipients)
+	    parse_message_for_recipients(myIn, &envelopeOptions);
+#endif
 	cmsg = enveloped_data(&envelopeOptions);
 	if (!cmsg) {
 	    SECU_PrintError(progName, "problem enveloping");
