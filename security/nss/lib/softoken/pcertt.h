@@ -48,7 +48,6 @@
 #include "prio.h"
 #include "prmon.h"
 
-
 /* Non-opaque objects */
 typedef struct NSSLOWCERTCertDBHandleStr               NSSLOWCERTCertDBHandle;
 typedef struct NSSLOWCERTCertKeyStr                    NSSLOWCERTCertKey;
@@ -213,7 +212,8 @@ typedef enum {
     certDBEntryTypeRevocation = 4,
     certDBEntryTypeKeyRevocation = 5,
     certDBEntryTypeSMimeProfile = 6,
-    certDBEntryTypeContentVersion = 7
+    certDBEntryTypeContentVersion = 7,
+    certDBEntryTypeBlob = 8
 } certDBEntryType;
 
 typedef struct {
