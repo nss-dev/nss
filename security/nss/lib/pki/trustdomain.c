@@ -515,7 +515,7 @@ static PRBool cert_token_not_present(NSSCertificate *c)
          instance  = (nssCryptokiInstance *)nssListIterator_Next(instances))
     {
 	if (!nssToken_IsPresent(instance->token)) {
-	    nssToken_DestroyCertList(instance->token);
+	    nssToken_DestroyCertList(instance->token, PR_TRUE);
 	    nssList_Remove(c->object.instanceList, instance);
 	} else {
 	    freeIt = PR_FALSE;
