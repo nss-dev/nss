@@ -96,7 +96,6 @@ struct NSSTokenStr
     NSSTrustDomain *trustDomain;
     PRIntervalTime lastTime;
     nssTokenObjectCache *cache;
-    PZLock *lock;
 #ifdef NSS_3_4_CODE
     PK11SlotInfo *pk11slot;
 #endif
