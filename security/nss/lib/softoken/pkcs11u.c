@@ -1704,6 +1704,11 @@ pk11_forceTokenAttribute(PK11Object *object,CK_ATTRIBUTE_TYPE type,
      * allow it to happen. Let label setting go through so
      * we have the opportunity to repair any database corruption. */
     attribute=pk11_FindAttribute(object,type);
+    PORT_Assert(attribute);
+    if (!attribute) {
+        return CKR_ATTRIBUTE_TYPE_INVALID;
+
+    }
     if ((type != CKA_LABEL) && (attribute->attrib.ulValueLen == len) &&
 	PORT_Memcmp(attribute->attrib.pValue,value,len) == 0) {
 	pk11_FreeAttribute(attribute);
@@ -1742,6 +1747,14 @@ pk11_forceAttribute(PK11Object *object,CK_ATTRIBUTE_TYPE type, void *value,
     PRBool freeData = PR_FALSE;
 
     if (pk11_isToken(object->handle)) {
+        PORT_Assert(object);
+        PORT_Assert(object->refCount);
+        PORT_Assert(object->slot);
+        if (!object ||
+            !object->refCount ||
+            !object->slot) {
+            return CKR_DEVICE_ERROR;
+        }
 	return pk11_forceTokenAttribute(object,type,value,len);
     }
     attribute=pk11_FindAttribute(object,type);
