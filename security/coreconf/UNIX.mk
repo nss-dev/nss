@@ -46,10 +46,10 @@ else
 	DEFINES    += -DDEBUG -UNDEBUG -DDEBUG_$(shell whoami)
 endif
 
-NSINSTALL_DIR  = $(CORE_DEPTH)/coreconf/nsinstall
+NSINSTALL_DIR  = $(MOD_DEPTH)/coreconf/nsinstall
 NSINSTALL      = $(NSINSTALL_DIR)/$(OBJDIR_NAME)/nsinstall
 
-MKDEPEND_DIR    = $(CORE_DEPTH)/coreconf/mkdepend
+MKDEPEND_DIR    = $(MOD_DEPTH)/coreconf/mkdepend
 MKDEPEND        = $(MKDEPEND_DIR)/$(OBJDIR_NAME)/mkdepend
 MKDEPENDENCIES  = $(OBJDIR_NAME)/depend.mk
 

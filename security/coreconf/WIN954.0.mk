@@ -38,7 +38,7 @@
 # CPU_ARCH, OS_CFLAGS, and OS_DLLFLAGS.
 # PROCESSOR is an internal variable.
 
-include $(CORE_DEPTH)/coreconf/WIN32.mk
+include $(CORECONF_SOURCE)/WIN32.mk
 
 PROCESSOR := $(shell uname -p)
 ifeq ($(PROCESSOR), I386)

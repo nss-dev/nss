@@ -35,7 +35,7 @@
 # Config stuff for SCO Unixware 2.1
 #
 
-include $(CORE_DEPTH)/coreconf/UNIX.mk
+include $(CORECONF_SOURCE)/UNIX.mk
 
 DEFAULT_COMPILER = $(CORE_DEPTH)/build/hcc
 

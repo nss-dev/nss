@@ -107,7 +107,7 @@ EXTRA_LIBS += \
 	$(DIST)/lib/libswfci.$(LIB_SUFFIX) \
 	$(CRYPTOLIB) \
 	$(DIST)/lib/libsecutil.$(LIB_SUFFIX) \
-	$(DIST)/lib/libdbm.$(LIB_SUFFIX) \
+	$(DBM_LIBS) \
 	$(NULL)
 
 ifeq ($(OS_ARCH), AIX) 
@@ -123,12 +123,7 @@ EXTRA_SHARED_LIBS += \
 	$(DIST)/lib/nspr4.lib \
 	$(NULL)
 else
-EXTRA_SHARED_LIBS += \
-	-L$(DIST)/lib/ \
-	-lplc4 \
-	-lplds4 \
-	-lnspr4 \
-	$(NULL)
+EXTRA_SHARED_LIBS += $(NSPR_LIBS) 
 endif
 endif
 
@@ -170,9 +165,7 @@ EXTRA_SHARED_LIBS += \
 	-lssl3 \
 	-lsmime3 \
 	-lnss3 \
-	-lplc4 \
-	-lplds4 \
-	-lnspr4 \
+	$(NSPR_LIBS) \
 	$(NULL)
 endif
 

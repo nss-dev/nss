@@ -73,7 +73,7 @@ RC           = wrc.exe
 RC          += /r /dWIN16=1 /bt=windows
 RANLIB       = echo
 BSDECHO      = echo
-NSINSTALL_DIR  = $(CORE_DEPTH)/coreconf/nsinstall
+NSINSTALL_DIR  = $(CORECONF_SOURCE)/nsinstall
 NSINSTALL      = nsinstall
 INSTALL	     = $(NSINSTALL)
 MAKE_OBJDIR  = mkdir

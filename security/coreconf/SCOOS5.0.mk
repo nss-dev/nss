@@ -33,4 +33,4 @@
 # Config stuff for SCO OpenServer 5.0 for x86.
 #
 
-include $(CORE_DEPTH)/coreconf/SCO_SV3.2.mk
+include $(CORECONF_SOURCE)/SCO_SV3.2.mk

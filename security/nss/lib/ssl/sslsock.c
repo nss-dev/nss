@@ -1306,8 +1306,12 @@ ssl_Poll(PRFileDesc *fd, PRInt16 how_flags, PRInt16 *out_flags)
 
     if ((ret_flags & PR_POLL_READ) && (SSL_DataPending(fd) > 0)) {
 	*out_flags = PR_POLL_READ;	/* it's ready already. */
-
-    } else if (ret_flags && (fd->lower->methods->poll != NULL)) {
+	return ret_flags;
+    } 
+    if ((ret_flags & PR_POLL_READ) && (ss->pendingBuf.len != 0)) {
+	ret_flags |= PR_POLL_WRITE;
+    } 
+    if (ret_flags && (fd->lower->methods->poll != NULL)) {
         ret_flags = fd->lower->methods->poll(fd->lower, ret_flags, out_flags);
     }
 

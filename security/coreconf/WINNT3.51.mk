@@ -39,7 +39,7 @@
 # It has the following internal variables:
 # OS_PROC_CFLAGS and OS_WIN_CFLAGS.
 
-include $(CORE_DEPTH)/coreconf/WIN32.mk
+include $(CORECONF_SOURCE)/WIN32.mk
 
 PROCESSOR := $(shell uname -p)
 ifeq ($(PROCESSOR), I386)

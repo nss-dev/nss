@@ -33,7 +33,7 @@
 # Config stuff for ReliantUNIX
 #
 
-include $(CORE_DEPTH)/coreconf/UNIX.mk
+include $(CORECONF_SOURCE)/UNIX.mk
 
 DEFAULT_COMPILER = cc
 

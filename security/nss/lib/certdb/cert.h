@@ -1076,6 +1076,14 @@ CERT_AddCertToListTail(CERTCertList *certs, CERTCertificate *cert);
 SECStatus
 CERT_AddCertToListHead(CERTCertList *certs, CERTCertificate *cert);
 
+SECStatus
+CERT_AddCertToListTailWithData(CERTCertList *certs, CERTCertificate *cert,
+							 void *appData);
+
+SECStatus
+CERT_AddCertToListHeadWithData(CERTCertList *certs, CERTCertificate *cert,
+							 void *appData);
+
 typedef PRBool (* CERTSortCallback)(CERTCertificate *certa,
 				    CERTCertificate *certb,
 				    void *arg);

@@ -32,7 +32,7 @@
 #
 # Config stuff for HP-UXB.10
 #
-include $(CORE_DEPTH)/coreconf/HP-UX.mk
+include $(CORECONF_SOURCE)/HP-UX.mk
 
 OS_CFLAGS += -DHPUX10
 OS_LIBS   += -lpthread -lm
