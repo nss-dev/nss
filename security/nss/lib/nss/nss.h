@@ -55,7 +55,6 @@ SEC_BEGIN_PROTOS
 #define NSS_VPATCH   0
 #define NSS_BETA     PR_TRUE
 
-
 /*
  * Return a boolean that indicates whether the underlying library
  * will perform as the caller expects.
