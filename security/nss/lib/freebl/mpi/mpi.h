@@ -55,7 +55,11 @@
 #endif
 
 #include <limits.h>
+#ifdef macintosh
+#include <Types.h>
+#else
 #include <sys/types.h>
+#endif
 
 #define  MP_NEG    1
 #define  MP_ZPOS   0
@@ -246,8 +250,9 @@ int    mp_iseven(const mp_int *a);
 #if MP_NUMTH
 mp_err mp_gcd(mp_int *a, mp_int *b, mp_int *c);
 mp_err mp_lcm(mp_int *a, mp_int *b, mp_int *c);
-mp_err mp_xgcd(mp_int *a, mp_int *b, mp_int *g, mp_int *x, mp_int *y);
-mp_err mp_invmod(mp_int *a, mp_int *m, mp_int *c);
+mp_err mp_xgcd(const mp_int *a, const mp_int *b, mp_int *g, mp_int *x, mp_int *y);
+mp_err mp_invmod(const mp_int *a, const mp_int *m, mp_int *c);
+mp_err mp_invmod_xgcd(const mp_int *a, const mp_int *m, mp_int *c);
 #endif /* end MP_NUMTH */
 
 /* Input and output        */
@@ -259,7 +264,7 @@ void   mp_print(mp_int *mp, FILE *ofp);
 mp_err mp_read_raw(mp_int *mp, char *str, int len);
 int    mp_raw_size(mp_int *mp);
 mp_err mp_toraw(mp_int *mp, char *str);
-mp_err mp_read_radix(mp_int *mp, char *str, int radix);
+mp_err mp_read_radix(mp_int *mp, const char *str, int radix);
 int    mp_radix_size(mp_int *mp, int radix);
 mp_err mp_toradix(mp_int *mp, char *str, int radix);
 int    mp_tovalue(char ch, int r);
@@ -278,6 +283,9 @@ int    mp_unsigned_octet_size(const mp_int *mp);
 mp_err mp_to_unsigned_octets(const mp_int *mp, unsigned char *str, mp_size maxlen);
 mp_err mp_to_signed_octets(const mp_int *mp, unsigned char *str, mp_size maxlen);
 mp_err mp_to_fixlen_octets(const mp_int *mp, unsigned char *str, mp_size len);
+
+/* Miscellaneous */
+mp_size mp_trailing_zeros(const mp_int *mp);
 
 #define MP_CHECKOK(x)  if (MP_OKAY > (res = (x))) goto CLEANUP
 #define MP_CHECKERR(x) if (MP_OKAY > (res = (x))) goto CLEANUP

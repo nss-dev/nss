@@ -13,7 +13,7 @@
 # 
 # The Initial Developer of the Original Code is Netscape
 # Communications Corporation.  Portions created by Netscape are 
-# Copyright (C) 1994-2000 Netscape Communications Corporation.  All
+# Copyright (C) 2000 Netscape Communications Corporation.  All
 # Rights Reserved.
 # 
 # Contributor(s):
@@ -30,66 +30,18 @@
 # may use your version of this file under either the MPL or the
 # GPL.
 #
+# Config stuff for Solaris 8 on x86
+# 
 
-#
-# An NMAKE file to set up and adjust NSS's build system for
-# Client build.  Client build should invoke NMAKE on this file
-# instead of invoking gmake directly.
-#
+SOL_CFLAGS	= -D_SVID_GETTOD
 
-DEPTH = ..\..
-include <$(DEPTH)\config\config.mak>
+include $(CORE_DEPTH)/coreconf/SunOS5.mk
 
-GMAKE = gmake.exe
+CPU_ARCH		= x86
+OS_DEFINES		+= -Di386
 
-GMAKE_FLAGS = OBJDIR_NAME=$(OBJDIR)
+ifeq ($(OS_RELEASE),5.8_i86pc)
+	OS_DEFINES += -DSOLARIS2_8
+endif
 
-#
-# The Client's debug build uses MSVC's debug runtime library (/MDd).
-#
-
-!ifndef MOZ_DEBUG
-GMAKE_FLAGS = $(GMAKE_FLAGS) BUILD_OPT=1
-!endif
-
-!if "$(MOZ_BITS)" == "16"
-GMAKE_FLAGS = $(GMAKE_FLAGS) OS_TARGET=WIN16
-!else
-
-GMAKE_FLAGS = $(GMAKE_FLAGS) OS_TARGET=WIN95
-!ifdef MOZ_DEBUG
-!ifndef MOZ_NO_DEBUG_RTL
-GMAKE_FLAGS = $(GMAKE_FLAGS) USE_DEBUG_RTL=1
-!endif
-!endif
-
-!endif
- 
-#
-# The rules.  Simply invoke gmake with the same target.
-# The default target is 'all'.  For Win16, set up the
-# environment to use the Watcom compiler, Watcom headers,
-# and Watcom libs.
-#
-
-all:: export libs install
-
-install:: moz_import
-
-depend::
-
-export libs install clobber clobber_all clean::
-!if "$(MOZ_BITS)" == "16"
-	set PATH=%WATCPATH%
-	set INCLUDE=%WATC_INC%
-	set LIB=%WATC_LIB%
-!endif
-	$(GMAKE) $(GMAKE_FLAGS) $@
-!if "$(MOZ_BITS)" == "16"
-	set PATH=%MSVCPATH%
-	set INCLUDE=%MSVC_INC%
-	set LIB=%MSVC_LIB%
-!endif
-
-moz_import::
-	copy $(DIST)\lib\dbm32.lib $(DIST)\lib\dbm.lib
+OS_LIBS += -lthread -lnsl -lsocket -lposix4 -ldl -lc
