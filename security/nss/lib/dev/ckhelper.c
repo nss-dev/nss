@@ -208,3 +208,25 @@ nssCKObject_IsAttributeTrue
     return (PRBool)(bool == CK_TRUE);
 }
 
+NSS_IMPLEMENT PRStatus 
+nssCKObject_SetAttributes
+(
+  CK_OBJECT_HANDLE object,
+  CK_ATTRIBUTE_PTR obj_template,
+  CK_ULONG count,
+  nssSession *session,
+  NSSSlot  *slot
+)
+{
+    CK_RV ckrv;
+    nssSession_EnterMonitor(session);
+    ckrv = CKAPI(slot)->C_SetAttributeValue(session->handle, object, 
+                                            obj_template, count);
+    nssSession_ExitMonitor(session);
+    if (ckrv == CKR_OK) {
+	return PR_SUCCESS;
+    } else {
+	return PR_FAILURE;
+    }
+}
+

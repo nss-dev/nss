@@ -231,28 +231,28 @@ nssToken_DeleteStoredObject
     return PR_SUCCESS;
 }
 
-NSS_IMPLEMENT PRStatus
+NSS_IMPLEMENT CK_OBJECT_HANDLE
 nssToken_ImportObject
 (
   NSSToken *tok,
   nssSession *sessionOpt,
   CK_ATTRIBUTE_PTR objectTemplate,
-  CK_ULONG otsize,
-  CK_OBJECT_HANDLE_PTR phObject
+  CK_ULONG otsize
 )
 {
     nssSession *session;
+    CK_OBJECT_HANDLE object;
     CK_RV ckrv;
     session = (sessionOpt) ? sessionOpt : tok->defaultSession;
     nssSession_EnterMonitor(session);
     ckrv = CKAPI(tok->slot)->C_CreateObject(session->handle, 
                                             objectTemplate, otsize,
-                                            phObject);
+                                            &object);
     nssSession_ExitMonitor(session);
     if (ckrv != CKR_OK) {
-	return PR_FAILURE;
+	return CK_INVALID_KEY;
     }
-    return PR_SUCCESS;
+    return object;
 }
 
 NSS_IMPLEMENT CK_OBJECT_HANDLE
@@ -457,14 +457,14 @@ nssToken_TraverseCertificates
     };
     CK_ULONG ctsize = sizeof(cert_template) / sizeof(cert_template[0]);
     NSS_CK_SET_ATTRIBUTE_ITEM(cert_template, 0, &g_ck_class_cert);
-    nssrv = nssToken_FindCertificatesByTemplate(tok, sessionOpt, NULL,
-                                                cert_template, ctsize,
-                                                callback, arg);
+    nssrv = nssToken_TraverseCertificatesByTemplate(tok, sessionOpt, NULL,
+                                                    cert_template, ctsize,
+                                                    callback, arg);
     return NULL; /* XXX */
 }
 
 NSS_IMPLEMENT PRStatus
-nssToken_FindCertificatesByTemplate
+nssToken_TraverseCertificatesByTemplate
 (
   NSSToken *tok,
   nssSession *sessionOpt,

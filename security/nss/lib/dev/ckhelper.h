@@ -75,6 +75,11 @@ NSS_EXTERN_DATA const NSSItem g_ck_class_privkey;
     (cktemplate)[index].pValue = (CK_VOID_PTR)&var;       \
     (cktemplate)[index].ulValueLen = (CK_ULONG)sizeof(var)
 
+/* so, nssUTF8_Size or nssUTF8_Length?  \0 or no? */
+#define NSS_CK_SET_ATTRIBUTE_UTF8(cktemplate, index, utf8)  \
+    (cktemplate)[index].pValue = (CK_VOID_PTR)utf8;         \
+    (cktemplate)[index].ulValueLen = (CK_ULONG)nssUTF8_Size(utf8, NULL);
+
 #define NSS_CK_SET_ATTRIBUTE_ITEM(cktemplate, index, item)  \
     (cktemplate)[index].pValue = (CK_VOID_PTR)(item)->data; \
     (cktemplate)[index].ulValueLen = (CK_ULONG)(item)->size;
@@ -134,6 +139,16 @@ nssCKObject_IsAttributeTrue
   nssSession *session,
   NSSSlot *slot,
   PRStatus *rvStatus
+);
+
+NSS_EXTERN PRStatus 
+nssCKObject_SetAttributes
+(
+  CK_OBJECT_HANDLE object,
+  CK_ATTRIBUTE_PTR obj_template,
+  CK_ULONG count,
+  nssSession *session,
+  NSSSlot  *slot
 );
 
 PR_END_EXTERN_C
