@@ -1,5 +1,5 @@
 #
-# Copyright 2002 Sun Microsystems, Inc.  All rights reserved.
+# Copyright 2004 Sun Microsystems, Inc.  All rights reserved.
 # Use is subject to license terms.
 #
 #ident	"$Id$"
@@ -14,36 +14,26 @@ CORE_DEPTH = ../../..
 
 HEADER_DIR = public/nss
 
-ifeq ($(USE_64), 1)
-DIRS = \
-	SUNWtlsx \
-	SUNWtlsux
-else
 DIRS = \
 	SUNWtls \
 	SUNWtlsu \
 	SUNWtlsd
-endif
 
 PROTO = \
 	$(ROOT) \
 	$(ROOT)/usr \
 	$(ROOT)/usr/lib \
 	$(ROOT)/usr/lib/mps \
+	$(ROOT)/usr/lib/mps/sparcv9 \
 	$(ROOT)/usr/include \
 	$(ROOT)/usr/include/mps \
 	$(ROOT)/usr/sfw \
-	$(ROOT)/usr/sfw/bin
-
-
-ifdef USE_64
-PROTO += $(ROOT)/usr/lib/mps/sparcv9 \
-	$(ROOT)/usr/include/mps/sparcv9 \
+	$(ROOT)/usr/sfw/bin \
 	$(ROOT)/usr/sfw/bin/sparcv9
 
-endif
-
 include Makefile.com
+
+DIST64 = $(shell echo $(DIST) | sed -e "s|_OPT|_64_OPT|g" -e "s|_DBG|_64_DBG|g")
 
 awk_pkginfo: bld_awk_pkginfo
 	./bld_awk_pkginfo -m $(MACH) -p "$(PRODUCT_VERSION)" -o $@ -v $(PRODUCT_VERSION)
@@ -59,18 +49,20 @@ clean clobber::
 $(ROOT) $(ROOT)/%:
 	mkdir -p $@
 
-ifdef USE_64
-$(ROOT)/usr/lib/mps/sparcv9: $(ROOT)/usr/lib/mps
-	$(LN) -sf ../../../../$(DIST)/lib $@
-$(ROOT)/usr/sfw/bin/sparcv9: $(ROOT)/usr/sfw/bin
-	$(LN) -sf ../../../../$(DIST)/bin $@
-$(ROOT)/usr/include/mps/sparcv9: $(ROOT)/usr/include
-	$(LN) -sf ../../../../$(SOURCE_PREFIX)/$(HEADER_DIR) $@
-else
 $(ROOT)/usr/lib/mps: $(ROOT)/usr/lib
-	$(LN) -sf ../../../$(DIST)/lib $@
+	mkdir -p $@
+	$(CP) -r $(DIST)/lib/*.so $@
+	$(CP) -r $(DIST)/lib/*.chk $@
 $(ROOT)/usr/sfw/bin: $(ROOT)/usr/sfw
-	$(LN) -sf ../../../$(DIST)/bin $@
+	mkdir -p $@
+	-$(CP) -r $(DIST)/bin/* $@
 $(ROOT)/usr/include/mps: $(ROOT)/usr/include
-	$(LN) -sf ../../../$(SOURCE_PREFIX)/$(HEADER_DIR) $@
-endif
+	mkdir -p $@
+	$(CP) -r $(SOURCE_PREFIX)/$(HEADER_DIR)/*.h $@
+$(ROOT)/usr/lib/mps/sparcv9: $(ROOT)/usr/lib/mps
+	mkdir -p $@
+	$(CP) -r $(DIST64)/lib/*.so $@
+	$(CP) -r $(DIST64)/lib/*.chk $@
+$(ROOT)/usr/sfw/bin/sparcv9: $(ROOT)/usr/sfw/bin
+	mkdir -p $@
+	$(CP) -r $(DIST64)/bin/* $@
