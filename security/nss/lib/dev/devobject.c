@@ -603,7 +603,7 @@ nssToken_TraverseCertificatesByNickname
      * leaving it in until I have surveyed more tokens to see if it needed.
      * well, its needed by the builtin token...
      */
-    nick_template[1].ulValueLen++;
+    nick_template[2].ulValueLen++;
     nssrv = traverse_objects_by_template(token, sessionOpt,
 	                                 nick_template, ntsize,
                                          retrieve_cert, search);
