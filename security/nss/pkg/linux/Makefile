@@ -23,14 +23,18 @@ publish:
 	find $(CORE_DEPTH)/../dist/$(OBJDIR)/lib -type l \
 		\( -name "*.so" -o -name "*.chk" \) \
         -exec cp {} opt/sun/private/lib \;
-	rm opt/sun/private/lib/libnspr4.so opt/sun/private/lib/libplc4.so \
-		opt/sun/private/lib/libplds4.so
+	rm opt/sun/private/lib/libnspr4.so \
+	   opt/sun/private/lib/libplc4.so \
+	   opt/sun/private/lib/libplds4.so \
+	   opt/sun/private/lib/libjss3.so
 	mkdir -p opt/sun/private/bin
 	(cd $(CORE_DEPTH)/../dist/$(OBJDIR)/bin && tar cphf - \
 		certutil cmsutil crlutil modutil pk12util signtool \
 		signver ssltap ) | (cd opt/sun/private/bin && tar xvfBp -)
 	(cd $(CORE_DEPTH)/../dist/public && tar cphf - .) \
 		| (mkdir -p opt/sun/private/include && cd opt/sun/private/include && tar xvfBp -)
+	rm -rf opt/sun/private/include/seccmd
+	rm -rf opt/sun/private/include/dbm
 
 	tar czvf $(NAME)-$(VERSION).tar.gz opt 
 	echo "%define _topdir `pwd`" >temp.spec
@@ -51,11 +55,15 @@ publish:
 	echo "" >>temp.spec
 	echo "%files devel" >>temp.spec
 	echo "%defattr(-,root,root)" >>temp.spec
-	find opt -type d | sed -e "s-^-%dir /-" >>temp.spec
-	find opt -type f ! \( -name "*.so" -o -name "*.chk" \) \
-		| sed -e "s-^-/-" >>temp.spec
+	echo "%dir /opt" >>temp.spec
+	echo "%dir /opt/sun" >>temp.spec
+	echo "%dir /opt/sun/private" >>temp.spec
+	echo "%dir /opt/sun/private/include" >>temp.spec
+	echo "%dir /opt/sun/private/include/security" >>temp.spec
+	find opt -type f \( -name "*.h" \) \
+	| sed -e "s-^-/-" >>temp.spec
 	cp $(NAME)-$(VERSION).tar.gz SOURCES
-	(export LD_LIBRARY_PATH=$(CORE_DEPTH)/../dist/$(OBJDIR)/lib;
+	(export LD_LIBRARY_PATH=$(CORE_DEPTH)/../dist/$(OBJDIR)/lib;\
 	rpm -ba temp.spec)
 
 clean::
