@@ -1064,8 +1064,6 @@ main(int argc, char **argv)
 			progName, optstate->value);
 		exit(1);
 	    }
-	    SECU_FileToItem(&input, inFile);
-	    PR_Close(inFile);
 	    break;
 
 	case 'c':
@@ -1143,6 +1141,10 @@ main(int argc, char **argv)
 	      
 	}
     }
+
+    SECU_FileToItem(&input, inFile);
+    if (inFile != PR_STDIN)
+	PR_Close(inFile);
 #ifdef DEBUG
     fprintf(stderr, "received commands\n");
 #endif
