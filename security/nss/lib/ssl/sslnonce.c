@@ -44,9 +44,7 @@
 #include "sslproto.h"
 #include "nssilock.h"
 #include "nsslocks.h"
-#if defined(XP_UNIX) || defined(XP_WIN) || defined(_WINDOWS)
-#include <time.h>
-#endif
+
 
 PRUint32 ssl_sid_timeout = 100;
 PRUint32 ssl3_sid_timeout = 86400L; /* 24 hours */
@@ -339,19 +337,14 @@ SSL_ClearSessionCache(void)
 PRUint32
 ssl_Time(void)
 {
-    PRUint32 myTime;
-#if defined(XP_UNIX) || defined(XP_WIN) || defined(_WINDOWS)
-    myTime = time(NULL);	/* accurate until the year 2038. */
-#else
-    /* portable, but possibly slower */
     PRTime now;
     PRInt64 ll;
+    PRUint32 time;
 
     now = PR_Now();
     LL_I2L(ll, 1000000L);
     LL_DIV(now, now, ll);
-    LL_L2UI(myTime, now);
-#endif
-    return myTime;
+    LL_L2UI(time, now);
+    return time;
 }
 
