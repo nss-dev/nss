@@ -160,7 +160,6 @@ struct sidCacheEntryStr {
 };
 typedef struct sidCacheEntryStr sidCacheEntry;
 
-
 /* The length of this struct is supposed to be a power of 2, e.g. 4KB */
 struct certCacheEntryStr {
     PRUint16    certLength;				/*    2 */
@@ -1605,6 +1604,20 @@ ssl_SetWrappingKey(SSLWrappedSymWrappingKey *wswk)
     PRBool        rv = PR_FALSE;
     PR_ASSERT(!"SSL servers are not supported on this platform. (ssl_SetWrappingKey)");
     return rv;
+}
+
+PRUint32  
+SSL_GetMaxServerCacheLocks(void)
+{
+    PR_ASSERT(!"SSL servers are not supported on this platform. (SSL_GetMaxServerCacheLocks)");
+    return -1;
+}
+
+SECStatus 
+SSL_SetMaxServerCacheLocks(PRUint32 maxLocks)
+{
+    PR_ASSERT(!"SSL servers are not supported on this platform. (SSL_SetMaxServerCacheLocks)");
+    return SECFailure;
 }
 
 #endif /* XP_UNIX || XP_WIN32 */
