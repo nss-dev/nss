@@ -505,7 +505,9 @@ void nss_MD_unix_map_default_error(int err)
     case ENOMEM:	prError = PR_OUT_OF_MEMORY_ERROR; break;
     case ENOPROTOOPT:	prError = PR_INVALID_ARGUMENT_ERROR; break;
     case ENOSPC:	prError = PR_NO_DEVICE_SPACE_ERROR; break;
+#ifdef ENOSR 
     case ENOSR:		prError = PR_INSUFFICIENT_RESOURCES_ERROR; break;
+#endif
     case ENOTCONN:	prError = PR_NOT_CONNECTED_ERROR; break;
     case ENOTDIR:	prError = PR_NOT_DIRECTORY_ERROR; break;
     case ENOTSOCK:	prError = PR_NOT_SOCKET_ERROR; break;
