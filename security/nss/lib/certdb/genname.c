@@ -373,6 +373,10 @@ cert_DecodeGeneralName(PRArenaPool      *arena,
     if (genName == NULL) {
 	genName = (CERTGeneralName *) PORT_ArenaZAlloc(arena, sizeof(CERTGeneralName));
     }
+    if (!genName) {
+        return NULL;
+    }
+    genName->l.prev = genName->l.next = &genName->l;
     genNameType = (CERTGeneralNameType)((*(encodedName->data) & 0x0f) + 1);
     switch (genNameType) {
       case certURI:
@@ -415,8 +419,6 @@ cert_DecodeGeneralName(PRArenaPool      *arena,
 	goto loser;
     }
     genName->type = genNameType;
-    genName->l.next = (PRCList *) ((char *) genName) + offsetof(CERTGeneralName, l);
-    genName->l.prev = genName->l.next;
     return genName;
 loser:
     return NULL;
