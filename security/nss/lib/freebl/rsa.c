@@ -264,8 +264,6 @@ RSA_PublicKeyOp(RSAPublicKey  *key,
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
 	return SECFailure;
     }
-    /* clear the output buffer */
-    memset(output, 0, key->modulus.len);
     MP_DIGITS(&n) = 0;
     MP_DIGITS(&e) = 0;
     MP_DIGITS(&m) = 0;
@@ -332,8 +330,6 @@ RSA_PrivateKeyOp(RSAPrivateKey *key,
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
 	return SECFailure;
     }
-    /* clear the output buffer */
-    memset(output, 0, key->modulus.len);
     MP_DIGITS(&p)    = 0;
     MP_DIGITS(&q)    = 0;
     MP_DIGITS(&d_p)  = 0;
