@@ -739,6 +739,7 @@ SSL_OptionSetDefault(PRInt32 which, PRBool on)
 
       case SSL_ENABLE_FDX:
       	ssl_defaults.fdx = on;
+	break;
 
       case SSL_V2_COMPATIBLE_HELLO:
       	ssl_defaults.v2CompatibleHello = on;
