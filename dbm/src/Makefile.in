@@ -29,10 +29,6 @@ include $(DEPTH)/config/autoconf.mk
 LIBRARY_NAME	= mozdbm_s
 LIB_IS_C_ONLY	= 1
 
-ifeq ($(OS_ARCH),WINNT)
-LIBRARY_NAME	= dbm$(MOZ_BITS)
-endif
-
 CSRCS		= \
 		db.c \
 		h_bigkey.c \
@@ -48,17 +44,13 @@ CSRCS		= \
 		nsres.c \
 		$(NULL)
 
-ifeq ($(OS_ARCH),WINNT)
-CSRCS		+= memmove.c snprintf.c
-else
 ifeq (,$(filter -DHAVE_MEMMOVE=1,$(DEFS)))
-CSRCS += memmove.c
+CSRC += memmove.c
 endif
 
 ifeq (,$(filter -DHAVE_SNPRINTF=1,$(DEFS)))
-CSRCS += snprintf.c
+CSRC += snprintf.c
 endif
-endif # WINNT
 
 LOCAL_INCLUDES	= -I$(srcdir)/../include
 
