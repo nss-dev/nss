@@ -323,6 +323,18 @@ nssSlot_Logout
   nssSession *sessionOpt
 );
 
+NSS_EXTERN void
+nssSlot_EnterMonitor
+(
+  NSSSlot *slot
+);
+
+NSS_EXTERN void
+nssSlot_ExitMonitor
+(
+  NSSSlot *slot
+);
+
 #define NSSSLOT_ASK_PASSWORD_FIRST_TIME -1
 #define NSSSLOT_ASK_PASSWORD_EVERY_TIME  0
 NSS_EXTERN void
