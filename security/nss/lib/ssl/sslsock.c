@@ -1801,7 +1801,7 @@ ssl_NewSocket(void)
 {
     sslSocket *ss;
 #ifdef DEBUG
-#if defined(XP_UNIX) || defined(XP_WIN32) || defined(XP_BEOS)
+#if (defined(XP_UNIX) || defined(XP_WIN32) || defined(XP_BEOS)) && !defined(_WIN32_WCE)
     static int firsttime = 1;
 
     if (firsttime) {
