@@ -101,6 +101,9 @@ NSS_EXTERN_DATA const NSSItem g_ck_class_privkey;
     if ((CK_LONG)(attrib)->ulValueLen > 0) {           \
 	(item)->data = (void *)(attrib)->pValue;       \
 	(item)->size = (PRUint32)(attrib)->ulValueLen; \
+    } else {                                           \
+	(item)->data = 0;                              \
+	(item)->size = 0;                              \
     }
 
 /* NSS_CK_ATTRIBUTE_TO_UTF8(attrib, str)
