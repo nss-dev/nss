@@ -76,6 +76,11 @@ NSS_CMSContentInfo_Destroy(NSSCMSContentInfo *cinfo)
 	/* XXX Anything else that needs to be "manually" freed/destroyed? */
 	break;
     }
+    if (cinfo->digcx) {
+	/* must destroy digest objects */
+	NSS_CMSDigestContext_Cancel(cinfo->digcx);
+	cinfo->digcx = NULL;
+    }
     if (cinfo->bulkkey)
 	PK11_FreeSymKey(cinfo->bulkkey);
 
