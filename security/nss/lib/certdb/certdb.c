@@ -2007,6 +2007,31 @@ loser:
     return(SECFailure);
 }
 
+SECStatus
+CERT_AddCertToListHead(CERTCertList *certs, CERTCertificate *cert)
+{
+    CERTCertListNode *node;
+    CERTCertListNode *head;
+    
+    head = CERT_LIST_HEAD(certs);
+
+    if (head == NULL) return CERT_AddCertToListTail(certs,cert);
+
+    node = (CERTCertListNode *)PORT_ArenaZAlloc(certs->arena,
+						sizeof(CERTCertListNode));
+    if ( node == NULL ) {
+	goto loser;
+    }
+    
+    PR_INSERT_BEFORE(&node->links, &head->links);
+    /* certs->count++; */
+    node->cert = cert;
+    return(SECSuccess);
+    
+loser:
+    return(SECFailure);
+}
+
 /*
  * Sort callback function to determine if cert a is newer than cert b.
  * Not valid certs are considered older than valid certs.
