@@ -387,7 +387,7 @@ loser:
 				STAN_GetDefaultTrustDomain());
 #ifndef XP_MAC
 	/* only servers need this. We currently do not have a mac server */
-	if ((!readOnly) && (!noModDB) && (!noCertDB) && (!noRootInit)) {
+	if ((!noModDB) && (!noCertDB) && (!noRootInit)) {
 	    if (!SECMOD_HasRootCerts()) {
 		nss_FindExternalRoot(configdir);
 	    }
