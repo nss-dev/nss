@@ -2056,8 +2056,8 @@ NSSCKFWC_DestroyObject
     goto loser;
   }
 
-  nssCKFWObject_Destroy(fwObject);
   nssCKFWInstance_DestroyObjectHandle(fwInstance, hObject);
+  nssCKFWObject_Destroy(fwObject);
 
   return CKR_OK;
 
