@@ -306,7 +306,7 @@ nssToken_TraverseCertificatesByTemplate
   void *arg
 );
 
-NSS_EXTERN PRStatus *
+NSS_EXTERN PRStatus
 nssToken_TraverseCertificates
 (
   NSSToken *tok,
