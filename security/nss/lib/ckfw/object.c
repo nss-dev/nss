@@ -603,7 +603,7 @@ nssCKFWObject_GetAttribute
 )
 {
   NSSItem *rv = (NSSItem *)NULL;
-  const NSSItem *mdItem;
+  NSSItem *mdItem;
 
 #ifdef NSSDEBUG
   if( (CK_RV *)NULL == pError ) {
