@@ -42,7 +42,7 @@
 #endif
 
 #include "nspr.h"
-#include "string.h"
+#include <stdio.h>
 #include "nss.h"
 #include "secutil.h"
 #include "cert.h"
@@ -55,11 +55,11 @@
 #include "pk11pqg.h"
 
 #ifdef USES_LINKS
-#include "libgen.h"
-#include "unistd.h"
-#include "sys/param.h"
-#include "sys/types.h"
-#include "sys/stat.h"
+#include <libgen.h>
+#include <unistd.h>
+#include <sys/param.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #endif
 
 static void
