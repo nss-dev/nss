@@ -30,7 +30,6 @@ PROTO = \
 	$(ROOT)/usr \
 	$(ROOT)/usr/lib \
 	$(ROOT)/usr/lib/mps \
-	$(ROOT)/usr/lib/mps/secv1 \
 	$(ROOT)/usr/include \
 	$(ROOT)/usr/include/mps \
 	$(ROOT)/usr/sfw \
@@ -38,7 +37,7 @@ PROTO = \
 
 
 ifdef USE_64
-PROTO += $(ROOT)/usr/lib/mps/secv1/sparcv9 \
+PROTO += $(ROOT)/usr/lib/mps/sparcv9 \
 	$(ROOT)/usr/include/mps/sparcv9 \
 	$(ROOT)/usr/sfw/bin/sparcv9
 
@@ -61,15 +60,15 @@ $(ROOT) $(ROOT)/%:
 	mkdir -p $@
 
 ifdef USE_64
-$(ROOT)/usr/lib/mps/secv1/sparcv9: $(ROOT)/usr/lib/mps
-	$(LN) -sf ../../../../../$(DIST)/lib $@
+$(ROOT)/usr/lib/mps/sparcv9: $(ROOT)/usr/lib/mps
+	$(LN) -sf ../../../../$(DIST)/lib $@
 $(ROOT)/usr/sfw/bin/sparcv9: $(ROOT)/usr/sfw/bin
 	$(LN) -sf ../../../../$(DIST)/bin $@
 $(ROOT)/usr/include/mps/sparcv9: $(ROOT)/usr/include
 	$(LN) -sf ../../../../$(SOURCE_PREFIX)/$(HEADER_DIR) $@
 else
-$(ROOT)/usr/lib/mps/secv1: $(ROOT)/usr/lib
-	$(LN) -sf ../../../../$(DIST)/lib $@
+$(ROOT)/usr/lib/mps: $(ROOT)/usr/lib
+	$(LN) -sf ../../../$(DIST)/lib $@
 $(ROOT)/usr/sfw/bin: $(ROOT)/usr/sfw
 	$(LN) -sf ../../../$(DIST)/bin $@
 $(ROOT)/usr/include/mps: $(ROOT)/usr/include
