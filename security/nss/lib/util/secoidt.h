@@ -275,6 +275,11 @@ typedef enum {
     /* New PSM certificate management OIDs */
     SEC_OID_CERT_RENEWAL_LOCATOR,
     SEC_OID_NS_CERT_EXT_SCOPE_OF_USE,
+    
+    /* CMS (RFC2630) OIDs */
+    SEC_OID_CMS_EPHEMERAL_STATIC_DIFFIE_HELLMAN,
+    SEC_OID_CMS_3DES_KEY_WRAP,
+    SEC_OID_CMS_RC2_KEY_WRAP,
 
     SEC_OID_TOTAL
 } SECOidTag;
