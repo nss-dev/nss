@@ -85,22 +85,22 @@ const SEC_ASN1Template *
 SEC_ASN1GetSubtemplate (const SEC_ASN1Template *theTemplate, void *thing,
 			PRBool encoding)
 {
-    const SEC_ASN1Template *subt;
+    const SEC_ASN1Template *subt = NULL;
 
     PORT_Assert (theTemplate->sub != NULL);
-    if (theTemplate->kind & SEC_ASN1_DYNAMIC) {
-	SEC_ChooseASN1TemplateFunc chooser, *chooserp;
+    if (theTemplate->sub != NULL) {
+	if (theTemplate->kind & SEC_ASN1_DYNAMIC) {
+	    SEC_ASN1TemplateChooserPtr chooserp;
 
-	chooserp = (SEC_ChooseASN1TemplateFunc *) theTemplate->sub;
-	if (chooserp == NULL || *chooserp == NULL)
-	    return NULL;
-	chooser = *chooserp;
-	if (thing != NULL)
-	    thing = (char *)thing - theTemplate->offset;
-	subt = (* chooser)(thing, encoding);
-    } else {
-	subt = (SEC_ASN1Template*)theTemplate->sub;
+	    chooserp = *(SEC_ASN1TemplateChooserPtr *) theTemplate->sub;
+	    if (chooserp) {
+		if (thing != NULL)
+		    thing = (char *)thing - theTemplate->offset;
+		subt = (* chooserp)(thing, encoding);
+	    }
+	} else {
+	    subt = (SEC_ASN1Template*)theTemplate->sub;
+	}
     }
-
     return subt;
 }

@@ -385,3 +385,11 @@ loser:
     
     return(0);
 }
+
+/* These functions simply return the address of the above-declared templates.
+** This is necessary for Windows DLLs.  Sigh.
+*/
+SEC_ASN1_CHOOSER_IMPLEMENT(CERT_IssuerAndSNTemplate)
+SEC_ASN1_CHOOSER_IMPLEMENT(CERT_CrlTemplate)
+SEC_ASN1_CHOOSER_IMPLEMENT(CERT_SetOfSignedCrlTemplate)
+

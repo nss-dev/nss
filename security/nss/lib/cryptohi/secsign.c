@@ -381,6 +381,9 @@ const SEC_ASN1Template CERT_SignedDataTemplate[] =
     { 0, }
 };
 
+SEC_ASN1_CHOOSER_IMPLEMENT(CERT_SignedDataTemplate)
+
+
 SECStatus
 SEC_DerSignData(PRArenaPool *arena, SECItem *result, 
 	unsigned char *buf, int len, SECKEYPrivateKey *pk, SECOidTag algID)

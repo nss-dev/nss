@@ -66,6 +66,8 @@ const SEC_ASN1Template sgn_DigestInfoTemplate[] = {
     { 0 }
 };
 
+SEC_ASN1_CHOOSER_IMPLEMENT(sgn_DigestInfoTemplate)
+
 /*
  * XXX Want to have a SGN_DecodeDigestInfo, like:
  *	SGNDigestInfo *SGN_DecodeDigestInfo(SECItem *didata);

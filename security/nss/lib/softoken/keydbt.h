@@ -86,4 +86,14 @@ extern const SEC_ASN1Template SECKEY_PointerToPrivateKeyInfoTemplate[];
 extern const SEC_ASN1Template SECKEY_PQGParamsTemplate[];
 extern const SEC_ASN1Template SECKEY_AttributeTemplate[];
 
+/* These functions simply return the address of the above-declared templates.
+** This is necessary for Windows DLLs.  Sigh.
+*/
+extern SEC_ASN1TemplateChooser NSS_Get_SECKEY_PrivateKeyInfoTemplate;
+extern SEC_ASN1TemplateChooser NSS_Get_SECKEY_PointerToPrivateKeyInfoTemplate;
+extern SEC_ASN1TemplateChooser NSS_Get_SECKEY_EncryptedPrivateKeyInfoTemplate;
+extern SEC_ASN1TemplateChooser NSS_Get_SECKEY_PointerToEncryptedPrivateKeyInfoTemplate;
+extern SEC_ASN1TemplateChooser NSS_Get_SECKEY_DSAPublicKeyTemplate;
+extern SEC_ASN1TemplateChooser NSS_Get_SECKEY_RSAPublicKeyTemplate;
+
 #endif /* _KEYDBT_H_ */

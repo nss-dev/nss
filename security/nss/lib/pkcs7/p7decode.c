@@ -55,6 +55,7 @@
 #include "prtime.h"
 #include "secerr.h"
 #include "sechash.h"	/* for HASH_GetHashObject() */
+#include "secder.h"
 
 struct sec_pkcs7_decoder_worker {
     int depth;
@@ -582,8 +583,8 @@ sec_pkcs7_decoder_get_recipient_key (SEC_PKCS7DecoderContext *p7dcx,
 		  if (keaParams.bulkKeySize.len > 0)
 		  {
 		      p7dcx->error = SEC_ASN1DecodeItem(NULL, &bulkLength,
-							SEC_IntegerTemplate,
-							&keaParams.bulkKeySize);
+					SEC_ASN1_GET(SEC_IntegerTemplate),
+					&keaParams.bulkKeySize);
 		  }
 		  
 		  if (p7dcx->error != SECSuccess)
