@@ -1341,7 +1341,7 @@ SECStatus DPCache_Update(CRLDPCache* cache, CERTCertificate* issuer, int64 t,
             for (i = 0; i < cache->ncrls ; i++) {
                 CERTSignedCrl* acrl = cache->crls[i];
                 if (PR_FALSE == GetOpaqueCRLFields(acrl)->bad) {
-                    DPCache_Refresh(cache, acrl, t, wincx);
+                    DP_RefreshCache(cache, acrl, t, wincx);
                 }
             }
         }
