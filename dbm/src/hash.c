@@ -559,6 +559,10 @@ hdestroy(HTAB *hashp)
 #endif
 		free(hashp->filename); /* use free, filename came from strdup */
 	}
+	if (hashp->tmp_buf)
+		PR_Free(hashp->tmp_buf);
+	if (hashp->tmp_key)
+		PR_Free(hashp->tmp_key);
 
 	PR_Free(hashp);
 
@@ -899,7 +903,7 @@ hash_access(
 			n = *bp++;
 			ndx = 1;
 			off = hashp->BSIZE;
-		                } else if (bp[1] < REAL_KEY) {
+		} else if (bp[1] < REAL_KEY) {
 			if ((ndx =
 			    __find_bigpair(hashp, rbufp, ndx, kp, (int)size)) > 0)
 				goto found;
