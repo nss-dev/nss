@@ -338,7 +338,7 @@ nss_ZRealloc;
 nssArena_Mark;
 nssArena_Release;
 nssArena_Unmark;
-nssAlgNParam_CreateSSLSessionKeyDerivation;
+NSSAlgNParam_CreateForSSL;
 nssCert_AddRef;
 nssPublicKey_AddRef;
 nssPrivateKey_AddRef;

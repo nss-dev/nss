@@ -132,22 +132,38 @@ set_iv_parameter (
     return PR_SUCCESS;
 }
 
-/* For all mechanisms where the only parameter is a length in bits */
+/* For all mechanisms where the only parameter is a ulong */
 static PRStatus
-set_bits_parameter (
+set_ulong_parameter (
   CK_MECHANISM_PTR mechPtr,
-  PRUint32 numBits,
+  PRUint32 value,
   NSSArena *arena
 )
 {
-    CK_ULONG ulBits = numBits;
-    PRUint32 pLen = sizeof(CK_ULONG);
-    mechPtr->pParameter = nss_ZAlloc(arena, pLen);
+    CK_ULONG ul = value;
+    mechPtr->pParameter = (void *)nss_ZNEW(arena, CK_ULONG);
     if (!mechPtr->pParameter) {
 	return PR_FAILURE;
     }
-    nsslibc_memcpy(mechPtr->pParameter, &ulBits, pLen);
-    mechPtr->ulParameterLen = pLen;
+    nsslibc_memcpy(mechPtr->pParameter, &ul, sizeof(CK_ULONG));
+    mechPtr->ulParameterLen = sizeof(CK_ULONG);
+    return PR_SUCCESS;
+}
+
+/* For all mechanisms where the only parameter is a version */
+static PRStatus
+set_version_parameter (
+  CK_MECHANISM_PTR mechPtr,
+  CK_VERSION_PTR version,
+  NSSArena *arena
+)
+{
+    mechPtr->pParameter = (void *)nss_ZNEW(arena, CK_VERSION);
+    if (!mechPtr->pParameter) {
+	return PR_FAILURE;
+    }
+    nsslibc_memcpy(mechPtr->pParameter, version, sizeof(CK_VERSION));
+    mechPtr->ulParameterLen = sizeof(CK_VERSION);
     return PR_SUCCESS;
 }
 
@@ -679,46 +695,6 @@ nssAlgNParam_SetPBEPassword (
     return PR_SUCCESS;
 }
 
-/*
- * SSL algorithms
- */
-
-/*
- * SSL Pre-Master secret key generation
- */
-static PRStatus
-set_sslpms_mechanism (
-  CK_MECHANISM_PTR mechPtr,
-  NSSParameters *parameters,
-  NSSArena *arena
-)
-{
-    CK_VERSION *sslVersion = NULL;
-    CK_VERSION sv;
-
-    switch (parameters->sslpms) {
-    case NSSSSLVersion_SSLv3: 
-	mechPtr->mechanism = CKM_SSL3_PRE_MASTER_KEY_GEN;
-	sv.major = 3; sv.minor = 0; break;
-    case NSSSSLVersion_TLS:   
-	mechPtr->mechanism = CKM_TLS_PRE_MASTER_KEY_GEN;
-	sv.major = 3; sv.minor = 1; break;
-    default:
-	/* XXX error invalid args */
-	return PR_FAILURE;
-    }
-
-    sslVersion = nss_ZNEW(arena, CK_VERSION);
-    if (!sslVersion) {
-	return PR_FAILURE;
-    }
-    *sslVersion = sv;
-
-    mechPtr->pParameter = sslVersion;
-    mechPtr->ulParameterLen = sizeof(CK_VERSION);
-    return PR_SUCCESS;
-}
-
 static PRStatus
 copy_item(NSSItem *it, CK_BYTE_PTR *buf, CK_ULONG *len, NSSArena *arena)
 {
@@ -729,124 +705,6 @@ copy_item(NSSItem *it, CK_BYTE_PTR *buf, CK_ULONG *len, NSSArena *arena)
 	return PR_SUCCESS;
     }
     return PR_FAILURE;
-}
-
-/*
- * SSL Master secret key derivation
- */
-static PRStatus
-set_sslms_mechanism (
-  CK_MECHANISM_PTR mechPtr,
-  NSSParameters *parameters,
-  NSSArena *arena
-)
-{
-    PRStatus status;
-    CK_VERSION sv;
-    CK_SSL3_MASTER_KEY_DERIVE_PARAMS *msp;
-
-    switch (parameters->sslms.version) {
-    case NSSSSLVersion_SSLv3: 
-	mechPtr->mechanism = parameters->sslms.isDH ?
-	                      CKM_SSL3_MASTER_KEY_DERIVE_DH :
-	                      CKM_SSL3_MASTER_KEY_DERIVE;
-	sv.major = 3; sv.minor = 0; break;
-    case NSSSSLVersion_TLS:   
-	mechPtr->mechanism = parameters->sslms.isDH ?
-	                      CKM_TLS_MASTER_KEY_DERIVE_DH :
-	                      CKM_TLS_MASTER_KEY_DERIVE;
-	sv.major = 3; sv.minor = 1; break;
-    default:
-	/* XXX error invalid args */
-	return PR_FAILURE;
-    }
-
-    msp = nss_ZNEW(arena, CK_SSL3_MASTER_KEY_DERIVE_PARAMS);
-    if (!msp) {
-	return PR_FAILURE;
-    }
-    msp->pVersion = nss_ZNEW(arena, CK_VERSION);
-    if (!msp->pVersion) {
-	return PR_FAILURE;
-    }
-    *msp->pVersion = sv;
-
-    status = copy_item(&parameters->sslms.clientRandom,
-                       &msp->RandomInfo.pClientRandom,
-                       &msp->RandomInfo.ulClientRandomLen, arena);
-    if (status == PR_FAILURE) {
-	return PR_FAILURE;
-    }
-
-    status = copy_item(&parameters->sslms.serverRandom,
-                       &msp->RandomInfo.pServerRandom,
-                       &msp->RandomInfo.ulServerRandomLen, arena);
-    if (status == PR_FAILURE) {
-	return PR_FAILURE;
-    }
-
-    mechPtr->pParameter = msp;
-    mechPtr->ulParameterLen = sizeof(CK_SSL3_MASTER_KEY_DERIVE_PARAMS);
-    return PR_SUCCESS;
-}
-
-/*
- * SSL session secret keys derivation
- */
-static PRStatus
-set_sslsession_derive_mechanism (
-  CK_MECHANISM_PTR mechPtr,
-  NSSSSLSessionKeyParameters *parameters,
-  NSSArena *arena
-)
-{
-    PRStatus status;
-    CK_SSL3_KEY_MAT_PARAMS *kmp;
-    CK_SSL3_KEY_MAT_OUT *kmo;
-
-    switch (parameters->version) {
-    case NSSSSLVersion_SSLv3: 
-	mechPtr->mechanism = CKM_SSL3_KEY_AND_MAC_DERIVE;
-    case NSSSSLVersion_TLS:   
-	mechPtr->mechanism = CKM_TLS_KEY_AND_MAC_DERIVE;
-    default:
-	/* XXX error invalid args */
-	return PR_FAILURE;
-    }
-
-    kmp = nss_ZNEW(arena, CK_SSL3_KEY_MAT_PARAMS);
-    if (!kmp) {
-	return PR_FAILURE;
-    }
-    kmp->ulMacSizeInBits = parameters->macSizeInBits;
-    kmp->ulKeySizeInBits = parameters->keySizeInBits;
-    kmp->ulIVSizeInBits = parameters->ivSizeInBits;
-    kmp->bIsExport = parameters->isExport;
-
-    status = copy_item(&parameters->clientRandom,
-                       &kmp->RandomInfo.pClientRandom,
-                       &kmp->RandomInfo.ulClientRandomLen, arena);
-    if (status == PR_FAILURE) {
-	return PR_FAILURE;
-    }
-
-    status = copy_item(&parameters->serverRandom,
-                       &kmp->RandomInfo.pServerRandom,
-                       &kmp->RandomInfo.ulServerRandomLen, arena);
-    if (status == PR_FAILURE) {
-	return PR_FAILURE;
-    }
-
-    kmo = nss_ZNEW(arena, CK_SSL3_KEY_MAT_OUT);
-    if (!kmo) {
-	return PR_FAILURE;
-    }
-    kmo->pIVClient = parameters->clientIV;
-    kmo->pIVServer = parameters->serverIV;
-
-    mechPtr->pParameter = kmp;
-    mechPtr->ulParameterLen = sizeof(CK_SSL3_KEY_MAT_PARAMS);
-    return PR_SUCCESS;
 }
 
 /*
@@ -1124,28 +982,6 @@ NSSAlgNParam_Encode (
     return nssAlgNParam_Encode(ap, rvOpt, arenaOpt);
 }
 
-NSS_IMPLEMENT NSSAlgNParam *
-nssAlgNParam_CreateSSLSessionKeyDerivation (
-  NSSArena *arenaOpt,
-  NSSSSLSessionKeyParameters *parameters
-)
-{
-    PRStatus status;
-    nssArenaMark *mark = NULL;
-    NSSAlgNParam *rvAP = NULL;
-
-    rvAP = create_algparam(arenaOpt, &mark);
-    if (!rvAP) {
-	return (NSSAlgNParam *)NULL;
-    }
-
-    status = set_sslsession_derive_mechanism(&rvAP->mechanism,
-                                             parameters,
-                                             rvAP->arena);
-
-    return finish_create_algparam(rvAP, rvAP->arena, mark, status);
-}
-
 NSS_IMPLEMENT void
 nssAlgNParam_Destroy (
   NSSAlgNParam *ap
@@ -1316,6 +1152,198 @@ nssAlgNParam_ConvertPBEToCrypto (
     }
 
     return finish_create_algparam(rvAP, rvAP->arena, NULL, status);
+}
+
+/*
+ * SSL Master secret key derivation
+ */
+static PRStatus
+set_sslms_mechanism (
+  CK_MECHANISM_PTR mechPtr,
+  NSSParameters *parameters,
+  NSSArena *arena
+)
+{
+    PRStatus status;
+    CK_VERSION sv;
+    CK_SSL3_MASTER_KEY_DERIVE_PARAMS *msp;
+
+    switch (parameters->sslms.version) {
+    case NSSSSLVersion_SSLv3: 
+	mechPtr->mechanism = parameters->sslms.isDH ?
+	                      CKM_SSL3_MASTER_KEY_DERIVE_DH :
+	                      CKM_SSL3_MASTER_KEY_DERIVE;
+	sv.major = 3; sv.minor = 0; break;
+    case NSSSSLVersion_TLS:   
+	mechPtr->mechanism = parameters->sslms.isDH ?
+	                      CKM_TLS_MASTER_KEY_DERIVE_DH :
+	                      CKM_TLS_MASTER_KEY_DERIVE;
+	sv.major = 3; sv.minor = 1; break;
+    default:
+	/* XXX error invalid args */
+	return PR_FAILURE;
+    }
+
+    msp = nss_ZNEW(arena, CK_SSL3_MASTER_KEY_DERIVE_PARAMS);
+    if (!msp) {
+	return PR_FAILURE;
+    }
+    msp->pVersion = nss_ZNEW(arena, CK_VERSION);
+    if (!msp->pVersion) {
+	return PR_FAILURE;
+    }
+    *msp->pVersion = sv;
+
+    status = copy_item(&parameters->sslms.clientRandom,
+                       &msp->RandomInfo.pClientRandom,
+                       &msp->RandomInfo.ulClientRandomLen, arena);
+    if (status == PR_FAILURE) {
+	return PR_FAILURE;
+    }
+
+    status = copy_item(&parameters->sslms.serverRandom,
+                       &msp->RandomInfo.pServerRandom,
+                       &msp->RandomInfo.ulServerRandomLen, arena);
+    if (status == PR_FAILURE) {
+	return PR_FAILURE;
+    }
+
+    mechPtr->pParameter = msp;
+    mechPtr->ulParameterLen = sizeof(CK_SSL3_MASTER_KEY_DERIVE_PARAMS);
+    return PR_SUCCESS;
+}
+
+/*
+ * SSL session secret keys derivation
+ */
+static PRStatus
+set_sslsession_derive_mechanism (
+  CK_MECHANISM_PTR mechPtr,
+  NSSParameters *params,
+  NSSArena *arena
+)
+{
+    PRStatus status;
+    CK_SSL3_KEY_MAT_PARAMS *kmp;
+    CK_SSL3_KEY_MAT_OUT *kmo;
+    NSSSSLSessionKeyParameters *skParams = &params->sslsk;
+
+    switch (skParams->version) {
+    case NSSSSLVersion_SSLv3: 
+	mechPtr->mechanism = CKM_SSL3_KEY_AND_MAC_DERIVE;
+    case NSSSSLVersion_TLS:   
+	mechPtr->mechanism = CKM_TLS_KEY_AND_MAC_DERIVE;
+    default:
+	/* XXX error invalid args */
+	return PR_FAILURE;
+    }
+
+    kmp = nss_ZNEW(arena, CK_SSL3_KEY_MAT_PARAMS);
+    if (!kmp) {
+	return PR_FAILURE;
+    }
+    kmp->ulMacSizeInBits = skParams->macSizeInBits;
+    kmp->ulKeySizeInBits = skParams->keySizeInBits;
+    kmp->ulIVSizeInBits = skParams->ivSizeInBits;
+    kmp->bIsExport = skParams->isExport;
+
+    status = copy_item(&skParams->clientRandom,
+                       &kmp->RandomInfo.pClientRandom,
+                       &kmp->RandomInfo.ulClientRandomLen, arena);
+    if (status == PR_FAILURE) {
+	return PR_FAILURE;
+    }
+
+    status = copy_item(&skParams->serverRandom,
+                       &kmp->RandomInfo.pServerRandom,
+                       &kmp->RandomInfo.ulServerRandomLen, arena);
+    if (status == PR_FAILURE) {
+	return PR_FAILURE;
+    }
+
+    kmo = nss_ZNEW(arena, CK_SSL3_KEY_MAT_OUT);
+    if (!kmo) {
+	return PR_FAILURE;
+    }
+    kmo->pIVClient = skParams->clientIV;
+    kmo->pIVServer = skParams->serverIV;
+
+    mechPtr->pParameter = kmp;
+    mechPtr->ulParameterLen = sizeof(CK_SSL3_KEY_MAT_PARAMS);
+    return PR_SUCCESS;
+}
+
+static void get_ssl_version(NSSSSLVersion version, CK_VERSION_PTR pv)
+{
+    switch (version) {
+    case NSSSSLVersion_SSLv2: pv->major = 2; pv->minor = 0; break;
+    case NSSSSLVersion_SSLv3: pv->major = 3; pv->minor = 0; break;
+    case NSSSSLVersion_TLS:   pv->major = 3; pv->minor = 1; break;
+    }
+}
+
+NSS_IMPLEMENT NSSAlgNParam *
+nssAlgNParam_CreateForSSL (
+  NSSArena *arenaOpt,
+  NSSSSLAlgorithm alg,
+  NSSParameters *params
+)
+{
+    PRStatus status;
+    CK_VERSION version;
+    nssArenaMark *mark = NULL;
+    NSSAlgNParam *rvAP = NULL;
+
+    rvAP = create_algparam(arenaOpt, &mark);
+    if (!rvAP) {
+	return (NSSAlgNParam *)NULL;
+    }
+
+    switch (alg) {
+    case NSSSSLAlgorithm_PMSGen:
+	get_ssl_version(params->sslpms, &version);
+	rvAP->mechanism.mechanism = CKM_SSL3_PRE_MASTER_KEY_GEN;
+	status = set_version_parameter(&rvAP->mechanism, 
+	                               &version, rvAP->arena);
+	break;
+    case NSSSSLAlgorithm_MSDerive:
+	status = set_sslms_mechanism(&rvAP->mechanism, params, rvAP->arena);
+	break;
+    case NSSSSLAlgorithm_SessionKeyDerive:
+	status = set_sslsession_derive_mechanism(&rvAP->mechanism, 
+	                                         params, rvAP->arena);
+	break;
+    case NSSSSLAlgorithm_MD5_MAC:
+	rvAP->mechanism.mechanism = CKM_SSL3_MD5_MAC;
+	status = set_ulong_parameter(&rvAP->mechanism, 
+	                             params->hmac, rvAP->arena);
+	break;
+    case NSSSSLAlgorithm_SHA1_MAC:
+	rvAP->mechanism.mechanism = CKM_SSL3_SHA1_MAC;
+	status = set_ulong_parameter(&rvAP->mechanism, 
+	                             params->hmac, rvAP->arena);
+	break;
+    case NSSSSLAlgorithm_TLS_PRF:
+	/* XXX non-standard, methinks */
+	rvAP->mechanism.mechanism = CKM_TLS_PRF_GENERAL;
+	/* XXX no params */
+	break;
+    default:
+	/* XXX err */
+	return (NSSAlgNParam *)NULL;
+    }
+
+    return finish_create_algparam(rvAP, rvAP->arena, mark, status);
+}
+
+NSS_IMPLEMENT NSSAlgNParam *
+NSSAlgNParam_CreateForSSL (
+  NSSArena *arena,
+  NSSSSLAlgorithm alg,
+  NSSParameters *params
+)
+{
+    return nssAlgNParam_CreateForSSL(arena, alg, params);
 }
 
 NSS_IMPLEMENT void

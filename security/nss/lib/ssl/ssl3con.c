@@ -363,13 +363,14 @@ static const NSSAlgNParam *s_md5_ap = NULL;
 static const NSSAlgNParam *s_sha1_ap = NULL;
 static const NSSAlgNParam *s_rsa_wrap_ap = NULL;
 static const NSSAlgNParam *s_rsa_unwrap_ap = NULL;
-static const NSSAlgNParam *s_tls_prf_ap = NULL;
 static const NSSAlgNParam *s_ssl3_pms_ap = NULL;
 static const NSSAlgNParam *s_tls_pms_ap = NULL;
 static const NSSAlgNParam *s_mac_md5_ap = NULL;
 static const NSSAlgNParam *s_mac_sha1_ap = NULL;
 static const NSSAlgNParam *s_hmac_md5_ap = NULL;
 static const NSSAlgNParam *s_hmac_sha1_ap = NULL;
+/* this is currently used w/o params */
+static const NSSAlgNParam *s_tls_prf_ap = NULL;
 
 PRStatus
 ssl3_InitAlgorithms(void)
@@ -391,11 +392,6 @@ ssl3_InitAlgorithms(void)
     s_rsa_unwrap_ap = NSSOIDTag_CreateAlgNParamForUnwrap(
                                                NSS_OID_PKCS1_RSA_ENCRYPTION, 
                                                NULL, s_algs_arena);
-
-    /* initialize TLS pseudo-random function */
-    s_tls_prf_ap = NSSAlgNParam_CreateForSSL(s_algs_arena, 
-                                             NSSSSLAlgorithm_TLS_PRF,
-                                             NULL);
 
     /* initialize PMS generation algorithms */
     params.sslpms = NSSSSLVersion_SSLv3;
@@ -422,6 +418,11 @@ ssl3_InitAlgorithms(void)
     s_hmac_sha1_ap = NSSOIDTag_CreateAlgNParamForHMAC(NSS_OID_SHA1,
                                                       &params,
                                                       s_algs_arena);
+
+    /* initialize TLS pseudo-random function (currently no params) */
+    s_tls_prf_ap = NSSAlgNParam_CreateForSSL(s_algs_arena, 
+                                             NSSSSLAlgorithm_TLS_PRF,
+                                             NULL);
 
     return PR_SUCCESS;
 }
@@ -6942,8 +6943,7 @@ ssl3_ComputeTLSFinished(ssl3CipherSpec *spec,
     len   = 15;
 
     prf_context = NSSSymKey_CreateCryptoContext(spec->master_secret,
-                                                s_tls_prf_ap,
-                                                NULL);
+                                                s_tls_prf_ap, NULL);
     if (!prf_context)
     	return SECFailure;
 

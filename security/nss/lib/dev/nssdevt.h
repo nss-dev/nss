@@ -276,9 +276,9 @@ typedef enum {
   NSSSSLAlgorithm_PMSGen           = 0,
   NSSSSLAlgorithm_MSDerive         = 1,
   NSSSSLAlgorithm_SessionKeyDerive = 2,
-  NSSSSLAlgorithm_TLS_PRF          = 3,
-  NSSSSLAlgorithm_MD5_MAC          = 4,
-  NSSSSLAlgorithm_SHA1_MAC         = 5
+  NSSSSLAlgorithm_MD5_MAC          = 3,
+  NSSSSLAlgorithm_SHA1_MAC         = 4,
+  NSSSSLAlgorithm_TLS_PRF          = 5
 } NSSSSLAlgorithm;
 
 /* XXX */
