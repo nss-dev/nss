@@ -254,7 +254,7 @@ typedef struct {
 #endif
 } ssl3CipherSuiteCfg;
 
-#define ssl_V3_SUITES_IMPLEMENTED 19
+#define ssl_V3_SUITES_IMPLEMENTED 25
 
 typedef struct sslOptionsStr {
     unsigned int useSecurity		: 1;  /*  1 */
@@ -645,6 +645,8 @@ typedef enum {
     cipher_des40,
     cipher_idea, 
     cipher_fortezza,
+    cipher_aes_128,
+    cipher_aes_256,
     cipher_missing              /* reserved for no such supported cipher */
 } SSL3BulkCipher;
 
