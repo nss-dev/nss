@@ -34,11 +34,7 @@ MAKEFILE_CVS_ID = "@(#) $RCSfile$ $Revision$ $Date$ $Name$"
 
 include manifest.mn
 include $(CORE_DEPTH)/coreconf/config.mk
-ifdef PURE_STAN_BUILD
 include config.mk
-else
-include config34.mk
-endif
 include $(CORE_DEPTH)/coreconf/rules.mk
 
 export:: private_export
