@@ -120,6 +120,11 @@ static const char CVS_ID[] = "$g{CVS_ID} ; $cvs_id";
 #include "pki1t.h"
 #endif /* PKI1T_H */
 
+/* grr -- not defined in stan header yet */
+#ifndef CKM_INVALID_MECHANISM
+#define CKM_INVALID_MECHANISM 0xffffffff
+#endif
+
 const NSSOID nss_builtin_oids[] = {
 EOD
     ;
@@ -132,7 +137,22 @@ for( $i = 0; $i <= $count; $i++ ) {
   print CFILE "    \"$y{EXPL}\",\n";
   print CFILE "#endif /* DEBUG */\n";
   print CFILE "    { \"", $y{" encoding"};
-  print CFILE "\", ", $y{" encoding length"}, " }\n";
+  print CFILE "\", ", $y{" encoding length"}, " },\n";
+  if( $y{CKK} ) {
+    print CFILE "    $y{CKK},\n";
+  } else {
+    print CFILE "    CKK_INVALID_KEY_TYPE,\n";
+  }
+  if( $y{CKM} ) {
+    print CFILE "    $y{CKM},\n";
+  } else {
+    print CFILE "    CKM_INVALID_MECHANISM,\n";
+  }
+  if( $y{CERT_EXTENSION} =~ "^SUPPORTED" ) {
+    print CFILE "    PR_TRUE\n";
+  } else {
+    print CFILE "    PR_FALSE\n";
+  }
 
   if( $i == $count ) {
     print CFILE "  }\n";

@@ -49,6 +49,10 @@ static const char PKI1T_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #include "baset.h"
 #endif /* BASET_H */
 
+#ifndef NSSCKT_H
+#include "nssckt.h"
+#endif /* NSSCKT_H */
+
 #ifndef NSSPKI1T_H
 #include "nsspki1t.h"
 #endif /* NSSPKI1T_H */
@@ -74,6 +78,9 @@ struct NSSOIDStr {
   const NSSUTF8 *expl;
 #endif /* DEBUG */
   NSSItem data;
+  CK_KEY_TYPE keyType;
+  CK_MECHANISM_TYPE mechanism;
+  PRBool certExtensionSupported;
 };
 
 /*

@@ -78,6 +78,12 @@ extern const PRUint32 nss_attribute_type_alias_count;
  *  nssOID_getTaggedUTF8
  */
 
+NSS_EXTERN NSSOID *
+nssOID_Create
+(
+  NSSItem *oidData
+);
+
 /*
  * nssOID_CreateFromBER
  *

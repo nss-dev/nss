@@ -74,6 +74,12 @@ PR_BEGIN_EXTERN_C
 
 extern const NSSOID *NSS_OID_UNKNOWN;
 
+NSS_EXTERN NSSOID *
+NSSOID_Create
+(
+  NSSItem *oidData
+);
+
 /*
  * NSSOID_CreateFromBER
  *
@@ -183,6 +189,19 @@ NSSOID_GetUTF8Encoding
 
 extern const NSSError NSS_ERROR_INVALID_NSSOID;
 extern const NSSError NSS_ERROR_NO_MEMORY;
+
+/*
+ * NSSOID_GetAlgorithmAndParameters
+ */
+
+#ifdef nodef
+NSS_EXTERN NSSAlgorithmAndParameters *
+NSSOID_GetAlgorithmAndParameters
+(
+  const NSSOID *oid
+  NSSArena *arenaOpt
+);
+#endif
 
 /*
  * NSSATAV

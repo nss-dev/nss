@@ -86,6 +86,27 @@ const NSSOID *NSS_OID_UNKNOWN = (NSSOID *)NULL;
  * First, the public "wrappers"
  */
 
+NSS_EXTERN NSSOID *
+nssOID_Create
+(
+  NSSItem *oidData
+)
+{
+  /* XXX this is because the code thinks the oids are der-encoded, but
+   * they're not
+   */
+  return nssOID_CreateFromBER(oidData);
+}
+
+NSS_EXTERN NSSOID *
+NSSOID_Create
+(
+  NSSItem *oidData
+)
+{
+  return nssOID_Create(oidData);
+}
+
 /*
  * NSSOID_CreateFromBER
  *
@@ -322,6 +343,7 @@ oid_hash_compare
   const NSSItem *i1 = (const NSSItem *)k1;
   const NSSItem *i2 = (const NSSItem *)k2;
 
+#if 0
   PRUint32 size = (i1->size < i2->size) ? i1->size : i2->size;
 
   rv = (PRIntn)nsslibc_memequal(i1->data, i2->data, size, (PRStatus *)NULL);
@@ -330,6 +352,8 @@ oid_hash_compare
   }
 
   return !rv;
+#endif
+  return (PRIntn)nssItem_Equal(i1, i2, NULL);
 }
 
 /*
