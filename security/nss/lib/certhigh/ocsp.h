@@ -197,7 +197,7 @@ CERT_CreateOCSPRequest(CERTCertList *certList, int64 time,
  * INPUTS:
  *   CERTOCSPRequest *request
  *     The request to which the extension should be added.
- *   ...
+ *   SECOidTag responseType0, ...
  *     A list (of one or more) of SECOidTag -- each of the response types
  *     to be added.  The last OID *must* be SEC_OID_PKIX_OCSP_BASIC_RESPONSE.
  *     (This marks the end of the list, and it must be specified because a
@@ -208,7 +208,8 @@ CERT_CreateOCSPRequest(CERTCertList *certList, int64 time,
  *   All errors are internal or low-level problems (e.g. no memory).
  */
 extern SECStatus
-CERT_AddOCSPAcceptableResponses(CERTOCSPRequest *request, ...);
+CERT_AddOCSPAcceptableResponses(CERTOCSPRequest *request,
+				SECOidTag responseType0, ...);
 
 /* 
  * FUNCTION: CERT_EncodeOCSPRequest
