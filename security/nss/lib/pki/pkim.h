@@ -54,6 +54,13 @@ STAN_GetDefaultCryptoToken
   void
 );
 
+NSS_EXTERN nssHash *
+nssHash_CreateCertificate
+(
+  NSSArena *arenaOpt,
+  PRUint32 numBuckets
+);
+
 /* Token ordering routines */
 
 /*
@@ -258,7 +265,29 @@ nssDecodedCert_Destroy
   nssDecodedCert *dc
 );
 
-NSS_EXTERN PRStatus
+NSS_EXTERN void 
+nssBestCertificate_SetArgs
+(
+  nssBestCertificateCB *best,
+  NSSTime *timeOpt,
+  NSSUsage *usage,
+  NSSPolicies *policies
+);
+
+NSS_EXTERN PRStatus 
+nssBestCertificate_Callback
+(
+  NSSCertificate *c, 
+  void *arg
+);
+
+NSS_EXTERN void
+nssPKIObject_AddRef
+(
+  struct nssPKIObjectBaseStr *object
+);
+
+NSS_EXTERN void
 nssPKIObject_Destroy
 (
   struct nssPKIObjectBaseStr *object

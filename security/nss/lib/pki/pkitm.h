@@ -91,6 +91,15 @@ struct NSSUsageStr {
 #endif
 };
 
+typedef struct nssBestCertificateCBStr nssBestCertificateCB;
+
+struct nssBestCertificateCBStr {
+    NSSCertificate *cert;
+    NSSTime *time;
+    NSSUsage *usage;
+    NSSPolicies *policies;
+};
+
 PR_END_EXTERN_C
 
 #endif /* PKITM_H */

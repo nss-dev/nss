@@ -46,15 +46,30 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 /* XXX
  * move this to a more appropriate location
  */
-NSS_IMPLEMENT PRStatus
+NSS_IMPLEMENT void
+nssPKIObject_AddRef
+(
+  struct nssPKIObjectBaseStr *object
+)
+{
+    /* XXX of course this needs to be locked in 4.0! */
+    object->refCount++;
+}
+
+/* XXX
+ * move this to a more appropriate location
+ */
+NSS_IMPLEMENT void
 nssPKIObject_Destroy
 (
   struct nssPKIObjectBaseStr *object
 )
 {
-    nssList_Destroy(object->instanceList);
-    nssArena_Destroy(object->arena);
-    return PR_SUCCESS;
+    /* XXX of course this needs to be locked in 4.0! */
+    if (--object->refCount == 0) {
+	nssList_Destroy(object->instanceList);
+	nssArena_Destroy(object->arena);
+    }
 }
 
 #ifdef NSS_3_4_CODE

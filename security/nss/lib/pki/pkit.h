@@ -73,6 +73,11 @@ PR_BEGIN_EXTERN_C
 
 typedef struct nssDecodedCertStr nssDecodedCert;
 
+typedef struct nssCertificateStoreStr nssCertificateStore;
+
+/* How wide is the scope of this? */
+typedef struct nssSMIMEProfileStr nssSMIMEProfile;
+
 /*
  * A note on ephemeral certs
  *
@@ -113,6 +118,16 @@ struct NSSTrustStr
     nssTrustLevel clientAuth;
     nssTrustLevel emailProtection;
     nssTrustLevel codeSigning;
+};
+
+struct nssSMIMEProfileStr
+{
+    struct nssPKIObjectBaseStr object;
+    NSSCertificate *certificate;
+    NSSASCII7 *email;
+    NSSDER *subject;
+    NSSItem *profileTime;
+    NSSItem *profileData;
 };
 
 struct NSSCertificateStr
@@ -157,6 +172,7 @@ struct NSSCryptoContextStr
     NSSTrustDomain *td;
     NSSToken *token;
     nssSession *session;
+    nssCertificateStore *certStore;
 };
 
 struct NSSTimeStr;
