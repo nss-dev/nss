@@ -155,7 +155,8 @@ struct CRLDPCacheStr {
 
 struct CRLIssuerCacheStr {
     PRUint32 refcount;
-    CRLDPCache dp;
+    SECItem* subject;           /* DER of issuer subject */
+    CRLDPCache dp;              /* DER of distribution point */
     CRLDPCache* dpp;
 #if 0
     /* XCRL for future use.
