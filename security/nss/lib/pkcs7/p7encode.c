@@ -234,7 +234,7 @@ sec_pkcs7_encoder_start_encrypt (SEC_PKCS7ContentInfo *cinfo,
 		PK11SymKey *tek;
 		CERTCertificate *ourCert;
 		SECKEYPublicKey *ourPubKey;
-		SECKEATemplateSelector whichKEA;
+		SECKEATemplateSelector whichKEA = SECKEAInvalid;
 
 		/* We really want to show our KEA tag as the
 		   key exchange algorithm tag. */
@@ -356,6 +356,8 @@ sec_pkcs7_encoder_start_encrypt (SEC_PKCS7ContentInfo *cinfo,
 		PK11_FreeSymKey(tek);
 		if (err != SECSuccess)
 		    goto loser;
+
+		PORT_Assert( whichKEA != SECKEAInvalid);
 
 		/* Encode the KEA parameters into the recipient info. */
 		params = SEC_ASN1EncodeItem(arena,NULL, &keaParams, 

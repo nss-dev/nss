@@ -58,6 +58,7 @@
 #include "secerr.h"
 #include "sechash.h"	/* for HASH_GetHashObject() */
 #include "secder.h"
+#include "secpkcs5.h"
 
 struct sec_pkcs7_decoder_worker {
     int depth;
@@ -461,7 +462,7 @@ sec_pkcs7_decoder_get_recipient_key (SEC_PKCS7DecoderContext *p7dcx,
     PK11SymKey *bulkkey;
     SECOidTag keyalgtag, bulkalgtag, encalgtag;
     PK11SlotInfo *slot;
-    int i, bulkLength = 0;
+    int bulkLength = 0;
 
     if (recipientinfos == NULL || recipientinfos[0] == NULL) {
 	p7dcx->error = SEC_ERROR_NOT_A_RECIPIENT;

@@ -51,6 +51,10 @@
 typedef struct SEC_PKCS7DecoderContextStr SEC_PKCS7DecoderContext;
 typedef struct SEC_PKCS7EncoderContextStr SEC_PKCS7EncoderContext;
 
+/* legacy defines that haven't been active for years */
+typedef void *(*SECKEYGetPasswordKey)(void *arg, void *handle);
+
+
 /* Non-opaque objects.  NOTE, though: I want them to be treated as
  * opaque as much as possible.  If I could hide them completely,
  * I would.  (I tried, but ran into trouble that was taking me too
@@ -99,7 +103,6 @@ typedef struct SEC_PKCS7SMIMEKEAParametersStr SEC_PKCS7SMIMEKEAParameters;
  * Do not dare to use it without doing so!
  */
 typedef struct SEC_PKCS7AttributeStr SEC_PKCS7Attribute;
-
 
 struct SEC_PKCS7ContentInfoStr {
     PRArenaPool *poolp;			/* local; not part of encoding */
@@ -223,7 +226,8 @@ typedef enum
 {
 	SECKEAUsesSkipjack = 0,
 	SECKEAUsesNonSkipjack = 1,
-	SECKEAUsesNonSkipjackWithPaddedEncKey = 2
+	SECKEAUsesNonSkipjackWithPaddedEncKey = 2,
+	SECKEAInvalid = -1
 } SECKEATemplateSelector;
 
 /* ### mwelch - S/MIME KEA parameters. These don't really fit here,
