@@ -323,7 +323,7 @@ SUB_SHLOBJS = $(foreach dir,$(SHARED_LIBRARY_DIRS),$(addprefix $(dir)/,$(shell $
 endif
 endif
 
-$(SHARED_LIBRARY): $(OBJS) $(RES) $(MAPFILE) $(SUB_SHLOBJS)
+$(SHARED_LIBRARY): $(OBJS) $(RES) $(MAPFILE)
 	@$(MAKE_OBJDIR)
 	rm -f $@
 ifeq ($(OS_TARGET)$(OS_RELEASE), AIX4.1)
