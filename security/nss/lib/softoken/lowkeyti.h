@@ -30,8 +30,8 @@
  * may use your version of this file under either the MPL or the
  * GPL.
  */
-#ifndef _KEYTLOW_H_
-#define _KEYTLOW_H_ 1
+#ifndef _LOWKEYTI_H_
+#define _LOWKEYTI_H_ 1
 
 #include "blapit.h"
 #include "prtypes.h"
@@ -152,4 +152,4 @@ struct NSSLOWKEYPrivateKeyStr {
 };
 typedef struct NSSLOWKEYPrivateKeyStr NSSLOWKEYPrivateKey;
 
-#endif	/* _KEYTLOW_H_ */
+#endif	/* _LOWKEYTI_H_ */

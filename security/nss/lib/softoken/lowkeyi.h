@@ -35,8 +35,8 @@
  * $Id$
  */
 
-#ifndef _KEYLOW_H_
-#define _KEYLOW_H_
+#ifndef _LOWKEYI_H_
+#define _LOWKEYI_H_
 
 #include "prtypes.h"
 #include "seccomon.h"
@@ -248,4 +248,4 @@ nsslowkey_CopyPrivateKey(NSSLOWKEYPrivateKey *privKey);
 
 SEC_END_PROTOS
 
-#endif /* _KEYLOW_H_ */
+#endif /* _LOWKEYI_H_ */

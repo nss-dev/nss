@@ -35,8 +35,8 @@
  * $Id$
  */
 
-#ifndef _PRIVATE_H_
-#define _PRIVATE_H_
+#ifndef _KEYDBI_H_
+#define _KEYDBI_H_
 
 #include "nspr.h"
 #include "seccomon.h"
@@ -77,4 +77,4 @@ extern SECStatus NSSLOWKEY_TraverseKeys(NSSLOWKEYDBHandle *handle,
 
 SEC_END_PROTOS
 
-#endif /* _PRIVATE_H_ */
+#endif /* _KEYDBI_H_ */
