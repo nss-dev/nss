@@ -81,3 +81,5 @@ const NSSError NSS_ERROR_USER_CANCELED                  = 29;
 
 const NSSError NSS_ERROR_MAXIMUM_FOUND                  = 30;
 
+const NSSError NSS_ERROR_CERTIFICATE_ISSUER_NOT_FOUND   = 31;
+

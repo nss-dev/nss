@@ -434,7 +434,8 @@ NSSCertificate_BuildChain
   NSSPolicies *policiesOpt,
   NSSCertificate **rvOpt,
   PRUint32 rvLimit, /* zero for no limit */
-  NSSArena *arenaOpt
+  NSSArena *arenaOpt,
+  PRStatus *statusOpt
 )
 {
     PRStatus nssrv;
@@ -452,9 +453,8 @@ NSSCertificate_BuildChain
 	    c = find_issuer_cert_for_identifier(c, issuerID);
 	    nss_ZFreeIf(issuerID);
 	    if (!c) {
-#if 0
 		nss_SetError(NSS_ERROR_CERTIFICATE_ISSUER_NOT_FOUND);
-#endif
+		if (statusOpt) *statusOpt = PR_FAILURE;
 		goto finish;
 	    }
 	} else {
@@ -464,15 +464,15 @@ NSSCertificate_BuildChain
 	                                                    usage,
 	                                                    policiesOpt);
 	    if (!c) {
-#if 0
 		nss_SetError(NSS_ERROR_CERTIFICATE_ISSUER_NOT_FOUND);
-#endif
+		if (statusOpt) *statusOpt = PR_FAILURE;
 		goto finish;
 	    }
 	}
 	nssList_Add(chain, c);
 	if (nssList_Count(chain) == rvLimit) goto finish;
     }
+    if (statusOpt) *statusOpt = PR_SUCCESS;
 finish:
     if (rvOpt) {
 	rvChain = rvOpt;
