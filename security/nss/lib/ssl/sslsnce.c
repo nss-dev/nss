@@ -1504,7 +1504,7 @@ InitCertCache(const char *directory)
     return SECFailure;
 }
 
-int
+SECStatus
 SSL_ConfigServerSessionIDCache(	int      maxCacheEntries, 
 				PRUint32 timeout,
 			       	PRUint32 ssl3_timeout, 
@@ -1539,14 +1539,14 @@ SSL_ConfigServerSessionIDCache(	int      maxCacheEntries,
 /* Use this function, instead of SSL_ConfigServerSessionIDCache,
  * if the cache will be shared by multiple processes.
  */
-int
+SECStatus
 SSL_ConfigMPServerSIDCache(	int      maxCacheEntries, 
 				PRUint32 timeout,
 			       	PRUint32 ssl3_timeout, 
 		          const char *   directory)
 {
     char *	envValue;
-    int 	result;
+    SECStatus 	result;
     SECStatus	putEnvFailed;
 
     isMultiProcess = PR_TRUE;
@@ -1898,7 +1898,7 @@ ssl_SetWrappingKey(SSLWrappedSymWrappingKey *wswk)
 #include "ssl.h"
 #include "sslimpl.h"
 
-int
+SECStatus
 SSL_ConfigServerSessionIDCache(	int      maxCacheEntries, 
 				PRUint32 timeout,
 			       	PRUint32 ssl3_timeout, 
@@ -1908,7 +1908,7 @@ SSL_ConfigServerSessionIDCache(	int      maxCacheEntries,
     return SECFailure;
 }
 
-int
+SECStatus
 SSL_ConfigMPServerSIDCache(	int      maxCacheEntries, 
 				PRUint32 timeout,
 			       	PRUint32 ssl3_timeout, 

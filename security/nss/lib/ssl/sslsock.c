@@ -1264,7 +1264,7 @@ ssl_GetSockName(PRFileDesc *fd, PRNetAddr *name)
     return (PRStatus)(*ss->ops->getsockname)(ss, name);
 }
 
-int PR_CALLBACK
+SECStatus PR_CALLBACK
 SSL_SetSockPeerID(PRFileDesc *fd, char *peerID)
 {
     sslSocket *ss;
@@ -1277,7 +1277,7 @@ SSL_SetSockPeerID(PRFileDesc *fd, char *peerID)
     }
 
     ss->peerID = PORT_Strdup(peerID);
-    return 0;
+    return SECSuccess;
 }
 
 static PRInt16 PR_CALLBACK
