@@ -58,16 +58,16 @@
 #include "secport.h"
 
 typedef enum {
-    siBuffer,
-    siClearDataBuffer,
-    siCipherDataBuffer,
-    siDERCertBuffer,
-    siEncodedCertBuffer,
-    siDERNameBuffer,
-    siEncodedNameBuffer,
-    siAsciiNameString,
-    siAsciiString,
-    siDEROID
+    siBuffer = 0,
+    siClearDataBuffer = 1,
+    siCipherDataBuffer = 2,
+    siDERCertBuffer = 3,
+    siEncodedCertBuffer = 4,
+    siDERNameBuffer = 5,
+    siEncodedNameBuffer = 6,
+    siAsciiNameString = 7,
+    siAsciiString = 8,
+    siDEROID = 9
 } SECItemType;
 
 typedef struct SECItemStr SECItem;

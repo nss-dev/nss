@@ -230,10 +230,10 @@ typedef struct sec_EncoderContext_struct SEC_ASN1EncoderContext;
  * contents octets.
  */
 typedef enum {
-    SEC_ASN1_Identifier,
-    SEC_ASN1_Length,
-    SEC_ASN1_Contents,
-    SEC_ASN1_EndOfContents
+    SEC_ASN1_Identifier = 0,
+    SEC_ASN1_Length = 1,
+    SEC_ASN1_Contents = 2,
+    SEC_ASN1_EndOfContents = 3
 } SEC_ASN1EncodingPart;
 
 /*

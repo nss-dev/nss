@@ -258,9 +258,9 @@ SSL_IMPORT int SSL_BadCertHook(PRFileDesc *fd, SSLBadCertHandler f, void *arg);
 /* Key Exchange values */
 typedef enum {
     kt_null = 0,
-    kt_rsa,
-    kt_dh,
-    kt_fortezza,
+    kt_rsa = 1,
+    kt_dh = 2,
+    kt_fortezza = 3,
     kt_kea_size
 } SSLKEAType;
 
