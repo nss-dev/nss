@@ -859,7 +859,9 @@ nssPKIObjectCollection_GetObjects
 	    /* Convert the proto-object to an object */
 	    node->object = (*collection->createObject)(node->object);
 	    if (!node->object) {
-		return PR_FAILURE;
+		link = PR_NEXT_LINK(link);
+		PR_REMOVE_LINK(&node->link); /*remove bogus object from list*/
+		continue;
 	    }
 	    node->haveObject = PR_TRUE;
 	}
@@ -884,7 +886,9 @@ nssPKIObjectCollection_Traverse
 	if (!node->haveObject) {
 	    node->object = (*collection->createObject)(node->object);
 	    if (!node->object) {
-		return PR_FAILURE;
+		link = PR_NEXT_LINK(link);
+		PR_REMOVE_LINK(&node->link); /*remove bogus object from list*/
+		continue;
 	    }
 	    node->haveObject = PR_TRUE;
 	}
@@ -926,6 +930,7 @@ nssPKIObjectCollection_AddInstanceAsObject
     if (!node->haveObject) {
 	node->object = (*collection->createObject)(node->object);
 	if (!node->object) {
+	    PR_REMOVE_LINK(&node->link); /*remove bogus object from list*/
 	    return PR_FAILURE;
 	}
 	node->haveObject = PR_TRUE;
