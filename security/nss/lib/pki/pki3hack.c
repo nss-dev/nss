@@ -247,6 +247,9 @@ nssToken_LoadCerts(NSSToken *token)
 	    if (!token->certList) {
 		return PR_FAILURE;
 	    }
+	} else if (nssList_Count(token->certList) > 0) {
+	    /* already been done */
+	    return PR_SUCCESS;
 	}
 	/* ignore the rv, just work without the list */
 	(void)nssToken_TraverseCertificates(token, NULL, &search);
