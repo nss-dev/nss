@@ -67,11 +67,13 @@ static NSSItem *
 get_issuer_and_serial_key(NSSArena *arena, NSSDER *issuer, NSSDER *serial)
 {
     NSSItem *rvKey;
+    PRUint8 *buf;
     rvKey = nss_ZNEW(arena, NSSItem);
     rvKey->data = nss_ZAlloc(arena, issuer->size + serial->size);
     rvKey->size = issuer->size + serial->size;
-    nsslibc_memcpy(rvKey->data, issuer->data, issuer->size);
-    nsslibc_memcpy(rvKey->data + issuer->size, serial->data, serial->size);
+    buf = (PRUint8 *)rvKey->data;
+    nsslibc_memcpy(buf, issuer->data, issuer->size);
+    nsslibc_memcpy(buf + issuer->size, serial->data, serial->size);
     return rvKey;
 }
 
@@ -254,9 +256,11 @@ nssTrustDomain_AddCertsToCache
 static NSSItem *
 get_static_ias(NSSItem *s_ias, NSSDER *issuer, NSSDER *serial)
 {
+    PRUint8 *buf;
     if (issuer->size + serial->size < s_ias->size) {
-	nsslibc_memcpy(s_ias->data, issuer->data, issuer->size);
-	nsslibc_memcpy(s_ias->data + issuer->size, serial->data, serial->size);
+	buf = (PRUint8 *)s_ias->data;
+	nsslibc_memcpy(buf, issuer->data, issuer->size);
+	nsslibc_memcpy(buf + issuer->size, serial->data, serial->size);
 	s_ias->size = issuer->size + serial->size;
 	return s_ias;
     } 
