@@ -799,6 +799,23 @@ STAN_GetCERTCertificate(NSSCertificate *c)
 {
     return stan_GetCERTCertificate(c, PR_FALSE);
 }
+/*
+ * many callers of STAN_GetCERTCertificate() intend that
+ * the CERTCertificate returned inherits the reference to the 
+ * NSSCertificate. For these callers it's convenient to have 
+ * this function 'own' the reference and either return a valid 
+ * CERTCertificate structure which inherits the reference or 
+ * destroy the reference to NSSCertificate and returns NULL.
+ */
+NSS_IMPLEMENT CERTCertificate *
+STAN_GetCERTCertificateOrRelease(NSSCertificate *c)
+{
+    CERTCertificate *nss3cert = stan_GetCERTCertificate(c, PR_FALSE);
+    if (!nss3cert) {
+	nssCertificate_Destroy(c);
+    }
+    return nss3cert;
+}
 
 static nssTrustLevel
 get_stan_trust(unsigned int t, PRBool isClientAuth) 

@@ -100,6 +100,9 @@ STAN_ForceCERTCertificateUpdate(NSSCertificate *c);
 NSS_EXTERN CERTCertificate *
 STAN_GetCERTCertificate(NSSCertificate *c);
 
+NSS_EXTERN CERTCertificate *
+STAN_GetCERTCertificateOrRelease(NSSCertificate *c);
+
 NSS_EXTERN NSSCertificate *
 STAN_GetNSSCertificate(CERTCertificate *c);
 
