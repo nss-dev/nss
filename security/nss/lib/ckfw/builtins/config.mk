@@ -42,17 +42,17 @@ LIBRARY        =
 IMPORT_LIBRARY =
 PROGRAM        =
 
-ifeq (,$(filter-out OS2 WINNT,$(OS_ARCH)))
-	SHARED_LIBRARY = $(OBJDIR)/$(LIBRARY_NAME)$(LIBRARY_VERSION).dll
+ifeq (,$(filter-out OS2 WIN%,$(OS_TARGET)))
+    SHARED_LIBRARY = $(OBJDIR)/$(LIBRARY_NAME)$(LIBRARY_VERSION).dll
 endif
 
 ifdef BUILD_IDG
-DEFINES += -DNSSDEBUG
+    DEFINES += -DNSSDEBUG
 endif
 
 #
 # To create a loadable module on Darwin, we must use -bundle.
 #
-ifeq ($(OS_ARCH),Darwin)
+ifeq ($(OS_TARGET),Darwin)
 DSO_LDOPTS := $(subst -dynamiclib,-bundle,$(DSO_LDOPTS))
 endif
