@@ -684,6 +684,17 @@ sec_asn1e_contents_length (const SEC_ASN1Template *theTemplate, void *src,
 	    len++;
 	break;
 
+      case SEC_ASN1_INTEGER:
+	/* ASN.1 INTEGERs are signed.  PKCS#11 BigIntegers are unsigned.  NSS
+	 * will treat numbers going in and out of the ASN.1 encoder as
+	 * unsigned, so the encoder must handle the conversion.
+	 */
+	len = ((SECItem *)src)->len;
+	if (len > 0 && ((SECItem *)src)->data[0] & 0x80) {
+	    len++; /* will add leading 0 */
+	}
+	break;
+
       default:
 	len = ((SECItem *)src)->len;
 	if (may_stream && len == 0 && !ignoresubstream)
@@ -976,6 +987,24 @@ sec_asn1e_write_contents (sec_asn1e_state *state,
 		break;
 	    }
 	    /* otherwise, fall through to write the content */
+	    goto process_string;
+
+	  case SEC_ASN1_INTEGER:
+	   /* ASN.1 INTEGERs are signed.  PKCS#11 BigIntegers are unsigned.  
+	    * NSS will treat numbers going in and out of the ASN.1 encoder as
+	    * unsigned, so the encoder must handle the conversion.
+	    */
+	    {
+		SECItem *item;
+
+		item = (SECItem *)state->src;
+		if (item->len > 0 && item->data[0] & 0x80) 
+		{
+		    char zero = 0; /* write a leading 0 */
+		    sec_asn1e_write_contents_bytes (state, &zero, 1);
+		}
+	    }
+	    /* fall through to write the content */
 	    goto process_string;
 			
 process_string:			
