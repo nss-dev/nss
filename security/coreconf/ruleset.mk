@@ -200,9 +200,18 @@ ifndef OBJS
 		$(addsuffix $(OBJ_SUFFIX), $(JMC_GEN)) \
 		$(CSRCS:.c=$(OBJ_SUFFIX)) \
 		$(CPPSRCS:.cpp=$(OBJ_SUFFIX)) \
-		$(ASFILES:$(ASM_SUFFIX)=$(OBJ_SUFFIX))
-	OBJS = $(addprefix $(OBJDIR)/$(PROG_PREFIX), $(SIMPLE_OBJS))
+		$(ASFILES:$(ASM_SUFFIX)=$(OBJ_SUFFIX)) \
+		$(BUILT_CSRCS:.c=$(OBJ_SUFFIX)) \
+		$(BUILT_CPPSRCS:.cpp=$(OBJ_SUFFIX)) \
+		$(BUILT_ASFILES:$(ASM_SUFFIX)=$(OBJ_SUFFIX))
+	OBJS =	$(addprefix $(OBJDIR)/$(PROG_PREFIX), $(SIMPLE_OBJS))
 endif
+
+ifndef BUILT_SRCS
+	BUILT_SRCS = $(addprefix $(OBJDIR)/$(PROG_PREFIX), \
+			$(BUILT_CSRCS) $(BUILT_CPPSRCS) $(BUILT_ASFILES))
+endif
+
 
 ifeq ($(OS_TARGET), WIN16)
 	comma   := ,
@@ -237,7 +246,8 @@ ALL_TRASH :=	$(TARGETS) $(OBJS) $(OBJDIR) LOGS TAGS $(GARBAGE) \
 		$(JRI_HEADER_CFILES) $(JRI_STUB_CFILES) $(JNI_HEADERS) $(JMC_STUBS) \
 		$(JMC_HEADERS) $(JMC_EXPORT_FILES) so_locations \
 		_gen _jmc _jri _jni _stubs \
-		$(wildcard $(JAVA_DESTPATH)/$(PACKAGE)/*.class)
+		$(wildcard $(JAVA_DESTPATH)/$(PACKAGE)/*.class) \
+		$(BUILT_SRCS)
 
 ifdef JDIRS
 	ALL_TRASH += $(addprefix $(JAVA_DESTPATH)/,$(JDIRS))

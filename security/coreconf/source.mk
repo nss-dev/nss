@@ -40,7 +40,11 @@
 #
 
 ifndef SOURCE_PREFIX
+ifndef BUILD_TREE
 SOURCE_PREFIX = $(CORE_DEPTH)/../dist
+else
+SOURCE_PREFIX = $(BUILD_TREE)/dist
+endif
 endif
 
 #
@@ -83,7 +87,7 @@ ifndef SOURCE_BIN_DIR
 SOURCE_BIN_DIR       = $(SOURCE_MD_DIR)/bin
 endif
 
-#This is where we install build libraries (.a, .so, .lib).
+#This is where we install built libraries (.a, .so, .lib).
 ifndef SOURCE_LIB_DIR
 SOURCE_LIB_DIR       = $(SOURCE_MD_DIR)/lib
 endif
