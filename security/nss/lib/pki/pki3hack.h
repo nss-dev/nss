@@ -42,6 +42,10 @@ static const char PKINSS3HACK_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name
 #include "nssdevt.h"
 #endif /* NSSDEVT_H */
 
+#ifndef DEVT_H
+#include "devt.h"
+#endif /* DEVT_H */
+
 #ifndef NSSPKIT_H
 #include "nsspkit.h"
 #endif /* NSSPKIT_H */
@@ -108,6 +112,10 @@ nssPKIX509_GetIssuerAndSerialFromDER(NSSDER *der, NSSArena *arena,
 
 NSS_EXTERN char *
 STAN_GetCERTCertificateName(NSSCertificate *c);
+
+NSS_EXTERN char *
+STAN_GetCERTCertificateNameForInstance(NSSCertificate *c,
+                                       nssCryptokiInstance *instance);
 
 /* exposing this */
 NSS_EXTERN NSSCertificate *

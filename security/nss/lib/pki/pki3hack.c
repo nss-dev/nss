@@ -586,9 +586,11 @@ get_cert_instance(NSSCertificate *c)
 }
 
 char * 
-STAN_GetCERTCertificateName(NSSCertificate *c)
+STAN_GetCERTCertificateNameForInstance (
+  NSSCertificate *c,
+  nssCryptokiInstance *instance
+)
 {
-    nssCryptokiInstance *instance = get_cert_instance(c);
     NSSCryptoContext *context = c->object.cryptoContext;
     PRStatus nssrv;
     int nicklen, tokenlen, len;
@@ -626,6 +628,12 @@ STAN_GetCERTCertificateName(NSSCertificate *c)
     return nickname;
 }
 
+char * 
+STAN_GetCERTCertificateName(NSSCertificate *c)
+{
+    nssCryptokiInstance *instance = get_cert_instance(c);
+    return STAN_GetCERTCertificateNameForInstance(c, instance);
+}
 
 static void
 fill_CERTCertificateFields(NSSCertificate *c, CERTCertificate *cc, PRBool forced)
