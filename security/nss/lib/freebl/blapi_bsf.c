@@ -1508,6 +1508,26 @@ loser:
 	return SECFailure;
 }
 
+/*
+ * this should check the operation!!!!
+ */
+SECStatus
+RSA_PrivateKeyOpDoubleChecked(RSAPrivateKey *key,
+                              unsigned char *output,
+                              const unsigned char *input)
+{
+    return RSA_PrivateKeyOp(key, output, input);
+}
+
+/*
+ * this should check the key!!!
+ */
+SECStatus
+RSA_PrivateKeyCheck(RSAPrivateKey *key)
+{
+    return SECSuccess;
+}
+
 /*****************************************************************************
 ** BLAPI implementation of DSA
 ******************************************************************************/
