@@ -271,15 +271,6 @@ nssCKFWToken_Create
     goto loser;
   }
 
-  fwToken->mdObjectHash = nssCKFWHash_Create(fwToken->fwInstance, 
-                                arena, pError);
-  if( (nssCKFWHash *)NULL == fwToken->mdObjectHash ) {
-    if( CKR_OK == *pError ) {
-      *pError = CKR_GENERAL_ERROR;
-    }
-    goto loser;
-  }
-
   /* More here */
 
   if( (void *)NULL != (void *)mdToken->Setup ) {
