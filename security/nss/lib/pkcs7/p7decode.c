@@ -1256,9 +1256,6 @@ void
 SEC_PKCS7DecoderAbort(SEC_PKCS7DecoderContext *p7dcx, int error)
 {
     PORT_Assert(p7dcx);
-    if (!p7dcx) {
-	return;
-    }
     SEC_ASN1DecoderAbort(p7dcx->dcx, error);
 }
 

@@ -2849,9 +2849,6 @@ void
 SEC_ASN1DecoderAbort(SEC_ASN1DecoderContext *cx, int error)
 {
     PORT_Assert(cx);
-    if (!cx) {
-	return;
-    }
     PORT_SetError(error);
     cx->status = decodeError;
 }
