@@ -35,8 +35,8 @@
  *
  * $Id$
  */
-#ifndef _NSSLOWCERTT_H_
-#define _NSSLOWCERTT_H_
+#ifndef _PCERTT_H_
+#define _PCERTT_H_
 
 #include "prclist.h"
 #include "pkcs11t.h"
@@ -277,4 +277,4 @@ extern const SEC_ASN1Template nsslowcert_ValidityTemplate[];
 
 SEC_END_PROTOS
 
-#endif /* _CERTT_H_ */
+#endif /* _PCERTT_H_ */
