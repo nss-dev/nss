@@ -246,6 +246,12 @@ nssToken_AddRef
   NSSToken *tok
 );
 
+NSS_EXTERN NSSUTF8 *
+nssToken_GetName
+(
+  NSSToken *tok
+);
+
 /* Given a raw attribute template, import an object 
  * (certificate, public key, private key, symmetric key)
  */
@@ -293,6 +299,7 @@ nssToken_FindObjectByTemplate
   CK_ULONG ctsize
 );
 
+/* this is traverse not find */
 NSS_EXTERN PRStatus
 nssToken_FindCertificatesByTemplate
 (
