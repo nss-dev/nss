@@ -845,6 +845,7 @@ static SECStatus
 ssl3_SetupPendingCipherSpec(sslSocket *ss, ssl3State *ssl3)
 {
     ssl3CipherSpec *          pwSpec;
+    ssl3CipherSpec *          cwSpec;
     ssl3CipherSuite           suite     = ssl3->hs.cipher_suite;
     sslSecurityInfo *         sec       = ss->sec;
     SSL3MACAlgorithm          mac;
@@ -859,6 +860,13 @@ ssl3_SetupPendingCipherSpec(sslSocket *ss, ssl3State *ssl3)
 
     pwSpec = ssl3->pwSpec;
     PORT_Assert(pwSpec == ssl3->prSpec);
+
+    /* This hack provides maximal interoperability with SSL 3 servers. */
+    cwSpec = ss->ssl3->cwSpec;
+    if (cwSpec->mac_def->mac == mac_null) {
+	/* SSL records are not being MACed. */
+	cwSpec->version = ss->version;
+    }
 
     pwSpec->version  = ss->version;
     isTLS  = (PRBool)(pwSpec->version > SSL_LIBRARY_VERSION_3_0);
@@ -3023,7 +3031,6 @@ sendRSAClientKeyExchange(sslSocket * ss, SECKEYPublicKey * svrPubKey)
     /* wrap pre-master secret in server's public key. */
     rv = PK11_PubWrapSymKey(CKM_RSA_PKCS, svrPubKey, pms, &enc_pms);
     if (rv != SECSuccess) {
-	PORT_Free(enc_pms.data);
 	ssl_MapLowLevelError(SSL_ERROR_CLIENT_KEY_EXCHANGE_FAILURE);
 	goto loser;
     }

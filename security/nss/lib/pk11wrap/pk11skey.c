@@ -154,6 +154,56 @@ pk11_ExitKeyMonitor(PK11SymKey *symKey) {
     	PK11_ExitSlotMonitor(symKey->slot);
 }
 
+
+static PK11SymKey *pk11SymKeyHead = NULL;
+static PK11SymKey *
+pk11_getKeyFromList(PK11SlotInfo *slot) {
+    PK11SymKey *symKey = NULL;
+
+
+    PK11_USE_THREADS(PR_Lock(slot->freeListLock);)
+    if (slot->freeSymKeysHead) {
+    	symKey = slot->freeSymKeysHead;
+	slot->freeSymKeysHead = symKey->next;
+	slot->keyCount--;
+    }
+    PK11_USE_THREADS(PR_Unlock(slot->freeListLock);)
+    if (symKey) {
+	symKey->next = NULL;
+	if (!symKey->sessionOwner)
+    	    symKey->session = pk11_GetNewSession(slot,&symKey->sessionOwner);
+	return symKey;
+    }
+
+    symKey = (PK11SymKey *)PORT_ZAlloc(sizeof(PK11SymKey));
+    if (symKey == NULL) {
+	return NULL;
+    }
+    symKey->refLock = PR_NewLock();
+    if (symKey->refLock == NULL) {
+	PORT_Free(symKey);
+	return NULL;
+    }
+    symKey->session = pk11_GetNewSession(slot,&symKey->sessionOwner);
+    symKey->next = NULL;
+    return symKey;
+}
+
+void
+PK11_CleanKeyList(PK11SlotInfo *slot)
+{
+    PK11SymKey *symKey = NULL;
+
+    while (slot->freeSymKeysHead) {
+    	symKey = slot->freeSymKeysHead;
+	slot->freeSymKeysHead = symKey->next;
+	pk11_CloseSession(symKey->slot, symKey->session,symKey->sessionOwner);
+	PK11_USE_THREADS(PR_DestroyLock(symKey->refLock);)
+	PORT_Free(symKey);
+    };
+    return;
+}
+
 /*
  * create a symetric key:
  *      Slot is the slot to create the key in.
@@ -163,15 +213,13 @@ PK11SymKey *
 PK11_CreateSymKey(PK11SlotInfo *slot, CK_MECHANISM_TYPE type, void *wincx)
 {
 
-    PK11SymKey *symKey = (PK11SymKey *)PORT_Alloc(sizeof(PK11SymKey));
+    PK11SymKey *symKey = pk11_getKeyFromList(slot);
+
+
     if (symKey == NULL) {
 	return NULL;
     }
-    symKey->refLock = PR_NewLock();
-    if (symKey->refLock == NULL) {
-	PORT_Free(symKey);
-	return NULL;
-    }
+
     symKey->type = type;
     symKey->data.data = NULL;
     symKey->data.len = 0;
@@ -183,7 +231,6 @@ PK11_CreateSymKey(PK11SlotInfo *slot, CK_MECHANISM_TYPE type, void *wincx)
     symKey->size = 0;
     symKey->refCount = 1;
     symKey->origin = PK11_OriginNULL;
-    symKey->session = pk11_GetNewSession(slot,&symKey->sessionOwner);
     symKey->origin = PK11_OriginNULL;
     PK11_ReferenceSlot(slot);
     return symKey;
@@ -196,6 +243,8 @@ void
 PK11_FreeSymKey(PK11SymKey *symKey)
 {
     PRBool destroy = PR_FALSE;
+    PK11SlotInfo *slot;
+    PRBool freeit = PR_TRUE;
 
     PK11_USE_THREADS(PR_Lock(symKey->refLock);)
      if (symKey->refCount-- == 1) {
@@ -209,14 +258,27 @@ PK11_FreeSymKey(PK11SymKey *symKey)
 		C_DestroyObject(symKey->session, symKey->objectID);
 	    pk11_ExitKeyMonitor(symKey);
 	}
-	pk11_CloseSession(symKey->slot, symKey->session,symKey->sessionOwner);
 	if (symKey->data.data) {
 	    PORT_Memset(symKey->data.data, 0, symKey->data.len);
 	    PORT_Free(symKey->data.data);
 	}
-	PK11_USE_THREADS(PR_DestroyLock(symKey->refLock);)
-	PK11_FreeSlot(symKey->slot);
-	PORT_Free(symKey);
+        slot = symKey->slot;
+        PK11_USE_THREADS(PR_Lock(slot->freeListLock);)
+	if (slot->keyCount < slot->maxKeyCount) {
+	   symKey->next = slot->freeSymKeysHead;
+	   slot->freeSymKeysHead = symKey;
+	   slot->keyCount++;
+	   symKey->slot = NULL;
+	   freeit = PR_FALSE;
+        }
+	PK11_USE_THREADS(PR_Unlock(slot->freeListLock);)
+        if (freeit) {
+	    pk11_CloseSession(symKey->slot, symKey->session,
+							symKey->sessionOwner);
+	    PK11_USE_THREADS(PR_DestroyLock(symKey->refLock);)
+	    PORT_Free(symKey);
+	}
+	PK11_FreeSlot(slot);
     }
 }
 
@@ -318,7 +380,7 @@ pk11_ImportSymKeyWithTempl(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
 		  unsigned int templateCount, SECItem *key, void *wincx)
 {
     PK11SymKey *    symKey;
-    CK_RV           crv;
+    SECStatus	    rv;
 
     symKey = PK11_CreateSymKey(slot,type,wincx);
     if (symKey == NULL) {
@@ -326,6 +388,9 @@ pk11_ImportSymKeyWithTempl(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
     }
 
     symKey->size = key->len;
+
+    PK11_SETATTRS(&keyTemplate[templateCount], CKA_VALUE, key->data, key->len);
+    templateCount++;
 
     if (SECITEM_CopyItem(NULL,&symKey->data,key) != SECSuccess) {
 	PK11_FreeSymKey(symKey);
@@ -335,11 +400,10 @@ pk11_ImportSymKeyWithTempl(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
     symKey->origin = origin;
 
     /* import the keys */
-    crv = PK11_CreateNewObject(slot, symKey->session, keyTemplate,
+    rv = PK11_CreateNewObject(slot, symKey->session, keyTemplate,
 		 	templateCount, PR_FALSE, &symKey->objectID);
-    if ( crv != CKR_OK) {
+    if ( rv != SECSuccess) {
 	PK11_FreeSymKey(symKey);
-	PORT_SetError( PK11_MapError(crv));
 	return NULL;
     }
 
@@ -364,7 +428,7 @@ PK11_ImportSymKey(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
     PK11_SETATTRS(attrs, CKA_CLASS, &keyClass, sizeof(keyClass) ); attrs++;
     PK11_SETATTRS(attrs, CKA_KEY_TYPE, &keyType, sizeof(keyType) ); attrs++;
     PK11_SETATTRS(attrs, operation, &cktrue, 1); attrs++;
-    PK11_SETATTRS(attrs, CKA_VALUE, key->data, key->len); attrs++;
+    /* PK11_SETATTRS(attrs, CKA_VALUE, key->data, key->len); attrs++; */
     templateCount = attrs - keyTemplate;
     PR_ASSERT(templateCount <= sizeof(keyTemplate)/sizeof(CK_ATTRIBUTE));
 
@@ -391,7 +455,7 @@ PK11_ImportPublicKey(PK11SlotInfo *slot, SECKEYPublicKey *pubKey,
     CK_ATTRIBUTE *attrs = theTemplate;
     int signedcount = 0;
     int templateCount = 0;
-    CK_RV crv;
+    SECStatus rv;
 
     /* if we already have an object in the desired slot, use it */
     if (!isToken && pubKey->pkcs11Slot == slot) {
@@ -479,10 +543,9 @@ PK11_ImportPublicKey(PK11SlotInfo *slot, SECKEYPublicKey *pubKey,
 	for (attrs=signedattr; signedcount; attrs++, signedcount--) {
 		pk11_SignedToUnsigned(attrs);
 	} 
-        crv = PK11_CreateNewObject(slot, CK_INVALID_SESSION, theTemplate,
+        rv = PK11_CreateNewObject(slot, CK_INVALID_SESSION, theTemplate,
 				 	templateCount, isToken, &objectID);
-	if ( crv != CKR_OK) {
-	    PORT_SetError (PK11_MapError(crv));
+	if ( rv != SECSuccess) {
 	    return CK_INVALID_KEY;
 	}
     }
@@ -2573,6 +2636,11 @@ pk11_HandUnwrap(PK11SlotInfo *slot, CK_OBJECT_HANDLE wrappingKey,
     PRBool bool = PR_TRUE;
     CK_SESSION_HANDLE session;
 
+    /* remove any VALUE_LEN parameters */
+    if (keyTemplate[templateCount-1].type == CKA_VALUE_LEN) {
+        templateCount--;
+    }
+
     /* keys are almost always aligned, but if we get this far,
      * we've gone above and beyond anyway... */
     outKey.data = (unsigned char*)PORT_Alloc(inKey->len);
@@ -2671,14 +2739,18 @@ pk11_AnyUnwrapKey(PK11SlotInfo *slot, CK_OBJECT_HANDLE wrappingKey,
 	PK11_SETATTRS(attrs, CKA_KEY_TYPE,  &keyType,  sizeof keyType ); 
 	attrs++;
     }
+    if (!pk11_FindAttrInTemplate(keyTemplate, numAttrs, operation)) {
+	PK11_SETATTRS(attrs, operation, &cktrue, 1); attrs++;
+    }
+
+    /*
+     * must be last in case we need to use this template to import the key
+     */
     if (keySize > 0 &&
     	  !pk11_FindAttrInTemplate(keyTemplate, numAttrs, CKA_VALUE_LEN)) {
 	valueLen = (CK_ULONG)keySize;
 	PK11_SETATTRS(attrs, CKA_VALUE_LEN, &valueLen, sizeof valueLen); 
 	attrs++;
-    }
-    if (!pk11_FindAttrInTemplate(keyTemplate, numAttrs, operation)) {
-	PK11_SETATTRS(attrs, operation, &cktrue, 1); attrs++;
     }
 
     templateCount = attrs - keyTemplate;
@@ -2720,13 +2792,17 @@ pk11_AnyUnwrapKey(PK11SlotInfo *slot, CK_OBJECT_HANDLE wrappingKey,
 	symKey = pk11_HandUnwrap(slot, wrappingKey, &mechanism, wrappedKey, 
 	                         target, keyTemplate, templateCount, keySize, 
 				 wincx);
-	if (symKey) return symKey;
+	if (symKey) {
+	    if (param_free) SECITEM_FreeItem(param_free,PR_TRUE);
+	    return symKey;
+	}
 	/* fall through, maybe they incorrectly set CKF_DECRYPT */
     }
 
     /* get our key Structure */
     symKey = PK11_CreateSymKey(slot,target,wincx);
     if (symKey == NULL) {
+	if (param_free) SECITEM_FreeItem(param_free,PR_TRUE);
 	return NULL;
     }
 

@@ -902,6 +902,12 @@ extern CERTCertificateList *
 CERT_CertChainFromCert(CERTCertificate *cert, SECCertUsage usage,
 		       PRBool includeRoot);
 
+extern CERTCertificateList *
+CERT_CertListFromCert(CERTCertificate *cert);
+
+extern CERTCertificateList *
+CERT_DupCertList(CERTCertificateList * oldList);
+
 extern void CERT_DestroyCertificateList(CERTCertificateList *list);
 
 /* is cert a newer than cert b? */

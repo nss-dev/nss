@@ -121,7 +121,7 @@ SECMOD_GetInternalModule(void) {
  * security code without any database.
  */
 void
-secmod_GetInternalModule( SECMODModule *mod) {
+SECMOD_SetInternalModule( SECMODModule *mod) {
    internalModule = SECMOD_ReferenceModule(mod);
 }
 

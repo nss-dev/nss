@@ -54,7 +54,11 @@ include $(CORE_DEPTH)/coreconf/config.mk
 # (4) Include "local" platform-dependent assignments (OPTIONAL).      #
 #######################################################################
 
-
+ifeq ($(OS_TARGET),WINNT)
+NSPR_IMPORT_VERSION = v4.0.1
+else
+NSPR_IMPORT_VERSION = v4.0
+endif
 
 #######################################################################
 # (5) Execute "global" rules. (OPTIONAL)                              #
@@ -75,7 +79,7 @@ include $(CORE_DEPTH)/coreconf/rules.mk
 moz_import::
 	$(NSINSTALL) -L ../../../dist include $(DIST)
 	$(NSINSTALL) -L ../../../dist lib $(DIST)
-	cp $(DIST)/lib/libmozdbm_s.a $(DIST)/lib/libdbm.a
+	cp $(DIST)/lib/libmozdbm_s.$(LIB_SUFFIX) $(DIST)/lib/libdbm.$(LIB_SUFFIX)
 
 nsm:: all 
 	cd ssm/lib/protocol; gmake
