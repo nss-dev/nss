@@ -405,7 +405,7 @@ pk11_isID0(PK11SlotInfo *slot, CK_OBJECT_HANDLE certID)
  * Create an NSSCertificate from a slot/certID pair, return it as a
  * CERTCertificate.
  */
-CERTCertificate
+static CERTCertificate
 *pk11_fastCert(PK11SlotInfo *slot, CK_OBJECT_HANDLE certID, 
 			CK_ATTRIBUTE *privateLabel, char **nickptr)
 {
@@ -437,7 +437,7 @@ CERTCertificate
     }
 
     /* Build the old-fashioned nickname */
-    if (nickptr) {
+    if ((nickptr) && (co->label)) {
 	CK_ATTRIBUTE label, id;
 	label.type = CKA_LABEL;
 	label.pValue = co->label;
@@ -1437,11 +1437,13 @@ PK11_FindCertsFromNickname(char *nickname, void *wincx) {
     }
     if (nickCopy) PORT_Free(nickCopy);
     if (foundCerts) {
+	PRTime now = PR_Now();
 	certList = CERT_NewCertList();
 	for (i=0, c = *foundCerts; c; c = foundCerts[++i]) {
 	    CERTCertificate *certCert = STAN_GetCERTCertificate(c);
 	    if (certCert) {
-		CERT_AddCertToListTail(certList, certCert);
+		CERT_AddCertToListSorted(certList, certCert,
+			CERT_SortCBValidity, &now);
 	    }
 	}
 	if (CERT_LIST_HEAD(certList) == NULL) {
