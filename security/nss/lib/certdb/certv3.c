@@ -310,6 +310,8 @@ CERT_FindSubjectKeyIDExtension(CERTCertificate *cert, SECItem *retItem)
 	        rv = SECITEM_CopyItem(NULL, retItem, &decodedValue);
 	    }
 	    PORT_FreeArena(tmpArena, PR_FALSE);
+	} else {
+	    rv = SECFailure;
 	}
     }
     SECITEM_FreeItem(&encodedValue, PR_FALSE);
