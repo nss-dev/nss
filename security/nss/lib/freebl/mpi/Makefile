@@ -22,6 +22,7 @@
 ##
 ## Contributor(s):
 ##	Netscape Communications Corporation
+## 	Richard C. Swift	(swift@netscape.com)
 ##
 ## Alternatively, the contents of this file may be used under the
 ## terms of the GNU General Public License Version 2 or later (the
@@ -83,6 +84,8 @@ endif
 
 ifeq ($(TARGET),alphaOSF1)
 #Alpha/OSF1
+MPICMN += -DMP_ASSEMBLY_MULTIPLY
+AS_OBJS+= mpvalpha.o
 #CFLAGS= -O -Olimit 4000 -ieee_with_inexact -std1 -DOSF1 -D_REENTRANT $(MPICMN)
 CFLAGS= -O -Olimit 4000 -ieee_with_inexact -std1 -DOSF1 -D_REENTRANT \
  -DMP_NO_MP_WORD $(MPICMN)
