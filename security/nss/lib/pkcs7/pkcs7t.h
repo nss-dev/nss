@@ -221,9 +221,9 @@ struct SEC_PKCS7AttributeStr {
    scenario and data specifics. */
 typedef enum
 {
-	SECKEAUsesSkipjack,
-	SECKEAUsesNonSkipjack,
-	SECKEAUsesNonSkipjackWithPaddedEncKey
+	SECKEAUsesSkipjack = 0,
+	SECKEAUsesNonSkipjack = 1,
+	SECKEAUsesNonSkipjackWithPaddedEncKey = 2
 } SECKEATemplateSelector;
 
 /* ### mwelch - S/MIME KEA parameters. These don't really fit here,

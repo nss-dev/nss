@@ -42,7 +42,7 @@ struct NSSCMSRecipientStr {
     int				riIndex;	/* this recipient's index in recipientInfo array */
     int				subIndex;	/* index into recipientEncryptedKeys */
 						/* (only in NSSCMSKeyAgreeRecipientInfoStr) */
-    enum {RLIssuerSN, RLSubjKeyID} kind;	/* for conversion recipientinfos -> recipientlist */
+    enum {RLIssuerSN=0, RLSubjKeyID=1} kind;	/* for conversion recipientinfos -> recipientlist */
     union {
 	CERTIssuerAndSN *	issuerAndSN;
 	SECItem *		subjectKeyID;

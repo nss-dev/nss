@@ -637,7 +637,7 @@ SSL_ConfigSecureServer(PRFileDesc *fd, CERTCertificate *cert,
     }
 
     /* make sure the key exchange is recognized */
-    if ((kea > kt_kea_size) || (kea < kt_null)) {
+    if ((kea >= kt_kea_size) || (kea < kt_null)) {
 	PORT_SetError(SEC_ERROR_UNSUPPORTED_KEYALG);
 	return SECFailure;
     }
