@@ -255,6 +255,11 @@ PRBool PORT_UCS2_UTF8Conversion(PRBool toUnicode, unsigned char *inBuf,
 			unsigned int inBufLen, unsigned char *outBuf,
 			unsigned int maxOutBufLen, unsigned int *outBufLen);
 
+/* One-way conversion from ISO-8859-1 to UTF-8 */
+PRBool PORT_ISO88591_UTF8Conversion(const unsigned char *inBuf,
+			unsigned int inBufLen, unsigned char *outBuf,
+			unsigned int maxOutBufLen, unsigned int *outBufLen);
+
 PR_EXTERN(PRBool)
 sec_port_ucs4_utf8_conversion_function
 (
@@ -271,6 +276,17 @@ sec_port_ucs2_utf8_conversion_function
 (
   PRBool toUnicode,
   unsigned char *inBuf,
+  unsigned int inBufLen,
+  unsigned char *outBuf,
+  unsigned int maxOutBufLen,
+  unsigned int *outBufLen
+);
+
+/* One-way conversion from ISO-8859-1 to UTF-8 */
+extern PRBool
+sec_port_iso88591_utf8_conversion_function
+(
+  const unsigned char *inBuf,
   unsigned int inBufLen,
   unsigned char *outBuf,
   unsigned int maxOutBufLen,
