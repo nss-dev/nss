@@ -4347,9 +4347,9 @@ nsslowcert_DestroyCertificateNoLocking(NSSLOWCERTCertificate *cert)
  * Lookup a CRL in the databases. We mirror the same fast caching data base
  *  caching stuff used by certificates....?
  */
-SECItem *
-nsslowcert_FindCrlByKey(NSSLOWCERTCertDBHandle *handle, SECItem *crlKey, 
-		char **url, PRBool isKRL)
+certDBEntryRevocation *
+nsslowcert_FindCrlByKey(NSSLOWCERTCertDBHandle *handle, 
+						SECItem *crlKey, PRBool isKRL)
 {
     SECItem keyitem;
     DBT key;
@@ -4380,20 +4380,12 @@ nsslowcert_FindCrlByKey(NSSLOWCERTCertDBHandle *handle, SECItem *crlKey,
 	goto loser;
     }
 
-    if (url && entry->url) {
-	*url = PORT_Strdup(entry->url);
-    }
-    crl = SECITEM_DupItem(&entry->derCrl);
-
 loser:
     if ( arena ) {
 	PORT_FreeArena(arena, PR_FALSE);
     }
-    if (entry) {
-	DestroyDBEntry((certDBEntry *)entry);
-    }
     
-    return(crl);
+    return entry;
 }
 
 /*
