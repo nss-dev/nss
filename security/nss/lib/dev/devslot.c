@@ -178,8 +178,7 @@ nssSlot_Destroy (
 )
 {
     if (slot) {
-	PR_AtomicDecrement(&slot->base.refCount);
-	if (slot->base.refCount == 0) {
+	if (PR_AtomicDecrement(&slot->base.refCount) == 0) {
 	    PZ_DestroyLock(slot->base.lock);
 #ifdef PURE_STAN_BUILD
 	    nssToken_Destroy(slot->token);
