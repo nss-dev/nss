@@ -683,9 +683,8 @@ NSSCKFWC_WaitForSlotEvent
   for( i = 0; i < nSlots; i++ ) {
     if( fwSlot == slots[i] ) {
       *pSlot = (CK_SLOT_ID)(CK_ULONG)(i+1);
+      return CKR_OK;
     }
-
-    return CKR_OK;
   }
 
   error = CKR_GENERAL_ERROR; /* returned something not in the slot list */

@@ -1405,7 +1405,7 @@ nssCKFWToken_GetMechanismCount
   }
 #endif /* NSSDEBUG */
 
-  if( (void *)NULL == fwToken->mdToken->GetMechanismCount ) {
+  if( (void *)NULL == (void *)fwToken->mdToken->GetMechanismCount ) {
     return 0;
   }
 
@@ -1434,7 +1434,7 @@ nssCKFWToken_GetMechanismTypes
   }
 #endif /* NSSDEBUG */
 
-  if( (void *)NULL == fwToken->mdToken->GetMechanismTypes ) {
+  if( (void *)NULL == (void *)fwToken->mdToken->GetMechanismTypes ) {
     /*
      * This should only be called with a sufficiently-large
      * "types" array, which can only be done if GetMechanismCount

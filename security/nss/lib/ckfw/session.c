@@ -1909,9 +1909,9 @@ NSSCKFWSession_CallNotification
   CK_NOTIFICATION event
 )
 {
+#ifdef DEBUG
   CK_RV error = CKR_OK;
 
-#ifdef DEBUG
   error = nssCKFWSession_verifyPointer(fwSession);
   if( CKR_OK != error ) {
     return error;

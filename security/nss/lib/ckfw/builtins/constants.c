@@ -62,7 +62,7 @@ NSS_IMPLEMENT_DATA const CK_VERSION
 nss_builtins_LibraryVersion = { 1, 0 };
 
 NSS_IMPLEMENT_DATA const NSSUTF8 *
-nss_builtins_SlotDescription = "";
+nss_builtins_SlotDescription = (NSSUTF8 *) "";
 
 NSS_IMPLEMENT_DATA const CK_VERSION
 nss_builtins_HardwareVersion = { 1, 0 };
