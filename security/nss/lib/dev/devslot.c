@@ -499,7 +499,7 @@ slot_login
 )
 {
     PRStatus nssrv;
-    PRUint32 attempts;
+    PRBool retry;
     PRBool keepTrying;
     NSSUTF8 *password = NULL;
     CK_ULONG pwLen;
@@ -512,11 +512,10 @@ slot_login
     epv = nssModule_GetCryptokiEPV(slot->module);
     keepTrying = PR_TRUE;
     nssrv = PR_FAILURE;
-    attempts = 0;
     while (keepTrying) {
 	/* use the token name, since it is present */
 	NSSUTF8 *tokenName = nssToken_GetName(slot->token);
-	nssrv = pwcb->getPW(tokenName, attempts, pwcb->arg, &password);
+	nssrv = pwcb->getPW(tokenName, &retry, pwcb->arg, &password);
 	if (nssrv != PR_SUCCESS) {
 	    nss_SetError(NSS_ERROR_USER_CANCELED);
 	    break;
@@ -538,7 +537,8 @@ slot_login
 	    break;
 	case CKR_PIN_INCORRECT:
 	    nss_SetError(NSS_ERROR_INVALID_PASSWORD);
-	    keepTrying = PR_TRUE; /* received bad pw, keep going */
+	    keepTrying = retry; /* received bad pw, keep going */
+	    if (!retry) nssrv = PR_FAILURE;
 	    break;
 	default:
 	    nssrv = PR_FAILURE;
@@ -547,7 +547,6 @@ slot_login
 	}
 	nss_ZFreeIf(password);
 	password = NULL;
-	++attempts;
     }
     return nssrv;
 }
@@ -597,17 +596,14 @@ static PRStatus
 password_return
 (
   NSSUTF8 *slotName,
-  PRUint32 retries,
+  PRBool *retry,
   void *arg,
   NSSUTF8 **password
 )
 {
-    if (retries == 0) {
-	*password = nssUTF8_Duplicate((NSSUTF8 *)arg, NULL);
-	return PR_SUCCESS;
-    } else {
-	return PR_FAILURE;
-    }
+    *retry = PR_FALSE;
+    *password = nssUTF8_Duplicate((NSSUTF8 *)arg, NULL);
+    return PR_SUCCESS;
 }
 
 static PRStatus
@@ -740,8 +736,37 @@ nssSlot_IsLoggedIn
   NSSSlot *slot
 )
 {
-    nssSession *session = nssToken_GetDefaultSession(slot->token);
+    nssSession *session = nssToken_GetDefaultSession(slot->token); /* XXX */
     return !slot_needs_login(slot, session);
+}
+
+NSS_IMPLEMENT PRStatus
+nssSlot_CheckPassword
+(
+  NSSSlot *slot,
+  const NSSUTF8 *password
+)
+{
+    nssSession *session = nssToken_GetDefaultSession(slot->token); /* XXX */
+    NSSCallback have_pw_cb;
+
+    have_pw_cb.getPW = password_return;
+    have_pw_cb.arg = (char *)password;
+
+    if (nssSlot_IsLoggedIn(slot)) {
+	nssSlot_Logout(slot, session);
+    }
+    return slot_login(slot, session, CKU_USER, &have_pw_cb);
+}
+
+NSS_IMPLEMENT PRStatus
+NSSSlot_CheckPassword
+(
+  NSSSlot *slot,
+  const NSSUTF8 *password
+)
+{
+    return nssSlot_CheckPassword(slot, password);
 }
 
 NSS_IMPLEMENT void

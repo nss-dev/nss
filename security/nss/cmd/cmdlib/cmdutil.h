@@ -125,8 +125,9 @@ struct cmdCommandLineArgStr {
     CMDArg   argUse; /* flag takes an argument          */
     char    *arg;    /* argument given for flag         */
     PRBool   on;     /* flag was issued at command-line */
-    int      req[4]; /* required arguments for commands */
-    int      opt[4]; /* optional arguments for commands */
+    int      req[4]; /* required arguments for command  */
+    int      opt[4]; /* optional arguments for command  */
+    char    *help;   /* help string for command         */
 };
 
 struct cmdCommandLineOptStr {
@@ -145,6 +146,8 @@ struct cmdCommandStr {
     int nopt;
     cmdCommandLineArg *cmd;
     cmdCommandLineOpt *opt;
+    char **optHelp;
+    char *description;
 };
 
 typedef struct cmdCommandStr cmdCommand;
@@ -152,19 +155,13 @@ typedef struct cmdCommandStr cmdCommand;
 int 
 CMD_ParseCommandLine(int argc, char **argv, char *progName, cmdCommand *cmd);
 
-typedef void 
-(* cmdUsageCallback)(cmdPrintState *, int, PRBool, PRBool, PRBool);
-
 #define CMDBIT(n) (1<<n)
 
 void 
 CMD_Usage(char *progName, cmdCommand *cmd);
 
 void 
-CMD_LongUsage(char *progName, cmdCommand *cmd, cmdUsageCallback use);
-
-void 
-CMD_PrintUsageString(cmdPrintState *ps, char *str);
+CMD_LongUsage(char *progName, cmdCommand *cmd);
 
 int
 CMD_Interactive(cmdCommand *cmd);

@@ -155,6 +155,13 @@ NSSSlot_SetPassword
   NSSUTF8 *newPassword
 );
 
+NSS_EXTERN PRStatus
+NSSSlot_CheckPassword
+(
+  NSSSlot *slot,
+  const NSSUTF8 *password
+);
+
 /* NSSToken
  *
  * NSSToken_Destroy

@@ -82,7 +82,7 @@ print_ps_indent(cmdPrintState *ps)
 	PR_fprintf(ps->file, "\n");
 	ps->linepos = 0;
     }
-    for (j=0; j<=ps->indent; j++) PR_fprintf(ps->file, " ");
+    for (j=0; j<ps->indent; j++) PR_fprintf(ps->file, " ");
     ps->linepos = ps->indent;
 }
 
@@ -346,7 +346,7 @@ next_flag:
 }
 
 void
-CMD_LongUsage(char *progName, cmdCommand *cmd, cmdUsageCallback usage)
+CMD_LongUsage(char *progName, cmdCommand *cmd)
 {
     int i, j;
     PRBool oneCommand = PR_FALSE;
@@ -355,11 +355,11 @@ CMD_LongUsage(char *progName, cmdCommand *cmd, cmdUsageCallback usage)
     nprintf(&ps, "\n%s:   ", progName);
     /* prints app-specific header */
     ps.indent = strlen(progName) + 4;
-    usage(&ps, 0, PR_FALSE, PR_TRUE, PR_FALSE);
+    nprintf(&ps, "%s\n", cmd->description);
     for (i=0; i<cmd->ncmd; i++) if (cmd->cmd[i].on) oneCommand = PR_TRUE;
     for (i=0; i<cmd->ncmd; i++) {
 	if ((oneCommand  && cmd->cmd[i].on) || !oneCommand) {
-	    ps.indent = 0;
+	    ps.indent = 1;
 	    print_ps_indent(&ps);
 	    if (cmd->cmd[i].c != 0) {
 		nprintf(&ps, "-%c, ", cmd->cmd[i].c);
@@ -368,7 +368,7 @@ CMD_LongUsage(char *progName, cmdCommand *cmd, cmdUsageCallback usage)
 		nprintf(&ps, "--%-20s ", cmd->cmd[i].s);
 	    }
 	    ps.indent += 20;
-	    usage(&ps, i, PR_TRUE, PR_FALSE, PR_FALSE);
+	    nprintf(&ps, "%s\n", cmd->cmd[i].help);
 	    for (j=0; j<cmd->nopt; j++) {
 		if (cmd->cmd[i].req[ZERO] & CMDBIT(j)) {
 		    ps.indent = 0;
@@ -381,7 +381,7 @@ CMD_LongUsage(char *progName, cmdCommand *cmd, cmdUsageCallback usage)
 			nprintf(&ps, "--%-20s  ", cmd->opt[j].s);
 		    }
 		    ps.indent += 29;
-		    usage(&ps, j, PR_FALSE, PR_FALSE, PR_FALSE);
+		    nprintf(&ps, "%s", cmd->optHelp[j]);
 		}
 	    }
 	    for (j=0; j<cmd->nopt; j++) {
@@ -396,7 +396,7 @@ CMD_LongUsage(char *progName, cmdCommand *cmd, cmdUsageCallback usage)
 			nprintf(&ps, "--%-20s  ", cmd->opt[j].s);
 		    }
 		    ps.indent += 29;
-		    usage(&ps, j, PR_FALSE, PR_FALSE, PR_FALSE);
+		    nprintf(&ps, "%s", cmd->optHelp[j]);
 		}
 	    }
 	}
@@ -404,8 +404,6 @@ CMD_LongUsage(char *progName, cmdCommand *cmd, cmdUsageCallback usage)
     }
     ps.indent = 0;
     nprintf(&ps, "\n* - required flag for command\n\n");
-    /* prints app-specific footer */
-    usage(&ps, 0, PR_FALSE, PR_FALSE, PR_TRUE);
     /*nprintf(&ps, "\n\n");*/
     exit(1);
 }
@@ -485,28 +483,50 @@ void
 CMD_InteractiveUsage(char *progName, cmdCommand *cmd)
 {
     int i, j;
-    PRBool first;
     cmdPrintState ps;
+    int cmdToHelp = -1;
     init_print_ps(&ps, PR_STDERR, 80, 0);
     ps.indent = 1;
     print_ps_to_indent(&ps);
     for (i=0; i<cmd->ncmd; i++) {
+	if (cmd->cmd[i].on) {
+	    cmdToHelp = i;
+	    break;
+	}
+    }
+    if (cmdToHelp > 0) {
+	nprintf(&ps, "%s\n", cmd->cmd[cmdToHelp].help);
+	for (j=0; j<cmd->nopt; j++) {
+	    if (cmd->cmd[cmdToHelp].req[ZERO] & CMDBIT(j)) {
+		nprintf(&ps, "  %s", cmd->opt[j].s);
+		if (cmd->opt[j].argUse == CMDArgReq) {
+		    nprintf(&ps, "=%s", cmd->opt[j].s);
+		} else if (cmd->opt[j].argUse == CMDArgOpt) {
+		    nprintf(&ps, "(=%s)", cmd->opt[j].s);
+		}
+		nprintf(&ps, " %s\n", cmd->optHelp[j]);
+	    }
+	}
+	for (j=0; j<cmd->nopt; j++) {
+	    if (cmd->cmd[cmdToHelp].opt[ZERO] & CMDBIT(j)) {
+		nprintf(&ps, "  [%s", cmd->opt[j].s);
+		if (cmd->opt[j].argUse == CMDArgReq) {
+		    nprintf(&ps, "=%s]", cmd->opt[j].s);
+		} else if (cmd->opt[j].argUse == CMDArgOpt) {
+		    nprintf(&ps, "(=%s)]", cmd->opt[j].s);
+		} else {
+		    nprintf(&ps, "]", cmd->opt[j].s);
+		}
+		nprintf(&ps, " %s\n", cmd->optHelp[j]);
+	    }
+	}
+	goto finish;
+    }
+    for (i=0; i<cmd->ncmd; i++) {
 	nprintf(&ps, "%s", cmd->cmd[i].s);
-	first = PR_TRUE;
-	for (j=0; j<cmd->nopt; j++) {
-	    if (cmd->cmd[i].req[ZERO] & CMDBIT(j)) {
-		nprintf(&ps, " %s", cmd->opt[j].s);
-	    }
-	}
-	first = PR_TRUE;
-	for (j=0; j<cmd->nopt; j++) {
-	    if (cmd->cmd[i].opt[ZERO] & CMDBIT(j) && 
-	         cmd->opt[j].argUse != CMDNoArg) {
-		 nprintf(&ps, " [%s]", cmd->opt[j].s, cmd->opt[j].s);
-	    }
-	}
 	print_ps_indent(&ps);
     }
+finish:
     ps.indent = 0;
     nprintf(&ps, "\n");
 }
@@ -549,10 +569,12 @@ read_command:
 	if (strcmp(token, cmd->cmd[i].s) == 0) {
 	    cmdToRun = i;
 /*PR_fprintf(PR_STDERR, "doing command %s\n", token);*/
+	    cmd->cmd[i].on = PR_TRUE;
+	    break;
 	}
     }
     if (cmdToRun < 0) { 
-	if (strcmp(token, "quit") == 0 || strcmp(token, "q")) {
+	if (strcmp(token, "quit") == 0 || strcmp(token, "q") == 0) {
 	    /* this one applies to all */
 	    return -2;
 	} else {

@@ -53,7 +53,6 @@ static PRStatus pkiutil_command_dispatcher(cmdCommand *, int);
 enum {
     cmd_ChangePassword = 0,
     cmd_Delete,
-    cmd_Help,
     cmd_Import,
     cmd_Interactive,
     cmd_List,
@@ -95,6 +94,7 @@ static cmdCommandLineArg pkiutil_commands[] =
      CMDBIT(opt_ProfileDir),
      0, 0, 0 
    },
+   "Change the password of a token"
  },
  { /* cmd_Delete */
    'D', "delete", 
@@ -109,12 +109,7 @@ static cmdCommandLineArg pkiutil_commands[] =
      CMDBIT(opt_TokenName),
      0, 0, 0
    },
- },
- { /* cmd_Help */
-   '?', "help", 
-   CMDNoArg, 0, PR_FALSE, 
-   { 0, 0, 0, 0 },
-   { 0, 0, 0, 0 },
+   "Delete an object from the profile/token"
  },
  { /* cmd_Import */  
    'I', "import", 
@@ -133,6 +128,7 @@ static cmdCommandLineArg pkiutil_commands[] =
      CMDBIT(opt_Type),
      0, 0, 0
    },
+   "Import an object into the profile/token"
  },
  { /* cmd_Interactive */
    'D', "interactive", 
@@ -142,6 +138,7 @@ static cmdCommandLineArg pkiutil_commands[] =
      CMDBIT(opt_ProfileDir),
      0, 0, 0 
    },
+   "Use interactive mode"
  },
  { /* cmd_List */  
    'L', "list", 
@@ -158,6 +155,7 @@ static cmdCommandLineArg pkiutil_commands[] =
      CMDBIT(opt_Type),
      0, 0, 0
    },
+   "List objects on the token"
  },
  { /* cmd_Print */
    'P', "print", 
@@ -176,6 +174,7 @@ static cmdCommandLineArg pkiutil_commands[] =
      CMDBIT(opt_Type),
      0, 0, 0
    },
+   "Print or dump a single object"
  },
  { /* cmd_Validate */
    'V', "validate", 
@@ -190,12 +189,14 @@ static cmdCommandLineArg pkiutil_commands[] =
      CMDBIT(opt_Usages) | 
      0, 0, 0
    },
+   "Validate a certificate"
  },
  { /* cmd_Version */  
    0, "version", 
    CMDNoArg, 0, PR_FALSE, 
    { 0, 0, 0, 0 }, 
-   { 0, 0, 0, 0 }
+   { 0, 0, 0, 0 },
+   "Get version information"
  }
 };
 
@@ -217,62 +218,38 @@ static cmdCommandLineOpt pkiutil_options[] =
  { /* opt_Usages      */  'u', "usages",   CMDArgReq },
 };
 
-void pkiutil_usage(cmdPrintState *ps, 
-                   int num, PRBool cmd, PRBool header, PRBool footer)
+static char * pkiutil_options_help[] =
 {
-#define pusg CMD_PrintUsageString
-    if (header) {
-	pusg(ps, "utility for managing PKCS#11 objects (certs and keys)\n");
-    } else if (footer) {
-	/*
-	printf("certificate trust can be:\n");
-	printf(" p - valid peer, P - trusted peer (implies p)\n");
-	printf(" c - valid CA\n");
-	printf("  T - trusted CA to issue client certs (implies c)\n");
-	printf("  C - trusted CA to issue server certs (implies c)\n");
-	printf(" u - user cert\n");
-	printf(" w - send warning\n");
-	*/
-    } else if (cmd) {
-	switch(num) {
-	case cmd_Import:     
-	    pusg(ps, "Import an object onto the profile/token"); break;
-	case cmd_Delete:     
-	    pusg(ps, "Delete an object from the profile/token"); break;
-	case cmd_List:    
-	    pusg(ps, "List objects on the token (-n for single object)"); break;
-	case cmd_Print:
-	    pusg(ps, "Print or dump a single object"); break;
-	case cmd_Version: 
-	    pusg(ps, "Report version"); break;
-	default:
-	    pusg(ps, "Unrecognized command"); break;
-	}
-    } else {
-	switch(num) {
-	case opt_Ascii:      
-	    pusg(ps, "Use ascii (base-64 encoded) mode for I/O"); break;
-	case opt_ProfileDir:    
-	    pusg(ps, "Directory containing security databases (def: \".\")"); 
-	    break;
-	case opt_TokenName:  
-	    pusg(ps, "Name of PKCS#11 token to use (def: internal)"); break;
-	case opt_InputFile:  
-	    pusg(ps, "File for input (def: stdin)"); break;
-	case opt_Nickname:   
-	    pusg(ps, "Nickname of object"); break;
-	case opt_OutputFile: 
-	    pusg(ps, "File for output (def: stdout)"); break;
-	case opt_Binary:    
-	    pusg(ps, "Use raw (binary der-encoded) mode for I/O"); break;
-	case opt_Trust:      
-	    pusg(ps, "Trust level for certificate"); break;
-	case opt_Help: break;
-	default:
-	    pusg(ps, "Unrecognized option");
-	}
-    }
-}
+ "get help for command",
+ "use ascii (base-64 encoded) mode for I/O",
+ "list the certificate path (chain)",
+ "directory containing security databases (default: \"./\")",
+ "name of PKCS#11 token to use (default: internal)",
+ "file for input (default: stdin)",
+ "print object-specific information (token instances, etc.)",
+ "nickname of object",
+ "file for output (default: stdout)",
+ "delete orphaned key pairs (keys not associated with a cert)",
+ "use raw (binary der-encoded) mode for I/O",
+ "trust level for certificate",
+ "specify type of object"
+  "\n certificate"
+  "\n public-key"
+  "\n private-key"
+  "\n all",
+ "specify a set of certificate usages"
+  "\n c - SSL client"
+  "\n v - SSL server"
+  "\n r - Email recipient"
+  "\n s - Email signer"
+  "\n o - Code signer"
+  "\n t - Status responder"
+  "\n u - SSL server with step-up"
+  "\n  (capital letters specify CA equivalents)"
+};
+
+static char pkiutil_description[] =
+"utility for managing PKI objects";
 
 int 
 main(int argc, char **argv)
@@ -286,6 +263,8 @@ main(int argc, char **argv)
     pkiutil.nopt = pkiutil_num_options;
     pkiutil.cmd = pkiutil_commands;
     pkiutil.opt = pkiutil_options;
+    pkiutil.optHelp = pkiutil_options_help;
+    pkiutil.description = pkiutil_description;
 
     progName = strrchr(argv[0], '/');
     if (!progName) {
@@ -309,7 +288,7 @@ main(int argc, char **argv)
 #endif
 
     if (pkiutil.opt[opt_Help].on)
-	CMD_LongUsage(progName, &pkiutil, pkiutil_usage);
+	CMD_LongUsage(progName, &pkiutil);
 
     if (cmdToRun < 0) {
 	CMD_Usage(progName, &pkiutil);
@@ -331,18 +310,26 @@ main(int argc, char **argv)
     PR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
 
     /* XXX allow for read-only and no-db */
-    NSS_InitReadWrite(profiledir);
+    rv = NSS_InitReadWrite(profiledir);
+    if (rv == PR_FAILURE) {
+	CMD_PrintError("Failed to initialize NSS");
+	exit(1);
+    }
 
     /* XXX */
-    NSS_EnablePKIXCertificates();
+    rv = NSS_EnablePKIXCertificates();
+    if (rv == PR_FAILURE) {
+	CMD_PrintError("Failed to load PKIX module");
+	goto shutdown;
+    }
 
     if (cmdToRun == cmd_Interactive) {
 	while (PR_TRUE) {
 	    cmdToRun = CMD_Interactive(&pkiutil);
-	    if (cmdToRun == cmd_Help) {
+	    if (cmdToRun == -1 || pkiutil.opt[opt_Help].on) {
 		CMD_InteractiveUsage(progName, &pkiutil);
 		continue;
-	    } else if (cmdToRun < 0) {
+	    } else if (cmdToRun == -2) {
 		break;
 	    }
 	    rv = pkiutil_command_dispatcher(&pkiutil, cmdToRun);
@@ -351,6 +338,7 @@ main(int argc, char **argv)
 	rv = pkiutil_command_dispatcher(&pkiutil, cmdToRun);
     }
 
+shutdown:
     NSS_Shutdown();
 
     return rv;

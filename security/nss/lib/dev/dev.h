@@ -334,6 +334,13 @@ nssSlot_Logout
   nssSession *session
 );
 
+NSS_EXTERN PRStatus
+nssSlot_CheckPassword
+(
+  NSSSlot *slot,
+  const NSSUTF8 *password
+);
+
 #define NSSSLOT_ASK_PASSWORD_FIRST_TIME -1
 #define NSSSLOT_ASK_PASSWORD_EVERY_TIME  0
 NSS_EXTERN void

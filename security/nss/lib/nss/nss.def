@@ -81,6 +81,7 @@ NSSModule_GetInfo;
 NSSSlot_Destroy;
 NSSSlot_GetInfo;
 NSSSlot_GetToken;
+NSSSlot_CheckPassword;
 NSSSlot_SetPassword;
 NSSToken_Destroy;
 NSSToken_GetInfo;

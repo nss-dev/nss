@@ -336,6 +336,43 @@ secu_InitSlotPassword(PK11SlotInfo *slot, PRBool retry, void *arg)
 }
 #endif
 
+static NSSUTF8 *
+get_password_from_tty(NSSUTF8 *slotName)
+{
+    char prompt[255];
+    sprintf(prompt, "Enter Password or Pin for \"%s\": ", slotName);
+    return (NSSUTF8 *)get_password_string(prompt);
+}
+
+struct password_callback_str
+{
+    NSSUTF8 *pw;
+    PRBool allowRetry;
+    PRInt32 numAttempts;
+};
+
+static PRStatus
+default_slot_password_callback
+(
+  NSSUTF8 *slotName,
+  PRBool *retry,
+  void *arg,
+  NSSUTF8 **password
+)
+{
+    struct password_callback_str *pwcbstr = arg;
+    *retry = PR_FALSE;
+    if (pwcbstr->pw) {
+	*password = NSSUTF8_Duplicate((NSSUTF8 *)pwcbstr->pw, NULL);
+    } else if (pwcbstr->numAttempts++ < 3) { /* XXX this won't work */
+	*password = get_password_from_tty(slotName);
+	*retry = PR_TRUE;
+    } else {
+	return PR_FAILURE;
+    }
+    return PR_SUCCESS;
+}
+
 PRStatus
 CMD_ChangeSlotPassword(NSSSlot *slot)
 {
@@ -343,14 +380,26 @@ CMD_ChangeSlotPassword(NSSSlot *slot)
     char *oldpw = NULL, *newpw1 = NULL, *newpw2 = NULL;
     char prompt[255];
     NSSUTF8 *slotName = "foo";
+    struct password_callback_str pwcb;
+    PRBool retry = PR_TRUE;
 
     /* need user init??? */
 
-    /* first get old and check it in a loop??? */
-    
-    sprintf(prompt, "Enter Password or Pin for \"%s\": ", slotName);
-    oldpw = (NSSUTF8 *)get_password_string(prompt);
-    
+    pwcb.pw = NULL;
+    pwcb.allowRetry = PR_TRUE;
+    pwcb.numAttempts = 0;
+    while (retry) {
+	status = default_slot_password_callback(slotName, &retry, 
+	                                        &pwcb, &oldpw);
+	if (status == PR_SUCCESS) retry = PR_FALSE;
+    }
+
+    status = NSSSlot_CheckPassword(slot, oldpw);
+    if (status == PR_FAILURE) {
+	CMD_PrintError("Login failed");
+	return PR_FAILURE;
+    }
+
     sprintf(prompt, "Enter New Password or Pin for \"%s\": ", slotName);
     newpw1 = (NSSUTF8 *)get_password_string(prompt);
 
@@ -362,40 +411,13 @@ CMD_ChangeSlotPassword(NSSSlot *slot)
 	if (status == PR_SUCCESS) {
 	    fprintf(stdout, "Password successfully changed.\n");
 	} else {
-	    fprintf(stderr, "Failed to change password.\n");
+	    CMD_PrintError("Failed to change password");
 	}
     } else {
-	fprintf(stdout, "Passwords did not match.\n");
+	fprintf(stdout, "Passwords do not match.\n");
     }
 
     return PR_FAILURE;
-}
-
-static NSSUTF8 *
-get_password_from_tty(NSSUTF8 *slotName)
-{
-    char prompt[255];
-    sprintf(prompt, "Enter Password or Pin for \"%s\": ", slotName);
-    return (NSSUTF8 *)get_password_string(prompt);
-}
-
-static PRStatus
-default_slot_password_callback
-(
-  NSSUTF8 *slotName,
-  PRUint32 retries,
-  void *arg,
-  NSSUTF8 **password
-)
-{
-    if (arg) {
-	*password = NSSUTF8_Duplicate((NSSUTF8 *)arg, NULL);
-    } else if (retries < 3) {
-	*password = get_password_from_tty(slotName);
-    } else {
-	return PR_FAILURE;
-    }
-    return PR_SUCCESS;
 }
 
 NSSCallback *
@@ -406,16 +428,24 @@ CMD_GetDefaultPasswordCallback
 )
 {
     NSSCallback *callback;
+    struct password_callback_str *pwcbstr;
     callback = (NSSCallback *)PR_Malloc(sizeof(NSSCallback));
+    pwcbstr = (struct password_callback_str *)
+                        PR_Malloc(sizeof(struct password_callback_str));
+    callback->arg = (void *)pwcbstr;
+    pwcbstr->numAttempts = 0;
     if (callback) {
 	callback->getInitPW = NULL;
 	callback->getPW = default_slot_password_callback;
 	if (passwordFile) {
-	    callback->arg = get_password_from_file(passwordFile);
+	    pwcbstr->pw = get_password_from_file(passwordFile);
+	    pwcbstr->allowRetry = PR_FALSE;
 	} else if (password) {
-	    callback->arg = NSSUTF8_Duplicate(password, NULL);
+	    pwcbstr->pw = NSSUTF8_Duplicate(password, NULL);
+	    pwcbstr->allowRetry = PR_FALSE;
 	} else {
-	    callback->arg = (NSSUTF8 *)NULL;
+	    pwcbstr->pw = (NSSUTF8 *)NULL;
+	    pwcbstr->allowRetry = PR_TRUE;
 	}
     }
     return callback;

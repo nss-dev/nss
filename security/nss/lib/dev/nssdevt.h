@@ -159,7 +159,7 @@ struct NSSCallbackStr {
     /* Prompt for a password to initialize a slot.  */
     PRStatus (* getInitPW)(NSSUTF8 *slotName, void *arg, NSSUTF8 **password); 
     /* Prompt for slot password.  */
-    PRStatus (* getPW)(NSSUTF8 *slotName, PRUint32 retries, void *arg,
+    PRStatus (* getPW)(NSSUTF8 *slotName, PRBool *retry, void *arg,
                        NSSUTF8 **password); 
     void *arg;
 };
