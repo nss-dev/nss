@@ -54,7 +54,6 @@ CSRCS =		        \
 	devtoken.c      \
 	devslot.c       \
 	devmodule.c     \
-	modulelist.c    \
 	$(NULL)
 
 REQUIRES = security nspr

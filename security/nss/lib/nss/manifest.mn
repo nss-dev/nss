@@ -33,6 +33,7 @@
 CORE_DEPTH = ../../..
 
 PRIVATE_EXPORTS = \
+	nssi.h \
 	$(NULL)
 
 EXPORTS = \
@@ -46,6 +47,7 @@ CSRCS = \
 	nssinit.c \
 	nssver.c  \
 	nsscert.c \
+	modulelist.c \
 	$(NULL)
 
 REQUIRES = security dbm

@@ -62,74 +62,6 @@ static const char DEV_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 
 PR_BEGIN_EXTERN_C
 
-/* the global module list
- *
- * These functions are for managing the global set of modules.  Trust Domains,
- * etc., will draw from this set.  These functions are completely internal
- * and only invoked when there are changes to the global module state
- * (load or unload).
- *
- * nss_InitializeGlobalModuleList
- * nss_DestroyGlobalModuleList
- * nss_GetLoadedModules
- *
- * nssGlobalModuleList_Add
- * nssGlobalModuleList_Remove
- * nssGlobalModuleList_FindModuleByName
- * nssGlobalModuleList_FindSlotByName
- * nssGlobalModuleList_FindTokenByName
- */
-
-NSS_EXTERN PRStatus
-nss_InitializeGlobalModuleList (
-  void
-);
-
-NSS_EXTERN PRStatus
-nss_DestroyGlobalModuleList (
-  void
-);
-
-NSS_EXTERN NSSModule **
-nss_GetLoadedModules (
-  void
-);
-
-NSS_EXTERN PRStatus
-nssGlobalModuleList_Add (
-  NSSModule *module
-);
-
-NSS_EXTERN PRStatus
-nssGlobalModuleList_Remove (
-  NSSModule *module
-);
-
-NSS_EXTERN NSSModule *
-nssGlobalModuleList_FindModuleByName (
-  NSSUTF8 *moduleName
-);
-
-NSS_EXTERN NSSSlot *
-nssGlobalModuleList_FindSlotByName (
-  NSSUTF8 *slotName
-);
-
-NSS_EXTERN NSSToken *
-nssGlobalModuleList_FindTokenByName (
-  NSSUTF8 *tokenName
-);
-
-NSS_EXTERN NSSToken *
-nss_GetDefaultCryptoToken (
-  void
-);
-
-NSS_EXTERN NSSToken *
-nss_GetDefaultDatabaseToken (
-  void
-);
-
 /*
  *  |-----------|<---> NSSSlot <--> NSSToken
  *  | NSSModule |<---> NSSSlot <--> NSSToken
@@ -210,6 +142,21 @@ nssModule_GetCertOrder (
 NSS_EXTERN PRInt32
 nssModule_GetTrustOrder (
   NSSModule *module
+);
+
+NSS_EXTERN PRBool
+nssModule_IsThreadSafe (
+  NSSModule *module
+);
+
+NSS_EXTERN PRBool
+nssModule_IsInternal (
+  NSSModule *mod
+);
+
+NSS_EXTERN PRBool
+nssModule_IsModuleDBOnly (
+  NSSModule *mod
 );
 
 /* NSSSlot

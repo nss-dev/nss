@@ -1459,8 +1459,42 @@ nssCertificate_IsPrivateKeyAvailable (
   PRStatus *statusOpt
 )
 {
-    /* this works with the softoken, does it work everywhere?  */
-    return (c->id.size > 0);
+    PRStatus status;
+    NSSToken **tokens, **tp;
+    nssCryptokiObject *instance = NULL;
+    NSSTrustDomain *td = nssCertificate_GetTrustDomain(c);
+    PRBool isLoggedIn;
+    tokens = nssPKIObject_GetTokens(&c->object, &status);
+    if (!tokens) {
+	return PR_FALSE; /* can't have private key w/o a token instance */
+    }
+    for (tp = tokens; *tp; tp++) {
+	NSSSlot *slot;
+	/* XXX need to iterate over cert instances to have session */
+	nssSession *session = nssToken_CreateSession(*tp, PR_FALSE);
+	if (!session) {
+	    break;
+	}
+	slot = nssToken_GetSlot(*tp);
+	isLoggedIn = nssSlot_IsLoggedIn(slot);
+	nssSlot_Destroy(slot);
+	if (isLoggedIn) {
+	    instance = nssToken_FindPrivateKeyByID(*tp, session, &c->id);
+	} else {
+	    instance = nssToken_FindPublicKeyByID(*tp, session, &c->id);
+	}
+	nssSession_Destroy(session);
+	if (instance) {
+	    break;
+	}
+    }
+    nssTokenArray_Destroy(tokens);
+    if (instance) {
+	nssCryptokiObject_Destroy(instance);
+	return PR_TRUE;
+    } else {
+	return PR_FALSE;
+    }
 }
 
 NSS_IMPLEMENT PRBool

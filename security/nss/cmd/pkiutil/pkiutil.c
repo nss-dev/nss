@@ -114,6 +114,7 @@ static cmdCommandLineArg pkiutil_commands[] =
    {
      CMDBIT(opt_ProfileDir) | 
      CMDBIT(opt_Orphans) | 
+     CMDBIT(opt_Password) |
      CMDBIT(opt_TokenName),
      0, 0, 0
    },
@@ -132,7 +133,9 @@ static cmdCommandLineArg pkiutil_commands[] =
      CMDBIT(opt_ProfileDir) | 
      CMDBIT(opt_TokenName) | 
      CMDBIT(opt_OutputFile) | 
-     CMDBIT(opt_Binary),
+     CMDBIT(opt_Password) |
+     CMDBIT(opt_Binary) |
+     CMDBIT(opt_KeyPassword),
      0, 0, 0
    },
    "Export an object from the profile/token\n"
@@ -148,6 +151,7 @@ static cmdCommandLineArg pkiutil_commands[] =
      CMDBIT(opt_Nickname) |
      CMDBIT(opt_ProfileDir) | 
      CMDBIT(opt_KeySize) | 
+     CMDBIT(opt_Password) |
      CMDBIT(opt_TokenName) | 
      0, 0, 0
    },
@@ -194,6 +198,7 @@ static cmdCommandLineArg pkiutil_commands[] =
      CMDBIT(opt_Ascii) | 
      CMDBIT(opt_ProfileDir) | 
      CMDBIT(opt_TokenName) | 
+     CMDBIT(opt_Password) |
      CMDBIT(opt_Binary) | 
      CMDBIT(opt_Nickname) | 
      CMDBIT(opt_Type),
@@ -251,6 +256,7 @@ static cmdCommandLineArg pkiutil_commands[] =
      CMDBIT(opt_Info) | 
      CMDBIT(opt_ProfileDir) | 
      CMDBIT(opt_OutputFile) | 
+     CMDBIT(opt_Password) |
      CMDBIT(opt_Serial) | 
      CMDBIT(opt_Type),
      0, 0, 0
@@ -522,6 +528,7 @@ pkiutil_command_dispatcher(cmdCommand *pkiutil, int cmdToRun)
 	                      token,
 	                      pkiutil->opt[opt_Type].arg,
 	                      pkiutil->opt[opt_Nickname].arg,
+	                      pkiutil->opt[opt_KeyPassword].arg,
 	                      &rtData);
 	break;
     case cmd_GenerateKeyPair:

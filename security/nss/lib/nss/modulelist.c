@@ -40,11 +40,13 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
  * The global list of loaded modules and module databases
  */
 
-#include "nspr.h"
+#ifndef BASE_H
+#include "base.h"
+#endif /* BASE_H */
 
-#ifndef DEVM_H
-#include "devm.h"
-#endif /* DEVM_H */
+#ifndef DEV_H
+#include "dev.h"
+#endif /* DEV_H */
 
 /* just your basic linked list */
 struct global_module_list_node_str

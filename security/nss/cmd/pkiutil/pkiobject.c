@@ -791,6 +791,7 @@ export_private_key (
   NSSTrustDomain *td,
   NSSToken *tokenOpt,
   char *nickname,
+  char *keypass,
   CMDRunTimeData *rtData
 )
 {
@@ -798,6 +799,7 @@ export_private_key (
     NSSPrivateKey *vkey, **vkeys;
     NSSCertificate *ucert, **ucerts;
 
+    vkey = NULL;
 #if 0
     vkeys = NSSTrustDomain_FindPrivateKeysByNickname(td, nickname);
 #else
@@ -824,14 +826,16 @@ vkeys = NULL;
 	generate_salt(&params.pbe.salt);
 	pbeAlg = NSSOID_CreateFromTag(NSS_OID_PKCS5_PBE_WITH_MD5_AND_DES_CBC);
 	if (!pbeAlg) {
+	    NSSPrivateKey_Destroy(vkey);
 	    return PR_FAILURE;
 	}
 	pbe = NSSOID_CreateAlgorithmAndParameters(pbeAlg, &params, NULL);
 	if (!pbe) {
+	    NSSPrivateKey_Destroy(vkey);
 	    return PR_FAILURE;
 	}
 	encKey = NSSPrivateKey_Encode(vkey, pbe, NULL,
-	                              CMD_PWCallbackForKeyEncoding(NULL), 
+	                              CMD_PWCallbackForKeyEncoding(keypass), 
 	                              NULL, NULL);
 	nss_ZFreeIf(params.pbe.salt.data); /* XXX */
 	NSSAlgorithmAndParameters_Destroy(pbe);
@@ -840,6 +844,7 @@ vkeys = NULL;
 	    NSSItem_Destroy(encKey);
 	    status = PR_SUCCESS;
 	}
+	NSSPrivateKey_Destroy(vkey);
     }
     return status;
 }
@@ -850,6 +855,7 @@ ExportObject (
   NSSToken *tokenOpt,
   char *objectTypeOpt,
   char *nickname,
+  char *keypass,
   CMDRunTimeData *rtData
 )
 {
@@ -862,7 +868,7 @@ ExportObject (
 	status = export_certificate(td, tokenOpt, nickname, rtData);
 	break;
     case PKIPrivateKey:
-	status = export_private_key(td, tokenOpt, nickname, rtData);
+	status = export_private_key(td, tokenOpt, nickname, keypass, rtData);
 	break;
     case PKIPublicKey: /* don't handle this one */
     case PKIUnknown:

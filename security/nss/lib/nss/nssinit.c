@@ -39,35 +39,14 @@
 #include "prinit.h"
 #include "prprf.h"
 #include "prmem.h"
-#if 0
-#include "ssl.h"
-#include "sslproto.h"
-#endif
 #include "nss.h"
+#include "nssi.h"
 #include "base.h"
 #include "dev.h"
 #include "nsspki.h"
 
 /* XXX */
 #define PORT_Strcat strcat
-
-/*
- * On Windows nss3.dll needs to export the symbol 'mktemp' to be
- * fully backward compatible with the nss3.dll in NSS 3.2.x and
- * 3.3.x.  This symbol was unintentionally exported and its
- * definition (in DBM) was moved from nss3.dll to softokn3.dll
- * in NSS 3.4.  See bug 142575.
- */
-#ifdef WIN32_NSS3_DLL_COMPAT
-#include <io.h>
-
-/* exported as 'mktemp' */
-char *
-nss_mktemp(char *path)
-{
-    return _mktemp(path);
-}
-#endif
 
 #define NSS_MAX_FLAG_SIZE  sizeof("readOnly")+sizeof("noCertDB")+ \
 	sizeof("noModDB")+sizeof("forceOpen")+sizeof("passwordRequired")+ \

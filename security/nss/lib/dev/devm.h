@@ -76,21 +76,6 @@ nssModule_DestroyFromSlot (
   NSSSlot *slot
 );
 
-NSS_EXTERN PRBool
-nssModule_IsThreadSafe (
-  NSSModule *module
-);
-
-NSS_EXTERN PRBool
-nssModule_IsInternal (
-  NSSModule *mod
-);
-
-NSS_EXTERN PRBool
-nssModule_IsModuleDBOnly (
-  NSSModule *mod
-);
-
 NSS_EXTERN void *
 nssModule_GetCryptokiEPV (
   NSSModule *mod
