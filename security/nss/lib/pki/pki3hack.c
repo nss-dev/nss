@@ -185,10 +185,10 @@ destroy_token_certs(nssList *certList, NSSToken *token, PRBool renewInstances)
          cert  = (NSSCertificate *)nssListIterator_Next(certs))
     {
 	removeIt = instance_destructor(cert, token);
-	if (removeIt || !renewInstances) {
+	if (removeIt) {
 	    nssList_Remove(certList, cert);
 	    CERT_DestroyCertificate(STAN_GetCERTCertificate(cert));
-	} else {
+	} else if (renewInstances) {
 	    /* force an update of the nickname and slot fields of the cert */
 	    (void)stan_GetCERTCertificate(cert, PR_TRUE);
 	}
@@ -200,7 +200,7 @@ destroy_token_certs(nssList *certList, NSSToken *token, PRBool renewInstances)
 NSS_IMPLEMENT void
 nssCertificateList_DestroyTokenCerts(nssList *certList, NSSToken *token)
 {
-    destroy_token_certs(certList, token, PR_FALSE);
+    destroy_token_certs(certList, token, PR_TRUE);
 }
 
 NSS_IMPLEMENT void

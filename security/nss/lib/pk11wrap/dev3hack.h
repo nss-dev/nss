@@ -45,6 +45,9 @@ PR_BEGIN_EXTERN_C
 NSS_EXTERN NSSToken *
 nssToken_CreateFromPK11SlotInfo(NSSTrustDomain *td, PK11SlotInfo *nss3slot);
 
+NSS_EXTERN void
+nssToken_UpdateName(NSSToken *);
+
 NSSTrustDomain *
 nssToken_GetTrustDomain(NSSToken *token);
 

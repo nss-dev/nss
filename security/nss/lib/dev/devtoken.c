@@ -167,12 +167,14 @@ nssToken_Destroy
 	if (tok->defaultSession) {
 	    nssSession_Destroy(tok->defaultSession);
 	}
-#endif
 	if (tok->arena) {
 	    return NSSArena_Destroy(tok->arena);
 	} else {
 	    nss_ZFreeIf(tok);
 	}
+#else
+	    nss_ZFreeIf(tok);
+#endif
     }
     return PR_SUCCESS;
 }
