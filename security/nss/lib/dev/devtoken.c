@@ -134,6 +134,8 @@ nssToken_Create
     rvToken->name = tokenName;
     rvToken->ckFlags = tokenInfo.flags;
     rvToken->defaultSession = session;
+    rvToken->hasNoTrust = PR_FALSE;
+    rvToken->hasNoCrls = PR_FALSE;
     if (mark) {
 	nssrv = nssArena_Unmark(arena, mark);
 	if (nssrv != PR_SUCCESS) {
@@ -277,6 +279,25 @@ nssToken_IsPresent
 	}
 	return PR_TRUE;
     }
+}
+
+NSS_IMPLEMENT PRBool
+nssToken_HasCrls
+(
+    NSSToken *tok
+)
+{
+    return !tok->hasNoCrls;
+}
+
+NSS_IMPLEMENT PRStatus
+nssToken_SetHasCrls
+(
+    NSSToken *tok
+)
+{
+    tok->hasNoCrls = PR_FALSE;
+    return PR_SUCCESS;
 }
 
 NSS_IMPLEMENT NSSItem *

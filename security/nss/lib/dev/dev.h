@@ -281,6 +281,30 @@ nssToken_ImportTrust
   PRBool asTokenObject
 );
 
+NSS_EXTERN PRStatus
+nssToken_SetTrustCache
+(
+  NSSToken *tok
+);
+
+NSS_EXTERN PRStatus
+nssToken_SetCrlCache
+(
+  NSSToken *tok
+);
+
+NSS_EXTERN PRBool
+nssToken_HasCrls
+(
+  NSSToken *tok
+);
+
+NSS_EXTERN PRStatus
+nssToken_SetHasCrls
+(
+  NSSToken *tok
+);
+
 NSS_EXTERN NSSPublicKey *
 nssToken_GenerateKeyPair
 (
