@@ -37,6 +37,8 @@
  * $Id$
  */
 
+#include "nssrenam.h"
+
 #include "cmslocal.h"
 
 #include "cert.h"

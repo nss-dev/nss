@@ -74,6 +74,7 @@
  * Now that NSPR offers portable cross-process locking (semaphores) on Unix
  * and Win32, semaphores should be used here for all platforms.
  */
+#include "nssrenam.h"
 #include "seccomon.h"
 
 #if defined(XP_UNIX) || defined(XP_WIN32)
