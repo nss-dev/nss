@@ -1125,7 +1125,7 @@ int test_mod_d(void)
 
   mp_init(&a); mp_read_radix(&a, mp5, 16);
   mp_mod_d(&a, md5, &r);
-  sprintf(g_intbuf, DIGIT_FMT, r);
+  sprintf(g_intbuf, "%X", r);
   mp_clear(&a);
 
   if(strcmp(g_intbuf, r_mp5d5) != 0) {
