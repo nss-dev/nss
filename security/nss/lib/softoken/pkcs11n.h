@@ -165,6 +165,16 @@ static const char CKT_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 
 #define CKM_TLS_PRF_GENERAL                     0x80000373L
 
+/* These new SHAxxx mechanisms will be defined as vendor-defined until
+** they are given standard mechanism numbers.
+*/
+#define CKM_SHA256				0x80000401L
+#define CKM_SHA384				0x80000402L
+#define CKM_SHA512				0x80000403L
+
+#define CKM_SHA256_RSA_PKCS			0x80000411L
+#define CKM_SHA384_RSA_PKCS			0x80000412L
+#define CKM_SHA512_RSA_PKCS			0x80000413L
 
 /*
  * Netscape-defined return values
