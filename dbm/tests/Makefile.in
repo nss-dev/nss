@@ -27,9 +27,7 @@ VPATH		= @srcdir@
 include $(DEPTH)/config/autoconf.mk
 
 MODULE		= dbm
-PROGRAM		= lots$(BIN_SUFFIX)
-
-CSRCS		= lots.c
+SIMPLE_PROGRAMS	= lots$(BIN_SUFFIX)
 
 ifeq ($(OS_ARCH),WINNT)
 EXTRA_DSO_LIBS	= dbm$(MOZ_BITS)
@@ -37,7 +35,7 @@ else
 EXTRA_DSO_LIBS	= mozdbm_s
 endif
 
-LIBS		= $(EXTRA_DSO_LIBS)
+PROG_LIBS	= $(EXTRA_DSO_LIBS)
 
 include $(topsrcdir)/config/rules.mk
 
