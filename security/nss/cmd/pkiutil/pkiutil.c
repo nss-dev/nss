@@ -62,6 +62,7 @@ enum {
     cmd_ModifyTrust,
     cmd_NewDBs,
     cmd_Print,
+    cmd_ScriptFile,
     cmd_Validate,
     cmd_Version,
     pkiutil_num_commands
@@ -263,6 +264,16 @@ static cmdCommandLineArg pkiutil_commands[] =
    },
    "Print or dump a single object"
  },
+ { /* cmd_ScriptFile */
+    0 , "script-file", 
+   CMDArgReq, 0, PR_FALSE,
+   { 0, 0, 0, 0 },
+   {
+     CMDBIT(opt_ProfileDir),
+     0, 0, 0
+   },
+   "Run a script file containing a set of commands"
+ },
  { /* cmd_Validate */
    'V', "validate", 
    CMDNoArg, 0, PR_FALSE,
@@ -435,6 +446,21 @@ main(int argc, char **argv)
 	    }
 	    rv = pkiutil_command_dispatcher(&pkiutil, cmdToRun);
 	}
+    } else if (cmdToRun == cmd_ScriptFile) {
+	PRFileDesc *scriptFile;
+	scriptFile = PR_Open(pkiutil.cmd[cmd_ScriptFile].arg, PR_RDONLY, 0);
+	if (!scriptFile) {
+	    PR_fprintf(PR_STDERR, "Failed to open script file\n");
+	    rv = PR_FAILURE;
+	    goto shutdown;
+	}
+	while (PR_TRUE) {
+	    cmdToRun = CMD_GetNextScriptCommand(&pkiutil, scriptFile);
+	    if (cmdToRun < 0) break;
+	    rv = pkiutil_command_dispatcher(&pkiutil, cmdToRun);
+	    if (rv == PR_FAILURE) break;
+	}
+	PR_Close(scriptFile);
     } else {
 	rv = pkiutil_command_dispatcher(&pkiutil, cmdToRun);
     }

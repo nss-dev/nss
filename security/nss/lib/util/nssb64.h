@@ -58,8 +58,8 @@
 #define PORT_Alloc(d) nss_ZAlloc(NULL, d)
 #else
 #include "seccomon.h"
-#endif
 #include "nssb64t.h"
+#endif
 
 SEC_BEGIN_PROTOS
 

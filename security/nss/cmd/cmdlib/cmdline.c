@@ -539,36 +539,17 @@ finish:
     nprintf(&ps, "\n");
 }
 
-int
-CMD_Interactive(cmdCommand *cmd)
+static int
+parse_script_line(cmdCommand *cmd, char *line)
 {
-    int i, clen, remaining;
+    int i, remaining;
     int cmdToRun = -1;
-    char commandBuf[256];
     char *mark, *token, *opt;
     PRBool quoted = PR_FALSE;
     PRBool hasValue;
-    /* clear the state */
-    for (i=0; i<cmd->ncmd; i++) {
-	cmd->cmd[i].on = PR_FALSE;
-    }
-    for (i=0; i<cmd->nopt; i++) {
-	cmd->opt[i].on = PR_FALSE;
-	cmd->opt[i].arg = NULL;
-    }
-    PR_fprintf(PR_STDOUT, "\n> ");
-read_command:
-    /* read command from user */
-    clen = PR_Read(PR_STDIN, commandBuf, sizeof commandBuf);
-    if (clen < 0) {
-	/* error occurred */
-	return -1;
-    } else if (clen == 0) {
-	/* empty line, try again */
-	goto read_command;
-    }
-    mark = token = commandBuf;
-    remaining = clen;
+
+    mark = token = line;
+    remaining = strlen(line);
     /* skip to whitespace or EOL */
     while (!isspace(*mark) && (mark - token < remaining)) mark++;
     *mark++ = '\0';
@@ -632,3 +613,55 @@ read_command:
     }
     return cmdToRun;
 }
+
+int
+CMD_Interactive(cmdCommand *cmd)
+{
+    int cmdToRun = -1;
+    int i, clen;
+    char commandBuf[256];
+    /* clear the state */
+    for (i=0; i<cmd->ncmd; i++) {
+	cmd->cmd[i].on = PR_FALSE;
+    }
+    for (i=0; i<cmd->nopt; i++) {
+	cmd->opt[i].on = PR_FALSE;
+	cmd->opt[i].arg = NULL;
+    }
+    PR_fprintf(PR_STDOUT, "\n> ");
+read_command:
+    /* read command from user */
+    clen = PR_Read(PR_STDIN, commandBuf, sizeof commandBuf);
+    if (clen < 0) {
+	/* error occurred */
+	return -1;
+    } else if (clen == 0) {
+	/* empty line, try again */
+	goto read_command;
+    }
+    return parse_script_line(cmd, commandBuf);
+}
+
+int
+CMD_GetNextScriptCommand(cmdCommand *cmd, PRFileDesc *scriptFile)
+{
+    int cmdToRun = -1;
+    int i, clen;
+    char commandBuf[256];
+    /* clear the state */
+    for (i=0; i<cmd->ncmd; i++) {
+	cmd->cmd[i].on = PR_FALSE;
+    }
+    for (i=0; i<cmd->nopt; i++) {
+	cmd->opt[i].on = PR_FALSE;
+	cmd->opt[i].arg = NULL;
+    }
+    PR_fprintf(PR_STDOUT, "\n> ");
+    clen = PR_Read(scriptFile, commandBuf, sizeof commandBuf);
+    if (clen < 0) {
+	/* error occurred */
+	return -1;
+    }
+    return parse_script_line(cmd, commandBuf);
+}
+

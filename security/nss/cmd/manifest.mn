@@ -42,6 +42,7 @@ DIRS =            \
 	btoa      \
 	nssutil   \
 	pkiutil   \
+	cipher    \
  $(NULL)
 
 TEMPORARILY_DONT_BUILD = \

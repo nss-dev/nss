@@ -167,7 +167,7 @@ GetSymCipherAP(char *cipher, char *iv)
     if (strcmp(cipher, "des") == 0) {
 	if (iv) {
 	    alg = NSSOID_CreateFromTag(NSS_OID_DES_CBC);
-	    params.des.iv = cbcIV;
+	    params.iv = cbcIV;
 	    pParams = &params;
 	} else {
 	    alg = NSSOID_CreateFromTag(NSS_OID_DES_ECB);

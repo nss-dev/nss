@@ -187,6 +187,9 @@ CMD_LongUsage(char *progName, cmdCommand *cmd);
 int
 CMD_Interactive(cmdCommand *cmd);
 
+int
+CMD_GetNextScriptCommand(cmdCommand *cmd, PRFileDesc *scriptFile);
+
 /* XXX */
 struct CMDPrinterStr {
   PRFileDesc *out;
