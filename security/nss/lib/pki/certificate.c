@@ -286,6 +286,14 @@ nssCertificate_GetIssuer (
 }
 
 NSS_IMPLEMENT NSSDER *
+NSSCertificate_GetIssuer (
+  NSSCertificate *c
+)
+{
+    return nssCertificate_GetIssuer(c);
+}
+
+NSS_IMPLEMENT NSSDER *
 nssCertificate_GetSerialNumber (
   NSSCertificate *c
 )
@@ -295,6 +303,14 @@ nssCertificate_GetSerialNumber (
     } else {
 	return (NSSDER *)NULL;
     }
+}
+
+NSS_IMPLEMENT NSSDER *
+NSSCertificate_GetSerialNumber (
+  NSSCertificate *c
+)
+{
+    return nssCertificate_GetSerialNumber(c);
 }
 
 NSS_IMPLEMENT NSSDER *

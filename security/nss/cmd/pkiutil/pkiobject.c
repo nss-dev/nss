@@ -437,18 +437,28 @@ dump_cert_info
     PRStatus status;
     PRUint32 i, j;
     NSSToken **tokens, **tp;
+    /* XXX
+     * When we do searches by nickname, we only get instances of the
+     * cert for that nickname.  An instance on another token with a
+     * different label will not match.  Should the library do the
+     * this workaround?
+     */
+    NSSDER *issuer = NSSCertificate_GetIssuer(c);
+    NSSDER *serial = NSSCertificate_GetSerialNumber(c);
+    NSSCertificate *cp = NSSTrustDomain_FindCertificateByIssuerAndSerialNumber(td, issuer, serial);
 
-    tokens = NSSCertificate_GetTokens(c, NULL);
+    tokens = NSSCertificate_GetTokens(cp, NULL);
     if (tokens) {
 	for (tp = tokens; *tp; tp++) {
 	    PR_fprintf(rtData->output.file, 
 	               "nickname \"%s\" on token \"%s\"\n",
-	               NSSCertificate_GetNickname(c, *tp),
+	               NSSCertificate_GetNickname(cp, *tp),
 	               NSSToken_GetName(*tp));
 	}
 	NSSTokenArray_Destroy(tokens);
 	PR_fprintf(rtData->output.file, "\n");
     }
+    NSSCertificate_Destroy(cp);
     return PR_SUCCESS;
 }
 
