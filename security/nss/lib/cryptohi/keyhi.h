@@ -221,6 +221,9 @@ SECKEY_CopyPrivateKeyInfo(PRArenaPool *poolp,
 			  SECKEYPrivateKeyInfo *to,
 			  SECKEYPrivateKeyInfo *from);
 
+extern SECStatus
+SECKEY_CacheStaticFlags(SECKEYPrivateKey* key);
+
 /* Copy encrypted private key info structure.  
  *  poolp is the arena into which the contents of from is to be copied.
  *	NULL is a valid entry.
