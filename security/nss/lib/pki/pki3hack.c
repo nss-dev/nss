@@ -690,8 +690,6 @@ fill_CERTCertificateFields(NSSCertificate *c, CERTCertificate *cc)
 	if (nssTrust) {
 	    cc->trust = cert_trust_from_stan_trust(nssTrust, cc->arena);
 	    nssPKIObject_Destroy(&nssTrust->object);
-	} else {
-	    cc->trust = nssTrust_GetCERTCertTrustForCert(c, cc);
 	}
     } else if (instance) {
 	/* slot */
@@ -728,7 +726,11 @@ STAN_GetCERTCertificate(NSSCertificate *c)
     if (cc) {
 	if (!cc->nssCertificate) {
 	    fill_CERTCertificateFields(c, cc);
-	} else if (!cc->trust) {
+	} else if (!cc->trust && !c->object.cryptoContext) {
+	    /* if it's a perm cert, it might have been stored before the
+	     * trust, so look for the trust again.  But a temp cert can be
+	     * ignored.
+	     */
 	    cc->trust = nssTrust_GetCERTCertTrustForCert(c, cc);
 	}
     }
