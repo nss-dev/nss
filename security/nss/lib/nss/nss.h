@@ -110,6 +110,7 @@ extern SECStatus NSS_InitReadWrite(const char *configdir);
  * 			databases cannot be opened.
  *      NSS_INIT_NOROOTINIT - Don't try to look for the root certs module
  *			automatically.
+ *      NSS_INIT_OPTIMIZESPACE - Use smaller tables and caches.
  *
  * Also NOTE: This is not the recommended method for initializing NSS. 
  * The prefered method is NSS_init().
@@ -119,6 +120,7 @@ extern SECStatus NSS_InitReadWrite(const char *configdir);
 #define NSS_INIT_NOMODDB	0x4
 #define NSS_INIT_FORCEOPEN	0x8
 #define NSS_INIT_NOROOTINIT     0x10
+#define NSS_INIT_OPTIMIZESPACE  0x20
 
 extern SECStatus NSS_Initialize(const char *configdir, 
 	const char *certPrefix, const char *keyPrefix, 
