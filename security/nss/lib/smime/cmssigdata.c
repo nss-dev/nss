@@ -213,8 +213,9 @@ NSS_CMSSignedData_Encode_BeforeData(NSSCMSSignedData *sigd)
         return SECFailure;
     }
     /* set up the digests */
-    if (sigd->digestAlgorithms != NULL && sigd->digests == NULL) {
-	/* if digests are already there, do nothing */
+    if (sigd->digests && sigd->digests[0]) {
+	sigd->contentInfo.digcx = NULL; /* don't attempt to make new ones. */
+    } else if (sigd->digestAlgorithms != NULL) {
 	sigd->contentInfo.digcx = 
 	        NSS_CMSDigestContext_StartMultiple(sigd->digestAlgorithms);
 	if (sigd->contentInfo.digcx == NULL)
