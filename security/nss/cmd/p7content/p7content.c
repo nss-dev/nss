@@ -262,6 +262,10 @@ main(int argc, char **argv)
 	SECU_PrintError(progName, "problem decoding data");
 	return -1;
     }
+    
+    if (NSS_Shutdown() != SECSuccess) {
+        exit(1);
+    }
 
     return 0;
 }
