@@ -252,7 +252,9 @@ do
 	pwd
 	echo "tstclnt -p ${PORT} -h ${HOST} -f -d ${CLIENTDIR} ${cparam}"
 	tstclnt -p ${PORT} -h ${HOST} -f -d ${CLIENTDIR} ${cparam} < ${REQUEST_FILE}
-	if [ $? $value 0 ]; then
+	rc=$?
+echo "Return code = $rc expected value = ${value} "
+	if [ $rc -ne ${value} ]; then
 	    echo "<TR><TD>"${testname}"</TD><TD bgcolor=red>Failed</TD><TR>" >> ${RESULTS}
 	else
 	    echo "<TR><TD>"${testname}"</TD><TD bgcolor=lightGreen>Passed</TD><TR>" >> ${RESULTS}
