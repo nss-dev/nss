@@ -116,17 +116,36 @@ nssItem_Create
   return (NSSItem *)NULL;
 }
 
+NSS_IMPLEMENT NSSItem *
+NSSItem_Create
+(
+  NSSArena *arenaOpt,
+  NSSItem *rvOpt,
+  PRUint32 length,
+  const void *data
+)
+{
+    return nssItem_Create(arenaOpt, rvOpt, length, data);
+}
+
 NSS_IMPLEMENT void
 nssItem_Destroy
 (
   NSSItem *item
 )
 {
-  nss_ClearErrorStack();
-
   nss_ZFreeIf(item->data);
   nss_ZFreeIf(item);
+}
 
+NSS_IMPLEMENT void
+NSSItem_Destroy
+(
+  NSSItem *item
+)
+{
+  nss_ClearErrorStack();
+  nssItem_Destroy(item);
 }
 
 /*
@@ -239,3 +258,26 @@ nssItem_Equal
 
   return nsslibc_memequal(one->data, two->data, one->size, statusOpt);
 }
+
+NSS_IMPLEMENT NSSItem *
+NSSItem_Duplicate
+(
+  NSSItem *obj,
+  NSSArena *arenaOpt,
+  NSSItem *rvOpt
+)
+{
+    return nssItem_Duplicate(obj, arenaOpt, rvOpt);
+}
+
+NSS_IMPLEMENT PRBool
+NSSItem_Equal
+(
+  const NSSItem *one,
+  const NSSItem *two,
+  PRStatus *statusOpt
+)
+{
+    return nssItem_Equal(one, two, statusOpt);
+}
+

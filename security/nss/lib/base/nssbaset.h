@@ -103,6 +103,9 @@ struct NSSItemStr {
 };
 typedef struct NSSItemStr NSSItem;
 
+#define NSSITEM_IS_EMPTY(it) \
+    ((it)->data == NULL && (it)->size == 0)
+
 
 /*
  * NSSBER

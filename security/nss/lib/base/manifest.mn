@@ -42,6 +42,8 @@ PRIVATE_EXPORTS = \
 EXPORTS =	   \
 	nssbaset.h \
 	nssbase.h  \
+	nssrwlkt.h \
+	nssrwlk.h  \
 	$(NULL)
 
 MODULE = security
@@ -55,10 +57,11 @@ CSRCS =		   \
 	tracker.c  \
 	item.c     \
 	utf8.c	   \
-	list.c     \
 	hash.c     \
 	whatnspr.c \
+	nssrwlk.c  \
 	$(NULL)
+
 
 REQUIRES = security nspr
 

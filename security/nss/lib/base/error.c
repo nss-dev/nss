@@ -295,3 +295,61 @@ nss_ClearErrorStack
   es->stack[0] = 0;
   return;
 }
+
+/*
+ * nss_MarkErrorStack
+ *
+ * Returns a "mark" of the current error stack.  Combined with
+ * nss_ReleaseErrorStack, this function allows the error stack to be
+ * returned to a previous state.  This is useful for allowing a set of
+ * errors to be ignored.
+ *
+ * There is no "unmark" method.  The stack of errors will remain unless
+ * nss_ReleaseErrorStack is called.
+ *
+ * Releasing the marks out of order will cause problems.  Any function
+ * which sets a mark should make the decision as to whether or not to
+ * release it.
+ *
+ */
+
+NSS_IMPLEMENT PRIntn
+nss_MarkErrorStack
+(
+  void
+)
+{
+  error_stack *es = error_get_my_stack();
+  if( (error_stack *)NULL == es ) {
+    /* Oh, well. */
+    return -1;
+  }
+
+  return es->header.count;
+}
+
+/*
+ * nss_ReleaseErrorStack
+ *
+ * Returns the error stack to the state it was in when nss_MarkErrorStack
+ * was called.
+ *
+ */
+
+NSS_IMPLEMENT PRStatus
+nss_ReleaseErrorStack
+(
+  PRIntn mark
+)
+{
+  error_stack *es = error_get_my_stack();
+  if( (error_stack *)NULL == es ) {
+    /* Oh, well. */
+    return PR_FAILURE;
+  }
+
+  es->header.count = mark;
+  es->stack[ es->header.count ] = 0;
+  return PR_SUCCESS;
+}
+

@@ -254,8 +254,10 @@ nssHash_Add
   he = PL_HashTableAdd(hash->plHashTable, key, (void *)value);
   if( (PLHashEntry *)NULL == he ) {
     nss_SetError(NSS_ERROR_NO_MEMORY);
+#if 0
   } else if (he->value != value) {
     nss_SetError(NSS_ERROR_HASH_COLLISION);
+#endif
   } else {
     hash->count++;
     error = PR_SUCCESS;

@@ -99,12 +99,6 @@ typedef struct nssArenaMarkStr nssArenaMark;
 
 #endif /* DEBUG */
 
-typedef struct nssListStr nssList;
-typedef struct nssListIteratorStr nssListIterator;
-typedef PRBool (* nssListCompareFunc)(void *a, void *b);
-typedef PRIntn (* nssListSortFunc)(void *a, void *b);
-typedef void (* nssListElementDestructorFunc)(void *el);
-
 typedef struct nssHashStr nssHash;
 typedef void (PR_CALLBACK *nssHashIterator)(const void *key, 
                                             void *value, 

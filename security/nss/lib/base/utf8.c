@@ -275,6 +275,16 @@ nssUTF8_Duplicate
   return rv;
 }
 
+NSS_IMPLEMENT NSSUTF8 *
+NSSUTF8_Duplicate
+(
+  const NSSUTF8 *s,
+  NSSArena *arenaOpt
+)
+{
+    return nssUTF8_Duplicate(s, arenaOpt);
+}
+
 /*
  * nssUTF8_Size
  *

@@ -80,10 +80,15 @@ const NSSError NSS_ERROR_INVALID_PASSWORD               = 28;
 const NSSError NSS_ERROR_USER_CANCELED                  = 29;
 
 const NSSError NSS_ERROR_MAXIMUM_FOUND                  = 30;
+const NSSError NSS_ERROR_INVALID_SIGNATURE              = 31;
+const NSSError NSS_ERROR_INVALID_DATA                   = 32;
 
-const NSSError NSS_ERROR_CERTIFICATE_ISSUER_NOT_FOUND   = 31;
+/* token errors */
+const NSSError NSS_ERROR_TOKEN_FAILURE                  = 100;
 
-const NSSError NSS_ERROR_CERTIFICATE_IN_CACHE           = 32;
+/* certificate errors */
+const NSSError NSS_ERROR_CERTIFICATE_ISSUER_NOT_FOUND   = 500;
 
-const NSSError NSS_ERROR_HASH_COLLISION                 = 33;
+/* crypto context errors */
+const NSSError NSS_ERROR_INVALID_CRYPTO_CONTEXT         = 800;
 

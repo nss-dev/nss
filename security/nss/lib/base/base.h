@@ -58,6 +58,8 @@ static const char BASE_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 
 PR_BEGIN_EXTERN_C
 
+#define nss_ASSERT PR_ASSERT
+
 /*
  * NSSArena
  *
@@ -827,198 +829,6 @@ nssUTF8_Equal
 );
 
 /*
- * nssList
- *
- * The goal is to provide a simple, optionally threadsafe, linked list
- * class.  Since NSS did not seem to use the circularity of PRCList
- * much before, this provides a list that appears to be a linear,
- * NULL-terminated list.
- */
-
-/*
- * nssList_Create
- *
- * If threadsafe is true, the list will be locked during modifications
- * and traversals.
- */
-NSS_EXTERN nssList *
-nssList_Create
-(
-  NSSArena *arenaOpt,
-  PRBool threadSafe
-);
-
-/*
- * nssList_Destroy
- */
-NSS_EXTERN PRStatus
-nssList_Destroy
-(
-  nssList *list
-);
-
-NSS_EXTERN void
-nssList_Clear
-(
-  nssList *list, 
-  nssListElementDestructorFunc destructor
-);
-
-/*
- * nssList_SetCompareFunction
- *
- * By default, two list elements will be compared by comparing their
- * data pointers.  By setting this function, the user can control
- * how elements are compared.
- */
-NSS_EXTERN void
-nssList_SetCompareFunction
-(
-  nssList *list, 
-  nssListCompareFunc compareFunc
-);
-
-/*
- * nssList_SetSortFunction
- *
- * Sort function to use for an ordered list.
- */
-NSS_EXTERN void
-nssList_SetSortFunction
-(
-  nssList *list, 
-  nssListSortFunc sortFunc
-);
-
-/*
- * nssList_Add
- */
-NSS_EXTERN PRStatus
-nssList_Add
-(
-  nssList *list, 
-  void *data
-);
-
-/*
- * nssList_AddUnique
- *
- * This will use the compare function to see if the element is already
- * in the list.
- */
-NSS_EXTERN PRStatus
-nssList_AddUnique
-(
-  nssList *list, 
-  void *data
-);
-
-/*
- * nssList_Remove
- *
- * Uses the compare function to locate the element and remove it.
- */
-NSS_EXTERN PRStatus
-nssList_Remove(nssList *list, void *data);
-
-/*
- * nssList_Get
- *
- * Uses the compare function to locate an element.  Also serves as
- * nssList_Exists.
- */
-NSS_EXTERN void *
-nssList_Get
-(
-  nssList *list, 
-  void *data
-);
-
-/*
- * nssList_Count
- */
-NSS_EXTERN PRUint32
-nssList_Count
-(
-  nssList *list
-);
-
-/*
- * nssList_GetArray
- *
- * Fill rvArray, up to maxElements, with elements in the list.  The
- * array is NULL-terminated, so its allocated size must be maxElements + 1.
- */
-NSS_EXTERN PRStatus
-nssList_GetArray
-(
-  nssList *list, 
-  void **rvArray, 
-  PRUint32 maxElements
-);
-
-/*
- * nssList_CreateIterator
- *
- * Create an iterator for list traversal.
- */
-NSS_EXTERN nssListIterator *
-nssList_CreateIterator
-(
-  nssList *list
-);
-
-NSS_EXTERN nssList *
-nssList_Clone
-(
-  nssList *list
-);
-
-/*
- * nssListIterator_Destroy
- */
-NSS_EXTERN void
-nssListIterator_Destroy
-(
-  nssListIterator *iter
-);
-
-/*
- * nssListIterator_Start
- *
- * Begin a list iteration.  After this call, if the list is threadSafe,
- * the list is *locked*.
- */
-NSS_EXTERN void *
-nssListIterator_Start
-(
-  nssListIterator *iter
-);
-
-/*
- * nssListIterator_Next
- *
- * Continue a list iteration.
- */
-NSS_EXTERN void *
-nssListIterator_Next
-(
-  nssListIterator *iter
-);
-
-/*
- * nssListIterator_Finish
- *
- * Complete a list iteration.  This *must* be called in order for the
- * lock to be released.
- */
-NSS_EXTERN PRStatus
-nssListIterator_Finish
-(
-  nssListIterator *iter
-);
-
-/*
  * nssHash
  *
  *  nssHash_Create
@@ -1082,7 +892,9 @@ nssHash_Destroy
  *
  */
 
+#if 0
 extern const NSSError NSS_ERROR_HASH_COLLISION;
+#endif
 
 NSS_EXTERN PRStatus
 nssHash_Add
@@ -1438,7 +1250,6 @@ nss_SetThreadPrivate
   PRUintn i,
   void *v
 );
-
 
 PR_END_EXTERN_C
 

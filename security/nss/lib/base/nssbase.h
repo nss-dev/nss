@@ -162,6 +162,44 @@ NSS_GetErrorStack
   void
 );
 
+NSS_EXTERN NSSItem *
+NSSItem_Create
+(
+  NSSArena *arenaOpt,
+  NSSItem *rvOpt,
+  PRUint32 length,
+  const void *data
+);
+
+NSS_EXTERN void
+NSSItem_Destroy
+(
+  NSSItem *item
+);
+
+NSS_EXTERN NSSItem *
+NSSItem_Duplicate
+(
+  NSSItem *obj,
+  NSSArena *arenaOpt,
+  NSSItem *rvOpt
+);
+
+NSS_EXTERN PRBool
+NSSItem_Equal
+(
+  const NSSItem *one,
+  const NSSItem *two,
+  PRStatus *statusOpt
+);
+
+NSS_EXTERN NSSUTF8 *
+NSSUTF8_Duplicate
+(
+  const NSSUTF8 *s,
+  NSSArena *arenaOpt
+);
+
 PR_END_EXTERN_C
 
 #endif /* NSSBASE_H */
