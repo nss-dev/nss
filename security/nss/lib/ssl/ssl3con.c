@@ -1544,6 +1544,12 @@ ssl3_SendApplicationData(sslSocket *ss, const unsigned char *in,
 	PRInt32   count;
 
 	if (sent > 0) {
+	    /*
+	     * The thread yield is intended to give the reader thread a
+	     * chance to get some cycles while the writer thread is in
+	     * the middle of a large application data write.  (See
+	     * Bugzilla bug 127740, comment #1.)
+	     */
 	    ssl_ReleaseXmitBufLock(ss);
 	    PR_Sleep(PR_INTERVAL_NO_WAIT);	/* PR_Yield(); */
 	    ssl_GetXmitBufLock(ss);
