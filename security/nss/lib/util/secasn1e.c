@@ -1325,6 +1325,16 @@ SEC_ASN1EncoderClearNotifyProc (SEC_ASN1EncoderContext *cx)
     cx->notify_arg = NULL;	/* not necessary; just being clean */
 }
 
+void
+SEC_ASN1EncoderAbort(SEC_ASN1EncoderContext *cx, int error)
+{
+    PORT_Assert(cx);
+    if (!cx) {
+	return;
+    }
+    PORT_SetError(error);
+    cx->status = encodeError;
+}
 
 void
 SEC_ASN1EncoderSetStreaming (SEC_ASN1EncoderContext *cx)

@@ -2845,6 +2845,17 @@ SEC_ASN1DecoderClearNotifyProc (SEC_ASN1DecoderContext *cx)
     cx->notify_arg = NULL;	/* not necessary; just being clean */
 }
 
+void
+SEC_ASN1DecoderAbort(SEC_ASN1DecoderContext *cx, int error)
+{
+    PORT_Assert(cx);
+    if (!cx) {
+	return;
+    }
+    PORT_SetError(error);
+    cx->status = decodeError;
+}
+
 
 SECStatus
 SEC_ASN1Decode (PRArenaPool *poolp, void *dest,

@@ -69,6 +69,7 @@ extern SECStatus SEC_ASN1DecoderUpdate(SEC_ASN1DecoderContext *cx,
 				       unsigned long len);
 
 extern SECStatus SEC_ASN1DecoderFinish(SEC_ASN1DecoderContext *cx);
+extern void SEC_ASN1DecoderAbort(SEC_ASN1DecoderContext *cx, int error);
 
 extern void SEC_ASN1DecoderSetFilterProc(SEC_ASN1DecoderContext *cx,
 					 SEC_ASN1WriteProc fn,
@@ -109,6 +110,7 @@ extern SECStatus SEC_ASN1EncoderUpdate(SEC_ASN1EncoderContext *cx,
 				       unsigned long len);
 
 extern void SEC_ASN1EncoderFinish(SEC_ASN1EncoderContext *cx);
+extern void SEC_ASN1EncoderAbort(SEC_ASN1EncoderContext *cx, int error);
 
 extern void SEC_ASN1EncoderSetNotifyProc(SEC_ASN1EncoderContext *cx,
 					 SEC_ASN1NotifyProc fn,
