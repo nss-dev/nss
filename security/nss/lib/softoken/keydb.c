@@ -877,7 +877,7 @@ openNewDB(const char *appName, const char *prefix, const char *dbname,
 	    } else {
 		db_Copy(handle->db, updatedb);
 		(updatedb->close)(updatedb);
-		db_FinishTransaction(updatedb,PR_FALSE);
+		db_FinishTransaction(handle->db,PR_FALSE);
 		return SECSuccess;
 	    }
 	}
