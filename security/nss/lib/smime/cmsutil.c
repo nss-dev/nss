@@ -319,10 +319,10 @@ NSSCMSContentInfo *
 NSS_CMSContent_GetContentInfo(void *msg, SECOidTag type)
 {
     NSSCMSContent c;
-    NSSCMSContentInfo *cinfo;
+    NSSCMSContentInfo *cinfo = NULL;
 
-    PORT_Assert(msg != NULL);
-
+    if (!msg)
+	return cinfo;
     c.pointer = msg;
     switch (type) {
     case SEC_OID_PKCS7_SIGNED_DATA:

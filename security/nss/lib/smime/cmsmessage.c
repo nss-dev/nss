@@ -193,8 +193,9 @@ NSS_CMSMessage_ContentLevelCount(NSSCMSMessage *cmsg)
     NSSCMSContentInfo *cinfo;
 
     /* walk down the chain of contentinfos */
-    for (cinfo = &(cmsg->contentInfo); cinfo != NULL; cinfo = NSS_CMSContentInfo_GetChildContentInfo(cinfo)) {
+    for (cinfo = &(cmsg->contentInfo); cinfo != NULL; ) {
 	count++;
+	cinfo = NSS_CMSContentInfo_GetChildContentInfo(cinfo);
     }
     return count;
 }
