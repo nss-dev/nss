@@ -54,11 +54,19 @@ else
 #
 ifneq ($(OS_ARCH), OSF1)
 
+ifeq ($(OS_ARCH), OS2)
+PLC_STATIC_LIB = $(DIST)/lib/plc4.$(LIB_SUFFIX)
+PLDS_STATIC_LIB = $(DIST)/lib/plds4.$(LIB_SUFFIX)
+else
+PLC_STATIC_LIB = $(DIST)/lib/libplc4.$(LIB_SUFFIX)
+PLDS_STATIC_LIB = $(DIST)/lib/libplds4.$(LIB_SUFFIX)
+endif
+
 EXTRA_LIBS += \
-        $(DIST)/lib/libnssckfw.a \
-        $(DIST)/lib/libnssb.a \
-	$(DIST)/lib/libplc4.a \
-	$(DIST)/lib/libplds4.a \
+        $(DIST)/lib/libnssckfw.$(LIB_SUFFIX) \
+        $(DIST)/lib/libnssb.$(LIB_SUFFIX) \
+	$(PLC_STATIC_LIB) \
+	$(PLDS_STATIC_LIB) \
 	$(NULL)
 
 endif
