@@ -679,7 +679,7 @@ nssUTF8_CopyIntoFixedBuffer
 #endif /* NSSDEBUG */
 
   if( (NSSUTF8 *)NULL == string ) {
-    string = "";
+    string = (unsigned char*) "";
   }
 
   stringSize = nssUTF8_Size(string, (PRStatus *)NULL);

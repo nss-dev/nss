@@ -307,6 +307,7 @@ nssArena_deregisterDestructor
   void *arg
 );
 
+extern const NSSError NSS_ERROR_INVALID_ITEM;
 extern const NSSError NSS_ERROR_INVALID_ARENA;
 extern const NSSError NSS_ERROR_NOT_FOUND;
 

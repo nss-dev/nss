@@ -59,7 +59,11 @@
 
 
 #if defined(DEBUG) || defined(TRACE)
+#ifdef __cplusplus
 #define Debug 1
+#else
+extern int Debug;
+#endif
 #else
 #undef Debug
 #endif
@@ -85,7 +89,7 @@
 
 #if defined (DEBUG)
 #ifdef macintosh
-#include ":private:pprthred.h"
+#include "pprthred.h"
 #else
 #include "private/pprthred.h"	/* for PR_InMonitor() */
 #endif
