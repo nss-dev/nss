@@ -169,7 +169,7 @@ SEC_PKCS12SetPreferredCipher;
 ;+    local:
 ;+        *;
 ;+};
-;+NSS_3.2 {               # NSS 3.2 release
+;+NSS_3.2.1 {               # NSS 3.2.1 release
 ;+    global:
 NSSSMIME_VersionCheck;
 ;+    local:
