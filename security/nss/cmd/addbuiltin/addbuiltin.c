@@ -349,7 +349,9 @@ main(int argc, char **argv)
 	exit(1);
     }
     
-    NSS_Shutdown();
+    if (NSS_Shutdown() != SECSuccess) {
+        exit(1);
+    }
 
     return(SECSuccess);
 }
