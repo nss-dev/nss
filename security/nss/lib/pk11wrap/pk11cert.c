@@ -74,10 +74,6 @@ pk11_buildNickname(PK11SlotInfo *slot,CK_ATTRIBUTE *cert_label,
     char buildNew[sizeof(DEFAULT_STRING)+MAX_CERT_ID*2];
     char *next,*nickname;
 
-    if (slot->isInternal) {
-	return NULL;
-    }
-
     if ((cert_label) && (cert_label->pValue)) {
 	suffixLen = cert_label->ulValueLen;
 	suffix = (char*)cert_label->pValue;
@@ -104,6 +100,7 @@ pk11_buildNickname(PK11SlotInfo *slot,CK_ATTRIBUTE *cert_label,
 	return NULL;
     }
 
+    /* if is Internal key slot don't add the prefix!!! */
     next = nickname = (char *)PORT_Alloc(prefixLen+1+suffixLen+1);
     if (nickname == NULL) return NULL;
 
