@@ -56,4 +56,6 @@ REQUIRES = security nspr
 
 LIBRARY_NAME = nssckbi
 
+DEFINES += -DNSS_NO_ARENA_FREE_LIST
+
 #EXTRA_SHARED_LIBS = -L$(DIST)/lib -lnssckfw -lnssb -lplc4 -lplds4

@@ -618,3 +618,8 @@ NSS_VersionCheck(const char *importedVersion)
     return PR_TRUE;
 }
 
+const char * nss_GetEnv(const char *evName)
+{
+    return PR_GetEnv(evName);
+}
+

@@ -520,7 +520,8 @@ do_writes(
 
     while (sent < bigBuf.size) {
 
-	count = PR_Write(ssl_sock, bigBuf.data + sent, bigBuf.size - sent);
+	count = PR_Write(ssl_sock, (unsigned char *)bigBuf.data + sent, 
+	                 bigBuf.size - sent);
 	if (count < 0) {
 	    errWarn("PR_Write bigBuf");
 	    break;
@@ -927,7 +928,8 @@ readBigFile(const char * fileName)
 
 	memcpy(bigBuf.data, outHeader, hdrLen);
 
-	count = PR_Read(local_file_fd, bigBuf.data + hdrLen, info.size);
+	count = PR_Read(local_file_fd, (unsigned char *)bigBuf.data + hdrLen, 
+	                info.size);
 	if (count != info.size) {
 	    errWarn("PR_Read local file");
 	    goto done;

@@ -243,48 +243,16 @@ nss_ClearErrorStack(void)
     return;
 }
 
-#ifdef DEBUG
-/*
- * replace the pointer tracking stuff for the same reasons.
- *  If you want to turn pointer tracking on, simply ifdef out this code and 
- *  link with real NSPR.
- */
-PR_IMPLEMENT(PRStatus)
-nssPointerTracker_initialize(nssPointerTracker *tracker)
+PR_IMPLEMENT(const char *)
+nss_GetEnv(const char *evName)
 {
-    return PR_SUCCESS;
+    return NULL;
 }
-
-
-PR_IMPLEMENT(PRStatus)
-nssPointerTracker_finalize(nssPointerTracker *tracker)
-{
-    return PR_SUCCESS;
-}
-
-PR_IMPLEMENT(PRStatus)
-nssPointerTracker_add(nssPointerTracker *tracker, const void *pointer)
-{
-     return PR_SUCCESS;
-}
-
-PR_IMPLEMENT(PRStatus)
-nssPointerTracker_remove(nssPointerTracker *tracker, const void *pointer)
-{
-     return PR_SUCCESS;
-}
-
-PR_IMPLEMENT(PRStatus)
-nssPointerTracker_verify(nssPointerTracker *tracker, const void *pointer)
-{
-     return PR_SUCCESS;
-}
-#endif
 
 PR_IMPLEMENT(PRThread *)
 PR_GetCurrentThread(void)
 {
-     return (PRThread *)1;
+    return (PRThread *)1;
 }
 
 

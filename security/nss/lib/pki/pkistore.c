@@ -116,8 +116,8 @@ subject_hash_entry_create (
     rvEntry = nss_ZNEW(NULL, subject_hash_entry);
     if (rvEntry) {
 	PR_INIT_CLIST(&rvEntry->head);
+	rvEntry->subject = nssItem_Duplicate(subject, NULL, NULL);
     }
-    rvEntry->subject = nssItem_Duplicate(subject, NULL, NULL);
     return rvEntry;
 }
 
@@ -126,7 +126,7 @@ subject_hash_entry_destroy (
   subject_hash_entry *entry
 )
 {
-    nss_ZFreeIf(entry->subject);
+    nssItem_Destroy(entry->subject);
     nss_ZFreeIf(entry);
 }
 
@@ -172,6 +172,7 @@ subject_hash_entry_remove (
 	if (node->cert == cert) {
 	    PR_REMOVE_LINK(link);
 	    entry->count--;
+	    nss_ZFreeIf(node);
 	    break;
 	}
 	link = PR_NEXT_LINK(link);
@@ -769,6 +770,7 @@ load_token_certs(nssTokenObjectStore *objectStore, nssTokenStore *store)
 	    nssCryptokiObjectArray_Destroy(tokenCerts);
 	    return PR_FAILURE;
 	}
+	nss_ZFreeIf(tokenCerts);
 	for (cp = objectStore->certs; *cp; cp++) {
 	    status = nssCertStore_AddCert(store->certs, *cp);
 	    if (status == PR_FAILURE) {
@@ -823,6 +825,8 @@ destroy_token_object_store(nssTokenObjectStore *objectStore,
     (void)unload_token_certs(objectStore, store);
     PZ_DestroyLock(objectStore->lock);
     nssSession_Destroy(objectStore->session);
+    nssSlot_Destroy(objectStore->slot);
+    nssToken_Destroy(objectStore->token);
 }
 
 static void
@@ -1013,6 +1017,8 @@ nssTokenStore_Destroy (
     for (i=0; i<store->numTokens; i++) {
 	destroy_token_object_store(store->tokens[i], store);
     }
+    nss_ZFreeIf(store->tokens);
+    PZ_DestroyLock(store->lock);
     nssCertStore_Destroy(store->certs);
     nssArena_Destroy(store->arena);
 }

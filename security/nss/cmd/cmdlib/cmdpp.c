@@ -154,7 +154,7 @@ CMD_PrintPKIXTime(CMDPrinter *printer, NSSPKIXTime *pkixTime, char *message)
     time = NSSPKIXTime_GetTime(pkixTime, NULL);
     utcTime = NSSTime_GetUTCTime(time, NULL);
     PR_fprintf(printer->out, "%s", utcTime);
-    /* NSS_ZFreeIf(utcTime); XXX */
+    NSSUTF8_Destroy(utcTime);
 }
 
 void

@@ -49,6 +49,7 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #include "prthread.h"
 #endif /* ARENA_THREADMARK */
 
+#include "prenv.h"
 #include "prlock.h"
 #include "plarena.h"
 
@@ -340,6 +341,8 @@ NSSArena_Destroy (
   return nssArena_Destroy(arena);
 }
 
+extern const char * nss_GetEnv(const char *evName);
+
 /*
  * nssArena_Destroy
  *
@@ -376,14 +379,13 @@ nssArena_Destroy (
 #endif /* ARENA_DESTRUCTOR_LIST */
 
   {
-    const char *ev = PR_GetEnv("NSS_DISABLE_ARENA_FREE_LIST");
+    const char *ev = nss_GetEnv("NSS_DISABLE_ARENA_FREE_LIST");
     if (!ev) {
-	PL_FreeArenaPool(arena);
+	PL_FreeArenaPool(&arena->pool);
     } else {
-	PL_FinishArenaPool(arena);
+	PL_FinishArenaPool(&arena->pool);
     }
   }
-  PL_FinishArenaPool(&arena->pool);
   lock = arena->lock;
   arena->lock = (PRLock *)NULL;
   PR_Unlock(lock);

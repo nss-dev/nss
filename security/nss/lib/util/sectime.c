@@ -84,6 +84,9 @@ DER_UTCDayToAscii(SECItem *utctime)
     return (DecodeUTCTime2FormattedAscii (utctime, "%a %b %d, %Y"));
 }
 
+void
+CERT_DestroyValidity(CERTValidity *v);
+
 CERTValidity *
 CERT_CreateValidity(int64 notBefore, int64 notAfter)
 {
