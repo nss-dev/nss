@@ -45,7 +45,6 @@
 #include "secder.h"
 #include "secoid.h"
 #include "secasn1.h"
-#include "blapi.h"		/* for SHA1_HashBuf */
 #include "genname.h"
 #include "keyhi.h"
 #include "secitem.h"

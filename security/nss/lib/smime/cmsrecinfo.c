@@ -258,7 +258,7 @@ NSS_CMSRecipientInfo_GetEncryptedKey(NSSCMSRecipientInfo *ri, int subIndex)
 SECOidTag
 NSS_CMSRecipientInfo_GetKeyEncryptionAlgorithmTag(NSSCMSRecipientInfo *ri)
 {
-    SECOidTag encalgtag = SEC_OID_SHA1; /* set to not a valid encryption alg */
+    SECOidTag encalgtag = SEC_OID_UNKNOWN; /* an invalid encryption alg */
 
     switch (ri->recipientInfoType) {
     case NSSCMSRecipientInfoID_KeyTrans:
