@@ -416,6 +416,9 @@ rsa_FormatBlock(SECItem *result, unsigned modulusLen,
 	 * Pad is zeros. The application is responsible for recovering
 	 * the actual data.
 	 */
+	if (data->len > modulusLen ) {
+	    return SECFailure;
+	}
 	result->data = (unsigned char*)PORT_ZAlloc(modulusLen);
 	result->len = modulusLen;
 	PORT_Memcpy(result->data+(modulusLen-data->len),data->data,data->len);
