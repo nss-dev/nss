@@ -81,6 +81,9 @@ pk11_keydb_name_cb(void *arg, int dbVersion)
     const char *dbver;
     
     switch (dbVersion) {
+      case 4:
+	dbver = "4";
+	break;
       case 3:
 	dbver = "3";
 	break;
