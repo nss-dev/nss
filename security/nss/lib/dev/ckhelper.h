@@ -80,6 +80,7 @@ NSS_EXTERN_DATA const NSSItem g_ck_class_privkey;
     if ((pattr)->ulValueLen) ((pattr)->ulValueLen)--; \
     (pattr)++;
 
+/* XXX is this safe for setting 64-bit CK_ULONG's? */
 #define NSS_CK_SET_ATTRIBUTE_VAR(pattr, kind, var)    \
     (pattr)->type = kind;                             \
     (pattr)->pValue = (CK_VOID_PTR)&var;              \
@@ -94,7 +95,7 @@ NSS_EXTERN_DATA const NSSItem g_ck_class_privkey;
 
 #define NSS_CK_TEMPLATE_FINISH(_template, attr, size) \
     size = (attr) - (_template);                      \
-    PR_ASSERT(size <= sizeof(_template)/sizeof(_template[0]));
+    PR_ASSERT(size <= sizeof(_template)/sizeof((_template)[0]));
 
 /* NSS_CK_ATTRIBUTE_TO_ITEM(attrib, item)
  *
@@ -116,6 +117,11 @@ NSS_EXTERN_DATA const NSSItem g_ck_class_privkey;
 	} else {                                         \
 	    boolvar = PR_FALSE;                          \
 	}                                                \
+    }
+
+#define NSS_CK_ATTRIBUTE_TO_UINT(attrib, uintvar)        \
+    if ((attrib)->ulValueLen > 0) {                      \
+	uintvar = *((CK_ULONG*)(attrib)->pValue);        \
     }
 
 /* NSS_CK_ATTRIBUTE_TO_UTF8(attrib, str)
@@ -175,6 +181,22 @@ nssCKObject_SetAttributes
   CK_ULONG count,
   nssSession *session,
   NSSSlot  *slot
+);
+
+NSS_EXTERN CK_ULONG
+nssCKTemplate_SetOperationAttributes
+(
+  CK_ATTRIBUTE_PTR objTemplate,
+  CK_ULONG otSize,
+  NSSOperations operations
+);
+
+NSS_EXTERN CK_ULONG
+nssCKTemplate_SetPropertyAttributes
+(
+  CK_ATTRIBUTE_PTR objTemplate,
+  CK_ULONG otSize,
+  NSSProperties properties
 );
 
 NSS_EXTERN PRBool

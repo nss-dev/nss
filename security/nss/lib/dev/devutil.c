@@ -35,6 +35,10 @@
 static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #endif /* DEBUG */
 
+#ifndef NSSCKEPV_H
+#include "nssckepv.h"
+#endif /* NSSCKEPV_H */
+
 #ifndef DEVM_H
 #include "devm.h"
 #endif /* DEVM_H */
@@ -72,6 +76,7 @@ nssCryptokiObject_Create
 	return (nssCryptokiObject *)NULL;
     }
     object->handle = h;
+    object->session = nssSession_AddRef(session);
     object->token = nssToken_AddRef(t);
     isTokenObject = (CK_BBOOL *)cert_template[0].pValue;
     object->isTokenObject = *isTokenObject;
@@ -88,9 +93,47 @@ nssCryptokiObject_Destroy
 {
     if (object) {
 	nssToken_Destroy(object->token);
+	nssSession_Destroy(object->session);
 	nss_ZFreeIf(object->label);
 	nss_ZFreeIf(object);
     }
+}
+
+NSS_IMPLEMENT PRStatus
+nssCryptokiObject_DeleteStoredObject
+(
+  nssCryptokiObject *object
+)
+{
+    CK_RV ckrv;
+    nssSession *rwSession; /* XXX is there a better way? */
+    nssTokenObjectCache *cache = nssToken_GetObjectCache(object->token);
+    void *epv = nssToken_GetCryptokiEPV(object->token);
+    if (cache) {
+	nssTokenObjectCache_RemoveObject(cache, object);
+    }
+
+    if (!object->isTokenObject || nssSession_IsReadWrite(object->session)) {
+	rwSession = object->session;
+    } else {
+	rwSession = nssToken_CreateSession(object->token, PR_TRUE);
+	if (!rwSession) {
+	    return PR_FAILURE;
+	}
+    }
+
+    nssSession_EnterMonitor(object->session);
+    ckrv = CKAPI(epv)->C_DestroyObject(object->session->handle, 
+                                       object->handle);
+    nssSession_ExitMonitor(object->session);
+    /* Destroying the object's data.  The object is useless at this point
+     * anyway.
+     */
+    if (rwSession != object->session) {
+	nssSession_Destroy(rwSession);
+    }
+    nssCryptokiObject_Destroy(object);
+    return (ckrv == CKR_OK) ? PR_SUCCESS : PR_FAILURE;
 }
 
 NSS_IMPLEMENT nssCryptokiObject *
@@ -104,6 +147,7 @@ nssCryptokiObject_Clone
     if (rvObject) {
 	rvObject->handle = object->handle;
 	rvObject->token = nssToken_AddRef(object->token);
+	rvObject->session = nssSession_AddRef(object->session);
 	rvObject->isTokenObject = object->isTokenObject;
 	if (object->label) {
 	    rvObject->label = nssUTF8_Duplicate(object->label, NULL);
@@ -111,6 +155,22 @@ nssCryptokiObject_Clone
     }
     return rvObject;
 }
+
+NSS_IMPLEMENT nssCryptokiObject *
+nssCryptokiObject_WeakClone
+(
+  nssCryptokiObject *object,
+  nssCryptokiObject *copyObject
+)
+{
+    copyObject->handle = object->handle;
+    copyObject->token = nssToken_AddRef(object->token);
+    copyObject->session = nssSession_AddRef(object->session);
+    copyObject->isTokenObject = object->isTokenObject;
+    copyObject->label = NULL;
+    return copyObject;
+}
+
 
 NSS_EXTERN PRBool
 nssCryptokiObject_Equal
@@ -160,7 +220,6 @@ nssSlotArray_Clone
     return rvSlots;
 }
 
-#ifdef PURE_STAN_BUILD
 NSS_IMPLEMENT void
 nssModuleArray_Destroy
 (
@@ -175,7 +234,15 @@ nssModuleArray_Destroy
 	nss_ZFreeIf(modules);
     }
 }
-#endif
+
+NSS_IMPLEMENT void
+NSSModuleArray_Destroy
+(
+  NSSModule **modules
+)
+{
+    nssModuleArray_Destroy(modules);
+}
 
 NSS_IMPLEMENT void
 nssSlotArray_Destroy
@@ -240,7 +307,6 @@ nssCryptokiObjectArray_Destroy
     }
 }
 
-#ifdef PURE_STAN_BUILD
 /*
  * Slot lists
  */
@@ -442,30 +508,31 @@ nssSlotList_GetSlots
     return rvSlots;
 }
 
-#if 0
-NSS_IMPLEMENT NSSSlot *
-nssSlotList_GetBestSlotForAlgorithmAndParameters
+NSS_IMPLEMENT NSSToken *
+nssSlotList_GetBestTokenForAlgorithm
 (
   nssSlotList *slotList,
-  NSSAlgorithmAndParameters *ap
+  const NSSAlgorithmAndParameters *ap
 )
 {
     PRCList *link;
     struct nssSlotListNodeStr *node;
-    NSSSlot *rvSlot = NULL;
+    NSSToken *tok, *rvToken = NULL;
     PZ_Lock(slotList->lock);
     link = PR_NEXT_LINK(&slotList->head);
     while (link != &slotList->head) {
 	node = (struct nssSlotListNodeStr *)link;
-	if (nssSlot_DoesAlgorithmAndParameters(ap)) {
-	    rvSlot = nssSlot_AddRef(node->slot); /* XXX check isPresent? */
+	tok = nssSlot_GetToken(node->slot);
+	if (nssToken_DoesAlgorithm(tok, ap)) {
+	    rvToken = tok;
+	    break;
 	}
+	nssToken_Destroy(tok);
 	link = PR_NEXT_LINK(link);
     }
     PZ_Unlock(slotList->lock);
-    return rvSlot;
+    return rvToken;
 }
-#endif
 
 NSS_IMPLEMENT NSSSlot *
 nssSlotList_GetBestSlot
@@ -539,7 +606,6 @@ nssSlotList_FindTokenByName
     PZ_Unlock(slotList->lock);
     return rvToken;
 }
-#endif /* PURE_STAN_BUILD */
 
 /* object cache for token */
 
@@ -1408,38 +1474,5 @@ nssTokenObjectCache_RemoveObject
 	cache->objects[oType] = NULL;
     }
     PZ_Unlock(cache->lock);
-}
-
-/* XXX of course this doesn't belong here */
-NSS_IMPLEMENT NSSAlgorithmAndParameters *
-NSSAlgorithmAndParameters_CreateSHA1Digest
-(
-  NSSArena *arenaOpt
-)
-{
-    NSSAlgorithmAndParameters *rvAP = NULL;
-    rvAP = nss_ZNEW(arenaOpt, NSSAlgorithmAndParameters);
-    if (rvAP) {
-	rvAP->mechanism.mechanism = CKM_SHA_1;
-	rvAP->mechanism.pParameter = NULL;
-	rvAP->mechanism.ulParameterLen = 0;
-    }
-    return rvAP;
-}
-
-NSS_IMPLEMENT NSSAlgorithmAndParameters *
-NSSAlgorithmAndParameters_CreateMD5Digest
-(
-  NSSArena *arenaOpt
-)
-{
-    NSSAlgorithmAndParameters *rvAP = NULL;
-    rvAP = nss_ZNEW(arenaOpt, NSSAlgorithmAndParameters);
-    if (rvAP) {
-	rvAP->mechanism.mechanism = CKM_MD5;
-	rvAP->mechanism.pParameter = NULL;
-	rvAP->mechanism.ulParameterLen = 0;
-    }
-    return rvAP;
 }
 

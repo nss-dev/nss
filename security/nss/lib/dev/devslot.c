@@ -52,7 +52,6 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 
 /* this should track global and per-transaction login information */
 
-#ifdef PURE_STAN_CODE
 typedef enum {
   nssSlotAskPasswordTimes_FirstTime = 0,
   nssSlotAskPasswordTimes_EveryTime = 1,
@@ -67,6 +66,7 @@ struct nssSlotAuthInfoStr
   PRIntervalTime askPasswordTimeout;
 };
 
+/* XXX slot needs to maintain default r/o and/or rw session */
 struct NSSSlotStr
 {
   struct nssDeviceBaseStr base;
@@ -80,7 +80,6 @@ struct NSSSlotStr
   PK11SlotInfo *pk11slot;
 #endif
 };
-#endif /* PURE_STAN_CODE */
 
 #define NSSSLOT_IS_FRIENDLY(slot) \
   (slot->base.flags & NSSSLOT_FLAGS_FRIENDLY)
@@ -103,7 +102,6 @@ nss_ck_slot_notify
     return CKR_OK;
 }
 
-#ifdef PURE_STAN_BUILD
 NSS_IMPLEMENT NSSSlot *
 nssSlot_Create
 (
@@ -168,7 +166,6 @@ loser:
     /* everything was created in the arena, nothing to see here, move along */
     return (NSSSlot *)NULL;
 }
-#endif /* PURE_STAN_BUILD */
 
 NSS_IMPLEMENT PRStatus
 nssSlot_Destroy
@@ -179,11 +176,9 @@ nssSlot_Destroy
     if (slot) {
 	PR_AtomicDecrement(&slot->base.refCount);
 	if (slot->base.refCount == 0) {
-	    PZ_DestroyLock(slot->base.lock);
-#ifdef PURE_STAN_BUILD
 	    nssToken_Destroy(slot->token);
 	    nssModule_DestroyFromSlot(slot->module, slot);
-#endif
+	    PZ_DestroyLock(slot->base.lock);
 	    return nssArena_Destroy(slot->base.arena);
 	}
     }
@@ -207,6 +202,34 @@ nssSlot_AddRef
 {
     PR_AtomicIncrement(&slot->base.refCount);
     return slot;
+}
+
+NSS_IMPLEMENT PRStatus
+NSSSlot_GetInfo
+(
+  NSSSlot *slot,
+  NSSSlotInfo *slotInfo
+)
+{
+    slotInfo->name = slot->base.name;
+#if 0
+    slotInfo->description = slot->description;
+    slotInfo->manufacturerID = slot->manufacturerID;
+    slotInfo->hardwareVersion.major = slot->hwVersion.major;
+    slotInfo->hardwareVersion.minor = slot->hwVersion.minor;
+    slotInfo->firmwareVersion.major = slot->fwVersion.major;
+    slotInfo->firmwareVersion.minor = slot->fwVersion.minor;
+#endif
+    slotInfo->moduleName = nssModule_GetName(slot->module);
+    if (slot->token) {
+	slotInfo->tokenName = nssToken_GetName(slot->token);
+	slotInfo->isTokenPresent = nssSlot_IsTokenPresent(slot);
+    } else {
+	slotInfo->isTokenPresent = PR_FALSE;
+    }
+    slotInfo->isTokenRemovable = slot->ckFlags & CKF_REMOVABLE_DEVICE;
+    slotInfo->isHardware = slot->ckFlags & CKF_HW_SLOT;
+    return PR_SUCCESS;
 }
 
 NSS_IMPLEMENT NSSUTF8 *
@@ -266,17 +289,12 @@ nssSlot_IsTokenPresent
 	return (PRBool)((slot->ckFlags & CKF_TOKEN_PRESENT) != 0);
     }
     /* First obtain the slot info */
-#ifdef PURE_STAN_BUILD
     epv = nssModule_GetCryptokiEPV(slot->module);
-#else
-    epv = slot->epv;
-#endif
     if (!epv) {
 	return PR_FALSE;
     }
     ckrv = CKAPI(epv)->C_GetSlotInfo(slot->slotID, &slotInfo);
     if (ckrv != CKR_OK) {
-	slot->token->base.name[0] = 0; /* XXX */
 	return PR_FALSE;
     }
     slot->ckFlags = slotInfo.flags;
@@ -295,23 +313,11 @@ nssSlot_IsTokenPresent
 	    session->handle = CK_INVALID_SESSION;
 	}
 	nssSession_ExitMonitor(session);
-#ifdef NSS_3_4_CODE
-	if (slot->token->base.name[0] != 0) {
-	    /* notify the high-level cache that the token is removed */
-	    slot->token->base.name[0] = 0; /* XXX */
-	    nssToken_NotifyCertsNotVisible(slot->token);
-	}
-#endif
-	slot->token->base.name[0] = 0; /* XXX */
-	/* clear the token cache */
-	nssToken_Remove(slot->token);
 	return PR_FALSE;
-#ifdef PURE_STAN_CODE
     } else if (!slot->token) {
 	/* token was not present at boot time, is now */
 	slot->token = nssToken_Create(slot->slotID, slot);
 	return (slot->token != NULL);
-#endif
     }
     /* token is present, use the session info to determine if the card
      * has been removed and reinserted.
@@ -341,14 +347,12 @@ nssSlot_IsTokenPresent
 	/* token has been removed, need to refresh with new session */
 	nssrv = nssSlot_Refresh(slot);
 	if (nssrv != PR_SUCCESS) {
-	    slot->token->base.name[0] = 0; /* XXX */
 	    return PR_FALSE;
 	}
 	return PR_TRUE;
     }
 }
 
-#ifdef PURE_STAN_BUILD
 NSS_IMPLEMENT NSSModule *
 nssSlot_GetModule
 (
@@ -357,7 +361,6 @@ nssSlot_GetModule
 {
     return nssModule_AddRef(slot->module);
 }
-#endif /* PURE_STAN_BUILD */
 
 NSS_IMPLEMENT void *
 nssSlot_GetCryptokiEPV
@@ -365,11 +368,7 @@ nssSlot_GetCryptokiEPV
   NSSSlot *slot
 )
 {
-#ifdef PURE_STAN_BUILD
     return nssModule_GetCryptokiEPV(slot->module);
-#else
-    return slot->epv;
-#endif
 }
 
 NSS_IMPLEMENT NSSToken *
@@ -384,7 +383,15 @@ nssSlot_GetToken
     return (NSSToken *)NULL;
 }
 
-#ifdef PURE_STAN_BUILD
+NSS_IMPLEMENT NSSToken *
+NSSSlot_GetToken
+(
+  NSSSlot *slot
+)
+{
+    return nssSlot_GetToken(slot);
+}
+
 NSS_IMPLEMENT PRBool
 nssSlot_IsPermanent
 (
@@ -590,6 +597,23 @@ loser:
 }
 
 static PRStatus
+password_return
+(
+  NSSUTF8 *slotName,
+  PRUint32 retries,
+  void *arg,
+  NSSUTF8 **password
+)
+{
+    if (retries == 0) {
+	*password = nssUTF8_Duplicate((NSSUTF8 *)arg, NULL);
+	return PR_SUCCESS;
+    } else {
+	return PR_FAILURE;
+    }
+}
+
+static PRStatus
 change_slot_password
 (
   NSSSlot *slot, 
@@ -601,20 +625,27 @@ change_slot_password
     PRStatus status;
     CK_ULONG userPWLen, newPWLen;
     CK_RV ckrv;
+    PRBool retried = PR_FALSE;
+    NSSCallback have_pw_cb;
     void *epv = nssModule_GetCryptokiEPV(slot->module);
+
     userPWLen = (CK_ULONG)nssUTF8_Length(oldPassword, &status); 
     if (status != PR_SUCCESS) {
 	return status;
     }
+
     newPWLen = (CK_ULONG)nssUTF8_Length(newPassword, &status); 
     if (status != PR_SUCCESS) {
 	return status;
     }
+
+retry:
     nssSession_EnterMonitor(rwSession);
     ckrv = CKAPI(epv)->C_SetPIN(rwSession->handle,
                                 (CK_CHAR_PTR)oldPassword, userPWLen,
                                 (CK_CHAR_PTR)newPassword, newPWLen);
     nssSession_ExitMonitor(rwSession);
+
     switch (ckrv) {
     case CKR_OK:
 	slot->authInfo.lastLogin = PR_Now();
@@ -623,6 +654,18 @@ change_slot_password
     case CKR_PIN_INCORRECT:
 	nss_SetError(NSS_ERROR_INVALID_PASSWORD);
 	status = PR_FAILURE;
+	break;
+    case CKR_USER_NOT_LOGGED_IN:
+	/* Have to log in before trying the password.  Use the password
+	 * provided by the caller, and retry.
+	 */
+	have_pw_cb.getPW = password_return;
+	have_pw_cb.arg = oldPassword;
+	status = slot_login(slot, rwSession, CKU_USER, &have_pw_cb);
+	if (status == PR_SUCCESS && !retried) {
+	    retried = PR_TRUE;
+	    goto retry;
+	}
 	break;
     default:
 	status = PR_FAILURE;
@@ -658,7 +701,7 @@ nssSlot_Login
 	}
 	status = (*pwcb->getInitPW)(slot->base.name, pwcb->arg, &password);
 	if (status == PR_SUCCESS) {
-	    session = nssSlot_CreateSession(slot, NULL, PR_TRUE);
+	    session = nssSlot_CreateSession(slot, PR_TRUE);
 	    status = init_slot_password(slot, session, password);
 	    nssSession_Destroy(session);
 	}
@@ -675,16 +718,15 @@ NSS_IMPLEMENT PRStatus
 nssSlot_Logout
 (
   NSSSlot *slot,
-  nssSession *sessionOpt
+  nssSession *session
 )
 {
     PRStatus nssrv = PR_SUCCESS;
-    nssSession *session;
     CK_RV ckrv;
     void *epv = nssModule_GetCryptokiEPV(slot->module);
-    session = sessionOpt ? 
-              sessionOpt : 
-              nssToken_GetDefaultSession(slot->token);
+
+    PR_ASSERT(session); /* XXX remove later */
+
     nssSession_EnterMonitor(session);
     ckrv = CKAPI(epv)->C_Logout(session->handle);
     nssSession_ExitMonitor(session);
@@ -730,7 +772,7 @@ nssSlot_SetPassword
     if (!token) {
 	return PR_FAILURE;
     }
-    rwSession = nssSlot_CreateSession(slot, NULL, PR_TRUE);
+    rwSession = nssSlot_CreateSession(slot, PR_TRUE);
     if (nssToken_NeedsPINInitialization(token)) {
 	status = init_slot_password(slot, rwSession, newPassword);
     } else if (oldPasswordOpt) {
@@ -745,12 +787,28 @@ nssSlot_SetPassword
     return status;
 }
 
+NSS_IMPLEMENT PRStatus
+NSSSlot_SetPassword
+(
+  NSSSlot *slot,
+  NSSUTF8 *oldPasswordOpt,
+  NSSUTF8 *newPassword
+)
+{
+    return nssSlot_SetPassword(slot, oldPasswordOpt, newPassword);
+}
+
+/*
+ * Attempts to open a session on the slot.  If the slot cannot open another
+ * session, the session is copied from the token's default.  These sessions
+ * are 'virtual' sessions, from a higher level they appear no different, but
+ * they share the same CK_SESSION_HANDLE and lock.
+ */
 NSS_IMPLEMENT nssSession *
 nssSlot_CreateSession
 (
   NSSSlot *slot,
-  NSSArena *arenaOpt,
-  PRBool readWrite /* so far, this is the only flag used */
+  PRBool readWrite
 )
 {
     CK_RV ckrv;
@@ -758,38 +816,73 @@ nssSlot_CreateSession
     CK_SESSION_HANDLE handle;
     void *epv = nssModule_GetCryptokiEPV(slot->module);
     nssSession *rvSession;
+
     ckflags = s_ck_readonly_flags;
     if (readWrite) {
 	ckflags |= CKF_RW_SESSION;
     }
-    ckrv = CKAPI(epv)->C_OpenSession(slot->slotID, ckflags,
-                                     slot, nss_ck_slot_notify, &handle);
-    if (ckrv != CKR_OK) {
-	/* set an error here, eh? */
-	return (nssSession *)NULL;
-    }
-    rvSession = nss_ZNEW(arenaOpt, nssSession);
+
+    /* Even virtual sessions get their own memory */
+    rvSession = nss_ZNEW(NULL, nssSession);
     if (!rvSession) {
 	return (nssSession *)NULL;
     }
+
+    /* Open a new session if there are any available */
+    ckrv = CKAPI(epv)->C_OpenSession(slot->slotID, ckflags,
+                                     slot, nss_ck_slot_notify, &handle);
+    if (ckrv == CKR_SESSION_COUNT) {
+	/* there weren't any, create a virtual session */
+	nssSession *defaultSession = NULL;
+	if (slot->token) {
+	    defaultSession = nssToken_GetDefaultSession(slot->token);
+	}
+	if (!defaultSession) {
+	    return (nssSession *)NULL;
+	}
+	if (readWrite && !defaultSession->isRW) {
+	    /* XXX need to handle this case */
+	    nss_ZFreeIf(rvSession);
+	    return (nssSession *)NULL;
+	}
+	*rvSession = *defaultSession; /* copy it */
+	rvSession->parent = defaultSession;
+	rvSession->refCount = 1;
+	PR_AtomicIncrement(&defaultSession->refCount);
+	return rvSession;
+    } else if (ckrv != CKR_OK) {
+	/* set an error here, eh? */
+	nss_ZFreeIf(rvSession);
+	return (nssSession *)NULL;
+    }
+
     if (!nssModule_IsThreadSafe(slot->module)) {
 	/* If the parent module is not threadsafe, create lock to manage 
 	 * session within threads.
 	 */
 	rvSession->lock = PZ_NewLock(nssILockOther);
 	if (!rvSession->lock) {
-	    /* need to translate NSPR error? */
-	    if (arenaOpt) {
-	    } else {
-		nss_ZFreeIf(rvSession);
-	    }
+	    nss_ZFreeIf(rvSession);
 	    return (nssSession *)NULL;
 	}
     }
+
     rvSession->handle = handle;
     rvSession->slot = slot;
     rvSession->isRW = readWrite;
+    PR_AtomicIncrement(&rvSession->refCount);
+    rvSession->owner = PR_TRUE;
     return rvSession;
+}
+
+NSS_IMPLEMENT nssSession *
+nssSession_AddRef
+(
+  nssSession *s
+)
+{
+    PR_AtomicIncrement(&s->refCount);
+    return s;
 }
 
 NSS_IMPLEMENT PRStatus
@@ -800,16 +893,67 @@ nssSession_Destroy
 {
     CK_RV ckrv = CKR_OK;
     if (s) {
-	void *epv = s->slot->epv;
-	ckrv = CKAPI(epv)->C_CloseSession(s->handle);
-	if (s->lock) {
-	    PZ_DestroyLock(s->lock);
+	void *epv = nssModule_GetCryptokiEPV(s->slot->module);
+	if (PR_AtomicDecrement(&s->refCount) == 0) {
+	    if (s->parent) {
+		/* virtual session (child), just notify the parent */
+		nssSession_Destroy(s->parent);
+	    } else {
+		/* own session */
+		ckrv = CKAPI(epv)->C_CloseSession(s->handle);
+		if (s->lock) {
+		    PZ_DestroyLock(s->lock);
+		}
+	    }
+	    nss_ZFreeIf(s);
 	}
-	nss_ZFreeIf(s);
     }
     return (ckrv == CKR_OK) ? PR_SUCCESS : PR_FAILURE;
 }
-#endif /* PURE_STAN_BUILD */
+
+static PRStatus
+save_session_state(nssSession *s)
+{
+    CK_RV ckrv;
+    CK_ULONG stateLen;
+    void *epv = nssSlot_GetCryptokiEPV(s->slot);
+    ckrv = CKAPI(epv)->C_GetOperationState(s->handle, NULL, &stateLen);
+    if (ckrv == CKR_OK && stateLen > 0) {
+	s->state.data = nss_ZAlloc(NULL, stateLen);
+	if (!s->state.data) {
+	    return PR_FAILURE;
+	}
+	ckrv = CKAPI(epv)->C_GetOperationState(s->handle,
+	                                       (CK_BYTE_PTR)s->state.data,
+	                                       (CK_ULONG_PTR)&s->state.size);
+	if (ckrv != CKR_OK) {
+	    nss_ZFreeIf(s->state.data);
+	    s->state.data = NULL;
+	    s->state.size = 0;
+	}
+    }
+    return (ckrv == CKR_OK) ? PR_SUCCESS : PR_FAILURE;
+}
+
+static PRStatus
+restore_session_state(nssSession *s)
+{
+    CK_RV ckrv;
+    void *epv = nssSlot_GetCryptokiEPV(s->slot);
+    if (s->state.size > 0) {
+	ckrv = CKAPI(epv)->C_SetOperationState(s->handle, 
+	                                       (CK_BYTE_PTR)s->state.data,
+	                                       (CK_ULONG)s->state.size,
+	                                       CK_INVALID_HANDLE,
+	                                       CK_INVALID_HANDLE);
+	if (ckrv == CKR_OK) {
+	    nss_ZFreeIf(s->state.data);
+	    s->state.data = NULL;
+	    s->state.size = 0;
+	}
+    }
+    return (ckrv == CKR_OK) ? PR_SUCCESS : PR_FAILURE;
+}
 
 NSS_IMPLEMENT PRStatus
 nssSession_EnterMonitor
@@ -817,7 +961,21 @@ nssSession_EnterMonitor
   nssSession *s
 )
 {
-    if (s->lock) PZ_Lock(s->lock);
+    if (s->lock) {
+	PZ_Lock(s->lock);
+	if (!s->owner) {
+	    if (s->parent) {
+		/* a child (virtual) session */
+		PZ_Lock(s->parent->lock);
+		save_session_state(s->parent);
+		s->parent->owner = PR_FALSE;
+	    } else {
+		/* the parent session */
+		restore_session_state(s);
+	    }
+	    s->owner = PR_TRUE;
+	}
+    }
     return PR_SUCCESS;
 }
 
@@ -827,7 +985,13 @@ nssSession_ExitMonitor
   nssSession *s
 )
 {
-    return (s->lock) ? PZ_Unlock(s->lock) : PR_SUCCESS;
+    if (s->lock) {
+	if (s->parent) {
+	    PZ_Unlock(s->parent->lock);
+	}
+	PZ_Unlock(s->lock);
+    }
+    return PR_SUCCESS;
 }
 
 NSS_EXTERN PRBool

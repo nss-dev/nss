@@ -47,20 +47,16 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #include "ckhelper.h"
 #endif /* CKHELPER_H */
 
-#ifdef NSS_3_4_CODE
-#include "pk11func.h"
-#include "dev3hack.h"
-#endif
-
 /* The number of object handles to grab during each call to C_FindObjects */
 #define OBJECT_STACK_SIZE 16
 
-#ifdef PURE_STAN_BUILD
 struct NSSTokenStr
 {
   struct nssDeviceBaseStr base;
   NSSSlot *slot;  /* Peer */
-  CK_FLAGS ckFlags; /* from CK_TOKEN_INFO.flags */
+  CK_TOKEN_INFO info;
+  CK_MECHANISM_TYPE_PTR mechanisms;
+  CK_ULONG numMechanisms;
   nssSession *defaultSession;
   nssTokenObjectCache *cache;
 };
@@ -78,7 +74,6 @@ nssToken_Create
     NSSUTF8 *tokenName = NULL;
     PRUint32 length;
     PRBool readWrite;
-    CK_TOKEN_INFO tokenInfo;
     CK_RV ckrv;
     void *epv = nssSlot_GetCryptokiEPV(peer);
     arena = NSSArena_Create();
@@ -90,28 +85,29 @@ nssToken_Create
 	goto loser;
     }
     /* Get token information */
-    ckrv = CKAPI(epv)->C_GetTokenInfo(slotID, &tokenInfo);
+    ckrv = CKAPI(epv)->C_GetTokenInfo(slotID, &rvToken->info);
     if (ckrv != CKR_OK) {
 	/* set an error here, eh? */
 	goto loser;
     }
     /* Grab the slot description from the PKCS#11 fixed-length buffer */
-    length = nssPKCS11String_Length(tokenInfo.label, sizeof(tokenInfo.label));
+    length = nssPKCS11String_Length(rvToken->info.label, 
+                                    sizeof(rvToken->info.label));
     if (length > 0) {
 	tokenName = nssUTF8_Create(arena, nssStringType_UTF8String, 
-	                           (void *)tokenInfo.label, length);
+	                           (void *)rvToken->info.label, length);
 	if (!tokenName) {
 	    goto loser;
 	}
     }
     /* Open a default session handle for the token. */
-    if (tokenInfo.ulMaxSessionCount == 1) {
+    if (rvToken->info.ulMaxSessionCount == 1) {
 	/* if the token can only handle one session, it must be RW. */
 	readWrite = PR_TRUE;
     } else {
 	readWrite = PR_FALSE;
     }
-    session = nssSlot_CreateSession(peer, arena, readWrite);
+    session = nssSlot_CreateSession(peer, readWrite);
     if (session == NULL) {
 	goto loser;
     }
@@ -124,7 +120,23 @@ nssToken_Create
 	goto loser;
     }
     rvToken->slot = peer; /* slot owns ref to token */
-    rvToken->ckFlags = tokenInfo.flags;
+    ckrv = CKAPI(epv)->C_GetMechanismList(slotID, NULL, 
+                                          &rvToken->numMechanisms);
+    if (ckrv != CKR_OK) {
+	goto loser;
+    }
+    if (rvToken->numMechanisms > 0) {
+	rvToken->mechanisms = nss_ZNEWARRAY(arena, CK_MECHANISM_TYPE,
+	                                    rvToken->numMechanisms);
+	if (!rvToken->mechanisms) {
+	    goto loser;
+	}
+	ckrv = CKAPI(epv)->C_GetMechanismList(slotID, rvToken->mechanisms,
+	                                      &rvToken->numMechanisms);
+	if (ckrv != CKR_OK) {
+	    goto loser;
+	}
+    }
     rvToken->defaultSession = session;
     if (nssSlot_IsHardware(peer)) {
 	rvToken->cache = nssTokenObjectCache_Create(rvToken, 
@@ -142,7 +154,6 @@ loser:
     nssArena_Destroy(arena);
     return (NSSToken *)NULL;
 }
-#endif /* PURE_STAN_BUILD */
 
 NSS_IMPLEMENT PRStatus
 nssToken_Destroy
@@ -153,6 +164,7 @@ nssToken_Destroy
     if (tok) {
 	PR_AtomicDecrement(&tok->base.refCount);
 	if (tok->base.refCount == 0) {
+	    nssSession_Destroy(tok->defaultSession);
 	    PZ_DestroyLock(tok->base.lock);
 	    nssTokenObjectCache_Destroy(tok->cache);
 	    return nssArena_Destroy(tok->base.arena);
@@ -189,6 +201,46 @@ nssToken_AddRef
     return tok;
 }
 
+NSS_IMPLEMENT PRStatus
+NSSToken_GetInfo
+(
+  NSSToken *token,
+  NSSTokenInfo *tokenInfo
+)
+{
+    tokenInfo->name = token->base.name;
+#if 0
+    tokenInfo->manufacturerID = token->manufacturerID;
+    tokenInfo->model = token->model;
+    tokenInfo->serialNumber = token->serialNumber;
+#endif
+    tokenInfo->sessions.maximum = token->info.ulMaxSessionCount;
+    tokenInfo->sessions.active = token->info.ulSessionCount;
+    tokenInfo->readWriteSessions.maximum = token->info.ulMaxRwSessionCount;
+    tokenInfo->readWriteSessions.active = token->info.ulRwSessionCount;
+    tokenInfo->pinRange.maximum = token->info.ulMaxPinLen;
+    tokenInfo->pinRange.minimum = token->info.ulMinPinLen;
+    tokenInfo->publicMemory.total = token->info.ulTotalPublicMemory;
+    tokenInfo->publicMemory.free = token->info.ulFreePublicMemory;
+    tokenInfo->privateMemory.total = token->info.ulTotalPrivateMemory;
+    tokenInfo->privateMemory.free = token->info.ulFreePrivateMemory;
+    tokenInfo->hardwareVersion.major = token->info.hardwareVersion.major;
+    tokenInfo->hardwareVersion.minor = token->info.hardwareVersion.minor;
+    tokenInfo->firmwareVersion.major = token->info.firmwareVersion.major;
+    tokenInfo->firmwareVersion.minor = token->info.firmwareVersion.minor;
+    tokenInfo->hasRNG = token->info.flags & CKF_RNG;
+    tokenInfo->isWriteProtected = token->info.flags & CKF_WRITE_PROTECTED;
+    tokenInfo->isLoginRequired = token->info.flags & CKF_LOGIN_REQUIRED;
+    tokenInfo->isPINInitialized = token->info.flags & 
+                                                  CKF_USER_PIN_INITIALIZED;
+    tokenInfo->hasClock = token->info.flags & CKF_CLOCK_ON_TOKEN;
+    tokenInfo->hasProtectedAuthPath = token->info.flags & 
+                                         CKF_PROTECTED_AUTHENTICATION_PATH;
+    tokenInfo->supportsDualCrypto = token->info.flags & 
+                                                CKF_DUAL_CRYPTO_OPERATIONS;
+    return PR_SUCCESS;
+}
+
 NSS_IMPLEMENT NSSSlot *
 nssToken_GetSlot
 (
@@ -198,7 +250,15 @@ nssToken_GetSlot
     return nssSlot_AddRef(tok->slot);
 }
 
-#ifdef PURE_STAN_BUILD
+NSS_IMPLEMENT NSSSlot *
+NSSToken_GetSlot
+(
+  NSSToken *tok
+)
+{
+    return nssToken_GetSlot(tok);
+}
+
 NSS_IMPLEMENT NSSModule *
 nssToken_GetModule
 (
@@ -207,7 +267,6 @@ nssToken_GetModule
 {
     return nssSlot_GetModule(token->slot);
 }
-#endif
 
 NSS_IMPLEMENT void *
 nssToken_GetCryptokiEPV
@@ -233,12 +292,6 @@ nssToken_GetName
   NSSToken *tok
 )
 {
-    if (tok == NULL) {
-	return "";
-    }
-    if (tok->base.name[0] == 0) {
-	(void) nssSlot_IsTokenPresent(tok->slot);
-    } 
     return tok->base.name;
 }
 
@@ -251,13 +304,49 @@ NSSToken_GetName
     return nssToken_GetName(token);
 }
 
+NSS_IMPLEMENT nssTokenObjectCache *
+nssToken_GetObjectCache
+(
+  NSSToken *token
+)
+{
+    return token->cache;
+}
+
+NSS_IMPLEMENT PRBool
+nssToken_DoesAlgorithm
+(
+  NSSToken *token,
+  const NSSAlgorithmAndParameters *ap
+)
+{
+    CK_ULONG ul;
+    CK_MECHANISM_PTR pMech = nssAlgorithmAndParameters_GetMechanism(ap);
+    for (ul = 0; ul < token->numMechanisms; ul++) {
+	if (pMech->mechanism == token->mechanisms[ul]) {
+	    return PR_TRUE;
+	}
+    }
+    return PR_FALSE;
+}
+
+NSS_IMPLEMENT nssSession *
+nssToken_CreateSession
+(
+  NSSToken *token,
+  PRBool readWrite
+)
+{
+    return nssSlot_CreateSession(token->slot, readWrite);
+}
+
 NSS_IMPLEMENT PRBool
 nssToken_IsLoginRequired
 (
   NSSToken *token
 )
 {
-    return (token->ckFlags & CKF_LOGIN_REQUIRED);
+    return (token->info.flags & CKF_LOGIN_REQUIRED);
 }
 
 NSS_IMPLEMENT PRBool
@@ -266,79 +355,26 @@ nssToken_NeedsPINInitialization
   NSSToken *token
 )
 {
-    return (!(token->ckFlags & CKF_USER_PIN_INITIALIZED));
-}
-
-NSS_IMPLEMENT PRStatus
-nssToken_DeleteStoredObject
-(
-  nssCryptokiObject *instance
-)
-{
-    CK_RV ckrv;
-    PRStatus status;
-    PRBool createdSession = PR_FALSE;
-    NSSToken *token = instance->token;
-    nssSession *session = NULL;
-    void *epv = nssToken_GetCryptokiEPV(instance->token);
-    if (token->cache) {
-	nssTokenObjectCache_RemoveObject(token->cache, instance);
-    }
-    if (instance->isTokenObject) {
-       if (nssSession_IsReadWrite(token->defaultSession)) {
-	   session = token->defaultSession;
-       } else {
-	   session = nssSlot_CreateSession(token->slot, NULL, PR_TRUE);
-	   createdSession = PR_TRUE;
-       }
-    }
-    if (session == NULL) {
-	return PR_FAILURE;
-    }
-    nssSession_EnterMonitor(session);
-    ckrv = CKAPI(epv)->C_DestroyObject(session->handle, instance->handle);
-    nssSession_ExitMonitor(session);
-    if (createdSession) {
-	nssSession_Destroy(session);
-    }
-    status = (ckrv == CKR_OK) ? PR_SUCCESS : PR_FAILURE;
-    return status;
+    return (!(token->info.flags & CKF_USER_PIN_INITIALIZED));
 }
 
 static nssCryptokiObject *
 import_object
 (
   NSSToken *tok,
-  nssSession *sessionOpt,
+  nssSession *session,
   CK_ATTRIBUTE_PTR objectTemplate,
   CK_ULONG otsize
 )
 {
-    nssSession *session = NULL;
-    PRBool createdSession = PR_FALSE;
-    nssCryptokiObject *object = NULL;
-    CK_OBJECT_HANDLE handle;
     CK_RV ckrv;
+    CK_OBJECT_HANDLE handle;
+    nssCryptokiObject *object = NULL;
     void *epv = nssToken_GetCryptokiEPV(tok);
-    if (nssCKObject_IsTokenObjectTemplate(objectTemplate, otsize)) {
-	if (sessionOpt) {
-	    if (!nssSession_IsReadWrite(sessionOpt)) {
-		return CK_INVALID_HANDLE;
-	    } else {
-		session = sessionOpt;
-	    }
-	} else if (nssSession_IsReadWrite(tok->defaultSession)) {
-	    session = tok->defaultSession;
-	} else {
-	    session = nssSlot_CreateSession(tok->slot, NULL, PR_TRUE);
-	    createdSession = PR_TRUE;
-	}
-    } else {
-	session = (sessionOpt) ? sessionOpt : tok->defaultSession;
-    }
-    if (session == NULL) {
-	return CK_INVALID_HANDLE;
-    }
+
+    PR_ASSERT(session); /* XXX for now, should remove later */
+    PR_ASSERT(session->isRW);
+
     nssSession_EnterMonitor(session);
     ckrv = CKAPI(epv)->C_CreateObject(session->handle, 
                                       objectTemplate, otsize,
@@ -346,9 +382,6 @@ import_object
     nssSession_ExitMonitor(session);
     if (ckrv == CKR_OK) {
 	object = nssCryptokiObject_Create(tok, session, handle);
-    }
-    if (createdSession) {
-	nssSession_Destroy(session);
     }
     return object;
 }
@@ -383,7 +416,7 @@ static nssCryptokiObject **
 find_objects
 (
   NSSToken *tok,
-  nssSession *sessionOpt,
+  nssSession *session,
   CK_ATTRIBUTE_PTR obj_template,
   CK_ULONG otsize,
   PRUint32 maximumOpt,
@@ -397,7 +430,8 @@ find_objects
     PRUint32 arraySize, numHandles;
     void *epv = nssToken_GetCryptokiEPV(tok);
     nssCryptokiObject **objects;
-    nssSession *session = (sessionOpt) ? sessionOpt : tok->defaultSession;
+
+    PR_ASSERT(session); /* XXX remove later */
 
     /* the arena is only for the array of object handles */
     if (maximumOpt > 0) {
@@ -487,7 +521,7 @@ static nssCryptokiObject **
 find_objects_by_template
 (
   NSSToken *token,
-  nssSession *sessionOpt,
+  nssSession *session,
   CK_ATTRIBUTE_PTR obj_template,
   CK_ULONG otsize,
   PRUint32 maximumOpt,
@@ -521,7 +555,7 @@ find_objects_by_template
 	}
     }
     /* Either they are not cached, or cache failed; look on token. */
-    objects = find_objects(token, sessionOpt, 
+    objects = find_objects(token, session, 
                            obj_template, otsize, 
                            maximumOpt, statusOpt);
     return objects;
@@ -531,7 +565,7 @@ NSS_IMPLEMENT nssCryptokiObject *
 nssToken_ImportCertificate
 (
   NSSToken *tok,
-  nssSession *sessionOpt,
+  nssSession *session,
   NSSCertificateType certType,
   NSSItem *id,
   NSSUTF8 *nickname,
@@ -577,18 +611,12 @@ nssToken_ImportCertificate
     NSS_CK_TEMPLATE_FINISH(cert_tmpl, attr, ctsize);
     /* see if the cert is already there */
     rvObject = nssToken_FindCertificateByIssuerAndSerialNumber(tok,
-                                                               sessionOpt,
+                                                               session,
                                                                issuer,
                                                                serial,
                                                                searchType,
                                                                NULL);
     if (rvObject) {
-	NSSSlot *slot = nssToken_GetSlot(tok);
-	nssSession *session = nssSlot_CreateSession(slot, NULL, PR_TRUE);
-	if (!session) {
-	    nssCryptokiObject_Destroy(rvObject);
-	    return (nssCryptokiObject *)NULL;
-	}
 	/* according to PKCS#11, label, ID, issuer, and serial number 
 	 * may change after the object has been created.  For PKIX, the
 	 * last two attributes can't change, so for now we'll only worry
@@ -601,15 +629,13 @@ nssToken_ImportCertificate
 	/* reset the mutable attributes on the token */
 	nssCKObject_SetAttributes(rvObject->handle, 
 	                          cert_tmpl, ctsize,
-	                          session, slot);
+	                          session, tok->slot);
 	if (!rvObject->label && nickname) {
 	    rvObject->label = nssUTF8_Duplicate(nickname, NULL);
 	}
-	nssSession_Destroy(session);
-	nssSlot_Destroy(slot);
     } else {
 	/* Import the certificate onto the token */
-	rvObject = import_object(tok, sessionOpt, cert_tmpl, ctsize);
+	rvObject = import_object(tok, session, cert_tmpl, ctsize);
     }
     if (rvObject && tok->cache) {
 	/* The cache will overwrite the attributes if the object already
@@ -629,7 +655,7 @@ NSS_IMPLEMENT nssCryptokiObject **
 nssToken_FindCertificates
 (
   NSSToken *token,
-  nssSession *sessionOpt,
+  nssSession *session,
   nssTokenSearchType searchType,
   PRUint32 maximumOpt,
   PRStatus *statusOpt
@@ -651,11 +677,11 @@ nssToken_FindCertificates
     NSS_CK_TEMPLATE_FINISH(cert_template, attr, ctsize);
 
     if (searchType == nssTokenSearchType_TokenForced) {
-	objects = find_objects(token, sessionOpt,
+	objects = find_objects(token, session,
 	                       cert_template, ctsize,
 	                       maximumOpt, statusOpt);
     } else {
-	objects = find_objects_by_template(token, sessionOpt,
+	objects = find_objects_by_template(token, session,
 	                                   cert_template, ctsize,
 	                                   maximumOpt, statusOpt);
     }
@@ -666,7 +692,7 @@ NSS_IMPLEMENT nssCryptokiObject **
 nssToken_FindCertificatesBySubject
 (
   NSSToken *token,
-  nssSession *sessionOpt,
+  nssSession *session,
   NSSDER *subject,
   nssTokenSearchType searchType,
   PRUint32 maximumOpt,
@@ -688,7 +714,7 @@ nssToken_FindCertificatesBySubject
     NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_SUBJECT, subject);
     NSS_CK_TEMPLATE_FINISH(subj_template, attr, stsize);
     /* now locate the token certs matching this template */
-    objects = find_objects_by_template(token, sessionOpt,
+    objects = find_objects_by_template(token, session,
                                        subj_template, stsize,
                                        maximumOpt, statusOpt);
     return objects;
@@ -698,7 +724,7 @@ NSS_IMPLEMENT nssCryptokiObject **
 nssToken_FindCertificatesByNickname
 (
   NSSToken *token,
-  nssSession *sessionOpt,
+  nssSession *session,
   NSSUTF8 *name,
   nssTokenSearchType searchType,
   PRUint32 maximumOpt,
@@ -720,7 +746,7 @@ nssToken_FindCertificatesByNickname
     NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_CLASS, &g_ck_class_cert);
     NSS_CK_TEMPLATE_FINISH(nick_template, attr, ntsize);
     /* now locate the token certs matching this template */
-    objects = find_objects_by_template(token, sessionOpt,
+    objects = find_objects_by_template(token, session,
                                        nick_template, ntsize, 
                                        maximumOpt, statusOpt);
     if (!objects) {
@@ -731,7 +757,7 @@ nssToken_FindCertificatesByNickname
 	 * well, its needed by the builtin token...
 	 */
 	nick_template[0].ulValueLen++;
-	objects = find_objects_by_template(token, sessionOpt,
+	objects = find_objects_by_template(token, session,
 	                                   nick_template, ntsize, 
 	                                   maximumOpt, statusOpt);
     }
@@ -748,7 +774,7 @@ NSS_IMPLEMENT nssCryptokiObject **
 nssToken_FindCertificatesByEmail
 (
   NSSToken *token,
-  nssSession *sessionOpt,
+  nssSession *session,
   NSSASCII7 *email,
   nssTokenSearchType searchType,
   PRUint32 maximumOpt,
@@ -770,7 +796,7 @@ nssToken_FindCertificatesByEmail
     NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_CLASS, &g_ck_class_cert);
     NSS_CK_TEMPLATE_FINISH(email_template, attr, etsize);
     /* now locate the token certs matching this template */
-    objects = find_objects(token, sessionOpt,
+    objects = find_objects(token, session,
                            email_template, etsize,
                            maximumOpt, statusOpt);
     if (!objects) {
@@ -781,7 +807,7 @@ nssToken_FindCertificatesByEmail
 	 * well, its needed by the builtin token...
 	 */
 	email_template[0].ulValueLen++;
-	objects = find_objects(token, sessionOpt,
+	objects = find_objects(token, session,
 	                       email_template, etsize,
 	                       maximumOpt, statusOpt);
     }
@@ -792,7 +818,7 @@ NSS_IMPLEMENT nssCryptokiObject **
 nssToken_FindCertificatesByID
 (
   NSSToken *token,
-  nssSession *sessionOpt,
+  nssSession *session,
   NSSItem *id,
   nssTokenSearchType searchType,
   PRUint32 maximumOpt,
@@ -814,7 +840,7 @@ nssToken_FindCertificatesByID
     NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_CLASS, &g_ck_class_cert);
     NSS_CK_TEMPLATE_FINISH(id_template, attr, idtsize);
     /* now locate the token certs matching this template */
-    objects = find_objects_by_template(token, sessionOpt,
+    objects = find_objects_by_template(token, session,
                                        id_template, idtsize,
                                        maximumOpt, statusOpt);
     return objects;
@@ -866,7 +892,7 @@ NSS_IMPLEMENT nssCryptokiObject *
 nssToken_FindCertificateByIssuerAndSerialNumber
 (
   NSSToken *token,
-  nssSession *sessionOpt,
+  nssSession *session,
   NSSDER *issuer,
   NSSDER *serial,
   nssTokenSearchType searchType,
@@ -942,7 +968,7 @@ NSS_IMPLEMENT nssCryptokiObject *
 nssToken_FindCertificateByEncodedCertificate
 (
   NSSToken *token,
-  nssSession *sessionOpt,
+  nssSession *session,
   NSSBER *encodedCertificate,
   nssTokenSearchType searchType,
   PRStatus *statusOpt
@@ -964,7 +990,7 @@ nssToken_FindCertificateByEncodedCertificate
     NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_VALUE, encodedCertificate);
     NSS_CK_TEMPLATE_FINISH(cert_template, attr, ctsize);
     /* get the object handle */
-    objects = find_objects_by_template(token, sessionOpt,
+    objects = find_objects_by_template(token, session,
                                        cert_template, ctsize,
                                        1, statusOpt);
     if (objects) {
@@ -978,7 +1004,7 @@ NSS_IMPLEMENT nssCryptokiObject **
 nssToken_FindPrivateKeys
 (
   NSSToken *token,
-  nssSession *sessionOpt,
+  nssSession *session,
   nssTokenSearchType searchType,
   PRUint32 maximumOpt,
   PRStatus *statusOpt
@@ -998,7 +1024,7 @@ nssToken_FindPrivateKeys
     }
     NSS_CK_TEMPLATE_FINISH(key_template, attr, ktsize);
 
-    objects = find_objects_by_template(token, sessionOpt,
+    objects = find_objects_by_template(token, session,
                                        key_template, ktsize, 
                                        maximumOpt, statusOpt);
     return objects;
@@ -1009,7 +1035,7 @@ NSS_IMPLEMENT nssCryptokiObject *
 nssToken_FindPrivateKeyByID
 (
   NSSToken *token,
-  nssSession *sessionOpt,
+  nssSession *session,
   NSSItem *keyID
 )
 {
@@ -1025,7 +1051,7 @@ nssToken_FindPrivateKeyByID
     NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_ID, keyID);
     NSS_CK_TEMPLATE_FINISH(key_template, attr, ktsize);
 
-    objects = find_objects_by_template(token, sessionOpt,
+    objects = find_objects_by_template(token, session,
                                        key_template, ktsize, 
                                        1, NULL);
     if (objects) {
@@ -1040,7 +1066,7 @@ NSS_IMPLEMENT nssCryptokiObject *
 nssToken_FindPublicKeyByID
 (
   NSSToken *token,
-  nssSession *sessionOpt,
+  nssSession *session,
   NSSItem *keyID
 )
 {
@@ -1056,7 +1082,7 @@ nssToken_FindPublicKeyByID
     NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_ID, keyID);
     NSS_CK_TEMPLATE_FINISH(key_template, attr, ktsize);
 
-    objects = find_objects_by_template(token, sessionOpt,
+    objects = find_objects_by_template(token, session,
                                        key_template, ktsize, 
                                        1, NULL);
     if (objects) {
@@ -1069,37 +1095,35 @@ nssToken_FindPublicKeyByID
 static void
 sha1_hash(NSSItem *input, NSSItem *output)
 {
-    NSSAlgorithmAndParameters *ap;
 #ifdef NSS_3_4_CODE
     PK11SlotInfo *internal = PK11_GetInternalSlot();
     NSSToken *token = PK11Slot_GetNSSToken(internal);
 #else
     NSSToken *token = nss_GetDefaultCryptoToken();
 #endif
-    ap = NSSAlgorithmAndParameters_CreateSHA1Digest(NULL);
-    (void)nssToken_Digest(token, NULL, ap, input, output, NULL);
+    (void)nssToken_Digest(token, token->defaultSession,
+                          NSSAlgorithmAndParameters_SHA1,
+                          input, output, NULL);
 #ifdef NSS_3_4_CODE
     PK11_FreeSlot(token->pk11slot);
 #endif
-    nss_ZFreeIf(ap);
 }
 
 static void
 md5_hash(NSSItem *input, NSSItem *output)
 {
-    NSSAlgorithmAndParameters *ap;
 #ifdef NSS_3_4_CODE
     PK11SlotInfo *internal = PK11_GetInternalSlot();
     NSSToken *token = PK11Slot_GetNSSToken(internal);
 #else
     NSSToken *token = nss_GetDefaultCryptoToken();
 #endif
-    ap = NSSAlgorithmAndParameters_CreateMD5Digest(NULL);
-    (void)nssToken_Digest(token, NULL, ap, input, output, NULL);
+    (void)nssToken_Digest(token, token->defaultSession,
+                          NSSAlgorithmAndParameters_MD5,
+                          input, output, NULL);
 #ifdef NSS_3_4_CODE
     PK11_FreeSlot(token->pk11slot);
 #endif
-    nss_ZFreeIf(ap);
 }
 
 static CK_TRUST
@@ -1125,7 +1149,7 @@ NSS_IMPLEMENT nssCryptokiObject *
 nssToken_ImportTrust
 (
   NSSToken *tok,
-  nssSession *sessionOpt,
+  nssSession *session,
   NSSDER *certEncoding,
   NSSDER *certIssuer,
   NSSDER *certSerial,
@@ -1171,7 +1195,7 @@ nssToken_ImportTrust
     NSS_CK_SET_ATTRIBUTE_VAR(attr, CKA_TRUST_EMAIL_PROTECTION, ckEP);
     NSS_CK_TEMPLATE_FINISH(trust_tmpl, attr, tsize);
     /* import the trust object onto the token */
-    object = import_object(tok, sessionOpt, trust_tmpl, tsize);
+    object = import_object(tok, session, trust_tmpl, tsize);
     if (object && tok->cache) {
 	nssTokenObjectCache_ImportObject(tok->cache, object, tobjc,
 	                                 trust_tmpl, tsize);
@@ -1183,7 +1207,7 @@ NSS_IMPLEMENT nssCryptokiObject **
 nssToken_FindTrustObjects
 (
   NSSToken *token,
-  nssSession *sessionOpt,
+  nssSession *session,
   nssTokenSearchType searchType,
   PRUint32 maximumOpt,
   PRStatus *statusOpt
@@ -1194,7 +1218,6 @@ nssToken_FindTrustObjects
     CK_ATTRIBUTE tobj_template[2];
     CK_ULONG tobj_size;
     nssCryptokiObject **objects;
-    nssSession *session = sessionOpt ? sessionOpt : token->defaultSession;
 
     NSS_CK_TEMPLATE_START(tobj_template, attr, tobj_size);
     if (searchType == nssTokenSearchType_SessionOnly) {
@@ -1222,7 +1245,7 @@ NSS_IMPLEMENT nssCryptokiObject *
 nssToken_FindTrustForCertificate
 (
   NSSToken *token,
-  nssSession *sessionOpt,
+  nssSession *session,
   NSSDER *certEncoding,
   NSSDER *certIssuer,
   NSSDER *certSerial,
@@ -1233,7 +1256,6 @@ nssToken_FindTrustForCertificate
     CK_ATTRIBUTE_PTR attr;
     CK_ATTRIBUTE tobj_template[5];
     CK_ULONG tobj_size;
-    nssSession *session = sessionOpt ? sessionOpt : token->defaultSession;
     nssCryptokiObject *object, **objects;
 
     NSS_CK_TEMPLATE_START(tobj_template, attr, tobj_size);
@@ -1261,7 +1283,7 @@ NSS_IMPLEMENT nssCryptokiObject *
 nssToken_ImportCRL
 (
   NSSToken *token,
-  nssSession *sessionOpt,
+  nssSession *session,
   NSSDER *subject,
   NSSDER *encoding,
   PRBool isKRL,
@@ -1293,7 +1315,7 @@ nssToken_ImportCRL
     NSS_CK_TEMPLATE_FINISH(crl_tmpl, attr, crlsize);
 
     /* import the crl object onto the token */
-    object = import_object(token, sessionOpt, crl_tmpl, crlsize);
+    object = import_object(token, session, crl_tmpl, crlsize);
     if (object && token->cache) {
 	nssTokenObjectCache_ImportObject(token->cache, object, crlobjc,
 	                                 crl_tmpl, crlsize);
@@ -1305,7 +1327,7 @@ NSS_IMPLEMENT nssCryptokiObject **
 nssToken_FindCRLs
 (
   NSSToken *token,
-  nssSession *sessionOpt,
+  nssSession *session,
   nssTokenSearchType searchType,
   PRUint32 maximumOpt,
   PRStatus *statusOpt
@@ -1316,7 +1338,6 @@ nssToken_FindCRLs
     CK_ATTRIBUTE crlobj_template[2];
     CK_ULONG crlobj_size;
     nssCryptokiObject **objects;
-    nssSession *session = sessionOpt ? sessionOpt : token->defaultSession;
 
     NSS_CK_TEMPLATE_START(crlobj_template, attr, crlobj_size);
     if (searchType == nssTokenSearchType_SessionOnly) {
@@ -1344,7 +1365,7 @@ NSS_IMPLEMENT nssCryptokiObject **
 nssToken_FindCRLsBySubject
 (
   NSSToken *token,
-  nssSession *sessionOpt,
+  nssSession *session,
   NSSDER *subject,
   nssTokenSearchType searchType,
   PRUint32 maximumOpt,
@@ -1356,7 +1377,6 @@ nssToken_FindCRLsBySubject
     CK_ATTRIBUTE crlobj_template[3];
     CK_ULONG crlobj_size;
     nssCryptokiObject **objects;
-    nssSession *session = sessionOpt ? sessionOpt : token->defaultSession;
 
     NSS_CK_TEMPLATE_START(crlobj_template, attr, crlobj_size);
     if (searchType == nssTokenSearchType_SessionOnly) {
@@ -1375,31 +1395,1145 @@ nssToken_FindCRLsBySubject
     return objects;
 }
 
+#define PUBLIC_KEY_PROPS_MASK \
+    (NSSProperties_PRIVATE | NSSProperties_READ_ONLY)
+
+#define PUBLIC_KEY_OPS_MASK \
+    (NSSOperations_DERIVE | NSSOperations_ENCRYPT        | \
+     NSSOperations_VERIFY | NSSOperations_VERIFY_RECOVER | \
+     NSSOperations_WRAP)
+
+#define PRIVATE_KEY_PROPS_MASK \
+    (NSSProperties_PRIVATE   | NSSProperties_READ_ONLY   | \
+     NSSProperties_SENSITIVE | NSSProperties_EXTRACTABLE)
+
+#define PRIVATE_KEY_OPS_MASK \
+    (NSSOperations_DERIVE | NSSOperations_DECRYPT      | \
+     NSSOperations_SIGN   | NSSOperations_SIGN_RECOVER | \
+     NSSOperations_UNWRAP)
+
 NSS_IMPLEMENT PRStatus
-nssToken_GetCachedObjectAttributes
+nssToken_GenerateKeyPair
 (
   NSSToken *token,
-  NSSArena *arenaOpt,
-  nssCryptokiObject *object,
-  CK_OBJECT_CLASS objclass,
-  CK_ATTRIBUTE_PTR atemplate,
-  CK_ULONG atlen
+  nssSession *session,
+  const NSSAlgorithmAndParameters *ap,
+  PRBool asTokenObjects,
+  const NSSUTF8 *labelOpt,
+  NSSProperties properties,
+  NSSOperations operations,
+  nssCryptokiObject **publicKey,
+  nssCryptokiObject **privateKey
 )
 {
-    if (!token->cache) {
+    CK_RV ckrv;
+    CK_MECHANISM_PTR mechanism;
+    CK_ATTRIBUTE_PTR attr;
+    CK_ATTRIBUTE bk_template[11];
+    CK_ATTRIBUTE vk_template[11];
+    CK_ULONG btsize, vtsize;
+    CK_OBJECT_HANDLE bkeyh, vkeyh;
+    void *epv = nssToken_GetCryptokiEPV(token);
+
+    mechanism = nssAlgorithmAndParameters_GetMechanism(ap);
+
+    /*
+     * Construct the public key template
+     */
+    NSS_CK_TEMPLATE_START(bk_template, attr, btsize);
+    if (asTokenObjects) {
+	NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_TOKEN, &g_ck_true);
+    } else {
+	NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_TOKEN, &g_ck_false);
+    }
+    if (labelOpt) {
+	NSS_CK_SET_ATTRIBUTE_UTF8(attr, CKA_LABEL, labelOpt);
+    }
+    if (properties) {
+	PRUint32 bkProps = operations & PUBLIC_KEY_PROPS_MASK;
+	attr += nssCKTemplate_SetPropertyAttributes(attr,
+	                                            attr - bk_template,
+                                                    bkProps);
+    }
+    if (operations) {
+	PRUint32 bkOps = operations & PUBLIC_KEY_OPS_MASK;
+	attr += nssCKTemplate_SetOperationAttributes(attr, 
+	                                             attr - bk_template,
+	                                             bkOps);
+    }
+    /* Set algorithm-dependent values in the template */
+    attr += nssAlgorithmAndParameters_SetTemplateValues(ap, attr,
+                                                        bk_template - attr);
+    NSS_CK_TEMPLATE_FINISH(bk_template, attr, btsize);
+
+    /*
+     * Construct the private key template
+     */
+    NSS_CK_TEMPLATE_START(vk_template, attr, vtsize);
+    if (asTokenObjects) {
+	NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_TOKEN, &g_ck_true);
+	NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_PRIVATE, &g_ck_true);
+    } else {
+	NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_TOKEN, &g_ck_false);
+    }
+    if (labelOpt) {
+	NSS_CK_SET_ATTRIBUTE_UTF8(attr, CKA_LABEL, labelOpt);
+    }
+    if (properties) {
+	PRUint32 vkProps = operations & PRIVATE_KEY_PROPS_MASK;
+	attr += nssCKTemplate_SetPropertyAttributes(attr,
+	                                            attr - vk_template,
+                                                    vkProps);
+    }
+    if (operations) {
+	PRUint32 vkOps = operations & PRIVATE_KEY_OPS_MASK;
+	attr += nssCKTemplate_SetOperationAttributes(attr, 
+	                                             attr - vk_template,
+	                                             vkOps);
+    }
+#if 0
+    /* XXX */
+    if (mechanism->mechanism == CKM_DH_PKCS_KEY_PAIR_GEN) {
+	nssDHParameters *dhp = nssAlgorithmAndParameters_GetDHParams(ap);
+	NSS_CK_SET_ATTRIBUTE_VAR(attr, CKA_VALUE_BITS, dhp->valueBits);
+    }
+#endif
+    NSS_CK_TEMPLATE_FINISH(vk_template, attr, vtsize);
+
+    ckrv = CKAPI(epv)->C_GenerateKeyPair(session->handle, mechanism, 
+                                         bk_template, btsize,
+                                         vk_template, vtsize,
+                                         &bkeyh, &vkeyh);
+    if (ckrv != CKR_OK) {
 	return PR_FAILURE;
     }
-    return nssTokenObjectCache_GetObjectAttributes(token->cache, arenaOpt,
-                                                   object, objclass,
-                                                   atemplate, atlen);
+
+    *publicKey = nssCryptokiObject_Create(token, session, bkeyh);
+    if (!*publicKey) {
+	/*nssCKObject_Delete(session->handle, bkeyh);*/
+	/*nssCKObject_Delete(session->handle, vkeyh);*/
+	return PR_FAILURE;
+    }
+
+    *privateKey = nssCryptokiObject_Create(token, session, vkeyh);
+    if (!*privateKey) {
+	/*nssCKObject_Delete(session->handle, bkeyh);*/
+	/*nssCKObject_Delete(session->handle, vkeyh);*/
+	nssCryptokiObject_Destroy(*publicKey);
+	return PR_FAILURE;
+    }
+
+    return PR_SUCCESS;
+}
+
+NSS_IMPLEMENT nssCryptokiObject *
+nssToken_GenerateSymmetricKey
+(
+  NSSToken *token,
+  nssSession *session,
+  const NSSAlgorithmAndParameters *ap,
+  PRUint32 keysize,
+  const NSSUTF8 *labelOpt,
+  PRBool asTokenObject,
+  NSSOperations operations,
+  NSSProperties properties
+)
+{
+    CK_RV ckrv;
+    CK_MECHANISM_PTR mechanism;
+    CK_ATTRIBUTE_PTR attr;
+    CK_ATTRIBUTE keyTemplate[17];
+    CK_ULONG tsize;
+    CK_OBJECT_HANDLE keyh;
+    void *epv = nssToken_GetCryptokiEPV(token);
+    nssCryptokiObject *key;
+
+    /* Set up the symmetric key's template */
+    NSS_CK_TEMPLATE_START(keyTemplate, attr, tsize);
+    if (asTokenObject) {
+	NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_TOKEN, &g_ck_true);
+    } else {
+	NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_TOKEN, &g_ck_false);
+    }
+    if (labelOpt) {
+	NSS_CK_SET_ATTRIBUTE_UTF8(attr, CKA_LABEL, labelOpt);
+    }
+    if (operations) {
+	attr += nssCKTemplate_SetOperationAttributes(attr, 
+	                                             attr - keyTemplate,
+	                                             operations);
+    }
+    if (properties) {
+	attr += nssCKTemplate_SetPropertyAttributes(attr,
+	                                            attr - keyTemplate,
+                                                    properties);
+    }
+    if (keysize > 0) {
+	NSS_CK_SET_ATTRIBUTE_VAR(attr, CKA_VALUE_LEN, keysize);
+    }
+    NSS_CK_TEMPLATE_FINISH(keyTemplate, attr, tsize);
+
+    /* Generate the key */
+    mechanism = nssAlgorithmAndParameters_GetMechanism(ap);
+
+    nssSession_EnterMonitor(session);
+    ckrv = CKAPI(epv)->C_GenerateKey(session->handle, mechanism, 
+                                     keyTemplate, tsize, &keyh);
+    nssSession_ExitMonitor(session);
+
+    if (ckrv == CKR_OK) {
+	key = nssCryptokiObject_Create(token, session, keyh);
+    }
+    return key;
+}
+
+static NSSItem * 
+prepare_output_buffer(NSSArena *arenaOpt, NSSItem *rvOpt, 
+                      CK_ULONG bufLen, PRBool *freeit)
+{
+    if (rvOpt) {
+	*freeit = PR_FALSE;
+	if (rvOpt->size > 0 && rvOpt->size < bufLen) {
+	    return (NSSItem *)NULL;
+	}
+    } else {
+	*freeit = (arenaOpt == NULL);
+	rvOpt = nss_ZNEW(arenaOpt, NSSItem);
+	if (!rvOpt) {
+	    return (NSSItem *)NULL;
+	}
+    }
+    rvOpt->data = nss_ZAlloc(arenaOpt, bufLen);
+    rvOpt->size = bufLen;
+    return rvOpt;
+}
+
+NSS_IMPLEMENT nssCryptokiObject *
+nssToken_UnwrapKey
+(
+  NSSToken *token,
+  nssSession *session,
+  const NSSAlgorithmAndParameters *ap,
+  nssCryptokiObject *wrappingKey,
+  NSSItem *wrappedKey,
+  PRBool asTokenObject,
+  NSSOperations operations,
+  NSSProperties properties
+)
+{
+    CK_RV ckrv;
+    CK_MECHANISM_PTR mechanism;
+    CK_OBJECT_HANDLE keyH;
+    CK_ATTRIBUTE keyTemplate[14];
+    CK_ATTRIBUTE_PTR attr = keyTemplate;
+    CK_ULONG ktSize;
+    nssCryptokiObject *unwrappedKey = NULL;
+    void *epv = nssToken_GetCryptokiEPV(token);
+
+    mechanism = nssAlgorithmAndParameters_GetMechanism(ap);
+
+    /* set up the key template */
+    NSS_CK_TEMPLATE_START(keyTemplate, attr, ktSize);
+    if (asTokenObject) {
+	NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_TOKEN, &g_ck_true);
+    } else {
+	NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_TOKEN, &g_ck_false);
+    }
+    if (operations) {
+	attr += nssCKTemplate_SetOperationAttributes(attr, 
+	                                             keyTemplate - attr,
+	                                             operations);
+    }
+
+    if (properties) {
+	attr += nssCKTemplate_SetPropertyAttributes(attr,
+	                                            keyTemplate - attr,
+                                                    properties);
+    }
+    NSS_CK_TEMPLATE_FINISH(keyTemplate, attr, ktSize);
+    /* Unwrap it */
+    nssSession_EnterMonitor(session);
+    ckrv = CKAPI(epv)->C_UnwrapKey(session->handle, mechanism,
+                                   wrappingKey->handle,
+                                   (CK_BYTE_PTR)wrappedKey->data,
+                                   (CK_ULONG)wrappedKey->size,
+                                   keyTemplate, ktSize, &keyH);
+    nssSession_ExitMonitor(session);
+    if (ckrv == CKR_OK) {
+	unwrappedKey = nssCryptokiObject_Create(token, session, keyH);
+    }
+    return unwrappedKey;
+}
+
+NSS_IMPLEMENT NSSItem *
+nssToken_WrapKey
+(
+  NSSToken *token,
+  nssSession *session,
+  const NSSAlgorithmAndParameters *ap,
+  nssCryptokiObject *wrappingKey,
+  nssCryptokiObject *targetKey,
+  NSSItem *rvOpt,
+  NSSArena *arenaOpt
+)
+{
+    CK_RV ckrv;
+    CK_ULONG wrapLen;
+    CK_MECHANISM_PTR mechanism;
+    void *epv = nssToken_GetCryptokiEPV(token);
+    nssArenaMark *mark = NULL;
+    PRBool freeit;
+
+    mechanism = nssAlgorithmAndParameters_GetMechanism(ap);
+
+    nssSession_EnterMonitor(session);
+    /* Get the length of the output buffer */
+    ckrv = CKAPI(epv)->C_WrapKey(session->handle, mechanism,
+                                 wrappingKey->handle, targetKey->handle,
+                                 NULL, &wrapLen);
+    if (ckrv != CKR_OK) {
+	goto loser;
+    }
+    /* Set up the output buffer */
+    if (arenaOpt) {
+	mark = nssArena_Mark(arenaOpt);
+    }
+    rvOpt = prepare_output_buffer(arenaOpt, rvOpt, wrapLen, &freeit);
+    if (!rvOpt) {
+	goto loser;
+    }
+    /* Wrap it */
+    ckrv = CKAPI(epv)->C_WrapKey(session->handle, mechanism,
+                                 wrappingKey->handle, targetKey->handle,
+                                 (CK_BYTE_PTR)rvOpt->data,
+                                 (CK_ULONG_PTR)&rvOpt->size);
+    nssSession_ExitMonitor(session);
+    if (ckrv != CKR_OK) {
+	goto loser;
+    }
+    if (mark) {
+	nssArena_Unmark(arenaOpt, mark);
+    }
+    return rvOpt;
+loser:
+    nssSession_ExitMonitor(session);
+    if (mark) {
+	nssArena_Release(arenaOpt, mark);
+    } else {
+	if (freeit) {
+	    nssItem_Destroy(rvOpt);
+	}
+    }
+    return (NSSItem *)NULL;
+}
+
+NSS_IMPLEMENT nssCryptokiObject *
+nssToken_DeriveKey
+(
+  NSSToken *token,
+  nssSession *session,
+  const NSSAlgorithmAndParameters *ap,
+  nssCryptokiObject *baseKey,
+  PRBool asTokenObject,
+  NSSOperations operations,
+  NSSProperties properties
+)
+{
+    CK_RV ckrv;
+    CK_MECHANISM_PTR mechanism;
+    CK_OBJECT_HANDLE keyH;
+    CK_ATTRIBUTE keyTemplate[14];
+    CK_ATTRIBUTE_PTR attr = keyTemplate;
+    CK_ULONG ktSize;
+    nssCryptokiObject *derivedKey = NULL;
+    void *epv = nssToken_GetCryptokiEPV(token);
+
+    mechanism = nssAlgorithmAndParameters_GetMechanism(ap);
+
+    /* set up the key template */
+    NSS_CK_TEMPLATE_START(keyTemplate, attr, ktSize);
+    if (asTokenObject) {
+	NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_TOKEN, &g_ck_true);
+    } else {
+	NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_TOKEN, &g_ck_false);
+    }
+    if (operations) {
+	attr += nssCKTemplate_SetOperationAttributes(attr, 
+	                                             keyTemplate - attr,
+	                                             operations);
+    }
+
+    if (properties) {
+	attr += nssCKTemplate_SetPropertyAttributes(attr,
+	                                            keyTemplate - attr,
+                                                    properties);
+    }
+    NSS_CK_TEMPLATE_FINISH(keyTemplate, attr, ktSize);
+    /* ready to do the derivation */
+    nssSession_EnterMonitor(session);
+    ckrv = CKAPI(epv)->C_DeriveKey(session->handle, mechanism,
+                                   baseKey->handle,
+                                   keyTemplate, ktSize, &keyH);
+    nssSession_ExitMonitor(session);
+    if (ckrv == CKR_OK) {
+	derivedKey = nssCryptokiObject_Create(token, session, keyH);
+    }
+    return derivedKey;
+}
+
+NSS_IMPLEMENT NSSItem *
+nssToken_Encrypt
+(
+  NSSToken *tok,
+  nssSession *session,
+  const NSSAlgorithmAndParameters *ap,
+  nssCryptokiObject *key,
+  NSSItem *data,
+  NSSItem *rvOpt,
+  NSSArena *arenaOpt
+)
+{
+    CK_RV ckrv;
+    CK_ULONG bufLen;
+    CK_MECHANISM_PTR mechanism;
+    void *epv = nssToken_GetCryptokiEPV(tok);
+    nssArenaMark *mark = NULL;
+    PRBool freeit;
+
+    mechanism = nssAlgorithmAndParameters_GetMechanism(ap);
+
+    nssSession_EnterMonitor(session);
+    ckrv = CKAPI(epv)->C_EncryptInit(session->handle, mechanism, key->handle);
+    if (ckrv != CKR_OK) {
+	goto loser;
+    }
+    /* Get the length of the output buffer */
+    ckrv = CKAPI(epv)->C_Encrypt(session->handle, 
+                                 (CK_BYTE_PTR)data->data, 
+                                 (CK_ULONG)data->size,
+                                 NULL, &bufLen);
+    if (ckrv != CKR_OK) {
+	goto loser;
+    }
+    /* Set up the output buffer */
+    if (arenaOpt) {
+	mark = nssArena_Mark(arenaOpt);
+    }
+    rvOpt = prepare_output_buffer(arenaOpt, rvOpt, bufLen, &freeit);
+    if (!rvOpt) {
+	goto loser;
+    }
+    /* Do the single-part encryption */
+    ckrv = CKAPI(epv)->C_Encrypt(session->handle, 
+                                (CK_BYTE_PTR)data->data, 
+                                (CK_ULONG)data->size,
+                                (CK_BYTE_PTR)rvOpt->data,
+                                (CK_ULONG_PTR)&rvOpt->size);
+    nssSession_ExitMonitor(session);
+    if (ckrv != CKR_OK) {
+	goto loser;
+    }
+    if (mark) {
+	nssArena_Unmark(arenaOpt, mark);
+    }
+    return rvOpt;
+loser:
+    nssSession_ExitMonitor(session);
+    if (mark) {
+	nssArena_Release(arenaOpt, mark);
+    } else {
+	if (freeit) {
+	    nssItem_Destroy(rvOpt);
+	}
+    }
+    return (NSSItem *)NULL;
+}
+
+NSS_IMPLEMENT PRStatus
+nssToken_BeginEncrypt
+(
+  NSSToken *token,
+  nssSession *session,
+  const NSSAlgorithmAndParameters *ap,
+  nssCryptokiObject *key
+)
+{
+    CK_RV ckrv;
+    CK_MECHANISM_PTR mechanism;
+    void *epv = nssToken_GetCryptokiEPV(token);
+
+    mechanism = nssAlgorithmAndParameters_GetMechanism(ap);
+    nssSession_EnterMonitor(session);
+    ckrv = CKAPI(epv)->C_EncryptInit(session->handle, mechanism, key->handle);
+    nssSession_ExitMonitor(session);
+    return (ckrv == CKR_OK) ? PR_SUCCESS : PR_FAILURE;
+}
+
+NSS_IMPLEMENT NSSItem *
+nssToken_ContinueEncrypt
+(
+  NSSToken *token,
+  nssSession *session,
+  NSSItem *data,
+  NSSItem *rvOpt,
+  NSSArena *arenaOpt
+)
+{
+    CK_RV ckrv;
+    CK_ULONG bufLen;
+    PRBool freeit;
+    void *epv = nssToken_GetCryptokiEPV(token);
+
+    nssSession_EnterMonitor(session);
+    ckrv = CKAPI(epv)->C_EncryptUpdate(session->handle, 
+                                       (CK_BYTE_PTR)data->data, 
+                                       (CK_ULONG)data->size,
+                                       NULL, &bufLen);
+    if (ckrv != CKR_OK) {
+	nssSession_ExitMonitor(session);
+	return (NSSItem *)NULL;
+    }
+    rvOpt = prepare_output_buffer(arenaOpt, rvOpt, bufLen, &freeit);
+    if (!rvOpt) {
+	nssSession_ExitMonitor(session);
+	return (NSSItem *)NULL;
+    }
+    ckrv = CKAPI(epv)->C_EncryptUpdate(session->handle, 
+                                       (CK_BYTE_PTR)data->data, 
+                                       (CK_ULONG)data->size,
+                                       (CK_BYTE_PTR)rvOpt->data, 
+                                       (CK_ULONG_PTR)&rvOpt->size);
+    if (ckrv != CKR_OK) {
+	if (freeit) {
+	    nssItem_Destroy(rvOpt);
+	}
+	rvOpt = NULL;
+    }
+    nssSession_ExitMonitor(session);
+    return rvOpt;
+}
+
+NSS_IMPLEMENT NSSItem *
+nssToken_FinishEncrypt
+(
+  NSSToken *token,
+  nssSession *session,
+  NSSItem *rvOpt,
+  NSSArena *arenaOpt
+)
+{
+    CK_RV ckrv;
+    CK_ULONG bufLen;
+    PRBool freeit;
+    void *epv = nssToken_GetCryptokiEPV(token);
+
+    nssSession_EnterMonitor(session);
+    /* Get the length */
+    ckrv = CKAPI(epv)->C_EncryptFinal(session->handle, NULL, &bufLen);
+    if (ckrv != CKR_OK || bufLen == 0) {
+	nssSession_ExitMonitor(session);
+	return (NSSItem *)NULL;
+    }
+    rvOpt = prepare_output_buffer(arenaOpt, rvOpt, bufLen, &freeit);
+    if (!rvOpt) {
+	nssSession_ExitMonitor(session);
+	return (NSSItem *)NULL;
+    }
+    /* Get the encrypted result */
+    ckrv = CKAPI(epv)->C_EncryptFinal(session->handle, 
+                                      (CK_BYTE_PTR)rvOpt->data, 
+                                      (CK_ULONG_PTR)&rvOpt->size);
+    nssSession_ExitMonitor(session);
+    if (ckrv != CKR_OK) {
+	if (freeit) {
+	    nssItem_Destroy(rvOpt);
+	}
+	return (NSSItem *)NULL;
+    }
+    return rvOpt;
+}
+
+NSS_IMPLEMENT NSSItem *
+nssToken_Decrypt
+(
+  NSSToken *tok,
+  nssSession *session,
+  const NSSAlgorithmAndParameters *ap,
+  nssCryptokiObject *key,
+  NSSItem *data,
+  NSSItem *rvOpt,
+  NSSArena *arenaOpt
+)
+{
+    CK_RV ckrv;
+    CK_ULONG bufLen;
+    CK_MECHANISM_PTR mechanism;
+    void *epv = nssToken_GetCryptokiEPV(tok);
+    nssArenaMark *mark = NULL;
+    PRBool freeit;
+
+    mechanism = nssAlgorithmAndParameters_GetMechanism(ap);
+
+    nssSession_EnterMonitor(session);
+    ckrv = CKAPI(epv)->C_DecryptInit(session->handle, mechanism, key->handle);
+    if (ckrv != CKR_OK) {
+	goto loser;
+    }
+    /* Get the length of the output buffer */
+    ckrv = CKAPI(epv)->C_Decrypt(session->handle, 
+                                 (CK_BYTE_PTR)data->data, 
+                                 (CK_ULONG)data->size,
+                                 NULL, &bufLen);
+    if (ckrv != CKR_OK) {
+	goto loser;
+    }
+    /* Set up the output buffer */
+    if (arenaOpt) {
+	mark = nssArena_Mark(arenaOpt);
+    }
+    rvOpt = prepare_output_buffer(arenaOpt, rvOpt, bufLen, &freeit);
+    if (!rvOpt) {
+	goto loser;
+    }
+    /* Do the single-part decryption */
+    ckrv = CKAPI(epv)->C_Decrypt(session->handle, 
+                                (CK_BYTE_PTR)data->data, 
+                                (CK_ULONG)data->size,
+                                (CK_BYTE_PTR)rvOpt->data,
+                                (CK_ULONG_PTR)&rvOpt->size);
+    nssSession_ExitMonitor(session);
+    if (ckrv != CKR_OK) {
+	goto loser;
+    }
+    if (mark) {
+	nssArena_Unmark(arenaOpt, mark);
+    }
+    return rvOpt;
+loser:
+    nssSession_ExitMonitor(session);
+    if (mark) {
+	nssArena_Release(arenaOpt, mark);
+    } else {
+	if (freeit) {
+	    nssItem_Destroy(rvOpt);
+	}
+    }
+    return (NSSItem *)NULL;
+}
+
+NSS_IMPLEMENT PRStatus
+nssToken_BeginDecrypt
+(
+  NSSToken *token,
+  nssSession *session,
+  const NSSAlgorithmAndParameters *ap,
+  nssCryptokiObject *key
+)
+{
+    CK_RV ckrv;
+    CK_MECHANISM_PTR mechanism;
+    void *epv = nssToken_GetCryptokiEPV(token);
+
+    mechanism = nssAlgorithmAndParameters_GetMechanism(ap);
+    nssSession_EnterMonitor(session);
+    ckrv = CKAPI(epv)->C_DecryptInit(session->handle, mechanism, key->handle);
+    nssSession_ExitMonitor(session);
+    return (ckrv == CKR_OK) ? PR_SUCCESS : PR_FAILURE;
+}
+
+NSS_IMPLEMENT NSSItem *
+nssToken_ContinueDecrypt
+(
+  NSSToken *token,
+  nssSession *session,
+  NSSItem *data,
+  NSSItem *rvOpt,
+  NSSArena *arenaOpt
+)
+{
+    CK_RV ckrv;
+    CK_ULONG bufLen;
+    PRBool freeit;
+    void *epv = nssToken_GetCryptokiEPV(token);
+
+    nssSession_EnterMonitor(session);
+    ckrv = CKAPI(epv)->C_DecryptUpdate(session->handle, 
+                                       (CK_BYTE_PTR)data->data, 
+                                       (CK_ULONG)data->size,
+                                       NULL, &bufLen);
+    if (ckrv != CKR_OK) {
+	nssSession_ExitMonitor(session);
+	return (NSSItem *)NULL;
+    }
+    rvOpt = prepare_output_buffer(arenaOpt, rvOpt, bufLen, &freeit);
+    if (!rvOpt) {
+	nssSession_ExitMonitor(session);
+	return (NSSItem *)NULL;
+    }
+    ckrv = CKAPI(epv)->C_DecryptUpdate(session->handle, 
+                                       (CK_BYTE_PTR)data->data, 
+                                       (CK_ULONG)data->size,
+                                       (CK_BYTE_PTR)rvOpt->data, 
+                                       (CK_ULONG_PTR)&rvOpt->size);
+    if (ckrv != CKR_OK) {
+	if (freeit) {
+	    nssItem_Destroy(rvOpt);
+	}
+	rvOpt = NULL;
+    }
+    nssSession_ExitMonitor(session);
+    return rvOpt;
+}
+
+NSS_IMPLEMENT NSSItem *
+nssToken_FinishDecrypt
+(
+  NSSToken *token,
+  nssSession *session,
+  NSSItem *rvOpt,
+  NSSArena *arenaOpt
+)
+{
+    CK_RV ckrv;
+    CK_ULONG bufLen;
+    PRBool freeit;
+    void *epv = nssToken_GetCryptokiEPV(token);
+
+    nssSession_EnterMonitor(session);
+    /* Get the length */
+    ckrv = CKAPI(epv)->C_DecryptFinal(session->handle, NULL, &bufLen);
+    if (ckrv != CKR_OK || bufLen == 0) {
+	nssSession_ExitMonitor(session);
+	return (NSSItem *)NULL;
+    }
+    rvOpt = prepare_output_buffer(arenaOpt, rvOpt, bufLen, &freeit);
+    if (!rvOpt) {
+	nssSession_ExitMonitor(session);
+	return (NSSItem *)NULL;
+    }
+    /* Get the decrypted result */
+    ckrv = CKAPI(epv)->C_DecryptFinal(session->handle, 
+                                      (CK_BYTE_PTR)rvOpt->data, 
+                                      (CK_ULONG_PTR)&rvOpt->size);
+    nssSession_ExitMonitor(session);
+    if (ckrv != CKR_OK) {
+	if (freeit) {
+	    nssItem_Destroy(rvOpt);
+	}
+	return (NSSItem *)NULL;
+    }
+    return rvOpt;
+}
+
+NSS_IMPLEMENT NSSItem *
+nssToken_Sign
+(
+  NSSToken *token,
+  nssSession *session,
+  const NSSAlgorithmAndParameters *ap,
+  nssCryptokiObject *key,
+  NSSItem *data,
+  NSSItem *rvOpt,
+  NSSArena *arenaOpt
+)
+{
+    CK_RV ckrv;
+    CK_ULONG sigLen;
+    CK_MECHANISM_PTR mechanism;
+    void *epv = nssToken_GetCryptokiEPV(token);
+    nssArenaMark *mark = NULL;
+    PRBool freeit;
+
+    mechanism = nssAlgorithmAndParameters_GetMechanism(ap);
+
+    nssSession_EnterMonitor(session);
+    ckrv = CKAPI(epv)->C_SignInit(session->handle, mechanism, key->handle);
+    if (ckrv != CKR_OK) {
+	goto loser;
+    }
+    /* Get the length of the output buffer */
+    ckrv = CKAPI(epv)->C_Sign(session->handle, 
+                              (CK_BYTE_PTR)data->data, 
+                              (CK_ULONG)data->size,
+                              NULL, &sigLen);
+    if (ckrv != CKR_OK) {
+	goto loser;
+    }
+    /* Set up the output buffer */
+    if (arenaOpt) {
+	mark = nssArena_Mark(arenaOpt);
+    }
+    rvOpt = prepare_output_buffer(arenaOpt, rvOpt, sigLen, &freeit);
+    if (!rvOpt) {
+	goto loser;
+    }
+    /* Do the single-part signature */
+    ckrv = CKAPI(epv)->C_Sign(session->handle, 
+                              (CK_BYTE_PTR)data->data, 
+                              (CK_ULONG)data->size,
+                              (CK_BYTE_PTR)rvOpt->data,
+                              (CK_ULONG_PTR)&rvOpt->size);
+    nssSession_ExitMonitor(session);
+    if (ckrv != CKR_OK) {
+	goto loser;
+    }
+    if (mark) {
+	nssArena_Unmark(arenaOpt, mark);
+    }
+    return rvOpt;
+loser:
+    nssSession_ExitMonitor(session);
+    if (mark) {
+	nssArena_Release(arenaOpt, mark);
+    } else {
+	if (freeit) {
+	    nssItem_Destroy(rvOpt);
+	}
+    }
+    return (NSSItem *)NULL;
+}
+
+NSS_IMPLEMENT PRStatus
+nssToken_BeginSign
+(
+  NSSToken *token,
+  nssSession *session,
+  const NSSAlgorithmAndParameters *ap,
+  nssCryptokiObject *key
+)
+{
+    CK_RV ckrv;
+    CK_MECHANISM_PTR mechanism;
+    void *epv = nssToken_GetCryptokiEPV(token);
+
+    mechanism = nssAlgorithmAndParameters_GetMechanism(ap);
+    nssSession_EnterMonitor(session);
+    ckrv = CKAPI(epv)->C_SignInit(session->handle, mechanism, key->handle);
+    nssSession_ExitMonitor(session);
+    return (ckrv == CKR_OK) ? PR_SUCCESS : PR_FAILURE;
+}
+
+NSS_IMPLEMENT PRStatus
+nssToken_ContinueSign
+(
+  NSSToken *token,
+  nssSession *session,
+  NSSItem *data
+)
+{
+    CK_RV ckrv;
+    void *epv = nssToken_GetCryptokiEPV(token);
+
+    nssSession_EnterMonitor(session);
+    ckrv = CKAPI(epv)->C_SignUpdate(session->handle, 
+                                    (CK_BYTE_PTR)data->data, 
+                                    (CK_ULONG)data->size);
+    nssSession_ExitMonitor(session);
+    return (ckrv == CKR_OK) ? PR_SUCCESS : PR_FAILURE;
+}
+
+NSS_IMPLEMENT NSSItem *
+nssToken_FinishSign
+(
+  NSSToken *tok,
+  nssSession *session,
+  NSSItem *rvOpt,
+  NSSArena *arenaOpt
+)
+{
+    CK_RV ckrv;
+    CK_ULONG sigLen;
+    PRBool freeit;
+    void *epv = nssToken_GetCryptokiEPV(tok);
+
+    nssSession_EnterMonitor(session);
+    /* Get the length */
+    ckrv = CKAPI(epv)->C_SignFinal(session->handle, NULL, &sigLen);
+    if (ckrv != CKR_OK || sigLen == 0) {
+	nssSession_ExitMonitor(session);
+	return (NSSItem *)NULL;
+    }
+    rvOpt = prepare_output_buffer(arenaOpt, rvOpt, sigLen, &freeit);
+    if (!rvOpt) {
+	nssSession_ExitMonitor(session);
+	return (NSSItem *)NULL;
+    }
+    /* Get the signature */
+    ckrv = CKAPI(epv)->C_SignFinal(session->handle, 
+                                   (CK_BYTE_PTR)rvOpt->data, 
+                                   (CK_ULONG_PTR)&rvOpt->size);
+    nssSession_ExitMonitor(session);
+    if (ckrv != CKR_OK) {
+	if (freeit) {
+	    nssItem_Destroy(rvOpt);
+	}
+	return (NSSItem *)NULL;
+    }
+    return rvOpt;
+}
+
+NSS_IMPLEMENT NSSItem *
+nssToken_SignRecover
+(
+  NSSToken *tok,
+  nssSession *session,
+  const NSSAlgorithmAndParameters *ap,
+  nssCryptokiObject *key,
+  NSSItem *data,
+  NSSItem *rvOpt,
+  NSSArena *arenaOpt
+)
+{
+    CK_RV ckrv;
+    CK_ULONG bufLen;
+    CK_MECHANISM_PTR mechanism;
+    void *epv = nssToken_GetCryptokiEPV(tok);
+    nssArenaMark *mark = NULL;
+    PRBool freeit;
+
+    mechanism = nssAlgorithmAndParameters_GetMechanism(ap);
+
+    nssSession_EnterMonitor(session);
+    ckrv = CKAPI(epv)->C_SignRecoverInit(session->handle, mechanism, 
+                                         key->handle);
+    if (ckrv != CKR_OK) {
+	goto loser;
+    }
+    /* Get the length of the output buffer */
+    ckrv = CKAPI(epv)->C_SignRecover(session->handle, 
+                                     (CK_BYTE_PTR)data->data, 
+                                     (CK_ULONG)data->size,
+                                     NULL, &bufLen);
+    if (ckrv != CKR_OK) {
+	goto loser;
+    }
+    /* Set up the output buffer */
+    if (arenaOpt) {
+	mark = nssArena_Mark(arenaOpt);
+    }
+    rvOpt = prepare_output_buffer(arenaOpt, rvOpt, bufLen, &freeit);
+    if (!rvOpt) {
+	goto loser;
+    }
+    /* Do the single-part signature with recovery */
+    ckrv = CKAPI(epv)->C_SignRecover(session->handle, 
+                                     (CK_BYTE_PTR)data->data, 
+                                     (CK_ULONG)data->size,
+                                     (CK_BYTE_PTR)rvOpt->data,
+                                     (CK_ULONG_PTR)&rvOpt->size);
+    nssSession_ExitMonitor(session);
+    if (ckrv != CKR_OK) {
+	goto loser;
+    }
+    if (mark) {
+	nssArena_Unmark(arenaOpt, mark);
+    }
+    return rvOpt;
+loser:
+    nssSession_ExitMonitor(session);
+    if (mark) {
+	nssArena_Release(arenaOpt, mark);
+    } else {
+	if (freeit) {
+	    nssItem_Destroy(rvOpt);
+	}
+    }
+    return (NSSItem *)NULL;
+}
+
+NSS_IMPLEMENT PRStatus
+nssToken_Verify
+(
+  NSSToken *token,
+  nssSession *session,
+  const NSSAlgorithmAndParameters *ap,
+  nssCryptokiObject *key,
+  NSSItem *data,
+  NSSItem *signature
+)
+{
+    CK_RV ckrv;
+    CK_MECHANISM_PTR mechanism;
+    void *epv = nssToken_GetCryptokiEPV(token);
+
+    mechanism = nssAlgorithmAndParameters_GetMechanism(ap);
+
+    nssSession_EnterMonitor(session);
+    ckrv = CKAPI(epv)->C_VerifyInit(session->handle, mechanism, key->handle);
+    if (ckrv != CKR_OK) {
+	return PR_FAILURE;
+    }
+    /* Do the single-part verification */
+    ckrv = CKAPI(epv)->C_Verify(session->handle, 
+                                (CK_BYTE_PTR)data->data, 
+                                (CK_ULONG)data->size,
+                                (CK_BYTE_PTR)signature->data,
+                                (CK_ULONG)signature->size);
+    nssSession_ExitMonitor(session);
+    if (ckrv != CKR_OK) {
+	if (ckrv == CKR_SIGNATURE_INVALID) {
+	    /* the verification failed */
+	    nss_SetError(NSS_ERROR_INVALID_SIGNATURE);
+	} else if (ckrv == CKR_SIGNATURE_LEN_RANGE) {
+	    /* signature->len is invalid, which is more like bad input
+	     * than an invalid signature
+	     */
+	    nss_SetError(NSS_ERROR_INVALID_DATA);
+	} else {
+	    nss_SetError(NSS_ERROR_TOKEN_FAILURE);
+	}
+	return PR_FAILURE;
+    }
+    return PR_SUCCESS;
+}
+
+NSS_IMPLEMENT PRStatus
+nssToken_BeginVerify
+(
+  NSSToken *token,
+  nssSession *session,
+  const NSSAlgorithmAndParameters *ap,
+  nssCryptokiObject *key
+)
+{
+    CK_RV ckrv;
+    CK_MECHANISM_PTR mechanism;
+    void *epv = nssToken_GetCryptokiEPV(token);
+
+    mechanism = nssAlgorithmAndParameters_GetMechanism(ap);
+    nssSession_EnterMonitor(session);
+    ckrv = CKAPI(epv)->C_VerifyInit(session->handle, mechanism, key->handle);
+    nssSession_ExitMonitor(session);
+    return (ckrv == CKR_OK) ? PR_SUCCESS : PR_FAILURE;
+}
+
+NSS_IMPLEMENT PRStatus
+nssToken_ContinueVerify
+(
+  NSSToken *token,
+  nssSession *session,
+  NSSItem *data
+)
+{
+    CK_RV ckrv;
+    void *epv = nssToken_GetCryptokiEPV(token);
+
+    nssSession_EnterMonitor(session);
+    ckrv = CKAPI(epv)->C_VerifyUpdate(session->handle, 
+                                      (CK_BYTE_PTR)data->data, 
+                                      (CK_ULONG)data->size);
+    nssSession_ExitMonitor(session);
+    return (ckrv == CKR_OK) ? PR_SUCCESS : PR_FAILURE;
+}
+
+NSS_IMPLEMENT PRStatus
+nssToken_FinishVerify
+(
+  NSSToken *tok,
+  nssSession *session,
+  NSSItem *signature
+)
+{
+    CK_RV ckrv;
+    void *epv = nssToken_GetCryptokiEPV(tok);
+
+    nssSession_EnterMonitor(session);
+    ckrv = CKAPI(epv)->C_VerifyFinal(session->handle, 
+                                     (CK_BYTE_PTR)signature->data, 
+                                     (CK_ULONG)signature->size);
+    nssSession_ExitMonitor(session);
+    if (ckrv != CKR_OK) {
+	if (ckrv == CKR_SIGNATURE_INVALID) {
+	    /* the verification failed */
+	    nss_SetError(NSS_ERROR_INVALID_SIGNATURE);
+	} else if (ckrv == CKR_SIGNATURE_LEN_RANGE) {
+	    /* signature->len is invalid, which is more like bad input
+	     * than an invalid signature
+	     */
+	    nss_SetError(NSS_ERROR_INVALID_DATA);
+	} else {
+	    nss_SetError(NSS_ERROR_TOKEN_FAILURE);
+	}
+	return PR_FAILURE;
+    }
+    return PR_SUCCESS;
+}
+
+NSS_IMPLEMENT NSSItem *
+nssToken_VerifyRecover
+(
+  NSSToken *tok,
+  nssSession *session,
+  const NSSAlgorithmAndParameters *ap,
+  nssCryptokiObject *key,
+  NSSItem *signature,
+  NSSItem *rvOpt,
+  NSSArena *arenaOpt
+)
+{
+    CK_RV ckrv;
+    CK_ULONG bufLen;
+    CK_MECHANISM_PTR mechanism;
+    void *epv = nssToken_GetCryptokiEPV(tok);
+    nssArenaMark *mark = NULL;
+    PRBool freeit;
+
+    mechanism = nssAlgorithmAndParameters_GetMechanism(ap);
+
+    nssSession_EnterMonitor(session);
+    ckrv = CKAPI(epv)->C_VerifyRecoverInit(session->handle, mechanism, 
+                                           key->handle);
+    if (ckrv != CKR_OK) {
+	goto loser;
+    }
+    /* Get the length of the output buffer */
+    ckrv = CKAPI(epv)->C_VerifyRecover(session->handle, 
+                                       (CK_BYTE_PTR)signature->data, 
+                                       (CK_ULONG)signature->size,
+                                       NULL, &bufLen);
+    if (ckrv != CKR_OK) {
+	goto loser;
+    }
+    /* Set up the output buffer */
+    if (arenaOpt) {
+	mark = nssArena_Mark(arenaOpt);
+    }
+    rvOpt = prepare_output_buffer(arenaOpt, rvOpt, bufLen, &freeit);
+    if (!rvOpt) {
+	goto loser;
+    }
+    /* Do the single-part verification with recovery */
+    ckrv = CKAPI(epv)->C_VerifyRecover(session->handle, 
+                                       (CK_BYTE_PTR)signature->data, 
+                                       (CK_ULONG)signature->size,
+                                       (CK_BYTE_PTR)rvOpt->data,
+                                       (CK_ULONG_PTR)&rvOpt->size);
+    nssSession_ExitMonitor(session);
+    if (ckrv != CKR_OK) {
+	goto loser;
+    }
+    if (mark) {
+	nssArena_Unmark(arenaOpt, mark);
+    }
+    return rvOpt;
+loser:
+    nssSession_ExitMonitor(session);
+    if (mark) {
+	nssArena_Release(arenaOpt, mark);
+    } else {
+	if (freeit) {
+	    nssItem_Destroy(rvOpt);
+	}
+    }
+    return (NSSItem *)NULL;
 }
 
 NSS_IMPLEMENT NSSItem *
 nssToken_Digest
 (
   NSSToken *tok,
-  nssSession *sessionOpt,
-  NSSAlgorithmAndParameters *ap,
+  nssSession *session,
+  const NSSAlgorithmAndParameters *ap,
   NSSItem *data,
   NSSItem *rvOpt,
   NSSArena *arenaOpt
@@ -1407,75 +2541,75 @@ nssToken_Digest
 {
     CK_RV ckrv;
     CK_ULONG digestLen;
-    CK_BYTE_PTR digest;
-    NSSItem *rvItem = NULL;
+    CK_MECHANISM_PTR mechanism;
     void *epv = nssToken_GetCryptokiEPV(tok);
-    nssSession *session;
-    session = (sessionOpt) ? sessionOpt : tok->defaultSession;
+    nssArenaMark *mark = NULL;
+    PRBool freeit;
+
+    mechanism = nssAlgorithmAndParameters_GetMechanism(ap);
+
     nssSession_EnterMonitor(session);
-    ckrv = CKAPI(epv)->C_DigestInit(session->handle, &ap->mechanism);
+    ckrv = CKAPI(epv)->C_DigestInit(session->handle, mechanism);
     if (ckrv != CKR_OK) {
-	nssSession_ExitMonitor(session);
-	return NULL;
+	goto loser;
     }
-#if 0
-    /* XXX the standard says this should work, but it doesn't */
-    ckrv = CKAPI(epv)->C_Digest(session->handle, NULL, 0, NULL, &digestLen);
-    if (ckrv != CKR_OK) {
-	nssSession_ExitMonitor(session);
-	return NULL;
-    }
-#endif
-    digestLen = 0; /* XXX for now */
-    digest = NULL;
-    if (rvOpt) {
-	if (rvOpt->size > 0 && rvOpt->size < digestLen) {
-	    nssSession_ExitMonitor(session);
-	    /* the error should be bad args */
-	    return NULL;
-	}
-	if (rvOpt->data) {
-	    digest = rvOpt->data;
-	}
-	digestLen = rvOpt->size;
-    }
-    if (!digest) {
-	digest = (CK_BYTE_PTR)nss_ZAlloc(arenaOpt, digestLen);
-	if (!digest) {
-	    nssSession_ExitMonitor(session);
-	    return NULL;
-	}
-    }
+    /* Get the length of the output buffer */
     ckrv = CKAPI(epv)->C_Digest(session->handle, 
                                 (CK_BYTE_PTR)data->data, 
                                 (CK_ULONG)data->size,
-                                (CK_BYTE_PTR)digest,
-                                &digestLen);
+                                NULL, &digestLen);
+    if (ckrv != CKR_OK) {
+	goto loser;
+    }
+    /* Set up the output buffer */
+    if (arenaOpt) {
+	mark = nssArena_Mark(arenaOpt);
+    }
+    rvOpt = prepare_output_buffer(arenaOpt, rvOpt, digestLen, &freeit);
+    if (!rvOpt) {
+	goto loser;
+    }
+    /* Do the single-part digest */
+    ckrv = CKAPI(epv)->C_Digest(session->handle, 
+                                (CK_BYTE_PTR)data->data, 
+                                (CK_ULONG)data->size,
+                                (CK_BYTE_PTR)rvOpt->data,
+                                (CK_ULONG_PTR)&rvOpt->size);
     nssSession_ExitMonitor(session);
     if (ckrv != CKR_OK) {
-	nss_ZFreeIf(digest);
-	return NULL;
+	goto loser;
     }
-    if (!rvOpt) {
-	rvItem = nssItem_Create(arenaOpt, NULL, digestLen, (void *)digest);
+    if (mark) {
+	nssArena_Unmark(arenaOpt, mark);
     }
-    return rvItem;
+    return rvOpt;
+loser:
+    nssSession_ExitMonitor(session);
+    if (mark) {
+	nssArena_Release(arenaOpt, mark);
+    } else {
+	if (freeit) {
+	    nssItem_Destroy(rvOpt);
+	}
+    }
+    return (NSSItem *)NULL;
 }
 
 NSS_IMPLEMENT PRStatus
 nssToken_BeginDigest
 (
   NSSToken *tok,
-  nssSession *sessionOpt,
-  NSSAlgorithmAndParameters *ap
+  nssSession *session,
+  const NSSAlgorithmAndParameters *ap
 )
 {
     CK_RV ckrv;
-    nssSession *session;
+    CK_MECHANISM_PTR mechanism;
     void *epv = nssToken_GetCryptokiEPV(tok);
-    session = (sessionOpt) ? sessionOpt : tok->defaultSession;
+
+    mechanism = nssAlgorithmAndParameters_GetMechanism(ap);
     nssSession_EnterMonitor(session);
-    ckrv = CKAPI(epv)->C_DigestInit(session->handle, &ap->mechanism);
+    ckrv = CKAPI(epv)->C_DigestInit(session->handle, mechanism);
     nssSession_ExitMonitor(session);
     return (ckrv == CKR_OK) ? PR_SUCCESS : PR_FAILURE;
 }
@@ -1484,14 +2618,13 @@ NSS_IMPLEMENT PRStatus
 nssToken_ContinueDigest
 (
   NSSToken *tok,
-  nssSession *sessionOpt,
+  nssSession *session,
   NSSItem *item
 )
 {
     CK_RV ckrv;
-    nssSession *session;
     void *epv = nssToken_GetCryptokiEPV(tok);
-    session = (sessionOpt) ? sessionOpt : tok->defaultSession;
+
     nssSession_EnterMonitor(session);
     ckrv = CKAPI(epv)->C_DigestUpdate(session->handle, 
                                       (CK_BYTE_PTR)item->data, 
@@ -1504,62 +2637,40 @@ NSS_IMPLEMENT NSSItem *
 nssToken_FinishDigest
 (
   NSSToken *tok,
-  nssSession *sessionOpt,
+  nssSession *session,
   NSSItem *rvOpt,
   NSSArena *arenaOpt
 )
 {
     CK_RV ckrv;
     CK_ULONG digestLen;
-    CK_BYTE_PTR digest;
-    NSSItem *rvItem = NULL;
+    PRBool freeit;
     void *epv = nssToken_GetCryptokiEPV(tok);
-    nssSession *session;
-    session = (sessionOpt) ? sessionOpt : tok->defaultSession;
+
     nssSession_EnterMonitor(session);
+    /* Get the length */
     ckrv = CKAPI(epv)->C_DigestFinal(session->handle, NULL, &digestLen);
     if (ckrv != CKR_OK || digestLen == 0) {
 	nssSession_ExitMonitor(session);
-	return NULL;
+	return (NSSItem *)NULL;
     }
-    digest = NULL;
-    if (rvOpt) {
-	if (rvOpt->size > 0 && rvOpt->size < digestLen) {
-	    nssSession_ExitMonitor(session);
-	    /* the error should be bad args */
-	    return NULL;
-	}
-	if (rvOpt->data) {
-	    digest = rvOpt->data;
-	}
-	digestLen = rvOpt->size;
+    rvOpt = prepare_output_buffer(arenaOpt, rvOpt, digestLen, &freeit);
+    if (!rvOpt) {
+	nssSession_ExitMonitor(session);
+	return (NSSItem *)NULL;
     }
-    if (!digest) {
-	digest = (CK_BYTE_PTR)nss_ZAlloc(arenaOpt, digestLen);
-	if (!digest) {
-	    nssSession_ExitMonitor(session);
-	    return NULL;
-	}
-    }
-    ckrv = CKAPI(epv)->C_DigestFinal(session->handle, digest, &digestLen);
+    /* Get the digest */
+    ckrv = CKAPI(epv)->C_DigestFinal(session->handle, 
+                                     (CK_BYTE_PTR)rvOpt->data, 
+                                     (CK_ULONG_PTR)&rvOpt->size);
     nssSession_ExitMonitor(session);
     if (ckrv != CKR_OK) {
-	nss_ZFreeIf(digest);
-	return NULL;
+	if (freeit) {
+	    nssItem_Destroy(rvOpt);
+	}
+	return (NSSItem *)NULL;
     }
-    if (!rvOpt) {
-	rvItem = nssItem_Create(arenaOpt, NULL, digestLen, (void *)digest);
-    }
-    return rvItem;
-}
-
-NSS_IMPLEMENT PRBool
-nssToken_IsPresent
-(
-  NSSToken *token
-)
-{
-    return nssSlot_IsTokenPresent(token->slot);
+    return rvOpt;
 }
 
 /* Sigh.  The methods to find objects declared above cause problems with
@@ -1575,7 +2686,7 @@ NSS_IMPLEMENT PRStatus
 nssToken_TraverseCertificates
 (
   NSSToken *token,
-  nssSession *sessionOpt,
+  nssSession *session,
   nssTokenSearchType searchType,
   PRStatus (* callback)(nssCryptokiObject *instance, void *arg),
   void *arg
@@ -1592,7 +2703,6 @@ nssToken_TraverseCertificates
     PRUint32 arraySize, numHandles;
     nssCryptokiObject **objects;
     void *epv = nssToken_GetCryptokiEPV(token);
-    nssSession *session = (sessionOpt) ? sessionOpt : token->defaultSession;
 
     /* template for all certs */
     NSS_CK_TEMPLATE_START(cert_template, attr, ctsize);
@@ -1672,26 +2782,3 @@ loser:
     return PR_FAILURE;
 }
 
-NSS_IMPLEMENT PRBool
-nssToken_IsPrivateKeyAvailable
-(
-  NSSToken *token,
-  NSSCertificate *c,
-  nssCryptokiObject *instance
-)
-{
-    CK_OBJECT_CLASS theClass;
-
-    if (token == NULL) return PR_FALSE;
-    if (c == NULL) return PR_FALSE;
-
-    theClass = CKO_PRIVATE_KEY;
-    if (!nssSlot_IsLoggedIn(token->slot)) {
-	theClass = CKO_PUBLIC_KEY;
-    }
-    if (PK11_MatchItem(token->pk11slot, instance->handle, theClass) 
-						!= CK_INVALID_HANDLE) {
-	return PR_TRUE;
-    }
-    return PR_FALSE;
-}

@@ -35,31 +35,27 @@ MANIFEST_CVS_ID = "@(#) $RCSfile$ $Revision$ $Date$ $Name$"
 CORE_DEPTH = ../../..
 
 PRIVATE_EXPORTS = \
-	ckhelper.h \
-	devt.h     \
-	dev.h      \
-	nssdevt.h  \
-	nssdev.h   \
+	dev.h     \
+	devt.h    \
 	$(NULL)
 
 EXPORTS =	   \
+	nssdev.h   \
+	nssdevt.h  \
 	$(NULL)
 
 MODULE = security
 
 CSRCS =		        \
-	devmod.c        \
-	devslot.c       \
-	devtoken.c      \
-	devutil.c       \
+	ckargparse.c    \
 	ckhelper.c      \
+	devutil.c       \
+	algparam.c      \
+	devtoken.c      \
+	devslot.c       \
+	devmodule.c     \
+	modulelist.c    \
 	$(NULL)
-
-# here is where the 3.4 glue code is added
-ifndef PURE_STAN_BUILD
-DEFINES = -DNSS_3_4_CODE
-PRIVATE_EXPORTS += devm.h devtm.h
-endif
 
 REQUIRES = security nspr
 

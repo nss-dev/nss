@@ -134,6 +134,14 @@ nssToken_IsLoginRequired
   NSSToken *token
 );
 
+/* This is super-private!!! */
+NSS_EXTERN nssTokenObjectCache *
+nssToken_GetObjectCache
+(
+  NSSToken *token
+);
+
+/* XXX */
 NSS_EXTERN void
 nssToken_Remove
 (
@@ -146,6 +154,20 @@ nssCryptokiObject_Create
   NSSToken *t, 
   nssSession *session,
   CK_OBJECT_HANDLE h
+);
+
+NSS_EXTERN CK_MECHANISM_PTR
+nssAlgorithmAndParameters_GetMechanism
+(
+  const NSSAlgorithmAndParameters *ap
+);
+
+NSS_EXTERN PRUint32
+nssAlgorithmAndParameters_SetTemplateValues
+(
+  const NSSAlgorithmAndParameters *ap,
+  CK_ATTRIBUTE_PTR aTemplate,
+  CK_ULONG templateSize
 );
 
 NSS_EXTERN nssTokenObjectCache *
@@ -213,18 +235,6 @@ nssTokenObjectCache_RemoveObject
 (
   nssTokenObjectCache *cache,
   nssCryptokiObject *object
-);
-
-/* XXX allows peek back into token */
-NSS_EXTERN PRStatus
-nssToken_GetCachedObjectAttributes
-(
-  NSSToken *token,
-  NSSArena *arenaOpt,
-  nssCryptokiObject *object,
-  CK_OBJECT_CLASS objclass,
-  CK_ATTRIBUTE_PTR atemplate,
-  CK_ULONG atlen
 );
 
 /* PKCS#11 stores strings in a fixed-length buffer padded with spaces.  This

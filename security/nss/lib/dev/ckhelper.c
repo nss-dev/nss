@@ -287,6 +287,62 @@ nssCKObject_IsTokenObjectTemplate
     return PR_FALSE;
 }
 
+NSS_IMPLEMENT CK_ULONG
+nssCKTemplate_SetOperationAttributes
+(
+  CK_ATTRIBUTE_PTR objTemplate,
+  CK_ULONG otSize,
+  NSSOperations operations
+)
+{
+    PRUint32 op, numSet;
+    CK_ATTRIBUTE_PTR attr;
+    static const CK_ATTRIBUTE_TYPE operation_types[9] = {
+	CKA_ENCRYPT,  CKA_DECRYPT,
+	CKA_WRAP,     CKA_UNWRAP,
+	CKA_SIGN,     CKA_SIGN_RECOVER,
+	CKA_VERIFY,   CKA_VERIFY_RECOVER,
+	CKA_DERIVE
+    };
+    PRUint32 numOp = sizeof(operation_types) / sizeof(CK_ATTRIBUTE_TYPE);
+    PR_ASSERT(numOp <= otSize);
+    attr = objTemplate;
+    for (op = 0, numSet = 0; op < numOp; op++) {
+	if (operations & (1 << op)) {
+	    NSS_CK_SET_ATTRIBUTE_ITEM(attr, operation_types[op], &g_ck_true);
+	    numSet++;
+	    PR_ASSERT(numSet <= otSize);
+	}
+    }
+    return numSet;
+}
+
+NSS_IMPLEMENT CK_ULONG
+nssCKTemplate_SetPropertyAttributes
+(
+  CK_ATTRIBUTE_PTR objTemplate,
+  CK_ULONG otSize,
+  NSSProperties properties
+)
+{
+    PRUint32 prop, numSet;
+    CK_ATTRIBUTE_PTR attr;
+    static const CK_ATTRIBUTE_TYPE property_types[4] = {
+	CKA_PRIVATE,          CKA_MODIFIABLE,
+	CKA_SENSITIVE,        CKA_EXTRACTABLE
+    };
+    PRUint32 numProp = sizeof(property_types) / sizeof(CK_ATTRIBUTE_TYPE);
+    PR_ASSERT(numProp <= otSize);
+    attr = objTemplate;
+    for (prop = 0, numSet = 0; prop < numProp; prop++) {
+	if (properties & (1 << prop)) {
+	    NSS_CK_SET_ATTRIBUTE_ITEM(attr, property_types[prop], &g_ck_true);
+	    numSet++;
+	}
+    }
+    return numSet;
+}
+
 static NSSCertificateType
 nss_cert_type_from_ck_attrib(CK_ATTRIBUTE_PTR attrib)
 {
@@ -310,7 +366,6 @@ NSS_IMPLEMENT PRStatus
 nssCryptokiCertificate_GetAttributes
 (
   nssCryptokiObject *certObject,
-  nssSession *sessionOpt,
   NSSArena *arenaOpt,
   NSSCertificateType *certTypeOpt,
   NSSItem *idOpt,
@@ -323,11 +378,12 @@ nssCryptokiCertificate_GetAttributes
 {
     PRStatus status;
     PRUint32 i;
-    nssSession *session;
+    nssTokenObjectCache *cache;
     NSSSlot *slot;
     CK_ULONG template_size;
     CK_ATTRIBUTE_PTR attr;
     CK_ATTRIBUTE cert_template[7];
+
     /* Set up a template of all options chosen by caller */
     NSS_CK_TEMPLATE_START(cert_template, attr, template_size);
     if (certTypeOpt) {
@@ -357,19 +413,22 @@ nssCryptokiCertificate_GetAttributes
 	return PR_SUCCESS;
     }
 
-    status = nssToken_GetCachedObjectAttributes(certObject->token, arenaOpt,
-                                                certObject, CKO_CERTIFICATE,
-                                                cert_template, template_size);
+    status = PR_FAILURE;
+    cache = nssToken_GetObjectCache(certObject->token);
+    if (cache) {
+	status = nssTokenObjectCache_GetObjectAttributes(cache, NULL,
+	                                                 certObject, 
+	                                                 CKO_CERTIFICATE,
+	                                                 cert_template, 
+	                                                 template_size);
+    }
     if (status != PR_SUCCESS) {
-
-	session = sessionOpt ? 
-	          sessionOpt : 
-	          nssToken_GetDefaultSession(certObject->token);
 
 	slot = nssToken_GetSlot(certObject->token);
 	status = nssCKObject_GetAttributes(certObject->handle, 
 	                                   cert_template, template_size,
-	                                   arenaOpt, session, slot);
+	                                   arenaOpt, certObject->session, 
+	                                   slot);
 	nssSlot_Destroy(slot);
 	if (status != PR_SUCCESS) {
 	    return status;
@@ -401,7 +460,6 @@ nssCryptokiCertificate_GetAttributes
     return PR_SUCCESS;
 }
 
-#ifdef PURE_STAN_BUILD
 static NSSKeyPairType
 nss_key_pair_type_from_ck_attrib(CK_ATTRIBUTE_PTR attrib)
 {
@@ -411,6 +469,7 @@ nss_key_pair_type_from_ck_attrib(CK_ATTRIBUTE_PTR attrib)
     switch (ckKeyType) {
     case CKK_RSA: return NSSKeyPairType_RSA;
     case CKK_DSA: return NSSKeyPairType_DSA;
+    case CKK_DH:  return NSSKeyPairType_DiffieHellman;
     default: break;
     }
     return NSSKeyPairType_Unknown;
@@ -420,7 +479,6 @@ NSS_IMPLEMENT PRStatus
 nssCryptokiPrivateKey_GetAttributes
 (
   nssCryptokiObject *keyObject,
-  nssSession *sessionOpt,
   NSSArena *arenaOpt,
   NSSKeyPairType *keyTypeOpt,
   NSSItem *idOpt
@@ -428,7 +486,6 @@ nssCryptokiPrivateKey_GetAttributes
 {
     PRStatus status;
     PRUint32 i;
-    nssSession *session;
     NSSSlot *slot;
     CK_ULONG template_size;
     CK_ATTRIBUTE_PTR attr;
@@ -447,14 +504,10 @@ nssCryptokiPrivateKey_GetAttributes
 	return PR_SUCCESS;
     }
 
-    session = sessionOpt ? 
-              sessionOpt : 
-              nssToken_GetDefaultSession(keyObject->token);
-
     slot = nssToken_GetSlot(keyObject->token);
     status = nssCKObject_GetAttributes(keyObject->handle, 
                                        key_template, template_size,
-                                       arenaOpt, session, slot);
+                                       arenaOpt, keyObject->session, slot);
     nssSlot_Destroy(slot);
     if (status != PR_SUCCESS) {
 	return status;
@@ -474,7 +527,6 @@ NSS_IMPLEMENT PRStatus
 nssCryptokiPublicKey_GetAttributes
 (
   nssCryptokiObject *keyObject,
-  nssSession *sessionOpt,
   NSSArena *arenaOpt,
   NSSKeyPairType *keyTypeOpt,
   NSSItem *idOpt
@@ -482,7 +534,6 @@ nssCryptokiPublicKey_GetAttributes
 {
     PRStatus status;
     PRUint32 i;
-    nssSession *session;
     NSSSlot *slot;
     CK_ULONG template_size;
     CK_ATTRIBUTE_PTR attr;
@@ -501,14 +552,10 @@ nssCryptokiPublicKey_GetAttributes
 	return PR_SUCCESS;
     }
 
-    session = sessionOpt ? 
-              sessionOpt : 
-              nssToken_GetDefaultSession(keyObject->token);
-
     slot = nssToken_GetSlot(keyObject->token);
     status = nssCKObject_GetAttributes(keyObject->handle, 
                                        key_template, template_size,
-                                       arenaOpt, session, slot);
+                                       arenaOpt, keyObject->session, slot);
     nssSlot_Destroy(slot);
     if (status != PR_SUCCESS) {
 	return status;
@@ -523,7 +570,6 @@ nssCryptokiPublicKey_GetAttributes
     }
     return PR_SUCCESS;
 }
-#endif /* PURE_STAN_BUILD */
 
 static nssTrustLevel 
 get_nss_trust
@@ -551,7 +597,6 @@ NSS_IMPLEMENT PRStatus
 nssCryptokiTrust_GetAttributes
 (
   nssCryptokiObject *trustObject,
-  nssSession *sessionOpt,
   nssTrustLevel *serverAuth,
   nssTrustLevel *clientAuth,
   nssTrustLevel *codeSigning,
@@ -560,7 +605,7 @@ nssCryptokiTrust_GetAttributes
 {
     PRStatus status;
     NSSSlot *slot;
-    nssSession *session;
+    nssTokenObjectCache *cache;
     CK_BBOOL isToken;
     CK_TRUST saTrust, caTrust, epTrust, csTrust;
     CK_ATTRIBUTE_PTR attr;
@@ -576,19 +621,21 @@ nssCryptokiTrust_GetAttributes
     NSS_CK_SET_ATTRIBUTE_VAR(attr, CKA_TRUST_CODE_SIGNING,     csTrust);
     NSS_CK_TEMPLATE_FINISH(trust_template, attr, trust_size);
 
-    status = nssToken_GetCachedObjectAttributes(trustObject->token, NULL,
-                                                trustObject, 
-                                                CKO_NETSCAPE_TRUST,
-                                                trust_template, trust_size);
+    status = PR_FAILURE;
+    cache = nssToken_GetObjectCache(trustObject->token);
+    if (cache) {
+	status = nssTokenObjectCache_GetObjectAttributes(cache, NULL,
+	                                                 trustObject, 
+	                                                 CKO_NETSCAPE_TRUST,
+	                                                 trust_template, 
+	                                                 trust_size);
+    }
     if (status != PR_SUCCESS) {
-	session = sessionOpt ? 
-	          sessionOpt : 
-	          nssToken_GetDefaultSession(trustObject->token);
 
 	slot = nssToken_GetSlot(trustObject->token);
 	status = nssCKObject_GetAttributes(trustObject->handle,
 	                                   trust_template, trust_size,
-	                                   NULL, session, slot);
+	                                   NULL, trustObject->session, slot);
 	nssSlot_Destroy(slot);
 	if (status != PR_SUCCESS) {
 	    return status;
@@ -606,7 +653,6 @@ NSS_IMPLEMENT PRStatus
 nssCryptokiCRL_GetAttributes
 (
   nssCryptokiObject *crlObject,
-  nssSession *sessionOpt,
   NSSArena *arenaOpt,
   NSSItem *encodingOpt,
   NSSUTF8 **urlOpt,
@@ -615,7 +661,7 @@ nssCryptokiCRL_GetAttributes
 {
     PRStatus status;
     NSSSlot *slot;
-    nssSession *session;
+    nssTokenObjectCache *cache;
     CK_ATTRIBUTE_PTR attr;
     CK_ATTRIBUTE crl_template[5];
     CK_ULONG crl_size;
@@ -633,19 +679,21 @@ nssCryptokiCRL_GetAttributes
     }
     NSS_CK_TEMPLATE_FINISH(crl_template, attr, crl_size);
 
-    status = nssToken_GetCachedObjectAttributes(crlObject->token, NULL,
-                                                crlObject, 
-                                                CKO_NETSCAPE_CRL,
-                                                crl_template, crl_size);
+    status = PR_FAILURE;
+    cache = nssToken_GetObjectCache(crlObject->token);
+    if (cache) {
+	status = nssTokenObjectCache_GetObjectAttributes(cache, NULL,
+	                                                 crlObject, 
+	                                                 CKO_NETSCAPE_CRL,
+	                                                 crl_template, 
+	                                                 crl_size);
+    }
     if (status != PR_SUCCESS) {
-	session = sessionOpt ? 
-	          sessionOpt : 
-	          nssToken_GetDefaultSession(crlObject->token);
 
 	slot = nssToken_GetSlot(crlObject->token);
 	status = nssCKObject_GetAttributes(crlObject->handle, 
 	                                   crl_template, crl_size,
-	                                   arenaOpt, session, slot);
+	                                   arenaOpt, crlObject->session, slot);
 	nssSlot_Destroy(slot);
 	if (status != PR_SUCCESS) {
 	    return status;
@@ -669,7 +717,7 @@ NSS_IMPLEMENT PRStatus
 nssCryptokiPrivateKey_SetCertificate
 (
   nssCryptokiObject *keyObject,
-  nssSession *sessionOpt,
+  nssSession *session,
   NSSUTF8 *nickname,
   NSSItem *id,
   NSSDER *subject
@@ -680,10 +728,9 @@ nssCryptokiPrivateKey_SetCertificate
     CK_ATTRIBUTE key_template[3];
     CK_ULONG key_size;
     void *epv = nssToken_GetCryptokiEPV(keyObject->token);
-    nssSession *session;
-    NSSToken *token = keyObject->token;
-    nssSession *defaultSession = nssToken_GetDefaultSession(token);
-    PRBool createdSession = PR_FALSE;
+
+    PR_ASSERT(session); /* XXX remove later */
+    PR_ASSERT(session->isRW);
 
     NSS_CK_TEMPLATE_START(key_template, attr, key_size);
     NSS_CK_SET_ATTRIBUTE_UTF8(attr, CKA_LABEL, nickname);
@@ -691,30 +738,189 @@ nssCryptokiPrivateKey_SetCertificate
     NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_SUBJECT, subject);
     NSS_CK_TEMPLATE_FINISH(key_template, attr, key_size);
 
-    if (sessionOpt) {
-	if (!nssSession_IsReadWrite(sessionOpt)) {
-	    return PR_FAILURE;
-	} else {
-	    session = sessionOpt;
-	}
-    } else if (nssSession_IsReadWrite(defaultSession)) {
-	session = defaultSession;
-    } else {
-	NSSSlot *slot = nssToken_GetSlot(token);
-	session = nssSlot_CreateSession(token->slot, NULL, PR_TRUE);
-	createdSession = PR_TRUE;
-	nssSlot_Destroy(slot);
-    }
-
     ckrv = CKAPI(epv)->C_SetAttributeValue(session->handle,
                                            keyObject->handle,
                                            key_template,
                                            key_size);
 
-    if (createdSession) {
-	nssSession_Destroy(session);
+    return (ckrv == CKR_OK) ? PR_SUCCESS : PR_FAILURE;
+}
+
+static NSSSymmetricKeyType
+nss_symm_key_type_from_ck_attrib(CK_ATTRIBUTE_PTR attrib)
+{
+    CK_KEY_TYPE ckKeyType;
+    PR_ASSERT(attrib->pValue);
+    ckKeyType = *((CK_ULONG *)attrib->pValue);
+    switch (ckKeyType) {
+    case CKK_DES:  return NSSSymmetricKeyType_DES;
+    case CKK_DES3: return NSSSymmetricKeyType_TripleDES;
+    case CKK_RC2:  return NSSSymmetricKeyType_RC2;
+    case CKK_RC4:  return NSSSymmetricKeyType_RC4;
+    case CKK_RC5:  return NSSSymmetricKeyType_RC5;
+    case CKK_AES:  return NSSSymmetricKeyType_AES;
+    default: break;
+    }
+    return NSSKeyPairType_Unknown;
+}
+
+NSS_IMPLEMENT PRStatus
+nssCryptokiSymmetricKey_GetAttributes
+(
+  nssCryptokiObject *keyObject,
+  NSSArena *arenaOpt,
+  NSSSymmetricKeyType *keyTypeOpt,
+  PRUint32 *keyLengthOpt,
+  NSSOperations *opsOpt
+)
+{
+    PRStatus status;
+    PRUint32 i;
+    NSSSlot *slot;
+    CK_ULONG template_size;
+    CK_ATTRIBUTE_PTR attr;
+    CK_ATTRIBUTE key_template[8];
+    /* Set up a template of all options chosen by caller */
+    NSS_CK_TEMPLATE_START(key_template, attr, template_size);
+    if (keyTypeOpt) {
+	NSS_CK_SET_ATTRIBUTE_NULL(attr, CKA_KEY_TYPE);
+    }
+    if (keyLengthOpt) {
+	NSS_CK_SET_ATTRIBUTE_NULL(attr, CKA_VALUE_LEN);
+    }
+    if (opsOpt) {
+	NSS_CK_SET_ATTRIBUTE_NULL(attr, CKA_ENCRYPT);
+	NSS_CK_SET_ATTRIBUTE_NULL(attr, CKA_DECRYPT);
+	NSS_CK_SET_ATTRIBUTE_NULL(attr, CKA_SIGN);
+	NSS_CK_SET_ATTRIBUTE_NULL(attr, CKA_VERIFY);
+	NSS_CK_SET_ATTRIBUTE_NULL(attr, CKA_WRAP);
+	NSS_CK_SET_ATTRIBUTE_NULL(attr, CKA_UNWRAP);
+    }
+    NSS_CK_TEMPLATE_FINISH(key_template, attr, template_size);
+    if (template_size == 0) {
+	/* caller didn't want anything */
+	return PR_SUCCESS;
     }
 
-    return (ckrv == CKR_OK) ? PR_SUCCESS : PR_FAILURE;
+    slot = nssToken_GetSlot(keyObject->token);
+    status = nssCKObject_GetAttributes(keyObject->handle, 
+                                       key_template, template_size,
+                                       arenaOpt, keyObject->session, slot);
+    nssSlot_Destroy(slot);
+    if (status != PR_SUCCESS) {
+	return status;
+    }
+
+    i=0;
+    if (keyTypeOpt) {
+	*keyTypeOpt = nss_symm_key_type_from_ck_attrib(&key_template[i]); i++;
+    }
+    if (keyLengthOpt) {
+	/* may not be defined for some keys */
+	if (key_template[i].ulValueLen != (CK_ULONG)-1 &&
+	    key_template[i].ulValueLen != (CK_ULONG)0)
+	{
+	    NSS_CK_ATTRIBUTE_TO_UINT(&key_template[i], *keyLengthOpt);
+	}
+	/* XXX need to set for those (DES) */
+	i++;
+    }
+    if (opsOpt) {
+	PRBool isTrue;
+	*opsOpt = 0;
+	NSS_CK_ATTRIBUTE_TO_BOOL(&key_template[i], isTrue); i++;
+	if (isTrue) {
+	    *opsOpt |= NSSOperations_ENCRYPT;
+	}
+	NSS_CK_ATTRIBUTE_TO_BOOL(&key_template[i], isTrue); i++;
+	if (isTrue) {
+	    *opsOpt |= NSSOperations_DECRYPT;
+	}
+	NSS_CK_ATTRIBUTE_TO_BOOL(&key_template[i], isTrue); i++;
+	if (isTrue) {
+	    *opsOpt |= NSSOperations_SIGN;
+	}
+	NSS_CK_ATTRIBUTE_TO_BOOL(&key_template[i], isTrue); i++;
+	if (isTrue) {
+	    *opsOpt |= NSSOperations_VERIFY;
+	}
+	NSS_CK_ATTRIBUTE_TO_BOOL(&key_template[i], isTrue); i++;
+	if (isTrue) {
+	    *opsOpt |= NSSOperations_WRAP;
+	}
+	NSS_CK_ATTRIBUTE_TO_BOOL(&key_template[i], isTrue); i++;
+	if (isTrue) {
+	    *opsOpt |= NSSOperations_UNWRAP;
+	}
+    }
+    return PR_SUCCESS;
+}
+
+NSS_IMPLEMENT nssCryptokiObject *
+nssCryptokiSymmetricKey_Copy
+(
+  nssCryptokiObject *sourceKey,
+  nssSession *sourceSession,
+  NSSToken *destination,
+  nssSession *destinationSession,
+  PRBool asTokenObject
+)
+{
+    CK_RV ckrv;
+    CK_ATTRIBUTE_PTR attr;
+    CK_ATTRIBUTE symmkey_template[7];
+    CK_ULONG tsize;
+    CK_OBJECT_HANDLE keyh;
+    void *epv = nssToken_GetCryptokiEPV(destination);
+    PRStatus status;
+    NSSArena *arena;
+    nssCryptokiObject *key;
+    NSSSlot *slot;
+
+    arena = nssArena_Create();
+    if (!arena) {
+	return (nssCryptokiObject *)NULL;
+    }
+
+    NSS_CK_TEMPLATE_START(symmkey_template, attr, tsize);
+    NSS_CK_SET_ATTRIBUTE_NULL(attr, CKA_CLASS);
+    NSS_CK_SET_ATTRIBUTE_NULL(attr, CKA_KEY_TYPE);
+    NSS_CK_SET_ATTRIBUTE_NULL(attr, CKA_VALUE);
+    NSS_CK_SET_ATTRIBUTE_NULL(attr, CKA_LABEL);
+    NSS_CK_TEMPLATE_FINISH(symmkey_template, attr, tsize);
+
+    slot = nssToken_GetSlot(sourceKey->token);
+    status = nssCKObject_GetAttributes(sourceKey->handle, 
+                                       symmkey_template, tsize,
+                                       arena, sourceSession, slot);
+    nssSlot_Destroy(slot);
+    if (status == PR_FAILURE) {
+    }
+
+    /* Now fill in destination-specific attributes */
+    if (asTokenObject) {
+	NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_TOKEN, &g_ck_true); tsize++;
+	/* XXX always private? */
+	NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_PRIVATE, &g_ck_true); tsize++;
+    } else {
+	NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_TOKEN, &g_ck_false); tsize++;
+    }
+
+    ckrv = CKAPI(epv)->C_CreateObject(destinationSession->handle, 
+                                      symmkey_template, tsize, &keyh);
+    if (ckrv != CKR_OK) {
+	goto loser;
+    }
+
+    key = nssCryptokiObject_Create(destination, destinationSession, keyh);
+    if (!key) {
+	goto loser;
+    }
+
+    nssArena_Destroy(arena);
+    return key;
+loser:
+    nssArena_Destroy(arena);
+    return (nssCryptokiObject *)NULL;
 }
 

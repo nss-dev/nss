@@ -47,8 +47,6 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #include "ckhelper.h"
 #endif /* CKHELPER_H */
 
-#ifdef PURE_STAN_CODE
-
 extern void FC_GetFunctionList(void);
 extern void NSC_GetFunctionList(void);
 extern void NSC_ModuleDBFunc(void);
@@ -896,5 +894,49 @@ nssModule_GetCertOrder
     return 1; /* XXX */
 }
 
-#endif /* PURE_STAN_BUILD */
+NSS_IMPLEMENT void
+NSSModule_GetInfo
+(
+  NSSModule *module,
+  NSSModuleInfo *moduleInfo
+)
+{
+    PRUint32 len;
+    CK_INFO *info = &module->info;
+    moduleInfo->name = module->base.name;
+    moduleInfo->libraryName = module->libraryName;
+    moduleInfo->numSlots = module->numSlots;
+    moduleInfo->isThreadSafe = NSSMODULE_IS_THREADSAFE(module);
+    moduleInfo->isInternal = NSSMODULE_IS_INTERNAL(module);
+    moduleInfo->isFIPS = NSSMODULE_IS_FIPS(module);
+    moduleInfo->isModuleDB = NSSMODULE_IS_MODULE_DB(module);
+    moduleInfo->isModuleDBOnly = NSSMODULE_IS_MODULE_DB_ONLY(module);
+    moduleInfo->isCritical = NSSMODULE_IS_CRITICAL(module);
+    moduleInfo->cryptokiVersion.major = module->info.cryptokiVersion.major;
+    moduleInfo->cryptokiVersion.minor = module->info.cryptokiVersion.minor;
+    len = nssPKCS11String_Length(info->manufacturerID,
+                                 sizeof(info->manufacturerID));
+    moduleInfo->manufacturerID = nssUTF8_Create(NULL,
+                                                nssStringType_PrintableString,
+                                                info->manufacturerID,
+                                                len);
+    len = nssPKCS11String_Length(info->libraryDescription,
+                                 sizeof(info->libraryDescription));
+    moduleInfo->libraryDescription = nssUTF8_Create(NULL,
+                                                nssStringType_PrintableString,
+                                                info->libraryDescription,
+                                                len);
+    moduleInfo->libraryVersion.major = info->libraryVersion.major;
+    moduleInfo->libraryVersion.minor = info->libraryVersion.minor;
+}
+
+NSS_IMPLEMENT void
+NSSModuleInfo_Destroy
+(
+  NSSModuleInfo *moduleInfo
+)
+{
+    nss_ZFreeIf(moduleInfo->manufacturerID);
+    nss_ZFreeIf(moduleInfo->libraryDescription);
+}
 

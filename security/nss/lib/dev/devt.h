@@ -44,158 +44,69 @@ static const char DEVT_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
  * This file contains definitions for the low-level cryptoki devices.
  */
 
-#ifndef NSSBASET_H
-#include "nssbaset.h"
-#endif /* NSSBASET_H */
-
-#ifndef NSSPKIT_H
-#include "nsspkit.h"
-#endif /* NSSPKIT_H */
+#ifndef NSSCKT_H
+#include "nssckt.h"
+#endif /* NSSCKT_H */
 
 #ifndef NSSDEVT_H
 #include "nssdevt.h"
 #endif /* NSSDEVT_H */
 
-#ifndef NSSCKT_H
-#include "nssckt.h"
-#endif /* NSSCKT_H */
-
-#ifndef BASET_H
-#include "baset.h"
-#endif /* BASET_H */
-
-#ifdef NSS_3_4_CODE
-#include "secmodt.h"
-#endif /* NSS_3_4_CODE */
-
 PR_BEGIN_EXTERN_C
 
 typedef struct nssSessionStr nssSession;
 
-/* XXX until NSSTokenStr is moved */
-struct nssDeviceBaseStr
-{
-  NSSArena *arena;
-  PZLock *lock;
-  PRInt32 refCount;
-  NSSUTF8 *name;
-  PRUint32 flags;
-};
+/* The list of boolean flags used to describe properties of a
+ * slot.
+ * XXX maybe cipher flags should be moved somewhere else?  too constrictive
+ *    on the availability of other slot flags?
+ */
+#define NSSSLOT_FLAGS_LOGIN_REQUIRED  0x00000001 /* needLogin  */
+/*#define NSSSLOT_FLAGS_READONLY        0x00000002*/ /* readOnly */
+#define NSSSLOT_FLAGS_HAS_RANDOM      0x00000010 /* hasRandom  */
+#define NSSSLOT_FLAGS_RSA             0x00000020 /* RSA        */
+#define NSSSLOT_FLAGS_DSA             0x00000040 /* DSA        */
+#define NSSSLOT_FLAGS_DH              0x00000080 /* DH         */
+#define NSSSLOT_FLAGS_RC2             0x00000100 /* RC2        */
+#define NSSSLOT_FLAGS_RC4             0x00000200 /* RC4        */
+#define NSSSLOT_FLAGS_RC5             0x00000400 /* RC5        */
+#define NSSSLOT_FLAGS_DES             0x00000800 /* DES        */
+#define NSSSLOT_FLAGS_AES             0x00001000 /* AES        */
+#define NSSSLOT_FLAGS_SHA1            0x00002000 /* SHA1       */
+#define NSSSLOT_FLAGS_MD2             0x00004000 /* MD2        */
+#define NSSSLOT_FLAGS_MD5             0x00008000 /* MD5        */
+#define NSSSLOT_FLAGS_SSL             0x00010000 /* SSL        */
+#define NSSSLOT_FLAGS_TLS             0x00020000 /* TLS        */
+#define NSSSLOT_FLAGS_FRIENDLY        0x00040000 /* isFriendly */
 
-typedef struct nssTokenObjectCacheStr nssTokenObjectCache;
-
-/* XXX until devobject.c goes away */
-struct NSSTokenStr
-{
-    struct nssDeviceBaseStr base;
-    NSSSlot *slot;  /* Parent (or peer, if you will) */
-    CK_FLAGS ckFlags; /* from CK_TOKEN_INFO.flags */
-    PRUint32 flags;
-    void *epv;
-    nssSession *defaultSession;
-    NSSTrustDomain *trustDomain;
-    PRIntervalTime lastTime;
-    nssTokenObjectCache *cache;
-#ifdef NSS_3_4_CODE
-    PK11SlotInfo *pk11slot;
-#endif
-};
-
-typedef enum {
-  nssSlotAskPasswordTimes_FirstTime = 0,
-  nssSlotAskPasswordTimes_EveryTime = 1,
-  nssSlotAskPasswordTimes_Timeout = 2
-} 
-nssSlotAskPasswordTimes;
-
-struct nssSlotAuthInfoStr
-{
-  PRTime lastLogin;
-  nssSlotAskPasswordTimes askTimes;
-  PRIntervalTime askPasswordTimeout;
-};
-
-struct NSSSlotStr
-{
-  struct nssDeviceBaseStr base;
-  NSSModule *module; /* Parent */
-  NSSToken *token;  /* Peer */
-  CK_SLOT_ID slotID;
-  CK_FLAGS ckFlags; /* from CK_SLOT_INFO.flags */
-  struct nssSlotAuthInfoStr authInfo;
-  PRIntervalTime lastTokenPing;
-#ifdef NSS_3_4_CODE
-  void *epv;
-  PK11SlotInfo *pk11slot;
-#endif
-};
-
-struct nssSessionStr
-{
-  PZLock *lock;
-  CK_SESSION_HANDLE handle;
-  NSSSlot *slot;
-  PRBool isRW;
-};
-
-typedef enum {
-    NSSCertificateType_Unknown = 0,
-    NSSCertificateType_PKIX = 1
-} NSSCertificateType;
-
-#ifdef nodef
-/* the current definition of NSSTrust depends on this value being CK_ULONG */
-typedef CK_ULONG nssTrustLevel;
-#else
-typedef enum {
-    nssTrustLevel_Unknown = 0,
-    nssTrustLevel_NotTrusted = 1,
-    nssTrustLevel_Trusted = 2,
-    nssTrustLevel_TrustedDelegator = 3,
-    nssTrustLevel_Valid = 4,
-    nssTrustLevel_ValidDelegator = 5
-} nssTrustLevel;
-#endif
-
-typedef struct nssCryptokiInstanceStr nssCryptokiInstance;
-
-struct nssCryptokiInstanceStr
-{
-    CK_OBJECT_HANDLE handle;
-    NSSToken *token;
-    PRBool isTokenObject;
-    NSSUTF8 *label;
-};
-
-typedef struct nssCryptokiInstanceStr nssCryptokiObject;
-
-typedef struct nssTokenCertSearchStr nssTokenCertSearch;
-
-typedef enum {
-    nssTokenSearchType_AllObjects = 0,
-    nssTokenSearchType_SessionOnly = 1,
-    nssTokenSearchType_TokenOnly = 2,
-    nssTokenSearchType_TokenForced = 3
-} nssTokenSearchType;
-
-struct nssTokenCertSearchStr
-{
-    nssTokenSearchType searchType;
-    PRStatus (* callback)(NSSCertificate *c, void *arg);
-    void *cbarg;
-    nssList *cached;
-    /* TODO: add a cache query callback if the list would be large 
-     *       (traversal) 
-     */
-};
-
-struct nssSlotListStr;
 typedef struct nssSlotListStr nssSlotList;
 
-struct NSSAlgorithmAndParametersStr
+typedef enum {
+  nssTrustLevel_Unknown = 0,
+  nssTrustLevel_NotTrusted = 1,
+  nssTrustLevel_Trusted = 2,
+  nssTrustLevel_TrustedDelegator = 3,
+  nssTrustLevel_Valid = 4,
+  nssTrustLevel_ValidDelegator = 5
+} nssTrustLevel;
+
+typedef enum {
+  nssTokenSearchType_AllObjects = 0,
+  nssTokenSearchType_SessionOnly = 1,
+  nssTokenSearchType_TokenOnly = 2,
+  nssTokenSearchType_TokenForced = 3 /* XXX internal only */
+} nssTokenSearchType;
+
+struct nssCryptokiObjectStr
 {
-    CK_MECHANISM mechanism;
+  CK_OBJECT_HANDLE handle;
+  NSSToken *token;
+  nssSession *session;
+  PRBool isTokenObject;
+  NSSUTF8 *label;
 };
+
+typedef struct nssCryptokiObjectStr nssCryptokiObject;
 
 PR_END_EXTERN_C
 
