@@ -948,9 +948,9 @@ NSSCKFWObject_GetAttributeTypes
   CK_ULONG ulCount
 )
 {
+#ifdef DEBUG
   CK_RV error = CKR_OK;
 
-#ifdef DEBUG
   error = nssCKFWObject_verifyPointer(fwObject);
   if( CKR_OK != error ) {
     return error;
