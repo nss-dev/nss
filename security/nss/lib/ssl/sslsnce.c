@@ -1214,10 +1214,15 @@ static void
 ServerSessionIDUncache(sslSessionID *sid)
 {
     SIDCacheEntry sce;
+    PRErrorCode   err;
     int rv;
 
     if (sid == NULL) return;
     
+    /* Uncaching a SID should never change the error code. 
+    ** So save it here and restore it before exiting.
+    */
+    err = PR_GetError();
     lock_cache();
     if (sid->version < SSL_LIBRARY_VERSION_3_0) {
 	SSL_TRC(8, ("%d: SSL: UncacheMT: valid=%d addr=0x%08x time=%x "
@@ -1246,6 +1251,7 @@ ServerSessionIDUncache(sslSessionID *sid)
     }
     sid->cached = invalid_cache;
     unlock_cache();
+    PORT_SetError(err);
 }
 
 static SECStatus

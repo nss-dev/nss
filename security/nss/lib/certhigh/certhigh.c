@@ -980,10 +980,10 @@ CERT_CertChainFromCert(CERTCertificate *cert, SECCertUsage usage,
 	node->cert = NULL;
 	if (rv < 0) goto loser;
     }
-    if ( includeRoot ) {
-	chain->len = len;
-    } else {
+    if ( !includeRoot && len > 1) {
 	chain->len = len - 1;
+    } else {
+	chain->len = len;
     }
     
     chain->arena = arena;
@@ -1010,6 +1010,83 @@ loser:
 	PORT_FreeArena(tmpArena, PR_FALSE);
     }
 
+    return NULL;
+}
+
+/* Builds a CERTCertificateList holding just one DER-encoded cert, namely
+** the one for the cert passed as an argument.
+*/
+CERTCertificateList *
+CERT_CertListFromCert(CERTCertificate *cert)
+{
+    CERTCertificateList *chain = NULL;
+    int rv;
+    PRArenaPool *arena;
+
+    /* arena for SecCertificateList */
+    arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
+    if (arena == NULL) goto no_memory;
+
+    /* build the CERTCertificateList */
+    chain = (CERTCertificateList *)PORT_ArenaAlloc(arena, sizeof(CERTCertificateList));
+    if (chain == NULL) goto no_memory;
+    chain->certs = (SECItem*)PORT_ArenaAlloc(arena, 1 * sizeof(SECItem));
+    if (chain->certs == NULL) goto no_memory;
+    rv = SECITEM_CopyItem(arena, chain->certs, &(cert->derCert));
+    if (rv < 0) goto loser;
+    chain->len = 1;
+    chain->arena = arena;
+
+    return chain;
+
+no_memory:
+    PORT_SetError(SEC_ERROR_NO_MEMORY);
+loser:
+    if (arena != NULL) {
+	PORT_FreeArena(arena, PR_FALSE);
+    }
+    return NULL;
+}
+
+CERTCertificateList *
+CERT_DupCertList(CERTCertificateList * oldList)
+{
+    CERTCertificateList *newList = NULL;
+    PRArenaPool         *arena   = NULL;
+    SECItem             *newItem;
+    SECItem             *oldItem;
+    int                 len      = oldList->len;
+    int                 rv;
+
+    /* arena for SecCertificateList */
+    arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
+    if (arena == NULL) 
+	goto no_memory;
+
+    /* now build the CERTCertificateList */
+    newList = PORT_ArenaNew(arena, CERTCertificateList);
+    if (newList == NULL) 
+	goto no_memory;
+    newList->arena = arena;
+    newItem = (SECItem*)PORT_ArenaAlloc(arena, len * sizeof(SECItem));
+    if (newItem == NULL) 
+	goto no_memory;
+    newList->certs = newItem;
+    newList->len   = len;
+
+    for (oldItem = oldList->certs; len > 0; --len, ++newItem, ++oldItem) {
+	rv = SECITEM_CopyItem(arena, newItem, oldItem);
+	if (rv < 0) 
+	    goto loser;
+    }
+    return newList;
+
+no_memory:
+    PORT_SetError(SEC_ERROR_NO_MEMORY);
+loser:
+    if (arena != NULL) {
+	PORT_FreeArena(arena, PR_FALSE);
+    }
     return NULL;
 }
 
