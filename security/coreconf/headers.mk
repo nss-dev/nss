@@ -40,7 +40,7 @@
 #  (xp) include paths
 #
 
-INCLUDES  += -I$(SOURCE_MDHEADERS_DIR) 
+INCLUDES  += -I$(SOURCE_MDHEADERS_DIR) -I$(SOURCE_XP_DIR)/include
 
 ifneq ($(OS_TARGET),WIN16)
 INCLUDES  += -I$(SOURCE_XPHEADERS_DIR)

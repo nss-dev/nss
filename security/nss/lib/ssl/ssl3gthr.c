@@ -76,6 +76,7 @@ ssl3_GatherData(sslSocket *ss, sslGather *gs, int flags)
 	gs->offset      = 0;
 	gs->writeOffset = 0;
 	gs->readOffset  = 0;
+	gs->inbuf.len   = 0;
     }
     
     lbp = gs->inbuf.buf;
@@ -108,8 +109,9 @@ ssl3_GatherData(sslSocket *ss, sslGather *gs, int flags)
 	}
 
 	gs->offset    += nb;
-	gs->inbuf.len += nb;
 	gs->remainder -= nb;
+	if (gs->state == GS_DATA)
+	    gs->inbuf.len += nb;
 
 	/* if there's more to go, read some more. */
 	if (gs->remainder > 0) {

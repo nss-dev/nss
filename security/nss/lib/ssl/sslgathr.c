@@ -436,11 +436,9 @@ ssl_NewGather(void)
 void 
 ssl_DestroyGather(sslGather *gs)
 {
-    if (gs->inbuf.buf != NULL) {
-	PORT_ZFree(gs->inbuf.buf, gs->inbuf.len);
-    }
-    if (gs) {
-	PORT_Free(gs->buf.buf);
+    if (gs) {	/* the PORT_*Free functions check for NULL pointers. */
+	PORT_ZFree(gs->buf.buf, gs->buf.space);
+	PORT_Free(gs->inbuf.buf);
 	PORT_Free(gs);
     }
 }
