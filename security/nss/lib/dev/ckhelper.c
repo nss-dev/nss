@@ -196,12 +196,14 @@ nssCKObject_IsAttributeTrue
 )
 {
     CK_BBOOL bool;
-    CK_ATTRIBUTE attr = { 0, NULL, 0 };
+    CK_ATTRIBUTE_PTR attr;
+    CK_ATTRIBUTE atemplate = { 0, NULL, 0 };
     CK_RV ckrv;
-    attr.type = attribute;
-    NSS_CK_SET_ATTRIBUTE_VAR(&attr, 0, bool);
+    attr = &atemplate;
+    NSS_CK_SET_ATTRIBUTE_VAR(attr, attribute, bool);
     nssSession_EnterMonitor(session);
-    ckrv = CKAPI(slot)->C_GetAttributeValue(session->handle, object, &attr, 1);
+    ckrv = CKAPI(slot)->C_GetAttributeValue(session->handle, object, 
+                                            &atemplate, 1);
     nssSession_ExitMonitor(session);
     if (ckrv != CKR_OK) {
 	*rvStatus = PR_FAILURE;

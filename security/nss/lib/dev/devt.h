@@ -167,17 +167,26 @@ struct nssCryptokiInstanceStr
 {
     CK_OBJECT_HANDLE handle;
     NSSToken *token;
+    PRBool isTokenObject;
 };
 
 typedef struct nssTokenCertSearchStr nssTokenCertSearch;
 
+typedef enum {
+    nssTokenSearchType_AllObjects = 0,
+    nssTokenSearchType_SessionOnly = 1,
+    nssTokenSearchType_TokenOnly = 2
+} nssTokenSearchType;
+
 struct nssTokenCertSearchStr
 {
+    nssTokenSearchType searchType;
     PRStatus (* callback)(NSSCertificate *c, void *arg);
     void *cbarg;
     nssList *cached;
-    NSSTrustDomain *trustDomain;
-    NSSCryptoContext *cryptoContext;
+    /* TODO: add a cache query callback if the list would be large 
+     *       (traversal) 
+     */
 };
 
 struct NSSAlgorithmAndParametersStr
