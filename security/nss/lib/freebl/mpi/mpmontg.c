@@ -106,7 +106,7 @@ loser:
   return rv;
 }
 
-mp_err mp_to_mont(mp_int *x, mp_mont_modulus *mmm, mp_int *xMont)
+mp_err mp_to_mont(const mp_int *x, mp_mont_modulus *mmm, mp_int *xMont)
 {
   mp_err rv;
 
@@ -143,10 +143,10 @@ mp_err mp_n_to_n0prime(mp_mont_modulus *mmm)
   return MP_OKAY;
 }
 
-mp_err mp_exptmod(mp_int *inBase, mp_int *exponent, mp_int *modulus, 
-		  mp_int *result)
+mp_err mp_exptmod(const mp_int *inBase, const mp_int *exponent, 
+		  const mp_int *modulus, mp_int *result)
 {
-  mp_int *base;
+  const mp_int *base;
   mp_size bits_in_exponent;
   mp_size i;
   mp_err rv;
