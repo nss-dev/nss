@@ -105,6 +105,8 @@ NSS_CMSSignedData_Destroy(NSSCMSSignedData *sigd)
     }
 
     /* everything's in a pool, so don't worry about the storage */
+   NSS_CMSContentInfo_Destroy(&(sigd->contentInfo));
+
 }
 
 /*
