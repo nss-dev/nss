@@ -968,6 +968,11 @@ CERT_DupCertList(CERTCertificateList * oldList);
 
 extern void CERT_DestroyCertificateList(CERTCertificateList *list);
 
+/* is cert a user cert ? ie. does it have CERTDB_USER trust,
+   ie. a private key
+ */
+PRBool CERT_IsUserCert(CERTCertificate* cert);
+
 /* is cert a newer than cert b? */
 PRBool CERT_IsNewer(CERTCertificate *certa, CERTCertificate *certb);
 
@@ -1240,6 +1245,12 @@ CERT_FindUserCertByUsage(CERTCertDBHandle *handle,
 SECStatus
 CERT_FilterCertListByCANames(CERTCertList *certList, int nCANames,
 			     char **caNames, SECCertUsage usage);
+
+/*
+ * Filter a list of certificates, removing those certs that aren't user certs
+ */
+SECStatus
+CERT_FilterCertListForUserCerts(CERTCertList *certList);
 
 /*
  * Collect the nicknames from all certs in a CertList.  If the cert is not
