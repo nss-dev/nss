@@ -414,15 +414,6 @@ nssCert_GetNickname (
     return nssPKIObject_GetNickname(&c->object, tokenOpt);
 }
 
-NSS_IMPLEMENT NSSToken *
-nssCert_GetWriteToken (
-  NSSCert *c,
-  nssSession **rvSessionOpt
-)
-{
-    return nssPKIObject_GetWriteToken(&c->object, rvSessionOpt);
-}
-
 NSS_IMPLEMENT NSSUTF8 *
 NSSCert_GetNickname (
   NSSCert *c,
@@ -687,17 +678,20 @@ nssCert_SetVolatileDomain (
   NSSVolatileDomain *vd
 )
 {
-    c->object.vd = vd; /* volatile domain holds ref to cert */
-    c->object.td = nssVolatileDomain_GetTrustDomain(vd);
+    nssPKIObject_SetVolatileDomain(&c->object, vd);
 }
 
-NSS_IMPLEMENT NSSVolatileDomain *
-nssCert_GetVolatileDomain (
+NSS_IMPLEMENT NSSVolatileDomain **
+nssCert_GetVolatileDomains(
   NSSCert *c,
+  NSSVolatileDomain **vdsOpt,
+  PRUint32 maximumOpt,
+  NSSArena *arenaOpt,
   PRStatus *statusOpt
 )
 {
-    return nssPKIObject_GetVolatileDomain(&c->object, statusOpt);
+    return nssPKIObject_GetVolatileDomains(&c->object, vdsOpt,
+                                           maximumOpt, arenaOpt, statusOpt);
 }
 
 NSS_IMPLEMENT NSSTrustDomain *
@@ -1194,7 +1188,8 @@ find_cert_issuer (
     NSSCert *issuer = NULL;
     NSSTrustDomain *td;
     NSSVolatileDomain *vd;
-    vd = nssCert_GetVolatileDomain(c, NULL);
+    /* XXX what to do with multiple vds? */
+    nssCert_GetVolatileDomains(c, &vd, 1, NULL, NULL);
     td = nssCert_GetTrustDomain(c);
     if (vd) {
 	issuers = nssVolatileDomain_FindCertsBySubject(vd, &c->issuer,
@@ -1429,7 +1424,9 @@ nssCert_GetPublicKey (
 {
     PRStatus status;
     NSSTrustDomain *td = nssCert_GetTrustDomain(c);
-    NSSVolatileDomain *vd = nssCert_GetVolatileDomain(c, NULL);
+    NSSVolatileDomain *vd;
+    /* XXX multiple vds? */
+    nssCert_GetVolatileDomains(c, &vd, 1, NULL, NULL);
 
     if (!c->bk && c->id.size > 0) {
 	/* first try looking for a persistent object */
@@ -1607,152 +1604,3 @@ NSSUserCert_DeriveSymKey (
     return NULL;
 }
 
-struct nssSMIMEProfileStr
-{
-    nssPKIObject object;
-    NSSCert *certificate;
-    NSSASCII7 *email;
-    NSSDER *subject;
-    NSSItem *profileTime;
-    NSSItem *profileData;
-};
-
-NSS_IMPLEMENT nssSMIMEProfile *
-nssSMIMEProfile_Create (
-  NSSCert *cert,
-  NSSItem *profileTime,
-  NSSItem *profileData
-)
-{
-#if 0
-    NSSArena *arena;
-    nssSMIMEProfile *rvProfile;
-    nssPKIObject *object;
-    NSSTrustDomain *td = nssCert_GetTrustDomain(cert);
-    NSSCryptoContext *cc = nssCert_GetCryptoContext(cert);
-    arena = nssArena_Create();
-    if (!arena) {
-	return NULL;
-    }
-    object = nssPKIObject_Create(arena, NULL, td, cc);
-    if (!object) {
-	goto loser;
-    }
-    rvProfile = nss_ZNEW(arena, nssSMIMEProfile);
-    if (!rvProfile) {
-	goto loser;
-    }
-    rvProfile->object = *object;
-    rvProfile->certificate = cert;
-    rvProfile->email = nssUTF8_Duplicate(cert->email, arena);
-    rvProfile->subject = nssItem_Duplicate(&cert->subject, arena, NULL);
-    if (profileTime) {
-	rvProfile->profileTime = nssItem_Duplicate(profileTime, arena, NULL);
-    }
-    if (profileData) {
-	rvProfile->profileData = nssItem_Duplicate(profileData, arena, NULL);
-    }
-    return rvProfile;
-loser:
-    nssPKIObject_Destroy(object);
-#endif
-    return (nssSMIMEProfile *)NULL;
-}
-
-NSS_IMPLEMENT nssSMIMEProfile *
-nssSMIMEProfile_AddRef (
-  nssSMIMEProfile *profile
-)
-{
-    if (profile) {
-	nssPKIObject_AddRef(&profile->object);
-    }
-    return profile;
-}
-
-NSS_IMPLEMENT PRStatus
-nssSMIMEProfile_Destroy (
-  nssSMIMEProfile *profile
-)
-{
-    if (profile) {
-	(void)nssPKIObject_Destroy(&profile->object);
-    }
-    return PR_SUCCESS;
-}
-
-struct NSSCRLStr {
-  nssPKIObject object;
-  NSSDER encoding;
-  NSSUTF8 *url;
-  PRBool isKRL;
-};
-
-NSS_IMPLEMENT NSSCRL *
-nssCRL_Create (
-  nssPKIObject *object
-)
-{
-    PRStatus status;
-    NSSCRL *rvCRL;
-    NSSArena *arena = object->arena;
-    PR_ASSERT(object->instances != NULL && object->numInstances > 0);
-    rvCRL = nss_ZNEW(arena, NSSCRL);
-    if (!rvCRL) {
-	return (NSSCRL *)NULL;
-    }
-    rvCRL->object = *object;
-    /* XXX should choose instance based on some criteria */
-    status = nssCryptokiCRL_GetAttributes(object->instances[0],
-                                          arena,
-                                          &rvCRL->encoding,
-                                          &rvCRL->url,
-                                          &rvCRL->isKRL);
-    if (status != PR_SUCCESS) {
-	return (NSSCRL *)NULL;
-    }
-    return rvCRL;
-}
-
-NSS_IMPLEMENT NSSCRL *
-nssCRL_AddRef (
-  NSSCRL *crl
-)
-{
-    if (crl) {
-	nssPKIObject_AddRef(&crl->object);
-    }
-    return crl;
-}
-
-NSS_IMPLEMENT PRStatus
-nssCRL_Destroy (
-  NSSCRL *crl
-)
-{
-    if (crl) {
-	(void)nssPKIObject_Destroy(&crl->object);
-    }
-    return PR_SUCCESS;
-}
-
-NSS_IMPLEMENT PRStatus
-nssCRL_DeleteStoredObject (
-  NSSCRL *crl,
-  NSSCallback *uhh
-)
-{
-    return nssPKIObject_DeleteStoredObject(&crl->object, uhh, PR_TRUE);
-}
-
-NSS_IMPLEMENT NSSDER *
-nssCRL_GetEncoding (
-  NSSCRL *crl
-)
-{
-    if (crl->encoding.data != NULL && crl->encoding.size > 0) {
-	return &crl->encoding;
-    } else {
-	return (NSSDER *)NULL;
-    }
-}

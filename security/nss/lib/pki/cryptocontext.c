@@ -122,7 +122,9 @@ nssCryptoContext_CreateForSymKey (
 {
     NSSCryptoContext *rvCC;
     NSSTrustDomain *td = nssSymKey_GetTrustDomain(mkey, NULL);
-    NSSVolatileDomain *vd = nssSymKey_GetVolatileDomain(mkey, NULL);
+    /* XXX multiple vds? */
+    NSSVolatileDomain *vd;
+    nssSymKey_GetVolatileDomains(mkey, &vd, 1, NULL, NULL);
 
     rvCC = nssCryptoContext_Create(td, vd, apOpt, uhhOpt);
     if (rvCC) {
@@ -142,7 +144,9 @@ nssCryptoContext_CreateForPrivateKey (
 {
     NSSCryptoContext *rvCC;
     NSSTrustDomain *td = nssPrivateKey_GetTrustDomain(vkey, NULL);
-    NSSVolatileDomain *vd = nssPrivateKey_GetVolatileDomain(vkey, NULL);
+    /* XXX multiple vds? */
+    NSSVolatileDomain *vd;
+    nssPrivateKey_GetVolatileDomains(vkey, &vd, 1, NULL, NULL);
 
     rvCC = nssCryptoContext_Create(td, vd, apOpt, uhhOpt);
     if (rvCC) {

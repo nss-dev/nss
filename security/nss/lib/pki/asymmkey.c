@@ -232,7 +232,7 @@ nssPrivateKey_SetVolatileDomain (
   NSSVolatileDomain *vd
 )
 {
-    vk->object.vd = vd; /* volatile domain holds ref */
+    nssPKIObject_SetVolatileDomain(&vk->object, vd);
 }
 
 NSS_IMPLEMENT PRStatus
@@ -573,13 +573,17 @@ cleanup:
     return rvKey;
 }
 
-NSS_IMPLEMENT NSSVolatileDomain *
+NSS_IMPLEMENT NSSVolatileDomain **
 nssPrivateKey_GetVolatileDomain (
   NSSPrivateKey *vk,
+  NSSVolatileDomain **vdsOpt,
+  PRUint32 maximumOpt,
+  NSSArena *arenaOpt,
   PRStatus *statusOpt
 )
 {
-    return nssPKIObject_GetVolatileDomain(&vk->object, statusOpt);
+    return nssPKIObject_GetVolatileDomains(&vk->object, vdsOpt,
+                                           maximumOpt, arenaOpt, statusOpt);
 }
 
 NSS_IMPLEMENT NSSTrustDomain *
@@ -1148,7 +1152,7 @@ nssPublicKey_SetVolatileDomain (
   NSSVolatileDomain *vd
 )
 {
-    bk->object.vd = vd; /* volatile domain holds ref */
+    nssPKIObject_SetVolatileDomain(&bk->object, vd);
 }
 
 NSS_IMPLEMENT PRStatus

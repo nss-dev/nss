@@ -281,9 +281,12 @@ nssPrivateKey_GetTrustDomain (
   PRStatus *statusOpt
 );
 
-NSS_EXTERN NSSVolatileDomain *
-nssPrivateKey_GetVolatileDomain (
+NSS_EXTERN NSSVolatileDomain **
+nssPrivateKey_GetVolatileDomains (
   NSSPrivateKey *vk,
+  NSSVolatileDomain **vdsOpt,
+  PRUint32 maximumOpt,
+  NSSArena *arenaOpt,
   PRStatus *statusOpt
 );
 
@@ -322,9 +325,12 @@ nssSymKey_AddRef (
   NSSSymKey *mk
 );
 
-NSS_EXTERN NSSVolatileDomain *
-nssSymKey_GetVolatileDomain (
+NSS_EXTERN NSSVolatileDomain **
+nssSymKey_GetVolatileDomains (
   NSSSymKey *mk,
+  NSSVolatileDomain **vdsOpt,
+  PRUint32 maximumOpt,
+  NSSArena *arenaOpt,
   PRStatus *statusOpt
 );
 

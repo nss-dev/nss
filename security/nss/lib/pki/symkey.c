@@ -283,7 +283,7 @@ nssSymKey_SetVolatileDomain (
   NSSVolatileDomain *vd
 )
 {
-    mk->object.vd = vd; /* volatile domain holds ref */
+    nssPKIObject_SetVolatileDomain(&mk->object, vd);
 }
 
 NSS_IMPLEMENT NSSTrustDomain *
@@ -304,13 +304,17 @@ NSSSymKey_GetTrustDomain (
     return nssSymKey_GetTrustDomain(mk, statusOpt);
 }
 
-NSS_IMPLEMENT NSSVolatileDomain *
-nssSymKey_GetVolatileDomain (
+NSS_IMPLEMENT NSSVolatileDomain **
+nssSymKey_GetVolatileDomains (
   NSSSymKey *mk,
+  NSSVolatileDomain **vdsOpt,
+  PRUint32 maximumOpt,
+  NSSArena *arenaOpt,
   PRStatus *statusOpt
 )
 {
-    return nssPKIObject_GetVolatileDomain(&mk->object, statusOpt);
+    return nssPKIObject_GetVolatileDomains(&mk->object, vdsOpt,
+                                           maximumOpt, arenaOpt, statusOpt);
 }
 
 NSS_IMPLEMENT NSSToken *
@@ -678,9 +682,14 @@ nssSymKey_DeriveSSLSessionKeys (
     nssCryptokiObject *mso; /* only one instance of master secret */
     nssCryptokiObject *skeys[4];
     NSSTrustDomain *td = masterSecret->object.td;
-    NSSVolatileDomain *vd = masterSecret->object.vd;
+    NSSVolatileDomain *vd;
     PRStatus status;
     PRIntn i;
+
+    nssSymKey_GetVolatileDomains(masterSecret, &vd, 1, NULL, &status);
+    if (status == PR_FAILURE) {
+	return PR_FAILURE;
+    }
 
     mso = masterSecret->object.instances[0];
     status = nssToken_DeriveSSLSessionKeys(mso->token, mso->session, 

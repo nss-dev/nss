@@ -87,8 +87,8 @@ struct nssPKIObjectStr
     PRUint32 numInstances;
     /* The object must live in a trust domain */
     NSSTrustDomain *td;
-    /* The object may live in a volatile domain */
-    NSSVolatileDomain *vd;
+    /* The object may live in multiple volatile domains (or none at all) */
+    PRCList vds;
     /* The "meta"-name of the object (token instance labels may differ) */
     NSSUTF8 *nickname;
     /* The following data index the UID for the object.  The UID is used

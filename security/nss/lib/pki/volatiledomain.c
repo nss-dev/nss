@@ -225,6 +225,10 @@ nssVolatileDomain_ImportCert (
 )
 {
     PZ_Lock(vd->objectLock);
+    if (nssPKIObject_IsInVolatileDomain(c, vd)) {
+	PZ_Unlock(vd->objectLock);
+	return PR_SUCCESS;
+    }
     if (vd->certs.count == vd->certs.size) {
 	if (vd->certs.size == 0) {
 	    /* need to alloc new array */

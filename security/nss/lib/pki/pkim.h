@@ -209,16 +209,25 @@ nssPKIObject_GetTrustDomain (
   PRStatus *statusOpt
 );
 
-NSS_EXTERN NSSVolatileDomain *
-nssPKIObject_GetVolatileDomain (
+NSS_EXTERN void
+nssPKIObject_SetVolatileDomain (
   nssPKIObject *object,
-  PRStatus *statusOpt
+  NSSVolatileDomain *vd
 );
 
-NSS_EXTERN NSSToken *
-nssPKIObject_GetWriteToken (
+NSS_EXTERN PRBool
+nssPKIObject_IsInVolatileDomain (
   nssPKIObject *object,
-  nssSession **rvSessionOpt
+  NSSVolatileDomain *vd
+);
+
+NSS_EXTERN NSSVolatileDomain **
+nssPKIObject_GetVolatileDomains (
+  nssPKIObject *object,
+  NSSVolatileDomain **vdsOpt,
+  PRUint32 maximumOpt,
+  NSSArena *arenaOpt,
+  PRStatus *statusOpt
 );
 
 NSS_EXTERN nssCryptokiObject **

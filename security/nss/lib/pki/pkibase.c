@@ -43,6 +43,11 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #include "pkim.h"
 #endif /* PKIM_H */
 
+struct volatile_domain_instance_str {
+    PRCList link;
+    NSSVolatileDomain *vd;
+};
+
 NSS_IMPLEMENT nssPKIObject *
 nssPKIObject_Create (
   NSSTrustDomain *td,
@@ -491,49 +496,109 @@ nssPKIObject_GetTrustDomain (
     return object->td;
 }
 
-NSS_IMPLEMENT NSSVolatileDomain *
-nssPKIObject_GetVolatileDomain (
-  nssPKIObject *object,
-  PRStatus *statusOpt
-)
+static PRBool 
+object_is_in_vd(nssPKIObject *object, NSSVolatileDomain *vd)
 {
-    if (statusOpt) {
-	*statusOpt = PR_SUCCESS;
+    PRCList *link;
+    PRBool inVD = PR_FALSE;
+    struct volatile_domain_instance_str *vdInstance;
+
+    link = PR_NEXT_LINK(&object->vds);
+    while (link != &object->vds) {
+	vdInstance = (struct volatile_domain_instance_str *)link;
+	if (vdInstance->vd == vd) {
+	    inVD = PR_TRUE;
+	    break;
+	}
+	link = PR_NEXT_LINK(link);
     }
-    return nssVolatileDomain_AddRef(object->vd);
+    return inVD;
 }
 
-NSS_IMPLEMENT NSSToken *
-nssPKIObject_GetWriteToken (
+NSS_IMPLEMENT void
+nssPKIObject_SetVolatileDomain (
   nssPKIObject *object,
-  nssSession **rvSessionOpt
+  NSSVolatileDomain *vd
 )
 {
-    PRUint32 i;
-    NSSToken *token = NULL;
-    nssCryptokiObject *instance;
-    *rvSessionOpt = NULL;
+    struct volatile_domain_instance_str *vdInstance;
+
     PZ_Lock(object->lock);
-    for (i=0; i<object->numInstances; i++) {
-	instance = object->instances[i];
-	if (!nssToken_IsReadOnly(instance->token)) {
-	    token = nssToken_AddRef(instance->token);
-	    if (rvSessionOpt && nssSession_IsReadWrite(instance->session)) 
-	    {
-		*rvSessionOpt = nssSession_AddRef(instance->session);
-	    }
-	    break;
+    if (!object_is_in_vd(object, vd)) {
+	/* XXX in arena? */
+	vdInstance = nss_ZNEW(object->arena, 
+	                      struct volatile_domain_instance_str);
+	if (vdInstance) {
+	    PR_INIT_CLIST(&vdInstance->link);
+	    vdInstance->vd = vd; /* no addref */
+	    PR_INSERT_BEFORE(&object->vds, &vdInstance->link);
 	}
     }
     PZ_Unlock(object->lock);
-    if (token && rvSessionOpt && !*rvSessionOpt) {
-	*rvSessionOpt = nssToken_CreateSession(token, PR_TRUE);
-	if (!*rvSessionOpt) {
-	    nssToken_Destroy(token);
-	    token = NULL;
+    /* XXX probably should return error */
+}
+
+NSS_IMPLEMENT PRBool
+nssPKIObject_IsInVolatileDomain (
+  nssPKIObject *object,
+  NSSVolatileDomain *vd
+)
+{
+    PRBool inVD;
+    PZ_Lock(object->lock);
+    inVD = object_is_in_vd(object, vd);
+    PZ_Unlock(object->lock);
+    return inVD;
+}
+
+
+NSS_IMPLEMENT NSSVolatileDomain **
+nssPKIObject_GetVolatileDomains (
+  nssPKIObject *object,
+  NSSVolatileDomain **vdsOpt,
+  PRUint32 maximumOpt,
+  NSSArena *arenaOpt,
+  PRStatus *statusOpt
+)
+{
+    PRCList *link;
+    PRUint32 i;
+    struct volatile_domain_instance_str *vdInstance;
+    if (statusOpt) *statusOpt = PR_SUCCESS;
+    if (!vdsOpt) {
+	if (maximumOpt > 0) {
+	    i = maximumOpt;
+	} else {
+	    PZ_Lock(object->lock);
+	    /* count the number of VD instances */
+	    for (link = PR_NEXT_LINK(&object->vds), i=0;
+	         link != &object->vds; 
+	         link = PR_NEXT_LINK(link), i++);
+	    PZ_Unlock(object->lock);
+	    maximumOpt = i;
+	}
+	if (i == 0) {
+	    return (NSSVolatileDomain **)NULL;
+	}
+	vdsOpt = nss_ZNEWARRAY(arenaOpt, NSSVolatileDomain *, i + 1);
+	if (!vdsOpt) {
+	    if (statusOpt) *statusOpt = PR_FAILURE;
+	    return (NSSVolatileDomain **)NULL;
 	}
     }
-    return token;
+    i = 0;
+    PZ_Lock(object->lock);
+    link = PR_NEXT_LINK(&object->vds);
+    while (link != &object->vds) {
+	vdInstance = (struct volatile_domain_instance_str *)link;
+	vdsOpt[i++] = nssVolatileDomain_AddRef(vdInstance->vd);
+	if (i == maximumOpt)
+	    break;
+	link = PR_NEXT_LINK(link);
+    }
+    PZ_Unlock(object->lock);
+    vdsOpt[i] = NULL;
+    return vdsOpt;
 }
 
 NSS_IMPLEMENT NSSCert **
