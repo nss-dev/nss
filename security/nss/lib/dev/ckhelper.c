@@ -138,6 +138,10 @@ nssCKObject_GetAttributes
 	for (i=0; i<count; i++) {
 	    CK_ULONG ulValueLen = obj_template[i].ulValueLen;
 	    if (ulValueLen == 0) continue;
+	    if (ulValueLen < 0) {
+		obj_template[i].ulValueLen = 0;
+		continue;
+	    }
 	    if (is_string_attribute(obj_template[i].type)) {
 		ulValueLen++;
 	    }
