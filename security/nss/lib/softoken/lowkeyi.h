@@ -130,6 +130,9 @@ extern SECStatus nsslowkey_StoreKeyByPublicKey(NSSLOWKEYDBHandle *handle,
 /* does the key for this cert exist in the database filed by modulus */
 extern PRBool nsslowkey_KeyForCertExists(NSSLOWKEYDBHandle *handle,
 					 NSSLOWCERTCertificate *cert);
+/* does a key with this ID already exist? */
+extern PRBool nsslowkey_KeyForIDExists(NSSLOWKEYDBHandle *handle, SECItem *id);
+
 
 extern SECStatus nsslowkey_HasKeyDBPassword(NSSLOWKEYDBHandle *handle);
 extern SECStatus nsslowkey_SetKeyDBPassword(NSSLOWKEYDBHandle *handle,
