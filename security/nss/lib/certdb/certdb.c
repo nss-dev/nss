@@ -2028,8 +2028,17 @@ CERT_ImportCerts(CERTCertDBHandle *certdb, SECCertUsage usage,
     
 	/* decode all of the certs into the temporary DB */
 	for ( i = 0, fcerts= 0; i < ncerts; i++) {
-	    certs[fcerts] = CERT_DecodeDERCertificate(derCerts[i], PR_FALSE,
-						NULL);
+	    if ( keepCerts ) {
+		certs[fcerts] = CERT_DecodeDERCertificate(derCerts[i], 
+		                                          PR_FALSE,
+		                                          NULL);
+	    } else {
+		certs[fcerts] = CERT_NewTempCertificate(certdb,
+		                                        derCerts[i],
+		                                        NULL,
+		                                        PR_FALSE,
+		                                        PR_TRUE);
+	    }
 	    if (certs[fcerts]) fcerts++;
 	}
 
