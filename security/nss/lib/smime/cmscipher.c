@@ -598,7 +598,7 @@ NSS_CMSCipherContext_Decrypt(NSSCMSCipherContext *cc, unsigned char *output,
      */
     if (final && (padsize != 0)) {
 	unsigned int padlen = *(output + ofraglen - 1);
-	PORT_Assert (padlen > 0 && padlen <= padsize);
+
 	if (padlen == 0 || padlen > padsize) {
 	    PORT_SetError(SEC_ERROR_BAD_DATA);
 	    return SECFailure;
