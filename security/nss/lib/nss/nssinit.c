@@ -63,6 +63,8 @@
 #define KEY_DB_FMT "%skey%s.db"
 #endif
 
+static char *secmodname = NULL;  
+
 static char *
 nss_certdb_name_cb(void *arg, int dbVersion)
 {
@@ -156,14 +158,13 @@ nss_OpenKeyDB(const char * configdir, const char *prefix, PRBool readOnly)
     if (keydb == NULL)
 	return SECFailure;
     SECKEY_SetDefaultKeyDB(keydb);
+    PORT_Free(name);
     return SECSuccess;
 }
 
 static SECStatus
 nss_OpenSecModDB(const char * configdir,const char *dbname)
 {
-    static char *secmodname;
-
     /* XXX
      * For idempotency, this should check to see if the secmodDB is alredy open
      * but no function exists to make that determination.
@@ -172,7 +173,7 @@ nss_OpenSecModDB(const char * configdir,const char *dbname)
     	return SECSuccess;
     secmodname = PR_smprintf("%s" PATH_SEPARATOR "%s", configdir,dbname);
     if (secmodname == NULL)
-	return SECFailure;
+      return SECFailure;
     SECMOD_init(secmodname);
     return SECSuccess;
 }
@@ -338,8 +339,6 @@ NSS_NoDB_Init(const char * configdir)
 {
           
       SECStatus rv = SECSuccess;
-      SECMODModule *module;
-
      
       rv = RNG_RNGInit();
       if (rv != SECSuccess) {
@@ -363,6 +362,7 @@ NSS_Shutdown(void)
     SECKEYKeyDBHandle *keyHandle;
 
     SECMOD_Shutdown();
+    PR_FREEIF(secmodname);
     certHandle = CERT_GetDefaultCertDB();
     if (certHandle)
     	CERT_ClosePermCertDB(certHandle);
