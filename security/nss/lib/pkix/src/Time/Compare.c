@@ -50,7 +50,7 @@ NSS_IMPLEMENT PRInt32
 NSSPKIXTime_Compare
 (
   NSSPKIXTime *time1,
-  NSSPKIXTime *tiem2,
+  NSSPKIXTime *time2,
   PRStatus *statusOpt
 )
   nss_ClearErrorStack();
