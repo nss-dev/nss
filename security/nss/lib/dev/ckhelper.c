@@ -551,7 +551,10 @@ nssCryptokiTrust_GetAttributes (
     NSSSlot *slot;
     nssSession *session;
     CK_BBOOL isToken, stepUp;
-    CK_TRUST saTrust, caTrust, epTrust, csTrust;
+    CK_TRUST saTrust = CKT_NETSCAPE_TRUST_UNKNOWN;
+    CK_TRUST caTrust = CKT_NETSCAPE_TRUST_UNKNOWN;
+    CK_TRUST epTrust = CKT_NETSCAPE_TRUST_UNKNOWN;
+    CK_TRUST csTrust = CKT_NETSCAPE_TRUST_UNKNOWN;
     CK_ATTRIBUTE_PTR attr;
     CK_ATTRIBUTE trust_template[7];
     CK_ULONG trust_size;
