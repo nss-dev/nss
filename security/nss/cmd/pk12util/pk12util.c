@@ -546,7 +546,7 @@ P12U_ImportPKCS12Object(char *in_file, PK11SlotInfo *slot,
     }
 
     /* init the decoder context */
-    p12dcx = SEC_PKCS12DecoderStart(&uniPwitem, slot, NULL,
+    p12dcx = SEC_PKCS12DecoderStart(&uniPwitem, slot, slotPw,
 				    p12u_DigestOpen, p12u_DigestClose,
 				    p12u_DigestRead, p12u_DigestWrite,
 				    tmpcxt);
@@ -695,7 +695,7 @@ p12u_WriteToExportFile(void *arg, const char *buf, unsigned long len)
 }
 
 void
-P12U_ExportPKCS12Object(char *nn, char *outfile,
+P12U_ExportPKCS12Object(char *nn, char *outfile, PK11SlotInfo *inSlot,
 			secuPWData *slotPw, secuPWData *p12FilePw)
 {
     SEC_PKCS12ExportContext *p12ecx = NULL;
@@ -705,7 +705,13 @@ P12U_ExportPKCS12Object(char *nn, char *outfile,
     p12uContext *p12cxt = NULL;
     CERTCertificate *cert;
 
-    cert = PK11_FindCertFromNickname(nn, NULL);
+    if (P12U_InitSlot(inSlot, slotPw) != SECSuccess) {
+	SECU_PrintError(progName,"Failed to authenticate to \"%s\"",
+			  PK11_GetSlotName(inSlot));
+	pk12uErrno = PK12UERR_PK11GETSLOT;
+	goto loser;
+    }
+    cert = PK11_FindCertFromNickname(nn, slotPw);
     if(!cert) {
 	SECU_PrintError(progName,"find cert by nickname failed");
 	pk12uErrno = PK12UERR_FINDCERTBYNN;
@@ -717,12 +723,6 @@ P12U_ExportPKCS12Object(char *nn, char *outfile,
 	pk12uErrno = PK12UERR_FINDCERTBYNN;
 	goto loser;
     }
-    if (P12U_InitSlot(cert->slot, slotPw) != SECSuccess) {
-	SECU_PrintError(progName,"Failed to authenticate to \"%s\"",
-			  PK11_GetSlotName(cert->slot));
-	pk12uErrno = PK12UERR_PK11GETSLOT;
-	goto loser;
-    }
 
     /*	Password to use for PKCS12 file.  */
     pwitem = P12U_GetP12FilePassword(PR_TRUE, p12FilePw);
@@ -730,7 +730,7 @@ P12U_ExportPKCS12Object(char *nn, char *outfile,
 	goto loser;
     }
 
-    p12ecx = SEC_PKCS12CreateExportContext(NULL, NULL, cert->slot, NULL);
+    p12ecx = SEC_PKCS12CreateExportContext(NULL, NULL, cert->slot, slotPw);
     if(!p12ecx) {
 	SECU_PrintError(progName,"export context creation failed");
 	pk12uErrno = PK12UERR_EXPORTCXCREATE;
@@ -952,26 +952,25 @@ main(int argc, char **argv)
     }
     P12U_Init(SECU_ConfigDirectory(NULL),dbprefix);
 
+    if (!slotname || PL_strcmp(slotname, "internal") == 0)
+	slot = PK11_GetInternalKeySlot();
+    else
+	slot = PK11_FindSlotByName(slotname);
+
+    if (!slot) {
+	SECU_PrintError(progName,"Invalid slot \"%s\"", slotname);
+	goto done;
+    }
+
     if (pk12util.options[opt_Import].activated) {
-
-	if (!slotname || PL_strcmp(slotname, "internal") == 0)
-	    slot = PK11_GetInternalKeySlot();
-	else
-	    slot = PK11_FindSlotByName(slotname);
-
-	if (!slot) {
-	    SECU_PrintError(progName,"Invalid slot \"%s\"", slotname);
-	    goto done;
-	}
 
 	if ((ret = P12U_ImportPKCS12Object(import_file, slot, &slotPw,
 					   &p12FilePw)) != 0)
 	    goto done;
 
     } else if (pk12util.options[opt_Export].activated) {
-
 	P12U_ExportPKCS12Object(pk12util.options[opt_Nickname].arg,
-				export_file, &slotPw, &p12FilePw);
+				export_file, slot, &slotPw, &p12FilePw);
     } else {
 	Usage(progName);
 	pk12uErrno = PK12UERR_USAGE;
