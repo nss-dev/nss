@@ -21,7 +21,7 @@ FILES = $(DATAFILES) pkginfo
 PACKAGE = $(shell basename `pwd`)
 
 PRODUCT_VERSION = $(shell grep NSS_VERSION $(CORE_DEPTH)/../dist/public/nss/nss.h \
-	| sed -e 's/"$$//' -e 's/.*"//' -e 's/ .*//'`)
+	| sed -e 's/"$$//' -e 's/.*"//' -e 's/ .*//')
 
 LN = /usr/bin/ln
 
