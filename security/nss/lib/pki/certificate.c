@@ -1136,10 +1136,14 @@ nssCertificate_FindPrivateKey
 	    break;
 	}
 	/* XXX need to iterate over cert instances to have session */
-	instance = nssToken_FindPrivateKeyByID(*tp, NULL, &c->id);
-	if (instance) {
-	    nssCryptokiObject_Destroy(instance);
-	    break;
+	{
+	    nssSession *session = nssToken_CreateSession(*tp, PR_FALSE);
+	    instance = nssToken_FindPrivateKeyByID(*tp, session, &c->id);
+	    if (instance) {
+		nssCryptokiObject_Destroy(instance);
+		break;
+	    }
+	    nssSession_Destroy(session);
 	}
     }
     /* also search on other tokens? */

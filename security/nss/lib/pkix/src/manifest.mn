@@ -51,6 +51,7 @@ CSRCS= \
 	TBSCertificate.c   \
 	Validity.c         \
 	netscapeCertType.c \
+	pkiglue.c          \
 	$(NULL)
 
 REQUIRES = security 

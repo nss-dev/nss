@@ -60,6 +60,14 @@ NSS_DIRS =         \
 	nss        \
 	$(NULL)
 
+# X.509 certificate library
+# XXX fix
+PKIX_DIRS =        \
+	pkix/include \
+	pkix/src     \
+	pkix/build   \
+	$(NULL)
+
 # SSL libraries
 SSL_DIRS =         \
 	ssl        \
@@ -80,6 +88,7 @@ DIRS =                   \
 	$(BASE_DIRS)     \
 	$(SOFTOKEN_DIRS) \
 	$(NSS_DIRS)      \
+	$(PKIX_DIRS)     \
 	$(CKFW_DIRS)     \
 	$(NULL)
 

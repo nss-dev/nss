@@ -36,7 +36,11 @@ print_cert_callback(NSSCertificate *c, void *arg)
 {
     CMDRunTimeData *rtData = (CMDRunTimeData *)arg;
     NSSUTF8 *nickname = nssCertificate_GetNickname(c, NULL);
+#if 0
     PRBool isUserCert = NSSCertificate_IsPrivateKeyAvailable(c, NULL, NULL);
+#else
+    PRBool isUserCert = PR_FALSE;
+#endif
     PR_fprintf(rtData->output.file, "Listing %c %s\n", 
                                     (isUserCert) ? '*' : ' ',
                                     nickname);

@@ -1,4 +1,4 @@
-# 
+#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -30,11 +30,45 @@
 # may use your version of this file under either the MPL or the
 # GPL.
 #
-# MAKEFILE_CVS_ID = "@(#) $RCSfile$ $Revision$ $Date$ $Name$"
 
-include manifest.mn
-include $(CORE_DEPTH)/coreconf/config.mk
-#include ../config.mk
-include $(CORE_DEPTH)/coreconf/rules.mk
+#
+#  Override TARGETS variable so that only static libraries
+#  are specifed as dependencies within rules.mk.
+#
 
-export:: private_export
+# can't do this in manifest.mn because OS_TARGET isn't defined there.
+ifeq (,$(filter-out WIN%,$(OS_TARGET)))
+
+# don't want the 32 in the shared library name
+SHARED_LIBRARY = $(OBJDIR)/$(LIBRARY_NAME)$(LIBRARY_VERSION).dll
+IMPORT_LIBRARY = $(OBJDIR)/$(LIBRARY_NAME)$(LIBRARY_VERSION).lib
+
+RES = $(OBJDIR)/$(LIBRARY_NAME).res
+RESNAME = $(LIBRARY_NAME).rc
+
+EXTRA_SHARED_LIBS += \
+	$(DIST)/lib/nss4.lib \
+	$(DIST)/lib/$(NSPR31_LIB_PREFIX)plc4.lib \
+	$(DIST)/lib/$(NSPR31_LIB_PREFIX)plds4.lib \
+	$(DIST)/lib/$(NSPR31_LIB_PREFIX)nspr4.lib \
+	$(NULL)
+
+else
+
+# $(PROGRAM) has NO explicit dependencies on $(EXTRA_SHARED_LIBS)
+# $(EXTRA_SHARED_LIBS) come before $(OS_LIBS), except on AIX.
+EXTRA_SHARED_LIBS += \
+	-L$(DIST)/lib/ \
+	-lnss4 \
+	-lplc4 \
+	-lplds4 \
+	-lnspr4 \
+	$(NULL)
+
+endif
+
+ifeq ($(OS_TARGET),SunOS)
+# The -R '$ORIGIN' linker option instructs libnss3.so to search for its
+# dependencies (libsoftokn3.so) in the same directory where it resides.
+MKSHLIB += -R '$$ORIGIN'
+endif

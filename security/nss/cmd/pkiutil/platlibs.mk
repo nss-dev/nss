@@ -40,13 +40,11 @@ ifeq ($(OS_ARCH), AIX)
 EXTRA_SHARED_LIBS += -brtl 
 endif
 
-#	-lnsspki3 \
-#
-
 # $(PROGRAM) has NO explicit dependencies on $(EXTRA_SHARED_LIBS)
 # $(EXTRA_SHARED_LIBS) come before $(OS_LIBS), except on AIX.
 EXTRA_SHARED_LIBS += \
 	-L$(DIST)/lib/ \
+	-lnsspkix4 \
 	-lnss4 \
 	-lsoftokn3 \
 	-lplc4 \

@@ -38,7 +38,9 @@
 #include "prlong.h"
 #include "nss.h"
 #include "nsspki.h"
+#include "nsspkix.h"
 
+/* XXX */
 #include "dev.h"
 
 #include "pkiutil.h"
@@ -292,9 +294,10 @@ main(int argc, char **argv)
     /* XXX allow for read-only and no-db */
     NSS_InitReadWrite(profiledir);
 
-    rv = pkiutil_command_dispatcher(&pkiutil, cmdToRun);
+    /* XXX */
+    NSS_EnablePKIXCertificates();
 
-    nss_DumpCertificateCacheInfo();
+    rv = pkiutil_command_dispatcher(&pkiutil, cmdToRun);
 
     NSS_Shutdown();
 
