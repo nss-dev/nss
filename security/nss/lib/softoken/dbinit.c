@@ -255,6 +255,7 @@ pk11_DBShutdown(NSSLOWCERTCertDBHandle *certHandle,
     }
 }
 
+static int rdbmapflags(int flags);
 static rdbfunc pk11_rdbfunc;
 static void *pk11_tnx;
 
@@ -284,7 +285,7 @@ DB * rdbopen(const char *appName, const char *prefix,
     /* get the entry point */
     pk11_rdbfunc = (rdbfunc) PR_FindSymbol(lib,"rdbopen");
     if (pk11_rdbfunc) {
-	db = (*pk11_rdbfunc)(appName,prefix,type,flags);
+	db = (*pk11_rdbfunc)(appName,prefix,type,rdbmapflags(flags));
 	return db;
     }
 
@@ -293,6 +294,9 @@ DB * rdbopen(const char *appName, const char *prefix,
     return NULL;
 }
 
+/*
+ * the following data structures are from rdb.h.
+ */
 struct RDBStr {
     DB	db;
     int (*xactstart)(DB *db);
@@ -300,6 +304,24 @@ struct RDBStr {
 };
 
 #define DB_RDB ((DBTYPE) 0xff)
+#define RDB_RDONLY	1
+#define RDB_RDWR 	2
+#define RDB_CREATE      4
+
+static int
+rdbmapflags(int flags) {
+   switch (flags) {
+   case NO_RDONLY:
+	return RDB_RDONLY;
+   case NO_RDWR:
+	return RDB_RDWR;
+   case NO_CREATE:
+	return RDB_CREATE;
+   default:
+	break;
+   }
+   return 0;
+}
 
 int
 db_BeginTransaction(DB *db)
