@@ -2246,7 +2246,6 @@ DecodeDBSubjectEntry(certDBEntrySubject *entry, SECItem *dbentry,
     SECStatus rv;
     unsigned int keyidoff;
     unsigned int nnlen, eaddrlen;
-    unsigned int nemailAddrs = 0;
     unsigned int stdlen;
     
     arena = entry->common.arena;
@@ -2369,7 +2368,7 @@ DecodeDBSubjectEntry(certDBEntrySubject *entry, SECItem *dbentry,
 	/* read in the additional email addresses */
 	entry->nemailAddrs = tmpbuf[0] << 8 | tmpbuf[1];
 	entry->emailAddrs = (char **)
-		PORT_ArenaAlloc(arena, nemailAddrs * sizeof(char *));
+		PORT_ArenaAlloc(arena, entry->nemailAddrs * sizeof(char *));
 	if (entry->emailAddrs == NULL) {
 	    PORT_SetError(SEC_ERROR_NO_MEMORY);
 	    goto loser;
@@ -2655,14 +2654,14 @@ nsslowcert_UpdateSubjectEmailAddr(NSSLOWCERTCertDBHandle *dbhandle,
 	if (emailAddr == NULL) {
 	    return SECFailure;
 	}
+    } else {
+	return SECSuccess;
     }
 
     entry = ReadDBSubjectEntry(dbhandle,derSubject);    
     if (entry == NULL) {
 	goto loser;
-    } else {
-	return SECSuccess;
-    }
+    } 
 
     if ( entry->emailAddrs ) {
 	for (i=0; i < entry->nemailAddrs; i++) {
@@ -3699,7 +3698,7 @@ UpdateV6DB(NSSLOWCERTCertDBHandle *handle, DB *updatedb)
 		    
 		    subjectEntry->emailAddrs = (char **)
 				PORT_ArenaAlloc(subjectEntry->common.arena,
-						key.size - 1);
+						sizeof(char *));
 		    if ( subjectEntry->emailAddrs ) {
 			subjectEntry->emailAddrs[0] =
 			     (char *)PORT_ArenaAlloc(subjectEntry->common.arena,
