@@ -996,6 +996,9 @@ CERT_MakeCANickname(CERTCertificate *cert);
 PRBool
 CERT_IsCACert(CERTCertificate *cert, unsigned int *rettype);
 
+PRBool
+CERT_IsCADERCert(SECItem *derCert, unsigned int *rettype);
+
 SECStatus
 CERT_SaveSMimeProfile(CERTCertificate *cert, SECItem *emailProfile,
 		      SECItem *profileTime);

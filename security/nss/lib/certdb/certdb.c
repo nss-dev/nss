@@ -1692,6 +1692,22 @@ CERT_IsCACert(CERTCertificate *cert, unsigned int *rettype)
     return(ret);
 }
 
+
+PRBool
+CERT_IsCADERCert(SECItem *derCert, unsigned int *type) {
+    CERTCertificate *cert;
+    PRBool isCA;
+
+    cert = CERT_NewTempCertificate(CERT_GetDefaultCertDB(), derCert, NULL,
+	                                   PR_FALSE, PR_TRUE);
+    if (cert == NULL) return NULL;
+
+    isCA = CERT_IsCACert(cert,type);
+    CERT_DestroyCertificate (cert);
+    return isCA;
+}
+
+
 /*
  * is certa newer than certb?  If one is expired, pick the other one.
  */
