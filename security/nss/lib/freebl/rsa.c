@@ -172,13 +172,13 @@ RSA_NewKey(int keySizeInBits, SECItem *publicExponent)
 	CHECK_MPI_OK( mp_read_unsigned_octets(&q, qb, primeLen) );
 	CHECK_MPI_OK( mpp_make_prime(&p, primeLen * 8, PR_FALSE, &counter) );
 	CHECK_MPI_OK( mpp_make_prime(&q, primeLen * 8, PR_FALSE, &counter) );
-	MPINT_TO_SECITEM(&p, &key->prime1, arena);
-	MPINT_TO_SECITEM(&q, &key->prime2, arena);
 	rv = rsa_keygen_from_primes(&p, &q, &e, key);
 	if (rv == SECSuccess)
 	    break; /* generated two good primes */
 	prerr = PORT_GetError();
     } while (prerr == SEC_ERROR_NEED_RANDOM); /* loop until have primes */
+    MPINT_TO_SECITEM(&p, &key->prime1, arena);
+    MPINT_TO_SECITEM(&q, &key->prime2, arena);
 cleanup:
     mp_clear(&p);
     mp_clear(&q);
