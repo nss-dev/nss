@@ -209,9 +209,6 @@ NSSCKFWC_Finalize
   /* In any case */
   *pFwInstance = (NSSCKFWInstance *)NULL;
 
-  /* clean up the arena pool records */
-  PL_ArenaFinish();
-
  loser:
   switch( error ) {
   case CKR_CRYPTOKI_NOT_INITIALIZED:
