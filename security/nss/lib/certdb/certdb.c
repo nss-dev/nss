@@ -207,7 +207,7 @@ const SEC_ASN1Template CERT_CertKeyTemplate[] = {
     { 0 }
 };
 
-
+SEC_ASN1_CHOOSER_IMPLEMENT(CERT_CertificateTemplate)
 
 SECStatus
 CERT_KeyFromIssuerAndSN(PRArenaPool *arena, SECItem *issuer, SECItem *sn,

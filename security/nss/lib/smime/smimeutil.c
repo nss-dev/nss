@@ -48,6 +48,9 @@
 #include "secerr.h"
 #include "cms.h"
 
+SEC_ASN1_MKSUB(CERT_IssuerAndSNTemplate)
+SEC_ASN1_MKSUB(SEC_OctetStringTemplate)
+
 /* various integer's ASN.1 encoding */
 static unsigned char asn1_int40[] = { SEC_ASN1_INTEGER, 0x01, 0x28 };
 static unsigned char asn1_int64[] = { SEC_ASN1_INTEGER, 0x01, 0x40 };
@@ -108,17 +111,17 @@ static const SEC_ASN1Template smime_encryptionkeypref_template[] = {
     { SEC_ASN1_CHOICE,
 	  offsetof(NSSSMIMEEncryptionKeyPreference,selector), NULL,
 	  sizeof(NSSSMIMEEncryptionKeyPreference) },
-    { SEC_ASN1_POINTER | SEC_ASN1_CONTEXT_SPECIFIC | 0,
+    { SEC_ASN1_POINTER | SEC_ASN1_CONTEXT_SPECIFIC | SEC_ASN1_XTRN | 0,
 	  offsetof(NSSSMIMEEncryptionKeyPreference,id.issuerAndSN),
-	  CERT_IssuerAndSNTemplate,
+	  SEC_ASN1_SUB(CERT_IssuerAndSNTemplate),
 	  NSSSMIMEEncryptionKeyPref_IssuerSN },
     { SEC_ASN1_POINTER | SEC_ASN1_CONTEXT_SPECIFIC | 1,
 	  offsetof(NSSSMIMEEncryptionKeyPreference,id.recipientKeyID),
 	  NSSCMSRecipientKeyIdentifierTemplate,
 	  NSSSMIMEEncryptionKeyPref_IssuerSN },
-    { SEC_ASN1_POINTER | SEC_ASN1_CONTEXT_SPECIFIC | 2,
+    { SEC_ASN1_POINTER | SEC_ASN1_CONTEXT_SPECIFIC | SEC_ASN1_XTRN | 2,
 	  offsetof(NSSSMIMEEncryptionKeyPreference,id.subjectKeyID),
-	  SEC_OctetStringTemplate,
+	  SEC_ASN1_SUB(SEC_OctetStringTemplate),
 	  NSSSMIMEEncryptionKeyPref_SubjectKeyID },
     { 0, }
 };

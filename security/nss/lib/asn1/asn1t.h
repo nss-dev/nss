@@ -144,7 +144,7 @@ typedef SEC_ASN1Template nssASN1Template;
 #define nssASN1_SET_OF                 SEC_ASN1_SET_OF      
 #define nssASN1_ANY_CONTENTS           SEC_ASN1_ANY_CONTENTS
 
-typedef SEC_ChooseASN1TemplateFunc nssASN1ChooseTemplateFunction;
+typedef SEC_ASN1TemplateChooserPtr nssASN1ChooseTemplateFunction;
 
 typedef SEC_ASN1DecoderContext nssASN1Decoder;
 typedef SEC_ASN1EncoderContext nssASN1Encoder;

@@ -342,8 +342,8 @@ NSS_CMSUtil_DecryptSymKey_MISSI(SECKEYPrivateKey *privkey, SECItem *encKey, SECA
 	   bulk key size is different than the encrypted key size */
 	if (keaParams.bulkKeySize.len > 0) {
 	    err = SEC_ASN1DecodeItem(NULL, &bulkLength,
-					      SEC_IntegerTemplate,
-					      &keaParams.bulkKeySize);
+				     SEC_ASN1_GET(SEC_IntegerTemplate),
+				     &keaParams.bulkKeySize);
 	    if (err != SECSuccess)
 		goto loser;
 	}

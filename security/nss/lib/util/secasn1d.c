@@ -2932,3 +2932,21 @@ const SEC_ASN1Template SEC_SetOfVisibleStringTemplate[] = {
 const SEC_ASN1Template SEC_SkipTemplate[] = {
     { SEC_ASN1_SKIP }
 };
+
+
+/* These functions simply return the address of the above-declared templates.
+** This is necessary for Windows DLLs.  Sigh.
+*/
+SEC_ASN1_CHOOSER_IMPLEMENT(SEC_AnyTemplate)
+SEC_ASN1_CHOOSER_IMPLEMENT(SEC_BMPStringTemplate)
+SEC_ASN1_CHOOSER_IMPLEMENT(SEC_BitStringTemplate)
+SEC_ASN1_CHOOSER_IMPLEMENT(SEC_IA5StringTemplate)
+SEC_ASN1_CHOOSER_IMPLEMENT(SEC_GeneralizedTimeTemplate)
+SEC_ASN1_CHOOSER_IMPLEMENT(SEC_IntegerTemplate)
+SEC_ASN1_CHOOSER_IMPLEMENT(SEC_ObjectIDTemplate)
+SEC_ASN1_CHOOSER_IMPLEMENT(SEC_OctetStringTemplate)
+SEC_ASN1_CHOOSER_IMPLEMENT(SEC_UTCTimeTemplate)
+SEC_ASN1_CHOOSER_IMPLEMENT(SEC_PointerToAnyTemplate)
+SEC_ASN1_CHOOSER_IMPLEMENT(SEC_PointerToOctetStringTemplate)
+SEC_ASN1_CHOOSER_IMPLEMENT(SEC_SetOfAnyTemplate)
+

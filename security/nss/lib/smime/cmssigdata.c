@@ -181,7 +181,8 @@ NSS_CMSSignedData_Encode_BeforeStart(NSSCMSSignedData *sigd)
 	return SECFailure;
 
     /* this is a SET OF, so we need to sort them guys */
-    rv = NSS_CMSArray_SortByDER((void **)sigd->digestAlgorithms, SECOID_AlgorithmIDTemplate,
+    rv = NSS_CMSArray_SortByDER((void **)sigd->digestAlgorithms, 
+                                SEC_ASN1_GET(SECOID_AlgorithmIDTemplate),
 				(void **)sigd->digests);
     if (rv != SECSuccess)
 	return SECFailure;

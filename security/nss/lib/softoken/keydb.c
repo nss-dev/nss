@@ -2308,3 +2308,14 @@ done:
 
     return (errors == 0 ? SECSuccess : SECFailure);
 }
+
+/* These functions simply return the address of the above-declared templates.
+** This is necessary for Windows DLLs.  Sigh.
+*/
+SEC_ASN1_CHOOSER_IMPLEMENT(SECKEY_PrivateKeyInfoTemplate)
+SEC_ASN1_CHOOSER_IMPLEMENT(SECKEY_PointerToPrivateKeyInfoTemplate)
+SEC_ASN1_CHOOSER_IMPLEMENT(SECKEY_EncryptedPrivateKeyInfoTemplate)
+SEC_ASN1_CHOOSER_IMPLEMENT(SECKEY_PointerToEncryptedPrivateKeyInfoTemplate)
+SEC_ASN1_CHOOSER_IMPLEMENT(SECKEY_DSAPublicKeyTemplate)
+SEC_ASN1_CHOOSER_IMPLEMENT(SECKEY_RSAPublicKeyTemplate)
+
