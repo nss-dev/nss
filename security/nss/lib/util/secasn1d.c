@@ -2871,10 +2871,10 @@ SEC_ASN1Decode (PRArenaPool *poolp, void *dest,
 SECStatus
 SEC_ASN1DecodeItem (PRArenaPool *poolp, void *dest,
 		    const SEC_ASN1Template *theTemplate,
-		    SECItem *item)
+		    const SECItem *src)
 {
     return SEC_ASN1Decode (poolp, dest, theTemplate,
-			   (char *) item->data, item->len);
+			   (const char *)src->data, src->len);
 }
 
 #ifdef DEBUG_ASN1D_STATES
