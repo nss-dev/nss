@@ -110,6 +110,9 @@ NSS_CMSSignerInfo_Destroy(NSSCMSSignerInfo *si)
     if (si->cert != NULL)
 	CERT_DestroyCertificate(si->cert);
 
+    if (si->certList != NULL) 
+	CERT_DestroyCertList(si->certList);
+
     /* XXX storage ??? */
 }
 
@@ -853,6 +856,12 @@ NSS_CMSSignerInfo_IncludeCerts(NSSCMSSignerInfo *signerinfo, NSSCMSCertChainMode
 {
     if (signerinfo->cert == NULL)
 	return SECFailure;
+
+    /* don't leak if we get called twice */
+    if (signerinfo->certList != NULL) {
+	CERT_DestroyCertList(signerinfo->certList);
+	signerinfo->certList = NULL;
+    }
 
     switch (cm) {
     case NSSCMSCM_None:
