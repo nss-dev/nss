@@ -47,6 +47,7 @@ PR_BEGIN_EXTERN_C
 NSS_EXTERN NSSCertificate *
 NSSCertificate_CreateFromHandle
 (
+  NSSArena *arenaOpt,
   CK_OBJECT_HANDLE object,
   nssSession *session,
   NSSSlot *slot
