@@ -178,7 +178,8 @@ CK_RV FC_Initialize(CK_VOID_PTR pReserved) {
 
     if (rv == CKR_OK && !init) {
 	init = PR_TRUE;
-	rv = PK11_SlotInit(FIPS_SLOT_ID,PR_TRUE);
+	rv = PK11_SlotInit(FIPS_SLOT_ID,PR_TRUE,nsslowcert_GetDefaultCertDB(),
+		nsslowkey_GetDefaultKeyDB());
 	/* fall through to check below */
     }
 
