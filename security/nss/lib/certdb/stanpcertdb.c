@@ -828,6 +828,9 @@ loser:
     if (stanProfile) {
 	nssSMIMEProfile_Destroy(stanProfile);
     }
+    if (slot) {
+	PK11_FreeSlot(slot);
+    }
     
     return(rv);
 }
@@ -838,11 +841,12 @@ CERT_FindSMimeProfile(CERTCertificate *cert)
     PK11SlotInfo *slot = NULL;
     NSSCertificate *c;
     NSSCryptoContext *cc;
+    SECItem *rvItem = NULL;
+
     c = STAN_GetNSSCertificate(cert);
     if (!c) return NULL;
     cc = c->object.cryptoContext;
     if (cc != NULL) {
-	SECItem *rvItem = NULL;
 	nssSMIMEProfile *stanProfile;
 	stanProfile = nssCryptoContext_FindSMIMEProfileForCertificate(cc, c);
 	if (stanProfile) {
@@ -855,8 +859,12 @@ CERT_FindSMimeProfile(CERTCertificate *cert)
 	}
 	return rvItem;
     }
-    return 
+    rvItem =
 	PK11_FindSMimeProfile(&slot, cert->emailAddr, &cert->derSubject, NULL);
+    if (slot) {
+    	PK11_FreeSlot(slot);
+    }
+    return rvItem;
 }
 
 /*

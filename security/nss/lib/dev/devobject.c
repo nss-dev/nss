@@ -574,7 +574,12 @@ retrieve_cert(NSSToken *t, nssSession *session, CK_OBJECT_HANDLE h, void *arg)
     } else {
 	nssrv = PR_SUCCESS; /* cached entries already handled */
     }
+#ifdef NSS_3_4_CODE
+    CERT_DestroyCertificate(STAN_GetCERTCertificate(cert));
+#else
     NSSCertificate_Destroy(cert);
+#endif
+
     return nssrv;
 }
 
