@@ -1470,7 +1470,7 @@ ssl_WriteV(PRFileDesc *fd, const PRIOVec *iov, PRInt32 vectors,
     /* Make sure the first write is at least 8 KB, if possible. */
     KILL_VECTORS
     if (!vectors)
-	return 0;
+	return ssl_Send(fd, 0, 0, 0, timeout);
     GET_VECTOR;
     if (!vectors) {
 	return ssl_Send(fd, myIov.iov_base, myIov.iov_len, 0, timeout);
