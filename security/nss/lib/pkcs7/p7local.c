@@ -1005,7 +1005,8 @@ SECStatus
 sec_PKCS7ReorderAttributes (SEC_PKCS7Attribute **attrs)
 {
     PRArenaPool *poolp;
-    int num_attrs, i, j, pass, besti;
+    int num_attrs, i, pass, besti;
+    unsigned int j;
     SECItem **enc_attrs;
     SEC_PKCS7Attribute **new_attrs;
 

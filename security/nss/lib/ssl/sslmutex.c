@@ -370,7 +370,6 @@ static SECStatus sslMutex_2LevelDestroy(sslMutex *sem)
 SECStatus
 sslMutex_Init(sslMutex *pMutex, int shared)
 {
-    SECStatus retvalue;
     HANDLE hMutex;
     SECURITY_ATTRIBUTES attributes =
                                 { sizeof(SECURITY_ATTRIBUTES), NULL, TRUE };
