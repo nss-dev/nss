@@ -137,6 +137,8 @@ extern SECItem * SEC_ASN1EncodeUnsignedInteger(PRArenaPool *pool,
 					       SECItem *dest,
 					       unsigned long value);
 
+extern SECStatus SEC_ASN1DecodeInteger(SECItem *src,
+				       unsigned long *value);
 
 /*
 ** Utilities.
