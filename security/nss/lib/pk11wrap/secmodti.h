@@ -37,6 +37,7 @@
 
 #include "prmon.h"
 #include "prtypes.h"
+#include "nssilckt.h"
 
 /* internal data structures */
 
@@ -108,7 +109,9 @@ struct PK11SlotInfoStr {
 				       * token */
     int mechanismCount;
     /* cache the certificates stored on the token of this slot */
+#ifdef HACK_IT /*!!! */
     CERTCertificate **cert_array;
+#endif
     int array_size;
     int cert_count;
     char serial[16];
