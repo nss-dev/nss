@@ -527,7 +527,7 @@ NSS_Initialize(const char *configdir, const char *certPrefix,
 SECStatus
 NSS_NoDB_Init(const char * configdir)
 {
-      return nss_Init(configdir?configdir:"","","",SECMOD_DB,
+      return nss_Init("","","","",
 			PR_TRUE,PR_TRUE,PR_TRUE,PR_TRUE,PR_TRUE,PR_TRUE);
 }
 
