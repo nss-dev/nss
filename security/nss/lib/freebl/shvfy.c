@@ -42,6 +42,7 @@
 #include "blapi.h"
 #include "seccomon.h"
 #include "stdio.h"
+#include "prmem.h"
 
 /* #define DEBUG_SHVERIFY 1 */
 
