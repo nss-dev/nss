@@ -271,7 +271,7 @@ nssTrustDomain_AddCertsToCache
     for (i=0; i<numCerts && certs[i]; i++) {
 	if (add_cert_to_cache(td, certs[i]) != PR_SUCCESS) {
 	    return PR_FAILURE;
-	}
+	} 
     }
     return PR_SUCCESS;
 }

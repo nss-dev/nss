@@ -79,6 +79,8 @@ struct nssDecodedCertStr {
     PRBool     (*isNewerThan)(nssDecodedCert *dc, nssDecodedCert *cmpdc);
     /* does the usage for this cert match the requested usage? */
     PRBool     (*matchUsage)(nssDecodedCert *dc, NSSUsage *usage);
+    /* extract the email address */
+    NSSASCII7 *(*getEmailAddress)(nssDecodedCert *dc);
 };
 
 struct NSSUsageStr {
