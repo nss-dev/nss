@@ -1672,6 +1672,66 @@ nssToken_GenerateSymKey (
     return key;
 }
 
+NSS_IMPLEMENT nssCryptokiObject *
+nssToken_ImportRawSymKey (
+  NSSToken *token,
+  nssSession *session,
+  NSSItem *keyData,
+  NSSSymKeyType symKeyType,
+  PRBool asTokenObject,
+  const NSSUTF8 *labelOpt,
+  NSSOperations operations,
+  NSSProperties properties
+)
+{
+    CK_RV ckrv;
+    CK_ATTRIBUTE_PTR attr;
+    CK_ATTRIBUTE keyTemplate[17];
+    CK_ULONG tsize;
+    CK_OBJECT_HANDLE keyh;
+    void *epv = nssToken_GetCryptokiEPV(token);
+    nssCryptokiObject *key = NULL;
+    PRUint32 numLeft;
+    PRUint32 numkt = sizeof(keyTemplate) / sizeof(keyTemplate[0]);
+    CK_KEY_TYPE ckKeyType;
+
+    /* Set up the symmetric key's template */
+    NSS_CK_TEMPLATE_START(keyTemplate, attr, tsize);
+    if (asTokenObject) {
+	NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_TOKEN, &g_ck_true);
+    } else {
+	NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_TOKEN, &g_ck_false);
+    }
+    if (labelOpt) {
+	NSS_CK_SET_ATTRIBUTE_UTF8(attr, CKA_LABEL, labelOpt);
+    }
+    if (operations) {
+	numLeft = numkt - (attr - keyTemplate);
+	attr += nssCKTemplate_SetOperationAttributes(attr, numLeft,
+	                                             operations);
+    }
+    if (properties) {
+	numLeft = numkt - (attr - keyTemplate);
+	attr += nssCKTemplate_SetPropertyAttributes(attr, numLeft,
+                                                    properties);
+    }
+    NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_VALUE, keyData);
+    ckKeyType = nssCK_GetSymKeyType(symKeyType);
+    NSS_CK_SET_ATTRIBUTE_VAR(attr, CKA_KEY_TYPE, ckKeyType);
+    NSS_CK_TEMPLATE_FINISH(keyTemplate, attr, tsize);
+
+    /* Import the key */
+    nssSession_EnterMonitor(session);
+    ckrv = CKAPI(epv)->C_CreateObject(session->handle, keyTemplate, tsize, 
+                                      &keyh);
+    nssSession_ExitMonitor(session);
+
+    if (ckrv == CKR_OK) {
+	key = nssCryptokiObject_Create(token, session, keyh);
+    }
+    return key;
+}
+
 static NSSItem * 
 prepare_output_buffer(NSSArena *arenaOpt, NSSItem *rvOpt, 
                       CK_ULONG bufLen, PRBool *freeit)

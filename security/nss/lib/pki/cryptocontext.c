@@ -136,6 +136,25 @@ nssCryptoContext_CreateForSymKey (
     return rvCC;
 }
 
+NSS_IMPLEMENT NSSCryptoContext *
+nssCryptoContext_CreateForPrivateKey (
+  NSSPrivateKey *vkey,
+  const NSSAlgNParam *apOpt,
+  NSSCallback *uhhOpt
+)
+{
+    NSSCryptoContext *rvCC;
+    NSSTrustDomain *td = nssPrivateKey_GetTrustDomain(vkey, NULL);
+    NSSVolatileDomain *vd = nssPrivateKey_GetVolatileDomain(vkey, NULL);
+
+    rvCC = nssCryptoContext_Create(td, vd, apOpt, uhhOpt);
+    if (rvCC) {
+	rvCC->which = a_privkey;
+	rvCC->u.vkey = nssPrivateKey_AddRef(vkey);
+    }
+    return rvCC;
+}
+
 NSS_IMPLEMENT PRStatus
 nssCryptoContext_Destroy (
   NSSCryptoContext *cc

@@ -346,9 +346,8 @@ CreateASelfTest(char *cipher, int keysize, char *input)
     }
 
     /* import the cert into the volatile domain */
-    wrapCert = NSSVolatileDomain_ImportEncodedCert(vd, 
-                                                          encodedCert,
-                                                          NULL);
+    wrapCert = NSSVolatileDomain_ImportEncodedCert(vd, encodedCert, 
+                                                   NULL, NULL);
     NSSItem_Destroy(encodedCert);
     if (!wrapCert) {
 	NSSVolatileDomain_Destroy(vd);
@@ -389,17 +388,15 @@ CreateASelfTest(char *cipher, int keysize, char *input)
 	return PR_FAILURE;
     }
 
-    ciphertext = NSSSymKey_Encrypt(symKey, ap, &plaintext,
-                                         NULL, NULL, NULL);
+    ciphertext = NSSSymKey_Encrypt(symKey, ap, &plaintext, NULL, NULL, NULL);
     if (!ciphertext) {
 	CMD_PrintError("encryption failed\n");
 	return PR_FAILURE;
     }
 
-    wrappedKey = NSSCert_WrapSymKey(wrapCert, wrapAP,
-                                                 symKey, 
-                                                 NSSTime_Now(), NULL, NULL,
-                                                 NULL, NULL, NULL);
+    wrappedKey = NSSCert_WrapSymKey(wrapCert, wrapAP, symKey, 
+                                    NSSTime_Now(), NULL, NULL,
+                                    NULL, NULL, NULL);
 
     algID = NSSAlgNParam_Encode(ap, NULL, NULL);
 

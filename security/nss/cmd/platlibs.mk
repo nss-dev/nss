@@ -69,6 +69,7 @@ endif
 # $(EXTRA_SHARED_LIBS) come before $(OS_LIBS), except on AIX.
 EXTRA_SHARED_LIBS += \
 	-L$(DIST)/lib/ \
+	-lssl4 \
 	-lnsspkix4 \
 	-lnss4 \
 	-lsoftokn3 \

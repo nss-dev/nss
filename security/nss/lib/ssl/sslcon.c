@@ -1522,10 +1522,10 @@ ssl2_CreateSessionCypher(sslSocket *ss, sslSessionID *sid, PRBool isClient)
     ap = NSSOIDTag_CreateAlgNParam(algorithm, &params, NULL);
     if (ap == NULL)
 	goto loser;
-    symKey = NSSVolatileDomain_ImportSymKey(ss->vd, rk, keyType,
-                                            NULL,
-                                            NSSOperations_DECRYPT,
-                                            0, NULL, NULL);
+    symKey = NSSVolatileDomain_ImportRawSymKey(ss->vd, rk, keyType,
+                                               NULL,
+                                               NSSOperations_DECRYPT,
+                                               0, NULL, NULL);
     if (symKey == NULL)
 	goto loser;
 
@@ -1535,10 +1535,10 @@ ssl2_CreateSessionCypher(sslSocket *ss, sslSessionID *sid, PRBool isClient)
     NSSSymKey_Destroy(symKey); symKey = NULL;
 
     /* build the client context */
-    symKey = NSSVolatileDomain_ImportSymKey(ss->vd, wk, keyType,
-                                            NULL,
-                                            NSSOperations_ENCRYPT,
-                                            0, NULL, NULL);
+    symKey = NSSVolatileDomain_ImportRawSymKey(ss->vd, wk, keyType,
+                                               NULL,
+                                               NSSOperations_ENCRYPT,
+                                               0, NULL, NULL);
     if (!symKey)
 	goto loser;
 

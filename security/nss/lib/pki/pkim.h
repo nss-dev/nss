@@ -264,6 +264,13 @@ nssCryptoContext_CreateForSymKey (
   NSSCallback *uhh
 );
 
+NSS_EXTERN NSSCryptoContext *
+nssCryptoContext_CreateForPrivateKey (
+  NSSPrivateKey *vkey,
+  const NSSAlgNParam *apOpt,
+  NSSCallback *uhhOpt
+);
+
 /* XXX for the collection */
 NSS_EXTERN NSSCert *
 nssCert_Create (

@@ -381,6 +381,77 @@ NSSVolatileDomain_ImportEncodedPrivateKey (
                                                      destination);
 }
 
+NSS_IMPLEMENT NSSSymKey *
+nssVolatileDomain_ImportRawSymKey (
+  NSSVolatileDomain *vd,
+  NSSItem *keyData,
+  NSSSymKeyType symKeyType,
+  NSSUTF8 *nicknameOpt,
+  NSSOperations operations,
+  NSSProperties properties,
+  NSSCallback *uhhOpt,
+  NSSToken *destinationOpt
+)
+{
+    NSSToken *token;
+    nssSession *session;
+    NSSAlgNParam *ap;
+    nssCryptokiObject *mko;
+    NSSSymKey *rvKey = NULL;
+
+    ap = nssAlgNParam_CreateDefaultForSymKey(NULL, symKeyType);
+    if (!ap) {
+	return (NSSSymKey *)NULL;
+    }
+
+    /* XXX should be vd */
+    /* token = nssVolatileDomain_FindTokenForAlgNParam(vd, ap); */
+    token = nssTrustDomain_FindTokenForAlgNParam(vd->td, ap);
+    nssAlgNParam_Destroy(ap);
+    if (!token) {
+	return (NSSSymKey *)NULL;
+    }
+
+    session = nssTokenSessionHash_GetSession(vd->tokenSessionHash,
+                                             token, PR_FALSE);
+    if (!session) {
+	nssToken_Destroy(token);
+	return (NSSSymKey *)NULL;
+    }
+
+    mko = nssToken_ImportRawSymKey(token, session, keyData, symKeyType,
+                                   PR_FALSE, nicknameOpt, 
+                                   operations, properties);
+
+    rvKey = nssSymKey_CreateFromInstance(mko, vd->td, vd);
+    if (!rvKey) {
+	nssCryptokiObject_Destroy(mko);
+    }
+
+    nssToken_Destroy(token);
+    nssSession_Destroy(session);
+
+    return rvKey;
+}
+
+NSS_IMPLEMENT NSSSymKey *
+NSSVolatileDomain_ImportRawSymKey (
+  NSSVolatileDomain *vd,
+  NSSItem *keyData,
+  NSSSymKeyType symKeyType,
+  NSSUTF8 *nicknameOpt,
+  NSSOperations operations,
+  NSSProperties properties,
+  NSSCallback *uhhOpt,
+  NSSToken *destinationOpt
+)
+{
+    return nssVolatileDomain_ImportRawSymKey(vd, keyData, symKeyType,
+                                             nicknameOpt, operations,
+                                             properties, uhhOpt, 
+                                             destinationOpt);
+}
+
 #if 0
 NSS_IMPLEMENT PRStatus
 nssVolatileDomain_ImportSMIMEProfile (

@@ -40,8 +40,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "secutil.h"
-
 #if defined(XP_UNIX)
 #include <unistd.h>
 #endif
@@ -65,11 +63,14 @@
 #include "prnetdb.h"
 #include "prclist.h"
 #include "plgetopt.h"
-#include "pk11func.h"
-#include "secitem.h"
+
 #include "nss.h"
+#include "nssbase.h"
+
 #include "ssl.h"
 #include "sslproto.h"
+
+#include "cmdutil.h"
 
 #ifndef PORT_Sprintf
 #define PORT_Sprintf sprintf
@@ -85,7 +86,8 @@
 
 #define NUM_SID_CACHE_ENTRIES 1024
 
-static int handle_connection( PRFileDesc *, PRFileDesc *, int );
+static int handle_connection( PRFileDesc *, PRFileDesc *, 
+                              int, NSSTrustDomain * );
 
 static const char envVarName[] = { SSL_ENV_VAR_NAME };
 static const char inheritableSockName[] = { "SELFSERV_LISTEN_SOCKET" };
@@ -140,27 +142,11 @@ static int	stopping;
 static PRBool  noDelay;
 static int     requestCert;
 static int	verbose;
-static SECItem	bigBuf;
+static NSSItem	bigBuf;
 
 static PRThread * acceptorThread;
 
 static PRLogModuleInfo *lm;
-
-/* Add custom password handler because SECU_GetModulePassword 
- * makes automation of this program next to impossible.
- */
-
-char *
-ownPasswd(PK11SlotInfo *info, PRBool retry, void *arg)
-{
-	char * passwd = NULL;
-
-	if ( (!retry) && arg ) {
-		passwd = PL_strdup((char *)arg);
-	}
-
-	return passwd;
-}
 
 #define PRINTF  if (verbose)  printf
 #define FPRINTF if (verbose) fprintf
@@ -219,15 +205,13 @@ Usage(const char *progName)
 	,progName);
 }
 
-static const char *
+static void
 errWarn(char * funcString)
 {
     PRErrorCode  perr      = PR_GetError();
-    const char * errString = SECU_Strerror(perr);
 
-    fprintf(stderr, "selfserv: %s returned error %d:\n%s\n",
-            funcString, perr, errString);
-    return errString;
+    CMD_PrintError("selfserv: %s returned error %d:\n",
+                   funcString, perr);
 }
 
 static void
@@ -269,12 +253,20 @@ mySSLAuthCertificate(void *arg, PRFileDesc *fd, PRBool checkSig,
 		     PRBool isServer)
 {
     SECStatus rv;
-    CERTCertificate *    peerCert;
+    NSSCert *peerCert;
+    NSSUTF8 *subjectName, *issuerName;
 
     peerCert = SSL_PeerCertificate(fd);
 
+    if (NSSCert_GetNames(peerCert, &subjectName, 1, NULL) == NULL) {
+	return SECFailure;
+    }
+    if (NSSCert_GetIssuerNames(peerCert, &issuerName, 1, NULL) == NULL) {
+	return SECFailure;
+    }
+
     PRINTF("selfserv: Subject: %s\nselfserv: Issuer : %s\n",
-           peerCert->subjectName, peerCert->issuerName);
+           subjectName, issuerName);
 
     rv = SSL_AuthCertificate(arg, fd, checkSig, isServer);
 
@@ -282,10 +274,10 @@ mySSLAuthCertificate(void *arg, PRFileDesc *fd, PRBool checkSig,
 	PRINTF("selfserv: -- SSL3: Certificate Validated.\n");
     } else {
     	int err = PR_GetError();
-	FPRINTF(stderr, "selfserv: -- SSL3: Certificate Invalid, err %d.\n%s\n", 
-                err, SECU_Strerror(err));
+	CMD_PrintError("selfserv: -- SSL3: Certificate Invalid, err %d.\n", 
+	               err);
     }
-    CERT_DestroyCertificate(peerCert);
+    NSSCert_Destroy(peerCert);
     FLUSH;
     return rv;  
 }
@@ -293,7 +285,7 @@ mySSLAuthCertificate(void *arg, PRFileDesc *fd, PRBool checkSig,
 void 
 printSecurityInfo(PRFileDesc *fd)
 {
-    CERTCertificate * cert      = NULL;
+    NSSCert * cert      = NULL;
     SSL3Statistics *  ssl3stats = SSL_GetStatistics();
     SECStatus         result;
     SSLChannelInfo    channel;
@@ -327,17 +319,19 @@ printSecurityInfo(PRFileDesc *fd)
     else
 	cert = SSL_LocalCertificate(fd);
     if (cert) {
-	char * ip = CERT_NameToAscii(&cert->issuer);
-	char * sp = CERT_NameToAscii(&cert->subject);
+	NSSUTF8 * ip;
+	NSSUTF8 * sp;
+	(void)NSSCert_GetIssuerNames(cert, &ip, 1, NULL);
+	(void)NSSCert_GetNames(cert, &sp, 1, NULL);
         if (sp) {
 	    FPRINTF(stderr, "selfserv: subject DN: %s\n", sp);
-	    PR_Free(sp);
+	    NSSUTF8_Destroy(sp);
 	}
         if (ip) {
 	    FPRINTF(stderr, "selfserv: issuer  DN: %s\n", ip);
-	    PR_Free(ip);
+	    NSSUTF8_Destroy(ip);
 	}
-	CERT_DestroyCertificate(cert);
+	NSSCert_Destroy(cert);
 	cert = NULL;
     }
     FLUSH;
@@ -350,9 +344,8 @@ myBadCertHandler( void *arg, PRFileDesc *fd)
 {
     int err = PR_GetError();
     if (!MakeCertOK)
-	fprintf(stderr, 
-	    "selfserv: -- SSL: Client Certificate Invalid, err %d.\n%s\n", 
-            err, SECU_Strerror(err));
+	CMD_PrintError(
+	    "selfserv: -- SSL: Client Certificate Invalid, err %d.\n", err);
     return (MakeCertOK ? SECSuccess : SECFailure);
 }
 
@@ -371,6 +364,7 @@ typedef struct jobStr {
     PRFileDesc *tcp_sock;
     PRFileDesc *model_sock;
     int         requestCert;
+    NSSTrustDomain *td;
 } JOB;
 
 static PZLock    * qLock; /* this lock protects all data immediately below */
@@ -454,7 +448,7 @@ jobLoop(PRFileDesc *a, PRFileDesc *b, int c)
 	if (!myJob) 
 	    break;
 	handle_connection( myJob->tcp_sock, myJob->model_sock, 
-			   myJob->requestCert);
+			   myJob->requestCert, myJob->td);
 	PZ_Lock(qLock);
 	PR_APPEND_LINK(myLink, &freeJobs);
 	PZ_NotifyCondVar(freeListNotEmptyCv);
@@ -765,7 +759,8 @@ int
 handle_connection( 
     PRFileDesc *tcp_sock,
     PRFileDesc *model_sock,
-    int         requestCert
+    int         requestCert,
+    NSSTrustDomain *td
     )
 {
     PRFileDesc *       ssl_sock = NULL;
@@ -799,7 +794,7 @@ handle_connection(
     VLOG(("selfserv: handle_connection: starting\n"));
     if (useModelSocket && model_sock) {
 	SECStatus rv;
-	ssl_sock = SSL_ImportFD(model_sock, tcp_sock);
+	ssl_sock = SSL_ImportFD(model_sock, td, tcp_sock);
 	if (!ssl_sock) {
 	    errWarn("SSL_ImportFD with model");
 	    goto cleanup;
@@ -916,9 +911,9 @@ handle_connection(
 	 * do it here.
 	 */
 	if (requestCert > 2) { /* request cert was 3 or 4 */
-	    CERTCertificate *  cert =  SSL_PeerCertificate(ssl_sock);
+	    NSSCert *  cert =  SSL_PeerCertificate(ssl_sock);
 	    if (cert) {
-		CERT_DestroyCertificate(cert);
+		NSSCert_Destroy(cert);
 	    } else {
 		rv = SSL_OptionSet(ssl_sock, SSL_REQUEST_CERTIFICATE, 1);
 		if (rv < 0) {
@@ -964,29 +959,31 @@ handle_connection(
 			bytes, fileName);
 		break;
 	    }
+#if 0
 	    errString = errWarn("PR_TransmitFile");
-	    errLen = PORT_Strlen(errString);
+	    errLen = strlen(errString);
 	    if (errLen > sizeof msgBuf - 1) 
 	    	errLen = sizeof msgBuf - 1;
-	    PORT_Memcpy(msgBuf, errString, errLen);
+	    memcpy(msgBuf, errString, errLen);
 	    msgBuf[errLen] = 0;
+#endif
 
 	    iovs[numIOVs].iov_base = msgBuf;
-	    iovs[numIOVs].iov_len  = PORT_Strlen(msgBuf);
+	    iovs[numIOVs].iov_len  = strlen(msgBuf);
 	    numIOVs++;
 	} else if (reqLen <= 0) {	/* hit eof */
 	    PORT_Sprintf(msgBuf, "Get or Post incomplete after %d bytes.\r\n",
 			 bufDat);
 
 	    iovs[numIOVs].iov_base = msgBuf;
-	    iovs[numIOVs].iov_len  = PORT_Strlen(msgBuf);
+	    iovs[numIOVs].iov_len  = strlen(msgBuf);
 	    numIOVs++;
 	} else if (reqLen < bufDat) {
 	    PORT_Sprintf(msgBuf, "Discarded %d characters.\r\n", 
 	                 bufDat - reqLen);
 
 	    iovs[numIOVs].iov_base = msgBuf;
-	    iovs[numIOVs].iov_len  = PORT_Strlen(msgBuf);
+	    iovs[numIOVs].iov_len  = strlen(msgBuf);
 	    numIOVs++;
 	}
 
@@ -1150,8 +1147,10 @@ void
 server_main(
     PRFileDesc *        listen_sock,
     int                 requestCert, 
-    SECKEYPrivateKey ** privKey,
-    CERTCertificate **  cert)
+    NSSPrivateKey **    privKey,
+    NSSCert **          cert,
+    NSSTrustDomain *    td
+  )
 {
     PRFileDesc *model_sock	= NULL;
     int         rv;
@@ -1163,12 +1162,12 @@ server_main(
 	if (model_sock == NULL) {
 	    errExit("PR_NewTCPSocket on model socket");
 	}
-	model_sock = SSL_ImportFD(NULL, model_sock);
+	model_sock = SSL_ImportFD(NULL, td, model_sock);
 	if (model_sock == NULL) {
 	    errExit("SSL_ImportFD");
 	}
     } else {
-	model_sock = listen_sock = SSL_ImportFD(NULL, listen_sock);
+	model_sock = listen_sock = SSL_ImportFD(NULL, td, listen_sock);
 	if (listen_sock == NULL) {
 	    errExit("SSL_ImportFD");
 	}
@@ -1203,7 +1202,7 @@ server_main(
 	errExit("error enabling RollBack detection ");
     }
 
-    for (kea = kt_rsa; kea < kt_kea_size; kea++) {
+    for (kea = ssl_kea_rsa; kea < ssl_kea_size; kea++) {
 	if (cert[kea] != NULL) {
 	    secStatus = SSL_ConfigSecureServer(model_sock, 
 	    		cert[kea], privKey[kea], kea);
@@ -1230,8 +1229,7 @@ server_main(
 
 
     if (requestCert) {
-	SSL_AuthCertificateHook(model_sock, mySSLAuthCertificate, 
-	                        (void *)CERT_GetDefaultCertDB());
+	SSL_AuthCertificateHook(model_sock, mySSLAuthCertificate, NULL);
 	if (requestCert <= 2) { 
 	    rv = SSL_OptionSet(model_sock, SSL_REQUEST_CERTIFICATE, 1);
 	    if (rv < 0) {
@@ -1279,15 +1277,15 @@ readBigFile(const char * fileName)
 	info.size > 0 &&
 	NULL != (local_file_fd = PR_Open(fileName, PR_RDONLY, 0))) {
 
-	hdrLen      = PORT_Strlen(outHeader);
-	bigBuf.len  = hdrLen + info.size;
-	bigBuf.data = PORT_Malloc(bigBuf.len + 4095);
+	hdrLen      = strlen(outHeader);
+	bigBuf.size = hdrLen + info.size;
+	bigBuf.data = PORT_Malloc(bigBuf.size + 4095);
 	if (!bigBuf.data) {
 	    errWarn("PORT_Malloc");
 	    goto done;
 	}
 
-	PORT_Memcpy(bigBuf.data, outHeader, hdrLen);
+	memcpy(bigBuf.data, outHeader, hdrLen);
 
 	count = PR_Read(local_file_fd, bigBuf.data + hdrLen, info.size);
 	if (count != info.size) {
@@ -1401,8 +1399,8 @@ main(int argc, char **argv)
     char *               tmp;
     char *               envString;
     PRFileDesc *         listen_sock;
-    CERTCertificate *    cert   [kt_kea_size] = { NULL };
-    SECKEYPrivateKey *   privKey[kt_kea_size] = { NULL };
+    NSSCert *            cert   [ssl_kea_size] = { NULL };
+    NSSPrivateKey *      privKey[ssl_kea_size] = { NULL };
     int                  optionsFound = 0;
     int                  maxProcs     = 1;
     unsigned short       port        = 0;
@@ -1414,6 +1412,8 @@ main(int argc, char **argv)
     PLOptStatus          status;
     PRThread             *loggerThread;
     PRBool               debugCache = PR_FALSE; /* bug 90518 */
+    NSSTrustDomain *     td = NULL;
+    NSSUsages            serverUsage = { 0, NSSUsage_SSLServer };
 #ifdef LINUX  /* bug 119340 */
     struct sigaction     act;
 
@@ -1450,12 +1450,12 @@ main(int argc, char **argv)
 
         case 'L':
             logStats = PR_TRUE;
-            logPeriod  = PORT_Atoi(optstate->value);
+            logPeriod  = atoi(optstate->value);
             if (logPeriod < 0) logPeriod = 30;
             break;
 
 	case 'M': 
-	    maxProcs = PORT_Atoi(optstate->value); 
+	    maxProcs = atoi(optstate->value); 
 	    if (maxProcs < 1)         maxProcs = 1;
 	    if (maxProcs > MAX_PROCS) maxProcs = MAX_PROCS;
 	    break;
@@ -1482,12 +1482,12 @@ main(int argc, char **argv)
 
 	case 'o': MakeCertOK = 1; break;
 
-	case 'p': port = PORT_Atoi(optstate->value); break;
+	case 'p': port = atoi(optstate->value); break;
 
 	case 'r': ++requestCert; break;
 
 	case 't':
-	    maxThreads = PORT_Atoi(optstate->value);
+	    maxThreads = atoi(optstate->value);
 	    if ( maxThreads > MAX_THREADS ) maxThreads = MAX_THREADS;
 	    if ( maxThreads < MIN_THREADS ) maxThreads = MIN_THREADS;
 	    break;
@@ -1593,15 +1593,15 @@ main(int argc, char **argv)
     if (fileName)
     	readBigFile(fileName);
 
-    /* set our password function */
-    PK11_SetPasswordFunc( passwd ? ownPasswd : SECU_GetModulePassword);
-
     /* Call the libsec initialization routines */
     rv = NSS_Init(dir);
     if (rv != SECSuccess) {
     	fputs("NSS_Init failed.\n", stderr);
 		exit(8);
     }
+
+    /* set our password function */
+    /* XXX */
 
     /* set the policy bits true for all the cipher suites. */
     if (useExportPolicy)
@@ -1632,31 +1632,39 @@ main(int argc, char **argv)
 		SECStatus status;
 		status = SSL_CipherPrefSetDefault(cipher, SSL_ALLOWED);
 		if (status != SECSuccess) 
-		    SECU_PrintError(progName, "SSL_CipherPrefSet()");
+		    CMD_PrintError("SSL_CipherPrefSet()");
 	    }
 	}
     }
 
     if (nickName) {
-	cert[kt_rsa] = PK11_FindCertFromNickname(nickName, passwd);
-	if (cert[kt_rsa] == NULL) {
+	cert[ssl_kea_rsa] = NSSTrustDomain_FindBestCertByNickname(td, 
+	                                                     nickName, 
+	                                                     NSSTime_Now(),
+	                                                     &serverUsage,
+	                                                     NULL);
+	if (cert[ssl_kea_rsa] == NULL) {
 	    fprintf(stderr, "selfserv: Can't find certificate %s\n", nickName);
 	    exit(10);
 	}
-	privKey[kt_rsa] = PK11_FindKeyByAnyCert(cert[kt_rsa], passwd);
-	if (privKey[kt_rsa] == NULL) {
+	privKey[ssl_kea_rsa] = NSSCert_FindPrivateKey(cert[ssl_kea_rsa], NULL);
+	if (privKey[ssl_kea_rsa] == NULL) {
 	    fprintf(stderr, "selfserv: Can't find Private Key for cert %s\n", 
 	            nickName);
 	    exit(11);
 	}
     }
     if (fNickName) {
-	cert[kt_fortezza] = PK11_FindCertFromNickname(fNickName, NULL);
-	if (cert[kt_fortezza] == NULL) {
+	cert[ssl_kea_fortezza] = NSSTrustDomain_FindBestCertByNickname(td, 
+	                                                          fNickName, 
+	                                                          NSSTime_Now(),
+	                                                          &serverUsage,
+	                                                          NULL);
+	if (cert[ssl_kea_fortezza] == NULL) {
 	    fprintf(stderr, "selfserv: Can't find certificate %s\n", fNickName);
 	    exit(12);
 	}
-	privKey[kt_fortezza] = PK11_FindKeyByAnyCert(cert[kt_fortezza], NULL);
+	privKey[ssl_kea_fortezza] = NSSCert_FindPrivateKey(cert[ssl_kea_fortezza], NULL);
     }
 
     /* allocate the array of thread slots, and launch the worker threads. */
@@ -1674,26 +1682,28 @@ main(int argc, char **argv)
     }
 
     if (rv == SECSuccess) {
-	server_main(listen_sock, requestCert, privKey, cert);
+	server_main(listen_sock, requestCert, privKey, cert, td);
     }
 
     VLOG(("selfserv: server_thread: exiting"));
 
     {
 	int i;
-	for (i=0; i<kt_kea_size; i++) {
+	for (i=0; i<ssl_kea_size; i++) {
 	    if (cert[i]) {
-		CERT_DestroyCertificate(cert[i]);
+		NSSCert_Destroy(cert[i]);
 	    }
 	    if (privKey[i]) {
-		SECKEY_DestroyPrivateKey(privKey[i]);
+		NSSPrivateKey_Destroy(privKey[i]);
 	    }
 	}
     }
 
+#if 0
     if (debugCache) {
 	nss_DumpCertificateCacheInfo();
     }
+#endif
 
     free(nickName);
     free(passwd);

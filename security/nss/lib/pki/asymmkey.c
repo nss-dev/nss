@@ -578,6 +578,52 @@ NSSPrivateKey_GetModule (
 }
 
 NSS_IMPLEMENT NSSItem *
+nssPrivateKey_Decrypt (
+  NSSPrivateKey *vk,
+  const NSSAlgNParam *apOpt,
+  NSSItem *encryptedData,
+  NSSCallback *uhh,
+  NSSItem *rvOpt,
+  NSSArena *arenaOpt
+)
+{
+    nssCryptokiObject *vko;
+    NSSAlgNParam *ap;
+    NSSItem *rvIt = NULL;
+
+    if (apOpt) {
+	ap = apOpt;
+    } else {
+	NSSOIDTag alg;
+	/* XXX are these defaults reasonable? */
+	switch (vk->kind) {
+	case NSSKeyPairType_RSA: alg = NSS_OID_PKCS1_RSA_ENCRYPTION; break;
+	default:
+	    /* set invalid arg err */
+	    return (NSSItem *)NULL;
+	}
+	ap = nssOIDTag_CreateAlgNParam(alg, NULL, NULL);
+	if (!ap) {
+	    return (NSSItem *)NULL;
+	}
+    }
+
+    vko = nssPrivateKey_FindInstanceForAlgorithm(vk, ap);
+    if (!vko) {
+	if (!apOpt) nssAlgNParam_Destroy(ap);
+	return (NSSItem *)NULL;
+    }
+
+    rvIt = nssToken_Decrypt(vko->token, vko->session, ap, vko,
+                            encryptedData, rvOpt, arenaOpt);
+
+    if (!apOpt) nssAlgNParam_Destroy(ap);
+    nssCryptokiObject_Destroy(vko);
+
+    return rvIt;
+}
+
+NSS_IMPLEMENT NSSItem *
 NSSPrivateKey_Decrypt (
   NSSPrivateKey *vk,
   const NSSAlgNParam *apOpt,
@@ -587,8 +633,8 @@ NSSPrivateKey_Decrypt (
   NSSArena *arenaOpt
 )
 {
-    nss_SetError(NSS_ERROR_NOT_FOUND);
-    return NULL;
+    return nssPrivateKey_Decrypt(vk, apOpt, encryptedData, 
+                                 uhh, rvOpt, arenaOpt);
 }
 
 /* XXX in 3.x, only CKM_RSA_PKCS and CKM_DSA sigs were done */
@@ -768,17 +814,6 @@ NSSPrivateKey_FindPublicKey (
     return nssPrivateKey_FindPublicKey(vk);;
 }
 
-NSS_IMPLEMENT NSSCryptoContext *
-NSSPrivateKey_CreateCryptoContext (
-  NSSPrivateKey *vk,
-  const NSSAlgNParam *apOpt,
-  NSSCallback *uhh
-)
-{
-    nss_SetError(NSS_ERROR_NOT_FOUND);
-    return NULL;
-}
-
 NSS_IMPLEMENT NSSCert **
 nssPrivateKey_FindCerts (
   NSSPrivateKey *vk,
@@ -813,6 +848,28 @@ NSSPrivateKey_FindBestCert (
 {
     nss_SetError(NSS_ERROR_NOT_FOUND);
     return NULL;
+}
+
+NSS_IMPLEMENT NSSCryptoContext *
+nssPrivateKey_CreateCryptoContext (
+  NSSPrivateKey *vk,
+  const NSSAlgNParam *apOpt,
+  NSSCallback *uhh
+)
+{
+    NSSCryptoContext *cc;
+    cc = nssCryptoContext_CreateForPrivateKey(vk, apOpt, uhh);
+    return cc;
+}
+
+NSS_IMPLEMENT NSSCryptoContext *
+NSSPrivateKey_CreateCryptoContext (
+  NSSPrivateKey *vk,
+  const NSSAlgNParam *apOpt,
+  NSSCallback *uhh
+)
+{
+    return nssPrivateKey_CreateCryptoContext(vk, apOpt, uhh);
 }
 
 NSS_IMPLEMENT void
@@ -1205,6 +1262,52 @@ NSSPublicKey_GetKeyStrength (
 }
 
 NSS_IMPLEMENT NSSItem *
+nssPublicKey_Encrypt (
+  NSSPublicKey *bk,
+  const NSSAlgNParam *apOpt,
+  NSSItem *data,
+  NSSCallback *uhh,
+  NSSItem *rvOpt,
+  NSSArena *arenaOpt
+)
+{
+    nssCryptokiObject *bko;
+    NSSAlgNParam *ap;
+    NSSItem *rvIt = NULL;
+
+    if (apOpt) {
+	ap = apOpt;
+    } else {
+	NSSOIDTag alg;
+	/* XXX are these defaults reasonable? */
+	switch (bk->info.kind) {
+	case NSSKeyPairType_RSA: alg = NSS_OID_PKCS1_RSA_ENCRYPTION; break;
+	default:
+	    /* set invalid arg err */
+	    return (NSSItem *)NULL;
+	}
+	ap = nssOIDTag_CreateAlgNParam(alg, NULL, NULL);
+	if (!ap) {
+	    return (NSSItem *)NULL;
+	}
+    }
+
+    bko = nssPublicKey_FindInstanceForAlgorithm(bk, ap);
+    if (!bko) {
+	if (!apOpt) nssAlgNParam_Destroy(ap);
+	return (NSSItem *)NULL;
+    }
+
+    rvIt = nssToken_Decrypt(bko->token, bko->session, ap, bko,
+                            data, rvOpt, arenaOpt);
+
+    if (!apOpt) nssAlgNParam_Destroy(ap);
+    nssCryptokiObject_Destroy(bko);
+
+    return rvIt;
+}
+
+NSS_IMPLEMENT NSSItem *
 NSSPublicKey_Encrypt (
   NSSPublicKey *bk,
   const NSSAlgNParam *apOpt,
@@ -1214,8 +1317,7 @@ NSSPublicKey_Encrypt (
   NSSArena *arenaOpt
 )
 {
-    nss_SetError(NSS_ERROR_NOT_FOUND);
-    return NULL;
+    return nssPublicKey_Encrypt(bk, apOpt, data, uhh, rvOpt, arenaOpt);
 }
 
 NSS_IMPLEMENT PRStatus

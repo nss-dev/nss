@@ -40,9 +40,10 @@ DIRS =            \
 	cmdlib    \
 	atob      \
 	btoa      \
+	cipher    \
 	nssutil   \
 	pkiutil   \
-	cipher    \
+	selfserv  \
  $(NULL)
 
 TEMPORARILY_DONT_BUILD = \

@@ -883,6 +883,31 @@ nssAlgNParam_CreateForKeyGen (
     return finish_create_algparam(rvAP, rvAP->arena, mark, status);
 }
 
+NSS_IMPLEMENT NSSAlgNParam *
+nssAlgNParam_CreateDefaultForSymKey (
+  NSSArena *arenaOpt,
+  NSSSymKeyType symKeyType
+)
+{
+    NSSOID *alg;
+    NSSOIDTag algTag;
+
+    switch(symKeyType) {
+    case NSSSymKeyType_RC4:       algTag = NSS_OID_RC4;     break;
+    case NSSSymKeyType_TripleDES: algTag = NSS_OID_DES_EDE; break;
+    case NSSSymKeyType_DES:       algTag = NSS_OID_DES_ECB; break;
+    /* XXX default params for RC2, RC5, etc.? */
+    default:
+	/* err=params required? */
+	return (NSSAlgNParam *)NULL;
+    }
+    alg = nssOID_CreateFromTag(algTag);
+    if (!alg) {
+	return (NSSAlgNParam *)NULL;
+    }
+    return nssAlgNParam_Create(arenaOpt, alg, NULL);
+}
+
 typedef struct {
   NSSItem algorithmOID;
   NSSItem parameters;

@@ -236,16 +236,15 @@ print_rsa_key_info(NSSRSAPublicKeyInfo *rsaInfo, CMDRunTimeData *rtData)
 static PRStatus
 print_public_key_info(NSSPublicKey *pubKey, CMDRunTimeData *rtData)
 {
-    NSSPublicKeyInfo *pubKeyInfo = NSSPublicKey_GetInfo(pubKey);
-    if (pubKeyInfo) {
-	switch(pubKeyInfo->kind) {
-	case NSSKeyPairType_RSA:
-	    return print_rsa_key_info(&pubKeyInfo->u.rsa, rtData);
-	case NSSKeyPairType_DSA:
-	case NSSKeyPairType_DH:
-	default:
-	    return PR_FAILURE;
-	}
+    NSSPublicKeyInfo pubKeyInfo;
+    NSSPublicKey_GetKeyInfo(pubKey, &pubKeyInfo);
+    switch(pubKeyInfo.kind) {
+    case NSSKeyPairType_RSA:
+	return print_rsa_key_info(&pubKeyInfo.u.rsa, rtData);
+    case NSSKeyPairType_DSA:
+    case NSSKeyPairType_DH:
+    default:
+	return PR_FAILURE;
     }
     return PR_FAILURE;
 }

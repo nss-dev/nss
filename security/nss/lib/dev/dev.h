@@ -606,6 +606,18 @@ nssToken_GenerateSymKey (
 );
 
 NSS_EXTERN nssCryptokiObject *
+nssToken_ImportRawSymKey (
+  NSSToken *token,
+  nssSession *session,
+  NSSItem *keyData,
+  NSSSymKeyType symKeyType,
+  PRBool asTokenObject,
+  const NSSUTF8 *labelOpt,
+  NSSOperations operations,
+  NSSProperties properties
+);
+
+NSS_EXTERN nssCryptokiObject *
 nssToken_UnwrapPrivateKey (
   NSSToken *token,
   nssSession *session,
@@ -920,6 +932,12 @@ nssAlgNParam_Encode (
   const NSSAlgNParam *ap,
   NSSBER *rvOpt,
   NSSArena *arenaOpt
+);
+
+NSS_EXTERN NSSAlgNParam *
+nssAlgNParam_CreateDefaultForSymKey (
+  NSSArena *arenaOpt,
+  NSSSymKeyType symKeyType
 );
 
 NSS_EXTERN NSSAlgNParam *
