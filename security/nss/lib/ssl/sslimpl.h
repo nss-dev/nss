@@ -847,6 +847,7 @@ struct sslSecurityInfoStr {
 
     /* These are used during a connection handshake */
     sslConnectInfo   ci;					/* ssl 2 & 3 */
+    PRIntervalTime lastTime;
 
 };
 
