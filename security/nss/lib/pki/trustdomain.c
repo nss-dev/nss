@@ -962,6 +962,7 @@ NSSTrustDomain_TraverseCertificates
     nssList *certList;
     nssTokenCertSearch search;
     struct traverse_arg ta;
+    nssListIterator *tokens;
     certList = nssList_Create(NULL, PR_FALSE);
     if (!certList) return NULL;
     (void *)nssTrustDomain_GetCertsFromCache(td, certList);
@@ -976,16 +977,25 @@ NSSTrustDomain_TraverseCertificates
     search.searchType = nssTokenSearchType_TokenOnly;
     nssCertificateList_DoCallback(certList, 
                                   traverse_callback, &ta);
+    /* Must create a local copy of the token list, because the callback
+     * above may want to traverse the tokens as well.
+     */
+    tokens = nssList_CreateIterator(td->tokenList);
+    if (!tokens) {
+	goto cleanup;
+    }
     /* traverse the tokens */
-    for (token  = (NSSToken *)nssListIterator_Start(td->tokens);
+    for (token  = (NSSToken *)nssListIterator_Start(tokens);
          token != (NSSToken *)NULL;
-         token  = (NSSToken *)nssListIterator_Next(td->tokens))
+         token  = (NSSToken *)nssListIterator_Next(tokens))
     {
 	if (nssToken_SearchCerts(token)) {
 	    nssrv = nssToken_TraverseCertificates(token, NULL, &search);
 	}
     }
-    nssListIterator_Finish(td->tokens);
+    nssListIterator_Finish(tokens);
+    nssListIterator_Destroy(tokens);
+cleanup:
 #ifdef NSS_3_4_CODE
     nssList_Clear(certList, cert_destructor_with_cache);
 #else
