@@ -48,7 +48,6 @@ EXPORTS = \
 	pkcs11t.h \
 	pkcs11n.h \
 	pkcs11u.h \
-	secpkcs5.h \
 	$(NULL)
 
 PRIVATE_EXPORTS = \
@@ -65,13 +64,13 @@ CSRCS = \
 	keydb.c    \
 	lowcert.c  \
 	lowkey.c   \
+	lowpbe.c   \
 	padbuf.c   \
+	pcertdb.c \
 	pk11db.c \
 	pkcs11.c   \
 	pkcs11c.c  \
 	pkcs11u.c  \
 	rawhash.c \
 	rsawrapr.c  \
-	secpkcs5.c \
-	pcertdb.c \
 	$(NULL)

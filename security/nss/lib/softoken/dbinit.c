@@ -104,16 +104,13 @@ pk11_keydb_name_cb(void *arg, int dbVersion)
 #define CKR_KEYDB_FAILED	CKR_DEVICE_ERROR
 
 static CK_RV
-pk11_OpenCertDB(const char * configdir,  const char *prefix, PRBool readOnly)
+pk11_OpenCertDB(const char * configdir, const char *prefix, PRBool readOnly,
+    					    NSSLOWCERTCertDBHandle **certdbPtr)
 {
     NSSLOWCERTCertDBHandle *certdb;
-    CK_RV        crv = CKR_OK;
+    CK_RV        crv = CKR_CERTDB_FAILED;
     SECStatus    rv;
     char * name = NULL;
-
-    certdb = nsslowcert_GetDefaultCertDB(); /* find a better way??  3.4 */
-    if (certdb)
-    	return CKR_OK;	/* idempotency */
 
     if (prefix == NULL) {
 	prefix = "";
@@ -129,26 +126,24 @@ pk11_OpenCertDB(const char * configdir,  const char *prefix, PRBool readOnly)
 /* fix when we get the DB in */
     rv = nsslowcert_OpenCertDB(certdb, readOnly, 
 				pk11_certdb_name_cb, (void *)name, PR_FALSE);
-    if (rv == SECSuccess)
-	nsslowcert_SetDefaultCertDB(certdb);
-    else {
-	PR_Free(certdb);
-loser: 
-	crv = CKR_CERTDB_FAILED;
+    if (rv == SECSuccess) {
+	crv = CKR_OK;
+	*certdbPtr = certdb;
+	certdb = NULL;
     }
+loser: 
+    if (certdb) PR_Free(certdb);
     if (name) PORT_Free(name);
     return crv;
 }
 
 static CK_RV
-pk11_OpenKeyDB(const char * configdir, const char *prefix, PRBool readOnly)
+pk11_OpenKeyDB(const char * configdir, const char *prefix, PRBool readOnly,
+    						NSSLOWKEYDBHandle **keydbPtr)
 {
     NSSLOWKEYDBHandle *keydb;
     char * name = NULL;
 
-    keydb = nsslowkey_GetDefaultKeyDB();
-    if (keydb)
-    	return SECSuccess;
     if (prefix == NULL) {
 	prefix = "";
     }
@@ -156,33 +151,14 @@ pk11_OpenKeyDB(const char * configdir, const char *prefix, PRBool readOnly)
     if (name == NULL) 
 	return SECFailure;
     keydb = nsslowkey_OpenKeyDB(readOnly, pk11_keydb_name_cb, (void *)name);
+    PORT_Free(name);
     if (keydb == NULL)
 	return CKR_KEYDB_FAILED;
-    nsslowkey_SetDefaultKeyDB(keydb);
-    PORT_Free(name);
+    *keydbPtr = keydb;
 
     return CKR_OK;
 }
 
-static NSSLOWCERTCertDBHandle certhandle = { 0 };
-
-static PRBool isInitialized = PR_FALSE;
-
-static CK_RV 
-pk11_OpenVolatileCertDB() {
-      SECStatus rv = SECSuccess;
-      /* now we want to verify the signature */
-      /*  Initialize the cert code */
-      rv = nsslowcert_OpenCertDB(&certhandle, PR_FALSE,  NULL, NULL, PR_TRUE);
-      if (rv != SECSuccess) {
-	   return CKR_DEVICE_ERROR;
-      }
-      nsslowcert_SetDefaultCertDB(&certhandle);
-      return CKR_OK;
-}
-
-/* forward declare so that a failure in the init case can shutdown */
-void pk11_Shutdown(void);
 
 /*
  * OK there are now lots of options here, lets go through them all:
@@ -203,55 +179,37 @@ void pk11_Shutdown(void);
  */
 CK_RV
 pk11_DBInit(const char *configdir, const char *certPrefix, 
-		const char *keyPrefix,
-		 const char *secmodName, PRBool readOnly, PRBool noCertDB, 
-					PRBool noModDB, PRBool forceOpen)
+	    const char *keyPrefix, PRBool readOnly, 
+	    PRBool noCertDB, PRBool noKeyDB, PRBool forceOpen,
+	    NSSLOWCERTCertDBHandle **certdbPtr, NSSLOWKEYDBHandle **keydbPtr)
 {
     SECStatus rv      = SECFailure;
     CK_RV crv = CKR_OK;
 
-    if( isInitialized ) {
-	return CKR_OK;
-    }
 
-    rv = RNG_RNGInit();     	/* initialize random number generator */
-    if (rv != SECSuccess) {
-	crv = CKR_DEVICE_ERROR;
-	goto loser;
-    }
-    RNG_SystemInfoForRNG();
-
-    if (noCertDB) {
-	crv = pk11_OpenVolatileCertDB();
-	if (crv != CKR_OK) {
-	    goto loser;
-	}
-    } else {
-	crv = pk11_OpenCertDB(configdir, certPrefix, readOnly);
+    if (!noCertDB) {
+	crv = pk11_OpenCertDB(configdir, certPrefix, readOnly, certdbPtr);
 	if (crv != CKR_OK) {
 	    if (!forceOpen) goto loser;
-	    crv = pk11_OpenVolatileCertDB();
-	    if (crv != CKR_OK) {
-		goto loser;
-	    }
+	    crv = CKR_OK;
 	}
+    }
+    if (!noKeyDB) {
 
-	crv = pk11_OpenKeyDB(configdir, keyPrefix, readOnly);
+	crv = pk11_OpenKeyDB(configdir, keyPrefix, readOnly, keydbPtr);
 	if (crv != CKR_OK) {
 	    if (!forceOpen) goto loser;
+	    crv = CKR_OK;
 	}
     }
 
-    isInitialized = PR_TRUE;
 
 loser:
-    if (crv != CKR_OK) {
-	pk11_Shutdown();
-    }
     return crv;
 }
 
 
+#ifdef notdef
 void
 pk11_Shutdown(void)
 {
@@ -271,3 +229,4 @@ pk11_Shutdown(void)
 
     isInitialized = PR_FALSE;
 }
+#endif

@@ -48,8 +48,6 @@
  */
 struct NSSLOWCERTCertDBHandleStr {
     DB *permCertDB;
-    DB *tempCertDB;
-    void *spkDigestInfo;
     PZMonitor *dbMon;
 };
 

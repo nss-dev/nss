@@ -40,15 +40,6 @@
 #include "pcert.h"
 #include "secasn1.h"
 
-
-/* declare the internal pkcs11 slot structures:
- *  There are threee:
- *	slot 0 is the generic crypto service token.
- *	slot 1 is the Database service token.
- *	slot 2 is the FIPS token (both generic and database).
- */
-static PK11Slot pk11_slot[3];
-
 /*
  * ******************** Attribute Utilities *******************************
  */
@@ -313,10 +304,35 @@ static const PK11Attribute pk11_StaticMustVerifyAttr =
   PK11_DEF_ATTRIBUTE(&pk11_staticMustVerifyValue,
 				sizeof(pk11_staticMustVerifyValue));
 
-SECItem *
+static void pk11_FreeItem(SECItem *item)
+{
+    SECITEM_FreeItem(item, PR_TRUE);
+}
+
+static certDBEntrySMime *
+pk11_getSMime(PK11TokenObject *object)
+{
+    certDBEntrySMime *entry;
+
+    if (object->obj.objclass != CKO_NETSCAPE_SMIME) {
+	return NULL;
+    }
+    if (object->obj.objectInfo) {
+	return (certDBEntrySMime *)object->obj.objectInfo;
+    }
+
+    entry = nsslowcert_ReadDBSMimeEntry(object->obj.slot->certDB,
+						(char *)object->dbKey.data);
+    object->obj.objectInfo = (void *)entry;
+    object->obj.infoFree = (PK11Free) nsslowcert_DestroyDBEntry;
+    return entry;
+}
+
+static SECItem *
 pk11_getCrl(PK11TokenObject *object)
 {
     SECItem *crl;
+    PRBool isKrl;
 
     if (object->obj.objclass != CKO_NETSCAPE_CRL) {
 	return NULL;
@@ -324,14 +340,39 @@ pk11_getCrl(PK11TokenObject *object)
     if (object->obj.objectInfo) {
 	return (SECItem *)object->obj.objectInfo;
     }
+
+    isKrl = (PRBool) object->obj.handle == PK11_TOKEN_KRL_HANDLE;
     crl = nsslowcert_FindCrlByKey(object->obj.slot->certDB,&object->dbKey,
-								NULL,PR_FALSE);
+								NULL,isKrl);
     object->obj.objectInfo = (void *)crl;
-    object->obj.infoFree = (PK11Free) SECITEM_FreeItem;
+    object->obj.infoFree = (PK11Free) pk11_FreeItem;
     return crl;
 }
 
-NSSLOWCERTCertificate *
+static char *
+pk11_getUrl(PK11TokenObject *object)
+{
+    SECItem *crl;
+    PRBool isKrl;
+    char *url = NULL;
+
+    if (object->obj.objclass != CKO_NETSCAPE_CRL) {
+	return NULL;
+    }
+
+    isKrl = (PRBool) object->obj.handle == PK11_TOKEN_KRL_HANDLE;
+    crl = nsslowcert_FindCrlByKey(object->obj.slot->certDB,&object->dbKey,
+								&url,isKrl);
+    if (object->obj.objectInfo == NULL) {
+	object->obj.objectInfo = (void *)crl;
+	object->obj.infoFree = (PK11Free) pk11_FreeItem;
+    } else {
+	if (crl) SECITEM_FreeItem(crl,PR_TRUE);
+    }
+    return url;
+}
+
+static NSSLOWCERTCertificate *
 pk11_getCert(PK11TokenObject *object)
 {
     NSSLOWCERTCertificate *cert;
@@ -349,7 +390,7 @@ pk11_getCert(PK11TokenObject *object)
     return cert;
 }
 
-NSSLOWKEYPublicKey *
+static NSSLOWKEYPublicKey *
 pk11_GetPublicKey(PK11TokenObject *object)
 {
     NSSLOWKEYPublicKey *pubKey;
@@ -370,12 +411,12 @@ pk11_GetPublicKey(PK11TokenObject *object)
     return pubKey;
 }
 
-NSSLOWKEYPrivateKey *
+static NSSLOWKEYPrivateKey *
 pk11_GetPrivateKey(PK11TokenObject *object)
 {
     NSSLOWKEYPrivateKey *privKey;
 
-    if (object->obj.objclass != CKO_PUBLIC_KEY) {
+    if (object->obj.objclass != CKO_PRIVATE_KEY) {
 	return NULL;
     }
     if (object->obj.objectInfo) {
@@ -418,7 +459,7 @@ static const SEC_ASN1Template pk11_SerialTemplate[] = {
     { 0 }
 };
 
-PK11Attribute *
+static PK11Attribute *
 pk11_FindRSAPublicKeyAttribute(NSSLOWKEYPublicKey *key, CK_ATTRIBUTE_TYPE type)
 {
     unsigned char hash[SHA1_LENGTH];
@@ -448,7 +489,8 @@ pk11_FindRSAPublicKeyAttribute(NSSLOWKEYPublicKey *key, CK_ATTRIBUTE_TYPE type)
     }
     return NULL;
 }
-PK11Attribute *
+
+static PK11Attribute *
 pk11_FindDSAPublicKeyAttribute(NSSLOWKEYPublicKey *key, CK_ATTRIBUTE_TYPE type)
 {
     unsigned char hash[SHA1_LENGTH];
@@ -486,7 +528,8 @@ pk11_FindDSAPublicKeyAttribute(NSSLOWKEYPublicKey *key, CK_ATTRIBUTE_TYPE type)
     }
     return NULL;
 }
-PK11Attribute *
+
+static PK11Attribute *
 pk11_FindDHPublicKeyAttribute(NSSLOWKEYPublicKey *key, CK_ATTRIBUTE_TYPE type)
 {
     unsigned char hash[SHA1_LENGTH];
@@ -520,15 +563,20 @@ pk11_FindDHPublicKeyAttribute(NSSLOWKEYPublicKey *key, CK_ATTRIBUTE_TYPE type)
     return NULL;
 }
 
-PK11Attribute *
+static PK11Attribute *
 pk11_FindPublicKeyAttribute(PK11TokenObject *object, CK_ATTRIBUTE_TYPE type)
 {
     NSSLOWKEYPublicKey *key;
 
     switch (type) {
     case CKA_PRIVATE:
-    case CKA_MODIFIABLE:
+    case CKA_SENSITIVE:
+    case CKA_ALWAYS_SENSITIVE:
+    case CKA_NEVER_EXTRACTABLE:
 	return (PK11Attribute *) &pk11_StaticFalseAttr;
+    case CKA_MODIFIABLE:
+    case CKA_EXTRACTABLE:
+	return (PK11Attribute *) &pk11_StaticTrueAttr;
     default:
 	break;
     }
@@ -550,7 +598,8 @@ pk11_FindPublicKeyAttribute(PK11TokenObject *object, CK_ATTRIBUTE_TYPE type)
 
     return NULL;
 }
-PK11Attribute *
+
+static PK11Attribute *
 pk11_FindSecretKeyAttribute(PK11TokenObject *object, CK_ATTRIBUTE_TYPE type)
 {
     NSSLOWKEYPrivateKey *key;
@@ -592,7 +641,7 @@ pk11_FindSecretKeyAttribute(PK11TokenObject *object, CK_ATTRIBUTE_TYPE type)
     return NULL;
 }
 
-PK11Attribute *
+static PK11Attribute *
 pk11_FindRSAPrivateKeyAttribute(NSSLOWKEYPrivateKey *key,
 							 CK_ATTRIBUTE_TYPE type)
 {
@@ -630,7 +679,8 @@ pk11_FindRSAPrivateKeyAttribute(NSSLOWKEYPrivateKey *key,
     }
     return NULL;
 }
-PK11Attribute *
+
+static PK11Attribute *
 pk11_FindDSAPrivateKeyAttribute(NSSLOWKEYPrivateKey *key, 
 							CK_ATTRIBUTE_TYPE type)
 {
@@ -669,7 +719,7 @@ pk11_FindDSAPrivateKeyAttribute(NSSLOWKEYPrivateKey *key,
     return NULL;
 }
 
-PK11Attribute *
+static PK11Attribute *
 pk11_FindDHPrivateKeyAttribute(NSSLOWKEYPrivateKey *key, CK_ATTRIBUTE_TYPE type)
 {
     unsigned char hash[SHA1_LENGTH];
@@ -702,7 +752,7 @@ pk11_FindDHPrivateKeyAttribute(NSSLOWKEYPrivateKey *key, CK_ATTRIBUTE_TYPE type)
     return NULL;
 }
 
-PK11Attribute *
+static PK11Attribute *
 pk11_FindPrivateKeyAttribute(PK11TokenObject *object, CK_ATTRIBUTE_TYPE type)
 {
     NSSLOWKEYPrivateKey *key;
@@ -711,9 +761,9 @@ pk11_FindPrivateKeyAttribute(PK11TokenObject *object, CK_ATTRIBUTE_TYPE type)
     case CKA_SENSITIVE:
     case CKA_ALWAYS_SENSITIVE:
     case CKA_EXTRACTABLE:
+    case CKA_MODIFIABLE:
 	return (PK11Attribute *) &pk11_StaticTrueAttr;
     case CKA_NEVER_EXTRACTABLE:
-    case CKA_MODIFIABLE:
 	return (PK11Attribute *) &pk11_StaticFalseAttr;
     default:
 	break;
@@ -736,21 +786,42 @@ pk11_FindPrivateKeyAttribute(PK11TokenObject *object, CK_ATTRIBUTE_TYPE type)
     return NULL;
 }
 
-PK11Attribute *
+static PK11Attribute *
 pk11_FindSMIMEAttribute(PK11TokenObject *object, CK_ATTRIBUTE_TYPE type)
 {
+    certDBEntrySMime *entry;
     NSSLOWCERTCertificate *cert;
     switch (type) {
     case CKA_PRIVATE:
     case CKA_MODIFIABLE:
 	return (PK11Attribute *) &pk11_StaticFalseAttr;
+    case CKA_NETSCAPE_EMAIL:
+	return pk11_NewTokenAttribute(type,object->dbKey.data,
+						object->dbKey.len, PR_FALSE);
+    default:
+	break;
+    }
+    entry = pk11_getSMime(object);
+    if (entry == NULL) {
+	return NULL;
+    }
+    switch (type) {
+    case CKA_NETSCAPE_SMIME_TIMESTAMP:
+	return pk11_NewTokenAttribute(type,entry->optionsDate.data,
+					entry->optionsDate.len, PR_FALSE);
+    case CKA_SUBJECT:
+	return pk11_NewTokenAttribute(type,entry->subjectName.data,
+					entry->subjectName.len, PR_FALSE);
+    case CKA_VALUE:
+	return pk11_NewTokenAttribute(type,entry->smimeOptions.data,
+					entry->smimeOptions.len, PR_FALSE);
     default:
 	break;
     }
     return NULL;
 }
 
-PK11Attribute *
+static PK11Attribute *
 pk11_FindTrustAttribute(PK11TokenObject *object, CK_ATTRIBUTE_TYPE type)
 {
     NSSLOWCERTCertificate *cert;
@@ -819,15 +890,25 @@ trust:
     return NULL;
 }
 
-PK11Attribute *
+static PK11Attribute *
 pk11_FindCrlAttribute(PK11TokenObject *object, CK_ATTRIBUTE_TYPE type)
 {
     SECItem *crl;
+    char *url;
 
     switch (type) {
     case CKA_PRIVATE:
     case CKA_MODIFIABLE:
 	return (PK11Attribute *) &pk11_StaticFalseAttr;
+    case CKA_NETSCAPE_KRL:
+	return (PK11Attribute *) ((object->obj.handle == PK11_TOKEN_KRL_HANDLE) 
+			? &pk11_StaticTrueAttr : &pk11_StaticFalseAttr);
+    case CKA_NETSCAPE_URL:
+	url = pk11_getUrl(object);
+	if (url == NULL) {
+	    return (PK11Attribute *) &pk11_StaticNullAttr;
+	}
+	return pk11_NewTokenAttribute(type, url, PORT_Strlen(url)+1, PR_TRUE);
     case CKA_VALUE:
 	crl = pk11_getCrl(object);
 	if (crl == NULL) break;
@@ -841,7 +922,7 @@ pk11_FindCrlAttribute(PK11TokenObject *object, CK_ATTRIBUTE_TYPE type)
     return NULL;
 }
 
-PK11Attribute *
+static PK11Attribute *
 pk11_FindCertAttribute(PK11TokenObject *object, CK_ATTRIBUTE_TYPE type)
 {
     NSSLOWCERTCertificate *cert;
@@ -900,7 +981,7 @@ pk11_FindCertAttribute(PK11TokenObject *object, CK_ATTRIBUTE_TYPE type)
     return NULL;
 }
     
-PK11Attribute *    
+static PK11Attribute *    
 pk11_FindTokenAttribute(PK11TokenObject *object,CK_ATTRIBUTE_TYPE type)
 {
     /* handle the common ones */
@@ -976,6 +1057,7 @@ pk11_hasAttributeToken(PK11TokenObject *object)
 {
     return PR_FALSE;
 }
+
 /*
  * return true if object has attribute
  */
@@ -1115,6 +1197,33 @@ pk11_nullAttribute(PK11Object *object,CK_ATTRIBUTE_TYPE type)
     pk11_FreeAttribute(attribute);
 }
 
+static CK_RV
+pk11_forceTokenAttribute(PK11Object *object,CK_ATTRIBUTE_TYPE type, 
+						void *value, unsigned int len)
+{
+    PK11Attribute *attribute;
+
+    /* if we are just setting it to the value we already have,
+     * allow it to happen. */
+    attribute=pk11_FindAttribute(object,type);
+    if ((attribute->attrib.ulValueLen == len) &&
+	PORT_Memcmp(attribute->attrib.pValue,value,len) == 0) {
+	pk11_FreeAttribute(attribute);
+	return CKR_OK;
+    }
+
+    switch (object->objclass) {
+    case CKO_CERTIFICATE:
+	/* change NICKNAME, EMAIL,  */
+	break;
+    case CKO_NETSCAPE_CRL:
+	/* change URL */
+	break;
+    }
+    pk11_FreeAttribute(attribute);
+    return CKR_ATTRIBUTE_READ_ONLY;
+}
+	
 /*
  * force an attribute to a spaecif value.
  */
@@ -1126,6 +1235,9 @@ pk11_forceAttribute(PK11Object *object,CK_ATTRIBUTE_TYPE type, void *value,
     void *att_val = NULL;
     PRBool freeData = PR_FALSE;
 
+    if (pk11_isToken(object->handle)) {
+	return pk11_forceTokenAttribute(object,type,value,len);
+    }
     attribute=pk11_FindAttribute(object,type);
     if (attribute == NULL) return pk11_AddAttributeType(object,type,value,len);
 
@@ -1172,6 +1284,7 @@ pk11_forceAttribute(PK11Object *object,CK_ATTRIBUTE_TYPE type, void *value,
 	attribute->attrib.ulValueLen = len;
 	attribute->freeData = freeData;
     }
+    pk11_FreeAttribute(attribute);
     return CKR_OK;
 }
 
@@ -1742,6 +1855,7 @@ pk11_AddObject(PK11Session *session, PK11Object *object)
 	PK11_USE_THREADS(PZ_Unlock(session->objectLock);)
     }
     pk11_AddSlotObject(slot,object);
+    pk11_ReferenceObject(object);
 } 
 
 /*
@@ -1757,6 +1871,7 @@ pk11_DeleteObject(PK11Session *session, PK11Object *object)
     SECStatus rv;
     NSSLOWCERTCertificate *cert;
     NSSLOWCERTCertTrust tmptrust;
+    PRBool isKrl;
 
   /* Handle Token case */
     if (so && so->session) {
@@ -1768,6 +1883,7 @@ pk11_DeleteObject(PK11Session *session, PK11Object *object)
 	pk11queue_delete(object,object->handle,slot->tokObjects,
 						TOKEN_OBJECT_HASH_SIZE);
 	PK11_USE_THREADS(PZ_Unlock(slot->objectLock);)
+	pk11_FreeObject(object); /* reduce it's reference count */
     } else {
 	PORT_Assert(to);
 	/* remove the objects from the real data base */
@@ -1793,12 +1909,9 @@ pk11_DeleteObject(PK11Session *session, PK11Object *object)
 	    nsslowcert_DestroyCertificate(cert);
 	    break;
 	case PK11_TOKEN_TYPE_CRL:
-	    rv = nsslowcert_DeletePermCRL(slot->certDB,&to->dbKey,PR_FALSE);
-	    if (rv == SECFailure) {
-		/* must be a KRL */
-	        rv = nsslowcert_DeletePermCRL(slot->certDB,&to->dbKey,PR_TRUE);
-		if (rv == SECFailure) crv = CKR_DEVICE_ERROR;
-	    }
+	    isKrl = (PRBool) (object->handle == PK11_TOKEN_KRL_HANDLE);
+	    rv = nsslowcert_DeletePermCRL(slot->certDB,&to->dbKey,isKrl);
+	    if (rv == SECFailure) crv = CKR_DEVICE_ERROR;
 	    break;
 	case PK11_TOKEN_TYPE_TRUST:
 	    cert = nsslowcert_FindCertByKey(slot->certDB,&to->dbKey);
@@ -1824,7 +1937,6 @@ pk11_DeleteObject(PK11Session *session, PK11Object *object)
 	pk11_deleteTokenKeyByHandle(object->slot,object->handle);
 	pk11_tokenKeyUnlock(object->slot);
     } 
-    pk11_FreeObject(object);
 }
 
 /*
@@ -2028,37 +2140,11 @@ pk11_FreeContext(PK11SessionContext *context)
     if (context->hashInfo) {
 	(*context->hashdestroy)(context->hashInfo,PR_TRUE);
     }
+    if (context->key) {
+	pk11_FreeObject(context->key);
+	context->key = NULL;
+    }
     PORT_Free(context);
-}
-
-/* look up a slot structure from the ID (used to be a macro when we only
- * had two slots) */
-PK11Slot *
-pk11_SlotFromID(CK_SLOT_ID slotID)
-{
-    switch (slotID) {
-    case NETSCAPE_SLOT_ID:
-	return &pk11_slot[0];
-    case PRIVATE_KEY_SLOT_ID:
-	return &pk11_slot[1];
-    case FIPS_SLOT_ID:
-	return &pk11_slot[2];
-    default:
-	break; /* fall through to NULL */
-    }
-    return NULL;
-}
-
-PK11Slot *
-pk11_SlotFromSessionHandle(CK_SESSION_HANDLE handle)
-{
-    if (handle & PK11_PRIVATE_KEY_FLAG) {
-	return &pk11_slot[1];
-    }
-    if (handle & PK11_FIPS_FLAG) {
-	return &pk11_slot[2];
-    }
-    return &pk11_slot[0];
 }
 
 /*
@@ -2192,10 +2278,20 @@ pk11_mkHandle(PK11Slot *slot, SECItem *dbKey, CK_OBJECT_HANDLE class)
     CK_OBJECT_HANDLE handle;
     SECItem *key;
 
-    SHA1_HashBuf(hashBuf,dbKey->data,dbKey->len);
-    handle = (hashBuf[0] << 24) | (hashBuf[1] << 16) | 
+    handle = class;
+    /* there is only one KRL, use a fixed handle for it */
+    if (handle != PK11_TOKEN_KRL_HANDLE) {
+	SHA1_HashBuf(hashBuf,dbKey->data,dbKey->len);
+	handle = (hashBuf[0] << 24) | (hashBuf[1] << 16) | 
 					(hashBuf[2] << 8)  | hashBuf[3];
-    handle = PK11_TOKEN_MASK | class | (handle & ~PK11_TOKEN_TYPE_MASK);
+	handle = PK11_TOKEN_MAGIC | class | 
+			(handle & ~(PK11_TOKEN_TYPE_MASK|PK11_TOKEN_MASK));
+	/* we have a CRL who's handle has randomly matched the reserved KRL
+	 * handle, increment it */
+	if (handle == PK11_TOKEN_KRL_HANDLE) {
+	    handle++;
+	}
+    }
 
     pk11_tokenKeyLock(slot);
     while (key = pk11_lookupTokenKeyByHandle(slot,handle)) {

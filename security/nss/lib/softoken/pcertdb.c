@@ -69,7 +69,7 @@ nsslowcert_FindCertByDERCertNoLocking(NSSLOWCERTCertDBHandle *handle, SECItem *d
 static PZLock *dbLock = NULL;
 
 void
-certdb_InitDBLock(void)
+certdb_InitDBLock(NSSLOWCERTCertDBHandle *handle)
 {
     if (dbLock == NULL) {
 	nss_InitLock(&dbLock, nssILockCertDB);
@@ -1233,6 +1233,13 @@ DestroyDBEntry(certDBEntry *entry)
     return;
 }
 
+void
+nsslowcert_DestroyDBEntry(certDBEntry *entry)
+{
+    DestroyDBEntry(entry);
+    return;
+}
+
 /*
  * Encode a database nickname record
  */
@@ -1543,10 +1550,6 @@ loser:
     
 }
 
-/*
- * Encode a database smime record
- */
-static SECStatus
 EncodeDBSMimeEntry(certDBEntrySMime *entry, PRArenaPool *arena,
 		   SECItem *dbitem)
 {
@@ -1824,8 +1827,8 @@ loser:
 /*
  * Read a SMIME entry
  */
-static certDBEntrySMime *
-ReadDBSMimeEntry(NSSLOWCERTCertDBHandle *handle, char *emailAddr)
+certDBEntrySMime *
+nsslowcert_ReadDBSMimeEntry(NSSLOWCERTCertDBHandle *handle, char *emailAddr)
 {
     PRArenaPool *arena = NULL;
     PRArenaPool *tmparena = NULL;
@@ -2420,25 +2423,29 @@ loser:
 }
 
 static SECStatus
-UpdateSubjectWithEmailAddr(NSSLOWCERTCertificate *cert, char *emailAddr)
+UpdateSubjectWithEmailAddr(NSSLOWCERTCertDBHandle *dbhandle, 
+					SECItem *derSubject, char *emailAddr)
 {
     PRBool save = PR_FALSE, delold = PR_FALSE;
     certDBEntrySubject *entry;
     SECStatus rv;
-    
-    emailAddr = nsslowcert_FixupEmailAddr(emailAddr);
-    if ( emailAddr == NULL ) {
-	return(SECFailure);
+   
+    if (emailAddr) { 
+	emailAddr = nsslowcert_FixupEmailAddr(emailAddr);
+	if (emailAddr == NULL) {
+	    return SECFailure;
+	}
     }
 
-    entry = ReadDBSubjectEntry(cert->dbhandle,&cert->derSubject);    
+    entry = ReadDBSubjectEntry(dbhandle,derSubject);    
     
     if ( entry->emailAddr ) {
-	if ( PORT_Strcmp(entry->emailAddr, emailAddr) != 0 ) {
+	if ( (emailAddr == NULL) || 
+		(PORT_Strcmp(entry->emailAddr, emailAddr) != 0) ) {
 	    save = PR_TRUE;
 	    delold = PR_TRUE;
 	}
-    } else {
+    } else if (emailAddr) {
 	save = PR_TRUE;
     }
 
@@ -2448,35 +2455,39 @@ UpdateSubjectWithEmailAddr(NSSLOWCERTCertificate *cert, char *emailAddr)
 	 */
 	PORT_Assert(save);
 	PORT_Assert(entry->emailAddr != NULL);
-	DeleteDBSMimeEntry(cert->dbhandle, entry->emailAddr);
+	DeleteDBSMimeEntry(dbhandle, entry->emailAddr);
     }
 
     if ( save ) {
 	unsigned int len;
 	
 	PORT_Assert(entry != NULL);
-	len = PORT_Strlen(emailAddr) + 1;
-	entry->emailAddr = (char *)PORT_ArenaAlloc(entry->common.arena, len);
-	if ( entry->emailAddr == NULL ) {
-	    goto loser;
+	if (emailAddr) {
+	    len = PORT_Strlen(emailAddr) + 1;
+	    entry->emailAddr = (char *)PORT_ArenaAlloc(entry->common.arena, len);
+	    if ( entry->emailAddr == NULL ) {
+		goto loser;
+	    }
+	    PORT_Memcpy(entry->emailAddr, emailAddr, len);
+	} else {
+	    entry->emailAddr = NULL;
 	}
-	PORT_Memcpy(entry->emailAddr, emailAddr, len);
 	
 	/* delete the subject entry */
-	DeleteDBSubjectEntry(cert->dbhandle, &cert->derSubject);
+	DeleteDBSubjectEntry(dbhandle, derSubject);
 
 	/* write the new one */
-	rv = WriteDBSubjectEntry(cert->dbhandle, entry);
+	rv = WriteDBSubjectEntry(dbhandle, entry);
 	if ( rv != SECSuccess ) {
 	    goto loser;
 	}
     }
 
-    PORT_Free(emailAddr);
+    if (emailAddr) PORT_Free(emailAddr);
     return(SECSuccess);
 
 loser:
-    PORT_Free(emailAddr);
+    if (emailAddr) PORT_Free(emailAddr);
     return(SECFailure);
 }
 
@@ -2485,7 +2496,8 @@ loser:
  * have one
  */
 static SECStatus
-AddNicknameToSubject(NSSLOWCERTCertificate *cert, char *nickname)
+AddNicknameToSubject(NSSLOWCERTCertDBHandle *dbhandle,
+			NSSLOWCERTCertificate *cert, char *nickname)
 {
     certDBEntrySubject *entry;
     SECStatus rv;
@@ -2494,7 +2506,7 @@ AddNicknameToSubject(NSSLOWCERTCertificate *cert, char *nickname)
 	return(SECFailure);
     }
     
-    entry = ReadDBSubjectEntry(cert->dbhandle,&cert->derSubject);
+    entry = ReadDBSubjectEntry(dbhandle,&cert->derSubject);
     PORT_Assert(entry != NULL);
     if ( entry == NULL ) {
 	goto loser;
@@ -2505,17 +2517,18 @@ AddNicknameToSubject(NSSLOWCERTCertificate *cert, char *nickname)
 	goto loser;
     }
     
-    entry->nickname = (nickname) ? PORT_ArenaStrdup(entry->common.arena, nickname) : NULL;
+    entry->nickname = (nickname) ? 
+			PORT_ArenaStrdup(entry->common.arena, nickname) : NULL;
     
     if ( entry->nickname == NULL ) {
 	goto loser;
     }
 	
     /* delete the subject entry */
-    DeleteDBSubjectEntry(cert->dbhandle, &cert->derSubject);
+    DeleteDBSubjectEntry(dbhandle, &cert->derSubject);
 
     /* write the new one */
-    rv = WriteDBSubjectEntry(cert->dbhandle, entry);
+    rv = WriteDBSubjectEntry(dbhandle, entry);
     if ( rv != SECSuccess ) {
 	goto loser;
     }
@@ -2886,7 +2899,7 @@ nsslowcert_TraversePermCertsForNickname(NSSLOWCERTCertDBHandle *handle, char *ni
     if ( nnentry ) {
 	derSubject = &nnentry->subjectName;
     } else {
-	smentry = ReadDBSMimeEntry(handle, nickname);
+	smentry = nsslowcert_ReadDBSMimeEntry(handle, nickname);
 	if ( smentry ) {
 	    derSubject = &smentry->subjectName;
 	}
@@ -2931,7 +2944,8 @@ nsslowcert_NumPermCertsForNickname(NSSLOWCERTCertDBHandle *handle, char *nicknam
  * add a nickname to a cert that doesn't have one
  */
 static SECStatus
-AddNicknameToPermCert(NSSLOWCERTCertificate *cert, char *nickname)
+AddNicknameToPermCert(NSSLOWCERTCertDBHandle *dbhandle,
+				NSSLOWCERTCertificate *cert, char *nickname)
 {
     certDBEntryCert *entry;
     int rv;
@@ -2944,7 +2958,7 @@ AddNicknameToPermCert(NSSLOWCERTCertificate *cert, char *nickname)
 
     entry->nickname = PORT_ArenaStrdup(entry->common.arena, nickname);
 
-    rv = WriteDBCertEntry(cert->dbhandle, entry);
+    rv = WriteDBCertEntry(dbhandle, entry);
     if ( rv ) {
 	goto loser;
     }
@@ -2961,12 +2975,13 @@ loser:
  * have one yet (it is probably an e-mail cert).
  */
 SECStatus
-nsslowcert_AddPermNickname(NSSLOWCERTCertificate *cert, char *nickname)
+nsslowcert_AddPermNickname(NSSLOWCERTCertDBHandle *dbhandle,
+				NSSLOWCERTCertificate *cert, char *nickname)
 {
     SECStatus rv = SECFailure;
     certDBEntrySubject *entry = NULL;
     
-    nsslowcert_LockDB(cert->dbhandle);
+    nsslowcert_LockDB(dbhandle);
     
     PORT_Assert(cert->nickname == NULL);
     
@@ -2975,22 +2990,22 @@ nsslowcert_AddPermNickname(NSSLOWCERTCertificate *cert, char *nickname)
 	goto loser;
     }
 
-    entry = ReadDBSubjectEntry(cert->dbhandle, &cert->derSubject);
+    entry = ReadDBSubjectEntry(dbhandle, &cert->derSubject);
     if (entry == NULL) goto loser;
 
     if ( entry->nickname == NULL ) {
 	/* no nickname for subject */
-	rv = AddNicknameToSubject(cert, nickname);
+	rv = AddNicknameToSubject(dbhandle, cert, nickname);
 	if ( rv != SECSuccess ) {
 	    goto loser;
 	}
-	rv = AddNicknameToPermCert(cert, nickname);
+	rv = AddNicknameToPermCert(dbhandle, cert, nickname);
 	if ( rv != SECSuccess ) {
 	    goto loser;
 	}
     } else {
 	/* subject already has a nickname */
-	rv = AddNicknameToPermCert(cert, entry->nickname);
+	rv = AddNicknameToPermCert(dbhandle, cert, entry->nickname);
 	if ( rv != SECSuccess ) {
 	    goto loser;
 	}
@@ -3001,7 +3016,7 @@ loser:
     if (entry) {
 	DestroyDBEntry((certDBEntry *)entry);
     }
-    nsslowcert_UnlockDB(cert->dbhandle);
+    nsslowcert_UnlockDB(dbhandle);
     return(rv);
 }
 
@@ -3251,7 +3266,7 @@ UpdateV6DB(NSSLOWCERTCertDBHandle *handle, DB *updatedb)
 		    emailAddr = &((char *)key.data)[1];
 
 		    /* get the matching smime entry in the new DB */
-		    emailEntry = ReadDBSMimeEntry(handle, emailAddr);
+		    emailEntry = nsslowcert_ReadDBSMimeEntry(handle, emailAddr);
 		    if ( emailEntry == NULL ) {
 			goto endloop;
 		    }
@@ -3450,16 +3465,9 @@ nsslowcert_CertDBKeyConflict(SECItem *derCert, NSSLOWCERTCertDBHandle *handle)
     namekey.data = keyitem.data;
     namekey.size = keyitem.len;
     
-    /* lookup in the temporary database */
-    ret = certdb_Get(handle->tempCertDB, &namekey, &tmpdata, 0);
-
-    if ( ret == 0 ) {	/* found in temp database */
+    ret = certdb_Get(handle->permCertDB, &namekey, &tmpdata, 0);
+    if ( ret == 0 ) {
 	goto loser;
-    } else {		/* not found in temporary database */
-	ret = certdb_Get(handle->permCertDB, &namekey, &tmpdata, 0);
-	if ( ret == 0 ) {
-	    goto loser;
-	}
     }
 
     PORT_FreeArena(arena, PR_FALSE);
@@ -3472,73 +3480,6 @@ loser:
     
     return(PR_TRUE);
 }
-
-#ifdef notdef
-
-/*
- * return true if a subject name conflict exists
- * NOTE: caller must have already made sure that this exact cert
- * doesn't exist in the DB
- */
-PRBool
-SEC_CertSubjectConflict(SECItem *derCert, NSSLOWCERTCertDBHandle *handle)
-{
-    SECStatus rv;
-    DBT tmpdata;
-    DBT namekey;
-    int ret;
-    SECItem keyitem;
-    PRArenaPool *arena = NULL;
-    SECItem derName;
-    
-    derName.data = NULL;
-    
-    arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
-    if ( arena == NULL ) {
-	goto loser;
-    }
-
-    /* get the subject name of the cert */
-    rv = nsslowcert_NameFromDERCert(derCert, &derName);
-    if ( rv != SECSuccess ) {
-        goto loser;
-    }
-
-    rv = EncodeDBSubjectKey(&derName, arena, &keyitem);
-    if ( rv != SECSuccess ) {
-	goto loser;
-    }
-    
-    namekey.data = keyitem.data;
-    namekey.size = keyitem.len;
-    
-    /* lookup in the temporary database */
-    ret = certdb_Get(handle->tempCertDB, &namekey, &tmpdata, 0);
-
-    if ( ret == 0 ) {	/* found in temp database */
-	return(PR_TRUE);
-    } else {		/* not found in temporary database */
-	ret = certdb_Get(handle->permCertDB, &namekey, &tmpdata, 0);
-	if ( ret == 0 ) {
-	    return(PR_TRUE);
-	}
-    }
-
-    PORT_FreeArena(arena, PR_FALSE);
-    PORT_Free(derName.data);
-    
-    return(PR_FALSE);
-loser:
-    if ( arena ) {
-	PORT_FreeArena(arena, PR_FALSE);
-    }
-    if ( derName.data ) {
-	PORT_Free(derName.data);
-    }
-    
-    return(PR_TRUE);
-}
-#endif
 
 /*
  * return true if a nickname conflict exists
@@ -3780,7 +3721,7 @@ nsslowcert_DeletePermCertificate(NSSLOWCERTCertificate *cert)
  * Traverse all of the entries in the database of a particular type
  * call the given function for each one.
  */
-static SECStatus
+SECStatus
 nsslowcert_TraverseDBEntries(NSSLOWCERTCertDBHandle *handle,
 		      certDBEntryType type,
 		      SECStatus (* callback)(SECItem *data, SECItem *key,
@@ -4063,8 +4004,8 @@ done:
 
 
 SECStatus
-nsslowcert_AddPermCert(NSSLOWCERTCertificate *cert, char *nickname,
-		       NSSLOWCERTCertTrust *trust)
+nsslowcert_AddPermCert(NSSLOWCERTCertDBHandle *dbhandle,
+    NSSLOWCERTCertificate *cert, char *nickname, NSSLOWCERTCertTrust *trust)
 {
     char *oldnn;
     certDBEntryCert *entry;
@@ -4072,15 +4013,13 @@ nsslowcert_AddPermCert(NSSLOWCERTCertificate *cert, char *nickname,
     PRBool conflict;
     SECStatus ret;
 
-    PORT_Assert(cert->dbhandle);
-
-    nsslowcert_LockDB(cert->dbhandle);
+    nsslowcert_LockDB(dbhandle);
     
     PORT_Assert(!cert->dbEntry);
 
     /* don't add a conflicting nickname */
     conflict = nsslowcert_CertNicknameConflict(nickname, &cert->derSubject,
-					cert->dbhandle);
+					dbhandle);
     if ( conflict ) {
 	ret = SECFailure;
 	goto done;
@@ -4089,7 +4028,7 @@ nsslowcert_AddPermCert(NSSLOWCERTCertificate *cert, char *nickname,
     /* save old nickname so that we can delete it */
     oldnn = cert->nickname;
 
-    entry = AddCertToPermDB(cert->dbhandle, cert, nickname, trust);
+    entry = AddCertToPermDB(dbhandle, cert, nickname, trust);
     
     if ( entry == NULL ) {
 	ret = SECFailure;
@@ -4102,7 +4041,7 @@ nsslowcert_AddPermCert(NSSLOWCERTCertificate *cert, char *nickname,
     
     ret = SECSuccess;
 done:
-    nsslowcert_UnlockDB(cert->dbhandle);
+    nsslowcert_UnlockDB(dbhandle);
     return(ret);
 }
 
@@ -4115,28 +4054,13 @@ nsslowcert_OpenCertDB(NSSLOWCERTCertDBHandle *handle, PRBool readOnly,
 		NSSLOWCERTDBNameFunc namecb, void *cbarg, PRBool openVolatile)
 {
     int rv;
-#define DBM_DEFAULT 0
-    static const HASHINFO hashInfo = {
-        DBM_DEFAULT,    /* bucket size */
-        DBM_DEFAULT,    /* fill factor */
-        DBM_DEFAULT,    /* number of elements */
-        256 * 1024, 	/* bytes to cache */
-        DBM_DEFAULT,    /* hash function */
-        DBM_DEFAULT     /* byte order */
-    };
 
-    certdb_InitDBLock();
+    certdb_InitDBLock(handle);
     
     handle->dbMon = PZ_NewMonitor(nssILockCertDB);
     PORT_Assert(handle->dbMon != NULL);
 
-    if (openVolatile) {
-    	handle->permCertDB = dbopen( 0, O_RDWR | O_CREAT, 0600, DB_HASH, 
-								&hashInfo );
-	rv = handle->permCertDB ? SECSuccess : SECFailure;
-    } else {
-    	rv = nsslowcert_OpenPermCertDB(handle, readOnly, namecb, cbarg);
-    }
+    rv = nsslowcert_OpenPermCertDB(handle, readOnly, namecb, cbarg);
     if ( rv ) {
 	goto loser;
     }
@@ -4454,313 +4378,63 @@ nsslowcert_hasTrust(NSSLOWCERTCertificate *cert)
 			(trust->objectSigningFlags & CERTDB_TRUSTED_UNKNOWN));
 }
 
-#ifdef notdef
-/*
- * find a cert by email address
- *
- * pick one that is a valid recipient, meaning that it is an encryption
- * cert.
- *
- */
-static NSSLOWCERTCertificate*
-find_smime_recipient_cert(NSSLOWCERTCertDBHandle* handle, const char* email_addr)
-{
-    NSSLOWCERTCertificate* cert = NULL;
-    NSSLOWCERTCertList* certList = NULL;
-    SECStatus rv;
-
-    certList = nsslowcert_CreateEmailAddrCertList(NULL, handle, (char*)email_addr,
-					    PR_Now(), PR_TRUE);
-    if (certList == NULL) {
-	return NULL;
-    }
-
-    rv = nsslowcert_FilterCertListByUsage(certList, certUsageEmailRecipient,
-				    PR_FALSE);
-
-    if (!nsslowcert_LIST_END(nsslowcert_LIST_HEAD(certList), certList)) {
-	cert = nsslowcert_DupCertificate(nsslowcert_LIST_HEAD(certList)->cert);
-    }
-
-    nsslowcert_DestroyCertList(certList);
-
-    return cert;    /* cert may point to a cert or may be NULL */
-}
-
 /*
  * This function has the logic that decides if another person's cert and
  * email profile from an S/MIME message should be saved.  It can deal with
  * the case when there is no profile.
  */
 SECStatus
-nsslowcert_SaveSMimeProfile(NSSLOWCERTCertificate *cert, SECItem *emailProfile,
-		      SECItem *profileTime)
+nsslowcert_SaveSMimeProfile(NSSLOWCERTCertDBHandle *dbhandle, char *emailAddr, 
+		SECItem *derSubject, SECItem *emailProfile, SECItem *profileTime)
 {
-    certDBEntrySMime *entry = NULL, *oldentry = NULL;
-    int64 oldtime;
-    int64 newtime;
-    SECStatus rv;
-    NSSLOWCERTCertificate *oldcert = NULL;
-    PRBool saveit;
-    NSSLOWCERTCertTrust trust;
-    NSSLOWCERTCertTrust tmptrust;
-    char *emailAddr;
-    
-    emailAddr = cert->emailAddr;
-    
-    PORT_Assert(emailAddr);
-    if ( emailAddr == NULL ) {
+    certDBEntrySMime *entry = NULL;
+    SECStatus rv = SECFailure;;
+
+    /* find our existing entry */
+    entry = nsslowcert_ReadDBSMimeEntry(dbhandle, emailAddr);
+
+    if ( entry ) {
+	/* keep our old db entry consistant for old applications. */
+	if (!SECITEM_ItemsAreEqual(derSubject, &entry->subjectName)) {
+	    UpdateSubjectWithEmailAddr(dbhandle, &entry->subjectName, NULL);
+	} 
+	DestroyDBEntry((certDBEntry *)entry);
+	entry = NULL;
+    }
+
+    /* now save the entry */
+    entry = NewDBSMimeEntry(emailAddr, derSubject, emailProfile,
+				profileTime, 0);
+    if ( entry == NULL ) {
+	rv = SECFailure;
 	goto loser;
     }
 
-    saveit = PR_FALSE;
-    
-    oldcert = find_smime_recipient_cert(cert->dbhandle, emailAddr);
-	if (oldcert) {
-	    /* see if there is an entry already */
-		oldentry = ReadDBSMimeEntry(cert->dbhandle, emailAddr);
-	}
-    
-    /* both profileTime and emailProfile have to exist or not exist */
-    if ( emailProfile == NULL ) {
-	profileTime = NULL;
-    } else if ( profileTime == NULL ) {
-	emailProfile = NULL;
+    nsslowcert_LockDB(dbhandle);
+
+    rv = DeleteDBSMimeEntry(dbhandle, emailAddr);
+    /* if delete fails, try to write new entry anyway... */
+
+    /* link subject entry back here */
+    rv = UpdateSubjectWithEmailAddr(dbhandle, derSubject, emailAddr);
+    if ( rv != SECSuccess ) {
+	    nsslowcert_UnlockDB(dbhandle);
+	    goto loser;
     }
-   
-    if ( oldentry == NULL ) {
-	/* no old entry for this address */
-	PORT_Assert(oldcert == NULL);
-	saveit = PR_TRUE;
-    } else {
-	/* there was already a profile for this email addr */
-	if ( profileTime ) {
-	    /* we have an old and new profile - save whichever is more recent*/
-	    if ( oldentry->optionsDate.len == 0 ) {
-		/* always replace if old entry doesn't have a time */
-		oldtime = LL_MININT;
-	    } else {
-		rv = DER_UTCTimeToTime(&oldtime, &oldentry->optionsDate);
-		if ( rv != SECSuccess ) {
-		    goto loser;
-		}
-	    }
-	    
-	    rv = DER_UTCTimeToTime(&newtime, profileTime);
-	    if ( rv != SECSuccess ) {
-		goto loser;
-	    }
 	
-	    if ( LL_CMP(newtime, >, oldtime ) ) {
-		/* this is a newer profile, save it and cert */
-		saveit = PR_TRUE;
-	    }
-	} else {
-	    /* we don't have a new profile or time */
-	    if ( oldentry->optionsDate.len == 0 ) {
-		/* the old entry doesn't have a time either, so compare certs*/
-		if ( nsslowcert_IsNewer(cert, oldcert) ) {
-		    /* new cert is newer, use it instead */
-		    saveit = PR_TRUE;
-		}
-	    } else {
-		if (oldcert) {
-			if (nsslowcert_IsNewer(cert, oldcert)) {
-				saveit = PR_TRUE;
-			}
-		} else {
-			saveit = PR_TRUE;
-		}
-	    }
-	}
+    rv = WriteDBSMimeEntry(dbhandle, entry);
+    if ( rv != SECSuccess ) {
+	    nsslowcert_UnlockDB(dbhandle);
+	    goto loser;
     }
 
-    if ( saveit ) {
-	if ( oldcert && ( oldcert != cert ) ) {
-	    /* old cert is different from new cert */
-	    if ( PORT_Memcmp(oldcert->trust, &trust, sizeof(trust)) == 0 ) {
-		/* old cert is only for e-mail, so delete it */
-		SEC_DeletePermCertificate(oldcert);
-	    } else {
-		/* old cert is for other things too, so just change trust */
-		tmptrust = *oldcert->trust;
-		tmptrust.emailFlags &= ( ~CERTDB_VALID_PEER );
-		rv = nsslowcert_ChangeCertTrust(oldcert->dbhandle, oldcert,
-					  &tmptrust);
-		if ( rv != SECSuccess ) {
-		    goto loser;
-		}
-	    }
-	}
-
-/* Subroutine */
-	/* now save the entry */
-	entry = NewDBSMimeEntry(emailAddr, &cert->derSubject, emailProfile,
-				profileTime, 0);
-	if ( entry == NULL ) {
-	    goto loser;
-	}
-
-	nsslowcert_LockDB(cert->dbhandle);
-
-	rv = DeleteDBSMimeEntry(cert->dbhandle, emailAddr);
-	/* if delete fails, try to write new entry anyway... */
-	
-	rv = WriteDBSMimeEntry(cert->dbhandle, entry);
-	if ( rv != SECSuccess ) {
-	    nsslowcert_UnlockDB(cert->dbhandle);
-	    goto loser;
-	}
-
-	/* link subject entry back here */
-	rv = UpdateSubjectWithEmailAddr(cert, emailAddr);
-	if ( rv != SECSuccess ) {
-	    nsslowcert_UnlockDB(cert->dbhandle);
-	    goto loser;
-	}
-
-	nsslowcert_UnlockDB(cert->dbhandle);
-/* End Subroutine */
-    }
+    nsslowcert_UnlockDB(dbhandle);
 
     rv = SECSuccess;
-    goto done;
     
 loser:
-    rv = SECFailure;
-    
-done:
-    if ( oldcert ) {
-	nsslowcert_DestroyCertificate(oldcert);
-    }
-    
     if ( entry ) {
 	DestroyDBEntry((certDBEntry *)entry);
     }
-    if ( oldentry ) {
-	DestroyDBEntry((certDBEntry *)oldentry);
-    }
-    
     return(rv);
 }
-
-/*
- * find the smime symmetric capabilities profile for a given cert
- */
-SECItem *
-nsslowcert_FindSMimeProfile(NSSLOWCERTCertificate *cert)
-{
-    certDBEntrySMime *entry;
-    SECItem *retitem = NULL;
-    
-    PORT_Assert(cert->emailAddr != NULL);
-    
-    if ( cert->emailAddr == NULL ) {
-	return(NULL);
-    }
-    
-    entry = ReadDBSMimeEntry(cert->dbhandle, cert->emailAddr);
-
-    if ( entry ) {
-	/*  May not be for this cert...  */
-	if (SECITEM_ItemsAreEqual(&cert->derSubject, &entry->subjectName))
-	    retitem = SECITEM_DupItem(&entry->smimeOptions);
-	DestroyDBEntry((certDBEntry *)entry);
-    }
-
-    return(retitem);
-}
-
-SECStatus
-nsslowcert_ChangeCertTrustByUsage(NSSLOWCERTCertDBHandle *certdb,
-			    NSSLOWCERTCertificate *cert, SECCertUsage usage)
-{
-    SECStatus rv;
-    NSSLOWCERTCertTrust trust;
-    NSSLOWCERTCertTrust tmptrust;
-    unsigned int certtype;
-    PRBool saveit;
-    
-    saveit = PR_TRUE;
-    
-    PORT_Memset((void *)&trust, 0, sizeof(trust));
-
-    certtype = cert->nsCertType;
-
-    /* if no app bits in cert type, then set all app bits */
-    if ( ! ( certtype & NS_CERT_TYPE_APP ) ) {
-	certtype |= NS_CERT_TYPE_APP;
-    }
-
-    switch ( usage ) {
-      case certUsageEmailSigner:
-      case certUsageEmailRecipient:
-	if ( certtype & NS_CERT_TYPE_EMAIL ) {
-	     trust.emailFlags = CERTDB_VALID_PEER;
-	     if ( ! ( cert->rawKeyUsage & KU_KEY_ENCIPHERMENT ) ) {
-		/* don't save it if KeyEncipherment is not allowed */
-		saveit = PR_FALSE;
-	    }
-	}
-	break;
-      case certUsageUserCertImport:
-	if ( certtype & NS_CERT_TYPE_EMAIL ) {
-	    trust.emailFlags = CERTDB_VALID_PEER;
-	}
-	/* VALID_USER is already set if the cert was imported, 
-	 * in the case that the cert was already in the database
-	 * through SMIME or other means, we should set the USER
-	 * flags, if they are not already set.
-	 */
-	if( cert->isperm ) {
-	    if ( certtype & NS_CERT_TYPE_SSL_CLIENT ) {
-		if( !(cert->trust->sslFlags & CERTDB_USER) ) {
-		    trust.sslFlags |= CERTDB_USER;
-		}
-	    }
-	    
-	    if ( certtype & NS_CERT_TYPE_EMAIL ) {
-		if( !(cert->trust->emailFlags & CERTDB_USER) ) {
-		    trust.emailFlags |= CERTDB_USER;
-		}
-	    }
-	    
-	    if ( certtype & NS_CERT_TYPE_OBJECT_SIGNING ) {
-		if( !(cert->trust->objectSigningFlags & CERTDB_USER) ) {
-		    trust.objectSigningFlags |= CERTDB_USER;
-		}
-	    }
-	}
-	break;
-      default:	/* XXX added to quiet warnings; no other cases needed? */
-	break;
-    }
-
-    if ( (trust.sslFlags | trust.emailFlags | trust.objectSigningFlags) == 0 ){
-	saveit = PR_FALSE;
-    }
-
-    if ( saveit && cert->isperm ) {
-	/* Cert already in the DB.  Just adjust flags */
-	tmptrust = *cert->trust;
-	tmptrust.sslFlags |= trust.sslFlags;
-	tmptrust.emailFlags |= trust.emailFlags;
-	tmptrust.objectSigningFlags |= trust.objectSigningFlags;
-	    
-	rv = nsslowcert_ChangeCertTrust(cert->dbhandle, cert,
-				  &tmptrust);
-	if ( rv != SECSuccess ) {
-	    goto loser;
-	}
-    }
-
-    rv = SECSuccess;
-    goto done;
-
-loser:
-    rv = SECFailure;
-done:
-
-    return(rv);
-}
-#endif

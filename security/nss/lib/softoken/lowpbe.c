@@ -42,7 +42,7 @@
 #include "hasht.h"
 #include "secasn1.h"
 #include "secder.h"
-#include "secpkcs5.h"
+#include "lowpbe.h"
 #include "secoid.h"
 #include "alghmac.h"
 #include "softoken.h"
@@ -791,9 +791,11 @@ nsspkcs5_AlgidToParam(SECAlgorithmID *algid)
     case NSSPKCS5_PBKDF1:
 	rv = SEC_ASN1DecodeItem(pbe_param->poolp, pbe_param, 
 	    NSSPKCS5PBEParameterTemplate, &algid->parameters);
+	break;
     case NSSPKCS5_PKCS12_V2:
 	rv = SEC_ASN1DecodeItem(pbe_param->poolp, pbe_param, 
 		NSSPKCS5PKCS12V2PBEParameterTemplate, &algid->parameters);
+	break;
     case NSSPKCS5_PBKDF2:
 	break;
     }
@@ -1132,6 +1134,14 @@ nsspkcs5_CreateAlgorithmID(PRArenaPool *arena, SECOidTag algorithm,
     algid = (SECAlgorithmID *)PORT_ArenaZAlloc(arena, sizeof(SECAlgorithmID));
     if (algid == NULL) {
 	goto loser;
+    }
+
+    if (pbe_param->iteration.data == NULL) {
+	dummy = SEC_ASN1EncodeInteger(pbe_param->poolp,&pbe_param->iteration,
+								pbe_param->iter);
+	if (dummy == NULL) {
+	    goto loser;
+	}
     }
     switch (pbe_param->pbeType) {
     case NSSPKCS5_PBKDF1:

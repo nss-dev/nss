@@ -88,6 +88,8 @@
 /* default search block allocations and increments */
 #define NSC_CERT_BLOCK_SIZE     50
 #define NSC_SEARCH_BLOCK_SIZE   5 
+#define NSC_SLOT_LIST_BLOCK_SIZE 10
+
 /* these are data base storage hashes, not cryptographic hashes.. The define
  * the effective size of the various object hash tables */
 #define ATTRIBUTE_HASH_SIZE 32
@@ -278,6 +280,7 @@ struct PK11SessionContextStr {
     PK11Destroy		hashdestroy;
     PK11Verify		verify;
     unsigned int	maxLen;
+    PK11Object		*key;
 };
 
 /*
@@ -315,15 +318,20 @@ struct PK11SlotStr {
     PRBool		ssoLoggedIn;
     PRBool		needLogin;
     PRBool		DB_loaded;
+    PRBool		readOnly;
     NSSLOWCERTCertDBHandle *certDB;
     NSSLOWKEYDBHandle	*keyDB;
+    int			minimumPinLen;
     int			sessionIDCount;
     int			sessionCount;
     int			rwSessionCount;
     int			tokenIDCount;
+    int			index;
     PLHashTable		*tokenHashTable;
     PK11Object		*tokObjects[TOKEN_OBJECT_HASH_SIZE];
     PK11Session		*head[SESSION_HASH_SIZE];
+    char		tokDescription[33];
+    char		slotDescription[64];
 };
 
 /*
@@ -354,8 +362,7 @@ struct PK11SSLMACInfoStr {
 /*
  * session handle modifiers
  */
-#define PK11_PRIVATE_KEY_FLAG	0x80000000L
-#define PK11_FIPS_FLAG		0x40000000L
+#define PK11_SESSION_SLOT_MASK	0xff000000L
 
 /*
  * object handle modifiers
@@ -373,6 +380,7 @@ struct PK11SSLMACInfoStr {
 #define PK11_TOKEN_TYPE_SMIME	0x60000000L
 #define PK11_TOKEN_TYPE_CERT	0x70000000L
 
+#define PK11_TOKEN_KRL_HANDLE	(PK11_TOKEN_MAGIC|PK11_TOKEN_TYPE_CRL|0)
 /* how big a password/pin we can deal with */
 #define PK11_MAX_PIN	255
 
@@ -411,26 +419,35 @@ struct PK11SSLMACInfoStr {
 #define pk11_attr_expand(ap) (ap)->type,(ap)->pValue,(ap)->ulValueLen
 #define pk11_item_expand(ip) (ip)->data,(ip)->len
 
-typedef struct pk11_parametersStr {
+typedef struct pk11_token_parametersStr {
+    CK_SLOT_ID slotID;
     char *configdir;
     char *certPrefix;
     char *keyPrefix;
-    char *secmodName;
-    char *man;
-    char *libdes; 
     char *tokdes;
-    char *ptokdes;
     char *slotdes;
-    char *pslotdes;
-    char *fslotdes;
-    char *fpslotdes;
     int minPW; 
     PRBool readOnly;
     PRBool noCertDB;
-    PRBool noModDB;
+    PRBool noKeyDB;
     PRBool forceOpen;
     PRBool pwRequired;
+} pk11_token_parameters;
+
+typedef struct pk11_parametersStr {
+    char *configdir;
+    char *secmodName;
+    char *man;
+    char *libdes; 
+    PRBool readOnly;
+    PRBool noModDB;
+    PRBool noCertDB;
+    PRBool forceOpen;
+    PRBool pwRequired;
+    pk11_token_parameters *tokens;
+    int token_count;
 } pk11_parameters;
+
 
 /* machine dependent path stuff used by dbinit.c and pk11db.c */
 #ifdef macintosh
@@ -447,10 +464,9 @@ typedef struct pk11_parametersStr {
 
 SEC_BEGIN_PROTOS
 
+extern CK_RV nsc_CommonInitialize(CK_VOID_PTR pReserved, PRBool isFIPS);
 /* shared functions between PKCS11.c and PK11FIPS.c */
-extern CK_RV PK11_LowInitialize(CK_VOID_PTR pReserved);
-extern CK_RV PK11_SlotInit(CK_SLOT_ID slotID, PRBool needLogin,
-	NSSLOWCERTCertDBHandle *certdb, NSSLOWKEYDBHandle *keydb);
+extern CK_RV PK11_SlotInit(char *configdir,pk11_token_parameters *params);
 
 /* internal utility functions used by pkcs11.c */
 extern PK11Attribute *pk11_FindAttribute(PK11Object *object,
@@ -518,7 +534,8 @@ extern void pk11_FormatDESKey(unsigned char *key, int length);
 extern PRBool pk11_CheckDESKey(unsigned char *key);
 extern PRBool pk11_IsWeakKey(unsigned char *key,CK_KEY_TYPE key_type);
 
-extern CK_RV secmod_parseParameters(char *param, pk11_parameters *parsed);
+extern CK_RV secmod_parseParameters(char *param, pk11_parameters *parsed,
+								PRBool isFIPS);
 extern void secmod_freeParams(pk11_parameters *params);
 extern char *secmod_getSecmodName(char *params, PRBool *rw);
 extern char ** secmod_ReadPermDB(char *dbname, char *params, PRBool rw);
@@ -542,8 +559,9 @@ extern SECStatus secmod_AddPermDB(char *dbname, char *module, PRBool rw);
  *                      be opened.
  */
 CK_RV pk11_DBInit(const char *configdir, const char *certPrefix,
-	 const char *keyPrefix, const char *secmodName, PRBool readOnly, 
-			PRBool noCertDB, PRBool noModDB, PRBool forceOpen);
+	 	const char *keyPrefix, PRBool readOnly, PRBool noCertDB, 
+		PRBool noKeyDB, PRBool forceOpen, 
+		NSSLOWCERTCertDBHandle **certDB, NSSLOWKEYDBHandle **keyDB);
 
 /*
  * narrow objects

@@ -305,23 +305,11 @@ SEC_BEGIN_PROTOS
 **	"nickname" is the nickname to use for the cert
 **	"trust" is the trust parameters for the cert
 */
-SECStatus SEC_AddPermCertificate(NSSLOWCERTCertDBHandle *handle, SECItem *derCert,
+SECStatus nsslowcert_AddPermCert(NSSLOWCERTCertDBHandle *handle, 
+			NSSLOWCERTCertificate *cert,
 				char *nickname, NSSLOWCERTCertTrust *trust);
 
-certDBEntryCert *
-SEC_FindPermCertByKey(NSSLOWCERTCertDBHandle *handle, SECItem *certKey);
-
-certDBEntryCert
-*SEC_FindPermCertByName(NSSLOWCERTCertDBHandle *handle, SECItem *name);
-
-#ifdef notdef
-SECStatus SEC_OpenPermCertDB(NSSLOWCERTCertDBHandle *handle,
-			     PRBool readOnly,
-			     NSSLOWCERTDBNameFunc namecb,
-			     void *cbarg);
-#endif
-
-SECStatus SEC_DeletePermCertificate(NSSLOWCERTCertificate *cert);
+SECStatus nsslowcert_DeletePermCertificate(NSSLOWCERTCertificate *cert);
 
 typedef SECStatus (PR_CALLBACK * PermCertCallback)(NSSLOWCERTCertificate *cert,
                                                    SECItem *k, void *pdata);
@@ -401,6 +389,13 @@ nsslowcert_DecodeDERCertificate (SECItem *derSignedCert, PRBool copyDER, char *n
 
 SECStatus
 nsslowcert_KeyFromDERCert(PRArenaPool *arena, SECItem *derCert, SECItem *key);
+
+certDBEntrySMime *
+nsslowcert_ReadDBSMimeEntry(NSSLOWCERTCertDBHandle *certHandle,
+							 char *emailAddr);
+void
+nsslowcert_DestroyDBEntry(certDBEntry *entry);
+
 
 SEC_END_PROTOS
 

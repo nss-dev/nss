@@ -45,7 +45,7 @@
 #include "secitem.h"
 #include "pcert.h"
 #include "mcom_db.h"
-#include "secpkcs5.h"
+#include "lowpbe.h"
 #include "secerr.h"
 
 #include "keydbi.h"
@@ -1333,7 +1333,6 @@ nsslowkey_StoreKeyByPublicKeyAlg(NSSLOWKEYDBHandle *handle,
     /* encrypt the private key */
     rv = seckey_put_private_key(handle, &namekey, pwitem, privkey, nickname,
 				PR_FALSE, algorithm);
-    SECITEM_ZfreeItem(pwitem, PR_TRUE);
     
     return(rv);
 }
@@ -1587,7 +1586,6 @@ nsslowkey_FindKeyByPublicKey(NSSLOWKEYDBHandle *handle, SECItem *modulus,
     namekey.size = modulus->len;
 
     pk = seckey_get_private_key(handle, &namekey, NULL, pwitem);
-    SECITEM_ZfreeItem(pwitem, PR_TRUE);
     
     /* no need to free dbkey, since its on the stack, and the data it
      * points to is owned by the database
@@ -1686,22 +1684,24 @@ nsslowkey_SetKeyDBPasswordAlg(NSSLOWKEYDBHandle *handle,
     }
 
     dest = nsspkcs5_CipherData(param, pwitem, &test_key, PR_TRUE, NULL);
-    if(dest != NULL)
+    if (dest == NULL)
     {
-	rv = SECITEM_CopyItem(arena, &dbkey->salt, salt);
-	if(rv == SECFailure)
-	    goto loser;
-   
-	rv = encodePWCheckEntry(arena, &dbkey->derPK, algorithm, dest);
-	
-	if ( rv != SECSuccess ) {
-	    goto loser;
-	}
-	
-	rv = put_dbkey(handle, &checkkey, dbkey, PR_TRUE);
-    } else {
 	rv = SECFailure;
+	goto loser;
     }
+
+    rv = SECITEM_CopyItem(arena, &dbkey->salt, salt);
+    if (rv == SECFailure) {
+	goto loser;
+    }
+   
+    rv = encodePWCheckEntry(arena, &dbkey->derPK, algorithm, dest);
+	
+    if ( rv != SECSuccess ) {
+	goto loser;
+    }
+	
+    rv = put_dbkey(handle, &checkkey, dbkey, PR_TRUE);
     
     /* let success fall through */
 loser: 

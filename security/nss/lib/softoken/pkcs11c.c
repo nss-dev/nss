@@ -58,7 +58,7 @@
 #include "sechash.h"
 #include "secder.h"
 #include "secdig.h"
-#include "secpkcs5.h"	/* We do PBE below */
+#include "lowpbe.h"	/* We do PBE below */
 #include "pkcs11t.h"
 #include "secoid.h"
 #include "alghmac.h"
@@ -119,11 +119,6 @@ pk11_Space(void *data, PRBool freeit)
     PORT_Free(data);
 } 
 
-static void pk11_FreeSignInfo(PK11HashSignInfo *data, PRBool freeit)
-{
-    nsslowkey_DestroyPrivateKey(data->key);
-    PORT_Free(data);
-} 
 
 /*
  * turn a CDMF key into a des key. CDMF is an old IBM scheme to export DES by
@@ -176,9 +171,9 @@ pk11_cdmf2des(unsigned char *cdmfkey, unsigned char *deskey)
 
 
 static CK_RV
-pk11_EncryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
+pk11_CryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
 		 CK_OBJECT_HANDLE hKey, CK_ATTRIBUTE_TYPE etype,
-		 PK11ContextType contextType);
+		 PK11ContextType contextType, PRBool isEncrypt);
 /*
  * Calculate a Lynx checksum for CKM_LYNX_WRAP mechanism.
  */
@@ -206,7 +201,8 @@ pk11_calcLynxChecksum(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hWrapKey,
 
     /* encrypt with key 1 */
 
-    crv = pk11_EncryptInit(hSession,&mech,hWrapKey,CKA_WRAP, PK11_ENCRYPT);
+    crv = pk11_CryptInit(hSession,&mech,hWrapKey,CKA_WRAP, PK11_ENCRYPT, 
+								PR_TRUE);
     if (crv != CKR_OK) return crv;
 
     crv = NSC_Encrypt(hSession,key,len,E,&Elen);
@@ -215,7 +211,8 @@ pk11_calcLynxChecksum(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hWrapKey,
     E[8] = (sum2 >> 8) & 0xff;
     E[9] = sum2 & 0xff;
 
-    crv = pk11_EncryptInit(hSession,&mech,hWrapKey,CKA_WRAP, PK11_ENCRYPT);
+    crv = pk11_CryptInit(hSession,&mech,hWrapKey,CKA_WRAP, PK11_ENCRYPT, 
+								PR_TRUE);
     if (crv != CKR_OK) return crv;
 
     crv = NSC_Encrypt(hSession,&E[2],len,C,&Clen);
@@ -422,18 +419,19 @@ pk11_InitGeneric(PK11Session *session,PK11SessionContext **contextPtr,
     context->hashInfo = NULL;
     context->doPad = PR_FALSE;
     context->padDataLength = 0;
+    context->key = key;
 
     *contextPtr = context;
     return CKR_OK;
 }
 
-/* NSC_EncryptInit initializes an encryption operation. */
+/* NSC_CryptInit initializes an encryption/Decryption operation. */
 /* This function is used by NSC_EncryptInit and NSC_WrapKey. The only difference
  * in their uses if whether or not etype is CKA_ENCRYPT or CKA_WRAP */
 static CK_RV
-pk11_EncryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
+pk11_CryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
 		 CK_OBJECT_HANDLE hKey, CK_ATTRIBUTE_TYPE etype,
-		 PK11ContextType contextType)
+		 PK11ContextType contextType, PRBool isEncrypt)
 {
     PK11Session *session;
     PK11Object *key;
@@ -456,7 +454,7 @@ pk11_EncryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
     if (session == NULL) return CKR_SESSION_HANDLE_INVALID;
 
     crv = pk11_InitGeneric(session,&context,contextType,&key,hKey,&key_type,
-    						CKO_PUBLIC_KEY, etype);
+    			isEncrypt ?CKO_PUBLIC_KEY:CKO_PRIVATE_KEY, etype);
 						
     if (crv != CKR_OK) {
 	pk11_FreeSession(session);
@@ -472,14 +470,22 @@ pk11_EncryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
 	    break;
 	}
 	context->multi = PR_FALSE;
-	pubKey = pk11_GetPubKey(key,CKK_RSA);
-	if (pubKey == NULL) {
+	context->cipherInfo =  isEncrypt ? 
+			(void *)pk11_GetPubKey(key,CKK_RSA) :
+					(void *)pk11_GetPrivKey(key,CKK_RSA);
+	if (context->cipherInfo == NULL) {
 	    crv = CKR_HOST_MEMORY;
 	    break;
 	}
-	context->cipherInfo = pubKey;
-	context->update = (PK11Cipher) (pMechanism->mechanism == CKM_RSA_X_509
-			? RSA_EncryptRaw : RSA_EncryptBlock);
+	if (isEncrypt) {
+	    context->update = (PK11Cipher) 
+		(pMechanism->mechanism == CKM_RSA_X_509
+					? RSA_EncryptRaw : RSA_EncryptBlock);
+	} else {
+	    context->update = (PK11Cipher) 
+		(pMechanism->mechanism == CKM_RSA_X_509
+					? RSA_DecryptRaw : RSA_DecryptBlock);
+	}
 	context->destroy = pk11_Null;
 	break;
     case CKM_RC2_CBC_PAD:
@@ -509,7 +515,7 @@ pk11_EncryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
 	    crv = CKR_HOST_MEMORY;
 	    break;
 	}
-	context->update = (PK11Cipher) RC2_Encrypt;
+	context->update = (PK11Cipher) (isEncrypt ? RC2_Encrypt : RC2_Decrypt);
 	context->destroy = (PK11Destroy) RC2_DestroyContext;
 	break;
 #if NSS_SOFTOKEN_DOES_RC5
@@ -541,7 +547,7 @@ pk11_EncryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
 	    crv = CKR_HOST_MEMORY;
 	    break;
 	}
-	context->update = (PK11Cipher) RC5_Encrypt;
+	context->update = (PK11Cipher) (isEncrypt ? RC5_Encrypt : RC5_Decrypt);
 	context->destroy = (PK11Destroy) RC5_DestroyContext;
 	break;
 #endif
@@ -563,7 +569,7 @@ pk11_EncryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
 	    crv = CKR_HOST_MEMORY;  /* WRONG !!! */
 	    break;
 	}
-	context->update = (PK11Cipher) RC4_Encrypt;
+	context->update = (PK11Cipher) (isEncrypt ? RC4_Encrypt : RC4_Decrypt);
 	context->destroy = (PK11Destroy) RC4_DestroyContext;
 	break;
     case CKM_CDMF_CBC_PAD:
@@ -630,13 +636,13 @@ finish_des:
 	}
 	context->cipherInfo = DES_CreateContext(
 		useNewKey ? newdeskey : (unsigned char*)att->attrib.pValue,
-		(unsigned char*)pMechanism->pParameter,t, PR_TRUE);
+		(unsigned char*)pMechanism->pParameter,t, isEncrypt);
 	pk11_FreeAttribute(att);
 	if (context->cipherInfo == NULL) {
 	    crv = CKR_HOST_MEMORY;
 	    break;
 	}
-	context->update = (PK11Cipher) DES_Encrypt;
+	context->update = (PK11Cipher) (isEncrypt ? DES_Encrypt : DES_Decrypt);
 	context->destroy = (PK11Destroy) DES_DestroyContext;
 
 	break;
@@ -659,13 +665,13 @@ finish_des:
 	    (unsigned char*)att->attrib.pValue,
 	    (unsigned char*)pMechanism->pParameter,
 	    pMechanism->mechanism == CKM_AES_ECB ? NSS_AES : NSS_AES_CBC,
-	    PR_TRUE, att->attrib.ulValueLen, 16);
+	    isEncrypt, att->attrib.ulValueLen, 16);
 	pk11_FreeAttribute(att);
 	if (context->cipherInfo == NULL) {
 	    crv = CKR_HOST_MEMORY;
 	    break;
 	}
-	context->update = (PK11Cipher) AES_Encrypt;
+	context->update = (PK11Cipher) (isEncrypt ? AES_Encrypt : AES_Decrypt);
 	context->destroy = (PK11Destroy) AES_DestroyContext;
 
 	break;
@@ -674,7 +680,6 @@ finish_des:
 	break;
     }
 
-    pk11_FreeObject(key);
     if (crv != CKR_OK) {
         pk11_FreeContext(context);
 	pk11_FreeSession(session);
@@ -689,8 +694,8 @@ finish_des:
 CK_RV NSC_EncryptInit(CK_SESSION_HANDLE hSession,
 		 CK_MECHANISM_PTR pMechanism, CK_OBJECT_HANDLE hKey)
 {
-    return pk11_EncryptInit(hSession, pMechanism, hKey, CKA_ENCRYPT, 
-							PK11_ENCRYPT);
+    return pk11_CryptInit(hSession, pMechanism, hKey, CKA_ENCRYPT, 
+						PK11_ENCRYPT, PR_TRUE);
 }
 
 /* NSC_EncryptUpdate continues a multiple-part encryption operation. */
@@ -846,258 +851,11 @@ CK_RV NSC_Encrypt (CK_SESSION_HANDLE hSession, CK_BYTE_PTR pData,
  */
 
 /* NSC_DecryptInit initializes a decryption operation. */
-static CK_RV pk11_DecryptInit( CK_SESSION_HANDLE hSession,
-  CK_MECHANISM_PTR pMechanism, CK_OBJECT_HANDLE hKey, CK_ATTRIBUTE_TYPE dtype,
-				PK11ContextType contextType)
-{
-    PK11Session *session;
-    PK11Object *key;
-    PK11Attribute *att;
-    PK11SessionContext *context;
-    CK_RC2_CBC_PARAMS *rc2_param;
-#if NSS_SOFTOKEN_DOES_RC5
-    CK_RC5_CBC_PARAMS *rc5_param;
-    SECItem rc5Key;
-#endif
-    CK_KEY_TYPE key_type;
-    CK_RV crv = CKR_OK;
-    unsigned effectiveKeyLength;
-    NSSLOWKEYPrivateKey *privKey;
-    unsigned char newdeskey[8];
-    PRBool useNewKey=PR_FALSE;
-    int t;
-
-    session = pk11_SessionFromHandle(hSession);
-    if (session == NULL) return CKR_SESSION_HANDLE_INVALID;
-
-    crv = pk11_InitGeneric(session,&context,contextType,&key,hKey,&key_type,
-						CKO_PRIVATE_KEY,dtype);
-    if (crv != CKR_OK) {
-	pk11_FreeSession(session);
-	return crv;
-    }
-
-    /*
-     * now handle each mechanism
-     */
-    switch(pMechanism->mechanism) {
-    case CKM_RSA_PKCS:
-    case CKM_RSA_X_509:
-	if (key_type != CKK_RSA) {
-	    crv = CKR_KEY_TYPE_INCONSISTENT;
-	    break;
-	}
-	context->multi = PR_FALSE;
-	privKey = pk11_GetPrivKey(key,CKK_RSA);
-	if (privKey == NULL) {
-	    crv = CKR_HOST_MEMORY;
-	    break;
-	}
-	context->cipherInfo = privKey;
-	context->update = (PK11Cipher) (pMechanism->mechanism == CKM_RSA_X_509
-			? RSA_DecryptRaw : RSA_DecryptBlock);
-	context->destroy = (context->cipherInfo == key->objectInfo) ?
-		(PK11Destroy) pk11_Null : (PK11Destroy) pk11_FreePrivKey;
-	break;
-    case CKM_RC2_CBC_PAD:
-	context->doPad = PR_TRUE;
-	context->blockSize = 8;
-	/* fall thru */
-    case CKM_RC2_ECB:
-    case CKM_RC2_CBC:
-	if (key_type != CKK_RC2) {
-	    crv = CKR_KEY_TYPE_INCONSISTENT;
-	    break;
-	}
-	att = pk11_FindAttribute(key,CKA_VALUE);
-	rc2_param = (CK_RC2_CBC_PARAMS *)pMechanism->pParameter;
-	effectiveKeyLength = (rc2_param->ulEffectiveBits+7)/8;
-	context->cipherInfo = RC2_CreateContext((unsigned char*)att->attrib.pValue,
-		att->attrib.ulValueLen, rc2_param->iv,
-		 pMechanism->mechanism == CKM_RC2_ECB ? NSS_RC2 :
-					 NSS_RC2_CBC, effectiveKeyLength);
-	pk11_FreeAttribute(att);
-	if (context->cipherInfo == NULL) {
-	    crv = CKR_HOST_MEMORY;
-	    break;
-	}
-	context->update = (PK11Cipher) RC2_Decrypt;
-	context->destroy = (PK11Destroy) RC2_DestroyContext;
-	break;
-#if NSS_SOFTOKEN_DOES_RC5
-    case CKM_RC5_CBC_PAD:
-	context->doPad = PR_TRUE;
-	/* fall thru */
-    case CKM_RC5_ECB:
-    case CKM_RC5_CBC:
-	if (key_type != CKK_RC5) {
-	    crv = CKR_KEY_TYPE_INCONSISTENT;
-	    break;
-	}
-	att = pk11_FindAttribute(key,CKA_VALUE);
-	if (att == NULL) {
-	    crv = CKR_KEY_HANDLE_INVALID;
-	    break;
-	}
-	rc5_param = (CK_RC5_CBC_PARAMS *)pMechanism->pParameter;
-	if (context->doPad) {
-	   context->blockSize = rc5_param->ulWordsize*2;
-	}
-	rc5Key.data = (unsigned char*)att->attrib.pValue;
-	rc5Key.len = att->attrib.ulValueLen;
-	context->cipherInfo = RC5_CreateContext(&rc5Key,rc5_param->ulRounds,
-	   rc5_param->ulWordsize,rc5_param->pIv,
-		 pMechanism->mechanism == CKM_RC5_ECB ? NSS_RC5 : NSS_RC5_CBC);
-	pk11_FreeAttribute(att);
-	if (context->cipherInfo == NULL) {
-	    crv = CKR_HOST_MEMORY;
-	    break;
-	}
-	context->update = (PK11Cipher) RC5_Decrypt;
-	context->destroy = (PK11Destroy) RC5_DestroyContext;
-	break;
-#endif
-    case CKM_RC4:
-	if (key_type != CKK_RC4) {
-	    crv = CKR_KEY_TYPE_INCONSISTENT;
-	    break;
-	}
-	att = pk11_FindAttribute(key,CKA_VALUE);
-	context->cipherInfo = 
-	    RC4_CreateContext((unsigned char*)att->attrib.pValue,
-			      att->attrib.ulValueLen);
-	pk11_FreeAttribute(att);
-	if (context->cipherInfo == NULL) {
-	    crv = CKR_HOST_MEMORY;
-	    break;
-	}
-	context->update = (PK11Cipher) RC4_Decrypt;
-	context->destroy = (PK11Destroy) RC4_DestroyContext;
-	break;
-    case CKM_CDMF_CBC_PAD:
-	context->doPad = PR_TRUE;
-	context->blockSize = 8;
-	/* fall thru */
-    case CKM_CDMF_ECB:
-    case CKM_CDMF_CBC:
-	if (key_type != CKK_CDMF) {
-	    crv = CKR_KEY_TYPE_INCONSISTENT;
-	    break;
-	}
-	t = (pMechanism->mechanism == CKM_CDMF_ECB) ? NSS_DES : NSS_DES_CBC;
-	useNewKey = PR_TRUE;
-	if (crv != CKR_OK) break;
-	goto finish_des;
-    case CKM_DES_ECB:
-	if (key_type != CKK_DES) {
-	    crv = CKR_KEY_TYPE_INCONSISTENT;
-	    break;
-	}
-	t = NSS_DES;
-	goto finish_des;
-    case CKM_DES_CBC_PAD:
-	context->doPad = PR_TRUE;
-	context->blockSize = 8;
-	/* fall thru */
-    case CKM_DES_CBC:
-	if (key_type != CKK_DES) {
-	    crv = CKR_KEY_TYPE_INCONSISTENT;
-	    break;
-	}
-	t = NSS_DES_CBC;
-	goto finish_des;
-    case CKM_DES3_ECB:
-	if ((key_type != CKK_DES2) && (key_type != CKK_DES3)) {
-	    crv = CKR_KEY_TYPE_INCONSISTENT;
-	    break;
-	}
-	t = NSS_DES_EDE3;
-	goto finish_des;
-    case CKM_DES3_CBC_PAD:
-	context->doPad = PR_TRUE;
-	context->blockSize = 8;
-	/* fall thru */
-    case CKM_DES3_CBC:
-	if ((key_type != CKK_DES2) && (key_type != CKK_DES3)) {
-	    crv = CKR_KEY_TYPE_INCONSISTENT;
-	    break;
-	}
-	t = NSS_DES_EDE3_CBC;
-finish_des:
-	att = pk11_FindAttribute(key,CKA_VALUE);
-	if (att == NULL) {
-	    crv = CKR_KEY_HANDLE_INVALID;
-	    break;
-	}
-	if (useNewKey) {
-	    crv = pk11_cdmf2des((unsigned char*)att->attrib.pValue,newdeskey);
-	    if (crv != CKR_OK) {
-		pk11_FreeAttribute(att);
-		break;
-	     }
-	}
-	context->cipherInfo = DES_CreateContext(
-		useNewKey ? newdeskey : (unsigned char*)att->attrib.pValue,
-		(unsigned char*)pMechanism->pParameter,t, PR_FALSE);
-	pk11_FreeAttribute(att);
-	if (context->cipherInfo == NULL) {
-	    crv = CKR_HOST_MEMORY;
-	    break;
-	}
-	context->update = (PK11Cipher) DES_Decrypt;
-	context->destroy = (PK11Destroy) DES_DestroyContext;
-
-	break;
-    case CKM_AES_CBC_PAD:
-	context->doPad = PR_TRUE;
-	context->blockSize = 16;
-	/* fall thru */
-    case CKM_AES_ECB:
-    case CKM_AES_CBC:
-	if (key_type != CKK_AES) {
-	    crv = CKR_KEY_TYPE_INCONSISTENT;
-	    break;
-	}
-	att = pk11_FindAttribute(key,CKA_VALUE);
-	if (att == NULL) {
-	    crv = CKR_KEY_HANDLE_INVALID;
-	    break;
-	}
-	context->cipherInfo = AES_CreateContext(
-	    (unsigned char*)att->attrib.pValue,
-	    (unsigned char*)pMechanism->pParameter,
-	    pMechanism->mechanism == CKM_AES_ECB ? NSS_AES : NSS_AES_CBC,
-	    PR_FALSE, att->attrib.ulValueLen,16);
-	pk11_FreeAttribute(att);
-	if (context->cipherInfo == NULL) {
-	    crv = CKR_HOST_MEMORY;
-	    break;
-	}
-	context->update = (PK11Cipher) AES_Decrypt;
-	context->destroy = (PK11Destroy) AES_DestroyContext;
-
-	break;
-    default:
-	crv = CKR_MECHANISM_INVALID;
-	break;
-    }
-
-    pk11_FreeObject(key);
-    if (crv != CKR_OK) {
-        pk11_FreeContext(context);
-	pk11_FreeSession(session);
-	return crv;
-    }
-    pk11_SetContextByType(session, contextType, context);
-    pk11_FreeSession(session);
-    return CKR_OK;
-}
-
-/* NSC_DecryptInit initializes a decryption operation. */
 CK_RV NSC_DecryptInit( CK_SESSION_HANDLE hSession,
 			 CK_MECHANISM_PTR pMechanism, CK_OBJECT_HANDLE hKey)
 {
-    return pk11_DecryptInit(hSession,pMechanism,hKey,CKA_DECRYPT,PK11_DECRYPT);
+    return pk11_CryptInit(hSession, pMechanism, hKey, CKA_DECRYPT,
+						PK11_DECRYPT, PR_FALSE);
 }
 
 /* NSC_DecryptUpdate continues a multiple-part decryption operation. */
@@ -1867,8 +1625,8 @@ pk11_InitCBCMac(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
 	return CKR_FUNCTION_NOT_SUPPORTED;
     }
 
-    crv = pk11_EncryptInit(hSession, &cbc_mechanism, hKey, keyUsage,
-								contextType);
+    crv = pk11_CryptInit(hSession, &cbc_mechanism, hKey, keyUsage,
+							contextType, PR_TRUE);
     if (crv != CKR_OK) return crv;
     crv = pk11_GetContext(hSession,&context,contextType,PR_TRUE,NULL);
 
@@ -2063,23 +1821,14 @@ finish_rsa:
 	/* OK, info is allocated only if we're doing hash and sign mechanism.
 	 * It's necessary to be able to set the correct OID in the final 
 	 * signature.
-	 * Second, what's special about privKey == key->objectInfo?
-	 * Well we don't 'cache' token versions
-	 * of private keys because (1) it's sensitive data, and (2) it never
-	 * gets destroyed. Instead we grab the key out of the database as
-	 * necessary, but now the key is our context, and we need to free
-	 * it when we are done. Non-token private keys will get freed when
-	 * the user destroys the session object (or the session the session
-	 * object lives in) */
+	 */
 	if (info) {
 	    info->key = privKey;
 	    context->cipherInfo = info;
-	    context->destroy = (privKey == key->objectInfo) ?
-		(PK11Destroy)pk11_Space:(PK11Destroy)pk11_FreeSignInfo;
+	    context->destroy = (PK11Destroy)pk11_Space;
 	} else {
 	    context->cipherInfo = privKey;
-	    context->destroy = (privKey == key->objectInfo) ?
-		(PK11Destroy)pk11_Null:(PK11Destroy)pk11_FreePrivKey;
+	    context->destroy = (PK11Destroy)pk11_Null;
 	}
 	break;
 
@@ -2141,9 +1890,8 @@ finish_rsa:
 	break;
     }
 
-    pk11_FreeObject(key);
     if (crv != CKR_OK) {
-        PORT_Free(context);
+        pk11_FreeContext(context);
 	pk11_FreeSession(session);
 	return crv;
     }
@@ -2546,7 +2294,6 @@ finish_rsa:
 	break;
     }
 
-    pk11_FreeObject(key);
     if (crv != CKR_OK) {
         PORT_Free(context);
 	pk11_FreeSession(session);
@@ -2688,7 +2435,6 @@ CK_RV NSC_VerifyRecoverInit(CK_SESSION_HANDLE hSession,
 	break;
     }
 
-    pk11_FreeObject(key);
     if (crv != CKR_OK) {
         PORT_Free(context);
 	pk11_FreeSession(session);
@@ -3134,10 +2880,6 @@ CK_RV NSC_GenerateKey(CK_SESSION_HANDLE hSession,
      */
     crv = pk11_handleObject(key,session);
     pk11_FreeSession(session);
-    if (crv != CKR_OK) {
-	pk11_FreeObject(key);
-	return crv;
-    }
     if (pk11_isTrue(key,CKA_SENSITIVE)) {
 	pk11_forceAttribute(key,CKA_ALWAYS_SENSITIVE,&cktrue,sizeof(CK_BBOOL));
     }
@@ -3146,7 +2888,8 @@ CK_RV NSC_GenerateKey(CK_SESSION_HANDLE hSession,
     }
 
     *phKey = key->handle;
-    return CKR_OK;
+    pk11_FreeObject(key);
+    return crv;
 }
 
 
@@ -3471,7 +3214,7 @@ dhgn_done:
     /*
      * handle the base object cleanup for the public Key
      */
-    crv = pk11_handleObject(publicKey,session);
+    crv = pk11_handleObject(privateKey,session);
     if (crv != CKR_OK) {
         pk11_FreeSession(session);
 	pk11_FreeObject(privateKey);
@@ -3484,11 +3227,12 @@ dhgn_done:
      * If we have any problems, we destroy the public Key we've
      * created and linked.
      */
-    crv = pk11_handleObject(privateKey,session);
+    crv = pk11_handleObject(publicKey,session);
     pk11_FreeSession(session);
     if (crv != CKR_OK) {
+	pk11_FreeObject(publicKey);
+	NSC_DestroyObject(hSession,privateKey->handle);
 	pk11_FreeObject(privateKey);
-	NSC_DestroyObject(hSession,publicKey->handle);
 	return crv;
     }
     if (pk11_isTrue(privateKey,CKA_SENSITIVE)) {
@@ -3509,6 +3253,8 @@ dhgn_done:
     }
     *phPrivateKey = privateKey->handle;
     *phPublicKey = publicKey->handle;
+    pk11_FreeObject(publicKey);
+    pk11_FreeObject(privateKey);
 
     return CKR_OK;
 }
@@ -3656,8 +3402,8 @@ CK_RV NSC_WrapKey(CK_SESSION_HANDLE hSession,
 		len = *pulWrappedKeyLen;
 	    }
      
-	    crv = pk11_EncryptInit(hSession, pMechanism, hWrappingKey, 
-						CKA_WRAP, PK11_ENCRYPT);
+	    crv = pk11_CryptInit(hSession, pMechanism, hWrappingKey, 
+					CKA_WRAP, PK11_ENCRYPT, PR_TRUE);
 	    if (crv != CKR_OK) {
 		pk11_FreeAttribute(attribute);
 		break;
@@ -3688,8 +3434,8 @@ CK_RV NSC_WrapKey(CK_SESSION_HANDLE hSession,
 		    break;
 		}
 
-		crv = pk11_EncryptInit(hSession, pMechanism, hWrappingKey,
-						CKA_WRAP, PK11_ENCRYPT);
+		crv = pk11_CryptInit(hSession, pMechanism, hWrappingKey,
+					CKA_WRAP, PK11_ENCRYPT, PR_TRUE);
 		if(crv != CKR_OK) {
 		    SECITEM_ZfreeItem(bpki, PR_TRUE);
 		    crv = CKR_KEY_TYPE_INCONSISTENT;
@@ -3948,8 +3694,8 @@ CK_RV NSC_UnwrapKey(CK_SESSION_HANDLE hSession,
 	ulWrappedKeyLen -= 2; /* don't decrypt the checksum */
     }
 
-    crv = pk11_DecryptInit(hSession,pMechanism,hUnwrappingKey,CKA_UNWRAP,
-								PK11_DECRYPT);
+    crv = pk11_CryptInit(hSession,pMechanism,hUnwrappingKey,CKA_UNWRAP,
+							PK11_DECRYPT, PR_FALSE);
     if (crv != CKR_OK) {
 	pk11_FreeObject(key);
 	return pk11_mapWrap(crv);
@@ -4026,14 +3772,11 @@ CK_RV NSC_UnwrapKey(CK_SESSION_HANDLE hSession,
      * handle the base object stuff
      */
     crv = pk11_handleObject(key,session);
-    pk11_FreeSession(session);
-    if (crv != CKR_OK) {
-	pk11_FreeObject(key);
-	return crv;
-    }
-
     *phKey = key->handle;
-    return CKR_OK;
+    pk11_FreeSession(session);
+    pk11_FreeObject(key);
+
+    return crv;
 
 }
 
@@ -4091,10 +3834,7 @@ pk11_buildSSLKey(CK_SESSION_HANDLE hSession, PK11Object *baseKey,
 
     crv = pk11_handleObject(key,session);
     pk11_FreeSession(session);
-    if (crv == CKR_OK) {
-	*keyHandle = key->handle;
-	return crv;
-    }
+    *keyHandle = key->handle;
 loser:
     if (key) pk11_FreeObject(key);
     return crv;
@@ -5212,10 +4952,7 @@ key_and_mac_derive_fail:
 
 	crv = pk11_handleObject(key,session);
 	pk11_FreeSession(session);
-	if (crv == CKR_OK) {
-	    *phKey = key->handle;
-	     return crv;
-	}
+	*phKey = key->handle;
 	pk11_FreeObject(key);
     }
     return crv;
