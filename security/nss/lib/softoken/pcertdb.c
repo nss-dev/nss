@@ -1489,6 +1489,7 @@ DecodeDBNicknameEntry(certDBEntryNickname *entry, SECItem *dbentry,
     PORT_Memcpy(entry->subjectName.data,
 	      &dbentry->data[DB_NICKNAME_ENTRY_HEADER_LEN],
 	      entry->subjectName.len);
+    entry->subjectName.type = siBuffer;
     
     entry->nickname = (char *)PORT_ArenaAlloc(entry->common.arena, 
                                               PORT_Strlen(nickname)+1);

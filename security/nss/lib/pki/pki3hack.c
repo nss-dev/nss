@@ -262,8 +262,10 @@ nss3certificate_getIssuerIdentifier(nssDecodedCert *dc)
 	}
 	issuerSN.derIssuer.data = caName->data;
 	issuerSN.derIssuer.len = caName->len;
+	issuerSN.derIssuer.type = siBuffer;
 	issuerSN.serialNumber.data = cAuthKeyID->authCertSerialNumber.data;
 	issuerSN.serialNumber.len = cAuthKeyID->authCertSerialNumber.len;
+	issuerSN.serialNumber.type = siBuffer;
 	issuer = PK11_FindCertByIssuerAndSN(NULL, &issuerSN, NULL);
 	if (issuer) {
 	    rvID = nssItem_Create(NULL, NULL, issuer->subjectKeyID.len, 
