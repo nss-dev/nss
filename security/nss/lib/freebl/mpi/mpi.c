@@ -2295,8 +2295,8 @@ mp_err s_mp_invmod_even_m(const mp_int *a, const mp_int *m, mp_int *c)
   mp_int oddPart, evenPart;	/* parts to combine via CRT. */
   mp_int C2, tmp1, tmp2;
 
-  static const mp_digit d1 = 1;
-  static const mp_int one = { MP_ZPOS, 1, 1, (mp_digit *)&d1 };
+  /*static const mp_digit d1 = 1; */
+  /*static const mp_int one = { MP_ZPOS, 1, 1, (mp_digit *)&d1 }; */
 
   if ((res = s_mp_ispow2(m)) >= 0) {
     k = res;
@@ -3363,7 +3363,7 @@ mp_err   s_mp_div_d(mp_int *mp, mp_digit d, mp_digit *r)
   }
 #else
   {
-    mp_digit norm, p;
+    mp_digit p;
 
     MP_CHECKOK( mp_init_copy(&rem, mp) );
 

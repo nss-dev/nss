@@ -146,7 +146,9 @@ RC2_CreateContext(unsigned char *key, unsigned int len,
     RC2Context *cx;
     PRUint8    *L,*L2;
     int         i;
+#if !defined(IS_LITTLE_ENDIAN)
     PRUint16    tmpS;
+#endif
     PRUint8     tmpB;
 
     if (!key || len == 0 || len > (sizeof cx->B) || efLen8 > (sizeof cx->B)) {
