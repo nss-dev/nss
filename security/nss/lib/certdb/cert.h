@@ -1481,7 +1481,7 @@ CERT_SPKDigestValueForCert(PRArenaPool *arena, CERTCertificate *cert,
 /*
  * fill in nsCertType field of the cert based on the cert extension
  */
-extern SECStatus CERT_GetCertType(CERTCertificate *cert);
+extern SECStatus cert_GetCertType(CERTCertificate *cert);
 
 
 SECStatus CERT_CheckCRL(CERTCertificate* cert, CERTCertificate* issuer,
