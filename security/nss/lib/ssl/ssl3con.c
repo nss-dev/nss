@@ -2605,7 +2605,8 @@ ssl3_SendClientHello(sslSocket *ss)
 	        !PK11_IsPresent(slot) ||
 		sid->u.ssl3.clAuthSeries     != PK11_GetSlotSeries(slot) ||
 		sid->u.ssl3.clAuthSlotID     != PK11_GetSlotID(slot)     ||
-		sid->u.ssl3.clAuthModuleID   != PK11_GetModuleID(slot)   ) {
+		sid->u.ssl3.clAuthModuleID   != PK11_GetModuleID(slot)   ||
+                !PK11_IsLoggedIn(slot, NULL)) {
 	        sidOK = PR_FALSE;
 	    }
 	    if (slot) {

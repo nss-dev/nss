@@ -50,6 +50,8 @@ struct SECKEYKeyDBHandleStr {
     DB *updatedb;		/* used when updating an old version */
     SECItem *global_salt;	/* password hashing salt for this db */
     int version;		/* version of the database */
+    char *dbname;		/* name of the openned DB */
+    PRBool readOnly;		/* is the DB read only */
 };
 
 /*

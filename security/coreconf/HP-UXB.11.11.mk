@@ -1,4 +1,3 @@
-#! gmake
 #
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
@@ -14,7 +13,7 @@
 # 
 # The Initial Developer of the Original Code is Netscape
 # Communications Corporation.  Portions created by Netscape are 
-# Copyright (C) 1994-2000 Netscape Communications Corporation.  All
+# Copyright (C) 2001 Netscape Communications Corporation.  All
 # Rights Reserved.
 # 
 # Contributor(s):
@@ -31,27 +30,26 @@
 # may use your version of this file under either the MPL or the
 # GPL.
 #
+# On HP-UX 10.30 and 11.x, the default implementation strategy is
+# pthreads.  Classic nspr and pthreads-user are also available.
+#
 
-CORE_DEPTH = ../..
+ifeq ($(OS_RELEASE),B.11.11)
+OS_CFLAGS		+= -DHPUX10
+DEFAULT_IMPL_STRATEGY = _PTH
+endif
 
-VPATH  = $(CORE_DEPTH)/../dbm/src
+#
+# To use the true pthread (kernel thread) library on 10.30 and
+# 11.x, we should define _POSIX_C_SOURCE to be 199506L.
+# The _REENTRANT macro is deprecated.
+#
 
-MODULE = dbm
+ifdef USE_PTHREADS
+	OS_CFLAGS	+= -D_POSIX_C_SOURCE=199506L
+endif
 
-CSRCS = db.c	   \
-	h_bigkey.c \
-	h_func.c   \
-	h_log2.c   \
-	h_page.c   \
-	hash.c	   \
-	hash_buf.c \
-	hsearch.c  \
-	memmove.c  \
-	mktemp.c   \
-	ndbm.c	   \
-#	snprintf.c \
-	strerror.c \
-	nsres.c	   \
-	$(NULL)
-
-LIBRARY_NAME = dbm
+#
+# Config stuff for HP-UXB.11.11.
+#
+include $(CORE_DEPTH)/coreconf/HP-UXB.11.mk
