@@ -2335,7 +2335,7 @@ NSS_EXTERN NSSCertificate *
 NSSCryptoContext_FindBestCertificateBySubject
 (
   NSSCryptoContext *cc,
-  NSSUTF8 *subject,
+  NSSDER /*NSSUTF8*/ *subject,
   NSSTime *timeOpt,
   NSSUsage *usage,
   NSSPolicies *policiesOpt
@@ -2351,7 +2351,7 @@ NSS_EXTERN NSSCertificate **
 NSSCryptoContext_FindCertificatesBySubject
 (
   NSSCryptoContext *cc,
-  NSSUTF8 *subject,
+  NSSDER /*NSSUTF8*/ *subject,
   NSSCertificate *rvOpt[],
   PRUint32 maximumOpt, /* 0 for no max */
   NSSArena *arenaOpt
@@ -2415,7 +2415,10 @@ NSS_EXTERN NSSCertificate *
 NSSCryptoContext_FindBestCertificateByEmail
 (
   NSSCryptoContext *cc,
-  NSSASCII7 *email
+  NSSASCII7 *email,
+  NSSTime *timeOpt,
+  NSSUsage *usage,
+  NSSPolicies *policiesOpt
 );
 
 /*
@@ -2423,7 +2426,7 @@ NSSCryptoContext_FindBestCertificateByEmail
  *
  */
 
-NSS_EXTERN NSSCertificate *
+NSS_EXTERN NSSCertificate **
 NSSCryptoContext_FindCertificatesByEmail
 (
   NSSCryptoContext *cc,

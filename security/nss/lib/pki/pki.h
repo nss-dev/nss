@@ -54,6 +54,43 @@ nssCertificate_AddRef
   NSSCertificate *c
 );
 
+/* putting here for now, needs more thought */
+NSS_EXTERN PRStatus
+nssCryptoContext_ImportTrust
+(
+  NSSCryptoContext *cc,
+  NSSTrust *trust
+);
+
+NSS_EXTERN NSSTrust *
+nssCryptoContext_FindTrustForCertificate
+(
+  NSSCryptoContext *cc,
+  NSSCertificate *cert
+);
+
+NSS_EXTERN PRStatus
+nssCryptoContext_ImportSMIMEProfile
+(
+  NSSCryptoContext *cc,
+  nssSMIMEProfile *profile
+);
+
+NSS_EXTERN nssSMIMEProfile *
+nssCryptoContext_FindSMIMEProfileForCertificate
+(
+  NSSCryptoContext *cc,
+  NSSCertificate *cert
+);
+
+NSS_EXTERN nssSMIMEProfile *
+nssSMIMEProfile_Create
+(
+  NSSCertificate *cert,
+  NSSItem *profileTime,
+  NSSItem *profileData
+);
+
 PR_END_EXTERN_C
 
 #endif /* PKI_H */
