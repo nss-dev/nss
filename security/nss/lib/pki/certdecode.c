@@ -106,6 +106,8 @@ nssPKIObject_Destroy
     refCount = --object->refCount;
     PZ_Unlock(object->lock);
     if (refCount == 0) {
+	PZ_DestroyLock(object->lock);
+	nssListIterator_Destroy(object->instances);
 	nssList_Destroy(object->instanceList);
 	nssArena_Destroy(object->arena);
 	return PR_TRUE;
