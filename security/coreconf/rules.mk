@@ -323,7 +323,7 @@ SUB_SHLOBJS = $(foreach dir,$(SHARED_LIBRARY_DIRS),$(addprefix $(dir)/,$(shell $
 endif
 endif
 
-$(SHARED_LIBRARY): $(OBJS) $(RES) $(MAPFILE)
+$(SHARED_LIBRARY): $(OBJS) $(RES) $(MAPFILE) $(SUB_SHLOBJS)
 	@$(MAKE_OBJDIR)
 	rm -f $@
 ifeq ($(OS_TARGET)$(OS_RELEASE), AIX4.1)
@@ -414,10 +414,12 @@ else
 	$(CC) -o $@ -c $(CFLAGS) $<
 endif
 
+ifndef XP_OS2_VACPP
 ifneq (,$(filter-out WIN%,$(OS_TARGET)))
 $(OBJDIR)/$(PROG_PREFIX)%$(OBJ_SUFFIX): %.s
 	@$(MAKE_OBJDIR)
 	$(AS) -o $@ $(ASFLAGS) -c $<
+endif
 endif
 
 $(OBJDIR)/$(PROG_PREFIX)%$(OBJ_SUFFIX): %.asm
