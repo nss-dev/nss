@@ -60,7 +60,9 @@ __nss_InitLock(   PZLock    **ppLock, nssILockType ltype )
     while (!*ppLock) {
         PRInt32 myAttempt = PR_AtomicIncrement(&initializers);
         if (myAttempt == 1) {
-	    *ppLock = PZ_NewLock(ltype);
+            if (!*ppLock) {
+                *ppLock = PZ_NewLock(ltype);
+            }
             (void) PR_AtomicDecrement(&initializers);
             break;
         }
@@ -93,7 +95,9 @@ nss_InitMonitor(PZMonitor **ppMonitor, nssILockType ltype )
     while (!*ppMonitor) {
         PRInt32 myAttempt = PR_AtomicIncrement(&initializers);
         if (myAttempt == 1) {
-	    *ppMonitor = PZ_NewMonitor(ltype);
+            if (!*ppMonitor) {
+                *ppMonitor = PZ_NewMonitor(ltype);
+            }
             (void) PR_AtomicDecrement(&initializers);
             break;
         }
