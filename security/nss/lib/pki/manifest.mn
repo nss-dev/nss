@@ -58,7 +58,7 @@ CSRCS =		        \
 
 ifndef PURE_STAN_BUILD
 CSRCS += nss3hack.c
-PRIVATE_EXPORTS += pkinss3hack.h pkitm.h
+PRIVATE_EXPORTS += pkinss3hack.h pkitm.h pkim.h
 DEFINES = -DNSS_3_4_CODE
 endif
 
