@@ -218,7 +218,7 @@ CacheSID(sslSessionID *sid)
 
     /* XXX should be different trace for version 2 vs. version 3 */
     if (sid->version < SSL_LIBRARY_VERSION_3_0) {
-	expirationPeriod = ssl3_sid_timeout;
+	expirationPeriod = ssl_sid_timeout;
 	PRINT_BUF(8, (0, "sessionID:",
 		  sid->u.ssl2.sessionID, sizeof(sid->u.ssl2.sessionID)));
 	PRINT_BUF(8, (0, "masterKey:",
@@ -228,7 +228,7 @@ CacheSID(sslSessionID *sid)
     } else {
 	if (sid->u.ssl3.sessionIDLength == 0) 
 	    return;
-	expirationPeriod = ssl_sid_timeout;
+	expirationPeriod = ssl3_sid_timeout;
 	PRINT_BUF(8, (0, "sessionID:",
 		      sid->u.ssl3.sessionID, sid->u.ssl3.sessionIDLength));
     }
