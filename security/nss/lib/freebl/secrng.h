@@ -79,4 +79,4 @@ extern void RNG_FileForRNG(const char *filename);
 
 SEC_END_PROTOS
 
-#endif /* _SECUTIL_H_ */
+#endif /* _SECRNG_H_ */
