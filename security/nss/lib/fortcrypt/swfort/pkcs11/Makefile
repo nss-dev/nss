@@ -63,7 +63,7 @@ EXTRA_LIBS = \
 	-lplc4 \
 	-lplds4 \
 	-lnspr4 \
-	-lwsock32 \
+	-lws2_32 \
 	-lwinmm \
 	$(NULL)
 else # ! NS_USE_GCC
