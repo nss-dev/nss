@@ -134,6 +134,7 @@ const char *mp19 =
 "F1C9DACDA287F2E3C88DCE2393B8F53DAAAC1196DC36510962B6B59454CFE64B";
 const char *mp20 = 
 "D445662C8B6FE394107B867797750C326E0F4A967E135FC430F6CD7207913AC7";
+const char* mp21 = "2";
 
 const mp_digit md1 = 0;
 const mp_digit md2 = 0x1;
@@ -201,7 +202,7 @@ const char *p_mp1415 =
 "548F1732452F9E7F810C0B4B430C073C0FBCE03F0D03F82630654BCE166AA772E1EE"
 "DD0C08D3E3EBDF0AF54203B43AFDFC40D8FC79C97A4B0A4E1BEB14D8FCEFDDED8758"
 "6ED65B18";
-
+const char *p_mp2121 = "4";
 const char *mp_mp345 = "B9B6D3A3";
 const char *mp_mp335 = "16609C2D";
 
@@ -873,6 +874,15 @@ int test_mul(void)
   if(strcmp(g_intbuf, p_mp1415) != 0) {
     reason("error: computed %s, expected %s\n", g_intbuf, p_mp1415);
     res = 1;
+  }
+  mp_read_radix(&a, mp21, 10); mp_read_radix(&b, mp21, 10);
+
+  IFOK( mp_mul(&a, &b, &a) );
+  mp_toradix(&a, g_intbuf, 10);
+
+  if(strcmp(g_intbuf, p_mp2121) != 0) {
+    reason("error: computed %s, expected %s\n", g_intbuf, p_mp2121);
+    res = 1; goto CLEANUP;
   }
 
  CLEANUP:
