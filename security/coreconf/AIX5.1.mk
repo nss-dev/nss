@@ -1,4 +1,3 @@
-#! gmake
 #
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
@@ -31,37 +30,25 @@
 # may use your version of this file under either the MPL or the
 # GPL.
 #
-
-#
-# These macros are defined by mozilla's configure script.
-# We define them manually here.
+# Config stuff for AIX5.1
 #
 
-DEFINES += -DSTDC_HEADERS -DHAVE_STRERROR
+include $(CORE_DEPTH)/coreconf/AIX.mk
 
-#
-# Most platforms have snprintf, so it's simpler to list the exceptions.
-#
-HAVE_SNPRINTF = 1
-#
-# OSF1 V4.0D doesn't have snprintf but V5.0A does.
-#
-ifeq ($(OS_TARGET)$(OS_RELEASE),OSF1V4.0D)
-HAVE_SNPRINTF =
+
+ifeq ($(USE_64), 1)
+# Next line replaced by generic name handling in arch.mk
+#	COMPILER_TAG    = _64
+	OS_CFLAGS	+= -DAIX_64BIT
+	OBJECT_MODE=64
+	export OBJECT_MODE
 endif
-ifdef HAVE_SNPRINTF
-DEFINES += -DHAVE_SNPRINTF
-endif
+DSO_LDOPTS	= -brtl -bM:SRE -bnoentry
+MKSHLIB		= $(LD) $(DSO_LDOPTS) -lsvld -L/usr/lpp/xlC/lib -lc -lm
 
-ifeq (,$(filter-out IRIX Linux,$(OS_TARGET)))
-DEFINES += -DHAVE_SYS_CDEFS_H
+OS_LIBS		+= -L/usr/lpp/xlC/lib -lc -lm
+ifdef MAPFILE
+DSO_LDOPTS      += -bexport:$(MAPFILE)
+else
+DSO_LDOPTS      += -bexpall
 endif
-
-ifeq (,$(filter-out DGUX NCR ReliantUNIX SCO_SV SCOOS UNIXWARE,$(OS_TARGET)))
-DEFINES += -DHAVE_SYS_BYTEORDER_H
-endif
-
-#
-# None of the platforms that we are interested in need to
-# define HAVE_MEMORY_H.
-#
