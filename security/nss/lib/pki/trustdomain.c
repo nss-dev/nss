@@ -927,13 +927,11 @@ static PRStatus traverse_callback(NSSCertificate *c, void *arg)
      * destroy the reference to the copy, the callback will use the reference
      * to the cached entry, and everyone should be happy.
      */
-    if (cp == c) {
-	/* However, if the call to add c to the cache was successful, cp is
-	 * now an extra copy within this function and needs to be destroyed.
-	 */
-	NSSCertificate_Destroy(cp);
-    }
     nssrv = (*ta->callback)(c, ta->arg);
+    /* This function owns a reference to the cert, either from the AddRef
+     * or by getting it from the cache.
+     */
+    CERT_DestroyCertificate(STAN_GetCERTCertificate(c));
     return nssrv;
 }
 
