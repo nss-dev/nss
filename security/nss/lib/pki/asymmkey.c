@@ -359,6 +359,9 @@ NSSPrivateKey_Encode (
 NSS_IMPLEMENT NSSPrivateKey *
 nssPrivateKey_Decode (
   NSSBER *ber,
+  NSSKeyPairType keyPairType,
+  NSSOperations operations,
+  NSSProperties properties,
   NSSUTF8 *passwordOpt,
   NSSCallback *uhhOpt,
   NSSToken *destination,
@@ -433,8 +436,10 @@ nssPrivateKey_Decode (
     nssSlot_Destroy(slot);
 
     /* unwrap the private key with the PBE key */
-    vkey = nssToken_UnwrapKey(destination, session, wrapAP, 
-                              pbeKey, &epki.encData, PR_TRUE, 0, 0);
+    vkey = nssToken_UnwrapPrivateKey(destination, session, wrapAP, 
+                                     pbeKey, &epki.encData, PR_TRUE, 
+                                     operations, properties, 
+                                     keyPairType);
     if (!vkey) {
 	goto cleanup;
     }

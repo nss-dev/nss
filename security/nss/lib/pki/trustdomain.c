@@ -474,25 +474,35 @@ NSS_IMPLEMENT NSSPrivateKey *
 nssTrustDomain_ImportEncodedPrivateKey (
   NSSTrustDomain *td,
   NSSBER *ber,
+  NSSKeyPairType keyPairType,
+  NSSOperations operations,
+  NSSProperties properties,
   NSSUTF8 *passwordOpt,
   NSSCallback *uhhOpt,
   NSSToken *destination
 )
 {
-    return nssPrivateKey_Decode(ber, passwordOpt, uhhOpt, destination, td);
+    return nssPrivateKey_Decode(ber, keyPairType, 
+                                operations, properties, 
+                                passwordOpt, uhhOpt, destination, td);
 }
 
 NSS_IMPLEMENT NSSPrivateKey *
 NSSTrustDomain_ImportEncodedPrivateKey (
   NSSTrustDomain *td,
   NSSBER *ber,
+  NSSKeyPairType keyPairType,
+  NSSOperations operations,
+  NSSProperties properties,
   NSSUTF8 *passwordOpt,
   NSSCallback *uhhOpt,
   NSSToken *destination
 )
 {
-    return nssTrustDomain_ImportEncodedPrivateKey(td, ber, passwordOpt,
-                                                  uhhOpt, destination);
+    return nssTrustDomain_ImportEncodedPrivateKey(td, ber, keyPairType,
+                                                  operations, properties, 
+                                                  passwordOpt, uhhOpt, 
+                                                  destination);
 }
 
 NSS_IMPLEMENT NSSPublicKey *

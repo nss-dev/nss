@@ -94,7 +94,7 @@ typedef enum
   NSSKeyPairType_Unknown = 0,
   NSSKeyPairType_RSA = 1,
   NSSKeyPairType_DSA = 2,
-  NSSKeyPairType_DiffieHellman = 3
+  NSSKeyPairType_DH = 3
 } NSSKeyPairType;
 
 typedef struct NSSRSAPublicKeyInfoStr

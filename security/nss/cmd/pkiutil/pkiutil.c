@@ -74,6 +74,7 @@ enum {
     opt_TokenName,
     opt_InputFile,
     opt_Info,
+    opt_KeyType,
     opt_Nickname,
     opt_OutputFile,
     opt_Orphans,
@@ -128,6 +129,7 @@ static cmdCommandLineArg pkiutil_commands[] =
      CMDBIT(opt_ProfileDir) | 
      CMDBIT(opt_TokenName) | 
      CMDBIT(opt_InputFile) | 
+     CMDBIT(opt_KeyType) |
      CMDBIT(opt_Password) |
      CMDBIT(opt_Binary) | 
      CMDBIT(opt_Type) |
@@ -272,6 +274,7 @@ static cmdCommandLineOpt pkiutil_options[] =
  { /* opt_TokenName   */  'h', "token",    CMDArgReq },
  { /* opt_InputFile   */  'i', "infile",   CMDArgReq },
  { /* opt_Info        */   0 , "info",     CMDNoArg  },
+ { /* opt_KeyType     */  'k', "key-type", CMDArgReq },
  { /* opt_Nickname    */  'n', "nickname", CMDArgReq },
  { /* opt_OutputFile  */  'o', "outfile",  CMDArgReq },
  { /* opt_Orphans     */   0 , "orphans",  CMDNoArg  },
@@ -292,10 +295,11 @@ static char * pkiutil_options_help[] =
  "name of PKCS#11 token to use (default: internal)",
  "file for input (default: stdin)",
  "print object-specific information (token instances, etc.)",
+ "type of key (rsa|dsa|dh)",
  "nickname of object",
  "file for output (default: stdout)",
  "delete orphaned key pairs (keys not associated with a cert)",
- "specify a slot password at the command line"
+ "specify a slot password at the command line",
  "use raw (binary der-encoded) mode for I/O",
  "specify a certificate serial number",
  "trust level for certificate",
@@ -500,6 +504,7 @@ pkiutil_command_dispatcher(cmdCommand *pkiutil, int cmdToRun)
 	                      token,
 	                      pkiutil->opt[opt_Type].arg,
 	                      pkiutil->opt[opt_Nickname].arg,
+	                      pkiutil->opt[opt_KeyType].arg,
 	                      pkiutil->opt[opt_KeyPassword].arg,
 	                      &rtData);
 	break;

@@ -205,6 +205,11 @@ nssCK_GetSymKeyType (
   NSSSymmetricKeyType keyType
 );
 
+NSS_EXTERN CK_KEY_TYPE
+nssCK_GetKeyPairType (
+  NSSKeyPairType keyType
+);
+
 PR_END_EXTERN_C
 
 #endif /* CKHELPER_H */

@@ -240,6 +240,9 @@ nssPrivateKey_AddRef (
 NSS_EXTERN NSSPrivateKey *
 nssPrivateKey_Decode (
   NSSBER *ber,
+  NSSKeyPairType keyPairType,
+  NSSOperations operations,
+  NSSProperties properties,
   NSSUTF8 *passwordOpt,
   NSSCallback *uhhOpt,
   NSSToken *destination,

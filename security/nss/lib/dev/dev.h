@@ -379,7 +379,8 @@ nssSlot_CreateSession (
  * nssToken_GenerateSymmetricKey
  *
  *   ------ generic key stuff -------
- * nssToken_UnwrapKey
+ * nssToken_UnwrapPrivateKey
+ * nssToken_UnwrapSymmetricKey
  * nssToken_WrapKey
  * nssToken_DeriveKey
  *
@@ -658,7 +659,7 @@ nssToken_GenerateSymmetricKey (
 );
 
 NSS_EXTERN nssCryptokiObject *
-nssToken_UnwrapKey (
+nssToken_UnwrapPrivateKey (
   NSSToken *token,
   nssSession *session,
   const NSSAlgorithmAndParameters *ap,
@@ -666,7 +667,21 @@ nssToken_UnwrapKey (
   NSSItem *wrappedKey,
   PRBool asTokenObject,
   NSSOperations operations,
-  NSSProperties properties
+  NSSProperties properties,
+  NSSKeyPairType privKeyType
+);
+
+NSS_IMPLEMENT nssCryptokiObject *
+nssToken_UnwrapSymmetricKey (
+  NSSToken *token,
+  nssSession *session,
+  const NSSAlgorithmAndParameters *ap,
+  nssCryptokiObject *wrappingKey,
+  NSSItem *wrappedKey,
+  PRBool asTokenObject,
+  NSSOperations operations,
+  NSSProperties properties,
+  NSSSymmetricKeyType symKeyType
 );
 
 NSS_EXTERN NSSItem *

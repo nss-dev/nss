@@ -1585,6 +1585,9 @@ NSS_EXTERN NSSPrivateKey *
 NSSTrustDomain_ImportEncodedPrivateKey (
   NSSTrustDomain *td,
   NSSBER *ber,
+  NSSKeyPairType keyPairType,
+  NSSOperations operations,
+  NSSProperties properties,
   NSSUTF8 *passwordOpt, /* NULL will cause a callback */
   NSSCallback *uhhOpt,
   NSSToken *destination

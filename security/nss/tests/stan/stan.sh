@@ -127,6 +127,23 @@ pkiu()
   return $RET
 }
 
+pkiuf()
+{
+  echo ""
+  echo ">>>>>>>>>>>>>> ${PKIU_ACTION} <<<<<<<<<<<<<<"
+  echo "pkiutil $*"
+  pkiutil $*
+  RET=$?
+  if [ "$RET" -ne ${FAILURE_CODE} ]; then
+    CERTFAILED=$RET
+    html_failed "<TR><TD>${PKIU_ACTION} ($RET) " 
+    cert_log "ERROR: ${PKIU_ACTION} failed $RET"
+  else
+    html_passed "<TR><TD>${PKIU_ACTION}"
+  fi
+  return $RET
+}
+
 cert_init
 cd ${HOSTDIR}
 cp ${QADIR}/stan/*.b64 .
@@ -168,6 +185,62 @@ fi
 
 PKIU_ACTION="Import Server Private Key"
 pkiu ${PKIU_IMPORT} -n stanCert -i stanCert_key.b64 --type private-key -p nss -w asdf
+if [ "$RET" -ne 0 ]; then
+  Exit 6 "Fatal - failed ${PKIU_ACTION} [$RET]"
+fi
+
+PKIU_ACTION="List Certs"
+pkiu -L -d ${SERVERDIR}
+if [ "$RET" -ne 0 ]; then
+  Exit 6 "Fatal - failed ${PKIU_ACTION} [$RET]"
+fi
+
+PKIU_ACTION="Attempt Validation of Server Cert (FAIL)"
+FAILURE_CODE=255
+pkiuf -V -d ${SERVERDIR} -n stanCert -u cv
+if [ "$RET" -ne ${FAILURE_CODE} ]; then
+  Exit 6 "Fatal - failed ${PKIU_ACTION} [$RET]"
+fi
+
+PKIU_ACTION="Set Root Cert Trust"
+pkiu -M -d ${SERVERDIR} -n stanRoot -u CV
+if [ "$RET" -ne 0 ]; then
+  Exit 6 "Fatal - failed ${PKIU_ACTION} [$RET]"
+fi
+
+PKIU_ACTION="Validate Server Cert"
+pkiu -V -d ${SERVERDIR} -n stanCert -u cv
+if [ "$RET" -ne 0 ]; then
+  Exit 6 "Fatal - failed ${PKIU_ACTION} [$RET]"
+fi
+
+PKIU_ACTION="Export Copy of Server Cert"
+pkiu -E -d ${SERVERDIR} -n stanCert --type cert -a -o stanCertCopy.b64
+if [ "$RET" -ne 0 ]; then
+  Exit 6 "Fatal - failed ${PKIU_ACTION} [$RET]"
+fi
+
+PKIU_ACTION="Import Expired Cert"
+pkiu ${PKIU_IMPORT} -n stanExpired -i stanExpired.b64
+if [ "$RET" -ne 0 ]; then
+  Exit 6 "Fatal - failed ${PKIU_ACTION} [$RET]"
+fi
+
+PKIU_ACTION="Attempt Validation of Expired Cert (FAIL)"
+FAILURE_CODE=255
+pkiuf -V -d ${SERVERDIR} -n stanExpired -u cv
+if [ "$RET" -ne ${FAILURE_CODE} ]; then
+  Exit 6 "Fatal - failed ${PKIU_ACTION} [$RET]"
+fi
+
+PKIU_ACTION="Delete Expired Cert"
+pkiu -D -d ${SERVERDIR} -n stanExpired 
+if [ "$RET" -ne 0 ]; then
+  Exit 6 "Fatal - failed ${PKIU_ACTION} [$RET]"
+fi
+
+PKIU_ACTION="List Certs"
+pkiu -L -d ${SERVERDIR}
 if [ "$RET" -ne 0 ]; then
   Exit 6 "Fatal - failed ${PKIU_ACTION} [$RET]"
 fi

@@ -35,6 +35,24 @@ get_object_class(char *type)
     return PKIUnknown;
 }
 
+static NSSKeyPairType
+get_key_pair_type(char *type)
+{
+    if (type == NULL) {
+	return NSSKeyPairType_Unknown;
+    }
+    if (strcmp(type, "rsa") == 0 || strcmp(type, "RSA") == 0) {
+	return NSSKeyPairType_RSA;
+    } else if (strcmp(type, "dsa") == 0 || strcmp(type, "DSA") == 0) {
+	return NSSKeyPairType_DSA;
+    } else if (strcmp(type, "dh") == 0 || strcmp(type, "DH") == 0 ||
+               strcmp(type, "Diffie-Hellman") == 0) {
+	return NSSKeyPairType_DH;
+    } else {
+	return NSSKeyPairType_Unknown;
+    }
+}
+
 /* XXX */
 static NSSItem *
 get_cert_serial_number(NSSCertificate *c)
@@ -548,6 +566,7 @@ import_private_key
   NSSTrustDomain *td,
   NSSToken *token,
   char *nickname,
+  char *keyTypeOpt,
   char *keypass,
   CMDRunTimeData *rtData
 )
@@ -555,11 +574,26 @@ import_private_key
     PRStatus status;
     NSSItem *encoding;
     NSSPrivateKey *vkey;
+    NSSKeyPairType keyPairType;
+
+    if (!keyTypeOpt) {
+	/* default to RSA */
+	keyPairType = NSSKeyPairType_RSA;
+    } else {
+	keyPairType = get_key_pair_type(keyTypeOpt);
+	if (keyPairType == NSSKeyPairType_Unknown) {
+	    PR_fprintf(PR_STDERR, "%s is not a valid key type.\n", 
+	                           keyTypeOpt);
+	    return PR_FAILURE;
+	}
+    }
 
     /* get the encoded key from the input source */
     encoding = CMD_GetInput(rtData);
     /* import into trust domain */
-    vkey = NSSTrustDomain_ImportEncodedPrivateKey(td, encoding, NULL,
+    vkey = NSSTrustDomain_ImportEncodedPrivateKey(td, encoding,
+                                                  keyPairType, 0, 0,
+                                                  NULL,
                                     CMD_PWCallbackForKeyEncoding(keypass), 
                                                   token/*, nickname */);
     if (vkey) {
@@ -581,6 +615,7 @@ ImportObject
   NSSToken *tokenOpt,
   char *objectTypeOpt,
   char *nickname,
+  char *keyTypeOpt,
   char *keypass,
   CMDRunTimeData *rtData
 )
@@ -601,7 +636,8 @@ ImportObject
     case PKIPublicKey:
 	break;
     case PKIPrivateKey:
-	status = import_private_key(td, token, nickname, keypass, rtData);
+	status = import_private_key(td, token, nickname, keyTypeOpt,
+	                            keypass, rtData);
 	break;
     case PKIUnknown:
 	status = PR_FAILURE;
@@ -681,6 +717,7 @@ export_certificate (
   CMDRunTimeData *rtData
 )
 {
+    PRStatus status = PR_FAILURE;
     NSSCertificate *cert, **certs;
     certs = NSSTrustDomain_FindCertificatesByNickname(td, nickname, 
                                                       NULL, 0, NULL);
@@ -689,9 +726,11 @@ export_certificate (
 	if (cert) {
 	    NSSDER *enc = nssCertificate_GetEncoding(cert);
 	    CMD_DumpOutput(enc, rtData);
+	    status = PR_SUCCESS;
 	}
 	NSSCertificateArray_Destroy(certs);
     }
+    return status;
 }
 
 static PRStatus
@@ -699,6 +738,7 @@ generate_salt(NSSItem *salt)
 {
     salt->data = NSS_GenerateRandom(16, NULL, NULL);
     salt->size = 16;
+    return PR_SUCCESS;
 }
 
 static PRStatus
@@ -709,6 +749,7 @@ export_private_key (
   CMDRunTimeData *rtData
 )
 {
+    PRStatus status = PR_FAILURE;
     NSSPrivateKey *vkey, **vkeys;
     NSSCertificate *ucert, **ucerts;
 
@@ -752,8 +793,10 @@ vkeys = NULL;
 	if (encKey) {
 	    CMD_DumpOutput(encKey, rtData);
 	    NSSItem_Destroy(encKey);
+	    status = PR_SUCCESS;
 	}
     }
+    return status;
 }
 
 PRStatus

@@ -483,7 +483,7 @@ nss_key_pair_type_from_ck_attrib(CK_ATTRIBUTE_PTR attrib)
     switch (ckKeyType) {
     case CKK_RSA: return NSSKeyPairType_RSA;
     case CKK_DSA: return NSSKeyPairType_DSA;
-    case CKK_DH:  return NSSKeyPairType_DiffieHellman;
+    case CKK_DH:  return NSSKeyPairType_DH;
     default: break;
     }
     return NSSKeyPairType_Unknown;
@@ -948,6 +948,19 @@ nssCK_GetSymKeyType (
     case NSSSymmetricKeyType_RC4:       return CKK_RC4;
     case NSSSymmetricKeyType_RC5:       return CKK_RC5;
     default:                            return CKK_GENERIC_SECRET;
+    }
+}
+
+NSS_IMPLEMENT CK_KEY_TYPE
+nssCK_GetKeyPairType (
+  NSSKeyPairType keyType
+)
+{
+    switch (keyType) {
+    case NSSKeyPairType_RSA: return CKK_RSA;
+    case NSSKeyPairType_DSA: return CKK_DSA;
+    case NSSKeyPairType_DH:  return CKK_DH;
+    default:                 return -1;
     }
 }
 

@@ -1690,8 +1690,8 @@ prepare_output_buffer(NSSArena *arenaOpt, NSSItem *rvOpt,
     return rvOpt;
 }
 
-NSS_IMPLEMENT nssCryptokiObject *
-nssToken_UnwrapKey (
+static nssCryptokiObject *
+unwrap_key (
   NSSToken *token,
   nssSession *session,
   const NSSAlgorithmAndParameters *ap,
@@ -1699,7 +1699,9 @@ nssToken_UnwrapKey (
   NSSItem *wrappedKey,
   PRBool asTokenObject,
   NSSOperations operations,
-  NSSProperties properties
+  NSSProperties properties,
+  CK_OBJECT_CLASS keyClass,
+  CK_KEY_TYPE keyType
 )
 {
     CK_RV ckrv;
@@ -1712,8 +1714,6 @@ nssToken_UnwrapKey (
     void *epv = nssToken_GetCryptokiEPV(token);
     PRUint32 numLeft;
     PRUint32 numkt = sizeof(keyTemplate) / sizeof(keyTemplate[0]);
-    CK_OBJECT_CLASS class = CKO_PRIVATE_KEY; /* XXX */
-    CK_KEY_TYPE keyType = CKK_RSA; /* XXX */
 
     mechanism = nssAlgorithmAndParameters_GetMechanism(ap);
 
@@ -1724,10 +1724,7 @@ nssToken_UnwrapKey (
     } else {
 	NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_TOKEN, &g_ck_false);
     }
-    /* XXX mondo hack, the private key alg is in the pki, but can't
-     *     access pkcs#8 via pkcs#11, doing this for testing only
-     */
-    NSS_CK_SET_ATTRIBUTE_VAR(attr, CKA_CLASS, class);
+    NSS_CK_SET_ATTRIBUTE_VAR(attr, CKA_CLASS, keyClass);
     NSS_CK_SET_ATTRIBUTE_VAR(attr, CKA_KEY_TYPE, keyType);
     if (operations) {
 	numLeft = numkt - (attr - keyTemplate);
@@ -1753,6 +1750,44 @@ nssToken_UnwrapKey (
 	unwrappedKey = nssCryptokiObject_Create(token, session, keyH);
     }
     return unwrappedKey;
+}
+
+NSS_IMPLEMENT nssCryptokiObject *
+nssToken_UnwrapPrivateKey (
+  NSSToken *token,
+  nssSession *session,
+  const NSSAlgorithmAndParameters *ap,
+  nssCryptokiObject *wrappingKey,
+  NSSItem *wrappedKey,
+  PRBool asTokenObject,
+  NSSOperations operations,
+  NSSProperties properties,
+  NSSKeyPairType privKeyType
+)
+{
+    CK_KEY_TYPE keyType = nssCK_GetKeyPairType(privKeyType);
+    return unwrap_key(token, session, ap, wrappingKey, wrappedKey,
+                      asTokenObject, operations, properties,
+                      CKO_PRIVATE_KEY, keyType);
+}
+
+NSS_IMPLEMENT nssCryptokiObject *
+nssToken_UnwrapSymmetricKey (
+  NSSToken *token,
+  nssSession *session,
+  const NSSAlgorithmAndParameters *ap,
+  nssCryptokiObject *wrappingKey,
+  NSSItem *wrappedKey,
+  PRBool asTokenObject,
+  NSSOperations operations,
+  NSSProperties properties,
+  NSSSymmetricKeyType symKeyType
+)
+{
+    CK_KEY_TYPE keyType = nssCK_GetSymKeyType(symKeyType);
+    return unwrap_key(token, session, ap, wrappingKey, wrappedKey,
+                      asTokenObject, operations, properties,
+                      CKO_SECRET_KEY, keyType);
 }
 
 NSS_IMPLEMENT NSSItem *

@@ -21,6 +21,7 @@ ImportObject
   NSSToken *tokenOpt,
   char *objectTypeOpt,
   char *nickname,
+  char *keyTypeOpt,
   char *keypass,
   CMDRunTimeData *rtData
 );
