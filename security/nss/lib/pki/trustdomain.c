@@ -834,10 +834,10 @@ nssTrustDomain_FindCertificateByIssuerAndSerialNumber
     if (collection) {
 	(void)nssPKIObjectCollection_GetCertificates(collection, 
 	                                             &rvCert, 1, NULL);
-	nssPKIObjectCollection_Destroy(collection);
 	if (!rvCert) {
 	    goto loser;
 	}
+	nssPKIObjectCollection_Destroy(collection);
     }
     nssSlotArray_Destroy(slots);
     return rvCert;
@@ -1261,7 +1261,7 @@ nssTrustDomain_FindTrustForCertificate
 	}
     }
     if (pkio) {
-	rvt = nssTrust_Create(pkio);
+	rvt = nssTrust_Create(pkio, &c->encoding);
 	if (!rvt) {
 	    goto loser;
 	}

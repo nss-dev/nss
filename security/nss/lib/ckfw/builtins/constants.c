@@ -59,7 +59,7 @@ NSS_IMPLEMENT_DATA const NSSUTF8 *
 nss_builtins_LibraryDescription = (NSSUTF8 *) "NSS Builtin Object Cryptoki Module";
 
 NSS_IMPLEMENT_DATA const CK_VERSION
-nss_builtins_LibraryVersion = { 1, 1 };
+nss_builtins_LibraryVersion = { 1, 2 };
 
 NSS_IMPLEMENT_DATA const NSSUTF8 *
 nss_builtins_SlotDescription = (NSSUTF8 *) "";
