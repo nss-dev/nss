@@ -52,30 +52,6 @@
 
 #include "pki3hack.h"
 
-/*
- * On Windows nss3.dll needs to export the symbol 'mktemp' to be
- * fully backward compatible with the nss3.dll in NSS 3.2.x and
- * 3.3.x.  This symbol was unintentionally exported and its
- * definition (in DBM) was moved from nss3.dll to softokn3.dll
- * in NSS 3.4.  See bug 142575.
- */
-#ifdef WIN32
-/*
- * Simulate how 'mktemp' was accidentally exported.
- *
- * The compiler warning message
- *   warning C4273: 'mktemp' : inconsistent dll linkage.  dllexport assumed.
- * is expected and should be ignored.
- */
-#include <io.h>
-
-char *
-mktemp(char *path)
-{
-    return _mktemp(path);
-}
-#endif
-
 #define NSS_MAX_FLAG_SIZE  sizeof("readOnly")+sizeof("noCertDB")+ \
 	sizeof("noModDB")+sizeof("forceOpen")+sizeof("passwordRequired")+ \
 	sizeof ("optimizeSpace")
