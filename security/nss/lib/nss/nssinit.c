@@ -60,8 +60,15 @@
  * in NSS 3.4.  See bug 142575.
  */
 #ifdef WIN32
-/* Function forwarder to mktemp in softokn3 */
-#pragma comment(linker, "/export:mktemp=softokn3.mktemp")
+#include <io.h>
+
+char *
+nss_mktemp(char *path)
+{
+    return _mktemp(path);
+}
+
+#pragma comment(linker, "/export:mktemp=_nss_mktemp")
 #endif
 
 #define NSS_MAX_FLAG_SIZE  sizeof("readOnly")+sizeof("noCertDB")+ \
