@@ -39,6 +39,7 @@ PRIVATE_EXPORTS = \
 	ckfw.h		  \
 	ckfwm.h		  \
 	ckfwtm.h	  \
+	ckmd.h		  \
 	ckt.h		  \
 	$(NULL)
 
