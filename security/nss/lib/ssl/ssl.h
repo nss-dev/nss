@@ -428,6 +428,12 @@ SSL_IMPORT SECStatus SSL_GetChannelInfo(PRFileDesc *fd, SSLChannelInfo *info,
 SSL_IMPORT SECStatus SSL_GetCipherSuiteInfo(PRUint16 cipherSuite, 
                                         SSLCipherSuiteInfo *info, PRUintn len);
 
+/*
+** Return a new reference to the certificate that was most recently sent
+** to the peer on this SSL/TLS connection, or NULL if none has been sent.
+*/
+SSL_IMPORT CERTCertificate * SSL_LocalCertificate(PRFileDesc *fd);
+
 SEC_END_PROTOS
 
 #endif /* __ssl_h_ */

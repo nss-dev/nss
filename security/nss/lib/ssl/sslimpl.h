@@ -581,6 +581,7 @@ struct sslSecurityInfoStr {
     int              cipherType;				/* ssl 2 & 3 */
     int              keyBits;					/* ssl 2 & 3 */
     int              secretKeyBits;				/* ssl 2 & 3 */
+    CERTCertificate *localCert;					/* ssl 2 & 3 */
     CERTCertificate *peerCert;					/* ssl 2 & 3 */
     SECKEYPublicKey *peerKey;					/* ssl3 only */
 

@@ -885,6 +885,10 @@ ssl_DestroySecurityInfo(sslSecurityInfo *sec)
 	PORT_ZFree(sec->writeBuf.buf, sec->writeBuf.space);
 	sec->writeBuf.buf = 0;
 
+	if (sec->localCert) {
+	    CERT_DestroyCertificate(sec->localCert);
+	    sec->localCert = NULL;
+	}
 	if (sec->peerCert) {
 	    CERT_DestroyCertificate(sec->peerCert);
 	    sec->peerCert = NULL;
