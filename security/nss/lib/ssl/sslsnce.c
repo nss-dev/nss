@@ -1529,6 +1529,10 @@ getSvrWrappingKey(PRInt32                symWrapMechIndex,
     PRUint32  now = 0;
     PRBool    rv  = PR_FALSE;
 
+    if (!cache->cacheMem) { /* cache is uninitialized */
+	PORT_SetError(SSL_ERROR_SERVER_CACHE_NOT_CONFIGURED);
+	return rv;
+    }
     if (!lockTime) {
 	lockTime = now = LockSidCacheLock(cache->keyCacheLock, now);
 	if (!lockTime) {
@@ -1587,6 +1591,11 @@ ssl_SetWrappingKey(SSLWrappedSymWrappingKey *wswk)
     PRUint32      ndx;
     PRUint32      now = 0;
     SSLWrappedSymWrappingKey myWswk;
+
+    if (!cache->cacheMem) { /* cache is uninitialized */
+	PORT_SetError(SSL_ERROR_SERVER_CACHE_NOT_CONFIGURED);
+	return 0;
+    }
 
     PORT_Assert( (unsigned)exchKeyType < kt_kea_size);
     if ((unsigned)exchKeyType >= kt_kea_size)
