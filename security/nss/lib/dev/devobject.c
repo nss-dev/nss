@@ -68,6 +68,7 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #ifdef NSS_3_4_CODE
 #include "pkim.h" /* for cert decoding */
 #include "pk11func.h" /* for PK11_HasRootCerts */
+#include "pki3hack.h" /* for STAN_ForceCERTCertificateUpdate */
 #endif
 
 /* The number of object handles to grab during each call to C_FindObjects */
@@ -559,6 +560,14 @@ retrieve_cert(NSSToken *t, nssSession *session, CK_OBJECT_HANDLE h, void *arg)
 	/* XXX Fix this! */
 	nssListIterator_Destroy(cert->object.instances);
 	cert->object.instances = nssList_CreateIterator(cert->object.instanceList);
+	/* The cert was already discovered.  If it was made into a 
+	 * CERTCertificate, we need to update it here, because we have found
+	 * another instance of it.  This new instance may cause the slot
+	 * and nickname fields of the cert to change.
+	 */
+	if (cert->decoding && inCache) {
+	    (void)STAN_ForceCERTCertificateUpdate(cert);
+	}
     }
     if (!inCache) {
 	nssrv = (*search->callback)(cert, search->cbarg);
