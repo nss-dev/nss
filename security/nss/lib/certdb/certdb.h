@@ -41,8 +41,7 @@
  */
 
 /* version number of certificate database */
-#define CERT_DB_FILE_VERSION		8
-#define CERT_DB_V7_FILE_VERSION		7
+#define CERT_DB_FILE_VERSION		7
 #ifdef USE_NS_ROOTS
 #define CERT_DB_CONTENT_VERSION		28
 #else
@@ -70,8 +69,7 @@ typedef enum {
     certDBEntryTypeRevocation = 4,
     certDBEntryTypeKeyRevocation = 5,
     certDBEntryTypeSMimeProfile = 6,
-    certDBEntryTypeContentVersion = 7,
-    certDBEntryTypeBlob = 8
+    certDBEntryTypeContentVersion = 7
 } certDBEntryType;
 
 typedef struct {
