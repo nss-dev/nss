@@ -163,7 +163,7 @@ builtins_mdObject_GetAttributeSize
   return 0;
 }
 
-static const NSSItem *
+static NSSCKFWItem
 builtins_mdObject_GetAttribute
 (
   NSSCKMDObject *mdObject,
@@ -178,17 +178,22 @@ builtins_mdObject_GetAttribute
   CK_RV *pError
 )
 {
+  NSSCKFWItem mdItem;
   builtinsInternalObject *io = (builtinsInternalObject *)mdObject->etc;
   CK_ULONG i;
 
+  mdItem.needsFreeing = PR_FALSE;
+  mdItem.item = (NSSItem*) NULL;
+
   for( i = 0; i < io->n; i++ ) {
     if( attribute == io->types[i] ) {
-      return &io->items[i];
+      mdItem.item = (NSSItem*) &io->items[i];
+      return mdItem;
     }
   }
 
   *pError = CKR_ATTRIBUTE_TYPE_INVALID;
-  return (NSSItem *)NULL;
+  return mdItem;
 }
 
 static CK_ULONG
@@ -226,6 +231,7 @@ builtins_prototype_mdObject = {
   builtins_mdObject_GetAttributeTypes,
   builtins_mdObject_GetAttributeSize,
   builtins_mdObject_GetAttribute,
+  NULL, /* FreeAttribute */
   NULL, /* SetAttribute */
   builtins_mdObject_GetObjectSize,
   (void *)NULL /* null terminator */
