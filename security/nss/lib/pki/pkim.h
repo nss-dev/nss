@@ -48,6 +48,12 @@ static const char PKIM_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 
 PR_BEGIN_EXTERN_C
 
+NSS_EXTERN NSSToken *
+STAN_GetDefaultCryptoToken
+(
+  void
+);
+
 /* Token ordering routines */
 
 /*
