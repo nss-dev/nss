@@ -9,9 +9,9 @@ MACH = $(shell mach)
 
 PUBLISH_ROOT = $(DIST)
 ifeq ($(CORE_DEPTH),../../..)
-ROOT = ROOT
+ROOT = ROOT-$(OBJDIR_NAME)
 else
-ROOT = $(subst ../../../,,$(CORE_DEPTH))/ROOT
+ROOT = $(subst ../../../,,$(CORE_DEPTH))/ROOT-$(OBJDIR_NAME)
 endif
 
 PKGARCHIVE = $(PUBLISH_ROOT)/pkgarchive
