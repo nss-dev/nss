@@ -51,16 +51,70 @@ struct NSSTrustDomainStr {
   PRInt32 refCount;
   NSSArena *arena;
   NSSCallback *callback;
-  struct {
-    nssSlotList *forCerts;
-    nssSlotList *forCiphers;
-    nssSlotList *forTrust;
-  } slots;
   nssPKIObjectTable *objectTable;
   nssTokenStore *tokenStore;
   nssPKIDatabase *pkidb;
+  PZLock *tempCertLock;
+  PRCList trustedTempCerts;
 };
 
+struct cert_list_node_str {
+  PRCList link;
+  NSSCert *cert;
+}
+
+NSS_IMPLEMENT PRStatus
+nssTrustDomain_AddTrustedTempCert (
+  NSSTrustDomain *td,
+  NSSCert *tempCert
+)
+{
+    struct cert_list_node_str *node;
+    PRCList *link = PR_NEXT_LINK(&td->trustedTempCerts);
+
+    PZ_Unlock(td->tempCertLock);
+    while (link != &td->trustedTempCerts) {
+	node = (struct cert_list_node_str *)link;
+	if (nssCert_IssuerAndSerialEqual(tempCert, node->cert)) {
+	    /* cert already in */
+	    /* XXX */
+	}
+	link = PR_NEXT_LINK(link);
+    }
+    node = nss_ZNEW(NULL, struct cert_list_node_str);
+    if (!node) {
+	PZ_Unlock(td->tempCertLock);
+	return PR_FAILURE;
+    }
+    PR_INIT_CLIST(&node->link);
+    node->cert = nssCert_AddRef(cert);
+    PR_INSERT_AFTER(&node->link, link);
+    PZ_Unlock(td->tempCertLock);
+    return PR_SUCCESS;
+}
+
+NSS_IMPLEMENT PRStatus
+nssTrustDomain_FindTrustedTempCert (
+  NSSTrustDomain *td,
+  NSSBER *ber
+)
+{
+    struct cert_list_node_str *node;
+    PRCList *link = PR_NEXT_LINK(&td->trustedTempCerts);
+
+    PZ_Unlock(td->tempCertLock);
+    while (link != &td->trustedTempCerts) {
+	node = (struct cert_list_node_str *)link;
+	/* XXX */
+	if (nssCert_IssuerAndSerialEqual(tempCert, node->cert)) {
+	    /* cert already in */
+	    /* XXX */
+	}
+	link = PR_NEXT_LINK(link);
+    }
+    PZ_Unlock(td->tempCertLock);
+    return PR_SUCCESS;
+}
 
 NSS_IMPLEMENT NSSTrustDomain *
 nssTrustDomain_Create (
@@ -80,18 +134,6 @@ nssTrustDomain_Create (
     if (!rvTD) {
 	goto loser;
     }
-    rvTD->slots.forCerts = nssSlotList_Create(arena);
-    if (!rvTD->slots.forCerts) {
-	goto loser;
-    }
-    rvTD->slots.forCiphers = nssSlotList_Create(arena);
-    if (!rvTD->slots.forCiphers) {
-	goto loser;
-    }
-    rvTD->slots.forTrust = nssSlotList_Create(arena);
-    if (!rvTD->slots.forTrust) {
-	goto loser;
-    }
     rvTD->objectTable = nssPKIObjectTable_Create(arena);
     if (!rvTD->objectTable) {
 	goto loser;
@@ -100,10 +142,18 @@ nssTrustDomain_Create (
     if (!rvTD->tokenStore) {
 	goto loser;
     }
-    rvTD->pkidb = nssPKIDatabase_Open(rvTD, dbPath, 0);
-    if (!rvTD->pkidb) {
+    if (dbPath && nssUTF8_Length(dbPath, NULL) > 0) {
+	/* hack for initialization w/o db... (NSS_NoDB_Init) */
+	rvTD->pkidb = nssPKIDatabase_Open(rvTD, dbPath, 0);
+	if (!rvTD->pkidb) {
+	    goto loser;
+	}
+    }
+    rvTD->tempCertLock = PZ_NewLock(nssILockOther);
+    if (!rvTD->tempCertLock) {
 	goto loser;
     }
+    PR_INIT_CLIST(&rvTD->trustedTempCerts);
     rvTD->arena = arena;
     rvTD->refCount = 1;
     return rvTD;
@@ -138,12 +188,11 @@ nssTrustDomain_Destroy (
 )
 {
     if (--td->refCount == 0) {
-	nssSlotList_Destroy(td->slots.forCerts);
-	nssSlotList_Destroy(td->slots.forCiphers);
-	nssSlotList_Destroy(td->slots.forTrust);
 	nssTokenStore_Destroy(td->tokenStore);
 	nssPKIObjectTable_Destroy(td->objectTable);
-	nssPKIDatabase_Close(td->pkidb);
+	if (td->pkidb) {
+	    nssPKIDatabase_Close(td->pkidb);
+	}
 	/* Destroy the trust domain */
 	nssArena_Destroy(td->arena);
     }
@@ -167,7 +216,7 @@ nssTrustDomain_GetActiveSlots (
 {
     /* XXX */
     *updateLevel = 1;
-    return nssSlotList_GetSlots(td->slots.forCerts);
+    return nssTokenStore_GetSlots(td->tokenStore);
 }
 
 /* XXX */
@@ -248,9 +297,9 @@ nssTrustDomain_AddModule (
 {
     PRStatus status;
     PRUint32 order;
+    /* XXX need to add to global module list? */
     /* XXX would be nice if order indicated whether or not to include it */
     order = nssModule_GetCertOrder(module);
-    status = nssSlotList_AddModuleSlots(td->slots.forCerts, module, order);
     {
 	/* XXX ugh */
 	NSSSlot **slots, **sp;
@@ -305,15 +354,12 @@ NSSTrustDomain_FindSlotByName (
 )
 {
     NSSSlot *slot = NULL;
-    slot = nssSlotList_FindSlotByName(td->slots.forCerts, slotName);
-    if (slot) {
-	return slot;
+    NSSToken *token;
+    token = nssTokenStore_FindTokenBySlotName(td->tokenStore, slotName);
+    if (token) {
+	slot = nssToken_GetSlot(token);
+	nssToken_Destroy(token);
     }
-    slot = nssSlotList_FindSlotByName(td->slots.forCiphers, slotName);
-    if (slot) {
-	return slot;
-    }
-    slot = nssSlotList_FindSlotByName(td->slots.forTrust, slotName);
     return slot;
 }
 
@@ -323,17 +369,7 @@ nssTrustDomain_FindTokenByName (
   NSSUTF8 *tokenName
 )
 {
-    NSSToken *token = NULL;
-    token = nssSlotList_FindTokenByName(td->slots.forCerts, tokenName);
-    if (token) {
-	return token;
-    }
-    token = nssSlotList_FindTokenByName(td->slots.forCiphers, tokenName);
-    if (token) {
-	return token;
-    }
-    token = nssSlotList_FindTokenByName(td->slots.forTrust, tokenName);
-    return token;
+    return nssTokenStore_FindTokenByName(td->tokenStore, tokenName);
 }
 
 NSS_IMPLEMENT NSSToken *
@@ -361,7 +397,7 @@ nssTrustDomain_FindTokenForAlgorithm (
   NSSOIDTag alg
 )
 {
-    return nssSlotList_GetBestTokenForAlgorithm(td->slots.forCerts, alg);
+    return nssTokenStore_GetBestTokenForAlgorithm(td->tokenStore, alg);
 }
 
 NSS_IMPLEMENT NSSToken *
@@ -390,7 +426,7 @@ nssTrustDomain_FindTokenForAlgNParam (
   const NSSAlgNParam *ap
 )
 {
-    return nssSlotList_GetBestTokenForAlgNParam(td->slots.forCerts, ap);
+    return nssTokenStore_GetBestTokenForAlgNParam(td->tokenStore, ap);
 }
 
 NSS_IMPLEMENT NSSToken *

@@ -571,6 +571,35 @@ nssTokenStore_AddToken (
   NSSToken *token
 );
 
+NSS_EXTERN NSSToken *
+nssTokenStore_GetBestTokenForAlgorithm (
+  nssTokenStore *store,
+  NSSOIDTag alg
+);
+
+NSS_EXTERN NSSToken *
+nssTokenStore_GetBestTokenForAlgNParam (
+  nssTokenStore *store,
+  const NSSAlgNParam *ap
+);
+
+NSS_EXTERN NSSToken *
+nssTokenStore_FindTokenByName (
+  nssTokenStore *store,
+  NSSUTF8 *tokenName
+);
+
+NSS_EXTERN NSSToken *
+nssTokenStore_FindTokenBySlotName (
+  nssTokenStore *store,
+  NSSUTF8 *slotName
+);
+
+NSS_EXTERN NSSSlot **
+nssTokenStore_GetSlots (
+  nssTokenStore *store
+);
+
 NSS_EXTERN PRStatus
 nssTokenStore_ImportCert (
   nssTokenStore *store,

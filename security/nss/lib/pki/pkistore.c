@@ -414,10 +414,6 @@ nssCertStore_FindCertsBySubject (
  * early from the enumeration).  The assumptions are that 1) lookups by 
  * fields other than subject will be rare, and 2) the hash will not have
  * a large number of entries.  These assumptions will be tested.
- *
- * XXX
- * For NSS 3.4, it is worth consideration to do all forms of indexing,
- * because the only crypto context is global and persistent.
  */
 
 struct nickname_template_str
@@ -713,6 +709,18 @@ struct nssTokenObjectStoreStr
 };
 typedef struct nssTokenObjectStoreStr nssTokenObjectStore;
 
+/*
+ * nssTokenStore
+ *
+ * A store of all token objects (a collection of individual token object
+ * stores).  This is the structure used by trust domains to access
+ * tokens.
+ * XXX using arrays presents a growth problem, especially if the memory
+ *     comes out of an arena and can't be returned when the array shrinks.
+ *     However, the arrays are only as large as the number of objects
+ *     that were simultaneously referenced at any given time, so it shouldn't
+ *     be that bad.
+ */
 struct nssTokenStoreStr
 {
   NSSTrustDomain *td;
@@ -1118,6 +1126,10 @@ refresh_token_object_store(nssTokenObjectStore *objectStore,
     PZ_Unlock(objectStore->lock);
 }
 
+/* Iteration is performed by copying the array and iterating the copy.
+ * Perhaps a better way?  This copy should be reasonably fast...
+ * XXX  should only get enabled tokens
+ */
 static nssTokenObjectStore **
 get_token_object_stores(nssTokenStore *store)
 {
@@ -1132,6 +1144,7 @@ get_token_object_stores(nssTokenStore *store)
     return objectStores;
 }
 
+/* find the store associated with a token */
 static nssTokenObjectStore *
 find_store_for_token(nssTokenStore *store, NSSToken *token)
 {
@@ -1224,6 +1237,7 @@ nssTokenStore_Destroy (
     nssArena_Destroy(store->arena);
 }
 
+/* Add a new token to the store when it appears. */
 NSS_IMPLEMENT PRStatus
 nssTokenStore_AddToken (
   nssTokenStore *store,
@@ -1256,6 +1270,9 @@ nssTokenStore_AddToken (
     return status;
 }
 
+/* Enable a token, if disabled.  This makes it available for searching
+ * and crypto.
+ */
 NSS_IMPLEMENT PRStatus
 nssTokenStore_EnableToken (
   nssTokenStore *store,
@@ -1276,6 +1293,11 @@ nssTokenStore_EnableToken (
     return status;
 }
 
+/* Disable a token, if enabled.  The token will no longer be included
+ * in token store searches, and will not be available for crypto.
+ * Nothing is done to the actual token, that is, there is no communication
+ * to it via cryptoki.
+ */
 NSS_IMPLEMENT PRStatus
 nssTokenStore_DisableToken (
   nssTokenStore *store,
@@ -1296,6 +1318,9 @@ nssTokenStore_DisableToken (
     return status;
 }
 
+/* Iterate over the enabled tokens and check their login status, removal
+ * status, etc.  Update the state accordingly.
+ */
 NSS_IMPLEMENT void
 nssTokenStore_Refresh (
   nssTokenStore *store
@@ -1313,6 +1338,113 @@ nssTokenStore_Refresh (
     nss_ZFreeIf(objectStores);
 }
 
+NSS_IMPLEMENT NSSToken *
+nssTokenStore_GetBestTokenForAlgorithm (
+  nssTokenStore *store,
+  NSSOIDTag alg
+)
+{
+    NSSToken *rvToken = NULL;
+    nssTokenObjectStore **objectStore;
+
+    PZ_Lock(store->lock);
+    for (objectStore = store->tokens; *objectStore; objectStore++) {
+	if (nssToken_DoesAlgorithm((*objectStore)->token, alg)) {
+	    rvToken = nssToken_AddRef((*objectStore)->token);
+	    break;
+	}
+    }
+    PZ_Unlock(store->lock);
+    return rvToken;
+}
+
+NSS_IMPLEMENT NSSToken *
+nssTokenStore_GetBestTokenForAlgNParam (
+  nssTokenStore *store,
+  const NSSAlgNParam *ap
+)
+{
+    NSSToken *rvToken = NULL;
+    nssTokenObjectStore **objectStore;
+
+    PZ_Lock(store->lock);
+    for (objectStore = store->tokens; *objectStore; objectStore++) {
+	if (nssToken_DoesAlgNParam((*objectStore)->token, ap)) {
+	    rvToken = nssToken_AddRef((*objectStore)->token);
+	    break;
+	}
+    }
+    PZ_Unlock(store->lock);
+    return rvToken;
+}
+
+NSS_IMPLEMENT NSSToken *
+nssTokenStore_FindTokenByName (
+  nssTokenStore *store,
+  NSSUTF8 *tokenName
+)
+{
+    NSSToken *rvToken = NULL;
+    nssTokenObjectStore **objectStore;
+
+    PZ_Lock(store->lock);
+    for (objectStore = store->tokens; *objectStore; objectStore++) {
+	if (nssUTF8_Equal(nssToken_GetName((*objectStore)->token),
+	                  tokenName, NULL)) 
+	{
+	    rvToken = nssToken_AddRef((*objectStore)->token);
+	    break;
+	}
+    }
+    PZ_Unlock(store->lock);
+    return rvToken;
+}
+
+NSS_IMPLEMENT NSSToken *
+nssTokenStore_FindTokenBySlotName (
+  nssTokenStore *store,
+  NSSUTF8 *slotName
+)
+{
+    NSSToken *rvToken = NULL;
+    nssTokenObjectStore **objectStore;
+
+    PZ_Lock(store->lock);
+    for (objectStore = store->tokens; *objectStore; objectStore++) {
+	if (nssUTF8_Equal(nssSlot_GetName((*objectStore)->slot),
+	                  slotName, NULL)) 
+	{
+	    rvToken = nssToken_AddRef((*objectStore)->token);
+	    break;
+	}
+    }
+    PZ_Unlock(store->lock);
+    return rvToken;
+}
+
+NSS_IMPLEMENT NSSSlot **
+nssTokenStore_GetSlots (
+  nssTokenStore *store
+)
+{
+    nssTokenObjectStore **objectStore;
+    NSSSlot **rvSlots = NULL;
+    PRUint32 i = 0;
+
+    PZ_Lock(store->lock);
+    rvSlots = nss_ZNEWARRAY(NULL, NSSSlot *, store->numTokens + 1);
+    if (rvSlots) {
+	for (objectStore = store->tokens; *objectStore; objectStore++) {
+	    rvSlots[i++] = nssSlot_AddRef((*objectStore)->slot);
+	}
+    }
+    PZ_Unlock(store->lock);
+    return rvSlots;
+}
+
+/* Import a cert into the token store, stuffing it into the destination
+ * token along the way.
+ */
 NSS_IMPLEMENT PRStatus
 nssTokenStore_ImportCert (
   nssTokenStore *store,
@@ -1359,6 +1491,9 @@ nssTokenStore_ImportCert (
     }
 }
 
+/* Remove a cert from the token store.  Does not delete it from the token.
+ * XXX probably should, instead of doing it elsewhere
+ */
 NSS_IMPLEMENT void
 nssTokenStore_RemoveCert (
   nssTokenStore *store,
