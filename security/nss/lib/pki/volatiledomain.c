@@ -1333,8 +1333,12 @@ nssCertChain_Destroy (
   NSSCertChain *chain
 )
 {
-    nssCertArray_Destroy(chain->certs);
-    return nssArena_Destroy(chain->arena);
+    if (chain) {
+	nssCertArray_Destroy(chain->certs);
+	return nssArena_Destroy(chain->arena);
+    } else {
+	return PR_SUCCESS;
+    }
 }
 
 NSS_IMPLEMENT PRStatus

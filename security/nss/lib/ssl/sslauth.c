@@ -249,6 +249,7 @@ SSL_AuthCertificate(void *arg, PRFileDesc *fd, PRBool checkSig, PRBool isServer)
 
     /* this may seem backwards, but isn't. */
     usage.peer = isServer ? NSSUsage_SSLClient : NSSUsage_SSLServer;
+    usage.ca = 0;
 
     /* XXX checkSig? */
     status = NSSCert_Validate(ss->sec.peerCert, NSSTime_Now(), &usage, NULL);

@@ -433,7 +433,7 @@ struct nssdbg_prof_str nssdbg_prof_data[] = {
 #define FUNC_C_WRAPKEY 60
     NSSDBG_DEFINE(C_WrapKey),
 #define FUNC_C_UNWRAPKEY 61
-    NSSDBG_DEFINE(C_UnWrapKey),
+    NSSDBG_DEFINE(C_UnwrapKey),
 #define FUNC_C_DERIVEKEY 62 
     NSSDBG_DEFINE(C_DeriveKey),
 #define FUNC_C_SEEDRANDOM 63
@@ -1461,6 +1461,7 @@ CK_RV NSSDBGC_SignUpdate(
     PR_LOG(modlog, 3, ("  hSession = 0x%x", hSession));
     PR_LOG(modlog, 3, ("  pPart = 0x%p", pPart));
     PR_LOG(modlog, 3, ("  ulPartLen = %d", ulPartLen));
+    print_hex_data(pPart, ulPartLen);
     nssdbg_start_time(FUNC_C_SIGNUPDATE,&start);
     rv = module_functions->C_SignUpdate(hSession,
                                  pPart,

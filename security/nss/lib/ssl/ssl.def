@@ -49,7 +49,7 @@ LIBRARY ssl4 ;-
 EXPORTS ;-
 SSL_ImplementedCiphers DATA ;
 SSL_NumImplementedCiphers DATA ;
-;+#NSS_GetClientAuthData;
+SSL_GetClientAuthData;
 NSS_SetDomesticPolicy;
 NSS_SetExportPolicy;
 NSS_SetFrancePolicy;

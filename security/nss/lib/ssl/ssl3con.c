@@ -6771,9 +6771,9 @@ ssl3_HandleCertificate(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	/* cert is good */
     }
 
-#ifdef IMPLEMENT_SSL_STEP_UP
     /* start SSL Step Up, if appropriate */
     cert = ss->sec.peerCert;
+#ifdef IMPLEMENT_SSL_STEP_UP
     if (!isServer &&
     	ssl3_global_policy_some_restricted &&
         ssl3->policy == SSL_ALLOWED &&

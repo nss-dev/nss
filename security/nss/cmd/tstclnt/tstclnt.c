@@ -37,8 +37,6 @@
 **
 */
 
-#include "secutil.h"
-
 #if defined(XP_UNIX)
 #include <unistd.h>
 #else
@@ -55,17 +53,24 @@
 #include "nspr.h"
 #include "prio.h"
 #include "prnetdb.h"
+#include "plgetopt.h"
+
 #include "nss.h"
+#include "nsspki.h"
+#include "nsspkix.h"
+
 #include "ssl.h"
 #include "sslproto.h"
-#include "pk11func.h"
-#include "plgetopt.h"
+
+#include "cmdutil.h"
 
 #define PRINTF  if (verbose)  printf
 #define FPRINTF if (verbose) fprintf
 
 #define MAX_WAIT_FOR_SERVER 600
 #define WAIT_INTERVAL       100
+
+char *password = NULL;
 
 int ssl2CipherSuites[] = {
     SSL_EN_RC4_128_WITH_MD5,			/* A */
@@ -112,28 +117,23 @@ PRBool verbose;
 
 static char *progName;
 
-/* This exists only for the automated test suite. It allows us to
- * pass in a password on the command line. 
+/* XXX here to allow testing of other parts of SSL... cannot verify
+ * hostname until Stan can decode Names into strings
  */
-
-char *password = NULL;
-
-char * ownPasswd( PK11SlotInfo *slot, PRBool retry, void *arg)
+SECStatus 
+myAuthCertificate(void *arg, PRFileDesc *socket, 
+                  PRBool checksig, PRBool isServer) 
 {
-	char *passwd = NULL;
-	if ( (!retry) && arg ) {
-		passwd = PL_strdup((char *)arg);
-	}
-	return passwd;
+    /* XXX yipes! */ return SECSuccess;
 }
 
 void printSecurityInfo(PRFileDesc *fd)
 {
-    CERTCertificate * cert;
+    NSSCert * cert;
     SSL3Statistics * ssl3stats = SSL_GetStatistics();
-    SECStatus result;
     SSLChannelInfo    channel;
     SSLCipherSuiteInfo suite;
+    SECStatus result;
 
     result = SSL_GetChannelInfo(fd, &channel, sizeof channel);
     if (result == SECSuccess && 
@@ -155,17 +155,19 @@ void printSecurityInfo(PRFileDesc *fd)
     }
     cert = SSL_RevealCert(fd);
     if (cert) {
-	char * ip = CERT_NameToAscii(&cert->issuer);
-	char * sp = CERT_NameToAscii(&cert->subject);
+	NSSUTF8 * ip;
+	NSSUTF8 * sp;
+	(void)NSSCert_GetIssuerNames(cert, &ip, 1, NULL);
+	(void)NSSCert_GetNames(cert, &sp, 1, NULL);
         if (sp) {
-	    fprintf(stderr, "subject DN: %s\n", sp);
-	    PR_Free(sp);
+	    FPRINTF(stderr, "selfserv: subject DN: %s\n", sp);
+	    NSSUTF8_Destroy(sp);
 	}
         if (ip) {
-	    fprintf(stderr, "issuer  DN: %s\n", ip);
-	    PR_Free(ip);
+	    FPRINTF(stderr, "selfserv: issuer  DN: %s\n", ip);
+	    NSSUTF8_Destroy(ip);
 	}
-	CERT_DestroyCertificate(cert);
+	NSSCert_Destroy(cert);
 	cert = NULL;
     }
     fprintf(stderr,
@@ -256,9 +258,8 @@ disableAllSSLCiphers(void)
 	PRUint16 suite = cipherSuites[i];
         rv = SSL_CipherPrefSetDefault(suite, PR_FALSE);
 	if (rv != SECSuccess) {
-	    PRErrorCode err = PR_GetError();
-	    printf("SSL_CipherPrefSet didn't like value 0x%04x (i = %d): %s\n",
-	    	   suite, i, SECU_Strerror(err));
+	    CMD_PrintError(
+	      "SSL_CipherPrefSet didn't like value 0x%04x (i = %d)", suite, i);
 	    exit(2);
 	}
     }
@@ -273,7 +274,7 @@ ownBadCertHandler(void * arg, PRFileDesc * socket)
 {
     PRErrorCode err = PR_GetError();
     /* can log invalid cert here */
-    printf("Bad server certificate: %d, %s\n", err, SECU_Strerror(err));
+    CMD_PrintError("Bad server certificate");
     return SECSuccess;	/* override, say it's OK. */
 }
 
@@ -281,7 +282,6 @@ int main(int argc, char **argv)
 {
     PRFileDesc *       s;
     PRFileDesc *       std_out;
-    CERTCertDBHandle * handle;
     char *             host	=  NULL;
     char *             port	=  "443";
     char *             certDir  =  NULL;
@@ -310,6 +310,8 @@ int main(int argc, char **argv)
     PLOptState *optstate;
     PLOptStatus optstatus;
     PRStatus prStatus;
+    NSSCallback *pwcb;
+    NSSTrustDomain *td = NULL;
 
     progName = strrchr(argv[0], '/');
     if (!progName)
@@ -339,7 +341,6 @@ int main(int argc, char **argv)
 
 	  case 'd':
 	    certDir = strdup(optstate->value);
-	    certDir = SECU_ConfigDirectory(certDir);
 	    break;
 
 	  case 'm':
@@ -359,7 +360,7 @@ int main(int argc, char **argv)
 	  case 'v': verbose++;	 			break;
 
 	  case 'w':
-		password = PORT_Strdup(optstate->value);
+		password = strdup(optstate->value);
 		useCommandLinePassword = PR_TRUE;
 		break;
 
@@ -372,31 +373,34 @@ int main(int argc, char **argv)
     if (!host || !port) Usage(progName);
 
     if (!certDir) {
-	certDir = SECU_DefaultSSLDir();	/* Look in $SSL_DIR */
-	certDir = SECU_ConfigDirectory(certDir); /* call even if it's NULL */
+	certDir = CMD_DefaultSSLDir();	/* Look in $SSL_DIR */
     }
 
     PR_Init( PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
 
-    /* set our password function */
-	if ( useCommandLinePassword ) {
-		PK11_SetPasswordFunc(ownPasswd);
-	} else {
-    	PK11_SetPasswordFunc(SECU_GetModulePassword);
-	}
-
-    /* open the cert DB, the key DB, and the secmod DB. */
-    rv = NSS_Init(certDir);
-    if (rv != SECSuccess) {
-	SECU_PrintError(progName, "unable to open cert database");
-#if 0
-    rv = CERT_OpenVolatileCertDB(handle);
-	CERT_SetDefaultCertDB(handle);
-#else
+    /* initialize NSS */
+    status = NSS_Init(certDir);
+    if (status == PR_FAILURE) {
+	CMD_PrintError("Failed to initialize NSS");
 	return 1;
-#endif
     }
-    handle = CERT_GetDefaultCertDB();
+
+    /* XXX */
+    status = NSS_EnablePKIXCertificates();
+    if (status == PR_FAILURE) {
+	CMD_PrintError("Failed to load PKIX module");
+	/* goto shutdown; */
+	exit(4);
+    }
+    td = NSS_GetDefaultTrustDomain();
+    pwcb = CMD_GetDefaultPasswordCallback(NULL, NULL);
+    if (!pwcb) {
+	exit(4);
+    }
+    status = NSSTrustDomain_SetDefaultCallback(td, pwcb, NULL);
+    if (status != PR_SUCCESS) {
+	exit(4);
+    }
 
     /* set the policy bits true for all the cipher suites. */
     if (useExportPolicy)
@@ -413,11 +417,11 @@ int main(int argc, char **argv)
     /* Lookup host */
     status = PR_GetHostByName(host, buf, sizeof(buf), &hp);
     if (status != PR_SUCCESS) {
-	SECU_PrintError(progName, "error looking up host");
+	CMD_PrintError("error looking up host");
 	return 1;
     }
     if (PR_EnumerateHostEnt(0, &hp, atoi(port), &addr) == -1) {
-	SECU_PrintError(progName, "error looking up host address");
+	CMD_PrintError("error looking up host address");
 	return 1;
     }
 
@@ -435,15 +439,14 @@ int main(int argc, char **argv)
 	do {
 	    s = PR_NewTCPSocket();
 	    if (s == NULL) {
-		SECU_PrintError(progName, "Failed to create a TCP socket");
+		CMD_PrintError("Failed to create a TCP socket");
 	    }
 	    opt.option             = PR_SockOpt_Nonblocking;
 	    opt.value.non_blocking = PR_FALSE;
 	    prStatus = PR_SetSocketOption(s, &opt);
 	    if (prStatus != PR_SUCCESS) {
 		PR_Close(s);
-		SECU_PrintError(progName, 
-		                "Failed to set blocking socket option");
+		CMD_PrintError("Failed to set blocking socket option");
 		return 1;
 	    }
 	    prStatus = PR_Connect(s, &addr, PR_INTERVAL_NO_TIMEOUT);
@@ -457,13 +460,13 @@ int main(int argc, char **argv)
 	    err = PR_GetError();
 	    if ((err != PR_CONNECT_REFUSED_ERROR) && 
 	        (err != PR_CONNECT_RESET_ERROR)) {
-		SECU_PrintError(progName, "TCP Connection failed");
+		CMD_PrintError("TCP Connection failed");
 		return 1;
 	    }
 	    PR_Close(s);
 	    PR_Sleep(PR_MillisecondsToInterval(WAIT_INTERVAL));
 	} while (++iter < MAX_WAIT_FOR_SERVER);
-	SECU_PrintError(progName, 
+	CMD_PrintError(
                      "Client timed out while waiting for connection to server");
 	return 1;
     }
@@ -471,7 +474,7 @@ int main(int argc, char **argv)
     /* Create socket */
     s = PR_NewTCPSocket();
     if (s == NULL) {
-	SECU_PrintError(progName, "error creating socket");
+	CMD_PrintError("error creating socket");
 	return 1;
     }
 
@@ -480,21 +483,21 @@ int main(int argc, char **argv)
     PR_SetSocketOption(s, &opt);
     /*PR_SetSocketOption(PR_GetSpecialFD(PR_StandardInput), &opt);*/
 
-    s = SSL_ImportFD(NULL, s);
+    s = SSL_ImportFD(NULL, td, s);
     if (s == NULL) {
-	SECU_PrintError(progName, "error importing socket");
+	CMD_PrintError("error importing socket");
 	return 1;
     }
 
     rv = SSL_OptionSet(s, SSL_SECURITY, 1);
     if (rv != SECSuccess) {
-        SECU_PrintError(progName, "error enabling socket");
+        CMD_PrintError("error enabling socket");
 	return 1;
     }
 
     rv = SSL_OptionSet(s, SSL_HANDSHAKE_AS_CLIENT, 1);
     if (rv != SECSuccess) {
-	SECU_PrintError(progName, "error enabling client handshake");
+	CMD_PrintError("error enabling client handshake");
 	return 1;
     }
 
@@ -515,33 +518,33 @@ int main(int argc, char **argv)
 		SECStatus status;
 		status = SSL_CipherPrefSet(s, cipher, SSL_ALLOWED);
 		if (status != SECSuccess) 
-		    SECU_PrintError(progName, "SSL_CipherPrefSet()");
+		    CMD_PrintError("SSL_CipherPrefSet()");
 	    }
 	}
     }
 
     rv = SSL_OptionSet(s, SSL_ENABLE_SSL2, !disableSSL2);
     if (rv != SECSuccess) {
-	SECU_PrintError(progName, "error enabling SSLv2 ");
+	CMD_PrintError("error enabling SSLv2 ");
 	return 1;
     }
 
     rv = SSL_OptionSet(s, SSL_ENABLE_SSL3, !disableSSL3);
     if (rv != SECSuccess) {
-	SECU_PrintError(progName, "error enabling SSLv3 ");
+	CMD_PrintError("error enabling SSLv3 ");
 	return 1;
     }
 
     rv = SSL_OptionSet(s, SSL_ENABLE_TLS, !disableTLS);
     if (rv != SECSuccess) {
-	SECU_PrintError(progName, "error enabling TLS ");
+	CMD_PrintError("error enabling TLS ");
 	return 1;
     }
 
     /* disable ssl2 and ssl2-compatible client hellos. */
     rv = SSL_OptionSet(s, SSL_V2_COMPATIBLE_HELLO, !disableSSL2);
     if (rv != SECSuccess) {
-	SECU_PrintError(progName, "error disabling v2 compatibility");
+	CMD_PrintError("error disabling v2 compatibility");
 	return 1;
     }
 
@@ -549,11 +552,11 @@ int main(int argc, char **argv)
 	SSL_SetPKCS11PinArg(s, password);
     }
 
-    SSL_AuthCertificateHook(s, SSL_AuthCertificate, (void *)handle);
+    SSL_AuthCertificateHook(s, myAuthCertificate, NULL);
     if (override) {
 	SSL_BadCertHook(s, ownBadCertHandler, NULL);
     }
-    SSL_GetClientAuthDataHook(s, NSS_GetClientAuthData, (void *)nickname);
+    SSL_GetClientAuthDataHook(s, SSL_GetClientAuthData, (void *)nickname);
     SSL_HandshakeCallback(s, handshakeCallback, NULL);
     SSL_SetURL(s, host);
 
@@ -562,7 +565,7 @@ int main(int argc, char **argv)
     if (status != PR_SUCCESS) {
 	if (PR_GetError() == PR_IN_PROGRESS_ERROR) {
 	    if (verbose)
-		SECU_PrintError(progName, "connect");
+		CMD_PrintError("connect");
 	    milliPause(50 * multiplier);
 	    pollset[0].in_flags = PR_POLL_WRITE | PR_POLL_EXCEPT;
 	    pollset[0].out_flags = 0;
@@ -571,7 +574,7 @@ int main(int argc, char **argv)
 		PRINTF("%s: about to call PR_Poll for connect completion!\n", progName);
 		filesReady = PR_Poll(pollset, 1, PR_INTERVAL_NO_TIMEOUT);
 		if (filesReady < 0) {
-		    SECU_PrintError(progName, "unable to connect (poll)");
+		    CMD_PrintError("unable to connect (poll)");
 		    return 1;
 		}
 		PRINTF("%s: PR_Poll returned 0x%02x for socket out_flags.\n",
@@ -590,14 +593,14 @@ int main(int argc, char **argv)
 		    break;
 		}
 		if (PR_GetError() != PR_IN_PROGRESS_ERROR) {
-		    SECU_PrintError(progName, "unable to connect (poll)");
+		    CMD_PrintError("unable to connect (poll)");
 		    return 1;
 		}
-		SECU_PrintError(progName, "poll");
+		CMD_PrintError("poll");
 		milliPause(50 * multiplier);
 	    }
 	} else {
-	    SECU_PrintError(progName, "unable to connect");
+	    CMD_PrintError("unable to connect");
 	    return 1;
 	}
     }
@@ -638,7 +641,7 @@ int main(int argc, char **argv)
 		filesReady = PR_Poll(pollset, npds, PR_INTERVAL_NO_TIMEOUT);
 	}
 	if (filesReady < 0) {
-	   SECU_PrintError(progName, "select failed");
+	   CMD_PrintError("select failed");
 	   error=1;
 	   goto done;
 	}
@@ -659,7 +662,7 @@ int main(int argc, char **argv)
 	    PRINTF("%s: stdin read %d bytes\n", progName, nb);
 	    if (nb < 0) {
 		if (PR_GetError() != PR_WOULD_BLOCK_ERROR) {
-		    SECU_PrintError(progName, "read from stdin failed");
+		    CMD_PrintError("read from stdin failed");
 	            error=1;
 		    break;
 		}
@@ -673,8 +676,7 @@ int main(int argc, char **argv)
 		    if (cc < 0) {
 		    	PRErrorCode err = PR_GetError();
 			if (err != PR_WOULD_BLOCK_ERROR) {
-			    SECU_PrintError(progName, 
-			                    "write to SSL socket failed");
+			    CMD_PrintError("write to SSL socket failed");
 			    error=254;
 			    goto done;
 			}
@@ -709,7 +711,7 @@ int main(int argc, char **argv)
 	    PRINTF("%s: Read from server %d bytes\n", progName, nb);
 	    if (nb < 0) {
 		if (PR_GetError() != PR_WOULD_BLOCK_ERROR) {
-		    SECU_PrintError(progName, "read from socket failed");
+		    CMD_PrintError("read from socket failed");
 		    error=1;
 		    goto done;
 	    	}

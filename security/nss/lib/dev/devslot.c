@@ -938,6 +938,7 @@ nssSession_Save (
     CK_RV ckrv;
     CK_ULONG stateLen;
     void *epv = nssSlot_GetCryptokiEPV(s->slot);
+    nssSession_EnterMonitor(s);
     ckrv = CKAPI(epv)->C_GetOperationState(s->handle, NULL, &stateLen);
     if (ckrv == CKR_OK && stateLen > 0) {
 	state->data = nss_ZAlloc(arenaOpt, stateLen);
@@ -954,6 +955,7 @@ nssSession_Save (
 	    state->size = 0;
 	}
     }
+    nssSession_ExitMonitor(s);
     return (ckrv == CKR_OK) ? PR_SUCCESS : PR_FAILURE;
 }
 
@@ -965,6 +967,7 @@ nssSession_Restore (
 {
     CK_RV ckrv;
     void *epv = nssSlot_GetCryptokiEPV(s->slot);
+    nssSession_EnterMonitor(s);
     if (state->size > 0) {
 	ckrv = CKAPI(epv)->C_SetOperationState(s->handle, 
 	                                       (CK_BYTE_PTR)state->data,
@@ -977,6 +980,7 @@ nssSession_Restore (
 	    state->size = 0;
 	}
     }
+    nssSession_ExitMonitor(s);
     return (ckrv == CKR_OK) ? PR_SUCCESS : PR_FAILURE;
 }
 

@@ -225,6 +225,13 @@ typedef SECStatus (PR_CALLBACK *SSLGetClientAuthData)(void *arg,
                                 NSSCert **pRetCert,/*return */
                                 NSSPrivateKey **pRetKey);/* return */
 
+SSL_IMPORT PRStatus SSL_GetClientAuthData(void *           arg, 
+                                          PRFileDesc *     socket, 
+                                          NSSTrustDomain * td,
+                                          NSSDER **        caNames,
+                                          NSSCert **       pRetCert,
+                                          NSSPrivateKey ** pRetKey);
+
 /*
  * Set the client side callback for SSL to retrieve user's private key
  * and certificate.

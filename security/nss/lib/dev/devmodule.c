@@ -266,11 +266,9 @@ nssModule_Load (
 #ifdef DEBUG_MODULE
     if (PR_TRUE) {
 	modToDBG = PR_GetEnv("NSS_DEBUG_PKCS11_MODULE");
-	    fprintf(stderr, "try loaded %s %s\n", mod->base.name, modToDBG);
 	if (modToDBG && strcmp(mod->base.name, modToDBG) == 0) {
 	    mod->epv = (void *)nss_InsertDeviceLog(
 	                                     (CK_FUNCTION_LIST_PTR)mod->epv);
-	    fprintf(stderr, "loaded %s\n", modToDBG);
 	}
     }
 #endif /* DEBUG_MODULE */

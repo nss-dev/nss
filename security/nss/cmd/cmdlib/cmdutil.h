@@ -225,4 +225,6 @@ CMD_PrintError(char *message, ...);
 PRStatus
 CMD_SetRSAPE(NSSItem *peIt, PRUint32 pe);
 
+char * CMD_DefaultSSLDir(void);
+
 #endif /* _CMDUTIL_H_ */

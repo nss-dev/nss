@@ -442,3 +442,22 @@ CMD_SetRSAPE(NSSItem *peIt, PRUint32 pe)
     return PR_SUCCESS;
 }
 
+/* XXX move this */
+char *
+CMD_DefaultSSLDir(void)
+{
+    char *dir;
+    static char sslDir[1000];
+
+    dir = PR_GetEnv("SSL_DIR");
+    if (!dir)
+	return NULL;
+
+    sprintf(sslDir, "%s", dir);
+
+    if (sslDir[strlen(sslDir)-1] == '/')
+	sslDir[strlen(sslDir)-1] = 0;
+
+    return sslDir;
+}
+

@@ -645,8 +645,7 @@ import_certificate
     /* get the encoded cert from the input source */
     encoding = CMD_GetInput(rtData);
     /* import into trust domain */
-    cert = NSSTrustDomain_ImportEncodedCert(td, encoding,
-                                                   token, nickname);
+    cert = NSSTrustDomain_ImportEncodedCert(td, encoding, nickname, token);
     if (cert) {
 	PR_fprintf(PR_STDOUT, "Import successful.\n");
 	dump_cert_info(td, cert, rtData);
@@ -865,6 +864,12 @@ vkeys = NULL;
     if (vkeys) {
 	vkey = private_key_chooser(vkeys);
     } else {
+	/* XXX I shouldn't have to do this, but softoken can't find public
+	 *     keys w/o the private key, which needs login... no other way
+	 *     to identify user certs
+	 */
+	status = NSSTrustDomain_Login(td, NULL);
+	if (status == PR_FAILURE) return PR_FAILURE;
 	ucerts = NSSTrustDomain_FindUserCerts(td, NULL, 0, NULL);
 	if (ucerts) {
 	    ucert = cert_chooser(ucerts);

@@ -174,110 +174,167 @@ cd ${HOSTDIR}
 cp ${QADIR}/stan/*.b64 .
 cp ${QADIR}/stan/*.txt .
 
+CERTDIR="certs"
 SERVERDIR="server"
-PKIU_IMPORT="-I -d ${SERVERDIR} -a"
+CLIENTDIR="client"
 
-mkdir -p ${SERVERDIR}
+mkdir -p ${CERTDIR}
 
 PKIU_ACTION="Creating DBs"
-pkiu -N -d ${SERVERDIR}
+pkiu -N -d ${CERTDIR}
 if [ "$RET" -ne 0 ]; then
   Exit 6 "Fatal - failed ${PKIU_ACTION} [$RET]"
 fi
 
 PKIU_ACTION="Set password"
-pkiu --change-password -d ${SERVERDIR} -p nss
+pkiu --change-password -d ${CERTDIR} -p nss
 if [ "$RET" -ne 0 ]; then
   Exit 6 "Fatal - failed ${PKIU_ACTION} [$RET]"
 fi
 
 PKIU_ACTION="Import Root"
-pkiu ${PKIU_IMPORT} -n stanRoot -i stanRoot.b64 
+pkiu -I -d ${CERTDIR} -a -n stanRoot -i stanRoot.b64 
 if [ "$RET" -ne 0 ]; then
   Exit 6 "Fatal - failed ${PKIU_ACTION} [$RET]"
 fi
 
 PKIU_ACTION="Import Intermediate"
-pkiu ${PKIU_IMPORT} -n stanCA1 -i stanCA1.b64
+pkiu -I -d ${CERTDIR} -a -n stanCA1 -i stanCA1.b64
 if [ "$RET" -ne 0 ]; then
   Exit 6 "Fatal - failed ${PKIU_ACTION} [$RET]"
 fi
 
-PKIU_ACTION="Import Server Cert"
-pkiu ${PKIU_IMPORT} -n stanCert -i stanCert.b64
+PKIU_ACTION="Import Leaf Cert"
+pkiu -I -d ${CERTDIR} -a -n stanCert -i stanCert.b64
 if [ "$RET" -ne 0 ]; then
   Exit 6 "Fatal - failed ${PKIU_ACTION} [$RET]"
 fi
 
-PKIU_ACTION="Import Server Private Key"
-pkiu ${PKIU_IMPORT} -n stanCert -i stanCert_key.b64 --type private-key -p nss -w asdf
+PKIU_ACTION="Import Private Key"
+pkiu -I -d ${CERTDIR} -a -n stanCert -i stanCert_key.b64 --type private-key -p nss -w asdf
 if [ "$RET" -ne 0 ]; then
   Exit 6 "Fatal - failed ${PKIU_ACTION} [$RET]"
 fi
 
 PKIU_ACTION="List Certs"
-pkiu -L -d ${SERVERDIR}
+pkiu -L -d ${CERTDIR}
 
 PKIU_ACTION="List Keys"
-pkiu -L -d ${SERVERDIR} --type private-key -p nss
+pkiu -L -d ${CERTDIR} --type private-key -p nss
 
 PKIU_ACTION="Attempt Validation of Server Cert (FAIL)"
 FAILURE_CODE=255
-pkiuf -V -d ${SERVERDIR} -n stanCert -u cv
+pkiuf -V -d ${CERTDIR} -n stanCert -u cv
 
 PKIU_ACTION="Set Root Cert Trust"
-pkiu -M -d ${SERVERDIR} -n stanRoot -u CV
+pkiu -M -d ${CERTDIR} -n stanRoot -u CV
 if [ "$RET" -ne 0 ]; then
   Exit 6 "Fatal - failed ${PKIU_ACTION} [$RET]"
 fi
 
-PKIU_ACTION="Validate Server Cert"
-pkiu -V -d ${SERVERDIR} -n stanCert -u cv
+PKIU_ACTION="Validate Leaf Cert"
+pkiu -V -d ${CERTDIR} -n stanCert -u cv
 
 PKIU_ACTION="Validate Intermediate CA Cert"
-pkiu -V -d ${SERVERDIR} -n stanCA1 -u CV
+pkiu -V -d ${CERTDIR} -n stanCA1 -u CV
 
-PKIU_ACTION="Export Copy of Server Cert"
-pkiu -E -d ${SERVERDIR} -n stanCert --type cert -a -o stanCertCopy.b64
+PKIU_ACTION="Export Copy of Leaf Cert"
+pkiu -E -d ${CERTDIR} -n stanCert --type cert -a -o stanCertCopy.b64
 
-PKIU_ACTION="Export Copy of Server Private Key"
-pkiu -E -d ${SERVERDIR} -n stanCert --type private-key -a -o stanKeyCopy.b64 -w asdf
+PKIU_ACTION="Export Copy of Private Key"
+pkiu -E -d ${CERTDIR} -n stanCert --type private-key -a -o stanKeyCopy.b64 -w asdf -p nss
 
 PKIU_ACTION="Import Expired Cert"
-pkiu ${PKIU_IMPORT} -n stanExpired -i stanExpired.b64
+pkiu -I -d ${CERTDIR} -a -n stanExpired -i stanExpired.b64
 if [ "$RET" -ne 0 ]; then
   Exit 6 "Fatal - failed ${PKIU_ACTION} [$RET]"
 fi
 
 PKIU_ACTION="Attempt Validation of Expired Cert (FAIL)"
 FAILURE_CODE=255
-pkiuf -V -d ${SERVERDIR} -n stanExpired -u cv
+pkiuf -V -d ${CERTDIR} -n stanExpired -u cv
 
 PKIU_ACTION="Delete Expired Cert"
-pkiu -D -d ${SERVERDIR} -n stanExpired 
+pkiu -D -d ${CERTDIR} -n stanExpired 
 
 PKIU_ACTION="List Certs"
-pkiu -L -d ${SERVERDIR}
+pkiu -L -d ${CERTDIR}
 
-PKIU_ACTION="List Server Cert Chain"
-pkiu --list-chain -d ${SERVERDIR} -n stanCert
+PKIU_ACTION="List Cert Chain"
+pkiu --list-chain -d ${CERTDIR} -n stanCert
 
 NSSU_ACTION="List Modules"
-nssu --list-modules -d ${SERVERDIR}
+nssu --list-modules -d ${CERTDIR}
 
 NSSU_ACTION="Show Internal Module"
 DEVNAME="NSS Internal PKCS #11 Module"
-nssu --dump-module -d ${SERVERDIR} 
+nssu --dump-module -d ${CERTDIR} 
 
 NSSU_ACTION="Show Internal DB Slot"
 DEVNAME="NSS User Private Key and Certificate Services"
-nssu --dump-slot -d ${SERVERDIR} 
+nssu --dump-slot -d ${CERTDIR} 
 
 NSSU_ACTION="Show Internal DB Token"
 DEVNAME="NSS Certificate DB"
-nssu --dump-token -d ${SERVERDIR} 
+nssu --dump-token -d ${CERTDIR} 
 
 CIPHER_ACTION="Run Symmetric Key Self-Tests"
 ciph -T
+
+mkdir -p ${SERVERDIR}
+PKIU_ACTION="Creating DBs for server"
+pkiu -N -d ${SERVERDIR}
+if [ "$RET" -ne 0 ]; then
+  Exit 6 "Fatal - failed ${PKIU_ACTION} [$RET]"
+fi
+
+PKIU_ACTION="Set password for server"
+pkiu --change-password -d ${SERVERDIR} -p nss
+if [ "$RET" -ne 0 ]; then
+  Exit 6 "Fatal - failed ${PKIU_ACTION} [$RET]"
+fi
+
+PKIU_ACTION="Import Root For Server"
+pkiu -I -d ${SERVERDIR} -a -n serverRoot -i serverRoot.b64 
+if [ "$RET" -ne 0 ]; then
+  Exit 6 "Fatal - failed ${PKIU_ACTION} [$RET]"
+fi
+
+PKIU_ACTION="Import Server Cert"
+pkiu -I -d ${SERVERDIR} -a -n localhost -i localhost.b64
+if [ "$RET" -ne 0 ]; then
+  Exit 6 "Fatal - failed ${PKIU_ACTION} [$RET]"
+fi
+
+PKIU_ACTION="Import Server Private Key"
+pkiu -I -d ${SERVERDIR} -a -n localhost -i localhost_key.b64 --type private-key -p nss -w asdf
+if [ "$RET" -ne 0 ]; then
+  Exit 6 "Fatal - failed ${PKIU_ACTION} [$RET]"
+fi
+
+mkdir -p ${CLIENTDIR}
+PKIU_ACTION="Creating DBs for client"
+pkiu -N -d ${CLIENTDIR}
+if [ "$RET" -ne 0 ]; then
+  Exit 6 "Fatal - failed ${PKIU_ACTION} [$RET]"
+fi
+
+PKIU_ACTION="Set password for client"
+pkiu --change-password -d ${CLIENTDIR} -p nss
+if [ "$RET" -ne 0 ]; then
+  Exit 6 "Fatal - failed ${PKIU_ACTION} [$RET]"
+fi
+
+PKIU_ACTION="Import Server CA for client"
+pkiu -I -d ${CLIENTDIR} -a -n serverRoot -i serverRoot.b64 
+if [ "$RET" -ne 0 ]; then
+  Exit 6 "Fatal - failed ${PKIU_ACTION} [$RET]"
+fi
+
+PKIU_ACTION="Set Root Cert Trust for client"
+pkiu -M -d ${CLIENTDIR} -n serverRoot -u CV
+if [ "$RET" -ne 0 ]; then
+  Exit 6 "Fatal - failed ${PKIU_ACTION} [$RET]"
+fi
 
 cert_cleanup
