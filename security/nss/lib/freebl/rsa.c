@@ -315,7 +315,7 @@ RSA_PublicKeyOp(RSAPublicKey  *key,
                 unsigned char *output, 
                 const unsigned char *input)
 {
-    unsigned int modLen, expLen;
+    unsigned int modLen, expLen, offset;
     mp_int n, e, m, c;
     mp_err err   = MP_OKAY;
     SECStatus rv = SECSuccess;
@@ -348,7 +348,14 @@ RSA_PublicKeyOp(RSAPublicKey  *key,
 	rv = SECFailure;
 	goto cleanup;
     }
-    /* 2.  Represent message as integer in range [0..n-1] */
+    /* 2. check input out of range (needs to be in range [0..n-1]) */
+    offset = (key->modulus.data[0] == 0) ? 1 : 0; /* may be leading 0 */
+    if (memcmp(input, key->modulus.data + offset, modLen) >= 0) {
+        PORT_SetError(SEC_ERROR_INPUT_LEN);
+        rv = SECFailure;
+        goto cleanup;
+    }
+    /* 2 bis.  Represent message as integer in range [0..n-1] */
     CHECK_MPI_OK( mp_read_unsigned_octets(&m, input, modLen) );
     /* 3.  Compute c = m**e mod n */
 #ifdef USE_MPI_EXPT_D
