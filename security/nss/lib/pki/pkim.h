@@ -195,20 +195,28 @@ nssTrustDomain_GetCertForIssuerAndSNFromCache
  * Look for a specific cert in the cache.
  */
 NSS_EXTERN NSSCertificate *
-nssTrustDomain_GetCertForIdentifierFromCache
-(
-  NSSTrustDomain *td,
-  NSSItem *id
-);
-
-/*
- * Look for a specific cert in the cache.
- */
-NSS_EXTERN NSSCertificate *
 nssTrustDomain_GetCertByDERFromCache
 (
   NSSTrustDomain *td,
   NSSDER *der
+);
+
+/* Get all certs from the cache */
+/* XXX this is being included to make some old-style calls word, not to
+ *     say we should keep it
+ */
+NSS_EXTERN NSSCertificate **
+nssTrustDomain_GetCertsFromCache
+(
+  NSSTrustDomain *td,
+  nssList *certListOpt
+);
+
+NSS_EXTERN PRStatus
+nssCertificate_SetCertTrust
+(
+  NSSCertificate *c,
+  NSSTrust *trust
 );
 
 NSS_EXTERN nssDecodedCert *

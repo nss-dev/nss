@@ -70,13 +70,23 @@ struct nssDecodedCertStr {
     /* returns the unique identifier for this cert's issuer */
     NSSItem *  (*getIssuerIdentifier)(nssDecodedCert *dc);
     /* is id the identifier for this cert? */
-    PRBool     (*hasThisIdentifier)(nssDecodedCert *dc, NSSItem *id);
+    PRBool     (*matchIdentifier)(nssDecodedCert *dc, NSSItem *id);
     /* returns the cert usage */
     NSSUsage * (*getUsage)(nssDecodedCert *dc);
     /* is time within the validity period of the cert? */
     PRBool     (*isValidAtTime)(nssDecodedCert *dc, NSSTime *time);
     /* is the validity period of this cert newer than cmpdc? */
     PRBool     (*isNewerThan)(nssDecodedCert *dc, nssDecodedCert *cmpdc);
+    /* does the usage for this cert match the requested usage? */
+    PRBool     (*matchUsage)(nssDecodedCert *dc, NSSUsage *usage);
+};
+
+struct NSSUsageStr {
+    PRBool anyUsage;
+#ifdef NSS_3_4_CODE
+    SECCertUsage nss3usage;
+    PRBool nss3lookingForCA;
+#endif
 };
 
 PR_END_EXTERN_C
