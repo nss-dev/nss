@@ -301,8 +301,23 @@ nssCertificate_GetDecoding (
   NSSCertificate *c
 )
 {
+    /* There is a race in assigning c->decoding.  
+    ** This is a workaround.  Bugzilla bug 225525.
+    */
     if (!c->decoding) {
-	c->decoding = nssDecodedCert_Create(NULL, &c->encoding, c->type);
+	nssDecodedCert * deco =
+	    nssDecodedCert_Create(NULL, &c->encoding, c->type);
+	/* Once this race is fixed, an assertion should be put 
+	** here to detect any regressions. 
+    	PORT_Assert(!c->decoding); 
+	*/
+	if (!c->decoding) {
+	    /* we won the race. Use our copy. */
+	    c->decoding = deco;
+        } else {
+	    /* we lost the race.  discard deco. */
+	    nssDecodedCert_Destroy(deco);
+	}
     }
     return c->decoding;
 }
