@@ -286,8 +286,8 @@ struct ECFieldIDStr {
     int         size;   /* field size in bits */
     ECFieldType type;
     union {
-        SECItem  prime;  /* prime p for (GFp) */
-        SECItem  m;      /* integer m for (GF2m) */
+        SECItem  prime; /* prime p for (GFp) */
+        SECItem  poly;  /* irreducible binary polynomial for (GF2m) */
     } u;
     int         k1;     /* first coefficient of pentanomial or
                          * the only coefficient of trinomial 
