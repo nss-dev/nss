@@ -1066,6 +1066,17 @@ NSS_CMSDigestContext_FinishSingle(NSSCMSDigestContext *cmsdigcx, PLArenaPool *po
  * 
  ************************************************************************/
 
+/* shortcuts for basic use */
+
+/*
+ * NSS_CMSDEREncode - DER Encode a CMS message, with input being
+ *                    the plaintext message and derOut being the output,
+ *                    stored in arena's pool.
+ */
+extern SECStatus
+NSS_CMSDEREncode(NSSCMSMessage *cmsg, SECItem *input, SECItem *derOut, 
+                 PLArenaPool *arena);
+
 
 /************************************************************************/
 SEC_END_PROTOS

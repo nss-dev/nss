@@ -360,3 +360,31 @@ NSS_CMSUtil_VerificationStatusToString(NSSCMSVerificationStatus vs)
     default:					return "Unknown";
     }
 }
+
+SECStatus
+NSS_CMSDEREncode(NSSCMSMessage *cmsg, SECItem *input, SECItem *derOut, 
+                 PLArenaPool *arena)
+{
+    NSSCMSEncoderContext *ecx;
+    SECStatus rv = SECSuccess;
+    if (!cmsg || !derOut || !arena) {
+	PORT_SetError(SEC_ERROR_INVALID_ARGS);
+	return SECFailure;
+    }
+    ecx = NSS_CMSEncoder_Start(cmsg, 0, 0, derOut, arena, 0, 0, 0, 0, 0, 0);
+    if (!ecx) {
+	PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+	return SECFailure;
+    }
+    if (input) {
+	rv = NSS_CMSEncoder_Update(ecx, input->data, input->len);
+	if (rv) {
+	    PORT_SetError(SEC_ERROR_BAD_DATA);
+	}
+    }
+    rv |= NSS_CMSEncoder_Finish(ecx);
+    if (rv) {
+	PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+    }
+    return rv;
+}
