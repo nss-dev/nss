@@ -45,6 +45,7 @@
 #include "certdb.h"
 #include "secoid.h"
 #include "sechash.h"	/* for HASH_GetHashObject() */
+#include "nss.h"
 
 #if defined(XP_UNIX)
 #include <unistd.h>
