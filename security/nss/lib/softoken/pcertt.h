@@ -133,11 +133,13 @@ struct NSSLOWCERTCertificateStr {
 
     SECItem derCert;			/* original DER for the cert */
     SECItem derIssuer;			/* DER for issuer name */
+    SECItem derSN;
     SECItem serialNumber;
     SECItem derSubject;			/* DER for subject name */
-    NSSLOWCERTSubjectPublicKeyInfo subjectPublicKeyInfo;
+    SECItem derSubjKeyInfo;
+    NSSLOWCERTSubjectPublicKeyInfo *subjectPublicKeyInfo;
     SECItem certKey;			/* database key for this cert */
-    NSSLOWCERTValidity validity;
+    SECItem validity;
     certDBEntryCert *dbEntry;		/* database entry struct */
     SECItem subjectKeyID;	/* x509v3 subject key identifier */
     char *nickname;
