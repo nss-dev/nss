@@ -149,10 +149,18 @@ extern CERTSubjectPublicKeyInfo *
 SECKEY_ConvertAndDecodeSubjectPublicKeyInfo(char *spkistr);
 
 /*
+ * extract the public key from a subject Public Key info structure.
+ * (used by JSS).
+ */
+extern SECKEYPublicKey *
+SECKEY_ExtractPublicKey(CERTSubjectPublicKeyInfo *);
+
+/*
 ** Destroy a private key object.
 **	"key" the object
 */
 extern void SECKEY_DestroyPrivateKey(SECKEYPrivateKey *key);
+
 
 /*
 ** Destroy a public key object.
