@@ -18,7 +18,11 @@
  * Copyright (C) 1994-2000 Netscape Communications Corporation.  All
  * Rights Reserved.
  * 
+ * Portions created by Sun Microsystems, Inc. are Copyright (C) 2003
+ * Sun Microsystems, Inc. All Rights Reserved.
+ *
  * Contributor(s):
+ *	Dr Vipul Gupta <vipul.gupta@sun.com>, Sun Microsystems Laboratories
  * 
  * Alternatively, the contents of this file may be used under the
  * terms of the GNU General Public License Version 2 or later (the
@@ -639,7 +643,7 @@ SSL_ConfigSecureServer(PRFileDesc *fd, CERTCertificate *cert,
 	pubKey = CERT_ExtractPublicKey(cert);
 	if (!pubKey) 
 	    goto loser;
-	sc->serverKeyBits = SECKEY_PublicKeyStrength(pubKey) * BPB;
+	sc->serverKeyBits = SECKEY_PublicKeyStrengthInBits(pubKey);
 	SECKEY_DestroyPublicKey(pubKey); 
 	pubKey = NULL;
     }
