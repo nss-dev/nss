@@ -46,30 +46,71 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 /* XXX
  * move this to a more appropriate location
  */
-NSS_IMPLEMENT void
-nssPKIObject_AddRef
+NSS_IMPLEMENT PRStatus
+nssPKIObject_Initialize
 (
-  struct nssPKIObjectBaseStr *object
+  struct nssPKIObjectBaseStr *object,
+  NSSArena *arena,
+  NSSTrustDomain *td,
+  NSSCryptoContext *cc
 )
 {
-    /* XXX of course this needs to be locked in 4.0! */
-    object->refCount++;
+    object->arena = arena;
+    object->trustDomain = td;
+    object->cryptoContext = cc;
+    object->lock = PZ_NewLock(nssILockOther);
+    if (!object->lock) {
+	return PR_FAILURE;
+    }
+    object->instanceList = nssList_Create(arena, PR_TRUE);
+    if (!object->instanceList) {
+	PZ_DestroyLock(object->lock);
+	return PR_FAILURE;
+    }
+    object->instances = nssList_CreateIterator(object->instanceList);
+    if (!object->instances) {
+	nssList_Destroy(object->instanceList);
+	PZ_DestroyLock(object->lock);
+	return PR_FAILURE;
+    }
+    object->refCount = 1;
+    return PR_SUCCESS;
 }
 
 /* XXX
  * move this to a more appropriate location
  */
 NSS_IMPLEMENT void
+nssPKIObject_AddRef
+(
+  struct nssPKIObjectBaseStr *object
+)
+{
+    PZ_Lock(object->lock);
+    object->refCount++;
+    PZ_Unlock(object->lock);
+}
+
+/* XXX
+ * move this to a more appropriate location
+ */
+NSS_IMPLEMENT PRBool
 nssPKIObject_Destroy
 (
   struct nssPKIObjectBaseStr *object
 )
 {
-    /* XXX of course this needs to be locked in 4.0! */
-    if (--object->refCount == 0) {
+    PRUint32 refCount;
+    PZ_Lock(object->lock);
+    PORT_Assert(object->refCount > 0);
+    refCount = --object->refCount;
+    PZ_Unlock(object->lock);
+    if (refCount == 0) {
 	nssList_Destroy(object->instanceList);
 	nssArena_Destroy(object->arena);
+	return PR_TRUE;
     }
+    return PR_FALSE;
 }
 
 #ifdef NSS_3_4_CODE
