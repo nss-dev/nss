@@ -35,9 +35,7 @@
  * $Id$
  */
 
-#include "keylow.h"
-#include "keydbt.h"
-#include "keytboth.h"
+#include "lowkeyi.h"
 #include "seccomon.h"
 #include "sechash.h"
 #include "secder.h"
@@ -45,12 +43,12 @@
 #include "secoid.h"
 #include "blapi.h"
 #include "secitem.h"
-#include "cert.h"
+#include "pcert.h"
 #include "mcom_db.h"
 #include "secpkcs5.h"
 #include "secerr.h"
 
-#include "private.h"
+#include "keydbi.h"
 
 /*
  * Record keys for keydb
@@ -69,52 +67,52 @@
 /*
  * Attribute value for PKCS8 entries (static?)
  */
-const SEC_ASN1Template SECKEY_AttributeTemplate[] = {
+const SEC_ASN1Template nsslowkey_AttributeTemplate[] = {
     { SEC_ASN1_SEQUENCE, 
-	0, NULL, sizeof(SECKEYAttribute) },
-    { SEC_ASN1_OBJECT_ID, offsetof(SECKEYAttribute, attrType) },
-    { SEC_ASN1_SET_OF, offsetof(SECKEYAttribute, attrValue), 
+	0, NULL, sizeof(NSSLOWKEYAttribute) },
+    { SEC_ASN1_OBJECT_ID, offsetof(NSSLOWKEYAttribute, attrType) },
+    { SEC_ASN1_SET_OF, offsetof(NSSLOWKEYAttribute, attrValue), 
 	SEC_AnyTemplate },
     { 0 }
 };
 
-const SEC_ASN1Template SECKEY_SetOfAttributeTemplate[] = {
-    { SEC_ASN1_SET_OF, 0, SECKEY_AttributeTemplate },
+const SEC_ASN1Template nsslowkey_SetOfAttributeTemplate[] = {
+    { SEC_ASN1_SET_OF, 0, nsslowkey_AttributeTemplate },
 };
 
-const SEC_ASN1Template SECKEY_PrivateKeyInfoTemplate[] = {
+const SEC_ASN1Template nsslowkey_PrivateKeyInfoTemplate[] = {
     { SEC_ASN1_SEQUENCE,
-	0, NULL, sizeof(PrivateKeyInfo) },
+	0, NULL, sizeof(NSSLOWKEYPrivateKeyInfo) },
     { SEC_ASN1_INTEGER,
-	offsetof(PrivateKeyInfo,version) },
+	offsetof(NSSLOWKEYPrivateKeyInfo,version) },
     { SEC_ASN1_INLINE,
-	offsetof(PrivateKeyInfo,algorithm),
+	offsetof(NSSLOWKEYPrivateKeyInfo,algorithm),
 	SECOID_AlgorithmIDTemplate },
     { SEC_ASN1_OCTET_STRING,
-	offsetof(PrivateKeyInfo,privateKey) },
+	offsetof(NSSLOWKEYPrivateKeyInfo,privateKey) },
     { SEC_ASN1_OPTIONAL | SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC | 0,
-	offsetof(PrivateKeyInfo,attributes),
-	SECKEY_SetOfAttributeTemplate },
+	offsetof(NSSLOWKEYPrivateKeyInfo,attributes),
+	nsslowkey_SetOfAttributeTemplate },
     { 0 }
 };
 
-const SEC_ASN1Template SECKEY_PointerToPrivateKeyInfoTemplate[] = {
-    { SEC_ASN1_POINTER, 0, SECKEY_PrivateKeyInfoTemplate }
+const SEC_ASN1Template nsslowkey_PointerToPrivateKeyInfoTemplate[] = {
+    { SEC_ASN1_POINTER, 0, nsslowkey_PrivateKeyInfoTemplate }
 };
 
-const SEC_ASN1Template SECKEY_EncryptedPrivateKeyInfoTemplate[] = {
+const SEC_ASN1Template nsslowkey_EncryptedPrivateKeyInfoTemplate[] = {
     { SEC_ASN1_SEQUENCE,
-	0, NULL, sizeof(EncryptedPrivateKeyInfo) },
+	0, NULL, sizeof(NSSLOWKEYEncryptedPrivateKeyInfo) },
     { SEC_ASN1_INLINE,
-	offsetof(EncryptedPrivateKeyInfo,algorithm),
+	offsetof(NSSLOWKEYEncryptedPrivateKeyInfo,algorithm),
 	SECOID_AlgorithmIDTemplate },
     { SEC_ASN1_OCTET_STRING,
-	offsetof(EncryptedPrivateKeyInfo,encryptedData) },
+	offsetof(NSSLOWKEYEncryptedPrivateKeyInfo,encryptedData) },
     { 0 }
 };
 
-const SEC_ASN1Template SECKEY_PointerToEncryptedPrivateKeyInfoTemplate[] = {
-	{ SEC_ASN1_POINTER, 0, SECKEY_EncryptedPrivateKeyInfoTemplate }
+const SEC_ASN1Template nsslowkey_PointerToEncryptedPrivateKeyInfoTemplate[] = {
+	{ SEC_ASN1_POINTER, 0, nsslowkey_EncryptedPrivateKeyInfoTemplate }
 };
 
 
@@ -126,13 +124,13 @@ static SECOidTag defaultKeyDBAlg = SEC_OID_PKCS12_PBE_WITH_SHA1_AND_TRIPLE_DES_C
  * Default algorithm for encrypting data in the key database
  */
 SECOidTag
-SECKEY_GetDefaultKeyDBAlg(void)
+nsslowkey_GetDefaultKeyDBAlg(void)
 {
     return(defaultKeyDBAlg);
 }
 
 void
-SECKEY_SetDefaultKeyDBAlg(SECOidTag alg)
+nsslowkey_SetDefaultKeyDBAlg(SECOidTag alg)
 {
     defaultKeyDBAlg = alg;
 
@@ -140,7 +138,7 @@ SECKEY_SetDefaultKeyDBAlg(SECOidTag alg)
 }
 
 static void
-sec_destroy_dbkey(SECKEYDBKey *dbkey)
+sec_destroy_dbkey(NSSLOWKEYDBKey *dbkey)
 {
     if ( dbkey && dbkey->arena ) {
 	PORT_FreeArena(dbkey->arena, PR_FALSE);
@@ -170,7 +168,7 @@ free_dbt(DBT *dbt)
  *	...		encrypted-key-data
  */
 static DBT *
-encode_dbkey(SECKEYDBKey *dbkey)
+encode_dbkey(NSSLOWKEYDBKey *dbkey)
 {
     DBT *bufitem = NULL;
     unsigned char *buf;
@@ -202,7 +200,7 @@ encode_dbkey(SECKEYDBKey *dbkey)
     buf = (unsigned char *)bufitem->data;
     
     /* set version number */
-    buf[0] = PRIVATE_KEY_DB_FILE_VERSION;
+    buf[0] = NSSLOWKEY_DB_FILE_VERSION;
 
     /* set length of salt */
     PORT_Assert(dbkey->salt.len < 256);
@@ -232,10 +230,10 @@ loser:
     return(NULL);
 }
 
-static SECKEYDBKey *
+static NSSLOWKEYDBKey *
 decode_dbkey(DBT *bufitem, int expectedVersion)
 {
-    SECKEYDBKey *dbkey;
+    NSSLOWKEYDBKey *dbkey;
     PLArenaPool *arena = NULL;
     unsigned char *buf;
     int version;
@@ -256,7 +254,7 @@ decode_dbkey(DBT *bufitem, int expectedVersion)
 	goto loser;
     }
     
-    dbkey = (SECKEYDBKey *)PORT_ArenaZAlloc(arena, sizeof(SECKEYDBKey));
+    dbkey = (NSSLOWKEYDBKey *)PORT_ArenaZAlloc(arena, sizeof(NSSLOWKEYDBKey));
     if ( dbkey == NULL ) {
 	goto loser;
     }
@@ -274,7 +272,7 @@ decode_dbkey(DBT *bufitem, int expectedVersion)
     saltoff = 2;
     keyoff = 2 + dbkey->salt.len;
     
-    if ( expectedVersion == PRIVATE_KEY_DB_FILE_VERSION ) {
+    if ( expectedVersion == NSSLOWKEY_DB_FILE_VERSION ) {
 	nnlen = buf[2];
 	if ( nnlen ) {
 	    dbkey->nickname = (char *)PORT_ArenaZAlloc(arena, nnlen + 1);
@@ -307,10 +305,10 @@ loser:
     return(NULL);
 }
 
-static SECKEYDBKey *
-get_dbkey(SECKEYKeyDBHandle *handle, DBT *index)
+static NSSLOWKEYDBKey *
+get_dbkey(NSSLOWKEYDBHandle *handle, DBT *index)
 {
-    SECKEYDBKey *dbkey;
+    NSSLOWKEYDBKey *dbkey;
     DBT entry;
     int ret;
     
@@ -323,13 +321,13 @@ get_dbkey(SECKEYKeyDBHandle *handle, DBT *index)
 
     /* set up dbkey struct */
 
-    dbkey = decode_dbkey(&entry, PRIVATE_KEY_DB_FILE_VERSION);
+    dbkey = decode_dbkey(&entry, NSSLOWKEY_DB_FILE_VERSION);
 
     return(dbkey);
 }
 
 static SECStatus
-put_dbkey(SECKEYKeyDBHandle *handle, DBT *index, SECKEYDBKey *dbkey, PRBool update)
+put_dbkey(NSSLOWKEYDBHandle *handle, DBT *index, NSSLOWKEYDBKey *dbkey, PRBool update)
 {
     DBT *keydata = NULL;
     int status;
@@ -369,7 +367,7 @@ loser:
 }
 
 SECStatus
-SECKEY_TraverseKeys(SECKEYKeyDBHandle *handle, 
+nsslowkey_TraverseKeys(NSSLOWKEYDBHandle *handle, 
 		 SECStatus (* keyfunc)(DBT *k, DBT *d, void *pdata),
 		 void *udata )
 {
@@ -480,7 +478,7 @@ decodeKeyDBGlobalSalt(DBT *saltData)
 }
 
 static SECItem *
-GetKeyDBGlobalSalt(SECKEYKeyDBHandle *handle)
+GetKeyDBGlobalSalt(NSSLOWKEYDBHandle *handle)
 {
     DBT saltKey;
     DBT saltData;
@@ -498,14 +496,14 @@ GetKeyDBGlobalSalt(SECKEYKeyDBHandle *handle)
 }
 
 static SECStatus
-makeGlobalVersion(SECKEYKeyDBHandle *handle)
+makeGlobalVersion(NSSLOWKEYDBHandle *handle)
 {
     unsigned char version;
     DBT versionData;
     DBT versionKey;
     int status;
     
-    version = PRIVATE_KEY_DB_FILE_VERSION;
+    version = NSSLOWKEY_DB_FILE_VERSION;
     versionData.data = &version;
     versionData.size = 1;
     versionKey.data = VERSION_STRING;
@@ -522,7 +520,7 @@ makeGlobalVersion(SECKEYKeyDBHandle *handle)
 
 
 static SECStatus
-makeGlobalSalt(SECKEYKeyDBHandle *handle)
+makeGlobalSalt(NSSLOWKEYDBHandle *handle)
 {
     DBT saltKey;
     DBT saltData;
@@ -551,17 +549,17 @@ keyDBFilenameCallback(void *arg, int dbVersion)
     return(PORT_Strdup((char *)arg));
 }
 
-SECKEYKeyDBHandle *
-SECKEY_OpenKeyDBFilename(char *dbname, PRBool readOnly)
+NSSLOWKEYDBHandle *
+nsslowkey_OpenKeyDBFilename(char *dbname, PRBool readOnly)
 {
-    return(SECKEY_OpenKeyDB(readOnly, keyDBFilenameCallback,
+    return(nsslowkey_OpenKeyDB(readOnly, keyDBFilenameCallback,
 			   (void *)dbname));
 }
 
-SECKEYKeyDBHandle *
-SECKEY_OpenKeyDB(PRBool readOnly, SECKEYDBNameFunc namecb, void *cbarg)
+NSSLOWKEYDBHandle *
+nsslowkey_OpenKeyDB(PRBool readOnly, NSSLOWKEYDBNameFunc namecb, void *cbarg)
 {
-    SECKEYKeyDBHandle *handle;
+    NSSLOWKEYDBHandle *handle;
     DBT versionKey;
     DBT versionData;
     int ret;
@@ -570,7 +568,7 @@ SECKEY_OpenKeyDB(PRBool readOnly, SECKEYDBNameFunc namecb, void *cbarg)
     char *dbname = NULL;
     PRBool updated = PR_FALSE;
     
-    handle = (SECKEYKeyDBHandle *)PORT_ZAlloc (sizeof(SECKEYKeyDBHandle));
+    handle = (NSSLOWKEYDBHandle *)PORT_ZAlloc (sizeof(NSSLOWKEYDBHandle));
     if (handle == NULL) {
 	PORT_SetError (SEC_ERROR_NO_MEMORY);
 	return NULL;
@@ -585,7 +583,7 @@ SECKEY_OpenKeyDB(PRBool readOnly, SECKEYDBNameFunc namecb, void *cbarg)
 	openflags = O_RDWR;
     }
 
-    dbname = (*namecb)(cbarg, PRIVATE_KEY_DB_FILE_VERSION);
+    dbname = (*namecb)(cbarg, NSSLOWKEY_DB_FILE_VERSION);
     if ( dbname == NULL ) {
 	goto loser;
     }
@@ -616,7 +614,7 @@ SECKEY_OpenKeyDB(PRBool readOnly, SECKEYDBNameFunc namecb, void *cbarg)
 	
 	handle->version = *( (unsigned char *)versionData.data);
 	    
-	if (handle->version != PRIVATE_KEY_DB_FILE_VERSION ) {
+	if (handle->version != NSSLOWKEY_DB_FILE_VERSION ) {
 	    /* bogus version number record, reset the database */
 	    (* handle->db->close)( handle->db );
 	    handle->db = NULL;
@@ -666,7 +664,7 @@ newdb:
 		 * have a password, then this will fail and we will do the
 		 * update later
 		 */
-		rv = SECKEY_UpdateKeyDBPass1(handle);
+		rv = nsslowkey_UpdateKeyDBPass1(handle);
 		if ( rv == SECSuccess ) {
 		    updated = PR_TRUE;
 		}
@@ -716,11 +714,11 @@ loser:
  * Close the database
  */
 void
-SECKEY_CloseKeyDB(SECKEYKeyDBHandle *handle)
+nsslowkey_CloseKeyDB(NSSLOWKEYDBHandle *handle)
 {
     if (handle != NULL) {
-	if (handle == SECKEY_GetDefaultKeyDB()) {
-	    SECKEY_SetDefaultKeyDB(NULL);
+	if (handle == nsslowkey_GetDefaultKeyDB()) {
+	    nsslowkey_SetDefaultKeyDB(NULL);
 	}
 	if (handle->db != NULL) {
 	    (* handle->db->close)(handle->db);
@@ -732,7 +730,7 @@ SECKEY_CloseKeyDB(SECKEYKeyDBHandle *handle)
 
 /* Get the key database version */
 int
-SECKEY_GetKeyDBVersion(SECKEYKeyDBHandle *handle)
+nsslowkey_GetKeyDBVersion(NSSLOWKEYDBHandle *handle)
 {
     PORT_Assert(handle != NULL);
 
@@ -744,16 +742,16 @@ SECKEY_GetKeyDBVersion(SECKEYKeyDBHandle *handle)
  * not have to pass the handle all over the place.
  */
 
-static SECKEYKeyDBHandle *sec_default_key_db = NULL;
+static NSSLOWKEYDBHandle *sec_default_key_db = NULL;
 
 void
-SECKEY_SetDefaultKeyDB(SECKEYKeyDBHandle *handle)
+nsslowkey_SetDefaultKeyDB(NSSLOWKEYDBHandle *handle)
 {
     sec_default_key_db = handle;
 }
 
-SECKEYKeyDBHandle *
-SECKEY_GetDefaultKeyDB(void)
+NSSLOWKEYDBHandle *
+nsslowkey_GetDefaultKeyDB(void)
 {
     return sec_default_key_db;
 }
@@ -762,7 +760,7 @@ SECKEY_GetDefaultKeyDB(void)
  * Delete a private key that was stored in the database
  */
 SECStatus
-SECKEY_DeleteKey(SECKEYKeyDBHandle *handle, SECItem *pubkey)
+nsslowkey_DeleteKey(NSSLOWKEYDBHandle *handle, SECItem *pubkey)
 {
     DBT namekey;
     int ret;
@@ -797,44 +795,44 @@ SECKEY_DeleteKey(SECKEYKeyDBHandle *handle, SECItem *pubkey)
  * Store a key in the database, indexed by its public key modulus.(value!)
  */
 SECStatus
-SECKEY_StoreKeyByPublicKey(SECKEYKeyDBHandle *handle, 
-			   SECKEYLowPrivateKey *privkey,
+nsslowkey_StoreKeyByPublicKey(NSSLOWKEYDBHandle *handle, 
+			   NSSLOWKEYPrivateKey *privkey,
 			   SECItem *pubKeyData,
 			   char *nickname,
-			   SECKEYLowGetPasswordKey f, void *arg)
+			   NSSLOWKEYGetPasswordKey f, void *arg)
 {
-    return SECKEY_StoreKeyByPublicKeyAlg(handle, privkey, pubKeyData, nickname,
-					 f, arg, SECKEY_GetDefaultKeyDBAlg());
+    return nsslowkey_StoreKeyByPublicKeyAlg(handle, privkey, pubKeyData, nickname,
+					 f, arg, nsslowkey_GetDefaultKeyDBAlg());
 }
 
 /* see if the public key for this cert is in the database filed
  * by modulus
  */
 SECStatus
-SECKEY_KeyForCertExists(SECKEYKeyDBHandle *handle, CERTCertificate *cert)
+nsslowkey_KeyForCertExists(NSSLOWKEYDBHandle *handle, NSSLOWCERTCertificate *cert)
 {
-    SECKEYPublicKey *pubkey = NULL;
+    NSSLOWKEYPublicKey *pubkey = NULL;
     DBT namekey;
     DBT dummy;
     int status;
     
     /* get cert's public key */
-    pubkey = CERT_ExtractPublicKey(cert);
+    pubkey = nsslowcert_ExtractPublicKey(cert);
     if ( pubkey == NULL ) {
 	return SECFailure;
     }
 
-    /* TNH - make key from SECKEYPublicKey */
+    /* TNH - make key from NSSLOWKEYPublicKey */
     switch (pubkey->keyType) {
-      case rsaKey:
+      case NSSLOWKEYRSAKey:
 	namekey.data = pubkey->u.rsa.modulus.data;
 	namekey.size = pubkey->u.rsa.modulus.len;
 	break;
-      case dsaKey:
+      case NSSLOWKEYDSAKey:
 	namekey.data = pubkey->u.dsa.publicValue.data;
 	namekey.size = pubkey->u.dsa.publicValue.len;
 	break;
-      case dhKey:
+      case NSSLOWKEYDHKey:
 	namekey.data = pubkey->u.dh.publicValue.data;
 	namekey.size = pubkey->u.dh.publicValue.len;
 	break;
@@ -844,7 +842,7 @@ SECKEY_KeyForCertExists(SECKEYKeyDBHandle *handle, CERTCertificate *cert)
     }
 
     status = (* handle->db->get)(handle->db, &namekey, &dummy, 0);
-    SECKEY_DestroyPublicKey(pubkey);
+    nsslowkey_DestroyPublicKey(pubkey);
     if ( status ) {
 	/* TNH - should this really set an error? */
 	PORT_SetError(SEC_ERROR_BAD_DATABASE);
@@ -857,44 +855,41 @@ SECKEY_KeyForCertExists(SECKEYKeyDBHandle *handle, CERTCertificate *cert)
 /*
  * find the private key for a cert
  */
-SECKEYLowPrivateKey *
-SECKEY_FindKeyByCert(SECKEYKeyDBHandle *handle, CERTCertificate *cert,
-		     SECKEYLowGetPasswordKey f, void *arg)
+NSSLOWKEYPrivateKey *
+nsslowkey_FindKeyByCert(NSSLOWKEYDBHandle *handle, NSSLOWCERTCertificate *cert,
+		     NSSLOWKEYGetPasswordKey f, void *arg)
 {
-    SECKEYPublicKey *pubkey = NULL;
+    NSSLOWKEYPublicKey *pubkey = NULL;
     SECItem *keyItem = NULL;
-    SECKEYLowPrivateKey *privKey = NULL;
+    NSSLOWKEYPrivateKey *privKey = NULL;
     
     /* get cert's public key */
-    pubkey = CERT_ExtractPublicKey(cert);
+    pubkey = nsslowcert_ExtractPublicKey(cert);
     if ( !pubkey ) {
 	goto loser;
     }
 
-    /* TNH - make record key from SECKEYPublicKey (again) */
+    /* TNH - make record key from NSSLOWKEYPublicKey (again) */
     switch (pubkey->keyType) {
-      case rsaKey:
+      case NSSLOWKEYRSAKey:
 	keyItem = &pubkey->u.rsa.modulus;
 	break;
-      case dsaKey:
+      case NSSLOWKEYDSAKey:
 	keyItem = &pubkey->u.dsa.publicValue;
 	break;
-      case dhKey:
+      case NSSLOWKEYDHKey:
 	keyItem = &pubkey->u.dh.publicValue;
 	break;
-	/* fortezza an NULL keys are not stored in the data base */
-      case keaKey:
-      case fortezzaKey:
-      case nullKey:
+      case NSSLOWKEYNullKey:
 	goto loser;
     }
     PORT_Assert( keyItem != NULL );
 
-    privKey = SECKEY_FindKeyByPublicKey(handle, keyItem, f, arg);
+    privKey = nsslowkey_FindKeyByPublicKey(handle, keyItem, f, arg);
 
     /* success falls through */
 loser:
-    SECKEY_DestroyPublicKey(pubkey);
+    nsslowkey_DestroyPublicKey(pubkey);
     return(privKey);
 }
 
@@ -902,7 +897,7 @@ loser:
  * check to see if the user has a password
  */
 SECStatus
-SECKEY_HasKeyDBPassword(SECKEYKeyDBHandle *handle)
+nsslowkey_HasKeyDBPassword(NSSLOWKEYDBHandle *handle)
 {
     DBT checkkey, checkdata;
     int ret;
@@ -933,10 +928,10 @@ SECKEY_HasKeyDBPassword(SECKEYKeyDBHandle *handle)
  * This is done by encrypting a known plaintext with the user's key.
  */
 SECStatus
-SECKEY_SetKeyDBPassword(SECKEYKeyDBHandle *handle, SECItem *pwitem)
+nsslowkey_SetKeyDBPassword(NSSLOWKEYDBHandle *handle, SECItem *pwitem)
 {
-    return SECKEY_SetKeyDBPasswordAlg(handle, pwitem,
-				      SECKEY_GetDefaultKeyDBAlg());
+    return nsslowkey_SetKeyDBPasswordAlg(handle, pwitem,
+				      nsslowkey_GetDefaultKeyDBAlg());
 }
 
 /*
@@ -945,11 +940,11 @@ SECKEY_SetKeyDBPassword(SECKEYKeyDBHandle *handle, SECItem *pwitem)
  * in place in the original
  */
 SECStatus
-SECKEY_ChangeKeyDBPassword(SECKEYKeyDBHandle *handle,
+nsslowkey_ChangeKeyDBPassword(NSSLOWKEYDBHandle *handle,
 			   SECItem *oldpwitem, SECItem *newpwitem)
 {
-    return SECKEY_ChangeKeyDBPasswordAlg(handle, oldpwitem, newpwitem,
-					 SECKEY_GetDefaultKeyDBAlg());
+    return nsslowkey_ChangeKeyDBPasswordAlg(handle, oldpwitem, newpwitem,
+					 nsslowkey_GetDefaultKeyDBAlg());
 }
 
 static SECStatus
@@ -976,7 +971,7 @@ HashPassword(unsigned char *hashresult, char *pw, SECItem *salt)
 }
 
 SECItem *
-SECKEY_HashPassword(char *pw, SECItem *salt)
+nsslowkey_HashPassword(char *pw, SECItem *salt)
 {
     SECItem *pwitem;
     SECStatus rv;
@@ -1004,13 +999,13 @@ SECKEY_HashPassword(char *pw, SECItem *salt)
 
 /* Derive the actual password value for the database from a pw string */
 SECItem *
-SECKEY_DeriveKeyDBPassword(SECKEYKeyDBHandle *keydb, char *pw)
+nsslowkey_DeriveKeyDBPassword(NSSLOWKEYDBHandle *keydb, char *pw)
 {
     PORT_Assert(keydb != NULL);
     PORT_Assert(pw != NULL);
     if (keydb == NULL || pw == NULL) return(NULL);
 
-    return SECKEY_HashPassword(pw, keydb->global_salt);
+    return nsslowkey_HashPassword(pw, keydb->global_salt);
 }
 
 #if 0
@@ -1019,11 +1014,11 @@ SECKEY_DeriveKeyDBPassword(SECKEYKeyDBHandle *keydb, char *pw)
  * is encrypted.
  */
 SECOidTag 
-seckey_get_private_key_algorithm(SECKEYKeyDBHandle *keydb, DBT *index)   
+seckey_get_private_key_algorithm(NSSLOWKEYDBHandle *keydb, DBT *index)   
 {
-    SECKEYDBKey *dbkey = NULL;
+    NSSLOWKEYDBKey *dbkey = NULL;
     SECOidTag algorithm = SEC_OID_UNKNOWN;
-    EncryptedPrivateKeyInfo *epki = NULL;
+    NSSLOWKEYEncryptedPrivateKeyInfo *epki = NULL;
     PLArenaPool *poolp = NULL;
     SECStatus rv;
 
@@ -1035,12 +1030,12 @@ seckey_get_private_key_algorithm(SECKEYKeyDBHandle *keydb, DBT *index)
     if(dbkey == NULL)
 	return (SECOidTag)SECFailure;
 
-    epki = (EncryptedPrivateKeyInfo *)PORT_ArenaZAlloc(poolp, 
-	sizeof(EncryptedPrivateKeyInfo));
+    epki = (NSSLOWKEYEncryptedPrivateKeyInfo *)PORT_ArenaZAlloc(poolp, 
+	sizeof(NSSLOWKEYEncryptedPrivateKeyInfo));
     if(epki == NULL)
 	goto loser;
     rv = SEC_ASN1DecodeItem(poolp, epki, 
-	SECKEY_EncryptedPrivateKeyInfoTemplate, &dbkey->derPK);
+	nsslowkey_EncryptedPrivateKeyInfoTemplate, &dbkey->derPK);
     if(rv == SECFailure)
 	goto loser;
 
@@ -1171,13 +1166,13 @@ seckey_rc4_cipher(SECItem *key, SECItem *src, PRBool encrypt)
 
 /* TNH - keydb is unused */
 /* TNH - the pwitem should be the derived key for RC4 */
-EncryptedPrivateKeyInfo *
+NSSLOWKEYEncryptedPrivateKeyInfo *
 seckey_encrypt_private_key(
-	SECKEYLowPrivateKey *pk, SECItem *pwitem, SECKEYKeyDBHandle *keydb,
+	NSSLOWKEYPrivateKey *pk, SECItem *pwitem, NSSLOWKEYDBHandle *keydb,
 	SECOidTag algorithm)
 {
-    EncryptedPrivateKeyInfo *epki = NULL;
-    PrivateKeyInfo *pki = NULL;
+    NSSLOWKEYEncryptedPrivateKeyInfo *epki = NULL;
+    NSSLOWKEYPrivateKeyInfo *pki = NULL;
     SECStatus rv = SECFailure;
     SECAlgorithmID *algid = NULL;
     PLArenaPool *temparena = NULL, *permarena = NULL;
@@ -1193,10 +1188,10 @@ seckey_encrypt_private_key(
 	goto loser;
 
     /* allocate structures */
-    epki = (EncryptedPrivateKeyInfo *)PORT_ArenaZAlloc(permarena,
-	sizeof(EncryptedPrivateKeyInfo));
-    pki = (PrivateKeyInfo *)PORT_ArenaZAlloc(temparena, 
-	sizeof(PrivateKeyInfo));
+    epki = (NSSLOWKEYEncryptedPrivateKeyInfo *)PORT_ArenaZAlloc(permarena,
+	sizeof(NSSLOWKEYEncryptedPrivateKeyInfo));
+    pki = (NSSLOWKEYPrivateKeyInfo *)PORT_ArenaZAlloc(temparena, 
+	sizeof(NSSLOWKEYPrivateKeyInfo));
     der_item = (SECItem *)PORT_ArenaZAlloc(temparena, sizeof(SECItem));
     if((epki == NULL) || (pki == NULL) || (der_item == NULL))
 	goto loser;
@@ -1211,9 +1206,9 @@ seckey_encrypt_private_key(
 
     /* Encode the key, and set the algorithm (with params) */
     switch (pk->keyType) {
-      case lowRSAKey:
+      case NSSLOWKEYRSAKey:
 	dummy = SEC_ASN1EncodeItem(temparena, &(pki->privateKey), pk, 
-				   SECKEY_LowRSAPrivateKeyTemplate);
+				   nsslowkey_RSAPrivateKeyTemplate);
 	if (dummy == NULL) {
 	    rv = SECFailure;
 	    goto loser;
@@ -1226,16 +1221,16 @@ seckey_encrypt_private_key(
 	}
 	
 	break;
-      case lowDSAKey:
+      case NSSLOWKEYDSAKey:
 	dummy = SEC_ASN1EncodeItem(temparena, &(pki->privateKey), pk,
-				   SECKEY_LowDSAPrivateKeyTemplate);
+				   nsslowkey_DSAPrivateKeyTemplate);
 	if (dummy == NULL) {
 	    rv = SECFailure;
 	    goto loser;
 	}
 	
 	dummy = SEC_ASN1EncodeItem(temparena, NULL, &pk->u.dsa.params,
-				   SECKEY_LowPQGParamsTemplate);
+				   nsslowkey_PQGParamsTemplate);
 	if (dummy == NULL) {
 	    rv = SECFailure;
 	    goto loser;
@@ -1248,9 +1243,9 @@ seckey_encrypt_private_key(
 	}
 	
 	break;
-      case lowDHKey:
+      case NSSLOWKEYDHKey:
 	dummy = SEC_ASN1EncodeItem(temparena, &(pki->privateKey), pk,
-				   SECKEY_LowDHPrivateKeyTemplate);
+				   nsslowkey_DHPrivateKeyTemplate);
 	if (dummy == NULL) {
 	    rv = SECFailure;
 	    goto loser;
@@ -1270,7 +1265,7 @@ seckey_encrypt_private_key(
 
     /* setup encrypted private key info */
     dummy = SEC_ASN1EncodeItem(temparena, der_item, pki, 
-	SECKEY_PrivateKeyInfoTemplate);
+	nsslowkey_PrivateKeyInfoTemplate);
     if(dummy == NULL) {
 	rv = SECFailure;
 	goto loser;
@@ -1343,12 +1338,12 @@ loser:
 }
 
 SECStatus 
-seckey_put_private_key(SECKEYKeyDBHandle *keydb, DBT *index, SECItem *pwitem,
-		       SECKEYLowPrivateKey *pk, char *nickname, PRBool update,
+seckey_put_private_key(NSSLOWKEYDBHandle *keydb, DBT *index, SECItem *pwitem,
+		       NSSLOWKEYPrivateKey *pk, char *nickname, PRBool update,
 		       SECOidTag algorithm)
 {
-    SECKEYDBKey *dbkey = NULL;
-    EncryptedPrivateKeyInfo *epki = NULL;
+    NSSLOWKEYDBKey *dbkey = NULL;
+    NSSLOWKEYEncryptedPrivateKeyInfo *epki = NULL;
     PLArenaPool *temparena = NULL, *permarena = NULL;
     SECItem *dummy = NULL;
     SECItem *salt = NULL;
@@ -1362,7 +1357,7 @@ seckey_put_private_key(SECKEYKeyDBHandle *keydb, DBT *index, SECItem *pwitem,
     if(permarena == NULL)
 	return SECFailure;
 
-    dbkey = (SECKEYDBKey *)PORT_ArenaZAlloc(permarena, sizeof(SECKEYDBKey));
+    dbkey = (NSSLOWKEYDBKey *)PORT_ArenaZAlloc(permarena, sizeof(NSSLOWKEYDBKey));
     if(dbkey == NULL)
 	goto loser;
     dbkey->arena = permarena;
@@ -1396,7 +1391,7 @@ seckey_put_private_key(SECKEYKeyDBHandle *keydb, DBT *index, SECItem *pwitem,
     }
 
     dummy = SEC_ASN1EncodeItem(permarena, &(dbkey->derPK), epki, 
-	SECKEY_EncryptedPrivateKeyInfoTemplate);
+	nsslowkey_EncryptedPrivateKeyInfoTemplate);
     if(dummy == NULL)
 	rv = SECFailure;
     else
@@ -1418,11 +1413,11 @@ loser:
  * Note that the nickname is optional.  It was only used by keyutil.
  */
 SECStatus
-SECKEY_StoreKeyByPublicKeyAlg(SECKEYKeyDBHandle *handle, 
-			      SECKEYLowPrivateKey *privkey,
+nsslowkey_StoreKeyByPublicKeyAlg(NSSLOWKEYDBHandle *handle, 
+			      NSSLOWKEYPrivateKey *privkey,
 			      SECItem *pubKeyData,
 			      char *nickname,
-			      SECKEYLowGetPasswordKey f, void *arg,
+			      NSSLOWKEYGetPasswordKey f, void *arg,
 			      SECOidTag algorithm)
 {
     DBT namekey;
@@ -1451,12 +1446,12 @@ SECKEY_StoreKeyByPublicKeyAlg(SECKEYKeyDBHandle *handle,
     return(rv);
 }
 
-SECKEYLowPrivateKey *
-seckey_decrypt_private_key(EncryptedPrivateKeyInfo *epki,
+NSSLOWKEYPrivateKey *
+seckey_decrypt_private_key(NSSLOWKEYEncryptedPrivateKeyInfo *epki,
 			   SECItem *pwitem)
 {
-    SECKEYLowPrivateKey *pk = NULL;
-    PrivateKeyInfo *pki = NULL;
+    NSSLOWKEYPrivateKey *pk = NULL;
+    NSSLOWKEYPrivateKeyInfo *pki = NULL;
     SECStatus rv = SECFailure;
     SECOidTag algorithm;
     PLArenaPool *temparena = NULL, *permarena = NULL;
@@ -1471,12 +1466,12 @@ seckey_decrypt_private_key(EncryptedPrivateKeyInfo *epki,
 	goto loser;
 
     /* allocate temporary items */
-    pki = (PrivateKeyInfo *)PORT_ArenaZAlloc(temparena, 
-	sizeof(PrivateKeyInfo));
+    pki = (NSSLOWKEYPrivateKeyInfo *)PORT_ArenaZAlloc(temparena, 
+	sizeof(NSSLOWKEYPrivateKeyInfo));
 
     /* allocate permanent arena items */
-    pk = (SECKEYLowPrivateKey *)PORT_ArenaZAlloc(permarena,
-	sizeof(SECKEYLowPrivateKey));
+    pk = (NSSLOWKEYPrivateKey *)PORT_ArenaZAlloc(permarena,
+	sizeof(NSSLOWKEYPrivateKey));
 
     if((pk == NULL) || (pki == NULL))
 	goto loser;
@@ -1514,32 +1509,32 @@ seckey_decrypt_private_key(EncryptedPrivateKeyInfo *epki,
     if(dest != NULL)
     {
 	rv = SEC_ASN1DecodeItem(temparena, pki, 
-	    SECKEY_PrivateKeyInfoTemplate, dest);
+	    nsslowkey_PrivateKeyInfoTemplate, dest);
 	if(rv == SECSuccess)
 	{
 	    switch(SECOID_GetAlgorithmTag(&pki->algorithm)) {
 	      case SEC_OID_X500_RSA_ENCRYPTION:
 	      case SEC_OID_PKCS1_RSA_ENCRYPTION:
-		pk->keyType = lowRSAKey;
+		pk->keyType = NSSLOWKEYRSAKey;
 		rv = SEC_ASN1DecodeItem(permarena, pk,
-					SECKEY_LowRSAPrivateKeyTemplate,
+					nsslowkey_RSAPrivateKeyTemplate,
 					&pki->privateKey);
 		break;
 	      case SEC_OID_ANSIX9_DSA_SIGNATURE:
-		pk->keyType = lowDSAKey;
+		pk->keyType = NSSLOWKEYDSAKey;
 		rv = SEC_ASN1DecodeItem(permarena, pk,
-					SECKEY_LowDSAPrivateKeyTemplate,
+					nsslowkey_DSAPrivateKeyTemplate,
 					&pki->privateKey);
 		if (rv != SECSuccess)
 		    goto loser;
 		rv = SEC_ASN1DecodeItem(permarena, &pk->u.dsa.params,
-					SECKEY_LowPQGParamsTemplate,
+					nsslowkey_PQGParamsTemplate,
 					&pki->algorithm.parameters);
 		break;
 	      case SEC_OID_X942_DIFFIE_HELMAN_KEY:
-		pk->keyType = lowDHKey;
+		pk->keyType = NSSLOWKEYDHKey;
 		rv = SEC_ASN1DecodeItem(permarena, pk,
-					SECKEY_LowDHPrivateKeyTemplate,
+					nsslowkey_DHPrivateKeyTemplate,
 					&pki->privateKey);
 		break;
 	      default:
@@ -1571,11 +1566,11 @@ loser:
     return pk;
 }
 
-static SECKEYLowPrivateKey *
-seckey_decode_encrypted_private_key(SECKEYDBKey *dbkey, SECItem *pwitem)
+static NSSLOWKEYPrivateKey *
+seckey_decode_encrypted_private_key(NSSLOWKEYDBKey *dbkey, SECItem *pwitem)
 {
-    SECKEYLowPrivateKey *pk = NULL;
-    EncryptedPrivateKeyInfo *epki;
+    NSSLOWKEYPrivateKey *pk = NULL;
+    NSSLOWKEYEncryptedPrivateKeyInfo *epki;
     PLArenaPool *temparena = NULL;
     SECStatus rv;
     SECOidTag algorithm;
@@ -1589,15 +1584,15 @@ seckey_decode_encrypted_private_key(SECKEYDBKey *dbkey, SECItem *pwitem)
 	return NULL;
     }
 
-    epki = (EncryptedPrivateKeyInfo *)
-	PORT_ArenaZAlloc(temparena, sizeof(EncryptedPrivateKeyInfo));
+    epki = (NSSLOWKEYEncryptedPrivateKeyInfo *)
+	PORT_ArenaZAlloc(temparena, sizeof(NSSLOWKEYEncryptedPrivateKeyInfo));
 
     if(epki == NULL) {
 	goto loser;
     }
 
     rv = SEC_ASN1DecodeItem(temparena, epki,
-			    SECKEY_EncryptedPrivateKeyInfoTemplate,
+			    nsslowkey_EncryptedPrivateKeyInfoTemplate,
 			    &(dbkey->derPK)); 
     if(rv != SECSuccess) {
 	goto loser;
@@ -1625,12 +1620,12 @@ loser:
     return pk;
 }
 
-SECKEYLowPrivateKey *
-seckey_get_private_key(SECKEYKeyDBHandle *keydb, DBT *index, char **nickname,
+NSSLOWKEYPrivateKey *
+seckey_get_private_key(NSSLOWKEYDBHandle *keydb, DBT *index, char **nickname,
 		       SECItem *pwitem)
 {
-    SECKEYDBKey *dbkey = NULL;
-    SECKEYLowPrivateKey *pk = NULL;
+    NSSLOWKEYDBKey *dbkey = NULL;
+    NSSLOWKEYPrivateKey *pk = NULL;
 
     if( ( keydb == NULL ) || ( index == NULL ) || ( pwitem == NULL ) ) {
 	return NULL;
@@ -1665,9 +1660,9 @@ loser:
  * used by pkcs11 to import keys into it's object format... In the future
  * we really need a better way to tie in...
  */
-SECKEYLowPrivateKey *
-SECKEY_DecryptKey(DBT *key, SECItem *pwitem,
-					 SECKEYKeyDBHandle *handle) {
+NSSLOWKEYPrivateKey *
+nsslowkey_DecryptKey(DBT *key, SECItem *pwitem,
+					 NSSLOWKEYDBHandle *handle) {
     return seckey_get_private_key(handle,key,NULL,pwitem);
 }
 
@@ -1678,12 +1673,12 @@ SECKEY_DecryptKey(DBT *key, SECItem *pwitem,
  * is looked up by the public modulus in the certificate, and the
  * re-stored by its nickname.
  */
-SECKEYLowPrivateKey *
-SECKEY_FindKeyByPublicKey(SECKEYKeyDBHandle *handle, SECItem *modulus,
-			  SECKEYLowGetPasswordKey f, void *arg)
+NSSLOWKEYPrivateKey *
+nsslowkey_FindKeyByPublicKey(NSSLOWKEYDBHandle *handle, SECItem *modulus,
+			  NSSLOWKEYGetPasswordKey f, void *arg)
 {
     DBT namekey;
-    SECKEYLowPrivateKey *pk = NULL;
+    NSSLOWKEYPrivateKey *pk = NULL;
     SECItem *pwitem = NULL;
 
     if (handle == NULL) {
@@ -1754,13 +1749,13 @@ loser:
  * This is done by encrypting a known plaintext with the user's key.
  */
 SECStatus
-SECKEY_SetKeyDBPasswordAlg(SECKEYKeyDBHandle *handle, 
+nsslowkey_SetKeyDBPasswordAlg(NSSLOWKEYDBHandle *handle, 
 			   SECItem *pwitem, SECOidTag algorithm)
 {
     DBT checkkey;
     SECAlgorithmID *algid = NULL;
     SECStatus rv = SECFailure;
-    SECKEYDBKey *dbkey = NULL;
+    NSSLOWKEYDBKey *dbkey = NULL;
     PLArenaPool *arena;
     SECItem *key = NULL, *salt = NULL;
     SECItem *dest = NULL, test_key;
@@ -1775,7 +1770,7 @@ SECKEY_SetKeyDBPasswordAlg(SECKEYKeyDBHandle *handle,
 	goto loser;
     }
     
-    dbkey = (SECKEYDBKey *)PORT_ArenaZAlloc(arena, sizeof(SECKEYDBKey));
+    dbkey = (NSSLOWKEYDBKey *)PORT_ArenaZAlloc(arena, sizeof(NSSLOWKEYDBKey));
     if ( dbkey == NULL ) {
 	rv = SECFailure;
 	goto loser;
@@ -1896,12 +1891,12 @@ seckey_HasAServerKey(DB *db)
 }
 
 static SECStatus
-seckey_CheckKeyDB1Password(SECKEYKeyDBHandle *handle, SECItem *pwitem)
+seckey_CheckKeyDB1Password(NSSLOWKEYDBHandle *handle, SECItem *pwitem)
 {
     SECStatus rv = SECFailure;
     keyList keylist;
     keyNode *node = NULL;
-    SECKEYLowPrivateKey *privkey = NULL;
+    NSSLOWKEYPrivateKey *privkey = NULL;
 
 
     /*
@@ -1919,7 +1914,7 @@ seckey_CheckKeyDB1Password(SECKEYKeyDBHandle *handle, SECItem *pwitem)
     
     /* TNH - TraverseKeys should not be public, since it exposes
        the underlying DBT data type. */
-    rv = SECKEY_TraverseKeys(handle, sec_add_key_to_list, (void *)&keylist);
+    rv = nsslowkey_TraverseKeys(handle, sec_add_key_to_list, (void *)&keylist);
     if ( rv != SECSuccess ) 
 	goto done;
 
@@ -1939,7 +1934,7 @@ seckey_CheckKeyDB1Password(SECKEYKeyDBHandle *handle, SECItem *pwitem)
 
     /* if we can decrypt the private key, then we had the correct password */
     rv = SECSuccess;
-    SECKEY_LowDestroyPrivateKey(privkey);
+    nsslowkey_DestroyPrivateKey(privkey);
 
 done:
 
@@ -1955,13 +1950,13 @@ done:
  * check to see if the user has typed the right password
  */
 SECStatus
-SECKEY_CheckKeyDBPassword(SECKEYKeyDBHandle *handle, SECItem *pwitem)
+nsslowkey_CheckKeyDBPassword(NSSLOWKEYDBHandle *handle, SECItem *pwitem)
 {
     DBT checkkey;
     DBT checkdata;
     SECAlgorithmID *algid = NULL;
     SECStatus rv = SECFailure;
-    SECKEYDBKey *dbkey = NULL;
+    NSSLOWKEYDBKey *dbkey = NULL;
     SECItem *key = NULL;
     SECItem *dest = NULL;
     SECOidTag algorithm;
@@ -1993,7 +1988,7 @@ SECKEY_CheckKeyDBPassword(SECKEYKeyDBHandle *handle, SECItem *pwitem)
 	rv = seckey_CheckKeyDB1Password(handle,pwitem);
 	if (rv == SECSuccess) {
 	    /* OK we have enough to complete our conversion */
-	    SECKEY_UpdateKeyDBPass2(handle,pwitem);
+	    nsslowkey_UpdateKeyDBPass2(handle,pwitem);
 	}
 	return rv;
     }
@@ -2055,7 +2050,7 @@ SECKEY_CheckKeyDBPassword(SECKEYKeyDBHandle *handle, SECItem *pwitem)
 	/* we succeeded */
 	if ( algorithm == SEC_OID_RC4 ) {
 	    /* partially updated database */
-	    SECKEY_UpdateKeyDBPass2(handle, pwitem);
+	    nsslowkey_UpdateKeyDBPass2(handle, pwitem);
 	}
         /* Force an update of the password to remove the incorrect DES
          * encryption (see the note above)
@@ -2063,7 +2058,7 @@ SECKEY_CheckKeyDBPassword(SECKEYKeyDBHandle *handle, SECItem *pwitem)
 	if (update && 
 	     (algorithm == SEC_OID_PKCS12_PBE_WITH_SHA1_AND_TRIPLE_DES_CBC)) {
 	    /* data base was encoded with DES not triple des, fix it */
-	    SECKEY_UpdateKeyDBPass2(handle,pwitem);
+	    nsslowkey_UpdateKeyDBPass2(handle,pwitem);
 	}
     }
 			
@@ -2082,14 +2077,14 @@ loser:
  *  the caller.
  */
 static SECStatus
-ChangeKeyDBPasswordAlg(SECKEYKeyDBHandle *handle,
+ChangeKeyDBPasswordAlg(NSSLOWKEYDBHandle *handle,
 		       SECItem *oldpwitem, SECItem *newpwitem,
 		       SECOidTag new_algorithm)
 {
     SECStatus rv;
     keyList keylist;
     keyNode *node = NULL;
-    SECKEYLowPrivateKey *privkey = NULL;
+    NSSLOWKEYPrivateKey *privkey = NULL;
     char *nickname;
     DBT newkey;
     int ret;
@@ -2105,7 +2100,7 @@ ChangeKeyDBPasswordAlg(SECKEYKeyDBHandle *handle,
     
     /* TNH - TraverseKeys should not be public, since it exposes
        the underlying DBT data type. */
-    rv = SECKEY_TraverseKeys(handle, sec_add_key_to_list, (void *)&keylist);
+    rv = nsslowkey_TraverseKeys(handle, sec_add_key_to_list, (void *)&keylist);
     if ( rv != SECSuccess ) 
 	goto loser;
 
@@ -2133,15 +2128,15 @@ ChangeKeyDBPasswordAlg(SECKEYKeyDBHandle *handle,
 	/* get the public key, which we use as the database index */
 
 	switch (privkey->keyType) {
-	  case lowRSAKey:
+	  case NSSLOWKEYRSAKey:
 	    newkey.data = privkey->u.rsa.modulus.data;
 	    newkey.size = privkey->u.rsa.modulus.len;
 	    break;
-	  case lowDSAKey:
+	  case NSSLOWKEYDSAKey:
 	    newkey.data = privkey->u.dsa.publicValue.data;
 	    newkey.size = privkey->u.dsa.publicValue.len;
 	    break;
-	  case lowDHKey:
+	  case NSSLOWKEYDHKey:
 	    newkey.data = privkey->u.dh.publicValue.data;
 	    newkey.size = privkey->u.dh.publicValue.len;
 	    break;
@@ -2164,7 +2159,7 @@ ChangeKeyDBPasswordAlg(SECKEYKeyDBHandle *handle,
 	node = node->next;
     }
 
-    rv = SECKEY_SetKeyDBPasswordAlg(handle, newpwitem, new_algorithm);
+    rv = nsslowkey_SetKeyDBPasswordAlg(handle, newpwitem, new_algorithm);
 
 loser:
 
@@ -2182,7 +2177,7 @@ loser:
  * in place in the original
  */
 SECStatus
-SECKEY_ChangeKeyDBPasswordAlg(SECKEYKeyDBHandle *handle,
+nsslowkey_ChangeKeyDBPasswordAlg(NSSLOWKEYDBHandle *handle,
 			      SECItem *oldpwitem, SECItem *newpwitem,
 			      SECOidTag new_algorithm)
 {
@@ -2194,7 +2189,7 @@ SECKEY_ChangeKeyDBPasswordAlg(SECKEYKeyDBHandle *handle,
 	goto loser;
     }
 
-    rv = SECKEY_CheckKeyDBPassword(handle, oldpwitem);
+    rv = nsslowkey_CheckKeyDBPassword(handle, oldpwitem);
     if ( rv != SECSuccess ) {
 	return(SECFailure);  /* return rv? */
     }
@@ -2209,12 +2204,12 @@ loser:
  * Second pass of updating the key db.  This time we have a password.
  */
 SECStatus
-SECKEY_UpdateKeyDBPass2(SECKEYKeyDBHandle *handle, SECItem *pwitem)
+nsslowkey_UpdateKeyDBPass2(NSSLOWKEYDBHandle *handle, SECItem *pwitem)
 {
     SECStatus rv;
     
     rv = ChangeKeyDBPasswordAlg(handle, pwitem, pwitem,
-			     SECKEY_GetDefaultKeyDBAlg());
+			     nsslowkey_GetDefaultKeyDBAlg());
     
     return(rv);
 }
@@ -2223,7 +2218,7 @@ SECKEY_UpdateKeyDBPass2(SECKEYKeyDBHandle *handle, SECItem *pwitem)
  * currently updates key database from v2 to v3
  */
 SECStatus
-SECKEY_UpdateKeyDBPass1(SECKEYKeyDBHandle *handle)
+nsslowkey_UpdateKeyDBPass1(NSSLOWKEYDBHandle *handle)
 {
     SECStatus rv;
     DBT versionKey;
@@ -2235,7 +2230,7 @@ SECKEY_UpdateKeyDBPass1(SECKEYKeyDBHandle *handle)
     DBT key;
     DBT data;
     SECItem *rc4key = NULL;
-    SECKEYDBKey *dbkey = NULL;
+    NSSLOWKEYDBKey *dbkey = NULL;
     SECItem *oldSalt = NULL;
     int ret;
     SECItem checkitem;
@@ -2427,7 +2422,7 @@ done:
  * Clear out all the keys in the existing database
  */
 SECStatus
-SECKEY_ResetKeyDB(SECKEYKeyDBHandle *handle)
+nsslowkey_ResetKeyDB(NSSLOWKEYDBHandle *handle)
 {
     SECStatus rv;
     int ret;
@@ -2482,8 +2477,8 @@ done:
 /* These functions simply return the address of the above-declared templates.
 ** This is necessary for Windows DLLs.  Sigh.
 */
-SEC_ASN1_CHOOSER_IMPLEMENT(SECKEY_PrivateKeyInfoTemplate)
-SEC_ASN1_CHOOSER_IMPLEMENT(SECKEY_PointerToPrivateKeyInfoTemplate)
-SEC_ASN1_CHOOSER_IMPLEMENT(SECKEY_EncryptedPrivateKeyInfoTemplate)
-SEC_ASN1_CHOOSER_IMPLEMENT(SECKEY_PointerToEncryptedPrivateKeyInfoTemplate)
+SEC_ASN1_CHOOSER_IMPLEMENT(nsslowkey_PrivateKeyInfoTemplate)
+SEC_ASN1_CHOOSER_IMPLEMENT(nsslowkey_PointerToPrivateKeyInfoTemplate)
+SEC_ASN1_CHOOSER_IMPLEMENT(nsslowkey_EncryptedPrivateKeyInfoTemplate)
+SEC_ASN1_CHOOSER_IMPLEMENT(nsslowkey_PointerToEncryptedPrivateKeyInfoTemplate)
 

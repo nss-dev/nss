@@ -53,8 +53,8 @@
 #include "blapi.h"
 #include "pkcs11.h"
 #include "pkcs11i.h"
-#include "keylow.h"
-#include "cert.h"
+#include "lowkeyi.h"
+#include "pcert.h"
 #include "sechash.h"
 #include "secder.h"
 #include "secdig.h"
@@ -64,9 +64,9 @@
 #include "alghmac.h"
 #include "softoken.h"
 #include "secasn1.h"
-#include "secmodi.h"
+/*#include "secmodi.h" */
 
-#include "certdb.h"
+#include "pcert.h"
 #include "ssl3prot.h" 	/* for SSL3_RANDOM_LENGTH */
 
 #define __PASTE(x,y)    x##y
@@ -102,9 +102,9 @@ static void pk11_Null(void *data, PRBool freeit)
  * other free routines to the destroy signature.
  */
 static void
-pk11_FreePrivKey(SECKEYLowPrivateKey *key, PRBool freeit)
+pk11_FreePrivKey(NSSLOWKEYPrivateKey *key, PRBool freeit)
 {
-    SECKEY_LowDestroyPrivateKey(key);
+    nsslowkey_DestroyPrivateKey(key);
 }
 
 static void
@@ -121,7 +121,7 @@ pk11_Space(void *data, PRBool freeit)
 
 static void pk11_FreeSignInfo(PK11HashSignInfo *data, PRBool freeit)
 {
-    SECKEY_LowDestroyPrivateKey(data->key);
+    nsslowkey_DestroyPrivateKey(data->key);
     PORT_Free(data);
 } 
 
@@ -446,7 +446,7 @@ pk11_EncryptInit(CK_SESSION_HANDLE hSession, CK_MECHANISM_PTR pMechanism,
 #endif
     CK_KEY_TYPE key_type;
     CK_RV crv = CKR_OK;
-    SECKEYLowPublicKey *pubKey;
+    NSSLOWKEYPublicKey *pubKey;
     unsigned effectiveKeyLength;
     unsigned char newdeskey[8];
     PRBool useNewKey=PR_FALSE;
@@ -862,7 +862,7 @@ static CK_RV pk11_DecryptInit( CK_SESSION_HANDLE hSession,
     CK_KEY_TYPE key_type;
     CK_RV crv = CKR_OK;
     unsigned effectiveKeyLength;
-    SECKEYLowPrivateKey *privKey;
+    NSSLOWKEYPrivateKey *privKey;
     unsigned char newdeskey[8];
     PRBool useNewKey=PR_FALSE;
     int t;
@@ -1926,7 +1926,7 @@ nsc_DSA_Verify_Stub(void *ctx, void *sigBuf, unsigned int sigLen,
                                void *dataBuf, unsigned int dataLen)
 {
     SECItem signature, digest;
-    SECKEYLowPublicKey *key = (SECKEYLowPublicKey *)ctx;
+    NSSLOWKEYPublicKey *key = (NSSLOWKEYPublicKey *)ctx;
 
     signature.data = (unsigned char *)sigBuf;
     signature.len = sigLen;
@@ -1942,7 +1942,7 @@ nsc_DSA_Sign_Stub(void *ctx, void *sigBuf,
 {
     SECItem signature = { 0 }, digest;
     SECStatus rv;
-    SECKEYLowPrivateKey *key = (SECKEYLowPrivateKey *)ctx;
+    NSSLOWKEYPrivateKey *key = (NSSLOWKEYPrivateKey *)ctx;
 
     (void)SECITEM_AllocItem(NULL, &signature, maxSigLen);
     digest.data = (unsigned char *)dataBuf;
@@ -1984,7 +1984,7 @@ CK_RV NSC_SignInit(CK_SESSION_HANDLE hSession,
     PK11SessionContext *context;
     CK_KEY_TYPE key_type;
     CK_RV crv = CKR_OK;
-    SECKEYLowPrivateKey *privKey;
+    NSSLOWKEYPrivateKey *privKey;
     PK11HashSignInfo *info = NULL;
 
     /* Block Cipher MACing Algorithms use a different Context init method..*/
@@ -2363,7 +2363,7 @@ pk11_hashCheckSign(PK11HashVerifyInfo *info, unsigned char *sig,
 
     if (info->key == NULL) goto loser;
 
-    it.len = SECKEY_LowPublicModulusLen(info->key); 
+    it.len = nsslowkey_PublicModulusLen(info->key); 
     if (!it.len) goto loser;
 
     it.data = (unsigned char *) PORT_Alloc(it.len);
@@ -2407,7 +2407,7 @@ CK_RV NSC_VerifyInit(CK_SESSION_HANDLE hSession,
     PK11SessionContext *context;
     CK_KEY_TYPE key_type;
     CK_RV crv = CKR_OK;
-    SECKEYLowPublicKey *pubKey;
+    NSSLOWKEYPublicKey *pubKey;
     PK11HashVerifyInfo *info = NULL;
 
     /* Block Cipher MACing Algorithms use a different Context init method..*/
@@ -2650,7 +2650,7 @@ CK_RV NSC_VerifyRecoverInit(CK_SESSION_HANDLE hSession,
     PK11SessionContext *context;
     CK_KEY_TYPE key_type;
     CK_RV crv = CKR_OK;
-    SECKEYLowPublicKey *pubKey;
+    NSSLOWKEYPublicKey *pubKey;
 
     session = pk11_SessionFromHandle(hSession);
     if (session == NULL) return CKR_SESSION_HANDLE_INVALID;
@@ -3539,8 +3539,8 @@ dhgn_done:
 
 static SECItem *pk11_PackagePrivateKey(PK11Object *key)
 {
-    SECKEYLowPrivateKey *lk = NULL;
-    PrivateKeyInfo *pki = NULL;
+    NSSLOWKEYPrivateKey *lk = NULL;
+    NSSLOWKEYPrivateKeyInfo *pki = NULL;
     PK11Attribute *attribute = NULL;
     PLArenaPool *arena = NULL;
     SECOidTag algorithm = SEC_OID_UNKNOWN;
@@ -3569,8 +3569,8 @@ static SECItem *pk11_PackagePrivateKey(PK11Object *key)
 	goto loser;
     }
 
-    pki = (PrivateKeyInfo*)PORT_ArenaZAlloc(arena, 
-						sizeof(PrivateKeyInfo));
+    pki = (NSSLOWKEYPrivateKeyInfo*)PORT_ArenaZAlloc(arena, 
+					sizeof(NSSLOWKEYPrivateKeyInfo));
     if(!pki) {
 	rv = SECFailure;
 	goto loser;
@@ -3579,25 +3579,25 @@ static SECItem *pk11_PackagePrivateKey(PK11Object *key)
 
     param = NULL;
     switch(lk->keyType) {
-	case lowRSAKey:
+	case NSSLOWKEYRSAKey:
 	    dummy = SEC_ASN1EncodeItem(arena, &pki->privateKey, lk,
-				       SECKEY_LowRSAPrivateKeyTemplate);
+				       nsslowkey_RSAPrivateKeyTemplate);
 	    algorithm = SEC_OID_PKCS1_RSA_ENCRYPTION;
 	    break;
-	case lowDSAKey:
+	case NSSLOWKEYDSAKey:
 	    dummy = SEC_ASN1EncodeItem(arena, &pki->privateKey, lk,
-				       SECKEY_LowDSAPrivateKeyExportTemplate);
+				       nsslowkey_DSAPrivateKeyExportTemplate);
 	    param = SEC_ASN1EncodeItem(NULL, NULL, &(lk->u.dsa.params),
-				       SECKEY_LowPQGParamsTemplate);
+				       nsslowkey_PQGParamsTemplate);
 	    algorithm = SEC_OID_ANSIX9_DSA_SIGNATURE;
 	    break;
-	case lowDHKey:
+	case NSSLOWKEYDHKey:
 	default:
 	    dummy = NULL;
 	    break;
     }
  
-    if(!dummy || ((lk->keyType == lowDSAKey) && !param)) {
+    if(!dummy || ((lk->keyType == NSSLOWKEYDSAKey) && !param)) {
 	goto loser;
     }
 
@@ -3616,7 +3616,7 @@ static SECItem *pk11_PackagePrivateKey(PK11Object *key)
     }
 
     encodedKey = SEC_ASN1EncodeItem(NULL, NULL, pki, 
-				    SECKEY_PrivateKeyInfoTemplate);
+				    nsslowkey_PrivateKeyInfoTemplate);
 
 loser:
     if(arena) {
@@ -3624,7 +3624,7 @@ loser:
     }
 
     if(lk && (lk != key->objectInfo)) {
-	SECKEY_LowDestroyPrivateKey(lk);
+	nsslowkey_DestroyPrivateKey(lk);
     }
  
     if(param) {
@@ -3747,8 +3747,8 @@ pk11_unwrapPrivateKey(PK11Object *key, SECItem *bpki)
     const SEC_ASN1Template *keyTemplate, *paramTemplate;
     void *paramDest = NULL;
     PLArenaPool *arena;
-    SECKEYLowPrivateKey *lpk = NULL;
-    PrivateKeyInfo *pki = NULL;
+    NSSLOWKEYPrivateKey *lpk = NULL;
+    NSSLOWKEYPrivateKeyInfo *pki = NULL;
     SECItem *ck_id = NULL;
     CK_RV crv = CKR_KEY_TYPE_INCONSISTENT;
 
@@ -3757,21 +3757,21 @@ pk11_unwrapPrivateKey(PK11Object *key, SECItem *bpki)
 	return SECFailure;
     }
 
-    pki = (PrivateKeyInfo*)PORT_ArenaZAlloc(arena, 
-						sizeof(PrivateKeyInfo));
+    pki = (NSSLOWKEYPrivateKeyInfo*)PORT_ArenaZAlloc(arena, 
+					sizeof(NSSLOWKEYPrivateKeyInfo));
     if(!pki) {
 	PORT_FreeArena(arena, PR_TRUE);
 	return SECFailure;
     }
 
-    if(SEC_ASN1DecodeItem(arena, pki, SECKEY_PrivateKeyInfoTemplate, bpki) 
+    if(SEC_ASN1DecodeItem(arena, pki, nsslowkey_PrivateKeyInfoTemplate, bpki) 
 				!= SECSuccess) {
 	PORT_FreeArena(arena, PR_FALSE);
 	return SECFailure;
     }
 
-    lpk = (SECKEYLowPrivateKey *)PORT_ArenaZAlloc(arena,
-						  sizeof(SECKEYLowPrivateKey));
+    lpk = (NSSLOWKEYPrivateKey *)PORT_ArenaZAlloc(arena,
+						  sizeof(NSSLOWKEYPrivateKey));
     if(lpk == NULL) {
 	goto loser;
     }
@@ -3779,18 +3779,18 @@ pk11_unwrapPrivateKey(PK11Object *key, SECItem *bpki)
 
     switch(SECOID_GetAlgorithmTag(&pki->algorithm)) {
 	case SEC_OID_PKCS1_RSA_ENCRYPTION:
-	    keyTemplate = SECKEY_LowRSAPrivateKeyTemplate;
+	    keyTemplate = nsslowkey_RSAPrivateKeyTemplate;
 	    paramTemplate = NULL;
 	    paramDest = NULL;
-	    lpk->keyType = lowRSAKey;
+	    lpk->keyType = NSSLOWKEYRSAKey;
 	    break;
 	case SEC_OID_ANSIX9_DSA_SIGNATURE:
-	    keyTemplate = SECKEY_LowDSAPrivateKeyExportTemplate;
-	    paramTemplate = SECKEY_LowPQGParamsTemplate;
+	    keyTemplate = nsslowkey_DSAPrivateKeyExportTemplate;
+	    paramTemplate = nsslowkey_PQGParamsTemplate;
 	    paramDest = &(lpk->u.dsa.params);
-	    lpk->keyType = lowDSAKey;
+	    lpk->keyType = NSSLOWKEYDSAKey;
 	    break;
-	/* case lowDHKey: */
+	/* case NSSLOWKEYDHKey: */
 	default:
 	    keyTemplate = NULL;
 	    paramTemplate = NULL;
@@ -3818,7 +3818,7 @@ pk11_unwrapPrivateKey(PK11Object *key, SECItem *bpki)
     rv = SECFailure;
 
     switch (lpk->keyType) {
-        case lowRSAKey:
+        case NSSLOWKEYRSAKey:
 	    keyType = CKK_RSA;
 	    if(pk11_hasAttribute(key, CKA_NETSCAPE_DB)) {
 		pk11_DeleteAttributeType(key, CKA_NETSCAPE_DB);
@@ -3862,7 +3862,7 @@ pk11_unwrapPrivateKey(PK11Object *key, SECItem *bpki)
 	    crv = pk11_AddAttributeType(key, CKA_COEFFICIENT, 
 	     			pk11_item_expand(&lpk->u.rsa.coefficient));
 	    break;
-        case lowDSAKey:
+        case NSSLOWKEYDSAKey:
 	    keyType = CKK_DSA;
 	    crv = (pk11_hasAttribute(key, CKA_NETSCAPE_DB)) ? CKR_OK :
 						CKR_KEY_TYPE_INCONSISTENT;
@@ -3890,7 +3890,7 @@ pk11_unwrapPrivateKey(PK11Object *key, SECItem *bpki)
 	    if(crv != CKR_OK) break;
 	    break;
 #ifdef notdef
-        case lowDHKey:
+        case NSSLOWKEYDHKey:
 	    template = dhTemplate;
 	    templateCount = sizeof(dhTemplate)/sizeof(CK_ATTRIBUTE);
 	    keyType = CKK_DH;
@@ -3908,7 +3908,7 @@ loser:
     }
 
     if(lpk) {
-	SECKEY_LowDestroyPrivateKey(lpk);
+	nsslowkey_DestroyPrivateKey(lpk);
     }
 
     if(crv != CKR_OK) {
