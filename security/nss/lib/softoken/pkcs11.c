@@ -2238,6 +2238,7 @@ pk11_set_user(NSSLOWCERTCertificate *cert, SECItem *dummy, void *arg)
     }
 
     /* should check for email address and make sure we have an s/mime profile */
+    return SECSuccess;
 }
 
 static  void
