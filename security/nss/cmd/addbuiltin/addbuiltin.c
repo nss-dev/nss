@@ -157,6 +157,9 @@ ConvertCertificate(SECItem *sdder, char *nickname, CERTCertTrust *trust)
     printf("CKA_TRUST_KEY_AGREEMENT CK_TRUST CKT_NETSCAPE_TRUSTED_DELEGATOR\n");
     printf("CKA_TRUST_KEY_CERT_SIGN CK_TRUST CKT_NETSCAPE_TRUSTED_DELEGATOR\n");
 #endif
+    printf("CKA_TRUST_STEP_UP_APPROVED CK_BBOOL %s\n",
+                trust->sslFlags & CERTDB_GOVT_APPROVED_CA ? 
+                "CK_TRUE" : "CK_FALSE");
 
 
     PORT_Free(sdder->data);

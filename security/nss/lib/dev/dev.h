@@ -465,6 +465,7 @@ nssToken_ImportTrust
   nssTrustLevel clientAuth,
   nssTrustLevel codeSigning,
   nssTrustLevel emailProtection,
+  PRBool stepUpApproved,
   PRBool asTokenObject
 );
 
@@ -759,7 +760,8 @@ nssCryptokiTrust_GetAttributes
   nssTrustLevel *serverAuth,
   nssTrustLevel *clientAuth,
   nssTrustLevel *codeSigning,
-  nssTrustLevel *emailProtection
+  nssTrustLevel *emailProtection,
+  PRBool *stepUpApproved
 );
 
 NSS_EXTERN PRStatus
