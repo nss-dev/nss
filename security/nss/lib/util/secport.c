@@ -262,11 +262,13 @@ PORT_FreeArena(PLArenaPool *arena, PRBool zero)
 {
     PORTArenaPool *pool = (PORTArenaPool *)arena;
     PRLock *       lock = (PRLock *)0;
+    size_t         len  = sizeof *arena;
     extern const PRVersionDescription * libVersionPoint(void);
     static const PRVersionDescription * pvd;
     static PRBool  doFreeArenaPool;
 
     if (ARENAPOOL_MAGIC == pool->magic ) {
+	len  = sizeof *pool;
 	lock = pool->lock;
 	PZ_Lock(lock);
     }
@@ -282,7 +284,7 @@ PORT_FreeArena(PLArenaPool *arena, PRBool zero)
     if (doFreeArenaPool)
 	PL_FreeArenaPool(arena);
     PL_FinishArenaPool(arena);
-    PORT_ZFree(pool, sizeof(*pool));
+    PORT_ZFree(arena, len);
     if (lock) {
 	PZ_Unlock(lock);
 	PZ_DestroyLock(lock);
