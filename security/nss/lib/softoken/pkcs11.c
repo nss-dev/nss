@@ -624,71 +624,43 @@ pk11_handleCertObject(PK11Session *session,PK11Object *object)
 
     if (pk11_isTrue(object,CKA_TOKEN)) {
 	NSSLOWCERTCertTrust trust = { CERTDB_USER, CERTDB_USER, CERTDB_USER };
+	PK11Slot *slot = session->slot;
+	PRBool isUser = PR_FALSE;
 
 	if (slot->certDB == NULL) {
-	    return CKR_READONLY;
+	    return CKR_TOKEN_WRITE_PROTECTED;
 	}
 
 	if (slot->keyDB && 
 	    ((nsslowkey_KeyForCertExists(slot->keyDB, cert) == SECSuccess))) {
-	    isUser = PR_TRUE;
+	    isUser = PR_TRUE; 
 	}
 
-	/* if cert exists */
-	/* {   update trust if isUser, done } */
+	/* get the der cert */ 
+	attribute = pk11_FindAttribute(object,CKA_VALUE);
+	derCert.data = (unsigned char *)attribute->attrib.pValue;
+	derCert.len = attribute->attrib.ulValueLen ;
 
-	
-
-
-/* MORE WORK HERE!!!! */
-
-    /*
-     * now parse the certificate
-     */
-    handle = nsslowcert_GetDefaultCertDB(); /* GET HANDLE FROM SESSION 3.4 */
-
-    /* get the der cert */ 
-    attribute = pk11_FindAttribute(object,CKA_VALUE);
-    derCert.data = (unsigned char *)attribute->attrib.pValue;
-    derCert.len = attribute->attrib.ulValueLen ;
-
-	cert=lookupcert(cert);
-    pk11_FreeAttribute(attribute);
-    if (cert == NULL) {
-	return CKR_ATTRIBUTE_VALUE_INVALID;
-    }
-    
-
-	attribute = pk11_FindAttribute(object,CKA_NETSCAPE_TRUST);
-	if(attribute) {
-	    certUsage = (SECCertUsage*)attribute->attrib.pValue;
-	    pk11_FreeAttribute(attribute);
-	}
-
-	/* Temporary for PKCS 12 */
-	if(cert->nickname == NULL) {
-	    /* use the arena so we at least don't leak memory  */
-	    cert->nickname = (char *)PORT_ArenaAlloc(cert->arena,
-							PORT_Strlen(label)+1);
-	    if(cert->nickname == NULL) {
-		return CKR_HOST_MEMORY;
-	    }
-	    PORT_Memcpy(cert->nickname, label, PORT_Strlen(label));
-	}
-
-	if (!cert->isperm) {
-	    if (nsslowcert_AddTempCertToPerm(cert, label, &trust) != SECSuccess) {
-		return CKR_HOST_MEMORY;
-	    }
-        } else {
+	if (nsslowcert_CertDBKeyConflict(&derCert,slot->certDB)) {
+	    /* cert already exists in the database, update the status of the
+	     * user bits */
 	    nsslowcert_ChangeCertTrust(cert->dbhandle,cert,&trust);
-	}
-	if(certUsage) {
-	    if(nsslowcert_ChangeCertTrustByUsage(nsslowcert_GetDefaultCertDB(),
-				cert, *certUsage) != SECSuccess) {
-		return CKR_HOST_MEMORY;
+	} else {
+	    SECStatus rv;
+	    cert = nsslowcert_DecodeDERCertificate(&derCert,PR_FALSE,label);
+	    if (cert == NULL) {
+    		pk11_FreeAttribute(attribute);
+		return CKR_ATTRIBUTE_VALUE_INVALID;
+	    }
+	    rv = nsslowcert_AddPermCert(cert,label,isUser ? &trust : NULL);
+	    nsslowcert_DestroyCertificate(cert);
+	    if (rv != SECSuccess) {
+    		pk11_FreeAttribute(attribute);
+		return CKR_DEVICE_ERROR;
 	    }
 	}
+    	pk11_FreeAttribute(attribute);
+
 	object->handle |= (PK11_TOKEN_MAGIC | PK11_TOKEN_TYPE_CERT);
 	object->inDB = PR_TRUE;
     }
@@ -807,7 +779,7 @@ find_cert_by_pub_key(NSSLOWCERTCertificate *cert, SECItem *k, void *arg)
     }
 
     /* if this cert doesn't look like a user cert, we aren't interested */
-    if (!((cert->isperm) && (cert->trust) && 
+    if (!((cert->trust) && 
     	  (( cert->trust->sslFlags & CERTDB_USER ) ||
 	   ( cert->trust->emailFlags & CERTDB_USER ) ||
 	   ( cert->trust->objectSigningFlags & CERTDB_USER )) &&
@@ -857,16 +829,16 @@ reload_existing_certificate(PK11Object *privKeyObject,SECItem *pubKey)
     CK_RV crv;
     SECStatus rv;
 
-    PORT_Assert(privKeyObject->slot->certdb);
-    if (privKeyObject->slot->certdb == NULL) return SECFailure;
+    PORT_Assert(privKeyObject->slot->certDB);
+    if (privKeyObject->slot->certDB == NULL) return SECFailure;
 		    
     cbarg.pubKey = pubKey;
     cbarg.cert = NULL;
-    nsslowcert_TraversePermCerts(privKeyObject->slot->certdb,
+    nsslowcert_TraversePermCerts(privKeyObject->slot->certDB,
 				       find_cert_by_pub_key, (void *)&cbarg);
     if (cbarg.cert != NULL) {
 	NSSLOWCERTCertificate *cert = NULL;
-	cert = cbarg.cert
+	cert = cbarg.cert;
 
 	if (cert && !cert->nickname) {
 	    crv=pk11_Attribute2SecItem(NULL,&nickName,privKeyObject,CKA_LABEL);
@@ -1000,8 +972,8 @@ pk11_handlePrivateKeyObject(PK11Object *object,CK_KEY_TYPE key_type)
 
 	crv = pk11_Attribute2SecItem(NULL,&pubKey,object,CKA_NETSCAPE_DB);
 	if (crv == CKR_OK) {
-	    PORT_Assert(object->slot->keydb);
-	    rv = nsslowkey_StoreKeyByPublicKey(object->slot->keydb,
+	    PORT_Assert(object->slot->keyDB);
+	    rv = nsslowkey_StoreKeyByPublicKey(object->slot->keyDB,
 			privKey, &pubKey, label,
 			(NSSLOWKEYGetPasswordKey) pk11_givePass, object->slot);
 
@@ -1147,8 +1119,8 @@ pk11_handleSecretKeyObject(PK11Object *object,CK_KEY_TYPE key_type,
 	crv = pk11_Attribute2SecItem(NULL,&pubKey,object,CKA_ID);  /* Should this be ID? */
 	if (crv != CKR_OK) goto loser;
 
-	PORT_Assert(object->slot->keydb);
-	rv = nsslowkey_StoreKeyByPublicKey(object->slot->keydb,
+	PORT_Assert(object->slot->keyDB);
+	rv = nsslowkey_StoreKeyByPublicKey(object->slot->keyDB,
 			privKey, &pubKey, label,
 			(NSSLOWKEYGetPasswordKey) pk11_givePass, object->slot);
 	if (rv != SECSuccess) {
@@ -2149,8 +2121,8 @@ pk11_GetPrivKey(PK11Object *object,CK_KEY_TYPE key_type)
 	crv=pk11_Attribute2SecItem(NULL,&pubKey,object,CKA_NETSCAPE_DB);
 	if (crv != CKR_OK) return NULL;
 
-	PORT_Assert(object->slot->keydb);	
-	priv=nsslowkey_FindKeyByPublicKey(object->slot->keydb,&pubKey,
+	PORT_Assert(object->slot->keyDB);	
+	priv=nsslowkey_FindKeyByPublicKey(object->slot->keyDB,&pubKey,
 				       (NSSLOWKEYGetPasswordKey) pk11_givePass,
 				       object->slot);
 	if (!priv && pubKey.data[0] == 0) {
@@ -2161,7 +2133,7 @@ pk11_GetPrivKey(PK11Object *object,CK_KEY_TYPE key_type)
 	    SECItem tmpPubKey;
 	    tmpPubKey.data = pubKey.data + 1;
 	    tmpPubKey.len = pubKey.len - 1;
-	    priv=nsslowkey_FindKeyByPublicKey(object->slot->keydb,
+	    priv=nsslowkey_FindKeyByPublicKey(object->slot->keyDB,
 			&tmpPubKey, (NSSLOWKEYGetPasswordKey) pk11_givePass,
 				           object->slot);
 	}
@@ -2420,7 +2392,7 @@ CK_RV NSC_GetFunctionList(CK_FUNCTION_LIST_PTR *pFunctionList)
  */
 CK_RV
 PK11_SlotInit(CK_SLOT_ID slotID, PRBool needLogin, 
-		NSSLOWCERTDBHandle *certdb, NSSLOWKEYDBHandle *keydb)
+		NSSLOWCERTCertDBHandle *certDB, NSSLOWKEYDBHandle *keyDB)
 {
     int i;
     PK11Slot *slot = pk11_SlotFromID(slotID);
@@ -2454,7 +2426,7 @@ PK11_SlotInit(CK_SLOT_ID slotID, PRBool needLogin,
     slot->keyDB = keyDB;
     if (needLogin) {
 	/* if the data base is initialized with a null password,remember that */
-	slot->needLogin = (PRBool)!pk11_hasNullPassword(keydb,&slot->password);
+	slot->needLogin = (PRBool)!pk11_hasNullPassword(keyDB,&slot->password);
     }
     return CKR_OK;
 }
@@ -3952,7 +3924,6 @@ pk11_searchCerts(PK11Slot *slot, CK_ATTRIBUTE *pTemplate, CK_LONG ulCount) {
     SECItem name = { siBuffer, NULL, 0 };
     NSSLOWCERTIssuerAndSN issuerSN = {
 	{ siBuffer, NULL, 0 },
-	{ NULL, NULL },
 	{ siBuffer, NULL, 0 }
     };
     SECItem *copy = NULL;
@@ -4092,7 +4063,7 @@ pk11_searchCerts(PK11Slot *slot, CK_ATTRIBUTE *pTemplate, CK_LONG ulCount) {
 	NSSLOWCERTCertificate *cert = certData.certs[i];
 
 	/* we are only interested in permanment user certs here */
-	if ((cert->isperm) && (cert->trust) && 
+	if ((cert->trust) && 
     	  (( cert->trust->sslFlags & CERTDB_USER ) ||
 	   ( cert->trust->emailFlags & CERTDB_USER ) ||
 	   ( cert->trust->objectSigningFlags & CERTDB_USER )) &&
