@@ -52,7 +52,7 @@ nss_arena_hash_alloc_table
   PRSize size
 )
 {
-  NSSArena *arena = (NSSArena *)pool;
+  NSSArena *arena = (NSSArena *)NULL;
 
 #ifdef NSSDEBUG
   if( (void *)NULL != arena ) {
