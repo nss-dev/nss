@@ -1236,7 +1236,6 @@ secu_PrintSubjectPublicKeyInfo(FILE *out, PRArenaPool *arena,
 	case dhKey:
 	case fortezzaKey:
 	case keaKey:
-	case ecKey:
     	    fprintf(out, "unable to format this SPKI algorithm type\n");
 	    break;
 	default:
