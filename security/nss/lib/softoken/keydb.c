@@ -2328,7 +2328,7 @@ ChangeKeyDBPasswordAlg(NSSLOWKEYDBHandle *handle,
 
 loser:
 
-    db_FinishTransaction(handle->db,rv == SECSuccess);
+    db_FinishTransaction(handle->db,rv != SECSuccess);
 
     /* free the arena */
     if ( keylist.arena ) {
