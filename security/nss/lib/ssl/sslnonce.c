@@ -35,10 +35,10 @@
  * $Id$
  */
 
-#include "nssrenam.h"
-#include "cert.h"
-#include "secitem.h"
 #include "ssl.h"
+
+#include "base.h"
+#include "nsspki.h"
 
 #include "sslimpl.h"
 #include "sslproto.h"
@@ -83,29 +83,29 @@ static void
 ssl_DestroySID(sslSessionID *sid)
 {
     SSL_TRC(8, ("SSL: destroy sid: sid=0x%x cached=%d", sid, sid->cached));
-    PORT_Assert((sid->references == 0));
+    PR_ASSERT((sid->references == 0));
 
     if (sid->cached == in_client_cache)
     	return;	/* it will get taken care of next time cache is traversed. */
 
     if (sid->version < SSL_LIBRARY_VERSION_3_0) {
-	SECITEM_ZfreeItem(&sid->u.ssl2.masterKey, PR_FALSE);
-	SECITEM_ZfreeItem(&sid->u.ssl2.cipherArg, PR_FALSE);
+	nss_ZFreeIf(sid->u.ssl2.masterKey.data);
+	nss_ZFreeIf(sid->u.ssl2.cipherArg.data);
     }
     if (sid->peerID != NULL)
-	PORT_Free((void *)sid->peerID);		/* CONST */
+	nss_ZFreeIf((void *)sid->peerID);		/* CONST */
 
     if (sid->urlSvrName != NULL)
-	PORT_Free((void *)sid->urlSvrName);	/* CONST */
+	nss_ZFreeIf((void *)sid->urlSvrName);	/* CONST */
 
     if ( sid->peerCert ) {
-	CERT_DestroyCertificate(sid->peerCert);
+	NSSCert_Destroy(sid->peerCert);
     }
     if ( sid->localCert ) {
-	CERT_DestroyCertificate(sid->localCert);
+	NSSCert_Destroy(sid->localCert);
     }
     
-    PORT_ZFree(sid, sizeof(sslSessionID));
+    nss_ZFreeIf(sid);
 }
 
 /* BEWARE: This function gets called for both client and server SIDs !!
@@ -118,7 +118,7 @@ ssl_DestroySID(sslSessionID *sid)
 static void 
 ssl_FreeLockedSID(sslSessionID *sid)
 {
-    PORT_Assert(sid->references >= 1);
+    PR_ASSERT(sid->references >= 1);
     if (--sid->references == 0) {
 	ssl_DestroySID(sid);
     }
@@ -185,15 +185,15 @@ ssl_LookupSID(const PRIPv6Addr *addr, PRUint16 port, const char *peerID,
 		   /* proxy (peerID) matches */
 		   (((peerID == NULL) && (sid->peerID == NULL)) ||
 		    ((peerID != NULL) && (sid->peerID != NULL) &&
-		     PORT_Strcmp(sid->peerID, peerID) == 0)) &&
+		     strcmp(sid->peerID, peerID) == 0)) &&
 		   /* is cacheable */
 		   (sid->version < SSL_LIBRARY_VERSION_3_0 ||
 		    sid->u.ssl3.resumable) &&
 		   /* server hostname matches. */
 	           (sid->urlSvrName != NULL) &&
-		   ((0 == PORT_Strcmp(urlSvrName, sid->urlSvrName)) ||
-		    ((sid->peerCert != NULL) && (SECSuccess == 
-		      CERT_VerifyCertName(sid->peerCert, urlSvrName))) )
+		   ((NSSUTF8_Equal(urlSvrName, sid->urlSvrName, NULL)) ||
+		    ((sid->peerCert != NULL) && (PR_SUCCESS == 
+		      ssl_VerifyCertName(sid->peerCert, urlSvrName))) )
 		  ) {
 	    /* Hit */
 	    sid->lastAccessTime = now;
@@ -231,9 +231,9 @@ CacheSID(sslSessionID *sid)
 	PRINT_BUF(8, (0, "sessionID:",
 		  sid->u.ssl2.sessionID, sizeof(sid->u.ssl2.sessionID)));
 	PRINT_BUF(8, (0, "masterKey:",
-		  sid->u.ssl2.masterKey.data, sid->u.ssl2.masterKey.len));
+		  sid->u.ssl2.masterKey.data, sid->u.ssl2.masterKey.size));
 	PRINT_BUF(8, (0, "cipherArg:",
-		  sid->u.ssl2.cipherArg.data, sid->u.ssl2.cipherArg.len));
+		  sid->u.ssl2.cipherArg.data, sid->u.ssl2.cipherArg.size));
     } else {
 	if (sid->u.ssl3.sessionIDLength == 0) 
 	    return;
@@ -285,9 +285,9 @@ UncacheSID(sslSessionID *zap)
 	PRINT_BUF(8, (0, "sessionID:",
 		      zap->u.ssl2.sessionID, sizeof(zap->u.ssl2.sessionID)));
 	PRINT_BUF(8, (0, "masterKey:",
-		      zap->u.ssl2.masterKey.data, zap->u.ssl2.masterKey.len));
+		      zap->u.ssl2.masterKey.data, zap->u.ssl2.masterKey.size));
 	PRINT_BUF(8, (0, "cipherArg:",
-		      zap->u.ssl2.cipherArg.data, zap->u.ssl2.cipherArg.len));
+		      zap->u.ssl2.cipherArg.data, zap->u.ssl2.cipherArg.size));
     }
 
     /* See if it's in the cache, if so nuke it */

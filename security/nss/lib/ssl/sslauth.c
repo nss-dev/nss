@@ -32,15 +32,14 @@
  *
  * $Id$
  */
-#include "cert.h"
-#include "secitem.h"
 #include "ssl.h"
 #include "sslimpl.h"
 #include "sslproto.h"
-#include "pk11func.h"
+
+#include "nsspki.h"
 
 /* NEED LOCKS IN HERE.  */
-CERTCertificate *
+NSSCert *
 SSL_PeerCertificate(PRFileDesc *fd)
 {
     sslSocket *ss;
@@ -52,13 +51,13 @@ SSL_PeerCertificate(PRFileDesc *fd)
 	return 0;
     }
     if (ss->useSecurity && ss->sec.peerCert) {
-	return CERT_DupCertificate(ss->sec.peerCert);
+	return nssCert_AddRef(ss->sec.peerCert);
     }
     return 0;
 }
 
 /* NEED LOCKS IN HERE.  */
-CERTCertificate *
+NSSCert *
 SSL_LocalCertificate(PRFileDesc *fd)
 {
     sslSocket *ss;
@@ -71,10 +70,10 @@ SSL_LocalCertificate(PRFileDesc *fd)
     }
     if (ss->useSecurity) {
     	if (ss->sec.localCert) {
-	    return CERT_DupCertificate(ss->sec.localCert);
+	    return nssCert_AddRef(ss->sec.localCert);
 	}
 	if (ss->sec.ci.sid && ss->sec.ci.sid->localCert) {
-	    return CERT_DupCertificate(ss->sec.ci.sid->localCert);
+	    return nssCert_AddRef(ss->sec.ci.sid->localCert);
 	}
     }
     return NULL;
@@ -114,11 +113,11 @@ SSL_SecurityStatus(PRFileDesc *fd, int *op, char **cp, int *kp0, int *kp1,
 	} else {
 	    cipherName = ssl3_cipherName[ss->sec.cipherType];
 	}
-	if (cipherName && PORT_Strstr(cipherName, "DES")) isDes = PR_TRUE;
+	if (cipherName && strstr(cipherName, "DES")) isDes = PR_TRUE;
 	/* do same key stuff for fortezza */
     
 	if (cp) {
-	    *cp = PORT_Strdup(cipherName);
+	    *cp = (char *)NSSUTF8_Duplicate(cipherName);
 	}
 
 	if (kp0) {
@@ -141,22 +140,22 @@ SSL_SecurityStatus(PRFileDesc *fd, int *op, char **cp, int *kp0, int *kp1,
 	}
 
 	if (ip || sp) {
-	    CERTCertificate *cert;
+	    NSSCert *cert;
 
 	    cert = ss->sec.peerCert;
 	    if (cert) {
 		if (ip) {
-		    *ip = CERT_NameToAscii(&cert->issuer);
+		    *ip = NSSCert_GetIssuerName(cert);
 		}
 		if (sp) {
-		    *sp = CERT_NameToAscii(&cert->subject);
+		    *sp = NSSCert_GetNames(cert, sp, 1, NULL);
 		}
 	    } else {
 		if (ip) {
-		    *ip = PORT_Strdup("no certificate");
+		    *ip = NSSUTF8_Duplicate("no certificate");
 		}
 		if (sp) {
-		    *sp = PORT_Strdup("no certificate");
+		    *sp = NSSUTF8_Duplicate("no certificate");
 		}
 	    }
 	}
@@ -234,26 +233,28 @@ SECStatus
 SSL_AuthCertificate(void *arg, PRFileDesc *fd, PRBool checkSig, PRBool isServer)
 {
     SECStatus          rv;
-    CERTCertDBHandle * handle;
     sslSocket *        ss;
-    SECCertUsage       certUsage;
+    NSSUsages          usage;
+    PRStatus           status;
     const char *             hostname    = NULL;
+    NSSUTF8 **name;
+    NSSUTF8 **names;
+    NSSArena *arena;
     
     ss = ssl_FindSocket(fd);
-    PORT_Assert(ss != NULL);
+    PR_ASSERT(ss != NULL);
     if (!ss) {
 	return SECFailure;
     }
 
-    handle = (CERTCertDBHandle *)arg;
-
     /* this may seem backwards, but isn't. */
-    certUsage = isServer ? certUsageSSLClient : certUsageSSLServer;
+    usage.peer = isServer ? NSSUsage_SSLClient : NSSUsage_SSLServer;
 
-    rv = CERT_VerifyCertNow(handle, ss->sec.peerCert, checkSig, certUsage,
-			    ss->pkcs11PinArg);
+    /* XXX checkSig? */
+    status = NSSCertificate_Validate(ss->sec.peerCert,
+                                     NSSTime_Now(), &usage, NULL);
 
-    if ( rv != SECSuccess || isServer )
+    if ( status == PR_FAILURE || isServer )
 	return rv;
   
     /* cert is OK.  This is the client side of an SSL connection.
@@ -261,12 +262,28 @@ SSL_AuthCertificate(void *arg, PRFileDesc *fd, PRBool checkSig, PRBool isServer)
      * NB: This is our only defense against Man-In-The-Middle (MITM) attacks!
      */
     hostname = ss->url;
-    if (hostname && hostname[0])
-	rv = CERT_VerifyCertName(ss->sec.peerCert, hostname);
-    else 
+    if (hostname && hostname[0]) {
+	NSSArena *arena;
 	rv = SECFailure;
+	arena = NSSArena_Create();
+	if (!arena) {
+	    return SECFailure;
+	}
+	names = NSSCert_GetNames(ss->sec.peerCert, NULL, 0, arena);
+	if (names) {
+	    for (name = names; *name; name++) {
+		if (NSSUTF8_Equal(*name, hostname, NULL)) {
+		    rv = SECSuccess;
+		    break;
+		}
+	    }
+	}
+	NSSArena_Destroy(arena); /* clears all parts of 'names' */
+    } else  {
+	rv = SECFailure;
+    }
     if (rv != SECSuccess)
-	PORT_SetError(SSL_ERROR_BAD_CERT_DOMAIN);
+	nss_SetError(SSL_ERROR_BAD_CERT_DOMAIN);
 
     return rv;
 }

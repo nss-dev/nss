@@ -35,7 +35,7 @@
  * $Id$
  */
 
-#ifndef /* NSSPKI_H */
+#ifndef NSSPKI_H
 #include "nsspki.h"
 #endif /* NSSPKI_H */
 
@@ -51,12 +51,12 @@ SSL_GetClientAuthData(void *                       arg,
                       NSSTrustDomain *             td,
                       NSSDER **                    caNames,
                       NSSCert **                   pRetCert,
-                      NSSPrivateKey **             pRetKey);
+                      NSSPrivateKey **             pRetKey)
 {
   NSSCert *   cert = NULL;
   NSSPrivateKey *    privkey = NULL;
   NSSUTF8 *          chosenNickName = (NSSUTF8 *)arg;    /* CONST */
-  NSSCallback        pinCallback  = NULL;
+  NSSCallback *      pinCallback  = NULL;
   
   pinCallback = SSL_RevealPinArg(socket);
   

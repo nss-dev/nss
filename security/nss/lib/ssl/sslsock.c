@@ -37,13 +37,17 @@
  *
  * $Id$
  */
-#include "seccomon.h"
-#include "cert.h"
-#include "keyhi.h"
+
+/* XXX */
+#include <string.h>
+
 #include "ssl.h"
 #include "sslimpl.h"
 #include "sslproto.h"
 #include "nspr.h"
+
+#include "base.h"
+#include "nsspki.h"
 
 #define SET_ERROR_CODE   /* reminder */
 
@@ -225,26 +229,28 @@ ssl_DupSocket(sslSocket *os)
 	ss->v2CompatibleHello  = os->v2CompatibleHello;
 	ss->detectRollBack     = os->detectRollBack;
 
-	ss->peerID             = !os->peerID ? NULL : PORT_Strdup(os->peerID);
-	ss->url                = !os->url    ? NULL : PORT_Strdup(os->url);
+	ss->peerID             = !os->peerID ? NULL : 
+	                                 NSSUTF8_Duplicate(os->peerID, NULL);
+	ss->url                = !os->url    ? NULL : 
+	                                 NSSUTF8_Duplicate(os->url, NULL);
 
 	ss->ops      = os->ops;
 	ss->rTimeout = os->rTimeout;
 	ss->wTimeout = os->wTimeout;
 	ss->cTimeout = os->cTimeout;
-	ss->dbHandle = os->dbHandle;
+	ss->td = os->td; /* XXX ref counted? */
+	ss->vd = os->vd; /* XXX ref counted? */
 
 	/* copy ssl2&3 policy & prefs, even if it's not selected (yet) */
 	ss->allowedByPolicy	= os->allowedByPolicy;
 	ss->maybeAllowedByPolicy= os->maybeAllowedByPolicy;
 	ss->chosenPreference 	= os->chosenPreference;
-	PORT_Memcpy(ss->cipherSuites, os->cipherSuites, sizeof os->cipherSuites);
+	memcpy(ss->cipherSuites, os->cipherSuites, sizeof os->cipherSuites);
 
 	if (os->cipherSpecs) {
-	    ss->cipherSpecs  = (unsigned char*)PORT_Alloc(os->sizeCipherSpecs);
+	    ss->cipherSpecs  = nss_ZAlloc(NULL, os->sizeCipherSpecs);
 	    if (ss->cipherSpecs) 
-	    	PORT_Memcpy(ss->cipherSpecs, os->cipherSpecs, 
-		            os->sizeCipherSpecs);
+	    	memcpy(ss->cipherSpecs, os->cipherSpecs, os->sizeCipherSpecs);
 	    ss->sizeCipherSpecs    = os->sizeCipherSpecs;
 	    ss->preferredCipher    = os->preferredCipher;
 	} else {
@@ -260,18 +266,17 @@ ssl_DupSocket(sslSocket *os)
 	    sslServerCerts * oc = os->serverCerts;
 	    sslServerCerts * sc = ss->serverCerts;
 
-	    for (i=kt_null; i < kt_kea_size; i++, oc++, sc++) {
-		if (oc->serverCert && oc->serverCertChain) {
-		    sc->serverCert      = CERT_DupCertificate(oc->serverCert);
-		    sc->serverCertChain = CERT_DupCertList(oc->serverCertChain);
+	    for (i=ssl_kea_null; i < ssl_kea_size; i++, oc++, sc++) {
+		if (oc->serverCertChain) {
+		    sc->serverCertChain = 
+		                  NSSCertChain_Duplicate(oc->serverCertChain);
 		    if (!sc->serverCertChain) 
 		    	goto loser;
 		} else {
-		    sc->serverCert      = NULL;
 		    sc->serverCertChain = NULL;
 		}
 		sc->serverKey = oc->serverKey ?
-				SECKEY_CopyPrivateKey(oc->serverKey) : NULL;
+				nssPrivateKey_AddRef(oc->serverKey) : NULL;
 		if (oc->serverKey && !sc->serverKey)
 		    goto loser;
 	        sc->serverKeyBits = oc->serverKeyBits;
@@ -356,29 +361,27 @@ ssl_DestroySocketContents(sslSocket *ss)
 
     ssl3_DestroySSL3Info(ss->ssl3);
 
-    PORT_Free(ss->saveBuf.buf);
-    PORT_Free(ss->pendingBuf.buf);
+    nss_ZFreeIf(ss->saveBuf.buf);
+    nss_ZFreeIf(ss->pendingBuf.buf);
     ssl_DestroyGather(&ss->gs);
 
     if (ss->peerID != NULL)
-	PORT_Free(ss->peerID);
+	nss_ZFreeIf(ss->peerID);
     if (ss->url != NULL)
-	PORT_Free((void *)ss->url);	/* CONST */
+	nss_ZFreeIf((void *)ss->url);	/* CONST */
     if (ss->cipherSpecs) {
-	PORT_Free(ss->cipherSpecs);
+	nss_ZFreeIf(ss->cipherSpecs);
 	ss->cipherSpecs     = NULL;
 	ss->sizeCipherSpecs = 0;
     }
 
     /* Clean up server configuration */
-    for (i=kt_null; i < kt_kea_size; i++) {
+    for (i=ssl_kea_null; i < ssl_kea_size; i++) {
 	sslServerCerts * sc = ss->serverCerts + i;
-	if (sc->serverCert != NULL)
-	    CERT_DestroyCertificate(sc->serverCert);
 	if (sc->serverCertChain != NULL)
-	    CERT_DestroyCertificateList(sc->serverCertChain);
+	    NSSCertChain_Destroy(sc->serverCertChain);
 	if (sc->serverKey != NULL)
-	    SECKEY_DestroyPrivateKey(sc->serverKey);
+	    NSSPrivateKey_Destroy(sc->serverKey);
     }
     if (ss->stepDownKeyPair) {
 	ssl3_FreeKeyPair(ss->stepDownKeyPair);
@@ -411,7 +414,7 @@ ssl_FreeSocket(sslSocket *ss)
 #ifdef DEBUG
     fs = &lSock;
     *fs = *ss;				/* Copy the old socket structure, */
-    PORT_Memset(ss, 0x1f, sizeof *ss);  /* then blast the old struct ASAP. */
+    memset(ss, 0x1f, sizeof *ss);  /* then blast the old struct ASAP. */
 #else
 #define fs ss
 #endif
@@ -429,7 +432,7 @@ ssl_FreeSocket(sslSocket *ss)
 
     ssl_DestroyLocks(fs);
 
-    PORT_Free(ss);	/* free the caller's copy, not ours. */
+    nss_ZFreeIf(ss);	/* free the caller's copy, not ours. */
     return;
 }
 #undef fs
@@ -531,7 +534,7 @@ SSL_OptionSet(PRFileDesc *fd, PRInt32 which, PRBool on)
 	ss->enableTLS           = on;
 	ss->preferredCipher     = NULL;
 	if (ss->cipherSpecs) {
-	    PORT_Free(ss->cipherSpecs);
+	    nss_ZFreeIf(ss->cipherSpecs);
 	    ss->cipherSpecs     = NULL;
 	    ss->sizeCipherSpecs = 0;
 	}
@@ -541,7 +544,7 @@ SSL_OptionSet(PRFileDesc *fd, PRInt32 which, PRBool on)
 	ss->enableSSL3          = on;
 	ss->preferredCipher     = NULL;
 	if (ss->cipherSpecs) {
-	    PORT_Free(ss->cipherSpecs);
+	    nss_ZFreeIf(ss->cipherSpecs);
 	    ss->cipherSpecs     = NULL;
 	    ss->sizeCipherSpecs = 0;
 	}
@@ -554,7 +557,7 @@ SSL_OptionSet(PRFileDesc *fd, PRInt32 which, PRBool on)
 	}
 	ss->preferredCipher     = NULL;
 	if (ss->cipherSpecs) {
-	    PORT_Free(ss->cipherSpecs);
+	    nss_ZFreeIf(ss->cipherSpecs);
 	    ss->cipherSpecs     = NULL;
 	    ss->sizeCipherSpecs = 0;
 	}
@@ -946,7 +949,7 @@ NSS_SetFrancePolicy(void)
 
 /* LOCKS ??? XXX */
 PRFileDesc *
-SSL_ImportFD(PRFileDesc *model, PRFileDesc *fd)
+SSL_ImportFD(PRFileDesc *model, NSSTrustDomain *td, PRFileDesc *fd)
 {
     sslSocket * ns = NULL;
     PRStatus    rv;
@@ -966,6 +969,9 @@ SSL_ImportFD(PRFileDesc *model, PRFileDesc *fd)
     }
     if (ns == NULL)
     	return NULL;
+    ns->td = td;
+    /* XXX is this right? */
+    ns->vd = NSSTrustDomain_CreateVolatileDomain(td, NULL);
 
     rv = ssl_PushIOLayer(ns, fd, PR_TOP_IO_LAYER);
     if (rv != PR_SUCCESS) {
@@ -1017,7 +1023,7 @@ ssl_Accept(PRFileDesc *fd, PRNetAddr *sockaddr, PRIntervalTime timeout)
     newfd = osfd->methods->accept(osfd, sockaddr, timeout);
     if (newfd == NULL) {
 	SSL_DBG(("%d: SSL[%d]: accept failed, errno=%d",
-		 SSL_GETPID(), ss->fd, PORT_GetError()));
+		 SSL_GETPID(), ss->fd, NSS_GetError()));
     } else {
 	/* Create ssl module */
 	ns = ssl_DupSocket(ss);
@@ -1288,7 +1294,7 @@ ssl_GetPeerInfo(sslSocket *ss)
 
     osfd = ss->fd->lower;
 
-    PORT_Memset(&sin, 0, sizeof(sin));
+    memset(&sin, 0, sizeof(sin));
     rv = osfd->methods->getpeername(osfd, &sin);
     if (rv < 0) {
 	return SECFailure;
@@ -1332,7 +1338,7 @@ SSL_SetSockPeerID(PRFileDesc *fd, char *peerID)
 	return SECFailure;
     }
 
-    ss->peerID = PORT_Strdup(peerID);
+    ss->peerID = NSSUTF8_Duplicate(peerID, NULL);
     return SECSuccess;
 }
 
@@ -1400,7 +1406,7 @@ ssl_Poll(PRFileDesc *fd, PRInt16 how_flags, PRInt16 *p_out_flags)
 	*p_out_flags = PR_POLL_READ;	/* it's ready already. */
 	return new_flags;
     } else if ((ss->lastWriteBlocked) && (how_flags & PR_POLL_READ) &&
-	       (ss->pendingBuf.len != 0)) { /* write data waiting to be sent */
+	       (ss->pendingBuf.size != 0)) { /* write data waiting to be sent */
 	new_flags |=  PR_POLL_WRITE;   /* also select on write. */
     } 
     if (new_flags && (fd->lower->methods->poll != NULL)) {
@@ -1503,14 +1509,14 @@ ssl_WriteV(PRFileDesc *fd, const PRIOVec *iov, PRInt32 vectors,
 	return ssl_Send(fd, myIov.iov_base, myIov.iov_len, 0, timeout);
     }
     if (myIov.iov_len < first_len) {
-	PORT_Memcpy(buf, myIov.iov_base, myIov.iov_len);
+	memcpy(buf, myIov.iov_base, myIov.iov_len);
 	bufLen = myIov.iov_len;
 	left = first_len - bufLen;
 	while (vectors && left) {
 	    int toCopy;
 	    GET_VECTOR;
 	    toCopy = PR_MIN(left, myIov.iov_len);
-	    PORT_Memcpy(buf + bufLen, myIov.iov_base, toCopy);
+	    memcpy(buf + bufLen, myIov.iov_base, toCopy);
 	    bufLen         += toCopy;
 	    left           -= toCopy;
 	    myIov.iov_base += toCopy;
@@ -1547,11 +1553,11 @@ ssl_WriteV(PRFileDesc *fd, const PRIOVec *iov, PRInt32 vectors,
 	    myIov.iov_len = 0;
 	    continue;
 	}
-	PORT_Memcpy(buf, myIov.iov_base, myIov.iov_len);
+	memcpy(buf, myIov.iov_base, myIov.iov_len);
 	bufLen = myIov.iov_len;
 	do {
 	    GET_VECTOR;
-	    PORT_Memcpy(buf + bufLen, myIov.iov_base, addLen);
+	    memcpy(buf + bufLen, myIov.iov_base, addLen);
 	    myIov.iov_base += addLen;
 	    myIov.iov_len  -= addLen;
 	    bufLen         += addLen;
@@ -1829,7 +1835,7 @@ ssl_NewSocket(void)
 #endif /* DEBUG */
 
     /* Make a new socket and get it ready */
-    ss = (sslSocket*) PORT_ZAlloc(sizeof(sslSocket));
+    ss = nss_ZNEW(NULL, sslSocket);
     if (ss) {
         /* This should be of type SSLKEAType, but CC on IRIX
 	 * complains during the for loop.
@@ -1859,19 +1865,17 @@ ssl_NewSocket(void)
         ss->preferredCipher    = NULL;
         ss->url                = NULL;
 
-	for (i=kt_null; i < kt_kea_size; i++) {
+	for (i=ssl_kea_null; i < ssl_kea_size; i++) {
 	    sslServerCerts * sc = ss->serverCerts + i;
-	    sc->serverCert      = NULL;
 	    sc->serverCertChain = NULL;
 	    sc->serverKey       = NULL;
 	    sc->serverKeyBits   = 0;
 	}
 	ss->stepDownKeyPair    = NULL;
-	ss->dbHandle           = CERT_GetDefaultCertDB();
 
 	/* Provide default implementation of hooks */
 	ss->authCertificate    = SSL_AuthCertificate;
-	ss->authCertificateArg = (void *)ss->dbHandle;
+	/* XXX ss->authCertificateArg = (void *)ss->dbHandle; */
 	ss->getClientAuthData  = NULL;
 	ss->handleBadCert      = NULL;
 	ss->badCertArg         = NULL;
@@ -1905,7 +1909,7 @@ ssl_NewSocket(void)
 loser:
 	    ssl_DestroySocketContents(ss);
 	    ssl_DestroyLocks(ss);
-	    PORT_Free(ss);
+	    nss_ZFreeIf(ss);
 	    ss = NULL;
 	}
     }

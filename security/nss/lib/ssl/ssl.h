@@ -69,6 +69,7 @@ SSL_IMPORT const PRUint16 SSL_NumImplementedCiphers;
 ** Imports fd into SSL, returning a new socket.  Copies SSL configuration
 ** from model.
 */
+/* XXX split into two, one w/ model, one w/o but with td? */
 SSL_IMPORT PRFileDesc *SSL_ImportFD(PRFileDesc *modelOpt, 
                                     NSSTrustDomain *td,
                                     PRFileDesc *fd);

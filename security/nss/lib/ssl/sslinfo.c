@@ -32,6 +32,9 @@
  *
  * $Id$
  */
+
+#include <string.h>
+
 #include "ssl.h"
 #include "sslimpl.h"
 #include "sslproto.h"
@@ -97,8 +100,8 @@ SSL_GetChannelInfo(PRFileDesc *fd, SSLChannelInfo *info, PRUintn len)
     return SECSuccess;
 }
 
-#define kt_kea kt_fortezza
-#define calg_sj calg_fortezza
+#define ssl_kea_kea ssl_kea_fortezza
+#define ssl_calg_sj ssl_calg_fortezza
 
 #define CS(x) x, #x
 #define CK(x) x | 0xff00, #x
@@ -107,17 +110,17 @@ SSL_GetChannelInfo(PRFileDesc *fd, SSLChannelInfo *info, PRUintn len)
 #define S_RSA	"RSA", ssl_auth_rsa
 #define S_KEA   "KEA", ssl_auth_kea
 
-#define K_DHE	"DHE", kt_dh
-#define K_RSA	"RSA", kt_rsa
-#define K_KEA	"KEA", kt_kea
+#define K_DHE	"DHE", ssl_kea_dh
+#define K_RSA	"RSA", ssl_kea_rsa
+#define K_KEA	"KEA", ssl_kea_kea
 
-#define C_AES	"AES", calg_aes
-#define C_RC4	"RC4", calg_rc4
-#define C_RC2	"RC2", calg_rc2
-#define C_DES	"DES", calg_des
-#define C_3DES	"3DES", calg_3des
-#define C_NULL  "NULL", calg_null
-#define C_SJ 	"SKIPJACK", calg_sj
+#define C_AES	"AES", ssl_calg_aes
+#define C_RC4	"RC4", ssl_calg_rc4
+#define C_RC2	"RC2", ssl_calg_rc2
+#define C_DES	"DES", ssl_calg_des
+#define C_3DES	"3DES", ssl_calg_3des
+#define C_NULL  "NULL", ssl_calg_null
+#define C_SJ 	"SKIPJACK", ssl_calg_sj
 
 #define B_256	256, 256, 256
 #define B_128	128, 128, 128

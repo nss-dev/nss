@@ -35,6 +35,8 @@
  * $Id$
  */
 
+#ifdef IMPLEMENT_SESSION_ID_CACHE
+
 /* Note: ssl_FreeSID() in sslnonce.c gets used for both client and server 
  * cache sids!
  *
@@ -1621,3 +1623,5 @@ SSL_SetMaxServerCacheLocks(PRUint32 maxLocks)
 }
 
 #endif /* XP_UNIX || XP_WIN32 */
+
+#endif /* IMPLEMENT_SESSION_ID_CACHE */

@@ -35,7 +35,6 @@
  * $Id$
  */
 
-#include "cert.h"
 #include "ssl.h"
 #include "sslimpl.h"
 
@@ -222,9 +221,9 @@ int ssl_DefClose(sslSocket *ss)
     ** then invoke the SSL layer's PRFileDesc destructor.
     ** This must happen before the next layer down is closed.
     */
-    PORT_Assert(fd->higher == NULL);
+    PR_ASSERT(fd->higher == NULL);
     if (fd->higher) {
-	PORT_SetError(PR_BAD_DESCRIPTOR_ERROR);
+	nss_SetError(PR_BAD_DESCRIPTOR_ERROR);
 	return SECFailure;
     }
     ss->fd = NULL;

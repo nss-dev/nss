@@ -34,14 +34,15 @@
  *
  * $Id$
  */
-#include "cert.h"
-#include "secitem.h"
-#include "keyhi.h"
+
+#include <string.h>
+
 #include "ssl.h"
 #include "sslimpl.h"
 #include "sslproto.h"
-#include "secoid.h"	/* for SECOID_GetALgorithmTag */
-#include "pk11func.h"	/* for PK11_GenerateRandom */
+
+#include "base.h"
+#include "nsspki.h"
 
 #define MAX_BLOCK_CYPHER_SIZE	32
 
@@ -386,9 +387,9 @@ sslBuffer_Grow(sslBuffer *b, unsigned int newLen)
 {
     if (newLen > b->space) {
 	if (b->buf) {
-	    b->buf = (unsigned char *) PORT_Realloc(b->buf, newLen);
+	    b->buf = (unsigned char *) nss_ZRealloc(b->buf, newLen);
 	} else {
-	    b->buf = (unsigned char *) PORT_Alloc(newLen);
+	    b->buf = (unsigned char *) nss_ZAlloc(NULL, newLen);
 	}
 	if (!b->buf) {
 	    return SECFailure;
@@ -414,7 +415,7 @@ ssl_SaveWriteData(sslSocket *ss, sslBuffer *buf, const void *data,
     SECStatus    rv;
 
     PORT_Assert( ssl_HaveXmitBufLock(ss) );
-    newlen = buf->len + len;
+    newlen = buf->size + len;
     if (newlen > buf->space) {
 	rv = sslBuffer_Grow(buf, newlen);
 	if (rv) {
@@ -423,8 +424,8 @@ ssl_SaveWriteData(sslSocket *ss, sslBuffer *buf, const void *data,
     }
     SSL_TRC(5, ("%d: SSL[%d]: saving %d bytes of data (%d total saved so far)",
 		 SSL_GETPID(), ss->fd, len, newlen));
-    PORT_Memcpy(buf->buf + buf->len, data, len);
-    buf->len = newlen;
+    memcpy(buf->buf + buf->size, data, len);
+    buf->size = newlen;
     return SECSuccess;
 }
 
@@ -438,7 +439,7 @@ int
 ssl_SendSavedWriteData(sslSocket *ss, sslBuffer *buf, sslSendFunc send)
 {
     int rv	= 0;
-    int len	= buf->len;
+    int len	= buf->size;
 
     PORT_Assert( ssl_HaveXmitBufLock(ss) );
     if (len != 0) {
@@ -453,10 +454,10 @@ ssl_SendSavedWriteData(sslSocket *ss, sslBuffer *buf, sslSendFunc send)
 	    ** it depends on PORT_Memmove doing overlapping moves correctly!
 	    ** It should advance the pointer offset instead !!
 	    */
-	    PORT_Memmove(buf->buf, buf->buf + rv, len - rv);
-	    buf->len = len - rv;
+	    memmove(buf->buf, buf->buf + rv, len - rv);
+	    buf->size = len - rv;
 	} else {
-	    buf->len = 0;
+	    buf->size = 0;
     	}
     }
     return rv;
@@ -538,7 +539,7 @@ DoRecv(sslSocket *ss, unsigned char *out, int len, int flags)
 
     /* Dole out clear data to reader */
     amount = PR_MIN(len, available);
-    PORT_Memcpy(out, ss->gs.buf.buf + ss->gs.readOffset, amount);
+    memcpy(out, ss->gs.buf.buf + ss->gs.readOffset, amount);
     if (!(flags & PR_MSG_PEEK)) {
 	ss->gs.readOffset += amount;
     }
@@ -556,31 +557,29 @@ done:
 /************************************************************************/
 
 SSLKEAType
-ssl_FindCertKEAType(CERTCertificate * cert)
+ssl_FindCertKEAType(NSSCert * cert)
 {
-  SSLKEAType keaType = kt_null; 
-  int tag;
+  SSLKEAType keaType = ssl_kea_null; 
+  NSSKeyPairType keyPairType;
   
   if (!cert) goto loser;
   
-  tag = SECOID_GetAlgorithmTag(&(cert->subjectPublicKeyInfo.algorithm));
+  keyPairType = NSSCert_GetPublicKeyType(cert);
   
-  switch (tag) {
-  case SEC_OID_X500_RSA_ENCRYPTION:
-  case SEC_OID_PKCS1_RSA_ENCRYPTION:
-    keaType = kt_rsa;
+  switch (keyPairType) {
+  case NSSKeyPairType_RSA:
+    keaType = ssl_kea_rsa;
     break;
-  case SEC_OID_MISSI_KEA_DSS_OLD:
-  case SEC_OID_MISSI_KEA_DSS:
-  case SEC_OID_MISSI_DSS_OLD:
-  case SEC_OID_MISSI_DSS:
-    keaType = kt_fortezza;
+#ifdef FORTEZZA
+  case NSSKeyPairType_FORTEZZA:
+    keaType = ssl_kea_fortezza;
     break;
-  case SEC_OID_X942_DIFFIE_HELMAN_KEY:
-    keaType = kt_dh;
+#endif /* FORTEZZA */
+  case NSSKeyPairType_DH:
+    keaType = ssl_kea_dh;
     break;
   default:
-    keaType = kt_null;
+    keaType = ssl_kea_null;
   }
   
  loser:
@@ -593,8 +592,8 @@ ssl_FindCertKEAType(CERTCertificate * cert)
 /* XXX need to protect the data that gets changed here.!! */
 
 SECStatus
-SSL_ConfigSecureServer(PRFileDesc *fd, CERTCertificate *cert,
-		       SECKEYPrivateKey *key, SSL3KEAType kea)
+SSL_ConfigSecureServer(PRFileDesc *fd, NSSCert *cert,
+		       NSSPrivateKey *key, SSLKEAType kea)
 {
     SECStatus rv;
     sslSocket *ss;
@@ -614,7 +613,7 @@ SSL_ConfigSecureServer(PRFileDesc *fd, CERTCertificate *cert,
     }
 
     /* make sure the key exchange is recognized */
-    if ((kea >= kt_kea_size) || (kea < kt_null)) {
+    if ((kea >= ssl_kea_size) || (kea < ssl_kea_null)) {
 	PORT_SetError(SEC_ERROR_UNSUPPORTED_KEYALG);
 	return SECFailure;
     }
@@ -625,50 +624,46 @@ SSL_ConfigSecureServer(PRFileDesc *fd, CERTCertificate *cert,
     }
 
     sc = ss->serverCerts + kea;
-    /* load the server certificate */
-    if (sc->serverCert != NULL) {
-	CERT_DestroyCertificate(sc->serverCert);
-    	sc->serverCert = NULL;
-    }
+    /* find the server certificate's key bits */
     if (cert) {
-	SECKEYPublicKey * pubKey;
-	sc->serverCert = CERT_DupCertificate(cert);
-	if (!sc->serverCert)
-	    goto loser;
+	NSSPublicKey * pubKey;
     	/* get the size of the cert's public key, and remember it */
-	pubKey = CERT_ExtractPublicKey(cert);
+	pubKey = NSSCert_GetPublicKey(cert);
 	if (!pubKey) 
 	    goto loser;
-	sc->serverKeyBits = SECKEY_PublicKeyStrength(pubKey) * BPB;
-	SECKEY_DestroyPublicKey(pubKey); 
+	sc->serverKeyBits = NSSPublicKey_GetKeyStrength(pubKey);
+	NSSPublicKey_Destroy(pubKey); 
 	pubKey = NULL;
     }
 
 
     /* load the server cert chain */
     if (sc->serverCertChain != NULL) {
-	CERT_DestroyCertificateList(sc->serverCertChain);
+	NSSCertChain_Destroy(sc->serverCertChain);
     	sc->serverCertChain = NULL;
     }
     if (cert) {
-	sc->serverCertChain = CERT_CertChainFromCert(
-			    sc->serverCert, certUsageSSLServer, PR_TRUE);
+	NSSUsages usage = { 0, NSSUsage_SSLServer };
+	sc->serverCertChain = NSSVolatileDomain_CreateChain(ss->vd,
+	                                                    cert,
+	                                                    NSSTime_Now(),
+	                                                    &usage, NULL);
 	if (sc->serverCertChain == NULL)
 	     goto loser;
     }
 
     /* load the private key */
     if (sc->serverKey != NULL) {
-	SECKEY_DestroyPrivateKey(sc->serverKey);
+	NSSPrivateKey_Destroy(sc->serverKey);
     	sc->serverKey = NULL;
     }
     if (key) {
-	sc->serverKey = SECKEY_CopyPrivateKey(key);
+	sc->serverKey = nssPrivateKey_AddRef(key);
 	if (sc->serverKey == NULL)
 	    goto loser;
     }
 
-    if (kea == kt_rsa) {
+    if (kea == ssl_kea_rsa) {
         rv = ssl3_CreateRSAStepDownKeys(ss);
 	if (rv != SECSuccess) {
 	    return SECFailure;	/* err set by ssl3_CreateRSAStepDownKeys */
@@ -677,21 +672,19 @@ SSL_ConfigSecureServer(PRFileDesc *fd, CERTCertificate *cert,
 
     /* Only do this once because it's global. */
     if (ssl3_server_ca_list == NULL)
-	ssl3_server_ca_list = CERT_GetSSLCACerts(ss->dbHandle);
+	ssl3_server_ca_list = NSSVolatileDomain_FindSSLCACerts(ss->vd,
+	                                                       NSSTime_Now(),
+	                                                       NULL);
 
     return SECSuccess;
 
 loser:
-    if (sc->serverCert != NULL) {
-	CERT_DestroyCertificate(sc->serverCert);
-	sc->serverCert = NULL;
-    }
     if (sc->serverCertChain != NULL) {
-	CERT_DestroyCertificateList(sc->serverCertChain);
+	NSSCertChain_Destroy(sc->serverCertChain);
 	sc->serverCertChain = NULL;
     }
     if (sc->serverKey != NULL) {
-	SECKEY_DestroyPrivateKey(sc->serverKey);
+	NSSPrivateKey_Destroy(sc->serverKey);
 	sc->serverKey = NULL;
     }
     return SECFailure;
@@ -727,7 +720,7 @@ ssl_CopySecurityInfo(sslSocket *ss, sslSocket *os)
     ss->sec.keyBits    		= os->sec.keyBits;
     ss->sec.secretKeyBits 	= os->sec.secretKeyBits;
 
-    ss->sec.peerCert   		= CERT_DupCertificate(os->sec.peerCert);
+    ss->sec.peerCert   		= nssCert_AddRef(os->sec.peerCert);
     if (os->sec.peerCert && !ss->sec.peerCert)
     	goto loser;
 
@@ -739,20 +732,18 @@ ssl_CopySecurityInfo(sslSocket *ss, sslSocket *os)
     ss->sec.sendSequence 	= os->sec.sendSequence;
     ss->sec.rcvSequence 	= os->sec.rcvSequence;
 
-    if (os->sec.hash && os->sec.hashcx) {
-	ss->sec.hash 		= os->sec.hash;
-	ss->sec.hashcx 		= os->sec.hash->clone(os->sec.hashcx);
+    if (os->sec.hashcx) {
+	ss->sec.hashcx 		= NSSCryptoContext_Clone(os->sec.hashcx);
 	if (os->sec.hashcx && !ss->sec.hashcx)
 	    goto loser;
     } else {
-	ss->sec.hash 		= NULL;
 	ss->sec.hashcx 		= NULL;
     }
 
-    SECITEM_CopyItem(0, &ss->sec.sendSecret, &os->sec.sendSecret);
+    (void)NSSItem_Duplicate(&os->sec.sendSecret, NULL, &ss->sec.sendSecret);
     if (os->sec.sendSecret.data && !ss->sec.sendSecret.data)
     	goto loser;
-    SECITEM_CopyItem(0, &ss->sec.rcvSecret,  &os->sec.rcvSecret);
+    (void)NSSItem_Duplicate(&os->sec.rcvSecret, NULL, &ss->sec.rcvSecret);
     if (os->sec.rcvSecret.data && !ss->sec.rcvSecret.data)
     	goto loser;
 
@@ -782,13 +773,12 @@ void
 ssl_ResetSecurityInfo(sslSecurityInfo *sec)
 {
     /* Destroy MAC */
-    if (sec->hash && sec->hashcx) {
-	(*sec->hash->destroy)(sec->hashcx, PR_TRUE);
+    if (sec->hashcx) {
+	NSSCryptoContext_Destroy(sec->hashcx);
 	sec->hashcx = NULL;
-	sec->hash = NULL;
     }
-    SECITEM_ZfreeItem(&sec->sendSecret, PR_FALSE);
-    SECITEM_ZfreeItem(&sec->rcvSecret, PR_FALSE);
+    nss_ZFreeIf(sec->sendSecret.data);
+    nss_ZFreeIf(sec->rcvSecret.data);
 
     /* Destroy ciphers */
     if (sec->destroy) {
@@ -804,15 +794,15 @@ ssl_ResetSecurityInfo(sslSecurityInfo *sec)
     sec->writecx = 0;
 
     if (sec->localCert) {
-	CERT_DestroyCertificate(sec->localCert);
+	NSSCert_Destroy(sec->localCert);
 	sec->localCert = NULL;
     }
     if (sec->peerCert) {
-	CERT_DestroyCertificate(sec->peerCert);
+	NSSCert_Destroy(sec->peerCert);
 	sec->peerCert = NULL;
     }
     if (sec->peerKey) {
-	SECKEY_DestroyPublicKey(sec->peerKey);
+	NSSPublicKey_Destroy(sec->peerKey);
 	sec->peerKey = NULL;
     }
 
@@ -820,7 +810,7 @@ ssl_ResetSecurityInfo(sslSecurityInfo *sec)
     if (sec->ci.sid != NULL) {
 	ssl_FreeSID(sec->ci.sid);
     }
-    PORT_ZFree(sec->ci.sendBuf.buf, sec->ci.sendBuf.space);
+    nss_ZFreeIf(sec->ci.sendBuf.buf);
     memset(&sec->ci, 0, sizeof sec->ci);
 }
 
@@ -834,7 +824,7 @@ ssl_DestroySecurityInfo(sslSecurityInfo *sec)
 {
     ssl_ResetSecurityInfo(sec);
 
-    PORT_ZFree(sec->writeBuf.buf, sec->writeBuf.space);
+    nss_ZFreeIf(sec->writeBuf.buf);
     sec->writeBuf.buf = 0;
 
     memset(sec, 0, sizeof *sec);
@@ -949,9 +939,9 @@ ssl_SecureRecv(sslSocket *ss, unsigned char *buf, int len, int flags)
 
     if (!ssl_SocketIsBlocking(ss) && !ss->fdx) {
 	ssl_GetXmitBufLock(ss);
-	if (ss->pendingBuf.len != 0) {
+	if (ss->pendingBuf.size != 0) {
 	    rv = ssl_SendSavedWriteData(ss, &ss->pendingBuf, ssl_DefSend);
-	    if ((rv < 0) && (PORT_GetError() != PR_WOULD_BLOCK_ERROR)) {
+	    if ((rv < 0) && (NSS_GetError() != PR_WOULD_BLOCK_ERROR)) {
 		ssl_ReleaseXmitBufLock(ss);
 		return SECFailure;
 	    }
@@ -977,7 +967,7 @@ ssl_SecureRecv(sslSocket *ss, unsigned char *buf, int len, int flags)
 
     rv = DoRecv(ss, (unsigned char*) buf, len, flags);
     SSL_TRC(2, ("%d: SSL[%d]: recving %d bytes securely (errno=%d)",
-		SSL_GETPID(), ss->fd, rv, PORT_GetError()));
+		SSL_GETPID(), ss->fd, rv, NSS_GetError()));
     return rv;
 }
 
@@ -1003,11 +993,11 @@ ssl_SecureSend(sslSocket *ss, const unsigned char *buf, int len, int flags)
     }
 
     ssl_GetXmitBufLock(ss);
-    if (ss->pendingBuf.len != 0) {
-	PORT_Assert(ss->pendingBuf.len > 0);
+    if (ss->pendingBuf.size != 0) {
+	PORT_Assert(ss->pendingBuf.size > 0);
 	rv = ssl_SendSavedWriteData(ss, &ss->pendingBuf, ssl_DefSend);
-	if (rv >= 0 && ss->pendingBuf.len != 0) {
-	    PORT_Assert(ss->pendingBuf.len > 0);
+	if (rv >= 0 && ss->pendingBuf.size != 0) {
+	    PORT_Assert(ss->pendingBuf.size > 0);
 	    PORT_SetError(PR_WOULD_BLOCK_ERROR);
 	    rv = SECFailure;
 	}
@@ -1098,10 +1088,10 @@ SSL_SetURL(PRFileDesc *fd, const char *url)
     ssl_GetSSL3HandshakeLock(ss);
 
     if ( ss->url ) {
-	PORT_Free((void *)ss->url);	/* CONST */
+	nss_ZFreeIf((void *)ss->url);	/* CONST */
     }
 
-    ss->url = (const char *)PORT_Strdup(url);
+    ss->url = (const char *)NSSUTF8_Duplicate(url, NULL);
     if ( ss->url == NULL ) {
 	rv = SECFailure;
     }
@@ -1161,11 +1151,11 @@ SSL_InvalidateSession(PRFileDesc *fd)
     return rv;
 }
 
-SECItem *
+NSSItem *
 SSL_GetSessionID(PRFileDesc *fd)
 {
     sslSocket *    ss;
-    SECItem *      item = NULL;
+    NSSItem *      item = NULL;
 
     ss = ssl_FindSocket(fd);
     if (ss) {
@@ -1173,17 +1163,17 @@ SSL_GetSessionID(PRFileDesc *fd)
 	ssl_GetSSL3HandshakeLock(ss);
 
 	if (ss->useSecurity && ss->firstHsDone && ss->sec.ci.sid) {
-	    item = (SECItem *)PORT_Alloc(sizeof(SECItem));
+	    item = nss_ZNEW(NULL, NSSItem);
 	    if (item) {
 		sslSessionID * sid = ss->sec.ci.sid;
 		if (sid->version < SSL_LIBRARY_VERSION_3_0) {
-		    item->len = SSL2_SESSIONID_BYTES;
-		    item->data = (unsigned char*)PORT_Alloc(item->len);
-		    PORT_Memcpy(item->data, sid->u.ssl2.sessionID, item->len);
+		    item->size = SSL2_SESSIONID_BYTES;
+		    item->data = nss_ZAlloc(NULL, item->size);
+		    memcpy(item->data, sid->u.ssl2.sessionID, item->size);
 		} else {
-		    item->len = sid->u.ssl3.sessionIDLength;
-		    item->data = (unsigned char*)PORT_Alloc(item->len);
-		    PORT_Memcpy(item->data, sid->u.ssl3.sessionID, item->len);
+		    item->size = sid->u.ssl3.sessionIDLength;
+		    item->data = nss_ZAlloc(NULL, item->size);
+		    memcpy(item->data, sid->u.ssl3.sessionID, item->size);
 		}
 	    }
 	}
@@ -1192,22 +1182,6 @@ SSL_GetSessionID(PRFileDesc *fd)
 	ssl_Release1stHandshakeLock(ss);
     }
     return item;
-}
-
-SECStatus
-SSL_CertDBHandleSet(PRFileDesc *fd, CERTCertDBHandle *dbHandle)
-{
-    sslSocket *    ss;
-
-    ss = ssl_FindSocket(fd);
-    if (!ss)
-    	return SECFailure;
-    if (!dbHandle) {
-    	PORT_SetError(SEC_ERROR_INVALID_ARGS);
-	return SECFailure;
-    }
-    ss->dbHandle = dbHandle;
-    return SECSuccess;
 }
 
 /*
@@ -1236,9 +1210,9 @@ SSL_CertDBHandleSet(PRFileDesc *fd, CERTCertDBHandle *dbHandle)
  */
 int
 SSL_RestartHandshakeAfterCertReq(sslSocket *         ss,
-				CERTCertificate *    cert, 
-				SECKEYPrivateKey *   key,
-				CERTCertificateList *certChain)
+				 NSSCert *            cert, 
+				 NSSPrivateKey *      key,
+				 NSSCertChain *       certChain)
 {
     int              ret;
 
@@ -1246,8 +1220,10 @@ SSL_RestartHandshakeAfterCertReq(sslSocket *         ss,
 
     if (ss->version >= SSL_LIBRARY_VERSION_3_0) {
 	ret = ssl3_RestartHandshakeAfterCertReq(ss, cert, key, certChain);
+#ifdef IMPLEMENT_SSL2
     } else {
     	ret = ssl2_RestartHandshakeAfterCertReq(ss, cert, key);
+#endif /* IMPLEMENT_SSL2 */
     }
 
     ssl_Release1stHandshakeLock(ss);  /************************************/

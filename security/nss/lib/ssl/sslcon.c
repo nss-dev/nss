@@ -35,20 +35,15 @@
  * $Id$
  */
 
-#include "nssrenam.h"
-#include "cert.h"
-#include "secitem.h"
-#include "sechash.h"
-#include "cryptohi.h"		/* for SGN_ funcs */
-#include "keyhi.h" 		/* for SECKEY_ high level functions. */
 #include "ssl.h"
 #include "sslimpl.h"
 #include "sslproto.h"
 #include "ssl3prot.h"
 #include "sslerr.h"
-#include "pk11func.h"
 #include "prinit.h"
 #include "prtime.h" 	/* for PR_Now() */
+
+#ifdef IMPLEMENT_SSL2
 
 #define XXX
 static PRBool policyWasSet;
@@ -1199,6 +1194,8 @@ ssl2_UseClearSendFunc(sslSocket *ss)
     ss->sec.send = ssl2_SendClear;
 }
 
+#endif /* IMPLEMENT_SSL2 */
+
 /************************************************************************
 ** 			END of Send functions.                          * 
 *************************************************************************/
@@ -1283,6 +1280,8 @@ ssl_GatherRecord1stHandshake(sslSocket *ss)
     ss->handshake = 0;	/* makes ssl_Do1stHandshake call ss->nextHandshake.*/
     return SECSuccess;
 }
+
+#ifdef IMPLEMENT_SSL2
 
 /************************************************************************/
 
@@ -3733,6 +3732,8 @@ ssl2_BeginServerHandshake(sslSocket *ss)
 loser:
     return SECFailure;
 }
+
+#endif /* IMPLEMENT_SSL2 */
 
 /* This function doesn't really belong in this file.
 ** It's here to keep AIX compilers from optimizing it away, 

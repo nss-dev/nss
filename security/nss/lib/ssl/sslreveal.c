@@ -35,18 +35,16 @@
  * $Id$
  */
 
-#include "cert.h"
 #include "ssl.h"
-#include "certt.h"
 #include "sslimpl.h"
 
 /* given PRFileDesc, returns a copy of certificate associated with the socket
  * the caller should delete the cert when done with SSL_DestroyCertificate
  */
-CERTCertificate * 
+NSSCert * 
 SSL_RevealCert(PRFileDesc * fd)
 {
-  CERTCertificate * cert = NULL;
+  NSSCert * cert = NULL;
   sslSocket * sslsocket = NULL;
 
   sslsocket = ssl_FindSocket(fd);
@@ -55,7 +53,7 @@ SSL_RevealCert(PRFileDesc * fd)
    * the same cert
    */
   if (sslsocket && sslsocket->sec.peerCert)
-    cert = CERT_DupCertificate(sslsocket->sec.peerCert);
+    cert = nssCert_AddRef(sslsocket->sec.peerCert);
   
   return cert;
 }

@@ -35,7 +35,6 @@
  * $Id$
  */
 
-#include "cert.h"
 #include "ssl.h"
 #include "sslimpl.h"
 #include "ssl3prot.h"
@@ -76,7 +75,7 @@ ssl3_GatherData(sslSocket *ss, sslGather *gs, int flags)
 	gs->offset      = 0;
 	gs->writeOffset = 0;
 	gs->readOffset  = 0;
-	gs->inbuf.len   = 0;
+	gs->inbuf.size   = 0;
     }
     
     lbp = gs->inbuf.buf;
@@ -111,7 +110,7 @@ ssl3_GatherData(sslSocket *ss, sslGather *gs, int flags)
 	gs->offset    += nb;
 	gs->remainder -= nb;
 	if (gs->state == GS_DATA)
-	    gs->inbuf.len += nb;
+	    gs->inbuf.size += nb;
 
 	/* if there's more to go, read some more. */
 	if (gs->remainder > 0) {
@@ -140,7 +139,7 @@ ssl3_GatherData(sslSocket *ss, sslGather *gs, int flags)
 
 	    gs->state     = GS_DATA;
 	    gs->offset    = 0;
-	    gs->inbuf.len = 0;
+	    gs->inbuf.size = 0;
 
 	    if (gs->remainder > gs->inbuf.space) {
 		err = sslBuffer_Grow(&gs->inbuf, gs->remainder);
@@ -204,10 +203,10 @@ ssl3_GatherCompleteHandshake(sslSocket *ss, int flags)
 	if (rv < 0) {
 	    return ss->recvdCloseNotify ? 0 : rv;
 	}
-    } while (ss->ssl3->hs.ws != idle_handshake && ss->gs.buf.len == 0);
+    } while (ss->ssl3->hs.ws != idle_handshake && ss->gs.buf.size == 0);
 
     ss->gs.readOffset = 0;
-    ss->gs.writeOffset = ss->gs.buf.len;
+    ss->gs.writeOffset = ss->gs.buf.size;
     return 1;
 }
 
@@ -230,7 +229,7 @@ ssl3_GatherAppDataRecord(sslSocket *ss, int flags)
     PORT_Assert( ssl_HaveRecvBufLock(ss) );
     do {
 	rv = ssl3_GatherCompleteHandshake(ss, flags);
-    } while (rv > 0 && ss->gs.buf.len == 0);
+    } while (rv > 0 && ss->gs.buf.size == 0);
 
     return rv;
 }

@@ -49,61 +49,31 @@
 
 #include "ssl.h"	/* for SSLKEAType */
 
+/* XXX this should be a cert fn, do we still need SSLKEAType? */
 SSLKEAType
 SSL_FindCertKEAType(NSSCert *cert)
 {
-  SSLKEAType keaType = kt_null; 
-  int tag;
+  SSLKEAType keaType = ssl_kea_null; 
+  NSSPublicKey *pubKey;
+  NSSKeyPairType keyPairType;
   
   if (!cert) goto loser;
   
-  if (NSSCert_GetType(cert) == NSSCertType_PKIX) {
-    NSSPKIXCertificate *pkixCert;
-    NSSPKIXTBSCertificate *tbsCert;
-    NSSPKIXSubjectPublicKeyInfo *spki;
-    NSSPKIXAlgorithmIdentifier *bkAlg;
+  pubKey = NSSCert_GetPublicKey(cert);
+  if (!pubKey) goto loser;
 
-    pkixCert = (NSSPKIXCertificate *)NSSCert_GetDecoding(cert);
-    if (!pkixCert) {
-	goto loser;
-    }
-    tbsCert = NSSPKIXCertificate_GetTBSCertificate(pkixCert);
-    if (!tbsCert) {
-	goto loser;
-    }
-    spki = NSSPKIXTBSCertificate_GetSubjectPublicKeyInfo(tbsCert);
-    if (!spki) {
-	goto loser;
-    }
-    bkAlg = NSSPKIXSubjectPublicKeyInfo_GetAlgorithm(spki);
-    if (!bkAlg) {
-	goto loser;
-    }
-    oid = NSSPKIXAlgorithmIdentifier_GetAlgorithm(bkAlg);
-    if (!oid) {
-	goto loser;
-    }
-  } else {
-    goto loser;
-  }
-  
-  switch (NSSOID_GetTag(oid)) {
-  case NSS_OID_X500_RSA_ENCRYPTION:
-  case NSS_OID_PKCS1_RSA_ENCRYPTION:
-    keaType = kt_rsa;
-    break;
-  case NSS_OID_MISSI_KEA_DSS_OLD:
-  case NSS_OID_MISSI_KEA_DSS:
-  case NSS_OID_MISSI_DSS_OLD:
-  case NSS_OID_MISSI_DSS:
-    keaType = kt_fortezza;
-    break;
-  case NSS_OID_X942_DIFFIE_HELMAN_KEY:
-    keaType = kt_dh;
-    break;
+  keyPairType = NSSPublicKey_GetKeyType(pubKey);
+  switch (keyPairType) {
+  case NSSKeyPairType_RSA:      keaType = ssl_kea_rsa;      break;
+#ifdef FORTEZZA
+  case NSSKeyPairType_FORTEZZA: keaType = ssl_kea_fortezza; break;
+#endif /* FORTEZZA */
+  case NSSKeyPairType_DH:       keaType = ssl_kea_dh;       break;
   default:
-    keaType = kt_null;
+    keaType = ssl_kea_null;
   }
+
+  NSSPublicKey_Destroy(pubKey);
   
  loser:
   

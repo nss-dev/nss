@@ -37,9 +37,8 @@
  */
 
 #include "prerror.h"
-#include "secerr.h"
+#include "nsserrors.h"
 #include "sslerr.h"
-#include "seccomon.h"
 
 /* look at the current value of PR_GetError, and evaluate it to see
  * if it is meaningful or meaningless (out of context). 
@@ -55,14 +54,16 @@ ssl_MapLowLevelError(int hiLevelError)
 
     case 0:
     case PR_IO_ERROR:
+#ifdef DEFINE_ERROR_CODES
     case SEC_ERROR_IO:
     case SEC_ERROR_BAD_DATA:
     case SEC_ERROR_LIBRARY_FAILURE:
     case SEC_ERROR_EXTENSION_NOT_FOUND:
+#endif
     case SSL_ERROR_BAD_CLIENT:
     case SSL_ERROR_BAD_SERVER:
     case SSL_ERROR_SESSION_NOT_FOUND:
-    	PORT_SetError(hiLevelError);
+    	nss_SetError(hiLevelError);
 	return hiLevelError;
 
     default:	/* leave the majority of error codes alone. */

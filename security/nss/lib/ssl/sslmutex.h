@@ -57,6 +57,15 @@
 #include "prtypes.h"
 #include "prlock.h"
 
+/* XXX temporarily define SECStatus here, move to PRStatus and eliminate
+ *     SECWouldBlock later
+ */
+typedef enum _SECStatus {
+    SECWouldBlock = -2,
+    SECFailure = -1,
+    SECSuccess = 0
+} SECStatus;
+
 #if defined(WIN32)
 
 #include <wtypes.h>
@@ -126,9 +135,7 @@ typedef int sslPID;
 
 #endif
 
-#include "seccomon.h"
-
-SEC_BEGIN_PROTOS
+PR_BEGIN_EXTERN_C
 
 extern SECStatus sslMutex_Init(sslMutex *sem, int shared);
 
@@ -144,6 +151,6 @@ extern SECStatus sslMutex_2LevelInit(sslMutex *sem);
 
 #endif
 
-SEC_END_PROTOS
+PR_END_EXTERN_C
 
 #endif

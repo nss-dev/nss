@@ -34,10 +34,11 @@
  *
  * $Id$
  */
-#include "cert.h"
 #include "ssl.h"
 #include "sslimpl.h"
 #include "sslproto.h"
+
+#ifdef IMPLEMENT_SSL2
 
 /* Forward static declarations */
 static SECStatus ssl2_HandleV3HandshakeRecord(sslSocket *ss);
@@ -474,3 +475,5 @@ ssl2_HandleV3HandshakeRecord(sslSocket *ss)
 
     return SECSuccess;
 }
+
+#endif /* IMPLEMENT_SSL2 */

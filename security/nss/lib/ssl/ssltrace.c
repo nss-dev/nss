@@ -34,8 +34,11 @@
  *
  * $Id$
  */
+
+/* XXX */
+#include <string.h>
+
 #include <stdarg.h>
-#include "cert.h"
 #include "ssl.h"
 #include "sslimpl.h"
 #include "sslproto.h"

@@ -75,19 +75,6 @@ typedef enum {
     ssl_kea_size		/* number of ssl_kea_ algorithms */
 } SSLKEAType;
 
-#if 0
-/* The following defines are for backwards compatibility.
-** They will be removed in a forthcoming release to reduce namespace pollution.
-** programs that use the kt_ symbols should convert to the ssl_kt_ symbols
-** soon.
-*/
-#define kt_null   	ssl_kea_null
-#define kt_rsa   	ssl_kea_rsa
-#define kt_dh   	ssl_kea_dh
-#define kt_fortezza	ssl_kea_fortezza
-#define kt_kea_size	ssl_kea_size
-#endif
-
 typedef enum {
     ssl_sign_null   = 0, 
     ssl_sign_rsa    = 1,
