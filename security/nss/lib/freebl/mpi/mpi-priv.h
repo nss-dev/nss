@@ -106,6 +106,11 @@ extern const float s_logv_2[];
 #define  CARRYOUT(W)  (mp_digit)((W)>>DIGIT_BIT)
 #define  ACCUM(W)     (mp_digit)(W)
 
+#define MP_MIN(a,b)   (((a) < (b)) ? (a) : (b))
+#define MP_MAX(a,b)   (((a) > (b)) ? (a) : (b))
+#define MP_HOWMANY(a,b) (((a) + (b) - 1)/(b))
+#define MP_ROUNDUP(a,b) (MP_HOWMANY(a,b) * (b))
+
 /* }}} */
 
 /* {{{ Comparison constants */
