@@ -40,10 +40,15 @@ static const char PKI_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 
 PR_BEGIN_EXTERN_C
 
+#ifndef DEVT_H
+#include "devt.h"
+#endif /* DEVT_H */
+
 NSS_EXTERN NSSCertificate *
 NSSCertificate_CreateFromHandle
 (
   CK_OBJECT_HANDLE object,
+  nssSession *session,
   NSSSlot *slot
 );
 
