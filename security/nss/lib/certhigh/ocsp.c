@@ -3708,7 +3708,7 @@ CERT_SetOCSPDefaultResponder(CERTCertDBHandle *handle,
       /*
        * look for the cert on an external token.
        */
-      cert = PK11_FindCertFromNickname(name, NULL);
+      cert = PK11_FindCertFromNickname((char *)name, NULL);
     }
     if (cert == NULL)
 	return SECFailure;
