@@ -1631,7 +1631,7 @@ ssl3_ClientAuthTokenPresent(sslSessionID *sid) {
 	sid->u.ssl3.clAuthSeries     != PK11_GetSlotSeries(slot) ||
 	sid->u.ssl3.clAuthSlotID     != PK11_GetSlotID(slot)     ||
 	sid->u.ssl3.clAuthModuleID   != PK11_GetModuleID(slot)   ||
-	     (PK11_NeedLogin(slot) && !PK11_IsLoggedIn(slot, NULL))){
+	(PK11_NeedLogin(slot) && !PK11_IsLoggedIn(slot, NULL))) {
 	isPresent = PR_FALSE;
     } 
     if (slot) {
