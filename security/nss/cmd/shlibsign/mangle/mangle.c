@@ -157,8 +157,11 @@ main (int argc, char **argv)
 	goto loser;
     }
 
+    printf("Changing byte 0x%08x (%d): from %02x (%d) to ", 
+					offset, offset, cbuf, cbuf);
     /* change it */
     cbuf ^= 1 << bitOffset;
+    printf("%02x (%d)\n", cbuf, cbuf);
 
     /* write it back out */
     pos = PR_Seek(fd, offset, PR_SEEK_SET);
