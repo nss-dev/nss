@@ -2016,7 +2016,9 @@ SSL3_SendAlert(sslSocket *ss, SSL3AlertLevel level, SSL3AlertDescription desc)
     rv = ssl3_FlushHandshake(ss, ssl_SEND_FLAG_FORCE_INTO_BUFFER);
     if (rv == SECSuccess) {
 	PRInt32 sent;
-	sent = ssl3_SendRecord(ss, content_alert, bytes, 2, 0);
+	sent = ssl3_SendRecord(ss, content_alert, bytes, 2, 
+			       desc == no_certificate 
+			       ? ssl_SEND_FLAG_FORCE_INTO_BUFFER : 0);
 	rv = (sent >= 0) ? SECSuccess : (SECStatus)sent;
     }
     ssl_ReleaseXmitBufLock(ss);
