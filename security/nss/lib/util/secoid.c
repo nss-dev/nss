@@ -1386,7 +1386,7 @@ InitOIDHash(void)
 
 	PORT_Assert ( oid->offset == i );
 
-	entry = PL_HashTableAdd( oidhash, &oid->oid.data, oid );
+	entry = PL_HashTableAdd( oidhash, &oid->oid, oid );
 	if ( entry == NULL ) {
 	    PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
             PORT_Assert(0); /*This function should never fail. */
@@ -1398,7 +1398,7 @@ InitOIDHash(void)
 	    key.len = sizeof(oid->mechanism);
 
 	    entry = PL_HashTableAdd( oidmechhash, &key, oid );
-	    if ( entry ) {
+	    if ( entry == NULL ) {
 	        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
                 PORT_Assert(0); /* This function should never fail. */
 		return(SECFailure);
