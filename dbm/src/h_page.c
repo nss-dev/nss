@@ -120,15 +120,15 @@ long new_lseek(DBFILE_PTR fd, long offset, int origin)
 	if(origin == SEEK_CUR)
       {	
       	if(offset < 1)							  
-	    	return(lseek(fd, offset, SEEK_CUR));
+	    	return(DBFILE_SEEK(fd, offset, SEEK_CUR));
 
-		cur_pos = lseek(fd, 0, SEEK_CUR);
+		cur_pos = DBFILE_SEEK(fd, 0, SEEK_CUR);
 
 		if(cur_pos < 0)
 			return(cur_pos);
 	  }
 										 
-	end_pos = lseek(fd, 0, SEEK_END);
+	end_pos = DBFILE_SEEK(fd, 0, SEEK_END);
 	if(end_pos < 0)
 		return(end_pos);
 
@@ -149,7 +149,7 @@ long new_lseek(DBFILE_PTR fd, long offset, int origin)
 	 * to do anything special except the seek.
 	 */
  	if(seek_pos <= end_pos)
- 		return(lseek(fd, seek_pos, SEEK_SET));
+ 		return(DBFILE_SEEK(fd, seek_pos, SEEK_SET));
  		
  	  /* the seek position is beyond the end of the
  	   * file.  Write zero's to the end.
@@ -166,10 +166,10 @@ long new_lseek(DBFILE_PTR fd, long offset, int origin)
 	   	memset(&buffer, 0, 1024);
 	   	while(len > 0)
 	      {
-	        write(fd, (char*)&buffer, (size_t)(1024 > len ? len : 1024));
+	        DBFILE_WRITE(fd, (char*)&buffer, (size_t)(1024 > len ? len : 1024));
 		    len -= 1024;
 		  }
-		return(lseek(fd, seek_pos, SEEK_SET));
+		return(DBFILE_SEEK(fd, seek_pos, SEEK_SET));
 	  }		
 
 }
@@ -710,7 +710,7 @@ __get_page(HTAB *hashp,
 	else
 		page = OADDR_TO_PAGE(bucket);
 	if ((MY_LSEEK(fd, (off_t)page << hashp->BSHIFT, SEEK_SET) == -1) ||
-	    ((rsize = read(fd, p, size)) == -1))
+	    ((rsize = DBFILE_READ(fd, p, size)) == -1))
 		return (-1);
 
 	bp = (uint16 *)p;
@@ -870,7 +870,7 @@ __put_page(HTAB *hashp, char *p, uint32 bucket, int is_bucket, int is_bitmap)
 		page = OADDR_TO_PAGE(bucket);
 	offset = (off_t)page << hashp->BSHIFT;
 	if ((MY_LSEEK(fd, offset, SEEK_SET) == -1) ||
-	    ((wsize = write(fd, p, size)) == -1))
+	    ((wsize = DBFILE_WRITE(fd, p, size)) == -1))
 		/* Errno is set */
 		return (-1);
 	if ((unsigned)wsize != size) {
@@ -1005,7 +1005,7 @@ overflow_page(HTAB *hashp)
 	if (offset > SPLITMASK) {
 		if (++splitnum >= NCACHED) {
 #ifndef macintosh
-			(void)write(STDERR_FILENO, OVMSG, sizeof(OVMSG) - 1);
+			(void)DBFILE_WRITE(STDERR_FILENO, OVMSG, sizeof(OVMSG) - 1);
 #endif
 			return (0);
 		}
@@ -1020,7 +1020,7 @@ overflow_page(HTAB *hashp)
 		free_page++;
 		if (free_page >= NCACHED) {
 #ifndef macintosh
-			(void)write(STDERR_FILENO, OVMSG, sizeof(OVMSG) - 1);
+			(void)DBFILE_WRITE(STDERR_FILENO, OVMSG, sizeof(OVMSG) - 1);
 #endif
 			return (0);
 		}
@@ -1046,7 +1046,7 @@ overflow_page(HTAB *hashp)
 		if (offset > SPLITMASK) {
 			if (++splitnum >= NCACHED) {
 #ifndef macintosh
-				(void)write(STDERR_FILENO, OVMSG,
+				(void)DBFILE_WRITE(STDERR_FILENO, OVMSG,
 				    sizeof(OVMSG) - 1);
 #endif
 				return (0);
@@ -1217,7 +1217,7 @@ open_temp(HTAB *hashp)
 	}
 #else
 	if ((hashp->fp = mkstemp(filename)) != -1) {
-		(void)unlink(filename);
+		(void)DBFILE_UNLINK(filename);
 #if !defined(macintosh)
 		(void)fcntl(hashp->fp, F_SETFD, 1);
 #endif									  

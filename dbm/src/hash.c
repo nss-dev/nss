@@ -263,7 +263,7 @@ __hash_open(const char *file, int flags, int mode, const HASHINFO *info, int dfl
 		else
 			hashp->hash = __default_hash;
 
-		hdrsize = read(hashp->fp, (char *)&hashp->hdr, sizeof(HASHHDR));
+		hdrsize = DBFILE_READ(hashp->fp, (char *)&hashp->hdr, sizeof(HASHHDR));
 #if BYTE_ORDER == LITTLE_ENDIAN
 		swap_header(hashp);
 #endif
@@ -285,8 +285,8 @@ __hash_open(const char *file, int flags, int mode, const HASHINFO *info, int dfl
 		    ** OOPS. Old bad database from previously busted
 		    ** code. Blow it away.
 		    */
-		    close(hashp->fp);
-		    if (remove(file) < 0) {
+		    DBFILE_CLOSE(hashp->fp);
+		    if (DBFILE_REMOVE(file) < 0) {
 #if defined(DEBUG) && defined(XP_UNIX)
 			fprintf(stderr,
 				"WARNING: You have an old bad cache.db file"
@@ -392,7 +392,7 @@ extern int MKLib_trace_flag;
 
 error1:
 	if (hashp != NULL)
-		(void)close(hashp->fp);
+		(void)DBFILE_CLOSE(hashp->fp);
 
 error0:
 	free(hashp);
@@ -423,11 +423,11 @@ static DBFILE_PTR hash_fd(const DB *dbp)
 	HTAB *hashp;
 
 	if (!dbp)
-		return (DBM_ERROR);
+		return ((DBFILE_PTR)DBM_ERROR);
 
 	hashp = (HTAB *)dbp->internal;
 	if(!hashp)
-		return (DBM_ERROR);
+		return ((DBFILE_PTR)DBM_ERROR);
 
 	if (hashp->fp == NO_FILE) {
 		errno = ENOENT;
@@ -609,12 +609,12 @@ hdestroy(HTAB *hashp)
 			free(hashp->mapp[i]);
 
 	if (hashp->fp != NO_FILE)
-		(void)close(hashp->fp);
+		(void)DBFILE_CLOSE(hashp->fp);
 
 	if(hashp->filename) {
 #if defined(_WIN32) || defined(_WINDOWS) || defined(XP_OS2)
 		if (hashp->is_temp)
-			(void)unlink(hashp->filename);
+			(void)DBFILE_UNLINK(hashp->filename);
 #endif
 		free(hashp->filename);
 	}
@@ -656,22 +656,30 @@ update_EOF(HTAB *hashp)
 		return 0;
 	}
 
-	(void)close(hashp->fp);
+	(void)DBFILE_CLOSE(hashp->fp);
 
 	flags = hashp->flags & ~(O_TRUNC | O_CREAT | O_EXCL);
 
 	if ((hashp->fp = DBFILE_OPEN(file, flags | O_BINARY, mode)) == -1)
 		return -1;
-	file_size = lseek(hashp->fp, (off_t)0, SEEK_END);
+	file_size = DBFILE_SEEK(hashp->fp, (off_t)0, SEEK_END);
 	if (file_size == -1) 
 		return -1;
 	hashp->file_size = file_size;
 	return 0;
 #else
 	DBFILE_PTR    fd        = hashp->fp;
-	off_t  file_size = lseek(fd, (off_t)0, SEEK_END);
+	off_t  file_size = DBFILE_SEEK(fd, (off_t)0, SEEK_END);
+#if !defined(WINCE)
 	HANDLE handle    = (HANDLE)_get_osfhandle(fd);
 	BOOL   cool      = FlushFileBuffers(handle);
+#else
+    BOOL cool = TRUE;
+    if(PR_FAILURE == PR_Sync(fd))
+    {
+        cool = FALSE;
+    }
+#endif
 #ifdef DEBUG3
 	if (!cool) {
 		DWORD err = GetLastError();
@@ -755,8 +763,8 @@ flush_meta(HTAB *hashp)
 	whdrp = &whdr;
 	swap_header_copy(&hashp->hdr, whdrp);
 #endif
-	if ((lseek(fp, (off_t)0, SEEK_SET) == -1) ||
-	    ((wsize = write(fp, (char*)whdrp, sizeof(HASHHDR))) == -1))
+	if ((DBFILE_SEEK(fp, (off_t)0, SEEK_SET) == -1) ||
+	    ((wsize = DBFILE_WRITE(fp, (char*)whdrp, sizeof(HASHHDR))) == -1))
 		return (-1);
 	else
 		if (wsize != sizeof(HASHHDR)) {

@@ -71,8 +71,20 @@ typedef BUFHEAD **SEGMENT;
 #else
 #if !defined(WINCE)
 #define DBFILE_OPEN(path, flag,mode) open((path), (flag), (mode))
+#define DBFILE_CLOSE(fp) close((fp))
+#define DBFILE_REMOVE(name)  remove((name))
+#define DBFILE_UNLINK(name)  remove((name))
+#define DBFILE_READ(fp, buf, size) read((fp), (buf), (size))
+#define DBFILE_WRITE(fp, buf, size) write((fp), (buf), (size))
+#define DBFILE_SEEK(fp, off, orig) lseek((fp), (off), (orig))
 #else
 #define DBFILE_OPEN(path, flag,mode) PR_Open((path), (flag), (mode))
+#define DBFILE_CLOSE(fp) PR_Close((fp))
+#define DBFILE_REMOVE(name)  (PR_FAILURE == PR_Delete((name)) ? -1 : 0)
+#define DBFILE_UNLINK(name)  (PR_FAILURE == PR_Delete((name)) ? -1 : 0)
+#define DBFILE_READ(fp, buf, size) PR_Read((fp), (buf), (size))
+#define DBFILE_WRITE(fp, buf, size) PR_Write((fp), (buf), (size))
+#define DBFILE_SEEK(fp, off, orig) PR_Seek((fp), (off), SEEK_SET == (orig) ? PR_SEEK_SET : (SEEK_CUR == (orig) ? PR_SEEK_CUR : (SEEK_END == (orig) ? PR_SEEK_END : (orig))))
 #endif
 #endif
 /* Hash Table Information */
