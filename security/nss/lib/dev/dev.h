@@ -434,6 +434,7 @@ nssToken_ImportCertificate
   NSSDER *issuer,
   NSSDER *subject,
   NSSDER *serial,
+  NSSASCII7 *emailAddr,
   PRBool asTokenObject
 );
 
