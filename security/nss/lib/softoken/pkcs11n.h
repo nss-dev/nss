@@ -146,6 +146,10 @@ static const char CKT_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
  *
  */
 #define CKM_NETSCAPE (CKM_VENDOR_DEFINED|NSSCK_VENDOR_NETSCAPE)
+
+#define CKM_NETSCAPE_AES_KEY_WRAP      (CKM_NETSCAPE + 1)
+#define CKM_NETSCAPE_AES_KEY_WRAP_PAD  (CKM_NETSCAPE + 2)
+
 /*
  * HISTORICAL:
  * Do not attempt to use these. They are only used by NETSCAPE's internal
