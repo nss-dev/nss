@@ -1162,11 +1162,13 @@ open_temp(HTAB *hashp)
 #if !defined(_WIN32) && !defined(_WINDOWS) && !defined(macintosh)
 	sigset_t set, oset;
 #endif
+#if !defined(macintosh)
 	char * tmpdir;
 	size_t len;
+	char last;
+#endif
 	static const char namestr[] = "/_hashXXXXXX";
 	char filename[1024];
-	char last;
 
 #if !defined(_WIN32) && !defined(_WINDOWS) && !defined(macintosh)
 	/* Block signals; make sure file goes away at process exit. */
