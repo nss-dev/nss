@@ -397,7 +397,7 @@ pk11_isID0(PK11SlotInfo *slot, CK_OBJECT_HANDLE certID)
  * Create an NSSCertificate from a slot/certID pair, return it as a
  * CERTCertificate.
  */
-static CERTCertificate
+CERTCertificate
 *pk11_fastCert(PK11SlotInfo *slot, CK_OBJECT_HANDLE certID, 
 			CK_ATTRIBUTE *privateLabel, char **nickptr)
 {
@@ -429,7 +429,7 @@ static CERTCertificate
     }
 
     /* Build the old-fashioned nickname */
-    if ((nickptr) && (co->label)) {
+    if (nickptr) {
 	CK_ATTRIBUTE label, id;
 	label.type = CKA_LABEL;
 	label.pValue = co->label;
