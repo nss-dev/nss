@@ -238,6 +238,11 @@ typedef struct sslOptionsStr {
     unsigned int detectRollBack  	: 1;  /* 14 */
 } sslOptions;
 
+typedef enum { sslHandshakingUndetermined = 0,
+	       sslHandshakingAsClient,
+	       sslHandshakingAsServer 
+} sslHandshakingType;
+
 /*
 ** SSL Socket struct
 **
@@ -254,20 +259,23 @@ struct sslSocketStr {
     unsigned int     useSecurity	: 1;
     unsigned int     requestCertificate	: 1;
     unsigned int     requireCertificate	: 2;
-
     unsigned int     handshakeAsClient	: 1;
     unsigned int     handshakeAsServer	: 1;
     unsigned int     enableSSL2		: 1;
+
     unsigned int     enableSSL3		: 1;
     unsigned int     enableTLS		: 1;
-
     unsigned int     clientAuthRequested: 1;
     unsigned int     noCache		: 1;
     unsigned int     fdx		: 1; /* simultaneous read/write threads */
     unsigned int     v2CompatibleHello	: 1; /* Send v3+ client hello in v2 format */
     unsigned int     detectRollBack   	: 1; /* Detect rollback to SSL v3 */
-    unsigned int     connected		: 1; /* initial handshake is complete. */
+    unsigned int     firstHsDone	: 1; /* first handshake is complete. */
+
     unsigned int     recvdCloseNotify	: 1; /* received SSL EOF. */
+    unsigned int     lastWriteBlocked   : 1;
+    unsigned int     TCPconnected       : 1;
+    unsigned int     handshakeBegun     : 1;
 
     /* version of the protocol to use */
     SSL3ProtocolVersion version;
@@ -352,6 +360,8 @@ const unsigned char *  preferredCipher;
     PRUint16	allowedByPolicy;          /* copy of global policy bits. */
     PRUint16	maybeAllowedByPolicy;     /* copy of global policy bits. */
     PRUint16	chosenPreference;         /* SSL2 cipher preferences. */
+
+    sslHandshakingType handshaking;
 
     ssl3CipherSuiteCfg cipherSuites[ssl_V3_SUITES_IMPLEMENTED];
 
