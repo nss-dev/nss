@@ -280,6 +280,10 @@ else
 INCLUDES += -I$(SYSTEM_XP_DIR)/include/nspr
 endif
 
+ifdef DBM_CFLAGS
+INCLUDES += $(DBM_CFLAGS)
+endif
+
 ifdef SYSTEM_INCL_DIR
 	YOPT = -Y$(SYSTEM_INCL_DIR)
 endif

@@ -117,6 +117,40 @@ AC_SUBST(dist_bindir)
 AC_SUBST(dist_includedir)
 AC_SUBST(dist_libdir)
 
+AC_ARG_WITH(dbm-prefix,
+    [  --with-dbm-prefix=DIR   Prefix where dbm is installed],
+    dbm_prefix=$withval)
+
+AC_ARG_WITH(dbm-includedir,
+    [  --with-dbm-includedir   Location of dbm headers],
+    dbm_includedir=$withval)
+
+AC_ARG_WITH(dbm-libdir,
+    [  --with-dbm-libdir       Location of dbm libs],
+    dbm_libdir=$withval)
+
+if test "$dbm_prefix"; then
+    if test -z "$dbm_libdir"; then
+        dbm_libdir="$dbm_prefix/lib"
+    fi
+    if test -z "$dbm_includedir"; then
+        dbm_includedir="$dbm_prefix/include"
+    fi
+fi
+
+if test "$dbm_libdir"; then
+    DBM_LIBS="$dbm_libdir/libdbm.a"
+else
+    DBM_LIBS='$(DIST)/lib/libdbm.$(LIB_SUFFIX)'
+fi
+
+if test "$dbm_includedir"; then
+    DBM_CFLAGS="-I$dbm_includedir"
+fi
+
+AC_SUBST(DBM_LIBS)
+AC_SUBST(DBM_CFLAGS)
+
 AC_ARG_WITH(mozilla,
     [  --with-mozilla          Compile for Mozilla tree],
     [  if test "$withval" = "yes"; then
@@ -394,7 +428,7 @@ if test "${OS_ARCH}" = "SINIX-N"; then
 fi
 
 # Handle FreeBSD 2.2-STABLE and Linux 2.0.30-osfmach3
-if echo ${OS_ARCH} | egrep -c '(Linux|FreeBSD)' 2>/dev/null; then
+if echo ${OS_ARCH} | egrep -c '(Linux|FreeBSD)' >/dev/null; then
     OS_RELEASE=`echo ${OS_RELEASE} | sed 's|-.*||'`
 fi
 
@@ -408,7 +442,7 @@ if test "${OS_ARCH}" = "OS_2"; then
     OS_RELEASE=`uname -v`
 fi
 
-if echo ${OS_ARCH} | grep -c OpenVMS 2>/dev/null; then
+if echo ${OS_ARCH} | grep -c OpenVMS >/dev/null; then
     OS_ARCH=OpenVMS
     OS_RELEASE=`uname -v`
 fi

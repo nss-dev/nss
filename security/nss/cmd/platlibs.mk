@@ -107,7 +107,7 @@ EXTRA_LIBS += \
 	$(DIST)/lib/libswfci.$(LIB_SUFFIX) \
 	$(CRYPTOLIB) \
 	$(DIST)/lib/libsecutil.$(LIB_SUFFIX) \
-	$(DIST)/lib/libdbm.$(LIB_SUFFIX) \
+	$(DBM_LIBS) \
 	$(NULL)
 
 ifeq ($(OS_ARCH), AIX) 

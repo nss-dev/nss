@@ -118,7 +118,7 @@ SHARED_LIBRARY_LIBS = \
 	$(DIST)/lib/libsecutil.$(LIB_SUFFIX) \
 	$(NULL)
 EXTRA_LIBS += \
-	$(DIST)/lib/libdbm.$(LIB_SUFFIX) \
+	$(DBM_LIBS) \
 	$(NULL)
 ifdef MOZILLA_BSAFE_BUILD
 	EXTRA_LIBS+=$(DIST)/lib/libbsafe.$(LIB_SUFFIX)
@@ -178,5 +178,4 @@ MKSHLIB += -Wl,--version-script,$(MAPFILE)
 endif
 
 
-	
 
