@@ -852,7 +852,7 @@ CERT_NameToAscii(CERTName *name)
      */
     for (rdn = lastRdn; rdn >= rdns; rdn--) {
 	avas = (*rdn)->avas;
-	while ((ava = *avas++) != NULL) {
+	while (avas && (ava = *avas++) != NULL) {
 	    /* Put in comma separator */
 	    if (!first) {
 		rv = AppendStr(&buf, &buflen, ", ");
@@ -920,7 +920,7 @@ CERT_GetNameElement(CERTName *name, int wantedTag)
     rdns = name->rdns;
     while ((rdn = *rdns++) != 0) {
 	avas = rdn->avas;
-	while ((ava = *avas++) != 0) {
+	while (avas && (ava = *avas++) != 0) {
 	    tag = CERT_GetAVATag(ava);
 	    if ( tag == wantedTag ) {
 		decodeItem = CERT_DecodeAVAValue(&ava->value);
