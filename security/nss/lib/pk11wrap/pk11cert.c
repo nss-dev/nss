@@ -3350,11 +3350,15 @@ pk11ListCertCallback(CERTCertificate *cert, void *arg)
     CERTCertList *certList = listCertP->certList;
     CERTCertTrust *trust;
     PRBool isUnique = PR_FALSE;
+    PRBool isCA = PR_FALSE;
     char *nickname = NULL;
     unsigned int certType;
 
     if ((type == PK11CertListUnique) || (type == PK11CertListRootUnique)) {
 	isUnique = PR_TRUE;
+    }
+    if ((type == PK11CertListCA) || (type == PK11CertListRootUnique)) {
+	isCA = PR_TRUE;
     }
     /* at this point the nickname is correct for the cert. save it for later */
     if (!isUnique && cert->nickname) {
@@ -3399,7 +3403,7 @@ pk11ListCertCallback(CERTCertificate *cert, void *arg)
     }
 
     /* if we want CA certs and it ain't one, skip it */
-    if( type == PK11CertListCA  && (!CERT_IsCACert(newCert, &certType)) ) {
+    if( isCA  && (!CERT_IsCACert(newCert, &certType)) ) {
 	CERT_DestroyCertificate(newCert);
 	return SECSuccess;
     }
