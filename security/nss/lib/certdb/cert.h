@@ -394,8 +394,8 @@ CERT_DecodeDERCrl (PRArenaPool *arena, SECItem *derSignedCrl,int type);
  */
 
 extern CERTSignedCrl *
-CERT_DecodeDERCrlEx(PRArenaPool *narena, SECItem *derSignedCrl, int type,
-                          PRInt32 options);
+CERT_DecodeDERCrlWithFlags(PRArenaPool *narena, SECItem *derSignedCrl,
+                          int type, PRInt32 options);
 
 /* CRL options to pass */
 
@@ -404,7 +404,8 @@ CERT_DecodeDERCrlEx(PRArenaPool *narena, SECItem *derSignedCrl, int type,
 /* when CRL_DECODE_DONT_COPY_DER is set, the DER is not copied . The
    application must then keep derSignedCrl until it destroys the
    CRL . Ideally, it should allocate derSignedCrl in an arena
-   and pass that arena in as the first argument to CERT_DecodeDERCrlEx */
+   and pass that arena in as the first argument to
+   CERT_DecodeDERCrlWithFlags */
 
 #define CRL_DECODE_DONT_COPY_DER            0x00000001
 #define CRL_DECODE_SKIP_ENTRIES             0x00000002
