@@ -173,7 +173,7 @@ ConvertCertificate(SECItem *sdder, char *nickname, CERTCertTrust *trust)
 
 }
 
-printheader() {
+void printheader() {
     printf("# \n"
 "# ***** BEGIN LICENSE BLOCK *****\n"
 "# Version: MPL 1.1/GPL 2.0/LGPL 2.1\n"
@@ -307,7 +307,7 @@ static secuCommandFlag addbuiltin_options[] =
 	{ /* opt_Trust         */  't', PR_TRUE, 0, PR_FALSE }
 };
 
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
     SECStatus rv;
     char *nickname;
