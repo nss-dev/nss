@@ -5127,6 +5127,21 @@ ssl3_HandleCertificateRequest(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	break;	/* not an error */
 
     case SECSuccess:
+        /* check what the callback function returned */
+        if ((!ssl3->clientCertificate) || (!ssl3->clientPrivateKey)) {
+            /* we are missing either the key or cert */
+            if (ssl3->clientCertificate) {
+                /* got a cert, but no key - free it */
+                CERT_DestroyCertificate(ssl3->clientCertificate);
+                ssl3->clientCertificate = NULL;
+            }
+            if (ssl3->clientPrivateKey) {
+                /* got a key, but no cert - free it */
+                SECKEY_DestroyPrivateKey(ssl3->clientPrivateKey);
+                ssl3->clientPrivateKey = NULL;
+            }
+            goto send_no_certificate;
+        }
 	/* Setting ssl3->clientCertChain non-NULL will cause
 	 * ssl3_HandleServerHelloDone to call SendCertificate.
 	 */
