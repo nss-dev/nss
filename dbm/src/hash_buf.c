@@ -59,13 +59,15 @@ static char sccsid[] = "@(#)hash_buf.c	8.5 (Berkeley) 7/15/94";
 #include <sys/param.h>
 #endif
 
+#if !defined(_WIN32_WCE)
 #include <errno.h>
 #include <stddef.h>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#ifdef DEBUG
+#if defined(DEBUG) && !defined(_WIN32_WCE)
 #include <assert.h>
 #endif
 
@@ -128,7 +130,7 @@ __get_buf(HTAB *hashp, uint32 addr, BUFHEAD *prev_bp, int newpage)
 
 		/* valid segment ensured by __call_hash() */
 		segp = hashp->dir[addr >> hashp->SSHIFT];
-#ifdef DEBUG
+#if defined(DEBUG) && !defined(_WIN32_WCE)
 		assert(segp != NULL);
 #endif  
 
@@ -157,8 +159,8 @@ __get_buf(HTAB *hashp, uint32 addr, BUFHEAD *prev_bp, int newpage)
 				prev_bp->ovfl = NULL;
 			  }
 			BUF_REMOVE(bp);
-			free(bp->page);
-			free(bp);
+			PR_Free(bp->page);
+			PR_Free(bp);
 			return (NULL);
 		  }
 
@@ -188,7 +190,7 @@ __get_buf(HTAB *hashp, uint32 addr, BUFHEAD *prev_bp, int newpage)
  * We need a buffer for this page. Either allocate one, or evict a resident
  * one (if we have as many buffers as we're allowed) and put this one in.
  *
- * If newbuf finds an error (returning NULL), it also sets errno.
+ * XXX If newbuf finds an error (returning NULL), it should also set errno. 
  */
 static BUFHEAD *
 newbuf(HTAB *hashp, uint32 addr, BUFHEAD *prev_bp)
@@ -208,7 +210,7 @@ newbuf(HTAB *hashp, uint32 addr, BUFHEAD *prev_bp)
 	 */
 	if (hashp->nbufs || (bp->flags & BUF_PIN)) {
 		/* Allocate a new one */
-		if ((bp = (BUFHEAD *)malloc(sizeof(BUFHEAD))) == NULL)
+		if ((bp = PR_NEW(BUFHEAD)) == NULL)
 			return (NULL);
 
 		/* this memset is supposedly unnecessary but lets add
@@ -216,8 +218,8 @@ newbuf(HTAB *hashp, uint32 addr, BUFHEAD *prev_bp)
 		 */
 		memset(bp, 0xff, sizeof(BUFHEAD));
 
-		if ((bp->page = (char *)malloc((size_t)hashp->BSIZE)) == NULL) {
-			free(bp);
+		if ((bp->page = (char *)PR_Malloc(hashp->BSIZE)) == NULL) {
+			PR_Free(bp);
 			return (NULL);
 		}
 
@@ -263,7 +265,7 @@ newbuf(HTAB *hashp, uint32 addr, BUFHEAD *prev_bp)
 			if (IS_BUCKET(bp->flags)) {
 				segment_ndx = bp->addr & (hashp->SGSIZE - 1);
 				segp = hashp->dir[bp->addr >> hashp->SSHIFT];
-#ifdef DEBUG
+#if defined(DEBUG) && !defined(_WIN32_WCE)
 				assert(segp != NULL);
 #endif
 
@@ -376,9 +378,9 @@ __buf_free(HTAB *hashp, int do_free, int to_disk)
 			  
 				if (do_free) {
 					if (bp->page)
-						free(bp->page);
+						PR_Free(bp->page);
 					BUF_REMOVE(bp);
-					free(bp);
+					PR_Free(bp);
 				}
 				
 				return (status);
@@ -387,9 +389,9 @@ __buf_free(HTAB *hashp, int do_free, int to_disk)
 		/* Check if we are freeing stuff */
 		if (do_free) {
 			if (bp->page)
-				free(bp->page);
+				PR_Free(bp->page);
 			BUF_REMOVE(bp);
-			free(bp);
+			PR_Free(bp);
 			bp = LRU;
 		} else
 			bp = bp->prev;

@@ -40,15 +40,18 @@ static char sccsid[] = "@(#)hsearch.c	8.4 (Berkeley) 7/21/94";
 
 #include "watcomfx.h"
 
-#ifndef macintosh
+#if !defined(macintosh) && !defined(_WIN32_WCE)
 #include <sys/types.h>
 #endif
 
+#if !defined(_WIN32_WCE)
 #include <fcntl.h>
+#endif
 #include <string.h>
 
 #include "mcom_db.h"
 #include "hsearch.h"
+#include "prio.h"
 
 static DB *dbp = NULL;
 static ENTRY retval;
@@ -64,7 +67,7 @@ hcreate(uint nel)
 	info.cachesize = 0;
 	info.hash = NULL;
 	info.lorder = 0;
-	dbp = (DB *)__hash_open(NULL, O_CREAT | O_RDWR, 0600, &info, 0);
+	dbp = (DB *)__hash_open(NULL, PR_CREATE_FILE | PR_RDWR, 0600, &info, 0);
 	return ((int)dbp);
 }
 

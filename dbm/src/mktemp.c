@@ -37,6 +37,7 @@ static char sccsid[] = "@(#)mktemp.c	8.1 (Berkeley) 6/4/93";
 
 #include "watcomfx.h"
 
+#if !defined(_WIN32_WCE)
 #ifdef macintosh
 #include <unix.h>
 #else
@@ -45,9 +46,12 @@ static char sccsid[] = "@(#)mktemp.c	8.1 (Berkeley) 6/4/93";
 #endif
 #include <fcntl.h>
 #include <errno.h>
+#endif
+
 #include <stdio.h>
 #include <ctype.h>
 #include "mcom_db.h"
+#include "hash.h"	/* for NO_FILE */
 
 #if !defined(_WINDOWS) && !defined(XP_OS2_VACPP)
 #include <unistd.h>
@@ -60,51 +64,61 @@ static char sccsid[] = "@(#)mktemp.c	8.1 (Berkeley) 6/4/93";
 #endif
 
 #ifdef _WINDOWS
+#if !defined(_WIN32_WCE)
 #include <process.h>
-#include "winfile.h"
+#endif
+/* #include "winfile.h" */
 #endif
 
-static int _gettemp(char *path, register int *doopen, int extraFlags);
+#include "private/pprio.h"
 
-int
-mkstemp(char *path)
+#if defined(_WIN32_WCE)
+/* This really belongs in a libc compatibility library for WinCE */
+static int 
+getpid(void)
 {
+	int pid = 0xffff & (int)GetCurrentProcess();
+	return pid;
+}
+#endif
+
+static int _gettemp(char *path, PRFileDesc **doopen, int extraFlags);
+
+PRFileDesc *
+dbm_mkstemp(char *path)
+{
+	PRFileDesc * fd = NULL;
 #ifdef XP_OS2
 	FILE *temp = tmpfile();
-
-	return (temp ? fileno(temp) : -1);
+	if (!temp) {
+		SET_ERROR(PR_IO_ERROR, errno);
+		return NO_FILE;
+	}
+	return PR_ImportFile( fileno(temp) );
 #else
-	int fd;
-
-	return (_gettemp(path, &fd, 0) ? fd : -1);
+	return (_gettemp(path, &fd, 0) ? fd : NO_FILE);
 #endif
 }
 
-int
-mkstempflags(char *path, int extraFlags)
-{
-	int fd;
-
-	return (_gettemp(path, &fd, extraFlags) ? fd : -1);
-}
-
+#if 0
 char *
 mktemp(char *path)
 {
-	return(_gettemp(path, (int *)NULL, 0) ? path : (char *)NULL);
+	return(_gettemp(path, (PRFileDesc **)0, 0) ? path : (char *)0);
 }
+#endif
 
 /* NB: This routine modifies its input string, and does not always restore it.
 ** returns 1 on success, 0 on failure.
 */
 static int 
-_gettemp(char *path, register int *doopen, int extraFlags)
+_gettemp(char *path, PRFileDesc * *doopen, int extraFlags)
 {    
 #if !defined(_WINDOWS) || defined(_WIN32)
 	extern int errno;                    
 #endif
 	register char *start, *trv;
-	struct stat sbuf;
+	struct PRFileInfo fileInfo;
 	unsigned int pid;
 
 	pid = getpid();
@@ -126,12 +140,12 @@ _gettemp(char *path, register int *doopen, int extraFlags)
 		if (saved == '/' || saved == '\\') {
 			int rv;
 			*trv = '\0';
-			rv = stat(path, &sbuf);
+			rv = PR_GetFileInfo(path, &fileInfo);
 			*trv = saved;
 			if (rv)
 				return(0);
-			if (!S_ISDIR(sbuf.st_mode)) {
-				errno = ENOTDIR;
+			if (PR_FILE_DIRECTORY != fileInfo.type) {
+				SET_ERROR(PR_NOT_DIRECTORY_ERROR, ENOTDIR);
 				return(0);
 			}
 			break;
@@ -140,14 +154,16 @@ _gettemp(char *path, register int *doopen, int extraFlags)
 
 	for (;;) {
 		if (doopen) {
-			if ((*doopen =
-			    open(path, O_CREAT|O_EXCL|O_RDWR|extraFlags, 0600)) >= 0)
+			*doopen = PR_OpenFile(path, 
+                             PR_CREATE_FILE|PR_EXCL|PR_RDWR|extraFlags, 0600);
+			if (*doopen != NO_FILE)
 				return(1);
-			if (errno != EEXIST)
+			if (PR_GetError() != PR_FILE_EXISTS_ERROR)
 				return(0);
 		}
-		else if (stat(path, &sbuf))
-			return(errno == ENOENT ? 1 : 0);
+		else if (PR_GetFileInfo(path, &fileInfo)) {
+			return(PR_GetError() == PR_FILE_NOT_FOUND_ERROR);
+		}
 
 		/* tricky little algorithm for backward compatibility */
 		for (trv = start;;) {

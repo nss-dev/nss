@@ -56,6 +56,10 @@ static char sccsid[] = "@(#)ndbm.c	8.4 (Berkeley) 7/21/94";
 #include "dirent.h"
 #endif
 
+#if !defined(_WIN32_WCE)
+#include <errno.h>
+#endif
+
 #include <stdio.h>
 #include <string.h>
 
@@ -195,5 +199,10 @@ dbm_clearerr(DBM *db)
 extern int
 dbm_dirfno(DBM *db)
 {
+#if 0
 	return(((HTAB *)db->internal)->fp);
+#else
+	PR_SetError(PR_NOT_IMPLEMENTED_ERROR, ENOSYS);
+	return -1;  /* NOT IMPLEMENTED */
+#endif
 }

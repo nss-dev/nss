@@ -58,16 +58,19 @@ static char sccsid[] = "@(#)hash_bigkey.c	8.3 (Berkeley) 5/31/94";
  *	collect_data
  */
 
+#if !defined(_WIN32_WCE)
 #if !defined(_WIN32) && !defined(_WINDOWS) && !defined(macintosh) && !defined(XP_OS2_VACPP)
 #include <sys/param.h>
 #endif
 
 #include <errno.h>
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#ifdef DEBUG
+#if defined(DEBUG) && !defined(_WIN32_WCE)
 #include <assert.h>
 #endif
 
@@ -433,7 +436,7 @@ __big_return(
 		return (-1);
 	if (save_p->addr != save_addr) {
 		/* We are pretty short on buffers. */
-		errno = EINVAL;			/* OUT OF BUFFERS */
+		SET_ERROR(PR_INVALID_ARGUMENT_ERROR, EINVAL); /* OUT OF BUFFERS */
 		return (-1);
 	}
 	memmove(hashp->tmp_buf, (save_p->page) + off, len);
@@ -471,8 +474,8 @@ collect_data(
 	if (bp[2] == FULL_KEY_DATA) {		/* End of Data */
 		totlen = len + mylen;
 		if (hashp->tmp_buf)
-			free(hashp->tmp_buf);
-		if ((hashp->tmp_buf = (char *)malloc((size_t)totlen)) == NULL)
+			PR_Free(hashp->tmp_buf);
+		if ((hashp->tmp_buf = (char *)PR_Malloc(totlen)) == NULL)
 			return (-1);
 		if (set) {
 			hashp->cndx = 1;
@@ -497,7 +500,7 @@ collect_data(
 			return (-1);
 	}
 	if (bufp->addr != save_addr) {
-		errno = EINVAL;			/* Out of buffers. */
+		SET_ERROR(PR_INVALID_ARGUMENT_ERROR, EINVAL); /* OUT OF BUFFERS */
 		return (-1);
 	}
 	memmove(&hashp->tmp_buf[len], (bufp->page) + bp[1], (size_t)mylen);
@@ -546,8 +549,8 @@ collect_key(
 	totlen = len + mylen;
 	if (bp[2] == FULL_KEY || bp[2] == FULL_KEY_DATA) {    /* End of Key. */
 		if (hashp->tmp_key != NULL)
-			free(hashp->tmp_key);
-		if ((hashp->tmp_key = (char *)malloc((size_t)totlen)) == NULL)
+			PR_Free(hashp->tmp_key);
+		if ((hashp->tmp_key = (char *)PR_Malloc(totlen)) == NULL)
 			return (-1);
 		if (__big_return(hashp, bufp, 1, val, set))
 			return (-1);
@@ -558,7 +561,7 @@ collect_key(
 			return (-1);
 	}
 	if (bufp->addr != save_addr) {
-		errno = EINVAL;		/* MIS -- OUT OF BUFFERS */
+		SET_ERROR(PR_INVALID_ARGUMENT_ERROR, EINVAL); /* OUT OF BUFFERS */
 		return (-1);
 	}
 	memmove(&hashp->tmp_key[len], (bufp->page) + bp[1], (size_t)mylen);
@@ -603,7 +606,7 @@ __big_split(
 		ret->nextp = NULL;
 
 	/* Now make one of np/op point to the big key/data pair */
-#ifdef DEBUG
+#if defined(DEBUG) && !defined(_WIN32_WCE)
 	assert(np->ovfl == NULL);
 #endif
 	if (change)
@@ -612,7 +615,7 @@ __big_split(
 		tmpp = op;
 
 	tmpp->flags |= BUF_MOD;
-#ifdef DEBUG1
+#if defined( DEBUG1 ) && !defined(_WIN32_WCE)
 	(void)fprintf(stderr,
 	    "BIG_SPLIT: %d->ovfl was %d is now %d\n", tmpp->addr,
 	    (tmpp->ovfl ? tmpp->ovfl->addr : 0), (bp ? bp->addr : 0));

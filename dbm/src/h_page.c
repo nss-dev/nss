@@ -34,13 +34,6 @@
  * SUCH DAMAGE.
  */
 
-#if defined(unix)
-#define MY_LSEEK lseek
-#else
-#define MY_LSEEK new_lseek
-extern long new_lseek(int fd, long pos, int start);
-#endif
-
 #if defined(LIBC_SCCS) && !defined(lint)
 static char sccsid[] = "@(#)hash_page.c	8.7 (Berkeley) 8/16/94";
 #endif /* LIBC_SCCS and not lint */
@@ -62,7 +55,7 @@ static char sccsid[] = "@(#)hash_page.c	8.7 (Berkeley) 8/16/94";
  *	overflow_page
  *	open_temp
  */
-#ifndef macintosh
+#if !defined(macintosh) && !defined(_WIN32_WCE)
 #include <sys/types.h>
 #endif
 
@@ -70,28 +63,43 @@ static char sccsid[] = "@(#)hash_page.c	8.7 (Berkeley) 8/16/94";
 #include <unistd.h>
 #endif
 
+#if !defined(_WIN32_WCE) 
 #include <errno.h>
 #include <fcntl.h>
-#if defined(_WIN32) || defined(_WINDOWS) 
+#if defined(_WIN32) || defined(_WINDOWS)
 #include <io.h>
 #endif
 #include <signal.h>
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#if !defined(_WIN32) && !defined(_WINDOWS) && !defined(macintosh) && !defined(XP_OS2_VACPP)
+#if !defined(_WIN32_WCE)
+#if !defined(_WIN32) && !defined(_WINDOWS) && !defined(macintosh) && \
+    !defined(XP_OS2_VACPP) 
 #include <unistd.h>
 #endif
 
 #include <assert.h>
+#else
+#define assert(x)
+#define strdup _strdup
+#endif
 
 #include "mcom_db.h"
 #include "hash.h"
 #include "page.h"
+#include "prenv.h"
 /* #include "extern.h" */
 
-extern int mkstempflags(char *path, int extraFlags);
+#if defined(unix)
+#define MY_LSEEK PR_Seek
+#else
+#define MY_LSEEK new_lseek
+extern long new_lseek(DBFILE_PTR fd, long pos, PRSeekWhence origin);
+#endif
 
 static uint32	*fetch_bitmap __P((HTAB *, uint32));
 static uint32	 first_free __P((uint32));
@@ -107,36 +115,37 @@ static int	 ugly_split
 	((uint16 *)(P))[2] = hashp->BSIZE; \
 }
 
+#if !defined(UNIX)
 /* implement a new lseek using lseek that
  * writes zero's when extending a file
  * beyond the end.
  */
-long new_lseek(int fd, long offset, int origin)
+long new_lseek(DBFILE_PTR fd, long offset, PRSeekWhence origin)
 {
  	long cur_pos=0;
 	long end_pos=0;
 	long seek_pos=0;
 
-	if(origin == SEEK_CUR)
+	if(origin == PR_SEEK_CUR)
       {	
       	if(offset < 1)							  
-	    	return(lseek(fd, offset, SEEK_CUR));
+	    	return(PR_Seek(fd, offset, PR_SEEK_CUR));
 
-		cur_pos = lseek(fd, 0, SEEK_CUR);
+		cur_pos = PR_Seek(fd, 0, PR_SEEK_CUR);
 
 		if(cur_pos < 0)
 			return(cur_pos);
 	  }
 										 
-	end_pos = lseek(fd, 0, SEEK_END);
+	end_pos = PR_Seek(fd, 0, PR_SEEK_END);
 	if(end_pos < 0)
 		return(end_pos);
 
-	if(origin == SEEK_SET)
+	if(origin == PR_SEEK_SET)
 		seek_pos = offset;
-	else if(origin == SEEK_CUR)
+	else if(origin == PR_SEEK_CUR)
 		seek_pos = cur_pos + offset;
-	else if(origin == SEEK_END)
+	else if(origin == PR_SEEK_END)
 		seek_pos = end_pos + offset;
  	else
 	  {
@@ -149,7 +158,7 @@ long new_lseek(int fd, long offset, int origin)
 	 * to do anything special except the seek.
 	 */
  	if(seek_pos <= end_pos)
- 		return(lseek(fd, seek_pos, SEEK_SET));
+ 		return(PR_Seek(fd, seek_pos, PR_SEEK_SET));
  		
  	  /* the seek position is beyond the end of the
  	   * file.  Write zero's to the end.
@@ -166,13 +175,14 @@ long new_lseek(int fd, long offset, int origin)
 	   	memset(&buffer, 0, 1024);
 	   	while(len > 0)
 	      {
-	        write(fd, (char*)&buffer, (size_t)(1024 > len ? len : 1024));
+	        PR_Write(fd, (char*)&buffer, (size_t)(1024 > len ? len : 1024));
 		    len -= 1024;
 		  }
-		return(lseek(fd, seek_pos, SEEK_SET));
+		return(PR_Seek(fd, seek_pos, PR_SEEK_SET));
 	  }		
 
 }
+#endif
 
 /*
  * This is called AFTER we have verified that there is room on the page for
@@ -692,15 +702,16 @@ __get_page(HTAB *hashp,
 	int is_disk, 
 	int is_bitmap)
 {
-	register int fd, page;
-	size_t size;
-	int rsize;
+	register DBFILE_PTR fd;
+	register int page;
+	size_t   size;
+	int      rsize;
 	uint16 *bp;
 
 	fd = hashp->fp;
 	size = hashp->BSIZE;
 
-	if ((fd == -1) || !is_disk) {
+	if ((fd == NO_FILE) || !is_disk) {
 		PAGE_INIT(p);
 		return (0);
 	}
@@ -708,8 +719,8 @@ __get_page(HTAB *hashp,
 		page = BUCKET_TO_PAGE(bucket);
 	else
 		page = OADDR_TO_PAGE(bucket);
-	if ((MY_LSEEK(fd, (off_t)page << hashp->BSHIFT, SEEK_SET) == -1) ||
-	    ((rsize = read(fd, p, size)) == -1))
+	if ((MY_LSEEK(fd, (off_t)page << hashp->BSHIFT, PR_SEEK_SET) == -1) ||
+	    ((rsize = PR_Read(fd, p, size)) == -1))
 		return (-1);
 
 	bp = (uint16 *)p;
@@ -717,7 +728,7 @@ __get_page(HTAB *hashp,
 		bp[0] = 0;	/* We hit the EOF, so initialize a new page */
 	else
 		if ((unsigned)rsize != size) {
-			errno = EFTYPE;
+			SET_ERROR(PR_INVALID_ARGUMENT_ERROR, EFTYPE);
 			return (-1);
 		}
 
@@ -828,13 +839,14 @@ __get_page(HTAB *hashp,
 extern int
 __put_page(HTAB *hashp, char *p, uint32 bucket, int is_bucket, int is_bitmap)
 {
-	register int fd, page;
+	register DBFILE_PTR fd;
+	register int page;
 	size_t size;
 	int wsize;
 	off_t offset;
 
 	size = hashp->BSIZE;
-	if ((hashp->fp == -1) && open_temp(hashp))
+	if ((hashp->fp == NO_FILE) && open_temp(hashp))
 		return (-1);
 	fd = hashp->fp;
 
@@ -867,16 +879,16 @@ __put_page(HTAB *hashp, char *p, uint32 bucket, int is_bucket, int is_bitmap)
 	else
 		page = OADDR_TO_PAGE(bucket);
 	offset = (off_t)page << hashp->BSHIFT;
-	if ((MY_LSEEK(fd, offset, SEEK_SET) == -1) ||
-	    ((wsize = write(fd, p, size)) == -1))
+	if ((MY_LSEEK(fd, offset, PR_SEEK_SET) == -1) ||
+	    ((wsize = PR_Write(fd, p, size)) == -1))
 		/* Errno is set */
 		return (-1);
 	if ((unsigned)wsize != size) {
-		errno = EFTYPE;
+		SET_ERROR(PR_INVALID_ARGUMENT_ERROR, EFTYPE);
 		return (-1);
 	}
 #if defined(_WIN32) || defined(_WINDOWS) 
-	if (offset + size > hashp->file_size) {
+	if ((off_t)(offset + size) > hashp->file_size) {
 		hashp->updateEOF = 1;
 	}
 #endif
@@ -922,7 +934,7 @@ __ibitmap(HTAB *hashp, int pnum, int nbits, int ndx)
 	uint32 *ip;
 	size_t clearbytes, clearints;
 
-	if ((ip = (uint32 *)malloc((size_t)hashp->BSIZE)) == NULL)
+	if ((ip = (uint32 *)PR_Malloc(hashp->BSIZE)) == NULL)
 		return (1);
 	hashp->nmaps++;
 	clearints = ((nbits - 1) >> INT_BYTE_SHIFT) + 1;
@@ -1002,7 +1014,7 @@ overflow_page(HTAB *hashp)
 #define	OVMSG	"HASH: Out of overflow pages.  Increase page size\n"
 	if (offset > SPLITMASK) {
 		if (++splitnum >= NCACHED) {
-#ifndef macintosh
+#if !defined(macintosh) && !defined(_WIN32_WCE)
 			(void)write(STDERR_FILENO, OVMSG, sizeof(OVMSG) - 1);
 #endif
 			return (0);
@@ -1017,7 +1029,7 @@ overflow_page(HTAB *hashp)
 	if (free_bit == (hashp->BSIZE << BYTE_SHIFT) - 1) {
 		free_page++;
 		if (free_page >= NCACHED) {
-#ifndef macintosh
+#if !defined(macintosh) && !defined(_WIN32_WCE)
 			(void)write(STDERR_FILENO, OVMSG, sizeof(OVMSG) - 1);
 #endif
 			return (0);
@@ -1043,7 +1055,7 @@ overflow_page(HTAB *hashp)
 		offset++;
 		if (offset > SPLITMASK) {
 			if (++splitnum >= NCACHED) {
-#ifndef macintosh
+#if !defined(macintosh) && !defined(_WIN32_WCE)
 				(void)write(STDERR_FILENO, OVMSG,
 				    sizeof(OVMSG) - 1);
 #endif
@@ -1160,12 +1172,12 @@ static int
 open_temp(HTAB *hashp)
 {
 #ifdef XP_OS2
- 	hashp->fp = mkstemp(NULL);
+ 	hashp->fp = dbm_mkstemp(NULL);
 #else
 #if !defined(_WIN32) && !defined(_WINDOWS) && !defined(macintosh)
 	sigset_t set, oset;
 #endif
-#if !defined(macintosh)
+#if !defined(macintosh) && !defined(_WIN32_WCE)
 	char * tmpdir;
 	size_t len;
 	char last;
@@ -1180,14 +1192,14 @@ open_temp(HTAB *hashp)
 #endif
 
 	filename[0] = 0;
-#if defined(macintosh)
+#if defined(macintosh) || defined(_WIN32_WCE)
 	strcat(filename, namestr + 1);
 #else
-	tmpdir = getenv("TMP");
+	tmpdir = PR_GetEnv("TMP");
 	if (!tmpdir)
-		tmpdir = getenv("TMPDIR");
+		tmpdir = PR_GetEnv("TMPDIR");
 	if (!tmpdir)
-		tmpdir = getenv("TEMP");
+		tmpdir = PR_GetEnv("TEMP");
 	if (!tmpdir)
 		tmpdir = ".";
 	len = strlen(tmpdir);
@@ -1199,28 +1211,27 @@ open_temp(HTAB *hashp)
 	strcat(filename, (last == '/' || last == '\\') ? namestr + 1 : namestr);
 #endif
 
+	/* dbm_mkstemp always opens the file temporary and binary */
+	hashp->fp = dbm_mkstemp(filename);
+	if (hashp->fp != NO_FILE) {
 #if defined(_WIN32) || defined(_WINDOWS)
-	if ((hashp->fp = mkstempflags(filename, _O_BINARY|_O_TEMPORARY)) != -1) {
 		if (hashp->filename) {
 			free(hashp->filename);
 		}
 		hashp->filename = strdup(filename);
 		hashp->is_temp = 1;
-	}
 #else
-	if ((hashp->fp = mkstemp(filename)) != -1) {
-		(void)unlink(filename);
-#if !defined(macintosh)
-		(void)fcntl(hashp->fp, F_SETFD, 1);
-#endif									  
-	}
+		(void)PR_Delete(filename);
 #endif
+		/* set the close-on-exec flag */
+		PR_SetFDInheritable(hashp->fp, PR_FALSE);
+	}
 
 #if !defined(_WIN32) && !defined(_WINDOWS) && !defined(macintosh)
 	(void)sigprocmask(SIG_SETMASK, &oset, (sigset_t *)NULL);
 #endif
 #endif  /* !OS2 */
-	return (hashp->fp != -1 ? 0 : -1);
+	return (hashp->fp != NO_FILE ? 0 : -1);
 }
 
 /*
@@ -1257,11 +1268,11 @@ fetch_bitmap(HTAB *hashp, uint32 ndx)
 {
 	if (ndx >= (unsigned)hashp->nmaps)
 		return (NULL);
-	if ((hashp->mapp[ndx] = (uint32 *)malloc((size_t)hashp->BSIZE)) == NULL)
+	if ((hashp->mapp[ndx] = (uint32 *)PR_Malloc(hashp->BSIZE)) == NULL)
 		return (NULL);
 	if (__get_page(hashp,
 	    (char *)hashp->mapp[ndx], hashp->BITMAPS[ndx], 0, 1, 1)) {
-		free(hashp->mapp[ndx]);
+		PR_Free(hashp->mapp[ndx]);
 		hashp->mapp[ndx] = NULL; /* NEW: 9-11-95 */
 		return (NULL);
 	}                 

@@ -1,17 +1,18 @@
-#include "watcomfx.h"
+/* What?  No mozilla license boilerplate? */
 
+#include "watcomfx.h"
 #include "nsres.h"
 
 #include <stdio.h>
-
 #include <stdlib.h>
-
 #include <string.h>
+
 
 struct RESDATABASE
 {
 	DB *hdb;
 	NSRESTHREADINFO *threadinfo;
+	int WhichString;
 	char * pbuf[MAXBUFNUM];
 } ;
 typedef struct RESDATABASE *  RESHANDLE;
@@ -24,10 +25,12 @@ typedef struct STRINGDATA
 
 
 typedef unsigned int CHARSETTYPE;
-#define RES_LOCK	if (hres->threadinfo)   hres->threadinfo->fn_lock(hres->threadinfo->lock);
-#define RES_UNLOCK  if (hres->threadinfo)   hres->threadinfo->fn_unlock(hres->threadinfo->lock);
+#define RES_LOCK    if (hres->threadinfo)   \
+                        hres->threadinfo->fn_lock(hres->threadinfo->lock);
+#define RES_UNLOCK  if (hres->threadinfo)   \
+                        hres->threadinfo->fn_unlock(hres->threadinfo->lock);
 
-int GenKeyData(const char *library, int32 id, DBT *key);
+static int GenKeyData(const char *library, int32 id, DBT *key);
 
 /* 
   Right now, the page size used for resource is same as for Navigator cache
@@ -41,14 +44,11 @@ HASHINFO res_hash_info = {
         0,   /* 64 * 1024U  */
         0};
 
-int GenKeyData(const char *library, int32 id, DBT *key)
+static int GenKeyData(const char *library, int32 id, DBT *key)
 {
-	char idstr[10];
-	static char * strdata = NULL;
+	char * strdata = NULL;
 	size_t len;
-
-	if (strdata)
-		free (strdata);
+	char idstr[10];
 
 	if (id == 0)
 		idstr[0] = '\0';
@@ -62,14 +62,15 @@ int GenKeyData(const char *library, int32 id, DBT *key)
 		len = strlen(idstr) + 1;
 	else
 		len = strlen(library) + strlen(idstr) + 1;
-	strdata = (char *) malloc (len);
-	strcpy(strdata, library);
-	strcat(strdata, idstr);
-
+	strdata = (char *)PR_Malloc(len);
+	if (strdata) {
+		strcpy(strdata, library);
+		strcat(strdata, idstr);
+    }
 	key->size = len;
 	key->data = strdata;
 
-	return 1;
+	return (strdata != NULL);
 }
 
 NSRESHANDLE NSResCreateTable(const char *filename, NSRESTHREADINFO *threadinfo)
@@ -77,15 +78,18 @@ NSRESHANDLE NSResCreateTable(const char *filename, NSRESTHREADINFO *threadinfo)
 	RESHANDLE hres;
 	int flag;
 
-	flag = O_RDWR | O_CREAT;
+	flag = PR_RDWR | PR_CREATE_FILE;
 
-	hres = (RESHANDLE) malloc ( sizeof(struct RESDATABASE) );
-	memset(hres, 0, sizeof(struct RESDATABASE));
+	hres = PR_NEWZAP(struct RESDATABASE);
+	if (!hres) 
+		return NULL;
 
 	if (threadinfo && threadinfo->lock && threadinfo->fn_lock 
-	  && threadinfo->fn_unlock)
+		&& threadinfo->fn_unlock)
 	{
-		hres->threadinfo = (NSRESTHREADINFO *) malloc( sizeof(NSRESTHREADINFO) );
+		hres->threadinfo = PR_NEW(NSRESTHREADINFO);
+		if (!hres->threadinfo)
+			goto fail;
 		hres->threadinfo->lock = threadinfo->lock;
 		hres->threadinfo->fn_lock = threadinfo->fn_lock;
 		hres->threadinfo->fn_unlock = threadinfo->fn_unlock;
@@ -98,8 +102,13 @@ NSRESHANDLE NSResCreateTable(const char *filename, NSRESTHREADINFO *threadinfo)
 
 	RES_UNLOCK
 
-	if(!hres->hdb)
+	if(!hres->hdb) {
+fail:
+		if (hres->threadinfo)
+			PR_Free(hres->threadinfo);
+		PR_Free(hres);	
 		return NULL;
+	}
 
 	return (NSRESHANDLE) hres;
 }
@@ -109,15 +118,18 @@ NSRESHANDLE NSResOpenTable(const char *filename, NSRESTHREADINFO *threadinfo)
 	RESHANDLE hres;
 	int flag;
 
-	flag = O_RDONLY;  /* only open database for reading */
+	flag = PR_RDONLY;  /* only open database for reading */
 
-	hres = (RESHANDLE) malloc ( sizeof(struct RESDATABASE) );
-	memset(hres, 0, sizeof(struct RESDATABASE));
+	hres = PR_NEWZAP(struct RESDATABASE);
+	if (!hres)
+		return NULL;
 
 	if (threadinfo && threadinfo->lock && threadinfo->fn_lock 
 	  && threadinfo->fn_unlock)
 	{
-		hres->threadinfo = (NSRESTHREADINFO *) malloc( sizeof(NSRESTHREADINFO) );
+		hres->threadinfo = PR_NEW(NSRESTHREADINFO);
+		if (!hres->threadinfo)
+			goto fail;
 		hres->threadinfo->lock = threadinfo->lock;
 		hres->threadinfo->fn_lock = threadinfo->fn_lock;
 		hres->threadinfo->fn_unlock = threadinfo->fn_unlock;
@@ -130,9 +142,13 @@ NSRESHANDLE NSResOpenTable(const char *filename, NSRESTHREADINFO *threadinfo)
 
 	RES_UNLOCK
 
-	if(!hres->hdb)
+	if(!hres->hdb) {
+fail:
+		if (hres->threadinfo)
+			PR_Free(hres->threadinfo);
+		PR_Free(hres);
 		return NULL;
-
+	}
 	return (NSRESHANDLE) hres;
 }
 
@@ -157,12 +173,12 @@ void NSResCloseTable(NSRESHANDLE handle)
 	for (i = 0; i < MAXBUFNUM; i++)
 	{
 		if (hres->pbuf[i])
-			free (hres->pbuf[i]);
+			PR_Free(hres->pbuf[i]);
 	}
 
 	if (hres->threadinfo)
-		free (hres->threadinfo);
-	free (hres);
+		PR_Free(hres->threadinfo);
+	PR_Free(hres);
 }
 
 
@@ -175,53 +191,45 @@ char *NSResLoadString(NSRESHANDLE handle, const char * library, int32 id,
 	if (handle == NULL)
 		return NULL;
 
-	hres = (RESHANDLE) handle;
-	GenKeyData(library, id, &key);
+	if (!GenKeyData(library, id, &key))
+		return NULL;
 
+	hres = (RESHANDLE) handle;
 	RES_LOCK
+
+	if (!retbuf) {
+		int i  = hres->WhichString;
+		retbuf = hres->pbuf[i];
+		if (!retbuf) {
+			retbuf = (char *)PR_Malloc(MAXSTRINGLEN * sizeof(char));
+			if (!retbuf)
+				goto fail;
+			hres->pbuf[i] = retbuf;
+		}
+
+		/* reset to 0, if WhichString reaches to the end */
+		if (++hres->WhichString >= MAXBUFNUM)  {
+			  hres->WhichString = 0;
+		}
+	}
 
 	status = (*hres->hdb->get)(hres->hdb, &key, &data, 0);
 
+    /* lock protects shared output buffer, so cannot unlock until 
+	** results are copied out!
+	*/
+
+	if (status) 
+		retbuf[0] = 0;
+	else
+		memcpy(retbuf, (char *)data.data + sizeof(CHARSETTYPE), 
+							   data.size - sizeof(CHARSETTYPE));
+fail:
 	RES_UNLOCK
-
-	if (retbuf)
-	{
-		memcpy(retbuf, (char *)data.data + sizeof(CHARSETTYPE), data.size - sizeof(CHARSETTYPE));
-		return retbuf;
-	}
-	else 
-	{
-		static int WhichString = 0;
-		static int bFirstTime = 1;
-		char *szLoadedString;
-		int i;
-
-		RES_LOCK
-
-		if (bFirstTime) {
-			for (i = 0; i < MAXBUFNUM; i++)
-				hres->pbuf[i] = (char *) malloc(MAXSTRINGLEN * sizeof(char));
-			bFirstTime = 0; 
-		} 
-
-		szLoadedString = hres->pbuf[WhichString];
-		WhichString++;
-
-		/* reset to 0, if WhichString reaches to the end */
-		if (WhichString == MAXBUFNUM)  
-			WhichString = 0;
-
-		if (status == 0)
-			memcpy(szLoadedString, (char *) data.data + sizeof(CHARSETTYPE), 
-			  data.size - sizeof(CHARSETTYPE));
-		else
-			szLoadedString[0] = 0; 
-
-		RES_UNLOCK
-
-		return szLoadedString;
-	}
+	PR_Free(key.data);
+	return retbuf;
 }
+
 
 int32 NSResGetSize(NSRESHANDLE handle, const char *library, int32 id)
 {
@@ -229,15 +237,21 @@ int32 NSResGetSize(NSRESHANDLE handle, const char *library, int32 id)
 	RESHANDLE hres;
 	DBT key, data;
 	if (handle == NULL)
-		return 0;
-	hres = (RESHANDLE) handle;
-	GenKeyData(library, id, &key);
+		return 0;	/* failure */
 
+	if (!GenKeyData(library, id, &key))
+		return 0;
+
+	hres = (RESHANDLE) handle;
 	RES_LOCK
 
 	status = (*hres->hdb->get)(hres->hdb, &key, &data, 0);
 
 	RES_UNLOCK
+	PR_Free(key.data);
+
+	if (status)
+		return 0;	/* failure */
 
 	return data.size - sizeof(CHARSETTYPE);
 }
@@ -247,26 +261,33 @@ int32 NSResLoadResource(NSRESHANDLE handle, const char *library, int32 id, char 
 	int status;
 	RESHANDLE hres;
 	DBT key, data;
-	if (handle == NULL)
+	if (handle == NULL || !retbuf)
 		return 0;
-	hres = (RESHANDLE) handle;
-	GenKeyData(library, id, &key);
 
+	if (!GenKeyData(library, id, &key))
+		return 0;
+
+	hres = (RESHANDLE) handle;
 	RES_LOCK
 
 	status = (*hres->hdb->get)(hres->hdb, &key, &data, 0);
+	PR_Free(key.data);
 
-	RES_UNLOCK
-
-	if (retbuf)
-	{
-		memcpy(retbuf, (char *)data.data + sizeof(CHARSETTYPE), data.size - sizeof(CHARSETTYPE));
+	if (!status) {
+		memcpy(retbuf, (char *)data.data + sizeof(CHARSETTYPE), 
+		                       data.size - sizeof(CHARSETTYPE));
+		RES_UNLOCK
 		return data.size;
 	}
-	else
-		return 0;
+
+	RES_UNLOCK
+	return 0;
 }
 
+/* Apparently, this function wants to return 0 on failure, and non-zero
+** on success.  But the status returned by the DB's put routine returns
+** zero on success, and non-zero on failure. 
+*/
 int NSResAddString(NSRESHANDLE handle, const char *library, int32 id, 
   const char *string, unsigned int charset)
 {
@@ -279,11 +300,14 @@ int NSResAddString(NSRESHANDLE handle, const char *library, int32 id,
 		return 0;
 	hres = (RESHANDLE) handle;
 
-	GenKeyData(library, id, &key);
+	if (!GenKeyData(library, id, &key))
+		return 0;
 
 	data.size = sizeof(CHARSETTYPE) + (strlen(string) + 1) ;
 
-	recdata = (char *) malloc(data.size) ;
+	recdata = (char *)PR_Malloc(data.size);
+	if (!recdata) 
+		return 0;	/* DBM internal error code */
 
 	/* set charset to the first field of record data */
 	*((CHARSETTYPE *)recdata) = (CHARSETTYPE)charset;
@@ -297,11 +321,10 @@ int NSResAddString(NSRESHANDLE handle, const char *library, int32 id,
 
 	status = (*hres->hdb->put)(hres->hdb, &key, &data, 0);
 
-
-	if (recdata)
-		free(recdata);
-
 	RES_UNLOCK
 
-	return status;
+	PR_Free(key.data);
+	PR_Free(recdata);
+
+	return !status;
 }

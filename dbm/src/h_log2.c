@@ -41,7 +41,7 @@ static char sccsid[] = "@(#)hash_log2.c	8.2 (Berkeley) 5/31/94";
 #include "watcomfx.h"
 
 #include <stdio.h>
-#ifndef macintosh
+#if !defined(macintosh) && !defined(_WIN32_WCE)
 #include <sys/types.h>
 #endif
 #include "mcom_db.h"

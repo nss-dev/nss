@@ -42,7 +42,7 @@
 #include "mcom_db.h"
 
 /* Map dbm interface onto db(3). */
-#define DBM_RDONLY	O_RDONLY
+#define DBM_RDONLY	PR_RDONLY
 
 /* Flags to dbm_store(). */
 #define DBM_INSERT      0

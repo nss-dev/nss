@@ -42,16 +42,21 @@ static char sccsid[] = "@(#)db.c	8.4 (Berkeley) 2/21/94";
 #endif
 #ifdef macintosh
 #include <unix.h>
+#elif defined(_WIN32_WCE)
 #else
 #include <sys/types.h>
 #endif
 
+#if !defined(_WIN32_WCE)
 #include <errno.h>
 #include <fcntl.h>
+#endif
+
 #include <stddef.h>
 #include <stdio.h>
 
 #include "mcom_db.h"
+#include "prio.h"
 
 /* a global flag that locks closed all databases */
 int all_databases_locked_closed = 0;
@@ -80,22 +85,14 @@ dbopen(const char *fname, int flags,int mode, DBTYPE type, const void *openinfo)
 	 */
 	if(all_databases_locked_closed && fname)
 	  {
-		errno = EINVAL;
+		SET_ERROR(PR_INVALID_ARGUMENT_ERROR, EINVAL);
 		return(NULL);
 	  }
 
 #define	DB_FLAGS	(DB_LOCK | DB_SHMEM | DB_TXN)
 
-
-#if 0  /* most systems dont have EXLOCK and SHLOCK */
-#define	USE_OPEN_FLAGS							\
-	(O_CREAT | O_EXCL | O_EXLOCK | O_NONBLOCK | O_RDONLY |		\
-	 O_RDWR | O_SHLOCK | O_TRUNC)
-#else
-#define	USE_OPEN_FLAGS							\
-	(O_CREAT | O_EXCL  | O_RDONLY |		\
-	 O_RDWR | O_TRUNC)
-#endif
+#define	USE_OPEN_FLAGS \
+ (PR_CREATE_FILE | PR_EXCL | PR_RDONLY | PR_RDWR | PR_TRUNCATE)
 
 	if ((flags & ~(USE_OPEN_FLAGS | DB_FLAGS)) == 0)
 		switch (type) {
@@ -115,7 +112,7 @@ dbopen(const char *fname, int flags,int mode, DBTYPE type, const void *openinfo)
 		default:
 			break;
 		}
-	errno = EINVAL;
+	SET_ERROR(PR_INVALID_ARGUMENT_ERROR, EINVAL);
 	return (NULL);
 }
 

@@ -564,7 +564,7 @@ main(int argc, char **argv)
           }
       }
 
-	database = dbopen("test.db", O_RDWR | O_CREAT, 0644, DB_HASH, &hash_info);
+	database = dbopen("test.db", PR_RDWR | PR_CREAT, 0644, DB_HASH, &hash_info);
 
 	if(!database)
 	  {
@@ -609,7 +609,7 @@ main(int argc, char **argv)
 	 	  {
 			/* close and reopen */
 			(*database->close)(database);
-			database = dbopen("test.db", O_RDWR | O_CREAT, 0644, DB_HASH, 0);
+			database = dbopen("test.db", PR_RDWR | PR_CREAT, 0644, DB_HASH, 0);
 			if(!database)
 	  		{
 				ReportError("Could not reopen database");
@@ -622,7 +622,7 @@ main(int argc, char **argv)
 		else
 		  {
 			/* reopen database without closeing the other */
-			database = dbopen("test.db", O_RDWR | O_CREAT, 0644, DB_HASH, 0);
+			database = dbopen("test.db", PR_RDWR | PR_CREAT, 0644, DB_HASH, 0);
 			if(!database)
 	  		{
 				ReportError("Could not reopen database "

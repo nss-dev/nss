@@ -40,6 +40,8 @@
 
 #include <stdio.h>
 #include "mcom_db.h"
+#include "prio.h"
+
 typedef enum {
 	HASH_GET, HASH_PUT, HASH_PUTNEW, HASH_DELETE, HASH_FIRST, HASH_NEXT
 } ACTION;
@@ -65,14 +67,16 @@ struct _bufhead {
 
 typedef BUFHEAD **SEGMENT;
 
-typedef int DBFILE_PTR;
-#define NO_FILE -1
+#define DBFILE_PTR PRFileDesc*
+#define NO_FILE    NULL
+
 #ifdef macintosh
-#define DBFILE_OPEN(path, flag,mode) open((path), flag)
 #define EXISTS(path)
-#else
-#define DBFILE_OPEN(path, flag,mode) open((path), (flag), (mode))
 #endif
+
+#define DBFILE_OPEN(path, flag,mode) PR_OpenFile((path), (flag), (mode))
+
+
 /* Hash Table Information */
 typedef struct hashhdr {		/* Disk resident portion */
 	int32		magic;		/* Magic NO for hash tables */
@@ -116,7 +120,7 @@ typedef struct htab	 {		/* Memory resident data structure */
 	BUFHEAD 	*cpage;		/* Current page */
 	int		cbucket;	/* Current bucket */
 	int		cndx;		/* Index of next item on cpage */
-	int		dbmerrno;		/* Error Number -- for DBM 
+	int		dbmerrno;	/* Error Number -- for DBM 
 					 * compatability */
 	int		new_file;	/* Indicates if fd is backing store 
 					 * or no */
@@ -143,7 +147,11 @@ typedef struct htab	 {		/* Memory resident data structure */
 #define MIN_BUFFERS		6
 #define MINHDRSIZE		512
 #define DEF_BUFSIZE		65536l		/* 64 K */
+#if defined(__QNX__) && !defined(__QNXNTO__)
+#define DEF_BUCKET_SIZE		512 /* prefered blk size on qnx4 */
+#else
 #define DEF_BUCKET_SIZE		4096
+#endif
 #define DEF_BUCKET_SHIFT	12		/* log2(BUCKET) */
 #define DEF_SEGSIZE		256
 #define DEF_SEGSIZE_SHIFT	8		/* log2(SEGSIZE)	 */

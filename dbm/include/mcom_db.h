@@ -74,10 +74,30 @@
 #ifndef _DB_H_
 #define	_DB_H_
 
-#ifndef macintosh
+#if !defined( macintosh) && !defined(_WIN32_WCE)
 #include <sys/types.h>
 #endif
+
 #include "prtypes.h"
+#include "prerror.h"
+#include "prio.h"
+#include "prmem.h"
+
+#if defined(_WIN32_WCE)
+typedef long off_t;
+
+#define EPERM           1
+#define ENOENT          2
+#define ENOMEM          12
+#define EEXIST          17
+#define ENOTDIR         20
+#define EINVAL          22
+#define ENOSYS          40
+
+#define SET_ERROR(errorCode,oserr) PR_SetError((errorCode), (oserr))
+#else
+#define SET_ERROR(errorCode,oserr) PR_SetError((errorCode), errno = (oserr))
+#endif
 
 #include <limits.h>
 
@@ -212,11 +232,15 @@
 #define MAXPATHLEN 	1024              
 #endif
 
+#if !defined(_WIN32_WCE)
 #include <fcntl.h>
+#endif
 
 #if defined(_WINDOWS) || defined(XP_OS2)
 #include <stdio.h>
+#if !defined(_WIN32_WCE)
 #include <io.h>
+#endif
 
 #ifndef XP_OS2 
 #define MAXPATHLEN 	1024               
@@ -230,8 +254,8 @@
 #define	STDERR_FILENO	2
 #endif
 
-#ifndef O_ACCMODE			/* POSIX 1003.1 access mode mask. */
-#define	O_ACCMODE	(O_RDONLY|O_WRONLY|O_RDWR)
+#ifndef PR_ACCMODE			/* POSIX 1003.1 access mode mask. */
+#define	PR_ACCMODE	(PR_RDONLY|PR_WRONLY|PR_RDWR)
 #endif
 #endif
 
@@ -241,9 +265,10 @@
 #define O_ACCMODE       3       /* Mask for file access modes */
 #define EFTYPE 2000
 XP_BEGIN_PROTOS
-int mkstemp(const char *path);
 XP_END_PROTOS
 #endif	/* MACINTOSH */
+
+extern PRFileDesc * dbm_mkstemp(char *path);
 
 #if !defined(_WINDOWS) && !defined(macintosh) && !defined(XP_OS2)
 #include <sys/stat.h>

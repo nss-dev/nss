@@ -142,8 +142,8 @@ static int __sigtemp;		/* For the use of sigprocmask */
 #define	ULONG_MAX		0xFFFFFFFF
 #endif
 
-#ifndef O_ACCMODE			/* POSIX 1003.1 access mode mask. */
-#define	O_ACCMODE	(O_RDONLY|O_WRONLY|O_RDWR)
+#ifndef PR_ACCMODE			/* POSIX 1003.1 access mode mask. */
+#define	PR_ACCMODE	(PR_RDONLY|PR_WRONLY|PR_RDWR)
 #endif
 
 #ifndef	_POSIX2_RE_DUP_MAX		/* POSIX 1003.2 RE limit. */

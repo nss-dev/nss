@@ -12,12 +12,14 @@
 /* 32-bit stuff here */
 #include <windows.h>
 #include <stdlib.h>
+#if !defined(_WIN32_WCE)
 #ifdef __MINGW32__
 #include <sys/types.h>
 #include <sys/stat.h>
 #else
 #include <sys\types.h>
 #include <sys\stat.h>
+#endif
 #endif
 
 typedef struct DIR_Struct {

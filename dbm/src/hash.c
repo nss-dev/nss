@@ -44,7 +44,7 @@ static char sccsid[] = "@(#)hash.c	8.9 (Berkeley) 6/16/94";
 #include <sys/param.h>
 #endif
 
-#if !defined(macintosh)
+#if !defined(macintosh) && !defined(_WIN32_WCE)
 #ifdef XP_OS2_EMX
 #include <sys/types.h>
 #endif
@@ -56,8 +56,11 @@ static char sccsid[] = "@(#)hash.c	8.9 (Berkeley) 6/16/94";
 #include <unistd.h>
 #endif
 
+#if !defined(_WIN32_WCE)
 #include <errno.h>
 #include <fcntl.h>
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -74,7 +77,17 @@ static char sccsid[] = "@(#)hash.c	8.9 (Berkeley) 6/16/94";
 #define EPERM SOCEPERM
 #endif
 
+#if defined(_WIN32_WCE)
+#define assert(x)
+#define strdup _strdup
+#define SAVE_ERROR  {save_prerr = PR_GetError(); save_errno = PR_GetOSError();}
+#else
 #include <assert.h>
+#define SAVE_ERROR      {save_prerr = PR_GetError(); save_errno = errno;}
+#endif
+#define PR_BINARY 0	/* PR_OpenFile always opens files with O_BINARY */
+#define ERROR_VARS      PRErrorCode save_prerr = 0;  int save_errno = 0
+#define RESTORE_ERROR   SET_ERROR(save_prerr, save_errno)
 
 #include "mcom_db.h"
 #include "hash.h"
@@ -105,7 +118,7 @@ static void  swap_header_copy __P((HASHHDR *, HASHHDR *));
 /* Fast arithmetic, relying on powers of 2, */
 #define MOD(x, y)		((x) & ((y) - 1))
 
-#define RETURN_ERROR(ERR, LOC)	{ save_errno = ERR; goto LOC; }
+#define RETURN_ERROR(PRERR, ERR, LOC) { SET_ERROR((PRERR), (ERR)); goto LOC; }
 
 /* Return values */
 #define	SUCCESS	 (0)
@@ -143,23 +156,24 @@ extern DB *
 __hash_open(const char *file, int flags, int mode, const HASHINFO *info, int dflags)
 {
 	HTAB *hashp=NULL;
-	struct stat statbuf;
+	struct PRFileInfo fileInfo;
 	DB *dbp;
-	int bpages, hdrsize, new_table, nsegs, save_errno;
+	int bpages, hdrsize, new_table, nsegs;
+	ERROR_VARS;
 
-	if ((flags & O_ACCMODE) == O_WRONLY) {
-		errno = EINVAL;
-		RETURN_ERROR(ENOMEM, error0);
+	if ((flags & PR_ACCMODE) == PR_WRONLY) {
+		SET_ERROR(PR_INVALID_ARGUMENT_ERROR, EINVAL);
+		goto error0;
 	}
 
-	/* zero the statbuffer so that
+	/* zero the fileInfofer so that
 	 * we can check it for a non-zero
 	 * date to see if stat succeeded
 	 */
-	memset(&statbuf, 0, sizeof(struct stat));
+	memset(&fileInfo, 0, sizeof fileInfo);
 
-	if (!(hashp = (HTAB *)calloc(1, sizeof(HTAB))))
-		RETURN_ERROR(ENOMEM, error0);
+	if (!(hashp = PR_NEWZAP(HTAB)))
+		goto error0;
 	hashp->fp = NO_FILE;
 	if(file)
 		hashp->filename = strdup(file);
@@ -173,50 +187,34 @@ __hash_open(const char *file, int flags, int mode, const HASHINFO *info, int dfl
 	hashp->flags = flags;
 
 	new_table = 0;
-	if (!file || (flags & O_TRUNC) 	|| (stat(file, &statbuf)  && (errno == ENOENT))) 
+	if (!file || (flags & PR_TRUNCATE) || 
+	     (PR_GetFileInfo(file, &fileInfo)  && 
+		 (PR_GetError() == PR_FILE_NOT_FOUND_ERROR))) 
 	{
-		if (errno == ENOENT)
-			errno = 0; /* Just in case someone looks at errno */
+		if (PR_GetError() == PR_FILE_NOT_FOUND_ERROR)
+			SET_ERROR(0, 0); /* Just in case someone looks at errno */
 		new_table = 1;
 	}
-	else if(statbuf.st_mtime && statbuf.st_size == 0)
+	else if(fileInfo.modifyTime && fileInfo.size == 0)
 	{
 		/* check for a zero length file and delete it
 	 	 * if it exists
 	 	 */
 		new_table = 1;
 	}
-	hashp->file_size = statbuf.st_size;
+	hashp->file_size = fileInfo.size;
 
-	if (file) {				 
+	if (file) {
+		hashp->fp = DBFILE_OPEN(file, flags | PR_BINARY, mode);
+		if (hashp->fp == NO_FILE)
+			goto error0;
 
-#if defined(_WIN32) || defined(_WINDOWS) || defined (macintosh)  || defined(XP_OS2_VACPP)
-		if ((hashp->fp = DBFILE_OPEN(file, flags | O_BINARY, mode)) == -1)
-			RETURN_ERROR(errno, error0);
-#else
- 	if ((hashp->fp = open(file, flags, mode)) == -1)
-		RETURN_ERROR(errno, error0);
-	(void)fcntl(hashp->fp, F_SETFD, 1);
-/* We can't use fcntl because of NFS bugs. SIGH */
-#if 0
-    {
-	struct flock fl;
-	memset(&fl, 0, sizeof(fl));
-	fl.l_type = F_WRLCK;
-	if (fcntl(hashp->fp, F_SETLK, &fl) < 0) {
-#ifdef DEBUG
-	    fprintf(stderr, "unable to open %s because it's locked (flags=0x%x)\n", file, flags);
-#endif
-	    RETURN_ERROR(EACCES, error1);
-	}
-    }
-#endif
-
-#endif
+		PR_SetFDInheritable(hashp->fp, PR_FALSE);
 	}
 	if (new_table) {
-		if (!init_hash(hashp, file, (HASHINFO *)info))
-			RETURN_ERROR(errno, error1);
+		if (!init_hash(hashp, file, (HASHINFO *)info)) {
+			goto error1;
+		}
 	} else {
 		/* Table already exists */
 		if (info && info->hash)
@@ -224,30 +222,34 @@ __hash_open(const char *file, int flags, int mode, const HASHINFO *info, int dfl
 		else
 			hashp->hash = __default_hash;
 
-		hdrsize = read(hashp->fp, (char *)&hashp->hdr, sizeof(HASHHDR));
+		hdrsize = PR_Read(hashp->fp, (char *)&hashp->hdr, sizeof(HASHHDR));
 #if BYTE_ORDER == LITTLE_ENDIAN
 		swap_header(hashp);
 #endif
-		if (hdrsize == -1)
-			RETURN_ERROR(errno, error1);
+		if (hdrsize < 0)
+			goto error1;
+
 		if (hdrsize != sizeof(HASHHDR))
-			RETURN_ERROR(EFTYPE, error1);
+			RETURN_ERROR(PR_INVALID_ARGUMENT_ERROR, EFTYPE, error1);
 		/* Verify file type, versions and hash function */
 		if (hashp->MAGIC != HASHMAGIC)
-			RETURN_ERROR(EFTYPE, error1);
+			RETURN_ERROR(PR_INVALID_ARGUMENT_ERROR, EFTYPE, error1);
 #define	OLDHASHVERSION	1
 		if (hashp->VERSION != HASHVERSION &&
 		    hashp->VERSION != OLDHASHVERSION)
-			RETURN_ERROR(EFTYPE, error1);
+			RETURN_ERROR(PR_INVALID_ARGUMENT_ERROR, EFTYPE, error1);
 		if (hashp->hash(CHARKEY, sizeof(CHARKEY)) != hashp->H_CHARKEY)
-			RETURN_ERROR(EFTYPE, error1);
+			RETURN_ERROR(PR_INVALID_ARGUMENT_ERROR, EFTYPE, error1);
 		if (hashp->NKEYS < 0) {
 		    /*
 		    ** OOPS. Old bad database from previously busted
 		    ** code. Blow it away.
 		    */
-		    close(hashp->fp);
-		    if (remove(file) < 0) {
+		    PR_Close(hashp->fp);
+#if defined(_WIN32_WCE)
+			PR_Delete(file);
+#else
+		    if (PR_Delete(file) < 0) {
 #if defined(DEBUG) && defined(XP_UNIX)
 			fprintf(stderr,
 				"WARNING: You have an old bad cache.db file"
@@ -261,7 +263,8 @@ __hash_open(const char *file, int flags, int mode, const HASHINFO *info, int dfl
 				file);
 #endif
 		    }
-		    RETURN_ERROR(ENOENT, error0);
+#endif
+		    RETURN_ERROR(PR_FILE_NOT_FOUND_ERROR, ENOENT, error0);
 		}
 
 		/*
@@ -269,15 +272,14 @@ __hash_open(const char *file, int flags, int mode, const HASHINFO *info, int dfl
 		 * maximum bucket number, so the number of buckets is
 		 * max_bucket + 1.
 		 */
-		nsegs = (hashp->MAX_BUCKET + 1 + hashp->SGSIZE - 1) /
-			 hashp->SGSIZE;
+		nsegs = (hashp->MAX_BUCKET + 1 + hashp->SGSIZE - 1) / hashp->SGSIZE;
 		hashp->nsegs = 0;
 		if (alloc_segs(hashp, nsegs))
 			/*
 			 * If alloc_segs fails, table will have been destroyed
 			 * and errno will have been set.
 			 */
-			RETURN_ERROR(ENOMEM, error0);
+			RETURN_ERROR(PR_OUT_OF_MEMORY_ERROR, ENOMEM, error0);
 		/* Read in bitmaps */
 		bpages = (hashp->SPARES[hashp->OVFL_POINT] +
 		    (hashp->BSIZE << BYTE_SHIFT) - 1) >>
@@ -295,16 +297,15 @@ __hash_open(const char *file, int flags, int mode, const HASHINFO *info, int dfl
 
 	hashp->new_file = new_table;
 #ifdef macintosh
-	hashp->save_file = file && !(hashp->flags & O_RDONLY);
+	hashp->save_file = file && !(hashp->flags & PR_RDONLY);
 #else
-	hashp->save_file = file && (hashp->flags & O_RDWR);
+	hashp->save_file = file && (hashp->flags & PR_RDWR);
 #endif
 	hashp->cbucket = -1;
-	if (!(dbp = (DB *)malloc(sizeof(DB)))) {
-		save_errno = errno;
+	if (!(dbp = PR_NEW(DB))) {
 		hdestroy(hashp);
-		errno = save_errno;
-		RETURN_ERROR(ENOMEM, error0);
+		SET_ERROR(PR_OUT_OF_MEMORY_ERROR, ENOMEM);
+		goto error0;
 	}
 	dbp->internal = hashp;
 	dbp->close = hash_close;
@@ -316,44 +317,22 @@ __hash_open(const char *file, int flags, int mode, const HASHINFO *info, int dfl
 	dbp->sync = hash_sync;
 	dbp->type = DB_HASH;
 
-#if 0
-#if defined(DEBUG) && !defined(_WINDOWS)
-{
-extern int MKLib_trace_flag;
-
-  if(MKLib_trace_flag)
-	(void)fprintf(stderr,
-"%s\n%s%lx\n%s%d\n%s%d\n%s%d\n%s%d\n%s%d\n%s%d\n%s%d\n%s%d\n%s%d\n%s%x\n%s%x\n%s%d\n%s%d\n",
-	    "init_htab:",
-	    "TABLE POINTER   ", (unsigned long) hashp,
-	    "BUCKET SIZE     ", hashp->BSIZE,
-	    "BUCKET SHIFT    ", hashp->BSHIFT,
-	    "DIRECTORY SIZE  ", hashp->DSIZE,
-	    "SEGMENT SIZE    ", hashp->SGSIZE,
-	    "SEGMENT SHIFT   ", hashp->SSHIFT,
-	    "FILL FACTOR     ", hashp->FFACTOR,
-	    "MAX BUCKET      ", hashp->MAX_BUCKET,
-	    "OVFL POINT	     ", hashp->OVFL_POINT,
-	    "LAST FREED      ", hashp->LAST_FREED,
-	    "HIGH MASK       ", hashp->HIGH_MASK,
-	    "LOW  MASK       ", hashp->LOW_MASK,
-	    "NSEGS           ", hashp->nsegs,
-	    "NKEYS           ", hashp->NKEYS);
-}
-#endif
-#endif /* 0 */
 #ifdef HASH_STATISTICS
 	hash_overflows = hash_accesses = hash_collisions = hash_expansions = 0;
 #endif
 	return (dbp);
 
 error1:
-	if (hashp != NULL)
-		(void)close(hashp->fp);
+	SAVE_ERROR;
+	if (hashp != NULL && hashp->fp != NO_FILE)
+		(void)PR_Close(hashp->fp);
 
+	if (0) {
 error0:
-	free(hashp);
-	errno = save_errno;
+		SAVE_ERROR;
+	}
+	PR_Free(hashp);
+	RESTORE_ERROR;
 	return (NULL);
 }
 
@@ -363,41 +342,55 @@ hash_close(DB *dbp)
 	HTAB *hashp;
 	int retval;
 
-	if (!dbp)
+	if (!dbp) {
+		SET_ERROR(PR_INVALID_ARGUMENT_ERROR, EINVAL);
 		return (DBM_ERROR);
-
+	}
 	hashp = (HTAB *)dbp->internal;
-	if(!hashp)
+	if (!hashp) {
+		SET_ERROR(PR_INVALID_ARGUMENT_ERROR, EINVAL);
 		return (DBM_ERROR);
-
+	}
 	retval = hdestroy(hashp);
-	free(dbp);
+	PR_Free(dbp);
 	return (retval);
 }
 
 static int hash_fd(const DB *dbp)
 {
+#if 0
 	HTAB *hashp;
 
-	if (!dbp)
-		return (DBM_ERROR);
+	if (!dbp) {
+		SET_ERROR(PR_INVALID_ARGUMENT_ERROR, EINVAL);
+		return (NO_FILE);
+	}
 
 	hashp = (HTAB *)dbp->internal;
-	if(!hashp)
-		return (DBM_ERROR);
-
-	if (hashp->fp == -1) {
-		errno = ENOENT;
-		return (-1);
+	if (!hashp) {
+		SET_ERROR(PR_INVALID_ARGUMENT_ERROR, EINVAL);
+		return (NO_FILE);
+	}
+	if (hashp->fp == NO_FILE) {
+		SET_ERROR(PR_FILE_NOT_FOUND_ERROR, ENOENT);
+		return (NO_FILE);
 	}
 	return (hashp->fp);
+#else
+	/* If DBM users really want the fd, they're going to have to change
+	** to using a PRFileDesc *, or we're going to have to dig it out of
+	** the PRFileDesc.  But for now ...
+	*/
+	PR_SetError(PR_NOT_IMPLEMENTED_ERROR, ENOSYS);
+    return -1;
+#endif
 }
 
 /************************** LOCAL CREATION ROUTINES **********************/
 static HTAB *
 init_hash(HTAB *hashp, const char *file, HASHINFO *info)
 {
-	struct stat statbuf;
+	struct PRFileInfo fileInfo;
 	int nelem;
 
 	nelem = 1;
@@ -415,15 +408,14 @@ init_hash(HTAB *hashp, const char *file, HASHINFO *info)
 
 	/* Fix bucket size to be optimal for file system */
 	if (file != NULL) {
-		if (stat(file, &statbuf))
+		if (PR_GetFileInfo(file, &fileInfo)) {
 			return (NULL);
+		}
 
-#if !defined(_WIN32) && !defined(_WINDOWS) && !defined(macintosh) && !defined(VMS) && !defined(XP_OS2)
-#if defined(__QNX__) && !defined(__QNXNTO__)
-		hashp->BSIZE = 512; /* prefered blk size on qnx4 */
-#else
-		hashp->BSIZE = statbuf.st_blksize;
-#endif
+#if 0
+		/* there's no equivalent of st_blksize in PRFileInfo. */
+
+		hashp->BSIZE = fileInfo.st_blksize;
 
        	/* new code added by Lou to reduce block
        	 * size down below MAX_BSIZE
@@ -440,7 +432,7 @@ init_hash(HTAB *hashp, const char *file, HASHINFO *info)
 			hashp->BSHIFT = __log2(info->bsize);
 			hashp->BSIZE = 1 << hashp->BSHIFT;
 			if (hashp->BSIZE > MAX_BSIZE) {
-				errno = EINVAL;
+				SET_ERROR(PR_INVALID_ARGUMENT_ERROR, EINVAL);
 				return (NULL);
 			}
 		}
@@ -453,7 +445,7 @@ init_hash(HTAB *hashp, const char *file, HASHINFO *info)
 		if (info->lorder) {
 			if (info->lorder != BIG_ENDIAN &&
 			    info->lorder != LITTLE_ENDIAN) {
-				errno = EINVAL;
+				SET_ERROR(PR_INVALID_ARGUMENT_ERROR, EINVAL);
 				return (NULL);
 			}
 			hashp->LORDER = info->lorder;
@@ -518,9 +510,8 @@ init_htab(HTAB *hashp, int nelem)
 static int
 hdestroy(HTAB *hashp)
 {
-	int i, save_errno;
-
-	save_errno = 0;
+	int i;
+	ERROR_VARS;
 
 #ifdef HASH_STATISTICS
 	(void)fprintf(stderr, "hdestroy: accesses %ld collisions %ld\n",
@@ -540,37 +531,39 @@ hdestroy(HTAB *hashp)
 	 * Call on buffer manager to free buffers, and if required,
 	 * write them to disk.
 	 */
-	if (__buf_free(hashp, 1, hashp->save_file))
-		save_errno = errno;
+	if (__buf_free(hashp, 1, hashp->save_file)) {
+		SAVE_ERROR;
+	}
 	if (hashp->dir) {
-		free(*hashp->dir);	/* Free initial segments */
+		PR_Free(*hashp->dir);	/* Free initial segments */
 		/* Free extra segments */
 		while (hashp->exsegs--)
-			free(hashp->dir[--hashp->nsegs]);
-		free(hashp->dir);
+			PR_Free(hashp->dir[--hashp->nsegs]);
+		PR_Free(hashp->dir);
 	}
-	if (flush_meta(hashp) && !save_errno)
-		save_errno = errno;
+	if (flush_meta(hashp) && !save_prerr) {
+		SAVE_ERROR;
+	}
 	/* Free Bigmaps */
 	for (i = 0; i < hashp->nmaps; i++)
 		if (hashp->mapp[i])
-			free(hashp->mapp[i]);
+			PR_Free(hashp->mapp[i]);
 
-	if (hashp->fp != -1)
-		(void)close(hashp->fp);
+	if (hashp->fp != NO_FILE)
+		(void)PR_Close(hashp->fp);
 
 	if(hashp->filename) {
 #if defined(_WIN32) || defined(_WINDOWS) || defined(XP_OS2)
 		if (hashp->is_temp)
-			(void)unlink(hashp->filename);
+			(void)PR_Delete(hashp->filename);
 #endif
-		free(hashp->filename);
+		free(hashp->filename); /* use free, filename came from strdup */
 	}
 
-	free(hashp);
+	PR_Free(hashp);
 
-	if (save_errno) {
-		errno = save_errno;
+	if (save_prerr) {
+		RESTORE_ERROR;
 		return (DBM_ERROR);
 	}
 	return (SUCCESS);
@@ -589,35 +582,35 @@ update_EOF(HTAB *hashp)
 {
 #if defined(DBM_REOPEN_ON_FLUSH)
 	char *      file       = hashp->filename;
-	off_t       file_size;
+	PROffset32  file_size;
 	int         flags;
 	int         mode       = -1;
-	struct stat statbuf;
+	struct PRFileInfo fileInfo;
 
-	memset(&statbuf, 0, sizeof statbuf);
+	memset(&fileInfo, 0, sizeof fileInfo);
 
 	/* make sure we won't lose the file by closing it. */
-	if (!file || (stat(file, &statbuf)  && (errno == ENOENT)))  {
+	if (!file || (PR_GetFileInfo(file, &fileInfo)  && 
+	             (PR_GetError() == PR_FILE_NOT_FOUND_ERROR)))  {
 		/* pretend we did it. */
 		return 0;
 	}
 
-	(void)close(hashp->fp);
+	(void)PR_Close(hashp->fp);
 
-	flags = hashp->flags & ~(O_TRUNC | O_CREAT | O_EXCL);
+	flags = hashp->flags & ~(PR_TRUNC | PR_CREAT | PR_EXCL);
 
-	if ((hashp->fp = DBFILE_OPEN(file, flags | O_BINARY, mode)) == -1)
+	if ((hashp->fp = DBFILE_OPEN(file, flags | PR_BINARY, mode)) == NO_FILE)
 		return -1;
-	file_size = lseek(hashp->fp, (off_t)0, SEEK_END);
+	file_size = PR_Seek(hashp->fp, 0, PR_SEEK_END);
 	if (file_size == -1) 
 		return -1;
 	hashp->file_size = file_size;
 	return 0;
 #else
-	int    fd        = hashp->fp;
-	off_t  file_size = lseek(fd, (off_t)0, SEEK_END);
-	HANDLE handle    = (HANDLE)_get_osfhandle(fd);
-	BOOL   cool      = FlushFileBuffers(handle);
+	DBFILE_PTR fd        = hashp->fp;
+	PROffset32 file_size = PR_Seek(fd, 0, PR_SEEK_END);
+	BOOL       cool      = PR_SUCCESS == PR_Sync(fd);
 #ifdef DEBUG3
 	if (!cool) {
 		DWORD err = GetLastError();
@@ -647,7 +640,7 @@ hash_sync(const DB *dbp, uint flags)
 	HTAB *hashp;
 
 	if (flags != 0) {
-		errno = EINVAL;
+		SET_ERROR(PR_INVALID_ARGUMENT_ERROR, EINVAL);
 		return (DBM_ERROR);
 	}
 
@@ -686,7 +679,8 @@ flush_meta(HTAB *hashp)
 #if BYTE_ORDER == LITTLE_ENDIAN
 	HASHHDR whdr;
 #endif
-	int fp, i, wsize;
+	DBFILE_PTR fp;
+	int i, wsize;
 
 	if (!hashp->save_file)
 		return (0);
@@ -700,19 +694,19 @@ flush_meta(HTAB *hashp)
 	whdrp = &whdr;
 	swap_header_copy(&hashp->hdr, whdrp);
 #endif
-	if ((lseek(fp, (off_t)0, SEEK_SET) == -1) ||
-	    ((wsize = write(fp, (char*)whdrp, sizeof(HASHHDR))) == -1))
+	if ((PR_Seek(fp, 0, PR_SEEK_SET) == -1) ||
+	    ((wsize = PR_Write(fp, (char*)whdrp, sizeof(HASHHDR))) == -1))
 		return (-1);
-	else
-		if (wsize != sizeof(HASHHDR)) {
-			errno = EFTYPE;
-			hashp->dbmerrno = errno;
-			return (-1);
-		}
+
+	if (wsize != sizeof(HASHHDR)) {
+		hashp->dbmerrno = EFTYPE;
+		SET_ERROR(PR_INVALID_ARGUMENT_ERROR, EFTYPE);
+		return (-1);
+	}
 	for (i = 0; i < NCACHED; i++)
 		if (hashp->mapp[i])
 			if (__put_page(hashp, (char *)hashp->mapp[i],
-				hashp->BITMAPS[i], 0, 1))
+				           hashp->BITMAPS[i], 0, 1))
 				return (-1);
 	return (0);
 }
@@ -741,7 +735,8 @@ hash_get(
 		return (DBM_ERROR);
 
 	if (flag) {
-		hashp->dbmerrno = errno = EINVAL;
+		hashp->dbmerrno = EINVAL;
+		SET_ERROR(PR_INVALID_ARGUMENT_ERROR, EINVAL);
 		return (DBM_ERROR);
 	}
 
@@ -773,11 +768,13 @@ hash_put(
 		return (DBM_ERROR);
 
 	if (flag && flag != R_NOOVERWRITE) {
-		hashp->dbmerrno = errno = EINVAL;
+		hashp->dbmerrno = EINVAL;
+		SET_ERROR(PR_INVALID_ARGUMENT_ERROR, EINVAL);
 		return (DBM_ERROR);
 	}
-	if ((hashp->flags & O_ACCMODE) == O_RDONLY) {
-		hashp->dbmerrno = errno = EPERM;
+	if ((hashp->flags & PR_ACCMODE) == PR_RDONLY) {
+		hashp->dbmerrno = EPERM;
+		SET_ERROR(PR_NO_ACCESS_RIGHTS_ERROR, EPERM);
 		return (DBM_ERROR);
 	}
 
@@ -809,11 +806,13 @@ hash_delete(
 		return (DBM_ERROR);
 
 	if (flag && flag != R_CURSOR) {
-		hashp->dbmerrno = errno = EINVAL;
+		hashp->dbmerrno = EINVAL;
+		SET_ERROR(PR_INVALID_ARGUMENT_ERROR, EINVAL);
 		return (DBM_ERROR);
 	}
-	if ((hashp->flags & O_ACCMODE) == O_RDONLY) {
-		hashp->dbmerrno = errno = EPERM;
+	if ((hashp->flags & PR_ACCMODE) == PR_RDONLY) {
+		hashp->dbmerrno = EPERM;
+		SET_ERROR(PR_NO_ACCESS_RIGHTS_ERROR, EPERM);
 		return (DBM_ERROR);
 	}
 	rv = hash_access(hashp, HASH_DELETE, (DBT *)key, NULL);
@@ -975,7 +974,10 @@ found:
 			return (DBM_ERROR);
 		break;
 	default:
+#if !defined(_WIN32_WCE)
 		abort();
+#endif
+		return (ABNORMAL);
 	}
 	save_bufp->flags &= ~BUF_PIN;
 	return (SUCCESS);
@@ -997,7 +999,8 @@ hash_seq(
 		return (DBM_ERROR);
 
 	if (flag && flag != R_FIRST && flag != R_NEXT) {
-		hashp->dbmerrno = errno = EINVAL;
+		hashp->dbmerrno = EINVAL;
+		SET_ERROR(PR_INVALID_ARGUMENT_ERROR, EINVAL);
 		return (DBM_ERROR);
 	}
 #ifdef HASH_STATISTICS
@@ -1100,7 +1103,7 @@ __expand_table(HTAB *hashp)
 			hashp->DSIZE = dirsize << 1;
 		}
 		if ((hashp->dir[new_segnum] =
-		    (SEGMENT)calloc((size_t)hashp->SGSIZE, sizeof(SEGMENT))) == NULL)
+		    (SEGMENT)PR_Calloc((size_t)hashp->SGSIZE, sizeof(SEGMENT))) == NULL)
 			return (-1);
 		hashp->exsegs++;
 		hashp->nsegs++;
@@ -1136,10 +1139,10 @@ hash_realloc(
 {
 	register void *p;
 
-	if ((p = malloc(newsize))) {
+	if ((p = PR_Malloc(newsize))) {
 		memmove(p, *p_ptr, oldsize);
 		memset((char *)p + oldsize, 0, newsize - oldsize);
-		free(*p_ptr);
+		PR_Free(*p_ptr);
 		*p_ptr = (SEGMENT *)p;
 	}
 	return (p);
@@ -1170,21 +1173,17 @@ alloc_segs(
 	register int i;
 	register SEGMENT store;
 
-	int save_errno;
-
-	if ((hashp->dir =
-	    (SEGMENT *)calloc((size_t)hashp->DSIZE, sizeof(SEGMENT *))) == NULL) {
-		save_errno = errno;
+	hashp->dir = (SEGMENT *)PR_Calloc((size_t)hashp->DSIZE, sizeof(SEGMENT *));
+	if (hashp->dir == NULL) {
 		(void)hdestroy(hashp);
-		errno = save_errno;
+		SET_ERROR(PR_OUT_OF_MEMORY_ERROR, ENOMEM);
 		return (-1);
 	}
 	/* Allocate segments */
-	if ((store =
-	    (SEGMENT)calloc((size_t)nsegs << hashp->SSHIFT, sizeof(SEGMENT))) == NULL) {
-		save_errno = errno;
+	store = (SEGMENT)PR_Calloc((size_t)nsegs << hashp->SSHIFT, sizeof(SEGMENT));
+	if (store == NULL) {
 		(void)hdestroy(hashp);
-		errno = save_errno;
+		SET_ERROR(PR_OUT_OF_MEMORY_ERROR, ENOMEM);
 		return (-1);
 	}
 	for (i = 0; i < nsegs; i++, hashp->nsegs++)
