@@ -111,4 +111,9 @@ typedef struct NSSCKFWFindObjectsStr NSSCKFWFindObjects;
 struct NSSCKFWMutexStr;
 typedef struct NSSCKFWMutexStr NSSCKFWMutex;
 
+typedef enum {
+    SingleThreaded,
+    MultiThreaded
+} CryptokiLockingState ;
+
 #endif /* NSSCKFWT_H */
