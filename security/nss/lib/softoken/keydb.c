@@ -544,7 +544,7 @@ makeGlobalSalt(SECKEYKeyDBHandle *handle)
 static char *
 keyDBFilenameCallback(void *arg, int dbVersion)
 {
-    return((char *)arg);
+    return(PORT_Strdup((char *)arg));
 }
 
 SECKEYKeyDBHandle *
@@ -629,8 +629,8 @@ newdb:
 	handle->db = dbopen( dbname,
 			     O_RDWR | O_CREAT | O_TRUNC, 0600, DB_HASH, 0 );
 
-    PORT_Free( dbname );
-    dbname = NULL;
+        PORT_Free( dbname );
+        dbname = NULL;
 
 	/* if create fails then we lose */
 	if ( handle->db == NULL ) {
@@ -664,8 +664,8 @@ newdb:
 		}
 	    }
 	    
-        PORT_Free( dbname );
-        dbname = NULL;
+            PORT_Free( dbname );
+            dbname = NULL;
 	}
 
 	/* we are using the old salt if we updated from an old db */
