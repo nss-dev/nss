@@ -290,6 +290,7 @@ nss_FindExternalRoot(const char *dbpath)
 	    path[path_len++] = FILE_SEP;
 	}
 	PORT_Memcpy(&path[path_len],dllname,PORT_Strlen(dllname));
+        path[len-1] = '\0';
 	(void) SECMOD_AddNewModule("Root Certs",path, 0, 0);
 	PORT_Free(path);
 	return;
