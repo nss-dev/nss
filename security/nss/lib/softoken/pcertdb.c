@@ -2660,9 +2660,7 @@ nsslowcert_UpdateSubjectEmailAddr(NSSLOWCERTCertDBHandle *dbhandle,
     entry = ReadDBSubjectEntry(dbhandle,derSubject);    
     if (entry == NULL) {
 	goto loser;
-    } else {
-	return SECSuccess;
-    }
+    } 
 
     if ( entry->emailAddrs ) {
 	for (i=0; i < entry->nemailAddrs; i++) {
