@@ -1216,10 +1216,11 @@ sec_asn1d_free_child (sec_asn1d_state *state, PRBool error)
 	if (error && state->top->their_pool == NULL) {
 	    /*
 	     * XXX We need to free anything allocated.
-             At this point, we failed in the middle of decoding. But we can't free
-             the data we previously allocated with PR_Malloc unless we keep track of
-             every pointer. So instead we have a memory leak when decoding fails
-             half-way, unless an arena is used. See bug 95311 .
+             * At this point, we failed in the middle of decoding. But we
+             * can't free the data we previously allocated with PR_Malloc
+             * unless we keep track of every pointer. So instead we have a
+             * memory leak when decoding fails half-way, unless an arena is
+             * used. See bug 95311 .
 	     */
 	}
 	state->child = NULL;
