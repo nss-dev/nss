@@ -756,7 +756,8 @@ CK_RV NSC_EncryptUpdate(CK_SESSION_HANDLE hSession,
 	    }
 	    /* encrypt the current padded data */
     	    rv = (*context->update)(context->cipherInfo,pEncryptedPart, 
-		&outlen,context->blockSize,context->padBuf,context->blockSize);
+		&padoutlen, context->blockSize, context->padBuf,
+							context->blockSize);
     	    if (rv != SECSuccess) return CKR_DEVICE_ERROR;
 	    pEncryptedPart += padoutlen;
 	    maxout -= padoutlen;
