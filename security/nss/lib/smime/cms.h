@@ -43,7 +43,6 @@
 #include "seccomon.h"
 
 #include "secoidt.h"
-#include "secder.h"	/* needed by certt.h; XXX go away when possible */
 #include "certt.h"
 #include "keyt.h"
 #include "hasht.h"
