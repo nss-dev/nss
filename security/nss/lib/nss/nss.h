@@ -132,7 +132,7 @@ SECStatus NSS_NoDB_Init(const char *configdir);
 /* 
  * Close the Cert, Key databases.
  */
-extern void NSS_Shutdown(void);
+extern SECStatus NSS_Shutdown(void);
 
 /*
  * set the PKCS #11 strings for the internal token.
