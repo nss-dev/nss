@@ -32,6 +32,7 @@ PROTO = \
 	$(ROOT)/usr \
 	$(ROOT)/usr/lib \
 	$(ROOT)/usr/lib/mps \
+	$(ROOT)/usr/lib/mps/secv1 \
 	$(ROOT)/usr/include \
 	$(ROOT)/usr/include/mps \
 	$(ROOT)/usr/sfw \
@@ -71,8 +72,8 @@ $(ROOT)/usr/include/mps/sparcv9: $(ROOT)/usr/include
 		$(LN) -sf ../../../../$(SOURCE_PREFIX)/$(HEADER_DIR_BEFORE_3_6) $@ ; \
 	fi
 else
-$(ROOT)/usr/lib/mps: $(ROOT)/usr/lib
-	$(LN) -sf ../../../$(DIST)/lib $@
+$(ROOT)/usr/lib/mps/secv1: $(ROOT)/usr/lib
+	$(LN) -sf ../../../../$(DIST)/lib $@
 $(ROOT)/usr/sfw/bin: $(ROOT)/usr/sfw
 	$(LN) -sf ../../../$(DIST)/bin $@
 $(ROOT)/usr/include/mps: $(ROOT)/usr/include
