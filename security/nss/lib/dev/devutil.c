@@ -222,7 +222,7 @@ NSSTokenArray_Destroy
   NSSToken **tokens
 )
 {
-    return nssTokenArray_Destroy(tokens);
+    nssTokenArray_Destroy(tokens);
 }
 
 NSS_IMPLEMENT void
