@@ -3778,7 +3778,6 @@ DecodeACert(NSSLOWCERTCertDBHandle *handle, certDBEntryCert *entry)
     int status;
     NSSLOWCERTCertificate *cert = NULL;
     PRBool promoteError = PR_TRUE;
-    PRArenaPool *arena = NULL;
     SECItem keyitem;
     SECStatus rv;
     
@@ -3794,8 +3793,6 @@ DecodeACert(NSSLOWCERTCertDBHandle *handle, certDBEntryCert *entry)
     cert->dbhandle = handle;
     cert->dbEntry = entry;
     cert->trust = &entry->trust;
-
-    PORT_FreeArena(arena, PR_FALSE);
 
 winner:
 

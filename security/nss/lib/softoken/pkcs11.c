@@ -768,7 +768,7 @@ pk11_handleTrustObject(PK11Session *session,PK11Object *object)
 	dbTrust.sslFlags = pk11_MapTrust(sslTrust,PR_FALSE);
 	dbTrust.sslFlags |= pk11_MapTrust(clientTrust,PR_TRUE);
 	dbTrust.emailFlags = pk11_MapTrust(emailTrust,PR_FALSE);
-	dbTrust.objectSigningFlags = pk11_MapTrust(signTrust,FALSE);
+	dbTrust.objectSigningFlags = pk11_MapTrust(signTrust,PR_FALSE);
 
 	rv = nsslowcert_ChangeCertTrust(slot->certDB,cert,&dbTrust);
 	object->handle=pk11_mkHandle(slot,&cert->certKey,PK11_TOKEN_TYPE_TRUST);
