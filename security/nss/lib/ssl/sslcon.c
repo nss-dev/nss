@@ -1581,6 +1581,7 @@ ssl2_CreateSessionCypher(sslSocket *ss, sslSessionID *sid, PRBool isClient)
 	if (readcx)  (*sec->destroy)(readcx, PR_TRUE);
 	if (writecx) (*sec->destroy)(writecx, PR_TRUE);
     }
+    sec->destroy = NULL;
     if (slot) PK11_FreeSlot(slot);
 
   sec_loser:
