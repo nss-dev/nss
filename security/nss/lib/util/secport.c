@@ -58,7 +58,7 @@
 #include "prthread.h"
 #endif /* THREADMARK */
 
-#if defined(XP_UNIX) || defined(XP_MAC)
+#if defined(XP_UNIX) || defined(XP_MAC) || defined(XP_OS2)
 #include <stdlib.h>
 #else
 #include "wtypes.h"

@@ -79,7 +79,7 @@ include $(CORE_DEPTH)/coreconf/rules.mk
 moz_import::
 	$(NSINSTALL) -L ../../../dist include $(DIST)
 	$(NSINSTALL) -L ../../../dist lib $(DIST)
-	cp $(DIST)/lib/libmozdbm_s.a $(DIST)/lib/libdbm.a
+	cp $(DIST)/lib/libmozdbm_s.$(LIB_SUFFIX) $(DIST)/lib/libdbm.$(LIB_SUFFIX)
 
 nsm:: all 
 	cd ssm/lib/protocol; gmake
