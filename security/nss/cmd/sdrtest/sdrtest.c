@@ -233,7 +233,10 @@ file_loser:
                                     PK11_GetSlotName(slot));
             return SECFailure;
         }
+      }
+      if (slot) {
 	PK11_FreeSlot(slot);
+	slot == NULL;
       }
 
       rv = PK11SDR_Encrypt(&keyid, &data, &result, 0);
