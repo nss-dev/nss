@@ -54,6 +54,7 @@
 #include "dev.h"
 #include "dev3hack.h"
 #include "pki3hack.h"
+#include "pkim.h"
 
 
 /*************************************************************
@@ -727,10 +728,6 @@ PK11_Logout(PK11SlotInfo *slot)
     PK11_EnterSlotMonitor(slot);
     crv = PK11_GETTAB(slot)->C_Logout(slot->session);
     PK11_ExitSlotMonitor(slot);
-    if (slot->nssToken && !PK11_IsFriendly(slot)) {
-	/* If the slot certs are not public readable, destroy them */
-	nssToken_DestroyCertList(slot->nssToken, PR_TRUE);
-    }
     if (crv != CKR_OK) {
 	PORT_SetError(PK11_MapError(crv));
 	return SECFailure;
@@ -1146,10 +1143,9 @@ PK11_DoPassword(PK11SlotInfo *slot, PRBool loadCerts, void *wincx)
     }
     if (rv == SECSuccess) {
 	rv = pk11_CheckVerifyTest(slot);
-	if (rv == SECSuccess && slot->nssToken && !PK11_IsFriendly(slot)) {
-	    /* notify stan about the login if certs are not public readable */
-	    nssToken_LoadCerts(slot->nssToken);
-	    nssToken_UpdateTrustForCerts(slot->nssToken);
+	if (!PK11_IsFriendly(slot)) {
+	    nssTrustDomain_UpdateCachedTokenCerts(slot->nssToken->trustDomain,
+	                                      slot->nssToken);
 	}
     } else if (!attempt) PORT_SetError(SEC_ERROR_BAD_PASSWORD);
     return rv;
@@ -1571,7 +1567,10 @@ PK11_VerifySlotMechanisms(PK11SlotInfo *slot)
     	mechList = (CK_MECHANISM_TYPE *)
 			    PORT_Alloc(count *sizeof(CK_MECHANISM_TYPE));
 	alloced = PR_TRUE;
-	if (mechList == NULL) return PR_FALSE;
+	if (mechList == NULL) {
+	    PK11_FreeSlot(intern);
+	    return PR_FALSE;
+	}
     }
     /* get the list */
     if (!slot->isThreadSafe) PK11_EnterSlotMonitor(slot);
@@ -1718,6 +1717,11 @@ PK11_InitToken(PK11SlotInfo *slot, PRBool loadCerts)
     slot->protectedAuthPath =
     		((tokenInfo.flags & CKF_PROTECTED_AUTHENTICATION_PATH) 
 							? PR_TRUE : PR_FALSE);
+    /* on some platforms Active Card incorrectly sets the 
+     * CKF_PROTECTED_AUTHENTICATION_PATH bit when it doesn't mean to. */
+    if (slot->isActiveCard) {
+	slot->protectedAuthPath = PR_FALSE;
+    }
     tmp = PK11_MakeString(NULL,slot->token_name,
 			(char *)tokenInfo.label, sizeof(tokenInfo.label));
     slot->minPassword = tokenInfo.ulMinPinLen;
@@ -1826,6 +1830,7 @@ PK11_InitToken(PK11SlotInfo *slot, PRBool loadCerts)
 					random_bytes, sizeof(random_bytes));
 	        PK11_ExitSlotMonitor(slot);
 	    }
+	    PK11_FreeSlot(int_slot);
 	}
     }
 
@@ -1891,6 +1896,9 @@ PK11_InitSlot(SECMODModule *mod,CK_SLOT_ID slotID,PK11SlotInfo *slot)
     tmp = PK11_MakeString(NULL,slot->slot_name,
 	 (char *)slotInfo.slotDescription, sizeof(slotInfo.slotDescription));
     slot->isHW = (PRBool)((slotInfo.flags & CKF_HW_SLOT) == CKF_HW_SLOT);
+#define ACTIVE_CARD "ActivCard SA"
+    slot->isActiveCard = (PRBool)(PORT_Strncmp((char *)slotInfo.manufacturerID,
+				ACTIVE_CARD, sizeof(ACTIVE_CARD)-1) == 0);
     if ((slotInfo.flags & CKF_REMOVABLE_DEVICE) == 0) {
 	slot->isPerm = PR_TRUE;
 	/* permanment slots must have the token present always */
@@ -4356,12 +4364,18 @@ PK11_MapPBEMechanismToCryptoMechanism(CK_MECHANISM_PTR pPBEMechanism,
 	if (pk11_isAllZero(pPBEparams->pInitVector,iv_len)) {
 	    SECItem param;
 	    PK11SymKey *symKey;
+	    PK11SlotInfo *intSlot = PK11_GetInternalSlot();
+
+	    if (intSlot == NULL) {
+		return CKR_DEVICE_ERROR;
+	    }
 
 	    param.data = pPBEMechanism->pParameter;
 	    param.len = pPBEMechanism->ulParameterLen;
 
-	    symKey = PK11_RawPBEKeyGen(PK11_GetInternalSlot(),
+	    symKey = PK11_RawPBEKeyGen(intSlot,
 		pPBEMechanism->mechanism, &param, pbe_pwd, faulty3DES, NULL);
+	    PK11_FreeSlot(intSlot);
 	    if (symKey== NULL) {
 		return CKR_DEVICE_ERROR; /* sigh */
 	    }

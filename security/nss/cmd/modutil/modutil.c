@@ -912,6 +912,7 @@ main(int argc, char *argv[])
 		break;
 	}
 
+        NSS_Shutdown();
 loser:
 	PR_Cleanup();
 	return errcode;

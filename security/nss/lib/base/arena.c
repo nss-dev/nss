@@ -1127,14 +1127,15 @@ nss_ZRealloc
     new_h = (struct pointer_header *)p;
     new_h->arena = h->arena;
     new_h->size = newSize;
-    rv = (void *)((char *)h + sizeof(struct pointer_header));
-    (void)nsslibc_memcpy(rv, pointer, h->size);
-    (void)nsslibc_memset(&((char *)rv)[ h->size ], 0, 
-                         (newSize - h->size));
-    (void)nsslibc_memset(pointer, 0, h->size);
+    rv = (void *)((char *)new_h + sizeof(struct pointer_header));
+    if (rv != pointer) {
+	(void)nsslibc_memcpy(rv, pointer, h->size);
+	(void)nsslibc_memset(pointer, 0, h->size);
+    }
+    (void)nsslibc_memset(&((char *)rv)[ h->size ], 0, (newSize - h->size));
     h->arena = (NSSArena *)NULL;
     h->size = 0;
-    PR_Unlock(h->arena->lock);
+    PR_Unlock(new_h->arena->lock);
     return rv;
   }
   /*NOTREACHED*/

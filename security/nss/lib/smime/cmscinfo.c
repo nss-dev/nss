@@ -78,6 +78,11 @@ NSS_CMSContentInfo_Destroy(NSSCMSContentInfo *cinfo)
     }
     if (cinfo->bulkkey)
 	PK11_FreeSymKey(cinfo->bulkkey);
+
+    if (cinfo->ciphcx) {
+	NSS_CMSCipherContext_Destroy(cinfo->ciphcx);
+	cinfo->ciphcx = NULL;
+    }
     
     /* we live in a pool, so no need to worry about storage */
 }

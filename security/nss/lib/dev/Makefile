@@ -37,4 +37,17 @@ include $(CORE_DEPTH)/coreconf/config.mk
 include config.mk
 include $(CORE_DEPTH)/coreconf/rules.mk
 
+# On AIX 4.3, IBM xlC_r compiler (version 3.6.6) cannot compile
+# ckhelper.c in 64-bit mode for unknown reasons.  A workaround is
+# to compile it with optimizations turned on.  (Bugzilla bug #63815)
+ifeq ($(OS_TARGET)$(OS_RELEASE),AIX4.3)
+ifeq ($(USE_64),1)
+ifndef BUILD_OPT
+$(OBJDIR)/ckhelper.o: ckhelper.c
+	@$(MAKE_OBJDIR)
+	$(CC) -o $@ -c -O2 $(CFLAGS) $<
+endif
+endif
+endif
+
 export:: private_export

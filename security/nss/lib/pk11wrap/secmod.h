@@ -91,7 +91,7 @@ SECStatus SECMOD_UnloadUserModule(SECMODModule *mod);
 
 SECMODModule * SECMOD_CreateModule(char *lib, char *name, char *param, 
 								char *nss);
-extern void SECMOD_Shutdown(void);
+extern SECStatus SECMOD_Shutdown(void);
 
 
 /* Module Management */
@@ -117,6 +117,7 @@ extern void SECMOD_ReleaseWriteLock(SECMODListLock *);
 extern SECMODModule *SECMOD_FindModule(char *name);
 extern SECStatus SECMOD_DeleteModule(char *name, int *type);
 extern SECStatus SECMOD_DeleteInternalModule(char *name);
+extern PRBool SECMOD_CanDeleteInternalModule(void);
 extern SECStatus SECMOD_AddNewModule(char* moduleName, char* dllPath,
                               unsigned long defaultMechanismFlags,
                               unsigned long cipherEnableFlags);

@@ -161,7 +161,6 @@ static PK11SymKey *
 pk11_getKeyFromList(PK11SlotInfo *slot) {
     PK11SymKey *symKey = NULL;
 
-
     PK11_USE_THREADS(PZ_Lock(slot->freeListLock);)
     if (slot->freeSymKeysHead) {
     	symKey = slot->freeSymKeysHead;
@@ -180,11 +179,6 @@ pk11_getKeyFromList(PK11SlotInfo *slot) {
     if (symKey == NULL) {
 	return NULL;
     }
-    symKey->refLock = PZ_NewLock(nssILockRefLock);
-    if (symKey->refLock == NULL) {
-	PORT_Free(symKey);
-	return NULL;
-    }
     symKey->session = pk11_GetNewSession(slot,&symKey->sessionOwner);
     symKey->next = NULL;
     return symKey;
@@ -199,7 +193,6 @@ PK11_CleanKeyList(PK11SlotInfo *slot)
     	symKey = slot->freeSymKeysHead;
 	slot->freeSymKeysHead = symKey->next;
 	pk11_CloseSession(slot, symKey->session,symKey->sessionOwner);
-	PK11_USE_THREADS(PZ_DestroyLock(symKey->refLock);)
 	PORT_Free(symKey);
     };
     return;
@@ -243,16 +236,10 @@ PK11_CreateSymKey(PK11SlotInfo *slot, CK_MECHANISM_TYPE type, void *wincx)
 void
 PK11_FreeSymKey(PK11SymKey *symKey)
 {
-    PRBool destroy = PR_FALSE;
     PK11SlotInfo *slot;
     PRBool freeit = PR_TRUE;
 
-    PK11_USE_THREADS(PZ_Lock(symKey->refLock);)
-     if (symKey->refCount-- == 1) {
-	destroy= PR_TRUE;
-    }
-    PK11_USE_THREADS(PZ_Unlock(symKey->refLock);)
-    if (destroy) {
+    if (PR_AtomicDecrement(&symKey->refCount) == 0) {
 	if ((symKey->owner) && symKey->objectID != CK_INVALID_HANDLE) {
 	    pk11_EnterKeyMonitor(symKey);
 	    (void) PK11_GETTAB(symKey->slot)->
@@ -266,17 +253,16 @@ PK11_FreeSymKey(PK11SymKey *symKey)
         slot = symKey->slot;
         PK11_USE_THREADS(PZ_Lock(slot->freeListLock);)
 	if (slot->keyCount < slot->maxKeyCount) {
-	   symKey->next = slot->freeSymKeysHead;
-	   slot->freeSymKeysHead = symKey;
-	   slot->keyCount++;
-	   symKey->slot = NULL;
-	   freeit = PR_FALSE;
+	    symKey->next = slot->freeSymKeysHead;
+	    slot->freeSymKeysHead = symKey;
+	    slot->keyCount++;
+	    symKey->slot = NULL;
+	    freeit = PR_FALSE;
         }
 	PK11_USE_THREADS(PZ_Unlock(slot->freeListLock);)
         if (freeit) {
 	    pk11_CloseSession(symKey->slot, symKey->session,
 							symKey->sessionOwner);
-	    PK11_USE_THREADS(PZ_DestroyLock(symKey->refLock);)
 	    PORT_Free(symKey);
 	}
 	PK11_FreeSlot(slot);
@@ -286,9 +272,7 @@ PK11_FreeSymKey(PK11SymKey *symKey)
 PK11SymKey *
 PK11_ReferenceSymKey(PK11SymKey *symKey)
 {
-    PK11_USE_THREADS(PZ_Lock(symKey->refLock);)
-    symKey->refCount++;
-    PK11_USE_THREADS(PZ_Unlock(symKey->refLock);)
+    PR_AtomicIncrement(&symKey->refCount);
     return symKey;
 }
 
@@ -1568,7 +1552,6 @@ pk11_PairwiseConsistencyCheck(SECKEYPublicKey *pubKey,
 	    PK11_ExitSlotMonitor(slot);
 	    PORT_SetError( PK11_MapError(crv) );
 	    PORT_Free( ciphertext );
-	    PK11_FreeSlot(slot);
 	    return SECFailure;
 	}
 
@@ -1591,7 +1574,6 @@ pk11_PairwiseConsistencyCheck(SECKEYPublicKey *pubKey,
 
 	if( crv != CKR_OK ) {
 	   PORT_SetError( PK11_MapError(crv) );
-	    PK11_FreeSlot(slot);
 	   return SECFailure;
 	}
 
@@ -1602,7 +1584,6 @@ pk11_PairwiseConsistencyCheck(SECKEYPublicKey *pubKey,
 			   PAIRWISE_MESSAGE_LENGTH ) != 0 ) ) {
 	    /* Set error to Bad PUBLIC Key. */
 	    PORT_SetError( SEC_ERROR_BAD_KEY );
-	    PK11_FreeSlot(slot);
 	    return SECFailure;
 	}
       }
@@ -3207,12 +3188,14 @@ PK11_PubEncryptRaw(SECKEYPublicKey *key, unsigned char *enc,
     if (crv != CKR_OK) {
 	if (!owner || !(slot->isThreadSafe)) PK11_ExitSlotMonitor(slot);
 	pk11_CloseSession(slot,session,owner);
+	PK11_FreeSlot(slot);
 	PORT_SetError( PK11_MapError(crv) );
 	return SECFailure;
     }
     crv = PK11_GETTAB(slot)->C_Encrypt(session,data,dataLen,enc,&out);
     if (!owner || !(slot->isThreadSafe)) PK11_ExitSlotMonitor(slot);
     pk11_CloseSession(slot,session,owner);
+    PK11_FreeSlot(slot);
     if (crv != CKR_OK) {
 	PORT_SetError( PK11_MapError(crv) );
 	return SECFailure;
@@ -4463,7 +4446,7 @@ PK11_ExportEncryptedPrivateKeyInfo(PK11SlotInfo *slot, SECOidTag algTag,
    SECItem *pwitem, CERTCertificate *cert, int iteration, void *wincx)
 {
     SECKEYEncryptedPrivateKeyInfo *epki = NULL;
-    SECKEYPrivateKey *pk;
+    SECKEYPrivateKey *pk = NULL;
     PRArenaPool *arena = NULL;
     SECAlgorithmID *algid;
     CK_MECHANISM_TYPE mechanism;
@@ -4578,6 +4561,10 @@ loser:
 
     if(key != NULL) {
     	PK11_FreeSymKey(key);
+    }
+
+    if (pk != NULL) {
+	SECKEY_DestroyPrivateKey(pk);
     }
 
     if(rv == SECFailure) {
@@ -4771,8 +4758,11 @@ PK11_WrapPrivKey(PK11SlotInfo *slot, PK11SymKey *wrappingKey,
 
 	privSlot = int_slot; /* The private key has a new home */
 	newPrivKey = pk11_loadPrivKey(privSlot,privKey,NULL,PR_FALSE,PR_FALSE);
+	/* newPrivKey has allocated its own reference to the slot, so it's
+	 * safe until we destroy newPrivkey.
+	 */
+	PK11_FreeSlot(int_slot);
 	if (newPrivKey == NULL) {
-	    PK11_FreeSlot (int_slot);
 	    return SECFailure;
 	}
 	privKey = newPrivKey;

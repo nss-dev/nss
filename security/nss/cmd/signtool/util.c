@@ -285,6 +285,11 @@ VerifyCertDir(char *dir, char *keyName)
 {
   char fn [FNSIZE];
 
+  /* don't try verifying if we don't have a local directory */
+  if (strncmp(dir,"multiaccess:",sizeof("multiaccess:")-1) == 0) {
+     return;
+  }
+
   sprintf (fn, "%s/cert7.db", dir);
 
   if (PR_Access (fn, PR_ACCESS_EXISTS))
@@ -804,8 +809,10 @@ InitCrypto(char *cert_dir, PRBool readOnly)
 			  NULL /*wincx*/) != SECSuccess) {
 				fprintf(stderr, "%s: Unable to authenticate to %s.\n",
 					PROGRAM_NAME, PK11_GetSlotName(slotinfo));
+				PK11_FreeSlot(slotinfo);
 				return -1;
 			}
+			PK11_FreeSlot(slotinfo);
 		}
 
 		/* Make sure there is a password set on the internal key slot */
@@ -828,9 +835,11 @@ InitCrypto(char *cert_dir, PRBool readOnly)
 			  NULL /*wincx*/) != SECSuccess) {
 				fprintf(stderr, "%s: Unable to authenticate to %s.\n",
 					PROGRAM_NAME, PK11_GetSlotName(slotinfo));
+				PK11_FreeSlot(slotinfo);
 				return -1;
 			}
 		}
+		PK11_FreeSlot(slotinfo);
 	}
 
 	return 0;

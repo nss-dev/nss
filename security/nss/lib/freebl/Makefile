@@ -120,6 +120,7 @@ endif
 endif
 
 ifeq ($(OS_TARGET), HP-UX)
+ifneq ($(OS_TEST), ia64)
 MKSHLIB += +k +vshlibunsats -u FREEBL_GetVector +e FREEBL_GetVector
 ifndef FREEBL_EXTENDED_BUILD
 ifdef USE_PURE_32
@@ -139,6 +140,7 @@ else
     DEFINES  += -DMP_ASSEMBLY_MULTIPLY -DMP_ASSEMBLY_SQUARE
 # This is done in coreconf by defining USE_LONG_LONGS
 #   OS_CFLAGS += -Aa +e +DA2.0 +DS2.0
+endif
 endif
 endif
 endif
@@ -202,6 +204,7 @@ endif
 endif
 endif
 
+$(OBJDIR)/sysrand$(OBJ_SUFFIX): sysrand.c unix_rand.c win_rand.c mac_rand.c os2_rand.c
 
 #######################################################################
 # (5) Execute "global" rules. (OPTIONAL)                              #

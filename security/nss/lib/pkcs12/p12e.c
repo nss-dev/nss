@@ -194,7 +194,7 @@ SEC_PKCS12CreateExportContext(SECKEYGetPasswordKey pwfn, void *pwfnarg,
     p12ctxt->integrityEnabled = PR_FALSE;
     p12ctxt->arena = arena;
     p12ctxt->wincx = wincx;
-    p12ctxt->slot = (slot) ? slot : PK11_GetInternalSlot();
+    p12ctxt->slot = (slot) ? PK11_ReferenceSlot(slot) : PK11_GetInternalSlot();
 
     return p12ctxt;
 
@@ -352,7 +352,7 @@ SEC_PKCS12CreatePasswordPrivSafe(SEC_PKCS12ExportContext *p12ctxt,
 {
     SEC_PKCS12SafeInfo *safeInfo = NULL;
     void *mark = NULL;
-    PK11SlotInfo *slot;
+    PK11SlotInfo *slot = NULL;
     SECAlgorithmID *algId;
     SECItem uniPwitem = {siBuffer, NULL, 0};
 
@@ -393,7 +393,7 @@ SEC_PKCS12CreatePasswordPrivSafe(SEC_PKCS12ExportContext *p12ctxt,
     }
 
     /* generate the encryption key */
-    slot = p12ctxt->slot;
+    slot = PK11_ReferenceSlot(p12ctxt->slot);
     if(!slot) {
 	slot = PK11_GetInternalKeySlot();
 	if(!slot) {
@@ -419,9 +419,16 @@ SEC_PKCS12CreatePasswordPrivSafe(SEC_PKCS12ExportContext *p12ctxt,
 	SECITEM_ZfreeItem(&uniPwitem, PR_FALSE);
     }
     PORT_ArenaUnmark(p12ctxt->arena, mark);
+
+    if (slot) {
+	PK11_FreeSlot(slot);
+    }
     return safeInfo;
 
 loser:
+    if (slot) {
+	PK11_FreeSlot(slot);
+    }
     if(safeInfo->cinfo) {
 	SEC_PKCS7DestroyContentInfo(safeInfo->cinfo);
     }
@@ -1285,7 +1292,7 @@ SEC_PKCS12AddKeyForCert(SEC_PKCS12ExportContext *p12ctxt, SEC_PKCS12SafeInfo *sa
 
 	/* extract the key encrypted */
 	SECKEYEncryptedPrivateKeyInfo *epki = NULL;
-	PK11SlotInfo *slot = p12ctxt->slot;
+	PK11SlotInfo *slot = NULL;
 
 	if(!sec_pkcs12_convert_item_to_unicode(p12ctxt->arena, &uniPwitem,
 				 pwitem, PR_TRUE, PR_TRUE, PR_TRUE)) {
@@ -1296,14 +1303,14 @@ SEC_PKCS12AddKeyForCert(SEC_PKCS12ExportContext *p12ctxt, SEC_PKCS12SafeInfo *sa
 	/* we want to make sure to take the key out of the key slot */
 	if(PK11_IsInternal(p12ctxt->slot)) {
 	    slot = PK11_GetInternalKeySlot();
+	} else {
+	    slot = PK11_ReferenceSlot(p12ctxt->slot);
 	}
 
 	epki = PK11_ExportEncryptedPrivateKeyInfo(slot, algorithm, 
 						  &uniPwitem, cert, 1, 
 						  p12ctxt->wincx);
-	if(PK11_IsInternal(p12ctxt->slot)) {
-	    PK11_FreeSlot(slot);
-	}
+	PK11_FreeSlot(slot);
 	
 	keyItem = PORT_ArenaZAlloc(p12ctxt->arena, 
 				  sizeof(SECKEYEncryptedPrivateKeyInfo));
@@ -1409,7 +1416,8 @@ SEC_PKCS12AddDERCertAndEncryptedKey(SEC_PKCS12ExportContext *p12ctxt,
 
     mark = PORT_ArenaMark(p12ctxt->arena);
 
-    cert = CERT_DecodeDERCertificate(derCert, PR_FALSE, NULL);
+    cert = CERT_NewTempCertificate(CERT_GetDefaultCertDB(),
+                                   derCert, NULL, PR_FALSE, PR_FALSE);
     if(!cert) {
 	PORT_ArenaRelease(p12ctxt->arena, mark);
 	PORT_SetError(SEC_ERROR_NO_MEMORY);
@@ -1719,6 +1727,8 @@ sec_pkcs12_encoder_start_context(SEC_PKCS12ExportContext *p12exp)
 	    p12enc->hmacCx = PK11_CreateContextBySymKey(
 	     sec_pkcs12_algtag_to_mech(p12exp->integrityInfo.pwdInfo.algorithm),
 	                                           CKA_SIGN, symKey, &ignore);
+
+	    PK11_FreeSymKey(symKey);
 	    if(!p12enc->hmacCx) {
 		PORT_SetError(SEC_ERROR_NO_MEMORY);
 		goto loser;
@@ -2136,6 +2146,8 @@ SEC_PKCS12DestroyExportContext(SEC_PKCS12ExportContext *p12ecx)
 	    i++;
 	}
     }
+
+    PK11_FreeSlot(p12ecx->slot);
 
     PORT_FreeArena(p12ecx->arena, PR_TRUE);
 }

@@ -90,6 +90,9 @@
 #define NSC_SEARCH_BLOCK_SIZE   5 
 #define NSC_SLOT_LIST_BLOCK_SIZE 10
 
+#define NSC_FIPS_MODULE 1
+#define NSC_NON_FIPS_MODULE 0
+
 /* these are data base storage hashes, not cryptographic hashes.. The define
  * the effective size of the various object hash tables */
 #ifdef MOZ_CLIENT
@@ -112,6 +115,8 @@
 				   * before we start freeing them */
 #endif
 #define MAX_KEY_LEN 256
+
+#define MULTIACCESS "multiaccess:"
 
 /*
  * LOG2_BUCKETS_PER_SESSION_LOCK must be a prime number.
@@ -519,9 +524,14 @@ typedef struct pk11_parametersStr {
 
 SEC_BEGIN_PROTOS
 
+extern int nsf_init;
 extern CK_RV nsc_CommonInitialize(CK_VOID_PTR pReserved, PRBool isFIPS);
+extern CK_RV nsc_CommonFinalize(CK_VOID_PTR pReserved, PRBool isFIPS);
+extern CK_RV nsc_CommonGetSlotList(CK_BBOOL tokPresent, 
+	CK_SLOT_ID_PTR pSlotList, CK_ULONG_PTR pulCount, int moduleIndex);
 /* shared functions between PKCS11.c and PK11FIPS.c */
-extern CK_RV PK11_SlotInit(char *configdir,pk11_token_parameters *params);
+extern CK_RV PK11_SlotInit(char *configdir,pk11_token_parameters *params, 
+							int moduleIndex);
 
 /* internal utility functions used by pkcs11.c */
 extern PK11Attribute *pk11_FindAttribute(PK11Object *object,
@@ -594,10 +604,16 @@ extern PRBool pk11_IsWeakKey(unsigned char *key,CK_KEY_TYPE key_type);
 extern CK_RV secmod_parseParameters(char *param, pk11_parameters *parsed,
 								PRBool isFIPS);
 extern void secmod_freeParams(pk11_parameters *params);
-extern char *secmod_getSecmodName(char *params, PRBool *rw);
-extern char ** secmod_ReadPermDB(char *dbname, char *params, PRBool rw);
-extern SECStatus secmod_DeletePermDB(char *dbname,char *args, PRBool rw);
-extern SECStatus secmod_AddPermDB(char *dbname, char *module, PRBool rw);
+extern char *secmod_getSecmodName(char *params, char **domain, 
+						char **filename, PRBool *rw);
+extern char ** secmod_ReadPermDB(const char *domain, const char *filename, 
+			const char *dbname, char *params, PRBool rw);
+extern SECStatus secmod_DeletePermDB(const char *domain, const char *filename,
+			const char *dbname, char *args, PRBool rw);
+extern SECStatus secmod_AddPermDB(const char *domain, const char *filename,
+			const char *dbname, char *module, PRBool rw);
+extern SECStatus secmod_ReleasePermDBData(const char *domain, 
+	const char *filename, const char *dbname, char **specList, PRBool rw);
 /*
  * OK there are now lots of options here, lets go through them all:
  *
@@ -622,6 +638,8 @@ CK_RV pk11_DBInit(const char *configdir, const char *certPrefix,
 
 void pk11_DBShutdown(NSSLOWCERTCertDBHandle *certHandle, 
 		     NSSLOWKEYDBHandle *keyHandle);
+
+const char *pk11_EvaluateConfigDir(const char *configdir, char **domain);
 
 /*
  * narrow objects

@@ -33,6 +33,10 @@
  * $Id$
  */
 
+#include "seccomon.h"
+/* This ifdef should match the one in sslsnce.c */
+#if (defined(XP_UNIX) || defined(XP_WIN32) || defined (XP_OS2) || defined(XP_BEOS)) && !defined(_WIN32_WCE)
+
 #include "sslmutex.h"
 #include "prerr.h"
 
@@ -83,7 +87,7 @@ static SECStatus single_process_sslMutex_Lock(sslMutex* pMutex)
     return SECSuccess;
 }
 
-#if defined(LINUX) || defined(AIX) || defined(VMS) || defined(BEOS) || defined(BSDI)
+#if defined(LINUX) || defined(AIX) || defined(VMS) || defined(BEOS) || defined(BSDI) || defined(NETBSD) || defined(OPENBSD)
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -504,7 +508,9 @@ sslMutex_Lock(sslMutex *pMutex)
         break;
 
     case WAIT_TIMEOUT:
+#if defined(WAIT_IO_COMPLETION)
     case WAIT_IO_COMPLETION:
+#endif
     default:            /* should never happen. nothing we can do. */
         PR_ASSERT(!("WaitForSingleObject returned invalid value."));
 	PORT_SetError(PR_UNKNOWN_ERROR);
@@ -650,5 +656,7 @@ sslMutex_Lock(sslMutex *pMutex)
     PORT_SetError(PR_NOT_IMPLEMENTED_ERROR);
     return SECFailure;
 }
+
+#endif
 
 #endif

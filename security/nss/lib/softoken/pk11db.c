@@ -39,6 +39,7 @@
 #include "pk11pars.h"
 #include "pkcs11i.h"
 #include "mcom_db.h"
+#include "cdbhdl.h"
 
 #define FREE_CLEAR(p) if (p) { PORT_Free(p); p = NULL; }
 
@@ -247,13 +248,14 @@ secmod_freeParams(pk11_parameters *params)
 
 
 char *
-secmod_getSecmodName(char *param, PRBool *rw)
+secmod_getSecmodName(char *param, char **appName, char **filename,PRBool *rw)
 {
     int next;
     char *configdir = NULL;
     char *secmodName = NULL;
     char *value = NULL;
     char *save_params = param;
+    const char *lconfigdir;
     param = pk11_argStrip(param);
 	
 
@@ -268,13 +270,15 @@ secmod_getSecmodName(char *param, PRBool *rw)
 	pk11_argHasFlag("flags","noModDB",save_params)) *rw = PR_FALSE;
 
    if (!secmodName || *secmodName == '\0') secmodName = PORT_Strdup(SECMOD_DB);
+   *filename = secmodName;
 
-   if (configdir) {
-	value = PR_smprintf("%s" PATH_SEPARATOR "%s",configdir,secmodName);
+   lconfigdir = pk11_EvaluateConfigDir(configdir, appName);
+
+   if (lconfigdir) {
+	value = PR_smprintf("%s" PATH_SEPARATOR "%s",lconfigdir,secmodName);
    } else {
-	value = PORT_Strdup(secmodName);
+	value = PR_smprintf("%s",secmodName);
    }
-   PORT_Free(secmodName);
    if (configdir) PORT_Free(configdir);
    return value;
 }
@@ -296,7 +300,9 @@ static SECStatus secmod_MakeKey(DBT *key, char * module) {
 }
 
 /* free out constructed database key */
-static void secmod_FreeKey(DBT *key) {
+static void 
+secmod_FreeKey(DBT *key) 
+{
     if (key->data) {
 	PORT_Free(key->data);
     }
@@ -359,7 +365,9 @@ struct secmodSlotDataStr {
 /*
  * build a data base entry from a module 
  */
-static SECStatus secmod_EncodeData(DBT *data, char * module) {
+static SECStatus 
+secmod_EncodeData(DBT *data, char * module) 
+{
     secmodData *encoded = NULL;
     secmodSlotData *slot;
     unsigned char *dataPtr;
@@ -437,7 +445,7 @@ static SECStatus secmod_EncodeData(DBT *data, char * module) {
     SECMOD_PUTLONG(encoded->ssl,ssl[0]);
     SECMOD_PUTLONG(&encoded->ssl[4],ssl[1]);
 
-    offset = (unsigned long) &(((secmodData *)0)->names[0]);
+    offset = (unsigned short) &(((secmodData *)0)->names[0]);
     SECMOD_PUTSHORT(encoded->nameStart,offset);
     offset = offset + len + len2 + len3 + 3*sizeof(unsigned short);
     SECMOD_PUTSHORT(encoded->slotOffset,offset);
@@ -611,8 +619,10 @@ secmod_DecodeData(char *defParams, DBT *data, PRBool *retInternal)
 	    trustOrder = 100;
 	}
 
-	slotStrings[i] = pk11_mkSlotString(slotID,defaultFlags,
-			timeout,slots[i].askpw,hasRootCerts,hasRootTrust);
+	slotStrings[i] = pk11_mkSlotString(slotID, defaultFlags, timeout, 
+	                                   (unsigned char)slots[i].askpw, 
+	                                   (unsigned char)hasRootCerts, 
+	                                   (unsigned char)hasRootTrust);
     }
 
     nss = pk11_mkNSS(slotStrings, slotCount, internal, isFIPS, isModuleDB, 
@@ -626,24 +636,61 @@ secmod_DecodeData(char *defParams, DBT *data, PRBool *retInternal)
 
 
 
-static DB *secmod_OpenDB(char *dbName, PRBool readOnly) {
+static DB *
+secmod_OpenDB(const char *appName, const char *filename, const char *dbName, 
+				PRBool readOnly, PRBool update)
+{
     DB *pkcs11db = NULL;
-   
+
+
+    if (appName) {
+	char *secname = PORT_Strdup(filename);
+	int len = strlen(secname);
+
+	if (len >= 3 && PORT_Strcmp(&secname[len-3],".db") == 0) {
+	   secname[len-3] = 0;
+	}
+    	pkcs11db=rdbopen(appName, "", secname, readOnly ? NO_RDONLY:NO_CREATE);
+	if (update && !pkcs11db) {
+	    DB *updatedb;
+
+    	    pkcs11db = rdbopen(appName, "", secname, NO_CREATE);
+	    if (!pkcs11db) {
+		PORT_Free(secname);
+		return NULL;
+	    }
+	    updatedb = dbopen(dbName, NO_RDONLY, 0600, DB_HASH, 0);
+	    if (updatedb) {
+		db_Copy(pkcs11db,updatedb);
+		(*updatedb->close)(updatedb);
+	    } else {
+		(*pkcs11db->close)(pkcs11db);
+		PORT_Free(secname);
+		return NULL;
+	   }
+	}
+	PORT_Free(secname);
+	return pkcs11db;
+    }
+  
     /* I'm sure we should do more checks here sometime... */
-    pkcs11db = dbopen(dbName, readOnly ? O_RDONLY : O_RDWR, 0600, DB_HASH, 0);
+    pkcs11db = dbopen(dbName, readOnly ? NO_RDONLY : NO_RDWR, 0600, DB_HASH, 0);
 
     /* didn't exist? create it */
     if (pkcs11db == NULL) {
-	 if (readOnly) return NULL;
+	 if (readOnly) 
+	     return NULL;
 
-	 pkcs11db = dbopen( dbName,
-			     O_RDWR | O_CREAT | O_TRUNC, 0600, DB_HASH, 0 );
-	 if (pkcs11db) (* pkcs11db->sync)(pkcs11db, 0);
+	 pkcs11db = dbopen( dbName, NO_CREATE, 0600, DB_HASH, 0 );
+	 if (pkcs11db) 
+	     (* pkcs11db->sync)(pkcs11db, 0);
     }
     return pkcs11db;
 }
 
-static void secmod_CloseDB(DB *pkcs11db) {
+static void 
+secmod_CloseDB(DB *pkcs11db) 
+{
      (*pkcs11db->close)(pkcs11db);
 }
 
@@ -676,12 +723,14 @@ secmod_addEscape(const char *string, char quote)
 }
 
 #define SECMOD_STEP 10
-#define PK11_DEFAULT_INTERNAL_INIT "library= name=\"NSS Internal PKCS #11 Module\" parameters=\"%s\" NSS=\"Flags=internal,critical trustOrder=0 cipherOrder=100 slotParams=(1={%s askpw=any timeout=30})\""
+#define PK11_DEFAULT_INTERNAL_INIT "library= name=\"NSS Internal PKCS #11 Module\" parameters=\"%s\" NSS=\"Flags=internal,critical trustOrder=75 cipherOrder=100 slotParams=(1={%s askpw=any timeout=30})\""
 /*
  * Read all the existing modules in
  */
 char **
-secmod_ReadPermDB(char *dbname, char *params, PRBool rw) {
+secmod_ReadPermDB(const char *appName, const char *filename,
+				const char *dbname, char *params, PRBool rw)
+{
     DBT key,data;
     int ret;
     DB *pkcs11db = NULL;
@@ -692,7 +741,7 @@ secmod_ReadPermDB(char *dbname, char *params, PRBool rw) {
     moduleList = (char **) PORT_ZAlloc(useCount*sizeof(char **));
     if (moduleList == NULL) return NULL;
 
-    pkcs11db = secmod_OpenDB(dbname,PR_TRUE);
+    pkcs11db = secmod_OpenDB(appName,filename,dbname,PR_TRUE,rw);
     if (pkcs11db == NULL) goto done;
 
     /* read and parse the file or data base */
@@ -734,16 +783,30 @@ done:
     if (pkcs11db) {
 	secmod_CloseDB(pkcs11db);
     } else {
-	secmod_AddPermDB(dbname,moduleList[0], rw) ;
+	secmod_AddPermDB(appName,filename,dbname,moduleList[0], rw) ;
     }
     return moduleList;
+}
+
+SECStatus
+secmod_ReleasePermDBData(const char *appName, const char *filename, 
+			const char *dbname, char **moduleSpecList, PRBool rw)
+{
+    char **index;
+    for(index = moduleSpecList; *index; index++) {
+	PR_smprintf_free(*index);
+    }
+    PORT_Free(moduleSpecList);
+    return SECSuccess;
 }
 
 /*
  * Delete a module from the Data Base
  */
 SECStatus
-secmod_DeletePermDB(char *dbname, char *args, PRBool rw) {
+secmod_DeletePermDB(const char *appName, const char *filename, 
+			const char *dbname, char *args, PRBool rw)
+{
     DBT key;
     SECStatus rv = SECFailure;
     DB *pkcs11db = NULL;
@@ -752,7 +815,7 @@ secmod_DeletePermDB(char *dbname, char *args, PRBool rw) {
     if (!rw) return SECFailure;
 
     /* make sure we have a db handle */
-    pkcs11db = secmod_OpenDB(dbname,PR_FALSE);
+    pkcs11db = secmod_OpenDB(appName,filename,dbname,PR_FALSE,PR_FALSE);
     if (pkcs11db == NULL) {
 	return SECFailure;
     }
@@ -777,7 +840,9 @@ done:
  * Add a module to the Data base 
  */
 SECStatus
-secmod_AddPermDB(char *dbname, char *module, PRBool rw) {
+secmod_AddPermDB(const char *appName, const char *filename, 
+			const char *dbname, char *module, PRBool rw)
+{
     DBT key,data;
     SECStatus rv = SECFailure;
     DB *pkcs11db = NULL;
@@ -787,7 +852,7 @@ secmod_AddPermDB(char *dbname, char *module, PRBool rw) {
     if (!rw) return SECFailure;
 
     /* make sure we have a db handle */
-    pkcs11db = secmod_OpenDB(dbname,PR_FALSE);
+    pkcs11db = secmod_OpenDB(appName,filename,dbname,PR_FALSE,PR_FALSE);
     if (pkcs11db == NULL) {
 	return SECFailure;
     }

@@ -49,9 +49,9 @@ SEC_BEGIN_PROTOS
  * The format of the version string should be
  *     "<major version>.<minor version>[.<patch level>] [<Beta>]"
  */
-#define NSS_VERSION  "3.4 Beta"
+#define NSS_VERSION  "3.5 Beta"
 #define NSS_VMAJOR   3
-#define NSS_VMINOR   4
+#define NSS_VMINOR   5
 #define NSS_VPATCH   0
 #define NSS_BETA     PR_TRUE
 
@@ -132,7 +132,7 @@ SECStatus NSS_NoDB_Init(const char *configdir);
 /* 
  * Close the Cert, Key databases.
  */
-extern void NSS_Shutdown(void);
+extern SECStatus NSS_Shutdown(void);
 
 /*
  * set the PKCS #11 strings for the internal token.

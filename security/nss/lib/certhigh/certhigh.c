@@ -91,6 +91,31 @@ CERT_MatchNickname(char *name1, char *name2) {
     return PR_TRUE;
 }
 
+static SECStatus
+cert_UserCertsOnly(CERTCertList *certList)
+{
+    CERTCertListNode *node, *freenode;
+    CERTCertificate *cert;
+    
+    node = CERT_LIST_HEAD(certList);
+    
+    while ( ! CERT_LIST_END(node, certList) ) {
+	cert = node->cert;
+	if ( !( cert->trust->sslFlags & CERTDB_USER ) &&
+	     !( cert->trust->emailFlags & CERTDB_USER ) &&
+	     !( cert->trust->objectSigningFlags & CERTDB_USER ) ) {
+	    /* Not a User Cert, so remove this cert from the list */
+	    freenode = node;
+	    node = CERT_LIST_NEXT(node);
+	    CERT_RemoveCertListNode(freenode);
+	} else {
+	    /* Is a User cert, so leave it in the list */
+	    node = CERT_LIST_NEXT(node);
+	}
+    }
+    
+    return(SECSuccess);
+}
 
 /*
  * Find all user certificates that match the given criteria.
@@ -157,6 +182,8 @@ CERT_FindUserCertsByUsage(CERTCertDBHandle *handle,
 	   /* collect certs for this nickname, sorting them into the list */
 	    certList = CERT_CreateSubjectCertList(certList, handle, 
 				&cert->derSubject, time, validOnly);
+
+	    cert_UserCertsOnly(certList);
 	
 	    /* drop the extra reference */
 	    CERT_DestroyCertificate(cert);
@@ -286,6 +313,8 @@ CERT_FindUserCertByUsage(CERTCertDBHandle *handle,
  	/* collect certs for this nickname, sorting them into the list */
 	certList = CERT_CreateSubjectCertList(certList, handle, 
 					&cert->derSubject, time, validOnly);
+
+	cert_UserCertsOnly(certList);
 
 	/* drop the extra reference */
 	CERT_DestroyCertificate(cert);
@@ -825,6 +854,7 @@ cert_ImportCAChain(SECItem *certs, int numcerts, SECCertUsage certUsage, PRBool 
 	certs++;
 
 	/* decode my certificate */
+	/* This use is ok -- only looks at decoded parts, calls NewTemp later */
 	newcert = CERT_DecodeDERCertificate(derCert, PR_FALSE, NULL);
 	if ( newcert == NULL ) {
 	    goto loser;
@@ -886,7 +916,8 @@ cert_ImportCAChain(SECItem *certs, int numcerts, SECCertUsage certUsage, PRBool 
 	    }
 	}
 	
-	cert = CERT_DecodeDERCertificate(derCert, PR_FALSE, NULL);
+	cert = CERT_NewTempCertificate(handle, derCert, NULL, 
+							PR_FALSE, PR_FALSE);
 	if ( cert == NULL ) {
 	    goto loser;
 	}
@@ -894,9 +925,7 @@ cert_ImportCAChain(SECItem *certs, int numcerts, SECCertUsage certUsage, PRBool 
 	/* get a default nickname for it */
 	nickname = CERT_MakeCANickname(cert);
 
-	cert->trust = &trust;
-	rv = PK11_ImportCert(PK11_GetInternalKeySlot(), cert, 
-			CK_INVALID_HANDLE, nickname, PR_TRUE);
+	rv = CERT_AddTempCertToPerm(cert, nickname, &trust);
 
 	/* free the nickname */
 	if ( nickname ) {
@@ -1101,6 +1130,9 @@ loser:
     while (stanCert) {
 	SECItem derCert;
 	CERTCertificate *cCert = STAN_GetCERTCertificate(stanCert);
+	if (!cCert) {
+	    goto loser;
+	}
 	derCert.len = (unsigned int)stanCert->encoding.size;
 	derCert.data = (unsigned char *)stanCert->encoding.data;
 	SECITEM_CopyItem(arena, &chain->certs[i], &derCert);
@@ -1121,7 +1153,9 @@ loser:
     stanCert = stanChain[i];
     while (stanCert) {
 	CERTCertificate *cCert = STAN_GetCERTCertificate(stanCert);
-	CERT_DestroyCertificate(cCert);
+	if (cCert) {
+	    CERT_DestroyCertificate(cCert);
+	}
 	stanCert = stanChain[++i];
     }
     nss_ZFreeIf(stanChain);

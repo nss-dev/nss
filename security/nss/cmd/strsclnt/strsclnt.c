@@ -39,8 +39,10 @@
 #include <unistd.h>
 #endif
 #include <stdlib.h>
+#if !defined(_WIN32_WCE)
 #include <errno.h>
 #include <fcntl.h>
+#endif
 #include <stdarg.h>
 
 #include "plgetopt.h"
@@ -293,6 +295,8 @@ printSecurityInfo(PRFileDesc *fd)
 	    fprintf(stderr, "strsclnt: issuer  DN: %s\n", ip);
 	    PR_Free(ip);
 	}
+    }
+    if (cert) {
 	CERT_DestroyCertificate(cert);
 	cert = NULL;
     }

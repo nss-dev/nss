@@ -72,81 +72,70 @@ PR_BEGIN_EXTERN_C
 
 typedef struct nssSessionStr nssSession;
 
-/* The list of boolean flags used to describe properties of a
- * module.
- */
-#define NSSMODULE_FLAGS_NOT_THREADSAFE 0x0001 /* isThreadSafe */
-
-struct NSSModuleStr {
-    NSSArena    *arena;
-    PRInt32      refCount;
-    NSSUTF8     *name;
-    NSSUTF8     *libraryPath;
-    PRLibrary   *library;
-    void        *epv;
-    NSSSlot    **slots;
-    PRUint32     numSlots;
-    PRUint32     flags;
-};
-
-/* The list of boolean flags used to describe properties of a
- * slot.
- */
-#define NSSSLOT_FLAGS_LOGIN_REQUIRED  0x0001 /* needLogin */
-/*#define NSSSLOT_FLAGS_READONLY        0x0002*/ /* readOnly */
-
-/* this should track global and per-transaction login information */
-struct nssSlotAuthInfoStr
+/* XXX until NSSTokenStr is moved */
+struct nssDeviceBaseStr
 {
-    PRTime  lastLogin;
-    PRInt32 askPasswordTimeout;
+  NSSArena *arena;
+  PZLock *lock;
+  PRInt32 refCount;
+  NSSUTF8 *name;
+  PRUint32 flags;
 };
 
-struct NSSSlotStr
-{
-    NSSArena *arena;
-    PRInt32 refCount;
-    NSSModule *module; /* Parent */
-    NSSToken *token;  /* Child (or peer, if you will) */
-    NSSUTF8 *name;
-    CK_SLOT_ID slotID;
-    void *epv;
-    CK_FLAGS ckFlags; /* from CK_SLOT_INFO.flags */
-    PRUint32 flags;
-    struct nssSlotAuthInfoStr authInfo;
-    NSSTrustDomain *trustDomain;
-#ifdef NSS_3_4_CODE
-    PK11SlotInfo *pk11slot;
-#endif
-};
+typedef struct nssTokenObjectCacheStr nssTokenObjectCache;
 
+/* XXX until devobject.c goes away */
 struct NSSTokenStr
 {
-    NSSArena *arena;
-    PRInt32 refCount;
+    struct nssDeviceBaseStr base;
     NSSSlot *slot;  /* Parent (or peer, if you will) */
-    NSSUTF8 *name;
     CK_FLAGS ckFlags; /* from CK_TOKEN_INFO.flags */
     PRUint32 flags;
     void *epv;
     nssSession *defaultSession;
     NSSTrustDomain *trustDomain;
     PRIntervalTime lastTime;
-    PRBool hasNoTrust;
-    PRBool hasNoCrls;
+    nssTokenObjectCache *cache;
 #ifdef NSS_3_4_CODE
     PK11SlotInfo *pk11slot;
-    nssList *certList; /* local cache of certs for slow tokens */
-    PRBool loggedIn;
+#endif
+};
+
+typedef enum {
+  nssSlotAskPasswordTimes_FirstTime = 0,
+  nssSlotAskPasswordTimes_EveryTime = 1,
+  nssSlotAskPasswordTimes_Timeout = 2
+} 
+nssSlotAskPasswordTimes;
+
+struct nssSlotAuthInfoStr
+{
+  PRTime lastLogin;
+  nssSlotAskPasswordTimes askTimes;
+  PRIntervalTime askPasswordTimeout;
+};
+
+struct NSSSlotStr
+{
+  struct nssDeviceBaseStr base;
+  NSSModule *module; /* Parent */
+  NSSToken *token;  /* Peer */
+  CK_SLOT_ID slotID;
+  CK_FLAGS ckFlags; /* from CK_SLOT_INFO.flags */
+  struct nssSlotAuthInfoStr authInfo;
+  PRIntervalTime lastTokenPing;
+#ifdef NSS_3_4_CODE
+  void *epv;
+  PK11SlotInfo *pk11slot;
 #endif
 };
 
 struct nssSessionStr
 {
-    PZLock *lock;
-    CK_SESSION_HANDLE handle;
-    NSSSlot *slot;
-    PRBool isRW;
+  PZLock *lock;
+  CK_SESSION_HANDLE handle;
+  NSSSlot *slot;
+  PRBool isRW;
 };
 
 typedef enum {
@@ -155,15 +144,17 @@ typedef enum {
 } NSSCertificateType;
 
 #ifdef nodef
+/* the current definition of NSSTrust depends on this value being CK_ULONG */
+typedef CK_ULONG nssTrustLevel;
+#else
 typedef enum {
     nssTrustLevel_Unknown = 0,
     nssTrustLevel_NotTrusted = 1,
     nssTrustLevel_Trusted = 2,
     nssTrustLevel_TrustedDelegator = 3,
-    nssTrustLevel_Valid = 4
+    nssTrustLevel_Valid = 4,
+    nssTrustLevel_ValidDelegator = 5
 } nssTrustLevel;
-#else
-typedef CK_ULONG nssTrustLevel; /* for now */
 #endif
 
 typedef struct nssCryptokiInstanceStr nssCryptokiInstance;
@@ -176,12 +167,15 @@ struct nssCryptokiInstanceStr
     NSSUTF8 *label;
 };
 
+typedef struct nssCryptokiInstanceStr nssCryptokiObject;
+
 typedef struct nssTokenCertSearchStr nssTokenCertSearch;
 
 typedef enum {
     nssTokenSearchType_AllObjects = 0,
     nssTokenSearchType_SessionOnly = 1,
-    nssTokenSearchType_TokenOnly = 2
+    nssTokenSearchType_TokenOnly = 2,
+    nssTokenSearchType_TokenForced = 3
 } nssTokenSearchType;
 
 struct nssTokenCertSearchStr
@@ -194,6 +188,9 @@ struct nssTokenCertSearchStr
      *       (traversal) 
      */
 };
+
+struct nssSlotListStr;
+typedef struct nssSlotListStr nssSlotList;
 
 struct NSSAlgorithmAndParametersStr
 {

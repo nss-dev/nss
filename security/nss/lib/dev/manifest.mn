@@ -39,6 +39,7 @@ PRIVATE_EXPORTS = \
 	devt.h     \
 	dev.h      \
 	nssdevt.h  \
+	nssdev.h   \
 	$(NULL)
 
 EXPORTS =	   \
@@ -49,7 +50,6 @@ MODULE = security
 CSRCS =		        \
 	devmod.c        \
 	devslot.c       \
-	devobject.c     \
 	devtoken.c      \
 	devutil.c       \
 	ckhelper.c      \
@@ -58,6 +58,7 @@ CSRCS =		        \
 # here is where the 3.4 glue code is added
 ifndef PURE_STAN_BUILD
 DEFINES = -DNSS_3_4_CODE
+PRIVATE_EXPORTS += devm.h devtm.h
 endif
 
 REQUIRES = security nspr

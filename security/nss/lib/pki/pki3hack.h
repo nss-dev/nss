@@ -75,29 +75,6 @@ STAN_LoadDefaultNSS3TrustDomain
 NSS_EXTERN void
 STAN_Shutdown();
 
-NSS_EXTERN void
-STAN_DestroyNSSToken(NSSToken *token);
-
-NSS_EXTERN PRBool
-nssToken_SearchCerts
-(
-  NSSToken *token,
-  PRBool *notPresentOpt
-);
-
-/* renewInstances -- if the cached token certs have multiple instances,
- * don't destroy them.  If this parameter is false, they will be destroyed
- * anyway (used for clean shutdown).
- */
-NSS_EXTERN void
-nssToken_DestroyCertList(NSSToken *token, PRBool renewInstances);
-
-NSS_EXTERN void
-nssCertificateList_DestroyTokenCerts(nssList *certList, NSSToken *token);
-
-NSS_EXTERN void
-nssCertificateList_RemoveTokenCerts(nssList *certList, NSSToken *token);
-
 NSS_EXTERN SECStatus
 STAN_AddModuleToDefaultTrustDomain
 (
@@ -111,6 +88,9 @@ STAN_RemoveModuleFromDefaultTrustDomain
 );
 
 NSS_EXTERN CERTCertificate *
+STAN_ForceCERTCertificateUpdate(NSSCertificate *c);
+
+NSS_EXTERN CERTCertificate *
 STAN_GetCERTCertificate(NSSCertificate *c);
 
 NSS_EXTERN NSSCertificate *
@@ -121,6 +101,10 @@ nssTrust_GetCERTCertTrustForCert(NSSCertificate *c, CERTCertificate *cc);
 
 NSS_EXTERN PRStatus
 STAN_ChangeCertTrust(CERTCertificate *cc, CERTCertTrust *trust);
+
+NSS_EXTERN PRStatus
+nssPKIX509_GetIssuerAndSerialFromDER(NSSDER *der, NSSArena *arena, 
+                                     NSSDER *issuer, NSSDER *serial);
 
 /* exposing this */
 NSS_EXTERN NSSCertificate *

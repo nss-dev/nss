@@ -43,78 +43,6 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #include "pkim.h"
 #endif /* PKIM_H */
 
-/* XXX
- * move this to a more appropriate location
- */
-NSS_IMPLEMENT PRStatus
-nssPKIObject_Initialize
-(
-  struct nssPKIObjectBaseStr *object,
-  NSSArena *arena,
-  NSSTrustDomain *td,
-  NSSCryptoContext *cc
-)
-{
-    object->arena = arena;
-    object->trustDomain = td;
-    object->cryptoContext = cc;
-    object->lock = PZ_NewLock(nssILockOther);
-    if (!object->lock) {
-	return PR_FAILURE;
-    }
-    object->instanceList = nssList_Create(arena, PR_TRUE);
-    if (!object->instanceList) {
-	PZ_DestroyLock(object->lock);
-	return PR_FAILURE;
-    }
-    object->instances = nssList_CreateIterator(object->instanceList);
-    if (!object->instances) {
-	nssList_Destroy(object->instanceList);
-	PZ_DestroyLock(object->lock);
-	return PR_FAILURE;
-    }
-    object->refCount = 1;
-    return PR_SUCCESS;
-}
-
-/* XXX
- * move this to a more appropriate location
- */
-NSS_IMPLEMENT void
-nssPKIObject_AddRef
-(
-  struct nssPKIObjectBaseStr *object
-)
-{
-    PZ_Lock(object->lock);
-    object->refCount++;
-    PZ_Unlock(object->lock);
-}
-
-/* XXX
- * move this to a more appropriate location
- */
-NSS_IMPLEMENT PRBool
-nssPKIObject_Destroy
-(
-  struct nssPKIObjectBaseStr *object
-)
-{
-    PRUint32 refCount;
-    PZ_Lock(object->lock);
-    PORT_Assert(object->refCount > 0);
-    refCount = --object->refCount;
-    PZ_Unlock(object->lock);
-    if (refCount == 0) {
-	PZ_DestroyLock(object->lock);
-	nssListIterator_Destroy(object->instances);
-	nssList_Destroy(object->instanceList);
-	nssArena_Destroy(object->arena);
-	return PR_TRUE;
-    }
-    return PR_FALSE;
-}
-
 #ifdef NSS_3_4_CODE
 /* This is defined in nss3hack.c */
 NSS_EXTERN nssDecodedCert *
@@ -192,41 +120,5 @@ nssDecodedCert_Destroy
 	break;
     }
     return PR_FAILURE;
-}
-
-/* Of course none of this belongs here */
-
-/* how bad would it be to have a static now sitting around, updated whenever
- * this was called?  would avoid repeated allocs...
- */
-NSS_IMPLEMENT NSSTime *
-NSSTime_Now
-(
-  NSSTime *timeOpt
-)
-{
-    return NSSTime_SetPRTime(timeOpt, PR_Now());
-}
-
-NSS_IMPLEMENT NSSTime *
-NSSTime_SetPRTime
-(
-  NSSTime *timeOpt,
-  PRTime prTime
-)
-{
-    NSSTime *rvTime;
-    rvTime = (timeOpt) ? timeOpt : nss_ZNEW(NULL, NSSTime);
-    rvTime->prTime = prTime;
-    return rvTime;
-}
-
-NSS_IMPLEMENT PRTime
-NSSTime_GetPRTime
-(
-  NSSTime *time
-)
-{
-  return time->prTime;
 }
 
