@@ -127,7 +127,7 @@ DecodeAndPrintFile(FILE *out, PRFileDesc *in, char *progName)
 		SEC_PKCS7DecoderUpdate(dcx, derdata.data + i, 1);
 	}
 #else
-	SEC_PKCS7DecoderUpdate(dcx, derdata.data, derdata.len);
+	SEC_PKCS7DecoderUpdate(dcx, (char *)derdata.data, derdata.len);
 #endif
 	cinfo = SEC_PKCS7DecoderFinish(dcx);
     }
