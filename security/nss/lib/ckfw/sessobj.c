@@ -202,7 +202,7 @@ nss_ckmdSessionObject_GetAttributeSize
   CK_RV *pError
 );
 
-NSSCKFWItem
+static NSSCKFWItem
 nss_ckmdSessionObject_GetAttribute
 (
   NSSCKMDObject *mdObject,
