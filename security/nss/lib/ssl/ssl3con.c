@@ -4463,6 +4463,13 @@ ssl3_HandleCertificateRequest(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	errCode = SSL_ERROR_RX_UNEXPECTED_CERT_REQUEST;
 	goto alert_loser;
     }
+
+    /* clean up anything left from previous handshake. */
+    if (ssl3->clientCertChain != NULL) {
+       CERT_DestroyCertificateList(ssl3->clientCertChain);
+       ssl3->clientCertChain = NULL;
+    }
+
     isTLS = (PRBool)(ssl3->prSpec->version > SSL_LIBRARY_VERSION_3_0);
     rv = ssl3_ConsumeHandshakeVariable(ss, &cert_types, 1, &b, &length);
     if (rv != SECSuccess)
@@ -7946,6 +7953,11 @@ ssl3_DestroySSL3Info(ssl3State *ssl3)
 
     if (ssl3->peerCertArena != NULL)
 	ssl3_CleanupPeerCerts(ssl3);
+
+    if (ssl3->clientCertChain != NULL) {
+       CERT_DestroyCertificateList(ssl3->clientCertChain);
+       ssl3->clientCertChain = NULL;
+    }
 
     /* clean up handshake */
     if (ssl3->hs.md5) {
