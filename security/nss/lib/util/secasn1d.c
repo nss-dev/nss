@@ -1349,8 +1349,18 @@ sec_asn1d_parse_bit_string (sec_asn1d_state *state,
 {
     unsigned char byte;
 
-    PORT_Assert (state->pending > 0);
+    /*PORT_Assert (state->pending > 0); */
     PORT_Assert (state->place == beforeBitString);
+
+    if (state->pending == 0) {
+	if (state->dest != NULL) {
+	    SECItem *item = (SECItem *)(state->dest);
+	    item->data = NULL;
+	    item->len = 0;
+	    state->place = beforeEndOfContents;
+	    return 0;
+	}
+    }
 
     if (len == 0) {
 	state->top->status = needBytes;

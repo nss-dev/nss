@@ -109,6 +109,11 @@ extern PRBool SECOID_KnownCertExtenOID (SECItem *extenOid);
  */
 extern const char *SECOID_FindOIDTagDescription(SECOidTag tagnum);
 
+/*
+ * free up the oid data structures.
+ */
+extern SECStatus SECOID_Shutdown(void);
+
 
 SEC_END_PROTOS
 
