@@ -903,6 +903,12 @@ NSS_CMSRecipientInfo_GetVersion(NSSCMSRecipientInfo *ri);
 extern SECItem *
 NSS_CMSRecipientInfo_GetEncryptedKey(NSSCMSRecipientInfo *ri, int subIndex);
 
+/*
+ * NSS_CMSRecipientInfo_Encode - encode an NSS_CMSRecipientInfo as ASN.1
+ */
+SECStatus NSS_CMSRecipientInfo_Encode(PRArenaPool* poolp,
+                                      const NSSCMSRecipientInfo *src,
+                                      SECItem* returned);
 
 extern SECOidTag
 NSS_CMSRecipientInfo_GetKeyEncryptionAlgorithmTag(NSSCMSRecipientInfo *ri);
