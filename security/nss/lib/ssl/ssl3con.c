@@ -789,7 +789,7 @@ ssl3_ComputeExportRSAKeyHash(SECItem modulus, SECItem publicExponent,
     	pBuf += 2;
     memcpy(pBuf, publicExponent.data, publicExponent.len);
     	pBuf += publicExponent.len;
-    PORT_Assert(pBuf - hashBuf == bufLen);
+    PORT_Assert((unsigned int)(pBuf - hashBuf) == bufLen);
 
     rv  = PK11_DigestBegin(md5);
     rv |= PK11_DigestOp(md5, hashBuf, bufLen);
@@ -880,7 +880,7 @@ ssl3_ComputeDHKeyHash(SECItem dh_p, SECItem dh_g, SECItem dh_Ys,
     	pBuf += 2;
     memcpy(pBuf, dh_Ys.data, dh_Ys.len);
     	pBuf += dh_Ys.len;
-    PORT_Assert(pBuf - hashBuf == bufLen);
+    PORT_Assert((unsigned int)(pBuf - hashBuf) == bufLen);
 
     rv  = PK11_DigestBegin(md5);
     rv |= PK11_DigestOp(md5, hashBuf, bufLen);
