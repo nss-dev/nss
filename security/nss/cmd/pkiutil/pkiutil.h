@@ -78,6 +78,15 @@ ValidateCert
 );
 
 PRStatus
+SetCertTrust
+(
+  NSSTrustDomain *td,
+  char *nickname,
+  char *serial,
+  char *trustedUsages
+);
+
+PRStatus
 DeleteOrphanedKeyPairs
 (
   NSSTrustDomain *td,

@@ -214,6 +214,13 @@ NSSCertificate_GetTrustedUsages
   NSSUsages *usagesOpt
 );
 
+NSS_EXTERN PRStatus
+NSSCertificate_SetTrustedUsages
+(
+  NSSCertificate *c,
+  NSSUsages *usages
+);
+
 /*
  * NSSCertificate_Encode
  *

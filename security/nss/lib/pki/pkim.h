@@ -198,6 +198,13 @@ nssPKIObject_GetTrustDomain
   PRStatus *statusOpt
 );
 
+NSS_EXTERN NSSToken *
+nssPKIObject_GetWriteToken
+(
+  nssPKIObject *object,
+  nssSession **rvSessionOpt
+);
+
 NSS_EXTERN nssCryptokiObject **
 nssPKIObject_GetInstances
 (
@@ -268,13 +275,6 @@ nssCertificate_FindInstanceForAlgorithm
 (
   NSSCertificate *c,
   NSSAlgorithmAndParameters *ap
-);
-
-NSS_EXTERN PRStatus
-nssCertificate_SetCertTrust
-(
-  NSSCertificate *c,
-  nssTrust *trust
 );
 
 NSS_EXTERN nssTrust *

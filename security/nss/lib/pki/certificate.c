@@ -326,6 +326,16 @@ nssCertificate_GetNickname
     return nssPKIObject_GetNicknameForToken(&c->object, tokenOpt);
 }
 
+NSS_IMPLEMENT NSSToken *
+nssCertificate_GetWriteToken
+(
+  NSSCertificate *c,
+  nssSession **rvSessionOpt
+)
+{
+    return nssPKIObject_GetWriteToken(&c->object, rvSessionOpt);
+}
+
 NSS_IMPLEMENT NSSUTF8 *
 NSSCertificate_GetNickname
 (
@@ -651,7 +661,7 @@ get_trusted_usage
     if (trust->emailProtection == checkLevel) {
 	usage |= NSSUsage_EmailSigner | NSSUsage_EmailRecipient;
     }
-    if (trust->codeSigning == nssTrustLevel_Trusted) {
+    if (trust->codeSigning == checkLevel) {
 	usage |= NSSUsage_CodeSigner;
     }
     nssTrust_Destroy(trust);
@@ -973,6 +983,74 @@ nssCertificate_IsTrustedForUsages
     return nssUsages_Match(usages, &certUsages);
 }
 
+static void
+set_trust_for_usage
+(
+  NSSUsage usage,
+  nssTrust *trust,
+  nssTrustLevel setLevel
+)
+{
+    if (usage & NSSUsage_SSLClient) {
+	trust->clientAuth = setLevel;
+    }
+    if (usage & NSSUsage_SSLServer) {
+	trust->serverAuth = setLevel;
+    }
+    if (usage & (NSSUsage_EmailSigner | NSSUsage_EmailRecipient)) {
+	trust->emailProtection = setLevel;
+    }
+    if (usage & NSSUsage_CodeSigner) {
+	trust->codeSigning = setLevel;
+    }
+}
+
+/* XXX move */
+NSS_IMPLEMENT NSSToken *
+nssTrust_GetWriteToken
+(
+  nssTrust *t,
+  nssSession **rvSessionOpt
+)
+{
+    return nssPKIObject_GetWriteToken(&t->object, rvSessionOpt);
+}
+
+/* XXX move */
+NSS_IMPLEMENT void
+nssTrust_Clear
+(
+  nssTrust *trust
+)
+{
+    trust->clientAuth = nssTrustLevel_NotTrusted;
+    trust->serverAuth = nssTrustLevel_NotTrusted;
+    trust->emailProtection = nssTrustLevel_NotTrusted;
+    trust->codeSigning = nssTrustLevel_NotTrusted;
+}
+
+/* XXX move */
+NSS_IMPLEMENT nssTrust *
+nssTrust_CreateNull
+(
+  NSSTrustDomain *td
+)
+{
+    nssPKIObject *pkio;
+    nssTrust *trust = NULL;
+    pkio = nssPKIObject_Create(NULL, NULL, td, NULL);
+    if (pkio) {
+	trust = nss_ZNEW(pkio->arena, nssTrust);
+	if (trust) {
+	    trust->object = *pkio;
+	    nssTrust_Clear(trust);
+	} else {
+	    nssPKIObject_Destroy(pkio);
+	}
+    }
+    return trust;
+}
+
 NSS_IMPLEMENT PRStatus
 nssCertificate_SetTrustedUsages
 (
@@ -980,7 +1058,66 @@ nssCertificate_SetTrustedUsages
   NSSUsages *usages
 )
 {
-    return PR_FAILURE;
+    PRStatus status;
+    nssTrust *trust;
+    NSSToken *token;
+    nssSession *session;
+    nssCryptokiObject *instance;
+
+    /* XXX needs to be cached with cert */
+    trust = nssTrustDomain_FindTrustForCertificate(c->object.trustDomain, c);
+    if (trust) {
+	token = nssTrust_GetWriteToken(trust, &session);
+	nssTrust_Clear(trust);
+    } else {
+	if (NSS_GetError() != NSS_ERROR_NO_ERROR) {
+	    return PR_FAILURE;
+	}
+	/* XXX something better */
+	/* create a new trust object */
+	trust = nssTrust_CreateNull(c->object.trustDomain);
+	if (!trust) {
+	    return PR_FAILURE;
+	}
+	token = nssCertificate_GetWriteToken(c, &session);
+	if (!token) {
+	    /* XXX should extract from trust domain */
+	    PR_ASSERT(0);
+	    return PR_FAILURE;
+	}
+    }
+    /* set the new trust values */
+    set_trust_for_usage(usages->ca, trust, nssTrustLevel_TrustedDelegator);
+    set_trust_for_usage(usages->peer, trust, nssTrustLevel_Trusted);
+    /* import (set) the trust values on the token */
+    instance = nssToken_ImportTrust(token, session, &c->encoding,
+                                    &c->issuer, &c->serial,
+                                    trust->serverAuth,
+                                    trust->clientAuth,
+                                    trust->codeSigning,
+                                    trust->emailProtection,
+                                    PR_TRUE);
+    /* clean up */
+    nssSession_Destroy(session);
+    nssToken_Destroy(token);
+    if (instance) {
+	nssCryptokiObject_Destroy(instance);
+	status = PR_SUCCESS;
+    } else {
+	status = PR_FAILURE;
+    }
+    nssTrust_Destroy(trust);
+    return status;
+}
+
+NSS_IMPLEMENT PRStatus
+NSSCertificate_SetTrustedUsages
+(
+  NSSCertificate *c,
+  NSSUsages *usages
+)
+{
+    return nssCertificate_SetTrustedUsages(c, usages);
 }
 
 NSS_IMPLEMENT NSSDER *

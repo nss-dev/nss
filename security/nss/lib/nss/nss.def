@@ -104,6 +104,7 @@ NSSCertificate_GetNickname;
 NSSCertificate_GetDecoding;
 NSSCertificate_GetType;
 NSSCertificate_GetTrustedUsages;
+NSSCertificate_SetTrustedUsages;
 ;+#NSSCertificate_Encrypt;
 ;+#NSSCertificate_Verify;
 ;+#NSSCertificate_VerifyRecover;

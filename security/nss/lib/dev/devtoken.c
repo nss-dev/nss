@@ -314,6 +314,15 @@ nssToken_GetObjectCache
 }
 
 NSS_IMPLEMENT PRBool
+nssToken_IsReadOnly
+(
+  NSSToken *token
+)
+{
+    return (token->info.flags & CKF_WRITE_PROTECTED);
+}
+
+NSS_IMPLEMENT PRBool
 nssToken_DoesAlgorithm
 (
   NSSToken *token,

@@ -57,6 +57,7 @@ enum {
     cmd_Interactive,
     cmd_List,
     cmd_ListChain,
+    cmd_ModifyTrust,
     cmd_Print,
     cmd_Validate,
     cmd_Version,
@@ -132,7 +133,7 @@ static cmdCommandLineArg pkiutil_commands[] =
    "Import an object into the profile/token"
  },
  { /* cmd_Interactive */
-   'D', "interactive", 
+    0 , "interactive", 
    CMDNoArg, 0, PR_FALSE, 
    { 0, 0, 0, 0 },
    { 
@@ -171,6 +172,21 @@ static cmdCommandLineArg pkiutil_commands[] =
      0, 0, 0
    },
    "List a certificate chain"
+ },
+ { /* cmd_ModifyTrust */
+   'M', "modify-trust", 
+   CMDNoArg, 0, PR_FALSE,
+   {
+     CMDBIT(opt_Nickname) |
+     CMDBIT(opt_Usages),
+     0, 0, 0
+   },
+   {
+     CMDBIT(opt_ProfileDir) | 
+     CMDBIT(opt_Serial) | 
+     0, 0, 0
+   },
+   "Modify the trusted usages of a certificate"
  },
  { /* cmd_Print */
    'P', "print", 
@@ -246,9 +262,10 @@ static char * pkiutil_options_help[] =
  "file for output (default: stdout)",
  "delete orphaned key pairs (keys not associated with a cert)",
  "use raw (binary der-encoded) mode for I/O",
+ "specify a certificate serial number",
  "trust level for certificate",
  "specify type of object"
-  "\n certificate"
+  "\n certificate (default)"
   "\n public-key"
   "\n private-key"
   "\n all",
@@ -443,6 +460,12 @@ pkiutil_command_dispatcher(cmdCommand *pkiutil, int cmdToRun)
 	                   pkiutil->opt[opt_Serial].arg,
 	                   0,
 	                   &rtData);
+	break;
+    case cmd_ModifyTrust:
+	status = SetCertTrust(td,
+	                      pkiutil->opt[opt_Nickname].arg,
+	                      pkiutil->opt[opt_Serial].arg,
+			      pkiutil->opt[opt_Usages].arg);
 	break;
     case cmd_Print:
 	status = DumpObject(td,

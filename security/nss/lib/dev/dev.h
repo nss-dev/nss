@@ -378,6 +378,7 @@ nssSlot_CreateSession
  * nssToken_GetName
  * nssToken_GetModule
  * nssToken_GetSlot
+ * nssToken_IsReadOnly
  * nssToken_DoesAlgorithm
  * nssToken_CreateSession
  *
@@ -470,6 +471,12 @@ NSS_EXTERN NSSSlot *
 nssToken_GetSlot
 (
   NSSToken *tok
+);
+
+NSS_EXTERN PRBool
+nssToken_IsReadOnly
+(
+  NSSToken *token
 );
 
 NSS_EXTERN PRBool

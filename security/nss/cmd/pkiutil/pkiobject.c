@@ -409,6 +409,30 @@ DumpObject
     return status;
 }
 
+static void get_usages_from_string(char *usageStr, NSSUsages *usages)
+{
+    char usage;
+    usages->ca = usages->peer = 0;
+    while ((usage = *usageStr++)) {
+	switch (usage) {
+	case 'c':  usages->peer |= NSSUsage_SSLClient;       break;
+	case 'v':  usages->peer |= NSSUsage_SSLServer;       break;
+	case 'r':  usages->peer |= NSSUsage_EmailRecipient;  break;
+	case 's':  usages->peer |= NSSUsage_EmailSigner;     break;
+	case 'o':  usages->peer |= NSSUsage_CodeSigner;      break;
+	case 't':  usages->peer |= NSSUsage_StatusResponder; break;
+	case 'u':  usages->peer |= NSSUsage_SSLServerWithStepUp; break;
+	case 'C':  usages->ca |= NSSUsage_SSLClient;         break;
+	case 'V':  usages->ca |= NSSUsage_SSLServer;         break;
+	case 'R':  usages->ca |= NSSUsage_EmailRecipient;    break;
+	case 'S':  usages->ca |= NSSUsage_EmailSigner;       break;
+	case 'O':  usages->ca |= NSSUsage_CodeSigner;        break;
+	case 'T':  usages->ca |= NSSUsage_StatusResponder;   break;
+	case 'U':  usages->ca |= NSSUsage_SSLServerWithStepUp; break;
+	}
+    }
+}
+
 PRStatus
 ValidateCert
 (
@@ -422,29 +446,10 @@ ValidateCert
 {
     PRStatus status;
     NSSCertificate *c;
-    NSSCertificate **certs = NULL;
-    char usage;
-    NSSUsages usages = { 0 };
+    NSSUsages usages;
 
     if (usageStr) {
-	while ((usage = *usageStr++)) {
-	    switch (usage) {
-	    case 'c':  usages.peer |= NSSUsage_SSLClient;       break;
-	    case 'v':  usages.peer |= NSSUsage_SSLServer;       break;
-	    case 'r':  usages.peer |= NSSUsage_EmailRecipient;  break;
-	    case 's':  usages.peer |= NSSUsage_EmailSigner;     break;
-	    case 'o':  usages.peer |= NSSUsage_CodeSigner;      break;
-	    case 't':  usages.peer |= NSSUsage_StatusResponder; break;
-	    case 'u':  usages.peer |= NSSUsage_SSLServerWithStepUp; break;
-	    case 'C':  usages.ca |= NSSUsage_SSLClient;         break;
-	    case 'V':  usages.ca |= NSSUsage_SSLServer;         break;
-	    case 'R':  usages.ca |= NSSUsage_EmailRecipient;    break;
-	    case 'S':  usages.ca |= NSSUsage_EmailSigner;       break;
-	    case 'O':  usages.ca |= NSSUsage_CodeSigner;        break;
-	    case 'T':  usages.ca |= NSSUsage_StatusResponder;   break;
-	    case 'U':  usages.ca |= NSSUsage_SSLServerWithStepUp; break;
-	    }
-	}
+	get_usages_from_string(usageStr, &usages);
     }
 
     if (serial) {
@@ -457,9 +462,6 @@ ValidateCert
     }
     if (!c) {
 	CMD_PrintError("Failed to locate cert %s", nickname);
-	if (certs) {
-	    NSSCertificateArray_Destroy(certs);
-	}
 	return PR_FAILURE;
     }
 
@@ -470,10 +472,48 @@ ValidateCert
 	CMD_PrintError("Validation failed");
     }
 
-    if (certs) {
-	NSSCertificateArray_Destroy(certs);
+    return status;
+}
+
+PRStatus
+SetCertTrust
+(
+  NSSTrustDomain *td,
+  char *nickname,
+  char *serial,
+  char *trustedUsages
+)
+{
+    PRStatus status;
+    NSSUsages usages;
+    NSSCertificate *c;
+
+
+    get_usages_from_string(trustedUsages, &usages);
+
+    /* XXX the current trust object does not allow both ca && peer */
+    if (usages.ca & usages.peer) {
+	PR_fprintf(PR_STDERR, 
+	           "Setting both peer and CA usage not supported\n");
+	return PR_FAILURE;
     }
 
+    if (serial) {
+	c = find_nick_cert_by_sn(td, nickname, serial);
+    } else {
+	c = NSSTrustDomain_FindBestCertificateByNickname(td, nickname, 
+	                                                 NSSTime_Now(), 
+	                                                 NULL,
+	                                                 NULL);
+    }
+    if (!c) {
+	CMD_PrintError("Failed to locate cert %s", nickname);
+	return PR_FAILURE;
+    }
+
+    status = NSSCertificate_SetTrustedUsages(c, &usages);
+
+    NSSCertificate_Destroy(c);
     return status;
 }
 

@@ -429,6 +429,39 @@ nssPKIObject_GetTrustDomain
     return object->trustDomain;
 }
 
+NSS_IMPLEMENT NSSToken *
+nssPKIObject_GetWriteToken
+(
+  nssPKIObject *object,
+  nssSession **rvSessionOpt
+)
+{
+    PRUint32 i;
+    NSSToken *token = NULL;
+    nssCryptokiObject *instance;
+    PZ_Lock(object->lock);
+    for (i=0; i<object->numInstances; i++) {
+	instance = object->instances[i];
+	if (!nssToken_IsReadOnly(instance->token)) {
+	    token = nssToken_AddRef(instance->token);
+	    if (rvSessionOpt && nssSession_IsReadWrite(instance->session)) 
+	    {
+		*rvSessionOpt = nssSession_AddRef(instance->session);
+	    }
+	    break;
+	}
+    }
+    PZ_Unlock(object->lock);
+    if (token && rvSessionOpt && !*rvSessionOpt) {
+	*rvSessionOpt = nssToken_CreateSession(token, PR_TRUE);
+	if (!*rvSessionOpt) {
+	    nssToken_Destroy(token);
+	    token = NULL;
+	}
+    }
+    return token;
+}
+
 NSS_IMPLEMENT void
 nssCertificateArray_Destroy
 (
@@ -438,15 +471,6 @@ nssCertificateArray_Destroy
     if (certs) {
 	NSSCertificate **certp;
 	for (certp = certs; *certp; certp++) {
-#ifdef NSS_3_4_CODE
-	    if ((*certp)->decoding) {
-		CERTCertificate *cc = STAN_GetCERTCertificate(*certp);
-		if (cc) {
-		    CERT_DestroyCertificate(cc);
-		}
-		continue;
-	    }
-#endif
 	    nssCertificate_Destroy(*certp);
 	}
 	nss_ZFreeIf(certs);
