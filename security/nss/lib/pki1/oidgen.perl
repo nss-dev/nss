@@ -244,12 +244,6 @@ static const char OIDDATA_CVS_ID[] = "$g{CVS_ID} ; $cvs_id";
 #include "nsspki1t.h"
 #endif /* NSSPKI1T_H */
 
-extern const NSSOID nss_builtin_oids[];
-extern const PRUint32 nss_builtin_oid_count;
-
-/*extern const nssAttributeTypeAliasTable nss_attribute_type_aliases[];*/
-/*extern const PRUint32 nss_attribute_type_alias_count;*/
-
 EOD
     ;
 
