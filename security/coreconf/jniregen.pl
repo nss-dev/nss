@@ -99,9 +99,8 @@ foreach $filename (@ARGV)
 
 if( @filelist ) {
     $cmd = "$javah " . join(" ",@filelist);
-    $cmd =~ s/\'/\"/g;  # because windows doesn't understand single quote
     print "$cmd\n";
-    exit (system($cmd) >> 8);
+    system("$cmd");
 } else {
     print "All JNI header files up to date.\n"
 }

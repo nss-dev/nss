@@ -139,7 +139,7 @@ ifeq ($(OS_ARCH), SunOS)
 	INCLUDES += -I$(JAVA_HOME)/include/$(JAVA_ARCH)
 
 	# (3) specify "linker" information
-	JAVA_CPU = $(shell uname -p)
+	JAVA_CPU = sparc
 
 ifeq ($(JDK_VERSION), 1.1)
 	JAVA_LIBDIR = lib/$(JAVA_CPU)
@@ -153,9 +153,8 @@ endif
 	JAVA_CLIBS = -lthread
 
 ifneq ($(JDK_VERSION), 1.1)
-	JAVA_LIBS += -L$(JAVA_HOME)/$(JAVA_LIBDIR)/classic
-	JAVA_LIBS += -L$(JAVA_HOME)/$(JAVA_LIBDIR)
-	JAVA_LIBS += -ljvm -ljava
+	JAVA_LIBS += -L$(JAVA_HOME)/$(JAVA_LIBDIR)/classic -ljvm
+	JAVA_LIBS += -L$(JAVA_HOME)/$(JAVA_LIBDIR) -ljava
 else
 	JAVA_LIBS += -L$(JAVA_HOME)/$(JAVA_LIBDIR)/$(JDK_THREADING_MODEL) -ljava
 endif
@@ -400,6 +399,7 @@ endif
 endif
 
 
+ifdef NS_USE_JDK_TOOLSET
 #######################################################################
 # [5] Define JDK "Core Components" toolset;                           #
 #     (always allow a user to override these values)                  #
@@ -607,4 +607,6 @@ ifeq ($(SERIALVER),)
 	SERIALVER_PROG   = $(JAVA_HOME)/bin/serialver$(PROG_SUFFIX)
 	SERIALVER_FLAGS  = $(JDK_THREADING_MODEL_OPT)
 	SERIALVER        = $(SERIALVER_PROG) $(SERIALVER_FLAGS) 
+endif
+ 
 endif
