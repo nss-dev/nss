@@ -1361,47 +1361,6 @@ CERT_FindMatchingCert(CERTCertDBHandle *handle, SECItem *derName,
 		      CERTCertOwner owner, SECCertUsage usage,
 		      PRBool preferTrusted, int64 validTime, PRBool validOnly);
 
-
-/*********************************************************************/
-/* A thread safe implementation of General Names                     */
-/*********************************************************************/
-
-/* Destroy a Single CERTGeneralName */
-void
-CERT_DestroyGeneralName(CERTGeneralName *name);
-
-/* Destroys a CERTGeneralNameList */
-void
-CERT_DestroyGeneralNameList(CERTGeneralNameList *list);
-
-/* Creates a CERTGeneralNameList */
-CERTGeneralNameList *
-CERT_CreateGeneralNameList(CERTGeneralName *name);
-
-/* Compares two CERTGeneralNameList */
-SECStatus
-CERT_CompareGeneralNameLists(CERTGeneralNameList *a, CERTGeneralNameList *b);
-
-/* returns a copy of the first name of the type requested */
-void *
-CERT_GetGeneralNameFromListByType(CERTGeneralNameList *list,
-				  CERTGeneralNameType type,
-				  PRArenaPool *arena);
-
-/* Adds a name to the tail of the list */
-void
-CERT_AddGeneralNameToList(CERTGeneralNameList *list, 
-			  CERTGeneralNameType type,
-			  void *data, SECItem *oid);
-
-/* returns a duplicate of the CERTGeneralNameList */
-CERTGeneralNameList *
-CERT_DupGeneralNameList(CERTGeneralNameList *list);
-
-/* returns the length of a CERTGeneralName */
-int
-CERT_GetNamesLength(CERTGeneralName *names);
-
 /*
  * Acquire the global lock on the cert database.
  * This lock is currently used for the following operations:
