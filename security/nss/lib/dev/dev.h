@@ -952,6 +952,16 @@ nssToken_NofifyCertsNotVisible
   NSSToken *tok
 );
 
+NSS_EXTERN PRStatus
+nssToken_TraverseCertificates
+(
+  NSSToken *token,
+  nssSession *sessionOpt,
+  nssTokenSearchType searchType,
+  PRStatus (* callback)(nssCryptokiObject *instance, void *arg),
+  void *arg
+);
+
 #endif
 
 PR_END_EXTERN_C
