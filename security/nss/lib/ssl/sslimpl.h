@@ -1269,8 +1269,11 @@ void ssl_Trace(const char *format, ...);
 
 SEC_END_PROTOS
 
+#ifdef XP_OS2_VACPP
+#include <process.h>
+#endif
 
-#if defined(XP_UNIX)
+#if defined(XP_UNIX) || defined(XP_OS2)
 #define SSL_GETPID() getpid()
 #elif defined(WIN32)
 
