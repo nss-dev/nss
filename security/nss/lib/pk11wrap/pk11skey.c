@@ -3147,20 +3147,7 @@ PK11_ExitContextMonitor(PK11Context *cx) {
 void
 PK11_DestroyContext(PK11Context *context, PRBool freeit)
 {
-    SECStatus rv = SECFailure;
-    if (context->ownSession && context->key && /* context owns session & key */
-        context->key->session == context->session && /* sharing session */
-        !context->key->sessionOwner)              /* sanity check */
-    {
-	/* session still valid, let the key free it as necessary */
-        rv = PK11_Finalize(context); /* end any ongoing activity */
-	if (rv == SECSuccess) {
-	    context->key->sessionOwner = PR_TRUE;
-	} /* else couldn't finalize the session, close it */
-    }
-    if (rv == SECFailure) {
     pk11_CloseSession(context->slot,context->session,context->ownSession);
-    }
     /* initialize the critical fields of the context */
     if (context->savedData != NULL ) PORT_Free(context->savedData);
     if (context->key) PK11_FreeSymKey(context->key);
@@ -3345,14 +3332,7 @@ static PK11Context *pk11_CreateNewContextInSlot(CK_MECHANISM_TYPE type,
     context->operation = operation;
     context->key = symKey ? PK11_ReferenceSymKey(symKey) : NULL;
     context->slot = PK11_ReferenceSlot(slot);
-    if (symKey && symKey->sessionOwner) {
-	/* The symkey owns a session.  Adopt that session. */
-	context->session = symKey->session;
-	context->ownSession = symKey->sessionOwner;
-	symKey->sessionOwner = PR_FALSE;
-    } else {
-	context->session = pk11_GetNewSession(slot, &context->ownSession);
-    }
+    context->session = pk11_GetNewSession(slot,&context->ownSession);
     context->cx = symKey ? symKey->cx : NULL;
     /* get our session */
     context->savedData = NULL;
