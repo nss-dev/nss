@@ -559,7 +559,6 @@ NSS_CMSSignedData_AddCertChain(NSSCMSSignedData *sigd, CERTCertificate *cert)
 	return SECFailure;
 
     rv = NSS_CMSSignedData_AddCertList(sigd, certlist);
-    CERT_DestroyCertificateList(certlist);
 
     return rv;
 }
