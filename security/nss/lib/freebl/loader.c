@@ -91,6 +91,9 @@ isHybrid(void)
 #error "code for this platform is missing."
 #endif
 
+#define LSB(x) ((x)&0xff)
+#define MSB(x) ((x)>>8)
+
 static const FREEBLVector *vector;
 
 /* This function must be run only once. */
@@ -116,11 +119,17 @@ freebl_LoadDSO( void )
   if (handle) {
     void * address = PR_FindSymbol(handle, "FREEBL_GetVector");
     if (address) {
-      FREEBLGetVectorFn * getVector = (FREEBLGetVectorFn *)address;
-      const FREEBLVector * myVector = getVector();
-      if (myVector) {
-	vector = myVector;
-	return PR_SUCCESS;
+      FREEBLGetVectorFn  * getVector = (FREEBLGetVectorFn *)address;
+      const FREEBLVector * dsoVector = getVector();
+      if (dsoVector) {
+	unsigned short dsoVersion = dsoVector->version;
+	unsigned short  myVersion = FREEBL_VERSION;
+	if (MSB(dsoVersion) == MSB(myVersion) && 
+	    LSB(dsoVersion) >= LSB(myVersion) &&
+	    dsoVector->length >= sizeof(FREEBLVector)) {
+	  vector = dsoVector;
+	  return PR_SUCCESS;
+	}
       }
     }
     PR_UnloadLibrary(handle);
