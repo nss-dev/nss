@@ -454,13 +454,16 @@ NSS_NoDB_Init(const char * configdir)
 				PR_TRUE,PR_TRUE,PR_TRUE,PR_TRUE,PR_TRUE);
 }
 
-void
+SECStatus
 NSS_Shutdown(void)
 {
+    SECStatus rv;
+
     SECOID_Shutdown();
     STAN_Shutdown();
-    SECMOD_Shutdown();
+    rv = SECMOD_Shutdown();
     nss_IsInitted = PR_FALSE;
+    return rv;
 }
 
 
