@@ -89,6 +89,7 @@ extern PRFileDesc *SSL_ImportFD(PRFileDesc *model, PRFileDesc *fd);
 #define SSL_ENABLE_FDX                 11 /* permit simultaneous read/write */
 #define SSL_V2_COMPATIBLE_HELLO        12 /* send v3 client hello in v2 fmt */
 #define SSL_ENABLE_TLS		       13 /* enable TLS (off by default) */
+#define SSL_ROLLBACK_DETECTION         14 /* for compatibility, default: on */
 
 /* Old deprecated function names */
 extern SECStatus SSL_Enable(PRFileDesc *fd, int option, PRBool on);
