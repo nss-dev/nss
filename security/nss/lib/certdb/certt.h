@@ -495,7 +495,7 @@ typedef PRInt64 SECCertificateUsage;
 #define certificateUsageStatusResponder        (0x0400)
 #define certificateUsageAnyCA                  (0x0800)
 
-#define highestUsage certificateUsageAnyCA
+#define certificateUsageHighest certificateUsageAnyCA
 
 /*
  * Does the cert belong to the user, a peer, or a CA.
