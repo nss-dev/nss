@@ -585,6 +585,15 @@ NSSPKIXExtensions_GetExtensionCount
     return nssPKIXExtensions_GetExtensionCount(extensions);
 }
 
+NSS_IMPLEMENT NSSPKIXBasicConstraints *
+NSSPKIXExtensions_GetBasicConstraints
+(
+  NSSPKIXExtensions *extensions
+)
+{
+    return nssPKIXExtensions_GetBasicConstraints(extensions);
+}
+
 NSS_IMPLEMENT NSSPKIXKeyUsage *
 NSSPKIXExtensions_GetKeyUsage
 (

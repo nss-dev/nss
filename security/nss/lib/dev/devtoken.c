@@ -622,15 +622,19 @@ nssToken_ImportCertificate
                                                                serial,
                                                                searchType,
                                                                NULL);
-    if (rvObject) {
+    if (rvObject && (id || nickname)) {
 	/* according to PKCS#11, label, ID, issuer, and serial number 
 	 * may change after the object has been created.  For PKIX, the
 	 * last two attributes can't change, so for now we'll only worry
 	 * about the first two.
 	 */
 	NSS_CK_TEMPLATE_START(cert_tmpl, attr, ctsize);
-	NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_ID,    id);
-	NSS_CK_SET_ATTRIBUTE_UTF8(attr, CKA_LABEL, nickname);
+	if (id) {
+	    NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_ID, id);
+	}
+	if (nickname) {
+	    NSS_CK_SET_ATTRIBUTE_UTF8(attr, CKA_LABEL, nickname);
+	}
 	NSS_CK_TEMPLATE_FINISH(cert_tmpl, attr, ctsize);
 	/* reset the mutable attributes on the token */
 	nssCKObject_SetAttributes(rvObject->handle, 

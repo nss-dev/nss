@@ -468,3 +468,21 @@ NSSPKIXValidity_Encode
     return nssPKIXValidity_Encode(validity, encoding, rvOpt, arenaOpt);
 }
 
+NSS_IMPLEMENT NSSPKIXTime *
+NSSPKIXValidity_GetNotBefore
+(
+  NSSPKIXValidity *validity
+)
+{
+    return nssPKIXValidity_GetNotBefore(validity);
+}
+
+NSS_IMPLEMENT NSSPKIXTime *
+NSSPKIXValidity_GetNotAfter
+(
+  NSSPKIXValidity *validity
+)
+{
+    return nssPKIXValidity_GetNotAfter(validity);
+}
+

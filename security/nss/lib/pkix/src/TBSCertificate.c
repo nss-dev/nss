@@ -566,6 +566,15 @@ NSSPKIXTBSCertificate_Encode
     return nssPKIXTBSCertificate_Encode(tbsCert, encoding, rvOpt, arenaOpt);
 }
 
+NSS_IMPLEMENT NSSPKIXCertificateSerialNumber *
+NSSPKIXTBSCertificate_GetSerialNumber
+(
+  NSSPKIXTBSCertificate *tbsCert
+)
+{
+    return nssPKIXTBSCertificate_GetSerialNumber(tbsCert);
+}
+
 /*
  * NSSPKIXTBSCertificate_GetIssuer
  *
@@ -590,6 +599,15 @@ NSSPKIXTBSCertificate_GetIssuer
     nss_ClearErrorStack();
 
     return nssPKIXTBSCertificate_GetIssuer(tbsCert);
+}
+
+NSS_IMPLEMENT NSSPKIXValidity *
+NSSPKIXTBSCertificate_GetValidity
+(
+  NSSPKIXTBSCertificate *tbsCert
+)
+{
+    return nssPKIXTBSCertificate_GetValidity(tbsCert);
 }
 
 NSS_IMPLEMENT NSSPKIXExtensions *

@@ -72,6 +72,7 @@ NSSASN1_DecodeBER;
 NSSOID_Create;
 NSSTime_Now;
 NSSTime_CreateFromUTCTime;
+NSSTime_GetUTCTime;
 NSSModule_Destroy;
 NSSModule_GetInfo;
 NSSSlot_Destroy;

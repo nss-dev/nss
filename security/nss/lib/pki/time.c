@@ -381,6 +381,16 @@ nssTime_IsAfter
     return (LL_CMP(compareTime, <, time));
 }
 
+NSS_IMPLEMENT NSSUTF8 *
+NSSTime_GetUTCTime
+(
+  NSSTime time,
+  NSSArena *arenaOpt
+)
+{
+    return nssTime_GetUTCTime(time, arenaOpt);
+}
+
 NSS_IMPLEMENT NSSTime
 NSSTime_CreateFromUTCTime
 (

@@ -459,3 +459,13 @@ NSSPKIXTime_Encode
     return nssPKIXTime_Encode(time, encoding, rvOpt, arenaOpt);
 }
 
+NSS_IMPLEMENT NSSTime
+NSSPKIXTime_GetTime
+(
+  NSSPKIXTime *time,
+  PRStatus *statusOpt
+)
+{
+    return nssPKIXTime_GetTime(time, statusOpt);
+}
+

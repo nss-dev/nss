@@ -76,9 +76,6 @@ struct NSSSlotStr
   CK_FLAGS ckFlags; /* from CK_SLOT_INFO.flags */
   struct nssSlotAuthInfoStr authInfo;
   PRIntervalTime lastTokenPing;
-#ifdef NSS_3_4_CODE
-  PK11SlotInfo *pk11slot;
-#endif
 };
 
 #define NSSSLOT_IS_FRIENDLY(slot) \

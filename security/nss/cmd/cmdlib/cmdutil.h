@@ -181,12 +181,12 @@ struct CMDPrinterStr {
 typedef struct CMDPrinterStr CMDPrinter;
 
 #define INDENT_MULTIPLE 4
-/*
 #define DEFAULT_LEFT_MARGIN  0
 #define DEFAULT_RIGHT_MARGIN 72
-*/
+/*
 #define DEFAULT_LEFT_MARGIN  5
 #define DEFAULT_RIGHT_MARGIN 60
+*/
 
 void
 CMD_InitPrinter(CMDPrinter *printer, PRFileDesc *out, int start, int stop);

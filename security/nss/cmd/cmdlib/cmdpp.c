@@ -35,6 +35,7 @@
 #include <ctype.h>
 
 #include "nsspkix.h"
+#include "nsspki.h"
 #include "cmdutil.h"
 
 static void
@@ -44,6 +45,12 @@ indent(CMDPrinter *printer)
     for ( ; printer->col < printer->start; printer->col++) {
 	PR_fprintf(printer->out, " ");
     }
+}
+
+static void
+unindent(CMDPrinter *printer)
+{
+    printer->start -= INDENT_MULTIPLE;
 }
 
 static void
@@ -129,12 +136,214 @@ CMD_PrintBitString(CMDPrinter *printer, NSSItem *item, char *message)
 }
 
 void
+CMD_PrintInteger(CMDPrinter *printer, NSSItem *bignum, char *message)
+{
+    /* XXX for now */
+    CMD_PrintHex(printer, bignum, message);
+}
+
+void
+CMD_PrintPKIXTime(CMDPrinter *printer, NSSPKIXTime *pkixTime, char *message)
+{
+    NSSTime time;
+    NSSUTF8 *utcTime;
+
+    print_heading(printer, message);
+
+    time = NSSPKIXTime_GetTime(pkixTime, NULL);
+    utcTime = NSSTime_GetUTCTime(time, NULL);
+    PR_fprintf(printer->out, "%s", utcTime);
+    /* NSS_ZFreeIf(utcTime); XXX */
+}
+
+void
+CMD_PrintPKIXValidity(CMDPrinter *printer, NSSPKIXValidity *validity, 
+                      char *message)
+{
+    NSSPKIXTime *time;
+
+    print_heading(printer, message);
+    newline_reset(printer);
+    indent(printer);
+
+    time = NSSPKIXValidity_GetNotBefore(validity),
+    CMD_PrintPKIXTime(printer, time, "Not Before");
+    newline_reset(printer);
+
+    time = NSSPKIXValidity_GetNotAfter(validity),
+    CMD_PrintPKIXTime(printer, time, "Not After");
+
+    unindent(printer);
+}
+
+void
+CMD_PrintPKIXKeyUsage(CMDPrinter *printer, NSSPKIXKeyUsage *keyUsage, 
+                      char *message)
+{
+    NSSPKIXKeyUsageValue ku;
+    PRBool first = PR_TRUE;
+
+    print_heading(printer, message);
+    newline_reset(printer);
+    indent(printer);
+
+    ku = NSSPKIXKeyUsage_GetValue(keyUsage);
+    if (ku & NSSPKIXKeyUsage_DigitalSignature) {
+	PR_fprintf(printer->out, "digitalSignature");
+	first = PR_FALSE;
+    }
+    if (ku & NSSPKIXKeyUsage_NonRepudiation) {
+	if (!first) newline(printer);
+	PR_fprintf(printer->out, "nonRepudiation");
+	first = PR_FALSE;
+    }
+    if (ku & NSSPKIXKeyUsage_KeyEncipherment) {
+	if (!first) newline(printer);
+	PR_fprintf(printer->out, "keyEncipherment");
+	first = PR_FALSE;
+    }
+    if (ku & NSSPKIXKeyUsage_DataEncipherment) {
+	if (!first) newline(printer);
+	PR_fprintf(printer->out, "dataEncipherment");
+	first = PR_FALSE;
+    }
+    if (ku & NSSPKIXKeyUsage_KeyAgreement) {
+	if (!first) newline(printer);
+	PR_fprintf(printer->out, "keyAgreement");
+	first = PR_FALSE;
+    }
+    if (ku & NSSPKIXKeyUsage_KeyCertSign) {
+	if (!first) newline(printer);
+	PR_fprintf(printer->out, "keyCertSign");
+	first = PR_FALSE;
+    }
+    if (ku & NSSPKIXKeyUsage_CRLSign) {
+	if (!first) newline(printer);
+	PR_fprintf(printer->out, "cRLSign");
+	first = PR_FALSE;
+    }
+    if (ku & NSSPKIXKeyUsage_EncipherOnly) {
+	if (!first) newline(printer);
+	PR_fprintf(printer->out, "encipherOnly");
+	first = PR_FALSE;
+    }
+    if (ku & NSSPKIXKeyUsage_DecipherOnly) {
+	if (!first) newline(printer);
+	PR_fprintf(printer->out, "decipherOnly");
+	first = PR_FALSE;
+    }
+
+    unindent(printer);
+}
+
+void
+CMD_PrintPKIXnsCertType(CMDPrinter *printer, 
+                        NSSPKIXnetscapeCertType *nsCertType, 
+                        char *message)
+{
+    NSSPKIXnetscapeCertTypeValue nsct;
+    PRBool first = PR_TRUE;
+
+    print_heading(printer, message);
+    newline_reset(printer);
+    indent(printer);
+
+    nsct = NSSPKIXnetscapeCertType_GetValue(nsCertType);
+    if (nsct & NSSPKIXnetscapeCertType_SSLClient) {
+	if (!first) newline(printer);
+	PR_fprintf(printer->out, "SSL Client");
+	first = PR_FALSE;
+    }
+    if (nsct & NSSPKIXnetscapeCertType_SSLServer) {
+	if (!first) newline(printer);
+	PR_fprintf(printer->out, "SSL Server");
+	first = PR_FALSE;
+    }
+    if (nsct & NSSPKIXnetscapeCertType_Email) {
+	if (!first) newline(printer);
+	PR_fprintf(printer->out, "Email");
+	first = PR_FALSE;
+    }
+    if (nsct & NSSPKIXnetscapeCertType_ObjectSigning) {
+	if (!first) newline(printer);
+	PR_fprintf(printer->out, "Object Signing");
+	first = PR_FALSE;
+    }
+    if (nsct & NSSPKIXnetscapeCertType_SSLCA) {
+	if (!first) newline(printer);
+	PR_fprintf(printer->out, "SSL CA");
+	first = PR_FALSE;
+    }
+    if (nsct & NSSPKIXnetscapeCertType_EmailCA) {
+	if (!first) newline(printer);
+	PR_fprintf(printer->out, "Email CA");
+	first = PR_FALSE;
+    }
+    if (nsct & NSSPKIXnetscapeCertType_ObjectSigningCA) {
+	if (!first) newline(printer);
+	PR_fprintf(printer->out, "Object Signing CA");
+	first = PR_FALSE;
+    }
+
+    unindent(printer);
+}
+
+void
+CMD_PrintPKIXExtensions(CMDPrinter *printer, NSSPKIXExtensions *extensions, 
+                        char *message)
+{
+    NSSPKIXKeyUsage *keyUsage;
+    NSSPKIXnetscapeCertType *nsCertType;
+
+    print_heading(printer, message);
+    newline_reset(printer);
+    indent(printer);
+
+    keyUsage = NSSPKIXExtensions_GetKeyUsage(extensions);
+    if (keyUsage) {
+	CMD_PrintPKIXKeyUsage(printer, keyUsage, "Key Usage");
+	newline_reset(printer);
+    }
+
+    nsCertType = NSSPKIXExtensions_GetNetscapeCertType(extensions);
+    if (keyUsage) {
+	CMD_PrintPKIXnsCertType(printer, nsCertType, "netscape Cert Type");
+    }
+
+    unindent(printer);
+}
+
+void
 CMD_PrintPKIXTBSCertificate(CMDPrinter *printer, 
                             NSSPKIXTBSCertificate *tbsCert,
                             char *message)
 {
+    NSSPKIXCertificateSerialNumber *serialNum;
+    NSSPKIXValidity *validity;
+    NSSPKIXExtensions *extensions;
+
     print_heading(printer, message);
-    newline(printer);
+    newline_reset(printer);
+    indent(printer);
+
+    serialNum = NSSPKIXTBSCertificate_GetSerialNumber(tbsCert);
+    if (serialNum) {
+	CMD_PrintInteger(printer, serialNum, "Serial Number");
+	newline_reset(printer);
+    }
+
+    validity = NSSPKIXTBSCertificate_GetValidity(tbsCert);
+    if (validity) {
+	CMD_PrintPKIXValidity(printer, validity, "Validity");
+	newline_reset(printer);
+    }
+
+    extensions = NSSPKIXTBSCertificate_GetExtensions(tbsCert);
+    if (extensions) {
+	CMD_PrintPKIXExtensions(printer, extensions, "Extensions");
+    }
+
+    unindent(printer);
 }
 
 void
@@ -154,9 +363,8 @@ CMD_PrintPKIXCertificate(CMDPrinter *printer, NSSPKIXCertificate *pkixCert,
     tbsCert = NSSPKIXCertificate_GetTBSCertificate(pkixCert);
     if (tbsCert) {
 	CMD_PrintPKIXTBSCertificate(printer, tbsCert, "Data");
+	newline_reset(printer);
     }
-
-    newline_reset(printer);
 
 #if 0
     sigAlg = NSSPKIXCertificate_GetSignatureAlgorithm(pkixCert);
@@ -172,5 +380,7 @@ CMD_PrintPKIXCertificate(CMDPrinter *printer, NSSPKIXCertificate *pkixCert,
     if (sig) {
 	CMD_PrintBitString(printer, sig, "Signature");
     }
+
+    unindent(printer);
 }
 

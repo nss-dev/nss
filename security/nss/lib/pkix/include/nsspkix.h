@@ -49,6 +49,9 @@ static const char NSSPKIX_CVS_ID[] = "@(#) $Source$ $Revision$ $Date$ $Name$";
 #include "nsspkixt.h"
 #endif /* NSSPKIXT_H */
 
+/* XXX for nsstime */
+#include "nsspkit.h"
+
 PR_BEGIN_EXTERN_C
 
 #ifdef nodef
@@ -3789,9 +3792,7 @@ NSSPKIXTBSCertificate_SetVersion
 NSS_EXTERN NSSPKIXCertificateSerialNumber *
 NSSPKIXTBSCertificate_GetSerialNumber
 (
-  NSSPKIXTBSCertificate *tbsCert,
-  NSSPKIXCertificateSerialNumber *snOpt,
-  NSSArena *arenaOpt
+  NSSPKIXTBSCertificate *tbsCert
 );
 
 /*
@@ -3935,8 +3936,7 @@ NSSPKIXTBSCertificate_SetIssuer
 NSS_EXTERN NSSPKIXValidity *
 NSSPKIXTBSCertificate_GetValidity
 (
-  NSSPKIXTBSCertificate *tbsCert,
-  NSSArena *arenaOpt
+  NSSPKIXTBSCertificate *tbsCert
 );
 
 /*
@@ -4360,8 +4360,6 @@ NSSPKIXTBSCertificate_Duplicate
   NSSArena *arenaOpt
 );
 
-#ifdef nodef
-
 /*
  * CertificateSerialNumber
  *
@@ -4445,8 +4443,8 @@ NSS_EXTERN NSSPKIXValidity *
 NSSPKIXValidity_Create
 (
   NSSArena *arenaOpt,
-  NSSPKIXTime notBefore,
-  NSSPKIXTime notAfter
+  NSSPKIXTime *notBefore,
+  NSSPKIXTime *notAfter
 );
 
 /*
@@ -4483,6 +4481,7 @@ NSSPKIXValidity_Destroy
  *  NULL upon failure
  */
 
+#ifdef nodef
 NSS_EXTERN NSSBER *
 NSSPKIXValidity_Encode
 (
@@ -4491,6 +4490,7 @@ NSSPKIXValidity_Encode
   NSSBER *rvOpt,
   NSSArena *arenaOpt
 );
+#endif
 
 /*
  * NSSPKIXValidity_GetNotBefore
@@ -4506,7 +4506,7 @@ NSSPKIXValidity_Encode
  *  {we need to rethink NSSPKIXTime}
  */
 
-NSS_EXTERN NSSPKIXTime
+NSS_EXTERN NSSPKIXTime *
 NSSPKIXValidity_GetNotBefore
 (
   NSSPKIXValidity *validity
@@ -4527,12 +4527,14 @@ NSSPKIXValidity_GetNotBefore
  *  PR_FAILURE upon failure
  */
 
+#ifdef nodef
 NSS_EXTERN PRStatus
 NSSPKIXValidity_SetNotBefore
 (
   NSSPKIXValidity *validity,
   NSSPKIXTime notBefore
 );
+#endif
 
 /*
  * NSSPKIXValidity_GetNotAfter
@@ -4548,7 +4550,7 @@ NSSPKIXValidity_SetNotBefore
  *  {we need to rethink NSSPKIXTime}
  */
 
-NSS_EXTERN NSSPKIXTime
+NSS_EXTERN NSSPKIXTime *
 NSSPKIXValidity_GetNotAfter
 (
   NSSPKIXValidity *validity
@@ -4568,12 +4570,14 @@ NSSPKIXValidity_GetNotAfter
  *  PR_FAILURE upon failure
  */
 
+#ifdef nodef
 NSS_EXTERN PRStatus
 NSSPKIXValidity_SetNotAfter
 (
   NSSPKIXValidity *validity,
   NSSPKIXTime notAfter
 );
+#endif
 
 /*
  * NSSPKIXValidity_Equal
@@ -4694,12 +4698,14 @@ NSSPKIXTime_Decode
  *
  */
 
+#ifdef nodef
 NSS_EXTERN NSSPKIXTime *
 NSSPKIXTime_CreateFromPRTime
 (
   NSSArena *arenaOpt,
   PRTime prTime
 );
+#endif
 
 /*
  * NSSPKIXTime_CreateFromUTF8
@@ -4718,7 +4724,7 @@ NSSPKIXTime_CreateFromUTF8
  *
  */
 
-NSS_EXTERN PR_STATUS
+NSS_EXTERN PRStatus
 NSSPKIXTime_Destroy
 (
   NSSPKIXTime *time
@@ -4729,6 +4735,7 @@ NSSPKIXTime_Destroy
  *
  */
 
+#ifdef nodef
 NSS_EXTERN NSSBER *
 NSSPKIXTime_Encode
 (
@@ -4737,6 +4744,7 @@ NSSPKIXTime_Encode
   NSSBER *rvOpt,
   NSSArena *arenaOpt
 );
+#endif
 
 /*
  * NSSPKIXTime_GetPRTime
@@ -4744,8 +4752,17 @@ NSSPKIXTime_Encode
  * Returns a zero on error
  */
 
+#ifdef nodef
 NSS_EXTERN PRTime
 NSSPKIXTime_GetPRTime
+(
+  NSSPKIXTime *time,
+  PRStatus *statusOpt
+);
+#endif
+
+NSS_EXTERN NSSTime
+NSSPKIXTime_GetTime
 (
   NSSPKIXTime *time,
   PRStatus *statusOpt
@@ -4769,10 +4786,10 @@ NSSPKXITime_GetUTF8Encoding
  */
 
 NSS_EXTERN PRBool
-NSSPKXITime_Equal
+NSSPKIXTime_Equal
 (
-  NSSPKXITime *time1,
-  NSSPKXITime *time2,
+  NSSPKIXTime *time1,
+  NSSPKIXTime *time2,
   PRStatus *statusOpt
 );
 
@@ -4782,7 +4799,7 @@ NSSPKXITime_Equal
  */
 
 NSS_EXTERN NSSPKIXTime *
-NSSPKXITime_Duplicate
+NSSPKIXTime_Duplicate
 (
   NSSPKIXTime *time,
   NSSArena *arenaOpt
@@ -4799,9 +4816,11 @@ NSS_EXTERN PRInt32
 NSSPKIXTime_Compare
 (
   NSSPKIXTime *time1,
-  NSSPKIXTime *tiem2,
+  NSSPKIXTime *time2,
   PRStatus *statusOpt
 );
+
+#ifdef nodef
 
 /*
  * UniqueIdentifier
@@ -14884,11 +14903,13 @@ NSSPKIXKeyUsage_GetUTF8Encoding
  *  NSSKeyUsage_NSSinvalid upon failure
  */
 
-NSS_EXTERN NSSKeyUsageValue
+#endif /* nodef */
+NSS_EXTERN NSSPKIXKeyUsageValue
 NSSPKIXKeyUsage_GetValue
 (
   NSSPKIXKeyUsage *keyUsage
 );
+#ifdef nodef
 
 /*
  * NSSPKIXKeyUsage_SetValue
@@ -24389,6 +24410,25 @@ NSSPKIXIssuingDistributionPoint_Duplicate
 );
 
 #endif /* nodef */
+
+/* XXX for now */
+NSS_EXTERN NSSPKIXBasicConstraints *
+NSSPKIXExtensions_GetBasicConstraints
+(
+  NSSPKIXExtensions *extensions
+);
+
+NSS_EXTERN NSSPKIXKeyUsage *
+NSSPKIXExtensions_GetKeyUsage
+(
+  NSSPKIXExtensions *extensions
+);
+
+NSS_EXTERN NSSPKIXnetscapeCertType *
+NSSPKIXExtensions_GetNetscapeCertType
+(
+  NSSPKIXExtensions *extensions
+);
 
 PR_END_EXTERN_C
 

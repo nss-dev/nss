@@ -3201,6 +3201,13 @@ NSSTime_Now
   void
 );
 
+NSS_EXTERN NSSUTF8 *
+NSSTime_GetUTCTime
+(
+  NSSTime time,
+  NSSArena *arenaOpt
+);
+
 NSS_EXTERN NSSTime
 NSSTime_CreateFromUTCTime
 (

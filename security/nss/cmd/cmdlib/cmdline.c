@@ -489,6 +489,7 @@ CMD_Interactive(cmdCommand *cmd)
     char commandBuf[256];
     char *mark, *token, *opt;
     PRBool quoted = PR_FALSE;
+    PRBool hasValue;
     /* clear the state */
     for (i=0; i<cmd->ncmd; i++) {
 	cmd->cmd[i].on = PR_FALSE;
@@ -517,6 +518,7 @@ read_command:
     for (i=0; i<cmd->ncmd; i++) {
 	if (strcmp(token, cmd->cmd[i].s) == 0) {
 	    cmdToRun = i;
+/*PR_fprintf(PR_STDERR, "doing command %s\n", token);*/
 	}
     }
     if (cmdToRun < 0) { 
@@ -534,28 +536,35 @@ read_command:
 	quoted = PR_FALSE;
 	/* skip to end of whitespace */
 	while (isspace(*mark) && (mark - token < remaining)) mark++;
-	/* skip to = */
-	while (*mark != '=' && (mark - token < remaining)) mark++;
+	/* skip to = or whitespace */
+	while (*mark != '=' && !isspace(*mark) &&
+	       (mark - token < remaining)) mark++;
 	opt = token;
+	hasValue = (*mark == '=');
 	*mark++ = '\0';
-	token = mark;
-	if (*mark == '\"') {
-	    quoted = PR_TRUE;
-	    token = ++mark;
-	}
-	/* skip to whitespace or EOL */
-	if (quoted) {
-	    while (*mark != '\"' && (mark - token < remaining)) mark++;
+	if (hasValue) {
+	    token = mark;
+	    if (*mark == '\"') {
+		quoted = PR_TRUE;
+		token = ++mark;
+	    }
+	    /* skip to whitespace or EOL */
+	    if (quoted) {
+		while (*mark != '\"' && (mark - token < remaining)) mark++;
+		*mark++ = '\0';
+	    } else {
+		while (!isspace(*mark) && (mark - token < remaining)) mark++;
+	    }
 	    *mark++ = '\0';
-	} else {
-	    while (!isspace(*mark) && (mark - token < remaining)) mark++;
 	}
-	*mark++ = '\0';
 	/* find the option */
 	for (i=0; i<cmd->nopt; i++) {
 	    if (strcmp(opt, cmd->opt[i].s) == 0) {
 		cmd->opt[i].on = PR_TRUE;
-		cmd->opt[i].arg = strdup(token); /* XXX */
+		if (hasValue) {
+		    cmd->opt[i].arg = strdup(token); /* XXX */
+		}
+/*PR_fprintf(PR_STDERR, " with option %s = \"%s\"\n", opt, token);*/
 	    }
 	}
 	remaining -= mark - opt;

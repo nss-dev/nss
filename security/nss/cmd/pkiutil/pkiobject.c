@@ -243,54 +243,29 @@ static PRStatus
 dump_cert_chain
 (
   NSSTrustDomain *td,
-  char *nickname,
+  NSSCertificate *c,
   CMDRunTimeData *rtData
 )
 {
     PRStatus status;
     PRUint32 i, j;
-    NSSCertificate **certs = NULL;
-    NSSCertificate **certp;
-    if (PR_FALSE) {
-#if 0
-	cert[0] = NSSTrustDomain_FindBestCertificateByNickname(td,
-	                                                       nickname, 
-	                                                       NULL,
-	                                                       NSSUsage_Any,
-	                                                       NULL);
-	cert[1] = NULL;
-	certs = cert;
-#endif
-    } else {
-	certs = NSSTrustDomain_FindCertificatesByNickname(td,
-	                                                  nickname, 
-	                                                  NULL,
-	                                                  0,
-	                                                  NULL);
+    NSSCertificate **chain, **chainp;
+
+    chain = NSSCertificate_BuildChain(c, NSSTime_Now(), NSSUsage_Any,
+                                      NULL, /* policies   */
+                                      NULL, /* certs[]    */
+                                      0,    /* rvLimit    */
+                                      NULL, /* arena      */
+                                      &status);
+    chainp = chain;
+    i = 0;
+    while (chainp && *chainp) {
+	for (j=0; j<i; j++) PR_fprintf(rtData->output.file, " ");
+	status = print_cert_callback(*chainp, rtData);
+	i++;
+	chainp++;
     }
-    certp = certs;
-    while (certp && *certp) {
-	NSSCertificate **chain, **chainp;
-	chain = NSSCertificate_BuildChain(*certp, 
-	                                  NSSTime_Now(),
-	                                  NSSUsage_Any,
-	                                  NULL, /* policies   */
-	                                  NULL, /* certs[]    */
-	                                  0,    /* rvLimit    */
-	                                  NULL, /* arena      */
-	                                  &status);
-	chainp = chain;
-	i = 0;
-	while (chainp && *chainp) {
-	    for (j=0; j<i; j++) PR_fprintf(rtData->output.file, " ");
-	    status = print_cert_callback(*chainp, rtData);
-	    i++;
-	    chainp++;
-	}
-	NSSCertificateArray_Destroy(chain);
-	certp++;
-    }
-    NSSCertificateArray_Destroy(certs);
+    NSSCertificateArray_Destroy(chain);
     return PR_SUCCESS;
 }
 
@@ -298,27 +273,21 @@ static PRStatus
 dump_cert_info
 (
   NSSTrustDomain *td,
-  char *nickname,
+  NSSCertificate *c,
   CMDRunTimeData *rtData
 )
 {
     PRStatus status;
     PRUint32 i, j;
-    NSSCertificate *c;
-    c = NSSTrustDomain_FindBestCertificateByNickname(td, nickname, 
-                                                     NSSTime_Now(), 
-                                                     NSSUsage_Any,
-                                                     NULL);
-    if (c) {
-	NSSToken **tokens, **tp;
-	tokens = NSSCertificate_GetTokens(c, NULL);
-	if (tokens) {
-	    for (tp = tokens; *tp; tp++) {
-		PR_fprintf(rtData->output.file, 
-		           "nickname \"%s\" on token \"%s\"\n",
-		           NSSCertificate_GetNickname(c, *tp),
-		           NSSToken_GetName(*tp));
-	    }
+    NSSToken **tokens, **tp;
+
+    tokens = NSSCertificate_GetTokens(c, NULL);
+    if (tokens) {
+	for (tp = tokens; *tp; tp++) {
+	    PR_fprintf(rtData->output.file, 
+	               "nickname \"%s\" on token \"%s\"\n",
+	               NSSCertificate_GetNickname(c, *tp),
+	               NSSToken_GetName(*tp));
 	}
 	NSSTokenArray_Destroy(tokens);
 	PR_fprintf(rtData->output.file, "\n");
@@ -338,15 +307,25 @@ DumpObject
 )
 {
     PRStatus status;
-    PKIObjectType objectKind;
-    objectKind = get_object_class(objectType);
-    switch (objectKind) {
+    NSSCertificate *c;
+
+    switch (get_object_class(objectType)) {
     case PKICertificate:
     case PKIAny:         /* default to certificate */
 	if (chain) {
-	    status = dump_cert_chain(td, nickname, rtData);
+	    c = NSSTrustDomain_FindBestCertificateByNickname(td, nickname, 
+	                                                     NSSTime_Now(), 
+	                                                     NSSUsage_Any,
+	                                                     NULL);
+	    status = dump_cert_chain(td, c, rtData);
+	    NSSCertificate_Destroy(c);
 	} else if (info) {
-	    status = dump_cert_info(td, nickname, rtData);
+	    c = NSSTrustDomain_FindBestCertificateByNickname(td, nickname, 
+	                                                     NSSTime_Now(), 
+	                                                     NSSUsage_Any,
+	                                                     NULL);
+	    status = dump_cert_info(td, c, rtData);
+	    NSSCertificate_Destroy(c);
 	} else {
 	    status = list_nickname_certs(td, nickname, 1,
 	                                 dump_cert_callback, rtData);
@@ -423,6 +402,7 @@ import_certificate
     if (cert) {
 	PR_fprintf(PR_STDOUT, "Import successful.\n");
 	dump_cert_info(td, cert, rtData);
+	NSSCertificate_Destroy(cert);
     } else {
 	PR_fprintf(PR_STDERR, "Import failed!\n");
     }
