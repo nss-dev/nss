@@ -843,7 +843,7 @@ case "$target" in
     AC_DEFINE(_SGI_MP_SOURCE)
     CPU_ARCH=mips
     RANLIB=/bin/true
-    MKSHLIB='$(LD) $(DSO_LDOPTS) -sahred -soname $(@:$(OBJDIR)/%.so=%.so)'
+    MKSHLIB='$(LD) $(DSO_LDOPTS) -shared -soname $(@:$(OBJDIR)/%.so=%.so)'
     DSO_LDOPTS='-elf -shared -all'
     if test "$USE_N32"; then
         DSO_LDOPTS="$DSO_LDOPTS -n32 -mips3"
