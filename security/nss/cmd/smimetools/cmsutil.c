@@ -836,7 +836,8 @@ main(int argc, char **argv)
     /* Call the libsec initialization routines */
     PR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
     SECU_PKCS11Init(PR_FALSE);
-    SEC_Init();
+    RNG_SystemInfoForRNG();     /* SECU_PKCS11Init does not call this */
+    SEC_Init();                 /* this does nothing, actually */
 
     /* open cert database */
     options.certHandle = OpenCertDB(progName);
