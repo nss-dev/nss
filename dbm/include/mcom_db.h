@@ -130,6 +130,8 @@
 #include <limits.h>
 #ifndef XP_OS2
 #define MAXPATHLEN 	1024              
+#else
+#include "os2file.h"  /* includes dirent.h */
 #endif
 
 #define	EFTYPE		EINVAL		/* POSIX 1003.1 format errno. */
