@@ -34,8 +34,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#if defined(SOLARIS2_6) || defined(SOLARIS2_7) || defined(SOLARIS2_8)
-#define NEW_SYSV_SPARC 1
+#ifdef NEW_SYSV_SPARC
 #include <gelf.h>
 #endif
 #include <libelf.h>
