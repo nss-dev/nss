@@ -188,6 +188,9 @@ pk11_OpenVolatileCertDB() {
       return CKR_OK;
 }
 
+/* forward declare so that a failure in the init case can shutdown */
+void pk11_Shutdown(void);
+
 /*
  * OK there are now lots of options here, lets go through them all:
  *
