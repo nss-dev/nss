@@ -49,10 +49,10 @@ SEC_BEGIN_PROTOS
  * The format of the version string should be
  *     "<major version>.<minor version>[.<patch level>] [<Beta>]"
  */
-#define NSS_VERSION  "3.7.10"
+#define NSS_VERSION  "3.7.11"
 #define NSS_VMAJOR   3
 #define NSS_VMINOR   7
-#define NSS_VPATCH   10
+#define NSS_VPATCH   11
 #define NSS_BETA     PR_FALSE
 
 
