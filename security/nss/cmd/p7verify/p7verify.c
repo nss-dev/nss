@@ -216,7 +216,7 @@ main(int argc, char **argv)
     SECCertUsage certUsage = certUsageEmailSigner;
     PLOptState *optstate;
     PLOptStatus status;
-	SECStatus rv;
+    SECStatus rv;
 
     progName = strrchr(argv[0], '/');
     progName = progName ? progName+1 : argv[0];
