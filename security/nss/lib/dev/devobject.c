@@ -772,6 +772,9 @@ sha1_hash(NSSItem *input, NSSItem *output)
     NSSToken *token = STAN_GetDefaultCryptoToken();
     ap = NSSAlgorithmAndParameters_CreateSHA1Digest(NULL);
     (void)nssToken_Digest(token, NULL, ap, input, output, NULL);
+#ifdef NSS_3_4_CODE
+    PK11_FreeSlot(token->pk11slot);
+#endif
     nss_ZFreeIf(ap);
 }
 
@@ -782,6 +785,9 @@ md5_hash(NSSItem *input, NSSItem *output)
     NSSToken *token = STAN_GetDefaultCryptoToken();
     ap = NSSAlgorithmAndParameters_CreateMD5Digest(NULL);
     (void)nssToken_Digest(token, NULL, ap, input, output, NULL);
+#ifdef NSS_3_4_CODE
+    PK11_FreeSlot(token->pk11slot);
+#endif
     nss_ZFreeIf(ap);
 }
  

@@ -360,6 +360,7 @@ nssListIterator_Destroy(nssListIterator *iter)
     if (iter->lock) {
 	(void)PZ_DestroyLock(iter->lock);
     }
+    nssList_Destroy(iter->list);
     nss_ZFreeIf(iter);
 }
 

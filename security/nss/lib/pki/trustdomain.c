@@ -114,6 +114,7 @@ NSSTrustDomain_Destroy
     if (--td->refCount == 0) {
 	/* Destroy each token in the list of tokens */
 	if (td->tokens) {
+	    nssListIterator_Destroy(td->tokens);
 	    nssList_Clear(td->tokenList, token_destructor);
 	    nssList_Destroy(td->tokenList);
 	}
