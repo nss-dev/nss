@@ -694,6 +694,7 @@ nssPKIObjectCollection_GetPublicKeys
 NSS_EXTERN NSSTime
 NSSTime_Now
 (
+  void
 );
 
 NSS_EXTERN nssHash *
