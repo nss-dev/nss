@@ -3075,16 +3075,15 @@ invalid:
     cp = msg = ci->sendBuf.buf;
     msg[0] = SSL_MT_CLIENT_HELLO;
     if ( ss->enableTLS ) {
-	msg[1] = MSB(SSL_LIBRARY_VERSION_3_1_TLS);
-	msg[2] = LSB(SSL_LIBRARY_VERSION_3_1_TLS);
+	ss->clientHelloVersion = SSL_LIBRARY_VERSION_3_1_TLS;
     } else if ( ss->enableSSL3 ) {
-	msg[1] = MSB(SSL_LIBRARY_VERSION_3_0);
-	msg[2] = LSB(SSL_LIBRARY_VERSION_3_0);
+	ss->clientHelloVersion = SSL_LIBRARY_VERSION_3_0;
     } else {
-	msg[1] = MSB(SSL_LIBRARY_VERSION_2);
-	msg[2] = LSB(SSL_LIBRARY_VERSION_2);
+	ss->clientHelloVersion = SSL_LIBRARY_VERSION_2;
     }
     
+    msg[1] = MSB(ss->clientHelloVersion);
+    msg[2] = LSB(ss->clientHelloVersion);
     msg[3] = MSB(localCipherSize);
     msg[4] = LSB(localCipherSize);
     msg[5] = MSB(sidLen);
