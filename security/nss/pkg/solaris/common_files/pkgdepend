@@ -25,4 +25,4 @@ P SUNWcsr	Core Solaris, (Root)
 P SUNWcsu	Core Solaris, (Usr)
 P SUNWcsd	Core Solaris Devices
 P SUNWcsl	Core Solaris Libraries
-P SUNWnspr	Netscape Portable Runtime
+P SUNWpr	Netscape Portable Runtime
