@@ -152,6 +152,11 @@ static const SEC_ASN1Template cert_CrlEntryTemplate[] = {
     { 0 }
 };
 
+static const SEC_ASN1Template cert_CrlSkipEntryTemplate[] = {
+    { SEC_ASN1_SKIP_REST },
+    { 0 }
+};
+
 const SEC_ASN1Template CERT_CrlTemplate[] = {
     { SEC_ASN1_SEQUENCE,
 	  0, NULL, sizeof(CERTCrl) },
@@ -178,6 +183,34 @@ const SEC_ASN1Template CERT_CrlTemplate[] = {
     { 0 }
 };
 
+const SEC_ASN1Template CERT_CrlTemplateNoEntries[] = {
+    { SEC_ASN1_SEQUENCE,
+	  0, NULL, sizeof(CERTCrl) },
+    { SEC_ASN1_INTEGER | SEC_ASN1_OPTIONAL, offsetof (CERTCrl, version) },
+    { SEC_ASN1_INLINE,
+	  offsetof(CERTCrl,signatureAlg),
+	  SECOID_AlgorithmIDTemplate },
+    { SEC_ASN1_SAVE,
+	  offsetof(CERTCrl,derName) },
+    { SEC_ASN1_INLINE,
+	  offsetof(CERTCrl,name),
+	  CERT_NameTemplate },
+    { SEC_ASN1_UTC_TIME,
+	  offsetof(CERTCrl,lastUpdate) },
+    { SEC_ASN1_OPTIONAL | SEC_ASN1_UTC_TIME,
+	  offsetof(CERTCrl,nextUpdate) },
+/*     { SEC_ASN1_SKIP | SEC_ASN1_SEQUENCE_OF }, */
+/*     { SEC_ASN1_SKIP | SEC_ASN1_OPTIONAL | SEC_ASN1_SEQUENCE_OF }, */
+    { SEC_ASN1_OPTIONAL | SEC_ASN1_SEQUENCE_OF,
+	  offsetof(CERTCrl,entries),
+	  cert_CrlSkipEntryTemplate },
+    { SEC_ASN1_OPTIONAL | SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC |
+	  SEC_ASN1_EXPLICIT | 0,
+	  offsetof(CERTCrl,extensions),
+	  SEC_CERTExtensionsTemplate},
+    { 0 }
+};
+
 static const SEC_ASN1Template cert_SignedCrlTemplate[] = {
     { SEC_ASN1_SEQUENCE,
 	  0, NULL, sizeof(CERTSignedCrl) },
@@ -186,6 +219,22 @@ static const SEC_ASN1Template cert_SignedCrlTemplate[] = {
     { SEC_ASN1_INLINE,
 	  offsetof(CERTSignedCrl,crl),
 	  CERT_CrlTemplate },
+    { SEC_ASN1_INLINE,
+	  offsetof(CERTSignedCrl,signatureWrap.signatureAlgorithm),
+	  SECOID_AlgorithmIDTemplate },
+    { SEC_ASN1_BIT_STRING,
+	  offsetof(CERTSignedCrl,signatureWrap.signature) },
+    { 0 }
+};
+
+static const SEC_ASN1Template cert_SignedCrlTemplateNoEntries[] = {
+    { SEC_ASN1_SEQUENCE,
+	  0, NULL, sizeof(CERTSignedCrl) },
+    { SEC_ASN1_SAVE,
+	  offsetof(CERTSignedCrl,signatureWrap.data) },
+    { SEC_ASN1_INLINE,
+	  offsetof(CERTSignedCrl,crl),
+	  CERT_CrlTemplateNoEntries },
     { SEC_ASN1_INLINE,
 	  offsetof(CERTSignedCrl,signatureWrap.signatureAlgorithm),
 	  SECOID_AlgorithmIDTemplate },
@@ -320,6 +369,8 @@ CERT_DecodeDERCrl(PRArenaPool *narena, SECItem *derSignedCrl, int type)
     PRArenaPool *arena;
     CERTSignedCrl *crl;
     SECStatus rv;
+    const SEC_ASN1Template* crlTemplate = cert_SignedCrlTemplate; /* use full
+                                         template for decoding CRLs */
 
     /* make a new arena */
     if (narena == NULL) {
@@ -353,9 +404,14 @@ CERT_DecodeDERCrl(PRArenaPool *narena, SECItem *derSignedCrl, int type)
 
     /* decode the CRL info */
     switch (type) {
+    case SEC_CRL_TYPE_NO_ENTRIES:
+        crlTemplate = cert_SignedCrlTemplateNoEntries; /*  trimmed template */
+        crl->crl.entries = NULL;
+        /* fall through */
+
     case SEC_CRL_TYPE: 
 	rv = SEC_ASN1DecodeItem
-	     (arena, crl, cert_SignedCrlTemplate, derSignedCrl);
+	     (arena, crl, crlTemplate, derSignedCrl);
 	if (rv != SECSuccess)
 	    break;
         /* check for critical extentions */

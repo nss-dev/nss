@@ -385,6 +385,7 @@ CERT_DecodeDERCertificate (SECItem *derSignedCert, PRBool copyDER, char *nicknam
 */
 #define SEC_CRL_TYPE	1
 #define SEC_KRL_TYPE	0
+#define SEC_CRL_TYPE_NO_ENTRIES	2
 
 extern CERTSignedCrl *
 CERT_DecodeDERCrl (PRArenaPool *arena, SECItem *derSignedCrl,int type);
@@ -532,6 +533,27 @@ extern SECStatus CERT_VerifySignedData(CERTSignedData *sd,
 				       void *wincx);
 
 /*
+** NEW FUNCTIONS with new bit-field-FIELD SECCertificateUsage - please use
+** verify a certificate by checking validity times against a certain time,
+** that we trust the issuer, and that the signature on the certificate is
+** valid.
+**	"cert" the certificate to verify
+**	"checkSig" only check signatures if true
+*/
+extern SECStatus
+CERT_VerifyCertificate(CERTCertDBHandle *handle, CERTCertificate *cert,
+		PRBool checkSig, SECCertificateUsage requiredUsages,
+                int64 t, void *wincx, CERTVerifyLog *log,
+                SECCertificateUsage* returnedUsages);
+
+/* same as above, but uses current time */
+extern SECStatus
+CERT_VerifyCertificateNow(CERTCertDBHandle *handle, CERTCertificate *cert,
+		   PRBool checkSig, SECCertificateUsage requiredUsages,
+                   void *wincx, SECCertificateUsage* returnedUsages);
+
+/*
+** OLD OBSOLETE FUNCTIONS with enum SECCertUsage - DO NOT USE FOR NEW CODE
 ** verify a certificate by checking validity times against a certain time,
 ** that we trust the issuer, and that the signature on the certificate is
 ** valid.
