@@ -107,7 +107,7 @@ nss_OpenCertDB(const char * configdir,  const char *prefix, PRBool readOnly)
     	return SECSuccess;	/* idempotency */
 
     name = PR_smprintf("%s/%s",configdir,prefix);
-    if (name = NULL) goto loser;
+    if (name == NULL) goto loser;
 
     certdb = (CERTCertDBHandle*)PORT_ZAlloc(sizeof(CERTCertDBHandle));
     if (certdb == NULL) 
@@ -135,9 +135,9 @@ nss_OpenKeyDB(const char * configdir, const char *prefix, PRBool readOnly)
     if (keydb)
     	return SECSuccess;
     name = PR_smprintf("%s/%s",configdir,prefix);
-    if (name = NULL) 
+    if (name == NULL) 
 	return SECFailure;
-    keydb = SECKEY_OpenKeyDB(readOnly, nss_keydb_name_cb, (void *)configdir);
+    keydb = SECKEY_OpenKeyDB(readOnly, nss_keydb_name_cb, (void *)name);
     if (keydb == NULL)
 	return SECFailure;
     SECKEY_SetDefaultKeyDB(keydb);
