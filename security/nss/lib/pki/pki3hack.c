@@ -71,9 +71,6 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #include "pkistore.h"
 #include "secmod.h"
 
-/* if it's got more than 10 certs, it better handle traversal well */
-#define NSSTOKEN_MAX_LOCAL_CERTS 10
-
 NSSTrustDomain *g_default_trust_domain = NULL;
 
 NSSCryptoContext *g_default_crypto_context = NULL;
