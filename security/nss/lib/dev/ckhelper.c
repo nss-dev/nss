@@ -392,7 +392,6 @@ nssCryptokiCert_GetAttributes (
 {
     PRStatus status;
     PRUint32 i;
-    nssTokenObjectCache *cache;
     NSSSlot *slot;
     CK_ULONG template_size;
     CK_ATTRIBUTE_PTR attr;
@@ -427,17 +426,7 @@ nssCryptokiCert_GetAttributes (
 	return PR_SUCCESS;
     }
 
-    status = PR_FAILURE;
-    cache = nssToken_GetObjectCache(certObject->token);
-    if (cache) {
-	status = nssTokenObjectCache_GetObjectAttributes(cache, NULL,
-	                                                 certObject, 
-	                                                 CKO_CERTIFICATE,
-	                                                 cert_template, 
-	                                                 template_size);
-    }
-    if (status != PR_SUCCESS) {
-
+    {
 	slot = nssToken_GetSlot(certObject->token);
 	status = nssCKObject_GetAttributes(certObject->handle, 
 	                                   cert_template, template_size,
@@ -667,7 +656,6 @@ nssCryptokiTrust_GetAttributes (
 {
     PRStatus status;
     NSSSlot *slot;
-    nssTokenObjectCache *cache;
     CK_BBOOL isToken;
     CK_TRUST saTrust, caTrust, epTrust, csTrust;
     CK_ATTRIBUTE_PTR attr;
@@ -683,17 +671,7 @@ nssCryptokiTrust_GetAttributes (
     NSS_CK_SET_ATTRIBUTE_VAR(attr, CKA_TRUST_CODE_SIGNING,     csTrust);
     NSS_CK_TEMPLATE_FINISH(trust_template, attr, trust_size);
 
-    status = PR_FAILURE;
-    cache = nssToken_GetObjectCache(trustObject->token);
-    if (cache) {
-	status = nssTokenObjectCache_GetObjectAttributes(cache, NULL,
-	                                                 trustObject, 
-	                                                 CKO_NETSCAPE_TRUST,
-	                                                 trust_template, 
-	                                                 trust_size);
-    }
-    if (status != PR_SUCCESS) {
-
+    {
 	slot = nssToken_GetSlot(trustObject->token);
 	status = nssCKObject_GetAttributes(trustObject->handle,
 	                                   trust_template, trust_size,
@@ -722,7 +700,6 @@ nssCryptokiCRL_GetAttributes (
 {
     PRStatus status;
     NSSSlot *slot;
-    nssTokenObjectCache *cache;
     CK_ATTRIBUTE_PTR attr;
     CK_ATTRIBUTE crl_template[5];
     CK_ULONG crl_size;
@@ -740,17 +717,7 @@ nssCryptokiCRL_GetAttributes (
     }
     NSS_CK_TEMPLATE_FINISH(crl_template, attr, crl_size);
 
-    status = PR_FAILURE;
-    cache = nssToken_GetObjectCache(crlObject->token);
-    if (cache) {
-	status = nssTokenObjectCache_GetObjectAttributes(cache, NULL,
-	                                                 crlObject, 
-	                                                 CKO_NETSCAPE_CRL,
-	                                                 crl_template, 
-	                                                 crl_size);
-    }
-    if (status != PR_SUCCESS) {
-
+    {
 	slot = nssToken_GetSlot(crlObject->token);
 	status = nssCKObject_GetAttributes(crlObject->handle, 
 	                                   crl_template, crl_size,

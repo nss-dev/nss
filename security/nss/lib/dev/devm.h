@@ -118,12 +118,6 @@ nssToken_IsLoginRequired (
   NSSToken *token
 );
 
-/* This is super-private!!! */
-NSS_EXTERN nssTokenObjectCache *
-nssToken_GetObjectCache (
-  NSSToken *token
-);
-
 /* XXX */
 NSS_EXTERN void
 nssToken_Remove (
@@ -152,65 +146,6 @@ nssAlgNParam_SetTemplateValues (
 NSS_EXTERN void
 nss_SetGenericDeviceError (
   CK_RV ckrv
-);
-
-NSS_EXTERN nssTokenObjectCache *
-nssTokenObjectCache_Create (
-  NSSToken *token,
-  PRBool cacheCerts,
-  PRBool cacheTrust,
-  PRBool cacheCRLs
-);
-
-NSS_EXTERN void
-nssTokenObjectCache_Destroy (
-  nssTokenObjectCache *cache
-);
-
-NSS_EXTERN void
-nssTokenObjectCache_Clear (
-  nssTokenObjectCache *cache
-);
-
-NSS_EXTERN PRBool
-nssTokenObjectCache_HaveObjectClass (
-  nssTokenObjectCache *cache,
-  CK_OBJECT_CLASS objclass
-);
-
-NSS_EXTERN nssCryptokiObject **
-nssTokenObjectCache_FindObjectsByTemplate (
-  nssTokenObjectCache *cache,
-  CK_OBJECT_CLASS objclass,
-  CK_ATTRIBUTE_PTR otemplate,
-  CK_ULONG otlen,
-  PRUint32 maximumOpt,
-  PRStatus *statusOpt
-);
-
-NSS_EXTERN PRStatus
-nssTokenObjectCache_GetObjectAttributes (
-  nssTokenObjectCache *cache,
-  NSSArena *arenaOpt,
-  nssCryptokiObject *object,
-  CK_OBJECT_CLASS objclass,
-  CK_ATTRIBUTE_PTR atemplate,
-  CK_ULONG atlen
-);
-
-NSS_EXTERN PRStatus
-nssTokenObjectCache_ImportObject (
-  nssTokenObjectCache *cache,
-  nssCryptokiObject *object,
-  CK_OBJECT_CLASS objclass,
-  CK_ATTRIBUTE_PTR ot,
-  CK_ULONG otlen
-);
-
-NSS_EXTERN void
-nssTokenObjectCache_RemoveObject (
-  nssTokenObjectCache *cache,
-  nssCryptokiObject *object
 );
 
 /* PKCS#11 stores strings in a fixed-length buffer padded with spaces.  This
