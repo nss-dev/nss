@@ -546,14 +546,14 @@ NSS_NoDB_Init(const char * configdir)
 
 extern void nss_DumpModuleLog(void);
 
+NSS_EXTERN void nss_FreeOIDTable(void);
+
 PRStatus
 NSS_Shutdown(void)
 {
     PRStatus rv = PR_SUCCESS;
     nss_DumpModuleLog();
-#if 0
-    SECOID_Shutdown();
-#endif
+    nss_FreeOIDTable();
     NSSTrustDomain_Destroy(g_default_trust_domain);
     nss_DestroyGlobalModuleList();
     nss_IsInitted = PR_FALSE;

@@ -112,13 +112,23 @@ nssPrivateKey_CreateFromInstance (
   NSSVolatileDomain *vdOpt
 )
 {
+    PRStatus status;
     nssPKIObject *pkio;
+    NSSPrivateKey *rvKey = NULL;
 
     pkio = nssPKIObject_Create(NULL, instance, td, vdOpt);
-    if (pkio) {
-	return nssPrivateKey_Create(pkio);
+    if (!pkio) {
+	return (NSSPrivateKey *)NULL;
     }
-    return (NSSPrivateKey *)NULL;
+    rvKey = nssPrivateKey_Create(pkio);
+    if (rvKey && vdOpt) {
+	status = nssVolatileDomain_ImportPrivateKey(vdOpt, rvKey);
+	if (status == PR_FAILURE) {
+	    nssPrivateKey_Destroy(rvKey);
+	    rvKey = NULL;
+	}
+    }
+    return rvKey;
 }
 
 NSS_IMPLEMENT NSSPrivateKey *
@@ -202,6 +212,15 @@ nssPrivateKey_FindInstanceForAlgorithm (
 )
 {
     return nssPKIObject_FindInstanceForAlgorithm(&vk->object, ap);
+}
+
+NSS_IMPLEMENT void
+nssPrivateKey_SetVolatileDomain (
+  NSSPrivateKey *vk,
+  NSSVolatileDomain *vd
+)
+{
+    vk->object.vd = vd; /* volatile domain holds ref */
 }
 
 NSS_IMPLEMENT PRStatus
@@ -546,7 +565,7 @@ nssPrivateKey_GetVolatileDomain (
   PRStatus *statusOpt
 )
 {
-    return vk->object.vd;
+    return nssPKIObject_GetVolatileDomain(&vk->object, statusOpt);
 }
 
 NSS_IMPLEMENT NSSTrustDomain *
@@ -903,20 +922,6 @@ NSSPrivateKey_CreateCryptoContext (
     return nssPrivateKey_CreateCryptoContext(vk, apOpt, uhh);
 }
 
-NSS_IMPLEMENT void
-nssPrivateKeyArray_Destroy (
-  NSSPrivateKey **vkeys
-)
-{
-    NSSPrivateKey **vk = vkeys;
-    if (vkeys) {
-	while (vk++) {
-	    nssPrivateKey_Destroy(*vk);
-	}
-    }
-    nss_ZFreeIf(vkeys);
-}
-
 struct NSSPublicKeyStr
 {
   nssPKIObject object;
@@ -964,13 +969,23 @@ nssPublicKey_CreateFromInstance (
   NSSArena *arenaOpt
 )
 {
+    PRStatus status;
     nssPKIObject *pkio;
+    NSSPublicKey *rvKey = NULL;
 
     pkio = nssPKIObject_Create(arenaOpt, instance, td, vdOpt);
-    if (pkio) {
-	return nssPublicKey_Create(pkio);
+    if (!pkio) {
+	return (NSSPublicKey *)NULL;
     }
-    return (NSSPublicKey *)NULL;
+    rvKey = nssPublicKey_Create(pkio);
+    if (rvKey && vdOpt) {
+	status = nssVolatileDomain_ImportPublicKey(vdOpt, rvKey);
+	if (status == PR_FAILURE) {
+	    nssPublicKey_Destroy(rvKey);
+	    rvKey = NULL;
+	}
+    }
+    return rvKey;
 }
 
 /* XXX same here */
@@ -1131,6 +1146,15 @@ nssPublicKey_FindInstanceForAlgorithm (
     return nssPKIObject_FindInstanceForAlgorithm(&bk->object, ap);
 }
 
+NSS_IMPLEMENT void
+nssPublicKey_SetVolatileDomain (
+  NSSPublicKey *bk,
+  NSSVolatileDomain *vd
+)
+{
+    bk->object.vd = vd; /* volatile domain holds ref */
+}
+
 NSS_IMPLEMENT PRStatus
 nssPublicKey_DeleteStoredObject (
   NSSPublicKey *bk,
@@ -1170,6 +1194,9 @@ nssPublicKey_CopyToToken (
 	if (nssPKIObject_AddInstance(&bk->object, bko) == PR_FAILURE) {
 	    nssCryptokiObject_Destroy(bko);
 	    bko = NULL;
+	} else {
+	    /* XXX maybe AddInstance should rethink not cloning */
+	    bko = nssCryptokiObject_Clone(bko);
 	}
     }
     return bko;
@@ -1482,6 +1509,9 @@ nssPublicKey_WrapSymKey (
 
     rvIt = nssToken_WrapKey(bko->token, bko->session, ap, 
                             bko, mko, rvOpt, arenaOpt);
+
+    nssCryptokiObject_Destroy(bko);
+    nssCryptokiObject_Destroy(mko);
     return rvIt;
 }
 
@@ -1574,19 +1604,5 @@ NSSPublicKey_FindPrivateKey (
 {
     nss_SetError(NSS_ERROR_NOT_FOUND);
     return NULL;
-}
-
-NSS_IMPLEMENT void
-nssPublicKeyArray_Destroy (
-  NSSPublicKey **bkeys
-)
-{
-    NSSPublicKey **bk = bkeys;
-    if (bkeys) {
-	while (bk++) {
-	    nssPublicKey_Destroy(*bk);
-	}
-    }
-    nss_ZFreeIf(bkeys);
 }
 

@@ -68,10 +68,10 @@ nssSymKey_Create (
     rvKey->object = *object;
     /* XXX should choose instance based on some criteria */
     status = nssCryptokiSymKey_GetAttributes(object->instances[0],
-                                                   arena,
-                                                   &rvKey->kind,
-                                                   &rvKey->length,
-                                                   &rvKey->operations);
+                                             arena,
+                                             &rvKey->kind,
+                                             &rvKey->length,
+                                             &rvKey->operations);
     if (status != PR_SUCCESS) {
 	return (NSSSymKey *)NULL;
     }
@@ -85,13 +85,23 @@ nssSymKey_CreateFromInstance (
   NSSVolatileDomain *vdOpt
 )
 {
+    PRStatus status;
     nssPKIObject *pkio;
+    NSSSymKey *rvKey = NULL;
 
     pkio = nssPKIObject_Create(NULL, instance, td, vdOpt);
-    if (pkio) {
-	return nssSymKey_Create(pkio);
+    if (!pkio) {
+	return (NSSSymKey *)NULL;
     }
-    return (NSSSymKey *)NULL;
+    rvKey = nssSymKey_Create(pkio);
+    if (rvKey && vdOpt) {
+	status = nssVolatileDomain_ImportSymKey(vdOpt, rvKey);
+	if (status == PR_FAILURE) {
+	    nssSymKey_Destroy(rvKey);
+	    rvKey = NULL;
+	}
+    }
+    return rvKey;
 }
 
 NSS_IMPLEMENT NSSSymKey *
@@ -279,6 +289,15 @@ NSSSymKey_IsStillPresent (
 {
     nss_SetError(NSS_ERROR_NOT_FOUND);
     return PR_FAILURE;
+}
+
+NSS_IMPLEMENT void
+nssSymKey_SetVolatileDomain (
+  NSSSymKey *mk,
+  NSSVolatileDomain *vd
+)
+{
+    mk->object.vd = vd; /* volatile domain holds ref */
 }
 
 NSS_IMPLEMENT NSSTrustDomain *
@@ -667,27 +686,25 @@ nssSymKey_DeriveSSLSessionKeys (
   const NSSAlgNParam *ap,
   PRUint32 keySize,
   NSSSymKeyType keyType,
-  NSSSymKey **rvSessionKeys, /* [4] */
-  NSSItem *rvClientIV,
-  NSSItem *rvServerIV
+  NSSSymKey **rvSessionKeys /* [4] */
 )
 {
     nssCryptokiObject *mso; /* only one instance of master secret */
     nssCryptokiObject *skeys[4];
+    NSSTrustDomain *td = masterSecret->object.td;
+    NSSVolatileDomain *vd = masterSecret->object.vd;
     PRStatus status;
     PRIntn i;
 
     mso = masterSecret->object.instances[0];
     status = nssToken_DeriveSSLSessionKeys(mso->token, mso->session, 
                                            ap, mso, keySize, keyType,
-                                           skeys, rvClientIV, rvServerIV);
+                                           skeys);
     if (status == PR_FAILURE) {
 	return PR_FAILURE;
     }
     for (i=0; i<4; i++) {
-	rvSessionKeys[i] = nssSymKey_CreateFromInstance(skeys[i],
-                                                   masterSecret->object.td,
-	                                           masterSecret->object.vd);
+	rvSessionKeys[i] = nssSymKey_CreateFromInstance(skeys[i], td, vd);
 	if (!rvSessionKeys[i]) break;
     }
     if (i < 4) {
@@ -698,19 +715,5 @@ nssSymKey_DeriveSSLSessionKeys (
 	status = PR_FAILURE;
     }
     return status;
-}
-
-NSS_IMPLEMENT void
-nssSymKeyArray_Destroy (
-  NSSSymKey **mkeys
-)
-{
-    NSSSymKey **mk = mkeys;
-    if (mkeys) {
-	while (mk++) {
-	    nssSymKey_Destroy(*mk);
-	}
-    }
-    nss_ZFreeIf(mkeys);
 }
 

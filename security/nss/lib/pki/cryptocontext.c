@@ -133,6 +133,7 @@ nssCryptoContext_CreateForSymKey (
 	rvCC->which = a_symkey;
 	rvCC->u.mkey = nssSymKey_AddRef(mkey);
     }
+    nssVolatileDomain_Destroy(vd);
     return rvCC;
 }
 
@@ -1331,6 +1332,7 @@ nssCryptoContext_DigestKey (
   NSSSymKey *mkOpt
 )
 {
+    PRStatus status;
     nssCryptokiObject *mko;
     if (mkOpt) {
 	/* The context is being asked to digest a key that may not be
@@ -1350,7 +1352,9 @@ nssCryptoContext_DigestKey (
 	}
 	mko = cc->key;
     }
-    return nssToken_DigestKey(cc->token, cc->session, mko);
+    status = nssToken_DigestKey(cc->token, cc->session, mko);
+    if (mkOpt) nssCryptokiObject_Destroy(mko);
+    return status;
 }
 
 NSS_IMPLEMENT PRStatus

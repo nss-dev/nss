@@ -262,6 +262,7 @@ nssPKIXTBSCertificate_SetArena (
     nssPKIXName_SetArena(&tbsCert->issuer, arena);
     nssPKIXValidity_SetArena(&tbsCert->validity, arena);
     nssPKIXName_SetArena(&tbsCert->subject, arena);
+    nssPKIXSubjectPublicKeyInfo_SetArena(&tbsCert->subjectPublicKeyInfo, arena);
     nssPKIXExtensions_SetArena(&tbsCert->extensions, arena);
 }
 

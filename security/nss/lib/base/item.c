@@ -152,7 +152,15 @@ nssItem_Duplicate (
   NSSItem *rvOpt
 )
 {
-  return nssItem_Create(arenaOpt, rvOpt, obj->size, obj->data);
+  if (obj->size > 0 && obj->data) {
+    return nssItem_Create(arenaOpt, rvOpt, obj->size, obj->data);
+  } else if (rvOpt) {
+    rvOpt->size = 0;
+    rvOpt->data = NULL;
+    return rvOpt;
+  } else {
+    return (NSSItem *)NULL;
+  }
 }
 
 /*

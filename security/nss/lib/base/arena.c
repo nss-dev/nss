@@ -375,6 +375,14 @@ nssArena_Destroy (
   nss_arena_call_destructor_chain(arena->first_destructor);
 #endif /* ARENA_DESTRUCTOR_LIST */
 
+  {
+    const char *ev = PR_GetEnv("NSS_DISABLE_ARENA_FREE_LIST");
+    if (!ev) {
+	PL_FreeArenaPool(arena);
+    } else {
+	PL_FinishArenaPool(arena);
+    }
+  }
   PL_FinishArenaPool(&arena->pool);
   lock = arena->lock;
   arena->lock = (PRLock *)NULL;

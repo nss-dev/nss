@@ -100,14 +100,14 @@ nssCert_Create (
     rvCert->object = *object;
     /* XXX should choose instance based on some criteria */
     status = nssCryptokiCert_GetAttributes(object->instances[0],
-                                                  arena,
-                                                  &rvCert->kind,
-                                                  &rvCert->id,
-                                                  &rvCert->encoding,
-                                                  &rvCert->issuer,
-                                                  &rvCert->serial,
-                                                  &rvCert->subject,
-                                                  &rvCert->email);
+                                           arena,
+                                           &rvCert->kind,
+                                           &rvCert->id,
+                                           &rvCert->encoding,
+                                           &rvCert->issuer,
+                                           &rvCert->serial,
+                                           &rvCert->subject,
+                                           &rvCert->email);
     if (status != PR_SUCCESS) {
 	return (NSSCert *)NULL;
     }
@@ -383,7 +383,7 @@ nssCert_GetNames (
 	rvOpt = nss_ZNEWARRAY(arenaOpt, NSSUTF8 *, 2);
     }
     rvOpt[0] = nssUTF8_Duplicate("<not implemented>", arenaOpt);
-    rvOpt[1] = NULL;
+    if (rvMaxOpt > 1) rvOpt[1] = NULL;
     return rvOpt;
 }
 
@@ -411,7 +411,7 @@ nssCert_GetIssuerNames (
 	rvOpt = nss_ZNEWARRAY(arenaOpt, NSSUTF8 *, 2);
     }
     rvOpt[0] = nssUTF8_Duplicate("<not implemented>", arenaOpt);
-    rvOpt[1] = NULL;
+    if (rvMaxOpt > 1) rvOpt[1] = NULL;
     return rvOpt;
 }
 
@@ -617,16 +617,17 @@ nssCert_SetVolatileDomain (
   NSSVolatileDomain *vd
 )
 {
-    c->object.vd = vd;
+    c->object.vd = vd; /* volatile domain holds ref to cert */
     c->object.td = nssVolatileDomain_GetTrustDomain(vd);
 }
 
 NSS_IMPLEMENT NSSVolatileDomain *
 nssCert_GetVolatileDomain (
-  NSSCert *c
+  NSSCert *c,
+  PRStatus *statusOpt
 )
 {
-    return c->object.vd;
+    return nssPKIObject_GetVolatileDomain(&c->object, statusOpt);
 }
 
 NSS_IMPLEMENT NSSTrustDomain *
@@ -1271,20 +1272,15 @@ find_cert_issuer (
     NSSCert *issuer = NULL;
     NSSTrustDomain *td;
     NSSVolatileDomain *vd;
-    vd = nssCert_GetVolatileDomain(c);
+    vd = nssCert_GetVolatileDomain(c, NULL);
     td = nssCert_GetTrustDomain(c);
     if (vd) {
-	issuers = nssVolatileDomain_FindCertsBySubject(vd,
-	                                                      &c->issuer,
-	                                                      NULL,
-	                                                      0,
-	                                                      NULL);
+	issuers = nssVolatileDomain_FindCertsBySubject(vd, &c->issuer,
+	                                               NULL, 0, NULL);
+	nssVolatileDomain_Destroy(vd);
     } else {
-	issuers = nssTrustDomain_FindCertsBySubject(td,
-                                                           &c->issuer,
-                                                           NULL,
-                                                           0,
-                                                           NULL);
+	issuers = nssTrustDomain_FindCertsBySubject(td, &c->issuer,
+                                                    NULL, 0, NULL);
     }
     if (issuers) {
 	nssCertDecoding *dc = NULL;
@@ -1507,7 +1503,7 @@ nssCert_GetPublicKey (
     NSSToken **tokens, **tp;
     nssCryptokiObject *instance = NULL;
     NSSTrustDomain *td = nssCert_GetTrustDomain(c);
-    NSSVolatileDomain *vd = nssCert_GetVolatileDomain(c);
+    NSSVolatileDomain *vd = nssCert_GetVolatileDomain(c, NULL);
 
     /* first look for a persistent object in the trust domain */
     tokens = nssPKIObject_GetTokens(&c->object, NULL, 0, &status);
@@ -1533,6 +1529,7 @@ nssCert_GetPublicKey (
 	bk = nssPublicKey_CreateFromInstance(instance, td, vd, NULL);
 	if (!bk) {
 	    nssCryptokiObject_Destroy(instance);
+	    nssVolatileDomain_Destroy(vd);
 	    return (NSSPublicKey *)NULL;
 	}
 	return bk;
@@ -1548,9 +1545,11 @@ nssCert_GetPublicKey (
 	status = dc->methods->getPublicKeyInfo(dc->data, &keyAlg, &keyBits);
 	if (status == PR_SUCCESS) {
 	    c->bk = nssPublicKey_CreateFromInfo(td, vd, keyAlg, &keyBits);
-	    return nssPublicKey_AddRef(c->bk);
+	    nssVolatileDomain_Destroy(vd);
+	    return c->bk;
 	}
     }
+    nssVolatileDomain_Destroy(vd);
     return (NSSPublicKey *)NULL;
 }
 

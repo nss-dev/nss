@@ -58,9 +58,7 @@ struct object_array_str
 
 struct NSSVolatileDomainStr
 {
-#if 0
   PRInt32 refCount;
-#endif
   NSSArena *arena;
   NSSTrustDomain *td;
   NSSCallback *callback;
@@ -103,6 +101,7 @@ nssVolatileDomain_Create (
     }
     rvVD->td = td;
     rvVD->arena = arena;
+    PR_AtomicIncrement(&rvVD->refCount);
     if (uhhOpt) {
 	rvVD->callback = uhhOpt;
     } else {
@@ -117,13 +116,20 @@ nssVolatileDomain_Destroy (
 )
 {
     PRStatus status = PR_SUCCESS;
-    PZ_DestroyLock(vd->objectLock);
-    nssTokenSessionHash_Destroy(vd->tokenSessionHash);
-    nssCertArray_Destroy((NSSCert **)vd->certs.array);
-    nssPublicKeyArray_Destroy((NSSPublicKey **)vd->bkeys.array);
-    nssPrivateKeyArray_Destroy((NSSPrivateKey **)vd->vkeys.array);
-    nssSymKeyArray_Destroy((NSSSymKey **)vd->mkeys.array);
-    status |= nssArena_Destroy(vd->arena);
+
+    if (vd) {
+	PR_ASSERT(vd->refCount > 0);
+	PR_AtomicDecrement(&vd->refCount);
+	if (vd->refCount == 0) {
+	    PZ_DestroyLock(vd->objectLock);
+	    nssTokenSessionHash_Destroy(vd->tokenSessionHash);
+	    nssCertArray_Destroy((NSSCert **)vd->certs.array);
+	    nssPublicKeyArray_Destroy((NSSPublicKey **)vd->bkeys.array);
+	    nssPrivateKeyArray_Destroy((NSSPrivateKey **)vd->vkeys.array);
+	    nssSymKeyArray_Destroy((NSSSymKey **)vd->mkeys.array);
+	    status |= nssArena_Destroy(vd->arena);
+	}
+    }
     return status;
 }
 
@@ -136,6 +142,17 @@ NSSVolatileDomain_Destroy (
 	return PR_SUCCESS;
     }
     return nssVolatileDomain_Destroy(vd);
+}
+
+NSS_IMPLEMENT NSSVolatileDomain *
+nssVolatileDomain_AddRef (
+  NSSVolatileDomain *vd
+)
+{
+    if (vd) {
+	PR_AtomicIncrement(&vd->refCount);
+    }
+    return vd;
 }
 
 NSS_IMPLEMENT PRStatus
@@ -288,8 +305,39 @@ NSSVolatileDomain_ImportEncodedCertChain (
     return NULL;
 }
 
-NSS_IMPLEMENT NSSPublicKey *
+NSS_IMPLEMENT PRStatus
 nssVolatileDomain_ImportPublicKey (
+  NSSVolatileDomain *vd,
+  NSSPublicKey *bk
+)
+{
+    PZ_Lock(vd->objectLock);
+    if (vd->bkeys.count == vd->bkeys.size) {
+	if (vd->bkeys.size == 0) {
+	    /* need to alloc new array */
+	    vd->bkeys.array = (void **)nss_ZNEWARRAY(vd->arena, 
+	                                             NSSPublicKey *, 
+	                                             DEFAULT_ARRAY_SIZE);
+	} else {
+	    /* array is full, realloc */
+	    vd->bkeys.size *= 2;
+	    vd->bkeys.array = (void **)nss_ZREALLOCARRAY(vd->bkeys.array, 
+	                                                 NSSPublicKey *, 
+	                                                 vd->bkeys.size);
+	}
+	if (!vd->bkeys.array) {
+	    PZ_Unlock(vd->objectLock);
+	    return PR_FAILURE;
+	}
+    }
+    vd->bkeys.array[vd->bkeys.count++] = (void *)nssPublicKey_AddRef(bk);
+    PZ_Unlock(vd->objectLock);
+    nssPublicKey_SetVolatileDomain(bk, vd);
+    return PR_SUCCESS;
+}
+
+NSS_IMPLEMENT NSSPublicKey *
+nssVolatileDomain_ImportPublicKeyByInfo (
   NSSVolatileDomain *vd,
   NSSPublicKeyInfo *keyInfo,
   NSSUTF8 *labelOpt,
@@ -330,7 +378,7 @@ nssVolatileDomain_ImportPublicKey (
 }
 
 NSS_IMPLEMENT NSSPublicKey *
-NSSVolatileDomain_ImportPublicKey (
+NSSVolatileDomain_ImportPublicKeyByInfo (
   NSSVolatileDomain *vd,
   NSSPublicKeyInfo *keyInfo,
   NSSUTF8 *labelOpt,
@@ -339,9 +387,40 @@ NSSVolatileDomain_ImportPublicKey (
   NSSToken *destinationOpt
 )
 {
-    return nssVolatileDomain_ImportPublicKey(vd, keyInfo, labelOpt,
-                                             operations, properties,
-                                             destinationOpt);
+    return nssVolatileDomain_ImportPublicKeyByInfo(vd, keyInfo, labelOpt,
+                                                   operations, properties,
+                                                   destinationOpt);
+}
+
+NSS_IMPLEMENT PRStatus
+nssVolatileDomain_ImportPrivateKey (
+  NSSVolatileDomain *vd,
+  NSSPrivateKey *vk
+)
+{
+    PZ_Lock(vd->objectLock);
+    if (vd->vkeys.count == vd->vkeys.size) {
+	if (vd->vkeys.size == 0) {
+	    /* need to alloc new array */
+	    vd->vkeys.array = (void **)nss_ZNEWARRAY(vd->arena, 
+	                                             NSSPrivateKey *, 
+	                                             DEFAULT_ARRAY_SIZE);
+	} else {
+	    /* array is full, realloc */
+	    vd->vkeys.size *= 2;
+	    vd->vkeys.array = (void **)nss_ZREALLOCARRAY(vd->vkeys.array, 
+	                                                 NSSPrivateKey *, 
+	                                                 vd->vkeys.size);
+	}
+	if (!vd->vkeys.array) {
+	    PZ_Unlock(vd->objectLock);
+	    return PR_FAILURE;
+	}
+    }
+    vd->vkeys.array[vd->vkeys.count++] = (void *)nssPrivateKey_AddRef(vk);
+    PZ_Unlock(vd->objectLock);
+    nssPrivateKey_SetVolatileDomain(vk, vd);
+    return PR_SUCCESS;
 }
 
 NSS_IMPLEMENT NSSPrivateKey *
@@ -379,6 +458,37 @@ NSSVolatileDomain_ImportEncodedPrivateKey (
                                                      properties,
                                                      passwordOpt, uhhOpt,
                                                      destination);
+}
+
+NSS_IMPLEMENT PRStatus
+nssVolatileDomain_ImportSymKey (
+  NSSVolatileDomain *vd,
+  NSSSymKey *mk
+)
+{
+    PZ_Lock(vd->objectLock);
+    if (vd->mkeys.count == vd->mkeys.size) {
+	if (vd->mkeys.size == 0) {
+	    /* need to alloc new array */
+	    vd->mkeys.array = (void **)nss_ZNEWARRAY(vd->arena, 
+	                                             NSSSymKey *, 
+	                                             DEFAULT_ARRAY_SIZE);
+	} else {
+	    /* array is full, realloc */
+	    vd->mkeys.size *= 2;
+	    vd->mkeys.array = (void **)nss_ZREALLOCARRAY(vd->mkeys.array, 
+	                                                 NSSSymKey *, 
+	                                                 vd->mkeys.size);
+	}
+	if (!vd->mkeys.array) {
+	    PZ_Unlock(vd->objectLock);
+	    return PR_FAILURE;
+	}
+    }
+    vd->mkeys.array[vd->mkeys.count++] = (void *)nssSymKey_AddRef(mk);
+    PZ_Unlock(vd->objectLock);
+    nssSymKey_SetVolatileDomain(mk, vd);
+    return PR_SUCCESS;
 }
 
 NSS_IMPLEMENT NSSSymKey *
@@ -1037,6 +1147,7 @@ nssVolatileDomain_GenerateSymKey (
 )
 {
     nssPKIObjectCreator creator;
+    NSSSymKey *rvKey = NULL;
 
     creator.td = vd->td;
     creator.vd = vd;
@@ -1052,7 +1163,9 @@ nssVolatileDomain_GenerateSymKey (
     creator.nickname = nicknameOpt;
     creator.properties = properties;
     creator.operations = operations;
-    return nssPKIObjectCreator_GenerateSymKey(&creator, keysize);
+    rvKey = nssPKIObjectCreator_GenerateSymKey(&creator, keysize);
+    nssSession_Destroy(creator.session);
+    return rvKey;
 }
 
 NSS_IMPLEMENT NSSSymKey *
@@ -1130,6 +1243,7 @@ nssVolatileDomain_UnwrapSymKey (
                                 operations, properties, targetSymKeyType);
     /* done with the private key */
     nssCryptokiObject_Destroy(vko);
+    nssSession_Destroy(session);
     /* create a new symkey in the volatile domain */
     if (mko) {
 	mkey = nssSymKey_CreateFromInstance(mko, vd->td, vd);

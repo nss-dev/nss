@@ -656,8 +656,10 @@ struct ssl3StateStr {
 			/* This says what cipher suites we can do, and should 
 			 * be either SSL_ALLOWED or SSL_RESTRICTED 
 			 */
+#if 0
     /* XXX */
     NSSArena *           peerCertArena;  
+#endif
 			    /* These are used to keep track of the peer CA */
     /* XXX */
     void *               peerCertChain;     

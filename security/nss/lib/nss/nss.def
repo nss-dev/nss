@@ -293,7 +293,7 @@ NSSVolatileDomain_Destroy;
 ;+#NSSVolatileDomain_ImportCert;
 NSSVolatileDomain_ImportEncodedCert;
 ;+#NSSVolatileDomain_ImportEncodedCertChain;
-NSSVolatileDomain_ImportPublicKey;
+NSSVolatileDomain_ImportPublicKeyByInfo;
 NSSVolatileDomain_ImportEncodedPrivateKey;
 NSSVolatileDomain_FindBestCertByNickname;
 NSSVolatileDomain_FindCertsByNickname;

@@ -49,9 +49,9 @@ MODULE = nss
 CSRCS =		         \
 	pkibase.c        \
 	asymmkey.c       \
-	certificate.c    \
+	cert.c           \
 	cryptocontext.c  \
-	symmkey.c        \
+	symkey.c         \
 	time.c           \
 	trustdomain.c    \
 	volatiledomain.c \

@@ -231,6 +231,16 @@ nssPKIXSubjectPublicKeyInfo_Encode (
     }
 }
 
+NSS_IMPLEMENT void
+nssPKIXSubjectPublicKeyInfo_SetArena (
+  NSSPKIXSubjectPublicKeyInfo *spki,
+  NSSArena *arena
+)
+{
+    spki->arena = arena;
+    nssPKIXAlgorithmIdentifier_SetArena(&spki->algorithm, arena);
+}
+
 #if 0
 NSS_IMPLEMENT PRBool
 nssPKIXSubjectPublicKeyInfo_Equal (

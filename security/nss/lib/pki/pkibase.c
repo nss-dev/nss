@@ -48,7 +48,7 @@ nssPKIObject_Create (
   NSSArena *arenaOpt,
   nssCryptokiObject *instanceOpt,
   NSSTrustDomain *td,
-  NSSVolatileDomain *vdOpt
+  NSSVolatileDomain *vdOpt /* XXX remove */
 )
 {
     NSSArena *arena;
@@ -69,7 +69,6 @@ nssPKIObject_Create (
     }
     object->arena = arena;
     object->td = td; /* XXX */
-    object->vd = vdOpt;
     object->lock = PZ_NewLock(nssILockOther);
     if (!object->lock) {
 	goto loser;
@@ -105,6 +104,7 @@ nssPKIObject_Destroy (
 	for (i=0; i<object->numInstances; i++) {
 	    nssCryptokiObject_Destroy(object->instances[i]);
 	}
+	/*nssVolatileDomain_Destroy(object->vd);*/
 	PZ_DestroyLock(object->lock);
 	nssArena_Destroy(object->arena);
 	return PR_TRUE;
@@ -477,7 +477,7 @@ nssPKIObject_GetVolatileDomain (
     if (statusOpt) {
 	*statusOpt = PR_SUCCESS;
     }
-    return object->vd;
+    return nssVolatileDomain_AddRef(object->vd);
 }
 
 NSS_IMPLEMENT NSSToken *
@@ -688,6 +688,48 @@ nssCRLArray_Destroy (
 	}
 	nss_ZFreeIf(crls);
     }
+}
+
+NSS_IMPLEMENT void
+nssSymKeyArray_Destroy (
+  NSSSymKey **mkeys
+)
+{
+    if (mkeys) {
+	NSSSymKey **mkp;
+	for (mkp = mkeys; *mkp; mkp++) {
+	    nssSymKey_Destroy(*mkp);
+	}
+    }
+    nss_ZFreeIf(mkeys);
+}
+
+NSS_IMPLEMENT void
+nssPrivateKeyArray_Destroy (
+  NSSPrivateKey **vkeys
+)
+{
+    if (vkeys) {
+	NSSPrivateKey **vkp;
+	for (vkp = vkeys; *vkp; vkp++) {
+	    nssPrivateKey_Destroy(*vkp);
+	}
+    }
+    nss_ZFreeIf(vkeys);
+}
+
+NSS_IMPLEMENT void
+nssPublicKeyArray_Destroy (
+  NSSPublicKey **bkeys
+)
+{
+    if (bkeys) {
+	NSSPublicKey **bkp;
+	for (bkp = bkeys; *bkp; bkp++) {
+	    nssPublicKey_Destroy(*bkp);
+	}
+    }
+    nss_ZFreeIf(bkeys);
 }
 
 NSS_IMPLEMENT PRBool
@@ -1819,7 +1861,7 @@ new_session:
 		goto finish;
 	    }
 	}
-	t2s = &tsHash->token2session[++tsHash->count];
+	t2s = &tsHash->token2session[tsHash->count++];
     }
     session = nssToken_CreateSession(token, readWrite);
     if (!session) {

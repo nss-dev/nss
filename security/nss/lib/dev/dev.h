@@ -688,9 +688,7 @@ nssToken_DeriveSSLSessionKeys (
   nssCryptokiObject *masterSecret,
   PRUint32 keySize,
   NSSSymKeyType keyType,
-  nssCryptokiObject **rvSessionKeys, /* [4] */
-  NSSItem *rvClientIV,
-  NSSItem *rvServerIV
+  nssCryptokiObject **rvSessionKeys /* [4] */
 );
 
 NSS_EXTERN PRStatus

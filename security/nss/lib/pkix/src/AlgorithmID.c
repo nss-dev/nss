@@ -321,6 +321,16 @@ nssPKIXAlgorithmIdentifier_Encode (
   return NSSItem_Duplicate(it, arenaOpt, rvOpt);
 }
 
+NSS_IMPLEMENT void
+nssPKIXAlgorithmIdentifier_SetArena
+(
+  NSSPKIXAlgorithmIdentifier *algid,
+  NSSArena *arena
+)
+{
+    algid->arena = arena;
+}
+
 NSS_IMPLEMENT PRBool
 nssPKIXAlgorithmIdentifier_Equal (
   NSSPKIXAlgorithmIdentifier *algid1,

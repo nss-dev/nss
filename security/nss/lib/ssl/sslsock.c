@@ -239,7 +239,7 @@ ssl_DupSocket(sslSocket *os)
 	ss->wTimeout = os->wTimeout;
 	ss->cTimeout = os->cTimeout;
 	ss->td = os->td; /* XXX ref counted? */
-	ss->vd = os->vd; /* XXX ref counted? */
+	ss->vd = NSSTrustDomain_CreateVolatileDomain(os->td, NULL);
 
 	/* copy ssl2&3 policy & prefs, even if it's not selected (yet) */
 	ss->allowedByPolicy	= os->allowedByPolicy;
@@ -386,6 +386,9 @@ ssl_DestroySocketContents(sslSocket *ss)
     if (ss->stepDownKeyPair) {
 	ssl3_FreeKeyPair(ss->stepDownKeyPair);
 	ss->stepDownKeyPair = NULL;
+    }
+    if (ss->vd) {
+	NSSVolatileDomain_Destroy(ss->vd);
     }
 }
 

@@ -2129,6 +2129,7 @@ ssl3_DeriveMasterSecret(sslSocket *ss, NSSSymKey *pmsOpt)
 	NSSToken_Destroy(internal);
     }
     pwSpec->master_secret = ms;
+    NSSAlgNParam_Destroy(msDerive);
     return PR_SUCCESS;
 loser:
     if (msDerive) {
@@ -2164,12 +2165,13 @@ ssl3_GenerateSessionKeys(sslSocket *ss, NSSSymKey *pmsOpt)
     NSSAlgNParam *ap = NULL;
     NSSAlgNParam *skAP = NULL;
     NSSSymKey *sessionKeys[4];
-    NSSItem *iv1, *iv2;
-    NSSItem clientIV, serverIV;
+    NSSItem iv1, iv2;
     PRIntn ecx, dcx;
     PRBool isTLS = (PRBool)(pwSpec->version > SSL_LIBRARY_VERSION_3_0);
     PRUint32 keySize;
     NSSSymKeyType keyType;
+    PRBool haveSessionKeys = PR_FALSE;
+    PRIntn i;
 
     PR_ASSERT( ssl_HaveSSL3HandshakeLock(ss));
     PR_ASSERT( ssl_HaveSpecWriteLock(ss));
@@ -2212,12 +2214,13 @@ ssl3_GenerateSessionKeys(sslSocket *ss, NSSSymKey *pmsOpt)
     /* Derive the set of session keys from the master secret */
     status = nssSymKey_DeriveSSLSessionKeys(pwSpec->master_secret,
                                             skAP, keySize, keyType,
-                                            sessionKeys,
-                                            &clientIV, &serverIV);
+                                            sessionKeys);
+    NSSAlgNParam_Destroy(skAP);
     if (status == PR_FAILURE) {
 	ssl_MapLowLevelError(SSL_ERROR_SESSION_KEY_GEN_FAILURE);
 	goto loser;
     }
+    haveSessionKeys = PR_TRUE;
 
     /* Set up the mac contexts */
     ap = (NSSAlgNParam *)ssl3_GetMacAP(ss->ssl3); /* it's const below */
@@ -2230,18 +2233,18 @@ ssl3_GenerateSessionKeys(sslSocket *ss, NSSSymKey *pmsOpt)
 
     /* Set up the encryption and decryption contexts */
     if (ss->sec.isServer) {
-	iv1 = &serverIV;
-	iv2 = &clientIV;
+	iv1.data = skParams.serverIV; iv1.size = cipher_def->iv_size;
+	iv2.data = skParams.clientIV; iv2.size = cipher_def->iv_size;
 	ecx = 3;
 	dcx = 2;
     } else {
-	iv1 = &clientIV;
-	iv2 = &serverIV;
+	iv1.data = skParams.clientIV; iv1.size = cipher_def->iv_size;
+	iv2.data = skParams.serverIV; iv2.size = cipher_def->iv_size;
 	ecx = 2;
 	dcx = 3;
     }
 
-    ap = ssl3_GetBulkCipherAP(cipher_def, iv1);
+    ap = ssl3_GetBulkCipherAP(cipher_def, &iv1);
     if (!ap) {
 	goto loser;
     }
@@ -2253,7 +2256,7 @@ ssl3_GenerateSessionKeys(sslSocket *ss, NSSSymKey *pmsOpt)
 	goto loser;
     }
 
-    ap = ssl3_GetBulkCipherAP(cipher_def, iv2);
+    ap = ssl3_GetBulkCipherAP(cipher_def, &iv2);
     if (!ap) {
 	NSSCryptoContext_Destroy(pwSpec->encodeContext);
 	pwSpec->encodeContext = NULL;
@@ -2269,8 +2272,12 @@ ssl3_GenerateSessionKeys(sslSocket *ss, NSSSymKey *pmsOpt)
 	goto loser;
     }
 
+    for (i=0; i<4; i++) NSSSymKey_Destroy(sessionKeys[i]);
     return PR_SUCCESS;
 loser:
+    if (haveSessionKeys) {
+	for (i=0; i<4; i++) NSSSymKey_Destroy(sessionKeys[i]);
+    }
     ssl_MapLowLevelError(SSL_ERROR_SESSION_KEY_GEN_FAILURE);
     return PR_FAILURE;
 }
@@ -4386,8 +4393,9 @@ ssl3_HandleServerHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     sid->version = ss->version;
     sid->u.ssl3.sessionIDLength = sidBytes.size;
     memcpy(sid->u.ssl3.sessionID, sidBytes.data, sidBytes.size);
-    nss_ZFreeIf(sidBytes.data);
 #endif /* IMPLEMENT_SESSION_ID_CACHE */
+    nss_ZFreeIf(sidBytes.data);
+
 
     ss->ssl3->hs.isResuming = PR_FALSE;
     ss->ssl3->hs.ws         = wait_server_cert;
@@ -4495,8 +4503,8 @@ ssl3_HandleServerKeyExchange(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	    goto alert_loser;
 	}
 
-	peerKey = NSSVolatileDomain_ImportPublicKey(ss->vd, &keyInfo, 
-	                                            NULL, 0, 0, NULL);
+	peerKey = NSSVolatileDomain_ImportPublicKeyByInfo(ss->vd, &keyInfo, 
+	                                                  NULL, 0, 0, NULL);
     	ss->sec.peerKey = peerKey;
     	ss->ssl3->hs.ws = wait_cert_request;
 	NSSArena_Destroy(arena);
@@ -4563,8 +4571,8 @@ ssl3_HandleServerKeyExchange(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	    goto alert_loser;
 	}
 
-	peerKey = NSSVolatileDomain_ImportPublicKey(ss->vd, &keyInfo, 
-	                                            NULL, 0, 0, NULL);
+	peerKey = NSSVolatileDomain_ImportPublicKeyByInfo(ss->vd, &keyInfo, 
+	                                                  NULL, 0, 0, NULL);
     	ss->sec.peerKey = peerKey;
     	ss->ssl3->hs.ws = wait_cert_request;
 	NSSArena_Destroy(arena);
@@ -6392,6 +6400,7 @@ ssl3_HandleRSAClientKeyExchange(sslSocket *ss,
     }
 
     rv = ssl3_InitPendingCipherSpec(ss, pms);
+    NSSSymKey_Destroy(pms);
     if (rv != SECSuccess) {
 	SEND_ALERT
 	return SECFailure;	/* error code set by ssl3_InitPendingCipherSpec */
@@ -6540,7 +6549,9 @@ ssl3_SendCertificate(sslSocket *ss)
 	for (i = 0; i < numCerts; i++) {
 	    cert = NSSCertChain_GetCert(certChain, i);
 	    if (cert) {
-		if ((berCert = nssCert_GetEncoding(cert)) == NULL) {
+		berCert = nssCert_GetEncoding(cert);
+		NSSCert_Destroy(cert);
+		if (berCert == NULL) {
 		    return SECFailure;
 		}
 		len += berCert->size + 3;
@@ -6562,6 +6573,7 @@ ssl3_SendCertificate(sslSocket *ss)
 	cert = NSSCertChain_GetCert(certChain, i);
 	berCert = nssCert_GetEncoding(cert);
 	rv = ssl3_AppendHandshakeVariable(ss, berCert->data, berCert->size, 3);
+	NSSCert_Destroy(cert);
 	if (rv != SECSuccess) {
 	    return rv; 		/* err set by AppendHandshake. */
 	}
@@ -6724,6 +6736,7 @@ ssl3_HandleCertificate(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	if (status == PR_FAILURE)
 	    goto ambiguous_err;
     }
+    nss_ZFreeIf(berCert.data); /* XXX on error as well */
 
     if (remaining != 0)
         goto decode_loser;
@@ -8169,7 +8182,7 @@ ssl3_DestroySSL3Info(ssl3State *ssl3)
     if (ssl3->clientPrivateKey != NULL)
 	NSSPrivateKey_Destroy(ssl3->clientPrivateKey);
 
-    if (ssl3->peerCertArena != NULL)
+    if (ssl3->peerCertChain != NULL)
 	ssl3_CleanupPeerCerts(ssl3);
 
     if (ssl3->clientCertChain != NULL) {

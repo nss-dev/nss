@@ -50,7 +50,9 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 /* The number of object handles to grab during each call to C_FindObjects */
 #define OBJECT_STACK_SIZE 16
 
+#ifndef BITS_PER_BYTE
 #define BITS_PER_BYTE 8
+#endif
 
 struct NSSTokenStr
 {
@@ -1174,8 +1176,14 @@ nssToken_FindPublicKeyByID (
 	     */
 	    PRStatus status;
 	    NSSPublicKeyInfo keyInfo;
-	    status = nssCryptokiPublicKey_GetAttributes(rvKey, NULL, 
-	                                                &keyInfo, NULL);
+	    NSSArena *tmparena = nssArena_Create();
+	    if (tmparena) {
+		status = nssCryptokiPublicKey_GetAttributes(rvKey, tmparena, 
+		                                            &keyInfo, NULL);
+		nssArena_Destroy(tmparena);
+	    } else {
+		status = PR_FAILURE;
+	    }
 	    if (status == PR_FAILURE) {
 		nssCryptokiObject_Destroy(rvKey);
 		rvKey = NULL;
@@ -2012,9 +2020,7 @@ nssToken_DeriveSSLSessionKeys (
   nssCryptokiObject *masterSecret,
   PRUint32 keySize,
   NSSSymKeyType keyType,
-  nssCryptokiObject **rvSessionKeys, /* [4] */
-  NSSItem *rvClientIV,
-  NSSItem *rvServerIV
+  nssCryptokiObject **rvSessionKeys /* [4] */
 )
 {
     CK_RV ckrv;
@@ -2025,7 +2031,6 @@ nssToken_DeriveSSLSessionKeys (
     CK_KEY_TYPE ckKeyType = nssCK_GetSymKeyType(keyType);
     CK_ULONG ktSize;
     void *epv = nssToken_GetCryptokiEPV(token);
-    PRUint32 ivSize;
     PRUint32 i, keyNum;
 
     mechanism = nssAlgNParam_GetMechanism(ap);
@@ -2082,18 +2087,6 @@ nssToken_DeriveSSLSessionKeys (
 	    return PR_FAILURE;
 	}
 	keyNum++;
-	ivSize = kmp->ulIVSizeInBits / 8; /* XXX */
-	if (nssItem_Create(NULL, rvClientIV, ivSize, kmo->pIVClient) == NULL) {
-	    for (i=0; i<keyNum; i++) 
-		nssCryptokiObject_Destroy(rvSessionKeys[i]);
-	    return PR_FAILURE;
-	}
-	if (nssItem_Create(NULL, rvServerIV, ivSize, kmo->pIVServer) == NULL) {
-	    for (i=0; i<keyNum; i++) 
-		nssCryptokiObject_Destroy(rvSessionKeys[i]);
-	    nss_ZFreeIf(rvClientIV->data); rvClientIV->data = NULL;
-	    return PR_FAILURE;
-	}
 	return PR_SUCCESS;
     }
     return PR_FAILURE;

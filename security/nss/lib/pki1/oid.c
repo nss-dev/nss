@@ -546,6 +546,27 @@ oid_init (
   return PR_CallOnce(&oid_call_once, oid_once_func);
 }
 
+NSS_IMPLEMENT void
+nss_FreeOIDTable (
+  void
+)
+{
+  if( (PLHashTable *)NULL != oid_hash_table ) {
+    PL_HashTableDestroy(oid_hash_table);
+    oid_hash_table = (PLHashTable *)NULL;
+  }
+
+  if( (PZLock *)NULL != oid_hash_lock ) {
+    PZ_DestroyLock(oid_hash_lock);
+    oid_hash_lock = (PZLock *)NULL;
+  }
+
+  if( (NSSArena *)NULL != oid_arena ) {
+    (void)nssArena_Destroy(oid_arena);
+    oid_arena = (NSSArena *)NULL;
+  }
+}
+
 /*
  * oid_sanity_check_ber
  *

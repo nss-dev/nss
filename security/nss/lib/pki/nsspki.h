@@ -1353,9 +1353,7 @@ nssSymKey_DeriveSSLSessionKeys (
   const NSSAlgNParam *ap,
   PRUint32 keySize,
   NSSSymKeyType keyType,
-  NSSSymKey **rvSessionKeys,
-  NSSItem *rvClientIV,
-  NSSItem *rvServerIV
+  NSSSymKey **rvSessionKeys
 );
 
 /*
@@ -1682,7 +1680,7 @@ NSSTrustDomain_ImportEncodedPublicKey (
 );
 
 NSS_EXTERN NSSPublicKey *
-NSSTrustDomain_ImportPublicKey (
+NSSTrustDomain_ImportPublicKeyByInfo (
   NSSTrustDomain *td,
   NSSPublicKeyInfo *keyInfo,
   NSSUTF8 *nicknameOpt,

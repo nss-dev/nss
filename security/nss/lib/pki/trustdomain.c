@@ -748,6 +748,7 @@ nssTrustDomain_FindCertsBySubject (
 	                                                   numRemaining,
 	                                                   &status);
 	    nssToken_Destroy(token);
+	    nssSession_Destroy(session);
 	    if (status != PR_SUCCESS) {
 		goto loser;
 	    }

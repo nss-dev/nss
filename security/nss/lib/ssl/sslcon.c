@@ -3522,6 +3522,7 @@ ssl2_HandleClientHelloMessage(sslSocket *ss)
 	    ss->sec.ci.sid->version  = ss->version;
 	}
 	ssl_ReleaseRecvBufLock(ss);
+	NSSCert_Destroy(serverCert);
 	return rv;
     }
     /* Previously, there was a test here to see if SSL2 was enabled.
@@ -3682,7 +3683,7 @@ ssl2_HandleClientHelloMessage(sslSocket *ss)
     if (ss->sec.localCert) {
 	NSSCert_Destroy(ss->sec.localCert);
     }
-    ss->sec.localCert     = nssCert_AddRef(serverCert);
+    ss->sec.localCert     = serverCert;
 
     /* Build up final list of required elements */
     ss->sec.ci.requiredElements = CIS_HAVE_MASTER_KEY | CIS_HAVE_FINISHED;
@@ -3759,6 +3760,7 @@ ssl2_HandleClientHelloMessage(sslSocket *ss)
     /* FALLTHROUGH */
 
   loser:
+    NSSCert_Destroy(serverCert);
     if (gotXmitBufLock) {
     	ssl_ReleaseXmitBufLock(ss); gotXmitBufLock = 0;
     }

@@ -95,7 +95,6 @@ decode_me(NSSPKIXExtensions *extensions)
 static PRStatus
 count_me(NSSPKIXExtensions *extensions)
 {
-    extensions->count = 0;
     if (!extensions->extensions) {
 	if (NSSITEM_IS_EMPTY(&extensions->der)) {
 	    return 0; /* there are none */
@@ -104,7 +103,13 @@ count_me(NSSPKIXExtensions *extensions)
 	    return PR_FAILURE;
 	}
     }
-    while (extensions->extensions[++extensions->count]);
+    for (extensions->count = 0;
+         extensions->extensions[extensions->count];
+         extensions->count++)
+    {
+	nssPKIXExtension_SetArena(extensions->extensions[extensions->count], 
+	                          extensions->arena);
+    }
     return extensions->count;
 }
 
