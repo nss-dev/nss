@@ -36,56 +36,50 @@ endif
 
 SIMPLE_PROGRAMS	= tests/lots$(BIN_SUFFIX)
 
-_CSRCS		= \
-		db.c \
-		h_bigkey.c \
-		h_func.c \
-		h_log2.c \
-		h_page.c \
-		hash.c \
-		hash_buf.c \
-		hsearch.c \
-		mktemp.c \
-		ndbm.c \
-		strerror.c \
-		nsres.c \
+LIB_CSRCS	= \
+		src/db.c \
+		src/h_bigkey.c \
+		src/h_func.c \
+		src/h_log2.c \
+		src/h_page.c \
+		src/hash.c \
+		src/hash_buf.c \
+		src/hsearch.c \
+		src/mktemp.c \
+		src/ndbm.c \
+		src/strerror.c \
+		src/nsres.c \
 		$(NULL)
 
 ifeq ($(OS_ARCH),WINNT)
-_CSRCS		+= memmove.c snprintf.c
+LIB_CSRCS	+= src/memmove.c src/snprintf.c
 else
 ifeq (,$(filter -DHAVE_MEMMOVE=1,$(DEFS)))
-_CSRCS += memmove.c
+LIB_CSRCS	+= src/memmove.c
 endif
 
 ifeq (,$(filter -DHAVE_SNPRINTF=1,$(DEFS)))
-_CSRCS += snprintf.c
+LIB_CSRCS	+= src/snprintf.c
 endif
 endif # WINNT
 
-LIB_CSRCS	= $(addprefix src/,$(_CSRCS))
-
-_EXPORTS	= \
-	nsres.h \
-	cdefs.h \
-	mcom_db.h \
-	ncompat.h \
-	winfile.h \
-	$(NULL)
-
-EXPORTS	= $(addprefix include/,$(_EXPORTS))
+EXPORTS		= \
+		include/nsres.h \
+		include/cdefs.h \
+		include/mcom_db.h \
+		include/ncompat.h \
+		include/winfile.h \
+		$(NULL)
 
 LOCAL_INCLUDES	= -I$(srcdir)/include
 
 FORCE_STATIC_LIB = 1
 FORCE_USE_PIC = 1
 
+PWD		:= $(shell pwd)
 MAKE_DIRS	= $(PWD)/src $(PWD)/include $(PWD)/tests
 
 include $(topsrcdir)/config/rules.mk
-
-$(PWD)/src/ $(PWD)/include/ $(PWD)/tests/:
-	@$(MAKE_DIR)
 
 DEFINES		+= -DMEMMOVE -D__DBINTERFACE_PRIVATE $(SECURITY_FLAG)
 ifeq ($(OS_ARCH), Linux)
