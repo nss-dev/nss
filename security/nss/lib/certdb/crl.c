@@ -398,12 +398,13 @@ SEC_FindCrlByKeyOnSlot(PK11SlotInfo *slot, SECItem *crlKey, int type)
     CERTSignedCrl *crl = NULL;
     SECItem *derCrl;
     CK_OBJECT_HANDLE crlHandle;
+    char *url = NULL;
 
     if (slot) {
 	PK11_ReferenceSlot(slot);
     }
      
-    derCrl = PK11_FindCrlByName(&slot, &crlHandle, crlKey,type);
+    derCrl = PK11_FindCrlByName(&slot, &crlHandle, crlKey, type, &url);
     if (derCrl == NULL) {
 	goto loser;
     }
@@ -412,6 +413,10 @@ SEC_FindCrlByKeyOnSlot(PK11SlotInfo *slot, SECItem *crlKey, int type)
     if (crl) {
 	crl->slot = slot;
 	slot = NULL; /* adopt it */
+    }
+    if (url) {
+	crl->url = PORT_ArenaStrdup(crl->arena,url);
+	PORT_Free(url);
     }
 
 loser:
@@ -485,6 +490,9 @@ crl_storeCRL (PK11SlotInfo *slot,char *url,
 	crl = newCrl;
 	crl->slot = PK11_ReferenceSlot(slot);
 	crl->pkcs11ID = crlHandle;
+	if (url) {
+	    crl->url = PORT_ArenaStrdup(crl->arena,url);
+	}
     }
 
 done:
