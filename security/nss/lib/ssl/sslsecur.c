@@ -675,6 +675,7 @@ SSL_ConfigSecureServer(PRFileDesc *fd, CERTCertificate *cert,
 	sc->serverKey = SECKEY_CopyPrivateKey(key);
 	if (sc->serverKey == NULL)
 	    goto loser;
+	SECKEY_CacheStaticFlags(sc->serverKey);
     }
 
     if (kea == kt_rsa) {
