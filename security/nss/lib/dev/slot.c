@@ -396,7 +396,7 @@ NSS_IMPLEMENT void
 NSSSlot_SetPasswordDefaults
 (
   NSSSlot *slot,
-  PRInt32 askPasswordTimes
+  PRInt32 askPasswordTimeout
 )
 {
     slot->authInfo.askPasswordTimeout = askPasswordTimeout;
@@ -464,6 +464,7 @@ NSSSlot_CreateSession
 	    } else {
 		nss_ZFreeIf(rvSession);
 	    }
+	    return (nssSession *)NULL;
 	}
     }
     rvSession->handle = session;
