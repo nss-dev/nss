@@ -364,7 +364,7 @@ __big_return(
 	BUFHEAD *save_p;
 	uint16 *bp, len, off, save_addr;
 	char *tp;
-	char save_flags;
+	int save_flags;
 
 	bp = (uint16 *)bufp->page;
 	while (bp[ndx + 1] == PARTIAL_KEY) {
@@ -463,7 +463,7 @@ collect_data(
 {
 	register uint16 *bp;
 	BUFHEAD *save_bufp;
-	char save_flags;
+	int save_flags;
 	int mylen, totlen;
 
 	/*
