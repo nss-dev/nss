@@ -3200,9 +3200,6 @@ RemovePermSubjectNode(CERTCertificate *cert)
 	    /* if the subject had an email record, then delete it too */
 	    DeleteDBSMimeEntry(cert->dbhandle, subjectList->entry->emailAddr);
 	}
-	if ( subjectList->entry->nickname ) {
-	    DeleteDBNicknameEntry(cert->dbhandle, subjectList->entry->nickname);
-	}
 	
 	DestroyDBEntry((certDBEntry *)subjectList->entry);
 	subjectList->entry = NULL;
@@ -3221,12 +3218,11 @@ AddPermSubjectNode(CERTCertificate *cert, char *nickname)
     CERTSubjectList *subjectList;
     certDBEntrySubject *entry;
     SECItem *newCertKeys, *newKeyIDs;
-    int i, new_i;
+    int i;
     SECStatus rv;
     CERTCertificate *cmpcert;
     unsigned int nnlen;
     int ncerts;
-    PRBool added = PR_FALSE;
     
     subjectList = cert->subjectList;
     
@@ -3268,32 +3264,27 @@ AddPermSubjectNode(CERTCertificate *cert, char *nickname)
 	    return(SECFailure);
 	}
 
-	for ( i = 0, new_i = 0; i < ncerts; i++ ) {
+	for ( i = 0; i < ncerts; i++ ) {
 	    cmpcert = CERT_FindCertByKeyNoLocking(cert->dbhandle,
 						  &entry->certKeys[i]);
 	    PORT_Assert(cmpcert);
-	    /* The entry has been corrupted, remove it from the list */
-	    if (!cmpcert) {
-		continue;
-	    }
 	    
 	    if ( CERT_IsNewer(cert, cmpcert) ) {
 		/* insert before cmpcert */
-		rv = SECITEM_CopyItem(entry->common.arena, &newCertKeys[new_i],
+		rv = SECITEM_CopyItem(entry->common.arena, &newCertKeys[i],
 				      &cert->certKey);
 		if ( rv != SECSuccess ) {
 		    return(SECFailure);
 		}
-		rv = SECITEM_CopyItem(entry->common.arena, &newKeyIDs[new_i],
+		rv = SECITEM_CopyItem(entry->common.arena, &newKeyIDs[i],
 				      &cert->subjectKeyID);
 		if ( rv != SECSuccess ) {
 		    return(SECFailure);
 		}
-		new_i++;
-		/* copy the rest of the entries */
-		for ( ; i < ncerts; i++, new_i++ ) {
-		    newCertKeys[new_i] = entry->certKeys[i];
-		    newKeyIDs[new_i] = entry->keyIDs[i];
+		/* copy the rest of the entry */
+		for ( ; i < ncerts; i++ ) {
+		    newCertKeys[i+1] = entry->certKeys[i];
+		    newKeyIDs[i+1] = entry->keyIDs[i];
 		}
 
 		/* update certKeys and keyIDs */
@@ -3301,36 +3292,33 @@ AddPermSubjectNode(CERTCertificate *cert, char *nickname)
 		entry->keyIDs = newKeyIDs;
 		
 		/* increment count */
-		entry->ncerts = new_i;
-		added = PR_TRUE;
+		entry->ncerts++;
 		break;
 	    }
 	    /* copy this cert entry */
-	    newCertKeys[new_i] = entry->certKeys[i];
-	    newKeyIDs[new_i] = entry->keyIDs[i];
-	    new_i++;
+	    newCertKeys[i] = entry->certKeys[i];
+	    newKeyIDs[i] = entry->keyIDs[i];
 	}
 
-	if ( !added ) {
+	if ( entry->ncerts == ncerts ) {
 	    /* insert new one at end */
-	    rv = SECITEM_CopyItem(entry->common.arena, &newCertKeys[new_i],
+	    rv = SECITEM_CopyItem(entry->common.arena, &newCertKeys[ncerts],
 				  &cert->certKey);
 	    if ( rv != SECSuccess ) {
 		return(SECFailure);
 	    }
-	    rv = SECITEM_CopyItem(entry->common.arena, &newKeyIDs[new_i],
+	    rv = SECITEM_CopyItem(entry->common.arena, &newKeyIDs[ncerts],
 				  &cert->subjectKeyID);
 	    if ( rv != SECSuccess ) {
 		return(SECFailure);
 	    }
-	    new_i++;
 
 	    /* update certKeys and keyIDs */
 	    entry->certKeys = newCertKeys;
 	    entry->keyIDs = newKeyIDs;
 		
 	    /* increment count */
-	    entry->ncerts = new_i;
+	    entry->ncerts++;
 	}
     } else {
 	/* need to make a new DB entry */
@@ -3369,7 +3357,6 @@ __CERT_TraversePermCertsForSubject(CERTCertDBHandle *handle,
     
     for( i = 0; i < entry->ncerts; i++ ) {
 	cert = CERT_FindCertByKey(handle, &entry->certKeys[i]);
-	if (!cert) continue;
 	rv = (* cb)(cert, cbarg);
 	CERT_DestroyCertificate(cert);
 	if ( rv == SECFailure ) {
@@ -3618,9 +3605,14 @@ CERT_AddPermNickname(CERTCertificate *cert, char *nickname)
     
     CERT_LockDB(cert->dbhandle);
     
+    PORT_Assert(cert->nickname == NULL);
     PORT_Assert(cert->isperm);
     PORT_Assert(cert->subjectList != NULL);
     PORT_Assert(cert->subjectList->entry != NULL);
+    
+    if ( cert->nickname != NULL ) {
+	goto done;
+    }
 
     if ( cert->subjectList == NULL ) {
 	goto loser;
@@ -3654,6 +3646,7 @@ CERT_AddPermNickname(CERTCertificate *cert, char *nickname)
 	}
     }
 
+done:
     CERT_UnlockDB(cert->dbhandle);
     return(SECSuccess);
 loser:
@@ -4408,7 +4401,14 @@ DeletePermCert(CERTCertificate *cert)
     if ( rv != SECSuccess ) {
 	ret = SECFailure;
     }
-
+    
+    if ( cert->nickname ) {
+	rv = DeleteDBNicknameEntry(cert->dbhandle, cert->nickname);
+	if ( rv != SECSuccess ) {
+	    ret = SECFailure;
+	}
+    }
+    
     rv = RemovePermSubjectNode(cert);
 
     return(ret);
