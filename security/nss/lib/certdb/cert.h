@@ -570,6 +570,13 @@ CERT_VerifySignedDataWithPubKeyInfo(CERTSignedData *sd,
                                     void *wincx);
 
 /*
+** verify the signature of a signed data object with a SECKEYPublicKey.
+*/
+extern SECStatus
+CERT_VerifySignedDataWithPublicKey(CERTSignedData *sd,
+                                   SECKEYPublicKey *pubKey, void *wincx);
+
+/*
 ** NEW FUNCTIONS with new bit-field-FIELD SECCertificateUsage - please use
 ** verify a certificate by checking validity times against a certain time,
 ** that we trust the issuer, and that the signature on the certificate is
