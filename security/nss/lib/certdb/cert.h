@@ -572,6 +572,16 @@ CERT_VerifyCertificateNow(CERTCertDBHandle *handle, CERTCertificate *cert,
                    void *wincx, SECCertificateUsage* returnedUsages);
 
 /*
+** Verify that a CA cert can certify some (unspecified) leaf cert for a given
+** purpose. This is used by UI code to help identify where a chain may be
+** broken and why. This takes identical parameters to CERT_VerifyCert
+*/
+extern SECStatus
+CERT_VerifyCACertForUsage(CERTCertDBHandle *handle, CERTCertificate *cert,
+		PRBool checkSig, SECCertUsage certUsage, int64 t,
+		void *wincx, CERTVerifyLog *log);
+
+/*
 ** OLD OBSOLETE FUNCTIONS with enum SECCertUsage - DO NOT USE FOR NEW CODE
 ** verify a certificate by checking validity times against a certain time,
 ** that we trust the issuer, and that the signature on the certificate is
