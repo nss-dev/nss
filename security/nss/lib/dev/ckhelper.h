@@ -63,13 +63,13 @@ PR_BEGIN_EXTERN_C
  */
 
 /* Boolean values */
-NSS_EXTERN_DATA const NSSItem g_ck_true;
-NSS_EXTERN_DATA const NSSItem g_ck_false;
+NSS_EXTERN_DATA /* const */ NSSItem g_ck_true;
+NSS_EXTERN_DATA /* const */ NSSItem g_ck_false;
 
 /* Object classes */
-NSS_EXTERN_DATA const NSSItem g_ck_class_cert;
-NSS_EXTERN_DATA const NSSItem g_ck_class_pubkey;
-NSS_EXTERN_DATA const NSSItem g_ck_class_privkey;
+NSS_EXTERN_DATA /* const */ NSSItem g_ck_class_cert;
+NSS_EXTERN_DATA /* const */ NSSItem g_ck_class_pubkey;
+NSS_EXTERN_DATA /* const */ NSSItem g_ck_class_privkey;
 
 /* NSS_CK_ATTRIBUTE_TO_ITEM(attrib, item)
  *
