@@ -5,8 +5,8 @@
 #ident	"$Id$"
 #
 
-pkginfo: pkginfo.tmpl ../awk_pkginfo
-	$(RM) $@; nawk -f ../awk_pkginfo $@.tmpl > $@
+pkginfo: pkginfo.tmpl ../awk_pkginfo-$(MACH)
+	$(RM) $@; nawk -f ../awk_pkginfo-$(MACH) $@.tmpl > $@
 
 pkg: $(PKGARCHIVE)
 	pkgmk -f prototype_$(MACH) -d $(PKGARCHIVE) -r $(ROOT) -o $(PACKAGE)
