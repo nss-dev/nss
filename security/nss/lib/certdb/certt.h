@@ -293,7 +293,7 @@ struct CERTCertificateStr {
     struct SECSocketNode *socketlist;
     int socketcount;
     struct SECSocketNode *authsocketlist;
-    int authsocketcount;
+    int series; /* was int authsocketcount; record the series of the pkcs11ID */
 
     /* This is PKCS #11 stuff. */
     PK11SlotInfo *slot;		/*if this cert came of a token, which is it*/
