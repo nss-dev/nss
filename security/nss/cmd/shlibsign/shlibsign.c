@@ -405,7 +405,9 @@ main (int argc, char **argv)
     retval = 0;
 
 loser:
-    NSS_Shutdown();
+    if (NSS_Shutdown() != SECSuccess) {
+	exit(1);
+    }
 
 prdone:
     PR_Cleanup ();
