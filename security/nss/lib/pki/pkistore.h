@@ -86,11 +86,20 @@ nssCertificateStore_Add
 );
 
 NSS_EXTERN void
-nssCertificateStore_Remove
+nssCertificateStore_RemoveCertLOCKED
 (
   nssCertificateStore *store,
-  NSSCertificate *cert,
-  PRBool force /* described in bug 171198 */
+  NSSCertificate *cert
+);
+
+NSS_EXTERN void
+nssCertificateStore_Lock (
+  nssCertificateStore *store
+);
+
+NSS_EXTERN void
+nssCertificateStore_Unlock (
+  nssCertificateStore *store
 );
 
 NSS_EXTERN NSSCertificate **
