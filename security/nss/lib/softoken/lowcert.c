@@ -288,13 +288,13 @@ nsslowcert_GetCertTimes(NSSLOWCERTCertificate *c, PRTime *notBefore, PRTime *not
     }
     
     /* convert DER not-before time */
-    rv = CERT_DecodeTimeChoice(notBefore, &validity.notBefore);
+    rv = DER_DecodeTimeChoice(notBefore, &validity.notBefore);
     if (rv) {
         return(SECFailure);
     }
     
     /* convert DER not-after time */
-    rv = CERT_DecodeTimeChoice(notAfter, &validity.notAfter);
+    rv = DER_DecodeTimeChoice(notAfter, &validity.notAfter);
     if (rv) {
         return(SECFailure);
     }

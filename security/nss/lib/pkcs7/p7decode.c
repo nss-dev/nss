@@ -1573,7 +1573,7 @@ sec_pkcs7_verify_signature(SEC_PKCS7ContentInfo *cinfo,
      */
     encoded_stime = SEC_PKCS7GetSigningTime (cinfo);
     if (encoded_stime != NULL) {
-	if (CERT_DecodeTimeChoice (&stime, encoded_stime) != SECSuccess)
+	if (DER_DecodeTimeChoice (&stime, encoded_stime) != SECSuccess)
 	    encoded_stime = NULL;	/* conversion failed, so pretend none */
     }
 
