@@ -148,8 +148,10 @@ pkix_GetEmailAddress
     return NULL;
 }
 
+#if 0
 struct nss_pkix_issuer_id_str {
 };
+#endif
 
 static void *
 pkix_GetIssuerIdentifier
@@ -330,8 +332,10 @@ pkix_GetPolicies
     return NULL;
 }
 
+#if 0
 struct nss_pkix_validation_data_str {
 };
+#endif
 
 static void *
 pkix_StartChainValidation

@@ -1450,7 +1450,7 @@ sec_asn1e_encode_item_store (void *arg, const char *buf, unsigned long len,
     PORT_Assert (dest != NULL);
 
 #ifdef STAN_BUILD
-    PORT_Memcpy (dest->data + dest->size, (void *)buf, len);
+    PORT_Memcpy ((unsigned char *)dest->data + dest->size, (void *)buf, len);
     dest->size += len;
 #else
     PORT_Memcpy (dest->data + dest->len, buf, len);

@@ -43,7 +43,9 @@ EXPORTS = \
 
 MODULE = security
 
-CSRCS = \
+CSRCS = $(NULL)
+
+NO_CSRCS = \
 	p12local.c \
 	p12creat.c \
 	p12dec.c \
@@ -55,4 +57,4 @@ CSRCS = \
 
 REQUIRES = security dbm
 
-LIBRARY_NAME = pkcs12
+#LIBRARY_NAME = pkcs12

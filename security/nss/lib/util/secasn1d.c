@@ -1103,7 +1103,8 @@ regular_string_type:
 	    for (subitem = state->subitems_head;
 		 subitem != NULL; subitem = subitem->next) {
 #ifdef STAN_BUILD
-		PORT_Memcpy (item->data + len, (void *)subitem->data, subitem->len);
+		PORT_Memcpy ((unsigned char*)item->data + len, 
+                             (void *)subitem->data, subitem->len);
 #else
 		PORT_Memcpy (item->data + len, subitem->data, subitem->len);
 #endif
@@ -1392,7 +1393,8 @@ sec_asn1d_parse_leaf (sec_asn1d_state *state,
 	}
 #endif
 #ifdef STAN_BUILD
-	PORT_Memcpy (item->data + item->size, (void *)buf, len);
+	PORT_Memcpy ((unsigned char *)item->data + item->size, 
+                     (void *)buf, len);
 	item->size += len;
 #else
 	PORT_Memcpy (item->data + item->len, buf, len);
@@ -1531,7 +1533,8 @@ sec_asn1d_record_any_header (sec_asn1d_state *state,
     if (item != NULL && item->data != NULL) {
 	PORT_Assert (state->substring);
 #ifdef STAN_BUILD
-	PORT_Memcpy (item->data + item->size, (void *)buf, len);
+	PORT_Memcpy ((unsigned char *)item->data + item->size, 
+                     (void *)buf, len);
 	item->size += len;
 #else
 	PORT_Memcpy (item->data + item->len, buf, len);

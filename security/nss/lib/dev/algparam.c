@@ -701,6 +701,7 @@ nssAlgorithmAndParameters_SetTemplateValues
 	}
 	break;
     default:
+	break;
     }
     return attr - aTemplate;
 }

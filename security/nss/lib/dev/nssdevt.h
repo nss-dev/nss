@@ -396,10 +396,12 @@ typedef PRUint32 NSSHMACParameters; /* length in bytes of desired output */
  * Key derivation
  */
 
+#if 0
 typedef struct NSSKeyDerivationParametersStr
 {
 }
 NSSKeyDerivationParameters;
+#endif
 
 /*
  * PBE key generation

@@ -69,7 +69,7 @@ NO_CSRCS = \
 
 REQUIRES = security dbm
 
-LIBRARY_NAME = pk11wrap
+#LIBRARY_NAME = pk11wrap
 
 # only add module debugging in opt builds if DEBUG_PKCS11 is set
 ifdef DEBUG_PKCS11

@@ -31,6 +31,21 @@
 # GPL.
 #
 
+# can't do this in manifest.mn because OS_ARCH isn't defined there.
+ifeq ($(OS_ARCH), WINNT)
+
+# $(PROGRAM) has explicit dependencies on $(EXTRA_LIBS)
+EXTRA_LIBS += \
+	$(DIST)/lib/cmdutil.lib \
+	$(DIST)/lib/nsspkix4.lib \
+	$(DIST)/lib/nss4.lib \
+	$(DIST)/lib/$(NSPR31_LIB_PREFIX)plc4.lib \
+	$(DIST)/lib/$(NSPR31_LIB_PREFIX)plds4.lib \
+	$(DIST)/lib/$(NSPR31_LIB_PREFIX)nspr4.lib \
+	$(NULL)
+
+else
+
 # $(PROGRAM) has explicit dependencies on $(EXTRA_LIBS)
 EXTRA_LIBS += \
 	$(DIST)/lib/libcmdutil.$(LIB_SUFFIX) \
@@ -51,4 +66,6 @@ EXTRA_SHARED_LIBS += \
 	-lplds4 \
 	-lnspr4 \
 	$(NULL)
+
+endif
 

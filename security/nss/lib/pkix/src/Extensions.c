@@ -375,7 +375,7 @@ nssPKIXExtensions_GetBasicConstraints
     if (extensions->count == 0) {
 	count_me(extensions);
 	if (extensions->count < 0) {
-	    return (NSSPKIXKeyUsage *)NULL;
+	    return (NSSPKIXBasicConstraints *)NULL;
 	}
     }
     extns = extensions->extensions;
@@ -451,8 +451,8 @@ nssPKIXExtensions_GetNetscapeCertType
 	    if (extns[i]->extnData) {
 		return (NSSPKIXnetscapeCertType *)extns[i]->extnData;
 	    }
-	    rv = nssPKIXKeyUsage_Decode(extns[i]->arena,
-	                                &extns[i]->extnValue);
+	    rv = nssPKIXnetscapeCertType_Decode(extns[i]->arena,
+	                                        &extns[i]->extnValue);
 	    if (rv) {
 		extns[i]->extnData = (void *)rv;
 	    }

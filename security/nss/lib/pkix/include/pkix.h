@@ -25928,6 +25928,27 @@ nssPKIXIssuingDistributionPoint_verifyPointer
 
 #endif /* nodef */
 
+/* XXX extension - move later */
+NSS_EXTERN PRStatus
+nssPKIXExtension_Destroy
+(
+  NSSPKIXExtension *extension
+);
+
+/* XXX extensions - move later */
+NSS_EXTERN PRStatus
+nssPKIXExtensions_Destroy
+(
+  NSSPKIXExtensions *extensions
+);
+
+/* XXX netscapeCertType - move later */
+NSS_EXTERN PRStatus
+nssPKIXnetscapeCertType_Destroy
+(
+  NSSPKIXnetscapeCertType *nsCertType
+);
+
 PR_END_EXTERN_C
 
 #endif /* NSSPKIX_H */

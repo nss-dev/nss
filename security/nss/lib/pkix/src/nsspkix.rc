@@ -38,6 +38,9 @@
 #define PKIX_VPATCH 0
 #define PKIX_BETA 1
 
+/* XXX */
+#define PKIX_VERSION "4.0 Preview"
+
 #define MY_LIBNAME "pkix"
 #define MY_FILEDESCRIPTION "NSS PKIX Library"
 
@@ -64,7 +67,7 @@
 #define MY_FILEOS VOS__WINDOWS32
 #endif
 
-#define MY_INTERNAL_NAME MY_LIBNAME NSS_VMAJOR_STR
+#define MY_INTERNAL_NAME MY_LIBNAME PKIX_VMAJOR_STR
 
 /////////////////////////////////////////////////////////////////////////////
 //

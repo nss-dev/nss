@@ -36,44 +36,44 @@ RELEASE_LIBS = $(TARGETS)
 ifeq (,$(filter-out WIN%,$(OS_TARGET)))
 
 # don't want the 32 in the shared library name
-SHARED_LIBRARY = $(OBJDIR)/$(LIBRARY_NAME)$(LIBRARY_VERSION).dll
-IMPORT_LIBRARY = $(OBJDIR)/$(LIBRARY_NAME)$(LIBRARY_VERSION).lib
+#SHARED_LIBRARY = $(OBJDIR)/$(LIBRARY_NAME)$(LIBRARY_VERSION).dll
+#IMPORT_LIBRARY = $(OBJDIR)/$(LIBRARY_NAME)$(LIBRARY_VERSION).lib
 
-RES = $(OBJDIR)/smime.res
-RESNAME = smime.rc
+#RES = $(OBJDIR)/smime.res
+#RESNAME = smime.rc
 
-EXTRA_SHARED_LIBS += \
-	$(DIST)/lib/nss3.lib \
-	$(DIST)/lib/$(NSPR31_LIB_PREFIX)plc4.lib \
-	$(DIST)/lib/$(NSPR31_LIB_PREFIX)plds4.lib \
-	$(DIST)/lib/$(NSPR31_LIB_PREFIX)nspr4.lib \
-	$(NULL)
+#EXTRA_SHARED_LIBS += \
+#	$(DIST)/lib/nss3.lib \
+#	$(DIST)/lib/$(NSPR31_LIB_PREFIX)plc4.lib \
+#	$(DIST)/lib/$(NSPR31_LIB_PREFIX)plds4.lib \
+#	$(DIST)/lib/$(NSPR31_LIB_PREFIX)nspr4.lib \
+#	$(NULL)
 
 else
 
-EXTRA_SHARED_LIBS += \
-	-L$(DIST)/lib/ \
-	-lnss3 \
-	-lplc4 \
-	-lplds4 \
-	-lnspr4 \
-	$(NULL)
+#EXTRA_SHARED_LIBS += \
+#	-L$(DIST)/lib/ \
+#	-lnss3 \
+#	-lplc4 \
+#	-lplds4 \
+#	-lnspr4 \
+#	$(NULL)
 
 ifeq ($(OS_ARCH), Darwin)
-EXTRA_SHARED_LIBS += -dylib_file @executable_path/libsoftokn3.dylib:$(DIST)/lib/libsoftokn3.dylib
+#EXTRA_SHARED_LIBS += -dylib_file @executable_path/libsoftokn3.dylib:$(DIST)/lib/libsoftokn3.dylib
 endif
 
 endif
 
 
-SHARED_LIBRARY_LIBS = \
-	$(DIST)/lib/$(LIB_PREFIX)pkcs12.$(LIB_SUFFIX) \
-	$(DIST)/lib/$(LIB_PREFIX)pkcs7.$(LIB_SUFFIX) \
-	$(NULL)
+#SHARED_LIBRARY_LIBS = \
+#	$(DIST)/lib/$(LIB_PREFIX)pkcs12.$(LIB_SUFFIX) \
+#	$(DIST)/lib/$(LIB_PREFIX)pkcs7.$(LIB_SUFFIX) \
+#	$(NULL)
 
-SHARED_LIBRARY_DIRS = \
-	../pkcs12 \
-	../pkcs7 \
-	$(NULL)
+#SHARED_LIBRARY_DIRS = \
+#	../pkcs12 \
+#	../pkcs7 \
+#	$(NULL)
 
 

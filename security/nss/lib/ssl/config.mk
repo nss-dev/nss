@@ -34,37 +34,37 @@
 ifeq (,$(filter-out WIN%,$(OS_TARGET)))
 
 # don't want the 32 in the shared library name
-SHARED_LIBRARY = $(OBJDIR)/$(LIBRARY_NAME)$(LIBRARY_VERSION).dll
-IMPORT_LIBRARY = $(OBJDIR)/$(LIBRARY_NAME)$(LIBRARY_VERSION).lib
+#SHARED_LIBRARY = $(OBJDIR)/$(LIBRARY_NAME)$(LIBRARY_VERSION).dll
+#IMPORT_LIBRARY = $(OBJDIR)/$(LIBRARY_NAME)$(LIBRARY_VERSION).lib
 
-RES = $(OBJDIR)/ssl.res
-RESNAME = ssl.rc
+#RES = $(OBJDIR)/ssl.res
+#RESNAME = ssl.rc
 
-EXTRA_SHARED_LIBS += \
+#EXTRA_SHARED_LIBS += \
 	$(DIST)/lib/nss3.lib \
-	$(DIST)/lib/$(NSPR31_LIB_PREFIX)plc4.lib \
-	$(DIST)/lib/$(NSPR31_LIB_PREFIX)plds4.lib \
-	$(DIST)/lib/$(NSPR31_LIB_PREFIX)nspr4.lib \
-	$(NULL)
+#	$(DIST)/lib/$(NSPR31_LIB_PREFIX)plc4.lib \
+#	$(DIST)/lib/$(NSPR31_LIB_PREFIX)plds4.lib \
+#	$(DIST)/lib/$(NSPR31_LIB_PREFIX)nspr4.lib \
+#	$(NULL)
 else
 
 
 # $(PROGRAM) has NO explicit dependencies on $(EXTRA_SHARED_LIBS)
 # $(EXTRA_SHARED_LIBS) come before $(OS_LIBS), except on AIX.
-EXTRA_SHARED_LIBS += \
-	-L$(DIST)/lib/ \
-	-lnss3 \
-	-lplc4 \
-	-lplds4 \
-	-lnspr4 \
-	$(NULL)
+#EXTRA_SHARED_LIBS += \
+#	-L$(DIST)/lib/ \
+#	-lnss3 \
+#	-lplc4 \
+#	-lplds4 \
+#	-lnspr4 \
+#	$(NULL)
 
 ifeq ($(OS_ARCH), BeOS)
 EXTRA_SHARED_LIBS += -lbe
 endif
 
 ifeq ($(OS_ARCH), Darwin)
-EXTRA_SHARED_LIBS += -dylib_file @executable_path/libsoftokn3.dylib:$(DIST)/lib/libsoftokn3.dylib
+#EXTRA_SHARED_LIBS += -dylib_file @executable_path/libsoftokn3.dylib:$(DIST)/lib/libsoftokn3.dylib
 endif
 
 endif

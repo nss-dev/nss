@@ -36,7 +36,7 @@ MODULE = security
 
 REQUIRES = dbm
 
-LIBRARY_NAME = cryptohi
+# LIBRARY_NAME = cryptohi
 
 EXPORTS = \
 	cryptohi.h \

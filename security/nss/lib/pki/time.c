@@ -35,6 +35,8 @@
 static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #endif /* DEBUG */
 
+#include <time.h>
+
 #ifndef PKIM_H
 #include "pkim.h"
 #endif /* PKIM_H */

@@ -59,4 +59,4 @@ NO_CSRCS = \
 
 REQUIRES = security dbm
 
-LIBRARY_NAME = pkcs7
+# LIBRARY_NAME = pkcs7

@@ -39,8 +39,10 @@ static const char CVS_ID[] = "@(#) $Source$ $Revision$ $Date$ $Name$";
 #include "../include/pkixm.h"
 #endif /* PKIXM_H */
 
-/* XXX */
-#include "asn1.h"
+/* XXX this should pull the template from a common file */
+static const nssASN1Template nssASN1Template_BitString[] = {
+    { NSSASN1_BIT_STRING | NSSASN1_MAY_STREAM, 0, NULL, sizeof(NSSItem) }
+};
 
 struct NSSPKIXnetscapeCertTypeStr {
   NSSArena *arena;

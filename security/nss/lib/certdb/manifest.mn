@@ -64,5 +64,5 @@ NO_CSRCS = \
 
 REQUIRES = security dbm
 
-LIBRARY_NAME = certdb
+#LIBRARY_NAME = certdb
 

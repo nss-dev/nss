@@ -39,7 +39,6 @@ REQUIRES = security nspr libdbm
 DIRS =            \
 	cmdlib    \
 	pkiutil   \
-	nssutil   \
  $(NULL)
 
 TEMPORARILY_DONT_BUILD = \

@@ -48,8 +48,8 @@ EXPORTS = \
 	preenc.h \
 	$(NULL)
 
-MODULE = security
-MAPFILE = $(OBJDIR)/ssl.def
+#MODULE = security
+#MAPFILE = $(OBJDIR)/ssl.def
 
 CSRCS = $(NULL)
 
