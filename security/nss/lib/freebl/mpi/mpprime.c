@@ -295,36 +295,31 @@ mp_err  mpp_pprime(mp_int *a, int nt)
 {
   mp_err   res;
   mp_int   x, amo, m, z;	/* "amo" = "a minus one" */
-  int      iter, jx, b;
+  int      iter, jx;
+  mp_size  b;
 
   ARGCHK(a != NULL, MP_BADARG);
 
-  /* Initialize temporaries... */
-  if((res = mp_init(&amo)) != MP_OKAY)
-    return res;
-  /* Compute amo = a - 1 for what follows...    */
-  if ((res = mp_sub_d(a, 1, &amo)) != MP_OKAY)
-    goto X;
+  MP_DIGITS(&x) = 0;
+  MP_DIGITS(&amo) = 0;
+  MP_DIGITS(&m) = 0;
+  MP_DIGITS(&z) = 0;
 
-  /* How many times does 2 divide (a - 1)?    */
-  for (b = 0; (res = mpl_get_bit(&amo, b)) == 0; ++b) {
-    /* do nothing */
-  }
-  if (res < 0)
-    goto X;
+  /* Initialize temporaries... */
+  MP_CHECKOK( mp_init(&amo));
+  /* Compute amo = a - 1 for what follows...    */
+  MP_CHECKOK( mp_sub_d(a, 1, &amo) );
+
+  b = mp_trailing_zeros(&amo);
   if (!b) { /* a was even ? */
     res = MP_NO;
-    goto X;
+    goto CLEANUP;
   }
 
-  if((res = mp_init_size(&x, USED(a))) != MP_OKAY)
-    goto X;
-  if((res = mp_init(&z)) != MP_OKAY)
-    goto Z;
-  if ((res = mp_init(&m)) != MP_OKAY)
-    goto M;
-  if ((res = mp_div_2d(&amo, b, &m, 0)) != MP_OKAY)
-    goto CLEANUP;
+  MP_CHECKOK( mp_init_size(&x, MP_USED(a)) );
+  MP_CHECKOK( mp_init(&z) );
+  MP_CHECKOK( mp_init(&m) );
+  MP_CHECKOK( mp_div_2d(&amo, b, &m, 0) );
 
   /* Do the test nt times... */
   for(iter = 0; iter < nt; iter++) {
@@ -332,23 +327,21 @@ mp_err  mpp_pprime(mp_int *a, int nt)
     /* Choose a random value for x < a          */
     s_mp_pad(&x, USED(a));
     mpp_random(&x);
-    if((res = mp_mod(&x, a, &x)) != MP_OKAY)
-      goto CLEANUP;
+    MP_CHECKOK( mp_mod(&x, a, &x) );
 
     /* Compute z = (x ** m) mod a               */
-    if((res = mp_exptmod(&x, &m, a, &z)) != MP_OKAY)
-      goto CLEANUP;
+    MP_CHECKOK( mp_exptmod(&x, &m, a, &z) );
     
     if(mp_cmp_d(&z, 1) == 0 || mp_cmp(&z, &amo) == 0) {
       res = MP_YES;
       continue;
     }
     
+    res = MP_NO;  /* just in case the following for loop never executes. */
     for (jx = 1; jx < b; jx++) {
       /* z = z^2 (mod a) */
-      if((res = mp_sqrmod(&z, a, &z)) != MP_OKAY)
-	goto CLEANUP;
-	
+      MP_CHECKOK( mp_sqrmod(&z, a, &z) );
+
       if(mp_cmp_d(&z, 1) == 0) {
 	res = MP_NO;
 	break;
@@ -371,11 +364,8 @@ mp_err  mpp_pprime(mp_int *a, int nt)
   
 CLEANUP:
   mp_clear(&m);
-M:
   mp_clear(&z);
-Z:
   mp_clear(&x);
-X:
   mp_clear(&amo);
   return res;
 
@@ -422,6 +412,8 @@ mp_err mpp_sieve(mp_int *trial, const mp_digit *primes, mp_size nPrimes,
   return MP_OKAY;
 }
 
+#define SIEVE_SIZE 32*1024
+
 mp_err mpp_make_prime(mp_int *start, mp_size nBits, mp_size strong,
 		      unsigned long * nTries)
 {
@@ -431,7 +423,19 @@ mp_err mpp_make_prime(mp_int *start, mp_size nBits, mp_size strong,
   mp_int        trial;
   mp_int        q;
   mp_size       num_tests;
-  unsigned char sieve[32*1024];
+  /*
+   * Always make sieve the last variabale allocated so that 
+   * Mac builds don't break by adding an extra variable
+   * on the stack. -javi
+   */
+#ifdef macintosh
+  unsigned char *sieve;
+  
+  sieve = malloc(SIEVE_SIZE);
+  ARGCHK(sieve != NULL, MP_MEM);
+#else
+  unsigned char sieve[SIEVE_SIZE];
+#endif  
 
   ARGCHK(start != 0, MP_BADARG);
   ARGCHK(nBits > 16, MP_RANGE);
@@ -548,6 +552,12 @@ CLEANUP:
   mp_clear(&trial);
   if (nTries)
     *nTries += i;
+#ifdef macintosh
+  if (sieve != NULL) {
+  	memset(sieve, 0, SIEVE_SIZE);
+  	free (sieve);
+  }
+#endif    
   return res;
 }
 

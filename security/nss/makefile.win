@@ -74,7 +74,11 @@ GMAKE_FLAGS = $(GMAKE_FLAGS) USE_DEBUG_RTL=1
 
 all:: export libs install
 
-export libs install clobber clobber_all clean depend::
+install:: moz_import
+
+depend::
+
+export libs install clobber clobber_all clean::
 !if "$(MOZ_BITS)" == "16"
 	set PATH=%WATCPATH%
 	set INCLUDE=%WATC_INC%
