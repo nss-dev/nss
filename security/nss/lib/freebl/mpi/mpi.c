@@ -3144,7 +3144,7 @@ mp_err   s_mp_norm(mp_int *a, mp_int *b, mp_digit *pd)
   d = 0;
   mask  = DIGIT_MAX & ~(DIGIT_MAX >> 1);	/* mask is msb of digit */
   b_msd = DIGIT(b, USED(b) - 1);
-  while ((b_msd & mask) == 0) {
+  while (!(b_msd & mask)) {
     b_msd <<= 1;
     ++d;
   }
