@@ -47,18 +47,17 @@ endif
 NSS_CONFIGURE := ../configure \
 		--with-mozilla \
 		--disable-cmd \
-		--with-dist-prefix=$(MOZ_DIST_FLIPPED) \
-		--with-dist-bindir=$(MOZ_DIST_FLIPPED)/$(MOZ_OBJDIR)/bin \
-		--with-dist-libdir=$(MOZ_DIST_FLIPPED)/$(MOZ_OBJDIR)/lib
+		--with-dist-prefix=$(MOZ_DIST_FLIPPED)/$(MOZ_OBJDIR)
 
 ifeq (,$(MOZ_DEBUG))
 NSS_CONFIGURE := $(NSS_CONFIGURE) --enable-optimize --disable-debug
 endif
 
+GMAKE_FLAGS := $(GMAKE_FLAGS) SOURCE_XP_DIR=$(MOZ_DIST_FLIPPED)
+
 define MAKE_OBJDIR
 if test ! -d $(@D) ; then rm -rf $(@D) ; nsinstall -D $(@D) ; fi
 endef
-
 
 all:: export libs install
 
@@ -66,25 +65,17 @@ all:: export libs install
 # Furthermore, shmsdos doesn't support '&&' so there's a chance the
 # 'cd' could fail and configure would be run in the wrong dir
 #
-$(MOZ_OBJDIR)/config.status: configure configure.in
+$(MOZ_OBJDIR)/config.status: gmakefile.win configure configure.in ..\coreconf\autoconf.mk.in
 	@$(MAKE_OBJDIR) 
-	cd $(MOZ_OBJDIR)/ ; \
-		sh $(NSS_CONFIGURE)
+	cd $(MOZ_OBJDIR)/ ; sh $(NSS_CONFIGURE)
 
-export:: $(MOZ_OBJDIR)/config.status
-	gmake $(GMAKE_FLAGS) -C $(MOZ_OBJDIR)/lib $@
-libs:: $(MOZ_OBJDIR)/config.status
-	gmake $(GMAKE_FLAGS) -C $(MOZ_OBJDIR)/lib $@
-install:: $(MOZ_OBJDIR)/config.status
-	gmake $(GMAKE_FLAGS) -C $(MOZ_OBJDIR)/lib $@
-clean:: $(MOZ_OBJDIR)/config.status
-	gmake $(GMAKE_FLAGS) -C $(MOZ_OBJDIR)/lib $@
-clobber:: $(MOZ_OBJDIR)/config.status
-	gmake $(GMAKE_FLAGS) -C $(MOZ_OBJDIR)/lib $@
-clobber_all:: $(MOZ_OBJDIR)/config.status
-	gmake $(GMAKE_FLAGS) -C $(MOZ_OBJDIR)/lib $@
+libs install export: $(MOZ_OBJDIR)/config.status
+	gmake $(GMAKE_FLAGS) -C $(MOZ_OBJDIR) $@
 
-###export libs install clobber clobber_all clean::
-distclean:
+clean clobber clobber_all:
+	rm -rf $(MOZ_OBJDIR)
+
+ distclean:
 	rm -rf WIN32_D.OBJ WIN32_O.OBJ
+
 

@@ -574,19 +574,15 @@ case "$target" in
     AC_DEFINE(WIN32)
     AC_DEFINE(_WINDOWS)
 
-    if test -n "$MOZILLA_CLIENT"; then
-        CFLAGS="$CFLAGS -I\$(SOURCE_XP_DIR)/include"
-    fi
-
     AWK=awk
     PERL=perl
     XARGS=xargs
-    NSPR_CFLAGS='-I$(DIST)/include/nspr'
 
     CC=cl
-    CCC=cl
-    LINK=link
+    CXX=cl
+    LD=link
     AR='lib -NOLOGO -OUT:"$@"'
+    AR_FLAGS=
     RANLIB=echo
     BSDECHO=echo
     AS=ml.exe
@@ -609,6 +605,47 @@ case "$target" in
         CFLAGS="$CFLAGS -MD"
         _OPTIMIZE_FLAGS=-O2
     fi
+    if test -n "$MOZILLA_CLIENT"; then
+        CFLAGS="$CFLAGS -I\$(SOURCE_XP_DIR)/include"
+    fi
+    NSPR_CFLAGS='-I$(SOURCE_XP_DIR)/include/nspr'
+    if test -n "$MOZILLA_CLIENT"; then
+        DBM_LIBS="\${DIST}/lib/dbm.\${LIB_SUFFIX}"
+        NSPR_LIBS="\${DIST}/lib/plc4.\${LIB_SUFFIX} \${DIST}/lib/plds4.\${LIB_SUFFIX} \${DIST}/lib/nspr4.\${LIB_SUFFIX}"
+    fi
+
+    PROCESSOR=`uname -p`
+    case "${PROCESSOR}" in
+    I386)
+        AC_DEFINE(_X86_)
+        CFLAGS="$CFLAGS -W3 -nologo"
+        CPU_ARCH=x386
+        ;;
+    MIPS)
+        AC_DEFINE(_MIPS_)
+        CFLAGS="$CFLAGS -W3 -nologo"
+        CPU_ARCH=MIPS
+        ;;
+    ALPHA)
+        AC_DEFINE(_ALPHA_)
+        CFLAGS="$CFLAGS -W3 -nologo"
+        CPU_ARCH=ALPHA
+        ;;
+    *)
+        CPU_ARCH='processor_is_undefined'
+    esac
+
+    case "${OS_TARGET}" in
+    WIN95)
+        AC_DEFINE(WIN95)
+        DLLFLAGS="$DLLFLAGS -nologo -DLL -SUBSYSTEM:WINDOWS -PDB:NONE"
+        ;;
+    WINNT)
+        AC_DEFINE(WINNT)
+        CFLAGS="CFLAGS -GT"
+        DLLFLAGS="$DLLFLAGS -nologo -DLL -PDB:NONE -SUBSYSTEM:WINDOWS"
+        ;;
+    esac
     ;;
 
 *-irix*)

@@ -93,6 +93,7 @@ include $(CORECONF_SOURCE)/rules.mk
 
 moz_import::
 ifeq ($(OS_ARCH),WINNT)
+ifeq (0,1)
 	cp $(DIST)/../include/* $(DIST)/include
 ifdef BUILD_OPT
 	cp $(DIST)/../WIN32_O.OBJ/lib/* $(DIST)/lib
@@ -100,6 +101,7 @@ else
 	cp $(DIST)/../WIN32_D.OBJ/lib/* $(DIST)/lib
 endif
 	mv $(DIST)/lib/dbm32.lib $(DIST)/lib/dbm.lib
+endif
 else
 ifeq ($(OS_ARCH),OS2)
 	cp -rf $(DIST)/../include $(DIST)

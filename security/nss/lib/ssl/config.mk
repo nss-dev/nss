@@ -47,7 +47,7 @@ ifeq ($(OS_ARCH), WINNT)
 SHARED_LIBRARY = $(OBJDIR)/$(LIBRARY_NAME)$(LIBRARY_VERSION).dll
 IMPORT_LIBRARY = $(OBJDIR)/$(LIBRARY_NAME)$(LIBRARY_VERSION).lib
 
-DLLFLAGS += -DEF:ssl.def
+DLLFLAGS += -DEF:$(srcdir)/ssl.def
 RES = $(OBJDIR)/ssl.res
 RESNAME = ssl.rc
 
@@ -101,5 +101,5 @@ MKSHLIB += -Wl,--version-script,$(MAPFILE)
 endif
 
 
-	
+
 

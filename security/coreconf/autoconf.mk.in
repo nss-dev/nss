@@ -1,6 +1,7 @@
 USE_AUTOCONF	= 1
 NO_MDUPDATE	= 1
 OBJDIR_NAME	= .
+OBJDIR		= .
 
 prefix		= @prefix@
 exec_prefix	= @exec_prefix@
