@@ -40,7 +40,6 @@
 #include "cmslocal.h"
 
 #include "cert.h"
-#include "certdb.h"
 #include "key.h"
 #include "secasn1.h"
 #include "secitem.h"
