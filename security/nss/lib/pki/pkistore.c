@@ -476,7 +476,7 @@ nssCertificateStore_FindCertificatesByEmail
     NSSCertificate **rvArray = NULL;
     struct email_template_str et;
     et.email = email;
-    et.emailList = nssList_Create(store->arena, PR_FALSE);
+    et.emailList = nssList_Create(NULL, PR_FALSE);
     if (!et.emailList) {
 	return NULL;
     }
@@ -493,12 +493,12 @@ nssCertificateStore_FindCertificatesByEmail
 	    for (i=0; i<count; i++) nssCertificate_AddRef(rvOpt[i]);
 	} else {
 	    rvArray = nss_ZNEWARRAY(arenaOpt, NSSCertificate *, count + 1);
-	    if (!rvArray) {
-		return (NSSCertificate **)NULL;
+	    if (rvArray) {
+		nssList_GetArray(et.emailList, (void **)rvArray, count);
+		for (i=0; i<count; i++) nssCertificate_AddRef(rvArray[i]);
 	    }
-	    nssList_GetArray(et.emailList, (void **)rvArray, count);
-	    for (i=0; i<count; i++) nssCertificate_AddRef(rvArray[i]);
 	}
+	nssList_Destroy(et.emailList);
     }
     return rvArray;
 }
