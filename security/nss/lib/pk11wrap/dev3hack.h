@@ -58,8 +58,11 @@ void PK11Slot_SetNSSToken(PK11SlotInfo *sl, NSSToken *nsst);
 
 NSSToken * PK11Slot_GetNSSToken(PK11SlotInfo *sl);
 
-NSS_IMPLEMENT PRStatus
+NSS_EXTERN PRStatus
 nssToken_LoadCerts(NSSToken *token);
+
+NSS_EXTERN void
+nssToken_UpdateTrustForCerts(NSSToken *token);
 
 PR_END_EXTERN_C
 
