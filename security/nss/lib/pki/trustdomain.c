@@ -55,6 +55,8 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #include "ckhelper.h"
 #endif /* CKHELPER_H */
 
+extern const NSSError NSS_ERROR_NOT_FOUND;
+
 #define NSSTRUSTDOMAIN_DEFAULT_CACHE_SIZE 32
 
 NSS_EXTERN PRStatus

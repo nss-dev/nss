@@ -39,6 +39,12 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #include "nsspki.h"
 #endif /* NSSPKI_H */
 
+#ifndef BASE_H
+#include "base.h"
+#endif /* BASE_H */
+
+extern const NSSError NSS_ERROR_NOT_FOUND;
+
 NSS_IMPLEMENT PRStatus
 NSSPrivateKey_Destroy
 (
