@@ -397,6 +397,8 @@ nss_FindExternalRoot(const char *dbpath, const char* secmodprefix)
 
 static PRBool nss_IsInitted = PR_FALSE;
 
+extern SECStatus secoid_Init(void);
+
 static SECStatus
 nss_Init(const char *configdir, const char *certPrefix, const char *keyPrefix,
 		 const char *secmodName, PRBool readOnly, PRBool noCertDB, 
@@ -466,6 +468,9 @@ loser:
     }
 
     if (rv == SECSuccess) {
+	if (secoid_Init() != SECSuccess) {
+	    return SECFailure;
+	}
 	if (STAN_LoadDefaultNSS3TrustDomain() != PR_SUCCESS) {
 	    return SECFailure;
 	}
