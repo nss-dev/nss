@@ -97,6 +97,8 @@ struct NSSCKFWInstanceStr {
   NSSArena *arena;
   NSSCKMDInstance *mdInstance;
   CK_C_INITIALIZE_ARGS_PTR pInitArgs;
+  CK_C_INITIALIZE_ARGS initArgs;
+  CryptokiLockingState LockingState;
   CK_BBOOL mayCreatePthreads;
   NSSUTF8 *configurationData;
   CK_ULONG nSlots;
@@ -188,6 +190,7 @@ NSS_IMPLEMENT NSSCKFWInstance *
 nssCKFWInstance_Create
 (
   CK_C_INITIALIZE_ARGS_PTR pInitArgs,
+  CryptokiLockingState LockingState,
   NSSCKMDInstance *mdInstance,
   CK_RV *pError
 )
@@ -221,9 +224,11 @@ nssCKFWInstance_Create
 
   fwInstance->arena = arena;
   fwInstance->mdInstance = mdInstance;
-  fwInstance->pInitArgs = pInitArgs;
 
+  fwInstance->LockingState = LockingState;
   if( (CK_C_INITIALIZE_ARGS_PTR)NULL != pInitArgs ) {
+    fwInstance->initArgs = *pInitArgs;
+    fwInstance->pInitArgs = &fwInstance->initArgs;
     if( pInitArgs->flags & CKF_LIBRARY_CANT_CREATE_OS_THREADS ) {
       fwInstance->mayCreatePthreads = CK_FALSE;
     } else {
@@ -234,7 +239,8 @@ nssCKFWInstance_Create
     fwInstance->mayCreatePthreads = CK_TRUE;
   }
 
-  fwInstance->mutex = nssCKFWMutex_Create(pInitArgs, arena, pError);
+  fwInstance->mutex = nssCKFWMutex_Create(pInitArgs, LockingState, arena,
+                                          pError);
   if( (NSSCKFWMutex *)NULL == fwInstance->mutex ) {
     if( CKR_OK == *pError ) {
       *pError = CKR_GENERAL_ERROR;
@@ -358,7 +364,9 @@ nssCKFWInstance_Create
     }
   }
 
-  (void)NSSArena_Destroy(arena);
+  if (arena) {
+    (void)NSSArena_Destroy(arena);
+  }
   return (NSSCKFWInstance *)NULL;
 }
 
@@ -499,7 +507,8 @@ nssCKFWInstance_CreateMutex
   }
 #endif /* NSSDEBUG */
 
-  mutex = nssCKFWMutex_Create(fwInstance->pInitArgs, arena, pError);
+  mutex = nssCKFWMutex_Create(fwInstance->pInitArgs, fwInstance->LockingState,
+                              arena, pError);
   if( (NSSCKFWMutex *)NULL == mutex ) {
     if( CKR_OK == *pError ) {
       *pError = CKR_GENERAL_ERROR;

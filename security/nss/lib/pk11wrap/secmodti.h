@@ -44,6 +44,8 @@
 
 #ifndef NSS_3_4_CODE
 #define NSS_3_4_CODE
+#include "secmodt.h"
+#include "pkcs11t.h"
 #endif /* NSS_3_4_CODE */
 #include "nssdevt.h"
 
@@ -108,6 +110,10 @@ struct PK11SlotInfoStr {
     uint16 series;	/* break up the slot info into various groups of 
 			 * inserted tokens so that keys and certs can be
 			 * invalidated */
+    uint16 flagSeries;	/* record the last series for the last event
+                         * returned for this slot */
+    PRBool flagState;	/* record the state of the last event returned for this
+			 * slot. */
     uint16 wrapKey;	/* current wrapping key for SSL master secrets */
     CK_MECHANISM_TYPE wrapMechanism;
 			/* current wrapping mechanism for current wrapKey */
@@ -189,3 +195,14 @@ struct PK11ContextStr {
 };
 
 #endif /* _SECMODTI_H_ */
+/*
+ * structure to hold a pointer to a unique PKCS #11 object 
+ * (pointer to the slot and the object id).
+ */
+struct PK11GenericObjectStr {
+    PK11GenericObject *prev;
+    PK11GenericObject *next;
+    PK11SlotInfo *slot;
+    CK_OBJECT_HANDLE objectID;
+};
+

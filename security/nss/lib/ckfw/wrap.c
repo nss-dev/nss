@@ -135,6 +135,7 @@ NSSCKFWC_Initialize
 )
 {
   CK_RV error = CKR_OK;
+  CryptokiLockingState locking_state;
 
   if( (NSSCKFWInstance **)NULL == pFwInstance ) {
     error = CKR_GENERAL_ERROR;
@@ -154,9 +155,12 @@ NSSCKFWC_Initialize
   /* remember the locking args for those times we need to get a lock in code
    * outside the framework.
    */
-  nssSetLockArgs(pInitArgs);
+  error = nssSetLockArgs(pInitArgs, &locking_state);
+  if (CKR_OK != error) {
+      goto loser;
+  }
 
-  *pFwInstance = nssCKFWInstance_Create(pInitArgs, mdInstance, &error);
+  *pFwInstance = nssCKFWInstance_Create(pInitArgs, locking_state, mdInstance, &error);
   if( (NSSCKFWInstance *)NULL == *pFwInstance ) {
     goto loser;
   }

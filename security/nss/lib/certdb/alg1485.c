@@ -695,11 +695,20 @@ AppendAVA(stringBuf *bufp, CERTAVA *ava)
     }
 
     /* Check value length */
-    if (avaValue->len > maxLen) {
-	if (unknownTag) PR_smprintf_free(unknownTag);
-	SECITEM_FreeItem(avaValue, PR_TRUE);
-	PORT_SetError(SEC_ERROR_INVALID_AVA);
-	return SECFailure;
+    if (avaValue->len > maxLen + 3) {  /* must be room for "..." */
+	/* avaValue is a UTF8 string, freshly allocated and returned to us 
+	** by CERT_DecodeAVAValue just above, so we can modify it here.
+	** See if we're in the middle of a multi-byte UTF8 character.
+	*/
+	while (((avaValue->data[maxLen] & 0xc0) == 0x80) && maxLen > 0) {
+	   maxLen--;
+	}
+	/* add elipsis to signify truncation. */
+	avaValue->data[maxLen++] = '.'; 
+	avaValue->data[maxLen++] = '.';
+	avaValue->data[maxLen++] = '.';
+	avaValue->data[maxLen]   = 0;
+	avaValue->len = maxLen;
     }
 
     len = PORT_Strlen(tagName);
@@ -720,7 +729,7 @@ AppendAVA(stringBuf *bufp, CERTAVA *ava)
 	    PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
 	    rv = SECFailure;
     	} else {
-	    PORT_Strcpy(tmpBuf+len, (char *)avaValue->data);
+	    PORT_Strncpy(tmpBuf+len, (char *)avaValue->data, avaValue->len + 1);
 	    rv = SECSuccess;
 	}
     } else 

@@ -1,4 +1,4 @@
-# Copyright 2002 Microsystems, Inc.  All Rights Reserved.
+# Copyright 2004 Microsystems, Inc.  All Rights Reserved.
 # Use is subject to license terms.
 #
 #	$Id$
@@ -19,13 +19,4 @@
 # <type> <pkg.abbr> <name>
 # ...
 
-P SUNWcar	Core Architecture, (Root)
-P SUNWkvm	Core Architecture, (Kvm)
-P SUNWcsr	Core Solaris, (Root)
-P SUNWcsu	Core Solaris, (Usr)
-P SUNWcsd	Core Solaris Devices
-P SUNWcsl	Core Solaris Libraries
-P SUNWcarx  Core Architecture, (Root) (64-bit)
-P SUNWcsxu  Core Solaris (Usr) (64-bit)
-P SUNWcslx  Core Solaris Libraries (64-bit)
-P SUNWprx	Netscape Portable Runtime
+P SUNWtls	Netscape Security Services 

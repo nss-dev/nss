@@ -986,6 +986,10 @@ CERT_CheckCertValidTimes(CERTCertificate *c, PRTime t, PRBool allowOverride)
     PRTime notBefore, notAfter, llPendingSlop, tmp1;
     SECStatus rv;
 
+    if (!c) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return(secCertTimeUndetermined);
+    }
     /* if cert is already marked OK, then don't bother to check */
     if ( allowOverride && c->timeOK ) {
 	return(secCertTimeValid);
@@ -1136,6 +1140,7 @@ CERT_KeyUsageAndTypeForCertUsage(SECCertUsage usage,
 	    requiredCertType = NS_CERT_TYPE_OBJECT_SIGNING_CA;
 	    break;
 	  case certUsageAnyCA:
+	  case certUsageVerifyCA:
 	  case certUsageStatusResponder:
 	    requiredKeyUsage = KU_KEY_CERT_SIGN;
 	    requiredCertType = NS_CERT_TYPE_OBJECT_SIGNING_CA |
@@ -1336,20 +1341,7 @@ CERT_AddOKDomainName(CERTCertificate *cert, const char *hn)
 static SECStatus
 cert_TestHostName(char * cn, const char * hn)
 {
-    char * hndomain;
-    int    regvalid;
-
-    if ((hndomain = PORT_Strchr(hn, '.')) == NULL) {
-	/* No domain in URI host name */
-	char * cndomain;
-	if ((cndomain = PORT_Strchr(cn, '.')) != NULL &&
-	    (cndomain - cn) > 0) {
-	    /* there is a domain in the cn string, so chop it off */
-	    *cndomain = '\0';
-	}
-    }
-
-    regvalid = PORT_RegExpValid(cn);
+    int regvalid = PORT_RegExpValid(cn);
     if (regvalid != NON_SXP) {
 	SECStatus rv;
 	/* cn is a regular expression, try to match the shexp */
@@ -1370,13 +1362,6 @@ cert_TestHostName(char * cn, const char * hn)
 	return SECSuccess;
     }
 	    
-    if ( hndomain ) {
-	/* compare just domain name with cert name */
-	if ( PORT_Strcasecmp(hndomain+1, cn) == 0 ) {
-	    return SECSuccess;
-	}
-    }
-
     PORT_SetError(SSL_ERROR_BAD_CERT_DOMAIN);
     return SECFailure;
 }
@@ -2317,7 +2302,7 @@ CERT_ImportCerts(CERTCertDBHandle *certdb, SECCertUsage usage,
 	}
     }
 
-    return (fcerts ? SECSuccess : SECFailure);
+    return ((fcerts || !ncerts) ? SECSuccess : SECFailure);
 }
 
 /*

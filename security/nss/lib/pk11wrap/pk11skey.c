@@ -1004,6 +1004,8 @@ PK11_MakePrivKey(PK11SlotInfo *slot, KeyType keyType,
 {
     PRArenaPool *arena;
     SECKEYPrivateKey *privKey;
+    PRBool isPrivate;
+    SECStatus rv;
 
     /* don't know? look it up */
     if (keyType == nullKey) {
@@ -1022,6 +1024,16 @@ PK11_MakePrivKey(PK11SlotInfo *slot, KeyType keyType,
 	default:
 		break;
 	}
+    }
+
+    /* if the key is private, make sure we are authenticated to the
+     * token before we try to use it */
+    isPrivate = (PRBool)PK11_HasAttributeSet(slot,privID,CKA_PRIVATE);
+    if (isPrivate) {
+	rv = PK11_Authenticate(slot, PR_TRUE, wincx);
+ 	if (rv != SECSuccess) {
+ 	    return NULL;
+ 	}
     }
 
     /* now we need to create space for the private key */
@@ -3395,10 +3407,13 @@ PK11_PubUnwrapSymKey(SECKEYPrivateKey *wrappingKey, SECItem *wrappedKey,
 	  CK_MECHANISM_TYPE target, CK_ATTRIBUTE_TYPE operation, int keySize)
 {
     CK_MECHANISM_TYPE wrapType = pk11_mapWrapKeyType(wrappingKey->keyType);
+    PK11SlotInfo    *slot = wrappingKey->pkcs11Slot;
 
-    PK11_HandlePasswordCheck(wrappingKey->pkcs11Slot,wrappingKey->wincx);
+    if (!PK11_HasAttributeSet(slot,wrappingKey->pkcs11ID,CKA_PRIVATE)) {
+	PK11_HandlePasswordCheck(slot,wrappingKey->wincx);
+    }
     
-    return pk11_AnyUnwrapKey(wrappingKey->pkcs11Slot, wrappingKey->pkcs11ID,
+    return pk11_AnyUnwrapKey(slot, wrappingKey->pkcs11ID,
 	wrapType, NULL, wrappedKey, target, operation, keySize, 
 	wrappingKey->wincx, NULL, 0, PR_FALSE);
 }
@@ -3413,12 +3428,15 @@ PK11_PubUnwrapSymKeyWithFlags(SECKEYPrivateKey *wrappingKey,
     CK_BBOOL        ckTrue	= CK_TRUE; 
     CK_ATTRIBUTE    keyTemplate[MAX_TEMPL_ATTRS];
     unsigned int    templateCount;
+    PK11SlotInfo    *slot = wrappingKey->pkcs11Slot;
 
     templateCount = pk11_FlagsToAttributes(flags, keyTemplate, &ckTrue);
 
-    PK11_HandlePasswordCheck(wrappingKey->pkcs11Slot,wrappingKey->wincx);
+    if (!PK11_HasAttributeSet(slot,wrappingKey->pkcs11ID,CKA_PRIVATE)) {
+	PK11_HandlePasswordCheck(slot,wrappingKey->wincx);
+    }
     
-    return pk11_AnyUnwrapKey(wrappingKey->pkcs11Slot, wrappingKey->pkcs11ID,
+    return pk11_AnyUnwrapKey(slot, wrappingKey->pkcs11ID,
 	wrapType, NULL, wrappedKey, target, operation, keySize, 
 	wrappingKey->wincx, keyTemplate, templateCount, PR_FALSE);
 }
@@ -3434,6 +3452,7 @@ PK11_PubUnwrapSymKeyWithFlagsPerm(SECKEYPrivateKey *wrappingKey,
     CK_ATTRIBUTE    keyTemplate[MAX_TEMPL_ATTRS];
     CK_ATTRIBUTE    *attrs;
     unsigned int    templateCount;
+    PK11SlotInfo    *slot = wrappingKey->pkcs11Slot;
 
     attrs = keyTemplate;
     if (isPerm) {
@@ -3443,9 +3462,11 @@ PK11_PubUnwrapSymKeyWithFlagsPerm(SECKEYPrivateKey *wrappingKey,
 
     templateCount += pk11_FlagsToAttributes(flags, attrs, &cktrue);
 
-    PK11_HandlePasswordCheck(wrappingKey->pkcs11Slot,wrappingKey->wincx);
+    if (!PK11_HasAttributeSet(slot,wrappingKey->pkcs11ID,CKA_PRIVATE)) {
+	PK11_HandlePasswordCheck(slot,wrappingKey->wincx);
+    }
     
-    return pk11_AnyUnwrapKey(wrappingKey->pkcs11Slot, wrappingKey->pkcs11ID,
+    return pk11_AnyUnwrapKey(slot, wrappingKey->pkcs11ID,
 	wrapType, NULL, wrappedKey, target, operation, keySize, 
 	wrappingKey->wincx, keyTemplate, templateCount, isPerm);
 }
@@ -3569,7 +3590,9 @@ PK11_Sign(SECKEYPrivateKey *key, SECItem *sig, SECItem *hash)
 
     mech.mechanism = pk11_mapSignKeyType(key->keyType);
 
-    PK11_HandlePasswordCheck(slot, key->wincx);
+    if (!PK11_HasAttributeSet(slot,key->pkcs11ID,CKA_PRIVATE)) {
+	PK11_HandlePasswordCheck(slot, key->wincx);
+    }
 
     session = pk11_GetNewSession(slot,&owner);
     if (!owner || !(slot->isThreadSafe)) PK11_EnterSlotMonitor(slot);
@@ -3600,13 +3623,12 @@ PK11_Sign(SECKEYPrivateKey *key, SECItem *sig, SECItem *hash)
  * then we need to move this check into some of PK11_PubDecrypt callers,
  * (namely SSL 2.0).
  */
-SECStatus
-PK11_PubDecryptRaw(SECKEYPrivateKey *key, unsigned char *data, 
+static SECStatus
+pk11_PrivDecryptRaw(SECKEYPrivateKey *key, unsigned char *data, 
 	unsigned *outLen, unsigned int maxLen, unsigned char *enc,
-							 unsigned encLen)
+			     unsigned encLen, CK_MECHANISM_PTR mech)
 {
     PK11SlotInfo *slot = key->pkcs11Slot;
-    CK_MECHANISM mech = {CKM_RSA_X_509, NULL, 0 };
     CK_ULONG out = maxLen;
     PRBool owner = PR_TRUE;
     CK_SESSION_HANDLE session;
@@ -3621,10 +3643,12 @@ PK11_PubDecryptRaw(SECKEYPrivateKey *key, unsigned char *data,
      * decryption? .. because the user may have asked for 'ask always'
      * and this is a private key operation. In practice, thought, it's mute
      * since only servers wind up using this function */
-    PK11_HandlePasswordCheck(slot, key->wincx);
+    if (!PK11_HasAttributeSet(slot,key->pkcs11ID,CKA_PRIVATE)) {
+	PK11_HandlePasswordCheck(slot, key->wincx);
+    }
     session = pk11_GetNewSession(slot,&owner);
     if (!owner || !(slot->isThreadSafe)) PK11_EnterSlotMonitor(slot);
-    crv = PK11_GETTAB(slot)->C_DecryptInit(session,&mech,key->pkcs11ID);
+    crv = PK11_GETTAB(slot)->C_DecryptInit(session, mech, key->pkcs11ID);
     if (crv != CKR_OK) {
 	if (!owner || !(slot->isThreadSafe)) PK11_ExitSlotMonitor(slot);
 	pk11_CloseSession(slot,session,owner);
@@ -3643,25 +3667,43 @@ PK11_PubDecryptRaw(SECKEYPrivateKey *key, unsigned char *data,
     return SECSuccess;
 }
 
-/* The encrypt version of the above function */
 SECStatus
-PK11_PubEncryptRaw(SECKEYPublicKey *key, unsigned char *enc,
-		unsigned char *data, unsigned dataLen, void *wincx)
+PK11_PubDecryptRaw(SECKEYPrivateKey *key, unsigned char *data, 
+	unsigned *outLen, unsigned int maxLen, unsigned char *enc,
+							 unsigned encLen)
+{
+    CK_MECHANISM mech = {CKM_RSA_X_509, NULL, 0 };
+    return pk11_PrivDecryptRaw(key, data, outLen, maxLen, enc, encLen, &mech);
+}
+
+SECStatus
+PK11_PrivDecryptPKCS1(SECKEYPrivateKey *key, unsigned char *data, 
+	unsigned *outLen, unsigned int maxLen, unsigned char *enc,
+				    unsigned encLen)
+{
+    CK_MECHANISM mech = {CKM_RSA_PKCS, NULL, 0 };
+    return pk11_PrivDecryptRaw(key, data, outLen, maxLen, enc, encLen, &mech);
+}
+
+SECStatus
+pk11_PubEncryptRaw(SECKEYPublicKey *key, unsigned char *enc,
+		unsigned char *data, unsigned dataLen, 
+		CK_MECHANISM_PTR mech, void *wincx)
 {
     PK11SlotInfo *slot;
-    CK_MECHANISM mech = {CKM_RSA_X_509, NULL, 0 };
     CK_OBJECT_HANDLE id;
-    CK_ULONG out = dataLen;
+    CK_ULONG out;
     PRBool owner = PR_TRUE;
     CK_SESSION_HANDLE session;
     CK_RV crv;
 
-    if (key->keyType != rsaKey) {
+    if (!key || key->keyType != rsaKey) {
 	PORT_SetError( SEC_ERROR_BAD_KEY );
 	return SECFailure;
     }
+    out = SECKEY_PublicKeyStrength(key);
 
-    slot = PK11_GetBestSlot(mech.mechanism, wincx);
+    slot = PK11_GetBestSlot(mech->mechanism, wincx);
     if (slot == NULL) {
 	PORT_SetError( SEC_ERROR_NO_MODULE );
 	return SECFailure;
@@ -3671,7 +3713,7 @@ PK11_PubEncryptRaw(SECKEYPublicKey *key, unsigned char *enc,
 
     session = pk11_GetNewSession(slot,&owner);
     if (!owner || !(slot->isThreadSafe)) PK11_EnterSlotMonitor(slot);
-    crv = PK11_GETTAB(slot)->C_EncryptInit(session,&mech,id);
+    crv = PK11_GETTAB(slot)->C_EncryptInit(session, mech, id);
     if (crv != CKR_OK) {
 	if (!owner || !(slot->isThreadSafe)) PK11_ExitSlotMonitor(slot);
 	pk11_CloseSession(slot,session,owner);
@@ -3690,7 +3732,22 @@ PK11_PubEncryptRaw(SECKEYPublicKey *key, unsigned char *enc,
     return SECSuccess;
 }
 
-	
+SECStatus
+PK11_PubEncryptRaw(SECKEYPublicKey *key, unsigned char *enc,
+		unsigned char *data, unsigned dataLen, void *wincx)
+{
+    CK_MECHANISM mech = {CKM_RSA_X_509, NULL, 0 };
+    return pk11_PubEncryptRaw(key, enc, data, dataLen, &mech, wincx);
+}
+
+SECStatus
+PK11_PubEncryptPKCS1(SECKEYPublicKey *key, unsigned char *enc,
+		unsigned char *data, unsigned dataLen, void *wincx)
+{
+    CK_MECHANISM mech = {CKM_RSA_PKCS, NULL, 0 };
+    return pk11_PubEncryptRaw(key, enc, data, dataLen, &mech, wincx);
+}
+
 /**********************************************************************
  *
  *                   Now Deal with Crypto Contexts
@@ -4475,6 +4532,11 @@ PK11_DigestKey(PK11Context *context, PK11SymKey *key)
     CK_RV crv = CKR_OK;
     SECStatus rv = SECSuccess;
     PK11SymKey *newKey = NULL;
+
+    if (!context || !key) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
 
     /* if we ran out of session, we need to restore our previously stored
      * state.
@@ -5365,9 +5427,12 @@ PK11_UnwrapPrivKey(PK11SlotInfo *slot, PK11SymKey *wrappingKey,
 
     if (newKey) {
 	if (perm) {
+	    /* Get RW Session will either lock the monitor if necessary, 
+	     *  or return a thread safe session handle. */ 
 	    rwsession = PK11_GetRWSession(slot);
 	} else {
 	    rwsession = slot->session;
+	    PK11_EnterSlotMonitor(slot);
 	}
 	crv = PK11_GETTAB(slot)->C_UnwrapKey(rwsession, &mechanism, 
 					 newKey->objectID,
@@ -5375,7 +5440,11 @@ PK11_UnwrapPrivKey(PK11SlotInfo *slot, PK11SymKey *wrappingKey,
 					 wrappedKey->len, keyTemplate, 
 					 templateCount, &privKeyID);
 
-	if (perm) PK11_RestoreROSession(slot, rwsession);
+	if (perm) {
+	    PK11_RestoreROSession(slot, rwsession);
+	} else {
+	    PK11_ExitSlotMonitor(slot);
+	}
 	PK11_FreeSymKey(newKey);
     } else {
 	crv = CKR_FUNCTION_NOT_SUPPORTED;
@@ -5702,3 +5771,220 @@ PK11_ConvertSessionSymKeyToTokenSymKey(PK11SymKey *symk, void *wincx)
     return PK11_SymKeyFromHandle(slot, NULL /*parent*/, symk->origin,
         symk->type, newKeyID, PR_FALSE /*owner*/, NULL /*wincx*/);
 }
+
+
+/*
+ * return a linked, non-circular list of generic objects. 
+ * If you are only interested
+ * in one object, just use the first object in the list. To find the
+ * rest of the list use PK11_GetNextGenericObject() to return the next object.
+ *
+ * You can walk the list with the following code:
+ *    firstObj = PK11_FindGenericObjects(slot, objClass);
+ *    for (thisObj=firstObj; thisObj; 
+ *				thisObj=PK11_GetNextGenericObject(thisObj)) {
+ *	/* operate on thisObj */
+/*    }
+ *
+ * If you want a particular object from the list...
+ *    firstObj = PK11_FindGenericObjects(slot, objClass);
+ *    for (thisObj=firstObj; thisObj; 
+ *                             thisObj=PK11_GetNextGenericObject(thisObj)) {
+ * 	if (isMyObj(thisObj)) {
+ *	    if ( thisObj == firstObj) {
+ *              /* NOTE: firstObj could be NULL at this point */
+/*		firstObj = PK11_GetNextGenericObject(thsObj); 
+ *	    }
+ *	    PK11_UnlinkGenericObject(thisObj);
+ *          myObj = thisObj;
+ *          break;
+ *    }
+ *
+ *   PK11_DestroyGenericObjects(firstObj);
+ *
+ *    /* use myObj */
+/*   PK11_DestroyGenericObject(myObj);
+ */
+PK11GenericObject *
+PK11_FindGenericObjects(PK11SlotInfo *slot, CK_OBJECT_CLASS objClass)
+{
+    CK_ATTRIBUTE template[1];
+    CK_ATTRIBUTE *attrs = template;
+    CK_OBJECT_HANDLE *objectIDs = NULL;
+    PK11GenericObject *lastObj, *obj;
+    PK11GenericObject *firstObj = NULL;
+    int i, count = 0;
+
+
+    PK11_SETATTRS(attrs, CKA_CLASS, &objClass, sizeof(objClass)); attrs++;
+
+    objectIDs = pk11_FindObjectsByTemplate(slot,template,1,&count);
+    if (objectIDs == NULL) {
+	return NULL;
+    }
+
+    /* where we connect our object once we've created it.. */
+    for (i=0; i < count; i++) {
+	obj = PORT_New(PK11GenericObject);
+	if ( !obj ) {
+	    PK11_DestroyGenericObjects(firstObj);
+	    PORT_Free(objectIDs);
+	    return NULL;
+	}
+	/* initialize it */	
+	obj->slot = PK11_ReferenceSlot(slot);
+	obj->objectID = objectIDs[i];
+	obj->next = NULL;
+	obj->prev = NULL;
+
+	/* link it in */
+	if (firstObj == NULL) {
+	    firstObj = obj;
+	} else {
+	    PK11_LinkGenericObject(lastObj, obj);
+	}
+	lastObj = obj;
+    }
+    PORT_Free(objectIDs);
+    return firstObj;
+}
+
+/*
+ * get the Next Object in the list.
+ */
+PK11GenericObject *
+PK11_GetNextGenericObject(PK11GenericObject *object)
+{
+    return object->next;
+}
+
+PK11GenericObject *
+PK11_GetPrevGenericObject(PK11GenericObject *object)
+{
+    return object->prev;
+}
+
+/*
+ * Link a single object into a new list.
+ * if the object is already in another list, remove it first.
+ */
+SECStatus
+PK11_LinkGenericObject(PK11GenericObject *list, PK11GenericObject *object)
+{
+    PK11_UnlinkGenericObject(object);
+    object->prev = list;
+    object->next = list->next;
+    list->next = object;
+    if (object->next != NULL) {
+	object->next->prev = object;
+    }
+   return SECSuccess;
+}
+
+/*
+ * remove an object from the list. If the object isn't already in
+ * a list unlink becomes a noop.
+ */
+SECStatus
+PK11_UnlinkGenericObject(PK11GenericObject *object)
+{
+    if (object->prev != NULL) {
+	object->prev->next = object->next;
+    }
+    if (object->next != NULL) {
+	object->next->prev = object->prev;
+    }
+
+    object->next = NULL;
+    object->prev = NULL;
+    return SECSuccess;
+}
+
+/*
+ * This function removes a single object from the list and destroys it.
+ * For an already unlinked object there is no difference between
+ * PK11_DestroyGenericObject and PK11_DestroyGenericObjects
+ */
+SECStatus 
+PK11_DestroyGenericObject(PK11GenericObject *object)
+{
+    if (object == NULL) {
+	return SECSuccess;
+    }
+
+    PK11_UnlinkGenericObject(object);
+    if (object->slot) {
+	PK11_FreeSlot(object->slot);
+    }
+    PORT_Free(object);
+    return SECSuccess;
+}
+
+/*
+ * walk down a link list of generic objects destroying them.
+ * This will destroy all objects in a list that the object is linked into.
+ * (the list is traversed in both directions).
+ */
+SECStatus 
+PK11_DestroyGenericObjects(PK11GenericObject *objects)
+{
+    PK11GenericObject *nextObject;
+    PK11GenericObject *prevObject = objects->prev;
+ 
+    if (objects == NULL) {
+	return SECSuccess;
+    }
+
+    nextObject = objects->next;
+    prevObject = objects->prev;
+
+    /* delete all the objects after it in the list */
+    for (; objects;  objects = nextObject) {
+	nextObject = objects->next;
+	PK11_DestroyGenericObject(objects);
+    }
+    /* delete all the objects before it in the list */
+    for (objects = prevObject; objects;  objects = nextObject) {
+	prevObject = objects->prev;
+	PK11_DestroyGenericObject(objects);
+    }
+    return SECSuccess;
+}
+
+
+SECStatus
+PK11_ReadRawAttribute(PK11ObjectType objType, void *objSpec, 
+				CK_ATTRIBUTE_TYPE attrType, SECItem *item)
+{
+    PK11SlotInfo *slot = NULL;
+    CK_OBJECT_HANDLE handle;
+
+    switch (objType) {
+    case PK11_TypeGeneric:
+	slot = ((PK11GenericObject *)objSpec)->slot;
+	handle = ((PK11GenericObject *)objSpec)->objectID;
+	break;
+    case PK11_TypePrivKey:
+	slot = ((SECKEYPrivateKey *)objSpec)->pkcs11Slot;
+	handle = ((SECKEYPrivateKey *)objSpec)->pkcs11ID;
+	break;
+    case PK11_TypePubKey:
+	slot = ((SECKEYPublicKey *)objSpec)->pkcs11Slot;
+	handle = ((SECKEYPublicKey *)objSpec)->pkcs11ID;
+	break;
+    case PK11_TypeSymKey:
+	slot = ((PK11SymKey *)objSpec)->slot;
+	handle = ((PK11SymKey *)objSpec)->objectID;
+	break;
+    case PK11_TypeCert: /* don't handle cert case for now */
+    default:
+	break;
+    }
+    if (slot == NULL) {
+	PORT_SetError(SEC_ERROR_UNKNOWN_OBJECT_TYPE);
+	return SECFailure;
+    }
+
+    return PK11_ReadAttribute(slot, handle, attrType, NULL, item);
+}
+

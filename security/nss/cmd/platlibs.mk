@@ -194,6 +194,18 @@ endif
 endif
 endif
 
+ifeq ($(OS_ARCH), SunOS) 
+ifeq ($(BUILD_SUN_PKG), 1)
+ifeq ($(USE_64), 1)
+EXTRA_SHARED_LIBS += -R '$$ORIGIN/../lib:/usr/lib/mps/secv1/sparcv9:/usr/lib/mps/sparcv9'
+else
+EXTRA_SHARED_LIBS += -R '$$ORIGIN/../lib:/usr/lib/mps/secv1:/usr/lib/mps'
+endif
+else
+EXTRA_SHARED_LIBS += -R '$$ORIGIN/../lib'
+endif
+endif
+
 ifeq ($(OS_ARCH), Darwin)
 EXTRA_SHARED_LIBS += -dylib_file @executable_path/libsoftokn3.dylib:$(DIST)/lib/libsoftokn3.dylib
 endif

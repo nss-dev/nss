@@ -49,11 +49,11 @@ SEC_BEGIN_PROTOS
  * The format of the version string should be
  *     "<major version>.<minor version>[.<patch level>] [<Beta>]"
  */
-#define NSS_VERSION  "3.10 Beta"
+#define NSS_VERSION  "3.9.3"
 #define NSS_VMAJOR   3
-#define NSS_VMINOR   10
-#define NSS_VPATCH   0
-#define NSS_BETA     PR_TRUE
+#define NSS_VMINOR   9
+#define NSS_VPATCH   3
+#define NSS_BETA     PR_FALSE
 
 
 /*
@@ -83,6 +83,11 @@ extern SECStatus NSS_Init(const char *configdir);
  * Default policy settings disallow all ciphers.
  */
 extern SECStatus NSS_InitReadWrite(const char *configdir);
+
+/*
+ * Returns whether NSS has already been initialized or not.
+ */
+extern PRBool NSS_IsInitialized(void);
 
 /*
  * Open the Cert, Key, and Security Module databases, read/write.
