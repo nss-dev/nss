@@ -1896,13 +1896,40 @@ ssl_SetWrappingKey(SSLWrappedSymWrappingKey *wswk)
 #include "ssl.h"
 #include "sslimpl.h"
 
+int
+SSL_ConfigServerSessionIDCache(	int      maxCacheEntries, 
+				PRUint32 timeout,
+			       	PRUint32 ssl3_timeout, 
+			  const char *   directory)
+{
+    PR_ASSERT(!"SSL servers are not supported on the platform. (SSL_ConfigServerSessionIDCache)");    
+    return SECFailure;
+}
+
+int
+SSL_ConfigMPServerSIDCache(	int      maxCacheEntries, 
+				PRUint32 timeout,
+			       	PRUint32 ssl3_timeout, 
+		          const char *   directory)
+{
+    PR_ASSERT(!"SSL servers are not supported on the platform. (SSL_ConfigMPServerSIDCache)");    
+    return SECFailure;
+}
+
+SECStatus
+SSL_InheritMPServerSIDCache(const char * envString)
+{
+    PR_ASSERT(!"SSL servers are not supported on the platform. (SSL_InheritMPServerSIDCache)");    
+    return SECFailure;
+}
+
 PRBool
 ssl_GetWrappingKey( PRInt32                   symWrapMechIndex,
                     SSL3KEAType               exchKeyType, 
 		    SSLWrappedSymWrappingKey *wswk)
 {
     PRBool rv = PR_FALSE;
-    PR_ASSERT(!"SSL servers are not supported on the Mac. (ssl_GetWrappingKey)");    
+    PR_ASSERT(!"SSL servers are not supported on the platform. (ssl_GetWrappingKey)");    
     return rv;
 }
 
@@ -1919,7 +1946,7 @@ PRBool
 ssl_SetWrappingKey(SSLWrappedSymWrappingKey *wswk)
 {
     PRBool        rv = PR_FALSE;
-    PR_ASSERT(!"SSL servers are not supported on the Mac. (ssl_SetWrappingKey)");
+    PR_ASSERT(!"SSL servers are not supported on the platform. (ssl_SetWrappingKey)");
     return rv;
 }
 
