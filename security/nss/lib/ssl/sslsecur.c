@@ -1239,7 +1239,7 @@ SSL_GetSessionID(PRFileDesc *fd)
 	    sid = ss->sec->ci.sid;
 	    item = (SECItem *)PORT_Alloc(sizeof(SECItem));
 	    if (sid->version < SSL_LIBRARY_VERSION_3_0) {
-		item->len = SSL2_SESSIONID_BYTES;
+		item->len = SSL_SESSIONID_BYTES;
 		item->data = (unsigned char*)PORT_Alloc(item->len);
 		PORT_Memcpy(item->data, sid->u.ssl2.sessionID, item->len);
 	    } else {
