@@ -31,6 +31,8 @@
 # GPL.
 #
 
+# XXX libsecutil is included for just rwlock.  move it to base.
+
 #
 #  Override TARGETS variable so that only static libraries
 #  are specifed as dependencies within rules.mk.
@@ -45,6 +47,23 @@ IMPORT_LIBRARY = $(OBJDIR)/$(LIBRARY_NAME)$(LIBRARY_VERSION).lib
 
 RES = $(OBJDIR)/$(LIBRARY_NAME).res
 RESNAME = $(LIBRARY_NAME).rc
+
+# $(PROGRAM) has explicit dependencies on $(EXTRA_LIBS)
+SHARED_LIBRARY_LIBS = \
+	$(DIST)/lib/nsspki1.lib \
+	$(DIST)/lib/nsspki.lib \
+	$(DIST)/lib/nssdev.lib \
+	$(DIST)/lib/nssasn1.lib \
+	$(DIST)/lib/nssb.lib \
+	$(NULL)
+
+SHARED_LIBRARY_DIRS = \
+	../pki1 \
+	../pki \
+	../dev \
+	../asn1 \
+	../base \
+	$(NULL)
 
 EXTRA_SHARED_LIBS += \
 	$(DIST)/lib/softokn3.lib \
@@ -70,24 +89,18 @@ endif
 
 # $(PROGRAM) has explicit dependencies on $(EXTRA_LIBS)
 SHARED_LIBRARY_LIBS = \
-	$(DIST)/lib/$(LIB_PREFIX)certhi.$(LIB_SUFFIX) \
-	$(DIST)/lib/$(LIB_PREFIX)cryptohi.$(LIB_SUFFIX) \
-	$(DIST)/lib/$(LIB_PREFIX)pk11wrap.$(LIB_SUFFIX) \
-	$(DIST)/lib/$(LIB_PREFIX)certdb.$(LIB_SUFFIX) \
-	$(DIST)/lib/$(LIB_PREFIX)secutil.$(LIB_SUFFIX) \
-	$(DIST)/lib/$(LIB_PREFIX)nsspki.$(LIB_SUFFIX) \
-	$(DIST)/lib/$(LIB_PREFIX)nssdev.$(LIB_SUFFIX) \
-	$(DIST)/lib/$(LIB_PREFIX)nssb.$(LIB_SUFFIX) \
+	$(DIST)/lib/libnsspki1.$(LIB_SUFFIX) \
+	$(DIST)/lib/libnsspki.$(LIB_SUFFIX) \
+	$(DIST)/lib/libnssdev.$(LIB_SUFFIX) \
+	$(DIST)/lib/libnssasn1.$(LIB_SUFFIX) \
+	$(DIST)/lib/libnssb.$(LIB_SUFFIX) \
 	$(NULL)
 
 SHARED_LIBRARY_DIRS = \
-	../certhigh \
-	../cryptohi \
-	../pk11wrap \
-	../certdb \
-	../util \
+	../pki1 \
 	../pki \
 	../dev \
+	../asn1 \
 	../base \
 	$(NULL)
 

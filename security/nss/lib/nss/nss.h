@@ -38,9 +38,11 @@
 #ifndef __nss_h_
 #define __nss_h_
 
-#include "seccomon.h"
+#include "nsst.h"
+#include "nssdevt.h"
+#include "nsspkit.h"
 
-SEC_BEGIN_PROTOS
+PR_BEGIN_EXTERN_C
 
 /*
  * NSS's major version, minor version, patch level, and whether
@@ -49,9 +51,9 @@ SEC_BEGIN_PROTOS
  * The format of the version string should be
  *     "<major version>.<minor version>[.<patch level>] [<Beta>]"
  */
-#define NSS_VERSION  "3.6 Beta"
-#define NSS_VMAJOR   3
-#define NSS_VMINOR   6
+#define NSS_VERSION  "4.0 Preview"
+#define NSS_VMAJOR   0
+#define NSS_VMINOR   0
 #define NSS_VPATCH   0
 #define NSS_BETA     PR_TRUE
 
@@ -74,7 +76,7 @@ extern PRBool NSS_VersionCheck(const char *importedVersion);
  * Does not initialize the cipher policies or enables.
  * Default policy settings disallow all ciphers.
  */
-extern SECStatus NSS_Init(const char *configdir);
+extern PRStatus NSS_Init(const char *configdir);
 
 /*
  * Open the Cert, Key, and Security Module databases, read/write.
@@ -82,7 +84,7 @@ extern SECStatus NSS_Init(const char *configdir);
  * Does not initialize the cipher policies or enables.
  * Default policy settings disallow all ciphers.
  */
-extern SECStatus NSS_InitReadWrite(const char *configdir);
+extern PRStatus NSS_InitReadWrite(const char *configdir);
 
 /*
  * Open the Cert, Key, and Security Module databases, read/write.
@@ -122,19 +124,19 @@ extern SECStatus NSS_InitReadWrite(const char *configdir);
 #define NSS_INIT_NOROOTINIT     0x10
 #define NSS_INIT_OPTIMIZESPACE  0x20
 
-extern SECStatus NSS_Initialize(const char *configdir, 
+extern PRStatus NSS_Initialize(const char *configdir, 
 	const char *certPrefix, const char *keyPrefix, 
 	const char *secmodName, PRUint32 flags);
 
 /*
  * initialize NSS without a creating cert db's, key db's, or secmod db's.
  */
-SECStatus NSS_NoDB_Init(const char *configdir);
+PRStatus NSS_NoDB_Init(const char *configdir);
 
 /* 
  * Close the Cert, Key databases.
  */
-extern SECStatus NSS_Shutdown(void);
+extern PRStatus NSS_Shutdown(void);
 
 /*
  * set the PKCS #11 strings for the internal token.
@@ -150,6 +152,19 @@ void PK11_ConfigurePKCS11(const char *man, const char *libdes,
  */
 void nss_DumpCertificateCacheInfo(void);
 
-SEC_END_PROTOS
+NSS_EXTERN NSSTrustDomain *
+NSS_GetDefaultTrustDomain
+(
+  void
+);
+
+NSS_EXTERN PRStatus
+NSS_SetDefaultCertificateHandler
+(
+  NSSCertificateType certType,
+  NSSCertificateMethods *certMethods
+);
+
+PR_END_EXTERN_C
 
 #endif /* __nss_h_ */

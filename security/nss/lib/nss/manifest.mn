@@ -33,18 +33,19 @@
 CORE_DEPTH = ../../..
 
 PRIVATE_EXPORTS = \
-	nssrenam.h \
 	$(NULL)
 
 EXPORTS = \
-	nss.h \
+	nss.h  \
+	nsst.h \
 	$(NULL)
 
 MODULE = security
 
 CSRCS = \
 	nssinit.c \
-	nssver.c \
+	nssver.c  \
+	nsscert.c \
 	$(NULL)
 
 REQUIRES = security dbm
@@ -52,4 +53,4 @@ REQUIRES = security dbm
 MAPFILE = $(OBJDIR)/nss.def
 
 LIBRARY_NAME = nss
-LIBRARY_VERSION = 3
+LIBRARY_VERSION = 4

@@ -36,21 +36,20 @@
  */
 
 #include <ctype.h>
-#include "seccomon.h"
 #include "prinit.h"
 #include "prprf.h"
 #include "prmem.h"
-#include "cert.h"
-#include "key.h"
+#if 0
 #include "ssl.h"
 #include "sslproto.h"
-#include "secmod.h"
-#include "secoid.h"
+#endif
 #include "nss.h"
-#include "secrng.h"
-#include "pk11func.h"
+#include "base.h"
+#include "dev.h"
+#include "nsspki.h"
 
-#include "pki3hack.h"
+/* XXX */
+#define PORT_Strcat strcat
 
 /*
  * On Windows nss3.dll needs to export the symbol 'mktemp' to be
@@ -85,10 +84,10 @@ nss_makeFlags(PRBool readOnly, PRBool noCertDB,
 				PRBool noModDB, PRBool forceOpen, 
 				PRBool passwordRequired, PRBool optimizeSpace) 
 {
-    char *flags = (char *)PORT_Alloc(NSS_MAX_FLAG_SIZE);
+    char *flags = (char *)nss_ZAlloc(NULL, NSS_MAX_FLAG_SIZE);
     PRBool first = PR_TRUE;
 
-    PORT_Memset(flags,0,NSS_MAX_FLAG_SIZE);
+    nsslibc_memset(flags,0,NSS_MAX_FLAG_SIZE);
     if (readOnly) {
         PORT_Strcat(flags,"readOnly");
         first = PR_FALSE;
@@ -126,7 +125,7 @@ nss_makeFlags(PRBool readOnly, PRBool noCertDB,
  * info.
  */
 static char * pk11_config_strings = NULL;
-static char * pk11_config_name = NULL;
+static NSSUTF8 * pk11_config_name = NULL;
 static PRBool pk11_password_required = PR_FALSE;
 
 /*
@@ -157,9 +156,9 @@ PK11_ConfigurePKCS11(const char *man, const char *libdes, const char *tokdes,
 	PR_smprintf_free(strings);
 	strings = newStrings;
 	if (pk11_config_name != NULL) {
-	    PORT_Free(pk11_config_name);
+	    nss_ZFreeIf(pk11_config_name);
 	}
-	pk11_config_name = PORT_Strdup(libdes);
+	pk11_config_name = nssUTF8_Duplicate((NSSUTF8 *)libdes, NULL);
     }
    if (strings == NULL) return;
 
@@ -236,7 +235,7 @@ nss_addEscape(const char *string, char quote)
 	size++;
     }
 
-    newString = PORT_ZAlloc(escapes+size+1); 
+    newString = nss_ZAlloc(NULL, escapes+size+1); 
     if (newString == NULL) {
 	return NULL;
     }
@@ -262,17 +261,18 @@ nss_doubleEscape(const char *string)
     round1 = nss_addEscape(string,'\'');
     if (round1) {
 	retValue = nss_addEscape(round1,'"');
-	PORT_Free(round1);
+	nss_ZFreeIf(round1);
     }
 
 done:
     if (retValue == NULL) {
-	retValue = PORT_Strdup("");
+	retValue = nssUTF8_Duplicate("", NULL);
     }
     return retValue;
 }
 
 
+#if 0
 #ifndef XP_MAC
 /*
  * The following code is an attempt to automagically find the external root
@@ -372,6 +372,7 @@ nss_FindExternalRoot(const char *dbpath, const char* secmodprefix)
 	return;
 }
 #endif
+#endif
 
 /*
  * OK there are now lots of options here, lets go through them all:
@@ -393,7 +394,19 @@ nss_FindExternalRoot(const char *dbpath, const char* secmodprefix)
 
 static PRBool nss_IsInitted = PR_FALSE;
 
-static SECStatus
+static NSSTrustDomain *g_default_trust_domain = NULL;
+
+NSS_IMPLEMENT NSSTrustDomain *
+NSS_GetDefaultTrustDomain
+(
+  void
+)
+{
+    return g_default_trust_domain;
+}
+
+
+static PRStatus
 nss_Init(const char *configdir, const char *certPrefix, const char *keyPrefix,
 		 const char *secmodName, PRBool readOnly, PRBool noCertDB, 
 			PRBool noModDB, PRBool forceOpen, PRBool noRootInit,
@@ -401,14 +414,16 @@ nss_Init(const char *configdir, const char *certPrefix, const char *keyPrefix,
 {
     char *moduleSpec = NULL;
     char *flags = NULL;
-    SECStatus rv = SECFailure;
+    PRStatus rv = PR_FAILURE;
     char *lconfigdir = NULL;
     char *lcertPrefix = NULL;
     char *lkeyPrefix = NULL;
     char *lsecmodName = NULL;
+    NSSModule **modules, **mp;
+    PRStatus nssrv;
 
     if (nss_IsInitted) {
-	return SECSuccess;
+	return PR_SUCCESS;
     }
 
     flags = nss_makeFlags(readOnly,noCertDB,noModDB,forceOpen,
@@ -442,22 +457,41 @@ nss_Init(const char *configdir, const char *certPrefix, const char *keyPrefix,
 		pk11_config_strings ? pk11_config_strings : "");
 
 loser:
-    PORT_Free(flags);
-    if (lconfigdir) PORT_Free(lconfigdir);
-    if (lcertPrefix) PORT_Free(lcertPrefix);
-    if (lkeyPrefix) PORT_Free(lkeyPrefix);
-    if (lsecmodName) PORT_Free(lsecmodName);
+    nss_ZFreeIf(flags);
+    if (lconfigdir) nss_ZFreeIf(lconfigdir);
+    if (lcertPrefix) nss_ZFreeIf(lcertPrefix);
+    if (lkeyPrefix) nss_ZFreeIf(lkeyPrefix);
+    if (lsecmodName) nss_ZFreeIf(lsecmodName);
 
     if (moduleSpec) {
-	SECMODModule *module = SECMOD_LoadModule(moduleSpec,NULL,PR_TRUE);
+	NSSModule *module;
+        nss_InitializeGlobalModuleList();
+	module = nssModule_CreateFromSpec(moduleSpec, NULL, PR_TRUE);
 	PR_smprintf_free(moduleSpec);
 	if (module) {
-	    if (module->loaded) rv=SECSuccess;
-	    SECMOD_DestroyModule(module);
+#if 0
+	    if (module->isLoaded) rv=PR_SUCCESS;
+#endif
+	    rv = PR_SUCCESS;
+	    nssModule_Destroy(module);
 	}
     }
 
-    if (rv == SECSuccess) {
+    g_default_trust_domain = NSSTrustDomain_Create(NULL, NULL, NULL, NULL);
+
+    modules = nss_GetLoadedModules();
+    if (!modules) {
+	return PR_FAILURE;
+    }
+
+    for (mp = modules; *mp; mp++) {
+	nssrv = NSSTrustDomain_AddModule(g_default_trust_domain, *mp);
+    }
+    nssModuleArray_Destroy(modules);
+
+
+#if 0
+    if (rv == PR_SUCCESS) {
 	/* can this function fail?? */
 	STAN_LoadDefaultNSS3TrustDomain();
 	CERT_SetDefaultCertDB((CERTCertDBHandle *)
@@ -472,18 +506,19 @@ loser:
 #endif
 	nss_IsInitted = PR_TRUE;
     }
+#endif
     return rv;
 }
 
 
-SECStatus
+PRStatus
 NSS_Init(const char *configdir)
 {
     return nss_Init(configdir, "", "", SECMOD_DB, PR_TRUE, 
 		PR_FALSE, PR_FALSE, PR_FALSE, PR_FALSE, PR_TRUE);
 }
 
-SECStatus
+PRStatus
 NSS_InitReadWrite(const char *configdir)
 {
     return nss_Init(configdir, "", "", SECMOD_DB, PR_FALSE, 
@@ -508,7 +543,7 @@ NSS_InitReadWrite(const char *configdir)
  *      NSS_INIT_FORCEOPEN - Continue to force initializations even if the 
  * 			databases cannot be opened.
  */
-SECStatus
+PRStatus
 NSS_Initialize(const char *configdir, const char *certPrefix, 
 	const char *keyPrefix, const char *secmodName, PRUint32 flags)
 {
@@ -524,21 +559,22 @@ NSS_Initialize(const char *configdir, const char *certPrefix,
 /*
  * initialize NSS without a creating cert db's, key db's, or secmod db's.
  */
-SECStatus
+PRStatus
 NSS_NoDB_Init(const char * configdir)
 {
       return nss_Init("","","","",
 			PR_TRUE,PR_TRUE,PR_TRUE,PR_TRUE,PR_TRUE,PR_TRUE);
 }
 
-SECStatus
+PRStatus
 NSS_Shutdown(void)
 {
-    SECStatus rv;
-
+    PRStatus rv = PR_SUCCESS;
+#if 0
     SECOID_Shutdown();
-    STAN_Shutdown();
-    rv = SECMOD_Shutdown();
+#endif
+    NSSTrustDomain_Destroy(g_default_trust_domain);
+    nss_DestroyGlobalModuleList();
     nss_IsInitted = PR_FALSE;
     return rv;
 }
@@ -599,6 +635,22 @@ NSS_VersionCheck(const char *importedVersion)
         return PR_FALSE;
     }
     return PR_TRUE;
+}
+
+NSS_EXTERN void
+nssTrustDomain_DumpCacheInfo
+(
+  NSSTrustDomain *td
+);
+
+NSS_IMPLEMENT void
+nss_DumpCertificateCacheInfo
+(
+  void
+)
+{
+    NSSTrustDomain *td = NSS_GetDefaultTrustDomain();
+    nssTrustDomain_DumpCacheInfo(td);
 }
 
 
