@@ -318,7 +318,8 @@ NSSModule_TraverseCertificates
     PRUint32 i;
     for (i=0; i<mod->numSlots; i++) {
 	/* might as well skip straight to token, right? or is this slot? */
-	NSSToken_TraverseCertificates(mod->slots[i]->token, callback, arg);
+	NSSToken_TraverseCertificates(mod->slots[i]->token, 
+	                              NULL, callback, arg);
     }
     return NULL;
 }
