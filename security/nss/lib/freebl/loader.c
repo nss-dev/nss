@@ -1233,4 +1233,41 @@ SHA384_Resurrect(unsigned char *space, void *arg)
 }
 
 
+AESKeyWrapContext *
+AESKeyWrap_CreateContext(const unsigned char *key, const unsigned char *iv, 
+                         int encrypt, unsigned int keylen)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return NULL;
+  return vector->p_AESKeyWrap_CreateContext(key, iv, encrypt, keylen);
+}
+
+void 
+AESKeyWrap_DestroyContext(AESKeyWrapContext *cx, PRBool freeit)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return NULL;
+  return vector->p_AESKeyWrap_DestroyContext(cx, freeit);
+}
+
+SECStatus 
+AESKeyWrap_Encrypt(AESKeyWrapContext *cx, unsigned char *output,
+		   unsigned int *outputLen, unsigned int maxOutputLen,
+		   const unsigned char *input, unsigned int inputLen)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return NULL;
+  return vector->p_AESKeyWrap_Encrypt(cx, output, outputLen, maxOutputLen,
+                                      input, inputLen);
+}
+SECStatus 
+AESKeyWrap_Decrypt(AESKeyWrapContext *cx, unsigned char *output,
+		   unsigned int *outputLen, unsigned int maxOutputLen,
+		   const unsigned char *input, unsigned int inputLen)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return NULL;
+  return vector->p_AESKeyWrap_Decrypt(cx, output, outputLen, maxOutputLen,
+		                      input, inputLen);
+}
 
