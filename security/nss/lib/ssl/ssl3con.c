@@ -1323,6 +1323,33 @@ ssl3_ComputeRecordMAC(
     return rv;
 }
 
+static PRBool
+ssl3_ClientAuthTokenPresent(sslSessionID *sid) {
+    PK11SlotInfo *slot = NULL;
+    PRBool isPresent = PR_TRUE;
+
+    /* we only care if we are doing client auth */
+    if (!sid || !sid->u.ssl3.clAuthValid) {
+	return PR_TRUE;
+    }
+
+    /* get the slot */
+    slot = SECMOD_LookupSlot(sid->u.ssl3.clAuthModuleID,
+	                     sid->u.ssl3.clAuthSlotID);
+    if (slot == NULL ||
+	!PK11_IsPresent(slot) ||
+	sid->u.ssl3.clAuthSeries     != PK11_GetSlotSeries(slot) ||
+	sid->u.ssl3.clAuthSlotID     != PK11_GetSlotID(slot)     ||
+	sid->u.ssl3.clAuthModuleID   != PK11_GetModuleID(slot)   ||
+               !PK11_IsLoggedIn(slot, NULL)) {
+	isPresent = PR_FALSE;
+    } 
+    if (slot) {
+	PK11_FreeSlot(slot);
+    }
+    return isPresent;
+}
+
 /* Process the plain text before sending it.
  * Returns the number of bytes of plaintext that were succesfully sent
  * 	plus the number of bytes of plaintext that were copied into the
@@ -1365,6 +1392,12 @@ ssl3_SendRecord(   sslSocket *        ss,
 	if (rv != SECSuccess) {
 	    return SECFailure;	/* ssl3_InitState has set the error code. */
     	}
+    }
+
+    /* check for Token Presence */
+    if (!ssl3_ClientAuthTokenPresent(ss->sec.ci.sid)) {
+	PORT_SetError(SSL_ERROR_TOKEN_INSERTION_REMOVAL);
+	return SECFailure;
     }
 
     while (bytes > 0) {
@@ -2691,21 +2724,8 @@ ssl3_SendClientHello(sslSocket *ss)
 	** holds the private key still exists, is logged in, hasn't been
 	** removed, etc.
 	*/
-	if (sidOK && sid->u.ssl3.clAuthValid) {
-	    slot = SECMOD_LookupSlot(sid->u.ssl3.clAuthModuleID,
-	                             sid->u.ssl3.clAuthSlotID);
-	    if (slot == NULL ||
-	        !PK11_IsPresent(slot) ||
-		sid->u.ssl3.clAuthSeries     != PK11_GetSlotSeries(slot) ||
-		sid->u.ssl3.clAuthSlotID     != PK11_GetSlotID(slot)     ||
-		sid->u.ssl3.clAuthModuleID   != PK11_GetModuleID(slot)   ||
-                !PK11_IsLoggedIn(slot, NULL)) {
-	        sidOK = PR_FALSE;
-	    }
-	    if (slot) {
-		PK11_FreeSlot(slot);
-		slot = NULL;
-	    }
+	if (sidOK && !ssl3_ClientAuthTokenPresent(sid)) {
+	    sidOK = PR_FALSE;
 	}
 
 	if (!sidOK) {
@@ -7411,6 +7431,12 @@ const ssl3BulkCipherDef *cipher_def;
     }
 
     ssl3 = ss->ssl3;
+
+    /* check for Token Presence */
+    if (!ssl3_ClientAuthTokenPresent(ss->sec.ci.sid)) {
+	PORT_SetError(SSL_ERROR_TOKEN_INSERTION_REMOVAL);
+	return SECFailure;
+    }
 
     /* cText is NULL when we're called from ssl3_RestartHandshakeAfterXXX().
      * This implies that databuf holds a previously deciphered SSL Handshake
