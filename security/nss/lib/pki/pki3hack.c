@@ -827,11 +827,9 @@ fill_CERTCertificateFields(NSSCertificate *c, CERTCertificate *cc, PRBool forced
     NSSCryptoContext *context = c->object.cryptoContext;
     nssCryptokiInstance *instance = get_cert_instance(c);
     NSSUTF8 *stanNick;
-    if (instance) {
-	stanNick = instance->label;
-    } else if (context) {
-	stanNick = c->object.tempName;
-    }
+    /* must live somewhere */
+    PORT_Assert(instance != NULL || context != NULL);
+    stanNick = instance ? instance->label : c->object.tempName;
     /* fill other fields needed by NSS3 functions using CERTCertificate */
     if ((!cc->nickname && stanNick) || forced) {
 	PRStatus nssrv;
