@@ -67,7 +67,8 @@ typedef enum {
     siEncodedNameBuffer = 6,
     siAsciiNameString = 7,
     siAsciiString = 8,
-    siDEROID = 9
+    siDEROID = 9,
+    siUnsignedInteger = 10
 } SECItemType;
 
 typedef struct SECItemStr SECItem;
