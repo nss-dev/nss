@@ -129,6 +129,8 @@ if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ]; then
             fi
         fi
     }
+    HTML_FAILED='</TD><TD bgcolor=red>Failed</TD><TR>'
+    HTML_PASSED='</TD><TD bgcolor=lightGreen>Passed</TD><TR>'
 
     SCRIPTNAME=init.sh
 
@@ -151,10 +153,13 @@ if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ]; then
 
     if [ -z "${DON_T_SET_PATHS}" -o "${DON_T_SET_PATHS}" != "TRUE" ] ; then
         if [ "${OS_ARCH}" = "WINNT" -a "$OS_NAME"  != "CYGWIN_NT" ]; then
-            PATH=${DIST}/${OBJDIR}/bin\;${DIST}/${OBJDIR}/lib\;$PATH
+            PATH=.\;${DIST}/${OBJDIR}/bin\;${DIST}/${OBJDIR}/lib\;$PATH
             PATH=`perl ../path_uniq -d ';' "$PATH"`
         else
-            PATH=${DIST}/${OBJDIR}/bin:${DIST}/${OBJDIR}/lib:$PATH
+            PATH=.:/bin:/usr/bin:${DIST}/${OBJDIR}/bin:${DIST}/${OBJDIR}/lib:$PATH
+            # added /bin and /usr/bin in the beginning so a local perl will 
+            # be used
+
             PATH=`perl ../path_uniq -d ':' "$PATH"`
         fi
 
@@ -175,8 +180,18 @@ if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ]; then
         ?*)
             ;;
         *)
-            echo "$SCRIPTNAME: Fatal HOST environment variable is not defined."
-            exit 1 #does not need to be Exit, very early in script
+            HOST=`uname -n`
+            case $HOST in
+                *\.*)
+                    HOST=`echo $HOST | sed -e "s/\..*//"`
+                    ;;
+                ?*)
+                    ;;
+                *)
+                    echo "$SCRIPTNAME: Fatal HOST environment variable is not defined."
+                    exit 1 #does not need to be Exit, very early in script
+                    ;;
+            esac
             ;;
     esac
 
@@ -293,15 +308,14 @@ if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ]; then
 
     CURDIR=`pwd`
 
-    HTML_FAILED='</TD><TD bgcolor=red>Failed</TD><TR>'
-    HTML_PASSED='</TD><TD bgcolor=lightGreen>Passed</TD><TR>'
-
     CU_ACTION='Unknown certutil action'
 
     # would like to preserve some tmp files, also easier to see if there 
     # are "leftovers" - another possibility ${HOSTDIR}/tmp
 
     TMP=${HOSTDIR}      #TMP=${TMP-/tmp}
+    TEMP=${TMP}
+    TMPDIR=${TMP}
 
     CADIR=${HOSTDIR}/CA
     SERVERDIR=${HOSTDIR}/server
@@ -353,10 +367,16 @@ if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ]; then
     export MOZILLA_ROOT SECURITY_ROOT DIST TESTDIR OBJDIR HOSTDIR QADIR
     export LOGFILE SCRIPTNAME
 
+#used for the distributed stress test, the server generates certificates 
+#from GLOB_MIN_CERT to GLOB_MAX_CERT 
+# NOTE - this variable actually gets initialized by directly by the 
+# ssl_dist_stress.shs sl_ds_init() before init is called - need to change 
+# in  both places. speaking of data encapsulatioN...
+
     if [ -z "$GLOB_MIN_CERT" ] ; then
         GLOB_MIN_CERT=0
     fi
-    if [ -z "$GLOBMAX_CERT" ] ; then
+    if [ -z "$GLOB_MAX_CERT" ] ; then
         GLOB_MAX_CERT=200
     fi
     if [ -z "$MIN_CERT" ] ; then
