@@ -306,9 +306,10 @@ typedef struct _certDBEntrySubject {
     SECItem derSubject;
     unsigned int ncerts;
     char *nickname;
-    char *emailAddr;
     SECItem *certKeys;
     SECItem *keyIDs;
+    char **emailAddrs;
+    int nemailAddrs;
 } certDBEntrySubject;
 
 #define DB_SUBJECT_ENTRY_HEADER_LEN 6
