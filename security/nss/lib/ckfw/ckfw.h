@@ -110,6 +110,7 @@ NSS_EXTERN NSSCKFWInstance *
 nssCKFWInstance_Create
 (
   CK_C_INITIALIZE_ARGS_PTR pInitArgs,
+  CryptokiLockingState LockingState,
   NSSCKMDInstance *mdInstance,
   CK_RV *pError
 );
@@ -1824,6 +1825,7 @@ NSS_EXTERN NSSCKFWMutex *
 nssCKFWMutex_Create
 (
   CK_C_INITIALIZE_ARGS_PTR pInitArgs,
+  CryptokiLockingState LockingState,
   NSSArena *arena,
   CK_RV *pError
 );
