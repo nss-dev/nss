@@ -1276,20 +1276,32 @@ LockPoller(void * arg)
     cacheDesc *    cache         = (cacheDesc *)arg;
     cacheDesc *    sharedCache   = cache->sharedCache;
     sidCacheLock * pLock;
+    const char *   timeoutString;
     PRIntervalTime timeout;
     PRUint32       now;
     PRUint32       then;
     int            locks_polled  = 0;
     int            locks_to_poll = cache->numSIDCacheLocks + 2;
+    PRUint32       expiration    = SID_LOCK_EXPIRATION_TIMEOUT;
 
-    timeout = PR_SecondsToInterval(SID_LOCK_EXPIRATION_TIMEOUT);
+    timeoutString = getenv("NSS_SSL_SERVER_CACHE_MUTEX_TIMEOUT");
+    if (timeoutString) {
+	long newTime = strtol(timeoutString, 0, 0);
+	if (newTime == 0) 
+	    return;  /* application doesn't want this function */
+	if (newTime > 0)
+	    expiration = (PRUint32)newTime;
+	/* if error (newTime < 0) ignore it and use default */
+    }
+
+    timeout = PR_SecondsToInterval(expiration);
     while(!sharedCache->stopPolling) {
     	PR_Sleep(timeout);
 	if (sharedCache->stopPolling)
 	    break;
 
 	now   = ssl_Time();
-	then  = now - SID_LOCK_EXPIRATION_TIMEOUT;
+	then  = now - expiration;
 	for (pLock = cache->sidCacheLocks, locks_polled = 0;
 	     locks_to_poll > locks_polled && !sharedCache->stopPolling; 
 	     ++locks_polled, ++pLock ) {
