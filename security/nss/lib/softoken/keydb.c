@@ -541,12 +541,6 @@ makeGlobalSalt(NSSLOWKEYDBHandle *handle)
     return(SECSuccess);
 }
 
-static char *
-keyDBFilenameCallback(void *arg, int dbVersion)
-{
-    return(PORT_Strdup((char *)arg));
-}
-
 static SECStatus
 ChangeKeyDBPasswordAlg(NSSLOWKEYDBHandle *handle,
 		       SECItem *oldpwitem, SECItem *newpwitem,

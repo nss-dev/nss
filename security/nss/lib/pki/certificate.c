@@ -301,7 +301,6 @@ filter_subject_certs_for_id
 )
 {
     NSSCertificate **si;
-    NSSCertificate *rvCert = NULL;
     nssDecodedCert *dcp;
     int nextOpenSlot = 0;
 
