@@ -196,6 +196,7 @@ SECITEM_DupItem(const SECItem *from)
 SECStatus
 SECITEM_CopyItem(PRArenaPool *arena, SECItem *to, const SECItem *from)
 {
+    to->type = from->type;
     if (from->data && from->len) {
 	if ( arena ) {
 	    to->data = (unsigned char*) PORT_ArenaAlloc(arena, from->len);
