@@ -2478,8 +2478,10 @@ ocsp_CheckSignature(ocspSignature *signature, void *tbs,
      */
     rv = CERT_VerifyCert(handle, signerCert, PR_TRUE, certUsage, checkTime,
 			 pwArg, NULL);
-    if (rv != SECSuccess)
+    if (rv != SECSuccess) {
+        PORT_SetError(SEC_ERROR_OCSP_INVALID_SIGNING_CERT);
 	goto finish;
+    }
 
     /*
      * Now get the public key from the signer's certificate; we need
