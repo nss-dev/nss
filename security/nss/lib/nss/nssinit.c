@@ -251,10 +251,10 @@ NSS_InitReadWrite(const char *configdir)
 }
 
 SECStatus
-NSS_Initialize(const char *configdir, const char *certPrefix, const char *keyPrefix, const char *secmodName, PRBool readonly)
+NSS_Initialize(const char *configdir, const char *certPrefix, const char *keyPrefix, const char *secmodName, PRBool readOnly)
 {
     return nss_Init(configdir, certPrefix, keyPrefix, 
-						secmodName, readonly, PR_TRUE);
+						secmodName, readOnly, PR_TRUE);
 }
 
 /*
