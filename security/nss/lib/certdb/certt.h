@@ -397,14 +397,15 @@ struct CERTCrlKeyStr {
 struct CERTSignedCrlStr {
     PRArenaPool *arena;
     CERTCrl crl;
-    SECItem *derCrl;
-    PRBool reserved;
+    void *reserved1;
+    PRBool reserved2;
     PRBool isperm;
     PRBool istemp;
     int referenceCount;
     CERTCertDBHandle *dbhandle;
     CERTSignedData signatureWrap;	/* XXX */
     char *url;
+    SECItem *derCrl;
     PK11SlotInfo *slot;
     CK_OBJECT_HANDLE pkcs11ID;
 };
