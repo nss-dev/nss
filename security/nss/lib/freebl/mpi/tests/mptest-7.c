@@ -51,7 +51,7 @@
 
 int main(int argc, char *argv[])
 {
-  int       ix, size;
+  mp_digit  num;
   mp_int    a, b;
 
   srand(time(NULL));
@@ -91,7 +91,8 @@ int main(int argc, char *argv[])
   printf("b = "); mp_print(&b, stdout); fputc('\n', stdout);
 
   printf("\nTesting a for divisibility by first 170 primes\n");
-  if(mpp_divis_primes(&a, 170) == MP_YES)
+  num = 170;
+  if(mpp_divis_primes(&a, &num) == MP_YES)
     printf("It is divisible by at least one of them\n");
   else
     printf("It is not divisible by any of them\n");
