@@ -231,7 +231,7 @@ nss_Init(const char *configdir, const char *certPrefix, const char *keyPrefix,
     PORT_Free(flags);
 
     if (moduleSpec) {
-	rv = PK11_LoadPKCS11Module(moduleSpec,NULL);
+	rv = PK11_LoadPKCS11Module(moduleSpec,NULL,PR_TRUE);
 	PR_smprintf_free(moduleSpec);
     }
 
@@ -288,30 +288,7 @@ NSS_Initialize(const char *configdir, const char *certPrefix,
 SECStatus
 NSS_NoDB_Init(const char * configdir)
 {
-          
-      SECStatus rv = SECSuccess;
-#ifdef notdef
-
-      if( isInitialized ) {
-	   return SECSuccess;
-      }
-
-      rv = RNG_RNGInit();
-      if (rv != SECSuccess) {
-	   return rv;
-      }
-      RNG_SystemInfoForRNG();
-
-      rv = nss_OpenVolatileCertDB();
-      if (rv != SECSuccess) {
-	   return rv;
-      }
-      rv = nss_OpenVolatileSecModDB();
-
-      isInitialized = PR_TRUE;
-
-#endif
-      return rv;
+      return nss_Init(configdir,NULL,NULL,NULL,PR_TRUE,PR_TRUE,PR_TRUE,PR_TRUE);
 }
 
 void
