@@ -31,7 +31,7 @@ PROGRAM		= lots
 #REQUIRES	= $(MOZ_LIB_DBM_PREFIX)dbm
 
 LIBS		= \
-	-l$(MOZ_LIB_DBM_PREFIX)dbm \
+	$(DIST)/bin/lib$(MOZ_LIB_DBM_PREFIX)dbm.$(DLL_SUFFIX) \
 	$(NULL)
 
 include $(topsrcdir)/config/rules.mk
