@@ -566,7 +566,7 @@ NSSCertificate_GetModule (
 NSS_IMPLEMENT nssCryptokiObject *
 nssCertificate_FindInstanceForAlgorithm (
   NSSCertificate *c,
-  NSSAlgorithmAndParameters *ap
+  NSSAlgNParam *ap
 )
 {
     return nssPKIObject_FindInstanceForAlgorithm(&c->object, ap);
@@ -1270,7 +1270,7 @@ NSSCertificate_BuildChain (
 NSS_IMPLEMENT NSSItem *
 NSSCertificate_Encrypt (
   NSSCertificate *c,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSItem *data,
   NSSTime time,
   NSSUsages *usages,
@@ -1287,7 +1287,7 @@ NSSCertificate_Encrypt (
 NSS_IMPLEMENT PRStatus
 NSSCertificate_Verify (
   NSSCertificate *c,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSItem *data,
   NSSItem *signature,
   NSSTime time,
@@ -1303,7 +1303,7 @@ NSSCertificate_Verify (
 NSS_IMPLEMENT NSSItem *
 NSSCertificate_VerifyRecover (
   NSSCertificate *c,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSItem *signature,
   NSSTime time,
   NSSUsages *usages,
@@ -1320,7 +1320,7 @@ NSSCertificate_VerifyRecover (
 NSS_IMPLEMENT NSSItem *
 nssCertificate_WrapSymmetricKey (
   NSSCertificate *c,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   NSSSymmetricKey *keyToWrap,
   NSSTime time,
   NSSUsages *usages,
@@ -1349,7 +1349,7 @@ nssCertificate_WrapSymmetricKey (
 NSS_IMPLEMENT NSSItem *
 NSSCertificate_WrapSymmetricKey (
   NSSCertificate *c,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   NSSSymmetricKey *keyToWrap,
   NSSTime time,
   NSSUsages *usages,
@@ -1367,7 +1367,7 @@ NSSCertificate_WrapSymmetricKey (
 NSS_IMPLEMENT NSSCryptoContext *
 NSSCertificate_CreateCryptoContext (
   NSSCertificate *c,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSTime time,
   NSSUsages *usages,
   NSSPolicies *policiesOpt,
@@ -1574,7 +1574,7 @@ NSSUserCertificate_IsStillPresent (
 NSS_IMPLEMENT NSSItem *
 NSSUserCertificate_Decrypt (
   NSSUserCertificate *uc,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSItem *data,
   NSSTime time,
   NSSUsages *usages,
@@ -1591,7 +1591,7 @@ NSSUserCertificate_Decrypt (
 NSS_IMPLEMENT NSSItem *
 NSSUserCertificate_Sign (
   NSSUserCertificate *uc,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSItem *data,
   NSSTime time,
   NSSUsages *usages,
@@ -1608,7 +1608,7 @@ NSSUserCertificate_Sign (
 NSS_IMPLEMENT NSSItem *
 NSSUserCertificate_SignRecover (
   NSSUserCertificate *uc,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSItem *data,
   NSSTime time,
   NSSUsages *usages,
@@ -1625,7 +1625,7 @@ NSSUserCertificate_SignRecover (
 NSS_IMPLEMENT NSSSymmetricKey *
 NSSUserCertificate_UnwrapSymmetricKey (
   NSSUserCertificate *uc,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSItem *wrappedKey,
   NSSTime time,
   NSSUsages *usages,
@@ -1643,7 +1643,7 @@ NSS_IMPLEMENT NSSSymmetricKey *
 NSSUserCertificate_DeriveSymmetricKey (
   NSSUserCertificate *uc, /* provides private key */
   NSSCertificate *c, /* provides public key */
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSOID *target,
   PRUint32 keySizeOpt, /* zero for best allowed */
   NSSOperations operations,

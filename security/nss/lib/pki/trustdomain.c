@@ -323,9 +323,9 @@ NSSTrustDomain_FindTokenBySlotName (
 }
 
 NSS_IMPLEMENT NSSToken *
-nssTrustDomain_FindTokenForAlgorithmAndParameters (
+nssTrustDomain_FindTokenForAlgNParam (
   NSSTrustDomain *td,
-  const NSSAlgorithmAndParameters *ap
+  const NSSAlgNParam *ap
 )
 {
     return nssSlotList_GetBestTokenForAlgorithm(td->slots.forCerts, ap);
@@ -337,13 +337,13 @@ nssTrustDomain_FindTokenForAlgorithm (
   const NSSOID *algorithm
 )
 {
-    NSSAlgorithmAndParameters *ap;
+    NSSAlgNParam *ap;
     NSSToken *token = NULL;
 
-    ap = nssOID_CreateAlgorithmAndParameters(algorithm, NULL, NULL);
+    ap = nssOID_CreateAlgNParam(algorithm, NULL, NULL);
     if (ap) {
-	token = nssTrustDomain_FindTokenForAlgorithmAndParameters(td, ap);
-	nssAlgorithmAndParameters_Destroy(ap);
+	token = nssTrustDomain_FindTokenForAlgNParam(td, ap);
+	nssAlgNParam_Destroy(ap);
     }
     return token;
 }
@@ -1222,7 +1222,7 @@ NSSTrustDomain_FindBestUserCertificateForSSLClientAuth (
   NSSUTF8 *sslHostOpt,
   NSSDER *rootCAsOpt[], /* null pointer for none */
   PRUint32 rootCAsMaxOpt, /* zero means list is null-terminated */
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSPolicies *policiesOpt
 )
 {
@@ -1236,7 +1236,7 @@ NSSTrustDomain_FindUserCertificatesForSSLClientAuth (
   NSSUTF8 *sslHostOpt,
   NSSDER *rootCAsOpt[], /* null pointer for none */
   PRUint32 rootCAsMaxOpt, /* zero means list is null-terminated */
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSPolicies *policiesOpt,
   NSSCertificate **rvOpt,
   PRUint32 rvLimit, /* zero for no limit */
@@ -1253,7 +1253,7 @@ NSSTrustDomain_FindBestUserCertificateForEmailSigning (
   NSSASCII7 *signerOpt,
   NSSASCII7 *recipientOpt,
   /* anything more here? */
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSPolicies *policiesOpt
 )
 {
@@ -1267,7 +1267,7 @@ NSSTrustDomain_FindUserCertificatesForEmailSigning (
   NSSASCII7 *signerOpt,
   NSSASCII7 *recipientOpt,
   /* anything more here? */
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSPolicies *policiesOpt,
   NSSCertificate **rvOpt,
   PRUint32 rvLimit, /* zero for no limit */
@@ -1497,7 +1497,7 @@ loser:
 NSS_IMPLEMENT PRStatus
 nssTrustDomain_GenerateKeyPair (
   NSSTrustDomain *td,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   NSSPublicKey **pbkOpt,
   NSSPrivateKey **pvkOpt,
   NSSUTF8 *nicknameOpt,
@@ -1525,7 +1525,7 @@ nssTrustDomain_GenerateKeyPair (
 NSS_IMPLEMENT PRStatus
 NSSTrustDomain_GenerateKeyPair (
   NSSTrustDomain *td,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   NSSPublicKey **pbkOpt,
   NSSPrivateKey **pvkOpt,
   NSSUTF8 *nicknameOpt,
@@ -1545,7 +1545,7 @@ NSSTrustDomain_GenerateKeyPair (
 NSS_IMPLEMENT NSSToken *
 nssTrustDomain_FindSourceToken (
   NSSTrustDomain *td,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   NSSToken *candidate
 )
 {
@@ -1557,7 +1557,7 @@ nssTrustDomain_FindSourceToken (
 	/* We can't do the math on the destination token, find one
 	 * that is capable of doing it
 	 */
-	source = nssTrustDomain_FindTokenForAlgorithmAndParameters(td, ap);
+	source = nssTrustDomain_FindTokenForAlgNParam(td, ap);
     }
     return source;
 }
@@ -1565,7 +1565,7 @@ nssTrustDomain_FindSourceToken (
 NSS_IMPLEMENT NSSSymmetricKey *
 nssTrustDomain_GenerateSymmetricKey (
   NSSTrustDomain *td,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   PRUint32 keysize,
   NSSToken *destination,
   NSSCallback *uhhOpt
@@ -1589,7 +1589,7 @@ nssTrustDomain_GenerateSymmetricKey (
 NSS_IMPLEMENT NSSSymmetricKey *
 NSSTrustDomain_GenerateSymmetricKey (
   NSSTrustDomain *td,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   PRUint32 keysize,
   NSSToken *destination,
   NSSCallback *uhhOpt
@@ -1602,7 +1602,7 @@ NSSTrustDomain_GenerateSymmetricKey (
 NSS_IMPLEMENT NSSSymmetricKey *
 NSSTrustDomain_GenerateSymmetricKeyFromPassword (
   NSSTrustDomain *td,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   NSSUTF8 *passwordOpt, /* if null, prompt */
   NSSToken *destinationOpt,
   NSSCallback *uhhOpt
@@ -1715,7 +1715,7 @@ NSSTrustDomain_CreateVolatileDomain (
 NSS_IMPLEMENT NSSCryptoContext *
 nssTrustDomain_CreateCryptoContext (
   NSSTrustDomain *td,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSCallback *uhhOpt
 )
 {
@@ -1731,7 +1731,7 @@ nssTrustDomain_CreateCryptoContext (
 NSS_IMPLEMENT NSSCryptoContext *
 NSSTrustDomain_CreateCryptoContext (
   NSSTrustDomain *td,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSCallback *uhhOpt
 )
 {

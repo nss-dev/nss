@@ -133,8 +133,8 @@ nssOID_GetTag (
   const NSSOID *oid
 );
 
-NSS_EXTERN NSSAlgorithmAndParameters *
-nssOID_CreateAlgorithmAndParameters (
+NSS_EXTERN NSSAlgNParam *
+nssOID_CreateAlgNParam (
   const NSSOID *oid,
   NSSParameters *parameters,
   NSSArena *arenaOpt

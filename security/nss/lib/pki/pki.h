@@ -53,9 +53,9 @@ static const char PKI_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 PR_BEGIN_EXTERN_C
 
 NSS_EXTERN NSSToken *
-nssTrustDomain_FindTokenForAlgorithmAndParameters (
+nssTrustDomain_FindTokenForAlgNParam (
   NSSTrustDomain *td,
-  const NSSAlgorithmAndParameters *ap
+  const NSSAlgNParam *ap
 );
 
 NSS_EXTERN NSSToken *
@@ -284,7 +284,7 @@ nssPublicKey_GetID (
 NSS_EXTERN NSSItem *
 nssPublicKey_WrapSymmetricKey (
   NSSPublicKey *bk,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   NSSSymmetricKey *keyToWrap,
   NSSCallback *uhh,
   NSSItem *rvOpt,
@@ -299,7 +299,7 @@ nssSymmetricKey_AddRef (
 NSS_EXTERN PRStatus
 nssSymmetricKey_DeriveSSLSessionKeys (
   NSSSymmetricKey *masterSecret,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   NSSSymmetricKeyType bulkKeyType,
   NSSOperations operations,
   NSSProperties properties,

@@ -61,12 +61,12 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #endif
 
 /*
- * NSSAlgorithmAndParametersStr
+ * NSSAlgNParamStr
  *
  * This generic container should hold everything we need to know
  * to use an algorithm, with the specific exclusion of keysizes when 
  * doing key generation (this is specified in the API, thus the same
- * AlgorithmAndParameters can be reused to generate keys of different
+ * AlgNParam can be reused to generate keys of different
  * length).
  *
  * Internally, we need to communicate the following information to
@@ -75,7 +75,7 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
  * 1) a CK_MECHANISM
  * 2) template values for key generation and derivation
  *
- * The CK_MECHANISM is always set when the AlgorithmAndParameters is
+ * The CK_MECHANISM is always set when the AlgNParam is
  * created.  The template values are set upon request, and are extracted
  * from the the params field.
  *
@@ -83,10 +83,10 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
  * Each algorithm that has a template for params will set it when the
  * AlgParam is created.
  *
- * Once an AlgorithmAndParameters is created, it is considered read-only.
+ * Once an AlgNParam is created, it is considered read-only.
  * Thus is it used as 'const' throughout the API.
  */
-struct NSSAlgorithmAndParametersStr
+struct NSSAlgNParamStr
 {
   NSSArena *arena;
   PRBool i_allocated_arena;
@@ -97,7 +97,7 @@ struct NSSAlgorithmAndParametersStr
   /* every happy algorithm sets a mechanism the same way, but each
    * unhappy one sets a template a different way.
    */
-  PRIntn (* set_template)(const NSSAlgorithmAndParameters *ap,
+  PRIntn (* set_template)(const NSSAlgNParam *ap,
                           CK_ATTRIBUTE_PTR aTemplate,
                           CK_ULONG templateSize);
 
@@ -154,7 +154,7 @@ set_bits_parameter (
 /* For all mechanisms that don't need to set template values (default) */
 static PRIntn
 null_settor (
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   CK_ATTRIBUTE_PTR aTemplate,
   CK_ULONG templateSize
 )
@@ -167,7 +167,7 @@ null_settor (
  */
 
 static PRStatus
-decode_iv(NSSAlgorithmAndParameters *ap, const NSSItem *params)
+decode_iv(NSSAlgNParam *ap, const NSSItem *params)
 {
     PRStatus status;
     NSSItem iv;
@@ -188,7 +188,7 @@ decode_iv(NSSAlgorithmAndParameters *ap, const NSSItem *params)
 /* set template parameters for RSA key generation */
 static PRIntn
 rsa_keygen_settor (
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   CK_ATTRIBUTE_PTR aTemplate,
   CK_ULONG templateSize
 )
@@ -208,7 +208,7 @@ rsa_keygen_settor (
  */
 static PRStatus
 set_rsa_mechanism (
-  NSSAlgorithmAndParameters *ap,
+  NSSAlgNParam *ap,
   CK_MECHANISM_TYPE mech,
   NSSParameters *parameters,
   NSSItem *encodedParams,
@@ -232,7 +232,7 @@ set_rsa_mechanism (
 /* set template parameters for DSA key generation */
 static PRIntn
 dsa_keygen_settor (
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   CK_ATTRIBUTE_PTR aTemplate,
   CK_ULONG templateSize
 )
@@ -257,7 +257,7 @@ dsa_keygen_settor (
  */
 static PRStatus
 set_dsa_mechanism (
-  NSSAlgorithmAndParameters *ap,
+  NSSAlgNParam *ap,
   CK_MECHANISM_TYPE mech,
   NSSParameters *parameters,
   NSSItem *encodedParams,
@@ -289,7 +289,7 @@ set_dsa_mechanism (
 /* set template parameters for Diffie-Hellman key generation */
 static PRIntn
 dh_keygen_settor (
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   CK_ATTRIBUTE_PTR aTemplate,
   CK_ULONG templateSize
 )
@@ -315,7 +315,7 @@ dh_keygen_settor (
  */
 static PRStatus
 set_dh_mechanism (
-  NSSAlgorithmAndParameters *ap,
+  NSSAlgNParam *ap,
   CK_MECHANISM_TYPE mech,
   NSSParameters *parameters,
   NSSItem *encodedParams,
@@ -343,7 +343,7 @@ set_dh_mechanism (
  */
 static PRStatus
 set_des_mechanism (
-  NSSAlgorithmAndParameters *ap,
+  NSSAlgNParam *ap,
   CK_MECHANISM_TYPE mech,
   NSSParameters *parameters,
   NSSItem *encodedParams,
@@ -380,7 +380,7 @@ set_des_mechanism (
  */
 static PRStatus
 set_des3_mechanism (
-  NSSAlgorithmAndParameters *ap,
+  NSSAlgNParam *ap,
   CK_MECHANISM_TYPE mech,
   NSSParameters *parameters,
   NSSItem *encodedParams,
@@ -417,7 +417,7 @@ set_des3_mechanism (
  */
 static PRStatus
 set_aes_mechanism (
-  NSSAlgorithmAndParameters *ap,
+  NSSAlgNParam *ap,
   CK_MECHANISM_TYPE mech,
   NSSParameters *parameters,
   NSSItem *encodedParams,
@@ -501,7 +501,7 @@ static PRStatus rc2_unmap(NSSRC2Parameters *params, NSSArena *arena)
 
 static PRStatus
 rc2_constructor (
-  NSSAlgorithmAndParameters *ap,
+  NSSAlgNParam *ap,
   CK_MECHANISM_TYPE mech,
   NSSParameters *parameters,
   NSSItem *encodedParams,
@@ -555,7 +555,7 @@ rc2_constructor (
  */
 static PRStatus
 set_rc5_mechanism (
-  NSSAlgorithmAndParameters *ap,
+  NSSAlgNParam *ap,
   CK_MECHANISM_TYPE mech,
   NSSParameters *parameters,
   NSSItem *encodedParams,
@@ -621,7 +621,7 @@ not really part of params
 */
 static PRStatus
 pbe_constructor (
-  NSSAlgorithmAndParameters *ap,
+  NSSAlgNParam *ap,
   CK_MECHANISM_TYPE mech,
   NSSParameters *parameters,
   NSSItem *encodedParams
@@ -665,8 +665,8 @@ pbe_constructor (
 }
 
 NSS_IMPLEMENT PRStatus
-nssAlgorithmAndParameters_SetPBEPassword (
-  NSSAlgorithmAndParameters *ap,
+nssAlgNParam_SetPBEPassword (
+  NSSAlgNParam *ap,
   NSSUTF8 *password
 )
 {
@@ -855,7 +855,7 @@ set_sslsession_derive_mechanism (
  */
 static PRStatus
 set_cryptoki_mechanism (
-  NSSAlgorithmAndParameters *ap,
+  NSSAlgNParam *ap,
   const NSSOID *algorithm,
   NSSParameters *params,
   NSSItem *encodedParams,
@@ -913,37 +913,37 @@ set_cryptoki_mechanism (
     return PR_SUCCESS;
 }
 
-static NSSAlgorithmAndParameters *
+static NSSAlgNParam *
 create_algparam (
   NSSArena *arenaOpt,
   nssArenaMark **mark
 )
 {
     NSSArena *arena;
-    NSSAlgorithmAndParameters *rvAP = NULL;
+    NSSAlgNParam *rvAP = NULL;
     PRBool i_allocated_arena = PR_FALSE;
 
     if (arenaOpt) {
 	arena = arenaOpt;
 	*mark = nssArena_Mark(arena);
 	if (!*mark) {
-	    return (NSSAlgorithmAndParameters *)NULL;
+	    return (NSSAlgNParam *)NULL;
 	}
     } else {
 	arena = nssArena_Create();
 	if (!arena) {
-	    return (NSSAlgorithmAndParameters *)NULL;
+	    return (NSSAlgNParam *)NULL;
 	}
 	i_allocated_arena = PR_TRUE;
     }
-    rvAP = nss_ZNEW(arena, NSSAlgorithmAndParameters);
+    rvAP = nss_ZNEW(arena, NSSAlgNParam);
     if (!rvAP) {
 	if (*mark) {
 	    nssArena_Release(arena, *mark);
 	} else {
 	    nssArena_Destroy(arena);
 	}
-	return (NSSAlgorithmAndParameters *)NULL;
+	return (NSSAlgNParam *)NULL;
     }
     rvAP->arena = arena;
     rvAP->set_template = null_settor; /* by default */
@@ -951,9 +951,9 @@ create_algparam (
     return rvAP;
 }
 
-static NSSAlgorithmAndParameters *
+static NSSAlgNParam *
 finish_create_algparam (
-  NSSAlgorithmAndParameters *ap,
+  NSSAlgNParam *ap,
   NSSArena *arena,
   nssArenaMark *mark,
   PRStatus isOK
@@ -969,13 +969,13 @@ finish_create_algparam (
 	} else {
 	    nssArena_Destroy(arena);
 	}
-	ap = (NSSAlgorithmAndParameters *)NULL;
+	ap = (NSSAlgNParam *)NULL;
     }
     return ap;
 }
 
-NSS_IMPLEMENT NSSAlgorithmAndParameters *
-nssAlgorithmAndParameters_Create (
+NSS_IMPLEMENT NSSAlgNParam *
+nssAlgNParam_Create (
   NSSArena *arenaOpt,
   const NSSOID *algorithm,
   NSSParameters *parametersOpt
@@ -983,11 +983,11 @@ nssAlgorithmAndParameters_Create (
 {
     PRStatus status;
     nssArenaMark *mark = NULL;
-    NSSAlgorithmAndParameters *rvAP = NULL;
+    NSSAlgNParam *rvAP = NULL;
 
     rvAP = create_algparam(arenaOpt, &mark);
     if (!rvAP) {
-	return (NSSAlgorithmAndParameters *)NULL;
+	return (NSSAlgNParam *)NULL;
     }
 
     status = set_cryptoki_mechanism(rvAP, algorithm, 
@@ -997,8 +997,8 @@ nssAlgorithmAndParameters_Create (
     return finish_create_algparam(rvAP, rvAP->arena, mark, status);
 }
 
-NSS_IMPLEMENT NSSAlgorithmAndParameters *
-nssAlgorithmAndParameters_CreateForKeyGen (
+NSS_IMPLEMENT NSSAlgNParam *
+nssAlgNParam_CreateForKeyGen (
   NSSArena *arenaOpt,
   const NSSOID *algorithm,
   NSSParameters *parametersOpt
@@ -1006,11 +1006,11 @@ nssAlgorithmAndParameters_CreateForKeyGen (
 {
     PRStatus status;
     nssArenaMark *mark = NULL;
-    NSSAlgorithmAndParameters *rvAP = NULL;
+    NSSAlgNParam *rvAP = NULL;
 
     rvAP = create_algparam(arenaOpt, &mark);
     if (!rvAP) {
-	return (NSSAlgorithmAndParameters *)NULL;
+	return (NSSAlgNParam *)NULL;
     }
 
     status = set_cryptoki_mechanism(rvAP, algorithm, 
@@ -1034,15 +1034,15 @@ const NSSASN1Template nssASN1Template_AlgorithmID[] =
  { 0 }
 };
 
-NSS_IMPLEMENT NSSAlgorithmAndParameters *
-nssAlgorithmAndParameters_Decode (
+NSS_IMPLEMENT NSSAlgNParam *
+nssAlgNParam_Decode (
   NSSArena *arenaOpt,
   NSSBER *algIDber
 )
 {
     PRStatus status;
     nssArenaMark *mark = NULL;
-    NSSAlgorithmAndParameters *rvAP = NULL;
+    NSSAlgNParam *rvAP = NULL;
     NSSOID *alg;
     nssAlgorithmID algID;
     NSSItem *params;
@@ -1051,7 +1051,7 @@ nssAlgorithmAndParameters_Decode (
 
     rvAP = create_algparam(arenaOpt, &mark);
     if (!rvAP) {
-	return (NSSAlgorithmAndParameters *)NULL;
+	return (NSSAlgNParam *)NULL;
     }
 
     status = nssASN1_DecodeBER(rvAP->arena, &algID, 
@@ -1074,19 +1074,19 @@ finish:
     return finish_create_algparam(rvAP, rvAP->arena, mark, status);
 }
 
-NSS_IMPLEMENT NSSAlgorithmAndParameters *
-NSSAlgorithmAndParameters_Decode (
+NSS_IMPLEMENT NSSAlgNParam *
+NSSAlgNParam_Decode (
   NSSBER *algIDber,
   NSSArena *arenaOpt
 )
 {
 /* XXX turn this around */
-    return nssAlgorithmAndParameters_Decode(arenaOpt, algIDber);
+    return nssAlgNParam_Decode(arenaOpt, algIDber);
 }
 
 NSS_IMPLEMENT NSSBER *
-nssAlgorithmAndParameters_Encode (
-  NSSAlgorithmAndParameters *ap,
+nssAlgNParam_Encode (
+  NSSAlgNParam *ap,
   NSSBER *rvOpt,
   NSSArena *arenaOpt
 )
@@ -1115,28 +1115,28 @@ nssAlgorithmAndParameters_Encode (
 }
 
 NSS_IMPLEMENT NSSBER *
-NSSAlgorithmAndParameters_Encode (
-  NSSAlgorithmAndParameters *ap,
+NSSAlgNParam_Encode (
+  NSSAlgNParam *ap,
   NSSBER *rvOpt,
   NSSArena *arenaOpt
 )
 {
-    return nssAlgorithmAndParameters_Encode(ap, rvOpt, arenaOpt);
+    return nssAlgNParam_Encode(ap, rvOpt, arenaOpt);
 }
 
-NSS_IMPLEMENT NSSAlgorithmAndParameters *
-nssAlgorithmAndParameters_CreateSSLSessionKeyDerivation (
+NSS_IMPLEMENT NSSAlgNParam *
+nssAlgNParam_CreateSSLSessionKeyDerivation (
   NSSArena *arenaOpt,
   NSSSSLSessionKeyParameters *parameters
 )
 {
     PRStatus status;
     nssArenaMark *mark = NULL;
-    NSSAlgorithmAndParameters *rvAP = NULL;
+    NSSAlgNParam *rvAP = NULL;
 
     rvAP = create_algparam(arenaOpt, &mark);
     if (!rvAP) {
-	return (NSSAlgorithmAndParameters *)NULL;
+	return (NSSAlgNParam *)NULL;
     }
 
     status = set_sslsession_derive_mechanism(&rvAP->mechanism,
@@ -1147,8 +1147,8 @@ nssAlgorithmAndParameters_CreateSSLSessionKeyDerivation (
 }
 
 NSS_IMPLEMENT void
-nssAlgorithmAndParameters_Destroy (
-  NSSAlgorithmAndParameters *ap
+nssAlgNParam_Destroy (
+  NSSAlgNParam *ap
 )
 {
     if (ap && ap->i_allocated_arena) {
@@ -1157,18 +1157,18 @@ nssAlgorithmAndParameters_Destroy (
 }
 
 NSS_IMPLEMENT CK_MECHANISM_PTR
-nssAlgorithmAndParameters_GetMechanism (
-  const NSSAlgorithmAndParameters *ap
+nssAlgNParam_GetMechanism (
+  const NSSAlgNParam *ap
 )
 {
-    return &((NSSAlgorithmAndParameters *)ap)->mechanism;
+    return &((NSSAlgNParam *)ap)->mechanism;
 }
 
 #if 0
 This alternative does not break const-ness.
 NSS_IMPLEMENT void
-nssAlgorithmAndParameters_GetMechanism2 (
-  const NSSAlgorithmAndParameters *ap,
+nssAlgNParam_GetMechanism2 (
+  const NSSAlgNParam *ap,
   CK_MECHANISM_PTR pMechanism
 )
 {
@@ -1177,8 +1177,8 @@ nssAlgorithmAndParameters_GetMechanism2 (
 #endif
 
 NSS_IMPLEMENT PRIntn
-nssAlgorithmAndParameters_SetTemplateValues (
-  const NSSAlgorithmAndParameters *ap,
+nssAlgNParam_SetTemplateValues (
+  const NSSAlgNParam *ap,
   CK_ATTRIBUTE_PTR aTemplate,
   CK_ULONG templateSize
 )
@@ -1188,8 +1188,8 @@ nssAlgorithmAndParameters_SetTemplateValues (
 
 static PRStatus
 copy_algparam (
-  NSSAlgorithmAndParameters *copy,
-  const NSSAlgorithmAndParameters *orig
+  NSSAlgNParam *copy,
+  const NSSAlgNParam *orig
 )
 {
     copy->mechanism.mechanism = orig->mechanism.mechanism;
@@ -1205,19 +1205,19 @@ copy_algparam (
     return PR_SUCCESS;
 }
 
-NSS_IMPLEMENT NSSAlgorithmAndParameters *
-nssAlgorithmAndParameters_Clone (
-  const NSSAlgorithmAndParameters *ap,
+NSS_IMPLEMENT NSSAlgNParam *
+nssAlgNParam_Clone (
+  const NSSAlgNParam *ap,
   NSSArena *arenaOpt
 )
 {
     PRStatus status;
     nssArenaMark *mark = NULL;
-    NSSAlgorithmAndParameters *rvAP = NULL;
+    NSSAlgNParam *rvAP = NULL;
 
     rvAP = create_algparam(arenaOpt, &mark);
     if (!rvAP) {
-	return (NSSAlgorithmAndParameters *)NULL;
+	return (NSSAlgNParam *)NULL;
     }
 
     status = copy_algparam(rvAP, ap);
@@ -1226,19 +1226,19 @@ nssAlgorithmAndParameters_Clone (
 }
 
 NSS_IMPLEMENT const NSSOID *
-nssAlgorithmAndParameters_GetAlgorithm (
-  const NSSAlgorithmAndParameters *ap
+nssAlgNParam_GetAlgorithm (
+  const NSSAlgNParam *ap
 )
 {
     return ap->alg;
 }
 
 NSS_IMPLEMENT const NSSOID *
-NSSAlgorithmAndParameters_GetAlgorithm (
-  const NSSAlgorithmAndParameters *ap
+NSSAlgNParam_GetAlgorithm (
+  const NSSAlgNParam *ap
 )
 {
-    return nssAlgorithmAndParameters_GetAlgorithm(ap);
+    return nssAlgNParam_GetAlgorithm(ap);
 }
 
 
@@ -1246,9 +1246,9 @@ NSSAlgorithmAndParameters_GetAlgorithm (
  * convert a PBE mechanism used to generate a key to a crypto mechanism
  * that can use the key
  */
-NSS_IMPLEMENT NSSAlgorithmAndParameters *
-nssAlgorithmAndParameters_ConvertPBEToCrypto (
-  const NSSAlgorithmAndParameters *ap,
+NSS_IMPLEMENT NSSAlgNParam *
+nssAlgNParam_ConvertPBEToCrypto (
+  const NSSAlgNParam *ap,
   PRBool usePadding
 )
 {
@@ -1256,11 +1256,11 @@ nssAlgorithmAndParameters_ConvertPBEToCrypto (
     CK_RC2_CBC_PARAMS_PTR rc2p;
     CK_PBE_PARAMS_PTR pPBE;
     CK_MECHANISM_PTR mech;
-    NSSAlgorithmAndParameters *rvAP = NULL;
+    NSSAlgNParam *rvAP = NULL;
 
     rvAP = create_algparam(NULL, NULL);
     if (!rvAP) {
-	return (NSSAlgorithmAndParameters *)NULL;
+	return (NSSAlgNParam *)NULL;
     }
     mech = &rvAP->mechanism;
     pPBE = (CK_PBE_PARAMS_PTR)ap->mechanism.pParameter;
@@ -1319,10 +1319,10 @@ nssAlgorithmAndParameters_ConvertPBEToCrypto (
 }
 
 NSS_IMPLEMENT void
-NSSAlgorithmAndParameters_Destroy (
-  NSSAlgorithmAndParameters *ap
+NSSAlgNParam_Destroy (
+  NSSAlgNParam *ap
 )
 {
-    nssAlgorithmAndParameters_Destroy(ap);
+    nssAlgNParam_Destroy(ap);
 }
 

@@ -407,7 +407,7 @@ nssPKIObject_GetInstance (
 NSS_IMPLEMENT nssCryptokiObject *
 nssPKIObject_FindInstanceForAlgorithm (
   nssPKIObject *object,
-  const NSSAlgorithmAndParameters *ap
+  const NSSAlgNParam *ap
 )
 {
     nssCryptokiObject *instance = NULL;

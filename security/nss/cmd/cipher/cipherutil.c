@@ -46,7 +46,7 @@ GetSoftwareToken()
     return NSSTrustDomain_FindTokenByName(td, SOFTOKEN_NAME);
 }
 
-NSSAlgorithmAndParameters *
+NSSAlgNParam *
 GetHashAP(char *cipher)
 {
     NSSOID *alg;
@@ -62,7 +62,7 @@ GetHashAP(char *cipher)
 	fprintf(stderr, "Unknown hashing algorithm \"%s\"\n", cipher);
 	return NULL;
     }
-    return NSSOID_CreateAlgorithmAndParameters(alg, NULL, NULL);
+    return NSSOID_CreateAlgNParam(alg, NULL, NULL);
 }
 
 PRStatus
@@ -74,7 +74,7 @@ Hash
 )
 {
     NSSItem *input, *output;
-    NSSAlgorithmAndParameters *hasher;
+    NSSAlgNParam *hasher;
 
     input = CMD_GetInput(rtData);
     if (!input) {
@@ -94,15 +94,15 @@ Hash
     CMD_DumpOutput(output, rtData);
     NSSItem_Destroy(input);
     NSSItem_Destroy(output);
-    NSSAlgorithmAndParameters_Destroy(hasher);
+    NSSAlgNParam_Destroy(hasher);
     return PR_SUCCESS;
 }
 
-NSSAlgorithmAndParameters *
+NSSAlgNParam *
 GetSymKeyGenAP(char *cipher)
 {
     NSSOID *alg;
-    NSSAlgorithmAndParameters *ap;
+    NSSAlgNParam *ap;
 
     if (IS_CIPHER(cipher, "des")) {
 	alg = NSSOID_CreateFromTag(NSS_OID_DES_ECB);
@@ -119,7 +119,7 @@ GetSymKeyGenAP(char *cipher)
 	                       cipher);
 	return NULL;
     }
-    ap = NSSOID_CreateAlgorithmAndParametersForKeyGen(alg, NULL, NULL);
+    ap = NSSOID_CreateAlgNParamForKeyGen(alg, NULL, NULL);
     if (!ap) {
 	PR_fprintf(PR_STDERR, "Failed to create keygen alg/param for %s\n",
 	                       cipher);
@@ -138,7 +138,7 @@ GenerateSymmetricKey
   char *name
 )
 {
-    NSSAlgorithmAndParameters *keygen;
+    NSSAlgNParam *keygen;
     NSSSymmetricKey *skey;
 
     keygen = GetSymKeyGenAP(cipher);
@@ -149,12 +149,12 @@ GenerateSymmetricKey
     skey = NSSTrustDomain_GenerateSymmetricKey(td, keygen, length, 
                                                token, NULL);
 
-    NSSAlgorithmAndParameters_Destroy(keygen);
+    NSSAlgNParam_Destroy(keygen);
 
     return skey;
 }
 
-NSSAlgorithmAndParameters *
+NSSAlgNParam *
 GetSymCipherAP(char *cipher, char *iv)
 {
     char *paramStr, *p;
@@ -162,7 +162,7 @@ GetSymCipherAP(char *cipher, char *iv)
     NSSParameters params;
     NSSParameters *pParams = NULL;
     NSSOID *alg;
-    NSSAlgorithmAndParameters *ap;
+    NSSAlgNParam *ap;
     PRBool haveIV = PR_FALSE;
 
     memset(&params, 0, sizeof(params));
@@ -261,7 +261,7 @@ GetSymCipherAP(char *cipher, char *iv)
     } else {
 	PR_fprintf(PR_STDERR, "algorithm type \"%s\" unknown.\n", cipher);
     }
-    ap = NSSOID_CreateAlgorithmAndParameters(alg, pParams, NULL);
+    ap = NSSOID_CreateAlgNParam(alg, pParams, NULL);
     if (!ap) {
 	PR_fprintf(PR_STDERR, "Failed to create encryption alg/param for %s\n",
 	                       cipher);
@@ -280,7 +280,7 @@ Encrypt
 )
 {
     NSSItem *input, *output;
-    NSSAlgorithmAndParameters *cryptor;
+    NSSAlgNParam *cryptor;
 
     input = CMD_GetInput(rtData);
     if (!input) {
@@ -303,7 +303,7 @@ Encrypt
     return PR_SUCCESS;
 }
 
-NSSAlgorithmAndParameters *
+NSSAlgNParam *
 GetKeyPairGenAP(char *cipher)
 {
     PRStatus status;
@@ -373,9 +373,9 @@ GetKeyPairGenAP(char *cipher)
 	/* XXX pg from file */
     } else {
 	fprintf(stderr, "Unknown keypair type\"%s\"\n", cipher);
-	return (NSSAlgorithmAndParameters *)NULL;
+	return (NSSAlgNParam *)NULL;
     }
-    return NSSOID_CreateAlgorithmAndParametersForKeyGen(alg, &params, NULL);
+    return NSSOID_CreateAlgNParamForKeyGen(alg, &params, NULL);
 }
 
 PRStatus
@@ -391,7 +391,7 @@ GenerateKeyPair
 )
 {
     PRStatus status;
-    const NSSAlgorithmAndParameters *keygen;
+    const NSSAlgNParam *keygen;
 
     keygen = GetKeyPairGenAP(cipher);
     if (!keygen) {

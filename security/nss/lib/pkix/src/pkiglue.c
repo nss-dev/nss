@@ -715,7 +715,7 @@ verify_signature (
     NSSPKIXTBSCertificate *tbsCert;
     NSSDER *tbsDER;
     NSSPublicKey *verifyKey;
-    NSSAlgorithmAndParameters *ap;
+    NSSAlgNParam *ap;
     NSSOID *alg;
     NSSItem *params;
 
@@ -755,7 +755,7 @@ verify_signature (
 	return PR_FAILURE;
     }
 
-    ap = NSSOID_CreateAlgorithmAndParameters(alg, params, NULL);
+    ap = NSSOID_CreateAlgNParam(alg, params, NULL);
     if (!ap) {
 	NSSPublicKey_Destroy(verifyKey);
 	return PR_FAILURE;
@@ -765,7 +765,7 @@ verify_signature (
 
     status = NSSPublicKey_Verify(verifyKey, ap, tbsDER, sig, NULL);
 
-    NSSAlgorithmAndParameters_Destroy(ap);
+    NSSAlgNParam_Destroy(ap);
     NSSPublicKey_Destroy(verifyKey);
     
     return status;

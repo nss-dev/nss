@@ -67,7 +67,7 @@ struct NSSCryptoContextStr
   /* these are set when the context is used for an operation */
   NSSToken *token;
   nssSession *session;
-  NSSAlgorithmAndParameters *ap; /* this can be overriden */
+  NSSAlgNParam *ap; /* this can be overriden */
   nssCryptokiObject *key; /* key used for crypto */
   nssCryptokiObject *bkey; /* public key of user cert */
   union {
@@ -88,7 +88,7 @@ struct NSSCryptoContextMarkStr
 NSS_IMPLEMENT NSSCryptoContext *
 nssCryptoContext_Create (
   NSSTrustDomain *td,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSCallback *uhhOpt
 )
 {
@@ -106,7 +106,7 @@ nssCryptoContext_Create (
     rvCC->td = td;
     rvCC->arena = arena;
     if (apOpt) {
-	rvCC->ap = nssAlgorithmAndParameters_Clone(apOpt, rvCC->arena);
+	rvCC->ap = nssAlgNParam_Clone(apOpt, rvCC->arena);
 	if (!rvCC->ap) {
 	    nssArena_Destroy(arena);
 	    return (NSSCryptoContext *)NULL;
@@ -118,7 +118,7 @@ nssCryptoContext_Create (
 NSS_IMPLEMENT NSSCryptoContext *
 nssCryptoContext_CreateForSymmetricKey (
   NSSSymmetricKey *mkey,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSCallback *uhhOpt
 )
 {
@@ -239,7 +239,7 @@ NSSCryptoContext_GetTrustDomain (
 static PRStatus
 prepare_context_for_operation (
   NSSCryptoContext *cc,
-  const NSSAlgorithmAndParameters *ap
+  const NSSAlgNParam *ap
 )
 {
     if (cc->token) {
@@ -250,7 +250,7 @@ prepare_context_for_operation (
 	}
     } else {
 	/* Set the token where the operation will take place */
-	cc->token = nssTrustDomain_FindTokenForAlgorithmAndParameters(cc->td, 
+	cc->token = nssTrustDomain_FindTokenForAlgNParam(cc->td, 
 	                                                              ap);
 	if (!cc->token) {
 	    /*nss_SetError(NSS_ERROR_NO_TOKEN_FOR_OPERATION);*/
@@ -273,7 +273,7 @@ loser:
 static PRStatus
 prepare_context_symmetric_key (
   NSSCryptoContext *cc,
-  const NSSAlgorithmAndParameters *ap
+  const NSSAlgNParam *ap
 )
 {
     if (cc->token) {
@@ -296,7 +296,7 @@ prepare_context_symmetric_key (
 	    cc->token = nssToken_AddRef(cc->key->token);
 	} else {
 	    /* find any token in the trust domain that can */
-	    cc->token = nssTrustDomain_FindTokenForAlgorithmAndParameters(cc->td, ap);
+	    cc->token = nssTrustDomain_FindTokenForAlgNParam(cc->td, ap);
 	    if (!cc->token) {
 		/*nss_SetError(NSS_ERROR_NO_TOKEN_FOR_OPERATION);*/
 		goto loser;
@@ -329,7 +329,7 @@ loser:
 static PRStatus
 prepare_context_private_key (
   NSSCryptoContext *cc,
-  const NSSAlgorithmAndParameters *ap
+  const NSSAlgNParam *ap
 )
 {
     NSSPrivateKey *vkey = NULL;
@@ -362,7 +362,7 @@ prepare_context_private_key (
 	    cc->token = nssToken_AddRef(cc->key->token);
 	} else {
 	    /* find any token in the trust domain that can */
-	    cc->token = nssTrustDomain_FindTokenForAlgorithmAndParameters(cc->td, ap);
+	    cc->token = nssTrustDomain_FindTokenForAlgNParam(cc->td, ap);
 	    if (!cc->token) {
 		/*nss_SetError(NSS_ERROR_NO_TOKEN_FOR_OPERATION);*/
 		goto loser;
@@ -400,7 +400,7 @@ loser:
 static PRStatus
 prepare_context_public_key (
   NSSCryptoContext *cc,
-  const NSSAlgorithmAndParameters *ap
+  const NSSAlgNParam *ap
 )
 {
     /* when the dist. object is a cert, both keys may be available,
@@ -437,7 +437,7 @@ prepare_context_public_key (
 	    cc->token = nssToken_AddRef(cc->key->token);
 	} else {
 	    /* find any token in the trust domain that can */
-	    cc->token = nssTrustDomain_FindTokenForAlgorithmAndParameters(cc->td, ap);
+	    cc->token = nssTrustDomain_FindTokenForAlgNParam(cc->td, ap);
 	    if (!cc->token) {
 		/*nss_SetError(NSS_ERROR_NO_TOKEN_FOR_OPERATION);*/
 		goto loser;
@@ -475,7 +475,7 @@ loser:
 NSS_IMPLEMENT NSSItem *
 nssCryptoContext_Encrypt (
   NSSCryptoContext *cc,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSItem *data,
   NSSCallback *uhhOpt,
   NSSItem *rvOpt,
@@ -483,7 +483,7 @@ nssCryptoContext_Encrypt (
 )
 {
     nssCryptokiObject *key;
-    const NSSAlgorithmAndParameters *ap = apOpt ? apOpt : cc->ap;
+    const NSSAlgNParam *ap = apOpt ? apOpt : cc->ap;
     if (!ap) {
 	nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
 	return (NSSItem *)NULL;
@@ -506,7 +506,7 @@ nssCryptoContext_Encrypt (
 NSS_IMPLEMENT NSSItem *
 NSSCryptoContext_Encrypt (
   NSSCryptoContext *cc,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSItem *data,
   NSSCallback *uhhOpt,
   NSSItem *rvOpt,
@@ -524,12 +524,12 @@ NSSCryptoContext_Encrypt (
 NSS_IMPLEMENT PRStatus
 nssCryptoContext_BeginEncrypt (
   NSSCryptoContext *cc,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSCallback *uhhOpt
 )
 {
     nssCryptokiObject *key;
-    const NSSAlgorithmAndParameters *ap = apOpt ? apOpt : cc->ap;
+    const NSSAlgNParam *ap = apOpt ? apOpt : cc->ap;
     if (!ap) {
 	nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
 	return PR_FAILURE;
@@ -551,7 +551,7 @@ nssCryptoContext_BeginEncrypt (
 NSS_IMPLEMENT PRStatus
 NSSCryptoContext_BeginEncrypt (
   NSSCryptoContext *cc,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSCallback *uhhOpt
 )
 {
@@ -610,14 +610,14 @@ NSSCryptoContext_FinishEncrypt (
 NSS_IMPLEMENT NSSItem *
 nssCryptoContext_Decrypt (
   NSSCryptoContext *cc,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSItem *encryptedData,
   NSSCallback *uhhOpt,
   NSSItem *rvOpt,
   NSSArena *arenaOpt
 )
 {
-    const NSSAlgorithmAndParameters *ap = apOpt ? apOpt : cc->ap;
+    const NSSAlgNParam *ap = apOpt ? apOpt : cc->ap;
     if (!ap) {
 	nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
 	return (NSSItem *)NULL;
@@ -638,7 +638,7 @@ nssCryptoContext_Decrypt (
 NSS_IMPLEMENT NSSItem *
 NSSCryptoContext_Decrypt (
   NSSCryptoContext *cc,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSItem *encryptedData,
   NSSCallback *uhhOpt,
   NSSItem *rvOpt,
@@ -656,11 +656,11 @@ NSSCryptoContext_Decrypt (
 NSS_IMPLEMENT PRStatus
 nssCryptoContext_BeginDecrypt (
   NSSCryptoContext *cc,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSCallback *uhhOpt
 )
 {
-    const NSSAlgorithmAndParameters *ap = apOpt ? apOpt : cc->ap;
+    const NSSAlgNParam *ap = apOpt ? apOpt : cc->ap;
     if (!ap) {
 	nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
 	return PR_FAILURE;
@@ -680,7 +680,7 @@ nssCryptoContext_BeginDecrypt (
 NSS_IMPLEMENT PRStatus
 NSSCryptoContext_BeginDecrypt (
   NSSCryptoContext *cc,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSCallback *uhhOpt
 )
 {
@@ -739,14 +739,14 @@ NSSCryptoContext_FinishDecrypt (
 NSS_IMPLEMENT NSSItem *
 nssCryptoContext_Sign (
   NSSCryptoContext *cc,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSItem *data,
   NSSCallback *uhhOpt,
   NSSItem *rvOpt,
   NSSArena *arenaOpt
 )
 {
-    const NSSAlgorithmAndParameters *ap = apOpt ? apOpt : cc->ap;
+    const NSSAlgNParam *ap = apOpt ? apOpt : cc->ap;
     if (!ap) {
 	nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
 	return (NSSItem *)NULL;
@@ -761,7 +761,7 @@ nssCryptoContext_Sign (
 NSS_IMPLEMENT NSSItem *
 NSSCryptoContext_Sign (
   NSSCryptoContext *cc,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSItem *data,
   NSSCallback *uhhOpt,
   NSSItem *rvOpt,
@@ -779,11 +779,11 @@ NSSCryptoContext_Sign (
 NSS_IMPLEMENT PRStatus
 nssCryptoContext_BeginSign (
   NSSCryptoContext *cc,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSCallback *uhhOpt
 )
 {
-    const NSSAlgorithmAndParameters *ap = apOpt ? apOpt : cc->ap;
+    const NSSAlgNParam *ap = apOpt ? apOpt : cc->ap;
     if (!ap) {
 	nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
 	return PR_FAILURE;
@@ -797,7 +797,7 @@ nssCryptoContext_BeginSign (
 NSS_IMPLEMENT PRStatus
 NSSCryptoContext_BeginSign (
   NSSCryptoContext *cc,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSCallback *uhhOpt
 )
 {
@@ -852,14 +852,14 @@ NSSCryptoContext_FinishSign (
 NSS_IMPLEMENT NSSItem *
 nssCryptoContext_SignRecover (
   NSSCryptoContext *cc,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSItem *data,
   NSSCallback *uhhOpt,
   NSSItem *rvOpt,
   NSSArena *arenaOpt
 )
 {
-    const NSSAlgorithmAndParameters *ap = apOpt ? apOpt : cc->ap;
+    const NSSAlgNParam *ap = apOpt ? apOpt : cc->ap;
     if (!ap) {
 	nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
 	return (NSSItem *)NULL;
@@ -874,7 +874,7 @@ nssCryptoContext_SignRecover (
 NSS_IMPLEMENT NSSItem *
 NSSCryptoContext_SignRecover (
   NSSCryptoContext *cc,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSItem *data,
   NSSCallback *uhhOpt,
   NSSItem *rvOpt,
@@ -894,14 +894,14 @@ NSSCryptoContext_SignRecover (
 NSS_IMPLEMENT NSSSymmetricKey *
 nssCryptoContext_UnwrapSymmetricKey (
   NSSCryptoContext *cc,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSItem *wrappedKey,
   NSSCallback *uhhOpt,
   NSSOperations operations,
   NSSProperties properties
 )
 {
-    const NSSAlgorithmAndParameters *ap = apOpt ? apOpt : cc->ap;
+    const NSSAlgNParam *ap = apOpt ? apOpt : cc->ap;
     if (!ap) {
 	nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
 	return (NSSSymmetricKey *)NULL;
@@ -940,7 +940,7 @@ loser:
 NSS_IMPLEMENT NSSSymmetricKey *
 NSSCryptoContext_UnwrapSymmetricKey (
   NSSCryptoContext *cc,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSItem *wrappedKey,
   NSSCallback *uhhOpt,
   NSSOperations operations,
@@ -960,14 +960,14 @@ NSSCryptoContext_UnwrapSymmetricKey (
 NSS_IMPLEMENT PRStatus
 nssCryptoContext_Verify (
   NSSCryptoContext *cc,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSItem *data,
   NSSItem *signature,
   NSSCallback *uhhOpt
 )
 {
     nssCryptokiObject *key;
-    const NSSAlgorithmAndParameters *ap = apOpt ? apOpt : cc->ap;
+    const NSSAlgNParam *ap = apOpt ? apOpt : cc->ap;
     if (!ap) {
 	nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
 	return PR_FAILURE;
@@ -983,7 +983,7 @@ nssCryptoContext_Verify (
 NSS_IMPLEMENT PRStatus
 NSSCryptoContext_Verify (
   NSSCryptoContext *cc,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSItem *data,
   NSSItem *signature,
   NSSCallback *uhhOpt
@@ -1000,12 +1000,12 @@ NSSCryptoContext_Verify (
 NSS_IMPLEMENT PRStatus
 nssCryptoContext_BeginVerify (
   NSSCryptoContext *cc,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSCallback *uhhOpt
 )
 {
     nssCryptokiObject *key;
-    const NSSAlgorithmAndParameters *ap = apOpt ? apOpt : cc->ap;
+    const NSSAlgNParam *ap = apOpt ? apOpt : cc->ap;
     if (!ap) {
 	nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
 	return PR_FAILURE;
@@ -1020,7 +1020,7 @@ nssCryptoContext_BeginVerify (
 NSS_IMPLEMENT PRStatus
 NSSCryptoContext_BeginVerify (
   NSSCryptoContext *cc,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSCallback *uhhOpt
 )
 {
@@ -1073,7 +1073,7 @@ NSSCryptoContext_FinishVerify (
 NSS_IMPLEMENT NSSItem *
 nssCryptoContext_VerifyRecover (
   NSSCryptoContext *cc,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSItem *signature,
   NSSCallback *uhhOpt,
   NSSItem *rvOpt,
@@ -1081,7 +1081,7 @@ nssCryptoContext_VerifyRecover (
 )
 {
     nssCryptokiObject *key;
-    const NSSAlgorithmAndParameters *ap = apOpt ? apOpt : cc->ap;
+    const NSSAlgNParam *ap = apOpt ? apOpt : cc->ap;
     if (!ap) {
 	nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
 	return (NSSItem *)NULL;
@@ -1097,7 +1097,7 @@ nssCryptoContext_VerifyRecover (
 NSS_IMPLEMENT NSSItem *
 NSSCryptoContext_VerifyRecover (
   NSSCryptoContext *cc,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSItem *signature,
   NSSCallback *uhhOpt,
   NSSItem *rvOpt,
@@ -1117,14 +1117,14 @@ NSSCryptoContext_VerifyRecover (
 NSS_IMPLEMENT NSSItem *
 nssCryptoContext_WrapSymmetricKey (
   NSSCryptoContext *cc,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSSymmetricKey *keyToWrap,
   NSSCallback *uhhOpt,
   NSSItem *rvOpt,
   NSSArena *arenaOpt
 )
 {
-    const NSSAlgorithmAndParameters *ap = apOpt ? apOpt : cc->ap;
+    const NSSAlgNParam *ap = apOpt ? apOpt : cc->ap;
     if (!ap || cc->mk) {
 	nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
 	return (NSSItem *)NULL;
@@ -1149,7 +1149,7 @@ nssCryptoContext_WrapSymmetricKey (
 NSS_IMPLEMENT NSSItem *
 NSSCryptoContext_WrapSymmetricKey (
   NSSCryptoContext *cc,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSSymmetricKey *keyToWrap,
   NSSCallback *uhhOpt,
   NSSItem *rvOpt,
@@ -1168,14 +1168,14 @@ NSSCryptoContext_WrapSymmetricKey (
 NSS_IMPLEMENT NSSItem *
 nssCryptoContext_Digest (
   NSSCryptoContext *cc,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSItem *data,
   NSSCallback *uhhOpt,
   NSSItem *rvOpt,
   NSSArena *arenaOpt
 )
 {
-    const NSSAlgorithmAndParameters *ap = apOpt ? apOpt : cc->ap;
+    const NSSAlgNParam *ap = apOpt ? apOpt : cc->ap;
     if (!ap) {
 	nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
 	return (NSSItem *)NULL;
@@ -1190,7 +1190,7 @@ nssCryptoContext_Digest (
 NSS_IMPLEMENT NSSItem *
 NSSCryptoContext_Digest (
   NSSCryptoContext *cc,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSItem *data,
   NSSCallback *uhhOpt,
   NSSItem *rvOpt,
@@ -1204,11 +1204,11 @@ NSSCryptoContext_Digest (
 NSS_IMPLEMENT PRStatus
 nssCryptoContext_BeginDigest (
   NSSCryptoContext *cc,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSCallback *uhhOpt
 )
 {
-    const NSSAlgorithmAndParameters *ap = apOpt ? apOpt : cc->ap;
+    const NSSAlgNParam *ap = apOpt ? apOpt : cc->ap;
     if (!ap) {
 	nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
 	return PR_FAILURE;
@@ -1222,7 +1222,7 @@ nssCryptoContext_BeginDigest (
 NSS_IMPLEMENT PRStatus
 NSSCryptoContext_BeginDigest (
   NSSCryptoContext *cc,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSCallback *uhhOpt
 )
 {

@@ -567,7 +567,7 @@ struct ssl3BulkCipherDefStr {
 struct ssl3MACDefStr {
     SSLMACAlgorithm  mac;
     /* XXX
-    const NSSAlgorithmAndParameters *ap;
+    const NSSAlgNParam *ap;
     */
     int              pad_size;
     int              mac_size;

@@ -198,7 +198,7 @@ nssPrivateKey_GetInstance (
 NSS_IMPLEMENT nssCryptokiObject *
 nssPrivateKey_FindInstanceForAlgorithm (
   NSSPrivateKey *vk,
-  const NSSAlgorithmAndParameters *ap
+  const NSSAlgNParam *ap
 )
 {
     return nssPKIObject_FindInstanceForAlgorithm(&vk->object, ap);
@@ -284,7 +284,7 @@ static const NSSASN1Template encrypted_private_key_info_tmpl[] =
 NSS_IMPLEMENT NSSItem *
 nssPrivateKey_Encode (
   NSSPrivateKey *vk,
-  NSSAlgorithmAndParameters *ap,
+  NSSAlgNParam *ap,
   NSSUTF8 *passwordOpt,
   NSSCallback *uhhOpt,
   NSSItem *rvOpt,
@@ -294,7 +294,7 @@ nssPrivateKey_Encode (
     PRStatus status;
     nssCryptokiObject *pbeKey;
     nssCryptokiObject *vkey;
-    NSSAlgorithmAndParameters *wrapAP;
+    NSSAlgNParam *wrapAP;
     NSSItem *wrap;
     EPKI epki;
     NSSBER *pbeAlgBER;
@@ -313,7 +313,7 @@ nssPrivateKey_Encode (
 	    return (NSSItem *)NULL;
 	}
     }
-    (void)nssAlgorithmAndParameters_SetPBEPassword(ap, password);
+    (void)nssAlgNParam_SetPBEPassword(ap, password);
 
     vkey = nssPrivateKey_FindInstanceForAlgorithm(vk, ap);
     if (!vkey) {
@@ -332,7 +332,7 @@ nssPrivateKey_Encode (
     }
 
     /* convert the PBE alg/param to a corresponding encryption alg/param */
-    wrapAP = nssAlgorithmAndParameters_ConvertPBEToCrypto(ap, PR_TRUE);
+    wrapAP = nssAlgNParam_ConvertPBEToCrypto(ap, PR_TRUE);
     if (!wrapAP) {
 	return (NSSItem *)NULL;
     }
@@ -341,7 +341,7 @@ nssPrivateKey_Encode (
     wrap = nssToken_WrapKey(vkey->token, vkey->session, wrapAP, 
                             pbeKey, vkey, 
                             rvOpt, arenaOpt);
-    nssAlgorithmAndParameters_Destroy(wrapAP);
+    nssAlgNParam_Destroy(wrapAP);
     nssCryptokiObject_Destroy(pbeKey);
     nssCryptokiObject_Destroy(vkey);
     if (!wrap) {
@@ -349,7 +349,7 @@ nssPrivateKey_Encode (
     }
 
     /* encode result in PKCS#8 format */
-    pbeAlgBER = nssAlgorithmAndParameters_Encode(ap, &epki.encAlg, arenaOpt);
+    pbeAlgBER = nssAlgNParam_Encode(ap, &epki.encAlg, arenaOpt);
     if (!pbeAlgBER) {
 	return (NSSItem *)NULL;
     }
@@ -364,7 +364,7 @@ nssPrivateKey_Encode (
 NSS_IMPLEMENT NSSItem *
 NSSPrivateKey_Encode (
   NSSPrivateKey *vk,
-  NSSAlgorithmAndParameters *ap,
+  NSSAlgNParam *ap,
   NSSUTF8 *passwordOpt,
   NSSCallback *uhhOpt,
   NSSItem *rvOpt,
@@ -414,8 +414,8 @@ nssPrivateKey_Decode (
     PRStatus status;
     nssCryptokiObject *pbeKey = NULL;
     nssCryptokiObject *vkey = NULL;
-    NSSAlgorithmAndParameters *wrapAP = NULL;
-    NSSAlgorithmAndParameters *pbeAP = NULL;
+    NSSAlgNParam *wrapAP = NULL;
+    NSSAlgNParam *pbeAP = NULL;
     EPKI epki = { 0 };
     NSSItem *epkiData = NULL;
     NSSUTF8 *password = NULL;
@@ -436,7 +436,7 @@ nssPrivateKey_Decode (
     if (status == PR_FAILURE) {
 	goto cleanup;
     }
-    pbeAP = nssAlgorithmAndParameters_Decode(NULL, &epki.encAlg);
+    pbeAP = nssAlgNParam_Decode(NULL, &epki.encAlg);
     if (!pbeAP) {
 	goto cleanup;
     }
@@ -452,7 +452,7 @@ nssPrivateKey_Decode (
 	    goto cleanup;
 	}
     }
-    (void)nssAlgorithmAndParameters_SetPBEPassword(pbeAP, password);
+    (void)nssAlgNParam_SetPBEPassword(pbeAP, password);
 
     session = nssToken_CreateSession(destination, PR_TRUE);
     if (!session) {
@@ -469,7 +469,7 @@ nssPrivateKey_Decode (
     }
 
     /* convert the PBE alg/param to a corresponding encryption alg/param */
-    wrapAP = nssAlgorithmAndParameters_ConvertPBEToCrypto(pbeAP, PR_TRUE);
+    wrapAP = nssAlgNParam_ConvertPBEToCrypto(pbeAP, PR_TRUE);
     if (!wrapAP) {
 	goto cleanup;
     }
@@ -498,10 +498,10 @@ cleanup:
 	nssSession_Destroy(session);
     }
     if (pbeAP) {
-	nssAlgorithmAndParameters_Destroy(pbeAP);
+	nssAlgNParam_Destroy(pbeAP);
     }
     if (wrapAP) {
-	nssAlgorithmAndParameters_Destroy(wrapAP);
+	nssAlgNParam_Destroy(wrapAP);
     }
     if (pbeKey) {
 	nssCryptokiObject_Destroy(pbeKey);
@@ -567,7 +567,7 @@ NSSPrivateKey_GetModule (
 NSS_IMPLEMENT NSSItem *
 NSSPrivateKey_Decrypt (
   NSSPrivateKey *vk,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSItem *encryptedData,
   NSSCallback *uhh,
   NSSItem *rvOpt,
@@ -583,7 +583,7 @@ NSSPrivateKey_Decrypt (
 NSS_IMPLEMENT NSSItem *
 NSSPrivateKey_Sign (
   NSSPrivateKey *vk,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSItem *data,
   NSSCallback *uhh,
   NSSItem *rvOpt,
@@ -597,7 +597,7 @@ NSSPrivateKey_Sign (
 NSS_IMPLEMENT NSSItem *
 NSSPrivateKey_SignRecover (
   NSSPrivateKey *vk,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSItem *data,
   NSSCallback *uhh,
   NSSItem *rvOpt,
@@ -611,7 +611,7 @@ NSSPrivateKey_SignRecover (
 NSS_IMPLEMENT NSSSymmetricKey *
 NSSPrivateKey_UnwrapSymmetricKey (
   NSSPrivateKey *vk,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSItem *wrappedKey,
   NSSCallback *uhh
 )
@@ -624,7 +624,7 @@ NSS_IMPLEMENT NSSSymmetricKey *
 NSSPrivateKey_DeriveSymmetricKey (
   NSSPrivateKey *vk,
   NSSPublicKey *bk,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSOID *target,
   PRUint32 keySizeOpt, /* zero for best allowed */
   NSSOperations operations,
@@ -703,7 +703,7 @@ NSSPrivateKey_FindPublicKey (
 NSS_IMPLEMENT NSSCryptoContext *
 NSSPrivateKey_CreateCryptoContext (
   NSSPrivateKey *vk,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSCallback *uhh
 )
 {
@@ -969,7 +969,7 @@ nssPublicKey_GetInstance (
 NSS_IMPLEMENT nssCryptokiObject *
 nssPublicKey_FindInstanceForAlgorithm (
   NSSPublicKey *bk,
-  const NSSAlgorithmAndParameters *ap
+  const NSSAlgNParam *ap
 )
 {
     return nssPKIObject_FindInstanceForAlgorithm(&bk->object, ap);
@@ -1022,7 +1022,7 @@ nssPublicKey_CopyToToken (
 NSS_IMPLEMENT NSSItem *
 NSSPublicKey_Encode (
   NSSPublicKey *bk,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   NSSCallback *uhhOpt,
   NSSItem *rvOpt,
   NSSArena *arenaOpt
@@ -1099,7 +1099,7 @@ NSSPublicKey_GetInfo (
 NSS_IMPLEMENT NSSItem *
 NSSPublicKey_Encrypt (
   NSSPublicKey *bk,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSItem *data,
   NSSCallback *uhh,
   NSSItem *rvOpt,
@@ -1113,7 +1113,7 @@ NSSPublicKey_Encrypt (
 NSS_IMPLEMENT PRStatus
 nssPublicKey_Verify (
   NSSPublicKey *bk,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSItem *data,
   NSSItem *signature,
   NSSCallback *uhh
@@ -1144,7 +1144,7 @@ nssPublicKey_Verify (
 NSS_IMPLEMENT PRStatus
 NSSPublicKey_Verify (
   NSSPublicKey *bk,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSItem *data,
   NSSItem *signature,
   NSSCallback *uhh
@@ -1156,7 +1156,7 @@ NSSPublicKey_Verify (
 NSS_IMPLEMENT NSSItem *
 NSSPublicKey_VerifyRecover (
   NSSPublicKey *bk,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSItem *signature,
   NSSCallback *uhh,
   NSSItem *rvOpt,
@@ -1174,7 +1174,7 @@ NSSPublicKey_VerifyRecover (
 static nssCryptokiObject *
 nssPublicKey_GetInstanceForAlgorithmAndObject (
   NSSPublicKey *bk,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   void *ob,
   nssCryptokiObject **targetInstance
 )
@@ -1218,7 +1218,7 @@ nssPublicKey_GetInstanceForAlgorithmAndObject (
 NSS_IMPLEMENT NSSItem *
 nssPublicKey_WrapSymmetricKey (
   NSSPublicKey *bk,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   NSSSymmetricKey *keyToWrap,
   NSSCallback *uhh,
   NSSItem *rvOpt,
@@ -1242,7 +1242,7 @@ nssPublicKey_WrapSymmetricKey (
 NSS_IMPLEMENT NSSItem *
 NSSPublicKey_WrapSymmetricKey (
   NSSPublicKey *bk,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   NSSSymmetricKey *keyToWrap,
   NSSCallback *uhh,
   NSSItem *rvOpt,
@@ -1256,7 +1256,7 @@ NSSPublicKey_WrapSymmetricKey (
 NSS_IMPLEMENT NSSCryptoContext *
 NSSPublicKey_CreateCryptoContext (
   NSSPublicKey *bk,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSCallback *uhh
 )
 {

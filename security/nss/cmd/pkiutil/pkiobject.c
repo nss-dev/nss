@@ -876,7 +876,7 @@ vkeys = NULL;
 	}
     }
     if (vkey) {
-	NSSAlgorithmAndParameters *pbe;
+	NSSAlgNParam *pbe;
 	NSSParameters params;
 	NSSOID *pbeAlg;
 	NSSItem *encKey;
@@ -887,7 +887,7 @@ vkeys = NULL;
 	    NSSPrivateKey_Destroy(vkey);
 	    return PR_FAILURE;
 	}
-	pbe = NSSOID_CreateAlgorithmAndParameters(pbeAlg, &params, NULL);
+	pbe = NSSOID_CreateAlgNParam(pbeAlg, &params, NULL);
 	if (!pbe) {
 	    NSSPrivateKey_Destroy(vkey);
 	    return PR_FAILURE;
@@ -896,7 +896,7 @@ vkeys = NULL;
 	                              CMD_PWCallbackForKeyEncoding(keypass), 
 	                              NULL, NULL);
 	nss_ZFreeIf(params.pbe.salt.data); /* XXX */
-	NSSAlgorithmAndParameters_Destroy(pbe);
+	NSSAlgNParam_Destroy(pbe);
 	if (encKey) {
 	    CMD_DumpOutput(encKey, rtData);
 	    NSSItem_Destroy(encKey);
@@ -936,7 +936,7 @@ ExportObject (
     return status;
 }
 
-static NSSAlgorithmAndParameters *
+static NSSAlgNParam *
 get_rsa_key_gen_params(PRUint32 keySizeInBits, PRUint32 pubExp)
 {
     NSSOID *kpAlg;
@@ -952,7 +952,7 @@ get_rsa_key_gen_params(PRUint32 keySizeInBits, PRUint32 pubExp)
     if (CMD_SetRSAPE(&params.rsakg.publicExponent, pubExp) == PR_FAILURE)
 	return NULL;
 
-    return NSSOID_CreateAlgorithmAndParametersForKeyGen(kpAlg, &params, 
+    return NSSOID_CreateAlgNParamForKeyGen(kpAlg, &params, 
                                                         NULL);
 }
 
@@ -970,7 +970,7 @@ GenerateKeyPair
     PRStatus status;
     NSSPublicKey *bkey = NULL;
     NSSPrivateKey *vkey = NULL;
-    NSSAlgorithmAndParameters *kpGen = NULL;
+    NSSAlgNParam *kpGen = NULL;
     NSSKeyPairType keyPairType;
     PRUint32 keySizeInBits;
     PRUint32 pubExp;
@@ -1017,7 +1017,7 @@ GenerateKeyPair
                                             nickname, 0, 0, /* XXX */
                                             token, NULL);
 
-    NSSAlgorithmAndParameters_Destroy(kpGen);
+    NSSAlgNParam_Destroy(kpGen);
 
     if (status == PR_SUCCESS) {
 	NSSPublicKey_Destroy(bkey);

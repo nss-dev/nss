@@ -494,7 +494,7 @@ nssSlotList_GetSlots (
 NSS_IMPLEMENT NSSToken *
 nssSlotList_GetBestTokenForAlgorithm (
   nssSlotList *slotList,
-  const NSSAlgorithmAndParameters *ap
+  const NSSAlgNParam *ap
 )
 {
     PRCList *link;

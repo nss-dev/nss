@@ -149,56 +149,56 @@ NSSOID_IsTag (
     return nssOID_IsTag(oid, tag);
 }
 
-NSS_IMPLEMENT NSSAlgorithmAndParameters *
-nssOID_CreateAlgorithmAndParameters (
+NSS_IMPLEMENT NSSAlgNParam *
+nssOID_CreateAlgNParam (
   const NSSOID *oid,
   NSSParameters *parameters,
   NSSArena *arenaOpt
 )
 {
     if (oid->mechanism != CKM_INVALID_MECHANISM) {
-	return nssAlgorithmAndParameters_Create(arenaOpt, oid, 
+	return nssAlgNParam_Create(arenaOpt, oid, 
 	                                        parameters);
     } else {
 	nss_SetError(NSS_ERROR_INVALID_NSSOID);
     }
-    return (NSSAlgorithmAndParameters *)NULL;
+    return (NSSAlgNParam *)NULL;
 }
 
-NSS_IMPLEMENT NSSAlgorithmAndParameters *
-NSSOID_CreateAlgorithmAndParameters (
+NSS_IMPLEMENT NSSAlgNParam *
+NSSOID_CreateAlgNParam (
   const NSSOID *oid,
   NSSParameters *parameters,
   NSSArena *arenaOpt
 )
 {
-    return nssOID_CreateAlgorithmAndParameters(oid, parameters, arenaOpt);
+    return nssOID_CreateAlgNParam(oid, parameters, arenaOpt);
 }
 
-NSS_IMPLEMENT NSSAlgorithmAndParameters *
-nssOID_CreateAlgorithmAndParametersForKeyGen (
+NSS_IMPLEMENT NSSAlgNParam *
+nssOID_CreateAlgNParamForKeyGen (
   const NSSOID *oid,
   NSSParameters *parameters,
   NSSArena *arenaOpt
 )
 {
     if (oid->mechanism != CKM_INVALID_MECHANISM) {
-	return nssAlgorithmAndParameters_CreateForKeyGen(arenaOpt, oid, 
+	return nssAlgNParam_CreateForKeyGen(arenaOpt, oid, 
 	                                                 parameters);
     } else {
 	nss_SetError(NSS_ERROR_INVALID_NSSOID);
     }
-    return (NSSAlgorithmAndParameters *)NULL;
+    return (NSSAlgNParam *)NULL;
 }
 
-NSS_IMPLEMENT NSSAlgorithmAndParameters *
-NSSOID_CreateAlgorithmAndParametersForKeyGen (
+NSS_IMPLEMENT NSSAlgNParam *
+NSSOID_CreateAlgNParamForKeyGen (
   const NSSOID *oid,
   NSSParameters *parameters,
   NSSArena *arenaOpt
 )
 {
-    return nssOID_CreateAlgorithmAndParametersForKeyGen(oid, parameters, 
+    return nssOID_CreateAlgNParamForKeyGen(oid, parameters, 
                                                         arenaOpt);
 }
 

@@ -191,18 +191,18 @@ NSSOID_GetUTF8Encoding (
 
 
 /*
- * NSSOID_GetAlgorithmAndParameters
+ * NSSOID_GetAlgNParam
  */
 
-NSS_EXTERN NSSAlgorithmAndParameters *
-NSSOID_CreateAlgorithmAndParameters (
+NSS_EXTERN NSSAlgNParam *
+NSSOID_CreateAlgNParam (
   const NSSOID *oid,
   NSSParameters *parameters,
   NSSArena *arenaOpt
 );
 
-NSS_EXTERN NSSAlgorithmAndParameters *
-NSSOID_CreateAlgorithmAndParametersForKeyGen (
+NSS_EXTERN NSSAlgNParam *
+NSSOID_CreateAlgNParamForKeyGen (
   const NSSOID *oid,
   NSSParameters *parameters,
   NSSArena *arenaOpt

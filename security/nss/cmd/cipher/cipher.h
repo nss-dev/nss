@@ -95,10 +95,10 @@ GenerateKeyPair
   NSSPublicKey **publicKey
 );
 
-NSSAlgorithmAndParameters *
+NSSAlgNParam *
 GetSymKeyGenAP(char *cipher);
 
-NSSAlgorithmAndParameters *
+NSSAlgNParam *
 GetSymCipherAP(char *cipher, char *iv);
 
 PRStatus

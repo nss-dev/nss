@@ -139,7 +139,7 @@ typedef struct nssPKIObjectCreatorStr
   NSSToken *destination;
   nssSession *session;
   PRBool persistent;
-  const NSSAlgorithmAndParameters *ap;
+  const NSSAlgNParam *ap;
   NSSCallback *uhh;
   const NSSUTF8 *nickname;
   NSSProperties properties;

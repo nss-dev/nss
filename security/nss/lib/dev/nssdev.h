@@ -181,60 +181,60 @@ NSSToken_GetInfo (
   NSSTokenInfo *tokenInfo
 );
 
-/* NSSAlgorithmAndParameters
+/* NSSAlgNParam
  *
  * 
  */
 
 #if 0
-NSS_EXTERN NSSAlgorithmAndParameters *
-NSSAlgorithmAndParameters_CreateMAC (
+NSS_EXTERN NSSAlgNParam *
+NSSAlgNParam_CreateMAC (
   NSSArena *arenaOpt,
   NSSAlgorithmType blockCipher,
   NSSParameters *cipherParameters,
   PRUint32 macLength /* in bytes, 0 means maximum for block cipher */
 );
 
-NSS_EXTERN NSSAlgorithmAndParameters *
-NSSAlgorithmAndParameters_CreateHMAC (
+NSS_EXTERN NSSAlgNParam *
+NSSAlgNParam_CreateHMAC (
   NSSArena *arenaOpt,
   NSSAlgorithmType hashAlgorithm,
   PRUint32 hmacLength /* in bytes, 0 means maximum for hash algorithm */
 );
 
-/* NSSAlgorithmAndParameters_GetParameters
+/* NSSAlgNParam_GetParameters
  *
  * Return the parameters, properly encoded for the algorithm OID.  The
  * returned item must be freed.
  */
 NSS_EXTERN NSSItem *
-NSSAlgorithmAndParameters_GetParameters (
-  NSSAlgorithmAndParameters *ap
+NSSAlgNParam_GetParameters (
+  NSSAlgNParam *ap
 );
 #endif
 
-NSS_EXTERN NSSAlgorithmAndParameters *
-NSSAlgorithmAndParameters_Decode (
+NSS_EXTERN NSSAlgNParam *
+NSSAlgNParam_Decode (
   NSSBER *algIDber,
   NSSArena *arenaOpt
 );
 
-/* NSSAlgorithmAndParameters_Destroy
+/* NSSAlgNParam_Destroy
  *
  */
 NSS_EXTERN void
-NSSAlgorithmAndParameters_Destroy (
-  NSSAlgorithmAndParameters *ap
+NSSAlgNParam_Destroy (
+  NSSAlgNParam *ap
 );
 
 NSS_EXTERN const NSSOID *
-NSSAlgorithmAndParameters_GetAlgorithm (
-  const NSSAlgorithmAndParameters *ap
+NSSAlgNParam_GetAlgorithm (
+  const NSSAlgNParam *ap
 );
 
 NSS_EXTERN NSSBER *
-NSSAlgorithmAndParameters_Encode (
-  NSSAlgorithmAndParameters *ap,
+NSSAlgNParam_Encode (
+  NSSAlgNParam *ap,
   NSSBER *rvOpt,
   NSSArena *arenaOpt
 );

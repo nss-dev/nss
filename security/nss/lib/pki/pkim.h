@@ -214,13 +214,13 @@ nssPKIObject_GetInstances (
 NSS_EXTERN nssCryptokiObject *
 nssPKIObject_FindInstanceForAlgorithm (
   nssPKIObject *object,
-  const NSSAlgorithmAndParameters *ap
+  const NSSAlgNParam *ap
 );
 
 NSS_EXTERN NSSToken *
 nssTrustDomain_FindSourceToken (
   NSSTrustDomain *td,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   NSSToken *candidate
 );
 
@@ -244,14 +244,14 @@ nssTrustDomain_FindCRLsBySubject (
 NSS_EXTERN NSSCryptoContext *
 nssCryptoContext_Create (
   NSSTrustDomain *td,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSCallback *uhhOpt
 );
 
 NSS_EXTERN NSSCryptoContext *
 nssCryptoContext_CreateForSymmetricKey (
   NSSSymmetricKey *mk,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSCallback *uhh
 );
 
@@ -266,7 +266,7 @@ nssCertificate_Create (
 NSS_EXTERN nssCryptokiObject *
 nssCertificate_FindInstanceForAlgorithm (
   NSSCertificate *c,
-  NSSAlgorithmAndParameters *ap
+  NSSAlgNParam *ap
 );
 
 NSS_EXTERN void
@@ -359,7 +359,7 @@ nssSymmetricKey_GetInstance (
 NSS_EXTERN nssCryptokiObject *
 nssSymmetricKey_FindInstanceForAlgorithm (
   NSSSymmetricKey *mk,
-  const NSSAlgorithmAndParameters *ap
+  const NSSAlgNParam *ap
 );
 
 NSS_EXTERN NSSDER *
@@ -403,7 +403,7 @@ nssPublicKey_GetInstance (
 NSS_EXTERN nssCryptokiObject *
 nssPublicKey_FindInstanceForAlgorithm (
   NSSPublicKey *bk,
-  const NSSAlgorithmAndParameters *ap
+  const NSSAlgNParam *ap
 );
 
 NSS_EXTERN nssCryptokiObject *
@@ -433,7 +433,7 @@ nssPrivateKey_GetInstance (
 NSS_EXTERN nssCryptokiObject *
 nssPrivateKey_FindInstanceForAlgorithm (
   NSSPrivateKey *vk,
-  const NSSAlgorithmAndParameters *ap
+  const NSSAlgNParam *ap
 );
 
 NSS_EXTERN nssCryptokiObject *

@@ -64,7 +64,7 @@ PEHeader *SSL_PreencryptedStreamToFile(PRFileDesc *fd, PEHeader *inHeader,
     NSSToken **tokens;
     NSSToken *token;
     NSSOID *skipjack;
-    NSSAlgorithmAndParameters *skipjackWrap;
+    NSSAlgNParam *skipjackWrap;
     int oldHeaderSize;
     PEHeader *header;
     SECStatus rv;
@@ -153,7 +153,7 @@ PEHeader *SSL_PreencryptedStreamToFile(PRFileDesc *fd, PEHeader *inHeader,
 	    NSSSymmetricKey_Destroy(Ks);
 	    return NULL;
 	}
-	skipjackWrap = NSSAlgorithmAndParameters_CreateWrap(NULL,
+	skipjackWrap = NSSAlgNParam_CreateWrap(NULL,
 	                             NSSAlgorithmType_Skipjack, NULL);
 	if (!skipjackWrap) {
 	    PORT_Free(header);
@@ -176,7 +176,7 @@ PEHeader *SSL_PreencryptedStreamToFile(PRFileDesc *fd, PEHeader *inHeader,
 	if (key == NULL) {
 	    PORT_Free(header);
 	    NSSSymmetricKey_Destroy(Ks);
-	    NSSAlgorithmAndParameters_Destroy(skipjackWrap);
+	    NSSAlgNParam_Destroy(skipjackWrap);
 	    return NULL;
 	}
 
@@ -190,7 +190,7 @@ PEHeader *SSL_PreencryptedStreamToFile(PRFileDesc *fd, PEHeader *inHeader,
 #endif
 	NSSSymmetricKey_Destroy(Ks);
 	NSSSymmetricKey_Destroy(key);
-	NSSAlgorithmAndParameters_Destroy(skipjackWrap);
+	NSSAlgNParam_Destroy(skipjackWrap);
 	if (rv != SECSuccess) {
 	    PORT_Free(header);
 	    return NULL;
@@ -223,7 +223,7 @@ PEHeader *SSL_PreencryptedFileToStream(PRFileDesc *fd, PEHeader *header,
     NSSToken **tokens;
     NSSToken *token;
     NSSOID *skipjack;
-    NSSAlgorithmAndParameters *skipjackWrap;
+    NSSAlgNParam *skipjackWrap;
     PRStatus rv;
     NSSItem item;
     
@@ -270,7 +270,7 @@ PEHeader *SSL_PreencryptedFileToStream(PRFileDesc *fd, PEHeader *header,
 	NSSSymmetricKey_Destroy(Ks);
 	return NULL;
     }
-    skipjackWrap = NSSAlgorithmAndParameters_CreateWrap(NULL,
+    skipjackWrap = NSSAlgNParam_CreateWrap(NULL,
                                               NSSAlgorithmType_Skipjack, NULL);
     if (!skipjackWrap) {
 	NSSSymmetricKey_Destroy(Ks);

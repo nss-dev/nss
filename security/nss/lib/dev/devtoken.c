@@ -327,11 +327,11 @@ nssToken_IsReadOnly (
 NSS_IMPLEMENT PRBool
 nssToken_DoesAlgorithm (
   NSSToken *token,
-  const NSSAlgorithmAndParameters *ap
+  const NSSAlgNParam *ap
 )
 {
     CK_ULONG ul;
-    CK_MECHANISM_PTR pMech = nssAlgorithmAndParameters_GetMechanism(ap);
+    CK_MECHANISM_PTR pMech = nssAlgNParam_GetMechanism(ap);
     for (ul = 0; ul < token->numMechanisms; ul++) {
 	if (pMech->mechanism == token->mechanisms[ul]) {
 	    return PR_TRUE;
@@ -1501,7 +1501,7 @@ NSS_IMPLEMENT PRStatus
 nssToken_GenerateKeyPair (
   NSSToken *token,
   nssSession *session,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   PRBool asTokenObjects,
   const NSSUTF8 *labelOpt,
   NSSProperties properties,
@@ -1522,7 +1522,7 @@ nssToken_GenerateKeyPair (
     PRUint32 numBK = sizeof(bk_template) / sizeof(bk_template[0]);
     PRUint32 numVK = sizeof(vk_template) / sizeof(vk_template[0]);
 
-    mechanism = nssAlgorithmAndParameters_GetMechanism(ap);
+    mechanism = nssAlgNParam_GetMechanism(ap);
 
     /*
      * Construct the public key template
@@ -1548,7 +1548,7 @@ nssToken_GenerateKeyPair (
     }
     /* Set algorithm-dependent values in the template */
     numLeft = numBK - (attr - bk_template);
-    attr += nssAlgorithmAndParameters_SetTemplateValues(ap, attr, numLeft);
+    attr += nssAlgNParam_SetTemplateValues(ap, attr, numLeft);
     NSS_CK_TEMPLATE_FINISH(bk_template, attr, btsize);
 
     /*
@@ -1577,7 +1577,7 @@ nssToken_GenerateKeyPair (
 #if 0
     /* XXX */
     if (mechanism->mechanism == CKM_DH_PKCS_KEY_PAIR_GEN) {
-	nssDHParameters *dhp = nssAlgorithmAndParameters_GetDHParams(ap);
+	nssDHParameters *dhp = nssAlgNParam_GetDHParams(ap);
 	NSS_CK_SET_ATTRIBUTE_VAR(attr, CKA_VALUE_BITS, dhp->valueBits);
     }
 #endif
@@ -1613,7 +1613,7 @@ NSS_IMPLEMENT nssCryptokiObject *
 nssToken_GenerateSymmetricKey (
   NSSToken *token,
   nssSession *session,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   PRUint32 keysize,
   const NSSUTF8 *labelOpt,
   PRBool asTokenObject,
@@ -1659,7 +1659,7 @@ nssToken_GenerateSymmetricKey (
     NSS_CK_TEMPLATE_FINISH(keyTemplate, attr, tsize);
 
     /* Generate the key */
-    mechanism = nssAlgorithmAndParameters_GetMechanism(ap);
+    mechanism = nssAlgNParam_GetMechanism(ap);
 
     nssSession_EnterMonitor(session);
     ckrv = CKAPI(epv)->C_GenerateKey(session->handle, mechanism, 
@@ -1697,7 +1697,7 @@ static nssCryptokiObject *
 unwrap_key (
   NSSToken *token,
   nssSession *session,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   nssCryptokiObject *wrappingKey,
   NSSItem *wrappedKey,
   PRBool asTokenObject,
@@ -1718,7 +1718,7 @@ unwrap_key (
     PRUint32 numLeft;
     PRUint32 numkt = sizeof(keyTemplate) / sizeof(keyTemplate[0]);
 
-    mechanism = nssAlgorithmAndParameters_GetMechanism(ap);
+    mechanism = nssAlgNParam_GetMechanism(ap);
 
     /* set up the key template */
     NSS_CK_TEMPLATE_START(keyTemplate, attr, ktSize);
@@ -1759,7 +1759,7 @@ NSS_IMPLEMENT nssCryptokiObject *
 nssToken_UnwrapPrivateKey (
   NSSToken *token,
   nssSession *session,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   nssCryptokiObject *wrappingKey,
   NSSItem *wrappedKey,
   PRBool asTokenObject,
@@ -1778,7 +1778,7 @@ NSS_IMPLEMENT nssCryptokiObject *
 nssToken_UnwrapSymmetricKey (
   NSSToken *token,
   nssSession *session,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   nssCryptokiObject *wrappingKey,
   NSSItem *wrappedKey,
   PRBool asTokenObject,
@@ -1797,7 +1797,7 @@ NSS_IMPLEMENT NSSItem *
 nssToken_WrapKey (
   NSSToken *token,
   nssSession *session,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   nssCryptokiObject *wrappingKey,
   nssCryptokiObject *targetKey,
   NSSItem *rvOpt,
@@ -1811,7 +1811,7 @@ nssToken_WrapKey (
     nssArenaMark *mark = NULL;
     PRBool freeit = PR_FALSE;
 
-    mechanism = nssAlgorithmAndParameters_GetMechanism(ap);
+    mechanism = nssAlgNParam_GetMechanism(ap);
 
     nssSession_EnterMonitor(session);
     /* Get the length of the output buffer */
@@ -1865,7 +1865,7 @@ NSS_IMPLEMENT nssCryptokiObject *
 nssToken_DeriveKey (
   NSSToken *token,
   nssSession *session,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   nssCryptokiObject *baseKey,
   PRBool asTokenObject,
   NSSOperations operations,
@@ -1883,7 +1883,7 @@ nssToken_DeriveKey (
     PRUint32 numLeft;
     PRUint32 numkt = sizeof(keyTemplate) / sizeof(keyTemplate[0]);
 
-    mechanism = nssAlgorithmAndParameters_GetMechanism(ap);
+    mechanism = nssAlgNParam_GetMechanism(ap);
 
     /* set up the key template */
     NSS_CK_TEMPLATE_START(keyTemplate, attr, ktSize);
@@ -1922,7 +1922,7 @@ NSS_IMPLEMENT PRStatus
 nssToken_DeriveSSLSessionKeys (
   NSSToken *token,
   nssSession *session,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   nssCryptokiObject *masterSecret,
   NSSSymmetricKeyType bulkKeyType,
   NSSOperations operations,
@@ -1942,7 +1942,7 @@ nssToken_DeriveSSLSessionKeys (
     PRUint32 numLeft;
     PRUint32 numkt = sizeof(keyTemplate) / sizeof(keyTemplate[0]);
 
-    mechanism = nssAlgorithmAndParameters_GetMechanism(ap);
+    mechanism = nssAlgNParam_GetMechanism(ap);
 
     /* set up the key template */
     NSS_CK_TEMPLATE_START(keyTemplate, attr, ktSize);
@@ -2013,7 +2013,7 @@ NSS_IMPLEMENT NSSItem *
 nssToken_Encrypt (
   NSSToken *tok,
   nssSession *session,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   nssCryptokiObject *key,
   NSSItem *data,
   NSSItem *rvOpt,
@@ -2027,7 +2027,7 @@ nssToken_Encrypt (
     nssArenaMark *mark = NULL;
     PRBool freeit = PR_FALSE;
 
-    mechanism = nssAlgorithmAndParameters_GetMechanism(ap);
+    mechanism = nssAlgNParam_GetMechanism(ap);
 
     nssSession_EnterMonitor(session);
     ckrv = CKAPI(epv)->C_EncryptInit(session->handle, mechanism, key->handle);
@@ -2080,7 +2080,7 @@ NSS_IMPLEMENT PRStatus
 nssToken_BeginEncrypt (
   NSSToken *token,
   nssSession *session,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   nssCryptokiObject *key
 )
 {
@@ -2088,7 +2088,7 @@ nssToken_BeginEncrypt (
     CK_MECHANISM_PTR mechanism;
     void *epv = nssToken_GetCryptokiEPV(token);
 
-    mechanism = nssAlgorithmAndParameters_GetMechanism(ap);
+    mechanism = nssAlgNParam_GetMechanism(ap);
     nssSession_EnterMonitor(session);
     ckrv = CKAPI(epv)->C_EncryptInit(session->handle, mechanism, key->handle);
     nssSession_ExitMonitor(session);
@@ -2181,7 +2181,7 @@ NSS_IMPLEMENT NSSItem *
 nssToken_Decrypt (
   NSSToken *tok,
   nssSession *session,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   nssCryptokiObject *key,
   NSSItem *data,
   NSSItem *rvOpt,
@@ -2195,7 +2195,7 @@ nssToken_Decrypt (
     nssArenaMark *mark = NULL;
     PRBool freeit = PR_FALSE;
 
-    mechanism = nssAlgorithmAndParameters_GetMechanism(ap);
+    mechanism = nssAlgNParam_GetMechanism(ap);
 
     nssSession_EnterMonitor(session);
     ckrv = CKAPI(epv)->C_DecryptInit(session->handle, mechanism, key->handle);
@@ -2248,7 +2248,7 @@ NSS_IMPLEMENT PRStatus
 nssToken_BeginDecrypt (
   NSSToken *token,
   nssSession *session,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   nssCryptokiObject *key
 )
 {
@@ -2256,7 +2256,7 @@ nssToken_BeginDecrypt (
     CK_MECHANISM_PTR mechanism;
     void *epv = nssToken_GetCryptokiEPV(token);
 
-    mechanism = nssAlgorithmAndParameters_GetMechanism(ap);
+    mechanism = nssAlgNParam_GetMechanism(ap);
     nssSession_EnterMonitor(session);
     ckrv = CKAPI(epv)->C_DecryptInit(session->handle, mechanism, key->handle);
     nssSession_ExitMonitor(session);
@@ -2349,7 +2349,7 @@ NSS_IMPLEMENT NSSItem *
 nssToken_Sign (
   NSSToken *token,
   nssSession *session,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   nssCryptokiObject *key,
   NSSItem *data,
   NSSItem *rvOpt,
@@ -2363,7 +2363,7 @@ nssToken_Sign (
     nssArenaMark *mark = NULL;
     PRBool freeit = PR_FALSE;
 
-    mechanism = nssAlgorithmAndParameters_GetMechanism(ap);
+    mechanism = nssAlgNParam_GetMechanism(ap);
 
     nssSession_EnterMonitor(session);
     ckrv = CKAPI(epv)->C_SignInit(session->handle, mechanism, key->handle);
@@ -2416,7 +2416,7 @@ NSS_IMPLEMENT PRStatus
 nssToken_BeginSign (
   NSSToken *token,
   nssSession *session,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   nssCryptokiObject *key
 )
 {
@@ -2424,7 +2424,7 @@ nssToken_BeginSign (
     CK_MECHANISM_PTR mechanism;
     void *epv = nssToken_GetCryptokiEPV(token);
 
-    mechanism = nssAlgorithmAndParameters_GetMechanism(ap);
+    mechanism = nssAlgNParam_GetMechanism(ap);
     nssSession_EnterMonitor(session);
     ckrv = CKAPI(epv)->C_SignInit(session->handle, mechanism, key->handle);
     nssSession_ExitMonitor(session);
@@ -2492,7 +2492,7 @@ NSS_IMPLEMENT NSSItem *
 nssToken_SignRecover (
   NSSToken *tok,
   nssSession *session,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   nssCryptokiObject *key,
   NSSItem *data,
   NSSItem *rvOpt,
@@ -2506,7 +2506,7 @@ nssToken_SignRecover (
     nssArenaMark *mark = NULL;
     PRBool freeit = PR_FALSE;
 
-    mechanism = nssAlgorithmAndParameters_GetMechanism(ap);
+    mechanism = nssAlgNParam_GetMechanism(ap);
 
     nssSession_EnterMonitor(session);
     ckrv = CKAPI(epv)->C_SignRecoverInit(session->handle, mechanism, 
@@ -2560,7 +2560,7 @@ NSS_IMPLEMENT PRStatus
 nssToken_Verify (
   NSSToken *token,
   nssSession *session,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   nssCryptokiObject *key,
   NSSItem *data,
   NSSItem *signature
@@ -2570,7 +2570,7 @@ nssToken_Verify (
     CK_MECHANISM_PTR mechanism;
     void *epv = nssToken_GetCryptokiEPV(token);
 
-    mechanism = nssAlgorithmAndParameters_GetMechanism(ap);
+    mechanism = nssAlgNParam_GetMechanism(ap);
 
     nssSession_EnterMonitor(session);
     ckrv = CKAPI(epv)->C_VerifyInit(session->handle, mechanism, key->handle);
@@ -2619,7 +2619,7 @@ NSS_IMPLEMENT PRStatus
 nssToken_BeginVerify (
   NSSToken *token,
   nssSession *session,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   nssCryptokiObject *key
 )
 {
@@ -2627,7 +2627,7 @@ nssToken_BeginVerify (
     CK_MECHANISM_PTR mechanism;
     void *epv = nssToken_GetCryptokiEPV(token);
 
-    mechanism = nssAlgorithmAndParameters_GetMechanism(ap);
+    mechanism = nssAlgNParam_GetMechanism(ap);
     nssSession_EnterMonitor(session);
     ckrv = CKAPI(epv)->C_VerifyInit(session->handle, mechanism, key->handle);
     nssSession_ExitMonitor(session);
@@ -2688,7 +2688,7 @@ NSS_IMPLEMENT NSSItem *
 nssToken_VerifyRecover (
   NSSToken *tok,
   nssSession *session,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   nssCryptokiObject *key,
   NSSItem *signature,
   NSSItem *rvOpt,
@@ -2702,7 +2702,7 @@ nssToken_VerifyRecover (
     nssArenaMark *mark = NULL;
     PRBool freeit = PR_FALSE;
 
-    mechanism = nssAlgorithmAndParameters_GetMechanism(ap);
+    mechanism = nssAlgNParam_GetMechanism(ap);
 
     nssSession_EnterMonitor(session);
     ckrv = CKAPI(epv)->C_VerifyRecoverInit(session->handle, mechanism, 
@@ -2756,7 +2756,7 @@ NSS_IMPLEMENT NSSItem *
 nssToken_Digest (
   NSSToken *tok,
   nssSession *session,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   NSSItem *data,
   NSSItem *rvOpt,
   NSSArena *arenaOpt
@@ -2769,7 +2769,7 @@ nssToken_Digest (
     nssArenaMark *mark = NULL;
     PRBool freeit = PR_FALSE;
 
-    mechanism = nssAlgorithmAndParameters_GetMechanism(ap);
+    mechanism = nssAlgNParam_GetMechanism(ap);
 
     nssSession_EnterMonitor(session);
     ckrv = CKAPI(epv)->C_DigestInit(session->handle, mechanism);
@@ -2822,14 +2822,14 @@ NSS_IMPLEMENT PRStatus
 nssToken_BeginDigest (
   NSSToken *tok,
   nssSession *session,
-  const NSSAlgorithmAndParameters *ap
+  const NSSAlgNParam *ap
 )
 {
     CK_RV ckrv;
     CK_MECHANISM_PTR mechanism;
     void *epv = nssToken_GetCryptokiEPV(tok);
 
-    mechanism = nssAlgorithmAndParameters_GetMechanism(ap);
+    mechanism = nssAlgNParam_GetMechanism(ap);
     nssSession_EnterMonitor(session);
     ckrv = CKAPI(epv)->C_DigestInit(session->handle, mechanism);
     nssSession_ExitMonitor(session);

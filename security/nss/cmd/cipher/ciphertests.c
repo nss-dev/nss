@@ -43,7 +43,7 @@
 
 PRStatus
 EncryptionTest(NSSSymmetricKey *symKey,
-               NSSAlgorithmAndParameters *cipher,
+               NSSAlgNParam *cipher,
                NSSItem *plaintext,
                NSSItem *ciphertext)
 {
@@ -128,7 +128,7 @@ static int numCipherArgs = sizeof(cipherArgs) / sizeof(cipherArgs[0]);
 
 static NSSSymmetricKey *
 unwrap_symkey(NSSVolatileDomain *vd, NSSPrivateKey *unwrapKey, 
-              NSSAlgorithmAndParameters *wrapAP,
+              NSSAlgNParam *wrapAP,
               const NSSOID *keyAlg, char *value)
 {
     NSSSymmetricKey *symKey = NULL;
@@ -149,14 +149,14 @@ PRStatus
 SymmetricCipherTests(CMDRunTimeData *rtData, 
                      NSSVolatileDomain *vd,
                      NSSPrivateKey *unwrapKey,
-                     NSSAlgorithmAndParameters *wrapAP)
+                     NSSAlgNParam *wrapAP)
 {
     int arg;
     char *value;
     PRStatus status;
     NSSArena *arena = NULL;
     NSSSymmetricKey *symKey = NULL;
-    NSSAlgorithmAndParameters *ap = NULL;
+    NSSAlgNParam *ap = NULL;
     NSSItem *plaintext = NULL;
     NSSItem *ciphertext = NULL;
     NSSItem *algID;
@@ -171,7 +171,7 @@ SymmetricCipherTests(CMDRunTimeData *rtData,
 	case cipherAlgID:
 	    if (symKey || !arena) {
 		if (ap) {
-		    NSSAlgorithmAndParameters_Destroy(ap); ap = NULL;
+		    NSSAlgNParam_Destroy(ap); ap = NULL;
 		}
 		if (symKey) {
 		    NSSSymmetricKey_Destroy(symKey); symKey = NULL;
@@ -192,14 +192,14 @@ SymmetricCipherTests(CMDRunTimeData *rtData,
 	    if (!algID) {
 		goto loser;
 	    }
-	    ap = NSSAlgorithmAndParameters_Decode(algID, arena);
+	    ap = NSSAlgNParam_Decode(algID, arena);
 	    NSSItem_Destroy(algID);
 	    if (!ap) {
 		goto loser;
 	    }
 	    break;
 	case cipherKey:
-	    alg = NSSAlgorithmAndParameters_GetAlgorithm(ap);
+	    alg = NSSAlgNParam_GetAlgorithm(ap);
 	    symKey = unwrap_symkey(vd, unwrapKey, wrapAP, alg, value);
 	    if (!symKey) {
 		goto loser;
@@ -255,7 +255,7 @@ SelfTest()
     CMDRunTimeData rtData;
     NSSPrivateKey *unwrapKey;
     NSSOID *alg;
-    NSSAlgorithmAndParameters *wrapAP;
+    NSSAlgNParam *wrapAP;
     NSSOID *anRSAkey = NSSOID_CreateFromTag(NSS_OID_PKCS1_RSA_ENCRYPTION);
     NSSItem *encodedKey;
 
@@ -299,7 +299,7 @@ SelfTest()
     }
 
     alg = NSSOID_CreateFromTag(NSS_OID_PKCS1_RSA_ENCRYPTION);
-    wrapAP = NSSOID_CreateAlgorithmAndParameters(alg, NULL, NULL);
+    wrapAP = NSSOID_CreateAlgNParam(alg, NULL, NULL);
     if (!wrapAP) {
 	NSSPrivateKey_Destroy(unwrapKey);
 	CMD_PrintError("failed to create alg/param for unwrap");
@@ -318,7 +318,7 @@ CreateASelfTest(char *cipher, int keysize, char *input)
     NSSTrustDomain *td = NSS_GetDefaultTrustDomain();
     CMDRunTimeData rtData;
     NSSOID *alg;
-    NSSAlgorithmAndParameters *ap, *wrapAP;
+    NSSAlgNParam *ap, *wrapAP;
     NSSSymmetricKey *symKey;
     NSSItem *wrappedKey, *algID, plaintext, *ciphertext;
     NSSToken *token = GetInternalCryptoToken();
@@ -365,7 +365,7 @@ CreateASelfTest(char *cipher, int keysize, char *input)
     }
 
     alg = NSSOID_CreateFromTag(NSS_OID_PKCS1_RSA_ENCRYPTION);
-    wrapAP = NSSOID_CreateAlgorithmAndParameters(alg, NULL, NULL);
+    wrapAP = NSSOID_CreateAlgNParam(alg, NULL, NULL);
     if (!wrapAP) {
 	NSSCertificate_Destroy(wrapCert);
 	CMD_PrintError("failed to create alg/param for unwrap");
@@ -379,7 +379,7 @@ CreateASelfTest(char *cipher, int keysize, char *input)
 
     symKey = NSSVolatileDomain_GenerateSymmetricKey(vd, ap, keysize, NULL,
                                                     0, 0, token, NULL);
-    NSSAlgorithmAndParameters_Destroy(ap);
+    NSSAlgNParam_Destroy(ap);
     if (!symKey) {
 	CMD_PrintError("failed to generate symkey");
 	return PR_FAILURE;
@@ -402,7 +402,7 @@ CreateASelfTest(char *cipher, int keysize, char *input)
                                                  NSSTime_Now(), NULL, NULL,
                                                  NULL, NULL, NULL);
 
-    algID = NSSAlgorithmAndParameters_Encode(ap, NULL, NULL);
+    algID = NSSAlgNParam_Encode(ap, NULL, NULL);
 
     CMD_WriteArgValue(&rtData, cipherArgs[cipherAlgID], 
                       algID, CMDFileMode_Hex);

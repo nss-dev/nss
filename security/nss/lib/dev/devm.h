@@ -138,13 +138,13 @@ nssCryptokiObject_Create (
 );
 
 NSS_EXTERN CK_MECHANISM_PTR
-nssAlgorithmAndParameters_GetMechanism (
-  const NSSAlgorithmAndParameters *ap
+nssAlgNParam_GetMechanism (
+  const NSSAlgNParam *ap
 );
 
 NSS_EXTERN PRIntn
-nssAlgorithmAndParameters_SetTemplateValues (
-  const NSSAlgorithmAndParameters *ap,
+nssAlgNParam_SetTemplateValues (
+  const NSSAlgNParam *ap,
   CK_ATTRIBUTE_PTR aTemplate,
   CK_ULONG templateSize
 );

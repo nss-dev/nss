@@ -332,10 +332,10 @@ static const ssl3KEADef kea_defs[] = { /* indexed by SSL3KeyExchangeAlgorithm */
 };
 
 /* set by call_once or initialization? */
-static const NSSAlgorithmAndParameters *s_mac_md5_ap = NULL;
-static const NSSAlgorithmAndParameters *s_mac_sha_ap = NULL;
-static const NSSAlgorithmAndParameters *s_hmac_md5_ap = NULL;
-static const NSSAlgorithmAndParameters *s_hmac_sha_ap = NULL;
+static const NSSAlgNParam *s_mac_md5_ap = NULL;
+static const NSSAlgNParam *s_mac_sha_ap = NULL;
+static const NSSAlgNParam *s_hmac_md5_ap = NULL;
+static const NSSAlgNParam *s_hmac_sha_ap = NULL;
 
 /*
  * Number of bytes each hash algorithm produces
@@ -354,8 +354,8 @@ static const ssl3MACDef mac_defs[] = { /* indexed by SSL3MACAlgorithm */
     {  ssl_hmac_sha,/*  s_hmac_sha_ap,*/       40,  SHA1_LENGTH },
 };
 
-static const NSSAlgorithmAndParameters *s_ssl3PMSGen = NULL;
-static const NSSAlgorithmAndParameters *s_tlsPMSGen = NULL;
+static const NSSAlgNParam *s_ssl3PMSGen = NULL;
+static const NSSAlgNParam *s_tlsPMSGen = NULL;
 
 /* indexed by SSL3BulkCipher */
 const char * const ssl3_cipherName[] = {
@@ -812,7 +812,7 @@ ssl3_ComputeExportRSAKeyHash(NSSItem modulus, NSSItem publicExponent,
     unsigned int  bufLen;
     NSSItem     * it = NULL;
     PRUint8       buf[2*SSL3_RANDOM_LENGTH + 2 + 4096/8 + 2 + 4096/8];
-    NSSAlgorithmAndParameters *ap;
+    NSSAlgNParam *ap;
 
     bufLen = 2*SSL3_RANDOM_LENGTH + 2 + modulus.size + 2 + publicExponent.size;
     if (bufLen <= sizeof buf) {
@@ -848,7 +848,7 @@ ssl3_ComputeExportRSAKeyHash(NSSItem modulus, NSSItem publicExponent,
 	goto done;
     }
 
-    ap = NSSOID_CreateAlgorithmAndParameters(NSSOID_CreateFromTag(NSS_OID_MD5),
+    ap = NSSOID_CreateAlgNParam(NSSOID_CreateFromTag(NSS_OID_MD5),
                                              NULL, NULL);
     if (!ap) {
 	ssl_MapLowLevelError(SSL_ERROR_MD5_DIGEST_FAILURE);
@@ -859,7 +859,7 @@ ssl3_ComputeExportRSAKeyHash(NSSItem modulus, NSSItem publicExponent,
     hashData.data = hashes->md5;
     hashData.size = sizeof hashes->md5;
     it = NSSCryptoContext_Digest(hash, ap, &hashIt, NULL, &hashData, NULL);
-    NSSAlgorithmAndParameters_Destroy(ap);
+    NSSAlgNParam_Destroy(ap);
     PORT_Assert(it != NULL || it->size == MD5_LENGTH);
     if (it == NULL) {
 	ssl_MapLowLevelError(SSL_ERROR_MD5_DIGEST_FAILURE);
@@ -867,7 +867,7 @@ ssl3_ComputeExportRSAKeyHash(NSSItem modulus, NSSItem publicExponent,
 	goto done;
     }
 
-    ap = NSSOID_CreateAlgorithmAndParameters(NSSOID_CreateFromTag(NSS_OID_SHA1),
+    ap = NSSOID_CreateAlgNParam(NSSOID_CreateFromTag(NSS_OID_SHA1),
                                              NULL, NULL);
     if (!ap) {
 	ssl_MapLowLevelError(SSL_ERROR_SHA_DIGEST_FAILURE);
@@ -878,7 +878,7 @@ ssl3_ComputeExportRSAKeyHash(NSSItem modulus, NSSItem publicExponent,
     hashData.data = hashes->sha;
     hashData.size = sizeof hashes->sha;
     it = NSSCryptoContext_Digest(hash, ap, &hashIt, NULL, &hashData, NULL);
-    NSSAlgorithmAndParameters_Destroy(ap);
+    NSSAlgNParam_Destroy(ap);
     PORT_Assert(it != NULL || it->size == SHA1_LENGTH);
     if (it == NULL) {
 	ssl_MapLowLevelError(SSL_ERROR_SHA_DIGEST_FAILURE);
@@ -912,7 +912,7 @@ ssl3_ComputeDHKeyHash(NSSItem dh_p, NSSItem dh_g, NSSItem dh_Ys,
     unsigned int  bufLen;
     NSSItem     * it = NULL;
     PRUint8       buf[2*SSL3_RANDOM_LENGTH + 2 + 4096/8 + 2 + 4096/8];
-    NSSAlgorithmAndParameters *ap;
+    NSSAlgNParam *ap;
 
     bufLen = 2*SSL3_RANDOM_LENGTH + 2 + dh_p.size + 2 + dh_g.size + 2 + dh_Ys.size;
     if (bufLen <= sizeof buf) {
@@ -953,7 +953,7 @@ ssl3_ComputeDHKeyHash(NSSItem dh_p, NSSItem dh_g, NSSItem dh_Ys,
 	goto done;
     }
 
-    ap = NSSOID_CreateAlgorithmAndParameters(NSSOID_CreateFromTag(NSS_OID_MD5),
+    ap = NSSOID_CreateAlgNParam(NSSOID_CreateFromTag(NSS_OID_MD5),
                                              NULL, NULL);
     if (!ap) {
 	ssl_MapLowLevelError(SSL_ERROR_MD5_DIGEST_FAILURE);
@@ -964,7 +964,7 @@ ssl3_ComputeDHKeyHash(NSSItem dh_p, NSSItem dh_g, NSSItem dh_Ys,
     hashData.data = hashes->md5;
     hashData.size = sizeof hashes->md5;
     it = NSSCryptoContext_Digest(hash, ap, &hashIt, NULL, &hashData, NULL);
-    NSSAlgorithmAndParameters_Destroy(ap);
+    NSSAlgNParam_Destroy(ap);
     PORT_Assert(it != NULL || it->size == MD5_LENGTH);
     if (it == NULL) {
 	ssl_MapLowLevelError(SSL_ERROR_MD5_DIGEST_FAILURE);
@@ -972,7 +972,7 @@ ssl3_ComputeDHKeyHash(NSSItem dh_p, NSSItem dh_g, NSSItem dh_Ys,
 	goto done;
     }
 
-    ap = NSSOID_CreateAlgorithmAndParameters(NSSOID_CreateFromTag(NSS_OID_SHA1),
+    ap = NSSOID_CreateAlgNParam(NSSOID_CreateFromTag(NSS_OID_SHA1),
                                              NULL, NULL);
     if (!ap) {
 	ssl_MapLowLevelError(SSL_ERROR_SHA_DIGEST_FAILURE);
@@ -981,7 +981,7 @@ ssl3_ComputeDHKeyHash(NSSItem dh_p, NSSItem dh_g, NSSItem dh_Ys,
     }
 
     it = NSSCryptoContext_Digest(hash, ap, &hashIt, NULL, &hashData, NULL);
-    NSSAlgorithmAndParameters_Destroy(ap);
+    NSSAlgNParam_Destroy(ap);
     PORT_Assert(it != NULL || it->size == SHA1_LENGTH);
     if (it == NULL) {
 	ssl_MapLowLevelError(SSL_ERROR_SHA_DIGEST_FAILURE);
@@ -1973,7 +1973,7 @@ ssl3_DeriveMasterSecret(sslSocket *ss, NSSSymmetricKey *pmsOpt);
     PRBool isTLS  = (PRBool)(kea_def->tls_keygen ||
                              (pwSpec->version > SSL_LIBRARY_VERSION_3_0));
     PRBool isDH = (PRBool) (ss->ssl3->hs.kea_def->exchKeyType == ssl_kea_dh);
-    NSSAlgorithmAndParameters *msDerive = NULL;
+    NSSAlgNParam *msDerive = NULL;
     NSSSymmetricKey *ms = ssl->ssl3->pwSpec->master_secret;
     NSSSymmetricKey *fpms = NULL;
     NSSSSLMSParameters msParams;
@@ -1984,7 +1984,7 @@ ssl3_DeriveMasterSecret(sslSocket *ss, NSSSymmetricKey *pmsOpt);
     msParams.isDH = isDH;
     NSSITEM_INIT_BUF(&msParams.clientRandom, ss->ssl3->hs.client_random);
     NSSITEM_INIT_BUF(&msParams.serverRandom, ss->ssl3->hs.server_random);
-    msDerive = nssAlgorithmAndParameters_CreateSSLMSDerive(NULL, &msParams);
+    msDerive = nssAlgNParam_CreateSSLMSDerive(NULL, &msParams);
     if (!msDerive) {
 	goto loser;
     }
@@ -2048,7 +2048,7 @@ ssl3_DeriveMasterSecret(sslSocket *ss, NSSSymmetricKey *pmsOpt);
     return PR_SUCCESS;
 loser:
     if (msDerive) {
-	NSSAlgorithmAndParameters_Destroy(msDerive);
+	NSSAlgNParam_Destroy(msDerive);
     }
     return PR_FAILURE;
 }
@@ -2079,7 +2079,7 @@ ssl3_GenerateSessionKeys(sslSocket *ss, NSSSymmetricKey *pmsOpt)
     SSLCipherAlgorithm calg;
     NSSSymmetricKeyType bulkKeyType;
     NSSSSLSessionKeyParameters skParams = { 0 };
-    NSSAlgorithmAndParameters *skDerive = NULL;
+    NSSAlgNParam *skDerive = NULL;
     NSSOperations keyOps;
     NSSSymmetricKey *sessionKeys[4];
 
@@ -2115,7 +2115,7 @@ ssl3_GenerateSessionKeys(sslSocket *ss, NSSSymmetricKey *pmsOpt)
 	keySize = 0;
     }
 
-    skDerive = nssAlgorithmAndParameters_CreateSSLSessionKeyDerivation(NULL,
+    skDerive = nssAlgNParam_CreateSSLSessionKeyDerivation(NULL,
                                                                    &skParams);
     if (!skDerive) {
 	goto loser;
@@ -2142,13 +2142,13 @@ ssl3_GenerateSessionKeys(sslSocket *ss, NSSSymmetricKey *pmsOpt)
     pwSpec->server.write_cx     = 
       NSSSymmetricKey_CreateCryptoContext(sessionKeys[3], , );
 
-    NSSAlgorithmAndParameters_Destroy(skDerive);
+    NSSAlgNParam_Destroy(skDerive);
 
     return PR_SUCCESS;
 
 loser:
     if (skDerive) {
-	NSSAlgorithmAndParameters_Destroy(skDerive);
+	NSSAlgNParam_Destroy(skDerive);
     }
     ssl_MapLowLevelError(SSL_ERROR_SESSION_KEY_GEN_FAILURE);
     return PR_FAILURE;
@@ -6128,7 +6128,7 @@ ssl3_GenerateRSAPMS(sslSocket *ss, ssl3CipherSpec *spec,
 {
     NSSSymmetricKey * pms   = NULL;
     NSSToken *        token = serverKeyToken;
-    const NSSAlgorithmAndParameters *pmsAlg = ssl3_GetPMSAlg(ss->clientHelloVersion);
+    const NSSAlgNParam *pmsAlg = ssl3_GetPMSAlg(ss->clientHelloVersion);
 
     PORT_Assert( ssl_HaveSSL3HandshakeLock(ss) );
 

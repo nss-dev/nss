@@ -389,7 +389,7 @@ nssToken_IsReadOnly (
 NSS_EXTERN PRBool
 nssToken_DoesAlgorithm (
   NSSToken *token,
-  const NSSAlgorithmAndParameters *ap
+  const NSSAlgNParam *ap
 );
 
 NSS_EXTERN nssSession *
@@ -553,7 +553,7 @@ NSS_EXTERN PRStatus
 nssToken_GenerateKeyPair (
   NSSToken *tok,
   nssSession *session,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   PRBool asTokenObjects,
   const NSSUTF8 *labelOpt,
   NSSProperties properties,
@@ -597,7 +597,7 @@ NSS_EXTERN nssCryptokiObject *
 nssToken_GenerateSymmetricKey (
   NSSToken *token,
   nssSession *session,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   PRUint32 keysize,
   const NSSUTF8 *labelOpt,
   PRBool asTokenObject,
@@ -609,7 +609,7 @@ NSS_EXTERN nssCryptokiObject *
 nssToken_UnwrapPrivateKey (
   NSSToken *token,
   nssSession *session,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   nssCryptokiObject *wrappingKey,
   NSSItem *wrappedKey,
   PRBool asTokenObject,
@@ -622,7 +622,7 @@ NSS_IMPLEMENT nssCryptokiObject *
 nssToken_UnwrapSymmetricKey (
   NSSToken *token,
   nssSession *session,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   nssCryptokiObject *wrappingKey,
   NSSItem *wrappedKey,
   PRBool asTokenObject,
@@ -635,7 +635,7 @@ NSS_EXTERN NSSItem *
 nssToken_WrapKey (
   NSSToken *token,
   nssSession *session,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   nssCryptokiObject *wrappingKey,
   nssCryptokiObject *targetKey,
   NSSItem *rvOpt,
@@ -646,7 +646,7 @@ NSS_EXTERN nssCryptokiObject *
 nssToken_DeriveKey (
   NSSToken *token,
   nssSession *session,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   nssCryptokiObject *baseKey,
   PRBool asTokenObject,
   NSSOperations operations,
@@ -664,7 +664,7 @@ NSS_EXTERN PRStatus
 nssToken_DeriveSSLSessionKeys (
   NSSToken *token,
   nssSession *session,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   nssCryptokiObject *masterSecret,
   NSSSymmetricKeyType bulkKeyType,
   NSSOperations operations,
@@ -691,7 +691,7 @@ NSS_EXTERN NSSItem *
 nssToken_Encrypt (
   NSSToken *tok,
   nssSession *session,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   nssCryptokiObject *key,
   NSSItem *data,
   NSSItem *rvOpt,
@@ -702,7 +702,7 @@ NSS_EXTERN PRStatus
 nssToken_BeginEncrypt (
   NSSToken *token,
   nssSession *session,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   nssCryptokiObject *key
 );
 
@@ -727,7 +727,7 @@ NSS_EXTERN NSSItem *
 nssToken_Decrypt (
   NSSToken *tok,
   nssSession *session,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   nssCryptokiObject *key,
   NSSItem *data,
   NSSItem *rvOpt,
@@ -738,7 +738,7 @@ NSS_EXTERN PRStatus
 nssToken_BeginDecrypt (
   NSSToken *token,
   nssSession *session,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   nssCryptokiObject *key
 );
 
@@ -763,7 +763,7 @@ NSS_EXTERN NSSItem *
 nssToken_Sign (
   NSSToken *token,
   nssSession *session,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   nssCryptokiObject *key,
   NSSItem *data,
   NSSItem *rvOpt,
@@ -774,7 +774,7 @@ NSS_EXTERN PRStatus
 nssToken_BeginSign (
   NSSToken *token,
   nssSession *session,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   nssCryptokiObject *key
 );
 
@@ -797,7 +797,7 @@ NSS_EXTERN NSSItem *
 nssToken_SignRecover (
   NSSToken *tok,
   nssSession *session,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   nssCryptokiObject *key,
   NSSItem *data,
   NSSItem *rvOpt,
@@ -809,7 +809,7 @@ NSS_EXTERN PRStatus
 nssToken_Verify (
   NSSToken *token,
   nssSession *session,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   nssCryptokiObject *key,
   NSSItem *data,
   NSSItem *signature
@@ -819,7 +819,7 @@ NSS_EXTERN PRStatus
 nssToken_BeginVerify (
   NSSToken *token,
   nssSession *session,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   nssCryptokiObject *key
 );
 
@@ -841,7 +841,7 @@ NSS_EXTERN NSSItem *
 nssToken_VerifyRecover (
   NSSToken *tok,
   nssSession *session,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   nssCryptokiObject *key,
   NSSItem *signature,
   NSSItem *rvOpt,
@@ -852,7 +852,7 @@ NSS_EXTERN NSSItem *
 nssToken_Digest (
   NSSToken *tok,
   nssSession *session,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   NSSItem *data,
   NSSItem *rvOpt,
   NSSArena *arenaOpt
@@ -862,7 +862,7 @@ NSS_EXTERN PRStatus
 nssToken_BeginDigest (
   NSSToken *tok,
   nssSession *session,
-  const NSSAlgorithmAndParameters *ap
+  const NSSAlgNParam *ap
 );
 
 NSS_EXTERN PRStatus
@@ -881,64 +881,64 @@ nssToken_FinishDigest (
 );
 
 /*
- * NSSAlgorithmAndParameters
+ * NSSAlgNParam
  */
 
-NSS_EXTERN NSSAlgorithmAndParameters *
-nssAlgorithmAndParameters_Create (
+NSS_EXTERN NSSAlgNParam *
+nssAlgNParam_Create (
   NSSArena *arenaOpt,
   const NSSOID *algorithm,
   NSSParameters *parametersOpt
 );
 
-NSS_EXTERN NSSAlgorithmAndParameters *
-nssAlgorithmAndParameters_CreateForKeyGen (
+NSS_EXTERN NSSAlgNParam *
+nssAlgNParam_CreateForKeyGen (
   NSSArena *arenaOpt,
   const NSSOID *algorithm,
   NSSParameters *parametersOpt
 );
 
-NSS_EXTERN NSSAlgorithmAndParameters *
-nssAlgorithmAndParameters_Decode (
+NSS_EXTERN NSSAlgNParam *
+nssAlgNParam_Decode (
   NSSArena *arenaOpt,
   NSSBER *algIDber
 );
 
 /* devf.h? */
-NSS_EXTERN NSSAlgorithmAndParameters *
-nssAlgorithmAndParameters_CreateSSLSessionKeyDerivation (
+NSS_EXTERN NSSAlgNParam *
+nssAlgNParam_CreateSSLSessionKeyDerivation (
   NSSArena *arenaOpt,
   NSSSSLSessionKeyParameters *parameters
 );
 
-NSS_EXTERN NSSAlgorithmAndParameters *
-nssAlgorithmAndParameters_Clone (
-  const NSSAlgorithmAndParameters *ap,
+NSS_EXTERN NSSAlgNParam *
+nssAlgNParam_Clone (
+  const NSSAlgNParam *ap,
   NSSArena *arenaOpt
 );
 
 NSS_EXTERN NSSBER *
-nssAlgorithmAndParameters_Encode (
-  NSSAlgorithmAndParameters *ap,
+nssAlgNParam_Encode (
+  NSSAlgNParam *ap,
   NSSBER *rvOpt,
   NSSArena *arenaOpt
 );
 
-NSS_EXTERN NSSAlgorithmAndParameters *
-nssAlgorithmAndParameters_ConvertPBEToCrypto (
-  const NSSAlgorithmAndParameters *ap,
+NSS_EXTERN NSSAlgNParam *
+nssAlgNParam_ConvertPBEToCrypto (
+  const NSSAlgNParam *ap,
   PRBool usePadding
 );
 
 NSS_EXTERN PRStatus
-nssAlgorithmAndParameters_SetPBEPassword (
-  NSSAlgorithmAndParameters *ap,
+nssAlgNParam_SetPBEPassword (
+  NSSAlgNParam *ap,
   NSSUTF8 *password
 );
 
 NSS_EXTERN void
-nssAlgorithmAndParameters_Destroy (
-  NSSAlgorithmAndParameters *ap
+nssAlgNParam_Destroy (
+  NSSAlgNParam *ap
 );
 
 /* nssSession
@@ -1167,7 +1167,7 @@ nssCryptokiObjectArray_Destroy (
  * nssSlotList_FindSlotByName
  * nssSlotList_FindTokenByName
  * nssSlotList_GetBestSlot
- * nssSlotList_GetBestSlotForAlgorithmAndParameters
+ * nssSlotList_GetBestSlotForAlgNParam
  * nssSlotList_GetBestSlotForAlgorithmsAndParameters
  */
 
@@ -1241,14 +1241,14 @@ nssSlotList_GetBestSlot (
   nssSlotList *slotList
 );
 
-/* nssSlotList_GetBestSlotForAlgorithmAndParameters
+/* nssSlotList_GetBestSlotForAlgNParam
  *
  * Highest-ranking slot than can handle algorithm/parameters.
  */
 NSS_EXTERN NSSSlot *
-nssSlotList_GetBestSlotForAlgorithmAndParameters (
+nssSlotList_GetBestSlotForAlgNParam (
   nssSlotList *slotList,
-  NSSAlgorithmAndParameters *ap
+  NSSAlgNParam *ap
 );
 
 /* nssSlotList_GetBestSlotForAlgorithmsAndParameters
@@ -1258,13 +1258,13 @@ nssSlotList_GetBestSlotForAlgorithmAndParameters (
 NSS_EXTERN NSSSlot *
 nssSlotList_GetBestSlotForAlgorithmsAndParameters (
   nssSlotList *slotList,
-  NSSAlgorithmAndParameters **ap
+  NSSAlgNParam **ap
 );
 
 NSS_EXTERN NSSToken *
 nssSlotList_GetBestTokenForAlgorithm (
   nssSlotList *slotList,
-  const NSSAlgorithmAndParameters *ap
+  const NSSAlgNParam *ap
 );
 
 NSS_EXTERN PRStatus

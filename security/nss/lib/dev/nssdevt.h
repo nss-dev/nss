@@ -57,13 +57,13 @@ typedef struct NSSSlotStr NSSSlot;
 typedef struct NSSTokenStr NSSToken;
 
 /*
- * NSSAlgorithmAndParameters
+ * NSSAlgNParam
  *
  * Algorithm is an OID
  * Parameters depend on the algorithm
  */
 
-typedef struct NSSAlgorithmAndParametersStr NSSAlgorithmAndParameters;
+typedef struct NSSAlgNParamStr NSSAlgNParam;
 
 /*
  * NSSCallback

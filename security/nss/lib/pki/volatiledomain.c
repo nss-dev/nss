@@ -795,7 +795,7 @@ NSSVolatileDomain_FindBestUserCertificateForSSLClientAuth (
   NSSUTF8 *sslHostOpt,
   NSSDER *rootCAsOpt[], /* null pointer for none */
   PRUint32 rootCAsMaxOpt, /* zero means list is null-terminated */
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSPolicies *policiesOpt
 )
 {
@@ -809,7 +809,7 @@ NSSVolatileDomain_FindUserCertificatesForSSLClientAuth (
   NSSUTF8 *sslHostOpt,
   NSSDER *rootCAsOpt[], /* null pointer for none */
   PRUint32 rootCAsMaxOpt, /* zero means list is null-terminated */
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSPolicies *policiesOpt,
   NSSCertificate **rvOpt,
   PRUint32 rvLimit, /* zero for no limit */
@@ -826,7 +826,7 @@ NSSVolatileDomain_FindBestUserCertificateForEmailSigning (
   NSSASCII7 *signerOpt,
   NSSASCII7 *recipientOpt,
   /* anything more here? */
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSPolicies *policiesOpt
 )
 {
@@ -840,7 +840,7 @@ NSSVolatileDomain_FindUserCertificatesForEmailSigning (
   NSSASCII7 *signerOpt, /* fgmr or a more general name? */
   NSSASCII7 *recipientOpt,
   /* anything more here? */
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSPolicies *policiesOpt,
   NSSCertificate **rvOpt,
   PRUint32 rvLimit, /* zero for no limit */
@@ -854,7 +854,7 @@ NSSVolatileDomain_FindUserCertificatesForEmailSigning (
 NSS_IMPLEMENT PRStatus
 nssVolatileDomain_GenerateKeyPair (
   NSSVolatileDomain *vd,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   NSSPrivateKey **pvkOpt,
   NSSPublicKey **pbkOpt,
   PRBool privateKeyIsSensitive,
@@ -884,7 +884,7 @@ nssVolatileDomain_GenerateKeyPair (
 NSS_IMPLEMENT PRStatus
 NSSVolatileDomain_GenerateKeyPair (
   NSSVolatileDomain *vd,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   NSSPrivateKey **pvkOpt,
   NSSPublicKey **pbkOpt,
   PRBool privateKeyIsSensitive,
@@ -900,7 +900,7 @@ NSSVolatileDomain_GenerateKeyPair (
 NSS_IMPLEMENT NSSSymmetricKey *
 nssVolatileDomain_GenerateSymmetricKey (
   NSSVolatileDomain *vd,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   PRUint32 keysize,
   const NSSUTF8 *nicknameOpt,
   NSSOperations operations,
@@ -931,7 +931,7 @@ nssVolatileDomain_GenerateSymmetricKey (
 NSS_IMPLEMENT NSSSymmetricKey *
 NSSVolatileDomain_GenerateSymmetricKey (
   NSSVolatileDomain *vd,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   PRUint32 keysize,
   const NSSUTF8 *labelOpt,
   NSSOperations operations,
@@ -949,7 +949,7 @@ NSSVolatileDomain_GenerateSymmetricKey (
 NSS_IMPLEMENT NSSSymmetricKey *
 NSSVolatileDomain_GenerateSymmetricKeyFromPassword (
   NSSVolatileDomain *vd,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   NSSUTF8 *passwordOpt, /* if null, prompt */
   NSSToken *destinationOpt,
   NSSCallback *uhhOpt
@@ -994,7 +994,7 @@ get_sym_key_type(const NSSOID *symKeyAlg)
 NSS_IMPLEMENT NSSSymmetricKey *
 nssVolatileDomain_UnwrapSymmetricKey (
   NSSVolatileDomain *vd,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   NSSPrivateKey *wrapKey,
   NSSItem *wrappedKey,
   const NSSOID *targetKeyAlg,
@@ -1031,7 +1031,7 @@ nssVolatileDomain_UnwrapSymmetricKey (
 NSS_IMPLEMENT NSSSymmetricKey *
 NSSVolatileDomain_UnwrapSymmetricKey (
   NSSVolatileDomain *vd,
-  const NSSAlgorithmAndParameters *ap,
+  const NSSAlgNParam *ap,
   NSSPrivateKey *wrapKey,
   NSSItem *wrappedKey,
   const NSSOID *targetKeyAlg,
@@ -1050,7 +1050,7 @@ NSS_IMPLEMENT NSSSymmetricKey *
 NSSVolatileDomain_DeriveSymmetricKey (
   NSSVolatileDomain *vd,
   NSSPublicKey *bk,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSOID *target,
   PRUint32 keySizeOpt, /* zero for best allowed */
   NSSOperations operations,
@@ -1065,14 +1065,14 @@ NSSVolatileDomain_DeriveSymmetricKey (
 NSS_IMPLEMENT NSSItem *
 nssVolatileDomain_WrapSymmetricKey (
   NSSVolatileDomain *vd,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSSymmetricKey *keyToWrap,
   NSSCallback *uhhOpt,
   NSSItem *rvOpt,
   NSSArena *arenaOpt
 )
 {
-    const NSSAlgorithmAndParameters *ap = apOpt ? apOpt : vd->ap;
+    const NSSAlgNParam *ap = apOpt ? apOpt : vd->ap;
     if (!ap || vd->mk) {
 	nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
 	return (NSSItem *)NULL;
@@ -1097,7 +1097,7 @@ nssVolatileDomain_WrapSymmetricKey (
 NSS_IMPLEMENT NSSItem *
 NSSVolatileDomain_WrapSymmetricKey (
   NSSVolatileDomain *vd,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgNParam *apOpt,
   NSSSymmetricKey *keyToWrap,
   NSSCallback *uhhOpt,
   NSSItem *rvOpt,
