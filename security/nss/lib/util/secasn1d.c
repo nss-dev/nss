@@ -768,6 +768,15 @@ sec_asn1d_parse_length (sec_asn1d_state *state,
 	    state->place = duringLength;
 	}
     }
+    if (!state->indefinite) {
+	if (state->underlying_kind & SEC_ASN1_ANY ||
+	     state->underlying_kind & SEC_ASN1_SKIP) {
+	    if (state->found_tag_modifiers & SEC_ASN1_CONSTRUCTED) {
+		state->found_tag_modifiers &= ~SEC_ASN1_CONSTRUCTED;
+		return 1;
+	    }
+	}
+    }
 
     return 1;
 }
@@ -862,6 +871,16 @@ sec_asn1d_prepare_for_contents (sec_asn1d_state *state)
      * both contents_length and pending will be zero.
      */
     state->pending = state->contents_length;
+
+    if (state->contents_length > 0) {
+	sec_asn1d_state *tmp = state->parent;
+	while (tmp && tmp->depth == state->depth) tmp = tmp->parent;
+	if (tmp && !tmp->indefinite && state->contents_length > tmp->pending)
+	{
+	    state->top->status = decodeError;
+	    return;
+	}
+    }
 
     /*
      * An EXPLICIT is nothing but an outer header, which we have
@@ -1297,6 +1316,10 @@ sec_asn1d_reuse_encoding (sec_asn1d_state *state)
     if (SEC_ASN1DecoderUpdate (state->top,
 			       (char *) item->data, item->len) != SECSuccess)
 	return;
+    if (state->top->status == needBytes) {
+	state->top->status = decodeError;
+	return;
+    }
 
     PORT_Assert (state->top->current == state);
     PORT_Assert (state->child == child);
@@ -1376,8 +1399,14 @@ static unsigned long
 sec_asn1d_parse_more_bit_string (sec_asn1d_state *state,
 				 const char *buf, unsigned long len)
 {
-    PORT_Assert (state->pending > 0);
+/*    PORT_Assert (state->pending > 0);
     PORT_Assert (state->place == duringBitString);
+*/
+    if (state->pending == 0 || state->place != duringBitString) {
+	PORT_SetError (SEC_ERROR_BAD_DER);
+	state->top->status = decodeError;
+	return 0;
+    }
 
     len = sec_asn1d_parse_leaf (state, buf, len);
     if (state->place == beforeEndOfContents && state->dest != NULL) {
@@ -2379,6 +2408,8 @@ SEC_ASN1DecoderUpdate (SEC_ASN1DecoderContext *cx,
 	    break;
 	  case duringSaveEncoding:
 	    sec_asn1d_reuse_encoding (state);
+	    if (cx->status == decodeError) 
+	      return SECFailure;
 	    break;
 	  case duringSequence:
 	    sec_asn1d_next_in_sequence (state);
