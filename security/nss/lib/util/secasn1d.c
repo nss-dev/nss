@@ -1324,6 +1324,7 @@ sec_asn1d_parse_leaf (sec_asn1d_state *state,
 		      const char *buf, unsigned long len)
 {
     SECItem *item;
+    unsigned long bufLen;
 
     if (len == 0) {
 	state->top->status = needBytes;
@@ -1333,16 +1334,27 @@ sec_asn1d_parse_leaf (sec_asn1d_state *state,
     if (state->pending < len)
 	len = state->pending;
 
+    bufLen = len;
+
     item = (SECItem *)(state->dest);
     if (item != NULL && item->data != NULL) {
+	/* Strip leading zeroes */
+	if (state->underlying_kind == SEC_ASN1_INTEGER && /* INTEGER   */
+	    item->len == 0)                               /* MSB       */
+	{
+	    while (len > 1 && buf[0] == 0) {              /* leading 0 */
+		buf++;
+		len--;
+	    }
+	}
 	PORT_Memcpy (item->data + item->len, buf, len);
 	item->len += len;
     }
-    state->pending -= len;
+    state->pending -= bufLen;
     if (state->pending == 0)
 	state->place = beforeEndOfContents;
 
-    return len;
+    return bufLen;
 }
 
 
