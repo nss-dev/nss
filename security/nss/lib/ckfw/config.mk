@@ -49,7 +49,6 @@ endif
 TARGETS        = $(LIBRARY)
 SHARED_LIBRARY =
 IMPORT_LIBRARY =
-PURE_LIBRARY   =
 PROGRAM        =
 
 
