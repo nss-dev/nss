@@ -132,6 +132,7 @@ int main(int argc, char **argv)
 	fprintf(stderr, "%s: NSS_NoDB_Init failed\n", progName);
 	exit(1);
     }
+    SECU_RegisterDynamicOids();
 
     rv = SECU_ReadDERFromFile(&der, inFile, ascii);
     if (rv != SECSuccess) {
