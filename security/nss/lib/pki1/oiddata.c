@@ -1362,7 +1362,7 @@ const NSSOID nss_builtin_oids[] = {
 #endif /* DEBUG */
     { "\x2a\x86\x48\x86\xf7\x0d\x03\x02", 8 },
     CKK_INVALID_KEY_TYPE,
-    CKM_INVALID_MECHANISM,
+    CKM_RC2_CBC,
     PR_FALSE
   },
   {

@@ -201,6 +201,9 @@ nssSymmetricKey_CopyToToken (
 	if (nssPKIObject_AddInstance(&mk->object, mko) == PR_FAILURE) {
 	    nssCryptokiObject_Destroy(mko);
 	    mko = NULL;
+	} else {
+	    /* XXX */
+	    mko = nssCryptokiObject_Clone(mko);
 	}
     }
     return mko;

@@ -41,6 +41,16 @@
 /*#define SOFTOKEN_NAME "NSS Generic Crypto Services"*/
 #define SOFTOKEN_NAME "NSS Certificate DB"
 
+#define DES_IV_LENGTH      8
+#define DES3_IV_LENGTH    24
+#define RC2_IV_LENGTH      8
+/* RC5 is variable, but the max is 16 */
+#define MAX_IV_LENGTH     DES3_IV_LENGTH 
+
+#define RC2_EFF_KEY_BITS_DEFAULT 128
+#define RC5_WORDSIZE_DEFAULT      32
+#define RC5_NUMROUNDS_DEFAULT     12
+
 NSSToken *
 GetSoftwareToken();
 
@@ -84,6 +94,12 @@ GenerateKeyPair
   NSSPrivateKey **privateKey,
   NSSPublicKey **publicKey
 );
+
+NSSAlgorithmAndParameters *
+GetSymKeyGenAP(char *cipher);
+
+NSSAlgorithmAndParameters *
+GetSymCipherAP(char *cipher, char *iv);
 
 PRStatus
 CreateASelfTest(char *cipher, int keysize, char *input);

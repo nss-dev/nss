@@ -50,6 +50,8 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 /* The number of object handles to grab during each call to C_FindObjects */
 #define OBJECT_STACK_SIZE 16
 
+#define BITS_PER_BYTE 8
+
 struct NSSTokenStr
 {
   struct nssDeviceBaseStr base;
@@ -1651,6 +1653,7 @@ nssToken_GenerateSymmetricKey (
                                                     properties);
     }
     if (keysize > 0) {
+	keysize /= BITS_PER_BYTE;
 	NSS_CK_SET_ATTRIBUTE_VAR(attr, CKA_VALUE_LEN, keysize);
     }
     NSS_CK_TEMPLATE_FINISH(keyTemplate, attr, tsize);

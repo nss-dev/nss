@@ -154,7 +154,7 @@ SymmetricCipherTests(CMDRunTimeData *rtData,
     int arg;
     char *value;
     PRStatus status;
-    NSSArena *arena;
+    NSSArena *arena = NULL;
     NSSSymmetricKey *symKey = NULL;
     NSSAlgorithmAndParameters *ap = NULL;
     NSSItem *plaintext = NULL;
@@ -163,19 +163,30 @@ SymmetricCipherTests(CMDRunTimeData *rtData,
     const NSSOID *alg;
     CMDReadBuf buf;
 
-    arena = NSSArena_Create();
-    if (!arena) {
-	CMD_PrintError("memory");
-    }
-
     buf.start = buf.finish = 0;
     while ((arg = CMD_ReadArgValue(rtData, &buf, &value,
                                    cipherArgs, numCipherArgs)) >= 0) 
     {
 	switch (arg) {
 	case cipherAlgID:
-	    if (ap) {
-		NSSAlgorithmAndParameters_Destroy(ap); ap = NULL;
+	    if (symKey || !arena) {
+		if (ap) {
+		    NSSAlgorithmAndParameters_Destroy(ap); ap = NULL;
+		}
+		if (symKey) {
+		    NSSSymmetricKey_Destroy(symKey); symKey = NULL;
+		}
+		if (arena) {
+		    NSSArena_Destroy(arena);
+		}
+		plaintext = NULL;
+		ciphertext = NULL;
+		/* start a new test */
+		arena = NSSArena_Create();
+		if (!arena) {
+		    CMD_PrintError("memory");
+		    goto loser;
+		}
 	    }
 	    algID = CMD_ConvertHex(value, strlen(value), arena);
 	    if (!algID) {
@@ -188,18 +199,6 @@ SymmetricCipherTests(CMDRunTimeData *rtData,
 	    }
 	    break;
 	case cipherKey:
-	    if (symKey) {
-		NSSSymmetricKey_Destroy(symKey); symKey = NULL;
-		NSSArena_Destroy(arena);
-		plaintext = NULL;
-		ciphertext = NULL;
-		/* start a new test */
-		arena = NSSArena_Create();
-		if (!arena) {
-		    CMD_PrintError("memory");
-		    goto loser;
-		}
-	    }
 	    alg = NSSAlgorithmAndParameters_GetAlgorithm(ap);
 	    symKey = unwrap_symkey(vd, unwrapKey, wrapAP, alg, value);
 	    if (!symKey) {
@@ -323,7 +322,6 @@ CreateASelfTest(char *cipher, int keysize, char *input)
     NSSSymmetricKey *symKey;
     NSSItem *wrappedKey, *algID, plaintext, *ciphertext;
     NSSToken *token = GetInternalCryptoToken();
-    NSSParameters params;
     NSSCertificate *wrapCert;
     NSSItem *encodedCert;
 
@@ -374,11 +372,8 @@ CreateASelfTest(char *cipher, int keysize, char *input)
 	return PR_FAILURE;
     }
 
-    alg = NSSOID_CreateFromTag(NSS_OID_DES_CBC);
-
-    ap = NSSOID_CreateAlgorithmAndParametersForKeyGen(alg, NULL, NULL);
+    ap = GetSymKeyGenAP(cipher);
     if (!ap) {
-	CMD_PrintError("failed to create alg/param for key gen");
 	return PR_FAILURE;
     }
 
@@ -390,23 +385,15 @@ CreateASelfTest(char *cipher, int keysize, char *input)
 	return PR_FAILURE;
     }
 
-#define DES_IV_SIZE 8
-    NSSItem_Create(NULL, &params.iv, DES_IV_SIZE, NULL);
-    if (NSS_GenerateRandom(DES_IV_SIZE, params.iv.data, NULL) == NULL) {
-	CMD_PrintError("failed to generate IV");
-	return PR_FAILURE;
-    }
-
-    ap = NSSOID_CreateAlgorithmAndParameters(alg, &params, NULL);
+    ap = GetSymCipherAP(cipher, NULL); /* generate the IV */
     if (!ap) {
-	CMD_PrintError("failed to create alg/param for cipher");
 	return PR_FAILURE;
     }
 
     ciphertext = NSSSymmetricKey_Encrypt(symKey, ap, &plaintext,
                                          NULL, NULL, NULL);
     if (!ciphertext) {
-	CMD_PrintError("failed to create alg/param for cipher");
+	CMD_PrintError("encryption failed\n");
 	return PR_FAILURE;
     }
 

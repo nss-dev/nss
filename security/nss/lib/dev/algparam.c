@@ -89,6 +89,7 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 struct NSSAlgorithmAndParametersStr
 {
   NSSArena *arena;
+  PRBool i_allocated_arena;
   CK_MECHANISM mechanism; /* alg&param in cryptoki terms */
   const NSSOID *alg;      /* NSS algorithm */
   NSSParameters params;   /* NSS params (template values kept here) */
@@ -483,10 +484,17 @@ static PRStatus rc2_map(NSSRC2Parameters *params)
     return status;
 }
 
-static PRStatus rc2_unmap(NSSRC2Parameters *params)
+static PRStatus rc2_unmap(NSSRC2Parameters *params, NSSArena *arena)
 {
-    PRStatus status = PR_FAILURE; /* XXX */
-    return status;
+    PRUint32 v;
+    switch (params->effectiveKeySizeInBits) {
+    case  40: v = 160; break;
+    case  64: v = 120; break;
+    case 128: 
+    default:  v =  58; break;
+    }
+    return (nssASN1_GetDERFromPRUint32(arena, &params->version, v) != NULL) ?
+             PR_SUCCESS : PR_FAILURE;
 }
 
 /* constructor */
@@ -505,11 +513,11 @@ rc2_constructor (
 	ap->mechanism.mechanism = CKM_RC2_KEY_GEN;
     } else {
 	CK_RC2_CBC_PARAMS_PTR rc2p;
-	PR_ASSERT(mech == CKM_RC2_CBC && parameters != NULL);
 	ap->mechanism.mechanism = mech;
 	if (mech == CKM_RC2_ECB) {
 	    ap->paramTemplate = rc2_ecb_param_tmpl;
 	} else if (mech == CKM_RC2_CBC) {
+	    PR_ASSERT(parameters != NULL || encodedParams != NULL);
 	    ap->paramTemplate = rc2_cbc_param_tmpl;
 	} else {
 	    return PR_FAILURE;
@@ -522,7 +530,7 @@ rc2_constructor (
 	    }
 	    status = rc2_map(&ap->params.rc2);
 	} else {
-	    status = rc2_unmap(&ap->params.rc2);
+	    status = rc2_unmap(&ap->params.rc2, ap->arena);
 	    /* XXX generate IV somehow */
 	}
 	if (status == PR_FAILURE) {
@@ -535,7 +543,7 @@ rc2_constructor (
 	nsslibc_memcpy(rc2p->iv, 
 	               ap->params.rc2.iv.data, 
 	               ap->params.rc2.iv.size);
-	rc2p->ulEffectiveBits = parameters->rc2.effectiveKeySizeInBits;
+	rc2p->ulEffectiveBits = ap->params.rc2.effectiveKeySizeInBits;
 	ap->mechanism.pParameter = rc2p;
 	ap->mechanism.ulParameterLen = sizeof(CK_RC2_CBC_PARAMS);
     }
@@ -883,6 +891,10 @@ set_cryptoki_mechanism (
 */
     case NSS_OID_RC2_CBC:
 	return rc2_constructor(ap, mech, params, encodedParams, keygen);
+    case NSS_OID_RC4:
+	PR_ASSERT(params == NULL && encodedParams == NULL);
+	ap->mechanism.mechanism = keygen ? CKM_RC4_KEY_GEN : CKM_RC4;
+	break;
     case NSS_OID_RC5_CBC_PAD:
 	return set_rc5_mechanism(ap, mech, params, encodedParams, keygen);
     case NSS_OID_PKCS5_PBE_WITH_MD2_AND_DES_CBC:
@@ -909,6 +921,8 @@ create_algparam (
 {
     NSSArena *arena;
     NSSAlgorithmAndParameters *rvAP = NULL;
+    PRBool i_allocated_arena = PR_FALSE;
+
     if (arenaOpt) {
 	arena = arenaOpt;
 	*mark = nssArena_Mark(arena);
@@ -920,6 +934,7 @@ create_algparam (
 	if (!arena) {
 	    return (NSSAlgorithmAndParameters *)NULL;
 	}
+	i_allocated_arena = PR_TRUE;
     }
     rvAP = nss_ZNEW(arena, NSSAlgorithmAndParameters);
     if (!rvAP) {
@@ -932,6 +947,7 @@ create_algparam (
     }
     rvAP->arena = arena;
     rvAP->set_template = null_settor; /* by default */
+    rvAP->i_allocated_arena = i_allocated_arena;
     return rvAP;
 }
 
@@ -1028,7 +1044,10 @@ nssAlgorithmAndParameters_Decode (
     nssArenaMark *mark = NULL;
     NSSAlgorithmAndParameters *rvAP = NULL;
     NSSOID *alg;
-    nssAlgorithmID algID = { 0 };
+    nssAlgorithmID algID;
+    NSSItem *params;
+
+    nsslibc_memset(&algID, 0, sizeof(algID));
 
     rvAP = create_algparam(arenaOpt, &mark);
     if (!rvAP) {
@@ -1047,8 +1066,8 @@ nssAlgorithmAndParameters_Decode (
     }
 
     /* XXX ever used for keygen? */
-    status = set_cryptoki_mechanism(rvAP, alg, NULL, 
-                                    &algID.parameters, PR_FALSE);
+    params = (algID.parameters.size > 0) ? &algID.parameters : NULL;
+    status = set_cryptoki_mechanism(rvAP, alg, NULL, params, PR_FALSE);
     rvAP->alg = alg;
 
 finish:
@@ -1072,9 +1091,11 @@ nssAlgorithmAndParameters_Encode (
   NSSArena *arenaOpt
 )
 {
-    nssAlgorithmID algID = { 0 };
+    nssAlgorithmID algID;
     NSSBER *params = NULL;
     NSSBER *rvBER = NULL;
+
+    nsslibc_memset(&algID, 0, sizeof(algID));
 
     algID.algorithmOID = ap->alg->data;
     if (ap->paramTemplate) {
@@ -1130,7 +1151,7 @@ nssAlgorithmAndParameters_Destroy (
   NSSAlgorithmAndParameters *ap
 )
 {
-    if (ap && ap->arena) {
+    if (ap && ap->i_allocated_arena) {
 	nssArena_Destroy(ap->arena);
     }
 }

@@ -36,6 +36,9 @@
 #include "nsspki1.h"
 #include "cipher.h"
 
+#define IS_CIPHER(s, c) \
+    (strncmp(c, s, strlen(c)) == 0)
+
 NSSToken *
 GetSoftwareToken()
 {
@@ -99,23 +102,29 @@ NSSAlgorithmAndParameters *
 GetSymKeyGenAP(char *cipher)
 {
     NSSOID *alg;
-    if (strcmp(cipher, "des") == 0) {
+    NSSAlgorithmAndParameters *ap;
+
+    if (IS_CIPHER(cipher, "des")) {
 	alg = NSSOID_CreateFromTag(NSS_OID_DES_ECB);
-    } else if (strcmp(cipher, "des3") == 0) {
+    } else if (IS_CIPHER(cipher, "des3")) {
 	alg = NSSOID_CreateFromTag(NSS_OID_DES_EDE3_CBC); /* XXX cbc? */
-    } else if (strcmp(cipher, "rc2") == 0) {
+    } else if (IS_CIPHER(cipher, "rc2")) {
 	alg = NSSOID_CreateFromTag(NSS_OID_RC2_CBC); /* XXX cbc? */
-    } else if (strcmp(cipher, "rc4") == 0) {
+    } else if (IS_CIPHER(cipher, "rc4")) {
 	alg = NSSOID_CreateFromTag(NSS_OID_RC4);
-#if 0
-    } else if (strcmp(cipher, "rc5") == 0) {
-	alg = ;
-#endif
+    } else if (IS_CIPHER(cipher, "rc5")) {
+	alg = NSSOID_CreateFromTag(NSS_OID_RC5_CBC_PAD);
     } else {
-	fprintf(stderr, "Unknown symmetric key algorithm \"%s\"\n", cipher);
+	PR_fprintf(PR_STDERR, "Unknown symmetric key algorithm \"%s\"\n", 
+	                       cipher);
 	return NULL;
     }
-    return NSSOID_CreateAlgorithmAndParametersForKeyGen(alg, NULL, NULL);
+    ap = NSSOID_CreateAlgorithmAndParametersForKeyGen(alg, NULL, NULL);
+    if (!ap) {
+	PR_fprintf(PR_STDERR, "Failed to create keygen alg/param for %s\n",
+	                       cipher);
+    }
+    return ap;
 }
 
 NSSSymmetricKey *
@@ -148,11 +157,13 @@ GenerateSymmetricKey
 NSSAlgorithmAndParameters *
 GetSymCipherAP(char *cipher, char *iv)
 {
-    char *paramStr;
+    char *paramStr, *p;
     NSSItem cbcIV = { 0 };
     NSSParameters params;
     NSSParameters *pParams = NULL;
     NSSOID *alg;
+    NSSAlgorithmAndParameters *ap;
+    PRBool haveIV = PR_FALSE;
 
     memset(&params, 0, sizeof(params));
 
@@ -160,32 +171,102 @@ GetSymCipherAP(char *cipher, char *iv)
     if (paramStr) {
 	*paramStr++ = '\0';
     }
-    if (iv) {
-	cbcIV.data = iv;
-	cbcIV.size = strlen(iv);
-    }
-    if (strcmp(cipher, "des") == 0) {
+    if (strncmp(paramStr, "cbc", 3) == 0) {
 	if (iv) {
+	    cbcIV.data = iv;
+	    cbcIV.size = strlen(iv);
+	} else {
+	    NSSItem_Create(NULL, &cbcIV, MAX_IV_LENGTH, NULL);
+	    if (NSS_GenerateRandom(MAX_IV_LENGTH, cbcIV.data, NULL) == NULL) {
+		CMD_PrintError("failed to generate IV");
+		return NULL;
+	    }
+	}
+	haveIV = PR_TRUE;
+	/* move to the actual params */
+	paramStr = strchr(paramStr, '-');
+	if (paramStr) paramStr++;
+    } else if (iv) {
+	PR_fprintf(PR_STDERR, "IV not used with this cipher\n");
+	return NULL;
+    }
+    if (IS_CIPHER(cipher, "des")) {
+	if (haveIV) {
 	    alg = NSSOID_CreateFromTag(NSS_OID_DES_CBC);
+	    cbcIV.size = DES_IV_LENGTH;
 	    params.iv = cbcIV;
 	    pParams = &params;
 	} else {
 	    alg = NSSOID_CreateFromTag(NSS_OID_DES_ECB);
 	}
-    } else if (strcmp(cipher, "des3") == 0) {
+    } else if (IS_CIPHER(cipher, "des3")) {
+	if (haveIV) {
+	    alg = NSSOID_CreateFromTag(NSS_OID_DES_EDE3_CBC);
+	    cbcIV.size = DES3_IV_LENGTH;
+	    params.iv = cbcIV;
+	    pParams = &params;
+	} else {
+#if 0
+	    alg = NSSOID_CreateFromTag(NSS_OID_DES_ECB);
+#endif
+	    return NULL;
+	}
+    } else if (IS_CIPHER(cipher, "aes")) {
 	return NULL;
-    } else if (strcmp(cipher, "aes") == 0) {
-	return NULL;
-    } else if (strcmp(cipher, "rc2") == 0) {
-	return NULL;
-    } else if (strcmp(cipher, "rc4") == 0) {
-	return NULL;
-    } else if (strcmp(cipher, "rc5") == 0) {
-	return NULL;
+    } else if (IS_CIPHER(cipher, "rc2")) {
+	if (paramStr) {
+	    params.rc2.effectiveKeySizeInBits = atoi(paramStr);
+	} else {
+	    params.rc2.effectiveKeySizeInBits = RC2_EFF_KEY_BITS_DEFAULT;
+	}
+	if (haveIV) {
+	    alg = NSSOID_CreateFromTag(NSS_OID_RC2_CBC);
+	    cbcIV.size = RC2_IV_LENGTH;
+	    params.rc2.iv = cbcIV;
+	    pParams = &params;
+	} else {
+#if 0
+	    alg = NSSOID_CreateFromTag(NSS_OID_DES_ECB);
+#endif
+	    return NULL;
+	}
+    } else if (IS_CIPHER(cipher, "rc4")) {
+	alg = NSSOID_CreateFromTag(NSS_OID_RC4);
+    } else if (IS_CIPHER(cipher, "rc5")) {
+	if (paramStr) {
+	    p = strchr(paramStr, '-');
+	    if (!p) {
+		PR_fprintf(PR_STDERR, "Must specify both wordSize and "
+		                      "numRounds for RC5\n");
+		return NULL;
+	    }
+	    *p++ = '\0';
+	    params.rc5.wordSize = atoi(paramStr);
+	    params.rc5.numRounds = atoi(p);
+	} else {
+	    params.rc5.wordSize = RC5_WORDSIZE_DEFAULT;
+	    params.rc5.numRounds = RC5_NUMROUNDS_DEFAULT;
+	}
+	if (haveIV) {
+	    alg = NSSOID_CreateFromTag(NSS_OID_RC5_CBC_PAD); /* XXX PAD? */
+	    cbcIV.size = params.rc5.wordSize * 2;
+	    params.rc5.iv = cbcIV;
+	    pParams = &params;
+	} else {
+#if 0
+	    alg = NSSOID_CreateFromTag(NSS_OID_DES_ECB);
+#endif
+	    return NULL;
+	}
     } else {
-	fprintf(stderr, "algorithm type \"%s\" unknown.\n", cipher);
+	PR_fprintf(PR_STDERR, "algorithm type \"%s\" unknown.\n", cipher);
     }
-    return NSSOID_CreateAlgorithmAndParameters(alg, pParams, NULL);
+    ap = NSSOID_CreateAlgorithmAndParameters(alg, pParams, NULL);
+    if (!ap) {
+	PR_fprintf(PR_STDERR, "Failed to create encryption alg/param for %s\n",
+	                       cipher);
+    }
+    return ap;
 }
 
 PRStatus

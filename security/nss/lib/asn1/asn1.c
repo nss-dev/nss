@@ -906,8 +906,7 @@ nssASN1_CreatePRUint32FromBER (
   PRUint32 *pResult
 )
 {
-  nss_SetError(NSS_ERROR_INTERNAL_ERROR);
-  return PR_FALSE;
+  return SEC_ASN1DecodeInteger(encoded, (unsigned long *)pResult);
 }
 
 /*
