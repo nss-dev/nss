@@ -13,7 +13,7 @@ CORE_DEPTH = ../../..
 	chmod +x $@
 
 DIRS = \
-	SUNWnss3
+	SUNWtls
 
 include Makefile.com
 

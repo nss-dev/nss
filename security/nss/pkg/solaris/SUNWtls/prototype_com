@@ -20,7 +20,7 @@ i pkgdepend
 #
 # source locations relative to the prototype file
 #
-# SUNWnss3
+# SUNWtls
 #
 d none usr 755 root sys
 d none usr/lib 755 root bin
