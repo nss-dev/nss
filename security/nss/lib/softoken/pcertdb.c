@@ -48,7 +48,7 @@
 #include "secitem.h"
 #include "secder.h"
 
-/* Call to PK11_FreeSlot below */
+/* Call to SFTK_FreeSlot below */
 
 #include "secasn1.h"
 #include "secerr.h"
