@@ -1141,6 +1141,18 @@ nsslowkey_KeyForCertExists(NSSLOWKEYDBHandle *handle, NSSLOWCERTCertificate *cer
     }
 
     status = (* handle->db->get)(handle->db, &namekey, &dummy, 0);
+    /* some databases have the key stored as a signed value */
+    if (status) {
+	unsigned char *buf = (unsigned char *)PORT_Alloc(namekey.size+1);
+	if (buf) {
+	    PORT_Memcpy(&buf[1], namekey.data, namekey.size);
+	    buf[0] = 0;
+	    namekey.data = buf;
+	    namekey.size ++;
+    	    status = (* handle->db->get)(handle->db, &namekey, &dummy, 0);
+	    PORT_Free(buf);
+	}
+    }
     nsslowkey_DestroyPublicKey(pubkey);
     if ( status ) {
 	return PR_FALSE;
