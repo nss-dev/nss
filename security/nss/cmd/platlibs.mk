@@ -61,7 +61,7 @@ EXTRA_LIBS += \
 	$(DIST)/lib/cryptohi.lib \
 	$(DIST)/lib/pk11wrap.lib \
 	$(DIST)/lib/certdb.lib \
-	$(DIST)/lib/softoken.lib \
+	$(DIST)/lib/softokn.lib \
 	$(CRYPTOLIB) \
 	$(DIST)/lib/swfci.lib \
 	$(DIST)/lib/secutil.lib \
@@ -102,7 +102,7 @@ EXTRA_LIBS += \
 	$(DIST)/lib/libcryptohi.$(LIB_SUFFIX) \
 	$(DIST)/lib/libcerthi.$(LIB_SUFFIX) \
 	$(DIST)/lib/libpk11wrap.$(LIB_SUFFIX) \
-	$(DIST)/lib/libsoftoken.$(LIB_SUFFIX) \
+	$(DIST)/lib/libsoftokn.$(LIB_SUFFIX) \
 	$(DIST)/lib/libcertdb.$(LIB_SUFFIX) \
 	$(DIST)/lib/libswfci.$(LIB_SUFFIX) \
 	$(CRYPTOLIB) \

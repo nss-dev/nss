@@ -2374,7 +2374,9 @@ main(int argc, char **argv)
 	    error_out("ERROR: Unable to get Key ID.");
 	}
 	certDER = SignCert(cert, issuerNameStr, form_data, handle, which_key);
+#ifdef notdef
 	CERT_NewTempCertificate(handle, certDER, NULL, PR_FALSE, PR_TRUE);
+#endif
 	issuerNameStr = find_field(form_data, "subject", PR_TRUE);
 	/*        SECITEM_FreeItem(certDER, PR_TRUE); */
 	CERT_DestroyCertificate(cert);

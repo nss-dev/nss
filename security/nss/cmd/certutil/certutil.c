@@ -61,7 +61,7 @@
 #include "cert.h"
 #include "cryptohi.h"
 #include "secoid.h"
-#include "certdb.h"
+#include "certrust.h"
 #include "nss.h"
 
 #define MIN_KEY_BITS		512
@@ -314,9 +314,11 @@ AddCert(PK11SlotInfo *slot, CERTCertDBHandle *handle, char *name, char *trusts,
 	* This will result in decoding the der twice.  This have to
 	* be handle properly.
 	*/
-
+#ifdef notdef
 	tempCert = CERT_NewTempCertificate(handle, &cert->derCert, NULL,
 	                                   PR_FALSE, PR_TRUE);
+	/* don't crash */
+	tempCert = CERT_DupCertificate(cert);
 
 	if (!PK11_IsInternal(slot)) {
 	    tempCert->trust = trust;
@@ -334,12 +336,20 @@ AddCert(PK11SlotInfo *slot, CERTCertDBHandle *handle, char *name, char *trusts,
 	    SECU_PrintError(progName, "could not add certificate to database");
 	    GEN_BREAK(SECFailure);
 	}
-
 	if ( emailcert )
 	    CERT_SaveSMimeProfile(tempCert, NULL, NULL);
+#else
+	rv = PK11_ImportCertForKeyToSlot(slot, cert, name, PR_FALSE, NULL);
+
+	if ( emailcert )
+	    CERT_SaveSMimeProfile(cert, NULL, NULL);
+
+#endif
     } while (0);
 
+#ifdef notdef
     CERT_DestroyCertificate (tempCert);
+#endif
     CERT_DestroyCertificate (cert);
     PORT_Free(trust);
     PORT_Free(certDER.data);
@@ -497,6 +507,7 @@ ChangeTrustAttributes(CERTCertDBHandle *handle, char *name, char *trusts)
 	return SECFailure;
     }
 
+#ifdef notdef /* just get it to compiler for now XXXX */
     rv = CERT_ChangeCertTrust(handle, cert, trust);
     if (rv) {
 	SECU_PrintError(progName, "unable to modify trust attributes");
@@ -504,6 +515,9 @@ ChangeTrustAttributes(CERTCertDBHandle *handle, char *name, char *trusts)
     }
 
     return SECSuccess;
+#else
+    return SECFailure;
+#endif
 }
 
 static SECStatus
@@ -525,8 +539,8 @@ printCertCB(CERTCertificate *cert, void *arg)
     if (trust) {
 	SECU_PrintTrustFlags(stdout, trust,
 	                     "Certificate Trust Flags", 1);
-    } else {
-	SECU_PrintTrustFlags(stdout, &cert->dbEntry->trust,
+    } if (cert->trust) {
+	SECU_PrintTrustFlags(stdout, cert->trust,
 	                     "Certificate Trust Flags", 1);
     }
 
@@ -548,6 +562,7 @@ listCerts(CERTCertDBHandle *handle, char *name, PK11SlotInfo *slot,
      * probably be allowed to be NULL so that all slots can be listed.
      * In that case, need to add a call to PK11_TraverseSlotCerts().
      */
+#ifdef notdef
     if (PK11_IsInternal(slot)) {
 	if (name == NULL) {
 	    /* Print all certs in internal slot db. */
@@ -584,6 +599,7 @@ listCerts(CERTCertDBHandle *handle, char *name, PK11SlotInfo *slot,
 	                                           NULL);
 	}
     } else {
+#endif
 	/* List certs on a non-internal slot. */
 	if (PK11_NeedLogin(slot))
 	    PK11_Authenticate(slot, PR_TRUE, pwarg);
@@ -602,7 +618,9 @@ listCerts(CERTCertDBHandle *handle, char *name, PK11SlotInfo *slot,
 	    SECU_PrintError(progName, "problem printing certificate nicknames");
 	    return SECFailure;
 	}
+#ifdef notdef
     }
+#endif
 
     return SECSuccess;	/* not rv ?? */
 }
@@ -2497,8 +2515,10 @@ main(int argc, char **argv)
     certHandle = CERT_GetDefaultCertDB();
 
     if (certutil.commands[cmd_Version].activated) {
+#ifdef notdef
 	int version = CERT_GetDBContentVersion(certHandle);
 	printf("Certificate database content version:  %d\n", version);
+#endif
     }
 
     if (PL_strcmp(slotname, "internal") == 0)
@@ -2701,9 +2721,13 @@ main(int argc, char **argv)
 	PR_Delete(certreqfile);
     }
 
+#ifdef notdef
     if ( certHandle ) {
 	CERT_ClosePermCertDB(certHandle);
     }
+#else
+    NSS_Shutdown();
+#endif
 
     return rv;  
 }

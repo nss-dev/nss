@@ -42,7 +42,7 @@
 #include "plgetopt.h"
 #include "secpkcs7.h"
 #include "cert.h"
-#include "certdb.h"
+#include "certrust.h"
 #include "nss.h"
 
 #if defined(XP_UNIX)

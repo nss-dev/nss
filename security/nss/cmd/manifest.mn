@@ -36,6 +36,10 @@ DEPTH	= ../..
 
 REQUIRES = security nspr libdbm
 
+# rsaperf \
+# signtool \
+
+
 DIRS = lib  \
  zlib \
  atob  \
@@ -57,19 +61,17 @@ DIRS = lib  \
  pk12util \
  pp  \
  rngtest \
- rsaperf \
  sdrtest \
  selfserv  \
- signtool \
  signver \
  smimetools  \
  SSLsample \
  ssltap  \
  strsclnt \
- swfort  \
  tstclnt  \
  modutil \
  $(NULL)
+
 
 TEMPORARILY_DONT_BUILD = \
  $(NULL)
@@ -84,4 +86,5 @@ TEMPORARILY_DONT_BUILD = \
 #
 DONT_BULD = jar \
  perror \
+ swfort  \
 $(NULL)

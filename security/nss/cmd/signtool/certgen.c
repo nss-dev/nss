@@ -35,7 +35,7 @@
 
 #include "secoid.h"
 #include "cryptohi.h"
-#include "certdb.h"
+#include "certrust.h"
 
 static char* GetSubjectFromUser(unsigned long serial);
 static CERTCertificate* GenerateSelfSignedObjectSigningCert(char *nickname,

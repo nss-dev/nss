@@ -33,7 +33,7 @@
 
 #include "signtool.h"
 #include "pk11func.h"
-#include "certdb.h"
+#include "certrust.h"
 
 static int num_trav_certs = 0;
 static SECStatus cert_trav_callback(CERTCertificate *cert, SECItem *k,

@@ -43,7 +43,7 @@
 #include "plgetopt.h"
 #include "secutil.h"
 #include "cert.h"
-#include "certdb.h"
+#include "certrust.h"
 #include "nss.h"
 
 #define SEC_CERT_DB_EXISTS 0
@@ -64,7 +64,7 @@ static CERTSignedCrl *FindCRL
 	return ((CERTSignedCrl *)NULL);
     }
 	
-    crl = SEC_FindCrlByKey(certHandle, &cert->derSubject, type);
+    crl = SEC_FindCrlByName(certHandle, &cert->derSubject, type);
     if (crl ==NULL) 
 	SECU_PrintError
 		(progName, "could not find %s's CRL", name);
@@ -81,7 +81,7 @@ static void DisplayCRL (CERTCertDBHandle *certHandle, char *nickName, int crlTyp
 	
     if (crl) {
 	SECU_PrintCRLInfo (stdout, &crl->crl, "CRL Info:\n", 0);
-	CERT_DestroyCrl (crl);
+	SEC_DestroyCrl (crl);
     }
 }
 
@@ -107,13 +107,15 @@ static void ListCRLNames (CERTCertDBHandle *certHandle, int crlType)
 	    break;
 	}
 	name->arena = arena;
-	    
+
+#ifdef notdef	    /* get to compile for now */
 	rv = SEC_LookupCrls (certHandle, &crlList, crlType);
 	if (rv != SECSuccess) {
 	    fprintf(stderr, "%s: fail to look up CRLs (%s)\n", progName,
 	    SECU_Strerror(PORT_GetError()));
 	    break;
 	}
+#endif
 	
 	/* just in case */
 	if (!crlList)
@@ -124,9 +126,7 @@ static void ListCRLNames (CERTCertDBHandle *certHandle, int crlType)
         fprintf (stdout, "\n");
 	fprintf (stdout, "\n%-40s %-5s\n\n", "CRL names", "CRL Type");
 	while (crlNode) {
-	    mark = PORT_ArenaMark (arena); 	    
-	    rv = SEC_ASN1DecodeItem
-		   (arena, name, CERT_NameTemplate, &(crlNode->crl->crl.derName));
+	    name = &crlNode->crl->crl.name;
 	    if (!name){
 		fprintf(stderr, "%s: fail to get the CRL issuer name\n", progName,
 		SECU_Strerror(PORT_GetError()));
@@ -135,7 +135,6 @@ static void ListCRLNames (CERTCertDBHandle *certHandle, int crlType)
 		
 	    fprintf (stdout, "\n%-40s %-5s\n", CERT_NameToAscii(name), "CRL");
 	    crlNode = crlNode->next;
-	    PORT_ArenaRelease (arena, mark);
 	} 
 	
     } while (0);
@@ -169,14 +168,6 @@ static SECStatus DeleteCRL (CERTCertDBHandle *certHandle, char *name, int type)
     if (rv != SECSuccess) {
 	SECU_PrintError
 		(progName, "fail to delete the issuer %s's CRL from the perm dbase (reason: %s)",
-		 name, SECU_Strerror(PORT_GetError()));
-	return SECFailure;
-    }
-
-    rv = SEC_DeleteTempCrl (crl);
-    if (rv != SECSuccess) {
-	SECU_PrintError
-		(progName, "fail to delete the issuer %s's CRL from the temp dbase (reason: %s)",
 		 name, SECU_Strerror(PORT_GetError()));
 	return SECFailure;
     }
@@ -214,7 +205,7 @@ SECStatus ImportCRL (CERTCertDBHandle *certHandle, char *url, int type,
 		    (progName, "unable to import CRL");
     }
     PORT_Free (crlDER.data);
-    CERT_DestroyCrl (crl);
+    SEC_DestroyCrl (crl);
     return (rv);
 }
 	    

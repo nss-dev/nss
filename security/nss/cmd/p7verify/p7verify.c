@@ -42,7 +42,7 @@
 #include "plgetopt.h"
 #include "secpkcs7.h"
 #include "cert.h"
-#include "certdb.h"
+#include "certrust.h"
 #include "secoid.h"
 #include "sechash.h"	/* for HASH_GetHashObject() */
 #include "nss.h"
