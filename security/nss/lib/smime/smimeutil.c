@@ -553,7 +553,7 @@ NSS_SMIMEUtil_FindBulkAlgForRecipients(CERTCertificate **rcerts, SECOidTag *bulk
     mapi = smime_mapi_by_cipher(cipher);
 
     *bulkalgtag = smime_cipher_map[mapi].algtag;
-    *keysize = smime_keysize_by_cipher(smime_cipher_map[mapi].algtag);
+    *keysize = smime_keysize_by_cipher(smime_cipher_map[mapi].cipher);
 
     return SECSuccess;
 }
