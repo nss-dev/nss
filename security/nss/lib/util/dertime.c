@@ -214,6 +214,9 @@ DER_AsciiToTime(int64 *dst, char *string)
 SECStatus
 DER_UTCTimeToTime(int64 *dst, SECItem *time)
 {
+    if (!dst || !time) {
+        return SECFailure;
+    }
     return DER_AsciiToTime(dst, (char*) time->data);
 }
 
