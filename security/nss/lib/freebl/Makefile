@@ -337,3 +337,9 @@ release_md::
 	cd $(PURE32DIR) && $(MAKE) FREEBL_RECURSIVE_BUILD=1 USE_PURE_32=1 FREEBL_PARENT=$(CDDIR) CORE_DEPTH=$(CDDIR)/$(CORE_DEPTH) $@
 
 endif
+
+ifdef XP_OS2_VACPP
+$(OBJDIR)/alg2268.obj: alg2268.c
+	@$(MAKE_OBJDIR)
+	$(CC) -Fo$@ -c $(filter-out /O+, $(CFLAGS)) $(call abspath,$<)
+endif
