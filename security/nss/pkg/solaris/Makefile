@@ -21,15 +21,14 @@ DIRS = \
 
 PROTO = \
 	$(ROOT) \
-	$(ROOT)/usr \
-	$(ROOT)/usr/lib \
 	$(ROOT)/usr/lib/mps \
-	$(ROOT)/usr/lib/mps/sparcv9 \
-	$(ROOT)/usr/include \
 	$(ROOT)/usr/include/mps \
-	$(ROOT)/usr/sfw \
-	$(ROOT)/usr/sfw/bin \
+	$(ROOT)/usr/sfw/bin
+
+ifeq ($(ARCH), sparc)
+	PROTO += $(ROOT)/usr/lib/mps/sparcv9 \
 	$(ROOT)/usr/sfw/bin/sparcv9
+endif
 
 include Makefile.com
 
@@ -46,23 +45,23 @@ clean clobber::
 	$(RM) awk_pkginfo bld_awk_pkginfo
 	$(RM) -r $(ROOT)
 
-$(ROOT) $(ROOT)/%:
+$(ROOT):
 	mkdir -p $@
 
-$(ROOT)/usr/lib/mps: $(ROOT)/usr/lib
+$(ROOT)/usr/lib/mps:
 	mkdir -p $@
 	$(CP) -r $(DIST)/lib/*.so $@
 	$(CP) -r $(DIST)/lib/*.chk $@
-$(ROOT)/usr/sfw/bin: $(ROOT)/usr/sfw
+$(ROOT)/usr/sfw/bin:
 	mkdir -p $@
 	-$(CP) -r $(DIST)/bin/* $@
-$(ROOT)/usr/include/mps: $(ROOT)/usr/include
+$(ROOT)/usr/include/mps:
 	mkdir -p $@
 	$(CP) -r $(SOURCE_PREFIX)/$(HEADER_DIR)/*.h $@
-$(ROOT)/usr/lib/mps/sparcv9: $(ROOT)/usr/lib/mps
+$(ROOT)/usr/lib/mps/sparcv9:
 	mkdir -p $@
 	$(CP) -r $(DIST64)/lib/*.so $@
 	$(CP) -r $(DIST64)/lib/*.chk $@
-$(ROOT)/usr/sfw/bin/sparcv9: $(ROOT)/usr/sfw/bin
+$(ROOT)/usr/sfw/bin/sparcv9:
 	mkdir -p $@
 	$(CP) -r $(DIST64)/bin/* $@
