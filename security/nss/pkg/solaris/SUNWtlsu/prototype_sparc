@@ -28,14 +28,14 @@
 #
 # SUNWtlsu
 #
-s none usr/sfw/bin/64=sparcv9
-d none usr/sfw/bin/sparcv9 0755 root bin
-f none usr/sfw/bin/sparcv9/certutil 0755 root bin
-f none usr/sfw/bin/sparcv9/crlutil 0755 root bin
-f none usr/sfw/bin/sparcv9/cmsutil 0755 root bin
-f none usr/sfw/bin/sparcv9/modutil 0755 root bin
-f none usr/sfw/bin/sparcv9/pk12util 0755 root bin
-f none usr/sfw/bin/sparcv9/signtool 0755 root bin
-f none usr/sfw/bin/sparcv9/signver 0755 root bin
-f none usr/sfw/bin/sparcv9/ssltap 0755 root bin
+#64#s none usr/sfw/bin/64=sparcv9
+#64#d none usr/sfw/bin/sparcv9 0755 root bin
+#64#f none usr/sfw/bin/sparcv9/certutil 0755 root bin
+#64#f none usr/sfw/bin/sparcv9/crlutil 0755 root bin
+#64#f none usr/sfw/bin/sparcv9/cmsutil 0755 root bin
+#64#f none usr/sfw/bin/sparcv9/modutil 0755 root bin
+#64#f none usr/sfw/bin/sparcv9/pk12util 0755 root bin
+#64#f none usr/sfw/bin/sparcv9/signtool 0755 root bin
+#64#f none usr/sfw/bin/sparcv9/signver 0755 root bin
+#64#f none usr/sfw/bin/sparcv9/ssltap 0755 root bin
 
