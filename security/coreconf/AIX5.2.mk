@@ -1,4 +1,3 @@
-#! gmake
 #
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
@@ -31,15 +30,25 @@
 # may use your version of this file under either the MPL or the
 # GPL.
 #
+# Config stuff for AIX5.2
+#
 
-CORE_DEPTH = ..
+include $(CORE_DEPTH)/coreconf/AIX.mk
 
-MODULE = dbm
 
-IMPORTS = nspr20/v4.1.2
+ifeq ($(USE_64), 1)
+# Next line replaced by generic name handling in arch.mk
+#	COMPILER_TAG    = _64
+	OS_CFLAGS	+= -DAIX_64BIT
+	OBJECT_MODE=64
+	export OBJECT_MODE
+endif
+DSO_LDOPTS	= -brtl -bM:SRE -bnoentry
+MKSHLIB		= $(LD) $(DSO_LDOPTS) -blibpath:/usr/lib:/lib -lc -lm
 
-RELEASE = dbm
-
-DIRS =  include \
-        src     \
-	$(NULL)
+OS_LIBS		+= -blibpath:/usr/lib:/lib -lc -lm
+ifdef MAPFILE
+DSO_LDOPTS      += -bexport:$(MAPFILE)
+else
+DSO_LDOPTS      += -bexpall
+endif

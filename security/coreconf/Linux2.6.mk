@@ -1,4 +1,3 @@
-#! gmake
 #
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
@@ -31,33 +30,20 @@
 # may use your version of this file under either the MPL or the
 # GPL.
 #
-
-DEFINES += -DMEMMOVE -D__DBINTERFACE_PRIVATE $(SECURITY_FLAG)
-
-INCLUDES += -I$(CORE_DEPTH)/../dbm/include
-
-#
-#  Currently, override TARGETS variable so that only static libraries
-#  are specifed as dependencies within rules.mk.
+# Config stuff for Linux 2.6 (ELF)
 #
 
-TARGETS        = $(LIBRARY)
-SHARED_LIBRARY =
-IMPORT_LIBRARY =
-PURE_LIBRARY   =
-PROGRAM        =
+include $(CORE_DEPTH)/coreconf/Linux.mk
 
-ifdef SHARED_LIBRARY
-	ifeq (,$(filter-out WINNT WIN95 WINCE,$(OS_TARGET))) # list omits WIN16
-		DLLBASE=/BASE:0x30000000
-		RES=$(OBJDIR)/dbm.res
-		RESNAME=../include/dbm.rc
-	endif
-	ifeq ($(DLL_SUFFIX),dll)
-		DEFINES += -D_DLL
-	endif
+OS_REL_CFLAGS   += -DLINUX2_1
+MKSHLIB         = $(CC) -shared -Wl,-soname -Wl,$(@:$(OBJDIR)/%.so=%.so)
+ifdef BUILD_OPT
+            OPTIMIZER       = -O2
 endif
 
-ifeq ($(OS_TARGET),AIX)
-	OS_LIBS += -lc_r
+ifdef MAPFILE
+	MKSHLIB += -Wl,--version-script,$(MAPFILE)
 endif
+PROCESS_MAP_FILE = grep -v ';-' $(LIBRARY_NAME).def | \
+        sed -e 's,;+,,' -e 's; DATA ;;' -e 's,;;,,' -e 's,;.*,;,' > $@
+

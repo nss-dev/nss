@@ -39,7 +39,7 @@ ifeq ($(OS_ARCH), WINNT)
 
 DEFINES += -DNSS_USE_STATIC_LIBS
 # $(PROGRAM) has explicit dependencies on $(EXTRA_LIBS)
-CRYPTOLIB=$(DIST)/lib/freebl.lib
+CRYPTOLIB=$(DIST)/lib/$(LIB_PREFIX)freebl.$(LIB_SUFFIX)
 ifdef MOZILLA_SECURITY_BUILD
 	CRYPTOLIB=$(DIST)/lib/crypto.lib
 endif
@@ -49,28 +49,28 @@ ifdef MOZILLA_BSAFE_BUILD
 endif
 
 EXTRA_LIBS += \
-	$(DIST)/lib/smime.lib \
-	$(DIST)/lib/ssl.lib \
-	$(DIST)/lib/nss.lib \
-	$(DIST)/lib/ssl.lib \
-	$(DIST)/lib/sectool.lib \
-	$(DIST)/lib/pkcs12.lib \
-	$(DIST)/lib/pkcs7.lib \
-	$(DIST)/lib/certhi.lib \
-	$(DIST)/lib/cryptohi.lib \
-	$(DIST)/lib/pk11wrap.lib \
-	$(DIST)/lib/certdb.lib \
-	$(DIST)/lib/softokn.lib \
+	$(DIST)/lib/$(LIB_PREFIX)smime.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)ssl.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)nss.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)ssl.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)sectool.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)pkcs12.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)pkcs7.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)certhi.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)cryptohi.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)pk11wrap.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)certdb.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)softokn.$(LIB_SUFFIX) \
 	$(CRYPTOLIB) \
-	$(DIST)/lib/swfci.lib \
-	$(DIST)/lib/secutil.lib \
-	$(DIST)/lib/nsspki.lib \
-	$(DIST)/lib/nssdev.lib \
-	$(DIST)/lib/nssb.lib \
-	$(DIST)/lib/dbm.lib \
-	$(DIST)/lib/$(NSPR31_LIB_PREFIX)plc4.lib \
-	$(DIST)/lib/$(NSPR31_LIB_PREFIX)plds4.lib \
-	$(DIST)/lib/$(NSPR31_LIB_PREFIX)nspr4.lib \
+	$(DIST)/lib/$(LIB_PREFIX)swfci.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)secutil.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)nsspki.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)nssdev.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)nssb.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)dbm.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(NSPR31_LIB_PREFIX)plc4.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(NSPR31_LIB_PREFIX)plds4.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(NSPR31_LIB_PREFIX)nspr4.$(LIB_SUFFIX) \
 	$(NULL)
 
 # $(PROGRAM) has NO explicit dependencies on $(OS_LIBS)
@@ -79,8 +79,8 @@ EXTRA_LIBS += \
 	winmm.lib \
 	$(NULL)
 
-JAR_LIBS = $(DIST)/lib/jar.lib \
-	$(DIST)/lib/zlib.lib \
+JAR_LIBS = $(DIST)/lib/$(LIB_PREFIX)jar.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)zlib.$(LIB_SUFFIX) \
 	$(NULL)
 else
 
@@ -150,13 +150,13 @@ ifeq ($(OS_ARCH), WINNT)
 
 # $(PROGRAM) has explicit dependencies on $(EXTRA_LIBS)
 EXTRA_LIBS += \
-	$(DIST)/lib/sectool.lib \
-	$(DIST)/lib/smime3.lib \
-	$(DIST)/lib/ssl3.lib \
-	$(DIST)/lib/nss3.lib \
-	$(DIST)/lib/$(NSPR31_LIB_PREFIX)plc4.lib \
-	$(DIST)/lib/$(NSPR31_LIB_PREFIX)plds4.lib \
-	$(DIST)/lib/$(NSPR31_LIB_PREFIX)nspr4.lib \
+	$(DIST)/lib/$(LIB_PREFIX)sectool.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(IMPORT_LIB_PREFIX)smime3$(IMPORT_LIB_SUFFIX) \
+	$(DIST)/lib/$(IMPORT_LIB_PREFIX)ssl3$(IMPORT_LIB_SUFFIX) \
+	$(DIST)/lib/$(IMPORT_LIB_PREFIX)nss3$(IMPORT_LIB_SUFFIX) \
+	$(DIST)/lib/$(NSPR31_LIB_PREFIX)plc4.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(NSPR31_LIB_PREFIX)plds4.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(NSPR31_LIB_PREFIX)nspr4.$(LIB_SUFFIX) \
 	$(NULL)
 
 # $(PROGRAM) has NO explicit dependencies on $(OS_LIBS)
@@ -165,8 +165,8 @@ EXTRA_LIBS += \
 	winmm.lib \
 	$(NULL)
 
-JAR_LIBS = $(DIST)/lib/jar.lib \
-	$(DIST)/lib/zlib.lib \
+JAR_LIBS = $(DIST)/lib/$(LIB_PREFIX)jar.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)zlib.$(LIB_SUFFIX) \
 	$(NULL)
 else
 
@@ -179,22 +179,11 @@ ifeq ($(OS_ARCH), AIX)
 EXTRA_SHARED_LIBS += -brtl 
 endif
 
-# On Linux we must use the -rpath-link option to tell the linker
-# where to find libsoftokn3.so, an implicit dependency of libnss3.so.
-ifeq ($(OS_ARCH), Linux) 
+# If GNU ld is used, we must use the -rpath-link option to tell
+# the linker where to find libsoftokn3.so, an implicit dependency
+# of libnss3.so.
+ifeq (,$(filter-out BSD_OS FreeBSD Linux NetBSD, $(OS_ARCH)))
 EXTRA_SHARED_LIBS += -Wl,-rpath-link,$(DIST)/lib
-endif
-
-ifeq ($(OS_ARCH), BSD_OS) 
-EXTRA_SHARED_LIBS += -Wl,-rpath-link,$(DIST)/lib
-endif
-
-ifeq ($(OS_ARCH), FreeBSD)
-EXTRA_SHARED_LIBS += -Wl,-rpath-link,$(DIST)/lib
-endif
-
-ifeq ($(OS_ARCH), Darwin)
-EXTRA_SHARED_LIBS += -dylib_file @executable_path/libsoftokn3.dylib:$(DIST)/lib/libsoftokn3.dylib
 endif
 
 ifeq ($(OS_ARCH), SunOS)
@@ -203,6 +192,10 @@ ifdef GCC_USE_GNU_LD
 EXTRA_SHARED_LIBS += -Wl,-rpath-link,$(DIST)/lib
 endif
 endif
+endif
+
+ifeq ($(OS_ARCH), Darwin)
+EXTRA_SHARED_LIBS += -dylib_file @executable_path/libsoftokn3.dylib:$(DIST)/lib/libsoftokn3.dylib
 endif
 
 

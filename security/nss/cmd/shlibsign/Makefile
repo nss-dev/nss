@@ -75,7 +75,7 @@ ifdef LOADABLE_FREEBL
     CHECKFILES += freebl_pure32_3.chk freebl_hybrid_3.chk
 endif
 
-CHECKLOC=$(addprefix $(DIST)/lib/$(LIB_PREFIX), $(CHECKFILES))
+CHECKLOC=$(addprefix $(DIST)/lib/$(DLL_PREFIX), $(CHECKFILES))
 
 MD_LIB_RELEASE_FILES = $(CHECKLOC)
 ALL_TRASH += $(CHECKLOC)
@@ -101,7 +101,7 @@ include ../platrules.mk
 
 %.chk: %.$(DLL_SUFFIX) 
 ifeq ($(OS_TARGET), OS2)
-	-exec sign.cmd $(DIST) $(OBJDIR) $(OS_TARGET) $<
+	@cmd.exe /c sign.cmd $(DIST) $(OBJDIR) $(OS_TARGET) $<
 else
 	@sh ./sign.sh $(DIST) $(OBJDIR) $(OS_TARGET) $<
 endif

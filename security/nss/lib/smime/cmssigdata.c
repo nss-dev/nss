@@ -488,8 +488,11 @@ NSS_CMSSignedData_ImportCerts(NSSCMSSignedData *sigd, CERTCertDBHandle *certdb,
 	goto loser;
     }
     for (i=0; i < certcount; i++) {
-	CERTCertificate *cert = CERT_DupCertificate(certArray[i]);
-	CERT_AddCertToListTail(certList,cert);
+	CERTCertificate *cert = certArray[i];
+	if (cert)
+	    cert = CERT_DupCertificate(cert);
+	if (cert)
+	    CERT_AddCertToListTail(certList,cert);
     }
 
     /* filter out the certs we don't want */

@@ -1874,11 +1874,7 @@ __ADJOIN(MODULE_NAME,C_GetFunctionList)
 }
 
 /* This one is always present */
-#if defined(WIN32) || defined(XP_OS2_VACPP)
-CK_RV _declspec(dllexport)
-#else
 CK_RV CK_ENTRY
-#endif
 C_GetFunctionList
 (
   CK_FUNCTION_LIST_PTR_PTR ppFunctionList
