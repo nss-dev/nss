@@ -370,6 +370,9 @@ get_array_from_list
     PRUint32 count;
     NSSCertificate **rvArray = NULL;
     count = nssList_Count(certList);
+    if (count == 0) {
+	return NULL;
+    }
     if (maximumOpt > 0) {
 	count = PR_MIN(maximumOpt, count);
     }
