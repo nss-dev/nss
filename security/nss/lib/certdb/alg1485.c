@@ -627,10 +627,15 @@ get_oid_string
     PRUint8 *end;
     PRUint8 *d;
     PRUint8 *e;
-    char *a;
+    char *a         = NULL;
     char *b;
 
-    a = (char *)NULL;
+#define MAX_OID_LEN 1024 /* bytes */
+
+    if (oid->len > MAX_OID_LEN) {
+    	PORT_SetError(SEC_ERROR_INPUT_LEN);
+	return NULL;
+    }
 
     /* d will point to the next sequence of bytes to decode */
     d = (PRUint8 *)oid->data;
@@ -787,6 +792,8 @@ AppendAVA(stringBuf *bufp, CERTAVA *ava)
       default:
 	/* handle unknown attribute types per RFC 2253 */
 	tagName = unknownTag = get_oid_string(&ava->type);
+	if (!tagName)
+	    return SECFailure;
 	maxLen = 256;
 	break;
     }
@@ -804,6 +811,7 @@ AppendAVA(stringBuf *bufp, CERTAVA *ava)
     /* Check value length */
     if (avaValue->len > maxLen) {
 	if (unknownTag) PR_smprintf_free(unknownTag);
+	SECITEM_FreeItem(avaValue, PR_TRUE);
 	PORT_SetError(SEC_ERROR_INVALID_AVA);
 	return SECFailure;
     }
@@ -811,6 +819,7 @@ AppendAVA(stringBuf *bufp, CERTAVA *ava)
     len = PORT_Strlen(tagName);
     if (len+1 > sizeof(tmpBuf)) {
 	if (unknownTag) PR_smprintf_free(unknownTag);
+	SECITEM_FreeItem(avaValue, PR_TRUE);
 	PORT_SetError(SEC_ERROR_OUTPUT_LEN);
 	return SECFailure;
     }
