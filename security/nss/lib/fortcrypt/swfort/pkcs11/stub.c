@@ -272,7 +272,7 @@ PR_IMPLEMENT(PRLock *)
 PR_NewLock(void) {
 	PRLock *lock = NULL;
 
-	FMUTEX_Create(&lock);
+	FMUTEX_Create((void **)&lock);
 
 	/* if we don't have a lock, FMUTEX can deal with things */
 	if (lock == NULL) lock=(PRLock *) 1;
