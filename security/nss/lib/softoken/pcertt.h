@@ -309,7 +309,7 @@ typedef struct _certDBEntrySubject {
     SECItem *certKeys;
     SECItem *keyIDs;
     char **emailAddrs;
-    int nemailAddrs;
+    unsigned int nemailAddrs;
 } certDBEntrySubject;
 
 #define DB_SUBJECT_ENTRY_HEADER_LEN 6
