@@ -48,6 +48,10 @@ static const char PKIT_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #include "nssbaset.h"
 #endif /* NSSBASET_H */
 
+#ifndef BASET_H
+#include "baset.h"
+#endif /* BASET_H */
+
 #ifndef NSSCKT_H
 #include "nssckt.h"
 #endif /* NSSCKT_H */
@@ -60,23 +64,26 @@ static const char PKIT_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #include "devt.h"
 #endif /* DEVT_H */
 
+#ifndef DEVT_H
+#include "devt.h"
+#endif /* DEVT_H */
+
 PR_BEGIN_EXTERN_C
 
 #define NSSPTR_ADD_REF(p) ((p)->refCount++)
 
 struct NSSCertificateStr
 {
-    PRInt32           refCount;
-    NSSArena         *arena;
-    /*NSSDecodedCert    certData;*/
-    NSSItem           id;
-    NSSItem           der;
-    NSSItem           label;
-    CK_OBJECT_HANDLE  handle;
-    NSSSlot          *slot;
-    NSSTrustDomain   *trustDomain;
+    PRInt32 refCount;
+    NSSArena *arena;
+    NSSItem id;
+    NSSItem der;
+    NSSItem label;
+    CK_OBJECT_HANDLE handle;
+    NSSSlot *slot;
+    NSSTrustDomain *trustDomain;
     NSSCryptoContext *cryptoContext;
-    NSSTrust         *trust;
+    NSSTrust *trust;
 };
 
 struct NSSPrivateKeyStr;
@@ -86,22 +93,18 @@ struct NSSPublicKeyStr;
 struct NSSSymmetricKeyStr;
 
 struct NSSTrustDomainStr {
-    PRInt32   refCount;
+    PRInt32 refCount;
     NSSArena *arena;
-    NSSModule *module; /* XXX NSSList  *modules; */
-    /* (list not defined yet) */
+    NSSCallback defaultCallback;
+    nssList *moduleList;
+    nssListIterator *modules;
+    nssHash *certCache;
 };
 
 struct NSSCryptoContextStr
 {
-    PRInt32                refCount;
-    NSSArena              *arena;
-    CK_SESSION_HANDLE      session;
-    void                  *epv;
-    NSSTrustDomain        *trustDomain;
-    NSSCallback           *defaultCallback;
-    NSSCertificate       **certificates;
-    PRInt32                numCertificates;
+    PRInt32 refCount;
+    NSSArena *arena;
 };
 
 struct NSSTimeStr;
