@@ -369,7 +369,7 @@ mp_err mp_set_int(mp_int *mp, long z)
 
 /* {{{ mp_set_ulong(mp, z) */
 
-mp_err mp_set_ulong(mp_int *mp, ulong z)
+mp_err mp_set_ulong(mp_int *mp, unsigned long z)
 {
   int            ix;
   mp_err         res;
