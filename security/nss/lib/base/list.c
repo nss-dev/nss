@@ -320,7 +320,6 @@ nssListIterator_Start(nssListIterator *iter)
 {
     NSSLIST_LOCK_IF(iter->list);
     if (iter->list->count == 0) {
-	NSSLIST_UNLOCK_IF(iter->list);
 	return NULL;
     }
     iter->current = iter->list->head;
