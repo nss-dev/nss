@@ -688,12 +688,13 @@ STAN_ChangeCertTrust(CERTCertificate *cc, CERTCertTrust *trust)
 	    /* ... and the new trust is no different, done) */
 	    return PR_SUCCESS;
 	} else {
+	    /* take over memory already allocated in cc's arena */
 	    cc->trust = oldTrust;
 	}
     } else {
 	cc->trust = PORT_ArenaAlloc(cc->arena, sizeof(CERTCertTrust));
-	memcpy(cc->trust, trust, sizeof(CERTCertTrust));
     }
+    memcpy(cc->trust, trust, sizeof(CERTCertTrust));
     /* Set the NSSCerticate's trust */
     arena = nssArena_Create();
     if (!arena) return PR_FAILURE;
