@@ -6501,7 +6501,7 @@ NSSPKIXAlgorithmIdentifier_Decode (
 NSS_EXTERN NSSPKIXAlgorithmIdentifier *
 NSSPKIXAlgorithmIdentifier_Create (
   NSSArena *arenaOpt,
-  NSSOID *algorithm,
+  NSSOIDTag algorithm,
   NSSItem *parameters
 );
 
@@ -6560,7 +6560,7 @@ NSSPKIXAlgorithmIdentifier_Encode (
  *  NULL upon failure
  */
 
-NSS_EXTERN NSSOID *
+NSS_EXTERN NSSOIDTag
 NSSPKIXAlgorithmIdentifier_GetAlgorithm (
   NSSPKIXAlgorithmIdentifier *algid
 );
@@ -6582,7 +6582,7 @@ NSSPKIXAlgorithmIdentifier_GetAlgorithm (
 NSS_EXTERN PRStatus
 NSSPKIXAlgorithmIdentifier_SetAlgorithm (
   NSSPKIXAlgorithmIdentifier *algid,
-  NSSOID *algorithm
+  NSSOIDTag algorithm
 );
 
 /*

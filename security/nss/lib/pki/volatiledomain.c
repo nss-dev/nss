@@ -272,22 +272,22 @@ NSSVolatileDomain_ImportEncodedCert (
     return nssVolatileDomain_ImportEncodedCert(vd, ber, nickOpt);
 }
 
-NSS_IMPLEMENT PRStatus
+NSS_IMPLEMENT NSSCertChain *
 NSSVolatileDomain_ImportEncodedCertChain (
   NSSVolatileDomain *vd,
   NSSBER *ber,
-  NSSCertType certType
+  NSSToken *destinationOpt
 )
 {
     nss_SetError(NSS_ERROR_NOT_FOUND);
-    return PR_FAILURE;
+    return NULL;
 }
 
 NSS_IMPLEMENT NSSPrivateKey *
 nssVolatileDomain_ImportEncodedPrivateKey (
   NSSVolatileDomain *vd,
   NSSBER *ber,
-  NSSOID *keyPairAlg,
+  NSSKeyPairType keyPairType,
   NSSOperations operations,
   NSSProperties properties,
   NSSUTF8 *passwordOpt,
@@ -295,7 +295,7 @@ nssVolatileDomain_ImportEncodedPrivateKey (
   NSSToken *destination
 )
 {
-    return nssPrivateKey_Decode(ber, keyPairAlg, 
+    return nssPrivateKey_Decode(ber, keyPairType, 
                                 operations, properties, 
                                 passwordOpt, uhhOpt, destination, 
                                 vd->td, vd);
@@ -305,7 +305,7 @@ NSS_IMPLEMENT NSSPrivateKey *
 NSSVolatileDomain_ImportEncodedPrivateKey (
   NSSVolatileDomain *vd,
   NSSBER *ber,
-  NSSOID *keyPairAlg,
+  NSSKeyPairType keyPairType,
   NSSOperations operations,
   NSSProperties properties,
   NSSUTF8 *passwordOpt,
@@ -313,7 +313,7 @@ NSSVolatileDomain_ImportEncodedPrivateKey (
   NSSToken *destination
 )
 {
-    return nssVolatileDomain_ImportEncodedPrivateKey(vd, ber, keyPairAlg,
+    return nssVolatileDomain_ImportEncodedPrivateKey(vd, ber, keyPairType,
                                                      operations,
                                                      properties,
                                                      passwordOpt, uhhOpt,
@@ -962,7 +962,7 @@ NSSVolatileDomain_GenerateSymKeyFromPassword (
 NSS_IMPLEMENT NSSSymKey *
 NSSVolatileDomain_FindSymKeyByAlgorithmAndKeyID (
   NSSVolatileDomain *vd,
-  NSSOID *algorithm,
+  NSSOIDTag algorithm,
   NSSItem *keyID,
   NSSCallback *uhhOpt
 )
@@ -971,33 +971,13 @@ NSSVolatileDomain_FindSymKeyByAlgorithmAndKeyID (
     return NULL;
 }
 
-/* XXX at a lower layer, or with OID? */
-static NSSSymKeyType
-get_sym_key_type(const NSSOID *symKeyAlg)
-{
-    switch (nssOID_GetTag(symKeyAlg)) {
-    case NSS_OID_DES_ECB:
-    case NSS_OID_DES_CBC:
-    case NSS_OID_DES_MAC:
-	return NSSSymKeyType_DES;
-    case NSS_OID_DES_EDE3_CBC:
-	return NSSSymKeyType_TripleDES;
-    case NSS_OID_RC2_CBC:
-	return NSSSymKeyType_RC2;
-    case NSS_OID_RC4:
-	return NSSSymKeyType_RC4;
-    default:
-	return NSSSymKeyType_Unknown;
-    }
-}
-
 NSS_IMPLEMENT NSSSymKey *
 nssVolatileDomain_UnwrapSymKey (
   NSSVolatileDomain *vd,
   const NSSAlgNParam *ap,
   NSSPrivateKey *wrapKey,
   NSSItem *wrappedKey,
-  const NSSOID *targetKeyAlg,
+  NSSSymKeyType targetSymKeyType,
   NSSCallback *uhhOpt,
   NSSOperations operations,
   NSSProperties properties
@@ -1005,7 +985,6 @@ nssVolatileDomain_UnwrapSymKey (
 {
     nssCryptokiObject *vko, *mko;
     NSSSymKey *mkey = NULL;
-    NSSSymKeyType keyType = get_sym_key_type(targetKeyAlg);
 
     /* find a token to do it on */
     vko = nssPrivateKey_FindInstanceForAlgorithm(wrapKey, ap);
@@ -1015,7 +994,8 @@ nssVolatileDomain_UnwrapSymKey (
     /* do the unwrap for a session object */
     mko = nssToken_UnwrapSymKey(vko->token, vko->session, ap, vko,
                                       wrappedKey, PR_FALSE, 
-                                      operations, properties, keyType);
+                                      operations, properties, 
+                                      targetSymKeyType);
     /* done with the private key */
     nssCryptokiObject_Destroy(vko);
     /* create a new symkey in the volatile domain */
@@ -1034,16 +1014,16 @@ NSSVolatileDomain_UnwrapSymKey (
   const NSSAlgNParam *ap,
   NSSPrivateKey *wrapKey,
   NSSItem *wrappedKey,
-  const NSSOID *targetKeyAlg,
+  NSSSymKeyType targetSymKeyType,
   NSSCallback *uhhOpt,
   NSSOperations operations,
   NSSProperties properties
 )
 {
     return nssVolatileDomain_UnwrapSymKey(vd, ap, wrapKey,
-                                                wrappedKey, targetKeyAlg,
-                                                uhhOpt, operations, 
-                                                properties);
+                                          wrappedKey, targetSymKeyType,
+                                          uhhOpt, operations, 
+                                          properties);
 }
 
 NSS_IMPLEMENT NSSSymKey *
@@ -1051,7 +1031,7 @@ NSSVolatileDomain_DeriveSymKey (
   NSSVolatileDomain *vd,
   NSSPublicKey *bk,
   const NSSAlgNParam *apOpt,
-  NSSOID *target,
+  NSSSymKeyType targetSymKeyType,
   PRUint32 keySizeOpt, /* zero for best allowed */
   NSSOperations operations,
   NSSCallback *uhhOpt

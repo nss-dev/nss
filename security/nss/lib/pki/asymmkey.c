@@ -402,7 +402,7 @@ get_key_pair_type(NSSOID *kpAlg)
 NSS_IMPLEMENT NSSPrivateKey *
 nssPrivateKey_Decode (
   NSSBER *ber,
-  NSSOID *keyPairAlg,
+  NSSKeyPairType keyPairType,
   NSSOperations operations,
   NSSProperties properties,
   NSSUTF8 *passwordOpt,
@@ -417,19 +417,19 @@ nssPrivateKey_Decode (
     nssCryptokiObject *vkey = NULL;
     NSSAlgNParam *wrapAP = NULL;
     NSSAlgNParam *pbeAP = NULL;
-    EPKI epki = { 0 };
-    NSSItem *epkiData = NULL;
+    EPKI epki;
     NSSUTF8 *password = NULL;
     nssSession *session = NULL;
     NSSArena *tmparena;
     NSSPrivateKey *rvKey = NULL;
     NSSSlot *slot;
-    NSSKeyPairType keyPairType;
 
     tmparena = nssArena_Create();
     if (!tmparena) {
 	return (NSSPrivateKey *)NULL;
     }
+
+    nsslibc_memset(&epki, 0, sizeof(EPKI));
 
     /* decode PKCS#8 formatted encoded key */
     status = nssASN1_DecodeBER(tmparena, &epki,
@@ -479,9 +479,6 @@ nssPrivateKey_Decode (
     status = nssSlot_Login(slot, 
                            nssTrustDomain_GetDefaultCallback(td, NULL));
     nssSlot_Destroy(slot);
-
-    /* XXX */
-    keyPairType = get_key_pair_type(keyPairAlg);
 
     /* unwrap the private key with the PBE key */
     vkey = nssToken_UnwrapPrivateKey(destination, session, wrapAP, 
@@ -614,7 +611,13 @@ NSSPrivateKey_UnwrapSymKey (
   NSSPrivateKey *vk,
   const NSSAlgNParam *apOpt,
   NSSItem *wrappedKey,
-  NSSCallback *uhh
+  NSSSymKeyType targetType,
+  NSSUTF8 *labelOpt,
+  NSSOperations operations,
+  NSSProperties properties,
+  NSSToken *destinationOpt,
+  NSSVolatileDomain *vdOpt,
+  NSSCallback *uhhOpt
 )
 {
     nss_SetError(NSS_ERROR_NOT_FOUND);
@@ -626,7 +629,7 @@ NSSPrivateKey_DeriveSymKey (
   NSSPrivateKey *vk,
   NSSPublicKey *bk,
   const NSSAlgNParam *apOpt,
-  NSSOID *target,
+  NSSSymKeyType targetSymKeyType,
   PRUint32 keySizeOpt, /* zero for best allowed */
   NSSOperations operations,
   NSSCallback *uhh
@@ -659,7 +662,7 @@ nssPrivateKey_FindPublicKey (
 	NSSToken **tokens, **tp;
 	nssCryptokiObject *instance;
 	NSSTrustDomain *td = nssPrivateKey_GetTrustDomain(vk, NULL);
-	tokens = nssPKIObject_GetTokens(&vk->object, &status);
+	tokens = nssPKIObject_GetTokens(&vk->object, NULL, 0, &status);
 	if (!tokens) {
 	    return (NSSPublicKey *)NULL; /* defer to trust domain ??? */
 	}
@@ -831,7 +834,7 @@ NSS_IMPLEMENT NSSPublicKey *
 nssPublicKey_CreateFromInfo (
   NSSTrustDomain *td,
   NSSVolatileDomain *vd,
-  NSSOID *keyAlg,
+  NSSOIDTag keyAlg,
   NSSBitString *keyBits
 )
 {
@@ -852,7 +855,7 @@ nssPublicKey_CreateFromInfo (
 	return (NSSPublicKey *)NULL;
     }
 
-    switch (nssOID_GetTag(keyAlg)) {
+    switch (keyAlg) {
     case NSS_OID_PKCS1_RSA_ENCRYPTION:
 	status = nssASN1_DecodeBER(arena, &bki, 
 	                           NSSASN1Template_RSAPublicKey, 
@@ -1186,7 +1189,7 @@ nssPublicKey_GetInstanceForAlgorithmAndObject (
     nssCryptokiObject *instance = NULL;
 
     /* look on the target object's tokens */
-    tokens = nssPKIObject_GetTokens((nssPKIObject *)ob, &status);
+    tokens = nssPKIObject_GetTokens((nssPKIObject *)ob, NULL, 0, &status);
     if (tokens) {
 	for (tp = tokens; *tp; tp++) {
 	    if (nssToken_DoesAlgorithm(*tp, ap)) {

@@ -85,19 +85,19 @@ get_key_pair_type(char *type)
     }
 }
 
-static NSSOID *
+static NSSOIDTag
 get_key_pair_alg(char *type)
 {
     NSSKeyPairType kpType = get_key_pair_type(type);
     switch (kpType) {
     case NSSKeyPairType_RSA: 
-	return NSSOID_CreateFromTag(NSS_OID_PKCS1_RSA_ENCRYPTION);
+	return NSS_OID_PKCS1_RSA_ENCRYPTION;
     case NSSKeyPairType_DSA: 
-	return NSSOID_CreateFromTag(NSS_OID_ANSIX9_DSA_SIGNATURE);
+	return NSS_OID_ANSIX9_DSA_SIGNATURE;
     case NSSKeyPairType_DH: 
-	return NSSOID_CreateFromTag(NSS_OID_X942_DIFFIE_HELLMAN_KEY);
+	return NSS_OID_X942_DIFFIE_HELLMAN_KEY;
     default:
-	return NULL;
+	return NSS_OID_UNKNOWN;
     }
 }
 
@@ -447,7 +447,7 @@ dump_cert_info
     NSSDER *serial = NSSCert_GetSerialNumber(c);
     NSSCert *cp = NSSTrustDomain_FindCertByIssuerAndSerialNumber(td, issuer, serial);
 
-    tokens = NSSCert_GetTokens(cp, NULL);
+    tokens = NSSCert_GetTokens(cp, NULL, 0, NULL);
     if (tokens) {
 	for (tp = tokens; *tp; tp++) {
 	    PR_fprintf(rtData->output.file, 
@@ -677,18 +677,18 @@ import_private_key
     PRStatus status;
     NSSItem *encoding;
     NSSPrivateKey *vkey;
-    NSSOID *keyPairAlg;
+    NSSOIDTag keyPairAlg;
 
     if (keyTypeOpt) {
 	keyPairAlg = get_key_pair_alg(keyTypeOpt);
-	if (!keyPairAlg) {
+	if (keyPairAlg == NSS_OID_UNKNOWN) {
 	    PR_fprintf(PR_STDERR, "%s is not a valid key type.\n", 
 	                           keyTypeOpt);
 	    return PR_FAILURE;
 	}
     } else {
 	/* default to RSA */
-	keyPairAlg = NSSOID_CreateFromTag(NSS_OID_PKCS1_RSA_ENCRYPTION);
+	keyPairAlg = NSS_OID_PKCS1_RSA_ENCRYPTION;
     }
 
     /* get the encoded key from the input source */
@@ -878,16 +878,12 @@ vkeys = NULL;
     if (vkey) {
 	NSSAlgNParam *pbe;
 	NSSParameters params;
-	NSSOID *pbeAlg;
 	NSSItem *encKey;
+
 	params.pbe.iteration = 1;
 	generate_salt(&params.pbe.salt);
-	pbeAlg = NSSOID_CreateFromTag(NSS_OID_PKCS5_PBE_WITH_MD5_AND_DES_CBC);
-	if (!pbeAlg) {
-	    NSSPrivateKey_Destroy(vkey);
-	    return PR_FAILURE;
-	}
-	pbe = NSSOID_CreateAlgNParam(pbeAlg, &params, NULL);
+	pbe = NSSOIDTag_CreateAlgNParam(NSS_OID_PKCS5_PBE_WITH_MD5_AND_DES_CBC, 
+	                                &params, NULL);
 	if (!pbe) {
 	    NSSPrivateKey_Destroy(vkey);
 	    return PR_FAILURE;
@@ -939,21 +935,14 @@ ExportObject (
 static NSSAlgNParam *
 get_rsa_key_gen_params(PRUint32 keySizeInBits, PRUint32 pubExp)
 {
-    NSSOID *kpAlg;
     NSSParameters params;
-
-    kpAlg = NSSOID_CreateFromTag(NSS_OID_PKCS1_RSA_ENCRYPTION);
-    if (!kpAlg) {
-	CMD_PrintError("OID lookup failure");
-	return NULL;
-    }
 
     params.rsakg.modulusBits = keySizeInBits;
     if (CMD_SetRSAPE(&params.rsakg.publicExponent, pubExp) == PR_FAILURE)
 	return NULL;
 
-    return NSSOID_CreateAlgNParamForKeyGen(kpAlg, &params, 
-                                                        NULL);
+    return NSSOIDTag_CreateAlgNParamForKeyGen(NSS_OID_PKCS1_RSA_ENCRYPTION, 
+                                              &params, NULL);
 }
 
 PRStatus

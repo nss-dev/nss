@@ -83,7 +83,7 @@ typedef struct
    * public key info
    */
   PRStatus (PR_CALLBACK *getPublicKeyInfo)(void *cert,
-                                           NSSOID **keyAlg,
+                                           NSSOIDTag *keyAlg,
                                            NSSBitString *keyBits);
 
   /*

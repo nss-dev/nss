@@ -62,7 +62,7 @@ EncryptionTest(NSSSymKey *symKey,
                                              NULL, NULL, NULL);
     if (!encryptedData || !NSSItem_Equal(encryptedData, ciphertext, NULL)) 
     {
-	NSSItem_Destroy(encryptedData);
+	if (encryptedData) NSSItem_Destroy(encryptedData);
 	NSSCryptoContext_Destroy(cc);
 	CMD_PrintError("Encryption failed");
 	return PR_FAILURE;
@@ -129,17 +129,17 @@ static int numCipherArgs = sizeof(cipherArgs) / sizeof(cipherArgs[0]);
 static NSSSymKey *
 unwrap_symkey(NSSVolatileDomain *vd, NSSPrivateKey *unwrapKey, 
               NSSAlgNParam *wrapAP,
-              const NSSOID *keyAlg, char *value)
+              NSSSymKeyType keyType, char *value)
 {
     NSSSymKey *symKey = NULL;
     NSSItem *wrappedKey;
     wrappedKey = CMD_ConvertHex(value, strlen(value), NULL);
     if (wrappedKey) {
 	symKey = NSSVolatileDomain_UnwrapSymKey(vd, wrapAP,
-	                                              unwrapKey,
-	                                              wrappedKey,
-	                                              keyAlg,
-	                                              NULL, 0, 0);
+	                                        unwrapKey,
+	                                        wrappedKey,
+	                                        keyType,
+	                                        NULL, 0, 0);
 	NSSItem_Destroy(wrappedKey);
     }
     return symKey;
@@ -160,7 +160,8 @@ SymmetricCipherTests(CMDRunTimeData *rtData,
     NSSItem *plaintext = NULL;
     NSSItem *ciphertext = NULL;
     NSSItem *algID;
-    const NSSOID *alg;
+    NSSOIDTag alg;
+    NSSSymKeyType keyType;
     CMDReadBuf buf;
 
     buf.start = buf.finish = 0;
@@ -200,7 +201,8 @@ SymmetricCipherTests(CMDRunTimeData *rtData,
 	    break;
 	case cipherKey:
 	    alg = NSSAlgNParam_GetAlgorithm(ap);
-	    symKey = unwrap_symkey(vd, unwrapKey, wrapAP, alg, value);
+	    keyType = NSSOIDTag_GetSymKeyType(alg);
+	    symKey = unwrap_symkey(vd, unwrapKey, wrapAP, keyType, value);
 	    if (!symKey) {
 		goto loser;
 	    }
@@ -254,9 +256,7 @@ SelfTest()
     NSSToken *token = GetInternalCryptoToken();
     CMDRunTimeData rtData;
     NSSPrivateKey *unwrapKey;
-    NSSOID *alg;
     NSSAlgNParam *wrapAP;
-    NSSOID *anRSAkey = NSSOID_CreateFromTag(NSS_OID_PKCS1_RSA_ENCRYPTION);
     NSSItem *encodedKey;
 
     status = CMD_SetRunTimeData(UNWRAPPING_KEY_FILE, NULL, "ascii",
@@ -280,8 +280,8 @@ SelfTest()
 
     /* decode the key in the volatile domain */
     unwrapKey = NSSVolatileDomain_ImportEncodedPrivateKey(vd, encodedKey,
-                                                          anRSAkey, 0, 0,
-                                                          NULL,
+                                                          NSSKeyPairType_RSA, 
+							  0, 0, NULL,
                                     CMD_PWCallbackForKeyEncoding(WRAPKEY_PW), 
                                                           token /*, NULL*/);
     NSSItem_Destroy(encodedKey);
@@ -298,8 +298,8 @@ SelfTest()
 	return PR_FAILURE;
     }
 
-    alg = NSSOID_CreateFromTag(NSS_OID_PKCS1_RSA_ENCRYPTION);
-    wrapAP = NSSOID_CreateAlgNParam(alg, NULL, NULL);
+    wrapAP = NSSOIDTag_CreateAlgNParam(NSS_OID_PKCS1_RSA_ENCRYPTION, 
+                                       NULL, NULL);
     if (!wrapAP) {
 	NSSPrivateKey_Destroy(unwrapKey);
 	CMD_PrintError("failed to create alg/param for unwrap");
@@ -317,7 +317,6 @@ CreateASelfTest(char *cipher, int keysize, char *input)
     NSSVolatileDomain *vd;
     NSSTrustDomain *td = NSS_GetDefaultTrustDomain();
     CMDRunTimeData rtData;
-    NSSOID *alg;
     NSSAlgNParam *ap, *wrapAP;
     NSSSymKey *symKey;
     NSSItem *wrappedKey, *algID, plaintext, *ciphertext;
@@ -364,8 +363,8 @@ CreateASelfTest(char *cipher, int keysize, char *input)
 	return PR_FAILURE;
     }
 
-    alg = NSSOID_CreateFromTag(NSS_OID_PKCS1_RSA_ENCRYPTION);
-    wrapAP = NSSOID_CreateAlgNParam(alg, NULL, NULL);
+    wrapAP = NSSOIDTag_CreateAlgNParam(NSS_OID_PKCS1_RSA_ENCRYPTION, 
+                                       NULL, NULL);
     if (!wrapAP) {
 	NSSCert_Destroy(wrapCert);
 	CMD_PrintError("failed to create alg/param for unwrap");
@@ -378,7 +377,7 @@ CreateASelfTest(char *cipher, int keysize, char *input)
     }
 
     symKey = NSSVolatileDomain_GenerateSymKey(vd, ap, keysize, NULL,
-                                                    0, 0, token, NULL);
+                                              0, 0, token, NULL);
     NSSAlgNParam_Destroy(ap);
     if (!symKey) {
 	CMD_PrintError("failed to generate symkey");

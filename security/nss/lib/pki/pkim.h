@@ -128,6 +128,8 @@ nssPKIObject_HasInstance (
 NSS_EXTERN NSSToken **
 nssPKIObject_GetTokens (
   nssPKIObject *object,
+  NSSToken **rvOpt,
+  PRUint32 rvMaxOpt,
   PRStatus *statusOpt
 );
 
@@ -335,6 +337,8 @@ nssSymKey_CopyToToken (
 NSS_EXTERN NSSToken **
 nssSymKey_GetTokens (
   NSSSymKey *mk,
+  NSSToken **rvOpt,
+  PRUint32 rvMaxOpt,
   PRStatus *statusOpt
 );
 
@@ -376,7 +380,7 @@ NSS_EXTERN NSSPublicKey *
 nssPublicKey_CreateFromInfo (
   NSSTrustDomain *td,
   NSSVolatileDomain *vdOpt,
-  NSSOID *keyAlg,
+  NSSOIDTag keyAlg,
   NSSBitString *keyBits
 );
 
@@ -444,8 +448,8 @@ nssPrivateKey_CopyToToken (
 
 NSS_EXTERN PRBool
 nssUsages_Match (
-  NSSUsages *usages,
-  NSSUsages *testUsages
+  const NSSUsages *usages,
+  const NSSUsages *testUsages
 );
 
 /* nssCertArray
@@ -493,7 +497,7 @@ NSS_EXTERN NSSCert *
 nssCertArray_FindBestCert (
   NSSCert **certs, 
   NSSTime time,
-  NSSUsages *usagesOpt,
+  const NSSUsages *usagesOpt,
   NSSPolicies *policiesOpt
 );
 

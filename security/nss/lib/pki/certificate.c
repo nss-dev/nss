@@ -530,19 +530,23 @@ NSSCert_GetTrustDomain (
 NSS_IMPLEMENT NSSToken **
 nssCert_GetTokens (
   NSSCert *c,
+  NSSToken **rvOpt,
+  PRUint32 rvMaxOpt,
   PRStatus *statusOpt
 )
 {
-    return nssPKIObject_GetTokens(&c->object, statusOpt);
+    return nssPKIObject_GetTokens(&c->object, rvOpt, rvMaxOpt, statusOpt);
 }
 
 NSS_IMPLEMENT NSSToken **
 NSSCert_GetTokens (
   NSSCert *c,
+  NSSToken **rvOpt,
+  PRUint32 rvMaxOpt,
   PRStatus *statusOpt
 )
 {
-    return nssCert_GetTokens(c, statusOpt);
+    return nssCert_GetTokens(c, rvOpt, rvMaxOpt, statusOpt);
 }
 
 NSS_IMPLEMENT NSSSlot *
@@ -1141,7 +1145,7 @@ static NSSCert *
 find_cert_issuer (
   NSSCert *c,
   NSSTime time,
-  NSSUsages *usagesOpt,
+  const NSSUsages *usagesOpt,
   NSSPolicies *policiesOpt
 )
 {
@@ -1175,10 +1179,8 @@ find_cert_issuer (
 	    issuer = filter_subject_certs_for_id(issuers, issuerID);
 	    dc->methods->freeIdentifier(issuerID);
 	} else {
-	    issuer = nssCertArray_FindBestCert(issuers,
-	                                                     time,
-	                                                     usagesOpt,
-	                                                     policiesOpt);
+	    issuer = nssCertArray_FindBestCert(issuers, time,
+	                                       usagesOpt, policiesOpt);
 	}
 	nssCertArray_Destroy(issuers);
     }
@@ -1193,7 +1195,7 @@ NSS_IMPLEMENT NSSCert **
 nssCert_BuildChain (
   NSSCert *c,
   NSSTime time,
-  NSSUsages *usagesOpt,
+  const NSSUsages *usagesOpt,
   NSSPolicies *policiesOpt,
   NSSCert **rvOpt,
   PRUint32 rvLimit,
@@ -1255,7 +1257,7 @@ NSS_IMPLEMENT NSSCert **
 NSSCert_BuildChain (
   NSSCert *c,
   NSSTime time,
-  NSSUsages *usagesOpt,
+  const NSSUsages *usagesOpt,
   NSSPolicies *policiesOpt,
   NSSCert **rvOpt,
   PRUint32 rvLimit, /* zero for no limit */
@@ -1264,7 +1266,7 @@ NSSCert_BuildChain (
 )
 {
     return nssCert_BuildChain(c, time, usagesOpt, policiesOpt,
-                                     rvOpt, rvLimit, arenaOpt, statusOpt);
+                              rvOpt, rvLimit, arenaOpt, statusOpt);
 }
 
 NSS_IMPLEMENT NSSItem *
@@ -1390,7 +1392,7 @@ nssCert_GetPublicKey (
     NSSVolatileDomain *vd = nssCert_GetVolatileDomain(c);
 
     /* first look for a persistent object in the trust domain */
-    tokens = nssPKIObject_GetTokens(&c->object, &status);
+    tokens = nssPKIObject_GetTokens(&c->object, NULL, 0, &status);
     if (tokens) {
 	for (tp = tokens; *tp; tp++) {
 	    /* XXX need to iterate over cert instances to have session */
@@ -1417,7 +1419,7 @@ nssCert_GetPublicKey (
 	}
 	return bk;
     } else {
-	NSSOID *keyAlg;
+	NSSOIDTag keyAlg;
 	NSSBitString keyBits;
 	nssCertDecoding *dc = nssCert_GetDecoding(c);
 
@@ -1453,7 +1455,7 @@ nssCert_FindPrivateKey (
     nssCryptokiObject *instance;
     NSSTrustDomain *td = nssCert_GetTrustDomain(c);
 
-    tokens = nssPKIObject_GetTokens(&c->object, &status);
+    tokens = nssPKIObject_GetTokens(&c->object, NULL, 0, &status);
     if (!tokens) {
 	return PR_FALSE; /* actually, should defer to crypto context */
     }
@@ -1518,7 +1520,7 @@ nssCert_IsPrivateKeyAvailable (
     nssCryptokiObject *instance = NULL;
     NSSTrustDomain *td = nssCert_GetTrustDomain(c);
     PRBool isLoggedIn;
-    tokens = nssPKIObject_GetTokens(&c->object, &status);
+    tokens = nssPKIObject_GetTokens(&c->object, NULL, 0, &status);
     if (!tokens) {
 	return PR_FALSE; /* can't have private key w/o a token instance */
     }
@@ -1644,7 +1646,7 @@ NSSUserCert_DeriveSymKey (
   NSSUserCert *uc, /* provides private key */
   NSSCert *c, /* provides public key */
   const NSSAlgNParam *apOpt,
-  NSSOID *target,
+  NSSSymKeyType targetSymKeyType,
   PRUint32 keySizeOpt, /* zero for best allowed */
   NSSOperations operations,
   NSSCallback *uhh

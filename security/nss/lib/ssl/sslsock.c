@@ -899,12 +899,19 @@ SSL_CipherPrefGet(PRFileDesc *fd, PRInt32 which, PRBool *enabled)
     return rv;
 }
 
+/* XXX where/how to init this stuff? */
+extern PRStatus ssl3_InitAlgorithms(void);
+
 SECStatus
 NSS_SetDomesticPolicy(void)
 {
 #ifndef EXPORT_VERSION
     SECStatus      status = SECSuccess;
     cipherPolicy * policy;
+
+    if (ssl3_InitAlgorithms() == PR_FAILURE) {
+	return SECFailure;
+    }
 
     for (policy = ssl_ciphers; policy->cipher != 0; ++policy) {
 	status = SSL_SetPolicy(policy->cipher, SSL_ALLOWED);

@@ -60,6 +60,8 @@ static const char NSSPKI_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #include "nsspkit.h"
 #endif /* NSSPKIT_H */
 
+#include "oiddata.h" /* XXX */
+
 PR_BEGIN_EXTERN_C
 
 /*
@@ -113,6 +115,12 @@ PR_BEGIN_EXTERN_C
  * email signing, etc.).  Remember that theoretically another implementation
  * (think PGP) could be beneath this object.
  */
+
+/* XXX I suspect this will be required and thus public */
+NSS_EXTERN NSSCert *
+nssCert_AddRef (
+  NSSCert *c
+);
 
 /*
  * NSSCert_Destroy
@@ -219,11 +227,18 @@ NSSCert_SetTrustedUsages (
  *
  */
 
-NSS_EXTERN NSSDER *
+NSS_EXTERN NSSBER *
 NSSCert_Encode (
   NSSCert *c,
-  NSSDER *rvOpt,
+  NSSBER *rvOpt,
   NSSArena *arenaOpt
+);
+
+/* XXX the difference is, this one wouldn't alloc... */
+NSS_EXTERN NSSBER *
+NSSCert_GetEncoding (
+  NSSCert *c,
+  NSSBER *rvOpt
 );
 
 /*
@@ -246,7 +261,7 @@ NSS_EXTERN NSSCert **
 NSSCert_BuildChain (
   NSSCert *c,
   NSSTime time,
-  NSSUsages *usagesOpt,
+  const NSSUsages *usagesOpt,
   NSSPolicies *policiesOpt,
   NSSCert **rvOpt,
   PRUint32 rvLimit, /* zero for no limit */
@@ -265,7 +280,7 @@ NSSCert_GetTrustDomain (
 );
 
 /*
- * NSSCert_GetToken
+ * NSSCert_GetTokens
  *
  * There doesn't have to be any.
  */
@@ -273,6 +288,8 @@ NSSCert_GetTrustDomain (
 NSS_EXTERN NSSToken **
 NSSCert_GetTokens (
   NSSCert *c,
+  NSSToken **rvOpt,
+  PRUint32 rvMaxOpt,
   PRStatus *statusOpt
 );
 
@@ -459,7 +476,7 @@ NSSCert_IsPrivateKeyAvailable (
  *  NSSUserCert_Encode
  *  NSSUserCert_BuildChain
  *  NSSUserCert_GetTrustDomain
- *  NSSUserCert_GetToken
+ *  NSSUserCert_GetTokens
  *  NSSUserCert_GetSlot
  *  NSSUserCert_GetModule
  *  NSSUserCert_GetCryptoContext
@@ -566,7 +583,7 @@ NSSUserCert_DeriveSymKey (
   NSSUserCert *uc, /* provides private key */
   NSSCert *c, /* provides public key */
   const NSSAlgNParam *apOpt,
-  NSSOID *target,
+  NSSSymKeyType targetKeyType,
   PRUint32 keySizeOpt, /* zero for best allowed */
   NSSOperations operations,
   NSSCallback *uhh
@@ -671,13 +688,16 @@ NSSPrivateKey_GetTrustDomain (
 );
 
 /*
- * NSSPrivateKey_GetToken
+ * NSSPrivateKey_GetTokens
  *
  */
 
-NSS_EXTERN NSSToken *
-NSSPrivateKey_GetToken (
-  NSSPrivateKey *vk
+NSS_EXTERN NSSToken **
+NSSPrivateKey_GetTokens (
+  NSSPrivateKey *vk,
+  NSSToken **rvOpt,
+  PRUint32 rvMaxOpt,
+  PRStatus *statusOpt
 );
 
 /*
@@ -755,7 +775,13 @@ NSSPrivateKey_UnwrapSymKey (
   NSSPrivateKey *vk,
   const NSSAlgNParam *apOpt,
   NSSItem *wrappedKey,
-  NSSCallback *uhh
+  NSSSymKeyType targetType,
+  NSSUTF8 *labelOpt,
+  NSSOperations operations,
+  NSSProperties properties,
+  NSSToken *destinationOpt,
+  NSSVolatileDomain *vdOpt,
+  NSSCallback *uhhOpt
 );
 
 /*
@@ -768,7 +794,7 @@ NSSPrivateKey_DeriveSymKey (
   NSSPrivateKey *vk,
   NSSPublicKey *bk,
   const NSSAlgNParam *apOpt,
-  NSSOID *target,
+  NSSSymKeyType targetKeyType,
   PRUint32 keySizeOpt, /* zero for best allowed */
   NSSOperations operations,
   NSSCallback *uhh
@@ -890,14 +916,16 @@ NSSPublicKey_GetTrustDomain (
 );
 
 /*
- * NSSPublicKey_GetToken
+ * NSSPublicKey_GetTokens
  *
- * There doesn't have to be one.
+ * There doesn't have to be any.
  */
 
-NSS_EXTERN NSSToken *
-NSSPublicKey_GetToken (
+NSS_EXTERN NSSToken **
+NSSPublicKey_GetTokens (
   NSSPublicKey *bk,
+  NSSToken **rvOpt,
+  PRUint32 rvMaxOpt,
   PRStatus *statusOpt
 );
 
@@ -923,6 +951,22 @@ NSS_EXTERN NSSModule *
 NSSPublicKey_GetModule (
   NSSPublicKey *bk,
   PRStatus *statusOpt
+);
+
+NSS_EXTERN NSSKeyPairType
+NSSPublicKey_GetType (
+  NSSPublicKey *bk
+);
+
+NSS_EXTERN PRUint32
+NSSPublicKey_GetKeyStrength (
+  NSSPublicKey *bk
+);
+
+NSS_EXTERN NSSPublicKeyInfo *
+NSSPublicKey_GetKeyInfo (
+  NSSPublicKey *bk,
+  NSSPublicKeyInfo *rvOpt
 );
 
 /*
@@ -1116,14 +1160,16 @@ NSSSymKey_GetTrustDomain (
 );
 
 /*
- * NSSSymKey_GetToken
+ * NSSSymKey_GetTokens
  *
- * There doesn't have to be one.
+ * There doesn't have to be any.
  */
 
-NSS_EXTERN NSSToken *
-NSSSymKey_GetToken (
+NSS_EXTERN NSSToken **
+NSSSymKey_GetTokens (
   NSSSymKey *mk,
+  NSSToken **rvOpt,
+  PRUint32 rvMaxOpt,
   PRStatus *statusOpt
 );
 
@@ -1250,7 +1296,7 @@ NSSSymKey_UnwrapSymKey (
   NSSSymKey *wrappingKey,
   const NSSAlgNParam *ap,
   NSSItem *wrappedKey,
-  NSSOID *target,
+  NSSSymKeyType targetKeyType,
   PRUint32 keySizeOpt,
   NSSOperations operations,
   NSSCallback *uhh
@@ -1287,6 +1333,15 @@ NSSSymKey_DeriveSymKey (
   PRUint32 keySizeOpt,
   NSSOperations operations,
   NSSCallback *uhh
+);
+
+NSS_EXTERN PRStatus
+nssSymKey_DeriveSSLSessionKeys (
+  NSSSymKey *masterSecret,
+  const NSSAlgNParam *ap,
+  NSSSymKey **rvSessionKeys,
+  NSSItem *rvClientIV,
+  NSSItem *rvServerIV
 );
 
 /*
@@ -1487,7 +1542,7 @@ NSSTrustDomain_FindTokenBySlotName (
 NSS_EXTERN NSSToken *
 NSSTrustDomain_FindTokenForAlgorithm (
   NSSTrustDomain *td,
-  const NSSOID *algorithm
+  NSSOIDTag algorithm
 );
 
 /*
@@ -1498,8 +1553,14 @@ NSSTrustDomain_FindTokenForAlgorithm (
 NSS_EXTERN NSSToken *
 NSSTrustDomain_FindBestTokenForAlgorithms (
   NSSTrustDomain *td,
-  NSSOID *algorithms[], /* may be null-terminated */
+  NSSOIDTag *algorithms,
   PRUint32 nAlgorithmsOpt /* limits the array if nonzero */
+);
+
+NSS_EXTERN NSSToken *
+NSSTrustDomain_FindTokenForAlgNParam (
+  NSSTrustDomain *td,
+  const NSSAlgNParam *ap
 );
 
 /*
@@ -1568,16 +1629,12 @@ NSSTrustDomain_ImportEncodedCert (
 /*
  * NSSTrustDomain_ImportEncodedCertChain
  *
- * If you just want the leaf, pass in a maximum of one.
  */
 
-NSS_EXTERN NSSCert **
+NSS_EXTERN NSSCertChain *
 NSSTrustDomain_ImportEncodedCertChain (
   NSSTrustDomain *td,
   NSSBER *ber,
-  NSSCert *rvOpt[],
-  PRUint32 maximumOpt, /* 0 for no max */
-  NSSArena *arenaOpt,
   NSSToken *destinationOpt
 );
 
@@ -1590,7 +1647,7 @@ NSS_EXTERN NSSPrivateKey *
 NSSTrustDomain_ImportEncodedPrivateKey (
   NSSTrustDomain *td,
   NSSBER *ber,
-  NSSOID *keyPairAlg,
+  NSSKeyPairType keyPairType,
   NSSOperations operations,
   NSSProperties properties,
   NSSUTF8 *passwordOpt, /* NULL will cause a callback */
@@ -1607,6 +1664,16 @@ NSS_EXTERN NSSPublicKey *
 NSSTrustDomain_ImportEncodedPublicKey (
   NSSTrustDomain *td,
   NSSBER *ber,
+  NSSToken *destinationOpt
+);
+
+NSS_EXTERN NSSPublicKey *
+NSSTrustDomain_ImportPublicKey (
+  NSSTrustDomain *td,
+  NSSPublicKeyInfo *keyInfo,
+  NSSUTF8 *nicknameOpt,
+  NSSOperations operations,
+  NSSProperties properties,
   NSSToken *destinationOpt
 );
 
@@ -1995,7 +2062,7 @@ NSSTrustDomain_GenerateSymKeyFromPassword (
 NSS_EXTERN NSSSymKey *
 NSSTrustDomain_FindSymKeyByAlgorithmAndKeyID (
   NSSTrustDomain *td,
-  NSSOID *algorithm,
+  NSSOIDTag algorithm,
   NSSItem *keyID,
   NSSCallback *uhhOpt
 );
@@ -2052,7 +2119,7 @@ NSSTrustDomain_CreateCryptoContext (
 NSS_EXTERN NSSCryptoContext *
 NSSTrustDomain_CreateCryptoContextForAlgorithm (
   NSSTrustDomain *td,
-  NSSOID *algorithm
+  NSSOIDTag algorithm
 );
 
 /* find/traverse other objects, e.g. s/mime profiles */
@@ -2315,11 +2382,11 @@ NSSVolatileDomain_ImportEncodedCert (
  *
  */
 
-NSS_EXTERN PRStatus
+NSS_EXTERN NSSCertChain *
 NSSVolatileDomain_ImportEncodedCertChain (
   NSSVolatileDomain *vd,
   NSSBER *ber,
-  NSSCertType certType
+  NSSToken *destinationOpt
 );
 
 /*
@@ -2331,12 +2398,22 @@ NSS_EXTERN NSSPrivateKey *
 NSSVolatileDomain_ImportEncodedPrivateKey (
   NSSVolatileDomain *vd,
   NSSBER *ber,
-  NSSOID *keyPairAlg,
+  NSSKeyPairType keyPairType,
   NSSOperations operations,
   NSSProperties properties,
   NSSUTF8 *passwordOpt, /* NULL will cause a callback */
   NSSCallback *uhhOpt,
   NSSToken *destination
+);
+
+NSS_EXTERN NSSPublicKey *
+NSSVolatileDomain_ImportPublicKey (
+  NSSVolatileDomain *vd,
+  NSSPublicKeyInfo *keyInfo,
+  NSSUTF8 *nicknameOpt,
+  NSSOperations operations,
+  NSSProperties properties,
+  NSSToken *destinationOpt
 );
 
 /* Other importations: S/MIME capabilities
@@ -2432,7 +2509,7 @@ NSSVolatileDomain_GenerateSymKeyFromPassword (
 NSS_EXTERN NSSSymKey *
 NSSVolatileDomain_FindSymKeyByAlgorithmAndKeyID (
   NSSVolatileDomain *vd,
-  NSSOID *algorithm,
+  NSSOIDTag algorithm,
   NSSItem *keyID,
   NSSCallback *uhhOpt
 );
@@ -2448,7 +2525,7 @@ NSSVolatileDomain_UnwrapSymKey (
   const NSSAlgNParam *ap,
   NSSPrivateKey *wrapKey,
   NSSItem *wrappedKey,
-  const NSSOID *targetKeyAlg,
+  NSSSymKeyType targetSymKeyType,
   NSSCallback *uhhOpt,
   NSSOperations operations,
   NSSProperties properties
@@ -2477,25 +2554,64 @@ NSSVolatileDomain_DeriveSymKey (
   NSSVolatileDomain *vd,
   NSSPublicKey *bkOpt,
   const NSSAlgNParam *apOpt,
-  NSSOID *target,
+  NSSSymKeyType targetSymKeyType,
   PRUint32 keySizeOpt, /* zero for best allowed */
   NSSOperations operations,
   NSSCallback *uhhOpt
+);
+
+NSS_EXTERN NSSCryptoContext *
+NSSVolatileDomain_CreateCryptoContext (
+  NSSVolatileDomain *vd,
+  const NSSAlgNParam *apOpt,
+  NSSCallback *uhhOpt
+);
+
+NSS_EXTERN NSSCertChain *
+NSSVolatileDomain_CreateCertChain (
+  NSSVolatileDomain *vd,
+  NSSCert *vdCertOpt
+);
+
+/*
+ * NSSCertChain
+ *
+ *
+ */
+
+NSS_EXTERN PRStatus
+NSSCertChain_Destroy (
+  NSSCertChain *chain
+);
+
+NSS_EXTERN PRStatus
+NSSCertChain_AddEncodedCert (
+  NSSCertChain *chain,
+  NSSBER *encodedCert,
+  NSSUTF8 *nicknameOpt,
+  NSSToken *destinationOpt,
+  NSSCert **rvCertOpt
+);
+
+NSS_EXTERN PRIntn
+NSSCertChain_GetNumCerts (
+  NSSCertChain *chain
+);
+
+NSS_EXTERN NSSCert *
+NSSCertChain_GetCert (
+  NSSCertChain *chain,
+  PRIntn index
 );
 
 
 /*
  * NSSCryptoContext
  *
- * A crypto context is sort of a short-term snapshot of a trust domain,
- * used for the life of "one crypto operation."  You can also think of
- * it as a "temporary database."
+ * A crypto context is sort of a short-term snapshot of a PKI domain,
+ * used for the lifetime of "one crypto operation."
  * 
- * Just about all of the things you can do with a trust domain -- importing
- * or creating certs, keys, etc. -- can be done with a crypto context.
- * The difference is that the objects will be temporary ("session") objects.
- * 
- * Also, if the context was created for a key, cert, and/or algorithm; or
+ * If the context was created for a key, cert, and/or algorithm; or
  * if such objects have been "associated" with the context, then the context
  * can do everything the keys can, like crypto operations.
  * 

@@ -73,11 +73,8 @@
 #define SSL_ERROR_INVALID_KEY_TYPE 5555
 #define SSL_ERROR_UNSUPPORTED_KEY_EXCHANGE_ALG 5556
 #define NSS_ERROR_INVALID_ARGS 5557
-static const NSSUsages s_ssl_client_usage;
-static const NSSAlgNParam *s_rsa_unwrap_ap = NULL;
-static const NSSAlgNParam *s_tls_prf_ap = NULL;
-static const NSSAlgNParam *s_md5_ap = NULL;
-static const NSSAlgNParam *s_sha1_ap = NULL;
+#define SSL_ERROR_INVALID_VERSION 5558
+static const NSSUsages s_ssl_client_usage = { 0, NSSUsage_SSLClient };
 
 static void      ssl3_CleanupPeerCerts(ssl3State *ssl3);
 static NSSSymKey *ssl3_GenerateRSAPMS(sslSocket *ss, 
@@ -86,7 +83,9 @@ static NSSSymKey *ssl3_GenerateRSAPMS(sslSocket *ss,
 static PRStatus  ssl3_GenerateSessionKeys(   sslSocket *ss, NSSSymKey *pmsOpt);
 static SECStatus ssl3_HandshakeFailure(      sslSocket *ss);
 static SECStatus ssl3_InitState(             sslSocket *ss);
+#ifdef IMPLEMENT_SESSION_ID_CACHE
 static sslSessionID *ssl3_NewSessionID(      sslSocket *ss, PRBool is_server);
+#endif /* IMPLEMENT_SESSION_ID_CACHE */
 static SECStatus ssl3_SendCertificate(       sslSocket *ss);
 static SECStatus ssl3_SendEmptyCertificate(  sslSocket *ss);
 static SECStatus ssl3_SendCertificateRequest(sslSocket *ss);
@@ -342,12 +341,6 @@ static const ssl3KEADef kea_defs[] = { /* indexed by SSL3KeyExchangeAlgorithm */
     {kea_rsa_fips,       ssl_kea_rsa,      ssl_sign_rsa,  PR_FALSE,   0, PR_TRUE },
 };
 
-/* set by call_once or initialization? */
-static const NSSAlgNParam *s_mac_md5_ap = NULL;
-static const NSSAlgNParam *s_mac_sha_ap = NULL;
-static const NSSAlgNParam *s_hmac_md5_ap = NULL;
-static const NSSAlgNParam *s_hmac_sha_ap = NULL;
-
 /*
  * Number of bytes each hash algorithm produces
  */
@@ -365,8 +358,125 @@ static const ssl3MACDef mac_defs[] = { /* indexed by SSL3MACAlgorithm */
     {  ssl_hmac_sha,/*  s_hmac_sha_ap,*/       40,  SHA1_LENGTH },
 };
 
-static const NSSAlgNParam *s_ssl3PMSGen = NULL;
-static const NSSAlgNParam *s_tlsPMSGen = NULL;
+static NSSArena *s_algs_arena = NULL;
+static const NSSAlgNParam *s_md5_ap = NULL;
+static const NSSAlgNParam *s_sha1_ap = NULL;
+static const NSSAlgNParam *s_rsa_wrap_ap = NULL;
+static const NSSAlgNParam *s_rsa_unwrap_ap = NULL;
+static const NSSAlgNParam *s_tls_prf_ap = NULL;
+static const NSSAlgNParam *s_ssl3_pms_ap = NULL;
+static const NSSAlgNParam *s_tls_pms_ap = NULL;
+static const NSSAlgNParam *s_mac_md5_ap = NULL;
+static const NSSAlgNParam *s_mac_sha1_ap = NULL;
+static const NSSAlgNParam *s_hmac_md5_ap = NULL;
+static const NSSAlgNParam *s_hmac_sha1_ap = NULL;
+
+PRStatus
+ssl3_InitAlgorithms(void)
+{
+    NSSParameters params;
+
+    s_algs_arena = NSSArena_Create();
+    if (!s_algs_arena) return PR_FAILURE;
+
+    /* initialize hashes */
+    s_md5_ap = NSSOIDTag_CreateAlgNParam(NSS_OID_MD5, NULL, s_algs_arena);
+    s_sha1_ap = NSSOIDTag_CreateAlgNParam(NSS_OID_SHA1, NULL, s_algs_arena);
+
+    /* initialize RSA wrap/unwrap */
+    s_rsa_wrap_ap = NSSOIDTag_CreateAlgNParamForWrap(
+                                               NSS_OID_PKCS1_RSA_ENCRYPTION, 
+                                               NULL, s_algs_arena);
+
+    s_rsa_unwrap_ap = NSSOIDTag_CreateAlgNParamForUnwrap(
+                                               NSS_OID_PKCS1_RSA_ENCRYPTION, 
+                                               NULL, s_algs_arena);
+
+    /* initialize TLS pseudo-random function */
+    s_tls_prf_ap = NSSAlgNParam_CreateForSSL(s_algs_arena, 
+                                             NSSSSLAlgorithm_TLS_PRF,
+                                             NULL);
+
+    /* initialize PMS generation algorithms */
+    params.sslpms = NSSSSLVersion_SSLv3;
+    s_ssl3_pms_ap = NSSAlgNParam_CreateForSSL(s_algs_arena, 
+                                              NSSSSLAlgorithm_PMSGen,
+                                              &params);
+    params.sslpms = NSSSSLVersion_TLS;
+    s_ssl3_pms_ap = NSSAlgNParam_CreateForSSL(s_algs_arena, 
+                                              NSSSSLAlgorithm_PMSGen,
+                                              &params);
+
+    /* initialize MACs and HMACS */
+    s_mac_md5_ap = NSSAlgNParam_CreateForSSL(s_algs_arena,
+                                             NSSSSLAlgorithm_MD5_MAC,
+                                             &params);
+    s_mac_sha1_ap = NSSAlgNParam_CreateForSSL(s_algs_arena,
+                                              NSSSSLAlgorithm_SHA1_MAC,
+                                              &params);
+    params.hmac = MD5_LENGTH;
+    s_hmac_md5_ap = NSSOIDTag_CreateAlgNParamForHMAC(NSS_OID_MD5,
+                                                     &params,
+                                                     s_algs_arena);
+    params.hmac = SHA1_LENGTH;
+    s_hmac_sha1_ap = NSSOIDTag_CreateAlgNParamForHMAC(NSS_OID_SHA1,
+                                                      &params,
+                                                      s_algs_arena);
+
+    return PR_SUCCESS;
+}
+
+static const NSSAlgNParam *
+ssl3_GetMacAP(ssl3State *ssl3)
+{
+    switch(ssl3->pwSpec->mac_def->mac) {
+    case ssl_mac_md5:  return s_mac_md5_ap;
+    case ssl_mac_sha:  return s_mac_sha1_ap;
+    case ssl_hmac_md5: return s_hmac_md5_ap;
+    case ssl_hmac_sha: return s_hmac_sha1_ap;
+    default: return (const NSSAlgNParam *)NULL;
+    }
+}
+
+static NSSAlgNParam *
+ssl3_GetBulkCipherAP(const ssl3BulkCipherDef *cipher_def, NSSItem *iv)
+{
+    NSSParameters params;
+    switch (cipher_def->cipher) {
+    case cipher_rc2:
+	params.rc2.effectiveKeySizeInBits = 128; /* always? */
+	params.rc2.iv = *iv;
+	break;
+    default:
+	/* generic CBC */
+	params.iv = *iv;
+	break;
+    }
+    return NSSOIDTag_CreateAlgNParam(cipher_def->calg, &params, NULL);
+}
+
+static NSSSSLVersion
+ssl_GetVersion(sslSocket *ss)
+{
+    switch (ss->version) {
+    case SSL_LIBRARY_VERSION_2:       return NSSSSLVersion_SSLv2;
+    case SSL_LIBRARY_VERSION_3_0:     return NSSSSLVersion_SSLv3;
+    case SSL_LIBRARY_VERSION_3_1_TLS: return NSSSSLVersion_TLS;
+    default:  return -1;
+    }
+}
+
+/* XXX why does this info come from cryptoki? */
+static SSL3ProtocolVersion 
+ssl3_GetVersionFromDeriveParams(NSSAlgNParam *deriveAP)
+{
+    switch (nssAlgNParam_GetSSLVersionFromMSDerive(deriveAP)) {
+    case NSSSSLVersion_SSLv2: return SSL_LIBRARY_VERSION_2;
+    case NSSSSLVersion_SSLv3: return SSL_LIBRARY_VERSION_3_0;
+    case NSSSSLVersion_TLS:   return SSL_LIBRARY_VERSION_3_1_TLS;
+    default: return -1;
+    }
+}
 
 /* indexed by SSL3BulkCipher */
 const char * const ssl3_cipherName[] = {
@@ -490,7 +600,6 @@ ssl3_config_match_init(sslSocket *ss)
     PRBool                    isServer;
     sslServerCerts           *svrAuth;
     NSSOIDTag                 algTag;
-    NSSOID *                  alg;
     NSSToken *                token;
 
     if (!ss->enableSSL3 && !ss->enableTLS) {
@@ -520,9 +629,9 @@ ssl3_config_match_init(sslSocket *ss)
 		                  svrAuth->serverCertChain)) 
 		{
 		    algTag = kea_alg_defs[exchKeyType];
-		    alg = NSSOID_CreateFromTag(algTag);
 		    /* need to check for token for key exchange alg */
-		    token = NSSTrustDomain_FindTokenForAlgorithm(ss->td, alg);
+		    token = NSSTrustDomain_FindTokenForAlgorithm(ss->td, 
+		                                                 algTag);
 		    if (token) {
 			suite->isPresent = PR_TRUE;
 			NSSToken_Destroy(token);
@@ -541,9 +650,8 @@ ssl3_config_match_init(sslSocket *ss)
 	        suite->isPresent) 
 	    {
 		algTag = bulk_cipher_defs[cipher_def->bulk_cipher_alg].calg;
-		alg = NSSOID_CreateFromTag(algTag);
 		/* check for the cipher algorithm */
-		token = NSSTrustDomain_FindTokenForAlgorithm(ss->td, alg);
+		token = NSSTrustDomain_FindTokenForAlgorithm(ss->td, algTag);
 		if (token) {
 		    suite->isPresent = PR_TRUE;
 		    NSSToken_Destroy(token);
@@ -602,6 +710,7 @@ count_cipher_suites(sslSocket *ss, int policy, PRBool enabled)
     return count;
 }
 
+#ifdef IMPLEMENT_SSL_STEP_UP
 static PRBool
 anyRestrictedEnabled(sslSocket *ss)
 {
@@ -619,6 +728,7 @@ anyRestrictedEnabled(sslSocket *ss)
     }
     return PR_FALSE;
 }
+#endif /* IMPLEMENT_SSL_STEP_UP */
 
 /*
  * Null compression, mac and encryption functions
@@ -906,7 +1016,6 @@ ssl3_ComputeDHKeyHash(NSSItem dh_p, NSSItem dh_g, NSSItem dh_Ys,
     unsigned int  bufLen;
     NSSItem     * it = NULL;
     PRUint8       buf[2*SSL3_RANDOM_LENGTH + 2 + 4096/8 + 2 + 4096/8];
-    NSSAlgNParam *ap;
 
     bufLen = 2*SSL3_RANDOM_LENGTH + 2 + dh_p.size + 2 + dh_g.size + 2 + dh_Ys.size;
     if (bufLen <= sizeof buf) {
@@ -947,18 +1056,10 @@ ssl3_ComputeDHKeyHash(NSSItem dh_p, NSSItem dh_g, NSSItem dh_Ys,
 	goto done;
     }
 
-    ap = NSSOID_CreateAlgNParam(NSSOID_CreateFromTag(NSS_OID_MD5),
-                                             NULL, NULL);
-    if (!ap) {
-	ssl_MapLowLevelError(SSL_ERROR_MD5_DIGEST_FAILURE);
-    	rv = SECFailure;
-	goto done;
-    }
-
     hashData.data = hashes->md5;
     hashData.size = sizeof hashes->md5;
-    it = NSSCryptoContext_Digest(hash, ap, &hashIt, NULL, &hashData, NULL);
-    NSSAlgNParam_Destroy(ap);
+    it = NSSCryptoContext_Digest(hash, s_md5_ap, 
+                                 &hashIt, NULL, &hashData, NULL);
     PR_ASSERT(it != NULL || it->size == MD5_LENGTH);
     if (it == NULL) {
 	ssl_MapLowLevelError(SSL_ERROR_MD5_DIGEST_FAILURE);
@@ -966,16 +1067,8 @@ ssl3_ComputeDHKeyHash(NSSItem dh_p, NSSItem dh_g, NSSItem dh_Ys,
 	goto done;
     }
 
-    ap = NSSOID_CreateAlgNParam(NSSOID_CreateFromTag(NSS_OID_SHA1),
-                                             NULL, NULL);
-    if (!ap) {
-	ssl_MapLowLevelError(SSL_ERROR_SHA_DIGEST_FAILURE);
-    	rv = SECFailure;
-	goto done;
-    }
-
-    it = NSSCryptoContext_Digest(hash, ap, &hashIt, NULL, &hashData, NULL);
-    NSSAlgNParam_Destroy(ap);
+    it = NSSCryptoContext_Digest(hash, s_sha1_ap, 
+                                 &hashIt, NULL, &hashData, NULL);
     PR_ASSERT(it != NULL || it->size == SHA1_LENGTH);
     if (it == NULL) {
 	ssl_MapLowLevelError(SSL_ERROR_SHA_DIGEST_FAILURE);
@@ -1953,14 +2046,16 @@ ssl3_DeriveMasterSecret(sslSocket *ss, NSSSymKey *pmsOpt)
     NSSOperations keyOps = 0;
     PRStatus status;
 
-    /* set up parameters for master secret derivation */
+    /* set up alg/parameters for master secret derivation */
     msParams.version = isTLS ? NSSSSLVersion_TLS : NSSSSLVersion_SSLv3;
     msParams.isDH = isDH;
     msParams.clientRandom.data = &ss->ssl3->hs.client_random;
     msParams.clientRandom.size = SSL3_RANDOM_LENGTH;
     msParams.serverRandom.data = &ss->ssl3->hs.server_random;
     msParams.serverRandom.size = SSL3_RANDOM_LENGTH;
-    msDerive = nssAlgNParam_CreateSSLMSDerive(NULL, &msParams);
+    msDerive = NSSAlgNParam_CreateForSSL(NULL, 
+                                         NSSSSLAlgorithm_MSDerive, 
+                                         (NSSParameters *)&msParams);
     if (!msDerive) {
 	goto loser;
     }
@@ -1976,7 +2071,7 @@ ssl3_DeriveMasterSecret(sslSocket *ss, NSSSymKey *pmsOpt)
 	                            0, keyOps, NULL);
 	if (ms && !isDH && ss->detectRollBack) {
 	    SSL3ProtocolVersion client_version;
-	    client_version = get_ssl_version_from_ap(msDerive);
+	    client_version = ssl3_GetVersionFromDeriveParams(msDerive);
 	    /* XXX client_version = pms_version.major << 8 | pms_version.minor; */
 	    if (client_version != ss->clientHelloVersion) {
 		/* Destroy it.  Version roll-back detected. */
@@ -2003,8 +2098,11 @@ ssl3_DeriveMasterSecret(sslSocket *ss, NSSSymKey *pmsOpt)
     }
     if (!ms) {
 	/* XXX is this the correct analogue to the internal token? */
+#if 0
 	NSSToken *internal = nssTrustDomain_GetDefaultCryptoToken(ss->td);
 	if (!internal) goto loser;
+#endif
+	NSSToken *internal = NULL;
 	/* generate a faux master secret in the internal slot */
 	fpms = ssl3_GenerateRSAPMS(ss, pwSpec, internal);
 	if (fpms) {
@@ -2050,13 +2148,13 @@ ssl3_GenerateSessionKeys(sslSocket *ss, NSSSymKey *pmsOpt)
     PRBool skipKeysAndIVs = (PRBool)((cipher_def->calg == cipher_fortezza) ||
                                      (cipher_def->calg == cipher_null));
     PRStatus status;
-    PRUint32 keySize;
-    NSSSymKeyType bulkKeyType;
     NSSSSLSessionKeyParameters skParams = { 0 };
     NSSAlgNParam *ap = NULL;
+    NSSAlgNParam *skAP = NULL;
     NSSSymKey *sessionKeys[4];
-    int encIndex = ss->sec.isServer ? 3 : 2;
-    int decIndex = ss->sec.isServer ? 2 : 3;
+    NSSItem *iv1, *iv2;
+    NSSItem clientIV, serverIV;
+    PRIntn ecx, dcx;
 
     PR_ASSERT( ssl_HaveSSL3HandshakeLock(ss));
     PR_ASSERT( ssl_HaveSpecWriteLock(ss));
@@ -2085,29 +2183,25 @@ ssl3_GenerateSessionKeys(sslSocket *ss, NSSSymKey *pmsOpt)
 	skParams.ivSizeInBits =  cipher_def->iv_size * BPB;
 	skParams.clientIV = (PRUint8 *)pwSpec->client.write_iv; /* XXX */
 	skParams.serverIV = (PRUint8 *)pwSpec->server.write_iv;
-	keySize = cipher_def->key_size;
-    } else {
-	keySize = 0;
     }
-
-    /* Derive the set of session keys from the master secret */
-    ap = nssAlgNParam_CreateSSLSessionKeyDerivation(NULL, &skParams);
-    if (!ap) {
+    skAP = NSSAlgNParam_CreateForSSL(NULL, 
+                                     NSSSSLAlgorithm_SessionKeyDerive, 
+                                     (NSSParameters *)&skParams);
+    if (!skAP) {
 	goto loser;
     }
 
+    /* Derive the set of session keys from the master secret */
     status = nssSymKey_DeriveSSLSessionKeys(pwSpec->master_secret,
-                                            ap, bulkKeyType,
-                                            NSSOperations_ENCRYPT,
-                                            0, keySize, sessionKeys);
-    NSSAlgNParam_Destroy(ap);
+                                            skAP, sessionKeys,
+                                            &clientIV, &serverIV);
     if (status == PR_FAILURE) {
 	ssl_MapLowLevelError(SSL_ERROR_SESSION_KEY_GEN_FAILURE);
 	goto loser;
     }
 
     /* Set up the mac contexts */
-    ap = ssl3_GetMacAP(ss->ssl3);
+    ap = (NSSAlgNParam *)ssl3_GetMacAP(ss->ssl3); /* it's const below */
     pwSpec->client.write_mac_context = NSSSymKey_CreateCryptoContext(
                                                                 sessionKeys[0],
                                                                 ap, NULL);
@@ -2116,11 +2210,45 @@ ssl3_GenerateSessionKeys(sslSocket *ss, NSSSymKey *pmsOpt)
                                                                 ap, NULL);
 
     /* Set up the encryption and decryption contexts */
-    ap = ssl3_GetBulkCipherAP(ss->ssl3);
-    pwSpec->encodeContext = NSSSymKey_CreateCryptoContext(sessionKeys[encIndex],
+    if (ss->sec.isServer) {
+	iv1 = &serverIV;
+	iv2 = &clientIV;
+	ecx = 3;
+	dcx = 2;
+    } else {
+	iv1 = &clientIV;
+	iv2 = &serverIV;
+	ecx = 2;
+	dcx = 3;
+    }
+
+    ap = ssl3_GetBulkCipherAP(cipher_def, iv1);
+    if (!ap) {
+	goto loser;
+    }
+
+    pwSpec->encodeContext = NSSSymKey_CreateCryptoContext(sessionKeys[ecx],
                                                           ap, NULL);
-    pwSpec->decodeContext = NSSSymKey_CreateCryptoContext(sessionKeys[decIndex],
+    NSSAlgNParam_Destroy(ap);
+    if (!pwSpec->encodeContext) {
+	goto loser;
+    }
+
+    ap = ssl3_GetBulkCipherAP(cipher_def, iv2);
+    if (!ap) {
+	NSSCryptoContext_Destroy(pwSpec->encodeContext);
+	pwSpec->encodeContext = NULL;
+	goto loser;
+    }
+
+    pwSpec->decodeContext = NSSSymKey_CreateCryptoContext(sessionKeys[dcx],
                                                           ap, NULL);
+    NSSAlgNParam_Destroy(ap);
+    if (!pwSpec->decodeContext) {
+	NSSCryptoContext_Destroy(pwSpec->encodeContext);
+	pwSpec->encodeContext = NULL;
+	goto loser;
+    }
 
     return PR_SUCCESS;
 loser:
@@ -3261,7 +3389,6 @@ static SECStatus
 sendRSAClientKeyExchange(sslSocket * ss, NSSPublicKey * svrPubKey)
 {
     NSSSymKey *	        pms             = NULL;
-    NSSAlgNParam *      rsaWrap         = NULL;
     SECStatus           rv              = SECFailure;
     NSSItem             enc_pms         = { NULL, 0 };
     PRBool              isTLS;
@@ -3280,19 +3407,13 @@ sendRSAClientKeyExchange(sslSocket * ss, NSSPublicKey * svrPubKey)
 	goto loser;
     }
 
-    rsaWrap = NSSAlgNParam_CreateWrap(NULL, NSS_OID_PKCS1_RSA_ENCRYPTION, 
-                                      NULL);
-    if (!rsaWrap) {
-	goto loser;
-    }
-
     /* wrap pre-master secret in server's public key. */
-    if (NSSPublicKey_WrapSymKey(svrPubKey, rsaWrap, pms, NULL, &enc_pms, NULL)
+    if (NSSPublicKey_WrapSymKey(svrPubKey, s_rsa_wrap_ap, 
+                                pms, NULL, &enc_pms, NULL)
           == NULL) {
 	ssl_MapLowLevelError(SSL_ERROR_CLIENT_KEY_EXCHANGE_FAILURE);
 	goto loser;
     }
-    NSSAlgNParam_Destroy(rsaWrap); rsaWrap = NULL;
 
     rv = ssl3_InitPendingCipherSpec(ss, pms);
     NSSSymKey_Destroy(pms); pms = NULL;
@@ -3324,9 +3445,6 @@ loser:
     }
     if (pms != NULL) {
 	NSSSymKey_Destroy(pms);
-    }
-    if (rsaWrap) {
-	NSSAlgNParam_Destroy(rsaWrap);
     }
     return rv;
 }
@@ -3877,7 +3995,7 @@ ssl3_SendClientKeyExchange(sslSocket *ss)
     isTLS = (PRBool)(ss->ssl3->pwSpec->version > SSL_LIBRARY_VERSION_3_0);
     /* enforce limits on kea key sizes. */
     if (ss->ssl3->hs.kea_def->is_limited) {
-	int keyBits = NSSPublicKey_GetStrength(serverKey);
+	int keyBits = NSSPublicKey_GetKeyStrength(serverKey);
 
 	if (keyBits > ss->ssl3->hs.kea_def->key_size_limit) {
 	    if (isTLS)
@@ -3890,7 +4008,7 @@ ssl3_SendClientKeyExchange(sslSocket *ss)
     }
 
     ss->sec.keaType    = ss->ssl3->hs.kea_def->exchKeyType;
-    ss->sec.keaKeyBits = NSSPublicKey_GetStrength(serverKey);
+    ss->sec.keaKeyBits = NSSPublicKey_GetKeyStrength(serverKey);
 
     switch (ss->ssl3->hs.kea_def->exchKeyType) {
     case ssl_kea_rsa:
@@ -4311,6 +4429,8 @@ ssl3_HandleServerKeyExchange(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     switch (ss->ssl3->hs.kea_def->exchKeyType) {
 
     case ssl_kea_rsa:
+	keyInfo.kind = NSSKeyPairType_RSA;
+
     	rv = ssl3_ConsumeHandshakeVariable(ss, &keyInfo.u.rsa.modulus, 
 	                                   2, &b, &length, arena);
     	if (rv != SECSuccess) {
@@ -4357,13 +4477,16 @@ ssl3_HandleServerKeyExchange(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	    goto alert_loser;
 	}
 
-	peerKey = NSSPublicKey_CreateFromInfo(&keyInfo);
+	peerKey = NSSVolatileDomain_ImportPublicKey(ss->vd, &keyInfo, 
+	                                            NULL, 0, 0, NULL);
     	ss->sec.peerKey = peerKey;
     	ss->ssl3->hs.ws = wait_cert_request;
 	NSSArena_Destroy(arena);
     	return SECSuccess;
 
     case ssl_kea_dh:
+	keyInfo.kind = NSSKeyPairType_DH;
+
     	rv = ssl3_ConsumeHandshakeVariable(ss, &keyInfo.u.dh.prime, 
 	                                   2, &b, &length, arena);
     	if (rv != SECSuccess) {
@@ -4422,7 +4545,8 @@ ssl3_HandleServerKeyExchange(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	    goto alert_loser;
 	}
 
-	peerKey = NSSPublicKey_CreateFromInfo(&keyInfo);
+	peerKey = NSSVolatileDomain_ImportPublicKey(ss->vd, &keyInfo, 
+	                                            NULL, 0, 0, NULL);
     	ss->sec.peerKey = peerKey;
     	ss->ssl3->hs.ws = wait_cert_request;
 	NSSArena_Destroy(arena);
@@ -5387,7 +5511,9 @@ loser:
 SECStatus
 ssl3_HandleV2ClientHello(sslSocket *ss, unsigned char *buffer, int length)
 {
+#ifdef IMPLEMENT_SESSION_ID_CACHE
     sslSessionID *      sid 		= NULL;
+#endif /* IMPLEMENT_SESSION_ID_CACHE */
     unsigned char *     suites;
     unsigned char *     random;
     SSL3ProtocolVersion version;
@@ -5493,6 +5619,7 @@ suite_found:
     ss->ssl3->hs.compression = compression_null;
     ss->sec.send            = ssl3_SendApplicationData;
 
+#ifdef IMPLEMENT_SSL_SESSION_ID_CACHE
     /* we don't even search for a cache hit here.  It's just a miss. */
     ++ssl3stats.hch_sid_cache_misses;
     sid = ssl3_NewSessionID(ss, PR_TRUE);
@@ -5502,6 +5629,7 @@ suite_found:
     }
     ss->sec.ci.sid = sid;
     /* do not worry about memory leak of sid since it now belongs to ci */
+#endif /* IMPLEMENT_SSL_SESSION_ID_CACHE */
 
     /* We have to update the handshake hashes before we can send stuff */
     rv = ssl3_UpdateHandshakeHashes(ss, buffer, length);
@@ -5621,7 +5749,7 @@ const ssl3KEADef *     kea_def     = ss->ssl3->hs.kea_def;
     NSSItem            signed_hash = {NULL, 0};
     SSL3Hashes         hashes;
     NSSPublicKey *     sdPub;	/* public key for step-down */
-    NSSPublicKeyInfo * sdPubInfo;
+    NSSPublicKeyInfo   sdPubInfo;
 
     SSL_TRC(3, ("%d: SSL3[%d]: send server_key_exchange handshake",
 		SSL_GETPID(), ss->fd));
@@ -5629,8 +5757,7 @@ const ssl3KEADef *     kea_def     = ss->ssl3->hs.kea_def;
     PR_ASSERT( ssl_HaveXmitBufLock(ss));
     PR_ASSERT( ssl_HaveSSL3HandshakeLock(ss));
 
-    sdPubInfo = NSSPublicKey_GetInfo(sdPub);
-    if (!sdPubInfo) {
+    if (NSSPublicKey_GetKeyInfo(sdPub, &sdPubInfo) == NULL) {
 	return SECFailure;
     }
 
@@ -5643,8 +5770,8 @@ const ssl3KEADef *     kea_def     = ss->ssl3->hs.kea_def;
 	    nss_SetError(SSL_ERROR_SERVER_KEY_EXCHANGE_FAILURE);
 	    return SECFailure;
 	}
-    	rv = ssl3_ComputeExportRSAKeyHash(sdPubInfo->u.rsa.modulus,
-					  sdPubInfo->u.rsa.publicExponent,
+    	rv = ssl3_ComputeExportRSAKeyHash(sdPubInfo.u.rsa.modulus,
+					  sdPubInfo.u.rsa.publicExponent,
 	                                  &ss->ssl3->hs.client_random,
 	                                  &ss->ssl3->hs.server_random,
 	                                  &hashes, ss->td);
@@ -5664,8 +5791,8 @@ const ssl3KEADef *     kea_def     = ss->ssl3->hs.kea_def;
 	    nss_SetError(SSL_ERROR_SERVER_KEY_EXCHANGE_FAILURE);
 	    goto loser;
 	}
-	length = 2 + sdPubInfo->u.rsa.modulus.size +
-	         2 + sdPubInfo->u.rsa.publicExponent.size +
+	length = 2 + sdPubInfo.u.rsa.modulus.size +
+	         2 + sdPubInfo.u.rsa.publicExponent.size +
 	         2 + signed_hash.size;
 
 	rv = ssl3_AppendHandshakeHeader(ss, server_key_exchange, length);
@@ -5673,15 +5800,15 @@ const ssl3KEADef *     kea_def     = ss->ssl3->hs.kea_def;
 	    goto loser; 	/* err set by AppendHandshake. */
 	}
 
-	rv = ssl3_AppendHandshakeVariable(ss, sdPubInfo->u.rsa.modulus.data,
-					  sdPubInfo->u.rsa.modulus.size, 2);
+	rv = ssl3_AppendHandshakeVariable(ss, sdPubInfo.u.rsa.modulus.data,
+					  sdPubInfo.u.rsa.modulus.size, 2);
 	if (rv != SECSuccess) {
 	    goto loser; 	/* err set by AppendHandshake. */
 	}
 
 	rv = ssl3_AppendHandshakeVariable(
-				ss, sdPubInfo->u.rsa.publicExponent.data,
-				sdPubInfo->u.rsa.publicExponent.size, 2);
+				ss, sdPubInfo.u.rsa.publicExponent.data,
+				sdPubInfo.u.rsa.publicExponent.size, 2);
 	if (rv != SECSuccess) {
 	    goto loser; 	/* err set by AppendHandshake. */
 	}
@@ -6145,9 +6272,18 @@ ssl3_GenerateRSAPMS(sslSocket *ss, ssl3CipherSpec *spec,
 {
     NSSSymKey * pms   = NULL;
     NSSToken *        token = serverKeyToken;
-    const NSSAlgNParam *pmsAP = ssl3_GetPMSAlg(ss->clientHelloVersion);
+    const NSSAlgNParam *pmsAP;
 
     PR_ASSERT( ssl_HaveSSL3HandshakeLock(ss) );
+
+    switch (ssl_GetVersion(ss)) {
+    case NSSSSLVersion_SSLv3: pmsAP = s_ssl3_pms_ap; break;
+    case NSSSSLVersion_TLS:   pmsAP = s_tls_pms_ap;  break;
+    default:
+	/* XXX is this correct? */
+	nss_SetError(SSL_ERROR_INVALID_VERSION);
+	return (NSSSymKey *)NULL;
+    }
 
     if (!token) {
 	/* The specReadLock would suffice here, but we cannot assert on
@@ -6157,7 +6293,7 @@ ssl3_GenerateRSAPMS(sslSocket *ss, ssl3CipherSpec *spec,
 	PR_ASSERT( ssl_HaveSpecWriteLock(ss));
 	PR_ASSERT(ss->ssl3->prSpec == ss->ssl3->pwSpec);
 
-	token = ssl3_FindTokenForPMSGen(ss->vd, spec->cipher_def->calg);
+	token = NSSTrustDomain_FindTokenForAlgNParam(ss->td, pmsAP);
 	if (!token) {
 	    nss_SetError(SSL_ERROR_TOKEN_SLOT_NOT_FOUND);
 	    return (NSSSymKey *)NULL;
@@ -6198,6 +6334,7 @@ ssl3_HandleRSAClientKeyExchange(sslSocket *ss,
     NSSSymKey  *pms;
     SECStatus         rv;
     NSSItem           enc_pms;
+    PRStatus    status;
 
     PR_ASSERT( ssl_HaveRecvBufLock(ss) );
     PR_ASSERT( ssl_HaveSSL3HandshakeLock(ss) );
@@ -6228,13 +6365,14 @@ ssl3_HandleRSAClientKeyExchange(sslSocket *ss,
 		       */
     } else {
 	/* unwrap failed.  Generate a bogus pre-master secret and carry on. */
-	NSSToken *token = NSSPrivateKey_GetAToken(serverKey);
-
-	ssl_GetSpecWriteLock(ss);
-	pms = ssl3_GenerateRSAPMS(ss, ss->ssl3->prSpec, token);
-	ssl_ReleaseSpecWriteLock(ss);
-
-	NSSToken_Destroy(token);
+	NSSToken *token;
+	(void)NSSPrivateKey_GetTokens(serverKey, &token, 1, &status);
+	if (status == PR_SUCCESS) {
+	    ssl_GetSpecWriteLock(ss);
+	    pms = ssl3_GenerateRSAPMS(ss, ss->ssl3->prSpec, token);
+	    ssl_ReleaseSpecWriteLock(ss);
+	    NSSToken_Destroy(token);
+	}
     }
 
     if (!pms) {
@@ -6357,8 +6495,10 @@ static SECStatus
 ssl3_SendCertificate(sslSocket *ss)
 {
     SECStatus            rv;
-    NSSCertChain        *certChain;
-    NSSDER               derChain;
+    NSSCert *            cert;
+    NSSCertChain *       certChain;
+    PRIntn               numCerts       = 0;
+    NSSBER               berCert;
     int                  len 		= 0;
     int                  i;
 
@@ -6376,27 +6516,45 @@ ssl3_SendCertificate(sslSocket *ss)
 	certChain             = sc->serverCertChain;
 	ss->sec.authKeyBits   = sc->serverKeyBits;
 	ss->sec.authAlgorithm = ss->ssl3->hs.kea_def->signKeyType;
-	ss->sec.localCert     = NSSCertChain_GetLeaf(sc->serverCertChain);
+	ss->sec.localCert     = NSSCertChain_GetCert(sc->serverCertChain, 0);
     } else {
 	certChain          = ss->ssl3->clientCertChain;
-	ss->sec.localCert = nssCertificate_AddRef(ss->ssl3->clientCertificate);
+	ss->sec.localCert = nssCert_AddRef(ss->ssl3->clientCertificate);
     }
 
-    if (NSSCertChain_Encode(certChain, &derChain, NULL) == NULL) {
-	return SECFailure;
+    if (certChain) {
+	numCerts = NSSCertChain_GetNumCerts(certChain);
+	if (numCerts < 0) {
+	    return SECFailure;
+	}
+	for (i = 0; i < numCerts; i++) {
+	    cert = NSSCertChain_GetCert(certChain, i);
+	    if (cert) {
+		if (NSSCert_GetEncoding(cert, &berCert) == NULL) {
+		    return SECFailure;
+		}
+		len += berCert.size + 3;
+	    } else {
+		return SECFailure;
+	    }
+	}
     }
 
-    rv = ssl3_AppendHandshakeHeader(ss, certificate, derChain.size);
+    rv = ssl3_AppendHandshakeHeader(ss, certificate, len + 3);
     if (rv != SECSuccess) {
 	return rv; 		/* err set by AppendHandshake. */
     }
-    rv = ssl3_AppendHandshakeNumber(ss, derChain.size, 3);
+    rv = ssl3_AppendHandshakeNumber(ss, len, 3);
     if (rv != SECSuccess) {
 	return rv; 		/* err set by AppendHandshake. */
     }
-    rv = ssl3_AppendHandshakeVariable(ss, derChain.data, derChain.size, 3);
-    if (rv != SECSuccess) {
-	return rv; 		/* err set by AppendHandshake. */
+    for (i = 0; i < numCerts; i++) {
+	cert = NSSCertChain_GetCert(certChain, i);
+	(void)NSSCert_GetEncoding(cert, &berCert);
+	rv = ssl3_AppendHandshakeVariable(ss, berCert.data, berCert.size, 3);
+	if (rv != SECSuccess) {
+	    return rv; 		/* err set by AppendHandshake. */
+	}
     }
 
     return SECSuccess;
@@ -6420,15 +6578,17 @@ static SECStatus
 ssl3_HandleCertificate(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 {
     ssl3State *      ssl3  	= ss->ssl3;
-    NSSCert         *cert;
-    PRInt32          size       = 0;
+    NSSCert *        cert;
+    NSSCertChain *   chain;
+    PRInt32          remaining  = 0;
+    PRInt32          size;
+    PRInt32          berSize;
     SECStatus        rv;
     PRBool           isServer	= (PRBool)(!!ss->sec.isServer);
-    PRBool           trusted 	= PR_FALSE;
     PRBool           isTLS;
     SSL3AlertDescription desc	= bad_certificate;
     int              errCode    = SSL_ERROR_RX_MALFORMED_CERTIFICATE;
-    NSSDER           derChain;
+    NSSBER           berCert;
     PRStatus         status;
 
     SSL_TRC(3, ("%d: SSL3[%d]: handle certificate handshake",
@@ -6460,12 +6620,12 @@ ssl3_HandleCertificate(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     ** normal no_certificates message to maximize interoperability.
     */
     if (length) {
-	size = ssl3_ConsumeHandshakeNumber(ss, 3, &b, &length);
-	if (size < 0)
+	remaining = ssl3_ConsumeHandshakeNumber(ss, 3, &b, &length);
+	if (remaining < 0)
 	    goto loser;	/* fatal alert already sent by ConsumeHandshake. */
     }
 
-    if (!size) {
+    if (!remaining) {
 	if (!(isTLS && isServer))
 	    goto alert_loser;
     	/* This is TLS's version of a no_certificate alert. */
@@ -6478,28 +6638,79 @@ ssl3_HandleCertificate(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	goto cert_block;
     }
 
-    derChain.data = nss_ZAlloc(NULL, length);
-    if (!derChain.data) {
+    /* First get the peer cert */
+    remaining -= 3;
+    if (remaining < 0) {
+	goto decode_loser;
+    }
+
+    size = ssl3_ConsumeHandshakeNumber(ss, 3, &b, &length);
+    if (size < 0)
+	goto loser;	/* fatal alert already sent by ConsumeHandshake. */
+
+    remaining -= size;
+    if (remaining < 0)
+	goto decode_loser;
+
+    ssl3->peerCertChain = chain = NSSVolatileDomain_CreateCertChain(ss->vd,
+                                                                    NULL);
+
+    /* XXX or in an arena? */
+    berCert.data = nss_ZAlloc(NULL, size);
+    if (!berCert.data) {
 	goto loser; /* don't send alerts on memory errors */
     }
-    derChain.size = length;
+    berCert.size = berSize = size;
 
-    rv = ssl3_ConsumeHandshake(ss, derChain.data, length, &b, &length);
-    if (rv != SECSuccess) {
-	goto loser;
+    rv = ssl3_ConsumeHandshake(ss, berCert.data, berCert.size, &b, &length);
+    if (rv != SECSuccess)
+	goto loser;	/* fatal alert already sent by ConsumeHandshake. */
+
+    status = NSSCertChain_AddEncodedCert(chain, &berCert, NULL, NULL,
+                                         &ss->sec.peerCert);
+    if (status == PR_FAILURE) {
+	/* We should report an alert if the cert was bad, but not if the
+	 * problem was just some local problem, like memory error.
+	 */
+	goto ambiguous_err;
     }
 
-    ssl3->peerCertChain = NSSVolatileDomain_ImportEncodedCertChain(ss->vd,
-                                                                   &derChain,
-                                                                   NULL);
-    if (!ssl3->peerCertChain) {
-	goto loser;
+    /* Now get all of the CA certs. */
+    while (remaining != 0) {
+	remaining -= 3;
+	if (remaining < 0)
+	    goto decode_loser;
+
+	size = ssl3_ConsumeHandshakeNumber(ss, 3, &b, &length);
+	if (size < 0)
+	    goto loser;	/* fatal alert already sent by ConsumeHandshake. */
+
+	remaining -= size;
+	if (remaining < 0)
+	    goto decode_loser;
+
+	if (size > berSize) {
+	    berCert.data = nss_ZRealloc(berCert.data, size);
+	    if (!berCert.data) {
+		goto loser; /* don't send alerts on memory errors */
+	    }
+	    berSize = length;
+	}
+	berCert.size = size; /* the size of the cert, not buffer */
+
+	rv = ssl3_ConsumeHandshake(ss, berCert.data, berCert.size,
+				   &b, &length);
+	if (rv != SECSuccess)
+	    goto loser;	/* fatal alert already sent by ConsumeHandshake. */
+
+	status = NSSCertChain_AddEncodedCert(chain, &berCert, 
+	                                     NULL, NULL, NULL);
+	if (status == PR_FAILURE)
+	    goto ambiguous_err;
     }
 
-    ss->sec.peerCert = NSSCertChain_GetLeaf(ssl3->peerCertChain);
-    if (!ss->sec.peerCert) {
-	goto loser;
-    }
+    if (remaining != 0)
+        goto decode_loser;
 
     /* XXX ??? this should happen inside NSSCertChain or something...
     SECKEY_UpdateCertPQG(ss->sec.peerCert);
@@ -6831,9 +7042,11 @@ ssl3_HandleFinished(sslSocket *ss, SSL3Opaque *b, PRUint32 length,
 {
     ssl3State *       ssl3	   = ss->ssl3;
     sslSessionID *    sid	   = ss->sec.ci.sid;
+#ifdef IMPLEMENT_SESSION_ID_CACHE
     NSSSymKey *       wrappingKey  = NULL;
     NSSToken *        symKeyToken;
     void *            pwArg        = ss->pkcs11PinArg;
+#endif /* IMPLEMENT_SESSION_ID_CACHE */
     SECStatus         rv;
     PRBool            isServer     = ss->sec.isServer;
     PRBool            isTLS;

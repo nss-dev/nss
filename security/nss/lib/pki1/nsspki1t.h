@@ -57,8 +57,7 @@ PR_BEGIN_EXTERN_C
  * This is the basic OID that crops up everywhere.
  */
 
-struct NSSOIDStr;
-typedef struct NSSOIDStr NSSOID;
+typedef enum NSSOIDTagEnum NSSOIDTag;
 
 /*
  * AttributeTypeAndValue

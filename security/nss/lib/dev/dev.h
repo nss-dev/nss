@@ -666,11 +666,9 @@ nssToken_DeriveSSLSessionKeys (
   nssSession *session,
   const NSSAlgNParam *ap,
   nssCryptokiObject *masterSecret,
-  NSSSymKeyType bulkKeyType,
-  NSSOperations operations,
-  NSSProperties properties,
-  PRUint32 keySizeOpt,
-  nssCryptokiObject **rvSessionKeys /* [4] */
+  nssCryptokiObject **rvSessionKeys, /* [4] */
+  NSSItem *rvClientIV,
+  NSSItem *rvServerIV
 );
 
 NSS_EXTERN PRStatus
@@ -919,7 +917,7 @@ nssAlgNParam_Clone (
 
 NSS_EXTERN NSSBER *
 nssAlgNParam_Encode (
-  NSSAlgNParam *ap,
+  const NSSAlgNParam *ap,
   NSSBER *rvOpt,
   NSSArena *arenaOpt
 );

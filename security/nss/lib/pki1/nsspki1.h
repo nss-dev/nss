@@ -76,20 +76,9 @@ PR_BEGIN_EXTERN_C
  *  NSSOID_GetUTF8Encoding
  */
 
-NSS_EXTERN NSSOID *
-NSSOID_Create (
+NSS_EXTERN NSSOIDTag
+NSSOIDTag_Create (
   NSSItem *oidData
-);
-
-NSS_EXTERN NSSOID *
-NSSOID_CreateFromTag (
-  NSSOIDTag tag
-);
-
-NSS_EXTERN PRBool
-NSSOID_IsTag (
-  const NSSOID *oid,
-  NSSOIDTag tag
 );
 
 /*
@@ -108,8 +97,8 @@ NSSOID_IsTag (
  *  An NSSOID upon success
  */
 
-NSS_EXTERN NSSOID *
-NSSOID_CreateFromBER (
+NSS_EXTERN NSSOIDTag
+NSSOIDTag_CreateFromBER (
   NSSBER *berOid
 );
 
@@ -131,8 +120,8 @@ NSSOID_CreateFromBER (
  *  An NSSOID upon success
  */
 
-NSS_EXTERN NSSOID *
-NSSOID_CreateFromUTF8 (
+NSS_EXTERN NSSOIDTag
+NSSOIDTag_CreateFromUTF8 (
   NSSUTF8 *stringOid
 );
 
@@ -156,8 +145,8 @@ NSSOID_CreateFromUTF8 (
  */
 
 NSS_EXTERN NSSDER *
-NSSOID_GetDEREncoding (
-  const NSSOID *oid,
+NSSOIDTag_GetDEREncoding (
+  NSSOIDTag oidTag,
   NSSDER *rvOpt,
   NSSArena *arenaOpt
 );
@@ -184,8 +173,8 @@ NSSOID_GetDEREncoding (
  */
 
 NSS_EXTERN NSSUTF8 *
-NSSOID_GetUTF8Encoding (
-  const NSSOID *oid,
+NSSOIDTag_GetUTF8Encoding (
+  NSSOIDTag oidTag,
   NSSArena *arenaOpt
 );
 
@@ -195,18 +184,46 @@ NSSOID_GetUTF8Encoding (
  */
 
 NSS_EXTERN NSSAlgNParam *
-NSSOID_CreateAlgNParam (
-  const NSSOID *oid,
-  NSSParameters *parameters,
+NSSOIDTag_CreateAlgNParam (
+  NSSOIDTag algorithmTag,
+  NSSParameters *parametersOpt,
   NSSArena *arenaOpt
 );
 
 NSS_EXTERN NSSAlgNParam *
-NSSOID_CreateAlgNParamForKeyGen (
-  const NSSOID *oid,
-  NSSParameters *parameters,
+NSSOIDTag_CreateAlgNParamForKeyGen (
+  NSSOIDTag keyAlgorithmTag,
+  NSSParameters *parametersOpt,
   NSSArena *arenaOpt
 );
+
+NSS_EXTERN NSSAlgNParam *
+NSSOIDTag_CreateAlgNParamForWrap (
+  NSSOIDTag encryptionOIDTag,
+  NSSParameters *parametersOpt,
+  NSSArena *arenaOpt
+);
+
+NSS_EXTERN NSSAlgNParam *
+NSSOIDTag_CreateAlgNParamForUnwrap (
+  NSSOIDTag encryptionOIDTag,
+  NSSParameters *parametersOpt,
+  NSSArena *arenaOpt
+);
+
+NSS_EXTERN NSSAlgNParam *
+NSSOIDTag_CreateAlgNParamForHMAC (
+  NSSOIDTag digestOIDTag,
+  NSSParameters *parametersOpt,
+  NSSArena *arenaOpt
+);
+
+NSS_EXTERN NSSSymKeyType
+NSSOIDTag_GetSymKeyType (
+  NSSOIDTag alg
+);
+
+#ifdef the_rest
 
 /*
  * NSSATAV
@@ -2775,6 +2792,8 @@ NSSGeneralNameSeq_Duplicate (
   NSSGeneralNameSeq *generalNameSeq,
   NSSArena *arenaOpt
 );
+
+#endif /* the_rest */
 
 PR_END_EXTERN_C
 

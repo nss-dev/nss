@@ -649,10 +649,10 @@ struct ssl3StateStr {
 
     SSL3HandshakeState   hs;
 
-    NSSCert *     clientCertificate;  /* used by client */
-    NSSPrivateKey *      clientPrivateKey;   /* used by client */
-    NSSCertChain *clientCertChain;    /* used by client */
-    PRBool               sendEmptyCert;      /* used by client */
+    NSSCert *       clientCertificate;  /* used by client */
+    NSSPrivateKey * clientPrivateKey;   /* used by client */
+    NSSCertChain  * clientCertChain;    /* used by client */
+    PRBool          sendEmptyCert;      /* used by client */
 
     int                  policy;
 			/* This says what cipher suites we can do, and should 

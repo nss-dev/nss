@@ -52,6 +52,8 @@ static const char PKIXTM_CVS_ID[] = "@(#) $Source$ $Revision$ $Date$ $Name$";
 
 /* XXX for time... */
 #include "nsspkit.h"
+/* XXX for OID */
+#include "oiddata.h"
 
 PR_BEGIN_EXTERN_C
 
@@ -262,6 +264,7 @@ struct NSSPKIXAlgorithmIdentifierStr {
   NSSArena *arena;
   PRBool i_allocated_arena;
   NSSDER der;
+  NSSOIDTag algorithm; /* XXX should decode algID into this */
   NSSItem algID;
   NSSItem parameters;
 };

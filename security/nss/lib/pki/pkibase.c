@@ -283,22 +283,36 @@ nssPKIObject_DeleteStoredObject (
 NSS_IMPLEMENT NSSToken **
 nssPKIObject_GetTokens (
   nssPKIObject *object,
+  NSSToken **rvOpt,
+  PRUint32 rvMaxOpt,
   PRStatus *statusOpt
 )
 {
     NSSToken **tokens = NULL;
     PZ_Lock(object->lock);
     if (object->numInstances > 0) {
-	tokens = nss_ZNEWARRAY(NULL, NSSToken *, object->numInstances + 1);
+	if (rvMaxOpt) {
+	    rvMaxOpt = PR_MIN(rvMaxOpt, object->numInstances);
+	} else {
+	    rvMaxOpt = object->numInstances;
+	}
+	if (rvOpt) {
+	    tokens = rvOpt;
+	} else {
+	    tokens = nss_ZNEWARRAY(NULL, NSSToken *, 
+	                           object->numInstances + 1);
+	}
 	if (tokens) {
 	    PRUint32 i;
-	    for (i=0; i<object->numInstances; i++) {
+	    for (i=0; i<rvMaxOpt; i++) {
 		tokens[i] = nssToken_AddRef(object->instances[i]->token);
 	    }
 	}
     }
     PZ_Unlock(object->lock);
-    if (statusOpt) *statusOpt = PR_SUCCESS; /* until more logic here */
+    /* until more logic here */
+    if (statusOpt) 
+	*statusOpt = tokens ? PR_SUCCESS : PR_FAILURE;
     return tokens;
 }
 
@@ -545,7 +559,7 @@ NSS_IMPLEMENT NSSCert *
 nssCertArray_FindBestCert (
   NSSCert **certs, 
   NSSTime time,
-  NSSUsages *usagesOpt,
+  const NSSUsages *usagesOpt,
   NSSPolicies *policiesOpt
 )
 {
@@ -645,8 +659,8 @@ nssCRLArray_Destroy (
 
 NSS_IMPLEMENT PRBool
 nssUsages_Match (
-  NSSUsages *usages,
-  NSSUsages *testUsages
+  const NSSUsages *usages,
+  const NSSUsages *testUsages
 )
 {
    return (((usages->ca & testUsages->ca) == usages->ca) &&

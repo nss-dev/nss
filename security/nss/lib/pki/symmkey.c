@@ -125,10 +125,12 @@ NSSSymKey_Destroy (
 NSS_IMPLEMENT NSSToken **
 nssSymKey_GetTokens (
   NSSSymKey *mk,
+  NSSToken **rvOpt,
+  PRUint32 rvMaxOpt,
   PRStatus *statusOpt
 )
 {
-    return nssPKIObject_GetTokens(&mk->object, statusOpt);
+    return nssPKIObject_GetTokens(&mk->object, rvOpt, rvMaxOpt, statusOpt);
 }
 
 NSS_IMPLEMENT nssCryptokiObject *
@@ -522,7 +524,7 @@ NSSSymKey_UnwrapSymKey (
   NSSSymKey *wrappingKey,
   const NSSAlgNParam *ap,
   NSSItem *wrappedKey,
-  NSSOID *target,
+  NSSSymKeyType targetSymKeyType,
   PRUint32 keySizeOpt,
   NSSOperations operations,
   NSSCallback *uhh
@@ -603,11 +605,9 @@ NSS_IMPLEMENT PRStatus
 nssSymKey_DeriveSSLSessionKeys (
   NSSSymKey *masterSecret,
   const NSSAlgNParam *ap,
-  NSSSymKeyType bulkKeyType,
-  NSSOperations operations,
-  NSSProperties properties,
-  PRUint32 keySize,
-  NSSSymKey **sessionKeys
+  NSSSymKey **rvSessionKeys, /* [4] */
+  NSSItem *rvClientIV,
+  NSSItem *rvServerIV
 )
 {
     nssCryptokiObject *mso; /* only one instance of master secret */
@@ -617,22 +617,21 @@ nssSymKey_DeriveSSLSessionKeys (
 
     mso = masterSecret->object.instances[0];
     status = nssToken_DeriveSSLSessionKeys(mso->token, mso->session, 
-                                           ap, mso, bulkKeyType,
-                                           operations, properties, 
-                                           keySize, skeys);
+                                           ap, mso, skeys,
+                                           rvClientIV, rvServerIV);
     if (status == PR_FAILURE) {
 	return PR_FAILURE;
     }
     for (i=0; i<4; i++) {
-	sessionKeys[i] = nssSymKey_CreateFromInstance(skeys[i],
-                                         masterSecret->object.td,
-	                                 masterSecret->object.vd);
-	if (!sessionKeys[i]) break;
+	rvSessionKeys[i] = nssSymKey_CreateFromInstance(skeys[i],
+                                                   masterSecret->object.td,
+	                                           masterSecret->object.vd);
+	if (!rvSessionKeys[i]) break;
     }
     if (i < 4) {
 	nssCryptokiObject_Destroy(skeys[i]);
 	for (--i; i>=0; --i) {
-	    nssSymKey_Destroy(sessionKeys[i]);
+	    nssSymKey_Destroy(rvSessionKeys[i]);
 	}
 	status = PR_FAILURE;
     }

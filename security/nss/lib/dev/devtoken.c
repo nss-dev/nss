@@ -1924,11 +1924,9 @@ nssToken_DeriveSSLSessionKeys (
   nssSession *session,
   const NSSAlgNParam *ap,
   nssCryptokiObject *masterSecret,
-  NSSSymKeyType bulkKeyType,
-  NSSOperations operations,
-  NSSProperties properties,
-  PRUint32 keySizeOpt,
-  nssCryptokiObject **rvSessionKeys /* [4] */
+  nssCryptokiObject **rvSessionKeys, /* [4] */
+  NSSItem *rvClientIV,
+  NSSItem *rvServerIV
 )
 {
     CK_RV ckrv;
@@ -1937,10 +1935,9 @@ nssToken_DeriveSSLSessionKeys (
     CK_ATTRIBUTE keyTemplate[16];
     CK_ATTRIBUTE_PTR attr = keyTemplate;
     CK_ULONG ktSize;
-    CK_KEY_TYPE ckKeyType;
     void *epv = nssToken_GetCryptokiEPV(token);
-    PRUint32 numLeft;
-    PRUint32 numkt = sizeof(keyTemplate) / sizeof(keyTemplate[0]);
+    PRUint32 ivSize;
+    PRUint32 i, keyNum;
 
     mechanism = nssAlgNParam_GetMechanism(ap);
 
@@ -1948,22 +1945,7 @@ nssToken_DeriveSSLSessionKeys (
     NSS_CK_TEMPLATE_START(keyTemplate, attr, ktSize);
     NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_TOKEN, &g_ck_false);
     NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_CLASS, &g_ck_class_symkey);
-    if (operations) {
-	numLeft = numkt - (attr - keyTemplate);
-	attr += nssCKTemplate_SetOperationAttributes(attr,  numLeft,
-	                                             operations);
-    }
-
-    if (properties) {
-	numLeft = numkt - (attr - keyTemplate);
-	attr += nssCKTemplate_SetPropertyAttributes(attr, numLeft,
-                                                    properties);
-    }
-    ckKeyType = nssCK_GetSymKeyType(bulkKeyType);
-    NSS_CK_SET_ATTRIBUTE_VAR(attr, CKA_KEY_TYPE, bulkKeyType);
-    if (keySizeOpt > 0) {
-	NSS_CK_SET_ATTRIBUTE_VAR(attr, CKA_VALUE_LEN, keySizeOpt);
-    }
+    /* XXX set any defaults, or allow token to do it? */
     NSS_CK_TEMPLATE_FINISH(keyTemplate, attr, ktSize);
     /* ready to do the derivation */
     nssSession_EnterMonitor(session);
@@ -1978,30 +1960,47 @@ nssToken_DeriveSSLSessionKeys (
 	kmp = (CK_SSL3_KEY_MAT_PARAMS *)mechanism->pParameter;
 	kmo = kmp->pReturnedKeyMaterial;
 	/* XXX all in the same session? */
+	keyNum = 0;
 	rvSessionKeys[0] = nssCryptokiObject_Create(token, session, 
 	                                            kmo->hClientMacSecret);
 	if (!rvSessionKeys[0]) {
 	    return PR_FAILURE;
 	}
+	keyNum++;
 	rvSessionKeys[1] = nssCryptokiObject_Create(token, session, 
 	                                            kmo->hServerMacSecret);
 	if (!rvSessionKeys[1]) {
-	    nssCryptokiObject_Destroy(rvSessionKeys[0]);
+	    for (i=0; i<keyNum; i++) 
+		nssCryptokiObject_Destroy(rvSessionKeys[i]);
 	    return PR_FAILURE;
 	}
+	keyNum++;
 	rvSessionKeys[2] = nssCryptokiObject_Create(token, session, 
 	                                            kmo->hClientKey);
 	if (!rvSessionKeys[2]) {
-	    nssCryptokiObject_Destroy(rvSessionKeys[0]);
-	    nssCryptokiObject_Destroy(rvSessionKeys[1]);
+	    for (i=0; i<keyNum; i++) 
+		nssCryptokiObject_Destroy(rvSessionKeys[i]);
 	    return PR_FAILURE;
 	}
+	keyNum++;
 	rvSessionKeys[3] = nssCryptokiObject_Create(token, session, 
 	                                            kmo->hServerKey);
 	if (!rvSessionKeys[3]) {
-	    nssCryptokiObject_Destroy(rvSessionKeys[0]);
-	    nssCryptokiObject_Destroy(rvSessionKeys[1]);
-	    nssCryptokiObject_Destroy(rvSessionKeys[2]);
+	    for (i=0; i<keyNum; i++) 
+		nssCryptokiObject_Destroy(rvSessionKeys[i]);
+	    return PR_FAILURE;
+	}
+	keyNum++;
+	ivSize = kmp->ulIVSizeInBits / 8; /* XXX */
+	if (nssItem_Create(NULL, rvClientIV, ivSize, kmo->pIVClient) == NULL) {
+	    for (i=0; i<keyNum; i++) 
+		nssCryptokiObject_Destroy(rvSessionKeys[i]);
+	    return PR_FAILURE;
+	}
+	if (nssItem_Create(NULL, rvServerIV, ivSize, kmo->pIVServer) == NULL) {
+	    for (i=0; i<keyNum; i++) 
+		nssCryptokiObject_Destroy(rvSessionKeys[i]);
+	    nss_ZFreeIf(rvClientIV->data); rvClientIV->data = NULL;
 	    return PR_FAILURE;
 	}
 	return PR_SUCCESS;

@@ -334,13 +334,13 @@ nssTrustDomain_FindTokenForAlgNParam (
 NSS_IMPLEMENT NSSToken *
 nssTrustDomain_FindTokenForAlgorithm (
   NSSTrustDomain *td,
-  const NSSOID *algorithm
+  NSSOIDTag algorithm
 )
 {
     NSSAlgNParam *ap;
     NSSToken *token = NULL;
 
-    ap = nssOID_CreateAlgNParam(algorithm, NULL, NULL);
+    ap = nssOIDTag_CreateAlgNParam(algorithm, NULL, NULL);
     if (ap) {
 	token = nssTrustDomain_FindTokenForAlgNParam(td, ap);
 	nssAlgNParam_Destroy(ap);
@@ -351,7 +351,7 @@ nssTrustDomain_FindTokenForAlgorithm (
 NSS_IMPLEMENT NSSToken *
 NSSTrustDomain_FindTokenForAlgorithm (
   NSSTrustDomain *td,
-  const NSSOID *algorithm
+  NSSOIDTag algorithm
 )
 {
     nss_SetError(NSS_ERROR_NOT_FOUND);
@@ -361,8 +361,8 @@ NSSTrustDomain_FindTokenForAlgorithm (
 NSS_IMPLEMENT NSSToken *
 NSSTrustDomain_FindBestTokenForAlgorithms (
   NSSTrustDomain *td,
-  NSSOID *algorithms[], /* may be null-terminated */
-  PRUint32 nAlgorithmsOpt /* limits the array if nonzero */
+  NSSOIDTag *algorithms,
+  PRUint32 nAlgorithmsOpt
 )
 {
     nss_SetError(NSS_ERROR_NOT_FOUND);
@@ -456,13 +456,10 @@ NSSTrustDomain_ImportEncodedCert (
                                                    nicknameOpt);
 }
 
-NSS_IMPLEMENT NSSCert **
+NSS_IMPLEMENT NSSCertChain *
 NSSTrustDomain_ImportEncodedCertChain (
   NSSTrustDomain *td,
   NSSBER *ber,
-  NSSCert *rvOpt[],
-  PRUint32 maximumOpt, /* 0 for no max */
-  NSSArena *arenaOpt,
   NSSToken *destinationOpt
 )
 {
@@ -474,7 +471,7 @@ NSS_IMPLEMENT NSSPrivateKey *
 nssTrustDomain_ImportEncodedPrivateKey (
   NSSTrustDomain *td,
   NSSBER *ber,
-  NSSOID *keyPairAlg,
+  NSSKeyPairType keyPairType,
   NSSOperations operations,
   NSSProperties properties,
   NSSUTF8 *passwordOpt,
@@ -482,7 +479,7 @@ nssTrustDomain_ImportEncodedPrivateKey (
   NSSToken *destination
 )
 {
-    return nssPrivateKey_Decode(ber, keyPairAlg, 
+    return nssPrivateKey_Decode(ber, keyPairType, 
                                 operations, properties, 
                                 passwordOpt, uhhOpt, destination, td, NULL);
 }
@@ -491,7 +488,7 @@ NSS_IMPLEMENT NSSPrivateKey *
 NSSTrustDomain_ImportEncodedPrivateKey (
   NSSTrustDomain *td,
   NSSBER *ber,
-  NSSOID *keyPairAlg,
+  NSSKeyPairType keyPairType,
   NSSOperations operations,
   NSSProperties properties,
   NSSUTF8 *passwordOpt,
@@ -499,7 +496,7 @@ NSSTrustDomain_ImportEncodedPrivateKey (
   NSSToken *destination
 )
 {
-    return nssTrustDomain_ImportEncodedPrivateKey(td, ber, keyPairAlg,
+    return nssTrustDomain_ImportEncodedPrivateKey(td, ber, keyPairType,
                                                   operations, properties, 
                                                   passwordOpt, uhhOpt, 
                                                   destination);
@@ -1615,7 +1612,7 @@ NSSTrustDomain_GenerateSymKeyFromPassword (
 NSS_IMPLEMENT NSSSymKey *
 NSSTrustDomain_FindSymKeyByAlgorithmAndKeyID (
   NSSTrustDomain *td,
-  NSSOID *algorithm,
+  NSSOIDTag algorithm,
   NSSItem *keyID,
   NSSCallback *uhhOpt
 )
@@ -1741,7 +1738,7 @@ NSSTrustDomain_CreateCryptoContext (
 NSS_IMPLEMENT NSSCryptoContext *
 NSSTrustDomain_CreateCryptoContextForAlgorithm (
   NSSTrustDomain *td,
-  NSSOID *algorithm
+  NSSOIDTag algorithm
 )
 {
     nss_SetError(NSS_ERROR_NOT_FOUND);

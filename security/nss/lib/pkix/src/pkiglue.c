@@ -428,7 +428,7 @@ pkix_GetPolicies (
 static PRStatus
 pkix_GetPublicKeyInfo (
   void *cert,
-  NSSOID **keyType,
+  NSSOIDTag *keyType,
   NSSBitString *keyData
 )
 {
@@ -716,7 +716,7 @@ verify_signature (
     NSSDER *tbsDER;
     NSSPublicKey *verifyKey;
     NSSAlgNParam *ap;
-    NSSOID *alg;
+    NSSOIDTag alg;
     NSSItem *params;
 
     sigAlg = nssPKIXCertificate_GetSignatureAlgorithm(cert);
@@ -755,7 +755,7 @@ verify_signature (
 	return PR_FAILURE;
     }
 
-    ap = NSSOID_CreateAlgNParam(alg, params, NULL);
+    ap = NSSOIDTag_CreateAlgNParam(alg, params, NULL);
     if (!ap) {
 	NSSPublicKey_Destroy(verifyKey);
 	return PR_FAILURE;

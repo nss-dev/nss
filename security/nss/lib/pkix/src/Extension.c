@@ -140,7 +140,7 @@ loser:
 NSS_IMPLEMENT NSSPKIXExtension *
 nssPKIXExtension_Create (
   NSSArena *arenaOpt,
-  NSSOID *extnID,
+  NSSOIDTag extnID,
   PRBool critical,
   NSSItem *extnValue
 )
@@ -241,7 +241,7 @@ nssPKIXExtension_Encode (
 NSS_IMPLEMENT void
 nssPKIXExtension_SetExtensionID (
   NSSPKIXExtension *extension,
-  NSSOID *extnID
+  NSSOIDTag extnID
 )
 {
 #if 0
@@ -364,7 +364,7 @@ nssPKIXExtension_Duplicate (
     return rv;
 }
 
-NSS_IMPLEMENT NSSOID *
+NSS_IMPLEMENT NSSOIDTag
 nssPKIXExtension_GetExtensionID (
   NSSPKIXExtension *extension
 )
@@ -373,10 +373,10 @@ nssPKIXExtension_GetExtensionID (
 	if (NSSITEM_IS_EMPTY(&extension->der) ||
 	    decode_me(extension) == PR_FAILURE)
 	{
-	    return (NSSOID *)NULL;
+	    return NSS_OID_UNKNOWN;
 	}
     }
-    return NSSOID_Create(&extension->extnID);
+    return NSSOIDTag_Create(&extension->extnID);
 }
 
 /*
@@ -398,7 +398,7 @@ nssPKIXExtension_GetExtensionID (
 NSS_IMPLEMENT NSSPKIXExtension *
 NSSPKIXExtension_Create (
   NSSArena *arenaOpt,
-  NSSOID *extnID,
+  NSSOIDTag extnID,
   PRBool critical,
   NSSItem *extnValue
 )

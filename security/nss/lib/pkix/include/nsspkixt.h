@@ -96,7 +96,7 @@ typedef struct NSSPKIXAttributeStr NSSPKIXAttribute;
  *
  */
 
-typedef NSSOID NSSPKIXAttributeType;
+typedef NSSOIDTag NSSPKIXAttributeType;
 
 /*
  * AttributeValue
@@ -1647,7 +1647,7 @@ typedef struct NSSPKIXPolicyInformationStr NSSPKIXPolicyInformation;
  *
  */
 
-typedef NSSOID NSSPKIXCertPolicyId;
+typedef NSSOIDTag NSSPKIXCertPolicyId;
 
 /*
  * PolicyQualifierInfo
@@ -1677,7 +1677,7 @@ typedef struct NSSPKIXPolicyQualifierInfoStr NSSPKIXPolicyQualifierInfo;
  *
  */
 
-typedef NSSOID NSSPKIXPolicyQualifierId;
+typedef NSSOIDTag NSSPKIXPolicyQualifierId;
 
 /*
  * CPSuri
@@ -2133,7 +2133,7 @@ typedef struct NSSPKIXExtKeyUsageSyntaxStr NSSPKIXExtKeyUsageSyntax;
  *
  */
 
-typedef NSSOID NSSPKIXKeyPurposeId;
+typedef NSSOIDTag NSSPKIXKeyPurposeId;
 
 /*
  * AuthorityInfoAccessSyntax
@@ -2267,7 +2267,7 @@ typedef NSSPKIXGeneralNames NSSPKIXCertificateIssuer;
  *
  */
 
-typedef NSSOID NSSPKIXHoldInstructionCode;
+typedef NSSOIDTag NSSPKIXHoldInstructionCode;
 
 /*
  * InvalidityDate

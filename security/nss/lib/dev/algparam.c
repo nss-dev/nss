@@ -1086,7 +1086,7 @@ NSSAlgNParam_Decode (
 
 NSS_IMPLEMENT NSSBER *
 nssAlgNParam_Encode (
-  NSSAlgNParam *ap,
+  const NSSAlgNParam *ap,
   NSSBER *rvOpt,
   NSSArena *arenaOpt
 )
@@ -1116,7 +1116,7 @@ nssAlgNParam_Encode (
 
 NSS_IMPLEMENT NSSBER *
 NSSAlgNParam_Encode (
-  NSSAlgNParam *ap,
+  const NSSAlgNParam *ap,
   NSSBER *rvOpt,
   NSSArena *arenaOpt
 )
@@ -1225,15 +1225,15 @@ nssAlgNParam_Clone (
     return finish_create_algparam(rvAP, rvAP->arena, mark, status);
 }
 
-NSS_IMPLEMENT const NSSOID *
+NSS_IMPLEMENT NSSOIDTag
 nssAlgNParam_GetAlgorithm (
   const NSSAlgNParam *ap
 )
 {
-    return ap->alg;
+    return (nssOID_GetTag(ap->alg));
 }
 
-NSS_IMPLEMENT const NSSOID *
+NSS_IMPLEMENT NSSOIDTag
 NSSAlgNParam_GetAlgorithm (
   const NSSAlgNParam *ap
 )

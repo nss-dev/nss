@@ -78,7 +78,22 @@ extern const PRUint32 nss_attribute_type_alias_count;
  */
 
 NSS_EXTERN NSSOID *
-nssOID_Create (
+nssOID_CreateFromTag (
+  NSSOIDTag tag
+);
+
+NSS_EXTERN NSSOID *
+nssOID_CreateFromBER (
+  NSSBER *berOid
+);
+
+NSS_EXTERN NSSOIDTag
+nssOID_GetTag (
+  const NSSOID *oid
+);
+
+NSS_EXTERN NSSOIDTag
+nssOIDTag_Create (
   NSSItem *oidData
 );
 
@@ -98,8 +113,8 @@ nssOID_Create (
  *  An NSSOID upon success
  */
 
-NSS_EXTERN NSSOID *
-nssOID_CreateFromBER (
+NSS_EXTERN NSSOIDTag
+nssOIDTag_CreateFromBER (
   NSSBER *berOid
 );
 
@@ -122,20 +137,15 @@ nssOID_CreateFromBER (
  *  An NSSOID upon success
  */
 
-NSS_EXTERN NSSOID *
-nssOID_CreateFromUTF8 (
+NSS_EXTERN NSSOIDTag
+nssOIDTag_CreateFromUTF8 (
   NSSUTF8 *stringOid
 );
 
 
-NSS_EXTERN NSSOIDTag
-nssOID_GetTag (
-  const NSSOID *oid
-);
-
 NSS_EXTERN NSSAlgNParam *
-nssOID_CreateAlgNParam (
-  const NSSOID *oid,
+nssOIDTag_CreateAlgNParam (
+  NSSOIDTag oidTag,
   NSSParameters *parameters,
   NSSArena *arenaOpt
 );
@@ -160,8 +170,8 @@ nssOID_CreateAlgNParam (
  */
 
 NSS_EXTERN NSSDER *
-nssOID_GetDEREncoding (
-  const NSSOID *oid,
+nssOIDTag_GetDEREncoding (
+  NSSOIDTag oidTag,
   NSSDER *rvOpt,
   NSSArena *arenaOpt
 );
@@ -187,8 +197,8 @@ nssOID_GetDEREncoding (
  */
 
 NSS_EXTERN NSSUTF8 *
-nssOID_GetUTF8Encoding (
-  const NSSOID *oid,
+nssOIDTag_GetUTF8Encoding (
+  NSSOIDTag oidTag,
   NSSArena *arenaOpt
 );
 

@@ -61,7 +61,7 @@ nssTrustDomain_FindTokenForAlgNParam (
 NSS_EXTERN NSSToken *
 nssTrustDomain_FindTokenForAlgorithm (
   NSSTrustDomain *td,
-  const NSSOID *algorithm
+  NSSOIDTag algorithm
 );
 
 NSS_EXTERN NSSCallback *
@@ -224,7 +224,7 @@ NSS_EXTERN NSSCert **
 nssCert_BuildChain (
   NSSCert *c,
   NSSTime time,
-  NSSUsages *usagesOpt,
+  const NSSUsages *usagesOpt,
   NSSPolicies *policiesOpt,
   NSSCert **rvOpt,
   PRUint32 rvLimit,
@@ -240,7 +240,7 @@ nssPrivateKey_AddRef (
 NSS_EXTERN NSSPrivateKey *
 nssPrivateKey_Decode (
   NSSBER *ber,
-  NSSOID *keyPairAlg,
+  NSSKeyPairType keyPairType,
   NSSOperations operations,
   NSSProperties properties,
   NSSUTF8 *passwordOpt,
@@ -294,17 +294,6 @@ nssPublicKey_WrapSymKey (
 NSS_EXTERN NSSSymKey *
 nssSymKey_AddRef (
   NSSSymKey *mk
-);
-
-NSS_EXTERN PRStatus
-nssSymKey_DeriveSSLSessionKeys (
-  NSSSymKey *masterSecret,
-  const NSSAlgNParam *ap,
-  NSSSymKeyType bulkKeyType,
-  NSSOperations operations,
-  NSSProperties properties,
-  PRUint32 keySize,
-  NSSSymKey **sessionKeys
 );
 
 NSS_EXTERN NSSVolatileDomain *

@@ -103,27 +103,83 @@ nssOID_CreateFromTag (
   return (NSSOID *)NULL;
 }
 
-NSS_IMPLEMENT NSSOID *
-NSSOID_CreateFromTag (
-  NSSOIDTag tag
+NSS_IMPLEMENT NSSAlgNParam *
+nssOIDTag_CreateAlgNParam (
+  NSSOIDTag oidTag,
+  NSSParameters *parameters,
+  NSSArena *arenaOpt
 )
 {
-    return nssOID_CreateFromTag(tag);
+    NSSOID *oid = nssOID_CreateFromTag(oidTag);
+    if (oid && oid->mechanism != CKM_INVALID_MECHANISM) {
+	return nssAlgNParam_Create(arenaOpt, oid, parameters);
+    } else {
+	nss_SetError(NSS_ERROR_INVALID_NSSOID);
+    }
+    return (NSSAlgNParam *)NULL;
 }
 
-NSS_IMPLEMENT PRBool
-nssOID_IsTag (
-  const NSSOID *oid,
-  NSSOIDTag tag
+NSS_IMPLEMENT NSSAlgNParam *
+NSSOIDTag_CreateAlgNParam (
+  NSSOIDTag oidTag,
+  NSSParameters *parameters,
+  NSSArena *arenaOpt
 )
 {
-    NSSOID *tagOID;
+    return nssOIDTag_CreateAlgNParam(oidTag, parameters, arenaOpt);
+}
 
-    tagOID = nssOID_CreateFromTag(tag);
-    if (tagOID) {
-	return (tagOID == oid);
+NSS_IMPLEMENT NSSAlgNParam *
+nssOIDTag_CreateAlgNParamForKeyGen (
+  NSSOIDTag oidTag,
+  NSSParameters *parameters,
+  NSSArena *arenaOpt
+)
+{
+    NSSOID *oid = nssOID_CreateFromTag(oidTag);
+    if (oid && oid->mechanism != CKM_INVALID_MECHANISM) {
+	return nssAlgNParam_CreateForKeyGen(arenaOpt, oid, parameters);
+    } else {
+	nss_SetError(NSS_ERROR_INVALID_NSSOID);
     }
-    return PR_FALSE;
+    return (NSSAlgNParam *)NULL;
+}
+
+NSS_IMPLEMENT NSSAlgNParam *
+NSSOIDTag_CreateAlgNParamForKeyGen (
+  NSSOIDTag oidTag,
+  NSSParameters *parameters,
+  NSSArena *arenaOpt
+)
+{
+    return nssOIDTag_CreateAlgNParamForKeyGen(oidTag, parameters, arenaOpt);
+}
+
+NSS_EXTERN NSSOIDTag
+nssOIDTag_Create (
+  NSSItem *oidData
+)
+{
+  /* XXX this is because the code thinks the oids are der-encoded, but
+   * they're not
+   */
+  return nssOIDTag_CreateFromBER(oidData);
+}
+
+NSS_EXTERN NSSOIDTag
+NSSOIDTag_Create (
+  NSSItem *oidData
+)
+{
+  return nssOIDTag_Create(oidData);
+}
+
+NSS_IMPLEMENT NSSOID *
+nssOID_CreateFromBER (
+  NSSBER *berOid
+)
+{
+   return nssOID_CreateFromTag(nssOIDTag_CreateFromBER(berOid));
 }
 
 /* XXX ugh */
@@ -140,85 +196,54 @@ nssOID_GetTag (
     return NSS_OID_UNKNOWN;
 }
 
-NSS_IMPLEMENT PRBool
-NSSOID_IsTag (
-  const NSSOID *oid,
-  NSSOIDTag tag
+NSS_IMPLEMENT NSSSymKeyType
+nssOIDTag_GetSymKeyType (
+  NSSOIDTag alg
 )
 {
-    return nssOID_IsTag(oid, tag);
-}
-
-NSS_IMPLEMENT NSSAlgNParam *
-nssOID_CreateAlgNParam (
-  const NSSOID *oid,
-  NSSParameters *parameters,
-  NSSArena *arenaOpt
-)
-{
-    if (oid->mechanism != CKM_INVALID_MECHANISM) {
-	return nssAlgNParam_Create(arenaOpt, oid, 
-	                                        parameters);
-    } else {
-	nss_SetError(NSS_ERROR_INVALID_NSSOID);
+    switch (alg) {
+    case NSS_OID_RC2_CBC:       return NSSSymKeyType_RC2;
+    case NSS_OID_RC4:           return NSSSymKeyType_RC4;
+    case NSS_OID_RC5_CBC_PAD:   return NSSSymKeyType_RC5;
+    case NSS_OID_DES_EDE3_CBC:  return NSSSymKeyType_TripleDES;
+    case NSS_OID_DES_ECB:
+    case NSS_OID_DES_CBC:
+    case NSS_OID_DES_OFB:
+    case NSS_OID_DES_CFB:       return NSSSymKeyType_DES;
+    default:
+	return NSSSymKeyType_Unknown;
     }
-    return (NSSAlgNParam *)NULL;
 }
 
-NSS_IMPLEMENT NSSAlgNParam *
-NSSOID_CreateAlgNParam (
-  const NSSOID *oid,
-  NSSParameters *parameters,
-  NSSArena *arenaOpt
+NSS_IMPLEMENT NSSSymKeyType
+NSSOIDTag_GetSymKeyType (
+  NSSOIDTag alg
 )
 {
-    return nssOID_CreateAlgNParam(oid, parameters, arenaOpt);
+    return nssOIDTag_GetSymKeyType(alg);
 }
 
-NSS_IMPLEMENT NSSAlgNParam *
-nssOID_CreateAlgNParamForKeyGen (
-  const NSSOID *oid,
-  NSSParameters *parameters,
-  NSSArena *arenaOpt
+NSS_IMPLEMENT NSSSymKeyType
+nssOIDTag_GetKeyPairType (
+  NSSOIDTag alg
 )
 {
-    if (oid->mechanism != CKM_INVALID_MECHANISM) {
-	return nssAlgNParam_CreateForKeyGen(arenaOpt, oid, 
-	                                                 parameters);
-    } else {
-	nss_SetError(NSS_ERROR_INVALID_NSSOID);
+    switch (alg) {
+    case NSS_OID_ANSIX9_DSA_SIGNATURE:
+    case NSS_OID_ANSIX9_DSA_SIGNATURE_WITH_SHA1_DIGEST:
+	return NSSKeyPairType_DSA;
+    case NSS_OID_X942_DIFFIE_HELLMAN_KEY:
+	return NSSKeyPairType_DH;
+    case NSS_OID_PKCS1_RSA_ENCRYPTION:
+    case NSS_OID_PKCS1_MD2_WITH_RSA_ENCRYPTION:
+    case NSS_OID_PKCS1_MD4_WITH_RSA_ENCRYPTION:
+    case NSS_OID_PKCS1_MD5_WITH_RSA_ENCRYPTION:
+    case NSS_OID_PKCS1_SHA1_WITH_RSA_ENCRYPTION:
+    case NSS_OID_X500_RSA_ENCRYPTION:
+	return NSSKeyPairType_RSA;
+    default:
+	return NSSSymKeyType_Unknown;
     }
-    return (NSSAlgNParam *)NULL;
-}
-
-NSS_IMPLEMENT NSSAlgNParam *
-NSSOID_CreateAlgNParamForKeyGen (
-  const NSSOID *oid,
-  NSSParameters *parameters,
-  NSSArena *arenaOpt
-)
-{
-    return nssOID_CreateAlgNParamForKeyGen(oid, parameters, 
-                                                        arenaOpt);
-}
-
-NSS_EXTERN NSSOID *
-nssOID_Create (
-  NSSItem *oidData
-)
-{
-  /* XXX this is because the code thinks the oids are der-encoded, but
-   * they're not
-   */
-  return nssOID_CreateFromBER(oidData);
-}
-
-NSS_EXTERN NSSOID *
-NSSOID_Create (
-  NSSItem *oidData
-)
-{
-  return nssOID_Create(oidData);
 }
 
 /*
@@ -237,8 +262,8 @@ NSSOID_Create (
  *  An NSSOID upon success
  */
 
-NSS_EXTERN NSSOID *
-NSSOID_CreateFromBER (
+NSS_EXTERN NSSOIDTag
+NSSOIDTag_CreateFromBER (
   NSSBER *berOid
 )
 {
@@ -252,16 +277,16 @@ NSSOID_CreateFromBER (
 
   if( (NSSBER *)NULL == berOid ) {
     nss_SetError(NSS_ERROR_INVALID_BER);
-    return (NSSOID *)NULL;
+    return NSS_OID_UNKNOWN;
   }
 
   if( (void *)NULL == berOid->data ) {
     nss_SetError(NSS_ERROR_INVALID_BER);
-    return (NSSOID *)NULL;
+    return NSS_OID_UNKNOWN;
   }
 #endif /* DEBUG */
   
-  return nssOID_CreateFromBER(berOid);
+  return nssOIDTag_CreateFromBER(berOid);
 }
 
 /*
@@ -281,8 +306,8 @@ NSSOID_CreateFromBER (
  *  An NSSOID upon success
  */
 
-NSS_EXTERN NSSOID *
-NSSOID_CreateFromUTF8 (
+NSS_EXTERN NSSOIDTag
+NSSOIDTag_CreateFromUTF8 (
   NSSUTF8 *stringOid
 )
 {
@@ -296,11 +321,11 @@ NSSOID_CreateFromUTF8 (
 
   if( (NSSUTF8 *)NULL == stringOid ) {
     nss_SetError(NSS_ERROR_INVALID_UTF8);
-    return (NSSOID *)NULL;
+    return NSS_OID_UNKNOWN;
   }
 #endif /* DEBUG */
 
-  return nssOID_CreateFromUTF8(stringOid);
+  return nssOIDTag_CreateFromUTF8(stringOid);
 }
 
 /*
@@ -322,15 +347,15 @@ NSSOID_CreateFromUTF8 (
  */
 
 NSS_EXTERN NSSDER *
-NSSOID_GetDEREncoding (
-  const NSSOID *oid,
+NSSOIDTag_GetDEREncoding (
+  NSSOIDTag oidTag,
   NSSDER *rvOpt,
   NSSArena *arenaOpt
 )
 {
   nss_ClearErrorStack();
 
-  return nssOID_GetDEREncoding(oid, rvOpt, arenaOpt);
+  return nssOIDTag_GetDEREncoding(oidTag, rvOpt, arenaOpt);
 }
 
 /*
@@ -354,14 +379,14 @@ NSSOID_GetDEREncoding (
  */
 
 NSS_EXTERN NSSUTF8 *
-NSSOID_GetUTF8Encoding (
-  const NSSOID *oid,
+NSSOIDTag_GetUTF8Encoding (
+  NSSOIDTag oidTag,
   NSSArena *arenaOpt
 )
 {
   nss_ClearErrorStack();
 
-  return nssOID_GetUTF8Encoding(oid, arenaOpt);
+  return nssOIDTag_GetUTF8Encoding(oidTag, arenaOpt);
 }
 
 /*
@@ -613,8 +638,8 @@ oid_sanity_check_ber (
  *  An NSSOID upon success
  */
 
-NSS_EXTERN NSSOID *
-nssOID_CreateFromBER (
+NSS_EXTERN NSSOIDTag
+nssOIDTag_CreateFromBER (
   NSSBER *berOid
 )
 {
@@ -622,12 +647,12 @@ nssOID_CreateFromBER (
   PLHashEntry *e;
   
   if( PR_SUCCESS != oid_init() ) {
-    return (NSSOID *)NULL;
+    return NSS_OID_UNKNOWN;
   }
 
   if( PR_SUCCESS != oid_sanity_check_ber(berOid) ) {
     nss_SetError(NSS_ERROR_INVALID_BER);
-    return (NSSOID *)NULL;
+    return NSS_OID_UNKNOWN;
   }
 
   /*
@@ -638,7 +663,7 @@ nssOID_CreateFromBER (
   (void)PZ_Unlock(oid_hash_lock);
   if( (NSSOID *)NULL != rv ) {
     /* Found it! */
-    return rv;
+    return rv - nss_builtin_oids;
   }
 
   /*
@@ -646,12 +671,12 @@ nssOID_CreateFromBER (
    */
   rv = nss_ZNEW(oid_arena, NSSOID);
   if( (NSSOID *)NULL == rv ) {
-    return (NSSOID *)NULL;
+    return NSS_OID_UNKNOWN;
   }
 
   rv->data.data = nss_ZAlloc(oid_arena, berOid->size);
   if( (void *)NULL == rv->data.data ) {
-    return (NSSOID *)NULL;
+    return NSS_OID_UNKNOWN;
   }
 
   rv->data.size = berOid->size;
@@ -669,10 +694,11 @@ nssOID_CreateFromBER (
     nss_ZFreeIf(rv->data.data);
     nss_ZFreeIf(rv);
     nss_SetError(NSS_ERROR_NO_MEMORY);
-    return (NSSOID *)NULL;
+    return NSS_OID_UNKNOWN;
   }
 
-  return rv;
+  /* XXX shouldn't the dynamic oids be in a different table? */
+  return rv - nss_builtin_oids;
 }
 
 /*
@@ -1050,8 +1076,8 @@ oid_encode_string (
  *  An NSSOID upon success
  */
 
-NSS_EXTERN NSSOID *
-nssOID_CreateFromUTF8 (
+NSS_EXTERN NSSOIDTag
+nssOIDTag_CreateFromUTF8 (
   NSSUTF8 *stringOid
 )
 {
@@ -1060,18 +1086,18 @@ nssOID_CreateFromUTF8 (
   PLHashEntry *e;
 
   if( PR_SUCCESS != oid_init() ) {
-    return (NSSOID *)NULL;
+    return NSS_OID_UNKNOWN;
   }
 
   if( PR_SUCCESS != oid_sanity_check_utf8(stringOid) ) {
     nss_SetError(NSS_ERROR_INVALID_STRING);
-    return (NSSOID *)NULL;
+    return NSS_OID_UNKNOWN;
   }
 
   candidate = oid_encode_string(stringOid);
   if( (NSSOID *)NULL == candidate ) {
     /* Internal error only */
-    return rv;
+    return rv - nss_builtin_oids;
   }
 
   /*
@@ -1084,7 +1110,7 @@ nssOID_CreateFromUTF8 (
     /* Already exists.  Delete my copy and return the original. */
     (void)nss_ZFreeIf(candidate->data.data);
     (void)nss_ZFreeIf(candidate);
-    return rv;
+    return rv - nss_builtin_oids;
   }
 
   /* 
@@ -1120,7 +1146,7 @@ nssOID_CreateFromUTF8 (
     goto loser;
   }
 
-  return rv;
+  return rv - nss_builtin_oids;
 
  loser:
   if( (NSSOID *)NULL != candidate ) {
@@ -1133,7 +1159,7 @@ nssOID_CreateFromUTF8 (
   }
   (void)nss_ZFreeIf(rv);
 
-  return (NSSOID *)NULL;
+  return NSS_OID_UNKNOWN;
 }
 
 /*
@@ -1155,16 +1181,17 @@ nssOID_CreateFromUTF8 (
  */
 
 NSS_EXTERN NSSDER *
-nssOID_GetDEREncoding (
-  const NSSOID *oid,
+nssOIDTag_GetDEREncoding (
+  NSSOIDTag oidTag,
   NSSDER *rvOpt,
   NSSArena *arenaOpt
 )
 {
   const NSSItem *it;
   NSSDER *rv;
+  NSSOID *oid = nssOID_CreateFromTag(oidTag);
 
-  if( PR_SUCCESS != oid_init() ) {
+  if( PR_SUCCESS != oid_init() || NULL == oid) {
     return (NSSDER *)NULL;
   }
 
@@ -1214,8 +1241,8 @@ nssOID_GetDEREncoding (
  */
 
 NSS_EXTERN NSSUTF8 *
-nssOID_GetUTF8Encoding (
-  const NSSOID *oid,
+nssOIDTag_GetUTF8Encoding (
+  NSSOIDTag oidTag,
   NSSArena *arenaOpt
 )
 {
@@ -1226,10 +1253,13 @@ nssOID_GetUTF8Encoding (
   char *a;
   char *b;
   PRUint32 len;
+  NSSOID *oid;
 
   if( PR_SUCCESS != oid_init() ) {
     return (NSSUTF8 *)NULL;
   }
+
+  oid = nssOID_CreateFromTag(oidTag);
 
   a = (char *)NULL;
 
@@ -1413,6 +1443,7 @@ nssOID_getTaggedUTF8 (
   char *b;
   PRBool done = PR_FALSE;
   PRUint32 len;
+  NSSOIDTag oidTag;
 
   if( PR_SUCCESS != oid_init() ) {
     return (NSSUTF8 *)NULL;
@@ -1435,7 +1466,7 @@ nssOID_getTaggedUTF8 (
    */
 
   /* I know it's all ASCII, so I can use char */
-  raw = (char *)nssOID_GetUTF8Encoding(oid, (NSSArena *)NULL);
+  raw = (char *)nssOIDTag_GetUTF8Encoding(oidTag, (NSSArena *)NULL);
   if( (char *)NULL == raw ) {
     return (NSSUTF8 *)NULL;
   }
@@ -1452,7 +1483,8 @@ nssOID_getTaggedUTF8 (
     }
 
     *c = '\0';
-    lead = nssOID_CreateFromUTF8((NSSUTF8 *)raw);
+    oidTag = nssOIDTag_CreateFromUTF8((NSSUTF8 *)raw);
+    lead = nssOID_CreateFromTag(oidTag);
     if( (NSSOID *)NULL == lead ) {
       PR_smprintf_free(a);
       nss_ZFreeIf(raw);

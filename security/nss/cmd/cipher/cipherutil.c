@@ -49,20 +49,20 @@ GetSoftwareToken()
 NSSAlgNParam *
 GetHashAP(char *cipher)
 {
-    NSSOID *alg;
+    NSSOIDTag alg;
     if (strcmp(cipher, "sha") == 0 || strcmp(cipher, "sha1") == 0 ||
         strcmp(cipher, "sha-1") == 0)
     {
-	alg = NSSOID_CreateFromTag(NSS_OID_SHA1);
+	alg = NSS_OID_SHA1;
     } else if (strcmp(cipher, "md5") == 0) {
-	alg = NSSOID_CreateFromTag(NSS_OID_MD5);
+	alg = NSS_OID_MD5;
     } else if (strcmp(cipher, "md2") == 0) {
-	alg = NSSOID_CreateFromTag(NSS_OID_MD2);
+	alg = NSS_OID_MD2;
     } else {
 	fprintf(stderr, "Unknown hashing algorithm \"%s\"\n", cipher);
 	return NULL;
     }
-    return NSSOID_CreateAlgNParam(alg, NULL, NULL);
+    return NSSOIDTag_CreateAlgNParam(alg, NULL, NULL);
 }
 
 PRStatus
@@ -101,25 +101,25 @@ Hash
 NSSAlgNParam *
 GetSymKeyGenAP(char *cipher)
 {
-    NSSOID *alg;
+    NSSOIDTag alg;
     NSSAlgNParam *ap;
 
     if (IS_CIPHER(cipher, "des")) {
-	alg = NSSOID_CreateFromTag(NSS_OID_DES_ECB);
+	alg = NSS_OID_DES_ECB;
     } else if (IS_CIPHER(cipher, "des3")) {
-	alg = NSSOID_CreateFromTag(NSS_OID_DES_EDE3_CBC); /* XXX cbc? */
+	alg = NSS_OID_DES_EDE3_CBC; /* XXX cbc? */
     } else if (IS_CIPHER(cipher, "rc2")) {
-	alg = NSSOID_CreateFromTag(NSS_OID_RC2_CBC); /* XXX cbc? */
+	alg = NSS_OID_RC2_CBC; /* XXX cbc? */
     } else if (IS_CIPHER(cipher, "rc4")) {
-	alg = NSSOID_CreateFromTag(NSS_OID_RC4);
+	alg = NSS_OID_RC4;
     } else if (IS_CIPHER(cipher, "rc5")) {
-	alg = NSSOID_CreateFromTag(NSS_OID_RC5_CBC_PAD);
+	alg = NSS_OID_RC5_CBC_PAD;
     } else {
 	PR_fprintf(PR_STDERR, "Unknown symmetric key algorithm \"%s\"\n", 
 	                       cipher);
 	return NULL;
     }
-    ap = NSSOID_CreateAlgNParamForKeyGen(alg, NULL, NULL);
+    ap = NSSOIDTag_CreateAlgNParamForKeyGen(alg, NULL, NULL);
     if (!ap) {
 	PR_fprintf(PR_STDERR, "Failed to create keygen alg/param for %s\n",
 	                       cipher);
@@ -161,7 +161,7 @@ GetSymCipherAP(char *cipher, char *iv)
     NSSItem cbcIV = { 0 };
     NSSParameters params;
     NSSParameters *pParams = NULL;
-    NSSOID *alg;
+    NSSOIDTag alg;
     NSSAlgNParam *ap;
     PRBool haveIV = PR_FALSE;
 
@@ -192,22 +192,22 @@ GetSymCipherAP(char *cipher, char *iv)
     }
     if (IS_CIPHER(cipher, "des")) {
 	if (haveIV) {
-	    alg = NSSOID_CreateFromTag(NSS_OID_DES_CBC);
+	    alg = NSS_OID_DES_CBC;
 	    cbcIV.size = DES_IV_LENGTH;
 	    params.iv = cbcIV;
 	    pParams = &params;
 	} else {
-	    alg = NSSOID_CreateFromTag(NSS_OID_DES_ECB);
+	    alg = NSS_OID_DES_ECB;
 	}
     } else if (IS_CIPHER(cipher, "des3")) {
 	if (haveIV) {
-	    alg = NSSOID_CreateFromTag(NSS_OID_DES_EDE3_CBC);
+	    alg = NSS_OID_DES_EDE3_CBC;
 	    cbcIV.size = DES3_IV_LENGTH;
 	    params.iv = cbcIV;
 	    pParams = &params;
 	} else {
 #if 0
-	    alg = NSSOID_CreateFromTag(NSS_OID_DES_ECB);
+	    alg = NSS_OID_DES_ECB;
 #endif
 	    return NULL;
 	}
@@ -220,18 +220,18 @@ GetSymCipherAP(char *cipher, char *iv)
 	    params.rc2.effectiveKeySizeInBits = RC2_EFF_KEY_BITS_DEFAULT;
 	}
 	if (haveIV) {
-	    alg = NSSOID_CreateFromTag(NSS_OID_RC2_CBC);
+	    alg = NSS_OID_RC2_CBC;
 	    cbcIV.size = RC2_IV_LENGTH;
 	    params.rc2.iv = cbcIV;
 	    pParams = &params;
 	} else {
 #if 0
-	    alg = NSSOID_CreateFromTag(NSS_OID_DES_ECB);
+	    alg = NSS_OID_DES_ECB;
 #endif
 	    return NULL;
 	}
     } else if (IS_CIPHER(cipher, "rc4")) {
-	alg = NSSOID_CreateFromTag(NSS_OID_RC4);
+	alg = NSS_OID_RC4;
     } else if (IS_CIPHER(cipher, "rc5")) {
 	if (paramStr) {
 	    p = strchr(paramStr, '-');
@@ -248,20 +248,20 @@ GetSymCipherAP(char *cipher, char *iv)
 	    params.rc5.numRounds = RC5_NUMROUNDS_DEFAULT;
 	}
 	if (haveIV) {
-	    alg = NSSOID_CreateFromTag(NSS_OID_RC5_CBC_PAD); /* XXX PAD? */
+	    alg = NSS_OID_RC5_CBC_PAD; /* XXX PAD? */
 	    cbcIV.size = params.rc5.wordSize * 2;
 	    params.rc5.iv = cbcIV;
 	    pParams = &params;
 	} else {
 #if 0
-	    alg = NSSOID_CreateFromTag(NSS_OID_DES_ECB);
+	    alg = NSS_OID_DES_ECB;
 #endif
 	    return NULL;
 	}
     } else {
 	PR_fprintf(PR_STDERR, "algorithm type \"%s\" unknown.\n", cipher);
     }
-    ap = NSSOID_CreateAlgNParam(alg, pParams, NULL);
+    ap = NSSOIDTag_CreateAlgNParam(alg, pParams, NULL);
     if (!ap) {
 	PR_fprintf(PR_STDERR, "Failed to create encryption alg/param for %s\n",
 	                       cipher);
@@ -309,7 +309,7 @@ GetKeyPairGenAP(char *cipher)
     PRStatus status;
     char *paramStr, *param;
     NSSParameters params;
-    NSSOID *alg;
+    NSSOIDTag alg;
 
     memset(&params, 0, sizeof(params));
 
@@ -319,7 +319,7 @@ GetKeyPairGenAP(char *cipher)
     }
     if (strcmp(cipher, "rsa") == 0) {
 	int pe;
-	alg = NSSOID_CreateFromTag(NSS_OID_PKCS1_RSA_ENCRYPTION);
+	alg = NSS_OID_PKCS1_RSA_ENCRYPTION;
 	if (paramStr) {
 	    param = paramStr;
 	    paramStr = strchr(paramStr, '-');
@@ -336,7 +336,7 @@ GetKeyPairGenAP(char *cipher)
 	    return NULL;
 	}
     } else if (strcmp(cipher, "dsa") == 0) {
-	alg = NSSOID_CreateFromTag(NSS_OID_ANSIX9_DSA_SIGNATURE);
+	alg = NSS_OID_ANSIX9_DSA_SIGNATURE;
 	if (paramStr) {
 	    param = paramStr;
 	    paramStr = strchr(paramStr, '-');
@@ -349,7 +349,7 @@ GetKeyPairGenAP(char *cipher)
 	}
 	/* XXX pqg from file */
     } else if (strcmp(cipher, "dh") == 0) {
-	alg = NSSOID_CreateFromTag(NSS_OID_X942_DIFFIE_HELLMAN_KEY);
+	alg = NSS_OID_X942_DIFFIE_HELLMAN_KEY;
 	if (paramStr) {
 	    param = paramStr;
 	    paramStr = strchr(paramStr, '-');
@@ -375,7 +375,7 @@ GetKeyPairGenAP(char *cipher)
 	fprintf(stderr, "Unknown keypair type\"%s\"\n", cipher);
 	return (NSSAlgNParam *)NULL;
     }
-    return NSSOID_CreateAlgNParamForKeyGen(alg, &params, NULL);
+    return NSSOIDTag_CreateAlgNParamForKeyGen(alg, &params, NULL);
 }
 
 PRStatus

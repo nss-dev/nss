@@ -43,9 +43,6 @@ static const char OIDDATA_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$ ; 
 #include "nsspki1t.h"
 #endif /* NSSPKI1T_H */
 
-extern const NSSOID nss_builtin_oids[];
-extern const PRUint32 nss_builtin_oid_count;
-
 /*extern const nssAttributeTypeAliasTable nss_attribute_type_aliases[];*/
 /*extern const PRUint32 nss_attribute_type_alias_count;*/
 
@@ -216,7 +213,5 @@ enum NSSOIDTagEnum {
    NSS_OID_NS_CERT_EXT_ISSUER_LOGO = 368,
    NSS_OID_NS_CERT_EXT_SUBJECT_LOGO = 369
 };
-
-typedef enum NSSOIDTagEnum NSSOIDTag;
 
 #endif /* OIDDATA_H */

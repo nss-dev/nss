@@ -186,33 +186,6 @@ NSSToken_GetInfo (
  * 
  */
 
-#if 0
-NSS_EXTERN NSSAlgNParam *
-NSSAlgNParam_CreateMAC (
-  NSSArena *arenaOpt,
-  NSSAlgorithmType blockCipher,
-  NSSParameters *cipherParameters,
-  PRUint32 macLength /* in bytes, 0 means maximum for block cipher */
-);
-
-NSS_EXTERN NSSAlgNParam *
-NSSAlgNParam_CreateHMAC (
-  NSSArena *arenaOpt,
-  NSSAlgorithmType hashAlgorithm,
-  PRUint32 hmacLength /* in bytes, 0 means maximum for hash algorithm */
-);
-
-/* NSSAlgNParam_GetParameters
- *
- * Return the parameters, properly encoded for the algorithm OID.  The
- * returned item must be freed.
- */
-NSS_EXTERN NSSItem *
-NSSAlgNParam_GetParameters (
-  NSSAlgNParam *ap
-);
-#endif
-
 NSS_EXTERN NSSAlgNParam *
 NSSAlgNParam_Decode (
   NSSBER *algIDber,
@@ -227,16 +200,30 @@ NSSAlgNParam_Destroy (
   NSSAlgNParam *ap
 );
 
-NSS_EXTERN const NSSOID *
+NSS_EXTERN NSSOIDTag
 NSSAlgNParam_GetAlgorithm (
   const NSSAlgNParam *ap
 );
 
 NSS_EXTERN NSSBER *
 NSSAlgNParam_Encode (
-  NSSAlgNParam *ap,
+  const NSSAlgNParam *ap,
   NSSBER *rvOpt,
   NSSArena *arenaOpt
+);
+
+/* SSL-specific stuff */
+
+NSS_EXTERN NSSAlgNParam *
+NSSAlgNParam_CreateForSSL (
+  NSSArena *arenaOpt,
+  NSSSSLAlgorithm alg,
+  NSSParameters *parametersOpt
+);
+
+NSS_EXTERN NSSSSLVersion
+nssAlgNParam_GetSSLVersionFromMSDerive (
+  const NSSAlgNParam *ap
 );
 
 NSS_EXTERN void

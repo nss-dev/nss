@@ -83,6 +83,12 @@ struct NSSOIDStr {
   PRBool certExtensionSupported;
 };
 
+struct NSSOIDStr;
+typedef struct NSSOIDStr NSSOID;
+
+extern const NSSOID nss_builtin_oids[];
+extern const PRUint32 nss_builtin_oid_count;
+
 /*
  * nssAttributeTypeAliasTable
  *

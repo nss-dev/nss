@@ -77,7 +77,7 @@ nss_pkix_AlgorithmIdentifier_Clear (
 NSS_IMPLEMENT NSSPKIXAlgorithmIdentifier *
 nssPKIXAlgorithmIdentifier_Create (
   NSSArena *arenaOpt,
-  NSSOID *algorithm,
+  NSSOIDTag algorithm,
   NSSItem *parameters
 )
 {
@@ -341,7 +341,7 @@ nssPKIXAlgorithmIdentifier_Equal (
   return PR_FALSE;
 }
 
-NSS_IMPLEMENT NSSOID *
+NSS_IMPLEMENT NSSOIDTag
 nssPKIXAlgorithmIdentifier_GetAlgorithm (
   NSSPKIXAlgorithmIdentifier *algid
 )
@@ -350,10 +350,10 @@ nssPKIXAlgorithmIdentifier_GetAlgorithm (
 	if (NSSITEM_IS_EMPTY(&algid->der) ||
 	    decode_me(algid) == PR_FAILURE)
 	{
-	    return (NSSOID *)NULL;
+	    return NSS_OID_UNKNOWN;
 	}
     }
-    return NSSOID_Create(&algid->algID);
+    return NSSOIDTag_Create(&algid->algID);
 }
 
 NSS_IMPLEMENT NSSItem *
@@ -374,7 +374,7 @@ nssPKIXAlgorithmIdentifier_GetParameters (
 NSS_IMPLEMENT PRStatus
 nssPKIXAlgorithmIdentifier_SetAlgorithm (
   NSSPKIXAlgorithmIdentifier *algid,
-  NSSOID *algorithm
+  NSSOIDTag algorithm
 )
 {
 #if 0
@@ -396,7 +396,7 @@ nssPKIXAlgorithmIdentifier_SetParameters (
 NSS_IMPLEMENT PRStatus
 NSSPKIXAlgorithmIdentifier_SetAlgorithm (
   NSSPKIXAlgorithmIdentifier *algid,
-  NSSOID *algorithm
+  NSSOIDTag algorithm
 )
 {
   nss_ClearErrorStack();
@@ -418,7 +418,7 @@ NSSPKIXAlgorithmIdentifier_SetParameters (
 NSS_IMPLEMENT NSSPKIXAlgorithmIdentifier *
 NSSPKIXAlgorithmIdentifier_Create (
   NSSArena *arenaOpt,
-  NSSOID *algorithm,
+  NSSOIDTag algorithm,
   NSSItem *parameters
 )
 {
@@ -485,7 +485,7 @@ NSSPKIXAlgorithmIdentifier_Equal (
   return nssPKIXAlgorithmIdentifier_Equal(algid1, algid2, statusOpt);
 }
 
-NSS_IMPLEMENT NSSOID *
+NSS_IMPLEMENT NSSOIDTag
 NSSPKIXAlgorithmIdentifier_GetAlgorithm (
   NSSPKIXAlgorithmIdentifier *algid
 )
