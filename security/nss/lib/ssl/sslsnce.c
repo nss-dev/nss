@@ -262,7 +262,6 @@ static sslPID myPid;
 static PRUint32  ssl_max_sid_cache_locks = MAX_SID_CACHE_LOCKS;
 
 /* forward static function declarations */
-static void IOError(int rv, char *type);
 static PRUint32 SIDindex(cacheDesc *cache, const PRIPv6Addr *addr, PRUint8 *s, unsigned nl);
 static SECStatus LaunchLockPoller(cacheDesc *cache);
 
@@ -290,18 +289,6 @@ typedef struct inheritanceStr inheritance;
 
 
 /************************************************************************/
-
-static void 
-IOError(int rv, char *type)
-{
-#if defined(XP_UNIX) || defined(XP_BEOS)
-    syslog(LOG_ALERT,
-	   "SSL: %s error with session-id cache, pid=%d, rv=%d, error='%m'",
-	   type, myPid, rv);
-#else /* XP_WIN32 */
-    /* wish win32 had something like syslog() */
-#endif /* XP_UNIX */
-}
 
 static PRUint32
 LockSidCacheLock(sidCacheLock *lock, PRUint32 now)

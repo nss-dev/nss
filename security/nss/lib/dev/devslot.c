@@ -91,6 +91,7 @@ static PRIntervalTime s_token_delay_time = 0;
 /* The flags needed to open a read-only session. */
 static const CK_FLAGS s_ck_readonly_flags = CKF_SERIAL_SESSION;
 
+#ifdef PURE_STAN_BUILD
 /* In pk11slot.c, this was a no-op.  So it is here also. */
 static CK_RV PR_CALLBACK
 nss_ck_slot_notify
@@ -103,7 +104,6 @@ nss_ck_slot_notify
     return CKR_OK;
 }
 
-#ifdef PURE_STAN_BUILD
 NSS_IMPLEMENT NSSSlot *
 nssSlot_Create
 (

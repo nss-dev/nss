@@ -135,7 +135,6 @@ nssCKFWFindObjects_Create
 )
 {
   NSSCKFWFindObjects *fwFindObjects = NULL;
-  NSSArena *arena;
   NSSCKMDSession *mdSession;
   NSSCKMDToken *mdToken;
   NSSCKMDInstance *mdInstance;
@@ -143,13 +142,6 @@ nssCKFWFindObjects_Create
   mdSession = nssCKFWSession_GetMDSession(fwSession);
   mdToken = nssCKFWToken_GetMDToken(fwToken);
   mdInstance = nssCKFWInstance_GetMDInstance(fwInstance);
-
-#ifdef notdef
-  arena = nssCKFWSession_GetArena(fwSession, pError);
-  if( (NSSArena *)NULL == arena ) {
-    goto loser;
-  }
-#endif
 
   fwFindObjects = nss_ZNEW(NULL, NSSCKFWFindObjects);
   if( (NSSCKFWFindObjects *)NULL == fwFindObjects ) {

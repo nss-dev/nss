@@ -273,7 +273,6 @@ pk11_DBShutdown(NSSLOWCERTCertDBHandle *certHandle,
 
 static int rdbmapflags(int flags);
 static rdbfunc pk11_rdbfunc;
-static void *pk11_tnx;
 
 /* NOTE: SHLIB_SUFFIX is defined on the command line */
 #define RDBLIB "rdb."SHLIB_SUFFIX

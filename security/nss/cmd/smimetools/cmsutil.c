@@ -47,6 +47,7 @@
 #include "cms.h"
 #include "nss.h"
 #include "smime.h"
+#include "pk11func.h"
 
 #if defined(XP_UNIX)
 #include <unistd.h>
@@ -195,7 +196,7 @@ struct encryptOptionsStr {
 
 static NSSCMSMessage *
 decode(FILE *out, SECItem *output, SECItem *input, 
-       struct decodeOptionsStr *decodeOptions)
+       const struct decodeOptionsStr *decodeOptions)
 {
     NSSCMSDecoderContext *dcx;
     NSSCMSMessage *cmsg;

@@ -100,7 +100,6 @@ main (int argc, char **argv)
 {
     int		 retval = 0;  /* 0 - test succeeded.  -1 - test failed */
     SECStatus	 rv;
-    const char	*certDir = ".";
     PLOptState	*optstate;
     char	*program_name;
     const char  *input_file = NULL; 	/* read encrypted data from here (or create) */
@@ -236,7 +235,6 @@ file_loser:
       }
       if (slot) {
 	PK11_FreeSlot(slot);
-	slot == NULL;
       }
 
       rv = PK11SDR_Encrypt(&keyid, &data, &result, 0);
