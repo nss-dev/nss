@@ -123,6 +123,7 @@ typedef struct htab	 {		/* Memory resident data structure */
 	int		save_file;	/* Indicates whether we need to flush 
 					 * file at
 					 * exit */
+	int             dirty_bit;	/* has db changed */
 	uint32	*mapp[NCACHED];	/* Pointers to page maps */
 	int		nmaps;		/* Initial number of bitmaps */
 	int		nbufs;		/* Number of buffers left to 

@@ -161,6 +161,7 @@ __hash_open(const char *file, int flags, int mode, const HASHINFO *info, int dfl
 	if (!(hashp = (HTAB *)calloc(1, sizeof(HTAB))))
 		RETURN_ERROR(ENOMEM, error0);
 	hashp->fp = NO_FILE;
+	hashp->dirty_bit = 0;
 	if(file)
 		hashp->filename = strdup(file);
 
@@ -611,7 +612,7 @@ flush_meta(HTAB *hashp)
 #endif
 	int fp, i, wsize;
 
-	if (!hashp->save_file)
+	if (!hashp->save_file || !hashp->dirty_bit)
 		return (0);
 	hashp->MAGIC = HASHMAGIC;
 	hashp->VERSION = HASHVERSION;
@@ -695,6 +696,8 @@ hash_put(
 	if (!hashp)
 		return (DBM_ERROR);
 
+	hashp->dirty_bit = 1;
+
 	if (flag && flag != R_NOOVERWRITE) {
 		hashp->dbmerrno = errno = EINVAL;
 		return (DBM_ERROR);
@@ -730,6 +733,8 @@ hash_delete(
 	hashp = (HTAB *)dbp->internal;
 	if (!hashp)
 		return (DBM_ERROR);
+
+	hashp->dirty_bit = 1;
 
 	if (flag && flag != R_CURSOR) {
 		hashp->dbmerrno = errno = EINVAL;
