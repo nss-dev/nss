@@ -37,26 +37,83 @@
  * $Id$
  */
 
+#include "seccomon.h"
+#include "secder.h"
 #include "nssilock.h"
 #include "prmon.h"
 #include "prtime.h"
 #include "lowkeyi.h"
 #include "pcert.h"
+#include "secasn1.h"
+
+/* should have been in a 'util' header */
+extern const SEC_ASN1Template CERT_ValidityTemplate[];
 
 static const SEC_ASN1Template nsslowcert_CertKeyTemplate[] = {
     { SEC_ASN1_SEQUENCE,
 	  0, NULL, sizeof(NSSLOWCERTCertKey) },
     { SEC_ASN1_EXPLICIT | SEC_ASN1_OPTIONAL | SEC_ASN1_CONSTRUCTED | 
-	  SEC_ASN1_CONTEXT_SPECIFIC | 0,
-	  0 },	/* version */ 
-    { SEC_ASN1_INTEGER,
-	  offsetof(NSSLOWCERTCertKey,serialNumber) },
+	  SEC_ASN1_CONTEXT_SPECIFIC | 0, 0 },	/* version */ 
+    { SEC_ASN1_INTEGER, offsetof(NSSLOWCERTCertKey,serialNumber) },
     { SEC_ASN1_SKIP },		/* signature algorithm */
-    { SEC_ASN1_ANY,
-	  offsetof(NSSLOWCERTCertKey,derIssuer) },
+    { SEC_ASN1_ANY, offsetof(NSSLOWCERTCertKey,derIssuer) },
     { SEC_ASN1_SKIP_REST },
     { 0 }
 };
+const SEC_ASN1Template nsslowcert_SubjectPublicKeyInfoTemplate[] = {
+    { SEC_ASN1_SEQUENCE, 0, NULL, sizeof(NSSLOWCERTSubjectPublicKeyInfo) },
+    { SEC_ASN1_INLINE, offsetof(NSSLOWCERTSubjectPublicKeyInfo,algorithm),
+          SECOID_AlgorithmIDTemplate },
+    { SEC_ASN1_BIT_STRING,
+          offsetof(NSSLOWCERTSubjectPublicKeyInfo,subjectPublicKey), },
+    { 0, }
+};
+const SEC_ASN1Template nsslowcert_CertificateTemplate[] = {
+    { SEC_ASN1_SEQUENCE,
+      0, NULL, sizeof(NSSLOWCERTCertificate) },
+    { SEC_ASN1_EXPLICIT | SEC_ASN1_OPTIONAL | SEC_ASN1_CONSTRUCTED |
+          SEC_ASN1_CONTEXT_SPECIFIC | 0, 0}, /* version */
+    { SEC_ASN1_INTEGER, offsetof(NSSLOWCERTCertificate,serialNumber) },
+    { SEC_ASN1_SKIP }, /* Signature algorithm */
+    { SEC_ASN1_ANY, offsetof(NSSLOWCERTCertificate,derIssuer) },
+    { SEC_ASN1_INLINE,
+          offsetof(NSSLOWCERTCertificate,validity),
+          CERT_ValidityTemplate },
+    { SEC_ASN1_ANY, offsetof(NSSLOWCERTCertificate,derSubject) },
+    { SEC_ASN1_SAVE, offsetof(NSSLOWCERTCertificate,derPublicKey) },
+    { SEC_ASN1_INLINE,
+          offsetof(NSSLOWCERTCertificate,subjectPublicKeyInfo),
+          nsslowcert_SubjectPublicKeyInfoTemplate },
+    { SEC_ASN1_SKIP_REST },
+    { 0 }
+};
+const SEC_ASN1Template nsslowcert_SignedCertificateTemplate[] =
+{
+    { SEC_ASN1_SEQUENCE, 0, NULL, sizeof(NSSLOWCERTCertificate) },
+    { SEC_ASN1_INLINE, 0, nsslowcert_CertificateTemplate },
+    { SEC_ASN1_SKIP_REST },
+    { 0 }
+};
+const SEC_ASN1Template nsslowcert_SignedDataTemplate[] = {
+    { SEC_ASN1_SEQUENCE, 0, NULL, sizeof(NSSLOWCERTSignedData) },
+    { SEC_ASN1_ANY, offsetof(NSSLOWCERTSignedData,data), },
+    { 0, }
+};
+const SEC_ASN1Template nsslowcert_RSAPublicKeyTemplate[] = {
+    { SEC_ASN1_SEQUENCE, 0, NULL, sizeof(NSSLOWKEYPublicKey) },
+    { SEC_ASN1_INTEGER, offsetof(NSSLOWKEYPublicKey,u.rsa.modulus), },
+    { SEC_ASN1_INTEGER, offsetof(NSSLOWKEYPublicKey,u.rsa.publicExponent), },
+    { 0, }
+};
+const SEC_ASN1Template nsslowcert_DSAPublicKeyTemplate[] = {
+    { SEC_ASN1_INTEGER, offsetof(NSSLOWKEYPublicKey,u.dsa.publicValue), },
+    { 0, }
+};
+const SEC_ASN1Template nsslowcert_DHPublicKeyTemplate[] = {
+    { SEC_ASN1_INTEGER, offsetof(NSSLOWKEYPublicKey,u.dh.publicValue), },
+    { 0, }
+};
+
 
 static PZLock *pcertRefCountLock = NULL;
 
@@ -252,21 +309,11 @@ nsslowcert_DecodeDERCertificate(SECItem *derSignedCert, PRBool copyDER,
 	cert->derCert = *derSignedCert;
     }
 
+    /* decode the certificate info */
+    rv = SEC_ASN1DecodeItem(arena, cert, nsslowcert_SignedCertificateTemplate,
+                    &cert->derCert);
 
-    /*SECItem derCert;			/* original DER for the cert */
-    /*SECItem derIssuer;			/* DER for issuer name */
-    /*SECItem derSubject;			/* DER for subject name */
-    /*SECItem derPublicKey;		/* DER for the public key */
-    /*SECItem certKey;			/* database key for this cert */
-    /*SECItem version; */
-    /* SECItem serialNumber; */
-    /*NSSLOWCERTValidity validity; */
-    /*NSSLOWCERTSubjectPublicKeyInfo subjectPublicKeyInfo; */
-    /* char *emailAddr; */
-    /* NSSLOWCERTCertDBHandle *dbhandle; */
     /* cert->subjectKeyID;	/* x509v3 subject key identifier */
-    cert->isperm = PR_TRUE;
-    cert->istemp = PR_FALSE;
     cert->dbEntry = NULL;
     cert ->trust = NULL;
 
@@ -287,13 +334,11 @@ nsslowcert_DecodeDERCertificate(SECItem *derSignedCert, PRBool copyDER,
     PRBool ownSlot;		/*true if the cert owns the slot reference */
 #endif
 
-#ifdef FIXME
     /* generate and save the database key for the cert */
     rv = nsslowcert_KeyFromDERCert(arena, &cert->derCert, &cert->certKey);
     if ( rv ) {
 	goto loser;
     }
-#endif
 
     /* set the nickname */
     if ( nickname == NULL ) {
@@ -310,38 +355,15 @@ nsslowcert_DecodeDERCertificate(SECItem *derSignedCert, PRBool copyDER,
     }
 
 #ifdef FIXME
-    /* set the email address */
-    cert->emailAddr = CERT_GetCertificateEmailAddress(cert);
-    
     /* initialize the subjectKeyID */
     rv = cert_GetKeyID(cert);
     if ( rv != SECSuccess ) {
 	goto loser;
     }
 
-    /* initialize keyUsage */
-    rv = GetKeyUsage(cert);
-    if ( rv != SECSuccess ) {
-	goto loser;
-    }
-
-    /* initialize the certType */
-    rv = CERT_GetCertType(cert);
-    if ( rv != SECSuccess ) {
-	goto loser;
-    }
-
-    tmpname = CERT_NameToAscii(&cert->subject);
-    if ( tmpname != NULL ) {
-	cert->subjectName = PORT_ArenaStrdup(cert->arena, tmpname);
-	PORT_Free(tmpname);
-    }
+    /* set the email address */
+    cert->emailAddr = CERT_GetCertificateEmailAddress(cert);
     
-    tmpname = CERT_NameToAscii(&cert->issuer);
-    if ( tmpname != NULL ) {
-	cert->issuerName = PORT_ArenaStrdup(cert->arena, tmpname);
-	PORT_Free(tmpname);
-    }
 #endif
     
     cert->referenceCount = 1;
@@ -405,6 +427,8 @@ loser:
     return(SECFailure);
 }
 
+
+
 /*
  * Generate a database key, based on serial number and issuer, from a
  * DER certificate.
@@ -426,7 +450,8 @@ nsslowcert_KeyFromDERCert(PRArenaPool *arena, SECItem *derCert, SECItem *key)
     }
     
     PORT_Memset(&certkey, 0, sizeof(NSSLOWCERTCertKey));
-    rv = SEC_ASN1DecodeItem(arena, &certkey, nsslowcert_CertKeyTemplate, &sd.data);
+    rv = SEC_ASN1DecodeItem(arena, &certkey, 
+					nsslowcert_CertKeyTemplate, &sd.data);
 
     if ( rv ) {
 	goto loser;
@@ -437,3 +462,62 @@ nsslowcert_KeyFromDERCert(PRArenaPool *arena, SECItem *derCert, SECItem *key)
 loser:
     return(SECFailure);
 }
+
+NSSLOWKEYPublicKey *
+nsslowcert_ExtractPublicKey(NSSLOWCERTCertificate *cert)
+{
+    NSSLOWCERTSubjectPublicKeyInfo *spki;
+    NSSLOWKEYPublicKey *pubk;
+    SECItem os;
+    SECStatus rv;
+    PRArenaPool *arena;
+    SECOidTag tag;
+
+    arena = PORT_NewArena (DER_DEFAULT_CHUNKSIZE);
+    if (arena == NULL)
+        return NULL;
+
+    pubk = (NSSLOWKEYPublicKey *) 
+		PORT_ArenaZAlloc(arena, sizeof(NSSLOWKEYPublicKey));
+    if (pubk == NULL) {
+        PORT_FreeArena (arena, PR_FALSE);
+        return NULL;
+    }
+
+    pubk->arena = arena;
+
+    /* Convert bit string length from bits to bytes */
+    os = cert->subjectPublicKeyInfo.subjectPublicKey;
+    DER_ConvertBitString (&os);
+
+    tag = SECOID_GetAlgorithmTag(&spki->algorithm);
+    switch ( tag ) {
+      case SEC_OID_X500_RSA_ENCRYPTION:
+      case SEC_OID_PKCS1_RSA_ENCRYPTION:
+        pubk->keyType = NSSLOWKEYRSAKey;
+        rv = SEC_ASN1DecodeItem(arena, pubk, 
+				nsslowcert_RSAPublicKeyTemplate, &os);
+        if (rv == SECSuccess)
+            return pubk;
+        break;
+      case SEC_OID_ANSIX9_DSA_SIGNATURE:
+        pubk->keyType = NSSLOWKEYDSAKey;
+        rv = SEC_ASN1DecodeItem(arena, pubk,
+				 nsslowcert_DSAPublicKeyTemplate, &os);
+        if (rv == SECSuccess) return pubk;
+        break;
+      case SEC_OID_X942_DIFFIE_HELMAN_KEY:
+        pubk->keyType = NSSLOWKEYDHKey;
+        rv = SEC_ASN1DecodeItem(arena, pubk,
+				 nsslowcert_DHPublicKeyTemplate, &os);
+        if (rv == SECSuccess) return pubk;
+        break;
+      default:
+        rv = SECFailure;
+        break;
+    }
+
+    nsslowkey_DestroyPublicKey (pubk);
+    return NULL;
+}
+
