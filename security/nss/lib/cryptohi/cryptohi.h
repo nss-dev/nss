@@ -41,7 +41,6 @@
 #include "blapi.h"
 
 #include "seccomon.h"
-#include "secrngt.h"
 #include "secoidt.h"
 #include "secdert.h"
 #include "cryptoht.h"
