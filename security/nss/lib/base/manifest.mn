@@ -53,6 +53,7 @@ CSRCS =		   \
 	hashops.c  \
 	libc.c	   \
 	tracker.c  \
+	item.c     \
 	utf8.c	   \
 	list.c     \
 	hash.c     \
