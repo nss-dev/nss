@@ -949,6 +949,12 @@ nssList_CreateIterator
   nssList *list
 );
 
+NSS_IMPLEMENT nssList *
+nssList_Clone
+(
+  nssList *list
+);
+
 /*
  * nssListIterator_Destroy
  */
