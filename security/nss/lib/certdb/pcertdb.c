@@ -7196,10 +7196,6 @@ CERT_SaveImportedCert(CERTCertificate *cert, SECCertUsage usage,
 	break;
     }
 
-    if ( (trust.sslFlags | trust.emailFlags | trust.objectSigningFlags) == 0 ){
-	saveit = PR_FALSE;
-    }
-
     if ( saveit ) {
 	if ( cert->isperm ) {
 	    /* Cert already in the DB.  Just adjust flags */

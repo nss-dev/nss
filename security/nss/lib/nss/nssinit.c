@@ -180,6 +180,8 @@ nss_OpenSecModDB(const char * configdir,const char *dbname)
 
 static CERTCertDBHandle certhandle = { 0 };
 
+static PRBool isInitialized = PR_FALSE;
+
 static SECStatus
 nss_OpenVolatileCertDB() {
       SECStatus rv = SECSuccess;
@@ -280,7 +282,7 @@ nss_Init(const char *configdir, const char *certPrefix, const char *keyPrefix,
 	}
     }
     rv = SECSuccess;
-
+    isInitialized = PR_TRUE;
 
 loser:
     if (rv != SECSuccess) 
@@ -300,6 +302,12 @@ NSS_InitReadWrite(const char *configdir)
 {
     return nss_Init(configdir, "", "", SECMOD_DB, PR_FALSE, 
 		PR_FALSE, PR_FALSE, PR_FALSE);
+}
+
+PRBool
+NSS_IsInitialized()
+{
+    return isInitialized;
 }
 
 /*
