@@ -603,7 +603,7 @@ static PRStatus ssl_get_client_CA_names(NSSCert *c, void *arg)
     if (NSSCert_GetTrustedUsages(c, &usages) == NULL) {
 	return PR_FAILURE;
     }
-    if (usages.peer == NSSUsage_SSLClient) {
+    if (usages.ca & NSSUsage_SSLClient) {
 	if (calist->count == 0) {
 	    calist->size = 4;
 	    calist->list = nss_ZNEWARRAY(NULL, NSSDER *, calist->size + 1);

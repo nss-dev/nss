@@ -2672,8 +2672,11 @@ nssToken_Verify (
     }
     /* Do the single-part verification */
 #ifndef SOFTOKEN_SINGLE_PART_VERIFY_BUG
+    if (mechanism->mechanism != CKM_RSA_PKCS) {
     /* XXX the softoken does not do single-part verification correctly,
      *     it fails to hash the data before signing
+     *     but that's ok when no ongoing hash is involved, and (at least
+     *     CKM_RSA_PKCS) doing it multi-part doesn't work either...
      */
     ckrv = CKAPI(epv)->C_VerifyUpdate(session->handle, 
                                       (CK_BYTE_PTR)data->data, 
@@ -2683,12 +2686,13 @@ nssToken_Verify (
 	                                 (CK_BYTE_PTR)signature->data, 
 	                                 (CK_ULONG)signature->size);
     }
-#else
+    } else {
     ckrv = CKAPI(epv)->C_Verify(session->handle, 
                                 (CK_BYTE_PTR)data->data, 
                                 (CK_ULONG)data->size,
                                 (CK_BYTE_PTR)signature->data,
                                 (CK_ULONG)signature->size);
+    }
 #endif /* SOFTOKEN_SINGLE_PART_VERIFY_BUG */
     nssSession_ExitMonitor(session);
     if (ckrv != CKR_OK) {

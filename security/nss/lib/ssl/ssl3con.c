@@ -832,7 +832,7 @@ ssl3_SignHashes(SSL3Hashes *hash, NSSPrivateKey *key, NSSItem *buf,
          == NULL)
     {
 	ssl_MapLowLevelError(SSL_ERROR_SIGN_HASHES_FAILURE);
-#if IMPLEMENT_THIS
+#ifdef IMPLEMENT_THIS
     } else if (doDerEncode) {
 	NSSItem   derSig	= { NULL, 0};
 
@@ -844,7 +844,7 @@ ssl3_SignHashes(SSL3Hashes *hash, NSSPrivateKey *key, NSSItem *buf,
 	    nss_ZFreeIf(derSig.data);
 	}
 #endif
-    }
+    } else rv = SECSuccess;
 
     PRINT_BUF(60, (NULL, "signed hashes", (unsigned char*)buf->data, buf->size));
 done:

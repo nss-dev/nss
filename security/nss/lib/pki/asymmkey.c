@@ -700,16 +700,35 @@ nssPrivateKey_Sign (
 )
 {
     nssCryptokiObject *vko;
-    NSSAlgNParam *ap = apOpt; /* XXX */
+    NSSAlgNParam *ap;
     NSSItem *rvIt;
+
+    if (apOpt) {
+	ap = (NSSAlgNParam *)apOpt; /* XXX hmmmm.... */
+    } else {
+	NSSOIDTag alg;
+	/* XXX are these defaults reasonable? */
+	switch (vk->kind) {
+	case NSSKeyPairType_RSA: alg = NSS_OID_PKCS1_RSA_ENCRYPTION; break;
+	default:
+	    /* set invalid arg err */
+	    return (NSSItem *)NULL;
+	}
+	ap = nssOIDTag_CreateAlgNParam(alg, NULL, NULL);
+	if (!ap) {
+	    return (NSSItem *)NULL;
+	}
+    }
 
     vko = nssPrivateKey_FindInstanceForAlgorithm(vk, ap);
     if (!vko) {
+	if (!apOpt) nssAlgNParam_Destroy(ap);
 	return NULL;
     }
     rvIt = nssToken_Sign(vko->token, vko->session, ap, vko,
                          data, rvOpt, arenaOpt);
     nssCryptokiObject_Destroy(vko);
+    if (!apOpt) nssAlgNParam_Destroy(ap);
     return rvIt;
 }
 
@@ -1395,6 +1414,24 @@ nssPublicKey_Verify (
     PRStatus status;
     nssSession *session;
     nssCryptokiObject **op, **objects;
+    NSSAlgNParam *ap;
+
+    if (apOpt) {
+	ap = (NSSAlgNParam *)apOpt; /* XXX hmmmm.... */
+    } else {
+	NSSOIDTag alg;
+	/* XXX are these defaults reasonable? */
+	switch (bk->info.kind) {
+	case NSSKeyPairType_RSA: alg = NSS_OID_PKCS1_RSA_ENCRYPTION; break;
+	default:
+	    /* set invalid arg err */
+	    return (NSSItem *)NULL;
+	}
+	ap = nssOIDTag_CreateAlgNParam(alg, NULL, NULL);
+	if (!ap) {
+	    return (NSSItem *)NULL;
+	}
+    }
 
     /* XXX in cipher order */
     objects = nssPKIObject_GetInstances(&bk->object);
@@ -1403,7 +1440,7 @@ nssPublicKey_Verify (
 	if (!session) {
 	    break;
 	}
-	status = nssToken_Verify((*op)->token, session, apOpt, *op,
+	status = nssToken_Verify((*op)->token, session, ap, *op,
 	                         data, signature);
 	nssSession_Destroy(session);
 	/* XXX */
@@ -1411,6 +1448,7 @@ nssPublicKey_Verify (
 	/* XXX this logic needs to be rethunk */
     }
     nssCryptokiObjectArray_Destroy(objects);
+    if (!apOpt) nssAlgNParam_Destroy(ap);
     return status;
 }
 
