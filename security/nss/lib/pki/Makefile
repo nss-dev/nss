@@ -36,3 +36,5 @@ include manifest.mn
 include config.mk
 include $(CORE_DEPTH)/coreconf/config.mk
 include $(CORE_DEPTH)/coreconf/rules.mk
+
+export:: private_export

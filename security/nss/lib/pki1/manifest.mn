@@ -35,12 +35,12 @@ MANIFEST_CVS_ID = "@(#) $RCSfile$ $Revision$ $Date$ $Name$"
 CORE_DEPTH = ../../..
 
 PRIVATE_EXPORTS = \
-	pki1.h		  \
-	pki1t.h		  \
+	oiddata.h \
+	pki1.h	  \
+	pki1t.h	  \
 	$(NULL)
 
 EXPORTS =	   \
-	oiddata.h  \
 	nsspki1.h  \
 	nsspki1t.h \
 	$(NULL)
