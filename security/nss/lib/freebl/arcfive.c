@@ -54,8 +54,8 @@
 ** chaining" mode.
 */
 RC5Context *
-RC5_CreateContext(SECItem *key, unsigned int rounds,
-                  unsigned int wordSize, unsigned char *iv, int mode)
+RC5_CreateContext(const SECItem *key, unsigned int rounds,
+                  unsigned int wordSize, const unsigned char *iv, int mode)
 {
     PORT_SetError(PR_NOT_IMPLEMENTED_ERROR);
     return NULL;
