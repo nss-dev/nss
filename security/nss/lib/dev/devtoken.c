@@ -223,6 +223,9 @@ nssToken_GetName
   NSSToken *tok
 )
 {
+    if (tok == NULL) {
+	return "";
+    }
     if (tok->base.name[0] == 0) {
 	(void) nssSlot_IsTokenPresent(tok->slot);
     } 
