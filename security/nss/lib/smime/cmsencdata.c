@@ -202,10 +202,8 @@ NSS_CMSEncryptedData_Encode_BeforeData(NSSCMSEncryptedData *encd)
 SECStatus
 NSS_CMSEncryptedData_Encode_AfterData(NSSCMSEncryptedData *encd)
 {
-    if (encd->contentInfo.ciphcx) {
+    if (encd->contentInfo.ciphcx)
 	NSS_CMSCipherContext_Destroy(encd->contentInfo.ciphcx);
-	encd->contentInfo.ciphcx = NULL;
-    }
 
     /* nothing to do after data */
     return SECSuccess;
@@ -267,10 +265,7 @@ loser:
 SECStatus
 NSS_CMSEncryptedData_Decode_AfterData(NSSCMSEncryptedData *encd)
 {
-    if (encd->contentInfo.ciphcx) {
-	NSS_CMSCipherContext_Destroy(encd->contentInfo.ciphcx);
-	encd->contentInfo.ciphcx = NULL;
-    }
+    NSS_CMSCipherContext_Destroy(encd->contentInfo.ciphcx);
 
     return SECSuccess;
 }

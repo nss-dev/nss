@@ -145,8 +145,6 @@ SECMOD_CreateModule(char *library, char *moduleName, char *parameters, char *nss
     pk11_argSetNewCipherFlags(&mod->ssl[0],ciphers);
     if (ciphers) PORT_Free(ciphers);
 
-    secmod_PrivateModuleCount++;
-
     return mod;
 }
 

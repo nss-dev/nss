@@ -3611,6 +3611,7 @@ PK11_ListPublicKeysInSlot(PK11SlotInfo *slot, char *nickname)
     int tsize = 0;
     int objCount = 0;
     CK_OBJECT_HANDLE *key_ids;
+    SECStatus status;
     SECKEYPublicKeyList *keys;
     int i,len;
 
@@ -3654,6 +3655,7 @@ PK11_ListPrivKeysInSlot(PK11SlotInfo *slot, char *nickname, void *wincx)
     int tsize = 0;
     int objCount = 0;
     CK_OBJECT_HANDLE *key_ids;
+    SECStatus status;
     SECKEYPrivateKeyList *keys;
     int i,len;
 
@@ -3983,7 +3985,6 @@ PK11_SaveSMimeProfile(PK11SlotInfo *slot, char *emailAddr, SECItem *derSubj,
     CK_OBJECT_HANDLE smimeh = CK_INVALID_HANDLE;
     CK_ATTRIBUTE *attrs = theTemplate;
     CK_SESSION_HANDLE rwsession;
-    PK11SlotInfo *free_slot = NULL;
     CK_RV crv;
 #ifdef DEBUG
     int tsize = sizeof(theTemplate)/sizeof(theTemplate[0]);
@@ -4004,16 +4005,13 @@ PK11_SaveSMimeProfile(PK11SlotInfo *slot, char *emailAddr, SECItem *derSubj,
     PORT_Assert (realSize <= tsize);
 
     if (slot == NULL) {
-	free_slot = slot = PK11_GetInternalKeySlot();
+	slot = PK11_GetInternalKeySlot();
 	/* we need to free the key slot in the end!!! */
     }
 
     rwsession = PK11_GetRWSession(slot);
     if (rwsession == CK_INVALID_SESSION) {
 	PORT_SetError(SEC_ERROR_READ_ONLY);
-	if (free_slot) {
-	    PK11_FreeSlot(free_slot);
-	}
 	return SECFailure;
     }
 
@@ -4024,10 +4022,6 @@ PK11_SaveSMimeProfile(PK11SlotInfo *slot, char *emailAddr, SECItem *derSubj,
     }
 
     PK11_RestoreROSession(slot,rwsession);
-
-    if (free_slot) {
-	PK11_FreeSlot(free_slot);
-    }
     return SECSuccess;
 }
 

@@ -91,7 +91,7 @@ SECStatus SECMOD_UnloadUserModule(SECMODModule *mod);
 
 SECMODModule * SECMOD_CreateModule(char *lib, char *name, char *param, 
 								char *nss);
-extern SECStatus SECMOD_Shutdown(void);
+extern void SECMOD_Shutdown(void);
 
 
 /* Module Management */
