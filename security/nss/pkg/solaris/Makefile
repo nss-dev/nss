@@ -19,18 +19,18 @@ DIRS = \
 	SUNWtlsu \
 	SUNWtlsd
 
+include Makefile.com
+
 PROTO = \
 	$(ROOT) \
 	$(ROOT)/usr/lib/mps \
 	$(ROOT)/usr/include/mps \
 	$(ROOT)/usr/sfw/bin
 
-ifeq ($(ARCH), sparc)
+ifeq ($(MACH), sparc)
 	PROTO += $(ROOT)/usr/lib/mps/sparcv9 \
 	$(ROOT)/usr/sfw/bin/sparcv9
 endif
-
-include Makefile.com
 
 DIST64 = $(shell echo $(DIST) | sed -e "s|_OPT|_64_OPT|g" -e "s|_DBG|_64_DBG|g")
 
