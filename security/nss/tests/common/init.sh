@@ -25,7 +25,7 @@ if [ ! -d ${TESTDIR} ]; then
    mkdir -p ${TESTDIR}
 fi
 
-if [ ! -s "${HOSTDIR}" ]; then
+if [ -z "${HOSTDIR}" ]; then
     version=1
     if [ -f ${TESTDIR}/${HOST} ]; then
 	version=`cat ${TESTDIR}/${HOST}`
