@@ -32,6 +32,7 @@
 # GPL.
 #
 my $cvs_id = '@(#) $RCSfile$ $Revision$ $Date$ $Name$';
+use strict;
 
 my %constants;
 my $count = 0;
