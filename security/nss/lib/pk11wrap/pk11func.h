@@ -415,11 +415,21 @@ SECKEYPrivateKey * PK11_FindKeyByKeyID(PK11SlotInfo *slot, SECItem *keyID,
 CK_OBJECT_HANDLE PK11_FindObjectForCert(CERTCertificate *cert,
 					void *wincx, PK11SlotInfo **pSlot);
 int PK11_GetPrivateModulusLen(SECKEYPrivateKey *key); 
+
+/* note: despite the name, this function takes a private key. */
 SECStatus PK11_PubDecryptRaw(SECKEYPrivateKey *key, unsigned char *data,
    unsigned *outLen, unsigned int maxLen, unsigned char *enc, unsigned encLen);
-/* The encrypt version of the above function */
+#define PK11_PrivDecryptRaw PK11_PubDecryptRaw
+/* The encrypt function that complements the above decrypt function. */
 SECStatus PK11_PubEncryptRaw(SECKEYPublicKey *key, unsigned char *enc,
                 unsigned char *data, unsigned dataLen, void *wincx);
+
+SECStatus PK11_PrivDecryptPKCS1(SECKEYPrivateKey *key, unsigned char *data,
+   unsigned *outLen, unsigned int maxLen, unsigned char *enc, unsigned encLen);
+/* The encrypt function that complements the above decrypt function. */
+SECStatus PK11_PubEncryptPKCS1(SECKEYPublicKey *key, unsigned char *enc,
+                unsigned char *data, unsigned dataLen, void *wincx);
+
 SECStatus PK11_ImportPrivateKeyInfo(PK11SlotInfo *slot, 
 		SECKEYPrivateKeyInfo *pki, SECItem *nickname,
 		SECItem *publicValue, PRBool isPerm, PRBool isPrivate,
