@@ -1040,6 +1040,50 @@ STAN_GetNSSCertificate(CERTCertificate *cc)
     return c;
 }
 
+static NSSToken*
+stan_GetTrustToken
+(
+  NSSCertificate *c
+)
+{
+    NSSToken *ttok = NULL;
+    NSSToken *rtok = NULL;
+    NSSToken *tok = NULL;
+    nssListIterator *instances;
+    nssCryptokiInstance *instance;
+
+    instances = nssList_CreateIterator(c->object.instanceList);
+    for (instance  = (nssCryptokiInstance *)nssListIterator_Start(instances);
+         instance != (nssCryptokiInstance *)NULL;
+         instance  = (nssCryptokiInstance *)nssListIterator_Next(instances))
+    {
+	NSSTrust *to = nssToken_FindTrustForCert(tok, NULL, c, 
+	                                       nssTokenSearchType_TokenOnly);
+	NSSToken *ctok = instance->token;
+	PRBool ro = PK11_IsReadOnly(ctok->pk11slot);
+
+	if (to) {
+	    (void)nssTrust_Destroy(to);
+	    ttok = ctok;
+ 	    if (!ro) {
+		break;
+	    }
+	} else {
+	    if (!rtok && ro) {
+		rtok = ctok;
+	    } 
+	    if (!tok && !ro) {
+		tok = ctok;
+	    }
+	}
+
+    }
+    nssListIterator_Finish(instances);
+    nssListIterator_Destroy(instances);
+
+    return ttok ? ttok : (tok ? tok : rtok);
+}
+
 NSS_EXTERN PRStatus
 STAN_ChangeCertTrust(CERTCertificate *cc, CERTCertTrust *trust)
 {
@@ -1093,7 +1137,9 @@ STAN_ChangeCertTrust(CERTCertificate *cc, CERTCertTrust *trust)
 	}
     }
     td = STAN_GetDefaultTrustDomain();
-    if (PK11_IsReadOnly(cc->slot)) {
+    tok = stan_GetTrustToken(c);
+    moving_object = PR_FALSE;
+    if (tok && PK11_IsReadOnly(tok->pk11slot)) {
 	tokens = nssList_CreateIterator(td->tokenList);
 	if (!tokens) return PR_FAILURE;
 	for (tok  = (NSSToken *)nssListIterator_Start(tokens);
@@ -1105,10 +1151,6 @@ STAN_ChangeCertTrust(CERTCertificate *cc, CERTCertTrust *trust)
 	nssListIterator_Finish(tokens);
 	nssListIterator_Destroy(tokens);
 	moving_object = PR_TRUE;
-    } else {
-	/* by default, store trust on same token as cert if writeable */
-	tok = PK11Slot_GetNSSToken(cc->slot);
-	moving_object = PR_FALSE;
     }
     if (tok) {
 	if (moving_object) {
@@ -1120,6 +1162,17 @@ STAN_ChangeCertTrust(CERTCertificate *cc, CERTCertTrust *trust)
 	    if (nssrv != PR_SUCCESS) return nssrv;
 	}
 	nssrv = nssToken_ImportTrust(tok, NULL, nssTrust, PR_TRUE);
+	/* this token can't handle trust */
+	if ((nssrv == PR_FAILURE)  && ! PK11_IsInternal(tok->pk11slot)){
+	    NSSUTF8 *nickname = NSSCertificate_GetNickname(c, NULL);
+	    PK11SlotInfo *slot = PK11_GetInternalKeySlot();
+
+	    tok = PK11Slot_GetNSSToken(slot);
+	    PK11_FreeSlot(slot);
+	    nssrv = nssToken_ImportCertificate(tok, NULL, c, nickname, PR_TRUE);
+	    if (nssrv != PR_SUCCESS) return nssrv;
+	    nssrv = nssToken_ImportTrust(tok, NULL, nssTrust, PR_TRUE);
+	}
     } else {
 	nssrv = PR_FAILURE;
     }
