@@ -75,6 +75,25 @@ static const CK_OBJECT_CLASS s_class_privkey = CKO_PRIVATE_KEY;
 NSS_IMPLEMENT_DATA const NSSItem
 g_ck_class_privkey = { (CK_VOID_PTR)&s_class_privkey, sizeof(s_class_privkey) };
 
+static PRBool
+is_string_attribute
+(
+  CK_ATTRIBUTE_TYPE aType
+)
+{
+    PRBool isString;
+    switch (aType) {
+    case CKA_LABEL:
+    case CKA_NETSCAPE_EMAIL:
+	isString = PR_TRUE;
+	break;
+    default:
+	isString = PR_FALSE;
+	break;
+    }
+    return isString;
+}
+
 NSS_IMPLEMENT PRStatus 
 nssCKObject_GetAttributes
 (
@@ -117,9 +136,12 @@ nssCKObject_GetAttributes
 	}
 	/* Allocate memory for each attribute. */
 	for (i=0; i<count; i++) {
-	    if ((CK_LONG)obj_template[i].ulValueLen <= 0) continue;
-	    obj_template[i].pValue = nss_ZAlloc(arenaOpt, 
-	                                        obj_template[i].ulValueLen);
+	    CK_ULONG ulValueLen = obj_template[i].ulValueLen;
+	    if (ulValueLen == 0) continue;
+	    if (is_string_attribute(obj_template[i].type)) {
+		ulValueLen++;
+	    }
+	    obj_template[i].pValue = nss_ZAlloc(arenaOpt, ulValueLen);
 	    if (!obj_template[i].pValue) {
 		nssSession_ExitMonitor(session);
 		goto loser;
