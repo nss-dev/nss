@@ -89,7 +89,8 @@ NSS_EXTERN void
 nssCertificateStore_Remove
 (
   nssCertificateStore *store,
-  NSSCertificate *cert
+  NSSCertificate *cert,
+  PRBool force /* described in bug 171198 */
 );
 
 NSS_EXTERN NSSCertificate **
