@@ -13,7 +13,7 @@
 # 
 # The Initial Developer of the Original Code is Netscape
 # Communications Corporation.  Portions created by Netscape are 
-# Copyright (C) 1994-2000 Netscape Communications Corporation.  All
+# Copyright (C) 2000 Netscape Communications Corporation.  All
 # Rights Reserved.
 # 
 # Contributor(s):
@@ -30,25 +30,18 @@
 # may use your version of this file under either the MPL or the
 # GPL.
 #
+# Config stuff for Solaris 8 on x86
+# 
 
-#######################################################################
-# Master "Core Components" include switch for support header files    #
-#######################################################################
+SOL_CFLAGS	= -D_SVID_GETTOD
 
-#
-#  Always append source-side machine-dependent (md) and cross-platform
-#  (xp) include paths
-#
+include $(CORE_DEPTH)/coreconf/SunOS5.mk
 
-INCLUDES  += -I$(SOURCE_MDHEADERS_DIR) -I$(SOURCE_XP_DIR)/include
+CPU_ARCH		= x86
+OS_DEFINES		+= -Di386
 
-ifneq ($(OS_TARGET),WIN16)
-INCLUDES  += -I$(SOURCE_XPHEADERS_DIR)
+ifeq ($(OS_RELEASE),5.8_i86pc)
+	OS_DEFINES += -DSOLARIS2_8
 endif
 
-#
-#  Only append source-side private cross-platform include paths for
-#  sectools
-#
-
-INCLUDES += -I$(SOURCE_XPPRIVATE_DIR)
+OS_LIBS += -lthread -lnsl -lsocket -lposix4 -ldl -lc
