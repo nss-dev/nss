@@ -170,6 +170,8 @@ extern char *PORT_ArenaStrdup(PLArenaPool *arena, const char *str);
 #define PORT_ArenaZNewArray(poolp, type, num)	\
 		(type*) PORT_ArenaZAlloc (poolp, sizeof(type)*(num))
 
+/* Please, keep these defines sorted alphabetically.  Thanks! */
+
 #define PORT_Atoi 	atoi
 
 #define PORT_Memcmp 	memcmp
