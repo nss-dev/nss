@@ -1170,13 +1170,6 @@ CERT_GetCertificateNames(CERTCertificate *cert, PRArenaPool *arena);
 int
 CERT_GetNamesLength(CERTGeneralName *names);
 
-CERTCertificate *
-CERT_CompareNameSpace(CERTCertificate  *cert,
-		      CERTGeneralName  *namesList,
-		      SECItem          *namesListIndex,
-		      PRArenaPool      *arena,
-		      CERTCertDBHandle *handle);
-
 SECStatus 
 CERT_EncodeSubjectKeyID(PRArenaPool *arena, char *value, int len, SECItem *encodedValue);
 
