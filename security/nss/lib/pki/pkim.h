@@ -496,6 +496,18 @@ nssPKIObjectCollection_Traverse
   nssPKIObjectCallback *callback
 );
 
+/* This function is being added for NSS 3.5.  It corresponds to the function
+ * nssToken_TraverseCertificates.  The idea is to use the collection during
+ * a traversal, creating certs each time a new instance is added for which
+ * a cert does not already exist.
+ */
+NSS_EXTERN PRStatus
+nssPKIObjectCollection_AddInstanceAsObject
+(
+  nssPKIObjectCollection *collection,
+  nssCryptokiObject *instance
+);
+
 /* nssPKIObjectCollection_GetCertificates
  *
  * Get all of the certificates in the collection. 
