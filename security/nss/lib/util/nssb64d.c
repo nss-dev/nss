@@ -282,7 +282,7 @@ pl_base64_decode_buffer (PLBase64Decoder *data, const unsigned char *in,
 	}
 	i = 0;
 
-	PR_ASSERT((3) <= data->output_buflen);
+	PR_ASSERT((out - data->output_buffer + 3) <= data->output_buflen);
 
 	/*
 	 * Assume we are not at the end; the following function only works
