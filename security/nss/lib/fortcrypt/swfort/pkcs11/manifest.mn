@@ -35,7 +35,8 @@ CORE_DEPTH		= ../../../../..
 
 MODULE		= security
 LIBRARY_NAME	= swft
-#LIBRARY_VERSION	= 32
+PROG_PREFIX	= C_
+MDDEPDIR	:= $(MDDEPDIR)_C
 
 COPIED_CSRCS	= forsock.c  \
 		  fortpk11.c \

@@ -136,10 +136,7 @@ SHARED_LIBRARY_DIRS = \
 # $(PROGRAM) has NO explicit dependencies on $(EXTRA_SHARED_LIBS)
 # $(EXTRA_SHARED_LIBS) come before $(OS_LIBS), except on AIX.
 EXTRA_SHARED_LIBS += \
-	-L$(DIST)/lib/ \
-	-lplc4 \
-	-lplds4 \
-	-lnspr4 \
+	$(NSPR_LIBS) \
 	$(NULL)
 endif
 

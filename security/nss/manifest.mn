@@ -34,11 +34,13 @@ CORE_DEPTH = ..
 DEPTH      = ..
 
 IMPORTS =	nspr20/$(NSPR_IMPORT_VERSION) \
-		dbm/DBM_1_55_RTM \
+		dbm/DBM_1_55 \
 		$(NULL)
 
 RELEASE = security
 
-DIRS = lib cmd
+DIRS = lib
 
-
+ifdef ENABLE_CMD
+DIRS += cmd
+endif
