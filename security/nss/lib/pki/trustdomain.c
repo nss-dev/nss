@@ -373,9 +373,11 @@ static PRStatus
 collect_certs(NSSCertificate *c, void *arg)
 {
     struct collect_arg_str *ca = (struct collect_arg_str *)arg;
-    /* Add the cert to the return list */
-    nssCertificate_AddRef(c);
-    nssList_AddUnique(ca->list, (void *)c);
+    /* Add the cert to the return list if not present */
+    if (!nssList_Get(ca->list, (void *)c)) {
+	nssCertificate_AddRef(c);
+	nssList_Add(ca->list, (void *)c);
+    }
     if (ca->maximum > 0 && nssList_Count(ca->list) >= ca->maximum) {
 	/* signal the end of collection) */
 	nss_SetError(NSS_ERROR_MAXIMUM_FOUND);
@@ -474,8 +476,8 @@ NSSTrustDomain_FindCertificatesByNickname
 	}
 	nssTrustDomain_AddCertsToCache(td, rvCerts, count);
     }
-    nssList_Clear(nameList, cert_destructor);
     nssList_Destroy(nameList);
+    /* The return array assumes the references from the list */
     return rvCerts;
 }
 
@@ -606,8 +608,8 @@ NSSTrustDomain_FindCertificatesBySubject
 	}
 	nssTrustDomain_AddCertsToCache(td, rvCerts, count);
     }
-    nssList_Clear(subjectList, cert_destructor);
     nssList_Destroy(subjectList);
+    /* The return array assumes the references from the list */
     return rvCerts;
 }
 
