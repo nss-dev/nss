@@ -152,7 +152,9 @@ STAN_RemoveModuleFromDefaultTrustDomain
     for (i=0; i<module->slotCount; i++) {
 	token = PK11Slot_GetNSSToken(module->slots[i]);
 	if (token) {
+	    nssToken_NotifyCertsNotVisible(token);
 	    nssList_Remove(td->tokenList, token);
+	    PK11Slot_SetNSSToken(module->slots[i], NULL);
 	    nssToken_Destroy(token);
  	}
     }
