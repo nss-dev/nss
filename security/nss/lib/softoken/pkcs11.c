@@ -3818,8 +3818,12 @@ CK_RV NSC_FindObjects(CK_SESSION_HANDLE hSession,
     search = session->search;
     left = session->search->size - session->search->index;
     transfer = ((int)ulMaxObjectCount > left) ? left : ulMaxObjectCount;
-    PORT_Memcpy(phObject,&search->handles[search->index],
+    if (transfer > 0) {
+	PORT_Memcpy(phObject,&search->handles[search->index],
 					transfer*sizeof(CK_OBJECT_HANDLE_PTR));
+    } else {
+	*phObject = CK_INVALID_HANDLE;
+    }
     search->index += transfer;
     if (search->index == search->size) {
 	session->search = NULL;
