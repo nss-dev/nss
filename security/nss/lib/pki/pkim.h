@@ -119,13 +119,6 @@ nssTrustDomain_GetSymmetricKeyToken
   NSSTrustDomain *td
 );
 
-NSS_EXTERN NSSCertificate *
-nssTrustDomain_FindCertificateByIdentifier
-(
-  NSSTrustDomain *td,
-  NSSItem *identifier
-);
-
 /* Certificate cache routines */
 
 NSS_EXTERN PRStatus

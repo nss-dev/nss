@@ -65,10 +65,12 @@ PR_BEGIN_EXTERN_C
 struct nssDecodedCertStr {
     NSSCertificateType type;
     void *data;
-    /* returns the unique identifier for the cert (usually issuer + serial) */
+    /* returns the unique identifier for the cert */
     NSSItem *  (*getIdentifier)(nssDecodedCert *dc);
     /* returns the unique identifier for this cert's issuer */
     NSSItem *  (*getIssuerIdentifier)(nssDecodedCert *dc);
+    /* is id the identifier for this cert? */
+    PRBool     (*hasThisIdentifier)(nssDecodedCert *dc, NSSItem *id);
     /* returns the cert usage */
     NSSUsage * (*getUsage)(nssDecodedCert *dc);
     /* is time within the validity period of the cert? */

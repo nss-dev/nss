@@ -55,7 +55,7 @@ nssCertificate_AddRef
 );
 
 NSS_EXTERN NSSCertificate *
-NSSCertificate_CreateFromHandle
+nssCertificate_CreateFromHandle
 (
   NSSArena *arenaOpt,
   CK_OBJECT_HANDLE object,
