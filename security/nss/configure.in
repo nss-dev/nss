@@ -638,28 +638,50 @@ case "$target" in
 
 *-solaris*)
     USE_PTHREADS=
+    LOCAL_THREADS_ONLY=1
     AC_DEFINE(XP_UNIX)
     AC_DEFINE(SVR4)
     AC_DEFINE(SYSV)
     AC_DEFINE(__svr4)
     AC_DEFINE(__svr4__)
     AC_DEFINE(SOLARIS)
-    AC_DEFINE(_REENTRANT)
-    DSO_LDOPTS=-G
+    MKSHLIB='$(LD) $(DSO_LDOPTS)'
+    DSO_LDOPTS='-G -h $(notdir $@)'
     if test -n "$GNU_CC"; then
-      DSO_CFLAGS=-fPIC
-      CXXFLAGS="$CXXFLAGS -fno-rtti -fno-exceptions"
-      ASFLAGS="$ASFLAGS -x assembler-with-cpp"
+        DSO_CFLAGS=-fPIC
+        CFLAGS="$CFLAGS -Wall -Wno-format"
+        CXXFLAGS="$CXXFLAGS -Wall -Wno-format"
+        ASFLAGS="$ASFLAGS -x assembler-with-cpp"
     else
-      DSO_CFLAGS=-KPIC
+        DSO_CFLAGS=-KPIC
     fi
-    AS='$(CC)'
     if test -z "$GNU_AS"; then
       ASFLAGS="$ASFLAGS -Wa,-P"
     fi
-    if test -n "$USE_64" && test -z "$GNU_CC"; then
-      CC="$CC -xarch=v9"
-      CXX="$CXX -xarch=v9"
+    if test -n "$MOZ_DEBUG"; then
+        CFLAGS="$CFLAGS -xs"
+    fi
+    if test -n "$USE_64"; then
+        if test -n "$GNU_CC"; then
+            ARCHFLAG=UNKNOWN
+        else
+            ARCHFLAG='-xarch=v9'
+        fi
+        LD=/usr/ccs/bin/ld
+    else
+        if test -n "$GNU_CC"; then
+            if test -n "$USE_HYBRID"; then
+                ARCHFLAG='-mcpu=v9 -Wa,-xarch=v8plus'
+            else
+                ARCHFLAG='-mcpu=v8'
+            fi
+        else
+            if test -n "$USE_HYBRID"; then
+                ARCHFLAG='-xarch=v8plus'
+            else
+                ARCHFLAG='-xarch=v8'
+            fi
+        fi
     fi
     case "${target_cpu}" in
     sparc)
@@ -687,7 +709,11 @@ case "$target" in
       ;;
     esac
 
-    CFLAGS="$CFLAGS -I/usr/dt/include -I/usr/openwin/include"
+    if test -z "$LOCAL_THREADS_ONLY"; then
+        AC_DEFINE(_REENTRANT)
+    fi
+
+    CFLAGS="$CFLAGS $ARCHFLAG -I/usr/dt/include -I/usr/openwin/include"
     OS_LIBS="$OS_LIBS -lthread -lnsl -lsocket -lposix4 -ldl -lc"
     ;;
 
@@ -788,8 +814,8 @@ AC_SUBST(MDDEPDIR)
 AC_SUBST(ASFLAGS)
 AC_SUBST(DEFINES)
 AC_SUBST(DEFS)
-dnl AC_SUBST(GNU_CC)
-dnl AC_SUBST(GNU_CXX)
+AC_SUBST(GNU_CC)
+AC_SUBST(GNU_CXX)
 
 dnl Linker characteristics/flags
 AC_SUBST(LDFLAGS)

@@ -2064,7 +2064,7 @@ fi # SKIP_COMPILER_CHECKS
 
 if test -z "$SKIP_PATH_CHECKS"; then
 
-for ac_prog in gawk mawk nawk awk
+for ac_prog in mawk gawk nawk awk
 do
 # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2
@@ -2642,6 +2642,7 @@ EOF
 
 *-solaris*)
     USE_PTHREADS=
+    LOCAL_THREADS_ONLY=1
     cat >> confdefs.h <<\EOF
 #define XP_UNIX 1
 EOF
@@ -2666,25 +2667,43 @@ EOF
 #define SOLARIS 1
 EOF
 
-    cat >> confdefs.h <<\EOF
-#define _REENTRANT 1
-EOF
-
-    DSO_LDOPTS=-G
+    MKSHLIB='$(LD) $(DSO_LDOPTS)'
+    DSO_LDOPTS='-G -h $(notdir $@)'
     if test -n "$GNU_CC"; then
-      DSO_CFLAGS=-fPIC
-      CXXFLAGS="$CXXFLAGS -fno-rtti -fno-exceptions"
-      ASFLAGS="$ASFLAGS -x assembler-with-cpp"
+        DSO_CFLAGS=-fPIC
+        CFLAGS="$CFLAGS -Wall -Wno-format"
+        CXXFLAGS="$CXXFLAGS -Wall -Wno-format"
+        ASFLAGS="$ASFLAGS -x assembler-with-cpp"
     else
-      DSO_CFLAGS=-KPIC
+        DSO_CFLAGS=-KPIC
     fi
-    AS='$(CC)'
     if test -z "$GNU_AS"; then
       ASFLAGS="$ASFLAGS -Wa,-P"
     fi
-    if test -n "$USE_64" && test -z "$GNU_CC"; then
-      CC="$CC -xarch=v9"
-      CXX="$CXX -xarch=v9"
+    if test -n "$MOZ_DEBUG"; then
+        CFLAGS="$CFLAGS -xs"
+    fi
+    if test -n "$USE_64"; then
+        if test -n "$GNU_CC"; then
+            ARCHFLAG=UNKNOWN
+        else
+            ARCHFLAG='-xarch=v9'
+        fi
+        LD=/usr/ccs/bin/ld
+    else
+        if test -n "$GNU_CC"; then
+            if test -n "$USE_HYBRID"; then
+                ARCHFLAG='-mcpu=v9 -Wa,-xarch=v8plus'
+            else
+                ARCHFLAG='-mcpu=v8'
+            fi
+        else
+            if test -n "$USE_HYBRID"; then
+                ARCHFLAG='-xarch=v8plus'
+            else
+                ARCHFLAG='-xarch=v8'
+            fi
+        fi
     fi
     case "${target_cpu}" in
     sparc)
@@ -2733,7 +2752,14 @@ EOF
       ;;
     esac
 
-    CFLAGS="$CFLAGS -I/usr/dt/include -I/usr/openwin/include"
+    if test -z "$LOCAL_THREADS_ONLY"; then
+        cat >> confdefs.h <<\EOF
+#define _REENTRANT 1
+EOF
+
+    fi
+
+    CFLAGS="$CFLAGS $ARCHFLAG -I/usr/dt/include -I/usr/openwin/include"
     OS_LIBS="$OS_LIBS -lthread -lnsl -lsocket -lposix4 -ldl -lc"
     ;;
 
@@ -2781,7 +2807,7 @@ fi
 	# Extract the first word of "nspr-config", so it can be a program name with args.
 set dummy nspr-config; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:2785: checking for $ac_word" >&5
+echo "configure:2811: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_path_NSPR_CONFIG'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -2816,7 +2842,7 @@ fi
 
 	min_nspr_version=4.0.0
 	echo $ac_n "checking for NSPR - version >= $min_nspr_version (skipping)""... $ac_c" 1>&6
-echo "configure:2820: checking for NSPR - version >= $min_nspr_version (skipping)" >&5
+echo "configure:2846: checking for NSPR - version >= $min_nspr_version (skipping)" >&5
 
 	no_nspr=""
 	if test "$NSPR_CONFIG" = "no"; then
@@ -2890,6 +2916,8 @@ fi
 CFLAGS=`echo \
     $_DEPEND_CFLAGS \
     $CFLAGS`
+
+
 
 
 
@@ -3125,6 +3153,8 @@ s%@COMPILER_DEPEND@%$COMPILER_DEPEND%g
 s%@MDDEPDIR@%$MDDEPDIR%g
 s%@ASFLAGS@%$ASFLAGS%g
 s%@DEFINES@%$DEFINES%g
+s%@GNU_CC@%$GNU_CC%g
+s%@GNU_CXX@%$GNU_CXX%g
 s%@MKSHLIB@%$MKSHLIB%g
 s%@DSO_CFLAGS@%$DSO_CFLAGS%g
 s%@DSO_LDOPTS@%$DSO_LDOPTS%g
