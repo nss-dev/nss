@@ -6969,6 +6969,7 @@ const ssl3BulkCipherDef *cipher_def;
     isTLS = (PRBool)(crSpec->version > SSL_LIBRARY_VERSION_3_0);
 
     if (isTLS && cText->buf->len > (MAX_FRAGMENT_LENGTH + 2048)) {
+	ssl_ReleaseSpecReadLock(ss);
 	SSL3_SendAlert(ss, alert_fatal, record_overflow);
 	PORT_SetError(SSL_ERROR_RX_RECORD_TOO_LONG);
 	return SECFailure;
