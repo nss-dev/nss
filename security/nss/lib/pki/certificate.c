@@ -92,6 +92,10 @@ nssCertificate_Create
     if (status != PR_SUCCESS) {
 	return (NSSCertificate *)NULL;
     }
+    /* all certs need an encoding value */
+    if (rvCert->encoding.data == NULL) {
+	return (NSSCertificate *)NULL;
+    }
     return rvCert;
 }
 
