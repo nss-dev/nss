@@ -44,9 +44,9 @@ static const char NSSPKI_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
  * This file prototypes the methods of the top-level PKI objects.
  */
 
-#ifndef DEVT_H
-#include "devt.h"
-#endif /* DEVT_H */
+#ifndef NSSDEVT_H
+#include "nssdevt.h"
+#endif /* NSSDEVT_H */
 
 #ifndef NSSPKIT_H
 #include "nsspkit.h"
