@@ -43,13 +43,6 @@
 #include "seccomon.h"
 #include "stdio.h"
 
-#ifndef NSPR_HAS_FILEPATH_FUNC
-char *
-freebl_GetLibraryFilePathname(const char *name, PRFuncPtr addr);
-#else
-#define freebl_GetLibraryFilePathname NSPR_GetLibraryFilePathname
-#endif
-
 /* #define DEBUG_SHVERIFY 1 */
 
 static char *
@@ -107,7 +100,7 @@ PRBool
 BLAPI_SHVerify(const char *name, PRFuncPtr addr)
 {
     /* find our shared library name */
-    char *shName = freebl_GetLibraryFilePathname(name, addr);
+    char *shName = PR_GetLibraryFilePathname(name, addr);
     char *checkName = NULL;
     PRFileDesc *checkFD = NULL;
     PRFileDesc *shFD = NULL;
