@@ -2563,6 +2563,45 @@ mp_err  mp_read_radix(mp_int *mp, const char *str, int radix)
 
 } /* end mp_read_radix() */
 
+mp_err mp_read_variable_radix(mp_int *a, const char * str, int default_radix)
+{
+  int     radix = default_radix;
+  int     cx;
+  mp_sign sig   = ZPOS;
+  mp_err  res;
+
+  /* Skip leading non-digit characters until a digit or '-' or '+' */
+  while ((cx = *str) != 0 && 
+	(s_mp_tovalue(cx, radix) < 0) && 
+	cx != '-' &&
+	cx != '+') {
+    ++str;
+  }
+
+  if (cx == '-') {
+    sig = NEG;
+    ++str;
+  } else if (cx == '+') {
+    sig = ZPOS; /* this is the default anyway... */
+    ++str;
+  }
+
+  if (str[0] == '0') {
+    if ((str[1] | 0x20) == 'x') {
+      radix = 16;
+      str += 2;
+    } else {
+      radix = 8;
+      str++;
+    }
+  }
+  res = mp_read_radix(a, str, radix);
+  if (res == MP_OKAY) {
+    MP_SIGN(a) = (s_mp_cmp_d(a, 0) == MP_EQ) ? ZPOS : sig;
+  }
+  return res;
+}
+
 /* }}} */
 
 /* {{{ mp_radix_size(mp, radix) */
