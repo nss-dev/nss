@@ -8,10 +8,10 @@
 MACH = $(shell mach)
 
 PUBLISH_ROOT = $(DIST)
-ifeq ($(CORE_DEPTH),../..)
+ifeq ($(CORE_DEPTH),../../..)
 ROOT = ROOT
 else
-ROOT = $(subst ../../,,$(CORE_DEPTH))/ROOT
+ROOT = $(subst ../../../,,$(CORE_DEPTH))/ROOT
 endif
 
 PKGARCHIVE = $(PUBLISH_ROOT)/pkgarchive

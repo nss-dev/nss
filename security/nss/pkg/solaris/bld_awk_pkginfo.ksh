@@ -34,7 +34,7 @@ ARCH='ARCH=\"ISA\"'
 mach=""
 prodver=""
 awk_script=""
-version="IASVERS"
+version="NSSVERS"
 
 while getopts o:p:m:v: c
 do
@@ -75,19 +75,6 @@ fi
 rev=$(date "+%Y.%m.%d.%H.%M")
 
 #
-# Determine bundled and unbundled default install locations
-#
-if [[ $prodver = [0-9]*.0 ]]; then
-	suffix=${prodver%.0}
-else
-	suffix=$prodver
-fi
-optconfdir=/etc/opt/SUNWtls$suffix
-optinstdir=/opt/SUNWtls$suffix
-usrconfdir=/etc/nss3
-usrinstdir=/usr/nss3
-
-#
 # Build awk script which will process all the
 # pkginfo.tmpl files.
 #
@@ -102,7 +89,7 @@ cat << EOF > $awk_script
    }
 /$VERSION2/ {
       sub(/\=[^=]*$/,"=$rev\"")
-      sub(/IASVERS/,"$version")
+      sub(/NSSVERS/,"$version")
       print
       next
    }
@@ -112,22 +99,6 @@ cat << EOF > $awk_script
    }
 /$ARCH/ {
       printf "ARCH=\"%s\"\n", "$mach"
-      next
-   }
-/ASCONFDIR=OPTCONFDIR/ {
-      printf "ASCONFDIR=\"%s\"\n", "$optconfdir"
-      next
-   }
-/ASINSTDIR=OPTINSTDIR/ {
-      printf "ASINSTDIR=\"%s\"\n", "$optinstdir"
-      next
-   }
-/ASCONFDIR=USRCONFDIR/ {
-      printf "ASCONFDIR=\"%s\"\n", "$usrconfdir"
-      next
-   }
-/ASINSTDIR=USRINSTDIR/ {
-      printf "ASINSTDIR=\"%s\"\n", "$usrinstdir"
       next
    }
 { print }
