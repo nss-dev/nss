@@ -87,6 +87,7 @@ void
 NSS_CMSDigestedData_Destroy(NSSCMSDigestedData *digd)
 {
     /* everything's in a pool, so don't worry about the storage */
+    NSS_CMSContentInfo_Destroy(&(digd->contentInfo));
     return;
 }
 
