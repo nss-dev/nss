@@ -45,6 +45,10 @@ static char sccsid[] = "@(#)hash.c	8.9 (Berkeley) 6/16/94";
 #endif
 
 #if !defined(macintosh)
+#ifdef XP_OS2_EMX
+#include <sys/types.h>
+#include "xp_mcom.h" /* For strdup. */
+#endif
 #include <sys/stat.h>
 #endif
 
@@ -63,6 +67,7 @@ static char sccsid[] = "@(#)hash.c	8.9 (Berkeley) 6/16/94";
 #endif
 
 #ifdef XP_OS2_VACPP
+#include "types.h"
 #define EPERM SOCEPERM
 #endif
 
