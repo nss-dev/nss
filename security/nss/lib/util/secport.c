@@ -281,9 +281,11 @@ PORT_FreeArena(PLArenaPool *arena, PRBool zero)
 	    doFreeArenaPool = PR_TRUE;
 	}
     }
-    if (doFreeArenaPool)
+    if (doFreeArenaPool) {
 	PL_FreeArenaPool(arena);
-    PL_FinishArenaPool(arena);
+    } else {
+	PL_FinishArenaPool(arena);
+    }
     PORT_ZFree(arena, len);
     if (lock) {
 	PZ_Unlock(lock);
