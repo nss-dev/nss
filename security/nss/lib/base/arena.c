@@ -52,6 +52,8 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #include "prlock.h"
 #include "plarena.h"
 
+#include <string.h>
+
 /*
  * NSSArena
  *
