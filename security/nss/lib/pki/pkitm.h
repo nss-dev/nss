@@ -54,6 +54,12 @@ static const char PKITM_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 
 PR_BEGIN_EXTERN_C
 
+typedef enum nssCertIDMatchEnum {
+  nssCertIDMatch_Yes = 0,
+  nssCertIDMatch_No = 1,
+  nssCertIDMatch_Unknown = 2
+} nssCertIDMatch;
+
 /*
  * nssDecodedCert
  *
@@ -68,9 +74,11 @@ struct nssDecodedCertStr {
     /* returns the unique identifier for the cert */
     NSSItem *  (*getIdentifier)(nssDecodedCert *dc);
     /* returns the unique identifier for this cert's issuer */
-    NSSItem *  (*getIssuerIdentifier)(nssDecodedCert *dc);
+    void *     (*getIssuerIdentifier)(nssDecodedCert *dc);
     /* is id the identifier for this cert? */
-    PRBool     (*matchIdentifier)(nssDecodedCert *dc, NSSItem *id);
+    nssCertIDMatch (*matchIdentifier)(nssDecodedCert *dc, void *id);
+    /* is this cert a valid CA cert? */
+    PRBool     (*isValidIssuer)(nssDecodedCert *dc);
     /* returns the cert usage */
     NSSUsage * (*getUsage)(nssDecodedCert *dc);
     /* is time within the validity period of the cert? */
