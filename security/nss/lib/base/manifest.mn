@@ -54,6 +54,7 @@ CSRCS =		   \
 	libc.c	   \
 	tracker.c  \
 	utf8.c	   \
+	list.c     \
 	whatnspr.c \
 	$(NULL)
 
