@@ -3073,6 +3073,7 @@ AddCertToPermDB(NSSLOWCERTCertDBHandle *handle, NSSLOWCERTCertificate *cert,
     /* add to or create new subject entry */
     if ( subjectEntry ) {
 	/* REWRITE BASED ON SUBJECT ENTRY */
+	cert->dbhandle = handle;
 	rv = AddPermSubjectNode(subjectEntry, cert, nickname);
 	if ( rv != SECSuccess ) {
 	    goto loser;
