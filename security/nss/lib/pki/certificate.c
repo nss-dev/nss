@@ -344,7 +344,7 @@ NSSCertificate_Encode
     return nssItem_Duplicate((NSSItem *)&c->encoding, arenaOpt, rvOpt);
 }
 
-static nssDecodedCert *
+NSS_IMPLEMENT nssDecodedCert *
 nssCertificate_GetDecoding
 (
   NSSCertificate *c

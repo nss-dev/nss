@@ -218,6 +218,12 @@ nssTrustDomain_GetCertByDERFromCache
   NSSDER *der
 );
 
+NSS_EXTERN nssDecodedCert *
+nssCertificate_GetDecoding
+(
+  NSSCertificate *c
+);
+
 NSS_IMPLEMENT nssDecodedCert *
 nssDecodedCert_Create
 (
