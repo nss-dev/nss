@@ -36,6 +36,15 @@ CORE_DEPTH = ../../..
 
 DIRS = builtins
 
+PRIVATE_ST_EXPORTS = \
+	pkcs11.h     \
+	pkcs11f.h    \
+	pkcs11n.h    \
+	pkcs11p.h    \
+	pkcs11t.h    \
+	pkcs11u.h    \
+	$(NULL)
+
 PRIVATE_EXPORTS = \
 	ck.h		  \
 	ckfw.h		  \
@@ -43,6 +52,7 @@ PRIVATE_EXPORTS = \
 	ckfwtm.h	  \
 	ckmd.h		  \
 	ckt.h		  \
+	$(PRIVATE_ST_EXPORTS) \
 	$(NULL)
 
 EXPORTS =	   \
@@ -57,7 +67,7 @@ EXPORTS =	   \
 	nssckt.h   \
 	$(NULL)
 
-MODULE = security
+MODULE = nss
 
 CSRCS =		   \
 	find.c	   \

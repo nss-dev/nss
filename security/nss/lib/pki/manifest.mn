@@ -44,7 +44,7 @@ EXPORTS =	   \
 	nsspkit.h  \
 	$(NULL)
 
-MODULE = security
+MODULE = nss
 
 CSRCS =		        \
 	asymmkey.c      \

@@ -50,6 +50,7 @@ static const char BASET_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #endif /* NSSBASET_H */
 
 #include "plhash.h"
+#include "nssilock.h"
 
 PR_BEGIN_EXTERN_C
 

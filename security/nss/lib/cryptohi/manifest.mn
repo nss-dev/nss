@@ -32,13 +32,13 @@
 #
 CORE_DEPTH = ../../..
 
-MODULE = security
+MODULE = softoken
 
 REQUIRES = dbm
 
 # LIBRARY_NAME = cryptohi
 
-EXPORTS = \
+PRIVATE_EXPORTS = \
 	cryptohi.h \
 	cryptoht.h \
 	hasht.h   \
@@ -47,9 +47,6 @@ EXPORTS = \
 	keyt.h    \
 	keythi.h  \
 	sechash.h \
-	$(NULL)
-
-PRIVATE_EXPORTS = \
 	$(NULL)
 
 NO_LIBSRCS = \

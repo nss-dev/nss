@@ -56,6 +56,20 @@ typedef enum {
     RSA_BlockTotal
 } RSA_BlockType;
 
+/* Taken from libSSL */
+
+#define SSL3_RANDOM_LENGTH 32
+
+typedef uint8 SSL3Opaque;
+
+typedef struct {
+    SSL3Opaque client_version[2];
+    SSL3Opaque random[46];
+} SSL3RSAPreMasterSecret;
+     
+typedef SECItem SSL3EncryptedPreMasterSecret;
+
+
 #define NSS_SOFTOKEN_DEFAULT_CHUNKSIZE   2048
 
 #endif /* _SOFTOKNT_H_ */

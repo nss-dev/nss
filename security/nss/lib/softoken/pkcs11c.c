@@ -67,7 +67,6 @@
 #include "secerr.h"
 
 #include "pcert.h"
-#include "ssl3prot.h" 	/* for SSL3_RANDOM_LENGTH */
 
 #define __PASTE(x,y)    x##y
 

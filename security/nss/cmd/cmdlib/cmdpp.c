@@ -366,7 +366,7 @@ CMD_PrintPKIXExtensions(CMDPrinter *printer, NSSPKIXExtensions *extensions,
     }
 
     nsCertType = NSSPKIXExtensions_GetNetscapeCertType(extensions);
-    if (keyUsage) {
+    if (nsCertType) {
 	CMD_PrintPKIXnsCertType(printer, nsCertType, "netscape Cert Type");
     }
 

@@ -35,16 +35,19 @@ CORE_DEPTH = ../../..
 EXPORTS = \
 	cert.h \
 	certt.h \
+	$(NULL)
+
+NO_EXPORTS = \
 	certdb.h \
 	$(NULL)
 
-PRIVATE_EXPORTS = \
+NO_PRIVATE_EXPORTS = \
 	genname.h \
 	xconst.h \
 	certxutl.h \
 	$(NULL)
 
-MODULE = security
+MODULE = softoken
 
 CSRCS = $(NULL)
 

@@ -82,11 +82,7 @@ print_cert_callback(NSSCertificate *c, void *arg)
     NSSUTF8 *nickname = nssCertificate_GetNickname(c, NULL);
     NSSItem *serialNumber;
     NSSUsages usages;
-#if 1
     PRBool isUserCert = NSSCertificate_IsPrivateKeyAvailable(c, NULL, NULL);
-#else
-    PRBool isUserCert = PR_FALSE;
-#endif
     serialNumber = get_cert_serial_number(c);
     if (NSSCertificate_GetTrustedUsages(c, &usages) == NULL) {
 	CMD_PrintError("Failed to obtain trusted usages");

@@ -66,4 +66,4 @@ static const char BUILTINS_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #define NSS_BUILTINS_FIRMWARE_VERISON_MAJOR 1
 #define NSS_BUILTINS_FIRMWARE_VERISON_MINOR 0
 
-#endif NSSCKBI_H
+#endif /* NSSCKBI_H */

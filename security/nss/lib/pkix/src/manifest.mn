@@ -36,7 +36,7 @@ PRIVATE_EXPORTS = $(NULL)
 
 EXPORTS = $(NULL)
 
-MODULE = security
+MODULE = nss
 
 CSRCS= \
 	AlgorithmID.c      \

@@ -49,5 +49,5 @@ CSRCS =             \
 	cmderrors.c \
 	$(NULL)
 
-REQUIRES = security nspr
+REQUIRES = nss nspr
 

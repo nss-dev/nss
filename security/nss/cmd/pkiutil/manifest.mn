@@ -34,7 +34,8 @@
 CORE_DEPTH = ../../..
 
 # MODULE public and private header  directories are implicitly REQUIRED.
-MODULE = security 
+# XXX this is hack because it is using private_exports
+MODULE = nss 
 
 CSRCS = \
 	pkiobject.c \
@@ -43,6 +44,7 @@ CSRCS = \
 
 # The MODULE is always implicitly required.
 # Listing it here in REQUIRES makes it appear twice in the cc command line.
-REQUIRES = dbm seccmd
+REQUIRES = nspr seccmd
 
 PROGRAM = pkiutil
+

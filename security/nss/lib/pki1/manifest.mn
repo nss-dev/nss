@@ -45,7 +45,7 @@ EXPORTS =	   \
 	nsspki1t.h \
 	$(NULL)
 
-MODULE = security
+MODULE = nss
 
 #CSRCS =		  \
 #	atav.c	  \

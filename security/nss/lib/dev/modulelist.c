@@ -41,7 +41,6 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
  */
 
 #include "nspr.h"
-#include "nssrwlk.h"
 
 #ifndef DEVM_H
 #include "devm.h"

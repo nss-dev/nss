@@ -39,7 +39,9 @@
  */
 
 #include "secasn1.h"
+#ifndef STAN_BUILD
 #include "secerr.h"
+#endif /* !STAN_BUILD */
 
 typedef enum {
     beforeIdentifier,

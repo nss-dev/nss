@@ -78,14 +78,14 @@ CSRCS = \
 	secasn1e.c \
 	secasn1u.c \
 	secitem.c \
+	secport.c \
 	secoid.c \
 	sectime.c \
-	secport.c \
 	secinit.c \
 	utf8.c \
 	$(NULL)
 
-MODULE = security
+MODULE = softoken
 
 # don't duplicate module name in REQUIRES
 REQUIRES = dbm

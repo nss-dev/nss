@@ -42,11 +42,9 @@
  * $Id$
  */
 
-#include "seccomon.h"
 #include "prmem.h"
 #include "prerror.h"
 #include "plarena.h"
-#include "secerr.h"
 #include "prmon.h"
 #include "prbit.h"
 #include "ck.h"

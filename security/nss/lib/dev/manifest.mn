@@ -44,7 +44,7 @@ EXPORTS =	   \
 	nssdevt.h  \
 	$(NULL)
 
-MODULE = security
+MODULE = nss
 
 CSRCS =		        \
 	ckargparse.c    \

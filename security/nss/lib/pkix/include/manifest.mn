@@ -44,5 +44,5 @@ EXPORTS =	   \
 	nsspkix.h  \
 	$(NULL)
 
-MODULE = security
+MODULE = nss
 

@@ -39,7 +39,7 @@
 
 #include "secasn1.h"
 
-#ifndef STAN_BUILD
+#ifdef STAN_BUILD
 #include "base.h"
 #endif /* STAN_BUILD */
 

@@ -34,9 +34,15 @@ MANIFEST_CVS_ID = "@(#) $RCSfile$ $Revision$ $Date$ $Name$"
 
 CORE_DEPTH = ../../..
 
+PRIVATE_UTIL_EXPORTS = \
+	nssilock.h     \
+	nssilckt.h     \
+	$(NULL)
+
 PRIVATE_EXPORTS = \
 	baset.h		  \
 	base.h		  \
+	$(PRIVATE_UTIL_EXPORTS) \
 	$(NULL)
 
 EXPORTS =	     \
@@ -45,7 +51,7 @@ EXPORTS =	     \
 	nsserrors.h  \
 	$(NULL)
 
-MODULE = security
+MODULE = nss
 
 CSRCS =		   \
 	arena.c	   \

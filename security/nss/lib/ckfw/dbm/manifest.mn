@@ -34,7 +34,7 @@ MANIFEST_CVS_ID = "@(#) $RCSfile$ $Revision$ $Date$ $Name$"
 
 CORE_DEPTH = ../../../..
 
-MODULE = security
+MODULE = nss
 
 CSRCS =		   \
 	anchor.c   \

@@ -40,7 +40,7 @@ EXPORTS = \
 	nsst.h \
 	$(NULL)
 
-MODULE = security
+MODULE = nss
 
 CSRCS = \
 	nssinit.c \

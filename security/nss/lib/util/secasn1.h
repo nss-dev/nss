@@ -59,6 +59,8 @@
 #define SECSuccess PR_SUCCESS
 #define SECFailure PR_FAILURE
 #define PORT_Assert PR_ASSERT
+#define SEC_ERROR_BAD_DER NSS_ERROR_INVALID_BER
+#define SEC_ERROR_INVALID_ARGS NSS_ERROR_INTERNAL_ERROR
 typedef NSSArena asn1Arena;
 typedef PRStatus SECStatus;
 typedef NSSItem SECItem;
