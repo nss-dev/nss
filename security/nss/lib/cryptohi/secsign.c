@@ -49,7 +49,7 @@ struct SGNContextStr {
     SECOidTag signalg;
     SECOidTag hashalg;
     void *hashcx;
-    SECHashObject *hashobj;
+    const SECHashObject *hashobj;
     SECKEYPrivateKey *key;
 };
 

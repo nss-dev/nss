@@ -52,7 +52,7 @@ struct NSSCMSDigestContextStr {
     PRBool		saw_contents;
     int			digcnt;
     void **		digcxs;
-    SECHashObject **	digobjs;
+const SECHashObject **	digobjs;
 };
 
 /*
@@ -63,7 +63,7 @@ NSSCMSDigestContext *
 NSS_CMSDigestContext_StartMultiple(SECAlgorithmID **digestalgs)
 {
     NSSCMSDigestContext *cmsdigcx;
-    SECHashObject *digobj;
+    const SECHashObject *digobj;
     void *digcx;
     int digcnt;
     int i;
@@ -76,7 +76,7 @@ NSS_CMSDigestContext_StartMultiple(SECAlgorithmID **digestalgs)
 
     if (digcnt > 0) {
 	cmsdigcx->digcxs = (void **)PORT_Alloc(digcnt * sizeof (void *));
-	cmsdigcx->digobjs = (SECHashObject **)PORT_Alloc(digcnt * sizeof(SECHashObject *));
+	cmsdigcx->digobjs = (const SECHashObject **)PORT_Alloc(digcnt * sizeof(SECHashObject *));
 	if (cmsdigcx->digcxs == NULL || cmsdigcx->digobjs == NULL)
 	    goto loser;
     }
@@ -169,7 +169,7 @@ SECStatus
 NSS_CMSDigestContext_FinishMultiple(NSSCMSDigestContext *cmsdigcx, PLArenaPool *poolp,
 			    SECItem ***digestsp)
 {
-    SECHashObject *digobj;
+    const SECHashObject *digobj;
     void *digcx;
     SECItem **digests, *digest;
     int i;

@@ -107,7 +107,7 @@ static CK_BBOOL
 builtins_attrmatch
 (
   CK_ATTRIBUTE_PTR a,
-  NSSItem *b
+  const NSSItem *b
 )
 {
   PRBool prb;

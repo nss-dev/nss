@@ -55,8 +55,8 @@ static const char BUILTINS_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 
 struct builtinsInternalObjectStr {
   CK_ULONG n;
-  CK_ATTRIBUTE_TYPE *types;
-  NSSItem *items;
+  const CK_ATTRIBUTE_TYPE *types;
+  const NSSItem *items;
 };
 typedef struct builtinsInternalObjectStr builtinsInternalObject;
 
