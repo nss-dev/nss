@@ -131,6 +131,7 @@ struct NSSTokenStr
     void *epv;
     nssSession *defaultSession;
     NSSTrustDomain *trustDomain;
+    PRIntervalTime lastTime;
 #ifdef NSS_3_4_CODE
     PK11SlotInfo *pk11slot;
     nssList *certList; /* local cache of certs for slow tokens */
