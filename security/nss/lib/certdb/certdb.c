@@ -2629,9 +2629,10 @@ loser:
 
 PRBool CERT_IsUserCert(CERTCertificate* cert)
 {
-    if ( (cert->trust->sslFlags & CERTDB_USER ) ||
+    if ( cert->trust &&
+        ((cert->trust->sslFlags & CERTDB_USER ) ||
          (cert->trust->emailFlags & CERTDB_USER ) ||
-         (cert->trust->objectSigningFlags & CERTDB_USER ) ) {
+         (cert->trust->objectSigningFlags & CERTDB_USER )) ) {
         return PR_TRUE;
     } else {
         return PR_FALSE;
