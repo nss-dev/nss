@@ -706,13 +706,6 @@ extern char *CERT_HTMLCertInfo(CERTCertificate *cert, PRBool showImages,
 */
 extern SECItem *CERT_DecodeAVAValue(const SECItem *derAVAValue);
 
-/*
- * take a DER certificate and decode it into a certificate structure
- */
-CERTCertificate *
-CERT_DecodeDERCertificate(SECItem *derSignedCert, PRBool copyDER,
-                         char *nickname);
-
 
 
 /*
