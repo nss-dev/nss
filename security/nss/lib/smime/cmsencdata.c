@@ -161,6 +161,7 @@ NSS_CMSEncryptedData_Encode_BeforeStart(NSSCMSEncryptedData *encd)
 
     /* store the bulk key in the contentInfo so that the encoder can find it */
     NSS_CMSContentInfo_SetBulkKey(cinfo, bulkkey);
+    PK11_FreeSymKey (bulkkey);
 
     return SECSuccess;
 }
