@@ -261,7 +261,7 @@ nssCryptoContext_ImportCertificate
     }
     nssrv = nssCertificateStore_Add(cc->certStore, c);
     if (nssrv == PR_SUCCESS) {
-	nssCertificate_SetCryptoContext(cc);
+	nssCertificate_SetCryptoContext(c, cc);
 	cc->cert = nssCertificate_AddRef(c);
     }
     return nssrv;
@@ -362,7 +362,7 @@ NSSCryptoContext_FindBestCertificateByNickname
   NSSCryptoContext *cc,
   NSSUTF8 *name,
   NSSTime time, /* NULL for "now" */
-  NSSUsage *usage,
+  NSSUsages *usages,
   NSSPolicies *policiesOpt /* NULL for none */
 )
 {
@@ -377,7 +377,7 @@ NSSCryptoContext_FindBestCertificateByNickname
     if (certs) {
 	rvCert = nssCertificateArray_FindBestCertificate(certs,
 	                                                 time,
-	                                                 usage,
+	                                                 usages,
 	                                                 policiesOpt);
 	nssCertificateArray_Destroy(certs);
     }
@@ -429,7 +429,7 @@ NSSCryptoContext_FindBestCertificateBySubject
   NSSCryptoContext *cc,
   NSSDER *subject,
   NSSTime time,
-  NSSUsage *usage,
+  NSSUsages *usages,
   NSSPolicies *policiesOpt
 )
 {
@@ -444,7 +444,7 @@ NSSCryptoContext_FindBestCertificateBySubject
     if (certs) {
 	rvCert = nssCertificateArray_FindBestCertificate(certs,
 	                                                 time,
-	                                                 usage,
+	                                                 usages,
 	                                                 policiesOpt);
 	nssCertificateArray_Destroy(certs);
     }
@@ -494,7 +494,7 @@ NSSCryptoContext_FindBestCertificateByNameComponents
   NSSCryptoContext *cc,
   NSSUTF8 *nameComponents,
   NSSTime time,
-  NSSUsage *usage,
+  NSSUsages *usages,
   NSSPolicies *policiesOpt
 )
 {
@@ -537,7 +537,7 @@ NSSCryptoContext_FindBestCertificateByEmail
   NSSCryptoContext *cc,
   NSSASCII7 *email,
   NSSTime time,
-  NSSUsage *usage,
+  NSSUsages *usages,
   NSSPolicies *policiesOpt
 )
 {
@@ -552,7 +552,7 @@ NSSCryptoContext_FindBestCertificateByEmail
     if (certs) {
 	rvCert = nssCertificateArray_FindBestCertificate(certs,
 	                                                 time,
-	                                                 usage,
+	                                                 usages,
 	                                                 policiesOpt);
 	nssCertificateArray_Destroy(certs);
     }
@@ -597,7 +597,7 @@ NSSCryptoContext_FindBestUserCertificate
 (
   NSSCryptoContext *cc,
   NSSTime time,
-  NSSUsage *usage,
+  NSSUsages *usages,
   NSSPolicies *policiesOpt
 )
 {
@@ -610,7 +610,7 @@ NSSCryptoContext_FindUserCertificates
 (
   NSSCryptoContext *cc,
   NSSTime time,
-  NSSUsage *usageOpt,
+  NSSUsages *usagesOpt,
   NSSPolicies *policiesOpt,
   NSSCertificate **rvOpt,
   PRUint32 rvLimit, /* zero for no limit */
@@ -729,7 +729,8 @@ prepare_context_for_operation
 	}
     } else {
 	/* Set the token where the operation will take place */
-	cc->token = nssTrustDomain_FindTokenForAlgorithm(cc->td, ap);
+	cc->token = nssTrustDomain_FindTokenForAlgorithmAndParameters(cc->td, 
+	                                                              ap);
 	if (!cc->token) {
 	    /*nss_SetError(NSS_ERROR_NO_TOKEN_FOR_OPERATION);*/
 	    goto loser;
@@ -775,7 +776,7 @@ prepare_context_symmetric_key
 	    cc->token = nssToken_AddRef(cc->mko->token);
 	} else {
 	    /* find any token in the trust domain that can */
-	    cc->token = nssTrustDomain_FindTokenForAlgorithm(cc->td, ap);
+	    cc->token = nssTrustDomain_FindTokenForAlgorithmAndParameters(cc->td, ap);
 	    if (!cc->token) {
 		/*nss_SetError(NSS_ERROR_NO_TOKEN_FOR_OPERATION);*/
 		goto loser;
@@ -786,7 +787,7 @@ prepare_context_symmetric_key
      * the token, copy it there
      */
     if (!cc->mko) {
-	cc->mko = nssSymmetricKey_Copy(cc->mk, cc->token);
+	cc->mko = nssSymmetricKey_CopyToToken(cc->mk, cc->token);
 	if (!cc->mko) {
 	    goto loser;
 	}
@@ -840,7 +841,7 @@ prepare_context_private_key
 	    cc->token = nssToken_AddRef(cc->vko->token);
 	} else {
 	    /* find any token in the trust domain that can */
-	    cc->token = nssTrustDomain_FindTokenForAlgorithm(cc->td, ap);
+	    cc->token = nssTrustDomain_FindTokenForAlgorithmAndParameters(cc->td, ap);
 	    if (!cc->token) {
 		/*nss_SetError(NSS_ERROR_NO_TOKEN_FOR_OPERATION);*/
 		goto loser;
@@ -851,7 +852,7 @@ prepare_context_private_key
      * the token, copy it there
      */
     if (!cc->vko) {
-	cc->vko = nssPrivateKey_Copy(cc->vk, cc->token);
+	cc->vko = nssPrivateKey_CopyToToken(cc->vk, cc->token);
 	if (!cc->vko) {
 	    goto loser;
 	}
@@ -905,7 +906,7 @@ prepare_context_public_key
 	    cc->token = nssToken_AddRef(cc->bko->token);
 	} else {
 	    /* find any token in the trust domain that can */
-	    cc->token = nssTrustDomain_FindTokenForAlgorithm(cc->td, ap);
+	    cc->token = nssTrustDomain_FindTokenForAlgorithmAndParameters(cc->td, ap);
 	    if (!cc->token) {
 		/*nss_SetError(NSS_ERROR_NO_TOKEN_FOR_OPERATION);*/
 		goto loser;
@@ -916,7 +917,7 @@ prepare_context_public_key
      * the token, copy it there
      */
     if (!cc->bko) {
-	cc->bko = nssPublicKey_Copy(cc->bk, cc->token);
+	cc->bko = nssPublicKey_CopyToToken(cc->bk, cc->token);
 	if (!cc->bko) {
 	    goto loser;
 	}

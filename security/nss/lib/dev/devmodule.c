@@ -481,7 +481,7 @@ static PRIntn
 get_slot_number(NSSUTF8* snString)
 {
     /* XXX super big hack */
-    return atoi(&snString[strlen(snString)-1]);
+    return atoi(&snString[nssUTF8_Length(snString,0)-1]);
 }
 
 static PRStatus

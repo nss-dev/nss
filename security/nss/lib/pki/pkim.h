@@ -277,6 +277,21 @@ nssCertificate_FindInstanceForAlgorithm
   NSSAlgorithmAndParameters *ap
 );
 
+NSS_EXTERN void
+nssCertificate_SetCryptoContext
+(
+  NSSCertificate *c,
+  NSSCryptoContext *cc
+);
+
+NSS_EXTERN PRStatus
+nssCertificate_CopyToToken
+(
+  NSSCertificate *c,
+  NSSToken *token,
+  NSSUTF8 *nicknameOpt
+);
+
 NSS_EXTERN nssTrust *
 nssTrust_Create
 (
@@ -320,8 +335,8 @@ nssSymmetricKey_Destroy
   NSSSymmetricKey *mk
 );
 
-NSS_EXTERN NSSSymmetricKey *
-nssSymmetricKey_Copy
+NSS_IMPLEMENT nssCryptokiObject *
+nssSymmetricKey_CopyToToken
 (
   NSSSymmetricKey *mk,
   NSSToken *destination
@@ -404,8 +419,8 @@ nssPublicKey_FindInstanceForAlgorithm
   NSSAlgorithmAndParameters *ap
 );
 
-NSS_EXTERN NSSPublicKey *
-nssPublicKey_Copy
+NSS_EXTERN nssCryptokiObject *
+nssPublicKey_CopyToToken
 (
   NSSPublicKey *bk,
   NSSToken *destination
@@ -438,11 +453,18 @@ nssPrivateKey_FindInstanceForAlgorithm
   NSSAlgorithmAndParameters *ap
 );
 
-NSS_EXTERN NSSPrivateKey *
-nssPrivateKey_Copy
+NSS_EXTERN nssCryptokiObject *
+nssPrivateKey_CopyToToken
 (
   NSSPrivateKey *vk,
   NSSToken *destination
+);
+
+NSS_EXTERN PRBool
+nssUsages_Match
+(
+  NSSUsages *usages,
+  NSSUsages *testUsages
 );
 
 /* nssCertificateArray

@@ -91,6 +91,12 @@ nssTrustDomain_FindTrustForCertificate
 );
 
 NSS_EXTERN NSSCertificate *
+nssCertificate_Decode
+(
+  NSSBER *ber
+);
+
+NSS_EXTERN NSSCertificate *
 nssCertificate_AddRef
 (
   NSSCertificate *c

@@ -448,9 +448,9 @@ nssASN1Encoder_Create
   void *argument
 )
 {
+#ifdef nodef
   SEC_ASN1EncoderContext *rv;
 
-#ifdef nodef
   switch( encoding ) {
   case NSSASN1BER:
   case NSSASN1DER:
@@ -836,7 +836,7 @@ nssasn1_encode_item_store
   dest = (NSSItem*)arg;
   PR_ASSERT (dest != NULL);
 
-  memcpy((unsigned char *)dest->data + dest->size, buf, len);
+  nsslibc_memcpy((unsigned char *)dest->data + dest->size, buf, len);
   dest->size += len;
 }
 

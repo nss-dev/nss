@@ -43,6 +43,10 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #include "pkim.h"
 #endif /* PKIM_H */
 
+#ifndef PKI1_H
+#include "pki1.h"
+#endif /* PKI1_H */
+
 #ifdef CERT_CACHE
 #ifndef CERTCACHE_H
 #include "certcache.h"
@@ -865,7 +869,7 @@ NSSTrustDomain_FindBestCertificateByNameComponents
   NSSTrustDomain *td,
   NSSUTF8 *nameComponents,
   NSSTime time,
-  NSSUsage *usage,
+  NSSUsages *usages,
   NSSPolicies *policiesOpt
 )
 {
@@ -1112,7 +1116,7 @@ NSSTrustDomain_FindBestCertificateByEmail
   NSSTrustDomain *td,
   NSSASCII7 *email,
   NSSTime time,
-  NSSUsage *usage,
+  NSSUsages *usages,
   NSSPolicies *policiesOpt
 )
 {
@@ -1149,7 +1153,7 @@ NSSTrustDomain_FindBestUserCertificate
 (
   NSSTrustDomain *td,
   NSSTime time,
-  NSSUsage *usage,
+  NSSUsages *usages,
   NSSPolicies *policiesOpt
 )
 {
@@ -1162,7 +1166,7 @@ NSSTrustDomain_FindUserCertificates
 (
   NSSTrustDomain *td,
   NSSTime time,
-  NSSUsage *usageOpt,
+  NSSUsages *usagesOpt,
   NSSPolicies *policiesOpt,
   NSSCertificate **rvOpt,
   PRUint32 rvLimit, /* zero for no limit */

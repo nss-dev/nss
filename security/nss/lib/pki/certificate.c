@@ -899,7 +899,7 @@ NSSCertificate_ValidateCompletely
 (
   NSSCertificate *c,
   NSSTime time, /* NULL for "now" */
-  NSSUsage *usages,
+  NSSUsages *usages,
   NSSPolicies *policiesOpt, /* NULL for none */
   void **rvOpt, /* NULL for allocate */
   PRUint32 rvLimit, /* zero for no limit */
@@ -1311,7 +1311,7 @@ NSSCertificate_Encrypt
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *data,
   NSSTime time,
-  NSSUsage *usage,
+  NSSUsages *usages,
   NSSPolicies *policiesOpt,
   NSSCallback *uhh,
   NSSItem *rvOpt,
@@ -1330,7 +1330,7 @@ NSSCertificate_Verify
   NSSItem *data,
   NSSItem *signature,
   NSSTime time,
-  NSSUsage *usage,
+  NSSUsages *usages,
   NSSPolicies *policiesOpt,
   NSSCallback *uhh
 )
@@ -1346,7 +1346,7 @@ NSSCertificate_VerifyRecover
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *signature,
   NSSTime time,
-  NSSUsage *usage,
+  NSSUsages *usages,
   NSSPolicies *policiesOpt,
   NSSCallback *uhh,
   NSSItem *rvOpt,
@@ -1364,7 +1364,7 @@ NSSCertificate_WrapSymmetricKey
   const NSSAlgorithmAndParameters *apOpt,
   NSSSymmetricKey *keyToWrap,
   NSSTime time,
-  NSSUsage *usage,
+  NSSUsages *usages,
   NSSPolicies *policiesOpt,
   NSSCallback *uhh,
   NSSItem *rvOpt,
@@ -1381,7 +1381,7 @@ NSSCertificate_CreateCryptoContext
   NSSCertificate *c,
   const NSSAlgorithmAndParameters *apOpt,
   NSSTime time,
-  NSSUsage *usage,
+  NSSUsages *usages,
   NSSPolicies *policiesOpt,
   NSSCallback *uhh  
 )
@@ -1561,7 +1561,7 @@ NSSUserCertificate_Decrypt
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *data,
   NSSTime time,
-  NSSUsage *usage,
+  NSSUsages *usages,
   NSSPolicies *policiesOpt,
   NSSCallback *uhh,
   NSSItem *rvOpt,
@@ -1579,7 +1579,7 @@ NSSUserCertificate_Sign
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *data,
   NSSTime time,
-  NSSUsage *usage,
+  NSSUsages *usages,
   NSSPolicies *policiesOpt,
   NSSCallback *uhh,
   NSSItem *rvOpt,
@@ -1597,7 +1597,7 @@ NSSUserCertificate_SignRecover
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *data,
   NSSTime time,
-  NSSUsage *usage,
+  NSSUsages *usages,
   NSSPolicies *policiesOpt,
   NSSCallback *uhh,
   NSSItem *rvOpt,
@@ -1615,7 +1615,7 @@ NSSUserCertificate_UnwrapSymmetricKey
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *wrappedKey,
   NSSTime time,
-  NSSUsage *usage,
+  NSSUsages *usages,
   NSSPolicies *policiesOpt,
   NSSCallback *uhh,
   NSSItem *rvOpt,

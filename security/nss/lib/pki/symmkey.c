@@ -170,8 +170,8 @@ NSSSymmetricKey_DeleteStoredObject
     return nssSymmetricKey_DeleteStoredObject(mk, uhh);
 }
 
-NSS_IMPLEMENT NSSSymmetricKey *
-nssSymmetricKey_Copy
+NSS_IMPLEMENT nssCryptokiObject *
+nssSymmetricKey_CopyToToken
 (
   NSSSymmetricKey *mk,
   NSSToken *destination

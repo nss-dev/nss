@@ -48,12 +48,10 @@ EXPORTS = \
 	preenc.h \
 	$(NULL)
 
-#MODULE = security
-#MAPFILE = $(OBJDIR)/ssl.def
+MODULE = nss
+MAPFILE = $(OBJDIR)/ssl.def
 
-CSRCS = $(NULL)
-
-NO_CSRCS = \
+CSRCS = \
 	emulate.c \
 	prelib.c \
 	ssl3con.c \
@@ -79,7 +77,7 @@ NO_CSRCS = \
 	$(NULL)
 
 
-REQUIRES = security dbm
+REQUIRES = nss nspr
 
-#LIBRARY_NAME = ssl
-#LIBRARY_VERSION = 3
+LIBRARY_NAME = ssl
+LIBRARY_VERSION = 4

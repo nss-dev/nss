@@ -992,6 +992,12 @@ nssAlgorithmAndParameters_Clone
   NSSArena *arenaOpt
 );
 
+NSS_EXTERN void
+nssAlgorithmAndParameters_Destroy
+(
+  NSSAlgorithmAndParameters *ap
+);
+
 /* nssSession
  *
  * nssSession_AddRef

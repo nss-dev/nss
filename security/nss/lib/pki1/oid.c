@@ -410,21 +410,8 @@ oid_hash_compare
   const void *k2
 )
 {
-  PRIntn rv;
-
   const NSSItem *i1 = (const NSSItem *)k1;
   const NSSItem *i2 = (const NSSItem *)k2;
-
-#if 0
-  PRUint32 size = (i1->size < i2->size) ? i1->size : i2->size;
-
-  rv = (PRIntn)nsslibc_memequal(i1->data, i2->data, size, (PRStatus *)NULL);
-  if( 0 == rv ) {
-    rv = i1->size - i2->size;
-  }
-
-  return !rv;
-#endif
   return (PRIntn)nssItem_Equal(i1, i2, NULL);
 }
 

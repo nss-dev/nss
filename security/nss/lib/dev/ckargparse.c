@@ -35,6 +35,8 @@
 static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #endif /* DEBUG */
 
+#include <ctype.h>
+
 #ifndef BASE_H
 #include "base.h"
 #endif /* BASE_H */

@@ -204,8 +204,8 @@ NSSPrivateKey_DeleteStoredObject
     return nssPKIObject_DeleteStoredObject(&vk->object, uhh, PR_FALSE);
 }
 
-NSS_IMPLEMENT NSSPrivateKey *
-nssPrivateKey_Copy
+NSS_IMPLEMENT nssCryptokiObject *
+nssPrivateKey_CopyToToken
 (
   NSSPrivateKey *vk,
   NSSToken *destination
@@ -506,7 +506,7 @@ NSSPrivateKey_FindBestCertificate
 (
   NSSPrivateKey *vk,
   NSSTime time,
-  NSSUsage *usageOpt,
+  NSSUsages *usagesOpt,
   NSSPolicies *policiesOpt
 )
 {
@@ -748,8 +748,8 @@ NSSPublicKey_DeleteStoredObject
     return nssPublicKey_DeleteStoredObject(bk, uhh);
 }
 
-NSS_IMPLEMENT NSSPublicKey *
-nssPublicKey_Copy
+NSS_IMPLEMENT nssCryptokiObject *
+nssPublicKey_CopyToToken
 (
   NSSPublicKey *bk,
   NSSToken *destination

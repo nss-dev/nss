@@ -72,6 +72,13 @@ nssDevice_Destroy
  struct nssDeviceBaseStr *device
 );
 
+NSS_EXTERN PRStatus
+nssModule_DestroyFromSlot
+(
+  NSSModule *mod,
+  NSSSlot *slot
+);
+
 NSS_EXTERN PRBool
 nssModule_IsThreadSafe
 (

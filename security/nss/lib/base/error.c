@@ -372,6 +372,7 @@ nss_HoldErrorStack
   }
 
   es->header.holdCount++;  /* thread-private data, this is safe */
+  return PR_SUCCESS;
 }
 
 NSS_IMPLEMENT PRStatus
@@ -387,5 +388,6 @@ nss_ResumeErrorStack
   }
 
   es->header.holdCount--; /* thread-private data, this is safe */
+  return PR_SUCCESS;
 }
 
