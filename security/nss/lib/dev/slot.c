@@ -438,6 +438,7 @@ nssSlot_SetPassword
     return nssrv;
 }
 
+#ifdef PURE_STAN
 NSS_IMPLEMENT nssSession *
 nssSlot_CreateSession
 (
@@ -504,6 +505,7 @@ nssSession_Destroy
     }
     return (ckrv == CKR_OK) ? PR_SUCCESS : PR_FAILURE;
 }
+#endif
 
 NSS_IMPLEMENT PRStatus
 nssSession_EnterMonitor

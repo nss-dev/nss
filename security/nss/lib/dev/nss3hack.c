@@ -67,6 +67,45 @@ nssSession_ImportNSS3Session(NSSArena *arenaOpt,
     return rvSession;
 }
 
+NSS_IMPLEMENT nssSession *
+nssSlot_CreateSession
+(
+  NSSSlot *slot,
+  NSSArena *arenaOpt,
+  PRBool readWrite
+)
+{
+    nssSession *rvSession;
+    rvSession = nss_ZNEW(arenaOpt, nssSession);
+    if (!rvSession) {
+	return (nssSession *)NULL;
+    }
+    if (readWrite) {
+	rvSession->handle = PK11_GetRWSession(slot->pk11slot);
+	rvSession->isRW = PR_TRUE;
+	rvSession->slot = slot;
+	return rvSession;
+    } else {
+	return NULL;
+    }
+}
+
+NSS_IMPLEMENT PRStatus
+nssSession_Destroy
+(
+  nssSession *s
+)
+{
+    CK_RV ckrv = CKR_OK;
+    if (s) {
+	if (s->isRW) {
+	    PK11_RestoreROSession(s->slot->pk11slot, s->handle);
+	}
+	nss_ZFreeIf(s);
+    }
+    return (ckrv == CKR_OK) ? PR_SUCCESS : PR_FAILURE;
+}
+
 static NSSSlot *
 nssSlot_CreateFromPK11SlotInfo(NSSTrustDomain *td, PK11SlotInfo *nss3slot)
 {
@@ -117,6 +156,7 @@ nssToken_CreateFromPK11SlotInfo(NSSTrustDomain *td, PK11SlotInfo *nss3slot)
     }
     rvToken->slot = nssSlot_CreateFromPK11SlotInfo(td, nss3slot);
     rvToken->slot->token = rvToken;
+    rvToken->defaultSession->slot = rvToken->slot;
     return rvToken;
 }
 
