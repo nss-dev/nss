@@ -44,10 +44,22 @@ EXTRA_LIBS = \
 # can't do this in manifest.mn because OS_TARGET isn't defined there.
 ifeq (,$(filter-out WIN%,$(OS_TARGET)))
 
+# Link with the real NSPR DLLs for MinGW because the NSPR stubs in
+# nsprstub.c can't resolve the references to the _imp__PR_XXX symbols.
+# This is merely an expedient hack and not the right solution.
+ifdef NS_USE_GCC
+EXTRA_LIBS += \
+	-L$(DIST)/lib \
+	-lplc4 \
+	-lplds4 \
+	-lnspr4 \
+	$(NULL)
+else
 EXTRA_LIBS += \
 	$(DIST)/lib/$(NSPR31_LIB_PREFIX)plc4_s.lib \
 	$(DIST)/lib/$(NSPR31_LIB_PREFIX)plds4_s.lib \
 	$(NULL)
+endif
 
 else
 
