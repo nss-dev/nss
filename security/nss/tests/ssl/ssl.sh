@@ -51,8 +51,6 @@ do
 	none=0; stress=1;;
     [Nn][Oo][Ss]*)
 	stress=0;;
-    [Vv][Ee][Rr][Bb]*)
-	verbose=-v;;
      f)
 	fileout=1;
      esac
@@ -69,10 +67,6 @@ fi
 # should also try to kill any running server
 #
 trap "rm -f ${TEMPFILES};  exit"  2 3
-
-CADIR=${HOSTDIR}/CA
-SERVERDIR=${HOSTDIR}/server
-CLIENTDIR=${HOSTDIR}/client
 
 if [ $certs -eq 1 ]; then
 # Generate noise for our CA cert.
@@ -91,6 +85,7 @@ date >> ${NOISE_FILE} 2>&1
 # 
 echo "<TABLE BORDER=1><TR><TH COLSPAN=3>Certutil Tests</TH></TR>" >> ${RESULTS}
 echo "<TR><TH width=500>Test Case</TH><TH width=50>Result</TH></TR>" >> ${RESULTS}
+CADIR=${HOSTDIR}/CA
 echo "********************** Creating a CA Certificate **********************"
 if [ ! -d ${CADIR} ]; then
    mkdir -p ${CADIR}
@@ -124,6 +119,7 @@ fi
 echo "**************** Creating Client CA Issued Certificate ****************"
 netstat >> ${NOISE_FILE} 2>&1
 date >> ${NOISE_FILE} 2>&1
+CLIENTDIR=${HOSTDIR}/client
 if [ ! -d ${CLIENTDIR} ]; then
    mkdir -p ${CLIENTDIR}
 fi
@@ -171,6 +167,7 @@ fi
 echo "***** Creating Server CA Issued Certificate for ${HOST}.${DOMSUF} *****"
 netstat >> ${NOISE_FILE} 2>&1
 date >> ${NOISE_FILE} 2>&1
+SERVERDIR=${HOSTDIR}/server
 if [ ! -d ${SERVERDIR} ]; then
    mkdir -p ${SERVERDIR}
 fi
@@ -299,16 +296,15 @@ do
 	echo "********************* $testname ****************************"
 	sparam=`echo $sparam | sed -e 's;_; ;g'`
 	cparam=`echo $cparam | sed -e 's;_; ;g'`
-	echo "selfserv -p ${PORT} -d ${SERVERDIR} -n ${HOST}.${DOMSUF} -w nss ${sparam} -i ${SERVERPID} $verbose &"
+	echo "selfserv -p ${PORT} -d ${SERVERDIR}  -n ${HOST}.${DOMSUF} -w nss ${sparam} -i ${SERVERPID} &"
 	if [ ${fileout} -eq 1 ]; then
-	    selfserv -p ${PORT} -d ${SERVERDIR} -n ${HOST}.${DOMSUF} -w nss ${sparam} -i ${SERVERPID} $verbose > ${SERVEROUTFILE} 2>&1 &
+	    selfserv -p ${PORT} -d ${SERVERDIR}  -n ${HOST}.${DOMSUF} -w nss ${sparam} -i ${SERVERPID} > ${SERVEROUTFILE} 2>&1 &
 	else
-	    selfserv -p ${PORT} -d ${SERVERDIR} -n ${HOST}.${DOMSUF} -w nss ${sparam} -i ${SERVERPID} $verbose &
+	    selfserv -p ${PORT} -d ${SERVERDIR}  -n ${HOST}.${DOMSUF} -w nss ${sparam} -i ${SERVERPID} &
 	fi
 	sleep 20
 
-	echo "strsclnt -p ${PORT} -d . -w nss $cparam $verbose ${HOST}.${DOMSUF} "
-	strsclnt -p ${PORT} -d . -w nss $cparam $verbose ${HOST}.${DOMSUF} 
+	strsclnt -p ${PORT} ${HOST} -d . -w nss $cparam 
 	if [ $? -ne $value ]; then
 	    echo "<TR><TD>"${testname}"</TD><TD bgcolor=red>Failed</TD><TR>" >> ${RESULTS}
 	else
