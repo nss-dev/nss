@@ -1,4 +1,3 @@
-#! gmake
 #
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
@@ -14,7 +13,7 @@
 # 
 # The Initial Developer of the Original Code is Netscape
 # Communications Corporation.  Portions created by Netscape are 
-# Copyright (C) 1994-2000 Netscape Communications Corporation.  All
+# Copyright (C) 2000 Netscape Communications Corporation.  All
 # Rights Reserved.
 # 
 # Contributor(s):
@@ -31,25 +30,19 @@
 # may use your version of this file under either the MPL or the
 # GPL.
 #
+# Config stuff for Solaris 9 on x86
+# 
 
-CORE_DEPTH = ../..
+SOL_CFLAGS	= -D_SVID_GETTOD
 
-MODULE = dbm
+include $(CORE_DEPTH)/coreconf/SunOS5.mk
 
-EXPORTS =	nsres.h   \
-		cdefs.h   \
-		mcom_db.h \
-		ncompat.h \
-		winfile.h \
-		$(NULL)
+CPU_ARCH		= x86
+ARCHFLAG		=
+OS_DEFINES		+= -Di386
 
-PRIVATE_EXPORTS =	hsearch.h \
-			page.h    \
-			extern.h  \
-			ndbm.h    \
-			queue.h   \
-			hash.h    \
-			mpool.h   \
-			search.h  \
-			$(NULL)
+ifeq ($(OS_RELEASE),5.9_i86pc)
+	OS_DEFINES += -DSOLARIS2_9
+endif
 
+OS_LIBS += -lthread -lnsl -lsocket -lposix4 -ldl -lc

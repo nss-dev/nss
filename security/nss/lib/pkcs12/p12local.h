@@ -84,5 +84,21 @@ sec_PKCS12ConvertOldSafeToNew(PRArenaPool *arena, PK11SlotInfo *slot,
 			      PRBool swapUnicode, SECItem *pwitem,
 			      void *wincx, SEC_PKCS12SafeContents *safe,
 			      SEC_PKCS12Baggage *baggage);
+
+/* XXX
+ * The following are really PKCS#11 functions.  However, to maintain
+ * compatibility, they are put here for 3.2.x (x > 1) releases.
+ */
+
+/* This function creates PBE parameters from the given inputs.  The result
+ * can be used to create a password integrity key for PKCS#12, by sending
+ * the return value to PK11_KeyGen along with the appropriate mechanism.
+ */
+SECItem * 
+__PK11_CreatePBEParams(SECItem *salt, SECItem *pwd, unsigned int iterations);
+
+/* free params created above (can be called after keygen is done */
+void __PK11_DestroyPBEParams(SECItem *params);
+
 	
 #endif

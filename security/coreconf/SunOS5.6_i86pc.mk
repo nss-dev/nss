@@ -1,4 +1,3 @@
-#! gmake
 #
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
@@ -31,16 +30,17 @@
 # may use your version of this file under either the MPL or the
 # GPL.
 #
+# Config stuff for Solaris 2.6 on x86
+# 
 
-CORE_DEPTH = ..
+SOL_CFLAGS	= -D_SVID_GETTOD
 
-MODULE = dbm
+include $(CORE_DEPTH)/coreconf/SunOS5.mk
 
-#IMPORTS = nspr20/v3.5
-IMPORTS = nspr20/v4.0
+CPU_ARCH		= x86
+ARCHFLAG		=
+OS_DEFINES		+= -Di386
 
-RELEASE = dbm
-
-DIRS =  include \
-        src     \
-	$(NULL)
+ifeq ($(OS_RELEASE),5.6_i86pc)
+	OS_DEFINES += -DSOLARIS2_6
+endif
