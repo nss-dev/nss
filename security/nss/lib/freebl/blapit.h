@@ -22,7 +22,8 @@
  * Sun Microsystems, Inc. All Rights Reserved.
  *
  * Contributor(s):
- *	Dr Vipul Gupta <vipul.gupta@sun.com>, Sun Microsystems Laboratories
+ *	Dr Vipul Gupta <vipul.gupta@sun.com> and
+ *	Douglas Stebila <douglas@stebila.ca>, Sun Microsystems Laboratories
  * 
  * Alternatively, the contents of this file may be used under the
  * terms of the GNU General Public License Version 2 or later (the
@@ -45,6 +46,7 @@
 #include "seccomon.h"
 #include "prlink.h"
 #include "plarena.h"
+#include "ecl-exp.h"
 
 
 /* RC2 operation modes */
@@ -315,6 +317,8 @@ struct ECParamsStr {
     SECItem       order; 
     int           cofactor;
     SECItem       DEREncoding;
+    ECCurveName   name;
+    SECItem       curveOID;
 };
 typedef struct ECParamsStr ECParams;
 
@@ -330,6 +334,7 @@ struct ECPrivateKeyStr {
     ECParams ecParams;   
     SECItem publicValue;   /* encoded ec point */
     SECItem privateValue;  /* private big integer */
+    SECItem version;       /* As per SEC 1, Appendix C, Section C.4 */
 };
 typedef struct ECPrivateKeyStr ECPrivateKey;
 

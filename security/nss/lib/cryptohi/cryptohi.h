@@ -18,7 +18,11 @@
  * Copyright (C) 1994-2000 Netscape Communications Corporation.  All
  * Rights Reserved.
  * 
+ * Portions created by Sun Microsystems, Inc. are Copyright (C) 2003
+ * Sun Microsystems, Inc. All Rights Reserved. 
+ * 
  * Contributor(s):
+ *	Dr Vipul Gupta <vipul.gupta@sun.com>, Sun Microsystems Laboratories
  * 
  * Alternatively, the contents of this file may be used under the
  * terms of the GNU General Public License Version 2 or later (the
@@ -53,7 +57,7 @@ SEC_BEGIN_PROTOS
 
 /****************************************/
 /*
-** DER encode/decode DSA signatures
+** DER encode/decode (EC)DSA signatures
 */
 
 /* ANSI X9.57 defines DSA signatures as DER encoded data.  Our DSA code (and
@@ -63,7 +67,21 @@ SEC_BEGIN_PROTOS
 extern SECStatus DSAU_EncodeDerSig(SECItem *dest, SECItem *src);
 extern SECItem *DSAU_DecodeDerSig(SECItem *item);
 
-
+/*
+ * Unlike DSA, raw ECDSA signatures do not have a fixed length.
+ * Rather they contain two integers r and s whose length depends
+ * on the size of the EC key used for signing.
+ *
+ * We can reuse the DSAU_EncodeDerSig interface to DER encode
+ * raw ECDSA signature keeping in mind that the length of r 
+ * is the same as that of s and exactly half of src->len.
+ *
+ * For decoding, we need to pass the length of the desired
+ * raw signature (twice the key size) explicitly.
+ */
+extern SECStatus DSAU_EncodeDerSigWithLen(SECItem *dest, SECItem *src, 
+					  unsigned int len);
+extern SECItem *DSAU_DecodeDerSigToLen(SECItem *item, unsigned int len);
 
 /****************************************/
 /*

@@ -18,7 +18,11 @@
  * Copyright (C) 1994-2000 Netscape Communications Corporation.  All
  * Rights Reserved.
  * 
+ * Portions created by Sun Microsystems, Inc. are Copyright (C) 2003
+ * Sun Microsystems, Inc. All Rights Reserved.
+ *
  * Contributor(s):
+ *	Dr Vipul Gupta <vipul.gupta@sun.com>, Sun Microsystems Laboratories
  * 
  * Alternatively, the contents of this file may be used under the
  * terms of the GNU General Public License Version 2 or later (the
@@ -63,6 +67,11 @@ NSS_FindCertKEAType(CERTCertificate * cert)
   case SEC_OID_X942_DIFFIE_HELMAN_KEY:
     keaType = kt_dh;
     break;
+#ifdef NSS_ENABLE_ECC
+  case SEC_OID_ANSIX962_EC_PUBLIC_KEY:
+    keaType = kt_ecdh;
+    break;
+#endif /* NSS_ENABLE_ECC */
   default:
     keaType = kt_null;
   }
