@@ -1238,11 +1238,7 @@ open_temp(HTAB *hashp)
 		if (hashp->filename) {
 			free(hashp->filename);
 		}
-#if !defined(WINCE)
 		hashp->filename = strdup(filename);
-#else
-		hashp->filename = _strdup(filename);
-#endif
 		hashp->is_temp = 1;
 	}
 #else

@@ -196,11 +196,7 @@ __hash_open(const char *file, int flags, int mode, const HASHINFO *info, int dfl
 		RETURN_ERROR(ENOMEM, error0);
 	hashp->fp = NO_FILE;
 	if(file)
-#if !defined(WINCE)
 		hashp->filename = strdup(file);
-#else
-		hashp->filename = _strdup(file);
-#endif
 
 	/*
 	 * Even if user wants write only, we need to be able to read
