@@ -240,9 +240,12 @@ nss_Init(const char *configdir, const char *certPrefix, const char *keyPrefix,
 	}
     }
 
-    STAN_LoadDefaultNSS3TrustDomain();
-    CERT_SetDefaultCertDB((CERTCertDBHandle *)
+    if (rv == SECSuccess) {
+	/* can this function fail?? */
+	STAN_LoadDefaultNSS3TrustDomain();
+	CERT_SetDefaultCertDB((CERTCertDBHandle *)
 				STAN_GetDefaultTrustDomain());
+    }
     return rv;
 }
 
