@@ -164,13 +164,42 @@ print_privkey_callback(NSSPrivateKey *vk, void *arg)
 	}
 	NSSCertificateArray_Destroy(certs);
     }
-    pubkey = NSSPrivateKey_FindPublicKey(vk);
-    if (pubkey) {
-	PR_fprintf(rtData->output.file, ", have public key");
-	NSSPublicKey_Destroy(pubkey);
-    }
     printf("\n");
     return PR_SUCCESS;
+}
+
+static PRStatus
+print_rsa_key_info(NSSRSAPublicKeyInfo *rsaInfo, CMDRunTimeData *rtData)
+{
+    CMDPrinter printer;
+    CMD_InitPrinter(&printer, rtData->output.file, 0, 80);
+    PR_fprintf(rtData->output.file, "Modulus Bits: %d\n", 
+                                    rsaInfo->modulus.size * 8);
+    CMD_PrintHex(&printer, &rsaInfo->modulus, "Modulus");
+    CMD_PrintHex(&printer, &rsaInfo->publicExponent, "Public Exponent");
+    if (rsaInfo->publicExponent.size <= 4) {
+	PRUint32 pe = *(PRUint32*)rsaInfo->publicExponent.data;
+	pe = PR_ntohl(pe);
+	PR_fprintf(rtData->output.file, "(%d)\n", pe);
+    }
+    return PR_SUCCESS;
+}
+
+static PRStatus
+print_public_key_info(NSSPublicKey *pubKey, CMDRunTimeData *rtData)
+{
+    NSSPublicKeyInfo *pubKeyInfo = NSSPublicKey_GetInfo(pubKey);
+    if (pubKeyInfo) {
+	switch(pubKeyInfo->kind) {
+	case NSSKeyPairType_RSA:
+	    return print_rsa_key_info(&pubKeyInfo->u.rsa, rtData);
+	case NSSKeyPairType_DSA:
+	case NSSKeyPairType_DH:
+	default:
+	    return PR_FAILURE;
+	}
+    }
+    return PR_FAILURE;
 }
 
 static PRStatus
@@ -388,6 +417,8 @@ DumpObject
 {
     PRStatus status;
     NSSCertificate *c;
+    NSSPrivateKey *vkey;
+    NSSPublicKey *bkey;
 
     switch (get_object_class(objectType)) {
     case PKICertificate:
@@ -409,8 +440,22 @@ DumpObject
 	}
 	break;
     case PKIPublicKey:
+	/* XXX this ain't the right way */
+	c = NSSTrustDomain_FindBestCertificateByNickname(td, nickname, 
+	                                                 NSSTime_Now(), 
+	                                                 NULL,
+	                                                 NULL);
+	if (c) {
+	    bkey = NSSCertificate_GetPublicKey(c);
+	    if (bkey) {
+		print_public_key_info(bkey, rtData);
+		NSSPublicKey_Destroy(bkey);
+	    }
+	    NSSCertificate_Destroy(c);
+	}
 	break;
     case PKIPrivateKey:
+	/*bkey = NSSPrivateKey_FindPublicKey(vk);*/
 	break;
     case PKIUnknown:
 	status = PR_FAILURE;
@@ -576,16 +621,16 @@ import_private_key
     NSSPrivateKey *vkey;
     NSSKeyPairType keyPairType;
 
-    if (!keyTypeOpt) {
-	/* default to RSA */
-	keyPairType = NSSKeyPairType_RSA;
-    } else {
+    if (keyTypeOpt) {
 	keyPairType = get_key_pair_type(keyTypeOpt);
 	if (keyPairType == NSSKeyPairType_Unknown) {
 	    PR_fprintf(PR_STDERR, "%s is not a valid key type.\n", 
 	                           keyTypeOpt);
 	    return PR_FAILURE;
 	}
+    } else {
+	/* default to RSA */
+	keyPairType = NSSKeyPairType_RSA;
     }
 
     /* get the encoded key from the input source */
@@ -788,7 +833,7 @@ vkeys = NULL;
 	encKey = NSSPrivateKey_Encode(vkey, pbe, NULL,
 	                              CMD_PWCallbackForKeyEncoding(NULL), 
 	                              NULL, NULL);
-	NSS_ZFreeIf(params.pbe.salt.data);
+	nss_ZFreeIf(params.pbe.salt.data); /* XXX */
 	NSSAlgorithmAndParameters_Destroy(pbe);
 	if (encKey) {
 	    CMD_DumpOutput(encKey, rtData);
@@ -823,6 +868,107 @@ ExportObject (
     case PKIUnknown:
 	status = PR_FAILURE;
 	break;
+    }
+    return status;
+}
+
+static NSSAlgorithmAndParameters *
+get_rsa_key_gen_params(PRUint32 keySizeInBits, PRUint32 pubExp)
+{
+    NSSOID *kpAlg;
+    NSSParameters params;
+    PRUint32 bepe;
+
+    kpAlg = NSSOID_CreateFromTag(NSS_OID_PKCS1_RSA_ENCRYPTION);
+    if (!kpAlg) {
+	CMD_PrintError("OID lookup failure");
+	return NULL;
+    }
+
+    params.rsakg.modulusBits = keySizeInBits;
+
+    params.rsakg.publicExponent.data = nss_ZAlloc(NULL, sizeof(pubExp)); /* XXX */
+    if (!params.rsakg.publicExponent.data) {
+	CMD_PrintError("memory");
+	return NULL;
+    } 
+    bepe = PR_htonl(pubExp);
+    memcpy(params.rsakg.publicExponent.data, &bepe, sizeof(pubExp));
+    params.rsakg.publicExponent.size = sizeof(pubExp);
+
+    return NSSOID_CreateAlgorithmAndParametersForKeyGen(kpAlg, &params, 
+                                                        NULL);
+}
+
+PRStatus
+GenerateKeyPair
+(
+  NSSTrustDomain *td,
+  NSSToken *tokenOpt,
+  char *keyTypeOpt,
+  char *keySizeOpt,
+  char *nickname,
+  CMDRunTimeData *rtData
+)
+{
+    PRStatus status;
+    NSSPublicKey *bkey = NULL;
+    NSSPrivateKey *vkey = NULL;
+    NSSAlgorithmAndParameters *kpGen = NULL;
+    NSSKeyPairType keyPairType;
+    PRUint32 keySizeInBits;
+    PRUint32 pubExp;
+    NSSToken *token;
+
+    /* XXX */
+    token = tokenOpt ? tokenOpt : nss_GetDefaultDatabaseToken();
+
+    keySizeInBits = keySizeOpt ? atoi(keySizeOpt) : 1024;
+    if (keySizeInBits < 0) {
+	PR_fprintf(PR_STDERR, "%s is not a valid key size.\n", keySizeOpt);
+	return PR_FAILURE;
+    }
+
+    if (keyTypeOpt) {
+	keyPairType = get_key_pair_type(keyTypeOpt);
+	if (keyPairType == NSSKeyPairType_Unknown) {
+	    PR_fprintf(PR_STDERR, "%s is not a valid key type.\n", 
+	                           keyTypeOpt);
+	    return PR_FAILURE;
+	}
+    } else {
+	/* default to RSA */
+	keyPairType = NSSKeyPairType_RSA;
+    }
+
+    switch (keyPairType) {
+    case NSSKeyPairType_RSA: 
+	pubExp = 65537; /* XXX */
+	kpGen = get_rsa_key_gen_params(keySizeInBits, pubExp);
+	break;
+    default:
+	PR_fprintf(PR_STDERR, "%s not supported for keygen\n", keyTypeOpt);
+	return PR_FAILURE;
+    }
+
+    if (!kpGen) {
+	CMD_PrintError("Failed to initialize algorithm for keygen");
+	return PR_FAILURE;
+    }
+
+    status = NSSTrustDomain_GenerateKeyPair(td, kpGen,
+                                            &bkey, &vkey,
+                                            nickname, 0, 0, /* XXX */
+                                            token, NULL);
+
+    NSSAlgorithmAndParameters_Destroy(kpGen);
+
+    if (status == PR_SUCCESS) {
+	NSSPublicKey_Destroy(bkey);
+	NSSPrivateKey_Destroy(vkey);
+	PR_fprintf(PR_STDOUT, "Key pair successfully generated.\n");
+    } else {
+	CMD_PrintError("Key generation failed.");
     }
     return status;
 }

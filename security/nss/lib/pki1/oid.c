@@ -175,6 +175,33 @@ NSSOID_CreateAlgorithmAndParameters (
     return nssOID_CreateAlgorithmAndParameters(oid, parameters, arenaOpt);
 }
 
+NSS_IMPLEMENT NSSAlgorithmAndParameters *
+nssOID_CreateAlgorithmAndParametersForKeyGen (
+  const NSSOID *oid,
+  NSSParameters *parameters,
+  NSSArena *arenaOpt
+)
+{
+    if (oid->mechanism != CKM_INVALID_MECHANISM) {
+	return nssAlgorithmAndParameters_CreateForKeyGen(arenaOpt, oid, 
+	                                                 parameters);
+    } else {
+	nss_SetError(NSS_ERROR_INVALID_NSSOID);
+    }
+    return (NSSAlgorithmAndParameters *)NULL;
+}
+
+NSS_IMPLEMENT NSSAlgorithmAndParameters *
+NSSOID_CreateAlgorithmAndParametersForKeyGen (
+  const NSSOID *oid,
+  NSSParameters *parameters,
+  NSSArena *arenaOpt
+)
+{
+    return nssOID_CreateAlgorithmAndParametersForKeyGen(oid, parameters, 
+                                                        arenaOpt);
+}
+
 NSS_EXTERN NSSOID *
 nssOID_Create (
   NSSItem *oidData

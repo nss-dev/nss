@@ -192,17 +192,13 @@ rsa_keygen_settor (
   CK_ULONG templateSize
 )
 {
-    PRUint32 rsape;
     CK_ATTRIBUTE_PTR attr = aTemplate;
     /* N */
     NSS_CK_SET_ATTRIBUTE_VAR(attr, CKA_MODULUS_BITS,
                              ap->params.rsakg.modulusBits);
     /* e */
-    rsape = PR_htonl(ap->params.rsakg.publicExponent);
-    attr->type = CKA_PUBLIC_EXPONENT; 
-    attr->pValue = (CK_BYTE_PTR)rsape;
-    attr->ulValueLen = sizeof(rsape);
-    attr++;
+    NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_PUBLIC_EXPONENT,
+                              &ap->params.rsakg.publicExponent);
     return attr - aTemplate;
 }
 

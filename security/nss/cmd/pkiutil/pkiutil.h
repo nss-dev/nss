@@ -36,6 +36,17 @@ ExportObject
   CMDRunTimeData *rtData
 );
 
+PRStatus
+GenerateKeyPair
+(
+  NSSTrustDomain *td,
+  NSSToken *tokenOpt,
+  char *keyTypeOpt,
+  char *keySizeOpt,
+  char *nickname,
+  CMDRunTimeData *rtData
+);
+
 /* XXX need to be more specific (serial number?) */
 PRStatus
 DeleteObject

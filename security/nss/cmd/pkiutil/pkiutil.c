@@ -53,9 +53,10 @@ static PRStatus pkiutil_command_dispatcher(cmdCommand *, int);
 enum {
     cmd_ChangePassword = 0,
     cmd_Delete,
+    cmd_Export,
+    cmd_GenerateKeyPair,
     cmd_Import,
     cmd_Interactive,
-    cmd_Export,
     cmd_List,
     cmd_ListChain,
     cmd_ModifyTrust,
@@ -81,6 +82,7 @@ enum {
     opt_Password,
     opt_Binary,
     opt_Serial,
+    opt_KeySize,
     opt_Trust,
     opt_Type,
     opt_Usages,
@@ -117,6 +119,40 @@ static cmdCommandLineArg pkiutil_commands[] =
    },
    "Delete an object from the profile/token"
  },
+ { /* cmd_Export */  
+   'E', "export", 
+   CMDNoArg, 0, PR_FALSE, 
+   {
+     CMDBIT(opt_Nickname) |
+     CMDBIT(opt_Type),
+     0, 0, 0
+   },
+   {
+     CMDBIT(opt_Ascii) | 
+     CMDBIT(opt_ProfileDir) | 
+     CMDBIT(opt_TokenName) | 
+     CMDBIT(opt_OutputFile) | 
+     CMDBIT(opt_Binary),
+     0, 0, 0
+   },
+   "Export an object from the profile/token\n"
+   "  private-key ==> PKCS#8 Encrypted Private Key Info\n"
+   "  certificate ==> DER-encoded Certificate"
+ },
+ { /* cmd_GenerateKeyPair */  
+   'G', "generate-key-pair", 
+   CMDNoArg, 0, PR_FALSE, 
+   { 0, 0, 0, 0 },
+   {
+     CMDBIT(opt_KeyType) |
+     CMDBIT(opt_Nickname) |
+     CMDBIT(opt_ProfileDir) | 
+     CMDBIT(opt_KeySize) | 
+     CMDBIT(opt_TokenName) | 
+     0, 0, 0
+   },
+   "Generate a public/private key pair on the token"
+ },
  { /* cmd_Import */  
    'I', "import", 
    CMDNoArg, 0, PR_FALSE, 
@@ -147,26 +183,6 @@ static cmdCommandLineArg pkiutil_commands[] =
      0, 0, 0 
    },
    "Use interactive mode"
- },
- { /* cmd_Export */  
-   'E', "export", 
-   CMDNoArg, 0, PR_FALSE, 
-   {
-     CMDBIT(opt_Nickname) |
-     CMDBIT(opt_Type),
-     0, 0, 0
-   },
-   {
-     CMDBIT(opt_Ascii) | 
-     CMDBIT(opt_ProfileDir) | 
-     CMDBIT(opt_TokenName) | 
-     CMDBIT(opt_OutputFile) | 
-     CMDBIT(opt_Binary),
-     0, 0, 0
-   },
-   "Export an object from the profile/token\n"
-   "  private-key ==> PKCS#8 Encrypted Private Key Info\n"
-   "  certificate ==> DER-encoded Certificate"
  },
  { /* cmd_List */  
    'L', "list", 
@@ -281,6 +297,7 @@ static cmdCommandLineOpt pkiutil_options[] =
  { /* opt_Password    */  'p', "password", CMDArgReq },
  { /* opt_Binary      */  'r', "raw",      CMDNoArg  },
  { /* opt_Serial      */   0 , "serial",   CMDArgReq },
+ { /* opt_KeySize     */   0 , "size",     CMDArgReq },
  { /* opt_Trust       */  't', "trust",    CMDArgReq },
  { /* opt_Type        */   0 , "type",     CMDArgReq },
  { /* opt_Usages      */  'u', "usages",   CMDArgReq },
@@ -292,16 +309,17 @@ static char * pkiutil_options_help[] =
  "get help for command",
  "use ascii (base-64 encoded) mode for I/O",
  "directory containing security databases (default: \"./\")",
- "name of PKCS#11 token to use (default: internal)",
+ "name of PKCS#11 token to use (default: internal or all)",
  "file for input (default: stdin)",
  "print object-specific information (token instances, etc.)",
- "type of key (rsa|dsa|dh)",
+ "type of key [rsa|dsa|dh] (default: rsa)",
  "nickname of object",
  "file for output (default: stdout)",
  "delete orphaned key pairs (keys not associated with a cert)",
  "specify a slot password at the command line",
  "use raw (binary der-encoded) mode for I/O",
  "specify a certificate serial number",
+ "size of key pair in bits [rsa modulus, etc.] (default: 1024)",
  "trust level for certificate",
  "specify type of object"
   "\n certificate (default)"
@@ -499,6 +517,21 @@ pkiutil_command_dispatcher(cmdCommand *pkiutil, int cmdToRun)
 	                      NULL,
 	                      pkiutil->opt[opt_Nickname].arg);
 	break;
+    case cmd_Export:
+	status = ExportObject(td,
+	                      token,
+	                      pkiutil->opt[opt_Type].arg,
+	                      pkiutil->opt[opt_Nickname].arg,
+	                      &rtData);
+	break;
+    case cmd_GenerateKeyPair:
+	status = GenerateKeyPair(td,
+	                         token,
+	                         pkiutil->opt[opt_KeyType].arg,
+	                         pkiutil->opt[opt_KeySize].arg,
+	                         pkiutil->opt[opt_Nickname].arg,
+	                         &rtData);
+	break;
     case cmd_Import:
 	status = ImportObject(td,
 	                      token,
@@ -506,13 +539,6 @@ pkiutil_command_dispatcher(cmdCommand *pkiutil, int cmdToRun)
 	                      pkiutil->opt[opt_Nickname].arg,
 	                      pkiutil->opt[opt_KeyType].arg,
 	                      pkiutil->opt[opt_KeyPassword].arg,
-	                      &rtData);
-	break;
-    case cmd_Export:
-	status = ExportObject(td,
-	                      token,
-	                      pkiutil->opt[opt_Type].arg,
-	                      pkiutil->opt[opt_Nickname].arg,
 	                      &rtData);
 	break;
     case cmd_List:
@@ -538,7 +564,7 @@ pkiutil_command_dispatcher(cmdCommand *pkiutil, int cmdToRun)
 	break;
     case cmd_Print:
 	status = DumpObject(td,
-	                    NULL,
+	                    pkiutil->opt[opt_Type].arg,
 	                    pkiutil->opt[opt_Nickname].arg,
 	                    pkiutil->opt[opt_Serial].arg,
 			    pkiutil->opt[opt_Info].on,

@@ -722,7 +722,6 @@ struct NSSPublicKeyStr
   PRUint32 flags;
   NSSDER subject;
 #endif
-  PRUint32 modulusBits;
   NSSPublicKeyInfo info;
 };
 
@@ -743,9 +742,10 @@ nssPublicKey_Create (
     /* XXX should choose instance based on some criteria */
     status = nssCryptokiPublicKey_GetAttributes(object->instances[0],
                                                 arena,
-                                                &rvKey->info.kind,
+                                                &rvKey->info,
                                                 &rvKey->id);
     if (status != PR_SUCCESS) {
+	nssPublicKey_Destroy(rvKey);
 	return (NSSPublicKey *)NULL;
     }
     return rvKey;
@@ -1006,6 +1006,22 @@ NSSPublicKey_GetModule (
 {
     nss_SetError(NSS_ERROR_NOT_FOUND);
     return NULL;
+}
+
+NSS_IMPLEMENT NSSPublicKeyInfo *
+nssPublicKey_GetInfo (
+  NSSPublicKey *bk
+)
+{
+    return &bk->info;
+}
+
+NSS_IMPLEMENT NSSPublicKeyInfo *
+NSSPublicKey_GetInfo (
+  NSSPublicKey *bk
+)
+{
+    return nssPublicKey_GetInfo(bk);
 }
 
 NSS_IMPLEMENT NSSItem *

@@ -201,6 +201,13 @@ NSSOID_CreateAlgorithmAndParameters (
   NSSArena *arenaOpt
 );
 
+NSS_EXTERN NSSAlgorithmAndParameters *
+NSSOID_CreateAlgorithmAndParametersForKeyGen (
+  const NSSOID *oid,
+  NSSParameters *parameters,
+  NSSArena *arenaOpt
+);
+
 /*
  * NSSATAV
  *

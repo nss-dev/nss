@@ -245,4 +245,10 @@ if [ "$RET" -ne 0 ]; then
   Exit 6 "Fatal - failed ${PKIU_ACTION} [$RET]"
 fi
 
+PKIU_ACTION="List Server Cert Chain"
+pkiu --list-chain -d ${SERVERDIR} -n stanCert
+if [ "$RET" -ne 0 ]; then
+  Exit 6 "Fatal - failed ${PKIU_ACTION} [$RET]"
+fi
+
 cert_cleanup

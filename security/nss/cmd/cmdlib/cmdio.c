@@ -324,7 +324,7 @@ CMD_DumpOutput(NSSItem *output, CMDRunTimeData *rtData)
     case CMDFileMode_Ascii:
 	outstr = NSSBase64_EncodeItem(NULL, NULL, 0, output);
 	PR_fprintf(fData->file, "%s\n", outstr);
-	NSS_ZFreeIf(outstr);
+	nss_ZFreeIf(outstr); /* XXX */
 	break;
     }
 }

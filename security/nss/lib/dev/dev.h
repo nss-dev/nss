@@ -1115,7 +1115,7 @@ NSS_EXTERN PRStatus
 nssCryptokiPublicKey_GetAttributes (
   nssCryptokiObject *object,
   NSSArena *arenaOpt,
-  NSSKeyPairType *keyTypeOpt,
+  NSSPublicKeyInfo *keyInfoOpt,
   NSSItem *idOpt
 );
 

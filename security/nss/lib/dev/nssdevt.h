@@ -153,7 +153,7 @@ typedef enum
 typedef struct NSSRSAKeyGenParametersStr
 {
   PRUint32 modulusBits;
-  PRUint32 publicExponent;
+  NSSItem publicExponent; /* Big-Endian */
 }
 NSSRSAKeyGenParameters;
 

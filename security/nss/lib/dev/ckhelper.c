@@ -540,21 +540,20 @@ NSS_IMPLEMENT PRStatus
 nssCryptokiPublicKey_GetAttributes (
   nssCryptokiObject *keyObject,
   NSSArena *arenaOpt,
-  NSSKeyPairType *keyTypeOpt,
+  NSSPublicKeyInfo *keyInfoOpt,
   NSSItem *idOpt
 )
 {
     PRStatus status;
     PRUint32 i;
     NSSSlot *slot;
+    NSSKeyPairType keyPairType;
     CK_ULONG template_size;
     CK_ATTRIBUTE_PTR attr;
     CK_ATTRIBUTE key_template[2];
     /* Set up a template of all options chosen by caller */
     NSS_CK_TEMPLATE_START(key_template, attr, template_size);
-    if (keyTypeOpt) {
-	NSS_CK_SET_ATTRIBUTE_NULL(attr, CKA_KEY_TYPE);
-    }
+    NSS_CK_SET_ATTRIBUTE_NULL(attr, CKA_KEY_TYPE);
     if (idOpt) {
 	NSS_CK_SET_ATTRIBUTE_NULL(attr, CKA_ID);
     }
@@ -574,18 +573,42 @@ nssCryptokiPublicKey_GetAttributes (
     }
 
     i=0;
-    if (keyTypeOpt) {
 #ifndef SOFTOKEN_RETURNS_PUBKEY_BUG
-	if (key_template[i].ulValueLen == -1) {
-	    return PR_FAILURE;
-	}
-#endif /* SOFTOKEN_RETURNS_PUBKEY_BUG */
-	*keyTypeOpt = nss_key_pair_type_from_ck_attrib(&key_template[i]); i++;
+    if (key_template[i].ulValueLen == -1) {
+	return PR_FAILURE;
     }
+#endif /* SOFTOKEN_RETURNS_PUBKEY_BUG */
+    keyPairType = nss_key_pair_type_from_ck_attrib(&key_template[i]); i++;
     if (idOpt) {
 	NSS_CK_ATTRIBUTE_TO_ITEM(&key_template[i], idOpt); i++;
     }
-    return PR_SUCCESS;
+    if (!keyInfoOpt) {
+	/* done */
+	return PR_SUCCESS;
+    }
+    keyInfoOpt->kind = keyPairType;
+    switch (keyPairType) {
+    case NSSKeyPairType_RSA:
+	NSS_CK_TEMPLATE_START(key_template, attr, template_size);
+	NSS_CK_SET_ATTRIBUTE_NULL(attr, CKA_MODULUS);
+	NSS_CK_SET_ATTRIBUTE_NULL(attr, CKA_PUBLIC_EXPONENT);
+	NSS_CK_TEMPLATE_FINISH(key_template, attr, template_size);
+	slot = nssToken_GetSlot(keyObject->token);
+	status = nssCKObject_GetAttributes(keyObject->handle, 
+                                           key_template, template_size,
+                                           arenaOpt, keyObject->session, 
+	                                   slot);
+	nssSlot_Destroy(slot);
+	if (status == PR_FAILURE) break;
+	NSS_CK_ATTRIBUTE_TO_ITEM(&key_template[0], &keyInfoOpt->u.rsa.modulus);
+	NSS_CK_ATTRIBUTE_TO_ITEM(&key_template[1], &keyInfoOpt->u.rsa.publicExponent);
+	break;
+    case NSSKeyPairType_DSA:
+    case NSSKeyPairType_DH:
+    default:
+	return PR_FAILURE;
+    }
+    return status;
 }
 
 static nssTrustLevel 
