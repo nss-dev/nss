@@ -175,7 +175,7 @@ unsigned int a;
  for(;i<len;i++)
    {
      a=i32[i];
-     d32[i]=(double)(a);
+     d32[i]=(double)(i32[i]);
      d16[2*i]=(double)(a&0xffff);
      d16[2*i+1]=(double)(a>>16);
    }
