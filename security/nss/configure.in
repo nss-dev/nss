@@ -611,6 +611,29 @@ case "$target" in
     fi
     ;;
 
+*-irix*)
+    AC_DEFINE(XP_UNIX)
+    AC_DEFINE(IRIX)
+    CFLAGS="$CFLAGS "
+    CXXFLAGS="$CXXFLAGS -ansiW"
+    DSO_CFLAGS=-KPIC
+    DSO_LDOPTS=-shared
+    _OPTIMIZE_FLAGS=-O2
+
+    if test -n "$USE_PTHREADS"; then
+	AC_DEFINE(_REENTRANT)
+	OS_LIBS="-lpthread $OS_LIBS"
+    fi
+
+    OS_LIBS="$OS_LIBS -ldl -lc"
+
+    case "$OS_RELEASE" in
+    6.5)
+        AC_DEFINE(IRIX6_5)
+        ;;
+    esac
+    ;;
+
 *-linux*)
     USE_PTHREADS=1
     AC_DEFINE(XP_UNIX)
