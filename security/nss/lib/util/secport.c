@@ -48,6 +48,7 @@
 #include "secerr.h"
 #include "prmon.h"
 #include "nsslocks.h"
+#include "secport.h"
 
 #ifdef DEBUG
 #define THREADMARK

@@ -6312,7 +6312,7 @@ ssl3_ComputeTLSFinished(ssl3CipherSpec *spec,
     	return SECFailure;
 
     rv  = PK11_DigestBegin(prf_context);
-    rv |= PK11_DigestOp(prf_context, label, len);
+    rv |= PK11_DigestOp(prf_context, (const unsigned char *) label, len);
     rv |= PK11_DigestOp(prf_context, hashes->md5, sizeof *hashes);
     rv |= PK11_DigestFinal(prf_context, tlsFinished->verify_data, 
                            &len, sizeof *tlsFinished);
