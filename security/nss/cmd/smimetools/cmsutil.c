@@ -1545,7 +1545,6 @@ main(int argc, char **argv)
 	PLArenaPool *arena = PORT_NewArena(1024);
 	NSSCMSEncoderContext *ecx;
 	SECItem output = { 0, 0, 0 };
-	secuPWData pwdata = { PW_NONE, 0 };
 
 	if (!arena) {
 	    fprintf(stderr, "%s: out of memory.\n", progName);
