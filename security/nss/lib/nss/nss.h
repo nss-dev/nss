@@ -142,6 +142,12 @@ void PK11_ConfigurePKCS11(const char *man, const char *libdes,
 	const char *pslotdes, const char *fslotdes, const char *fpslotdes,
         int minPwd, int pwRequired);
 
+/*
+ * Dump the contents of the certificate cache and the temporary cert store.
+ * Use to detect leaked references of certs at shutdown time.
+ */
+void nss_DumpCertificateCacheInfo();
+
 SEC_END_PROTOS
 
 #endif /* __nss_h_ */
