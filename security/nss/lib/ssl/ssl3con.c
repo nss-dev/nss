@@ -3031,7 +3031,6 @@ sendRSAClientKeyExchange(sslSocket * ss, SECKEYPublicKey * svrPubKey)
     /* wrap pre-master secret in server's public key. */
     rv = PK11_PubWrapSymKey(CKM_RSA_PKCS, svrPubKey, pms, &enc_pms);
     if (rv != SECSuccess) {
-	PORT_Free(enc_pms.data);
 	ssl_MapLowLevelError(SSL_ERROR_CLIENT_KEY_EXCHANGE_FAILURE);
 	goto loser;
     }
