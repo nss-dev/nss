@@ -48,7 +48,7 @@
 #include "prerror.h"
 #endif
 
-#if defined (__bsdi__)
+#if defined (__bsdi__) || defined(NTO)
 #undef _PR_POLL_AVAILABLE
 #endif
 
@@ -463,7 +463,12 @@ void nss_MD_unix_map_default_error(int err)
     case EADDRNOTAVAIL:	prError = PR_ADDRESS_NOT_AVAILABLE_ERROR; break;
     case EAFNOSUPPORT:	prError = PR_ADDRESS_NOT_SUPPORTED_ERROR; break;
     case EAGAIN:	prError = PR_WOULD_BLOCK_ERROR; break;
+    /*
+     * On QNX and Neutrino, EALREADY is defined as EBUSY.
+     */
+#if EALREADY != EBUSY
     case EALREADY:	prError = PR_ALREADY_INITIATED_ERROR; break;
+#endif
     case EBADF:		prError = PR_BAD_DESCRIPTOR_ERROR; break;
 #ifdef EBADMSG
     case EBADMSG:	prError = PR_IO_ERROR; break;
