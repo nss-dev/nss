@@ -73,6 +73,7 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #include "pk11func.h"
 #include "pkistore.h"
 #include "secmod.h"
+#include "nssrwlk.h"
 
 NSSTrustDomain *g_default_trust_domain = NULL;
 
