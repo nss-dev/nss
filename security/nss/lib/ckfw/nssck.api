@@ -33,7 +33,7 @@
  */
 
 #ifdef DEBUG
-static const char NSSCKAPI_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$ ; @(#) $RCSfile$ $Revision$ $Date$ $Name$";
+static const char NSSCKAPI_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ ; @(#) $RCSfile$ $Revision$ $Date$";
 #endif /* DEBUG */
 
 /*

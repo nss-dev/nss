@@ -38,7 +38,7 @@
 #define NSSPKI1T_H
 
 #ifdef DEBUG
-static const char NSSPKI1T_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
+static const char NSSPKI1T_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$";
 #endif /* DEBUG */
 
 /*

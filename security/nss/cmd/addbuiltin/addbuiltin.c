@@ -206,7 +206,7 @@ printheader() {
      "# may use your version of this file under either the MPL or the\n"
      "# GPL.\n"
      "#\n"
-     "CVS_ID \"@(#) $RCSfile$ $Revision$ $Date$ $Name$\"\n"
+     "CVS_ID \"@(#) $RCSfile$ $Revision$ $Date$\"\n"
      "\n"
      "#\n"
      "# certdata.txt\n"

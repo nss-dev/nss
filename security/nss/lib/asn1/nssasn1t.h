@@ -38,7 +38,7 @@
 #define NSSASN1T_H
 
 #ifdef DEBUG
-static const char NSSASN1T_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
+static const char NSSASN1T_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$";
 #endif /* DEBUG */
 
 /*
