@@ -54,5 +54,5 @@ endif
 # To create a loadable module on Darwin, we must use -bundle.
 #
 ifeq ($(OS_TARGET),Darwin)
-DSO_LDOPTS := $(subst -dynamiclib,-bundle,$(DSO_LDOPTS))
+DSO_LDOPTS = -bundle
 endif

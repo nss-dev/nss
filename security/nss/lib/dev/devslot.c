@@ -331,6 +331,12 @@ nssSlot_IsTokenPresent
     if (session->handle != CK_INVALID_SESSION) {
 	return PR_TRUE;
     } else {
+	/* the token has been removed, and reinserted, invalidate all the old
+	 * information we had on this token */
+#ifdef NSS_3_4_CODE
+	nssToken_NofifyCertsNotVisible(slot->token);
+#endif /* NSS_3_4_CODE */
+	nssToken_Remove(slot->token);
 	/* token has been removed, need to refresh with new session */
 	nssrv = nssSlot_Refresh(slot);
 	if (nssrv != PR_SUCCESS) {

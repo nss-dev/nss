@@ -814,7 +814,9 @@ nssBestCertificate_Callback
 	     * what the trust values are for the cert.
 	     * Ignore the returned pointer, the refcount is in c anyway.
 	     */
-	    (void)STAN_GetCERTCertificate(c);
+	    if (STAN_GetCERTCertificate(c) == NULL) {
+		return PR_FAILURE;
+	    }
 #endif
 	    if (dc->matchUsage(dc, best->usage)) {
 		best->cert = nssCertificate_AddRef(c);

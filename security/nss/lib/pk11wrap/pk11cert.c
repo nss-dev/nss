@@ -397,7 +397,7 @@ pk11_isID0(PK11SlotInfo *slot, CK_OBJECT_HANDLE certID)
  * Create an NSSCertificate from a slot/certID pair, return it as a
  * CERTCertificate.
  */
-CERTCertificate
+static CERTCertificate
 *pk11_fastCert(PK11SlotInfo *slot, CK_OBJECT_HANDLE certID, 
 			CK_ATTRIBUTE *privateLabel, char **nickptr)
 {
@@ -429,7 +429,7 @@ CERTCertificate
     }
 
     /* Build the old-fashioned nickname */
-    if (nickptr) {
+    if ((nickptr) && (co->label)) {
 	CK_ATTRIBUTE label, id;
 	label.type = CKA_LABEL;
 	label.pValue = co->label;
@@ -843,6 +843,9 @@ pk11_CollectCrls(PK11SlotInfo *slot, CK_OBJECT_HANDLE crlID, void *arg)
     derCrl.data = (unsigned char *)fetchCrl[0].pValue;
     derCrl.len = fetchCrl[0].ulValueLen;
     new_node->crl=CERT_DecodeDERCrl(head->arena,&derCrl,new_node->type);
+    if (new_node->crl == NULL) {
+	goto loser;
+    }
 
     if (fetchCrl[2].pValue) {
         int nnlen = fetchCrl[2].ulValueLen;
@@ -1200,6 +1203,7 @@ transfer_token_certs_to_collection(nssList *certList, NSSToken *token,
 	    }
 	    nssTokenArray_Destroy(tokens);
 	}
+	/* *must* be a valid CERTCertificate, came from cache */
 	CERT_DestroyCertificate(STAN_GetCERTCertificate(certs[i]));
     }
     nss_ZFreeIf(certs);
@@ -1304,7 +1308,9 @@ PK11_FindCertFromNickname(char *nickname, void *wincx) {
 	if (certs) {
 	    cert = nssCertificateArray_FindBestCertificate(certs, NULL, 
 	                                                   &usage, NULL);
-	    rvCert = STAN_GetCERTCertificate(cert);
+	    if (cert) {
+		rvCert = STAN_GetCERTCertificate(cert);
+	    }
 	    nssCertificateArray_Destroy(certs);
 	}
 	nssList_Destroy(certList);
@@ -1426,7 +1432,10 @@ PK11_FindCertsFromNickname(char *nickname, void *wincx) {
     if (foundCerts) {
 	certList = CERT_NewCertList();
 	for (i=0, c = *foundCerts; c; c = foundCerts[++i]) {
-	    CERT_AddCertToListTail(certList, STAN_GetCERTCertificate(c));
+	    CERTCertificate *certCert = STAN_GetCERTCertificate(c);
+	    if (certCert) {
+		CERT_AddCertToListTail(certList, certCert);
+	    }
 	}
 	if (CERT_LIST_HEAD(certList) == NULL) {
 	    CERT_DestroyCertList(certList);
