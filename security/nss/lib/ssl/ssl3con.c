@@ -6417,8 +6417,6 @@ ssl3_HandleCertificate(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	goto alert_loser;
     }
 
-    PORT_Assert(ssl3->peerCertArena == NULL);
-
     if (sec->peerCert != NULL) {
 	if (sec->peerKey) {
 	    SECKEY_DestroyPublicKey(sec->peerKey);
