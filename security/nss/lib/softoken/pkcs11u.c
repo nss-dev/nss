@@ -961,7 +961,7 @@ pk11_FindCertAttribute(PK11TokenObject *object, CK_ATTRIBUTE_TYPE type)
 	    nsslowkey_DestroyPublicKey(pubKey);
 	    break;
 	}
-	SHA1_Hash(hash,item->data,item->len);
+	SHA1_HashBuf(hash,item->data,item->len);
 	/* item is imbedded in pubKey, just free the key */
 	nsslowkey_DestroyPublicKey(pubKey);
 	return pk11_NewTokenAttribute(type, hash, SHA1_LENGTH, PR_TRUE);
