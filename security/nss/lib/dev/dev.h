@@ -963,6 +963,15 @@ nssToken_TraverseCertificates
   void *arg
 );
 
+NSS_EXTERN PRBool
+nssToken_IsPrivateKeyAvailable
+(
+  NSSToken *token,
+  NSSCertificate *c,
+  nssCryptokiObject *instance
+);
+
+
 #endif
 
 PR_END_EXTERN_C
