@@ -227,9 +227,8 @@ CMMF_KeyRecRepContentGetNewSignCert(CMMFKeyRecRepContent *inKeyRecRep)
 	inKeyRecRep->newSigCert == NULL) {
         return NULL;
     }
-    return CERT_NewTempCertificate(CERT_GetDefaultCertDB(), 
-			          &inKeyRecRep->newSigCert->signatureWrap.data,
-				   NULL, PR_FALSE, PR_TRUE);
+    return CERT_DecodeDERCertificate(
+	          &inKeyRecRep->newSigCert->signatureWrap.data,PR_FALSE, NULL);
 }
 
 CERTCertList*

@@ -51,7 +51,7 @@
 #include "secder.h"
 #include "secport.h"
 
-#include "certdb.h"
+#include "certrust.h"
 
 #include "prcpucfg.h"
 
@@ -1849,8 +1849,7 @@ sec_pkcs12_get_existing_nick_for_dn(sec_PKCS12SafeBag *cert, void *wincx)
 	return NULL;
     }
 
-    tempCert = CERT_NewTempCertificate(CERT_GetDefaultCertDB(), derCert, NULL,
-				   PR_FALSE, PR_TRUE);
+    tempCert = CERT_DecodeDERCertificate(derCert, PR_FALSE, NULL);
     if(!tempCert) {
 	returnDn = NULL;
 	goto loser;
@@ -2101,9 +2100,8 @@ sec_pkcs12_validate_cert(sec_PKCS12SafeBag *cert,
     cert->problem = PR_FALSE;
     cert->error = 0;
 
-    leafCert = CERT_NewTempCertificate(CERT_GetDefaultCertDB(),
-				&cert->safeBagContent.certBag->value.x509Cert,
-				NULL, PR_FALSE, PR_TRUE);
+    leafCert = CERT_DecodeDERCertificate(
+	 &cert->safeBagContent.certBag->value.x509Cert, PR_FALSE, NULL);
     if(!leafCert) {
 	cert->noInstall = PR_TRUE;
 	cert->problem = PR_TRUE;
@@ -2155,9 +2153,8 @@ sec_pkcs12_validate_key_by_cert(sec_PKCS12SafeBag *cert, sec_PKCS12SafeBag *key,
 	return;
     }
 
-    leafCert = CERT_NewTempCertificate(CERT_GetDefaultCertDB(),
-				&(cert->safeBagContent.certBag->value.x509Cert),
-				NULL, PR_FALSE, PR_TRUE);
+    leafCert = CERT_DecodeDERCertificate(
+	&(cert->safeBagContent.certBag->value.x509Cert), PR_FALSE, NULL);
     if(!leafCert) {
 	key->problem = PR_TRUE;
 	key->noInstall = PR_TRUE;
@@ -2195,8 +2192,7 @@ sec_pkcs12_remove_existing_cert(sec_PKCS12SafeBag *cert,
 
     cert->removeExisting = PR_FALSE;
     derCert = &cert->safeBagContent.certBag->value.x509Cert;
-    tempCert = CERT_NewTempCertificate(CERT_GetDefaultCertDB(), derCert,
-				       NULL, PR_FALSE, PR_TRUE);
+    tempCert = CERT_DecodeDERCertificate(derCert, PR_FALSE, NULL);
     if(!tempCert) {
 	return SECFailure;
     }
@@ -2205,7 +2201,7 @@ sec_pkcs12_remove_existing_cert(sec_PKCS12SafeBag *cert,
     CERT_DestroyCertificate(tempCert);
     tempCert = NULL;
 
-    if(certObj != CK_INVALID_KEY) {
+    if(certObj != CK_INVALID_HANDLE) {
 	PK11_DestroyObject(cert->slot, certObj);
 	removed = PR_TRUE;
     } else if(PK11_IsInternal(cert->slot)) {
@@ -2266,8 +2262,7 @@ sec_pkcs12_add_cert(sec_PKCS12SafeBag *cert, PRBool keyExists, void *wincx)
     if(keyExists) {
 	CERTCertificate *newCert;
 
-	newCert = CERT_NewTempCertificate(CERT_GetDefaultCertDB(),
-					  derCert, NULL, PR_FALSE, PR_TRUE);
+	newCert = CERT_DecodeDERCertificate( derCert, PR_FALSE, NULL);
 	if(!newCert) {
 	     if(nickName) SECITEM_ZfreeItem(nickName, PR_TRUE);
 	     cert->error = SEC_ERROR_NO_MEMORY;
@@ -2449,8 +2444,7 @@ SEC_PKCS12DecoderGetCerts(SEC_PKCS12DecoderContext *p12dcx)
 		CERTCertificate *tempCert = NULL;
 
 		if (derCert == NULL) continue;
-    		tempCert = CERT_NewTempCertificate(CERT_GetDefaultCertDB(), 
-			derCert, NULL, PR_FALSE, PR_TRUE);
+    		tempCert=CERT_DecodeDERCertificate(derCert, PR_TRUE, NULL);
 
 		if (tempCert) {
 		    CERT_AddCertToListTail(certList,tempCert);
@@ -2635,9 +2629,8 @@ sec_pkcs12_get_public_value_and_type(sec_PKCS12SafeBag *certBag,
 	return NULL;
     }
 
-    cert = CERT_NewTempCertificate(CERT_GetDefaultCertDB(), 
-			&certBag->safeBagContent.certBag->value.x509Cert,
-			NULL, PR_FALSE, PR_FALSE);
+    cert = CERT_DecodeDERCertificate(
+	 &certBag->safeBagContent.certBag->value.x509Cert, PR_FALSE, NULL);
     if(!cert) {
 	return NULL;
     }

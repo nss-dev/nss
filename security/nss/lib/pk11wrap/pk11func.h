@@ -491,6 +491,13 @@ CK_OBJECT_HANDLE
 PK11_PutCrl(PK11SlotInfo *slot, SECItem *crl, 
 				SECItem *name, char *url, int type);
 
+SECItem *
+PK11_FindSMimeProfile(PK11SlotInfo **slotp, char *emailAddr, SECItem *derSubj,
+					SECItem **profileTime);
+SECStatus
+PK11_SaveSMimeProfile(PK11SlotInfo *slot, char *emailAddr, SECItem *derSubj,
+			SECItem *emailProfile, SECItem *profileTime);
+
 SEC_END_PROTOS
 
 #endif

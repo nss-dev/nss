@@ -43,11 +43,11 @@
 
 #include "cert.h"
 				/* XXX do not want to have to include */
-#include "certdb.h"		/* certdb.h -- the trust stuff needed by */
+#include "certrust.h"		/* certdb.h -- the trust stuff needed by */
      				/* the add certificate code needs to get */
                            	/* rewritten/abstracted and then this */
       				/* include should be removed! */
-#include "cdbhdl.h"
+/*#include "cdbhdl.h" */
 #include "cryptohi.h"
 #include "key.h"
 #include "secasn1.h"
@@ -58,7 +58,7 @@
 #include "secerr.h"
 #include "sechash.h"	/* for HASH_GetHashObject() */
 #include "secder.h"
-#include "secpkcs5.h"
+/*#include "secpkcs5.h" */
 
 struct sec_pkcs7_decoder_worker {
     int depth;
@@ -1449,7 +1449,7 @@ sec_pkcs7_verify_signature(SEC_PKCS7ContentInfo *cinfo,
     SEC_PKCS7SignerInfo **signerinfos, *signerinfo;
     CERTCertificate *cert, **certs;
     PRBool goodsig;
-    CERTCertDBHandle local_certdb, *certdb, *defaultdb;
+    CERTCertDBHandle *certdb, *defaultdb; 
     SECOidData *algiddata;
     int i, certcount;
     SECKEYPublicKey *publickey;
@@ -1541,10 +1541,7 @@ sec_pkcs7_verify_signature(SEC_PKCS7ContentInfo *cinfo,
      */
     certdb = defaultdb;
     if (certdb == NULL) {
-	if (CERT_OpenCertDBFilename (&local_certdb, NULL,
-				     (PRBool)!keepcerts) != SECSuccess)
-	    goto done;
-	certdb = &local_certdb;
+	goto done;
     }
 
     certcount = 0;
@@ -1914,9 +1911,6 @@ done:
 
     if (certs != NULL)
 	CERT_DestroyCertArray (certs, certcount);
-
-    if (defaultdb == NULL && certdb != NULL)
-	CERT_ClosePermCertDB (certdb);
 
     if (publickey != NULL)
 	SECKEY_DestroyPublicKey (publickey);

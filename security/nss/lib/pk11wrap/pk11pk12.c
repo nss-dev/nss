@@ -137,6 +137,10 @@ const SEC_ASN1Template SECKEY_PrivateKeyInfoTemplate[] = {
     { 0 }
 };
 
+const SEC_ASN1Template SECKEY_PointerToPrivateKeyInfoTemplate[] = {
+    { SEC_ASN1_POINTER, 0, SECKEY_PrivateKeyInfoTemplate }
+};
+
 const SEC_ASN1Template SECKEY_RSAPrivateKeyExportTemplate[] = {
     { SEC_ASN1_SEQUENCE, 0, NULL, sizeof(SECKEYRawPrivateKey) },
     { SEC_ASN1_INTEGER, offsetof(SECKEYRawPrivateKey,u.rsa.version) },
@@ -161,6 +165,25 @@ const SEC_ASN1Template SECKEY_DHPrivateKeyExportTemplate[] = {
     { SEC_ASN1_INTEGER, offsetof(SECKEYRawPrivateKey,u.dh.prime) },
 };
 
+const SEC_ASN1Template SECKEY_EncryptedPrivateKeyInfoTemplate[] = {
+    { SEC_ASN1_SEQUENCE,
+        0, NULL, sizeof(SECKEYEncryptedPrivateKeyInfo) },
+    { SEC_ASN1_INLINE,
+        offsetof(SECKEYEncryptedPrivateKeyInfo,algorithm),
+        SECOID_AlgorithmIDTemplate },
+    { SEC_ASN1_OCTET_STRING,
+        offsetof(SECKEYEncryptedPrivateKeyInfo,encryptedData) },
+    { 0 }
+};
+
+const SEC_ASN1Template SECKEY_PointerToEncryptedPrivateKeyInfoTemplate[] = {
+        { SEC_ASN1_POINTER, 0, SECKEY_EncryptedPrivateKeyInfoTemplate }
+};
+
+SEC_ASN1_CHOOSER_IMPLEMENT(SECKEY_EncryptedPrivateKeyInfoTemplate)
+SEC_ASN1_CHOOSER_IMPLEMENT(SECKEY_PointerToEncryptedPrivateKeyInfoTemplate)
+SEC_ASN1_CHOOSER_IMPLEMENT(SECKEY_PrivateKeyInfoTemplate)
+SEC_ASN1_CHOOSER_IMPLEMENT(SECKEY_PointerToPrivateKeyInfoTemplate)
 
 
 SECStatus

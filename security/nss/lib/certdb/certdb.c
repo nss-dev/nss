@@ -2555,3 +2555,131 @@ CERT_DestroyCertificate(CERTCertificate *cert)
 
     return;
 }
+
+/*
+ * find a cert by email address
+ *
+ * pick one that is a valid recipient, meaning that it is an encryption
+ * cert.
+ *
+ */
+static CERTCertificate*
+find_smime_recipient_cert(CERTCertDBHandle* handle, const char* email_addr)
+{
+    CERTCertificate* cert = NULL;
+    CERTCertList* certList = NULL;
+    SECStatus rv;
+
+    certList = CERT_CreateEmailAddrCertList(NULL, handle, (char*)email_addr,
+					    PR_Now(), PR_TRUE);
+    if (certList == NULL) {
+	return NULL;
+    }
+
+    rv = CERT_FilterCertListByUsage(certList, certUsageEmailRecipient,
+				    PR_FALSE);
+
+    if (!CERT_LIST_END(CERT_LIST_HEAD(certList), certList)) {
+	cert = CERT_DupCertificate(CERT_LIST_HEAD(certList)->cert);
+    }
+
+    CERT_DestroyCertList(certList);
+
+    return cert;    /* cert may point to a cert or may be NULL */
+}
+
+/*
+ * This function has the logic that decides if another person's cert and
+ * email profile from an S/MIME message should be saved.  It can deal with
+ * the case when there is no profile.
+ */
+SECStatus
+CERT_SaveSMimeProfile(CERTCertificate *cert, SECItem *emailProfile,
+		      SECItem *profileTime)
+{
+    int64 oldtime;
+    int64 newtime;
+    SECStatus rv = SECFailure;
+    PRBool saveit;
+    char *emailAddr;
+    SECItem *oldProfile = NULL;
+    SECItem *oldProfileTime = NULL;
+    PK11SlotInfo *slot = NULL;
+    
+    emailAddr = cert->emailAddr;
+    
+    PORT_Assert(emailAddr);
+    if ( emailAddr == NULL ) {
+	goto loser;
+    }
+
+    saveit = PR_FALSE;
+   
+    oldProfile = PK11_FindSMimeProfile(&slot, emailAddr, &cert->derSubject, 
+							&oldProfileTime); 
+    
+    /* both profileTime and emailProfile have to exist or not exist */
+    if ( emailProfile == NULL ) {
+	profileTime = NULL;
+    } else if ( profileTime == NULL ) {
+	emailProfile = NULL;
+    }
+   
+    if ( oldProfileTime == NULL ) {
+	saveit = PR_TRUE;
+    } else {
+	/* there was already a profile for this email addr */
+	if ( profileTime ) {
+	    /* we have an old and new profile - save whichever is more recent*/
+	    if ( oldProfileTime->len == 0 ) {
+		/* always replace if old entry doesn't have a time */
+		oldtime = LL_MININT;
+	    } else {
+		rv = DER_UTCTimeToTime(&oldtime, oldProfileTime);
+		if ( rv != SECSuccess ) {
+		    goto loser;
+		}
+	    }
+	    
+	    rv = DER_UTCTimeToTime(&newtime, profileTime);
+	    if ( rv != SECSuccess ) {
+		goto loser;
+	    }
+	
+	    if ( LL_CMP(newtime, >, oldtime ) ) {
+		/* this is a newer profile, save it and cert */
+		saveit = PR_TRUE;
+	    }
+	} else {
+	    saveit = PR_TRUE;
+	}
+    }
+
+
+    if (saveit) {
+	rv = PK11_SaveSMimeProfile(slot, emailAddr, &cert->derSubject, 
+						emailProfile, profileTime);
+    } else {
+	rv = SECSuccess;
+    }
+
+loser:
+    if (oldProfile) {
+    	SECITEM_FreeItem(oldProfile,PR_TRUE);
+    }
+    if (oldProfileTime) {
+    	SECITEM_FreeItem(oldProfileTime,PR_TRUE);
+    }
+    
+    return(rv);
+}
+
+/*
+ * find the smime symmetric capabilities profile for a given cert
+ */
+SECItem *
+CERT_FindSMimeProfile(CERTCertificate *cert)
+{
+    return PK11_FindSMimeProfile(NULL, cert->emailAddr, 
+						&cert->derSubject,  NULL);
+}

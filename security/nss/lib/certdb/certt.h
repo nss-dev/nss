@@ -160,9 +160,6 @@ struct CERTPublicKeyAndChallengeStr {
     SECItem challenge;
 };
 
-typedef struct _certDBEntryCert certDBEntryCert;
-typedef struct _certDBEntryRevocation certDBEntryRevocation;
-
 struct CERTCertTrustStr {
     unsigned int sslFlags;
     unsigned int emailFlags;
@@ -206,7 +203,7 @@ struct CERTSubjectListStr {
     char *emailAddr;
     CERTSubjectNode *head;
     CERTSubjectNode *tail; /* do we need tail? */
-    struct _certDBEntrySubject *entry;
+    void *entry;
 };
 
 /*
@@ -266,7 +263,7 @@ struct CERTCertificateStr {
     PRBool istemp;
     char *nickname;
     char *dbnickname;
-    certDBEntryCert *dbEntry;		/* database entry struct */
+    void *dbEntry;		/* database entry struct */
     CERTCertTrust *trust;
 
     /* the reference count is modified whenever someone looks up, dups

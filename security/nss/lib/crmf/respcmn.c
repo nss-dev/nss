@@ -387,9 +387,8 @@ cmmf_CertOrEncCertGetCertificate(CMMFCertOrEncCert *certOrEncCert,
 	certOrEncCert->cert.certificate == NULL) {
         return NULL;
     }
-    return CERT_NewTempCertificate(certdb,
-				   &certOrEncCert->cert.certificate->derCert,
-				   NULL, PR_FALSE, PR_TRUE);
+    return CERT_DecodeDERCertificate( &certOrEncCert->cert.certificate->derCert,
+				   PR_FALSE, NULL);
 }
 
 SECStatus 

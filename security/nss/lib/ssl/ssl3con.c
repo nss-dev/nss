@@ -6453,7 +6453,7 @@ ssl3_HandleCertificate(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     if (rv != SECSuccess)
 	goto loser;	/* fatal alert already sent by ConsumeHandshake. */
 
-    sec->peerCert = CERT_DecodeDERCertificate(&certItem, NULL, PR_FALSE);
+    sec->peerCert = CERT_DecodeDERCertificate(&certItem, PR_FALSE, NULL);
     if (sec->peerCert == NULL) {
 	/* We should report an alert if the cert was bad, but not if the
 	 * problem was just some local problem, like memory error.
@@ -6491,7 +6491,7 @@ ssl3_HandleCertificate(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	    goto loser;	/* don't send alerts on memory errors */
 	}
 
-	c->cert = CERT_DecodeDERCertificate(&certItem, NULL, PR_FALSE);
+	c->cert = CERT_DecodeDERCertificate(&certItem, PR_FALSE, NULL);
 	if (c->cert == NULL) {
 	    goto ambiguous_err;
 	}

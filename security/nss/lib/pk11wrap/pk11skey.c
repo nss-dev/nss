@@ -49,7 +49,7 @@
 #include "sechash.h"
 #include "cert.h"
 #include "secerr.h"
-#include "secpkcs5.h"
+/*#include "secpkcs5.h" */
 
 #define PAIRWISE_SECITEM_TYPE			siBuffer
 #define PAIRWISE_DIGEST_LENGTH			SHA1_LENGTH /* 160-bits */

@@ -2739,6 +2739,9 @@ PK11_FindCrlByName(PK11SlotInfo **slot, CK_OBJECT_HANDLE *crlHandle,
     }
 
 loser:
+    if (!derCrl) {
+	if (crlData.pValue) PORT_Free(crlData.pValue);
+    }
     return derCrl;
 }
 
@@ -2754,7 +2757,6 @@ PK11_PutCrl(PK11SlotInfo *slot, SECItem *crl, SECItem *name,
 	{ CKA_NETSCAPE_URL, NULL, 0 },
 	{ CKA_VALUE, NULL, 0 }
     };
-    CK_ATTRIBUTE crlData = { CKA_VALUE, NULL, 0 };
     /* if you change the array, change the variable below as well */
     int tsize = sizeof(theTemplate)/sizeof(theTemplate[0]);
     CK_BBOOL ck_true = CK_TRUE;
@@ -2815,3 +2817,186 @@ SEC_DeletePermCRL(CERTSignedCrl *crl)
 loser:
     return SECSuccess;
 }
+
+/*
+ * delete a cert and it's private key (if no other certs are pointing to the
+ * private key.
+ */
+SECStatus
+SEC_DeletePermCertificate(CERTCertificate *cert)
+{
+    PK11SlotInfo *slot = cert->slot;
+    CK_RV crv;
+
+    if (slot == NULL) {
+	/* shouldn't we try to look the cert up? */
+	PORT_SetError( SEC_ERROR_CRL_INVALID);
+	return SECFailure;
+    }
+
+    crv = PK11_DestroyTokenObject(slot,cert->pkcs11ID);
+    if (crv != CKR_OK) {
+        PORT_SetError( PK11_MapError(crv) );
+	goto loser;
+    }
+    cert->slot = NULL;
+    PK11_FreeSlot(slot);
+loser:
+    return SECSuccess;
+}
+
+/*
+ * return the certificate associated with a derCert 
+ */
+SECItem *
+PK11_FindSMimeProfile(PK11SlotInfo **slot, char *emailAddr,
+				 SECItem *name, SECItem **profileTime)
+{
+    CK_OBJECT_CLASS smimeClass = CKO_NETSCAPE_SMIME;
+    CK_ATTRIBUTE theTemplate[] = {
+	{ CKA_SUBJECT, NULL, 0 },
+	{ CKA_CLASS, NULL, 0 },
+	{ CKA_NETSCAPE_EMAIL, NULL, 0 },
+    };
+    CK_ATTRIBUTE smimeData[] =  {
+	{ CKA_SUBJECT, NULL, 0 },
+	{ CKA_VALUE, NULL, 0 },
+    };
+    /* if you change the array, change the variable below as well */
+    int tsize = sizeof(theTemplate)/sizeof(theTemplate[0]);
+    CK_BBOOL ck_true = CK_TRUE;
+    CK_BBOOL ck_false = CK_FALSE;
+    CK_OBJECT_HANDLE smimeh = CK_INVALID_HANDLE;
+    CK_ATTRIBUTE *attrs = theTemplate;
+    CK_RV crv;
+    SECStatus rv;
+    SECItem *emailProfile = NULL;
+
+    PK11_SETATTRS(attrs, CKA_SUBJECT, name->data, name->len); attrs++;
+    PK11_SETATTRS(attrs, CKA_CLASS, &smimeClass, sizeof(smimeClass)); attrs++;
+    PK11_SETATTRS(attrs, CKA_NETSCAPE_EMAIL, emailAddr, strlen(emailAddr)); 
+								    attrs++;
+
+    if (*slot) {
+    	smimeh = pk11_FindObjectByTemplate(*slot,theTemplate,tsize);
+    } else {
+	PK11SlotList *list = PK11_GetAllTokens(CKM_INVALID_MECHANISM,
+							PR_FALSE,PR_TRUE,NULL);
+	PK11SlotListElement *le;
+
+	/* loop through all the fortezza tokens */
+	for (le = list->head; le; le = le->next) {
+	    smimeh = pk11_FindObjectByTemplate(le->slot,theTemplate,tsize);
+	    if (smimeh != CK_INVALID_HANDLE) {
+		*slot = PK11_ReferenceSlot(le->slot);
+		break;
+	    }
+	}
+	PK11_FreeSlotList(list);
+    }
+    
+    if (smimeh == CK_INVALID_HANDLE) {
+	PORT_SetError(SEC_ERROR_NO_KRL);
+	return NULL;
+    }
+
+    if (profileTime) {
+    	PK11_SETATTRS(smimeData, CKA_NETSCAPE_SMIME_TIMESTAMP, NULL, 0);
+    } 
+    
+    crv = PK11_GetAttributes(NULL,*slot,smimeh,smimeData,2);
+    if (crv != CKR_OK) {
+	PORT_SetError(PK11_MapError (crv));
+	goto loser;
+    }
+
+    if (!profileTime) {
+	SECItem profileSubject;
+
+	profileSubject.data = smimeData[0].pValue;
+	profileSubject.len = smimeData[0].ulValueLen;
+	if (!SECITEM_ItemsAreEqual(&profileSubject,name)) {
+	    goto loser;
+	}
+    }
+
+    emailProfile = (SECItem *)PORT_ZAlloc(sizeof(SECItem));    
+    if (emailProfile == NULL) {
+	goto loser;
+    }
+
+    emailProfile->data = smimeData[1].pValue;
+    emailProfile->len = smimeData[1].ulValueLen;
+
+    if (profileTime) {
+	*profileTime = (SECItem *)PORT_ZAlloc(sizeof(SECItem));    
+	if (*profileTime) {
+	    (*profileTime)->data = smimeData[0].pValue;
+	    (*profileTime)->len = smimeData[0].ulValueLen;
+	}
+    }
+
+loser:
+    if (emailProfile == NULL) {
+	if (smimeData[1].pValue) {
+	    PORT_Free(smimeData[1].pValue);
+	}
+    }
+    if (profileTime == NULL || *profileTime == NULL) {
+	if (smimeData[0].pValue) {
+	    PORT_Free(smimeData[0].pValue);
+	}
+    }
+    return emailProfile;
+}
+
+
+SECStatus
+PK11_SaveSMimeProfile(PK11SlotInfo *slot, char *emailAddr, SECItem *derSubj,
+				 SECItem *emailProfile,  SECItem *profileTime)
+{
+    CK_OBJECT_CLASS smimeClass = CKO_NETSCAPE_CRL;
+    CK_ATTRIBUTE theTemplate[] = {
+	{ CKA_SUBJECT, NULL, 0 },
+	{ CKA_CLASS, NULL, 0 },
+	{ CKA_NETSCAPE_EMAIL, NULL, 0 },
+	{ CKA_NETSCAPE_SMIME_TIMESTAMP, NULL, 0 },
+	{ CKA_VALUE, NULL, 0 }
+    };
+    /* if you change the array, change the variable below as well */
+    int tsize = sizeof(theTemplate)/sizeof(theTemplate[0]);
+    CK_OBJECT_HANDLE smimeh = CK_INVALID_HANDLE;
+    CK_ATTRIBUTE *attrs = theTemplate;
+    CK_SESSION_HANDLE rwsession;
+    CK_RV crv;
+
+    PK11_SETATTRS(attrs, CKA_SUBJECT, derSubj->data, derSubj->len); attrs++;
+    PK11_SETATTRS(attrs, CKA_CLASS, &smimeClass, sizeof(smimeClass)); attrs++;
+    PK11_SETATTRS(attrs, CKA_NETSCAPE_SMIME_TIMESTAMP, profileTime->data,
+				profileTime->len); attrs++;
+    PK11_SETATTRS(attrs, CKA_NETSCAPE_EMAIL, 
+				emailAddr, PORT_Strlen(emailAddr)+1); attrs++;
+    PK11_SETATTRS(attrs, CKA_VALUE,emailProfile->data,emailProfile->len); attrs++;
+
+    if (slot == NULL) {
+	slot = PK11_GetInternalKeySlot();
+	/* we need to free the key slot in the end!!! */
+    }
+
+    rwsession = PK11_GetRWSession(slot);
+    if (rwsession == CK_INVALID_SESSION) {
+	PORT_SetError(SEC_ERROR_READ_ONLY);
+	return SECFailure;
+    }
+
+    crv = PK11_GETTAB(slot)->
+                        C_CreateObject(rwsession,attrs,tsize,&smimeh);
+    if (crv != CKR_OK) {
+        PORT_SetError( PK11_MapError(crv) );
+    }
+
+    PK11_RestoreROSession(slot,rwsession);
+    return SECSuccess;
+}
+
+

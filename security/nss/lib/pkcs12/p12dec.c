@@ -42,10 +42,10 @@
 #include "secder.h"
 #include "secerr.h"
 #include "cert.h"
-#include "certdb.h"
+#include "certrust.h"
 #include "p12plcy.h"
-#include "p12.h"
-#include "secpkcs5.h"
+#include "p12.h" 
+/*#include "secpkcs5.h" */
 
 /* PFX extraction and validation routines */
 
