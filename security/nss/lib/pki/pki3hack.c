@@ -1057,9 +1057,9 @@ stan_GetTrustToken
          instance != (nssCryptokiInstance *)NULL;
          instance  = (nssCryptokiInstance *)nssListIterator_Next(instances))
     {
-	NSSTrust *to = nssToken_FindTrustForCert(tok, NULL, c, 
-	                                       nssTokenSearchType_TokenOnly);
 	NSSToken *ctok = instance->token;
+	NSSTrust *to = nssToken_FindTrustForCert(ctok, NULL, c, 
+	                                       nssTokenSearchType_TokenOnly);
 	PRBool ro = PK11_IsReadOnly(ctok->pk11slot);
 
 	if (to) {
