@@ -496,6 +496,7 @@ nsslowcert_ExtractPublicKey(NSSLOWCERTCertificate *cert)
     SECStatus rv;
     PRArenaPool *arena;
     SECOidTag tag;
+    SECItem newDerSubjKeyInfo;
 
     arena = PORT_NewArena (DER_DEFAULT_CHUNKSIZE);
     if (arena == NULL)
@@ -511,9 +512,17 @@ nsslowcert_ExtractPublicKey(NSSLOWCERTCertificate *cert)
     pubk->arena = arena;
     PORT_Memset(&spki,0,sizeof(spki));
 
+    /* copy the DER into the arena, since Quick DER returns data that points
+       into the DER input, which may get freed by the caller */
+    rv = SECITEM_CopyItem(arena, &newDerSubjKeyInfo, &cert->derSubjKeyInfo);
+    if ( rv != SECSuccess ) {
+        PORT_FreeArena (arena, PR_FALSE);
+        return NULL;
+    }
+
     /* we haven't bothered decoding the spki struct yet, do it now */
     rv = SEC_QuickDERDecodeItem(arena, &spki, 
-		nsslowcert_SubjectPublicKeyInfoTemplate, &cert->derSubjKeyInfo);
+		nsslowcert_SubjectPublicKeyInfoTemplate, &newDerSubjKeyInfo);
     if (rv != SECSuccess) {
  	PORT_FreeArena (arena, PR_FALSE);
  	return NULL;
