@@ -77,6 +77,19 @@ extern SECStatus RSA_PrivateKeyOp(RSAPrivateKey *  key,
 				  unsigned char *  output,
 				  const unsigned char *  input);
 
+/*
+** Perform a raw private-key operation, and check the parameters used in
+** the operation for validity by performing a test operation first.
+**	Length of input and output buffers are equal to key's modulus len.
+*/
+extern SECStatus RSA_PrivateKeyOpDoubleChecked(RSAPrivateKey *  key,
+				               unsigned char *  output,
+				               const unsigned char *  input);
+
+/*
+** Perform a check of private key parameters for consistency.
+*/
+extern SECStatus RSA_PrivateKeyCheck(RSAPrivateKey *key);
 
 
 /********************************************************************
@@ -712,7 +725,7 @@ extern SECStatus RNG_RNGInit(void);
 ** Update the global random number generator with more seeding
 ** material
 */
-extern SECStatus RNG_RandomUpdate(void *data, size_t bytes);
+extern SECStatus RNG_RandomUpdate(const void *data, size_t bytes);
 
 /*
 ** Generate some random bytes, using the global random number generator

@@ -361,7 +361,8 @@ NSS_CMSRecipientInfo_UnwrapBulkKey(NSSCMSRecipientInfo *ri, int subIndex,
     SECItem *enckey;
     int error;
 
-    ri->cert = cert;	/* mark the recipientInfo so we can find it later */
+    ri->cert = CERT_DupCertificate(cert);
+        	/* mark the recipientInfo so we can find it later */
 
     switch (ri->recipientInfoType) {
     case NSSCMSRecipientInfoID_KeyTrans:

@@ -196,7 +196,7 @@ int i;
  if(i32[len]>0) i=-1;
  else
    {
-     for(i=len-1; i>=0; i++)
+     for(i=len-1; i>=0; i--)
        {
 	 if(i32[i]!=nint[i]) break;
        }

@@ -1164,7 +1164,7 @@ TwoToMinus32:
 
 !  191		      ! else
 !  192		      !   {
-!  193		      !     for(i=len-1; i>=0; i++)
+!  193		      !     for(i=len-1; i>=0; i--)
 
 /* 0x0030	 193 */		sub	%o1,1,%o2
 /* 0x0034	     */		cmp	%o2,0
@@ -1176,7 +1176,7 @@ TwoToMinus32:
 !  195		      !	 if(i32[i]!=nint[i]) break;
 
 /* 0x0040	 195 */		sllx	%g2,2,%g2
-/* 0x0044	     */		add	%o2,1,%o0
+/* 0x0044	     */		sub	%o2,1,%o0
 /* 0x0048	     */		ld	[%i1+%g2],%g3
 /* 0x004c	     */		ld	[%i2+%g2],%g2
 /* 0x0050	     */		cmp	%g2,%g3
@@ -2240,7 +2240,7 @@ TwoToMinus32:
 /* 0x0bcc	     */		sra	%o1,0,%g2
                        .L900000645:
 /* 0x0bd0	     */		sllx	%g2,2,%g2
-/* 0x0bd4	     */		add	%o1,1,%o0
+/* 0x0bd4	     */		sub	%o1,1,%o0
 /* 0x0bd8	     */		ld	[%l3+%g2],%g3
 /* 0x0bdc	     */		ld	[%l2+%g2],%g2
 /* 0x0be0	     */		cmp	%g2,%g3
