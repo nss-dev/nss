@@ -38,6 +38,10 @@ DEPTH = ../..
 include manifest.mn
 include $(CORE_DEPTH)/coreconf/config.mk
 
+ifeq ($(OS_TARGET),WINCE)
+DIRS	= lib zlib strsclnt
+endif
+
 # These sources were once in this directory, but now are gone.
 MISSING_SOURCES = \
 	addcert.c \

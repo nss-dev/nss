@@ -33,8 +33,8 @@
 
 
 ifdef USE_STATIC_LIBS
-# can't do this in manifest.mn because OS_ARCH isn't defined there.
-ifeq ($(OS_ARCH), WINNT)
+# can't do this in manifest.mn because OS_TARGET isn't defined there.
+ifeq (,$(filter-out WIN%,$(OS_TARGET))) 
 
 DEFINES += -DNSS_USE_STATIC_LIBS
 # $(PROGRAM) has explicit dependencies on $(EXTRA_LIBS)
@@ -46,6 +46,9 @@ ifdef MOZILLA_BSAFE_BUILD
 	CRYPTOLIB+=$(DIST)/lib/bsafe$(BSAFEVER).lib
 	CRYPTOLIB+=$(DIST)/lib/freebl.lib
 endif
+
+NEVER_LINK = \
+	$(DIST)/lib/swfci.lib \
 
 EXTRA_LIBS += \
 	$(DIST)/lib/smime.lib \
@@ -63,7 +66,6 @@ EXTRA_LIBS += \
 	$(DIST)/lib/certdb.lib \
 	$(DIST)/lib/softokn.lib \
 	$(CRYPTOLIB) \
-	$(DIST)/lib/swfci.lib \
 	$(DIST)/lib/secutil.lib \
 	$(DIST)/lib/nsspki.lib \
 	$(DIST)/lib/nssdev.lib \
@@ -76,8 +78,6 @@ EXTRA_LIBS += \
 
 # $(PROGRAM) has NO explicit dependencies on $(OS_LIBS)
 OS_LIBS += \
-	wsock32.lib \
-	winmm.lib \
 	$(NULL)
 else
 
@@ -117,7 +117,7 @@ EXTRA_LIBS += \
 	$(DIST)/lib/$(LIB_PREFIX)dbm.$(LIB_SUFFIX) \
 	$(NULL)
 
-ifeq ($(OS_ARCH), AIX) 
+ifeq ($(OS_TARGET), AIX) 
 EXTRA_SHARED_LIBS += -brtl 
 endif
 
@@ -140,8 +140,8 @@ endif
 endif
 
 else
-# can't do this in manifest.mn because OS_ARCH isn't defined there.
-ifeq ($(OS_ARCH), WINNT)
+# can't do this in manifest.mn because OS_TARGET isn't defined there.
+ifeq (,$(filter-out WIN%,$(OS_TARGET))) 
 
 # $(PROGRAM) has explicit dependencies on $(EXTRA_LIBS)
 EXTRA_LIBS += \
@@ -156,8 +156,6 @@ EXTRA_LIBS += \
 
 # $(PROGRAM) has NO explicit dependencies on $(OS_LIBS)
 OS_LIBS += \
-	wsock32.lib \
-	winmm.lib \
 	$(NULL)
 else
 
@@ -166,13 +164,13 @@ EXTRA_LIBS += \
 	$(DIST)/lib/$(LIB_PREFIX)sectool.$(LIB_SUFFIX) \
 	$(NULL)
 
-ifeq ($(OS_ARCH), AIX) 
+ifeq ($(OS_TARGET), AIX) 
 EXTRA_SHARED_LIBS += -brtl 
 endif
 
 # On Linux we must use the -rpath-link option to tell the linker
 # where to find libsoftokn3.so, an implicit dependency of libnss3.so.
-ifeq ($(OS_ARCH), Linux) 
+ifeq ($(OS_TARGET), Linux) 
 EXTRA_SHARED_LIBS += -Wl,-rpath-link,$(DIST)/lib
 endif
 

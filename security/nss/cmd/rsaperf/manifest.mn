@@ -46,6 +46,7 @@ REQUIRES = dbm seccmd
 # DIRS = 
 
 CSRCS	= rsaperf.c defkey.c 
+CPPSRCS = CEonsole.cpp
 
 PROGRAM	= rsaperf
 

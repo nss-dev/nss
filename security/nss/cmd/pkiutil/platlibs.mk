@@ -36,7 +36,7 @@ EXTRA_LIBS += \
 	$(DIST)/lib/libcmdutil.$(LIB_SUFFIX) \
 	$(NULL)
 
-ifeq ($(OS_ARCH), AIX) 
+ifeq ($(OS_TARGET), AIX) 
 EXTRA_SHARED_LIBS += -brtl 
 endif
 

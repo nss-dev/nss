@@ -38,6 +38,7 @@ DEFINES += -DNSPR20
 MODULE = security
 
 CSRCS = strsclnt.c
+CPPSRCS = CEonsole.cpp
 
 # the MODULE above is always implicitly REQUIREd
 REQUIRES = seccmd dbm 
