@@ -584,7 +584,7 @@ sec_port_iso88591_utf8_conversion_function
 
   for( i = 0; i < inBufLen; i++) {
     if( (inBuf[i] & 0x80) == 0x00 ) {
-      /* 7F -> 0xxxxxx */
+      /* 00-7F -> 0xxxxxxx */
       /* 0abcdefg -> 0abcdefg */
 
       outBuf[len] = inBuf[i];
