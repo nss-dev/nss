@@ -124,7 +124,7 @@
 #include <fcntl.h>
 #endif
 
-#ifdef _WINDOWS
+#if defined(_WINDOWS) || defined(XP_OS2)
 #include <stdio.h>
 #include <io.h>
 #include <limits.h>
