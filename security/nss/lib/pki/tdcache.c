@@ -222,9 +222,11 @@ add_cert_to_cache(NSSTrustDomain *td, NSSCertificate *cert)
 	 * and email hashes.
 	 */
 	/* nickname */
-	nickname = nssUTF8_Duplicate(cert->nickname, td->arena);
-	nssrv = nssHash_Add(td->cache->nickname, nickname, subjectList);
-	if (nssrv != PR_SUCCESS) goto loser;
+	if (cert->nickname) {
+	    nickname = nssUTF8_Duplicate(cert->nickname, td->arena);
+	    nssrv = nssHash_Add(td->cache->nickname, nickname, subjectList);
+	    if (nssrv != PR_SUCCESS) goto loser;
+	}
 	/* email */
 	if (cert->email) {
 	    subjects = (nssList *)nssHash_Lookup(td->cache->email, cert->email);
