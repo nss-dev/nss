@@ -33,6 +33,8 @@ publish:
 		signver ssltap ) | (cd opt/sun/private/bin && tar xvfBp -)
 	(cd $(CORE_DEPTH)/../dist/public && tar cphf - .) \
 		| (mkdir -p opt/sun/private/include && cd opt/sun/private/include && tar xvfBp -)
+	rm -rf opt/sun/private/include/seccmd
+	rm -rf opt/sun/private/include/dbm
 
 	tar czvf $(NAME)-$(VERSION).tar.gz opt 
 	echo "%define _topdir `pwd`" >temp.spec
@@ -53,8 +55,12 @@ publish:
 	echo "" >>temp.spec
 	echo "%files devel" >>temp.spec
 	echo "%defattr(-,root,root)" >>temp.spec
-	find opt -type d | sed -e "s-^-%dir /-" >>temp.spec
-	find opt -type f ! \( -name "*.so" -o -name "*.chk" \) \
+	echo "%dir /opt" >>temp.spec
+	echo "%dir /opt/sun" >>temp.spec
+	echo "%dir /opt/sun/private" >>temp.spec
+	echo "%dir /opt/sun/private/include" >>temp.spec
+	echo "%dir /opt/sun/private/include/nss" >>temp.spec
+	find opt -type f \( -name "*.h" \) \
 		| sed -e "s-^-/-" >>temp.spec
 	cp $(NAME)-$(VERSION).tar.gz SOURCES
 	rpm -ba temp.spec
