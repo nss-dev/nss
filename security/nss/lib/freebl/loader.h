@@ -40,7 +40,7 @@
 
 #include "blapi.h"
 
-#define FREEBL_VERSION 0x0301
+#define FREEBL_VERSION 0x0302
 
 struct FREEBLVectorStr {
 
@@ -249,6 +249,15 @@ struct FREEBLVectorStr {
 
  SECStatus (* p_PQG_VerifyParams)(const PQGParams *params, 
                                   const PQGVerify *vfy, SECStatus *result);
+
+  SECStatus (* p_RSA_PrivateKeyOpDoubleChecked)(RSAPrivateKey *key,
+                              unsigned char *output,
+                              const unsigned char *input);
+
+  SECStatus (* p_RSA_PrivateKeyCheck)(RSAPrivateKey *key);
+
+  void (* p_BL_Cleanup)(void);
+
 };
 
 typedef struct FREEBLVectorStr FREEBLVector;

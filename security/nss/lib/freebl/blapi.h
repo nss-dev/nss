@@ -792,6 +792,13 @@ extern SECStatus   PQG_VerifyParams(const PQGParams *params,
                                     const PQGVerify *vfy, SECStatus *result);
 
 
+/*
+ * clean-up any global tables freebl may have allocated after it starts up.
+ * This function is not thread safe and should be called only after the
+ * library has been quiessed.
+ */
+extern void BL_Cleanup(void);
+
 /**************************************************************************
  *  Free the PQGParams struct and the things it points to.                *
  **************************************************************************/

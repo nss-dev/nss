@@ -322,6 +322,24 @@ RSA_PrivateKeyOp(RSAPrivateKey *  key,
   return (vector->p_RSA_PrivateKeyOp)(key, output, input);
 }
 
+SECStatus
+RSA_PrivateKeyOpDoubleChecked(RSAPrivateKey *key,
+                              unsigned char *output,
+                              const unsigned char *input)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return SECFailure;
+  return (vector->p_RSA_PrivateKeyOpDoubleChecked)(key, output, input);
+}
+
+SECStatus
+RSA_PrivateKeyCheck(RSAPrivateKey *key)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return SECFailure;
+  return (vector->p_RSA_PrivateKeyCheck)(key);
+}
+
 SECStatus 
 DSA_NewKey(const PQGParams * params, DSAPrivateKey ** privKey)
 {
@@ -931,3 +949,11 @@ PQG_DestroyVerify(PQGVerify *vfy)
   (vector->p_PQG_DestroyVerify)( vfy);
 }
 #endif
+
+void 
+BL_Cleanup(void)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return;
+  (vector->p_Cleanup)();
+}
