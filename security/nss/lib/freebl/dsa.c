@@ -244,10 +244,10 @@ dsa_SignDigest(DSAPrivateKey *key, SECItem *signature, SECItem *digest,
     **
     ** Signature is tuple (r, s)
     */
-    err = mp_to_unsigned_octets(&r, signature->data, DSA_SUBPRIME_LEN);
+    err = mp_to_fixlen_octets(&r, signature->data, DSA_SUBPRIME_LEN);
     if (err < 0) goto cleanup; else err = MP_OKAY;
-    err = mp_to_unsigned_octets(&s, signature->data + DSA_SUBPRIME_LEN, 
-                                    DSA_SUBPRIME_LEN);
+    err = mp_to_fixlen_octets(&s, signature->data + DSA_SUBPRIME_LEN, 
+                                  DSA_SUBPRIME_LEN);
     if (err < 0) goto cleanup; else err = MP_OKAY;
 cleanup:
     mp_clear(&p);
