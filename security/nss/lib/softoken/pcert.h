@@ -31,8 +31,8 @@
  * GPL.
  */
 
-#ifndef _CERTDB_H_
-#define _CERTDB_H_
+#ifndef _PCERTDB_H_
+#define _PCERTDB_H_
 
 #include "plarena.h"
 #include "prlong.h"
@@ -455,15 +455,10 @@ nsslowcert_DecodeDERCertificate (SECItem *derSignedCert, PRBool copyDER, char *n
 extern NSSLOWCERTSignedCrl *
 nsslowcert_DecodeDERCrl (PRArenaPool *arena, SECItem *derSignedCrl,int type);
 
-/*
-** Delete a certificate from the temporary database
-**      "cert" is the certificate to be deleted
-*/
-extern SECStatus nsslowcert_DeleteTempCertificate(NSSLOWCERTCertificate *cert);
-
-
+SECStatus
+nsslowcert_KeyFromDERCert(PRArenaPool *arena, SECItem *derCert, SECItem *key);
 
 
 SEC_END_PROTOS
 
- #endif /* _CERTDB_H_ */
+ #endif /* _PCERTDB_H_ */
