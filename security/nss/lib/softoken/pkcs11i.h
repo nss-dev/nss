@@ -265,6 +265,7 @@ struct PK11SlotStr {
     PRBool		needLogin;
     PRBool		DB_loaded;
     int			sessionIDCount;
+    int                 sessionIDConflict;
     int			sessionCount;
     int			rwSessionCount;
     int			tokenIDCount;
@@ -302,6 +303,9 @@ struct PK11SSLMACInfoStr {
  */
 #define PK11_PRIVATE_KEY_FLAG	0x80000000L
 #define PK11_FIPS_FLAG		0x40000000L
+
+/* session IDs mask the modifiers above in the high-order bits */
+#define MAX_SESSION_ID 0x3fffffff
 
 /*
  * object handle modifiers

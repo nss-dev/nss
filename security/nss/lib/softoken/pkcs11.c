@@ -2406,7 +2406,8 @@ PK11_SlotInit(CK_SLOT_ID slotID, PRBool needLogin)
     }
     slot->password = NULL;
     slot->hasTokens = PR_FALSE;
-    slot->sessionIDCount = 1;
+    slot->sessionIDCount = 0;
+    slot->sessionIDConflict = 0;
     slot->sessionCount = 0;
     slot->rwSessionCount = 0;
     slot->tokenIDCount = 1;
@@ -2898,6 +2899,7 @@ CK_RV NSC_OpenSession(CK_SLOT_ID slotID, CK_FLAGS flags,
     PK11Slot *slot;
     CK_SESSION_HANDLE sessionID;
     PK11Session *session;
+    PK11Session *sameID;
 
     slot = pk11_SlotFromID(slotID);
     if (slot == NULL) return CKR_SLOT_ID_INVALID;
@@ -2908,19 +2910,29 @@ CK_RV NSC_OpenSession(CK_SLOT_ID slotID, CK_FLAGS flags,
     if (session == NULL) return CKR_HOST_MEMORY;
 
     PK11_USE_THREADS(PZ_Lock(slot->sessionLock);)
-    sessionID = slot->sessionIDCount++;
-    if (slotID == PRIVATE_KEY_SLOT_ID) {
-	sessionID |= PK11_PRIVATE_KEY_FLAG;
-    } else if (slotID == FIPS_SLOT_ID) {
-	sessionID |= PK11_FIPS_FLAG;
-    } else if (flags & CKF_RW_SESSION) {
+    if (slotID == NETSCAPE_SLOT_ID && (flags & CKF_RW_SESSION)) {
 	/* NETSCAPE_SLOT_ID is Read ONLY */
 	session->info.flags &= ~CKF_RW_SESSION;
     }
+    do {
+	do {
+	    sessionID = (slot->sessionIDCount++ & MAX_SESSION_ID);
+	} while (sessionID == CK_INVALID_HANDLE);
+	if (slotID == PRIVATE_KEY_SLOT_ID) {
+	    sessionID |= PK11_PRIVATE_KEY_FLAG;
+	} else if (slotID == FIPS_SLOT_ID) {
+	    sessionID |= PK11_FIPS_FLAG;
+	}
+	pk11queue_find(sameID, sessionID, slot->head, SESSION_HASH_SIZE);
+	if (sameID == NULL) {
+	    session->handle = sessionID;
+	    pk11_update_state(slot, session);
+	    pk11queue_add(session, sessionID, slot->head, SESSION_HASH_SIZE);
+	} else {
+	    slot->sessionIDConflict++; /* for debugging */
+	}
+    } while (sameID != NULL);
 
-    session->handle = sessionID;
-    pk11_update_state(slot, session);
-    pk11queue_add(session, sessionID, slot->head, SESSION_HASH_SIZE);
     slot->sessionCount++;
     if (session->info.flags & CKF_RW_SESSION) {
 	slot->rwSessionCount++;
