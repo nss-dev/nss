@@ -36,6 +36,7 @@
  * the terms of any one of the MPL, the GPL or the LGPL.
  *
  * ***** END LICENSE BLOCK ***** */
+/* $Id$ */
 
 /* This file implements moduluar exponentiation using Montgomery's
  * method for modular reduction.  This file implements the method
