@@ -284,7 +284,7 @@ nssTrustDomain_RemoveTokenCertsFromCache
 );
 
 NSS_IMPLEMENT PRStatus
-nssToken_NofifyCertsNotVisible
+nssToken_NotifyCertsNotVisible
 (
   NSSToken *tok
 )
