@@ -2230,6 +2230,9 @@ SEC_ASN1DecodeInteger(SECItem *src, unsigned long *value)
     unsigned long v;
     int i;
     
+    if (src == NULL)
+	return SECFailure;
+
     if (src->len > sizeof(unsigned long))
 	return SECFailure;
 
