@@ -304,7 +304,7 @@ struct RDBStr {
 int
 db_BeginTransaction(DB *db)
 {
-    RDB *rdb = (RDB *)db;
+    struct RDBStr *rdb = (struct RDBStr *)db;
     if (db->type != DB_RDB) {
 	return 0;
     }
@@ -315,7 +315,7 @@ db_BeginTransaction(DB *db)
 int
 db_FinishTransaction(DB *db, PRBool abort)
 {
-    RDB *rdb = (RDB *)db;
+    struct RDBStr *rdb = (struct RDBStr *)db;
     if (db->type != DB_RDB) {
 	return 0;
     }
