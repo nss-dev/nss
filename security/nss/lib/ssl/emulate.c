@@ -533,7 +533,7 @@ ssl_EmulateSendFile(PRFileDesc *sd, PRSendFileData *sfd,
      * negative or  SENDFILE_MMAP_CHUNK is less than pagesize). Just assert 
      * that this is the case so we catch problems in debug builds.
      */
-    PORT_Assert(len >= 0);
+    PR_ASSERT(len >= 0);
 
     /*
      * Map in (part of) file. Take care of zero-length files.
