@@ -7448,8 +7448,8 @@ const ssl3BulkCipherDef *cipher_def;
     if (rv != SECSuccess) {
 	ssl_ReleaseSpecReadLock(ss);
 	ssl_MapLowLevelError(SSL_ERROR_DECRYPTION_FAILURE);
-	if (isTLS)
-	    (void)SSL3_SendAlert(ss, alert_fatal, decryption_failed);
+	SSL3_SendAlert(ss, alert_fatal, 
+		       isTLS ? decryption_failed : bad_record_mac);
 	ssl_MapLowLevelError(SSL_ERROR_DECRYPTION_FAILURE);
 	return SECFailure;
     }
@@ -7469,9 +7469,8 @@ const ssl3BulkCipherDef *cipher_def;
 bad_pad:
 	    /* must not hold spec lock when calling SSL3_SendAlert. */
 	    ssl_ReleaseSpecReadLock(ss);
-	    /* SSL3 doesn't have an alert for bad padding, so use bad mac. */
-	    SSL3_SendAlert(ss, alert_fatal, 
-			   isTLS ? decryption_failed : bad_record_mac);
+	    /* SSL3 & TLS must send bad_record_mac if padding check fails. */
+	    SSL3_SendAlert(ss, alert_fatal, bad_record_mac);
 	    PORT_SetError(SSL_ERROR_BAD_BLOCK_PADDING);
 	    return SECFailure;
 	}
