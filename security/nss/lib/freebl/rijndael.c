@@ -752,7 +752,7 @@ rijndael_encryptBlock(AESContext *cx,
     return SECFailure;
 #ifdef rijndael_large_blocks_fixed
     unsigned int j, r, Nb;
-    unsigned int c2, c3;
+    unsigned int c2=0, c3=0;
     PRUint32 *roundkeyw;
     PRUint8 clone[RIJNDAEL_MAX_STATE_SIZE];
     Nb = cx->Nb;
@@ -794,7 +794,7 @@ rijndael_decryptBlock(AESContext *cx,
     return SECFailure;
 #ifdef rijndael_large_blocks_fixed
     int j, r, Nb;
-    int c2, c3;
+    int c2=0, c3=0;
     PRUint32 *roundkeyw;
     PRUint8 clone[RIJNDAEL_MAX_STATE_SIZE];
     Nb = cx->Nb;
