@@ -82,8 +82,8 @@ if [[ $prodver = [0-9]*.0 ]]; then
 else
 	suffix=$prodver
 fi
-optconfdir=/etc/opt/SUNWnss3$suffix
-optinstdir=/opt/SUNWnss3$suffix
+optconfdir=/etc/opt/SUNWtls$suffix
+optinstdir=/opt/SUNWtls$suffix
 usrconfdir=/etc/nss3
 usrinstdir=/usr/nss3
 
