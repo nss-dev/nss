@@ -3345,14 +3345,14 @@ pk11_pbe_decode(SECAlgorithmID *algid, SECItem *mech)
     p5_misc = &p5_param->salt;
     paramSize = sizeof(CK_PBE_PARAMS);
 
-    pbe_params = (CK_PBE_PARAMS *)PORT_ZAlloc(paramSize);
+    pbe_params = (CK_PBE_PARAMS *)PORT_ZAlloc(paramSize) + p5_misc->len;
     if (pbe_params == NULL) {
 	SEC_PKCS5DestroyPBEParameter(p5_param);
 	return SECFailure;
     }
 
     /* get salt */
-    pbe_params->pSalt = (CK_CHAR_PTR)PORT_ZAlloc(p5_misc->len);
+    pbe_params->pSalt = ((CK_CHAR_PTR)pbe_params) + paramSize;
     if (pbe_params->pSalt == CK_NULL_PTR) {
 	goto loser;
     }
@@ -3370,9 +3370,6 @@ pk11_pbe_decode(SECAlgorithmID *algid, SECItem *mech)
     return SECSuccess;
 
 loser:
-    if (pbe_params->pSalt != CK_NULL_PTR) {
-	PORT_Free(pbe_params->pSalt);
-    }
     PORT_Free(pbe_params);
     SEC_PKCS5DestroyPBEParameter(p5_param);
     return SECFailure;
