@@ -1443,6 +1443,8 @@ main(int argc, char **argv)
 
     if (decodeOptions.contentFile)
 	PR_Close(decodeOptions.contentFile);
-    NSS_Shutdown();
+    if (NSS_Shutdown() != SECSuccess) {
+	exit(1);
+    }
     exit(exitstatus);
 }
