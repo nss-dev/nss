@@ -1444,9 +1444,6 @@ CERT_SPKDigestValueForCert(PRArenaPool *arena, CERTCertificate *cert,
 extern SECStatus CERT_GetCertType(CERTCertificate *cert);
 
 
-SECStatus InitCRLCache(void);
-SECStatus ShutdownCRLCache(void);
-
 SECStatus CERT_CheckCRL(CERTCertificate* cert, CERTCertificate* issuer,
                         SECItem* dp, int64 t, void* wincx);
 
