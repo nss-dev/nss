@@ -275,15 +275,18 @@ SECStatus
 DSA_SignDigest(DSAPrivateKey *key, SECItem *signature, const SECItem *digest)
 {
     SECStatus rv;
-    int prerr = 0;
-    unsigned char KSEED[DSA_SUBPRIME_LEN];
-    rv = DSA_GenerateGlobalRandomBytes(KSEED, DSA_SUBPRIME_LEN, 
-                                       key->params.subPrime.data);
-    if (rv) return rv;
+    int       retries = 10;
+    unsigned char kSeed[DSA_SUBPRIME_LEN];
+
+    PORT_SetError(0);
     do {
-	rv = dsa_SignDigest(key, signature, digest, KSEED);
-	if (rv) prerr = PORT_GetError();
-    } while (prerr == SEC_ERROR_NEED_RANDOM);
+	rv = DSA_GenerateGlobalRandomBytes(kSeed, DSA_SUBPRIME_LEN, 
+					   key->params.subPrime.data);
+	if (rv != SECSuccess) 
+	    break;
+	rv = dsa_SignDigest(key, signature, digest, kSeed);
+    } while (rv != SECSuccess && PORT_GetError() == SEC_ERROR_NEED_RANDOM &&
+	     --retries > 0);
     return rv;
 }
 
