@@ -47,6 +47,7 @@
 #include "key.h"
 #include "secerr.h"
 #include "cms.h"
+#include "nss.h"
 
 SEC_ASN1_MKSUB(CERT_IssuerAndSNTemplate)
 SEC_ASN1_MKSUB(SEC_OctetStringTemplate)
@@ -650,7 +651,7 @@ NSS_SMIMEUtil_CreateSMIMEEncKeyPrefs(PLArenaPool *poolp, SECItem *dest, CERTCert
 {
     NSSSMIMEEncryptionKeyPreference ekp;
     SECItem *dummy = NULL;
-    PLArenaPool *tmppoolp;
+    PLArenaPool *tmppoolp = NULL;
 
     if (cert == NULL)
 	goto loser;
@@ -731,8 +732,6 @@ NSSSMIME_VersionCheck(const char *importedVersion)
      * not compatible with future major, minor, or
      * patch releases.
      */
-    int vmajor = 0, vminor = 0, vpatch = 0;
-    const char *ptr = importedVersion;
     volatile char c; /* force a reference that won't get optimized away */
 
     c = __nss_smime_rcsid[0] + __nss_smime_sccsid[0]; 
