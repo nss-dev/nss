@@ -45,7 +45,7 @@
 #include "cert.h"
 #include "keyt.h"
 
-#if defined(_WINDOWS) && !defined(IN_LIBSSL) && !defined(NSS_USE_STATIC_LIBS)
+#if defined(_WIN32) && !defined(IN_LIBSSL) && !defined(NSS_USE_STATIC_LIBS)
 #define SSL_IMPORT extern __declspec(dllimport)
 #else
 #define SSL_IMPORT extern
