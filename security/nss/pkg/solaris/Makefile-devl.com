@@ -16,12 +16,12 @@ endif
 
 PKGARCHIVE = $(PUBLISH_ROOT)/pkgarchive
 DATAFILES = copyright
-FILES = $(DATAFILES) pkginfo prototype
+FILES = $(DATAFILES) pkginfo
+
 
 PACKAGE = $(shell basename `pwd`)
 
-PRODUCT_VERSION = $(shell grep NSS_VERSION $(CORE_DEPTH)/../dist/public/nss/nss.h \
-	| sed -e 's/"$$//' -e 's/.*"//' -e 's/ .*//')
+PRODUCT_VERSION = $(shell grep NSS_VERSION $(CORE_DEPTH)/nss/lib/nss/nss.h    | sed -e 's/"$$//' -e 's/.*"//' -e 's/ .*//')
 
 LN = /usr/bin/ln
 
