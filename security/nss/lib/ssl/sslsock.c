@@ -1288,14 +1288,15 @@ ssl_GetPeerInfo(sslSocket *ss)
 	return SECFailure;
     }
     ss->TCPconnected = 1;
-    /* we have to mask off the high byte because AIX is lame */
-    if ((sin.inet.family & 0xff) == PR_AF_INET) {
+    if (sin.inet.family == PR_AF_INET) {
         PR_ConvertIPv4AddrToIPv6(sin.inet.ip, &ci->peer);
 	ci->port = sin.inet.port;
-    } else {
-        PORT_Assert(sin.ipv6.family == PR_AF_INET6);
+    } else if (sin.ipv6.family == PR_AF_INET6) {
 	ci->peer = sin.ipv6.ip;
 	ci->port = sin.ipv6.port;
+    } else {
+	PORT_SetError(PR_ADDRESS_NOT_SUPPORTED_ERROR);
+    	return SECFailure;
     }
     return SECSuccess;
 }
