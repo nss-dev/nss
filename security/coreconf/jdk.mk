@@ -139,7 +139,11 @@ ifeq ($(OS_ARCH), SunOS)
 	INCLUDES += -I$(JAVA_HOME)/include/$(JAVA_ARCH)
 
 	# (3) specify "linker" information
-	JAVA_CPU = sparc
+ifeq ($(USE_64), 1)
+	JAVA_CPU = $(shell uname -p)v9
+else
+	JAVA_CPU = $(shell uname -p)
+endif
 
 ifeq ($(JDK_VERSION), 1.1)
 	JAVA_LIBDIR = lib/$(JAVA_CPU)
@@ -153,8 +157,13 @@ endif
 	JAVA_CLIBS = -lthread
 
 ifneq ($(JDK_VERSION), 1.1)
-	JAVA_LIBS += -L$(JAVA_HOME)/$(JAVA_LIBDIR)/classic -ljvm
-	JAVA_LIBS += -L$(JAVA_HOME)/$(JAVA_LIBDIR) -ljava
+ifeq ($(USE_64), 1)
+	JAVA_LIBS += -L$(JAVA_HOME)/$(JAVA_LIBDIR)/server
+else
+	JAVA_LIBS += -L$(JAVA_HOME)/$(JAVA_LIBDIR)/classic
+endif
+	JAVA_LIBS += -L$(JAVA_HOME)/$(JAVA_LIBDIR)
+	JAVA_LIBS += -ljvm -ljava
 else
 	JAVA_LIBS += -L$(JAVA_HOME)/$(JAVA_LIBDIR)/$(JDK_THREADING_MODEL) -ljava
 endif
@@ -195,7 +204,11 @@ ifeq ($(OS_ARCH), HP-UX)
 	JAVA_CLIBS =
 
 	JAVA_LIBS  = -L$(JAVA_HOME)/$(JAVA_LIBDIR)/$(JDK_THREADING_MODEL) -lhpi
+	ifeq ($(JDK_VERSION), 1.4)
+	JAVA_LIBS += -L$(JAVA_HOME)/$(JAVA_LIBDIR)/server -ljvm
+	else
 	JAVA_LIBS += -L$(JAVA_HOME)/$(JAVA_LIBDIR)/classic -ljvm
+	endif
 	JAVA_LIBS += -L$(JAVA_HOME)/$(JAVA_LIBDIR) -ljava
 	JAVA_LIBS += $(JAVA_CLIBS)
 
@@ -234,7 +247,11 @@ ifeq ($(OS_ARCH), Linux)
 	JAVA_CLIBS =
 
 	JAVA_LIBS  = -L$(JAVA_HOME)/$(JAVA_LIBDIR)/$(JDK_THREADING_MODEL) -lhpi
-	JAVA_LIBS += -L$(JAVA_HOME)/$(JAVA_LIBDIR)/classic -ljvm
+        ifeq ($(JDK_VERSION), 1.4)
+	    JAVA_LIBS += -L$(JAVA_HOME)/$(JAVA_LIBDIR)/server -ljvm
+        else
+	    JAVA_LIBS += -L$(JAVA_HOME)/$(JAVA_LIBDIR)/classic -ljvm
+	endif
 	JAVA_LIBS += -L$(JAVA_HOME)/$(JAVA_LIBDIR) -ljava
 	JAVA_LIBS += $(JAVA_CLIBS)
 
@@ -395,11 +412,13 @@ ifeq ($(JDK_CLASSPATH_OPT),)
 	JDK_CLASSPATH_OPT = -classpath $(JDK_CLASSPATH)
 endif
 
+ifeq ($(USE_64), 1)
+	JDK_USE_64 = -d64
+endif
 
 endif
 
 
-ifdef NS_USE_JDK_TOOLSET
 #######################################################################
 # [5] Define JDK "Core Components" toolset;                           #
 #     (always allow a user to override these values)                  #
@@ -437,6 +456,7 @@ ifeq ($(JAVA),)
 	JAVA_FLAGS += $(JDK_DEBUG_OPT)
 	JAVA_FLAGS += $(JDK_CLASSPATH_OPT)
 	JAVA_FLAGS += $(JDK_JIT_OPT)
+	JAVA_FLAGS += $(JDK_USE_64)
 	JAVA        = $(JAVA_PROG) $(JAVA_FLAGS) 
 endif
 
@@ -451,6 +471,7 @@ ifeq ($(JAVAC),)
 	JAVAC_FLAGS += $(JDK_DEBUG_OPT)
 	JAVAC_FLAGS += $(JDK_CLASSPATH_OPT)
 	JAVAC_FLAGS += $(JDK_CLASS_REPOSITORY_OPT)
+	JAVAC_FLAGS += $(JDK_USE_64)
 	JAVAC        = $(JAVAC_PROG) $(JAVAC_FLAGS)
 endif
 
@@ -607,6 +628,4 @@ ifeq ($(SERIALVER),)
 	SERIALVER_PROG   = $(JAVA_HOME)/bin/serialver$(PROG_SUFFIX)
 	SERIALVER_FLAGS  = $(JDK_THREADING_MODEL_OPT)
 	SERIALVER        = $(SERIALVER_PROG) $(SERIALVER_FLAGS) 
-endif
- 
 endif

@@ -43,6 +43,7 @@ ifeq ($(USE_64), 1)
 	OBJECT_MODE=64
 	export OBJECT_MODE
 endif
+OS_CFLAGS	+= -DAIX5_1
 DSO_LDOPTS	= -brtl -bM:SRE -bnoentry $(EXPORT_RULES)
 MKSHLIB		= $(LD) $(DSO_LDOPTS) -lsvld -L/usr/lpp/xlC/lib -lc -lm
 
