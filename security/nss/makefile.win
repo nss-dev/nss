@@ -89,8 +89,5 @@ export libs install clobber clobber_all clean depend::
 	set LIB=%MSVC_LIB%
 !endif
 
-install::
-	copy $(DIST)\lib\nssckbi.dll $(DIST)\bin
-
 moz_import::
 	copy $(DIST)\lib\dbm32.lib $(DIST)\lib\dbm.lib
