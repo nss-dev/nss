@@ -41,6 +41,7 @@ PRIVATE_EXPORTS = \
 	$(NULL)
 
 EXPORTS =	   \
+	nssdevt.h  \
 	$(NULL)
 
 MODULE = security
@@ -52,6 +53,13 @@ CSRCS =		        \
 	util.c          \
 	ckhelper.c      \
 	$(NULL)
+
+# here is where the 3.4 glue code is added
+ifndef PURE_STAN_BUILD
+CSRCS += nss3hack.c
+PRIVATE_EXPORTS += devnss3hack.h
+DEFINES = -DNSS_3_4_CODE
+endif
 
 REQUIRES = security nspr
 

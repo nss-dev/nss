@@ -284,33 +284,26 @@ nssToken_DeleteStoredObject
   CK_OBJECT_HANDLE object
 );
 
-NSS_IMPLEMENT PRStatus
+NSS_EXTERN CK_OBJECT_HANDLE
+nssToken_FindObjectByTemplate
+(
+  NSSToken *tok,
+  nssSession *sessionOpt,
+  CK_ATTRIBUTE_PTR cktemplate,
+  CK_ULONG ctsize
+);
+
+NSS_EXTERN PRStatus
 nssToken_FindCertificatesByTemplate
 (
   NSSToken *tok,
   nssSession *sessionOpt,
   CK_ATTRIBUTE_PTR cktemplate,
   CK_ULONG ctsize,
-  PRStatus (*callback)(NSSToken *t, nssSession *session,
-                       CK_OBJECT_HANDLE h, void *arg),
+  PRStatus (*callback)(NSSCertificate *c, void *arg),
   void *arg
 );
 
-#if 0
-NSS_EXTERN PRStatus
-nssToken_FindCertificatesByTemplate
-(
-  NSSToken *tok,
-  nssSession *sessionOpt,
-  nssList *certList,
-  PRUint32 maximumOpt,
-  NSSArena *arenaOpt,
-  CK_ATTRIBUTE_PTR cktemplate,
-  CK_ULONG ctsize
-);
-#endif
-
-/* again, a questionable function.  maybe some tokens allow this? */
 NSS_EXTERN PRStatus *
 nssToken_TraverseCertificates
 (

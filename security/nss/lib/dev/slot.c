@@ -174,8 +174,15 @@ nssSlot_Destroy
 )
 {
     if (--slot->refCount == 0) {
+#ifndef NSS_3_4_CODE
+	/* Not going to do this in 3.4, maybe never */
 	nssToken_Destroy(slot->token);
-	return NSSArena_Destroy(slot->arena);
+#endif
+	if (slot->arena) {
+	    return NSSArena_Destroy(slot->arena);
+	} else {
+	    nss_ZFreeIf(slot);
+	}
     }
     return PR_SUCCESS;
 }
