@@ -204,6 +204,7 @@ int compare_key(RSAPrivateKey *key)
     RSAPrivateKey *mykey;
     PRArenaPool *arena;
     mp_err err;
+    SECStatus rv;
     mp_init(&e);
     mp_init(&p);
     mp_init(&q);
@@ -227,15 +228,24 @@ int compare_key(RSAPrivateKey *key)
     SECITEM_CopyItem(arena, &mykey->prime2, &key->prime2);
     rsa_keygen_from_primes(&p, &q, &e, mykey);
 cleanup:
-    return 1;
+    rv = ( SECITEM_CompareItem(&key->modulus, &mykey->modulus) &&
+           SECITEM_CompareItem(&key->publicExponent, &mykey->publicExponent) &&
+           SECITEM_CompareItem(&key->privateExponent,&mykey->privateExponent) &&
+           SECITEM_CompareItem(&key->prime1, &mykey->prime1) &&
+           SECITEM_CompareItem(&key->prime2, &mykey->prime2) &&
+           SECITEM_CompareItem(&key->exponent1, &mykey->exponent1) &&
+           SECITEM_CompareItem(&key->exponent2, &mykey->exponent2) &&
+           SECITEM_CompareItem(&key->coefficient, &mykey->coefficient) );
+    PORT_FreeArena(arena, PR_TRUE);
+    return rv;
 }
 
 static unsigned int
 rsa_modulusLen(SECItem *modulus)
 {
-	unsigned char byteZero = modulus->data[0];
-	unsigned int modLen = modulus->len - !byteZero;
-	return modLen;
+    unsigned char byteZero = modulus->data[0];
+    unsigned int modLen = modulus->len - !byteZero;
+    return modLen;
 }
 
 /*
