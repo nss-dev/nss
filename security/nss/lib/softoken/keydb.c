@@ -1680,7 +1680,7 @@ nsslowkey_SetKeyDBPasswordAlg(NSSLOWKEYDBHandle *handle,
     }
 
     param = nsspkcs5_NewParam(algorithm, salt, 1);
-    if (param != NULL) {
+    if (param == NULL) {
 	rv = SECFailure;
 	goto loser;
     }
