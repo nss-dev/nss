@@ -298,7 +298,6 @@ nssPointerTracker_finalize
 )
 {
   PZLock *lock;
-  PRIntn count;
 
   if( (nssPointerTracker *)NULL == tracker ) {
     nss_SetError(NSS_ERROR_INVALID_POINTER);
