@@ -121,7 +121,7 @@ dbs_getBlobSize(DBT *blobData)
  */
 
 static void
-dbs_replaceSlash(unsigned char *cp, int len)
+dbs_replaceSlash(char *cp, int len)
 {
    while (len--) {
 	if (*cp == '/') *cp = '-';
@@ -137,12 +137,12 @@ static void
 dbs_mkBlob(const DBT *key, const DBT *data, DBT *blobData)
 {
    unsigned char sha1_data[SHA1_LENGTH];
-   static unsigned char b[BLOB_NAME_BUF_LEN];
+   static char b[BLOB_NAME_BUF_LEN];
    PRUint32 length = data->size;
    SECItem sha1Item;
 
    b[0] = CERT_DB_FILE_VERSION; /* certdb version number */
-   b[1] = (unsigned char) certDBEntryTypeBlob; /* type */
+   b[1] = (char) certDBEntryTypeBlob; /* type */
    b[2] = 0; /* flags */
    b[3] = 0; /* reserved */
    b[BLOB_NAME_LENGTH_START] = length & 0xff;
