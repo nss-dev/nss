@@ -512,7 +512,9 @@ typedef enum CERTCertOwnerEnum {
 typedef enum SECCertTimeValidityEnum {
     secCertTimeValid = 0,
     secCertTimeExpired = 1,
-    secCertTimeNotValidYet = 2
+    secCertTimeNotValidYet = 2,
+    secCertTimeUndetermined = 3 /* validity could not be decoded from the
+                                   cert, most likely because it was NULL */
 } SECCertTimeValidity;
 
 /*
