@@ -287,7 +287,7 @@ newbuf(HTAB *hashp, uint32 addr, BUFHEAD *prev_bp)
 				/* leave pinned pages alone, we are still using
 				 * them. */
 				if (xbp->flags & BUF_PIN) {
-				    continue;
+					continue;
 				}
 
 				/* Check that ovfl pointer is up date. */
