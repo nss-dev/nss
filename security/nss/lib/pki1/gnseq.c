@@ -35,7 +35,6 @@
 static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #endif /* DEBUG */
 
-
 /*
  * gnseq.c
  *
