@@ -270,13 +270,14 @@ decode(FILE *out, SECItem *input, const struct decodeOptionsStr *decodeOptions)
 		      != SECSuccess) {
 		    SECU_PrintError(progName, 
 		                    "problem computing message digest");
+		    PORT_FreeArena(poolp, PR_FALSE);
 		    goto loser;
 		}
 		if (NSS_CMSSignedData_SetDigests(sigd, digestalgs, digests) 
 		    != SECSuccess) {
-		    
 		    SECU_PrintError(progName, 
 		                    "problem setting message digests");
+		    PORT_FreeArena(poolp, PR_FALSE);
 		    goto loser;
 		}
 		PORT_FreeArena(poolp, PR_FALSE);
