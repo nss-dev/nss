@@ -439,7 +439,8 @@ mp_err mpl_significant_bits(const mp_int *a)
 
   ix = MP_USED(a);
   for (ix = MP_USED(a); ix > 0; ) {
-    mp_digit d = MP_DIGIT(a, --ix);
+    mp_digit d;
+    d = MP_DIGIT(a, --ix);
     if (d) {
       while (d) {
 	++bits;

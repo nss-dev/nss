@@ -225,7 +225,7 @@ mp_err mp_exptmod(const mp_int *inBase, const mp_int *exponent,
   /* compute n0', given n0, n0' = -(n0 ** -1) mod MP_RADIX
   **		where n0 = least significant mp_digit of N, the modulus.
   */
-  mmm.n0prime = 0 - s_mp_invmod_32b( MP_DIGIT(modulus, 0) );
+  mmm.n0prime = 0 - s_mp_invmod_radix( MP_DIGIT(modulus, 0) );
 
   MP_CHECKOK( s_mp_to_mont(base, &mmm, &square) );
 
