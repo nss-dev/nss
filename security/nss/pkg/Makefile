@@ -39,9 +39,11 @@ include $(CORE_DEPTH)/coreconf/config.mk
 
 publish:
 ifeq ($(OS_TARGET),Linux)
+ifeq ($(OS_RELEASE),2.4)
 	rm -rf $(OBJDIR)
 	cp -r linux $(OBJDIR)
 	$(MAKE) -C $(OBJDIR) publish
+endif
 endif
 ifeq ($(OS_TARGET),SunOS)
 	rm -rf $(OBJDIR)
