@@ -5,7 +5,7 @@
 #  return  server     client                         Test Case name
 #   value  params     params
 #  ------  ------     ------                         ---------------
-     0      _     -c_1000_-C_A             Stress SSL2 RC4 128 with MD5
+#     0      _     -c_1000_-C_A             Stress SSL2 RC4 128 with MD5
      0      _     -c_1000_-C_c             Stress SSL3 RC4 128 with MD5
      0      _     -c_1000_-C_c             Stress TLS  RC4 128 with MD5
 #

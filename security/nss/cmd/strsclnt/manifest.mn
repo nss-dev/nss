@@ -32,16 +32,13 @@
 #
 CORE_DEPTH = ../../..
 
-DEFINES += -DNSPR20
-
 # MODULE public and private header  directories are implicitly REQUIRED.
-MODULE = security
+MODULE = nss
 
 CSRCS = strsclnt.c
 
 # the MODULE above is always implicitly REQUIREd
-REQUIRES = seccmd dbm 
+REQUIRES = seccmd
 
 PROGRAM = strsclnt
-# PROGRAM = ./$(OBJDIR)/strsclnt.exe
 

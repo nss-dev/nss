@@ -33,7 +33,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "secutil.h"
+#include "cmdutil.h"
 
 #if defined(XP_UNIX)
 #include <unistd.h>
@@ -52,25 +52,16 @@
 #include "prnetdb.h"
 #include "prerror.h"
 
-#include "pk11func.h"
-#include "secitem.h"
 #include "sslproto.h"
 #include "nss.h"
+#include "nssbase.h"
+#include "nsspki.h"
 #include "ssl.h"
 
-#ifndef PORT_Sprintf
-#define PORT_Sprintf sprintf
-#endif
-
-#ifndef PORT_Strstr
-#define PORT_Strstr strstr
-#endif
-
-#ifndef PORT_Malloc
-#define PORT_Malloc PR_Malloc
-#endif
-
 #define RD_BUF_SIZE (60 * 1024)
+
+/* XXX only one for now */
+NSSTrustDomain *td = NULL;
 
 /* Include these cipher suite arrays to re-use tstclnt's 
  * cipher selection code.
@@ -131,21 +122,9 @@ static SSL3Statistics * ssl3stats;
 
 static int failed_already = 0;
 
-
-char * ownPasswd( PK11SlotInfo *slot, PRBool retry, void *arg)
-{
-        char *passwd = NULL;
-
-        if ( (!retry) && arg ) {
-                passwd = PL_strdup((char *)arg);
-        }
-
-        return passwd;
-}
-
 int	stopping;
 int	verbose;
-SECItem	bigBuf;
+NSSItem	bigBuf;
 
 #define PRINTF  if (verbose)  printf
 #define FPRINTF if (verbose) fprintf
@@ -170,10 +149,8 @@ static void
 errWarn(char * funcString)
 {
     PRErrorCode  perr      = PR_GetError();
-    const char * errString = SECU_Strerror(perr);
 
-    fprintf(stderr, "strsclnt: %s returned error %d:\n%s\n",
-            funcString, perr, errString);
+    CMD_PrintError("strsclnt: %s failed (NSPR error=%d)\n", funcString, perr);
 }
 
 static void
@@ -194,13 +171,13 @@ disableAllSSLCiphers(void)
 {
     const PRUint16 *cipherSuites = SSL_ImplementedCiphers;
     int             i            = SSL_NumImplementedCiphers;
-    SECStatus       rv;
+    PRStatus       rv;
 
     /* disable all the SSL3 cipher suites */
     while (--i >= 0) {
 	PRUint16 suite = cipherSuites[i];
         rv = SSL_CipherPrefSetDefault(suite, PR_FALSE);
-	if (rv != SECSuccess) {
+	if (rv != PR_SUCCESS) {
 	    printf("SSL_CipherPrefSetDefault didn't like value 0x%04x (i = %d)\n",
 	    	   suite, i);
 	    errWarn("SSL_CipherPrefSetDefault");
@@ -212,54 +189,50 @@ disableAllSSLCiphers(void)
 /* This invokes the "default" AuthCert handler in libssl.
 ** The only reason to use this one is that it prints out info as it goes. 
 */
-static SECStatus
+static PRStatus
 mySSLAuthCertificate(void *arg, PRFileDesc *fd, PRBool checkSig,
 		     PRBool isServer)
 {
-    SECStatus rv;
-    CERTCertificate *    peerCert;
+    PRStatus rv;
+    NSSCert * peerCert;
+    NSSUTF8 * ip;
+    NSSUTF8 * sp;
 
     peerCert = SSL_PeerCertificate(fd);
 
-    PRINTF("strsclnt: Subject: %s\nstrsclnt: Issuer : %s\n", 
-           peerCert->subjectName, peerCert->issuerName); 
+    (void)NSSCert_GetIssuerNames(peerCert, &ip, 1, NULL);
+    (void)NSSCert_GetNames(peerCert, &sp, 1, NULL);
+
+    PRINTF("strsclnt: Subject: %s\nstrsclnt: Issuer : %s\n", ip, sp);
+    NSSUTF8_Destroy(ip);
+    NSSUTF8_Destroy(sp);
     /* invoke the "default" AuthCert handler. */
     rv = SSL_AuthCertificate(arg, fd, checkSig, isServer);
 
     ++certsTested;
-    if (rv == SECSuccess) {
+    if (rv == PR_SUCCESS) {
 	fputs("strsclnt: -- SSL: Server Certificate Validated.\n", stderr);
     } 
-    CERT_DestroyCertificate(peerCert);
+    NSSCert_Destroy(peerCert);
     /* error, if any, will be displayed by the Bad Cert Handler. */
     return rv;  
 }
 
-static SECStatus
+static PRStatus
 myBadCertHandler( void *arg, PRFileDesc *fd)
 {
-    int err = PR_GetError();
     if (!MakeCertOK)
-	fprintf(stderr, 
-	    "strsclnt: -- SSL: Server Certificate Invalid, err %d.\n%s\n", 
-            err, SECU_Strerror(err));
-    return (MakeCertOK ? SECSuccess : SECFailure);
+	CMD_PrintError("strsclnt: -- SSL: Server Certificate Invalid\n");
+    return (MakeCertOK ? PR_SUCCESS : PR_FAILURE);
 }
 
-void 
-printSecurityInfo(PRFileDesc *fd)
+void printSecurityInfo(PRFileDesc *fd)
 {
-    CERTCertificate * cert = NULL;
+    NSSCert * cert;
     SSL3Statistics * ssl3stats = SSL_GetStatistics();
-    SECStatus result;
     SSLChannelInfo    channel;
     SSLCipherSuiteInfo suite;
-
-    static int only_once;
-
-    if (only_once && verbose < 2)
-    	return;
-    only_once = 1;
+    SECStatus result;
 
     result = SSL_GetChannelInfo(fd, &channel, sizeof channel);
     if (result == SECSuccess && 
@@ -269,42 +242,39 @@ printSecurityInfo(PRFileDesc *fd)
 					&suite, sizeof suite);
 	if (result == SECSuccess) {
 	    FPRINTF(stderr, 
-	    "strsclnt: SSL version %d.%d using %d-bit %s with %d-bit %s MAC\n",
+	    "tstclnt: SSL version %d.%d using %d-bit %s with %d-bit %s MAC\n",
 	       channel.protocolVersion >> 8, channel.protocolVersion & 0xff,
 	       suite.effectiveKeyBits, suite.symCipherName, 
 	       suite.macBits, suite.macAlgorithmName);
 	    FPRINTF(stderr, 
-	    "strsclnt: Server Auth: %d-bit %s, Key Exchange: %d-bit %s\n",
+	    "tstclnt: Server Auth: %d-bit %s, Key Exchange: %d-bit %s\n",
 	       channel.authKeyBits, suite.authAlgorithmName,
 	       channel.keaKeyBits,  suite.keaTypeName);
     	}
     }
-
-    cert = SSL_LocalCertificate(fd);
-    if (!cert)
-	cert = SSL_PeerCertificate(fd);
-
-    if (verbose && cert) {
-	char * ip = CERT_NameToAscii(&cert->issuer);
-	char * sp = CERT_NameToAscii(&cert->subject);
+    cert = SSL_RevealCert(fd);
+    if (cert) {
+	NSSUTF8 * ip;
+	NSSUTF8 * sp;
+	(void)NSSCert_GetIssuerNames(cert, &ip, 1, NULL);
+	(void)NSSCert_GetNames(cert, &sp, 1, NULL);
         if (sp) {
-	    fprintf(stderr, "strsclnt: subject DN: %s\n", sp);
-	    PR_Free(sp);
+	    FPRINTF(stderr, "selfserv: subject DN: %s\n", sp);
+	    NSSUTF8_Destroy(sp);
 	}
         if (ip) {
-	    fprintf(stderr, "strsclnt: issuer  DN: %s\n", ip);
-	    PR_Free(ip);
+	    FPRINTF(stderr, "selfserv: issuer  DN: %s\n", ip);
+	    NSSUTF8_Destroy(ip);
 	}
-    }
-    if (cert) {
-	CERT_DestroyCertificate(cert);
+	NSSCert_Destroy(cert);
 	cert = NULL;
     }
+#if 0
     fprintf(stderr,
-    	"strsclnt: %ld cache hits; %ld cache misses, %ld cache not reusable\n",
-    	ssl3stats->hsh_sid_cache_hits, 
-	ssl3stats->hsh_sid_cache_misses,
+    	"%ld cache hits; %ld cache misses, %ld cache not reusable\n",
+    	ssl3stats->hsh_sid_cache_hits, ssl3stats->hsh_sid_cache_misses,
 	ssl3stats->hsh_sid_cache_not_ok);
+#endif
 
 }
 
@@ -365,7 +335,7 @@ thread_wrapper(void * arg)
     PR_Unlock(threadLock);
 }
 
-SECStatus
+PRStatus
 launch_thread(
     startFn *	startFunc,
     void *	a,
@@ -385,22 +355,21 @@ launch_thread(
     	PR_WaitCondVar(threadStartQ, PR_INTERVAL_NO_TIMEOUT);
     }
     for (i = 0; i < numUsed; ++i) {
-	slot = threads + i;
-    	if (slot->running == rs_idle) 
+    	if (threads[i].running == rs_idle) 
 	    break;
     }
     if (i >= numUsed) {
 	if (i >= MAX_THREADS) {
 	    /* something's really wrong here. */
-	    PORT_Assert(i < MAX_THREADS);
+	    PR_ASSERT(i < MAX_THREADS);
 	    PR_Unlock(threadLock);
-	    return SECFailure;
+	    return PR_FAILURE;
 	}
 	++numUsed;
-	PORT_Assert(numUsed == i + 1);
-	slot = threads + i;
+	PR_ASSERT(numUsed == i + 1);
     }
 
+    slot = threads + i;
     slot->a = a;
     slot->b = b;
     slot->c = c;
@@ -414,7 +383,7 @@ launch_thread(
     if (slot->prThread == NULL) {
 	PR_Unlock(threadLock);
 	printf("strsclnt: Failed to launch thread!\n");
-	return SECFailure;
+	return PR_FAILURE;
     } 
 
     slot->inUse   = 1;
@@ -423,7 +392,7 @@ launch_thread(
     PR_Unlock(threadLock);
     PRINTF("strsclnt: Launched thread in slot %d \n", i);
 
-    return SECSuccess;
+    return PR_SUCCESS;
 }
 
 /* Wait until numRunning == 0 */
@@ -455,7 +424,7 @@ reap_threads(void)
 void
 destroy_thread_data(void)
 {
-    PORT_Memset(threads, 0, sizeof threads);
+    memset(threads, 0, sizeof threads);
 
     if (threadEndQ) {
     	PR_DestroyCondVar(threadEndQ);
@@ -549,9 +518,9 @@ do_writes(
     int			sent  		= 0;
     int 		count		= 0;
 
-    while (sent < bigBuf.len) {
+    while (sent < bigBuf.size) {
 
-	count = PR_Write(ssl_sock, bigBuf.data + sent, bigBuf.len - sent);
+	count = PR_Write(ssl_sock, bigBuf.data + sent, bigBuf.size - sent);
 	if (count < 0) {
 	    errWarn("PR_Write bigBuf");
 	    break;
@@ -566,13 +535,13 @@ do_writes(
 
     /* notify the reader that we're done. */
     lockedVars_AddToCount(lv, -1);
-    return (sent < bigBuf.len) ? SECFailure : SECSuccess;
+    return (sent < bigBuf.size) ? PR_FAILURE : PR_SUCCESS;
 }
 
 int 
 handle_fdx_connection( PRFileDesc * ssl_sock, int connection)
 {
-    SECStatus          result;
+    PRStatus          result;
     int                firstTime = 1;
     int                countRead = 0;
     lockedVars         lv;
@@ -585,7 +554,7 @@ handle_fdx_connection( PRFileDesc * ssl_sock, int connection)
     /* Attempt to launch the writer thread. */
     result = launch_thread(do_writes, ssl_sock, &lv, connection);
 
-    if (result != SECSuccess) 
+    if (result != PR_SUCCESS) 
     	goto cleanup;
 
     buf = PR_Malloc(RD_BUF_SIZE);
@@ -624,12 +593,12 @@ handle_fdx_connection( PRFileDesc * ssl_sock, int connection)
 cleanup:
     /* Caller closes the socket. */
 
-    return SECSuccess;
+    return PR_SUCCESS;
 }
 
 const char request[] = {"GET /abc HTTP/1.0\r\n\r\n" };
 
-SECStatus
+PRStatus
 handle_connection( PRFileDesc *ssl_sock, int connection)
 {
     int	    countRead = 0;
@@ -638,7 +607,7 @@ handle_connection( PRFileDesc *ssl_sock, int connection)
 
     buf = PR_Malloc(RD_BUF_SIZE);
     if (!buf)
-	return SECFailure;
+	return PR_FAILURE;
 
     /* compose the http request here. */
 
@@ -648,7 +617,7 @@ handle_connection( PRFileDesc *ssl_sock, int connection)
 	PR_Free(buf);
 	buf = 0;
         failed_already = 1;
-	return SECFailure;
+	return PR_FAILURE;
     }
     printSecurityInfo(ssl_sock);
 
@@ -676,7 +645,7 @@ handle_connection( PRFileDesc *ssl_sock, int connection)
     "strsclnt: connection %d read %d bytes total. -----------------------\n", 
     	    connection, countRead);
 
-    return SECSuccess;	/* success */
+    return PR_SUCCESS;	/* success */
 }
 
 /* one copy of this function is launched in a separate thread for each
@@ -694,8 +663,8 @@ do_connects(
     PRFileDesc *        tcp_sock	= 0;
     PRStatus	        prStatus;
     PRUint32            sleepInterval	= 50; /* milliseconds */
-    SECStatus   	result;
-    int                 rv 		= SECSuccess;
+    PRStatus   	result;
+    int                 rv 		= PR_SUCCESS;
     PRSocketOptionData  opt;
 
 retry:
@@ -711,7 +680,7 @@ retry:
     if (prStatus != PR_SUCCESS) {
 	errWarn("PR_SetSocketOption(PR_SockOpt_Nonblocking, PR_FALSE)");
     	PR_Close(tcp_sock);
-	return SECSuccess;
+	return PR_SUCCESS;
     } 
 
     if (NoDelay) {
@@ -721,7 +690,7 @@ retry:
 	if (prStatus != PR_SUCCESS) {
 	    errWarn("PR_SetSocketOption(PR_SockOpt_NoDelay, PR_TRUE)");
 	    PR_Close(tcp_sock);
-	    return SECSuccess;
+	    return PR_SUCCESS;
 	} 
     }
 
@@ -747,19 +716,19 @@ retry:
 	    goto retry;
 	}
 	errWarn("PR_Connect");
-	rv = SECFailure;
+	rv = PR_FAILURE;
 	goto done;
     }
 
-    ssl_sock = SSL_ImportFD(model_sock, tcp_sock);
+    ssl_sock = SSL_ImportFD(model_sock, td, tcp_sock);
     /* XXX if this import fails, close tcp_sock and return. */
     if (!ssl_sock) {
     	PR_Close(tcp_sock);
-	return SECSuccess;
+	return PR_SUCCESS;
     }
 
     rv = SSL_ResetHandshake(ssl_sock, /* asServer */ 0);
-    if (rv != SECSuccess) {
+    if (rv != PR_SUCCESS) {
 	errWarn("SSL_ResetHandshake");
 	goto done;
     }
@@ -780,7 +749,7 @@ done:
     } else if (tcp_sock) {
 	PR_Close(tcp_sock);
     }
-    return SECSuccess;
+    return PR_SUCCESS;
 }
 
 /* Returns IP address for hostname as PRUint32 in Host Byte Order.
@@ -814,8 +783,8 @@ void
 client_main(
     unsigned short      port, 
     int                 connections, 
-    SECKEYPrivateKey ** privKey,
-    CERTCertificate **  cert, 
+    NSSPrivateKey **    privKey,
+    NSSCert **          cert, 
     const char *	hostName,
     char *		nickName)
 {
@@ -852,9 +821,9 @@ client_main(
             for (ndx &= 0x1f; (cipher = *cptr++) != 0 && --ndx > 0; )
                 /* do nothing */;
             if (cipher) {
-		SECStatus rv;
+		PRStatus rv;
                 rv = SSL_CipherPrefSetDefault(cipher, PR_TRUE);
-		if (rv != SECSuccess) {
+		if (rv != PR_SUCCESS) {
 		    fprintf(stderr, 
 		"strsclnt: SSL_CipherPrefSetDefault failed with value 0x%04x\n",
 			    cipher);
@@ -871,7 +840,7 @@ client_main(
 	errExit("PR_NewTCPSocket on model socket");
     }
 
-    model_sock = SSL_ImportFD(NULL, model_sock);
+    model_sock = SSL_ImportFD(NULL, td, model_sock);
     if (model_sock == NULL) {
 	errExit("SSL_ImportFD");
     }
@@ -899,12 +868,11 @@ client_main(
 
     SSL_SetURL(model_sock, hostName);
 
-    SSL_AuthCertificateHook(model_sock, mySSLAuthCertificate, 
-			    (void *)CERT_GetDefaultCertDB());
+    SSL_AuthCertificateHook(model_sock, mySSLAuthCertificate, NULL);
 
     SSL_BadCertHook(model_sock, myBadCertHandler, NULL);
 
-    SSL_GetClientAuthDataHook(model_sock, NSS_GetClientAuthData, nickName);
+    SSL_GetClientAuthDataHook(model_sock, SSL_GetClientAuthData, nickName);
 
     /* I'm not going to set the HandshakeCallback function. */
 
@@ -932,12 +900,12 @@ client_main(
 
 }
 
-SECStatus
+PRStatus
 readBigFile(const char * fileName)
 {
     PRFileInfo  info;
     PRStatus	status;
-    SECStatus	rv	= SECFailure;
+    PRStatus	rv	= PR_FAILURE;
     int		count;
     int		hdrLen;
     PRFileDesc *local_file_fd = NULL;
@@ -949,22 +917,22 @@ readBigFile(const char * fileName)
 	info.size > 0 &&
 	NULL != (local_file_fd = PR_Open(fileName, PR_RDONLY, 0))) {
 
-	hdrLen      = PORT_Strlen(outHeader);
-	bigBuf.len  = hdrLen + info.size;
-	bigBuf.data = PORT_Malloc(bigBuf.len + 4095);
+	hdrLen      = strlen(outHeader);
+	bigBuf.size  = hdrLen + info.size;
+	bigBuf.data = PR_Malloc(bigBuf.size + 4095);
 	if (!bigBuf.data) {
-	    errWarn("PORT_Malloc");
+	    errWarn("PR_Malloc");
 	    goto done;
 	}
 
-	PORT_Memcpy(bigBuf.data, outHeader, hdrLen);
+	memcpy(bigBuf.data, outHeader, hdrLen);
 
 	count = PR_Read(local_file_fd, bigBuf.data + hdrLen, info.size);
 	if (count != info.size) {
 	    errWarn("PR_Read local file");
 	    goto done;
 	}
-	rv = SECSuccess;
+	rv = PR_SUCCESS;
 done:
 	PR_Close(local_file_fd);
     }
@@ -982,15 +950,17 @@ main(int argc, char **argv)
     char *               progName    = NULL;
     char *               tmp         = NULL;
     char *		 passwd      = NULL;
-    CERTCertificate *    cert   [kt_kea_size] = { NULL };
-    SECKEYPrivateKey *   privKey[kt_kea_size] = { NULL };
+    NSSCert *            cert   [ssl_kea_size] = { NULL };
+    NSSPrivateKey *      privKey[ssl_kea_size] = { NULL };
     int                  connections = 1;
     int                  exitVal;
     int                  tmpInt;
     unsigned short       port        = 443;
-    SECStatus            rv;
+    PRStatus            rv;
     PLOptState *         optstate;
     PLOptStatus          status;
+    NSSUsages            client_usage = { 0, NSSUsage_SSLClient };
+    NSSCallback *pwcb;
 
     /* Call the NSPR initialization routines */
     PR_Init( PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
@@ -1013,22 +983,22 @@ main(int argc, char **argv)
 
 	case 'N': NoReuse = 1; break;
 
-	case 'c': connections = PORT_Atoi(optstate->value); break;
+	case 'c': connections = atoi(optstate->value); break;
 
 	case 'd': dir = optstate->value; break;
 
-	case 'f': fNickName = PL_strdup(optstate->value); break;
+	case 'f': fNickName = strdup(optstate->value); break;
 
-        case 'n': nickName = PL_strdup(optstate->value); break;
+        case 'n': nickName = strdup(optstate->value); break;
 
 	case 'o': MakeCertOK = 1; break;
 
-	case 'p': port = PORT_Atoi(optstate->value); break;
+	case 'p': port = atoi(optstate->value); break;
 
 	case 'q': QuitOnTimeout = PR_TRUE; break;
 
 	case 't':
-	    tmpInt = PORT_Atoi(optstate->value);
+	    tmpInt = atoi(optstate->value);
 	    if (tmpInt > 0 && tmpInt < MAX_THREADS) 
 	        max_threads = tmpInt;
 	    break;
@@ -1060,37 +1030,50 @@ main(int argc, char **argv)
     if (fileName)
     	readBigFile(fileName);
 
-    /* set our password function */
-    if ( passwd ) {
-	PK11_SetPasswordFunc(ownPasswd);
-    } else {
-	PK11_SetPasswordFunc(SECU_GetModulePassword);
+    /* initialize NSS */
+    status = NSS_Init(dir);
+    if (status == PR_FAILURE) {
+	CMD_PrintError("Failed to initialize NSS");
+	return 1;
     }
 
-    /* Call the libsec initialization routines */
-    rv = NSS_Init(dir);
-    if (rv != SECSuccess) {
-    	fputs("NSS_Init failed.\n", stderr);
-	exit(1);
+    /* XXX */
+    status = NSS_EnablePKIXCertificates();
+    if (status == PR_FAILURE) {
+	CMD_PrintError("Failed to load PKIX module");
+	/* goto shutdown; */
+	exit(4);
+    }
+    td = NSS_GetDefaultTrustDomain();
+    pwcb = CMD_GetDefaultPasswordCallback(passwd, NULL);
+    if (!pwcb) {
+	exit(4);
+    }
+    status = NSSTrustDomain_SetDefaultCallback(td, pwcb, NULL);
+    if (status != PR_SUCCESS) {
+	exit(4);
     }
     ssl3stats = SSL_GetStatistics();
 
     if (nickName  && strcmp(nickName, "none")) {
-
-	cert[kt_rsa] = PK11_FindCertFromNickname(nickName, passwd);
-	if (cert[kt_rsa] == NULL) {
+	cert[ssl_kea_rsa] = NSSTrustDomain_FindBestCertByNickname(td, nickName, 
+	                                                     NSSTime_Now(),
+	                                                     &client_usage,
+	                                                     NULL);
+	if (cert[ssl_kea_rsa] == NULL) {
 	    fprintf(stderr, "strsclnt: Can't find certificate %s\n", nickName);
 	    exit(1);
 	}
 
-	privKey[kt_rsa] = PK11_FindKeyByAnyCert(cert[kt_rsa], passwd);
-	if (privKey[kt_rsa] == NULL) {
+	privKey[ssl_kea_rsa] = NSSCert_FindPrivateKey(cert[ssl_kea_rsa], NULL);
+	if (privKey[ssl_kea_rsa] == NULL) {
 	    fprintf(stderr, "strsclnt: Can't find Private Key for cert %s\n", 
 		    nickName);
 	    exit(1);
 	}
 
     }
+#ifdef FORTEZZA
     if (fNickName) {
 	cert[kt_fortezza] = PK11_FindCertFromNickname(fNickName, passwd);
 	if (cert[kt_fortezza] == NULL) {
@@ -1105,22 +1088,27 @@ main(int argc, char **argv)
 	    exit(1);
 	}
     }
+#endif /* FORTEZZA */
 
     client_main(port, connections, privKey, cert, hostName, nickName);
 
     /* clean up */
-    if (cert[kt_rsa]) {
-	CERT_DestroyCertificate(cert[kt_rsa]);
+    if (cert[ssl_kea_rsa]) {
+	NSSCert_Destroy(cert[ssl_kea_rsa]);
     }
+#ifdef FORTEZZA
     if (cert[kt_fortezza]) {
 	CERT_DestroyCertificate(cert[kt_fortezza]);
     }
-    if (privKey[kt_rsa]) {
-	SECKEY_DestroyPrivateKey(privKey[kt_rsa]);
+#endif /* FORTEZZA */
+    if (privKey[ssl_kea_rsa]) {
+	NSSPrivateKey_Destroy(privKey[ssl_kea_rsa]);
     }
+#ifdef FORTEZZA
     if (privKey[kt_fortezza]) {
 	SECKEY_DestroyPrivateKey(privKey[kt_fortezza]);
     }
+#endif /* FORTEZZA */
 
     /* some final stats. */
     if (ssl3stats->hsh_sid_cache_hits + ssl3stats->hsh_sid_cache_misses +
@@ -1135,6 +1123,7 @@ main(int argc, char **argv)
 	    ssl3stats->hsh_sid_cache_not_ok);
     }
 
+#ifdef IMPLEMENT_SESSION_ID_CACHE
     if (!NoReuse)
 	exitVal = (ssl3stats->hsh_sid_cache_misses > 1) ||
                 (ssl3stats->hsh_sid_cache_not_ok != 0) ||
@@ -1142,9 +1131,15 @@ main(int argc, char **argv)
     else
 	exitVal = (ssl3stats->hsh_sid_cache_misses != connections) ||
                 (certsTested != connections);
+#endif /* IMPLEMENT_SESSION_ID_CACHE */
+    exitVal = 0;
 
     exitVal = ( exitVal || failed_already );
-    NSS_Shutdown();
+    SSL_ClearSessionCache();
+    if (NSS_Shutdown() != SECSuccess) {
+        exit(1);
+    }
+
     PR_Cleanup();
     return exitVal;
 }

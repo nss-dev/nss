@@ -825,7 +825,7 @@ handle_connection(
 	reqLen     = 0;
 	rv = PR_Read(ssl_sock, pBuf, bufRem);
 	if (rv == 0 || 
-	    (rv < 0 && PR_END_OF_FILE_ERROR == PR_GetError())) {
+	    (rv < 0 && PR_END_OF_FILE_ERROR == NSS_GetError())) {
 	    if (verbose)
 		errWarn("HDX PR_Read hit EOF");
 	    break;

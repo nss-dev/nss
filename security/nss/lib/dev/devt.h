@@ -94,7 +94,7 @@ typedef enum {
   nssTokenSearchType_AllObjects = 0,
   nssTokenSearchType_SessionOnly = 1,
   nssTokenSearchType_TokenOnly = 2,
-  nssTokenSearchType_TokenForced = 3 /* XXX internal only */
+  nssTokenSearchType_PrivateTokenOnly = 3
 } nssTokenSearchType;
 
 struct nssCryptokiObjectStr

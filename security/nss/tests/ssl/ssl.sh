@@ -285,10 +285,11 @@ ssl_stress()
               ps -ef | grep selfserv
           fi
 
-          echo "strsclnt -q -p ${PORT} -d ${P_R_CLIENTDIR} -w nss $cparam \\"
+          echo "strsclnt -q -p ${PORT} -d ${P_R_CLIENTDIR} -o -w nss $cparam \\"
           echo "         $verbose ${HOSTADDR}"
           echo "strsclnt started at `date`"
-          strsclnt -q -p ${PORT} -d ${P_R_CLIENTDIR} -w nss $cparam \
+# XXX using -o because Stan can't verify server hostname yet
+          strsclnt -q -p ${PORT} -d ${P_R_CLIENTDIR} -o -w nss $cparam \
                    $verbose ${HOSTADDR}
           ret=$?
           echo "strsclnt completed at `date`"
@@ -324,7 +325,7 @@ if [ -z  "$DO_REM_ST" -a -z  "$DO_DIST_ST" ] ; then
     ssl_init
     ssl_cov
     ssl_auth
-#    ssl_stress
+    ssl_stress
 
 #    SERVERDIR=$EXT_SERVERDIR
 #    CLIENTDIR=$EXT_CLIENTDIR
