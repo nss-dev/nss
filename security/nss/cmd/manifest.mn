@@ -56,7 +56,6 @@ DIRS = lib  \
  p7verify  \
  pk12util \
  pp  \
- rsaperf \
  sdrtest \
  selfserv  \
  signtool \
