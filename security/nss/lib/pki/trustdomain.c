@@ -1507,119 +1507,19 @@ nssTrustDomain_GenerateKeyPair (
   NSSCallback *uhhOpt
 )
 {
-    PRStatus status;
-    PRBool temporary;
-    NSSToken *source;
-    nssSession *session = NULL;
-    nssCryptokiObject *bkey = NULL;
-    nssCryptokiObject *vkey = NULL;
-    nssPKIObject *pkio = NULL;
-    NSSSlot *slot;
+    nssPKIObjectCreator creator;
 
-    if (nssToken_DoesAlgorithm(destination, ap)) {
-	/* We can do the keygen on the destination token */
-	source = nssToken_AddRef(destination);
-	temporary = PR_FALSE;
-    } else {
-	/* We can't do the keygen on the destination token, find one
-	 * that is capable of doing it, and create it there (as a
-	 * temporary object)
-	 */
-	source = nssTrustDomain_FindTokenForAlgorithmAndParameters(td, ap);
-	if (!source) {
-	    return PR_FAILURE;
-	}
-	temporary = PR_TRUE;
-    }
-
-    /* The key will be private, so login is required */
-    slot = nssToken_GetSlot(destination);
-    status = nssSlot_Login(slot, uhhOpt ? uhhOpt : td->callback);
-    nssSlot_Destroy(slot);
-    if (status == PR_FAILURE) {
-	goto loser;
-    }
-
-    session = nssTrustDomain_GetSessionForToken(td, source, !temporary);
-    if (!session) {
-	goto loser;
-    }
-
-    status = nssToken_GenerateKeyPair(source, session, ap,
-                                      !temporary, nicknameOpt, 
-                                      properties, operations,
-                                      &bkey, &vkey);
-    if (status == PR_FAILURE) {
-	goto loser;
-    }
-
-#if 0
-    if (source != destination) {
-	/* Have to move the keys to the destination, and destroy the sources */
-	nssCryptokiObject *destbKey, *destvKey;
-	nssSession *copySession;
-	copySession = nssTrustDomain_GetSessionForToken(td, destination, 
-	                                                PR_FALSE);
-	if (!copySession) {
-	    goto loser;
-	}
-	status = nssCryptokiKeyPair_Copy(bkey, vkey, session,
-	                                 destination, copySession,
-	                                 &destbKey, &destvKey,
-	                                 PR_TRUE);
-	nssCryptokiObject_DeleteStoredObject(bkey, session);
-	nssCryptokiObject_DeleteStoredObject(vkey, session);
-	bkey = vkey = NULL;
-	nssSession_Destroy(copySession);
-	if (status == PR_FAILURE) {
-	    goto loser;
-	}
-	bkey = destbKey;
-	vkey = destvKey;
-    }
-#endif
-
-    if (pbkOpt) {
-	pkio = nssPKIObject_Create(NULL, bkey, td, NULL);
-	if (!pkio) {
-	    goto loser;
-	}
-        *pbkOpt = nssPublicKey_Create(pkio);
-	if (!*pbkOpt) {
-	    nssPKIObject_Destroy(pkio);
-	    goto loser;
-	}
-    } else {
-	nssCryptokiObject_Destroy(bkey);
-    }
-    if (pvkOpt) {
-	pkio = nssPKIObject_Create(NULL, vkey, td, NULL);
-	if (!pkio) {
-	    goto loser;
-	}
-        *pvkOpt = nssPrivateKey_Create(pkio);
-	if (!*pvkOpt) {
-	    nssPKIObject_Destroy(pkio);
-	    goto loser;
-	}
-    } else {
-	nssCryptokiObject_Destroy(vkey);
-    }
-    nssToken_Destroy(source);
-    return PR_SUCCESS;
-
-loser:
-    if (session) {
-	nssSession_Destroy(session);
-    }
-    if (bkey) {
-	nssCryptokiObject_Destroy(bkey);
-    }
-    if (vkey) {
-	nssCryptokiObject_Destroy(vkey);
-    }
-    nssToken_Destroy(source);
-    return PR_FAILURE;
+    creator.td = td;
+    creator.vd = NULL;
+    creator.destination = destination;
+    creator.session = NULL; /* allow it to create one */
+    creator.persistent = PR_TRUE;
+    creator.ap = ap;
+    creator.uhh = uhhOpt ? uhhOpt : td->callback;
+    creator.nickname = nicknameOpt;
+    creator.properties = properties;
+    creator.operations = operations;
+    return nssPKIObjectCreator_GenerateKeyPair(&creator, pbkOpt, pvkOpt);
 }
 
 NSS_IMPLEMENT PRStatus
@@ -1671,86 +1571,19 @@ nssTrustDomain_GenerateSymmetricKey (
   NSSCallback *uhhOpt
 )
 {
-    PRStatus status;
-    PRBool temporary;
-    NSSToken *source;
-    nssSession *session = NULL;
-    nssCryptokiObject *key = NULL;
-    nssPKIObject *pkio = NULL;
-    NSSSymmetricKey *rvKey = NULL;
-    NSSSlot *slot;
+    nssPKIObjectCreator creator;
 
-    source = nssTrustDomain_FindSourceToken(td, ap, destination);
-    if (!source) {
-	return (NSSSymmetricKey *)NULL;
-    }
-    temporary = (source != destination); /* will we have to move it? */
-
-    /* The key will be private, so login is required */
-    slot = nssToken_GetSlot(destination);
-    status = nssSlot_Login(slot, uhhOpt);
-    nssSlot_Destroy(slot);
-    if (status == PR_FAILURE) {
-	goto loser;
-    }
-
-    session = nssTrustDomain_GetSessionForToken(td, source, temporary);
-    if (!session) {
-	goto loser;
-    }
-
-    /* XXX */
-    key = nssToken_GenerateSymmetricKey(source, session, ap, keysize,
-                                        NULL, !temporary, 0, 0);
-    if (!key) {
-	goto loser;
-    }
-
-    if (source != destination) {
-	/* Have to move the key to the destination, and destroy the source */
-	nssCryptokiObject *destKey;
-	nssSession *copySession;
-	copySession = nssTrustDomain_GetSessionForToken(td, destination, 
-	                                                PR_TRUE);
-	if (!copySession) {
-	    goto loser;
-	}
-	destKey = nssCryptokiSymmetricKey_Copy(key, session,
-	                                       destination, copySession,
-	                                       PR_TRUE);
-	nssCryptokiObject_DeleteStoredObject(key);
-	key = NULL;
-	nssSession_Destroy(copySession);
-	if (!destKey) {
-	    goto loser;
-	}
-	key = destKey;
-    }
-
-    pkio = nssPKIObject_Create(NULL, key, td, NULL);
-    if (!pkio) {
-	goto loser;
-    }
-
-    rvKey = nssSymmetricKey_Create(pkio);
-    if (!rvKey) {
-	goto loser;
-    }
-    nssToken_Destroy(source);
-    return rvKey;
-
-loser:
-    if (session) {
-	nssSession_Destroy(session);
-    }
-    if (key) {
-	nssCryptokiObject_Destroy(key);
-    }
-    if (pkio) {
-	nssPKIObject_Destroy(pkio);
-    }
-    nssToken_Destroy(source);
-    return (NSSSymmetricKey *)NULL;
+    creator.td = td;
+    creator.vd = NULL;
+    creator.destination = destination;
+    creator.session = NULL; /* allow it to create one */
+    creator.persistent = PR_TRUE;
+    creator.ap = ap;
+    creator.uhh = uhhOpt ? uhhOpt : td->callback;
+    creator.nickname = NULL /*nicknameOpt*/;
+    creator.properties = 0 /*properties*/;
+    creator.operations = 0 /*operations*/;
+    return nssPKIObjectCreator_GenerateSymmetricKey(&creator, keysize);
 }
 
 NSS_IMPLEMENT NSSSymmetricKey *

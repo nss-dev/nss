@@ -54,7 +54,7 @@
 #define SSL_IMPORT extern
 #endif
 
-SEC_BEGIN_PROTOS
+PR_BEGIN_EXTERN_C
 
 /* constant table enumerating all implemented SSL 2 and 3 cipher suites. */
 SSL_IMPORT const PRUint16 SSL_ImplementedCiphers[];
@@ -357,7 +357,7 @@ SSL_IMPORT SECStatus SSL_InvalidateSession(PRFileDesc *fd);
 /*
 ** Return a SECItem containing the SSL session ID associated with the fd.
 */
-SSL_IMPORT SECItem *SSL_GetSessionID(PRFileDesc *fd);
+SSL_IMPORT NSSItem *SSL_GetSessionID(PRFileDesc *fd);
 
 /*
 ** Clear out the client's SSL session cache, not the server's session cache.
@@ -373,7 +373,7 @@ SSL_IMPORT SECStatus SSL_SetSockPeerID(PRFileDesc *fd, char *peerID);
 /*
 ** Reveal the security information for the peer. 
 */
-SSL_IMPORT CERTCertificate * SSL_RevealCert(PRFileDesc * socket);
+SSL_IMPORT NSSCertificate * SSL_RevealCert(PRFileDesc * socket);
 SSL_IMPORT void * SSL_RevealPinArg(PRFileDesc * socket);
 SSL_IMPORT char * SSL_RevealURL(PRFileDesc * socket);
 
@@ -433,6 +433,6 @@ SSL_IMPORT SECStatus SSL_GetCipherSuiteInfo(PRUint16 cipherSuite,
 */
 SSL_IMPORT NSSCertificate * SSL_LocalCertificate(PRFileDesc *fd);
 
-SEC_END_PROTOS
+PR_END_EXTERN_C
 
 #endif /* __ssl_h_ */

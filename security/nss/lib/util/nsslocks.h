@@ -42,26 +42,40 @@
 #ifndef _NSSLOCKS_H_
 #define _NSSLOCKS_H_
 
+#ifdef STAN_BUILD
+#include "nssbase.h"
+#else
 #include "seccomon.h"
+#endif /* STAN_BUILD */
 #include "nssilock.h"
 #include "prmon.h"
 
-SEC_BEGIN_PROTOS
+PR_BEGIN_EXTERN_C
 
 /* Given the address of a (global) pointer to a PZLock, 
  * atomicly create the lock and initialize the (global) pointer, 
  * if it is not already created/initialized.
  */
 
-extern SECStatus nss_InitLock(   PZLock    **ppLock, nssILockType ltype );
+#ifdef STAN_BUILD
+extern PRStatus 
+#else
+extern SECStatus 
+#endif
+nss_InitLock(   PZLock    **ppLock, nssILockType ltype );
 
 /* Given the address of a (global) pointer to a PZMonitor, 
  * atomicly create the monitor and initialize the (global) pointer, 
  * if it is not already created/initialized.
  */
 
-extern SECStatus nss_InitMonitor(PZMonitor **ppMonitor, nssILockType ltype );
+#ifdef STAN_BUILD
+extern PRStatus 
+#else
+extern SECStatus 
+#endif
+nss_InitMonitor(PZMonitor **ppMonitor, nssILockType ltype );
 
-SEC_END_PROTOS
+PR_END_EXTERN_C
 
 #endif

@@ -65,6 +65,8 @@ struct NSSVolatileDomainStr
   NSSTrustDomain *td;
   NSSCallback *callback;
 
+  nssTokenSessionHash *tokenSessionHash;
+
   PZLock *objectLock;
   struct object_array_str certs;
   struct object_array_str bkeys;
@@ -94,6 +96,11 @@ nssVolatileDomain_Create (
 	nssArena_Destroy(arena);
 	return (NSSVolatileDomain *)NULL;
     }
+    rvVD->tokenSessionHash = nssTokenSessionHash_Create();
+    if (!rvVD->tokenSessionHash) {
+	nssArena_Destroy(arena);
+	return (NSSVolatileDomain *)NULL;
+    }
     rvVD->td = td;
     rvVD->arena = arena;
     if (uhhOpt) {
@@ -109,6 +116,7 @@ nssVolatileDomain_Destroy (
 {
     PRStatus status = PR_SUCCESS;
     PZ_DestroyLock(vd->objectLock);
+    nssTokenSessionHash_Destroy(vd->tokenSessionHash);
     nssCertificateArray_Destroy((NSSCertificate **)vd->certs.array);
     nssPublicKeyArray_Destroy((NSSPublicKey **)vd->bkeys.array);
     nssPrivateKeyArray_Destroy((NSSPrivateKey **)vd->vkeys.array);
@@ -854,8 +862,23 @@ nssVolatileDomain_GenerateKeyPair (
   NSSCallback *uhhOpt
 )
 {
-    nss_SetError(NSS_ERROR_NOT_FOUND);
-    return PR_FAILURE;
+    nssPKIObjectCreator creator;
+
+    creator.td = vd->td;
+    creator.vd = vd;
+    creator.destination = destination;
+    creator.session = nssTokenSessionHash_GetSession(vd->tokenSessionHash,
+                                                     destination, PR_FALSE);
+    if (!creator.session) {
+	return PR_FAILURE;
+    }
+    creator.persistent = PR_FALSE;
+    creator.ap = ap;
+    creator.uhh = uhhOpt ? uhhOpt : vd->callback;
+    creator.nickname = NULL /*nicknameOpt*/;
+    creator.properties = 0 /*properties*/;
+    creator.operations = 0 /*operations*/;
+    return nssPKIObjectCreator_GenerateKeyPair(&creator, pbkOpt, pvkOpt);
 }
 
 NSS_IMPLEMENT PRStatus
@@ -879,39 +902,30 @@ nssVolatileDomain_GenerateSymmetricKey (
   NSSVolatileDomain *vd,
   const NSSAlgorithmAndParameters *ap,
   PRUint32 keysize,
-  const NSSUTF8 *labelOpt,
+  const NSSUTF8 *nicknameOpt,
   NSSOperations operations,
   NSSProperties properties,
   NSSToken *destination,
   NSSCallback *uhhOpt
 )
 {
-    NSSToken *source;
-    nssCryptokiObject *key;
-    nssSession *session;
+    nssPKIObjectCreator creator;
 
-    source = nssTrustDomain_FindSourceToken(vd->td, ap, destination);
-    if (!source) {
+    creator.td = vd->td;
+    creator.vd = vd;
+    creator.destination = destination;
+    creator.session = nssTokenSessionHash_GetSession(vd->tokenSessionHash,
+                                                     destination, PR_FALSE);
+    if (!creator.session) {
 	return (NSSSymmetricKey *)NULL;
     }
-
-    /* XXX should volatile domain keep hash of tokens? */
-    session = nssToken_CreateSession(source, PR_FALSE);
-    if (!session) {
-	nssToken_Destroy(source);
-	return (NSSSymmetricKey *)NULL;
-    }
-
-    key = nssToken_GenerateSymmetricKey(source, session, ap, keysize,
-                                        labelOpt, PR_FALSE, 
-                                        operations, properties);
-    nssSession_Destroy(session);
-    nssToken_Destroy(source);
-    if (!key) {
-	return (NSSSymmetricKey *)NULL;
-    }
-
-    return nssSymmetricKey_CreateFromInstance(key, vd->td, vd);
+    creator.persistent = PR_FALSE;
+    creator.ap = ap;
+    creator.uhh = uhhOpt ? uhhOpt : vd->callback;
+    creator.nickname = nicknameOpt;
+    creator.properties = properties;
+    creator.operations = operations;
+    return nssPKIObjectCreator_GenerateSymmetricKey(&creator, keysize);
 }
 
 NSS_IMPLEMENT NSSSymmetricKey *

@@ -41,7 +41,7 @@ include $(CORE_DEPTH)/coreconf/rules.mk
 
 export:: copy_files private_export
 
-FILES=$(shell ls -d ../util/nss[ib]*.[ch])
+FILES=$(shell ls -d ../util/nss[bilr]*.[ch])
 
 # XXX hack to share some libutil files for now
 copy_files::

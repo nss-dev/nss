@@ -39,6 +39,9 @@ DEFINES = -DSTAN_BUILD
 PRIVATE_UTIL_EXPORTS = \
 	nssilock.h     \
 	nssilckt.h     \
+	nssrwlk.h      \
+	nssrwlkt.h     \
+	nsslocks.h     \
 	nssb64.h   \
 	nssb64t.h  \
 	$(NULL)
@@ -51,6 +54,7 @@ PRIVATE_UTIL_EXPORTS = \
 UTIL_CSRCS =      \
 	nssb64d.c \
 	nssb64e.c \
+	nsslocks.c \
 	$(NULL)
 
 PRIVATE_EXPORTS = \

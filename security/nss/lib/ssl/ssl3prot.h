@@ -70,23 +70,23 @@ typedef struct {
     SSL3ContentType     type;
     SSL3ProtocolVersion version;
     uint16              length;
-    SECItem             fragment;
+    NSSItem             fragment;
 } SSL3Plaintext;
 
 typedef struct {
     SSL3ContentType     type;
     SSL3ProtocolVersion version;
     uint16              length;
-    SECItem             fragment;
+    NSSItem             fragment;
 } SSL3Compressed;
 
 typedef struct {
-    SECItem    content;
+    NSSItem    content;
     SSL3Opaque MAC[MAX_MAC_LENGTH];
 } SSL3GenericStreamCipher;
 
 typedef struct {
-    SECItem    content;
+    NSSItem    content;
     SSL3Opaque MAC[MAX_MAC_LENGTH];
     uint8      padding[MAX_PADDING_LENGTH];
     uint8      padding_length;
@@ -167,7 +167,7 @@ typedef struct {
     SSL3ProtocolVersion   client_version;
     SSL3Random            random;
     SSL3SessionID         session_id;
-    SECItem               cipher_suites;
+    NSSItem               cipher_suites;
     uint8                 cm_count;
     SSL3CompressionMethod compression_methods[MAX_COMPRESSION_METHODS];
 } SSL3ClientHello;
@@ -181,7 +181,7 @@ typedef struct  {
 } SSL3ServerHello;
      
 typedef struct {
-    SECItem list;
+    NSSItem list;
 } SSL3Certificate;
 
 /* SSL3SignType moved to ssl.h */
@@ -207,14 +207,14 @@ typedef enum {
 } SSL3KeyExchangeAlgorithm;
      
 typedef struct {
-    SECItem modulus;
-    SECItem exponent;
+    NSSItem modulus;
+    NSSItem exponent;
 } SSL3ServerRSAParams;
 
 typedef struct {
-    SECItem p;
-    SECItem g;
-    SECItem Ys;
+    NSSItem p;
+    NSSItem g;
+    NSSItem Ys;
 } SSL3ServerDHParams;
 
 typedef struct {
@@ -246,18 +246,18 @@ typedef enum {
     ct_Fortezza 	= 20
 } SSL3ClientCertificateType;
      
-typedef SECItem *SSL3DistinquishedName;
+typedef NSSItem *SSL3DistinquishedName;
 
 typedef struct {
     SSL3Opaque client_version[2];
     SSL3Opaque random[46];
 } SSL3RSAPreMasterSecret;
      
-typedef SECItem SSL3EncryptedPreMasterSecret;
+typedef NSSItem SSL3EncryptedPreMasterSecret;
 
 /* Following struct is the format of a Fortezza ClientKeyExchange message. */
 typedef struct {
-    SECItem    y_c;
+    NSSItem    y_c;
     SSL3Opaque r_c                      [128];
     SSL3Opaque y_signature              [40];
     SSL3Opaque wrapped_client_write_key [12];
@@ -275,7 +275,7 @@ typedef enum { implicit, explicit } SSL3PublicValueEncoding;
 typedef struct {
     union {
 	SSL3Opaque implicit;
-	SECItem    explicit;
+	NSSItem    explicit;
     } dh_public;
 } SSL3ClientDiffieHellmanPublic;
      
@@ -289,7 +289,7 @@ typedef struct {
 
 typedef SSL3Hashes SSL3PreSignedCertificateVerify;
 
-typedef SECItem SSL3CertificateVerify;
+typedef NSSItem SSL3CertificateVerify;
 
 typedef enum {
     sender_client = 0x434c4e54,

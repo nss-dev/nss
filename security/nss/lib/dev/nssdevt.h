@@ -279,7 +279,7 @@ typedef enum {
   NSSSSLVersion_TLS = 2
 } NSSSSLVersion;
 
-typedef NSSSSLVersion NSSSSLPreMasterSecretParameters;
+typedef NSSSSLVersion NSSSSLPMSParameters;
 
 typedef struct NSSSSLMSParametersStr 
 {
@@ -288,7 +288,7 @@ typedef struct NSSSSLMSParametersStr
   NSSSSLVersion version;
   PRBool isDH;
 } 
-NSSSSLMasterSecretParameters;
+NSSSSLMSParameters;
 
 typedef struct NSSSSLSessionKeyParametersStr
 {
@@ -315,8 +315,8 @@ typedef union
   NSSRC5Parameters       rc5;
   NSSHMACParameters      hmac;
   NSSPBEParameters       pbe;
-  NSSSSLPreMasterSecretParameters sslpms;
-  NSSSSLMasterSecretParameters    sslms;
+  NSSSSLPMSParameters    sslpms;
+  NSSSSLMSParameters     sslms;
 }
 NSSParameters;
 

@@ -1448,3 +1448,346 @@ nssPKIObjectCollection_GetPublicKeys (
     return rvOpt;
 }
 
+NSS_IMPLEMENT PRStatus
+nssPKIObjectCreator_GenerateKeyPair (
+  nssPKIObjectCreator *creator,
+  NSSPublicKey **pbkOpt,
+  NSSPrivateKey **pvkOpt
+)
+{
+    PRStatus status;
+    PRBool temporary;
+    NSSToken *source;
+    nssSession *session = NULL;
+    nssCryptokiObject *bkey = NULL;
+    nssCryptokiObject *vkey = NULL;
+    NSSSlot *slot;
+
+    /* search the trust domain for a usable token for the keygen */
+    source = nssTrustDomain_FindSourceToken(creator->td, 
+                                            creator->ap, 
+                                            creator->destination);
+    if (!source) {
+	return PR_FAILURE;
+    }
+    /* If we want a persistent object but the destination token can't
+     * do the math, then create a temporary object on the source token
+     * and move it.  Otherwise, it is of course temporary in either case.
+     */
+    temporary = (source != creator->destination || !creator->persistent);
+
+    /* The key will be private, so login is required */
+    slot = nssToken_GetSlot(creator->destination);
+    status = nssSlot_Login(slot, creator->uhh);
+    nssSlot_Destroy(slot);
+    if (status == PR_FAILURE) {
+	goto loser;
+    }
+
+    if (creator->session && source == creator->destination) {
+	/* given a session to use on the destination token */
+	session = creator->session;
+    } else {
+	/* need a new session for the destination token */
+	session = nssTrustDomain_GetSessionForToken(creator->td, 
+	                                            source, temporary);
+	if (!session) {
+	    goto loser;
+	}
+    }
+
+    status = nssToken_GenerateKeyPair(source, session, 
+                                      creator->ap, !temporary, 
+                                      creator->nickname, 
+                                      creator->properties, 
+                                      creator->operations,
+                                      &bkey, &vkey);
+    if (status == PR_FAILURE) {
+	goto loser;
+    }
+
+#if 0
+    if (source != destination) {
+	/* Have to move the keys to the destination, and destroy the sources */
+	nssCryptokiObject *destbKey, *destvKey;
+	nssSession *copySession;
+
+	/* need a read/write session on the destination token */
+	copySession = nssTrustDomain_GetSessionForToken(td, destination, 
+	                                                PR_FALSE);
+	if (!copySession) {
+	    goto loser;
+	}
+	status = nssCryptokiKeyPair_Copy(bkey, vkey, session,
+	                                 destination, copySession,
+	                                 &destbKey, &destvKey,
+	                                 PR_TRUE);
+	nssCryptokiObject_DeleteStoredObject(bkey, session);
+	nssCryptokiObject_DeleteStoredObject(vkey, session);
+	bkey = vkey = NULL;
+	nssSession_Destroy(copySession);
+	if (status == PR_FAILURE) {
+	    goto loser;
+	}
+	bkey = destbKey;
+	vkey = destvKey;
+    }
+#endif
+
+    *pbkOpt = nssPublicKey_CreateFromInstance(bkey, creator->td, NULL, NULL);
+    if (!*pbkOpt) {
+	goto loser;
+    }
+    *pvkOpt = nssPrivateKey_CreateFromInstance(vkey, creator->td, NULL, NULL);
+    if (!*pvkOpt) {
+	goto loser;
+    }
+    if (session != creator->session) {
+	nssSession_Destroy(session);
+    }
+    nssToken_Destroy(source);
+    return PR_SUCCESS;
+
+loser:
+    if (session != creator->session) {
+	nssSession_Destroy(session);
+    }
+    if (bkey) {
+	nssCryptokiObject_Destroy(bkey);
+    }
+    if (vkey) {
+	nssCryptokiObject_Destroy(vkey);
+    }
+    nssToken_Destroy(source);
+    return PR_FAILURE;
+}
+
+NSS_IMPLEMENT NSSSymmetricKey *
+nssPKIObjectCreator_GenerateSymmetricKey (
+  nssPKIObjectCreator *creator,
+  PRUint32 keysize
+)
+{
+    PRStatus status;
+    PRBool temporary;
+    NSSToken *source;
+    nssSession *session = NULL;
+    nssCryptokiObject *key = NULL;
+    NSSSymmetricKey *rvKey = NULL;
+    NSSSlot *slot;
+
+    /* search the trust domain for a usable token for the keygen */
+    source = nssTrustDomain_FindSourceToken(creator->td, 
+                                            creator->ap, 
+                                            creator->destination);
+    if (!source) {
+	return (NSSSymmetricKey *)NULL;
+    }
+    /* If we want a persistent object but the destination token can't
+     * do the math, then create a temporary object on the source token
+     * and move it.  Otherwise, it is of course temporary in either case.
+     */
+    temporary = (source != creator->destination || !creator->persistent);
+
+    /* The key will be private, so login is required */
+    slot = nssToken_GetSlot(creator->destination);
+    status = nssSlot_Login(slot, creator->uhh);
+    nssSlot_Destroy(slot);
+    if (status == PR_FAILURE) {
+	goto loser;
+    }
+
+    if (creator->session && source == creator->destination) {
+	/* given a session to use on the destination token */
+	session = creator->session;
+    } else {
+	/* need a new session for the destination token */
+	session = nssTrustDomain_GetSessionForToken(creator->td, 
+	                                            source, temporary);
+	if (!session) {
+	    goto loser;
+	}
+    }
+
+    /* XXX */
+    key = nssToken_GenerateSymmetricKey(source, session, creator->ap, 
+                                        keysize, NULL, !temporary, 0, 0);
+    if (!key) {
+	goto loser;
+    }
+
+    if (source != creator->destination) {
+	/* Have to move the key to the destination, and destroy the source */
+	nssCryptokiObject *destKey;
+	nssSession *copySession;
+	if (creator->session) {
+	    /* the supplied session is for the destination token, use it */
+	    copySession = creator->session;
+	} else {
+	    copySession = nssTrustDomain_GetSessionForToken(creator->td, 
+	                                                creator->destination, 
+	                                                creator->persistent);
+	    if (!copySession) {
+		goto loser;
+	    }
+	}
+	destKey = nssCryptokiSymmetricKey_Copy(key, session,
+	                                       creator->destination, 
+	                                       copySession, 
+	                                       creator->persistent);
+	nssCryptokiObject_DeleteStoredObject(key);
+	key = NULL;
+	if (copySession != creator->session) {
+	    nssSession_Destroy(copySession);
+	}
+	if (!destKey) {
+	    goto loser;
+	}
+	key = destKey;
+    }
+
+    rvKey = nssSymmetricKey_CreateFromInstance(key, creator->td, creator->vd);
+    if (!rvKey) {
+	goto loser;
+    }
+    if (session != creator->session) {
+	nssSession_Destroy(session);
+    }
+    nssToken_Destroy(source);
+    return rvKey;
+
+loser:
+    if (session != creator->session) {
+	nssSession_Destroy(session);
+    }
+    if (key) {
+	nssCryptokiObject_Destroy(key);
+    }
+    nssToken_Destroy(source);
+    return (NSSSymmetricKey *)NULL;
+}
+
+struct nssTokenSessionHashStr {
+  NSSArena *arena;
+  PZLock *lock;
+  struct token2session_str {
+    NSSToken *token;
+    nssSession *session;
+    nssSession *rwSession;
+  } *token2session;
+  PRUint32 count;
+  PRUint32 size;
+};
+
+/* using this interface to keep things abstract, but there's no real need
+ * for a hash table here (it would be overkill), so just implement using
+ * an array
+ */
+NSS_IMPLEMENT nssTokenSessionHash *
+nssTokenSessionHash_Create (
+  void
+)
+{
+    nssTokenSessionHash *rvHash;
+    NSSArena *arena;
+
+    arena = nssArena_Create();
+    if (!arena) {
+	return (nssTokenSessionHash *)NULL;
+    }
+    rvHash = nss_ZNEW(arena, nssTokenSessionHash);
+    if (!rvHash) {
+	nssArena_Destroy(arena);
+	return (nssTokenSessionHash *)NULL;
+    }
+    rvHash->arena = arena;
+    rvHash->size = 2;
+    rvHash->lock = PZ_NewLock(nssILockOther);
+    if (!rvHash->lock) {
+	nssArena_Destroy(arena);
+	return (nssTokenSessionHash *)NULL;
+    }
+    rvHash->token2session = nss_ZNEWARRAY(arena, struct token2session_str,
+                                          rvHash->size);
+    if (!rvHash->token2session) {
+	nssArena_Destroy(arena);
+	return (nssTokenSessionHash *)NULL;
+    }
+    return rvHash;
+}
+
+NSS_IMPLEMENT void
+nssTokenSessionHash_Destroy (
+  nssTokenSessionHash *tsHash
+)
+{
+    PRUint32 i;
+    struct token2session_str *t2s;
+
+    for (i=0; i<tsHash->count; i++) {
+	t2s = &tsHash->token2session[i];
+	nssToken_Destroy(t2s->token);
+	if (t2s->session) {
+	    nssSession_Destroy(t2s->session);
+	}
+	if (t2s->rwSession) {
+	    nssSession_Destroy(t2s->rwSession);
+	}
+    }
+    PZ_DestroyLock(tsHash->lock);
+    nssArena_Destroy(tsHash->arena);
+}
+
+NSS_IMPLEMENT nssSession *
+nssTokenSessionHash_GetSession (
+  nssTokenSessionHash *tsHash,
+  NSSToken *token,
+  PRBool readWrite
+)
+{
+    PRUint32 i;
+    nssSession *session = NULL;
+    struct token2session_str *t2s = NULL;
+
+    PZ_Lock(tsHash->lock);
+    for (i=0; i<tsHash->count; i++) {
+	if (tsHash->token2session[i].token == token) {
+	    t2s = &tsHash->token2session[i];
+	    session = readWrite ? t2s->rwSession : t2s->session;
+	    if (session) {
+		goto have_session;
+	    } else {
+		goto new_session;
+	    }
+	}
+    }
+new_session:
+    if (!t2s) {
+	if (tsHash->count == tsHash->size) {
+	    tsHash->size *= 2;
+	    tsHash->token2session = nss_ZREALLOCARRAY(tsHash->token2session,
+	                                          struct token2session_str,
+	                                          tsHash->size);
+	    if (!tsHash->token2session) {
+		goto finish;
+	    }
+	}
+	t2s = &tsHash->token2session[++tsHash->count];
+    }
+    session = nssToken_CreateSession(token, readWrite);
+    if (!session) {
+	goto finish;
+    }
+    if (readWrite) {
+	t2s->rwSession = session;
+    } else {
+	t2s->session = session;
+    }
+    t2s->token = nssToken_AddRef(token);
+have_session:
+    session = nssSession_AddRef(session); /* get a ref */
+finish:
+    PZ_Unlock(tsHash->lock);
+    return session;
+}
+

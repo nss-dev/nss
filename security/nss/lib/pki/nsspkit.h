@@ -139,6 +139,10 @@ typedef struct NSSTrustDomainStr NSSTrustDomain;
 
 typedef struct NSSVolatileDomainStr NSSVolatileDomain;
 
+/* special case of volatile domain */
+struct NSSCertificateChainStr;
+typedef struct NSSCertificateChainStr NSSCertificateChain;
+
 /*
  * NSSCryptoContext
  *

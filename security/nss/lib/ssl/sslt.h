@@ -40,6 +40,15 @@
 
 #include "prtypes.h"
 
+/* XXX temporarily define SECStatus here, move to PRStatus and eliminate
+ *     SECWouldBlock later
+ */
+typedef enum _SECStatus {
+    SECWouldBlock = -2,
+    SECFailure = -1,
+    SECSuccess = 0
+} SECStatus;
+
 typedef struct SSL3StatisticsStr {
     /* statistics from ssl3_SendClientHello (sch) */
     long sch_sid_cache_hits;
@@ -77,6 +86,7 @@ typedef enum {
 #define kt_dh   	ssl_kea_dh
 #define kt_fortezza	ssl_kea_fortezza
 #define kt_kea_size	ssl_kea_size
+#endif
 
 typedef enum {
     ssl_sign_null   = 0, 
@@ -109,7 +119,6 @@ typedef enum {
     ssl_hmac_md5      = 3, 	/* TLS HMAC version of mac_md5 */
     ssl_hmac_sha      = 4 	/* TLS HMAC version of mac_sha */
 } SSLMACAlgorithm;
-#endif
 
 typedef struct SSLChannelInfoStr {
     PRUint32             length;

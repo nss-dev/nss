@@ -134,6 +134,7 @@ NSSCertificate_IsPrivateKeyAvailable;
 ;+#NSSUserCertificate_DeriveSymmetricKey;
 NSSPrivateKey_Destroy;
 NSSPrivateKey_DeleteStoredObject;
+NSSPrivateKey_GetType;
 ;+#NSSPrivateKey_GetSignatureLength;
 ;+#NSSPrivateKey_GetPrivateModulusLength;
 ;+#NSSPrivateKey_IsStillPresent;

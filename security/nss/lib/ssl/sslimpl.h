@@ -54,8 +54,9 @@
 #endif
 #include "nssrwlk.h"
 #include "prthread.h"
+#include "oiddata.h"
 
-#include "sslt.h" /* for some formerly private types, now public */
+#include "ssl.h" /* for some formerly private types, now public */
 
 #if defined(DEBUG) || defined(TRACE)
 #ifdef __cplusplus
@@ -97,6 +98,10 @@ extern int Debug;
 
 #define LSB(x) ((unsigned char) (x & 0xff))
 #define MSB(x) ((unsigned char) (((unsigned)(x)) >> 8))
+
+/* XXX replace with Stan equivalents */
+#define PORT_Assert PR_ASSERT
+#define PORT_SetError(a)
 
 /************************************************************************/
 
@@ -195,7 +200,7 @@ struct sslSocketOpsStr {
 */
 struct sslBufferStr {
     unsigned char *	buf;
-    unsigned int 	len;
+    unsigned int 	size;
     unsigned int 	space;
 };
 
@@ -429,10 +434,10 @@ typedef enum {	never_cached,
 struct sslSessionIDStr {
     sslSessionID *        next;   /* chain used for client sockets, only */
 
-    CERTCertificate *     peerCert;
+    NSSCertificate *      peerCert;
     const char *          peerID;     /* client only */
     const char *          urlSvrName; /* client only */
-    CERTCertificate *     localCert;
+    NSSCertificate *      localCert;
 
     PRIPv6Addr            addr;
     PRUint16              port;
@@ -456,13 +461,14 @@ struct sslSessionIDStr {
 	    unsigned char         sessionID[SSL2_SESSIONID_BYTES];
 
 	    /* Stuff used to recreate key and read/write cipher objects */
-	    SECItem               masterKey;
+	    NSSItem               masterKey;
 	    int                   cipherType;
-	    SECItem               cipherArg;
+	    NSSItem               cipherArg;
 	    int                   keyBits;
 	    int                   secretKeyBits;
 	} ssl2;
 	struct {
+#if 0
 	    /* values that are copied into the server's on-disk SID cache. */
 	    uint8                 sessionIDLength;
 	    SSL3Opaque            sessionID[SSL3_SESSIONID_BYTES];
@@ -505,6 +511,7 @@ struct sslSessionIDStr {
 	    SECMODModuleID    clAuthModuleID;
 	    CK_SLOT_ID        clAuthSlotID;
 	    PRUint16          clAuthSeries;
+#endif
 
             char              masterValid;
 	    char              clAuthValid;
@@ -522,7 +529,7 @@ struct sslSessionIDStr {
 typedef struct ssl3CipherSuiteDefStr {
     ssl3CipherSuite          cipher_suite;
     SSL3BulkCipher           bulk_cipher_alg;
-    SSL3MACAlgorithm         mac_alg;
+    SSLMACAlgorithm          mac_alg;
     SSL3KeyExchangeAlgorithm key_exchange_alg;
 } ssl3CipherSuiteDef;
 
@@ -531,8 +538,8 @@ typedef struct ssl3CipherSuiteDefStr {
 */
 typedef struct {
     SSL3KeyExchangeAlgorithm kea;
-    SSL3KEAType              exchKeyType;
-    SSL3SignType             signKeyType;
+    SSLKEAType               exchKeyType;
+    SSLSignType              signKeyType;
     PRBool                   is_limited;
     int                      key_size_limit;
     PRBool                   tls_keygen;
@@ -545,8 +552,7 @@ typedef enum { kg_null, kg_strong, kg_export } SSL3KeyGenMode;
 */
 struct ssl3BulkCipherDefStr {
     SSL3BulkCipher  cipher;
-    NSSSymmetricKeyType        key_type;
-    NSSAlgorithmAndParameters *calg;
+    NSSOIDTag       calg;
     int             key_size;
     int             secret_key_size;
     CipherType      type;
@@ -559,8 +565,10 @@ struct ssl3BulkCipherDefStr {
 ** There are tables of these, all const.
 */
 struct ssl3MACDefStr {
-    SSL3MACAlgorithm mac;
-    NSSAlgorithmAndParameters *ap;
+    SSLMACAlgorithm  mac;
+    /* XXX
+    const NSSAlgorithmAndParameters *ap;
+    */
     int              pad_size;
     int              mac_size;
 };
@@ -588,8 +596,8 @@ typedef struct SSL3HandshakeStateStr {
     SSL3Random            server_random;
     SSL3Random            client_random;
     SSL3WaitState         ws;
-    PK11Context *         md5;            /* handshake running hashes */
-    PK11Context *         sha;
+    NSSCryptoContext *    md5;            /* handshake running hashes */
+    NSSCryptoContext *    sha;
 const ssl3KEADef *        kea_def;
     ssl3CipherSuite       cipher_suite;
 const ssl3CipherSuiteDef *suite_def;
@@ -601,7 +609,7 @@ const ssl3CipherSuiteDef *suite_def;
                                /* message for message type and header length */
     SSL3HandshakeType     msg_type;
     unsigned long         msg_len;
-    SECItem               ca_list;     /* used only by client */
+    NSSItem               ca_list;     /* used only by client */
     PRBool                isResuming;  /* are we resuming a session */
     PRBool                rehandshake; /* immediately start another handshake 
                                         * when this one finishes */
@@ -610,12 +618,14 @@ const ssl3CipherSuiteDef *suite_def;
                                        /* protected by recvBufLock */
 } SSL3HandshakeState;
 
+#if 0
 struct SSL3FortezzaKEAParamsStr {
     unsigned char R_s[128];		/* server's "random" public key	*/
     PK11SymKey *  tek;
 };
 
 typedef struct SSL3FortezzaKEAParamsStr SSL3FortezzaKEAParams;
+#endif
 
 /*
 ** This is the "ssl3" struct, as in "ss->ssl3".
@@ -639,22 +649,27 @@ struct ssl3StateStr {
 
     SSL3HandshakeState   hs;
 
-    CERTCertificate *    clientCertificate;  /* used by client */
-    SECKEYPrivateKey *   clientPrivateKey;   /* used by client */
-    CERTCertificateList *clientCertChain;    /* used by client */
+    NSSCertificate *     clientCertificate;  /* used by client */
+    NSSPrivateKey *      clientPrivateKey;   /* used by client */
+    NSSCertificateChain *clientCertChain;    /* used by client */
     PRBool               sendEmptyCert;      /* used by client */
 
     int                  policy;
 			/* This says what cipher suites we can do, and should 
 			 * be either SSL_ALLOWED or SSL_RESTRICTED 
 			 */
-    PRArenaPool *        peerCertArena;  
+    /* XXX */
+    NSSArena *           peerCertArena;  
 			    /* These are used to keep track of the peer CA */
+    /* XXX */
     void *               peerCertChain;     
 			    /* chain while we are trying to validate it.   */
-    CERTDistNames *      ca_list; 
+    /*XXX*/
+    NSSDER **            ca_list; 
 			    /* used by server.  trusted CAs for this socket. */
+#if 0
     SSL3FortezzaKEAParams fortezza;
+#endif
 };
 
 typedef struct {
@@ -664,12 +679,13 @@ typedef struct {
 } SSL3Ciphertext;
 
 struct ssl3KeyPairStr {
-    SECKEYPrivateKey *    privKey;		/* RSA step down key */
-    SECKEYPublicKey *     pubKey;		/* RSA step down key */
-    PRInt32               refCount;	/* use PR_Atomic calls for this. */
+    NSSPrivateKey * privKey;  /* RSA step down key */
+    NSSPublicKey *  pubKey;   /* RSA step down key */
+    PRInt32         refCount; /* use PR_Atomic calls for this. */
 };
 
 typedef struct SSLWrappedSymWrappingKeyStr {
+#if 0
     SSL3Opaque        wrappedSymmetricWrappingkey[512];
     SSL3Opaque        wrapIV[24];
     CK_MECHANISM_TYPE symWrapMechanism;  
@@ -677,7 +693,8 @@ typedef struct SSLWrappedSymWrappingKeyStr {
     CK_MECHANISM_TYPE asymWrapMechanism; 
 		    /* mechanism used to wrap the SymmetricWrappingKey using
 		     * server's public and/or private keys. */
-    SSL3KEAType       exchKeyType;   /* type of keys used to wrap SymWrapKey*/
+#endif
+    SSLKEAType        exchKeyType;   /* type of keys used to wrap SymWrapKey*/
     PRInt32           symWrapMechIndex;
     PRUint16          wrappedSymKeyLen;
     PRUint16          wrapIVLen;
@@ -763,9 +780,9 @@ struct sslSecurityInfoStr {
     int              cipherType;				/* ssl 2 & 3 */
     int              keyBits;					/* ssl 2 & 3 */
     int              secretKeyBits;				/* ssl 2 & 3 */
-    CERTCertificate *localCert;					/* ssl 2 & 3 */
-    CERTCertificate *peerCert;					/* ssl 2 & 3 */
-    SECKEYPublicKey *peerKey;					/* ssl3 only */
+    NSSCertificate * localCert;					/* ssl 2 & 3 */
+    NSSCertificate * peerCert;					/* ssl 2 & 3 */
+    NSSPublicKey *   peerKey;					/* ssl3 only */
 
     SSLSignType      authAlgorithm;
     PRUint32         authKeyBits;
@@ -789,11 +806,13 @@ struct sslSecurityInfoStr {
     uint32           rcvSequence;		/*recvBufLock*/	/* ssl2 only */
 
     /* Hash information; used for one-way-hash functions (MD2, MD5, etc.) */
+#if 0
     const SECHashObject   *hash;		/* Spec Lock */ /* ssl2 only */
+#endif
     void            *hashcx;			/* Spec Lock */	/* ssl2 only */
 
-    SECItem          sendSecret;		/* Spec Lock */	/* ssl2 only */
-    SECItem          rcvSecret;			/* Spec Lock */	/* ssl2 only */
+    NSSItem          sendSecret;		/* Spec Lock */	/* ssl2 only */
+    NSSItem          rcvSecret;			/* Spec Lock */	/* ssl2 only */
 
     /* Session cypher contexts; one for each direction */
     void            *readcx;			/* Spec Lock */	/* ssl2 only */
@@ -876,7 +895,7 @@ const unsigned char *  preferredCipher;
 
     /* Configuration state for server sockets */
     /* server cert and key for each KEA type */
-    sslServerCerts        serverCerts[kt_kea_size];
+    sslServerCerts        serverCerts[ssl_kea_size];
 
     ssl3KeyPair *         stepDownKeyPair;	/* RSA step down keys */
 
@@ -917,10 +936,11 @@ const unsigned char *  preferredCipher;
     ** records.  */
     NSSRWLock *   specLock;
 
-    /* handle to perm cert db (and implicitly to the temp cert db) used 
+    /* handle to volatile domain and trust domain used 
     ** with this socket. 
     */
-    CERTCertDBHandle * dbHandle;
+    NSSVolatileDomain * vd;
+    NSSTrustDomain    * td;
 
     PRThread *  writerThread;   /* thread holds SSL_LOCK_WRITER lock */
 
@@ -944,7 +964,8 @@ const unsigned char *  preferredCipher;
 extern NSSRWLock *             ssl_global_data_lock;
 extern char                    ssl_debug;
 extern char                    ssl_trace;
-extern CERTDistNames *         ssl3_server_ca_list;
+/* XXX */
+extern NSSDER **               ssl3_server_ca_list;
 extern PRUint32                ssl_sid_timeout;
 extern PRUint32                ssl3_sid_timeout;
 extern PRBool                  ssl3_global_policy_some_restricted;
@@ -958,7 +979,7 @@ extern sslSessionIDUncacheFunc ssl_sid_uncache;
 
 /************************************************************************/
 
-SEC_BEGIN_PROTOS
+PR_BEGIN_EXTERN_C
 
 /* Implementation of ops for default (non socks, non secure) case */
 extern int ssl_DefConnect(sslSocket *ss, const PRNetAddr *addr);
@@ -1093,22 +1114,22 @@ extern SECStatus ssl_EnableNagleDelay(sslSocket *ss, PRBool enabled);
 extern int ssl2_SendErrorMessage(struct sslSocketStr *ss, int error);
 extern int SSL_RestartHandshakeAfterServerCert(struct sslSocketStr *ss);
 extern int SSL_RestartHandshakeAfterCertReq(struct sslSocketStr *ss,
-					    CERTCertificate *cert,
-					    SECKEYPrivateKey *key,
-					    CERTCertificateList *certChain);
+					    NSSCertificate *cert,
+					    NSSPrivateKey *key,
+					    NSSCertificateChain *certChain);
 extern sslSocket *ssl_FindSocket(PRFileDesc *fd);
 extern void ssl_FreeSocket(struct sslSocketStr *ssl);
 extern SECStatus SSL3_SendAlert(sslSocket *ss, SSL3AlertLevel level,
 				SSL3AlertDescription desc);
 
 extern int ssl2_RestartHandshakeAfterCertReq(sslSocket *          ss,
-					     CERTCertificate *    cert, 
-					     SECKEYPrivateKey *   key);
+					     NSSCertificate *     cert, 
+					     NSSPrivateKey *      key);
 
 extern SECStatus ssl3_RestartHandshakeAfterCertReq(sslSocket *    ss,
-					     CERTCertificate *    cert, 
-					     SECKEYPrivateKey *   key,
-					     CERTCertificateList *certChain);
+					     NSSCertificate *     cert, 
+					     NSSPrivateKey *      key,
+					     NSSCertificateChain *certChain);
 
 extern int ssl2_RestartHandshakeAfterServerCert(sslSocket *ss);
 extern int ssl3_RestartHandshakeAfterServerCert(sslSocket *ss);
@@ -1182,8 +1203,8 @@ extern int ssl3_config_match_init(sslSocket *);
 
 
 /* Create a new ref counted key pair object from two keys. */
-extern ssl3KeyPair * ssl3_NewKeyPair( SECKEYPrivateKey * privKey, 
-                                      SECKEYPublicKey * pubKey);
+extern ssl3KeyPair * ssl3_NewKeyPair(NSSPrivateKey * privKey, 
+                                     NSSPublicKey * pubKey);
 
 /* get a new reference (bump ref count) to an ssl3KeyPair. */
 extern ssl3KeyPair * ssl3_GetKeyPairRef(ssl3KeyPair * keyPair);
@@ -1194,7 +1215,7 @@ extern void ssl3_FreeKeyPair(ssl3KeyPair * keyPair);
 /* calls for accessing wrapping keys across processes. */
 extern PRBool
 ssl_GetWrappingKey( PRInt32                   symWrapMechIndex,
-                    SSL3KEAType               exchKeyType, 
+                    SSLKEAType               exchKeyType, 
 		    SSLWrappedSymWrappingKey *wswk);
 
 /* The caller passes in the new value it wants
@@ -1244,7 +1265,7 @@ ssl_EmulateSendFile( PRFileDesc *        sd,
 
 void ssl_Trace(const char *format, ...);
 
-SEC_END_PROTOS
+PR_END_EXTERN_C
 
 #ifdef XP_OS2_VACPP
 #include <process.h>

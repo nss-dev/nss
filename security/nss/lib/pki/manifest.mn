@@ -48,7 +48,6 @@ MODULE = nss
 
 CSRCS =		         \
 	pkibase.c        \
-	pkistore.c       \
 	asymmkey.c       \
 	certificate.c    \
 	cryptocontext.c  \

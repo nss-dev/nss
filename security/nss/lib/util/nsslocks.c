@@ -39,7 +39,11 @@
  * $Id$
  */
 
+#ifdef STAN_BUILD
+#include "nssbase.h"
+#else
 #include "seccomon.h"
+#endif
 #include "nsslocks.h"
 #include "pratom.h"
 #include "prthread.h"
@@ -49,12 +53,16 @@
  * if it is not already created/initialized.
  */
 
-SECStatus 
+#ifdef STAN_BUILD
+PRStatus 
+#else
+SECStatus
+#endif
 __nss_InitLock(   PZLock    **ppLock, nssILockType ltype )
 {
     static PRInt32  initializers;
 
-    PORT_Assert( ppLock != NULL);
+    PR_ASSERT( ppLock != NULL);
 
     /* atomically initialize the lock */
     while (!*ppLock) {
@@ -68,10 +76,14 @@ __nss_InitLock(   PZLock    **ppLock, nssILockType ltype )
         (void) PR_AtomicDecrement(&initializers);
     }
 
-    return (*ppLock != NULL) ? SECSuccess : SECFailure;
+    return (*ppLock != NULL) ? PR_SUCCESS : PR_FAILURE;
 }
 
-SECStatus 
+#ifdef STAN_BUILD
+PRStatus 
+#else
+SECStatus
+#endif
 nss_InitLock(   PZLock    **ppLock, nssILockType ltype )
 {
     return __nss_InitLock(ppLock, ltype);
@@ -82,12 +94,16 @@ nss_InitLock(   PZLock    **ppLock, nssILockType ltype )
  * if it is not already created/initialized.
  */
 
-SECStatus 
+#ifdef STAN_BUILD
+PRStatus 
+#else
+SECStatus
+#endif
 nss_InitMonitor(PZMonitor **ppMonitor, nssILockType ltype )
 {
     static PRInt32  initializers;
 
-    PORT_Assert( ppMonitor != NULL);
+    PR_ASSERT( ppMonitor != NULL);
 
     /* atomically initialize the lock */
     while (!*ppMonitor) {
@@ -101,5 +117,5 @@ nss_InitMonitor(PZMonitor **ppMonitor, nssILockType ltype )
         (void) PR_AtomicDecrement(&initializers);
     }
 
-    return (*ppMonitor != NULL) ? SECSuccess : SECFailure;
+    return (*ppMonitor != NULL) ? PR_SUCCESS : PR_FAILURE;
 }

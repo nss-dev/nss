@@ -213,6 +213,22 @@ NSSPrivateKey_DeleteStoredObject (
     return nssPKIObject_DeleteStoredObject(&vk->object, uhh, PR_FALSE);
 }
 
+NSS_IMPLEMENT NSSKeyPairType
+nssPrivateKey_GetType (
+  NSSPrivateKey *vk
+)
+{
+    return vk->kind;
+}
+
+NSS_IMPLEMENT NSSKeyPairType
+NSSPrivateKey_GetType (
+  NSSPrivateKey *vk
+)
+{
+    return nssPrivateKey_GetType(vk);
+}
+
 NSS_IMPLEMENT nssCryptokiObject *
 nssPrivateKey_CopyToToken (
   NSSPrivateKey *vk,
@@ -562,6 +578,8 @@ NSSPrivateKey_Decrypt (
     return NULL;
 }
 
+/* XXX in 3.x, only CKM_RSA_PKCS and CKM_DSA sigs were done */
+/* XXX do we ever want raw DSA sigs?  or always DER-encoded? */
 NSS_IMPLEMENT NSSItem *
 NSSPrivateKey_Sign (
   NSSPrivateKey *vk,

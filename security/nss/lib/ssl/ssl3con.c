@@ -56,6 +56,10 @@
 #include "nsspki.h"
 #endif /* NSSPKI_H */
 
+#include "oiddata.h"
+#include "nsspki1.h"
+#include "nss.h"
+
 #include "sslimpl.h"
 #include "sslproto.h"
 #include "sslerr.h"
@@ -63,9 +67,12 @@
 #include "nsslocks.h"
 
 static void      ssl3_CleanupPeerCerts(ssl3State *ssl3);
-static PK11SymKey *ssl3_GenerateRSAPMS(sslSocket *ss, ssl3CipherSpec *spec,
-                                       PK11SlotInfo * serverKeySlot);
-static PRStatus ssl3_GenerateSessionKeys(sslSocket *ss, const PK11SymKey *pms);
+static NSSCryptoContext *ssl3_GenerateRSAPMS(sslSocket *ss, 
+                                             ssl3CipherSpec *spec,
+                                             NSSToken *serverKeyToken);
+static PRStatus ssl3_GenerateSessionKeys(sslSocket *ss, 
+                                     NSSCryptoContext *pmsCxOpt,
+                                     NSSCryptoContext **sessionCxs /* [4] */);
 static SECStatus ssl3_HandshakeFailure(      sslSocket *ss);
 static SECStatus ssl3_InitState(             sslSocket *ss);
 static sslSessionID *ssl3_NewSessionID(      sslSocket *ss, PRBool is_server);
@@ -161,32 +168,33 @@ PRBool ssl3_global_policy_some_restricted = PR_FALSE;
 /* This global item is used only in servers.  It is is initialized by
 ** SSL_ConfigSecureServer(), and is used in ssl3_SendCertificateRequest().
 */
-CERTDistNames *ssl3_server_ca_list = NULL;
+/* XXX */
+NSSDER **ssl3_server_ca_list = NULL;
 static SSL3Statistics ssl3stats;
 
 /* must use ssl_LookupCipherSuiteDef to access */
 static const ssl3CipherSuiteDef cipher_suite_defs[] = {
 /*  cipher_suite                    bulk_cipher_alg mac_alg key_exchange_alg */
 
-    {SSL_NULL_WITH_NULL_NULL,       cipher_null,   mac_null, kea_null},
-    {SSL_RSA_WITH_NULL_MD5,         cipher_null,   mac_md5, kea_rsa},
-    {SSL_RSA_WITH_NULL_SHA,         cipher_null,   mac_sha, kea_rsa},
-    {SSL_RSA_EXPORT_WITH_RC4_40_MD5,cipher_rc4_40, mac_md5, kea_rsa_export},
-    {SSL_RSA_WITH_RC4_128_MD5,      cipher_rc4,    mac_md5, kea_rsa},
-    {SSL_RSA_WITH_RC4_128_SHA,      cipher_rc4,    mac_sha, kea_rsa},
+    {SSL_NULL_WITH_NULL_NULL,       cipher_null,   ssl_mac_null, kea_null},
+    {SSL_RSA_WITH_NULL_MD5,         cipher_null,   ssl_mac_md5, kea_rsa},
+    {SSL_RSA_WITH_NULL_SHA,         cipher_null,   ssl_mac_sha, kea_rsa},
+    {SSL_RSA_EXPORT_WITH_RC4_40_MD5,cipher_rc4_40, ssl_mac_md5, kea_rsa_export},
+    {SSL_RSA_WITH_RC4_128_MD5,      cipher_rc4,    ssl_mac_md5, kea_rsa},
+    {SSL_RSA_WITH_RC4_128_SHA,      cipher_rc4,    ssl_mac_sha, kea_rsa},
     {SSL_RSA_EXPORT_WITH_RC2_CBC_40_MD5,
-                                    cipher_rc2_40, mac_md5, kea_rsa_export},
+                                    cipher_rc2_40, ssl_mac_md5, kea_rsa_export},
 #if 0 /* not implemented */
     {SSL_RSA_WITH_IDEA_CBC_SHA,     cipher_idea,   mac_sha, kea_rsa},
     {SSL_RSA_EXPORT_WITH_DES40_CBC_SHA,
                                     cipher_des40,  mac_sha, kea_rsa_export},
 #endif
-    {SSL_RSA_WITH_DES_CBC_SHA,      cipher_des,    mac_sha, kea_rsa},
-    {SSL_RSA_WITH_3DES_EDE_CBC_SHA, cipher_3des,   mac_sha, kea_rsa},
-    {SSL_DHE_DSS_WITH_DES_CBC_SHA,  cipher_des,    mac_sha, kea_dhe_dss},
+    {SSL_RSA_WITH_DES_CBC_SHA,      cipher_des,    ssl_mac_sha, kea_rsa},
+    {SSL_RSA_WITH_3DES_EDE_CBC_SHA, cipher_3des,   ssl_mac_sha, kea_rsa},
+    {SSL_DHE_DSS_WITH_DES_CBC_SHA,  cipher_des,    ssl_mac_sha, kea_dhe_dss},
     {SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA,
-                                    cipher_3des,   mac_sha, kea_dhe_dss},
-    {TLS_DHE_DSS_WITH_RC4_128_SHA,  cipher_rc4,    mac_sha, kea_dhe_dss},
+                                    cipher_3des,   ssl_mac_sha, kea_dhe_dss},
+    {TLS_DHE_DSS_WITH_RC4_128_SHA,  cipher_rc4,    ssl_mac_sha, kea_dhe_dss},
 #if 0 /* not implemented */
     {SSL_DH_DSS_EXPORT_WITH_DES40_CBC_SHA,
                                     cipher_des40,  mac_sha, kea_dh_dss_export},
@@ -201,9 +209,9 @@ static const ssl3CipherSuiteDef cipher_suite_defs[] = {
     {SSL_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA,
                                     cipher_des40,  mac_sha, kea_dh_rsa_export},
 #endif
-    {SSL_DHE_RSA_WITH_DES_CBC_SHA,  cipher_des,    mac_sha, kea_dhe_rsa},
+    {SSL_DHE_RSA_WITH_DES_CBC_SHA,  cipher_des,    ssl_mac_sha, kea_dhe_rsa},
     {SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA,
-                                    cipher_3des,   mac_sha, kea_dhe_rsa},
+                                    cipher_3des,   ssl_mac_sha, kea_dhe_rsa},
 #if 0
     {SSL_DH_ANON_EXPORT_RC4_40_MD5, cipher_rc4_40, mac_md5, kea_dh_anon_export},
     {SSL_DH_ANON_EXPORT_RC4_40_MD5, cipher_rc4,    mac_md5, kea_dh_anon_export},
@@ -213,18 +221,18 @@ static const ssl3CipherSuiteDef cipher_suite_defs[] = {
     {SSL_DH_ANON_3DES_CBC_SHA,      cipher_3des,   mac_sha, kea_dh_anon},
 #endif
 
-    {SSL_FORTEZZA_DMS_WITH_NULL_SHA, cipher_null,  mac_sha, kea_fortezza},
+    {SSL_FORTEZZA_DMS_WITH_NULL_SHA, cipher_null,  ssl_mac_sha, kea_fortezza},
     {SSL_FORTEZZA_DMS_WITH_FORTEZZA_CBC_SHA,
-                                  cipher_fortezza, mac_sha, kea_fortezza},
-    {SSL_FORTEZZA_DMS_WITH_RC4_128_SHA, cipher_rc4, mac_sha, kea_fortezza},
+                                  cipher_fortezza, ssl_mac_sha, kea_fortezza},
+    {SSL_FORTEZZA_DMS_WITH_RC4_128_SHA, cipher_rc4, ssl_mac_sha, kea_fortezza},
 
 /* New TLS cipher suites */
-    {TLS_RSA_WITH_AES_128_CBC_SHA,     	cipher_aes_128, mac_sha, kea_rsa},
-    {TLS_DHE_DSS_WITH_AES_128_CBC_SHA, 	cipher_aes_128, mac_sha, kea_dhe_dss},
-    {TLS_DHE_RSA_WITH_AES_128_CBC_SHA, 	cipher_aes_128, mac_sha, kea_dhe_rsa},
-    {TLS_RSA_WITH_AES_256_CBC_SHA,     	cipher_aes_256, mac_sha, kea_rsa},
-    {TLS_DHE_DSS_WITH_AES_256_CBC_SHA, 	cipher_aes_256, mac_sha, kea_dhe_dss},
-    {TLS_DHE_RSA_WITH_AES_256_CBC_SHA, 	cipher_aes_256, mac_sha, kea_dhe_rsa},
+    {TLS_RSA_WITH_AES_128_CBC_SHA,     	cipher_aes_128, ssl_mac_sha, kea_rsa},
+    {TLS_DHE_DSS_WITH_AES_128_CBC_SHA, 	cipher_aes_128, ssl_mac_sha, kea_dhe_dss},
+    {TLS_DHE_RSA_WITH_AES_128_CBC_SHA, 	cipher_aes_128, ssl_mac_sha, kea_dhe_rsa},
+    {TLS_RSA_WITH_AES_256_CBC_SHA,     	cipher_aes_256, ssl_mac_sha, kea_rsa},
+    {TLS_DHE_DSS_WITH_AES_256_CBC_SHA, 	cipher_aes_256, ssl_mac_sha, kea_dhe_dss},
+    {TLS_DHE_RSA_WITH_AES_256_CBC_SHA, 	cipher_aes_256, ssl_mac_sha, kea_dhe_rsa},
 #if 0
     {TLS_DH_DSS_WITH_AES_128_CBC_SHA,  	cipher_aes_128, mac_sha, kea_dh_dss},
     {TLS_DH_RSA_WITH_AES_128_CBC_SHA,  	cipher_aes_128, mac_sha, kea_dh_rsa},
@@ -235,93 +243,92 @@ static const ssl3CipherSuiteDef cipher_suite_defs[] = {
 #endif
 
     {TLS_RSA_EXPORT1024_WITH_DES_CBC_SHA,
-                                    cipher_des,    mac_sha,kea_rsa_export_1024},
+                                    cipher_des,    ssl_mac_sha,kea_rsa_export_1024},
     {TLS_RSA_EXPORT1024_WITH_RC4_56_SHA,
-                                    cipher_rc4_56, mac_sha,kea_rsa_export_1024},
+                                    cipher_rc4_56, ssl_mac_sha,kea_rsa_export_1024},
 
-    {SSL_RSA_FIPS_WITH_3DES_EDE_CBC_SHA, cipher_3des, mac_sha, kea_rsa_fips},
-    {SSL_RSA_FIPS_WITH_DES_CBC_SHA, cipher_des,    mac_sha, kea_rsa_fips},
+    {SSL_RSA_FIPS_WITH_3DES_EDE_CBC_SHA, cipher_3des, ssl_mac_sha, kea_rsa_fips},
+    {SSL_RSA_FIPS_WITH_DES_CBC_SHA, cipher_des,    ssl_mac_sha, kea_rsa_fips},
 
 };
-
-/* XXX set by call_once or initialization? */
-/* cipher algorithms */
-static const NSSAlgorithmAndParameters *s_rc2_ap = NULL;
-static const NSSAlgorithmAndParameters *s_rc4_ap = NULL;
-static const NSSAlgorithmAndParameters *s_des_ap = NULL;
-static const NSSAlgorithmAndParameters *s_3des_ap = NULL;
-static const NSSAlgorithmAndParameters *s_idea_ap = NULL;
-static const NSSAlgorithmAndParameters *s_fortezza_ap = NULL;
-static const NSSAlgorithmAndParameters *s_aes_ap = NULL;
 
 /* indexed by SSL3BulkCipher */
 static const ssl3BulkCipherDef bulk_cipher_defs[] = {
     /* cipher
-     *  key_type
-     *   calg      keySz secretSz  type  ivSz BlkSz keygen 
+     *  calg
+     *   keySz secretSz  type  ivSz BlkSz keygen 
      */
     { cipher_null,
-       NSSSymmetricKeyType_Unknown,
-        NULL,           0,  0, type_stream,  0, 0, kg_null},
+       NSS_OID_UNKNOWN,
+        0,  0, type_stream,  0, 0, kg_null},
     { cipher_rc4,
-       NSSSymmetricKeyType_RC4,
-        s_rc4_ap,      16, 16, type_stream,  0, 0, kg_strong},
+       NSS_OID_RC4,
+        16, 16, type_stream,  0, 0, kg_strong},
     { cipher_rc4_40,
-       NSSSymmetricKeyType_RC4,
-        s_rc4_ap,      16,  5, type_stream,  0, 0, kg_export},
+       NSS_OID_RC4,
+        16,  5, type_stream,  0, 0, kg_export},
     { cipher_rc4_56,
-       NSSSymmetricKeyType_RC4,
-        s_rc4_ap,      16,  7, type_stream,  0, 0, kg_export},
+       NSS_OID_RC4,
+        16,  7, type_stream,  0, 0, kg_export},
     { cipher_rc2,
-       NSSSymmetricKeyType_RC2,
-        s_rc2_ap,      16, 16, type_block,   8, 8, kg_strong},
+       NSS_OID_RC2_CBC,
+        16, 16, type_block,   8, 8, kg_strong},
     { cipher_rc2_40,
-       NSSSymmetricKeyType_RC2,
-        s_rc2_ap,      16,  5, type_block,   8, 8, kg_export},
+       NSS_OID_RC2_CBC,
+        16,  5, type_block,   8, 8, kg_export},
     { cipher_des,
-       NSSSymmetricKeyType_DES,
-        s_des_ap,       8,  8, type_block,   8, 8, kg_strong},
+       NSS_OID_DES_CBC,
+        8,  8, type_block,   8, 8, kg_strong},
     { cipher_3des,
-       NSSSymmetricKeyType_TripleDES,
-        s_3des_ap,     24, 24, type_block,   8, 8, kg_strong},
+       NSS_OID_DES_EDE3_CBC,
+        24, 24, type_block,   8, 8, kg_strong},
     { cipher_des40,
-       NSSSymmetricKeyType_DES,
-        s_des_ap,       8,  5, type_block,   8, 8, kg_export},
+       NSS_OID_DES_CBC,
+        8,  5, type_block,   8, 8, kg_export},
+#if 0
     { cipher_idea,
-       NSSSymmetricKeyType_IDEA,
+       IDEA,
         s_idea_ap,     16, 16, type_block,   8, 8, kg_strong},
     { cipher_fortezza,
-       NSSSymmetricKeyType_FORTEZZA, 
+       FORTEZZA, 
         s_fortezza_ap, 10, 10, type_block,  24, 8, kg_null},
     { cipher_aes_128,
-       NSSSymmetricKeyType_AES,
+       AES,
         s_aes_ap,      16, 16, type_block,  16,16, kg_strong},
     { cipher_aes_256,
        NSSSymmetricKeyType_AES,
         s_aes_ap,      32, 32, type_block,  16,16, kg_strong},
+#endif
     { cipher_missing,
-       NSSSymmetricKeyType_Unknown,
-        NULL,      0,  0, type_stream,  0, 0, kg_null},
+       NSS_OID_UNKNOWN,
+        0,  0, type_stream,  0, 0, kg_null},
+};
+
+static const NSSOIDTag kea_alg_defs[] = {
+    NSS_OID_UNKNOWN,
+    NSS_OID_PKCS1_RSA_ENCRYPTION,
+    NSS_OID_X942_DIFFIE_HELLMAN_KEY,
+    NSS_OID_ANSIX9_DSA_SIGNATURE
 };
 
 static const ssl3KEADef kea_defs[] = { /* indexed by SSL3KeyExchangeAlgorithm */
     /* kea              exchKeyType signKeyType is_limited limit  tls_keygen */
-    {kea_null,           kt_null,     sign_null, PR_FALSE,   0, PR_FALSE},
-    {kea_rsa,            kt_rsa,      sign_rsa,  PR_FALSE,   0, PR_FALSE},
-    {kea_rsa_export,     kt_rsa,      sign_rsa,  PR_TRUE,  512, PR_FALSE},
-    {kea_rsa_export_1024,kt_rsa,      sign_rsa,  PR_TRUE, 1024, PR_FALSE},
-    {kea_dh_dss,         kt_dh,       sign_dsa,  PR_FALSE,   0, PR_FALSE},
-    {kea_dh_dss_export,  kt_dh,       sign_dsa,  PR_TRUE,  512, PR_FALSE},
-    {kea_dh_rsa,         kt_dh,       sign_rsa,  PR_FALSE,   0, PR_FALSE},
-    {kea_dh_rsa_export,  kt_dh,       sign_rsa,  PR_TRUE,  512, PR_FALSE},
-    {kea_dhe_dss,        kt_dh,       sign_dsa,  PR_FALSE,   0, PR_FALSE},
-    {kea_dhe_dss_export, kt_dh,       sign_dsa,  PR_TRUE,  512, PR_FALSE},
-    {kea_dhe_rsa,        kt_dh,       sign_rsa,  PR_FALSE,   0, PR_FALSE},
-    {kea_dhe_rsa_export, kt_dh,       sign_rsa,  PR_TRUE,  512, PR_FALSE},
-    {kea_dh_anon,        kt_dh,       sign_null, PR_FALSE,   0, PR_FALSE},
-    {kea_dh_anon_export, kt_dh,       sign_null, PR_TRUE,  512, PR_FALSE},
-    {kea_fortezza,       kt_fortezza, sign_dsa,  PR_FALSE,   0, PR_FALSE},
-    {kea_rsa_fips,       kt_rsa,      sign_rsa,  PR_FALSE,   0, PR_TRUE },
+    {kea_null,           ssl_kea_null,     ssl_sign_null, PR_FALSE,   0, PR_FALSE},
+    {kea_rsa,            ssl_kea_rsa,      ssl_sign_rsa,  PR_FALSE,   0, PR_FALSE},
+    {kea_rsa_export,     ssl_kea_rsa,      ssl_sign_rsa,  PR_TRUE,  512, PR_FALSE},
+    {kea_rsa_export_1024,ssl_kea_rsa,      ssl_sign_rsa,  PR_TRUE, 1024, PR_FALSE},
+    {kea_dh_dss,         ssl_kea_dh,       ssl_sign_dsa,  PR_FALSE,   0, PR_FALSE},
+    {kea_dh_dss_export,  ssl_kea_dh,       ssl_sign_dsa,  PR_TRUE,  512, PR_FALSE},
+    {kea_dh_rsa,         ssl_kea_dh,       ssl_sign_rsa,  PR_FALSE,   0, PR_FALSE},
+    {kea_dh_rsa_export,  ssl_kea_dh,       ssl_sign_rsa,  PR_TRUE,  512, PR_FALSE},
+    {kea_dhe_dss,        ssl_kea_dh,       ssl_sign_dsa,  PR_FALSE,   0, PR_FALSE},
+    {kea_dhe_dss_export, ssl_kea_dh,       ssl_sign_dsa,  PR_TRUE,  512, PR_FALSE},
+    {kea_dhe_rsa,        ssl_kea_dh,       ssl_sign_rsa,  PR_FALSE,   0, PR_FALSE},
+    {kea_dhe_rsa_export, ssl_kea_dh,       ssl_sign_rsa,  PR_TRUE,  512, PR_FALSE},
+    {kea_dh_anon,        ssl_kea_dh,       ssl_sign_null, PR_FALSE,   0, PR_FALSE},
+    {kea_dh_anon_export, ssl_kea_dh,       ssl_sign_null, PR_TRUE,  512, PR_FALSE},
+    {kea_fortezza,       ssl_kea_fortezza, ssl_sign_dsa,  PR_FALSE,   0, PR_FALSE},
+    {kea_rsa_fips,       ssl_kea_rsa,      ssl_sign_rsa,  PR_FALSE,   0, PR_TRUE },
 };
 
 /* set by call_once or initialization? */
@@ -330,13 +337,21 @@ static const NSSAlgorithmAndParameters *s_mac_sha_ap = NULL;
 static const NSSAlgorithmAndParameters *s_hmac_md5_ap = NULL;
 static const NSSAlgorithmAndParameters *s_hmac_sha_ap = NULL;
 
+/*
+ * Number of bytes each hash algorithm produces
+ */
+/* XXX where does this belong? */
+#define MD2_LENGTH	16
+#define MD5_LENGTH	16
+#define SHA1_LENGTH	20
+
 static const ssl3MACDef mac_defs[] = { /* indexed by SSL3MACAlgorithm */
     /*      mac       alg&param   pad_size     mac_size */
-    {  mac_null,           NULL,        0,            0 },
-    {   mac_md5,   s_mac_md5_ap,       48,   MD5_LENGTH },
-    {   mac_sha,   s_mac_sha_ap,       40,  SHA1_LENGTH },
-    {  hmac_md5,  s_hmac_md5_ap,       48,   MD5_LENGTH },
-    {  hmac_sha,  s_hmac_sha_ap,       40,  SHA1_LENGTH },
+    {  ssl_mac_null,/*           NULL,*/        0,            0 },
+    {   ssl_mac_md5,/*   s_mac_md5_ap,*/       48,   MD5_LENGTH },
+    {   ssl_mac_sha,/*   s_mac_sha_ap,*/       40,  SHA1_LENGTH },
+    {  ssl_hmac_md5,/*  s_hmac_md5_ap,*/       48,   MD5_LENGTH },
+    {  ssl_hmac_sha,/*  s_hmac_sha_ap,*/       40,  SHA1_LENGTH },
 };
 
 static const NSSAlgorithmAndParameters *s_ssl3PMSGen = NULL;
@@ -457,7 +472,7 @@ ssl3_config_match_init(sslSocket *ss)
 {
     ssl3CipherSuiteCfg *      suite;
     const ssl3CipherSuiteDef *cipher_def;
-    SSL3KEAType               exchKeyType;
+    SSLKEAType                exchKeyType;
     int                       i;
     int                       numPresent		= 0;
     int                       numEnabled		= 0;
@@ -465,6 +480,7 @@ ssl3_config_match_init(sslSocket *ss)
     sslServerCerts           *svrAuth;
     NSSOIDTag                 algTag;
     NSSOID *                  alg;
+    NSSToken *                token;
 
     if (!ss->enableSSL3 && !ss->enableTLS) {
     	return 0;
@@ -488,14 +504,20 @@ ssl3_config_match_init(sslSocket *ss)
 	    svrAuth = ss->serverCerts + exchKeyType;
 
 	    /* Mark the suites that are backed by real tokens, certs and keys */
-	    if (exchKeyType != kt_null) {
+	    if (exchKeyType != ssl_kea_null) {
 		if (!isServer || (svrAuth->serverKey && 
 		                  svrAuth->serverCertChain)) 
 		{
 		    algTag = kea_alg_defs[exchKeyType];
 		    alg = NSSOID_CreateFromTag(algTag);
 		    /* need to check for token for key exchange alg */
-		    suite->isPresent = nssTrustDomain_TokenExists(td, alg);
+		    token = NSSTrustDomain_FindTokenForAlgorithm(ss->td, alg);
+		    if (token) {
+			suite->isPresent = PR_TRUE;
+			NSSToken_Destroy(token);
+		    } else {
+			suite->isPresent = PR_FALSE;
+		    }
 		} else {
 		    /* don't have what we need for server auth */
 		    suite->isPresent = PR_FALSE;
@@ -504,11 +526,19 @@ ssl3_config_match_init(sslSocket *ss)
 		/* no key exchange, good to go so far */
 		suite->isPresent = PR_TRUE;
 	    }
-	    if (cipher_alg != calg_null && suite->isPresent) {
+	    if (cipher_def->bulk_cipher_alg != cipher_null && 
+	        suite->isPresent) 
+	    {
 		algTag = bulk_cipher_defs[cipher_def->bulk_cipher_alg].calg;
 		alg = NSSOID_CreateFromTag(algTag);
 		/* check for the cipher algorithm */
-		suite->isPresent = nssTrustDomain_TokenExists(td, alg);
+		token = NSSTrustDomain_FindTokenForAlgorithm(ss->td, alg);
+		if (token) {
+		    suite->isPresent = PR_TRUE;
+		    NSSToken_Destroy(token);
+		} else {
+		    suite->isPresent = PR_FALSE;
+		}
 	    }
 	    if (suite->isPresent)
 	    	++numPresent;
@@ -589,7 +619,7 @@ Null_Cipher(void *ctx, unsigned char *output, int *outputLen, int maxOutputLen,
 {
     *outputLen = inputLen;
     if (input != output)
-	PORT_Memcpy(output, input, inputLen);
+	memcpy(output, input, inputLen);
     return SECSuccess;
 }
 
@@ -631,7 +661,7 @@ static SECStatus
 ssl3_GetNewRandom(SSL3Random *random)
 {
     PRIntervalTime gmt = PR_IntervalToSeconds(PR_IntervalNow());
-    SECStatus rv;
+    PRUint8 *rb;
 
     random->rand[0] = (unsigned char)(gmt >> 24);
     random->rand[1] = (unsigned char)(gmt >> 16);
@@ -639,12 +669,12 @@ ssl3_GetNewRandom(SSL3Random *random)
     random->rand[3] = (unsigned char)(gmt);
 
     /* first 4 bytes are reserved for time */
-    rv = nssTrustDomain_GenerateRandom(td, &random->rand[4], 
-                                       SSL3_RANDOM_LENGTH - 4);
-    if (rv != SECSuccess) {
+    rb = NSS_GenerateRandom(SSL3_RANDOM_LENGTH - 4, &random->rand[4], NULL);
+    if (!rb) {
 	ssl_MapLowLevelError(SSL_ERROR_GENERATE_RANDOM_FAILURE);
+	return SECFailure;
     }
-    return rv;
+    return SECSuccess;
 }
 
 static SECStatus
@@ -653,16 +683,18 @@ ssl3_SignHashes(SSL3Hashes *hash, NSSPrivateKey *key, NSSItem *buf,
 {
     SECStatus rv		= SECFailure;
     PRBool    doDerEncode       = PR_FALSE;
-    int       signatureLen;
-    SECItem   hashItem;
+    NSSItem   hashItem;
+    NSSKeyPairType keyType = NSSPrivateKey_GetType(key);
 
-    switch (key->keyType) {
-    case rsaKey:
+    switch (keyType) {
+    case NSSKeyPairType_RSA:
     	hashItem.data = hash->md5;
     	hashItem.size = sizeof(SSL3Hashes);
 	break;
-    case dsaKey:
+    case NSSKeyPairType_DSA:
+#if 0
     case fortezzaKey:
+#endif
 	doDerEncode = isTLS;
 	hashItem.data = hash->sha;
 	hashItem.size = sizeof(hash->sha);
@@ -671,12 +703,13 @@ ssl3_SignHashes(SSL3Hashes *hash, NSSPrivateKey *key, NSSItem *buf,
 	PORT_SetError(SEC_ERROR_INVALID_KEY);
 	goto done;
     }
-    PRINT_BUF(60, (NULL, "hash(es) to be signed", hashItem.data, hashItem.len));
+    PRINT_BUF(60, (NULL, "hash(es) to be signed", hashItem.data, hashItem.size));
 
     if (NSSPrivateKey_Sign(key, NULL, &hashItem, NULL /* XXX */, buf, NULL)
          == NULL)
     {
 	ssl_MapLowLevelError(SSL_ERROR_SIGN_HASHES_FAILURE);
+#if IMPLEMENT_THIS
     } else if (doDerEncode) {
 	NSSItem   derSig	= { NULL, 0};
 
@@ -687,6 +720,7 @@ ssl3_SignHashes(SSL3Hashes *hash, NSSPrivateKey *key, NSSItem *buf,
 	} else if (derSig.data) {
 	    NSS_ZFreeIf(derSig.data);
 	}
+#endif
     }
 
     PRINT_BUF(60, (NULL, "signed hashes", (unsigned char*)buf->data, buf->size));
@@ -710,7 +744,7 @@ ssl3_VerifySignedHashes(SSL3Hashes *hash, NSSCertificate *cert,
 
 
     PRINT_BUF(60, (NULL, "check signed hashes",
-                  buf->data, buf->len));
+                  buf->data, buf->size));
 
     key = NSSCertificate_GetPublicKey(cert);
     if (key == NULL) {
@@ -718,15 +752,18 @@ ssl3_VerifySignedHashes(SSL3Hashes *hash, NSSCertificate *cert,
     	return SECFailure;
     }
 
-    switch (key->keyType) {
-    case rsaKey:
+    switch (NSSPublicKey_GetType(key)) {
+    case NSSKeyPairType_RSA:
     	hashItem.data = hash->md5;
     	hashItem.size = sizeof(SSL3Hashes);
 	break;
-    case dsaKey:
+    case NSSKeyPairType_DSA:
+#if 0
     case fortezzaKey:
+#endif
 	hashItem.data = hash->sha;
 	hashItem.size = sizeof(hash->sha);
+#ifdef IMPLEMENT_THIS
 	if (isTLS) {
 	    signature = DSAU_DecodeDerSig(buf);
 	    if (!signature) {
@@ -735,6 +772,7 @@ ssl3_VerifySignedHashes(SSL3Hashes *hash, NSSCertificate *cert,
 	    }
 	    buf = signature;
 	}
+#endif
 	break;
     default:
 	NSSPublicKey_Destroy(key);
@@ -743,10 +781,10 @@ ssl3_VerifySignedHashes(SSL3Hashes *hash, NSSCertificate *cert,
     }
 
     PRINT_BUF(60, (NULL, "hash(es) to be verified",
-                  hashItem.data, hashItem.len));
+                  hashItem.data, hashItem.size));
 
     if (NSSPublicKey_Verify(key, NULL, &hashItem, buf, NULL /* XXX */) 
-         == NULL) 
+         == PR_FAILURE) 
     {
 	ssl_MapLowLevelError(SSL_ERROR_BAD_HANDSHAKE_HASH_VALUE);
 	rv = PR_FAILURE;
@@ -763,18 +801,20 @@ ssl3_VerifySignedHashes(SSL3Hashes *hash, NSSCertificate *cert,
 static SECStatus
 ssl3_ComputeExportRSAKeyHash(NSSItem modulus, NSSItem publicExponent,
 			     SSL3Random *client_rand, SSL3Random *server_rand,
-			     SSL3Hashes *hashes)
+			     SSL3Hashes *hashes,
+                             NSSTrustDomain *td)
 {
     NSSCryptoContext * hash = NULL;
-    NSSItem     * hashIt;
+    NSSItem       hashIt;
+    NSSItem       hashData;
     PRUint8     * pBuf;
     SECStatus     rv 		= SECSuccess;
-    unsigned int  outLen;
     unsigned int  bufLen;
     NSSItem     * it = NULL;
     PRUint8       buf[2*SSL3_RANDOM_LENGTH + 2 + 4096/8 + 2 + 4096/8];
+    NSSAlgorithmAndParameters *ap;
 
-    bufLen = 2*SSL3_RANDOM_LENGTH + 2 + modulus.len + 2 + publicExponent.len;
+    bufLen = 2*SSL3_RANDOM_LENGTH + 2 + modulus.size + 2 + publicExponent.size;
     if (bufLen <= sizeof buf) {
     	hashIt.data = buf;
     } else {
@@ -789,17 +829,17 @@ ssl3_ComputeExportRSAKeyHash(NSSItem modulus, NSSItem publicExponent,
     	pBuf = (PRUint8 *)hashIt.data + SSL3_RANDOM_LENGTH;
     memcpy(pBuf, server_rand, SSL3_RANDOM_LENGTH);
     	pBuf += SSL3_RANDOM_LENGTH;
-    pBuf[0]  = (PRUint8)(modulus.len >> 8);
-    pBuf[1]  = (PRUint8)(modulus.len);
+    pBuf[0]  = (PRUint8)(modulus.size >> 8);
+    pBuf[1]  = (PRUint8)(modulus.size);
     	pBuf += 2;
-    memcpy(pBuf, modulus.data, modulus.len);
-    	pBuf += modulus.len;
-    pBuf[0] = (PRUint8)(publicExponent.len >> 8);
-    pBuf[1] = (PRUint8)(publicExponent.len);
+    memcpy(pBuf, modulus.data, modulus.size);
+    	pBuf += modulus.size;
+    pBuf[0] = (PRUint8)(publicExponent.size >> 8);
+    pBuf[1] = (PRUint8)(publicExponent.size);
     	pBuf += 2;
-    memcpy(pBuf, publicExponent.data, publicExponent.len);
-    	pBuf += publicExponent.len;
-    PORT_Assert(pBuf - hashBuf == bufLen);
+    memcpy(pBuf, publicExponent.data, publicExponent.size);
+    	pBuf += publicExponent.size;
+    PORT_Assert(pBuf - buf == bufLen);
 
     hash = NSSTrustDomain_CreateCryptoContext(td, NULL, NULL);
     if (hash == NULL) {
@@ -808,7 +848,18 @@ ssl3_ComputeExportRSAKeyHash(NSSItem modulus, NSSItem publicExponent,
 	goto done;
     }
 
-    it = NSSCryptoContext_Digest(hash, md5, hashIt, NULL, &hashes->md5, NULL);
+    ap = NSSOID_CreateAlgorithmAndParameters(NSSOID_CreateFromTag(NSS_OID_MD5),
+                                             NULL, NULL);
+    if (!ap) {
+	ssl_MapLowLevelError(SSL_ERROR_MD5_DIGEST_FAILURE);
+    	rv = SECFailure;
+	goto done;
+    }
+
+    hashData.data = hashes->md5;
+    hashData.size = sizeof hashes->md5;
+    it = NSSCryptoContext_Digest(hash, ap, &hashIt, NULL, &hashData, NULL);
+    NSSAlgorithmAndParameters_Destroy(ap);
     PORT_Assert(it != NULL || it->size == MD5_LENGTH);
     if (it == NULL) {
 	ssl_MapLowLevelError(SSL_ERROR_MD5_DIGEST_FAILURE);
@@ -816,7 +867,18 @@ ssl3_ComputeExportRSAKeyHash(NSSItem modulus, NSSItem publicExponent,
 	goto done;
     }
 
-    it = NSSCryptoContext_Digest(hash, sha, hashIt, NULL, &hashes->sha, NULL);
+    ap = NSSOID_CreateAlgorithmAndParameters(NSSOID_CreateFromTag(NSS_OID_SHA1),
+                                             NULL, NULL);
+    if (!ap) {
+	ssl_MapLowLevelError(SSL_ERROR_SHA_DIGEST_FAILURE);
+    	rv = SECFailure;
+	goto done;
+    }
+
+    hashData.data = hashes->sha;
+    hashData.size = sizeof hashes->sha;
+    it = NSSCryptoContext_Digest(hash, ap, &hashIt, NULL, &hashData, NULL);
+    NSSAlgorithmAndParameters_Destroy(ap);
     PORT_Assert(it != NULL || it->size == SHA1_LENGTH);
     if (it == NULL) {
 	ssl_MapLowLevelError(SSL_ERROR_SHA_DIGEST_FAILURE);
@@ -824,7 +886,7 @@ ssl3_ComputeExportRSAKeyHash(NSSItem modulus, NSSItem publicExponent,
 	goto done;
     }
 
-    PRINT_BUF(95, (NULL, "RSAkey hash: ", hashIt->data, bufLen));
+    PRINT_BUF(95, (NULL, "RSAkey hash: ", hashIt.data, hashIt.size));
     PRINT_BUF(95, (NULL, "RSAkey hash: MD5 result", hashes->md5, MD5_LENGTH));
     PRINT_BUF(95, (NULL, "RSAkey hash: SHA1 result", hashes->sha, SHA1_LENGTH));
 
@@ -839,18 +901,20 @@ done:
 static SECStatus
 ssl3_ComputeDHKeyHash(NSSItem dh_p, NSSItem dh_g, NSSItem dh_Ys,
                       SSL3Random *client_rand, SSL3Random *server_rand,
-                      SSL3Hashes *hashes)
+                      SSL3Hashes *hashes,
+                      NSSTrustDomain *td)
 {
     NSSCryptoContext * hash = NULL;
-    NSSItem     * hashIt;
+    NSSItem       hashIt;
+    NSSItem       hashData;
     PRUint8     * pBuf;
     SECStatus     rv 		= SECSuccess;
-    unsigned int  outLen;
     unsigned int  bufLen;
     NSSItem     * it = NULL;
     PRUint8       buf[2*SSL3_RANDOM_LENGTH + 2 + 4096/8 + 2 + 4096/8];
+    NSSAlgorithmAndParameters *ap;
 
-    bufLen = 2*SSL3_RANDOM_LENGTH + 2 + dh_p.len + 2 + dh_g.len + 2 + dh_Ys.len;
+    bufLen = 2*SSL3_RANDOM_LENGTH + 2 + dh_p.size + 2 + dh_g.size + 2 + dh_Ys.size;
     if (bufLen <= sizeof buf) {
     	hashIt.data = buf;
     } else {
@@ -865,22 +929,22 @@ ssl3_ComputeDHKeyHash(NSSItem dh_p, NSSItem dh_g, NSSItem dh_Ys,
     	pBuf = (PRUint8 *)hashIt.data + SSL3_RANDOM_LENGTH;
     memcpy(pBuf, server_rand, SSL3_RANDOM_LENGTH);
     	pBuf += SSL3_RANDOM_LENGTH;
-    pBuf[0]  = (PRUint8)(dh_p.len >> 8);
-    pBuf[1]  = (PRUint8)(dh_p.len);
+    pBuf[0]  = (PRUint8)(dh_p.size >> 8);
+    pBuf[1]  = (PRUint8)(dh_p.size);
     	pBuf += 2;
-    memcpy(pBuf, dh_p.data, dh_p.len);
-    	pBuf += dh_p.len;
-    pBuf[0] = (PRUint8)(dh_g.len >> 8);
-    pBuf[1] = (PRUint8)(dh_g.len);
+    memcpy(pBuf, dh_p.data, dh_p.size);
+    	pBuf += dh_p.size;
+    pBuf[0] = (PRUint8)(dh_g.size >> 8);
+    pBuf[1] = (PRUint8)(dh_g.size);
     	pBuf += 2;
-    memcpy(pBuf, dh_g.data, dh_g.len);
-    	pBuf += dh_g.len;
-    pBuf[0] = (PRUint8)(dh_Ys.len >> 8);
-    pBuf[1] = (PRUint8)(dh_Ys.len);
+    memcpy(pBuf, dh_g.data, dh_g.size);
+    	pBuf += dh_g.size;
+    pBuf[0] = (PRUint8)(dh_Ys.size >> 8);
+    pBuf[1] = (PRUint8)(dh_Ys.size);
     	pBuf += 2;
-    memcpy(pBuf, dh_Ys.data, dh_Ys.len);
-    	pBuf += dh_Ys.len;
-    PORT_Assert(pBuf - hashBuf == bufLen);
+    memcpy(pBuf, dh_Ys.data, dh_Ys.size);
+    	pBuf += dh_Ys.size;
+    PORT_Assert(pBuf - buf == bufLen);
 
     hash = NSSTrustDomain_CreateCryptoContext(td, NULL, NULL);
     if (hash == NULL) {
@@ -889,7 +953,18 @@ ssl3_ComputeDHKeyHash(NSSItem dh_p, NSSItem dh_g, NSSItem dh_Ys,
 	goto done;
     }
 
-    it = NSSCryptoContext_Digest(hash, md5, hashIt, NULL, &hashes->md5, NULL);
+    ap = NSSOID_CreateAlgorithmAndParameters(NSSOID_CreateFromTag(NSS_OID_MD5),
+                                             NULL, NULL);
+    if (!ap) {
+	ssl_MapLowLevelError(SSL_ERROR_MD5_DIGEST_FAILURE);
+    	rv = SECFailure;
+	goto done;
+    }
+
+    hashData.data = hashes->md5;
+    hashData.size = sizeof hashes->md5;
+    it = NSSCryptoContext_Digest(hash, ap, &hashIt, NULL, &hashData, NULL);
+    NSSAlgorithmAndParameters_Destroy(ap);
     PORT_Assert(it != NULL || it->size == MD5_LENGTH);
     if (it == NULL) {
 	ssl_MapLowLevelError(SSL_ERROR_MD5_DIGEST_FAILURE);
@@ -897,7 +972,16 @@ ssl3_ComputeDHKeyHash(NSSItem dh_p, NSSItem dh_g, NSSItem dh_Ys,
 	goto done;
     }
 
-    it = NSSCryptoContext_Digest(hash, sha, hashIt, NULL, &hashes->sha, NULL);
+    ap = NSSOID_CreateAlgorithmAndParameters(NSSOID_CreateFromTag(NSS_OID_SHA1),
+                                             NULL, NULL);
+    if (!ap) {
+	ssl_MapLowLevelError(SSL_ERROR_SHA_DIGEST_FAILURE);
+    	rv = SECFailure;
+	goto done;
+    }
+
+    it = NSSCryptoContext_Digest(hash, ap, &hashIt, NULL, &hashData, NULL);
+    NSSAlgorithmAndParameters_Destroy(ap);
     PORT_Assert(it != NULL || it->size == SHA1_LENGTH);
     if (it == NULL) {
 	ssl_MapLowLevelError(SSL_ERROR_SHA_DIGEST_FAILURE);
@@ -905,7 +989,7 @@ ssl3_ComputeDHKeyHash(NSSItem dh_p, NSSItem dh_g, NSSItem dh_Ys,
 	goto done;
     }
 
-    PRINT_BUF(95, (NULL, "DHkey hash: ", hashBuf, bufLen));
+    PRINT_BUF(95, (NULL, "DHkey hash: ", hashIt.data, hashIt.size));
     PRINT_BUF(95, (NULL, "DHkey hash: MD5 result", hashes->md5, MD5_LENGTH));
     PRINT_BUF(95, (NULL, "DHkey hash: SHA1 result", hashes->sha, SHA1_LENGTH));
 
@@ -915,6 +999,8 @@ done:
     	NSS_ZFreeIf(hashIt.data);
     return rv;
 }
+
+#ifdef FORTEZZA
 /* Caller must set hiLevel error code. */
 static SECStatus
 ssl3_ComputeFortezzaPublicKeyHash(NSSItem *publicValue, unsigned char * hash)
@@ -933,7 +1019,7 @@ ssl3_ComputeFortezzaPublicKeyHash(NSSItem *publicValue, unsigned char * hash)
     }
 
     it = NSSCryptoContext_Digest(sha, NULL, publicValue, NULL, &dig, NULL);
-    PORT_Assert(it != NULL || dig->len == SHA1_LENGTH);
+    PORT_Assert(it != NULL || dig->size == SHA1_LENGTH);
     if (it == NULL) 
     	rv = SECFailure;
 
@@ -941,6 +1027,7 @@ ssl3_ComputeFortezzaPublicKeyHash(NSSItem *publicValue, unsigned char * hash)
 
     return rv;
 }
+#endif
 
 
 static void
@@ -956,15 +1043,17 @@ static void
 ssl3_CleanupKeyMaterial(ssl3KeyMaterial *mat)
 {
     if (mat->write_key != NULL) {
-	PK11_FreeSymKey(mat->write_key);
+	NSSSymmetricKey_Destroy(mat->write_key);
 	mat->write_key = NULL;
     }
+#if 0
     if (mat->write_mac_key != NULL) {
 	PK11_FreeSymKey(mat->write_mac_key);
 	mat->write_mac_key = NULL;
     }
+#endif
     if (mat->write_mac_context != NULL) {
-	PK11_DestroyContext(mat->write_mac_context, PR_TRUE);
+	NSSCryptoContext_Destroy(mat->write_mac_context);
 	mat->write_mac_context = NULL;
     }
 }
@@ -979,8 +1068,8 @@ ssl3_DestroyCipherSpec(ssl3CipherSpec *spec)
 /*  PORT_Assert( ssl_HaveSpecWriteLock(ss)); Don't have ss! */
 
     if (spec->destroy) {
-	spec->destroy(spec->encodeContext,PR_TRUE);
-	spec->destroy(spec->decodeContext,PR_TRUE);
+	spec->destroy(spec->encodeContext);
+	spec->destroy(spec->decodeContext);
 	spec->encodeContext = NULL; /* paranoia */
 	spec->decodeContext = NULL;
     }
@@ -1003,7 +1092,7 @@ ssl3_SetupPendingCipherSpec(sslSocket *ss, ssl3State *ssl3)
     ssl3CipherSpec *          pwSpec;
     ssl3CipherSpec *          cwSpec;
     ssl3CipherSuite           suite     = ssl3->hs.cipher_suite;
-    SSL3MACAlgorithm          mac;
+    SSLMACAlgorithm           mac;
     SSL3BulkCipher            cipher;
     SSL3KeyExchangeAlgorithm  kea;
     const ssl3CipherSuiteDef *suite_def;
@@ -1018,7 +1107,7 @@ ssl3_SetupPendingCipherSpec(sslSocket *ss, ssl3State *ssl3)
 
     /* This hack provides maximal interoperability with SSL 3 servers. */
     cwSpec = ss->ssl3->cwSpec;
-    if (cwSpec->mac_def->mac == mac_null) {
+    if (cwSpec->mac_def->mac == ssl_mac_null) {
 	/* SSL records are not being MACed. */
 	cwSpec->version = ss->version;
     }
@@ -1100,7 +1189,7 @@ ssl3_InitPendingCipherSpec(sslSocket *ss, NSSCryptoContext *pmsCx)
      */
     status = ssl3_GenerateSessionKeys(ss, pmsCx, sessionCxs);
     if (status == PR_FAILURE) {
-    	goto bail_out;	/* err code set by ssl3_GenerateSessionKeys */
+    	goto fail;  /* err code set by ssl3_GenerateSessionKeys */
     }
 
     pwSpec->client.write_mac_context = sessionCxs[0];
@@ -1110,7 +1199,7 @@ ssl3_InitPendingCipherSpec(sslSocket *ss, NSSCryptoContext *pmsCx)
     pwSpec->read_mac_context = session[readMacIndex];
     */
 
-    if (cipher_def->calg == calg_null) {
+    if (pwSpec->cipher_def->calg == NSS_OID_UNKNOWN) {
 	/* If it's the NULL cipher, we're done */
 	pwSpec->encode  = Null_Cipher;
 	pwSpec->decode  = Null_Cipher;
@@ -1126,15 +1215,11 @@ ssl3_InitPendingCipherSpec(sslSocket *ss, NSSCryptoContext *pmsCx)
     pwSpec->decode  = (SSLCipher) NSSCryptoContext_ContinueDecrypt;
     pwSpec->destroy = (SSLDestroy) NSSCryptoContext_Destroy;
 
-    serverContext = NULL;
-    clientContext = NULL;
-
 success:
     ssl_ReleaseSpecWriteLock(ss);	/******************************/
     return SECSuccess;
 
 fail:
-bail_out:
     ssl_ReleaseSpecWriteLock(ss);
     return SECFailure;
 }
@@ -1179,15 +1264,17 @@ ssl3_ComputeRecordMAC(
     unsigned char *    outbuf,
     unsigned int *     outLength)
 {
+    PRStatus           status;
     const ssl3MACDef * mac_def;
     SECStatus          rv;
     unsigned int       tempLen;
     unsigned char      temp[MAX_MAC_LENGTH];
+    NSSItem            tempIt, inputIt, outputIt;
 
 /*  ssl_GetSpecReadLock(ss);  Don't have "ss"! */
 
     mac_def = spec->mac_def;
-    if (mac_def->mac == mac_null) {
+    if (mac_def->mac == ssl_mac_null) {
 	*outLength = 0;
 /*	ssl_ReleaseSpecReadLock(ss); */
 	return SECSuccess;
@@ -1228,7 +1315,7 @@ ssl3_ComputeRecordMAC(
     tempIt.data = temp;
     tempIt.size = tempLen;
     inputIt.data = input;
-    intputIt.size = inputLength;
+    inputIt.size = inputLength;
     outputIt.data = outbuf;
     outputIt.size = *outLength;
 
@@ -1236,7 +1323,9 @@ ssl3_ComputeRecordMAC(
     status  = NSSCryptoContext_BeginSign(mac_context, NULL, NULL);
     status |= NSSCryptoContext_ContinueSign(mac_context, &tempIt);
     status |= NSSCryptoContext_ContinueSign(mac_context, &inputIt);
-    status |= NSSCryptoContext_FinishSign(mac_context, &outputIt, NULL);
+    if (NSSCryptoContext_FinishSign(mac_context, &outputIt, NULL) == NULL) {
+	status = PR_FAILURE;
+    }
     *outLength = outputIt.size;
 
     PORT_Assert(rv != SECSuccess || *outLength == (unsigned)spec->mac_size);
@@ -1323,7 +1412,7 @@ ssl3_SendRecord(   sslSocket *        ss,
 	/*
 	 * null compression is easy to do
 	 */
-	PORT_Memcpy(write->buf + SSL3_RECORD_HEADER_LENGTH, buf, contentLen);
+	memcpy(write->buf + SSL3_RECORD_HEADER_LENGTH, buf, contentLen);
 	buf   += contentLen;
 	bytes -= contentLen;
 	PORT_Assert( bytes >= 0 );
@@ -1391,29 +1480,29 @@ spec_locked_loser:
 	ssl_ReleaseSpecReadLock(ss); /************************************/
 
 	/* PORT_Assert(fragLen == cipherBytes); */
-	write->len    = cipherBytes + SSL3_RECORD_HEADER_LENGTH;
+	write->size    = cipherBytes + SSL3_RECORD_HEADER_LENGTH;
 	write->buf[0] = type;
 	write->buf[1] = MSB(cwSpec->version);
 	write->buf[2] = LSB(cwSpec->version);
 	write->buf[3] = MSB(cipherBytes);
 	write->buf[4] = LSB(cipherBytes);
 
-	PRINT_BUF(50, (ss, "send (encrypted) record data:", write->buf, write->len));
+	PRINT_BUF(50, (ss, "send (encrypted) record data:", write->buf, write->size));
 
 	/* If there's still some previously saved ciphertext,
 	 * or the caller doesn't want us to send the data yet,
 	 * then add all our new ciphertext to the amount previously saved.
 	 */
-	if ((ss->pendingBuf.len > 0) ||
+	if ((ss->pendingBuf.size > 0) ||
 	    (flags & ssl_SEND_FLAG_FORCE_INTO_BUFFER)) {
 
 	    rv = ssl_SaveWriteData(ss, &ss->pendingBuf,
-				   write->buf, write->len);
+				   write->buf, write->size);
 	    if (rv != SECSuccess) {
 		/* presumably a memory error, SEC_ERROR_NO_MEMORY */
 		return SECFailure;
 	    }
-	    write->len = 0;	/* All cipher text is saved away. */
+	    write->size = 0;	/* All cipher text is saved away. */
 
 	    if (!(flags & ssl_SEND_FLAG_FORCE_INTO_BUFFER)) {
 
@@ -1425,9 +1514,9 @@ spec_locked_loser:
 		    return SECFailure;
 		}
 	    }
-	} else if (write->len > 0) {
+	} else if (write->size > 0) {
 	    ss->handshakeBegun = 1;
-	    count = ssl_DefSend(ss, write->buf, write->len,
+	    count = ssl_DefSend(ss, write->buf, write->size,
 				flags & ~ssl_SEND_FLAG_MASK);
 	    if (count < 0) {
 		if (PR_GetError() != PR_WOULD_BLOCK_ERROR) {
@@ -1440,20 +1529,20 @@ spec_locked_loser:
 	    /* now take all the remaining unsent newly-generated ciphertext and
 	     * append it to the buffer of previously unsent ciphertext.
 	     */
-	    if ((unsigned)count < write->len) {
+	    if ((unsigned)count < write->size) {
 		rv = ssl_SaveWriteData(ss, &ss->pendingBuf,
 				       write->buf + (unsigned)count,
-				       write->len - (unsigned)count);
+				       write->size - (unsigned)count);
 		if (rv != SECSuccess) {
 		    /* presumably a memory error, SEC_ERROR_NO_MEMORY */
 		    return SECFailure;
 		}
 	    }
-	    write->len = 0;
+	    write->size = 0;
 	}
 	sent += contentLen;
 	if ((flags & ssl_SEND_FLAG_NO_BUFFER) &&
-	    (isBlocking || (ss->pendingBuf.len > 0))) {
+	    (isBlocking || (ss->pendingBuf.size > 0))) {
 	    break;
 	}
     }
@@ -1494,7 +1583,7 @@ ssl3_SendApplicationData(sslSocket *ss, const unsigned char *in,
 
 /* Attempt to send the content of sendBuf buffer in an SSL handshake record.
  * This function returns SECSuccess or SECFailure, never SECWouldBlock.
- * It used to always set sendBuf.len to 0, even when returning SECFailure.
+ * It used to always set sendBuf.size to 0, even when returning SECFailure.
  * Now it does not.
  *
  * Called from SSL3_SendAlert(), ssl3_SendChangeCipherSpecs(),
@@ -1510,15 +1599,15 @@ ssl3_FlushHandshake(sslSocket *ss, PRInt32 flags)
     PORT_Assert( ssl_HaveSSL3HandshakeLock(ss));
     PORT_Assert( ssl_HaveXmitBufLock(ss) );
 
-    if (!ss->sec.ci.sendBuf.buf || !ss->sec.ci.sendBuf.len)
+    if (!ss->sec.ci.sendBuf.buf || !ss->sec.ci.sendBuf.size)
 	return SECSuccess;
 
     rv = ssl3_SendRecord(ss, content_handshake, ss->sec.ci.sendBuf.buf,
-			 ss->sec.ci.sendBuf.len, flags);
+			 ss->sec.ci.sendBuf.size, flags);
     if (rv < 0) {
 	return (SECStatus)rv;	/* error code set by ssl3_SendRecord */
     }
-    ss->sec.ci.sendBuf.len = 0;
+    ss->sec.ci.sendBuf.size = 0;
     return SECSuccess;
 }
 
@@ -1681,14 +1770,14 @@ ssl3_HandleAlert(sslSocket *ss, sslBuffer *buf)
 
     SSL_TRC(3, ("%d: SSL3[%d]: handle alert record", SSL_GETPID(), ss->fd));
 
-    if (buf->len != 2) {
+    if (buf->size != 2) {
 	(void)ssl3_DecodeError(ss);
 	PORT_SetError(SSL_ERROR_RX_MALFORMED_ALERT);
 	return SECFailure;
     }
     level = (SSL3AlertLevel)buf->buf[0];
     desc  = (SSL3AlertDescription)buf->buf[1];
-    buf->len = 0;
+    buf->size = 0;
     SSL_TRC(5, ("%d: SSL3[%d] received alert, level = %d, description = %d",
         SSL_GETPID(), ss->fd, level, desc));
 
@@ -1837,7 +1926,7 @@ ssl3_HandleChangeCipherSpecs(sslSocket *ss, sslBuffer *buf)
 	return SECFailure;
     }
 
-    if(buf->len != 1) {
+    if(buf->size != 1) {
 	(void)ssl3_DecodeError(ss);
 	PORT_SetError(SSL_ERROR_RX_MALFORMED_CHANGE_CIPHER);
 	return SECFailure;
@@ -1849,7 +1938,7 @@ ssl3_HandleChangeCipherSpecs(sslSocket *ss, sslBuffer *buf)
 	PORT_SetError(SSL_ERROR_RX_MALFORMED_CHANGE_CIPHER);
 	return SECFailure;
     }
-    buf->len = 0;
+    buf->size = 0;
 
     /* Swap the pending and current read specs. */
     ssl_GetSpecWriteLock(ss);   /*************************************/
@@ -1874,19 +1963,18 @@ ssl3_HandleChangeCipherSpecs(sslSocket *ss, sslBuffer *buf)
 }
 
 static PRStatus
-ssl3_DeriveMasterSecret(NSSCryptoContext *pmsCxOpt)
+ssl3_DeriveMasterSecret(NSSVolatileDomain *pmsVDOpt, PRBool isTLS, PRBool isDH)
 {
-    NSSSymmetricKey ms = NULL;
+    NSSSymmetricKey *ms = NULL;
+    NSSSSLMSParameters msParams;
     PRBool freePMSCx = PR_FALSE;
 
     /* set up parameters for master secret derivation */
     msParams.version = isTLS ? NSSSSLVersion_TLS : NSSSSLVersion_SSL3;
-    msParams.isDH = (PRBool)(ss->ssl3->hs.kea_def->exchKeyType == kt_dh);
+    msParams.isDH = isDH;
     msParams.clientRandom = cr;
     msParams.serverRandom = sr;
-    msDerive = NSSAlgParam_CreateForDerivation(NULL, 
-                                               NSSSymmetricKey_SSLMS,
-                                               &msParams);
+    msDerive = nssAlgorithmAndParameters_CreateSSLMSDerive(NULL, &msParams);
     if (!msDerive) {
 	goto loser;
     }
@@ -1968,7 +2056,7 @@ ssl3_GenerateSessionKeys(sslSocket *ss, NSSCryptoContext *pmsCxOpt,
                              (pwSpec->version > SSL_LIBRARY_VERSION_3_0));
     PRBool skipKeysAndIVs = (PRBool)((cipher_def->calg == calg_fortezza) ||
                                      (cipher_def->calg == calg_null));
-    PRBool isDH = (PRBool) (ss->ssl3->hs.kea_def->exchKeyType == kt_dh);
+    PRBool isDH = (PRBool) (ss->ssl3->hs.kea_def->exchKeyType == ssl_kea_dh);
     SSLCipherAlgorithm calg;
     NSSItem cr, sr;
     NSSSymmetricKeyType bulkKeyType;
@@ -2096,17 +2184,17 @@ static SECStatus
 ssl3_AppendHandshake(sslSocket *ss, const void *void_src, PRInt32 bytes)
 {
     unsigned char *  src  = (unsigned char *)void_src;
-    int              room = ss->sec.ci.sendBuf.space - ss->sec.ci.sendBuf.len;
+    int              room = ss->sec.ci.sendBuf.space - ss->sec.ci.sendBuf.size;
     SECStatus        rv;
 
     PORT_Assert( ssl_HaveSSL3HandshakeLock(ss) ); /* protects sendBuf. */
 
     if (ss->sec.ci.sendBuf.space < MAX_SEND_BUF_LENGTH && room < bytes) {
 	rv = sslBuffer_Grow(&ss->sec.ci.sendBuf, PR_MAX(MIN_SEND_BUF_LENGTH,
-		 PR_MIN(MAX_SEND_BUF_LENGTH, ss->sec.ci.sendBuf.len + bytes)));
+		 PR_MIN(MAX_SEND_BUF_LENGTH, ss->sec.ci.sendBuf.size + bytes)));
 	if (rv != SECSuccess)
 	    return rv;	/* sslBuffer_Grow has set a memory error code. */
-	room = ss->sec.ci.sendBuf.space - ss->sec.ci.sendBuf.len;
+	room = ss->sec.ci.sendBuf.space - ss->sec.ci.sendBuf.size;
     }
 
     PRINT_BUF(60, (ss, "Append to Handshake", (unsigned char*)void_src, bytes));
@@ -2116,9 +2204,9 @@ ssl3_AppendHandshake(sslSocket *ss, const void *void_src, PRInt32 bytes)
 
     while (bytes > room) {
 	if (room > 0)
-	    PORT_Memcpy(ss->sec.ci.sendBuf.buf + ss->sec.ci.sendBuf.len, src, 
+	    PORT_Memcpy(ss->sec.ci.sendBuf.buf + ss->sec.ci.sendBuf.size, src, 
 	                room);
-	ss->sec.ci.sendBuf.len += room;
+	ss->sec.ci.sendBuf.size += room;
 	rv = ssl3_FlushHandshake(ss, ssl_SEND_FLAG_FORCE_INTO_BUFFER);
 	if (rv != SECSuccess) {
 	    return rv;	/* error code set by ssl3_FlushHandshake */
@@ -2126,10 +2214,10 @@ ssl3_AppendHandshake(sslSocket *ss, const void *void_src, PRInt32 bytes)
 	bytes -= room;
 	src += room;
 	room = ss->sec.ci.sendBuf.space;
-	PORT_Assert(ss->sec.ci.sendBuf.len == 0);
+	PORT_Assert(ss->sec.ci.sendBuf.size == 0);
     }
-    PORT_Memcpy(ss->sec.ci.sendBuf.buf + ss->sec.ci.sendBuf.len, src, bytes);
-    ss->sec.ci.sendBuf.len += bytes;
+    PORT_Memcpy(ss->sec.ci.sendBuf.buf + ss->sec.ci.sendBuf.size, src, bytes);
+    ss->sec.ci.sendBuf.size += bytes;
     return SECSuccess;
 }
 
@@ -2274,7 +2362,7 @@ ssl3_ConsumeHandshakeVariable(sslSocket *ss, SECItem *i, PRInt32 bytes,
     SECStatus rv;
 
     PORT_Assert(bytes <= 3);
-    i->len  = 0;
+    i->size  = 0;
     i->data = NULL;
     count = ssl3_ConsumeHandshakeNumber(ss, bytes, b, length);
     if (count < 0) { 		/* Can't test for SECSuccess here. */
@@ -2289,8 +2377,8 @@ ssl3_ConsumeHandshakeVariable(sslSocket *ss, SECItem *i, PRInt32 bytes,
 	    PORT_SetError(SEC_ERROR_NO_MEMORY);
 	    return SECFailure;
 	}
-	i->len = count;
-	rv = ssl3_ConsumeHandshake(ss, i->data, i->len, b, length);
+	i->size = count;
+	rv = ssl3_ConsumeHandshake(ss, i->data, i->size, b, length);
 	if (rv != SECSuccess) {
 	    PORT_Free(i->data);
 	    i->data = NULL;
@@ -2850,15 +2938,15 @@ ssl_UnwrapSymWrappingKey(
     }
     wrappedKey.type = siBuffer;
     wrappedKey.data = pWswk->wrappedSymmetricWrappingkey;
-    wrappedKey.len  = pWswk->wrappedSymKeyLen;
-    PORT_Assert(wrappedKey.len <= sizeof pWswk->wrappedSymmetricWrappingkey);
+    wrappedKey.size  = pWswk->wrappedSymKeyLen;
+    PORT_Assert(wrappedKey.size <= sizeof pWswk->wrappedSymmetricWrappingkey);
 
     switch (exchKeyType) {
     PK11SymKey *      Ks;
     PK11SlotInfo *    slot;
     SECItem           param;
 
-    case kt_fortezza:
+    case ssl_kea_fortezza:
 	/* get the slot that the fortezza server private key is in. */
 	slot = PK11_GetSlotFromPrivateKey(svrPrivKey);
 	if (slot == NULL) {
@@ -2877,14 +2965,14 @@ ssl_UnwrapSymWrappingKey(
 	/* unwrap client write key with the local Ks and IV */
 	param.type = siBuffer;
     	param.data = pWswk->wrapIV;
-    	param.len  = pWswk->wrapIVLen;
+    	param.size  = pWswk->wrapIVLen;
 	unwrappedWrappingKey =
 	    PK11_UnwrapSymKey(Ks, CKM_SKIPJACK_CBC64, &param, &wrappedKey,
 			      masterWrapMech, CKA_UNWRAP, 0);
 	PK11_FreeSymKey(Ks);
 	break;
 
-    case kt_rsa:
+    case ssl_kea_rsa:
 	unwrappedWrappingKey =
 	    PK11_PubUnwrapSymKey(svrPrivKey, &wrappedKey,
 				 masterWrapMech, CKA_UNWRAP, 0);
@@ -2905,7 +2993,7 @@ loser:
  */
 
 typedef struct {
-    PK11SymKey *      symWrapKey[kt_kea_size];
+    PK11SymKey *      symWrapKey[ssl_kea_kea_size];
 } ssl3SymWrapKey;
 
 /* Try to get wrapping key for mechanism from in-memory array.
@@ -3003,11 +3091,11 @@ getWrappingKey( sslSocket *       ss,
     	goto loser;
     }
     wrappedKey.type = siBuffer;
-    wrappedKey.len  = SECKEY_PublicKeyStrength(svrPubKey);
+    wrappedKey.size  = SECKEY_PublicKeyStrength(svrPubKey);
     wrappedKey.data = wswk.wrappedSymmetricWrappingkey;
 
-    PORT_Assert(wrappedKey.len <= sizeof wswk.wrappedSymmetricWrappingkey);
-    if (wrappedKey.len > sizeof wswk.wrappedSymmetricWrappingkey)
+    PORT_Assert(wrappedKey.size <= sizeof wswk.wrappedSymmetricWrappingkey);
+    if (wrappedKey.size > sizeof wswk.wrappedSymmetricWrappingkey)
     	goto loser;
 
     /* wrap symmetric wrapping key in server's public key. */
@@ -3016,7 +3104,7 @@ getWrappingKey( sslSocket *       ss,
     PK11SlotInfo *    fSlot;
     SECItem           param;
 
-    case kt_fortezza:
+    case ssl_kea_fortezza:
 	/* get the slot that the fortezza server private key is in. */
 	fSlot = PK11_GetSlotFromPrivateKey(svrPrivKey);
 	if (fSlot == NULL) {
@@ -3035,15 +3123,15 @@ getWrappingKey( sslSocket *       ss,
 	/* wrap symmetricWrapping key with the local Ks */
 	param.type = siBuffer;
     	param.data = wswk.wrapIV;
-    	param.len  = sizeof wswk.wrapIV;
+    	param.size  = sizeof wswk.wrapIV;
 	rv = PK11_WrapSymKey(CKM_SKIPJACK_CBC64, &param, Ks,
 	                     unwrappedWrappingKey, &wrappedKey);
-	wswk.wrapIVLen = param.len;
+	wswk.wrapIVLen = param.size;
 	PK11_FreeSymKey(Ks);
 	asymWrapMechanism = CKM_SKIPJACK_CBC64;
 	break;
 
-    case kt_rsa:
+    case ssl_kea_rsa:
 	asymWrapMechanism = CKM_RSA_PKCS;
 	rv = PK11_PubWrapSymKey(asymWrapMechanism, svrPubKey,
 	                        unwrappedWrappingKey, &wrappedKey);
@@ -3065,7 +3153,7 @@ getWrappingKey( sslSocket *       ss,
     wswk.symWrapMechIndex  = symWrapMechIndex;
     wswk.asymWrapMechanism = asymWrapMechanism;
     wswk.exchKeyType       = exchKeyType;
-    wswk.wrappedSymKeyLen  = wrappedKey.len;
+    wswk.wrappedSymKeyLen  = wrappedKey.size;
 
     /* put it on disk. */
     /* If the wrapping key for this KEA type has already been set, 
@@ -3138,8 +3226,8 @@ sendRSAClientKeyExchange(sslSocket * ss, SECKEYPublicKey * svrPubKey)
     }
 
     /* Get the wrapped (encrypted) pre-master secret, enc_pms */
-    enc_pms.len  = SECKEY_PublicKeyStrength(svrPubKey);
-    enc_pms.data = (unsigned char*)PORT_Alloc(enc_pms.len);
+    enc_pms.size  = SECKEY_PublicKeyStrength(svrPubKey);
+    enc_pms.data = (unsigned char*)PORT_Alloc(enc_pms.size);
     if (enc_pms.data == NULL) {
 	goto loser;	/* err set by PORT_Alloc */
     }
@@ -3160,14 +3248,14 @@ sendRSAClientKeyExchange(sslSocket * ss, SECKEYPublicKey * svrPubKey)
     }
 
     rv = ssl3_AppendHandshakeHeader(ss, client_key_exchange, 
-				    isTLS ? enc_pms.len + 2 : enc_pms.len);
+				    isTLS ? enc_pms.size + 2 : enc_pms.size);
     if (rv != SECSuccess) {
 	goto loser;	/* err set by ssl3_AppendHandshake* */
     }
     if (isTLS) {
-    	rv = ssl3_AppendHandshakeVariable(ss, enc_pms.data, enc_pms.len, 2);
+    	rv = ssl3_AppendHandshakeVariable(ss, enc_pms.data, enc_pms.size, 2);
     } else {
-	rv = ssl3_AppendHandshake(ss, enc_pms.data, enc_pms.len);
+	rv = ssl3_AppendHandshake(ss, enc_pms.data, enc_pms.size);
     }
     if (rv != SECSuccess) {
 	goto loser;	/* err set by ssl3_AppendHandshake* */
@@ -3206,9 +3294,9 @@ sendDHClientKeyExchange(sslSocket * ss, SECKEYPublicKey * svrPubKey)
     /* Copy DH parameters from server key */
 
     dhParam.prime.data = svrPubKey->u.dh.prime.data;
-    dhParam.prime.len = svrPubKey->u.dh.prime.len;
+    dhParam.prime.size = svrPubKey->u.dh.prime.size;
     dhParam.base.data = svrPubKey->u.dh.base.data;
-    dhParam.base.len = svrPubKey->u.dh.base.len;
+    dhParam.base.size = svrPubKey->u.dh.base.size;
 
     /* Generate ephemeral DH keypair */
     privKey = SECKEY_CreateDHPrivateKey(&dhParam, &pubKey, NULL);
@@ -3219,7 +3307,7 @@ sendDHClientKeyExchange(sslSocket * ss, SECKEYPublicKey * svrPubKey)
     }
     PRINT_BUF(50, (ss, "DH public value:",
 					pubKey->u.dh.publicValue.data,
-					pubKey->u.dh.publicValue.len));
+					pubKey->u.dh.publicValue.size));
 
     if (isTLS) target = CKM_TLS_MASTER_KEY_DERIVE_DH;
     else target = CKM_SSL3_MASTER_KEY_DERIVE_DH;
@@ -3246,13 +3334,13 @@ sendDHClientKeyExchange(sslSocket * ss, SECKEYPublicKey * svrPubKey)
     }
 
     rv = ssl3_AppendHandshakeHeader(ss, client_key_exchange, 
-					pubKey->u.dh.publicValue.len + 2);
+					pubKey->u.dh.publicValue.size + 2);
     if (rv != SECSuccess) {
 	goto loser;	/* err set by ssl3_AppendHandshake* */
     }
     rv = ssl3_AppendHandshakeVariable(ss, 
 					pubKey->u.dh.publicValue.data,
-					pubKey->u.dh.publicValue.len, 2);
+					pubKey->u.dh.publicValue.size, 2);
     SECKEY_DestroyPublicKey(pubKey);
     pubKey = NULL;
 
@@ -3330,7 +3418,7 @@ sendFortezzaCKXClientAuth(sslSocket *ss, SSL3FortezzaKeys * fortezza_CKE)
 	if (foundPubKey->keyType == keaKey) {
 	    rv = ssl3_FortezzaAppendHandshake(ss,
 			    foundPubKey->u.kea.publicValue.data,
-			    foundPubKey->u.kea.publicValue.len);
+			    foundPubKey->u.kea.publicValue.size);
 	    if (rv != SECSuccess) {
 		goto v3_loser; /* err was set by AppendHandshake. */
 	    }
@@ -3344,7 +3432,7 @@ sendFortezzaCKXClientAuth(sslSocket *ss, SSL3FortezzaKeys * fortezza_CKE)
 	} else {
 	    rv = ssl3_FortezzaAppendHandshake(ss,
 			    foundPubKey->u.fortezza.KEAKey.data,
-			    foundPubKey->u.fortezza.KEAKey.len);
+			    foundPubKey->u.fortezza.KEAKey.size);
 	    if (rv != SECSuccess) {
 		goto v3_loser; /* err was set by AppendHandshake. */
 	    }
@@ -3358,10 +3446,10 @@ sendFortezzaCKXClientAuth(sslSocket *ss, SSL3FortezzaKeys * fortezza_CKE)
 	}
 
 	hashItem.data = (unsigned char *) hash;
-	hashItem.len  = SHA1_LENGTH;
+	hashItem.size  = SHA1_LENGTH;
 
 	sigItem.data  = fortezza_CKE->y_signature;
-	sigItem.len   = sizeof fortezza_CKE->y_signature;
+	sigItem.size   = sizeof fortezza_CKE->y_signature;
 
 	rv = PK11_Sign(ss->ssl3->clientPrivateKey, &sigItem, &hashItem);
 	if (rv != SECSuccess) {
@@ -3423,7 +3511,7 @@ sendFortezzaCKXNoClientAuth(sslSocket *ss)
 	/* fortezza V1 cert */
 	rv = ssl3_FortezzaAppendHandshake(ss,
 				    foundPubKey->u.fortezza.KEAKey.data,
-				    foundPubKey->u.fortezza.KEAKey.len);
+				    foundPubKey->u.fortezza.KEAKey.size);
 	if (rv != SECSuccess) {
 	    goto loser; /* err was set by AppendHandshake. */
 	}
@@ -3435,7 +3523,7 @@ sendFortezzaCKXNoClientAuth(sslSocket *ss)
 	/* fortezza V3 cert */
 	rv = ssl3_FortezzaAppendHandshake(ss,
 				    foundPubKey->u.kea.publicValue.data,
-				    foundPubKey->u.kea.publicValue.len);
+				    foundPubKey->u.kea.publicValue.size);
 	if (rv != SECSuccess) {
 	    goto loser; /* err was set by AppendHandshake. */
 	}
@@ -3494,7 +3582,7 @@ sendFortezzaClientKeyExchange(sslSocket * ss, SECKEYPublicKey * serverKey)
     version.minor = LSB(ss->version);
 
     param.data = (unsigned char *)&version;
-    param.len  = sizeof version;
+    param.size  = sizeof version;
 
     pms = PK11_KeyGen(slot, CKM_SSL3_PRE_MASTER_KEY_GEN,
 			 &param, 0, pwArg);
@@ -3527,11 +3615,11 @@ sendFortezzaClientKeyExchange(sslSocket * ss, SECKEYPublicKey * serverKey)
      * r_c is generated and filled in by the PubDerive call below.
      */
     raItem.data = fortezza_CKE.r_c;
-    raItem.len  = sizeof fortezza_CKE.r_c;
+    raItem.size  = sizeof fortezza_CKE.r_c;
 
     /* R_s == server's "random" public key, sent in the Server Key Exchange */
     rbItem.data = ss->ssl3->fortezza.R_s;
-    rbItem.len  = sizeof ss->ssl3->fortezza.R_s;
+    rbItem.size  = sizeof ss->ssl3->fortezza.R_s;
 
     tek = PK11_PubDerive(privKeaKey, serverKey, PR_TRUE, /* generate r_c */
                          &raItem, &rbItem, CKM_KEA_KEY_DERIVE,
@@ -3550,10 +3638,10 @@ sendFortezzaClientKeyExchange(sslSocket * ss, SECKEYPublicKey * serverKey)
      *     AND the IV for decrypting the PMS.
      */
     param.data   = fortezza_CKE.master_secret_iv;
-    param.len    = sizeof fortezza_CKE.master_secret_iv;
+    param.size    = sizeof fortezza_CKE.master_secret_iv;
 
     enc_pms.data = fortezza_CKE.encrypted_preMasterSecret;
-    enc_pms.len  = sizeof fortezza_CKE.encrypted_preMasterSecret;
+    enc_pms.size  = sizeof fortezza_CKE.encrypted_preMasterSecret;
 
     rv = PK11_WrapSymKey(CKM_SKIPJACK_CBC64, &param, tek, pms, &enc_pms);
     if (rv != SECSuccess) {
@@ -3594,7 +3682,7 @@ sendFortezzaClientKeyExchange(sslSocket * ss, SECKEYPublicKey * serverKey)
 
     /* copy the keys and IVs out now */
     item.data = fortezza_CKE.wrapped_client_write_key;
-    item.len  = sizeof fortezza_CKE.wrapped_client_write_key;
+    item.size  = sizeof fortezza_CKE.wrapped_client_write_key;
     rv = PK11_WrapSymKey(CKM_SKIPJACK_WRAP, NULL, tek, client_write_key, &item);
     if (rv != SECSuccess) {
 	ssl_MapLowLevelError(SSL_ERROR_CLIENT_KEY_EXCHANGE_FAILURE);
@@ -3602,7 +3690,7 @@ sendFortezzaClientKeyExchange(sslSocket * ss, SECKEYPublicKey * serverKey)
     }
 
     item.data = fortezza_CKE.wrapped_server_write_key;
-    item.len  = sizeof fortezza_CKE.wrapped_server_write_key;
+    item.size  = sizeof fortezza_CKE.wrapped_server_write_key;
     rv = PK11_WrapSymKey(CKM_SKIPJACK_WRAP, NULL, tek, server_write_key, &item);
     if (rv != SECSuccess) {
 	ssl_MapLowLevelError(SSL_ERROR_CLIENT_KEY_EXCHANGE_FAILURE);
@@ -3743,15 +3831,15 @@ ssl3_SendClientKeyExchange(sslSocket *ss)
     ss->sec.keaKeyBits = SECKEY_PublicKeyStrength(serverKey) * BPB;
 
     switch (ss->ssl3->hs.kea_def->exchKeyType) {
-    case kt_rsa:
+    case ssl_kea_rsa:
 	rv = sendRSAClientKeyExchange(ss, serverKey);
 	break;
 
-    case kt_fortezza:
+    case ssl_kea_fortezza:
 	rv = sendFortezzaClientKeyExchange(ss, serverKey);
 	break;
 
-    case kt_dh:
+    case ssl_kea_dh:
 	rv = sendDHClientKeyExchange(ss, serverKey);
 	break;
 
@@ -3815,7 +3903,7 @@ ssl3_SendCertificateVerify(sslSocket *ss)
      * here.  Diffie-Hellman & Fortezza key exchanges need the client's
      * private key for the key exchange.
      */
-    if (ssl3->hs.kea_def->exchKeyType == kt_rsa) {
+    if (ssl3->hs.kea_def->exchKeyType == ssl_kea_rsa) {
 	SECKEY_DestroyPrivateKey(ssl3->clientPrivateKey);
 	ssl3->clientPrivateKey = NULL;
     }
@@ -3823,11 +3911,11 @@ ssl3_SendCertificateVerify(sslSocket *ss)
 	goto done;	/* err code was set by ssl3_SignHashes */
     }
 
-    rv = ssl3_AppendHandshakeHeader(ss, certificate_verify, buf.len + 2);
+    rv = ssl3_AppendHandshakeHeader(ss, certificate_verify, buf.size + 2);
     if (rv != SECSuccess) {
 	goto done;	/* error code set by AppendHandshake */
     }
-    rv = ssl3_AppendHandshakeVariable(ss, buf.data, buf.len, 2);
+    rv = ssl3_AppendHandshakeVariable(ss, buf.data, buf.size, 2);
     if (rv != SECSuccess) {
 	goto done;	/* error code set by AppendHandshake */
     }
@@ -3905,7 +3993,7 @@ ssl3_HandleServerHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     if (rv != SECSuccess) {
     	goto loser; 	/* alert has been sent */
     }
-    if (sidBytes.len > SSL3_SESSIONID_BYTES) {
+    if (sidBytes.size > SSL3_SESSIONID_BYTES) {
 	if (isTLS)
 	    desc = decode_error;
 	goto alert_loser;	/* malformed. */
@@ -3976,9 +4064,9 @@ ssl3_HandleServerHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
      * Attempt to restore the master secret to see if this is so...
      * Don't consider failure to find a matching SID an error.
      */
-    sid_match = (PRBool)(sidBytes.len > 0 &&
-	sidBytes.len == sid->u.ssl3.sessionIDLength &&
-	!PORT_Memcmp(sid->u.ssl3.sessionID, sidBytes.data, sidBytes.len));
+    sid_match = (PRBool)(sidBytes.size > 0 &&
+	sidBytes.size == sid->u.ssl3.sessionIDLength &&
+	!PORT_Memcmp(sid->u.ssl3.sessionID, sidBytes.data, sidBytes.size));
 
     if (sid_match &&
 	sid->version == ss->version &&
@@ -4016,7 +4104,7 @@ ssl3_HandleServerHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	}
 
         wrappedMS.data = sid->u.ssl3.keys.wrapped_master_secret;
-	wrappedMS.len  = sid->u.ssl3.keys.wrapped_master_secret_len;
+	wrappedMS.size  = sid->u.ssl3.keys.wrapped_master_secret_len;
 	ss->ssl3->pwSpec->master_secret =
 	    PK11_UnwrapSymKeyWithFlags(wrapKey, sid->u.ssl3.masterWrapMech, 
 	    		NULL, &wrappedMS, CKM_SSL3_MASTER_KEY_DERIVE,
@@ -4092,8 +4180,8 @@ ssl3_HandleServerHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     }
 
     sid->version = ss->version;
-    sid->u.ssl3.sessionIDLength = sidBytes.len;
-    PORT_Memcpy(sid->u.ssl3.sessionID, sidBytes.data, sidBytes.len);
+    sid->u.ssl3.sessionIDLength = sidBytes.size;
+    PORT_Memcpy(sid->u.ssl3.sessionID, sidBytes.data, sidBytes.size);
     SECITEM_ZfreeItem(&sidBytes, PR_FALSE);
 
     ss->ssl3->hs.isResuming = PR_FALSE;
@@ -4152,7 +4240,7 @@ ssl3_HandleServerKeyExchange(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 
     switch (ss->ssl3->hs.kea_def->exchKeyType) {
 
-    case kt_rsa:
+    case ssl_kea_rsa:
     	rv = ssl3_ConsumeHandshakeVariable(ss, &modulus, 2, &b, &length);
     	if (rv != SECSuccess) {
 	    goto loser;		/* malformed. */
@@ -4227,7 +4315,7 @@ ssl3_HandleServerKeyExchange(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     	ss->ssl3->hs.ws = wait_cert_request;
     	return SECSuccess;
 
-    case kt_dh:
+    case ssl_kea_dh:
     	rv = ssl3_ConsumeHandshakeVariable(ss, &dh_p, 2, &b, &length);
     	if (rv != SECSuccess) {
 	    goto loser;		/* malformed. */
@@ -4250,9 +4338,9 @@ ssl3_HandleServerKeyExchange(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	    goto alert_loser;		/* malformed. */
 	}
 
-	PRINT_BUF(60, (NULL, "Server DH p", dh_p.data, dh_p.len));
-	PRINT_BUF(60, (NULL, "Server DH g", dh_g.data, dh_g.len));
-	PRINT_BUF(60, (NULL, "Server DH Ys", dh_Ys.data, dh_Ys.len));
+	PRINT_BUF(60, (NULL, "Server DH p", dh_p.data, dh_p.size));
+	PRINT_BUF(60, (NULL, "Server DH g", dh_g.data, dh_g.size));
+	PRINT_BUF(60, (NULL, "Server DH Ys", dh_Ys.data, dh_Ys.size));
 
 	/* failures after this point are not malformed handshakes. */
 	/* TLS: send decrypt_error if signature failed. */
@@ -4311,7 +4399,7 @@ ssl3_HandleServerKeyExchange(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     	ss->ssl3->hs.ws = wait_cert_request;
     	return SECSuccess;
 
-    case kt_fortezza:
+    case ssl_kea_fortezza:
 
 	/* Fortezza needs *BOTH* a server cert message
 	 * and a server key exchange message.
@@ -4424,7 +4512,7 @@ ssl3_HandleCertificateRequest(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	if (remaining < 2)
 	    goto alert_loser;	/* malformed */
 
-	node->name.len = len = ssl3_ConsumeHandshakeNumber(ss, 2, &b, &length);
+	node->name.size = len = ssl3_ConsumeHandshakeNumber(ss, 2, &b, &length);
 	if (len < 0)
 	    goto loser;		/* malformed, alert has been sent */
 
@@ -4774,7 +4862,7 @@ ssl3_SendServerHelloSequence(sslSocket *ss)
 	if (rv != SECSuccess) {
 	    return rv;	/* err code was set. */
 	}
-    } else if (kea_def->is_limited && kea_def->exchKeyType == kt_rsa) {
+    } else if (kea_def->is_limited && kea_def->exchKeyType == ssl_kea_rsa) {
 	/* see if we can legally use the key in the cert. */
 	int keyLen;  /* bytes */
 
@@ -4886,13 +4974,13 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	goto loser;		/* malformed */
     }
 
-    if (sidBytes.len > 0) {
+    if (sidBytes.size > 0) {
 	SSL_TRC(7, ("%d: SSL3[%d]: server, lookup client session-id for 0x%08x%08x%08x%08x",
                     SSL_GETPID(), ss->fd, ss->sec.ci.peer.pr_s6_addr32[0],
 		    ss->sec.ci.peer.pr_s6_addr32[1], 
 		    ss->sec.ci.peer.pr_s6_addr32[2],
 		    ss->sec.ci.peer.pr_s6_addr32[3]));
-	sid = (*ssl_sid_lookup)(&ss->sec.ci.peer, sidBytes.data, sidBytes.len,
+	sid = (*ssl_sid_lookup)(&ss->sec.ci.peer, sidBytes.data, sidBytes.size,
 	                        ss->dbHandle);
     }
     SECITEM_FreeItem(&sidBytes, PR_FALSE);
@@ -4956,7 +5044,7 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	    break;
 	if (!config_match(suite, ssl3->policy, PR_TRUE))
 	    break;
-	for (i = 0; i < suites.len; i += 2) {
+	for (i = 0; i < suites.size; i += 2) {
 	    if ((suites.data[i]     == MSB(suite->cipher_suite)) &&
 	        (suites.data[i + 1] == LSB(suite->cipher_suite))) {
 
@@ -4976,7 +5064,7 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	ssl3CipherSuiteCfg *suite = &ss->cipherSuites[j];
 	if (!config_match(suite, ssl3->policy, PR_TRUE))
 	    continue;
-	for (i = 0; i < suites.len; i += 2) {
+	for (i = 0; i < suites.size; i += 2) {
 	    if ((suites.data[i]     == MSB(suite->cipher_suite)) &&
 	        (suites.data[i + 1] == LSB(suite->cipher_suite))) {
 
@@ -4992,7 +5080,7 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 
 suite_found:
     /* Look for a matching compression algorithm. */
-    for (i = 0; i < comps.len; i++) {
+    for (i = 0; i < comps.size; i++) {
 	for (j = 0; j < compressionMethodsCount; j++) {
 	    if (comps.data[i] == compressions[j]) {
 		ssl3->hs.compression = (SSL3CompressionMethod)compressions[j];
@@ -5053,7 +5141,7 @@ compression_found:
 	}
 
         wrappedKey.data = sid->u.ssl3.keys.wrapped_master_secret;
-	wrappedKey.len  = sid->u.ssl3.keys.wrapped_master_secret_len;
+	wrappedKey.size  = sid->u.ssl3.keys.wrapped_master_secret_len;
 
 	/* unwrap the master secret. */
 	pwSpec->master_secret =
@@ -5119,7 +5207,7 @@ compression_found:
 
 	    /* get the slot that the fortezza server private key is in. */
 	    slot = PK11_GetSlotFromPrivateKey(
-	                                ss->serverCerts[kt_fortezza].serverKey);
+	                                ss->serverCerts[ssl_kea_fortezza].serverKey);
 	    if (slot == NULL) {
 		ssl_MapLowLevelError(SSL_ERROR_CLIENT_KEY_EXCHANGE_FAILURE);
 		goto loser;
@@ -5136,7 +5224,7 @@ compression_found:
 
 	    /* unwrap client write key with the local Ks */
 	    item.data = sid->u.ssl3.keys.wrapped_client_write_key;
-	    item.len  = sizeof sid->u.ssl3.keys.wrapped_client_write_key;
+	    item.size  = sizeof sid->u.ssl3.keys.wrapped_client_write_key;
 
 	    pwSpec->client.write_key =
 		    PK11_UnwrapSymKey(Ks, CKM_SKIPJACK_WRAP, NULL, &item,
@@ -5149,7 +5237,7 @@ compression_found:
 
 	    /* unwrap server write key with the local Ks */
 	    item.data = sid->u.ssl3.keys.wrapped_server_write_key;
-	    item.len  = sizeof sid->u.ssl3.keys.wrapped_server_write_key;
+	    item.size  = sizeof sid->u.ssl3.keys.wrapped_server_write_key;
 
 	    pwSpec->server.write_key =
 		    PK11_UnwrapSymKey(Ks, CKM_SKIPJACK_WRAP, NULL, &item,
@@ -5511,7 +5599,7 @@ const ssl3KEADef *     kea_def     = ss->ssl3->hs.kea_def;
     PORT_Assert( ssl_HaveSSL3HandshakeLock(ss));
 
     switch (kea_def->exchKeyType) {
-    case kt_rsa:
+    case ssl_kea_rsa:
 	/* Perform SSL Step-Down here. */
 	sdPub = ss->stepDownKeyPair->pubKey;
 	PORT_Assert(sdPub != NULL);
@@ -5530,7 +5618,7 @@ const ssl3KEADef *     kea_def     = ss->ssl3->hs.kea_def;
 	}
 
 	isTLS = (PRBool)(ss->ssl3->pwSpec->version > SSL_LIBRARY_VERSION_3_0);
-	rv = ssl3_SignHashes(&hashes, ss->serverCerts[kt_rsa].serverKey, 
+	rv = ssl3_SignHashes(&hashes, ss->serverCerts[ssl_kea_rsa].serverKey, 
 	                     &signed_hash, isTLS);
         if (rv != SECSuccess) {
 	    goto loser;		/* ssl3_SignHashes has set err. */
@@ -5540,9 +5628,9 @@ const ssl3KEADef *     kea_def     = ss->ssl3->hs.kea_def;
 	    PORT_SetError(SSL_ERROR_SERVER_KEY_EXCHANGE_FAILURE);
 	    goto loser;
 	}
-	length = 2 + sdPub->u.rsa.modulus.len +
-	         2 + sdPub->u.rsa.publicExponent.len +
-	         2 + signed_hash.len;
+	length = 2 + sdPub->u.rsa.modulus.size +
+	         2 + sdPub->u.rsa.publicExponent.size +
+	         2 + signed_hash.size;
 
 	rv = ssl3_AppendHandshakeHeader(ss, server_key_exchange, length);
 	if (rv != SECSuccess) {
@@ -5550,34 +5638,34 @@ const ssl3KEADef *     kea_def     = ss->ssl3->hs.kea_def;
 	}
 
 	rv = ssl3_AppendHandshakeVariable(ss, sdPub->u.rsa.modulus.data,
-					  sdPub->u.rsa.modulus.len, 2);
+					  sdPub->u.rsa.modulus.size, 2);
 	if (rv != SECSuccess) {
 	    goto loser; 	/* err set by AppendHandshake. */
 	}
 
 	rv = ssl3_AppendHandshakeVariable(
 				ss, sdPub->u.rsa.publicExponent.data,
-				sdPub->u.rsa.publicExponent.len, 2);
+				sdPub->u.rsa.publicExponent.size, 2);
 	if (rv != SECSuccess) {
 	    goto loser; 	/* err set by AppendHandshake. */
 	}
 
 	rv = ssl3_AppendHandshakeVariable(ss, signed_hash.data,
-	                                  signed_hash.len, 2);
+	                                  signed_hash.size, 2);
 	if (rv != SECSuccess) {
 	    goto loser; 	/* err set by AppendHandshake. */
 	}
 	PORT_Free(signed_hash.data);
 	return SECSuccess;
 
-    case kt_fortezza:
+    case ssl_kea_fortezza:
 
 	/* Set server's "random" public key R_s to the email value == 1 */
 	PORT_Memset(ss->ssl3->fortezza.R_s, 0, sizeof(ss->ssl3->fortezza.R_s));
 	ss->ssl3->fortezza.R_s[127] = 1;
 
 	/* don't waste time signing the random number */
-	length = sizeof (ss->ssl3->fortezza.R_s) /*+ 2 + signed_hash.len*/;
+	length = sizeof (ss->ssl3->fortezza.R_s) /*+ 2 + signed_hash.size*/;
 
 	rv = ssl3_AppendHandshakeHeader(ss, server_key_exchange, length);
 	if (rv != SECSuccess) {
@@ -5591,8 +5679,8 @@ const ssl3KEADef *     kea_def     = ss->ssl3->hs.kea_def;
 	}
 	return SECSuccess;
 
-    case kt_dh:
-    case kt_null:
+    case ssl_kea_dh:
+    case ssl_kea_null:
     default:
 	PORT_SetError(SEC_ERROR_UNSUPPORTED_KEYALG);
 	break;
@@ -5641,10 +5729,10 @@ const uint8 *      certTypes;
     }
 
     for (i = 0, name = names; i < nnames; i++, name++) {
-	calen += 2 + name->len;
+	calen += 2 + name->size;
     }
 
-    if (ss->ssl3->hs.kea_def->exchKeyType == kt_fortezza) {
+    if (ss->ssl3->hs.kea_def->exchKeyType == ssl_kea_fortezza) {
 	certTypes       = fortezza_certificate_types;
 	certTypesLength = sizeof fortezza_certificate_types;
     } else {
@@ -5667,7 +5755,7 @@ const uint8 *      certTypes;
 	return rv; 		/* err set by AppendHandshake. */
     }
     for (i = 0, name = names; i < nnames; i++, name++) {
-	rv = ssl3_AppendHandshakeVariable(ss, name->data, name->len, 2);
+	rv = ssl3_AppendHandshakeVariable(ss, name->data, name->size, 2);
 	if (rv != SECSuccess) {
 	    return rv; 		/* err set by AppendHandshake. */
 	}
@@ -5825,10 +5913,10 @@ ssl3_HandleFortezzaClientKeyExchange(sslSocket *ss, SSL3Opaque *b,
 		goto fortezza_loser;
 	    }
 	    sigItem.data  = fortezza_CKE.y_signature;
-	    sigItem.len   = sizeof fortezza_CKE.y_signature;
+	    sigItem.size   = sizeof fortezza_CKE.y_signature;
 
 	    hashItem.data = hash;
-	    hashItem.len  = sizeof hash;
+	    hashItem.size  = sizeof hash;
 
 	    rv = PK11_Verify(pubKey, &sigItem, &hashItem, pwArg);
 	    if (rv != SECSuccess) {
@@ -5842,7 +5930,7 @@ ssl3_HandleFortezzaClientKeyExchange(sslSocket *ss, SSL3Opaque *b,
     rv = SECFailure;
 
     /* Make the public key if necessary */
-    if (fortezza_CKE.y_c.len != 0) {
+    if (fortezza_CKE.y_c.size != 0) {
 	if (pubKey != NULL) {
 	    /* The client is not allowed to send the public key
 	     * if it can be extracted from the certificate. */
@@ -5851,7 +5939,7 @@ ssl3_HandleFortezzaClientKeyExchange(sslSocket *ss, SSL3Opaque *b,
 	    goto fortezza_loser;
 	}
 	pubKey = PK11_MakeKEAPubKey(fortezza_CKE.y_c.data,
-				    fortezza_CKE.y_c.len);
+				    fortezza_CKE.y_c.size);
     }
     if (pubKey == NULL) {
 	/* no public Key in either the cert or the protocol message*/
@@ -5862,11 +5950,11 @@ ssl3_HandleFortezzaClientKeyExchange(sslSocket *ss, SSL3Opaque *b,
 
     /* Now we derive the TEK.  r_c is the client's "random" public key. */
     raItem.data = fortezza_CKE.r_c;
-    raItem.len  = sizeof(fortezza_CKE.r_c);
+    raItem.size  = sizeof(fortezza_CKE.r_c);
 
     /* R_s == server's "random" public key, sent in the Server Key Exchange */
     rbItem.data = ss->ssl3->fortezza.R_s;
-    rbItem.len  = sizeof ss->ssl3->fortezza.R_s;
+    rbItem.size  = sizeof ss->ssl3->fortezza.R_s;
 
     tek = PK11_PubDerive(serverKey, pubKey, PR_FALSE, /* don't gen r_c */
                          &raItem, &rbItem, CKM_KEA_KEY_DERIVE,
@@ -5882,7 +5970,7 @@ ssl3_HandleFortezzaClientKeyExchange(sslSocket *ss, SSL3Opaque *b,
 
     if (pwSpec->cipher_def->calg == calg_fortezza) {
 	item.data = fortezza_CKE.wrapped_client_write_key;
-	item.len  = sizeof fortezza_CKE.wrapped_client_write_key;
+	item.size  = sizeof fortezza_CKE.wrapped_client_write_key;
 
 	pwSpec->client.write_key =
 		PK11_UnwrapSymKey(tek, CKM_SKIPJACK_WRAP, NULL, &item,
@@ -5894,7 +5982,7 @@ ssl3_HandleFortezzaClientKeyExchange(sslSocket *ss, SSL3Opaque *b,
 	}
 
 	item.data = fortezza_CKE.wrapped_server_write_key;
-	item.len  = sizeof fortezza_CKE.wrapped_server_write_key;
+	item.size  = sizeof fortezza_CKE.wrapped_server_write_key;
 
 	pwSpec->server.write_key =
 		PK11_UnwrapSymKey(tek, CKM_SKIPJACK_WRAP, NULL, &item,
@@ -5918,10 +6006,10 @@ ssl3_HandleFortezzaClientKeyExchange(sslSocket *ss, SSL3Opaque *b,
 
     /* decrypt the pms with the TEK */
     enc_pms.data = fortezza_CKE.encrypted_preMasterSecret;
-    enc_pms.len  = sizeof fortezza_CKE.encrypted_preMasterSecret;
+    enc_pms.size  = sizeof fortezza_CKE.encrypted_preMasterSecret;
 
     param.data = fortezza_CKE.master_secret_iv;
-    param.len  = sizeof fortezza_CKE.master_secret_iv;
+    param.size  = sizeof fortezza_CKE.master_secret_iv;
 
     pms = PK11_UnwrapSymKey(tek, CKM_SKIPJACK_CBC64, &param, &enc_pms,
 			    CKM_SSL3_MASTER_KEY_DERIVE, CKA_DERIVE, 0);
@@ -5971,7 +6059,7 @@ ssl3_HandleFortezzaClientKeyExchange(sslSocket *ss, SSL3Opaque *b,
 
 	/* rewrap server write key with the local Ks */
 	item.data = sid->u.ssl3.keys.wrapped_server_write_key;
-	item.len  = sizeof sid->u.ssl3.keys.wrapped_server_write_key;
+	item.size  = sizeof sid->u.ssl3.keys.wrapped_server_write_key;
 	rv = PK11_WrapSymKey(CKM_SKIPJACK_WRAP, NULL, Ks,
 	                     pwSpec->server.write_key, &item);
 	if (rv != SECSuccess) {
@@ -5981,7 +6069,7 @@ ssl3_HandleFortezzaClientKeyExchange(sslSocket *ss, SSL3Opaque *b,
 
 	/* rewrap client write key with the local Ks */
 	item.data = sid->u.ssl3.keys.wrapped_client_write_key;
-	item.len  = sizeof sid->u.ssl3.keys.wrapped_client_write_key;
+	item.size  = sizeof sid->u.ssl3.keys.wrapped_client_write_key;
 	rv = PK11_WrapSymKey(CKM_SKIPJACK_WRAP, NULL, Ks,
 	                     pwSpec->client.write_key, &item);
 	if (rv != SECSuccess) {
@@ -6090,17 +6178,17 @@ ssl3_HandleRSAClientKeyExchange(sslSocket *ss,
     PORT_Assert( ssl_HaveSSL3HandshakeLock(ss) );
 
     enc_pms.data = b;
-    enc_pms.len  = length;
+    enc_pms.size  = length;
 
     if (ss->ssl3->prSpec->version > SSL_LIBRARY_VERSION_3_0) { /* isTLS */
 	PRInt32 kLen;
-	kLen = ssl3_ConsumeHandshakeNumber(ss, 2, &enc_pms.data, &enc_pms.len);
+	kLen = ssl3_ConsumeHandshakeNumber(ss, 2, &enc_pms.data, &enc_pms.size);
 	if (kLen < 0) {
 	    PORT_SetError(SSL_ERROR_CLIENT_KEY_EXCHANGE_FAILURE);
 	    return SECFailure;
 	}
-	if ((unsigned)kLen < enc_pms.len) {
-	    enc_pms.len = kLen;
+	if ((unsigned)kLen < enc_pms.size) {
+	    enc_pms.size = kLen;
 	}
     }
     /*
@@ -6112,7 +6200,7 @@ ssl3_HandleRSAClientKeyExchange(sslSocket *ss,
 	    /* XXX
 	PRINT_BUF(60, (ss, "decrypted premaster secret:",
 		       PK11_GetKeyData(pms)->data,
-		       PK11_GetKeyData(pms)->len));
+		       PK11_GetKeyData(pms)->size));
 		       */
 	pmsCx = NSSSymmetricKey_CreateCryptoContext(pms, NULL, NULL);
 	if (!pmsCx) {
@@ -6173,7 +6261,7 @@ const ssl3KEADef *    kea_def;
     serverKey =  (ss->ssl3->hs.usedStepDownKey
 #ifdef DEBUG
 		 && kea_def->is_limited /* XXX OR cert is signing only */
-		 && kea_def->exchKeyType == kt_rsa 
+		 && kea_def->exchKeyType == ssl_kea_rsa 
 		 && ss->stepDownKeyPair != NULL
 #endif
 		 ) ? ss->stepDownKeyPair->privKey
@@ -6182,7 +6270,7 @@ const ssl3KEADef *    kea_def;
     if (ss->ssl3->hs.usedStepDownKey
 #ifdef DEBUG
 	 && kea_def->is_limited /* XXX OR cert is signing only */
-	 && kea_def->exchKeyType == kt_rsa 
+	 && kea_def->exchKeyType == ssl_kea_rsa 
 	 && ss->stepDownKeyPair != NULL
 #endif
 	 ) { 
@@ -6203,7 +6291,7 @@ const ssl3KEADef *    kea_def;
     ss->sec.keaType    = kea_def->exchKeyType;
 
     switch (kea_def->exchKeyType) {
-    case kt_rsa:
+    case ssl_kea_rsa:
 	rv = ssl3_HandleRSAClientKeyExchange(ss, b, length, serverKey);
 	if (rv != SECSuccess) {
 	    SEND_ALERT
@@ -6211,7 +6299,7 @@ const ssl3KEADef *    kea_def;
 	}
 	break;
 
-    case kt_fortezza:
+    case ssl_kea_fortezza:
 	rv = ssl3_HandleFortezzaClientKeyExchange(ss, b, length, serverKey);
 	if (rv != SECSuccess) {
 	    return SECFailure;	/* error code set */
@@ -6274,8 +6362,8 @@ ssl3_SendCertificate(sslSocket *ss)
     }
 
     if (certChain) {
-	for (i = 0; i < certChain->len; i++) {
-	    len += certChain->certs[i].len + 3;
+	for (i = 0; i < certChain->size; i++) {
+	    len += certChain->certs[i].size + 3;
 	}
     }
 
@@ -6287,9 +6375,9 @@ ssl3_SendCertificate(sslSocket *ss)
     if (rv != SECSuccess) {
 	return rv; 		/* err set by AppendHandshake. */
     }
-    for (i = 0; i < certChain->len; i++) {
+    for (i = 0; i < certChain->size; i++) {
 	rv = ssl3_AppendHandshakeVariable(ss, certChain->certs[i].data,
-					  certChain->certs[i].len, 3);
+					  certChain->certs[i].size, 3);
 	if (rv != SECSuccess) {
 	    return rv; 		/* err set by AppendHandshake. */
 	}
@@ -6407,8 +6495,8 @@ ssl3_HandleCertificate(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	goto loser;	/* don't send alerts on memory errors */
     }
 
-    certItem.len = size;
-    rv = ssl3_ConsumeHandshake(ss, certItem.data, certItem.len, &b, &length);
+    certItem.size = size;
+    rv = ssl3_ConsumeHandshake(ss, certItem.data, certItem.size, &b, &length);
     if (rv != SECSuccess)
 	goto loser;	/* fatal alert already sent by ConsumeHandshake. */
 
@@ -6440,8 +6528,8 @@ ssl3_HandleCertificate(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	    goto loser;	/* don't send alerts on memory errors */
 	}
 
-	certItem.len = size;
-	rv = ssl3_ConsumeHandshake(ss, certItem.data, certItem.len,
+	certItem.size = size;
+	rv = ssl3_ConsumeHandshake(ss, certItem.data, certItem.size,
 				   &b, &length);
 	if (rv != SECSuccess)
 	    goto loser;	/* fatal alert already sent by ConsumeHandshake. */
@@ -6548,7 +6636,7 @@ cert_block:
 	if (ssl3->hs.kea_def->is_limited ||
 	    /* XXX OR server cert is signing only. */
 	    ssl3->hs.kea_def->kea == kea_fortezza ||
-	    ssl3->hs.kea_def->exchKeyType == kt_dh) {
+	    ssl3->hs.kea_def->exchKeyType == ssl_kea_dh) {
 	    ssl3->hs.ws = wait_server_key; /* allow server_key_exchange */
 	}
     }
@@ -6952,11 +7040,11 @@ xmit_loser:
 	SECItem msItem;
 
 	msItem.data = sid->u.ssl3.keys.wrapped_master_secret;
-	msItem.len  = sizeof sid->u.ssl3.keys.wrapped_master_secret;
+	msItem.size  = sizeof sid->u.ssl3.keys.wrapped_master_secret;
 	rv = PK11_WrapSymKey(mechanism, NULL, wrappingKey,
 			     ssl3->crSpec->master_secret, &msItem);
 	/* rv is examined below. */
-	sid->u.ssl3.keys.wrapped_master_secret_len = msItem.len;
+	sid->u.ssl3.keys.wrapped_master_secret_len = msItem.size;
 	PK11_FreeSymKey(wrappingKey);
     }
     ssl_ReleaseSpecReadLock(ss);  /*************************************/
@@ -7161,11 +7249,11 @@ ssl3_HandleHandshake(sslSocket *ss, sslBuffer *origBuf)
     if (buf->buf == NULL) {
 	*buf = *origBuf;
     }
-    while (buf->len > 0) {
+    while (buf->size > 0) {
 	while (ssl3->hs.header_bytes < 4) {
 	    uint8 t;
 	    t = *(buf->buf++);
-	    buf->len--;
+	    buf->size--;
 	    if (ssl3->hs.header_bytes++ == 0)
 		ssl3->hs.msg_type = (SSL3HandshakeType)t;
 	    else
@@ -7181,7 +7269,7 @@ ssl3_HandleHandshake(sslSocket *ss, sslBuffer *origBuf)
 		}
 	    }
 #undef MAX_HANDSHAKE_MSG_LEN
-	    if (buf->len == 0 && ssl3->hs.msg_len > 0) {
+	    if (buf->size == 0 && ssl3->hs.msg_len > 0) {
 		buf->buf = NULL;
 		return SECSuccess;
 	    }
@@ -7192,7 +7280,7 @@ ssl3_HandleHandshake(sslSocket *ss, sslBuffer *origBuf)
 	 * data available for this message. If it can be done right out
 	 * of the original buffer, then use it from there.
 	 */
-	if (ssl3->hs.msg_body.len == 0 && buf->len >= ssl3->hs.msg_len) {
+	if (ssl3->hs.msg_body.size == 0 && buf->size >= ssl3->hs.msg_len) {
 	    /* handle it from input buffer */
 	    rv = ssl3_HandleHandshakeMessage(ss, buf->buf, ssl3->hs.msg_len);
 	    if (rv == SECFailure) {
@@ -7203,7 +7291,7 @@ ssl3_HandleHandshake(sslSocket *ss, sslBuffer *origBuf)
 		return rv;
 	    }
 	    buf->buf += ssl3->hs.msg_len;
-	    buf->len -= ssl3->hs.msg_len;
+	    buf->size -= ssl3->hs.msg_len;
 	    ssl3->hs.msg_len = 0;
 	    ssl3->hs.header_bytes = 0;
 	    if (rv != SECSuccess) { /* return if SECWouldBlock. */
@@ -7213,27 +7301,27 @@ ssl3_HandleHandshake(sslSocket *ss, sslBuffer *origBuf)
 	    /* must be copied to msg_body and dealt with from there */
 	    unsigned int bytes;
 
-	    bytes = PR_MIN(buf->len, ssl3->hs.msg_len);
+	    bytes = PR_MIN(buf->size, ssl3->hs.msg_len);
 
 	    /* Grow the buffer if needed */
-	    if (bytes > ssl3->hs.msg_body.space - ssl3->hs.msg_body.len) {
+	    if (bytes > ssl3->hs.msg_body.space - ssl3->hs.msg_body.size) {
 		rv = sslBuffer_Grow(&ssl3->hs.msg_body,
-		                  ssl3->hs.msg_body.len + bytes);
+		                  ssl3->hs.msg_body.size + bytes);
 		if (rv != SECSuccess) {
 		    /* sslBuffer_Grow has set a memory error code. */
 		    return SECFailure;
 	    	}
 	    }
-	    PORT_Memcpy(ssl3->hs.msg_body.buf + ssl3->hs.msg_body.len,
-		      buf->buf, buf->len);
+	    PORT_Memcpy(ssl3->hs.msg_body.buf + ssl3->hs.msg_body.size,
+		      buf->buf, buf->size);
 	    buf->buf += bytes;
-	    buf->len -= bytes;
+	    buf->size -= bytes;
 
 	    /* should not be more than one message in msg_body */
-	    PORT_Assert(ssl3->hs.msg_body.len <= ssl3->hs.msg_len);
+	    PORT_Assert(ssl3->hs.msg_body.size <= ssl3->hs.msg_len);
 
 	    /* if we have a whole message, do it */
-	    if (ssl3->hs.msg_body.len == ssl3->hs.msg_len) {
+	    if (ssl3->hs.msg_body.size == ssl3->hs.msg_len) {
 		rv = ssl3_HandleHandshakeMessage(
 		    ss, ssl3->hs.msg_body.buf, ssl3->hs.msg_len);
 		/*
@@ -7245,17 +7333,17 @@ ssl3_HandleHandshake(sslSocket *ss, sslBuffer *origBuf)
 		    /* ssl3_HandleHandshakeMessage MUST set error code. */
 		    return rv;
 		}
-		ssl3->hs.msg_body.len = 0;
+		ssl3->hs.msg_body.size = 0;
 		ssl3->hs.msg_len      = 0;
 		ssl3->hs.header_bytes = 0;
 	    } else {
-		PORT_Assert(buf->len == 0);
+		PORT_Assert(buf->size == 0);
 		break;
 	    }
 	}
     }	/* end loop */
 
-    origBuf->len = 0;	/* So ssl3_GatherAppDataRecord will keep looping. */
+    origBuf->size = 0;	/* So ssl3_GatherAppDataRecord will keep looping. */
     buf->buf = NULL;	/* not a leak. */
     return SECSuccess;
 }
@@ -7320,7 +7408,7 @@ const ssl3BulkCipherDef *cipher_def;
 	goto process_it;
     }
 
-    databuf->len = 0; /* filled in by decode call below. */
+    databuf->size = 0; /* filled in by decode call below. */
     if (databuf->space < MAX_FRAGMENT_LENGTH) {
 	rv = sslBuffer_Grow(databuf, MAX_FRAGMENT_LENGTH + 2048);
 	if (rv != SECSuccess) {
@@ -7331,7 +7419,7 @@ const ssl3BulkCipherDef *cipher_def;
 	}
     }
 
-    PRINT_BUF(80, (ss, "ciphertext:", cText->buf->buf, cText->buf->len));
+    PRINT_BUF(80, (ss, "ciphertext:", cText->buf->buf, cText->buf->size));
 
     ssl_GetSpecReadLock(ss); /******************************************/
 
@@ -7339,7 +7427,7 @@ const ssl3BulkCipherDef *cipher_def;
     cipher_def = crSpec->cipher_def;
     isTLS = (PRBool)(crSpec->version > SSL_LIBRARY_VERSION_3_0);
 
-    if (isTLS && cText->buf->len > (MAX_FRAGMENT_LENGTH + 2048)) {
+    if (isTLS && cText->buf->size > (MAX_FRAGMENT_LENGTH + 2048)) {
 	ssl_ReleaseSpecReadLock(ss);
 	SSL3_SendAlert(ss, alert_fatal, record_overflow);
 	PORT_SetError(SSL_ERROR_RX_RECORD_TOO_LONG);
@@ -7347,10 +7435,10 @@ const ssl3BulkCipherDef *cipher_def;
     }
     /* decrypt from cText buf to databuf. */
     rv = crSpec->decode(
-	crSpec->decodeContext, databuf->buf, (int *)&databuf->len,
-	databuf->space, cText->buf->buf, cText->buf->len);
+	crSpec->decodeContext, databuf->buf, (int *)&databuf->size,
+	databuf->space, cText->buf->buf, cText->buf->size);
 
-    PRINT_BUF(80, (ss, "cleartext:", databuf->buf, databuf->len));
+    PRINT_BUF(80, (ss, "cleartext:", databuf->buf, databuf->size));
     if (rv != SECSuccess) {
 	ssl_ReleaseSpecReadLock(ss);
 	ssl_MapLowLevelError(SSL_ERROR_DECRYPTION_FAILURE);
@@ -7362,16 +7450,16 @@ const ssl3BulkCipherDef *cipher_def;
 
     /* If it's a block cipher, check and strip the padding. */
     if (cipher_def->type == type_block) {
-	padding_length = *(databuf->buf + databuf->len - 1);
+	padding_length = *(databuf->buf + databuf->size - 1);
 	/* TLS permits padding to exceed the block size, up to 255 bytes. */
-	if (padding_length + crSpec->mac_size >= databuf->len)
+	if (padding_length + crSpec->mac_size >= databuf->size)
 	    goto bad_pad;
 	/* if TLS, check value of first padding byte. */
 	if (padding_length && isTLS && padding_length != 
-		*(databuf->buf + databuf->len - 1 - padding_length))
+		*(databuf->buf + databuf->size - 1 - padding_length))
 	    goto bad_pad;
-	databuf->len -= padding_length + 1;
-	if (databuf->len <= 0) {
+	databuf->size -= padding_length + 1;
+	if (databuf->size <= 0) {
 bad_pad:
 	    /* must not hold spec lock when calling SSL3_SendAlert. */
 	    ssl_ReleaseSpecReadLock(ss);
@@ -7383,17 +7471,17 @@ bad_pad:
     }
 
     /* Check the MAC. */
-    if (databuf->len < crSpec->mac_size) {
+    if (databuf->size < crSpec->mac_size) {
     	/* record is too short to have a valid mac. */
 	goto bad_mac;
     }
-    databuf->len -= crSpec->mac_size;
+    databuf->size -= crSpec->mac_size;
     rType = cText->type;
     rv = ssl3_ComputeRecordMAC(
     	crSpec, (ss->sec.isServer) ? crSpec->client.write_mac_context
 				    : crSpec->server.write_mac_context,
 	rType, cText->version, crSpec->read_seq_num, 
-	databuf->buf, databuf->len, hash, &hashBytes);
+	databuf->buf, databuf->size, hash, &hashBytes);
     if (rv != SECSuccess) {
 	ssl_ReleaseSpecReadLock(ss);
 	ssl_MapLowLevelError(SSL_ERROR_MAC_COMPUTATION_FAILURE);
@@ -7401,7 +7489,7 @@ bad_pad:
     }
 
     if (hashBytes != (unsigned)crSpec->mac_size ||
-	PORT_Memcmp(databuf->buf + databuf->len, hash, crSpec->mac_size) != 0) {
+	PORT_Memcmp(databuf->buf + databuf->size, hash, crSpec->mac_size) != 0) {
 bad_mac:
 	/* must not hold spec lock when calling SSL3_SendAlert. */
 	ssl_ReleaseSpecReadLock(ss);
@@ -7426,7 +7514,7 @@ bad_mac:
     /*
     ** Having completed the decompression, check the length again. 
     */
-    if (isTLS && databuf->len > (MAX_FRAGMENT_LENGTH + 1024)) {
+    if (isTLS && databuf->size > (MAX_FRAGMENT_LENGTH + 1024)) {
 	SSL3_SendAlert(ss, alert_fatal, record_overflow);
 	PORT_SetError(SSL_ERROR_RX_RECORD_TOO_LONG);
 	return SECFailure;
@@ -7657,7 +7745,7 @@ ssl3_CreateRSAStepDownKeys(sslSocket *ss)
     ss->stepDownKeyPair = NULL;
 #ifndef HACKED_EXPORT_SERVER
     /* Sigh, should have a get key strength call for private keys */
-    if (PK11_GetPrivateModulusLen(ss->serverCerts[kt_rsa].serverKey) >
+    if (PK11_GetPrivateModulusLen(ss->serverCerts[ssl_kea_rsa].serverKey) >
                                                      EXPORT_RSA_KEY_LENGTH) {
 	/* need to ask for the key size in bits */
 	privKey = SECKEY_CreateRSAPrivateKey(EXPORT_RSA_KEY_LENGTH * BPB,

@@ -51,9 +51,10 @@ EXPORTS = \
 MODULE = nss
 MAPFILE = $(OBJDIR)/ssl.def
 
+#	prelib.c \
+
 CSRCS = \
 	emulate.c \
-	prelib.c \
 	ssl3con.c \
 	ssl3gthr.c \
 	sslauth.c \

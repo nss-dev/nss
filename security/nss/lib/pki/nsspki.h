@@ -607,6 +607,11 @@ NSSPrivateKey_DeleteStoredObject (
   NSSCallback *uhh
 );
 
+NSS_EXTERN NSSKeyPairType
+NSSPrivateKey_GetType (
+  NSSPrivateKey *vk
+);
+
 /*
  * NSSPrivateKey_GetSignatureLength
  *

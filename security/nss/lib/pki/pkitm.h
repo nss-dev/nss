@@ -132,6 +132,22 @@ struct nssTrustStr
     nssTrustLevel codeSigning;
 };
 
+typedef struct nssPKIObjectCreatorStr
+{
+  NSSTrustDomain *td;
+  NSSVolatileDomain *vd;
+  NSSToken *destination;
+  nssSession *session;
+  PRBool persistent;
+  const NSSAlgorithmAndParameters *ap;
+  NSSCallback *uhh;
+  const NSSUTF8 *nickname;
+  NSSProperties properties;
+  NSSOperations operations;
+} nssPKIObjectCreator;
+
+typedef struct nssTokenSessionHashStr nssTokenSessionHash;
+
 PR_END_EXTERN_C
 
 #endif /* PKITM_H */

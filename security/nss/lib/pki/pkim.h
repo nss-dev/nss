@@ -684,15 +684,40 @@ nssPKIObjectCollection_GetPublicKeys (
   NSSArena *arenaOpt
 );
 
-NSS_EXTERN NSSTime
-NSSTime_Now (
-  void
+NSS_EXTERN PRStatus
+nssPKIObjectCreator_GenerateKeyPair (
+  nssPKIObjectCreator *creator,
+  NSSPublicKey **pbkOpt,
+  NSSPrivateKey **pvkOpt
+);
+
+NSS_EXTERN NSSSymmetricKey *
+nssPKIObjectCreator_GenerateSymmetricKey (
+  nssPKIObjectCreator *creator,
+  PRUint32 keysize
 );
 
 NSS_EXTERN nssHash *
 nssHash_CreateCertificate (
   NSSArena *arenaOpt,
   PRUint32 numBuckets
+);
+
+NSS_EXTERN nssTokenSessionHash *
+nssTokenSessionHash_Create (
+  void
+);
+
+NSS_IMPLEMENT void
+nssTokenSessionHash_Destroy (
+  nssTokenSessionHash *tsHash
+);
+
+NSS_EXTERN nssSession *
+nssTokenSessionHash_GetSession (
+  nssTokenSessionHash *tsHash,
+  NSSToken *token,
+  PRBool readWrite
 );
 
 PR_END_EXTERN_C
