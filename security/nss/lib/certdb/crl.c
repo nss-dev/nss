@@ -415,9 +415,11 @@ SEC_FindCrlByKeyOnSlot(PK11SlotInfo *slot, SECItem *crlKey, int type)
 	crl->slot = slot;
 	slot = NULL; /* adopt it */
 	crl->pkcs11ID = crlHandle;
+	if (url) {
+	    crl->url = PORT_ArenaStrdup(crl->arena,url);
+	}
     }
     if (url) {
-	crl->url = PORT_ArenaStrdup(crl->arena,url);
 	PORT_Free(url);
     }
 
