@@ -64,6 +64,37 @@ STAN_AddNewSlotToDefaultTD
 NSS_EXTERN CERTCertificate *
 STAN_GetCERTCertificate(NSSCertificate *c);
 
+NSS_EXTERN NSSCertificate *
+STAN_GetNSSCertificate(CERTCertificate *c);
+
+/* This function is being put here because it is a hack for 
+ * PK11_FindCertFromNickname.
+ */
+NSS_EXTERN NSSCertificate *
+nssTrustDomain_FindBestCertificateByNicknameForToken
+(
+  NSSTrustDomain *td,
+  NSSToken *token,
+  NSSUTF8 *name,
+  NSSTime *timeOpt, /* NULL for "now" */
+  NSSUsage *usage,
+  NSSPolicies *policiesOpt /* NULL for none */
+);
+
+/* This function is being put here because it is a hack for 
+ * PK11_FindCertsFromNickname.
+ */
+NSS_EXTERN NSSCertificate **
+nssTrustDomain_FindCertificatesByNicknameForToken
+(
+  NSSTrustDomain *td,
+  NSSToken *token,
+  NSSUTF8 *name,
+  NSSCertificate *rvOpt[],
+  PRUint32 maximumOpt, /* 0 for no max */
+  NSSArena *arenaOpt
+);
+
 PR_END_EXTERN_C
 
 #endif /* PKINSS3HACK_H */
