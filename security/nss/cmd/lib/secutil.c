@@ -1505,7 +1505,7 @@ secu_PrintPolicyInfo(FILE *out,CERTPolicyInfo *policyInfo,char *msg,int level)
    policyQualifiers = policyInfo->policyQualifiers;
    SECU_PrintObjectID(out, &policyInfo->policyID , "Policy Name", level);
    
-   while (*policyQualifiers != NULL) {
+   while (policyQualifiers != NULL && *policyQualifiers != NULL) {
 	secu_PrintPolicyQualifier(out,*policyQualifiers,"",level+1);
 	policyQualifiers++;
    }
