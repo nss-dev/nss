@@ -512,8 +512,6 @@ nssTrust_GetCERTCertTrustForCert(NSSCertificate *c, CERTCertificate *cc)
 	memset(rvTrust, 0, sizeof(*rvTrust));
     }
     if (NSSCertificate_IsPrivateKeyAvailable(c, NULL, NULL)) {
-	if (!rvTrust) {
-	}
 	rvTrust->sslFlags |= CERTDB_USER;
 	rvTrust->emailFlags |= CERTDB_USER;
 	rvTrust->objectSigningFlags |= CERTDB_USER;
