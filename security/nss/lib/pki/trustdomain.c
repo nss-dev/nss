@@ -1261,7 +1261,7 @@ nssTrustDomain_FindTrustForCertificate
 	}
     }
     if (pkio) {
-	rvt = nssTrust_Create(pkio);
+	rvt = nssTrust_Create(pkio, &c->encoding);
 	if (!rvt) {
 	    goto loser;
 	}

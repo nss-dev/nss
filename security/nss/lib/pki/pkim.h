@@ -247,7 +247,8 @@ nssDecodedCert_Destroy
 NSS_EXTERN NSSTrust *
 nssTrust_Create
 (
-  nssPKIObject *object
+  nssPKIObject *object,
+  NSSCertificate *nssCert
 );
 
 NSS_EXTERN NSSCRL *
