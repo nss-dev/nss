@@ -16,7 +16,8 @@ endif
 
 PKGARCHIVE = $(PUBLISH_ROOT)/pkgarchive
 DATAFILES = copyright
-FILES = $(DATAFILES) pkginfo
+FILES = $(DATAFILES) pkginfo prototype
+
 
 PACKAGE = $(shell basename `pwd`)
 
