@@ -429,6 +429,9 @@ nssCertificateArray_FindBestCertificate (
 {
     NSSCertificate *bestCert = NULL;
     NSSTime *time, sTime;
+    PRBool haveUsageMatch = PR_FALSE;
+    PRBool thisCertMatches;
+
     if (timeOpt) {
 	time = timeOpt;
     } else {
@@ -442,32 +445,31 @@ nssCertificateArray_FindBestCertificate (
 	nssDecodedCert *dc, *bestdc;
 	NSSCertificate *c = *certs;
 	dc = nssCertificate_GetDecoding(c);
+	if (!dc) continue;
+	thisCertMatches = dc->matchUsage(dc, usage);
 	if (!bestCert) {
-	    /* take the first cert with matching usage */
-#ifdef NSS_3_4_CODE
-	    if (usage->anyUsage) {
-#else
-	    if (!usage || usage->anyUsage) {
-#endif
-		bestCert = nssCertificate_AddRef(c);
-	    } else {
-		if (dc->matchUsage(dc, usage)) {
-		    bestCert = nssCertificate_AddRef(c);
-		}
-	    }
+	    /* always take the first cert, but remember whether or not
+	     * the usage matched 
+	     */
+	    bestCert = nssCertificate_AddRef(c);
+	    haveUsageMatch = thisCertMatches;
 	    continue;
 	} else {
-	    /* already have a cert for this usage, if this cert doesn't have
-	     * the correct usage, continue
-	     * if ths cert does match usage, defer to time/policies
-	     */
-#ifdef NSS_3_4_CODE
-	    if (!usage->anyUsage && !dc->matchUsage(dc, usage)) {
-#else
-	    if (PR_TRUE) {
-#endif
+	    if (haveUsageMatch && !thisCertMatches) {
+		/* if already have a cert for this usage, and if this cert 
+		 * doesn't have the correct usage, continue
+		 */
+		continue;
+	    } else if (!haveUsageMatch && thisCertMatches) {
+		/* this one does match usage, replace the other */
+		nssCertificate_Destroy(bestCert);
+		bestCert = nssCertificate_AddRef(c);
+		haveUsageMatch = PR_TRUE;
 		continue;
 	    }
+	    /* this cert match as well as any cert we've found so far, 
+	     * defer to time/policies 
+	     * */
 	}
 	bestdc = nssCertificate_GetDecoding(bestCert);
 	/* time */
