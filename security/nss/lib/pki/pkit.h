@@ -108,6 +108,8 @@ struct nssPKIObjectBaseStr
     NSSTrustDomain *trustDomain;
     /* The object may live in a crypto context */
     NSSCryptoContext *cryptoContext;
+    /* XXX added so temp certs can have nickname, think more ... */
+    NSSUTF8 *tempName;
 };
 
 struct NSSTrustStr 
@@ -139,7 +141,6 @@ struct NSSCertificateStr
     NSSDER issuer;
     NSSDER subject;
     NSSDER serial;
-    NSSUTF8 *nickname;
     NSSASCII7 *email;
     nssDecodedCert *decoding;
 };
