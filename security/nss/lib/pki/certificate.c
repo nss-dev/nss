@@ -862,3 +862,51 @@ nssCertificateList_AddReferences
     (void)nssCertificateList_DoCallback(certList, add_ref_callback, NULL);
 }
 
+NSS_IMPLEMENT NSSTrust *
+nssTrust_AddRef
+(
+  NSSTrust *trust
+)
+{
+    if (trust) {
+	nssPKIObject_AddRef(&trust->object);
+    }
+    return trust;
+}
+
+NSS_IMPLEMENT PRStatus
+nssTrust_Destroy
+(
+  NSSTrust *trust
+)
+{
+    if (trust) {
+	(void)nssPKIObject_Destroy(&trust->object);
+    }
+    return PR_SUCCESS;
+}
+
+NSS_IMPLEMENT nssSMIMEProfile *
+nssSMIMEProfile_AddRef
+(
+  nssSMIMEProfile *profile
+)
+{
+    if (profile) {
+	nssPKIObject_AddRef(&profile->object);
+    }
+    return profile;
+}
+
+NSS_IMPLEMENT PRStatus
+nssSMIMEProfile_Destroy
+(
+  nssSMIMEProfile *profile
+)
+{
+    if (profile) {
+	(void)nssPKIObject_Destroy(&profile->object);
+    }
+    return PR_SUCCESS;
+}
+
