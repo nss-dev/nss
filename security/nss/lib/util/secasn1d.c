@@ -2236,6 +2236,9 @@ SEC_ASN1DecodeInteger(SECItem *src, unsigned long *value)
     if (src->len > sizeof(unsigned long))
 	return SECFailure;
 
+    if (src->data == NULL)
+    	return SECFailure;
+
     if (src->data[0] & 0x80)
 	v = -1;		/* signed and negative - start with all 1's */
     else
