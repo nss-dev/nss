@@ -33,33 +33,57 @@
 CORE_DEPTH = ../..
 DEPTH      = ../..
 
-#
-# organized by DLL
-#
-#  softoken and prereqs.
-#  stan (not a separate dll yet)
-#  nss base (traditional)
-#  ssl
-#  smime
-#  ckfw (builtins module)
-#  crmf jar (not dll's)
-#  fortcrypt
-DIRS =  util freebl softoken \
-	base asn1 dev pki pki1 \
-	certdb certhigh pk11wrap cryptohi crypto nss \
-	ssl \
-	pkcs12 pkcs7 smime \
-	crmf jar \
-	ckfw      \
-	fortcrypt \
+# base libraries (shared by CKFW, softoken, and nss)
+BASE_DIRS =        \
+	base       \
 	$(NULL)
 
-# NSS 4.0 build - pure stan libraries
-ifdef PURE_STAN_BUILD
-DIRS = base asn1 dev pki pki1
-endif
+# softoken seems to depend on just about everything in old NSS
+SOFTOKEN_DIRS =    \
+	util       \
+	freebl     \
+	softoken   \
+	certdb     \
+	cryptohi   \
+	pk11wrap   \
+	pkcs7      \
+	smime      \
+	ssl        \
+	$(NULL)
+
+# core stan libraries
+NSS_DIRS =         \
+	asn1       \
+	dev        \
+	pki        \
+	pki1       \
+	nss        \
+	$(NULL)
+
+# SSL libraries
+SSL_DIRS =         \
+	ssl        \
+	$(NULL)
+
+# S/MIME libraries
+SMIME_DIRS =       \
+	smime      \
+	$(NULL)
+
+# CKFW library and CKFW-based libraries
+CKFW_DIRS =        \
+	ckfw       \
+	$(NULL)
+
+# move softoken to bottom later
+DIRS =                   \
+	$(BASE_DIRS)     \
+	$(SOFTOKEN_DIRS) \
+	$(NSS_DIRS)      \
+	$(CKFW_DIRS)     \
+	$(NULL)
 
 #
 # these dirs are not built at the moment
 #
-#NOBUILD_DIRS = jar
+#NOBUILD_DIRS = jar $(SSL_DIRS) $(SMIME_DIRS)
