@@ -1297,6 +1297,9 @@ nssVolatileDomain_CreateCertChain (
 		nssCertArray_Destroy(rvChain->certs);
 	    }
 	    goto loser;
+	} else {
+	    NSSCert **c;
+	    for (c = rvChain->certs; *c; c++, rvChain->numCerts++);
 	}
     } else {
 	rvChain->numAlloc = 4;
@@ -1444,6 +1447,9 @@ nssCertChain_Duplicate (
 	return (NSSCertChain *)NULL;
     }
     rvChain->numAlloc = rvChain->numCerts = chain->numCerts;
+    rvChain->time = chain->time;
+    rvChain->usages = chain->usages;
+    rvChain->policies = chain->policies;
     return rvChain;
 }
 

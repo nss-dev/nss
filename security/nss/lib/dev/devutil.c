@@ -494,18 +494,46 @@ nssSlotList_GetSlots (
 NSS_IMPLEMENT NSSToken *
 nssSlotList_GetBestTokenForAlgorithm (
   nssSlotList *slotList,
+  NSSOIDTag alg
+)
+{
+    PRCList *link;
+    struct nssSlotListNodeStr *node;
+    NSSToken *tok, *rvToken = NULL;
+
+    PZ_Lock(slotList->lock);
+    link = PR_NEXT_LINK(&slotList->head);
+    while (link != &slotList->head) {
+	node = (struct nssSlotListNodeStr *)link;
+	tok = nssSlot_GetToken(node->slot);
+	if (nssToken_DoesAlgorithm(tok, alg)) {
+	    rvToken = tok;
+	    break;
+	}
+	nssToken_Destroy(tok);
+	link = PR_NEXT_LINK(link);
+    }
+    PZ_Unlock(slotList->lock);
+    return rvToken;
+}
+
+/* XXX combine these */
+NSS_IMPLEMENT NSSToken *
+nssSlotList_GetBestTokenForAlgNParam (
+  nssSlotList *slotList,
   const NSSAlgNParam *ap
 )
 {
     PRCList *link;
     struct nssSlotListNodeStr *node;
     NSSToken *tok, *rvToken = NULL;
+
     PZ_Lock(slotList->lock);
     link = PR_NEXT_LINK(&slotList->head);
     while (link != &slotList->head) {
 	node = (struct nssSlotListNodeStr *)link;
 	tok = nssSlot_GetToken(node->slot);
-	if (nssToken_DoesAlgorithm(tok, ap)) {
+	if (nssToken_DoesAlgNParam(tok, ap)) {
 	    rvToken = tok;
 	    break;
 	}

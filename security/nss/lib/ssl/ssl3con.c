@@ -95,9 +95,7 @@ static SECStatus ssl3_SendServerHello(       sslSocket *ss);
 static SECStatus ssl3_SendServerHelloDone(   sslSocket *ss);
 static SECStatus ssl3_SendServerKeyExchange( sslSocket *ss);
 
-static SECStatus Null_Cipher(void *ctx, unsigned char *output, int *outputLen,
-			     int maxOutputLen, const unsigned char *input,
-			     int inputLen);
+static SECStatus Null_Cipher(void *ctx, NSSItem *in, NSSItem *out, NSSArena *arenaOpt);
 
 #define MAX_SEND_BUF_LENGTH 32000 /* watch for 16-bit integer overflow */
 #define MIN_SEND_BUF_LENGTH  4000
@@ -397,6 +395,7 @@ ssl3_InitAlgorithms(void)
     s_ssl3_pms_ap = NSSAlgNParam_CreateForSSL(s_algs_arena, 
                                               NSSSSLAlgorithm_PMSGen,
                                               &params);
+    s_tls_pms_ap = s_ssl3_pms_ap;
 
     /* initialize MACs and HMACS */
     s_mac_md5_ap = NSSAlgNParam_CreateForSSL(s_algs_arena,
@@ -435,18 +434,25 @@ ssl3_GetMacAP(ssl3State *ssl3)
 static NSSAlgNParam *
 ssl3_GetBulkCipherAP(const ssl3BulkCipherDef *cipher_def, NSSItem *iv)
 {
-    NSSParameters params;
+    NSSParameters params, *pp;
     switch (cipher_def->cipher) {
     case cipher_rc2:
 	params.rc2.effectiveKeySizeInBits = 128; /* always? */
 	params.rc2.iv = *iv;
+	pp = &params;
 	break;
     default:
-	/* generic CBC */
-	params.iv = *iv;
+	if (iv->size > 0) {
+	    /* generic CBC */
+	    params.iv = *iv;
+	    pp = &params;
+	} else {
+	    /* no params */
+	    pp = NULL;
+	}
 	break;
     }
-    return NSSOIDTag_CreateAlgNParam(cipher_def->calg, &params, NULL);
+    return NSSOIDTag_CreateAlgNParam(cipher_def->calg, pp, NULL);
 }
 
 static NSSSSLVersion
@@ -728,13 +734,12 @@ anyRestrictedEnabled(sslSocket *ss)
  * Null compression, mac and encryption functions
  */
 
-static SECStatus
-Null_Cipher(void *ctx, unsigned char *output, int *outputLen, int maxOutputLen,
-	    const unsigned char *input, int inputLen)
+static SECStatus 
+Null_Cipher(void *ctx, NSSItem *in, NSSItem *out, NSSArena *arenaOpt)
 {
-    *outputLen = inputLen;
-    if (input != output)
-	memcpy(output, input, inputLen);
+    out->size = in->size;
+    if (in != out)
+	memcpy(out->data, in->data, in->size);
     return SECSuccess;
 }
 
@@ -1272,7 +1277,12 @@ ssl3_InitPendingCipherSpec(sslSocket *ss, NSSSymKey *pms)
 	goto success;
     }
 
-    /* XXX call begin encrypt? */
+    /* initialize ongoing encryption ops */
+    status = NSSCryptoContext_BeginEncrypt(pwSpec->encodeContext, NULL, NULL);
+    if (status == PR_FAILURE) goto fail;
+
+    status = NSSCryptoContext_BeginDecrypt(pwSpec->decodeContext, NULL, NULL);
+    if (status == PR_FAILURE) goto fail;
 
     pwSpec->encode  = (SSLCipher)  NSSCryptoContext_ContinueEncrypt;
     pwSpec->decode  = (SSLCipher)  NSSCryptoContext_ContinueDecrypt;
@@ -1427,6 +1437,7 @@ ssl3_SendRecord(   sslSocket *        ss,
     PRInt32                   cipherBytes = -1;
     PRBool                    isBlocking  = ssl_SocketIsBlocking(ss);
     PRBool                    ssl3WasNull = PR_FALSE;
+    NSSItem in, out;
 
     SSL_TRC(3, ("%d: SSL3[%d] SendRecord type: %s bytes=%d",
 		SSL_GETPID(), ss->fd, ssl3_DecodeContentType(type),
@@ -1521,10 +1532,10 @@ ssl3_SendRecord(   sslSocket *        ss,
 	    	*pBuf-- = padding_length;
 	    }
 	}
-	rv = cwSpec->encode(
-	    cwSpec->encodeContext, write->buf + SSL3_RECORD_HEADER_LENGTH,
-	    &cipherBytes, bufSize, write->buf + SSL3_RECORD_HEADER_LENGTH,
-	    fragLen);
+	NSSITEM_INIT(&in, write->buf + SSL3_RECORD_HEADER_LENGTH, fragLen);
+	NSSITEM_INIT(&out, write->buf + SSL3_RECORD_HEADER_LENGTH, bufSize);
+	rv = cwSpec->encode(cwSpec->encodeContext, &in, &out, NULL);
+	cipherBytes = out.size;
 	if (rv != SECSuccess) {
 	    ssl_MapLowLevelError(SSL_ERROR_ENCRYPTION_FAILURE);
 spec_locked_loser:
@@ -1705,7 +1716,9 @@ ssl3_HandleNoCertificate(sslSocket *ss)
 	 (ss->requireCertificate == SSL_REQUIRE_FIRST_HANDSHAKE))) {
 	PRFileDesc * lower;
 
+#ifdef IMPLEMENT_SSL_SESSION_ID_CACHE
 	ss->sec.uncache(ss->sec.ci.sid);
+#endif /* IMPLEMENT_SSL_SESSION_ID_CACHE */
 	SSL3_SendAlert(ss, alert_fatal, bad_certificate);
 
 	lower = ss->fd->lower;
@@ -1761,9 +1774,11 @@ SSL3_SendAlert(sslSocket *ss, SSL3AlertLevel level, SSL3AlertDescription desc)
 
     ssl_GetSSL3HandshakeLock(ss);
     if (level == alert_fatal) {
+#ifdef IMPLEMENT_SSL_SESSION_ID_CACHE
 	if (ss->sec.ci.sid) {
 	    ss->sec.uncache(ss->sec.ci.sid);
 	}
+#endif /* IMPLEMENT_SSL_SESSION_ID_CACHE */
     }
     ssl_GetXmitBufLock(ss);
     rv = ssl3_FlushHandshake(ss, ssl_SEND_FLAG_FORCE_INTO_BUFFER);
@@ -1882,7 +1897,9 @@ ssl3_HandleAlert(sslSocket *ss, sslBuffer *buf)
     default: 			error = SSL_ERROR_RX_UNKNOWN_ALERT; 	  break;
     }
     if (level == alert_fatal) {
+#ifdef IMPLEMENT_SSL_SESSION_ID_CACHE
 	ss->sec.uncache(ss->sec.ci.sid);
+#endif /* IMPLEMENT_SSL_SESSION_ID_CACHE */
 	if ((ss->ssl3->hs.ws == wait_server_hello) &&
 	    (desc == handshake_failure)) {
 	    /* XXX This is a hack.  We're assuming that any handshake failure
@@ -2149,6 +2166,9 @@ ssl3_GenerateSessionKeys(sslSocket *ss, NSSSymKey *pmsOpt)
     NSSItem *iv1, *iv2;
     NSSItem clientIV, serverIV;
     PRIntn ecx, dcx;
+    PRBool isTLS = (PRBool)(pwSpec->version > SSL_LIBRARY_VERSION_3_0);
+    PRUint32 keySize;
+    NSSSymKeyType keyType;
 
     PR_ASSERT( ssl_HaveSSL3HandshakeLock(ss));
     PR_ASSERT( ssl_HaveSpecWriteLock(ss));
@@ -2171,6 +2191,7 @@ ssl3_GenerateSessionKeys(sslSocket *ss, NSSSymKey *pmsOpt)
     skParams.clientRandom.size = SSL3_RANDOM_LENGTH;
     skParams.serverRandom.data = &ss->ssl3->hs.server_random;
     skParams.serverRandom.size = SSL3_RANDOM_LENGTH;
+    skParams.version = isTLS ? NSSSSLVersion_TLS : NSSSSLVersion_SSLv3;
 
     if (!skipKeysAndIVs) {
 	skParams.keySizeInBits = cipher_def->secret_key_size * BPB;
@@ -2184,10 +2205,13 @@ ssl3_GenerateSessionKeys(sslSocket *ss, NSSSymKey *pmsOpt)
     if (!skAP) {
 	goto loser;
     }
+    keySize = cipher_def->key_size;
+    keyType = NSSOIDTag_GetSymKeyType(cipher_def->calg);
 
     /* Derive the set of session keys from the master secret */
     status = nssSymKey_DeriveSSLSessionKeys(pwSpec->master_secret,
-                                            skAP, sessionKeys,
+                                            skAP, keySize, keyType,
+                                            sessionKeys,
                                             &clientIV, &serverIV);
     if (status == PR_FAILURE) {
 	ssl_MapLowLevelError(SSL_ERROR_SESSION_KEY_GEN_FAILURE);
@@ -2265,7 +2289,6 @@ ssl3_UpdateHandshakeHashes(sslSocket *ss, unsigned char *b, unsigned int l)
     ssl3State *ssl3	= ss->ssl3;
     PRStatus status;
     NSSItem bufIt;
-    SECStatus  rv;
 
     PR_ASSERT( ssl_HaveSSL3HandshakeLock(ss) );
 
@@ -2284,7 +2307,7 @@ ssl3_UpdateHandshakeHashes(sslSocket *ss, unsigned char *b, unsigned int l)
 	ssl_MapLowLevelError(SSL_ERROR_SHA_DIGEST_FAILURE);
 	return SECFailure;
     }
-    return rv;
+    return SECSuccess;
 }
 
 /**************************************************************************
@@ -3047,7 +3070,9 @@ ssl3_HandleHelloRequest(sslSocket *ss)
 	return SECFailure;
     }
     if (sid) {
+#ifdef IMPLEMENT_SSL_SESSION_ID_CACHE
 	ss->sec.uncache(sid);
+#endif /* IMPLEMENT_SSL_SESSION_ID_CACHE */
 	ssl_FreeSID(sid);
 	ss->sec.ci.sid = NULL;
     }
@@ -4924,18 +4949,17 @@ ssl3_SendHelloRequest(sslSocket *ss)
  *	ssl3_HandleClientHello()
  *	ssl3_HandleV2ClientHello()
  */
-#ifdef IMPLEMENT_SSL_SESSION_ID_CACHE
 static sslSessionID *
 ssl3_NewSessionID(sslSocket *ss, PRBool is_server)
 {
     sslSessionID *sid;
 
-    sid = PORT_ZNew(sslSessionID);
+    sid = nss_ZNEW(NULL, sslSessionID);
     if (sid == NULL)
     	return sid;
 
-    sid->peerID		= (ss->peerID == NULL) ? NULL : PORT_Strdup(ss->peerID);
-    sid->urlSvrName	= (ss->url    == NULL) ? NULL : PORT_Strdup(ss->url);
+    sid->peerID		= (ss->peerID == NULL) ? NULL : NSSUTF8_Duplicate(ss->peerID, NULL);
+    sid->urlSvrName	= (ss->url    == NULL) ? NULL : NSSUTF8_Duplicate(ss->url, NULL);
     sid->addr           = ss->sec.ci.peer;
     sid->port           = ss->sec.ci.port;
     sid->references     = 1;
@@ -4945,9 +4969,11 @@ ssl3_NewSessionID(sslSocket *ss, PRBool is_server)
     sid->u.ssl3.resumable      = PR_TRUE;
     sid->u.ssl3.policy         = SSL_ALLOWED;
     sid->u.ssl3.hasFortezza    = PR_FALSE;
+#ifdef FORTEZZA
     sid->u.ssl3.clientWriteKey = NULL;
     sid->u.ssl3.serverWriteKey = NULL;
     sid->u.ssl3.tek            = NULL;
+#endif /* FORTEZZA */
 
     if (is_server) {
 	SECStatus rv;
@@ -4956,9 +4982,9 @@ ssl3_NewSessionID(sslSocket *ss, PRBool is_server)
 	sid->u.ssl3.sessionIDLength = SSL3_SESSIONID_BYTES;
 	sid->u.ssl3.sessionID[0]    = (pid >> 8) & 0xff;
 	sid->u.ssl3.sessionID[1]    =  pid       & 0xff;
-	rv = PK11_GenerateRandom(sid->u.ssl3.sessionID + 2,
-	                         SSL3_SESSIONID_BYTES -2);
-	if (rv != SECSuccess) {
+	if (NSS_GenerateRandom(SSL3_SESSIONID_BYTES - 2, 
+	                       sid->u.ssl3.sessionID + 2, NULL) == NULL)
+	{
 	    ssl_FreeSID(sid);
 	    ssl_MapLowLevelError(SSL_ERROR_GENERATE_RANDOM_FAILURE);
 	    return NULL;
@@ -4966,7 +4992,6 @@ ssl3_NewSessionID(sslSocket *ss, PRBool is_server)
     }
     return sid;
 }
-#endif /* IMPLEMENT_SSL_SESSION_ID_CACHE */
 
 /* Called from:  ssl3_HandleClientHello, ssl3_HandleV2ClientHello */
 static SECStatus
@@ -5001,13 +5026,13 @@ ssl3_SendServerHelloSequence(sslSocket *ss)
 	}
     } else if (kea_def->is_limited && kea_def->exchKeyType == ssl_kea_rsa) {
 	/* see if we can legally use the key in the cert. */
-	int keyBits;  /* bits */
+	int keyLen;  /* bytes */
 
-	keyBits = NSSPrivateKey_GetPrivateModulusLength(
+	keyLen = NSSPrivateKey_GetPrivateModulusLength(
 			    ss->serverCerts[kea_def->exchKeyType].serverKey);
 
-	if (keyBits > 0 &&
-	    keyBits <= kea_def->key_size_limit ) {
+	if (keyLen > 0 &&
+	    keyLen * BPB <= kea_def->key_size_limit ) {
 	    /* XXX AND cert is not signing only!! */
 	    /* just fall through and use it. */
 	} else if (ss->stepDownKeyPair != NULL) {
@@ -5505,9 +5530,7 @@ loser:
 SECStatus
 ssl3_HandleV2ClientHello(sslSocket *ss, unsigned char *buffer, int length)
 {
-#ifdef IMPLEMENT_SESSION_ID_CACHE
     sslSessionID *      sid 		= NULL;
-#endif /* IMPLEMENT_SESSION_ID_CACHE */
     unsigned char *     suites;
     unsigned char *     random;
     SSL3ProtocolVersion version;
@@ -5613,7 +5636,6 @@ suite_found:
     ss->ssl3->hs.compression = compression_null;
     ss->sec.send            = ssl3_SendApplicationData;
 
-#ifdef IMPLEMENT_SSL_SESSION_ID_CACHE
     /* we don't even search for a cache hit here.  It's just a miss. */
     ++ssl3stats.hch_sid_cache_misses;
     sid = ssl3_NewSessionID(ss, PR_TRUE);
@@ -5623,7 +5645,6 @@ suite_found:
     }
     ss->sec.ci.sid = sid;
     /* do not worry about memory leak of sid since it now belongs to ci */
-#endif /* IMPLEMENT_SSL_SESSION_ID_CACHE */
 
     /* We have to update the handshake hashes before we can send stuff */
     rv = ssl3_UpdateHandshakeHashes(ss, buffer, length);
@@ -6492,7 +6513,7 @@ ssl3_SendCertificate(sslSocket *ss)
     NSSCert *            cert;
     NSSCertChain *       certChain;
     PRIntn               numCerts       = 0;
-    NSSBER               berCert;
+    NSSBER *             berCert;
     int                  len 		= 0;
     int                  i;
 
@@ -6524,10 +6545,10 @@ ssl3_SendCertificate(sslSocket *ss)
 	for (i = 0; i < numCerts; i++) {
 	    cert = NSSCertChain_GetCert(certChain, i);
 	    if (cert) {
-		if (nssCert_GetEncoding(cert, &berCert) == NULL) {
+		if ((berCert = nssCert_GetEncoding(cert)) == NULL) {
 		    return SECFailure;
 		}
-		len += berCert.size + 3;
+		len += berCert->size + 3;
 	    } else {
 		return SECFailure;
 	    }
@@ -6544,8 +6565,8 @@ ssl3_SendCertificate(sslSocket *ss)
     }
     for (i = 0; i < numCerts; i++) {
 	cert = NSSCertChain_GetCert(certChain, i);
-	(void)nssCert_GetEncoding(cert, &berCert);
-	rv = ssl3_AppendHandshakeVariable(ss, berCert.data, berCert.size, 3);
+	berCert = nssCert_GetEncoding(cert);
+	rv = ssl3_AppendHandshakeVariable(ss, berCert->data, berCert->size, 3);
 	if (rv != SECSuccess) {
 	    return rv; 		/* err set by AppendHandshake. */
 	}
@@ -7565,6 +7586,7 @@ const ssl3BulkCipherDef *cipher_def;
     PRBool               isTLS;
     SSL3ContentType      rType;
     SSL3Opaque           hash[MAX_MAC_LENGTH];
+    NSSItem in, out;
 
     PR_ASSERT( ssl_HaveRecvBufLock(ss) );
 
@@ -7616,9 +7638,10 @@ const ssl3BulkCipherDef *cipher_def;
 	return SECFailure;
     }
     /* decrypt from cText buf to databuf. */
-    rv = crSpec->decode(
-	crSpec->decodeContext, databuf->buf, (int *)&databuf->size,
-	databuf->space, cText->buf->buf, cText->buf->size);
+    NSSITEM_INIT(&in, cText->buf->buf, cText->buf->size);
+    NSSITEM_INIT(&out, databuf->buf, databuf->space);
+    rv = crSpec->decode(crSpec->decodeContext, &in, &out, NULL);
+    databuf->size = out.size;
 
     PRINT_BUF(80, (ss, "cleartext:", databuf->buf, databuf->size));
     if (rv != SECSuccess) {
@@ -7857,7 +7880,7 @@ ssl3_InitState(sslSocket *ss)
 	goto loser;
     }
     status = NSSCryptoContext_BeginDigest(sha, NULL, NULL);
-    if (rv != SECSuccess) {
+    if (status == PR_FAILURE) {
 	ssl_MapLowLevelError(SSL_ERROR_SHA_DIGEST_FAILURE);
 	goto loser;
     }
@@ -8122,7 +8145,9 @@ ssl3_RedoHandshake(sslSocket *ss, PRBool flushCache)
 	return SECFailure;
     }
     if (sid && flushCache) {
+#ifdef IMPLEMENT_SSL_SESSION_ID_CACHE
 	ss->sec.uncache(sid);	/* remove it from whichever cache it's in. */
+#endif /* IMPLEMENT_SSL_SESSION_ID_CACHE */
 	ssl_FreeSID(sid);	/* dec ref count and free if zero. */
 	ss->sec.ci.sid = NULL;
     }

@@ -1461,6 +1461,7 @@ ssl2_CreateSessionCypher(sslSocket *ss, sslSessionID *sid, PRBool isClient)
     NSSSymKey        *symKey = NULL;
     NSSSymKeyType     keyType;
     NSSParameters     params;
+    PRStatus          status;
 
     readKey.data = 0;
     writeKey.data = 0;
@@ -1534,6 +1535,10 @@ ssl2_CreateSessionCypher(sslSocket *ss, sslSessionID *sid, PRBool isClient)
 	goto loser;
     NSSSymKey_Destroy(symKey); symKey = NULL;
 
+    status = NSSCryptoContext_BeginDecrypt(readcx, NULL, NULL);
+    if (status == PR_FAILURE)
+	goto loser;
+
     /* build the client context */
     symKey = NSSVolatileDomain_ImportRawSymKey(ss->vd, wk, keyType,
                                                NULL,
@@ -1544,6 +1549,10 @@ ssl2_CreateSessionCypher(sslSocket *ss, sslSessionID *sid, PRBool isClient)
 
     writecx = NSSSymKey_CreateCryptoContext(symKey, ap, NULL);
     if (writecx == NULL)
+	goto loser;
+
+    status = NSSCryptoContext_BeginEncrypt(writecx, NULL, NULL);
+    if (status == PR_FAILURE)
 	goto loser;
 
     rv = SECSuccess;

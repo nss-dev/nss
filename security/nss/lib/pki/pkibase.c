@@ -428,7 +428,7 @@ nssPKIObject_FindInstanceForAlgorithm (
     PRUint32 i;
     PZ_Lock(object->lock);
     for (i=0; i<object->numInstances; i++) {
-	if (nssToken_DoesAlgorithm(object->instances[i]->token, ap)) {
+	if (nssToken_DoesAlgNParam(object->instances[i]->token, ap)) {
 	    instance = nssCryptokiObject_Clone(object->instances[i]);
 	    break;
 	}
@@ -544,7 +544,7 @@ nssCertArray_Duplicate (
     PRUint32 i, n;
     NSSCert **c, **rvCerts;
 
-    for (c = certs; *c; c++, n++);
+    for (c = certs, n = 0; *c; c++, n++);
     rvCerts = nss_ZNEWARRAY(arenaOpt, NSSCert *, n + 1);
     if (!rvCerts) {
 	return (NSSCert **)NULL;

@@ -654,6 +654,8 @@ NSS_IMPLEMENT PRStatus
 nssSymKey_DeriveSSLSessionKeys (
   NSSSymKey *masterSecret,
   const NSSAlgNParam *ap,
+  PRUint32 keySize,
+  NSSSymKeyType keyType,
   NSSSymKey **rvSessionKeys, /* [4] */
   NSSItem *rvClientIV,
   NSSItem *rvServerIV
@@ -666,8 +668,8 @@ nssSymKey_DeriveSSLSessionKeys (
 
     mso = masterSecret->object.instances[0];
     status = nssToken_DeriveSSLSessionKeys(mso->token, mso->session, 
-                                           ap, mso, skeys,
-                                           rvClientIV, rvServerIV);
+                                           ap, mso, keySize, keyType,
+                                           skeys, rvClientIV, rvServerIV);
     if (status == PR_FAILURE) {
 	return PR_FAILURE;
     }

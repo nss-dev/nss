@@ -59,6 +59,7 @@ static const char DEV_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #ifndef PKI1T_H
 #include "pki1t.h"
 #endif /* PKI1T_H */
+#include "oiddata.h"
 
 PR_BEGIN_EXTERN_C
 
@@ -389,6 +390,13 @@ nssToken_IsReadOnly (
 NSS_EXTERN PRBool
 nssToken_DoesAlgorithm (
   NSSToken *token,
+  NSSOIDTag alg
+);
+
+/* XXX keep both? */
+NSS_EXTERN PRBool
+nssToken_DoesAlgNParam (
+  NSSToken *token,
   const NSSAlgNParam *ap
 );
 
@@ -678,6 +686,8 @@ nssToken_DeriveSSLSessionKeys (
   nssSession *session,
   const NSSAlgNParam *ap,
   nssCryptokiObject *masterSecret,
+  PRUint32 keySize,
+  NSSSymKeyType keyType,
   nssCryptokiObject **rvSessionKeys, /* [4] */
   NSSItem *rvClientIV,
   NSSItem *rvServerIV
@@ -1136,6 +1146,11 @@ nssCryptokiSymKey_Copy (
   PRBool asTokenObject
 );
 
+NSS_EXTERN PRUint32
+nssCryptokiRSAPrivateKey_GetModulusLength (
+  nssCryptokiObject *rsaKey
+);
+
 /* I'm including this to handle import of certificates in NSS 3.5.  This
  * function will set the cert-related attributes of a key, in order to
  * associate it with a cert.  Does it stay like this for 4.0?
@@ -1275,14 +1290,14 @@ nssSlotList_GetBestSlot (
   nssSlotList *slotList
 );
 
-/* nssSlotList_GetBestSlotForAlgNParam
+/* nssSlotList_GetBestTokenForAlgNParam
  *
- * Highest-ranking slot than can handle algorithm/parameters.
+ * Highest-ranking token than can handle algorithm/parameters.
  */
-NSS_EXTERN NSSSlot *
-nssSlotList_GetBestSlotForAlgNParam (
+NSS_IMPLEMENT NSSToken *
+nssSlotList_GetBestTokenForAlgNParam (
   nssSlotList *slotList,
-  NSSAlgNParam *ap
+  const NSSAlgNParam *ap
 );
 
 /* nssSlotList_GetBestSlotForAlgorithmsAndParameters
@@ -1298,7 +1313,7 @@ nssSlotList_GetBestSlotForAlgorithmsAndParameters (
 NSS_EXTERN NSSToken *
 nssSlotList_GetBestTokenForAlgorithm (
   nssSlotList *slotList,
-  const NSSAlgNParam *ap
+  NSSOIDTag alg
 );
 
 NSS_EXTERN PRStatus

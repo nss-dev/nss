@@ -91,7 +91,7 @@ struct NSSAlgNParamStr
   NSSArena *arena;
   PRBool i_allocated_arena;
   CK_MECHANISM mechanism; /* alg&param in cryptoki terms */
-  const NSSOID *alg;      /* NSS algorithm */
+  NSSOIDTag alg;          /* NSS algorithm */
   NSSParameters params;   /* NSS params (template values kept here) */
 
   /* every happy algorithm sets a mechanism the same way, but each
@@ -855,7 +855,7 @@ nssAlgNParam_Create (
 
     status = set_cryptoki_mechanism(rvAP, algorithm, 
                                     parametersOpt, NULL, PR_FALSE);
-    rvAP->alg = algorithm;
+    rvAP->alg = nssOID_GetTag(algorithm);
 
     return finish_create_algparam(rvAP, rvAP->arena, mark, status);
 }
@@ -878,7 +878,7 @@ nssAlgNParam_CreateForKeyGen (
 
     status = set_cryptoki_mechanism(rvAP, algorithm, 
                                     parametersOpt, NULL, PR_TRUE);
-    rvAP->alg = algorithm;
+    rvAP->alg = nssOID_GetTag(algorithm);
 
     return finish_create_algparam(rvAP, rvAP->arena, mark, status);
 }
@@ -956,7 +956,7 @@ nssAlgNParam_Decode (
     /* XXX ever used for keygen? */
     params = (algID.parameters.size > 0) ? &algID.parameters : NULL;
     status = set_cryptoki_mechanism(rvAP, alg, NULL, params, PR_FALSE);
-    rvAP->alg = alg;
+    rvAP->alg = nssOID_GetTag(alg);
 
 finish:
     return finish_create_algparam(rvAP, rvAP->arena, mark, status);
@@ -982,10 +982,11 @@ nssAlgNParam_Encode (
     nssAlgorithmID algID;
     NSSBER *params = NULL;
     NSSBER *rvBER = NULL;
+    NSSOID *algOID = nssOID_CreateFromTag(ap->alg);
 
     nsslibc_memset(&algID, 0, sizeof(algID));
 
-    algID.algorithmOID = ap->alg->data;
+    algID.algorithmOID = algOID->data;
     if (ap->paramTemplate) {
 	params = nssASN1_EncodeItem(NULL, &algID.parameters, 
 	                            &ap->params, ap->paramTemplate, 
@@ -1068,6 +1069,10 @@ copy_algparam (
                    orig->mechanism.pParameter,
                    orig->mechanism.ulParameterLen);
     copy->mechanism.ulParameterLen = orig->mechanism.ulParameterLen;
+    copy->alg = orig->alg;
+    /* XXX copy->params = ; */
+    copy->set_template = orig->set_template;
+    copy->paramTemplate = orig->paramTemplate;
     return PR_SUCCESS;
 }
 
@@ -1096,7 +1101,7 @@ nssAlgNParam_GetAlgorithm (
   const NSSAlgNParam *ap
 )
 {
-    return (nssOID_GetTag(ap->alg));
+    return ap->alg;
 }
 
 NSS_IMPLEMENT NSSOIDTag
@@ -1261,8 +1266,10 @@ set_sslsession_derive_mechanism (
     switch (skParams->version) {
     case NSSSSLVersion_SSLv3: 
 	mechPtr->mechanism = CKM_SSL3_KEY_AND_MAC_DERIVE;
+	break;
     case NSSSSLVersion_TLS:   
 	mechPtr->mechanism = CKM_TLS_KEY_AND_MAC_DERIVE;
+	break;
     default:
 	/* XXX error invalid args */
 	return PR_FAILURE;
@@ -1297,6 +1304,7 @@ set_sslsession_derive_mechanism (
     }
     kmo->pIVClient = skParams->clientIV;
     kmo->pIVServer = skParams->serverIV;
+    kmp->pReturnedKeyMaterial = kmo;
 
     mechPtr->pParameter = kmp;
     mechPtr->ulParameterLen = sizeof(CK_SSL3_KEY_MAT_PARAMS);

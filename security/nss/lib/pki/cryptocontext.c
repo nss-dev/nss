@@ -266,14 +266,14 @@ prepare_context_for_operation (
 {
     if (cc->token) {
 	/* check that the token can do the operation */
-	if (!nssToken_DoesAlgorithm(cc->token, ap)) {
+	if (!nssToken_DoesAlgNParam(cc->token, ap)) 
+	{
 	    /*nss_SetError(NSS_ERROR_NO_TOKEN_FOR_OPERATION);*/
 	    goto loser;
 	}
     } else {
 	/* Set the token where the operation will take place */
-	cc->token = nssTrustDomain_FindTokenForAlgNParam(cc->td, 
-	                                                              ap);
+	cc->token = nssTrustDomain_FindTokenForAlgNParam(cc->td, ap);
 	if (!cc->token) {
 	    /*nss_SetError(NSS_ERROR_NO_TOKEN_FOR_OPERATION);*/
 	    goto loser;
@@ -300,7 +300,8 @@ prepare_context_symmetric_key (
 {
     if (cc->token) {
 	/* context already has a token set */
-	if (nssToken_DoesAlgorithm(cc->token, ap)) {
+	if (nssToken_DoesAlgNParam(cc->token, ap))
+	{
 	    /* and the token can do the operation */
 	    if (!cc->key) {
 		/* get a key instance from it */
@@ -366,7 +367,8 @@ prepare_context_private_key (
     }
     if (cc->token) {
 	/* context already has a token set */
-	if (nssToken_DoesAlgorithm(cc->token, ap)) {
+	if (nssToken_DoesAlgNParam(cc->token, ap)) 
+	{
 	    /* and the token can do the operation */
 	    if (!cc->key) {
 		/* get a key instance from it */
@@ -441,7 +443,8 @@ prepare_context_public_key (
     }
     if (cc->token) {
 	/* context already has a token set */
-	if (nssToken_DoesAlgorithm(cc->token, ap)) {
+	if (nssToken_DoesAlgNParam(cc->token, ap))
+	{
 	    /* and the token can do the operation */
 	    if (!*bkp) {
 		/* get a key instance from it */
@@ -1235,7 +1238,7 @@ nssCryptoContext_BeginDigest (
 	nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
 	return PR_FAILURE;
     }
-    if (prepare_context_for_operation(cc, apOpt) == PR_FAILURE) {
+    if (prepare_context_for_operation(cc, ap) == PR_FAILURE) {
 	return PR_FAILURE;
     }
     return nssToken_BeginDigest(cc->token, cc->session, ap);

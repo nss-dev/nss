@@ -146,7 +146,7 @@ NSSCert_IsPrivateKeyAvailable;
 NSSPrivateKey_Destroy;
 NSSPrivateKey_DeleteStoredObject;
 NSSPrivateKey_GetKeyType;
-;+#NSSPrivateKey_GetSignatureLength;
+NSSPrivateKey_GetSignatureLength;
 NSSPrivateKey_GetPrivateModulusLength;
 ;+#NSSPrivateKey_IsStillPresent;
 NSSPrivateKey_Encode;

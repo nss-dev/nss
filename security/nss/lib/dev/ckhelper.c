@@ -536,6 +536,24 @@ nssCryptokiPrivateKey_GetAttributes (
     return PR_SUCCESS;
 }
 
+NSS_IMPLEMENT PRUint32
+nssCryptokiRSAPrivateKey_GetModulusLength (
+  nssCryptokiObject *rsaKey
+)
+{
+    PRStatus status;
+    NSSSlot *slot;
+    CK_ATTRIBUTE key_template = { CKA_MODULUS, NULL, 0 };
+
+    slot = nssToken_GetSlot(rsaKey->token);
+    status = nssCKObject_GetAttributes(rsaKey->handle, 
+                                       &key_template, 1,
+                                       NULL, rsaKey->session, slot);
+    nssSlot_Destroy(slot);
+    nss_ZFreeIf(key_template.pValue);
+    return (status == PR_SUCCESS) ? key_template.ulValueLen : -1;
+}
+
 NSS_IMPLEMENT PRStatus
 nssCryptokiPublicKey_GetAttributes (
   nssCryptokiObject *keyObject,

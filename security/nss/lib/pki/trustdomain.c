@@ -322,40 +322,13 @@ NSSTrustDomain_FindTokenBySlotName (
     return NULL;
 }
 
-/* XXX should use mech for algNparams that don't have an OID */
-NSS_IMPLEMENT NSSToken *
-nssTrustDomain_FindTokenForAlgNParam (
-  NSSTrustDomain *td,
-  const NSSAlgNParam *ap
-)
-{
-    return nssSlotList_GetBestTokenForAlgorithm(td->slots.forCerts, ap);
-}
-
-NSS_IMPLEMENT NSSToken *
-NSSTrustDomain_FindTokenForAlgNParam (
-  NSSTrustDomain *td,
-  const NSSAlgNParam *ap
-)
-{
-    return nssTrustDomain_FindTokenForAlgNParam(td, ap);
-}
-
 NSS_IMPLEMENT NSSToken *
 nssTrustDomain_FindTokenForAlgorithm (
   NSSTrustDomain *td,
-  NSSOIDTag algorithm
+  NSSOIDTag alg
 )
 {
-    NSSAlgNParam *ap;
-    NSSToken *token = NULL;
-
-    ap = nssOIDTag_CreateAlgNParam(algorithm, NULL, NULL);
-    if (ap) {
-	token = nssTrustDomain_FindTokenForAlgNParam(td, ap);
-	nssAlgNParam_Destroy(ap);
-    }
-    return token;
+    return nssSlotList_GetBestTokenForAlgorithm(td->slots.forCerts, alg);
 }
 
 NSS_IMPLEMENT NSSToken *
@@ -376,6 +349,24 @@ NSSTrustDomain_FindBestTokenForAlgorithms (
 {
     nss_SetError(NSS_ERROR_NOT_FOUND);
     return NULL;
+}
+
+NSS_IMPLEMENT NSSToken *
+nssTrustDomain_FindTokenForAlgNParam (
+  NSSTrustDomain *td,
+  const NSSAlgNParam *ap
+)
+{
+    return nssSlotList_GetBestTokenForAlgNParam(td->slots.forCerts, ap);
+}
+
+NSS_IMPLEMENT NSSToken *
+NSSTrustDomain_FindTokenForAlgNParam (
+  NSSTrustDomain *td,
+  const NSSAlgNParam *ap
+)
+{
+    return nssTrustDomain_FindTokenForAlgNParam(td, ap);
 }
 
 NSS_IMPLEMENT PRStatus
@@ -1617,7 +1608,7 @@ nssTrustDomain_FindSourceToken (
 )
 {
     NSSToken *source = NULL;
-    if (nssToken_DoesAlgorithm(candidate, ap)) {
+    if (nssToken_DoesAlgNParam(candidate, ap)) {
 	/* We can do the math on the destination token */
 	source = nssToken_AddRef(candidate);
     } else {

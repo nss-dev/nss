@@ -1351,6 +1351,8 @@ NSS_EXTERN PRStatus
 nssSymKey_DeriveSSLSessionKeys (
   NSSSymKey *masterSecret,
   const NSSAlgNParam *ap,
+  PRUint32 keySize,
+  NSSSymKeyType keyType,
   NSSSymKey **rvSessionKeys,
   NSSItem *rvClientIV,
   NSSItem *rvServerIV

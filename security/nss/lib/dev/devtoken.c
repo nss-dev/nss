@@ -327,11 +327,29 @@ nssToken_IsReadOnly (
 NSS_IMPLEMENT PRBool
 nssToken_DoesAlgorithm (
   NSSToken *token,
+  NSSOIDTag alg
+)
+{
+    CK_ULONG ul;
+    NSSOID *oid = nssOID_CreateFromTag(alg);
+
+    for (ul = 0; ul < token->numMechanisms; ul++) {
+	if (oid->mechanism == token->mechanisms[ul]) {
+	    return PR_TRUE;
+	}
+    }
+    return PR_FALSE;
+}
+
+NSS_IMPLEMENT PRBool
+nssToken_DoesAlgNParam (
+  NSSToken *token,
   const NSSAlgNParam *ap
 )
 {
     CK_ULONG ul;
     CK_MECHANISM_PTR pMech = nssAlgNParam_GetMechanism(ap);
+
     for (ul = 0; ul < token->numMechanisms; ul++) {
 	if (pMech->mechanism == token->mechanisms[ul]) {
 	    return PR_TRUE;
@@ -1984,6 +2002,8 @@ nssToken_DeriveSSLSessionKeys (
   nssSession *session,
   const NSSAlgNParam *ap,
   nssCryptokiObject *masterSecret,
+  PRUint32 keySize,
+  NSSSymKeyType keyType,
   nssCryptokiObject **rvSessionKeys, /* [4] */
   NSSItem *rvClientIV,
   NSSItem *rvServerIV
@@ -1992,8 +2012,9 @@ nssToken_DeriveSSLSessionKeys (
     CK_RV ckrv;
     CK_MECHANISM_PTR mechanism;
     CK_OBJECT_HANDLE keyH;
-    CK_ATTRIBUTE keyTemplate[16];
+    CK_ATTRIBUTE keyTemplate[4];
     CK_ATTRIBUTE_PTR attr = keyTemplate;
+    CK_KEY_TYPE ckKeyType = nssCK_GetSymKeyType(keyType);
     CK_ULONG ktSize;
     void *epv = nssToken_GetCryptokiEPV(token);
     PRUint32 ivSize;
@@ -2005,6 +2026,8 @@ nssToken_DeriveSSLSessionKeys (
     NSS_CK_TEMPLATE_START(keyTemplate, attr, ktSize);
     NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_TOKEN, &g_ck_false);
     NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_CLASS, &g_ck_class_symkey);
+    NSS_CK_SET_ATTRIBUTE_VAR( attr, CKA_KEY_TYPE, ckKeyType);
+    NSS_CK_SET_ATTRIBUTE_VAR( attr, CKA_VALUE_LEN, keySize);
     /* XXX set any defaults, or allow token to do it? */
     NSS_CK_TEMPLATE_FINISH(keyTemplate, attr, ktSize);
     /* ready to do the derivation */
@@ -2169,6 +2192,7 @@ nssToken_ContinueEncrypt (
     void *epv = nssToken_GetCryptokiEPV(token);
 
     nssSession_EnterMonitor(session);
+#ifdef SOFTOKEN_WONT_RETURN_LEN_HERE
     ckrv = CKAPI(epv)->C_EncryptUpdate(session->handle, 
                                        (CK_BYTE_PTR)data->data, 
                                        (CK_ULONG)data->size,
@@ -2182,6 +2206,7 @@ nssToken_ContinueEncrypt (
 	nssSession_ExitMonitor(session);
 	return (NSSItem *)NULL;
     }
+#endif /* SOFTOKEN_WONT_RETURN_LEN_HERE */
     ckrv = CKAPI(epv)->C_EncryptUpdate(session->handle, 
                                        (CK_BYTE_PTR)data->data, 
                                        (CK_ULONG)data->size,
@@ -2337,6 +2362,7 @@ nssToken_ContinueDecrypt (
     void *epv = nssToken_GetCryptokiEPV(token);
 
     nssSession_EnterMonitor(session);
+#ifdef SOFTOKEN_WONT_RETURN_LEN_HERE
     ckrv = CKAPI(epv)->C_DecryptUpdate(session->handle, 
                                        (CK_BYTE_PTR)data->data, 
                                        (CK_ULONG)data->size,
@@ -2350,6 +2376,7 @@ nssToken_ContinueDecrypt (
 	nssSession_ExitMonitor(session);
 	return (NSSItem *)NULL;
     }
+#endif /* SOFTOKEN_WONT_RETURN_LEN_HERE */
     ckrv = CKAPI(epv)->C_DecryptUpdate(session->handle, 
                                        (CK_BYTE_PTR)data->data, 
                                        (CK_ULONG)data->size,

@@ -1416,6 +1416,7 @@ main(int argc, char **argv)
     NSSUsages            serverUsage = { 0, NSSUsage_SSLServer };
 #ifdef LINUX  /* bug 119340 */
     struct sigaction     act;
+    NSSCallback *pwcb;
 
     act.sa_handler = sigterm_handler;
     sigemptyset(&act.sa_mask);
@@ -1598,6 +1599,23 @@ main(int argc, char **argv)
     if (rv != SECSuccess) {
     	fputs("NSS_Init failed.\n", stderr);
 		exit(8);
+    }
+
+    /* XXX */
+    rv = NSS_EnablePKIXCertificates();
+    if (rv == PR_FAILURE) {
+	CMD_PrintError("Failed to load PKIX module");
+	/* goto shutdown; */
+	exit(4);
+    }
+    td = NSS_GetDefaultTrustDomain();
+    pwcb = CMD_GetDefaultPasswordCallback(NULL, NULL);
+    if (!pwcb) {
+	exit(4);
+    }
+    status = NSSTrustDomain_SetDefaultCallback(td, pwcb, NULL);
+    if (status != PR_SUCCESS) {
+	exit(4);
     }
 
     /* set our password function */

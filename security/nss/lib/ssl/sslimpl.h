@@ -344,11 +344,9 @@ struct sslGatherStr {
 #define GS_PAD		4
 
 typedef SECStatus (*SSLCipher)(void *               context, 
-                               unsigned char *      out,
-			       int *                outlen, 
-			       int                  maxout, 
-			       const unsigned char *in,
-			       int                  inlen);
+                               NSSItem *            in,
+                               NSSItem *            out,
+			       NSSArena *           arenaOpt);
 typedef SECStatus (*SSLDestroy)(void *context);
 
 

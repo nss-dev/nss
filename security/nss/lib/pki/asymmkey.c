@@ -241,22 +241,53 @@ nssPrivateKey_CopyToToken (
 }
 
 NSS_IMPLEMENT PRUint32
+nssPrivateKey_GetSignatureLength (
+  NSSPrivateKey *vk
+)
+{
+    /* XXX based on PK11_SignatureLen */
+    switch (vk->kind) {
+    case NSSKeyPairType_RSA:
+	/* old function had fallback for non-compliant tokens, still needed? */
+	return nssPrivateKey_GetPrivateModulusLength(vk);
+    case NSSKeyPairType_DSA:
+	return 40;
+    default:
+	return 0;
+    }
+}
+
+NSS_IMPLEMENT PRUint32
 NSSPrivateKey_GetSignatureLength (
   NSSPrivateKey *vk
 )
 {
-    nss_SetError(NSS_ERROR_NOT_FOUND);
-    return -1;
+    return nssPrivateKey_GetSignatureLength(vk);
 }
 
-/* XXX */
+NSS_IMPLEMENT PRUint32
+nssPrivateKey_GetPrivateModulusLength (
+  NSSPrivateKey *vk
+)
+{
+    /* XXX based on PK11_GetPrivateModulusLen, always only for RSA?
+     *     maybe GetKeyStrength?
+     */
+    switch (vk->kind) {
+    case NSSKeyPairType_RSA:
+	    /* XXX cheating by using first instance */
+	return nssCryptokiRSAPrivateKey_GetModulusLength(vk->object.instances[0]);
+    default:
+	return -1;
+    }
+}
+
 NSS_IMPLEMENT PRUint32
 NSSPrivateKey_GetPrivateModulusLength (
   NSSPrivateKey *vk
 )
 {
-    nss_SetError(NSS_ERROR_NOT_FOUND);
-    return -1;
+    return nssPrivateKey_GetPrivateModulusLength(vk);
 }
 
 NSS_IMPLEMENT PRBool
@@ -1398,7 +1429,7 @@ nssPublicKey_GetInstanceForAlgorithmAndObject (
     tokens = nssPKIObject_GetTokens((nssPKIObject *)ob, NULL, 0, &status);
     if (tokens) {
 	for (tp = tokens; *tp; tp++) {
-	    if (nssToken_DoesAlgorithm(*tp, ap)) {
+	    if (nssToken_DoesAlgNParam(*tp, ap)) {
 		/* found one for the algorithm */
 		instance = nssPublicKey_GetInstance(bk, *tp);
 		if (instance) {

@@ -42,7 +42,7 @@
 int
 SSL_InheritMPServerSIDCache(const char * envString)
 {
-    return -1;
+    return 0;
 }
 
 int
@@ -51,7 +51,7 @@ SSL_ConfigMPServerSIDCache(	int      maxCacheEntries,
 			       	PRUint32 ssl3_timeout, 
 		          const char *   directory)
 {
-    return -1;
+    return 0;
 }
 
 int
@@ -60,7 +60,7 @@ SSL_ConfigServerSessionIDCache(	int      maxCacheEntries,
 			       	PRUint32 ssl3_timeout, 
 			  const char *   directory)
 {
-    return -1;
+    return 0;
 }
 
 #else
