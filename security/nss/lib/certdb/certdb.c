@@ -41,6 +41,7 @@
 #include "prmon.h"
 #include "prtime.h"
 #include "cert.h"
+#include "certi.h"
 #include "secder.h"
 #include "secoid.h"
 #include "secasn1.h"
