@@ -868,7 +868,7 @@ hash_access(
 
 		if (bp[1] >= REAL_KEY) {
 			/* Real key/data pair */
-			if (size == (size_t)(off - *bp) &&
+			if (size == (unsigned long)(off - *bp) &&
 			    memcmp(kp, rbufp->page + *bp, size) == 0)
 				goto found;
 			off = bp[1];
