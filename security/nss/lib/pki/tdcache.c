@@ -279,7 +279,9 @@ nssTrustDomain_RemoveCertFromCache
     nssList *subjects;
     NSSItem *ias;
     unsigned char buf[128];
-    NSSItem s_ias = { (void *)buf, sizeof(buf) };
+    NSSItem s_ias;
+    s_ias.data = (void *)buf;
+    s_ias.size = sizeof(buf);
     ias = get_static_ias(&s_ias, &cert->issuer, &cert->serial);
     PZ_Lock(td->cache->lock);
     if (nssHash_Exists(td->cache->issuerAndSN, &ias)) {
@@ -504,7 +506,9 @@ nssTrustDomain_GetCertForIssuerAndSNFromCache
     NSSCertificate *rvCert;
     NSSItem *ias;
     unsigned char buf[128];
-    NSSItem s_ias = { (void *)buf, sizeof(buf) };
+    NSSItem s_ias;
+    s_ias.data = (void *)buf;
+    s_ias.size = sizeof(buf);
     ias = get_static_ias(&s_ias, issuer, serial);
 #ifdef DEBUG
     debug_cache(td);

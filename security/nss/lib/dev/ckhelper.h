@@ -63,13 +63,21 @@ PR_BEGIN_EXTERN_C
  */
 
 /* Boolean values */
-NSS_EXTERN_DATA /* const */ NSSItem g_ck_true;
-NSS_EXTERN_DATA /* const */ NSSItem g_ck_false;
+NSS_EXTERN_DATA const NSSItem g_ck_true;
+NSS_EXTERN_DATA const NSSItem g_ck_false;
 
 /* Object classes */
-NSS_EXTERN_DATA /* const */ NSSItem g_ck_class_cert;
-NSS_EXTERN_DATA /* const */ NSSItem g_ck_class_pubkey;
-NSS_EXTERN_DATA /* const */ NSSItem g_ck_class_privkey;
+NSS_EXTERN_DATA const NSSItem g_ck_class_cert;
+NSS_EXTERN_DATA const NSSItem g_ck_class_pubkey;
+NSS_EXTERN_DATA const NSSItem g_ck_class_privkey;
+
+#define NSS_CK_SET_ATTRIBUTE_VAR(cktemplate, index, var)  \
+    (cktemplate)[index].pValue = (CK_VOID_PTR)&var;       \
+    (cktemplate)[index].ulValueLen = (CK_ULONG)sizeof(var)
+
+#define NSS_CK_SET_ATTRIBUTE_ITEM(cktemplate, index, item)  \
+    (cktemplate)[index].pValue = (CK_VOID_PTR)(item)->data; \
+    (cktemplate)[index].ulValueLen = (CK_ULONG)(item)->size;
 
 /* NSS_CK_ATTRIBUTE_TO_ITEM(attrib, item)
  *
