@@ -98,7 +98,7 @@ extern SECStatus NSS_InitReadWrite(const char *configdir);
  */
 extern SECStatus NSS_Initialize(const char *configdir, 
 	const char *certPrefix, const char *keyPrefix, const char *secmodName,
-	PRBool readonly);
+	PRBool readOnly);
 
 /*
  * initialize NSS without a creating cert db's, key db's, or secmod db's.
