@@ -43,6 +43,7 @@
 #include "secpkcs7.h"
 #include "cert.h"
 #include "certdb.h"
+#include "nss.h"
 
 #if defined(XP_UNIX)
 #include <unistd.h>
