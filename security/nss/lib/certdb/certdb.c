@@ -222,6 +222,10 @@ CERT_KeyFromIssuerAndSN(PRArenaPool *arena, SECItem *issuer, SECItem *sn,
 			SECItem *key)
 {
     key->len = sn->len + issuer->len;
+
+    if ((sn->data == NULL) || (issuer->data == NULL)) {
+	goto loser;
+    }
     
     key->data = (unsigned char*)PORT_ArenaAlloc(arena, key->len);
     if ( !key->data ) {
