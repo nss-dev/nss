@@ -276,10 +276,10 @@ remove_certificate_entry
     if (entry) {
 	nssHash_Remove(store->issuer_and_serial, cert);
 	if (entry->trust) {
-	    nssPKIObject_Destroy(&entry->trust->object);
+	    nssTrust_Destroy(entry->trust);
 	}
 	if (entry->profile) {
-	    nssPKIObject_Destroy(&entry->profile->object);
+	    nssSMIMEProfile_Destroy(entry->profile);
 	}
 	nss_ZFreeIf(entry);
     }
@@ -358,6 +358,35 @@ nssCertificateStore_Remove
     PZ_Unlock(store->lock);
 }
 
+static NSSCertificate **
+get_array_from_list
+(
+  nssList *certList,
+  NSSCertificate *rvOpt[],
+  PRUint32 maximumOpt,
+  NSSArena *arenaOpt
+)
+{
+    PRUint32 count;
+    NSSCertificate **rvArray = NULL;
+    count = nssList_Count(certList);
+    if (count == 0) {
+	return NULL;
+    }
+    if (maximumOpt > 0) {
+	count = PR_MIN(maximumOpt, count);
+    }
+    if (rvOpt) {
+	nssList_GetArray(certList, (void **)rvOpt, count);
+    } else {
+	rvArray = nss_ZNEWARRAY(arenaOpt, NSSCertificate *, count + 1);
+	if (rvArray) {
+	    nssList_GetArray(certList, (void **)rvArray, count);
+	}
+    }
+    return rvArray;
+}
+
 NSS_IMPLEMENT NSSCertificate **
 nssCertificateStore_FindCertificatesBySubject
 (
@@ -368,25 +397,14 @@ nssCertificateStore_FindCertificatesBySubject
   NSSArena *arenaOpt
 )
 {
-    PRUint32 count;
     NSSCertificate **rvArray = NULL;
     nssList *subjectList;
     PZ_Lock(store->lock);
     subjectList = (nssList *)nssHash_Lookup(store->subject, subject);
     if (subjectList) {
 	nssCertificateList_AddReferences(subjectList);
-	count = nssList_Count(subjectList);
-	if (maximumOpt > 0) {
-	    count = PR_MIN(maximumOpt, count);
-	}
-	if (rvOpt) {
-	    nssList_GetArray(subjectList, (void **)rvOpt, count);
-	} else {
-	    rvArray = nss_ZNEWARRAY(arenaOpt, NSSCertificate *, count + 1);
-	    if (rvArray) {
-		nssList_GetArray(subjectList, (void **)rvArray, count);
-	    }
-	}
+	rvArray = get_array_from_list(subjectList, 
+	                              rvOpt, maximumOpt, arenaOpt);
     }
     PZ_Unlock(store->lock);
     return rvArray;
@@ -413,11 +431,13 @@ static void match_nickname(const void *k, void *v, void *a)
 {
     PRStatus nssrv;
     NSSCertificate *c;
+    NSSUTF8 *nickname;
     nssList *subjectList = (nssList *)v;
     struct nickname_template_str *nt = (struct nickname_template_str *)a;
     nssrv = nssList_GetArray(subjectList, (void **)&c, 1);
+    nickname = NSSCertificate_GetNickname(c, NULL);
     if (nssrv == PR_SUCCESS && 
-         nssUTF8_Equal(c->nickname, nt->nickname, &nssrv)) 
+         nssUTF8_Equal(nickname, nt->nickname, &nssrv)) 
     {
 	nt->subjectList = subjectList;
     }
@@ -436,7 +456,6 @@ nssCertificateStore_FindCertificatesByNickname
   NSSArena *arenaOpt
 )
 {
-    PRUint32 count;
     NSSCertificate **rvArray = NULL;
     struct nickname_template_str nt;
     nt.nickname = nickname;
@@ -445,18 +464,8 @@ nssCertificateStore_FindCertificatesByNickname
     nssHash_Iterate(store->subject, match_nickname, &nt);
     if (nt.subjectList) {
 	nssCertificateList_AddReferences(nt.subjectList);
-	count = nssList_Count(nt.subjectList);
-	if (maximumOpt > 0) {
-	    count = PR_MIN(maximumOpt, count);
-	}
-	if (rvOpt) {
-	    nssList_GetArray(nt.subjectList, (void **)rvOpt, count);
-	} else {
-	    rvArray = nss_ZNEWARRAY(arenaOpt, NSSCertificate *, count + 1);
-	    if (rvArray) {
-		nssList_GetArray(nt.subjectList, (void **)rvArray, count);
-	    }
-	}
+	rvArray = get_array_from_list(nt.subjectList, 
+	                              rvOpt, maximumOpt, arenaOpt);
     }
     PZ_Unlock(store->lock);
     return rvArray;
@@ -505,7 +514,6 @@ nssCertificateStore_FindCertificatesByEmail
   NSSArena *arenaOpt
 )
 {
-    PRUint32 count;
     NSSCertificate **rvArray = NULL;
     struct email_template_str et;
     et.email = email;
@@ -521,18 +529,8 @@ nssCertificateStore_FindCertificatesByEmail
     }
     PZ_Unlock(store->lock);
     if (et.emailList) {
-	count = nssList_Count(et.emailList);
-	if (maximumOpt > 0) {
-	    count = PR_MIN(maximumOpt, count);
-	}
-	if (rvOpt) {
-	    nssList_GetArray(et.emailList, (void **)rvOpt, count);
-	} else {
-	    rvArray = nss_ZNEWARRAY(arenaOpt, NSSCertificate *, count + 1);
-	    if (rvArray) {
-		nssList_GetArray(et.emailList, (void **)rvArray, count);
-	    }
-	}
+	rvArray = get_array_from_list(et.emailList, 
+	                              rvOpt, maximumOpt, arenaOpt);
 	nssList_Destroy(et.emailList);
     }
     return rvArray;
@@ -631,7 +629,7 @@ nssCertificateStore_AddTrust
     entry = (certificate_hash_entry *)
                               nssHash_Lookup(store->issuer_and_serial, cert);
     if (entry) {
-	entry->trust = trust;
+	entry->trust = nssTrust_AddRef(trust);
     }
     PZ_Unlock(store->lock);
     return (entry) ? PR_SUCCESS : PR_FAILURE;
@@ -645,14 +643,15 @@ nssCertificateStore_FindTrustForCertificate
 )
 {
     certificate_hash_entry *entry;
+    NSSTrust *rvTrust = NULL;
     PZ_Lock(store->lock);
     entry = (certificate_hash_entry *)
                               nssHash_Lookup(store->issuer_and_serial, cert);
-    PZ_Unlock(store->lock);
-    if (entry) {
-	return entry->trust;
+    if (entry && entry->trust) {
+	rvTrust = nssTrust_AddRef(entry->trust);
     }
-    return NULL;
+    PZ_Unlock(store->lock);
+    return rvTrust;
 }
 
 NSS_EXTERN PRStatus
@@ -669,7 +668,7 @@ nssCertificateStore_AddSMIMEProfile
     entry = (certificate_hash_entry *)
                               nssHash_Lookup(store->issuer_and_serial, cert);
     if (entry) {
-	entry->profile = profile;
+	entry->profile = nssSMIMEProfile_AddRef(profile);
     }
     PZ_Unlock(store->lock);
     return (entry) ? PR_SUCCESS : PR_FAILURE;
@@ -683,14 +682,15 @@ nssCertificateStore_FindSMIMEProfileForCertificate
 )
 {
     certificate_hash_entry *entry;
+    nssSMIMEProfile *rvProfile = NULL;
     PZ_Lock(store->lock);
     entry = (certificate_hash_entry *)
                               nssHash_Lookup(store->issuer_and_serial, cert);
-    PZ_Unlock(store->lock);
-    if (entry) {
-	return entry->profile;
+    if (entry && entry->profile) {
+	rvProfile = nssSMIMEProfile_AddRef(entry->profile);
     }
-    return NULL;
+    PZ_Unlock(store->lock);
+    return rvProfile;
 }
 
 /* XXX this is also used by cache and should be somewhere else */

@@ -92,6 +92,39 @@ NSSCertificate_Destroy
     return PR_SUCCESS;
 }
 
+NSS_IMPLEMENT NSSUTF8 *
+NSSCertificate_GetNickname
+(
+  NSSCertificate *c,
+  NSSToken *tokenOpt
+)
+{
+    NSSUTF8 *rvNick = NULL;
+    nssCryptokiInstance *instance;
+    nssListIterator *instances = c->object.instances;
+    if (c->object.cryptoContext) {
+	return c->object.tempName;
+    }
+    for (instance  = (nssCryptokiInstance *)nssListIterator_Start(instances);
+         instance != (nssCryptokiInstance *)NULL;
+         instance  = (nssCryptokiInstance *)nssListIterator_Next(instances)) 
+    {
+	if (tokenOpt) {
+	    if (instance->token == tokenOpt) {
+		/* take the nickname on the given token */
+		rvNick = instance->label;
+		break;
+	    }
+	} else {
+	    /* take the first one */
+	    rvNick = instance->label;
+	    break;
+	}
+    }
+    nssListIterator_Finish(instances);
+    return rvNick;
+}
+
 NSS_IMPLEMENT PRStatus
 NSSCertificate_DeleteStoredObject
 (
@@ -860,5 +893,53 @@ nssCertificateList_AddReferences
 )
 {
     (void)nssCertificateList_DoCallback(certList, add_ref_callback, NULL);
+}
+
+NSS_IMPLEMENT NSSTrust *
+nssTrust_AddRef
+(
+  NSSTrust *trust
+)
+{
+    if (trust) {
+	nssPKIObject_AddRef(&trust->object);
+    }
+    return trust;
+}
+
+NSS_IMPLEMENT PRStatus
+nssTrust_Destroy
+(
+  NSSTrust *trust
+)
+{
+    if (trust) {
+	(void)nssPKIObject_Destroy(&trust->object);
+    }
+    return PR_SUCCESS;
+}
+
+NSS_IMPLEMENT nssSMIMEProfile *
+nssSMIMEProfile_AddRef
+(
+  nssSMIMEProfile *profile
+)
+{
+    if (profile) {
+	nssPKIObject_AddRef(&profile->object);
+    }
+    return profile;
+}
+
+NSS_IMPLEMENT PRStatus
+nssSMIMEProfile_Destroy
+(
+  nssSMIMEProfile *profile
+)
+{
+    if (profile) {
+	(void)nssPKIObject_Destroy(&profile->object);
+    }
+    return PR_SUCCESS;
 }
 

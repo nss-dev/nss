@@ -268,6 +268,7 @@ nssToken_ImportCertificate
   NSSToken *tok,
   nssSession *sessionOpt,
   NSSCertificate *cert,
+  NSSUTF8 *nickname,
   PRBool asTokenObject
 );
  
@@ -278,6 +279,30 @@ nssToken_ImportTrust
   nssSession *sessionOpt,
   NSSTrust *trust,
   PRBool asTokenObject
+);
+
+NSS_EXTERN PRStatus
+nssToken_SetTrustCache
+(
+  NSSToken *tok
+);
+
+NSS_EXTERN PRStatus
+nssToken_SetCrlCache
+(
+  NSSToken *tok
+);
+
+NSS_EXTERN PRBool
+nssToken_HasCrls
+(
+  NSSToken *tok
+);
+
+NSS_EXTERN PRStatus
+nssToken_SetHasCrls
+(
+  NSSToken *tok
 );
 
 NSS_EXTERN NSSPublicKey *
@@ -449,6 +474,18 @@ NSSAlgorithmAndParameters_CreateMD5Digest
 (
   NSSArena *arenaOpt
 );
+
+#ifdef NSS_3_4_CODE
+/* exposing this for the smart card cache code */
+NSS_EXTERN nssCryptokiInstance *
+nssCryptokiInstance_Create
+(
+  NSSArena *arena,
+  NSSToken *t, 
+  CK_OBJECT_HANDLE h,
+  PRBool isTokenObject
+);
+#endif
 
 PR_END_EXTERN_C
 

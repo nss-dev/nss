@@ -126,6 +126,17 @@ NSSCKFWInstance_GetConfigurationData
 );
 
 /*
+ * NSSCKFWInstance_GetInitArgs
+ *
+ */
+
+NSS_EXTERN CK_C_INITIALIZE_ARGS_PTR
+NSSCKFWInstance_GetInitArgs
+(
+  NSSCKFWInstance *fwInstance
+);
+
+/*
  * NSSCKFWSlot
  *
  *  NSSCKFWSlot_GetMDSlot

@@ -136,6 +136,7 @@ __CERT_AddTempCertToPerm(CERTCertificate *cert, char *nickname,
 		       CERTCertTrust *trust)
 {
     PRStatus nssrv;
+    NSSUTF8 *stanNick;
     PK11SlotInfo *slot;
     NSSToken *internal;
     NSSCryptoContext *context;
@@ -144,13 +145,14 @@ __CERT_AddTempCertToPerm(CERTCertificate *cert, char *nickname,
     if (!context) {
 	return PR_FAILURE; /* wasn't a temp cert */
     }
-    if (c->nickname && strcmp(nickname, c->nickname) != 0) {
-	nss_ZFreeIf(c->nickname);
+    stanNick = NSSCertificate_GetNickname(c, NULL);
+    if (stanNick && nickname && strcmp(nickname, stanNick) != 0) {
+	/* take the new nickname */
 	PORT_Free(cert->nickname);
-	c->nickname = NULL;
+	stanNick = NULL;
     }
-    if (!c->nickname) {
-	c->nickname = nssUTF8_Duplicate((NSSUTF8 *)nickname, c->object.arena);
+    if (!stanNick && nickname) {
+	stanNick = nssUTF8_Duplicate((NSSUTF8 *)nickname, c->object.arena);
 	cert->nickname = PORT_Strdup(nickname);
     }
     /* Delete the temp instance */
@@ -161,7 +163,7 @@ __CERT_AddTempCertToPerm(CERTCertificate *cert, char *nickname,
     /* Import the perm instance onto the internal token */
     slot = PK11_GetInternalKeySlot();
     internal = PK11Slot_GetNSSToken(slot);
-    nssrv = nssToken_ImportCertificate(internal, NULL, c, PR_TRUE);
+    nssrv = nssToken_ImportCertificate(internal, NULL, c, stanNick, PR_TRUE);
     if (nssrv != PR_SUCCESS) {
 	return SECFailure;
     }
@@ -240,10 +242,10 @@ __CERT_NewTempCertificate(CERTCertDBHandle *handle, SECItem *derCert,
 	PORT_Free(derSerial.data);
     }
     if (nickname) {
-	c->nickname = nssUTF8_Create(arena, 
-                                     nssStringType_UTF8String, 
-                                     (NSSUTF8 *)nickname, 
-                                     PORT_Strlen(nickname));
+	c->object.tempName = nssUTF8_Create(arena, 
+                                            nssStringType_UTF8String, 
+                                            (NSSUTF8 *)nickname, 
+                                            PORT_Strlen(nickname));
     }
     if (cc->emailAddr) {
 	c->email = nssUTF8_Create(arena, 
@@ -335,8 +337,14 @@ CERT_FindCertByName(CERTCertDBHandle *handle, SECItem *name)
     cp = NSSTrustDomain_FindBestCertificateBySubject(handle, &subject, 
                                                      NULL, &usage, NULL);
     c = get_best_temp_or_perm(ct, cp);
-    if (ct) NSSCertificate_Destroy(ct);
-    if (cp) NSSCertificate_Destroy(cp);
+    if (ct) {
+	CERTCertificate *cert = STAN_GetCERTCertificate(ct);
+	CERT_DestroyCertificate(cert);
+    }
+    if (cp) {
+	CERTCertificate *cert = STAN_GetCERTCertificate(cp);
+	CERT_DestroyCertificate(cert);
+    }
     if (c) {
 	return STAN_GetCERTCertificate(c);
     } else {
@@ -379,7 +387,10 @@ CERT_FindCertByNickname(CERTCertDBHandle *handle, char *nickname)
     if (cert) {
 	c = get_best_temp_or_perm(ct, STAN_GetNSSCertificate(cert));
 	CERT_DestroyCertificate(cert);
-	if (ct) NSSCertificate_Destroy(ct);
+	if (ct) {
+	    CERTCertificate *cert2 = STAN_GetCERTCertificate(ct);
+	    CERT_DestroyCertificate(cert2);
+	}
     } else {
 	c = ct;
     }
@@ -426,7 +437,10 @@ CERT_FindCertByNicknameOrEmailAddr(CERTCertDBHandle *handle, char *name)
     if (cert) {
 	c = get_best_temp_or_perm(ct, STAN_GetNSSCertificate(cert));
 	CERT_DestroyCertificate(cert);
-	if (ct) NSSCertificate_Destroy(ct);
+	if (ct) {
+	    CERTCertificate *cert2 = STAN_GetCERTCertificate(ct);
+	    CERT_DestroyCertificate(cert2);
+	}
     } else {
 	c = ct;
     }
@@ -536,8 +550,6 @@ CERT_DestroyCertificate(CERTCertificate *cert)
         }
 #else
 	if (tmp) {
-	    /* delete the NSSCertificate */
-	    PK11SlotInfo *slot = cert->slot;
 	    NSSTrustDomain *td = STAN_GetDefaultTrustDomain();
 	    refCount = (int)tmp->object.refCount;
 	    /* This is a hack.  For 3.4, there are persistent references
@@ -559,8 +571,8 @@ CERT_DestroyCertificate(CERTCertificate *cert)
 		} else {
 		    nssTrustDomain_RemoveCertFromCache(td, tmp);
 		}
-		refCount = (int)tmp->object.refCount;
 	    }
+	    /* delete the NSSCertificate */
 	    NSSCertificate_Destroy(tmp);
 	} 
 #endif
@@ -685,17 +697,17 @@ CERT_SaveSMimeProfile(CERTCertificate *cert, SECItem *emailProfile,
     SECStatus rv = SECFailure;
     PRBool saveit;
     char *emailAddr;
-    SECItem oldprof;
+    SECItem oldprof, oldproftime;
     SECItem *oldProfile = NULL;
     SECItem *oldProfileTime = NULL;
     PK11SlotInfo *slot = NULL;
     NSSCertificate *c;
     NSSCryptoContext *cc;
     nssSMIMEProfile *stanProfile = NULL;
+    PRBool freeOldProfile = PR_FALSE;
     
     emailAddr = cert->emailAddr;
     
-    PORT_Assert(emailAddr);
     if ( emailAddr == NULL ) {
 	goto loser;
     }
@@ -706,12 +718,16 @@ CERT_SaveSMimeProfile(CERTCertificate *cert, SECItem *emailProfile,
     if (cc != NULL) {
 	stanProfile = nssCryptoContext_FindSMIMEProfileForCertificate(cc, c);
 	if (stanProfile) {
+	    PORT_Assert(stanProfile->profileData);
 	    SECITEM_FROM_NSSITEM(&oldprof, stanProfile->profileData);
 	    oldProfile = &oldprof;
+	    SECITEM_FROM_NSSITEM(&oldproftime, stanProfile->profileTime);
+	    oldProfileTime = &oldproftime;
 	}
     } else {
 	oldProfile = PK11_FindSMimeProfile(&slot, emailAddr, &cert->derSubject, 
 							&oldProfileTime); 
+	freeOldProfile = PR_TRUE;
     }
 
     saveit = PR_FALSE;
@@ -757,12 +773,19 @@ CERT_SaveSMimeProfile(CERTCertificate *cert, SECItem *emailProfile,
     if (saveit) {
 	if (cc) {
 	    if (stanProfile) {
-		/* well, it's hashed and in an arena, might as well just
-		 * overwrite the buffer
+		/* stanProfile is already stored in the crypto context,
+		 * overwrite the data
 		 */
-		NSSITEM_FROM_SECITEM(stanProfile->profileTime, profileTime);
-		NSSITEM_FROM_SECITEM(stanProfile->profileData, emailProfile);
-	    } else {
+		NSSArena *arena = stanProfile->object.arena;
+		stanProfile->profileTime = nssItem_Create(arena, 
+		                                          NULL,
+		                                          profileTime->len,
+		                                          profileTime->data);
+		stanProfile->profileData = nssItem_Create(arena, 
+		                                          NULL,
+		                                          emailProfile->len,
+		                                          emailProfile->data);
+	    } else if (profileTime && emailProfile) {
 		PRStatus nssrv;
 		NSSDER subject;
 		NSSItem profTime, profData;
@@ -794,11 +817,14 @@ CERT_SaveSMimeProfile(CERTCertificate *cert, SECItem *emailProfile,
     }
 
 loser:
-    if (oldProfile) {
+    if (oldProfile && freeOldProfile) {
     	SECITEM_FreeItem(oldProfile,PR_TRUE);
     }
-    if (oldProfileTime) {
+    if (oldProfileTime && freeOldProfile) {
     	SECITEM_FreeItem(oldProfileTime,PR_TRUE);
+    }
+    if (stanProfile) {
+	nssSMIMEProfile_Destroy(stanProfile);
     }
     
     return(rv);
@@ -823,7 +849,7 @@ CERT_FindSMimeProfile(CERTCertificate *cert)
 	    if (rvItem) {
 		rvItem->data = stanProfile->profileData->data;
 	    }
-	    nssPKIObject_Destroy(&stanProfile->object);
+	    nssSMIMEProfile_Destroy(stanProfile);
 	}
 	return rvItem;
     }

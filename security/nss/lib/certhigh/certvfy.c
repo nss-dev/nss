@@ -270,7 +270,6 @@ SEC_CheckCRL(CERTCertDBHandle *handle,CERTCertificate *cert,
     CERTSignedCrl *crl = NULL;
     SECStatus rv = SECSuccess;
     CERTCrlEntry **crlEntry;
-    SECCertTimeValidity validity;
 
     /* first look up the CRL */
     crl = SEC_FindCrlByName(handle,&caCert->derSubject, SEC_CRL_TYPE);
@@ -285,16 +284,6 @@ SEC_CheckCRL(CERTCertDBHandle *handle,CERTCertificate *cert,
 	PORT_SetError(SEC_ERROR_CRL_BAD_SIGNATURE);
         rv = SECWouldBlock; /* Soft error, ask the user */
     	goto done;
-    }
-
-    /* Verify the date validity of the KRL */
-    validity = SEC_CheckCrlTimes(&crl->crl,t);
-    if (validity == secCertTimeExpired) {
-	PORT_SetError(SEC_ERROR_CRL_EXPIRED);
-        rv = SECWouldBlock; /* Soft error, ask the user */
-    } else if (validity == secCertTimeNotValidYet) {
-	PORT_SetError(SEC_ERROR_CRL_NOT_YET_VALID);
-	rv = SECWouldBlock; /* Soft error, ask the user */
     }
 
     /* now make sure the key is not on the revocation list */

@@ -189,6 +189,7 @@ nssList_Clear(nssList *list, nssListElementDestructorFunc destructor)
     nssListElement *node, *tmp;
     NSSLIST_LOCK_IF(list);
     node = list->head;
+    list->head = NULL;
     while (node && list->count > 0) {
 	if (destructor) (*destructor)(node->data);
 	link = &node->link;

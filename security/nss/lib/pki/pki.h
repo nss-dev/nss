@@ -54,6 +54,13 @@ nssCertificate_AddRef
   NSSCertificate *c
 );
 
+NSS_EXTERN NSSUTF8 *
+NSSCertificate_GetNickname
+(
+  NSSCertificate *c,
+  NSSToken *tokenOpt
+);
+
 /* putting here for now, needs more thought */
 NSS_EXTERN PRStatus
 nssCryptoContext_ImportTrust
@@ -81,6 +88,30 @@ nssCryptoContext_FindSMIMEProfileForCertificate
 (
   NSSCryptoContext *cc,
   NSSCertificate *cert
+);
+
+NSS_EXTERN NSSTrust *
+nssTrust_AddRef
+(
+  NSSTrust *trust
+);
+
+NSS_EXTERN PRStatus
+nssTrust_Destroy
+(
+  NSSTrust *trust
+);
+
+NSS_EXTERN nssSMIMEProfile *
+nssSMIMEProfile_AddRef
+(
+  nssSMIMEProfile *profile
+);
+
+NSS_EXTERN PRStatus
+nssSMIMEProfile_Destroy
+(
+  nssSMIMEProfile *profile
 );
 
 NSS_EXTERN nssSMIMEProfile *

@@ -151,7 +151,17 @@ nssToken_CreateFromPK11SlotInfo(NSSTrustDomain *td, PK11SlotInfo *nss3slot)
     rvToken->slot = nssSlot_CreateFromPK11SlotInfo(td, nss3slot);
     rvToken->slot->token = rvToken;
     rvToken->defaultSession->slot = rvToken->slot;
+    rvToken->arena = td->arena;
     return rvToken;
+}
+
+NSS_IMPLEMENT void
+nssToken_UpdateName(NSSToken *token)
+{
+    if (!token) {
+	return;
+    }
+    token->name = nssUTF8_Duplicate(token->pk11slot->token_name,token->arena);
 }
 
 NSS_IMPLEMENT PRBool
@@ -164,6 +174,23 @@ nssSlot_IsPermanent
 }
 
 NSS_IMPLEMENT PRStatus
+nssToken_Refresh(NSSToken *token)
+{
+    PK11SlotInfo *nss3slot;
+
+    if (!token) {
+	return PR_SUCCESS;
+    }
+    nss3slot = token->pk11slot;
+    token->defaultSession = nssSession_ImportNSS3Session(token->slot->arena,
+                                                       nss3slot->session,
+                                                       nss3slot->sessionLock,
+                                                       nss3slot->defRWSession);
+    nssToken_DestroyCertList(token);
+    return nssToken_LoadCerts(token);
+}
+
+NSS_IMPLEMENT PRStatus
 nssSlot_Refresh
 (
   NSSSlot *slot
@@ -173,13 +200,9 @@ nssSlot_Refresh
     if (PK11_InitToken(nss3slot, PR_FALSE) != SECSuccess) {
 	return PR_FAILURE;
     }
-    slot->token->defaultSession = nssSession_ImportNSS3Session(slot->arena,
-                                                       nss3slot->session,
-                                                       nss3slot->sessionLock,
-                                                       nss3slot->defRWSession);
-    nssToken_DestroyCertList(slot->token);
-    return nssToken_LoadCerts(slot->token);
+    return nssToken_Refresh(slot->token);
 }
+
 
 
 NSSTrustDomain *

@@ -51,6 +51,9 @@
 #include "secerr.h"
 /*#include "secpkcs5.h" */
 
+#include "dev3hack.h"
+#include "pki3hack.h"
+
 
 /*************************************************************
  * local static and global data
@@ -423,6 +426,7 @@ PK11_NewSlotInfo(void)
     slot->needLogin = PR_FALSE;
     slot->hasRandom = PR_FALSE;
     slot->defRWSession = PR_FALSE;
+    slot->protectedAuthPath = PR_FALSE;
     slot->flags = 0;
     slot->session = CK_INVALID_SESSION;
     slot->slotID = 0;
@@ -443,6 +447,7 @@ PK11_NewSlotInfo(void)
     slot->minPassword = 0;
     slot->maxPassword = 0;
     slot->hasRootCerts = PR_FALSE;
+    slot->nssToken = NULL;
     return slot;
 }
     
@@ -642,6 +647,11 @@ pk11_CheckPassword(PK11SlotInfo *slot,char *pw)
     SECStatus rv;
     int64 currtime = PR_Now();
 
+    if (slot->protectedAuthPath) {
+	len = 0;
+	pw = NULL;
+    }
+
     PK11_EnterSlotMonitor(slot);
     crv = PK11_GETTAB(slot)->C_Login(slot->session,CKU_USER,
 						(unsigned char *)pw,len);
@@ -677,6 +687,11 @@ PK11_CheckUserPassword(PK11SlotInfo *slot,char *pw)
     SECStatus rv;
     int64 currtime = PR_Now();
 
+    if (slot->protectedAuthPath) {
+	len = 0;
+	pw = NULL;
+    }
+
     /* force a logout */
     PK11_EnterSlotMonitor(slot);
     PK11_GETTAB(slot)->C_Logout(slot->session);
@@ -711,6 +726,10 @@ PK11_Logout(PK11SlotInfo *slot)
     PK11_EnterSlotMonitor(slot);
     crv = PK11_GETTAB(slot)->C_Logout(slot->session);
     PK11_ExitSlotMonitor(slot);
+    if (slot->nssToken && !PK11_IsFriendly(slot)) {
+	/* If the slot certs are not public readable, destroy them */
+	nssToken_DestroyCertList(slot->nssToken, PR_TRUE);
+    }
     if (crv != CKR_OK) {
 	PORT_SetError(PK11_MapError(crv));
 	return SECFailure;
@@ -908,6 +927,11 @@ PK11_CheckSSOPassword(PK11SlotInfo *slot, char *ssopw)
     rwsession = PK11_GetRWSession(slot);
     if (rwsession == CK_INVALID_SESSION) return rv;
 
+    if (slot->protectedAuthPath) {
+	len = 0;
+	ssopw = NULL;
+    }
+
     /* check the password */
     crv = PK11_GETTAB(slot)->C_Login(rwsession,CKU_SO,
 						(unsigned char *)ssopw,len);
@@ -966,6 +990,13 @@ PK11_InitPin(PK11SlotInfo *slot,char *ssopw, char *userpw)
     /* get a rwsession */
     rwsession = PK11_GetRWSession(slot);
     if (rwsession == CK_INVALID_SESSION) goto done;
+
+    if (slot->protectedAuthPath) {
+	len = 0;
+	ssolen = 0;
+	ssopw = NULL;
+	userpw = NULL;
+    }
 
     /* check the password */
     crv = PK11_GETTAB(slot)->C_Login(rwsession,CKU_SO, 
@@ -1114,6 +1145,10 @@ PK11_DoPassword(PK11SlotInfo *slot, PRBool loadCerts, void *wincx)
     }
     if (rv == SECSuccess) {
 	rv = pk11_CheckVerifyTest(slot);
+	if (rv == SECSuccess && slot->nssToken && !PK11_IsFriendly(slot)) {
+	    /* notify stan about the login if certs are not public readable */
+	    nssToken_LoadCerts(slot->nssToken);
+	}
     } else if (!attempt) PORT_SetError(SEC_ERROR_BAD_PASSWORD);
     return rv;
 }
@@ -1678,11 +1713,16 @@ PK11_InitToken(PK11SlotInfo *slot, PRBool loadCerts)
     slot->readOnly = ((tokenInfo.flags & CKF_WRITE_PROTECTED) ? 
 							PR_TRUE : PR_FALSE);
     slot->hasRandom = ((tokenInfo.flags & CKF_RNG) ? PR_TRUE : PR_FALSE);
+    slot->protectedAuthPath =
+    		((tokenInfo.flags & CKF_PROTECTED_AUTHENTICATION_PATH) 
+							? PR_TRUE : PR_FALSE);
     tmp = PK11_MakeString(NULL,slot->token_name,
 			(char *)tokenInfo.label, sizeof(tokenInfo.label));
     slot->minPassword = tokenInfo.ulMinPinLen;
     slot->maxPassword = tokenInfo.ulMaxPinLen;
     PORT_Memcpy(slot->serial,tokenInfo.serialNumber,sizeof(slot->serial));
+
+    nssToken_UpdateName(slot->nssToken);
 
     slot->defRWSession = (PRBool)((!slot->readOnly) && 
 					(tokenInfo.ulMaxSessionCount == 1));
@@ -1743,6 +1783,8 @@ PK11_InitToken(PK11SlotInfo *slot, PRBool loadCerts)
 	if (!slot->isThreadSafe) PK11_ExitSlotMonitor(slot);
     }
 
+    nssToken_Refresh(slot->nssToken);
+
     if (!(slot->needLogin)) {
 	return pk11_CheckVerifyTest(slot);
     }
@@ -1784,6 +1826,7 @@ PK11_InitToken(PK11SlotInfo *slot, PRBool loadCerts)
 	    }
 	}
     }
+
 	
     return SECSuccess;
 }
@@ -1902,6 +1945,10 @@ pk11_IsPresentCertLoad(PK11SlotInfo *slot, PRBool loadCerts)
 	return PR_TRUE;
     }
 
+    if (slot->nssToken) {
+	return nssToken_IsPresent(slot->nssToken);
+    }
+
     /* removable slots have a flag that says they are present */
     if (!slot->isThreadSafe) PK11_EnterSlotMonitor(slot);
     if (PK11_GETTAB(slot)->C_GetSlotInfo(slot->slotID,&slotInfo) != CKR_OK) {
@@ -1993,11 +2040,18 @@ PK11_GetModule(PK11SlotInfo *slot)
 	return slot->module;
 }
 
-/* returnt the default flags of a slot */
+/* return the default flags of a slot */
 unsigned long
 PK11_GetDefaultFlags(PK11SlotInfo *slot)
 {
 	return slot->defaultFlags;
+}
+
+/* Does this slot have a protected pin path? */
+PRBool
+PK11_ProtectedAuthenticationPath(PK11SlotInfo *slot)
+{
+	return slot->protectedAuthPath;
 }
 
 /*

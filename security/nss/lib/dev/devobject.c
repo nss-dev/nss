@@ -291,7 +291,15 @@ create_cryptoki_instance
   PRBool isTokenObject
 )
 {
+    PRStatus nssrv;
     nssCryptokiInstance *instance;
+    CK_ATTRIBUTE cert_template = { CKA_LABEL, NULL, 0 };
+    nssrv = nssCKObject_GetAttributes(h, &cert_template, 1,
+                                      arena, t->defaultSession, t->slot);
+    if (nssrv != PR_SUCCESS) {
+	/* a failure here indicates a device error */
+	return NULL;
+    }
     instance = nss_ZNEW(arena, nssCryptokiInstance);
     if (!instance) {
 	return NULL;
@@ -299,8 +307,24 @@ create_cryptoki_instance
     instance->handle = h;
     instance->token = t;
     instance->isTokenObject = isTokenObject;
+    NSS_CK_ATTRIBUTE_TO_UTF8(&cert_template, instance->label);
     return instance;
 }
+
+#ifdef NSS_3_4_CODE
+/* exposing this for the smart card cache code */
+NSS_IMPLEMENT nssCryptokiInstance *
+nssCryptokiInstance_Create
+(
+  NSSArena *arena,
+  NSSToken *t, 
+  CK_OBJECT_HANDLE h,
+  PRBool isTokenObject
+)
+{
+    return create_cryptoki_instance(arena, t, h, isTokenObject);
+}
+#endif
 
 static NSSCertificateType
 nss_cert_type_from_ck_attrib(CK_ATTRIBUTE_PTR attrib)
@@ -340,7 +364,6 @@ get_token_cert
 	{ CKA_VALUE,            NULL, 0 },
 	{ CKA_ISSUER,           NULL, 0 },
 	{ CKA_SERIAL_NUMBER,    NULL, 0 },
-	{ CKA_LABEL,            NULL, 0 },
 	{ CKA_SUBJECT,          NULL, 0 },
 	{ CKA_NETSCAPE_EMAIL,   NULL, 0 }
     };
@@ -371,9 +394,8 @@ get_token_cert
     NSS_CK_ATTRIBUTE_TO_ITEM(&cert_template[2], &rvCert->encoding);
     NSS_CK_ATTRIBUTE_TO_ITEM(&cert_template[3], &rvCert->issuer);
     NSS_CK_ATTRIBUTE_TO_ITEM(&cert_template[4], &rvCert->serial);
-    NSS_CK_ATTRIBUTE_TO_UTF8(&cert_template[5],  rvCert->nickname);
-    NSS_CK_ATTRIBUTE_TO_ITEM(&cert_template[6], &rvCert->subject);
-    NSS_CK_ATTRIBUTE_TO_UTF8(&cert_template[7],  rvCert->email);
+    NSS_CK_ATTRIBUTE_TO_ITEM(&cert_template[5], &rvCert->subject);
+    NSS_CK_ATTRIBUTE_TO_UTF8(&cert_template[6],  rvCert->email);
     /* XXX this would be better accomplished by dividing attributes to
      * retrieve into "required" and "optional"
      */
@@ -429,6 +451,7 @@ nssToken_ImportCertificate
   NSSToken *tok,
   nssSession *sessionOpt,
   NSSCertificate *cert,
+  NSSUTF8 *nickname,
   PRBool asTokenObject
 )
 {
@@ -447,7 +470,7 @@ nssToken_ImportCertificate
     NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_CLASS,            &g_ck_class_cert);
     NSS_CK_SET_ATTRIBUTE_VAR( attr, CKA_CERTIFICATE_TYPE,  cert_type);
     NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_ID,               &cert->id);
-    NSS_CK_SET_ATTRIBUTE_UTF8(attr, CKA_LABEL,             cert->nickname);
+    NSS_CK_SET_ATTRIBUTE_UTF8(attr, CKA_LABEL,             nickname);
     NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_VALUE,            &cert->encoding);
     NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_ISSUER,           &cert->issuer);
     NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_SUBJECT,          &cert->subject);
@@ -893,9 +916,64 @@ nssToken_ImportTrust
 	/* XXX Fix this! */
 	nssListIterator_Destroy(trust->object.instances);
 	trust->object.instances = nssList_CreateIterator(trust->object.instanceList);
+	tok->hasNoTrust = PR_FALSE;
 	return PR_SUCCESS;
     } 
     return PR_FAILURE;
+}
+
+NSS_IMPLEMENT PRStatus
+nssToken_SetTrustCache
+(
+  NSSToken *token
+)
+{
+    CK_OBJECT_CLASS tobjc = CKO_NETSCAPE_TRUST;
+    CK_ATTRIBUTE_PTR attr;
+    CK_ATTRIBUTE tobj_template[2];
+    CK_ULONG tobj_size;
+    CK_OBJECT_HANDLE obj;
+    nssSession *session = token->defaultSession;
+
+    NSS_CK_TEMPLATE_START(tobj_template, attr, tobj_size);
+    NSS_CK_SET_ATTRIBUTE_VAR( attr, CKA_CLASS, tobjc);
+    NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_TOKEN, &g_ck_true);
+    NSS_CK_TEMPLATE_FINISH(tobj_template, attr, tobj_size);
+
+    obj = find_object_by_template(token, session,
+                                   tobj_template, tobj_size);
+    token->hasNoTrust = PR_FALSE;
+    if (obj == CK_INVALID_HANDLE) {
+	token->hasNoTrust = PR_TRUE;
+    } 
+    return PR_SUCCESS;
+}
+
+NSS_IMPLEMENT PRStatus
+nssToken_SetCrlCache
+(
+  NSSToken *token
+)
+{
+    CK_OBJECT_CLASS tobjc = CKO_NETSCAPE_CRL;
+    CK_ATTRIBUTE_PTR attr;
+    CK_ATTRIBUTE tobj_template[2];
+    CK_ULONG tobj_size;
+    CK_OBJECT_HANDLE obj;
+    nssSession *session = token->defaultSession;
+
+    NSS_CK_TEMPLATE_START(tobj_template, attr, tobj_size);
+    NSS_CK_SET_ATTRIBUTE_VAR( attr, CKA_CLASS, tobjc);
+    NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_TOKEN, &g_ck_true);
+    NSS_CK_TEMPLATE_FINISH(tobj_template, attr, tobj_size);
+
+    obj = find_object_by_template(token, session,
+                                   tobj_template, tobj_size);
+    token->hasNoCrls = PR_TRUE;
+    if (obj == CK_INVALID_HANDLE) {
+	token->hasNoCrls = PR_TRUE;
+    }
+    return PR_SUCCESS;
 }
 
 static CK_OBJECT_HANDLE
@@ -913,6 +991,10 @@ get_cert_trust_handle
     CK_ULONG tobj_size;
     PRUint8 sha1[20]; /* this is cheating... */
     NSSItem sha1_result;
+
+    if (token->hasNoTrust) {
+	return CK_INVALID_HANDLE;
+    }
     sha1_result.data = sha1; sha1_result.size = sizeof sha1;
     sha1_hash(&c->encoding, &sha1_result);
     NSS_CK_TEMPLATE_START(tobj_template, attr, tobj_size);

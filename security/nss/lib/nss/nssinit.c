@@ -261,6 +261,8 @@ static const char *dllname =
 	"nssckbi.dll";
 #elif defined(HPUX)
 	"libnssckbi.sl";
+#elif defined(DARWIN)
+	"libnssckbi.dylib";
 #elif defined(XP_UNIX) || defined(XP_BEOS)
 	"libnssckbi.so";
 #elif defined(XP_MAC)
@@ -387,7 +389,7 @@ loser:
 				STAN_GetDefaultTrustDomain());
 #ifndef XP_MAC
 	/* only servers need this. We currently do not have a mac server */
-	if ((!readOnly) && (!noModDB) && (!noCertDB) && (!noRootInit)) {
+	if ((!noModDB) && (!noCertDB) && (!noRootInit)) {
 	    if (!SECMOD_HasRootCerts()) {
 		nss_FindExternalRoot(configdir);
 	    }

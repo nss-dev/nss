@@ -42,6 +42,8 @@ static const char PKINSS3HACK_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name
 #include "nsspkit.h"
 #endif /* NSSPKIT_H */
 
+#include "base.h"
+
 #include "cert.h"
 
 PR_BEGIN_EXTERN_C
@@ -75,8 +77,22 @@ STAN_DestroyNSSToken(NSSToken *token);
 NSS_EXTERN PRBool
 nssToken_SearchCerts
 (
-  NSSToken *token
+  NSSToken *token,
+  PRBool *notPresentOpt
 );
+
+/* renewInstances -- if the cached token certs have multiple instances,
+ * don't destroy them.  If this parameter is false, they will be destroyed
+ * anyway (used for clean shutdown).
+ */
+NSS_EXTERN void
+nssToken_DestroyCertList(NSSToken *token, PRBool renewInstances);
+
+NSS_EXTERN void
+nssCertificateList_DestroyTokenCerts(nssList *certList, NSSToken *token);
+
+NSS_EXTERN void
+nssCertificateList_RemoveTokenCerts(nssList *certList, NSSToken *token);
 
 NSS_EXTERN SECStatus
 STAN_AddModuleToDefaultTrustDomain

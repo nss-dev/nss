@@ -132,9 +132,12 @@ struct NSSTokenStr
     nssSession *defaultSession;
     NSSTrustDomain *trustDomain;
     PRIntervalTime lastTime;
+    PRBool hasNoTrust;
+    PRBool hasNoCrls;
 #ifdef NSS_3_4_CODE
     PK11SlotInfo *pk11slot;
     nssList *certList; /* local cache of certs for slow tokens */
+    PRBool loggedIn;
 #endif
 };
 
@@ -170,6 +173,7 @@ struct nssCryptokiInstanceStr
     CK_OBJECT_HANDLE handle;
     NSSToken *token;
     PRBool isTokenObject;
+    NSSUTF8 *label;
 };
 
 typedef struct nssTokenCertSearchStr nssTokenCertSearch;
