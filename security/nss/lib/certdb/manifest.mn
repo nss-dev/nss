@@ -61,6 +61,7 @@ CSRCS = \
 	pcertdb.c \
 	polcyxtn.c \
 	secname.c \
+	syserr.c  \
 	xauthkid.c \
 	xbsconst.c \
 	xconst.c \
