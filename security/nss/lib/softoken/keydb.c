@@ -844,7 +844,7 @@ openNewDB(const char *appName, const char *prefix, const char *dbname,
     if (appName) {
 	handle->db = rdbopen( appName, prefix, "key", NO_CREATE);
     } else {
-	handle->db = dbsopen( dbname, NO_CREATE, 0600, DB_HASH, 0 );
+	handle->db = dbopen( dbname, NO_CREATE, 0600, DB_HASH, 0 );
     }
     /* if create fails then we lose */
     if ( handle->db == NULL ) {
@@ -963,7 +963,7 @@ nsslowkey_OpenKeyDB(PRBool readOnly, const char *appName, const char *prefix,
     if (appName) {
 	handle->db = rdbopen( appName, prefix, "key", openflags);
     } else {
-	handle->db = dbsopen( dbname, openflags, 0600, DB_HASH, 0 );
+	handle->db = dbopen( dbname, openflags, 0600, DB_HASH, 0 );
     }
 
     /* check for correct version number */
@@ -2430,7 +2430,7 @@ nsslowkey_ResetKeyDB(NSSLOWKEYDBHandle *handle)
     if (handle->appname) {
 	handle->db=rdbopen(handle->appname, handle->dbname, "key", NO_CREATE);
     } else {
-	handle->db = dbsopen( handle->dbname, NO_CREATE, 0600, DB_HASH, 0 );
+	handle->db = dbopen( handle->dbname, NO_CREATE, 0600, DB_HASH, 0 );
     }
     if (handle->db == NULL) {
 	/* set an error code */
