@@ -935,6 +935,12 @@ ssl_SecureClose(sslSocket *ss)
 	!ss->recvdCloseNotify                   &&
 	(ss->ssl3 != NULL)) {
 
+	/* We don't want the final alert to be Nagle delayed. */
+	if (!ss->delayDisabled) {
+	    ssl_EnableNagleDelay(ss, PR_FALSE);
+	    ss->delayDisabled = 1;
+	}
+
 	(void) SSL3_SendAlert(ss, alert_warning, close_notify);
     }
     rv = ssl_DefClose(ss);
