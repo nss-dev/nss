@@ -1,0 +1,60 @@
+#
+# Copyright 2002 Sun Microsystems, Inc.  All rights reserved.
+# Use is subject to license terms.
+#
+#ident	"$Id$"
+#
+# This required package information file contains a list of package contents.
+# The 'pkgmk' command uses this file to identify the contents of a package
+# and their location on the development machine when building the package.
+# Can be created via a text editor or through use of the 'pkgproto' command.
+
+#!search <pathname pathname ...>	# where to find pkg objects
+#!include <filename>			# include another 'prototype' file
+#!default <mode> <owner> <group>	# default used if not specified on entry
+#!<param>=<value>			# puts parameter in pkg environment
+
+# packaging files
+i copyright
+i pkginfo
+i depend=pkgdepend
+#
+# source locations relative to the prototype file
+#
+# SUNWtlsu
+#
+d none usr 0755 root bin
+d none usr/lib 0755 root bin
+d none usr/lib/mps 0755 root bin
+d none usr/lib/mps/bin 0755 root bin
+f none usr/lib/mps/bin/certutil 0755 root bin
+f none usr/lib/mps/bin/cmsutil 0755 root bin
+f none usr/lib/mps/bin/modutil 0755 root bin
+f none usr/lib/mps/bin/pk12util 0755 root bin
+f none usr/lib/mps/bin/signtool 0755 root bin
+f none usr/lib/mps/bin/signver 0755 root bin
+f none usr/lib/mps/bin/ssltap 0755 root bin
+f none usr/lib/mps/bin/atob 0755 root bin
+f none usr/lib/mps/bin/btoa 0755 root bin
+f none usr/lib/mps/bin/bltest 0755 root bin
+f none usr/lib/mps/bin/makepqg 0755 root bin
+f none usr/lib/mps/bin/pp 0755 root bin
+f none usr/lib/mps/bin/certcgi 0755 root bin
+f none usr/lib/mps/bin/newuser 0755 root bin
+f none usr/lib/mps/bin/rsaperf 0755 root bin
+f none usr/lib/mps/bin/checkcert 0755 root bin
+f none usr/lib/mps/bin/ocspclnt 0755 root bin
+f none usr/lib/mps/bin/sdrtest 0755 root bin
+f none usr/lib/mps/bin/client 0755 root bin
+f none usr/lib/mps/bin/oidcalc 0755 root bin
+f none usr/lib/mps/bin/selfserv 0755 root bin
+f none usr/lib/mps/bin/crlutil 0755 root bin
+f none usr/lib/mps/bin/p7content 0755 root bin
+f none usr/lib/mps/bin/strsclnt 0755 root bin
+f none usr/lib/mps/bin/derdump 0755 root bin
+f none usr/lib/mps/bin/p7env 0755 root bin
+f none usr/lib/mps/bin/tstclnt 0755 root bin
+f none usr/lib/mps/bin/digest 0755 root bin
+f none usr/lib/mps/bin/p7sign 0755 root bin
+f none usr/lib/mps/bin/instinit 0755 root bin
+f none usr/lib/mps/bin/p7verify 0755 root bin
