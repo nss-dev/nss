@@ -1374,12 +1374,12 @@ SSL_InheritMPServerSIDCacheInstance(cacheDesc *cache, const char * envString)
     */
     locks_to_initialize = cache->numSIDCacheLocks + 2;
     newLocks = PORT_NewArray(sidCacheLock, locks_to_initialize);
-    cache->sidCacheLocks = newLocks;
     if (!newLocks)
     	goto loser;
     /* copy the old locks */
     memcpy(newLocks, cache->sidCacheLocks, 
            locks_to_initialize * sizeof(sidCacheLock));
+    cache->sidCacheLocks = newLocks;
     /* fix the locks */		
     for (; locks_initialized < locks_to_initialize; ++locks_initialized) {
         /* now, make a local PRLock in this sslMutex for this child process */
