@@ -559,7 +559,7 @@ CERT_DecodeOCSPRequest(SECItem *src)
     SECStatus rv = SECFailure;
     CERTOCSPRequest *dest = NULL;
     int i;
-
+    SECItem newSrc;
 
     arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
     if (arena == NULL) {
@@ -572,7 +572,14 @@ CERT_DecodeOCSPRequest(SECItem *src)
     }
     dest->arena = arena;
 
-    rv = SEC_QuickDERDecodeItem(arena, dest, ocsp_OCSPRequestTemplate, src);
+    /* copy the DER into the arena, since Quick DER returns data that points
+       into the DER input, which may get freed by the caller */
+    rv = SECITEM_CopyItem(arena, &newSrc, src);
+    if ( rv != SECSuccess ) {
+	goto loser;
+    }
+
+    rv = SEC_QuickDERDecodeItem(arena, dest, ocsp_OCSPRequestTemplate, &newSrc);
     if (rv != SECSuccess) {
 	if (PORT_GetError() == SEC_ERROR_BAD_DER)
 	    PORT_SetError(SEC_ERROR_OCSP_MALFORMED_REQUEST);
@@ -1296,6 +1303,7 @@ ocsp_DecodeBasicOCSPResponse(PRArenaPool *arena, SECItem *src)
     const SEC_ASN1Template *responderIDTemplate;
     int derTag;
     SECStatus rv;
+    SECItem newsrc;
 
     mark = PORT_ArenaMark(arena);
 
@@ -1304,8 +1312,15 @@ ocsp_DecodeBasicOCSPResponse(PRArenaPool *arena, SECItem *src)
 	goto loser;
     }
 
+    /* copy the DER into the arena, since Quick DER returns data that points
+       into the DER input, which may get freed by the caller */
+    rv = SECITEM_CopyItem(arena, &newsrc, src);
+    if ( rv != SECSuccess ) {
+	goto loser;
+    }
+
     rv = SEC_QuickDERDecodeItem(arena, basicResponse,
-			    ocsp_BasicOCSPResponseTemplate, src);
+			    ocsp_BasicOCSPResponseTemplate, &newsrc);
     if (rv != SECSuccess) {
 	if (PORT_GetError() == SEC_ERROR_BAD_DER)
 	    PORT_SetError(SEC_ERROR_OCSP_MALFORMED_RESPONSE);
@@ -1333,6 +1348,7 @@ ocsp_DecodeBasicOCSPResponse(PRArenaPool *arena, SECItem *src)
     if (responderID == NULL) {
 	goto loser;
     }
+
     rv = SEC_QuickDERDecodeItem(arena, responderID, responderIDTemplate,
 			    &responseData->derResponderID);
     if (rv != SECSuccess) {
@@ -1421,6 +1437,7 @@ CERT_DecodeOCSPResponse(SECItem *src)
     CERTOCSPResponse *response = NULL;
     SECStatus rv = SECFailure;
     ocspResponseStatus sv;
+    SECItem newSrc;
 
     arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
     if (arena == NULL) {
@@ -1433,7 +1450,14 @@ CERT_DecodeOCSPResponse(SECItem *src)
     }
     response->arena = arena;
 
-    rv = SEC_QuickDERDecodeItem(arena, response, ocsp_OCSPResponseTemplate, src);
+    /* copy the DER into the arena, since Quick DER returns data that points
+       into the DER input, which may get freed by the caller */
+    rv = SECITEM_CopyItem(arena, &newSrc, src);
+    if ( rv != SECSuccess ) {
+	goto loser;
+    }
+
+    rv = SEC_QuickDERDecodeItem(arena, response, ocsp_OCSPResponseTemplate, &newSrc);
     if (rv != SECSuccess) {
 	if (PORT_GetError() == SEC_ERROR_BAD_DER)
 	    PORT_SetError(SEC_ERROR_OCSP_MALFORMED_RESPONSE);
