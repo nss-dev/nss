@@ -25,4 +25,7 @@ P SUNWcsr	Core Solaris, (Root)
 P SUNWcsu	Core Solaris, (Usr)
 P SUNWcsd	Core Solaris Devices
 P SUNWcsl	Core Solaris Libraries
+P SUNWcarx  Core Architecture, (Root) (64-bit)
+P SUNWcsxu  Core Solaris (Usr) (64-bit)
+P SUNWcslx  Core Solaris Libraries (64-bit)
 P SUNWprx	Netscape Portable Runtime
