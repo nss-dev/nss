@@ -969,6 +969,7 @@ Usage(char *progName)
 #define FPS fprintf(stderr, 
     FPS "Type %s -H for more detailed descriptions\n", progName);
     FPS "Usage:  %s -N [-d certdir] [-P dbprefix] [-f pwfile]\n", progName);
+    FPS "Usage:  %s -T [-d certdir] [-P dbprefix] [-h token-name] [-f pwfile]\n", progName);
     FPS "\t%s -A -n cert-name -t trustargs [-d certdir] [-P dbprefix] [-a] [-i input]\n", 
     	progName);
     FPS "\t%s -C [-c issuer-name | -x] -i cert-request-file -o cert-file\n"
@@ -1158,6 +1159,16 @@ static void LongUsage(char *progName)
 	"   -d certdir");
     FPS "%-20s Cert & Key database prefix\n",
 	"   -P dbprefix");
+    FPS "\n");
+
+    FPS "%-15s Reset the Key database or token\n",
+	"-T");
+    FPS "%-20s Cert database directory (default is ~/.netscape)\n",
+	"   -d certdir");
+    FPS "%-20s Cert & Key database prefix\n",
+	"   -P dbprefix");
+    FPS "%-20s Token to reset (default is internal)\n"
+	"   -h token-name");
     FPS "\n");
 
     FPS "%-15s Generate a certificate request (stdout)\n",
@@ -2036,6 +2047,7 @@ enum {
     cmd_NewDBs,
     cmd_CertReq,
     cmd_CreateAndAddCert,
+    cmd_TokenReset,
     cmd_ListModules,
     cmd_CheckCertValidity,
     cmd_ChangePassword,
@@ -2044,7 +2056,8 @@ enum {
 
 /*  Certutil options */
 enum {
-    opt_AddKeyUsageExt = 0,
+    opt_SSOPass = 0,
+    opt_AddKeyUsageExt,
     opt_AddBasicConstraintExt,
     opt_AddAuthorityKeyIDExt,
     opt_AddCRLDistPtsExt,
@@ -2094,6 +2107,7 @@ static secuCommandFlag certutil_commands[] =
 	{ /* cmd_NewDBs              */  'N', PR_FALSE, 0, PR_FALSE },
 	{ /* cmd_CertReq             */  'R', PR_FALSE, 0, PR_FALSE },
 	{ /* cmd_CreateAndAddCert    */  'S', PR_FALSE, 0, PR_FALSE },
+	{ /* cmd_TokenReset          */  'T', PR_FALSE, 0, PR_FALSE },
 	{ /* cmd_ListModules         */  'U', PR_FALSE, 0, PR_FALSE },
 	{ /* cmd_CheckCertValidity   */  'V', PR_FALSE, 0, PR_FALSE },
 	{ /* cmd_ChangePassword      */  'W', PR_FALSE, 0, PR_FALSE },
@@ -2102,6 +2116,7 @@ static secuCommandFlag certutil_commands[] =
 
 static secuCommandFlag certutil_options[] =
 {
+	{ /* opt_SSOPass             */  '0', PR_TRUE,  0, PR_FALSE },
 	{ /* opt_AddKeyUsageExt      */  '1', PR_FALSE, 0, PR_FALSE },
 	{ /* opt_AddBasicConstraintExt*/ '2', PR_FALSE, 0, PR_FALSE },
 	{ /* opt_AddAuthorityKeyIDExt*/  '3', PR_FALSE, 0, PR_FALSE },
@@ -2533,6 +2548,17 @@ main(int argc, char **argv)
     /*  Change key db password (-W) (future - change pw to slot?)  */
     if (certutil.commands[cmd_ChangePassword].activated) {
 	rv = SECU_ChangePW(slot, 0, certutil.options[opt_PasswordFile].arg);
+	return !rv - 1;
+    }
+    /*  Reset the a token */
+    if (certutil.commands[cmd_TokenReset].activated) {
+	char *sso_pass = "";
+
+	if (certutil.options[opt_SSOPass].activated) {
+	    sso_pass = certutil.options[opt_SSOPass].arg;
+ 	}
+	rv = PK11_ResetToken(slot,sso_pass);
+
 	return !rv - 1;
     }
     /*  Check cert validity against current time (-V)  */
