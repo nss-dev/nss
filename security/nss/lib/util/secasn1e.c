@@ -94,7 +94,7 @@ typedef struct sec_asn1e_state_struct {
  * it is passed to SEC_ASN1EncoderFinish().
  */
 struct sec_EncoderContext_struct {
-    PRArenaPool *our_pool;		/* for our internal allocs */
+    asn1Arena *our_pool;		/* for our internal allocs */
 
     sec_asn1e_state *current;
     sec_asn1e_parse_status status;
@@ -678,12 +678,17 @@ sec_asn1e_contents_length (const SEC_ASN1Template *theTemplate, void *src,
 
       case SEC_ASN1_BIT_STRING:
 	/* convert bit length to byte */
+#ifdef STAN_BUILD
+	len = (((SECItem *)src)->size + 7) >> 3;
+#else
 	len = (((SECItem *)src)->len + 7) >> 3;
+#endif
 	/* bit string contents involve an extra octet */
 	if (len)
 	    len++;
 	break;
 
+#ifndef STAN_BUILD
       case SEC_ASN1_INTEGER:
 	/* ASN.1 INTEGERs are signed.
 	 * If the source is an unsigned integer, the encoder will need 
@@ -712,9 +717,14 @@ sec_asn1e_contents_length (const SEC_ASN1Template *theTemplate, void *src,
 	    }
 	}
 	break;
+#endif
 
       default:
+#ifdef STAN_BUILD
+	len = ((SECItem *)src)->size;
+#else
 	len = ((SECItem *)src)->len;
+#endif
 	if (may_stream && len == 0 && !ignoresubstream)
 	    len = 1;	/* if we're streaming, we may have a secitem w/len 0 as placeholder */
 	break;
@@ -975,8 +985,13 @@ sec_asn1e_write_contents (sec_asn1e_state *state,
 		char rem;
 
 		item = (SECItem *)state->src;
+#ifdef STAN_BUILD
+		len = (item->size + 7) >> 3;
+		rem = (len << 3) - item->size;	/* remaining bits */
+#else
 		len = (item->len + 7) >> 3;
 		rem = (len << 3) - item->len;	/* remaining bits */
+#endif
 		sec_asn1e_write_contents_bytes (state, &rem, 1);
 		sec_asn1e_write_contents_bytes (state, (char *) item->data,
 						len);
@@ -985,7 +1000,11 @@ sec_asn1e_write_contents (sec_asn1e_state *state,
 
 	  case SEC_ASN1_BMP_STRING:
 	    /* The number of bytes must be divisable by 2 */
+#ifdef STAN_BUILD
+	    if ((((SECItem *)state->src)->size) % 2) {
+#else
 	    if ((((SECItem *)state->src)->len) % 2) {
+#endif
 		SEC_ASN1EncoderContext *cx;
 
 		cx = state->top;
@@ -997,7 +1016,11 @@ sec_asn1e_write_contents (sec_asn1e_state *state,
 
 	  case SEC_ASN1_UNIVERSAL_STRING:
 	    /* The number of bytes must be divisable by 4 */
+#ifdef STAN_BUILD
+	    if ((((SECItem *)state->src)->size) % 4) {
+#else
 	    if ((((SECItem *)state->src)->len) % 4) {
+#endif
 		SEC_ASN1EncoderContext *cx;
 
 		cx = state->top;
@@ -1007,6 +1030,7 @@ sec_asn1e_write_contents (sec_asn1e_state *state,
 	    /* otherwise, fall through to write the content */
 	    goto process_string;
 
+#ifndef STAN_BUILD
 	  case SEC_ASN1_INTEGER:
 	   /* ASN.1 INTEGERs are signed.  If the source is an unsigned
 	    * integer, the encoder will need to handle the conversion here.
@@ -1048,6 +1072,7 @@ sec_asn1e_write_contents (sec_asn1e_state *state,
 	    }
 	    /* done with this content */
 	    break;
+#endif
 			
 process_string:			
 	  default:
@@ -1055,8 +1080,13 @@ process_string:
 		SECItem *item;
 
 		item = (SECItem *)state->src;
+#ifdef STAN_BUILD
+		sec_asn1e_write_contents_bytes (state, (char *) item->data,
+						item->size);
+#else
 		sec_asn1e_write_contents_bytes (state, (char *) item->data,
 						item->len);
+#endif
 	    }
 	    break;
 	}
@@ -1270,7 +1300,7 @@ SEC_ASN1EncoderContext *
 SEC_ASN1EncoderStart (void *src, const SEC_ASN1Template *theTemplate,
 		      SEC_ASN1WriteProc output_proc, void *output_arg)
 {
-    PRArenaPool *our_pool;
+    asn1Arena *our_pool;
     SEC_ASN1EncoderContext *cx;
 
     our_pool = PORT_NewArena (SEC_ASN1_DEFAULT_ARENA_SIZE);
@@ -1419,8 +1449,13 @@ sec_asn1e_encode_item_store (void *arg, const char *buf, unsigned long len,
     dest = (SECItem*)arg;
     PORT_Assert (dest != NULL);
 
+#ifdef STAN_BUILD
+    PORT_Memcpy (dest->data + dest->size, (void *)buf, len);
+    dest->size += len;
+#else
     PORT_Memcpy (dest->data + dest->len, buf, len);
     dest->len += len;
+#endif
 }
 
 
@@ -1432,7 +1467,7 @@ sec_asn1e_encode_item_store (void *arg, const char *buf, unsigned long len,
  * XXX This seems like a reasonable general-purpose function (for SECITEM_)?
  */
 static SECItem *
-sec_asn1e_allocate_item (PRArenaPool *poolp, SECItem *dest, unsigned long len)
+sec_asn1e_allocate_item (asn1Arena *poolp, SECItem *dest, unsigned long len)
 {
     if (poolp != NULL) {
 	void *release;
@@ -1460,7 +1495,9 @@ sec_asn1e_allocate_item (PRArenaPool *poolp, SECItem *dest, unsigned long len)
 	if (dest == NULL)
 	    dest = (SECItem*)PORT_Alloc (sizeof(SECItem));
 	if (dest != NULL) {
+#ifndef STAN_BUILD
 	    dest->type = siBuffer;
+#endif
 	    dest->data = (unsigned char*)PORT_Alloc (len);
 	    if (dest->data == NULL) {
 		if (indest == NULL)
@@ -1475,7 +1512,7 @@ sec_asn1e_allocate_item (PRArenaPool *poolp, SECItem *dest, unsigned long len)
 
 
 SECItem *
-SEC_ASN1EncodeItem (PRArenaPool *poolp, SECItem *dest, void *src,
+SEC_ASN1EncodeItem (asn1Arena *poolp, SECItem *dest, void *src,
 		    const SEC_ASN1Template *theTemplate)
 {
     unsigned long encoding_length;
@@ -1498,16 +1535,24 @@ SEC_ASN1EncodeItem (PRArenaPool *poolp, SECItem *dest, void *src,
     if (dest->data == NULL)
 	return NULL;
 
+#ifdef STAN_BUILD
+    dest->size = 0;
+#else
     dest->len = 0;
+#endif
     (void) SEC_ASN1Encode (src, theTemplate, sec_asn1e_encode_item_store, dest);
 
+#ifdef STAN_BUILD
+    PORT_Assert (encoding_length == dest->size);
+#else
     PORT_Assert (encoding_length == dest->len);
+#endif
     return dest;
 }
 
 
 static SECItem *
-sec_asn1e_integer(PRArenaPool *poolp, SECItem *dest, unsigned long value,
+sec_asn1e_integer(asn1Arena *poolp, SECItem *dest, unsigned long value,
 		  PRBool make_unsigned)
 {
     unsigned long copy;
@@ -1542,11 +1587,19 @@ sec_asn1e_integer(PRArenaPool *poolp, SECItem *dest, unsigned long value,
     /*
      * Store the value, byte by byte, in the item.
      */
+#ifdef STAN_BUILD
+    dest->size = len;
+    while (len) {
+	((unsigned char *)dest->data)[--len] = value;
+	value >>= 8;
+    }
+#else
     dest->len = len;
     while (len) {
 	dest->data[--len] = value;
 	value >>= 8;
     }
+#endif
     PORT_Assert (value == 0);
 
     return dest;
@@ -1554,14 +1607,14 @@ sec_asn1e_integer(PRArenaPool *poolp, SECItem *dest, unsigned long value,
 
 
 SECItem *
-SEC_ASN1EncodeInteger(PRArenaPool *poolp, SECItem *dest, long value)
+SEC_ASN1EncodeInteger(asn1Arena *poolp, SECItem *dest, long value)
 {
     return sec_asn1e_integer (poolp, dest, (unsigned long) value, PR_FALSE);
 }
 
 
 extern SECItem *
-SEC_ASN1EncodeUnsignedInteger(PRArenaPool *poolp,
+SEC_ASN1EncodeUnsignedInteger(asn1Arena *poolp,
 			      SECItem *dest, unsigned long value)
 {
     return sec_asn1e_integer (poolp, dest, value, PR_TRUE);

@@ -42,8 +42,6 @@ PRIVATE_EXPORTS = \
 EXPORTS =	   \
 	nssbaset.h \
 	nssbase.h  \
-	nssrwlkt.h \
-	nssrwlk.h  \
 	$(NULL)
 
 MODULE = security
@@ -59,7 +57,6 @@ CSRCS =		   \
 	utf8.c	   \
 	hash.c     \
 	whatnspr.c \
-	nssrwlk.c  \
 	$(NULL)
 
 

@@ -30,11 +30,24 @@
 # may use your version of this file under either the MPL or the
 # GPL.
 #
-MAKEFILE_CVS_ID = "@(#) $RCSfile$ $Revision$ $Date$ $Name$"
+# MAKEFILE_CVS_ID = "@(#) $RCSfile$ $Revision$ $Date$ $Name$"
 
 include manifest.mn
 include $(CORE_DEPTH)/coreconf/config.mk
 include config.mk
 include $(CORE_DEPTH)/coreconf/rules.mk
 
-export:: private_export
+#export:: private_export
+
+export:: copy_files private_export
+
+FILES=$(shell ls -d ../util/secasn1*)
+
+# XXX hack to share secasn1 files for now
+copy_files::
+	for file in $(FILES) ; do \
+	    if test -f $$file; then \
+		$(INSTALL) -m 444 $$file ./; \
+	    fi; \
+	done;
+

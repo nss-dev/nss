@@ -188,8 +188,8 @@ typedef struct sec_asn1d_state_struct {
  * SEC_ASN1DecoderFinish().
  */
 struct sec_DecoderContext_struct {
-    PRArenaPool *our_pool;		/* for our internal allocs */
-    PRArenaPool *their_pool;		/* for destination structure allocs */
+    asn1Arena *our_pool;		/* for our internal allocs */
+    asn1Arena *their_pool;		/* for destination structure allocs */
 #ifdef SEC_ASN1D_FREE_ON_ERROR		/*
 					 * XXX see comment below (by same
 					 * ifdef) that explains why this
@@ -220,7 +220,7 @@ struct sec_DecoderContext_struct {
  * XXX this is a fairly generic function that may belong elsewhere
  */
 static void *
-sec_asn1d_alloc (PRArenaPool *poolp, unsigned long len)
+sec_asn1d_alloc (asn1Arena *poolp, unsigned long len)
 {
     void *thing;
 
@@ -244,7 +244,7 @@ sec_asn1d_alloc (PRArenaPool *poolp, unsigned long len)
  * XXX this is a fairly generic function that may belong elsewhere
  */
 static void *
-sec_asn1d_zalloc (PRArenaPool *poolp, unsigned long len)
+sec_asn1d_zalloc (asn1Arena *poolp, unsigned long len)
 {
     void *thing;
 
@@ -818,7 +818,7 @@ static void
 sec_asn1d_prepare_for_contents (sec_asn1d_state *state)
 {
     SECItem *item;
-    PRArenaPool *poolp;
+    asn1Arena *poolp;
     unsigned long alloc_len;
 
 
@@ -965,7 +965,11 @@ sec_asn1d_prepare_for_contents (sec_asn1d_state *state)
 	if (state->dest != NULL) {
 	    item = (SECItem *)(state->dest);
 	    item->data = NULL;
+#ifdef STAN_BUILD
+	    item->size = 0;
+#else
 	    item->len = 0;
+#endif
 	}
 	state->place = afterEndOfContents;
 	break;
@@ -1030,7 +1034,11 @@ regular_string_type:
 	if (item == NULL || state->top->filter_only) {
 	    if (item != NULL) {
 		item->data = NULL;
+#ifdef STAN_BUILD
+		item->size = 0;
+#else
 		item->len = 0;
+#endif
 	    }
 	    alloc_len = 0;
 	} else if (state->substring) {
@@ -1044,13 +1052,21 @@ regular_string_type:
 	     * whole and free our pool allocation.
 	     */
 	    if (item->data == NULL) {
+#ifdef STAN_BUILD
+		PORT_Assert (item->size == 0);
+#else
 		PORT_Assert (item->len == 0);
+#endif
 		poolp = state->top->our_pool;
 	    } else {
 		alloc_len = 0;
 	    }
 	} else {
+#ifdef STAN_BUILD
+	    item->size = 0;
+#else
 	    item->len = 0;
+#endif
 	    item->data = NULL;
 	    poolp = state->top->their_pool;
 	}
@@ -1060,7 +1076,11 @@ regular_string_type:
 	    struct subitem *subitem;
 	    int len;
 
+#ifdef STAN_BUILD
+	    PORT_Assert (item->size == 0 && item->data == NULL);
+#else
 	    PORT_Assert (item->len == 0 && item->data == NULL);
+#endif
 	    /*
 	     * Check for and handle an ANY which has stashed aside the
 	     * header (identifier and length) bytes for us to include
@@ -1082,10 +1102,18 @@ regular_string_type:
 	    len = 0;
 	    for (subitem = state->subitems_head;
 		 subitem != NULL; subitem = subitem->next) {
+#ifdef STAN_BUILD
+		PORT_Memcpy (item->data + len, (void *)subitem->data, subitem->len);
+#else
 		PORT_Memcpy (item->data + len, subitem->data, subitem->len);
+#endif
 		len += subitem->len;
 	    }
+#ifdef STAN_BUILD
+	    item->size = len;
+#else
 	    item->len = len;
+#endif
 
 	    /*
 	     * Because we use arenas and have a mark set, we later free
@@ -1180,7 +1208,11 @@ regular_string_type:
 	if (state->contents_length) {
 	    if (state->dest != NULL) {
 		item = (SECItem *)(state->dest);
+#ifdef STAN_BUILD
+		item->size = 0;
+#else
 		item->len = 0;
+#endif
 		if (state->top->filter_only) {
 		    item->data = NULL;
 		} else {
@@ -1253,7 +1285,11 @@ sec_asn1d_reuse_encoding (sec_asn1d_state *state)
     item = (SECItem *)(state->dest);
     PORT_Assert (item != NULL);
 
+#ifdef STAN_BUILD
+    PORT_Assert (item->size == consumed);
+#else
     PORT_Assert (item->len == consumed);
+#endif
 
     /*
      * Free any grandchild.
@@ -1297,8 +1333,13 @@ sec_asn1d_reuse_encoding (sec_asn1d_state *state)
     /*
      * Now parse that out of our data.
      */
+#ifdef STAN_BUILD
+    if (SEC_ASN1DecoderUpdate (state->top,
+			       (char *) item->data, item->size) != SECSuccess)
+#else
     if (SEC_ASN1DecoderUpdate (state->top,
 			       (char *) item->data, item->len) != SECSuccess)
+#endif
 	return;
 
     PORT_Assert (state->top->current == state);
@@ -1338,6 +1379,7 @@ sec_asn1d_parse_leaf (sec_asn1d_state *state,
 
     item = (SECItem *)(state->dest);
     if (item != NULL && item->data != NULL) {
+#ifndef STAN_BUILD
 	/* Strip leading zeroes when target is unsigned integer */
 	if (state->underlying_kind == SEC_ASN1_INTEGER && /* INTEGER   */
 	    item->len == 0 &&                             /* MSB       */
@@ -1348,8 +1390,14 @@ sec_asn1d_parse_leaf (sec_asn1d_state *state,
 		len--;
 	    }
 	}
+#endif
+#ifdef STAN_BUILD
+	PORT_Memcpy (item->data + item->size, (void *)buf, len);
+	item->size += len;
+#else
 	PORT_Memcpy (item->data + item->len, buf, len);
 	item->len += len;
+#endif
     }
     state->pending -= bufLen;
     if (state->pending == 0)
@@ -1372,7 +1420,11 @@ sec_asn1d_parse_bit_string (sec_asn1d_state *state,
 	if (state->dest != NULL) {
 	    SECItem *item = (SECItem *)(state->dest);
 	    item->data = NULL;
+#ifdef STAN_BUILD
+	    item->size = 0;
+#else
 	    item->len = 0;
+#endif
 	    state->place = beforeEndOfContents;
 	    return 0;
 	}
@@ -1410,8 +1462,13 @@ sec_asn1d_parse_more_bit_string (sec_asn1d_state *state,
 	SECItem *item;
 
 	item = (SECItem *)(state->dest);
+#ifdef STAN_BUILD
+	if (item->size)
+	    item->size = (item->size << 3) - state->bit_string_unused_bits;
+#else
 	if (item->len)
 	    item->len = (item->len << 3) - state->bit_string_unused_bits;
+#endif
     }
 
     return len;
@@ -1443,7 +1500,7 @@ sec_asn1d_add_to_subitems (sec_asn1d_state *state,
 	    state->top->status = decodeError;
 	    return NULL;
 	}
-	PORT_Memcpy (copy, data, len);
+	PORT_Memcpy (copy, (void *)data, len);
 	thing->data = copy;
     } else {
 	thing->data = data;
@@ -1473,8 +1530,13 @@ sec_asn1d_record_any_header (sec_asn1d_state *state,
     item = (SECItem *)(state->dest);
     if (item != NULL && item->data != NULL) {
 	PORT_Assert (state->substring);
+#ifdef STAN_BUILD
+	PORT_Memcpy (item->data + item->size, (void *)buf, len);
+	item->size += len;
+#else
 	PORT_Memcpy (item->data + item->len, buf, len);
 	item->len += len;
+#endif
     } else {
 	sec_asn1d_add_to_subitems (state, buf, len, PR_TRUE);
     }
@@ -1531,12 +1593,20 @@ sec_asn1d_next_substring (sec_asn1d_state *state)
 	     * Save the string away for later concatenation.
 	     */
 	    PORT_Assert (item->data != NULL);
+#ifdef STAN_BUILD
+	    sec_asn1d_add_to_subitems (state, item->data, item->size, PR_FALSE);
+#else
 	    sec_asn1d_add_to_subitems (state, item->data, item->len, PR_FALSE);
+#endif
 	    /*
 	     * Clear the child item for the next round.
 	     */
 	    item->data = NULL;
+#ifdef STAN_BUILD
+	    item->size = 0;
+#else
 	    item->len = 0;
+#endif
 	}
 
 	/*
@@ -1880,7 +1950,11 @@ sec_asn1d_concat_substrings (sec_asn1d_state *state)
 	    state->top->status = decodeError;
 	    return;
 	}
+#ifdef STAN_BUILD
+	item->size = item_len;
+#else
 	item->len = item_len;
+#endif
 
 	where = item->data;
 	substring = state->subitems_head;
@@ -1889,7 +1963,7 @@ sec_asn1d_concat_substrings (sec_asn1d_state *state)
 		item_len = (substring->len + 7) >> 3;
 	    else
 		item_len = substring->len;
-	    PORT_Memcpy (where, substring->data, item_len);
+	    PORT_Memcpy (where, (void *)substring->data, item_len);
 	    where += item_len;
 	    substring = substring->next;
 	}
@@ -2267,14 +2341,22 @@ sec_asn1d_uinteger(SECItem *src)
     unsigned long value;
     int len;
 
+#ifdef STAN_BUILD
+    if (src->size > 5 || (src->size > 4 && ((unsigned char *)src->data)[0] == 0))
+#else
     if (src->len > 5 || (src->len > 4 && src->data[0] == 0))
+#endif
 	return 0;
 
     value = 0;
+#ifdef STAN_BUILD
+    len = src->size;
+#else
     len = src->len;
+#endif
     while (len) {
 	value <<= 8;
-	value |= src->data[--len];
+	value |= ((unsigned char *)src->data)[--len];
     }
     return value;
 }
@@ -2290,7 +2372,11 @@ SEC_ASN1DecodeInteger(SECItem *src, unsigned long *value)
 	return SECFailure;
     }
 
+#ifdef STAN_BUILD
+    if (src->size > sizeof(unsigned long)) {
+#else
     if (src->len > sizeof(unsigned long)) {
+#endif
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
 	return SECFailure;
     }
@@ -2300,15 +2386,19 @@ SEC_ASN1DecodeInteger(SECItem *src, unsigned long *value)
     	return SECFailure;
     }
 
-    if (src->data[0] & 0x80)
+    if (((unsigned char *)src->data)[0] & 0x80)
 	v = -1;		/* signed and negative - start with all 1's */
     else
 	v = 0;
 
+#ifdef STAN_BUILD
+    for (i= 0; i < src->size; i++) {
+#else
     for (i= 0; i < src->len; i++) {
+#endif
 	/* shift in next byte */
 	v <<= 8;
-	v |= src->data[i];
+	v |= ((unsigned char *)src->data)[i];
     }
     *value = v;
     return SECSuccess;
@@ -2590,10 +2680,10 @@ SEC_ASN1DecoderFinish (SEC_ASN1DecoderContext *cx)
 
 
 SEC_ASN1DecoderContext *
-SEC_ASN1DecoderStart (PRArenaPool *their_pool, void *dest,
+SEC_ASN1DecoderStart (asn1Arena *their_pool, void *dest,
 		      const SEC_ASN1Template *theTemplate)
 {
-    PRArenaPool *our_pool;
+    asn1Arena *our_pool;
     SEC_ASN1DecoderContext *cx;
 
     our_pool = PORT_NewArena (SEC_ASN1_DEFAULT_ARENA_SIZE);
@@ -2674,7 +2764,7 @@ SEC_ASN1DecoderClearNotifyProc (SEC_ASN1DecoderContext *cx)
 
 
 SECStatus
-SEC_ASN1Decode (PRArenaPool *poolp, void *dest,
+SEC_ASN1Decode (asn1Arena *poolp, void *dest,
 		const SEC_ASN1Template *theTemplate,
 		const char *buf, long len)
 {
@@ -2696,12 +2786,17 @@ SEC_ASN1Decode (PRArenaPool *poolp, void *dest,
 
 
 SECStatus
-SEC_ASN1DecodeItem (PRArenaPool *poolp, void *dest,
+SEC_ASN1DecodeItem (asn1Arena *poolp, void *dest,
 		    const SEC_ASN1Template *theTemplate,
 		    SECItem *item)
 {
+#ifdef STAN_BUILD
+    return SEC_ASN1Decode (poolp, dest, theTemplate,
+			   (char *) item->data, item->size);
+#else
     return SEC_ASN1Decode (poolp, dest, theTemplate,
 			   (char *) item->data, item->len);
+#endif
 }
 
 

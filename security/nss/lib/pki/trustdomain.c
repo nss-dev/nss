@@ -43,9 +43,11 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #include "pkim.h"
 #endif /* PKIM_H */
 
+#ifdef CERT_CACHE
 #ifndef CERTCACHE_H
 #include "certcache.h"
 #endif /* CERTCACHE_H */
+#endif /* CERT_CACHE */
 
 struct NSSTrustDomainStr {
   PRInt32 refCount;
@@ -56,7 +58,9 @@ struct NSSTrustDomainStr {
     nssSlotList *forCiphers;
     nssSlotList *forTrust;
   } slots;
+#ifdef CERT_CACHE
   nssCertificateCache *cache;
+#endif /* CERT_CACHE */
 };
 
 extern const NSSError NSS_ERROR_NOT_FOUND;
@@ -92,10 +96,12 @@ NSSTrustDomain_Create
     if (!rvTD->slots.forTrust) {
 	goto loser;
     }
+#ifdef CERT_CACHE
     rvTD->cache = nssCertificateCache_Create();
     if (!rvTD->cache) {
 	goto loser;
     }
+#endif /* CERT_CACHE */
     rvTD->arena = arena;
     rvTD->refCount = 1;
 #ifdef NSS_3_4_CODE
@@ -117,7 +123,9 @@ NSSTrustDomain_Destroy
 	nssSlotList_Destroy(td->slots.forCerts);
 	nssSlotList_Destroy(td->slots.forCiphers);
 	nssSlotList_Destroy(td->slots.forTrust);
+#ifdef CERT_CACHE
 	nssCertificateCache_Destroy(td->cache);
+#endif /* CERT_CACHE */
 	/* Destroy the trust domain */
 	nssArena_Destroy(td->arena);
     }
@@ -154,6 +162,7 @@ nssTrustDomain_GetSessionForToken
 }
 
 /* XXX */
+#ifdef CERT_CACHE
 static PRBool
 nssTrustDomain_IsUpToDate
 (
@@ -163,6 +172,7 @@ nssTrustDomain_IsUpToDate
 {
     return (updateLevel > 0);
 }
+#endif /* CERT_CACHE */
 
 NSS_IMPLEMENT PRStatus
 NSSTrustDomain_SetDefaultCallback
@@ -492,6 +502,7 @@ nssTrustDomain_FindCertificatesByNickname
     NSSCertificate **rvCerts = NULL;
     nssPKIObjectCollection *collection = NULL;
     nssUpdateLevel updateLevel;
+#ifdef CERT_CACHE
     /* see if this search is already cached */
     rvCerts = nssCertificateCache_FindCertificatesByNickname(td->cache,
                                                              name,
@@ -506,6 +517,7 @@ nssTrustDomain_FindCertificatesByNickname
 	 */
 	return rvCerts;
     }
+#endif /* CERT_CACHE */
     /* initialize the collection of token certificates with the set of
      * cached certs (if any).
      */
@@ -571,6 +583,7 @@ nssTrustDomain_FindCertificatesByNickname
     rvCerts = nssPKIObjectCollection_GetCertificates(collection,
                                                      rvOpt, maximumOpt,
                                                      arenaOpt);
+#ifdef CERT_CACHE
     /* Cache this search.  It is up-to-date w.r.t. the time when it grabbed
      * the slots to search.
      */
@@ -578,6 +591,7 @@ nssTrustDomain_FindCertificatesByNickname
                                                             name,
                                                             rvCerts,
                                                             updateLevel);
+#endif /* CERT_CACHE */
     nssPKIObjectCollection_Destroy(collection);
     nssSlotArray_Destroy(slots);
     return rvCerts;
@@ -669,6 +683,7 @@ nssTrustDomain_FindCertificatesBySubject
     NSSCertificate **rvCerts = NULL;
     nssPKIObjectCollection *collection = NULL;
     nssUpdateLevel updateLevel;
+#ifdef CERT_CACHE
     /* see if this search is already cached */
     rvCerts = nssCertificateCache_FindCertificatesBySubject(td->cache,
                                                             subject,
@@ -679,6 +694,7 @@ nssTrustDomain_FindCertificatesBySubject
     if (nssTrustDomain_IsUpToDate(td, updateLevel)) {
 	return rvCerts;
     }
+#endif /* CERT_CACHE */
     collection = nssCertificateCollection_Create(td, rvCerts);
     if (!collection) {
 	return (NSSCertificate **)NULL;
@@ -729,10 +745,12 @@ nssTrustDomain_FindCertificatesBySubject
     rvCerts = nssPKIObjectCollection_GetCertificates(collection,
                                                      rvOpt, maximumOpt,
                                                      arenaOpt);
+#ifdef CERT_CACHE
     status = nssCertificateCache_AddCertificatesForSubject(td->cache,
                                                            subject,
                                                            rvCerts,
                                                            updateLevel);
+#endif /* CERT_CACHE */
     nssPKIObjectCollection_Destroy(collection);
     nssSlotArray_Destroy(slots);
     return rvCerts;
@@ -849,6 +867,7 @@ nssTrustDomain_FindCertificateByIssuerAndSerialNumber
     NSSCertificate *rvCert = NULL;
     nssPKIObjectCollection *collection = NULL;
     nssUpdateLevel updateLevel;
+#ifdef CERT_CACHE
     /* see if this search is already cached */
     rvCert = nssCertificateCache_FindCertificateByIssuerAndSerialNumber(
                                                                td->cache,
@@ -858,6 +877,7 @@ nssTrustDomain_FindCertificateByIssuerAndSerialNumber
     if (nssTrustDomain_IsUpToDate(td, updateLevel)) {
 	return rvCert;
     }
+#endif /* CERT_CACHE */
     slots = nssTrustDomain_GetActiveSlots(td, &updateLevel);
     if (!slots) {
 	goto loser;
@@ -904,8 +924,10 @@ nssTrustDomain_FindCertificateByIssuerAndSerialNumber
 	    goto loser;
 	}
     }
+#ifdef CERT_CACHE
     status = nssCertificateCache_AddCertificate(td->cache, rvCert, 
                                                 issuer, serial, updateLevel);
+#endif /* CERT_CACHE */
     nssSlotArray_Destroy(slots);
     return rvCert;
 loser:
@@ -935,15 +957,15 @@ nssTrustDomain_FindCertificateByEncodedCertificate
   NSSBER *ber
 )
 {
-    PRStatus status;
     NSSCertificate *rvCert = NULL;
+#if 0
+    PRStatus status;
     NSSDER issuer = { 0 };
     NSSDER serial = { 0 };
     NSSArena *arena = nssArena_Create();
     if (!arena) {
 	return (NSSCertificate *)NULL;
     }
-#if 0
     /* XXX this is not generic...  will any cert crack into issuer/serial? */
     status = nssPKIX509_GetIssuerAndSerialFromDER(ber, arena, &issuer, &serial);
     if (status != PR_SUCCESS) {
@@ -953,8 +975,8 @@ nssTrustDomain_FindCertificateByEncodedCertificate
                                                                    &issuer,
                                                                    &serial);
 finish:
-#endif
     nssArena_Destroy(arena);
+#endif
     return rvCert;
 }
 
@@ -1796,20 +1818,5 @@ NSSTrustDomain_CreateCryptoContextForAlgorithm
 {
     nss_SetError(NSS_ERROR_NOT_FOUND);
     return NULL;
-}
-
-NSS_EXTERN void
-nssCertificateCache_Dump
-(
-  nssCertificateCache *cache
-);
-
-NSS_IMPLEMENT void
-nssTrustDomain_DumpCacheInfo
-(
-  NSSTrustDomain *td
-)
-{
-    nssCertificateCache_Dump(td->cache);
 }
 

@@ -637,20 +637,3 @@ NSS_VersionCheck(const char *importedVersion)
     return PR_TRUE;
 }
 
-NSS_EXTERN void
-nssTrustDomain_DumpCacheInfo
-(
-  NSSTrustDomain *td
-);
-
-NSS_IMPLEMENT void
-nss_DumpCertificateCacheInfo
-(
-  void
-)
-{
-    NSSTrustDomain *td = NSS_GetDefaultTrustDomain();
-    nssTrustDomain_DumpCacheInfo(td);
-}
-
-

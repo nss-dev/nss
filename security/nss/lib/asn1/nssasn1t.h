@@ -39,7 +39,6 @@ static const char NSSASN1T_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #endif /* DEBUG */
 
 /* XXX */
-#include "seccomon.h"
 #include "secasn1t.h"
 
 /*

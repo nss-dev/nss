@@ -42,11 +42,48 @@
 #ifndef _SECASN1_H_
 #define _SECASN1_H_
 
+#ifdef STAN_BUILD
+#include "base.h"
+#else
 #include "plarena.h"
-
 #include "seccomon.h"
+#endif
 #include "secasn1t.h"
 
+#ifdef STAN_BUILD
+/* XXX hacks to use new stan conventions with minimal changes to
+ *     old code
+ */
+#define SEC_BEGIN_PROTOS PR_BEGIN_EXTERN_C
+#define SEC_END_PROTOS PR_END_EXTERN_C
+#define SECSuccess PR_SUCCESS
+#define SECFailure PR_FAILURE
+#define PORT_Assert PR_ASSERT
+typedef NSSArena asn1Arena;
+typedef PRStatus SECStatus;
+typedef NSSItem SECItem;
+extern void *PORT_Alloc(size_t len);
+extern void *PORT_Realloc(void *old, size_t len);
+extern void *PORT_ZAlloc(size_t len);
+extern void PORT_Free(void *ptr);
+extern void PORT_ZFree(void *ptr, size_t len);
+extern void PORT_SetError(int value);
+extern int PORT_GetError(void);
+extern asn1Arena *PORT_NewArena(unsigned long chunksize);
+extern void *PORT_ArenaAlloc(asn1Arena *arena, size_t size);
+extern void *PORT_ArenaZAlloc(asn1Arena *arena, size_t size);
+extern void PORT_FreeArena(asn1Arena *arena, PRBool zero);
+extern void *PORT_ArenaGrow(asn1Arena *arena, void *ptr,
+			    size_t oldsize, size_t newsize);
+extern void *PORT_ArenaMark(asn1Arena *arena);
+extern void PORT_ArenaRelease(asn1Arena *arena, void *mark);
+extern void PORT_ArenaUnmark(asn1Arena *arena, void *mark);
+extern char *PORT_ArenaStrdup(asn1Arena *arena, const char *str);
+extern void PORT_Memcpy(void *dst, void *src, int len);
+extern void PORT_Memset(void *dst, unsigned char val, int len);
+#else /* classic build */
+typedef PRArenaPool asn1Arena;
+#endif /* STAN_BUILD */
 
 /************************************************************************/
 SEC_BEGIN_PROTOS
@@ -59,7 +96,7 @@ SEC_BEGIN_PROTOS
 ** Decoding.
 */
 
-extern SEC_ASN1DecoderContext *SEC_ASN1DecoderStart(PRArenaPool *pool,
+extern SEC_ASN1DecoderContext *SEC_ASN1DecoderStart(asn1Arena *pool,
 						    void *dest,
 						    const SEC_ASN1Template *t);
 
@@ -82,15 +119,15 @@ extern void SEC_ASN1DecoderSetNotifyProc(SEC_ASN1DecoderContext *cx,
 
 extern void SEC_ASN1DecoderClearNotifyProc(SEC_ASN1DecoderContext *cx);
 
-extern SECStatus SEC_ASN1Decode(PRArenaPool *pool, void *dest,
+extern SECStatus SEC_ASN1Decode(asn1Arena *pool, void *dest,
 				const SEC_ASN1Template *t,
 				const char *buf, long len);
 
-extern SECStatus SEC_ASN1DecodeItem(PRArenaPool *pool, void *dest,
+extern SECStatus SEC_ASN1DecodeItem(asn1Arena *pool, void *dest,
 				    const SEC_ASN1Template *t,
 				    SECItem *item);
 
-extern SECStatus SEC_QuickDERDecodeItem(PRArenaPool* arena, void* dest,
+extern SECStatus SEC_QuickDERDecodeItem(asn1Arena* arena, void* dest,
                      const SEC_ASN1Template* templateEntry,
                      SECItem* src);
 
@@ -132,13 +169,13 @@ extern SECStatus SEC_ASN1Encode(void *src, const SEC_ASN1Template *t,
 				SEC_ASN1WriteProc output_proc,
 				void *output_arg);
 
-extern SECItem * SEC_ASN1EncodeItem(PRArenaPool *pool, SECItem *dest,
+extern SECItem * SEC_ASN1EncodeItem(asn1Arena *pool, SECItem *dest,
 				    void *src, const SEC_ASN1Template *t);
 
-extern SECItem * SEC_ASN1EncodeInteger(PRArenaPool *pool,
+extern SECItem * SEC_ASN1EncodeInteger(asn1Arena *pool,
 				       SECItem *dest, long value);
 
-extern SECItem * SEC_ASN1EncodeUnsignedInteger(PRArenaPool *pool,
+extern SECItem * SEC_ASN1EncodeUnsignedInteger(asn1Arena *pool,
 					       SECItem *dest,
 					       unsigned long value);
 

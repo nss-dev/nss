@@ -39,6 +39,10 @@
 
 #include "secasn1.h"
 
+#ifndef STAN_BUILD
+#include "base.h"
+#endif /* STAN_BUILD */
+
 
 /*
  * We have a length that needs to be encoded; how many bytes will the
@@ -104,3 +108,80 @@ SEC_ASN1GetSubtemplate (const SEC_ASN1Template *theTemplate, void *thing,
     }
     return subt;
 }
+
+#ifdef STAN_BUILD
+
+void *
+PORT_Alloc(size_t bytes)
+{
+    return nss_ZAlloc(NULL, bytes);
+}
+
+void
+PORT_Free(void *ptr)
+{
+    nss_ZFreeIf(ptr);
+}
+
+void
+PORT_SetError(int value)
+{	
+    nss_SetError(value);
+}
+
+asn1Arena *
+PORT_NewArena(unsigned long chunksize)
+{
+    return nssArena_Create();
+}
+
+void *
+PORT_ArenaAlloc(asn1Arena *arena, size_t size)
+{
+    return nss_ZAlloc(arena, size);
+}
+
+void *
+PORT_ArenaZAlloc(asn1Arena *arena, size_t size)
+{
+    return nss_ZAlloc(arena, size);
+}
+
+void
+PORT_FreeArena(asn1Arena *arena, PRBool zero)
+{
+    nssArena_Destroy(arena);
+}
+
+void *
+PORT_ArenaMark(asn1Arena *arena)
+{
+    return nssArena_Mark(arena);
+}
+
+void
+PORT_ArenaRelease(asn1Arena *arena, void *mark)
+{
+    nssArena_Release(arena, mark);
+}
+
+void
+PORT_ArenaUnmark(asn1Arena *arena, void *mark)
+{
+    nssArena_Unmark(arena, mark);
+}
+
+void 
+PORT_Memcpy(void *dst, void *src, int len)
+{
+    nsslibc_memcpy(dst, src, len);
+}
+
+void 
+PORT_Memset(void *dst, unsigned char val, int len)
+{
+    nsslibc_memset(dst, val, len);
+}
+
+#endif /* STAN_BUILD */
+

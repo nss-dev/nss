@@ -480,8 +480,8 @@ find_objects
 	if (objectHandles == staticObjects) {
 	    objectHandles = nss_ZNEWARRAY(NULL,CK_OBJECT_HANDLE, arraySize);
 	    if (objectHandles) {
-		PORT_Memcpy(objectHandles, staticObjects, 
-			OBJECT_STACK_SIZE * sizeof(objectHandles[1]));
+		nsslibc_memcpy(objectHandles, staticObjects, 
+			       OBJECT_STACK_SIZE * sizeof(objectHandles[1]));
 	    }
 	} else {
 	    objectHandles = nss_ZREALLOCARRAY(objectHandles, 
@@ -921,11 +921,11 @@ nssToken_FindCertificateByIssuerAndSerialNumber
     NSS_CK_TEMPLATE_FINISH(cert_template, attr, ctsize);
     /* get the object handle */
     if (searchType == nssTokenSearchType_TokenForced) {
-	objects = find_objects(token, sessionOpt,
+	objects = find_objects(token, session,
 	                       cert_template, ctsize,
 	                       1, statusOpt);
     } else {
-	objects = find_objects_by_template(token, sessionOpt,
+	objects = find_objects_by_template(token, session,
                                        cert_template, ctsize,
                                        1, statusOpt);
     }
@@ -948,11 +948,11 @@ nssToken_FindCertificateByIssuerAndSerialNumber
 	}
     	NSS_CK_SET_ATTRIBUTE_ITEM(serialAttr,CKA_SERIAL_NUMBER,&serialDecode);
 	if (searchType == nssTokenSearchType_TokenForced) {
-	    objects = find_objects(token, sessionOpt,
+	    objects = find_objects(token, session,
 	                       cert_template, ctsize,
 	                       1, statusOpt);
 	} else {
-	    objects = find_objects_by_template(token, sessionOpt,
+	    objects = find_objects_by_template(token, session,
                                        cert_template, ctsize,
                                        1, statusOpt);
 	}

@@ -283,7 +283,6 @@ NSSTokenArray_Destroy;
 nssPrivateKey_GetNickname;
 NSSTrustDomain_TraverseCertificates;
 NSSTrustDomain_TraversePrivateKeys;
-nss_DumpCertificateCacheInfo;
 ;+#
 ;+# Data objects
 ;+#

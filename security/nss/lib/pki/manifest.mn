@@ -52,7 +52,6 @@ CSRCS =		        \
 	cryptocontext.c \
 	symmkey.c       \
 	trustdomain.c   \
-	certcache.c     \
 	pkistore.c      \
 	pkibase.c       \
 	time.c          \

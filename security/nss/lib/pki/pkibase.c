@@ -519,7 +519,7 @@ nssCertificateArray_FindBestCertificate
     if (timeOpt) {
 	time = timeOpt;
     } else {
-	NSSTime_Now(&sTime);
+	sTime = NSSTime_Now();
 	time = &sTime;
     }
     if (!certs) {

@@ -56,7 +56,6 @@ static const char ASN1T_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #include "nssasn1t.h"
 #endif /* NSSASN1T_H */
 
-#include "seccomon.h"
 #include "secasn1t.h"
 
 PR_BEGIN_EXTERN_C
