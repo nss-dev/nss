@@ -12,14 +12,24 @@ CORE_DEPTH = ../../..
 	cp $< $@
 	chmod +x $@
 
+
+ifeq ($(USE_64), 1)
 DIRS = \
-	SUNWtls
+    SUNWtlsx
+else
+DIRS = \
+    SUNWtls
+endif
 
 PROTO = \
 	$(ROOT) \
 	$(ROOT)/usr \
 	$(ROOT)/usr/lib \
 	$(ROOT)/usr/lib/mps
+
+ifdef USE_64
+PROTO += $(ROOT)/usr/lib/mps/sparcv9
+endif
 
 include Makefile.com
 
@@ -37,5 +47,10 @@ clean clobber::
 $(ROOT) $(ROOT)/%:
 	mkdir -p $@
 
+ifdef USE_64
+$(ROOT)/usr/lib/mps/sparcv9: $(ROOT)/usr/lib
+	$(LN) -sf ../../../../$(DIST)/lib $@
+else
 $(ROOT)/usr/lib/mps: $(ROOT)/usr/lib
-	$(LN) -s ../../../$(DIST)/lib $@;
+	$(LN) -sf ../../../$(DIST)/lib $@
+endif
