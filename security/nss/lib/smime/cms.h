@@ -563,9 +563,6 @@ extern SECStatus
 NSS_CMSSignedData_AddSignerInfo(NSSCMSSignedData *sigd,
 				NSSCMSSignerInfo *signerinfo);
 
-extern SECItem *
-NSS_CMSSignedData_GetDigestByAlgTag(NSSCMSSignedData *sigd, SECOidTag algtag);
-
 extern SECStatus
 NSS_CMSSignedData_SetDigests(NSSCMSSignedData *sigd,
 				SECAlgorithmID **digestalgs,
