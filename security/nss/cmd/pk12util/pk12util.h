@@ -67,4 +67,8 @@ typedef struct p12uContextStr {
 	PRBool       error;       /* error occurred? */
 	int          errorValue;  /* which error occurred? */
 	SECItem     *data;
+#ifdef _WIN32
+	PRBool	     hasBufferData;
+	unsigned char bufferData[2];
+#endif
 } p12uContext;
