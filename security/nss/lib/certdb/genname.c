@@ -196,12 +196,15 @@ CERT_CreateGeneralNameList(CERTGeneralName *name) {
     if (!list)
     	goto loser;
     if (name != NULL) {
+	SECStatus rv;
 	list->name = (CERTGeneralName *)
 	    PORT_ArenaZAlloc(arena, sizeof(CERTGeneralName));
 	if (!list->name)
 	    goto loser;
 	list->name->l.next = list->name->l.prev = &list->name->l;
-	CERT_CopyGeneralName(arena, list->name, name);
+	rv = CERT_CopyGeneralName(arena, list->name, name);
+	if (rv != SECSuccess)
+	    goto loser;
     }
     list->lock = PZ_NewLock(nssILockList);
     if (!list->lock)
