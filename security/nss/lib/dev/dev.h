@@ -946,6 +946,12 @@ nssToken_GetTrustOrder
   NSSToken *tok
 );
 
+NSS_EXTERN PRStatus
+nssToken_NofifyCertsNotVisible
+(
+  NSSToken *tok
+);
+
 #endif
 
 PR_END_EXTERN_C

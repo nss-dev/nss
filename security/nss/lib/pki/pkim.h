@@ -610,6 +610,13 @@ nssTrustDomain_RemoveTokenCertsFromCache
   NSSToken *token
 );
 
+NSS_EXTERN PRStatus
+nssTrustDomain_UpdateCachedTokenCerts
+(
+  NSSTrustDomain *td,
+  NSSToken *token
+);
+
 /*
  * Find all cached certs with this nickname (label).
  */

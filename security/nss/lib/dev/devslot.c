@@ -293,6 +293,13 @@ nssSlot_IsTokenPresent
 	    session->handle = CK_INVALID_SESSION;
 	}
 	nssSession_ExitMonitor(session);
+#ifdef NSS_3_4_CODE
+	if (slot->token->base.name[0] != 0) {
+	    /* notify the high-level cache that the token is removed */
+	    slot->token->base.name[0] = 0; /* XXX */
+	    nssToken_NofifyCertsNotVisible(slot->token);
+	}
+#endif
 	slot->token->base.name[0] = 0; /* XXX */
 	return PR_FALSE;
 #ifdef PURE_STAN_CODE
