@@ -6818,7 +6818,7 @@ ssl3_HandleHandshake(sslSocket *ss, sslBuffer *origBuf)
 	    /* must be copied to msg_body and dealt with from there */
 	    unsigned int bytes;
 
-	    bytes = MIN(buf->len, ssl3->hs.msg_len);
+	    bytes = PR_MIN(buf->len, ssl3->hs.msg_len);
 
 	    /* Grow the buffer if needed */
 	    if (bytes > ssl3->hs.msg_body.space - ssl3->hs.msg_body.len) {
