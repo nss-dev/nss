@@ -7198,6 +7198,13 @@ CERT_SaveImportedCert(CERTCertificate *cert, SECCertUsage usage,
 	    }
 	}
 	break;
+      case certUsageAnyCA:
+	trust.sslFlags = CERTDB_VALID_CA;
+	break;
+      case certUsageSSLCA:
+	trust.sslFlags = CERTDB_VALID_CA | 
+			CERTDB_TRUSTED_CA | CERTDB_TRUSTED_CLIENT_CA;
+	break;
       default:	/* XXX added to quiet warnings; no other cases needed? */
 	break;
     }
