@@ -55,7 +55,8 @@ publish:
 	find opt -type f ! \( -name "*.so" -o -name "*.chk" \) \
 		| sed -e "s-^-/-" >>temp.spec
 	cp $(NAME)-$(VERSION).tar.gz SOURCES
-	rpm -ba temp.spec
+	(export LD_LIBRARY_PATH=$(CORE_DEPTH)/../dist/$(OBJDIR)/lib;
+	rpm -ba temp.spec)
 
 clean::
 	rm -rf SOURCES SRPMS RPMS BUILD
