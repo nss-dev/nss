@@ -307,10 +307,10 @@ typedef enum {
 } SECSupportExtenTag;
 
 struct SECOidDataStr {
-    SECItem oid;
-    SECOidTag offset;
-    char *desc;
-    unsigned long mechanism;
+    SECItem            oid;
+    SECOidTag          offset;
+    const char *       desc;
+    unsigned long      mechanism;
     SECSupportExtenTag supportedExtension;	
     				/* only used for x.509 v3 extensions, so
 				   that we can print the names of those
