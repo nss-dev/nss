@@ -1861,6 +1861,21 @@ CERT_IsCADERCert(SECItem *derCert, unsigned int *type) {
     return isCA;
 }
 
+PRBool
+CERT_IsRootDERCert(SECItem *derCert)
+{
+    CERTCertificate *cert;
+    PRBool isRoot;
+
+    /* This is okay -- only looks at extensions */
+    cert = CERT_DecodeDERCertificate(derCert, PR_FALSE, NULL);
+    if (cert == NULL) return PR_FALSE;
+
+    isRoot = cert->isRoot;
+    CERT_DestroyCertificate (cert);
+    return isRoot;
+}
+
 
 /*
  * is certa newer than certb?  If one is expired, pick the other one.
