@@ -2255,6 +2255,11 @@ ChangeKeyDBPasswordAlg(NSSLOWKEYDBHandle *handle,
 	return(SECFailure);
     }
     keylist.head = NULL;
+
+    rv = db_BeginTransaction(handle->db);
+    if (rv != SECSuccess) {
+	goto loser;
+    }
     
     /* TNH - TraverseKeys should not be public, since it exposes
        the underlying DBT data type. */
@@ -2299,7 +2304,10 @@ ChangeKeyDBPasswordAlg(NSSLOWKEYDBHandle *handle,
 	    newkey.size = privkey->u.dh.publicValue.len;
 	    break;
 	  default:
-	    return SECFailure;
+	    /* should we continue here and loose the key? */
+	    PORT_SetError(SEC_ERROR_BAD_DATABASE);
+	    rv = SECFailure;
+	    goto loser;
 	}
 
 	rv = seckey_put_private_key(handle, &newkey, newpwitem, privkey,
@@ -2319,6 +2327,8 @@ ChangeKeyDBPasswordAlg(NSSLOWKEYDBHandle *handle,
     rv = nsslowkey_SetKeyDBPasswordAlg(handle, newpwitem, new_algorithm);
 
 loser:
+
+    db_FinishTransaction(handle->db,rv == SECSuccess);
 
     /* free the arena */
     if ( keylist.arena ) {
