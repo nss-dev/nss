@@ -43,7 +43,7 @@
 #include "seccomon.h"
 #include "stdio.h"
 
-#define DEBUG_SHVERIFY 1
+/* #define DEBUG_SHVERIFY 1 */
 
 static char *
 mkCheckFileName(const char *libName)
