@@ -39,6 +39,7 @@ EXPORTS = \
 	nssb64t.h \
 	nsslocks.h \
 	nssilock.h \
+	nssilckt.h \
 	nssrwlk.h \
 	nssrwlkt.h \
 	portreg.h \
