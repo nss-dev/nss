@@ -135,6 +135,13 @@ SECKEY_ConvertAndDecodePublicKeyAndChallenge(char *pkacstr, char *challenge,
 								void *cx);
 
 /*
+** Encode a  CERTSubjectPublicKeyInfo structure. into a
+** DER encoded subject public key info. 
+*/
+SECItem *
+SECKEY_EncodeDERSubjectPublicKeyInfo(SECKEYPublicKey *pubk);
+
+/*
 ** Decode a DER encoded subject public key info into a
 ** CERTSubjectPublicKeyInfo structure.
 */
