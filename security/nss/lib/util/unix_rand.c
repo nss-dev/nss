@@ -181,6 +181,18 @@ GiveSystemInfo(void)
 
 #define getdtablesize() sysconf(_SC_OPEN_MAX)
 
+#if defined(__ia64)
+#include <ia64/sys/inline.h>
+
+static size_t
+GetHighResClock(void *buf, size_t maxbytes)
+{
+    PRUint64 t;
+
+    t = _Asm_mov_from_ar(_AREG44);    
+    return _pr_CopyLowBits(buf, maxbytes, &t, sizeof(t));
+}
+#else
 static size_t
 GetHighResClock(void *buf, size_t maxbytes)
 {
@@ -190,6 +202,7 @@ GetHighResClock(void *buf, size_t maxbytes)
     cr16val = ret_cr16();
     return CopyLowBits(buf, maxbytes, &cr16val, sizeof(cr16val));
 }
+#endif
 
 static void
 GiveSystemInfo(void)
@@ -591,8 +604,11 @@ size_t RNG_GetNoise(void *buf, size_t maxbytes)
     int n = 0;
     int c;
 
+printf("RNG_GetNoise buf %p sizeofbuf %d\n", buf, maxbytes); fflush(stdout);
     n = GetHighResClock(buf, maxbytes);
+printf("RNG_GetNoise buf %p sizeofbuf %d GetHighResClock %d\n", buf, maxbytes, n); fflush(stdout);
     maxbytes -= n;
+printf("RNG_GetNoise buf %p sizeofbuf %d\n", buf, maxbytes); fflush(stdout);
 
 #if defined(__sun) && (defined(_svr4) || defined(SVR4)) || defined(sony)
     (void)gettimeofday(&tv);

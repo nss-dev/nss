@@ -45,7 +45,9 @@ include manifest.mn
 include $(CORE_DEPTH)/coreconf/arch.mk
 
 ifeq ($(OS_ARCH),HP-UX)
+ifneq ($(OS_RELEASE),B.11.20)
 	ASFILES += ret_cr16.s
+endif
 endif
 
 include $(CORE_DEPTH)/coreconf/config.mk
