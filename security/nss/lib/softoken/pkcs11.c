@@ -974,7 +974,6 @@ pk11_handleCrlObject(PK11Session *session,PK11Object *object)
     return CKR_OK;
 }
 
-NSSLOWKEYPublicKey * pk11_GetPubKey(PK11Object *object,CK_KEY_TYPE key);
 /*
  * check the consistancy and initialize a Public Key Object 
  */
@@ -1042,7 +1041,10 @@ pk11_handlePublicKeyObject(PK11Session *session, PK11Object *object,
     crv = pk11_defaultAttribute(object,CKA_DERIVE,&derive,sizeof(CK_BBOOL));
     if (crv != CKR_OK)  return crv; 
 
-    object->objectInfo = pk11_GetPubKey(object,key_type);
+    object->objectInfo = pk11_GetPubKey(object,key_type, &crv);
+    if (object->objectInfo == NULL) {
+	return crv;
+    }
     object->infoFree = (PK11Free) nsslowkey_DestroyPublicKey;
 
     if (pk11_isTrue(object,CKA_TOKEN)) {
@@ -1081,7 +1083,9 @@ pk11_handlePublicKeyObject(PK11Session *session, PK11Object *object,
     return CKR_OK;
 }
 
-static NSSLOWKEYPrivateKey * pk11_mkPrivKey(PK11Object *object,CK_KEY_TYPE key);
+static NSSLOWKEYPrivateKey * 
+pk11_mkPrivKey(PK11Object *object,CK_KEY_TYPE key, CK_RV *rvp);
+
 /*
  * check the consistancy and initialize a Private Key Object 
  */
@@ -1192,8 +1196,8 @@ pk11_handlePrivateKeyObject(PK11Session *session,PK11Object *object,CK_KEY_TYPE 
 	    return CKR_TOKEN_WRITE_PROTECTED;
 	}
 
-	privKey=pk11_mkPrivKey(object,key_type);
-	if (privKey == NULL) return CKR_HOST_MEMORY;
+	privKey=pk11_mkPrivKey(object,key_type,&crv);
+	if (privKey == NULL) return crv;
 	label = pk11_getString(object,CKA_LABEL);
 
 	crv = pk11_Attribute2SSecItem(NULL,&pubKey,object,CKA_NETSCAPE_DB);
@@ -1225,8 +1229,8 @@ fail:
 	nsslowkey_DestroyPrivateKey(privKey);
 	if (rv != SECSuccess) return CKR_DEVICE_ERROR;
     } else {
-	object->objectInfo = pk11_mkPrivKey(object,key_type);
-	if (object->objectInfo == NULL) return CKR_HOST_MEMORY;
+	object->objectInfo = pk11_mkPrivKey(object,key_type,&crv);
+	if (object->objectInfo == NULL) return crv;
 	object->infoFree = (PK11Free) nsslowkey_DestroyPrivateKey;
 	/* now NULL out the sensitive attributes */
 	if (pk11_isTrue(object,CKA_SENSITIVE)) {
@@ -1701,13 +1705,15 @@ pk11_handleObject(PK11Object *object, PK11Session *session)
  * ******************** Public Key Utilities ***************************
  */
 /* Generate a low public key structure from an object */
-NSSLOWKEYPublicKey *pk11_GetPubKey(PK11Object *object,CK_KEY_TYPE key_type)
+NSSLOWKEYPublicKey *pk11_GetPubKey(PK11Object *object,CK_KEY_TYPE key_type,
+								CK_RV *crvp)
 {
     NSSLOWKEYPublicKey *pubKey;
     PLArenaPool *arena;
     CK_RV crv;
 
     if (object->objclass != CKO_PUBLIC_KEY) {
+	*crvp = CKR_KEY_TYPE_INCONSISTENT;
 	return NULL;
     }
 
@@ -1717,16 +1723,21 @@ NSSLOWKEYPublicKey *pk11_GetPubKey(PK11Object *object,CK_KEY_TYPE key_type)
 
     /* If we already have a key, use it */
     if (object->objectInfo) {
+	*crvp = CKR_OK;
 	return (NSSLOWKEYPublicKey *)object->objectInfo;
     }
 
     /* allocate the structure */
     arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
-    if (arena == NULL) return NULL;
+    if (arena == NULL) {
+	*crvp = CKR_HOST_MEMORY;
+	return NULL;
+    }
 
     pubKey = (NSSLOWKEYPublicKey *)
 			PORT_ArenaAlloc(arena,sizeof(NSSLOWKEYPublicKey));
     if (pubKey == NULL) {
+	*crvp = CKR_HOST_MEMORY;
     	PORT_FreeArena(arena,PR_FALSE);
 	return NULL;
     }
@@ -1764,13 +1775,14 @@ NSSLOWKEYPublicKey *pk11_GetPubKey(PK11Object *object,CK_KEY_TYPE key_type)
 	crv = pk11_Attribute2SSecItem(arena,&pubKey->u.dh.base,
 							object,CKA_BASE);
     	if (crv != CKR_OK) break;
-    	crv = pk11_Attribute2SSecItem(arena,&pubKey->u.dsa.publicValue,
+    	crv = pk11_Attribute2SSecItem(arena,&pubKey->u.dh.publicValue,
 							object,CKA_VALUE);
 	break;
     default:
 	crv = CKR_KEY_TYPE_INCONSISTENT;
 	break;
     }
+    *crvp = crv;
     if (crv != CKR_OK) {
     	PORT_FreeArena(arena,PR_FALSE);
 	return NULL;
@@ -1783,7 +1795,7 @@ NSSLOWKEYPublicKey *pk11_GetPubKey(PK11Object *object,CK_KEY_TYPE key_type)
 
 /* make a private key from a verified object */
 static NSSLOWKEYPrivateKey *
-pk11_mkPrivKey(PK11Object *object,CK_KEY_TYPE key_type)
+pk11_mkPrivKey(PK11Object *object, CK_KEY_TYPE key_type, CK_RV *crvp)
 {
     NSSLOWKEYPrivateKey *privKey;
     PLArenaPool *arena;
@@ -1792,12 +1804,16 @@ pk11_mkPrivKey(PK11Object *object,CK_KEY_TYPE key_type)
 
     PORT_Assert(!pk11_isToken(object->handle));
     arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
-    if (arena == NULL) return NULL;
+    if (arena == NULL) {
+	*crvp = CKR_HOST_MEMORY;
+	return NULL;
+    }
 
     privKey = (NSSLOWKEYPrivateKey *)
 			PORT_ArenaZAlloc(arena,sizeof(NSSLOWKEYPrivateKey));
     if (privKey == NULL)  {
 	PORT_FreeArena(arena,PR_FALSE);
+	*crvp = CKR_HOST_MEMORY;
 	return NULL;
     }
 
@@ -1872,6 +1888,7 @@ pk11_mkPrivKey(PK11Object *object,CK_KEY_TYPE key_type)
 	crv = CKR_KEY_TYPE_INCONSISTENT;
 	break;
     }
+    *crvp = crv;
     if (crv != CKR_OK) {
 	PORT_FreeArena(arena,PR_FALSE);
 	return NULL;
@@ -1882,14 +1899,16 @@ pk11_mkPrivKey(PK11Object *object,CK_KEY_TYPE key_type)
 
 /* Generate a low private key structure from an object */
 NSSLOWKEYPrivateKey *
-pk11_GetPrivKey(PK11Object *object,CK_KEY_TYPE key_type)
+pk11_GetPrivKey(PK11Object *object,CK_KEY_TYPE key_type, CK_RV *crvp)
 {
     NSSLOWKEYPrivateKey *priv = NULL;
 
     if (object->objclass != CKO_PRIVATE_KEY) {
+	*crvp = CKR_KEY_TYPE_INCONSISTENT;
 	return NULL;
     }
     if (object->objectInfo) {
+	*crvp = CKR_OK;
 	return (NSSLOWKEYPrivateKey *)object->objectInfo;
     }
 
@@ -1901,8 +1920,9 @@ pk11_GetPrivKey(PK11Object *object,CK_KEY_TYPE key_type)
 	PORT_Assert(object->slot->keyDB);	
 	priv = nsslowkey_FindKeyByPublicKey(object->slot->keyDB, &to->dbKey,
 				       object->slot->password);
+	*crvp = priv ? CKR_OK : CKR_DEVICE_ERROR;
     } else {
-	priv = pk11_mkPrivKey(object, key_type);
+	priv = pk11_mkPrivKey(object, key_type, crvp);
     }
     object->objectInfo = priv;
     object->infoFree = (PK11Free) nsslowkey_DestroyPrivateKey;
@@ -2225,19 +2245,25 @@ PK11Slot * pk11_NewSlotFromID(CK_SLOT_ID slotID, int moduleIndex)
 static SECStatus
 pk11_set_user(NSSLOWCERTCertificate *cert, SECItem *dummy, void *arg)
 {
-    NSSLOWKEYDBHandle *keydb = (NSSLOWKEYDBHandle *)arg;
+    PK11Slot  *slot = (PK11Slot *)arg;
+    NSSLOWCERTCertTrust trust = *cert->trust;
 
-    if (nsslowkey_KeyForCertExists(keydb,cert)) {
-	cert->trust->sslFlags |= CERTDB_USER;
-	cert->trust->emailFlags |= CERTDB_USER;
-	cert->trust->objectSigningFlags |= CERTDB_USER;
+    if (nsslowkey_KeyForCertExists(slot->keyDB,cert)) {
+	trust.sslFlags |= CERTDB_USER;
+	trust.emailFlags |= CERTDB_USER;
+	trust.objectSigningFlags |= CERTDB_USER;
     } else {
-	cert->trust->sslFlags &= ~CERTDB_USER;
-	cert->trust->emailFlags &= ~CERTDB_USER;
-	cert->trust->objectSigningFlags &= ~CERTDB_USER;
+	trust.sslFlags &= ~CERTDB_USER;
+	trust.emailFlags &= ~CERTDB_USER;
+	trust.objectSigningFlags &= ~CERTDB_USER;
+    }
+
+    if (PORT_Memcmp(&trust,cert->trust, sizeof (trust)) != 0) {
+	nsslowcert_ChangeCertTrust(slot->certDB,cert, &trust);
     }
 
     /* should check for email address and make sure we have an s/mime profile */
+    return SECSuccess;
 }
 
 static  void
@@ -2246,7 +2272,7 @@ pk11_DBVerify(PK11Slot *slot)
     /* walk through all the certs and check to see if there are any 
      * user certs, and make sure there are s/mime profiles for all certs with
      * email addresses */
-    nsslowcert_TraversePermCerts(slot->certDB,pk11_set_user,slot->keyDB);
+    nsslowcert_TraversePermCerts(slot->certDB,pk11_set_user,slot);
 
     return;
 }
@@ -2732,6 +2758,29 @@ CK_RV NSC_GetSlotInfo(CK_SLOT_ID slotID, CK_SLOT_INFO_PTR pInfo)
 
 #define CKF_THREAD_SAFE 0x8000 /* for now */
 
+/*
+ * check the current state of the 'needLogin' flag in case the database has
+ * been changed underneath us.
+ */
+static PRBool
+pk11_checkNeedLogin(PK11Slot *slot)
+{
+    if (slot->password) {
+	if (nsslowkey_CheckKeyDBPassword(slot->keyDB,slot->password) 
+							== SECSuccess) {
+	    return slot->needLogin;
+	} else {
+	    SECITEM_FreeItem(slot->password, PR_TRUE);
+	    slot->password = NULL;
+	    slot->isLoggedIn = PR_FALSE;
+	}
+    }
+    slot->needLogin = 
+		(PRBool)!pk11_hasNullPassword(slot->keyDB,&slot->password);
+    return (slot->needLogin);
+}
+
+
 /* NSC_GetTokenInfo obtains information about a particular token in 
  * the system. */
 CK_RV NSC_GetTokenInfo(CK_SLOT_ID slotID,CK_TOKEN_INFO_PTR pInfo)
@@ -2774,7 +2823,7 @@ CK_RV NSC_GetTokenInfo(CK_SLOT_ID slotID,CK_TOKEN_INFO_PTR pInfo)
 	 */
 	if (nsslowkey_HasKeyDBPassword(handle) == SECFailure) {
 	    pInfo->flags = CKF_THREAD_SAFE | CKF_LOGIN_REQUIRED;
-	} else if (!slot->needLogin) {
+	} else if (!pk11_checkNeedLogin(slot)) {
 	    pInfo->flags = CKF_THREAD_SAFE | CKF_USER_PIN_INITIALIZED;
 	} else {
 	    pInfo->flags = CKF_THREAD_SAFE | 
@@ -2794,8 +2843,6 @@ CK_RV NSC_GetTokenInfo(CK_SLOT_ID slotID,CK_TOKEN_INFO_PTR pInfo)
     }
     return CKR_OK;
 }
-
-
 
 /* NSC_GetMechanismList obtains a list of mechanism types 
  * supported by a token. */

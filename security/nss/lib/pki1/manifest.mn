@@ -48,8 +48,7 @@ EXPORTS =	   \
 
 MODULE = nss
 
-CSRCS = $(NULL)
-xCSRCS =	  \
+CSRCS =		  \
 	atav.c	  \
 	genname.c \
 	gnseq.c	  \
@@ -62,4 +61,4 @@ xCSRCS =	  \
 
 REQUIRES = nspr
 
-#LIBRARY_NAME = pki1
+LIBRARY_NAME = pki1

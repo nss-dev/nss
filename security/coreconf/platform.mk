@@ -1,4 +1,3 @@
-#! gmake
 #
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
@@ -32,14 +31,8 @@
 # GPL.
 #
 
-CORE_DEPTH = ..
+#######################################################################
+# Master "Core Components" <platform> tag                             #
+#######################################################################
 
-MODULE = dbm
-
-IMPORTS = nspr20/v4.1.2
-
-RELEASE = dbm
-
-DIRS =  include \
-        src     \
-	$(NULL)
+PLATFORM = $(OBJDIR_NAME)
