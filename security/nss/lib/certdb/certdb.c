@@ -59,6 +59,7 @@
 #include "sslerr.h"
 #include "nsslocks.h"
 #include "pk11func.h"
+#include "xconst.h"   /* for  CERT_DecodeAltNameExtension */
 
 #ifndef NSS_3_4_CODE
 #define NSS_3_4_CODE
@@ -1236,6 +1237,186 @@ CERT_AddOKDomainName(CERTCertificate *cert, const char *hn)
     return SECSuccess;
 }
 
+/* returns SECSuccess if hn matches pattern cn,
+** returns SECFailure with SSL_ERROR_BAD_CERT_DOMAIN if no match,
+** returns SECFailure with some other error code if another error occurs.
+**
+** may modify cn, so caller must pass a modifiable copy.
+*/
+static SECStatus
+cert_TestHostName(char * cn, const char * hn)
+{
+    char * hndomain;
+    int    regvalid;
+
+    if ((hndomain = PORT_Strchr(hn, '.')) == NULL) {
+	/* No domain in URI host name */
+	char * cndomain;
+	if ((cndomain = PORT_Strchr(cn, '.')) != NULL &&
+	    (cndomain - cn) > 0) {
+	    /* there is a domain in the cn string, so chop it off */
+	    *cndomain = '\0';
+	}
+    }
+
+    regvalid = PORT_RegExpValid(cn);
+    if (regvalid != NON_SXP) {
+	SECStatus rv;
+	/* cn is a regular expression, try to match the shexp */
+	int match = PORT_RegExpCaseSearch(hn, cn);
+
+	if ( match == 0 ) {
+	    rv = SECSuccess;
+	} else {
+	    PORT_SetError(SSL_ERROR_BAD_CERT_DOMAIN);
+	    rv = SECFailure;
+	}
+	return rv;
+    } 
+    /* cn is not a regular expression */
+
+    /* compare entire hn with cert name */
+    if (PORT_Strcasecmp(hn, cn) == 0) {
+	return SECSuccess;
+    }
+	    
+    if ( hndomain ) {
+	/* compare just domain name with cert name */
+	if ( PORT_Strcasecmp(hndomain+1, cn) == 0 ) {
+	    return SECSuccess;
+	}
+    }
+
+    PORT_SetError(SSL_ERROR_BAD_CERT_DOMAIN);
+    return SECFailure;
+}
+
+
+SECStatus
+cert_VerifySubjectAltName(CERTCertificate *cert, const char *hn)
+{
+    PRArenaPool *     arena          = NULL;
+    CERTGeneralName * nameList       = NULL;
+    CERTGeneralName * current;
+    char *            cn;
+    int               cnBufLen;
+    unsigned int      hnLen;
+    int               DNSextCount    = 0;
+    int               IPextCount     = 0;
+    PRBool            isIPaddr;
+    SECStatus         rv             = SECFailure;
+    SECItem           subAltName;
+    PRNetAddr         netAddr;
+    char              cnbuf[128];
+
+    subAltName.data = NULL;
+    hnLen    = strlen(hn);
+    cn       = cnbuf;
+    cnBufLen = sizeof cnbuf;
+
+    rv = CERT_FindCertExtension(cert, SEC_OID_X509_SUBJECT_ALT_NAME, 
+				&subAltName);
+    if (rv != SECSuccess) {
+	goto finish;
+    }
+    isIPaddr = (PR_SUCCESS == PR_StringToNetAddr(hn, &netAddr));
+    rv = SECFailure;
+    arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
+    if (!arena) 
+	goto finish;
+
+    nameList = current = CERT_DecodeAltNameExtension(arena, &subAltName);
+    if (!current)
+    	goto finish;
+
+    do {
+	switch (current->type) {
+	case certDNSName:
+	    if (!isIPaddr) {
+		/* DNS name current->name.other.data is not null terminated.
+		** so must copy it.  
+		*/
+		int cnLen = current->name.other.len;
+		if (cnLen + 1 > cnBufLen) {
+		    cnBufLen = cnLen + 1;
+		    cn = (char *)PORT_ArenaAlloc(arena, cnBufLen);
+		    if (!cn)
+			goto finish;
+		}
+		PORT_Memcpy(cn, current->name.other.data, 
+		                current->name.other.len);
+		cn[cnLen] = 0;
+		rv = cert_TestHostName(cn ,hn);
+		if (rv == SECSuccess)
+		    goto finish;
+	    }
+	    DNSextCount++;
+	    break;
+	case certIPAddress:
+	    if (isIPaddr) {
+		int match = 0;
+		PRIPv6Addr v6Addr;
+		if (current->name.other.len == 4 &&         /* IP v4 address */
+		    netAddr.inet.family == PR_AF_INET) {
+		    match = !memcmp(&netAddr.inet.ip, 
+		                    current->name.other.data, 4);
+		} else if (current->name.other.len == 16 && /* IP v6 address */
+		    netAddr.ipv6.family == PR_AF_INET6) {
+		    match = !memcmp(&netAddr.ipv6.ip,
+		                     current->name.other.data, 16);
+		} else if (current->name.other.len == 16 && /* IP v6 address */
+		    netAddr.inet.family == PR_AF_INET) {
+		    /* convert netAddr to ipv6, then compare. */
+		    /* ipv4 must be in Network Byte Order on input. */
+		    PR_ConvertIPv4AddrToIPv6(netAddr.inet.ip, &v6Addr);
+		    match = !memcmp(&v6Addr, current->name.other.data, 16);
+		} else if (current->name.other.len == 4 &&  /* IP v4 address */
+		    netAddr.inet.family == PR_AF_INET6) {
+		    /* convert netAddr to ipv6, then compare. */
+		    PRUint32 ipv4 = (current->name.other.data[0] << 24) |
+		                    (current->name.other.data[1] << 16) |
+				    (current->name.other.data[2] <<  8) |
+				     current->name.other.data[3];
+		    /* ipv4 must be in Network Byte Order on input. */
+		    PR_ConvertIPv4AddrToIPv6(PR_htonl(ipv4), &v6Addr);
+		    match = !memcmp(&netAddr.ipv6.ip, &v6Addr, 16);
+		} 
+		if (match) {
+		    rv = SECSuccess;
+		    goto finish;
+		}
+	    }
+	    IPextCount++;
+	    break;
+	default:
+	    break;
+	}
+	current = cert_get_next_general_name(current);
+    } while (current != nameList);
+
+    if ((!isIPaddr && !DNSextCount) || (isIPaddr && !IPextCount)) {
+	/* no relevant value in the extension was found. */
+	PORT_SetError(SEC_ERROR_EXTENSION_NOT_FOUND);
+    } else {
+	PORT_SetError(SSL_ERROR_BAD_CERT_DOMAIN);
+    }
+    rv = SECFailure;
+
+finish:
+
+    /* Don't free nameList, it's part of the arena. */
+    if (arena) {
+	PORT_FreeArena(arena, PR_FALSE);
+    }
+
+    if (subAltName.data) {
+	SECITEM_FreeItem(&subAltName, PR_FALSE);
+    }
+
+    return rv;
+}
+
+
 /* Make sure that the name of the host we are connecting to matches the
  * name that is incoded in the common-name component of the certificate
  * that they are using.
@@ -1244,11 +1425,6 @@ SECStatus
 CERT_VerifyCertName(CERTCertificate *cert, const char *hn)
 {
     char *    cn;
-    char *    domain;
-    char *    hndomain;
-    char *    hostname;
-    int       regvalid;
-    int       match;
     SECStatus rv;
     CERTOKDomainName *domainOK;
 
@@ -1257,86 +1433,31 @@ CERT_VerifyCertName(CERTCertificate *cert, const char *hn)
 	return SECFailure;
     }
 
-    hostname = PORT_Strdup(hn);
-    if ( hostname == NULL ) {
-	return(SECFailure);
-    }
-    sec_lower_string(hostname);
-
     /* if the name is one that the user has already approved, it's OK. */
     for (domainOK = cert->domainOK; domainOK; domainOK = domainOK->next) {
-	if (0 == PORT_Strcmp(hostname, domainOK->name)) {
-	    PORT_Free(hostname);
+	if (0 == PORT_Strcasecmp(hn, domainOK->name)) {
 	    return SECSuccess;
     	}
     }
 
+    /* Per RFC 2818, if the SubjectAltName extension is present, it must
+    ** be used as the cert's identity.
+    */
+    rv = cert_VerifySubjectAltName(cert, hn);
+    if (rv == SECSuccess || PORT_GetError() != SEC_ERROR_EXTENSION_NOT_FOUND)
+    	return rv;
+
     /* try the cert extension first, then the common name */
     cn = CERT_FindNSStringExtension(cert, SEC_OID_NS_CERT_EXT_SSL_SERVER_NAME);
-    if ( cn == NULL ) {
+    if ( !cn ) {
 	cn = CERT_GetCommonName(&cert->subject);
     }
-    
-    sec_lower_string(cn);
-
     if ( cn ) {
-	if ( ( hndomain = PORT_Strchr(hostname, '.') ) == NULL ) {
-	    /* No domain in server name */
-	    if ( ( domain = PORT_Strchr(cn, '.') ) != NULL ) {
-		/* there is a domain in the cn string, so chop it off */
-		*domain = '\0';
-	    }
-	}
-
-	regvalid = PORT_RegExpValid(cn);
-	
-	if ( regvalid == NON_SXP ) {
-	    /* compare entire hostname with cert name */
-	    if ( PORT_Strcmp(hostname, cn) == 0 ) {
-		rv = SECSuccess;
-		goto done;
-	    }
-	    
-	    if ( hndomain ) {
-		/* compare just domain name with cert name */
-		if ( PORT_Strcmp(hndomain+1, cn) == 0 ) {
-		    rv = SECSuccess;
-		    goto done;
-		}
-	    }
-
-	    PORT_SetError(SSL_ERROR_BAD_CERT_DOMAIN);
-	    rv = SECFailure;
-	    goto done;
-	    
-	} else {
-	    /* try to match the shexp */
-	    match = PORT_RegExpCaseSearch(hostname, cn);
-
-	    if ( match == 0 ) {
-		rv = SECSuccess;
-	    } else {
-		PORT_SetError(SSL_ERROR_BAD_CERT_DOMAIN);
-		rv = SECFailure;
-	    }
-	    goto done;
-	}
-    }
-
-    PORT_SetError(SEC_ERROR_NO_MEMORY);
-    rv = SECFailure;
-
-done:
-    /* free the common name */
-    if ( cn ) {
+	rv = cert_TestHostName(cn, hn);
 	PORT_Free(cn);
-    }
-    
-    if ( hostname ) {
-	PORT_Free(hostname);
-    }
-    
-    return(rv);
+    } else 
+	PORT_SetError(SSL_ERROR_BAD_CERT_DOMAIN);
+    return rv;
 }
 
 PRBool
