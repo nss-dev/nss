@@ -133,12 +133,18 @@ ifeq ($(CPU_ARCH),x86_64)
     ASFLAGS += -march=opteron -m64 -fPIC
     DEFINES += -DNSS_BEVAND_ARCFOUR -DMPI_AMD64 -DMP_ASSEMBLY_MULTIPLY
     MPI_SRCS += mpi_amd64.c
+    ifdef BUILD_OPT
+	OPTIMIZER = -O3 
+    endif
 endif
 ifeq ($(CPU_ARCH),x86)
     ASFILES  = mpi_x86.s
     DEFINES += -DMP_ASSEMBLY_MULTIPLY -DMP_ASSEMBLY_SQUARE 
     DEFINES += -DMP_ASSEMBLY_DIV_2DX1D
     USE_FP_CODE = 1
+    ifdef BUILD_OPT
+	OPTIMIZER = -O3 
+    endif
 endif
 ifdef NSS_ENABLE_ECC
     ifdef USE_FP_CODE
@@ -243,6 +249,9 @@ else
 	LD = gcc
 	AS = gcc
 	ASFLAGS =
+	ifdef BUILD_OPT
+	    OPTIMIZER = -O3 
+	endif
     endif
     ifeq ($(USE_64),1)
 	# Solaris for AMD64
