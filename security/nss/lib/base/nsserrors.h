@@ -85,6 +85,9 @@ static const char NSSERRORS_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$"
 #define NSS_ERROR_CERTIFICATE_HAS_NO_TRUSTED_ISSUER        504
 #define NSS_ERROR_CERTIFICATE_NOT_VALID_AT_TIME            505
 
+/* symkey errors */
+#define NSS_ERROR_INVALID_SYMKEY                           600
+
 /* crypto context errors */
 #define NSS_ERROR_INVALID_CRYPTO_CONTEXT                   800
 

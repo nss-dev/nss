@@ -90,8 +90,7 @@ static PRCallOnceType error_call_once;
  */
 
 static PRStatus
-error_once_function
-(
+error_once_function (
   void
 )
 {
@@ -108,8 +107,7 @@ error_once_function
  */
 
 static error_stack *
-error_get_my_stack
-(
+error_get_my_stack (
   void
 )
 {
@@ -188,8 +186,7 @@ error_get_my_stack
  */
 
 NSS_IMPLEMENT PRInt32
-NSS_GetError
-(
+NSS_GetError (
   void
 )
 {
@@ -225,8 +222,7 @@ NSS_GetError
  */
 
 NSS_IMPLEMENT PRInt32 *
-NSS_GetErrorStack
-(
+NSS_GetErrorStack (
   void
 )
 {
@@ -251,8 +247,7 @@ NSS_GetErrorStack
  */
 
 NSS_IMPLEMENT void
-nss_SetError
-(
+nss_SetError (
   PRUint32 error
 )
 {
@@ -281,8 +276,7 @@ nss_SetError
  */
 
 NSS_IMPLEMENT void
-nss_ClearErrorStack
-(
+nss_ClearErrorStack (
   void
 )
 {
@@ -320,8 +314,7 @@ nss_ClearErrorStack
  */
 
 NSS_IMPLEMENT PRIntn
-nss_MarkErrorStack
-(
+nss_MarkErrorStack (
   void
 )
 {
@@ -343,8 +336,7 @@ nss_MarkErrorStack
  */
 
 NSS_IMPLEMENT PRStatus
-nss_ReleaseErrorStack
-(
+nss_ReleaseErrorStack (
   PRIntn mark
 )
 {
@@ -360,8 +352,7 @@ nss_ReleaseErrorStack
 }
 
 NSS_IMPLEMENT PRStatus
-nss_HoldErrorStack
-(
+nss_HoldErrorStack (
   void
 )
 {
@@ -376,8 +367,7 @@ nss_HoldErrorStack
 }
 
 NSS_IMPLEMENT PRStatus
-nss_ResumeErrorStack
-(
+nss_ResumeErrorStack (
   void
 )
 {

@@ -153,14 +153,12 @@ void PK11_ConfigurePKCS11(const char *man, const char *libdes,
 void nss_DumpCertificateCacheInfo(void);
 
 NSS_EXTERN NSSTrustDomain *
-NSS_GetDefaultTrustDomain
-(
+NSS_GetDefaultTrustDomain (
   void
 );
 
 NSS_EXTERN PRStatus
-NSS_SetDefaultCertificateHandler
-(
+NSS_SetDefaultCertificateHandler (
   NSSCertificateType certType,
   NSSCertificateMethods *certMethods
 );

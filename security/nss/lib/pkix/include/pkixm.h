@@ -66,58 +66,50 @@ static const char PKIXM_CVS_ID[] = "@(#) $Source$ $Revision$ $Date$ $Name$";
 PR_BEGIN_EXTERN_C
 
 NSS_EXTERN void
-nssPKIXName_SetArena
-(
+nssPKIXName_SetArena (
   NSSPKIXName *name,
   NSSArena *arena
 );
 
 NSS_EXTERN void
-nssPKIXExtension_SetArena
-(
+nssPKIXExtension_SetArena (
   NSSPKIXExtension *extension,
   NSSArena *arena
 );
 
 NSS_EXTERN void
-nssPKIXExtensions_SetArena
-(
+nssPKIXExtensions_SetArena (
   NSSPKIXExtensions *extensions,
   NSSArena *arena
 );
 
 NSS_EXTERN void
-nssPKIXValidity_SetArena
-(
+nssPKIXValidity_SetArena (
   NSSPKIXValidity *validity,
   NSSArena *arena
 );
 
 NSS_EXTERN void
-nssPKIXTime_SetArena
-(
+nssPKIXTime_SetArena (
   NSSPKIXTime *time,
   NSSArena *arena
 );
 
 NSS_EXTERN void
-nssPKIXTBSCertificate_SetArena
-(
+nssPKIXTBSCertificate_SetArena (
   NSSPKIXTBSCertificate *tbsCert,
   NSSArena *arena
 );
 
 NSS_EXTERN PRStatus
-nssPKIXTBSCertificate_duplicate
-(
+nssPKIXTBSCertificate_duplicate (
   NSSPKIXTBSCertificate *tbsCert,
   NSSArena *arena,
   NSSPKIXTBSCertificate *copy
 );
 
 NSS_EXTERN void
-nssPKIXCertificate_SetArena
-(
+nssPKIXCertificate_SetArena (
   NSSPKIXCertificate *cert,
   NSSArena *arena
 );
@@ -140,8 +132,7 @@ nssPKIXCertificate_SetArena
  */
 
 NSS_EXTERN NSSPKIXAttribute *
-nss_pkix_Attribute_v_create
-(
+nss_pkix_Attribute_v_create (
   NSSArena *arenaOpt,
   NSSPKIXAttributeType *typeOid,
   PRUint32 count,
@@ -155,8 +146,7 @@ nss_pkix_Attribute_v_create
  */
 
 NSS_EXTERN PR_STATUS
-nss_pkix_X520Name_DoUTF8
-(
+nss_pkix_X520Name_DoUTF8 (
   NSSPKIXX520Name *name
 );
 
@@ -167,8 +157,7 @@ nss_pkix_X520Name_DoUTF8
  */
 
 NSS_EXTERN PR_STATUS
-nss_pkix_X520CommonName_DoUTF8
-(
+nss_pkix_X520CommonName_DoUTF8 (
   NSSPKIXX520CommonName *name
 );
 
@@ -177,8 +166,7 @@ nss_pkix_X520CommonName_DoUTF8
  */
 
 NSS_EXTERN NSSPKIXRDNSequence *
-nss_pkix_RDNSequence_v_create
-(
+nss_pkix_RDNSequence_v_create (
   NSSArena *arenaOpt,
   PRUint32 count,
   va_list ap
@@ -191,22 +179,19 @@ nss_pkix_RDNSequence_v_create
  */
 
 NSS_EXTERN PRStatus
-nss_pkix_RDNSequence_Clear
-(
+nss_pkix_RDNSequence_Clear (
   NSSPKIXRDNSequence *rdnseq
 );
 
 #ifdef NSSDEBUG
 
 NSS_EXTERN PRStatus
-nss_pkix_RDNSequence_register
-(
+nss_pkix_RDNSequence_register (
   NSSPKIXRDNSequence *rdnseq
 );
 
 NSS_EXTERN PRStatus
-nss_pkix_RDNSequence_deregister
-(
+nss_pkix_RDNSequence_deregister (
   NSSPKIXRDNSequence *rdnseq
 );
 
@@ -228,8 +213,7 @@ nss_pkix_RDNSequence_deregister
  */
 
 NSS_EXTERN NSSPKIXRelativeDistinguishedName *
-nss_pkix_RelativeDistinguishedName_V_Create
-(
+nss_pkix_RelativeDistinguishedName_V_Create (
   NSSArena *arenaOpt,
   PRUint32 count,
   va_list ap
@@ -242,22 +226,19 @@ nss_pkix_RelativeDistinguishedName_V_Create
  */
 
 NSS_EXTERN PRStatus
-nss_pkix_RelativeDistinguishedName_Clear
-(
+nss_pkix_RelativeDistinguishedName_Clear (
   NSSPKIXRelativeDistinguishedName *rdn
 );
 
 #ifdef NSSDEBUG
 
 NSS_EXTERN PRStatus
-nss_pkix_RelativeDistinguishedName_register
-(
+nss_pkix_RelativeDistinguishedName_register (
   NSSPKIXRelativeDistinguishedName *rdn
 );
 
 NSS_EXTERN PRStatus
-nss_pkix_RelativeDistinguishedName_deregister
-(
+nss_pkix_RelativeDistinguishedName_deregister (
   NSSPKIXRelativeDistinguishedName *rdn
 );
 

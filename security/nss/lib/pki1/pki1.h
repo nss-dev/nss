@@ -78,8 +78,7 @@ extern const PRUint32 nss_attribute_type_alias_count;
  */
 
 NSS_EXTERN NSSOID *
-nssOID_Create
-(
+nssOID_Create (
   NSSItem *oidData
 );
 
@@ -100,8 +99,7 @@ nssOID_Create
  */
 
 NSS_EXTERN NSSOID *
-nssOID_CreateFromBER
-(
+nssOID_CreateFromBER (
   NSSBER *berOid
 );
 
@@ -125,21 +123,18 @@ nssOID_CreateFromBER
  */
 
 NSS_EXTERN NSSOID *
-nssOID_CreateFromUTF8
-(
+nssOID_CreateFromUTF8 (
   NSSUTF8 *stringOid
 );
 
 
 NSS_EXTERN NSSOIDTag
-nssOID_GetTag
-(
+nssOID_GetTag (
   const NSSOID *oid
 );
 
 NSS_EXTERN NSSAlgorithmAndParameters *
-nssOID_CreateAlgorithmAndParameters
-(
+nssOID_CreateAlgorithmAndParameters (
   const NSSOID *oid,
   NSSParameters *parameters,
   NSSArena *arenaOpt
@@ -165,8 +160,7 @@ nssOID_CreateAlgorithmAndParameters
  */
 
 NSS_EXTERN NSSDER *
-nssOID_GetDEREncoding
-(
+nssOID_GetDEREncoding (
   const NSSOID *oid,
   NSSDER *rvOpt,
   NSSArena *arenaOpt
@@ -193,8 +187,7 @@ nssOID_GetDEREncoding
  */
 
 NSS_EXTERN NSSUTF8 *
-nssOID_GetUTF8Encoding
-(
+nssOID_GetUTF8Encoding (
   const NSSOID *oid,
   NSSArena *arenaOpt
 );
@@ -225,8 +218,7 @@ nssOID_GetUTF8Encoding
 
 #ifdef DEBUG
 NSS_EXTERN const NSSUTF8 *
-nssOID_getExplanation
-(
+nssOID_getExplanation (
   NSSOID *oid
 );
 
@@ -260,8 +252,7 @@ nssOID_getExplanation
 
 #ifdef DEBUG
 NSS_EXTERN NSSUTF8 *
-nssOID_getTaggedUTF8
-(
+nssOID_getTaggedUTF8 (
   NSSOID *oid,
   NSSArena *arenaOpt
 );
@@ -308,8 +299,7 @@ nssOID_getTaggedUTF8
  */
 
 NSS_EXTERN NSSATAV *
-nssATAV_CreateFromBER
-(
+nssATAV_CreateFromBER (
   NSSArena *arenaOpt,
   const NSSBER *berATAV
 );
@@ -335,8 +325,7 @@ nssATAV_CreateFromBER
  */
 
 NSS_EXTERN NSSATAV *
-nssATAV_CreateFromUTF8
-(
+nssATAV_CreateFromUTF8 (
   NSSArena *arenaOpt,
   const NSSUTF8 *stringATAV
 );
@@ -365,8 +354,7 @@ nssATAV_CreateFromUTF8
  */
 
 NSS_EXTERN NSSATAV *
-nssATAV_Create
-(
+nssATAV_Create (
   NSSArena *arenaOpt,
   const NSSOID *oid,
   const void *data,
@@ -392,8 +380,7 @@ nssATAV_Create
  */
 
 NSS_EXTERN PRStatus
-nssATAV_Destroy
-(
+nssATAV_Destroy (
   NSSATAV *atav
 );
 
@@ -416,8 +403,7 @@ nssATAV_Destroy
  */
 
 NSS_EXTERN NSSDER *
-nssATAV_GetDEREncoding
-(
+nssATAV_GetDEREncoding (
   NSSATAV *atav,
   NSSArena *arenaOpt
 );
@@ -443,8 +429,7 @@ nssATAV_GetDEREncoding
  */
 
 NSS_EXTERN NSSUTF8 *
-nssATAV_GetUTF8Encoding
-(
+nssATAV_GetUTF8Encoding (
   NSSATAV *atav,
   NSSArena *arenaOpt
 );
@@ -466,8 +451,7 @@ nssATAV_GetUTF8Encoding
  */
 
 NSS_EXTERN const NSSOID *
-nssATAV_GetType
-(
+nssATAV_GetType (
   NSSATAV *atav
 );
 
@@ -491,8 +475,7 @@ nssATAV_GetType
  */
 
 NSS_EXTERN NSSUTF8 *
-nssATAV_GetValue
-(
+nssATAV_GetValue (
   NSSATAV *atav,
   NSSArena *arenaOpt
 );
@@ -518,8 +501,7 @@ nssATAV_GetValue
  */
 
 NSS_EXTERN PRStatus
-nssATAV_Compare
-(
+nssATAV_Compare (
   NSSATAV *atav1,
   NSSATAV *atav2,
   PRBool *equalp
@@ -544,8 +526,7 @@ nssATAV_Compare
  */
 
 NSS_EXTERN NSSATAV *
-nssATAV_Duplicate
-(
+nssATAV_Duplicate (
   NSSATAV *atav,
   NSSArena *arenaOpt
 );
@@ -606,8 +587,7 @@ nssATAV_Duplicate
  */
 
 NSS_EXTERN NSSRDN *
-nssRDN_CreateFromBER
-(
+nssRDN_CreateFromBER (
   NSSArena *arenaOpt,
   NSSBER *berRDN
 );
@@ -635,8 +615,7 @@ nssRDN_CreateFromBER
  */
 
 NSS_EXTERN NSSRDN *
-nssRDN_CreateFromUTF8
-(
+nssRDN_CreateFromUTF8 (
   NSSArena *arenaOpt,
   NSSUTF8 *stringRDN
 );
@@ -661,8 +640,7 @@ nssRDN_CreateFromUTF8
  */
 
 NSS_EXTERN NSSRDN *
-nssRDN_Create
-(
+nssRDN_Create (
   NSSArena *arenaOpt,
   NSSATAV *atav1,
   ...
@@ -687,8 +665,7 @@ nssRDN_Create
  */
 
 NSS_EXTERN NSSRDN *
-nssRDN_CreateSimple
-(
+nssRDN_CreateSimple (
   NSSArena *arenaOpt,
   NSSATAV *atav
 );
@@ -712,8 +689,7 @@ nssRDN_CreateSimple
  */
 
 NSS_EXTERN PRStatus
-nssRDN_Destroy
-(
+nssRDN_Destroy (
   NSSRDN *rdn
 );
 
@@ -736,8 +712,7 @@ nssRDN_Destroy
  */
 
 NSS_EXTERN NSSDER *
-nssRDN_GetDEREncoding
-(
+nssRDN_GetDEREncoding (
   NSSRDN *rdn,
   NSSArena *arenaOpt
 );
@@ -764,8 +739,7 @@ nssRDN_GetDEREncoding
  */
 
 NSS_EXTERN NSSUTF8 *
-nssRDN_GetUTF8Encoding
-(
+nssRDN_GetUTF8Encoding (
   NSSRDN *rdn,
   NSSArena *arenaOpt
 );
@@ -793,8 +767,7 @@ nssRDN_GetUTF8Encoding
  */
 
 NSS_EXTERN PRStatus
-nssRDN_AddATAV
-(
+nssRDN_AddATAV (
   NSSRDN *rdn,
   NSSATAV *atav
 );
@@ -815,8 +788,7 @@ nssRDN_AddATAV
  */
 
 NSS_EXTERN PRUint32
-nssRDN_GetATAVCount
-(
+nssRDN_GetATAVCount (
   NSSRDN *rdn
 );
 
@@ -847,8 +819,7 @@ nssRDN_GetATAVCount
  */
 
 NSS_EXTERN NSSATAV *
-nssRDN_GetATAV
-(
+nssRDN_GetATAV (
   NSSRDN *rdn,
   NSSArena *arenaOpt,
   PRUint32 i
@@ -877,8 +848,7 @@ nssRDN_GetATAV
  */
 
 NSS_EXTERN NSSATAV *
-nssRDN_GetSimpleATAV
-(
+nssRDN_GetSimpleATAV (
   NSSRDN *rdn,
   NSSArena *arenaOpt
 );
@@ -905,8 +875,7 @@ nssRDN_GetSimpleATAV
  */
 
 NSS_EXTERN PRStatus
-nssRDN_Compare
-(
+nssRDN_Compare (
   NSSRDN *rdn1,
   NSSRDN *rdn2,
   PRBool *equalp
@@ -931,8 +900,7 @@ nssRDN_Compare
  */
 
 NSS_EXTERN NSSRDN *
-nssRDN_Duplicate
-(
+nssRDN_Duplicate (
   NSSRDN *rdn,
   NSSArena *arenaOpt
 );
@@ -978,8 +946,7 @@ nssRDN_Duplicate
  */
 
 NSS_EXTERN NSSRDNSeq *
-nssRDNSeq_CreateFromBER
-(
+nssRDNSeq_CreateFromBER (
   NSSArena *arenaOpt,
   NSSBER *berRDNSeq
 );
@@ -1006,8 +973,7 @@ nssRDNSeq_CreateFromBER
  */
 
 NSS_EXTERN NSSRDNSeq *
-nssRDNSeq_CreateFromUTF8
-(
+nssRDNSeq_CreateFromUTF8 (
   NSSArena *arenaOpt,
   NSSUTF8 *stringRDNSeq
 );
@@ -1032,8 +998,7 @@ nssRDNSeq_CreateFromUTF8
  */
 
 NSS_EXTERN NSSRDNSeq *
-nssRDNSeq_Create
-(
+nssRDNSeq_Create (
   NSSArena *arenaOpt,
   NSSRDN *rdn1,
   ...
@@ -1058,8 +1023,7 @@ nssRDNSeq_Create
  */
 
 NSS_EXTERN PRStatus
-nssRDNSeq_Destroy
-(
+nssRDNSeq_Destroy (
   NSSRDNSeq *rdnseq
 );
 
@@ -1082,8 +1046,7 @@ nssRDNSeq_Destroy
  */
 
 NSS_EXTERN NSSDER *
-nssRDNSeq_GetDEREncoding
-(
+nssRDNSeq_GetDEREncoding (
   NSSRDNSeq *rdnseq,
   NSSArena *arenaOpt
 );
@@ -1108,8 +1071,7 @@ nssRDNSeq_GetDEREncoding
  */
 
 NSS_EXTERN NSSUTF8 *
-nssRDNSeq_GetUTF8Encoding
-(
+nssRDNSeq_GetUTF8Encoding (
   NSSRDNSeq *rdnseq,
   NSSArena *arenaOpt
 );
@@ -1137,8 +1099,7 @@ nssRDNSeq_GetUTF8Encoding
  */
 
 NSS_EXTERN PRStatus
-nssRDNSeq_AppendRDN
-(
+nssRDNSeq_AppendRDN (
   NSSRDNSeq *rdnseq,
   NSSRDN *rdn
 );
@@ -1159,8 +1120,7 @@ nssRDNSeq_AppendRDN
  */
 
 NSS_EXTERN PRUint32
-nssRDNSeq_GetRDNCount
-(
+nssRDNSeq_GetRDNCount (
   NSSRDNSeq *rdnseq
 );
 
@@ -1190,8 +1150,7 @@ nssRDNSeq_GetRDNCount
  */
 
 NSS_EXTERN NSSRDN *
-nssRDNSeq_GetRDN
-(
+nssRDNSeq_GetRDN (
   NSSRDNSeq *rdnseq,
   NSSArena *arenaOpt,
   PRUint32 i
@@ -1218,8 +1177,7 @@ nssRDNSeq_GetRDN
  */
 
 NSS_EXTERN PRStatus
-nssRDNSeq_Compare
-(
+nssRDNSeq_Compare (
   NSSRDNSeq *rdnseq1,
   NSSRDNSeq *rdnseq2,
   PRBool *equalp
@@ -1244,8 +1202,7 @@ nssRDNSeq_Compare
  */
 
 NSS_EXTERN NSSRDNSeq *
-nssRDNSeq_Duplicate
-(
+nssRDNSeq_Duplicate (
   NSSRDNSeq *rdnseq,
   NSSArena *arenaOpt
 );
@@ -1268,8 +1225,7 @@ nssRDNSeq_Duplicate
  */
 
 NSS_EXTERN PRBool
-nssRDNSeq_EvaluateUTF8
-(
+nssRDNSeq_EvaluateUTF8 (
   NSSUTF8 *str
 );
 
@@ -1324,8 +1280,7 @@ nssRDNSeq_EvaluateUTF8
  */
 
 NSS_EXTERN NSSName *
-nssName_CreateFromBER
-(
+nssName_CreateFromBER (
   NSSArena *arenaOpt,
   NSSBER *berName
 );
@@ -1351,8 +1306,7 @@ nssName_CreateFromBER
  */
 
 NSS_EXTERN NSSName *
-nssName_CreateFromUTF8
-(
+nssName_CreateFromUTF8 (
   NSSArena *arenaOpt,
   NSSUTF8 *stringName
 );
@@ -1385,8 +1339,7 @@ nssName_CreateFromUTF8
  */
 
 NSS_EXTERN NSSName *
-nssName_Create
-(
+nssName_Create (
   NSSArena *arenaOpt,
   NSSNameChoice choice,
   void *arg
@@ -1411,8 +1364,7 @@ nssName_Create
  */
 
 NSS_EXTERN PRStatus
-nssName_Destroy
-(
+nssName_Destroy (
   NSSName *name
 );
 
@@ -1435,8 +1387,7 @@ nssName_Destroy
  */
 
 NSS_EXTERN NSSDER *
-nssName_GetDEREncoding
-(
+nssName_GetDEREncoding (
   NSSName *name,
   NSSArena *arenaOpt
 );
@@ -1462,8 +1413,7 @@ nssName_GetDEREncoding
  */
 
 NSS_EXTERN NSSUTF8 *
-nssName_GetUTF8Encoding
-(
+nssName_GetUTF8Encoding (
   NSSName *name,
   NSSArena *arenaOpt
 );
@@ -1485,8 +1435,7 @@ nssName_GetUTF8Encoding
  */
 
 NSS_EXTERN NSSNameChoice
-nssName_GetChoice
-(
+nssName_GetChoice (
   NSSName *name
 );
 
@@ -1514,8 +1463,7 @@ nssName_GetChoice
  */
 
 NSS_EXTERN NSSRDNSeq *
-nssName_GetRDNSequence
-(
+nssName_GetRDNSequence (
   NSSName *name,
   NSSArena *arenaOpt
 );
@@ -1543,8 +1491,7 @@ nssName_GetRDNSequence
  */
 
 NSS_EXTERN void *
-nssName_GetSpecifiedChoice
-(
+nssName_GetSpecifiedChoice (
   NSSName *name,
   NSSNameChoice choice,
   NSSArena *arenaOpt
@@ -1571,8 +1518,7 @@ nssName_GetSpecifiedChoice
  */
 
 NSS_EXTERN PRStatus
-nssName_Compare
-(
+nssName_Compare (
   NSSName *name1,
   NSSName *name2,
   PRBool *equalp
@@ -1597,8 +1543,7 @@ nssName_Compare
  */
 
 NSS_EXTERN NSSName *
-nssName_Duplicate
-(
+nssName_Duplicate (
   NSSName *name,
   NSSArena *arenaOpt
 );
@@ -1629,8 +1574,7 @@ nssName_Duplicate
  */
 
 NSS_EXTERN NSSUTF8 * /* XXX fgmr DirectoryString */
-nssName_GetUID
-(
+nssName_GetUID (
   NSSName *name,
   NSSArena *arenaOpt
 );
@@ -1659,8 +1603,7 @@ nssName_GetUID
  */
 
 NSS_EXTERN NSSUTF8 * /* XXX fgmr IA5 String */
-nssName_GetEmail
-(
+nssName_GetEmail (
   NSSName *name,
   NSSArena *arenaOpt
 );
@@ -1688,8 +1631,7 @@ nssName_GetEmail
  */
 
 NSS_EXTERN NSSUTF8 * /* XXX fgmr DirectoryString */
-nssName_GetCommonName
-(
+nssName_GetCommonName (
   NSSName *name,
   NSSArena *arenaOpt
 );
@@ -1717,8 +1659,7 @@ nssName_GetCommonName
  */
 
 NSS_EXTERN NSSUTF8 * /* XXX fgmr DirectoryString */
-nssName_GetOrganization
-(
+nssName_GetOrganization (
   NSSName *name,
   NSSArena *arenaOpt
 );
@@ -1747,8 +1688,7 @@ nssName_GetOrganization
  */
 
 NSS_EXTERN NSSUTF8 ** /* XXX fgmr DirectoryString */
-nssName_GetOrganizationalUnits
-(
+nssName_GetOrganizationalUnits (
   NSSName *name,
   NSSArena *arenaOpt
 );
@@ -1776,8 +1716,7 @@ nssName_GetOrganizationalUnits
  */
 
 NSS_EXTERN NSSUTF8 * /* XXX fgmr DirectoryString */
-nssName_GetStateOrProvince
-(
+nssName_GetStateOrProvince (
   NSSName *name,
   NSSArena *arenaOpt
 );
@@ -1805,8 +1744,7 @@ nssName_GetStateOrProvince
  */
 
 NSS_EXTERN NSSUTF8 * /* XXX fgmr DirectoryString */
-nssName_GetLocality
-(
+nssName_GetLocality (
   NSSName *name,
   NSSArena *arenaOpt
 );
@@ -1835,8 +1773,7 @@ nssName_GetLocality
  */
 
 NSS_EXTERN NSSUTF8 * /* XXX fgmr PrintableString */
-nssName_GetCountry
-(
+nssName_GetCountry (
   NSSName *name,
   NSSArena *arenaOpt
 );
@@ -1865,8 +1802,7 @@ nssName_GetCountry
  */
 
 NSS_EXTERN NSSUTF8 * /* XXX fgmr DirectoryString */
-nssName_GetAttribute
-(
+nssName_GetAttribute (
   NSSName *name,
   NSSOID *attribute,
   NSSArena *arenaOpt
@@ -1890,8 +1826,7 @@ nssName_GetAttribute
  */
 
 NSS_EXTERN PRBool
-nssName_EvaluateUTF8
-(
+nssName_EvaluateUTF8 (
   NSSUTF8 *str
 );
 
@@ -1952,8 +1887,7 @@ nssName_EvaluateUTF8
  */
 
 NSS_EXTERN NSSGeneralName *
-nssGeneralName_CreateFromBER
-(
+nssGeneralName_CreateFromBER (
   NSSArena *arenaOpt,
   NSSBER *berGeneralName
 );
@@ -1978,8 +1912,7 @@ nssGeneralName_CreateFromBER
  */
 
 NSS_EXTERN NSSGeneralName *
-nssGeneralName_CreateFromUTF8
-(
+nssGeneralName_CreateFromUTF8 (
   NSSArena *arenaOpt,
   NSSUTF8 *stringGeneralName
 );
@@ -2020,8 +1953,7 @@ nssGeneralName_CreateFromUTF8
  */
 
 NSS_EXTERN NSSGeneralName *
-nssGeneralName_Create
-(
+nssGeneralName_Create (
   NSSGeneralNameChoice choice,
   void *arg
 );
@@ -2046,8 +1978,7 @@ nssGeneralName_Create
  */
 
 NSS_EXTERN PRStatus
-nssGeneralName_Destroy
-(
+nssGeneralName_Destroy (
   NSSGeneralName *generalName
 );
 
@@ -2070,8 +2001,7 @@ nssGeneralName_Destroy
  */
 
 NSS_EXTERN NSSDER *
-nssGeneralName_GetDEREncoding
-(
+nssGeneralName_GetDEREncoding (
   NSSGeneralName *generalName,
   NSSArena *arenaOpt
 );
@@ -2097,8 +2027,7 @@ nssGeneralName_GetDEREncoding
  */
 
 NSS_EXTERN NSSUTF8 *
-nssGeneralName_GetUTF8Encoding
-(
+nssGeneralName_GetUTF8Encoding (
   NSSGeneralName *generalName,
   NSSArena *arenaOpt
 );
@@ -2121,8 +2050,7 @@ nssGeneralName_GetUTF8Encoding
  */
 
 NSS_EXTERN NSSGeneralNameChoice
-nssGeneralName_GetChoice
-(
+nssGeneralName_GetChoice (
   NSSGeneralName *generalName
 );
 
@@ -2149,8 +2077,7 @@ nssGeneralName_GetChoice
  */
 
 NSS_EXTERN NSSOtherName *
-nssGeneralName_GetOtherName
-(
+nssGeneralName_GetOtherName (
   NSSGeneralName *generalName,
   NSSArena *arenaOpt
 );
@@ -2178,8 +2105,7 @@ nssGeneralName_GetOtherName
  */
 
 NSS_EXTERN NSSRFC822Name *
-nssGeneralName_GetRfc822Name
-(
+nssGeneralName_GetRfc822Name (
   NSSGeneralName *generalName,
   NSSArena *arenaOpt
 );
@@ -2207,8 +2133,7 @@ nssGeneralName_GetRfc822Name
  */
 
 NSS_EXTERN NSSDNSName *
-nssGeneralName_GetDNSName
-(
+nssGeneralName_GetDNSName (
   NSSGeneralName *generalName,
   NSSArena *arenaOpt
 );
@@ -2236,8 +2161,7 @@ nssGeneralName_GetDNSName
  */
 
 NSS_EXTERN NSSX400Address *
-nssGeneralName_GetX400Address
-(
+nssGeneralName_GetX400Address (
   NSSGeneralName *generalName,
   NSSArena *arenaOpt
 );
@@ -2265,8 +2189,7 @@ nssGeneralName_GetX400Address
  */
 
 NSS_EXTERN NSSName *
-nssGeneralName_GetName
-(
+nssGeneralName_GetName (
   NSSGeneralName *generalName,
   NSSArena *arenaOpt
 );
@@ -2294,8 +2217,7 @@ nssGeneralName_GetName
  */
 
 NSS_EXTERN NSSEdiPartyName *
-nssGeneralName_GetEdiPartyName
-(
+nssGeneralName_GetEdiPartyName (
   NSSGeneralName *generalName,
   NSSArena *arenaOpt
 );
@@ -2323,8 +2245,7 @@ nssGeneralName_GetEdiPartyName
  */
 
 NSS_EXTERN NSSURI *
-nssGeneralName_GetUniformResourceIdentifier
-(
+nssGeneralName_GetUniformResourceIdentifier (
   NSSGeneralName *generalName,
   NSSArena *arenaOpt
 );
@@ -2352,8 +2273,7 @@ nssGeneralName_GetUniformResourceIdentifier
  */
 
 NSS_EXTERN NSSIPAddress *
-nssGeneralName_GetIPAddress
-(
+nssGeneralName_GetIPAddress (
   NSSGeneralName *generalName,
   NSSArena *arenaOpt
 );
@@ -2381,8 +2301,7 @@ nssGeneralName_GetIPAddress
  */
 
 NSS_EXTERN NSSRegisteredID *
-nssGeneralName_GetRegisteredID
-(
+nssGeneralName_GetRegisteredID (
   NSSGeneralName *generalName,
   NSSArena *arenaOpt
 );
@@ -2410,8 +2329,7 @@ nssGeneralName_GetRegisteredID
  */
 
 NSS_EXTERN void *
-nssGeneralName_GetSpecifiedChoice
-(
+nssGeneralName_GetSpecifiedChoice (
   NSSGeneralName *generalName,
   NSSGeneralNameChoice choice,
   NSSArena *arenaOpt
@@ -2438,8 +2356,7 @@ nssGeneralName_GetSpecifiedChoice
  */
 
 NSS_EXTERN PRStatus
-nssGeneralName_Compare
-(
+nssGeneralName_Compare (
   NSSGeneralName *generalName1,
   NSSGeneralName *generalName2,
   PRBool *equalp
@@ -2464,8 +2381,7 @@ nssGeneralName_Compare
  */
 
 NSS_EXTERN NSSGeneralName *
-nssGeneralName_Duplicate
-(
+nssGeneralName_Duplicate (
   NSSGeneralName *generalName,
   NSSArena *arenaOpt
 );
@@ -2497,8 +2413,7 @@ nssGeneralName_Duplicate
  */
 
 NSS_EXTERN NSSUTF8 * /* XXX fgmr DirectoryString */
-nssGeneralName_GetUID
-(
+nssGeneralName_GetUID (
   NSSGeneralName *generalName,
   NSSArena *arenaOpt
 );
@@ -2529,8 +2444,7 @@ nssGeneralName_GetUID
  */
 
 NSS_EXTERN NSSUTF8 * /* XXX fgmr IA5String */
-nssGeneralName_GetEmail
-(
+nssGeneralName_GetEmail (
   NSSGeneralName *generalName,
   NSSArena *arenaOpt
 );
@@ -2559,8 +2473,7 @@ nssGeneralName_GetEmail
  */
 
 NSS_EXTERN NSSUTF8 * /* XXX fgmr DirectoryString */
-nssGeneralName_GetCommonName
-(
+nssGeneralName_GetCommonName (
   NSSGeneralName *generalName,
   NSSArena *arenaOpt
 );
@@ -2589,8 +2502,7 @@ nssGeneralName_GetCommonName
  */
 
 NSS_EXTERN NSSUTF8 * /* XXX fgmr DirectoryString */
-nssGeneralName_GetOrganization
-(
+nssGeneralName_GetOrganization (
   NSSGeneralName *generalName,
   NSSArena *arenaOpt
 );
@@ -2620,8 +2532,7 @@ nssGeneralName_GetOrganization
  */
 
 NSS_EXTERN NSSUTF8 ** /* XXX fgmr DirectoryString */
-nssGeneralName_GetOrganizationalUnits
-(
+nssGeneralName_GetOrganizationalUnits (
   NSSGeneralName *generalName,
   NSSArena *arenaOpt
 );
@@ -2650,8 +2561,7 @@ nssGeneralName_GetOrganizationalUnits
  */
 
 NSS_EXTERN NSSUTF8 * /* XXX fgmr DirectoryString */
-nssGeneralName_GetStateOrProvince
-(
+nssGeneralName_GetStateOrProvince (
   NSSGeneralName *generalName,
   NSSArena *arenaOpt
 );
@@ -2680,8 +2590,7 @@ nssGeneralName_GetStateOrProvince
  */
 
 NSS_EXTERN NSSUTF8 * /* XXX fgmr DirectoryString */
-nssGeneralName_GetLocality
-(
+nssGeneralName_GetLocality (
   NSSGeneralName *generalName,
   NSSArena *arenaOpt
 );
@@ -2710,8 +2619,7 @@ nssGeneralName_GetLocality
  */
 
 NSS_EXTERN NSSUTF8 * /* XXX fgmr PrintableString */
-nssGeneralName_GetCountry
-(
+nssGeneralName_GetCountry (
   NSSGeneralName *generalName,
   NSSArena *arenaOpt
 );
@@ -2740,8 +2648,7 @@ nssGeneralName_GetCountry
  */
 
 NSS_EXTERN NSSUTF8 * /* XXX fgmr DirectoryString */
-nssGeneralName_GetAttribute
-(
+nssGeneralName_GetAttribute (
   NSSGeneralName *generalName,
   NSSOID *attribute,
   NSSArena *arenaOpt
@@ -2784,8 +2691,7 @@ nssGeneralName_GetAttribute
  */
 
 NSS_EXTERN NSSGeneralNameSeq *
-nssGeneralNameSeq_CreateFromBER
-(
+nssGeneralNameSeq_CreateFromBER (
   NSSArena *arenaOpt,
   NSSBER *berGeneralNameSeq
 );
@@ -2810,8 +2716,7 @@ nssGeneralNameSeq_CreateFromBER
  */
 
 NSS_EXTERN NSSGeneralNameSeq *
-nssGeneralNameSeq_Create
-(
+nssGeneralNameSeq_Create (
   NSSArena *arenaOpt,
   NSSGeneralName *generalName1,
   ...
@@ -2837,8 +2742,7 @@ nssGeneralNameSeq_Create
  */
 
 NSS_EXTERN PRStatus
-nssGeneralNameSeq_Destroy
-(
+nssGeneralNameSeq_Destroy (
   NSSGeneralNameSeq *generalNameSeq
 );
 
@@ -2861,8 +2765,7 @@ nssGeneralNameSeq_Destroy
  */
 
 NSS_EXTERN NSSDER *
-nssGeneralNameSeq_GetDEREncoding
-(
+nssGeneralNameSeq_GetDEREncoding (
   NSSGeneralNameSeq *generalNameSeq,
   NSSArena *arenaOpt
 );
@@ -2890,8 +2793,7 @@ nssGeneralNameSeq_GetDEREncoding
  */
 
 NSS_EXTERN PRStatus
-nssGeneralNameSeq_AppendGeneralName
-(
+nssGeneralNameSeq_AppendGeneralName (
   NSSGeneralNameSeq *generalNameSeq,
   NSSGeneralName *generalName
 );
@@ -2912,8 +2814,7 @@ nssGeneralNameSeq_AppendGeneralName
  */
 
 NSS_EXTERN PRUint32
-nssGeneralNameSeq_GetGeneralNameCount
-(
+nssGeneralNameSeq_GetGeneralNameCount (
   NSSGeneralNameSeq *generalNameSeq
 );
 
@@ -2941,8 +2842,7 @@ nssGeneralNameSeq_GetGeneralNameCount
  */
 
 NSS_EXTERN NSSGeneralName *
-nssGeneralNameSeq_GetGeneralName
-(
+nssGeneralNameSeq_GetGeneralName (
   NSSGeneralNameSeq *generalNameSeq,
   NSSArena *arenaOpt,
   PRUint32 i
@@ -2970,8 +2870,7 @@ nssGeneralNameSeq_GetGeneralName
  */
 
 NSS_EXTERN PRStatus
-nssGeneralNameSeq_Compare
-(
+nssGeneralNameSeq_Compare (
   NSSGeneralNameSeq *generalNameSeq1,
   NSSGeneralNameSeq *generalNameSeq2,
   PRBool *equalp
@@ -2996,8 +2895,7 @@ nssGeneralNameSeq_Compare
  */
 
 NSS_EXTERN NSSGeneralNameSeq *
-nssGeneralNameSeq_Duplicate
-(
+nssGeneralNameSeq_Duplicate (
   NSSGeneralNameSeq *generalNameSeq,
   NSSArena *arenaOpt
 );

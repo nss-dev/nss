@@ -77,62 +77,52 @@ PR_BEGIN_EXTERN_C
  */
 
 NSS_EXTERN PRStatus
-nss_InitializeGlobalModuleList
-(
+nss_InitializeGlobalModuleList (
   void
 );
 
 NSS_EXTERN PRStatus
-nss_DestroyGlobalModuleList
-(
+nss_DestroyGlobalModuleList (
   void
 );
 
 NSS_EXTERN NSSModule **
-nss_GetLoadedModules
-(
+nss_GetLoadedModules (
   void
 );
 
 NSS_EXTERN PRStatus
-nssGlobalModuleList_Add
-(
+nssGlobalModuleList_Add (
   NSSModule *module
 );
 
 NSS_EXTERN PRStatus
-nssGlobalModuleList_Remove
-(
+nssGlobalModuleList_Remove (
   NSSModule *module
 );
 
 NSS_EXTERN NSSModule *
-nssGlobalModuleList_FindModuleByName
-(
+nssGlobalModuleList_FindModuleByName (
   NSSUTF8 *moduleName
 );
 
 NSS_EXTERN NSSSlot *
-nssGlobalModuleList_FindSlotByName
-(
+nssGlobalModuleList_FindSlotByName (
   NSSUTF8 *slotName
 );
 
 NSS_EXTERN NSSToken *
-nssGlobalModuleList_FindTokenByName
-(
+nssGlobalModuleList_FindTokenByName (
   NSSUTF8 *tokenName
 );
 
 NSS_EXTERN NSSToken *
-nss_GetDefaultCryptoToken
-(
+nss_GetDefaultCryptoToken (
   void
 );
 
 NSS_EXTERN NSSToken *
-nss_GetDefaultDatabaseToken
-(
+nss_GetDefaultDatabaseToken (
   void
 );
 
@@ -157,8 +147,7 @@ nss_GetDefaultDatabaseToken
  */
 
 NSS_EXTERN NSSModule *
-nssModule_Create
-(
+nssModule_Create (
   NSSUTF8 *moduleOpt,
   NSSUTF8 *uriOpt,
   NSSUTF8 *opaqueOpt,
@@ -166,66 +155,56 @@ nssModule_Create
 );
 
 NSS_EXTERN NSSModule *
-nssModule_CreateFromSpec
-(
+nssModule_CreateFromSpec (
   NSSUTF8 *moduleSpec,
   NSSModule *parent,
   PRBool loadSubModules
 );
 
 NSS_EXTERN PRStatus
-nssModule_Destroy
-(
+nssModule_Destroy (
   NSSModule *mod
 );
 
 NSS_EXTERN NSSModule *
-nssModule_AddRef
-(
+nssModule_AddRef (
   NSSModule *mod
 );
 
 NSS_EXTERN PRStatus
-nssModule_Unload
-(
+nssModule_Unload (
   NSSModule *mod
 );
 
 NSS_EXTERN NSSUTF8 *
-nssModule_GetName
-(
+nssModule_GetName (
   NSSModule *mod
 );
 
 NSS_EXTERN NSSSlot **
-nssModule_GetSlots
-(
+nssModule_GetSlots (
   NSSModule *mod
 );
 
 NSS_EXTERN NSSSlot *
-nssModule_FindSlotByName
-(
+nssModule_FindSlotByName (
   NSSModule *mod,
   NSSUTF8 *slotName
 );
 
 NSS_EXTERN NSSToken *
-nssModule_FindTokenByName
-(
+nssModule_FindTokenByName (
   NSSModule *mod,
   NSSUTF8 *tokenName
 );
 
 NSS_EXTERN PRInt32
-nssModule_GetCertOrder
-(
+nssModule_GetCertOrder (
   NSSModule *module
 );
 
 NSS_EXTERN PRInt32
-nssModule_GetTrustOrder
-(
+nssModule_GetTrustOrder (
   NSSModule *module
 );
 
@@ -249,94 +228,79 @@ nssModule_GetTrustOrder
  */
 
 NSS_EXTERN PRStatus
-nssSlot_Destroy
-(
+nssSlot_Destroy (
   NSSSlot *slot
 );
 
 NSS_EXTERN NSSSlot *
-nssSlot_AddRef
-(
+nssSlot_AddRef (
   NSSSlot *slot
 );
 
 NSS_EXTERN NSSUTF8 *
-nssSlot_GetName
-(
+nssSlot_GetName (
   NSSSlot *slot
 );
 
 NSS_EXTERN NSSUTF8 *
-nssSlot_GetTokenName
-(
+nssSlot_GetTokenName (
   NSSSlot *slot
 );
 
 NSS_EXTERN NSSModule *
-nssSlot_GetModule
-(
+nssSlot_GetModule (
   NSSSlot *slot
 );
 
 NSS_EXTERN NSSToken *
-nssSlot_GetToken
-(
+nssSlot_GetToken (
   NSSSlot *slot
 );
 
 NSS_EXTERN PRBool
-nssSlot_IsTokenPresent
-(
+nssSlot_IsTokenPresent (
   NSSSlot *slot
 );
 
 NSS_EXTERN PRBool
-nssSlot_IsPermanent
-(
+nssSlot_IsPermanent (
   NSSSlot *slot
 );
 
 NSS_EXTERN PRBool
-nssSlot_IsFriendly
-(
+nssSlot_IsFriendly (
   NSSSlot *slot
 );
 
 NSS_EXTERN PRBool
-nssSlot_IsHardware
-(
+nssSlot_IsHardware (
   NSSSlot *slot
 );
 
 NSS_EXTERN PRBool
-nssSlot_IsLoggedIn
-(
+nssSlot_IsLoggedIn (
   NSSSlot *slot
 );
 
 NSS_EXTERN PRStatus
-nssSlot_Refresh
-(
+nssSlot_Refresh (
   NSSSlot *slot
 );
 
 NSS_EXTERN PRStatus
-nssSlot_Login
-(
+nssSlot_Login (
   NSSSlot *slot,
   NSSCallback *pwcb
 );
 
 NSS_EXTERN PRStatus
-nssSlot_Logout
-(
+nssSlot_Logout (
   NSSSlot *slot,
   nssSession *session
 );
 
 NSS_EXTERN PRStatus
-nssSlot_CheckPassword
-(
+nssSlot_CheckPassword (
   NSSSlot *slot,
   const NSSUTF8 *password
 );
@@ -344,15 +308,13 @@ nssSlot_CheckPassword
 #define NSSSLOT_ASK_PASSWORD_FIRST_TIME -1
 #define NSSSLOT_ASK_PASSWORD_EVERY_TIME  0
 NSS_EXTERN void
-nssSlot_SetPasswordDefaults
-(
+nssSlot_SetPasswordDefaults (
   NSSSlot *slot,
   PRInt32 askPasswordTimeout
 );
 
 NSS_EXTERN PRStatus
-nssSlot_SetPassword
-(
+nssSlot_SetPassword (
   NSSSlot *slot,
   NSSUTF8 *oldPasswordOpt,
   NSSUTF8 *newPassword
@@ -363,8 +325,7 @@ nssSlot_SetPassword
  */
 
 NSS_EXTERN nssSession *
-nssSlot_CreateSession
-(
+nssSlot_CreateSession (
   NSSSlot *slot,
   PRBool readWrite /* so far, this is the only flag used */
 );
@@ -444,64 +405,54 @@ nssSlot_CreateSession
  */
 
 NSS_EXTERN PRStatus
-nssToken_Destroy
-(
+nssToken_Destroy (
   NSSToken *tok
 );
 
 NSS_EXTERN NSSToken *
-nssToken_AddRef
-(
+nssToken_AddRef (
   NSSToken *tok
 );
 
 NSS_EXTERN NSSUTF8 *
-nssToken_GetName
-(
+nssToken_GetName (
   NSSToken *tok
 );
 
 NSS_EXTERN NSSModule *
-nssToken_GetModule
-(
+nssToken_GetModule (
   NSSToken *token
 );
 
 NSS_EXTERN NSSSlot *
-nssToken_GetSlot
-(
+nssToken_GetSlot (
   NSSToken *tok
 );
 
 NSS_EXTERN PRBool
-nssToken_IsReadOnly
-(
+nssToken_IsReadOnly (
   NSSToken *token
 );
 
 NSS_EXTERN PRBool
-nssToken_DoesAlgorithm
-(
+nssToken_DoesAlgorithm (
   NSSToken *token,
   const NSSAlgorithmAndParameters *ap
 );
 
 NSS_EXTERN nssSession *
-nssToken_CreateSession
-(
+nssToken_CreateSession (
   NSSToken *token,
   PRBool readWrite
 );
 
 NSS_EXTERN PRBool
-nssToken_NeedsPINInitialization
-(
+nssToken_NeedsPINInitialization (
   NSSToken *token
 );
 
 NSS_EXTERN nssCryptokiObject *
-nssToken_ImportCertificate
-(
+nssToken_ImportCertificate (
   NSSToken *tok,
   nssSession *session,
   NSSCertificateType certType,
@@ -516,8 +467,7 @@ nssToken_ImportCertificate
 );
 
 NSS_EXTERN nssCryptokiObject **
-nssToken_FindCertificates
-(
+nssToken_FindCertificates (
   NSSToken *token,
   nssSession *session,
   nssTokenSearchType searchType,
@@ -526,8 +476,7 @@ nssToken_FindCertificates
 );
 
 NSS_EXTERN nssCryptokiObject **
-nssToken_FindCertificatesBySubject
-(
+nssToken_FindCertificatesBySubject (
   NSSToken *token,
   nssSession *session,
   NSSDER *subject,
@@ -537,8 +486,7 @@ nssToken_FindCertificatesBySubject
 );
 
 NSS_EXTERN nssCryptokiObject **
-nssToken_FindCertificatesByNickname
-(
+nssToken_FindCertificatesByNickname (
   NSSToken *token,
   nssSession *session,
   NSSUTF8 *name,
@@ -548,8 +496,7 @@ nssToken_FindCertificatesByNickname
 );
 
 NSS_EXTERN nssCryptokiObject **
-nssToken_FindCertificatesByEmail
-(
+nssToken_FindCertificatesByEmail (
   NSSToken *token,
   nssSession *session,
   NSSASCII7 *email,
@@ -559,8 +506,7 @@ nssToken_FindCertificatesByEmail
 );
 
 NSS_EXTERN nssCryptokiObject **
-nssToken_FindCertificatesByID
-(
+nssToken_FindCertificatesByID (
   NSSToken *token,
   nssSession *session,
   NSSItem *id,
@@ -570,8 +516,7 @@ nssToken_FindCertificatesByID
 );
 
 NSS_EXTERN nssCryptokiObject *
-nssToken_FindCertificateByIssuerAndSerialNumber
-(
+nssToken_FindCertificateByIssuerAndSerialNumber (
   NSSToken *token,
   nssSession *session,
   NSSDER *issuer,
@@ -581,8 +526,7 @@ nssToken_FindCertificateByIssuerAndSerialNumber
 );
 
 NSS_EXTERN nssCryptokiObject *
-nssToken_FindCertificateByEncodedCertificate
-(
+nssToken_FindCertificateByEncodedCertificate (
   NSSToken *token,
   nssSession *session,
   NSSBER *encodedCertificate,
@@ -591,8 +535,7 @@ nssToken_FindCertificateByEncodedCertificate
 );
 
 NSS_EXTERN nssCryptokiObject *
-nssToken_ImportTrust
-(
+nssToken_ImportTrust (
   NSSToken *tok,
   nssSession *session,
   NSSDER *certEncoding,
@@ -606,8 +549,7 @@ nssToken_ImportTrust
 );
 
 NSS_EXTERN nssCryptokiObject **
-nssToken_FindTrustObjects
-(
+nssToken_FindTrustObjects (
   NSSToken *token,
   nssSession *session,
   nssTokenSearchType searchType,
@@ -616,8 +558,7 @@ nssToken_FindTrustObjects
 );
 
 NSS_EXTERN nssCryptokiObject *
-nssToken_FindTrustForCertificate
-(
+nssToken_FindTrustForCertificate (
   NSSToken *token,
   nssSession *session,
   NSSDER *certEncoding,
@@ -627,8 +568,7 @@ nssToken_FindTrustForCertificate
 );
 
 NSS_EXTERN nssCryptokiObject *
-nssToken_ImportCRL
-(
+nssToken_ImportCRL (
   NSSToken *token,
   nssSession *session,
   NSSDER *subject,
@@ -639,8 +579,7 @@ nssToken_ImportCRL
 );
 
 NSS_EXTERN nssCryptokiObject **
-nssToken_FindCRLs
-(
+nssToken_FindCRLs (
   NSSToken *token,
   nssSession *session,
   nssTokenSearchType searchType,
@@ -649,8 +588,7 @@ nssToken_FindCRLs
 );
 
 NSS_EXTERN nssCryptokiObject **
-nssToken_FindCRLsBySubject
-(
+nssToken_FindCRLsBySubject (
   NSSToken *token,
   nssSession *session,
   NSSDER *subject,
@@ -660,8 +598,7 @@ nssToken_FindCRLsBySubject
 );
 
 NSS_EXTERN PRStatus
-nssToken_GenerateKeyPair
-(
+nssToken_GenerateKeyPair (
   NSSToken *tok,
   nssSession *session,
   const NSSAlgorithmAndParameters *ap,
@@ -674,8 +611,7 @@ nssToken_GenerateKeyPair
 );
 
 NSS_EXTERN nssCryptokiObject *
-nssToken_ImportPublicKey
-(
+nssToken_ImportPublicKey (
   NSSToken *token,
   nssSession *session,
   NSSPublicKeyInfo *bki,
@@ -683,8 +619,7 @@ nssToken_ImportPublicKey
 );
 
 NSS_EXTERN nssCryptokiObject **
-nssToken_FindPrivateKeys
-(
+nssToken_FindPrivateKeys (
   NSSToken *token,
   nssSession *session,
   nssTokenSearchType searchType,
@@ -693,24 +628,21 @@ nssToken_FindPrivateKeys
 );
 
 NSS_EXTERN nssCryptokiObject *
-nssToken_FindPrivateKeyByID
-(
+nssToken_FindPrivateKeyByID (
   NSSToken *token,
   nssSession *session,
   NSSItem *keyID
 );
 
 NSS_EXTERN nssCryptokiObject *
-nssToken_FindPublicKeyByID
-(
+nssToken_FindPublicKeyByID (
   NSSToken *token,
   nssSession *session,
   NSSItem *keyID
 );
 
 NSS_EXTERN nssCryptokiObject *
-nssToken_GenerateSymmetricKey
-(
+nssToken_GenerateSymmetricKey (
   NSSToken *token,
   nssSession *session,
   const NSSAlgorithmAndParameters *ap,
@@ -722,8 +654,7 @@ nssToken_GenerateSymmetricKey
 );
 
 NSS_EXTERN nssCryptokiObject *
-nssToken_UnwrapKey
-(
+nssToken_UnwrapKey (
   NSSToken *token,
   nssSession *session,
   const NSSAlgorithmAndParameters *ap,
@@ -735,8 +666,7 @@ nssToken_UnwrapKey
 );
 
 NSS_EXTERN NSSItem *
-nssToken_WrapKey
-(
+nssToken_WrapKey (
   NSSToken *token,
   nssSession *session,
   const NSSAlgorithmAndParameters *ap,
@@ -747,8 +677,7 @@ nssToken_WrapKey
 );
 
 NSS_EXTERN nssCryptokiObject *
-nssToken_DeriveKey
-(
+nssToken_DeriveKey (
   NSSToken *token,
   nssSession *session,
   const NSSAlgorithmAndParameters *ap,
@@ -766,8 +695,7 @@ nssToken_DeriveKey
  *                  [3] server write
  */
 NSS_EXTERN PRStatus
-nssToken_DeriveSSLSessionKeys
-(
+nssToken_DeriveSSLSessionKeys (
   NSSToken *token,
   nssSession *session,
   const NSSAlgorithmAndParameters *ap,
@@ -794,8 +722,7 @@ nssToken_GenerateRandom (
 );
 
 NSS_EXTERN NSSItem *
-nssToken_Encrypt
-(
+nssToken_Encrypt (
   NSSToken *tok,
   nssSession *session,
   const NSSAlgorithmAndParameters *ap,
@@ -806,8 +733,7 @@ nssToken_Encrypt
 );
 
 NSS_EXTERN PRStatus
-nssToken_BeginEncrypt
-(
+nssToken_BeginEncrypt (
   NSSToken *token,
   nssSession *session,
   const NSSAlgorithmAndParameters *ap,
@@ -815,8 +741,7 @@ nssToken_BeginEncrypt
 );
 
 NSS_EXTERN NSSItem *
-nssToken_ContinueEncrypt
-(
+nssToken_ContinueEncrypt (
   NSSToken *token,
   nssSession *session,
   NSSItem *data,
@@ -825,8 +750,7 @@ nssToken_ContinueEncrypt
 );
 
 NSS_EXTERN NSSItem *
-nssToken_FinishEncrypt
-(
+nssToken_FinishEncrypt (
   NSSToken *token,
   nssSession *session,
   NSSItem *rvOpt,
@@ -834,8 +758,7 @@ nssToken_FinishEncrypt
 );
 
 NSS_EXTERN NSSItem *
-nssToken_Decrypt
-(
+nssToken_Decrypt (
   NSSToken *tok,
   nssSession *session,
   const NSSAlgorithmAndParameters *ap,
@@ -846,8 +769,7 @@ nssToken_Decrypt
 );
 
 NSS_EXTERN PRStatus
-nssToken_BeginDecrypt
-(
+nssToken_BeginDecrypt (
   NSSToken *token,
   nssSession *session,
   const NSSAlgorithmAndParameters *ap,
@@ -855,8 +777,7 @@ nssToken_BeginDecrypt
 );
 
 NSS_EXTERN NSSItem *
-nssToken_ContinueDecrypt
-(
+nssToken_ContinueDecrypt (
   NSSToken *token,
   nssSession *session,
   NSSItem *data,
@@ -865,8 +786,7 @@ nssToken_ContinueDecrypt
 );
 
 NSS_EXTERN NSSItem *
-nssToken_FinishDecrypt
-(
+nssToken_FinishDecrypt (
   NSSToken *token,
   nssSession *session,
   NSSItem *rvOpt,
@@ -874,8 +794,7 @@ nssToken_FinishDecrypt
 );
 
 NSS_EXTERN NSSItem *
-nssToken_Sign
-(
+nssToken_Sign (
   NSSToken *token,
   nssSession *session,
   const NSSAlgorithmAndParameters *ap,
@@ -886,8 +805,7 @@ nssToken_Sign
 );
 
 NSS_EXTERN PRStatus
-nssToken_BeginSign
-(
+nssToken_BeginSign (
   NSSToken *token,
   nssSession *session,
   const NSSAlgorithmAndParameters *ap,
@@ -895,16 +813,14 @@ nssToken_BeginSign
 );
 
 NSS_EXTERN PRStatus
-nssToken_ContinueSign
-(
+nssToken_ContinueSign (
   NSSToken *token,
   nssSession *session,
   NSSItem *data
 );
 
 NSS_EXTERN NSSItem *
-nssToken_FinishSign
-(
+nssToken_FinishSign (
   NSSToken *tok,
   nssSession *session,
   NSSItem *rvOpt,
@@ -912,8 +828,7 @@ nssToken_FinishSign
 );
 
 NSS_EXTERN NSSItem *
-nssToken_SignRecover
-(
+nssToken_SignRecover (
   NSSToken *tok,
   nssSession *session,
   const NSSAlgorithmAndParameters *ap,
@@ -925,8 +840,7 @@ nssToken_SignRecover
 
 
 NSS_EXTERN PRStatus
-nssToken_Verify
-(
+nssToken_Verify (
   NSSToken *token,
   nssSession *session,
   const NSSAlgorithmAndParameters *ap,
@@ -936,8 +850,7 @@ nssToken_Verify
 );
 
 NSS_EXTERN PRStatus
-nssToken_BeginVerify
-(
+nssToken_BeginVerify (
   NSSToken *token,
   nssSession *session,
   const NSSAlgorithmAndParameters *ap,
@@ -945,24 +858,21 @@ nssToken_BeginVerify
 );
 
 NSS_EXTERN PRStatus
-nssToken_ContinueVerify
-(
+nssToken_ContinueVerify (
   NSSToken *token,
   nssSession *session,
   NSSItem *data
 );
 
 NSS_EXTERN PRStatus
-nssToken_FinishVerify
-(
+nssToken_FinishVerify (
   NSSToken *tok,
   nssSession *session,
   NSSItem *signature
 );
 
 NSS_EXTERN NSSItem *
-nssToken_VerifyRecover
-(
+nssToken_VerifyRecover (
   NSSToken *tok,
   nssSession *session,
   const NSSAlgorithmAndParameters *ap,
@@ -973,8 +883,7 @@ nssToken_VerifyRecover
 );
 
 NSS_EXTERN NSSItem *
-nssToken_Digest
-(
+nssToken_Digest (
   NSSToken *tok,
   nssSession *session,
   const NSSAlgorithmAndParameters *ap,
@@ -984,24 +893,21 @@ nssToken_Digest
 );
 
 NSS_EXTERN PRStatus
-nssToken_BeginDigest
-(
+nssToken_BeginDigest (
   NSSToken *tok,
   nssSession *session,
   const NSSAlgorithmAndParameters *ap
 );
 
 NSS_EXTERN PRStatus
-nssToken_ContinueDigest
-(
+nssToken_ContinueDigest (
   NSSToken *tok,
   nssSession *session,
   NSSItem *item
 );
 
 NSS_EXTERN NSSItem *
-nssToken_FinishDigest
-(
+nssToken_FinishDigest (
   NSSToken *tok,
   nssSession *session,
   NSSItem *rvOpt,
@@ -1013,8 +919,7 @@ nssToken_FinishDigest
  */
 
 NSS_EXTERN NSSAlgorithmAndParameters *
-nssAlgorithmAndParameters_CreateFromOID
-(
+nssAlgorithmAndParameters_CreateFromOID (
   NSSArena *arenaOpt,
   CK_MECHANISM_TYPE algorithm,
   const NSSItem *parametersOpt
@@ -1022,22 +927,19 @@ nssAlgorithmAndParameters_CreateFromOID
 
 /* devf.h? */
 NSS_EXTERN NSSAlgorithmAndParameters *
-nssAlgorithmAndParameters_CreateSSLSessionKeyDerivation
-(
+nssAlgorithmAndParameters_CreateSSLSessionKeyDerivation (
   NSSArena *arenaOpt,
   NSSSSLSessionKeyParameters *parameters
 );
 
 NSS_EXTERN NSSAlgorithmAndParameters *
-nssAlgorithmAndParameters_Clone
-(
+nssAlgorithmAndParameters_Clone (
   const NSSAlgorithmAndParameters *ap,
   NSSArena *arenaOpt
 );
 
 NSS_EXTERN void
-nssAlgorithmAndParameters_Destroy
-(
+nssAlgorithmAndParameters_Destroy (
   NSSAlgorithmAndParameters *ap
 );
 
@@ -1051,35 +953,30 @@ nssAlgorithmAndParameters_Destroy
  */
 
 NSS_EXTERN nssSession *
-nssSession_AddRef
-(
+nssSession_AddRef (
   nssSession *s
 );
 
 NSS_EXTERN PRStatus
-nssSession_Destroy
-(
-  nssSession *s
-);
-
-/* would like to inline */
-NSS_EXTERN PRStatus
-nssSession_EnterMonitor
-(
+nssSession_Destroy (
   nssSession *s
 );
 
 /* would like to inline */
 NSS_EXTERN PRStatus
-nssSession_ExitMonitor
-(
+nssSession_EnterMonitor (
+  nssSession *s
+);
+
+/* would like to inline */
+NSS_EXTERN PRStatus
+nssSession_ExitMonitor (
   nssSession *s
 );
 
 /* would like to inline */
 NSS_EXTERN PRBool
-nssSession_IsReadWrite
-(
+nssSession_IsReadWrite (
   nssSession *s
 );
 
@@ -1102,8 +999,7 @@ nssSession_IsReadWrite
  */
 
 NSS_EXTERN void
-nssCryptokiObject_Destroy
-(
+nssCryptokiObject_Destroy (
   nssCryptokiObject *object
 );
 
@@ -1116,34 +1012,29 @@ nssCryptokiObject_Destroy
  * longer exists.  Caller beware, the object is no longer valid after this!
  */
 NSS_EXTERN PRStatus
-nssCryptokiObject_DeleteStoredObject
-(
+nssCryptokiObject_DeleteStoredObject (
   nssCryptokiObject *object
 );
 
 NSS_EXTERN PRBool
-nssCryptokiObject_Equal
-(
+nssCryptokiObject_Equal (
   nssCryptokiObject *object1,
   nssCryptokiObject *object2
 );
 
 NSS_EXTERN nssCryptokiObject *
-nssCryptokiObject_Clone
-(
+nssCryptokiObject_Clone (
   nssCryptokiObject *object
 );
 
 NSS_EXTERN nssCryptokiObject *
-nssCryptokiObject_WeakClone
-(
+nssCryptokiObject_WeakClone (
   nssCryptokiObject *object,
   nssCryptokiObject *copyObject
 );
 
 NSS_EXTERN PRStatus
-nssCryptokiCertificate_GetAttributes
-(
+nssCryptokiCertificate_GetAttributes (
   nssCryptokiObject *object,
   NSSArena *arenaOpt,
   NSSCertificateType *certTypeOpt,
@@ -1156,8 +1047,7 @@ nssCryptokiCertificate_GetAttributes
 );
 
 NSS_EXTERN PRStatus
-nssCryptokiPrivateKey_GetAttributes
-(
+nssCryptokiPrivateKey_GetAttributes (
   nssCryptokiObject *object,
   NSSArena *arenaOpt,
   NSSKeyPairType *keyTypeOpt,
@@ -1165,8 +1055,7 @@ nssCryptokiPrivateKey_GetAttributes
 );
 
 NSS_EXTERN PRStatus
-nssCryptokiPublicKey_GetAttributes
-(
+nssCryptokiPublicKey_GetAttributes (
   nssCryptokiObject *object,
   NSSArena *arenaOpt,
   NSSKeyPairType *keyTypeOpt,
@@ -1174,8 +1063,7 @@ nssCryptokiPublicKey_GetAttributes
 );
 
 NSS_EXTERN PRStatus
-nssCryptokiTrust_GetAttributes
-(
+nssCryptokiTrust_GetAttributes (
   nssCryptokiObject *trustObject,
   nssTrustLevel *serverAuth,
   nssTrustLevel *clientAuth,
@@ -1184,8 +1072,7 @@ nssCryptokiTrust_GetAttributes
 );
 
 NSS_EXTERN PRStatus
-nssCryptokiCRL_GetAttributes
-(
+nssCryptokiCRL_GetAttributes (
   nssCryptokiObject *crlObject,
   NSSArena *arenaOpt,
   NSSItem *encodingOpt,
@@ -1194,8 +1081,7 @@ nssCryptokiCRL_GetAttributes
 );
 
 NSS_EXTERN PRStatus
-nssCryptokiSymmetricKey_GetAttributes
-(
+nssCryptokiSymmetricKey_GetAttributes (
   nssCryptokiObject *keyObject,
   NSSArena *arenaOpt,
   NSSSymmetricKeyType *keyTypeOpt,
@@ -1204,8 +1090,7 @@ nssCryptokiSymmetricKey_GetAttributes
 );
 
 NSS_EXTERN nssCryptokiObject *
-nssCryptokiSymmetricKey_Copy
-(
+nssCryptokiSymmetricKey_Copy (
   nssCryptokiObject *sourceKey,
   nssSession *sourceSession,
   NSSToken *destination,
@@ -1218,8 +1103,7 @@ nssCryptokiSymmetricKey_Copy
  * associate it with a cert.  Does it stay like this for 4.0?
  */
 NSS_EXTERN PRStatus
-nssCryptokiPrivateKey_SetCertificate
-(
+nssCryptokiPrivateKey_SetCertificate (
   nssCryptokiObject *keyObject,
   nssSession *session,
   NSSUTF8 *nickname,
@@ -1233,8 +1117,7 @@ nssCryptokiPrivateKey_SetCertificate
  */
 
 NSS_EXTERN void
-nssModuleArray_Destroy
-(
+nssModuleArray_Destroy (
   NSSModule **modules
 );
 
@@ -1244,8 +1127,7 @@ nssModuleArray_Destroy
  */
 
 NSS_EXTERN void
-nssSlotArray_Destroy
-(
+nssSlotArray_Destroy (
   NSSSlot **slots
 );
 
@@ -1255,8 +1137,7 @@ nssSlotArray_Destroy
  */
 
 NSS_EXTERN void
-nssTokenArray_Destroy
-(
+nssTokenArray_Destroy (
   NSSToken **tokens
 );
 
@@ -1265,8 +1146,7 @@ nssTokenArray_Destroy
  * nssCryptokiObjectArray_Destroy
  */
 NSS_EXTERN void
-nssCryptokiObjectArray_Destroy
-(
+nssCryptokiObjectArray_Destroy (
   nssCryptokiObject **object
 );
 
@@ -1290,16 +1170,14 @@ nssCryptokiObjectArray_Destroy
 /* nssSlotList_Create
  */
 NSS_EXTERN nssSlotList *
-nssSlotList_Create
-(
+nssSlotList_Create (
   NSSArena *arenaOpt
 );
 
 /* nssSlotList_Destroy
  */
 NSS_EXTERN void
-nssSlotList_Destroy
-(
+nssSlotList_Destroy (
   nssSlotList *slotList
 );
 
@@ -1308,8 +1186,7 @@ nssSlotList_Destroy
  * Add the given slot in the given order.
  */
 NSS_EXTERN PRStatus
-nssSlotList_Add
-(
+nssSlotList_Add (
   nssSlotList *slotList,
   NSSSlot *slot,
   PRUint32 order
@@ -1321,8 +1198,7 @@ nssSlotList_Add
  * equal weight).
  */
 NSS_EXTERN PRStatus
-nssSlotList_AddModuleSlots
-(
+nssSlotList_AddModuleSlots (
   nssSlotList *slotList,
   NSSModule *module,
   PRUint32 order
@@ -1331,16 +1207,14 @@ nssSlotList_AddModuleSlots
 /* nssSlotList_GetSlots
  */
 NSS_EXTERN NSSSlot **
-nssSlotList_GetSlots
-(
+nssSlotList_GetSlots (
   nssSlotList *slotList
 );
 
 /* nssSlotList_FindSlotByName
  */
 NSS_EXTERN NSSSlot *
-nssSlotList_FindSlotByName
-(
+nssSlotList_FindSlotByName (
   nssSlotList *slotList,
   NSSUTF8 *slotName
 );
@@ -1348,8 +1222,7 @@ nssSlotList_FindSlotByName
 /* nssSlotList_FindTokenByName
  */
 NSS_EXTERN NSSToken *
-nssSlotList_FindTokenByName
-(
+nssSlotList_FindTokenByName (
   nssSlotList *slotList,
   NSSUTF8 *tokenName
 );
@@ -1360,8 +1233,7 @@ nssSlotList_FindTokenByName
  * list.
  */
 NSS_EXTERN NSSSlot *
-nssSlotList_GetBestSlot
-(
+nssSlotList_GetBestSlot (
   nssSlotList *slotList
 );
 
@@ -1370,8 +1242,7 @@ nssSlotList_GetBestSlot
  * Highest-ranking slot than can handle algorithm/parameters.
  */
 NSS_EXTERN NSSSlot *
-nssSlotList_GetBestSlotForAlgorithmAndParameters
-(
+nssSlotList_GetBestSlotForAlgorithmAndParameters (
   nssSlotList *slotList,
   NSSAlgorithmAndParameters *ap
 );
@@ -1381,22 +1252,19 @@ nssSlotList_GetBestSlotForAlgorithmAndParameters
  * Highest-ranking slot than can handle all algorithms/parameters.
  */
 NSS_EXTERN NSSSlot *
-nssSlotList_GetBestSlotForAlgorithmsAndParameters
-(
+nssSlotList_GetBestSlotForAlgorithmsAndParameters (
   nssSlotList *slotList,
   NSSAlgorithmAndParameters **ap
 );
 
 NSS_EXTERN NSSToken *
-nssSlotList_GetBestTokenForAlgorithm
-(
+nssSlotList_GetBestTokenForAlgorithm (
   nssSlotList *slotList,
   const NSSAlgorithmAndParameters *ap
 );
 
 NSS_EXTERN PRStatus
-nssToken_TraverseCertificates
-(
+nssToken_TraverseCertificates (
   NSSToken *token,
   nssSession *session,
   nssTokenSearchType searchType,

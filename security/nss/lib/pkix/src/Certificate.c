@@ -90,8 +90,7 @@ decode_me(NSSPKIXCertificate *cert)
 }
 
 static NSSPKIXCertificate *
-create_me
-(
+create_me (
   NSSArena *arenaOpt
 )
 {
@@ -143,8 +142,7 @@ loser:
 }
 
 NSS_IMPLEMENT NSSPKIXCertificate *
-nssPKIXCertificate_Create
-(
+nssPKIXCertificate_Create (
   NSSArena *arenaOpt,
   NSSPKIXTBSCertificate *tbsCert,
   NSSPKIXAlgorithmIdentifier *algID,
@@ -166,8 +164,7 @@ nssPKIXCertificate_Create
 }
 
 NSS_IMPLEMENT NSSPKIXCertificate *
-nssPKIXCertificate_Decode
-(
+nssPKIXCertificate_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 )
@@ -199,8 +196,7 @@ loser:
 }
 
 NSS_IMPLEMENT PRStatus
-nssPKIXCertificate_Destroy
-(
+nssPKIXCertificate_Destroy (
   NSSPKIXCertificate *cert
 )
 {
@@ -212,8 +208,7 @@ nssPKIXCertificate_Destroy
 }
 
 NSS_IMPLEMENT NSSBER *
-nssPKIXCertificate_Encode
-(
+nssPKIXCertificate_Encode (
   NSSPKIXCertificate *cert,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -238,8 +233,7 @@ nssPKIXCertificate_Encode
 }
 
 NSS_IMPLEMENT void
-nssPKIXCertificate_SetArena
-(
+nssPKIXCertificate_SetArena (
   NSSPKIXCertificate *cert,
   NSSArena *arena
 )
@@ -252,8 +246,7 @@ nssPKIXCertificate_SetArena
 }
 
 NSS_IMPLEMENT NSSPKIXTBSCertificate *
-nssPKIXCertificate_GetTBSCertificate
-(
+nssPKIXCertificate_GetTBSCertificate (
   NSSPKIXCertificate *cert
 )
 {
@@ -261,8 +254,7 @@ nssPKIXCertificate_GetTBSCertificate
 }
 
 NSS_IMPLEMENT void
-nssPKIXCertificate_SetTBSCertificate
-(
+nssPKIXCertificate_SetTBSCertificate (
   NSSPKIXCertificate *cert,
   NSSPKIXTBSCertificate *tbsCert
 )
@@ -271,8 +263,7 @@ nssPKIXCertificate_SetTBSCertificate
 }
 
 NSS_IMPLEMENT NSSPKIXAlgorithmIdentifier *
-nssPKIXCertificate_GetSignatureAlgorithm
-(
+nssPKIXCertificate_GetSignatureAlgorithm (
   NSSPKIXCertificate *cert
 )
 {
@@ -280,8 +271,7 @@ nssPKIXCertificate_GetSignatureAlgorithm
 }
 
 NSS_IMPLEMENT void
-nssPKIXCertificate_SetSignatureAlgorithm
-(
+nssPKIXCertificate_SetSignatureAlgorithm (
   NSSPKIXCertificate *cert,
   NSSPKIXAlgorithmIdentifier *algid
 )
@@ -290,8 +280,7 @@ nssPKIXCertificate_SetSignatureAlgorithm
 }
 
 NSS_IMPLEMENT NSSItem *
-nssPKIXCertificate_GetSignature
-(
+nssPKIXCertificate_GetSignature (
   NSSPKIXCertificate *cert
 )
 {
@@ -302,8 +291,7 @@ nssPKIXCertificate_GetSignature
 }
 
 NSS_IMPLEMENT void
-nssPKIXCertificate_SetSignature
-(
+nssPKIXCertificate_SetSignature (
   NSSPKIXCertificate *cert,
   NSSItem *signature
 )
@@ -312,8 +300,7 @@ nssPKIXCertificate_SetSignature
 }
 
 NSS_IMPLEMENT PRBool
-nssPKIXCertificate_Equal
-(
+nssPKIXCertificate_Equal (
   NSSPKIXCertificate *one,
   NSSPKIXCertificate *two,
   PRStatus *statusOpt
@@ -356,8 +343,7 @@ nssPKIXCertificate_Equal
 }
 
 NSS_IMPLEMENT PRStatus
-nssPKIXCertificate_duplicate
-(
+nssPKIXCertificate_duplicate (
   NSSPKIXCertificate *cert,
   NSSArena *arena,
   NSSPKIXCertificate *copy
@@ -401,8 +387,7 @@ nssPKIXCertificate_duplicate
 }
 
 NSS_IMPLEMENT NSSPKIXCertificate *
-nssPKIXCertificate_Duplicate
-(
+nssPKIXCertificate_Duplicate (
   NSSPKIXCertificate *cert,
   NSSArena *arenaOpt
 )
@@ -438,8 +423,7 @@ nssPKIXCertificate_Duplicate
  */
 
 NSS_IMPLEMENT NSSPKIXCertificate *
-NSSPKIXCertificate_Create
-(
+NSSPKIXCertificate_Create (
   NSSArena *arenaOpt,
   NSSPKIXTBSCertificate *tbsCert,
   NSSPKIXAlgorithmIdentifier *algID,
@@ -467,8 +451,7 @@ NSSPKIXCertificate_Create
  */
 
 NSS_IMPLEMENT NSSPKIXCertificate *
-NSSPKIXCertificate_Decode
-(
+NSSPKIXCertificate_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 )
@@ -484,8 +467,7 @@ NSSPKIXCertificate_Decode
  */
 
 NSS_IMPLEMENT PRStatus
-NSSPKIXCertificate_Destroy
-(
+NSSPKIXCertificate_Destroy (
   NSSPKIXCertificate *cert
 )
 {
@@ -500,8 +482,7 @@ NSSPKIXCertificate_Destroy
  */
 
 NSS_IMPLEMENT NSSPKIXCertificate *
-NSSPKIXCertificate_Duplicate
-(
+NSSPKIXCertificate_Duplicate (
   NSSPKIXCertificate *cert,
   NSSArena *arenaOpt
 )
@@ -517,8 +498,7 @@ NSSPKIXCertificate_Duplicate
  */
 
 NSS_IMPLEMENT NSSBER *
-NSSPKIXCertificate_Encode
-(
+NSSPKIXCertificate_Encode (
   NSSPKIXCertificate *cert,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -552,8 +532,7 @@ NSSPKIXCertificate_Encode
  */
 
 NSS_IMPLEMENT NSSPKIXTBSCertificate *
-NSSPKIXCertificate_GetTBSCertificate
-(
+NSSPKIXCertificate_GetTBSCertificate (
   NSSPKIXCertificate *cert
 )
 {
@@ -576,8 +555,7 @@ NSSPKIXCertificate_GetTBSCertificate
  */
 
 NSS_IMPLEMENT NSSItem *
-NSSPKIXCertificate_GetSignature
-(
+NSSPKIXCertificate_GetSignature (
   NSSPKIXCertificate *cert
 )
 {

@@ -85,8 +85,7 @@ decode_me(NSSPKIXnetscapeCertType *nsCertType, NSSBitString *nsct)
 }
 
 static NSSPKIXnetscapeCertType *
-create_me
-(
+create_me (
   NSSArena *arenaOpt
 )
 {
@@ -139,8 +138,7 @@ loser:
 
 #if 0
 NSS_IMPLEMENT NSSPKIXnetscapeCertType *
-nssPKIXnetscapeCertType_Create
-(
+nssPKIXnetscapeCertType_Create (
   NSSArena *arenaOpt,
   NSSOID *extnID,
   PRBool critical,
@@ -165,8 +163,7 @@ nssPKIXnetscapeCertType_Create
 #endif
 
 NSS_IMPLEMENT NSSPKIXnetscapeCertType *
-nssPKIXnetscapeCertType_Decode
-(
+nssPKIXnetscapeCertType_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 )
@@ -206,8 +203,7 @@ loser:
 }
 
 NSS_IMPLEMENT PRStatus
-nssPKIXnetscapeCertType_Destroy
-(
+nssPKIXnetscapeCertType_Destroy (
   NSSPKIXnetscapeCertType *nsCertType
 )
 {
@@ -218,8 +214,7 @@ nssPKIXnetscapeCertType_Destroy
 }
 
 NSS_IMPLEMENT NSSBER *
-nssPKIXnetscapeCertType_Encode
-(
+nssPKIXnetscapeCertType_Encode (
   NSSPKIXnetscapeCertType *nsCertType,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -245,8 +240,7 @@ nssPKIXnetscapeCertType_Encode
 
 #if 0
 NSS_IMPLEMENT PRBool
-nssPKIXnetscapeCertType_Equal
-(
+nssPKIXnetscapeCertType_Equal (
   NSSPKIXnetscapeCertType *one,
   NSSPKIXnetscapeCertType *two,
   PRStatus *statusOpt
@@ -274,8 +268,7 @@ nssPKIXnetscapeCertType_Equal
 }
 
 NSS_IMPLEMENT PRStatus
-nssPKIXnetscapeCertType_duplicate
-(
+nssPKIXnetscapeCertType_duplicate (
   NSSPKIXnetscapeCertType *nsCertType,
   NSSArena *arena,
   NSSPKIXnetscapeCertType *copy
@@ -310,8 +303,7 @@ nssPKIXnetscapeCertType_duplicate
 }
 
 NSS_IMPLEMENT NSSPKIXnetscapeCertType *
-nssPKIXnetscapeCertType_Duplicate
-(
+nssPKIXnetscapeCertType_Duplicate (
   NSSPKIXnetscapeCertType *nsCertType,
   NSSArena *arenaOpt
 )
@@ -332,8 +324,7 @@ nssPKIXnetscapeCertType_Duplicate
 #endif
 
 NSS_IMPLEMENT NSSPKIXnetscapeCertTypeValue
-nssPKIXnetscapeCertType_GetValue
-(
+nssPKIXnetscapeCertType_GetValue (
   NSSPKIXnetscapeCertType *nsCertType
 )
 {
@@ -358,8 +349,7 @@ nssPKIXnetscapeCertType_GetValue
 
 #if 0
 NSS_IMPLEMENT NSSPKIXnetscapeCertType *
-NSSPKIXnetscapeCertType_Create
-(
+NSSPKIXnetscapeCertType_Create (
   NSSArena *arenaOpt,
   NSSOID *extnID,
   PRBool critical,
@@ -388,8 +378,7 @@ NSSPKIXnetscapeCertType_Create
  */
 
 NSS_IMPLEMENT NSSPKIXnetscapeCertType *
-NSSPKIXnetscapeCertType_Decode
-(
+NSSPKIXnetscapeCertType_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 )
@@ -405,8 +394,7 @@ NSSPKIXnetscapeCertType_Decode
  */
 
 NSS_IMPLEMENT PRStatus
-NSSPKIXnetscapeCertType_Destroy
-(
+NSSPKIXnetscapeCertType_Destroy (
   NSSPKIXnetscapeCertType *nsCertType
 )
 {
@@ -422,8 +410,7 @@ NSSPKIXnetscapeCertType_Destroy
 
 #if 0
 NSS_IMPLEMENT NSSPKIXnetscapeCertType *
-NSSPKIXnetscapeCertType_Duplicate
-(
+NSSPKIXnetscapeCertType_Duplicate (
   NSSPKIXnetscapeCertType *nsCertType,
   NSSArena *arenaOpt
 )
@@ -440,8 +427,7 @@ NSSPKIXnetscapeCertType_Duplicate
  */
 
 NSS_IMPLEMENT NSSBER *
-NSSPKIXnetscapeCertType_Encode
-(
+NSSPKIXnetscapeCertType_Encode (
   NSSPKIXnetscapeCertType *nsCertType,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -461,8 +447,7 @@ NSSPKIXnetscapeCertType_Encode
 }
 
 NSS_IMPLEMENT NSSPKIXnetscapeCertTypeValue
-NSSPKIXnetscapeCertType_GetValue
-(
+NSSPKIXnetscapeCertType_GetValue (
   NSSPKIXnetscapeCertType *nsCertType
 )
 {

@@ -93,8 +93,7 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
  */
 
 NSS_IMPLEMENT NSSOID *
-nssOID_CreateFromTag
-(
+nssOID_CreateFromTag (
   NSSOIDTag tag
 )
 {
@@ -105,8 +104,7 @@ nssOID_CreateFromTag
 }
 
 NSS_IMPLEMENT NSSOID *
-NSSOID_CreateFromTag
-(
+NSSOID_CreateFromTag (
   NSSOIDTag tag
 )
 {
@@ -114,8 +112,7 @@ NSSOID_CreateFromTag
 }
 
 NSS_IMPLEMENT PRBool
-nssOID_IsTag
-(
+nssOID_IsTag (
   const NSSOID *oid,
   NSSOIDTag tag
 )
@@ -131,8 +128,7 @@ nssOID_IsTag
 
 /* XXX ugh */
 NSS_IMPLEMENT NSSOIDTag
-nssOID_GetTag
-(
+nssOID_GetTag (
   const NSSOID *oid
 )
 {
@@ -145,8 +141,7 @@ nssOID_GetTag
 }
 
 NSS_IMPLEMENT PRBool
-NSSOID_IsTag
-(
+NSSOID_IsTag (
   const NSSOID *oid,
   NSSOIDTag tag
 )
@@ -155,8 +150,7 @@ NSSOID_IsTag
 }
 
 NSS_IMPLEMENT NSSAlgorithmAndParameters *
-nssOID_CreateAlgorithmAndParameters
-(
+nssOID_CreateAlgorithmAndParameters (
   const NSSOID *oid,
   NSSParameters *parameters,
   NSSArena *arenaOpt
@@ -172,8 +166,7 @@ nssOID_CreateAlgorithmAndParameters
 }
 
 NSS_IMPLEMENT NSSAlgorithmAndParameters *
-NSSOID_CreateAlgorithmAndParameters
-(
+NSSOID_CreateAlgorithmAndParameters (
   const NSSOID *oid,
   NSSParameters *parameters,
   NSSArena *arenaOpt
@@ -183,8 +176,7 @@ NSSOID_CreateAlgorithmAndParameters
 }
 
 NSS_EXTERN NSSOID *
-nssOID_Create
-(
+nssOID_Create (
   NSSItem *oidData
 )
 {
@@ -195,8 +187,7 @@ nssOID_Create
 }
 
 NSS_EXTERN NSSOID *
-NSSOID_Create
-(
+NSSOID_Create (
   NSSItem *oidData
 )
 {
@@ -220,8 +211,7 @@ NSSOID_Create
  */
 
 NSS_EXTERN NSSOID *
-NSSOID_CreateFromBER
-(
+NSSOID_CreateFromBER (
   NSSBER *berOid
 )
 {
@@ -265,8 +255,7 @@ NSSOID_CreateFromBER
  */
 
 NSS_EXTERN NSSOID *
-NSSOID_CreateFromUTF8
-(
+NSSOID_CreateFromUTF8 (
   NSSUTF8 *stringOid
 )
 {
@@ -306,8 +295,7 @@ NSSOID_CreateFromUTF8
  */
 
 NSS_EXTERN NSSDER *
-NSSOID_GetDEREncoding
-(
+NSSOID_GetDEREncoding (
   const NSSOID *oid,
   NSSDER *rvOpt,
   NSSArena *arenaOpt
@@ -339,8 +327,7 @@ NSSOID_GetDEREncoding
  */
 
 NSS_EXTERN NSSUTF8 *
-NSSOID_GetUTF8Encoding
-(
+NSSOID_GetUTF8Encoding (
   const NSSOID *oid,
   NSSArena *arenaOpt
 )
@@ -376,8 +363,7 @@ static PZLock *oid_hash_lock;
  */
 
 static PLHashNumber PR_CALLBACK
-oid_hash
-(
+oid_hash (
   const void *key
 )
 {
@@ -404,8 +390,7 @@ oid_hash
  */
 
 static PRIntn PR_CALLBACK
-oid_hash_compare
-(
+oid_hash_compare (
   const void *k1,
   const void *k2
 )
@@ -430,8 +415,7 @@ static NSSArena *oid_arena;
  */
 
 static PRStatus PR_CALLBACK
-oid_once_func
-(
+oid_once_func (
   void
 )
 {
@@ -503,8 +487,7 @@ static PRCallOnceType oid_call_once;
  */
 
 static PRStatus
-oid_init
-(
+oid_init (
   void
 )
 {
@@ -519,8 +502,7 @@ oid_init
  */
 
 static PRStatus
-oid_sanity_check_ber
-(
+oid_sanity_check_ber (
   NSSBER *berOid
 )
 {
@@ -605,8 +587,7 @@ oid_sanity_check_ber
  */
 
 NSS_EXTERN NSSOID *
-nssOID_CreateFromBER
-(
+nssOID_CreateFromBER (
   NSSBER *berOid
 )
 {
@@ -675,8 +656,7 @@ nssOID_CreateFromBER
  */
 
 static PRStatus
-oid_sanity_check_utf8
-(
+oid_sanity_check_utf8 (
   NSSUTF8 *s
 )
 {
@@ -733,8 +713,7 @@ oid_sanity_check_utf8
 }
 
 static PRUint32
-oid_encode_number
-(
+oid_encode_number (
   PRUint32 n,
   PRUint8 *dp,
   PRUint32 nb
@@ -786,8 +765,7 @@ oid_encode_number
  */
 
 static PRUint32
-oid_encode_huge
-(
+oid_encode_huge (
   NSSUTF8 *s,
   NSSUTF8 *e,
   PRUint8 *dp,
@@ -908,8 +886,7 @@ oid_encode_huge
 
 
 static NSSOID *
-oid_encode_string
-(
+oid_encode_string (
   NSSUTF8 *s
 )
 {
@@ -1047,8 +1024,7 @@ oid_encode_string
  */
 
 NSS_EXTERN NSSOID *
-nssOID_CreateFromUTF8
-(
+nssOID_CreateFromUTF8 (
   NSSUTF8 *stringOid
 )
 {
@@ -1152,8 +1128,7 @@ nssOID_CreateFromUTF8
  */
 
 NSS_EXTERN NSSDER *
-nssOID_GetDEREncoding
-(
+nssOID_GetDEREncoding (
   const NSSOID *oid,
   NSSDER *rvOpt,
   NSSArena *arenaOpt
@@ -1212,8 +1187,7 @@ nssOID_GetDEREncoding
  */
 
 NSS_EXTERN NSSUTF8 *
-nssOID_GetUTF8Encoding
-(
+nssOID_GetUTF8Encoding (
   const NSSOID *oid,
   NSSArena *arenaOpt
 )
@@ -1359,8 +1333,7 @@ nssOID_GetUTF8Encoding
 
 #ifdef DEBUG
 NSS_EXTERN const NSSUTF8 *
-nssOID_getExplanation
-(
+nssOID_getExplanation (
   NSSOID *oid
 )
 {
@@ -1401,8 +1374,7 @@ nssOID_getExplanation
 
 #ifdef DEBUG
 NSS_EXTERN NSSUTF8 *
-nssOID_getTaggedUTF8
-(
+nssOID_getTaggedUTF8 (
   NSSOID *oid,
   NSSArena *arenaOpt
 )

@@ -77,8 +77,7 @@ struct nssHashStr {
 };
 
 static PLHashNumber
-nss_identity_hash
-(
+nss_identity_hash (
   const void *key
 )
 {
@@ -88,8 +87,7 @@ nss_identity_hash
 }
 
 static PLHashNumber
-nss_item_hash
-(
+nss_item_hash (
   const void *key
 )
 {
@@ -114,8 +112,7 @@ nss_compare_items(const void *v1, const void *v2)
  *
  */
 NSS_IMPLEMENT nssHash *
-nssHash_Create
-(
+nssHash_Create (
   NSSArena *arenaOpt,
   PRUint32 numBuckets,
   PLHashFunction keyHash,
@@ -168,8 +165,7 @@ loser:
  *
  */
 NSS_IMPLEMENT nssHash *
-nssHash_CreatePointer
-(
+nssHash_CreatePointer (
   NSSArena *arenaOpt,
   PRUint32 numBuckets
 )
@@ -183,8 +179,7 @@ nssHash_CreatePointer
  *
  */
 NSS_IMPLEMENT nssHash *
-nssHash_CreateString
-(
+nssHash_CreateString (
   NSSArena *arenaOpt,
   PRUint32 numBuckets
 )
@@ -198,8 +193,7 @@ nssHash_CreateString
  *
  */
 NSS_IMPLEMENT nssHash *
-nssHash_CreateItem
-(
+nssHash_CreateItem (
   NSSArena *arenaOpt,
   PRUint32 numBuckets
 )
@@ -213,8 +207,7 @@ nssHash_CreateItem
  *
  */
 NSS_IMPLEMENT void
-nssHash_Destroy
-(
+nssHash_Destroy (
   nssHash *hash
 )
 {
@@ -232,8 +225,7 @@ nssHash_Destroy
  *
  */
 NSS_IMPLEMENT PRStatus
-nssHash_Add
-(
+nssHash_Add (
   nssHash *hash,
   const void *key,
   const void *value
@@ -266,8 +258,7 @@ nssHash_Add
  *
  */
 NSS_IMPLEMENT void
-nssHash_Remove
-(
+nssHash_Remove (
   nssHash *hash,
   const void *it
 )
@@ -290,8 +281,7 @@ nssHash_Remove
  *
  */
 NSS_IMPLEMENT PRUint32
-nssHash_Count
-(
+nssHash_Count (
   nssHash *hash
 )
 {
@@ -311,8 +301,7 @@ nssHash_Count
  *
  */
 NSS_IMPLEMENT PRBool
-nssHash_Exists
-(
+nssHash_Exists (
   nssHash *hash,
   const void *it
 )
@@ -337,8 +326,7 @@ nssHash_Exists
  *
  */
 NSS_IMPLEMENT void *
-nssHash_Lookup
-(
+nssHash_Lookup (
   nssHash *hash,
   const void *it
 )
@@ -360,8 +348,7 @@ struct arg_str {
 };
 
 static PRIntn
-nss_hash_enumerator
-(
+nss_hash_enumerator (
   PLHashEntry *he,
   PRIntn index,
   void *arg
@@ -378,8 +365,7 @@ nss_hash_enumerator
  * NOTE that the iteration function will be called with the hashtable locked.
  */
 NSS_IMPLEMENT void
-nssHash_Iterate
-(
+nssHash_Iterate (
   nssHash *hash,
   nssHashIterator fcn,
   void *closure

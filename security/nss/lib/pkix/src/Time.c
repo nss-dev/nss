@@ -89,8 +89,7 @@ decode_me(NSSPKIXTime *time)
 }
 
 static NSSPKIXTime *
-create_me
-(
+create_me (
   NSSArena *arenaOpt
 )
 {
@@ -143,8 +142,7 @@ loser:
 
 #if 0
 NSS_IMPLEMENT NSSPKIXTime *
-nssPKIXTime_CreateFromUTCTime
-(
+nssPKIXTime_CreateFromUTCTime (
   NSSArena *arenaOpt,
   NSSUTF8 *utcTime
 )
@@ -164,8 +162,7 @@ nssPKIXTime_CreateFromUTCTime
 #endif
 
 NSS_IMPLEMENT void
-nssPKIXTime_SetArena
-(
+nssPKIXTime_SetArena (
   NSSPKIXTime *time,
   NSSArena *arena
 )
@@ -174,8 +171,7 @@ nssPKIXTime_SetArena
 }
 
 NSS_IMPLEMENT NSSPKIXTime *
-nssPKIXTime_Decode
-(
+nssPKIXTime_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 )
@@ -205,8 +201,7 @@ loser:
 }
 
 NSS_IMPLEMENT PRStatus
-nssPKIXTime_Destroy
-(
+nssPKIXTime_Destroy (
   NSSPKIXTime *time
 )
 {
@@ -217,8 +212,7 @@ nssPKIXTime_Destroy
 }
 
 NSS_IMPLEMENT NSSBER *
-nssPKIXTime_Encode
-(
+nssPKIXTime_Encode (
   NSSPKIXTime *time,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -243,8 +237,7 @@ nssPKIXTime_Encode
 }
 
 NSS_IMPLEMENT PRBool
-nssPKIXTime_Equal
-(
+nssPKIXTime_Equal (
   NSSPKIXTime *one,
   NSSPKIXTime *two,
   PRStatus *statusOpt
@@ -273,8 +266,7 @@ nssPKIXTime_Equal
 }
 
 NSS_IMPLEMENT PRStatus
-nssPKIXTime_duplicate
-(
+nssPKIXTime_duplicate (
   NSSPKIXTime *time,
   NSSArena *arena,
   NSSPKIXTime *copy
@@ -299,8 +291,7 @@ nssPKIXTime_duplicate
 }
 
 NSS_IMPLEMENT NSSPKIXTime *
-nssPKIXTime_Duplicate
-(
+nssPKIXTime_Duplicate (
   NSSPKIXTime *time,
   NSSArena *arenaOpt
 )
@@ -320,8 +311,7 @@ nssPKIXTime_Duplicate
 }
 
 NSS_IMPLEMENT NSSTime
-nssPKIXTime_GetTime
-(
+nssPKIXTime_GetTime (
   NSSPKIXTime *time,
   PRStatus *statusOpt
 )
@@ -360,8 +350,7 @@ nssPKIXTime_GetTime
 
 #if 0
 NSS_IMPLEMENT NSSPKIXTime *
-NSSPKIXTime_Create
-(
+NSSPKIXTime_Create (
   NSSArena *arenaOpt,
   NSSPKIXTime *notBefore,
   NSSPKIXTime *notAfter
@@ -389,8 +378,7 @@ NSSPKIXTime_Create
  */
 
 NSS_IMPLEMENT NSSPKIXTime *
-NSSPKIXTime_Decode
-(
+NSSPKIXTime_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 )
@@ -406,8 +394,7 @@ NSSPKIXTime_Decode
  */
 
 NSS_IMPLEMENT PRStatus
-NSSPKIXTime_Destroy
-(
+NSSPKIXTime_Destroy (
   NSSPKIXTime *time
 )
 {
@@ -422,8 +409,7 @@ NSSPKIXTime_Destroy
  */
 
 NSS_IMPLEMENT NSSPKIXTime *
-NSSPKIXTime_Duplicate
-(
+NSSPKIXTime_Duplicate (
   NSSPKIXTime *time,
   NSSArena *arenaOpt
 )
@@ -439,8 +425,7 @@ NSSPKIXTime_Duplicate
  */
 
 NSS_IMPLEMENT NSSBER *
-NSSPKIXTime_Encode
-(
+NSSPKIXTime_Encode (
   NSSPKIXTime *time,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -460,8 +445,7 @@ NSSPKIXTime_Encode
 }
 
 NSS_IMPLEMENT NSSTime
-NSSPKIXTime_GetTime
-(
+NSSPKIXTime_GetTime (
   NSSPKIXTime *time,
   PRStatus *statusOpt
 )

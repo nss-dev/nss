@@ -57,8 +57,7 @@ const NSSASN1Template nssPKIXRDNSequence_template[] = {
 };
 
 static void
-clear_me
-(
+clear_me (
   NSSPKIXRDNSequence *rdnseq
 )
 {
@@ -67,8 +66,7 @@ clear_me
 }
 
 NSS_IMPLEMENT void
-nss_pkix_RDNSequence_Count
-(
+nss_pkix_RDNSequence_Count (
   NSSPKIXRDNSequence *rdnseq
 )
 {
@@ -101,8 +99,7 @@ nss_pkix_RDNSequence_Count
 }
 
 NSS_IMPLEMENT NSSPKIXRDNSequence *
-nss_pkix_RDNSequence_v_create
-(
+nss_pkix_RDNSequence_v_create (
   NSSArena *arenaOpt,
   PRUint32 count,
   va_list ap
@@ -176,8 +173,7 @@ nss_pkix_RDNSequence_v_create
 }
 
 NSS_IMPLEMENT PRStatus
-nssPKIXRDNSequence_AppendRDN
-(
+nssPKIXRDNSequence_AppendRDN (
   NSSPKIXRDNSequence *rdnseq,
   NSSPKIXRDN *rdn
 )
@@ -220,8 +216,7 @@ nssPKIXRDNSequence_AppendRDN
 }
 
 NSS_IMPLEMENT NSSPKIXRDNSequence *
-nssPKIXRDNSequence_Create
-(
+nssPKIXRDNSequence_Create (
   NSSArena *arenaOpt,
   NSSPKIXRDN *rdn1,
   ...
@@ -259,8 +254,7 @@ nssPKIXRDNSequence_Create
 }
 
 NSS_IMPLEMENT NSSPKIXRDNSequence *
-nssPKIXRDNSequence_CreateFromArray
-(
+nssPKIXRDNSequence_CreateFromArray (
   NSSArena *arenaOpt,
   PRUint32 count,
   NSSPKIXRDN **rdns
@@ -333,8 +327,7 @@ nssPKIXRDNSequence_CreateFromArray
 }
 
 NSS_IMPLEMENT NSSPKIXRDNSequence *
-nssPKIXRDNSequence_CreateFromUTF8
-(
+nssPKIXRDNSequence_CreateFromUTF8 (
   NSSArena *arenaOpt,
   NSSUTF8 *string
 )
@@ -399,8 +392,7 @@ nssPKIXRDNSequence_CreateFromUTF8
 }
 
 NSS_IMPLEMENT void
-nssPKIXRDNSequence_SetArena
-(
+nssPKIXRDNSequence_SetArena (
   NSSPKIXRDNSequence *rdnseq,
   NSSArena *arena
 )
@@ -412,8 +404,7 @@ nssPKIXRDNSequence_SetArena
 }
 
 NSS_IMPLEMENT NSSPKIXRDNSequence *
-nssPKIXRDNSequence_Decode
-(
+nssPKIXRDNSequence_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 )
@@ -472,8 +463,7 @@ nssPKIXRDNSequence_Decode
 }
 
 NSS_IMPLEMENT PRStatus
-nssPKIXRDNSequence_Destroy
-(
+nssPKIXRDNSequence_Destroy (
   NSSPKIXRDNSequence *rdnseq
 )
 {
@@ -485,8 +475,7 @@ nssPKIXRDNSequence_Destroy
 }
 
 NSS_IMPLEMENT NSSPKIXRDNSequence *
-nssPKIXRDNSequence_Duplicate
-(
+nssPKIXRDNSequence_Duplicate (
   NSSPKIXRDNSequence *rdnseq,
   NSSArena *arenaOpt
 )
@@ -584,8 +573,7 @@ nssPKIXRDNSequence_Duplicate
 }
 
 NSS_IMPLEMENT NSSBER *
-nssPKIXRDNSequence_Encode
-(
+nssPKIXRDNSequence_Encode (
   NSSPKIXRDNSequence *rdnseq,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -630,8 +618,7 @@ nssPKIXRDNSequence_Encode
 }
 
 NSS_IMPLEMENT PRBool
-nssPKIXRDNSequence_Equal
-(
+nssPKIXRDNSequence_Equal (
   NSSPKIXRDNSequence *one,
   NSSPKIXRDNSequence *two,
   PRStatus *statusOpt
@@ -669,8 +656,7 @@ nssPKIXRDNSequence_Equal
 }
 
 NSS_IMPLEMENT PRInt32
-nssPKIXRDNSequence_FindRDN
-(
+nssPKIXRDNSequence_FindRDN (
   NSSPKIXRDNSequence *rdnseq,
   NSSPKIXRDN *rdn
 )
@@ -695,8 +681,7 @@ nssPKIXRDNSequence_FindRDN
 }
 
 NSS_IMPLEMENT NSSPKIXRDN *
-nssPKIXRDNSequence_GetRDN
-(
+nssPKIXRDNSequence_GetRDN (
   NSSPKIXRDNSequence *rdnseq,
   PRInt32 i,
   NSSArena *arenaOpt
@@ -724,8 +709,7 @@ nssPKIXRDNSequence_GetRDN
 }
 
 NSS_IMPLEMENT PRInt32
-nssPKIXRDNSequence_GetRDNCount
-(
+nssPKIXRDNSequence_GetRDNCount (
   NSSPKIXRDNSequence *rdnseq
 )
 {
@@ -751,8 +735,7 @@ nssPKIXRDNSequence_GetRDNCount
 }
 
 NSS_IMPLEMENT NSSPKIXRDN **
-nssPKIXRDNSequence_GetRDNs
-(
+nssPKIXRDNSequence_GetRDNs (
   NSSPKIXRDNSequence *rdnseq,
   NSSPKIXRDN *rvOpt[],
   PRInt32 limit,
@@ -817,8 +800,7 @@ nssPKIXRDNSequence_GetRDNs
 }
 
 NSS_IMPLEMENT NSSUTF8 *
-nssPKIXRDNSequence_GetUTF8Encoding
-(
+nssPKIXRDNSequence_GetUTF8Encoding (
   NSSPKIXRDNSequence *rdnseq,
   NSSArena *arenaOpt
 )
@@ -831,8 +813,7 @@ nssPKIXRDNSequence_GetUTF8Encoding
 }
 
 NSS_IMPLEMENT PRStatus
-nssPKIXRDNSequence_InsertRDN
-(
+nssPKIXRDNSequence_InsertRDN (
   NSSPKIXRDNSequence *rdnseq,
   PRInt32 i,
   NSSPKIXRDN *rdn
@@ -888,8 +869,7 @@ nssPKIXRDNSequence_InsertRDN
 }
 
 NSS_IMPLEMENT PRStatus
-nssPKIXRDNSequence_RemoveRDN
-(
+nssPKIXRDNSequence_RemoveRDN (
   NSSPKIXRDNSequence *rdnseq,
   PRInt32 i
 )
@@ -936,8 +916,7 @@ nssPKIXRDNSequence_RemoveRDN
 }
 
 NSS_IMPLEMENT PRStatus
-nssPKIXRDNSequence_SetRDN
-(
+nssPKIXRDNSequence_SetRDN (
   NSSPKIXRDNSequence *rdnseq,
   PRInt32 i,
   NSSPKIXRDN *rdn
@@ -978,8 +957,7 @@ nssPKIXRDNSequence_SetRDN
 }
 
 NSS_IMPLEMENT PRStatus
-nssPKIXRDNSequence_SetRDNs
-(
+nssPKIXRDNSequence_SetRDNs (
   NSSPKIXRDNSequence *rdnseq,
   NSSPKIXRDN *rdns[],
   PRInt32 countOpt
@@ -1063,8 +1041,7 @@ nssPKIXRDNSequence_SetRDNs
 
 
 NSS_IMPLEMENT PRStatus
-NSSPKIXRDNSequence_RemoveRDN
-(
+NSSPKIXRDNSequence_RemoveRDN (
   NSSPKIXRDNSequence *rdnseq,
   PRInt32 i
 )
@@ -1075,8 +1052,7 @@ NSSPKIXRDNSequence_RemoveRDN
 }
 
 NSS_IMPLEMENT PRStatus
-NSSPKIXRDNSequence_SetRDN
-(
+NSSPKIXRDNSequence_SetRDN (
   NSSPKIXRDNSequence *rdnseq,
   PRInt32 i,
   NSSPKIXRDN *rdn
@@ -1088,8 +1064,7 @@ NSSPKIXRDNSequence_SetRDN
 }
 
 NSS_IMPLEMENT PRStatus
-NSSPKIXRDNSequence_SetRDNs
-(
+NSSPKIXRDNSequence_SetRDNs (
   NSSPKIXRDNSequence *rdnseq,
   NSSPKIXRDN *rdns[],
   PRInt32 countOpt
@@ -1142,8 +1117,7 @@ NSSPKIXRDNSequence_SetRDNs
 }
 
 NSS_IMPLEMENT PRStatus
-NSSPKIXRDNSequence_AppendRDN
-(
+NSSPKIXRDNSequence_AppendRDN (
   NSSPKIXRDNSequence *rdnseq,
   NSSPKIXRDN *rdn
 )
@@ -1154,8 +1128,7 @@ NSSPKIXRDNSequence_AppendRDN
 }
 
 NSS_IMPLEMENT NSSPKIXRDNSequence *
-NSSPKIXRDNSequence_Create
-(
+NSSPKIXRDNSequence_Create (
   NSSArena *arenaOpt,
   NSSPKIXRDN *rdn1,
   ...
@@ -1195,8 +1168,7 @@ NSSPKIXRDNSequence_Create
 }
 
 NSS_IMPLEMENT NSSPKIXRDNSequence *
-NSSPKIXRDNSequence_CreateFromArray
-(
+NSSPKIXRDNSequence_CreateFromArray (
   NSSArena *arenaOpt,
   PRUint32 count,
   NSSPKIXRDN *rdns[]
@@ -1208,8 +1180,7 @@ NSSPKIXRDNSequence_CreateFromArray
 }
 
 NSS_IMPLEMENT NSSPKIXRDNSequence *
-NSSPKIXRDNSequence_CreateFromUTF8
-(
+NSSPKIXRDNSequence_CreateFromUTF8 (
   NSSArena *arenaOpt,
   NSSUTF8 *string
 )
@@ -1220,8 +1191,7 @@ NSSPKIXRDNSequence_CreateFromUTF8
 }
 
 NSS_IMPLEMENT NSSPKIXRDNSequence *
-NSSPKIXRDNSequence_Decode
-(
+NSSPKIXRDNSequence_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 )
@@ -1232,8 +1202,7 @@ NSSPKIXRDNSequence_Decode
 }
 
 NSS_IMPLEMENT PRStatus
-NSSPKIXRDNSequence_Destroy
-(
+NSSPKIXRDNSequence_Destroy (
   NSSPKIXRDNSequence *rdnseq
 )
 {
@@ -1243,8 +1212,7 @@ NSSPKIXRDNSequence_Destroy
 }
 
 NSS_IMPLEMENT NSSPKIXRDNSequence *
-NSSPKIXRDNSequence_Duplicate
-(
+NSSPKIXRDNSequence_Duplicate (
   NSSPKIXRDNSequence *rdnseq,
   NSSArena *arenaOpt
 )
@@ -1255,8 +1223,7 @@ NSSPKIXRDNSequence_Duplicate
 }
 
 NSS_IMPLEMENT NSSBER *
-NSSPKIXRDNSequence_Encode
-(
+NSSPKIXRDNSequence_Encode (
   NSSPKIXRDNSequence *rdnseq,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -1269,8 +1236,7 @@ NSSPKIXRDNSequence_Encode
 }
 
 NSS_IMPLEMENT PRBool
-NSSPKIXRDNSequence_Equal
-(
+NSSPKIXRDNSequence_Equal (
   NSSPKIXRDNSequence *one,
   NSSPKIXRDNSequence *two,
   PRStatus *statusOpt
@@ -1282,8 +1248,7 @@ NSSPKIXRDNSequence_Equal
 }
 
 NSS_IMPLEMENT PRInt32
-NSSPKIXRDNSequence_FindRDN
-(
+NSSPKIXRDNSequence_FindRDN (
   NSSPKIXRDNSequence *rdnseq,
   NSSPKIXRDN *rdn
 )
@@ -1294,8 +1259,7 @@ NSSPKIXRDNSequence_FindRDN
 }
 
 NSS_IMPLEMENT NSSPKIXRDN *
-NSSPKIXRDNSequence_GetRDN
-(
+NSSPKIXRDNSequence_GetRDN (
   NSSPKIXRDNSequence *rdnseq,
   PRInt32 i,
   NSSArena *arenaOpt
@@ -1307,8 +1271,7 @@ NSSPKIXRDNSequence_GetRDN
 }
 
 NSS_IMPLEMENT PRInt32
-NSSPKIXRDNSequence_GetRDNCount
-(
+NSSPKIXRDNSequence_GetRDNCount (
   NSSPKIXRDNSequence *rdnseq
 )
 {
@@ -1318,8 +1281,7 @@ NSSPKIXRDNSequence_GetRDNCount
 }
 
 NSS_IMPLEMENT NSSPKIXRDN **
-NSSPKIXRDNSequence_GetRDNs
-(
+NSSPKIXRDNSequence_GetRDNs (
   NSSPKIXRDNSequence *rdnseq,
   NSSPKIXRDN *rvOpt[],
   PRInt32 limit,
@@ -1332,8 +1294,7 @@ NSSPKIXRDNSequence_GetRDNs
 }
 
 NSS_IMPLEMENT NSSUTF8 *
-NSSPKIXRDNSequence_GetUTF8Encoding
-(
+NSSPKIXRDNSequence_GetUTF8Encoding (
   NSSPKIXRDNSequence *rdnseq,
   NSSArena *arenaOpt
 )
@@ -1344,8 +1305,7 @@ NSSPKIXRDNSequence_GetUTF8Encoding
 }
 
 NSS_IMPLEMENT PRStatus
-NSSPKIXRDNSequence_InsertRDN
-(
+NSSPKIXRDNSequence_InsertRDN (
   NSSPKIXRDNSequence *rdnseq,
   PRInt32 i,
   NSSPKIXRDN *rdn

@@ -62,8 +62,7 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
  */
 
 NSS_IMPLEMENT NSSItem *
-nssItem_Create
-(
+nssItem_Create (
   NSSArena *arenaOpt,
   NSSItem *rvOpt,
   PRUint32 length,
@@ -102,8 +101,7 @@ nssItem_Create
 }
 
 NSS_IMPLEMENT NSSItem *
-NSSItem_Create
-(
+NSSItem_Create (
   NSSArena *arenaOpt,
   NSSItem *rvOpt,
   PRUint32 length,
@@ -114,8 +112,7 @@ NSSItem_Create
 }
 
 NSS_IMPLEMENT void
-nssItem_Destroy
-(
+nssItem_Destroy (
   NSSItem *item
 )
 {
@@ -124,8 +121,7 @@ nssItem_Destroy
 }
 
 NSS_IMPLEMENT void
-NSSItem_Destroy
-(
+NSSItem_Destroy (
   NSSItem *item
 )
 {
@@ -150,8 +146,7 @@ NSSItem_Destroy
  */
 
 NSS_IMPLEMENT NSSItem *
-nssItem_Duplicate
-(
+nssItem_Duplicate (
   NSSItem *obj,
   NSSArena *arenaOpt,
   NSSItem *rvOpt
@@ -175,8 +170,7 @@ nssItem_Duplicate
  */
 
 NSS_IMPLEMENT PRBool
-nssItem_Equal
-(
+nssItem_Equal (
   const NSSItem *one,
   const NSSItem *two,
   PRStatus *statusOpt
@@ -202,8 +196,7 @@ nssItem_Equal
 }
 
 NSS_IMPLEMENT NSSItem *
-NSSItem_Duplicate
-(
+NSSItem_Duplicate (
   NSSItem *obj,
   NSSArena *arenaOpt,
   NSSItem *rvOpt
@@ -213,8 +206,7 @@ NSSItem_Duplicate
 }
 
 NSS_IMPLEMENT PRBool
-NSSItem_Equal
-(
+NSSItem_Equal (
   const NSSItem *one,
   const NSSItem *two,
   PRStatus *statusOpt

@@ -148,8 +148,7 @@ struct arena_destructor_node {
  */
 
 NSS_IMPLEMENT PRStatus
-nssArena_registerDestructor
-(
+nssArena_registerDestructor (
   NSSArena *arena,
   void (*destructor)(void *argument),
   void *arg
@@ -172,8 +171,7 @@ nssArena_registerDestructor
 }
 
 NSS_IMPLEMENT PRStatus
-nssArena_deregisterDestructor
-(
+nssArena_deregisterDestructor (
   NSSArena *arena,
   void (*destructor)(void *argument),
   void *arg
@@ -225,8 +223,7 @@ nssArena_deregisterDestructor
 }
 
 static void
-nss_arena_call_destructor_chain
-(
+nss_arena_call_destructor_chain (
   struct arena_destructor_node *it
 )
 {
@@ -252,8 +249,7 @@ nss_arena_call_destructor_chain
  */
 
 NSS_IMPLEMENT NSSArena *
-NSSArena_Create
-(
+NSSArena_Create (
   void
 )
 {
@@ -277,8 +273,7 @@ NSSArena_Create
  */
 
 NSS_IMPLEMENT NSSArena *
-nssArena_Create
-(
+nssArena_Create (
   void
 )
 {
@@ -336,8 +331,7 @@ nssArena_Create
  */
 
 NSS_IMPLEMENT PRStatus
-NSSArena_Destroy
-(
+NSSArena_Destroy (
   NSSArena *arena
 )
 {
@@ -363,8 +357,7 @@ NSSArena_Destroy
  */
 
 NSS_IMPLEMENT PRStatus
-nssArena_Destroy
-(
+nssArena_Destroy (
   NSSArena *arena
 )
 {
@@ -415,8 +408,7 @@ static void *nss_zalloc_arena_locked(NSSArena *arena, PRUint32 size);
  */
 
 NSS_IMPLEMENT nssArenaMark *
-nssArena_Mark
-(
+nssArena_Mark (
   NSSArena *arena
 )
 {
@@ -486,8 +478,7 @@ nssArena_Mark
  */
 
 static PRStatus
-nss_arena_unmark_release
-(
+nss_arena_unmark_release (
   NSSArena *arena,
   nssArenaMark *arenaMark,
   PRBool release
@@ -596,8 +587,7 @@ nss_arena_unmark_release
  */
 
 NSS_IMPLEMENT PRStatus
-nssArena_Release
-(
+nssArena_Release (
   NSSArena *arena,
   nssArenaMark *arenaMark
 )
@@ -628,8 +618,7 @@ nssArena_Release
  */
 
 NSS_IMPLEMENT PRStatus
-nssArena_Unmark
-(
+nssArena_Unmark (
   NSSArena *arena,
   nssArenaMark *arenaMark
 )
@@ -651,8 +640,7 @@ struct pointer_header {
 };
 
 static void *
-nss_zalloc_arena_locked
-(
+nss_zalloc_arena_locked (
   NSSArena *arena,
   PRUint32 size
 )
@@ -703,8 +691,7 @@ nss_zalloc_arena_locked
  */
 
 NSS_IMPLEMENT void *
-nss_ZAlloc
-(
+nss_ZAlloc (
   NSSArena *arenaOpt,
   PRUint32 size
 )
@@ -779,8 +766,7 @@ nss_ZAlloc
  */
 
 NSS_IMPLEMENT PRStatus
-nss_ZFreeIf
-(
+nss_ZFreeIf (
   void *pointer
 )
 {
@@ -841,8 +827,7 @@ nss_ZFreeIf
  */
 
 NSS_EXTERN void *
-nss_ZRealloc
-(
+nss_ZRealloc (
   void *pointer,
   PRUint32 newSize
 )

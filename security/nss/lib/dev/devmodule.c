@@ -208,8 +208,7 @@ loser:
 }
 
 NSS_IMPLEMENT PRStatus
-nssModule_Load
-(
+nssModule_Load (
   NSSModule *mod
 )
 {
@@ -308,8 +307,7 @@ loser:
 }
 
 NSS_IMPLEMENT PRStatus
-nssModule_Unload
-(
+nssModule_Unload (
   NSSModule *mod
 )
 {
@@ -329,8 +327,7 @@ nssModule_Unload
  *  if provided.  XXX use the opaque arg also, right? 
  */
 NSS_IMPLEMENT NSSModule *
-nssModule_Create
-(
+nssModule_Create (
   NSSUTF8 *moduleOpt,
   NSSUTF8 *uriOpt,
   NSSUTF8 *opaqueOpt,
@@ -379,8 +376,7 @@ loser:
 }
 
 NSS_EXTERN PRStatus
-nssCryptokiArgs_ParseNextPair
-(
+nssCryptokiArgs_ParseNextPair (
   NSSUTF8 *start,
   NSSUTF8 **attrib,
   NSSUTF8 **value,
@@ -389,8 +385,7 @@ nssCryptokiArgs_ParseNextPair
 );
 
 static PRStatus
-parse_slot_flags
-(
+parse_slot_flags (
   NSSSlot *slot,
   NSSUTF8 *slotFlags
 )
@@ -445,8 +440,7 @@ parse_slot_flags
 }
 
 static PRStatus
-parse_slot_parameters
-(
+parse_slot_parameters (
   NSSSlot *slot,
   NSSUTF8 *slotParams,
   NSSArena *tmparena
@@ -485,8 +479,7 @@ get_slot_number(NSSUTF8* snString)
 }
 
 static PRStatus
-parse_module_slot_parameters
-(
+parse_module_slot_parameters (
   NSSModule *mod,
   NSSUTF8 *slotParams
 )
@@ -522,8 +515,7 @@ parse_module_slot_parameters
 }
 
 static PRStatus
-parse_nss_flags
-(
+parse_nss_flags (
   NSSModule *mod,
   NSSUTF8 *nssFlags
 )
@@ -554,8 +546,7 @@ parse_nss_flags
 }
 
 static PRStatus
-parse_nss_parameters
-(
+parse_nss_parameters (
   NSSModule *mod,
   NSSUTF8 *nssParams,
   NSSArena *tmparena,
@@ -592,8 +583,7 @@ parse_nss_parameters
 }
 
 static PRStatus
-parse_module_parameters
-(
+parse_module_parameters (
   NSSModule *mod,
   NSSUTF8 *moduleParams,
   NSSUTF8 **slotParams
@@ -633,8 +623,7 @@ parse_module_parameters
 }
 
 static NSSUTF8 **
-get_module_specs
-(
+get_module_specs (
   NSSModule *mod
 )
 {
@@ -649,8 +638,7 @@ get_module_specs
 
 /* XXX continue working on */
 NSS_IMPLEMENT NSSModule *
-nssModule_CreateFromSpec
-(
+nssModule_CreateFromSpec (
   NSSUTF8 *moduleSpec,
   NSSModule *parent,
   PRBool loadSubModules
@@ -733,8 +721,7 @@ loser:
 }
 
 NSS_IMPLEMENT PRStatus
-nssModule_Destroy
-(
+nssModule_Destroy (
   NSSModule *mod
 )
 {
@@ -755,8 +742,7 @@ nssModule_Destroy
 }
 
 NSS_IMPLEMENT PRStatus
-NSSModule_Destroy
-(
+NSSModule_Destroy (
   NSSModule *mod
 )
 {
@@ -764,8 +750,7 @@ NSSModule_Destroy
 }
 
 NSS_IMPLEMENT PRStatus
-nssModule_DestroyFromSlot
-(
+nssModule_DestroyFromSlot (
   NSSModule *mod,
   NSSSlot *slot
 )
@@ -787,8 +772,7 @@ nssModule_DestroyFromSlot
 }
 
 NSS_IMPLEMENT NSSModule *
-nssModule_AddRef
-(
+nssModule_AddRef (
   NSSModule *mod
 )
 {
@@ -797,8 +781,7 @@ nssModule_AddRef
 }
 
 NSS_IMPLEMENT NSSUTF8 *
-nssModule_GetName
-(
+nssModule_GetName (
   NSSModule *mod
 )
 {
@@ -806,8 +789,7 @@ nssModule_GetName
 }
 
 NSS_IMPLEMENT PRBool
-nssModule_IsThreadSafe
-(
+nssModule_IsThreadSafe (
   NSSModule *module
 )
 {
@@ -815,8 +797,7 @@ nssModule_IsThreadSafe
 }
 
 NSS_IMPLEMENT PRBool
-nssModule_IsInternal
-(
+nssModule_IsInternal (
   NSSModule *mod
 )
 {
@@ -824,8 +805,7 @@ nssModule_IsInternal
 }
 
 NSS_IMPLEMENT PRBool
-nssModule_IsModuleDBOnly
-(
+nssModule_IsModuleDBOnly (
   NSSModule *mod
 )
 {
@@ -833,8 +813,7 @@ nssModule_IsModuleDBOnly
 }
 
 NSS_IMPLEMENT void *
-nssModule_GetCryptokiEPV
-(
+nssModule_GetCryptokiEPV (
   NSSModule *mod
 )
 {
@@ -842,8 +821,7 @@ nssModule_GetCryptokiEPV
 }
 
 NSS_IMPLEMENT NSSSlot **
-nssModule_GetSlots
-(
+nssModule_GetSlots (
   NSSModule *mod
 )
 {
@@ -859,8 +837,7 @@ nssModule_GetSlots
 }
 
 NSS_IMPLEMENT NSSSlot *
-nssModule_FindSlotByName
-(
+nssModule_FindSlotByName (
   NSSModule *mod,
   NSSUTF8 *slotName
 )
@@ -883,8 +860,7 @@ nssModule_FindSlotByName
 }
 
 NSS_IMPLEMENT NSSToken *
-nssModule_FindTokenByName
-(
+nssModule_FindTokenByName (
   NSSModule *mod,
   NSSUTF8 *tokenName
 )
@@ -909,8 +885,7 @@ nssModule_FindTokenByName
 }
 
 NSS_IMPLEMENT PRInt32
-nssModule_GetCertOrder
-(
+nssModule_GetCertOrder (
   NSSModule *module
 )
 {
@@ -918,8 +893,7 @@ nssModule_GetCertOrder
 }
 
 NSS_IMPLEMENT PRInt32
-nssModule_GetTrustOrder
-(
+nssModule_GetTrustOrder (
   NSSModule *module
 )
 {
@@ -927,8 +901,7 @@ nssModule_GetTrustOrder
 }
 
 NSS_IMPLEMENT void
-NSSModule_GetInfo
-(
+NSSModule_GetInfo (
   NSSModule *module,
   NSSModuleInfo *moduleInfo
 )
@@ -976,8 +949,7 @@ NSSModule_GetInfo
 }
 
 NSS_IMPLEMENT void
-NSSModuleInfo_Destroy
-(
+NSSModuleInfo_Destroy (
   NSSModuleInfo *moduleInfo
 )
 {

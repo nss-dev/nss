@@ -87,7 +87,7 @@ NSSToken_Destroy;
 NSSToken_GetInfo;
 NSSToken_GetSlot;
 NSSAlgorithmAndParameters_Create;
-NSSAlgorithmAndParameters_CreateKeyGen;
+NSSAlgorithmAndParameters_CreateKeyPairGen;
 NSSAlgorithmAndParameters_Destroy;
 NSSCertificate_Destroy;
 NSSCertificate_DeleteStoredObject;
@@ -306,6 +306,7 @@ nss_ZRealloc;
 nssArena_Mark;
 nssArena_Release;
 nssArena_Unmark;
+nssAlgorithmAndParameters_CreateSSLSessionKeyDerivation;
 ;+    local:
 ;+       *;
 ;+};

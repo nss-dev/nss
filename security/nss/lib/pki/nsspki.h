@@ -121,8 +121,7 @@ PR_BEGIN_EXTERN_C
  */
 
 NSS_EXTERN PRStatus
-NSSCertificate_Destroy
-(
+NSSCertificate_Destroy (
   NSSCertificate *c
 );
 
@@ -136,8 +135,7 @@ NSSCertificate_Destroy
  */
 
 NSS_EXTERN PRStatus
-NSSCertificate_DeleteStoredObject
-(
+NSSCertificate_DeleteStoredObject (
   NSSCertificate *c,
   NSSCallback *uhh
 );
@@ -150,8 +148,7 @@ NSSCertificate_DeleteStoredObject
  */
 
 NSS_EXTERN PRStatus
-NSSCertificate_Validate
-(
+NSSCertificate_Validate (
   NSSCertificate *c,
   NSSTime time,
   NSSUsages *usages,
@@ -176,8 +173,7 @@ NSSCertificate_Validate
  */
 
 NSS_EXTERN void ** /* void *[] */
-NSSCertificate_ValidateCompletely
-(
+NSSCertificate_ValidateCompletely (
   NSSCertificate *c,
   NSSTime time, /* NULL for "now" */
   NSSUsages *usages,
@@ -194,8 +190,7 @@ NSSCertificate_ValidateCompletely
  */
 
 NSS_EXTERN PRStatus
-NSSCertificate_ValidateAndDiscoverUsagesAndPolicies
-(
+NSSCertificate_ValidateAndDiscoverUsagesAndPolicies (
   NSSCertificate *c,
   NSSTime **notBeforeOutOpt,
   NSSTime **notAfterOutOpt,
@@ -208,15 +203,13 @@ NSSCertificate_ValidateAndDiscoverUsagesAndPolicies
 );
 
 NSS_EXTERN NSSUsages *
-NSSCertificate_GetTrustedUsages
-(
+NSSCertificate_GetTrustedUsages (
   NSSCertificate *c,
   NSSUsages *usagesOpt
 );
 
 NSS_EXTERN PRStatus
-NSSCertificate_SetTrustedUsages
-(
+NSSCertificate_SetTrustedUsages (
   NSSCertificate *c,
   NSSUsages *usages
 );
@@ -227,8 +220,7 @@ NSSCertificate_SetTrustedUsages
  */
 
 NSS_EXTERN NSSDER *
-NSSCertificate_Encode
-(
+NSSCertificate_Encode (
   NSSCertificate *c,
   NSSDER *rvOpt,
   NSSArena *arenaOpt
@@ -251,8 +243,7 @@ NSSCertificate_Encode
 
 
 NSS_EXTERN NSSCertificate **
-NSSCertificate_BuildChain
-(
+NSSCertificate_BuildChain (
   NSSCertificate *c,
   NSSTime time,
   NSSUsages *usagesOpt,
@@ -269,8 +260,7 @@ NSSCertificate_BuildChain
  */
 
 NSS_EXTERN NSSTrustDomain *
-NSSCertificate_GetTrustDomain
-(
+NSSCertificate_GetTrustDomain (
   NSSCertificate *c
 );
 
@@ -281,8 +271,7 @@ NSSCertificate_GetTrustDomain
  */
 
 NSS_EXTERN NSSToken **
-NSSCertificate_GetTokens
-(
+NSSCertificate_GetTokens (
   NSSCertificate *c,
   PRStatus *statusOpt
 );
@@ -294,8 +283,7 @@ NSSCertificate_GetTokens
  */
 
 NSS_EXTERN NSSSlot *
-NSSCertificate_GetSlot
-(
+NSSCertificate_GetSlot (
   NSSCertificate *c,
   PRStatus *statusOpt
 );
@@ -307,23 +295,20 @@ NSSCertificate_GetSlot
  */
 
 NSS_EXTERN NSSModule *
-NSSCertificate_GetModule
-(
+NSSCertificate_GetModule (
   NSSCertificate *c,
   PRStatus *statusOpt
 );
 
 /* XXX make sure this is right */
 NSS_EXTERN void *
-NSSCertificate_GetDecoding
-(
+NSSCertificate_GetDecoding (
   NSSCertificate *c
 );
 
 /* XXX make sure this is right */
 NSS_EXTERN NSSCertificateType
-NSSCertificate_GetType
-(
+NSSCertificate_GetType (
   NSSCertificate *c
 );
 
@@ -335,8 +320,7 @@ NSSCertificate_GetType
  */
 
 NSS_EXTERN NSSItem *
-NSSCertificate_Encrypt
-(
+NSSCertificate_Encrypt (
   NSSCertificate *c,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *data,
@@ -354,8 +338,7 @@ NSSCertificate_Encrypt
  */
 
 NSS_EXTERN PRStatus
-NSSCertificate_Verify
-(
+NSSCertificate_Verify (
   NSSCertificate *c,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *data,
@@ -372,8 +355,7 @@ NSSCertificate_Verify
  */
 
 NSS_EXTERN NSSItem *
-NSSCertificate_VerifyRecover
-(
+NSSCertificate_VerifyRecover (
   NSSCertificate *c,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *signature,
@@ -394,8 +376,7 @@ NSSCertificate_VerifyRecover
  */
 
 NSS_EXTERN NSSItem *
-NSSCertificate_WrapSymmetricKey
-(
+NSSCertificate_WrapSymmetricKey (
   NSSCertificate *c,
   const NSSAlgorithmAndParameters *apOpt,
   NSSSymmetricKey *keyToWrap,
@@ -415,8 +396,7 @@ NSSCertificate_WrapSymmetricKey
  */
 
 NSS_EXTERN NSSCryptoContext *
-NSSCertificate_CreateCryptoContext
-(
+NSSCertificate_CreateCryptoContext (
   NSSCertificate *c,
   const NSSAlgorithmAndParameters *apOpt,
   NSSTime time,
@@ -432,8 +412,7 @@ NSSCertificate_CreateCryptoContext
  */
 
 NSS_EXTERN NSSPublicKey *
-NSSCertificate_GetPublicKey
-(
+NSSCertificate_GetPublicKey (
   NSSCertificate *c
 );
 
@@ -447,8 +426,7 @@ NSSCertificate_GetPublicKey
  */
 
 NSS_EXTERN NSSPrivateKey *
-NSSCertificate_FindPrivateKey
-(
+NSSCertificate_FindPrivateKey (
   NSSCertificate *c,
   NSSCallback *uhh
 );
@@ -463,8 +441,7 @@ NSSCertificate_FindPrivateKey
  */
 
 NSS_EXTERN PRBool
-NSSCertificate_IsPrivateKeyAvailable
-(
+NSSCertificate_IsPrivateKeyAvailable (
   NSSCertificate *c,
   NSSCallback *uhh,
   PRStatus *statusOpt
@@ -500,8 +477,7 @@ NSSCertificate_IsPrivateKeyAvailable
  */
 
 NSS_EXTERN PRBool
-NSSUserCertificate_IsStillPresent
-(
+NSSUserCertificate_IsStillPresent (
   NSSUserCertificate *uc,
   PRStatus *statusOpt
 );
@@ -514,8 +490,7 @@ NSSUserCertificate_IsStillPresent
  */
 
 NSS_EXTERN NSSItem *
-NSSUserCertificate_Decrypt
-(
+NSSUserCertificate_Decrypt (
   NSSUserCertificate *uc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *data,
@@ -533,8 +508,7 @@ NSSUserCertificate_Decrypt
  */
 
 NSS_EXTERN NSSItem *
-NSSUserCertificate_Sign
-(
+NSSUserCertificate_Sign (
   NSSUserCertificate *uc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *data,
@@ -552,8 +526,7 @@ NSSUserCertificate_Sign
  */
 
 NSS_EXTERN NSSItem *
-NSSUserCertificate_SignRecover
-(
+NSSUserCertificate_SignRecover (
   NSSUserCertificate *uc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *data,
@@ -571,8 +544,7 @@ NSSUserCertificate_SignRecover
  */
 
 NSS_EXTERN NSSSymmetricKey *
-NSSUserCertificate_UnwrapSymmetricKey
-(
+NSSUserCertificate_UnwrapSymmetricKey (
   NSSUserCertificate *uc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *wrappedKey,
@@ -590,8 +562,7 @@ NSSUserCertificate_UnwrapSymmetricKey
  */
 
 NSS_EXTERN NSSSymmetricKey *
-NSSUserCertificate_DeriveSymmetricKey
-(
+NSSUserCertificate_DeriveSymmetricKey (
   NSSUserCertificate *uc, /* provides private key */
   NSSCertificate *c, /* provides public key */
   const NSSAlgorithmAndParameters *apOpt,
@@ -619,8 +590,7 @@ NSSUserCertificate_DeriveSymmetricKey
  */
 
 NSS_EXTERN PRStatus
-NSSPrivateKey_Destroy
-(
+NSSPrivateKey_Destroy (
   NSSPrivateKey *vk
 );
 
@@ -632,8 +602,7 @@ NSSPrivateKey_Destroy
  */
 
 NSS_EXTERN PRStatus
-NSSPrivateKey_DeleteStoredObject
-(
+NSSPrivateKey_DeleteStoredObject (
   NSSPrivateKey *vk,
   NSSCallback *uhh
 );
@@ -644,8 +613,7 @@ NSSPrivateKey_DeleteStoredObject
  */
 
 NSS_EXTERN PRUint32
-NSSPrivateKey_GetSignatureLength
-(
+NSSPrivateKey_GetSignatureLength (
   NSSPrivateKey *vk
 );
 
@@ -655,8 +623,7 @@ NSSPrivateKey_GetSignatureLength
  */
 
 NSS_EXTERN PRUint32
-NSSPrivateKey_GetPrivateModulusLength
-(
+NSSPrivateKey_GetPrivateModulusLength (
   NSSPrivateKey *vk
 );
 
@@ -666,8 +633,7 @@ NSSPrivateKey_GetPrivateModulusLength
  */
 
 NSS_EXTERN PRBool
-NSSPrivateKey_IsStillPresent
-(
+NSSPrivateKey_IsStillPresent (
   NSSPrivateKey *vk,
   PRStatus *statusOpt
 );
@@ -678,8 +644,7 @@ NSSPrivateKey_IsStillPresent
  */
 
 NSS_EXTERN NSSItem *
-NSSPrivateKey_Encode
-(
+NSSPrivateKey_Encode (
   NSSPrivateKey *vk,
   const NSSAlgorithmAndParameters *ap,
   NSSItem *passwordOpt, /* NULL will cause a callback; "" for no password */
@@ -695,8 +660,7 @@ NSSPrivateKey_Encode
  */
 
 NSS_EXTERN NSSTrustDomain *
-NSSPrivateKey_GetTrustDomain
-(
+NSSPrivateKey_GetTrustDomain (
   NSSPrivateKey *vk,
   PRStatus *statusOpt
 );
@@ -707,8 +671,7 @@ NSSPrivateKey_GetTrustDomain
  */
 
 NSS_EXTERN NSSToken *
-NSSPrivateKey_GetToken
-(
+NSSPrivateKey_GetToken (
   NSSPrivateKey *vk
 );
 
@@ -718,8 +681,7 @@ NSSPrivateKey_GetToken
  */
 
 NSS_EXTERN NSSSlot *
-NSSPrivateKey_GetSlot
-(
+NSSPrivateKey_GetSlot (
   NSSPrivateKey *vk
 );
 
@@ -729,8 +691,7 @@ NSSPrivateKey_GetSlot
  */
 
 NSS_EXTERN NSSModule *
-NSSPrivateKey_GetModule
-(
+NSSPrivateKey_GetModule (
   NSSPrivateKey *vk
 );
 
@@ -740,8 +701,7 @@ NSSPrivateKey_GetModule
  */
 
 NSS_EXTERN NSSItem *
-NSSPrivateKey_Decrypt
-(
+NSSPrivateKey_Decrypt (
   NSSPrivateKey *vk,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *encryptedData,
@@ -756,8 +716,7 @@ NSSPrivateKey_Decrypt
  */
 
 NSS_EXTERN NSSItem *
-NSSPrivateKey_Sign
-(
+NSSPrivateKey_Sign (
   NSSPrivateKey *vk,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *data,
@@ -772,8 +731,7 @@ NSSPrivateKey_Sign
  */
 
 NSS_EXTERN NSSItem *
-NSSPrivateKey_SignRecover
-(
+NSSPrivateKey_SignRecover (
   NSSPrivateKey *vk,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *data,
@@ -788,8 +746,7 @@ NSSPrivateKey_SignRecover
  */
 
 NSS_EXTERN NSSSymmetricKey *
-NSSPrivateKey_UnwrapSymmetricKey
-(
+NSSPrivateKey_UnwrapSymmetricKey (
   NSSPrivateKey *vk,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *wrappedKey,
@@ -802,8 +759,7 @@ NSSPrivateKey_UnwrapSymmetricKey
  */
 
 NSS_EXTERN NSSSymmetricKey *
-NSSPrivateKey_DeriveSymmetricKey
-(
+NSSPrivateKey_DeriveSymmetricKey (
   NSSPrivateKey *vk,
   NSSPublicKey *bk,
   const NSSAlgorithmAndParameters *apOpt,
@@ -819,8 +775,7 @@ NSSPrivateKey_DeriveSymmetricKey
  */
 
 NSS_EXTERN NSSPublicKey *
-NSSPrivateKey_FindPublicKey
-(
+NSSPrivateKey_FindPublicKey (
   NSSPrivateKey *vk
   /* { don't need the callback here, right? } */
 );
@@ -833,8 +788,7 @@ NSSPrivateKey_FindPublicKey
  */
 
 NSS_EXTERN NSSCryptoContext *
-NSSPrivateKey_CreateCryptoContext
-(
+NSSPrivateKey_CreateCryptoContext (
   NSSPrivateKey *vk,
   const NSSAlgorithmAndParameters *apOpt,
   NSSCallback *uhh
@@ -849,8 +803,7 @@ NSSPrivateKey_CreateCryptoContext
  */
 
 NSS_EXTERN NSSCertificate **
-NSSPrivateKey_FindCertificates
-(
+NSSPrivateKey_FindCertificates (
   NSSPrivateKey *vk,
   NSSCertificate *rvOpt[],
   PRUint32 maximumOpt, /* 0 for no max */
@@ -865,8 +818,7 @@ NSSPrivateKey_FindCertificates
  */
 
 NSS_EXTERN NSSCertificate *
-NSSPrivateKey_FindBestCertificate
-(
+NSSPrivateKey_FindBestCertificate (
   NSSPrivateKey *vk,
   NSSTime time,
   NSSUsages *usagesOpt,
@@ -889,8 +841,7 @@ NSSPrivateKey_FindBestCertificate
  */
 
 NSS_EXTERN PRStatus
-NSSPublicKey_Destroy
-(
+NSSPublicKey_Destroy (
   NSSPublicKey *bk
 );
 
@@ -902,8 +853,7 @@ NSSPublicKey_Destroy
  */
 
 NSS_EXTERN PRStatus
-NSSPublicKey_DeleteStoredObject
-(
+NSSPublicKey_DeleteStoredObject (
   NSSPublicKey *bk,
   NSSCallback *uhh
 );
@@ -914,8 +864,7 @@ NSSPublicKey_DeleteStoredObject
  */
 
 NSS_EXTERN NSSItem *
-NSSPublicKey_Encode
-(
+NSSPublicKey_Encode (
   NSSPublicKey *bk,
   const NSSAlgorithmAndParameters *ap,
   NSSCallback *uhhOpt,
@@ -930,8 +879,7 @@ NSSPublicKey_Encode
  */
 
 NSS_EXTERN NSSTrustDomain *
-NSSPublicKey_GetTrustDomain
-(
+NSSPublicKey_GetTrustDomain (
   NSSPublicKey *bk,
   PRStatus *statusOpt
 );
@@ -943,8 +891,7 @@ NSSPublicKey_GetTrustDomain
  */
 
 NSS_EXTERN NSSToken *
-NSSPublicKey_GetToken
-(
+NSSPublicKey_GetToken (
   NSSPublicKey *bk,
   PRStatus *statusOpt
 );
@@ -956,8 +903,7 @@ NSSPublicKey_GetToken
  */
 
 NSS_EXTERN NSSSlot *
-NSSPublicKey_GetSlot
-(
+NSSPublicKey_GetSlot (
   NSSPublicKey *bk,
   PRStatus *statusOpt
 );
@@ -969,8 +915,7 @@ NSSPublicKey_GetSlot
  */
 
 NSS_EXTERN NSSModule *
-NSSPublicKey_GetModule
-(
+NSSPublicKey_GetModule (
   NSSPublicKey *bk,
   PRStatus *statusOpt
 );
@@ -983,8 +928,7 @@ NSSPublicKey_GetModule
  */
 
 NSS_EXTERN NSSItem *
-NSSPublicKey_Encrypt
-(
+NSSPublicKey_Encrypt (
   NSSPublicKey *bk,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *data,
@@ -999,8 +943,7 @@ NSSPublicKey_Encrypt
  */
 
 NSS_EXTERN PRStatus
-NSSPublicKey_Verify
-(
+NSSPublicKey_Verify (
   NSSPublicKey *bk,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *data,
@@ -1014,8 +957,7 @@ NSSPublicKey_Verify
  */
 
 NSS_EXTERN NSSItem *
-NSSPublicKey_VerifyRecover
-(
+NSSPublicKey_VerifyRecover (
   NSSPublicKey *bk,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *signature,
@@ -1030,8 +972,7 @@ NSSPublicKey_VerifyRecover
  */
 
 NSS_EXTERN NSSItem *
-NSSPublicKey_WrapSymmetricKey
-(
+NSSPublicKey_WrapSymmetricKey (
   NSSPublicKey *bk,
   const NSSAlgorithmAndParameters *apOpt,
   NSSSymmetricKey *keyToWrap,
@@ -1048,8 +989,7 @@ NSSPublicKey_WrapSymmetricKey
  */
 
 NSS_EXTERN NSSCryptoContext *
-NSSPublicKey_CreateCryptoContext
-(
+NSSPublicKey_CreateCryptoContext (
   NSSPublicKey *bk,
   const NSSAlgorithmAndParameters *apOpt,
   NSSCallback *uhh
@@ -1067,8 +1007,7 @@ NSSPublicKey_CreateCryptoContext
  */
 
 NSS_EXTERN NSSCertificate **
-NSSPublicKey_FindCertificates
-(
+NSSPublicKey_FindCertificates (
   NSSPublicKey *bk,
   NSSCertificate *rvOpt[],
   PRUint32 maximumOpt, /* 0 for no max */
@@ -1083,8 +1022,7 @@ NSSPublicKey_FindCertificates
  */
 
 NSS_EXTERN NSSCertificate *
-NSSPublicKey_FindBestCertificate
-(
+NSSPublicKey_FindBestCertificate (
   NSSPublicKey *bk,
   NSSTime time,
   NSSUsages *usagesOpt,
@@ -1097,8 +1035,7 @@ NSSPublicKey_FindBestCertificate
  */
 
 NSS_EXTERN NSSPrivateKey *
-NSSPublicKey_FindPrivateKey
-(
+NSSPublicKey_FindPrivateKey (
   NSSPublicKey *bk,
   NSSCallback *uhh
 );
@@ -1115,8 +1052,7 @@ NSSPublicKey_FindPrivateKey
  */
 
 NSS_EXTERN PRStatus
-NSSSymmetricKey_Destroy
-(
+NSSSymmetricKey_Destroy (
   NSSSymmetricKey *mk
 );
 
@@ -1127,8 +1063,7 @@ NSSSymmetricKey_Destroy
  */
 
 NSS_EXTERN PRStatus
-NSSSymmetricKey_DeleteStoredObject
-(
+NSSSymmetricKey_DeleteStoredObject (
   NSSSymmetricKey *mk,
   NSSCallback *uhh
 );
@@ -1139,8 +1074,7 @@ NSSSymmetricKey_DeleteStoredObject
  */
 
 NSS_EXTERN PRUint32
-NSSSymmetricKey_GetKeyLength
-(
+NSSSymmetricKey_GetKeyLength (
   NSSSymmetricKey *mk
 );
 
@@ -1150,8 +1084,7 @@ NSSSymmetricKey_GetKeyLength
  */
 
 NSS_EXTERN PRUint32
-NSSSymmetricKey_GetKeyStrength
-(
+NSSSymmetricKey_GetKeyStrength (
   NSSSymmetricKey *mk
 );
 
@@ -1161,8 +1094,7 @@ NSSSymmetricKey_GetKeyStrength
  */
 
 NSS_EXTERN PRStatus
-NSSSymmetricKey_IsStillPresent
-(
+NSSSymmetricKey_IsStillPresent (
   NSSSymmetricKey *mk
 );
 
@@ -1173,8 +1105,7 @@ NSSSymmetricKey_IsStillPresent
  */
 
 NSS_EXTERN NSSTrustDomain *
-NSSSymmetricKey_GetTrustDomain
-(
+NSSSymmetricKey_GetTrustDomain (
   NSSSymmetricKey *mk,
   PRStatus *statusOpt
 );
@@ -1186,8 +1117,7 @@ NSSSymmetricKey_GetTrustDomain
  */
 
 NSS_EXTERN NSSToken *
-NSSSymmetricKey_GetToken
-(
+NSSSymmetricKey_GetToken (
   NSSSymmetricKey *mk,
   PRStatus *statusOpt
 );
@@ -1199,8 +1129,7 @@ NSSSymmetricKey_GetToken
  */
 
 NSS_EXTERN NSSSlot *
-NSSSymmetricKey_GetSlot
-(
+NSSSymmetricKey_GetSlot (
   NSSSymmetricKey *mk,
   PRStatus *statusOpt
 );
@@ -1212,8 +1141,7 @@ NSSSymmetricKey_GetSlot
  */
 
 NSS_EXTERN NSSModule *
-NSSSymmetricKey_GetModule
-(
+NSSSymmetricKey_GetModule (
   NSSSymmetricKey *mk,
   PRStatus *statusOpt
 );
@@ -1224,8 +1152,7 @@ NSSSymmetricKey_GetModule
  */
 
 NSS_EXTERN NSSItem *
-NSSSymmetricKey_Encrypt
-(
+NSSSymmetricKey_Encrypt (
   NSSSymmetricKey *mk,
   const NSSAlgorithmAndParameters *ap,
   NSSItem *data,
@@ -1240,8 +1167,7 @@ NSSSymmetricKey_Encrypt
  */
 
 NSS_EXTERN NSSItem *
-NSSSymmetricKey_Decrypt
-(
+NSSSymmetricKey_Decrypt (
   NSSSymmetricKey *mk,
   const NSSAlgorithmAndParameters *ap,
   NSSItem *encryptedData,
@@ -1256,8 +1182,7 @@ NSSSymmetricKey_Decrypt
  */
 
 NSS_EXTERN NSSItem *
-NSSSymmetricKey_Sign
-(
+NSSSymmetricKey_Sign (
   NSSSymmetricKey *mk,
   const NSSAlgorithmAndParameters *ap,
   NSSItem *data,
@@ -1272,8 +1197,7 @@ NSSSymmetricKey_Sign
  */
 
 NSS_EXTERN PRStatus
-NSSSymmetricKey_Verify
-(
+NSSSymmetricKey_Verify (
   NSSSymmetricKey *mk,
   const NSSAlgorithmAndParameters *ap,
   NSSItem *data,
@@ -1287,8 +1211,7 @@ NSSSymmetricKey_Verify
  */
 
 NSS_EXTERN NSSItem *
-NSSSymmetricKey_WrapSymmetricKey
-(
+NSSSymmetricKey_WrapSymmetricKey (
   NSSSymmetricKey *wrappingKey,
   const NSSAlgorithmAndParameters *ap,
   NSSSymmetricKey *keyToWrap,
@@ -1303,8 +1226,7 @@ NSSSymmetricKey_WrapSymmetricKey
  */
 
 NSS_EXTERN NSSItem *
-NSSSymmetricKey_WrapPrivateKey
-(
+NSSSymmetricKey_WrapPrivateKey (
   NSSSymmetricKey *wrappingKey,
   const NSSAlgorithmAndParameters *ap,
   NSSPrivateKey *keyToWrap,
@@ -1319,8 +1241,7 @@ NSSSymmetricKey_WrapPrivateKey
  */
 
 NSS_EXTERN NSSSymmetricKey *
-NSSSymmetricKey_UnwrapSymmetricKey
-(
+NSSSymmetricKey_UnwrapSymmetricKey (
   NSSSymmetricKey *wrappingKey,
   const NSSAlgorithmAndParameters *ap,
   NSSItem *wrappedKey,
@@ -1336,8 +1257,7 @@ NSSSymmetricKey_UnwrapSymmetricKey
  */
 
 NSS_EXTERN NSSPrivateKey *
-NSSSymmetricKey_UnwrapPrivateKey
-(
+NSSSymmetricKey_UnwrapPrivateKey (
   NSSSymmetricKey *wrappingKey,
   const NSSAlgorithmAndParameters *ap,
   NSSItem *wrappedKey,
@@ -1355,11 +1275,10 @@ NSSSymmetricKey_UnwrapPrivateKey
  */
 
 NSS_EXTERN NSSSymmetricKey *
-NSSSymmetricKey_DeriveSymmetricKey
-(
+NSSSymmetricKey_DeriveSymmetricKey (
   NSSSymmetricKey *originalKey,
   const NSSAlgorithmAndParameters *ap,
-  NSSOID *target,
+  NSSSymmetricKeyType target,
   PRUint32 keySizeOpt,
   NSSOperations operations,
   NSSCallback *uhh
@@ -1373,8 +1292,7 @@ NSSSymmetricKey_DeriveSymmetricKey
  */
 
 NSS_EXTERN NSSCryptoContext *
-NSSSymmetricKey_CreateCryptoContext
-(
+NSSSymmetricKey_CreateCryptoContext (
   NSSSymmetricKey *mk,
   const NSSAlgorithmAndParameters *apOpt,
   NSSCallback *uhh
@@ -1405,8 +1323,7 @@ NSSSymmetricKey_CreateCryptoContext
  */
 
 NSS_EXTERN NSSTrustDomain *
-NSSTrustDomain_Create
-(
+NSSTrustDomain_Create (
   NSSUTF8 *moduleOpt,
   NSSUTF8 *uriOpt,
   NSSUTF8 *opaqueOpt,
@@ -1419,8 +1336,7 @@ NSSTrustDomain_Create
  */
 
 NSS_EXTERN PRStatus
-NSSTrustDomain_Destroy
-(
+NSSTrustDomain_Destroy (
   NSSTrustDomain *td
 );
 
@@ -1430,8 +1346,7 @@ NSSTrustDomain_Destroy
  */
 
 NSS_EXTERN PRStatus
-NSSTrustDomain_SetDefaultCallback
-(
+NSSTrustDomain_SetDefaultCallback (
   NSSTrustDomain *td,
   NSSCallback *newCallback,
   NSSCallback **oldCallbackOpt
@@ -1443,8 +1358,7 @@ NSSTrustDomain_SetDefaultCallback
  */
 
 NSS_EXTERN NSSCallback *
-NSSTrustDomain_GetDefaultCallback
-(
+NSSTrustDomain_GetDefaultCallback (
   NSSTrustDomain *td,
   PRStatus *statusOpt
 );
@@ -1462,8 +1376,7 @@ NSSTrustDomain_GetDefaultCallback
 
 /*
 NSS_EXTERN PRStatus
-NSSTrustDomain_LoadModule
-(
+NSSTrustDomain_LoadModule (
   NSSTrustDomain *td,
   NSSUTF8 *moduleOpt,
   NSSUTF8 *uriOpt,
@@ -1473,15 +1386,13 @@ NSSTrustDomain_LoadModule
 */
 
 NSS_EXTERN PRStatus
-NSSTrustDomain_AddModule
-(
+NSSTrustDomain_AddModule (
   NSSTrustDomain *td,
   NSSModule *module
 );
 
 NSS_EXTERN PRStatus
-NSSTrustDomain_AddSlot
-(
+NSSTrustDomain_AddSlot (
   NSSTrustDomain *td,
   NSSSlot *slot
 );
@@ -1499,8 +1410,7 @@ NSSTrustDomain_AddSlot
  */
 
 NSS_EXTERN PRStatus
-NSSTrustDomain_DisableToken
-(
+NSSTrustDomain_DisableToken (
   NSSTrustDomain *td,
   NSSToken *token,
   NSSError why
@@ -1512,8 +1422,7 @@ NSSTrustDomain_DisableToken
  */
 
 NSS_EXTERN PRStatus
-NSSTrustDomain_EnableToken
-(
+NSSTrustDomain_EnableToken (
   NSSTrustDomain *td,
   NSSToken *token
 );
@@ -1526,8 +1435,7 @@ NSSTrustDomain_EnableToken
  */
 
 NSS_EXTERN PRStatus
-NSSTrustDomain_IsTokenEnabled
-(
+NSSTrustDomain_IsTokenEnabled (
   NSSTrustDomain *td,
   NSSToken *token,
   NSSError *whyOpt
@@ -1539,8 +1447,7 @@ NSSTrustDomain_IsTokenEnabled
  */
 
 NSS_EXTERN NSSSlot *
-NSSTrustDomain_FindSlotByName
-(
+NSSTrustDomain_FindSlotByName (
   NSSTrustDomain *td,
   NSSUTF8 *slotName
 );
@@ -1551,8 +1458,7 @@ NSSTrustDomain_FindSlotByName
  */
 
 NSS_EXTERN NSSToken *
-NSSTrustDomain_FindTokenByName
-(
+NSSTrustDomain_FindTokenByName (
   NSSTrustDomain *td,
   NSSUTF8 *tokenName
 );
@@ -1563,8 +1469,7 @@ NSSTrustDomain_FindTokenByName
  */
 
 NSS_EXTERN NSSToken *
-NSSTrustDomain_FindTokenBySlotName
-(
+NSSTrustDomain_FindTokenBySlotName (
   NSSTrustDomain *td,
   NSSUTF8 *slotName
 );
@@ -1575,8 +1480,7 @@ NSSTrustDomain_FindTokenBySlotName
  */
 
 NSS_EXTERN NSSToken *
-NSSTrustDomain_FindTokenForAlgorithm
-(
+NSSTrustDomain_FindTokenForAlgorithm (
   NSSTrustDomain *td,
   const NSSOID *algorithm
 );
@@ -1587,8 +1491,7 @@ NSSTrustDomain_FindTokenForAlgorithm
  */
 
 NSS_EXTERN NSSToken *
-NSSTrustDomain_FindBestTokenForAlgorithms
-(
+NSSTrustDomain_FindBestTokenForAlgorithms (
   NSSTrustDomain *td,
   NSSOID *algorithms[], /* may be null-terminated */
   PRUint32 nAlgorithmsOpt /* limits the array if nonzero */
@@ -1600,8 +1503,7 @@ NSSTrustDomain_FindBestTokenForAlgorithms
  */
 
 NSS_EXTERN PRStatus
-NSSTrustDomain_Login
-(
+NSSTrustDomain_Login (
   NSSTrustDomain *td,
   NSSCallback *uhhOpt
 );
@@ -1612,8 +1514,7 @@ NSSTrustDomain_Login
  */
 
 NSS_EXTERN PRStatus
-NSSTrustDomain_Logout
-(
+NSSTrustDomain_Logout (
   NSSTrustDomain *td
 );
 
@@ -1627,8 +1528,7 @@ NSSTrustDomain_Logout
  */
 
 NSS_EXTERN NSSCertificate *
-NSSTrustDomain_ImportCertificate
-(
+NSSTrustDomain_ImportCertificate (
   NSSTrustDomain *td,
   NSSCertificate *c,
   NSSToken *destinationOpt
@@ -1640,8 +1540,7 @@ NSSTrustDomain_ImportCertificate
  */
 
 NSS_EXTERN NSSCertificate *
-NSSTrustDomain_ImportPKIXCertificate
-(
+NSSTrustDomain_ImportPKIXCertificate (
   NSSTrustDomain *td,
   /* declared as a struct until these "data types" are defined */
   struct NSSPKIXCertificateStr *pc
@@ -1654,8 +1553,7 @@ NSSTrustDomain_ImportPKIXCertificate
  */
 
 NSS_EXTERN NSSCertificate *
-NSSTrustDomain_ImportEncodedCertificate
-(
+NSSTrustDomain_ImportEncodedCertificate (
   NSSTrustDomain *td,
   NSSBER *ber,
   NSSToken *destinationOpt,
@@ -1669,8 +1567,7 @@ NSSTrustDomain_ImportEncodedCertificate
  */
 
 NSS_EXTERN NSSCertificate **
-NSSTrustDomain_ImportEncodedCertificateChain
-(
+NSSTrustDomain_ImportEncodedCertificateChain (
   NSSTrustDomain *td,
   NSSBER *ber,
   NSSCertificate *rvOpt[],
@@ -1685,8 +1582,7 @@ NSSTrustDomain_ImportEncodedCertificateChain
  */
 
 NSS_EXTERN NSSPrivateKey *
-NSSTrustDomain_ImportEncodedPrivateKey
-(
+NSSTrustDomain_ImportEncodedPrivateKey (
   NSSTrustDomain *td,
   NSSBER *ber,
   NSSItem *passwordOpt, /* NULL will cause a callback */
@@ -1700,16 +1596,14 @@ NSSTrustDomain_ImportEncodedPrivateKey
  */
 
 NSS_EXTERN NSSPublicKey *
-NSSTrustDomain_ImportEncodedPublicKey
-(
+NSSTrustDomain_ImportEncodedPublicKey (
   NSSTrustDomain *td,
   NSSBER *ber,
   NSSToken *destinationOpt
 );
 
 NSS_EXTERN NSSCRL *
-NSSTrustDomain_ImportEncodedCRL
-(
+NSSTrustDomain_ImportEncodedCRL (
   NSSTrustDomain *td,
   NSSBER *ber,
   NSSToken *destinationOpt
@@ -1723,8 +1617,7 @@ NSSTrustDomain_ImportEncodedCRL
  */
 
 NSS_EXTERN NSSCertificate *
-NSSTrustDomain_FindBestCertificateByNickname
-(
+NSSTrustDomain_FindBestCertificateByNickname (
   NSSTrustDomain *td,
   NSSUTF8 *name,
   NSSTime time,
@@ -1738,8 +1631,7 @@ NSSTrustDomain_FindBestCertificateByNickname
  */
 
 NSS_EXTERN NSSCertificate **
-NSSTrustDomain_FindCertificatesByNickname
-(
+NSSTrustDomain_FindCertificatesByNickname (
   NSSTrustDomain *td,
   NSSUTF8 *name,
   NSSCertificate *rvOpt[],
@@ -1753,8 +1645,7 @@ NSSTrustDomain_FindCertificatesByNickname
  */
 
 NSS_EXTERN NSSCertificate *
-NSSTrustDomain_FindCertificateByIssuerAndSerialNumber
-(
+NSSTrustDomain_FindCertificateByIssuerAndSerialNumber (
   NSSTrustDomain *td,
   NSSDER *issuer,
   NSSDER *serialNumber
@@ -1775,8 +1666,7 @@ NSSTrustDomain_FindCertificateByIssuerAndSerialNumber
  */
 
 NSS_EXTERN NSSCertificate *
-NSSTrustDomain_FindBestCertificateBySubject
-(
+NSSTrustDomain_FindBestCertificateBySubject (
   NSSTrustDomain *td,
   NSSDER *subject,
   NSSTime time,
@@ -1791,8 +1681,7 @@ NSSTrustDomain_FindBestCertificateBySubject
  */
 
 NSS_EXTERN NSSCertificate **
-NSSTrustDomain_FindCertificatesBySubject
-(
+NSSTrustDomain_FindCertificatesBySubject (
   NSSTrustDomain *td,
   NSSDER *subject,
   NSSCertificate *rvOpt[],
@@ -1810,8 +1699,7 @@ NSSTrustDomain_FindCertificatesBySubject
  */
 
 NSS_EXTERN NSSCertificate *
-NSSTrustDomain_FindBestCertificateByNameComponents
-(
+NSSTrustDomain_FindBestCertificateByNameComponents (
   NSSTrustDomain *td,
   NSSUTF8 *nameComponents,
   NSSTime time,
@@ -1828,8 +1716,7 @@ NSSTrustDomain_FindBestCertificateByNameComponents
  */
 
 NSS_EXTERN NSSCertificate **
-NSSTrustDomain_FindCertificatesByNameComponents
-(
+NSSTrustDomain_FindCertificatesByNameComponents (
   NSSTrustDomain *td,
   NSSUTF8 *nameComponents,
   NSSCertificate *rvOpt[],
@@ -1843,8 +1730,7 @@ NSSTrustDomain_FindCertificatesByNameComponents
  */
 
 NSS_EXTERN NSSCertificate *
-NSSTrustDomain_FindCertificateByEncodedCertificate
-(
+NSSTrustDomain_FindCertificateByEncodedCertificate (
   NSSTrustDomain *td,
   NSSBER *encodedCertificate
 );
@@ -1855,8 +1741,7 @@ NSSTrustDomain_FindCertificateByEncodedCertificate
  */
 
 NSS_EXTERN NSSCertificate *
-NSSTrustDomain_FindBestCertificateByEmail
-(
+NSSTrustDomain_FindBestCertificateByEmail (
   NSSTrustDomain *td,
   NSSASCII7 *email,
   NSSTime time,
@@ -1870,8 +1755,7 @@ NSSTrustDomain_FindBestCertificateByEmail
  */
 
 NSS_EXTERN NSSCertificate **
-NSSTrustDomain_FindCertificatesByEmail
-(
+NSSTrustDomain_FindCertificatesByEmail (
   NSSTrustDomain *td,
   NSSASCII7 *email,
   NSSCertificate *rvOpt[],
@@ -1886,8 +1770,7 @@ NSSTrustDomain_FindCertificatesByEmail
  */
 
 NSS_EXTERN NSSCertificate *
-NSSTrustDomain_FindCertificateByOCSPHash
-(
+NSSTrustDomain_FindCertificateByOCSPHash (
   NSSTrustDomain *td,
   NSSItem *hash
 );
@@ -1911,8 +1794,7 @@ NSSTrustDomain_FindCertificateByOCSPHash
  * needed in a "friend" header file?
  */
 NSS_EXTERN PRStatus *
-NSSTrustDomain_TraverseCertificates
-(
+NSSTrustDomain_TraverseCertificates (
   NSSTrustDomain *td,
   PRStatus (*callback)(NSSCertificate *c, void *arg),
   void *arg
@@ -1924,8 +1806,7 @@ NSSTrustDomain_TraverseCertificates
  */
 
 NSS_EXTERN NSSCertificate *
-NSSTrustDomain_FindBestUserCertificate
-(
+NSSTrustDomain_FindBestUserCertificate (
   NSSTrustDomain *td,
   NSSTime time,
   NSSUsages *usages,
@@ -1938,8 +1819,7 @@ NSSTrustDomain_FindBestUserCertificate
  */
 
 NSS_EXTERN NSSCertificate **
-NSSTrustDomain_FindUserCertificates
-(
+NSSTrustDomain_FindUserCertificates (
   NSSTrustDomain *td,
   NSSTime time,
   NSSUsages *usagesOpt,
@@ -1955,8 +1835,7 @@ NSSTrustDomain_FindUserCertificates
  */
 
 NSS_EXTERN NSSCertificate *
-NSSTrustDomain_FindBestUserCertificateForSSLClientAuth
-(
+NSSTrustDomain_FindBestUserCertificateForSSLClientAuth (
   NSSTrustDomain *td,
   NSSUTF8 *sslHostOpt,
   NSSDER *rootCAsOpt[], /* null pointer for none */
@@ -1971,8 +1850,7 @@ NSSTrustDomain_FindBestUserCertificateForSSLClientAuth
  */
 
 NSS_EXTERN NSSCertificate **
-NSSTrustDomain_FindUserCertificatesForSSLClientAuth
-(
+NSSTrustDomain_FindUserCertificatesForSSLClientAuth (
   NSSTrustDomain *td,
   NSSUTF8 *sslHostOpt,
   NSSDER *rootCAsOpt[], /* null pointer for none */
@@ -1990,8 +1868,7 @@ NSSTrustDomain_FindUserCertificatesForSSLClientAuth
  */
 
 NSS_EXTERN NSSCertificate *
-NSSTrustDomain_FindBestUserCertificateForEmailSigning
-(
+NSSTrustDomain_FindBestUserCertificateForEmailSigning (
   NSSTrustDomain *td,
   NSSASCII7 *signerOpt,
   NSSASCII7 *recipientOpt,
@@ -2006,8 +1883,7 @@ NSSTrustDomain_FindBestUserCertificateForEmailSigning
  */
 
 NSS_EXTERN NSSCertificate **
-NSSTrustDomain_FindUserCertificatesForEmailSigning
-(
+NSSTrustDomain_FindUserCertificatesForEmailSigning (
   NSSTrustDomain *td,
   NSSASCII7 *signerOpt,
   NSSASCII7 *recipientOpt,
@@ -2037,8 +1913,7 @@ NSSTrustDomain_FindUserCertificatesForEmailSigning
  */
 
 NSS_EXTERN PRStatus
-NSSTrustDomain_GenerateKeyPair
-(
+NSSTrustDomain_GenerateKeyPair (
   NSSTrustDomain *td,
   const NSSAlgorithmAndParameters *ap,
   NSSPublicKey **pbkOpt,
@@ -2057,8 +1932,7 @@ NSSTrustDomain_GenerateKeyPair
  */
 
 NSS_EXTERN PRStatus *
-NSSTrustDomain_TraversePrivateKeys
-(
+NSSTrustDomain_TraversePrivateKeys (
   NSSTrustDomain *td,
   PRStatus (*callback)(NSSPrivateKey *vk, void *arg),
   void *arg
@@ -2072,8 +1946,7 @@ NSSTrustDomain_TraversePrivateKeys
  */
 
 NSS_EXTERN NSSSymmetricKey *
-NSSTrustDomain_GenerateSymmetricKey
-(
+NSSTrustDomain_GenerateSymmetricKey (
   NSSTrustDomain *td,
   const NSSAlgorithmAndParameters *ap,
   PRUint32 keysize,
@@ -2087,8 +1960,7 @@ NSSTrustDomain_GenerateSymmetricKey
  */
 
 NSS_EXTERN NSSSymmetricKey *
-NSSTrustDomain_GenerateSymmetricKeyFromPassword
-(
+NSSTrustDomain_GenerateSymmetricKeyFromPassword (
   NSSTrustDomain *td,
   const NSSAlgorithmAndParameters *ap,
   NSSUTF8 *passwordOpt, /* if null, prompt */
@@ -2116,8 +1988,7 @@ NSSTrustDomain_GenerateSymmetricKeyFromPassword
  */
 
 NSS_EXTERN NSSSymmetricKey *
-NSSTrustDomain_FindSymmetricKeyByAlgorithmAndKeyID
-(
+NSSTrustDomain_FindSymmetricKeyByAlgorithmAndKeyID (
   NSSTrustDomain *td,
   NSSOID *algorithm,
   NSSItem *keyID,
@@ -2148,8 +2019,7 @@ NSSTrustDomain_FindSymmetricKeyByAlgorithmAndKeyID
  */
 
 NSS_EXTERN NSSCryptoContext *
-NSSTrustDomain_CreateCryptoContext
-(
+NSSTrustDomain_CreateCryptoContext (
   NSSTrustDomain *td,
   const NSSAlgorithmAndParameters *apOpt,
   NSSCallback *uhhOpt
@@ -2161,8 +2031,7 @@ NSSTrustDomain_CreateCryptoContext
  */
 
 NSS_EXTERN NSSCryptoContext *
-NSSTrustDomain_CreateCryptoContextForAlgorithm
-(
+NSSTrustDomain_CreateCryptoContextForAlgorithm (
   NSSTrustDomain *td,
   NSSOID *algorithm
 );
@@ -2194,8 +2063,7 @@ NSSTrustDomain_CreateCryptoContextForAlgorithm
  */
 
 NSS_EXTERN PRStatus
-NSSCryptoContext_Destroy
-(
+NSSCryptoContext_Destroy (
   NSSCryptoContext *cc
 );
 
@@ -2207,8 +2075,7 @@ NSSCryptoContext_Destroy
  */
 
 NSS_EXTERN PRStatus
-NSSCryptoContext_SetDefaultCallback
-(
+NSSCryptoContext_SetDefaultCallback (
   NSSCryptoContext *cc,
   NSSCallback *newCallback,
   NSSCallback **oldCallbackOpt
@@ -2220,8 +2087,7 @@ NSSCryptoContext_SetDefaultCallback
  */
 
 NSS_EXTERN NSSCallback *
-NSSCryptoContext_GetDefaultCallback
-(
+NSSCryptoContext_GetDefaultCallback (
   NSSCryptoContext *cc,
   PRStatus *statusOpt
 );
@@ -2232,8 +2098,7 @@ NSSCryptoContext_GetDefaultCallback
  */
 
 NSS_EXTERN NSSTrustDomain *
-NSSCryptoContext_GetTrustDomain
-(
+NSSCryptoContext_GetTrustDomain (
   NSSCryptoContext *cc
 );
 
@@ -2253,8 +2118,7 @@ NSSCryptoContext_GetTrustDomain
  */
 
 NSS_EXTERN PRStatus
-NSSCryptoContext_ImportCertificate
-(
+NSSCryptoContext_ImportCertificate (
   NSSCryptoContext *cc,
   NSSCertificate *c
 );
@@ -2265,8 +2129,7 @@ NSSCryptoContext_ImportCertificate
  */
 
 NSS_EXTERN NSSCertificate *
-NSSCryptoContext_ImportPKIXCertificate
-(
+NSSCryptoContext_ImportPKIXCertificate (
   NSSCryptoContext *cc,
   struct NSSPKIXCertificateStr *pc
 );
@@ -2277,8 +2140,7 @@ NSSCryptoContext_ImportPKIXCertificate
  */
 
 NSS_EXTERN NSSCertificate *
-NSSCryptoContext_ImportEncodedCertificate
-(
+NSSCryptoContext_ImportEncodedCertificate (
   NSSCryptoContext *cc,
   NSSBER *ber
 );
@@ -2289,8 +2151,7 @@ NSSCryptoContext_ImportEncodedCertificate
  */
 
 NSS_EXTERN PRStatus
-NSSCryptoContext_ImportEncodedPKIXCertificateChain
-(
+NSSCryptoContext_ImportEncodedPKIXCertificateChain (
   NSSCryptoContext *cc,
   NSSBER *ber
 );
@@ -2304,8 +2165,7 @@ NSSCryptoContext_ImportEncodedPKIXCertificateChain
  */
 
 NSS_EXTERN NSSCertificate *
-NSSCryptoContext_FindBestCertificateByNickname
-(
+NSSCryptoContext_FindBestCertificateByNickname (
   NSSCryptoContext *cc,
   NSSUTF8 *name,
   NSSTime time, /* NULL for "now" */
@@ -2319,8 +2179,7 @@ NSSCryptoContext_FindBestCertificateByNickname
  */
 
 NSS_EXTERN NSSCertificate **
-NSSCryptoContext_FindCertificatesByNickname
-(
+NSSCryptoContext_FindCertificatesByNickname (
   NSSCryptoContext *cc,
   NSSUTF8 *name,
   NSSCertificate *rvOpt[],
@@ -2334,8 +2193,7 @@ NSSCryptoContext_FindCertificatesByNickname
  */
 
 NSS_EXTERN NSSCertificate *
-NSSCryptoContext_FindCertificateByIssuerAndSerialNumber
-(
+NSSCryptoContext_FindCertificateByIssuerAndSerialNumber (
   NSSCryptoContext *cc,
   NSSDER *issuer,
   NSSDER *serialNumber
@@ -2348,8 +2206,7 @@ NSSCryptoContext_FindCertificateByIssuerAndSerialNumber
  */
 
 NSS_EXTERN NSSCertificate *
-NSSCryptoContext_FindBestCertificateBySubject
-(
+NSSCryptoContext_FindBestCertificateBySubject (
   NSSCryptoContext *cc,
   NSSDER *subject,
   NSSTime time,
@@ -2364,8 +2221,7 @@ NSSCryptoContext_FindBestCertificateBySubject
  */
 
 NSS_EXTERN NSSCertificate **
-NSSCryptoContext_FindCertificatesBySubject
-(
+NSSCryptoContext_FindCertificatesBySubject (
   NSSCryptoContext *cc,
   NSSDER *subject,
   NSSCertificate *rvOpt[],
@@ -2383,8 +2239,7 @@ NSSCryptoContext_FindCertificatesBySubject
  */
 
 NSS_EXTERN NSSCertificate *
-NSSCryptoContext_FindBestCertificateByNameComponents
-(
+NSSCryptoContext_FindBestCertificateByNameComponents (
   NSSCryptoContext *cc,
   NSSUTF8 *nameComponents,
   NSSTime time,
@@ -2401,8 +2256,7 @@ NSSCryptoContext_FindBestCertificateByNameComponents
  */
 
 NSS_EXTERN NSSCertificate **
-NSSCryptoContext_FindCertificatesByNameComponents
-(
+NSSCryptoContext_FindCertificatesByNameComponents (
   NSSCryptoContext *cc,
   NSSUTF8 *nameComponents,
   NSSCertificate *rvOpt[],
@@ -2416,8 +2270,7 @@ NSSCryptoContext_FindCertificatesByNameComponents
  */
 
 NSS_EXTERN NSSCertificate *
-NSSCryptoContext_FindCertificateByEncodedCertificate
-(
+NSSCryptoContext_FindCertificateByEncodedCertificate (
   NSSCryptoContext *cc,
   NSSBER *encodedCertificate
 );
@@ -2428,8 +2281,7 @@ NSSCryptoContext_FindCertificateByEncodedCertificate
  */
 
 NSS_EXTERN NSSCertificate *
-NSSCryptoContext_FindBestCertificateByEmail
-(
+NSSCryptoContext_FindBestCertificateByEmail (
   NSSCryptoContext *cc,
   NSSASCII7 *email,
   NSSTime time,
@@ -2443,8 +2295,7 @@ NSSCryptoContext_FindBestCertificateByEmail
  */
 
 NSS_EXTERN NSSCertificate **
-NSSCryptoContext_FindCertificatesByEmail
-(
+NSSCryptoContext_FindCertificatesByEmail (
   NSSCryptoContext *cc,
   NSSASCII7 *email,
   NSSCertificate *rvOpt[],
@@ -2458,8 +2309,7 @@ NSSCryptoContext_FindCertificatesByEmail
  */
 
 NSS_EXTERN NSSCertificate *
-NSSCryptoContext_FindCertificateByOCSPHash
-(
+NSSCryptoContext_FindCertificateByOCSPHash (
   NSSCryptoContext *cc,
   NSSItem *hash
 );
@@ -2483,8 +2333,7 @@ NSSCryptoContext_FindCertificateByOCSPHash
  */
 
 NSS_EXTERN NSSCertificate *
-NSSCryptoContext_FindBestUserCertificate
-(
+NSSCryptoContext_FindBestUserCertificate (
   NSSCryptoContext *cc,
   NSSTime time,
   NSSUsages *usages,
@@ -2497,8 +2346,7 @@ NSSCryptoContext_FindBestUserCertificate
  */
 
 NSS_EXTERN NSSCertificate **
-NSSCryptoContext_FindUserCertificates
-(
+NSSCryptoContext_FindUserCertificates (
   NSSCryptoContext *cc,
   NSSTime time,
   NSSUsages *usagesOpt,
@@ -2514,8 +2362,7 @@ NSSCryptoContext_FindUserCertificates
  */
 
 NSS_EXTERN NSSCertificate *
-NSSCryptoContext_FindBestUserCertificateForSSLClientAuth
-(
+NSSCryptoContext_FindBestUserCertificateForSSLClientAuth (
   NSSCryptoContext *cc,
   NSSUTF8 *sslHostOpt,
   NSSDER *rootCAsOpt[], /* null pointer for none */
@@ -2530,8 +2377,7 @@ NSSCryptoContext_FindBestUserCertificateForSSLClientAuth
  */
 
 NSS_EXTERN NSSCertificate **
-NSSCryptoContext_FindUserCertificatesForSSLClientAuth
-(
+NSSCryptoContext_FindUserCertificatesForSSLClientAuth (
   NSSCryptoContext *cc,
   NSSUTF8 *sslHostOpt,
   NSSDER *rootCAsOpt[], /* null pointer for none */
@@ -2549,8 +2395,7 @@ NSSCryptoContext_FindUserCertificatesForSSLClientAuth
  */
 
 NSS_EXTERN NSSCertificate *
-NSSCryptoContext_FindBestUserCertificateForEmailSigning
-(
+NSSCryptoContext_FindBestUserCertificateForEmailSigning (
   NSSCryptoContext *cc,
   NSSASCII7 *signerOpt,
   NSSASCII7 *recipientOpt,
@@ -2565,8 +2410,7 @@ NSSCryptoContext_FindBestUserCertificateForEmailSigning
  */
 
 NSS_EXTERN NSSCertificate *
-NSSCryptoContext_FindUserCertificatesForEmailSigning
-(
+NSSCryptoContext_FindUserCertificatesForEmailSigning (
   NSSCryptoContext *cc,
   NSSASCII7 *signerOpt, /* fgmr or a more general name? */
   NSSASCII7 *recipientOpt,
@@ -2591,8 +2435,7 @@ NSSCryptoContext_FindUserCertificatesForEmailSigning
  */
 
 NSS_EXTERN PRStatus
-NSSCryptoContext_GenerateKeyPair
-(
+NSSCryptoContext_GenerateKeyPair (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *ap,
   NSSPrivateKey **pvkOpt,
@@ -2623,8 +2466,7 @@ NSSCryptoContext_GenerateKeyPair
  */
 
 NSS_EXTERN NSSSymmetricKey *
-NSSCryptoContext_GenerateSymmetricKey
-(
+NSSCryptoContext_GenerateSymmetricKey (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *ap,
   PRUint32 keysize,
@@ -2638,8 +2480,7 @@ NSSCryptoContext_GenerateSymmetricKey
  */
 
 NSS_EXTERN NSSSymmetricKey *
-NSSCryptoContext_GenerateSymmetricKeyFromPassword
-(
+NSSCryptoContext_GenerateSymmetricKeyFromPassword (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *ap,
   NSSUTF8 *passwordOpt, /* if null, prompt */
@@ -2666,8 +2507,7 @@ NSSCryptoContext_GenerateSymmetricKeyFromPassword
  */
 
 NSS_EXTERN NSSSymmetricKey *
-NSSCryptoContext_FindSymmetricKeyByAlgorithmAndKeyID
-(
+NSSCryptoContext_FindSymmetricKeyByAlgorithmAndKeyID (
   NSSCryptoContext *cc,
   NSSOID *algorithm,
   NSSItem *keyID,
@@ -2719,8 +2559,7 @@ NSSCryptoContext_FindSymmetricKeyByAlgorithmAndKeyID
 
 
 NSS_EXTERN NSSItem *
-NSSCryptoContext_Encrypt
-(
+NSSCryptoContext_Encrypt (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *data,
@@ -2735,8 +2574,7 @@ NSSCryptoContext_Encrypt
  */
 
 NSS_EXTERN PRStatus
-NSSCryptoContext_BeginEncrypt
-(
+NSSCryptoContext_BeginEncrypt (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSCallback *uhhOpt
@@ -2748,8 +2586,7 @@ NSSCryptoContext_BeginEncrypt
  */
 
 NSS_EXTERN NSSItem *
-NSSCryptoContext_ContinueEncrypt
-(
+NSSCryptoContext_ContinueEncrypt (
   NSSCryptoContext *cc,
   NSSItem *data,
   NSSItem *rvOpt,
@@ -2762,8 +2599,7 @@ NSSCryptoContext_ContinueEncrypt
  */
 
 NSS_EXTERN NSSItem *
-NSSCryptoContext_FinishEncrypt
-(
+NSSCryptoContext_FinishEncrypt (
   NSSCryptoContext *cc,
   NSSItem *rvOpt,
   NSSArena *arenaOpt
@@ -2776,8 +2612,7 @@ NSSCryptoContext_FinishEncrypt
  */
 
 NSS_EXTERN NSSItem *
-NSSCryptoContext_Decrypt
-(
+NSSCryptoContext_Decrypt (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *encryptedData,
@@ -2792,8 +2627,7 @@ NSSCryptoContext_Decrypt
  */
 
 NSS_EXTERN PRStatus
-NSSCryptoContext_BeginDecrypt
-(
+NSSCryptoContext_BeginDecrypt (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSCallback *uhhOpt
@@ -2805,8 +2639,7 @@ NSSCryptoContext_BeginDecrypt
  */
 
 NSS_EXTERN NSSItem *
-NSSCryptoContext_ContinueDecrypt
-(
+NSSCryptoContext_ContinueDecrypt (
   NSSCryptoContext *cc,
   NSSItem *data,
   NSSItem *rvOpt,
@@ -2819,8 +2652,7 @@ NSSCryptoContext_ContinueDecrypt
  */
 
 NSS_EXTERN NSSItem *
-NSSCryptoContext_FinishDecrypt
-(
+NSSCryptoContext_FinishDecrypt (
   NSSCryptoContext *cc,
   NSSItem *rvOpt,
   NSSArena *arenaOpt
@@ -2832,8 +2664,7 @@ NSSCryptoContext_FinishDecrypt
  */
 
 NSS_EXTERN NSSItem *
-NSSCryptoContext_Sign
-(
+NSSCryptoContext_Sign (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *data,
@@ -2848,8 +2679,7 @@ NSSCryptoContext_Sign
  */
 
 NSS_EXTERN PRStatus
-NSSCryptoContext_BeginSign
-(
+NSSCryptoContext_BeginSign (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSCallback *uhhOpt
@@ -2861,8 +2691,7 @@ NSSCryptoContext_BeginSign
  */
 
 NSS_EXTERN PRStatus
-NSSCryptoContext_ContinueSign
-(
+NSSCryptoContext_ContinueSign (
   NSSCryptoContext *cc,
   NSSItem *data
 );
@@ -2873,8 +2702,7 @@ NSSCryptoContext_ContinueSign
  */
 
 NSS_EXTERN NSSItem *
-NSSCryptoContext_FinishSign
-(
+NSSCryptoContext_FinishSign (
   NSSCryptoContext *cc,
   NSSItem *rvOpt,
   NSSArena *arenaOpt
@@ -2886,8 +2714,7 @@ NSSCryptoContext_FinishSign
  */
 
 NSS_EXTERN NSSItem *
-NSSCryptoContext_SignRecover
-(
+NSSCryptoContext_SignRecover (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *data,
@@ -2903,8 +2730,7 @@ NSSCryptoContext_SignRecover
  */
 
 NSS_EXTERN PRStatus
-NSSCryptoContext_BeginSignRecover
-(
+NSSCryptoContext_BeginSignRecover (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSCallback *uhhOpt
@@ -2916,8 +2742,7 @@ NSSCryptoContext_BeginSignRecover
  */
 
 NSS_EXTERN NSSItem *
-NSSCryptoContext_ContinueSignRecover
-(
+NSSCryptoContext_ContinueSignRecover (
   NSSCryptoContext *cc,
   NSSItem *data,
   NSSItem *rvOpt,
@@ -2930,8 +2755,7 @@ NSSCryptoContext_ContinueSignRecover
  */
 
 NSS_EXTERN NSSItem *
-NSSCryptoContext_FinishSignRecover
-(
+NSSCryptoContext_FinishSignRecover (
   NSSCryptoContext *cc,
   NSSItem *rvOpt,
   NSSArena *arenaOpt
@@ -2944,8 +2768,7 @@ NSSCryptoContext_FinishSignRecover
  */
 
 NSS_EXTERN NSSSymmetricKey *
-NSSCryptoContext_UnwrapSymmetricKey
-(
+NSSCryptoContext_UnwrapSymmetricKey (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *wrappedKey,
@@ -2960,8 +2783,7 @@ NSSCryptoContext_UnwrapSymmetricKey
  */
 
 NSS_EXTERN NSSSymmetricKey *
-NSSCryptoContext_DeriveSymmetricKey
-(
+NSSCryptoContext_DeriveSymmetricKey (
   NSSCryptoContext *cc,
   NSSPublicKey *bkOpt,
   const NSSAlgorithmAndParameters *apOpt,
@@ -2977,8 +2799,7 @@ NSSCryptoContext_DeriveSymmetricKey
  */
 
 NSS_EXTERN PRStatus
-NSSCryptoContext_Verify
-(
+NSSCryptoContext_Verify (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *data,
@@ -2992,8 +2813,7 @@ NSSCryptoContext_Verify
  */
 
 NSS_EXTERN PRStatus
-NSSCryptoContext_BeginVerify
-(
+NSSCryptoContext_BeginVerify (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSCallback *uhhOpt
@@ -3005,8 +2825,7 @@ NSSCryptoContext_BeginVerify
  */
 
 NSS_EXTERN PRStatus
-NSSCryptoContext_ContinueVerify
-(
+NSSCryptoContext_ContinueVerify (
   NSSCryptoContext *cc,
   NSSItem *data
 );
@@ -3017,8 +2836,7 @@ NSSCryptoContext_ContinueVerify
  */
 
 NSS_EXTERN PRStatus
-NSSCryptoContext_FinishVerify
-(
+NSSCryptoContext_FinishVerify (
   NSSCryptoContext *cc,
   NSSItem *signature
 );
@@ -3029,8 +2847,7 @@ NSSCryptoContext_FinishVerify
  */
 
 NSS_EXTERN NSSItem *
-NSSCryptoContext_VerifyRecover
-(
+NSSCryptoContext_VerifyRecover (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *signature,
@@ -3046,8 +2863,7 @@ NSSCryptoContext_VerifyRecover
  */
 
 NSS_EXTERN PRStatus
-NSSCryptoContext_BeginVerifyRecover
-(
+NSSCryptoContext_BeginVerifyRecover (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSCallback *uhhOpt
@@ -3059,8 +2875,7 @@ NSSCryptoContext_BeginVerifyRecover
  */
 
 NSS_EXTERN NSSItem *
-NSSCryptoContext_ContinueVerifyRecover
-(
+NSSCryptoContext_ContinueVerifyRecover (
   NSSCryptoContext *cc,
   NSSItem *data,
   NSSItem *rvOpt,
@@ -3073,8 +2888,7 @@ NSSCryptoContext_ContinueVerifyRecover
  */
 
 NSS_EXTERN NSSItem *
-NSSCryptoContext_FinishVerifyRecover
-(
+NSSCryptoContext_FinishVerifyRecover (
   NSSCryptoContext *cc,
   NSSItem *rvOpt,
   NSSArena *arenaOpt
@@ -3087,8 +2901,7 @@ NSSCryptoContext_FinishVerifyRecover
  */
 
 NSS_EXTERN NSSItem *
-NSSCryptoContext_WrapSymmetricKey
-(
+NSSCryptoContext_WrapSymmetricKey (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSSymmetricKey *keyToWrap,
@@ -3104,8 +2917,7 @@ NSSCryptoContext_WrapSymmetricKey
  */
 
 NSS_EXTERN NSSItem *
-NSSCryptoContext_Digest
-(
+NSSCryptoContext_Digest (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *data,
@@ -3120,8 +2932,7 @@ NSSCryptoContext_Digest
  */
 
 NSS_EXTERN PRStatus
-NSSCryptoContext_BeginDigest
-(
+NSSCryptoContext_BeginDigest (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSCallback *uhhOpt
@@ -3133,10 +2944,15 @@ NSSCryptoContext_BeginDigest
  */
 
 NSS_EXTERN PRStatus
-NSSCryptoContext_ContinueDigest
-(
+NSSCryptoContext_ContinueDigest (
   NSSCryptoContext *cc,
   NSSItem *item
+);
+
+NSS_EXTERN PRStatus
+NSSCryptoContext_DigestKey (
+  NSSCryptoContext *cc,
+  NSSSymmetricKey *mk
 );
 
 /*
@@ -3145,8 +2961,7 @@ NSSCryptoContext_ContinueDigest
  */
 
 NSS_EXTERN NSSItem *
-NSSCryptoContext_FinishDigest
-(
+NSSCryptoContext_FinishDigest (
   NSSCryptoContext *cc,
   NSSItem *rvOpt,
   NSSArena *arenaOpt
@@ -3162,18 +2977,26 @@ NSSCryptoContext_FinishDigest
  */
 
 NSS_EXTERN NSSCryptoContext *
-NSSCryptoContext_Clone
-(
+NSSCryptoContext_Clone (
   NSSCryptoContext *cc
 );
 
-/*
- * NSSCryptoContext_Save
- * NSSCryptoContext_Restore
- *
- * We need to be able to save and restore the state of contexts.
- * Perhaps a mark-and-release mechanism would be better?
- */
+NSS_EXTERN NSSCryptoContextMark *
+NSSCryptoContext_Mark (
+  NSSCryptoContext *cc
+);
+
+NSS_EXTERN PRStatus
+NSSCryptoContext_Unmark (
+  NSSCryptoContext *cc,
+  NSSCryptoContextMark *mark
+);
+
+NSS_EXTERN PRStatus
+NSSCryptoContext_Release (
+  NSSCryptoContext *cc,
+  NSSCryptoContextMark *mark
+);
 
 /*
  * ..._SignTBSCertificate
@@ -3208,21 +3031,18 @@ NSSCryptoContext_Clone
  */
 
 NSS_EXTERN NSSTime
-NSSTime_Now
-(
+NSSTime_Now (
   void
 );
 
 NSS_EXTERN NSSUTF8 *
-NSSTime_GetUTCTime
-(
+NSSTime_GetUTCTime (
   NSSTime time,
   NSSArena *arenaOpt
 );
 
 NSS_EXTERN NSSTime
-NSSTime_CreateFromUTCTime
-(
+NSSTime_CreateFromUTCTime (
   NSSUTF8 *utcTime,
   PRStatus *statusOpt
 );

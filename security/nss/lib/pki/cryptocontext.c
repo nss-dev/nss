@@ -68,10 +68,15 @@ struct NSSCryptoContextStr
   NSSCertificate *cert;
 };
 
+struct NSSCryptoContextMarkStr
+{
+  NSSArena *arena;
+  NSSItem state;
+  /* unsigned char buf[512]; ? */
+};
 
 NSS_IMPLEMENT NSSCryptoContext *
-nssCryptoContext_Create
-(
+nssCryptoContext_Create (
   NSSTrustDomain *td,
   const NSSAlgorithmAndParameters *apOpt,
   NSSCallback *uhhOpt
@@ -101,8 +106,7 @@ nssCryptoContext_Create
 }
 
 NSS_IMPLEMENT NSSCryptoContext *
-nssCryptoContext_CreateForSymmetricKey
-(
+nssCryptoContext_CreateForSymmetricKey (
   NSSSymmetricKey *mk,
   const NSSAlgorithmAndParameters *apOpt,
   NSSCallback *uhh
@@ -113,19 +117,21 @@ nssCryptoContext_CreateForSymmetricKey
 
     td = nssSymmetricKey_GetTrustDomain(mk, NULL);
     if (!td) {
-	/* nss_SetError(NSS_ERROR_INVALID_SYMKEY); */
+	nss_SetError(NSS_ERROR_INVALID_SYMKEY);
 	return (NSSCryptoContext *)NULL;
     }
 
     rvCC = nssCryptoContext_Create(td, apOpt, uhh);
+    if (!rvCC) {
+	return (NSSCryptoContext *)NULL;
+    }
     rvCC->mk = nssSymmetricKey_AddRef(mk);
 
     return rvCC;
 }
 
 NSS_IMPLEMENT PRStatus
-nssCryptoContext_Destroy
-(
+nssCryptoContext_Destroy (
   NSSCryptoContext *cc
 )
 {
@@ -165,8 +171,7 @@ nssCryptoContext_Destroy
 }
 
 NSS_IMPLEMENT PRStatus
-NSSCryptoContext_Destroy
-(
+NSSCryptoContext_Destroy (
   NSSCryptoContext *cc
 )
 {
@@ -177,8 +182,7 @@ NSSCryptoContext_Destroy
 }
 
 NSS_IMPLEMENT PRStatus
-nssCryptoContext_SetDefaultCallback
-(
+nssCryptoContext_SetDefaultCallback (
   NSSCryptoContext *cc,
   NSSCallback *newCallback,
   NSSCallback **oldCallbackOpt
@@ -192,8 +196,7 @@ nssCryptoContext_SetDefaultCallback
 }
 
 NSS_IMPLEMENT PRStatus
-NSSCryptoContext_SetDefaultCallback
-(
+NSSCryptoContext_SetDefaultCallback (
   NSSCryptoContext *cc,
   NSSCallback *newCallback,
   NSSCallback **oldCallbackOpt
@@ -205,8 +208,7 @@ NSSCryptoContext_SetDefaultCallback
 }
 
 NSS_IMPLEMENT NSSCallback *
-nssCryptoContext_GetDefaultCallback
-(
+nssCryptoContext_GetDefaultCallback (
   NSSCryptoContext *cc,
   PRStatus *statusOpt
 )
@@ -218,8 +220,7 @@ nssCryptoContext_GetDefaultCallback
 }
 
 NSS_IMPLEMENT NSSCallback *
-NSSCryptoContext_GetDefaultCallback
-(
+NSSCryptoContext_GetDefaultCallback (
   NSSCryptoContext *cc,
   PRStatus *statusOpt
 )
@@ -228,8 +229,7 @@ NSSCryptoContext_GetDefaultCallback
 }
 
 NSS_IMPLEMENT NSSTrustDomain *
-nssCryptoContext_GetTrustDomain
-(
+nssCryptoContext_GetTrustDomain (
   NSSCryptoContext *cc
 )
 {
@@ -237,8 +237,7 @@ nssCryptoContext_GetTrustDomain
 }
 
 NSS_IMPLEMENT NSSTrustDomain *
-NSSCryptoContext_GetTrustDomain
-(
+NSSCryptoContext_GetTrustDomain (
   NSSCryptoContext *cc
 )
 {
@@ -246,8 +245,7 @@ NSSCryptoContext_GetTrustDomain
 }
 
 NSS_IMPLEMENT PRStatus
-nssCryptoContext_ImportCertificate
-(
+nssCryptoContext_ImportCertificate (
   NSSCryptoContext *cc,
   NSSCertificate *c
 )
@@ -268,8 +266,7 @@ nssCryptoContext_ImportCertificate
 }
 
 NSS_IMPLEMENT PRStatus
-NSSCryptoContext_ImportCertificate
-(
+NSSCryptoContext_ImportCertificate (
   NSSCryptoContext *cc,
   NSSCertificate *c
 )
@@ -278,8 +275,7 @@ NSSCryptoContext_ImportCertificate
 }
 
 NSS_IMPLEMENT NSSCertificate *
-NSSCryptoContext_ImportPKIXCertificate
-(
+NSSCryptoContext_ImportPKIXCertificate (
   NSSCryptoContext *cc,
   struct NSSPKIXCertificateStr *pc
 )
@@ -289,8 +285,7 @@ NSSCryptoContext_ImportPKIXCertificate
 }
 
 NSS_IMPLEMENT NSSCertificate *
-NSSCryptoContext_ImportEncodedCertificate
-(
+NSSCryptoContext_ImportEncodedCertificate (
   NSSCryptoContext *cc,
   NSSBER *ber
 )
@@ -300,8 +295,7 @@ NSSCryptoContext_ImportEncodedCertificate
 }
 
 NSS_IMPLEMENT PRStatus
-NSSCryptoContext_ImportEncodedPKIXCertificateChain
-(
+NSSCryptoContext_ImportEncodedPKIXCertificateChain (
   NSSCryptoContext *cc,
   NSSBER *ber
 )
@@ -311,8 +305,7 @@ NSSCryptoContext_ImportEncodedPKIXCertificateChain
 }
 
 NSS_IMPLEMENT PRStatus
-nssCryptoContext_ImportTrust
-(
+nssCryptoContext_ImportTrust (
   NSSCryptoContext *cc,
   nssTrust *trust
 )
@@ -334,8 +327,7 @@ nssCryptoContext_ImportTrust
 }
 
 NSS_IMPLEMENT PRStatus
-nssCryptoContext_ImportSMIMEProfile
-(
+nssCryptoContext_ImportSMIMEProfile (
   NSSCryptoContext *cc,
   nssSMIMEProfile *profile
 )
@@ -357,8 +349,7 @@ nssCryptoContext_ImportSMIMEProfile
 }
 
 NSS_IMPLEMENT NSSCertificate *
-NSSCryptoContext_FindBestCertificateByNickname
-(
+NSSCryptoContext_FindBestCertificateByNickname (
   NSSCryptoContext *cc,
   NSSUTF8 *name,
   NSSTime time, /* NULL for "now" */
@@ -385,8 +376,7 @@ NSSCryptoContext_FindBestCertificateByNickname
 }
 
 NSS_IMPLEMENT NSSCertificate **
-NSSCryptoContext_FindCertificatesByNickname
-(
+NSSCryptoContext_FindCertificatesByNickname (
   NSSCryptoContext *cc,
   NSSUTF8 *name,
   NSSCertificate *rvOpt[],
@@ -407,8 +397,7 @@ NSSCryptoContext_FindCertificatesByNickname
 }
 
 NSS_IMPLEMENT NSSCertificate *
-NSSCryptoContext_FindCertificateByIssuerAndSerialNumber
-(
+NSSCryptoContext_FindCertificateByIssuerAndSerialNumber (
   NSSCryptoContext *cc,
   NSSDER *issuer,
   NSSDER *serialNumber
@@ -424,8 +413,7 @@ NSSCryptoContext_FindCertificateByIssuerAndSerialNumber
 }
 
 NSS_IMPLEMENT NSSCertificate *
-NSSCryptoContext_FindBestCertificateBySubject
-(
+NSSCryptoContext_FindBestCertificateBySubject (
   NSSCryptoContext *cc,
   NSSDER *subject,
   NSSTime time,
@@ -452,8 +440,7 @@ NSSCryptoContext_FindBestCertificateBySubject
 }
 
 NSS_IMPLEMENT NSSCertificate **
-nssCryptoContext_FindCertificatesBySubject
-(
+nssCryptoContext_FindCertificatesBySubject (
   NSSCryptoContext *cc,
   NSSDER *subject,
   NSSCertificate *rvOpt[],
@@ -474,8 +461,7 @@ nssCryptoContext_FindCertificatesBySubject
 }
 
 NSS_IMPLEMENT NSSCertificate **
-NSSCryptoContext_FindCertificatesBySubject
-(
+NSSCryptoContext_FindCertificatesBySubject (
   NSSCryptoContext *cc,
   NSSDER *subject,
   NSSCertificate *rvOpt[],
@@ -489,8 +475,7 @@ NSSCryptoContext_FindCertificatesBySubject
 }
 
 NSS_IMPLEMENT NSSCertificate *
-NSSCryptoContext_FindBestCertificateByNameComponents
-(
+NSSCryptoContext_FindBestCertificateByNameComponents (
   NSSCryptoContext *cc,
   NSSUTF8 *nameComponents,
   NSSTime time,
@@ -503,8 +488,7 @@ NSSCryptoContext_FindBestCertificateByNameComponents
 }
 
 NSS_IMPLEMENT NSSCertificate **
-NSSCryptoContext_FindCertificatesByNameComponents
-(
+NSSCryptoContext_FindCertificatesByNameComponents (
   NSSCryptoContext *cc,
   NSSUTF8 *nameComponents,
   NSSCertificate *rvOpt[],
@@ -517,8 +501,7 @@ NSSCryptoContext_FindCertificatesByNameComponents
 }
 
 NSS_IMPLEMENT NSSCertificate *
-NSSCryptoContext_FindCertificateByEncodedCertificate
-(
+NSSCryptoContext_FindCertificateByEncodedCertificate (
   NSSCryptoContext *cc,
   NSSBER *encodedCertificate
 )
@@ -532,8 +515,7 @@ NSSCryptoContext_FindCertificateByEncodedCertificate
 }
 
 NSS_IMPLEMENT NSSCertificate *
-NSSCryptoContext_FindBestCertificateByEmail
-(
+NSSCryptoContext_FindBestCertificateByEmail (
   NSSCryptoContext *cc,
   NSSASCII7 *email,
   NSSTime time,
@@ -560,8 +542,7 @@ NSSCryptoContext_FindBestCertificateByEmail
 }
 
 NSS_IMPLEMENT NSSCertificate **
-NSSCryptoContext_FindCertificatesByEmail
-(
+NSSCryptoContext_FindCertificatesByEmail (
   NSSCryptoContext *cc,
   NSSASCII7 *email,
   NSSCertificate *rvOpt[],
@@ -582,8 +563,7 @@ NSSCryptoContext_FindCertificatesByEmail
 }
 
 NSS_IMPLEMENT NSSCertificate *
-NSSCryptoContext_FindCertificateByOCSPHash
-(
+NSSCryptoContext_FindCertificateByOCSPHash (
   NSSCryptoContext *cc,
   NSSItem *hash
 )
@@ -593,8 +573,7 @@ NSSCryptoContext_FindCertificateByOCSPHash
 }
 
 NSS_IMPLEMENT NSSCertificate *
-NSSCryptoContext_FindBestUserCertificate
-(
+NSSCryptoContext_FindBestUserCertificate (
   NSSCryptoContext *cc,
   NSSTime time,
   NSSUsages *usages,
@@ -606,8 +585,7 @@ NSSCryptoContext_FindBestUserCertificate
 }
 
 NSS_IMPLEMENT NSSCertificate **
-NSSCryptoContext_FindUserCertificates
-(
+NSSCryptoContext_FindUserCertificates (
   NSSCryptoContext *cc,
   NSSTime time,
   NSSUsages *usagesOpt,
@@ -622,8 +600,7 @@ NSSCryptoContext_FindUserCertificates
 }
 
 NSS_IMPLEMENT NSSCertificate *
-NSSCryptoContext_FindBestUserCertificateForSSLClientAuth
-(
+NSSCryptoContext_FindBestUserCertificateForSSLClientAuth (
   NSSCryptoContext *cc,
   NSSUTF8 *sslHostOpt,
   NSSDER *rootCAsOpt[], /* null pointer for none */
@@ -637,8 +614,7 @@ NSSCryptoContext_FindBestUserCertificateForSSLClientAuth
 }
 
 NSS_IMPLEMENT NSSCertificate **
-NSSCryptoContext_FindUserCertificatesForSSLClientAuth
-(
+NSSCryptoContext_FindUserCertificatesForSSLClientAuth (
   NSSCryptoContext *cc,
   NSSUTF8 *sslHostOpt,
   NSSDER *rootCAsOpt[], /* null pointer for none */
@@ -655,8 +631,7 @@ NSSCryptoContext_FindUserCertificatesForSSLClientAuth
 }
 
 NSS_IMPLEMENT NSSCertificate *
-NSSCryptoContext_FindBestUserCertificateForEmailSigning
-(
+NSSCryptoContext_FindBestUserCertificateForEmailSigning (
   NSSCryptoContext *cc,
   NSSASCII7 *signerOpt,
   NSSASCII7 *recipientOpt,
@@ -670,8 +645,7 @@ NSSCryptoContext_FindBestUserCertificateForEmailSigning
 }
 
 NSS_IMPLEMENT NSSCertificate *
-NSSCryptoContext_FindUserCertificatesForEmailSigning
-(
+NSSCryptoContext_FindUserCertificatesForEmailSigning (
   NSSCryptoContext *cc,
   NSSASCII7 *signerOpt, /* fgmr or a more general name? */
   NSSASCII7 *recipientOpt,
@@ -688,8 +662,7 @@ NSSCryptoContext_FindUserCertificatesForEmailSigning
 }
 
 NSS_IMPLEMENT nssTrust *
-nssCryptoContext_FindTrustForCertificate
-(
+nssCryptoContext_FindTrustForCertificate (
   NSSCryptoContext *cc,
   NSSCertificate *cert
 )
@@ -701,8 +674,7 @@ nssCryptoContext_FindTrustForCertificate
 }
 
 NSS_IMPLEMENT nssSMIMEProfile *
-nssCryptoContext_FindSMIMEProfileForCertificate
-(
+nssCryptoContext_FindSMIMEProfileForCertificate (
   NSSCryptoContext *cc,
   NSSCertificate *cert
 )
@@ -715,8 +687,7 @@ nssCryptoContext_FindSMIMEProfileForCertificate
 }
 
 static PRStatus
-prepare_context_for_operation
-(
+prepare_context_for_operation (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *ap
 )
@@ -750,8 +721,7 @@ loser:
 }
 
 static PRStatus
-prepare_context_symmetric_key
-(
+prepare_context_symmetric_key (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *ap
 )
@@ -806,8 +776,7 @@ loser:
 }
 
 static PRStatus
-prepare_context_private_key
-(
+prepare_context_private_key (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *ap
 )
@@ -871,8 +840,7 @@ loser:
 }
 
 static PRStatus
-prepare_context_public_key
-(
+prepare_context_public_key (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *ap
 )
@@ -936,8 +904,7 @@ loser:
 }
 
 NSS_IMPLEMENT PRStatus
-nssCryptoContext_GenerateKeyPair
-(
+nssCryptoContext_GenerateKeyPair (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *ap,
   NSSPrivateKey **pvkOpt,
@@ -952,8 +919,7 @@ nssCryptoContext_GenerateKeyPair
 }
 
 NSS_IMPLEMENT PRStatus
-NSSCryptoContext_GenerateKeyPair
-(
+NSSCryptoContext_GenerateKeyPair (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *ap,
   NSSPrivateKey **pvkOpt,
@@ -969,8 +935,7 @@ NSSCryptoContext_GenerateKeyPair
 }
 
 NSS_IMPLEMENT NSSSymmetricKey *
-nssCryptoContext_GenerateSymmetricKey
-(
+nssCryptoContext_GenerateSymmetricKey (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *ap,
   PRUint32 keysize,
@@ -1031,8 +996,7 @@ loser:
 }
 
 NSS_IMPLEMENT NSSSymmetricKey *
-NSSCryptoContext_GenerateSymmetricKey
-(
+NSSCryptoContext_GenerateSymmetricKey (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *ap,
   PRUint32 keysize,
@@ -1045,8 +1009,7 @@ NSSCryptoContext_GenerateSymmetricKey
 }
 
 NSS_IMPLEMENT NSSSymmetricKey *
-NSSCryptoContext_GenerateSymmetricKeyFromPassword
-(
+NSSCryptoContext_GenerateSymmetricKeyFromPassword (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *ap,
   NSSUTF8 *passwordOpt, /* if null, prompt */
@@ -1059,8 +1022,7 @@ NSSCryptoContext_GenerateSymmetricKeyFromPassword
 }
 
 NSS_IMPLEMENT NSSSymmetricKey *
-NSSCryptoContext_FindSymmetricKeyByAlgorithmAndKeyID
-(
+NSSCryptoContext_FindSymmetricKeyByAlgorithmAndKeyID (
   NSSCryptoContext *cc,
   NSSOID *algorithm,
   NSSItem *keyID,
@@ -1072,8 +1034,7 @@ NSSCryptoContext_FindSymmetricKeyByAlgorithmAndKeyID
 }
 
 NSS_IMPLEMENT NSSItem *
-nssCryptoContext_Encrypt
-(
+nssCryptoContext_Encrypt (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *data,
@@ -1095,8 +1056,7 @@ nssCryptoContext_Encrypt
 }
 
 NSS_IMPLEMENT NSSItem *
-NSSCryptoContext_Encrypt
-(
+NSSCryptoContext_Encrypt (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *data,
@@ -1114,8 +1074,7 @@ NSSCryptoContext_Encrypt
 }
 
 NSS_IMPLEMENT PRStatus
-nssCryptoContext_BeginEncrypt
-(
+nssCryptoContext_BeginEncrypt (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSCallback *uhhOpt
@@ -1133,8 +1092,7 @@ nssCryptoContext_BeginEncrypt
 }
 
 NSS_IMPLEMENT PRStatus
-NSSCryptoContext_BeginEncrypt
-(
+NSSCryptoContext_BeginEncrypt (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSCallback *uhhOpt
@@ -1148,8 +1106,7 @@ NSSCryptoContext_BeginEncrypt
 }
 
 NSS_IMPLEMENT NSSItem *
-nssCryptoContext_ContinueEncrypt
-(
+nssCryptoContext_ContinueEncrypt (
   NSSCryptoContext *cc,
   NSSItem *data,
   NSSItem *rvOpt,
@@ -1161,8 +1118,7 @@ nssCryptoContext_ContinueEncrypt
 }
 
 NSS_IMPLEMENT NSSItem *
-NSSCryptoContext_ContinueEncrypt
-(
+NSSCryptoContext_ContinueEncrypt (
   NSSCryptoContext *cc,
   NSSItem *data,
   NSSItem *rvOpt,
@@ -1174,8 +1130,7 @@ NSSCryptoContext_ContinueEncrypt
 }
 
 NSS_IMPLEMENT NSSItem *
-nssCryptoContext_FinishEncrypt
-(
+nssCryptoContext_FinishEncrypt (
   NSSCryptoContext *cc,
   NSSItem *rvOpt,
   NSSArena *arenaOpt
@@ -1185,8 +1140,7 @@ nssCryptoContext_FinishEncrypt
 }
 
 NSS_IMPLEMENT NSSItem *
-NSSCryptoContext_FinishEncrypt
-(
+NSSCryptoContext_FinishEncrypt (
   NSSCryptoContext *cc,
   NSSItem *rvOpt,
   NSSArena *arenaOpt
@@ -1197,8 +1151,7 @@ NSSCryptoContext_FinishEncrypt
 }
 
 NSS_IMPLEMENT NSSItem *
-nssCryptoContext_Decrypt
-(
+nssCryptoContext_Decrypt (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *encryptedData,
@@ -1220,8 +1173,7 @@ nssCryptoContext_Decrypt
 }
 
 NSS_IMPLEMENT NSSItem *
-NSSCryptoContext_Decrypt
-(
+NSSCryptoContext_Decrypt (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *encryptedData,
@@ -1239,8 +1191,7 @@ NSSCryptoContext_Decrypt
 }
 
 NSS_IMPLEMENT PRStatus
-nssCryptoContext_BeginDecrypt
-(
+nssCryptoContext_BeginDecrypt (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSCallback *uhhOpt
@@ -1258,8 +1209,7 @@ nssCryptoContext_BeginDecrypt
 }
 
 NSS_IMPLEMENT PRStatus
-NSSCryptoContext_BeginDecrypt
-(
+NSSCryptoContext_BeginDecrypt (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSCallback *uhhOpt
@@ -1273,8 +1223,7 @@ NSSCryptoContext_BeginDecrypt
 }
 
 NSS_IMPLEMENT NSSItem *
-nssCryptoContext_ContinueDecrypt
-(
+nssCryptoContext_ContinueDecrypt (
   NSSCryptoContext *cc,
   NSSItem *data,
   NSSItem *rvOpt,
@@ -1286,8 +1235,7 @@ nssCryptoContext_ContinueDecrypt
 }
 
 NSS_IMPLEMENT NSSItem *
-NSSCryptoContext_ContinueDecrypt
-(
+NSSCryptoContext_ContinueDecrypt (
   NSSCryptoContext *cc,
   NSSItem *data,
   NSSItem *rvOpt,
@@ -1299,8 +1247,7 @@ NSSCryptoContext_ContinueDecrypt
 }
 
 NSS_IMPLEMENT NSSItem *
-nssCryptoContext_FinishDecrypt
-(
+nssCryptoContext_FinishDecrypt (
   NSSCryptoContext *cc,
   NSSItem *rvOpt,
   NSSArena *arenaOpt
@@ -1310,8 +1257,7 @@ nssCryptoContext_FinishDecrypt
 }
 
 NSS_IMPLEMENT NSSItem *
-NSSCryptoContext_FinishDecrypt
-(
+NSSCryptoContext_FinishDecrypt (
   NSSCryptoContext *cc,
   NSSItem *rvOpt,
   NSSArena *arenaOpt
@@ -1322,8 +1268,7 @@ NSSCryptoContext_FinishDecrypt
 }
 
 NSS_IMPLEMENT NSSItem *
-nssCryptoContext_Sign
-(
+nssCryptoContext_Sign (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *data,
@@ -1345,8 +1290,7 @@ nssCryptoContext_Sign
 }
 
 NSS_IMPLEMENT NSSItem *
-NSSCryptoContext_Sign
-(
+NSSCryptoContext_Sign (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *data,
@@ -1363,8 +1307,7 @@ NSSCryptoContext_Sign
 }
 
 NSS_IMPLEMENT PRStatus
-nssCryptoContext_BeginSign
-(
+nssCryptoContext_BeginSign (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSCallback *uhhOpt
@@ -1382,8 +1325,7 @@ nssCryptoContext_BeginSign
 }
 
 NSS_IMPLEMENT PRStatus
-NSSCryptoContext_BeginSign
-(
+NSSCryptoContext_BeginSign (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSCallback *uhhOpt
@@ -1397,8 +1339,7 @@ NSSCryptoContext_BeginSign
 }
 
 NSS_IMPLEMENT PRStatus
-nssCryptoContext_ContinueSign
-(
+nssCryptoContext_ContinueSign (
   NSSCryptoContext *cc,
   NSSItem *data
 )
@@ -1407,8 +1348,7 @@ nssCryptoContext_ContinueSign
 }
 
 NSS_IMPLEMENT PRStatus
-NSSCryptoContext_ContinueSign
-(
+NSSCryptoContext_ContinueSign (
   NSSCryptoContext *cc,
   NSSItem *data
 )
@@ -1418,8 +1358,7 @@ NSSCryptoContext_ContinueSign
 }
 
 NSS_IMPLEMENT NSSItem *
-nssCryptoContext_FinishSign
-(
+nssCryptoContext_FinishSign (
   NSSCryptoContext *cc,
   NSSItem *rvOpt,
   NSSArena *arenaOpt
@@ -1429,8 +1368,7 @@ nssCryptoContext_FinishSign
 }
 
 NSS_IMPLEMENT NSSItem *
-NSSCryptoContext_FinishSign
-(
+NSSCryptoContext_FinishSign (
   NSSCryptoContext *cc,
   NSSItem *rvOpt,
   NSSArena *arenaOpt
@@ -1441,8 +1379,7 @@ NSSCryptoContext_FinishSign
 }
 
 NSS_IMPLEMENT NSSItem *
-nssCryptoContext_SignRecover
-(
+nssCryptoContext_SignRecover (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *data,
@@ -1464,8 +1401,7 @@ nssCryptoContext_SignRecover
 }
 
 NSS_IMPLEMENT NSSItem *
-NSSCryptoContext_SignRecover
-(
+NSSCryptoContext_SignRecover (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *data,
@@ -1484,8 +1420,7 @@ NSSCryptoContext_SignRecover
 
 #if 0
 NSS_IMPLEMENT PRStatus
-nssCryptoContext_BeginSignRecover
-(
+nssCryptoContext_BeginSignRecover (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSCallback *uhhOpt
@@ -1499,8 +1434,7 @@ nssCryptoContext_BeginSignRecover
 }
 
 NSS_IMPLEMENT PRStatus
-NSSCryptoContext_BeginSignRecover
-(
+NSSCryptoContext_BeginSignRecover (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSCallback *uhhOpt
@@ -1516,8 +1450,7 @@ NSSCryptoContext_BeginSignRecover
 }
 
 NSS_IMPLEMENT NSSItem *
-nssCryptoContext_ContinueSignRecover
-(
+nssCryptoContext_ContinueSignRecover (
   NSSCryptoContext *cc,
   NSSItem *data,
   NSSItem *rvOpt,
@@ -1529,8 +1462,7 @@ nssCryptoContext_ContinueSignRecover
 }
 
 NSS_IMPLEMENT NSSItem *
-NSSCryptoContext_ContinueSignRecover
-(
+NSSCryptoContext_ContinueSignRecover (
   NSSCryptoContext *cc,
   NSSItem *data,
   NSSItem *rvOpt,
@@ -1542,8 +1474,7 @@ NSSCryptoContext_ContinueSignRecover
 }
 
 NSS_IMPLEMENT NSSItem *
-nssCryptoContext_FinishSignRecover
-(
+nssCryptoContext_FinishSignRecover (
   NSSCryptoContext *cc,
   NSSItem *rvOpt,
   NSSArena *arenaOpt
@@ -1554,8 +1485,7 @@ nssCryptoContext_FinishSignRecover
 }
 
 NSS_IMPLEMENT NSSItem *
-NSSCryptoContext_FinishSignRecover
-(
+NSSCryptoContext_FinishSignRecover (
   NSSCryptoContext *cc,
   NSSItem *rvOpt,
   NSSArena *arenaOpt
@@ -1567,8 +1497,7 @@ NSSCryptoContext_FinishSignRecover
 #endif
 
 NSS_IMPLEMENT NSSSymmetricKey *
-nssCryptoContext_UnwrapSymmetricKey
-(
+nssCryptoContext_UnwrapSymmetricKey (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *wrappedKey,
@@ -1614,8 +1543,7 @@ loser:
 }
 
 NSS_IMPLEMENT NSSSymmetricKey *
-NSSCryptoContext_UnwrapSymmetricKey
-(
+NSSCryptoContext_UnwrapSymmetricKey (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *wrappedKey,
@@ -1634,8 +1562,7 @@ NSSCryptoContext_UnwrapSymmetricKey
 }
 
 NSS_IMPLEMENT NSSSymmetricKey *
-NSSCryptoContext_DeriveSymmetricKey
-(
+NSSCryptoContext_DeriveSymmetricKey (
   NSSCryptoContext *cc,
   NSSPublicKey *bk,
   const NSSAlgorithmAndParameters *apOpt,
@@ -1650,8 +1577,7 @@ NSSCryptoContext_DeriveSymmetricKey
 }
 
 NSS_IMPLEMENT PRStatus
-nssCryptoContext_Verify
-(
+nssCryptoContext_Verify (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *data,
@@ -1672,8 +1598,7 @@ nssCryptoContext_Verify
 }
 
 NSS_IMPLEMENT PRStatus
-NSSCryptoContext_Verify
-(
+NSSCryptoContext_Verify (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *data,
@@ -1689,8 +1614,7 @@ NSSCryptoContext_Verify
 }
 
 NSS_IMPLEMENT PRStatus
-nssCryptoContext_BeginVerify
-(
+nssCryptoContext_BeginVerify (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSCallback *uhhOpt
@@ -1708,8 +1632,7 @@ nssCryptoContext_BeginVerify
 }
 
 NSS_IMPLEMENT PRStatus
-NSSCryptoContext_BeginVerify
-(
+NSSCryptoContext_BeginVerify (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSCallback *uhhOpt
@@ -1723,8 +1646,7 @@ NSSCryptoContext_BeginVerify
 }
 
 NSS_IMPLEMENT PRStatus
-nssCryptoContext_ContinueVerify
-(
+nssCryptoContext_ContinueVerify (
   NSSCryptoContext *cc,
   NSSItem *data
 )
@@ -1733,8 +1655,7 @@ nssCryptoContext_ContinueVerify
 }
 
 NSS_IMPLEMENT PRStatus
-NSSCryptoContext_ContinueVerify
-(
+NSSCryptoContext_ContinueVerify (
   NSSCryptoContext *cc,
   NSSItem *data
 )
@@ -1744,8 +1665,7 @@ NSSCryptoContext_ContinueVerify
 }
 
 NSS_IMPLEMENT PRStatus
-nssCryptoContext_FinishVerify
-(
+nssCryptoContext_FinishVerify (
   NSSCryptoContext *cc,
   NSSItem *signature
 )
@@ -1754,8 +1674,7 @@ nssCryptoContext_FinishVerify
 }
 
 NSS_IMPLEMENT PRStatus
-NSSCryptoContext_FinishVerify
-(
+NSSCryptoContext_FinishVerify (
   NSSCryptoContext *cc,
   NSSItem *signature
 )
@@ -1765,8 +1684,7 @@ NSSCryptoContext_FinishVerify
 }
 
 NSS_IMPLEMENT NSSItem *
-nssCryptoContext_VerifyRecover
-(
+nssCryptoContext_VerifyRecover (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *signature,
@@ -1788,8 +1706,7 @@ nssCryptoContext_VerifyRecover
 }
 
 NSS_IMPLEMENT NSSItem *
-NSSCryptoContext_VerifyRecover
-(
+NSSCryptoContext_VerifyRecover (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *signature,
@@ -1808,8 +1725,7 @@ NSSCryptoContext_VerifyRecover
 
 #if 0
 NSS_IMPLEMENT PRStatus
-NSSCryptoContext_BeginVerifyRecover
-(
+NSSCryptoContext_BeginVerifyRecover (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSCallback *uhhOpt
@@ -1820,8 +1736,7 @@ NSSCryptoContext_BeginVerifyRecover
 }
 
 NSS_IMPLEMENT NSSItem *
-NSSCryptoContext_ContinueVerifyRecover
-(
+NSSCryptoContext_ContinueVerifyRecover (
   NSSCryptoContext *cc,
   NSSItem *data,
   NSSItem *rvOpt,
@@ -1833,8 +1748,7 @@ NSSCryptoContext_ContinueVerifyRecover
 }
 
 NSS_IMPLEMENT NSSItem *
-NSSCryptoContext_FinishVerifyRecover
-(
+NSSCryptoContext_FinishVerifyRecover (
   NSSCryptoContext *cc,
   NSSItem *rvOpt,
   NSSArena *arenaOpt
@@ -1846,8 +1760,7 @@ NSSCryptoContext_FinishVerifyRecover
 #endif
 
 NSS_IMPLEMENT NSSItem *
-nssCryptoContext_WrapSymmetricKey
-(
+nssCryptoContext_WrapSymmetricKey (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSSymmetricKey *keyToWrap,
@@ -1879,8 +1792,7 @@ nssCryptoContext_WrapSymmetricKey
 }
 
 NSS_IMPLEMENT NSSItem *
-NSSCryptoContext_WrapSymmetricKey
-(
+NSSCryptoContext_WrapSymmetricKey (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSSymmetricKey *keyToWrap,
@@ -1898,8 +1810,7 @@ NSSCryptoContext_WrapSymmetricKey
 }
 
 NSS_IMPLEMENT NSSItem *
-nssCryptoContext_Digest
-(
+nssCryptoContext_Digest (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *data,
@@ -1921,8 +1832,7 @@ nssCryptoContext_Digest
 }
 
 NSS_IMPLEMENT NSSItem *
-NSSCryptoContext_Digest
-(
+NSSCryptoContext_Digest (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *data,
@@ -1936,8 +1846,7 @@ NSSCryptoContext_Digest
 }
 
 NSS_IMPLEMENT PRStatus
-nssCryptoContext_BeginDigest
-(
+nssCryptoContext_BeginDigest (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSCallback *uhhOpt
@@ -1955,8 +1864,7 @@ nssCryptoContext_BeginDigest
 }
 
 NSS_IMPLEMENT PRStatus
-NSSCryptoContext_BeginDigest
-(
+NSSCryptoContext_BeginDigest (
   NSSCryptoContext *cc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSCallback *uhhOpt
@@ -1966,8 +1874,7 @@ NSSCryptoContext_BeginDigest
 }
 
 NSS_IMPLEMENT PRStatus
-nssCryptoContext_ContinueDigest
-(
+nssCryptoContext_ContinueDigest (
   NSSCryptoContext *cc,
   NSSItem *item
 )
@@ -1976,8 +1883,7 @@ nssCryptoContext_ContinueDigest
 }
 
 NSS_IMPLEMENT PRStatus
-NSSCryptoContext_ContinueDigest
-(
+NSSCryptoContext_ContinueDigest (
   NSSCryptoContext *cc,
   NSSItem *item
 )
@@ -1987,8 +1893,7 @@ NSSCryptoContext_ContinueDigest
 }
 
 NSS_IMPLEMENT NSSItem *
-nssCryptoContext_FinishDigest
-(
+nssCryptoContext_FinishDigest (
   NSSCryptoContext *cc,
   NSSItem *rvOpt,
   NSSArena *arenaOpt
@@ -1998,8 +1903,7 @@ nssCryptoContext_FinishDigest
 }
 
 NSS_IMPLEMENT NSSItem *
-NSSCryptoContext_FinishDigest
-(
+NSSCryptoContext_FinishDigest (
   NSSCryptoContext *cc,
   NSSItem *rvOpt,
   NSSArena *arenaOpt
@@ -2010,8 +1914,7 @@ NSSCryptoContext_FinishDigest
 }
 
 NSS_IMPLEMENT NSSCryptoContext *
-NSSCryptoContext_Clone
-(
+NSSCryptoContext_Clone (
   NSSCryptoContext *cc
 )
 {

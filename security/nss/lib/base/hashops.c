@@ -46,8 +46,7 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #endif /* BASE_H */
 
 static void * PR_CALLBACK
-nss_arena_hash_alloc_table
-(
+nss_arena_hash_alloc_table (
   void *pool,
   PRSize size
 )
@@ -58,8 +57,7 @@ nss_arena_hash_alloc_table
 }
 
 static void PR_CALLBACK
-nss_arena_hash_free_table
-(
+nss_arena_hash_free_table (
   void *pool, 
   void *item
 )
@@ -68,8 +66,7 @@ nss_arena_hash_free_table
 }
 
 static PLHashEntry * PR_CALLBACK
-nss_arena_hash_alloc_entry
-(
+nss_arena_hash_alloc_entry (
   void *pool,
   const void *key
 )
@@ -80,8 +77,7 @@ nss_arena_hash_alloc_entry
 }
 
 static void PR_CALLBACK
-nss_arena_hash_free_entry
-(
+nss_arena_hash_free_entry (
   void *pool,
   PLHashEntry *he,
   PRUintn flag

@@ -71,8 +71,7 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
  */
 
 NSS_IMPLEMENT PRBool
-nssUTF8_CaseIgnoreMatch
-(
+nssUTF8_CaseIgnoreMatch (
   const NSSUTF8 *a,
   const NSSUTF8 *b,
   PRStatus *statusOpt
@@ -117,8 +116,7 @@ nssUTF8_CaseIgnoreMatch
  */
 
 NSS_IMPLEMENT PRBool
-nssUTF8_PrintableMatch
-(
+nssUTF8_PrintableMatch (
   const NSSUTF8 *a,
   const NSSUTF8 *b,
   PRStatus *statusOpt
@@ -212,8 +210,7 @@ nssUTF8_PrintableMatch
  */
 
 NSS_IMPLEMENT NSSUTF8 *
-nssUTF8_Duplicate
-(
+nssUTF8_Duplicate (
   const NSSUTF8 *s,
   NSSArena *arenaOpt
 )
@@ -241,8 +238,7 @@ nssUTF8_Duplicate
 }
 
 NSS_IMPLEMENT NSSUTF8 *
-NSSUTF8_Duplicate
-(
+NSSUTF8_Duplicate (
   const NSSUTF8 *s,
   NSSArena *arenaOpt
 )
@@ -267,8 +263,7 @@ NSSUTF8_Duplicate
  */
 
 NSS_IMPLEMENT PRUint32
-nssUTF8_Size
-(
+nssUTF8_Size (
   const NSSUTF8 *s,
   PRStatus *statusOpt
 )
@@ -312,8 +307,7 @@ nssUTF8_Size
  */
 
 NSS_IMPLEMENT PRUint32
-nssUTF8_Length
-(
+nssUTF8_Length (
   const NSSUTF8 *s,
   PRStatus *statusOpt
 )
@@ -415,8 +409,7 @@ nssUTF8_Length
 
 
 NSS_IMPLEMENT NSSUTF8 *
-nssUTF8_Create
-(
+nssUTF8_Create (
   NSSArena *arenaOpt,
   nssStringType type,
   const void *inputString,
@@ -504,8 +497,7 @@ nssUTF8_Create
 }
 
 NSS_IMPLEMENT NSSItem *
-nssUTF8_GetEncoding
-(
+nssUTF8_GetEncoding (
   NSSArena *arenaOpt,
   NSSItem *rvOpt,
   nssStringType type,
@@ -582,8 +574,7 @@ nssUTF8_GetEncoding
  */
 
 NSS_IMPLEMENT PRStatus
-nssUTF8_CopyIntoFixedBuffer
-(
+nssUTF8_CopyIntoFixedBuffer (
   NSSUTF8 *string,
   char *buffer,
   PRUint32 bufferSize,
@@ -635,8 +626,7 @@ nssUTF8_CopyIntoFixedBuffer
  */
 
 NSS_IMPLEMENT PRBool
-nssUTF8_Equal
-(
+nssUTF8_Equal (
   const NSSUTF8 *a,
   const NSSUTF8 *b,
   PRStatus *statusOpt

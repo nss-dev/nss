@@ -52,14 +52,12 @@ PR_BEGIN_EXTERN_C
 /* Global NSS functions */
 
 NSS_EXTERN NSSModule **
-NSS_GetLoadedModules
-(
+NSS_GetLoadedModules (
   void
 );
 
 NSS_EXTERN NSSModule *
-NSS_LoadModule
-(
+NSS_LoadModule (
   NSSUTF8 *moduleOpt,
   NSSUTF8 *uriOpt,
   NSSUTF8 *opaqueOpt,
@@ -69,14 +67,12 @@ NSS_LoadModule
 
 /* removes from the database...  perhaps this is a trust domain function? */
 NSS_EXTERN PRStatus
-NSS_DeleteStoredModule
-(
+NSS_DeleteStoredModule (
   NSSModule *module
 );
 
 NSS_EXTERN NSSModule *
-NSS_FindModuleByName
-(
+NSS_FindModuleByName (
   NSSUTF8 *name
 );
 
@@ -89,8 +85,7 @@ NSS_FindModuleByName
  * the machine and seed with that.
  */
 NSS_EXTERN PRStatus
-NSS_SeedRandom
-(
+NSS_SeedRandom (
   NSSItem *randomSeedOpt
 );
 
@@ -103,20 +98,17 @@ NSS_SeedRandom
  */
 
 NSS_EXTERN PRStatus
-NSSModule_Destroy
-(
+NSSModule_Destroy (
   NSSModule *module
 );
 
 NSS_EXTERN void
-NSSModuleInfo_Destroy
-(
+NSSModuleInfo_Destroy (
   NSSModuleInfo *moduleInfo
 );
 
 NSS_EXTERN void
-NSSModule_GetInfo
-(
+NSSModule_GetInfo (
   NSSModule *module,
   NSSModuleInfo *moduleInfo
 );
@@ -129,35 +121,30 @@ NSSModule_GetInfo
  */
 
 NSS_EXTERN void
-NSSSlot_Destroy
-(
+NSSSlot_Destroy (
   NSSSlot *slot
 );
 
 NSS_EXTERN PRStatus
-NSSSlot_GetInfo
-(
+NSSSlot_GetInfo (
   NSSSlot *slot,
   NSSSlotInfo *slotInfo
 );
 
 NSS_EXTERN NSSToken *
-NSSSlot_GetToken
-(
+NSSSlot_GetToken (
   NSSSlot *slot
 );
 
 NSS_EXTERN PRStatus
-NSSSlot_SetPassword
-(
+NSSSlot_SetPassword (
   NSSSlot *slot,
   NSSUTF8 *oldPasswordOpt,
   NSSUTF8 *newPassword
 );
 
 NSS_EXTERN PRStatus
-NSSSlot_CheckPassword
-(
+NSSSlot_CheckPassword (
   NSSSlot *slot,
   const NSSUTF8 *password
 );
@@ -170,26 +157,22 @@ NSSSlot_CheckPassword
  * NSSToken_GetSlot
  */
 NSS_EXTERN void
-NSSToken_Destroy
-(
+NSSToken_Destroy (
   NSSToken *token
 );
 
 NSS_EXTERN NSSUTF8 *
-NSSToken_GetName
-(
+NSSToken_GetName (
   NSSToken *token
 );
 
 NSS_EXTERN NSSSlot *
-NSSToken_GetSlot
-(
+NSSToken_GetSlot (
   NSSToken *tok
 );
 
 NSS_EXTERN PRStatus
-NSSToken_GetInfo
-(
+NSSToken_GetInfo (
   NSSToken *token,
   NSSTokenInfo *tokenInfo
 );
@@ -200,32 +183,28 @@ NSSToken_GetInfo
  */
 
 NSS_EXTERN NSSAlgorithmAndParameters *
-NSSAlgorithmAndParameters_Create
-(
+NSSAlgorithmAndParameters_Create (
   NSSArena *arenaOpt,
   NSSAlgorithmType algorithm,
   NSSParameters *parameters
 );
 
 NSS_EXTERN NSSAlgorithmAndParameters *
-NSSAlgorithmAndParameters_CreateKeyPairGen
-(
+NSSAlgorithmAndParameters_CreateKeyPairGen (
   NSSArena *arenaOpt,
   NSSKeyPairType keyPairType,
   NSSParameters *parametersOpt
 );
 
 NSS_EXTERN NSSAlgorithmAndParameters *
-NSSAlgorithmAndParameters_CreateSymKeyGen
-(
+NSSAlgorithmAndParameters_CreateSymKeyGen (
   NSSArena *arenaOpt,
   NSSSymmetricKeyType symKeyType,
   NSSParameters *parametersOpt
 );
 
 NSS_EXTERN NSSAlgorithmAndParameters *
-NSSAlgorithmAndParameters_CreateMAC
-(
+NSSAlgorithmAndParameters_CreateMAC (
   NSSArena *arenaOpt,
   NSSAlgorithmType blockCipher,
   NSSParameters *cipherParameters,
@@ -233,8 +212,7 @@ NSSAlgorithmAndParameters_CreateMAC
 );
 
 NSS_EXTERN NSSAlgorithmAndParameters *
-NSSAlgorithmAndParameters_CreateHMAC
-(
+NSSAlgorithmAndParameters_CreateHMAC (
   NSSArena *arenaOpt,
   NSSAlgorithmType hashAlgorithm,
   PRUint32 hmacLength /* in bytes, 0 means maximum for hash algorithm */
@@ -246,8 +224,7 @@ NSSAlgorithmAndParameters_CreateHMAC
  * returned item must be freed.
  */
 NSS_EXTERN NSSItem *
-NSSAlgorithmAndParameters_GetParameters
-(
+NSSAlgorithmAndParameters_GetParameters (
   NSSAlgorithmAndParameters *ap
 );
 
@@ -255,20 +232,17 @@ NSSAlgorithmAndParameters_GetParameters
  *
  */
 NSS_EXTERN void
-NSSAlgorithmAndParameters_Destroy
-(
+NSSAlgorithmAndParameters_Destroy (
   NSSAlgorithmAndParameters *ap
 );
 
 NSS_EXTERN void
-NSSSlotArray_Destroy
-(
+NSSSlotArray_Destroy (
   NSSSlot **slots
 );
 
 NSS_EXTERN void
-NSSTokenArray_Destroy
-(
+NSSTokenArray_Destroy (
   NSSToken **tokens
 );
 

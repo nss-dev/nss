@@ -109,8 +109,7 @@ decode_me(NSSPKIXTBSCertificate *tbsCert)
 }
 
 static NSSPKIXTBSCertificate *
-create_me
-(
+create_me (
   NSSArena *arenaOpt
 )
 {
@@ -162,8 +161,7 @@ loser:
 }
 
 NSS_IMPLEMENT NSSPKIXTBSCertificate *
-nssPKIXTBSCertificate_Create
-(
+nssPKIXTBSCertificate_Create (
   NSSArena *arenaOpt,
   NSSPKIXVersion version,
   NSSPKIXCertificateSerialNumber *serialNumber,
@@ -188,8 +186,7 @@ nssPKIXTBSCertificate_Create
 }
 
 NSS_IMPLEMENT NSSPKIXTBSCertificate *
-nssPKIXTBSCertificate_Decode
-(
+nssPKIXTBSCertificate_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 )
@@ -219,8 +216,7 @@ loser:
 }
 
 NSS_IMPLEMENT PRStatus
-nssPKIXTBSCertificate_Destroy
-(
+nssPKIXTBSCertificate_Destroy (
   NSSPKIXTBSCertificate *tbsCert
 )
 {
@@ -232,8 +228,7 @@ nssPKIXTBSCertificate_Destroy
 }
 
 NSS_IMPLEMENT NSSBER *
-nssPKIXTBSCertificate_Encode
-(
+nssPKIXTBSCertificate_Encode (
   NSSPKIXTBSCertificate *tbsCert,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -258,8 +253,7 @@ nssPKIXTBSCertificate_Encode
 }
 
 NSS_IMPLEMENT void
-nssPKIXTBSCertificate_SetArena
-(
+nssPKIXTBSCertificate_SetArena (
   NSSPKIXTBSCertificate *tbsCert,
   NSSArena *arena
 )
@@ -272,8 +266,7 @@ nssPKIXTBSCertificate_SetArena
 }
 
 NSS_IMPLEMENT NSSPKIXCertificateSerialNumber *
-nssPKIXTBSCertificate_GetSerialNumber
-(
+nssPKIXTBSCertificate_GetSerialNumber (
   NSSPKIXTBSCertificate *tbsCert
 )
 {
@@ -288,8 +281,7 @@ nssPKIXTBSCertificate_GetSerialNumber
 }
 
 NSS_IMPLEMENT NSSPKIXName *
-nssPKIXTBSCertificate_GetIssuer
-(
+nssPKIXTBSCertificate_GetIssuer (
   NSSPKIXTBSCertificate *tbsCert
 )
 {
@@ -304,8 +296,7 @@ nssPKIXTBSCertificate_GetIssuer
 }
 
 NSS_IMPLEMENT PRStatus
-nssPKIXTBSCertificate_SetIssuer
-(
+nssPKIXTBSCertificate_SetIssuer (
   NSSPKIXTBSCertificate *tbsCert,
   NSSPKIXName *issuer
 )
@@ -315,8 +306,7 @@ nssPKIXTBSCertificate_SetIssuer
 }
 
 NSS_IMPLEMENT NSSPKIXValidity *
-nssPKIXTBSCertificate_GetValidity
-(
+nssPKIXTBSCertificate_GetValidity (
   NSSPKIXTBSCertificate *tbsCert
 )
 {
@@ -331,8 +321,7 @@ nssPKIXTBSCertificate_GetValidity
 }
 
 NSS_IMPLEMENT NSSPKIXName *
-nssPKIXTBSCertificate_GetSubject
-(
+nssPKIXTBSCertificate_GetSubject (
   NSSPKIXTBSCertificate *tbsCert
 )
 {
@@ -347,8 +336,7 @@ nssPKIXTBSCertificate_GetSubject
 }
 
 NSS_IMPLEMENT PRStatus
-nssPKIXTBSCertificate_SetSubject
-(
+nssPKIXTBSCertificate_SetSubject (
   NSSPKIXTBSCertificate *tbsCert,
   NSSPKIXName *subject
 )
@@ -358,8 +346,7 @@ nssPKIXTBSCertificate_SetSubject
 }
 
 NSS_IMPLEMENT NSSPKIXSubjectPublicKeyInfo *
-nssPKIXTBSCertificate_GetSubjectPublicKeyInfo
-(
+nssPKIXTBSCertificate_GetSubjectPublicKeyInfo (
   NSSPKIXTBSCertificate *tbsCert
 )
 {
@@ -374,8 +361,7 @@ nssPKIXTBSCertificate_GetSubjectPublicKeyInfo
 }
 
 NSS_IMPLEMENT PRStatus
-nssPKIXTBSCertificate_SetSubjectPublicKeyInfo
-(
+nssPKIXTBSCertificate_SetSubjectPublicKeyInfo (
   NSSPKIXTBSCertificate *tbsCert,
   NSSPKIXSubjectPublicKeyInfo *spki
 )
@@ -385,8 +371,7 @@ nssPKIXTBSCertificate_SetSubjectPublicKeyInfo
 }
 
 NSS_IMPLEMENT NSSPKIXExtensions *
-nssPKIXTBSCertificate_GetExtensions
-(
+nssPKIXTBSCertificate_GetExtensions (
   NSSPKIXTBSCertificate *tbsCert
 )
 {
@@ -401,8 +386,7 @@ nssPKIXTBSCertificate_GetExtensions
 }
 
 NSS_IMPLEMENT PRBool
-nssPKIXTBSCertificate_Equal
-(
+nssPKIXTBSCertificate_Equal (
   NSSPKIXTBSCertificate *one,
   NSSPKIXTBSCertificate *two,
   PRStatus *statusOpt
@@ -414,8 +398,7 @@ nssPKIXTBSCertificate_Equal
 }
 
 NSS_IMPLEMENT PRStatus
-nssPKIXTBSCertificate_duplicate
-(
+nssPKIXTBSCertificate_duplicate (
   NSSPKIXTBSCertificate *tbsCert,
   NSSArena *arena,
   NSSPKIXTBSCertificate *copy
@@ -453,8 +436,7 @@ nssPKIXTBSCertificate_duplicate
 }
 
 NSS_IMPLEMENT NSSPKIXTBSCertificate *
-nssPKIXTBSCertificate_Duplicate
-(
+nssPKIXTBSCertificate_Duplicate (
   NSSPKIXTBSCertificate *tbsCert,
   NSSArena *arenaOpt
 )
@@ -491,8 +473,7 @@ nssPKIXTBSCertificate_Duplicate
  */
 
 NSS_IMPLEMENT NSSPKIXTBSCertificate *
-NSSPKIXTBSCertificate_Create
-(
+NSSPKIXTBSCertificate_Create (
   NSSArena *arenaOpt,
   NSSPKIXVersion version,
   NSSPKIXCertificateSerialNumber *serialNumber,
@@ -530,8 +511,7 @@ NSSPKIXTBSCertificate_Create
  */
 
 NSS_IMPLEMENT NSSPKIXTBSCertificate *
-NSSPKIXTBSCertificate_Decode
-(
+NSSPKIXTBSCertificate_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 )
@@ -547,8 +527,7 @@ NSSPKIXTBSCertificate_Decode
  */
 
 NSS_IMPLEMENT PRStatus
-NSSPKIXTBSCertificate_Destroy
-(
+NSSPKIXTBSCertificate_Destroy (
   NSSPKIXTBSCertificate *tbsCert
 )
 {
@@ -563,8 +542,7 @@ NSSPKIXTBSCertificate_Destroy
  */
 
 NSS_IMPLEMENT NSSPKIXTBSCertificate *
-NSSPKIXTBSCertificate_Duplicate
-(
+NSSPKIXTBSCertificate_Duplicate (
   NSSPKIXTBSCertificate *tbsCert,
   NSSArena *arenaOpt
 )
@@ -580,8 +558,7 @@ NSSPKIXTBSCertificate_Duplicate
  */
 
 NSS_IMPLEMENT NSSBER *
-NSSPKIXTBSCertificate_Encode
-(
+NSSPKIXTBSCertificate_Encode (
   NSSPKIXTBSCertificate *tbsCert,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -594,8 +571,7 @@ NSSPKIXTBSCertificate_Encode
 }
 
 NSS_IMPLEMENT NSSPKIXCertificateSerialNumber *
-NSSPKIXTBSCertificate_GetSerialNumber
-(
+NSSPKIXTBSCertificate_GetSerialNumber (
   NSSPKIXTBSCertificate *tbsCert
 )
 {
@@ -618,8 +594,7 @@ NSSPKIXTBSCertificate_GetSerialNumber
  */
 
 NSS_IMPLEMENT NSSPKIXName *
-NSSPKIXTBSCertificate_GetIssuer
-(
+NSSPKIXTBSCertificate_GetIssuer (
   NSSPKIXTBSCertificate *tbsCert
 )
 {
@@ -629,8 +604,7 @@ NSSPKIXTBSCertificate_GetIssuer
 }
 
 NSS_IMPLEMENT NSSPKIXValidity *
-NSSPKIXTBSCertificate_GetValidity
-(
+NSSPKIXTBSCertificate_GetValidity (
   NSSPKIXTBSCertificate *tbsCert
 )
 {
@@ -638,8 +612,7 @@ NSSPKIXTBSCertificate_GetValidity
 }
 
 NSS_IMPLEMENT NSSPKIXExtensions *
-NSSPKIXTBSCertificate_GetExtensions
-(
+NSSPKIXTBSCertificate_GetExtensions (
   NSSPKIXTBSCertificate *tbsCert
 )
 {

@@ -80,8 +80,7 @@ decode_me(NSSPKIXName *name)
 }
 
 static NSSPKIXName *
-create_me
-(
+create_me (
   NSSArena *arenaOpt
 )
 {
@@ -148,8 +147,7 @@ loser:
  */
 
 NSS_IMPLEMENT NSSPKIXName *
-nssPKIXName_Create
-(
+nssPKIXName_Create (
   NSSArena *arenaOpt,
   NSSPKIXNameChoice choice,
   void *arg
@@ -216,8 +214,7 @@ nssPKIXName_Create
  */
 
 NSS_IMPLEMENT NSSPKIXName *
-nssPKIXName_CreateFromRDNSequence
-(
+nssPKIXName_CreateFromRDNSequence (
   NSSArena *arenaOpt,
   NSSPKIXRDNSequence *rdnSequence
 )
@@ -263,8 +260,7 @@ nssPKIXName_CreateFromRDNSequence
  */
 
 NSS_IMPLEMENT NSSPKIXName *
-nssPKIXName_CreateFromUTF8
-(
+nssPKIXName_CreateFromUTF8 (
   NSSArena *arenaOpt,
   NSSUTF8 *string
 )
@@ -295,8 +291,7 @@ nssPKIXName_CreateFromUTF8
 }
 
 NSS_IMPLEMENT void
-nssPKIXName_SetArena
-(
+nssPKIXName_SetArena (
   NSSPKIXName *name,
   NSSArena *arena
 )
@@ -329,8 +324,7 @@ nssPKIXName_SetArena
  */
 
 NSS_IMPLEMENT NSSPKIXName *
-nssPKIXName_Decode
-(
+nssPKIXName_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 )
@@ -375,8 +369,7 @@ nssPKIXName_Decode
  */
 
 NSS_IMPLEMENT PRStatus
-nssPKIXName_Destroy
-(
+nssPKIXName_Destroy (
   NSSPKIXName *name
 )
 {
@@ -402,8 +395,7 @@ nssPKIXName_Destroy
  */
 
 NSS_IMPLEMENT NSSPKIXName *
-nssPKIXName_Duplicate
-(
+nssPKIXName_Duplicate (
   NSSPKIXName *name,
   NSSArena *arenaOpt
 )
@@ -469,8 +461,7 @@ nssPKIXName_Duplicate
  */
 
 NSS_IMPLEMENT NSSBER *
-nssPKIXName_Encode
-(
+nssPKIXName_Encode (
   NSSPKIXName *name
 )
 {
@@ -506,8 +497,7 @@ nssPKIXName_Encode
  */
 
 NSS_IMPLEMENT PRBool
-nssPKIXName_Equal
-(
+nssPKIXName_Equal (
   NSSPKIXName *one,
   NSSPKIXName *two,
   PRStatus *statusOpt
@@ -556,8 +546,7 @@ nssPKIXName_Equal
  */
 
 NSS_IMPLEMENT NSSPKIXNameChoice
-nssPKIXName_GetChoice
-(
+nssPKIXName_GetChoice (
   NSSPKIXName *name
 )
 {
@@ -581,8 +570,7 @@ nssPKIXName_GetChoice
  */
 
 NSS_IMPLEMENT NSSPKIXRDNSequence *
-nssPKIXName_GetRDNSequence
-(
+nssPKIXName_GetRDNSequence (
   NSSPKIXName *name,
   NSSArena *arenaOpt
 )
@@ -618,8 +606,7 @@ nssPKIXName_GetRDNSequence
  */
 
 NSS_IMPLEMENT void *
-nssPKIXName_GetSpecifiedChoice
-(
+nssPKIXName_GetSpecifiedChoice (
   NSSPKIXName *name,
   NSSPKIXNameChoice choice,
   NSSArena *arenaOpt
@@ -662,8 +649,7 @@ nssPKIXName_GetSpecifiedChoice
  */
 
 NSS_IMPLEMENT NSSUTF8 *
-nssPKIXName_GetUTF8Encoding
-(
+nssPKIXName_GetUTF8Encoding (
   NSSPKIXName *name,
   NSSArena *arenaOpt
 )
@@ -692,8 +678,7 @@ nssPKIXName_GetUTF8Encoding
 
 #if 0
 NSS_IMPLEMENT NSSPKIXName *
-NSSPKIXName_Create
-(
+NSSPKIXName_Create (
   NSSArena *arenaOpt,
   NSSPKIXNameChoice choice,
   void *arg
@@ -721,8 +706,7 @@ NSSPKIXName_Create
  */
 
 NSS_IMPLEMENT NSSPKIXName *
-NSSPKIXName_CreateFromRDNSequence
-(
+NSSPKIXName_CreateFromRDNSequence (
   NSSArena *arenaOpt,
   NSSPKIXRDNSequence *rdnSequence
 )
@@ -749,8 +733,7 @@ NSSPKIXName_CreateFromRDNSequence
  */
 
 NSS_IMPLEMENT NSSPKIXName *
-NSSPKIXName_CreateFromUTF8
-(
+NSSPKIXName_CreateFromUTF8 (
   NSSArena *arenaOpt,
   NSSUTF8 *string
 )
@@ -777,8 +760,7 @@ NSSPKIXName_CreateFromUTF8
 
 #if 0
 NSS_IMPLEMENT NSSPKIXName *
-NSSPKIXName_CreateFromBER
-(
+NSSPKIXName_CreateFromBER (
   NSSArena *arenaOpt,
   NSSBER *ber
 )
@@ -803,8 +785,7 @@ NSSPKIXName_CreateFromBER
  */
 
 NSS_IMPLEMENT PRStatus
-NSSPKIXName_Destroy
-(
+NSSPKIXName_Destroy (
   NSSPKIXName *name
 )
 {
@@ -829,8 +810,7 @@ NSSPKIXName_Destroy
  */
 
 NSS_IMPLEMENT NSSPKIXName *
-NSSPKIXName_Duplicate
-(
+NSSPKIXName_Duplicate (
   NSSPKIXName *name,
   NSSArena *arenaOpt
 )
@@ -856,8 +836,7 @@ NSSPKIXName_Duplicate
  */
 
 NSS_IMPLEMENT NSSBER *
-NSSPKIXName_Encode
-(
+NSSPKIXName_Encode (
   NSSPKIXName *name
 )
 {
@@ -881,8 +860,7 @@ NSSPKIXName_Encode
  */
 
 NSS_IMPLEMENT PRBool
-NSSPKIXName_Equal
-(
+NSSPKIXName_Equal (
   NSSPKIXName *name1,
   NSSPKIXName *name2,
   PRStatus *statusOpt
@@ -907,8 +885,7 @@ NSSPKIXName_Equal
  */
 
 NSS_IMPLEMENT NSSPKIXNameChoice
-NSSPKIXName_GetChoice
-(
+NSSPKIXName_GetChoice (
   NSSPKIXName *name
 )
 {
@@ -934,8 +911,7 @@ NSSPKIXName_GetChoice
  */
 
 NSS_IMPLEMENT NSSPKIXRDNSequence *
-NSSPKIXName_GetRDNSequence
-(
+NSSPKIXName_GetRDNSequence (
   NSSPKIXName *name,
   NSSArena *arenaOpt
 )
@@ -962,8 +938,7 @@ NSSPKIXName_GetRDNSequence
  */
 
 NSS_IMPLEMENT void *
-NSSPKIXName_GetSpecifiedChoice
-(
+NSSPKIXName_GetSpecifiedChoice (
   NSSPKIXName *name,
   NSSPKIXNameChoice choice,
   NSSArena *arenaOpt
@@ -990,8 +965,7 @@ NSSPKIXName_GetSpecifiedChoice
  */
 
 NSS_IMPLEMENT NSSUTF8 *
-NSSPKIXName_GetUTF8Encoding
-(
+NSSPKIXName_GetUTF8Encoding (
   NSSPKIXName *name,
   NSSArena *arenaOpt
 )

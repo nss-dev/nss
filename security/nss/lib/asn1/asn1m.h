@@ -57,8 +57,7 @@ PR_BEGIN_EXTERN_C
  */
 
 NSS_EXTERN PRUint32
-nssasn1_length_length
-(
+nssasn1_length_length (
   PRUint32 number
 );
 
@@ -68,8 +67,7 @@ nssasn1_length_length
  */
 
 NSS_EXTERN const nssASN1Template *
-nssasn1_get_subtemplate
-(
+nssasn1_get_subtemplate (
   const nssASN1Template template[],
   void *thing,
   PRBool encoding

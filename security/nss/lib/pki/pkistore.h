@@ -81,34 +81,29 @@ PR_BEGIN_EXTERN_C
  */
 
 NSS_EXTERN nssCertificateStore *
-nssCertificateStore_Create
-(
+nssCertificateStore_Create (
   NSSArena *arenaOpt
 );
 
 NSS_EXTERN void
-nssCertificateStore_Destroy
-(
+nssCertificateStore_Destroy (
   nssCertificateStore *store
 );
 
 NSS_EXTERN PRStatus
-nssCertificateStore_Add
-(
+nssCertificateStore_Add (
   nssCertificateStore *store,
   NSSCertificate *cert
 );
 
 NSS_EXTERN void
-nssCertificateStore_Remove
-(
+nssCertificateStore_Remove (
   nssCertificateStore *store,
   NSSCertificate *cert
 );
 
 NSS_EXTERN NSSCertificate **
-nssCertificateStore_FindCertificatesBySubject
-(
+nssCertificateStore_FindCertificatesBySubject (
   nssCertificateStore *store,
   NSSDER *subject,
   NSSCertificate *rvOpt[],
@@ -117,8 +112,7 @@ nssCertificateStore_FindCertificatesBySubject
 );
 
 NSS_EXTERN NSSCertificate **
-nssCertificateStore_FindCertificatesByNickname
-(
+nssCertificateStore_FindCertificatesByNickname (
   nssCertificateStore *store,
   NSSUTF8 *nickname,
   NSSCertificate *rvOpt[],
@@ -127,8 +121,7 @@ nssCertificateStore_FindCertificatesByNickname
 );
 
 NSS_EXTERN NSSCertificate **
-nssCertificateStore_FindCertificatesByEmail
-(
+nssCertificateStore_FindCertificatesByEmail (
   nssCertificateStore *store,
   NSSASCII7 *email,
   NSSCertificate *rvOpt[],
@@ -137,51 +130,44 @@ nssCertificateStore_FindCertificatesByEmail
 );
 
 NSS_EXTERN NSSCertificate *
-nssCertificateStore_FindCertificateByIssuerAndSerialNumber
-(
+nssCertificateStore_FindCertificateByIssuerAndSerialNumber (
   nssCertificateStore *store,
   NSSDER *issuer,
   NSSDER *serial
 );
 
 NSS_EXTERN NSSCertificate *
-nssCertificateStore_FindCertificateByEncodedCertificate
-(
+nssCertificateStore_FindCertificateByEncodedCertificate (
   nssCertificateStore *store,
   NSSDER *encoding
 );
 
 NSS_EXTERN PRStatus
-nssCertificateStore_AddTrust
-(
+nssCertificateStore_AddTrust (
   nssCertificateStore *store,
   nssTrust *trust
 );
 
 NSS_EXTERN nssTrust *
-nssCertificateStore_FindTrustForCertificate
-(
+nssCertificateStore_FindTrustForCertificate (
   nssCertificateStore *store,
   NSSCertificate *cert
 );
 
 NSS_EXTERN PRStatus
-nssCertificateStore_AddSMIMEProfile
-(
+nssCertificateStore_AddSMIMEProfile (
   nssCertificateStore *store,
   nssSMIMEProfile *profile
 );
 
 NSS_EXTERN nssSMIMEProfile *
-nssCertificateStore_FindSMIMEProfileForCertificate
-(
+nssCertificateStore_FindSMIMEProfileForCertificate (
   nssCertificateStore *store,
   NSSCertificate *cert
 );
 
 NSS_EXTERN void
-nssCertificateStore_DumpStoreInfo
-(
+nssCertificateStore_DumpStoreInfo (
   nssCertificateStore *store,
   void (* cert_dump_iter)(const void *, void *, void *),
   void *arg

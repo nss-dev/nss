@@ -51,8 +51,7 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 static int whatnspr = 0;
 
 static int
-set_whatnspr
-(
+set_whatnspr (
   void
 )
 {
@@ -94,8 +93,7 @@ set_whatnspr
 #define WHATNSPR (whatnspr ? whatnspr : set_whatnspr())
 
 NSS_IMPLEMENT PRStatus
-nss_NewThreadPrivateIndex
-(
+nss_NewThreadPrivateIndex (
   PRUintn *ip,
   PRThreadPrivateDTOR dtor
 )
@@ -120,8 +118,7 @@ nss_NewThreadPrivateIndex
 }
 
 NSS_IMPLEMENT void *
-nss_GetThreadPrivate
-(
+nss_GetThreadPrivate (
   PRUintn i
 )
 {
@@ -144,8 +141,7 @@ nss_GetThreadPrivate
 }
 
 NSS_IMPLEMENT void
-nss_SetThreadPrivate
-(
+nss_SetThreadPrivate (
   PRUintn i,
   void *v
 )

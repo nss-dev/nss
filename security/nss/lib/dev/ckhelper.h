@@ -142,8 +142,7 @@ NSS_EXTERN_DATA const NSSItem g_ck_class_privkey;
 
 /* Get an array of attributes from an object. */
 NSS_EXTERN PRStatus 
-nssCKObject_GetAttributes
-(
+nssCKObject_GetAttributes (
   CK_OBJECT_HANDLE object,
   CK_ATTRIBUTE_PTR obj_template,
   CK_ULONG count,
@@ -154,8 +153,7 @@ nssCKObject_GetAttributes
 
 /* Get a single attribute as an item. */
 NSS_EXTERN PRStatus
-nssCKObject_GetAttributeItem
-(
+nssCKObject_GetAttributeItem (
   CK_OBJECT_HANDLE object,
   CK_ATTRIBUTE_TYPE attribute,
   NSSArena *arenaOpt,
@@ -165,8 +163,7 @@ nssCKObject_GetAttributeItem
 );
 
 NSS_EXTERN PRBool
-nssCKObject_IsAttributeTrue
-(
+nssCKObject_IsAttributeTrue (
   CK_OBJECT_HANDLE object,
   CK_ATTRIBUTE_TYPE attribute,
   nssSession *session,
@@ -175,8 +172,7 @@ nssCKObject_IsAttributeTrue
 );
 
 NSS_EXTERN PRStatus 
-nssCKObject_SetAttributes
-(
+nssCKObject_SetAttributes (
   CK_OBJECT_HANDLE object,
   CK_ATTRIBUTE_PTR obj_template,
   CK_ULONG count,
@@ -185,24 +181,21 @@ nssCKObject_SetAttributes
 );
 
 NSS_EXTERN CK_ULONG
-nssCKTemplate_SetOperationAttributes
-(
+nssCKTemplate_SetOperationAttributes (
   CK_ATTRIBUTE_PTR objTemplate,
   CK_ULONG otSize,
   NSSOperations operations
 );
 
 NSS_EXTERN CK_ULONG
-nssCKTemplate_SetPropertyAttributes
-(
+nssCKTemplate_SetPropertyAttributes (
   CK_ATTRIBUTE_PTR objTemplate,
   CK_ULONG otSize,
   NSSProperties properties
 );
 
 NSS_EXTERN PRBool
-nssCKObject_IsTokenObjectTemplate
-(
+nssCKObject_IsTokenObjectTemplate (
   CK_ATTRIBUTE_PTR objectTemplate, 
   CK_ULONG otsize
 );

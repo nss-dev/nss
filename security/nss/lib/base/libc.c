@@ -71,8 +71,7 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
  */
 
 NSS_IMPLEMENT void *
-nsslibc_memcpy
-(
+nsslibc_memcpy (
   void *dest,
   const void *source,
   PRUint32 n
@@ -100,8 +99,7 @@ nsslibc_memcpy
  */
 
 NSS_IMPLEMENT void *
-nsslibc_memset
-(
+nsslibc_memset (
   void *dest,
   PRUint8 byte,
   PRUint32 n
@@ -130,8 +128,7 @@ nsslibc_memset
  */
 
 NSS_IMPLEMENT PRBool
-nsslibc_memequal
-(
+nsslibc_memequal (
   const void *a,
   const void *b,
   PRUint32 len,
@@ -164,8 +161,7 @@ nsslibc_memequal
  */
 
 NSS_IMPLEMENT PRInt32
-nsslibc_memcmp
-(
+nsslibc_memcmp (
   const void *a,
   const void *b,
   PRUint32 len,

@@ -397,8 +397,7 @@ static PRBool nss_IsInitted = PR_FALSE;
 static NSSTrustDomain *g_default_trust_domain = NULL;
 
 NSS_IMPLEMENT NSSTrustDomain *
-NSS_GetDefaultTrustDomain
-(
+NSS_GetDefaultTrustDomain (
   void
 )
 {

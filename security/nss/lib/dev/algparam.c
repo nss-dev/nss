@@ -104,8 +104,7 @@ struct NSSAlgorithmAndParametersStr
 
 /* For all mechanisms where the only parameter is an IV */
 static PRStatus
-set_iv_parameter
-(
+set_iv_parameter (
   CK_MECHANISM_PTR mechPtr,
   NSSItem *iv,
   NSSArena *arena
@@ -122,8 +121,7 @@ set_iv_parameter
 
 /* For all mechanisms where the only parameter is a length in bits */
 static PRStatus
-set_bits_parameter
-(
+set_bits_parameter (
   CK_MECHANISM_PTR mechPtr,
   PRUint32 numBits,
   NSSArena *arena
@@ -200,8 +198,7 @@ rsa_keygen_settor (
  * RSA cipher
  */
 static PRStatus
-set_rsa_mechanism
-(
+set_rsa_mechanism (
   CK_MECHANISM_PTR mechPtr,
   NSSParameters *parameters
 )
@@ -267,8 +264,7 @@ dsa_keygen_settor (
  * DSA cipher
  */
 static PRStatus
-set_dsa_mechanism
-(
+set_dsa_mechanism (
   CK_MECHANISM_PTR mechPtr,
   NSSParameters *parameters
 )
@@ -323,8 +319,7 @@ dh_keygen_settor (
  * Diffie-Hellman key derivation
  */
 static PRStatus
-set_dh_mechanism
-(
+set_dh_mechanism (
   CK_MECHANISM_PTR mechPtr,
   NSSParameters *parameters
 )
@@ -337,8 +332,7 @@ set_dh_mechanism
  * DES
  */
 static PRStatus
-set_des_mechanism
-(
+set_des_mechanism (
   CK_MECHANISM_PTR mechPtr,
   NSSParameters *parameters,
   NSSArena *arena
@@ -361,8 +355,7 @@ set_des_mechanism
  * Triple-DES
  */
 static PRStatus
-set_des3_mechanism
-(
+set_des3_mechanism (
   CK_MECHANISM_PTR mechPtr,
   NSSParameters *parameters,
   NSSArena *arena
@@ -385,8 +378,7 @@ set_des3_mechanism
  * AES
  */
 static PRStatus
-set_aes_mechanism
-(
+set_aes_mechanism (
   CK_MECHANISM_PTR mechPtr,
   NSSParameters *parameters,
   NSSArena *arena
@@ -412,8 +404,7 @@ set_aes_mechanism
 /* setting mechanism */
 
 static PRStatus
-set_rc2_mechanism
-(
+set_rc2_mechanism (
   CK_MECHANISM_PTR mechPtr,
   NSSParameters *parameters,
   NSSArena *arena
@@ -541,8 +532,7 @@ decode_rc2_cbc(NSSAlgorithmAndParameters *ap, const NSSItem *params)
  * RC5
  */
 static PRStatus
-set_rc5_mechanism
-(
+set_rc5_mechanism (
   CK_MECHANISM_PTR mechPtr,
   NSSParameters *parameters,
   NSSArena *arena
@@ -761,8 +751,7 @@ set_sslsession_derive_mechanism (
  * to a CK_MECHANISM.
  */
 static PRStatus
-set_cryptoki_mechanism
-(
+set_cryptoki_mechanism (
   CK_MECHANISM_PTR mechPtr,
   NSSAlgorithmType algorithm,
   NSSParameters *parameters,
@@ -812,8 +801,7 @@ set_cryptoki_mechanism
  * CK_MECHANISM.
  */
 static PRStatus
-set_cryptoki_mechanism_for_keypair_gen
-(
+set_cryptoki_mechanism_for_keypair_gen (
   NSSAlgorithmAndParameters *ap,
   NSSKeyPairType keyPairType,
   NSSParameters *parameters
@@ -879,8 +867,7 @@ set_cryptoki_mechanism_for_keypair_gen
 }
 
 static PRStatus
-set_cryptoki_mechanism_for_symkey_gen
-(
+set_cryptoki_mechanism_for_symkey_gen (
   NSSAlgorithmAndParameters *ap,
   NSSSymmetricKeyType symKeyType,
   NSSParameters *parameters
@@ -899,8 +886,7 @@ set_cryptoki_mechanism_for_symkey_gen
 }
 
 static NSSAlgorithmAndParameters *
-create_algparam
-(
+create_algparam (
   NSSArena *arenaOpt,
   nssArenaMark **mark
 )
@@ -934,8 +920,7 @@ create_algparam
 }
 
 static NSSAlgorithmAndParameters *
-finish_create_algparam
-(
+finish_create_algparam (
   NSSAlgorithmAndParameters *ap,
   NSSArena *arena,
   nssArenaMark *mark,
@@ -958,8 +943,7 @@ finish_create_algparam
 }
 
 NSS_IMPLEMENT NSSAlgorithmAndParameters *
-nssAlgorithmAndParameters_Create
-(
+nssAlgorithmAndParameters_Create (
   NSSArena *arenaOpt,
   NSSAlgorithmType algorithm,
   NSSParameters *parametersOpt
@@ -981,8 +965,7 @@ nssAlgorithmAndParameters_Create
 }
 
 NSS_IMPLEMENT NSSAlgorithmAndParameters *
-nssAlgorithmAndParameters_CreateKeyPairGen
-(
+nssAlgorithmAndParameters_CreateKeyPairGen (
   NSSArena *arenaOpt,
   NSSKeyPairType keyPairType,
   NSSParameters *parametersOpt
@@ -1005,8 +988,7 @@ nssAlgorithmAndParameters_CreateKeyPairGen
 }
 
 NSS_IMPLEMENT NSSAlgorithmAndParameters *
-nssAlgorithmAndParameters_CreateSSLSessionKeyDerivation
-(
+nssAlgorithmAndParameters_CreateSSLSessionKeyDerivation (
   NSSArena *arenaOpt,
   NSSSSLSessionKeyParameters *parameters
 )
@@ -1084,8 +1066,7 @@ decode_params(NSSAlgorithmAndParameters *ap, const NSSItem *params)
 }
 
 NSS_IMPLEMENT NSSAlgorithmAndParameters *
-nssAlgorithmAndParameters_CreateFromOID
-(
+nssAlgorithmAndParameters_CreateFromOID (
   NSSArena *arenaOpt,
   CK_MECHANISM_TYPE algorithm,
   const NSSItem *parametersOpt
@@ -1114,8 +1095,7 @@ nssAlgorithmAndParameters_CreateFromOID
 }
 
 NSS_IMPLEMENT void
-nssAlgorithmAndParameters_Destroy
-(
+nssAlgorithmAndParameters_Destroy (
   NSSAlgorithmAndParameters *ap
 )
 {
@@ -1125,8 +1105,7 @@ nssAlgorithmAndParameters_Destroy
 }
 
 NSS_IMPLEMENT CK_MECHANISM_PTR
-nssAlgorithmAndParameters_GetMechanism
-(
+nssAlgorithmAndParameters_GetMechanism (
   const NSSAlgorithmAndParameters *ap
 )
 {
@@ -1136,8 +1115,7 @@ nssAlgorithmAndParameters_GetMechanism
 #if 0
 This alternative does not break const-ness.
 NSS_IMPLEMENT void
-nssAlgorithmAndParameters_GetMechanism2
-(
+nssAlgorithmAndParameters_GetMechanism2 (
   const NSSAlgorithmAndParameters *ap,
   CK_MECHANISM_PTR pMechanism
 )
@@ -1147,8 +1125,7 @@ nssAlgorithmAndParameters_GetMechanism2
 #endif
 
 NSS_IMPLEMENT PRIntn
-nssAlgorithmAndParameters_SetTemplateValues
-(
+nssAlgorithmAndParameters_SetTemplateValues (
   const NSSAlgorithmAndParameters *ap,
   CK_ATTRIBUTE_PTR aTemplate,
   CK_ULONG templateSize
@@ -1158,8 +1135,7 @@ nssAlgorithmAndParameters_SetTemplateValues
 }
 
 static PRStatus
-copy_algparam
-(
+copy_algparam (
   NSSAlgorithmAndParameters *copy,
   const NSSAlgorithmAndParameters *orig
 )
@@ -1178,8 +1154,7 @@ copy_algparam
 }
 
 NSS_IMPLEMENT NSSAlgorithmAndParameters *
-nssAlgorithmAndParameters_Clone
-(
+nssAlgorithmAndParameters_Clone (
   const NSSAlgorithmAndParameters *ap,
   NSSArena *arenaOpt
 )
@@ -1200,8 +1175,7 @@ nssAlgorithmAndParameters_Clone
 }
 
 NSS_IMPLEMENT NSSAlgorithmAndParameters *
-NSSAlgorithmAndParameters_Create
-(
+NSSAlgorithmAndParameters_Create (
   NSSArena *arenaOpt,
   NSSAlgorithmType algorithm,
   NSSParameters *parametersOpt
@@ -1213,8 +1187,7 @@ NSSAlgorithmAndParameters_Create
 }
 
 NSS_IMPLEMENT NSSAlgorithmAndParameters *
-NSSAlgorithmAndParameters_CreateKeyPairGen
-(
+NSSAlgorithmAndParameters_CreateKeyPairGen (
   NSSArena *arenaOpt,
   NSSKeyPairType keyPairType,
   NSSParameters *parametersOpt
@@ -1226,8 +1199,7 @@ NSSAlgorithmAndParameters_CreateKeyPairGen
 }
 
 NSS_IMPLEMENT void
-NSSAlgorithmAndParameters_Destroy
-(
+NSSAlgorithmAndParameters_Destroy (
   NSSAlgorithmAndParameters *ap
 )
 {

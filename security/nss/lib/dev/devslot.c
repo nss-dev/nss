@@ -90,8 +90,7 @@ static const CK_FLAGS s_ck_readonly_flags = CKF_SERIAL_SESSION;
 
 /* In pk11slot.c, this was a no-op.  So it is here also. */
 static CK_RV PR_CALLBACK
-nss_ck_slot_notify
-(
+nss_ck_slot_notify (
   CK_SESSION_HANDLE session,
   CK_NOTIFICATION event,
   CK_VOID_PTR pData
@@ -101,8 +100,7 @@ nss_ck_slot_notify
 }
 
 NSS_IMPLEMENT NSSSlot *
-nssSlot_Create
-(
+nssSlot_Create (
   CK_SLOT_ID slotID,
   NSSModule *parent
 )
@@ -167,8 +165,7 @@ loser:
 }
 
 NSS_IMPLEMENT PRStatus
-nssSlot_Destroy
-(
+nssSlot_Destroy (
   NSSSlot *slot
 )
 {
@@ -185,8 +182,7 @@ nssSlot_Destroy
 }
 
 NSS_IMPLEMENT void
-NSSSlot_Destroy
-(
+NSSSlot_Destroy (
   NSSSlot *slot
 )
 {
@@ -194,8 +190,7 @@ NSSSlot_Destroy
 }
 
 NSS_IMPLEMENT NSSSlot *
-nssSlot_AddRef
-(
+nssSlot_AddRef (
   NSSSlot *slot
 )
 {
@@ -204,8 +199,7 @@ nssSlot_AddRef
 }
 
 NSS_IMPLEMENT PRStatus
-NSSSlot_GetInfo
-(
+NSSSlot_GetInfo (
   NSSSlot *slot,
   NSSSlotInfo *slotInfo
 )
@@ -232,8 +226,7 @@ NSSSlot_GetInfo
 }
 
 NSS_IMPLEMENT NSSUTF8 *
-nssSlot_GetName
-(
+nssSlot_GetName (
   NSSSlot *slot
 )
 {
@@ -241,8 +234,7 @@ nssSlot_GetName
 }
 
 NSS_IMPLEMENT NSSUTF8 *
-nssSlot_GetTokenName
-(
+nssSlot_GetTokenName (
   NSSSlot *slot
 )
 {
@@ -268,8 +260,7 @@ within_token_delay_period(NSSSlot *slot)
 }
 
 NSS_IMPLEMENT PRBool
-nssSlot_IsTokenPresent
-(
+nssSlot_IsTokenPresent (
   NSSSlot *slot
 )
 {
@@ -353,8 +344,7 @@ nssSlot_IsTokenPresent
 }
 
 NSS_IMPLEMENT NSSModule *
-nssSlot_GetModule
-(
+nssSlot_GetModule (
   NSSSlot *slot
 )
 {
@@ -362,8 +352,7 @@ nssSlot_GetModule
 }
 
 NSS_IMPLEMENT void *
-nssSlot_GetCryptokiEPV
-(
+nssSlot_GetCryptokiEPV (
   NSSSlot *slot
 )
 {
@@ -371,8 +360,7 @@ nssSlot_GetCryptokiEPV
 }
 
 NSS_IMPLEMENT NSSToken *
-nssSlot_GetToken
-(
+nssSlot_GetToken (
   NSSSlot *slot
 )
 {
@@ -383,8 +371,7 @@ nssSlot_GetToken
 }
 
 NSS_IMPLEMENT NSSToken *
-NSSSlot_GetToken
-(
+NSSSlot_GetToken (
   NSSSlot *slot
 )
 {
@@ -392,8 +379,7 @@ NSSSlot_GetToken
 }
 
 NSS_IMPLEMENT PRBool
-nssSlot_IsPermanent
-(
+nssSlot_IsPermanent (
   NSSSlot *slot
 )
 {
@@ -401,8 +387,7 @@ nssSlot_IsPermanent
 }
 
 NSS_IMPLEMENT PRBool
-nssSlot_IsFriendly
-(
+nssSlot_IsFriendly (
   NSSSlot *slot
 )
 {
@@ -410,8 +395,7 @@ nssSlot_IsFriendly
 }
 
 NSS_IMPLEMENT PRBool
-nssSlot_IsHardware
-(
+nssSlot_IsHardware (
   NSSSlot *slot
 )
 {
@@ -419,8 +403,7 @@ nssSlot_IsHardware
 }
 
 NSS_IMPLEMENT PRStatus
-nssSlot_Refresh
-(
+nssSlot_Refresh (
   NSSSlot *slot
 )
 {
@@ -435,8 +418,7 @@ nssSlot_Refresh
 }
 
 static PRBool
-slot_needs_login
-(
+slot_needs_login (
   NSSSlot *slot,
   nssSession *session
 )
@@ -492,8 +474,7 @@ slot_needs_login
 }
 
 static PRStatus
-slot_login
-(
+slot_login (
   NSSSlot *slot, 
   nssSession *session, 
   CK_USER_TYPE userType, 
@@ -554,8 +535,7 @@ slot_login
 }
 
 static PRStatus
-init_slot_password
-(
+init_slot_password (
   NSSSlot *slot, 
   nssSession *rwSession, 
   NSSUTF8 *password
@@ -595,8 +575,7 @@ loser:
 }
 
 static PRStatus
-password_return
-(
+password_return (
   NSSUTF8 *slotName,
   PRBool *retry,
   void *arg,
@@ -609,8 +588,7 @@ password_return
 }
 
 static PRStatus
-change_slot_password
-(
+change_slot_password (
   NSSSlot *slot, 
   nssSession *rwSession, 
   NSSUTF8 *oldPassword,
@@ -670,8 +648,7 @@ retry:
 }
 
 NSS_IMPLEMENT PRStatus
-nssSlot_Login
-(
+nssSlot_Login (
   NSSSlot *slot,
   NSSCallback *pwcb
 )
@@ -710,8 +687,7 @@ nssSlot_Login
 }
 
 NSS_IMPLEMENT PRStatus
-nssSlot_Logout
-(
+nssSlot_Logout (
   NSSSlot *slot,
   nssSession *session
 )
@@ -733,8 +709,7 @@ nssSlot_Logout
 }
 
 NSS_IMPLEMENT PRBool
-nssSlot_IsLoggedIn
-(
+nssSlot_IsLoggedIn (
   NSSSlot *slot
 )
 {
@@ -743,8 +718,7 @@ nssSlot_IsLoggedIn
 }
 
 NSS_IMPLEMENT PRStatus
-nssSlot_CheckPassword
-(
+nssSlot_CheckPassword (
   NSSSlot *slot,
   const NSSUTF8 *password
 )
@@ -762,8 +736,7 @@ nssSlot_CheckPassword
 }
 
 NSS_IMPLEMENT PRStatus
-NSSSlot_CheckPassword
-(
+NSSSlot_CheckPassword (
   NSSSlot *slot,
   const NSSUTF8 *password
 )
@@ -772,8 +745,7 @@ NSSSlot_CheckPassword
 }
 
 NSS_IMPLEMENT void
-nssSlot_SetPasswordDefaults
-(
+nssSlot_SetPasswordDefaults (
   NSSSlot *slot,
   PRInt32 askPasswordTimeout
 )
@@ -783,8 +755,7 @@ nssSlot_SetPasswordDefaults
 
 
 NSS_IMPLEMENT PRStatus
-nssSlot_SetPassword
-(
+nssSlot_SetPassword (
   NSSSlot *slot,
   NSSUTF8 *oldPasswordOpt,
   NSSUTF8 *newPassword
@@ -812,8 +783,7 @@ nssSlot_SetPassword
 }
 
 NSS_IMPLEMENT PRStatus
-NSSSlot_SetPassword
-(
+NSSSlot_SetPassword (
   NSSSlot *slot,
   NSSUTF8 *oldPasswordOpt,
   NSSUTF8 *newPassword
@@ -843,8 +813,7 @@ NSSSlot_SetPassword
  * current session is set as the owner.
  */
 NSS_IMPLEMENT nssSession *
-nssSlot_CreateSession
-(
+nssSlot_CreateSession (
   NSSSlot *slot,
   PRBool readWrite
 )
@@ -920,8 +889,7 @@ nssSlot_CreateSession
 }
 
 NSS_IMPLEMENT nssSession *
-nssSession_AddRef
-(
+nssSession_AddRef (
   nssSession *s
 )
 {
@@ -930,8 +898,7 @@ nssSession_AddRef
 }
 
 NSS_IMPLEMENT PRStatus
-nssSession_Destroy
-(
+nssSession_Destroy (
   nssSession *s
 )
 {
@@ -1000,8 +967,7 @@ restore_session_state(nssSession *s)
 }
 
 NSS_IMPLEMENT PRStatus
-nssSession_EnterMonitor
-(
+nssSession_EnterMonitor (
   nssSession *s
 )
 {
@@ -1024,8 +990,7 @@ nssSession_EnterMonitor
 }
 
 NSS_IMPLEMENT PRStatus
-nssSession_ExitMonitor
-(
+nssSession_ExitMonitor (
   nssSession *s
 )
 {
@@ -1036,8 +1001,7 @@ nssSession_ExitMonitor
 }
 
 NSS_EXTERN PRBool
-nssSession_IsReadWrite
-(
+nssSession_IsReadWrite (
   nssSession *s
 )
 {

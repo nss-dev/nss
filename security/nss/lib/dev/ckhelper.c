@@ -72,8 +72,7 @@ NSS_IMPLEMENT_DATA const NSSItem
 g_ck_class_privkey = { (CK_VOID_PTR)&s_class_privkey, sizeof(s_class_privkey) };
 
 static PRBool
-is_string_attribute
-(
+is_string_attribute (
   CK_ATTRIBUTE_TYPE aType
 )
 {
@@ -91,8 +90,7 @@ is_string_attribute
 }
 
 NSS_IMPLEMENT PRStatus 
-nssCKObject_GetAttributes
-(
+nssCKObject_GetAttributes (
   CK_OBJECT_HANDLE object,
   CK_ATTRIBUTE_PTR obj_template,
   CK_ULONG count,
@@ -200,8 +198,7 @@ loser:
 }
 
 NSS_IMPLEMENT PRStatus
-nssCKObject_GetAttributeItem
-(
+nssCKObject_GetAttributeItem (
   CK_OBJECT_HANDLE object,
   CK_ATTRIBUTE_TYPE attribute,
   NSSArena *arenaOpt,
@@ -224,8 +221,7 @@ nssCKObject_GetAttributeItem
 }
 
 NSS_IMPLEMENT PRBool
-nssCKObject_IsAttributeTrue
-(
+nssCKObject_IsAttributeTrue (
   CK_OBJECT_HANDLE object,
   CK_ATTRIBUTE_TYPE attribute,
   nssSession *session,
@@ -253,8 +249,7 @@ nssCKObject_IsAttributeTrue
 }
 
 NSS_IMPLEMENT PRStatus 
-nssCKObject_SetAttributes
-(
+nssCKObject_SetAttributes (
   CK_OBJECT_HANDLE object,
   CK_ATTRIBUTE_PTR obj_template,
   CK_ULONG count,
@@ -276,8 +271,7 @@ nssCKObject_SetAttributes
 }
 
 NSS_IMPLEMENT PRBool
-nssCKObject_IsTokenObjectTemplate
-(
+nssCKObject_IsTokenObjectTemplate (
   CK_ATTRIBUTE_PTR objectTemplate, 
   CK_ULONG otsize
 )
@@ -292,8 +286,7 @@ nssCKObject_IsTokenObjectTemplate
 }
 
 NSS_IMPLEMENT CK_ULONG
-nssCKTemplate_SetOperationAttributes
-(
+nssCKTemplate_SetOperationAttributes (
   CK_ATTRIBUTE_PTR objTemplate,
   CK_ULONG otSize,
   NSSOperations operations
@@ -322,8 +315,7 @@ nssCKTemplate_SetOperationAttributes
 }
 
 NSS_IMPLEMENT CK_ULONG
-nssCKTemplate_SetPropertyAttributes
-(
+nssCKTemplate_SetPropertyAttributes (
   CK_ATTRIBUTE_PTR objTemplate,
   CK_ULONG otSize,
   NSSProperties properties
@@ -367,8 +359,7 @@ nss_cert_type_from_ck_attrib(CK_ATTRIBUTE_PTR attrib)
 
 /* incoming pointers must be valid */
 NSS_IMPLEMENT PRStatus
-nssCryptokiCertificate_GetAttributes
-(
+nssCryptokiCertificate_GetAttributes (
   nssCryptokiObject *certObject,
   NSSArena *arenaOpt,
   NSSCertificateType *certTypeOpt,
@@ -480,8 +471,7 @@ nss_key_pair_type_from_ck_attrib(CK_ATTRIBUTE_PTR attrib)
 }
 
 NSS_IMPLEMENT PRStatus
-nssCryptokiPrivateKey_GetAttributes
-(
+nssCryptokiPrivateKey_GetAttributes (
   nssCryptokiObject *keyObject,
   NSSArena *arenaOpt,
   NSSKeyPairType *keyTypeOpt,
@@ -528,8 +518,7 @@ nssCryptokiPrivateKey_GetAttributes
 }
 
 NSS_IMPLEMENT PRStatus
-nssCryptokiPublicKey_GetAttributes
-(
+nssCryptokiPublicKey_GetAttributes (
   nssCryptokiObject *keyObject,
   NSSArena *arenaOpt,
   NSSKeyPairType *keyTypeOpt,
@@ -581,8 +570,7 @@ nssCryptokiPublicKey_GetAttributes
 }
 
 static nssTrustLevel 
-get_nss_trust
-(
+get_nss_trust (
   CK_TRUST ckt
 )
 {
@@ -603,8 +591,7 @@ get_nss_trust
 }
 
 NSS_IMPLEMENT PRStatus
-nssCryptokiTrust_GetAttributes
-(
+nssCryptokiTrust_GetAttributes (
   nssCryptokiObject *trustObject,
   nssTrustLevel *serverAuth,
   nssTrustLevel *clientAuth,
@@ -659,8 +646,7 @@ nssCryptokiTrust_GetAttributes
 }
 
 NSS_IMPLEMENT PRStatus
-nssCryptokiCRL_GetAttributes
-(
+nssCryptokiCRL_GetAttributes (
   nssCryptokiObject *crlObject,
   NSSArena *arenaOpt,
   NSSItem *encodingOpt,
@@ -723,8 +709,7 @@ nssCryptokiCRL_GetAttributes
 }
 
 NSS_IMPLEMENT PRStatus
-nssCryptokiPrivateKey_SetCertificate
-(
+nssCryptokiPrivateKey_SetCertificate (
   nssCryptokiObject *keyObject,
   nssSession *session,
   NSSUTF8 *nickname,
@@ -774,8 +759,7 @@ nss_symm_key_type_from_ck_attrib(CK_ATTRIBUTE_PTR attrib)
 }
 
 NSS_IMPLEMENT PRStatus
-nssCryptokiSymmetricKey_GetAttributes
-(
+nssCryptokiSymmetricKey_GetAttributes (
   nssCryptokiObject *keyObject,
   NSSArena *arenaOpt,
   NSSSymmetricKeyType *keyTypeOpt,
@@ -866,8 +850,7 @@ nssCryptokiSymmetricKey_GetAttributes
 }
 
 NSS_IMPLEMENT nssCryptokiObject *
-nssCryptokiSymmetricKey_Copy
-(
+nssCryptokiSymmetricKey_Copy (
   nssCryptokiObject *sourceKey,
   nssSession *sourceSession,
   NSSToken *destination,

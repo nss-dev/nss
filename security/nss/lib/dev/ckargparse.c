@@ -42,8 +42,7 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #endif /* BASE_H */
 
 static NSSUTF8
-match_start_quote
-(
+match_start_quote (
   NSSUTF8 startquote
 )
 {
@@ -59,8 +58,7 @@ match_start_quote
 }
 
 static PRUint32
-get_param_length
-(
+get_param_length (
   NSSUTF8 *paramstring,
   NSSUTF8 startquote, 
   NSSUTF8 endquote
@@ -90,8 +88,7 @@ get_param_length
 }
 
 static NSSUTF8 *
-get_param_string
-(
+get_param_string (
   NSSUTF8 *paramstring,
   NSSUTF8 startquote, 
   NSSUTF8 endquote,
@@ -123,8 +120,7 @@ get_param_string
 }
 
 NSS_IMPLEMENT PRStatus
-nssCryptokiArgs_ParseNextPair
-(
+nssCryptokiArgs_ParseNextPair (
   NSSUTF8 *start,
   NSSUTF8 **attrib,
   NSSUTF8 **value,

@@ -53,29 +53,25 @@ static const char PKI_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 PR_BEGIN_EXTERN_C
 
 NSS_EXTERN NSSToken *
-nssTrustDomain_FindTokenForAlgorithmAndParameters
-(
+nssTrustDomain_FindTokenForAlgorithmAndParameters (
   NSSTrustDomain *td,
   const NSSAlgorithmAndParameters *ap
 );
 
 NSS_EXTERN NSSToken *
-nssTrustDomain_FindTokenForAlgorithm
-(
+nssTrustDomain_FindTokenForAlgorithm (
   NSSTrustDomain *td,
   const NSSOID *algorithm
 );
 
 NSS_EXTERN NSSCallback *
-nssTrustDomain_GetDefaultCallback
-(
+nssTrustDomain_GetDefaultCallback (
   NSSTrustDomain *td,
   PRStatus *statusOpt
 );
 
 NSS_EXTERN NSSCertificate **
-nssTrustDomain_FindCertificatesBySubject
-(
+nssTrustDomain_FindCertificatesBySubject (
   NSSTrustDomain *td,
   NSSDER *subject,
   NSSCertificate *rvOpt[],
@@ -84,113 +80,96 @@ nssTrustDomain_FindCertificatesBySubject
 );
 
 NSS_EXTERN nssTrust *
-nssTrustDomain_FindTrustForCertificate
-(
+nssTrustDomain_FindTrustForCertificate (
   NSSTrustDomain *td,
   NSSCertificate *c
 );
 
 NSS_EXTERN NSSCertificate *
-nssCertificate_Decode
-(
+nssCertificate_Decode (
   NSSBER *ber
 );
 
 NSS_EXTERN NSSCertificate *
-nssCertificate_AddRef
-(
+nssCertificate_AddRef (
   NSSCertificate *c
 );
 
 NSS_EXTERN PRStatus
-nssCertificate_Destroy
-(
+nssCertificate_Destroy (
   NSSCertificate *c
 );
 
 NSS_EXTERN NSSDER *
-nssCertificate_GetEncoding
-(
+nssCertificate_GetEncoding (
   NSSCertificate *c
 );
 
 NSS_EXTERN NSSDER *
-nssCertificate_GetIssuer
-(
+nssCertificate_GetIssuer (
   NSSCertificate *c
 );
 
 NSS_EXTERN NSSDER *
-nssCertificate_GetSerialNumber
-(
+nssCertificate_GetSerialNumber (
   NSSCertificate *c
 );
 
 NSS_EXTERN NSSDER *
-nssCertificate_GetSubject
-(
+nssCertificate_GetSubject (
   NSSCertificate *c
 );
 
 NSS_EXTERN NSSUTF8 *
-nssCertificate_GetNickname
-(
+nssCertificate_GetNickname (
   NSSCertificate *c,
   NSSToken *tokenOpt
 );
 
 NSS_EXTERN NSSASCII7 *
-nssCertificate_GetEmailAddress
-(
+nssCertificate_GetEmailAddress (
   NSSCertificate *c
 );
 
 NSS_EXTERN PRBool
-nssCertificate_IssuerAndSerialEqual
-(
+nssCertificate_IssuerAndSerialEqual (
   NSSCertificate *c1,
   NSSCertificate *c2
 );
 
 NSS_EXTERN NSSPublicKey *
-nssCertificate_GetPublicKey
-(
+nssCertificate_GetPublicKey (
   NSSCertificate *c
 );
 
 NSS_EXTERN NSSPrivateKey *
-nssCertificate_FindPrivateKey
-(
+nssCertificate_FindPrivateKey (
   NSSCertificate *c,
   NSSCallback *uhh
 );
 
 NSS_EXTERN NSSUsages *
-nssCertificate_GetUsages
-(
+nssCertificate_GetUsages (
   NSSCertificate *c,
   PRStatus *statusOpt
 );
 
 NSS_EXTERN PRBool
-nssCertificate_IsValidAtTime
-(
+nssCertificate_IsValidAtTime (
   NSSCertificate *c,
   NSSTime time,
   PRStatus *statusOpt
 );
 
 NSS_EXTERN PRBool
-nssCertificate_IsNewer
-(
+nssCertificate_IsNewer (
   NSSCertificate *c1,
   NSSCertificate *c2,
   PRStatus *statusOpt
 );
 
 NSS_EXTERN NSSCertificate **
-nssCertificate_BuildChain
-(
+nssCertificate_BuildChain (
   NSSCertificate *c,
   NSSTime time,
   NSSUsages *usagesOpt,
@@ -202,51 +181,54 @@ nssCertificate_BuildChain
 );
 
 NSS_EXTERN NSSPrivateKey *
-nssPrivateKey_AddRef
-(
+nssPrivateKey_AddRef (
   NSSPrivateKey *vk
 );
 
 NSS_EXTERN PRStatus
-nssPrivateKey_Destroy
-(
+nssPrivateKey_Destroy (
   NSSPrivateKey *vk
 );
 
 NSS_EXTERN NSSItem *
-nssPrivateKey_GetID
-(
+nssPrivateKey_GetID (
   NSSPrivateKey *vk
 );
 
 NSS_EXTERN NSSUTF8 *
-nssPrivateKey_GetNickname
-(
+nssPrivateKey_GetNickname (
   NSSPrivateKey *vk,
   NSSToken *tokenOpt
 );
 
 NSS_EXTERN PRStatus
-nssPublicKey_Destroy
-(
+nssPublicKey_Destroy (
   NSSPublicKey *bk
 );
 
 NSS_EXTERN NSSItem *
-nssPublicKey_GetID
-(
+nssPublicKey_GetID (
   NSSPublicKey *vk
 );
 
 NSS_EXTERN NSSSymmetricKey *
-nssSymmetricKey_AddRef
-(
+nssSymmetricKey_AddRef (
   NSSSymmetricKey *mk
 );
 
+NSS_EXTERN PRStatus
+nssSymmetricKey_DeriveSSLSessionKeys (
+  NSSSymmetricKey *masterSecret,
+  const NSSAlgorithmAndParameters *ap,
+  NSSSymmetricKeyType bulkKeyType,
+  NSSOperations operations,
+  NSSProperties properties,
+  PRUint32 keySize,
+  NSSSymmetricKey **sessionKeys
+);
+
 NSS_EXTERN NSSCertificate **
-nssCryptoContext_FindCertificatesBySubject
-(
+nssCryptoContext_FindCertificatesBySubject (
   NSSCryptoContext *cc,
   NSSDER *subject,
   NSSCertificate *rvOpt[],
@@ -256,76 +238,65 @@ nssCryptoContext_FindCertificatesBySubject
 
 /* putting here for now, needs more thought */
 NSS_EXTERN PRStatus
-nssCryptoContext_ImportTrust
-(
+nssCryptoContext_ImportTrust (
   NSSCryptoContext *cc,
   nssTrust *trust
 );
 
 NSS_EXTERN nssTrust *
-nssCryptoContext_FindTrustForCertificate
-(
+nssCryptoContext_FindTrustForCertificate (
   NSSCryptoContext *cc,
   NSSCertificate *cert
 );
 
 NSS_EXTERN PRStatus
-nssCryptoContext_ImportSMIMEProfile
-(
+nssCryptoContext_ImportSMIMEProfile (
   NSSCryptoContext *cc,
   nssSMIMEProfile *profile
 );
 
 NSS_EXTERN nssSMIMEProfile *
-nssCryptoContext_FindSMIMEProfileForCertificate
-(
+nssCryptoContext_FindSMIMEProfileForCertificate (
   NSSCryptoContext *cc,
   NSSCertificate *cert
 );
 
 NSS_EXTERN nssTrust *
-nssTrust_AddRef
-(
+nssTrust_AddRef (
   nssTrust *trust
 );
 
 NSS_EXTERN PRStatus
-nssTrust_Destroy
-(
+nssTrust_Destroy (
   nssTrust *trust
 );
 
 NSS_EXTERN nssSMIMEProfile *
-nssSMIMEProfile_AddRef
-(
+nssSMIMEProfile_AddRef (
   nssSMIMEProfile *profile
 );
 
 NSS_EXTERN PRStatus
-nssSMIMEProfile_Destroy
-(
+nssSMIMEProfile_Destroy (
   nssSMIMEProfile *profile
 );
 
 NSS_EXTERN nssSMIMEProfile *
-nssSMIMEProfile_Create
-(
+nssSMIMEProfile_Create (
   NSSCertificate *cert,
   NSSItem *profileTime,
   NSSItem *profileData
 );
 
 NSS_EXTERN PRBool
-nssTime_WithinRange
-(
+nssTime_WithinRange (
   NSSTime time,
   NSSTime start,
   NSSTime finish
 );
 
 NSS_EXTERN PRBool
-nssTime_IsAfter
-(
+nssTime_IsAfter (
   NSSTime time,
   NSSTime compareTime
 );

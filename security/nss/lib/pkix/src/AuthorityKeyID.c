@@ -114,8 +114,7 @@ decode_me(NSSPKIXAuthorityKeyIdentifier *akid)
 }
 
 static NSSPKIXAuthorityKeyIdentifier *
-create_me
-(
+create_me (
   NSSArena *arenaOpt
 )
 {
@@ -168,8 +167,7 @@ loser:
 
 #if 0
 NSS_IMPLEMENT NSSPKIXAuthorityKeyIdentifier *
-nssPKIXAuthorityKeyIdentifier_Create
-(
+nssPKIXAuthorityKeyIdentifier_Create (
   NSSArena *arenaOpt,
   NSSOID *extnID,
   PRBool critical,
@@ -194,8 +192,7 @@ nssPKIXAuthorityKeyIdentifier_Create
 #endif
 
 NSS_IMPLEMENT NSSPKIXAuthorityKeyIdentifier *
-nssPKIXAuthorityKeyIdentifier_Decode
-(
+nssPKIXAuthorityKeyIdentifier_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 )
@@ -225,8 +222,7 @@ loser:
 }
 
 NSS_IMPLEMENT PRStatus
-nssPKIXAuthorityKeyIdentifier_Destroy
-(
+nssPKIXAuthorityKeyIdentifier_Destroy (
   NSSPKIXAuthorityKeyIdentifier *akid
 )
 {
@@ -237,8 +233,7 @@ nssPKIXAuthorityKeyIdentifier_Destroy
 }
 
 NSS_IMPLEMENT NSSBER *
-nssPKIXAuthorityKeyIdentifier_Encode
-(
+nssPKIXAuthorityKeyIdentifier_Encode (
   NSSPKIXAuthorityKeyIdentifier *akid,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -264,8 +259,7 @@ nssPKIXAuthorityKeyIdentifier_Encode
 
 #if 0
 NSS_IMPLEMENT PRBool
-nssPKIXAuthorityKeyIdentifier_Equal
-(
+nssPKIXAuthorityKeyIdentifier_Equal (
   NSSPKIXAuthorityKeyIdentifier *one,
   NSSPKIXAuthorityKeyIdentifier *two,
   PRStatus *statusOpt
@@ -294,8 +288,7 @@ nssPKIXAuthorityKeyIdentifier_Equal
 #endif
 
 NSS_IMPLEMENT PRStatus
-nssPKIXAuthorityKeyIdentifier_duplicate
-(
+nssPKIXAuthorityKeyIdentifier_duplicate (
   NSSPKIXAuthorityKeyIdentifier *akid,
   NSSArena *arena,
   NSSPKIXAuthorityKeyIdentifier *copy
@@ -326,8 +319,7 @@ nssPKIXAuthorityKeyIdentifier_duplicate
 }
 
 NSS_IMPLEMENT NSSPKIXAuthorityKeyIdentifier *
-nssPKIXAuthorityKeyIdentifier_Duplicate
-(
+nssPKIXAuthorityKeyIdentifier_Duplicate (
   NSSPKIXAuthorityKeyIdentifier *akid,
   NSSArena *arenaOpt
 )
@@ -348,8 +340,7 @@ nssPKIXAuthorityKeyIdentifier_Duplicate
 }
 
 NSS_IMPLEMENT NSSPKIXKeyIdentifier *
-nssPKIXAuthorityKeyIdentifier_GetKeyIdentifier
-(
+nssPKIXAuthorityKeyIdentifier_GetKeyIdentifier (
   NSSPKIXAuthorityKeyIdentifier *aki
 )
 {
@@ -374,8 +365,7 @@ nssPKIXAuthorityKeyIdentifier_GetKeyIdentifier
 
 #if 0
 NSS_IMPLEMENT NSSPKIXAuthorityKeyIdentifier *
-NSSPKIXAuthorityKeyIdentifier_Create
-(
+NSSPKIXAuthorityKeyIdentifier_Create (
   NSSArena *arenaOpt,
   NSSOID *extnID,
   PRBool critical,
@@ -404,8 +394,7 @@ NSSPKIXAuthorityKeyIdentifier_Create
  */
 
 NSS_IMPLEMENT NSSPKIXAuthorityKeyIdentifier *
-NSSPKIXAuthorityKeyIdentifier_Decode
-(
+NSSPKIXAuthorityKeyIdentifier_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 )
@@ -421,8 +410,7 @@ NSSPKIXAuthorityKeyIdentifier_Decode
  */
 
 NSS_IMPLEMENT PRStatus
-NSSPKIXAuthorityKeyIdentifier_Destroy
-(
+NSSPKIXAuthorityKeyIdentifier_Destroy (
   NSSPKIXAuthorityKeyIdentifier *akid
 )
 {
@@ -438,8 +426,7 @@ NSSPKIXAuthorityKeyIdentifier_Destroy
 
 #if 0
 NSS_IMPLEMENT NSSPKIXAuthorityKeyIdentifier *
-NSSPKIXAuthorityKeyIdentifier_Duplicate
-(
+NSSPKIXAuthorityKeyIdentifier_Duplicate (
   NSSPKIXAuthorityKeyIdentifier *akid,
   NSSArena *arenaOpt
 )
@@ -456,8 +443,7 @@ NSSPKIXAuthorityKeyIdentifier_Duplicate
  */
 
 NSS_IMPLEMENT NSSBER *
-NSSPKIXAuthorityKeyIdentifier_Encode
-(
+NSSPKIXAuthorityKeyIdentifier_Encode (
   NSSPKIXAuthorityKeyIdentifier *akid,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -477,8 +463,7 @@ NSSPKIXAuthorityKeyIdentifier_Encode
 }
 
 NSS_IMPLEMENT NSSPKIXKeyIdentifier *
-NSSPKIXAuthorityKeyIdentifier_GetKeyIdentifier
-(
+NSSPKIXAuthorityKeyIdentifier_GetKeyIdentifier (
   NSSPKIXAuthorityKeyIdentifier *akid
 )
 {

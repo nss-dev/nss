@@ -79,8 +79,7 @@ decode_me(NSSPKIXKeyUsage *keyUsage, NSSBitString *ku)
 }
 
 static NSSPKIXKeyUsage *
-create_me
-(
+create_me (
   NSSArena *arenaOpt
 )
 {
@@ -133,8 +132,7 @@ loser:
 
 #if 0
 NSS_IMPLEMENT NSSPKIXKeyUsage *
-nssPKIXKeyUsage_Create
-(
+nssPKIXKeyUsage_Create (
   NSSArena *arenaOpt,
   NSSOID *extnID,
   PRBool critical,
@@ -159,8 +157,7 @@ nssPKIXKeyUsage_Create
 #endif
 
 NSS_IMPLEMENT NSSPKIXKeyUsage *
-nssPKIXKeyUsage_Decode
-(
+nssPKIXKeyUsage_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 )
@@ -200,8 +197,7 @@ loser:
 }
 
 NSS_IMPLEMENT PRStatus
-nssPKIXKeyUsage_Destroy
-(
+nssPKIXKeyUsage_Destroy (
   NSSPKIXKeyUsage *keyUsage
 )
 {
@@ -212,8 +208,7 @@ nssPKIXKeyUsage_Destroy
 }
 
 NSS_IMPLEMENT NSSBER *
-nssPKIXKeyUsage_Encode
-(
+nssPKIXKeyUsage_Encode (
   NSSPKIXKeyUsage *keyUsage,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -239,8 +234,7 @@ nssPKIXKeyUsage_Encode
 
 #if 0
 NSS_IMPLEMENT PRBool
-nssPKIXKeyUsage_Equal
-(
+nssPKIXKeyUsage_Equal (
   NSSPKIXKeyUsage *one,
   NSSPKIXKeyUsage *two,
   PRStatus *statusOpt
@@ -268,8 +262,7 @@ nssPKIXKeyUsage_Equal
 }
 
 NSS_IMPLEMENT PRStatus
-nssPKIXKeyUsage_duplicate
-(
+nssPKIXKeyUsage_duplicate (
   NSSPKIXKeyUsage *keyUsage,
   NSSArena *arena,
   NSSPKIXKeyUsage *copy
@@ -304,8 +297,7 @@ nssPKIXKeyUsage_duplicate
 }
 
 NSS_IMPLEMENT NSSPKIXKeyUsage *
-nssPKIXKeyUsage_Duplicate
-(
+nssPKIXKeyUsage_Duplicate (
   NSSPKIXKeyUsage *keyUsage,
   NSSArena *arenaOpt
 )
@@ -326,8 +318,7 @@ nssPKIXKeyUsage_Duplicate
 #endif
 
 NSS_IMPLEMENT NSSPKIXKeyUsageValue
-nssPKIXKeyUsage_GetValue
-(
+nssPKIXKeyUsage_GetValue (
   NSSPKIXKeyUsage *keyUsage
 )
 {
@@ -352,8 +343,7 @@ nssPKIXKeyUsage_GetValue
 
 #if 0
 NSS_IMPLEMENT NSSPKIXKeyUsage *
-NSSPKIXKeyUsage_Create
-(
+NSSPKIXKeyUsage_Create (
   NSSArena *arenaOpt,
   NSSOID *extnID,
   PRBool critical,
@@ -382,8 +372,7 @@ NSSPKIXKeyUsage_Create
  */
 
 NSS_IMPLEMENT NSSPKIXKeyUsage *
-NSSPKIXKeyUsage_Decode
-(
+NSSPKIXKeyUsage_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 )
@@ -399,8 +388,7 @@ NSSPKIXKeyUsage_Decode
  */
 
 NSS_IMPLEMENT PRStatus
-NSSPKIXKeyUsage_Destroy
-(
+NSSPKIXKeyUsage_Destroy (
   NSSPKIXKeyUsage *keyUsage
 )
 {
@@ -416,8 +404,7 @@ NSSPKIXKeyUsage_Destroy
 
 #if 0
 NSS_IMPLEMENT NSSPKIXKeyUsage *
-NSSPKIXKeyUsage_Duplicate
-(
+NSSPKIXKeyUsage_Duplicate (
   NSSPKIXKeyUsage *keyUsage,
   NSSArena *arenaOpt
 )
@@ -434,8 +421,7 @@ NSSPKIXKeyUsage_Duplicate
  */
 
 NSS_IMPLEMENT NSSBER *
-NSSPKIXKeyUsage_Encode
-(
+NSSPKIXKeyUsage_Encode (
   NSSPKIXKeyUsage *keyUsage,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -455,8 +441,7 @@ NSSPKIXKeyUsage_Encode
 }
 
 NSS_IMPLEMENT NSSPKIXKeyUsageValue
-NSSPKIXKeyUsage_GetValue
-(
+NSSPKIXKeyUsage_GetValue (
   NSSPKIXKeyUsage *keyUsage
 )
 {

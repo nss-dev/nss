@@ -68,8 +68,7 @@ typedef struct nssGlobalModuleListStr nssGlobalModuleList;
 static nssGlobalModuleList *nss_global_module_list = NULL;
 
 NSS_IMPLEMENT PRStatus
-nss_InitializeGlobalModuleList
-(
+nss_InitializeGlobalModuleList (
   void
 )
 {
@@ -95,8 +94,7 @@ nss_InitializeGlobalModuleList
 }
 
 NSS_IMPLEMENT PRStatus
-nss_DestroyGlobalModuleList
-(
+nss_DestroyGlobalModuleList (
   void
 )
 {
@@ -116,8 +114,7 @@ nss_DestroyGlobalModuleList
 }
 
 NSS_IMPLEMENT NSSModule **
-nss_GetLoadedModules
-(
+nss_GetLoadedModules (
   void
 )
 {
@@ -141,8 +138,7 @@ nss_GetLoadedModules
 
 #ifdef nodef
 NSS_IMPLEMENT NSSSlot **
-nss_GetActiveSlots
-(
+nss_GetActiveSlots (
   void
 )
 {
@@ -173,8 +169,7 @@ nss_GetActiveSlots
 #endif /* nodef */
 
 NSS_IMPLEMENT PRStatus
-nssGlobalModuleList_Add
-(
+nssGlobalModuleList_Add (
   NSSModule *module
 )
 {
@@ -209,8 +204,7 @@ nssGlobalModuleList_Add
 }
 
 NSS_IMPLEMENT PRStatus
-nssGlobalModuleList_Remove
-(
+nssGlobalModuleList_Remove (
   NSSModule *module
 )
 {
@@ -240,8 +234,7 @@ nssGlobalModuleList_Remove
 }
 
 NSS_IMPLEMENT NSSModule *
-nssGlobalModuleList_FindModuleByName
-(
+nssGlobalModuleList_FindModuleByName (
   NSSUTF8 *moduleName
 )
 {
@@ -264,8 +257,7 @@ nssGlobalModuleList_FindModuleByName
 }
 
 NSS_IMPLEMENT NSSSlot *
-nssGlobalModuleList_FindSlotByName
-(
+nssGlobalModuleList_FindSlotByName (
   NSSUTF8 *slotName
 )
 {
@@ -283,8 +275,7 @@ nssGlobalModuleList_FindSlotByName
 }
 
 NSS_IMPLEMENT NSSToken *
-nssGlobalModuleList_FindTokenByName
-(
+nssGlobalModuleList_FindTokenByName (
   NSSUTF8 *tokenName
 )
 {
@@ -303,8 +294,7 @@ nssGlobalModuleList_FindTokenByName
 
 /* XXX this is hack for now */
 NSS_IMPLEMENT NSSToken *
-nss_GetDefaultCryptoToken
-(
+nss_GetDefaultCryptoToken (
   void
 )
 {
@@ -323,8 +313,7 @@ nss_GetDefaultCryptoToken
 
 /* XXX this is hack for now */
 NSS_IMPLEMENT NSSToken *
-nss_GetDefaultDatabaseToken
-(
+nss_GetDefaultDatabaseToken (
   void
 )
 {
@@ -342,8 +331,7 @@ nss_GetDefaultDatabaseToken
 }
 
 NSS_IMPLEMENT NSSModule **
-NSS_GetLoadedModules
-(
+NSS_GetLoadedModules (
   void
 )
 {
@@ -351,8 +339,7 @@ NSS_GetLoadedModules
 }
 
 NSS_IMPLEMENT NSSModule *
-NSS_FindModuleByName
-(
+NSS_FindModuleByName (
   NSSUTF8 *name
 )
 {

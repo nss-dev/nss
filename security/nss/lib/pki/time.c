@@ -77,8 +77,7 @@ static long monthToDayInYear[12] = {
 
 /* gmtTime must contain UTC time in micro-seconds unit */
 NSS_IMPLEMENT NSSUTF8 *
-nssTime_GetUTCTime
-(
+nssTime_GetUTCTime (
   NSSTime time,
   NSSArena *arenaOpt
 )
@@ -119,8 +118,7 @@ nssTime_GetUTCTime
 }
 
 NSS_IMPLEMENT NSSTime
-nssTime_CreateFromUTCTime
-(
+nssTime_CreateFromUTCTime (
   NSSUTF8 *utcTime,
   PRStatus *statusOpt
 )
@@ -225,8 +223,7 @@ loser:
    certificate extension, which does not have this restriction. 
  */
 NSS_IMPLEMENT NSSUTF8 *
-nssTime_GetGeneralizedTime
-(
+nssTime_GetGeneralizedTime (
   NSSTime time,
   NSSArena *arenaOpt
 )
@@ -268,8 +265,7 @@ nssTime_GetGeneralizedTime
     the certificate should be consider invalid!?
  */
 NSS_IMPLEMENT NSSTime
-nssTime_CreateFromGeneralizedTime
-(
+nssTime_CreateFromGeneralizedTime (
   NSSUTF8 *generalizedTime,
   PRStatus *statusOpt
 )
@@ -344,8 +340,7 @@ loser:
 }
 
 NSS_IMPLEMENT NSSTime
-NSSTime_Now
-(
+NSSTime_Now (
   void
 )
 {
@@ -353,8 +348,7 @@ NSSTime_Now
 }
 
 NSS_IMPLEMENT PRBool
-nssTime_WithinRange
-(
+nssTime_WithinRange (
   NSSTime time,
   NSSTime start,
   NSSTime finish
@@ -364,8 +358,7 @@ nssTime_WithinRange
 }
 
 NSS_IMPLEMENT PRBool
-nssTime_IsBefore
-(
+nssTime_IsBefore (
   NSSTime time,
   NSSTime compareTime
 )
@@ -374,8 +367,7 @@ nssTime_IsBefore
 }
 
 NSS_IMPLEMENT PRBool
-nssTime_IsAfter
-(
+nssTime_IsAfter (
   NSSTime time,
   NSSTime compareTime
 )
@@ -384,8 +376,7 @@ nssTime_IsAfter
 }
 
 NSS_IMPLEMENT NSSUTF8 *
-NSSTime_GetUTCTime
-(
+NSSTime_GetUTCTime (
   NSSTime time,
   NSSArena *arenaOpt
 )
@@ -394,8 +385,7 @@ NSSTime_GetUTCTime
 }
 
 NSS_IMPLEMENT NSSTime
-NSSTime_CreateFromUTCTime
-(
+NSSTime_CreateFromUTCTime (
   NSSUTF8 *utcTime,
   PRStatus *statusOpt
 )

@@ -79,8 +79,7 @@ PR_BEGIN_EXTERN_C
  */
 
 NSS_EXTERN NSSArena *
-NSSArena_Create
-(
+NSSArena_Create (
   void
 );
 
@@ -101,8 +100,7 @@ NSSArena_Create
  */
 
 NSS_EXTERN PRStatus
-NSSArena_Destroy
-(
+NSSArena_Destroy (
   NSSArena *arena
 );
 
@@ -131,8 +129,7 @@ NSSArena_Destroy
  */
 
 NSS_EXTERN NSSError
-NSS_GetError
-(
+NSS_GetError (
   void
 );
 
@@ -155,14 +152,12 @@ NSS_GetError
  */
 
 NSS_EXTERN NSSError *
-NSS_GetErrorStack
-(
+NSS_GetErrorStack (
   void
 );
 
 NSS_EXTERN NSSItem *
-NSSItem_Create
-(
+NSSItem_Create (
   NSSArena *arenaOpt,
   NSSItem *rvOpt,
   PRUint32 length,
@@ -170,30 +165,26 @@ NSSItem_Create
 );
 
 NSS_EXTERN void
-NSSItem_Destroy
-(
+NSSItem_Destroy (
   NSSItem *item
 );
 
 NSS_EXTERN NSSItem *
-NSSItem_Duplicate
-(
+NSSItem_Duplicate (
   NSSItem *obj,
   NSSArena *arenaOpt,
   NSSItem *rvOpt
 );
 
 NSS_EXTERN PRBool
-NSSItem_Equal
-(
+NSSItem_Equal (
   const NSSItem *one,
   const NSSItem *two,
   PRStatus *statusOpt
 );
 
 NSS_EXTERN NSSUTF8 *
-NSSUTF8_Duplicate
-(
+NSSUTF8_Duplicate (
   const NSSUTF8 *s,
   NSSArena *arenaOpt
 );

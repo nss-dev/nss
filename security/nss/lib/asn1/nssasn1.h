@@ -95,8 +95,7 @@ PR_BEGIN_EXTERN_C
  */
 
 NSS_EXTERN NSSASN1Decoder *
-NSSASN1Decoder_Create
-(
+NSSASN1Decoder_Create (
   NSSArena *arenaOpt,
   void *destination,
   const NSSASN1Template template[]
@@ -122,8 +121,7 @@ NSSASN1Decoder_Create
  */
 
 NSS_EXTERN PRStatus
-NSSASN1Decoder_Update
-(
+NSSASN1Decoder_Update (
   NSSASN1Decoder *decoder,
   const void *data,
   PRUint32 amount
@@ -146,8 +144,7 @@ NSSASN1Decoder_Update
  */
 
 NSS_EXTERN PRStatus
-NSSASN1Decoder_Finish
-(
+NSSASN1Decoder_Finish (
   NSSASN1Decoder *decoder
 );
 
@@ -174,8 +171,7 @@ NSSASN1Decoder_Finish
  */
 
 NSS_EXTERN PRStatus
-NSSASN1Decoder_SetFilter
-(
+NSSASN1Decoder_SetFilter (
   NSSASN1Decoder *decoder,
   NSSASN1DecoderFilterFunction *callback,
   void *argument,
@@ -206,8 +202,7 @@ NSSASN1Decoder_SetFilter
  */
 
 NSS_EXTERN PRStatus
-NSSASN1Decoder_GetFilter
-(
+NSSASN1Decoder_GetFilter (
   NSSASN1Decoder *decoder,
   NSSASN1DecoderFilterFunction **pCallbackOpt,
   void **pArgumentOpt,
@@ -234,8 +229,7 @@ NSSASN1Decoder_GetFilter
  */
 
 NSS_EXTERN PRStatus
-NSSASN1Decoder_SetNotify
-(
+NSSASN1Decoder_SetNotify (
   NSSASN1Decoder *decoder,
   NSSASN1NotifyFunction *callback,
   void *argument
@@ -262,8 +256,7 @@ NSSASN1Decoder_SetNotify
  */
 
 NSS_EXTERN PRStatus
-NSSASN1Decoder_GetNotify
-(
+NSSASN1Decoder_GetNotify (
   NSSASN1Decoder *decoder,
   NSSASN1NotifyFunction **pCallbackOpt,
   void **pArgumentOpt
@@ -290,8 +283,7 @@ NSSASN1Decoder_GetNotify
  */
 
 NSS_EXTERN PRStatus
-NSSASN1_Decode
-(
+NSSASN1_Decode (
   NSSArena *arenaOpt,
   void *destination,
   const NSSASN1Template template[],
@@ -321,8 +313,7 @@ NSSASN1_Decode
  */
 
 NSS_EXTERN PRStatus
-NSSASN1_DecodeBER
-(
+NSSASN1_DecodeBER (
   NSSArena *arenaOpt,
   void *destination,
   const NSSASN1Template template[],
@@ -375,8 +366,7 @@ NSSASN1_DecodeBER
  */
 
 NSS_EXTERN NSSASN1Encoder *
-NSSASN1Encoder_Create
-(
+NSSASN1Encoder_Create (
   const void *source,
   const NSSASN1Template template[],
   NSSASN1EncodingType encoding,
@@ -398,8 +388,7 @@ NSSASN1Encoder_Create
  */
 
 NSS_EXTERN PRStatus
-NSSASN1Encoder_Update
-(
+NSSASN1Encoder_Update (
   NSSASN1Encoder *encoder,
   const void *data,
   PRUint32 length
@@ -420,8 +409,7 @@ NSSASN1Encoder_Update
  */
 
 NSS_EXTERN PRStatus
-NSSASN1Encoder_Finish
-(
+NSSASN1Encoder_Finish (
   NSSASN1Encoder *encoder
 );
 
@@ -445,8 +433,7 @@ NSSASN1Encoder_Finish
  */
 
 NSS_EXTERN PRStatus
-NSSASN1Encoder_SetNotify
-(
+NSSASN1Encoder_SetNotify (
   NSSASN1Encoder *encoder,
   NSSASN1NotifyFunction *callback,
   void *argument
@@ -473,8 +460,7 @@ NSSASN1Encoder_SetNotify
  */
 
 NSS_EXTERN PRStatus
-NSSASN1Encoder_GetNotify
-(
+NSSASN1Encoder_GetNotify (
   NSSASN1Encoder *encoder,
   NSSASN1NotifyFunction **pCallbackOpt,
   void **pArgumentOpt
@@ -494,8 +480,7 @@ NSSASN1Encoder_GetNotify
  */
 
 NSS_EXTERN PRStatus
-NSSASN1Encoder_SetStreaming
-(
+NSSASN1Encoder_SetStreaming (
   NSSASN1Encoder *encoder,
   PRBool streaming
 );
@@ -515,8 +500,7 @@ NSSASN1Encoder_SetStreaming
  */
 
 NSS_EXTERN PRStatus
-NSSASN1Encoder_GetStreaming
-(
+NSSASN1Encoder_GetStreaming (
   NSSASN1Encoder *encoder,
   PRBool *pStreaming
 );
@@ -535,8 +519,7 @@ NSSASN1Encoder_GetStreaming
  */
 
 NSS_EXTERN PRStatus
-NSSASN1Encoder_SetTakeFromBuffer
-(
+NSSASN1Encoder_SetTakeFromBuffer (
   NSSASN1Encoder *encoder,
   PRBool takeFromBuffer
 );
@@ -556,8 +539,7 @@ NSSASN1Encoder_SetTakeFromBuffer
  */
 
 NSS_EXTERN PRStatus
-NSSASN1Encoder_GetTakeFromBuffer
-(
+NSSASN1Encoder_GetTakeFromBuffer (
   NSSASN1Encoder *encoder,
   PRBool *pTakeFromBuffer
 );
@@ -580,8 +562,7 @@ NSSASN1Encoder_GetTakeFromBuffer
  */
 
 NSS_EXTERN PRStatus
-NSSASN1_Encode
-(
+NSSASN1_Encode (
   const void *source,
   const NSSASN1Template template[],
   NSSASN1EncodingType encoding,
@@ -610,8 +591,7 @@ NSSASN1_Encode
  */
 
 NSS_EXTERN NSSDER *
-NSSASN1_EncodeItem
-(
+NSSASN1_EncodeItem (
   NSSArena *arenaOpt,
   NSSDER *rvOpt,
   const void *source,
@@ -641,8 +621,7 @@ NSSASN1_EncodeItem
  */
 
 NSS_EXTERN PRStatus
-NSSASN1_CreatePRUint32FromBER
-(
+NSSASN1_CreatePRUint32FromBER (
   NSSBER *encoded,
   PRUint32 *pResult
 );
@@ -653,8 +632,7 @@ NSSASN1_CreatePRUint32FromBER
  */
 
 NSS_EXTERN NSSDER *
-NSSASN1_GetDERFromPRUint32
-(
+NSSASN1_GetDERFromPRUint32 (
   NSSArena *arenaOpt,
   NSSDER *rvOpt,
   PRUint32 value
@@ -666,8 +644,7 @@ NSSASN1_GetDERFromPRUint32
  */
 
 NSS_EXTERN PRStatus
-NSSASN1_CreatePRInt32FromBER
-(
+NSSASN1_CreatePRInt32FromBER (
   NSSBER *encoded,
   PRInt32 *pResult
 );
@@ -678,8 +655,7 @@ NSSASN1_CreatePRInt32FromBER
  */
 
 NSS_EXTERN NSSDER *
-NSSASN1_GetDERFromPRInt32
-(
+NSSASN1_GetDERFromPRInt32 (
   NSSArena *arenaOpt,
   NSSDER *rvOpt,
   PRInt32 value
@@ -763,16 +739,14 @@ extern const NSSASN1Template *NSSASN1Template_SetOfVisibleString;
  */
 
 NSS_EXTERN NSSUTF8 *
-nssUTF8_CreateFromBER
-(
+nssUTF8_CreateFromBER (
   NSSArena *arenaOpt,
   nssStringType type,
   NSSBER *berData
 );
 
 NSS_EXTERN NSSDER *
-nssUTF8_GetDEREncoding
-(
+nssUTF8_GetDEREncoding (
   NSSArena *arenaOpt,
   /* Should have an NSSDER *rvOpt */
   nssStringType type,

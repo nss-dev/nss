@@ -37,8 +37,7 @@
 static NSSCertificateMethods *pkixMethods = NULL;
 
 NSS_IMPLEMENT PRStatus
-NSS_SetDefaultCertificateHandler
-(
+NSS_SetDefaultCertificateHandler (
   NSSCertificateType certType,
   NSSCertificateMethods *certMethods
 )
@@ -51,8 +50,7 @@ NSS_SetDefaultCertificateHandler
 }
 
 NSS_IMPLEMENT NSSCertificateMethods *
-nss_GetMethodsForType
-(
+nss_GetMethodsForType (
   NSSCertificateType certType
 )
 {

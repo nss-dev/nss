@@ -85,8 +85,7 @@ decode_me(NSSPKIXValidity *validity)
 }
 
 static NSSPKIXValidity *
-create_me
-(
+create_me (
   NSSArena *arenaOpt
 )
 {
@@ -138,8 +137,7 @@ loser:
 }
 
 NSS_IMPLEMENT NSSPKIXValidity *
-nssPKIXValidity_Create
-(
+nssPKIXValidity_Create (
   NSSArena *arenaOpt,
   NSSPKIXTime *notBefore,
   NSSPKIXTime *notAfter
@@ -159,8 +157,7 @@ nssPKIXValidity_Create
 }
 
 NSS_IMPLEMENT void
-nssPKIXValidity_SetArena
-(
+nssPKIXValidity_SetArena (
   NSSPKIXValidity *validity,
   NSSArena *arena
 )
@@ -171,8 +168,7 @@ nssPKIXValidity_SetArena
 }
 
 NSS_IMPLEMENT NSSPKIXValidity *
-nssPKIXValidity_Decode
-(
+nssPKIXValidity_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 )
@@ -204,8 +200,7 @@ loser:
 }
 
 NSS_IMPLEMENT PRStatus
-nssPKIXValidity_Destroy
-(
+nssPKIXValidity_Destroy (
   NSSPKIXValidity *validity
 )
 {
@@ -216,8 +211,7 @@ nssPKIXValidity_Destroy
 }
 
 NSS_IMPLEMENT NSSBER *
-nssPKIXValidity_Encode
-(
+nssPKIXValidity_Encode (
   NSSPKIXValidity *validity,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -242,8 +236,7 @@ nssPKIXValidity_Encode
 }
 
 NSS_IMPLEMENT PRBool
-nssPKIXValidity_Equal
-(
+nssPKIXValidity_Equal (
   NSSPKIXValidity *one,
   NSSPKIXValidity *two,
   PRStatus *statusOpt
@@ -275,8 +268,7 @@ nssPKIXValidity_Equal
 }
 
 NSS_IMPLEMENT PRStatus
-nssPKIXValidity_duplicate
-(
+nssPKIXValidity_duplicate (
   NSSPKIXValidity *validity,
   NSSArena *arena,
   NSSPKIXValidity *copy
@@ -301,8 +293,7 @@ nssPKIXValidity_duplicate
 }
 
 NSS_IMPLEMENT NSSPKIXValidity *
-nssPKIXValidity_Duplicate
-(
+nssPKIXValidity_Duplicate (
   NSSPKIXValidity *validity,
   NSSArena *arenaOpt
 )
@@ -322,8 +313,7 @@ nssPKIXValidity_Duplicate
 }
 
 NSS_IMPLEMENT NSSPKIXTime *
-nssPKIXValidity_GetNotBefore
-(
+nssPKIXValidity_GetNotBefore (
   NSSPKIXValidity *validity
 )
 {
@@ -338,8 +328,7 @@ nssPKIXValidity_GetNotBefore
 }
 
 NSS_IMPLEMENT NSSPKIXTime *
-nssPKIXValidity_GetNotAfter
-(
+nssPKIXValidity_GetNotAfter (
   NSSPKIXValidity *validity
 )
 {
@@ -370,8 +359,7 @@ nssPKIXValidity_GetNotAfter
  */
 
 NSS_IMPLEMENT NSSPKIXValidity *
-NSSPKIXValidity_Create
-(
+NSSPKIXValidity_Create (
   NSSArena *arenaOpt,
   NSSPKIXTime *notBefore,
   NSSPKIXTime *notAfter
@@ -398,8 +386,7 @@ NSSPKIXValidity_Create
  */
 
 NSS_IMPLEMENT NSSPKIXValidity *
-NSSPKIXValidity_Decode
-(
+NSSPKIXValidity_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 )
@@ -415,8 +402,7 @@ NSSPKIXValidity_Decode
  */
 
 NSS_IMPLEMENT PRStatus
-NSSPKIXValidity_Destroy
-(
+NSSPKIXValidity_Destroy (
   NSSPKIXValidity *validity
 )
 {
@@ -431,8 +417,7 @@ NSSPKIXValidity_Destroy
  */
 
 NSS_IMPLEMENT NSSPKIXValidity *
-NSSPKIXValidity_Duplicate
-(
+NSSPKIXValidity_Duplicate (
   NSSPKIXValidity *validity,
   NSSArena *arenaOpt
 )
@@ -448,8 +433,7 @@ NSSPKIXValidity_Duplicate
  */
 
 NSS_IMPLEMENT NSSBER *
-NSSPKIXValidity_Encode
-(
+NSSPKIXValidity_Encode (
   NSSPKIXValidity *validity,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -469,8 +453,7 @@ NSSPKIXValidity_Encode
 }
 
 NSS_IMPLEMENT NSSPKIXTime *
-NSSPKIXValidity_GetNotBefore
-(
+NSSPKIXValidity_GetNotBefore (
   NSSPKIXValidity *validity
 )
 {
@@ -478,8 +461,7 @@ NSSPKIXValidity_GetNotBefore
 }
 
 NSS_IMPLEMENT NSSPKIXTime *
-NSSPKIXValidity_GetNotAfter
-(
+NSSPKIXValidity_GetNotAfter (
   NSSPKIXValidity *validity
 )
 {

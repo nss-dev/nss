@@ -88,8 +88,7 @@ decode_me(NSSPKIXSubjectPublicKeyInfo *spki)
 }
 
 static NSSPKIXSubjectPublicKeyInfo *
-create_me
-(
+create_me (
   NSSArena *arenaOpt
 )
 {
@@ -142,8 +141,7 @@ loser:
 
 #if 0
 NSS_IMPLEMENT NSSPKIXSubjectPublicKeyInfo *
-nssPKIXSubjectPublicKeyInfo_Create
-(
+nssPKIXSubjectPublicKeyInfo_Create (
   NSSArena *arenaOpt,
   NSSOID *extnID,
   PRBool critical,
@@ -168,8 +166,7 @@ nssPKIXSubjectPublicKeyInfo_Create
 #endif
 
 NSS_IMPLEMENT NSSPKIXSubjectPublicKeyInfo *
-nssPKIXSubjectPublicKeyInfo_Decode
-(
+nssPKIXSubjectPublicKeyInfo_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 )
@@ -199,8 +196,7 @@ loser:
 }
 
 NSS_IMPLEMENT PRStatus
-nssPKIXSubjectPublicKeyInfo_Destroy
-(
+nssPKIXSubjectPublicKeyInfo_Destroy (
   NSSPKIXSubjectPublicKeyInfo *spki
 )
 {
@@ -211,8 +207,7 @@ nssPKIXSubjectPublicKeyInfo_Destroy
 }
 
 NSS_IMPLEMENT NSSBER *
-nssPKIXSubjectPublicKeyInfo_Encode
-(
+nssPKIXSubjectPublicKeyInfo_Encode (
   NSSPKIXSubjectPublicKeyInfo *spki,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -238,8 +233,7 @@ nssPKIXSubjectPublicKeyInfo_Encode
 
 #if 0
 NSS_IMPLEMENT PRBool
-nssPKIXSubjectPublicKeyInfo_Equal
-(
+nssPKIXSubjectPublicKeyInfo_Equal (
   NSSPKIXSubjectPublicKeyInfo *one,
   NSSPKIXSubjectPublicKeyInfo *two,
   PRStatus *statusOpt
@@ -267,8 +261,7 @@ nssPKIXSubjectPublicKeyInfo_Equal
 }
 
 NSS_IMPLEMENT PRStatus
-nssPKIXSubjectPublicKeyInfo_duplicate
-(
+nssPKIXSubjectPublicKeyInfo_duplicate (
   NSSPKIXSubjectPublicKeyInfo *spki,
   NSSArena *arena,
   NSSPKIXSubjectPublicKeyInfo *copy
@@ -303,8 +296,7 @@ nssPKIXSubjectPublicKeyInfo_duplicate
 }
 
 NSS_IMPLEMENT NSSPKIXSubjectPublicKeyInfo *
-nssPKIXSubjectPublicKeyInfo_Duplicate
-(
+nssPKIXSubjectPublicKeyInfo_Duplicate (
   NSSPKIXSubjectPublicKeyInfo *spki,
   NSSArena *arenaOpt
 )
@@ -325,8 +317,7 @@ nssPKIXSubjectPublicKeyInfo_Duplicate
 #endif
 
 NSS_IMPLEMENT NSSPKIXAlgorithmIdentifier *
-nssPKIXSubjectPublicKeyInfo_GetAlgorithm
-(
+nssPKIXSubjectPublicKeyInfo_GetAlgorithm (
   NSSPKIXSubjectPublicKeyInfo *spki
 )
 {
@@ -341,8 +332,7 @@ nssPKIXSubjectPublicKeyInfo_GetAlgorithm
 }
 
 NSS_IMPLEMENT NSSBitString *
-nssPKIXSubjectPublicKeyInfo_GetSubjectPublicKey
-(
+nssPKIXSubjectPublicKeyInfo_GetSubjectPublicKey (
   NSSPKIXSubjectPublicKeyInfo *spki
 )
 {
@@ -374,8 +364,7 @@ nssPKIXSubjectPublicKeyInfo_GetSubjectPublicKey
 
 #if 0
 NSS_IMPLEMENT NSSPKIXSubjectPublicKeyInfo *
-NSSPKIXSubjectPublicKeyInfo_Create
-(
+NSSPKIXSubjectPublicKeyInfo_Create (
   NSSArena *arenaOpt,
   NSSOID *extnID,
   PRBool critical,
@@ -404,8 +393,7 @@ NSSPKIXSubjectPublicKeyInfo_Create
  */
 
 NSS_IMPLEMENT NSSPKIXSubjectPublicKeyInfo *
-NSSPKIXSubjectPublicKeyInfo_Decode
-(
+NSSPKIXSubjectPublicKeyInfo_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 )
@@ -421,8 +409,7 @@ NSSPKIXSubjectPublicKeyInfo_Decode
  */
 
 NSS_IMPLEMENT PRStatus
-NSSPKIXSubjectPublicKeyInfo_Destroy
-(
+NSSPKIXSubjectPublicKeyInfo_Destroy (
   NSSPKIXSubjectPublicKeyInfo *spki
 )
 {
@@ -438,8 +425,7 @@ NSSPKIXSubjectPublicKeyInfo_Destroy
 
 #if 0
 NSS_IMPLEMENT NSSPKIXSubjectPublicKeyInfo *
-NSSPKIXSubjectPublicKeyInfo_Duplicate
-(
+NSSPKIXSubjectPublicKeyInfo_Duplicate (
   NSSPKIXSubjectPublicKeyInfo *spki,
   NSSArena *arenaOpt
 )
@@ -456,8 +442,7 @@ NSSPKIXSubjectPublicKeyInfo_Duplicate
  */
 
 NSS_IMPLEMENT NSSBER *
-NSSPKIXSubjectPublicKeyInfo_Encode
-(
+NSSPKIXSubjectPublicKeyInfo_Encode (
   NSSPKIXSubjectPublicKeyInfo *spki,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -477,8 +462,7 @@ NSSPKIXSubjectPublicKeyInfo_Encode
 }
 
 NSS_IMPLEMENT NSSPKIXAlgorithmIdentifier *
-NSSPKIXSubjectPublicKeyInfo_GetAlgorithm
-(
+NSSPKIXSubjectPublicKeyInfo_GetAlgorithm (
   NSSPKIXSubjectPublicKeyInfo *spki
 )
 {
@@ -486,8 +470,7 @@ NSSPKIXSubjectPublicKeyInfo_GetAlgorithm
 }
 
 NSS_IMPLEMENT NSSBitString *
-NSSPKIXSubjectPublicKeyInfo_GetSubjectPublicKey
-(
+NSSPKIXSubjectPublicKeyInfo_GetSubjectPublicKey (
   NSSPKIXSubjectPublicKeyInfo *spki
 )
 {

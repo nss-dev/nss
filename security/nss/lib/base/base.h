@@ -114,8 +114,7 @@ PR_BEGIN_EXTERN_C
  */
 
 NSS_EXTERN NSSArena *
-nssArena_Create
-(
+nssArena_Create (
   void
 );
 
@@ -136,8 +135,7 @@ nssArena_Create
  */
 
 NSS_EXTERN PRStatus
-nssArena_Destroy
-(
+nssArena_Destroy (
   NSSArena *arena
 );
 
@@ -163,8 +161,7 @@ nssArena_Destroy
  */
 
 NSS_EXTERN nssArenaMark *
-nssArena_Mark
-(
+nssArena_Mark (
   NSSArena *arena
 );
 
@@ -188,8 +185,7 @@ nssArena_Mark
  */
 
 NSS_EXTERN PRStatus
-nssArena_Release
-(
+nssArena_Release (
   NSSArena *arena,
   nssArenaMark *arenaMark
 );
@@ -217,8 +213,7 @@ nssArena_Release
  */
 
 NSS_EXTERN PRStatus
-nssArena_Unmark
-(
+nssArena_Unmark (
   NSSArena *arena,
   nssArenaMark *arenaMark
 );
@@ -252,8 +247,7 @@ nssArena_Unmark
  */
 
 NSS_EXTERN PRStatus
-nssArena_registerDestructor
-(
+nssArena_registerDestructor (
   NSSArena *arena,
   void (*destructor)(void *argument),
   void *arg
@@ -279,8 +273,7 @@ nssArena_registerDestructor
  */
 
 NSS_EXTERN PRStatus
-nssArena_deregisterDestructor
-(
+nssArena_deregisterDestructor (
   NSSArena *arena,
   void (*destructor)(void *argument),
   void *arg
@@ -312,8 +305,7 @@ nssArena_deregisterDestructor
  */
 
 NSS_EXTERN void *
-nss_ZAlloc
-(
+nss_ZAlloc (
   NSSArena *arenaOpt,
   PRUint32 size
 );
@@ -337,8 +329,7 @@ nss_ZAlloc
  */
 
 NSS_EXTERN PRStatus
-nss_ZFreeIf
-(
+nss_ZFreeIf (
   void *pointer
 );
 
@@ -363,8 +354,7 @@ nss_ZFreeIf
  */
 
 NSS_EXTERN void *
-nss_ZRealloc
-(
+nss_ZRealloc (
   void *pointer,
   PRUint32 newSize
 );
@@ -465,8 +455,7 @@ NSS_EXTERN_DATA PLHashAllocOps nssArenaHashAllocOps;
  */
 
 NSS_EXTERN void
-nss_SetError
-(
+nss_SetError (
   PRUint32 error
 );
 
@@ -477,20 +466,17 @@ nss_SetError
  */
 
 NSS_EXTERN void
-nss_ClearErrorStack
-(
+nss_ClearErrorStack (
   void
 );
 
 NSS_EXTERN PRStatus
-nss_HoldErrorStack
-(
+nss_HoldErrorStack (
   void
 );
 
 NSS_EXTERN PRStatus
-nss_ResumeErrorStack
-(
+nss_ResumeErrorStack (
   void
 );
 
@@ -503,8 +489,7 @@ nss_ResumeErrorStack
  */
 
 NSS_EXTERN NSSItem *
-nssItem_Create
-(
+nssItem_Create (
   NSSArena *arenaOpt,
   NSSItem *rvOpt,
   PRUint32 length,
@@ -512,22 +497,19 @@ nssItem_Create
 );
 
 NSS_EXTERN void
-nssItem_Destroy
-(
+nssItem_Destroy (
   NSSItem *item
 );
 
 NSS_EXTERN NSSItem *
-nssItem_Duplicate
-(
+nssItem_Duplicate (
   NSSItem *obj,
   NSSArena *arenaOpt,
   NSSItem *rvOpt
 );
 
 NSS_EXTERN PRBool
-nssItem_Equal
-(
+nssItem_Equal (
   const NSSItem *one,
   const NSSItem *two,
   PRStatus *statusOpt
@@ -559,8 +541,7 @@ nssItem_Equal
  */
 
 NSS_EXTERN PRBool
-nssUTF8_CaseIgnoreMatch
-(
+nssUTF8_CaseIgnoreMatch (
   const NSSUTF8 *a,
   const NSSUTF8 *b,
   PRStatus *statusOpt
@@ -584,8 +565,7 @@ nssUTF8_CaseIgnoreMatch
  */
 
 NSS_EXTERN NSSUTF8 *
-nssUTF8_Duplicate
-(
+nssUTF8_Duplicate (
   const NSSUTF8 *s,
   NSSArena *arenaOpt
 );
@@ -613,8 +593,7 @@ nssUTF8_Duplicate
  */
 
 NSS_EXTERN PRBool
-nssUTF8_PrintableMatch
-(
+nssUTF8_PrintableMatch (
   const NSSUTF8 *a,
   const NSSUTF8 *b,
   PRStatus *statusOpt
@@ -637,8 +616,7 @@ nssUTF8_PrintableMatch
  */
 
 NSS_EXTERN PRUint32
-nssUTF8_Size
-(
+nssUTF8_Size (
   const NSSUTF8 *s,
   PRStatus *statusOpt
 );
@@ -661,8 +639,7 @@ nssUTF8_Size
  */
 
 NSS_EXTERN PRUint32
-nssUTF8_Length
-(
+nssUTF8_Length (
   const NSSUTF8 *s,
   PRStatus *statusOpt
 );
@@ -691,8 +668,7 @@ nssUTF8_Length
  */
 
 NSS_EXTERN NSSUTF8 *
-nssUTF8_Create
-(
+nssUTF8_Create (
   NSSArena *arenaOpt,
   nssStringType type,
   const void *inputString,
@@ -700,8 +676,7 @@ nssUTF8_Create
 );
 
 NSS_EXTERN NSSItem *
-nssUTF8_GetEncoding
-(
+nssUTF8_GetEncoding (
   NSSArena *arenaOpt,
   NSSItem *rvOpt,
   nssStringType type,
@@ -720,8 +695,7 @@ nssUTF8_GetEncoding
  */
 
 NSS_EXTERN PRStatus
-nssUTF8_CopyIntoFixedBuffer
-(
+nssUTF8_CopyIntoFixedBuffer (
   NSSUTF8 *string,
   char *buffer,
   PRUint32 bufferSize,
@@ -734,8 +708,7 @@ nssUTF8_CopyIntoFixedBuffer
  */
 
 NSS_EXTERN PRBool
-nssUTF8_Equal
-(
+nssUTF8_Equal (
   const NSSUTF8 *a,
   const NSSUTF8 *b,
   PRStatus *statusOpt
@@ -760,8 +733,7 @@ nssUTF8_Equal
  */
 
 NSS_EXTERN nssHash *
-nssHash_Create
-(
+nssHash_Create (
   NSSArena *arenaOpt,
   PRUint32 numBuckets,
   PLHashFunction keyHash,
@@ -770,22 +742,19 @@ nssHash_Create
 );
 
 NSS_EXTERN nssHash *
-nssHash_CreatePointer
-(
+nssHash_CreatePointer (
   NSSArena *arenaOpt,
   PRUint32 numBuckets
 );
 
 NSS_EXTERN nssHash *
-nssHash_CreateString
-(
+nssHash_CreateString (
   NSSArena *arenaOpt,
   PRUint32 numBuckets
 );
 
 NSS_EXTERN nssHash *
-nssHash_CreateItem
-(
+nssHash_CreateItem (
   NSSArena *arenaOpt,
   PRUint32 numBuckets
 );
@@ -795,8 +764,7 @@ nssHash_CreateItem
  *
  */
 NSS_EXTERN void
-nssHash_Destroy
-(
+nssHash_Destroy (
   nssHash *hash
 );
 
@@ -806,8 +774,7 @@ nssHash_Destroy
  */
 
 NSS_EXTERN PRStatus
-nssHash_Add
-(
+nssHash_Add (
   nssHash *hash,
   const void *key,
   const void *value
@@ -818,8 +785,7 @@ nssHash_Add
  *
  */
 NSS_EXTERN void
-nssHash_Remove
-(
+nssHash_Remove (
   nssHash *hash,
   const void *it
 );
@@ -829,8 +795,7 @@ nssHash_Remove
  *
  */
 NSS_EXTERN PRUint32
-nssHash_Count
-(
+nssHash_Count (
   nssHash *hash
 );
 
@@ -839,8 +804,7 @@ nssHash_Count
  *
  */
 NSS_EXTERN PRBool
-nssHash_Exists
-(
+nssHash_Exists (
   nssHash *hash,
   const void *it
 );
@@ -850,8 +814,7 @@ nssHash_Exists
  *
  */
 NSS_EXTERN void *
-nssHash_Lookup
-(
+nssHash_Lookup (
   nssHash *hash,
   const void *it
 );
@@ -861,8 +824,7 @@ nssHash_Lookup
  *
  */
 NSS_EXTERN void
-nssHash_Iterate
-(
+nssHash_Iterate (
   nssHash *hash,
   nssHashIterator fcn,
   void *closure
@@ -888,8 +850,7 @@ nssHash_Iterate
  */
 
 NSS_EXTERN void *
-nsslibc_memcpy
-(
+nsslibc_memcpy (
   void *dest,
   const void *source,
   PRUint32 n
@@ -907,8 +868,7 @@ nsslibc_memcpy
  */
 
 NSS_EXTERN void *
-nsslibc_memset
-(
+nsslibc_memset (
   void *dest,
   PRUint8 byte,
   PRUint32 n
@@ -927,8 +887,7 @@ nsslibc_memset
  */
 
 NSS_EXTERN PRBool
-nsslibc_memequal
-(
+nsslibc_memequal (
   const void *a,
   const void *b,
   PRUint32 len,
@@ -943,8 +902,7 @@ nsslibc_memequal
  */
 
 NSS_EXTERN PRStatus
-nss_NewThreadPrivateIndex
-(
+nss_NewThreadPrivateIndex (
   PRUintn *ip,
   PRThreadPrivateDTOR dtor
 );
@@ -955,8 +913,7 @@ nss_NewThreadPrivateIndex
  */
 
 NSS_EXTERN void *
-nss_GetThreadPrivate
-(
+nss_GetThreadPrivate (
   PRUintn i
 );
 
@@ -966,8 +923,7 @@ nss_GetThreadPrivate
  */
 
 NSS_EXTERN void
-nss_SetThreadPrivate
-(
+nss_SetThreadPrivate (
   PRUintn i,
   void *v
 );

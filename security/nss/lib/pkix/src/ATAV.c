@@ -52,8 +52,7 @@ const NSSASN1Template nssPKIXATAV_template[] = {
 };
 
 NSS_IMPLEMENT PRStatus
-nss_pkix_AttributeTypeAndValue_Clear
-(
+nss_pkix_AttributeTypeAndValue_Clear (
   NSSPKIXATAV *atav
 )
 {
@@ -69,8 +68,7 @@ nss_pkix_AttributeTypeAndValue_Clear
 }
 
 NSS_IMPLEMENT NSSPKIXATAV *
-nssPKIXATAV_Create
-(
+nssPKIXATAV_Create (
   NSSArena *arenaOpt,
   NSSPKIXAttributeType *typeOid,
   NSSPKIXAttributeValue *value
@@ -147,8 +145,7 @@ nssPKIXATAV_Create
 }
 
 NSS_IMPLEMENT NSSPKIXATAV *
-nssPKIXATAV_CreateFromUTF8
-(
+nssPKIXATAV_CreateFromUTF8 (
   NSSArena *arenaOpt,
   NSSUTF8 *string
 )
@@ -226,8 +223,7 @@ nssPKIXATAV_CreateFromUTF8
  */
 
 NSS_IMPLEMENT NSSPKIXATAV *
-nssPKIXATAV_Decode
-(
+nssPKIXATAV_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 )
@@ -292,8 +288,7 @@ nssPKIXATAV_Decode
 }
 
 NSS_IMPLEMENT PRStatus
-nssPKIXATAV_Destroy
-(
+nssPKIXATAV_Destroy (
   NSSPKIXATAV *atav
 )
 {
@@ -305,8 +300,7 @@ nssPKIXATAV_Destroy
 }
 
 NSS_IMPLEMENT NSSPKIXATAV *
-nssPKIXATAV_Duplicate
-(
+nssPKIXATAV_Duplicate (
   NSSPKIXATAV *atav,
   NSSArena *arenaOpt
 )
@@ -397,8 +391,7 @@ nssPKIXATAV_Duplicate
 }
 
 NSS_EXTERN NSSBER *
-nssPKIXATAV_Encode
-(
+nssPKIXATAV_Encode (
   NSSPKIXATAV *atav,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -433,8 +426,7 @@ nssPKIXATAV_Encode
 }
 
 NSS_IMPLEMENT PRBool
-nssPKIXATAV_Equal
-(
+nssPKIXATAV_Equal (
   NSSPKIXATAV *atav1,
   NSSPKIXATAV *atav2,
   PRStatus *statusOpt
@@ -464,8 +456,7 @@ nssPKIXATAV_Equal
 }
 
 NSS_IMPLEMENT NSSPKIXAttributeType *
-nssPKIXATAV_GetType
-(
+nssPKIXATAV_GetType (
   NSSPKIXATAV *atav
 )
 {
@@ -486,8 +477,7 @@ nssPKIXATAV_GetType
 }
 
 NSS_IMPLEMENT NSSUTF8 *
-nssPKIXATAV_GetUTF8Encoding
-(
+nssPKIXATAV_GetUTF8Encoding (
   NSSPKIXATAV *atav,
   NSSArena *arenaOpt
 )
@@ -501,8 +491,7 @@ nssPKIXATAV_GetUTF8Encoding
 }
 
 NSS_EXTERN NSSPKIXAttributeValue *
-nssPKIXATAV_GetValue
-(
+nssPKIXATAV_GetValue (
   NSSPKIXATAV *atav,
   NSSPKIXAttributeValue *rvOpt,
   NSSArena *arenaOpt
@@ -517,8 +506,7 @@ nssPKIXATAV_GetValue
 }
 
 NSS_EXTERN PRStatus
-nssPKIXATAV_SetType
-(
+nssPKIXATAV_SetType (
   NSSPKIXATAV *atav,
   NSSPKIXAttributeType *attributeType
 )
@@ -541,8 +529,7 @@ nssPKIXATAV_SetType
 }
 
 NSS_IMPLEMENT PRStatus
-nssPKIXATAV_SetValue
-(
+nssPKIXATAV_SetValue (
   NSSPKIXATAV *atav,
   NSSPKIXAttributeValue *value
 )
@@ -561,8 +548,7 @@ nssPKIXATAV_SetValue
 }
 
 NSS_IMPLEMENT NSSPKIXATAV *
-NSSPKIXATAV_Create
-(
+NSSPKIXATAV_Create (
   NSSArena *arenaOpt,
   NSSPKIXAttributeType *typeOid,
   NSSPKIXAttributeValue *value
@@ -574,8 +560,7 @@ NSSPKIXATAV_Create
 }
 
 NSS_IMPLEMENT NSSPKIXATAV *
-NSSPKIXATAV_CreateFromUTF8
-(
+NSSPKIXATAV_CreateFromUTF8 (
   NSSArena *arenaOpt,
   NSSUTF8 *string
 )
@@ -586,8 +571,7 @@ NSSPKIXATAV_CreateFromUTF8
 }
 
 NSS_IMPLEMENT NSSPKIXATAV *
-NSSPKIXATAV_Decode
-(
+NSSPKIXATAV_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 )
@@ -598,8 +582,7 @@ NSSPKIXATAV_Decode
 }
 
 NSS_IMPLEMENT PRStatus
-NSSPKIXATAV_Destroy
-(
+NSSPKIXATAV_Destroy (
   NSSPKIXATAV *atav
 )
 {
@@ -609,8 +592,7 @@ NSSPKIXATAV_Destroy
 }
 
 NSS_IMPLEMENT NSSPKIXATAV *
-NSSPKIXATAV_Duplicate
-(
+NSSPKIXATAV_Duplicate (
   NSSPKIXATAV *atav,
   NSSArena *arenaOpt
 )
@@ -621,8 +603,7 @@ NSSPKIXATAV_Duplicate
 }
 
 NSS_IMPLEMENT NSSBER *
-NSSPKIXATAV_Encode
-(
+NSSPKIXATAV_Encode (
   NSSPKIXATAV *atav,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -635,8 +616,7 @@ NSSPKIXATAV_Encode
 }
 
 NSS_IMPLEMENT PRBool
-NSSPKIXATAV_Equal
-(
+NSSPKIXATAV_Equal (
   NSSPKIXATAV *atav1,
   NSSPKIXATAV *atav2,
   PRStatus *statusOpt
@@ -648,8 +628,7 @@ NSSPKIXATAV_Equal
 }
 
 NSS_IMPLEMENT NSSPKIXAttributeType *
-NSSPKIXATAV_GetType
-(
+NSSPKIXATAV_GetType (
   NSSPKIXATAV *atav
 )
 {
@@ -659,8 +638,7 @@ NSSPKIXATAV_GetType
 }
 
 NSS_IMPLEMENT NSSUTF8 *
-NSSPKIXATAV_GetUTF8Encoding
-(
+NSSPKIXATAV_GetUTF8Encoding (
   NSSPKIXATAV *atav,
   NSSArena *arenaOpt
 )
@@ -671,8 +649,7 @@ NSSPKIXATAV_GetUTF8Encoding
 }
 
 NSS_IMPLEMENT NSSPKIXAttributeValue *
-NSSPKIXATAV_GetValue
-(
+NSSPKIXATAV_GetValue (
   NSSPKIXATAV *atav,
   NSSPKIXAttributeValue *itemOpt,
   NSSArena *arenaOpt
@@ -684,8 +661,7 @@ NSSPKIXATAV_GetValue
 }
 
 NSS_IMPLEMENT PRStatus
-NSSPKIXATAV_SetType
-(
+NSSPKIXATAV_SetType (
   NSSPKIXATAV *atav,
   NSSPKIXAttributeType *attributeType
 )
@@ -696,8 +672,7 @@ NSSPKIXATAV_SetType
 }
 
 NSS_IMPLEMENT PRStatus
-NSSPKIXATAV_SetValue
-(
+NSSPKIXATAV_SetValue (
   NSSPKIXATAV *atav,
   NSSPKIXAttributeValue *value
 )

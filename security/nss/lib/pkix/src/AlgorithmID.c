@@ -66,8 +66,7 @@ decode_me(NSSPKIXAlgorithmIdentifier *algid)
 }
 
 NSS_IMPLEMENT PRStatus
-nss_pkix_AlgorithmIdentifier_Clear
-(
+nss_pkix_AlgorithmIdentifier_Clear (
   NSSPKIXAlgorithmIdentifier *algid
 )
 {
@@ -76,8 +75,7 @@ nss_pkix_AlgorithmIdentifier_Clear
 }
 
 NSS_IMPLEMENT NSSPKIXAlgorithmIdentifier *
-nssPKIXAlgorithmIdentifier_Create
-(
+nssPKIXAlgorithmIdentifier_Create (
   NSSArena *arenaOpt,
   NSSOID *algorithm,
   NSSItem *parameters
@@ -139,8 +137,7 @@ nssPKIXAlgorithmIdentifier_Create
 }
 
 NSS_IMPLEMENT NSSPKIXAlgorithmIdentifier *
-nssPKIXAlgorithmIdentifier_Decode
-(
+nssPKIXAlgorithmIdentifier_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 )
@@ -201,8 +198,7 @@ nssPKIXAlgorithmIdentifier_Decode
 }
 
 NSS_IMPLEMENT PRStatus
-nssPKIXAlgorithmIdentifier_Destroy
-(
+nssPKIXAlgorithmIdentifier_Destroy (
   NSSPKIXAlgorithmIdentifier *algid
 )
 {
@@ -214,8 +210,7 @@ nssPKIXAlgorithmIdentifier_Destroy
 }
 
 NSS_IMPLEMENT NSSPKIXAlgorithmIdentifier *
-nssPKIXAlgorithmIdentifier_Duplicate
-(
+nssPKIXAlgorithmIdentifier_Duplicate (
   NSSPKIXAlgorithmIdentifier *algid,
   NSSArena *arenaOpt
 )
@@ -282,8 +277,7 @@ nssPKIXAlgorithmIdentifier_Duplicate
 }
 
 NSS_IMPLEMENT NSSBER *
-nssPKIXAlgorithmIdentifier_Encode
-(
+nssPKIXAlgorithmIdentifier_Encode (
   NSSPKIXAlgorithmIdentifier *algid,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -328,8 +322,7 @@ nssPKIXAlgorithmIdentifier_Encode
 }
 
 NSS_IMPLEMENT PRBool
-nssPKIXAlgorithmIdentifier_Equal
-(
+nssPKIXAlgorithmIdentifier_Equal (
   NSSPKIXAlgorithmIdentifier *algid1,
   NSSPKIXAlgorithmIdentifier *algid2,
   PRStatus *statusOpt
@@ -349,8 +342,7 @@ nssPKIXAlgorithmIdentifier_Equal
 }
 
 NSS_IMPLEMENT NSSOID *
-nssPKIXAlgorithmIdentifier_GetAlgorithm
-(
+nssPKIXAlgorithmIdentifier_GetAlgorithm (
   NSSPKIXAlgorithmIdentifier *algid
 )
 {
@@ -365,8 +357,7 @@ nssPKIXAlgorithmIdentifier_GetAlgorithm
 }
 
 NSS_IMPLEMENT NSSItem *
-nssPKIXAlgorithmIdentifier_GetParameters
-(
+nssPKIXAlgorithmIdentifier_GetParameters (
   NSSPKIXAlgorithmIdentifier *algid
 )
 {
@@ -381,8 +372,7 @@ nssPKIXAlgorithmIdentifier_GetParameters
 }
 
 NSS_IMPLEMENT PRStatus
-nssPKIXAlgorithmIdentifier_SetAlgorithm
-(
+nssPKIXAlgorithmIdentifier_SetAlgorithm (
   NSSPKIXAlgorithmIdentifier *algid,
   NSSOID *algorithm
 )
@@ -394,8 +384,7 @@ nssPKIXAlgorithmIdentifier_SetAlgorithm
 }
 
 NSS_IMPLEMENT PRStatus
-nssPKIXAlgorithmIdentifier_SetParameters
-(
+nssPKIXAlgorithmIdentifier_SetParameters (
   NSSPKIXAlgorithmIdentifier *algid,
   NSSItem *parameters
 )
@@ -405,8 +394,7 @@ nssPKIXAlgorithmIdentifier_SetParameters
 }
 
 NSS_IMPLEMENT PRStatus
-NSSPKIXAlgorithmIdentifier_SetAlgorithm
-(
+NSSPKIXAlgorithmIdentifier_SetAlgorithm (
   NSSPKIXAlgorithmIdentifier *algid,
   NSSOID *algorithm
 )
@@ -417,8 +405,7 @@ NSSPKIXAlgorithmIdentifier_SetAlgorithm
 }
 
 NSS_IMPLEMENT PRStatus
-NSSPKIXAlgorithmIdentifier_SetParameters
-(
+NSSPKIXAlgorithmIdentifier_SetParameters (
   NSSPKIXAlgorithmIdentifier *algid,
   NSSItem *parameters
 )
@@ -429,8 +416,7 @@ NSSPKIXAlgorithmIdentifier_SetParameters
 }
 
 NSS_IMPLEMENT NSSPKIXAlgorithmIdentifier *
-NSSPKIXAlgorithmIdentifier_Create
-(
+NSSPKIXAlgorithmIdentifier_Create (
   NSSArena *arenaOpt,
   NSSOID *algorithm,
   NSSItem *parameters
@@ -442,8 +428,7 @@ NSSPKIXAlgorithmIdentifier_Create
 }
 
 NSS_IMPLEMENT NSSPKIXAlgorithmIdentifier *
-NSSPKIXAlgorithmIdentifier_Decode
-(
+NSSPKIXAlgorithmIdentifier_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 )
@@ -454,8 +439,7 @@ NSSPKIXAlgorithmIdentifier_Decode
 }
 
 NSS_IMPLEMENT PRStatus
-NSSPKIXAlgorithmIdentifier_Destroy
-(
+NSSPKIXAlgorithmIdentifier_Destroy (
   NSSPKIXAlgorithmIdentifier *algid
 )
 {
@@ -466,8 +450,7 @@ NSSPKIXAlgorithmIdentifier_Destroy
 
 
 NSS_IMPLEMENT NSSPKIXAlgorithmIdentifier *
-NSSPKIXAlgorithmIdentifier_Duplicate
-(
+NSSPKIXAlgorithmIdentifier_Duplicate (
   NSSPKIXAlgorithmIdentifier *algid,
   NSSArena *arenaOpt
 )
@@ -478,8 +461,7 @@ NSSPKIXAlgorithmIdentifier_Duplicate
 }
 
 NSS_IMPLEMENT NSSBER *
-NSSPKIXAlgorithmIdentifier_Encode
-(
+NSSPKIXAlgorithmIdentifier_Encode (
   NSSPKIXAlgorithmIdentifier *algid,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -492,8 +474,7 @@ NSSPKIXAlgorithmIdentifier_Encode
 }
 
 NSS_IMPLEMENT PRBool
-NSSPKIXAlgorithmIdentifier_Equal
-(
+NSSPKIXAlgorithmIdentifier_Equal (
   NSSPKIXAlgorithmIdentifier *algid1,
   NSSPKIXAlgorithmIdentifier *algid2,
   PRStatus *statusOpt
@@ -505,8 +486,7 @@ NSSPKIXAlgorithmIdentifier_Equal
 }
 
 NSS_IMPLEMENT NSSOID *
-NSSPKIXAlgorithmIdentifier_GetAlgorithm
-(
+NSSPKIXAlgorithmIdentifier_GetAlgorithm (
   NSSPKIXAlgorithmIdentifier *algid
 )
 {
@@ -516,8 +496,7 @@ NSSPKIXAlgorithmIdentifier_GetAlgorithm
 }
 
 NSS_IMPLEMENT NSSItem *
-NSSPKIXAlgorithmIdentifier_GetParameters
-(
+NSSPKIXAlgorithmIdentifier_GetParameters (
   NSSPKIXAlgorithmIdentifier *algid
 )
 {

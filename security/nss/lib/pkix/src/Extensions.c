@@ -109,8 +109,7 @@ count_me(NSSPKIXExtensions *extensions)
 }
 
 static NSSPKIXExtensions *
-create_me
-(
+create_me (
   NSSArena *arenaOpt
 )
 {
@@ -162,8 +161,7 @@ loser:
 }
 
 NSS_IMPLEMENT NSSPKIXExtensions *
-nssPKIXExtensions_CreateFromArray
-(
+nssPKIXExtensions_CreateFromArray (
   NSSArena *arenaOpt,
   PRUint32 count,
   NSSPKIXExtension **extensions
@@ -183,8 +181,7 @@ nssPKIXExtensions_CreateFromArray
 }
 
 NSS_IMPLEMENT void
-nssPKIXExtensions_SetArena
-(
+nssPKIXExtensions_SetArena (
   NSSPKIXExtensions *extensions,
   NSSArena *arena
 )
@@ -193,8 +190,7 @@ nssPKIXExtensions_SetArena
 }
 
 NSS_IMPLEMENT NSSPKIXExtensions *
-nssPKIXExtensions_Decode
-(
+nssPKIXExtensions_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 )
@@ -226,8 +222,7 @@ loser:
 }
 
 NSS_IMPLEMENT PRStatus
-nssPKIXExtensions_Destroy
-(
+nssPKIXExtensions_Destroy (
   NSSPKIXExtensions *extensions
 )
 {
@@ -238,8 +233,7 @@ nssPKIXExtensions_Destroy
 }
 
 NSS_IMPLEMENT NSSBER *
-nssPKIXExtensions_Encode
-(
+nssPKIXExtensions_Encode (
   NSSPKIXExtensions *extensions,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -264,8 +258,7 @@ nssPKIXExtensions_Encode
 }
 
 NSS_IMPLEMENT PRBool
-nssPKIXExtensions_Equal
-(
+nssPKIXExtensions_Equal (
   NSSPKIXExtensions *one,
   NSSPKIXExtensions *two,
   PRStatus *statusOpt
@@ -294,8 +287,7 @@ nssPKIXExtensions_Equal
 }
 
 NSS_IMPLEMENT PRStatus
-nssPKIXExtensions_duplicate
-(
+nssPKIXExtensions_duplicate (
   NSSPKIXExtensions *extensions,
   NSSArena *arena,
   NSSPKIXExtensions *copy
@@ -315,8 +307,7 @@ nssPKIXExtensions_duplicate
 }
 
 NSS_IMPLEMENT NSSPKIXExtensions *
-nssPKIXExtensions_Duplicate
-(
+nssPKIXExtensions_Duplicate (
   NSSPKIXExtensions *extensions,
   NSSArena *arenaOpt
 )
@@ -336,8 +327,7 @@ nssPKIXExtensions_Duplicate
 }
 
 NSS_IMPLEMENT PRInt32
-nssPKIXExtensions_GetExtensionCount
-(
+nssPKIXExtensions_GetExtensionCount (
   NSSPKIXExtensions *extensions
 )
 {
@@ -348,8 +338,7 @@ nssPKIXExtensions_GetExtensionCount
 }
 
 NSS_IMPLEMENT NSSPKIXExtension *
-nssPKIXExtensions_GetExtension
-(
+nssPKIXExtensions_GetExtension (
   NSSPKIXExtensions *extensions,
   PRInt32 i
 )
@@ -369,8 +358,7 @@ nssPKIXExtensions_GetExtension
 }
 
 NSS_IMPLEMENT NSSPKIXBasicConstraints *
-nssPKIXExtensions_GetBasicConstraints
-(
+nssPKIXExtensions_GetBasicConstraints (
   NSSPKIXExtensions *extensions
 )
 {
@@ -402,8 +390,7 @@ nssPKIXExtensions_GetBasicConstraints
 }
 
 NSS_IMPLEMENT NSSPKIXKeyUsage *
-nssPKIXExtensions_GetKeyUsage
-(
+nssPKIXExtensions_GetKeyUsage (
   NSSPKIXExtensions *extensions
 )
 {
@@ -435,8 +422,7 @@ nssPKIXExtensions_GetKeyUsage
 }
 
 NSS_IMPLEMENT NSSPKIXAuthorityKeyIdentifier *
-nssPKIXExtensions_GetAuthorityKeyIdentifier
-(
+nssPKIXExtensions_GetAuthorityKeyIdentifier (
   NSSPKIXExtensions *extensions
 )
 {
@@ -468,8 +454,7 @@ nssPKIXExtensions_GetAuthorityKeyIdentifier
 }
 
 NSS_IMPLEMENT NSSPKIXKeyIdentifier *
-nssPKIXExtensions_GetSubjectKeyIdentifier
-(
+nssPKIXExtensions_GetSubjectKeyIdentifier (
   NSSPKIXExtensions *extensions
 )
 {
@@ -511,8 +496,7 @@ nssPKIXExtensions_GetSubjectKeyIdentifier
 }
 
 NSS_IMPLEMENT NSSPKIXnetscapeCertType *
-nssPKIXExtensions_GetNetscapeCertType
-(
+nssPKIXExtensions_GetNetscapeCertType (
   NSSPKIXExtensions *extensions
 )
 {
@@ -560,8 +544,7 @@ nssPKIXExtensions_GetNetscapeCertType
  */
 
 NSS_IMPLEMENT NSSPKIXExtensions *
-NSSPKIXExtensions_CreateFromArray
-(
+NSSPKIXExtensions_CreateFromArray (
   NSSArena *arenaOpt,
   PRUint32 count,
   NSSPKIXExtension **extensions
@@ -588,8 +571,7 @@ NSSPKIXExtensions_CreateFromArray
  */
 
 NSS_IMPLEMENT NSSPKIXExtensions *
-NSSPKIXExtensions_Decode
-(
+NSSPKIXExtensions_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 )
@@ -605,8 +587,7 @@ NSSPKIXExtensions_Decode
  */
 
 NSS_IMPLEMENT PRStatus
-NSSPKIXExtensions_Destroy
-(
+NSSPKIXExtensions_Destroy (
   NSSPKIXExtensions *extensions
 )
 {
@@ -621,8 +602,7 @@ NSSPKIXExtensions_Destroy
  */
 
 NSS_IMPLEMENT NSSPKIXExtensions *
-NSSPKIXExtensions_Duplicate
-(
+NSSPKIXExtensions_Duplicate (
   NSSPKIXExtensions *extensions,
   NSSArena *arenaOpt
 )
@@ -638,8 +618,7 @@ NSSPKIXExtensions_Duplicate
  */
 
 NSS_IMPLEMENT NSSBER *
-NSSPKIXExtensions_Encode
-(
+NSSPKIXExtensions_Encode (
   NSSPKIXExtensions *extensions,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -659,8 +638,7 @@ NSSPKIXExtensions_Encode
 }
 
 NSS_IMPLEMENT PRInt32
-NSSPKIXExtensions_GetExtensionCount
-(
+NSSPKIXExtensions_GetExtensionCount (
   NSSPKIXExtensions *extensions
 )
 {
@@ -668,8 +646,7 @@ NSSPKIXExtensions_GetExtensionCount
 }
 
 NSS_IMPLEMENT NSSPKIXKeyUsage *
-NSSPKIXExtensions_GetKeyUsage
-(
+NSSPKIXExtensions_GetKeyUsage (
   NSSPKIXExtensions *extensions
 )
 {
@@ -677,8 +654,7 @@ NSSPKIXExtensions_GetKeyUsage
 }
 
 NSS_IMPLEMENT NSSPKIXBasicConstraints *
-NSSPKIXExtensions_GetBasicConstraints
-(
+NSSPKIXExtensions_GetBasicConstraints (
   NSSPKIXExtensions *extensions
 )
 {
@@ -686,8 +662,7 @@ NSSPKIXExtensions_GetBasicConstraints
 }
 
 NSS_IMPLEMENT NSSPKIXAuthorityKeyIdentifier *
-NSSPKIXExtensions_GetAuthorityKeyIdentifier
-(
+NSSPKIXExtensions_GetAuthorityKeyIdentifier (
   NSSPKIXExtensions *extensions
 )
 {
@@ -695,8 +670,7 @@ NSSPKIXExtensions_GetAuthorityKeyIdentifier
 }
 
 NSS_IMPLEMENT NSSPKIXKeyIdentifier *
-NSSPKIXExtensions_GetSubjectKeyIdentifier
-(
+NSSPKIXExtensions_GetSubjectKeyIdentifier (
   NSSPKIXExtensions *extensions
 )
 {
@@ -704,8 +678,7 @@ NSSPKIXExtensions_GetSubjectKeyIdentifier
 }
 
 NSS_IMPLEMENT NSSPKIXnetscapeCertType *
-NSSPKIXExtensions_GetNetscapeCertType
-(
+NSSPKIXExtensions_GetNetscapeCertType (
   NSSPKIXExtensions *extensions
 )
 {

@@ -77,15 +77,13 @@ struct NSSCertificateStr
 
 
 NSS_EXTERN NSSCertificateMethods *
-nss_GetMethodsForType
-(
+nss_GetMethodsForType (
   NSSCertificateType certType
 );
 
 /* Creates a certificate from a base object */
 NSS_IMPLEMENT NSSCertificate *
-nssCertificate_Create
-(
+nssCertificate_Create (
   nssPKIObject *object
 )
 {
@@ -124,8 +122,7 @@ nssCertificate_Create
 }
 
 NSS_IMPLEMENT NSSCertificate *
-nssCertificate_Decode
-(
+nssCertificate_Decode (
   NSSBER *ber
 )
 {
@@ -194,8 +191,7 @@ loser:
 
 /* XXX */
 NSS_IMPLEMENT NSSCertificate *
-nssCertificate_CreateIndexCert
-(
+nssCertificate_CreateIndexCert (
   NSSDER *issuer,
   NSSDER *serial
 )
@@ -209,8 +205,7 @@ nssCertificate_CreateIndexCert
 }
 
 NSS_IMPLEMENT NSSCertificate *
-nssCertificate_AddRef
-(
+nssCertificate_AddRef (
   NSSCertificate *c
 )
 {
@@ -221,8 +216,7 @@ nssCertificate_AddRef
 }
 
 NSS_IMPLEMENT PRStatus
-nssCertificate_Destroy
-(
+nssCertificate_Destroy (
   NSSCertificate *c
 )
 {
@@ -241,8 +235,7 @@ nssCertificate_Destroy
 }
 
 NSS_IMPLEMENT PRStatus
-NSSCertificate_Destroy
-(
+NSSCertificate_Destroy (
   NSSCertificate *c
 )
 {
@@ -250,8 +243,7 @@ NSSCertificate_Destroy
 }
 
 NSS_IMPLEMENT PRUint32
-nssCertificate_Hash
-(
+nssCertificate_Hash (
   NSSCertificate *c
 )
 {
@@ -265,8 +257,7 @@ nssCertificate_Hash
 }
 
 NSS_IMPLEMENT NSSDER *
-nssCertificate_GetEncoding
-(
+nssCertificate_GetEncoding (
   NSSCertificate *c
 )
 {
@@ -278,8 +269,7 @@ nssCertificate_GetEncoding
 }
 
 NSS_IMPLEMENT NSSDER *
-nssCertificate_GetIssuer
-(
+nssCertificate_GetIssuer (
   NSSCertificate *c
 )
 {
@@ -291,8 +281,7 @@ nssCertificate_GetIssuer
 }
 
 NSS_IMPLEMENT NSSDER *
-nssCertificate_GetSerialNumber
-(
+nssCertificate_GetSerialNumber (
   NSSCertificate *c
 )
 {
@@ -304,8 +293,7 @@ nssCertificate_GetSerialNumber
 }
 
 NSS_IMPLEMENT NSSDER *
-nssCertificate_GetSubject
-(
+nssCertificate_GetSubject (
   NSSCertificate *c
 )
 {
@@ -317,8 +305,7 @@ nssCertificate_GetSubject
 }
 
 NSS_IMPLEMENT NSSUTF8 *
-nssCertificate_GetNickname
-(
+nssCertificate_GetNickname (
   NSSCertificate *c,
   NSSToken *tokenOpt
 )
@@ -327,8 +314,7 @@ nssCertificate_GetNickname
 }
 
 NSS_IMPLEMENT NSSToken *
-nssCertificate_GetWriteToken
-(
+nssCertificate_GetWriteToken (
   NSSCertificate *c,
   nssSession **rvSessionOpt
 )
@@ -337,8 +323,7 @@ nssCertificate_GetWriteToken
 }
 
 NSS_IMPLEMENT NSSUTF8 *
-NSSCertificate_GetNickname
-(
+NSSCertificate_GetNickname (
   NSSCertificate *c,
   NSSToken *tokenOpt
 )
@@ -347,8 +332,7 @@ NSSCertificate_GetNickname
 }
 
 NSS_IMPLEMENT NSSASCII7 *
-nssCertificate_GetEmailAddress
-(
+nssCertificate_GetEmailAddress (
   NSSCertificate *c
 )
 {
@@ -356,8 +340,7 @@ nssCertificate_GetEmailAddress
 }
 
 static nssCertDecoding *
-nssCertificate_GetDecoding
-(
+nssCertificate_GetDecoding (
   NSSCertificate *c
 )
 {
@@ -368,8 +351,7 @@ nssCertificate_GetDecoding
 }
 
 NSS_IMPLEMENT void *
-NSSCertificate_GetDecoding
-(
+NSSCertificate_GetDecoding (
   NSSCertificate *c
 )
 {
@@ -383,8 +365,7 @@ NSSCertificate_GetDecoding
 }
 
 NSS_EXTERN NSSCertificateType
-NSSCertificate_GetType
-(
+NSSCertificate_GetType (
   NSSCertificate *c
 )
 {
@@ -392,8 +373,7 @@ NSSCertificate_GetType
 }
 
 NSS_IMPLEMENT NSSUsages *
-nssCertificate_GetUsages
-(
+nssCertificate_GetUsages (
   NSSCertificate *c,
   PRStatus *statusOpt
 )
@@ -426,8 +406,7 @@ get_validity_period(nssCertDecoding *dc)
 
 /* XXX */
 NSS_IMPLEMENT PRBool
-nssCertificate_IsValidAtTime
-(
+nssCertificate_IsValidAtTime (
   NSSCertificate *c,
   NSSTime time,
   PRStatus *statusOpt
@@ -452,8 +431,7 @@ nssCertificate_IsValidAtTime
 /* XXX */
 /* note this isn't the same as CERT_IsNewer, but doesn't intend to be */
 NSS_IMPLEMENT PRBool
-nssCertificate_IsNewer
-(
+nssCertificate_IsNewer (
   NSSCertificate *c1,
   NSSCertificate *c2,
   PRStatus *statusOpt
@@ -475,8 +453,7 @@ nssCertificate_IsNewer
 }
 
 NSS_IMPLEMENT PRBool
-nssCertificate_IssuerAndSerialEqual
-(
+nssCertificate_IssuerAndSerialEqual (
   NSSCertificate *c1,
   NSSCertificate *c2
 )
@@ -486,8 +463,7 @@ nssCertificate_IssuerAndSerialEqual
 }
 
 NSS_IMPLEMENT void
-nssCertificate_SetCryptoContext
-(
+nssCertificate_SetCryptoContext (
   NSSCertificate *c,
   NSSCryptoContext *cc
 )
@@ -496,8 +472,7 @@ nssCertificate_SetCryptoContext
 }
 
 NSS_IMPLEMENT NSSCryptoContext *
-nssCertificate_GetCryptoContext
-(
+nssCertificate_GetCryptoContext (
   NSSCertificate *c
 )
 {
@@ -505,8 +480,7 @@ nssCertificate_GetCryptoContext
 }
 
 NSS_IMPLEMENT NSSTrustDomain *
-nssCertificate_GetTrustDomain
-(
+nssCertificate_GetTrustDomain (
   NSSCertificate *c
 )
 {
@@ -514,8 +488,7 @@ nssCertificate_GetTrustDomain
 }
 
 NSS_IMPLEMENT NSSTrustDomain *
-NSSCertificate_GetTrustDomain
-(
+NSSCertificate_GetTrustDomain (
   NSSCertificate *c
 )
 {
@@ -523,8 +496,7 @@ NSSCertificate_GetTrustDomain
 }
 
 NSS_IMPLEMENT NSSToken **
-nssCertificate_GetTokens
-(
+nssCertificate_GetTokens (
   NSSCertificate *c,
   PRStatus *statusOpt
 )
@@ -533,8 +505,7 @@ nssCertificate_GetTokens
 }
 
 NSS_IMPLEMENT NSSToken **
-NSSCertificate_GetTokens
-(
+NSSCertificate_GetTokens (
   NSSCertificate *c,
   PRStatus *statusOpt
 )
@@ -543,8 +514,7 @@ NSSCertificate_GetTokens
 }
 
 NSS_IMPLEMENT NSSSlot *
-NSSCertificate_GetSlot
-(
+NSSCertificate_GetSlot (
   NSSCertificate *c,
   PRStatus *statusOpt
 )
@@ -553,8 +523,7 @@ NSSCertificate_GetSlot
 }
 
 NSS_IMPLEMENT NSSModule *
-NSSCertificate_GetModule
-(
+NSSCertificate_GetModule (
   NSSCertificate *c,
   PRStatus *statusOpt
 )
@@ -563,8 +532,7 @@ NSSCertificate_GetModule
 }
 
 NSS_IMPLEMENT nssCryptokiObject *
-nssCertificate_FindInstanceForAlgorithm
-(
+nssCertificate_FindInstanceForAlgorithm (
   NSSCertificate *c,
   NSSAlgorithmAndParameters *ap
 )
@@ -573,8 +541,7 @@ nssCertificate_FindInstanceForAlgorithm
 }
 
 NSS_IMPLEMENT PRStatus
-nssCertificate_DeleteStoredObject
-(
+nssCertificate_DeleteStoredObject (
   NSSCertificate *c,
   NSSCallback *uhh
 )
@@ -583,8 +550,7 @@ nssCertificate_DeleteStoredObject
 }
 
 NSS_IMPLEMENT PRStatus
-NSSCertificate_DeleteStoredObject
-(
+NSSCertificate_DeleteStoredObject (
   NSSCertificate *c,
   NSSCallback *uhh
 )
@@ -593,8 +559,7 @@ NSSCertificate_DeleteStoredObject
 }
 
 NSS_IMPLEMENT PRStatus
-nssCertificate_CopyToToken
-(
+nssCertificate_CopyToToken (
   NSSCertificate *c,
   NSSToken *token,
   NSSUTF8 *nicknameOpt
@@ -628,8 +593,7 @@ loser:
 }
 
 static NSSUsage
-get_trusted_usage
-(
+get_trusted_usage (
   NSSCertificate *c,
   PRBool asCA,
   PRStatus *status
@@ -670,8 +634,7 @@ get_trusted_usage
 }
 
 static PRStatus
-validate_and_discover_trust
-(
+validate_and_discover_trust (
   NSSCertificate *c,
   NSSTime time,
   NSSUsage usage,
@@ -722,8 +685,7 @@ validate_and_discover_trust
 }
 
 static PRStatus
-validate_chain_link
-(
+validate_chain_link (
   NSSCertificate *subjectCert,
   NSSCertificate *issuerCert,
   void **vData
@@ -759,8 +721,7 @@ validate_chain_link
 
 #if 0
 static PRBool
-cert_in_chain_revoked
-(
+cert_in_chain_revoked (
   NSSCertificate **chain,
   PRStatus *status
 )
@@ -784,8 +745,7 @@ cert_in_chain_revoked
 #endif
 
 NSS_IMPLEMENT PRStatus
-nssCertificate_Validate
-(
+nssCertificate_Validate (
   NSSCertificate *c,
   NSSTime time,
   NSSUsages *usages,
@@ -873,8 +833,7 @@ done:
 }
 
 NSS_IMPLEMENT PRStatus
-NSSCertificate_Validate
-(
+NSSCertificate_Validate (
   NSSCertificate *c,
   NSSTime time,
   NSSUsages *usages,
@@ -895,8 +854,7 @@ struct NSSValidationErrorStr
 #endif
 
 NSS_IMPLEMENT void ** /* void *[] */
-NSSCertificate_ValidateCompletely
-(
+NSSCertificate_ValidateCompletely (
   NSSCertificate *c,
   NSSTime time, /* NULL for "now" */
   NSSUsages *usages,
@@ -911,8 +869,7 @@ NSSCertificate_ValidateCompletely
 }
 
 NSS_IMPLEMENT PRStatus
-NSSCertificate_ValidateAndDiscoverUsagesAndPolicies
-(
+NSSCertificate_ValidateAndDiscoverUsagesAndPolicies (
   NSSCertificate *c,
   NSSTime **notBeforeOutOpt,
   NSSTime **notAfterOutOpt,
@@ -929,8 +886,7 @@ NSSCertificate_ValidateAndDiscoverUsagesAndPolicies
 }
 
 NSS_IMPLEMENT NSSUsages *
-nssCertificate_GetTrustedUsages
-(
+nssCertificate_GetTrustedUsages (
   NSSCertificate *c,
   NSSUsages *usagesOpt
 )
@@ -958,8 +914,7 @@ nssCertificate_GetTrustedUsages
 }
 
 NSS_IMPLEMENT NSSUsages *
-NSSCertificate_GetTrustedUsages
-(
+NSSCertificate_GetTrustedUsages (
   NSSCertificate *c,
   NSSUsages *usagesOpt
 )
@@ -968,8 +923,7 @@ NSSCertificate_GetTrustedUsages
 }
 
 NSS_IMPLEMENT PRBool
-nssCertificate_IsTrustedForUsages
-(
+nssCertificate_IsTrustedForUsages (
   NSSCertificate *c,
   NSSUsages *usages,
   PRStatus *statusOpt
@@ -984,8 +938,7 @@ nssCertificate_IsTrustedForUsages
 }
 
 static void
-set_trust_for_usage
-(
+set_trust_for_usage (
   NSSUsage usage,
   nssTrust *trust,
   nssTrustLevel setLevel
@@ -1007,8 +960,7 @@ set_trust_for_usage
 
 /* XXX move */
 NSS_IMPLEMENT NSSToken *
-nssTrust_GetWriteToken
-(
+nssTrust_GetWriteToken (
   nssTrust *t,
   nssSession **rvSessionOpt
 )
@@ -1018,8 +970,7 @@ nssTrust_GetWriteToken
 
 /* XXX move */
 NSS_IMPLEMENT void
-nssTrust_Clear
-(
+nssTrust_Clear (
   nssTrust *trust
 )
 {
@@ -1031,8 +982,7 @@ nssTrust_Clear
 
 /* XXX move */
 NSS_IMPLEMENT nssTrust *
-nssTrust_CreateNull
-(
+nssTrust_CreateNull (
   NSSTrustDomain *td
 )
 {
@@ -1052,8 +1002,7 @@ nssTrust_CreateNull
 }
 
 NSS_IMPLEMENT PRStatus
-nssCertificate_SetTrustedUsages
-(
+nssCertificate_SetTrustedUsages (
   NSSCertificate *c,
   NSSUsages *usages
 )
@@ -1111,8 +1060,7 @@ nssCertificate_SetTrustedUsages
 }
 
 NSS_IMPLEMENT PRStatus
-NSSCertificate_SetTrustedUsages
-(
+NSSCertificate_SetTrustedUsages (
   NSSCertificate *c,
   NSSUsages *usages
 )
@@ -1121,8 +1069,7 @@ NSSCertificate_SetTrustedUsages
 }
 
 NSS_IMPLEMENT NSSDER *
-nssCertificate_Encode
-(
+nssCertificate_Encode (
   NSSCertificate *c,
   NSSDER *rvOpt,
   NSSArena *arenaOpt
@@ -1132,8 +1079,7 @@ nssCertificate_Encode
 }
 
 NSS_IMPLEMENT NSSDER *
-NSSCertificate_Encode
-(
+NSSCertificate_Encode (
   NSSCertificate *c,
   NSSDER *rvOpt,
   NSSArena *arenaOpt
@@ -1143,8 +1089,7 @@ NSSCertificate_Encode
 }
 
 static NSSCertificate *
-filter_subject_certs_for_id
-(
+filter_subject_certs_for_id (
   NSSCertificate **subjectCerts, 
   void *id
 )
@@ -1164,8 +1109,7 @@ filter_subject_certs_for_id
 }
 
 static NSSCertificate *
-find_cert_issuer
-(
+find_cert_issuer (
   NSSCertificate *c,
   NSSTime time,
   NSSUsages *usagesOpt,
@@ -1225,8 +1169,7 @@ find_cert_issuer
  * if authority key id does not exist
  */
 NSS_IMPLEMENT NSSCertificate **
-nssCertificate_BuildChain
-(
+nssCertificate_BuildChain (
   NSSCertificate *c,
   NSSTime time,
   NSSUsages *usagesOpt,
@@ -1288,8 +1231,7 @@ finish:
 }
 
 NSS_IMPLEMENT NSSCertificate **
-NSSCertificate_BuildChain
-(
+NSSCertificate_BuildChain (
   NSSCertificate *c,
   NSSTime time,
   NSSUsages *usagesOpt,
@@ -1305,8 +1247,7 @@ NSSCertificate_BuildChain
 }
 
 NSS_IMPLEMENT NSSItem *
-NSSCertificate_Encrypt
-(
+NSSCertificate_Encrypt (
   NSSCertificate *c,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *data,
@@ -1323,8 +1264,7 @@ NSSCertificate_Encrypt
 }
 
 NSS_IMPLEMENT PRStatus
-NSSCertificate_Verify
-(
+NSSCertificate_Verify (
   NSSCertificate *c,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *data,
@@ -1340,8 +1280,7 @@ NSSCertificate_Verify
 }
 
 NSS_IMPLEMENT NSSItem *
-NSSCertificate_VerifyRecover
-(
+NSSCertificate_VerifyRecover (
   NSSCertificate *c,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *signature,
@@ -1358,8 +1297,7 @@ NSSCertificate_VerifyRecover
 }
 
 NSS_IMPLEMENT NSSItem *
-NSSCertificate_WrapSymmetricKey
-(
+NSSCertificate_WrapSymmetricKey (
   NSSCertificate *c,
   const NSSAlgorithmAndParameters *apOpt,
   NSSSymmetricKey *keyToWrap,
@@ -1376,8 +1314,7 @@ NSSCertificate_WrapSymmetricKey
 }
 
 NSS_IMPLEMENT NSSCryptoContext *
-NSSCertificate_CreateCryptoContext
-(
+NSSCertificate_CreateCryptoContext (
   NSSCertificate *c,
   const NSSAlgorithmAndParameters *apOpt,
   NSSTime time,
@@ -1391,8 +1328,7 @@ NSSCertificate_CreateCryptoContext
 }
 
 NSS_IMPLEMENT NSSPublicKey *
-nssCertificate_GetPublicKey
-(
+nssCertificate_GetPublicKey (
   NSSCertificate *c
 )
 {
@@ -1446,8 +1382,7 @@ nssCertificate_GetPublicKey
 }
 
 NSS_IMPLEMENT NSSPublicKey *
-NSSCertificate_GetPublicKey
-(
+NSSCertificate_GetPublicKey (
   NSSCertificate *c
 )
 {
@@ -1455,8 +1390,7 @@ NSSCertificate_GetPublicKey
 }
 
 NSS_IMPLEMENT NSSPrivateKey *
-nssCertificate_FindPrivateKey
-(
+nssCertificate_FindPrivateKey (
   NSSCertificate *c,
   NSSCallback *uhh
 )
@@ -1511,8 +1445,7 @@ nssCertificate_FindPrivateKey
 }
 
 NSS_IMPLEMENT NSSPrivateKey *
-NSSCertificate_FindPrivateKey
-(
+NSSCertificate_FindPrivateKey (
   NSSCertificate *c,
   NSSCallback *uhh
 )
@@ -1521,8 +1454,7 @@ NSSCertificate_FindPrivateKey
 }
 
 NSS_IMPLEMENT PRBool
-nssCertificate_IsPrivateKeyAvailable
-(
+nssCertificate_IsPrivateKeyAvailable (
   NSSCertificate *c,
   NSSCallback *uhh,
   PRStatus *statusOpt
@@ -1533,8 +1465,7 @@ nssCertificate_IsPrivateKeyAvailable
 }
 
 NSS_IMPLEMENT PRBool
-NSSCertificate_IsPrivateKeyAvailable
-(
+NSSCertificate_IsPrivateKeyAvailable (
   NSSCertificate *c,
   NSSCallback *uhh,
   PRStatus *statusOpt
@@ -1544,8 +1475,7 @@ NSSCertificate_IsPrivateKeyAvailable
 }
 
 NSS_IMPLEMENT PRBool
-NSSUserCertificate_IsStillPresent
-(
+NSSUserCertificate_IsStillPresent (
   NSSUserCertificate *uc,
   PRStatus *statusOpt
 )
@@ -1555,8 +1485,7 @@ NSSUserCertificate_IsStillPresent
 }
 
 NSS_IMPLEMENT NSSItem *
-NSSUserCertificate_Decrypt
-(
+NSSUserCertificate_Decrypt (
   NSSUserCertificate *uc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *data,
@@ -1573,8 +1502,7 @@ NSSUserCertificate_Decrypt
 }
 
 NSS_IMPLEMENT NSSItem *
-NSSUserCertificate_Sign
-(
+NSSUserCertificate_Sign (
   NSSUserCertificate *uc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *data,
@@ -1591,8 +1519,7 @@ NSSUserCertificate_Sign
 }
 
 NSS_IMPLEMENT NSSItem *
-NSSUserCertificate_SignRecover
-(
+NSSUserCertificate_SignRecover (
   NSSUserCertificate *uc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *data,
@@ -1609,8 +1536,7 @@ NSSUserCertificate_SignRecover
 }
 
 NSS_IMPLEMENT NSSSymmetricKey *
-NSSUserCertificate_UnwrapSymmetricKey
-(
+NSSUserCertificate_UnwrapSymmetricKey (
   NSSUserCertificate *uc,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *wrappedKey,
@@ -1627,8 +1553,7 @@ NSSUserCertificate_UnwrapSymmetricKey
 }
 
 NSS_IMPLEMENT NSSSymmetricKey *
-NSSUserCertificate_DeriveSymmetricKey
-(
+NSSUserCertificate_DeriveSymmetricKey (
   NSSUserCertificate *uc, /* provides private key */
   NSSCertificate *c, /* provides public key */
   const NSSAlgorithmAndParameters *apOpt,
@@ -1643,8 +1568,7 @@ NSSUserCertificate_DeriveSymmetricKey
 }
 
 NSS_IMPLEMENT nssTrust *
-nssTrust_Create
-(
+nssTrust_Create (
   nssPKIObject *object
 )
 {
@@ -1707,8 +1631,7 @@ nssTrust_Create
 }
 
 NSS_IMPLEMENT nssTrust *
-nssTrust_AddRef
-(
+nssTrust_AddRef (
   nssTrust *trust
 )
 {
@@ -1719,8 +1642,7 @@ nssTrust_AddRef
 }
 
 NSS_IMPLEMENT PRStatus
-nssTrust_Destroy
-(
+nssTrust_Destroy (
   nssTrust *trust
 )
 {
@@ -1741,8 +1663,7 @@ struct nssSMIMEProfileStr
 };
 
 NSS_IMPLEMENT nssSMIMEProfile *
-nssSMIMEProfile_Create
-(
+nssSMIMEProfile_Create (
   NSSCertificate *cert,
   NSSItem *profileTime,
   NSSItem *profileData
@@ -1782,8 +1703,7 @@ loser:
 }
 
 NSS_IMPLEMENT nssSMIMEProfile *
-nssSMIMEProfile_AddRef
-(
+nssSMIMEProfile_AddRef (
   nssSMIMEProfile *profile
 )
 {
@@ -1794,8 +1714,7 @@ nssSMIMEProfile_AddRef
 }
 
 NSS_IMPLEMENT PRStatus
-nssSMIMEProfile_Destroy
-(
+nssSMIMEProfile_Destroy (
   nssSMIMEProfile *profile
 )
 {
@@ -1813,8 +1732,7 @@ struct NSSCRLStr {
 };
 
 NSS_IMPLEMENT NSSCRL *
-nssCRL_Create
-(
+nssCRL_Create (
   nssPKIObject *object
 )
 {
@@ -1840,8 +1758,7 @@ nssCRL_Create
 }
 
 NSS_IMPLEMENT NSSCRL *
-nssCRL_AddRef
-(
+nssCRL_AddRef (
   NSSCRL *crl
 )
 {
@@ -1852,8 +1769,7 @@ nssCRL_AddRef
 }
 
 NSS_IMPLEMENT PRStatus
-nssCRL_Destroy
-(
+nssCRL_Destroy (
   NSSCRL *crl
 )
 {
@@ -1864,8 +1780,7 @@ nssCRL_Destroy
 }
 
 NSS_IMPLEMENT PRStatus
-nssCRL_DeleteStoredObject
-(
+nssCRL_DeleteStoredObject (
   NSSCRL *crl,
   NSSCallback *uhh
 )
@@ -1874,8 +1789,7 @@ nssCRL_DeleteStoredObject
 }
 
 NSS_IMPLEMENT NSSDER *
-nssCRL_GetEncoding
-(
+nssCRL_GetEncoding (
   NSSCRL *crl
 )
 {

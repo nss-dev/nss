@@ -143,8 +143,7 @@ struct NSSATAVStr {
  */
 
 NSS_IMPLEMENT NSSATAV *
-NSSATAV_CreateFromBER
-(
+NSSATAV_CreateFromBER (
   NSSArena *arenaOpt,
   NSSBER *berATAV
 )
@@ -198,8 +197,7 @@ NSSATAV_CreateFromBER
  */
 
 NSS_IMPLEMENT NSSATAV *
-NSSATAV_CreateFromUTF8
-(
+NSSATAV_CreateFromUTF8 (
   NSSArena *arenaOpt,
   NSSUTF8 *stringATAV
 )
@@ -250,8 +248,7 @@ NSSATAV_CreateFromUTF8
  */
 
 NSS_IMPLEMENT NSSATAV *
-NSSATAV_Create
-(
+NSSATAV_Create (
   NSSArena *arenaOpt,
   const NSSOID *oid,
   const void *data,
@@ -299,8 +296,7 @@ NSSATAV_Create
  */
 
 NSS_IMPLEMENT PRStatus
-NSSATAV_Destroy
-(
+NSSATAV_Destroy (
   NSSATAV *atav
 )
 {
@@ -334,8 +330,7 @@ NSSATAV_Destroy
  */
 
 NSS_IMPLEMENT NSSDER *
-NSSATAV_GetDEREncoding
-(
+NSSATAV_GetDEREncoding (
   NSSATAV *atav,
   NSSArena *arenaOpt
 )
@@ -378,8 +373,7 @@ NSSATAV_GetDEREncoding
  */
 
 NSS_IMPLEMENT NSSUTF8 *
-NSSATAV_GetUTF8Encoding
-(
+NSSATAV_GetUTF8Encoding (
   NSSATAV *atav,
   NSSArena *arenaOpt
 )
@@ -417,8 +411,7 @@ NSSATAV_GetUTF8Encoding
  */
 
 NSS_IMPLEMENT const NSSOID *
-NSSATAV_GetType
-(
+NSSATAV_GetType (
   NSSATAV *atav
 )
 {
@@ -452,8 +445,7 @@ NSSATAV_GetType
  */
 
 NSS_IMPLEMENT NSSUTF8 *
-NSSATAV_GetValue
-(
+NSSATAV_GetValue (
   NSSATAV *atav,
   NSSArena *arenaOpt
 )
@@ -496,8 +488,7 @@ NSSATAV_GetValue
  */
 
 NSS_IMPLEMENT PRStatus
-NSSATAV_Compare
-(
+NSSATAV_Compare (
   NSSATAV *atav1,
   NSSATAV *atav2,
   PRBool *equalp
@@ -542,8 +533,7 @@ NSSATAV_Compare
  */
 
 NSS_IMPLEMENT NSSATAV *
-NSSATAV_Duplicate
-(
+NSSATAV_Duplicate (
   NSSATAV *atav,
   NSSArena *arenaOpt
 )
@@ -574,8 +564,7 @@ NSSATAV_Duplicate
 static nssPointerTracker atav_pointer_tracker;
 
 static PRStatus
-atav_add_pointer
-(
+atav_add_pointer (
   const NSSATAV *atav
 )
 {
@@ -600,8 +589,7 @@ atav_add_pointer
 }
 
 static PRStatus
-atav_remove_pointer
-(
+atav_remove_pointer (
   const NSSATAV *atav
 )
 {
@@ -634,8 +622,7 @@ atav_remove_pointer
  */
 
 NSS_IMPLEMENT PRStatus
-nssATAV_verifyPointer
-(
+nssATAV_verifyPointer (
   NSSATAV *atav
 )
 {
@@ -721,8 +708,7 @@ PRUint32 nss_attribute_data_quantity =
   (sizeof(nss_attribute_data)/sizeof(nss_attribute_data[0]));
 
 static nssStringType
-nss_attr_underlying_string_form
-(
+nss_attr_underlying_string_form (
   nssStringType type,
   void *data
 )
@@ -759,8 +745,7 @@ nss_attr_underlying_string_form
  */
 
 static NSSUTF8 *
-nss_attr_to_utf8
-(
+nss_attr_to_utf8 (
   NSSArena *arenaOpt,
   const NSSOID *oid,
   NSSItem *item,
@@ -849,8 +834,7 @@ nss_attr_to_utf8
  */
 
 NSS_IMPLEMENT NSSATAV *
-nssATAV_CreateFromBER
-(
+nssATAV_CreateFromBER (
   NSSArena *arenaOpt,
   const NSSBER *berATAV
 )
@@ -939,8 +923,7 @@ nssATAV_CreateFromBER
 }
 
 static PRBool
-nss_atav_utf8_string_is_hex
-(
+nss_atav_utf8_string_is_hex (
   const NSSUTF8 *s
 )
 {
@@ -961,8 +944,7 @@ nss_atav_utf8_string_is_hex
 }
 
 static NSSUTF8
-nss_atav_fromhex
-(
+nss_atav_fromhex (
   NSSUTF8 *d
 )
 {
@@ -1009,8 +991,7 @@ nss_atav_fromhex
 
 
 NSS_IMPLEMENT NSSATAV *
-nssATAV_CreateFromUTF8
-(
+nssATAV_CreateFromUTF8 (
   NSSArena *arenaOpt,
   const NSSUTF8 *stringATAV
 )
@@ -1324,8 +1305,7 @@ nssATAV_CreateFromUTF8
  */
 
 NSS_IMPLEMENT NSSATAV *
-nssATAV_Create
-(
+nssATAV_Create (
   NSSArena *arenaOpt,
   const NSSOID *oid,
   const void *data,
@@ -1372,8 +1352,7 @@ nssATAV_Create
  */
 
 NSS_IMPLEMENT PRStatus
-nssATAV_Destroy
-(
+nssATAV_Destroy (
   NSSATAV *atav
 )
 {
@@ -1414,8 +1393,7 @@ nssATAV_Destroy
  */
 
 NSS_IMPLEMENT NSSDER *
-nssATAV_GetDEREncoding
-(
+nssATAV_GetDEREncoding (
   NSSATAV *atav,
   NSSArena *arenaOpt
 )
@@ -1470,8 +1448,7 @@ nssATAV_GetDEREncoding
  */
 
 NSS_IMPLEMENT NSSUTF8 *
-nssATAV_GetUTF8Encoding
-(
+nssATAV_GetUTF8Encoding (
   NSSATAV *atav,
   NSSArena *arenaOpt
 )
@@ -1583,8 +1560,7 @@ nssATAV_GetUTF8Encoding
  */
 
 NSS_IMPLEMENT const NSSOID *
-nssATAV_GetType
-(
+nssATAV_GetType (
   NSSATAV *atav
 )
 {
@@ -1617,8 +1593,7 @@ nssATAV_GetType
  */
 
 NSS_IMPLEMENT NSSUTF8 *
-nssATAV_GetValue
-(
+nssATAV_GetValue (
   NSSATAV *atav,
   NSSArena *arenaOpt
 )
@@ -1653,8 +1628,7 @@ nssATAV_GetValue
  */
 
 NSS_IMPLEMENT PRStatus
-nssATAV_Compare
-(
+nssATAV_Compare (
   NSSATAV *atav1,
   NSSATAV *atav2,
   PRBool *equalp
@@ -1766,8 +1740,7 @@ nssATAV_Compare
  */
 
 NSS_IMPLEMENT NSSATAV *
-nssATAV_Duplicate
-(
+nssATAV_Duplicate (
   NSSATAV *atav,
   NSSArena *arenaOpt
 )

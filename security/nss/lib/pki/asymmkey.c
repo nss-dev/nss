@@ -78,8 +78,7 @@ struct NSSPrivateKeyStr
 };
 
 NSS_IMPLEMENT NSSPrivateKey *
-nssPrivateKey_Create
-(
+nssPrivateKey_Create (
   nssPKIObject *object
 )
 {
@@ -104,8 +103,7 @@ nssPrivateKey_Create
 }
 
 NSS_IMPLEMENT NSSPrivateKey *
-nssPrivateKey_AddRef
-(
+nssPrivateKey_AddRef (
   NSSPrivateKey *vk
 )
 {
@@ -116,8 +114,7 @@ nssPrivateKey_AddRef
 }
 
 NSS_IMPLEMENT PRStatus
-nssPrivateKey_Destroy
-(
+nssPrivateKey_Destroy (
   NSSPrivateKey *vk
 )
 {
@@ -133,8 +130,7 @@ nssPrivateKey_Destroy
 }
 
 NSS_IMPLEMENT PRStatus
-NSSPrivateKey_Destroy
-(
+NSSPrivateKey_Destroy (
   NSSPrivateKey *vk
 )
 {
@@ -142,8 +138,7 @@ NSSPrivateKey_Destroy
 }
 
 NSS_IMPLEMENT NSSItem *
-nssPrivateKey_GetID
-(
+nssPrivateKey_GetID (
   NSSPrivateKey *vk
 )
 {
@@ -155,8 +150,7 @@ nssPrivateKey_GetID
 }
 
 NSS_IMPLEMENT NSSUTF8 *
-nssPrivateKey_GetNickname
-(
+nssPrivateKey_GetNickname (
   NSSPrivateKey *vk,
   NSSToken *tokenOpt
 )
@@ -165,8 +159,7 @@ nssPrivateKey_GetNickname
 }
 
 NSS_IMPLEMENT PRBool
-nssPrivateKey_IsOnToken
-(
+nssPrivateKey_IsOnToken (
   NSSPrivateKey *vk,
   NSSToken *token
 )
@@ -175,8 +168,7 @@ nssPrivateKey_IsOnToken
 }
 
 NSS_IMPLEMENT nssCryptokiObject *
-nssPrivateKey_GetInstance
-(
+nssPrivateKey_GetInstance (
   NSSPrivateKey *vk,
   NSSToken *token
 )
@@ -185,8 +177,7 @@ nssPrivateKey_GetInstance
 }
 
 NSS_IMPLEMENT nssCryptokiObject *
-nssPrivateKey_FindInstanceForAlgorithm
-(
+nssPrivateKey_FindInstanceForAlgorithm (
   NSSPrivateKey *vk,
   NSSAlgorithmAndParameters *ap
 )
@@ -195,8 +186,7 @@ nssPrivateKey_FindInstanceForAlgorithm
 }
 
 NSS_IMPLEMENT PRStatus
-NSSPrivateKey_DeleteStoredObject
-(
+NSSPrivateKey_DeleteStoredObject (
   NSSPrivateKey *vk,
   NSSCallback *uhh
 )
@@ -205,8 +195,7 @@ NSSPrivateKey_DeleteStoredObject
 }
 
 NSS_IMPLEMENT nssCryptokiObject *
-nssPrivateKey_CopyToToken
-(
+nssPrivateKey_CopyToToken (
   NSSPrivateKey *vk,
   NSSToken *destination
 )
@@ -217,8 +206,7 @@ nssPrivateKey_CopyToToken
 }
 
 NSS_IMPLEMENT PRUint32
-NSSPrivateKey_GetSignatureLength
-(
+NSSPrivateKey_GetSignatureLength (
   NSSPrivateKey *vk
 )
 {
@@ -227,8 +215,7 @@ NSSPrivateKey_GetSignatureLength
 }
 
 NSS_IMPLEMENT PRUint32
-NSSPrivateKey_GetPrivateModulusLength
-(
+NSSPrivateKey_GetPrivateModulusLength (
   NSSPrivateKey *vk
 )
 {
@@ -237,8 +224,7 @@ NSSPrivateKey_GetPrivateModulusLength
 }
 
 NSS_IMPLEMENT PRBool
-NSSPrivateKey_IsStillPresent
-(
+NSSPrivateKey_IsStillPresent (
   NSSPrivateKey *vk,
   PRStatus *statusOpt
 )
@@ -248,8 +234,7 @@ NSSPrivateKey_IsStillPresent
 }
 
 NSS_IMPLEMENT NSSItem *
-NSSPrivateKey_Encode
-(
+NSSPrivateKey_Encode (
   NSSPrivateKey *vk,
   const NSSAlgorithmAndParameters *ap,
   NSSItem *passwordOpt, /* NULL will cause a callback; "" for no password */
@@ -263,8 +248,7 @@ NSSPrivateKey_Encode
 }
 
 NSS_IMPLEMENT NSSCryptoContext *
-nssPrivateKey_GetCryptoContext
-(
+nssPrivateKey_GetCryptoContext (
   NSSPrivateKey *vk,
   PRStatus *statusOpt
 )
@@ -273,8 +257,7 @@ nssPrivateKey_GetCryptoContext
 }
 
 NSS_IMPLEMENT NSSTrustDomain *
-nssPrivateKey_GetTrustDomain
-(
+nssPrivateKey_GetTrustDomain (
   NSSPrivateKey *vk,
   PRStatus *statusOpt
 )
@@ -283,8 +266,7 @@ nssPrivateKey_GetTrustDomain
 }
 
 NSS_IMPLEMENT NSSTrustDomain *
-NSSPrivateKey_GetTrustDomain
-(
+NSSPrivateKey_GetTrustDomain (
   NSSPrivateKey *vk,
   PRStatus *statusOpt
 )
@@ -293,8 +275,7 @@ NSSPrivateKey_GetTrustDomain
 }
 
 NSS_IMPLEMENT NSSToken *
-NSSPrivateKey_GetToken
-(
+NSSPrivateKey_GetToken (
   NSSPrivateKey *vk
 )
 {
@@ -303,8 +284,7 @@ NSSPrivateKey_GetToken
 }
 
 NSS_IMPLEMENT NSSSlot *
-NSSPrivateKey_GetSlot
-(
+NSSPrivateKey_GetSlot (
   NSSPrivateKey *vk
 )
 {
@@ -313,8 +293,7 @@ NSSPrivateKey_GetSlot
 }
 
 NSS_IMPLEMENT NSSModule *
-NSSPrivateKey_GetModule
-(
+NSSPrivateKey_GetModule (
   NSSPrivateKey *vk
 )
 {
@@ -323,8 +302,7 @@ NSSPrivateKey_GetModule
 }
 
 NSS_IMPLEMENT NSSItem *
-NSSPrivateKey_Decrypt
-(
+NSSPrivateKey_Decrypt (
   NSSPrivateKey *vk,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *encryptedData,
@@ -338,8 +316,7 @@ NSSPrivateKey_Decrypt
 }
 
 NSS_IMPLEMENT NSSItem *
-NSSPrivateKey_Sign
-(
+NSSPrivateKey_Sign (
   NSSPrivateKey *vk,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *data,
@@ -353,8 +330,7 @@ NSSPrivateKey_Sign
 }
 
 NSS_IMPLEMENT NSSItem *
-NSSPrivateKey_SignRecover
-(
+NSSPrivateKey_SignRecover (
   NSSPrivateKey *vk,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *data,
@@ -368,8 +344,7 @@ NSSPrivateKey_SignRecover
 }
 
 NSS_IMPLEMENT NSSSymmetricKey *
-NSSPrivateKey_UnwrapSymmetricKey
-(
+NSSPrivateKey_UnwrapSymmetricKey (
   NSSPrivateKey *vk,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *wrappedKey,
@@ -381,8 +356,7 @@ NSSPrivateKey_UnwrapSymmetricKey
 }
 
 NSS_IMPLEMENT NSSSymmetricKey *
-NSSPrivateKey_DeriveSymmetricKey
-(
+NSSPrivateKey_DeriveSymmetricKey (
   NSSPrivateKey *vk,
   NSSPublicKey *bk,
   const NSSAlgorithmAndParameters *apOpt,
@@ -397,8 +371,7 @@ NSSPrivateKey_DeriveSymmetricKey
 }
 
 NSS_IMPLEMENT NSSPublicKey *
-nssPrivateKey_FindPublicKey
-(
+nssPrivateKey_FindPublicKey (
   NSSPrivateKey *vk
 )
 {
@@ -455,8 +428,7 @@ nssPrivateKey_FindPublicKey
 }
 
 NSS_IMPLEMENT NSSPublicKey *
-NSSPrivateKey_FindPublicKey
-(
+NSSPrivateKey_FindPublicKey (
   NSSPrivateKey *vk
 )
 {
@@ -464,8 +436,7 @@ NSSPrivateKey_FindPublicKey
 }
 
 NSS_IMPLEMENT NSSCryptoContext *
-NSSPrivateKey_CreateCryptoContext
-(
+NSSPrivateKey_CreateCryptoContext (
   NSSPrivateKey *vk,
   const NSSAlgorithmAndParameters *apOpt,
   NSSCallback *uhh
@@ -476,8 +447,7 @@ NSSPrivateKey_CreateCryptoContext
 }
 
 NSS_IMPLEMENT NSSCertificate **
-nssPrivateKey_FindCertificates
-(
+nssPrivateKey_FindCertificates (
   NSSPrivateKey *vk,
   NSSCertificate **rvOpt,
   PRUint32 maximumOpt,
@@ -490,8 +460,7 @@ nssPrivateKey_FindCertificates
 }
 
 NSS_IMPLEMENT NSSCertificate **
-NSSPrivateKey_FindCertificates
-(
+NSSPrivateKey_FindCertificates (
   NSSPrivateKey *vk,
   NSSCertificate **rvOpt,
   PRUint32 maximumOpt,
@@ -502,8 +471,7 @@ NSSPrivateKey_FindCertificates
 }
 
 NSS_IMPLEMENT NSSCertificate *
-NSSPrivateKey_FindBestCertificate
-(
+NSSPrivateKey_FindBestCertificate (
   NSSPrivateKey *vk,
   NSSTime time,
   NSSUsages *usagesOpt,
@@ -528,8 +496,7 @@ struct NSSPublicKeyStr
 };
 
 NSS_IMPLEMENT NSSPublicKey *
-nssPublicKey_Create
-(
+nssPublicKey_Create (
   nssPKIObject *object
 )
 {
@@ -563,8 +530,7 @@ const NSSASN1Template NSSASN1Template_RSAPublicKey[] =
 };
 
 NSS_IMPLEMENT NSSPublicKey *
-nssPublicKey_CreateFromInfo
-(
+nssPublicKey_CreateFromInfo (
   NSSTrustDomain *td,
   NSSCryptoContext *cc,
   NSSOID *keyAlg,
@@ -648,8 +614,7 @@ loser:
 }
 
 NSS_IMPLEMENT NSSPublicKey *
-nssPublicKey_AddRef
-(
+nssPublicKey_AddRef (
   NSSPublicKey *bk
 )
 {
@@ -660,8 +625,7 @@ nssPublicKey_AddRef
 }
 
 NSS_IMPLEMENT PRStatus
-nssPublicKey_Destroy
-(
+nssPublicKey_Destroy (
   NSSPublicKey *bk
 )
 {
@@ -677,8 +641,7 @@ nssPublicKey_Destroy
 }
 
 NSS_IMPLEMENT PRStatus
-NSSPublicKey_Destroy
-(
+NSSPublicKey_Destroy (
   NSSPublicKey *bk
 )
 {
@@ -686,8 +649,7 @@ NSSPublicKey_Destroy
 }
 
 NSS_IMPLEMENT NSSItem *
-nssPublicKey_GetID
-(
+nssPublicKey_GetID (
   NSSPublicKey *bk
 )
 {
@@ -699,8 +661,7 @@ nssPublicKey_GetID
 }
 
 NSS_IMPLEMENT PRBool
-nssPublicKey_IsOnToken
-(
+nssPublicKey_IsOnToken (
   NSSPublicKey *bk,
   NSSToken *token
 )
@@ -709,8 +670,7 @@ nssPublicKey_IsOnToken
 }
 
 NSS_IMPLEMENT nssCryptokiObject *
-nssPublicKey_GetInstance
-(
+nssPublicKey_GetInstance (
   NSSPublicKey *bk,
   NSSToken *token
 )
@@ -719,8 +679,7 @@ nssPublicKey_GetInstance
 }
 
 NSS_IMPLEMENT nssCryptokiObject *
-nssPublicKey_FindInstanceForAlgorithm
-(
+nssPublicKey_FindInstanceForAlgorithm (
   NSSPublicKey *bk,
   NSSAlgorithmAndParameters *ap
 )
@@ -729,8 +688,7 @@ nssPublicKey_FindInstanceForAlgorithm
 }
 
 NSS_IMPLEMENT PRStatus
-nssPublicKey_DeleteStoredObject
-(
+nssPublicKey_DeleteStoredObject (
   NSSPublicKey *bk,
   NSSCallback *uhh
 )
@@ -739,8 +697,7 @@ nssPublicKey_DeleteStoredObject
 }
 
 NSS_IMPLEMENT PRStatus
-NSSPublicKey_DeleteStoredObject
-(
+NSSPublicKey_DeleteStoredObject (
   NSSPublicKey *bk,
   NSSCallback *uhh
 )
@@ -749,8 +706,7 @@ NSSPublicKey_DeleteStoredObject
 }
 
 NSS_IMPLEMENT nssCryptokiObject *
-nssPublicKey_CopyToToken
-(
+nssPublicKey_CopyToToken (
   NSSPublicKey *bk,
   NSSToken *destination
 )
@@ -761,8 +717,7 @@ nssPublicKey_CopyToToken
 }
 
 NSS_IMPLEMENT NSSItem *
-NSSPublicKey_Encode
-(
+NSSPublicKey_Encode (
   NSSPublicKey *bk,
   const NSSAlgorithmAndParameters *ap,
   NSSCallback *uhhOpt,
@@ -775,8 +730,7 @@ NSSPublicKey_Encode
 }
 
 NSS_IMPLEMENT NSSTrustDomain *
-nssPublicKey_GetTrustDomain
-(
+nssPublicKey_GetTrustDomain (
   NSSPublicKey *bk,
   PRStatus *statusOpt
 )
@@ -785,8 +739,7 @@ nssPublicKey_GetTrustDomain
 }
 
 NSS_IMPLEMENT NSSTrustDomain *
-NSSPublicKey_GetTrustDomain
-(
+NSSPublicKey_GetTrustDomain (
   NSSPublicKey *bk,
   PRStatus *statusOpt
 )
@@ -795,8 +748,7 @@ NSSPublicKey_GetTrustDomain
 }
 
 NSS_IMPLEMENT NSSToken *
-NSSPublicKey_GetToken
-(
+NSSPublicKey_GetToken (
   NSSPublicKey *bk,
   PRStatus *statusOpt
 )
@@ -806,8 +758,7 @@ NSSPublicKey_GetToken
 }
 
 NSS_IMPLEMENT NSSSlot *
-NSSPublicKey_GetSlot
-(
+NSSPublicKey_GetSlot (
   NSSPublicKey *bk,
   PRStatus *statusOpt
 )
@@ -817,8 +768,7 @@ NSSPublicKey_GetSlot
 }
 
 NSS_IMPLEMENT NSSModule *
-NSSPublicKey_GetModule
-(
+NSSPublicKey_GetModule (
   NSSPublicKey *bk,
   PRStatus *statusOpt
 )
@@ -828,8 +778,7 @@ NSSPublicKey_GetModule
 }
 
 NSS_IMPLEMENT NSSItem *
-NSSPublicKey_Encrypt
-(
+NSSPublicKey_Encrypt (
   NSSPublicKey *bk,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *data,
@@ -843,8 +792,7 @@ NSSPublicKey_Encrypt
 }
 
 NSS_IMPLEMENT PRStatus
-nssPublicKey_Verify
-(
+nssPublicKey_Verify (
   NSSPublicKey *bk,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *data,
@@ -875,8 +823,7 @@ nssPublicKey_Verify
 }
 
 NSS_IMPLEMENT PRStatus
-NSSPublicKey_Verify
-(
+NSSPublicKey_Verify (
   NSSPublicKey *bk,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *data,
@@ -888,8 +835,7 @@ NSSPublicKey_Verify
 }
 
 NSS_IMPLEMENT NSSItem *
-NSSPublicKey_VerifyRecover
-(
+NSSPublicKey_VerifyRecover (
   NSSPublicKey *bk,
   const NSSAlgorithmAndParameters *apOpt,
   NSSItem *signature,
@@ -903,8 +849,7 @@ NSSPublicKey_VerifyRecover
 }
 
 NSS_IMPLEMENT NSSItem *
-NSSPublicKey_WrapSymmetricKey
-(
+NSSPublicKey_WrapSymmetricKey (
   NSSPublicKey *bk,
   const NSSAlgorithmAndParameters *apOpt,
   NSSSymmetricKey *keyToWrap,
@@ -918,8 +863,7 @@ NSSPublicKey_WrapSymmetricKey
 }
 
 NSS_IMPLEMENT NSSCryptoContext *
-NSSPublicKey_CreateCryptoContext
-(
+NSSPublicKey_CreateCryptoContext (
   NSSPublicKey *bk,
   const NSSAlgorithmAndParameters *apOpt,
   NSSCallback *uhh
@@ -930,8 +874,7 @@ NSSPublicKey_CreateCryptoContext
 }
 
 NSS_IMPLEMENT NSSCertificate **
-nssPublicKey_FindCertificates
-(
+nssPublicKey_FindCertificates (
   NSSPublicKey *bk,
   NSSCertificate **rvOpt,
   PRUint32 maximumOpt,
@@ -944,8 +887,7 @@ nssPublicKey_FindCertificates
 }
 
 NSS_IMPLEMENT NSSCertificate **
-NSSPublicKey_FindCertificates
-(
+NSSPublicKey_FindCertificates (
   NSSPublicKey *bk,
   NSSCertificate **rvOpt,
   PRUint32 maximumOpt,
@@ -956,8 +898,7 @@ NSSPublicKey_FindCertificates
 }
 
 NSS_IMPLEMENT NSSCertificate *
-nssPublicKey_FindBestCertificate
-(
+nssPublicKey_FindBestCertificate (
   NSSPublicKey *bk,
   NSSTime time,
   NSSUsages *usageOpt,
@@ -978,8 +919,7 @@ nssPublicKey_FindBestCertificate
 }
 
 NSS_IMPLEMENT NSSCertificate *
-NSSPublicKey_FindBestCertificate
-(
+NSSPublicKey_FindBestCertificate (
   NSSPublicKey *bk,
   NSSTime time,
   NSSUsages *usageOpt,
@@ -991,8 +931,7 @@ NSSPublicKey_FindBestCertificate
 }
 
 NSS_IMPLEMENT NSSPrivateKey *
-NSSPublicKey_FindPrivateKey
-(
+NSSPublicKey_FindPrivateKey (
   NSSPublicKey *bk,
   NSSCallback *uhh
 )

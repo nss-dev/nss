@@ -61,71 +61,60 @@ PR_BEGIN_EXTERN_C
     ((CK_FUNCTION_LIST_PTR)(epv))
 
 NSS_EXTERN void
-nssDevice_AddRef
-(
+nssDevice_AddRef (
  struct nssDeviceBaseStr *device
 );
 
 NSS_EXTERN PRBool
-nssDevice_Destroy
-(
+nssDevice_Destroy (
  struct nssDeviceBaseStr *device
 );
 
 NSS_EXTERN PRStatus
-nssModule_DestroyFromSlot
-(
+nssModule_DestroyFromSlot (
   NSSModule *mod,
   NSSSlot *slot
 );
 
 NSS_EXTERN PRBool
-nssModule_IsThreadSafe
-(
+nssModule_IsThreadSafe (
   NSSModule *module
 );
 
 NSS_EXTERN PRBool
-nssModule_IsInternal
-(
+nssModule_IsInternal (
   NSSModule *mod
 );
 
 NSS_EXTERN PRBool
-nssModule_IsModuleDBOnly
-(
+nssModule_IsModuleDBOnly (
   NSSModule *mod
 );
 
 NSS_EXTERN void *
-nssModule_GetCryptokiEPV
-(
+nssModule_GetCryptokiEPV (
   NSSModule *mod
 );
 
 NSS_EXTERN NSSSlot *
-nssSlot_Create
-(
+nssSlot_Create (
   CK_SLOT_ID slotId,
   NSSModule *parent
 );
 
 NSS_EXTERN void *
-nssSlot_GetCryptokiEPV
-(
+nssSlot_GetCryptokiEPV (
   NSSSlot *slot
 );
 
 NSS_EXTERN NSSToken *
-nssToken_Create
-(
+nssToken_Create (
   CK_SLOT_ID slotID,
   NSSSlot *peer
 );
 
 NSS_EXTERN void *
-nssToken_GetCryptokiEPV
-(
+nssToken_GetCryptokiEPV (
   NSSToken *token
 );
 
@@ -135,48 +124,41 @@ nssToken_HasSessionLimit (
 );
 
 NSS_EXTERN nssSession *
-nssToken_GetDefaultSession
-(
+nssToken_GetDefaultSession (
   NSSToken *token
 );
 
 NSS_EXTERN PRBool
-nssToken_IsLoginRequired
-(
+nssToken_IsLoginRequired (
   NSSToken *token
 );
 
 /* This is super-private!!! */
 NSS_EXTERN nssTokenObjectCache *
-nssToken_GetObjectCache
-(
+nssToken_GetObjectCache (
   NSSToken *token
 );
 
 /* XXX */
 NSS_EXTERN void
-nssToken_Remove
-(
+nssToken_Remove (
   NSSToken *token
 );
 
 NSS_EXTERN nssCryptokiObject *
-nssCryptokiObject_Create
-(
+nssCryptokiObject_Create (
   NSSToken *t, 
   nssSession *session,
   CK_OBJECT_HANDLE h
 );
 
 NSS_EXTERN CK_MECHANISM_PTR
-nssAlgorithmAndParameters_GetMechanism
-(
+nssAlgorithmAndParameters_GetMechanism (
   const NSSAlgorithmAndParameters *ap
 );
 
 NSS_EXTERN PRIntn
-nssAlgorithmAndParameters_SetTemplateValues
-(
+nssAlgorithmAndParameters_SetTemplateValues (
   const NSSAlgorithmAndParameters *ap,
   CK_ATTRIBUTE_PTR aTemplate,
   CK_ULONG templateSize
@@ -188,8 +170,7 @@ nss_SetGenericDeviceError (
 );
 
 NSS_EXTERN nssTokenObjectCache *
-nssTokenObjectCache_Create
-(
+nssTokenObjectCache_Create (
   NSSToken *token,
   PRBool cacheCerts,
   PRBool cacheTrust,
@@ -197,27 +178,23 @@ nssTokenObjectCache_Create
 );
 
 NSS_EXTERN void
-nssTokenObjectCache_Destroy
-(
+nssTokenObjectCache_Destroy (
   nssTokenObjectCache *cache
 );
 
 NSS_EXTERN void
-nssTokenObjectCache_Clear
-(
+nssTokenObjectCache_Clear (
   nssTokenObjectCache *cache
 );
 
 NSS_EXTERN PRBool
-nssTokenObjectCache_HaveObjectClass
-(
+nssTokenObjectCache_HaveObjectClass (
   nssTokenObjectCache *cache,
   CK_OBJECT_CLASS objclass
 );
 
 NSS_EXTERN nssCryptokiObject **
-nssTokenObjectCache_FindObjectsByTemplate
-(
+nssTokenObjectCache_FindObjectsByTemplate (
   nssTokenObjectCache *cache,
   CK_OBJECT_CLASS objclass,
   CK_ATTRIBUTE_PTR otemplate,
@@ -227,8 +204,7 @@ nssTokenObjectCache_FindObjectsByTemplate
 );
 
 NSS_EXTERN PRStatus
-nssTokenObjectCache_GetObjectAttributes
-(
+nssTokenObjectCache_GetObjectAttributes (
   nssTokenObjectCache *cache,
   NSSArena *arenaOpt,
   nssCryptokiObject *object,
@@ -238,8 +214,7 @@ nssTokenObjectCache_GetObjectAttributes
 );
 
 NSS_EXTERN PRStatus
-nssTokenObjectCache_ImportObject
-(
+nssTokenObjectCache_ImportObject (
   nssTokenObjectCache *cache,
   nssCryptokiObject *object,
   CK_OBJECT_CLASS objclass,
@@ -248,8 +223,7 @@ nssTokenObjectCache_ImportObject
 );
 
 NSS_EXTERN void
-nssTokenObjectCache_RemoveObject
-(
+nssTokenObjectCache_RemoveObject (
   nssTokenObjectCache *cache,
   nssCryptokiObject *object
 );
@@ -258,8 +232,7 @@ nssTokenObjectCache_RemoveObject
  * function gets the length of the actual string.
  */
 NSS_EXTERN PRUint32
-nssPKCS11String_Length
-(
+nssPKCS11String_Length (
   CK_CHAR *pkcs11str, 
   PRUint32 bufLen
 );

@@ -86,8 +86,7 @@ decode_me(NSSPKIXExtension *extension)
 }
 
 static NSSPKIXExtension *
-create_me
-(
+create_me (
   NSSArena *arenaOpt
 )
 {
@@ -139,8 +138,7 @@ loser:
 }
 
 NSS_IMPLEMENT NSSPKIXExtension *
-nssPKIXExtension_Create
-(
+nssPKIXExtension_Create (
   NSSArena *arenaOpt,
   NSSOID *extnID,
   PRBool critical,
@@ -164,8 +162,7 @@ nssPKIXExtension_Create
 }
 
 NSS_IMPLEMENT void
-nssPKIXExtension_SetArena
-(
+nssPKIXExtension_SetArena (
   NSSPKIXExtension *extension,
   NSSArena *arena
 )
@@ -174,8 +171,7 @@ nssPKIXExtension_SetArena
 }
 
 NSS_IMPLEMENT NSSPKIXExtension *
-nssPKIXExtension_Decode
-(
+nssPKIXExtension_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 )
@@ -207,8 +203,7 @@ loser:
 }
 
 NSS_IMPLEMENT PRStatus
-nssPKIXExtension_Destroy
-(
+nssPKIXExtension_Destroy (
   NSSPKIXExtension *extension
 )
 {
@@ -219,8 +214,7 @@ nssPKIXExtension_Destroy
 }
 
 NSS_IMPLEMENT NSSBER *
-nssPKIXExtension_Encode
-(
+nssPKIXExtension_Encode (
   NSSPKIXExtension *extension,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -245,8 +239,7 @@ nssPKIXExtension_Encode
 }
 
 NSS_IMPLEMENT void
-nssPKIXExtension_SetExtensionID
-(
+nssPKIXExtension_SetExtensionID (
   NSSPKIXExtension *extension,
   NSSOID *extnID
 )
@@ -257,8 +250,7 @@ nssPKIXExtension_SetExtensionID
 }
 
 NSS_IMPLEMENT PRBool
-nssPKIXExtension_GetExtensionCritical
-(
+nssPKIXExtension_GetExtensionCritical (
   NSSPKIXExtension *extension
 )
 {
@@ -266,8 +258,7 @@ nssPKIXExtension_GetExtensionCritical
 }
 
 NSS_IMPLEMENT void
-nssPKIXExtension_SetExtensionCritical
-(
+nssPKIXExtension_SetExtensionCritical (
   NSSPKIXExtension *extension,
   PRBool critical
 )
@@ -276,8 +267,7 @@ nssPKIXExtension_SetExtensionCritical
 }
 
 NSS_IMPLEMENT NSSItem *
-nssPKIXExtension_GetExtensionValue
-(
+nssPKIXExtension_GetExtensionValue (
   NSSPKIXExtension *extension
 )
 {
@@ -285,8 +275,7 @@ nssPKIXExtension_GetExtensionValue
 }
 
 NSS_IMPLEMENT PRBool
-nssPKIXExtension_Equal
-(
+nssPKIXExtension_Equal (
   NSSPKIXExtension *one,
   NSSPKIXExtension *two,
   PRStatus *statusOpt
@@ -323,8 +312,7 @@ nssPKIXExtension_Equal
 }
 
 NSS_IMPLEMENT PRStatus
-nssPKIXExtension_duplicate
-(
+nssPKIXExtension_duplicate (
   NSSPKIXExtension *extension,
   NSSArena *arena,
   NSSPKIXExtension *copy
@@ -357,8 +345,7 @@ nssPKIXExtension_duplicate
 }
 
 NSS_IMPLEMENT NSSPKIXExtension *
-nssPKIXExtension_Duplicate
-(
+nssPKIXExtension_Duplicate (
   NSSPKIXExtension *extension,
   NSSArena *arenaOpt
 )
@@ -378,8 +365,7 @@ nssPKIXExtension_Duplicate
 }
 
 NSS_IMPLEMENT NSSOID *
-nssPKIXExtension_GetExtensionID
-(
+nssPKIXExtension_GetExtensionID (
   NSSPKIXExtension *extension
 )
 {
@@ -410,8 +396,7 @@ nssPKIXExtension_GetExtensionID
  */
 
 NSS_IMPLEMENT NSSPKIXExtension *
-NSSPKIXExtension_Create
-(
+NSSPKIXExtension_Create (
   NSSArena *arenaOpt,
   NSSOID *extnID,
   PRBool critical,
@@ -439,8 +424,7 @@ NSSPKIXExtension_Create
  */
 
 NSS_IMPLEMENT NSSPKIXExtension *
-NSSPKIXExtension_Decode
-(
+NSSPKIXExtension_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 )
@@ -456,8 +440,7 @@ NSSPKIXExtension_Decode
  */
 
 NSS_IMPLEMENT PRStatus
-NSSPKIXExtension_Destroy
-(
+NSSPKIXExtension_Destroy (
   NSSPKIXExtension *extension
 )
 {
@@ -472,8 +455,7 @@ NSSPKIXExtension_Destroy
  */
 
 NSS_IMPLEMENT NSSPKIXExtension *
-NSSPKIXExtension_Duplicate
-(
+NSSPKIXExtension_Duplicate (
   NSSPKIXExtension *extension,
   NSSArena *arenaOpt
 )
@@ -489,8 +471,7 @@ NSSPKIXExtension_Duplicate
  */
 
 NSS_IMPLEMENT NSSBER *
-NSSPKIXExtension_Encode
-(
+NSSPKIXExtension_Encode (
   NSSPKIXExtension *extension,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,

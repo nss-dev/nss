@@ -85,8 +85,7 @@ decode_me(NSSPKIXBasicConstraints *basicConstraints)
 }
 
 static NSSPKIXBasicConstraints *
-create_me
-(
+create_me (
   NSSArena *arenaOpt
 )
 {
@@ -139,8 +138,7 @@ loser:
 
 #if 0
 NSS_IMPLEMENT NSSPKIXBasicConstraints *
-nssPKIXBasicConstraints_Create
-(
+nssPKIXBasicConstraints_Create (
   NSSArena *arenaOpt,
   NSSOID *extnID,
   PRBool critical,
@@ -165,8 +163,7 @@ nssPKIXBasicConstraints_Create
 #endif
 
 NSS_IMPLEMENT NSSPKIXBasicConstraints *
-nssPKIXBasicConstraints_Decode
-(
+nssPKIXBasicConstraints_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 )
@@ -220,8 +217,7 @@ loser:
 }
 
 NSS_IMPLEMENT PRStatus
-nssPKIXBasicConstraints_Destroy
-(
+nssPKIXBasicConstraints_Destroy (
   NSSPKIXBasicConstraints *basicConstraints
 )
 {
@@ -232,8 +228,7 @@ nssPKIXBasicConstraints_Destroy
 }
 
 NSS_IMPLEMENT NSSBER *
-nssPKIXBasicConstraints_Encode
-(
+nssPKIXBasicConstraints_Encode (
   NSSPKIXBasicConstraints *basicConstraints,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -259,8 +254,7 @@ nssPKIXBasicConstraints_Encode
 
 #if 0
 NSS_IMPLEMENT PRBool
-nssPKIXBasicConstraints_Equal
-(
+nssPKIXBasicConstraints_Equal (
   NSSPKIXBasicConstraints *one,
   NSSPKIXBasicConstraints *two,
   PRStatus *statusOpt
@@ -288,8 +282,7 @@ nssPKIXBasicConstraints_Equal
 }
 
 NSS_IMPLEMENT PRStatus
-nssPKIXBasicConstraints_duplicate
-(
+nssPKIXBasicConstraints_duplicate (
   NSSPKIXBasicConstraints *basicConstraints,
   NSSArena *arena,
   NSSPKIXBasicConstraints *copy
@@ -324,8 +317,7 @@ nssPKIXBasicConstraints_duplicate
 }
 
 NSS_IMPLEMENT NSSPKIXBasicConstraints *
-nssPKIXBasicConstraints_Duplicate
-(
+nssPKIXBasicConstraints_Duplicate (
   NSSPKIXBasicConstraints *basicConstraints,
   NSSArena *arenaOpt
 )
@@ -346,8 +338,7 @@ nssPKIXBasicConstraints_Duplicate
 #endif
 
 NSS_IMPLEMENT PRBool
-nssPKIXBasicConstraints_IsCA
-(
+nssPKIXBasicConstraints_IsCA (
   NSSPKIXBasicConstraints *basicConstraints
 )
 {
@@ -355,8 +346,7 @@ nssPKIXBasicConstraints_IsCA
 }
 
 NSS_IMPLEMENT PRInt32
-nssPKIXBasicConstraints_GetPathLengthConstraint
-(
+nssPKIXBasicConstraints_GetPathLengthConstraint (
   NSSPKIXBasicConstraints *basicConstraints
 )
 {
@@ -381,8 +371,7 @@ nssPKIXBasicConstraints_GetPathLengthConstraint
 
 #if 0
 NSS_IMPLEMENT NSSPKIXBasicConstraints *
-NSSPKIXBasicConstraints_Create
-(
+NSSPKIXBasicConstraints_Create (
   NSSArena *arenaOpt,
   NSSOID *extnID,
   PRBool critical,
@@ -411,8 +400,7 @@ NSSPKIXBasicConstraints_Create
  */
 
 NSS_IMPLEMENT NSSPKIXBasicConstraints *
-NSSPKIXBasicConstraints_Decode
-(
+NSSPKIXBasicConstraints_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 )
@@ -428,8 +416,7 @@ NSSPKIXBasicConstraints_Decode
  */
 
 NSS_IMPLEMENT PRStatus
-NSSPKIXBasicConstraints_Destroy
-(
+NSSPKIXBasicConstraints_Destroy (
   NSSPKIXBasicConstraints *basicConstraints
 )
 {
@@ -445,8 +432,7 @@ NSSPKIXBasicConstraints_Destroy
 
 #if 0
 NSS_IMPLEMENT NSSPKIXBasicConstraints *
-NSSPKIXBasicConstraints_Duplicate
-(
+NSSPKIXBasicConstraints_Duplicate (
   NSSPKIXBasicConstraints *basicConstraints,
   NSSArena *arenaOpt
 )
@@ -463,8 +449,7 @@ NSSPKIXBasicConstraints_Duplicate
  */
 
 NSS_IMPLEMENT NSSBER *
-NSSPKIXBasicConstraints_Encode
-(
+NSSPKIXBasicConstraints_Encode (
   NSSPKIXBasicConstraints *basicConstraints,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -485,8 +470,7 @@ NSSPKIXBasicConstraints_Encode
 }
 
 NSS_IMPLEMENT PRBool
-NSSPKIXBasicConstraints_IsCA
-(
+NSSPKIXBasicConstraints_IsCA (
   NSSPKIXBasicConstraints *basicConstraints
 )
 {
@@ -494,8 +478,7 @@ NSSPKIXBasicConstraints_IsCA
 }
 
 NSS_IMPLEMENT PRInt32
-NSSPKIXBasicConstraints_GetPathLengthConstraint
-(
+NSSPKIXBasicConstraints_GetPathLengthConstraint (
   NSSPKIXBasicConstraints *basicConstraints
 )
 {

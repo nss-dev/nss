@@ -162,6 +162,16 @@ typedef struct NSSTrustDomainStr NSSTrustDomain;
 
 typedef struct NSSCryptoContextStr NSSCryptoContext;
 
+/*
+ * NSSCryptoContextMark
+ *
+ * Holds the state of a crypto context.  The context operation may
+ * be continued, and the continuation can be kept by unmarking, or
+ * thrown out by releasing the mark.
+ */
+
+typedef struct NSSCryptoContextMarkStr NSSCryptoContextMark;
+
 typedef struct NSSCRLStr NSSCRL;
 
 /*

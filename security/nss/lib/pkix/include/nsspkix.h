@@ -122,8 +122,7 @@ PR_BEGIN_EXTERN_C
  */
 
 NSS_EXTERN NSSPKIXAttribute *
-NSSPKIXAttribute_Decode
-(
+NSSPKIXAttribute_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -150,8 +149,7 @@ NSSPKIXAttribute_Decode
  */
 
 NSS_EXTERN NSSPKIXAttribute *
-NSSPKIXAttribute_Create
-(
+NSSPKIXAttribute_Create (
   NSSArena *arenaOpt,
   NSSPKIXAttributeType *typeOid,
   NSSPKIXAttributeValue *value1,
@@ -180,8 +178,7 @@ NSSPKIXAttribute_Create
  */
 
 NSS_EXTERN NSSPKIXAttribute *
-NSSPKIXAttribute_CreateFromArray
-(
+NSSPKIXAttribute_CreateFromArray (
   NSSArena *arenaOpt,
   NSSPKIXAttributeType *typeOid,
   PRUint32 count,
@@ -206,8 +203,7 @@ NSSPKIXAttribute_CreateFromArray
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXAttribute_Destroy
-(
+NSSPKIXAttribute_Destroy (
   NSSPKIXAttribute *attribute
 );
 
@@ -231,8 +227,7 @@ NSSPKIXAttribute_Destroy
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXAttribute_Encode
-(
+NSSPKIXAttribute_Encode (
   NSSPKIXAttribute *attribute,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -255,8 +250,7 @@ NSSPKIXAttribute_Encode
  */
 
 NSS_EXTERN NSSPKIXAttributeType *
-NSSPKIXAttribute_GetType
-(
+NSSPKIXAttribute_GetType (
   NSSPKIXAttribute *attribute
 );
 
@@ -279,8 +273,7 @@ NSSPKIXAttribute_GetType
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXAttribute_SetType
-(
+NSSPKIXAttribute_SetType (
   NSSPKIXAttribute *attribute,
   NSSPKIXAttributeType *attributeType
 );
@@ -303,8 +296,7 @@ NSSPKIXAttribute_SetType
  */
 
 NSS_EXTERN PRInt32
-NSSPKIXAttribute_GetValueCount
-(
+NSSPKIXAttribute_GetValueCount (
   NSSPKIXAttribute *attribute
 );
 
@@ -331,8 +323,7 @@ NSSPKIXAttribute_GetValueCount
  */
 
 NSS_EXTERN NSSPKIXAttributeValue *
-NSSPKIXAttribute_GetValues
-(
+NSSPKIXAttribute_GetValues (
   NSSPKIXAttribute *attribute,
   NSSPKIXAttributeValue rvOpt[],
   PRInt32 limit,
@@ -356,8 +347,7 @@ NSSPKIXAttribute_GetValues
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXAttribute_SetValues
-(
+NSSPKIXAttribute_SetValues (
   NSSPKIXAttribute *attribute,
   NSSPKIXAttributeValue values[],
   PRInt32 count
@@ -384,8 +374,7 @@ NSSPKIXAttribute_SetValues
  */
 
 NSS_EXTERN NSSPKIXAttributeValue *
-NSSPKIXAttribute_GetValue
-(
+NSSPKIXAttribute_GetValue (
   NSSPKIXAttribute *attribute,
   PRInt32 i,
   NSSPKIXAttributeValue *itemOpt,
@@ -410,8 +399,7 @@ NSSPKIXAttribute_GetValue
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXAttribute_SetValue
-(
+NSSPKIXAttribute_SetValue (
   NSSPKIXAttribute *attribute,
   PRInt32 i,
   NSSPKIXAttributeValue *value
@@ -434,8 +422,7 @@ NSSPKIXAttribute_SetValue
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXAttribute_AddValue
-(
+NSSPKIXAttribute_AddValue (
   NSSPKIXAttribute *attribute,
   NSSPKIXAttributeValue *value
 ); 
@@ -458,8 +445,7 @@ NSSPKIXAttribute_AddValue
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXAttribute_RemoveValue
-(
+NSSPKIXAttribute_RemoveValue (
   NSSPKIXAttribute *attribute,
   PRInt32 i
 );
@@ -487,8 +473,7 @@ NSSPKIXAttribute_RemoveValue
  */
 
 NSS_EXTERN PRInt32
-NSSPKIXAttribute_FindValue
-(
+NSSPKIXAttribute_FindValue (
   NSSPKIXAttribute *attribute,
   NSSPKIXAttributeValue *attributeValue
 );
@@ -511,8 +496,7 @@ NSSPKIXAttribute_FindValue
  */
 
 NSS_EXTERN PRBool
-NSSPKIXAttribute_Equal
-(
+NSSPKIXAttribute_Equal (
   NSSPKIXAttribute *one,
   NSSPKIXAttribute *two,
   PRStatus *statusOpt
@@ -534,8 +518,7 @@ NSSPKIXAttribute_Equal
  */
 
 NSS_EXTERN NSSPKIXAttribute *
-NSSPKIXAttribute_Duplicate
-(
+NSSPKIXAttribute_Duplicate (
   NSSPKIXAttribute *attribute,
   NSSArena *arenaOpt
 );
@@ -588,8 +571,7 @@ NSSPKIXAttribute_Duplicate
  */
 
 NSS_EXTERN NSSPKIXATAV *
-NSSPKIXATAV_Decode
-(
+NSSPKIXATAV_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -611,8 +593,7 @@ NSSPKIXATAV_Decode
  */
 
 NSS_EXTERN NSSPKIXATAV *
-NSSPKIXATAV_CreateFromUTF8
-(
+NSSPKIXATAV_CreateFromUTF8 (
   NSSArena *arenaOpt,
   NSSUTF8 *string
 );
@@ -634,8 +615,7 @@ NSSPKIXATAV_CreateFromUTF8
  */
 
 NSS_EXTERN NSSPKIXATAV *
-NSSPKIXATAV_Create
-(
+NSSPKIXATAV_Create (
   NSSArena *arenaOpt,
   NSSPKIXAttributeType *typeOid,
   NSSPKIXAttributeValue *value
@@ -655,8 +635,7 @@ NSSPKIXATAV_Create
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXATAV_Destroy
-(
+NSSPKIXATAV_Destroy (
   NSSPKIXATAV *atav
 );
 
@@ -676,8 +655,7 @@ NSSPKIXATAV_Destroy
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXATAV_Encode
-(
+NSSPKIXATAV_Encode (
   NSSPKIXATAV *atav,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -700,8 +678,7 @@ NSSPKIXATAV_Encode
  */
 
 NSS_EXTERN NSSUTF8 *
-NSSPKIXATAV_GetUTF8Encoding
-(
+NSSPKIXATAV_GetUTF8Encoding (
   NSSPKIXATAV *atav,
   NSSArena *arenaOpt
 );
@@ -721,8 +698,7 @@ NSSPKIXATAV_GetUTF8Encoding
  */
 
 NSS_EXTERN NSSPKIXAttributeType *
-NSSPKIXATAV_GetType
-(
+NSSPKIXATAV_GetType (
   NSSPKIXATAV *atav
 );
 
@@ -741,8 +717,7 @@ NSSPKIXATAV_GetType
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXATAV_SetType
-(
+NSSPKIXATAV_SetType (
   NSSPKIXATAV *atav,
   NSSPKIXAttributeType *attributeType
 );
@@ -763,8 +738,7 @@ NSSPKIXATAV_SetType
  */
 
 NSS_EXTERN NSSPKIXAttributeValue *
-NSSPKIXATAV_GetValue
-(
+NSSPKIXATAV_GetValue (
   NSSPKIXATAV *atav,
   NSSPKIXAttributeValue *itemOpt,
   NSSArena *arenaOpt
@@ -786,8 +760,7 @@ NSSPKIXATAV_GetValue
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXATAV_SetValue
-(
+NSSPKIXATAV_SetValue (
   NSSPKIXATAV *atav,
   NSSPKIXAttributeValue *value
 );
@@ -807,8 +780,7 @@ NSSPKIXATAV_SetValue
  */
 
 NSS_EXTERN PRBool
-NSSPKIXATAV_Equal
-(
+NSSPKIXATAV_Equal (
   NSSPKIXATAV *atav1,
   NSSPKIXATAV *atav2,
   PRStatus *statusOpt
@@ -830,8 +802,7 @@ NSSPKIXATAV_Equal
  */
 
 NSS_EXTERN NSSPKIXATAV *
-NSSPKIXATAV_Duplicate
-(
+NSSPKIXATAV_Duplicate (
   NSSPKIXATAV *atav,
   NSSArena *arenaOpt
 );
@@ -885,8 +856,7 @@ NSSPKIXATAV_Duplicate
  */
 
 NSS_EXTERN NSSPKIXX520Name *
-NSSPKIXX520Name_Decode
-(
+NSSPKIXX520Name_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -907,8 +877,7 @@ NSSPKIXX520Name_Decode
  */
 
 NSS_EXTERN NSSPKIXX520Name *
-NSSPKIXX520Name_CreateFromUTF8
-(
+NSSPKIXX520Name_CreateFromUTF8 (
   NSSArena *arenaOpt,
   NSSUTF8 *utf8
 );
@@ -954,8 +923,7 @@ NSSPKIXX520Name_CreateFromUTF8
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXX520Name_Destroy
-(
+NSSPKIXX520Name_Destroy (
   NSSPKIXX520Name *name
 );
 
@@ -974,8 +942,7 @@ NSSPKIXX520Name_Destroy
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXX520Name_Encode
-(
+NSSPKIXX520Name_Encode (
   NSSPKIXX520Name *name,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -997,8 +964,7 @@ NSSPKIXX520Name_Encode
  */
 
 NSS_EXTERN NSSUTF8 *
-NSSPKIXX520Name_GetUTF8Encoding
-(
+NSSPKIXX520Name_GetUTF8Encoding (
   NSSPKIXX520Name *name,
   NSSArena *arenaOpt
 );
@@ -1018,8 +984,7 @@ NSSPKIXX520Name_GetUTF8Encoding
  */
 
 NSS_EXTERN PRBool
-NSSPKIXX520Name_Equal
-(
+NSSPKIXX520Name_Equal (
   NSSPKIXX520Name *name1,
   NSSPKIXX520Name *name2,
   PRStatus *statusOpt
@@ -1041,8 +1006,7 @@ NSSPKIXX520Name_Equal
  */
 
 NSS_EXTERN NSSPKIXX520Name *
-NSSPKIXX520Name_Duplicate
-(
+NSSPKIXX520Name_Duplicate (
   NSSPKIXX520Name *name,
   NSSArena *arenaOpt
 );
@@ -1106,8 +1070,7 @@ extern const PRUint32 NSSPKIXX520Name_MAXIMUM_LENGTH;
  */
 
 NSS_EXTERN NSSPKIXX520CommonName *
-NSSPKIXX520CommonName_Decode
-(
+NSSPKIXX520CommonName_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -1153,8 +1116,7 @@ NSSPKIXX520CommonName_Decode
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXX520CommonName_Destroy
-(
+NSSPKIXX520CommonName_Destroy (
   NSSPKIXX520CommonName *name
 );
 
@@ -1174,8 +1136,7 @@ NSSPKIXX520CommonName_Destroy
  */
 
 NSS_EXTERN NSSPKIXX520CommonName *
-NSSPKIXX520CommonName_CreateFromUTF8
-(
+NSSPKIXX520CommonName_CreateFromUTF8 (
   NSSArena *arenaOpt,
   NSSUTF8 *utf8
 );
@@ -1195,8 +1156,7 @@ NSSPKIXX520CommonName_CreateFromUTF8
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXX520CommonName_Encode
-(
+NSSPKIXX520CommonName_Encode (
   NSSPKIXX520CommonName *name,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -1218,8 +1178,7 @@ NSSPKIXX520CommonName_Encode
  */
 
 NSS_EXTERN NSSUTF8 *
-NSSPKIXX520CommonName_GetUTF8Encoding
-(
+NSSPKIXX520CommonName_GetUTF8Encoding (
   NSSPKIXX520CommonName *name,
   NSSArena *arenaOpt
 );
@@ -1239,8 +1198,7 @@ NSSPKIXX520CommonName_GetUTF8Encoding
  */
 
 NSS_EXTERN PRBool
-NSSPKIXX520CommonName_Equal
-(
+NSSPKIXX520CommonName_Equal (
   NSSPKIXX520CommonName *name1,
   NSSPKIXX520CommonName *name2,
   PRStatus *statusOpt
@@ -1262,8 +1220,7 @@ NSSPKIXX520CommonName_Equal
  */
 
 NSS_EXTERN NSSPKIXX520CommonName *
-NSSPKIXX520CommonName_Duplicate
-(
+NSSPKIXX520CommonName_Duplicate (
   NSSPKIXX520CommonName *name,
   NSSArena *arenaOpt
 );
@@ -1316,8 +1273,7 @@ extern const PRUint32 NSSPKIXX520CommonName_MAXIMUM_LENGTH;
  */
 
 NSS_EXTERN NSSPKIXX520LocalityName *
-NSSPKIXX520LocalityName_Decode
-(
+NSSPKIXX520LocalityName_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -1338,8 +1294,7 @@ NSSPKIXX520LocalityName_Decode
  */
 
 NSS_EXTERN NSSPKIXX520LocalityName *
-NSSPKIXX520LocalityName_CreateFromUTF8
-(
+NSSPKIXX520LocalityName_CreateFromUTF8 (
   NSSArena *arenaOpt,
   NSSUTF8 *utf8
 );
@@ -1359,8 +1314,7 @@ NSSPKIXX520LocalityName_CreateFromUTF8
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXX520LocalityName_Encode
-(
+NSSPKIXX520LocalityName_Encode (
   NSSPKIXX520LocalityName *name,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -1405,8 +1359,7 @@ NSSPKIXX520LocalityName_Encode
  */
 
 NSS_EXTERN NSSPKIXX520StateOrProvinceName *
-NSSPKIXX520StateOrProvinceName_Decode
-(
+NSSPKIXX520StateOrProvinceName_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -1427,8 +1380,7 @@ NSSPKIXX520StateOrProvinceName_Decode
  */
 
 NSS_EXTERN NSSPKIXX520StateOrProvinceName *
-NSSPKIXX520StateOrProvinceName_CreateFromUTF8
-(
+NSSPKIXX520StateOrProvinceName_CreateFromUTF8 (
   NSSArena *arenaOpt,
   NSSUTF8 *utf8
 );
@@ -1448,8 +1400,7 @@ NSSPKIXX520StateOrProvinceName_CreateFromUTF8
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXX520StateOrProvinceName_Encode
-(
+NSSPKIXX520StateOrProvinceName_Encode (
   NSSPKIXX520StateOrProvinceName *name,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -1494,8 +1445,7 @@ NSSPKIXX520StateOrProvinceName_Encode
  */
 
 NSS_EXTERN NSSPKIXX520OrganizationName *
-NSSPKIXX520OrganizationName_Decode
-(
+NSSPKIXX520OrganizationName_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -1516,8 +1466,7 @@ NSSPKIXX520OrganizationName_Decode
  */
 
 NSS_EXTERN NSSPKIXX520OrganizationName *
-NSSPKIXX520OrganizationName_CreateFromUTF8
-(
+NSSPKIXX520OrganizationName_CreateFromUTF8 (
   NSSArena *arenaOpt,
   NSSUTF8 *utf8
 );
@@ -1537,8 +1486,7 @@ NSSPKIXX520OrganizationName_CreateFromUTF8
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXX520OrganizationName_Encode
-(
+NSSPKIXX520OrganizationName_Encode (
   NSSPKIXX520OrganizationName *name,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -1585,8 +1533,7 @@ NSSPKIXX520OrganizationName_Encode
  */
 
 NSS_EXTERN NSSPKIXX520OrganizationalUnitName *
-NSSPKIXX520OrganizationalUnitName_Decode
-(
+NSSPKIXX520OrganizationalUnitName_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -1607,8 +1554,7 @@ NSSPKIXX520OrganizationalUnitName_Decode
  */
 
 NSS_EXTERN NSSPKIXX520OrganizationalUnitName *
-NSSPKIXX520OrganizationalUnitName_CreateFromUTF8
-(
+NSSPKIXX520OrganizationalUnitName_CreateFromUTF8 (
   NSSArena *arenaOpt,
   NSSUTF8 *utf8
 );
@@ -1628,8 +1574,7 @@ NSSPKIXX520OrganizationalUnitName_CreateFromUTF8
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXX520OrganizationalUnitName_Encode
-(
+NSSPKIXX520OrganizationalUnitName_Encode (
   NSSPKIXX520OrganizationalUnitName *name,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -1674,8 +1619,7 @@ NSSPKIXX520OrganizationalUnitName_Encode
  */
 
 NSS_EXTERN NSSPKIXX520Title *
-NSSPKIXX520Title_Decode
-(
+NSSPKIXX520Title_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -1696,8 +1640,7 @@ NSSPKIXX520Title_Decode
  */
 
 NSS_EXTERN NSSPKIXX520Title *
-NSSPKIXX520Title_CreateFromUTF8
-(
+NSSPKIXX520Title_CreateFromUTF8 (
   NSSArena *arenaOpt,
   NSSUTF8 *utf8
 );
@@ -1717,8 +1660,7 @@ NSSPKIXX520Title_CreateFromUTF8
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXX520Title_Encode
-(
+NSSPKIXX520Title_Encode (
   NSSPKIXX520Title *name,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -1758,8 +1700,7 @@ NSSPKIXX520Title_Encode
  */
 
 NSS_EXTERN NSSPKIXX520dnQualifier *
-NSSPKIXX520dnQualifier_Decode
-(
+NSSPKIXX520dnQualifier_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -1780,8 +1721,7 @@ NSSPKIXX520dnQualifier_Decode
  */
 
 NSS_EXTERN NSSPKIXX520dnQualifier *
-NSSPKIXX520dnQualifier_CreateFromUTF8
-(
+NSSPKIXX520dnQualifier_CreateFromUTF8 (
   NSSArena *arenaOpt,
   NSSUTF8 *utf8
 );
@@ -1801,8 +1741,7 @@ NSSPKIXX520dnQualifier_CreateFromUTF8
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXX520dnQualifier_Encode
-(
+NSSPKIXX520dnQualifier_Encode (
   NSSPKIXX520dnQualifier *name,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -1842,8 +1781,7 @@ NSSPKIXX520dnQualifier_Encode
  */
 
 NSS_EXTERN NSSPKIXX520countryName *
-NSSPKIXX520countryName_Decode
-(
+NSSPKIXX520countryName_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -1864,8 +1802,7 @@ NSSPKIXX520countryName_Decode
  */
 
 NSS_EXTERN NSSPKIXX520countryName *
-NSSPKIXX520countryName_CreateFromUTF8
-(
+NSSPKIXX520countryName_CreateFromUTF8 (
   NSSArena *arenaOpt,
   NSSUTF8 *utf8
 );
@@ -1885,8 +1822,7 @@ NSSPKIXX520countryName_CreateFromUTF8
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXX520countryName_Encode
-(
+NSSPKIXX520countryName_Encode (
   NSSPKIXX520countryName *name,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -1926,8 +1862,7 @@ NSSPKIXX520countryName_Encode
  */
 
 NSS_EXTERN NSSPKIXPkcs9email *
-NSSPKIXPkcs9email_Decode
-(
+NSSPKIXPkcs9email_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -1948,8 +1883,7 @@ NSSPKIXPkcs9email_Decode
  */
 
 NSS_EXTERN NSSPKIXPkcs9email *
-NSSPKIXPkcs9email_CreateFromUTF8
-(
+NSSPKIXPkcs9email_CreateFromUTF8 (
   NSSArena *arenaOpt,
   NSSUTF8 *utf8
 );
@@ -1969,8 +1903,7 @@ NSSPKIXPkcs9email_CreateFromUTF8
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXPkcs9email_Encode
-(
+NSSPKIXPkcs9email_Encode (
   NSSPKIXPkcs9email *name,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -2025,8 +1958,7 @@ NSSPKIXPkcs9email_Encode
  */
 
 NSS_EXTERN NSSPKIXName *
-NSSPKIXName_Decode
-(
+NSSPKIXName_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -2048,8 +1980,7 @@ NSSPKIXName_Decode
  */
 
 NSS_EXTERN NSSPKIXName *
-NSSPKIXName_CreateFromUTF8
-(
+NSSPKIXName_CreateFromUTF8 (
   NSSArena *arenaOpt,
   NSSUTF8 *string
 );
@@ -2071,8 +2002,7 @@ NSSPKIXName_CreateFromUTF8
  */
 
 NSS_EXTERN NSSPKIXName *
-NSSPKIXName_Create
-(
+NSSPKIXName_Create (
   NSSArena *arenaOpt,
   NSSPKIXNameChoice choice,
   void *arg
@@ -2094,8 +2024,7 @@ NSSPKIXName_Create
  */
 
 NSS_EXTERN NSSPKIXName *
-NSSPKIXName_CreateFromRDNSequence
-(
+NSSPKIXName_CreateFromRDNSequence (
   NSSArena *arenaOpt,
   NSSPKIXRDNSequence *rdnSequence
 );
@@ -2114,8 +2043,7 @@ NSSPKIXName_CreateFromRDNSequence
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXName_Destroy
-(
+NSSPKIXName_Destroy (
   NSSPKIXName *name
 );
 
@@ -2135,8 +2063,7 @@ NSSPKIXName_Destroy
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXName_Encode
-(
+NSSPKIXName_Encode (
   NSSPKIXName *name,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -2159,8 +2086,7 @@ NSSPKIXName_Encode
  */
 
 NSS_EXTERN NSSUTF8 *
-NSSPKIXName_GetUTF8Encoding
-(
+NSSPKIXName_GetUTF8Encoding (
   NSSPKIXName *name,
   NSSArena *arenaOpt
 );
@@ -2179,8 +2105,7 @@ NSSPKIXName_GetUTF8Encoding
  */
 
 NSS_EXTERN NSSPKIXNameChoice
-NSSPKIXName_GetChoice
-(
+NSSPKIXName_GetChoice (
   NSSPKIXName *name
 );
 
@@ -2201,8 +2126,7 @@ NSSPKIXName_GetChoice
  */
 
 NSS_EXTERN NSSPKIXRDNSequence *
-NSSPKIXName_GetRDNSequence
-(
+NSSPKIXName_GetRDNSequence (
   NSSPKIXName *name,
   NSSArena *arenaOpt
 );
@@ -2224,8 +2148,7 @@ NSSPKIXName_GetRDNSequence
  */
 
 NSS_EXTERN void *
-NSSPKIXName_GetSpecifiedChoice
-(
+NSSPKIXName_GetSpecifiedChoice (
   NSSPKIXName *name,
   NSSPKIXNameChoice choice,
   NSSArena *arenaOpt
@@ -2246,8 +2169,7 @@ NSSPKIXName_GetSpecifiedChoice
  */
 
 NSS_EXTERN PRBool
-NSSPKIXName_Equal
-(
+NSSPKIXName_Equal (
   NSSPKIXName *name1,
   NSSPKIXName *name2,
   PRStatus *statusOpt
@@ -2269,8 +2191,7 @@ NSSPKIXName_Equal
  */
 
 NSS_EXTERN NSSPKIXName *
-NSSPKIXName_Duplicate
-(
+NSSPKIXName_Duplicate (
   NSSPKIXName *name,
   NSSArena *arenaOpt
 );
@@ -2324,8 +2245,7 @@ NSSPKIXName_Duplicate
  */
 
 NSS_EXTERN NSSPKIXRDNSequence *
-NSSPKIXRDNSequence_Decode
-(
+NSSPKIXRDNSequence_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -2347,8 +2267,7 @@ NSSPKIXRDNSequence_Decode
  */
 
 NSS_EXTERN NSSPKIXRDNSequence *
-NSSPKIXRDNSequence_CreateFromUTF8
-(
+NSSPKIXRDNSequence_CreateFromUTF8 (
   NSSArena *arenaOpt,
   NSSUTF8 *string
 );
@@ -2369,8 +2288,7 @@ NSSPKIXRDNSequence_CreateFromUTF8
  */
 
 NSS_EXTERN NSSPKIXRDNSequence *
-NSSPKIXRDNSequence_Create
-(
+NSSPKIXRDNSequence_Create (
   NSSArena *arenaOpt,
   NSSPKIXRelativeDistinguishedName *rdn1,
   ...
@@ -2392,8 +2310,7 @@ NSSPKIXRDNSequence_Create
  */
 
 NSS_EXTERN NSSPKIXRDNSequence *
-NSSPKIXRDNSequence_Create
-(
+NSSPKIXRDNSequence_Create (
   NSSArena *arenaOpt,
   PRUint32 count,
   NSSPKIXRelativeDistinguishedName *rdns[]
@@ -2413,8 +2330,7 @@ NSSPKIXRDNSequence_Create
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXRDNSequence_Destroy
-(
+NSSPKIXRDNSequence_Destroy (
   NSSPKIXRDNSequence *rdnseq
 );
 
@@ -2434,8 +2350,7 @@ NSSPKIXRDNSequence_Destroy
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXRDNSequence_Encode
-(
+NSSPKIXRDNSequence_Encode (
   NSSPKIXRDNSequence *rdnseq,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -2458,8 +2373,7 @@ NSSPKIXRDNSequence_Encode
  */
 
 NSS_EXTERN NSSUTF8 *
-NSSPKIXRDNSequence_GetUTF8Encoding
-(
+NSSPKIXRDNSequence_GetUTF8Encoding (
   NSSPKIXRDNSequence *rdnseq,
   NSSArena *arenaOpt
 );
@@ -2479,8 +2393,7 @@ NSSPKIXRDNSequence_GetUTF8Encoding
  */
 
 NSS_EXTERN PRInt32
-NSSPKIXRDNSequence_GetRelativeDistinguishedNameCount
-(
+NSSPKIXRDNSequence_GetRelativeDistinguishedNameCount (
   NSSPKIXRDNSequence *rdnseq
 );
 
@@ -2504,8 +2417,7 @@ NSSPKIXRDNSequence_GetRelativeDistinguishedNameCount
  */
 
 NSS_EXTERN NSSPKIXRelativeDistinguishedName **
-NSSPKIXRDNSequence_GetRelativeDistinguishedNames
-(
+NSSPKIXRDNSequence_GetRelativeDistinguishedNames (
   NSSPKIXRDNSequence *rdnseq,
   NSSPKIXRelativeDistinguishedName *rvOpt[],
   PRInt32 limit,
@@ -2530,8 +2442,7 @@ NSSPKIXRDNSequence_GetRelativeDistinguishedNames
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXRDNSequence_SetRelativeDistinguishedNames
-(
+NSSPKIXRDNSequence_SetRelativeDistinguishedNames (
   NSSPKIXRDNSequence *rdnseq,
   NSSPKIXRelativeDistinguishedName *rdns[],
   PRInt32 countOpt
@@ -2554,8 +2465,7 @@ NSSPKIXRDNSequence_SetRelativeDistinguishedNames
  */
 
 NSS_EXTERN NSSPKIXRelativeDistinguishedName *
-NSSPKIXRDNSequence_GetRelativeDistinguishedName
-(
+NSSPKIXRDNSequence_GetRelativeDistinguishedName (
   NSSPKIXRDNSequence *rdnseq,
   PRInt32 i,
   NSSArena *arenaOpt
@@ -2578,8 +2488,7 @@ NSSPKIXRDNSequence_GetRelativeDistinguishedName
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXRDNSequence_SetRelativeDistinguishedName
-(
+NSSPKIXRDNSequence_SetRelativeDistinguishedName (
   NSSPKIXRDNSequence *rdnseq,
   PRInt32 i,
   NSSPKIXRelativeDistinguishedName *rdn
@@ -2601,8 +2510,7 @@ NSSPKIXRDNSequence_SetRelativeDistinguishedName
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXRDNSequence_AppendRelativeDistinguishedName
-(
+NSSPKIXRDNSequence_AppendRelativeDistinguishedName (
   NSSPKIXRDNSequence *rdnseq,
   NSSPKIXRelativeDistinguishedName *rdn
 );
@@ -2624,8 +2532,7 @@ NSSPKIXRDNSequence_AppendRelativeDistinguishedName
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXRDNSequence_InsertRelativeDistinguishedName
-(
+NSSPKIXRDNSequence_InsertRelativeDistinguishedName (
   NSSPKIXRDNSequence *rdnseq,
   PRInt32 i,
   NSSPKIXRelativeDistinguishedName *rdn
@@ -2646,8 +2553,7 @@ NSSPKIXRDNSequence_InsertRelativeDistinguishedName
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXRDNSequence_RemoveRelativeDistinguishedName
-(
+NSSPKIXRDNSequence_RemoveRelativeDistinguishedName (
   NSSPKIXRDNSequence *rdnseq,
   PRInt32 i
 );
@@ -2669,8 +2575,7 @@ NSSPKIXRDNSequence_RemoveRelativeDistinguishedName
  */
 
 NSS_EXTERN PRInt32
-NSSPKIXRDNSequence_FindRelativeDistinguishedName
-(
+NSSPKIXRDNSequence_FindRelativeDistinguishedName (
   NSSPKIXRDNSequence *rdnseq,
   NSSPKIXRelativeDistinguishedName *rdn
 );
@@ -2690,8 +2595,7 @@ NSSPKIXRDNSequence_FindRelativeDistinguishedName
  */
 
 NSS_EXTERN PRBool
-NSSPKIXRDNSequence_Equal
-(
+NSSPKIXRDNSequence_Equal (
   NSSPKIXRDNSequence *one,
   NSSPKIXRDNSequence *two,
   PRStatus *statusOpt
@@ -2713,8 +2617,7 @@ NSSPKIXRDNSequence_Equal
  */
 
 NSS_EXTERN NSSPKIXRDNSequence *
-NSSPKIXRDNSequence_Duplicate
-(
+NSSPKIXRDNSequence_Duplicate (
   NSSPKIXRDNSequence *rdnseq,
   NSSArena *arenaOpt
 );
@@ -2809,8 +2712,7 @@ NSSPKIXRDNSequence_Duplicate
  */
 
 NSS_EXTERN NSSPKIXRelativeDistinguishedName *
-NSSPKIXRelativeDistinguishedName_Decode
-(
+NSSPKIXRelativeDistinguishedName_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -2832,8 +2734,7 @@ NSSPKIXRelativeDistinguishedName_Decode
  */
 
 NSS_EXTERN NSSPKIXRelativeDistinguishedName *
-NSSPKIXRelativeDistinguishedName_CreateFromUTF8
-(
+NSSPKIXRelativeDistinguishedName_CreateFromUTF8 (
   NSSArena *arenaOpt,
   NSSUTF8 *string
 );
@@ -2854,8 +2755,7 @@ NSSPKIXRelativeDistinguishedName_CreateFromUTF8
  */
 
 NSS_EXTERN NSSPKIXRelativeDistinguishedName *
-NSSPKIXRelativeDistinguishedName_Create
-(
+NSSPKIXRelativeDistinguishedName_Create (
   NSSArena *arenaOpt,
   NSSPKIXATAV *atav1,
   ...
@@ -2877,8 +2777,7 @@ NSSPKIXRelativeDistinguishedName_Create
  */
 
 NSS_EXTERN NSSPKIXRelativeDistinguishedName *
-NSSPKIXRelativeDistinguishedName_CreateFromArray
-(
+NSSPKIXRelativeDistinguishedName_CreateFromArray (
   NSSArena *arenaOpt,
   PRUint32 count,
   NSSPKIXATAV *atavs[]
@@ -2898,8 +2797,7 @@ NSSPKIXRelativeDistinguishedName_CreateFromArray
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXRelativeDistinguishedName_Destroy
-(
+NSSPKIXRelativeDistinguishedName_Destroy (
   NSSPKIXRelativeDistinguishedName *rdn
 );
 
@@ -2919,8 +2817,7 @@ NSSPKIXRelativeDistinguishedName_Destroy
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXRelativeDistinguishedName_Encode
-(
+NSSPKIXRelativeDistinguishedName_Encode (
   NSSPKIXRelativeDistinguishedName *rdn,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -2943,8 +2840,7 @@ NSSPKIXRelativeDistinguishedName_Encode
  */
 
 NSS_EXTERN NSSUTF8 *
-NSSPKIXRelativeDistinguishedName_GetUTF8Encoding
-(
+NSSPKIXRelativeDistinguishedName_GetUTF8Encoding (
   NSSPKIXRelativeDistinguishedName *rdn,
   NSSArena *arenaOpt
 );
@@ -2964,8 +2860,7 @@ NSSPKIXRelativeDistinguishedName_GetUTF8Encoding
  */
 
 NSS_EXTERN PRInt32
-NSSPKIXRelativeDistinguishedName_GetAttributeTypeAndValueCount
-(
+NSSPKIXRelativeDistinguishedName_GetAttributeTypeAndValueCount (
   NSSPKIXRelativeDistinguishedName *rdn
 );
 
@@ -2987,8 +2882,7 @@ NSSPKIXRelativeDistinguishedName_GetAttributeTypeAndValueCount
  */
 
 NSS_EXTERN NSSPKIXATAV **
-NSSPKIXRelativeDistinguishedName_GetAttributeTypeAndValues
-(
+NSSPKIXRelativeDistinguishedName_GetAttributeTypeAndValues (
   NSSPKIXRelativeDistinguishedName *rdn,
   NSSPKIXATAV *rvOpt[],
   PRInt32 limit,
@@ -3010,8 +2904,7 @@ NSSPKIXRelativeDistinguishedName_GetAttributeTypeAndValues
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXRelativeDistinguishedName_SetAttributeTypeAndValues
-(
+NSSPKIXRelativeDistinguishedName_SetAttributeTypeAndValues (
   NSSPKIXRelativeDistinguishedName *rdn,
   NSSPKIXATAV *atavs[],
   PRInt32 countOpt
@@ -3034,8 +2927,7 @@ NSSPKIXRelativeDistinguishedName_SetAttributeTypeAndValues
  */
 
 NSS_EXTERN NSSPKIXATAV *
-NSSPKIXRelativeDistinguishedName_GetAttributeTypeAndValue
-(
+NSSPKIXRelativeDistinguishedName_GetAttributeTypeAndValue (
   NSSPKIXRelativeDistinguishedName *rdn,
   PRInt32 i,
   NSSArena *arenaOpt
@@ -3058,8 +2950,7 @@ NSSPKIXRelativeDistinguishedName_GetAttributeTypeAndValue
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXRelativeDistinguishedName_SetAttributeTypeAndValue
-(
+NSSPKIXRelativeDistinguishedName_SetAttributeTypeAndValue (
   NSSPKIXRelativeDistinguishedName *rdn,
   PRInt32 i,
   NSSPKIXATAV *atav
@@ -3081,8 +2972,7 @@ NSSPKIXRelativeDistinguishedName_SetAttributeTypeAndValue
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXRelativeDistinguishedName_AddAttributeTypeAndValue
-(
+NSSPKIXRelativeDistinguishedName_AddAttributeTypeAndValue (
   NSSPKIXRelativeDistinguishedName *rdn,
   NSSPKIXATAV *atav
 );
@@ -3103,8 +2993,7 @@ NSSPKIXRelativeDistinguishedName_AddAttributeTypeAndValue
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXRelativeDistinguishedName_RemoveAttributeTypeAndValue
-(
+NSSPKIXRelativeDistinguishedName_RemoveAttributeTypeAndValue (
   NSSPKIXRelativeDistinguishedName *rdn,
   PRInt32 i
 );
@@ -3126,8 +3015,7 @@ NSSPKIXRelativeDistinguishedName_RemoveAttributeTypeAndValue
  */
 
 NSS_EXTERN PRInt32
-NSSPKIXRelativeDistinguishedName_FindAttributeTypeAndValue
-(
+NSSPKIXRelativeDistinguishedName_FindAttributeTypeAndValue (
   NSSPKIXRelativeDistinguishedName *rdn,
   NSSPKIXATAV *atav
 );
@@ -3147,8 +3035,7 @@ NSSPKIXRelativeDistinguishedName_FindAttributeTypeAndValue
  */
 
 NSS_EXTERN PRBool
-NSSPKIXRelativeDistinguishedName_Equal
-(
+NSSPKIXRelativeDistinguishedName_Equal (
   NSSPKIXRelativeDistinguishedName *one,
   NSSPKIXRelativeDistinguishedName *two,
   PRStatus *statusOpt
@@ -3170,8 +3057,7 @@ NSSPKIXRelativeDistinguishedName_Equal
  */
 
 NSS_EXTERN NSSPKIXRelativeDistinguishedName *
-NSSPKIXRelativeDistinguishedName_Duplicate
-(
+NSSPKIXRelativeDistinguishedName_Duplicate (
   NSSPKIXRelativeDistinguishedName *rdn,
   NSSArena *arenaOpt
 );
@@ -3214,8 +3100,7 @@ NSSPKIXRelativeDistinguishedName_Duplicate
  */
 
 NSS_EXTERN NSSPKIXDirectoryString *
-NSSPKIXDirectoryString_Decode
-(
+NSSPKIXDirectoryString_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -3236,8 +3121,7 @@ NSSPKIXDirectoryString_Decode
  */
 
 NSS_EXTERN NSSPKIXDirectoryString *
-NSSPKIXDirectoryString_CreateFromUTF8
-(
+NSSPKIXDirectoryString_CreateFromUTF8 (
   NSSArena *arenaOpt,
   NSSUTF8 *utf8
 );
@@ -3257,8 +3141,7 @@ NSSPKIXDirectoryString_CreateFromUTF8
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXDirectoryString_Encode
-(
+NSSPKIXDirectoryString_Encode (
   NSSPKIXDirectoryString *name,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -3314,8 +3197,7 @@ NSSPKIXDirectoryString_Encode
  */
 
 NSS_EXTERN NSSPKIXCertificate *
-NSSPKIXCertificate_Decode
-(
+NSSPKIXCertificate_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -3339,8 +3221,7 @@ NSSPKIXCertificate_Decode
  */
 
 NSS_EXTERN NSSPKIXCertificate *
-NSSPKIXCertificate_Create
-(
+NSSPKIXCertificate_Create (
   NSSArena *arenaOpt,
   NSSPKIXTBSCertificate *tbsCert,
   NSSPKIXAlgorithmIdentifier *algID,
@@ -3361,8 +3242,7 @@ NSSPKIXCertificate_Create
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXCertificate_Destroy
-(
+NSSPKIXCertificate_Destroy (
   NSSPKIXCertificate *cert
 );
 
@@ -3383,8 +3263,7 @@ NSSPKIXCertificate_Destroy
 
 #ifdef nodef
 NSS_EXTERN NSSBER *
-NSSPKIXCertificate_Encode
-(
+NSSPKIXCertificate_Encode (
   NSSPKIXCertificate *cert,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -3408,8 +3287,7 @@ NSSPKIXCertificate_Encode
  */
 
 NSS_EXTERN NSSPKIXTBSCertificate *
-NSSPKIXCertificate_GetTBSCertificate
-(
+NSSPKIXCertificate_GetTBSCertificate (
   NSSPKIXCertificate *cert
 );
 
@@ -3429,8 +3307,7 @@ NSSPKIXCertificate_GetTBSCertificate
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXCertificate_SetTBSCertificate
-(
+NSSPKIXCertificate_SetTBSCertificate (
   NSSPKIXCertificate *cert,
   NSSPKIXTBSCertificate *tbsCert
 );
@@ -3451,8 +3328,7 @@ NSSPKIXCertificate_SetTBSCertificate
  */
 
 NSS_EXTERN NSSPKIXAlgorithmIdentifier *
-NSSPKIXCertificate_GetSignatureAlgorithm
-(
+NSSPKIXCertificate_GetSignatureAlgorithm (
   NSSPKIXCertificate *cert,
   NSSArena *arenaOpt
 );
@@ -3473,8 +3349,7 @@ NSSPKIXCertificate_GetSignatureAlgorithm
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXCertificate_SetSignatureAlgorithm
-(
+NSSPKIXCertificate_SetSignatureAlgorithm (
   NSSPKIXCertificate *cert,
   NSSPKIXAlgorithmIdentifier *algid
 );
@@ -3495,8 +3370,7 @@ NSSPKIXCertificate_SetSignatureAlgorithm
  */
 
 NSS_EXTERN NSSItem *
-NSSPKIXCertificate_GetSignature
-(
+NSSPKIXCertificate_GetSignature (
   NSSPKIXCertificate *cert
 );
 
@@ -3516,8 +3390,7 @@ NSSPKIXCertificate_GetSignature
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXCertificate_SetSignature
-(
+NSSPKIXCertificate_SetSignature (
   NSSPKIXCertificate *cert,
   NSSItem *signature
 );
@@ -3537,8 +3410,7 @@ NSSPKIXCertificate_SetSignature
  */
 
 NSS_EXTERN PRBool
-NSSPKIXCertificate_Equal
-(
+NSSPKIXCertificate_Equal (
   NSSPKIXCertificate *one,
   NSSPKIXCertificate *two,
   PRStatus *statusOpt
@@ -3560,8 +3432,7 @@ NSSPKIXCertificate_Equal
  */
 
 NSS_EXTERN NSSPKIXCertificate *
-NSSPKIXCertificate_Duplicate
-(
+NSSPKIXCertificate_Duplicate (
   NSSPKIXCertificate *cert,
   NSSArena *arenaOpt
 );
@@ -3644,8 +3515,7 @@ NSSPKIXCertificate_Duplicate
  */
 
 NSS_EXTERN NSSPKIXTBSCertificate *
-NSSPKIXTBSCertificate_Decode
-(
+NSSPKIXTBSCertificate_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -3673,8 +3543,7 @@ NSSPKIXTBSCertificate_Decode
  */
 
 NSS_EXTERN NSSPKIXTBSCertificate *
-NSSPKIXTBSCertificate_Create
-(
+NSSPKIXTBSCertificate_Create (
   NSSArena *arenaOpt,
   NSSPKIXVersion version,
   NSSPKIXCertificateSerialNumber *serialNumber,
@@ -3702,8 +3571,7 @@ NSSPKIXTBSCertificate_Create
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXTBSCertificate_Destroy
-(
+NSSPKIXTBSCertificate_Destroy (
   NSSPKIXTBSCertificate *tbsCert
 );
 
@@ -3724,8 +3592,7 @@ NSSPKIXTBSCertificate_Destroy
 
 #ifdef nodef
 NSS_EXTERN NSSBER *
-NSSPKIXTBSCertificate_Encode
-(
+NSSPKIXTBSCertificate_Encode (
   NSSPKIXTBSCertificate *tbsCert,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -3748,8 +3615,7 @@ NSSPKIXTBSCertificate_Encode
  */
 
 NSS_EXTERN NSSPKIXVersion
-NSSPKIXTBSCertificate_GetVersion
-(
+NSSPKIXTBSCertificate_GetVersion (
   NSSPKIXTBSCertificate *tbsCert
 );
 
@@ -3768,8 +3634,7 @@ NSSPKIXTBSCertificate_GetVersion
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXTBSCertificate_SetVersion
-(
+NSSPKIXTBSCertificate_SetVersion (
   NSSPKIXTBSCertificate *tbsCert,
   NSSPKIXVersion version
 );
@@ -3790,8 +3655,7 @@ NSSPKIXTBSCertificate_SetVersion
  */
 
 NSS_EXTERN NSSPKIXCertificateSerialNumber *
-NSSPKIXTBSCertificate_GetSerialNumber
-(
+NSSPKIXTBSCertificate_GetSerialNumber (
   NSSPKIXTBSCertificate *tbsCert
 );
 
@@ -3811,8 +3675,7 @@ NSSPKIXTBSCertificate_GetSerialNumber
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXTBSCertificate_SetSerialNumber
-(
+NSSPKIXTBSCertificate_SetSerialNumber (
   NSSPKIXTBSCertificate *tbsCert,
   NSSPKIXCertificateSerialNumber *sn
 );
@@ -3833,8 +3696,7 @@ NSSPKIXTBSCertificate_SetSerialNumber
  */
 
 NSS_EXTERN NSSPKIXAlgorithmIdentifier *
-NSSPKIXTBSCertificate_GetSignature
-(
+NSSPKIXTBSCertificate_GetSignature (
   NSSPKIXTBSCertificate *tbsCert,
   NSSArena *arenaOpt
 );
@@ -3855,8 +3717,7 @@ NSSPKIXTBSCertificate_GetSignature
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXTBSCertificate_SetSignature
-(
+NSSPKIXTBSCertificate_SetSignature (
   NSSPKIXTBSCertificate *tbsCert,
   NSSPKIXAlgorithmIdentifier *algID
 );
@@ -3881,8 +3742,7 @@ NSSPKIXTBSCertificate_SetSignature
  */
 
 NSS_EXTERN NSSPKIXName *
-NSSPKIXTBSCertificate_GetIssuer
-(
+NSSPKIXTBSCertificate_GetIssuer (
   NSSPKIXTBSCertificate *tbsCert
 );
 
@@ -3902,8 +3762,7 @@ NSSPKIXTBSCertificate_GetIssuer
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXTBSCertificate_SetIssuer
-(
+NSSPKIXTBSCertificate_SetIssuer (
   NSSPKIXTBSCertificate *tbsCert,
   NSSPKIXName *issuer
 );
@@ -3934,8 +3793,7 @@ NSSPKIXTBSCertificate_SetIssuer
  */
 
 NSS_EXTERN NSSPKIXValidity *
-NSSPKIXTBSCertificate_GetValidity
-(
+NSSPKIXTBSCertificate_GetValidity (
   NSSPKIXTBSCertificate *tbsCert
 );
 
@@ -3955,8 +3813,7 @@ NSSPKIXTBSCertificate_GetValidity
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXTBSCertificate_SetValidity
-(
+NSSPKIXTBSCertificate_SetValidity (
   NSSPKIXTBSCertificate *tbsCert,
   NSSPKIXValidity *validity
 );
@@ -3981,8 +3838,7 @@ NSSPKIXTBSCertificate_SetValidity
  */
 
 NSS_EXTERN NSSPKIXName *
-NSSPKIXTBSCertificate_GetSubject
-(
+NSSPKIXTBSCertificate_GetSubject (
   NSSPKIXTBSCertificate *tbsCert,
   NSSArena *arenaOpt
 );
@@ -4003,8 +3859,7 @@ NSSPKIXTBSCertificate_GetSubject
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXTBSCertificate_SetSubject
-(
+NSSPKIXTBSCertificate_SetSubject (
   NSSPKIXTBSCertificate *tbsCert,
   NSSPKIXName *subject
 );
@@ -4025,8 +3880,7 @@ NSSPKIXTBSCertificate_SetSubject
  */
 
 NSS_EXTERN NSSPKIXSubjectPublicKeyInfo *
-NSSPKIXTBSCertificate_GetSubjectPublicKeyInfo
-(
+NSSPKIXTBSCertificate_GetSubjectPublicKeyInfo (
   NSSPKIXTBSCertificate *tbsCert
 );
 
@@ -4046,8 +3900,7 @@ NSSPKIXTBSCertificate_GetSubjectPublicKeyInfo
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXTBSCertificate_SetSubjectPublicKeyInfo
-(
+NSSPKIXTBSCertificate_SetSubjectPublicKeyInfo (
   NSSPKIXTBSCertificate *tbsCert,
   NSSPKIXSubjectPublicKeyInfo *spki
 );
@@ -4067,8 +3920,7 @@ NSSPKIXTBSCertificate_SetSubjectPublicKeyInfo
  */
 
 NSS_EXTERN PRBool
-NSSPKIXTBSCertificate_HasIssuerUniqueID
-(
+NSSPKIXTBSCertificate_HasIssuerUniqueID (
   NSSPKIXTBSCertificate *tbsCert,
   PRStatus *statusOpt
 );
@@ -4090,8 +3942,7 @@ NSSPKIXTBSCertificate_HasIssuerUniqueID
  */
 
 NSS_EXTERN NSSPKIXUniqueIdentifier *
-NSSPKIXTBSCertificate_GetIssuerUniqueID
-(
+NSSPKIXTBSCertificate_GetIssuerUniqueID (
   NSSPKIXTBSCertificate *tbsCert,
   NSSPKIXUniqueIdentifier *uidOpt,
   NSSArena *arenaOpt
@@ -4113,8 +3964,7 @@ NSSPKIXTBSCertificate_GetIssuerUniqueID
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXTBSCertificate_SetIssuerUniqueID
-(
+NSSPKIXTBSCertificate_SetIssuerUniqueID (
   NSSPKIXTBSCertificate *tbsCert,
   NSSPKIXUniqueIdentifier *uid
 );
@@ -4134,8 +3984,7 @@ NSSPKIXTBSCertificate_SetIssuerUniqueID
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXTBSCertificate_RemoveIssuerUniqueID
-(
+NSSPKIXTBSCertificate_RemoveIssuerUniqueID (
   NSSPKIXTBSCertificate *tbsCert
 );
 
@@ -4154,8 +4003,7 @@ NSSPKIXTBSCertificate_RemoveIssuerUniqueID
  */
 
 NSS_EXTERN PRBool
-NSSPKIXTBSCertificate_HasSubjectUniqueID
-(
+NSSPKIXTBSCertificate_HasSubjectUniqueID (
   NSSPKIXTBSCertificate *tbsCert,
   PRStatus *statusOpt
 );
@@ -4177,8 +4025,7 @@ NSSPKIXTBSCertificate_HasSubjectUniqueID
  */
 
 NSS_EXTERN NSSPKIXUniqueIdentifier *
-NSSPKIXTBSCertificate_GetSubjectUniqueID
-(
+NSSPKIXTBSCertificate_GetSubjectUniqueID (
   NSSPKIXTBSCertificate *tbsCert,
   NSSPKIXUniqueIdentifier *uidOpt,
   NSSArena *arenaOpt
@@ -4200,8 +4047,7 @@ NSSPKIXTBSCertificate_GetSubjectUniqueID
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXTBSCertificate_SetSubjectUniqueID
-(
+NSSPKIXTBSCertificate_SetSubjectUniqueID (
   NSSPKIXTBSCertificate *tbsCert,
   NSSPKIXUniqueIdentifier *uid
 );
@@ -4221,8 +4067,7 @@ NSSPKIXTBSCertificate_SetSubjectUniqueID
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXTBSCertificate_RemoveSubjectUniqueID
-(
+NSSPKIXTBSCertificate_RemoveSubjectUniqueID (
   NSSPKIXTBSCertificate *tbsCert
 );
 
@@ -4241,8 +4086,7 @@ NSSPKIXTBSCertificate_RemoveSubjectUniqueID
  */
 
 NSS_EXTERN PRBool
-NSSPKIXTBSCertificate_HasExtensions
-(
+NSSPKIXTBSCertificate_HasExtensions (
   NSSPKIXTBSCertificate *tbsCert,
   PRStatus *statusOpt
 );
@@ -4264,8 +4108,7 @@ NSSPKIXTBSCertificate_HasExtensions
  */
 
 NSS_EXTERN NSSPKIXExtensions *
-NSSPKIXTBSCertificate_GetExtensions
-(
+NSSPKIXTBSCertificate_GetExtensions (
   NSSPKIXTBSCertificate *tbsCert
 );
 
@@ -4285,8 +4128,7 @@ NSSPKIXTBSCertificate_GetExtensions
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXTBSCertificate_SetExtensions
-(
+NSSPKIXTBSCertificate_SetExtensions (
   NSSPKIXTBSCertificate *tbsCert,
   NSSPKIXExtensions *extensions
 );
@@ -4306,8 +4148,7 @@ NSSPKIXTBSCertificate_SetExtensions
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXTBSCertificate_RemoveExtensions
-(
+NSSPKIXTBSCertificate_RemoveExtensions (
   NSSPKIXTBSCertificate *tbsCert
 );
 
@@ -4330,8 +4171,7 @@ NSSPKIXTBSCertificate_RemoveExtensions
  */
 
 NSS_EXTERN PRBool
-NSSPKIXTBSCertificate_Equal
-(
+NSSPKIXTBSCertificate_Equal (
   NSSPKIXTBSCertificate *one,
   NSSPKIXTBSCertificate *two,
   PRStatus *statusOpt
@@ -4353,8 +4193,7 @@ NSSPKIXTBSCertificate_Equal
  */
 
 NSS_EXTERN NSSPKIXTBSCertificate *
-NSSPKIXTBSCertificate_Duplicate
-(
+NSSPKIXTBSCertificate_Duplicate (
   NSSPKIXTBSCertificate *tbsCert,
   NSSArena *arenaOpt
 );
@@ -4417,8 +4256,7 @@ NSSPKIXTBSCertificate_Duplicate
  */
 
 NSS_EXTERN NSSPKIXValidity *
-NSSPKIXValidity_Decode
-(
+NSSPKIXValidity_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -4439,8 +4277,7 @@ NSSPKIXValidity_Decode
  */
 
 NSS_EXTERN NSSPKIXValidity *
-NSSPKIXValidity_Create
-(
+NSSPKIXValidity_Create (
   NSSArena *arenaOpt,
   NSSPKIXTime *notBefore,
   NSSPKIXTime *notAfter
@@ -4460,8 +4297,7 @@ NSSPKIXValidity_Create
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXValidity_Destroy
-(
+NSSPKIXValidity_Destroy (
   NSSPKIXValidity *validity
 );
 
@@ -4482,8 +4318,7 @@ NSSPKIXValidity_Destroy
 
 #ifdef nodef
 NSS_EXTERN NSSBER *
-NSSPKIXValidity_Encode
-(
+NSSPKIXValidity_Encode (
   NSSPKIXValidity *validity,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -4506,8 +4341,7 @@ NSSPKIXValidity_Encode
  */
 
 NSS_EXTERN NSSPKIXTime *
-NSSPKIXValidity_GetNotBefore
-(
+NSSPKIXValidity_GetNotBefore (
   NSSPKIXValidity *validity
 );
 
@@ -4528,8 +4362,7 @@ NSSPKIXValidity_GetNotBefore
 
 #ifdef nodef
 NSS_EXTERN PRStatus
-NSSPKIXValidity_SetNotBefore
-(
+NSSPKIXValidity_SetNotBefore (
   NSSPKIXValidity *validity,
   NSSPKIXTime notBefore
 );
@@ -4550,8 +4383,7 @@ NSSPKIXValidity_SetNotBefore
  */
 
 NSS_EXTERN NSSPKIXTime *
-NSSPKIXValidity_GetNotAfter
-(
+NSSPKIXValidity_GetNotAfter (
   NSSPKIXValidity *validity
 );
 
@@ -4571,8 +4403,7 @@ NSSPKIXValidity_GetNotAfter
 
 #ifdef nodef
 NSS_EXTERN PRStatus
-NSSPKIXValidity_SetNotAfter
-(
+NSSPKIXValidity_SetNotAfter (
   NSSPKIXValidity *validity,
   NSSPKIXTime notAfter
 );
@@ -4593,8 +4424,7 @@ NSSPKIXValidity_SetNotAfter
  */
 
 NSS_EXTERN PRBool
-NSSPKIXValidity_Equal
-(
+NSSPKIXValidity_Equal (
   NSSPKIXValidity *one,
   NSSPKIXValidity *two,
   PRStatus *statusOpt
@@ -4616,8 +4446,7 @@ NSSPKIXValidity_Equal
  */
 
 NSS_EXTERN PRIntn
-NSSPKIXValidity_Compare
-(
+NSSPKIXValidity_Compare (
   NSSPKIXValidity *one,
   NSSPKIXValidity *two
 );
@@ -4638,8 +4467,7 @@ NSSPKIXValidity_Compare
  */
 
 NSS_EXTERN NSSPKIXValidity *
-NSSPKIXValidity_Duplicate
-(
+NSSPKIXValidity_Duplicate (
   NSSPKIXValidity *validity,
   NSSArena *arenaOpt
 );
@@ -4686,8 +4514,7 @@ NSSPKIXValidity_Duplicate
  */
 
 NSS_EXTERN NSSPKIXTime *
-NSSPKIXTime_Decode
-(
+NSSPKIXTime_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -4699,8 +4526,7 @@ NSSPKIXTime_Decode
 
 #ifdef nodef
 NSS_EXTERN NSSPKIXTime *
-NSSPKIXTime_CreateFromPRTime
-(
+NSSPKIXTime_CreateFromPRTime (
   NSSArena *arenaOpt,
   PRTime prTime
 );
@@ -4712,8 +4538,7 @@ NSSPKIXTime_CreateFromPRTime
  */
 
 NSS_EXTERN NSSPKIXTime *
-NSSPKIXTime_CreateFromUTF8
-(
+NSSPKIXTime_CreateFromUTF8 (
   NSSArena *arenaOpt,
   NSSUTF8 *utf8
 );
@@ -4724,8 +4549,7 @@ NSSPKIXTime_CreateFromUTF8
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXTime_Destroy
-(
+NSSPKIXTime_Destroy (
   NSSPKIXTime *time
 );
 
@@ -4736,8 +4560,7 @@ NSSPKIXTime_Destroy
 
 #ifdef nodef
 NSS_EXTERN NSSBER *
-NSSPKIXTime_Encode
-(
+NSSPKIXTime_Encode (
   NSSPKIXTime *time,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -4753,16 +4576,14 @@ NSSPKIXTime_Encode
 
 #ifdef nodef
 NSS_EXTERN PRTime
-NSSPKIXTime_GetPRTime
-(
+NSSPKIXTime_GetPRTime (
   NSSPKIXTime *time,
   PRStatus *statusOpt
 );
 #endif
 
 NSS_EXTERN NSSTime
-NSSPKIXTime_GetTime
-(
+NSSPKIXTime_GetTime (
   NSSPKIXTime *time,
   PRStatus *statusOpt
 );
@@ -4773,8 +4594,7 @@ NSSPKIXTime_GetTime
  */
 
 NSS_EXTERN NSSUTF8 *
-NSSPKXITime_GetUTF8Encoding
-(
+NSSPKXITime_GetUTF8Encoding (
   NSSPKIXTime *time,
   NSSArena *arenaOpt
 );
@@ -4785,8 +4605,7 @@ NSSPKXITime_GetUTF8Encoding
  */
 
 NSS_EXTERN PRBool
-NSSPKIXTime_Equal
-(
+NSSPKIXTime_Equal (
   NSSPKIXTime *time1,
   NSSPKIXTime *time2,
   PRStatus *statusOpt
@@ -4798,8 +4617,7 @@ NSSPKIXTime_Equal
  */
 
 NSS_EXTERN NSSPKIXTime *
-NSSPKIXTime_Duplicate
-(
+NSSPKIXTime_Duplicate (
   NSSPKIXTime *time,
   NSSArena *arenaOpt
 );
@@ -4812,8 +4630,7 @@ NSSPKIXTime_Duplicate
  */
 
 NSS_EXTERN PRInt32
-NSSPKIXTime_Compare
-(
+NSSPKIXTime_Compare (
   NSSPKIXTime *time1,
   NSSPKIXTime *time2,
   PRStatus *statusOpt
@@ -4878,8 +4695,7 @@ NSSPKIXTime_Compare
  */
 
 NSS_EXTERN NSSPKIXSubjectPublicKeyInfo *
-NSSPKIXSubjectPublicKeyInfo_Decode
-(
+NSSPKIXSubjectPublicKeyInfo_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -4901,8 +4717,7 @@ NSSPKIXSubjectPublicKeyInfo_Decode
  */
 
 NSS_EXTERN NSSPKIXSubjectPublicKeyInfo *
-NSSPKIXSubjectPublicKeyInfo_Create
-(
+NSSPKIXSubjectPublicKeyInfo_Create (
   NSSArena *arenaOpt,
   NSSPKIXAlgorithmIdentifier *algid,
   NSSItem *subjectPublicKey
@@ -4922,8 +4737,7 @@ NSSPKIXSubjectPublicKeyInfo_Create
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXSubjectPublicKeyInfo_Destroy
-(
+NSSPKIXSubjectPublicKeyInfo_Destroy (
   NSSPKIXSubjectPublicKeyInfo *spki
 );
 
@@ -4941,8 +4755,7 @@ NSSPKIXSubjectPublicKeyInfo_Destroy
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXSubjectPublicKeyInfo_Encode
-(
+NSSPKIXSubjectPublicKeyInfo_Encode (
   NSSPKIXSubjectPublicKeyInfo *spki,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -4965,8 +4778,7 @@ NSSPKIXSubjectPublicKeyInfo_Encode
  */
 
 NSS_EXTERN NSSPKIXAlgorithmIdentifier *
-NSSPKIXSubjectPublicKeyInfo_GetAlgorithm
-(
+NSSPKIXSubjectPublicKeyInfo_GetAlgorithm (
   NSSPKIXSubjectPublicKeyInfo *spki
 );
 
@@ -4985,8 +4797,7 @@ NSSPKIXSubjectPublicKeyInfo_GetAlgorithm
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXSubjectPublicKeyInfo_SetAlgorithm
-(
+NSSPKIXSubjectPublicKeyInfo_SetAlgorithm (
   NSSPKIXSubjectPublicKeyInfo *spki,
   NSSPKIXAlgorithmIdentifier *algid
 );
@@ -5007,8 +4818,7 @@ NSSPKIXSubjectPublicKeyInfo_SetAlgorithm
  */
 
 NSS_EXTERN NSSBitString *
-NSSPKIXSubjectPublicKeyInfo_GetSubjectPublicKey
-(
+NSSPKIXSubjectPublicKeyInfo_GetSubjectPublicKey (
   NSSPKIXSubjectPublicKeyInfo *spki
 );
 
@@ -5027,8 +4837,7 @@ NSSPKIXSubjectPublicKeyInfo_GetSubjectPublicKey
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXSubjectPublicKeyInfo_SetSubjectPublicKey
-(
+NSSPKIXSubjectPublicKeyInfo_SetSubjectPublicKey (
   NSSPKIXSubjectPublicKeyInfo *spki,
   NSSBitString *spk
 );
@@ -5048,8 +4857,7 @@ NSSPKIXSubjectPublicKeyInfo_SetSubjectPublicKey
  */
 
 NSS_EXTERN PRBool
-NSSPKIXSubjectPublicKeyInfo_Equal
-(
+NSSPKIXSubjectPublicKeyInfo_Equal (
   NSSPKIXSubjectPublicKeyInfo *one,
   NSSPKIXSubjectPublicKeyInfo *two,
   PRStatus *statusOpt
@@ -5071,8 +4879,7 @@ NSSPKIXSubjectPublicKeyInfo_Equal
  */
 
 NSS_EXTERN NSSPKIXSubjectPublicKeyInfo *
-NSSPKIXSubjectPublicKeyInfo_Duplicate
-(
+NSSPKIXSubjectPublicKeyInfo_Duplicate (
   NSSPKIXSubjectPublicKeyInfo *spki,
   NSSArena *arenaOpt
 );
@@ -5151,8 +4958,7 @@ NSSPKIXSubjectPublicKeyInfo_Duplicate
  */
 
 NSS_EXTERN NSSPKIXCertificateList *
-NSSPKIXCertificateList_Decode
-(
+NSSPKIXCertificateList_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -5175,8 +4981,7 @@ NSSPKIXCertificateList_Decode
  */
 
 NSS_EXTERN NSSPKIXCertificateList *
-NSSPKIXCertificateList_Create
-(
+NSSPKIXCertificateList_Create (
   NSSArena *arenaOpt,
   NSSPKIXTBSCertList *tbsCertList,
   NSSPKIXAlgorithmIdentifier *sigAlg,
@@ -5197,8 +5002,7 @@ NSSPKIXCertificateList_Create
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXCertificateList_Destroy
-(
+NSSPKIXCertificateList_Destroy (
   NSSPKIXCertificateList *certList
 );
 
@@ -5218,8 +5022,7 @@ NSSPKIXCertificateList_Destroy
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXCertificateList_Encode
-(
+NSSPKIXCertificateList_Encode (
   NSSPKIXCertificateList *certList,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -5242,8 +5045,7 @@ NSSPKIXCertificateList_Encode
  */
 
 NSS_EXTERN NSSPKIXTBSCertList *
-NSSPKIXCertificateList_GetTBSCertList
-(
+NSSPKIXCertificateList_GetTBSCertList (
   NSSPKIXCertificateList *certList,
   NSSArena *arenaOpt
 );
@@ -5264,8 +5066,7 @@ NSSPKIXCertificateList_GetTBSCertList
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXCertificateList_SetTBSCertList
-(
+NSSPKIXCertificateList_SetTBSCertList (
   NSSPKIXCertificateList *certList,
   NSSPKIXTBSCertList *tbsCertList
 );
@@ -5286,8 +5087,7 @@ NSSPKIXCertificateList_SetTBSCertList
  */
 
 NSS_EXTERN NSSPKIXAlgorithmIdentifier *
-NSSPKIXCertificateList_GetSignatureAlgorithm
-(
+NSSPKIXCertificateList_GetSignatureAlgorithm (
   NSSPKIXCertificateList *certList,
   NSSArena *arenaOpt
 );
@@ -5308,8 +5108,7 @@ NSSPKIXCertificateList_GetSignatureAlgorithm
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXCertificateList_SetSignatureAlgorithm
-(
+NSSPKIXCertificateList_SetSignatureAlgorithm (
   NSSPKIXCertificateList *certList,
   NSSPKIXAlgorithmIdentifier *sigAlg
 );
@@ -5330,8 +5129,7 @@ NSSPKIXCertificateList_SetSignatureAlgorithm
  */
 
 NSS_EXTERN NSSItem *
-NSSPKIXCertificateList_GetSignature
-(
+NSSPKIXCertificateList_GetSignature (
   NSSPKIXCertificateList *certList,
   NSSItem *rvOpt,
   NSSArena *arenaOpt
@@ -5353,8 +5151,7 @@ NSSPKIXCertificateList_GetSignature
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXCertificateList_SetSignature
-(
+NSSPKIXCertificateList_SetSignature (
   NSSPKIXCertificateList *certList,
   NSSItem *sig
 );
@@ -5374,8 +5171,7 @@ NSSPKIXCertificateList_SetSignature
  */
 
 NSS_EXTERN PRBool
-NSSPKIXCertificateList_Equal
-(
+NSSPKIXCertificateList_Equal (
   NSSPKIXCertificateList *one,
   NSSPKIXCertificateList *two,
   PRStatus *statusOpt
@@ -5397,8 +5193,7 @@ NSSPKIXCertificateList_Equal
  */
 
 NSS_EXTERN NSSPKIXCertificateList *
-NSSPKIXCertificateList_Duplicate
-(
+NSSPKIXCertificateList_Duplicate (
   NSSPKIXCertificateList *certList,
   NSSArena *arenaOpt
 );
@@ -5471,8 +5266,7 @@ NSSPKIXCertificateList_Duplicate
  */
 
 NSS_EXTERN NSSPKIXTBSCertList *
-NSSPKIXTBSCertList_Decode
-(
+NSSPKIXTBSCertList_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -5499,8 +5293,7 @@ NSSPKIXTBSCertList_Decode
  */
 
 NSS_EXTERN NSSPKIXTBSCertList *
-NSSPKIXTBSCertList_Create
-(
+NSSPKIXTBSCertList_Create (
   NSSArena *arenaOpt,
   NSSPKIXVersion version,
   NSSPKIXAlgorithmIdentifier *signature,
@@ -5525,8 +5318,7 @@ NSSPKIXTBSCertList_Create
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXTBSCertList_Destroy
-(
+NSSPKIXTBSCertList_Destroy (
   NSSPKIXTBSCertList *certList
 );
 
@@ -5546,8 +5338,7 @@ NSSPKIXTBSCertList_Destroy
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXTBSCertList_Encode
-(
+NSSPKIXTBSCertList_Encode (
   NSSPKIXTBSCertList *certList,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -5569,8 +5360,7 @@ NSSPKIXTBSCertList_Encode
  */
 
 NSS_EXTERN NSSPKIXVersion
-NSSPKIXTBSCertList_GetVersion
-(
+NSSPKIXTBSCertList_GetVersion (
   NSSPKIXTBSCertList *certList
 );
 
@@ -5589,8 +5379,7 @@ NSSPKIXTBSCertList_GetVersion
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXTBSCertList_SetVersion
-(
+NSSPKIXTBSCertList_SetVersion (
   NSSPKIXTBSCertList *certList,
   NSSPKIXVersion version
 );
@@ -5611,8 +5400,7 @@ NSSPKIXTBSCertList_SetVersion
  */
 
 NSS_EXTERN NSSPKIXAlgorithmIdentifier *
-NSSPKIXTBSCertList_GetSignature
-(
+NSSPKIXTBSCertList_GetSignature (
   NSSPKIXTBSCertList *certList,
   NSSArena *arenaOpt
 );
@@ -5633,8 +5421,7 @@ NSSPKIXTBSCertList_GetSignature
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXTBSCertList_SetSignature
-(
+NSSPKIXTBSCertList_SetSignature (
   NSSPKIXTBSCertList *certList,
   NSSPKIXAlgorithmIdentifier *algid,
 );
@@ -5655,8 +5442,7 @@ NSSPKIXTBSCertList_SetSignature
  */
 
 NSS_EXTERN NSSPKIXName *
-NSSPKIXTBSCertList_GetIssuer
-(
+NSSPKIXTBSCertList_GetIssuer (
   NSSPKIXTBSCertList *certList,
   NSSArena *arenaOpt
 );
@@ -5677,8 +5463,7 @@ NSSPKIXTBSCertList_GetIssuer
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXTBSCertList_SetIssuer
-(
+NSSPKIXTBSCertList_SetIssuer (
   NSSPKIXTBSCertList *certList,
   NSSPKIXName *issuer
 );
@@ -5698,8 +5483,7 @@ NSSPKIXTBSCertList_SetIssuer
  */
 
 NSS_EXTERN NSSPKIXTime
-NSSPKIXTBSCertList_GetThisUpdate
-(
+NSSPKIXTBSCertList_GetThisUpdate (
   NSSPKIXTBSCertList *certList
 );
 
@@ -5718,8 +5502,7 @@ NSSPKIXTBSCertList_GetThisUpdate
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXTBSCertList_SetThisUpdate
-(
+NSSPKIXTBSCertList_SetThisUpdate (
   NSSPKIXTBSCertList *certList,
   NSSPKIXTime thisUpdate
 );
@@ -5739,8 +5522,7 @@ NSSPKIXTBSCertList_SetThisUpdate
  */
 
 NSS_EXTERN PRBool
-NSSPKIXTBSCertList_HasNextUpdate
-(
+NSSPKIXTBSCertList_HasNextUpdate (
   NSSPKIXTBSCertList *certList,
   PRStatus *statusOpt
 );
@@ -5760,8 +5542,7 @@ NSSPKIXTBSCertList_HasNextUpdate
  */
 
 NSS_EXTERN NSSPKIXTime
-NSSPKIXTBSCertList_GetNextUpdate
-(
+NSSPKIXTBSCertList_GetNextUpdate (
   NSSPKIXTBSCertList *certList
 );
 
@@ -5780,8 +5561,7 @@ NSSPKIXTBSCertList_GetNextUpdate
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXTBSCertList_SetNextUpdate
-(
+NSSPKIXTBSCertList_SetNextUpdate (
   NSSPKIXTBSCertList *certList,
   NSSPKIXTime nextUpdate
 );
@@ -5801,8 +5581,7 @@ NSSPKIXTBSCertList_SetNextUpdate
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXTBSCertList_RemoveNextUpdate
-(
+NSSPKIXTBSCertList_RemoveNextUpdate (
   NSSPKIXTBSCertList *certList
 );
 
@@ -5822,8 +5601,7 @@ NSSPKIXTBSCertList_RemoveNextUpdate
  */
 
 NSS_EXTERN NSSPKIXrevokedCertificates *
-NSSPKIXTBSCertList_GetRevokedCertificates
-(
+NSSPKIXTBSCertList_GetRevokedCertificates (
   NSSPKIXTBSCertList *certList,
   NSSArena *arenaOpt
 );
@@ -5844,8 +5622,7 @@ NSSPKIXTBSCertList_GetRevokedCertificates
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXTBSCertList_SetRevokedCertificates
-(
+NSSPKIXTBSCertList_SetRevokedCertificates (
   NSSPKIXTBSCertList *certList,
   NSSPKIXrevokedCertificates *revoked
 );
@@ -5865,8 +5642,7 @@ NSSPKIXTBSCertList_SetRevokedCertificates
  */
 
 NSS_EXTERN PRBool
-NSSPKIXTBSCertList_HasCrlExtensions
-(
+NSSPKIXTBSCertList_HasCrlExtensions (
   NSSPKIXTBSCertList *certList,
   PRStatus *statusOpt
 );
@@ -5887,8 +5663,7 @@ NSSPKIXTBSCertList_HasCrlExtensions
  */
 
 NSS_EXTERN NSSPKIXExtensions *
-NSSPKIXTBSCertList_GetCrlExtensions
-(
+NSSPKIXTBSCertList_GetCrlExtensions (
   NSSPKIXTBSCertList *certList,
   NSSArena *arenaOpt
 );
@@ -5909,8 +5684,7 @@ NSSPKIXTBSCertList_GetCrlExtensions
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXTBSCertList_SetCrlExtensions
-(
+NSSPKIXTBSCertList_SetCrlExtensions (
   NSSPKIXTBSCertList *certList,
   NSSPKIXExtensions *extensions
 );
@@ -5930,8 +5704,7 @@ NSSPKIXTBSCertList_SetCrlExtensions
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXTBSCertList_RemoveCrlExtensions
-(
+NSSPKIXTBSCertList_RemoveCrlExtensions (
   NSSPKIXTBSCertList *certList
 );
 
@@ -5950,8 +5723,7 @@ NSSPKIXTBSCertList_RemoveCrlExtensions
  */
 
 NSS_EXTERN PRBool
-NSSPKIXTBSCertList_Equal
-(
+NSSPKIXTBSCertList_Equal (
   NSSPKIXTBSCertList *one,
   NSSPKIXTBSCertList *two,
   PRStatus *statusOpt
@@ -5973,8 +5745,7 @@ NSSPKIXTBSCertList_Equal
  */
 
 NSS_EXTERN NSSPKIXTBSCertList *
-NSSPKIXTBSCertList_Duplicate
-(
+NSSPKIXTBSCertList_Duplicate (
   NSSPKIXTBSCertList *certList,
   NSSArena *arenaOpt
 );
@@ -6026,8 +5797,7 @@ NSSPKIXTBSCertList_Duplicate
  */
 
 NSS_EXTERN NSSPKIXrevokedCertificates *
-NSSPKIXrevokedCertificates_Decode
-(
+NSSPKIXrevokedCertificates_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -6048,8 +5818,7 @@ NSSPKIXrevokedCertificates_Decode
  */
 
 NSS_EXTERN NSSPKIXrevokedCertificates *
-NSSPKIXrevokedCertificates_Create
-(
+NSSPKIXrevokedCertificates_Create (
   NSSArena *arenaOpt,
   NSSPKIXrevokedCertificate *rc1,
   ...
@@ -6069,8 +5838,7 @@ NSSPKIXrevokedCertificates_Create
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXrevokedCertificates_Destroy
-(
+NSSPKIXrevokedCertificates_Destroy (
   NSSPKIXrevokedCertificates *rcs
 );
 
@@ -6090,8 +5858,7 @@ NSSPKIXrevokedCertificates_Destroy
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXrevokedCertificates_Encode
-(
+NSSPKIXrevokedCertificates_Encode (
   NSSPKIXrevokedCertificates *rcs,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -6113,8 +5880,7 @@ NSSPKIXrevokedCertificates_Encode
  */
 
 NSS_EXTERN PRInt32
-NSSPKIXrevokedCertificates_GetRevokedCertificateCount
-(
+NSSPKIXrevokedCertificates_GetRevokedCertificateCount (
   NSSPKIXrevokedCertificates *rcs
 );
 
@@ -6136,8 +5902,7 @@ NSSPKIXrevokedCertificates_GetRevokedCertificateCount
  */
 
 NSS_EXTERN NSSPKIXrevokedCertificate **
-NSSPKIXrevokedCertificates_GetRevokedCertificates
-(
+NSSPKIXrevokedCertificates_GetRevokedCertificates (
   NSSPKIXrevokedCertificates *rcs,
   NSSPKIXrevokedCertificate *rvOpt[],
   PRInt32 limit,
@@ -6160,8 +5925,7 @@ NSSPKIXrevokedCertificates_GetRevokedCertificates
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXrevokedCertificates_SetRevokedCertificates
-(
+NSSPKIXrevokedCertificates_SetRevokedCertificates (
   NSSPKIXrevokedCertificates *rcs,
   NSSPKIXrevokedCertificate *rc[],
   PRInt32 countOpt
@@ -6184,8 +5948,7 @@ NSSPKIXrevokedCertificates_SetRevokedCertificates
  */
 
 NSS_EXTERN NSSPKIXrevokedCertificate *
-NSSPKIXrevokedCertificates_GetRevokedCertificate
-(
+NSSPKIXrevokedCertificates_GetRevokedCertificate (
   NSSPKIXrevokedCertificates *rcs,
   PRInt32 i,
   NSSArena *arenaOpt
@@ -6208,8 +5971,7 @@ NSSPKIXrevokedCertificates_GetRevokedCertificate
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXrevokedCertificates_SetRevokedCertificate
-(
+NSSPKIXrevokedCertificates_SetRevokedCertificate (
   NSSPKIXrevokedCertificates *rcs,
   PRInt32 i,
   NSSPKIXrevokedCertificate *rc
@@ -6232,8 +5994,7 @@ NSSPKIXrevokedCertificates_SetRevokedCertificate
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXrevokedCertificates_InsertRevokedCertificate
-(
+NSSPKIXrevokedCertificates_InsertRevokedCertificate (
   NSSPKIXrevokedCertificates *rcs,
   PRInt32 i,
   NSSPKIXrevokedCertificate *rc
@@ -6255,8 +6016,7 @@ NSSPKIXrevokedCertificates_InsertRevokedCertificate
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXrevokedCertificates_AppendRevokedCertificate
-(
+NSSPKIXrevokedCertificates_AppendRevokedCertificate (
   NSSPKIXrevokedCertificates *rcs,
   PRInt32 i,
   NSSPKIXrevokedCertificate *rc
@@ -6277,8 +6037,7 @@ NSSPKIXrevokedCertificates_AppendRevokedCertificate
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXrevokedCertificates_RemoveRevokedCertificate
-(
+NSSPKIXrevokedCertificates_RemoveRevokedCertificate (
   NSSPKIXrevokedCertificates *rcs,
   PRInt32 i
 );
@@ -6298,8 +6057,7 @@ NSSPKIXrevokedCertificates_RemoveRevokedCertificate
  */
 
 NSS_EXTERN PRInt32
-NSSPKIXrevokedCertificates_FindRevokedCertificate
-(
+NSSPKIXrevokedCertificates_FindRevokedCertificate (
   NSSPKIXrevokedCertificates *rcs,
   NSSPKIXrevokedCertificate *rc
 );
@@ -6319,8 +6077,7 @@ NSSPKIXrevokedCertificates_FindRevokedCertificate
  */
 
 NSS_EXTERN PRBool
-NSSPKIXrevokedCertificates_Equal
-(
+NSSPKIXrevokedCertificates_Equal (
   NSSPKIXrevokedCertificates *one,
   NSSPKIXrevokedCertificates *two,
   PRStatus *statusOpt
@@ -6342,8 +6099,7 @@ NSSPKIXrevokedCertificates_Equal
  */
 
 NSS_EXTERN NSSPKIXrevokedCertificates *
-NSSPKIXrevokedCertificates_Duplicate
-(
+NSSPKIXrevokedCertificates_Duplicate (
   NSSPKIXrevokedCertificates *rcs,
   NSSArena *arenaOpt
 );
@@ -6396,8 +6152,7 @@ NSSPKIXrevokedCertificates_Duplicate
  */
 
 NSS_EXTERN NSSPKIXrevokedCertificate *
-NSSPKIXrevokedCertificate_Decode
-(
+NSSPKIXrevokedCertificate_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -6420,8 +6175,7 @@ NSSPKIXrevokedCertificate_Decode
  */
 
 NSS_EXTERN NSSPKIXrevokedCertificate *
-NSSPKIXrevokedCertificate_Create
-(
+NSSPKIXrevokedCertificate_Create (
   NSSArena *arenaOpt,
   NSSPKIXCertificateSerialNumber *userCertificate,
   NSSPKIXTime *revocationDate,
@@ -6442,8 +6196,7 @@ NSSPKIXrevokedCertificate_Create
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXrevokedCertificate_Destroy
-(
+NSSPKIXrevokedCertificate_Destroy (
   NSSPKIXrevokedCertificate *rc
 );
 
@@ -6463,8 +6216,7 @@ NSSPKIXrevokedCertificate_Destroy
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXrevokedCertificate_Encode
-(
+NSSPKIXrevokedCertificate_Encode (
   NSSPKIXrevokedCertificate *rc,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -6487,8 +6239,7 @@ NSSPKIXrevokedCertificate_Encode
  */
 
 NSS_EXTERN NSSPKIXCertificateSerialNumber *
-NSSPKIXrevokedCertificate_GetUserCertificate
-(
+NSSPKIXrevokedCertificate_GetUserCertificate (
   NSSPKIXrevokedCertificate *rc,
   NSSArena *arenaOpt
 );  
@@ -6509,8 +6260,7 @@ NSSPKIXrevokedCertificate_GetUserCertificate
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXrevokedCertificate_SetUserCertificate
-(
+NSSPKIXrevokedCertificate_SetUserCertificate (
   NSSPKIXrevokedCertificate *rc,
   NSSPKIXCertificateSerialNumber *csn
 );
@@ -6531,8 +6281,7 @@ NSSPKIXrevokedCertificate_SetUserCertificate
  */
 
 NSS_EXTERN NSSPKIXTime *
-NSSPKIXrevokedCertificate_GetRevocationDate
-(
+NSSPKIXrevokedCertificate_GetRevocationDate (
   NSSPKIXrevokedCertificate *rc,
   NSSArena *arenaOpt
 );  
@@ -6553,8 +6302,7 @@ NSSPKIXrevokedCertificate_GetRevocationDate
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXrevokedCertificate_SetRevocationDate
-(
+NSSPKIXrevokedCertificate_SetRevocationDate (
   NSSPKIXrevokedCertificate *rc,
   NSSPKIXTime *revocationDate
 );
@@ -6574,8 +6322,7 @@ NSSPKIXrevokedCertificate_SetRevocationDate
  */
 
 NSS_EXTERN PRBool
-NSSPKIXrevokedCertificate_HasCrlEntryExtensions
-(
+NSSPKIXrevokedCertificate_HasCrlEntryExtensions (
   NSSPKIXrevokedCertificate *rc,
   PRStatus *statusOpt
 );
@@ -6597,8 +6344,7 @@ NSSPKIXrevokedCertificate_HasCrlEntryExtensions
  */
 
 NSS_EXTERN NSSPKIXExtensions *
-NSSPKIXrevokedCertificate_GetCrlEntryExtensions
-(
+NSSPKIXrevokedCertificate_GetCrlEntryExtensions (
   NSSPKIXrevokedCertificate *rc,
   NSSArena *arenaOpt
 );  
@@ -6619,8 +6365,7 @@ NSSPKIXrevokedCertificate_GetCrlEntryExtensions
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXrevokedCertificate_SetCrlEntryExtensions
-(
+NSSPKIXrevokedCertificate_SetCrlEntryExtensions (
   NSSPKIXrevokedCertificate *rc,
   NSSPKIXExtensions *crlEntryExtensions
 );
@@ -6640,8 +6385,7 @@ NSSPKIXrevokedCertificate_SetCrlEntryExtensions
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXrevokedCertificate_RemoveCrlEntryExtensions
-(
+NSSPKIXrevokedCertificate_RemoveCrlEntryExtensions (
   NSSPKIXrevokedCertificate *rc
 );
 
@@ -6660,8 +6404,7 @@ NSSPKIXrevokedCertificate_RemoveCrlEntryExtensions
  */
 
 NSS_EXTERN PRBool
-NSSPKIXrevokedCertificate_Equal
-(
+NSSPKIXrevokedCertificate_Equal (
   NSSPKIXrevokedCertificate *one,
   NSSPKIXrevokedCertificate *two,
   PRStatus *statusOpt
@@ -6681,8 +6424,7 @@ NSSPKIXrevokedCertificate_Equal
  */
 
 NSS_EXTERN NSSPKIXrevokedCertificate *
-NSSPKIXrevokedCertificate_Duplicate
-(
+NSSPKIXrevokedCertificate_Duplicate (
   NSSPKIXrevokedCertificate *rc,
   NSSArena *arenaOpt
 );
@@ -6735,8 +6477,7 @@ NSSPKIXrevokedCertificate_Duplicate
  */
 
 NSS_EXTERN NSSPKIXAlgorithmIdentifier *
-NSSPKIXAlgorithmIdentifier_Decode
-(
+NSSPKIXAlgorithmIdentifier_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -6758,8 +6499,7 @@ NSSPKIXAlgorithmIdentifier_Decode
  */
 
 NSS_EXTERN NSSPKIXAlgorithmIdentifier *
-NSSPKIXAlgorithmIdentifier_Create
-(
+NSSPKIXAlgorithmIdentifier_Create (
   NSSArena *arenaOpt,
   NSSOID *algorithm,
   NSSItem *parameters
@@ -6779,8 +6519,7 @@ NSSPKIXAlgorithmIdentifier_Create
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXAlgorithmIdentifier_Destroy
-(
+NSSPKIXAlgorithmIdentifier_Destroy (
   NSSPKIXAlgorithmIdentifier *algid
 );
 
@@ -6800,8 +6539,7 @@ NSSPKIXAlgorithmIdentifier_Destroy
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXAlgorithmIdentifier_Encode
-(
+NSSPKIXAlgorithmIdentifier_Encode (
   NSSPKIXAlgorithmIdentifier *algid,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -6823,8 +6561,7 @@ NSSPKIXAlgorithmIdentifier_Encode
  */
 
 NSS_EXTERN NSSOID *
-NSSPKIXAlgorithmIdentifier_GetAlgorithm
-(
+NSSPKIXAlgorithmIdentifier_GetAlgorithm (
   NSSPKIXAlgorithmIdentifier *algid
 );
 
@@ -6843,8 +6580,7 @@ NSSPKIXAlgorithmIdentifier_GetAlgorithm
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXAlgorithmIdentifier_SetAlgorithm
-(
+NSSPKIXAlgorithmIdentifier_SetAlgorithm (
   NSSPKIXAlgorithmIdentifier *algid,
   NSSOID *algorithm
 );
@@ -6865,8 +6601,7 @@ NSSPKIXAlgorithmIdentifier_SetAlgorithm
  */
 
 NSS_EXTERN NSSItem *
-NSSPKIXAlgorithmIdentifier_GetParameters
-(
+NSSPKIXAlgorithmIdentifier_GetParameters (
   NSSPKIXAlgorithmIdentifier *algid
 );
 
@@ -6886,8 +6621,7 @@ NSSPKIXAlgorithmIdentifier_GetParameters
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXAlgorithmIdentifier_SetParameters
-(
+NSSPKIXAlgorithmIdentifier_SetParameters (
   NSSPKIXAlgorithmIdentifier *algid,
   NSSItem *parameters
 );
@@ -6907,8 +6641,7 @@ NSSPKIXAlgorithmIdentifier_SetParameters
  */
 
 NSS_EXTERN PRBool
-NSSPKIXAlgorithmIdentifier_Equal
-(
+NSSPKIXAlgorithmIdentifier_Equal (
   NSSPKIXAlgorithmIdentifier *algid1,
   NSSPKIXAlgorithmIdentifier *algid2,
   PRStatus *statusOpt
@@ -6930,8 +6663,7 @@ NSSPKIXAlgorithmIdentifier_Equal
  */
 
 NSS_EXTERN NSSPKIXAlgorithmIdentifier *
-NSSPKIXAlgorithmIdentifier_Duplicate
-(
+NSSPKIXAlgorithmIdentifier_Duplicate (
   NSSPKIXAlgorithmIdentifier *algid,
   NSSArena *arenaOpt
 );
@@ -6995,8 +6727,7 @@ NSSPKIXAlgorithmIdentifier_Duplicate
  */
 
 NSS_EXTERN NSSPKIXORAddress *
-NSSPKIXORAddress_Decode
-(
+NSSPKIXORAddress_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -7019,8 +6750,7 @@ NSSPKIXORAddress_Decode
  */
 
 NSS_EXTERN NSSPKIXORAddress *
-NSSPKIXORAddress_Create
-(
+NSSPKIXORAddress_Create (
   NSSArena *arenaOpt,
   NSSPKIXBuiltInStandardAttributes *bisa,
   NSSPKIXBuiltInDomainDefinedAttributes *biddaOpt,
@@ -7041,8 +6771,7 @@ NSSPKIXORAddress_Create
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXORAddress_Destroy
-(
+NSSPKIXORAddress_Destroy (
   NSSPKIXORAddress *ora
 );
 
@@ -7062,8 +6791,7 @@ NSSPKIXORAddress_Destroy
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXORAddress_Encode
-(
+NSSPKIXORAddress_Encode (
   NSSPKIXORAddress *ora,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -7086,8 +6814,7 @@ NSSPKIXORAddress_Encode
  */
 
 NSS_EXTERN NSSPKIXBuiltInStandardAttributes *
-NSSPKIXORAddress_GetBuiltInStandardAttributes
-(
+NSSPKIXORAddress_GetBuiltInStandardAttributes (
   NSSPKIXORAddress *ora,
   NSSArena *arenaOpt
 );
@@ -7108,8 +6835,7 @@ NSSPKIXORAddress_GetBuiltInStandardAttributes
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXORAddress_SetBuiltInStandardAttributes
-(
+NSSPKIXORAddress_SetBuiltInStandardAttributes (
   NSSPKIXORAddress *ora,
   NSSPKIXBuiltInStandardAttributes *bisa
 );
@@ -7129,8 +6855,7 @@ NSSPKIXORAddress_SetBuiltInStandardAttributes
  */
 
 NSS_EXTERN PRBool
-NSSPKIXORAddress_HasBuiltInDomainDefinedAttributes
-(
+NSSPKIXORAddress_HasBuiltInDomainDefinedAttributes (
   NSSPKIXORAddress *ora,
   PRStatus *statusOpt
 );
@@ -7153,8 +6878,7 @@ NSSPKIXORAddress_HasBuiltInDomainDefinedAttributes
  */
 
 NSS_EXTERN NSSPKIXBuiltInDomainDefinedAttributes *
-NSSPKIXORAddress_GetBuiltInDomainDefinedAttributes
-(
+NSSPKIXORAddress_GetBuiltInDomainDefinedAttributes (
   NSSPKIXORAddress *ora,
   NSSArena *arenaOpt
 );
@@ -7175,8 +6899,7 @@ NSSPKIXORAddress_GetBuiltInDomainDefinedAttributes
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXORAddress_SetBuiltInDomainDefinedAttributes
-(
+NSSPKIXORAddress_SetBuiltInDomainDefinedAttributes (
   NSSPKIXORAddress *ora,
   NSSPKIXBuiltInStandardAttributes *bisa
 );
@@ -7196,8 +6919,7 @@ NSSPKIXORAddress_SetBuiltInDomainDefinedAttributes
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXORAddress_RemoveBuiltInDomainDefinedAttributes
-(
+NSSPKIXORAddress_RemoveBuiltInDomainDefinedAttributes (
   NSSPKIXORAddress *ora
 );
 
@@ -7216,8 +6938,7 @@ NSSPKIXORAddress_RemoveBuiltInDomainDefinedAttributes
  */
 
 NSS_EXTERN PRBool
-NSSPKIXORAddress_HasExtensionsAttributes
-(
+NSSPKIXORAddress_HasExtensionsAttributes (
   NSSPKIXORAddress *ora,
   PRStatus *statusOpt
 );
@@ -7239,8 +6960,7 @@ NSSPKIXORAddress_HasExtensionsAttributes
  */
 
 NSS_EXTERN NSSPKIXExtensionAttributes *
-NSSPKIXORAddress_GetExtensionsAttributes
-(
+NSSPKIXORAddress_GetExtensionsAttributes (
   NSSPKIXORAddress *ora,
   NSSArena *arenaOpt
 );
@@ -7261,8 +6981,7 @@ NSSPKIXORAddress_GetExtensionsAttributes
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXORAddress_SetExtensionsAttributes
-(
+NSSPKIXORAddress_SetExtensionsAttributes (
   NSSPKIXORAddress *ora,
   NSSPKIXExtensionAttributes *eaOpt
 );
@@ -7282,8 +7001,7 @@ NSSPKIXORAddress_SetExtensionsAttributes
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXORAddress_RemoveExtensionsAttributes
-(
+NSSPKIXORAddress_RemoveExtensionsAttributes (
   NSSPKIXORAddress *ora
 );
 
@@ -7302,8 +7020,7 @@ NSSPKIXORAddress_RemoveExtensionsAttributes
  */
 
 NSS_EXTERN PRBool
-NSSPKIXORAddress_Equal
-(
+NSSPKIXORAddress_Equal (
   NSSPKIXORAddress *ora1,
   NSSPKIXORAddress *ora2,
   PRStatus *statusOpt
@@ -7325,8 +7042,7 @@ NSSPKIXORAddress_Equal
  */
 
 NSS_EXTERN NSSPKIXORAddress *
-NSSPKIXORAddress_Duplicate
-(
+NSSPKIXORAddress_Duplicate (
   NSSPKIXORAddress *ora,
   NSSArena *arenaOpt
 );
@@ -7416,8 +7132,7 @@ NSSPKIXORAddress_Duplicate
  */
 
 NSS_EXTERN NSSPKIXBuiltInStandardAttributes *
-NSSPKIXBuiltInStandardAttributes_Decode
-(
+NSSPKIXBuiltInStandardAttributes_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -7446,8 +7161,7 @@ NSSPKIXBuiltInStandardAttributes_Decode
  */
 
 NSS_EXTERN NSSPKIXBuiltInStandardAttributes *
-NSSPKIXBuiltInStandardAttributes_Create
-(
+NSSPKIXBuiltInStandardAttributes_Create (
   NSSArena *arenaOpt,
   NSSPKIXCountryName *countryNameOpt,
   NSSPKIXAdministrationDomainName *administrationDomainNameOpt,
@@ -7474,8 +7188,7 @@ NSSPKIXBuiltInStandardAttributes_Create
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXBuiltInStandardAttributes_Destroy
-(
+NSSPKIXBuiltInStandardAttributes_Destroy (
   NSSPKIXBuiltInStandardAttributes *bisa
 );
 
@@ -7495,8 +7208,7 @@ NSSPKIXBuiltInStandardAttributes_Destroy
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXBuiltInStandardAttributes_Encode
-(
+NSSPKIXBuiltInStandardAttributes_Encode (
   NSSPKIXBuiltInStandardAttributes *bisa,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -7518,8 +7230,7 @@ NSSPKIXBuiltInStandardAttributes_Encode
  */
 
 NSS_EXTERN PRBool
-NSSPKIXBuiltInStandardAttributes_HasCountryName
-(
+NSSPKIXBuiltInStandardAttributes_HasCountryName (
   NSSPKIXBuiltInStandardAttributes *bisa,
   PRStatus *statusOpt
 );
@@ -7540,8 +7251,7 @@ NSSPKIXBuiltInStandardAttributes_HasCountryName
  */
 
 NSS_EXTERN NSSPKIXCountryName *
-NSSPKIXBuiltInStandardAttributes_GetCountryName
-(
+NSSPKIXBuiltInStandardAttributes_GetCountryName (
   NSSPKIXBuiltInStandardAttributes *bisa,
   NSSArena *arenaOpt
 );
@@ -7562,8 +7272,7 @@ NSSPKIXBuiltInStandardAttributes_GetCountryName
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXBuiltInStandardAttributes_SetCountryName
-(
+NSSPKIXBuiltInStandardAttributes_SetCountryName (
   NSSPKIXBuiltInStandardAttributes *bisa,
   NSSPKIXCountryName *countryName
 );
@@ -7583,8 +7292,7 @@ NSSPKIXBuiltInStandardAttributes_SetCountryName
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXBuiltInStandardAttributes_RemoveCountryName
-(
+NSSPKIXBuiltInStandardAttributes_RemoveCountryName (
   NSSPKIXBuiltInStandardAttributes *bisa
 );
 
@@ -7603,8 +7311,7 @@ NSSPKIXBuiltInStandardAttributes_RemoveCountryName
  */
 
 NSS_EXTERN PRBool
-NSSPKIXBuiltInStandardAttributes_HasAdministrationDomainName
-(
+NSSPKIXBuiltInStandardAttributes_HasAdministrationDomainName (
   NSSPKIXBuiltInStandardAttributes *bisa,
   PRStatus *statusOpt
 );
@@ -7625,8 +7332,7 @@ NSSPKIXBuiltInStandardAttributes_HasAdministrationDomainName
  */
 
 NSS_EXTERN NSSPKIXAdministrationDomainName *
-NSSPKIXBuiltInStandardAttributes_GetAdministrationDomainName
-(
+NSSPKIXBuiltInStandardAttributes_GetAdministrationDomainName (
   NSSPKIXBuiltInStandardAttributes *bisa,
   NSSArena *arenaOpt
 );
@@ -7647,8 +7353,7 @@ NSSPKIXBuiltInStandardAttributes_GetAdministrationDomainName
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXBuiltInStandardAttributes_SetAdministrationDomainName
-(
+NSSPKIXBuiltInStandardAttributes_SetAdministrationDomainName (
   NSSPKIXBuiltInStandardAttributes *bisa,
   NSSPKIXAdministrationDomainName *administrationDomainName
 );
@@ -7668,8 +7373,7 @@ NSSPKIXBuiltInStandardAttributes_SetAdministrationDomainName
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXBuiltInStandardAttributes_RemoveAdministrationDomainName
-(
+NSSPKIXBuiltInStandardAttributes_RemoveAdministrationDomainName (
   NSSPKIXBuiltInStandardAttributes *bisa
 );
 
@@ -7688,8 +7392,7 @@ NSSPKIXBuiltInStandardAttributes_RemoveAdministrationDomainName
  */
 
 NSS_EXTERN PRBool
-NSSPKIXBuiltInStandardAttributes_HasNetworkAddress
-(
+NSSPKIXBuiltInStandardAttributes_HasNetworkAddress (
   NSSPKIXBuiltInStandardAttributes *bisa,
   PRStatus *statusOpt
 );
@@ -7710,8 +7413,7 @@ NSSPKIXBuiltInStandardAttributes_HasNetworkAddress
  */
 
 NSS_EXTERN NSSPKIXNetworkAddress *
-NSSPKIXBuiltInStandardAttributes_GetNetworkAddress
-(
+NSSPKIXBuiltInStandardAttributes_GetNetworkAddress (
   NSSPKIXBuiltInStandardAttributes *bisa,
   NSSArena *arenaOpt
 );
@@ -7732,8 +7434,7 @@ NSSPKIXBuiltInStandardAttributes_GetNetworkAddress
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXBuiltInStandardAttributes_SetNetworkAddress
-(
+NSSPKIXBuiltInStandardAttributes_SetNetworkAddress (
   NSSPKIXBuiltInStandardAttributes *bisa,
   NSSPKIXNetworkAddress *networkAddress
 );
@@ -7753,8 +7454,7 @@ NSSPKIXBuiltInStandardAttributes_SetNetworkAddress
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXBuiltInStandardAttributes_RemoveNetworkAddress
-(
+NSSPKIXBuiltInStandardAttributes_RemoveNetworkAddress (
   NSSPKIXBuiltInStandardAttributes *bisa
 );
 
@@ -7773,8 +7473,7 @@ NSSPKIXBuiltInStandardAttributes_RemoveNetworkAddress
  */
 
 NSS_EXTERN PRBool
-NSSPKIXBuiltInStandardAttributes_HasTerminalIdentifier
-(
+NSSPKIXBuiltInStandardAttributes_HasTerminalIdentifier (
   NSSPKIXBuiltInStandardAttributes *bisa,
   PRStatus *statusOpt
 );
@@ -7795,8 +7494,7 @@ NSSPKIXBuiltInStandardAttributes_HasTerminalIdentifier
  */
 
 NSS_EXTERN NSSPKIXTerminalIdentifier *
-NSSPKIXBuiltInStandardAttributes_GetTerminalIdentifier
-(
+NSSPKIXBuiltInStandardAttributes_GetTerminalIdentifier (
   NSSPKIXBuiltInStandardAttributes *bisa,
   NSSArena *arenaOpt
 );
@@ -7817,8 +7515,7 @@ NSSPKIXBuiltInStandardAttributes_GetTerminalIdentifier
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXBuiltInStandardAttributes_SetTerminalIdentifier
-(
+NSSPKIXBuiltInStandardAttributes_SetTerminalIdentifier (
   NSSPKIXBuiltInStandardAttributes *bisa,
   NSSPKIXTerminalIdentifier *terminalIdentifier
 );
@@ -7838,8 +7535,7 @@ NSSPKIXBuiltInStandardAttributes_SetTerminalIdentifier
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXBuiltInStandardAttributes_RemoveTerminalIdentifier
-(
+NSSPKIXBuiltInStandardAttributes_RemoveTerminalIdentifier (
   NSSPKIXBuiltInStandardAttributes *bisa
 );
 
@@ -7858,8 +7554,7 @@ NSSPKIXBuiltInStandardAttributes_RemoveTerminalIdentifier
  */
 
 NSS_EXTERN PRBool
-NSSPKIXBuiltInStandardAttributes_HasPrivateDomainName
-(
+NSSPKIXBuiltInStandardAttributes_HasPrivateDomainName (
   NSSPKIXBuiltInStandardAttributes *bisa,
   PRStatus *statusOpt
 );
@@ -7880,8 +7575,7 @@ NSSPKIXBuiltInStandardAttributes_HasPrivateDomainName
  */
 
 NSS_EXTERN NSSPKIXPrivateDomainName *
-NSSPKIXBuiltInStandardAttributes_GetPrivateDomainName
-(
+NSSPKIXBuiltInStandardAttributes_GetPrivateDomainName (
   NSSPKIXBuiltInStandardAttributes *bisa,
   NSSArena *arenaOpt
 );
@@ -7902,8 +7596,7 @@ NSSPKIXBuiltInStandardAttributes_GetPrivateDomainName
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXBuiltInStandardAttributes_SetPrivateDomainName
-(
+NSSPKIXBuiltInStandardAttributes_SetPrivateDomainName (
   NSSPKIXBuiltInStandardAttributes *bisa,
   NSSPKIXPrivateDomainName *privateDomainName
 );
@@ -7923,8 +7616,7 @@ NSSPKIXBuiltInStandardAttributes_SetPrivateDomainName
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXBuiltInStandardAttributes_RemovePrivateDomainName
-(
+NSSPKIXBuiltInStandardAttributes_RemovePrivateDomainName (
   NSSPKIXBuiltInStandardAttributes *bisa
 );
 
@@ -7943,8 +7635,7 @@ NSSPKIXBuiltInStandardAttributes_RemovePrivateDomainName
  */
 
 NSS_EXTERN PRBool
-NSSPKIXBuiltInStandardAttributes_HasOrganizationName
-(
+NSSPKIXBuiltInStandardAttributes_HasOrganizationName (
   NSSPKIXBuiltInStandardAttributes *bisa,
   PRStatus *statusOpt
 );
@@ -7965,8 +7656,7 @@ NSSPKIXBuiltInStandardAttributes_HasOrganizationName
  */
 
 NSS_EXTERN NSSPKIXOrganizationName *
-NSSPKIXBuiltInStandardAttributes_GetOrganizationName
-(
+NSSPKIXBuiltInStandardAttributes_GetOrganizationName (
   NSSPKIXBuiltInStandardAttributes *bisa,
   NSSArena *arenaOpt
 );
@@ -7987,8 +7677,7 @@ NSSPKIXBuiltInStandardAttributes_GetOrganizationName
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXBuiltInStandardAttributes_SetOrganizationName
-(
+NSSPKIXBuiltInStandardAttributes_SetOrganizationName (
   NSSPKIXBuiltInStandardAttributes *bisa,
   NSSPKIXOrganizationName *organizationName
 );
@@ -8008,8 +7697,7 @@ NSSPKIXBuiltInStandardAttributes_SetOrganizationName
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXBuiltInStandardAttributes_RemoveOrganizationName
-(
+NSSPKIXBuiltInStandardAttributes_RemoveOrganizationName (
   NSSPKIXBuiltInStandardAttributes *bisa
 );
 
@@ -8028,8 +7716,7 @@ NSSPKIXBuiltInStandardAttributes_RemoveOrganizationName
  */
 
 NSS_EXTERN PRBool
-NSSPKIXBuiltInStandardAttributes_HasNumericUserIdentifier
-(
+NSSPKIXBuiltInStandardAttributes_HasNumericUserIdentifier (
   NSSPKIXBuiltInStandardAttributes *bisa,
   PRStatus *statusOpt
 );
@@ -8050,8 +7737,7 @@ NSSPKIXBuiltInStandardAttributes_HasNumericUserIdentifier
  */
 
 NSS_EXTERN NSSPKIXNumericUserIdentifier *
-NSSPKIXBuiltInStandardAttributes_GetNumericUserIdentifier
-(
+NSSPKIXBuiltInStandardAttributes_GetNumericUserIdentifier (
   NSSPKIXBuiltInStandardAttributes *bisa,
   NSSArena *arenaOpt
 );
@@ -8072,8 +7758,7 @@ NSSPKIXBuiltInStandardAttributes_GetNumericUserIdentifier
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXBuiltInStandardAttributes_SetNumericUserIdentifier
-(
+NSSPKIXBuiltInStandardAttributes_SetNumericUserIdentifier (
   NSSPKIXBuiltInStandardAttributes *bisa,
   NSSPKIXNumericUserIdentifier *numericUserIdentifier
 );
@@ -8093,8 +7778,7 @@ NSSPKIXBuiltInStandardAttributes_SetNumericUserIdentifier
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXBuiltInStandardAttributes_RemoveNumericUserIdentifier
-(
+NSSPKIXBuiltInStandardAttributes_RemoveNumericUserIdentifier (
   NSSPKIXBuiltInStandardAttributes *bisa
 );
 
@@ -8113,8 +7797,7 @@ NSSPKIXBuiltInStandardAttributes_RemoveNumericUserIdentifier
  */
 
 NSS_EXTERN PRBool
-NSSPKIXBuiltInStandardAttributes_HasPersonalName
-(
+NSSPKIXBuiltInStandardAttributes_HasPersonalName (
   NSSPKIXBuiltInStandardAttributes *bisa,
   PRStatus *statusOpt
 );
@@ -8135,8 +7818,7 @@ NSSPKIXBuiltInStandardAttributes_HasPersonalName
  */
 
 NSS_EXTERN NSSPKIXPersonalName *
-NSSPKIXBuiltInStandardAttributes_GetPersonalName
-(
+NSSPKIXBuiltInStandardAttributes_GetPersonalName (
   NSSPKIXBuiltInStandardAttributes *bisa,
   NSSArena *arenaOpt
 );
@@ -8157,8 +7839,7 @@ NSSPKIXBuiltInStandardAttributes_GetPersonalName
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXBuiltInStandardAttributes_SetPersonalName
-(
+NSSPKIXBuiltInStandardAttributes_SetPersonalName (
   NSSPKIXBuiltInStandardAttributes *bisa,
   NSSPKIXPersonalName *personalName
 );
@@ -8178,8 +7859,7 @@ NSSPKIXBuiltInStandardAttributes_SetPersonalName
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXBuiltInStandardAttributes_RemovePersonalName
-(
+NSSPKIXBuiltInStandardAttributes_RemovePersonalName (
   NSSPKIXBuiltInStandardAttributes *bisa
 );
 
@@ -8198,8 +7878,7 @@ NSSPKIXBuiltInStandardAttributes_RemovePersonalName
  */
 
 NSS_EXTERN PRBool
-NSSPKIXBuiltInStandardAttributes_HasOrganizationLUnitNames
-(
+NSSPKIXBuiltInStandardAttributes_HasOrganizationLUnitNames (
   NSSPKIXBuiltInStandardAttributes *bisa,
   PRStatus *statusOpt
 );
@@ -8220,8 +7899,7 @@ NSSPKIXBuiltInStandardAttributes_HasOrganizationLUnitNames
  */
 
 NSS_EXTERN NSSPKIXOrganizationalUnitNames *
-NSSPKIXBuiltInStandardAttributes_GetOrganizationLUnitNames
-(
+NSSPKIXBuiltInStandardAttributes_GetOrganizationLUnitNames (
   NSSPKIXBuiltInStandardAttributes *bisa,
   NSSArena *arenaOpt
 );
@@ -8242,8 +7920,7 @@ NSSPKIXBuiltInStandardAttributes_GetOrganizationLUnitNames
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXBuiltInStandardAttributes_SetOrganizationLUnitNames
-(
+NSSPKIXBuiltInStandardAttributes_SetOrganizationLUnitNames (
   NSSPKIXBuiltInStandardAttributes *bisa,
   NSSPKIXOrganizationalUnitNames *organizationalUnitNames
 );
@@ -8263,8 +7940,7 @@ NSSPKIXBuiltInStandardAttributes_SetOrganizationLUnitNames
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXBuiltInStandardAttributes_RemoveOrganizationLUnitNames
-(
+NSSPKIXBuiltInStandardAttributes_RemoveOrganizationLUnitNames (
   NSSPKIXBuiltInStandardAttributes *bisa
 );
 
@@ -8283,8 +7959,7 @@ NSSPKIXBuiltInStandardAttributes_RemoveOrganizationLUnitNames
  */
 
 NSS_EXTERN PRBool
-NSSPKIXBuiltInStandardAttributes_Equal
-(
+NSSPKIXBuiltInStandardAttributes_Equal (
   NSSPKIXBuiltInStandardAttributes *bisa1,
   NSSPKIXBuiltInStandardAttributes *bisa2,
   PRStatus *statusOpt
@@ -8306,8 +7981,7 @@ NSSPKIXBuiltInStandardAttributes_Equal
  */
 
 NSS_EXTERN NSSPKIXBuiltInStandardAttributes *
-NSSPKIXBuiltInStandardAttributes_Duplicate
-(
+NSSPKIXBuiltInStandardAttributes_Duplicate (
   NSSPKIXBuiltInStandardAttributes *bisa,
   NSSArena *arenaOpt
 );
@@ -8349,8 +8023,7 @@ NSSPKIXBuiltInStandardAttributes_Duplicate
  */
 
 NSS_EXTERN NSSPKIXCountryName *
-NSSPKIXCountryName_Decode
-(
+NSSPKIXCountryName_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -8371,8 +8044,7 @@ NSSPKIXCountryName_Decode
  */
 
 NSS_EXTERN NSSPKIXCountryName *
-NSSPKIXCountryName_CreateFromUTF8
-(
+NSSPKIXCountryName_CreateFromUTF8 (
   NSSArena *arenaOpt,
   NSSUTF8 *utf8
 );
@@ -8392,8 +8064,7 @@ NSSPKIXCountryName_CreateFromUTF8
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXCountryName_Encode
-(
+NSSPKIXCountryName_Encode (
   NSSPKIXCountryName *name,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -8435,8 +8106,7 @@ NSSPKIXCountryName_Encode
  */
 
 NSS_EXTERN NSSPKIXAdministrationDomainName *
-NSSPKIXAdministrationDomainName_Decode
-(
+NSSPKIXAdministrationDomainName_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -8457,8 +8127,7 @@ NSSPKIXAdministrationDomainName_Decode
  */
 
 NSS_EXTERN NSSPKIXAdministrationDomainName *
-NSSPKIXAdministrationDomainName_CreateFromUTF8
-(
+NSSPKIXAdministrationDomainName_CreateFromUTF8 (
   NSSArena *arenaOpt,
   NSSUTF8 *utf8
 );
@@ -8478,8 +8147,7 @@ NSSPKIXAdministrationDomainName_CreateFromUTF8
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXAdministrationDomainName_Encode
-(
+NSSPKIXAdministrationDomainName_Encode (
   NSSPKIXAdministrationDomainName *name,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -8519,8 +8187,7 @@ NSSPKIXAdministrationDomainName_Encode
  */
 
 NSS_EXTERN NSSPKIXX121Address *
-NSSPKIXX121Address_Decode
-(
+NSSPKIXX121Address_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -8541,8 +8208,7 @@ NSSPKIXX121Address_Decode
  */
 
 NSS_EXTERN NSSPKIXX121Address *
-NSSPKIXX121Address_CreateFromUTF8
-(
+NSSPKIXX121Address_CreateFromUTF8 (
   NSSArena *arenaOpt,
   NSSUTF8 *utf8
 );
@@ -8562,8 +8228,7 @@ NSSPKIXX121Address_CreateFromUTF8
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXX121Address_Encode
-(
+NSSPKIXX121Address_Encode (
   NSSPKIXX121Address *name,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -8603,8 +8268,7 @@ NSSPKIXX121Address_Encode
  */
 
 NSS_EXTERN NSSPKIXNetworkAddress *
-NSSPKIXNetworkAddress_Decode
-(
+NSSPKIXNetworkAddress_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -8625,8 +8289,7 @@ NSSPKIXNetworkAddress_Decode
  */
 
 NSS_EXTERN NSSPKIXNetworkAddress *
-NSSPKIXNetworkAddress_CreateFromUTF8
-(
+NSSPKIXNetworkAddress_CreateFromUTF8 (
   NSSArena *arenaOpt,
   NSSUTF8 *utf8
 );
@@ -8646,8 +8309,7 @@ NSSPKIXNetworkAddress_CreateFromUTF8
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXNetworkAddress_Encode
-(
+NSSPKIXNetworkAddress_Encode (
   NSSPKIXNetworkAddress *name,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -8687,8 +8349,7 @@ NSSPKIXNetworkAddress_Encode
  */
 
 NSS_EXTERN NSSPKIXTerminalIdentifier *
-NSSPKIXTerminalIdentifier_Decode
-(
+NSSPKIXTerminalIdentifier_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -8709,8 +8370,7 @@ NSSPKIXTerminalIdentifier_Decode
  */
 
 NSS_EXTERN NSSPKIXTerminalIdentifier *
-NSSPKIXTerminalIdentifier_CreateFromUTF8
-(
+NSSPKIXTerminalIdentifier_CreateFromUTF8 (
   NSSArena *arenaOpt,
   NSSUTF8 *utf8
 );
@@ -8730,8 +8390,7 @@ NSSPKIXTerminalIdentifier_CreateFromUTF8
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXTerminalIdentifier_Encode
-(
+NSSPKIXTerminalIdentifier_Encode (
   NSSPKIXTerminalIdentifier *name,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -8771,8 +8430,7 @@ NSSPKIXTerminalIdentifier_Encode
  */
 
 NSS_EXTERN NSSPKIXPrivateDomainName *
-NSSPKIXPrivateDomainName_Decode
-(
+NSSPKIXPrivateDomainName_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -8793,8 +8451,7 @@ NSSPKIXPrivateDomainName_Decode
  */
 
 NSS_EXTERN NSSPKIXPrivateDomainName *
-NSSPKIXPrivateDomainName_CreateFromUTF8
-(
+NSSPKIXPrivateDomainName_CreateFromUTF8 (
   NSSArena *arenaOpt,
   NSSUTF8 *utf8
 );
@@ -8814,8 +8471,7 @@ NSSPKIXPrivateDomainName_CreateFromUTF8
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXPrivateDomainName_Encode
-(
+NSSPKIXPrivateDomainName_Encode (
   NSSPKIXPrivateDomainName *name,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -8854,8 +8510,7 @@ NSSPKIXPrivateDomainName_Encode
  */
 
 NSS_EXTERN NSSPKIXOrganizationName *
-NSSPKIXOrganizationName_Decode
-(
+NSSPKIXOrganizationName_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -8876,8 +8531,7 @@ NSSPKIXOrganizationName_Decode
  */
 
 NSS_EXTERN NSSPKIXOrganizationName *
-NSSPKIXOrganizationName_CreateFromUTF8
-(
+NSSPKIXOrganizationName_CreateFromUTF8 (
   NSSArena *arenaOpt,
   NSSUTF8 *utf8
 );
@@ -8897,8 +8551,7 @@ NSSPKIXOrganizationName_CreateFromUTF8
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXOrganizationName_Encode
-(
+NSSPKIXOrganizationName_Encode (
   NSSPKIXOrganizationName *name,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -8939,8 +8592,7 @@ NSSPKIXOrganizationName_Encode
  */
 
 NSS_EXTERN NSSPKIXNumericUserIdentifier *
-NSSPKIXNumericUserIdentifier_Decode
-(
+NSSPKIXNumericUserIdentifier_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -8961,8 +8613,7 @@ NSSPKIXNumericUserIdentifier_Decode
  */
 
 NSS_EXTERN NSSPKIXNumericUserIdentifier *
-NSSPKIXNumericUserIdentifier_CreateFromUTF8
-(
+NSSPKIXNumericUserIdentifier_CreateFromUTF8 (
   NSSArena *arenaOpt,
   NSSUTF8 *utf8
 );
@@ -8982,8 +8633,7 @@ NSSPKIXNumericUserIdentifier_CreateFromUTF8
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXNumericUserIdentifier_Encode
-(
+NSSPKIXNumericUserIdentifier_Encode (
   NSSPKIXNumericUserIdentifier *name,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -9046,8 +8696,7 @@ NSSPKIXNumericUserIdentifier_Encode
  */
 
 NSS_EXTERN NSSPKIXPersonalName *
-NSSPKIXPersonalName_Decode
-(
+NSSPKIXPersonalName_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -9068,8 +8717,7 @@ NSSPKIXPersonalName_Decode
  */
 
 NSS_EXTERN NSSPKIXPersonalName *
-NSSPKIXPersonalName_Create
-(
+NSSPKIXPersonalName_Create (
   NSSArena *arenaOpt,
   NSSUTF8 *surname,
   NSSUTF8 *givenNameOpt,
@@ -9091,8 +8739,7 @@ NSSPKIXPersonalName_Create
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXPersonalName_Destroy
-(
+NSSPKIXPersonalName_Destroy (
   NSSPKIXPersonalName *personalName
 );
 
@@ -9112,8 +8759,7 @@ NSSPKIXPersonalName_Destroy
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXPersonalName_Encode
-(
+NSSPKIXPersonalName_Encode (
   NSSPKIXPersonalName *personalName,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -9136,8 +8782,7 @@ NSSPKIXPersonalName_Encode
  */
 
 NSS_EXTERN NSSUTF8 *
-NSSPKIXPersonalName_GetSurname
-(
+NSSPKIXPersonalName_GetSurname (
   NSSPKIXPersonalName *personalName,
   NSSArena *arenaOpt
 );
@@ -9157,8 +8802,7 @@ NSSPKIXPersonalName_GetSurname
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXPersonalName_SetSurname
-(
+NSSPKIXPersonalName_SetSurname (
   NSSPKIXPersonalName *personalName,
   NSSUTF8 *surname
 );
@@ -9178,8 +8822,7 @@ NSSPKIXPersonalName_SetSurname
  */
 
 NSS_EXTERN PRBool
-NSSPKIXPersonalName_HasGivenName
-(
+NSSPKIXPersonalName_HasGivenName (
   NSSPKIXPersonalName *personalName,
   PRStatus *statusOpt
 );
@@ -9201,8 +8844,7 @@ NSSPKIXPersonalName_HasGivenName
  */
 
 NSS_EXTERN NSSUTF8 *
-NSSPKIXPersonalName_GetGivenName
-(
+NSSPKIXPersonalName_GetGivenName (
   NSSPKIXPersonalName *personalName,
   NSSArena *arenaOpt
 );
@@ -9222,8 +8864,7 @@ NSSPKIXPersonalName_GetGivenName
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXPersonalName_SetGivenName
-(
+NSSPKIXPersonalName_SetGivenName (
   NSSPKIXPersonalName *personalName,
   NSSUTF8 *givenName
 );
@@ -9243,8 +8884,7 @@ NSSPKIXPersonalName_SetGivenName
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXPersonalName_RemoveGivenName
-(
+NSSPKIXPersonalName_RemoveGivenName (
   NSSPKIXPersonalName *personalName
 );
 
@@ -9263,8 +8903,7 @@ NSSPKIXPersonalName_RemoveGivenName
  */
 
 NSS_EXTERN PRBool
-NSSPKIXPersonalName_HasInitials
-(
+NSSPKIXPersonalName_HasInitials (
   NSSPKIXPersonalName *personalName,
   PRStatus *statusOpt
 );
@@ -9283,8 +8922,7 @@ NSSPKIXPersonalName_HasInitials
  */
 
 NSS_EXTERN NSSUTF8 *
-NSSPKIXPersonalName_GetInitials
-(
+NSSPKIXPersonalName_GetInitials (
   NSSPKIXPersonalName *personalName,
   NSSArena *arenaOpt
 );
@@ -9304,8 +8942,7 @@ NSSPKIXPersonalName_GetInitials
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXPersonalName_SetInitials
-(
+NSSPKIXPersonalName_SetInitials (
   NSSPKIXPersonalName *personalName,
   NSSUTF8 *initials
 );
@@ -9324,8 +8961,7 @@ NSSPKIXPersonalName_SetInitials
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXPersonalName_RemoveInitials
-(
+NSSPKIXPersonalName_RemoveInitials (
   NSSPKIXPersonalName *personalName
 );
 
@@ -9344,8 +8980,7 @@ NSSPKIXPersonalName_RemoveInitials
  */
 
 NSS_EXTERN PRBool
-NSSPKIXPersonalName_HasGenerationQualifier
-(
+NSSPKIXPersonalName_HasGenerationQualifier (
   NSSPKIXPersonalName *personalName,
   PRStatus *statusOpt
 );
@@ -9364,8 +8999,7 @@ NSSPKIXPersonalName_HasGenerationQualifier
  */
 
 NSS_EXTERN NSSUTF8 *
-NSSPKIXPersonalName_GetGenerationQualifier
-(
+NSSPKIXPersonalName_GetGenerationQualifier (
   NSSPKIXPersonalName *personalName,
   NSSArena *arenaOpt
 );
@@ -9385,8 +9019,7 @@ NSSPKIXPersonalName_GetGenerationQualifier
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXPersonalName_SetGenerationQualifier
-(
+NSSPKIXPersonalName_SetGenerationQualifier (
   NSSPKIXPersonalName *personalName,
   NSSUTF8 *generationQualifier
 );
@@ -9405,8 +9038,7 @@ NSSPKIXPersonalName_SetGenerationQualifier
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXPersonalName_RemoveGenerationQualifier
-(
+NSSPKIXPersonalName_RemoveGenerationQualifier (
   NSSPKIXPersonalName *personalName
 );
 
@@ -9425,8 +9057,7 @@ NSSPKIXPersonalName_RemoveGenerationQualifier
  */
 
 NSS_EXTERN PRBool
-NSSPKIXPersonalName_Equal
-(
+NSSPKIXPersonalName_Equal (
   NSSPKIXPersonalName *personalName1,
   NSSPKIXPersonalName *personalName2,
   PRStatus *statusOpt
@@ -9446,8 +9077,7 @@ NSSPKIXPersonalName_Equal
  */
 
 NSS_EXTERN NSSPKIXPersonalName *
-NSSPKIXPersonalName_Duplicate
-(
+NSSPKIXPersonalName_Duplicate (
   NSSPKIXPersonalName *personalName,
   NSSArena *arenaOpt
 );
@@ -9498,8 +9128,7 @@ NSSPKIXPersonalName_Duplicate
  */
 
 NSS_EXTERN NSSPKIXOrganizationalUnitNames *
-NSSPKIXOrganizationalUnitNames_Decode
-(
+NSSPKIXOrganizationalUnitNames_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -9520,8 +9149,7 @@ NSSPKIXOrganizationalUnitNames_Decode
  */
 
 NSS_EXTERN NSSPKIXOrganizationalUnitNames *
-NSSPKIXOrganizationalUnitNames_Create
-(
+NSSPKIXOrganizationalUnitNames_Create (
   NSSArena *arenaOpt,
   NSSPKIXOrganizationalUnitName *ou1,
   ...
@@ -9541,8 +9169,7 @@ NSSPKIXOrganizationalUnitNames_Create
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXOrganizationalUnitNames_Destroy
-(
+NSSPKIXOrganizationalUnitNames_Destroy (
   NSSPKIXOrganizationalUnitNames *ous
 );
 
@@ -9562,8 +9189,7 @@ NSSPKIXOrganizationalUnitNames_Destroy
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXOrganizationalUnitNames_Encode
-(
+NSSPKIXOrganizationalUnitNames_Encode (
   NSSPKIXOrganizationalUnitNames *ous,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -9585,8 +9211,7 @@ NSSPKIXOrganizationalUnitNames_Encode
  */
 
 NSS_EXTERN PRInt32
-NSSPKIXOrganizationalUnitNames_GetOrganizationalUnitNameCount
-(
+NSSPKIXOrganizationalUnitNames_GetOrganizationalUnitNameCount (
   NSSPKIXOrganizationalUnitNames *ous
 );
 
@@ -9608,8 +9233,7 @@ NSSPKIXOrganizationalUnitNames_GetOrganizationalUnitNameCount
  */
 
 NSS_EXTERN NSSPKIXOrganizationalUnitName **
-NSSPKIXOrganizationalUnitNames_GetOrganizationalUnitNames
-(
+NSSPKIXOrganizationalUnitNames_GetOrganizationalUnitNames (
   NSSPKIXOrganizationalUnitNames *ous,
   NSSPKIXOrganizationalUnitName *rvOpt[],
   PRInt32 limit,
@@ -9632,8 +9256,7 @@ NSSPKIXOrganizationalUnitNames_GetOrganizationalUnitNames
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXOrganizationalUnitNames_SetOrganizationalUnitNames
-(
+NSSPKIXOrganizationalUnitNames_SetOrganizationalUnitNames (
   NSSPKIXOrganizationalUnitNames *ous,
   NSSPKIXOrganizationalUnitName *ou[],
   PRInt32 count
@@ -9656,8 +9279,7 @@ NSSPKIXOrganizationalUnitNames_SetOrganizationalUnitNames
  */
 
 NSS_EXTERN NSSPKIXOrganizationalUnitName *
-NSSPKIXOrganizationalUnitNames_GetOrganizationalUnitName
-(
+NSSPKIXOrganizationalUnitNames_GetOrganizationalUnitName (
   NSSPKIXOrganizationalUnitNames *ous,
   PRInt32 i,
   NSSArena *arenaOpt
@@ -9680,8 +9302,7 @@ NSSPKIXOrganizationalUnitNames_GetOrganizationalUnitName
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXOrganizationalUnitNames_SetOrganizationalUnitName
-(
+NSSPKIXOrganizationalUnitNames_SetOrganizationalUnitName (
   NSSPKIXOrganizationalUnitNames *ous,
   PRInt32 i,
   NSSPKIXOrganizationalUnitName *ou
@@ -9704,8 +9325,7 @@ NSSPKIXOrganizationalUnitNames_SetOrganizationalUnitName
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXOrganizationalUnitNames_InsertOrganizationalUnitName
-(
+NSSPKIXOrganizationalUnitNames_InsertOrganizationalUnitName (
   NSSPKIXOrganizationalUnitNames *ous,
   PRInt32 i,
   NSSPKIXOrganizationalUnitName *ou
@@ -9727,8 +9347,7 @@ NSSPKIXOrganizationalUnitNames_InsertOrganizationalUnitName
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXOrganizationalUnitNames_AppendOrganizationalUnitName
-(
+NSSPKIXOrganizationalUnitNames_AppendOrganizationalUnitName (
   NSSPKIXOrganizationalUnitNames *ous,
   NSSPKIXOrganizationalUnitName *ou
 );
@@ -9748,8 +9367,7 @@ NSSPKIXOrganizationalUnitNames_AppendOrganizationalUnitName
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXOrganizationalUnitNames_RemoveOrganizationalUnitName
-(
+NSSPKIXOrganizationalUnitNames_RemoveOrganizationalUnitName (
   NSSPKIXOrganizationalUnitNames *ous,
   PRInt32 i
 );
@@ -9769,8 +9387,7 @@ NSSPKIXOrganizationalUnitNames_RemoveOrganizationalUnitName
  */
 
 NSS_EXTERN PRIntn
-NSSPKIXOrganizationalUnitNames_FindOrganizationalUnitName
-(
+NSSPKIXOrganizationalUnitNames_FindOrganizationalUnitName (
   NSSPKIXOrganizationalUnitNames *ous,
   NSSPKIXOrganizationalUnitName *ou
 );
@@ -9790,8 +9407,7 @@ NSSPKIXOrganizationalUnitNames_FindOrganizationalUnitName
  */
 
 NSS_EXTERN PRBool
-NSSPKIXOrganizationalUnitNames_Equal
-(
+NSSPKIXOrganizationalUnitNames_Equal (
   NSSPKIXOrganizationalUnitNames *ous1,
   NSSPKIXOrganizationalUnitNames *ous2,
   PRStatus *statusOpt
@@ -9813,8 +9429,7 @@ NSSPKIXOrganizationalUnitNames_Equal
  */
 
 NSS_EXTERN NSSPKIXOrganizationalUnitNames *
-NSSPKIXOrganizationalUnitNames_Duplicate
-(
+NSSPKIXOrganizationalUnitNames_Duplicate (
   NSSPKIXOrganizationalUnitNames *ous,
   NSSArena *arenaOpt
 );
@@ -9853,8 +9468,7 @@ NSSPKIXOrganizationalUnitNames_Duplicate
  */
 
 NSS_EXTERN NSSPKIXOrganizationalUnitName *
-NSSPKIXOrganizationalUnitName_Decode
-(
+NSSPKIXOrganizationalUnitName_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -9875,8 +9489,7 @@ NSSPKIXOrganizationalUnitName_Decode
  */
 
 NSS_EXTERN NSSPKIXOrganizationalUnitName *
-NSSPKIXOrganizationalUnitName_CreateFromUTF8
-(
+NSSPKIXOrganizationalUnitName_CreateFromUTF8 (
   NSSArena *arenaOpt,
   NSSUTF8 *utf8
 );
@@ -9896,8 +9509,7 @@ NSSPKIXOrganizationalUnitName_CreateFromUTF8
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXOrganizationalUnitName_Encode
-(
+NSSPKIXOrganizationalUnitName_Encode (
   NSSPKIXOrganizationalUnitName *name,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -9951,8 +9563,7 @@ NSSPKIXOrganizationalUnitName_Encode
  */
 
 NSS_EXTERN NSSPKIXBuiltInDomainDefinedAttributes *
-NSSPKIXBuiltInDomainDefinedAttributes_Decode
-(
+NSSPKIXBuiltInDomainDefinedAttributes_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -9974,8 +9585,7 @@ NSSPKIXBuiltInDomainDefinedAttributes_Decode
  */
 
 NSS_EXTERN NSSPKIXBuiltInDomainDefinedAttributes *
-NSSPKIXBuiltInDomainDefinedAttributes_Create
-(
+NSSPKIXBuiltInDomainDefinedAttributes_Create (
   NSSArena *arenaOpt,
   NSSPKIXBuiltInDomainDefinedAttribute *bidda1,
   ...
@@ -9995,8 +9605,7 @@ NSSPKIXBuiltInDomainDefinedAttributes_Create
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXBuiltInDomainDefinedAttributes_Destroy
-(
+NSSPKIXBuiltInDomainDefinedAttributes_Destroy (
   NSSPKIXBuiltInDomainDefinedAttributes *biddas
 );
 
@@ -10016,8 +9625,7 @@ NSSPKIXBuiltInDomainDefinedAttributes_Destroy
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXBuiltInDomainDefinedAttributes_Encode
-(
+NSSPKIXBuiltInDomainDefinedAttributes_Encode (
   NSSPKIXBuiltInDomainDefinedAttributes *biddas,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -10039,8 +9647,7 @@ NSSPKIXBuiltInDomainDefinedAttributes_Encode
  */
 
 NSS_EXTERN PRInt32
-NSSPKIXBuiltInDomainDefinedAttributes_GetBuiltIndomainDefinedAttributeCount
-(
+NSSPKIXBuiltInDomainDefinedAttributes_GetBuiltIndomainDefinedAttributeCount (
   NSSPKIXBuiltInDomainDefinedAttributes *biddas
 );
 
@@ -10062,8 +9669,7 @@ NSSPKIXBuiltInDomainDefinedAttributes_GetBuiltIndomainDefinedAttributeCount
  */
 
 NSS_EXTERN NSSPKIXBuiltInDomainDefinedAttribute **
-NSSPKIXBuiltInDomainDefinedAttributes_GetBuiltIndomainDefinedAttributes
-(
+NSSPKIXBuiltInDomainDefinedAttributes_GetBuiltIndomainDefinedAttributes (
   NSSPKIXBuiltInDomainDefinedAttributes *biddas,
   NSSPKIXBuiltInDomainDefinedAttribut *rvOpt[],
   PRInt32 limit,
@@ -10086,8 +9692,7 @@ NSSPKIXBuiltInDomainDefinedAttributes_GetBuiltIndomainDefinedAttributes
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXBuiltInDomainDefinedAttributes_SetBuiltIndomainDefinedAttributes
-(
+NSSPKIXBuiltInDomainDefinedAttributes_SetBuiltIndomainDefinedAttributes (
   NSSPKIXBuiltInDomainDefinedAttributes *biddas,
   NSSPKIXBuiltInDomainDefinedAttribut *bidda[],
   PRInt32 count
@@ -10111,8 +9716,7 @@ NSSPKIXBuiltInDomainDefinedAttributes_SetBuiltIndomainDefinedAttributes
  */
 
 NSS_EXTERN NSSPKIXBuiltInDomainDefinedAttribute *
-NSSPKIXBuiltInDomainDefinedAttributes_GetBuiltIndomainDefinedAttribute
-(
+NSSPKIXBuiltInDomainDefinedAttributes_GetBuiltIndomainDefinedAttribute (
   NSSPKIXBuiltInDomainDefinedAttributes *biddas,
   PRInt32 i,
   NSSArena *arenaOpt
@@ -10135,8 +9739,7 @@ NSSPKIXBuiltInDomainDefinedAttributes_GetBuiltIndomainDefinedAttribute
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXBuiltInDomainDefinedAttributes_SetBuiltIndomainDefinedAttribute
-(
+NSSPKIXBuiltInDomainDefinedAttributes_SetBuiltIndomainDefinedAttribute (
   NSSPKIXBuiltInDomainDefinedAttributes *biddas,
   PRInt32 i,
   NSSPKIXBuiltInDomainDefinedAttribute *bidda
@@ -10159,8 +9762,7 @@ NSSPKIXBuiltInDomainDefinedAttributes_SetBuiltIndomainDefinedAttribute
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXBuiltInDomainDefinedAttributes_InsertBuiltIndomainDefinedAttribute
-(
+NSSPKIXBuiltInDomainDefinedAttributes_InsertBuiltIndomainDefinedAttribute (
   NSSPKIXBuiltInDomainDefinedAttributes *biddas,
   PRInt32 i,
   NSSPKIXBuiltInDomainDefinedAttribute *bidda
@@ -10182,8 +9784,7 @@ NSSPKIXBuiltInDomainDefinedAttributes_InsertBuiltIndomainDefinedAttribute
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXBuiltInDomainDefinedAttributes_AppendBuiltIndomainDefinedAttribute
-(
+NSSPKIXBuiltInDomainDefinedAttributes_AppendBuiltIndomainDefinedAttribute (
   NSSPKIXBuiltInDomainDefinedAttributes *biddas,
   NSSPKIXBuiltInDomainDefinedAttribute *bidda
 );
@@ -10203,8 +9804,7 @@ NSSPKIXBuiltInDomainDefinedAttributes_AppendBuiltIndomainDefinedAttribute
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXBuiltInDomainDefinedAttributes_RemoveBuiltIndomainDefinedAttribute
-(
+NSSPKIXBuiltInDomainDefinedAttributes_RemoveBuiltIndomainDefinedAttribute (
   NSSPKIXBuiltInDomainDefinedAttributes *biddas,
   PRInt32 i
 );
@@ -10224,8 +9824,7 @@ NSSPKIXBuiltInDomainDefinedAttributes_RemoveBuiltIndomainDefinedAttribute
  */
 
 NSS_EXTERN PRInt32
-NSSPKIXBuiltInDomainDefinedAttributes_FindBuiltIndomainDefinedAttribute
-(
+NSSPKIXBuiltInDomainDefinedAttributes_FindBuiltIndomainDefinedAttribute (
   NSSPKIXBuiltInDomainDefinedAttributes *biddas,
   NSSPKIXBuiltInDomainDefinedAttribute *bidda
 );
@@ -10245,8 +9844,7 @@ NSSPKIXBuiltInDomainDefinedAttributes_FindBuiltIndomainDefinedAttribute
  */
 
 NSS_EXTERN PRBool
-NSSPKIXBuiltInDomainDefinedAttributes_Equal
-(
+NSSPKIXBuiltInDomainDefinedAttributes_Equal (
   NSSPKIXBuiltInDomainDefinedAttributes *biddas1,
   NSSPKIXBuiltInDomainDefinedAttributes *biddas2,
   PRStatus *statusOpt
@@ -10269,8 +9867,7 @@ NSSPKIXBuiltInDomainDefinedAttributes_Equal
  */
 
 NSS_EXTERN NSSPKIXBuiltInDomainDefinedAttributes *
-NSSPKIXBuiltInDomainDefinedAttributes_Duplicate
-(
+NSSPKIXBuiltInDomainDefinedAttributes_Duplicate (
   NSSPKIXBuiltInDomainDefinedAttributes *biddas,
   NSSArena *arenaOpt
 );
@@ -10320,8 +9917,7 @@ NSSPKIXBuiltInDomainDefinedAttributes_Duplicate
  */
 
 NSS_EXTERN NSSPKIXBuiltInDomainDefinedAttribute *
-NSSPKIXBuiltInDomainDefinedAttribute_Decode
-(
+NSSPKIXBuiltInDomainDefinedAttribute_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -10343,8 +9939,7 @@ NSSPKIXBuiltInDomainDefinedAttribute_Decode
  */
 
 NSS_EXTERN NSSPKIXBuiltInDomainDefinedAttribute *
-NSSPKIXBuiltInDomainDefinedAttribute_Create
-(
+NSSPKIXBuiltInDomainDefinedAttribute_Create (
   NSSArena *arenaOpt,
   NSSUTF8 *type,
   NSSUTF8 *value
@@ -10364,8 +9959,7 @@ NSSPKIXBuiltInDomainDefinedAttribute_Create
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXBuiltInDomainDefinedAttribute_Destroy
-(
+NSSPKIXBuiltInDomainDefinedAttribute_Destroy (
   NSSPKIXBuiltInDomainDefinedAttribute *bidda
 );
 
@@ -10385,8 +9979,7 @@ NSSPKIXBuiltInDomainDefinedAttribute_Destroy
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXBuiltInDomainDefinedAttribute_Encode
-(
+NSSPKIXBuiltInDomainDefinedAttribute_Encode (
   NSSPKIXBuiltInDomainDefinedAttribute *bidda,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -10409,8 +10002,7 @@ NSSPKIXBuiltInDomainDefinedAttribute_Encode
  */
 
 NSS_EXTERN NSSUTF8 *
-NSSPKIXBuiltInDomainDefinedAttribute_GetType
-(
+NSSPKIXBuiltInDomainDefinedAttribute_GetType (
   NSSPKIXBuiltInDomainDefinedAttribute *bidda,
   NSSArena *arenaOpt
 );
@@ -10430,8 +10022,7 @@ NSSPKIXBuiltInDomainDefinedAttribute_GetType
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXBuiltInDomainDefinedAttribute_SetType
-(
+NSSPKIXBuiltInDomainDefinedAttribute_SetType (
   NSSPKIXBuiltInDomainDefinedAttribute *bidda,
   NSSUTF8 *type
 );
@@ -10452,8 +10043,7 @@ NSSPKIXBuiltInDomainDefinedAttribute_SetType
  */
 
 NSS_EXTERN NSSUTF8 *
-NSSPKIXBuiltInDomainDefinedAttribute_GetValue
-(
+NSSPKIXBuiltInDomainDefinedAttribute_GetValue (
   NSSPKIXBuiltInDomainDefinedAttribute *bidda,
   NSSArena *arenaOpt
 );
@@ -10473,8 +10063,7 @@ NSSPKIXBuiltInDomainDefinedAttribute_GetValue
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXBuiltInDomainDefinedAttribute_SetValue
-(
+NSSPKIXBuiltInDomainDefinedAttribute_SetValue (
   NSSPKIXBuiltInDomainDefinedAttribute *bidda,
   NSSUTF8 *value
 );
@@ -10494,8 +10083,7 @@ NSSPKIXBuiltInDomainDefinedAttribute_SetValue
  */
 
 NSS_EXTERN PRBool
-NSSPKIXBuiltInDomainDefinedAttribute_Equal
-(
+NSSPKIXBuiltInDomainDefinedAttribute_Equal (
   NSSPKIXBuiltInDomainDefinedAttribute *bidda1,
   NSSPKIXBuiltInDomainDefinedAttribute *bidda2,
   PRStatus *statusOpt
@@ -10518,8 +10106,7 @@ NSSPKIXBuiltInDomainDefinedAttribute_Equal
  */
 
 NSS_EXTERN NSSPKIXBuiltInDomainDefinedAttribute *
-NSSPKIXBuiltInDomainDefinedAttribute_Duplicate
-(
+NSSPKIXBuiltInDomainDefinedAttribute_Duplicate (
   NSSPKIXBuiltInDomainDefinedAttribute *bidda,
   NSSArena *arenaOpt
 );
@@ -10570,8 +10157,7 @@ NSSPKIXBuiltInDomainDefinedAttribute_Duplicate
  */
 
 NSS_EXTERN NSSPKIXExtensionAttributes *
-NSSPKIXExtensionAttributes_Decode
-(
+NSSPKIXExtensionAttributes_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -10592,8 +10178,7 @@ NSSPKIXExtensionAttributes_Decode
  */
 
 NSS_EXTERN NSSPKIXExtensionAttributes *
-NSSPKIXExtensionAttributes_Create
-(
+NSSPKIXExtensionAttributes_Create (
   NSSArena *arenaOpt,
   NSSPKIXExtensionAttribute ea1,
   ...
@@ -10613,8 +10198,7 @@ NSSPKIXExtensionAttributes_Create
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXExtensionAttributes_Destroy
-(
+NSSPKIXExtensionAttributes_Destroy (
   NSSPKIXExtensionAttributes *eas
 );
 
@@ -10634,8 +10218,7 @@ NSSPKIXExtensionAttributes_Destroy
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXExtensionAttributes_Encode
-(
+NSSPKIXExtensionAttributes_Encode (
   NSSPKIXExtensionAttributes *eas
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -10657,8 +10240,7 @@ NSSPKIXExtensionAttributes_Encode
  */
 
 NSS_EXTERN PRInt32
-NSSPKIXExtensionAttributes_GetExtensionAttributeCount
-(
+NSSPKIXExtensionAttributes_GetExtensionAttributeCount (
   NSSPKIXExtensionAttributes *eas
 );
 
@@ -10680,8 +10262,7 @@ NSSPKIXExtensionAttributes_GetExtensionAttributeCount
  */
 
 NSS_EXTERN NSSPKIXExtensionAttribute **
-NSSPKIXExtensionAttributes_GetExtensionAttributes
-(
+NSSPKIXExtensionAttributes_GetExtensionAttributes (
   NSSPKIXExtensionAttributes *eas,
   NSSPKIXExtensionAttribute *rvOpt[],
   PRInt32 limit,
@@ -10704,8 +10285,7 @@ NSSPKIXExtensionAttributes_GetExtensionAttributes
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXExtensionAttributes_SetExtensionAttributes
-(
+NSSPKIXExtensionAttributes_SetExtensionAttributes (
   NSSPKIXExtensionAttributes *eas,
   NSSPKIXExtensionAttribute *ea[],
   PRInt32 count
@@ -10728,8 +10308,7 @@ NSSPKIXExtensionAttributes_SetExtensionAttributes
  */
 
 NSS_EXTERN NSSPKIXExtensionAttribute *
-NSSPKIXExtensionAttributes_GetExtensionAttribute
-(
+NSSPKIXExtensionAttributes_GetExtensionAttribute (
   NSSPKIXExtensionAttributes *eas,
   PRInt32 i,
   NSSArena *arenaOpt
@@ -10750,8 +10329,7 @@ NSSPKIXExtensionAttributes_GetExtensionAttribute
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXExtensionAttributes_SetExtensionAttribute
-(
+NSSPKIXExtensionAttributes_SetExtensionAttribute (
   NSSPKIXExtensionAttributes *eas,
   PRInt32 i,
   NSSPKIXExtensionAttribute *ea
@@ -10774,8 +10352,7 @@ NSSPKIXExtensionAttributes_SetExtensionAttribute
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXExtensionAttributes_InsertExtensionAttribute
-(
+NSSPKIXExtensionAttributes_InsertExtensionAttribute (
   NSSPKIXExtensionAttributes *eas,
   PRInt32 i,
   NSSPKIXExtensionAttribute *ea
@@ -10797,8 +10374,7 @@ NSSPKIXExtensionAttributes_InsertExtensionAttribute
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXExtensionAttributes_AppendExtensionAttribute
-(
+NSSPKIXExtensionAttributes_AppendExtensionAttribute (
   NSSPKIXExtensionAttributes *eas,
   NSSPKIXExtensionAttribute *ea
 );
@@ -10818,8 +10394,7 @@ NSSPKIXExtensionAttributes_AppendExtensionAttribute
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXExtensionAttributes_RemoveExtensionAttribute
-(
+NSSPKIXExtensionAttributes_RemoveExtensionAttribute (
   NSSPKIXExtensionAttributes *eas,
   PRInt32 i,
 );
@@ -10839,8 +10414,7 @@ NSSPKIXExtensionAttributes_RemoveExtensionAttribute
  */
 
 NSS_EXTERN PRInt32
-NSSPKIXExtensionAttributes_FindExtensionAttribute
-(
+NSSPKIXExtensionAttributes_FindExtensionAttribute (
   NSSPKIXExtensionAttributes *eas,
   NSSPKIXExtensionAttribute *ea
 );
@@ -10860,8 +10434,7 @@ NSSPKIXExtensionAttributes_FindExtensionAttribute
  */
 
 NSS_EXTERN PRBool
-NSSPKIXExtensionAttributes_Equal
-(
+NSSPKIXExtensionAttributes_Equal (
   NSSPKIXExtensionAttributes *eas1,
   NSSPKIXExtensionAttributes *eas2,
   PRStatus *statusOpt
@@ -10881,8 +10454,7 @@ NSSPKIXExtensionAttributes_Equal
  */
 
 NSS_EXTERN NSSPKIXExtensionAttributes *
-NSSPKIXExtensionAttributes_Duplicate
-(
+NSSPKIXExtensionAttributes_Duplicate (
   NSSPKIXExtensionAttributes *eas,
   NSSArena *arenaOpt
 );
@@ -10936,8 +10508,7 @@ NSSPKIXExtensionAttributes_Duplicate
  */
 
 NSS_EXTERN NSSPKIXExtensionAttribute *
-NSSPKIXExtensionAttribute_Decode
-(
+NSSPKIXExtensionAttribute_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -10959,8 +10530,7 @@ NSSPKIXExtensionAttribute_Decode
  */
 
 NSS_EXTERN NSSPKIXExtensionAttribute *
-NSSPKIXExtensionAttribute_Create
-(
+NSSPKIXExtensionAttribute_Create (
   NSSArena *arenaOpt,
   NSSPKIXExtensionAttributeType type,
   NSSItem *value
@@ -10980,8 +10550,7 @@ NSSPKIXExtensionAttribute_Create
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXExtensionAttribute_Destroy
-(
+NSSPKIXExtensionAttribute_Destroy (
   NSSPKIXExtensionAttribute *ea
 );
 
@@ -11001,8 +10570,7 @@ NSSPKIXExtensionAttribute_Destroy
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXExtensionAttribute_Encode
-(
+NSSPKIXExtensionAttribute_Encode (
   NSSPKIXExtensionAttribute *ea,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -11028,8 +10596,7 @@ NSSPKIXExtensionAttribute_Encode
  */
 
 NSS_EXTERN NSSPKIXExtensionAttributeType
-NSSPKIXExtensionAttribute_GetExtensionsAttributeType
-(
+NSSPKIXExtensionAttribute_GetExtensionsAttributeType (
   NSSPKIXExtensionAttribute *ea
 );
 
@@ -11047,8 +10614,7 @@ NSSPKIXExtensionAttribute_GetExtensionsAttributeType
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXExtensionAttribute_SetExtensionsAttributeType
-(
+NSSPKIXExtensionAttribute_SetExtensionsAttributeType (
   NSSPKIXExtensionAttribute *ea,
   NSSPKIXExtensionAttributeType type
 );
@@ -11069,8 +10635,7 @@ NSSPKIXExtensionAttribute_SetExtensionsAttributeType
  */
 
 NSS_EXTERN NSSItem *
-NSSPKIXExtensionAttribute_GetExtensionsAttributeValue
-(
+NSSPKIXExtensionAttribute_GetExtensionsAttributeValue (
   NSSPKIXExtensionAttribute *ea,
   NSSItem *rvOpt,
   NSSArena *arenaOpt
@@ -11090,8 +10655,7 @@ NSSPKIXExtensionAttribute_GetExtensionsAttributeValue
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXExtensionAttribute_SetExtensionsAttributeValue
-(
+NSSPKIXExtensionAttribute_SetExtensionsAttributeValue (
   NSSPKIXExtensionAttribute *ea,
   NSSItem *value
 );
@@ -11111,8 +10675,7 @@ NSSPKIXExtensionAttribute_SetExtensionsAttributeValue
  */
 
 NSS_EXTERN PRBool
-NSSPKIXExtensionAttribute_Equal
-(
+NSSPKIXExtensionAttribute_Equal (
   NSSPKIXExtensionAttribute *ea1,
   NSSPKIXExtensionAttribute *ea2,
   PRStatus *statusOpt
@@ -11134,8 +10697,7 @@ NSSPKIXExtensionAttribute_Equal
  */
 
 NSS_EXTERN NSSPKIXExtensionAttribute *
-NSSPKIXExtensionAttribute_Duplicate
-(
+NSSPKIXExtensionAttribute_Duplicate (
   NSSPKIXExtensionAttribute *ea,
   NSSArena *arenaOpt
 );
@@ -11173,8 +10735,7 @@ NSSPKIXExtensionAttribute_Duplicate
  */
 
 NSS_EXTERN NSSPKIXCommonName *
-NSSPKIXCommonName_Decode
-(
+NSSPKIXCommonName_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -11195,8 +10756,7 @@ NSSPKIXCommonName_Decode
  */
 
 NSS_EXTERN NSSPKIXCommonName *
-NSSPKIXCommonName_CreateFromUTF8
-(
+NSSPKIXCommonName_CreateFromUTF8 (
   NSSArena *arenaOpt,
   NSSUTF8 *utf8
 );
@@ -11216,8 +10776,7 @@ NSSPKIXCommonName_CreateFromUTF8
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXCommonName_Encode
-(
+NSSPKIXCommonName_Encode (
   NSSPKIXCommonName *name,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -11257,8 +10816,7 @@ NSSPKIXCommonName_Encode
  */
 
 NSS_EXTERN NSSPKIXTeletexCommonName *
-NSSPKIXTeletexCommonName_Decode
-(
+NSSPKIXTeletexCommonName_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -11279,8 +10837,7 @@ NSSPKIXTeletexCommonName_Decode
  */
 
 NSS_EXTERN NSSPKIXTeletexCommonName *
-NSSPKIXTeletexCommonName_CreateFromUTF8
-(
+NSSPKIXTeletexCommonName_CreateFromUTF8 (
   NSSArena *arenaOpt,
   NSSUTF8 *utf8
 );
@@ -11300,8 +10857,7 @@ NSSPKIXTeletexCommonName_CreateFromUTF8
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXTeletexCommonName_Encode
-(
+NSSPKIXTeletexCommonName_Encode (
   NSSPKIXTeletexCommonName *name,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -11342,8 +10898,7 @@ NSSPKIXTeletexCommonName_Encode
  */
 
 NSS_EXTERN NSSPKIXTeletexOrganizationName *
-NSSPKIXTeletexOrganizationName_Decode
-(
+NSSPKIXTeletexOrganizationName_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -11364,8 +10919,7 @@ NSSPKIXTeletexOrganizationName_Decode
  */
 
 NSS_EXTERN NSSPKIXTeletexOrganizationName *
-NSSPKIXTeletexOrganizationName_CreateFromUTF8
-(
+NSSPKIXTeletexOrganizationName_CreateFromUTF8 (
   NSSArena *arenaOpt,
   NSSUTF8 *utf8
 );
@@ -11385,8 +10939,7 @@ NSSPKIXTeletexOrganizationName_CreateFromUTF8
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXTeletexOrganizationName_Encode
-(
+NSSPKIXTeletexOrganizationName_Encode (
   NSSPKIXTeletexOrganizationName *name,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -11449,8 +11002,7 @@ NSSPKIXTeletexOrganizationName_Encode
  */
 
 NSS_EXTERN NSSPKIXTeletexPersonalName *
-NSSPKIXTeletexPersonalName_Decode
-(
+NSSPKIXTeletexPersonalName_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -11471,8 +11023,7 @@ NSSPKIXTeletexPersonalName_Decode
  */
 
 NSS_EXTERN NSSPKIXTeletexPersonalName *
-NSSPKIXTeletexPersonalName_Create
-(
+NSSPKIXTeletexPersonalName_Create (
   NSSArena *arenaOpt,
   NSSUTF8 *surname,
   NSSUTF8 *givenNameOpt,
@@ -11494,8 +11045,7 @@ NSSPKIXTeletexPersonalName_Create
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXTeletexPersonalName_Destroy
-(
+NSSPKIXTeletexPersonalName_Destroy (
   NSSPKIXTeletexPersonalName *personalName
 );
 
@@ -11515,8 +11065,7 @@ NSSPKIXTeletexPersonalName_Destroy
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXTeletexPersonalName_Encode
-(
+NSSPKIXTeletexPersonalName_Encode (
   NSSPKIXTeletexPersonalName *personalName,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -11539,8 +11088,7 @@ NSSPKIXTeletexPersonalName_Encode
  */
 
 NSS_EXTERN NSSUTF8 *
-NSSPKIXTeletexPersonalName_GetSurname
-(
+NSSPKIXTeletexPersonalName_GetSurname (
   NSSPKIXTeletexPersonalName *personalName,
   NSSArena *arenaOpt
 );
@@ -11560,8 +11108,7 @@ NSSPKIXTeletexPersonalName_GetSurname
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXTeletexPersonalName_SetSurname
-(
+NSSPKIXTeletexPersonalName_SetSurname (
   NSSPKIXTeletexPersonalName *personalName,
   NSSUTF8 *surname
 );
@@ -11581,8 +11128,7 @@ NSSPKIXTeletexPersonalName_SetSurname
  */
 
 NSS_EXTERN PRBool
-NSSPKIXTeletexPersonalName_HasGivenName
-(
+NSSPKIXTeletexPersonalName_HasGivenName (
   NSSPKIXTeletexPersonalName *personalName,
   PRStatus *statusOpt
 );
@@ -11601,8 +11147,7 @@ NSSPKIXTeletexPersonalName_HasGivenName
  */
 
 NSS_EXTERN NSSUTF8 *
-NSSPKIXTeletexPersonalName_GetGivenName
-(
+NSSPKIXTeletexPersonalName_GetGivenName (
   NSSPKIXTeletexPersonalName *personalName,
   NSSArena *arenaOpt
 );
@@ -11622,8 +11167,7 @@ NSSPKIXTeletexPersonalName_GetGivenName
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXTeletexPersonalName_SetGivenName
-(
+NSSPKIXTeletexPersonalName_SetGivenName (
   NSSPKIXTeletexPersonalName *personalName,
   NSSUTF8 *givenName
 );
@@ -11642,8 +11186,7 @@ NSSPKIXTeletexPersonalName_SetGivenName
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXTeletexPersonalName_RemoveGivenName
-(
+NSSPKIXTeletexPersonalName_RemoveGivenName (
   NSSPKIXTeletexPersonalName *personalName
 );
 
@@ -11662,8 +11205,7 @@ NSSPKIXTeletexPersonalName_RemoveGivenName
  */
 
 NSS_EXTERN PRBool
-NSSPKIXTeletexPersonalName_HasInitials
-(
+NSSPKIXTeletexPersonalName_HasInitials (
   NSSPKIXTeletexPersonalName *personalName,
   PRStatus *statusOpt
 );
@@ -11684,8 +11226,7 @@ NSSPKIXTeletexPersonalName_HasInitials
  */
 
 NSS_EXTERN NSSUTF8 *
-NSSPKIXTeletexPersonalName_GetInitials
-(
+NSSPKIXTeletexPersonalName_GetInitials (
   NSSPKIXTeletexPersonalName *personalName,
   NSSArena *arenaOpt
 );
@@ -11705,8 +11246,7 @@ NSSPKIXTeletexPersonalName_GetInitials
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXTeletexPersonalName_SetInitials
-(
+NSSPKIXTeletexPersonalName_SetInitials (
   NSSPKIXTeletexPersonalName *personalName,
   NSSUTF8 *initials
 );
@@ -11725,8 +11265,7 @@ NSSPKIXTeletexPersonalName_SetInitials
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXTeletexPersonalName_RemoveInitials
-(
+NSSPKIXTeletexPersonalName_RemoveInitials (
   NSSPKIXTeletexPersonalName *personalName
 );
 
@@ -11745,8 +11284,7 @@ NSSPKIXTeletexPersonalName_RemoveInitials
  */
 
 NSS_EXTERN PRBool
-NSSPKIXTeletexPersonalName_HasGenerationQualifier
-(
+NSSPKIXTeletexPersonalName_HasGenerationQualifier (
   NSSPKIXTeletexPersonalName *personalName,
   PRStatus *statusOpt
 );
@@ -11765,8 +11303,7 @@ NSSPKIXTeletexPersonalName_HasGenerationQualifier
  */
 
 NSS_EXTERN NSSUTF8 *
-NSSPKIXTeletexPersonalName_GetGenerationQualifier
-(
+NSSPKIXTeletexPersonalName_GetGenerationQualifier (
   NSSPKIXTeletexPersonalName *personalName,
   NSSArena *arenaOpt
 );
@@ -11786,8 +11323,7 @@ NSSPKIXTeletexPersonalName_GetGenerationQualifier
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXTeletexPersonalName_SetGenerationQualifier
-(
+NSSPKIXTeletexPersonalName_SetGenerationQualifier (
   NSSPKIXTeletexPersonalName *personalName,
   NSSUTF8 *generationQualifier
 );
@@ -11806,8 +11342,7 @@ NSSPKIXTeletexPersonalName_SetGenerationQualifier
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXTeletexPersonalName_RemoveGenerationQualifier
-(
+NSSPKIXTeletexPersonalName_RemoveGenerationQualifier (
   NSSPKIXTeletexPersonalName *personalName
 );
 
@@ -11826,8 +11361,7 @@ NSSPKIXTeletexPersonalName_RemoveGenerationQualifier
  */
 
 NSS_EXTERN PRBool
-NSSPKIXTeletexPersonalName_Equal
-(
+NSSPKIXTeletexPersonalName_Equal (
   NSSPKIXTeletexPersonalName *personalName1,
   NSSPKIXTeletexPersonalName *personalName2,
   PRStatus *statusOpt
@@ -11847,8 +11381,7 @@ NSSPKIXTeletexPersonalName_Equal
  */
 
 NSS_EXTERN NSSPKIXTeletexPersonalName *
-NSSPKIXTeletexPersonalName_Duplicate
-(
+NSSPKIXTeletexPersonalName_Duplicate (
   NSSPKIXTeletexPersonalName *personalName,
   NSSArena *arenaOpt
 );
@@ -11899,8 +11432,7 @@ NSSPKIXTeletexPersonalName_Duplicate
  */
 
 NSS_EXTERN NSSPKIXTeletexOrganizationalUnitNames *
-NSSPKIXTeletexOrganizationalUnitNames_Decode
-(
+NSSPKIXTeletexOrganizationalUnitNames_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -11921,8 +11453,7 @@ NSSPKIXTeletexOrganizationalUnitNames_Decode
  */
 
 NSS_EXTERN NSSPKIXTeletexOrganizationalUnitNames *
-NSSPKIXTeletexOrganizationalUnitNames_Create
-(
+NSSPKIXTeletexOrganizationalUnitNames_Create (
   NSSArena *arenaOpt,
   NSSPKIXTeletexOrganizationalUnitName *ou1,
   ...
@@ -11942,8 +11473,7 @@ NSSPKIXTeletexOrganizationalUnitNames_Create
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXTeletexOrganizationalUnitNames_Destroy
-(
+NSSPKIXTeletexOrganizationalUnitNames_Destroy (
   NSSPKIXTeletexOrganizationalUnitNames *ous
 );
 
@@ -11963,8 +11493,7 @@ NSSPKIXTeletexOrganizationalUnitNames_Destroy
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXTeletexOrganizationalUnitNames_Encode
-(
+NSSPKIXTeletexOrganizationalUnitNames_Encode (
   NSSPKIXTeletexOrganizationalUnitNames *ous,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -11986,8 +11515,7 @@ NSSPKIXTeletexOrganizationalUnitNames_Encode
  */
 
 NSS_EXTERN PRInt32
-NSSPKIXTeletexOrganizationalUnitNames_GetTeletexOrganizationalUnitNameCount
-(
+NSSPKIXTeletexOrganizationalUnitNames_GetTeletexOrganizationalUnitNameCount (
   NSSPKIXTeletexOrganizationalUnitNames *ous
 );
 
@@ -12009,8 +11537,7 @@ NSSPKIXTeletexOrganizationalUnitNames_GetTeletexOrganizationalUnitNameCount
  */
 
 NSS_EXTERN NSSPKIXTeletexOrganizationalUnitName **
-NSSPKIXTeletexOrganizationalUnitNames_GetTeletexOrganizationalUnitNames
-(
+NSSPKIXTeletexOrganizationalUnitNames_GetTeletexOrganizationalUnitNames (
   NSSPKIXTeletexOrganizationalUnitNames *ous,
   NSSPKIXTeletexOrganizationalUnitName *rvOpt[],
   PRInt32 limit,
@@ -12033,8 +11560,7 @@ NSSPKIXTeletexOrganizationalUnitNames_GetTeletexOrganizationalUnitNames
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXTeletexOrganizationalUnitNames_SetTeletexOrganizationalUnitNames
-(
+NSSPKIXTeletexOrganizationalUnitNames_SetTeletexOrganizationalUnitNames (
   NSSPKIXTeletexOrganizationalUnitNames *ous,
   NSSPKIXTeletexOrganizationalUnitName *ou[],
   PRInt32 count
@@ -12057,8 +11583,7 @@ NSSPKIXTeletexOrganizationalUnitNames_SetTeletexOrganizationalUnitNames
  */
 
 NSS_EXTERN NSSPKIXTeletexOrganizationalUnitName *
-NSSPKIXTeletexOrganizationalUnitNames_GetTeletexOrganizationalUnitName
-(
+NSSPKIXTeletexOrganizationalUnitNames_GetTeletexOrganizationalUnitName (
   NSSPKIXTeletexOrganizationalUnitNames *ous,
   PRInt32 i,
   NSSArena *arenaOpt
@@ -12081,8 +11606,7 @@ NSSPKIXTeletexOrganizationalUnitNames_GetTeletexOrganizationalUnitName
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXTeletexOrganizationalUnitNames_SetTeletexOrganizationalUnitName
-(
+NSSPKIXTeletexOrganizationalUnitNames_SetTeletexOrganizationalUnitName (
   NSSPKIXTeletexOrganizationalUnitNames *ous,
   PRInt32 i,
   NSSPKIXTeletexOrganizationalUnitName *ou
@@ -12105,8 +11629,7 @@ NSSPKIXTeletexOrganizationalUnitNames_SetTeletexOrganizationalUnitName
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXTeletexOrganizationalUnitNames_InsertTeletexOrganizationalUnitName
-(
+NSSPKIXTeletexOrganizationalUnitNames_InsertTeletexOrganizationalUnitName (
   NSSPKIXTeletexOrganizationalUnitNames *ous,
   PRInt32 i,
   NSSPKIXTeletexOrganizationalUnitName *ou
@@ -12128,8 +11651,7 @@ NSSPKIXTeletexOrganizationalUnitNames_InsertTeletexOrganizationalUnitName
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXTeletexOrganizationalUnitNames_AppendTeletexOrganizationalUnitName
-(
+NSSPKIXTeletexOrganizationalUnitNames_AppendTeletexOrganizationalUnitName (
   NSSPKIXTeletexOrganizationalUnitNames *ous,
   NSSPKIXTeletexOrganizationalUnitName *ou
 );
@@ -12149,8 +11671,7 @@ NSSPKIXTeletexOrganizationalUnitNames_AppendTeletexOrganizationalUnitName
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXTeletexOrganizationalUnitNames_RemoveTeletexOrganizationalUnitName
-(
+NSSPKIXTeletexOrganizationalUnitNames_RemoveTeletexOrganizationalUnitName (
   NSSPKIXTeletexOrganizationalUnitNames *ous,
   PRInt32 i
 );
@@ -12170,8 +11691,7 @@ NSSPKIXTeletexOrganizationalUnitNames_RemoveTeletexOrganizationalUnitName
  */
 
 NSS_EXTERN PRInt32
-NSSPKIXTeletexOrganizationalUnitNames_FindTeletexOrganizationalUnitName
-(
+NSSPKIXTeletexOrganizationalUnitNames_FindTeletexOrganizationalUnitName (
   NSSPKIXTeletexOrganizationalUnitNames *ous,
   NSSPKIXTeletexOrganizationalUnitName *ou
 );
@@ -12191,8 +11711,7 @@ NSSPKIXTeletexOrganizationalUnitNames_FindTeletexOrganizationalUnitName
  */
 
 NSS_EXTERN PRBool
-NSSPKIXTeletexOrganizationalUnitNames_Equal
-(
+NSSPKIXTeletexOrganizationalUnitNames_Equal (
   NSSPKIXTeletexOrganizationalUnitNames *ous1,
   NSSPKIXTeletexOrganizationalUnitNames *ous2,
   PRStatus *statusOpt
@@ -12214,8 +11733,7 @@ NSSPKIXTeletexOrganizationalUnitNames_Equal
  */
 
 NSS_EXTERN NSSPKIXTeletexOrganizationalUnitNames *
-NSSPKIXTeletexOrganizationalUnitNames_Duplicate
-(
+NSSPKIXTeletexOrganizationalUnitNames_Duplicate (
   NSSPKIXTeletexOrganizationalUnitNames *ous,
   NSSArena *arenaOpt
 );
@@ -12254,8 +11772,7 @@ NSSPKIXTeletexOrganizationalUnitNames_Duplicate
  */
 
 NSS_EXTERN NSSPKIXTeletexOrganizationalUnitName *
-NSSPKIXTeletexOrganizationalUnitName_Decode
-(
+NSSPKIXTeletexOrganizationalUnitName_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -12276,8 +11793,7 @@ NSSPKIXTeletexOrganizationalUnitName_Decode
  */
 
 NSS_EXTERN NSSPKIXTeletexOrganizationalUnitName *
-NSSPKIXTeletexOrganizationalUnitName_CreateFromUTF8
-(
+NSSPKIXTeletexOrganizationalUnitName_CreateFromUTF8 (
   NSSArena *arenaOpt,
   NSSUTF8 *utf8
 );
@@ -12297,8 +11813,7 @@ NSSPKIXTeletexOrganizationalUnitName_CreateFromUTF8
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXTeletexOrganizationalUnitName_Encode
-(
+NSSPKIXTeletexOrganizationalUnitName_Encode (
   NSSPKIXTeletexOrganizationalUnitName *name,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -12338,8 +11853,7 @@ NSSPKIXTeletexOrganizationalUnitName_Encode
  */
 
 NSS_EXTERN NSSPKIXPDSName *
-NSSPKIXPDSName_Decode
-(
+NSSPKIXPDSName_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -12360,8 +11874,7 @@ NSSPKIXPDSName_Decode
  */
 
 NSS_EXTERN NSSPKIXPDSName *
-NSSPKIXPDSName_CreateFromUTF8
-(
+NSSPKIXPDSName_CreateFromUTF8 (
   NSSArena *arenaOpt,
   NSSUTF8 *utf8
 );
@@ -12381,8 +11894,7 @@ NSSPKIXPDSName_CreateFromUTF8
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXPDSName_Encode
-(
+NSSPKIXPDSName_Encode (
   NSSPKIXPDSName *name,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -12425,8 +11937,7 @@ NSSPKIXPDSName_Encode
  */
 
 NSS_EXTERN NSSPKIXPhysicalDeliveryCountryName *
-NSSPKIXPhysicalDeliveryCountryName_Decode
-(
+NSSPKIXPhysicalDeliveryCountryName_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -12447,8 +11958,7 @@ NSSPKIXPhysicalDeliveryCountryName_Decode
  */
 
 NSS_EXTERN NSSPKIXPhysicalDeliveryCountryName *
-NSSPKIXPhysicalDeliveryCountryName_CreateFromUTF8
-(
+NSSPKIXPhysicalDeliveryCountryName_CreateFromUTF8 (
   NSSArena *arenaOpt,
   NSSUTF8 *utf8
 );
@@ -12468,8 +11978,7 @@ NSSPKIXPhysicalDeliveryCountryName_CreateFromUTF8
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXPhysicalDeliveryCountryName_Encode
-(
+NSSPKIXPhysicalDeliveryCountryName_Encode (
   NSSPKIXPhysicalDeliveryCountryName *name,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -12511,8 +12020,7 @@ NSSPKIXPhysicalDeliveryCountryName_Encode
  */
 
 NSS_EXTERN NSSPKIXPostalCode *
-NSSPKIXPostalCode_Decode
-(
+NSSPKIXPostalCode_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -12533,8 +12041,7 @@ NSSPKIXPostalCode_Decode
  */
 
 NSS_EXTERN NSSPKIXPostalCode *
-NSSPKIXPostalCode_CreateFromUTF8
-(
+NSSPKIXPostalCode_CreateFromUTF8 (
   NSSArena *arenaOpt,
   NSSUTF8 *utf8
 );
@@ -12554,8 +12061,7 @@ NSSPKIXPostalCode_CreateFromUTF8
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXPostalCode_Encode
-(
+NSSPKIXPostalCode_Encode (
   NSSPKIXPostalCode *name,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -12611,8 +12117,7 @@ NSSPKIXPostalCode_Encode
  */
 
 NSS_EXTERN NSSPKIXPDSParameter *
-NSSPKIXPDSParameter_Decode
-(
+NSSPKIXPDSParameter_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -12633,8 +12138,7 @@ NSSPKIXPDSParameter_Decode
  */
 
 NSS_EXTERN NSSPKIXPDSParameter *
-NSSPKIXPDSParameter_CreateFromUTF8
-(
+NSSPKIXPDSParameter_CreateFromUTF8 (
   NSSArena *arenaOpt,
   NSSUTF8 *utf8
 );
@@ -12655,8 +12159,7 @@ NSSPKIXPDSParameter_CreateFromUTF8
  */
 
 NSS_EXTERN NSSPKIXPDSParameter *
-NSSPKIXPDSParameter_Create
-(
+NSSPKIXPDSParameter_Create (
   NSSArena *arenaOpt,
   NSSUTF8 *printableStringOpt,
   NSSUTF8 *teletexStringOpt
@@ -12676,8 +12179,7 @@ NSSPKIXPDSParameter_Create
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXPDSParameter_Destroy
-(
+NSSPKIXPDSParameter_Destroy (
   NSSPKIXPDSParameter *p
 );
 
@@ -12697,8 +12199,7 @@ NSSPKIXPDSParameter_Destroy
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXPDSParameter_Encode
-(
+NSSPKIXPDSParameter_Encode (
   NSSPKIXPDSParameter *p,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -12721,8 +12222,7 @@ NSSPKIXPDSParameter_Encode
  */
 
 NSS_EXTERN NSSUTF8 *
-NSSPKIXPDSParameter_GetUTF8Encoding
-(
+NSSPKIXPDSParameter_GetUTF8Encoding (
   NSSPKIXPDSParameter *p,
   NSSArena *arenaOpt
 );
@@ -12742,8 +12242,7 @@ NSSPKIXPDSParameter_GetUTF8Encoding
  */
 
 NSS_EXTERN PRBool
-NSSPKIXPDSParameter_HasPrintableString
-(
+NSSPKIXPDSParameter_HasPrintableString (
   NSSPKIXPDSParameter *p,
   PRStatus *statusOpt
 );
@@ -12764,8 +12263,7 @@ NSSPKIXPDSParameter_HasPrintableString
  */
 
 NSS_EXTERN NSSUTF8 *
-NSSPKIXPDSParameter_GetPrintableString
-(
+NSSPKIXPDSParameter_GetPrintableString (
   NSSPKIXPDSParameter *p,
   NSSArena *arenaOpt
 );
@@ -12786,8 +12284,7 @@ NSSPKIXPDSParameter_GetPrintableString
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXPDSParameter_SetPrintableString
-(
+NSSPKIXPDSParameter_SetPrintableString (
   NSSPKIXPDSParameter *p,
   NSSUTF8 *printableString
 );
@@ -12806,8 +12303,7 @@ NSSPKIXPDSParameter_SetPrintableString
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXPDSParameter_RemovePrintableString
-(
+NSSPKIXPDSParameter_RemovePrintableString (
   NSSPKIXPDSParameter *p
 );
 
@@ -12826,8 +12322,7 @@ NSSPKIXPDSParameter_RemovePrintableString
  */
 
 NSS_EXTERN PRBool
-NSSPKIXPDSParameter_HasTeletexString
-(
+NSSPKIXPDSParameter_HasTeletexString (
   NSSPKIXPDSParameter *p,
   PRStatus *statusOpt
 );
@@ -12848,8 +12343,7 @@ NSSPKIXPDSParameter_HasTeletexString
  */
 
 NSS_EXTERN NSSUTF8 *
-NSSPKIXPDSParameter_GetTeletexString
-(
+NSSPKIXPDSParameter_GetTeletexString (
   NSSPKIXPDSParameter *p,
   NSSArena *arenaOpt
 );
@@ -12870,8 +12364,7 @@ NSSPKIXPDSParameter_GetTeletexString
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXPDSParameter_SetTeletexString
-(
+NSSPKIXPDSParameter_SetTeletexString (
   NSSPKIXPDSParameter *p,
   NSSUTF8 *teletexString
 );
@@ -12890,8 +12383,7 @@ NSSPKIXPDSParameter_SetTeletexString
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXPDSParameter_RemoveTeletexString
-(
+NSSPKIXPDSParameter_RemoveTeletexString (
   NSSPKIXPDSParameter *p
 );
 
@@ -12910,8 +12402,7 @@ NSSPKIXPDSParameter_RemoveTeletexString
  */
 
 NSS_EXTERN PRBool
-NSSPKIXPDSParameter_Equal
-(
+NSSPKIXPDSParameter_Equal (
   NSSPKIXPDSParameter *p1,
   NSSPKIXPDSParameter *p2,
   PRStatus *statusOpt
@@ -12933,8 +12424,7 @@ NSSPKIXPDSParameter_Equal
  */
 
 NSS_EXTERN NSSPKIXPDSParameter *
-NSSPKIXPDSParameter_Duplicate
-(
+NSSPKIXPDSParameter_Duplicate (
   NSSPKIXPDSParameter *p,
   NSSArena *arenaOpt
 );
@@ -13032,8 +12522,7 @@ NSSPKIXPDSParameter_Duplicate
  */
 
 NSS_EXTERN NSSPKIXExtendedNetworkAddress *
-NSSPKIXExtendedNetworkAddress_Decode
-(
+NSSPKIXExtendedNetworkAddress_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -13055,8 +12544,7 @@ NSSPKIXExtendedNetworkAddress_Decode
  */
 
 NSS_EXTERN NSSPKIXExtendedNetworkAddress *
-NSSPKIXExtendedNetworkAddress_Create
-(
+NSSPKIXExtendedNetworkAddress_Create (
   NSSArena *arenaOpt,
   NSSPKIXExtendedNetworkAddressChoice choice,
   void *address
@@ -13078,8 +12566,7 @@ NSSPKIXExtendedNetworkAddress_Create
  */
 
 NSS_EXTERN NSSPKIXExtendedNetworkAddress *
-NSSPKIXExtendedNetworkAddress_CreateFromE1634Address
-(
+NSSPKIXExtendedNetworkAddress_CreateFromE1634Address (
   NSSArena *arenaOpt,
   NSSPKIXe1634Address *e1634address
 );
@@ -13100,8 +12587,7 @@ NSSPKIXExtendedNetworkAddress_CreateFromE1634Address
  */
 
 NSS_EXTERN NSSPKIXExtendedNetworkAddress *
-NSSPKIXExtendedNetworkAddress_CreateFromPresentationAddress
-(
+NSSPKIXExtendedNetworkAddress_CreateFromPresentationAddress (
   NSSArena *arenaOpt,
   NSSPKIXPresentationAddress *presentationAddress
 );
@@ -13120,8 +12606,7 @@ NSSPKIXExtendedNetworkAddress_CreateFromPresentationAddress
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXExtendedNetworkAddress_Destroy
-(
+NSSPKIXExtendedNetworkAddress_Destroy (
   NSSPKIXExtendedNetworkAddress *ena
 );
 
@@ -13141,8 +12626,7 @@ NSSPKIXExtendedNetworkAddress_Destroy
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXExtendedNetworkAddress_Encode
-(
+NSSPKIXExtendedNetworkAddress_Encode (
   NSSPKIXExtendedNetworkAddress *ena,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -13164,8 +12648,7 @@ NSSPKIXExtendedNetworkAddress_Encode
  */
 
 NSS_EXTERN NSSPKIXExtendedNetworkAddressChoice
-NSSPKIXExtendedNetworkAddress_GetChoice
-(
+NSSPKIXExtendedNetworkAddress_GetChoice (
   NSSPKIXExtendedNetworkAddress *ena
 );
 
@@ -13186,8 +12669,7 @@ NSSPKIXExtendedNetworkAddress_GetChoice
  */
 
 NSS_EXTERN void *
-NSSPKIXExtendedNetworkAddress_GetSpecifiedChoice
-(
+NSSPKIXExtendedNetworkAddress_GetSpecifiedChoice (
   NSSPKIXExtendedNetworkAddress *ena,
   NSSPKIXExtendedNetworkAddressChoice which,
   NSSArena *arenaOpt
@@ -13210,8 +12692,7 @@ NSSPKIXExtendedNetworkAddress_GetSpecifiedChoice
  */
 
 NSS_EXTERN NSSPKIXe1643Address *
-NSSPKIXExtendedNetworkAddress_GetE1634Address
-(
+NSSPKIXExtendedNetworkAddress_GetE1634Address (
   NSSPKIXExtendedNetworkAddress *ena,
   NSSArena *arenaOpt
 );
@@ -13233,8 +12714,7 @@ NSSPKIXExtendedNetworkAddress_GetE1634Address
  */
 
 NSS_EXTERN NSSPKIXPresentationAddress *
-NSSPKIXExtendedNetworkAddress_GetPresentationAddress
-(
+NSSPKIXExtendedNetworkAddress_GetPresentationAddress (
   NSSPKIXExtendedNetworkAddress *ena,
   NSSArena *arenaOpt
 );
@@ -13256,8 +12736,7 @@ NSSPKIXExtendedNetworkAddress_GetPresentationAddress
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXExtendedNetworkAddress_SetSpecifiedChoice
-(
+NSSPKIXExtendedNetworkAddress_SetSpecifiedChoice (
   NSSPKIXExtendedNetworkAddress *ena,
   NSSPKIXExtendedNetworkAddressChoice which,
   void *address
@@ -13279,8 +12758,7 @@ NSSPKIXExtendedNetworkAddress_SetSpecifiedChoice
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXExtendedNetworkAddress_SetE163Address
-(
+NSSPKIXExtendedNetworkAddress_SetE163Address (
   NSSPKIXExtendedNetworkAddress *ena,
   NSSPKIXe1634Address *e1634address
 );
@@ -13301,8 +12779,7 @@ NSSPKIXExtendedNetworkAddress_SetE163Address
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXExtendedNetworkAddress_SetPresentationAddress
-(
+NSSPKIXExtendedNetworkAddress_SetPresentationAddress (
   NSSPKIXExtendedNetworkAddress *ena,
   NSSPKIXPresentationAddress *presentationAddress
 );
@@ -13322,8 +12799,7 @@ NSSPKIXExtendedNetworkAddress_SetPresentationAddress
  */
 
 NSS_EXTERN PRBool
-NSSPKIXExtendedNetworkAddress_Equal
-(
+NSSPKIXExtendedNetworkAddress_Equal (
   NSSPKIXExtendedNetworkAddress *ena1,
   NSSPKIXExtendedNetworkAddress *ena2,
   PRStatus *statusOpt
@@ -13345,8 +12821,7 @@ NSSPKIXExtendedNetworkAddress_Equal
  */
 
 NSS_EXTERN NSSPKIXExtendedNetworkAddress *
-NSSPKIXExtendedNetworkAddress_Duplicate
-(
+NSSPKIXExtendedNetworkAddress_Duplicate (
   NSSPKIXExtendedNetworkAddress *ena,
   NSSArena *arenaOpt
 );
@@ -13397,8 +12872,7 @@ NSSPKIXExtendedNetworkAddress_Duplicate
  */
 
 NSS_EXTERN NSSPKIXe1634Address *
-NSSPKIXe1634Address_Decode
-(
+NSSPKIXe1634Address_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -13419,8 +12893,7 @@ NSSPKIXe1634Address_Decode
  */
 
 NSS_EXTERN NSSPKIXe1634Address *
-NSSPKIXe1634Address_Create
-(
+NSSPKIXe1634Address_Create (
   NSSArena *arenaOpt,
   NSSUTF8 *number,
   NSSUTF8 *subAddressOpt
@@ -13440,8 +12913,7 @@ NSSPKIXe1634Address_Create
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXe1634Address_Destroy
-(
+NSSPKIXe1634Address_Destroy (
   NSSPKIXe1634Address *e
 );
 
@@ -13461,8 +12933,7 @@ NSSPKIXe1634Address_Destroy
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXe1634Address_Encode
-(
+NSSPKIXe1634Address_Encode (
   NSSPKIXe1634Address *e,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -13485,8 +12956,7 @@ NSSPKIXe1634Address_Encode
  */
 
 NSS_EXTERN NSSUTF8 *
-NSSPKIXe1634Address_GetNumber
-(
+NSSPKIXe1634Address_GetNumber (
   NSSPKIXe1634Address *e,
   NSSArena *arenaOpt
 );
@@ -13507,8 +12977,7 @@ NSSPKIXe1634Address_GetNumber
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXe1634Address_SetNumber
-(
+NSSPKIXe1634Address_SetNumber (
   NSSPKIXe1634Address *e,
   NSSUTF8 *number
 );
@@ -13528,8 +12997,7 @@ NSSPKIXe1634Address_SetNumber
  */
 
 NSS_EXTERN PRBool
-NSSPKIXe1634Address_HasSubAddress
-(
+NSSPKIXe1634Address_HasSubAddress (
   NSSPKIXe1634Address *e,
   PRStatus *statusOpt
 );
@@ -13550,8 +13018,7 @@ NSSPKIXe1634Address_HasSubAddress
  */
 
 NSS_EXTERN NSSUTF8 *
-NSSPKIXe1634Address_GetSubAddress
-(
+NSSPKIXe1634Address_GetSubAddress (
   NSSPKIXe1634Address *e,
   NSSArena *arenaOpt
 );
@@ -13572,8 +13039,7 @@ NSSPKIXe1634Address_GetSubAddress
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXe1634Address_SetSubAddress
-(
+NSSPKIXe1634Address_SetSubAddress (
   NSSPKIXe1634Address *e,
   NSSUTF8 *subAddress
 );
@@ -13592,8 +13058,7 @@ NSSPKIXe1634Address_SetSubAddress
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXe1634Address_RemoveSubAddress
-(
+NSSPKIXe1634Address_RemoveSubAddress (
   NSSPKIXe1634Address *e
 );
 
@@ -13612,8 +13077,7 @@ NSSPKIXe1634Address_RemoveSubAddress
  */
 
 NSS_EXTERN PRBool
-NSSPKIXe1634Address_Equal
-(
+NSSPKIXe1634Address_Equal (
   NSSPKIXe1634Address *e1,
   NSSPKIXe1634Address *e2,
   PRStatus *statusOpt
@@ -13635,8 +13099,7 @@ NSSPKIXe1634Address_Equal
  */
 
 NSS_EXTERN NSSPKIXe1634Address *
-NSSPKIXe1634Address_Duplicate
-(
+NSSPKIXe1634Address_Duplicate (
   NSSPKIXe1634Address *e,
   NSSArena *arenaOpt
 );
@@ -13729,8 +13192,7 @@ NSSPKIXe1634Address_Duplicate
  */
 
 NSS_EXTERN NSSPKIXTeletexDomainDefinedAttributes *
-NSSPKIXTeletexDomainDefinedAttributes_Decode
-(
+NSSPKIXTeletexDomainDefinedAttributes_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -13752,8 +13214,7 @@ NSSPKIXTeletexDomainDefinedAttributes_Decode
  */
 
 NSS_EXTERN NSSPKIXTeletexDomainDefinedAttributes *
-NSSPKIXTeletexDomainDefinedAttributes_Create
-(
+NSSPKIXTeletexDomainDefinedAttributes_Create (
   NSSArena *arenaOpt,
   NSSPKIXTeletexDomainDefinedAttribute *tdda1,
   ...
@@ -13773,8 +13234,7 @@ NSSPKIXTeletexDomainDefinedAttributes_Create
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXTeletexDomainDefinedAttributes_Destroy
-(
+NSSPKIXTeletexDomainDefinedAttributes_Destroy (
   NSSPKIXTeletexDomainDefinedAttributes *tddas
 );
 
@@ -13794,8 +13254,7 @@ NSSPKIXTeletexDomainDefinedAttributes_Destroy
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXTeletexDomainDefinedAttributes_Encode
-(
+NSSPKIXTeletexDomainDefinedAttributes_Encode (
   NSSPKIXTeletexDomainDefinedAttributes *tddas,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -13817,8 +13276,7 @@ NSSPKIXTeletexDomainDefinedAttributes_Encode
  */
 
 NSS_EXTERN PRInt32
-NSSPKIXTeletexDomainDefinedAttributes_GetTeletexDomainDefinedAttributeCount
-(
+NSSPKIXTeletexDomainDefinedAttributes_GetTeletexDomainDefinedAttributeCount (
   NSSPKIXTeletexDomainDefinedAttributes *tddas
 );
 
@@ -13840,8 +13298,7 @@ NSSPKIXTeletexDomainDefinedAttributes_GetTeletexDomainDefinedAttributeCount
  */
 
 NSS_EXTERN NSSPKIXTeletexDomainDefinedAttribute **
-NSSPKIXTeletexDomainDefinedAttributes_GetTeletexDomainDefinedAttributes
-(
+NSSPKIXTeletexDomainDefinedAttributes_GetTeletexDomainDefinedAttributes (
   NSSPKIXTeletexDomainDefinedAttributes *tddas,
   NSSPKIXTeletexDomainDefinedAttribute *rvOpt[],
   PRInt32 limit,
@@ -13864,8 +13321,7 @@ NSSPKIXTeletexDomainDefinedAttributes_GetTeletexDomainDefinedAttributes
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXTeletexDomainDefinedAttributes_SetTeletexDomainDefinedAttributes
-(
+NSSPKIXTeletexDomainDefinedAttributes_SetTeletexDomainDefinedAttributes (
   NSSPKIXTeletexDomainDefinedAttributes *tddas,
   NSSPKIXTeletexDomainDefinedAttribute *tdda[],
   PRInt32 count
@@ -13889,8 +13345,7 @@ NSSPKIXTeletexDomainDefinedAttributes_SetTeletexDomainDefinedAttributes
  */
 
 NSS_EXTERN NSSPKIXTeletexDomainDefinedAttribute *
-NSSPKIXTeletexDomainDefinedAttributes_GetTeletexDomainDefinedAttribute
-(
+NSSPKIXTeletexDomainDefinedAttributes_GetTeletexDomainDefinedAttribute (
   NSSPKIXTeletexDomainDefinedAttributes *tddas,
   PRInt32 i,
   NSSArena *arenaOpt
@@ -13913,8 +13368,7 @@ NSSPKIXTeletexDomainDefinedAttributes_GetTeletexDomainDefinedAttribute
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXTeletexDomainDefinedAttributes_SetTeletexDomainDefinedAttribute
-(
+NSSPKIXTeletexDomainDefinedAttributes_SetTeletexDomainDefinedAttribute (
   NSSPKIXTeletexDomainDefinedAttributes *tddas,
   PRInt32 i,
   NSSPKIXTeletexDomainDefinedAttribute *tdda
@@ -13937,8 +13391,7 @@ NSSPKIXTeletexDomainDefinedAttributes_SetTeletexDomainDefinedAttribute
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXTeletexDomainDefinedAttributes_InsertTeletexDomainDefinedAttribute
-(
+NSSPKIXTeletexDomainDefinedAttributes_InsertTeletexDomainDefinedAttribute (
   NSSPKIXTeletexDomainDefinedAttributes *tddas,
   PRInt32 i,
   NSSPKIXTeletexDomainDefinedAttribute *tdda
@@ -13960,8 +13413,7 @@ NSSPKIXTeletexDomainDefinedAttributes_InsertTeletexDomainDefinedAttribute
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXTeletexDomainDefinedAttributes_AppendTeletexDomainDefinedAttribute
-(
+NSSPKIXTeletexDomainDefinedAttributes_AppendTeletexDomainDefinedAttribute (
   NSSPKIXTeletexDomainDefinedAttributes *tddas,
   NSSPKIXTeletexDomainDefinedAttribute *tdda
 );
@@ -13981,8 +13433,7 @@ NSSPKIXTeletexDomainDefinedAttributes_AppendTeletexDomainDefinedAttribute
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXTeletexDomainDefinedAttributes_RemoveTeletexDomainDefinedAttribute
-(
+NSSPKIXTeletexDomainDefinedAttributes_RemoveTeletexDomainDefinedAttribute (
   NSSPKIXTeletexDomainDefinedAttributes *tddas,
   PRInt32 i
 );
@@ -14002,8 +13453,7 @@ NSSPKIXTeletexDomainDefinedAttributes_RemoveTeletexDomainDefinedAttribute
  */
 
 NSS_EXTERN PRInt32
-NSSPKIXTeletexDomainDefinedAttributes_FindTeletexDomainDefinedAttribute
-(
+NSSPKIXTeletexDomainDefinedAttributes_FindTeletexDomainDefinedAttribute (
   NSSPKIXTeletexDomainDefinedAttributes *tddas,
   NSSPKIXTeletexDomainDefinedAttribute *tdda
 );
@@ -14023,8 +13473,7 @@ NSSPKIXTeletexDomainDefinedAttributes_FindTeletexDomainDefinedAttribute
  */
 
 NSS_EXTERN PRBool
-NSSPKIXTeletexDomainDefinedAttributes_Equal
-(
+NSSPKIXTeletexDomainDefinedAttributes_Equal (
   NSSPKIXTeletexDomainDefinedAttributes *tddas1,
   NSSPKIXTeletexDomainDefinedAttributes *tddas2,
   PRStatus *statusOpt
@@ -14047,8 +13496,7 @@ NSSPKIXTeletexDomainDefinedAttributes_Equal
  */
 
 NSS_EXTERN NSSPKIXTeletexDomainDefinedAttributes *
-NSSPKIXTeletexDomainDefinedAttributes_Duplicate
-(
+NSSPKIXTeletexDomainDefinedAttributes_Duplicate (
   NSSPKIXTeletexDomainDefinedAttributes *tddas,
   NSSArena *arenaOpt
 );
@@ -14100,8 +13548,7 @@ NSSPKIXTeletexDomainDefinedAttributes_Duplicate
  */
 
 NSS_EXTERN NSSPKIXTeletexDomainDefinedAttribute *
-NSSPKIXTeletexDomainDefinedAttribute_Decode
-(
+NSSPKIXTeletexDomainDefinedAttribute_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -14123,8 +13570,7 @@ NSSPKIXTeletexDomainDefinedAttribute_Decode
  */
 
 NSS_EXTERN NSSPKIXTeletexDomainDefinedAttribute *
-NSSPKIXTeletexDomainDefinedAttribute_CreateFromUTF8
-(
+NSSPKIXTeletexDomainDefinedAttribute_CreateFromUTF8 (
   NSSArena *arenaOpt,
   NSSUTF8 *utf8
 );
@@ -14146,8 +13592,7 @@ NSSPKIXTeletexDomainDefinedAttribute_CreateFromUTF8
  */
 
 NSS_EXTERN NSSPKIXTeletexDomainDefinedAttribute *
-NSSPKIXTeletexDomainDefinedAttribute_Create
-(
+NSSPKIXTeletexDomainDefinedAttribute_Create (
   NSSArena *arenaOpt,
   NSSUTF8 *type,
   NSSUTF8 *value
@@ -14167,8 +13612,7 @@ NSSPKIXTeletexDomainDefinedAttribute_Create
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXTeletexDomainDefinedAttribute_Destroy
-(
+NSSPKIXTeletexDomainDefinedAttribute_Destroy (
   NSSPKIXTeletexDomainDefinedAttribute *tdda
 );
 
@@ -14188,8 +13632,7 @@ NSSPKIXTeletexDomainDefinedAttribute_Destroy
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXTeletexDomainDefinedAttribute_Encode
-(
+NSSPKIXTeletexDomainDefinedAttribute_Encode (
   NSSPKIXTeletexDomainDefinedAttribute *tdda,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -14212,8 +13655,7 @@ NSSPKIXTeletexDomainDefinedAttribute_Encode
  */
 
 NSS_EXTERN NSSUTF8 *
-NSSPKIXTeletexDomainDefinedAttribute_GetUTF8Encoding
-(
+NSSPKIXTeletexDomainDefinedAttribute_GetUTF8Encoding (
   NSSPKIXTeletexDomainDefinedAttribute *tdda,
   NSSArena *arenaOpt
 );
@@ -14234,8 +13676,7 @@ NSSPKIXTeletexDomainDefinedAttribute_GetUTF8Encoding
  */
 
 NSS_EXTERN NSSUTF8 *
-NSSPKIXTeletexDomainDefinedAttribute_GetType
-(
+NSSPKIXTeletexDomainDefinedAttribute_GetType (
   NSSPKIXTeletexDomainDefinedAttribute *tdda,
   NSSArena *arenaOpt
 );
@@ -14256,8 +13697,7 @@ NSSPKIXTeletexDomainDefinedAttribute_GetType
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXTeletexDomainDefinedAttribute_SetType
-(
+NSSPKIXTeletexDomainDefinedAttribute_SetType (
   NSSPKIXTeletexDomainDefinedAttribute *tdda,
   NSSUTF8 *type
 );
@@ -14278,8 +13718,7 @@ NSSPKIXTeletexDomainDefinedAttribute_SetType
  */
 
 NSS_EXTERN NSSUTF8 *
-NSSPKIXTeletexDomainDefinedAttribute_GetValue
-(
+NSSPKIXTeletexDomainDefinedAttribute_GetValue (
   NSSPKIXTeletexDomainDefinedAttribute *tdda,
   NSSArena *arenaOpt
 );
@@ -14300,8 +13739,7 @@ NSSPKIXTeletexDomainDefinedAttribute_GetValue
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXTeletexDomainDefinedAttribute_SetValue
-(
+NSSPKIXTeletexDomainDefinedAttribute_SetValue (
   NSSPKIXTeletexDomainDefinedAttribute *tdda,
   NSSUTF8 *value
 );
@@ -14321,8 +13759,7 @@ NSSPKIXTeletexDomainDefinedAttribute_SetValue
  */
 
 NSS_EXTERN PRBool
-NSSPKIXTeletexDomainDefinedAttribute_Equal
-(
+NSSPKIXTeletexDomainDefinedAttribute_Equal (
   NSSPKIXTeletexDomainDefinedAttribute *tdda1,
   NSSPKIXTeletexDomainDefinedAttribute *tdda2,
   PRStatus *statusOpt
@@ -14345,8 +13782,7 @@ NSSPKIXTeletexDomainDefinedAttribute_Equal
  */
 
 NSS_EXTERN NSSPKIXTeletexDomainDefinedAttribute *
-NSSPKIXTeletexDomainDefinedAttribute_Duplicate
-(
+NSSPKIXTeletexDomainDefinedAttribute_Duplicate (
   NSSPKIXTeletexDomainDefinedAttribute *tdda,
   NSSArena *arenaOpt
 );
@@ -14403,8 +13839,7 @@ NSSPKIXTeletexDomainDefinedAttribute_Duplicate
  */
 
 NSS_EXTERN NSSPKIXAuthorityKeyIdentifier *
-NSSPKIXAuthorityKeyIdentifier_Decode
-(
+NSSPKIXAuthorityKeyIdentifier_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -14427,8 +13862,7 @@ NSSPKIXAuthorityKeyIdentifier_Decode
  */
 
 NSS_EXTERN NSSPKIXAuthorityKeyIdentifier *
-NSSPKIXAuthorityKeyIdentifier_Create
-(
+NSSPKIXAuthorityKeyIdentifier_Create (
   NSSArena *arenaOpt,
   NSSPKIXKeyIdentifier *keyIdentifierOpt,
   NSSPKIXGeneralNames *authorityCertIssuerOpt,
@@ -14449,8 +13883,7 @@ NSSPKIXAuthorityKeyIdentifier_Create
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXAuthorityKeyIdentifier_Destroy
-(
+NSSPKIXAuthorityKeyIdentifier_Destroy (
   NSSPKIXAuthorityKeyIdentifier *aki
 );
 
@@ -14471,8 +13904,7 @@ NSSPKIXAuthorityKeyIdentifier_Destroy
 
 #ifdef nodef
 NSS_EXTERN NSSBER *
-NSSPKIXAuthorityKeyIdentifier_Encode
-(
+NSSPKIXAuthorityKeyIdentifier_Encode (
   NSSPKIXAuthorityKeyIdentifier *aki,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -14495,8 +13927,7 @@ NSSPKIXAuthorityKeyIdentifier_Encode
  */
 
 NSS_EXTERN PRBool
-NSSPKIXAuthorityKeyIdentifier_HasKeyIdentifier
-(
+NSSPKIXAuthorityKeyIdentifier_HasKeyIdentifier (
   NSSPKIXAuthorityKeyIdentifier *aki,
   PRStatus *statusOpt
 );
@@ -14518,8 +13949,7 @@ NSSPKIXAuthorityKeyIdentifier_HasKeyIdentifier
  */
 
 NSS_EXTERN NSSPKIXKeyIdentifier *
-NSSPKIXAuthorityKeyIdentifier_GetKeyIdentifier
-(
+NSSPKIXAuthorityKeyIdentifier_GetKeyIdentifier (
   NSSPKIXAuthorityKeyIdentifier *aki
 );
 
@@ -14539,8 +13969,7 @@ NSSPKIXAuthorityKeyIdentifier_GetKeyIdentifier
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXAuthorityKeyIdentifier_SetKeyIdentifier
-(
+NSSPKIXAuthorityKeyIdentifier_SetKeyIdentifier (
   NSSPKIXAuthorityKeyIdentifier *aki,
   NSSPKIXKeyIdentifier *keyIdentifier
 );
@@ -14560,8 +13989,7 @@ NSSPKIXAuthorityKeyIdentifier_SetKeyIdentifier
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXAuthorityKeyIdentifier_RemoveKeyIdentifier
-(
+NSSPKIXAuthorityKeyIdentifier_RemoveKeyIdentifier (
   NSSPKIXAuthorityKeyIdentifier *aki
 );
 
@@ -14580,8 +14008,7 @@ NSSPKIXAuthorityKeyIdentifier_RemoveKeyIdentifier
  */
 
 NSS_EXTERN PRBool
-NSSPKIXAuthorityKeyIdentifier_HasAuthorityCertIssuerAndSerialNumber
-(
+NSSPKIXAuthorityKeyIdentifier_HasAuthorityCertIssuerAndSerialNumber (
   NSSPKIXAuthorityKeyIdentifier *aki,
   PRStatus *statusOpt
 );
@@ -14601,8 +14028,7 @@ NSSPKIXAuthorityKeyIdentifier_HasAuthorityCertIssuerAndSerialNumber
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXAuthorityKeyIdentifier_RemoveAuthorityCertIssuerAndSerialNumber
-(
+NSSPKIXAuthorityKeyIdentifier_RemoveAuthorityCertIssuerAndSerialNumber (
   NSSPKIXAuthorityKeyIdentifier *aki
 );
 
@@ -14623,8 +14049,7 @@ NSSPKIXAuthorityKeyIdentifier_RemoveAuthorityCertIssuerAndSerialNumber
  */
 
 NSS_EXTERN NSSPKIXGeneralNames *
-NSSPKIXAuthorityKeyIdentifier_GetAuthorityCertIssuer
-(
+NSSPKIXAuthorityKeyIdentifier_GetAuthorityCertIssuer (
   NSSPKIXAuthorityKeyIdentifier *aki,
   NSSArena *arenaOpt
 );
@@ -14646,8 +14071,7 @@ NSSPKIXAuthorityKeyIdentifier_GetAuthorityCertIssuer
  */
 
 NSS_EXTERN NSSPKIXCertificateSerialNumber *
-NSSPKIXAuthorityKeyIdentifier_GetAuthorityCertSerialNumber
-(
+NSSPKIXAuthorityKeyIdentifier_GetAuthorityCertSerialNumber (
   NSSPKIXAuthorityKeyIdentifier *aki,
   NSSPKIXCertificateSerialNumber *rvOpt,
   NSSArena *arenaOpt
@@ -14670,8 +14094,7 @@ NSSPKIXAuthorityKeyIdentifier_GetAuthorityCertSerialNumber
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXAuthorityKeyIdentifier_SetAuthorityCertIssuerAndSerialNumber
-(
+NSSPKIXAuthorityKeyIdentifier_SetAuthorityCertIssuerAndSerialNumber (
   NSSPKIXAuthorityKeyIdentifier *aki,
   NSSPKIXGeneralNames *issuer,
   NSSPKIXCertificateSerialNumber *serialNumber
@@ -14692,8 +14115,7 @@ NSSPKIXAuthorityKeyIdentifier_SetAuthorityCertIssuerAndSerialNumber
  */
 
 NSS_EXTERN PRBool
-NSSPKIXAuthorityKeyIdentifier_Equal
-(
+NSSPKIXAuthorityKeyIdentifier_Equal (
   NSSPKIXAuthorityKeyIdentifier *aki1,
   NSSPKIXAuthorityKeyIdentifier *aki2,
   PRStatus *statusOpt
@@ -14715,8 +14137,7 @@ NSSPKIXAuthorityKeyIdentifier_Equal
  */
 
 NSS_EXTERN NSSPKIXAuthorityKeyIdentifier *
-NSSPKIXAuthorityKeyIdentifier_Duplicate
-(
+NSSPKIXAuthorityKeyIdentifier_Duplicate (
   NSSPKIXAuthorityKeyIdentifier *aki,
   NSSArena *arenaOpt
 );
@@ -14771,8 +14192,7 @@ NSSPKIXAuthorityKeyIdentifier_Duplicate
  */
 
 NSS_EXTERN NSSPKIXKeyUsage *
-NSSPKIXKeyUsage_Decode
-(
+NSSPKIXKeyUsage_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -14793,8 +14213,7 @@ NSSPKIXKeyUsage_Decode
  */
 
 NSS_EXTERN NSSPKIXKeyUsage *
-NSSPKIXKeyUsage_CreateFromUTF8
-(
+NSSPKIXKeyUsage_CreateFromUTF8 (
   NSSArena *arenaOpt,
   NSSUTF8 *utf8
 );
@@ -14815,8 +14234,7 @@ NSSPKIXKeyUsage_CreateFromUTF8
  */
 
 NSS_EXTERN NSSPKIXKeyUsage *
-NSSPKIXKeyUsage_CreateFromValue
-(
+NSSPKIXKeyUsage_CreateFromValue (
   NSSArena *arenaOpt,
   NSSPKIXKeyUsageValue value
 );
@@ -14835,8 +14253,7 @@ NSSPKIXKeyUsage_CreateFromValue
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXKeyUsage_Destroy
-(
+NSSPKIXKeyUsage_Destroy (
   NSSPKIXKeyUsage *keyUsage
 );
 
@@ -14857,8 +14274,7 @@ NSSPKIXKeyUsage_Destroy
 
 #ifdef nodef
 NSS_EXTERN NSSBER *
-NSSPKIXKeyUsage_Encode
-(
+NSSPKIXKeyUsage_Encode (
   NSSPKIXKeyUsage *keyUsage,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -14882,8 +14298,7 @@ NSSPKIXKeyUsage_Encode
  */
 
 NSS_EXTERN NSSUTF8 *
-NSSPKIXKeyUsage_GetUTF8Encoding
-(
+NSSPKIXKeyUsage_GetUTF8Encoding (
   NSSPKIXKeyUsage *keyUsage,
   NSSArena *arenaOpt
 );
@@ -14902,8 +14317,7 @@ NSSPKIXKeyUsage_GetUTF8Encoding
  */
 
 NSS_EXTERN NSSPKIXKeyUsageValue
-NSSPKIXKeyUsage_GetValue
-(
+NSSPKIXKeyUsage_GetValue (
   NSSPKIXKeyUsage *keyUsage
 );
 
@@ -14924,8 +14338,7 @@ NSSPKIXKeyUsage_GetValue
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXKeyUsage_SetValue
-(
+NSSPKIXKeyUsage_SetValue (
   NSSPKIXKeyUsage *keyUsage,
   NSSPKIXKeyUsageValue value
 );
@@ -14945,8 +14358,7 @@ NSSPKIXKeyUsage_SetValue
  */
 
 NSS_EXTERN PRBool
-NSSPKIXKeyUsage_Equal
-(
+NSSPKIXKeyUsage_Equal (
   NSSPKIXKeyUsage *keyUsage1,
   NSSPKIXKeyUsage *keyUsage2,
   PRStatus *statusOpt
@@ -14968,8 +14380,7 @@ NSSPKIXKeyUsage_Equal
  */
 
 NSS_EXTERN NSSPKIXKeyUsage *
-NSSPKIXKeyUsage_Duplicate
-(
+NSSPKIXKeyUsage_Duplicate (
   NSSPKIXKeyUsage *keyUsage,
   NSSArena *arenaOpt
 );
@@ -15021,8 +14432,7 @@ NSSPKIXKeyUsage_Duplicate
  */
 
 NSS_EXTERN NSSPKIXPrivateKeyUsagePeriod *
-NSSPKIXPrivateKeyUsagePeriod_Decode
-(
+NSSPKIXPrivateKeyUsagePeriod_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -15044,8 +14454,7 @@ NSSPKIXPrivateKeyUsagePeriod_Decode
  */
 
 NSS_EXTERN NSSPKIXPrivateKeyUsagePeriod *
-NSSPKIXPrivateKeyUsagePeriod_Create
-(
+NSSPKIXPrivateKeyUsagePeriod_Create (
   NSSArena *arenaOpt,
   NSSTime *notBeforeOpt,
   NSSTime *notAfterOpt
@@ -15065,8 +14474,7 @@ NSSPKIXPrivateKeyUsagePeriod_Create
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXPrivateKeyUsagePeriod_Destroy
-(
+NSSPKIXPrivateKeyUsagePeriod_Destroy (
   NSSPKIXPrivateKeyUsagePeriod *period
 );
 
@@ -15087,8 +14495,7 @@ NSSPKIXPrivateKeyUsagePeriod_Destroy
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXPrivateKeyUsagePeriod_Encode
-(
+NSSPKIXPrivateKeyUsagePeriod_Encode (
   NSSPKIXPrivateKeyUsagePeriod *period,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -15110,8 +14517,7 @@ NSSPKIXPrivateKeyUsagePeriod_Encode
  */
 
 NSS_EXTERN PRBool
-NSSPKIXPrivateKeyUsagePeriod_HasNotBefore
-(
+NSSPKIXPrivateKeyUsagePeriod_HasNotBefore (
   NSSPKIXPrivateKeyUsagePeriod *period,
   PRStatus *statusOpt
 );
@@ -15133,8 +14539,7 @@ NSSPKIXPrivateKeyUsagePeriod_HasNotBefore
  */
 
 NSS_EXTERN NSSTime *
-NSSPKIXPrivateKeyUsagePeriod_GetNotBefore
-(
+NSSPKIXPrivateKeyUsagePeriod_GetNotBefore (
   NSSPKIXPrivateKeyUsagePeriod *period,
   NSSArena *arenaOpt
 );
@@ -15155,8 +14560,7 @@ NSSPKIXPrivateKeyUsagePeriod_GetNotBefore
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXPrivateKeyUsagePeriod_SetNotBefore
-(
+NSSPKIXPrivateKeyUsagePeriod_SetNotBefore (
   NSSPKIXPrivateKeyUsagePeriod *period,
   NSSTime *notBefore
 );
@@ -15176,8 +14580,7 @@ NSSPKIXPrivateKeyUsagePeriod_SetNotBefore
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXPrivateKeyUsagePeriod_RemoveNotBefore
-(
+NSSPKIXPrivateKeyUsagePeriod_RemoveNotBefore (
   NSSPKIXPrivateKeyUsagePeriod *period
 );
 
@@ -15196,8 +14599,7 @@ NSSPKIXPrivateKeyUsagePeriod_RemoveNotBefore
  */
 
 NSS_EXTERN PRBool
-NSSPKIXPrivateKeyUsagePeriod_HasNotAfter
-(
+NSSPKIXPrivateKeyUsagePeriod_HasNotAfter (
   NSSPKIXPrivateKeyUsagePeriod *period,
   PRStatus *statusOpt
 );
@@ -15219,8 +14621,7 @@ NSSPKIXPrivateKeyUsagePeriod_HasNotAfter
  */
 
 NSS_EXTERN NSSTime *
-NSSPKIXPrivateKeyUsagePeriod_GetNotAfter
-(
+NSSPKIXPrivateKeyUsagePeriod_GetNotAfter (
   NSSPKIXPrivateKeyUsagePeriod *period,
   NSSArena *arenaOpt
 );
@@ -15241,8 +14642,7 @@ NSSPKIXPrivateKeyUsagePeriod_GetNotAfter
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXPrivateKeyUsagePeriod_SetNotAfter
-(
+NSSPKIXPrivateKeyUsagePeriod_SetNotAfter (
   NSSPKIXPrivateKeyUsagePeriod *period,
   NSSTime *notAfter
 );
@@ -15262,8 +14662,7 @@ NSSPKIXPrivateKeyUsagePeriod_SetNotAfter
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXPrivateKeyUsagePeriod_RemoveNotAfter
-(
+NSSPKIXPrivateKeyUsagePeriod_RemoveNotAfter (
   NSSPKIXPrivateKeyUsagePeriod *period
 );
 
@@ -15282,8 +14681,7 @@ NSSPKIXPrivateKeyUsagePeriod_RemoveNotAfter
  */
 
 NSS_EXTERN PRBool
-NSSPKIXPrivateKeyUsagePeriod_Equal
-(
+NSSPKIXPrivateKeyUsagePeriod_Equal (
   NSSPKIXPrivateKeyUsagePeriod *period1,
   NSSPKIXPrivateKeyUsagePeriod *period2,
   PRStatus *statusOpt
@@ -15305,8 +14703,7 @@ NSSPKIXPrivateKeyUsagePeriod_Equal
  */
 
 NSS_EXTERN NSSPKIXPrivateKeyUsagePeriod *
-NSSPKIXPrivateKeyUsagePeriod_Duplicate
-(
+NSSPKIXPrivateKeyUsagePeriod_Duplicate (
   NSSPKIXPrivateKeyUsagePeriod *period,
   NSSArena *arenaOpt
 );
@@ -15356,8 +14753,7 @@ NSSPKIXPrivateKeyUsagePeriod_Duplicate
  */
 
 NSS_EXTERN NSSPKIXCertificatePolicies *
-NSSPKIXCertificatePolicies_Decode
-(
+NSSPKIXCertificatePolicies_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -15378,8 +14774,7 @@ NSSPKIXCertificatePolicies_Decode
  */
 
 NSS_EXTERN NSSPKIXCertificatePolicies *
-NSSPKIXCertificatePolicies_Create
-(
+NSSPKIXCertificatePolicies_Create (
   NSSArena *arenaOpt,
   NSSPKIXPolicyInformation *pi1,
   ...
@@ -15399,8 +14794,7 @@ NSSPKIXCertificatePolicies_Create
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXCertificatePolicies_Destroy
-(
+NSSPKIXCertificatePolicies_Destroy (
   NSSPKIXCertificatePolicies *cp
 );
 
@@ -15420,8 +14814,7 @@ NSSPKIXCertificatePolicies_Destroy
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXCertificatePolicies_Encode
-(
+NSSPKIXCertificatePolicies_Encode (
   NSSPKIXCertificatePolicies *cp,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -15443,8 +14836,7 @@ NSSPKIXCertificatePolicies_Encode
  */
 
 NSS_EXTERN PRInt32
-NSSPKIXCertificatePolicies_GetPolicyInformationCount
-(
+NSSPKIXCertificatePolicies_GetPolicyInformationCount (
   NSSPKIXCertificatePolicies *cp
 );
 
@@ -15466,8 +14858,7 @@ NSSPKIXCertificatePolicies_GetPolicyInformationCount
  */
 
 NSS_EXTERN NSSPKIXPolicyInformation **
-NSSPKIXCertificatePolicies_GetPolicyInformations
-(
+NSSPKIXCertificatePolicies_GetPolicyInformations (
   NSSPKIXCertificatePolicies *cp,
   NSSPKIXPolicyInformation *rvOpt[],
   PRInt32 limit,
@@ -15490,8 +14881,7 @@ NSSPKIXCertificatePolicies_GetPolicyInformations
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXCertificatePolicies_SetPolicyInformations
-(
+NSSPKIXCertificatePolicies_SetPolicyInformations (
   NSSPKIXCertificatePolicies *cp,
   NSSPKIXPolicyInformation *pi[],
   PRInt32 count
@@ -15514,8 +14904,7 @@ NSSPKIXCertificatePolicies_SetPolicyInformations
  */
 
 NSS_EXTERN NSSPKIXPolicyInformation *
-NSSPKIXCertificatePolicies_GetPolicyInformation
-(
+NSSPKIXCertificatePolicies_GetPolicyInformation (
   NSSPKIXCertificatePolicies *cp,
   PRInt32 i,
   NSSArena *arenaOpt
@@ -15538,8 +14927,7 @@ NSSPKIXCertificatePolicies_GetPolicyInformation
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXCertificatePolicies_SetPolicyInformation
-(
+NSSPKIXCertificatePolicies_SetPolicyInformation (
   NSSPKIXCertificatePolicies *cp,
   PRInt32 i,
   NSSPKIXPolicyInformation *pi
@@ -15562,8 +14950,7 @@ NSSPKIXCertificatePolicies_SetPolicyInformation
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXCertificatePolicies_InsertPolicyInformation
-(
+NSSPKIXCertificatePolicies_InsertPolicyInformation (
   NSSPKIXCertificatePolicies *cp,
   PRInt32 i,
   NSSPKIXPolicyInformation *pi
@@ -15585,8 +14972,7 @@ NSSPKIXCertificatePolicies_InsertPolicyInformation
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXCertificatePolicies_AppendPolicyInformation
-(
+NSSPKIXCertificatePolicies_AppendPolicyInformation (
   NSSPKIXCertificatePolicies *cp,
   NSSPKIXPolicyInformation *pi
 );
@@ -15606,8 +14992,7 @@ NSSPKIXCertificatePolicies_AppendPolicyInformation
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXCertificatePolicies_RemovePolicyInformation
-(
+NSSPKIXCertificatePolicies_RemovePolicyInformation (
   NSSPKIXCertificatePolicies *cp,
   PRInt32 i
 );
@@ -15627,8 +15012,7 @@ NSSPKIXCertificatePolicies_RemovePolicyInformation
  */
 
 NSS_EXTERN PRInt32
-NSSPKIXCertificatePolicies_FindPolicyInformation
-(
+NSSPKIXCertificatePolicies_FindPolicyInformation (
   NSSPKIXCertificatePolicies *cp,
   NSSPKIXPolicyInformation *pi
 );
@@ -15648,8 +15032,7 @@ NSSPKIXCertificatePolicies_FindPolicyInformation
  */
 
 NSS_EXTERN PRBool
-NSSPKIXCertificatePolicies_Equal
-(
+NSSPKIXCertificatePolicies_Equal (
   NSSPKIXCertificatePolicies *cp1,
   NSSPKIXCertificatePolicies *cp2,
   PRStatus *statusOpt
@@ -15671,8 +15054,7 @@ NSSPKIXCertificatePolicies_Equal
  */
 
 NSS_EXTERN NSSPKIXCertificatePolicies *
-NSSPKIXCertificatePolicies_Duplicate
-(
+NSSPKIXCertificatePolicies_Duplicate (
   NSSPKIXCertificatePolicies *cp,
   NSSArena *arenaOpt
 );
@@ -15727,8 +15109,7 @@ NSSPKIXCertificatePolicies_Duplicate
  */
 
 NSS_EXTERN NSSPKIXPolicyInformation *
-NSSPKIXPolicyInformation_Decode
-(
+NSSPKIXPolicyInformation_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -15750,8 +15131,7 @@ NSSPKIXPolicyInformation_Decode
  */
 
 NSS_EXTERN NSSPKIXPolicyInformation *
-NSSPKIXPolicyInformation_Create
-(
+NSSPKIXPolicyInformation_Create (
   NSSArena *arenaOpt,
   NSSPKIXCertPolicyId *id,
   NSSPKIXPolicyQualifierInfo *pqi1,
@@ -15772,8 +15152,7 @@ NSSPKIXPolicyInformation_Create
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXPolicyInformation_Destroy
-(
+NSSPKIXPolicyInformation_Destroy (
   NSSPKIXPolicyInformation *pi
 );
 
@@ -15793,8 +15172,7 @@ NSSPKIXPolicyInformation_Destroy
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXPolicyInformation_Encode
-(
+NSSPKIXPolicyInformation_Encode (
   NSSPKIXPolicyInformation *pi,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -15816,8 +15194,7 @@ NSSPKIXPolicyInformation_Encode
  */
 
 NSS_EXTERN NSSPKIXCertPolicyId *
-NSSPKIXPolicyInformation_GetPolicyIdentifier
-(
+NSSPKIXPolicyInformation_GetPolicyIdentifier (
   NSSPKIXPolicyInformation *pi
 );
 
@@ -15836,8 +15213,7 @@ NSSPKIXPolicyInformation_GetPolicyIdentifier
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXPolicyInformation_SetPolicyIdentifier
-(
+NSSPKIXPolicyInformation_SetPolicyIdentifier (
   NSSPKIXPolicyInformation *pi,
   NSSPKIXCertPolicyIdentifier *cpi
 );
@@ -15857,8 +15233,7 @@ NSSPKIXPolicyInformation_SetPolicyIdentifier
  */
 
 NSS_EXTERN PRInt32
-NSSPKIXPolicyInformation_GetPolicyQualifierCount
-(
+NSSPKIXPolicyInformation_GetPolicyQualifierCount (
   NSSPKIXPolicyInformation *pi
 );
 
@@ -15880,8 +15255,7 @@ NSSPKIXPolicyInformation_GetPolicyQualifierCount
  */
 
 NSS_EXTERN NSSPKIXPolicyQualifierInfo **
-NSSPKIXPolicyInformation_GetPolicyQualifiers
-(
+NSSPKIXPolicyInformation_GetPolicyQualifiers (
   NSSPKIXPolicyInformation *pi,
   NSSPKIXPolicyQualifierInfo *rvOpt[],
   PRInt32 limit,
@@ -15904,8 +15278,7 @@ NSSPKIXPolicyInformation_GetPolicyQualifiers
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXPolicyInformation_SetPolicyQualifiers
-(
+NSSPKIXPolicyInformation_SetPolicyQualifiers (
   NSSPKIXPolicyInformation *pi,
   NSSPKIXPolicyQualifierInfo *pqi[],
   PRInt32 count
@@ -15928,8 +15301,7 @@ NSSPKIXPolicyInformation_SetPolicyQualifiers
  */
 
 NSS_EXTERN NSSPKIXPolicyQualifierInfo *
-NSSPKIXPolicyInformation_GetPolicyQualifier
-(
+NSSPKIXPolicyInformation_GetPolicyQualifier (
   NSSPKIXPolicyInformation *pi,
   PRInt32 i,
   NSSArena *arenaOpt
@@ -15952,8 +15324,7 @@ NSSPKIXPolicyInformation_GetPolicyQualifier
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXPolicyInformation_SetPolicyQualifier
-(
+NSSPKIXPolicyInformation_SetPolicyQualifier (
   NSSPKIXPolicyInformation *pi,
   PRInt32 i,
   NSSPKIXPolicyQualifierInfo *pqi
@@ -15976,8 +15347,7 @@ NSSPKIXPolicyInformation_SetPolicyQualifier
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXPolicyInformation_InsertPolicyQualifier
-(
+NSSPKIXPolicyInformation_InsertPolicyQualifier (
   NSSPKIXPolicyInformation *pi,
   PRInt32 i,
   NSSPKIXPolicyQualifierInfo *pqi
@@ -15999,8 +15369,7 @@ NSSPKIXPolicyInformation_InsertPolicyQualifier
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXPolicyInformation_AppendPolicyQualifier
-(
+NSSPKIXPolicyInformation_AppendPolicyQualifier (
   NSSPKIXPolicyInformation *pi,
   PRInt32 i,
   NSSPKIXPolicyQualifierInfo *pqi
@@ -16021,8 +15390,7 @@ NSSPKIXPolicyInformation_AppendPolicyQualifier
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXPolicyInformation_RemovePolicyQualifier
-(
+NSSPKIXPolicyInformation_RemovePolicyQualifier (
   NSSPKIXPolicyInformation *pi,
   PRInt32 i
 );
@@ -16042,8 +15410,7 @@ NSSPKIXPolicyInformation_RemovePolicyQualifier
  */
 
 NSS_EXTERN PRBool
-NSSPKIXPolicyInformation_Equal
-(
+NSSPKIXPolicyInformation_Equal (
   NSSPKIXPolicyInformation *pi1,
   NSSPKIXPolicyInformation *pi2,
   PRStatus *statusOpt
@@ -16065,8 +15432,7 @@ NSSPKIXPolicyInformation_Equal
  */
 
 NSS_EXTERN NSSPKIXPolicyInformation *
-NSSPKIXPolicyInformation_Duplicate
-(
+NSSPKIXPolicyInformation_Duplicate (
   NSSPKIXPolicyInformation *pi,
   NSSArena *arenaOpt
 );
@@ -16119,8 +15485,7 @@ NSSPKIXPolicyInformation_Duplicate
  */
 
 NSS_EXTERN NSSPKIXPolicyQualifierInfo *
-NSSPKIXPolicyQualifierInfo_Decode
-(
+NSSPKIXPolicyQualifierInfo_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -16142,8 +15507,7 @@ NSSPKIXPolicyQualifierInfo_Decode
  */
 
 NSS_EXTERN NSSPKIXPolicyQualifierInfo *
-NSSPKIXPolicyQualifierInfo_Create
-(
+NSSPKIXPolicyQualifierInfo_Create (
   NSSArena *arenaOpt,
   NSSPKIXPolicyQualifierId *policyQualifierId,
   NSSItem *qualifier
@@ -16163,8 +15527,7 @@ NSSPKIXPolicyQualifierInfo_Create
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXPolicyQualifierInfo_Destroy
-(
+NSSPKIXPolicyQualifierInfo_Destroy (
   NSSPKIXPolicyQualifierInfo *pqi
 );
 
@@ -16184,8 +15547,7 @@ NSSPKIXPolicyQualifierInfo_Destroy
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXPolicyQualifierInfo_Encode
-(
+NSSPKIXPolicyQualifierInfo_Encode (
   NSSPKIXPolicyQualifierInfo *pqi,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -16207,8 +15569,7 @@ NSSPKIXPolicyQualifierInfo_Encode
  */
 
 NSS_EXTERN NSSPKIXPolicyQualifierId *
-NSSPKIXPolicyQualifierInfo_GetPolicyQualifierId
-(
+NSSPKIXPolicyQualifierInfo_GetPolicyQualifierId (
   NSSPKIXPolicyQualifierInfo *pqi,
   NSSArena *arenaOpt
 );
@@ -16229,8 +15590,7 @@ NSSPKIXPolicyQualifierInfo_GetPolicyQualifierId
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXPolicyQualifierInfo_SetPolicyQualifierId
-(
+NSSPKIXPolicyQualifierInfo_SetPolicyQualifierId (
   NSSPKIXPolicyQualifierInfo *pqi,
   NSSPKIXPolicyQualifierId *pqid
 );
@@ -16251,8 +15611,7 @@ NSSPKIXPolicyQualifierInfo_SetPolicyQualifierId
  */
 
 NSS_EXTERN NSSItem *
-NSSPKIXPolicyQualifierInfo_GetQualifier
-(
+NSSPKIXPolicyQualifierInfo_GetQualifier (
   NSSPKIXPolicyQualifierInfo *pqi,
   NSSItem *rvOpt,
   NSSArena *arenaOpt
@@ -16274,8 +15633,7 @@ NSSPKIXPolicyQualifierInfo_GetQualifier
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXPolicyQualifierInfo_SetQualifier
-(
+NSSPKIXPolicyQualifierInfo_SetQualifier (
   NSSPKIXPolicyQualifierInfo *pqi,
   NSSItem *qualifier
 );
@@ -16295,8 +15653,7 @@ NSSPKIXPolicyQualifierInfo_SetQualifier
  */
 
 NSS_EXTERN PRBool
-NSSPKIXPolicyQualifierInfo_Equal
-(
+NSSPKIXPolicyQualifierInfo_Equal (
   NSSPKIXPolicyQualifierInfo *pqi1,
   NSSPKIXPolicyQualifierInfo *pqi2,
   PRStatus *statusOpt
@@ -16318,8 +15675,7 @@ NSSPKIXPolicyQualifierInfo_Equal
  */
 
 NSS_EXTERN NSSPKIXPolicyQualifierInfo *
-NSSPKIXPolicyQualifierInfo_Duplicate
-(
+NSSPKIXPolicyQualifierInfo_Duplicate (
   NSSPKIXPolicyQualifierInfo *pqi,
   NSSArena *arenaOpt
 );
@@ -16362,8 +15718,7 @@ NSSPKIXPolicyQualifierInfo_Duplicate
  */
 
 NSS_EXTERN NSSPKIXCPSuri *
-NSSPKIXCPSuri_Decode
-(
+NSSPKIXCPSuri_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -16384,8 +15739,7 @@ NSSPKIXCPSuri_Decode
  */
 
 NSS_EXTERN NSSPKIXCPSuri *
-NSSPKIXCPSuri_CreateFromUTF8
-(
+NSSPKIXCPSuri_CreateFromUTF8 (
   NSSArena *arenaOpt,
   NSSUTF8 *utf8
 );
@@ -16405,8 +15759,7 @@ NSSPKIXCPSuri_CreateFromUTF8
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXCPSuri_Encode
-(
+NSSPKIXCPSuri_Encode (
   NSSPKIXCPSuri *name,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -16460,8 +15813,7 @@ NSSPKIXCPSuri_Encode
  */
 
 NSS_EXTERN NSSPKIXUserNotice *
-NSSPKIXUserNotice_Decode
-(
+NSSPKIXUserNotice_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -16483,8 +15835,7 @@ NSSPKIXUserNotice_Decode
  */
 
 NSS_EXTERN NSSPKIXUserNotice *
-NSSPKIXUserNotice_Create
-(
+NSSPKIXUserNotice_Create (
   NSSArena *arenaOpt,
   NSSPKIXNoticeReference *noticeRef,
   NSSPKIXDisplayText *explicitText
@@ -16504,8 +15855,7 @@ NSSPKIXUserNotice_Create
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXUserNotice_Destroy
-(
+NSSPKIXUserNotice_Destroy (
   NSSPKIXUserNotice *userNotice
 );
 
@@ -16525,8 +15875,7 @@ NSSPKIXUserNotice_Destroy
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXUserNotice_Encode
-(
+NSSPKIXUserNotice_Encode (
   NSSPKIXUserNotice *userNotice,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -16548,8 +15897,7 @@ NSSPKIXUserNotice_Encode
  */
 
 NSS_EXTERN PRBool
-NSSPKIXUserNotice_HasNoticeRef
-(
+NSSPKIXUserNotice_HasNoticeRef (
   NSSPKIXUserNotice *userNotice,
   PRStatus *statusOpt
 );
@@ -16571,8 +15919,7 @@ NSSPKIXUserNotice_HasNoticeRef
  */
 
 NSS_EXTERN NSSPKIXNoticeReference *
-NSSPKIXUserNotice_GetNoticeRef
-(
+NSSPKIXUserNotice_GetNoticeRef (
   NSSPKIXUserNotice *userNotice,
   NSSArena *arenaOpt
 );
@@ -16593,8 +15940,7 @@ NSSPKIXUserNotice_GetNoticeRef
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXUserNotice_SetNoticeRef
-(
+NSSPKIXUserNotice_SetNoticeRef (
   NSSPKIXUserNotice *userNotice,
   NSSPKIXNoticeReference *noticeRef
 );
@@ -16614,8 +15960,7 @@ NSSPKIXUserNotice_SetNoticeRef
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXUserNotice_RemoveNoticeRef
-(
+NSSPKIXUserNotice_RemoveNoticeRef (
   NSSPKIXUserNotice *userNotice
 );
 
@@ -16634,8 +15979,7 @@ NSSPKIXUserNotice_RemoveNoticeRef
  */
 
 NSS_EXTERN PRBool
-NSSPKIXUserNotice_HasExplicitText
-(
+NSSPKIXUserNotice_HasExplicitText (
   NSSPKIXUserNotice *userNotice,
   PRStatus *statusOpt
 );
@@ -16657,8 +16001,7 @@ NSSPKIXUserNotice_HasExplicitText
  */
 
 NSS_EXTERN NSSPKIXDisplayText *
-NSSPKIXUserNotice_GetExplicitText
-(
+NSSPKIXUserNotice_GetExplicitText (
   NSSPKIXUserNotice *userNotice,
   NSSArena *arenaOpt
 );
@@ -16679,8 +16022,7 @@ NSSPKIXUserNotice_GetExplicitText
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXUserNotice_SetExplicitText
-(
+NSSPKIXUserNotice_SetExplicitText (
   NSSPKIXUserNotice *userNotice,
   NSSPKIXDisplayText *explicitText
 );
@@ -16700,8 +16042,7 @@ NSSPKIXUserNotice_SetExplicitText
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXUserNotice_RemoveExplicitText
-(
+NSSPKIXUserNotice_RemoveExplicitText (
   NSSPKIXUserNotice *userNotice
 );
 
@@ -16720,8 +16061,7 @@ NSSPKIXUserNotice_RemoveExplicitText
  */
 
 NSS_EXTERN PRBool
-NSSPKIXUserNotice_Equal
-(
+NSSPKIXUserNotice_Equal (
   NSSPKIXUserNotice *userNotice1,
   NSSPKIXUserNotice *userNotice2,
   PRStatus *statusOpt
@@ -16743,8 +16083,7 @@ NSSPKIXUserNotice_Equal
  */
 
 NSS_EXTERN NSSPKIXUserNotice *
-NSSPKIXUserNotice_Duplicate
-(
+NSSPKIXUserNotice_Duplicate (
   NSSPKIXUserNotice *userNotice,
   NSSArena *arenaOpt
 );
@@ -16798,8 +16137,7 @@ NSSPKIXUserNotice_Duplicate
  */
 
 NSS_EXTERN NSSPKIXNoticeReference *
-NSSPKIXNoticeReference_Decode
-(
+NSSPKIXNoticeReference_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -16820,8 +16158,7 @@ NSSPKIXNoticeReference_Decode
  */
 
 NSS_EXTERN NSSPKIXNoticeReference *
-NSSPKIXNoticeReference_Create
-(
+NSSPKIXNoticeReference_Create (
   NSSArena *arenaOpt,
   NSSPKIXDisplayText *organization,
   PRUint32 noticeCount,
@@ -16848,8 +16185,7 @@ NSSPKIXNoticeReference_Create
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXNoticeReference_Destroy
-(
+NSSPKIXNoticeReference_Destroy (
   NSSPKIXNoticeReference *nr
 );
 
@@ -16869,8 +16205,7 @@ NSSPKIXNoticeReference_Destroy
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXNoticeReference_Encode
-(
+NSSPKIXNoticeReference_Encode (
   NSSPKIXNoticeReference *nr,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -16893,8 +16228,7 @@ NSSPKIXNoticeReference_Encode
  */
 
 NSS_EXTERN NSSPKIXDisplayText *
-NSSPKIXNoticeReference_GetOrganization
-(
+NSSPKIXNoticeReference_GetOrganization (
   NSSPKIXNoticeReference *nr,
   NSSArena *arenaOpt
 );
@@ -16915,8 +16249,7 @@ NSSPKIXNoticeReference_GetOrganization
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXNoticeReference_SetOrganization
-(
+NSSPKIXNoticeReference_SetOrganization (
   NSSPKIXNoticeReference *nr,
   NSSPKIXDisplayText *organization
 );
@@ -16936,8 +16269,7 @@ NSSPKIXNoticeReference_SetOrganization
  */
 
 NSS_EXTERN PRInt32
-NSSPKIXNoticeReference_GetNoticeNumberCount
-(
+NSSPKIXNoticeReference_GetNoticeNumberCount (
   NSSPKIXNoticeReference *nr
 );
 
@@ -16959,8 +16291,7 @@ NSSPKIXNoticeReference_GetNoticeNumberCount
  */
 
 NSS_EXTERN PRInt32 *
-NSSPKIXNoticeReference_GetNoticeNumbers
-(
+NSSPKIXNoticeReference_GetNoticeNumbers (
   NSSPKIXNoticeReference *nr,
   PRInt32 rvOpt[],
   PRInt32 limit,
@@ -16982,8 +16313,7 @@ NSSPKIXNoticeReference_GetNoticeNumbers
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXNoticeReference_SetNoticeNumbers
-(
+NSSPKIXNoticeReference_SetNoticeNumbers (
   NSSPKIXNoticeReference *nr,
   PRInt32 noticeNumbers[],
   PRInt32 count
@@ -17007,8 +16337,7 @@ NSSPKIXNoticeReference_SetNoticeNumbers
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXNoticeReference_GetNoticeNumber
-(
+NSSPKIXNoticeReference_GetNoticeNumber (
   NSSPKIXNoticeReference *nr,
   PRInt32 i,
   PRInt32 *noticeNumberP
@@ -17029,8 +16358,7 @@ NSSPKIXNoticeReference_GetNoticeNumber
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXNoticeReference_SetNoticeNumber
-(
+NSSPKIXNoticeReference_SetNoticeNumber (
   NSSPKIXNoticeReference *nr,
   PRInt32 i,
   PRInt32 noticeNumber
@@ -17052,8 +16380,7 @@ NSSPKIXNoticeReference_SetNoticeNumber
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXNoticeReference_InsertNoticeNumber
-(
+NSSPKIXNoticeReference_InsertNoticeNumber (
   NSSPKIXNoticeReference *nr,
   PRInt32 i,
   PRInt32 noticeNumber
@@ -17074,8 +16401,7 @@ NSSPKIXNoticeReference_InsertNoticeNumber
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXNoticeReference_AppendNoticeNumber
-(
+NSSPKIXNoticeReference_AppendNoticeNumber (
   NSSPKIXNoticeReference *nr,
   PRInt32 noticeNumber
 );
@@ -17095,8 +16421,7 @@ NSSPKIXNoticeReference_AppendNoticeNumber
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXNoticeReference_RemoveNoticeNumber
-(
+NSSPKIXNoticeReference_RemoveNoticeNumber (
   NSSPKIXNoticeReference *nr,
   PRInt32 i
 );
@@ -17120,8 +16445,7 @@ NSSPKIXNoticeReference_RemoveNoticeNumber
  */
 
 NSS_EXTERN PRBool
-NSSPKIXNoticeReference_Equal
-(
+NSSPKIXNoticeReference_Equal (
   NSSPKIXNoticeReference *nr1,
   NSSPKIXNoticeReference *nr2,
   PRStatus *statusOpt
@@ -17143,8 +16467,7 @@ NSSPKIXNoticeReference_Equal
  */
 
 NSS_EXTERN NSSPKIXNoticeReference *
-NSSPKIXNoticeReference_Duplicate
-(
+NSSPKIXNoticeReference_Duplicate (
   NSSPKIXNoticeReference *nr,
   NSSArena *arenaOpt
 );
@@ -17185,8 +16508,7 @@ NSSPKIXNoticeReference_Duplicate
  */
 
 NSS_EXTERN NSSPKIXDisplayText *
-NSSPKIXDisplayText_Decode
-(
+NSSPKIXDisplayText_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -17207,8 +16529,7 @@ NSSPKIXDisplayText_Decode
  */
 
 NSS_EXTERN NSSPKIXDisplayText *
-NSSPKIXDisplayText_CreateFromUTF8
-(
+NSSPKIXDisplayText_CreateFromUTF8 (
   NSSArena *arenaOpt,
   NSSUTF8 *utf8
 );
@@ -17228,8 +16549,7 @@ NSSPKIXDisplayText_CreateFromUTF8
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXDisplayText_Encode
-(
+NSSPKIXDisplayText_Encode (
   NSSPKIXDisplayText *name,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -17290,8 +16610,7 @@ NSSPKIXDisplayText_Encode
  */
 
 NSS_EXTERN NSSPKIXPolicyMappings *
-NSSPKIXPolicyMappings_Decode
-(
+NSSPKIXPolicyMappings_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -17312,8 +16631,7 @@ NSSPKIXPolicyMappings_Decode
  */
 
 NSS_EXTERN NSSPKIXPolicyMappings *
-NSSPKIXPolicyMappings_Decode
-(
+NSSPKIXPolicyMappings_Decode (
   NSSArena *arenaOpt,
   NSSPKIXpolicyMapping *policyMapping1,
   ...
@@ -17333,8 +16651,7 @@ NSSPKIXPolicyMappings_Decode
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXPolicyMappings_Destroy
-(
+NSSPKIXPolicyMappings_Destroy (
   NSSPKIXPolicyMappings *policyMappings
 );
 
@@ -17355,8 +16672,7 @@ NSSPKIXPolicyMappings_Destroy
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXPolicyMappings_Encode
-(
+NSSPKIXPolicyMappings_Encode (
   NSSPKIXPolicyMappings *policyMappings,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -17378,8 +16694,7 @@ NSSPKIXPolicyMappings_Encode
  */
 
 NSS_EXTERN PRInt32
-NSSPKIXPolicyMappings_GetPolicyMappingCount
-(
+NSSPKIXPolicyMappings_GetPolicyMappingCount (
   NSSPKIXPolicyMappings *policyMappings
 );
 
@@ -17401,8 +16716,7 @@ NSSPKIXPolicyMappings_GetPolicyMappingCount
  */
 
 NSS_EXTERN NSSPKIXpolicyMapping **
-NSSPKIXPolicyMappings_GetPolicyMappings
-(
+NSSPKIXPolicyMappings_GetPolicyMappings (
   NSSPKIXPolicyMappings *policyMappings
   NSSPKIXpolicyMapping *rvOpt[],
   PRInt32 limit,
@@ -17425,8 +16739,7 @@ NSSPKIXPolicyMappings_GetPolicyMappings
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXPolicyMappings_SetPolicyMappings
-(
+NSSPKIXPolicyMappings_SetPolicyMappings (
   NSSPKIXPolicyMappings *policyMappings
   NSSPKIXpolicyMapping *policyMapping[]
   PRInt32 count
@@ -17449,8 +16762,7 @@ NSSPKIXPolicyMappings_SetPolicyMappings
  */
 
 NSS_EXTERN NSSPKIXpolicyMapping *
-NSSPKIXPolicyMappings_GetPolicyMapping
-(
+NSSPKIXPolicyMappings_GetPolicyMapping (
   NSSPKIXPolicyMappings *policyMappings
   PRInt32 i,
   NSSArena *arenaOpt
@@ -17473,8 +16785,7 @@ NSSPKIXPolicyMappings_GetPolicyMapping
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXPolicyMappings_SetPolicyMapping
-(
+NSSPKIXPolicyMappings_SetPolicyMapping (
   NSSPKIXPolicyMappings *policyMappings
   PRInt32 i,
   NSSPKIXpolicyMapping *policyMapping
@@ -17497,8 +16808,7 @@ NSSPKIXPolicyMappings_SetPolicyMapping
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXPolicyMappings_InsertPolicyMapping
-(
+NSSPKIXPolicyMappings_InsertPolicyMapping (
   NSSPKIXPolicyMappings *policyMappings
   PRInt32 i,
   NSSPKIXpolicyMapping *policyMapping
@@ -17520,8 +16830,7 @@ NSSPKIXPolicyMappings_InsertPolicyMapping
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXPolicyMappings_AppendPolicyMapping
-(
+NSSPKIXPolicyMappings_AppendPolicyMapping (
   NSSPKIXPolicyMappings *policyMappings
   NSSPKIXpolicyMapping *policyMapping
 );
@@ -17541,8 +16850,7 @@ NSSPKIXPolicyMappings_AppendPolicyMapping
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXPolicyMappings_RemovePolicyMapping
-(
+NSSPKIXPolicyMappings_RemovePolicyMapping (
   NSSPKIXPolicyMappings *policyMappings
   PRInt32 i
 );
@@ -17564,8 +16872,7 @@ NSSPKIXPolicyMappings_RemovePolicyMapping
  */
 
 NSS_EXTERN PRInt32
-NSSPKIXPolicyMappings_FindPolicyMapping
-(
+NSSPKIXPolicyMappings_FindPolicyMapping (
   NSSPKIXPolicyMappings *policyMappings
   NSSPKIXpolicyMapping *policyMapping
 );
@@ -17585,8 +16892,7 @@ NSSPKIXPolicyMappings_FindPolicyMapping
  */
 
 NSS_EXTERN PRBool
-NSSPKIXPolicyMappings_Equal
-(
+NSSPKIXPolicyMappings_Equal (
   NSSPKIXPolicyMappings *policyMappings1,
   NSSPKIXpolicyMappings *policyMappings2,
   PRStatus *statusOpt
@@ -17608,8 +16914,7 @@ NSSPKIXPolicyMappings_Equal
  */
 
 NSS_EXTERN NSSPKIXPolicyMappings *
-NSSPKIXPolicyMappings_Duplicate
-(
+NSSPKIXPolicyMappings_Duplicate (
   NSSPKIXPolicyMappings *policyMappings,
   NSSArena *arenaOpt
 );
@@ -17630,8 +16935,7 @@ NSSPKIXPolicyMappings_Duplicate
  */
 
 NSS_EXTERN PRBool
-NSSPKIXPolicyMappings_IssuerDomainPolicyExists
-(
+NSSPKIXPolicyMappings_IssuerDomainPolicyExists (
   NSSPKIXPolicyMappings *policyMappings,
   NSSPKIXCertPolicyId *issuerDomainPolicy,
   PRStatus *statusOpt
@@ -17653,8 +16957,7 @@ NSSPKIXPolicyMappings_IssuerDomainPolicyExists
  */
 
 NSS_EXTERN PRBool
-NSSPKIXPolicyMappings_SubjectDomainPolicyExists
-(
+NSSPKIXPolicyMappings_SubjectDomainPolicyExists (
   NSSPKIXPolicyMappings *policyMappings,
   NSSPKIXCertPolicyId *subjectDomainPolicy,
   PRStatus *statusOpt
@@ -17677,8 +16980,7 @@ NSSPKIXPolicyMappings_SubjectDomainPolicyExists
  */
 
 NSS_EXTERN PRInt32
-NSSPKIXPolicyMappings_FindIssuerDomainPolicy
-(
+NSSPKIXPolicyMappings_FindIssuerDomainPolicy (
   NSSPKIXPolicyMappings *policyMappings,
   NSSPKIXCertPolicyId *issuerDomainPolicy
 );
@@ -17700,8 +17002,7 @@ NSSPKIXPolicyMappings_FindIssuerDomainPolicy
  */
 
 NSS_EXTERN PRInt32
-NSSPKIXPolicyMappings_FindSubjectDomainPolicy
-(
+NSSPKIXPolicyMappings_FindSubjectDomainPolicy (
   NSSPKIXPolicyMappings *policyMappings,
   NSSPKIXCertPolicyId *issuerDomainPolicy
 );
@@ -17722,8 +17023,7 @@ NSSPKIXPolicyMappings_FindSubjectDomainPolicy
  */
 
 NSS_EXTERN NSSPKIXCertPolicyId *
-NSSPKIXPolicyMappings_MapIssuerToSubject
-(
+NSSPKIXPolicyMappings_MapIssuerToSubject (
   NSSPKIXPolicyMappings *policyMappings,
   NSSPKIXCertPolicyId *issuerDomainPolicy
 );
@@ -17744,8 +17044,7 @@ NSSPKIXPolicyMappings_MapIssuerToSubject
  */
 
 NSS_EXTERN NSSPKIXCertPolicyId *
-NSSPKIXPolicyMappings_MapSubjectToIssuer
-(
+NSSPKIXPolicyMappings_MapSubjectToIssuer (
   NSSPKIXPolicyMappings *policyMappings,
   NSSPKIXCertPolicyId *issuerDomainPolicy
 );
@@ -17790,8 +17089,7 @@ NSSPKIXPolicyMappings_MapSubjectToIssuer
  */
 
 NSS_EXTERN NSSPKIXpolicyMapping *
-NSSPKIXpolicyMapping_Decode
-(
+NSSPKIXpolicyMapping_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -17812,8 +17110,7 @@ NSSPKIXpolicyMapping_Decode
  */
 
 NSS_EXTERN NSSPKIXpolicyMapping *
-NSSPKIXpolicyMapping_Create
-(
+NSSPKIXpolicyMapping_Create (
   NSSArena *arenaOpt,
   NSSPKIXCertPolicyId *issuerDomainPolicy,
   NSSPKIXCertPolicyId *subjectDomainPolicy
@@ -17833,8 +17130,7 @@ NSSPKIXpolicyMapping_Create
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXpolicyMapping_Destroy
-(
+NSSPKIXpolicyMapping_Destroy (
   NSSPKIXpolicyMapping *policyMapping
 );
 
@@ -17855,8 +17151,7 @@ NSSPKIXpolicyMapping_Destroy
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXpolicyMapping_Encode
-(
+NSSPKIXpolicyMapping_Encode (
   NSSPKIXpolicyMapping *policyMapping,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -17878,8 +17173,7 @@ NSSPKIXpolicyMapping_Encode
  */
 
 NSS_EXTERN NSSPKIXCertPolicyId *
-NSSPKIXpolicyMapping_GetIssuerDomainPolicy
-(
+NSSPKIXpolicyMapping_GetIssuerDomainPolicy (
   NSSPKIXpolicyMapping *policyMapping
 );
 
@@ -17899,8 +17193,7 @@ NSSPKIXpolicyMapping_GetIssuerDomainPolicy
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXpolicyMapping_SetIssuerDomainPolicy
-(
+NSSPKIXpolicyMapping_SetIssuerDomainPolicy (
   NSSPKIXpolicyMapping *policyMapping,
   NSSPKIXCertPolicyId *issuerDomainPolicy
 );
@@ -17920,8 +17213,7 @@ NSSPKIXpolicyMapping_SetIssuerDomainPolicy
  */
 
 NSS_EXTERN NSSPKIXCertPolicyId *
-NSSPKIXpolicyMapping_GetSubjectDomainPolicy
-(
+NSSPKIXpolicyMapping_GetSubjectDomainPolicy (
   NSSPKIXpolicyMapping *policyMapping
 );
 
@@ -17941,8 +17233,7 @@ NSSPKIXpolicyMapping_GetSubjectDomainPolicy
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXpolicyMapping_SetSubjectDomainPolicy
-(
+NSSPKIXpolicyMapping_SetSubjectDomainPolicy (
   NSSPKIXpolicyMapping *policyMapping,
   NSSPKIXCertPolicyId *subjectDomainPolicy
 );
@@ -17962,8 +17253,7 @@ NSSPKIXpolicyMapping_SetSubjectDomainPolicy
  */
 
 NSS_EXTERN PRBool
-NSSPKIXpolicyMapping_Equal
-(
+NSSPKIXpolicyMapping_Equal (
   NSSPKIXpolicyMapping *policyMapping1,
   NSSPKIXpolicyMapping *policyMapping2,
   PRStatus *statusOpt
@@ -17985,8 +17275,7 @@ NSSPKIXpolicyMapping_Equal
  */
 
 NSS_EXTERN NSSPKIXpolicyMapping *
-NSSPKIXpolicyMapping_Duplicate
-(
+NSSPKIXpolicyMapping_Duplicate (
   NSSPKIXpolicyMapping *policyMapping,
   NSSArena *arenaOpt
 );
@@ -18060,8 +17349,7 @@ NSSPKIXpolicyMapping_Duplicate
  */
 
 NSS_EXTERN NSSPKIXGeneralName *
-NSSPKIXGeneralName_Decode
-(
+NSSPKIXGeneralName_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -18082,8 +17370,7 @@ NSSPKIXGeneralName_Decode
  */
 
 NSS_EXTERN NSSPKIXGeneralName *
-NSSPKIXGeneralName_CreateFromUTF8
-(
+NSSPKIXGeneralName_CreateFromUTF8 (
   NSSArena *arenaOpt,
   NSSUTF8 *utf8
 );
@@ -18111,8 +17398,7 @@ NSSPKIXGeneralName_CreateFromUTF8
  */
 
 NSS_EXTERN NSSPKIXGeneralName *
-NSSPKIXGeneralName_Create
-(
+NSSPKIXGeneralName_Create (
   NSSArena *arenaOpt,
   NSSPKIXGeneralNameChoice choice,
   void *content
@@ -18134,8 +17420,7 @@ NSSPKIXGeneralName_Create
  */
 
 NSS_EXTERN NSSPKIXGeneralName *
-NSSPKIXGeneralName_CreateFromOtherName
-(
+NSSPKIXGeneralName_CreateFromOtherName (
   NSSArena *arenaOpt,
   NSSPKIXAnotherName *otherName
 );
@@ -18156,8 +17441,7 @@ NSSPKIXGeneralName_CreateFromOtherName
  */
 
 NSS_EXTERN NSSPKIXGeneralName *
-NSSPKIXGeneralName_CreateFromRfc822Name
-(
+NSSPKIXGeneralName_CreateFromRfc822Name (
   NSSArena *arenaOpt,
   NSSUTF8 *rfc822Name
 );
@@ -18178,8 +17462,7 @@ NSSPKIXGeneralName_CreateFromRfc822Name
  */
 
 NSS_EXTERN NSSPKIXGeneralName *
-NSSPKIXGeneralName_CreateFromDNSName
-(
+NSSPKIXGeneralName_CreateFromDNSName (
   NSSArena *arenaOpt,
   NSSUTF8 *dNSName
 );
@@ -18200,8 +17483,7 @@ NSSPKIXGeneralName_CreateFromDNSName
  */
 
 NSS_EXTERN NSSPKIXGeneralName *
-NSSPKIXGeneralName_CreateFromX400Address
-(
+NSSPKIXGeneralName_CreateFromX400Address (
   NSSArena *arenaOpt,
   NSSPKIXORAddress *x400Address
 );
@@ -18222,8 +17504,7 @@ NSSPKIXGeneralName_CreateFromX400Address
  */
 
 NSS_EXTERN NSSPKIXGeneralName *
-NSSPKIXGeneralName_CreateFromDirectoryName
-(
+NSSPKIXGeneralName_CreateFromDirectoryName (
   NSSArena *arenaOpt,
   NSSPKIXName *directoryName
 );
@@ -18244,8 +17525,7 @@ NSSPKIXGeneralName_CreateFromDirectoryName
  */
 
 NSS_EXTERN NSSPKIXGeneralName *
-NSSPKIXGeneralName_CreateFromEDIPartyName
-(
+NSSPKIXGeneralName_CreateFromEDIPartyName (
   NSSArena *arenaOpt,
   NSSPKIXEDIPartyName *ediPartyname
 );
@@ -18266,8 +17546,7 @@ NSSPKIXGeneralName_CreateFromEDIPartyName
  */
 
 NSS_EXTERN NSSPKIXGeneralName *
-NSSPKIXGeneralName_CreateFromUniformResourceIdentifier
-(
+NSSPKIXGeneralName_CreateFromUniformResourceIdentifier (
   NSSArena *arenaOpt,
   NSSUTF8 *uniformResourceIdentifier
 );
@@ -18288,8 +17567,7 @@ NSSPKIXGeneralName_CreateFromUniformResourceIdentifier
  */
 
 NSS_EXTERN NSSPKIXGeneralName *
-NSSPKIXGeneralName_CreateFromIPAddress
-(
+NSSPKIXGeneralName_CreateFromIPAddress (
   NSSArena *arenaOpt,
   NSSItem *iPAddress
 );
@@ -18310,8 +17588,7 @@ NSSPKIXGeneralName_CreateFromIPAddress
  */
 
 NSS_EXTERN NSSPKIXGeneralName *
-NSSPKIXGeneralName_CreateFromRegisteredID
-(
+NSSPKIXGeneralName_CreateFromRegisteredID (
   NSSArena *arenaOpt,
   NSSOID *registeredID
 );
@@ -18330,8 +17607,7 @@ NSSPKIXGeneralName_CreateFromRegisteredID
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXGeneralName_Destroy
-(
+NSSPKIXGeneralName_Destroy (
   NSSPKIXGeneralName *generalName
 );
 
@@ -18351,8 +17627,7 @@ NSSPKIXGeneralName_Destroy
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXGeneralName_Encode
-(
+NSSPKIXGeneralName_Encode (
   NSSPKIXGeneralName *generalName,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -18375,8 +17650,7 @@ NSSPKIXGeneralName_Encode
  */
 
 NSS_EXTERN NSSUTF8 *
-NSSPKIXGeneralName_GetUTF8Encoding
-(
+NSSPKIXGeneralName_GetUTF8Encoding (
   NSSPKIXGeneralName *generalName,
   NSSArena *arenaOpt
 );
@@ -18395,8 +17669,7 @@ NSSPKIXGeneralName_GetUTF8Encoding
  */
 
 NSS_EXTERN NSSPKIXGeneralNameChoice
-NSSPKIXGeneralName_GetChoice
-(
+NSSPKIXGeneralName_GetChoice (
   NSSPKIXGeneralName *generalName
 );
 
@@ -18417,8 +17690,7 @@ NSSPKIXGeneralName_GetChoice
  */
 
 NSS_EXTERN NSSPKIXAnotherName *
-NSSPKIXGeneralName_GetOtherName
-(
+NSSPKIXGeneralName_GetOtherName (
   NSSPKIXGeneralName *generalName,
   NSSArena *arenaOpt
 );
@@ -18440,8 +17712,7 @@ NSSPKIXGeneralName_GetOtherName
  */
 
 NSS_EXTERN NSSUTF8 *
-NSSPKIXGeneralName_GetRfc822Name
-(
+NSSPKIXGeneralName_GetRfc822Name (
   NSSPKIXGeneralName *generalName,
   NSSArena *arenaOpt
 );
@@ -18463,8 +17734,7 @@ NSSPKIXGeneralName_GetRfc822Name
  */
 
 NSS_EXTERN NSSUTF8 *
-NSSPKIXGeneralName_GetDNSName
-(
+NSSPKIXGeneralName_GetDNSName (
   NSSPKIXGeneralName *generalName,
   NSSArena *arenaOpt
 );
@@ -18486,8 +17756,7 @@ NSSPKIXGeneralName_GetDNSName
  */
 
 NSS_EXTERN NSSPKIXORAddress *
-NSSPKIXGeneralName_GetX400Address
-(
+NSSPKIXGeneralName_GetX400Address (
   NSSPKIXGeneralName *generalName,
   NSSArena *arenaOpt
 );
@@ -18509,8 +17778,7 @@ NSSPKIXGeneralName_GetX400Address
  */
 
 NSS_EXTERN NSSPKIXName *
-NSSPKIXGeneralName_GetDirectoryName
-(
+NSSPKIXGeneralName_GetDirectoryName (
   NSSPKIXGeneralName *generalName,
   NSSArena *arenaOpt
 );
@@ -18532,8 +17800,7 @@ NSSPKIXGeneralName_GetDirectoryName
  */
 
 NSS_EXTERN NSSPKIXEDIPartyName *
-NSSPKIXGeneralName_GetEDIPartyName
-(
+NSSPKIXGeneralName_GetEDIPartyName (
   NSSPKIXGeneralName *generalName,
   NSSArena *arenaOpt
 );
@@ -18555,8 +17822,7 @@ NSSPKIXGeneralName_GetEDIPartyName
  */
 
 NSS_EXTERN NSSUTF8 *
-NSSPKIXGeneralName_GetUniformResourceIdentifier
-(
+NSSPKIXGeneralName_GetUniformResourceIdentifier (
   NSSPKIXGeneralName *generalName,
   NSSArena *arenaOpt
 );
@@ -18578,8 +17844,7 @@ NSSPKIXGeneralName_GetUniformResourceIdentifier
  */
 
 NSS_EXTERN NSSItem *
-NSSPKIXGeneralName_GetIPAddress
-(
+NSSPKIXGeneralName_GetIPAddress (
   NSSPKIXGeneralName *generalName,
   NSSItem *rvOpt,
   NSSArena *arenaOpt
@@ -18601,8 +17866,7 @@ NSSPKIXGeneralName_GetIPAddress
  */
 
 NSS_EXTERN NSSOID *
-NSSPKIXGeneralName_GetRegisteredID
-(
+NSSPKIXGeneralName_GetRegisteredID (
   NSSPKIXGeneralName *generalName
 );
 
@@ -18623,8 +17887,7 @@ NSSPKIXGeneralName_GetRegisteredID
  */
 
 NSS_EXTERN void *
-NSSPKIXGeneralName_GetSpecifiedChoice
-(
+NSSPKIXGeneralName_GetSpecifiedChoice (
   NSSPKIXGeneralName *generalName,
   NSSArena *arenaOpt
 );
@@ -18644,8 +17907,7 @@ NSSPKIXGeneralName_GetSpecifiedChoice
  */
 
 NSS_EXTERN PRBool
-NSSPKIXGeneralName_Equal
-(
+NSSPKIXGeneralName_Equal (
   NSSPKIXGeneralName *generalName1,
   NSSPKIXGeneralName *generalName2,
   PRStatus *statusOpt
@@ -18667,8 +17929,7 @@ NSSPKIXGeneralName_Equal
  */
 
 NSS_EXTERN NSSPKIXGeneralName *
-NSSPKIXGeneralName_Duplicate
-(
+NSSPKIXGeneralName_Duplicate (
   NSSPKIXGeneralName *generalName,
   NSSArena *arenaOpt
 );
@@ -18723,8 +17984,7 @@ NSSPKIXGeneralName_Duplicate
  */
 
 NSS_EXTERN NSSPKIXGeneralNames *
-NSSPKIXGeneralNames_Decode
-(
+NSSPKIXGeneralNames_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -18745,8 +18005,7 @@ NSSPKIXGeneralNames_Decode
  */
 
 NSS_EXTERN NSSPKIXGeneralNames *
-NSSPKIXGeneralNames_Create
-(
+NSSPKIXGeneralNames_Create (
   NSSArena *arenaOpt,
   NSSPKIXGeneralName *generalName1,
   ...
@@ -18766,8 +18025,7 @@ NSSPKIXGeneralNames_Create
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXGeneralNames_Destroy
-(
+NSSPKIXGeneralNames_Destroy (
   NSSPKIXGeneralNames *generalNames
 );
 
@@ -18787,8 +18045,7 @@ NSSPKIXGeneralNames_Destroy
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXGeneralNames_Encode
-(
+NSSPKIXGeneralNames_Encode (
   NSSPKIXGeneralNames *generalNames,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -18810,8 +18067,7 @@ NSSPKIXGeneralNames_Encode
  */
 
 NSS_EXTERN PRInt32
-NSSPKIXGeneralNames_GetGeneralNameCount
-(
+NSSPKIXGeneralNames_GetGeneralNameCount (
   NSSPKIXGeneralNames *generalNames
 );
 
@@ -18833,8 +18089,7 @@ NSSPKIXGeneralNames_GetGeneralNameCount
  */
 
 NSS_EXTERN NSSPKIXGeneralName **
-NSSPKIXGeneralNames_GetGeneralNames
-(
+NSSPKIXGeneralNames_GetGeneralNames (
   NSSPKIXGeneralNames *generalNames,
   NSSPKIXGeneralName *rvOpt[],
   PRInt32 limit,
@@ -18857,8 +18112,7 @@ NSSPKIXGeneralNames_GetGeneralNames
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXGeneralNames_SetGeneralNames
-(
+NSSPKIXGeneralNames_SetGeneralNames (
   NSSPKIXGeneralNames *generalNames,
   NSSPKIXGeneralName *generalName[],
   PRInt32 count
@@ -18881,8 +18135,7 @@ NSSPKIXGeneralNames_SetGeneralNames
  */
 
 NSS_EXTERN NSSPKIXGeneralName *
-NSSPKIXGeneralNames_GetGeneralName
-(
+NSSPKIXGeneralNames_GetGeneralName (
   NSSPKIXGeneralNames *generalNames,
   PRInt32 i,
   NSSArena *arenaOpt
@@ -18905,8 +18158,7 @@ NSSPKIXGeneralNames_GetGeneralName
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXGeneralNames_SetGeneralName
-(
+NSSPKIXGeneralNames_SetGeneralName (
   NSSPKIXGeneralNames *generalNames,
   PRInt32 i,
   NSSPKIXGeneralName *generalName
@@ -18929,8 +18181,7 @@ NSSPKIXGeneralNames_SetGeneralName
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXGeneralNames_InsertGeneralName
-(
+NSSPKIXGeneralNames_InsertGeneralName (
   NSSPKIXGeneralNames *generalNames,
   PRInt32 i,
   NSSPKIXGeneralName *generalName
@@ -18952,8 +18203,7 @@ NSSPKIXGeneralNames_InsertGeneralName
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXGeneralNames_AppendGeneralName
-(
+NSSPKIXGeneralNames_AppendGeneralName (
   NSSPKIXGeneralNames *generalNames,
   NSSPKIXGeneralName *generalName
 );
@@ -18973,8 +18223,7 @@ NSSPKIXGeneralNames_AppendGeneralName
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXGeneralNames_RemoveGeneralName
-(
+NSSPKIXGeneralNames_RemoveGeneralName (
   NSSPKIXGeneralNames *generalNames,
   PRInt32 i
 );
@@ -18996,8 +18245,7 @@ NSSPKIXGeneralNames_RemoveGeneralName
  */
 
 NSS_EXTERN PRInt32
-NSSPKIXGeneralNames_FindGeneralName
-(
+NSSPKIXGeneralNames_FindGeneralName (
   NSSPKIXGeneralNames *generalNames,
   NSSPKIXGeneralName *generalName
 );
@@ -19017,8 +18265,7 @@ NSSPKIXGeneralNames_FindGeneralName
  */
 
 NSS_EXTERN PRBool
-NSSPKIXGeneralNames_Equal
-(
+NSSPKIXGeneralNames_Equal (
   NSSPKIXGeneralNames *generalNames1,
   NSSPKIXGeneralNames *generalNames2,
   PRStatus *statusOpt
@@ -19040,8 +18287,7 @@ NSSPKIXGeneralNames_Equal
  */
 
 NSS_EXTERN NSSPKIXGeneralNames *
-NSSPKIXGeneralNames_Duplicate
-(
+NSSPKIXGeneralNames_Duplicate (
   NSSPKIXGeneralNames *generalNames,
   NSSArena *arenaOpt
 );
@@ -19088,8 +18334,7 @@ NSSPKIXGeneralNames_Duplicate
  */
 
 NSS_EXTERN NSSPKIXAnotherName *
-NSSPKIXAnotherName_Decode
-(
+NSSPKIXAnotherName_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -19111,8 +18356,7 @@ NSSPKIXAnotherName_Decode
  */
 
 NSS_EXTERN NSSPKIXAnotherName *
-NSSPKIXAnotherName_Create
-(
+NSSPKIXAnotherName_Create (
   NSSArena *arenaOpt,
   NSSOID *typeId,
   NSSItem *value
@@ -19132,8 +18376,7 @@ NSSPKIXAnotherName_Create
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXAnotherName_Destroy
-(
+NSSPKIXAnotherName_Destroy (
   NSSPKIXAnotherName *anotherName
 );
 
@@ -19153,8 +18396,7 @@ NSSPKIXAnotherName_Destroy
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXAnotherName_Encode
-(
+NSSPKIXAnotherName_Encode (
   NSSPKIXAnotherName *anotherName,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -19176,8 +18418,7 @@ NSSPKIXAnotherName_Encode
  */
 
 NSS_EXTERN NSSOID *
-NSSPKIXAnotherName_GetTypeId
-(
+NSSPKIXAnotherName_GetTypeId (
   NSSPKIXAnotherName *anotherName
 );
 
@@ -19197,8 +18438,7 @@ NSSPKIXAnotherName_GetTypeId
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXAnotherName_SetTypeId
-(
+NSSPKIXAnotherName_SetTypeId (
   NSSPKIXAnotherName *anotherName,
   NSSOID *typeId
 );
@@ -19219,8 +18459,7 @@ NSSPKIXAnotherName_SetTypeId
  */
 
 NSS_EXTERN NSSItem *
-NSSPKIXAnotherName_GetValue
-(
+NSSPKIXAnotherName_GetValue (
   NSSPKIXAnotherName *anotherName,
   NSSItem *rvOpt,
   NSSArena *arenaOpt
@@ -19242,8 +18481,7 @@ NSSPKIXAnotherName_GetValue
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXAnotherName_SetValue
-(
+NSSPKIXAnotherName_SetValue (
   NSSPKIXAnotherName *anotherName,
   NSSItem *value
 );
@@ -19263,8 +18501,7 @@ NSSPKIXAnotherName_SetValue
  */
 
 NSS_EXTERN PRBool
-NSSPKIXAnotherName_Equal
-(
+NSSPKIXAnotherName_Equal (
   NSSPKIXAnotherName *anotherName1,
   NSSPKIXAnotherName *anotherName2,
   PRStatus *statusOpt
@@ -19286,8 +18523,7 @@ NSSPKIXAnotherName_Equal
  */
 
 NSS_EXTERN NSSPKIXAnotherName *
-NSSPKIXAnotherName_Duplicate
-(
+NSSPKIXAnotherName_Duplicate (
   NSSPKIXAnotherName *anotherName,
   NSSArena *arenaOpt
 );
@@ -19337,8 +18573,7 @@ NSSPKIXAnotherName_Duplicate
  */
 
 NSS_EXTERN NSSPKIXEDIPartyName *
-NSSPKIXEDIPartyName_Decode
-(
+NSSPKIXEDIPartyName_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -19359,8 +18594,7 @@ NSSPKIXEDIPartyName_Decode
  */
 
 NSS_EXTERN NSSPKIXEDIPartyName *
-NSSPKIXEDIPartyName_Create
-(
+NSSPKIXEDIPartyName_Create (
   NSSArena *arenaOpt,
   NSSUTF8 *nameAssignerOpt,
   NSSUTF8 *partyName
@@ -19380,8 +18614,7 @@ NSSPKIXEDIPartyName_Create
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXEDIPartyName_Destroy
-(
+NSSPKIXEDIPartyName_Destroy (
   NSSPKIXEDIPartyName *ediPartyName
 );
 
@@ -19401,8 +18634,7 @@ NSSPKIXEDIPartyName_Destroy
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXEDIPartyName_Encode
-(
+NSSPKIXEDIPartyName_Encode (
   NSSPKIXEDIPartyName *ediPartyName,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -19424,8 +18656,7 @@ NSSPKIXEDIPartyName_Encode
  */
 
 NSS_EXTERN PRBool
-NSSPKIXEDIPartyName_HasNameAssigner
-(
+NSSPKIXEDIPartyName_HasNameAssigner (
   NSSPKIXEDIPartyName *ediPartyName
 );
 
@@ -19446,8 +18677,7 @@ NSSPKIXEDIPartyName_HasNameAssigner
  */
 
 NSS_EXTERN NSSUTF8 *
-NSSPKIXEDIPartyName_GetNameAssigner
-(
+NSSPKIXEDIPartyName_GetNameAssigner (
   NSSPKIXEDIPartyName *ediPartyName,
   NSSArena *arenaOpt
 );
@@ -19468,8 +18698,7 @@ NSSPKIXEDIPartyName_GetNameAssigner
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXEDIPartyName_SetNameAssigner
-(
+NSSPKIXEDIPartyName_SetNameAssigner (
   NSSPKIXEDIPartyName *ediPartyName,
   NSSUTF8 *nameAssigner
 );
@@ -19489,8 +18718,7 @@ NSSPKIXEDIPartyName_SetNameAssigner
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXEDIPartyName_RemoveNameAssigner
-(
+NSSPKIXEDIPartyName_RemoveNameAssigner (
   NSSPKIXEDIPartyName *ediPartyName
 );
 
@@ -19510,8 +18738,7 @@ NSSPKIXEDIPartyName_RemoveNameAssigner
  */
 
 NSS_EXTERN NSSUTF8 *
-NSSPKIXEDIPartyName_GetPartyName
-(
+NSSPKIXEDIPartyName_GetPartyName (
   NSSPKIXEDIPartyName *ediPartyName,
   NSSArena *arenaOpt
 );
@@ -19532,8 +18759,7 @@ NSSPKIXEDIPartyName_GetPartyName
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXEDIPartyName_SetPartyName
-(
+NSSPKIXEDIPartyName_SetPartyName (
   NSSPKIXEDIPartyName *ediPartyName,
   NSSUTF8 *partyName
 );
@@ -19553,8 +18779,7 @@ NSSPKIXEDIPartyName_SetPartyName
  */
 
 NSS_EXTERN PRBool
-NSSPKIXEDIPartyName_Equal
-(
+NSSPKIXEDIPartyName_Equal (
   NSSPKIXEDIPartyName *ediPartyName1,
   NSSPKIXEDIPartyName *ediPartyName2,
   PRStatus *statusOpt
@@ -19576,8 +18801,7 @@ NSSPKIXEDIPartyName_Equal
  */
 
 NSS_EXTERN NSSPKIXEDIPartyName *
-NSSPKIXEDIPartyName_Duplicate
-(
+NSSPKIXEDIPartyName_Duplicate (
   NSSPKIXEDIPartyName *ediPartyName,
   NSSArena *arenaOpt
 );
@@ -19628,8 +18852,7 @@ NSSPKIXEDIPartyName_Duplicate
  */
 
 NSS_EXTERN NSSPKIXSubjectDirectoryAttributes *
-NSSPKIXSubjectDirectoryAttributes_Decode
-(
+NSSPKIXSubjectDirectoryAttributes_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -19651,8 +18874,7 @@ NSSPKIXSubjectDirectoryAttributes_Decode
  */
 
 NSS_EXTERN NSSPKIXSubjectDirectoryAttributes *
-NSSPKIXSubjectDirectoryAttributes_Create
-(
+NSSPKIXSubjectDirectoryAttributes_Create (
   NSSArena *arenaOpt,
   NSSPKIXAttribute *attribute1,
   ...
@@ -19672,8 +18894,7 @@ NSSPKIXSubjectDirectoryAttributes_Create
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXSubjectDirectoryAttributes_Destroy
-(
+NSSPKIXSubjectDirectoryAttributes_Destroy (
   NSSPKIXSubjectDirectoryAttributes *sda
 );
 
@@ -19693,8 +18914,7 @@ NSSPKIXSubjectDirectoryAttributes_Destroy
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXSubjectDirectoryAttributes_Encode
-(
+NSSPKIXSubjectDirectoryAttributes_Encode (
   NSSPKIXSubjectDirectoryAttributes *sda,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -19716,8 +18936,7 @@ NSSPKIXSubjectDirectoryAttributes_Encode
  */
 
 NSS_EXTERN PRInt32
-NSSPKIXSubjectDirectoryAttributes_GetAttributeCount
-(
+NSSPKIXSubjectDirectoryAttributes_GetAttributeCount (
   NSSPKIXSubjectDirectoryAttributes *sda
 );
 
@@ -19738,8 +18957,7 @@ NSSPKIXSubjectDirectoryAttributes_GetAttributeCount
  */
 
 NSS_EXTERN NSSPKIXAttribute **
-NSSPKIXSubjectDirectoryAttributes_GetAttributes
-(
+NSSPKIXSubjectDirectoryAttributes_GetAttributes (
   NSSPKIXSubjectDirectoryAttributes *sda,
   NSSPKIXAttribute *rvOpt[],
   PRInt32 limit,
@@ -19762,8 +18980,7 @@ NSSPKIXSubjectDirectoryAttributes_GetAttributes
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXSubjectDirectoryAttributes_SetAttributes
-(
+NSSPKIXSubjectDirectoryAttributes_SetAttributes (
   NSSPKIXSubjectDirectoryAttributes *sda,
   NSSAttribute *attributes[],
   PRInt32 count
@@ -19786,8 +19003,7 @@ NSSPKIXSubjectDirectoryAttributes_SetAttributes
  */
 
 NSS_EXTERN NSSPKIXAttribute *
-NSSPKIXSubjectDirectoryAttributes_GetAttribute
-(
+NSSPKIXSubjectDirectoryAttributes_GetAttribute (
   NSSPKIXSubjectDirectoryAttributes *sda,
   PRInt32 i,
   NSSArena *arenaOpt
@@ -19810,8 +19026,7 @@ NSSPKIXSubjectDirectoryAttributes_GetAttribute
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXSubjectDirectoryAttributes_SetAttribute
-(
+NSSPKIXSubjectDirectoryAttributes_SetAttribute (
   NSSPKIXSubjectDirectoryAttributes *sda,
   PRInt32 i,
   NSSPKIXAttribute *attribute
@@ -19834,8 +19049,7 @@ NSSPKIXSubjectDirectoryAttributes_SetAttribute
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXSubjectDirectoryAttributes_InsertAttribute
-(
+NSSPKIXSubjectDirectoryAttributes_InsertAttribute (
   NSSPKIXSubjectDirectoryAttributes *sda,
   PRInt32 i,
   NSSPKIXAttribute *attribute
@@ -19857,8 +19071,7 @@ NSSPKIXSubjectDirectoryAttributes_InsertAttribute
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXSubjectDirectoryAttributes_AppendAttribute
-(
+NSSPKIXSubjectDirectoryAttributes_AppendAttribute (
   NSSPKIXSubjectDirectoryAttributes *sda,
   NSSPKIXAttribute *attribute
 );
@@ -19878,8 +19091,7 @@ NSSPKIXSubjectDirectoryAttributes_AppendAttribute
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXSubjectDirectoryAttributes_RemoveAttribute
-(
+NSSPKIXSubjectDirectoryAttributes_RemoveAttribute (
   NSSPKIXSubjectDirectoryAttributes *sda,
   PRInt32 i
 );
@@ -19901,8 +19113,7 @@ NSSPKIXSubjectDirectoryAttributes_RemoveAttribute
  */
 
 NSS_EXTERN PRInt32
-NSSPKIXSubjectDirectoryAttributes_FindAttribute
-(
+NSSPKIXSubjectDirectoryAttributes_FindAttribute (
   NSSPKIXSubjectDirectoryAttributes *sda,
   NSSPKIXAttribute *attribute
 );
@@ -19922,8 +19133,7 @@ NSSPKIXSubjectDirectoryAttributes_FindAttribute
  */
 
 NSS_EXTERN PRBool
-NSSPKIXSubjectDirectoryAttributes_Equal
-(
+NSSPKIXSubjectDirectoryAttributes_Equal (
   NSSPKIXSubjectDirectoryAttributes *sda1,
   NSSPKIXSubjectDirectoryAttributes *sda2,
   PRStatus *statusOpt
@@ -19946,8 +19156,7 @@ NSSPKIXSubjectDirectoryAttributes_Equal
  */
 
 NSS_EXTERN NSSPKIXSubjectDirectoryAttributes *
-NSSPKIXSubjectDirectoryAttributes_Duplicate
-(
+NSSPKIXSubjectDirectoryAttributes_Duplicate (
   NSSPKIXSubjectDirectoryAttributes *sda,
   NSSArena *arenaOpt
 );
@@ -19997,8 +19206,7 @@ NSSPKIXSubjectDirectoryAttributes_Duplicate
  */
 
 NSS_EXTERN NSSPKIXBasicConstraints *
-NSSPKIXBasicConstraints_Decode
-(
+NSSPKIXBasicConstraints_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -20019,8 +19227,7 @@ NSSPKIXBasicConstraints_Decode
  */
 
 NSS_EXTERN NSSPKIXBasicConstraints *
-NSSPKIXBasicConstraints_Create
-(
+NSSPKIXBasicConstraints_Create (
   NSSArena *arenaOpt,
   PRBool ca,
   PRInt32 pathLenConstraint
@@ -20040,8 +19247,7 @@ NSSPKIXBasicConstraints_Create
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXBasicConstraints_Destroy
-(
+NSSPKIXBasicConstraints_Destroy (
   NSSPKIXBasicConstraints *basicConstraints
 );
 
@@ -20061,8 +19267,7 @@ NSSPKIXBasicConstraints_Destroy
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXBasicConstraints_Encode
-(
+NSSPKIXBasicConstraints_Encode (
   NSSPKIXBasicConstraints *basicConstraints,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -20084,8 +19289,7 @@ NSSPKIXBasicConstraints_Encode
  */
 
 NSS_EXTERN PRBool
-NSSPKIXBasicConstraints_GetCA
-(
+NSSPKIXBasicConstraints_GetCA (
   NSSPKIXBasicConstraints *basicConstraints,
   PRStatus *statusOpt
 );
@@ -20104,8 +19308,7 @@ NSSPKIXBasicConstraints_GetCA
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXBasicConstraints_SetCA
-(
+NSSPKIXBasicConstraints_SetCA (
   NSSPKIXBasicConstraints *basicConstraints,
   PRBool ca
 );
@@ -20125,8 +19328,7 @@ NSSPKIXBasicConstraints_SetCA
  */
 
 NSS_EXTERN PRBool
-NSSPKIXBasicConstraints_HasPathLenConstraint
-(
+NSSPKIXBasicConstraints_HasPathLenConstraint (
   NSSPKIXBasicConstraints *basicConstraints,
   PRStatus *statusOpt
 );
@@ -20147,8 +19349,7 @@ NSSPKIXBasicConstraints_HasPathLenConstraint
  */
 
 NSS_EXTERN PRInt32
-NSSPKIXBasicConstraints_GetPathLenConstraint
-(
+NSSPKIXBasicConstraints_GetPathLenConstraint (
   NSSPKIXBasicConstraints *basicConstraints
 );
 
@@ -20167,8 +19368,7 @@ NSSPKIXBasicConstraints_GetPathLenConstraint
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXBasicConstraints_SetPathLenConstraint
-(
+NSSPKIXBasicConstraints_SetPathLenConstraint (
   NSSPKIXBasicConstraints *basicConstraints,
   PRInt32 pathLenConstraint
 );
@@ -20188,8 +19388,7 @@ NSSPKIXBasicConstraints_SetPathLenConstraint
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXBasicConstraints_RemovePathLenConstraint
-(
+NSSPKIXBasicConstraints_RemovePathLenConstraint (
   NSSPKIXBasicConstraints *basicConstraints
 );
 
@@ -20208,8 +19407,7 @@ NSSPKIXBasicConstraints_RemovePathLenConstraint
  */
 
 NSS_EXTERN PRBool
-NSSPKIXBasicConstraints_Equal
-(
+NSSPKIXBasicConstraints_Equal (
   NSSPKIXBasicConstraints *basicConstraints1,
   NSSPKIXBasicConstraints *basicConstraints2,
   PRStatus *statusOpt
@@ -20231,8 +19429,7 @@ NSSPKIXBasicConstraints_Equal
  */
 
 NSS_EXTERN NSSPKIXBasicConstraints *
-NSSPKIXBasicConstraints_Duplicate
-(
+NSSPKIXBasicConstraints_Duplicate (
   NSSPKIXBasicConstraints *basicConstraints,
   NSSArena *arenaOpt
 );
@@ -20254,8 +19451,7 @@ NSSPKIXBasicConstraints_Duplicate
  */
 
 NSS_EXTERN PRInt32
-NSSPKIXBasicConstraints_CompareToPathLenConstraint
-(
+NSSPKIXBasicConstraints_CompareToPathLenConstraint (
   NSSPKIXBasicConstraints *basicConstraints,
   PRInt32 value
 );
@@ -20307,8 +19503,7 @@ NSSPKIXBasicConstraints_CompareToPathLenConstraint
  */
 
 NSS_EXTERN NSSPKIXNameConstraints *
-NSSPKIXNameConstraints_Decode
-(
+NSSPKIXNameConstraints_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -20329,8 +19524,7 @@ NSSPKIXNameConstraints_Decode
  */
 
 NSS_EXTERN NSSPKIXNameConstraints *
-NSSPKIXNameConstraints_Create
-(
+NSSPKIXNameConstraints_Create (
   NSSArena *arenaOpt,
   NSSPKIXGeneralSubtrees *permittedSubtrees,
   NSSPKIXGeneralSubtrees *excludedSubtrees
@@ -20350,8 +19544,7 @@ NSSPKIXNameConstraints_Create
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXNameConstraints_Destroy
-(
+NSSPKIXNameConstraints_Destroy (
   NSSPKIXNameConstraints *nameConstraints
 );
 
@@ -20371,8 +19564,7 @@ NSSPKIXNameConstraints_Destroy
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXNameConstraints_Encode
-(
+NSSPKIXNameConstraints_Encode (
   NSSPKIXNameConstraints *nameConstraints,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -20394,8 +19586,7 @@ NSSPKIXNameConstraints_Encode
  */
 
 NSS_EXTERN PRBool
-NSSPKIXNameConstraints_HasPermittedSubtrees
-(
+NSSPKIXNameConstraints_HasPermittedSubtrees (
   NSSPKIXNameConstraints *nameConstraints,
   PRStatus *statusOpt
 );
@@ -20417,8 +19608,7 @@ NSSPKIXNameConstraints_HasPermittedSubtrees
  */
 
 NSS_EXTERN NSSPKIXGeneralSubtrees *
-NSSPKIXNameConstraints_GetPermittedSubtrees
-(
+NSSPKIXNameConstraints_GetPermittedSubtrees (
   NSSPKIXNameConstraints *nameConstraints,
   NSSArena *arenaOpt
 );
@@ -20439,8 +19629,7 @@ NSSPKIXNameConstraints_GetPermittedSubtrees
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXNameConstraints_SetPermittedSubtrees
-(
+NSSPKIXNameConstraints_SetPermittedSubtrees (
   NSSPKIXNameConstraints *nameConstraints,
   NSSPKIXGeneralSubtrees *permittedSubtrees
 );
@@ -20460,8 +19649,7 @@ NSSPKIXNameConstraints_SetPermittedSubtrees
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXNameConstraints_RemovePermittedSubtrees
-(
+NSSPKIXNameConstraints_RemovePermittedSubtrees (
   NSSPKIXNameConstraints *nameConstraints
 );
 
@@ -20480,8 +19668,7 @@ NSSPKIXNameConstraints_RemovePermittedSubtrees
  */
 
 NSS_EXTERN PRBool
-NSSPKIXNameConstraints_HasExcludedSubtrees
-(
+NSSPKIXNameConstraints_HasExcludedSubtrees (
   NSSPKIXNameConstraints *nameConstraints,
   PRStatus *statusOpt
 );
@@ -20503,8 +19690,7 @@ NSSPKIXNameConstraints_HasExcludedSubtrees
  */
 
 NSS_EXTERN NSSPKIXGeneralSubtrees *
-NSSPKIXNameConstraints_GetExcludedSubtrees
-(
+NSSPKIXNameConstraints_GetExcludedSubtrees (
   NSSPKIXNameConstraints *nameConstraints,
   NSSArena *arenaOpt
 );
@@ -20525,8 +19711,7 @@ NSSPKIXNameConstraints_GetExcludedSubtrees
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXNameConstraints_SetExcludedSubtrees
-(
+NSSPKIXNameConstraints_SetExcludedSubtrees (
   NSSPKIXNameConstraints *nameConstraints,
   NSSPKIXGeneralSubtrees *excludedSubtrees
 );
@@ -20546,8 +19731,7 @@ NSSPKIXNameConstraints_SetExcludedSubtrees
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXNameConstraints_RemoveExcludedSubtrees
-(
+NSSPKIXNameConstraints_RemoveExcludedSubtrees (
   NSSPKIXNameConstraints *nameConstraints
 );
 
@@ -20566,8 +19750,7 @@ NSSPKIXNameConstraints_RemoveExcludedSubtrees
  */
 
 NSS_EXTERN PRBool
-NSSPKIXNameConstraints_Equal
-(
+NSSPKIXNameConstraints_Equal (
   NSSPKIXNameConstraints *nameConstraints1,
   NSSPKIXNameConstraints *nameConstraints2,
   PRStatus *statusOpt
@@ -20589,8 +19772,7 @@ NSSPKIXNameConstraints_Equal
  */
 
 NSS_EXTERN NSSPKIXNameConstraints *
-NSSPKIXNameConstraints_Duplicate
-(
+NSSPKIXNameConstraints_Duplicate (
   NSSPKIXNameConstraints *nameConstraints,
   NSSArena *arenaOpt
 );
@@ -20646,8 +19828,7 @@ NSSPKIXNameConstraints_Duplicate
  */
 
 NSS_EXTERN NSSPKIXGeneralSubtrees *
-NSSPKIXGeneralSubtrees_Decode
-(
+NSSPKIXGeneralSubtrees_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -20668,8 +19849,7 @@ NSSPKIXGeneralSubtrees_Decode
  */
 
 NSS_EXTERN NSSPKIXGeneralSubtrees *
-NSSPKIXGeneralSubtrees_Create
-(
+NSSPKIXGeneralSubtrees_Create (
   NSSArena *arenaOpt,
   NSSPKIXGeneralSubtree *generalSubtree1,
   ...
@@ -20689,8 +19869,7 @@ NSSPKIXGeneralSubtrees_Create
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXGeneralSubtrees_Destroy
-(
+NSSPKIXGeneralSubtrees_Destroy (
   NSSPKIXGeneralSubtrees *generalSubtrees
 );
 
@@ -20710,8 +19889,7 @@ NSSPKIXGeneralSubtrees_Destroy
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXGeneralSubtrees_Encode
-(
+NSSPKIXGeneralSubtrees_Encode (
   NSSPKIXGeneralSubtrees *generalSubtrees,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -20733,8 +19911,7 @@ NSSPKIXGeneralSubtrees_Encode
  */
 
 NSS_EXTERN PRInt32
-NSSPKIXGeneralSubtrees_GetGeneralSubtreeCount
-(
+NSSPKIXGeneralSubtrees_GetGeneralSubtreeCount (
   NSSPKIXGeneralSubtrees *generalSubtrees
 );
 
@@ -20756,8 +19933,7 @@ NSSPKIXGeneralSubtrees_GetGeneralSubtreeCount
  */
 
 NSS_EXTERN NSSPKIXGeneralSubtree **
-NSSPKIXGeneralSubtrees_GetGeneralSubtrees
-(
+NSSPKIXGeneralSubtrees_GetGeneralSubtrees (
   NSSPKIXGeneralSubtrees *generalSubtrees,
   NSSPKIXGeneralSubtree *rvOpt[],
   PRInt32 limit,
@@ -20780,8 +19956,7 @@ NSSPKIXGeneralSubtrees_GetGeneralSubtrees
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXGeneralSubtrees_SetGeneralSubtrees
-(
+NSSPKIXGeneralSubtrees_SetGeneralSubtrees (
   NSSPKIXGeneralSubtrees *generalSubtrees,
   NSSPKIXGeneralSubtree *generalSubtree[],
   PRInt32 count
@@ -20804,8 +19979,7 @@ NSSPKIXGeneralSubtrees_SetGeneralSubtrees
  */
 
 NSS_EXTERN NSSPKIXGeneralSubtree *
-NSSPKIXGeneralSubtrees_GetGeneralSubtree
-(
+NSSPKIXGeneralSubtrees_GetGeneralSubtree (
   NSSPKIXGeneralSubtrees *generalSubtrees,
   PRInt32 i,
   NSSArena *arenaOpt
@@ -20828,8 +20002,7 @@ NSSPKIXGeneralSubtrees_GetGeneralSubtree
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXGeneralSubtrees_SetGeneralSubtree
-(
+NSSPKIXGeneralSubtrees_SetGeneralSubtree (
   NSSPKIXGeneralSubtrees *generalSubtrees,
   PRInt32 i,
   NSSPKIXGeneralSubtree *generalSubtree
@@ -20852,8 +20025,7 @@ NSSPKIXGeneralSubtrees_SetGeneralSubtree
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXGeneralSubtrees_InsertGeneralSubtree
-(
+NSSPKIXGeneralSubtrees_InsertGeneralSubtree (
   NSSPKIXGeneralSubtrees *generalSubtrees,
   PRInt32 i,
   NSSPKIXGeneralSubtree *generalSubtree
@@ -20875,8 +20047,7 @@ NSSPKIXGeneralSubtrees_InsertGeneralSubtree
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXGeneralSubtrees_AppendGeneralSubtree
-(
+NSSPKIXGeneralSubtrees_AppendGeneralSubtree (
   NSSPKIXGeneralSubtrees *generalSubtrees,
   NSSPKIXGeneralSubtree *generalSubtree
 );
@@ -20896,8 +20067,7 @@ NSSPKIXGeneralSubtrees_AppendGeneralSubtree
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXGeneralSubtrees_RemoveGeneralSubtree
-(
+NSSPKIXGeneralSubtrees_RemoveGeneralSubtree (
   NSSPKIXGeneralSubtrees *generalSubtrees,
   PRInt32 i
 );
@@ -20919,8 +20089,7 @@ NSSPKIXGeneralSubtrees_RemoveGeneralSubtree
  */
 
 NSS_EXTERN PRInt32
-NSSPKIXGeneralSubtrees_FindGeneralSubtree
-(
+NSSPKIXGeneralSubtrees_FindGeneralSubtree (
   NSSPKIXGeneralSubtrees *generalSubtrees,
   NSSPKIXGeneralSubtree *generalSubtree
 );
@@ -20940,8 +20109,7 @@ NSSPKIXGeneralSubtrees_FindGeneralSubtree
  */
 
 NSS_EXTERN PRBool
-NSSPKIXGeneralSubtrees_Equal
-(
+NSSPKIXGeneralSubtrees_Equal (
   NSSPKIXGeneralSubtrees *generalSubtrees1,
   NSSPKIXGeneralSubtrees *generalSubtrees2,
   PRStatus *statusOpt
@@ -20963,8 +20131,7 @@ NSSPKIXGeneralSubtrees_Equal
  */
 
 NSS_EXTERN NSSPKIXGeneralSubtrees *
-NSSPKIXGeneralSubtrees_Duplicate
-(
+NSSPKIXGeneralSubtrees_Duplicate (
   NSSPKIXGeneralSubtrees *generalSubtrees,
   NSSArena *arenaOpt
 );
@@ -21023,8 +20190,7 @@ NSSPKIXGeneralSubtrees_Duplicate
  */
 
 NSS_EXTERN NSSPKIXGeneralSubtree *
-NSSPKIXGeneralSubtree_Decode
-(
+NSSPKIXGeneralSubtree_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -21047,8 +20213,7 @@ NSSPKIXGeneralSubtree_Decode
  */
 
 NSS_EXTERN NSSPKIXGeneralSubtree *
-NSSPKIXGeneralSubtree_Create
-(
+NSSPKIXGeneralSubtree_Create (
   NSSArena *arenaOpt,
   NSSPKIXBaseDistance minimum,
   NSSPKIXBaseDistance maximumOpt
@@ -21068,8 +20233,7 @@ NSSPKIXGeneralSubtree_Create
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXGeneralSubtree_Destroy
-(
+NSSPKIXGeneralSubtree_Destroy (
   NSSPKIXGeneralSubtree *generalSubtree
 );
 
@@ -21089,8 +20253,7 @@ NSSPKIXGeneralSubtree_Destroy
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXGeneralSubtree_Encode
-(
+NSSPKIXGeneralSubtree_Encode (
   NSSPKIXGeneralSubtree *generalSubtree,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -21113,8 +20276,7 @@ NSSPKIXGeneralSubtree_Encode
  */
 
 NSS_EXTERN NSSPKIXGeneralName *
-NSSPKIXGeneralSubtree_GetBase
-(
+NSSPKIXGeneralSubtree_GetBase (
   NSSPKIXGeneralSubtree *generalSubtree,
   NSSArena *arenaOpt
 );
@@ -21135,8 +20297,7 @@ NSSPKIXGeneralSubtree_GetBase
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXGeneralSubtree_SetBase
-(
+NSSPKIXGeneralSubtree_SetBase (
   NSSPKIXGeneralSubtree *generalSubtree,
   NSSPKIXGeneralName *base
 );
@@ -21155,8 +20316,7 @@ NSSPKIXGeneralSubtree_SetBase
  */
 
 NSS_EXTERN NSSPKIXBaseDistance
-NSSPKIXGeneralSubtree_GetMinimum
-(
+NSSPKIXGeneralSubtree_GetMinimum (
   NSSPKIXGeneralSubtree *generalSubtree
 );
 
@@ -21175,8 +20335,7 @@ NSSPKIXGeneralSubtree_GetMinimum
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXGeneralSubtree_SetMinimum
-(
+NSSPKIXGeneralSubtree_SetMinimum (
   NSSPKIXGeneralSubtree *generalSubtree,
   NSSPKIXBaseDistance *minimum
 );
@@ -21196,8 +20355,7 @@ NSSPKIXGeneralSubtree_SetMinimum
  */
 
 NSS_EXTERN PRBool
-NSSPKIXGeneralSubtree_HasMaximum
-(
+NSSPKIXGeneralSubtree_HasMaximum (
   NSSPKIXGeneralSubtree *generalSubtree
 );
 
@@ -21216,8 +20374,7 @@ NSSPKIXGeneralSubtree_HasMaximum
  */
 
 NSS_EXTERN NSSPKIXBaseDistance
-NSSPKIXGeneralSubtree_GetMaximum
-(
+NSSPKIXGeneralSubtree_GetMaximum (
   NSSPKIXGeneralSubtree *generalSubtree
 );
 
@@ -21236,8 +20393,7 @@ NSSPKIXGeneralSubtree_GetMaximum
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXGeneralSubtree_SetMaximum
-(
+NSSPKIXGeneralSubtree_SetMaximum (
   NSSPKIXGeneralSubtree *generalSubtree,
   NSSPKIXBaseDistance *maximum
 );
@@ -21257,8 +20413,7 @@ NSSPKIXGeneralSubtree_SetMaximum
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXGeneralSubtree_RemoveMaximum
-(
+NSSPKIXGeneralSubtree_RemoveMaximum (
   NSSPKIXGeneralSubtree *generalSubtree
 );
 
@@ -21277,8 +20432,7 @@ NSSPKIXGeneralSubtree_RemoveMaximum
  */
 
 NSS_EXTERN PRBool
-NSSPKIXGeneralSubtree_Equal
-(
+NSSPKIXGeneralSubtree_Equal (
   NSSPKIXGeneralSubtree *generalSubtree1,
   NSSPKIXGeneralSubtree *generalSubtree2,
   PRStatus *statusOpt
@@ -21300,8 +20454,7 @@ NSSPKIXGeneralSubtree_Equal
  */
 
 NSS_EXTERN NSSPKIXGeneralSubtree *
-NSSPKIXGeneralSubtree_Duplicate
-(
+NSSPKIXGeneralSubtree_Duplicate (
   NSSPKIXGeneralSubtree *generalSubtree,
   NSSArena *arenaOpt
 );
@@ -21323,8 +20476,7 @@ NSSPKIXGeneralSubtree_Duplicate
  */
 
 NSS_EXTERN PRBool
-NSSPKIXGeneralSubtree_DistanceInRange
-(
+NSSPKIXGeneralSubtree_DistanceInRange (
   NSSPKIXGeneralSubtree *generalSubtree,
   NSSPKIXBaseDistance value,
   PRStatus *statusOpt
@@ -21381,8 +20533,7 @@ NSSPKIXGeneralSubtree_DistanceInRange
  */
 
 NSS_EXTERN NSSPKIXPolicyConstraints *
-NSSPKIXPolicyConstraints_Decode
-(
+NSSPKIXPolicyConstraints_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -21404,8 +20555,7 @@ NSSPKIXPolicyConstraints_Decode
  */
 
 NSS_EXTERN NSSPKIXPolicyConstraints *
-NSSPKIXPolicyConstraints_Create
-(
+NSSPKIXPolicyConstraints_Create (
   NSSArena *arenaOpt,
   NSSPKIXSkipCerts requireExplicitPolicy,
   NSSPKIXSkipCerts inhibitPolicyMapping
@@ -21425,8 +20575,7 @@ NSSPKIXPolicyConstraints_Create
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXPolicyConstraints_Destroy
-(
+NSSPKIXPolicyConstraints_Destroy (
   NSSPKIXPolicyConstraints *policyConstraints
 );
 
@@ -21446,8 +20595,7 @@ NSSPKIXPolicyConstraints_Destroy
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXPolicyConstraints_Encode
-(
+NSSPKIXPolicyConstraints_Encode (
   NSSPKIXPolicyConstraints *policyConstraints,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -21469,8 +20617,7 @@ NSSPKIXPolicyConstraints_Encode
  */
 
 NSS_EXTERN PRBool
-NSSPKIXPolicyConstraints_HasRequireExplicitPolicy
-(
+NSSPKIXPolicyConstraints_HasRequireExplicitPolicy (
   NSSPKIXPolicyConstraints *policyConstraints
 );
 
@@ -21489,8 +20636,7 @@ NSSPKIXPolicyConstraints_HasRequireExplicitPolicy
  */
 
 NSS_EXTERN PRInt32
-NSSPKIXPolicyConstraints_GetRequireExplicitPolicy
-(
+NSSPKIXPolicyConstraints_GetRequireExplicitPolicy (
   NSSPKIXPolicyConstraints *policyConstraints
 );
 
@@ -21509,8 +20655,7 @@ NSSPKIXPolicyConstraints_GetRequireExplicitPolicy
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXPolicyConstraints_SetRequireExplicitPolicy
-(
+NSSPKIXPolicyConstraints_SetRequireExplicitPolicy (
   NSSPKIXPolicyConstraints *policyConstraints,
   NSSPKIXSkipCerts requireExplicitPolicy
 );
@@ -21530,8 +20675,7 @@ NSSPKIXPolicyConstraints_SetRequireExplicitPolicy
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXPolicyConstraints_RemoveRequireExplicitPolicy
-(
+NSSPKIXPolicyConstraints_RemoveRequireExplicitPolicy (
   NSSPKIXPolicyConstraints *policyConstraints
 );
 
@@ -21550,8 +20694,7 @@ NSSPKIXPolicyConstraints_RemoveRequireExplicitPolicy
  */
 
 NSS_EXTERN PRBool
-NSSPKIXPolicyConstraints_HasInhibitPolicyMapping
-(
+NSSPKIXPolicyConstraints_HasInhibitPolicyMapping (
   NSSPKIXPolicyConstraints *policyConstraints
 );
 
@@ -21570,8 +20713,7 @@ NSSPKIXPolicyConstraints_HasInhibitPolicyMapping
  */
 
 NSS_EXTERN PRInt32
-NSSPKIXPolicyConstraints_GetInhibitPolicyMapping
-(
+NSSPKIXPolicyConstraints_GetInhibitPolicyMapping (
   NSSPKIXPolicyConstraints *policyConstraints
 );
 
@@ -21590,8 +20732,7 @@ NSSPKIXPolicyConstraints_GetInhibitPolicyMapping
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXPolicyConstraints_SetInhibitPolicyMapping
-(
+NSSPKIXPolicyConstraints_SetInhibitPolicyMapping (
   NSSPKIXPolicyConstraints *policyConstraints,
   NSSPKIXSkipCerts inhibitPolicyMapping
 );
@@ -21611,8 +20752,7 @@ NSSPKIXPolicyConstraints_SetInhibitPolicyMapping
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXPolicyConstraints_RemoveInhibitPolicyMapping
-(
+NSSPKIXPolicyConstraints_RemoveInhibitPolicyMapping (
   NSSPKIXPolicyConstraints *policyConstraints
 );
 
@@ -21631,8 +20771,7 @@ NSSPKIXPolicyConstraints_RemoveInhibitPolicyMapping
  */
 
 NSS_EXTERN PRBool
-NSSPKIXPolicyConstraints_Equal
-(
+NSSPKIXPolicyConstraints_Equal (
   NSSPKIXPolicyConstraints *policyConstraints1,
   NSSPKIXPolicyConstraints *policyConstraints2,
   PRStatus *statusOpt
@@ -21654,8 +20793,7 @@ NSSPKIXPolicyConstraints_Equal
  */
 
 NSS_EXTERN NSSPKIXPolicyConstraints *
-NSSPKIXPolicyConstraints_Duplicate
-(
+NSSPKIXPolicyConstraints_Duplicate (
   NSSPKIXPolicyConstraints *policyConstraints,
   NSSArena *arenaOpt
 );
@@ -21705,8 +20843,7 @@ NSSPKIXPolicyConstraints_Duplicate
  */
 
 NSS_EXTERN NSSPKIXCRLDistPointsSyntax *
-NSSPKIXCRLDistPointsSyntax_Decode
-(
+NSSPKIXCRLDistPointsSyntax_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -21727,8 +20864,7 @@ NSSPKIXCRLDistPointsSyntax_Decode
  */
 
 NSS_EXTERN NSSPKIXCRLDistPointsSyntax *
-NSSPKIXCRLDistPointsSyntax_Create
-(
+NSSPKIXCRLDistPointsSyntax_Create (
   NSSArena *arenaOpt,
   NSSPKIXDistributionPoint *distributionPoint1,
   ...
@@ -21748,8 +20884,7 @@ NSSPKIXCRLDistPointsSyntax_Create
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXCRLDistPointsSyntax_Destroy
-(
+NSSPKIXCRLDistPointsSyntax_Destroy (
   NSSPKIXCRLDistPointsSyntax *crlDistPointsSyntax
 );
 
@@ -21769,8 +20904,7 @@ NSSPKIXCRLDistPointsSyntax_Destroy
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXCRLDistPointsSyntax_Encode
-(
+NSSPKIXCRLDistPointsSyntax_Encode (
   NSSPKIXCRLDistPointsSyntax *crlDistPointsSyntax,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -21792,8 +20926,7 @@ NSSPKIXCRLDistPointsSyntax_Encode
  */
 
 NSS_EXTERN PRInt32
-NSSPKIXCRLDistPointsSyntax_GetDistributionPointCount
-(
+NSSPKIXCRLDistPointsSyntax_GetDistributionPointCount (
   NSSPKIXCRLDistPointsSyntax *crlDistPointsSyntax
 );
 
@@ -21815,8 +20948,7 @@ NSSPKIXCRLDistPointsSyntax_GetDistributionPointCount
  */
 
 NSS_EXTERN NSSPKIXDistributionPoints **
-NSSPKIXCRLDistPointsSyntax_GetDistributionPoints
-(
+NSSPKIXCRLDistPointsSyntax_GetDistributionPoints (
   NSSPKIXCRLDistPointsSyntax *crlDistPointsSyntax,
   NSSDistributionPoint *rvOpt[],
   PRInt32 limit,
@@ -21839,8 +20971,7 @@ NSSPKIXCRLDistPointsSyntax_GetDistributionPoints
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXCRLDistPointsSyntax_SetDistributionPoints
-(
+NSSPKIXCRLDistPointsSyntax_SetDistributionPoints (
   NSSPKIXCRLDistPointsSyntax *crlDistPointsSyntax,
   NSSDistributionPoint *distributionPoint[]
   PRInt32 count
@@ -21863,8 +20994,7 @@ NSSPKIXCRLDistPointsSyntax_SetDistributionPoints
  */
 
 NSS_EXTERN NSSPKIXDistributionPoint *
-NSSPKIXCRLDistPointsSyntax_GetDistributionPoint
-(
+NSSPKIXCRLDistPointsSyntax_GetDistributionPoint (
   NSSPKIXCRLDistPointsSyntax *crlDistPointsSyntax,
   NSSArena *arenaOpt
 );
@@ -21886,8 +21016,7 @@ NSSPKIXCRLDistPointsSyntax_GetDistributionPoint
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXCRLDistPointsSyntax_SetDistributionPoint
-(
+NSSPKIXCRLDistPointsSyntax_SetDistributionPoint (
   NSSPKIXCRLDistPointsSyntax *crlDistPointsSyntax,
   PRInt32 i,
   NSSPKIXDistributionPoint *distributionPoint
@@ -21910,8 +21039,7 @@ NSSPKIXCRLDistPointsSyntax_SetDistributionPoint
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXCRLDistPointsSyntax_InsertDistributionPoint
-(
+NSSPKIXCRLDistPointsSyntax_InsertDistributionPoint (
   NSSPKIXCRLDistPointsSyntax *crlDistPointsSyntax,
   PRInt32 i,
   NSSPKIXDistributionPoint *distributionPoint
@@ -21933,8 +21061,7 @@ NSSPKIXCRLDistPointsSyntax_InsertDistributionPoint
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXCRLDistPointsSyntax_AppendDistributionPoint
-(
+NSSPKIXCRLDistPointsSyntax_AppendDistributionPoint (
   NSSPKIXCRLDistPointsSyntax *crlDistPointsSyntax,
   NSSPKIXDistributionPoint *distributionPoint
 );
@@ -21954,8 +21081,7 @@ NSSPKIXCRLDistPointsSyntax_AppendDistributionPoint
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXCRLDistPointsSyntax_RemoveDistributionPoint
-(
+NSSPKIXCRLDistPointsSyntax_RemoveDistributionPoint (
   NSSPKIXCRLDistPointsSyntax *crlDistPointsSyntax,
   PRInt32 i
 );
@@ -21977,8 +21103,7 @@ NSSPKIXCRLDistPointsSyntax_RemoveDistributionPoint
  */
 
 NSS_EXTERN PRInt32
-NSSPKIXCRLDistPointsSyntax_FindDistributionPoint
-(
+NSSPKIXCRLDistPointsSyntax_FindDistributionPoint (
   NSSPKIXCRLDistPointsSyntax *crlDistPointsSyntax,
   NSSPKIXDistributionPoint *distributionPoint
 );
@@ -21998,8 +21123,7 @@ NSSPKIXCRLDistPointsSyntax_FindDistributionPoint
  */
 
 NSS_EXTERN PRBool
-NSSPKIXCRLDistPointsSyntax_Equal
-(
+NSSPKIXCRLDistPointsSyntax_Equal (
   NSSPKIXCRLDistPointsSyntax *crlDistPointsSyntax1,
   NSSPKIXCRLDistPointsSyntax *crlDistPointsSyntax2,
   PRStatus *statusOpt
@@ -22021,8 +21145,7 @@ NSSPKIXCRLDistPointsSyntax_Equal
  */
 
 NSS_EXTERN NSSPKIXCRLDistPointsSyntax *
-NSSPKIXCRLDistPointsSyntax_Duplicate
-(
+NSSPKIXCRLDistPointsSyntax_Duplicate (
   NSSPKIXCRLDistPointsSyntax *crlDistPointsSyntax,
   NSSArena *arenaOpt
 );
@@ -22078,8 +21201,7 @@ NSSPKIXCRLDistPointsSyntax_Duplicate
  */
 
 NSS_EXTERN NSSPKIXDistributionPoint *
-NSSPKIXDistributionPoint_Decode
-(
+NSSPKIXDistributionPoint_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -22102,8 +21224,7 @@ NSSPKIXDistributionPoint_Decode
  */
 
 NSS_EXTERN NSSPKIXDistributionPoint *
-NSSPKIXDistributionPoint_Create
-(
+NSSPKIXDistributionPoint_Create (
   NSSArena *arenaOpt,
   NSSPKIXDistributionPointName *distributionPoint,
   NSSPKIXReasonFlags reasons,
@@ -22124,8 +21245,7 @@ NSSPKIXDistributionPoint_Create
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXDistributionPoint_Destroy
-(
+NSSPKIXDistributionPoint_Destroy (
   NSSPKIXDistributionPoint *distributionPoint
 );
 
@@ -22145,8 +21265,7 @@ NSSPKIXDistributionPoint_Destroy
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXDistributionPoint_Encode
-(
+NSSPKIXDistributionPoint_Encode (
   NSSPKIXDistributionPoint *distributionPoint,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -22168,8 +21287,7 @@ NSSPKIXDistributionPoint_Encode
  */
 
 NSS_EXTERN PRBool
-NSSPKIXDistributionPoint_HasDistributionPoint
-(
+NSSPKIXDistributionPoint_HasDistributionPoint (
   NSSPKIXDistributionPoint *distributionPoint
 );
 
@@ -22190,8 +21308,7 @@ NSSPKIXDistributionPoint_HasDistributionPoint
  */
 
 NSS_EXTERN NSSPKIXDistributionPointName *
-NSSPKIXDistributionPoint_GetDistributionPoint
-(
+NSSPKIXDistributionPoint_GetDistributionPoint (
   NSSPKIXDistributionPoint *distributionPoint,
   NSSArena *arenaOpt
 );
@@ -22212,8 +21329,7 @@ NSSPKIXDistributionPoint_GetDistributionPoint
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXDistributionPoint_SetDistributionPoint
-(
+NSSPKIXDistributionPoint_SetDistributionPoint (
   NSSPKIXDistributionPoint *distributionPoint,
   NSSPKIXDistributionPointName *name
 );
@@ -22233,8 +21349,7 @@ NSSPKIXDistributionPoint_SetDistributionPoint
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXDistributionPoint_RemoveDistributionPoint
-(
+NSSPKIXDistributionPoint_RemoveDistributionPoint (
   NSSPKIXDistributionPoint *distributionPoint
 );
 
@@ -22253,8 +21368,7 @@ NSSPKIXDistributionPoint_RemoveDistributionPoint
  */
 
 NSS_EXTERN PRBool
-NSSPKIXDistributionPoint_HasReasons
-(
+NSSPKIXDistributionPoint_HasReasons (
   NSSPKIXDistributionPoint *distributionPoint
 );
 
@@ -22276,8 +21390,7 @@ NSSPKIXDistributionPoint_HasReasons
  */
 
 NSS_EXTERN NSSPKIXReasonFlags
-NSSPKIXDistributionPoint_GetReasons
-(
+NSSPKIXDistributionPoint_GetReasons (
   NSSPKIXDistributionPoint *distributionPoint,
   PRStatus *statusOpt
 );
@@ -22297,8 +21410,7 @@ NSSPKIXDistributionPoint_GetReasons
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXDistributionPoint_SetReasons
-(
+NSSPKIXDistributionPoint_SetReasons (
   NSSPKIXDistributionPoint *distributionPoint,
   NSSPKIXReasonFlags reasons
 );
@@ -22318,8 +21430,7 @@ NSSPKIXDistributionPoint_SetReasons
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXDistributionPoint_RemoveReasons
-(
+NSSPKIXDistributionPoint_RemoveReasons (
   NSSPKIXDistributionPoint *distributionPoint
 );
 
@@ -22338,8 +21449,7 @@ NSSPKIXDistributionPoint_RemoveReasons
  */
 
 NSS_EXTERN PRBool
-NSSPKIXDistributionPoint_HasCRLIssuer
-(
+NSSPKIXDistributionPoint_HasCRLIssuer (
   NSSPKIXDistributionPoint *distributionPoint
 );
 
@@ -22360,8 +21470,7 @@ NSSPKIXDistributionPoint_HasCRLIssuer
  */
 
 NSS_EXTERN NSSPKIXGeneralNames *
-NSSPKIXDistributionPoint_GetCRLIssuer
-(
+NSSPKIXDistributionPoint_GetCRLIssuer (
   NSSPKIXDistributionPoint *distributionPoint,
   NSSArena *arenaOpt
 );
@@ -22382,8 +21491,7 @@ NSSPKIXDistributionPoint_GetCRLIssuer
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXDistributionPoint_SetCRLIssuer
-(
+NSSPKIXDistributionPoint_SetCRLIssuer (
   NSSPKIXDistributionPoint *distributionPoint,
   NSSPKIXGeneralNames *cRLIssuer
 );
@@ -22403,8 +21511,7 @@ NSSPKIXDistributionPoint_SetCRLIssuer
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXDistributionPoint_RemoveCRLIssuer
-(
+NSSPKIXDistributionPoint_RemoveCRLIssuer (
   NSSPKIXDistributionPoint *distributionPoint
 );
 
@@ -22423,8 +21530,7 @@ NSSPKIXDistributionPoint_RemoveCRLIssuer
  */
 
 NSS_EXTERN PRBool
-NSSPKIXDistributionPoint_Equal
-(
+NSSPKIXDistributionPoint_Equal (
   NSSPKIXDistributionPoint *distributionPoint1,
   NSSPKIXDistributionPoint *distributionPoint2,
   PRStatus *statusOpt
@@ -22444,8 +21550,7 @@ NSSPKIXDistributionPoint_Equal
  */
 
 NSS_EXTERN NSSPKIXDistributionPoint *
-NSSPKIXDistributionPoint_Duplicate
-(
+NSSPKIXDistributionPoint_Duplicate (
   NSSPKIXDistributionPoint *distributionPoint,
   NSSArena *arenaOpt
 );
@@ -22493,8 +21598,7 @@ NSSPKIXDistributionPoint_Duplicate
  */
 
 NSS_EXTERN NSSPKIXDistributionPointName *
-NSSPKIXDistributionPointName_Decode
-(
+NSSPKIXDistributionPointName_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -22517,8 +21621,7 @@ NSSPKIXDistributionPointName_Decode
  */
 
 NSS_EXTERN NSSPKIXDistributionPointName *
-NSSPKIXDistributionPointName_Create
-(
+NSSPKIXDistributionPointName_Create (
   NSSArena *arenaOpt,
   NSSPKIXDistributionPointNameChoice which,
   void *name
@@ -22540,8 +21643,7 @@ NSSPKIXDistributionPointName_Create
  */
 
 NSS_EXTERN NSSPKIXDistributionPointName *
-NSSPKIXDistributionPointName_CreateFromFullName
-(
+NSSPKIXDistributionPointName_CreateFromFullName (
   NSSArena *arenaOpt,
   NSSPKIXGeneralNames *fullName
 );
@@ -22562,8 +21664,7 @@ NSSPKIXDistributionPointName_CreateFromFullName
  */
 
 NSS_EXTERN NSSPKIXDistributionPointName *
-NSSPKIXDistributionPointName_CreateFromNameRelativeToCRLIssuer
-(
+NSSPKIXDistributionPointName_CreateFromNameRelativeToCRLIssuer (
   NSSArena *arenaOpt,
   NSSPKIXRelativeDistinguishedName *nameRelativeToCRLIssuer
 );
@@ -22582,8 +21683,7 @@ NSSPKIXDistributionPointName_CreateFromNameRelativeToCRLIssuer
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXDistributionPointName_Destroy
-(
+NSSPKIXDistributionPointName_Destroy (
   NSSPKIXDistributionPointName *dpn
 );
 
@@ -22603,8 +21703,7 @@ NSSPKIXDistributionPointName_Destroy
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXDistributionPointName_Encode
-(
+NSSPKIXDistributionPointName_Encode (
   NSSPKIXDistributionPointName *dpn,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -22625,8 +21724,7 @@ NSSPKIXDistributionPointName_Encode
  */
 
 NSS_EXTERN NSSPKIXDistributionPointNameChoice
-NSSPKIXDistributionPointName_GetChoice
-(
+NSSPKIXDistributionPointName_GetChoice (
   NSSPKIXDistributionPointName *dpn
 );
 
@@ -22647,8 +21745,7 @@ NSSPKIXDistributionPointName_GetChoice
  */
 
 NSS_EXTERN NSSPKIXGeneralnames *
-NSSPKIXDistributionPointName_GetFullName
-(
+NSSPKIXDistributionPointName_GetFullName (
   NSSPKIXDistributionPointName *dpn,
   NSSArena *arenaOpt
 );
@@ -22671,8 +21768,7 @@ NSSPKIXDistributionPointName_GetFullName
  */
 
 NSS_EXTERN NSSPKIXRelativeDistinguishedName *
-NSSPKIXDistributionPointName_GetNameRelativeToCRLIssuer
-(
+NSSPKIXDistributionPointName_GetNameRelativeToCRLIssuer (
   NSSPKIXDistributionPointName *dpn,
   NSSArena *arenaOpt
 );
@@ -22692,8 +21788,7 @@ NSSPKIXDistributionPointName_GetNameRelativeToCRLIssuer
  */
 
 NSS_EXTERN PRBool
-NSSPKIXDistributionPointName_Equal
-(
+NSSPKIXDistributionPointName_Equal (
   NSSPKIXDistributionPointName *dpn1,
   NSSPKIXDistributionPointName *dpn2,
   PRStatus *statusOpt
@@ -22715,8 +21810,7 @@ NSSPKIXDistributionPointName_Equal
  */
 
 NSS_EXTERN NSSPKIXDistributionPointName *
-NSSPKIXDistributionPointName_Duplicate
-(
+NSSPKIXDistributionPointName_Duplicate (
   NSSPKIXDistributionPointName *dpn,
   NSSArena *arenaOpt
 );
@@ -22768,8 +21862,7 @@ NSSPKIXDistributionPointName_Duplicate
  */
 
 NSS_EXTERN NSSPKIXReasonFlags *
-NSSPKIXReasonFlags_Decode
-(
+NSSPKIXReasonFlags_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -22789,8 +21882,7 @@ NSSPKIXReasonFlags_Decode
  */
 
 NSS_EXTERN NSSPKIXReasonFlags *
-NSSPKIXReasonFlags_Create
-(
+NSSPKIXReasonFlags_Create (
   NSSArena *arenaOpt,
   PRBool keyCompromise,
   PRBool cACompromise,
@@ -22816,8 +21908,7 @@ NSSPKIXReasonFlags_Create
  */
 
 NSS_EXTERN NSSPKIXReasonFlags *
-NSSPKIXReasonFlags_CreateFromMask
-(
+NSSPKIXReasonFlags_CreateFromMask (
   NSSArena *arenaOpt,
   NSSPKIXReasonFlagsMask why
 );
@@ -22836,8 +21927,7 @@ NSSPKIXReasonFlags_CreateFromMask
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXReasonFlags_Destroy
-(
+NSSPKIXReasonFlags_Destroy (
   NSSPKIXReasonFlags *reasonFlags
 );
 
@@ -22857,8 +21947,7 @@ NSSPKIXReasonFlags_Destroy
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXReasonFlags_Encode
-(
+NSSPKIXReasonFlags_Encode (
   NSSPKIXReasonFlags *reasonFlags,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -22879,8 +21968,7 @@ NSSPKIXReasonFlags_Encode
  */
 
 NSS_EXTERN NSSPKIXReasonFlagsMask
-NSSPKIXReasonFlags_GetMask
-(
+NSSPKIXReasonFlags_GetMask (
   NSSPKIXReasonFlags *reasonFlags
 );
 
@@ -22899,8 +21987,7 @@ NSSPKIXReasonFlags_GetMask
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXReasonFlags_SetMask
-(
+NSSPKIXReasonFlags_SetMask (
   NSSPKIXReasonFlags *reasonFlags,
   NSSPKIXReasonFlagsMask mask
 );
@@ -22920,8 +22007,7 @@ NSSPKIXReasonFlags_SetMask
  */
 
 NSS_EXTERN PRBool
-NSSPKIXReasonFlags_Equal
-(
+NSSPKIXReasonFlags_Equal (
   NSSPKIXReasonFlags *reasonFlags1,
   NSSPKIXReasonFlags *reasonFlags2,
   PRStatus *statusOpt
@@ -22943,8 +22029,7 @@ NSSPKIXReasonFlags_Equal
  */
 
 NSS_EXTERN NSSPKIXReasonFlags *
-NSSPKIXReasonFlags_Duplicate
-(
+NSSPKIXReasonFlags_Duplicate (
   NSSPKIXReasonFlags *reasonFlags,
   NSSArena *arenaOpt
 );
@@ -22999,8 +22084,7 @@ NSSPKIXReasonFlags_Duplicate
  */
 
 NSS_EXTERN NSSPKIXExtKeyUsageSyntax *
-NSSPKIXExtKeyUsageSyntax_Decode
-(
+NSSPKIXExtKeyUsageSyntax_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -23021,8 +22105,7 @@ NSSPKIXExtKeyUsageSyntax_Decode
  */
 
 NSS_EXTERN NSSPKIXExtKeyUsageSyntax *
-NSSPKIXExtKeyUsageSyntax_Create
-(
+NSSPKIXExtKeyUsageSyntax_Create (
   NSSArena *arenaOpt,
   NSSPKIXKeyPurposeId *kpid1,
   ...
@@ -23042,8 +22125,7 @@ NSSPKIXExtKeyUsageSyntax_Create
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXExtKeyUsageSyntax_Destroy
-(
+NSSPKIXExtKeyUsageSyntax_Destroy (
   NSSPKIXExtKeyUsageSyntax *eku
 );
 
@@ -23063,8 +22145,7 @@ NSSPKIXExtKeyUsageSyntax_Destroy
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXExtKeyUsageSyntax_Encode
-(
+NSSPKIXExtKeyUsageSyntax_Encode (
   NSSPKIXExtKeyUsageSyntax *eku,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -23086,8 +22167,7 @@ NSSPKIXExtKeyUsageSyntax_Encode
  */
 
 NSS_EXTERN PRInt32
-NSSPKIXExtKeyUsageSyntax_GetKeyPurposeIdCount
-(
+NSSPKIXExtKeyUsageSyntax_GetKeyPurposeIdCount (
   NSSPKIXExtKeyUsageSyntax *eku
 );
 
@@ -23109,8 +22189,7 @@ NSSPKIXExtKeyUsageSyntax_GetKeyPurposeIdCount
  */
 
 NSS_EXTERN NSSPKIXKeyPurposeId **
-NSSPKIXExtKeyUsageSyntax_GetKeyPurposeIds
-(
+NSSPKIXExtKeyUsageSyntax_GetKeyPurposeIds (
   NSSPKIXExtKeyUsageSyntax *eku,
   NSSPKIXKeyPurposeId *rvOpt[],
   PRInt32 limit,
@@ -23133,8 +22212,7 @@ NSSPKIXExtKeyUsageSyntax_GetKeyPurposeIds
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXExtKeyUsageSyntax_SetKeyPurposeIds
-(
+NSSPKIXExtKeyUsageSyntax_SetKeyPurposeIds (
   NSSPKIXExtKeyUsageSyntax *eku,
   NSSPKIXKeyPurposeId *ids[],
   PRInt32 count
@@ -23157,8 +22235,7 @@ NSSPKIXExtKeyUsageSyntax_SetKeyPurposeIds
  */
 
 NSS_EXTERN NSSPKIXKeyPurposeId *
-NSSPKIXExtKeyUsageSyntax_GetKeyPurposeId
-(
+NSSPKIXExtKeyUsageSyntax_GetKeyPurposeId (
   NSSPKIXExtKeyUsageSyntax *eku,
   PRInt32 i,
   NSSArena *arenaOpt
@@ -23181,8 +22258,7 @@ NSSPKIXExtKeyUsageSyntax_GetKeyPurposeId
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXExtKeyUsageSyntax_SetKeyPurposeId
-(
+NSSPKIXExtKeyUsageSyntax_SetKeyPurposeId (
   NSSPKIXExtKeyUsageSyntax *eku,
   PRInt32 i,
   NSSPKIXKeyPurposeId *id
@@ -23205,8 +22281,7 @@ NSSPKIXExtKeyUsageSyntax_SetKeyPurposeId
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXExtKeyUsageSyntax_InsertKeyPurposeId
-(
+NSSPKIXExtKeyUsageSyntax_InsertKeyPurposeId (
   NSSPKIXExtKeyUsageSyntax *eku,
   PRInt32 i,
   NSSPKIXKeyPurposeId *id
@@ -23228,8 +22303,7 @@ NSSPKIXExtKeyUsageSyntax_InsertKeyPurposeId
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXExtKeyUsageSyntax_AppendKeyPurposeId
-(
+NSSPKIXExtKeyUsageSyntax_AppendKeyPurposeId (
   NSSPKIXExtKeyUsageSyntax *eku,
   NSSPKIXKeyPurposeId *id
 );
@@ -23249,8 +22323,7 @@ NSSPKIXExtKeyUsageSyntax_AppendKeyPurposeId
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXExtKeyUsageSyntax_RemoveKeyPurposeId
-(
+NSSPKIXExtKeyUsageSyntax_RemoveKeyPurposeId (
   NSSPKIXExtKeyUsageSyntax *eku,
   PRInt32 i
 );
@@ -23272,8 +22345,7 @@ NSSPKIXExtKeyUsageSyntax_RemoveKeyPurposeId
  */
 
 NSS_EXTERN PRInt32
-NSSPKIXExtKeyUsageSyntax_FindKeyPurposeId
-(
+NSSPKIXExtKeyUsageSyntax_FindKeyPurposeId (
   NSSPKIXExtKeyUsageSyntax *eku,
   NSSPKIXKeyPurposeId *id
 );
@@ -23293,8 +22365,7 @@ NSSPKIXExtKeyUsageSyntax_FindKeyPurposeId
  */
 
 NSS_EXTERN PRBool
-NSSPKIXExtKeyUsageSyntax_Equal
-(
+NSSPKIXExtKeyUsageSyntax_Equal (
   NSSPKIXExtKeyUsageSyntax *eku1,
   NSSPKIXExtKeyUsageSyntax *eku2,
   PRStatus *statusOpt
@@ -23316,8 +22387,7 @@ NSSPKIXExtKeyUsageSyntax_Equal
  */
 
 NSS_EXTERN NSSPKIXExtKeyUsageSyntax *
-NSSPKIXExtKeyUsageSyntax_Duplicate
-(
+NSSPKIXExtKeyUsageSyntax_Duplicate (
   NSSPKIXExtKeyUsageSyntax *eku,
   NSSArena *arenaOpt
 );
@@ -23369,8 +22439,7 @@ NSSPKIXExtKeyUsageSyntax_Duplicate
  */
 
 NSS_EXTERN NSSPKIXAuthorityInfoAccessSyntax *
-NSSPKIXAuthorityInfoAccessSyntax_Decode
-(
+NSSPKIXAuthorityInfoAccessSyntax_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -23392,8 +22461,7 @@ NSSPKIXAuthorityInfoAccessSyntax_Decode
  */
 
 NSS_EXTERN NSSPKIXAuthorityInfoAccessSyntax *
-NSSPKIXAuthorityInfoAccessSyntax_Create
-(
+NSSPKIXAuthorityInfoAccessSyntax_Create (
   NSSArena *arenaOpt,
   NSSPKIXAccessDescription *ad1,
   ...
@@ -23413,8 +22481,7 @@ NSSPKIXAuthorityInfoAccessSyntax_Create
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXAuthorityInfoAccessSyntax_Destroy
-(
+NSSPKIXAuthorityInfoAccessSyntax_Destroy (
   NSSPKIXAuthorityInfoAccessSyntax *aias
 );
 
@@ -23434,8 +22501,7 @@ NSSPKIXAuthorityInfoAccessSyntax_Destroy
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXAuthorityInfoAccessSyntax_Encode
-(
+NSSPKIXAuthorityInfoAccessSyntax_Encode (
   NSSPKIXAuthorityInfoAccessSyntax *aias,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -23457,8 +22523,7 @@ NSSPKIXAuthorityInfoAccessSyntax_Encode
  */
 
 NSS_EXTERN PRInt32
-NSSPKIXAuthorityInfoAccessSyntax_GetAccessDescriptionCount
-(
+NSSPKIXAuthorityInfoAccessSyntax_GetAccessDescriptionCount (
   NSSPKIXAuthorityInfoAccessSyntax *aias
 );
 
@@ -23480,8 +22545,7 @@ NSSPKIXAuthorityInfoAccessSyntax_GetAccessDescriptionCount
  */
 
 NSS_EXTERN NSSPKIXAccessDescription **
-NSSPKIXAuthorityInfoAccessSyntax_GetAccessDescriptions
-(
+NSSPKIXAuthorityInfoAccessSyntax_GetAccessDescriptions (
   NSSPKIXAuthorityInfoAccessSyntax *aias,
   NSSPKIXAccessDescription *rvOpt[],
   PRInt32 limit,
@@ -23504,8 +22568,7 @@ NSSPKIXAuthorityInfoAccessSyntax_GetAccessDescriptions
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXAuthorityInfoAccessSyntax_SetAccessDescriptions
-(
+NSSPKIXAuthorityInfoAccessSyntax_SetAccessDescriptions (
   NSSPKIXAuthorityInfoAccessSyntax *aias,
   NSSPKIXAccessDescription *ad[],
   PRInt32 count
@@ -23528,8 +22591,7 @@ NSSPKIXAuthorityInfoAccessSyntax_SetAccessDescriptions
  */
 
 NSS_EXTERN NSSPKIXAccessDescription *
-NSSPKIXAuthorityInfoAccessSyntax_GetAccessDescription
-(
+NSSPKIXAuthorityInfoAccessSyntax_GetAccessDescription (
   NSSPKIXAuthorityInfoAccessSyntax *aias,
   PRInt32 i,
   NSSArena *arenaOpt
@@ -23552,8 +22614,7 @@ NSSPKIXAuthorityInfoAccessSyntax_GetAccessDescription
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXAuthorityInfoAccessSyntax_SetAccessDescription
-(
+NSSPKIXAuthorityInfoAccessSyntax_SetAccessDescription (
   NSSPKIXAuthorityInfoAccessSyntax *aias,
   PRInt32 i,
   NSSPKIXAccessDescription *ad
@@ -23576,8 +22637,7 @@ NSSPKIXAuthorityInfoAccessSyntax_SetAccessDescription
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXAuthorityInfoAccessSyntax_InsertAccessDescription
-(
+NSSPKIXAuthorityInfoAccessSyntax_InsertAccessDescription (
   NSSPKIXAuthorityInfoAccessSyntax *aias,
   PRInt32 i,
   NSSPKIXAccessDescription *ad
@@ -23599,8 +22659,7 @@ NSSPKIXAuthorityInfoAccessSyntax_InsertAccessDescription
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXAuthorityInfoAccessSyntax_AppendAccessDescription
-(
+NSSPKIXAuthorityInfoAccessSyntax_AppendAccessDescription (
   NSSPKIXAuthorityInfoAccessSyntax *aias,
   NSSPKIXAccessDescription *ad
 );
@@ -23620,8 +22679,7 @@ NSSPKIXAuthorityInfoAccessSyntax_AppendAccessDescription
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXAuthorityInfoAccessSyntax_RemoveAccessDescription
-(
+NSSPKIXAuthorityInfoAccessSyntax_RemoveAccessDescription (
   NSSPKIXAuthorityInfoAccessSyntax *aias,
   PRInt32 i
 );
@@ -23643,8 +22701,7 @@ NSSPKIXAuthorityInfoAccessSyntax_RemoveAccessDescription
  */
 
 NSS_EXTERN PRInt32
-NSSPKIXAuthorityInfoAccessSyntax_FindAccessDescription
-(
+NSSPKIXAuthorityInfoAccessSyntax_FindAccessDescription (
   NSSPKIXAuthorityInfoAccessSyntax *aias,
   NSSPKIXAccessDescription *ad
 );
@@ -23664,8 +22721,7 @@ NSSPKIXAuthorityInfoAccessSyntax_FindAccessDescription
  */
 
 NSS_EXTERN PRBool
-NSSPKIXAuthorityInfoAccessSyntax_Equal
-(
+NSSPKIXAuthorityInfoAccessSyntax_Equal (
   NSSPKIXAuthorityInfoAccessSyntax *aias1,
   NSSPKIXAuthorityInfoAccessSyntax *aias2,
   PRStatus *statusOpt
@@ -23688,8 +22744,7 @@ NSSPKIXAuthorityInfoAccessSyntax_Equal
  */
 
 NSS_EXTERN NSSPKIXAuthorityInfoAccessSyntax *
-NSSPKIXAuthorityInfoAccessSyntax_Duplicate
-(
+NSSPKIXAuthorityInfoAccessSyntax_Duplicate (
   NSSPKIXAuthorityInfoAccessSyntax *aias,
   NSSArena *arenaOpt
 );
@@ -23736,8 +22791,7 @@ NSSPKIXAuthorityInfoAccessSyntax_Duplicate
  */
 
 NSS_EXTERN NSSPKIXAccessDescription *
-NSSPKIXAccessDescription_Decode
-(
+NSSPKIXAccessDescription_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -23759,8 +22813,7 @@ NSSPKIXAccessDescription_Decode
  */
 
 NSS_EXTERN NSSPKIXAccessDescription *
-NSSPKIXAccessDescription_Create
-(
+NSSPKIXAccessDescription_Create (
   NSSArena *arenaOpt,
   NSSOID *accessMethod,
   NSSPKIXGeneralName *accessLocation
@@ -23780,8 +22833,7 @@ NSSPKIXAccessDescription_Create
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXAccessDescription_Destroy
-(
+NSSPKIXAccessDescription_Destroy (
   NSSPKIXAccessDescription *ad
 );
 
@@ -23801,8 +22853,7 @@ NSSPKIXAccessDescription_Destroy
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXAccessDescription_Encode
-(
+NSSPKIXAccessDescription_Encode (
   NSSPKIXAccessDescription *ad,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -23824,8 +22875,7 @@ NSSPKIXAccessDescription_Encode
  */
 
 NSS_EXTERN NSSOID *
-NSSPKIXAccessDescription_GetAccessMethod
-(
+NSSPKIXAccessDescription_GetAccessMethod (
   NSSPKIXAccessDescription *ad
 );
 
@@ -23845,8 +22895,7 @@ NSSPKIXAccessDescription_GetAccessMethod
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXAccessDescription_SetAccessMethod
-(
+NSSPKIXAccessDescription_SetAccessMethod (
   NSSPKIXAccessDescription *ad,
   NSSOID *accessMethod
 );
@@ -23867,8 +22916,7 @@ NSSPKIXAccessDescription_SetAccessMethod
  */
 
 NSS_EXTERN NSSPKIXGeneralName *
-NSSPKIXAccessDescription_GetAccessLocation
-(
+NSSPKIXAccessDescription_GetAccessLocation (
   NSSPKIXAccessDescription *ad,
   NSSArena *arenaOpt
 );
@@ -23889,8 +22937,7 @@ NSSPKIXAccessDescription_GetAccessLocation
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXAccessDescription_SetAccessLocation
-(
+NSSPKIXAccessDescription_SetAccessLocation (
   NSSPKIXAccessDescription *ad,
   NSSPKIXGeneralName *accessLocation
 );
@@ -23910,8 +22957,7 @@ NSSPKIXAccessDescription_SetAccessLocation
  */
 
 NSS_EXTERN PRBool
-NSSPKIXAccessDescription_Equal
-(
+NSSPKIXAccessDescription_Equal (
   NSSPKIXAccessDescription *ad1,
   NSSPKIXAccessDescription *ad2,
   PRStatus *statusOpt
@@ -23933,8 +22979,7 @@ NSSPKIXAccessDescription_Equal
  */
 
 NSS_EXTERN NSSPKIXAccessDescription *
-NSSPKIXAccessDescription_Duplicate
-(
+NSSPKIXAccessDescription_Duplicate (
   NSSPKIXAccessDescription *ad,
   NSSArena *arenaOpt
 );
@@ -23994,8 +23039,7 @@ NSSPKIXAccessDescription_Duplicate
  */
 
 NSS_EXTERN NSSPKIXIssuingDistributionPoint *
-NSSPKIXIssuingDistributionPoint_Decode
-(
+NSSPKIXIssuingDistributionPoint_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 );
@@ -24017,8 +23061,7 @@ NSSPKIXIssuingDistributionPoint_Decode
  */
 
 NSS_EXTERN NSSPKIXIssuingDistributionPoint *
-NSSPKIXIssuingDistributionPoint_Create
-(
+NSSPKIXIssuingDistributionPoint_Create (
   NSSArena *arenaOpt,
   NSSPKIXDistributionPointName *distributionPointOpt,
   PRBool onlyContainsUserCerts,
@@ -24041,8 +23084,7 @@ NSSPKIXIssuingDistributionPoint_Create
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXIssuingDistributionPoint_Destroy
-(
+NSSPKIXIssuingDistributionPoint_Destroy (
   NSSPKIXIssuingDistributionPoint *idp
 );
 
@@ -24062,8 +23104,7 @@ NSSPKIXIssuingDistributionPoint_Destroy
  */
 
 NSS_EXTERN NSSBER *
-NSSPKIXIssuingDistributionPoint_Encode
-(
+NSSPKIXIssuingDistributionPoint_Encode (
   NSSPKIXIssuingDistributionPoint *idp,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -24085,8 +23126,7 @@ NSSPKIXIssuingDistributionPoint_Encode
  */
 
 NSS_EXTERN PRBool
-NSSPKIXIssuingDistributionPoint_HasDistributionPoint
-(
+NSSPKIXIssuingDistributionPoint_HasDistributionPoint (
   NSSPKIXIssuingDistributionPoint *idp
 );
 
@@ -24107,8 +23147,7 @@ NSSPKIXIssuingDistributionPoint_HasDistributionPoint
  */
 
 NSS_EXTERN NSSPKIXDistributionPointName *
-NSSPKIXIssuingDistributionPoint_GetDistributionPoint
-(
+NSSPKIXIssuingDistributionPoint_GetDistributionPoint (
   NSSPKIXIssuingDistributionPoint *idp,
   NSSArena *arenaOpt
 );
@@ -24129,8 +23168,7 @@ NSSPKIXIssuingDistributionPoint_GetDistributionPoint
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXIssuingDistributionPoint_SetDistributionPoint
-(
+NSSPKIXIssuingDistributionPoint_SetDistributionPoint (
   NSSPKIXIssuingDistributionPoint *idp,
   NSSPKIXDistributionPointName *dpn
 );
@@ -24150,8 +23188,7 @@ NSSPKIXIssuingDistributionPoint_SetDistributionPoint
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXIssuingDistributionPoint_RemoveDistributionPoint
-(
+NSSPKIXIssuingDistributionPoint_RemoveDistributionPoint (
   NSSPKIXIssuingDistributionPoint *idp
 );
 
@@ -24170,8 +23207,7 @@ NSSPKIXIssuingDistributionPoint_RemoveDistributionPoint
  */
 
 NSS_EXTERN PRBool
-NSSPKIXIssuingDistributionPoint_GetOnlyContainsUserCerts
-(
+NSSPKIXIssuingDistributionPoint_GetOnlyContainsUserCerts (
   NSSPKIXIssuingDistributionPoint *idp,
   PRStatus *statusOpt
 );
@@ -24190,8 +23226,7 @@ NSSPKIXIssuingDistributionPoint_GetOnlyContainsUserCerts
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXIssuingDistributionPoint_SetOnlyContainsUserCerts
-(
+NSSPKIXIssuingDistributionPoint_SetOnlyContainsUserCerts (
   NSSPKIXIssuingDistributionPoint *idp,
   PRBool onlyContainsUserCerts
 );
@@ -24211,8 +23246,7 @@ NSSPKIXIssuingDistributionPoint_SetOnlyContainsUserCerts
  */
 
 NSS_EXTERN PRBool
-NSSPKIXIssuingDistributionPoint_GetOnlyContainsCACerts
-(
+NSSPKIXIssuingDistributionPoint_GetOnlyContainsCACerts (
   NSSPKIXIssuingDistributionPoint *idp,
   PRStatus *statusOpt
 );
@@ -24231,8 +23265,7 @@ NSSPKIXIssuingDistributionPoint_GetOnlyContainsCACerts
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXIssuingDistributionPoint_SetOnlyContainsCACerts
-(
+NSSPKIXIssuingDistributionPoint_SetOnlyContainsCACerts (
   NSSPKIXIssuingDistributionPoint *idp,
   PRBool onlyContainsCACerts
 );
@@ -24252,8 +23285,7 @@ NSSPKIXIssuingDistributionPoint_SetOnlyContainsCACerts
  */
 
 NSS_EXTERN PRBool
-NSSPKIXIssuingDistributionPoint_HasOnlySomeReasons
-(
+NSSPKIXIssuingDistributionPoint_HasOnlySomeReasons (
   NSSPKIXIssuingDistributionPoint *idp
 );
 
@@ -24274,8 +23306,7 @@ NSSPKIXIssuingDistributionPoint_HasOnlySomeReasons
  */
 
 NSS_EXTERN NSSPKIXReasonFlags *
-NSSPKIXIssuingDistributionPoint_GetOnlySomeReasons
-(
+NSSPKIXIssuingDistributionPoint_GetOnlySomeReasons (
   NSSPKIXIssuingDistributionPoint *idp,
   NSSArena *arenaOpt
 );
@@ -24296,8 +23327,7 @@ NSSPKIXIssuingDistributionPoint_GetOnlySomeReasons
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXIssuingDistributionPoint_SetOnlySomeReasons
-(
+NSSPKIXIssuingDistributionPoint_SetOnlySomeReasons (
   NSSPKIXIssuingDistributionPoint *idp,
   NSSPKIXReasonFlags *onlySomeReasons
 );
@@ -24317,8 +23347,7 @@ NSSPKIXIssuingDistributionPoint_SetOnlySomeReasons
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXIssuingDistributionPoint_RemoveOnlySomeReasons
-(
+NSSPKIXIssuingDistributionPoint_RemoveOnlySomeReasons (
   NSSPKIXIssuingDistributionPoint *idp
 );
 
@@ -24337,8 +23366,7 @@ NSSPKIXIssuingDistributionPoint_RemoveOnlySomeReasons
  */
 
 NSS_EXTERN PRBool
-NSSPKIXIssuingDistributionPoint_GetIndirectCRL
-(
+NSSPKIXIssuingDistributionPoint_GetIndirectCRL (
   NSSPKIXIssuingDistributionPoint *idp,
   PRStatus *statusOpt
 );
@@ -24357,8 +23385,7 @@ NSSPKIXIssuingDistributionPoint_GetIndirectCRL
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXIssuingDistributionPoint_SetIndirectCRL
-(
+NSSPKIXIssuingDistributionPoint_SetIndirectCRL (
   NSSPKIXIssuingDistributionPoint *idp,
   PRBool indirectCRL
 );
@@ -24378,8 +23405,7 @@ NSSPKIXIssuingDistributionPoint_SetIndirectCRL
  */
 
 NSS_EXTERN PRBool
-NSSPKIXIssuingDistributionPoint_Equal
-(
+NSSPKIXIssuingDistributionPoint_Equal (
   NSSPKIXIssuingDistributionPoint *idp1,
   NSSPKIXIssuingDistributionPoint *idp2,
   PRStatus *statusOpt
@@ -24401,8 +23427,7 @@ NSSPKIXIssuingDistributionPoint_Equal
  */
 
 NSS_EXTERN NSSPKIXIssuingDistributionPoint *
-NSSPKIXIssuingDistributionPoint_Duplicate
-(
+NSSPKIXIssuingDistributionPoint_Duplicate (
   NSSPKIXIssuingDistributionPoint *idp,
   NSSArena *arenaOpt
 );
@@ -24411,20 +23436,17 @@ NSSPKIXIssuingDistributionPoint_Duplicate
 
 /* XXX for now */
 NSS_EXTERN NSSPKIXBasicConstraints *
-NSSPKIXExtensions_GetBasicConstraints
-(
+NSSPKIXExtensions_GetBasicConstraints (
   NSSPKIXExtensions *extensions
 );
 
 NSS_EXTERN NSSPKIXKeyUsage *
-NSSPKIXExtensions_GetKeyUsage
-(
+NSSPKIXExtensions_GetKeyUsage (
   NSSPKIXExtensions *extensions
 );
 
 NSS_EXTERN NSSPKIXnetscapeCertType *
-NSSPKIXExtensions_GetNetscapeCertType
-(
+NSSPKIXExtensions_GetNetscapeCertType (
   NSSPKIXExtensions *extensions
 );
 

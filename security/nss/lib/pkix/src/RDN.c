@@ -51,8 +51,7 @@ const NSSASN1Template nssPKIXRelativeDistinguishedName_template[] = {
 };
 
 NSS_IMPLEMENT PRStatus
-nss_pkix_RelativeDistinguishedName_Clear
-(
+nss_pkix_RelativeDistinguishedName_Clear (
   NSSPKIXRelativeDistinguishedName *rdn
 )
 {
@@ -78,8 +77,7 @@ nss_pkix_RelativeDistinguishedName_Clear
 }
 
 NSS_IMPLEMENT void
-nss_pkix_RelativeDistinguishedName_Count
-(
+nss_pkix_RelativeDistinguishedName_Count (
   NSSPKIXRelativeDistinguishedName *rdn
 )
 {
@@ -116,8 +114,7 @@ nss_pkix_RelativeDistinguishedName_Count
 }
 
 NSS_EXTERN NSSPKIXRelativeDistinguishedName *
-nss_pkix_RelativeDistinguishedName_V_Create
-(
+nss_pkix_RelativeDistinguishedName_V_Create (
   NSSArena *arenaOpt,
   PRUint32 count,
   va_list ap
@@ -219,8 +216,7 @@ nss_pkix_RelativeDistinguishedName_V_Create
 }
 
 NSS_IMPLEMENT PRStatus
-nssPKIXRelativeDistinguishedName_AddAttributeTypeAndValue
-(
+nssPKIXRelativeDistinguishedName_AddAttributeTypeAndValue (
   NSSPKIXRelativeDistinguishedName *rdn,
   NSSPKIXAttributeTypeAndValue *atav
 )
@@ -271,8 +267,7 @@ nssPKIXRelativeDistinguishedName_AddAttributeTypeAndValue
 }
 
 NSS_IMPLEMENT NSSPKIXRelativeDistinguishedName *
-nssPKIXRelativeDistinguishedName_Create
-(
+nssPKIXRelativeDistinguishedName_Create (
   NSSArena *arenaOpt,
   NSSPKIXAttributeTypeAndValue *atav1,
   ...
@@ -339,8 +334,7 @@ nssPKIXRelativeDistinguishedName_Create
 }
 
 NSS_IMPLEMENT NSSPKIXRelativeDistinguishedName *
-nssPKIXRelativeDistinguishedName_CreateFromArray
-(
+nssPKIXRelativeDistinguishedName_CreateFromArray (
   NSSArena *arenaOpt,
   PRUint32 count,
   NSSPKIXAttributeTypeAndValue *atavs
@@ -435,8 +429,7 @@ nssPKIXRelativeDistinguishedName_CreateFromArray
 }
 
 NSS_IMPLEMENT NSSPKIXRelativeDistinguishedName *
-nssPKIXRelativeDistinguishedName_CreateFromUTF8
-(
+nssPKIXRelativeDistinguishedName_CreateFromUTF8 (
   NSSArena *arenaOpt,
   NSSUTF8 *string
 )
@@ -533,8 +526,7 @@ nssPKIXRelativeDistinguishedName_CreateFromUTF8
  */
 
 NSS_IMPLEMENT NSSPKIXRelativeDistinguishedName *
-nssPKIXRelativeDistinguishedName_Decode
-(
+nssPKIXRelativeDistinguishedName_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 )
@@ -616,8 +608,7 @@ nssPKIXRelativeDistinguishedName_Decode
 }
 
 NSS_IMPLEMENT PRStatus
-nssPKIXRelativeDistinguishedName_Destroy
-(
+nssPKIXRelativeDistinguishedName_Destroy (
   NSSPKIXRelativeDistinguishedName *rdn
 )
 {
@@ -639,8 +630,7 @@ nssPKIXRelativeDistinguishedName_Destroy
 }
 
 NSS_IMPLEMENT NSSPKIXRelativeDistinguishedName *
-nssPKIXRelativeDistinguishedName_Duplicate
-(
+nssPKIXRelativeDistinguishedName_Duplicate (
   NSSPKIXRelativeDistinguishedName *rdn,
   NSSArena *arenaOpt
 )
@@ -776,8 +766,7 @@ nssPKIXRelativeDistinguishedName_Duplicate
  */
 
 NSS_IMPLEMENT NSSBER *
-nssPKIXRelativeDistinguishedName_Encode
-(
+nssPKIXRelativeDistinguishedName_Encode (
   NSSPKIXRelativeDistinguishedName *rdn,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -840,8 +829,7 @@ nssPKIXRelativeDistinguishedName_Encode
 }
 
 NSS_IMPLEMENT PRBool
-nssPKIXRelativeDistinguishedName_Equal
-(
+nssPKIXRelativeDistinguishedName_Equal (
   NSSPKIXRelativeDistinguishedName *one,
   NSSPKIXRelativeDistinguishedName *two,
   PRStatus *statusOpt
@@ -887,8 +875,7 @@ nssPKIXRelativeDistinguishedName_Equal
 }
 
 NSS_IMPLEMENT PRInt32
-nssPKIXRelativeDistinguishedName_FindAttributeTypeAndValue
-(
+nssPKIXRelativeDistinguishedName_FindAttributeTypeAndValue (
   NSSPKIXRelativeDistinguishedName *rdn,
   NSSPKIXAttributeTypeAndValue *atav
 )
@@ -927,8 +914,7 @@ nssPKIXRelativeDistinguishedName_FindAttributeTypeAndValue
 }
 
 NSS_IMPLEMENT NSSPKIXAttributeTypeAndValue *
-nssPKIXRelativeDistinguishedName_GetAttributeTypeAndValue
-(
+nssPKIXRelativeDistinguishedName_GetAttributeTypeAndValue (
   NSSPKIXRelativeDistinguishedName *rdn,
   PRInt32 i,
   NSSArena *arenaOpt
@@ -960,8 +946,7 @@ nssPKIXRelativeDistinguishedName_GetAttributeTypeAndValue
 }
 
 NSS_IMPLEMENT PRInt32
-nssPKIXRelativeDistinguishedName_GetAttributeTypeAndValueCount
-(
+nssPKIXRelativeDistinguishedName_GetAttributeTypeAndValueCount (
   NSSPKIXRelativeDistinguishedName *rdn
 )
 {
@@ -991,8 +976,7 @@ nssPKIXRelativeDistinguishedName_GetAttributeTypeAndValueCount
 }
 
 NSS_IMPLEMENT NSSPKIXAttributeTypeAndValue **
-nssPKIXRelativeDistinguishedName_GetAttributeTypeAndValues
-(
+nssPKIXRelativeDistinguishedName_GetAttributeTypeAndValues (
   NSSPKIXRelativeDistinguishedName *rdn,
   NSSPKIXAttributeTypeAndValue *rvOpt[],
   PRInt32 limit,
@@ -1067,8 +1051,7 @@ nssPKIXRelativeDistinguishedName_GetAttributeTypeAndValues
 }
 
 NSS_IMPLEMENT NSSUTF8 *
-nssPKIXRelativeDistinguishedName_GetUTF8Encoding
-(
+nssPKIXRelativeDistinguishedName_GetUTF8Encoding (
   NSSPKIXRelativeDistinguishedName *rdn,
   NSSArena *arenaOpt
 )
@@ -1093,8 +1076,7 @@ nssPKIXRelativeDistinguishedName_GetUTF8Encoding
 }
 
 NSS_IMPLEMENT PRStatus
-nssPKIXRelativeDistinguishedName_RemoveAttributeTypeAndValue
-(
+nssPKIXRelativeDistinguishedName_RemoveAttributeTypeAndValue (
   NSSPKIXRelativeDistinguishedName *rdn,
   PRInt32 i
 )
@@ -1159,8 +1141,7 @@ nssPKIXRelativeDistinguishedName_RemoveAttributeTypeAndValue
 }
 
 NSS_IMPLEMENT PRStatus
-nssPKIXRelativeDistinguishedName_SetAttributeTypeAndValue
-(
+nssPKIXRelativeDistinguishedName_SetAttributeTypeAndValue (
   NSSPKIXRelativeDistinguishedName *rdn,
   PRInt32 i,
   NSSPKIXAttributeTypeAndValue *atav
@@ -1205,8 +1186,7 @@ nssPKIXRelativeDistinguishedName_SetAttributeTypeAndValue
 }
 
 NSS_IMPLEMENT PRStatus
-nssPKIXRelativeDistinguishedName_SetAttributeTypeAndValues
-(
+nssPKIXRelativeDistinguishedName_SetAttributeTypeAndValues (
   NSSPKIXRelativeDistinguishedName *rdn,
   NSSPKIXAttributeTypeAndValue *atavs[],
   PRInt32 countOpt
@@ -1317,8 +1297,7 @@ nssPKIXRelativeDistinguishedName_SetAttributeTypeAndValues
 }
 
 NSS_IMPLEMENT PRStatus
-NSSPKIXRelativeDistinguishedName_RemoveAttributeTypeAndValue
-(
+NSSPKIXRelativeDistinguishedName_RemoveAttributeTypeAndValue (
   NSSPKIXRelativeDistinguishedName *rdn,
   PRInt32 i
 )
@@ -1335,8 +1314,7 @@ NSSPKIXRelativeDistinguishedName_RemoveAttributeTypeAndValue
 }
 
 NSS_IMPLEMENT PRStatus
-NSSPKIXRelativeDistinguishedName_SetAttributeTypeAndValue
-(
+NSSPKIXRelativeDistinguishedName_SetAttributeTypeAndValue (
   NSSPKIXRelativeDistinguishedName *rdn,
   PRInt32 i,
   NSSPKIXAttributeTypeAndValue *atav
@@ -1358,8 +1336,7 @@ NSSPKIXRelativeDistinguishedName_SetAttributeTypeAndValue
 }
 
 NSS_IMPLEMENT PRStatus
-NSSPKIXRelativeDistinguishedName_SetAttributeTypeAndValues
-(
+NSSPKIXRelativeDistinguishedName_SetAttributeTypeAndValues (
   NSSPKIXRelativeDistinguishedName *rdn,
   NSSPKIXAttributeTypeAndValue *atavs[],
   PRInt32 countOpt
@@ -1416,8 +1393,7 @@ NSSPKIXRelativeDistinguishedName_SetAttributeTypeAndValues
 }
 
 NSS_IMPLEMENT PRStatus
-NSSPKIXRelativeDistinguishedName_AddAttributeTypeAndValue
-(
+NSSPKIXRelativeDistinguishedName_AddAttributeTypeAndValue (
   NSSPKIXRelativeDistinguishedName *rdn,
   NSSPKIXAttributeTypeAndValue *atav
 )
@@ -1438,8 +1414,7 @@ NSSPKIXRelativeDistinguishedName_AddAttributeTypeAndValue
 }
 
 NSS_EXTERN NSSPKIXRelativeDistinguishedName *
-NSSPKIXRelativeDistinguishedName_Create
-(
+NSSPKIXRelativeDistinguishedName_Create (
   NSSArena *arenaOpt,
   NSSPKIXAttributeTypeAndValue *atav1,
   ...
@@ -1508,8 +1483,7 @@ NSSPKIXRelativeDistinguishedName_Create
 }
 
 NSS_IMPLEMENT NSSPKIXRelativeDistinguishedName *
-NSSPKIXRelativeDistinguishedName_CreateFromArray
-(
+NSSPKIXRelativeDistinguishedName_CreateFromArray (
   NSSArena *arenaOpt,
   PRUint32 count,
   NSSPKIXAttributeTypeAndValue *atavs[]
@@ -1539,8 +1513,7 @@ NSSPKIXRelativeDistinguishedName_CreateFromArray
 }
 
 NSS_IMPLEMENT NSSPKIXRelativeDistinguishedName *
-NSSPKIXRelativeDistinguishedName_CreateFromUTF8
-(
+NSSPKIXRelativeDistinguishedName_CreateFromUTF8 (
   NSSArena *arenaOpt,
   NSSUTF8 *string
 )
@@ -1564,8 +1537,7 @@ NSSPKIXRelativeDistinguishedName_CreateFromUTF8
 }
 
 NSS_IMPLEMENT NSSPKIXRelativeDistinguishedName *
-NSSPKIXRelativeDistinguishedName_Decode
-(
+NSSPKIXRelativeDistinguishedName_Decode (
   NSSArena *arenaOpt,
   NSSBER *ber
 )
@@ -1588,8 +1560,7 @@ NSSPKIXRelativeDistinguishedName_Decode
 }
 
 NSS_IMPLEMENT PRStatus
-NSSPKIXRelativeDistinguishedName_Destroy
-(
+NSSPKIXRelativeDistinguishedName_Destroy (
   NSSPKIXRelativeDistinguishedName *rdn
 )
 {
@@ -1605,8 +1576,7 @@ NSSPKIXRelativeDistinguishedName_Destroy
 }
 
 NSS_IMPLEMENT NSSPKIXRelativeDistinguishedName *
-NSSPKIXRelativeDistinguishedName_Duplicate
-(
+NSSPKIXRelativeDistinguishedName_Duplicate (
   NSSPKIXRelativeDistinguishedName *rdn,
   NSSArena *arenaOpt
 )
@@ -1630,8 +1600,7 @@ NSSPKIXRelativeDistinguishedName_Duplicate
 
 
 NSS_IMPLEMENT NSSBER *
-NSSPKIXRelativeDistinguishedName_Encode
-(
+NSSPKIXRelativeDistinguishedName_Encode (
   NSSPKIXRelativeDistinguishedName *rdn,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
@@ -1656,8 +1625,7 @@ NSSPKIXRelativeDistinguishedName_Encode
 }
 
 NSS_EXTERN PRBool
-NSSPKIXRelativeDistinguishedName_Equal
-(
+NSSPKIXRelativeDistinguishedName_Equal (
   NSSPKIXRelativeDistinguishedName *one,
   NSSPKIXRelativeDistinguishedName *two,
   PRStatus *statusOpt
@@ -1687,8 +1655,7 @@ NSSPKIXRelativeDistinguishedName_Equal
 }
 
 NSS_EXTERN PRInt32
-NSSPKIXRelativeDistinguishedName_FindAttributeTypeAndValue
-(
+NSSPKIXRelativeDistinguishedName_FindAttributeTypeAndValue (
   NSSPKIXRelativeDistinguishedName *rdn,
   NSSPKIXAttributeTypeAndValue *atav
 )
@@ -1709,8 +1676,7 @@ NSSPKIXRelativeDistinguishedName_FindAttributeTypeAndValue
 }
 
 NSS_IMPLEMENT NSSPKIXAttributeTypeAndValue *
-NSSPKIXRelativeDistinguishedName_GetAttributeTypeAndValue
-(
+NSSPKIXRelativeDistinguishedName_GetAttributeTypeAndValue (
   NSSPKIXRelativeDistinguishedName *rdn,
   PRInt32 i,
   NSSArena *arenaOpt
@@ -1734,8 +1700,7 @@ NSSPKIXRelativeDistinguishedName_GetAttributeTypeAndValue
 }
 
 NSS_IMPLEMENT PRInt32
-NSSPKIXRelativeDistinguishedName_GetAttributeTypeAndValueCount
-(
+NSSPKIXRelativeDistinguishedName_GetAttributeTypeAndValueCount (
   NSSPKIXRelativeDistinguishedName *rdn
 )
 {
@@ -1752,8 +1717,7 @@ NSSPKIXRelativeDistinguishedName_GetAttributeTypeAndValueCount
 
 
 NSS_IMPLEMENT NSSPKIXAttributeTypeAndValue **
-NSSPKIXRelativeDistinguishedName_GetAttributeTypeAndValues
-(
+NSSPKIXRelativeDistinguishedName_GetAttributeTypeAndValues (
   NSSPKIXRelativeDistinguishedName *rdn,
   NSSPKIXAttributeTypeAndValue *rvOpt[],
   PRInt32 limit,
@@ -1778,8 +1742,7 @@ NSSPKIXRelativeDistinguishedName_GetAttributeTypeAndValues
 }
 
 NSS_IMPLEMENT NSSUTF8 *
-NSSPKIXRelativeDistinguishedName_GetUTF8Encoding
-(
+NSSPKIXRelativeDistinguishedName_GetUTF8Encoding (
   NSSPKIXRelativeDistinguishedName *rdn,
   NSSArena *arenaOpt
 )

@@ -54,8 +54,7 @@ static const char CVS_ID[] = "@(#) $Source$ $Revision$ $Date$ $Name$";
 #include "nss.h"
 
 static void *
-pkix_Decode
-(
+pkix_Decode (
   NSSArena *arenaOpt,
   NSSBER *encoding
 )
@@ -72,8 +71,7 @@ pkix_Decode
 }
 
 static NSSBER *
-pkix_GetSubject
-(
+pkix_GetSubject (
   void *cert
 )
 {
@@ -109,8 +107,7 @@ finish:
 }
 
 static NSSBER *
-pkix_GetIssuer
-(
+pkix_GetIssuer (
   void *cert
 )
 {
@@ -146,8 +143,7 @@ finish:
 }
 
 static NSSBER *
-pkix_GetSerialNumber
-(
+pkix_GetSerialNumber (
   void *cert
 )
 {
@@ -175,8 +171,7 @@ finish:
 }
 
 static NSSASCII7 *
-pkix_GetEmailAddress
-(
+pkix_GetEmailAddress (
   void *cert
 )
 {
@@ -184,8 +179,7 @@ pkix_GetEmailAddress
 }
 
 static PRStatus
-pkix_GetValidityPeriod
-(
+pkix_GetValidityPeriod (
   void *cert,
   NSSTime *notBefore, 
   NSSTime *notAfter
@@ -248,8 +242,7 @@ loser:
  * extension
  */
 static void
-get_usages_from_key_usage
-(
+get_usages_from_key_usage (
   NSSPKIXKeyUsage *keyUsage,
   NSSUsages *usages
 )
@@ -302,8 +295,7 @@ get_usages_from_key_usage
  * extension
  */
 static void
-get_usages_from_basic_constraints
-(
+get_usages_from_basic_constraints (
   NSSPKIXBasicConstraints *basicConstraints,
   NSSUsages *usages
 )
@@ -319,8 +311,7 @@ get_usages_from_basic_constraints
  * extension
  */
 static void
-get_usages_from_ext_key_usage
-(
+get_usages_from_ext_key_usage (
   NSSPKIXExtendedKeyUsage *extKeyUsage,
   NSSUsages *usages
 )
@@ -333,8 +324,7 @@ get_usages_from_ext_key_usage
  * extension
  */
 static void
-get_usages_from_ns_cert_type
-(
+get_usages_from_ns_cert_type (
   NSSPKIXnetscapeCertType *nsCertType,
   NSSUsages *usages
 )
@@ -365,8 +355,7 @@ get_usages_from_ns_cert_type
 }
 
 static PRStatus
-pkix_GetUsages
-(
+pkix_GetUsages (
   void *cert,
   NSSUsages *rvUsages
 )
@@ -429,8 +418,7 @@ loser:
 }
 
 static NSSPolicies *
-pkix_GetPolicies
-(
+pkix_GetPolicies (
   void *cert
 )
 {
@@ -438,8 +426,7 @@ pkix_GetPolicies
 }
 
 static PRStatus
-pkix_GetPublicKeyInfo
-(
+pkix_GetPublicKeyInfo (
   void *cert,
   NSSOID **keyType,
   NSSBitString *keyData
@@ -504,8 +491,7 @@ struct pkix_issuer_id_str {
 };
 
 static void *
-pkix_GetIssuerIdentifier
-(
+pkix_GetIssuerIdentifier (
   void *cert
 )
 {
@@ -578,8 +564,7 @@ loser:
 }
 
 static PRBool
-pkix_IsMyIdentifier
-(
+pkix_IsMyIdentifier (
   void *cert,
   void *id
 )
@@ -632,8 +617,7 @@ loser:
 }
 
 static void 
-pkix_FreeIdentifier
-(
+pkix_FreeIdentifier (
   void *id
 )
 {
@@ -650,8 +634,7 @@ struct nss_pkix_validation_data_str
 };
 
 static void *
-pkix_StartChainValidation
-(
+pkix_StartChainValidation (
   void
 )
 {
@@ -669,8 +652,7 @@ pkix_StartChainValidation
 #define NSSPKIXBasicConstraints_UNLIMITED_PATH_CONSTRAINT -2
 
 static PRStatus
-check_basic_constraints
-(
+check_basic_constraints (
   NSSPKIXCertificate *cert,
   struct nss_pkix_validation_data_str *validationData
 )
@@ -721,8 +703,7 @@ done:
 }
 
 static PRStatus
-verify_signature
-(
+verify_signature (
   NSSPKIXCertificate *cert,
   NSSPKIXCertificate *issuerCert,
   NSSCertificate *issuer
@@ -791,8 +772,7 @@ verify_signature
 }
 
 static PRStatus
-pkix_ValidateChainLink
-(
+pkix_ValidateChainLink (
   void *cert,
   NSSCertificate *issuer,
   void *vData
@@ -836,16 +816,14 @@ loser:
 }
 
 static void
-pkix_FreeChainValidationData
-(
+pkix_FreeChainValidationData (
   void *vData
 )
 {
 }
 
 static void
-pkix_Destroy
-(
+pkix_Destroy (
   void *cert
 )
 {
@@ -861,8 +839,7 @@ pkix_Destroy
 NSSCertificateMethods g_pkix_methods;
 
 NSS_IMPLEMENT PRStatus
-NSS_EnablePKIXCertificates
-(
+NSS_EnablePKIXCertificates (
   void
 )
 {
