@@ -1,4 +1,3 @@
-#! gmake
 #
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
@@ -31,35 +30,19 @@
 # may use your version of this file under either the MPL or the
 # GPL.
 #
+# Config stuff for Solaris 7 on x86
+# 
 
-DEFINES += -DMEMMOVE -D__DBINTERFACE_PRIVATE $(SECURITY_FLAG) -DNSPR20=1
+SOL_CFLAGS	= -D_SVID_GETTOD
 
-INCLUDES += -I../include
+include $(CORE_DEPTH)/coreconf/SunOS5.mk
 
-#
-#  Currently, override TARGETS variable so that only static libraries
-#  are specifed as dependencies within rules.mk.
-#
+CPU_ARCH		= x86
+ARCHFLAG		=
+OS_DEFINES		+= -Di386
 
-TARGETS        = $(LIBRARY)
-SHARED_LIBRARY =
-IMPORT_LIBRARY =
-PURE_LIBRARY   =
-PROGRAM        =
-
-ifdef SHARED_LIBRARY
-	ifeq ($(OS_ARCH),WINNT)
-		ifneq ($(OS_TARGET),WIN16)
-			DLLBASE=/BASE:0x30000000
-			RES=$(OBJDIR)/dbm.res
-			RESNAME=../include/dbm.rc
-		endif
-	endif
-	ifeq ($(DLL_SUFFIX),dll)
-		DEFINES += -D_DLL
-	endif
+ifeq ($(OS_RELEASE),5.7_i86pc)
+	OS_DEFINES += -DSOLARIS2_7
 endif
 
-ifeq ($(OS_ARCH),AIX)
-	OS_LIBS += -lc_r
-endif
+OS_LIBS += -lthread -lnsl -lsocket -lposix4 -ldl -lc
