@@ -44,6 +44,8 @@
 
 #ifndef NSS_3_4_CODE
 #define NSS_3_4_CODE
+#include "secmodt.h"
+#include "pkcs11t.h"
 #endif /* NSS_3_4_CODE */
 #include "nssdevt.h"
 
@@ -189,3 +191,14 @@ struct PK11ContextStr {
 };
 
 #endif /* _SECMODTI_H_ */
+/*
+ * structure to hold a pointer to a unique PKCS #11 object 
+ * (pointer to the slot and the object id).
+ */
+struct PK11GenericObjectStr {
+    PK11GenericObject *prev;
+    PK11GenericObject *next;
+    PK11SlotInfo *slot;
+    CK_OBJECT_HANDLE objectID;
+};
+
