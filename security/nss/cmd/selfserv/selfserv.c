@@ -46,6 +46,10 @@
 #include <unistd.h>
 #endif
 
+#ifdef XP_OS2_VACPP
+#include <Process.h>	/* for getpid() */
+#endif
+
 #include <stdlib.h>
 #include <errno.h>
 #include <fcntl.h>
