@@ -248,7 +248,7 @@ nss3certificate_matchIdentifier(nssDecodedCert *dc, void *id)
 
     /* keyIdentifier */
     if (authKeyID->keyID.len > 0) {
-	if (CERT_FindSubjectKeyIDExten(c, &skid) == SECSuccess) {
+	if (CERT_FindSubjectKeyIDExtension(c, &skid) == SECSuccess) {
 	    PRBool skiEqual;
 	    skiEqual = SECITEM_ItemsAreEqual(&authKeyID->keyID, &skid);
 	    PORT_Free(skid.data);
