@@ -399,6 +399,9 @@ typedef enum {
     SEC_OID_AVA_HOUSE_IDENTIFIER     = 271,
     SEC_OID_AVA_PSEUDONYM            = 272,
 
+    /* More PKIX OIDs */
+    SEC_OID_PKIX_CA_ISSUERS          = 273,
+
     SEC_OID_TOTAL
 } SECOidTag;
 
