@@ -172,8 +172,7 @@ int main(int argc, char *argv[])
       break;
     }
     FPUTC('\n', stderr);
-    printf("After %d tests, the following value is still probably prime:\n",
-	   NUM_TESTS);
+    puts("The following value is probably prime:");
     outlen = mp_radix_size(&testval, 10);
     out = calloc(outlen, sizeof(unsigned char));
     mp_toradix(&testval, (char *)out, 10);
