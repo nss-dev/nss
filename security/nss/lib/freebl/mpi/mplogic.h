@@ -76,6 +76,7 @@ mp_err mpl_parity(mp_int *a);                    /* determine parity  */
 
 mp_err mpl_set_bit(mp_int *a, mp_size bitNum, mp_size value);
 mp_err mpl_get_bit(mp_int *a, mp_size bitNum);
+mp_err mpl_get_bits(mp_int *a, mp_size lsbNum, mp_size numBits);
 mp_err mpl_significant_bits(mp_int *a);
 
 #endif /* end _H_MPLOGIC_ */
