@@ -823,7 +823,7 @@ add_cert_to_cache
 	}
 #endif
     }
-    nssCertificate_AddRef(cert);
+    rvCert = nssCertificate_AddRef(cert);
     PZ_Unlock(td->cache->lock);
     return rvCert;
 loser:

@@ -1238,6 +1238,7 @@ make_object_and_attr
 	goto loser;
     }
     for (i=0; i<otlen; i++) {
+	oa->attributes[i].type = ot[i].type;
 	oa->attributes[i].pValue = nss_ZAlloc(arena, ot[i].ulValueLen);
 	if (!oa->attributes[i].pValue) {
 	    goto loser;
