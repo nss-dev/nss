@@ -64,6 +64,7 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 
 struct nssHashStr {
   NSSArena *arena;
+  PRBool i_alloced_arena;
   PRLock *mutex;
 
   /*
@@ -124,6 +125,7 @@ nssHash_Create
 {
   nssHash *rv;
   NSSArena *arena;
+  PRBool i_alloced;
 
 #ifdef NSSDEBUG
   if( arenaOpt && PR_SUCCESS != nssArena_verifyPointer(arenaOpt) ) {
@@ -134,8 +136,10 @@ nssHash_Create
 
   if (arenaOpt) {
     arena = arenaOpt;
+    i_alloced = PR_FALSE;
   } else {
     arena = nssArena_Create();
+    i_alloced = PR_TRUE;
   }
 
   rv = nss_ZNEW(arena, nssHash);
@@ -157,9 +161,8 @@ nssHash_Create
   }
 
   rv->count = 0;
-  if (!arenaOpt) {
-    rv->arena = arena;
-  }
+  rv->arena = arena;
+  rv->i_alloced_arena = i_alloced;
 
   return rv;
 loser:
@@ -224,7 +227,7 @@ nssHash_Destroy
 {
   (void)PZ_DestroyLock(hash->mutex);
   PL_HashTableDestroy(hash->plHashTable);
-  if (hash->arena) {
+  if (hash->i_alloced_arena) {
     nssArena_Destroy(hash->arena);
   } else {
     nss_ZFreeIf(hash);
