@@ -64,6 +64,7 @@
 #define NSS_3_4_CODE
 #endif /* NSS_3_4_CODE */
 #include "pki.h"
+#include "pki3hack.h"
 
 /*
  * Certificate database handling code
