@@ -646,13 +646,6 @@ CERT_VerifyCertChain(CERTCertDBHandle *handle, CERTCertificate *cert,
 		     void *wincx, CERTVerifyLog *log);
 
 /*
-** This must only be called on a cert that is known to have an issuer
-** with an invalid time
-*/
-extern CERTCertificate *
-CERT_FindExpiredIssuer (CERTCertDBHandle *handle, CERTCertificate *cert);
-
-/*
 ** Read a base64 ascii encoded DER certificate and convert it to our
 ** internal format.
 **	"certstr" is a null-terminated string containing the certificate
