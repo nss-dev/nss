@@ -206,11 +206,7 @@ extern char *PORT_ArenaStrdup(PLArenaPool *arena, char *str);
 #define PORT_Strrchr    PL_strrchr
 #define PORT_Strcmp 	strcmp
 #define PORT_Strcpy 	strcpy
-#ifdef XP_MAC
-char *PORT_Strdup(const char *);
-#else
-#define PORT_Strdup 	strdup
-#endif
+#define PORT_Strdup 	PL_strdup
 #define PORT_Strlen(s) 	strlen(s)
 #define PORT_Strncasecmp PL_strncasecmp
 #define PORT_Strncat 	strncat
