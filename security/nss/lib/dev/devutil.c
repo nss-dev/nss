@@ -626,7 +626,9 @@ nssTokenObjectCache_Clear
 )
 {
     if (cache) {
+	PZ_Lock(cache->lock);
 	clear_cache(cache);
+	PZ_Unlock(cache->lock);
     }
 }
 
