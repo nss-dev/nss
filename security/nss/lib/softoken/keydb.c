@@ -1096,6 +1096,25 @@ nsslowkey_UpdateNickname(NSSLOWKEYDBHandle *handle,
 	     nickname, arg, nsslowkey_GetDefaultKeyDBAlg(),PR_TRUE);
 }
 
+/* see if the symetric CKA_ID already Exists.
+ */
+PRBool
+nsslowkey_KeyForIDExists(NSSLOWKEYDBHandle *handle, SECItem *id)
+{
+    DBT namekey;
+    DBT dummy;
+    int status;
+
+    namekey.data = (char *)id->data;
+    namekey.size = id->len;
+    status = (* handle->db->get)(handle->db, &namekey, &dummy, 0);
+    if ( status ) {
+	return PR_FALSE;
+    }
+    
+    return PR_TRUE;
+}
+
 /* see if the public key for this cert is in the database filed
  * by modulus
  */
