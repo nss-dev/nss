@@ -866,7 +866,7 @@ RNG_RNGInit(void)
 }
 
 SECStatus 
-RNG_RandomUpdate(void *data, size_t bytes)
+RNG_RandomUpdate(const void *data, size_t bytes)
 {
   if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
       return SECFailure;
