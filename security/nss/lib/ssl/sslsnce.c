@@ -1164,6 +1164,7 @@ SSL_ShutdownServerSessionIDCacheInstance(cacheDesc *cache)
     /* if single process, close down, clean up.
     ** if multi-process, TBD.
     */
+    return SECSuccess;
 }
 
 SECStatus
