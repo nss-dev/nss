@@ -47,6 +47,7 @@
 #include "pk11func.h"
 #include "prtime.h"
 #include "secerr.h"
+#include "secder.h"
 #include "cryptohi.h"
 
 #include "smime.h"
