@@ -2655,6 +2655,8 @@ nsslowcert_UpdateSubjectEmailAddr(NSSLOWCERTCertDBHandle *dbhandle,
 	if (emailAddr == NULL) {
 	    return SECFailure;
 	}
+    } else {
+	return SECSuccess;
     }
 
     entry = ReadDBSubjectEntry(dbhandle,derSubject);    
