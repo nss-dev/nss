@@ -295,7 +295,7 @@ if (defined $opt_D) {
     #  if 8 bit chars present, use Content-Transfer-Encoding: quoted-printable
     #  otherwise, use Content-Transfer-Encoding: 7bit
     #
-    $mimeentity =~ s/\n/\r\n/mg;
+    $mimeentity =~ s/\r*\n/\r\n/mg;
 
     #
     # now do the wrapping
