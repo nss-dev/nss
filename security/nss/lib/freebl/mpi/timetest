@@ -48,7 +48,8 @@ ECHO=/bin/echo
 
 # Use a fixed seed so timings will be more consistent
 # This one is the 11th-18th decimal digits of 'e'
-export SEED=45904523
+#export SEED=45904523
+SEED=45904523; export SEED
 
 #------------------------------------------------------------------------
 
