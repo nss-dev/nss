@@ -67,7 +67,11 @@ typedef DB * (*rdbfunc)(const char *appName, const char *prefix,
 DB * rdbopen(const char *appName, const char *prefix, 
 				const char *type, int flags);
 
+DB *dbsopen (const char *dbname , int flags, int mode, DBTYPE type, 
+						const void * appData);
 SECStatus db_Copy(DB *dest,DB *src);
 int db_BeginTransaction(DB *db);
 int db_FinishTransaction(DB *db, PRBool abort);
+
+
 #endif
