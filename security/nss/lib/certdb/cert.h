@@ -251,6 +251,26 @@ CERT_CreateCertificateRequest (CERTName *name, CERTSubjectPublicKeyInfo *spki,
 extern void CERT_DestroyCertificateRequest(CERTCertificateRequest *r);
 
 /*
+** Start adding extensions to a certificate request.
+*/
+void *
+CERT_StartCertificateRequestAttributes(CERTCertificateRequest *req);
+
+/*
+** Reformat the certifcate extension list into a CertificateRequest
+** attribute list.
+*/
+SECStatus
+CERT_FinishCertificateRequestAttributes(CERTCertificateRequest *req);
+
+/*
+** Extract the Extension Requests from a DER CertRequest attribute list.
+*/
+SECStatus
+CERT_GetCertificateRequestExtensions(CERTCertificateRequest *req,
+                                     CERTCertExtension ***exts);
+
+/*
 ** Extract a public key object from a certificate
 */
 extern SECKEYPublicKey *CERT_ExtractPublicKey(CERTCertificate *cert);
@@ -823,6 +843,13 @@ CERT_EncodeAltNameExtension(PRArenaPool *arena,  CERTGeneralName  *value, SECIte
 */
 extern SECStatus CERT_FinishExtensions(void *exthandle);
 
+/*
+** Merge an external list of extensions into a cert's extension list, adding one
+** only when its OID matches none of the cert's existing extensions. Call this
+** immediately before calling CERT_FinishExtensions().
+*/
+SECStatus
+CERT_MergeExtensions(void *exthandle, CERTCertExtension **exts);
 
 /* If the extension is found, return its criticality and value.
 ** This allocate storage for the returning extension value.
