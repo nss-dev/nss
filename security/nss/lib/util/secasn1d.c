@@ -2298,7 +2298,8 @@ sec_asn1d_before_choice (sec_asn1d_state *state)
     }
 
     child = sec_asn1d_push_state(state->top, state->theTemplate + 1, 
-				 state->dest, PR_FALSE);
+				 (char *)state->dest - state->theTemplate->offset, 
+				 PR_FALSE);
     if ((sec_asn1d_state *)NULL == child) {
 	return (sec_asn1d_state *)NULL;
     }
@@ -2326,6 +2327,7 @@ sec_asn1d_during_choice (sec_asn1d_state *state)
     if (child->missing) {
 	unsigned char child_found_tag_modifiers = 0;
 	unsigned long child_found_tag_number = 0;
+	void *        dest;
 
 	state->consumed += child->consumed;
 
@@ -2347,6 +2349,7 @@ sec_asn1d_during_choice (sec_asn1d_state *state)
 	    return NULL;
 	}
 
+	dest = (char *)child->dest - child->theTemplate->offset;
 	child->theTemplate++;
 
 	if (0 == child->theTemplate->kind) {
@@ -2355,6 +2358,7 @@ sec_asn1d_during_choice (sec_asn1d_state *state)
 	    state->top->status = decodeError;
 	    return (sec_asn1d_state *)NULL;
 	}
+	child->dest = (char *)dest + child->theTemplate->offset;
 
 	/* cargo'd from next_in_sequence innards */
 	if (state->pending) {
@@ -2400,7 +2404,7 @@ sec_asn1d_during_choice (sec_asn1d_state *state)
     } 
     if ((void *)NULL != state->dest) {
 	/* Store the enum */
-	int *which = (int *)((char *)state->dest + state->theTemplate->offset);
+	int *which = (int *)state->dest;
 	*which = (int)child->theTemplate->size;
     }
 
