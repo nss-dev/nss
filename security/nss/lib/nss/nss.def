@@ -717,11 +717,21 @@ SECKEY_CopyPublicKey;
 ;+NSS_3.7 { 	# NSS 3.7 release
 ;+    global:
 CERT_CRLCacheRefreshIssuer;
+CERT_DestroyOCSPResponse;
 CERT_EncodeAltNameExtension;
+CERT_FindCertBySubjectKeyID;
+CERT_FindSubjectKeyIDExtension;
 CERT_GetFirstEmailAddress;
 CERT_GetNextEmailAddress;
-CERT_VerifySignedDataWithPubKeyInfo;
 CERT_VerifySignedDataWithPublicKey;
+CERT_VerifySignedDataWithPublicKeyInfo;
+PK11_WaitForTokenEvent;
+;+    local:
+;+       *;
+;+};
+;+NSS_3.7.1 { 	# NSS 3.7.1 release
+;+    global:
+PK11_TokenRefresh;
 ;+    local:
 ;+       *;
 ;+};

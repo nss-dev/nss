@@ -1323,6 +1323,33 @@ ssl3_ComputeRecordMAC(
     return rv;
 }
 
+static PRBool
+ssl3_ClientAuthTokenPresent(sslSessionID *sid) {
+    PK11SlotInfo *slot = NULL;
+    PRBool isPresent = PR_TRUE;
+
+    /* we only care if we are doing client auth */
+    if (!sid || !sid->u.ssl3.clAuthValid) {
+	return PR_TRUE;
+    }
+
+    /* get the slot */
+    slot = SECMOD_LookupSlot(sid->u.ssl3.clAuthModuleID,
+	                     sid->u.ssl3.clAuthSlotID);
+    if (slot == NULL ||
+	!PK11_IsPresent(slot) ||
+	sid->u.ssl3.clAuthSeries     != PK11_GetSlotSeries(slot) ||
+	sid->u.ssl3.clAuthSlotID     != PK11_GetSlotID(slot)     ||
+	sid->u.ssl3.clAuthModuleID   != PK11_GetModuleID(slot)   ||
+               (PK11_NeedLogin(slot) && !PK11_IsLoggedIn(slot, NULL))) {
+	isPresent = PR_FALSE;
+    } 
+    if (slot) {
+	PK11_FreeSlot(slot);
+    }
+    return isPresent;
+}
+
 /* Process the plain text before sending it.
  * Returns the number of bytes of plaintext that were succesfully sent
  * 	plus the number of bytes of plaintext that were copied into the
@@ -1365,6 +1392,12 @@ ssl3_SendRecord(   sslSocket *        ss,
 	if (rv != SECSuccess) {
 	    return SECFailure;	/* ssl3_InitState has set the error code. */
     	}
+    }
+
+    /* check for Token Presence */
+    if (!ssl3_ClientAuthTokenPresent(ss->sec.ci.sid)) {
+	PORT_SetError(SSL_ERROR_TOKEN_INSERTION_REMOVAL);
+	return SECFailure;
     }
 
     while (bytes > 0) {
@@ -2691,21 +2724,8 @@ ssl3_SendClientHello(sslSocket *ss)
 	** holds the private key still exists, is logged in, hasn't been
 	** removed, etc.
 	*/
-	if (sidOK && sid->u.ssl3.clAuthValid) {
-	    slot = SECMOD_LookupSlot(sid->u.ssl3.clAuthModuleID,
-	                             sid->u.ssl3.clAuthSlotID);
-	    if (slot == NULL ||
-	        !PK11_IsPresent(slot) ||
-		sid->u.ssl3.clAuthSeries     != PK11_GetSlotSeries(slot) ||
-		sid->u.ssl3.clAuthSlotID     != PK11_GetSlotID(slot)     ||
-		sid->u.ssl3.clAuthModuleID   != PK11_GetModuleID(slot)   ||
-                !PK11_IsLoggedIn(slot, NULL)) {
-	        sidOK = PR_FALSE;
-	    }
-	    if (slot) {
-		PK11_FreeSlot(slot);
-		slot = NULL;
-	    }
+	if (sidOK && !ssl3_ClientAuthTokenPresent(sid)) {
+	    sidOK = PR_FALSE;
 	}
 
 	if (!sidOK) {
@@ -7393,9 +7413,10 @@ const ssl3BulkCipherDef *cipher_def;
     ssl3State *          ssl3 			= ss->ssl3;
     ssl3CipherSpec *     crSpec;
     SECStatus            rv;
-    unsigned int         hashBytes;
+    unsigned int         hashBytes		= MAX_MAC_LENGTH + 1;
     unsigned int         padding_length;
     PRBool               isTLS;
+    PRBool               padIsBad               = PR_FALSE;
     SSL3ContentType      rType;
     SSL3Opaque           hash[MAX_MAC_LENGTH];
 
@@ -7411,6 +7432,12 @@ const ssl3BulkCipherDef *cipher_def;
     }
 
     ssl3 = ss->ssl3;
+
+    /* check for Token Presence */
+    if (!ssl3_ClientAuthTokenPresent(ss->sec.ci.sid)) {
+	PORT_SetError(SSL_ERROR_TOKEN_INSERTION_REMOVAL);
+	return SECFailure;
+    }
 
     /* cText is NULL when we're called from ssl3_RestartHandshakeAfterXXX().
      * This implies that databuf holds a previously deciphered SSL Handshake
@@ -7430,6 +7457,7 @@ const ssl3BulkCipherDef *cipher_def;
 	    SSL_DBG(("%d: SSL3[%d]: HandleRecord, tried to get %d bytes",
 		     SSL_GETPID(), ss->fd, MAX_FRAGMENT_LENGTH + 2048));
 	    /* sslBuffer_Grow has set a memory error code. */
+	    /* Perhaps we should send an alert. (but we have no memory!) */
 	    return SECFailure;
 	}
     }
@@ -7455,11 +7483,11 @@ const ssl3BulkCipherDef *cipher_def;
 
     PRINT_BUF(80, (ss, "cleartext:", databuf->buf, databuf->len));
     if (rv != SECSuccess) {
+	int err = ssl_MapLowLevelError(SSL_ERROR_DECRYPTION_FAILURE);
 	ssl_ReleaseSpecReadLock(ss);
-	ssl_MapLowLevelError(SSL_ERROR_DECRYPTION_FAILURE);
-	SSL3_SendAlert(ss, alert_fatal, 
-		       isTLS ? decryption_failed : bad_record_mac);
-	ssl_MapLowLevelError(SSL_ERROR_DECRYPTION_FAILURE);
+	SSL3_SendAlert(ss, alert_fatal,
+	               isTLS ? decryption_failed : bad_record_mac);
+	PORT_SetError(err);
 	return SECFailure;
     }
 
@@ -7467,48 +7495,45 @@ const ssl3BulkCipherDef *cipher_def;
     if (cipher_def->type == type_block) {
 	padding_length = *(databuf->buf + databuf->len - 1);
 	/* TLS permits padding to exceed the block size, up to 255 bytes. */
-	if (padding_length + crSpec->mac_size >= databuf->len)
-	    goto bad_pad;
+	if (padding_length + 1 + crSpec->mac_size > databuf->len)
+	    padIsBad = PR_TRUE;
 	/* if TLS, check value of first padding byte. */
-	if (padding_length && isTLS && padding_length != 
-		*(databuf->buf + databuf->len - 1 - padding_length))
-	    goto bad_pad;
-	databuf->len -= padding_length + 1;
-	if (databuf->len <= 0) {
-bad_pad:
-	    /* must not hold spec lock when calling SSL3_SendAlert. */
-	    ssl_ReleaseSpecReadLock(ss);
-	    /* SSL3 & TLS must send bad_record_mac if padding check fails. */
-	    SSL3_SendAlert(ss, alert_fatal, bad_record_mac);
-	    PORT_SetError(SSL_ERROR_BAD_BLOCK_PADDING);
-	    return SECFailure;
-	}
+	else if (padding_length && isTLS && 
+	         padding_length != 
+	                 *(databuf->buf + databuf->len - (padding_length + 1)))
+	    padIsBad = PR_TRUE;
+	else
+	    databuf->len -= padding_length + 1;
     }
 
-    /* Check the MAC. */
-    if (databuf->len < crSpec->mac_size) {
-    	/* record is too short to have a valid mac. */
-	goto bad_mac;
-    }
-    databuf->len -= crSpec->mac_size;
+    /* Remove the MAC. */
+    if (databuf->len >= crSpec->mac_size)
+	databuf->len -= crSpec->mac_size;
+    else
+    	padIsBad = PR_TRUE;	/* really macIsBad */
+
+    /* compute the MAC */
     rType = cText->type;
     rv = ssl3_ComputeRecordMAC(
-    	crSpec, (ss->sec.isServer) ? crSpec->client.write_mac_context
+	crSpec, (ss->sec.isServer) ? crSpec->client.write_mac_context
 				    : crSpec->server.write_mac_context,
 	rType, cText->version, crSpec->read_seq_num, 
 	databuf->buf, databuf->len, hash, &hashBytes);
     if (rv != SECSuccess) {
+	int err = ssl_MapLowLevelError(SSL_ERROR_MAC_COMPUTATION_FAILURE);
 	ssl_ReleaseSpecReadLock(ss);
-	ssl_MapLowLevelError(SSL_ERROR_MAC_COMPUTATION_FAILURE);
+	SSL3_SendAlert(ss, alert_fatal, bad_record_mac);
+	PORT_SetError(err);
 	return rv;
     }
 
-    if (hashBytes != (unsigned)crSpec->mac_size ||
+    /* Check the MAC */
+    if (hashBytes != (unsigned)crSpec->mac_size || padIsBad || 
 	PORT_Memcmp(databuf->buf + databuf->len, hash, crSpec->mac_size) != 0) {
-bad_mac:
 	/* must not hold spec lock when calling SSL3_SendAlert. */
 	ssl_ReleaseSpecReadLock(ss);
 	SSL3_SendAlert(ss, alert_fatal, bad_record_mac);
+	/* always log mac error, in case attacker can read server logs. */
 	PORT_SetError(SSL_ERROR_BAD_MAC_READ);
 
 	SSL_DBG(("%d: SSL3[%d]: mac check failed", SSL_GETPID(), ss->fd));
