@@ -117,7 +117,8 @@ SSL_SecurityStatus(PRFileDesc *fd, int *op, char **cp, int *kp0, int *kp1,
 	    cipherName = ssl3_cipherName[ss->sec.cipherType];
 	}
 	if (cipherName && PORT_Strstr(cipherName, "DES")) isDes = PR_TRUE;
-
+	/* do same key stuff for fortezza */
+    
 	if (cp) {
 	    *cp = PORT_Strdup(cipherName);
 	}
