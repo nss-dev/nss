@@ -89,11 +89,15 @@ NSSCryptoContext_Destroy (
   NSSCryptoContext *cc
 )
 {
+    PRStatus status = PR_SUCCESS;
     if (cc->certStore) {
-	nssCertificateStore_Destroy(cc->certStore);
+	status = nssCertificateStore_Destroy(cc->certStore);
+	if (status == PR_FAILURE) {
+	    return status;
+	}
     }
     nssArena_Destroy(cc->arena);
-    return PR_SUCCESS;
+    return status;
 }
 
 NSS_IMPLEMENT PRStatus
