@@ -244,7 +244,7 @@ BLAPI_SHVerify(const char *name, PRFuncPtr addr)
         }
 	fprintf(stderr,"Verified : %s\n",result?"TRUE": "FALSE");
     }
-#endif DEBUG_SHVERIFY
+#endif /* DEBUG_SHVERIFY */
 
 
 loser:
