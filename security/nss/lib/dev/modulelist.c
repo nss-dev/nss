@@ -205,7 +205,7 @@ nssGlobalModuleList_Add
 	}
 	mlist->numLoadedModules++;
     }
-    PR_Lock(mlist->lock);
+    PR_Unlock(mlist->lock);
     return nssrv;
 }
 
@@ -236,7 +236,7 @@ nssGlobalModuleList_Remove
 	bnode = node;
 	node = node->next;
     }
-    PR_Lock(mlist->lock);
+    PR_Unlock(mlist->lock);
     return nssrv;
 }
 
