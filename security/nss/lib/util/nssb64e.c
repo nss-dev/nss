@@ -147,7 +147,7 @@ pl_base64_encode_buffer (PLBase64Encoder *data, const unsigned char *in,
 {
     const unsigned char *end = in + size;
     char *out = data->output_buffer + data->output_length;
-    int i = data->in_buffer_count;
+    unsigned int i = data->in_buffer_count;
     PRUint32 n = 0;
     int off;
     PRUint32 output_threshold;
