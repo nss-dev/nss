@@ -1442,8 +1442,7 @@ nssATAV_GetDEREncoding
   }
 
   rv->size = atav->ber.size;
-  if( PR_SUCCESS != nsslibc_memcpy(rv->data, atav->ber.data, 
-                                   rv->size) ) {
+  if( NULL == nsslibc_memcpy(rv->data, atav->ber.data, rv->size) ) {
     (void)nss_ZFreeIf(rv->data);
     (void)nss_ZFreeIf(rv);
     return (NSSDER *)NULL;
@@ -1810,7 +1809,7 @@ nssATAV_Duplicate
   }
 
   rv->ber.size = atav->ber.size;
-  if( PR_SUCCESS != nsslibc_memcpy(rv->ber.data, atav->ber.data, 
+  if( NULL == nsslibc_memcpy(rv->ber.data, atav->ber.data, 
                                    atav->ber.size) ) {
     (void)nss_ZFreeIf(rv->ber.data);
     (void)nss_ZFreeIf(rv->value);
