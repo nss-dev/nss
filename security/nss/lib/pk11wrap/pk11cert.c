@@ -1567,8 +1567,10 @@ PK11_FindCertsFromNickname(char *nickname, void *wincx) {
 	}
 	if (nameList) {
 	    count = nssList_Count(nameList);
-	    foundCerts = nss_ZNEWARRAY(NULL, NSSCertificate *, count + 1);
-	    nssList_GetArray(nameList, (void **)foundCerts, count);
+	    if (count > 0) {
+		foundCerts = nss_ZNEWARRAY(NULL, NSSCertificate *, count + 1);
+		nssList_GetArray(nameList, (void **)foundCerts, count);
+	    }
 	    nssList_Destroy(nameList);
 	}
     }
