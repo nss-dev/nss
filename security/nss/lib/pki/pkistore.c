@@ -305,10 +305,12 @@ nssCertificateStore_Remove
 )
 {
     PZ_Lock(store->lock);
-    remove_certificate_entry(store, cert);
-    remove_subject_entry(store, cert);
+    if (nssHash_Exists(store->issuer_and_serial, cert)) {
+	remove_certificate_entry(store, cert);
+	remove_subject_entry(store, cert);
+	NSSCertificate_Destroy(cert); /* release the store's reference */
+    }
     PZ_Unlock(store->lock);
-    NSSCertificate_Destroy(cert); /* release the store's reference */
 }
 
 NSS_IMPLEMENT NSSCertificate **
