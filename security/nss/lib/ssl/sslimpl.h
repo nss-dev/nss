@@ -1289,12 +1289,12 @@ SEC_END_PROTOS
 #endif
 
 #if defined(XP_UNIX) || defined(XP_OS2) || defined(XP_BEOS)
-#define SSL_GETPID() getpid()
+#define SSL_GETPID getpid
+#elif defined(_WIN32_WCE)
+#define SSL_GETPID GetCurrentProcessId
 #elif defined(WIN32)
-
 extern int __cdecl _getpid(void);
-/* #define SSL_GETPID() GetCurrentProcessId() */
-#define SSL_GETPID() _getpid()
+#define SSL_GETPID _getpid
 #else
 #define SSL_GETPID() 0
 #endif
