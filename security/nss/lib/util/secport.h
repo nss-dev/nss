@@ -45,7 +45,7 @@
 #define _SECPORT_H_
 
 /*
- * define XP_MAC, XP_WIN, or XP_UNIX, in case they are not defined
+ * define XP_MAC, XP_WIN, XP_BEOS, or XP_UNIX, in case they are not defined
  * by anyone else
  */
 #ifdef macintosh
@@ -67,6 +67,12 @@
 # define XP_WIN16
 # endif
 #endif
+#endif
+
+#ifdef __BEOS__
+# ifndef XP_BEOS
+# define XP_BEOS
+# endif
 #endif
 
 #ifdef unix
