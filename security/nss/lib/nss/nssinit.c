@@ -289,18 +289,16 @@ NSS_Shutdown(void)
     CERTCertDBHandle *certHandle;
     SECKEYKeyDBHandle *keyHandle;
 
+    SECMOD_Shutdown();
     certHandle = CERT_GetDefaultCertDB();
     if (certHandle)
     	CERT_ClosePermCertDB(certHandle);
+    CERT_SetDefaultCertDB(NULL); 
 
     keyHandle = SECKEY_GetDefaultKeyDB();
     if (keyHandle)
     	SECKEY_CloseKeyDB(keyHandle);
-
-    /* XXX
-     * This should also close the secmod DB, 
-     * but there's no secmod function to close the DB.
-     */
+    SECKEY_SetDefaultKeyDB(NULL); 
 }
 
 PRBool
