@@ -208,6 +208,10 @@ nssToken_IsPresent
     CK_SLOT_INFO slotInfo;
     NSSSlot *slot = token->slot;
     session = token->defaultSession;
+    /* permanent slots are always present */
+    if (nssSlot_IsPermanent(slot) && session != CK_INVALID_SESSION) {
+	return PR_TRUE;
+    }
     nssSession_EnterMonitor(session);
     /* First obtain the slot info */
     ckrv = CKAPI(slot)->C_GetSlotInfo(slot->slotID, &slotInfo);
