@@ -66,7 +66,7 @@ publish:
 	mkdir -p opt/sun/private/bin
 	(cd $(CORE_DEPTH)/../dist/$(OBJDIR)/bin && tar cphf - \
 		certutil cmsutil crlutil modutil pk12util signtool \
-		signver ssltap ) | (cd opt/sun/private/bin && tar xvfBp -)
+		signver ssltap addbuiltin ) | (cd opt/sun/private/bin && tar xvfBp -)
 	(cd $(CORE_DEPTH)/../dist/public && tar cphf - .) \
 		| (mkdir -p opt/sun/private/include && cd opt/sun/private/include && tar xvfBp -)
 	rm -rf opt/sun/private/include/seccmd

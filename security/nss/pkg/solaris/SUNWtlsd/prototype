@@ -120,6 +120,8 @@ f none usr/include/mps/p12t.h 0644 root bin
 f none usr/include/mps/pk11func.h 0644 root bin
 f none usr/include/mps/pk11pqg.h 0644 root bin
 f none usr/include/mps/pk11sdr.h 0644 root bin
+f none usr/include/mps/pk11priv.h 0644 root bin
+f none usr/include/mps/pk11pub.h 0644 root bin
 f none usr/include/mps/pkcs11.h 0644 root bin
 f none usr/include/mps/pkcs11f.h 0644 root bin
 f none usr/include/mps/pkcs11p.h 0644 root bin
