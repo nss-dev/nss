@@ -1147,7 +1147,7 @@ nssCryptokiSymKey_Copy (
 );
 
 NSS_EXTERN PRUint32
-nssCryptokiRSAPrivateKey_GetModulusLength (
+nssCryptokiRSAKey_GetModulusLength (
   nssCryptokiObject *rsaKey
 );
 

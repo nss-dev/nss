@@ -1736,6 +1736,7 @@ nssToken_ImportRawSymKey (
     NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_VALUE, keyData);
     ckKeyType = nssCK_GetSymKeyType(symKeyType);
     NSS_CK_SET_ATTRIBUTE_VAR(attr, CKA_KEY_TYPE, ckKeyType);
+    NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_CLASS, &g_ck_class_symkey);
     NSS_CK_TEMPLATE_FINISH(keyTemplate, attr, tsize);
 
     /* Import the key */

@@ -663,7 +663,9 @@ ssl2_SendServerFinishedMessage(sslSocket *ss)
 	    rv = (SECStatus)sent;
 	} else if (!ss->noCache) {
 	    /* Put the sid in session-id cache, (may already be there) */
+#ifdef IMPLEMENT_SESSION_ID_CACHE
 	    (*ss->sec.cache)(sid);
+#endif /* IMPLEMENT_SESSION_ID_CACHE */
 	    rv = SECSuccess;
 	}
 	ssl_FreeSID(sid);
@@ -1461,6 +1463,7 @@ ssl2_CreateSessionCypher(sslSocket *ss, sslSessionID *sid, PRBool isClient)
     NSSSymKey        *symKey = NULL;
     NSSSymKeyType     keyType;
     NSSParameters     params;
+    NSSParameters    *pParams = NULL;
     PRStatus          status;
 
     readKey.data = 0;
@@ -1518,9 +1521,12 @@ ssl2_CreateSessionCypher(sslSocket *ss, sslSessionID *sid, PRBool isClient)
     algorithm  = ssl_Specs[cipherType].algorithm;
     keyType = NSSOIDTag_GetSymKeyType(algorithm);
 
-    /* XXX fix for other ciphers, RC2, RC5 */
-    params.iv = sid->u.ssl2.cipherArg;
-    ap = NSSOIDTag_CreateAlgNParam(algorithm, &params, NULL);
+    if (sid->u.ssl2.cipherArg.size > 0) {
+	/* XXX fix for other ciphers, RC2, RC5 */
+	params.iv = sid->u.ssl2.cipherArg;
+	pParams = &params;
+    }
+    ap = NSSOIDTag_CreateAlgNParam(algorithm, pParams, NULL);
     if (ap == NULL)
 	goto loser;
     symKey = NSSVolatileDomain_ImportRawSymKey(ss->vd, rk, keyType,
@@ -1575,8 +1581,8 @@ ssl2_CreateSessionCypher(sslSocket *ss, sslSessionID *sid, PRBool isClient)
 
   done:
     if (ap) NSSAlgNParam_Destroy(ap);
-    if (rk) nss_ZFreeIf(rk);
-    if (wk) nss_ZFreeIf(wk);
+    if (rk) nss_ZFreeIf(rk->data);
+    if (wk) nss_ZFreeIf(wk->data);
     return rv;
 }
 
@@ -1695,8 +1701,9 @@ ssl2_ServerSetupSessionCypher(sslSocket *ss, int cipher, unsigned int keyBits,
 	 * and keep cranking */
 	modulusLen = ekLen;
     }
+    modulusLen /= 8;  /* XXX idm -- assuming 8 bpb */
     /* Is the length of the decrypted data (el1) the expected value? */
-    if (modulusLen != el1) 
+    if (modulusLen != el1)
 	goto hide_loser;
 
     /* Cheaply verify that PKCS#1 was used to format the encryption block */
@@ -2154,8 +2161,8 @@ ssl2_ClientSetupSessionCypher(sslSocket *ss, PRUint8 *cs, int csLen)
     ** copy in the portion of the session key we are encrypting.
     */
     modulusLen = NSSPublicKey_GetKeyStrength(serverKey);
-    /* XXX sanity check this */
-    modulusLen = (modulusLen / 8) + (modulusLen % 8 > 0) ? 1 : 0;
+    /* XXX check this -- assumes modulus is in byte multiples */
+    modulusLen = (modulusLen / 8);
     rek.data = keyData + ckLen;
     rek.size = keyLen  - ckLen;
     eblock = ssl_FormatSSL2Block(modulusLen, &rek);
@@ -2896,8 +2903,10 @@ ssl2_HandleServerHelloMessage(sslSocket *ss)
 	    /* Forget our session-id - server didn't like it */
 	    SSL_TRC(7, ("%d: SSL[%d]: server forgot me, uncaching session-id",
 			SSL_GETPID(), ss->fd));
+#ifdef IMPLEMENT_SESSION_ID_CACHE
 	    (*ss->sec.uncache)(sid);
 	    ssl_FreeSID(sid);
+#endif /* IMPLEMENT_SESSION_ID_CACHE */
 	    ss->sec.ci.sid = sid = nss_ZNEW(NULL, sslSessionID);
 	    if (!sid) {
 		goto loser;

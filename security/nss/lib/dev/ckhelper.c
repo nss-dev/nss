@@ -537,7 +537,7 @@ nssCryptokiPrivateKey_GetAttributes (
 }
 
 NSS_IMPLEMENT PRUint32
-nssCryptokiRSAPrivateKey_GetModulusLength (
+nssCryptokiRSAKey_GetModulusLength (
   nssCryptokiObject *rsaKey
 )
 {
@@ -550,8 +550,14 @@ nssCryptokiRSAPrivateKey_GetModulusLength (
                                        &key_template, 1,
                                        NULL, rsaKey->session, slot);
     nssSlot_Destroy(slot);
-    nss_ZFreeIf(key_template.pValue);
-    return (status == PR_SUCCESS) ? key_template.ulValueLen : -1;
+    if (status == PR_SUCCESS) {
+	    /* XXX softoken not supposed to return leading zero, but does */
+	if (!((unsigned char *)key_template.pValue)[0])
+	    key_template.ulValueLen--;
+	nss_ZFreeIf(key_template.pValue);
+	return key_template.ulValueLen * 8; /* in bits */
+    }
+    return -1;
 }
 
 NSS_IMPLEMENT PRStatus

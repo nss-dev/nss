@@ -422,12 +422,16 @@ nssVolatileDomain_ImportRawSymKey (
     mko = nssToken_ImportRawSymKey(token, session, keyData, symKeyType,
                                    PR_FALSE, nicknameOpt, 
                                    operations, properties);
+    if (!mko) {
+	goto finish;
+    }
 
     rvKey = nssSymKey_CreateFromInstance(mko, vd->td, vd);
     if (!rvKey) {
 	nssCryptokiObject_Destroy(mko);
     }
 
+finish:
     nssToken_Destroy(token);
     nssSession_Destroy(session);
 

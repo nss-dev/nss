@@ -251,7 +251,7 @@ nssPrivateKey_GetPrivateModulusLength (
     switch (vk->kind) {
     case NSSKeyPairType_RSA:
 	    /* XXX cheating by using first instance */
-	return nssCryptokiRSAPrivateKey_GetModulusLength(vk->object.instances[0]);
+	return nssCryptokiRSAKey_GetModulusLength(vk->object.instances[0]);
     default:
 	return -1;
     }
@@ -628,7 +628,7 @@ nssPrivateKey_Decrypt (
 	NSSOIDTag alg;
 	/* XXX are these defaults reasonable? */
 	switch (vk->kind) {
-	case NSSKeyPairType_RSA: alg = NSS_OID_PKCS1_RSA_ENCRYPTION; break;
+	case NSSKeyPairType_RSA: alg = NSS_OID_X500_RSA_ENCRYPTION; break;
 	default:
 	    /* set invalid arg err */
 	    return (NSSItem *)NULL;
@@ -1280,8 +1280,13 @@ nssPublicKey_GetKeyStrength (
   NSSPublicKey *bk
 )
 {
-    /* XXX */
-    return -1;
+    switch (bk->info.kind) {
+    case NSSKeyPairType_RSA:
+	    /* XXX cheating by using first instance */
+	return nssCryptokiRSAKey_GetModulusLength(bk->object.instances[0]);
+    default:
+	return -1;
+    }
 }
 
 NSS_IMPLEMENT PRUint32
@@ -1312,7 +1317,7 @@ nssPublicKey_Encrypt (
 	NSSOIDTag alg;
 	/* XXX are these defaults reasonable? */
 	switch (bk->info.kind) {
-	case NSSKeyPairType_RSA: alg = NSS_OID_PKCS1_RSA_ENCRYPTION; break;
+	case NSSKeyPairType_RSA: alg = NSS_OID_X500_RSA_ENCRYPTION; break;
 	default:
 	    /* set invalid arg err */
 	    return (NSSItem *)NULL;
@@ -1329,7 +1334,7 @@ nssPublicKey_Encrypt (
 	return (NSSItem *)NULL;
     }
 
-    rvIt = nssToken_Decrypt(bko->token, bko->session, ap, bko,
+    rvIt = nssToken_Encrypt(bko->token, bko->session, ap, bko,
                             data, rvOpt, arenaOpt);
 
     if (!apOpt) nssAlgNParam_Destroy(ap);

@@ -1122,6 +1122,7 @@ CK_RV NSSDBGC_Encrypt(
     PR_LOG(modlog, 3, ("  hSession = 0x%x", hSession));
     PR_LOG(modlog, 3, ("  pData = 0x%p", pData));
     PR_LOG(modlog, 3, ("  ulDataLen = %d", ulDataLen));
+    print_hex_data(pData, ulDataLen);
     PR_LOG(modlog, 3, ("  pEncryptedData = 0x%p", pEncryptedData));
     PR_LOG(modlog, 3, ("  pulEncryptedDataLen = 0x%p", pulEncryptedDataLen));
     nssdbg_start_time(FUNC_C_ENCRYPT,&start);
@@ -1132,6 +1133,7 @@ CK_RV NSSDBGC_Encrypt(
                                  pulEncryptedDataLen);
     nssdbg_finish_time(FUNC_C_ENCRYPT,start);
     PR_LOG(modlog, 4, ("  *pulEncryptedDataLen = 0x%x", *pulEncryptedDataLen));
+    print_hex_data(pEncryptedData, *pulEncryptedDataLen);
     PR_LOG(modlog, 1, ("  rv = 0x%x\n", rv));
     return rv;
 }
@@ -1224,6 +1226,7 @@ CK_RV NSSDBGC_Decrypt(
     PR_LOG(modlog, 3, ("  hSession = 0x%x", hSession));
     PR_LOG(modlog, 3, ("  pEncryptedData = 0x%p", pEncryptedData));
     PR_LOG(modlog, 3, ("  ulEncryptedDataLen = %d", ulEncryptedDataLen));
+    print_hex_data(pEncryptedData, ulEncryptedDataLen);
     PR_LOG(modlog, 3, ("  pData = 0x%p", pData));
     PR_LOG(modlog, 3, ("  pulDataLen = 0x%p", pulDataLen));
     nssdbg_start_time(FUNC_C_DECRYPT,&start);
@@ -1234,6 +1237,7 @@ CK_RV NSSDBGC_Decrypt(
                                  pulDataLen);
     nssdbg_finish_time(FUNC_C_DECRYPT,start);
     PR_LOG(modlog, 4, ("  *pulDataLen = 0x%x", *pulDataLen));
+    print_hex_data(pData, *pulDataLen);
     PR_LOG(modlog, 1, ("  rv = 0x%x\n", rv));
     return rv;
 }
