@@ -122,6 +122,12 @@ extern SECStatus NSS_InitReadWrite(const char *configdir);
 #define NSS_INIT_NOROOTINIT     0x10
 #define NSS_INIT_OPTIMIZESPACE  0x20
 
+#ifdef macintosh
+#define SECMOD_DB "Security Modules"
+#else
+#define SECMOD_DB "secmod.db"
+#endif
+
 extern SECStatus NSS_Initialize(const char *configdir, 
 	const char *certPrefix, const char *keyPrefix, 
 	const char *secmodName, PRUint32 flags);
