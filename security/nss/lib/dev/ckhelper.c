@@ -60,23 +60,23 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #endif /* BASE_H */
 
 static const CK_BBOOL s_true = CK_TRUE;
-NSS_IMPLEMENT_DATA const NSSItem
+NSS_IMPLEMENT_DATA /* const */ NSSItem
 g_ck_true = { (CK_VOID_PTR)&s_true, sizeof(s_true) };
 
 static const CK_BBOOL s_false = CK_FALSE;
-NSS_IMPLEMENT_DATA const NSSItem
+NSS_IMPLEMENT_DATA /* const */ NSSItem
 g_ck_false = { (CK_VOID_PTR)&s_false, sizeof(s_false) };
 
 static const CK_OBJECT_CLASS s_class_cert = CKO_CERTIFICATE;
-NSS_IMPLEMENT_DATA const NSSItem
+NSS_IMPLEMENT_DATA /* const */ NSSItem
 g_ck_class_cert = { (CK_VOID_PTR)&s_class_cert, sizeof(s_class_cert) };
 
 static const CK_OBJECT_CLASS s_class_pubkey = CKO_PUBLIC_KEY;
-NSS_IMPLEMENT_DATA const NSSItem
+NSS_IMPLEMENT_DATA /* const */ NSSItem
 g_ck_class_pubkey = { (CK_VOID_PTR)&s_class_pubkey, sizeof(s_class_pubkey) };
 
 static const CK_OBJECT_CLASS s_class_privkey = CKO_PRIVATE_KEY;
-NSS_IMPLEMENT_DATA const NSSItem
+NSS_IMPLEMENT_DATA /* const */ NSSItem
 g_ck_class_privkey = { (CK_VOID_PTR)&s_class_privkey, sizeof(s_class_privkey) };
 
 NSS_IMPLEMENT PRStatus 
