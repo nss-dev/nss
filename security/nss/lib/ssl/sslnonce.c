@@ -101,6 +101,9 @@ ssl_DestroySID(sslSessionID *sid)
     if ( sid->peerCert ) {
 	CERT_DestroyCertificate(sid->peerCert);
     }
+    if ( sid->localCert ) {
+	CERT_DestroyCertificate(sid->localCert);
+    }
     
     PORT_ZFree(sid, sizeof(sslSessionID));
 }

@@ -713,6 +713,7 @@ struct sslSessionIDStr {
     CERTCertificate *     peerCert;
     const char *          peerID;     /* client only */
     const char *          urlSvrName; /* client only */
+    CERTCertificate *     localCert;
 
     PRIPv6Addr            addr;
     PRUint16              port;
