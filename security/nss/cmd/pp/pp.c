@@ -120,7 +120,7 @@ int main(int argc, char **argv)
 	    break;
 	}
     }
-
+    PL_DestroyOptState(optstate);
     if (!typeTag) Usage(progName);
 
     if (!inFile) inFile = PR_STDIN;
@@ -167,10 +167,18 @@ int main(int argc, char **argv)
 	return -1;
     }
 
+    if (inFile != PR_STDIN)
+	PR_Close(inFile);
+    PORT_Free(der.data);
     if (rv) {
 	fprintf(stderr, "%s: problem converting data (%s)\n",
 		progName, SECU_Strerror(PORT_GetError()));
-	return -1;
     }
-    return 0;
+    if (NSS_Shutdown() != SECSuccess) {
+	fprintf(stderr, "%s: NSS_Shutdown failed (%s)\n",
+		progName, SECU_Strerror(PORT_GetError()));
+	rv = SECFailure;
+    }
+    PR_Cleanup();
+    return rv;
 }
