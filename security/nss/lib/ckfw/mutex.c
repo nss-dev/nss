@@ -149,6 +149,7 @@ nssCKFWMutex_Create
   {
       default:
       case SingleThreaded:
+          *pError = CKR_OK;
           mutex->Destroy = (CK_DESTROYMUTEX)mutex_noop;
           mutex->Lock    = (CK_LOCKMUTEX   )mutex_noop;
           mutex->Unlock  = (CK_UNLOCKMUTEX )mutex_noop;
