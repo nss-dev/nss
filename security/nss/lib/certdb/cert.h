@@ -479,7 +479,7 @@ extern CERTCertificate *
 CERT_FindCertByIssuerAndSN (CERTCertDBHandle *handle, CERTIssuerAndSN *issuerAndSN);
 
 extern CERTCertificate *
-CERT_FindCertBySubjKeyID (CERTCertDBHandle *handle, SECItem *subjKeyID);
+CERT_FindCertBySubjectKeyID (CERTCertDBHandle *handle, SECItem *subjKeyID);
 
 /*
 ** Find a certificate in the database by a nickname
@@ -572,9 +572,9 @@ extern SECStatus CERT_VerifySignedData(CERTSignedData *sd,
 ** verify the signature of a signed data object with the given DER publickey
 */
 extern SECStatus
-CERT_VerifySignedDataWithPubKeyInfo(CERTSignedData *sd,
-                                    CERTSubjectPublicKeyInfo *pubKeyInfo,
-                                    void *wincx);
+CERT_VerifySignedDataWithPublicKeyInfo(CERTSignedData *sd,
+                                       CERTSubjectPublicKeyInfo *pubKeyInfo,
+                                       void *wincx);
 
 /*
 ** verify the signature of a signed data object with a SECKEYPublicKey.

@@ -596,7 +596,7 @@ NSS_CMSSignerInfo_GetSigningCertificate(NSSCMSSignerInfo *signerinfo, CERTCertDB
 	cert = CERT_FindCertByIssuerAndSN(certdb, sid->id.issuerAndSN);
 	break;
     case NSSCMSSignerID_SubjectKeyID:
-	cert = CERT_FindCertBySubjKeyID(certdb, sid->id.subjectKeyID);
+	cert = CERT_FindCertBySubjectKeyID(certdb, sid->id.subjectKeyID);
 	break;
     default:
 	cert = NULL;
