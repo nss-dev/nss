@@ -199,7 +199,7 @@ pk11_OpenKeyDB(const char * configdir, const char *prefix, PRBool readOnly,
 
     name = PR_smprintf("%s" PATH_SEPARATOR "%s",configdir,prefix);	
     if (name == NULL) 
-	return SECFailure;
+	return CKR_HOST_MEMORY;
     keydb = nsslowkey_OpenKeyDB(readOnly, appName, prefix, 
 					pk11_keydb_name_cb, (void *)name);
     PR_smprintf_free(name);
@@ -267,12 +267,10 @@ pk11_DBShutdown(NSSLOWCERTCertDBHandle *certHandle,
     if (certHandle) {
     	nsslowcert_ClosePermCertDB(certHandle);
 	PORT_Free(certHandle);
-	certHandle= NULL;
     }
 
     if (keyHandle) {
     	nsslowkey_CloseKeyDB(keyHandle);
-	keyHandle= NULL;
     }
 }
 
