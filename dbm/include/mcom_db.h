@@ -75,7 +75,9 @@
 #define	_DB_H_
 
 #ifndef macintosh
+#if !defined(WINCE)
 #include <sys/types.h>
+#endif
 #endif
 #include "prtypes.h"
 
@@ -212,11 +214,15 @@
 #define MAXPATHLEN 	1024              
 #endif
 
+#if !defined(WINCE)
 #include <fcntl.h>
+#endif
 
 #if defined(_WINDOWS) || defined(XP_OS2)
 #include <stdio.h>
+#if !defined(WINCE)
 #include <io.h>
+#endif
 
 #ifndef XP_OS2 
 #define MAXPATHLEN 	1024               

@@ -43,11 +43,15 @@ static char sccsid[] = "@(#)db.c	8.4 (Berkeley) 2/21/94";
 #ifdef macintosh
 #include <unix.h>
 #else
+#if !defined(WINCE)
 #include <sys/types.h>
 #endif
+#endif
 
+#if !defined(WINCE)
 #include <errno.h>
 #include <fcntl.h>
+#endif
 #include <stddef.h>
 #include <stdio.h>
 
@@ -80,7 +84,9 @@ dbopen(const char *fname, int flags,int mode, DBTYPE type, const void *openinfo)
 	 */
 	if(all_databases_locked_closed && fname)
 	  {
+#if !defined(WINCE)
 		errno = EINVAL;
+#endif
 		return(NULL);
 	  }
 
