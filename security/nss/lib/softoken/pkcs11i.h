@@ -39,7 +39,7 @@
 #include "nssilock.h"
 #include "seccomon.h"
 #include "secoidt.h"
-#include "keytlow.h"
+#include "lowkeyti.h"
 #include "pkcs11t.h"
 
 #define PKCS11_USE_THREADS
@@ -264,6 +264,8 @@ struct PK11SlotStr {
     PRBool		ssoLoggedIn;
     PRBool		needLogin;
     PRBool		DB_loaded;
+    NSSLOWCERTDBHandle	*certdb;
+    NSSLOWKEYDBHandle	*keydb;
     int			sessionIDCount;
     int			sessionCount;
     int			rwSessionCount;
@@ -277,12 +279,12 @@ struct PK11SlotStr {
  */
 struct PK11HashVerifyInfoStr {
     SECOidTag   	hashOid;
-    SECKEYLowPublicKey	*key;
+    NSSLOWKEYPublicKey	*key;
 };
 
 struct PK11HashSignInfoStr {
     SECOidTag   	hashOid;
-    SECKEYLowPrivateKey	*key;
+    NSSLOWKEYPrivateKey	*key;
 };
 
 /* context for the Final SSLMAC message */
@@ -449,9 +451,9 @@ extern void pk11_update_state(PK11Slot *slot,PK11Session *session);
 extern void pk11_update_all_states(PK11Slot *slot);
 extern void pk11_FreeContext(PK11SessionContext *context);
 
-extern SECKEYLowPublicKey *pk11_GetPubKey(PK11Object *object,
+extern NSSLOWKEYPublicKey *pk11_GetPubKey(PK11Object *object,
 					  CK_KEY_TYPE key_type);
-extern SECKEYLowPrivateKey *pk11_GetPrivKey(PK11Object *object,
+extern NSSLOWKEYPrivateKey *pk11_GetPrivKey(PK11Object *object,
 					    CK_KEY_TYPE key_type);
 extern void pk11_FormatDESKey(unsigned char *key, int length);
 extern PRBool pk11_CheckDESKey(unsigned char *key);
