@@ -699,7 +699,7 @@ nssUTF8_CopyIntoFixedBuffer
     }
 
     /* Too long.  We have to trim the last character */
-    for( bs; bs > 0; bs-- ) {
+    for( bs; bs != 0; bs-- ) {
       if( (buffer[bs-1] & 0xC0) != 0x80 ) {
         buffer[bs-1] = pad;
         break;
