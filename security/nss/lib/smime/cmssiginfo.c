@@ -526,9 +526,8 @@ NSS_CMSSignerInfo_GetDigestAlgTag(NSSCMSSignerInfo *signerinfo)
 {
     SECOidData *algdata;
 
-    PORT_Assert(signerinfo);
     if (!signerinfo) {
-        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return SEC_OID_UNKNOWN;
     }
 
