@@ -678,10 +678,14 @@ SSL_ConfigSecureServer(PRFileDesc *fd, CERTCertificate *cert,
 	SECKEY_CacheStaticFlags(sc->serverKey);
     }
 
-    if (kea == kt_rsa) {
-        rv = ssl3_CreateRSAStepDownKeys(ss);
-	if (rv != SECSuccess) {
-	    return SECFailure;	/* err set by ssl3_CreateRSAStepDownKeys */
+    if (kea == kt_rsa && cert && sc->serverKeyBits > 512) {
+	if (ss->noStepDown) {
+	    /* disable all export ciphersuites */
+	} else {
+	    rv = ssl3_CreateRSAStepDownKeys(ss);
+	    if (rv != SECSuccess) {
+		return SECFailure; /* err set by ssl3_CreateRSAStepDownKeys */
+	    }
 	}
     }
 
