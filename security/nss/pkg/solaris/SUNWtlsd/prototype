@@ -60,6 +60,7 @@ f none usr/include/mps/nssb64t.h 0644 root bin
 f none usr/include/mps/nssbase.h 0644 root bin
 f none usr/include/mps/nssbaset.h 0644 root bin
 f none usr/include/mps/nssckepv.h 0644 root bin
+f none usr/include/mps/nssckbi.h 0644 root bin
 f none usr/include/mps/nssckft.h 0644 root bin
 f none usr/include/mps/nssckfw.h 0644 root bin
 f none usr/include/mps/nssckfwc.h 0644 root bin
@@ -69,6 +70,7 @@ f none usr/include/mps/nssckmdt.h 0644 root bin
 #f none usr/include/mps/nssckp.h 0644 root bin
 f none usr/include/mps/nssckt.h 0644 root bin
 #f none usr/include/mps/nsscku.h 0644 root bin
+f none usr/include/mps/nssilckt.h 0644 root bin
 f none usr/include/mps/nssilock.h 0644 root bin
 f none usr/include/mps/nsslocks.h 0644 root bin
 f none usr/include/mps/nssrwlk.h 0644 root bin
@@ -86,6 +88,7 @@ f none usr/include/mps/pkcs11f.h 0644 root bin
 f none usr/include/mps/pkcs11p.h 0644 root bin
 f none usr/include/mps/pkcs11t.h 0644 root bin
 f none usr/include/mps/pkcs11u.h 0644 root bin
+f none usr/include/mps/pkcs11n.h 0644 root bin
 f none usr/include/mps/pkcs12.h 0644 root bin
 f none usr/include/mps/pkcs12t.h 0644 root bin
 f none usr/include/mps/pkcs7t.h 0644 root bin
@@ -112,10 +115,12 @@ f none usr/include/mps/secpkcs7.h 0644 root bin
 f none usr/include/mps/secport.h 0644 root bin
 #f none usr/include/mps/secrng.h 0644 root bin
 #f none usr/include/mps/secrngt.h 0644 root bin
+f none usr/include/mps/shsign.h 0644 root bin
 f none usr/include/mps/smime.h 0644 root bin
 f none usr/include/mps/ssl.h 0644 root bin
 f none usr/include/mps/sslerr.h 0644 root bin
 f none usr/include/mps/sslproto.h 0644 root bin
+f none usr/include/mps/sslt.h 0644 root bin
 f none usr/include/mps/swfort.h 0644 root bin
 f none usr/include/mps/swfortt.h 0644 root bin
 f none usr/include/mps/watcomfx.h 0644 root bin

@@ -17,8 +17,7 @@ HEADER_DIR = public/nss
 ifeq ($(USE_64), 1)
 DIRS = \
 	SUNWtlsx \
-	SUNWtlsux \
-	SUNWtlsdx
+	SUNWtlsux
 else
 DIRS = \
 	SUNWtls \
