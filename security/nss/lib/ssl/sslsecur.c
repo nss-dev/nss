@@ -47,6 +47,8 @@
 #include "winsock.h"	/* for MSG_PEEK */
 #elif defined(XP_MAC)
 #include "macsocket.h"
+#elif defined(BEOS)
+#define MSG_PEEK 0x2
 #else
 #include <sys/socket.h> /* for MSG_PEEK */
 #endif

@@ -261,7 +261,7 @@ static const char *dllname =
 	"nssckbi.dll";
 #elif defined(HPUX)
 	"libnssckbi.sl";
-#elif defined(XP_UNIX)
+#elif defined(XP_UNIX) || defined(XP_BEOS)
 	"libnssckbi.so";
 #elif defined(XP_MAC)
 	"NSS Builtin Root Certs";

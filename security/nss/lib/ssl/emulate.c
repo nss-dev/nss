@@ -39,7 +39,7 @@
 
 #include "nspr.h"
 
-#if defined( XP_UNIX )
+#if defined( XP_UNIX ) || defined( XP_BEOS )
 #include <fcntl.h>
 #endif
 #if defined(WIN32)
@@ -95,7 +95,7 @@ ssl_EmulateAcceptRead(	PRFileDesc *   sd,
 }
 
 
-#if !defined( XP_UNIX ) && !defined( WIN32 )
+#if !defined( XP_UNIX ) && !defined( WIN32 ) && !defined( XP_BEOS )
 /*
  * _PR_EmulateTransmitFile
  *
@@ -293,12 +293,12 @@ done:
     	PR_CloseFileMap(mapHandle);
     return count;
 }
-#endif  /* XP_UNIX */
+#endif  /* XP_UNIX || WIN32 || XP_BEOS */
 
 
 
 
-#if !defined( XP_UNIX ) && !defined( WIN32 )
+#if !defined( XP_UNIX ) && !defined( WIN32 ) && !defined( XP_BEOS )
 /*
  * _PR_EmulateSendFile
  *
@@ -442,7 +442,7 @@ done:
     return rv;
 }
 
-#else /* UNIX and NT handled below */
+#else /* UNIX, NT, and BEOS handled below */
 
 /*
  * _PR_UnixSendFile
@@ -630,4 +630,4 @@ done:
 	PR_Close(sd);
     return count;
 }
-#endif /* UNIX and NT */
+#endif /* UNIX, NT, and BEOS */

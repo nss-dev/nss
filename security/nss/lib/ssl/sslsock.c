@@ -1800,7 +1800,7 @@ ssl_NewSocket(void)
 #endif
 
 #ifdef DEBUG
-#if defined(XP_UNIX) || defined(XP_WIN32)
+#if defined(XP_UNIX) || defined(XP_WIN32) || defined(XP_BEOS)
     if (firsttime) {
 	firsttime = 0;
 

@@ -53,7 +53,7 @@
 #include "hasht.h"
 #include "nssilock.h"
 #include "pkcs11t.h"
-#ifdef XP_UNIX
+#if defined(XP_UNIX) || defined(XP_BEOS)
 #include "unistd.h"
 #endif
 #include "nssrwlk.h"
@@ -1273,7 +1273,7 @@ SEC_END_PROTOS
 #include <process.h>
 #endif
 
-#if defined(XP_UNIX) || defined(XP_OS2)
+#if defined(XP_UNIX) || defined(XP_OS2) || defined(XP_BEOS)
 #define SSL_GETPID() getpid()
 #elif defined(WIN32)
 

@@ -83,7 +83,7 @@ static SECStatus single_process_sslMutex_Lock(sslMutex* pMutex)
     return SECSuccess;
 }
 
-#if defined(LINUX) || defined(AIX) || defined(VMS)
+#if defined(LINUX) || defined(AIX) || defined(VMS) || defined(BEOS)
 
 #include <unistd.h>
 #include <fcntl.h>
