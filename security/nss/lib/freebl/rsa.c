@@ -133,7 +133,7 @@ RSA_NewKey(int keySizeInBits, SECItem *publicExponent)
     RSAPrivateKey *key = NULL;
     PRArenaPool *arena = NULL;
     /* Require key size to be a multiple of 16 bits. */
-    if (!publicExponent && keySizeInBits % 16 != 0) {
+    if (!publicExponent || keySizeInBits % 16 != 0) {
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
 	return NULL;
     }
@@ -268,7 +268,7 @@ cleanup:
 /*
 **  RSA Private key operation (no CRT).
 */
-SECStatus 
+static SECStatus 
 rsa_PrivateKeyOp(RSAPrivateKey *key, 
                  unsigned char *output, 
                  unsigned char *input)
@@ -311,7 +311,7 @@ cleanup:
 /*
 **  RSA Private key operation using CRT.
 */
-SECStatus 
+static SECStatus 
 rsa_PrivateKeyOpCRT(RSAPrivateKey *key, 
                     unsigned char *output, 
                     unsigned char *input)
