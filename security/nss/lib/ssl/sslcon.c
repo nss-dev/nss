@@ -2531,7 +2531,7 @@ ssl2_HandleMessage(sslSocket *ss)
 	    goto bad_peer;
 	}
 
-	if (gs->recordLen - 1 != SSL2_SESSIONID_BYTES) {
+	if (gs->recordLen - 1 != SSL_SESSIONID_BYTES) {
 	    SSL_DBG(("%d: SSL[%d]: bad server-finished message, len=%d",
 		     SSL_GETPID(), ss->fd, gs->recordLen));
 	    goto bad_peer;
@@ -3549,7 +3549,7 @@ ssl2_HandleClientHelloMessage(sslSocket *ss)
 
 	/* Invent a session-id */
 	ci->sid = sid;
-	PK11_GenerateRandom(sid->u.ssl2.sessionID+2, SSL2_SESSIONID_BYTES-2);
+	PK11_GenerateRandom(sid->u.ssl2.sessionID+2, SSL_SESSIONID_BYTES-2);
 
 	pid = SSL_GETPID();
 	sid->u.ssl2.sessionID[0] = MSB(pid);
