@@ -60,10 +60,10 @@ typedef struct CERTAttributeStr                  CERTAttribute;
 typedef struct CERTAuthInfoAccessStr             CERTAuthInfoAccess;
 typedef struct CERTAuthKeyIDStr                  CERTAuthKeyID;
 typedef struct CERTBasicConstraintsStr           CERTBasicConstraints;
-#ifdef STAN_CERT_DB
-typedef NSSTrustDomain                           CERTCertDBHandle;
-#else
+#ifdef NSS_CLASSIC
 typedef struct CERTCertDBHandleStr               CERTCertDBHandle;
+#else
+typedef NSSTrustDomain                           CERTCertDBHandle;
 #endif
 typedef struct CERTCertExtensionStr              CERTCertExtension;
 typedef struct CERTCertKeyStr                    CERTCertKey;
