@@ -306,14 +306,14 @@ SECKEYPrivateKey *
 CERTUTIL_GeneratePrivateKey(KeyType keytype, PK11SlotInfo *slot, int size,
 			    int publicExponent, char *noise, 
 			    SECKEYPublicKey **pubkeyp, char *pqgFile,
-                            char *passFile)
+                            secuPWData *pwdata)
 {
     CK_MECHANISM_TYPE mechanism;
     SECOidTag algtag;
     PK11RSAGenParams rsaparams;
     PQGParams *dsaparams = NULL;
     void *params;
-    secuPWData pwdata = { PW_NONE, 0 };
+    PRArenaPool *dsaparena;
 
     /*
      * Do some random-number initialization.
@@ -344,9 +344,20 @@ CERTUTIL_GeneratePrivateKey(KeyType keytype, PK11SlotInfo *slot, int size,
 	if (pqgFile) {
 	    dsaparams = getpqgfromfile(size, pqgFile);
 	} else {
-	    dsaparams = &default_pqg_params;
+	    dsaparena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
+	    if (dsaparena == NULL) return NULL;
+	    dsaparams = PORT_ArenaZAlloc(dsaparena, sizeof(PQGParams));
+	    if (dsaparams == NULL) return NULL;
+	    dsaparams->arena = dsaparena;
+	    SECITEM_AllocItem(dsaparena, &dsaparams->prime, sizeof P);
+	    SECITEM_AllocItem(dsaparena, &dsaparams->subPrime, sizeof Q);
+	    SECITEM_AllocItem(dsaparena, &dsaparams->base, sizeof G);
+	    PORT_Memcpy(dsaparams->prime.data, P, dsaparams->prime.len);
+	    PORT_Memcpy(dsaparams->subPrime.data, Q, dsaparams->subPrime.len);
+	    PORT_Memcpy(dsaparams->base.data, G, dsaparams->base.len);
 	}
 	params = dsaparams;
+	break;
       default:
 	return NULL;
     }
@@ -354,12 +365,7 @@ CERTUTIL_GeneratePrivateKey(KeyType keytype, PK11SlotInfo *slot, int size,
     if (slot == NULL)
 	return NULL;
 
-    if (passFile) {
-	pwdata.source = PW_FROMFILE;
-	pwdata.data = passFile;
-    }
-
-    if (PK11_Authenticate(slot, PR_TRUE, &pwdata) != SECSuccess)
+    if (PK11_Authenticate(slot, PR_TRUE, pwdata) != SECSuccess)
 	return NULL;
 
     fprintf(stderr, "\n\n");
@@ -367,7 +373,7 @@ CERTUTIL_GeneratePrivateKey(KeyType keytype, PK11SlotInfo *slot, int size,
 
     return PK11_GenerateKeyPair(slot, mechanism, params, pubkeyp,
 				PR_TRUE /*isPerm*/, PR_TRUE /*isSensitive*/, 
-				NULL /*wincx*/);
+				pwdata /*wincx*/);
 }
 
 /*

@@ -322,6 +322,24 @@ RSA_PrivateKeyOp(RSAPrivateKey *  key,
   return (vector->p_RSA_PrivateKeyOp)(key, output, input);
 }
 
+SECStatus
+RSA_PrivateKeyOpDoubleChecked(RSAPrivateKey *key,
+                              unsigned char *output,
+                              const unsigned char *input)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return SECFailure;
+  return (vector->p_RSA_PrivateKeyOpDoubleChecked)(key, output, input);
+}
+
+SECStatus
+RSA_PrivateKeyCheck(RSAPrivateKey *key)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return SECFailure;
+  return (vector->p_RSA_PrivateKeyCheck)(key);
+}
+
 SECStatus 
 DSA_NewKey(const PQGParams * params, DSAPrivateKey ** privKey)
 {
@@ -866,7 +884,7 @@ RNG_RNGInit(void)
 }
 
 SECStatus 
-RNG_RandomUpdate(void *data, size_t bytes)
+RNG_RandomUpdate(const void *data, size_t bytes)
 {
   if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
       return SECFailure;

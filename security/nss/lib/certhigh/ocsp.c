@@ -3704,6 +3704,12 @@ CERT_SetOCSPDefaultResponder(CERTCertDBHandle *handle,
      * used const to convey that it does not modify the name.  Maybe someday.
      */
     cert = CERT_FindCertByNickname(handle, (char *) name);
+    if (cert == NULL) {
+      /*
+       * look for the cert on an external token.
+       */
+      cert = PK11_FindCertFromNickname((char *)name, NULL);
+    }
     if (cert == NULL)
 	return SECFailure;
 
@@ -3831,6 +3837,10 @@ CERT_EnableOCSPDefaultResponder(CERTCertDBHandle *handle)
      */
     cert = CERT_FindCertByNickname(handle,
 				   statusContext->defaultResponderNickname);
+    if (cert == NULL) {
+        cert = PK11_FindCertFromNickname(statusContext->defaultResponderNickname,
+                                         NULL);
+    }
     /*
      * We should never have trouble finding the cert, because its
      * existence should have been proven by SetOCSPDefaultResponder.

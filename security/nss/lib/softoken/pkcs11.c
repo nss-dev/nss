@@ -406,6 +406,9 @@ static struct mechanismList mechanisms[] = {
      {CKM_PBE_SHA1_RC2_128_CBC,		     {128,128, CKF_GENERATE}, PR_TRUE},
      {CKM_PBE_SHA1_RC4_40,		     {40,40, CKF_GENERATE}, PR_TRUE},
      {CKM_PBE_SHA1_RC4_128,		     {128,128, CKF_GENERATE}, PR_TRUE},
+     {CKM_NETSCAPE_PBE_SHA1_HMAC_KEY_GEN,    {1,32, CKF_GENERATE}, PR_TRUE},
+     {CKM_NETSCAPE_PBE_MD5_HMAC_KEY_GEN,     {1,32, CKF_GENERATE}, PR_TRUE},
+     {CKM_NETSCAPE_PBE_MD2_HMAC_KEY_GEN,     {1,32, CKF_GENERATE}, PR_TRUE},
 };
 static CK_ULONG mechanismCount = sizeof(mechanisms)/sizeof(mechanisms[0]);
 /* load up our token database */
@@ -413,7 +416,7 @@ static CK_RV pk11_importKeyDB(PK11Slot *slot);
 
 
 static char *
-pk11_setStringName(char *inString, char *buffer, int buffer_length) {
+pk11_setStringName(const char *inString, char *buffer, int buffer_length) {
     int full_length, string_length;
 
     full_length = buffer_length -1;
@@ -421,15 +424,16 @@ pk11_setStringName(char *inString, char *buffer, int buffer_length) {
     if (string_length > full_length) string_length = full_length;
     PORT_Memset(buffer,' ',full_length);
     buffer[full_length] = 0;
-    PORT_Memcpy(buffer,inString,full_length);
+    PORT_Memcpy(buffer,inString,string_length);
     return buffer;
 }
 /*
  * Configuration utils
  */
 void
-PK11_ConfigurePKCS11(char *man, char *libdes, char *tokdes, char *ptokdes,
-	char *slotdes, char *pslotdes, char *fslotdes, char *fpslotdes,
+PK11_ConfigurePKCS11(const char *man, const char *libdes, const char *tokdes,
+	const char *ptokdes, const char *slotdes, const char *pslotdes,
+	const char *fslotdes, const char *fpslotdes,
 	int minPwd, int pwRequired) 
 {
 
@@ -651,12 +655,7 @@ pk11_handleCertObject(PK11Session *session,PK11Object *object)
 	/* Temporary for PKCS 12 */
 	if(cert->nickname == NULL) {
 	    /* use the arena so we at least don't leak memory  */
-	    cert->nickname = (char *)PORT_ArenaAlloc(cert->arena,
-							PORT_Strlen(label)+1);
-	    if(cert->nickname == NULL) {
-		return CKR_HOST_MEMORY;
-	    }
-	    PORT_Memcpy(cert->nickname, label, PORT_Strlen(label));
+	    cert->nickname = PORT_ArenaStrdup(cert->arena, label);
 	}
 
 	/* only add certs that have a private key */
@@ -664,8 +663,12 @@ pk11_handleCertObject(PK11Session *session,PK11Object *object)
 							!= SECSuccess) {
 	    return CKR_ATTRIBUTE_VALUE_INVALID;
 	}
-	if (CERT_AddTempCertToPerm(cert, label, &trust) != SECSuccess) {
-	    return CKR_HOST_MEMORY;
+	if (!cert->isperm) {
+	    if (CERT_AddTempCertToPerm(cert, label, &trust) != SECSuccess) {
+		return CKR_HOST_MEMORY;
+	    }
+	} else {
+	    CERT_ChangeCertTrust(cert->dbhandle,cert,&trust);
 	}
 	if(certUsage) {
 	    if(CERT_ChangeCertTrustByUsage(CERT_GetDefaultCertDB(),
@@ -974,6 +977,8 @@ pk11_handlePrivateKeyObject(PK11Object *object,CK_KEY_TYPE key_type)
 						&ckfalse,sizeof(CK_BBOOL));
     if (crv != CKR_OK)  return crv; 
 
+    /* should we check the non-token RSA private keys? */
+
     if (pk11_isTrue(object,CKA_TOKEN)) {
 	SECKEYLowPrivateKey *privKey;
 	char *label;
@@ -982,6 +987,13 @@ pk11_handlePrivateKeyObject(PK11Object *object,CK_KEY_TYPE key_type)
 
 	privKey=pk11_mkPrivKey(object,key_type);
 	if (privKey == NULL) return CKR_HOST_MEMORY;
+
+        if (key_type == CKK_RSA) {
+	    rv = RSA_PrivateKeyCheck(&privKey->u.rsa);
+	    if (rv == SECFailure) {
+		goto fail;
+	    }
+	}
 	label = object->label = pk11_getString(object,CKA_LABEL);
 
 	crv = pk11_Attribute2SecItem(NULL,&pubKey,object,CKA_NETSCAPE_DB);
@@ -1001,6 +1013,7 @@ pk11_handlePrivateKeyObject(PK11Object *object,CK_KEY_TYPE key_type)
 	    rv = SECFailure;
 	}
 
+fail:
 	SECKEY_LowDestroyPrivateKey(privKey);
 	if (rv != SECSuccess) return CKR_DEVICE_ERROR;
 	object->inDB = PR_TRUE;
@@ -2108,6 +2121,18 @@ pk11_GetPrivKey(PK11Object *object,CK_KEY_TYPE key_type)
 	priv=SECKEY_FindKeyByPublicKey(SECKEY_GetDefaultKeyDB(),&pubKey,
 				       (SECKEYGetPasswordKey) pk11_givePass,
 				       object->slot);
+	if (!priv && pubKey.data[0] == 0) {
+	    /* Because of legacy code issues, sometimes the public key has
+	     * a '0' prepended to it, forcing it to be unsigned.  The database
+	     * may not store that '0', so remove it and try again.
+	     */
+	    SECItem tmpPubKey;
+	    tmpPubKey.data = pubKey.data + 1;
+	    tmpPubKey.len = pubKey.len - 1;
+	    priv=SECKEY_FindKeyByPublicKey(SECKEY_GetDefaultKeyDB(),&tmpPubKey,
+				           (SECKEYGetPasswordKey) pk11_givePass,
+				           object->slot);
+	}
 	if (pubKey.data) PORT_Free(pubKey.data);
 
 	/* don't 'cache' DB private keys */
@@ -2689,6 +2714,7 @@ CK_RV NSC_InitToken(CK_SLOT_ID slotID,CK_CHAR_PTR pPin,
 	    if (object) pk11_FreeObject(object);
 	} while (object != NULL);
     }
+    slot->DB_loaded = PR_FALSE;
     PK11_USE_THREADS(PZ_Unlock(slot->objectLock);)
 
     /* then clear out the key database */

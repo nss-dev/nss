@@ -142,6 +142,7 @@ US
 liz
 liz@moz.org
 SIGNSCRIPT
+  html_msg $? 0 "Create objsign cert (signtool -G)"
 
   echo "$SCRIPTNAME: Signing a set of files ----------------------------"
   echo "signtool -Z nojs.jar -d ${R_ALICEDIR} -p \"nss\" -k objsigner \\"
@@ -150,9 +151,9 @@ SIGNSCRIPT
   html_msg $? 0 "Signing a set of files (signtool -Z)"
 
   echo "$SCRIPTNAME: Listing signed files in jar ----------------------"
-  echo "signtool -w nojs.jar -d ${R_ALICEDIR}"
-  signtool -w nojs.jar -d ${R_ALICEDIR}
-  html_msg $? 0 "Listing signed files in jar (signtool -w)"
+  echo "signtool -v nojs.jar -d ${R_ALICEDIR} -p nss -k objsigner"
+  signtool -v nojs.jar -d ${R_ALICEDIR} -p nss -k objsigner
+  html_msg $? 0 "Listing signed files in jar (signtool -v)"
   
   echo "$SCRIPTNAME: Show who signed jar ------------------------------"
   echo "signtool -w nojs.jar -d ${R_ALICEDIR}"
@@ -175,15 +176,7 @@ tools_cleanup()
 
 tools_init
 
-#FIXME - tmp workaround for tests that do not work in 3.2 RTM
-#echo $BC_ACTION | grep "forward compatibility"  && RUN_TOOLS_P12="FALSE"
-echo $BC_ACTION | grep "compatibility"  && RUN_TOOLS_P12="FALSE"
-if [ -n "${RUN_TOOLS_P12}" -a "${RUN_TOOLS_P12}" = "FALSE" ] ; then
-  html_msg 0 0 "Can't run pk12util tests  for NSS 3.2 (pk12util -i)"
-  html_msg 0 0 "Can't run pk12util tests  for NSS 3.2 (pk12util -o)"
-else
-    tools_p12
-fi
+tools_p12
 
 tools_sign
 tools_cleanup

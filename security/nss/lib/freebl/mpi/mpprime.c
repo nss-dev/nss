@@ -427,7 +427,7 @@ mp_err mpp_make_prime(mp_int *start, mp_size nBits, mp_size strong,
    * Mac builds don't break by adding an extra variable
    * on the stack. -javi
    */
-#ifdef macintosh
+#if defined(macintosh) || defined (XP_OS2)
   unsigned char *sieve;
   
   sieve = malloc(SIEVE_SIZE);
@@ -480,11 +480,11 @@ mp_err mpp_make_prime(mp_int *start, mp_size nBits, mp_size strong,
   }
   /* start sieveing with prime value of 3. */
   MP_CHECKOK(mpp_sieve(start, prime_tab + 1, prime_tab_size - 1, 
-		       sieve, sizeof sieve) );
+		       sieve, SIEVE_SIZE) );
 
 #ifdef DEBUG_SIEVE
   res = 0;
-  for (i = 0; i < sizeof sieve; ++i) {
+  for (i = 0; i < SIEVE_SIZE; ++i) {
     if (!sieve[i])
       ++res;
   }
@@ -495,7 +495,7 @@ mp_err mpp_make_prime(mp_int *start, mp_size nBits, mp_size strong,
 #endif
 
   res = MP_NO;
-  for(i = 0; i < sizeof sieve; ++i) {
+  for(i = 0; i < SIEVE_SIZE; ++i) {
     if (sieve[i])	/* this number is composite */
       continue;
     MP_CHECKOK( mp_add_d(start, 2 * i, &trial) );
@@ -569,7 +569,7 @@ CLEANUP:
   mp_clear(&q);
   if (nTries)
     *nTries += i;
-#ifdef macintosh
+#if defined(macintosh) || defined(XP_OS2)
   if (sieve != NULL) {
   	memset(sieve, 0, SIEVE_SIZE);
   	free (sieve);

@@ -31,13 +31,13 @@ PROGRAM		= lots$(BIN_SUFFIX)
 
 CSRCS		= lots.c
 
-EXTRA_DSO_LIBS	= mozdbm_s
-
-ifeq ($(MOZ_OS2_TOOLS),VACPP)
-LIBS		= $(DIST)/lib/libmozdbm_s.$(LIB_SUFFIX)
+ifeq ($(OS_ARCH),WINNT)
+EXTRA_DSO_LIBS	= dbm$(MOZ_BITS)
 else
-LIBS		= $(EXTRA_DSO_LIBS)
+EXTRA_DSO_LIBS	= mozdbm_s
 endif
+
+LIBS		= $(EXTRA_DSO_LIBS)
 
 include $(topsrcdir)/config/rules.mk
 

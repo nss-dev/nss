@@ -75,7 +75,7 @@ extern void RNG_SystemInfoForRNG(void);
 ** Use the contents (and stat) of a file to help seed the
 ** global random number generator.
 */
-extern void RNG_FileForRNG(char *filename);
+extern void RNG_FileForRNG(const char *filename);
 
 SEC_END_PROTOS
 

@@ -359,8 +359,8 @@ cleanup:
 **  RSA Private key operation (no CRT).
 */
 static SECStatus 
-rsa_PrivateKeyOp(RSAPrivateKey *key, mp_int *m, mp_int *c, mp_int *n,
-                 unsigned int modLen)
+rsa_PrivateKeyOpNoCRT(RSAPrivateKey *key, mp_int *m, mp_int *c, mp_int *n,
+                      unsigned int modLen)
 {
     mp_int d;
     mp_err   err = MP_OKAY;
@@ -383,11 +383,10 @@ cleanup:
 **  RSA Private key operation using CRT.
 */
 static SECStatus 
-rsa_PrivateKeyOpCRT(RSAPrivateKey *key, mp_int *m, mp_int *c,
-                    unsigned int modLen)
+rsa_PrivateKeyOpCRTNoCheck(RSAPrivateKey *key, mp_int *m, mp_int *c)
 {
     mp_int p, q, d_p, d_q, qInv;
-    mp_int m1, m2, b2, h, ctmp;
+    mp_int m1, m2, h, ctmp;
     mp_err   err = MP_OKAY;
     SECStatus rv = SECSuccess;
     MP_DIGITS(&p)    = 0;
@@ -397,7 +396,6 @@ rsa_PrivateKeyOpCRT(RSAPrivateKey *key, mp_int *m, mp_int *c,
     MP_DIGITS(&qInv) = 0;
     MP_DIGITS(&m1)   = 0;
     MP_DIGITS(&m2)   = 0;
-    MP_DIGITS(&b2)   = 0;
     MP_DIGITS(&h)    = 0;
     MP_DIGITS(&ctmp) = 0;
     CHECK_MPI_OK( mp_init(&p)    );
@@ -407,14 +405,13 @@ rsa_PrivateKeyOpCRT(RSAPrivateKey *key, mp_int *m, mp_int *c,
     CHECK_MPI_OK( mp_init(&qInv) );
     CHECK_MPI_OK( mp_init(&m1)   );
     CHECK_MPI_OK( mp_init(&m2)   );
-    CHECK_MPI_OK( mp_init(&b2)   );
     CHECK_MPI_OK( mp_init(&h)    );
     CHECK_MPI_OK( mp_init(&ctmp) );
     /* copy private key parameters into mp integers */
     SECITEM_TO_MPINT(key->prime1,      &p);    /* p */
     SECITEM_TO_MPINT(key->prime2,      &q);    /* q */
     SECITEM_TO_MPINT(key->exponent1,   &d_p);  /* d_p  = d mod (p-1) */
-    SECITEM_TO_MPINT(key->exponent2,   &d_q);  /* d_p  = d mod (q-1) */
+    SECITEM_TO_MPINT(key->exponent2,   &d_q);  /* d_q  = d mod (q-1) */
     SECITEM_TO_MPINT(key->coefficient, &qInv); /* qInv = q**-1 mod p */
     /* 1. m1 = c**d_p mod p */
     CHECK_MPI_OK( mp_mod(c, &p, &ctmp) );
@@ -436,9 +433,48 @@ cleanup:
     mp_clear(&qInv);
     mp_clear(&m1);
     mp_clear(&m2);
-    mp_clear(&b2);
     mp_clear(&h);
     mp_clear(&ctmp);
+    if (err) {
+	MP_TO_SEC_ERROR(err);
+	rv = SECFailure;
+    }
+    return rv;
+}
+
+/*
+** An attack against RSA CRT was described by Boneh, DeMillo, and Lipton in:
+** "On the Importance of Eliminating Errors in Cryptographic Computations",
+** http://theory.stanford.edu/~dabo/papers/faults.ps.gz
+**
+** As a defense against the attack, carry out the private key operation, 
+** followed up with a public key operation to invert the result.  
+** Verify that result against the input.
+*/
+static SECStatus 
+rsa_PrivateKeyOpCRTCheckedPubKey(RSAPrivateKey *key, mp_int *m, mp_int *c)
+{
+    mp_int n, e, v;
+    mp_err   err = MP_OKAY;
+    SECStatus rv = SECSuccess;
+    MP_DIGITS(&n) = 0;
+    MP_DIGITS(&e) = 0;
+    MP_DIGITS(&v) = 0;
+    CHECK_MPI_OK( mp_init(&n) );
+    CHECK_MPI_OK( mp_init(&e) );
+    CHECK_MPI_OK( mp_init(&v) );
+    CHECK_SEC_OK( rsa_PrivateKeyOpCRTNoCheck(key, m, c) );
+    SECITEM_TO_MPINT(key->modulus,        &n);
+    SECITEM_TO_MPINT(key->publicExponent, &e);
+    /* Perform a public key operation v = m ** e mod n */
+    CHECK_MPI_OK( mp_exptmod(m, &e, &n, &v) );
+    if (mp_cmp(&v, c) != 0) {
+	rv = SECFailure;
+    }
+cleanup:
+    mp_clear(&n);
+    mp_clear(&e);
+    mp_clear(&v);
     if (err) {
 	MP_TO_SEC_ERROR(err);
 	rv = SECFailure;
@@ -619,10 +655,11 @@ cleanup:
 ** Perform a raw private-key operation 
 **	Length of input and output buffers are equal to key's modulus len.
 */
-SECStatus 
-RSA_PrivateKeyOp(RSAPrivateKey *key, 
+static SECStatus 
+rsa_PrivateKeyOp(RSAPrivateKey *key, 
                  unsigned char *output, 
-                 const unsigned char *input)
+                 const unsigned char *input,
+                 PRBool check)
 {
     unsigned int modLen;
     unsigned int offset;
@@ -667,9 +704,11 @@ RSA_PrivateKeyOp(RSAPrivateKey *key,
          key->exponent1.len   == 0 ||
          key->exponent2.len   == 0 ||
          key->coefficient.len == 0) {
-	CHECK_SEC_OK( rsa_PrivateKeyOp(key, &m, &c, &n, modLen) );
+	CHECK_SEC_OK( rsa_PrivateKeyOpNoCRT(key, &m, &c, &n, modLen) );
+    } else if (check) {
+	CHECK_SEC_OK( rsa_PrivateKeyOpCRTCheckedPubKey(key, &m, &c) );
     } else {
-	CHECK_SEC_OK( rsa_PrivateKeyOpCRT(key, &m, &c, modLen) );
+	CHECK_SEC_OK( rsa_PrivateKeyOpCRTNoCheck(key, &m, &c) );
     }
     /* If blinding, compute post-image of plaintext by multiplying by
     ** blinding factor
@@ -692,3 +731,160 @@ cleanup:
     }
     return rv;
 }
+
+SECStatus 
+RSA_PrivateKeyOp(RSAPrivateKey *key, 
+                 unsigned char *output, 
+                 const unsigned char *input)
+{
+    return rsa_PrivateKeyOp(key, output, input, PR_FALSE);
+}
+
+SECStatus 
+RSA_PrivateKeyOpDoubleChecked(RSAPrivateKey *key, 
+                              unsigned char *output, 
+                              const unsigned char *input)
+{
+    return rsa_PrivateKeyOp(key, output, input, PR_TRUE);
+}
+
+static SECStatus
+swap_in_key_value(PRArenaPool *arena, mp_int *mpval, SECItem *buffer)
+{
+    int len;
+    mp_err err = MP_OKAY;
+    memset(buffer->data, 0, buffer->len);
+    len = mp_unsigned_octet_size(mpval);
+    if (len <= 0) return SECFailure;
+    if ((unsigned int)len <= buffer->len) {
+	/* The new value is no longer than the old buffer, so use it */
+	err = mp_to_unsigned_octets(mpval, buffer->data, len);
+	buffer->len = len;
+    } else if (arena) {
+	/* The new value is longer, but working within an arena */
+	(void)SECITEM_AllocItem(arena, buffer, len);
+	err = mp_to_unsigned_octets(mpval, buffer->data, len);
+    } else {
+	/* The new value is longer, no arena, can't handle this key */
+	return SECFailure;
+    }
+    return (err == MP_OKAY) ? SECSuccess : SECFailure;
+}
+
+SECStatus
+RSA_PrivateKeyCheck(RSAPrivateKey *key)
+{
+    mp_int p, q, n, psub1, qsub1, e, d, d_p, d_q, qInv, res;
+    mp_err   err = MP_OKAY;
+    SECStatus rv = SECSuccess;
+    MP_DIGITS(&n)    = 0;
+    MP_DIGITS(&psub1)= 0;
+    MP_DIGITS(&qsub1)= 0;
+    MP_DIGITS(&e)    = 0;
+    MP_DIGITS(&d)    = 0;
+    MP_DIGITS(&d_p)  = 0;
+    MP_DIGITS(&d_q)  = 0;
+    MP_DIGITS(&qInv) = 0;
+    MP_DIGITS(&res)  = 0;
+    CHECK_MPI_OK( mp_init(&n)    );
+    CHECK_MPI_OK( mp_init(&p)    );
+    CHECK_MPI_OK( mp_init(&q)    );
+    CHECK_MPI_OK( mp_init(&psub1));
+    CHECK_MPI_OK( mp_init(&qsub1));
+    CHECK_MPI_OK( mp_init(&e)    );
+    CHECK_MPI_OK( mp_init(&d)    );
+    CHECK_MPI_OK( mp_init(&d_p)  );
+    CHECK_MPI_OK( mp_init(&d_q)  );
+    CHECK_MPI_OK( mp_init(&qInv) );
+    CHECK_MPI_OK( mp_init(&res)  );
+    SECITEM_TO_MPINT(key->modulus,         &n);
+    SECITEM_TO_MPINT(key->prime1,          &p);
+    SECITEM_TO_MPINT(key->prime2,          &q);
+    SECITEM_TO_MPINT(key->publicExponent,  &e);
+    SECITEM_TO_MPINT(key->privateExponent, &d);
+    SECITEM_TO_MPINT(key->exponent1,       &d_p);
+    SECITEM_TO_MPINT(key->exponent2,       &d_q);
+    SECITEM_TO_MPINT(key->coefficient,     &qInv);
+    /* p > q  */
+    if (mp_cmp(&p, &q) <= 0) {
+	/* mind the p's and q's (and d_p's and d_q's) */
+	SECItem tmp;
+	mp_exch(&p, &q);
+	tmp = key->prime1;
+	key->prime1 = key->prime2;
+	key->prime2 = tmp;
+	tmp = key->exponent1;
+	key->exponent1 = key->exponent2;
+	key->exponent2 = tmp;
+    }
+#define VERIFY_MPI_EQUAL(m1, m2) \
+    if (mp_cmp(m1, m2) != 0) {   \
+	rv = SECFailure;         \
+	goto cleanup;            \
+    }
+#define VERIFY_MPI_EQUAL_1(m)    \
+    if (mp_cmp_d(m, 1) != 0) {   \
+	rv = SECFailure;         \
+	goto cleanup;            \
+    }
+    /*
+     * The following errors cannot be recovered from.
+     */
+    /* n == p * q */
+    CHECK_MPI_OK( mp_mul(&p, &q, &res) );
+    VERIFY_MPI_EQUAL(&res, &n);
+    /* gcd(e, p-1) == 1 */
+    CHECK_MPI_OK( mp_sub_d(&p, 1, &psub1) );
+    CHECK_MPI_OK( mp_gcd(&e, &psub1, &res) );
+    VERIFY_MPI_EQUAL_1(&res);
+    /* gcd(e, q-1) == 1 */
+    CHECK_MPI_OK( mp_sub_d(&q, 1, &qsub1) );
+    CHECK_MPI_OK( mp_gcd(&e, &qsub1, &res) );
+    VERIFY_MPI_EQUAL_1(&res);
+    /* d*e == 1 mod p-1 */
+    CHECK_MPI_OK( mp_mulmod(&d, &e, &psub1, &res) );
+    VERIFY_MPI_EQUAL_1(&res);
+    /* d*e == 1 mod q-1 */
+    CHECK_MPI_OK( mp_mulmod(&d, &e, &qsub1, &res) );
+    VERIFY_MPI_EQUAL_1(&res);
+    /*
+     * The following errors can be recovered from.
+     */
+    /* d_p == d mod p-1 */
+    CHECK_MPI_OK( mp_mod(&d, &psub1, &res) );
+    if (mp_cmp(&d_p, &res) != 0) {
+	/* swap in the correct value */
+	CHECK_SEC_OK( swap_in_key_value(key->arena, &res, &key->exponent1) );
+    }
+    /* d_q == d mod q-1 */
+    CHECK_MPI_OK( mp_mod(&d, &qsub1, &res) );
+    if (mp_cmp(&d_q, &res) != 0) {
+	/* swap in the correct value */
+	CHECK_SEC_OK( swap_in_key_value(key->arena, &res, &key->exponent2) );
+    }
+    /* q * q**-1 == 1 mod p */
+    CHECK_MPI_OK( mp_mulmod(&q, &qInv, &p, &res) );
+    if (mp_cmp_d(&res, 1) != 0) {
+	/* compute the correct value */
+	CHECK_MPI_OK( mp_invmod(&q, &p, &qInv) );
+	CHECK_SEC_OK( swap_in_key_value(key->arena, &qInv, &key->coefficient) );
+    }
+cleanup:
+    mp_clear(&n);
+    mp_clear(&p);
+    mp_clear(&q);
+    mp_clear(&psub1);
+    mp_clear(&qsub1);
+    mp_clear(&e);
+    mp_clear(&d);
+    mp_clear(&d_p);
+    mp_clear(&d_q);
+    mp_clear(&qInv);
+    mp_clear(&res);
+    if (err) {
+	MP_TO_SEC_ERROR(err);
+	rv = SECFailure;
+    }
+    return rv;
+}
+

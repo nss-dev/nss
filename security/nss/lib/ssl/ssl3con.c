@@ -93,9 +93,9 @@ static SECStatus Null_Cipher(void *ctx, unsigned char *output, int *outputLen,
  */
 static ssl3CipherSuiteCfg cipherSuites[ssl_V3_SUITES_IMPLEMENTED] = {
    /*      cipher_suite                         policy      enabled is_present*/
- { TLS_DHE_DSS_WITH_RC4_128_SHA,           SSL_NOT_ALLOWED, PR_TRUE, PR_FALSE},
- { SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA,      SSL_NOT_ALLOWED, PR_TRUE, PR_FALSE},
- { SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA,      SSL_NOT_ALLOWED, PR_TRUE, PR_FALSE},
+ { TLS_DHE_DSS_WITH_RC4_128_SHA,           SSL_NOT_ALLOWED, PR_FALSE,PR_FALSE},
+ { SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA,      SSL_NOT_ALLOWED, PR_FALSE,PR_FALSE},
+ { SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA,      SSL_NOT_ALLOWED, PR_FALSE,PR_FALSE},
  { SSL_FORTEZZA_DMS_WITH_FORTEZZA_CBC_SHA, SSL_NOT_ALLOWED, PR_TRUE, PR_FALSE},
  { SSL_FORTEZZA_DMS_WITH_RC4_128_SHA,      SSL_NOT_ALLOWED, PR_TRUE, PR_FALSE},
  { SSL_RSA_WITH_RC4_128_SHA,               SSL_NOT_ALLOWED, PR_FALSE,PR_FALSE},
@@ -103,8 +103,8 @@ static ssl3CipherSuiteCfg cipherSuites[ssl_V3_SUITES_IMPLEMENTED] = {
  { SSL_RSA_FIPS_WITH_3DES_EDE_CBC_SHA,     SSL_NOT_ALLOWED, PR_TRUE, PR_FALSE},
  { SSL_RSA_WITH_3DES_EDE_CBC_SHA,          SSL_NOT_ALLOWED, PR_TRUE, PR_FALSE},
  { SSL_RSA_FIPS_WITH_DES_CBC_SHA,          SSL_NOT_ALLOWED, PR_TRUE, PR_FALSE},
- { SSL_DHE_RSA_WITH_DES_CBC_SHA,           SSL_NOT_ALLOWED, PR_TRUE, PR_FALSE},
- { SSL_DHE_DSS_WITH_DES_CBC_SHA,           SSL_NOT_ALLOWED, PR_TRUE, PR_FALSE},
+ { SSL_DHE_RSA_WITH_DES_CBC_SHA,           SSL_NOT_ALLOWED, PR_FALSE,PR_FALSE},
+ { SSL_DHE_DSS_WITH_DES_CBC_SHA,           SSL_NOT_ALLOWED, PR_FALSE,PR_FALSE},
  { SSL_RSA_WITH_DES_CBC_SHA,               SSL_NOT_ALLOWED, PR_TRUE, PR_FALSE},
  { TLS_RSA_EXPORT1024_WITH_RC4_56_SHA,     SSL_NOT_ALLOWED, PR_TRUE, PR_FALSE},
  { TLS_RSA_EXPORT1024_WITH_DES_CBC_SHA,    SSL_NOT_ALLOWED, PR_TRUE, PR_FALSE},
@@ -2605,7 +2605,8 @@ ssl3_SendClientHello(sslSocket *ss)
 	        !PK11_IsPresent(slot) ||
 		sid->u.ssl3.clAuthSeries     != PK11_GetSlotSeries(slot) ||
 		sid->u.ssl3.clAuthSlotID     != PK11_GetSlotID(slot)     ||
-		sid->u.ssl3.clAuthModuleID   != PK11_GetModuleID(slot)   ) {
+		sid->u.ssl3.clAuthModuleID   != PK11_GetModuleID(slot)   ||
+                !PK11_IsLoggedIn(slot, NULL)) {
 	        sidOK = PR_FALSE;
 	    }
 	    if (slot) {
