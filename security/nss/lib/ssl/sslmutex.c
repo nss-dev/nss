@@ -349,7 +349,7 @@ SECStatus sslMutex_2LevelInit(sslMutex *sem)
     */
     PR_ASSERT(sem);
     if (sem) {
-        /* we need to reset the sslLock in the children or the 2Level init
+        /* we need to reset the sslLock in the children or the single_process init
            function below will assert */
         sem->u.sslLock = NULL;
     }
