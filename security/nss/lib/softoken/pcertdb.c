@@ -4162,11 +4162,9 @@ nsslowcert_FindCertByIssuerAndSN(NSSLOWCERTCertDBHandle *handle, NSSLOWCERTIssue
 		}
 	    } 
 	}
-	while (sn->data[index] == 0) {
-	    index++;
-	    data_len--;
-	    data_left--;
-	}
+	/* XXX leaving any leading zeros on the serial number for backwards
+	 * compatibility
+	 */
 	/* not a valid der, must be just an unlucky serial number value */
 	if (data_len != data_left) {
 	    data_len = sn->len;
