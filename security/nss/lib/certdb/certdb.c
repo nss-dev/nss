@@ -781,7 +781,8 @@ CERT_DecodeDERCertificate(SECItem *derSignedCert, PRBool copyDER,
     }
 
     /* generate and save the database key for the cert */
-    rv = CERT_KeyFromDERCert(arena, &cert->derCert, &cert->certKey);
+    rv = CERT_KeyFromIssuerAndSN(arena, &cert->derIssuer, &cert->serialNumber,
+			&cert->certKey);
     if ( rv ) {
 	goto loser;
     }
