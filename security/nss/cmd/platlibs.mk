@@ -132,7 +132,7 @@ EXTRA_SHARED_LIBS += \
 	$(NULL)
 else
 EXTRA_SHARED_LIBS += \
-	-L$(DIST)/lib/ \
+	-L$(DIST)/lib \
 	-lplc4 \
 	-lplds4 \
 	-lnspr4 \
@@ -189,6 +189,10 @@ ifeq ($(OS_ARCH), BSD_OS)
 EXTRA_SHARED_LIBS += -Wl,-rpath-link,$(DIST)/lib
 endif
 
+ifeq ($(OS_ARCH), FreeBSD)
+EXTRA_SHARED_LIBS += -Wl,-rpath-link,$(DIST)/lib
+endif
+
 ifeq ($(OS_ARCH), Darwin)
 EXTRA_SHARED_LIBS += -dylib_file @executable_path/libsoftokn3.dylib:$(DIST)/lib/libsoftokn3.dylib
 endif
@@ -205,7 +209,7 @@ endif
 # $(PROGRAM) has NO explicit dependencies on $(EXTRA_SHARED_LIBS)
 # $(EXTRA_SHARED_LIBS) come before $(OS_LIBS), except on AIX.
 EXTRA_SHARED_LIBS += \
-	-L$(DIST)/lib/ \
+	-L$(DIST)/lib \
 	-lssl3 \
 	-lsmime3 \
 	-lnss3 \
