@@ -19,6 +19,7 @@
 ## Copyright (C) 1998, 2000 Michael J. Fromberger. All Rights Reserved.
 ##
 ## Contributor(s):
+##	Netscape Communications Corporation
 ##
 ## Alternatively, the contents of this file may be used under the
 ## terms of the GNU General Public License Version 2 or later (the
@@ -52,7 +53,8 @@ esac
 for name in $files
 do
    echo -n "$name ... "
-   sname=`noext $name`
+#  sname=`noext $name`
+   sname=`basename $name .pod`
    pod2man --section="$SECT" --center="$NAME" --release="$VERS" $name > $sname.$SECT
    echo "(done)"
 done
