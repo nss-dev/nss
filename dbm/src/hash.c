@@ -69,6 +69,11 @@ static char sccsid[] = "@(#)hash.c	8.9 (Berkeley) 6/16/94";
 #include <windows.h>
 #endif
 
+#ifdef XP_OS2_VACPP
+#include "types.h"
+#define EPERM SOCEPERM
+#endif
+
 #include <assert.h>
 
 #include "mcom_db.h"
@@ -185,7 +190,7 @@ __hash_open(const char *file, int flags, int mode, const HASHINFO *info, int dfl
 
 	if (file) {				 
 
-#if defined(_WIN32) || defined(_WINDOWS) || defined (macintosh)  || defined(XP_OS2)
+#if defined(_WIN32) || defined(_WINDOWS) || defined (macintosh)  || defined(XP_OS2_VACPP)
 		if ((hashp->fp = DBFILE_OPEN(file, flags | O_BINARY, mode)) == -1)
 			RETURN_ERROR(errno, error0);
 #else
