@@ -141,6 +141,14 @@ nssPKIObject_AddInstance
 	                                  nssCryptokiObject *,
 	                                  object->numInstances + 1);
     } else {
+	PRUint32 i;
+	for (i=0; i<object->numInstances; i++) {
+	    if (nssCryptokiObject_Equal(object->instances[i], instance)) {
+		PZ_Unlock(object->lock);
+		nssCryptokiObject_Destroy(instance);
+		return PR_SUCCESS;
+	    }
+	}
 	object->instances = nss_ZREALLOCARRAY(object->instances,
 	                                      nssCryptokiObject *,
 	                                      object->numInstances + 1);
@@ -654,6 +662,7 @@ nssPKIObjectCollection_AddObject
     }
     node->haveObject = PR_TRUE;
     node->object = nssPKIObject_AddRef(object);
+    (*collection->getUIDFromObject)(object, node->uid);
     PR_INIT_CLIST(&node->link);
     PR_INSERT_BEFORE(&node->link, &collection->head);
     collection->size++;
