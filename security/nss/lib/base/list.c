@@ -127,6 +127,9 @@ nssList_Create
     }
     list = nss_ZNEW(arena, nssList);
     if (!list) {
+	if (!arenaOpt) {
+	    NSSArena_Destroy(arena);
+	}
 	return (nssList *)NULL;
     }
     if (threadSafe) {
