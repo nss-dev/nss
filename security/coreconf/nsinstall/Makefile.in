@@ -31,8 +31,10 @@
 # GPL.
 #
 
-DEPTH		= ../..
 CORE_DEPTH	= ../..
+topsrcdir	= @top_srcdir@
+srcdir		= @srcdir@
+VPATH		= @srcdir@
 
 MODULE		= coreconf
 
@@ -42,18 +44,15 @@ PLSRCS		= nfspwd.pl
 
 PROGRAM		= nsinstall
 
-include $(DEPTH)/coreconf/config.mk
+include $(CORE_DEPTH)/coreconf/autoconf.mk
+include $(topsrcdir)/coreconf/config.mk
 
-ifeq (,$(filter-out OS2 WINNT,$(OS_ARCH)))
+ifeq ($(OS_ARCH),WINNT)
 PROGRAM		=
 else
 TARGETS		= $(PROGRAM) $(PLSRCS:.pl=)
 endif
 
-include $(DEPTH)/coreconf/rules.mk
+include $(topsrcdir)/coreconf/rules.mk
 
-# Redefine MAKE_OBJDIR for just this directory
-define MAKE_OBJDIR
-if test ! -d $(@D); then rm -rf $(@D); mkdir $(@D); fi
-endef
-
+export:: libs

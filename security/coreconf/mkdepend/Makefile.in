@@ -30,14 +30,29 @@
 # may use your version of this file under either the MPL or the
 # GPL.
 #
-DEPTH		= ..
-CORE_DEPTH	= ..
+
+CORE_DEPTH	= ../..
+topsrcdir	= @top_srcdir@
+srcdir		= @srcdir@
+VPATH		= @srcdir@
 
 MODULE		= coreconf
 
-DIRS		= nsinstall mkdepend md
+CSRCS		= \
+		cppsetup.c \
+		ifparser.c \
+		include.c \
+		main.c \
+		parse.c \
+		pr.c \
+		$(NULL)
 
-include $(DEPTH)/coreconf/config.mk
-include $(DEPTH)/coreconf/rules.mk
+PROGRAM		= mkdepend
 
-export:: libs
+include $(CORE_DEPTH)/coreconf/autoconf.mk
+include $(topsrcdir)/coreconf/config.mk
+
+include $(topsrcdir)/coreconf/rules.mk
+
+DEFINES         += -DINCLUDEDIR=\"/usr/include\" -DOBJSUFFIX=\".o\"
+
