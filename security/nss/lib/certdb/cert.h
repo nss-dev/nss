@@ -432,6 +432,10 @@ CERT_ImportCRL (CERTCertDBHandle *handle, SECItem *derCRL, char *url,
 
 extern void CERT_DestroyCrl (CERTSignedCrl *crl);
 
+/* this is a hint to flush the CRL cache. crlKey is the DER subject of
+   the issuer (CA). */
+void CERT_CRLCacheRefreshIssuer(CERTCertDBHandle* dbhandle, SECItem* crlKey);
+
 /*
 ** Decode a certificate and put it into the temporary certificate database
 */
