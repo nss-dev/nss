@@ -536,7 +536,7 @@ sec_asn1d_init_state_based_on_template (sec_asn1d_state *state)
 
     /* XXX is this the right set of bits to test here? */
     PORT_Assert ((under_kind & (SEC_ASN1_EXPLICIT | SEC_ASN1_OPTIONAL
-				| SEC_ASN1_DYNAMIC | SEC_ASN1_MAY_STREAM
+				| SEC_ASN1_MAY_STREAM
 				| SEC_ASN1_INLINE | SEC_ASN1_POINTER)) == 0);
 
     if (encode_kind & (SEC_ASN1_ANY | SEC_ASN1_SKIP)) {
@@ -893,7 +893,10 @@ sec_asn1d_prepare_for_contents (sec_asn1d_state *state)
 	 * below under cases SET_OF and SEQUENCE_OF; it will be cleaner.
 	 */
 	PORT_Assert (state->underlying_kind == SEC_ASN1_SET_OF
-		     || state->underlying_kind == SEC_ASN1_SEQUENCE_OF);
+	   || state->underlying_kind == SEC_ASN1_SEQUENCE_OF
+	   || state->underlying_kind == (SEC_ASN1_SEQUENCE_OF|SEC_ASN1_DYNAMIC)
+	   || state->underlying_kind == (SEC_ASN1_SEQUENCE_OF|SEC_ASN1_DYNAMIC)
+		     );
 	if (state->contents_length != 0 || state->indefinite) {
 	    const SEC_ASN1Template *subt;
 
