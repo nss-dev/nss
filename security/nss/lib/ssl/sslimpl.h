@@ -208,7 +208,7 @@ struct sslBufferStr {
 ** SSL3 cipher suite policy and preference struct.
 */
 typedef struct {
-#ifdef AIX
+#if !defined(_WIN32)
     unsigned int    cipher_suite : 16;
     unsigned int    policy       :  8;
     unsigned int    enabled      :  1;
