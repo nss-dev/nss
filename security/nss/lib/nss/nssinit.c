@@ -60,20 +60,8 @@
  * in NSS 3.4.  See bug 142575.
  */
 #ifdef WIN32
-/*
- * Simulate how 'mktemp' was accidentally exported.
- *
- * The compiler warning message
- *   warning C4273: 'mktemp' : inconsistent dll linkage.  dllexport assumed.
- * is expected and should be ignored.
- */
-#include <io.h>
-
-char *
-mktemp(char *path)
-{
-    return _mktemp(path);
-}
+/* Function forwarder to mktemp in softokn3 */
+#pragma comment(linker, "/export:mktemp=softokn3.mktemp")
 #endif
 
 #define NSS_MAX_FLAG_SIZE  sizeof("readOnly")+sizeof("noCertDB")+ \
