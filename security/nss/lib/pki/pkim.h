@@ -202,6 +202,12 @@ nssPKIObject_GetTrustDomain (
   PRStatus *statusOpt
 );
 
+NSS_EXTERN NSSVolatileDomain *
+nssPKIObject_GetVolatileDomain (
+  nssPKIObject *object,
+  PRStatus *statusOpt
+);
+
 NSS_EXTERN NSSToken *
 nssPKIObject_GetWriteToken (
   nssPKIObject *object,

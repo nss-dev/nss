@@ -468,6 +468,18 @@ nssPKIObject_GetTrustDomain (
     return object->td;
 }
 
+NSS_IMPLEMENT NSSVolatileDomain *
+nssPKIObject_GetVolatileDomain (
+  nssPKIObject *object,
+  PRStatus *statusOpt
+)
+{
+    if (statusOpt) {
+	*statusOpt = PR_SUCCESS;
+    }
+    return object->vd;
+}
+
 NSS_IMPLEMENT NSSToken *
 nssPKIObject_GetWriteToken (
   nssPKIObject *object,

@@ -277,6 +277,15 @@ NSSSymKey_GetTrustDomain (
     return nssSymKey_GetTrustDomain(mk, statusOpt);
 }
 
+NSS_IMPLEMENT NSSVolatileDomain *
+nssSymKey_GetVolatileDomain (
+  NSSSymKey *mk,
+  PRStatus *statusOpt
+)
+{
+    return nssPKIObject_GetVolatileDomain(&mk->object, statusOpt);
+}
+
 NSS_IMPLEMENT NSSToken *
 NSSSymKey_GetToken (
   NSSSymKey *mk,
