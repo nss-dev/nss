@@ -81,6 +81,7 @@ NSS_EXTERN_DATA const NSSItem g_ck_class_privkey;
     (pattr)->type = kind;                             \
     (pattr)->pValue = (CK_VOID_PTR)utf8;              \
     (pattr)->ulValueLen = (CK_ULONG)nssUTF8_Size(utf8, NULL); \
+    if ((pattr)->ulValueLen) ((pattr)->ulValueLen)--; \
     (pattr)++;
 
 #define NSS_CK_SET_ATTRIBUTE_VAR(pattr, kind, var)    \
