@@ -48,8 +48,8 @@
 #include "secerr.h"
 #include "pk11func.h"
 #include "dev.h"
-#include "../pk11wrap/secmodti.h"
-#include "../base/nssbase.h"
+#include "dev3hack.h"
+#include "nssbase.h"
 #ifdef USE_RWLOCK
 #include "nssrwlk.h"
 #endif
@@ -1084,7 +1084,7 @@ PRBool CRLStillExists(CERTSignedCrl* crl)
     if (!instance.handle) {
         return PR_FALSE;
     }
-    instance.token = slot->nssToken;
+    instance.token = PK11Slot_GetNSSToken(slot);
     PORT_Assert(instance.token);
     if (!instance.token) {
         return PR_FALSE;
