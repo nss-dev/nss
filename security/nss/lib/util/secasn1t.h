@@ -207,7 +207,7 @@ static const SEC_ASN1TemplateChooserPtr p_NSS_Get_##x = &NSS_Get_##x;
 #endif
 
 #define SEC_ASN1_CHOOSER_DECLARE(x) \
-extern SEC_ASN1TemplateChooser NSS_Get_##x;
+extern const SEC_ASN1Template * NSS_Get_##x (void *arg, PRBool enc);
 
 #define SEC_ASN1_CHOOSER_IMPLEMENT(x) \
 const SEC_ASN1Template * NSS_Get_##x(void * arg, PRBool enc) \
