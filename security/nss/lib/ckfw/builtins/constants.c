@@ -76,6 +76,7 @@ nss_builtins_TokenLabel = "Builtin Object Token";
 NSS_IMPLEMENT_DATA const NSSUTF8 *
 nss_builtins_TokenModel = "1";
 
+/* should this be e.g. the certdata.txt RCS revision number? */
 NSS_IMPLEMENT_DATA const NSSUTF8 *
 nss_builtins_TokenSerialNumber = "1";
 
