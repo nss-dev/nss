@@ -1052,7 +1052,9 @@ SECStatus ShutdownCRLCache(void)
     /* empty the cache */
     PL_HashTableEnumerateEntries(crlcache.issuers, &FreeIssuer, NULL);
     PL_HashTableDestroy(crlcache.issuers);
+    crlcache.issuers = NULL;
     PR_DestroyLock(crlcache.lock);
+    crlcache.lock = NULL;
     return SECSuccess;
 }
 
