@@ -620,6 +620,17 @@ clear_cache
 }
 
 NSS_IMPLEMENT void
+nssTokenObjectCache_Clear
+(
+  nssTokenObjectCache *cache
+)
+{
+    if (cache) {
+	clear_cache(cache);
+    }
+}
+
+NSS_IMPLEMENT void
 nssTokenObjectCache_Destroy
 (
   nssTokenObjectCache *cache
@@ -777,7 +788,7 @@ search_for_objects
     NSSSlot *slot = nssToken_GetSlot(cache->token);
     if (!nssSlot_IsTokenPresent(slot)) {
 	/* The token is no longer present, destroy any cached objects */
-	clear_cache(cache);
+	/* clear_cache(cache); */
 	nssSlot_Destroy(slot);
 	return PR_FALSE;
     }
