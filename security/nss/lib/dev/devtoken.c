@@ -282,7 +282,7 @@ nssToken_DeleteStoredObject
     nssSession *session = NULL;
     void *epv = nssToken_GetCryptokiEPV(instance->token);
     if (token->cache) {
-	status = nssTokenObjectCache_RemoveObject(token->cache, instance);
+	nssTokenObjectCache_RemoveObject(token->cache, instance);
     }
     if (instance->isTokenObject) {
        if (nssSession_IsReadWrite(token->defaultSession)) {
@@ -301,9 +301,7 @@ nssToken_DeleteStoredObject
     if (createdSession) {
 	nssSession_Destroy(session);
     }
-    if (ckrv != CKR_OK) {
-	return PR_FAILURE;
-    }
+    status = (ckrv == CKR_OK) ? PR_SUCCESS : PR_FAILURE;
     return status;
 }
 
@@ -592,6 +590,9 @@ nssToken_ImportCertificate
 	nssCKObject_SetAttributes(rvObject->handle, 
 	                          cert_tmpl, ctsize,
 	                          session, slot);
+	if (!rvObject->label && nickname) {
+	    rvObject->label = nssUTF8_Duplicate(nickname, NULL);
+	}
 	nssSession_Destroy(session);
 	nssSlot_Destroy(slot);
     } else {
