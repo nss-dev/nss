@@ -70,6 +70,7 @@ sub create_directories {
   my @dirs = ();
   my $ac_file;
   foreach $ac_file (@makefiles) {
+    $ac_file =~ s/:.*//;
     push @dirs, dirname($ac_file);
   }
   # Call mkdir with the directories sorted by subdir count (how many /'s)
