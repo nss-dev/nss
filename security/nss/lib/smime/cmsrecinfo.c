@@ -437,15 +437,16 @@ NSS_CMSRecipientInfo_WrapBulkKey(NSSCMSRecipientInfo *ri, PK11SymKey *bulkkey,
     switch (certalgtag) {
     case SEC_OID_PKCS1_RSA_ENCRYPTION:
 	/* wrap the symkey */
-	if (usesSubjKeyID) {
+	if (cert) {
+	    rv = NSS_CMSUtil_EncryptSymKey_RSA(poolp, cert, bulkkey, 
+	                         &ri->ri.keyTransRecipientInfo.encKey);
+ 	    if (rv != SECSuccess)
+		break;
+	} else if (usesSubjKeyID) {
 	    rv = NSS_CMSUtil_EncryptSymKey_RSAPubKey(poolp, extra->pubKey,
 	                         bulkkey, &ri->ri.keyTransRecipientInfo.encKey);
  	    if (rv != SECSuccess)
 		break;
-	} else if (NSS_CMSUtil_EncryptSymKey_RSA(poolp, cert, bulkkey, 
-	                 &ri->ri.keyTransRecipientInfo.encKey) != SECSuccess) {
-	    rv = SECFailure;
-	    break;
 	}
 
 	rv = SECOID_SetAlgorithmID(poolp, &(ri->ri.keyTransRecipientInfo.keyEncAlg), certalgtag, NULL);
