@@ -41,7 +41,7 @@ endif
 #  are specifed as dependencies within rules.mk.
 #
 
-TARGETS        = $(LIBRARY)
+TARGETS        = 
 SHARED_LIBRARY =
 IMPORT_LIBRARY =
 PROGRAM        =
