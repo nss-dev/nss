@@ -1287,7 +1287,7 @@ main(int argc, char **argv)
 	Usage(progName);
 	exitstatus = 1;
     }
-    if (mode == SIGN || mode == ENVELOPE || mode == CERTSONLY) {
+    if ( (mode == SIGN || mode == ENVELOPE || mode == CERTSONLY) && (!exitstatus) ) {
 	PLArenaPool *arena = PORT_NewArena(1024);
 	NSSCMSEncoderContext *ecx;
 	SECItem output = { 0, 0, 0 };
@@ -1332,7 +1332,7 @@ main(int argc, char **argv)
 	}
 	rv = NSS_CMSEncoder_Finish(ecx);
 	if (rv) {
-	    fprintf(stderr, "%s: failed to encode data.\n", progName);
+            SECU_PrintError(progName, "failed to encode data");
 	    exit(1);
 	}
 
