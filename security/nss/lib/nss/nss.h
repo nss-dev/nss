@@ -80,6 +80,11 @@ extern PRBool NSS_VersionCheck(const char *importedVersion);
 extern SECStatus NSS_Init(const char *configdir);
 
 /*
+ * Returns whether NSS has already been initialized or not.
+ */
+extern PRBool NSS_IsInitialized(void);
+
+/*
  * Open the Cert, Key, and Security Module databases, read/write.
  * Initialize the Random Number Generator.
  * Does not initialize the cipher policies or enables.
