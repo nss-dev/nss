@@ -35,9 +35,9 @@
  */
 #include "pkcs11.h"
 #include "pkcs11i.h"
-#include "key.h"
-#include "keylow.h"
-#include "certdb.h"
+#include "pcertt.h"
+#include "lowkeyi.h"
+#include "pcert.h"
 
 
 /* declare the internal pkcs11 slot structures:
@@ -747,7 +747,7 @@ pk11_DestroyObject(PK11Object *object)
 		 *  RSA */
 		crv=pk11_Attribute2SecItem(NULL,&pubKey,object,CKA_NETSCAPE_DB);
 		if (crv != CKR_OK) break;
-		rv = SECKEY_DeleteKey(SECKEY_GetDefaultKeyDB(), &pubKey);
+		rv = nsslowkey_DeleteKey(nsslowkey_GetDefaultKeyDB(), &pubKey);
 		if (rv != SECSuccess && pubKey.data[0] == 0) {
 		    /* Because of legacy code issues, sometimes the public key
 		     * has a '0' prepended to it, forcing it to be unsigned.
@@ -757,12 +757,14 @@ pk11_DestroyObject(PK11Object *object)
 		    SECItem tmpPubKey;
 		    tmpPubKey.data = pubKey.data + 1;
 		    tmpPubKey.len = pubKey.len - 1;
-		    rv = SECKEY_DeleteKey(SECKEY_GetDefaultKeyDB(), &tmpPubKey);
+		    rv = nsslowkey_DeleteKey(nsslowkey_GetDefaultKeyDB(), &tmpPubKey);
 		}
 		if (rv != SECSuccess) crv= CKR_DEVICE_ERROR;
 		break;
 	      case PK11_TOKEN_TYPE_CERT:
-		rv = SEC_DeletePermCertificate((CERTCertificate *)object->objectInfo);
+
+	        /* USE THE DER CERT To LOOK THINGS UP XXXX */
+		rv = nsslowcert_DeletePermCertificate((NSSLOWCERTCertificate *)object->objectInfo);
 		if (rv != SECSuccess) crv = CKR_DEVICE_ERROR;
 		break;
 	    }

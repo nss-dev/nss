@@ -40,7 +40,7 @@
 #include "softoken.h"
 #include "sechash.h"
 
-#include "keylow.h"
+#include "lowkeyi.h"
 #include "secerr.h"
 
 #define RSA_BLOCK_MIN_PAD_LEN		8
@@ -606,7 +606,7 @@ RSA_DecodeOneBlock(unsigned char *data,
 
 /* XXX Doesn't set error code */
 SECStatus
-RSA_Sign(SECKEYLowPrivateKey *key, 
+RSA_Sign(NSSLOWKEYPrivateKey *key, 
          unsigned char *      output, 
 	 unsigned int *       output_len,
          unsigned int         maxOutputLen, 
@@ -614,14 +614,14 @@ RSA_Sign(SECKEYLowPrivateKey *key,
 	 unsigned int         input_len)
 {
     SECStatus     rv          = SECSuccess;
-    unsigned int  modulus_len = SECKEY_LowPrivateModulusLen(key);
+    unsigned int  modulus_len = nsslowkey_PrivateModulusLen(key);
     SECItem       formatted;
     SECItem       unformatted;
 
     if (maxOutputLen < modulus_len) 
     	return SECFailure;
-    PORT_Assert(key->keyType == lowRSAKey);
-    if (key->keyType != lowRSAKey)
+    PORT_Assert(key->keyType == NSSLOWKEYRSAKey);
+    if (key->keyType != NSSLOWKEYRSAKey)
     	return SECFailure;
 
     unformatted.len  = input_len;
@@ -645,24 +645,24 @@ done:
 
 /* XXX Doesn't set error code */
 SECStatus
-RSA_CheckSign(SECKEYLowPublicKey *key,
+RSA_CheckSign(NSSLOWKEYPublicKey *key,
               unsigned char *     sign, 
 	      unsigned int        sign_len, 
 	      unsigned char *     hash, 
 	      unsigned int        hash_len)
 {
     SECStatus       rv;
-    unsigned int    modulus_len = SECKEY_LowPublicModulusLen(key);
+    unsigned int    modulus_len = nsslowkey_PublicModulusLen(key);
     unsigned int    i;
     unsigned char * buffer;
 
-    modulus_len = SECKEY_LowPublicModulusLen(key);
+    modulus_len = nsslowkey_PublicModulusLen(key);
     if (sign_len != modulus_len) 
     	goto failure;
     if (hash_len > modulus_len - 8) 
     	goto failure;
-    PORT_Assert(key->keyType == lowRSAKey);
-    if (key->keyType != lowRSAKey)
+    PORT_Assert(key->keyType == NSSLOWKEYRSAKey);
+    if (key->keyType != NSSLOWKEYRSAKey)
     	goto failure;
 
     buffer = (unsigned char *)PORT_Alloc(modulus_len + 1);
@@ -702,7 +702,7 @@ failure:
 
 /* XXX Doesn't set error code */
 SECStatus
-RSA_CheckSignRecover(SECKEYLowPublicKey *key,
+RSA_CheckSignRecover(NSSLOWKEYPublicKey *key,
                      unsigned char *     data,
                      unsigned int *      data_len, 
 		     unsigned int        max_output_len, 
@@ -710,14 +710,14 @@ RSA_CheckSignRecover(SECKEYLowPublicKey *key,
 		     unsigned int        sign_len)
 {
     SECStatus       rv;
-    unsigned int    modulus_len = SECKEY_LowPublicModulusLen(key);
+    unsigned int    modulus_len = nsslowkey_PublicModulusLen(key);
     unsigned int    i;
     unsigned char * buffer;
 
     if (sign_len != modulus_len) 
     	goto failure;
-    PORT_Assert(key->keyType == lowRSAKey);
-    if (key->keyType != lowRSAKey)
+    PORT_Assert(key->keyType == NSSLOWKEYRSAKey);
+    if (key->keyType != NSSLOWKEYRSAKey)
     	goto failure;
 
     buffer = (unsigned char *)PORT_Alloc(modulus_len + 1);
@@ -763,7 +763,7 @@ failure:
 
 /* XXX Doesn't set error code */
 SECStatus
-RSA_EncryptBlock(SECKEYLowPublicKey *key, 
+RSA_EncryptBlock(NSSLOWKEYPublicKey *key, 
                  unsigned char *     output, 
 		 unsigned int *      output_len,
                  unsigned int        max_output_len, 
@@ -771,15 +771,15 @@ RSA_EncryptBlock(SECKEYLowPublicKey *key,
 		 unsigned int        input_len)
 {
     SECStatus     rv;
-    unsigned int  modulus_len = SECKEY_LowPublicModulusLen(key);
+    unsigned int  modulus_len = nsslowkey_PublicModulusLen(key);
     SECItem       formatted;
     SECItem       unformatted;
 
     formatted.data = NULL;
     if (max_output_len < modulus_len) 
     	goto failure;
-    PORT_Assert(key->keyType == lowRSAKey);
-    if (key->keyType != lowRSAKey)
+    PORT_Assert(key->keyType == NSSLOWKEYRSAKey);
+    if (key->keyType != NSSLOWKEYRSAKey)
     	goto failure;
 
     unformatted.len  = input_len;
@@ -806,7 +806,7 @@ failure:
 
 /* XXX Doesn't set error code */
 SECStatus
-RSA_DecryptBlock(SECKEYLowPrivateKey *key, 
+RSA_DecryptBlock(NSSLOWKEYPrivateKey *key, 
                  unsigned char *      output, 
 		 unsigned int *       output_len,
                  unsigned int         max_output_len, 
@@ -814,12 +814,12 @@ RSA_DecryptBlock(SECKEYLowPrivateKey *key,
 		 unsigned int         input_len)
 {
     SECStatus       rv;
-    unsigned int    modulus_len = SECKEY_LowPrivateModulusLen(key);
+    unsigned int    modulus_len = nsslowkey_PrivateModulusLen(key);
     unsigned int    i;
     unsigned char * buffer;
 
-    PORT_Assert(key->keyType == lowRSAKey);
-    if (key->keyType != lowRSAKey)
+    PORT_Assert(key->keyType == NSSLOWKEYRSAKey);
+    if (key->keyType != NSSLOWKEYRSAKey)
     	goto failure;
     if (input_len != modulus_len)
     	goto failure;
@@ -863,7 +863,7 @@ failure:
  *   RAW is RSA_X_509
  */
 SECStatus
-RSA_SignRaw(SECKEYLowPrivateKey *key, 
+RSA_SignRaw(NSSLOWKEYPrivateKey *key, 
             unsigned char *      output, 
 	    unsigned int *       output_len,
             unsigned int         maxOutputLen, 
@@ -871,14 +871,14 @@ RSA_SignRaw(SECKEYLowPrivateKey *key,
 	    unsigned int         input_len)
 {
     SECStatus    rv          = SECSuccess;
-    unsigned int modulus_len = SECKEY_LowPrivateModulusLen(key);
+    unsigned int modulus_len = nsslowkey_PrivateModulusLen(key);
     SECItem      formatted;
     SECItem      unformatted;
 
     if (maxOutputLen < modulus_len) 
     	return SECFailure;
-    PORT_Assert(key->keyType == lowRSAKey);
-    if (key->keyType != lowRSAKey)
+    PORT_Assert(key->keyType == NSSLOWKEYRSAKey);
+    if (key->keyType != NSSLOWKEYRSAKey)
     	return SECFailure;
 
     unformatted.len  = input_len;
@@ -899,22 +899,22 @@ done:
 
 /* XXX Doesn't set error code */
 SECStatus
-RSA_CheckSignRaw(SECKEYLowPublicKey *key,
+RSA_CheckSignRaw(NSSLOWKEYPublicKey *key,
                  unsigned char *     sign, 
 		 unsigned int        sign_len, 
 		 unsigned char *     hash, 
 		 unsigned int        hash_len)
 {
     SECStatus       rv;
-    unsigned int    modulus_len = SECKEY_LowPublicModulusLen(key);
+    unsigned int    modulus_len = nsslowkey_PublicModulusLen(key);
     unsigned char * buffer;
 
     if (sign_len != modulus_len) 
     	goto failure;
     if (hash_len > modulus_len) 
     	goto failure;
-    PORT_Assert(key->keyType == lowRSAKey);
-    if (key->keyType != lowRSAKey)
+    PORT_Assert(key->keyType == NSSLOWKEYRSAKey);
+    if (key->keyType != NSSLOWKEYRSAKey)
     	goto failure;
 
     buffer = (unsigned char *)PORT_Alloc(modulus_len + 1);
@@ -943,7 +943,7 @@ failure:
 
 /* XXX Doesn't set error code */
 SECStatus
-RSA_CheckSignRecoverRaw(SECKEYLowPublicKey *key,
+RSA_CheckSignRecoverRaw(NSSLOWKEYPublicKey *key,
                         unsigned char *     data,
                         unsigned int *      data_len, 
 			unsigned int        max_output_len, 
@@ -951,14 +951,14 @@ RSA_CheckSignRecoverRaw(SECKEYLowPublicKey *key,
 			unsigned int        sign_len)
 {
     SECStatus      rv;
-    unsigned int   modulus_len = SECKEY_LowPublicModulusLen(key);
+    unsigned int   modulus_len = nsslowkey_PublicModulusLen(key);
 
     if (sign_len != modulus_len) 
     	goto failure;
     if (max_output_len < modulus_len) 
     	goto failure;
-    PORT_Assert(key->keyType == lowRSAKey);
-    if (key->keyType != lowRSAKey)
+    PORT_Assert(key->keyType == NSSLOWKEYRSAKey);
+    if (key->keyType != NSSLOWKEYRSAKey)
     	goto failure;
 
     rv = RSA_PublicKeyOp(&key->u.rsa, data, sign);
@@ -975,7 +975,7 @@ failure:
 
 /* XXX Doesn't set error code */
 SECStatus
-RSA_EncryptRaw(SECKEYLowPublicKey *key, 
+RSA_EncryptRaw(NSSLOWKEYPublicKey *key, 
 	       unsigned char *     output, 
 	       unsigned int *      output_len,
                unsigned int        max_output_len, 
@@ -983,15 +983,15 @@ RSA_EncryptRaw(SECKEYLowPublicKey *key,
 	       unsigned int        input_len)
 {
     SECStatus rv;
-    unsigned int  modulus_len = SECKEY_LowPublicModulusLen(key);
+    unsigned int  modulus_len = nsslowkey_PublicModulusLen(key);
     SECItem       formatted;
     SECItem       unformatted;
 
     formatted.data = NULL;
     if (max_output_len < modulus_len) 
     	goto failure;
-    PORT_Assert(key->keyType == lowRSAKey);
-    if (key->keyType != lowRSAKey)
+    PORT_Assert(key->keyType == NSSLOWKEYRSAKey);
+    if (key->keyType != NSSLOWKEYRSAKey)
     	goto failure;
 
     unformatted.len  = input_len;
@@ -1017,7 +1017,7 @@ failure:
 
 /* XXX Doesn't set error code */
 SECStatus
-RSA_DecryptRaw(SECKEYLowPrivateKey *key, 
+RSA_DecryptRaw(NSSLOWKEYPrivateKey *key, 
                unsigned char *      output, 
 	       unsigned int *       output_len,
                unsigned int         max_output_len, 
@@ -1025,14 +1025,14 @@ RSA_DecryptRaw(SECKEYLowPrivateKey *key,
 	       unsigned int         input_len)
 {
     SECStatus     rv;
-    unsigned int  modulus_len = SECKEY_LowPrivateModulusLen(key);
+    unsigned int  modulus_len = nsslowkey_PrivateModulusLen(key);
 
     if (modulus_len <= 0) 
     	goto failure;
     if (modulus_len > max_output_len) 
     	goto failure;
-    PORT_Assert(key->keyType == lowRSAKey);
-    if (key->keyType != lowRSAKey)
+    PORT_Assert(key->keyType == NSSLOWKEYRSAKey);
+    if (key->keyType != NSSLOWKEYRSAKey)
     	goto failure;
     if (input_len != modulus_len) 
     	goto failure;
