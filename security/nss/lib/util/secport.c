@@ -75,7 +75,8 @@ typedef struct threadmark_mark_str {
 
 #endif /* THREADMARK */
 
-#define ARENAPOOL_MAGIC 0xB8AC9BDD 
+/* The value of this magic must change each time PORTArenaPool changes. */
+#define ARENAPOOL_MAGIC 0xB8AC9BDF 
 
 typedef struct PORTArenaPool_str {
   PLArenaPool arena;
