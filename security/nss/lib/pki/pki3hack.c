@@ -1120,12 +1120,11 @@ STAN_ChangeCertTrust(CERTCertificate *cc, CERTCertTrust *trust)
 	NSSCryptoContext *cc = c->object.cryptoContext;
 	nssrv = nssCryptoContext_ImportTrust(cc, nssTrust);
 	if (nssrv != PR_SUCCESS) {
-	    nssTrust_Destroy(nssTrust);
-	    return nssrv;
+	    goto done;
 	}
 	if (nssList_Count(c->object.instanceList) == 0) {
 	    /* The context is the only instance, finished */
-	    return nssrv;
+	    goto done;
 	}
     }
     td = STAN_GetDefaultTrustDomain();
@@ -1133,7 +1132,10 @@ STAN_ChangeCertTrust(CERTCertificate *cc, CERTCertTrust *trust)
     moving_object = PR_FALSE;
     if (tok && PK11_IsReadOnly(tok->pk11slot)) {
 	tokens = nssList_CreateIterator(td->tokenList);
-	if (!tokens) return PR_FAILURE;
+	if (!tokens) {
+	    nssrv = PR_FAILURE;
+	    goto done;
+	}
 	for (tok  = (NSSToken *)nssListIterator_Start(tokens);
 	     tok != (NSSToken *)NULL;
 	     tok  = (NSSToken *)nssListIterator_Next(tokens))
@@ -1151,7 +1153,7 @@ STAN_ChangeCertTrust(CERTCertificate *cc, CERTCertTrust *trust)
 	     */
 	    NSSUTF8 *nickname = NSSCertificate_GetNickname(c, NULL);
 	    nssrv = nssToken_ImportCertificate(tok, NULL, c, nickname, PR_TRUE);
-	    if (nssrv != PR_SUCCESS) return nssrv;
+	    if (nssrv != PR_SUCCESS) goto done;
 	}
 	nssrv = nssToken_ImportTrust(tok, NULL, nssTrust, PR_TRUE);
 	/* this token can't handle trust */
@@ -1162,12 +1164,13 @@ STAN_ChangeCertTrust(CERTCertificate *cc, CERTCertTrust *trust)
 	    tok = PK11Slot_GetNSSToken(slot);
 	    PK11_FreeSlot(slot);
 	    nssrv = nssToken_ImportCertificate(tok, NULL, c, nickname, PR_TRUE);
-	    if (nssrv != PR_SUCCESS) return nssrv;
+	    if (nssrv != PR_SUCCESS) goto done;
 	    nssrv = nssToken_ImportTrust(tok, NULL, nssTrust, PR_TRUE);
 	}
     } else {
 	nssrv = PR_FAILURE;
     }
+done:
     (void)nssTrust_Destroy(nssTrust);
     return nssrv;
 }
