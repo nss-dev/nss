@@ -183,7 +183,7 @@ ssl_cov()
   sparam="-c ABCDEFabcdefghijklm"
   start_selfserv # Launch the server
                
-  cat ${SSLCOV} | while read tls param testname
+  while read tls param testname
   do
       if [ $tls != "#" ]; then
           echo "$SCRIPTNAME: running $testname ----------------------------"
@@ -203,7 +203,7 @@ ssl_cov()
                   -d . < ${REQUEST_FILE}
           html_msg $? 0 "${testname}"
       fi
-  done
+  done < ${SSLCOV}
 
   kill_selfserv
   html "</TABLE><BR>"
@@ -216,7 +216,7 @@ ssl_auth()
 {
   html_head "SSL Client Authentication"
 
-  cat ${SSLAUTH} | while read value sparam cparam testname
+  while read value sparam cparam testname
   do
       if [ $value != "#" ]; then
           cparam=`echo $cparam | sed -e 's;_; ;g'`
@@ -239,7 +239,7 @@ ssl_auth()
                    "produced a returncode of $ret, expected is $value"
           kill_selfserv
       fi
-  done
+  done < ${SSLAUTH}
 
   html "</TABLE><BR>"
 }
@@ -252,7 +252,7 @@ ssl_stress()
 {
   html_head "SSL Stress Test"
 
-  cat ${SSLSTRESS} | while read value sparam cparam testname
+  while read value sparam cparam testname
   do
       if [ $value != "#" ]; then
           cparam=`echo $cparam | sed -e 's;_; ;g'`
@@ -267,7 +267,7 @@ ssl_stress()
           html_msg $? $value "${testname}"
           kill_selfserv
       fi
-  done
+  done < ${SSLSTRESS}
 
   html "</TABLE><BR>"
 }
