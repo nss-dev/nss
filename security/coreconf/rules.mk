@@ -916,12 +916,6 @@ else
 depend::
 endif
 
-ifeq ($(OS_ARCH),SunOS)
-solarispkg:
-	@echo Making Solaris packages.
-	cd pkg/solaris && $(MAKE) publish
-endif
-
 ################################################################################
 # Special gmake rules.
 ################################################################################
