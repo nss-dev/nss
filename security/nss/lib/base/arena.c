@@ -960,8 +960,8 @@ nss_ZFreeIf
     return PR_SUCCESS;
   }
 
-  h = (struct pointer_header *)&((char *)pointer)
-    [ - sizeof(struct pointer_header) ];
+  h = (struct pointer_header *)((char *)pointer
+    - sizeof(struct pointer_header));
 
   /* Check any magic here */
 
@@ -1037,8 +1037,8 @@ nss_ZRealloc
     return (void *)NULL;
   }
 
-  h = (struct pointer_header *)&((char *)pointer)
-    [ - sizeof(struct pointer_header) ];
+  h = (struct pointer_header *)((char *)pointer
+    - sizeof(struct pointer_header));
 
   /* Check any magic here */
 
