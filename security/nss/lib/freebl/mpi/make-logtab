@@ -55,6 +55,6 @@ for($ix = 2; $ix < 64; $ix++) {
 	       $ix - 3, $ix - 2, $ix - 1, $ix);
     }
 }
-printf("%0.9f\n};\n\n", (log(2)/log($ix)));
+printf("%0.9ff\n};\n\n", (log(2)/log($ix)));
 
 exit 0;
