@@ -428,6 +428,7 @@ CERT_DecodeDERCrlWithFlags(PRArenaPool *narena, SECItem *derSignedCrl,
 #define CRL_DECODE_DONT_COPY_DER            0x00000001
 #define CRL_DECODE_SKIP_ENTRIES             0x00000002
 #define CRL_DECODE_KEEP_BAD_CRL             0x00000004
+#define CRL_DECODE_ADOPT_HEAP_DER           0x00000008
 
 /* complete the decoding of a partially decoded CRL, ie. decode the
    entries. Note that entries is an optional field in a CRL, so the
@@ -451,6 +452,18 @@ extern void CERT_DestroyCrl (CERTSignedCrl *crl);
 /* this is a hint to flush the CRL cache. crlKey is the DER subject of
    the issuer (CA). */
 void CERT_CRLCacheRefreshIssuer(CERTCertDBHandle* dbhandle, SECItem* crlKey);
+
+/* add the specified RAM CRL object to the cache.
+   Once a CRL is added to the cache, the application must hold on to the
+   memory, because the cache will  reference it directly. It can only
+   free it after it calls CERT_UncacheCRL .
+*/
+SECStatus CERT_CacheCRL(CERTCertDBHandle* dbhandle, SECItem* newcrl);
+
+/* remove a previously added CRL object from the CRL cache. It is OK
+   for the application to free the memory after a successful removal
+*/
+SECStatus CERT_UncacheCRL(CERTCertDBHandle* dbhandle, SECItem* oldcrl);
 
 /*
 ** Decode a certificate and put it into the temporary certificate database
