@@ -343,11 +343,11 @@ struct sslGatherStr {
 #define GS_DATA		3
 #define GS_PAD		4
 
-typedef SECStatus (*SSLCipher)(void *               context, 
+typedef NSSItem * (*SSLCipher)(void *               context, 
                                NSSItem *            in,
                                NSSItem *            out,
 			       NSSArena *           arenaOpt);
-typedef SECStatus (*SSLDestroy)(void *context);
+typedef PRStatus (*SSLDestroy)(void *context);
 
 
 

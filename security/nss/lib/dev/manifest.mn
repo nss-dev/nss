@@ -59,3 +59,9 @@ CSRCS =		        \
 REQUIRES = security nspr
 
 LIBRARY_NAME = nssdev
+
+# only add module debugging in opt builds if DEBUG_PKCS11 is set
+ifdef DEBUG_PKCS11
+  DEFINES += -DDEBUG_MODULE
+endif
+

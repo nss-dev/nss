@@ -30,7 +30,7 @@
 # may use your version of this file under either the MPL or the
 # GPL.
 #
-MAKEFILE_CVS_ID = "@(#) $RCSfile$ $Revision$ $Date$ $Name$"
+# MAKEFILE_CVS_ID = "@(#) $RCSfile$ $Revision$ $Date$ $Name$"
 
 include manifest.mn
 include $(CORE_DEPTH)/coreconf/config.mk
@@ -50,4 +50,11 @@ endif
 endif
 endif
 
-export:: private_export
+#export:: private_export
+
+export:: copy_files private_export
+
+# XXX hack to share module debug file for now
+copy_files::
+	$(INSTALL) -m 444 ../pk11wrap/debug_module.c ./
+

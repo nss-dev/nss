@@ -95,7 +95,7 @@ static SECStatus ssl3_SendServerHello(       sslSocket *ss);
 static SECStatus ssl3_SendServerHelloDone(   sslSocket *ss);
 static SECStatus ssl3_SendServerKeyExchange( sslSocket *ss);
 
-static SECStatus Null_Cipher(void *ctx, NSSItem *in, NSSItem *out, NSSArena *arenaOpt);
+static NSSItem * Null_Cipher(void *ctx, NSSItem *in, NSSItem *out, NSSArena *arenaOpt);
 
 #define MAX_SEND_BUF_LENGTH 32000 /* watch for 16-bit integer overflow */
 #define MIN_SEND_BUF_LENGTH  4000
@@ -734,13 +734,13 @@ anyRestrictedEnabled(sslSocket *ss)
  * Null compression, mac and encryption functions
  */
 
-static SECStatus 
+static NSSItem * 
 Null_Cipher(void *ctx, NSSItem *in, NSSItem *out, NSSArena *arenaOpt)
 {
     out->size = in->size;
     if (in != out)
 	memcpy(out->data, in->data, in->size);
-    return SECSuccess;
+    return out;
 }
 
 
@@ -1339,7 +1339,6 @@ ssl3_ComputeRecordMAC(
 {
     PRStatus           status;
     const ssl3MACDef * mac_def;
-    SECStatus          rv;
     unsigned int       tempLen;
     unsigned char      temp[MAX_MAC_LENGTH];
     NSSItem            tempIt, inputIt, outputIt;
@@ -1390,7 +1389,7 @@ ssl3_ComputeRecordMAC(
     inputIt.data = input;
     inputIt.size = inputLength;
     outputIt.data = outbuf;
-    outputIt.size = *outLength;
+    outputIt.size = spec->mac_size;
 
     /* XXX begin? */
     status  = NSSCryptoContext_BeginSign(mac_context, NULL, NULL);
@@ -1401,17 +1400,16 @@ ssl3_ComputeRecordMAC(
     }
     *outLength = outputIt.size;
 
-    PR_ASSERT(rv != SECSuccess || *outLength == (unsigned)spec->mac_size);
+    PR_ASSERT(status != PR_SUCCESS || *outLength == (unsigned)spec->mac_size);
 
 /*  ssl_ReleaseSpecReadLock(ss); */
 
     PRINT_BUF(95, (NULL, "frag hash2: result", outbuf, *outLength));
 
-    if (rv != SECSuccess) {
-    	rv = SECFailure;
+    if (status == PR_FAILURE) {
 	ssl_MapLowLevelError(SSL_ERROR_MAC_COMPUTATION_FAILURE);
     }
-    return rv;
+    return (status == PR_SUCCESS) ? SECSuccess : SECFailure;
 }
 
 /* Process the plain text before sending it.
@@ -1437,7 +1435,7 @@ ssl3_SendRecord(   sslSocket *        ss,
     PRInt32                   cipherBytes = -1;
     PRBool                    isBlocking  = ssl_SocketIsBlocking(ss);
     PRBool                    ssl3WasNull = PR_FALSE;
-    NSSItem in, out;
+    NSSItem in, out, *dummy;
 
     SSL_TRC(3, ("%d: SSL3[%d] SendRecord type: %s bytes=%d",
 		SSL_GETPID(), ss->fd, ssl3_DecodeContentType(type),
@@ -1534,9 +1532,9 @@ ssl3_SendRecord(   sslSocket *        ss,
 	}
 	NSSITEM_INIT(&in, write->buf + SSL3_RECORD_HEADER_LENGTH, fragLen);
 	NSSITEM_INIT(&out, write->buf + SSL3_RECORD_HEADER_LENGTH, bufSize);
-	rv = cwSpec->encode(cwSpec->encodeContext, &in, &out, NULL);
+	dummy = cwSpec->encode(cwSpec->encodeContext, &in, &out, NULL);
 	cipherBytes = out.size;
-	if (rv != SECSuccess) {
+	if (dummy == NULL) {
 	    ssl_MapLowLevelError(SSL_ERROR_ENCRYPTION_FAILURE);
 spec_locked_loser:
 	    ssl_ReleaseSpecReadLock(ss);
@@ -2551,8 +2549,8 @@ ssl3_ComputeHandshakeHashes(sslSocket *     ss,
     SSL3Opaque    md5_inner[MAX_MAC_LENGTH];
     SSL3Opaque    sha_inner[MAX_MAC_LENGTH];
     unsigned char s[4];
-    NSSCryptoContextMark *md5State;
-    NSSCryptoContextMark *shaState;
+    NSSCryptoContextMark *md5State = NULL;
+    NSSCryptoContextMark *shaState = NULL;
     NSSItem in, out;
     PRStatus status = PR_SUCCESS;
 
@@ -2567,7 +2565,7 @@ ssl3_ComputeHandshakeHashes(sslSocket *     ss,
     }
     md5 = ssl3->hs.md5;
 
-    shaState = NSSCryptoContext_Mark(ssl3->hs.md5);
+    shaState = NSSCryptoContext_Mark(ssl3->hs.sha);
     if (!shaState) {
 	ssl_MapLowLevelError(SSL_ERROR_SHA_DIGEST_FAILURE);
 	goto loser;
@@ -6988,7 +6986,6 @@ ssl3_ComputeTLSFinished(ssl3CipherSpec *spec,
     rv = SECSuccess;
 
 loser:
-    PR_ASSERT(rv != SECSuccess);
     NSSCryptoContext_Destroy(prf_context);
     return rv;
 }
@@ -7586,7 +7583,7 @@ const ssl3BulkCipherDef *cipher_def;
     PRBool               isTLS;
     SSL3ContentType      rType;
     SSL3Opaque           hash[MAX_MAC_LENGTH];
-    NSSItem in, out;
+    NSSItem in, out, *dummy;
 
     PR_ASSERT( ssl_HaveRecvBufLock(ss) );
 
@@ -7640,11 +7637,11 @@ const ssl3BulkCipherDef *cipher_def;
     /* decrypt from cText buf to databuf. */
     NSSITEM_INIT(&in, cText->buf->buf, cText->buf->size);
     NSSITEM_INIT(&out, databuf->buf, databuf->space);
-    rv = crSpec->decode(crSpec->decodeContext, &in, &out, NULL);
+    dummy = crSpec->decode(crSpec->decodeContext, &in, &out, NULL);
     databuf->size = out.size;
 
     PRINT_BUF(80, (ss, "cleartext:", databuf->buf, databuf->size));
-    if (rv != SECSuccess) {
+    if (dummy == NULL) {
 	ssl_ReleaseSpecReadLock(ss);
 	ssl_MapLowLevelError(SSL_ERROR_DECRYPTION_FAILURE);
 	SSL3_SendAlert(ss, alert_fatal, 

@@ -544,10 +544,13 @@ NSS_NoDB_Init(const char * configdir)
 			PR_TRUE,PR_TRUE,PR_TRUE,PR_TRUE,PR_TRUE,PR_TRUE);
 }
 
+extern void nss_DumpModuleLog(void);
+
 PRStatus
 NSS_Shutdown(void)
 {
     PRStatus rv = PR_SUCCESS;
+    nss_DumpModuleLog();
 #if 0
     SECOID_Shutdown();
 #endif

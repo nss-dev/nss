@@ -1754,19 +1754,26 @@ static NSSItem *
 prepare_output_buffer(NSSArena *arenaOpt, NSSItem *rvOpt, 
                       CK_ULONG bufLen, PRBool *freeit)
 {
-    if (rvOpt) {
-	*freeit = PR_FALSE;
-	if (rvOpt->size > 0 && rvOpt->size < bufLen) {
-	    return (NSSItem *)NULL;
-	}
-    } else {
+    if (!rvOpt) {
 	*freeit = (arenaOpt == NULL);
 	rvOpt = nss_ZNEW(arenaOpt, NSSItem);
 	if (!rvOpt) {
 	    return (NSSItem *)NULL;
 	}
+    } else {
+	*freeit = PR_FALSE;
+	if (rvOpt->size > 0) {
+	    PR_ASSERT(rvOpt->data != NULL);
+	    if (rvOpt->size < bufLen || !rvOpt->data) {
+		/* set invalid len error */
+		return (NSSItem *)NULL;
+	    }
+	}
     }
-    rvOpt->data = nss_ZAlloc(arenaOpt, bufLen);
+    if (!rvOpt->data) {
+	/* XXX freeit ain't workin here */
+	rvOpt->data = nss_ZAlloc(arenaOpt, bufLen);
+    }
     rvOpt->size = bufLen;
     return rvOpt;
 }
@@ -2550,6 +2557,9 @@ nssToken_FinishSign (
 
     nssSession_EnterMonitor(session);
     /* Get the length */
+#ifndef SOFTOKEN_WONT_DO_LENGTH_FOR_TLS_PRF
+    if (rvOpt && rvOpt->size > 0) goto do_sign;
+#endif /* SOFTOKEN_WONT_DO_LENGTH_FOR_TLS_PRF */
     ckrv = CKAPI(epv)->C_SignFinal(session->handle, NULL, &sigLen);
     if (ckrv != CKR_OK || sigLen == 0) {
 	nssSession_ExitMonitor(session);
@@ -2560,6 +2570,9 @@ nssToken_FinishSign (
 	nssSession_ExitMonitor(session);
 	return (NSSItem *)NULL;
     }
+#ifndef SOFTOKEN_WONT_DO_LENGTH_FOR_TLS_PRF
+do_sign:
+#endif /* SOFTOKEN_WONT_DO_LENGTH_FOR_TLS_PRF */
     /* Get the signature */
     ckrv = CKAPI(epv)->C_SignFinal(session->handle, 
                                    (CK_BYTE_PTR)rvOpt->data, 

@@ -776,8 +776,12 @@ nssCryptoContext_Sign (
 	nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
 	return (NSSItem *)NULL;
     }
-    if (prepare_context_private_key(cc, ap) == PR_FAILURE) {
-	return (NSSItem *)NULL;
+    if (cc->which == a_symkey) {
+	if (prepare_context_symmetric_key(cc, ap) == PR_FAILURE)
+	    return PR_FAILURE;
+    } else {
+	if (prepare_context_private_key(cc, ap) == PR_FAILURE)
+	    return PR_FAILURE;
     }
     return nssToken_Sign(cc->token, cc->session, ap, cc->key,
                          data, rvOpt, arenaOpt);
@@ -793,8 +797,12 @@ NSSCryptoContext_Sign (
   NSSArena *arenaOpt
 )
 {
-    PR_ASSERT(cc->which == a_privkey || cc->which == a_cert);
-    if (cc->which != a_privkey && cc->which != a_cert) {
+    PR_ASSERT(cc->which == a_symkey || 
+              cc->which == a_privkey || 
+              cc->which == a_cert);
+    if (cc->which != a_symkey && 
+	cc->which != a_privkey && cc->which != a_cert) 
+    {
 	nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
 	return (NSSItem *)NULL;
     }
@@ -813,8 +821,12 @@ nssCryptoContext_BeginSign (
 	nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
 	return PR_FAILURE;
     }
-    if (prepare_context_private_key(cc, ap) == PR_FAILURE) {
-	return PR_FAILURE;
+    if (cc->which == a_symkey) {
+	if (prepare_context_symmetric_key(cc, ap) == PR_FAILURE)
+	    return PR_FAILURE;
+    } else {
+	if (prepare_context_private_key(cc, ap) == PR_FAILURE)
+	    return PR_FAILURE;
     }
     return nssToken_BeginSign(cc->token, cc->session, ap, cc->key);
 }
@@ -826,8 +838,12 @@ NSSCryptoContext_BeginSign (
   NSSCallback *uhhOpt
 )
 {
-    PR_ASSERT(cc->which == a_privkey || cc->which == a_cert);
-    if (cc->which != a_privkey && cc->which != a_cert) {
+    PR_ASSERT(cc->which == a_symkey || 
+              cc->which == a_privkey || 
+              cc->which == a_cert);
+    if (cc->which != a_symkey && 
+	cc->which != a_privkey && cc->which != a_cert) 
+    {
 	nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
 	return PR_FAILURE;
     }
@@ -997,8 +1013,12 @@ nssCryptoContext_Verify (
 	nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
 	return PR_FAILURE;
     }
-    if (prepare_context_public_key(cc, ap) == PR_FAILURE) {
-	return PR_FAILURE;
+    if (cc->which == a_symkey) {
+	if (prepare_context_symmetric_key(cc, ap) == PR_FAILURE)
+	    return PR_FAILURE;
+    } else {
+	if (prepare_context_public_key(cc, ap) == PR_FAILURE)
+	    return PR_FAILURE;
     }
     key = (cc->which == a_cert) ? cc->bkey : cc->key;
     return nssToken_Verify(cc->token, cc->session, ap, key,
@@ -1014,8 +1034,12 @@ NSSCryptoContext_Verify (
   NSSCallback *uhhOpt
 )
 {
-    PR_ASSERT(cc->which == a_pubkey || cc->which == a_cert);
-    if (cc->which != a_pubkey && cc->which != a_cert) {
+    PR_ASSERT(cc->which == a_symkey || 
+              cc->which == a_pubkey || 
+              cc->which == a_cert);
+    if (cc->which != a_symkey && 
+        cc->which != a_pubkey && cc->which != a_cert) 
+    {
 	nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
 	return PR_FAILURE;
     }
@@ -1035,8 +1059,12 @@ nssCryptoContext_BeginVerify (
 	nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
 	return PR_FAILURE;
     }
-    if (prepare_context_private_key(cc, ap) == PR_FAILURE) {
-	return PR_FAILURE;
+    if (cc->which == a_symkey) {
+	if (prepare_context_symmetric_key(cc, ap) == PR_FAILURE)
+	    return PR_FAILURE;
+    } else {
+	if (prepare_context_public_key(cc, ap) == PR_FAILURE)
+	    return PR_FAILURE;
     }
     key = (cc->which == a_cert) ? cc->bkey : cc->key;
     return nssToken_BeginVerify(cc->token, cc->session, ap, key);
@@ -1049,8 +1077,12 @@ NSSCryptoContext_BeginVerify (
   NSSCallback *uhhOpt
 )
 {
-    PR_ASSERT(cc->which == a_pubkey || cc->which == a_cert);
-    if (cc->which != a_pubkey && cc->which != a_cert) {
+    PR_ASSERT(cc->which == a_symkey || 
+              cc->which == a_pubkey || 
+              cc->which == a_cert);
+    if (cc->which != a_symkey && 
+        cc->which != a_pubkey && cc->which != a_cert) 
+    {
 	nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
 	return PR_FAILURE;
     }

@@ -944,6 +944,7 @@ nssSession_Save (
 	if (!state->data) {
 	    return PR_FAILURE;
 	}
+	state->size = stateLen;
 	ckrv = CKAPI(epv)->C_GetOperationState(s->handle,
 	                                       (CK_BYTE_PTR)state->data,
 	                                       (CK_ULONG_PTR)&state->size);

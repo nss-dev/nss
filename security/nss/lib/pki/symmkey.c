@@ -159,7 +159,18 @@ nssSymKey_FindInstanceForAlgorithm (
   const NSSAlgNParam *ap
 )
 {
-    return nssPKIObject_FindInstanceForAlgorithm(&mk->object, ap);
+    nssCryptokiObject *instance;
+    instance = nssPKIObject_FindInstanceForAlgorithm(&mk->object, ap);
+    /* XXX here for now... make it apply for all searches... */
+    if (!instance) {
+	NSSToken *token;
+	token = nssTrustDomain_FindTokenForAlgNParam(mk->object.td, ap);
+	if (token) {
+	    instance = nssSymKey_CopyToToken(mk, token, PR_FALSE);
+	    nssToken_Destroy(token);
+	}
+    }
+    return instance;
 }
 
 NSS_IMPLEMENT PRBool

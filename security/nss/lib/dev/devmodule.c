@@ -53,10 +53,14 @@ extern void FC_GetFunctionList(void);
 extern void NSC_GetFunctionList(void);
 extern void NSC_ModuleDBFunc(void);
 
-/* XXX */
-#ifdef DEBUG_MOD_XXX
+#ifdef DEBUG
+#define DEBUG_MODULE 1
+#endif
+
+#ifdef DEBUG_MODULE
+static char *modToDBG = NULL;
 #include "debug_module.c"
-#endif /* DEBUG */
+#endif /* DEBUG_MODULE */
 
 /* The list of boolean flags used to describe properties of a
  * module.
@@ -259,15 +263,17 @@ nssModule_Load (
     if (ckrv != CKR_OK) {
 	goto loser;
     }
-#ifdef DEBUG_MODULE_XXX
+#ifdef DEBUG_MODULE
     if (PR_TRUE) {
-	NSSUTF8 *modToDBG = (NSSUTF8 *)PR_GetEnv("NSS_DEBUG_MODULE");
-	if (modToDBG && nssUTF8_Equal(mod->base.name, modToDBG, NULL)) {
+	modToDBG = PR_GetEnv("NSS_DEBUG_PKCS11_MODULE");
+	    fprintf(stderr, "try loaded %s %s\n", mod->base.name, modToDBG);
+	if (modToDBG && strcmp(mod->base.name, modToDBG) == 0) {
 	    mod->epv = (void *)nss_InsertDeviceLog(
 	                                     (CK_FUNCTION_LIST_PTR)mod->epv);
+	    fprintf(stderr, "loaded %s\n", modToDBG);
 	}
     }
-#endif /* DEBUG */
+#endif /* DEBUG_MODULE */
     /* Initialize the module */
     if (mod->libraryParams) {
 	s_ck_initialize_args.LibraryParameters = (void *)mod->libraryParams;
@@ -962,5 +968,15 @@ NSSModuleInfo_Destroy (
 {
     nss_ZFreeIf(moduleInfo->manufacturerID);
     nss_ZFreeIf(moduleInfo->libraryDescription);
+}
+
+void
+nss_DumpModuleLog(void)
+{
+#ifdef DEBUG_MODULE
+    if (modToDBG) {
+	print_final_statistics();
+    }
+#endif
 }
 

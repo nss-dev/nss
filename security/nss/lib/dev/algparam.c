@@ -1365,6 +1365,7 @@ nssAlgNParam_CreateForSSL (
 	/* XXX non-standard, methinks */
 	rvAP->mechanism.mechanism = CKM_TLS_PRF_GENERAL;
 	/* XXX no params */
+	status = PR_SUCCESS;
 	break;
     default:
 	/* XXX err */
