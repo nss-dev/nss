@@ -2230,14 +2230,20 @@ SEC_ASN1DecodeInteger(SECItem *src, unsigned long *value)
     unsigned long v;
     int i;
     
-    if (src == NULL)
+    if (src == NULL) {
+	PORT_SetError(SEC_ERROR_INVALID_ARGS);
 	return SECFailure;
+    }
 
-    if (src->len > sizeof(unsigned long))
+    if (src->len > sizeof(unsigned long)) {
+	PORT_SetError(SEC_ERROR_INVALID_ARGS);
 	return SECFailure;
+    }
 
-    if (src->data == NULL)
+    if (src->data == NULL) {
+	PORT_SetError(SEC_ERROR_INVALID_ARGS);
     	return SECFailure;
+    }
 
     if (src->data[0] & 0x80)
 	v = -1;		/* signed and negative - start with all 1's */
