@@ -2013,7 +2013,7 @@ PK11_ImportDERCertForKey(SECItem *derCert, char *nickname,void *wincx) {
     CERTCertificate *cert;
     PK11SlotInfo *slot = NULL;
 
-    cert = CERT_DecodeDERCertificate(derCert, PR_FALSE, NULL);
+    cert = CERT_DecodeDERCertificate(derCert, PR_TRUE, NULL);
     if (cert == NULL) return NULL;
 
     slot = PK11_ImportCertForKey(cert, nickname, wincx);
