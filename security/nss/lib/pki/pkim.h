@@ -129,11 +129,18 @@ nssTrustDomain_AddCertsToCache
   PRUint32 numCerts
 );
 
-NSS_EXTERN PRStatus
+NSS_EXTERN void
 nssTrustDomain_RemoveCertFromCache
 (
   NSSTrustDomain *td,
   NSSCertificate *cert
+);
+
+NSS_EXTERN void
+nssTrustDomain_FlushCache
+(
+  NSSTrustDomain *td,
+  PRFloat64 threshold
 );
 
 /* 

@@ -116,6 +116,19 @@ nssItem_Create
   return (NSSItem *)NULL;
 }
 
+NSS_IMPLEMENT void
+nssItem_Destroy
+(
+  NSSItem *item
+)
+{
+  nss_ClearErrorStack();
+
+  nss_ZFreeIf(item->data);
+  nss_ZFreeIf(item);
+
+}
+
 /*
  * nssItem_Duplicate
  *

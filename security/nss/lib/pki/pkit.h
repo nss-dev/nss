@@ -55,12 +55,6 @@ static const char PKIT_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #ifdef NSS_3_4_CODE
 #include "certt.h"
 #include "pkcs11t.h"
-#define NSSCKT_H
-#include "ckt.h"
-#else
-#ifndef NSSCKT_H
-#include "nssckt.h"
-#endif /* NSSCKT_H */
 #endif /* NSS_3_4_CODE */
 
 #ifndef NSSPKIT_H
@@ -71,27 +65,46 @@ static const char PKIT_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #include "nssdevt.h"
 #endif /* NSSDEVT_H */
 
-PR_BEGIN_EXTERN_C
+#ifndef DEVT_H
+#include "devt.h"
+#endif /* DEVT_H */
 
-typedef enum {
-    NSSCertificateType_Unknown = 0,
-    NSSCertificateType_PKIX = 1
-} NSSCertificateType;
+PR_BEGIN_EXTERN_C
 
 typedef struct nssDecodedCertStr nssDecodedCert;
 
+typedef struct nssPKIObjectInstanceStr nssPKIObjectInstance;
+
+typedef struct nssPKIObjectStr nssPKIObject;
+
+struct nssPKIObjectInstanceStr
+{
+    nssCryptokiInstance cryptoki;
+    NSSTrustDomain *trustDomain;
+    NSSCryptoContext *cryptoContext;
+};
+
+struct nssPKIObjectStr 
+{
+    PRInt32 refCount;
+    NSSArena *arena;
+    nssList *instanceList; /* list of nssPKIObjectInstance */
+    nssListIterator *instances;
+};
+
 struct NSSTrustStr 
 {
-    CK_TRUST serverAuth;
-    CK_TRUST clientAuth;
-    CK_TRUST emailProtection;
-    CK_TRUST codeSigning;
+    struct nssPKIObjectStr object;
+    NSSCertificate *certificate;
+    nssTrustLevel serverAuth;
+    nssTrustLevel clientAuth;
+    nssTrustLevel emailProtection;
+    nssTrustLevel codeSigning;
 };
 
 struct NSSCertificateStr
 {
-    PRInt32 refCount;
-    NSSArena *arena;
+    struct nssPKIObjectStr object;
     NSSCertificateType type;
     NSSItem id;
     NSSBER encoding;
@@ -100,12 +113,6 @@ struct NSSCertificateStr
     NSSDER serial;
     NSSUTF8 *nickname;
     NSSASCII7 *email;
-    NSSSlot *slot;
-    NSSToken *token;
-    NSSTrustDomain *trustDomain;
-    NSSCryptoContext *cryptoContext;
-    NSSTrust trust;
-    CK_OBJECT_HANDLE handle;
     nssDecodedCert *decoding;
 };
 
@@ -134,6 +141,9 @@ struct NSSCryptoContextStr
 {
     PRInt32 refCount;
     NSSArena *arena;
+    NSSTrustDomain *td;
+    NSSToken *token;
+    nssSession *session;
 };
 
 struct NSSTimeStr;

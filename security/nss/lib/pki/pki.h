@@ -54,27 +54,6 @@ nssCertificate_AddRef
   NSSCertificate *c
 );
 
-NSS_EXTERN NSSCertificate *
-nssCertificate_CreateFromHandle
-(
-  NSSArena *arenaOpt,
-  CK_OBJECT_HANDLE object,
-  nssSession *session,
-  NSSSlot *slot
-);
-
-NSS_EXTERN NSSUTF8 *
-NSSCertificate_GetLabel
-(
-  NSSCertificate *c
-);
-
-NSS_EXTERN NSSItem *
-NSSCertificate_GetID
-(
-  NSSCertificate *c
-);
-
 PR_END_EXTERN_C
 
 #endif /* PKI_H */

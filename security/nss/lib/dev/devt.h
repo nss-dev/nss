@@ -60,11 +60,17 @@ static const char DEVT_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #include "nssckt.h"
 #endif /* NSSCKT_H */
 
+#ifndef BASET_H
+#include "baset.h"
+#endif /* BASET_H */
+
 #ifdef NSS_3_4_CODE
 #include "secmodt.h"
 #endif /* NSS_3_4_CODE */
 
 PR_BEGIN_EXTERN_C
+
+typedef struct nssSessionStr nssSession;
 
 /* The list of boolean flags used to describe properties of a
  * module.
@@ -136,6 +142,47 @@ struct nssSessionStr
     CK_SESSION_HANDLE handle;
     NSSSlot *slot;
     PRBool isRW;
+};
+
+typedef enum {
+    NSSCertificateType_Unknown = 0,
+    NSSCertificateType_PKIX = 1
+} NSSCertificateType;
+
+#ifdef nodef
+typedef enum {
+    nssTrustLevel_Unknown = 0,
+    nssTrustLevel_NotTrusted = 1,
+    nssTrustLevel_Trusted = 2,
+    nssTrustLevel_TrustedDelegator = 3,
+    nssTrustLevel_Valid = 4
+} nssTrustLevel;
+#else
+typedef CK_ULONG nssTrustLevel; /* for now */
+#endif
+
+typedef struct nssCryptokiInstanceStr nssCryptokiInstance;
+
+struct nssCryptokiInstanceStr
+{
+    CK_OBJECT_HANDLE handle;
+    NSSToken *token;
+};
+
+typedef struct nssTokenCertSearchStr nssTokenCertSearch;
+
+struct nssTokenCertSearchStr
+{
+    PRStatus (* callback)(NSSCertificate *c, void *arg);
+    void *cbarg;
+    nssList *cached;
+    NSSTrustDomain *trustDomain;
+    NSSCryptoContext *cryptoContext;
+};
+
+struct NSSAlgorithmAndParametersStr
+{
+    CK_MECHANISM mechanism;
 };
 
 PR_END_EXTERN_C

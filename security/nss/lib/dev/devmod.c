@@ -367,12 +367,6 @@ nssModule_TraverseCertificates
   void *arg
 )
 {
-    PRUint32 i;
-    for (i=0; i<mod->numSlots; i++) {
-	/* might as well skip straight to token, right? or is this slot? */
-	nssToken_TraverseCertificates(mod->slots[i]->token, 
-	                              NULL, callback, arg);
-    }
     return NULL;
 }
 
