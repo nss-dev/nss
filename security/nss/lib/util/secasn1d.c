@@ -726,7 +726,17 @@ sec_asn1d_parent_is_indefinite(sec_asn1d_state *state)
 	    place != afterSaveEncoding  &&
 	    place != duringSaveEncoding &&
 	    place != duringChoice) {
-	    return state->indefinite ? PR_TRUE : PR_FALSE;
+
+            /* we've walked up the stack to a state that represents
+            ** the enclosing construct.  Is it one of the types that
+            ** permits an unexpected EOC?
+            */
+            int eoc_permitted = 
+		(place == duringGroup ||
+		 place == duringConstructedString ||
+		 state->child->optional);
+            return (state->indefinite && eoc_permitted) ? PR_TRUE : PR_FALSE;
+
 	}
     }
     return PR_FALSE;
