@@ -284,6 +284,9 @@ NSSToken_FindCertificatesByTemplate
 (
   NSSToken *tok,
   nssSession *sessionOpt,
+  NSSCertificate *rvOpt[],
+  PRUint32 maximumOpt,
+  NSSArena *arenaOpt,
   CK_ATTRIBUTE_PTR cktemplate,
   CK_ULONG ctsize
 );
