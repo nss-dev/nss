@@ -1898,7 +1898,7 @@ CERT_FixupEmailAddr(char *emailAddr)
 SECStatus
 CERT_DecodeTrustString(CERTCertTrust *trust, char *trusts)
 {
-    int i;
+    unsigned int i;
     unsigned int *pflags;
     
     trust->sslFlags = 0;
@@ -2139,10 +2139,10 @@ CERT_ImportCerts(CERTCertDBHandle *certdb, SECCertUsage usage,
 		 CERTCertificate ***retCerts, PRBool keepCerts,
 		 PRBool caOnly, char *nickname)
 {
-    int i;
+    unsigned int i;
     CERTCertificate **certs = NULL;
     SECStatus rv;
-    int fcerts = 0;
+    unsigned int fcerts = 0;
 
     if ( ncerts ) {
 	certs = (CERTCertificate**)PORT_ZAlloc(sizeof(CERTCertificate *) * ncerts );
