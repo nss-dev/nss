@@ -269,7 +269,7 @@ DB * rdbopen(const char *appName, const char *prefix,
     DB *db;
 
     if (pk11_rdbfunc) {
-	db = (*pk11_rdbfunc)(appName,prefix,type,flags);
+	db = (*pk11_rdbfunc)(appName,prefix,type,rdbmapflags(flags));
 	return db;
     }
 
