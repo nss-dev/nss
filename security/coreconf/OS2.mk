@@ -124,7 +124,8 @@ ASFLAGS = -Od
 else
 ASFLAGS = +Od
 endif
-CCC			= icc -q -DXP_OS2 -DOS2=4 -N10
+CCC			= icc
+OS_CXXFLAGS		+= -q -DXP_OS2 -DOS2=4 -N10
 LINK			= -ilink
 AR		= -ilib /NOL /NOI /O:$(subst /,\\,$@)
 # Keep AR_FLAGS blank so that we do not have to change rules.mk

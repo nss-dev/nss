@@ -39,7 +39,8 @@ USE_HYBRID = 1
 endif
 
 ifndef NS_USE_GCC
-    CCC                 = /opt/aCC/bin/aCC -ext
+    CCC                 = /opt/aCC/bin/aCC
+    OS_CXXFLAGS         += -ext
     ifeq ($(USE_64), 1)
 	ifeq ($(OS_TEST), ia64)
 	    OS_CFLAGS	+= -Aa +e +p +DD64

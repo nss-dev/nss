@@ -99,7 +99,7 @@ ifdef NS_USE_GCC
 	CC         = gcc
 	OS_CFLAGS += -Wall -Wno-format
 	CCC        = g++
-	CCC       += -Wall -Wno-format
+	OS_CXXFLAGS += -Wall -Wno-format
 	ASFLAGS	  += -x assembler-with-cpp
 	OS_CFLAGS += $(NOMD_OS_CFLAGS)
 	ifdef USE_MDUPDATE
