@@ -54,6 +54,7 @@
 #include "base64.h"
 #include "sechash.h"
 #include "plhash.h"
+#include "pk11func.h" /* sigh */
 
 #include "cdbhdl.h"
 
