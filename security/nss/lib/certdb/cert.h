@@ -548,6 +548,11 @@ extern SECStatus
 CERT_VerifyCertNow(CERTCertDBHandle *handle, CERTCertificate *cert,
 		   PRBool checkSig, SECCertUsage certUsage, void *wincx);
 
+SECStatus
+CERT_VerifyCertChain(CERTCertDBHandle *handle, CERTCertificate *cert,
+		     PRBool checkSig, SECCertUsage certUsage, int64 t,
+		     void *wincx, CERTVerifyLog *log);
+
 /*
 ** This must only be called on a cert that is known to have an issuer
 ** with an invalid time
