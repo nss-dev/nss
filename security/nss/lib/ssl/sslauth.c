@@ -73,8 +73,13 @@ SSL_LocalCertificate(PRFileDesc *fd)
 	return NULL;
     }
     sec = ss->sec;
-    if (ss->useSecurity && sec && sec->localCert) {
-	return CERT_DupCertificate(sec->localCert);
+    if (ss->useSecurity && sec ) {
+    	if (sec->localCert) {
+	    return CERT_DupCertificate(sec->localCert);
+	}
+	if (sec->ci.sid && sec->ci.sid->localCert) {
+	    return CERT_DupCertificate(sec->ci.sid->localCert);
+	}
     }
     return NULL;
 }
