@@ -38,7 +38,7 @@
 #define DEVM_H
 
 #ifdef DEBUG
-static const char DEVM_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
+static const char DEVM_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$";
 #endif /* DEBUG */
 
 #ifndef BASE_H

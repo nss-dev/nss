@@ -35,7 +35,7 @@
 # the terms of any one of the MPL, the GPL or the LGPL.
 #
 # ***** END LICENSE BLOCK *****
-my $cvs_id = '@(#) $RCSfile$ $Revision$ $Date$ $Name$';
+my $cvs_id = '@(#) $RCSfile$ $Revision$ $Date$';
 use strict;
 
 my %constants;

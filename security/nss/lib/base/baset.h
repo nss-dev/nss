@@ -38,7 +38,7 @@
 #define BASET_H
 
 #ifdef DEBUG
-static const char BASET_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
+static const char BASET_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$";
 #endif /* DEBUG */
 
 /*

@@ -38,7 +38,7 @@
 #define NSSDEVT_H
 
 #ifdef DEBUG
-static const char NSSDEVT_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
+static const char NSSDEVT_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$";
 #endif /* DEBUG */
 
 /*

@@ -38,7 +38,7 @@
 #define DEVTM_H
 
 #ifdef DEBUG
-static const char DEVTM_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
+static const char DEVTM_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$";
 #endif /* DEBUG */
 
 /*

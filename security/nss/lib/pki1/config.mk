@@ -34,7 +34,7 @@
 # the terms of any one of the MPL, the GPL or the LGPL.
 #
 # ***** END LICENSE BLOCK *****
-CONFIG_CVS_ID = "@(#) $RCSfile$ $Revision$ $Date$ $Name$"
+CONFIG_CVS_ID = "@(#) $RCSfile$ $Revision$ $Date$"
 
 ifdef BUILD_IDG
 DEFINES += -DNSSDEBUG

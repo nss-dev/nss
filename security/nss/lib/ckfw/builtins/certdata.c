@@ -32,7 +32,7 @@
  * GPL.
  */
 #ifdef DEBUG
-static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$""; @(#) $RCSfile$ $Revision$ $Date$ $Name$";
+static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$""; @(#) $RCSfile$ $Revision$ $Date$";
 #endif /* DEBUG */
 
 #ifndef BUILTINS_H
@@ -580,7 +580,7 @@ static const NSSItem nss_builtins_items_0 [] = {
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)"CVS ID", (PRUint32)7 },
   { (void *)"NSS", (PRUint32)4 },
-  { (void *)"@(#) $RCSfile$ $Revision$ $Date$ $Name$""; @(#) $RCSfile$ $Revision$ $Date$ $Name$", (PRUint32)179 }
+  { (void *)"@(#) $RCSfile$ $Revision$ $Date$""; @(#) $RCSfile$ $Revision$ $Date$", (PRUint32)179 }
 };
 #endif /* DEBUG */
 static const NSSItem nss_builtins_items_1 [] = {
