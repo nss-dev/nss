@@ -667,8 +667,12 @@ pk11_handleCertObject(PK11Session *session,PK11Object *object)
 							!= SECSuccess) {
 	    return CKR_ATTRIBUTE_VALUE_INVALID;
 	}
-	if (CERT_AddTempCertToPerm(cert, label, &trust) != SECSuccess) {
-	    return CKR_HOST_MEMORY;
+	if (!cert->isperm) {
+	    if (CERT_AddTempCertToPerm(cert, label, &trust) != SECSuccess) {
+		return CKR_HOST_MEMORY;
+	    }
+	} else {
+	    CERT_ChangeCertTrust(cert->dbhandle,cert,&trust);
 	}
 	if(certUsage) {
 	    if(CERT_ChangeCertTrustByUsage(CERT_GetDefaultCertDB(),
@@ -2704,6 +2708,7 @@ CK_RV NSC_InitToken(CK_SLOT_ID slotID,CK_CHAR_PTR pPin,
 	    if (object) pk11_FreeObject(object);
 	} while (object != NULL);
     }
+    slot->DB_loaded = PR_FALSE;
     PK11_USE_THREADS(PZ_Unlock(slot->objectLock);)
 
     /* then clear out the key database */
