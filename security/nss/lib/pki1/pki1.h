@@ -58,7 +58,9 @@ static const char PKI1_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$";
 
 PR_BEGIN_EXTERN_C
 
-/* fgmr 19990505 moved these here from oiddata.h */
+extern const NSSOID nss_builtin_oids[];
+extern const PRUint32 nss_builtin_oid_count;
+
 extern const nssAttributeTypeAliasTable nss_attribute_type_aliases[];
 extern const PRUint32 nss_attribute_type_alias_count;
 

@@ -46,12 +46,6 @@ static const char OIDDATA_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ ; @(#) $R
 #include "nsspki1t.h"
 #endif /* NSSPKI1T_H */
 
-extern const NSSOID nss_builtin_oids[];
-extern const PRUint32 nss_builtin_oid_count;
-
-/*extern const nssAttributeTypeAliasTable nss_attribute_type_aliases[];*/
-/*extern const PRUint32 nss_attribute_type_alias_count;*/
-
 extern const NSSOID *NSS_OID_RFC1274_UID;
 extern const NSSOID *NSS_OID_RFC1274_EMAIL;
 extern const NSSOID *NSS_OID_RFC2247_DC;
