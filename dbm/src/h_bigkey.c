@@ -449,8 +449,11 @@ __big_return(
 
 
 /*
- * Count how big the total datasize is by recursing through the pages.  Then
- * allocate a buffer and copy the data as you recurse up.
+ * Count how big the total datasize is by looping through the pages.  Then
+ * allocate a buffer and copy the data in the second loop. NOTE: Our caller
+ * may already have a bp which it is holding onto. The caller is
+ * responsible for copying that bp into our temp_buffer. 'len' is how must
+ * space to reserve for that buffer.
  */
 static int
 collect_data(
@@ -464,7 +467,7 @@ collect_data(
 	int mylen, totlen;
 
 	/*
-	 * save out input buf head because we need to walk the list twice
+	 * save the input buf head because we need to walk the list twice
 	 * pin it to make sure it doesn't leave the buffer pool. 
 	 * This has the effect of growing the buffer pool if necessary.
 	 */
@@ -473,18 +476,17 @@ collect_data(
 	save_bufp->flags |= BUF_PIN;
 
 	/* read the length of the buffer */
-	for (totlen = len; bufp ;
-			 bufp = __get_buf(hashp, bp[bp[0]-1], bufp, 0)) {
-	    bp = (uint16 *)bufp->page;
-	    mylen = hashp->BSIZE - bp[1];
-	    if (mylen < 0) {
-		save_bufp->flags = save_flags;
-		return (-1);
-	    }
-	    totlen += mylen;
-	    if (bp[2] == FULL_KEY_DATA) {
-		break;
-	    }
+	for (totlen = len; bufp ; bufp = __get_buf(hashp, bp[bp[0]-1], bufp, 0)) {
+		bp = (uint16 *)bufp->page;
+		mylen = hashp->BSIZE - bp[1];
+		if (mylen < 0) {
+			save_bufp->flags = save_flags;
+			return (-1);
+ 		}
+		totlen += mylen;
+		if (bp[2] == FULL_KEY_DATA) {
+			break;
+		}
 	}
 
  	if (!bufp) {
@@ -503,13 +505,13 @@ collect_data(
 	/* copy the buffers back into temp buf */
 	for (bufp = save_bufp; bufp ;
 				bufp = __get_buf(hashp, bp[bp[0]-1], bufp, 0)) {
-	    bp = (uint16 *)bufp->page;
-	    mylen = hashp->BSIZE - bp[1];
-	    memmove(&hashp->tmp_buf[len], (bufp->page) + bp[1], (size_t)mylen);
-	    len += mylen;
-	    if (bp[2] == FULL_KEY_DATA) {
-		break;
-	    }
+		bp = (uint16 *)bufp->page;
+		mylen = hashp->BSIZE - bp[1];
+		memmove(&hashp->tmp_buf[len], (bufp->page) + bp[1], (size_t)mylen);
+		len += mylen;
+		if (bp[2] == FULL_KEY_DATA) {
+			break;
+		}
 	}
 
 	/* 'clear' the pin flags */
