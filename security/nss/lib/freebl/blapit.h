@@ -113,7 +113,7 @@
  */
 #define RSA_MIN_MODULUS_BITS   128
 #define DH_MIN_P_BITS	       128
-#define DH_MAX_P_BITS         1024
+#define DH_MAX_P_BITS         2236
 
 /*
  * The FIPS 186 algorithm for generating primes P and Q allows only 9

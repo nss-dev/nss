@@ -459,13 +459,17 @@ SECStatus
 ssl_EnableNagleDelay(sslSocket *ss, PRBool enabled)
 {
     PRFileDesc *       osfd = ss->fd->lower;
-    int 	       rv;
+    SECStatus         rv = SECFailure;
     PRSocketOptionData opt;
 
     opt.option         = PR_SockOpt_NoDelay;
     opt.value.no_delay = (PRBool)!enabled;
 
-    rv = osfd->methods->setsocketoption(osfd, &opt);
+    if (osfd->methods->setsocketoption) {
+        rv = (SECStatus) osfd->methods->setsocketoption(osfd, &opt);
+    } else {
+        PR_SetError(PR_NOT_IMPLEMENTED_ERROR, 0);
+    }
 
     return rv;
 }

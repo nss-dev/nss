@@ -6,11 +6,11 @@
 #
 
 CORE_DEPTH = ../../../..
-include ../Makefile.com
+include ../Makefile-tlsu.com
 
 DATAFILES +=
 
 all:: $(FILES)
 publish:: all pkg
 
-include ../Makefile.targ
+include ../Makefile-tlsu.targ

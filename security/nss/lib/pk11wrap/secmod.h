@@ -37,6 +37,7 @@
 #define _SEDMOD_H_
 #include "seccomon.h"
 #include "secmodt.h"
+#include "prinrval.h"
 
 #define PKCS11_USE_THREADS
 
@@ -157,6 +158,25 @@ extern unsigned long SECMOD_InternaltoPubMechFlags(unsigned long internalFlags);
 extern unsigned long SECMOD_PubCipherFlagstoInternal(unsigned long publicFlags);
 extern unsigned long SECMOD_InternaltoPubCipherFlags(unsigned long internalFlags);
 
+PRBool SECMOD_HasRemovableSlots(SECMODModule *mod);
+PK11SlotInfo *SECMOD_WaitForAnyTokenEvent(SECMODModule *mod, 
+				unsigned long flags, PRIntervalTime latency);
+/*
+ * Warning: the SECMOD_CancelWait function is highly destructive, potentially 
+ * finalizing  the module 'mod' (causing inprogress operations to fail, 
+ * and session key material to disappear). It should only be called when 
+ * shutting down  the module. 
+ */
+SECStatus SECMOD_CancelWait(SECMODModule *mod);
+/*
+ * check to see if the module has added new slots. PKCS 11 v2.20 allows for
+ * modules to add new slots, but never remove them. Slots not be added between 
+ * a call to C_GetSlotLlist(Flag, NULL, &count) and the corresponding
+ * C_GetSlotList(flag, &data, &count) so that the array doesn't accidently
+ * grow on the caller. It is permissible for the slots to increase between
+ * corresponding calls with NULL to get the size.
+ */
+SECStatus SECMOD_UpdateSlotList(SECMODModule *mod);
 SEC_END_PROTOS
 
 #endif

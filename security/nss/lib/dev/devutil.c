@@ -582,6 +582,7 @@ clear_cache (
     nssCryptokiObjectAndAttributes **oa;
     PRUint32 objectType;
     for (objectType = cachedCerts; objectType <= cachedCRLs; objectType++) {
+	cache->searchedObjectType[objectType] = PR_FALSE;
 	if (!cache->objects[objectType]) {
 	    continue;
 	}
@@ -593,7 +594,6 @@ clear_cache (
 	}
 	nss_ZFreeIf(cache->objects[objectType]);
 	cache->objects[objectType] = NULL;
-	cache->searchedObjectType[objectType] = PR_FALSE;
     }
 }
 
