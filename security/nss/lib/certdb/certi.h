@@ -53,6 +53,7 @@ typedef struct CRLCacheStr CRLCache;
 
 struct OpaqueCRLFieldsStr {
     PRBool partial;
+    PRBool badEntries;
     PRBool bad;
     PRBool badDER;
     PRBool badExtensions;
@@ -98,7 +99,8 @@ struct CRLDPCacheStr {
 #else
     PRLock* lock;
 #endif
-    CERTCertificate* issuer;    /* DER of cert issuer */
+    CERTCertificate* issuer;    /* cert issuer */
+    SECItem* subject;           /* DER of issuer subject */
     SECItem* distributionPoint; /* DER of distribution point. This may be
                                    NULL when distribution points aren't
                                    in use (ie. the CA has a single CRL) */
@@ -149,7 +151,6 @@ struct CRLDPCacheStr {
 
 struct CRLIssuerCacheStr {
     PRUint32 refcount;
-    CERTCertificate* issuer;
     CRLDPCache dp;
     CRLDPCache* dpp;
 #if 0
@@ -159,6 +160,7 @@ struct CRLIssuerCacheStr {
     NSSRWLock* lock;
     CRLDPCache** dps;
     PLHashTable* distributionpoints;
+    CERTCertificate* issuer;
 #endif
 };
 
