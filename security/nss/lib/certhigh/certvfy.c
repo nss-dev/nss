@@ -39,7 +39,7 @@
 #include "genname.h"
 #include "keyhi.h"
 #include "cert.h"
-#include "certdb.h"
+#include "certrust.h"
 #include "cryptohi.h"
 
 #define PENDING_SLOP (24L*60L*60L)

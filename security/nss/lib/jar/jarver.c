@@ -45,7 +45,7 @@
 #ifdef USE_MOZ_THREAD
 #include "jarevil.h"
 #endif
-#include "cdbhdl.h"
+/*#include "cdbhdl.h" */
 #include "secder.h"
 
 /* to use huge pointers in win16 */
@@ -74,11 +74,12 @@ extern SECStatus SEC_AddTempNickname
    (CERTCertDBHandle *handle, char *nickname, SECItem *certKey);
 /* from certdb.h */
 typedef SECStatus (* PermCertCallback)(CERTCertificate *cert, SECItem *k, void *pdata);
-#endif
 
 /* from certdb.h */
 SECStatus SEC_TraversePermCerts
    (CERTCertDBHandle *handle, PermCertCallback certfunc, void *udata);
+#endif
+
 
 
 #define SZ 512
@@ -1813,20 +1814,7 @@ CERTCertDBHandle *JAR_open_database (void)
   int keepcerts = 0;
   CERTCertDBHandle *certdb;
 
-  /* local_certdb will only be used if calling from a command line tool */
-  static CERTCertDBHandle local_certdb;
-
   certdb = CERT_GetDefaultCertDB();
-
-  if (certdb == NULL) 
-    {
-    if (CERT_OpenCertDBFilename (&local_certdb, NULL, (PRBool)!keepcerts) != 
-	                                                           SECSuccess)
-      {
-      return NULL;
-      }
-    certdb = &local_certdb;
-    }
 
   return certdb;
   }

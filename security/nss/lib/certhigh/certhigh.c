@@ -35,7 +35,7 @@
 #include "secasn1.h"
 #include "seccomon.h"
 #include "pk11func.h"
-#include "certdb.h"
+#include "certrust.h"
 #include "certt.h"
 #include "cert.h"
 #include "certxutl.h"
@@ -740,10 +740,12 @@ CERTSignedCrl * CERT_ImportCRL
 	    break;
 	}
 
+#ifdef FIXME
 	/* Do CRL validation and add to the dbase if this crl is more present then the one
 	   in the dbase, if one exists.
 	 */
 	crl = cert_DBInsertCRL (handle, url, newCrl, derCRL, type);
+#endif
 
     } while (0);
 

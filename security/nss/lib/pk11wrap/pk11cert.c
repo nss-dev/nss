@@ -48,7 +48,7 @@
 #include "pkcs7t.h"
 #include "cmsreclist.h"
 
-#include "certdb.h"
+#include "certrust.h"
 #include "secerr.h"
 #include "sslerr.h"
 
