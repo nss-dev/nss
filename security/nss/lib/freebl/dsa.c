@@ -34,12 +34,10 @@
  * $Id$
  */
 
-#include "prerr.h"
 #include "secerr.h"
 
 #include "prtypes.h"
 #include "prinit.h"
-#include "prerror.h"
 #include "blapi.h"
 #include "prlock.h"
 #include "secitem.h"
@@ -276,14 +274,14 @@ SECStatus
 DSA_SignDigest(DSAPrivateKey *key, SECItem *signature, SECItem *digest)
 {
     SECStatus rv;
-    PRErrorCode prerr = PR_SUCCESS;
+    int prerr = 0;
     unsigned char KSEED[DSA_SUBPRIME_LEN];
     rv = DSA_GenerateGlobalRandomBytes(KSEED, DSA_SUBPRIME_LEN, 
                                        key->params.subPrime.data);
     if (rv) return rv;
     do {
 	rv = dsa_SignDigest(key, signature, digest, KSEED);
-	if (rv) prerr = PR_GetError();
+	if (rv) prerr = PORT_GetError();
     } while (prerr == SEC_ERROR_NEED_RANDOM);
     /*memset(KSEED, 0, DSA_SUBPRIME_LEN);*/
     return rv;
