@@ -1746,15 +1746,15 @@ pk11_forceAttribute(PK11Object *object,CK_ATTRIBUTE_TYPE type, void *value,
     void *att_val = NULL;
     PRBool freeData = PR_FALSE;
 
+    PORT_Assert(object);
+    PORT_Assert(object->refCount);
+    PORT_Assert(object->slot);
+    if (!object ||
+        !object->refCount ||
+        !object->slot) {
+        return CKR_DEVICE_ERROR;
+    }
     if (pk11_isToken(object->handle)) {
-        PORT_Assert(object);
-        PORT_Assert(object->refCount);
-        PORT_Assert(object->slot);
-        if (!object ||
-            !object->refCount ||
-            !object->slot) {
-            return CKR_DEVICE_ERROR;
-        }
 	return pk11_forceTokenAttribute(object,type,value,len);
     }
     attribute=pk11_FindAttribute(object,type);
