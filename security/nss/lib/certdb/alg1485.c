@@ -681,6 +681,11 @@ AppendAVA(char **bufp, unsigned *buflenp, CERTAVA *ava)
     }
 
     len = PORT_Strlen(tagName);
+    if (len+1 > sizeof(tmpBuf)) {
+	SECITEM_FreeItem(avaValue, PR_TRUE);
+	PORT_SetError(SEC_ERROR_OUTPUT_LEN);
+	return SECFailure;
+    }
     PORT_Memcpy(tmpBuf, tagName, len);
     tmpBuf[len++] = '=';
     
