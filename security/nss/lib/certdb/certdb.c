@@ -1136,6 +1136,7 @@ CERT_KeyUsageAndTypeForCertUsage(SECCertUsage usage,
 	    requiredCertType = NS_CERT_TYPE_OBJECT_SIGNING_CA;
 	    break;
 	  case certUsageAnyCA:
+	  case certUsageVerifyCA:
 	  case certUsageStatusResponder:
 	    requiredKeyUsage = KU_KEY_CERT_SIGN;
 	    requiredCertType = NS_CERT_TYPE_OBJECT_SIGNING_CA |
