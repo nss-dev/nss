@@ -66,13 +66,14 @@ extern CERTName *CERT_AsciiToName(char *string);
 
 /*
 ** Convert an CERTName into its RFC1485 encoded equivalent.
+** Returns a string that must be freed with PORT_Free().
 */
 extern char *CERT_NameToAscii(CERTName *name);
 
 extern CERTAVA *CERT_CopyAVA(PRArenaPool *arena, CERTAVA *src);
 
 /* convert an OID to dotted-decimal representation */
-/* Returns a string that must be freed with PR_smprintf_free(), */
+/* Returns a string that must be freed with PR_smprintf_free(). */
 extern char * CERT_GetOidString(const SECItem *oid);
 
 /*
@@ -923,7 +924,7 @@ extern CERTCrlDistributionPoints * CERT_FindCRLDistributionPoints
    (CERTCertificate *cert);
 
 /* Returns value of the keyUsage extension.  This uses PR_Alloc to allocate 
-** buffer for the decoded value, The caller should free up the storage 
+** buffer for the decoded value. The caller should free up the storage 
 ** allocated in value->data.
 */
 extern SECStatus CERT_FindKeyUsageExtension (CERTCertificate *cert, 
