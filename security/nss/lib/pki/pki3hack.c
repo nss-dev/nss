@@ -857,6 +857,11 @@ STAN_ChangeCertTrust(CERTCertificate *cc, CERTCertTrust *trust)
 	     * object in order to store trust.  forcing it to be perm
 	     */
 	    NSSUTF8 *nickname = nssCertificate_GetNickname(c, NULL);
+	    NSSASCII7 *email = NULL;
+
+	    if (PK11_IsInternal(tok->pk11slot)) {
+		email = c->email;
+	    }
 	    newInstance = nssToken_ImportCertificate(tok, NULL,
 	                                             NSSCertificateType_PKIX,
 	                                             &c->id,
@@ -865,6 +870,7 @@ STAN_ChangeCertTrust(CERTCertificate *cc, CERTCertTrust *trust)
 	                                             &c->issuer,
 	                                             &c->subject,
 	                                             &c->serial,
+						     email,
 	                                             PR_TRUE);
 	    if (!newInstance) {
 		return PR_FAILURE;
