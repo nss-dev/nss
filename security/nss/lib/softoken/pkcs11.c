@@ -591,6 +591,7 @@ pk11_handleCertObject(PK11Session *session,PK11Object *object)
 		{ CERTDB_TRUSTED_UNKNOWN, 
 			CERTDB_TRUSTED_UNKNOWN, CERTDB_TRUSTED_UNKNOWN };
 	SECStatus rv;
+	int strlen;
 
 	if (slot->certDB == NULL) {
 	    return CKR_TOKEN_WRITE_PROTECTED;
@@ -600,6 +601,12 @@ pk11_handleCertObject(PK11Session *session,PK11Object *object)
 	attribute = pk11_FindAttribute(object,CKA_VALUE);
 	derCert.data = (unsigned char *)attribute->attrib.pValue;
 	derCert.len = attribute->attrib.ulValueLen ;
+
+	attribute = pk11_FindAttribute(object,CKA_LABEL);
+	strlen = attribute->attrib.ulValueLen;
+	if (*((char *)attribute->attrib.pValue + strlen) != '\0') strlen++;
+	label = PORT_ZAlloc(strlen);
+	memcpy(label, attribute->attrib.pValue, attribute->attrib.ulValueLen);
 
 	cert = nsslowcert_DecodeDERCertificate(&derCert,PR_FALSE,label);
 	if (cert == NULL) {
@@ -617,6 +624,7 @@ pk11_handleCertObject(PK11Session *session,PK11Object *object)
 	    rv = trust ? nsslowcert_ChangeCertTrust(slot->certDB,cert,trust) :
 				SECSuccess;
 	}
+	PORT_ZFree(label, PR_TRUE);
 
 	pk11_FreeAttribute(attribute);
 	if (rv != SECSuccess) {
