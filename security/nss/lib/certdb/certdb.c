@@ -1313,9 +1313,11 @@ cert_VerifySubjectAltName(CERTCertificate *cert, const char *hn)
 
     rv = CERT_FindCertExtension(cert, SEC_OID_X509_SUBJECT_ALT_NAME, 
 				&subAltName);
-    if (rv != SECSuccess) 
+    if (rv != SECSuccess) {
+	if (PORT_GetError() == SEC_ERROR_EXTENSION_NOT_FOUND)
+	    PORT_SetError(SSL_ERROR_BAD_CERT_DOMAIN);
 	goto finish;
-
+    }
     rv = SECFailure;
     arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
     if (!arena) 
