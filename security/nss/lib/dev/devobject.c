@@ -302,6 +302,21 @@ create_cryptoki_instance
     return instance;
 }
 
+#ifdef NSS_3_4_CODE
+/* exposing this for the smart card cache code */
+NSS_IMPLEMENT nssCryptokiInstance *
+nssCryptokiInstance_Create
+(
+  NSSArena *arena,
+  NSSToken *t, 
+  CK_OBJECT_HANDLE h,
+  PRBool isTokenObject
+)
+{
+    return create_cryptoki_instance(arena, t, h, isTokenObject);
+}
+#endif
+
 static NSSCertificateType
 nss_cert_type_from_ck_attrib(CK_ATTRIBUTE_PTR attrib)
 {
