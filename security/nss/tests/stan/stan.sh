@@ -208,6 +208,9 @@ fi
 PKIU_ACTION="Validate Server Cert"
 pkiu -V -d ${SERVERDIR} -n stanCert -u cv
 
+PKIU_ACTION="Validate Intermediate CA Cert"
+pkiu -V -d ${SERVERDIR} -n stanCA1 -u CV
+
 PKIU_ACTION="Export Copy of Server Cert"
 pkiu -E -d ${SERVERDIR} -n stanCert --type cert -a -o stanCertCopy.b64
 
