@@ -1092,7 +1092,7 @@ nssCKFWInstance_GetLibraryVersion
       fwInstance->mdInstance, fwInstance);
   } else {
     fwInstance->libraryVersion.major = 0;
-    fwInstance->libraryVersion.minor = 1;
+    fwInstance->libraryVersion.minor = 3;
   }
 
   rv = fwInstance->libraryVersion;

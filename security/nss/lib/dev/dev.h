@@ -741,6 +741,7 @@ nssCryptokiTrust_GetAttributes
 (
   nssCryptokiObject *trustObject,
   nssSession *sessionOpt,
+  NSSItem *sha1_hash,
   nssTrustLevel *serverAuth,
   nssTrustLevel *clientAuth,
   nssTrustLevel *codeSigning,
