@@ -948,7 +948,7 @@ nss_ZFreeIf
   if( (NSSArena *)NULL == h->arena ) {
     /* Heap */
     (void)nsslibc_memset(pointer, 0, h->size);
-    PR_Free(pointer);
+    PR_Free(h);
     return PR_SUCCESS;
   } else {
     /* Arena */
