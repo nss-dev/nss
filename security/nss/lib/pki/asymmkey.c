@@ -1425,11 +1425,11 @@ nssPublicKey_Verify (
 	case NSSKeyPairType_RSA: alg = NSS_OID_PKCS1_RSA_ENCRYPTION; break;
 	default:
 	    /* set invalid arg err */
-	    return (NSSItem *)NULL;
+	    return PR_FAILURE;
 	}
 	ap = nssOIDTag_CreateAlgNParam(alg, NULL, NULL);
 	if (!ap) {
-	    return (NSSItem *)NULL;
+	    return PR_FAILURE;
 	}
     }
 

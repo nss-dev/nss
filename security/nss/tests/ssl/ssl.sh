@@ -152,7 +152,13 @@ kill_selfserv()
   if [ ${fileout} -eq 1 ]; then
       cat ${SERVEROUTFILE}
   fi
-  ${SLEEP}  #FIXME linux waits 30 seconds - find a shorter way (sockets free)
+  # On Linux selfserv needs up to 30 seconds to fully die and free
+  # the port.  Wait until the port is free. (Bug 129701)
+  if [ "${OS_ARCH}" = "Linux" ]; then
+      until selfserv -b -p ${PORT} 2>/dev/null; do
+          sleep 1
+      done
+  fi
   rm ${SERVERPID}
 }
 
@@ -317,7 +323,7 @@ ssl_cleanup()
 if [ -z  "$DO_REM_ST" -a -z  "$DO_DIST_ST" ] ; then
     ssl_init
     ssl_cov
-#    ssl_auth
+    ssl_auth
 #    ssl_stress
 
 #    SERVERDIR=$EXT_SERVERDIR

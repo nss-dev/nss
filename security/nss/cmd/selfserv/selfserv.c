@@ -158,13 +158,14 @@ Usage(const char *progName)
 {
     fprintf(stderr, 
 
-"Usage: %s -n rsa_nickname -p port [-3DRTmrvx] [-w password] [-t threads]\n"
+"Usage: %s -n rsa_nickname -p port [-3DRTbmrvx] [-w password] [-t threads]\n"
 "         [-i pid_file] [-c ciphers] [-d dbdir] [-f fortezza_nickname] \n"
 "         [-M maxProcs] [-l]\n"
 "-3 means disable SSL v3\n"
 "-D means disable Nagle delays in TCP\n"
 "-T means disable TLS\n"
 "-R means disable detection of rollback from TLS to SSL3\n"
+"-b means try binding to the port and exit\n"
 "-m means test the model-socket feature of SSL_ImportFD.\n"
 "-r flag is interepreted as follows:\n"
 "    1 -r  means request, not require, cert on initial handshake.\n"
@@ -1359,12 +1360,24 @@ beAGoodParent(int argc, char **argv, int maxProcs, PRFileDesc * listen_sock)
 }
 
 #ifdef DEBUG_nelsonb
+
+#if defined(XP_UNIX) || defined(XP_OS2) || defined(XP_BEOS)
+#define SSL_GETPID getpid
+#elif defined(_WIN32_WCE)
+#define SSL_GETPID GetCurrentProcessId
+#elif defined(WIN32)
+extern int __cdecl _getpid(void);
+#define SSL_GETPID _getpid
+#else
+#define SSL_GETPID() 0   
+#endif
+
 void
 WaitForDebugger(void)
 {
 
     int waiting       = 12;
-    int myPid         = _getpid();
+    int myPid         = SSL_GETPID();
     PRIntervalTime    nrval = PR_SecondsToInterval(5);
 
     while (waiting) {
@@ -1374,17 +1387,6 @@ WaitForDebugger(void)
     }
 }
 #endif
-
-#ifdef LINUX  /* bug 119340 */
-#include <signal.h>
-
-static void sigterm_handler(int signum)
-{
-    static char err_msg[] = "selfserv: received SIGTERM\n";
-    write(1, err_msg, sizeof(err_msg) - 1);
-    _exit(1);
-}
-#endif /* LINUX */
 
 int
 main(int argc, char **argv)
@@ -1407,6 +1409,7 @@ main(int argc, char **argv)
     unsigned short       port        = 0;
     SECStatus            rv;
     PRStatus             prStatus;
+    PRBool               bindOnly = PR_FALSE;
     PRBool               useExportPolicy = PR_FALSE;
     PRBool               useLocalThreads = PR_FALSE;
     PLOptState		*optstate;
@@ -1416,17 +1419,6 @@ main(int argc, char **argv)
     NSSTrustDomain *     td = NULL;
     NSSUsages            serverUsage = { 0, NSSUsage_SSLServer };
     NSSCallback *pwcb;
-#ifdef LINUX  /* bug 119340 */
-    struct sigaction     act;
-
-    act.sa_handler = sigterm_handler;
-    sigemptyset(&act.sa_mask);
-    act.sa_flags = 0;
-    if (sigaction(SIGTERM, &act, NULL) == -1) {
-        fprintf(stderr, "selfserv: sigaction failed: %d\n", errno);
-        exit(1);
-    }
-#endif /* LINUX */
 
 
     tmp = strrchr(argv[0], '/');
@@ -1440,7 +1432,7 @@ main(int argc, char **argv)
     ** numbers, then capital letters, then lower case, alphabetical. 
     */
     optstate = PL_CreateOptState(argc, argv, 
-    	"2:3DL:M:RTc:d:f:hi:lmn:op:rt:vw:xy");
+    	"2:3DL:M:RTbc:d:f:hi:lmn:op:rt:vw:xy");
     while ((status = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
 	++optionsFound;
 	switch(optstate->option) {
@@ -1465,6 +1457,8 @@ main(int argc, char **argv)
 	case 'R': disableRollBack = PR_TRUE; break;
 
 	case 'T': disableTLS = PR_TRUE; break;
+
+	case 'b': bindOnly = PR_TRUE; break;
 
 	case 'c': cipherString = strdup(optstate->value); break;
 
@@ -1520,6 +1514,19 @@ main(int argc, char **argv)
 	Usage(progName);
 	exit(51);
     } 
+
+    /* The -b (bindOnly) option is only used by the ssl.sh test
+     * script on Linux to determine whether a previous selfserv
+     * process has fully died and freed the port.  (Bug 129701)
+     */
+    if (bindOnly) {
+	listen_sock = getBoundListenSocket(port);
+	if (!listen_sock) {
+	    exit(1);
+	}
+	PR_Close(listen_sock);
+	exit(0);
+    }
 
     if ((nickName == NULL) && (fNickName == NULL)) {
 	fprintf(stderr, "Required arg '-n' (rsa nickname) not supplied.\n");
