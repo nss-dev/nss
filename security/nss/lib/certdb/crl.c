@@ -957,6 +957,11 @@ SECStatus DPCache_Destroy(CRLDPCache* cache)
     {
         SEC_DestroyCrl(cache->crls[i]);
     }
+    /* free the array of CRLs */
+    if (cache->crls)
+    {
+	PR_Free(cache->crls);
+    }
     /* destroy the hash table */
     if (cache->entries)
     {
