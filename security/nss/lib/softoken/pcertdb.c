@@ -1708,7 +1708,8 @@ DecodeDBSMimeEntry(certDBEntrySMime *entry, SECItem *dbentry, char *emailAddr)
 	goto loser;
     }
 
-    entry->emailAddr = (char *)PORT_Alloc(PORT_Strlen(emailAddr)+1);
+    entry->emailAddr = (char *)PORT_ArenaAlloc(entry->common.arena,
+						PORT_Strlen(emailAddr)+1);
     if ( entry->emailAddr ) {
 	PORT_Strcpy(entry->emailAddr, emailAddr);
     }
