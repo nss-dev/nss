@@ -90,8 +90,7 @@ nssCertificate_Create (
                                                   &rvCert->encoding,
                                                   &rvCert->issuer,
                                                   &rvCert->serial,
-                                                  &rvCert->subject,
-                                                  &rvCert->email);
+                                                  &rvCert->subject);
     if (status != PR_SUCCESS) {
 	return (NSSCertificate *)NULL;
     }
