@@ -2733,6 +2733,29 @@ CK_RV NSC_GetSlotInfo(CK_SLOT_ID slotID, CK_SLOT_INFO_PTR pInfo)
 
 #define CKF_THREAD_SAFE 0x8000 /* for now */
 
+/*
+ * check the current state of the 'needLogin' flag in case the database has
+ * been changed underneath us.
+ */
+static PRBool
+pk11_checkNeedLogin(PK11Slot *slot)
+{
+    if (slot->password) {
+	if (nsslowkey_CheckKeyDBPassword(slot->keyDB,slot->password) 
+							== SECSuccess) {
+	    return slot->needLogin;
+	} else {
+	    SECITEM_FreeItem(slot->password, PR_TRUE);
+	    slot->password = NULL;
+	    slot->isLoggedIn = PR_FALSE;
+	}
+    }
+    slot->needLogin = 
+		(PRBool)!pk11_hasNullPassword(slot->keyDB,&slot->password);
+    return (slot->needLogin);
+}
+
+
 /* NSC_GetTokenInfo obtains information about a particular token in 
  * the system. */
 CK_RV NSC_GetTokenInfo(CK_SLOT_ID slotID,CK_TOKEN_INFO_PTR pInfo)
@@ -2775,7 +2798,7 @@ CK_RV NSC_GetTokenInfo(CK_SLOT_ID slotID,CK_TOKEN_INFO_PTR pInfo)
 	 */
 	if (nsslowkey_HasKeyDBPassword(handle) == SECFailure) {
 	    pInfo->flags = CKF_THREAD_SAFE | CKF_LOGIN_REQUIRED;
-	} else if (!slot->needLogin) {
+	} else if (!pk11_checkNeedLogin(slot)) {
 	    pInfo->flags = CKF_THREAD_SAFE | CKF_USER_PIN_INITIALIZED;
 	} else {
 	    pInfo->flags = CKF_THREAD_SAFE | 
@@ -2795,8 +2818,6 @@ CK_RV NSC_GetTokenInfo(CK_SLOT_ID slotID,CK_TOKEN_INFO_PTR pInfo)
     }
     return CKR_OK;
 }
-
-
 
 /* NSC_GetMechanismList obtains a list of mechanism types 
  * supported by a token. */
