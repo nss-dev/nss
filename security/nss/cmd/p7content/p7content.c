@@ -104,10 +104,10 @@ int
 DecodeAndPrintFile(FILE *out, PRFileDesc *in, char *progName)
 {
     SECItem derdata;
-    SEC_PKCS7ContentInfo *cinfo;
+    SEC_PKCS7ContentInfo *cinfo = NULL;
     SEC_PKCS7DecoderContext *dcx;
 
-	if (SECU_ReadDERFromFile(&derdata, in, PR_FALSE)) {
+    if (SECU_ReadDERFromFile(&derdata, in, PR_FALSE)) {
         SECU_PrintError(progName, "error converting der");
 	return -1;
     }
