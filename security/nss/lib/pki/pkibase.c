@@ -808,22 +808,19 @@ nssPKIObjectCollection_AddInstances (
 	    if (numInstances > 0 && i == numInstances) {
 		break;
 	    }
-	    node = add_object_instance(collection, *instances, &foundIt);
-	    if (node == NULL) {
-		goto loser;
+	    if (status == PR_SUCCESS) {
+		node = add_object_instance(collection, *instances, &foundIt);
+		if (node == NULL) {
+		    /* add_object_instance freed the current instance */
+		    /* free the remaining instances */
+		    status = PR_FAILURE;
+		}
+	    } else {
+		nssCryptokiObject_Destroy(*instances);
 	    }
 	}
     }
     return status;
-loser:
-    /* free the remaining instances */
-    for (; *instances; instances++, i++) {
-	if (numInstances > 0 && i == numInstances) {
-	    break;
-	}
-	nssCryptokiObject_Destroy(*instances);
-    }
-    return PR_FAILURE;
 }
 
 static void
