@@ -955,5 +955,5 @@ BL_Cleanup(void)
 {
   if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
       return;
-  (vector->p_Cleanup)();
+  (vector->p_BL_Cleanup)();
 }
