@@ -242,6 +242,14 @@ nssSlot_GetTokenName (
     return nssToken_GetName(slot->token);
 }
 
+NSS_IMPLEMENT void
+nssSlot_ResetDelay (
+  NSSSlot *slot
+)
+{
+    slot->lastTokenPing = 0;
+}
+
 static PRBool
 within_token_delay_period(NSSSlot *slot)
 {
