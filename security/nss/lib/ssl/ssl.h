@@ -138,6 +138,12 @@ SSL_IMPORT SECStatus SSL_CipherPolicyGet(PRInt32 cipher, PRInt32 *policy);
 #define SSL_ALLOWED		 1
 #define SSL_RESTRICTED		 2	      /* only with "Step-Up" certs. */
 
+/* Values for "on" with SSL_REQUIRE_CERTIFICATE. */
+#define SSL_REQUIRE_NEVER           ((PRBool)0)
+#define SSL_REQUIRE_ALWAYS          ((PRBool)1)
+#define SSL_REQUIRE_FIRST_HANDSHAKE ((PRBool)2)
+#define SSL_REQUIRE_NO_ERROR        ((PRBool)3)
+
 /*
 ** Reset the handshake state for fd. This will make the complete SSL
 ** handshake protocol execute from the ground up on the next i/o
