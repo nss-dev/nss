@@ -142,10 +142,27 @@ const SEC_ASN1Template NSS_PointerToCMSSignedDataTemplate[] = {
 };
 
 /* -----------------------------------------------------------------------------
- * signerinfo
+ * signeridentifier
  */
 
-static const SEC_ASN1Template NSSCMSSignerIdentifierTemplate[];
+static const SEC_ASN1Template NSSCMSSignerIdentifierTemplate[] = {
+    { SEC_ASN1_CHOICE,
+	  offsetof(NSSCMSSignerIdentifier,identifierType), NULL,
+	  sizeof(NSSCMSSignerIdentifier) },
+    { SEC_ASN1_EXPLICIT | SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC | 0,
+	  offsetof(NSSCMSSignerIdentifier,id.subjectKeyID),
+	  SEC_PointerToOctetStringTemplate,
+	  NSSCMSRecipientID_SubjectKeyID },
+    { SEC_ASN1_POINTER,
+	  offsetof(NSSCMSSignerIdentifier,id.issuerAndSN),
+	  CERT_IssuerAndSNTemplate,
+	  NSSCMSRecipientID_IssuerSN },
+    { 0 }
+};
+
+/* -----------------------------------------------------------------------------
+ * signerinfo
+ */
 
 const SEC_ASN1Template NSSCMSSignerInfoTemplate[] = {
     { SEC_ASN1_SEQUENCE,
@@ -173,28 +190,21 @@ const SEC_ASN1Template NSSCMSSignerInfoTemplate[] = {
 };
 
 /* -----------------------------------------------------------------------------
- * signeridentifier
- */
-static const SEC_ASN1Template NSSCMSSignerIdentifierTemplate[] = {
-    { SEC_ASN1_CHOICE,
-	  offsetof(NSSCMSSignerIdentifier,identifierType), NULL,
-	  sizeof(NSSCMSSignerIdentifier) },
-    { SEC_ASN1_EXPLICIT | SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC | 0,
-	  offsetof(NSSCMSSignerIdentifier,id.subjectKeyID),
-	  SEC_PointerToOctetStringTemplate,
-	  NSSCMSRecipientID_SubjectKeyID },
-    { SEC_ASN1_POINTER,
-	  offsetof(NSSCMSSignerIdentifier,id.issuerAndSN),
-	  CERT_IssuerAndSNTemplate,
-	  NSSCMSRecipientID_IssuerSN },
-    { 0 }
-};
-
-/* -----------------------------------------------------------------------------
  * ENVELOPED DATA
  */
 
-static const SEC_ASN1Template NSSCMSOriginatorInfoTemplate[];
+static const SEC_ASN1Template NSSCMSOriginatorInfoTemplate[] = {
+    { SEC_ASN1_SEQUENCE,
+	  0, NULL, sizeof(NSSCMSOriginatorInfo) },
+    { SEC_ASN1_OPTIONAL | SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC | 0,
+	  offsetof(NSSCMSOriginatorInfo,rawCerts),
+	  SEC_SetOfAnyTemplate },
+    { SEC_ASN1_OPTIONAL | SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC | 1,
+	  offsetof(NSSCMSOriginatorInfo,crls),
+	  CERT_SetOfSignedCrlTemplate },
+    { 0 }
+};
+
 const SEC_ASN1Template NSSCMSRecipientInfoTemplate[];
 
 const SEC_ASN1Template NSSCMSEnvelopedDataTemplate[] = {
@@ -221,51 +231,27 @@ const SEC_ASN1Template NSS_PointerToCMSEnvelopedDataTemplate[] = {
     { SEC_ASN1_POINTER, 0, NSSCMSEnvelopedDataTemplate }
 };
 
-static const SEC_ASN1Template NSSCMSOriginatorInfoTemplate[] = {
-    { SEC_ASN1_SEQUENCE,
-	  0, NULL, sizeof(NSSCMSOriginatorInfo) },
-    { SEC_ASN1_OPTIONAL | SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC | 0,
-	  offsetof(NSSCMSOriginatorInfo,rawCerts),
-	  SEC_SetOfAnyTemplate },
-    { SEC_ASN1_OPTIONAL | SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC | 1,
-	  offsetof(NSSCMSOriginatorInfo,crls),
-	  CERT_SetOfSignedCrlTemplate },
-    { 0 }
-};
-
 /* here come the 15 gazillion templates for all the v3 varieties of RecipientInfo */
-
-/* -----------------------------------------------------------------------------
- * recipient info
- */
-static const SEC_ASN1Template NSSCMSKeyTransRecipientInfoTemplate[];
-static const SEC_ASN1Template NSSCMSKeyAgreeRecipientInfoTemplate[];
-static const SEC_ASN1Template NSSCMSKEKRecipientInfoTemplate[];
-
-const SEC_ASN1Template NSSCMSRecipientInfoTemplate[] = {
-    { SEC_ASN1_CHOICE,
-	  offsetof(NSSCMSRecipientInfo,recipientInfoType), NULL,
-	  sizeof(NSSCMSRecipientInfo) },
-    { SEC_ASN1_EXPLICIT | SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC | 1,
-	  offsetof(NSSCMSRecipientInfo,ri.keyAgreeRecipientInfo),
-	  NSSCMSKeyAgreeRecipientInfoTemplate,
-	  NSSCMSRecipientInfoID_KeyAgree },
-    { SEC_ASN1_EXPLICIT | SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC | 2,
-	  offsetof(NSSCMSRecipientInfo,ri.kekRecipientInfo),
-	  NSSCMSKEKRecipientInfoTemplate,
-	  NSSCMSRecipientInfoID_KEK },
-    { SEC_ASN1_INLINE,
-	  offsetof(NSSCMSRecipientInfo,ri.keyTransRecipientInfo),
-	  NSSCMSKeyTransRecipientInfoTemplate,
-	  NSSCMSRecipientInfoID_KeyTrans },
-    { 0 }
-};
 
 /* -----------------------------------------------------------------------------
  * key transport recipient info
  */
 
-static const SEC_ASN1Template NSSCMSRecipientIdentifierTemplate[];
+static const SEC_ASN1Template NSSCMSRecipientIdentifierTemplate[] = {
+    { SEC_ASN1_CHOICE,
+	  offsetof(NSSCMSRecipientIdentifier,identifierType), NULL,
+	  sizeof(NSSCMSRecipientIdentifier) },
+    { SEC_ASN1_EXPLICIT | SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC | 0,
+	  offsetof(NSSCMSRecipientIdentifier,id.subjectKeyID),
+	  SEC_PointerToOctetStringTemplate,
+	  NSSCMSRecipientID_SubjectKeyID },
+    { SEC_ASN1_POINTER,
+	  offsetof(NSSCMSRecipientIdentifier,id.issuerAndSN),
+	  CERT_IssuerAndSNTemplate,
+	  NSSCMSRecipientID_IssuerSN },
+    { 0 }
+};
+
 
 static const SEC_ASN1Template NSSCMSKeyTransRecipientInfoTemplate[] = {
     { SEC_ASN1_SEQUENCE,
@@ -283,27 +269,81 @@ static const SEC_ASN1Template NSSCMSKeyTransRecipientInfoTemplate[] = {
     { 0 }
 };
 
-static const SEC_ASN1Template NSSCMSRecipientIdentifierTemplate[] = {
-    { SEC_ASN1_CHOICE,
-	  offsetof(NSSCMSRecipientIdentifier,identifierType), NULL,
-	  sizeof(NSSCMSRecipientIdentifier) },
-    { SEC_ASN1_EXPLICIT | SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC | 0,
-	  offsetof(NSSCMSRecipientIdentifier,id.subjectKeyID),
-	  SEC_PointerToOctetStringTemplate,
-	  NSSCMSRecipientID_SubjectKeyID },
-    { SEC_ASN1_POINTER,
-	  offsetof(NSSCMSRecipientIdentifier,id.issuerAndSN),
-	  CERT_IssuerAndSNTemplate,
-	  NSSCMSRecipientID_IssuerSN },
-    { 0 }
-};
-
 /* -----------------------------------------------------------------------------
  * key agreement recipient info
  */
 
-static const SEC_ASN1Template NSSCMSOriginatorIdentifierOrKeyTemplate[];
-static const SEC_ASN1Template NSSCMSRecipientEncryptedKeyTemplate[];
+static const SEC_ASN1Template NSSCMSOriginatorPublicKeyTemplate[] = {
+    { SEC_ASN1_SEQUENCE,
+	  0, NULL, sizeof(NSSCMSOriginatorPublicKey) },
+    { SEC_ASN1_INLINE,
+	  offsetof(NSSCMSOriginatorPublicKey,algorithmIdentifier),
+	  SECOID_AlgorithmIDTemplate },
+    { SEC_ASN1_INLINE,
+	  offsetof(NSSCMSOriginatorPublicKey,publicKey),
+	  SEC_BitStringTemplate },
+    { 0 }
+};
+
+
+static const SEC_ASN1Template NSSCMSOriginatorIdentifierOrKeyTemplate[] = {
+    { SEC_ASN1_CHOICE,
+	  offsetof(NSSCMSOriginatorIdentifierOrKey,identifierType), NULL,
+	  sizeof(NSSCMSOriginatorIdentifierOrKey) },
+    { SEC_ASN1_POINTER,
+	  offsetof(NSSCMSOriginatorIdentifierOrKey,id.issuerAndSN),
+	  CERT_IssuerAndSNTemplate,
+	  NSSCMSOriginatorIDOrKey_IssuerSN },
+    { SEC_ASN1_EXPLICIT | SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC | 1,
+	  offsetof(NSSCMSOriginatorIdentifierOrKey,id.subjectKeyID),
+	  SEC_PointerToOctetStringTemplate,
+	  NSSCMSOriginatorIDOrKey_SubjectKeyID },
+    { SEC_ASN1_EXPLICIT | SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC | 2,
+	  offsetof(NSSCMSOriginatorIdentifierOrKey,id.originatorPublicKey),
+	  NSSCMSOriginatorPublicKeyTemplate,
+	  NSSCMSOriginatorIDOrKey_OriginatorPublicKey },
+    { 0 }
+};
+
+static const SEC_ASN1Template NSSCMSRecipientKeyIdentifierTemplate[] = {
+    { SEC_ASN1_SEQUENCE,
+	  0, NULL, sizeof(NSSCMSRecipientKeyIdentifier) },
+    { SEC_ASN1_OCTET_STRING,
+	  offsetof(NSSCMSRecipientKeyIdentifier,subjectKeyIdentifier) },
+    { SEC_ASN1_OPTIONAL | SEC_ASN1_OCTET_STRING,
+	  offsetof(NSSCMSRecipientKeyIdentifier,date) },
+    { SEC_ASN1_OPTIONAL | SEC_ASN1_OCTET_STRING,
+	  offsetof(NSSCMSRecipientKeyIdentifier,other) },
+    { 0 }
+};
+
+
+static const SEC_ASN1Template NSSCMSKeyAgreeRecipientIdentifierTemplate[] = {
+    { SEC_ASN1_CHOICE,
+	  offsetof(NSSCMSKeyAgreeRecipientIdentifier,identifierType), NULL,
+	  sizeof(NSSCMSKeyAgreeRecipientIdentifier) },
+    { SEC_ASN1_POINTER,
+	  offsetof(NSSCMSKeyAgreeRecipientIdentifier,id.issuerAndSN),
+	  CERT_IssuerAndSNTemplate,
+	  NSSCMSKeyAgreeRecipientID_IssuerSN },
+    { SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC | 0,
+	  offsetof(NSSCMSKeyAgreeRecipientIdentifier,id.recipientKeyIdentifier),
+	  NSSCMSRecipientKeyIdentifierTemplate,
+	  NSSCMSKeyAgreeRecipientID_RKeyID },
+    { 0 }
+};
+
+static const SEC_ASN1Template NSSCMSRecipientEncryptedKeyTemplate[] = {
+    { SEC_ASN1_SEQUENCE,
+	  0, NULL, sizeof(NSSCMSRecipientEncryptedKey) },
+    { SEC_ASN1_INLINE,
+	  offsetof(NSSCMSRecipientEncryptedKey,recipientIdentifier),
+	  NSSCMSKeyAgreeRecipientIdentifierTemplate },
+    { SEC_ASN1_INLINE,
+	  offsetof(NSSCMSRecipientEncryptedKey,encKey),
+	  SEC_BitStringTemplate },
+    { 0 }
+};
 
 static const SEC_ASN1Template NSSCMSKeyAgreeRecipientInfoTemplate[] = {
     { SEC_ASN1_SEQUENCE,
@@ -326,88 +366,21 @@ static const SEC_ASN1Template NSSCMSKeyAgreeRecipientInfoTemplate[] = {
     { 0 }
 };
 
-static const SEC_ASN1Template NSSCMSOriginatorPublicKeyTemplate[];
-
-static const SEC_ASN1Template NSSCMSOriginatorIdentifierOrKeyTemplate[] = {
-    { SEC_ASN1_CHOICE,
-	  offsetof(NSSCMSOriginatorIdentifierOrKey,identifierType), NULL,
-	  sizeof(NSSCMSOriginatorIdentifierOrKey) },
-    { SEC_ASN1_POINTER,
-	  offsetof(NSSCMSOriginatorIdentifierOrKey,id.issuerAndSN),
-	  CERT_IssuerAndSNTemplate,
-	  NSSCMSOriginatorIDOrKey_IssuerSN },
-    { SEC_ASN1_EXPLICIT | SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC | 1,
-	  offsetof(NSSCMSOriginatorIdentifierOrKey,id.subjectKeyID),
-	  SEC_PointerToOctetStringTemplate,
-	  NSSCMSOriginatorIDOrKey_SubjectKeyID },
-    { SEC_ASN1_EXPLICIT | SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC | 2,
-	  offsetof(NSSCMSOriginatorIdentifierOrKey,id.originatorPublicKey),
-	  NSSCMSOriginatorPublicKeyTemplate,
-	  NSSCMSOriginatorIDOrKey_OriginatorPublicKey },
-    { 0 }
-};
-
-static const SEC_ASN1Template NSSCMSOriginatorPublicKeyTemplate[] = {
-    { SEC_ASN1_SEQUENCE,
-	  0, NULL, sizeof(NSSCMSOriginatorPublicKey) },
-    { SEC_ASN1_INLINE,
-	  offsetof(NSSCMSOriginatorPublicKey,algorithmIdentifier),
-	  SECOID_AlgorithmIDTemplate },
-    { SEC_ASN1_INLINE,
-	  offsetof(NSSCMSOriginatorPublicKey,publicKey),
-	  SEC_BitStringTemplate },
-    { 0 }
-};
-
-static const SEC_ASN1Template NSSCMSKeyAgreeRecipientIdentifierTemplate[];
-
-static const SEC_ASN1Template NSSCMSRecipientEncryptedKeyTemplate[] = {
-    { SEC_ASN1_SEQUENCE,
-	  0, NULL, sizeof(NSSCMSRecipientEncryptedKey) },
-    { SEC_ASN1_INLINE,
-	  offsetof(NSSCMSRecipientEncryptedKey,recipientIdentifier),
-	  NSSCMSKeyAgreeRecipientIdentifierTemplate },
-    { SEC_ASN1_INLINE,
-	  offsetof(NSSCMSRecipientEncryptedKey,encKey),
-	  SEC_BitStringTemplate },
-    { 0 }
-};
-
-static const SEC_ASN1Template NSSCMSRecipientKeyIdentifierTemplate[];
-
-static const SEC_ASN1Template NSSCMSKeyAgreeRecipientIdentifierTemplate[] = {
-    { SEC_ASN1_CHOICE,
-	  offsetof(NSSCMSKeyAgreeRecipientIdentifier,identifierType), NULL,
-	  sizeof(NSSCMSKeyAgreeRecipientIdentifier) },
-    { SEC_ASN1_POINTER,
-	  offsetof(NSSCMSKeyAgreeRecipientIdentifier,id.issuerAndSN),
-	  CERT_IssuerAndSNTemplate,
-	  NSSCMSKeyAgreeRecipientID_IssuerSN },
-    { SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC | 0,
-	  offsetof(NSSCMSKeyAgreeRecipientIdentifier,id.recipientKeyIdentifier),
-	  NSSCMSRecipientKeyIdentifierTemplate,
-	  NSSCMSKeyAgreeRecipientID_RKeyID },
-    { 0 }
-};
-
-static const SEC_ASN1Template NSSCMSRecipientKeyIdentifierTemplate[] = {
-    { SEC_ASN1_SEQUENCE,
-	  0, NULL, sizeof(NSSCMSRecipientKeyIdentifier) },
-    { SEC_ASN1_OCTET_STRING,
-	  offsetof(NSSCMSRecipientKeyIdentifier,subjectKeyIdentifier) },
-    { SEC_ASN1_OPTIONAL | SEC_ASN1_OCTET_STRING,
-	  offsetof(NSSCMSRecipientKeyIdentifier,date) },
-    { SEC_ASN1_OPTIONAL | SEC_ASN1_OCTET_STRING,
-	  offsetof(NSSCMSRecipientKeyIdentifier,other) },
-    { 0 }
-};
-
-
 /* -----------------------------------------------------------------------------
  * KEK recipient info
  */
 
-static const SEC_ASN1Template NSSCMSKEKIdentifierTemplate[];
+static const SEC_ASN1Template NSSCMSKEKIdentifierTemplate[] = {
+    { SEC_ASN1_SEQUENCE,
+	  0, NULL, sizeof(NSSCMSKEKIdentifier) },
+    { SEC_ASN1_OCTET_STRING,
+	  offsetof(NSSCMSKEKIdentifier,keyIdentifier) },
+    { SEC_ASN1_OPTIONAL | SEC_ASN1_OCTET_STRING,
+	  offsetof(NSSCMSKEKIdentifier,date) },
+    { SEC_ASN1_OPTIONAL | SEC_ASN1_OCTET_STRING,
+	  offsetof(NSSCMSKEKIdentifier,other) },
+    { 0 }
+};
 
 static const SEC_ASN1Template NSSCMSKEKRecipientInfoTemplate[] = {
     { SEC_ASN1_SEQUENCE,
@@ -425,15 +398,25 @@ static const SEC_ASN1Template NSSCMSKEKRecipientInfoTemplate[] = {
     { 0 }
 };
 
-static const SEC_ASN1Template NSSCMSKEKIdentifierTemplate[] = {
-    { SEC_ASN1_SEQUENCE,
-	  0, NULL, sizeof(NSSCMSKEKIdentifier) },
-    { SEC_ASN1_OCTET_STRING,
-	  offsetof(NSSCMSKEKIdentifier,keyIdentifier) },
-    { SEC_ASN1_OPTIONAL | SEC_ASN1_OCTET_STRING,
-	  offsetof(NSSCMSKEKIdentifier,date) },
-    { SEC_ASN1_OPTIONAL | SEC_ASN1_OCTET_STRING,
-	  offsetof(NSSCMSKEKIdentifier,other) },
+/* -----------------------------------------------------------------------------
+ * recipient info
+ */
+const SEC_ASN1Template NSSCMSRecipientInfoTemplate[] = {
+    { SEC_ASN1_CHOICE,
+	  offsetof(NSSCMSRecipientInfo,recipientInfoType), NULL,
+	  sizeof(NSSCMSRecipientInfo) },
+    { SEC_ASN1_EXPLICIT | SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC | 1,
+	  offsetof(NSSCMSRecipientInfo,ri.keyAgreeRecipientInfo),
+	  NSSCMSKeyAgreeRecipientInfoTemplate,
+	  NSSCMSRecipientInfoID_KeyAgree },
+    { SEC_ASN1_EXPLICIT | SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC | 2,
+	  offsetof(NSSCMSRecipientInfo,ri.kekRecipientInfo),
+	  NSSCMSKEKRecipientInfoTemplate,
+	  NSSCMSRecipientInfoID_KEK },
+    { SEC_ASN1_INLINE,
+	  offsetof(NSSCMSRecipientInfo,ri.keyTransRecipientInfo),
+	  NSSCMSKeyTransRecipientInfoTemplate,
+	  NSSCMSRecipientInfoID_KeyTrans },
     { 0 }
 };
 
