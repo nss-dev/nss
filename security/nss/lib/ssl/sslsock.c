@@ -285,11 +285,10 @@ ssl_DupSocket(sslSocket *os)
 	    int i;
 
 	    for (i=kt_null; i < kt_kea_size; i++) {
-		if (os->serverCert[i]) {
+		if (os->serverCert[i] && os->serverCertChain[i]) {
 		    ss->serverCert[i] = CERT_DupCertificate(os->serverCert[i]);
-		    ss->serverCertChain[i] = CERT_CertChainFromCert
-				(ss->serverCert[i], certUsageSSLServer, 
-				 PR_TRUE);
+		    ss->serverCertChain[i] = CERT_DupCertList(
+		                                       os->serverCertChain[i]);
 		} else {
 		    ss->serverCert[i]      = NULL;
 		    ss->serverCertChain[i] = NULL;
