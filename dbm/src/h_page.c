@@ -34,13 +34,6 @@
  * SUCH DAMAGE.
  */
 
-#if defined(unix)
-#define MY_LSEEK lseek
-#else
-#define MY_LSEEK new_lseek
-extern long new_lseek(int fd, long pos, int start);
-#endif
-
 #if defined(LIBC_SCCS) && !defined(lint)
 static char sccsid[] = "@(#)hash_page.c	8.7 (Berkeley) 8/16/94";
 #endif /* LIBC_SCCS and not lint */
@@ -91,7 +84,14 @@ static char sccsid[] = "@(#)hash_page.c	8.7 (Berkeley) 8/16/94";
 #include "page.h"
 /* #include "extern.h" */
 
-extern int mkstempflags(char *path, int extraFlags);
+#if defined(unix)
+#define MY_LSEEK lseek
+#else
+#define MY_LSEEK new_lseek
+extern long new_lseek(DBFILE_PTR fd, long pos, int start);
+#endif
+
+extern DBFILE_PTR mkstempflags(char *path, int extraFlags);
 
 static uint32	*fetch_bitmap __P((HTAB *, uint32));
 static uint32	 first_free __P((uint32));
@@ -111,7 +111,7 @@ static int	 ugly_split
  * writes zero's when extending a file
  * beyond the end.
  */
-long new_lseek(int fd, long offset, int origin)
+long new_lseek(DBFILE_PTR fd, long offset, int origin)
 {
  	long cur_pos=0;
 	long end_pos=0;
@@ -692,7 +692,8 @@ __get_page(HTAB *hashp,
 	int is_disk, 
 	int is_bitmap)
 {
-	register int fd, page;
+    register DBFILE_PTR fd;
+	register int page;
 	size_t size;
 	int rsize;
 	uint16 *bp;
@@ -700,7 +701,7 @@ __get_page(HTAB *hashp,
 	fd = hashp->fp;
 	size = hashp->BSIZE;
 
-	if ((fd == -1) || !is_disk) {
+	if ((fd == NO_FILE) || !is_disk) {
 		PAGE_INIT(p);
 		return (0);
 	}
@@ -828,13 +829,14 @@ __get_page(HTAB *hashp,
 extern int
 __put_page(HTAB *hashp, char *p, uint32 bucket, int is_bucket, int is_bitmap)
 {
-	register int fd, page;
+    register DBFILE_PTR fd;
+	register int page;
 	size_t size;
 	int wsize;
 	off_t offset;
 
 	size = hashp->BSIZE;
-	if ((hashp->fp == -1) && open_temp(hashp))
+	if ((hashp->fp == NO_FILE) && open_temp(hashp))
 		return (-1);
 	fd = hashp->fp;
 
@@ -1200,7 +1202,13 @@ open_temp(HTAB *hashp)
 #endif
 
 #if defined(_WIN32) || defined(_WINDOWS)
-	if ((hashp->fp = mkstempflags(filename, _O_BINARY|_O_TEMPORARY)) != -1) {
+	if ((hashp->fp = mkstempflags(filename,
+#if !defined(WINCE)
+        _O_BINARY|_O_TEMPORARY
+#else
+        0
+#endif
+        )) != NO_FILE) {
 		if (hashp->filename) {
 			free(hashp->filename);
 		}
@@ -1220,7 +1228,7 @@ open_temp(HTAB *hashp)
 	(void)sigprocmask(SIG_SETMASK, &oset, (sigset_t *)NULL);
 #endif
 #endif  /* !OS2 */
-	return (hashp->fp != -1 ? 0 : -1);
+	return (hashp->fp != NO_FILE ? 0 : -1);
 }
 
 /*

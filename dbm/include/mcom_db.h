@@ -213,10 +213,21 @@
 #endif
 
 #include <fcntl.h>
+#if defined(WINCE)
+#include "nspr.h"
+#endif
 
 #if defined(_WINDOWS) || defined(XP_OS2)
 #include <stdio.h>
 #include <io.h>
+
+#if !defined(WINCE)
+typedef int DBFILE_PTR;
+#define NO_FILE -1
+#else
+typedef PRFileDesc* DBFILE_PTR;
+#define NO_FILE NULL
+#endif
 
 #ifndef XP_OS2 
 #define MAXPATHLEN 	1024               
@@ -241,7 +252,7 @@
 #define O_ACCMODE       3       /* Mask for file access modes */
 #define EFTYPE 2000
 PR_BEGIN_EXTERN_C
-int mkstemp(const char *path);
+DBFILE_PTR mkstemp(const char *path);
 PR_END_EXTERN_C
 #endif	/* MACINTOSH */
 
@@ -326,7 +337,7 @@ typedef struct __db {
 	int (*seq)	(const struct __db *, DBT *, DBT *, uint);
 	int (*sync)	(const struct __db *, uint);
 	void *internal;			/* Access method private. */
-	int (*fd)	(const struct __db *);
+	DBFILE_PTR (*fd)	(const struct __db *);
 } DB;
 
 #define	BTREEMAGIC	0x053162

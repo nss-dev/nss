@@ -64,7 +64,11 @@ hcreate(uint nel)
 	info.cachesize = 0;
 	info.hash = NULL;
 	info.lorder = 0;
+#if !defined(WINCE)
 	dbp = (DB *)__hash_open(NULL, O_CREAT | O_RDWR, 0600, &info, 0);
+#else
+	dbp = (DB *)__hash_open(NULL, PR_CREATE_FILE | PR_RDWR, 0600, &info, 0);
+#endif
 	return ((int)dbp);
 }
 

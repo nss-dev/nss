@@ -60,6 +60,7 @@ static char sccsid[] = "@(#)hash_buf.c	8.5 (Berkeley) 7/15/94";
 #endif
 
 #include <errno.h>
+
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>

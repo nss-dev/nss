@@ -92,9 +92,14 @@ dbopen(const char *fname, int flags,int mode, DBTYPE type, const void *openinfo)
 	(O_CREAT | O_EXCL | O_EXLOCK | O_NONBLOCK | O_RDONLY |		\
 	 O_RDWR | O_SHLOCK | O_TRUNC)
 #else
+#if !defined(WINCE)
 #define	USE_OPEN_FLAGS							\
 	(O_CREAT | O_EXCL  | O_RDONLY |		\
 	 O_RDWR | O_TRUNC)
+#else
+#define	USE_OPEN_FLAGS \
+	(PR_CREATE_FILE | PR_EXCL | PR_RDONLY | PR_RDWR | PR_TRUNCATE)
+#endif
 #endif
 
 	if ((flags & ~(USE_OPEN_FLAGS | DB_FLAGS)) == 0)

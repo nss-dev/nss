@@ -33,6 +33,9 @@ typedef struct DIR_Struct {
  typedef          long gid_t;
  typedef          long off_t;
  typedef unsigned long nlink_t;
+#if defined(WINCE)
+ typedef unsigned short ino_t;
+#endif
 #endif 
 
 typedef struct timestruc {
@@ -45,7 +48,11 @@ struct dirent {                                 /* data from readdir() */
         ino_t           d_ino;                  /* inode number of entry */
         off_t           d_off;                  /* offset of disk direntory entry */
         unsigned short  d_reclen;               /* length of this record */
+#if !defined(WINCE)
         char            d_name[_MAX_FNAME];     /* name of file */
+#else
+        char            d_name[MAX_PATH];       /* name of file */
+#endif
 };
 
 #if !defined(__BORLANDC__) && !defined (__GNUC__)

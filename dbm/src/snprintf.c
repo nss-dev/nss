@@ -23,7 +23,7 @@
 #endif
 
 int
-#if defined(__STDC__) || defined(XP_OS2_VACPP)
+#if defined(__STDC__) || defined(XP_OS2_VACPP) || defined(WINCE)
 snprintf(char *str, size_t n, const char *fmt, ...)
 #else
 snprintf(str, n, fmt, va_alist)
@@ -39,7 +39,7 @@ snprintf(str, n, fmt, va_alist)
 #else
 	int rval;
 #endif
-#if defined(__STDC__) || defined(XP_OS2_VACPP)
+#if defined(__STDC__) || defined(XP_OS2_VACPP) || defined(WINCE)
 	va_start(ap, fmt);
 #else
 	va_start(ap);

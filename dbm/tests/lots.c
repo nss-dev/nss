@@ -564,7 +564,11 @@ main(int argc, char **argv)
           }
       }
 
+#if !defined(WINCE)
 	database = dbopen("test.db", O_RDWR | O_CREAT, 0644, DB_HASH, &hash_info);
+#else
+	database = dbopen("test.db", PR_RDWR | PR_CREATE_FILE, 0644, DB_HASH, &hash_info);
+#endif
 
 	if(!database)
 	  {
@@ -609,7 +613,11 @@ main(int argc, char **argv)
 	 	  {
 			/* close and reopen */
 			(*database->close)(database);
+#if !defined(WINCE)
 			database = dbopen("test.db", O_RDWR | O_CREAT, 0644, DB_HASH, 0);
+#else
+			database = dbopen("test.db", PR_RDWR | PR_CREATE_FILE, 0644, DB_HASH, 0);
+#endif
 			if(!database)
 	  		{
 				ReportError("Could not reopen database");
@@ -622,7 +630,11 @@ main(int argc, char **argv)
 		else
 		  {
 			/* reopen database without closeing the other */
+#if !defined(WINCE)
 			database = dbopen("test.db", O_RDWR | O_CREAT, 0644, DB_HASH, 0);
+#else
+			database = dbopen("test.db", PR_RDWR | PR_CREATE_FILE, 0644, DB_HASH, 0);
+#endif
 			if(!database)
 	  		{
 				ReportError("Could not reopen database "

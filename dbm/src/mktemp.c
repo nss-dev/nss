@@ -64,47 +64,51 @@ static char sccsid[] = "@(#)mktemp.c	8.1 (Berkeley) 6/4/93";
 #include "winfile.h"
 #endif
 
-static int _gettemp(char *path, register int *doopen, int extraFlags);
+static int _gettemp(char *path, register DBFILE_PTR *doopen, int extraFlags);
 
-int
+DBFILE_PTR
 mkstemp(char *path)
 {
 #ifdef XP_OS2
 	FILE *temp = tmpfile();
 
-	return (temp ? fileno(temp) : -1);
+	return (temp ? fileno(temp) : NO_FILE);
 #else
-	int fd;
+	DBFILE_PTR fd;
 
-	return (_gettemp(path, &fd, 0) ? fd : -1);
+	return (_gettemp(path, &fd, 0) ? fd : NO_FILE);
 #endif
 }
 
-int
+DBFILE_PTR
 mkstempflags(char *path, int extraFlags)
 {
-	int fd;
+	DBFILE_PTR fd;
 
-	return (_gettemp(path, &fd, extraFlags) ? fd : -1);
+	return (_gettemp(path, &fd, extraFlags) ? fd : NO_FILE);
 }
 
 char *
 mktemp(char *path)
 {
-	return(_gettemp(path, (int *)NULL, 0) ? path : (char *)NULL);
+	return(_gettemp(path, (DBFILE_PTR *)NULL, 0) ? path : (char *)NULL);
 }
 
 /* NB: This routine modifies its input string, and does not always restore it.
 ** returns 1 on success, 0 on failure.
 */
 static int 
-_gettemp(char *path, register int *doopen, int extraFlags)
+_gettemp(char *path, register DBFILE_PTR *doopen, int extraFlags)
 {    
 #if !defined(_WINDOWS) || defined(_WIN32)
 	extern int errno;                    
 #endif
 	register char *start, *trv;
+#if !defined(WINCE)
 	struct stat sbuf;
+#else
+    PRFileInfo prInfo;
+#endif
 	unsigned int pid;
 
 	pid = getpid();
@@ -124,6 +128,7 @@ _gettemp(char *path, register int *doopen, int extraFlags)
 			break;
 		saved = *trv;
 		if (saved == '/' || saved == '\\') {
+#if !defined(WINCE)
 			int rv;
 			*trv = '\0';
 			rv = stat(path, &sbuf);
@@ -134,21 +139,45 @@ _gettemp(char *path, register int *doopen, int extraFlags)
 				errno = ENOTDIR;
 				return(0);
 			}
+#else
+			PRStatus rv;
+
+			*trv = '\0';
+			rv = PR_GetFileInfo(path, &prInfo);
+			*trv = saved;
+			if (PR_FAILURE == rv)
+				return(0);
+			if (PR_FILE_DIRECTORY != prInfo.type) {
+				return(0);
+			}
+#endif
 			break;
 		}
 	}
 
 	for (;;) {
+#if !defined(WINCE)
 		if (doopen) {
 			if ((*doopen =
-			    open(path, O_CREAT|O_EXCL|O_RDWR|extraFlags, 0600)) >= 0)
+			    open(path, O_CREAT|O_EXCL|O_RDWR|extraFlags, 0600)) /* >= 0 */ > NO_FILE)
 				return(1);
 			if (errno != EEXIST)
 				return(0);
 		}
 		else if (stat(path, &sbuf))
 			return(errno == ENOENT ? 1 : 0);
-
+#else
+        if(doopen)
+        {
+            if((*doopen =
+                PR_Open(path, PR_CREATE_FILE|PR_EXCL|PR_RDWR|extraFlags, 0600)) != NO_FILE)
+                return(1);
+        }
+        else if(PR_FAILURE == PR_Access(path, PR_ACCESS_EXISTS))
+        {
+            return(1);
+        }
+#endif
 		/* tricky little algorithm for backward compatibility */
 		for (trv = start;;) {
 			if (!*trv)
