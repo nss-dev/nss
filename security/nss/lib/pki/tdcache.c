@@ -793,6 +793,7 @@ add_cert_to_cache (
 	    nssCertificate_Destroy(rvCert);
 	    return NULL;
 	}
+	STAN_ForceCERTCertificateUpdate(rvCert);
 	nssCertificate_Destroy(cert);
 	return rvCert;
     }
