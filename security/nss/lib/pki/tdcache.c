@@ -743,7 +743,7 @@ nssTrustDomain_AddCertsToCache
 		                                            &certs[i]->serial);
 		NSSCertificate_Destroy(certs[i]);
 		certs[i] = c;
-		NSS_ClearErrorStack();
+		nss_ClearErrorStack();
 		continue;
 	    }
 	    return PR_FAILURE;
