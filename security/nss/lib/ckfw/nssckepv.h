@@ -53,6 +53,8 @@ static const char NSSCKEPV_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$ ;
 #include "nssckft.h"
 #endif /* NSSCKFT_H */
 
+#include "nssckp.h"
+
 struct CK_FUNCTION_LIST {
   CK_VERSION version;
   CK_C_Initialize C_Initialize;
@@ -124,5 +126,7 @@ struct CK_FUNCTION_LIST {
   CK_C_CancelFunction C_CancelFunction;
   CK_C_WaitForSlotEvent C_WaitForSlotEvent;
 };
+
+#include "nsscku.h"
 
 #endif /* NSSCKEPV_H */
