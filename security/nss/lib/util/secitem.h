@@ -93,6 +93,13 @@ extern SECStatus SECITEM_CopyItem(PRArenaPool *arena, SECItem *to,
 extern SECItem *SECITEM_DupItem(const SECItem *from);
 
 /*
+** Allocate an item and copy "from" into it.  The item itself and the 
+** data it points to are both allocated from the arena.  If arena is
+** NULL, this function is equivalent to SECITEM_DupItem.
+*/
+extern SECItem *SECITEM_ArenaDupItem(PRArenaPool *arena, const SECItem *from);
+
+/*
 ** Free "zap". If freeit is PR_TRUE then "zap" itself is freed.
 */
 extern void SECITEM_FreeItem(SECItem *zap, PRBool freeit);

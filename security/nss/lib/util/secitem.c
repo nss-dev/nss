@@ -180,18 +180,32 @@ SECITEM_ItemsAreEqual(const SECItem *a, const SECItem *b)
 SECItem *
 SECITEM_DupItem(const SECItem *from)
 {
+    return SECITEM_ArenaDupItem(NULL, from);
+}
+
+SECItem *
+SECITEM_ArenaDupItem(PRArenaPool *arena, const SECItem *from)
+{
     SECItem *to;
     
     if ( from == NULL ) {
 	return(NULL);
     }
     
-    to = (SECItem *)PORT_Alloc(sizeof(SECItem));
+    if ( arena != NULL ) {
+	to = (SECItem *)PORT_ArenaAlloc(arena, sizeof(SECItem));
+    } else {
+	to = (SECItem *)PORT_Alloc(sizeof(SECItem));
+    }
     if ( to == NULL ) {
 	return(NULL);
     }
 
-    to->data = (unsigned char *)PORT_Alloc(from->len);
+    if ( arena != NULL ) {
+	to->data = (unsigned char *)PORT_ArenaAlloc(arena, from->len);
+    } else {
+	to->data = (unsigned char *)PORT_Alloc(from->len);
+    }
     if ( to->data == NULL ) {
 	PORT_Free(to);
 	return(NULL);
@@ -199,7 +213,9 @@ SECITEM_DupItem(const SECItem *from)
 
     to->len = from->len;
     to->type = from->type;
-    PORT_Memcpy(to->data, from->data, to->len);
+    if ( to->len ) {
+	PORT_Memcpy(to->data, from->data, to->len);
+    }
     
     return(to);
 }

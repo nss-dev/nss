@@ -91,6 +91,10 @@ NSS_CMSArray_Add(PRArenaPool *poolp, void ***array, void *obj)
 			      (n + 1) * sizeof(void *),
 			      (n + 2) * sizeof(void *));
     }
+
+    if (dest == NULL)
+	return SECFailure;
+
     dest[n] = obj;
     dest[n+1] = NULL;
     *array = dest;
