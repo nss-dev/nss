@@ -254,7 +254,7 @@ nssToken_LoadCerts(NSSToken *token)
 	search.cached = NULL;
 	search.searchType = nssTokenSearchType_TokenOnly;
 	if (!token->certList) {
-	    token->certList = nssList_Create(token->arena, PR_FALSE);
+	    token->certList = nssList_Create(token->base.arena, PR_FALSE);
 	    if (!token->certList) {
 		return PR_FAILURE;
 	    }

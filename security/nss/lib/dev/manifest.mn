@@ -39,6 +39,7 @@ PRIVATE_EXPORTS = \
 	devt.h     \
 	dev.h      \
 	nssdevt.h  \
+	nssdev.h   \
 	$(NULL)
 
 EXPORTS =	   \
