@@ -1904,7 +1904,19 @@ CERT_SaveImportedCert(CERTCertificate *cert, SECCertUsage usage,
     if ( caOnly && ( !isCA ) ) {
 	return(SECSuccess);
     }
-    
+    /* In NSS 3.4, certs are given zero trust upon import.  However, this
+    * function needs to set up default CA trust (CERTDB_VALID_CA), or
+    * PKCS#12 imported certs will not show up correctly.  In the case of a
+    * CA cert with zero trust, continue with this function.  But if the cert
+    * does already have some trust bits, exit and do not change them.
+    */
+    if (isCA && cert->trust && 
+        (cert->trust->sslFlags |
+         cert->trust->emailFlags |
+         cert->trust->objectSigningFlags)) {
+	return(SECSuccess);
+    }
+
     saveit = PR_TRUE;
     
     PORT_Memset((void *)&trust, 0, sizeof(trust));
