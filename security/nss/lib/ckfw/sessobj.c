@@ -1011,7 +1011,7 @@ nssCKMDFindSessionObjects_Create
   rv->Next = nss_ckmdFindSessionObjects_Next;
 
 #ifdef DEBUG
-  if( *pError != nss_ckmdFindSessionObjects_add_pointer(rv) ) {
+  if( (*pError = nss_ckmdFindSessionObjects_add_pointer(rv)) != CKR_OK ) {
     NSSArena_Destroy(arena);
     return (NSSCKMDFindObjects *)NULL;
   }
