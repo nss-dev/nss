@@ -32,14 +32,15 @@ PROTO = \
 	$(ROOT)/usr \
 	$(ROOT)/usr/lib \
 	$(ROOT)/usr/lib/mps \
-	$(ROOT)/usr/lib/mps/bin \
 	$(ROOT)/usr/include \
-	$(ROOT)/usr/include/mps
+	$(ROOT)/usr/include/mps \
+	$(ROOT)/usr/sfw \
+	$(ROOT)/usr/sfw/bin 
 
 ifdef USE_64
 PROTO += $(ROOT)/usr/lib/mps/sparcv9 \
-	$(ROOT)/usr/lib/mps/bin/sparcv9 \
-	$(ROOT)/usr/include/mps/sparcv9
+	$(ROOT)/usr/include/mps/sparcv9 \
+	$(ROOT)/usr/sfw/bin/sparcv9
 endif
 
 include Makefile.com
@@ -61,7 +62,7 @@ $(ROOT) $(ROOT)/%:
 ifdef USE_64
 $(ROOT)/usr/lib/mps/sparcv9: $(ROOT)/usr/lib/mps
 	$(LN) -sf ../../../../$(DIST)/lib $@
-$(ROOT)/usr/lib/mps/bin/sparcv9: $(ROOT)/usr/lib/mps/bin
+$(ROOT)/usr/sfw/bin/sparcv9: $(ROOT)/usr/sfw/bin
 	$(LN) -sf ../../../../../$(DIST)/bin $@
 $(ROOT)/usr/include/mps/sparcv9: $(ROOT)/usr/include
 	@if [ -d ../../../$(SOURCE_PREFIX)/$(HEADER_DIR_SINCE_3_6) ] ; then \
@@ -72,8 +73,8 @@ $(ROOT)/usr/include/mps/sparcv9: $(ROOT)/usr/include
 else
 $(ROOT)/usr/lib/mps: $(ROOT)/usr/lib
 	$(LN) -sf ../../../$(DIST)/lib $@
-$(ROOT)/usr/lib/mps/bin: $(ROOT)/usr/lib
-	$(LN) -sf ../bin $@
+$(ROOT)/usr/sfw/bin: $(ROOT)/usr/sfw
+	$(LN) -sf ../../../$(DIST)/bin $@
 $(ROOT)/usr/include/mps: $(ROOT)/usr/include
 	@if [ -d ../../../$(SOURCE_PREFIX)/$(HEADER_DIR_SINCE_3_6) ] ; then \
 		$(LN) -sf ../../../$(SOURCE_PREFIX)/$(HEADER_DIR_SINCE_3_6) $@ ; \
