@@ -827,19 +827,16 @@ pk11_ReferenceObject(PK11Object *object)
 static PK11Object *
 pk11_ObjectFromHandleOnSlot(CK_OBJECT_HANDLE handle, PK11Slot *slot)
 {
-    PK11Object **head;
     PZLock *lock;
     PK11Object *object;
+    PRUint32 index = pk11_hash(handle, TOKEN_OBJECT_HASH_SIZE);
 
-    head = slot->tokObjects;
-    lock = slot->objectLock;
-
-    PK11_USE_THREADS(PZ_Lock(lock);)
-    pk11queue_find(object,handle,head,TOKEN_OBJECT_HASH_SIZE);
+    PK11_USE_THREADS(PZ_Lock(slot->objectLock);)
+    pk11queue_find2(object, handle, index, slot->tokObjects);
     if (object) {
 	pk11_ReferenceObject(object);
     }
-    PK11_USE_THREADS(PZ_Unlock(lock);)
+    PK11_USE_THREADS(PZ_Unlock(slot->objectLock);)
 
     return(object);
 }
@@ -888,8 +885,10 @@ pk11_FreeObject(PK11Object *object)
 void
 pk11_AddSlotObject(PK11Slot *slot, PK11Object *object)
 {
+    PRUint32 index = pk11_hash(object->handle, TOKEN_OBJECT_HASH_SIZE);
+    pk11queue_init_element(object);
     PK11_USE_THREADS(PZ_Lock(slot->objectLock);)
-    pk11queue_add(object,object->handle,slot->tokObjects,TOKEN_OBJECT_HASH_SIZE);
+    pk11queue_add2(object, object->handle, index, slot->tokObjects);
     PK11_USE_THREADS(PZ_Unlock(slot->objectLock);)
 }
 
@@ -914,6 +913,7 @@ void
 pk11_DeleteObject(PK11Session *session, PK11Object *object)
 {
     PK11Slot *slot = pk11_SlotFromSession(session);
+    PRUint32 index = pk11_hash(object->handle, TOKEN_OBJECT_HASH_SIZE);
 
     if (object->session) {
 	PK11Session *session = object->session;
@@ -922,9 +922,9 @@ pk11_DeleteObject(PK11Session *session, PK11Object *object)
 	PK11_USE_THREADS(PZ_Unlock(session->objectLock);)
     }
     PK11_USE_THREADS(PZ_Lock(slot->objectLock);)
-    pk11queue_delete(object,object->handle,slot->tokObjects,
-						TOKEN_OBJECT_HASH_SIZE);
+    pk11queue_delete2(object, object->handle, index, slot->tokObjects);
     PK11_USE_THREADS(PZ_Unlock(slot->objectLock);)
+    pk11queue_clear_deleted_element(object);
     pk11_FreeObject(object);
 }
 
