@@ -2344,6 +2344,22 @@ ssl2_HandleRequestCertificate(sslSocket *ss)
 	goto no_cert_error;
     }
 
+    /* check what the callback function returned */
+    if ((!cert) || (!key)) {
+        /* we are missing either the key or cert */
+        if (cert) {
+            /* got a cert, but no key - free it */
+            CERT_DestroyCertificate(cert);
+            cert = NULL;
+        }
+        if (key) {
+            /* got a key, but no cert - free it */
+            SECKEY_DestroyPrivateKey(key);
+            key = NULL;
+        }
+        goto no_cert_error;
+    }
+
     rv = ssl2_SignResponse(ss, key, &response);
     if ( rv != SECSuccess ) {
 	ret = -1;
