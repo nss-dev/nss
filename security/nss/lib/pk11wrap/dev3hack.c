@@ -67,6 +67,7 @@ nssSession_ImportNSS3Session(NSSArena *arenaOpt,
     rvSession = nss_ZNEW(arenaOpt, nssSession);
     rvSession->handle = session;
     rvSession->lock = lock;
+    rvSession->ownLock = PR_FALSE;
     rvSession->isRW = rw;
     return rvSession;
 }
@@ -92,6 +93,9 @@ nssSlot_CreateSession
 	}
 	rvSession->isRW = PR_TRUE;
 	rvSession->slot = slot;
+        /* actually, should get it's own lock if slot->lock is NULL */
+        rvSession->lock = slot->lock;
+        rvSession->ownLock = PR_FALSE;
 	return rvSession;
     } else {
 	return NULL;
@@ -136,6 +140,7 @@ nssSlot_CreateFromPK11SlotInfo(NSSTrustDomain *td, PK11SlotInfo *nss3slot)
     rvSlot->slotID = nss3slot->slotID;
     /* Grab the slot name from the PKCS#11 fixed-length buffer */
     rvSlot->base.name = nssUTF8_Duplicate(nss3slot->slot_name,td->arena);
+    rvSlot->lock = (nss3slot->isThreadSafe) ? NULL : nss3slot->sessionLock;
     return rvSlot;
 }
 
