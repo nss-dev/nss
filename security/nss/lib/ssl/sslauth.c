@@ -229,6 +229,9 @@ SSL_AuthCertificate(void *arg, PRFileDesc *fd, PRBool checkSig, PRBool isServer)
     
     ss = ssl_FindSocket(fd);
     PORT_Assert(ss != NULL);
+    if (!ss) {
+	return SECFailure;
+    }
 
     handle = (CERTCertDBHandle *)arg;
 
