@@ -109,7 +109,7 @@ builtins_mdFindObjects_Next
 }
 
 static int
-builtins_derUnwrapInt(char *src, int size, char **dest) {
+builtins_derUnwrapInt(unsigned char *src, int size, unsigned char **dest) {
     unsigned char *start = src;
     int len = 0;
 
