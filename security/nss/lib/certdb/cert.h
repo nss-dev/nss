@@ -1060,6 +1060,9 @@ CERT_RemoveCertListNode(CERTCertListNode *node);
 SECStatus
 CERT_AddCertToListTail(CERTCertList *certs, CERTCertificate *cert);
 
+SECStatus
+CERT_AddCertToListHead(CERTCertList *certs, CERTCertificate *cert);
+
 typedef PRBool (* CERTSortCallback)(CERTCertificate *certa,
 				    CERTCertificate *certb,
 				    void *arg);
