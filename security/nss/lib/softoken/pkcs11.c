@@ -1040,7 +1040,6 @@ pk11_handlePublicKeyObject(PK11Session *session, PK11Object *object,
     CK_BBOOL derive = CK_FALSE;
     CK_BBOOL verify = CK_TRUE;
     CK_ATTRIBUTE_TYPE pubKeyAttr = CKA_VALUE;
-    PK11Attribute *attribute;
     CK_RV crv;
 
     switch (key_type) {
@@ -2852,6 +2851,8 @@ CK_RV nsc_CommonFinalize (CK_VOID_PTR pReserved, PRBool isFIPS)
 	return CKR_OK;
     }
 
+    pk11_CleanupFreeLists();
+    nsslowcert_DestroyFreeLists();
     nsslowcert_DestroyGlobalLocks();
 
 #ifdef LEAK_TEST
@@ -2867,7 +2868,6 @@ CK_RV nsc_CommonFinalize (CK_VOID_PTR pReserved, PRBool isFIPS)
     RNG_RNGShutdown();
 #endif
 
-    pk11_CleanupFreeLists();
     /* tell freeBL to clean up after itself */
     BL_Cleanup();
     /* clean up the default OID table */

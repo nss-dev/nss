@@ -148,12 +148,12 @@ extern SECStatus DER_TimeToUTCTimeArena(PRArenaPool* arenaOpt,
 **	"result" the resulting "UNIX" time
 **	"string" the der notation ascii value to decode
 */
-extern SECStatus DER_AsciiToTime(int64 *result, char *string);
+extern SECStatus DER_AsciiToTime(int64 *result, const char *string);
 
 /*
 ** Same as DER_AsciiToTime except takes an SECItem instead of a string
 */
-extern SECStatus DER_UTCTimeToTime(int64 *result, SECItem *time);
+extern SECStatus DER_UTCTimeToTime(int64 *result, const SECItem *time);
 
 /*
 ** Convert a DER encoded UTC time to an ascii time representation
@@ -186,7 +186,7 @@ extern SECStatus DER_TimeToGeneralizedTimeArena(PRArenaPool* arenaOpt,
 **	"dst" the resulting "UNIX" time
 **	"string" the der notation ascii value to decode
 */
-extern SECStatus DER_GeneralizedTimeToTime(int64 *dst, SECItem *time);
+extern SECStatus DER_GeneralizedTimeToTime(int64 *dst, const SECItem *time);
 
 /*
 ** Convert from a int64 UTC time value to a formatted ascii value. The
@@ -206,12 +206,12 @@ extern char *CERT_GenTime2FormattedAscii (int64 genTime, char *format);
 ** or a SEC_ASN1_UTC_TIME
 */
 
-extern SECStatus CERT_DecodeTimeChoice(PRTime* output, SECItem* input);
+extern SECStatus DER_DecodeTimeChoice(PRTime* output, const SECItem* input);
 
 /* encode a PRTime to an ASN.1 DER SECItem containing either a
    SEC_ASN1_GENERALIZED_TIME or a SEC_ASN1_UTC_TIME */
 
-extern SECStatus CERT_EncodeTimeChoice(PRArenaPool* arena, SECItem* output,
+extern SECStatus DER_EncodeTimeChoice(PRArenaPool* arena, SECItem* output,
                                        PRTime input);
 
 SEC_END_PROTOS

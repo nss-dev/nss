@@ -86,13 +86,11 @@ NSS_CMSAttribute_Create(PRArenaPool *poolp, SECOidTag oidtag, SECItem *value, PR
 	goto loser;
 
     if (value != NULL) {
-	if ((copiedvalue = SECITEM_AllocItem(poolp, NULL, value->len)) == NULL)
+	if ((copiedvalue = SECITEM_ArenaDupItem(poolp, value)) == NULL)
 	    goto loser;
 
-	if (SECITEM_CopyItem(poolp, copiedvalue, value) != SECSuccess)
+	if (NSS_CMSArray_Add(poolp, (void ***)&(attr->values), (void *)copiedvalue) != SECSuccess)
 	    goto loser;
-
-	NSS_CMSArray_Add(poolp, (void ***)&(attr->values), (void *)copiedvalue);
     }
 
     attr->encoded = encoded;
@@ -113,18 +111,22 @@ loser:
 SECStatus
 NSS_CMSAttribute_AddValue(PLArenaPool *poolp, NSSCMSAttribute *attr, SECItem *value)
 {
-    SECItem copiedvalue;
+    SECItem *copiedvalue;
     void *mark;
 
     PORT_Assert (poolp != NULL);
 
     mark = PORT_ArenaMark(poolp);
 
-    /* XXX we need an object memory model #$%#$%! */
-    if (SECITEM_CopyItem(poolp, &copiedvalue, value) != SECSuccess)
+    if (value == NULL) {
+	PORT_SetError(SEC_ERROR_INVALID_ARGS);
+	goto loser;
+    }
+
+    if ((copiedvalue = SECITEM_ArenaDupItem(poolp, value)) == NULL)
 	goto loser;
 
-    if (NSS_CMSArray_Add(poolp, (void ***)&(attr->values), (void *)&copiedvalue) != SECSuccess)
+    if (NSS_CMSArray_Add(poolp, (void ***)&(attr->values), (void *)copiedvalue) != SECSuccess)
 	goto loser;
 
     PORT_ArenaUnmark(poolp, mark);
@@ -217,9 +219,12 @@ cms_attr_choose_attr_value_template(void *src_or_dest, PRBool encoding)
 
     attribute = (NSSCMSAttribute *)src_or_dest;
 
-    if (encoding && attribute->encoded)
-	/* we're encoding, and the attribute value is already encoded. */
-	return SEC_ASN1_GET(SEC_AnyTemplate);
+    if (encoding && (!attribute->values || !attribute->values[0] ||
+        attribute->encoded)) {
+        /* we're encoding, and the attribute has no value or the attribute
+         * value is already encoded. */
+        return SEC_ASN1_GET(SEC_AnyTemplate);
+    }
 
     /* get attribute's typeTag */
     oiddata = attribute->typeTag;

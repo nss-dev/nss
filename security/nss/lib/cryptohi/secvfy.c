@@ -360,7 +360,6 @@ VFY_EndWithSignature(VFYContext *cx, SECItem *sig)
     unsigned part;
     SECItem hash,dsasig; /* dsasig is also used for ECDSA */
     SECStatus rv;
-    int rawSigLen;
 
     if ((cx->hasSignature == PR_FALSE) && (sig == NULL)) {
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);

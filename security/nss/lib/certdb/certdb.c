@@ -963,13 +963,13 @@ CERT_GetCertTimes(CERTCertificate *c, PRTime *notBefore, PRTime *notAfter)
     }
     
     /* convert DER not-before time */
-    rv = CERT_DecodeTimeChoice(notBefore, &c->validity.notBefore);
+    rv = DER_DecodeTimeChoice(notBefore, &c->validity.notBefore);
     if (rv) {
 	return(SECFailure);
     }
     
     /* convert DER not-after time */
-    rv = CERT_DecodeTimeChoice(notAfter, &c->validity.notAfter);
+    rv = DER_DecodeTimeChoice(notAfter, &c->validity.notAfter);
     if (rv) {
 	return(SECFailure);
     }
@@ -1020,14 +1020,14 @@ SEC_GetCrlTimes(CERTCrl *date, PRTime *notBefore, PRTime *notAfter)
     int rv;
     
     /* convert DER not-before time */
-    rv = CERT_DecodeTimeChoice(notBefore, &date->lastUpdate);
+    rv = DER_DecodeTimeChoice(notBefore, &date->lastUpdate);
     if (rv) {
 	return(SECFailure);
     }
     
     /* convert DER not-after time */
     if (date->nextUpdate.data) {
-	rv = CERT_DecodeTimeChoice(notAfter, &date->nextUpdate);
+	rv = DER_DecodeTimeChoice(notAfter, &date->nextUpdate);
 	if (rv) {
 	    return(SECFailure);
 	}
@@ -2245,7 +2245,7 @@ CERT_ImportCerts(CERTCertDBHandle *certdb, SECCertUsage usage,
     unsigned int fcerts = 0;
 
     if ( ncerts ) {
-	certs = (CERTCertificate**)PORT_ZAlloc(sizeof(CERTCertificate *) * ncerts );
+	certs = PORT_ZNewArray(CERTCertificate*, ncerts);
 	if ( certs == NULL ) {
 	    return(SECFailure);
 	}
@@ -2306,18 +2306,7 @@ CERT_ImportCerts(CERTCertDBHandle *certdb, SECCertUsage usage,
 	}
     }
 
-    return(SECSuccess);
-    
-#if 0	/* dead code here - why ?? XXX */
-loser:
-    if ( retCerts ) {
-	*retCerts = NULL;
-    }
-    if ( certs ) {
-	CERT_DestroyCertArray(certs, ncerts);
-    }    
-    return(SECFailure);
-#endif
+    return (fcerts ? SECSuccess : SECFailure);
 }
 
 /*
@@ -2609,7 +2598,7 @@ CERT_FilterCertListByUsage(CERTCertList *certList, SECCertUsage usage,
 		 * takes trust flags into consideration.  Should probably
 		 * fix the cert decoding code to do this.
 		 */
-		PRBool dummyret = CERT_IsCACert(node->cert, &certType);
+		(void)CERT_IsCACert(node->cert, &certType);
 	    } else {
 		certType = node->cert->nsCertType;
 	    }

@@ -61,6 +61,9 @@
 */
 #define MAX_KEY_GEN_ATTEMPTS 10
 
+#define MAX_RSA_MODULUS  1024 /* bytes, 8k bits */
+#define MAX_RSA_EXPONENT    8 /* bytes, 64 bits */
+
 /*
 ** RSABlindingParamsStr
 **
@@ -310,7 +313,7 @@ RSA_PublicKeyOp(RSAPublicKey  *key,
                 unsigned char *output, 
                 const unsigned char *input)
 {
-    unsigned int modLen;
+    unsigned int modLen, expLen;
     mp_int n, e, m, c;
     mp_err err   = MP_OKAY;
     SECStatus rv = SECSuccess;
@@ -327,9 +330,22 @@ RSA_PublicKeyOp(RSAPublicKey  *key,
     CHECK_MPI_OK( mp_init(&m) );
     CHECK_MPI_OK( mp_init(&c) );
     modLen = rsa_modulusLen(&key->modulus);
+    expLen = rsa_modulusLen(&key->publicExponent);
     /* 1.  Obtain public key (n, e) */
+    if (expLen > modLen || modLen > MAX_RSA_MODULUS || expLen > MAX_RSA_EXPONENT) {
+	/* exponent should not be greater than modulus */
+    	PORT_SetError(SEC_ERROR_INVALID_KEY);
+	rv = SECFailure;
+	goto cleanup;
+    }
     SECITEM_TO_MPINT(key->modulus, &n);
     SECITEM_TO_MPINT(key->publicExponent, &e);
+    if (e.used > n.used) {
+	/* exponent should not be greater than modulus */
+    	PORT_SetError(SEC_ERROR_INVALID_KEY);
+	rv = SECFailure;
+	goto cleanup;
+    }
     /* 2.  Represent message as integer in range [0..n-1] */
     CHECK_MPI_OK( mp_read_unsigned_octets(&m, input, modLen) );
     /* 3.  Compute c = m**e mod n */

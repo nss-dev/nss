@@ -73,7 +73,7 @@ static PRBool pk11_FindAttrInTemplate(CK_ATTRIBUTE *attr,
 	unsigned int numAttrs, CK_ATTRIBUTE_TYPE target);
 
 #ifdef NSS_ENABLE_ECC
-extern int SECKEY_ECParams2KeySize(SECItem *params);
+extern int SECKEY_ECParamsToKeySize(const SECItem *params);
 #endif /* NSS_ENABLE_ECC */
 
 /*
@@ -1281,7 +1281,7 @@ PK11_SignatureLen(SECKEYPrivateKey *key)
 	    if (theTemplate.pValue != NULL) {
 	        params.len = theTemplate.ulValueLen;
 		params.data = (unsigned char *) theTemplate.pValue;
-	        length = SECKEY_ECParams2KeySize(&params);
+	        length = SECKEY_ECParamsToKeySize(&params);
 	        PORT_Free(theTemplate.pValue);
 	    }
 	    length = ((length + 7)/8) * 2;
@@ -1428,7 +1428,7 @@ pk11_ForceSlot(PK11SymKey *symKey,CK_MECHANISM_TYPE type,
 }
 
 PK11SymKey *
-PK11_MoveKey(PK11SlotInfo *slot, CK_ATTRIBUTE_TYPE operation, 
+PK11_MoveSymKey(PK11SlotInfo *slot, CK_ATTRIBUTE_TYPE operation, 
 			CK_FLAGS flags, PRBool  perm, PK11SymKey *symKey)
 {
     if (symKey->slot == slot) {
@@ -3000,11 +3000,11 @@ PK11_PubDerive(SECKEYPrivateKey *privKey, SECKEYPublicKey *pubKey,
 }
 
 PK11SymKey *
-PK11_PubDeriveExtended(SECKEYPrivateKey *privKey, SECKEYPublicKey *pubKey, 
+PK11_PubDeriveWithKDF(SECKEYPrivateKey *privKey, SECKEYPublicKey *pubKey, 
 	PRBool isSender, SECItem *randomA, SECItem *randomB, 
 	CK_MECHANISM_TYPE derive, CK_MECHANISM_TYPE target,
-	CK_ATTRIBUTE_TYPE operation, int keySize,void *wincx,
-	CK_ULONG kdf, SECItem *sharedData)
+	CK_ATTRIBUTE_TYPE operation, int keySize,
+	CK_ULONG kdf, SECItem *sharedData, void *wincx)
 {
     PK11SlotInfo *slot = privKey->pkcs11Slot;
     PK11SymKey *symKey;

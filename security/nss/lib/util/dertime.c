@@ -125,9 +125,15 @@ DER_TimeToUTCTime(SECItem *dst, int64 gmttime)
     return DER_TimeToUTCTimeArena(NULL, dst, gmttime);
 }
 
-
+/* The caller of DER_AsciiToItem MUST ENSURE that either
+** a) "string" points to a null-terminated ASCII string, or
+** b) "string" points to a buffer containing a valid UTCTime, 
+**     whether null terminated or not.
+** otherwise, this function may UMR and/or crash.
+** It suffices to ensure that the input "string" is at least 17 bytes long.
+*/
 SECStatus
-DER_AsciiToTime(int64 *dst, char *string)
+DER_AsciiToTime(int64 *dst, const char *string)
 {
     long year, month, mday, hour, minute, second, hourOff, minOff, days;
     int64 result, tmp1, tmp2;
@@ -223,9 +229,27 @@ DER_AsciiToTime(int64 *dst, char *string)
 }
 
 SECStatus
-DER_UTCTimeToTime(int64 *dst, SECItem *time)
+DER_UTCTimeToTime(int64 *dst, const SECItem *time)
 {
-    return DER_AsciiToTime(dst, (char*) time->data);
+    const char * string;
+    char localBuf[20]; 
+
+    /* Minimum valid UTCTime is yymmddhhmmZ       which is 11 bytes. 
+    ** Maximum valid UTCTime is yymmddhhmmss+0000 which is 17 bytes.
+    ** 20 should be large enough for all valid encoded times. 
+    */
+    if (!time || !time->data || time->len < 11) {
+	PORT_SetError(SEC_ERROR_INVALID_TIME);
+	return SECFailure;
+    }
+    if (time->len >= sizeof localBuf) { 
+	string = (const char *)time->data;
+    } else {
+	memset(localBuf, 0, sizeof localBuf);
+	memcpy(localBuf, time->data, time->len);
+        string = (const char *)localBuf;
+    }
+    return DER_AsciiToTime(dst, string);
 }
 
 /*
@@ -292,15 +316,29 @@ DER_TimeToGeneralizedTime(SECItem *dst, int64 gmttime)
     the certificate should be consider invalid!?
  */
 SECStatus
-DER_GeneralizedTimeToTime(int64 *dst, SECItem *time)
+DER_GeneralizedTimeToTime(int64 *dst, const SECItem *time)
 {
     PRExplodedTime genTime;
-    char *string;
+    const char *string;
     long hourOff, minOff;
     uint16 century;
+    char localBuf[20];
 
-    string = (char *)time->data;
-    PORT_Memset (&genTime, 0, sizeof (genTime));
+    /* Minimum valid GeneralizedTime is ccyymmddhhmmZ       which is 13 bytes.
+    ** Maximum valid GeneralizedTime is ccyymmddhhmmss+0000 which is 19 bytes.
+    ** 20 should be large enough for all valid encoded times. 
+    */
+    if (!time || !time->data || time->len < 13)
+        goto loser;
+    if (time->len >= sizeof localBuf) {
+        string = (const char *)time->data;
+    } else {
+	memset(localBuf, 0, sizeof localBuf);
+        memcpy(localBuf, time->data, time->len);
+	string = (const char *)localBuf;
+    }
+
+    memset(&genTime, 0, sizeof genTime);
 
     /* Verify time is formatted properly and capture information */
     hourOff = 0;

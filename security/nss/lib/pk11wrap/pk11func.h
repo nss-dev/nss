@@ -140,12 +140,12 @@ SECStatus PK11_TokenRefresh(PK11SlotInfo *slot);
 PK11SlotInfo *PK11_FindSlotByName(char *name);
 PK11SlotInfo *PK11_FindSlotBySerial(char *serial);
 /******************************************************************
- * PK11_FindSlotsByAliases searches for a PK11SlotInfo using one or
+ * PK11_FindSlotsByNames searches for a PK11SlotInfo using one or
  * more criteria : dllName, slotName and tokenName . In addition, if
  * presentOnly is set , only slots with a token inserted will be
  * returned.
  ******************************************************************/
-PK11SlotList *PK11_FindSlotsByAliases(const char *dllName,
+PK11SlotList *PK11_FindSlotsByNames(const char *dllName,
         const char* slotName, const char* tokenName, PRBool presentOnly);
 PRBool PK11_IsReadOnly(PK11SlotInfo *slot);
 PRBool PK11_IsInternal(PK11SlotInfo *slot);
@@ -304,7 +304,7 @@ SECStatus PK11_WrapSymKey(CK_MECHANISM_TYPE type, SECItem *params,
  * operation or the  flags and making the key permanent at the same time.
  * If the key is moved to the same slot, operation and flags values are 
  * currently ignored */
-PK11SymKey *PK11_MoveKey(PK11SlotInfo *slot, CK_ATTRIBUTE_TYPE operation, 
+PK11SymKey *PK11_MoveSymKey(PK11SlotInfo *slot, CK_ATTRIBUTE_TYPE operation, 
 			CK_FLAGS flags, PRBool  perm, PK11SymKey *symKey);
 /*
  * derive a new key from the base key.
@@ -330,11 +330,11 @@ PK11SymKey *PK11_PubDerive( SECKEYPrivateKey *privKey,
  SECKEYPublicKey *pubKey, PRBool isSender, SECItem *randomA, SECItem *randomB,
  CK_MECHANISM_TYPE derive, CK_MECHANISM_TYPE target,
 		 CK_ATTRIBUTE_TYPE operation, int keySize,void *wincx) ;
-PK11SymKey *PK11_PubDeriveExtended( SECKEYPrivateKey *privKey, 
+PK11SymKey *PK11_PubDeriveWithKDF( SECKEYPrivateKey *privKey, 
  SECKEYPublicKey *pubKey, PRBool isSender, SECItem *randomA, SECItem *randomB,
  CK_MECHANISM_TYPE derive, CK_MECHANISM_TYPE target,
-		 CK_ATTRIBUTE_TYPE operation, int keySize,void *wincx,
-		 CK_ULONG kdf, SECItem *sharedData);
+		 CK_ATTRIBUTE_TYPE operation, int keySize,
+		 CK_ULONG kdf, SECItem *sharedData, void *wincx);
 
 /*
  * unwrap a new key with a symetric key.
