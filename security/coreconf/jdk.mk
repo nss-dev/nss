@@ -118,7 +118,7 @@ ifeq ($(OS_ARCH), WINNT)
 endif
 
 # set [Sun Solaris] platforms
-ifeq ($(OS_ARCH), SunOS)
+ifeq ($(OS_TARGET), SunOS)
 	JAVA_CLASSES = $(JAVA_HOME)/lib/classes.zip
 
 	ifeq ($(JRE_HOME),)
@@ -139,11 +139,7 @@ ifeq ($(OS_ARCH), SunOS)
 	INCLUDES += -I$(JAVA_HOME)/include/$(JAVA_ARCH)
 
 	# (3) specify "linker" information
-ifeq ($(USE_64), 1)
-	JAVA_CPU = $(shell uname -p)v9
-else
 	JAVA_CPU = $(shell uname -p)
-endif
 
 ifeq ($(JDK_VERSION), 1.1)
 	JAVA_LIBDIR = lib/$(JAVA_CPU)
@@ -157,11 +153,7 @@ endif
 	JAVA_CLIBS = -lthread
 
 ifneq ($(JDK_VERSION), 1.1)
-ifeq ($(USE_64), 1)
-	JAVA_LIBS += -L$(JAVA_HOME)/$(JAVA_LIBDIR)/server
-else
 	JAVA_LIBS += -L$(JAVA_HOME)/$(JAVA_LIBDIR)/classic
-endif
 	JAVA_LIBS += -L$(JAVA_HOME)/$(JAVA_LIBDIR)
 	JAVA_LIBS += -ljvm -ljava
 else
@@ -176,7 +168,7 @@ endif
 endif
 
 # set [Hewlett Packard HP-UX] platforms
-ifeq ($(OS_ARCH), HP-UX)
+ifeq ($(OS_TARGET), HP-UX)
 	JAVA_CLASSES = $(JAVA_HOME)/lib/classes.zip
 
 	ifeq ($(JRE_HOME),)
@@ -215,7 +207,7 @@ ifeq ($(OS_ARCH), HP-UX)
 endif
 
 # set [Redhat Linux] platforms
-ifeq ($(OS_ARCH), Linux)
+ifeq ($(OS_TARGET), Linux)
 	JAVA_CLASSES = $(JAVA_HOME)/lib/classes.zip
 
 	ifeq ($(JRE_HOME),)
@@ -243,11 +235,7 @@ ifeq ($(OS_ARCH), Linux)
 	JAVA_CLIBS =
 
 	JAVA_LIBS  = -L$(JAVA_HOME)/$(JAVA_LIBDIR)/$(JDK_THREADING_MODEL) -lhpi
-        ifeq ($(JDK_VERSION), 1.4)
-	    JAVA_LIBS += -L$(JAVA_HOME)/$(JAVA_LIBDIR)/server -ljvm
-        else
-	    JAVA_LIBS += -L$(JAVA_HOME)/$(JAVA_LIBDIR)/classic -ljvm
-	endif
+	JAVA_LIBS += -L$(JAVA_HOME)/$(JAVA_LIBDIR)/classic -ljvm
 	JAVA_LIBS += -L$(JAVA_HOME)/$(JAVA_LIBDIR) -ljava
 	JAVA_LIBS += $(JAVA_CLIBS)
 
@@ -258,7 +246,7 @@ ifeq ($(OS_ARCH), Linux)
 endif
 
 # set [IBM AIX] platforms
-ifeq ($(OS_ARCH), AIX)
+ifeq ($(OS_TARGET), AIX)
 	JAVA_CLASSES = $(JAVA_HOME)/lib/classes.zip
 
 	ifeq ($(JRE_HOME),)
@@ -297,7 +285,7 @@ ifeq ($(OS_ARCH), AIX)
 endif
 
 # set [Digital UNIX] platforms
-ifeq ($(OS_ARCH), OSF1)
+ifeq ($(OS_TARGET), OSF1)
 	JAVA_CLASSES = $(JAVA_HOME)/lib/classes.zip
 
 	ifeq ($(JRE_HOME),)
@@ -336,7 +324,7 @@ ifeq ($(OS_ARCH), OSF1)
 endif
 
 # set [Silicon Graphics IRIX] platforms
-ifeq ($(OS_ARCH), IRIX)
+ifeq ($(OS_TARGET), IRIX)
 	JAVA_CLASSES = $(JAVA_HOME)/lib/dev.jar:$(JAVA_HOME)/lib/rt.jar
 
 	ifeq ($(JRE_HOME),)
@@ -408,9 +396,6 @@ ifeq ($(JDK_CLASSPATH_OPT),)
 	JDK_CLASSPATH_OPT = -classpath $(JDK_CLASSPATH)
 endif
 
-ifeq ($(USE_64), 1)
-	JDK_USE_64 = -d64
-endif
 
 endif
 
@@ -452,7 +437,6 @@ ifeq ($(JAVA),)
 	JAVA_FLAGS += $(JDK_DEBUG_OPT)
 	JAVA_FLAGS += $(JDK_CLASSPATH_OPT)
 	JAVA_FLAGS += $(JDK_JIT_OPT)
-	JAVA_FLAGS += $(JDK_USE_64)
 	JAVA        = $(JAVA_PROG) $(JAVA_FLAGS) 
 endif
 
@@ -467,7 +451,6 @@ ifeq ($(JAVAC),)
 	JAVAC_FLAGS += $(JDK_DEBUG_OPT)
 	JAVAC_FLAGS += $(JDK_CLASSPATH_OPT)
 	JAVAC_FLAGS += $(JDK_CLASS_REPOSITORY_OPT)
-	JAVAC_FLAGS += $(JDK_USE_64)
 	JAVAC        = $(JAVAC_PROG) $(JAVAC_FLAGS)
 endif
 
