@@ -1,4 +1,3 @@
-#! gmake
 #
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
@@ -31,25 +30,15 @@
 # may use your version of this file under either the MPL or the
 # GPL.
 #
+# Config stuff for SunOS5.9
+#
 
-CORE_DEPTH = ../..
+SOL_CFLAGS += -D_SVID_GETTOD
 
-MODULE = dbm
+include $(CORE_DEPTH)/coreconf/SunOS5.mk
 
-CSRCS = db.c	   \
-	h_bigkey.c \
-	h_func.c   \
-	h_log2.c   \
-	h_page.c   \
-	hash.c	   \
-	hash_buf.c \
-	hsearch.c  \
-	memmove.c  \
-	mktemp.c   \
-	ndbm.c	   \
-#	snprintf.c \
-	strerror.c \
-	nsres.c	   \
-	$(NULL)
+ifeq ($(OS_RELEASE),5.9)
+	OS_DEFINES += -DSOLARIS2_9
+endif
 
-LIBRARY_NAME = dbm
+OS_LIBS += -lthread -lnsl -lsocket -lposix4 -ldl -lc 

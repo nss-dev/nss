@@ -153,7 +153,7 @@ NSPR_INCLUDE_DIR =
 
 
 ifdef BUILD_OPT
-OPTIMIZER		= -O+ -Oi 
+OPTIMIZER		= -Oi -G5
 DEFINES 		+= -UDEBUG -U_DEBUG -DNDEBUG
 DLLFLAGS		= /DLL /O:$@ /INC:_dllentry /MAP:$(@:.dll=.map)
 EXEFLAGS    		= -PMTYPE:VIO -OUT:$@ -MAP:$(@:.exe=.map) -nologo -NOE
@@ -173,7 +173,11 @@ endif   # XP_OS2_VACPP
 # OS/2 use nsinstall that is included in the toolkit.
 # since we do not wish to support and maintain 3 version of nsinstall in mozilla, nspr and nss
 
+ifdef BUILD_TREE
+NSINSTALL_DIR  = $(BUILD_TREE)/nss
+else
 NSINSTALL_DIR  = $(CORE_DEPTH)/coreconf/nsinstall
+endif
 # NSINSTALL      = $(NSINSTALL_DIR)/$(OBJDIR_NAME)/nsinstall
 NSINSTALL 	= nsinstall             # HCT4OS2
 INSTALL		= $(NSINSTALL)
