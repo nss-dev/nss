@@ -2009,6 +2009,20 @@ NSSTrustDomain_FindSymmetricKeyByAlgorithmAndKeyID (
  */
 
 /*
+ * NSSTrustDomain_CreateVolatileDomain
+ *
+ * If a callback object is specified, it becomes the default callback 
+ * for the volatile domain; otherwise, this trust domain's default 
+ * (if any) is inherited.
+ */
+
+NSS_EXTERN NSSVolatileDomain *
+NSSTrustDomain_CreateVolatileDomain (
+  NSSTrustDomain *td,
+  NSSCallback *uhhOpt
+);
+
+/*
  * NSSTrustDomain_CreateCryptoContext
  *
  * If a callback object is specified, it becomes the default callback 
@@ -2037,6 +2051,396 @@ NSSTrustDomain_CreateCryptoContextForAlgorithm (
 );
 
 /* find/traverse other objects, e.g. s/mime profiles */
+
+/*
+ * NSSVolatileDomain
+ *
+ *
+ */
+
+NSS_EXTERN PRStatus
+NSSVolatileDomain_Destroy (
+  NSSVolatileDomain *vd
+);
+
+/*
+ * NSSVolatileDomain_FindBestCertificateByNickname
+ *
+ */
+
+NSS_EXTERN NSSCertificate *
+NSSVolatileDomain_FindBestCertificateByNickname (
+  NSSVolatileDomain *vd,
+  NSSUTF8 *name,
+  NSSTime time, /* NULL for "now" */
+  NSSUsages *usages,
+  NSSPolicies *policiesOpt /* NULL for none */
+);
+
+/*
+ * NSSVolatileDomain_FindCertificatesByNickname
+ *
+ */
+
+NSS_EXTERN NSSCertificate **
+NSSVolatileDomain_FindCertificatesByNickname (
+  NSSVolatileDomain *vd,
+  NSSUTF8 *name,
+  NSSCertificate *rvOpt[],
+  PRUint32 maximumOpt, /* 0 for no max */
+  NSSArena *arenaOpt
+);
+
+/*
+ * NSSVolatileDomain_FindCertificateByIssuerAndSerialNumber
+ *
+ */
+
+NSS_EXTERN NSSCertificate *
+NSSVolatileDomain_FindCertificateByIssuerAndSerialNumber (
+  NSSVolatileDomain *vd,
+  NSSDER *issuer,
+  NSSDER *serialNumber
+);
+
+/*
+ * NSSVolatileDomain_FindBestCertificateBySubject
+ *
+ * This does not search through alternate names hidden in extensions.
+ */
+
+NSS_EXTERN NSSCertificate *
+NSSVolatileDomain_FindBestCertificateBySubject (
+  NSSVolatileDomain *vd,
+  NSSDER *subject,
+  NSSTime time,
+  NSSUsages *usages,
+  NSSPolicies *policiesOpt
+);
+
+/*
+ * NSSVolatileDomain_FindCertificatesBySubject
+ *
+ * This does not search through alternate names hidden in extensions.
+ */
+
+NSS_EXTERN NSSCertificate **
+NSSVolatileDomain_FindCertificatesBySubject (
+  NSSVolatileDomain *vd,
+  NSSDER *subject,
+  NSSCertificate *rvOpt[],
+  PRUint32 maximumOpt, /* 0 for no max */
+  NSSArena *arenaOpt
+);
+
+/*
+ * NSSVolatileDomain_FindCertificateByEncodedCertificate
+ *
+ */
+
+NSS_EXTERN NSSCertificate *
+NSSVolatileDomain_FindCertificateByEncodedCertificate (
+  NSSVolatileDomain *vd,
+  NSSBER *encodedCertificate
+);
+
+/*
+ * NSSVolatileDomain_FindBestCertificateByEmail
+ *
+ */
+
+NSS_EXTERN NSSCertificate *
+NSSVolatileDomain_FindBestCertificateByEmail (
+  NSSVolatileDomain *vd,
+  NSSASCII7 *email,
+  NSSTime time,
+  NSSUsages *usages,
+  NSSPolicies *policiesOpt
+);
+
+/*
+ * NSSVolatileDomain_FindCertificatesByEmail
+ *
+ */
+
+NSS_EXTERN NSSCertificate **
+NSSVolatileDomain_FindCertificatesByEmail (
+  NSSVolatileDomain *vd,
+  NSSASCII7 *email,
+  NSSCertificate *rvOpt[],
+  PRUint32 maximumOpt, /* 0 for no max */
+  NSSArena *arenaOpt
+);
+
+/*
+ * NSSVolatileDomain_TraverseCertificates
+ *
+ * 
+ * NSS_EXTERN PRStatus *
+ * NSSVolatileDomain_TraverseCertificates
+ * (
+ *   NSSVolatileDomain *vd,
+ *   PRStatus (*callback)(NSSCertificate *c, void *arg),
+ *   void *arg
+ * );
+ */
+
+/*
+ * NSSVolatileDomain_FindBestUserCertificate
+ *
+ */
+
+NSS_EXTERN NSSCertificate *
+NSSVolatileDomain_FindBestUserCertificate (
+  NSSVolatileDomain *vd,
+  NSSTime time,
+  NSSUsages *usages,
+  NSSPolicies *policiesOpt
+);
+
+/*
+ * NSSVolatileDomain_FindUserCertificates
+ *
+ */
+
+NSS_EXTERN NSSCertificate **
+NSSVolatileDomain_FindUserCertificates (
+  NSSVolatileDomain *vd,
+  NSSTime time,
+  NSSUsages *usagesOpt,
+  NSSPolicies *policiesOpt,
+  NSSCertificate **rvOpt,
+  PRUint32 rvLimit, /* zero for no limit */
+  NSSArena *arenaOpt
+);
+
+/*
+ * NSSVolatileDomain_FindBestUserCertificateForSSLClientAuth
+ *
+ */
+
+NSS_EXTERN NSSCertificate *
+NSSVolatileDomain_FindBestUserCertificateForSSLClientAuth (
+  NSSVolatileDomain *vd,
+  NSSUTF8 *sslHostOpt,
+  NSSDER *rootCAsOpt[], /* null pointer for none */
+  PRUint32 rootCAsMaxOpt, /* zero means list is null-terminated */
+  const NSSAlgorithmAndParameters *apOpt,
+  NSSPolicies *policiesOpt
+);
+
+/*
+ * NSSVolatileDomain_FindUserCertificatesForSSLClientAuth
+ *
+ */
+
+NSS_EXTERN NSSCertificate **
+NSSVolatileDomain_FindUserCertificatesForSSLClientAuth (
+  NSSVolatileDomain *vd,
+  NSSUTF8 *sslHostOpt,
+  NSSDER *rootCAsOpt[], /* null pointer for none */
+  PRUint32 rootCAsMaxOpt, /* zero means list is null-terminated */
+  const NSSAlgorithmAndParameters *apOpt,
+  NSSPolicies *policiesOpt,
+  NSSCertificate **rvOpt,
+  PRUint32 rvLimit, /* zero for no limit */
+  NSSArena *arenaOpt
+);
+
+/*
+ * NSSVolatileDomain_FindBestUserCertificateForEmailSigning
+ *
+ */
+
+NSS_EXTERN NSSCertificate *
+NSSVolatileDomain_FindBestUserCertificateForEmailSigning (
+  NSSVolatileDomain *vd,
+  NSSASCII7 *signerOpt,
+  NSSASCII7 *recipientOpt,
+  /* anything more here? */
+  const NSSAlgorithmAndParameters *apOpt,
+  NSSPolicies *policiesOpt
+);
+
+/*
+ * NSSVolatileDomain_FindUserCertificatesForEmailSigning
+ *
+ */
+
+NSS_EXTERN NSSCertificate *
+NSSVolatileDomain_FindUserCertificatesForEmailSigning (
+  NSSVolatileDomain *vd,
+  NSSASCII7 *signerOpt, /* fgmr or a more general name? */
+  NSSASCII7 *recipientOpt,
+  /* anything more here? */
+  const NSSAlgorithmAndParameters *apOpt,
+  NSSPolicies *policiesOpt,
+  NSSCertificate **rvOpt,
+  PRUint32 rvLimit, /* zero for no limit */
+  NSSArena *arenaOpt
+);
+
+/* Importing things */
+
+/*
+ * NSSVolatileDomain_ImportCertificate
+ *
+ */
+
+NSS_EXTERN PRStatus
+NSSVolatileDomain_ImportCertificate (
+  NSSVolatileDomain *vd,
+  NSSCertificate *c
+);
+
+/*
+ * NSSVolatileDomain_ImportEncodedCertificate
+ *
+ */
+
+NSS_EXTERN NSSCertificate *
+NSSVolatileDomain_ImportEncodedCertificate (
+  NSSVolatileDomain *vd,
+  NSSBER *ber,
+  NSSCertificateType certType
+);
+
+/*
+ * NSSVolatileDomain_ImportEncodedCertificateChain
+ *
+ */
+
+NSS_EXTERN PRStatus
+NSSVolatileDomain_ImportEncodedCertificateChain (
+  NSSVolatileDomain *vd,
+  NSSBER *ber,
+  NSSCertificateType certType
+);
+
+/* Other importations: S/MIME capabilities
+ */
+
+/* Private Keys */
+
+/*
+ * NSSVolatileDomain_GenerateKeyPair
+ *
+ * Creates session objects.  If you want persistant objects, use
+ * NSSTrustDomain_GenerateKeyPair.  The destination token is where
+ * the keys are stored.  If that token can do the required math, then
+ * that's where the keys are generated too.  Otherwise, the keys are
+ * generated elsewhere and moved to that token.
+ */
+
+NSS_EXTERN PRStatus
+NSSVolatileDomain_GenerateKeyPair (
+  NSSVolatileDomain *vd,
+  const NSSAlgorithmAndParameters *ap,
+  NSSPrivateKey **pvkOpt,
+  NSSPublicKey **pbkOpt,
+  PRBool privateKeyIsSensitive,
+  NSSToken *destination,
+  NSSCallback *uhhOpt
+);
+
+/*
+ * NSSVolatileDomain_TraversePrivateKeys
+ *
+ * 
+ * NSS_EXTERN PRStatus *
+ * NSSVolatileDomain_TraversePrivateKeys
+ * (
+ *   NSSVolatileDomain *vd,
+ *   PRStatus (*callback)(NSSPrivateKey *vk, void *arg),
+ *   void *arg
+ * );
+ */
+
+/* Symmetric Keys */
+
+/*
+ * NSSVolatileDomain_GenerateSymmetricKey
+ *
+ */
+
+NSS_EXTERN NSSSymmetricKey *
+NSSVolatileDomain_GenerateSymmetricKey (
+  NSSVolatileDomain *vd,
+  const NSSAlgorithmAndParameters *ap,
+  PRUint32 keysize,
+  NSSToken *destination,
+  NSSCallback *uhhOpt
+);
+
+/*
+ * NSSVolatileDomain_GenerateSymmetricKeyFromPassword
+ *
+ */
+
+NSS_EXTERN NSSSymmetricKey *
+NSSVolatileDomain_GenerateSymmetricKeyFromPassword (
+  NSSVolatileDomain *vd,
+  const NSSAlgorithmAndParameters *ap,
+  NSSUTF8 *passwordOpt, /* if null, prompt */
+  NSSToken *destinationOpt,
+  NSSCallback *uhhOpt
+);
+
+/*
+ * NSSVolatileDomain_FindSymmetricKeyByAlgorithm
+ *
+ * 
+ * NSS_EXTERN NSSSymmetricKey *
+ * NSSVolatileDomain_FindSymmetricKeyByType
+ * (
+ *   NSSVolatileDomain *vd,
+ *   NSSOID *type,
+ *   NSSCallback *uhhOpt
+ * );
+ */
+
+/*
+ * NSSVolatileDomain_FindSymmetricKeyByAlgorithmAndKeyID
+ *
+ */
+
+NSS_EXTERN NSSSymmetricKey *
+NSSVolatileDomain_FindSymmetricKeyByAlgorithmAndKeyID (
+  NSSVolatileDomain *vd,
+  NSSOID *algorithm,
+  NSSItem *keyID,
+  NSSCallback *uhhOpt
+);
+
+/*
+ * NSSVolatileDomain_TraverseSymmetricKeys
+ *
+ * 
+ * NSS_EXTERN PRStatus *
+ * NSSVolatileDomain_TraverseSymmetricKeys
+ * (
+ *   NSSVolatileDomain *vd,
+ *   PRStatus (*callback)(NSSSymmetricKey *mk, void *arg),
+ *   void *arg
+ * );
+ */
+
+/*
+ * NSSVolatileDomain_DeriveSymmetricKey
+ *
+ */
+
+NSS_EXTERN NSSSymmetricKey *
+NSSVolatileDomain_DeriveSymmetricKey (
+  NSSVolatileDomain *vd,
+  NSSPublicKey *bkOpt,
+  const NSSAlgorithmAndParameters *apOpt,
+  NSSOID *target,
+  PRUint32 keySizeOpt, /* zero for best allowed */
+  NSSOperations operations,
+  NSSCallback *uhhOpt
+);
+
 
 /*
  * NSSCryptoContext
@@ -2108,424 +2512,6 @@ NSSCryptoContext_GetTrustDomain (
 /* Finding slots+token etc. */
 /* login+logout */
 
-/* Importing things */
-
-/*
- * NSSCryptoContext_ImportCertificate
- *
- * If there's not a "distinguished certificate" for this context, this
- * sets the specified one to be it.
- */
-
-NSS_EXTERN PRStatus
-NSSCryptoContext_ImportCertificate (
-  NSSCryptoContext *cc,
-  NSSCertificate *c
-);
-
-/*
- * NSSCryptoContext_ImportPKIXCertificate
- *
- */
-
-NSS_EXTERN NSSCertificate *
-NSSCryptoContext_ImportPKIXCertificate (
-  NSSCryptoContext *cc,
-  struct NSSPKIXCertificateStr *pc
-);
-
-/*
- * NSSCryptoContext_ImportEncodedCertificate
- *
- */
-
-NSS_EXTERN NSSCertificate *
-NSSCryptoContext_ImportEncodedCertificate (
-  NSSCryptoContext *cc,
-  NSSBER *ber
-);
-
-/*
- * NSSCryptoContext_ImportEncodedPKIXCertificateChain
- *
- */
-
-NSS_EXTERN PRStatus
-NSSCryptoContext_ImportEncodedPKIXCertificateChain (
-  NSSCryptoContext *cc,
-  NSSBER *ber
-);
-
-/* Other importations: S/MIME capabilities
- */
-
-/*
- * NSSCryptoContext_FindBestCertificateByNickname
- *
- */
-
-NSS_EXTERN NSSCertificate *
-NSSCryptoContext_FindBestCertificateByNickname (
-  NSSCryptoContext *cc,
-  NSSUTF8 *name,
-  NSSTime time, /* NULL for "now" */
-  NSSUsages *usages,
-  NSSPolicies *policiesOpt /* NULL for none */
-);
-
-/*
- * NSSCryptoContext_FindCertificatesByNickname
- *
- */
-
-NSS_EXTERN NSSCertificate **
-NSSCryptoContext_FindCertificatesByNickname (
-  NSSCryptoContext *cc,
-  NSSUTF8 *name,
-  NSSCertificate *rvOpt[],
-  PRUint32 maximumOpt, /* 0 for no max */
-  NSSArena *arenaOpt
-);
-
-/*
- * NSSCryptoContext_FindCertificateByIssuerAndSerialNumber
- *
- */
-
-NSS_EXTERN NSSCertificate *
-NSSCryptoContext_FindCertificateByIssuerAndSerialNumber (
-  NSSCryptoContext *cc,
-  NSSDER *issuer,
-  NSSDER *serialNumber
-);
-
-/*
- * NSSCryptoContext_FindBestCertificateBySubject
- *
- * This does not search through alternate names hidden in extensions.
- */
-
-NSS_EXTERN NSSCertificate *
-NSSCryptoContext_FindBestCertificateBySubject (
-  NSSCryptoContext *cc,
-  NSSDER *subject,
-  NSSTime time,
-  NSSUsages *usages,
-  NSSPolicies *policiesOpt
-);
-
-/*
- * NSSCryptoContext_FindCertificatesBySubject
- *
- * This does not search through alternate names hidden in extensions.
- */
-
-NSS_EXTERN NSSCertificate **
-NSSCryptoContext_FindCertificatesBySubject (
-  NSSCryptoContext *cc,
-  NSSDER *subject,
-  NSSCertificate *rvOpt[],
-  PRUint32 maximumOpt, /* 0 for no max */
-  NSSArena *arenaOpt
-);
-
-/*
- * NSSCryptoContext_FindBestCertificateByNameComponents
- *
- * This call does try several tricks, including a pseudo pkcs#11 
- * attribute for the ldap module to try as a query.  Eventually
- * this call falls back to a traversal if that's what's required.
- * It will search through alternate names hidden in extensions.
- */
-
-NSS_EXTERN NSSCertificate *
-NSSCryptoContext_FindBestCertificateByNameComponents (
-  NSSCryptoContext *cc,
-  NSSUTF8 *nameComponents,
-  NSSTime time,
-  NSSUsages *usages,
-  NSSPolicies *policiesOpt
-);
-
-/*
- * NSSCryptoContext_FindCertificatesByNameComponents
- *
- * This call, too, tries several tricks.  It will stop on the first
- * attempt that generates results, so it won't e.g. traverse the
- * entire ldap database.
- */
-
-NSS_EXTERN NSSCertificate **
-NSSCryptoContext_FindCertificatesByNameComponents (
-  NSSCryptoContext *cc,
-  NSSUTF8 *nameComponents,
-  NSSCertificate *rvOpt[],
-  PRUint32 maximumOpt, /* 0 for no max */
-  NSSArena *arenaOpt
-);
-
-/*
- * NSSCryptoContext_FindCertificateByEncodedCertificate
- *
- */
-
-NSS_EXTERN NSSCertificate *
-NSSCryptoContext_FindCertificateByEncodedCertificate (
-  NSSCryptoContext *cc,
-  NSSBER *encodedCertificate
-);
-
-/*
- * NSSCryptoContext_FindBestCertificateByEmail
- *
- */
-
-NSS_EXTERN NSSCertificate *
-NSSCryptoContext_FindBestCertificateByEmail (
-  NSSCryptoContext *cc,
-  NSSASCII7 *email,
-  NSSTime time,
-  NSSUsages *usages,
-  NSSPolicies *policiesOpt
-);
-
-/*
- * NSSCryptoContext_FindCertificatesByEmail
- *
- */
-
-NSS_EXTERN NSSCertificate **
-NSSCryptoContext_FindCertificatesByEmail (
-  NSSCryptoContext *cc,
-  NSSASCII7 *email,
-  NSSCertificate *rvOpt[],
-  PRUint32 maximumOpt, /* 0 for no max */
-  NSSArena *arenaOpt
-);
-
-/*
- * NSSCryptoContext_FindCertificateByOCSPHash
- *
- */
-
-NSS_EXTERN NSSCertificate *
-NSSCryptoContext_FindCertificateByOCSPHash (
-  NSSCryptoContext *cc,
-  NSSItem *hash
-);
-
-/*
- * NSSCryptoContext_TraverseCertificates
- *
- * 
- * NSS_EXTERN PRStatus *
- * NSSCryptoContext_TraverseCertificates
- * (
- *   NSSCryptoContext *cc,
- *   PRStatus (*callback)(NSSCertificate *c, void *arg),
- *   void *arg
- * );
- */
-
-/*
- * NSSCryptoContext_FindBestUserCertificate
- *
- */
-
-NSS_EXTERN NSSCertificate *
-NSSCryptoContext_FindBestUserCertificate (
-  NSSCryptoContext *cc,
-  NSSTime time,
-  NSSUsages *usages,
-  NSSPolicies *policiesOpt
-);
-
-/*
- * NSSCryptoContext_FindUserCertificates
- *
- */
-
-NSS_EXTERN NSSCertificate **
-NSSCryptoContext_FindUserCertificates (
-  NSSCryptoContext *cc,
-  NSSTime time,
-  NSSUsages *usagesOpt,
-  NSSPolicies *policiesOpt,
-  NSSCertificate **rvOpt,
-  PRUint32 rvLimit, /* zero for no limit */
-  NSSArena *arenaOpt
-);
-
-/*
- * NSSCryptoContext_FindBestUserCertificateForSSLClientAuth
- *
- */
-
-NSS_EXTERN NSSCertificate *
-NSSCryptoContext_FindBestUserCertificateForSSLClientAuth (
-  NSSCryptoContext *cc,
-  NSSUTF8 *sslHostOpt,
-  NSSDER *rootCAsOpt[], /* null pointer for none */
-  PRUint32 rootCAsMaxOpt, /* zero means list is null-terminated */
-  const NSSAlgorithmAndParameters *apOpt,
-  NSSPolicies *policiesOpt
-);
-
-/*
- * NSSCryptoContext_FindUserCertificatesForSSLClientAuth
- *
- */
-
-NSS_EXTERN NSSCertificate **
-NSSCryptoContext_FindUserCertificatesForSSLClientAuth (
-  NSSCryptoContext *cc,
-  NSSUTF8 *sslHostOpt,
-  NSSDER *rootCAsOpt[], /* null pointer for none */
-  PRUint32 rootCAsMaxOpt, /* zero means list is null-terminated */
-  const NSSAlgorithmAndParameters *apOpt,
-  NSSPolicies *policiesOpt,
-  NSSCertificate **rvOpt,
-  PRUint32 rvLimit, /* zero for no limit */
-  NSSArena *arenaOpt
-);
-
-/*
- * NSSCryptoContext_FindBestUserCertificateForEmailSigning
- *
- */
-
-NSS_EXTERN NSSCertificate *
-NSSCryptoContext_FindBestUserCertificateForEmailSigning (
-  NSSCryptoContext *cc,
-  NSSASCII7 *signerOpt,
-  NSSASCII7 *recipientOpt,
-  /* anything more here? */
-  const NSSAlgorithmAndParameters *apOpt,
-  NSSPolicies *policiesOpt
-);
-
-/*
- * NSSCryptoContext_FindUserCertificatesForEmailSigning
- *
- */
-
-NSS_EXTERN NSSCertificate *
-NSSCryptoContext_FindUserCertificatesForEmailSigning (
-  NSSCryptoContext *cc,
-  NSSASCII7 *signerOpt, /* fgmr or a more general name? */
-  NSSASCII7 *recipientOpt,
-  /* anything more here? */
-  const NSSAlgorithmAndParameters *apOpt,
-  NSSPolicies *policiesOpt,
-  NSSCertificate **rvOpt,
-  PRUint32 rvLimit, /* zero for no limit */
-  NSSArena *arenaOpt
-);
-
-/* Private Keys */
-
-/*
- * NSSCryptoContext_GenerateKeyPair
- *
- * Creates session objects.  If you want persistant objects, use
- * NSSTrustDomain_GenerateKeyPair.  The destination token is where
- * the keys are stored.  If that token can do the required math, then
- * that's where the keys are generated too.  Otherwise, the keys are
- * generated elsewhere and moved to that token.
- */
-
-NSS_EXTERN PRStatus
-NSSCryptoContext_GenerateKeyPair (
-  NSSCryptoContext *cc,
-  const NSSAlgorithmAndParameters *ap,
-  NSSPrivateKey **pvkOpt,
-  NSSPublicKey **pbkOpt,
-  PRBool privateKeyIsSensitive,
-  NSSToken *destination,
-  NSSCallback *uhhOpt
-);
-
-/*
- * NSSCryptoContext_TraversePrivateKeys
- *
- * 
- * NSS_EXTERN PRStatus *
- * NSSCryptoContext_TraversePrivateKeys
- * (
- *   NSSCryptoContext *cc,
- *   PRStatus (*callback)(NSSPrivateKey *vk, void *arg),
- *   void *arg
- * );
- */
-
-/* Symmetric Keys */
-
-/*
- * NSSCryptoContext_GenerateSymmetricKey
- *
- */
-
-NSS_EXTERN NSSSymmetricKey *
-NSSCryptoContext_GenerateSymmetricKey (
-  NSSCryptoContext *cc,
-  const NSSAlgorithmAndParameters *ap,
-  PRUint32 keysize,
-  NSSToken *destination,
-  NSSCallback *uhhOpt
-);
-
-/*
- * NSSCryptoContext_GenerateSymmetricKeyFromPassword
- *
- */
-
-NSS_EXTERN NSSSymmetricKey *
-NSSCryptoContext_GenerateSymmetricKeyFromPassword (
-  NSSCryptoContext *cc,
-  const NSSAlgorithmAndParameters *ap,
-  NSSUTF8 *passwordOpt, /* if null, prompt */
-  NSSToken *destinationOpt,
-  NSSCallback *uhhOpt
-);
-
-/*
- * NSSCryptoContext_FindSymmetricKeyByAlgorithm
- *
- * 
- * NSS_EXTERN NSSSymmetricKey *
- * NSSCryptoContext_FindSymmetricKeyByType
- * (
- *   NSSCryptoContext *cc,
- *   NSSOID *type,
- *   NSSCallback *uhhOpt
- * );
- */
-
-/*
- * NSSCryptoContext_FindSymmetricKeyByAlgorithmAndKeyID
- *
- */
-
-NSS_EXTERN NSSSymmetricKey *
-NSSCryptoContext_FindSymmetricKeyByAlgorithmAndKeyID (
-  NSSCryptoContext *cc,
-  NSSOID *algorithm,
-  NSSItem *keyID,
-  NSSCallback *uhhOpt
-);
-
-/*
- * NSSCryptoContext_TraverseSymmetricKeys
- *
- * 
- * NSS_EXTERN PRStatus *
- * NSSCryptoContext_TraverseSymmetricKeys
- * (
- *   NSSCryptoContext *cc,
- *   PRStatus (*callback)(NSSSymmetricKey *mk, void *arg),
- *   void *arg
- * );
- */
 
 /* Crypto ops on distinguished keys */
 
@@ -2723,45 +2709,6 @@ NSSCryptoContext_SignRecover (
   NSSArena *arenaOpt
 );
 
-#ifdef pkcs11_does_not_support_multipart_here
-/*
- * NSSCryptoContext_BeginSignRecover
- *
- */
-
-NSS_EXTERN PRStatus
-NSSCryptoContext_BeginSignRecover (
-  NSSCryptoContext *cc,
-  const NSSAlgorithmAndParameters *apOpt,
-  NSSCallback *uhhOpt
-);
-
-/*
- * NSSCryptoContext_ContinueSignRecover
- *
- */
-
-NSS_EXTERN NSSItem *
-NSSCryptoContext_ContinueSignRecover (
-  NSSCryptoContext *cc,
-  NSSItem *data,
-  NSSItem *rvOpt,
-  NSSArena *arenaOpt
-);
-
-/*
- * NSSCryptoContext_FinishSignRecover
- *
- */
-
-NSS_EXTERN NSSItem *
-NSSCryptoContext_FinishSignRecover (
-  NSSCryptoContext *cc,
-  NSSItem *rvOpt,
-  NSSArena *arenaOpt
-);
-#endif /* pkcs11_does_not_support_multipart_here */
-
 /*
  * NSSCryptoContext_UnwrapSymmetricKey
  *
@@ -2775,22 +2722,6 @@ NSSCryptoContext_UnwrapSymmetricKey (
   NSSCallback *uhhOpt,
   NSSOperations operations,
   NSSProperties properties
-);
-
-/*
- * NSSCryptoContext_DeriveSymmetricKey
- *
- */
-
-NSS_EXTERN NSSSymmetricKey *
-NSSCryptoContext_DeriveSymmetricKey (
-  NSSCryptoContext *cc,
-  NSSPublicKey *bkOpt,
-  const NSSAlgorithmAndParameters *apOpt,
-  NSSOID *target,
-  PRUint32 keySizeOpt, /* zero for best allowed */
-  NSSOperations operations,
-  NSSCallback *uhhOpt
 );
 
 /*
@@ -2856,45 +2787,6 @@ NSSCryptoContext_VerifyRecover (
   NSSArena *arenaOpt
 );
 
-#ifdef pkcs11_does_not_support_multipart_here
-/*
- * NSSCryptoContext_BeginVerifyRecover
- *
- */
-
-NSS_EXTERN PRStatus
-NSSCryptoContext_BeginVerifyRecover (
-  NSSCryptoContext *cc,
-  const NSSAlgorithmAndParameters *apOpt,
-  NSSCallback *uhhOpt
-);
-
-/*
- * NSSCryptoContext_ContinueVerifyRecover
- *
- */
-
-NSS_EXTERN NSSItem *
-NSSCryptoContext_ContinueVerifyRecover (
-  NSSCryptoContext *cc,
-  NSSItem *data,
-  NSSItem *rvOpt,
-  NSSArena *arenaOpt
-);
-
-/*
- * NSSCryptoContext_FinishVerifyRecover
- *
- */
-
-NSS_EXTERN NSSItem *
-NSSCryptoContext_FinishVerifyRecover (
-  NSSCryptoContext *cc,
-  NSSItem *rvOpt,
-  NSSArena *arenaOpt
-);
-#endif /* pkcs11_does_not_support_multipart_here */
-
 /*
  * NSSCryptoContext_WrapSymmetricKey
  *
@@ -2952,7 +2844,7 @@ NSSCryptoContext_ContinueDigest (
 NSS_EXTERN PRStatus
 NSSCryptoContext_DigestKey (
   NSSCryptoContext *cc,
-  NSSSymmetricKey *mk
+  NSSSymmetricKey *mkOpt
 );
 
 /*

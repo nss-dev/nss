@@ -35,81 +35,55 @@
  * $Id$
  */
 
-#include <stdio.h>
-#include <string.h>
-#include "prerror.h"
-#include "secitem.h"
-#include "prnetdb.h"
-#include "cert.h"
-#include "nspr.h"
-#include "secder.h"
-#include "key.h"
-#include "nss.h"
+#ifndef /* NSSPKI_H */
+#include "nsspki.h"
+#endif /* NSSPKI_H */
+
 #include "ssl.h"
-#include "pk11func.h"	/* for PK11_ function calls */
 
 /*
- * This callback used by SSL to pull client sertificate upon
+ * This callback used by SSL to pull client certificate upon
  * server request
  */
-SECStatus 
-NSS_GetClientAuthData(void *                       arg, 
+NSS_IMPLEMENT PRStatus 
+SSL_GetClientAuthData(void *                       arg, 
+                      NSSTrustDomain *             td,
                       PRFileDesc *                 socket, 
-		      struct CERTDistNamesStr *    caNames, 
-		      struct CERTCertificateStr ** pRetCert, 
-		      struct SECKEYPrivateKeyStr **pRetKey)
+                      NSSDER **                    caNames,
+                      NSSCertificate **            pRetCert,
+                      NSSPrivateKey **             pRetKey);
 {
-  CERTCertificate *  cert = NULL;
-  SECKEYPrivateKey * privkey = NULL;
-  char *             chosenNickName = (char *)arg;    /* CONST */
-  void *             proto_win  = NULL;
-  SECStatus          rv         = SECFailure;
+  NSSCertificate *   cert = NULL;
+  NSSPrivateKey *    privkey = NULL;
+  NSSUTF8 *          chosenNickName = (NSSUTF8 *)arg;    /* CONST */
+  NSSCallback        pinCallback  = NULL;
   
-  proto_win = SSL_RevealPinArg(socket);
+  pinCallback = SSL_RevealPinArg(socket);
   
   if (chosenNickName) {
-    cert = PK11_FindCertFromNickname(chosenNickName, proto_win);
-    if ( cert ) {
-      privkey = PK11_FindKeyByAnyCert(cert, proto_win);
-      if ( privkey ) {
-	rv = SECSuccess;
-      } else {
-	CERT_DestroyCertificate(cert);
-      }
-    }
+    NSSUsages sslClientAuth = { 0, NSSUsage_SSLClient };
+    cert = NSSTrustDomain_FindBestCertificateByNickname(td, chosenNickName,
+                                                        NSSTime_Now(),
+                                                        sslClientAuth,
+                                                        NULL);
   } else { /* no name given, automatically find the right cert. */
-    CERTCertNicknames * names;
-    int                 i;
-      
-    names = CERT_GetCertNicknames(CERT_GetDefaultCertDB(),
-				  SEC_CERT_NICKNAMES_USER, proto_win);
-    if (names != NULL) {
-      for (i = 0; i < names->numnicknames; i++) {
-	cert = PK11_FindCertFromNickname(names->nicknames[i],proto_win);
-	if ( !cert )
-	  continue;
-	/* Only check unexpired certs */
-	if (CERT_CheckCertValidTimes(cert, PR_Now(), PR_TRUE) != 
-	    secCertTimeValid ) {
-	  CERT_DestroyCertificate(cert);
-	  continue;
-	}
-	rv = NSS_CmpCertChainWCANames(cert, caNames);
-	if ( rv == SECSuccess ) {
-	  privkey = PK11_FindKeyByAnyCert(cert, proto_win);
-	  if ( privkey )
-	    break;
-	}
-	rv = SECFailure;
-	CERT_DestroyCertificate(cert);
-      } 
-      CERT_FreeNicknames(names);
+    cert = NSSTrustDomain_FindBestUserCertificateForSSLClientAuth(td,
+                                           /* sslHostOpt? */      NULL,
+                                                                  caNames,
+                                                                  0,
+                                                                  NULL,
+                                                                  NULL);
+  }
+  if (cert) {
+    privkey = NSSCertificate_FindPrivateKey(cert, pinCallback);
+    if (privkey) {
+      *pRetCert = cert;
+      *pRetKey = privkey;
+      return PR_SUCCESS;
+    } else {
+      NSSCertificate_Destroy(cert);
     }
   }
-  if (rv == SECSuccess) {
-    *pRetCert = cert;
-    *pRetKey  = privkey;
-  }
-  return rv;
+  return PR_FAILURE;
 }
 

@@ -135,8 +135,9 @@ typedef struct NSSSymmetricKeyStr NSSSymmetricKey;
  * This object descends from the "permananet database" in the old code.
  */
 
-struct NSSTrustDomainStr;
 typedef struct NSSTrustDomainStr NSSTrustDomain;
+
+typedef struct NSSVolatileDomainStr NSSVolatileDomain;
 
 /*
  * NSSCryptoContext

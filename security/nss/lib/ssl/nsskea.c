@@ -35,32 +35,70 @@
  # $Id$
  */
 
-#include "cert.h"
+#ifndef NSSPKI_H
+#include "nsspki.h"
+#endif /* NSSPKI_H */
+
+#ifndef NSSPKI1_H
+#include "nsspki1.h"
+#endif /* NSSPKI1_H */
+
+#ifndef NSSPKIX_H
+#include "nsspkix.h"
+#endif /* NSSPKIX_H */
+
 #include "ssl.h"	/* for SSLKEAType */
-#include "secoid.h"
 
 SSLKEAType
-NSS_FindCertKEAType(CERTCertificate * cert)
+SSL_FindCertKEAType(NSSCertificate *cert)
 {
   SSLKEAType keaType = kt_null; 
   int tag;
   
   if (!cert) goto loser;
   
-  tag = SECOID_GetAlgorithmTag(&(cert->subjectPublicKeyInfo.algorithm));
+  if (NSSCertificate_GetType(cert) == NSSCertificateType_PKIX) {
+    NSSPKIXCertificate *pkixCert;
+    NSSPKIXTBSCertificate *tbsCert;
+    NSSPKIXSubjectPublicKeyInfo *spki;
+    NSSPKIXAlgorithmIdentifier *bkAlg;
+
+    pkixCert = (NSSPKIXCertificate *)NSSCertificate_GetDecoding(cert);
+    if (!pkixCert) {
+	goto loser;
+    }
+    tbsCert = NSSPKIXCertificate_GetTBSCertificate(pkixCert);
+    if (!tbsCert) {
+	goto loser;
+    }
+    spki = NSSPKIXTBSCertificate_GetSubjectPublicKeyInfo(tbsCert);
+    if (!spki) {
+	goto loser;
+    }
+    bkAlg = NSSPKIXSubjectPublicKeyInfo_GetAlgorithm(spki);
+    if (!bkAlg) {
+	goto loser;
+    }
+    oid = NSSPKIXAlgorithmIdentifier_GetAlgorithm(bkAlg);
+    if (!oid) {
+	goto loser;
+    }
+  } else {
+    goto loser;
+  }
   
-  switch (tag) {
-  case SEC_OID_X500_RSA_ENCRYPTION:
-  case SEC_OID_PKCS1_RSA_ENCRYPTION:
+  switch (NSSOID_GetTag(oid)) {
+  case NSS_OID_X500_RSA_ENCRYPTION:
+  case NSS_OID_PKCS1_RSA_ENCRYPTION:
     keaType = kt_rsa;
     break;
-  case SEC_OID_MISSI_KEA_DSS_OLD:
-  case SEC_OID_MISSI_KEA_DSS:
-  case SEC_OID_MISSI_DSS_OLD:
-  case SEC_OID_MISSI_DSS:
+  case NSS_OID_MISSI_KEA_DSS_OLD:
+  case NSS_OID_MISSI_KEA_DSS:
+  case NSS_OID_MISSI_DSS_OLD:
+  case NSS_OID_MISSI_DSS:
     keaType = kt_fortezza;
     break;
-  case SEC_OID_X942_DIFFIE_HELMAN_KEY:
+  case NSS_OID_X942_DIFFIE_HELMAN_KEY:
     keaType = kt_dh;
     break;
   default:

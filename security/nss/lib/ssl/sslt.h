@@ -66,6 +66,7 @@ typedef enum {
     ssl_kea_size		/* number of ssl_kea_ algorithms */
 } SSLKEAType;
 
+#if 0
 /* The following defines are for backwards compatibility.
 ** They will be removed in a forthcoming release to reduce namespace pollution.
 ** programs that use the kt_ symbols should convert to the ssl_kt_ symbols
@@ -108,6 +109,7 @@ typedef enum {
     ssl_hmac_md5      = 3, 	/* TLS HMAC version of mac_md5 */
     ssl_hmac_sha      = 4 	/* TLS HMAC version of mac_sha */
 } SSLMACAlgorithm;
+#endif
 
 typedef struct SSLChannelInfoStr {
     PRUint32             length;

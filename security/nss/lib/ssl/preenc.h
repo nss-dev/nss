@@ -38,7 +38,6 @@
  * $Id$
  */
 
-#include "seccomon.h"
 #include "prio.h"
 
 typedef struct PEHeaderStr PEHeader;

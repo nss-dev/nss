@@ -46,15 +46,16 @@ EXPORTS =	   \
 
 MODULE = nss
 
-CSRCS =		        \
-	asymmkey.c      \
-	certificate.c   \
-	cryptocontext.c \
-	symmkey.c       \
-	trustdomain.c   \
-	pkistore.c      \
-	pkibase.c       \
-	time.c          \
+CSRCS =		         \
+	pkibase.c        \
+	pkistore.c       \
+	asymmkey.c       \
+	certificate.c    \
+	cryptocontext.c  \
+	symmkey.c        \
+	time.c           \
+	trustdomain.c    \
+	volatiledomain.c \
 	$(NULL)
 
 REQUIRES = security nspr

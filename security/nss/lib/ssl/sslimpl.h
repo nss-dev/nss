@@ -46,13 +46,9 @@
 #undef NDEBUG
 #define NDEBUG
 #endif
-#include "secport.h"
-#include "secerr.h"
 #include "sslerr.h"
 #include "ssl3prot.h"
-#include "hasht.h"
 #include "nssilock.h"
-#include "pkcs11t.h"
 #if defined(XP_UNIX) || defined(XP_BEOS)
 #include "unistd.h"
 #endif
@@ -60,34 +56,6 @@
 #include "prthread.h"
 
 #include "sslt.h" /* for some formerly private types, now public */
-
-/* to make some of these old enums public without namespace pollution,
-** it was necessary to prepend ssl_ to the names.
-** These #defines preserve compatibility with the old code here in libssl.
-*/
-typedef SSLKEAType      SSL3KEAType;
-typedef SSLMACAlgorithm SSL3MACAlgorithm;
-typedef SSLSignType     SSL3SignType;
-
-#define sign_null	ssl_sign_null
-#define sign_rsa	ssl_sign_rsa
-#define sign_dsa	ssl_sign_dsa
-
-#define calg_null	ssl_calg_null
-#define calg_rc4	ssl_calg_rc4
-#define calg_rc2	ssl_calg_rc2
-#define calg_des	ssl_calg_des
-#define calg_3des	ssl_calg_3des
-#define calg_idea	ssl_calg_idea
-#define calg_fortezza	ssl_calg_fortezza
-#define calg_aes	ssl_calg_aes
-
-#define mac_null	ssl_mac_null
-#define mac_md5 	ssl_mac_md5
-#define mac_sha 	ssl_mac_sha
-#define hmac_md5	ssl_hmac_md5
-#define hmac_sha	ssl_hmac_sha
-
 
 #if defined(DEBUG) || defined(TRACE)
 #ifdef __cplusplus
@@ -175,15 +143,9 @@ typedef struct sslSocketStr             sslSocket;
 typedef struct sslSocketOpsStr          sslSocketOps;
 
 typedef struct ssl3StateStr             ssl3State;
-typedef struct ssl3CertNodeStr          ssl3CertNode;
 typedef struct ssl3BulkCipherDefStr     ssl3BulkCipherDef;
 typedef struct ssl3MACDefStr            ssl3MACDef;
 typedef struct ssl3KeyPairStr		ssl3KeyPair;
-
-struct ssl3CertNodeStr {
-    struct ssl3CertNodeStr *next;
-    CERTCertificate *       cert;
-};
 
 typedef SECStatus (*sslHandshakeFunc)(sslSocket *ss);
 
@@ -200,7 +162,7 @@ typedef void          (*sslSessionIDUncacheFunc)(sslSessionID *sid);
 typedef sslSessionID *(*sslSessionIDLookupFunc)(const PRIPv6Addr    *addr,
 						unsigned char* sid,
 						unsigned int   sidLen,
-                                                CERTCertDBHandle * dbHandle);
+                                                NSSTrustDomain *td);
 
 
 /* Socket ops */
@@ -279,9 +241,8 @@ typedef enum { sslHandshakingUndetermined = 0,
 
 typedef struct sslServerCertsStr {
     /* Configuration state for server sockets */
-    CERTCertificate *     serverCert;
-    CERTCertificateList * serverCertChain;
-    SECKEYPrivateKey *    serverKey;
+    NSSCertificateChain * serverCertChain;
+    NSSPrivateKey *       serverKey;
     unsigned int          serverKeyBits;
 } sslServerCerts;
 
@@ -383,7 +344,7 @@ typedef SECStatus (*SSLCipher)(void *               context,
 			       int                  maxout, 
 			       const unsigned char *in,
 			       int                  inlen);
-typedef SECStatus (*SSLDestroy)(void *context, PRBool freeit);
+typedef SECStatus (*SSLDestroy)(void *context);
 
 
 
@@ -423,9 +384,9 @@ typedef struct {
 
 typedef struct {
     SSL3Opaque write_iv[MAX_IV_LENGTH];
-    PK11SymKey *write_key;
-    PK11SymKey *write_mac_key;
-    PK11Context *write_mac_context;
+    NSSSymmetricKey *write_key;
+    /* NSSSymmetricKey *write_mac_key; */
+    NSSCryptoContext *write_mac_context;
 } ssl3KeyMaterial;
 
 typedef struct {
@@ -451,7 +412,7 @@ typedef struct {
     SSLCipher          decode;
     void *             decodeContext;
     SSLDestroy         destroy;
-    PK11SymKey *       master_secret;
+    NSSSymmetricKey *  master_secret;
     ssl3KeyMaterial    client;
     ssl3KeyMaterial    server;
     SSL3SequenceNumber write_seq_num;
@@ -584,7 +545,8 @@ typedef enum { kg_null, kg_strong, kg_export } SSL3KeyGenMode;
 */
 struct ssl3BulkCipherDefStr {
     SSL3BulkCipher  cipher;
-    SSLCipherAlgorithm calg;
+    NSSSymmetricKeyType        key_type;
+    NSSAlgorithmAndParameters *calg;
     int             key_size;
     int             secret_key_size;
     CipherType      type;
@@ -598,7 +560,7 @@ struct ssl3BulkCipherDefStr {
 */
 struct ssl3MACDefStr {
     SSL3MACAlgorithm mac;
-    CK_MECHANISM_TYPE mmech;
+    NSSAlgorithmAndParameters *ap;
     int              pad_size;
     int              mac_size;
 };

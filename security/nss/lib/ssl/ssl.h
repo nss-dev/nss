@@ -41,9 +41,10 @@
 #include "prtypes.h"
 #include "prerror.h"
 #include "prio.h"
-#include "seccomon.h"
-#include "cert.h"
-#include "keyt.h"
+
+#include "baset.h"
+#include "nssdevt.h"
+#include "nsspkit.h"
 
 #include "sslt.h"  /* public ssl data types */
 
@@ -68,7 +69,9 @@ SSL_IMPORT const PRUint16 SSL_NumImplementedCiphers;
 ** Imports fd into SSL, returning a new socket.  Copies SSL configuration
 ** from model.
 */
-SSL_IMPORT PRFileDesc *SSL_ImportFD(PRFileDesc *model, PRFileDesc *fd);
+SSL_IMPORT PRFileDesc *SSL_ImportFD(PRFileDesc *modelOpt, 
+                                    NSSTrustDomain *td,
+                                    PRFileDesc *fd);
 
 /*
 ** Enable/disable an ssl mode
@@ -109,7 +112,9 @@ SSL_IMPORT SECStatus SSL_OptionSet(PRFileDesc *fd, PRInt32 option, PRBool on);
 SSL_IMPORT SECStatus SSL_OptionGet(PRFileDesc *fd, PRInt32 option, PRBool *on);
 SSL_IMPORT SECStatus SSL_OptionSetDefault(PRInt32 option, PRBool on);
 SSL_IMPORT SECStatus SSL_OptionGetDefault(PRInt32 option, PRBool *on);
-SSL_IMPORT SECStatus SSL_CertDBHandleSet(PRFileDesc *fd, CERTCertDBHandle *dbHandle);
+/*
+SSL_IMPORT SECStatus SSL_SetTrustDomain(PRFileDesc *fd, NSSTrustDomain *td);
+*/
 
 /*
 ** Control ciphers that SSL uses. If on is non-zero then the named cipher
@@ -186,7 +191,7 @@ SSL_IMPORT SECStatus SSL_SecurityStatus(PRFileDesc *fd, int *on, char **cipher,
 ** if the client had no certificate when asked.
 **	"fd" the socket "file" descriptor
 */
-SSL_IMPORT CERTCertificate *SSL_PeerCertificate(PRFileDesc *fd);
+SSL_IMPORT NSSCertificate * SSL_PeerCertificate(PRFileDesc *fd);
 
 /*
 ** Authenticate certificate hook. Called when a certificate comes in
@@ -213,10 +218,11 @@ SSL_IMPORT SECStatus SSL_AuthCertificate(void *arg, PRFileDesc *fd,
  *	pRetKey - pointer to key pointer, for return of key
  */
 typedef SECStatus (PR_CALLBACK *SSLGetClientAuthData)(void *arg,
+                                NSSTrustDomain *td,
                                 PRFileDesc *fd,
-                                CERTDistNames *caNames,
-                                CERTCertificate **pRetCert,/*return */
-                                SECKEYPrivateKey **pRetKey);/* return */
+                                NSSDER **caNames,
+                                NSSCertificate **pRetCert,/*return */
+                                NSSPrivateKey **pRetKey);/* return */
 
 /*
  * Set the client side callback for SSL to retrieve user's private key
@@ -251,8 +257,8 @@ SSL_IMPORT SECStatus SSL_BadCertHook(PRFileDesc *fd, SSLBadCertHandler f,
 ** are copied.
 */
 SSL_IMPORT SECStatus SSL_ConfigSecureServer(
-				PRFileDesc *fd, CERTCertificate *cert,
-				SECKEYPrivateKey *key, SSLKEAType kea);
+				PRFileDesc *fd, NSSCertificate *cert,
+				NSSPrivateKey *key, SSLKEAType kea);
 
 /*
 ** Configure a secure servers session-id cache. Define the maximum number
@@ -383,24 +389,11 @@ SSL_IMPORT char * SSL_RevealURL(PRFileDesc * socket);
  */
 SSL_IMPORT SECStatus
 NSS_GetClientAuthData(void *                       arg,
+                      NSSTrustDomain *             td,
                       PRFileDesc *                 socket,
-                      struct CERTDistNamesStr *    caNames,
-                      struct CERTCertificateStr ** pRetCert,
-                      struct SECKEYPrivateKeyStr **pRetKey);
-
-/*
- * Look to see if any of the signers in the cert chain for "cert" are found
- * in the list of caNames.  
- * Returns SECSuccess if so, SECFailure if not.
- * Used by NSS_GetClientAuthData.  May be used by other callback functions.
- */
-SSL_IMPORT SECStatus NSS_CmpCertChainWCANames(CERTCertificate *cert, 
-                                          CERTDistNames *caNames);
-
-/* 
- * Returns key exchange type of the keys in an SSL server certificate.
- */
-SSL_IMPORT SSLKEAType NSS_FindCertKEAType(CERTCertificate * cert);
+                      NSSDER **                    caNames,
+                      NSSCertificate **            pRetCert,
+                      NSSPrivateKey **             pRetKey);
 
 /* Set cipher policies to a predefined Domestic (U.S.A.) policy.
  * This essentially enables all supported ciphers.
@@ -438,7 +431,7 @@ SSL_IMPORT SECStatus SSL_GetCipherSuiteInfo(PRUint16 cipherSuite,
 ** Return a new reference to the certificate that was most recently sent
 ** to the peer on this SSL/TLS connection, or NULL if none has been sent.
 */
-SSL_IMPORT CERTCertificate * SSL_LocalCertificate(PRFileDesc *fd);
+SSL_IMPORT NSSCertificate * SSL_LocalCertificate(PRFileDesc *fd);
 
 SEC_END_PROTOS
 
