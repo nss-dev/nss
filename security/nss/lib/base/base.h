@@ -949,7 +949,7 @@ nssList_CreateIterator
   nssList *list
 );
 
-NSS_IMPLEMENT nssList *
+NSS_EXTERN nssList *
 nssList_Clone
 (
   nssList *list
