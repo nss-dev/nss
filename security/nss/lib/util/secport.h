@@ -219,6 +219,7 @@ extern char *PORT_Strdup(const char *s);
 #define PORT_Strncat 	strncat
 #define PORT_Strncmp 	strncmp
 #define PORT_Strncpy 	strncpy
+#define PORT_Strpbrk    strpbrk
 #define PORT_Strstr 	strstr
 #define PORT_Strtok 	strtok
 
