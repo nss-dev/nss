@@ -72,7 +72,7 @@ nssCertificateStore_Create
   NSSArena *arenaOpt
 );
 
-NSS_EXTERN void
+NSS_EXTERN PRStatus
 nssCertificateStore_Destroy
 (
   nssCertificateStore *store
