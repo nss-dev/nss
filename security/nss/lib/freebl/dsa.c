@@ -179,7 +179,7 @@ dsa_SignDigest(DSAPrivateKey *key, SECItem *signature, const SECItem *digest,
     mp_int p, q, g;  /* PQG parameters */
     mp_int x, k;     /* private key & pseudo-random integer */
     mp_int r, s;     /* tuple (r, s) is signature) */
-    mp_err err;
+    mp_err err   = MP_OKAY;
     SECStatus rv = SECSuccess;
 
     /* FIPS-compliance dictates that digest is a SHA1 hash. */
