@@ -55,7 +55,6 @@
 #include "pk11pqg.h"
 
 #ifdef USES_LINKS
-#include <errno.h>
 #include <unistd.h>
 #include <sys/param.h>
 #include <sys/types.h>
@@ -394,8 +393,9 @@ main (int argc, char **argv)
 
 #ifdef USES_LINKS
     if (link_file) {
+	(void)unlink(link_file);
 	ret = symlink(output_file, link_file);
-	if (ret < 0 && errno != EEXIST) {
+	if (ret < 0) {
 	   perror(link_file);
 	   goto loser;
 	}
