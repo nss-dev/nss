@@ -344,20 +344,23 @@ typedef struct NSSSSLMSParametersStr
   NSSItem clientRandom;
   NSSItem serverRandom;
   NSSSSLVersion version;
+  PRBool isDH;
 } 
 NSSSSLMasterSecretParameters;
 
-typedef struct NSSSSLSessionParametersStr
+typedef struct NSSSSLSessionKeyParametersStr
 {
+  NSSSSLVersion version;
   PRUint32 macSizeInBits;
   PRUint32 keySizeInBits;
   PRUint32 ivSizeInBits;
   PRBool isExport;
   NSSItem clientRandom;
   NSSItem serverRandom;
-  NSSSSLVersion version;
+  PRUint8 *clientIV;
+  PRUint8 *serverIV;
 } 
-NSSSSLSessionParameters;
+NSSSSLSessionKeyParameters;
 
 
 typedef union

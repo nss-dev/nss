@@ -54,6 +54,7 @@ struct NSSTokenStr
 {
   struct nssDeviceBaseStr base;
   NSSSlot *slot;  /* Peer */
+  CK_SLOT_ID slotID;
   CK_TOKEN_INFO info;
   CK_MECHANISM_TYPE_PTR mechanisms;
   CK_ULONG numMechanisms;
@@ -120,6 +121,7 @@ nssToken_Create
 	goto loser;
     }
     rvToken->slot = peer; /* slot owns ref to token */
+    rvToken->slotID = slotID;
     ckrv = CKAPI(epv)->C_GetMechanismList(slotID, NULL, 
                                           &rvToken->numMechanisms);
     if (ckrv != CKR_OK) {
@@ -286,6 +288,19 @@ nssToken_GetDefaultSession
     return token->defaultSession;
 }
 
+static PRStatus
+update_info(NSSToken *token)
+{
+    CK_RV ckrv;
+    void *epv = nssToken_GetCryptokiEPV(token);
+    /* Get token information */
+    ckrv = CKAPI(epv)->C_GetTokenInfo(token->slotID, &token->info);
+    if (ckrv != CKR_OK) {
+	return PR_FAILURE;
+    }
+    return PR_SUCCESS;
+}
+
 NSS_IMPLEMENT NSSUTF8 *
 nssToken_GetName
 (
@@ -350,6 +365,14 @@ nssToken_CreateSession
 }
 
 NSS_IMPLEMENT PRBool
+nssToken_HasSessionLimit (
+  NSSToken *token
+)
+{
+    return (token->info.ulMaxSessionCount != CK_EFFECTIVELY_INFINITE);
+}
+
+NSS_IMPLEMENT PRBool
 nssToken_IsLoginRequired
 (
   NSSToken *token
@@ -364,6 +387,7 @@ nssToken_NeedsPINInitialization
   NSSToken *token
 )
 {
+    (void)update_info(token);
     return (!(token->info.flags & CKF_USER_PIN_INITIALIZED));
 }
 
@@ -1889,17 +1913,20 @@ nssToken_DeriveSSLSessionKeys
   nssSession *session,
   const NSSAlgorithmAndParameters *ap,
   nssCryptokiObject *masterSecret,
+  NSSSymmetricKeyType bulkKeyType,
   NSSOperations operations,
   NSSProperties properties,
+  PRUint32 keySizeOpt,
   nssCryptokiObject **rvSessionKeys /* [4] */
 )
 {
     CK_RV ckrv;
     CK_MECHANISM_PTR mechanism;
     CK_OBJECT_HANDLE keyH;
-    CK_ATTRIBUTE keyTemplate[14];
+    CK_ATTRIBUTE keyTemplate[16];
     CK_ATTRIBUTE_PTR attr = keyTemplate;
     CK_ULONG ktSize;
+    CK_KEY_TYPE ckKeyType;
     void *epv = nssToken_GetCryptokiEPV(token);
 
     mechanism = nssAlgorithmAndParameters_GetMechanism(ap);
@@ -1907,6 +1934,7 @@ nssToken_DeriveSSLSessionKeys
     /* set up the key template */
     NSS_CK_TEMPLATE_START(keyTemplate, attr, ktSize);
     NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_TOKEN, &g_ck_false);
+    NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_CLASS, &g_ck_class_symkey);
     if (operations) {
 	attr += nssCKTemplate_SetOperationAttributes(attr, 
 	                                             keyTemplate - attr,
@@ -1917,6 +1945,11 @@ nssToken_DeriveSSLSessionKeys
 	attr += nssCKTemplate_SetPropertyAttributes(attr,
 	                                            keyTemplate - attr,
                                                     properties);
+    }
+    ckKeyType = nssCK_GetSymKeyType(bulkKeyType);
+    NSS_CK_SET_ATTRIBUTE_VAR(attr, CKA_KEY_TYPE, bulkKeyType);
+    if (keySizeOpt > 0) {
+	NSS_CK_SET_ATTRIBUTE_VAR(attr, CKA_VALUE_LEN, keySizeOpt);
     }
     NSS_CK_TEMPLATE_FINISH(keyTemplate, attr, ktSize);
     /* ready to do the derivation */

@@ -76,6 +76,7 @@ struct NSSSlotStr
   CK_FLAGS ckFlags; /* from CK_SLOT_INFO.flags */
   struct nssSlotAuthInfoStr authInfo;
   PRIntervalTime lastTokenPing;
+  PRBool sessionLimit; /* can open limited # of sessions */
 };
 
 #define NSSSLOT_IS_FRIENDLY(slot) \
@@ -155,6 +156,7 @@ nssSlot_Create
 	if (!token) {
 	    goto loser;
 	}
+	rvSlot->sessionLimit = nssToken_HasSessionLimit(token);
     }
     rvSlot->token = token;
     return rvSlot;
@@ -825,6 +827,20 @@ NSSSlot_SetPassword
  * session, the session is copied from the token's default.  These sessions
  * are 'virtual' sessions, from a higher level they appear no different, but
  * they share the same CK_SESSION_HANDLE and lock.
+ * 
+ *
+ * Description of session multiplexing
+ *
+ * When session starvation occurs (CKR_SESSION_COUNT), sessions are created
+ * as children of a parent session.  The parent is the session that
+ * originally obtained the CK_SESSION_HANDLE.  The parent and all of its
+ * children share a lock.  When the session monitor is requested for
+ * the parent or any of its children, the shared lock is acquired.  At
+ * that point, multiplexing is performed.  If the session is the "owner"
+ * of the CK_SESSION_HANDLE, nothing more is done.  Otherwise, the owner
+ * is obtained from the parent.  The state of the owner is saved.  If
+ * the current session has saved state, that state is restored.  The
+ * current session is set as the owner.
  */
 NSS_IMPLEMENT nssSession *
 nssSlot_CreateSession
@@ -868,8 +884,10 @@ nssSlot_CreateSession
 	    return (nssSession *)NULL;
 	}
 	*rvSession = *defaultSession; /* copy it */
-	rvSession->parent = defaultSession;
 	rvSession->refCount = 1;
+	rvSession->owner = defaultSession;
+	rvSession->isParent = PR_FALSE;
+	/* keep a reference to the parent so it doesn't go away */
 	PR_AtomicIncrement(&defaultSession->refCount);
 	return rvSession;
     } else if (ckrv != CKR_OK) {
@@ -878,9 +896,11 @@ nssSlot_CreateSession
 	return (nssSession *)NULL;
     }
 
-    if (!nssModule_IsThreadSafe(slot->module)) {
+    if (!nssModule_IsThreadSafe(slot->module) || slot->sessionLimit) {
 	/* If the parent module is not threadsafe, create lock to manage 
 	 * session within threads.
+	 * If the number of sessions is limited, create lock to handle
+	 * session multiplexing.
 	 */
 	rvSession->lock = PZ_NewLock(nssILockOther);
 	if (!rvSession->lock) {
@@ -893,7 +913,9 @@ nssSlot_CreateSession
     rvSession->slot = slot;
     rvSession->isRW = readWrite;
     PR_AtomicIncrement(&rvSession->refCount);
-    rvSession->owner = PR_TRUE;
+    rvSession->isParent = PR_TRUE;
+    /* parent starts off owning the session */
+    rvSession->owner = rvSession;
     return rvSession;
 }
 
@@ -917,11 +939,11 @@ nssSession_Destroy
     if (s) {
 	void *epv = nssModule_GetCryptokiEPV(s->slot->module);
 	if (PR_AtomicDecrement(&s->refCount) == 0) {
-	    if (s->parent) {
+	    if (!s->isParent) {
 		/* virtual session (child), just notify the parent */
-		nssSession_Destroy(s->parent);
+		nssSession_Destroy(s->owner);
 	    } else {
-		/* own session */
+		/* own session -- all children must be gone */
 		ckrv = CKAPI(epv)->C_CloseSession(s->handle);
 		if (s->lock) {
 		    PZ_DestroyLock(s->lock);
@@ -983,19 +1005,19 @@ nssSession_EnterMonitor
   nssSession *s
 )
 {
+    nssSession *parent;
     if (s->lock) {
+	/* acquire the shared lock */
 	PZ_Lock(s->lock);
-	if (!s->owner) {
-	    if (s->parent) {
-		/* a child (virtual) session */
-		PZ_Lock(s->parent->lock);
-		save_session_state(s->parent);
-		s->parent->owner = PR_FALSE;
-	    } else {
-		/* the parent session */
-		restore_session_state(s);
-	    }
-	    s->owner = PR_TRUE;
+	/* get the parent session (this may be the parent) */
+	parent = s->isParent ? s : s->owner;
+	if (parent->owner != s) {
+	    /* multiplex - save owner's state */
+	    save_session_state(parent->owner);
+	    /* restore my state */
+	    restore_session_state(s);
+	    /* I'm now the owner */
+	    parent->owner = s;
 	}
     }
     return PR_SUCCESS;
@@ -1008,9 +1030,6 @@ nssSession_ExitMonitor
 )
 {
     if (s->lock) {
-	if (s->parent) {
-	    PZ_Unlock(s->parent->lock);
-	}
 	PZ_Unlock(s->lock);
     }
     return PR_SUCCESS;

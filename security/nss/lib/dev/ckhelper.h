@@ -60,6 +60,7 @@ NSS_EXTERN_DATA const NSSItem g_ck_false;
 
 /* Object classes */
 NSS_EXTERN_DATA const NSSItem g_ck_class_cert;
+NSS_EXTERN_DATA const NSSItem g_ck_class_symkey;
 NSS_EXTERN_DATA const NSSItem g_ck_class_pubkey;
 NSS_EXTERN_DATA const NSSItem g_ck_class_privkey;
 
@@ -204,6 +205,11 @@ nssCKObject_IsTokenObjectTemplate
 (
   CK_ATTRIBUTE_PTR objectTemplate, 
   CK_ULONG otsize
+);
+
+NSS_EXTERN CK_KEY_TYPE
+nssCK_GetSymKeyType (
+  NSSSymmetricKeyType keyType
 );
 
 PR_END_EXTERN_C

@@ -772,8 +772,10 @@ nssToken_DeriveSSLSessionKeys
   nssSession *session,
   const NSSAlgorithmAndParameters *ap,
   nssCryptokiObject *masterSecret,
+  NSSSymmetricKeyType bulkKeyType,
   NSSOperations operations,
   NSSProperties properties,
+  PRUint32 keySizeOpt,
   nssCryptokiObject **rvSessionKeys /* [4] */
 );
 
@@ -1018,11 +1020,12 @@ nssAlgorithmAndParameters_CreateFromOID
   const NSSItem *parametersOpt
 );
 
+/* devf.h? */
 NSS_EXTERN NSSAlgorithmAndParameters *
 nssAlgorithmAndParameters_CreateSSLSessionKeyDerivation
 (
   NSSArena *arenaOpt,
-  NSSSSLSessionParameters *parameters
+  NSSSSLSessionKeyParameters *parameters
 );
 
 NSS_EXTERN NSSAlgorithmAndParameters *

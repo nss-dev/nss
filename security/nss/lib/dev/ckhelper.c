@@ -59,6 +59,10 @@ static const CK_OBJECT_CLASS s_class_cert = CKO_CERTIFICATE;
 NSS_IMPLEMENT_DATA const NSSItem
 g_ck_class_cert = { (CK_VOID_PTR)&s_class_cert, sizeof(s_class_cert) };
 
+static const CK_OBJECT_CLASS s_class_symkey = CKO_SECRET_KEY;
+NSS_IMPLEMENT_DATA const NSSItem
+g_ck_class_symkey = { (CK_VOID_PTR)&s_class_symkey, sizeof(s_class_symkey) };
+
 static const CK_OBJECT_CLASS s_class_pubkey = CKO_PUBLIC_KEY;
 NSS_IMPLEMENT_DATA const NSSItem
 g_ck_class_pubkey = { (CK_VOID_PTR)&s_class_pubkey, sizeof(s_class_pubkey) };
@@ -927,6 +931,22 @@ nssCryptokiSymmetricKey_Copy
 loser:
     nssArena_Destroy(arena);
     return (nssCryptokiObject *)NULL;
+}
+
+NSS_IMPLEMENT CK_KEY_TYPE
+nssCK_GetSymKeyType (
+  NSSSymmetricKeyType keyType
+)
+{
+    switch (keyType) {
+    case NSSSymmetricKeyType_DES:       return CKK_DES;
+    case NSSSymmetricKeyType_TripleDES: return CKK_DES3;
+    case NSSSymmetricKeyType_AES:       return CKK_AES;
+    case NSSSymmetricKeyType_RC2:       return CKK_RC2;
+    case NSSSymmetricKeyType_RC4:       return CKK_RC4;
+    case NSSSymmetricKeyType_RC5:       return CKK_RC5;
+    default:                            return CKK_GENERIC_SECRET;
+    }
 }
 
 NSS_IMPLEMENT void

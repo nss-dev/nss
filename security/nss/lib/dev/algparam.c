@@ -654,10 +654,14 @@ set_sslms_mechanism (
 
     switch (parameters->sslms.version) {
     case NSSSSLVersion_SSLv3: 
-	mechPtr->mechanism = CKM_SSL3_MASTER_KEY_DERIVE;
+	mechPtr->mechanism = parameters->sslms.isDH ?
+	                      CKM_SSL3_MASTER_KEY_DERIVE_DH :
+	                      CKM_SSL3_MASTER_KEY_DERIVE;
 	sv.major = 3; sv.minor = 0; break;
     case NSSSSLVersion_TLS:   
-	mechPtr->mechanism = CKM_TLS_MASTER_KEY_DERIVE;
+	mechPtr->mechanism = parameters->sslms.isDH ?
+	                      CKM_TLS_MASTER_KEY_DERIVE_DH :
+	                      CKM_TLS_MASTER_KEY_DERIVE;
 	sv.major = 3; sv.minor = 1; break;
     default:
 	/* XXX error invalid args */
@@ -699,14 +703,23 @@ set_sslms_mechanism (
 static PRStatus
 set_sslsession_derive_mechanism (
   CK_MECHANISM_PTR mechPtr,
-  NSSSSLSessionParameters *parameters,
+  NSSSSLSessionKeyParameters *parameters,
   NSSArena *arena
 )
 {
     PRStatus status;
     CK_SSL3_KEY_MAT_PARAMS *kmp;
+    CK_SSL3_KEY_MAT_OUT *kmo;
 
-    mechPtr->mechanism = CKM_SSL3_KEY_AND_MAC_DERIVE;
+    switch (parameters->version) {
+    case NSSSSLVersion_SSLv3: 
+	mechPtr->mechanism = CKM_SSL3_KEY_AND_MAC_DERIVE;
+    case NSSSSLVersion_TLS:   
+	mechPtr->mechanism = CKM_TLS_KEY_AND_MAC_DERIVE;
+    default:
+	/* XXX error invalid args */
+	return PR_FAILURE;
+    }
 
     kmp = nss_ZNEW(arena, CK_SSL3_KEY_MAT_PARAMS);
     if (!kmp) {
@@ -730,6 +743,13 @@ set_sslsession_derive_mechanism (
     if (status == PR_FAILURE) {
 	return PR_FAILURE;
     }
+
+    kmo = nss_ZNEW(arena, CK_SSL3_KEY_MAT_OUT);
+    if (!kmo) {
+	return PR_FAILURE;
+    }
+    kmo->pIVClient = parameters->clientIV;
+    kmo->pIVServer = parameters->serverIV;
 
     mechPtr->pParameter = kmp;
     mechPtr->ulParameterLen = sizeof(CK_SSL3_KEY_MAT_PARAMS);
@@ -988,7 +1008,7 @@ NSS_IMPLEMENT NSSAlgorithmAndParameters *
 nssAlgorithmAndParameters_CreateSSLSessionKeyDerivation
 (
   NSSArena *arenaOpt,
-  NSSSSLSessionParameters *parameters
+  NSSSSLSessionKeyParameters *parameters
 )
 {
     PRStatus status;

@@ -89,11 +89,16 @@ struct nssSessionStr
   CK_SESSION_HANDLE handle;
   NSSSlot *slot;
   PRBool isRW;
-
   PRUint32 refCount;
-  PRBool owner;
-  nssSession *parent;
-  NSSItem state;
+
+  nssSession *owner; /* if this is a parent session, owner is the session
+                      * (possibly a child's) that currently owns the session
+		      * if this is a child session, it always points to
+		      * the parent; the way for the child to find the
+		      * owner is s->owner->owner
+		      */ 
+  PRBool isParent;    /* parent or child session */
+  NSSItem state;      /* saved state during multiplexing */
 };
 
 #define MAX_LOCAL_CACHE_OBJECTS 10

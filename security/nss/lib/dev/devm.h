@@ -129,6 +129,11 @@ nssToken_GetCryptokiEPV
   NSSToken *token
 );
 
+NSS_IMPLEMENT PRBool
+nssToken_HasSessionLimit (
+  NSSToken *token
+);
+
 NSS_EXTERN nssSession *
 nssToken_GetDefaultSession
 (
