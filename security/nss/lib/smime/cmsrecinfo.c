@@ -380,7 +380,7 @@ NSS_CMSRecipientInfo_Destroy(NSSCMSRecipientInfo *ri)
 	if (extra->pubKey)
 	    SECKEY_DestroyPublicKey(extra->pubKey);
     }
-    if (ri->cmsg->contentInfo.contentTypeTag == &fakeContent) {
+    if (ri->cmsg && ri->cmsg->contentInfo.contentTypeTag == &fakeContent) {
 	NSS_CMSMessage_Destroy(ri->cmsg);
     }
 
