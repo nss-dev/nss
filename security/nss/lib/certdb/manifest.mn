@@ -35,14 +35,13 @@ CORE_DEPTH = ../../..
 EXPORTS = \
 	cert.h \
 	certt.h \
-	certdb.h \
 	$(NULL)
 
 PRIVATE_EXPORTS = \
 	genname.h \
 	xconst.h \
 	certxutl.h \
-	cdbhdl.h \
+	certrust.h \
 	$(NULL)
 
 MODULE = security
@@ -57,7 +56,6 @@ CSRCS = \
 	certxutl.c \
 	crl.c \
 	genname.c \
-	pcertdb.c \
 	polcyxtn.c \
 	secname.c \
 	xauthkid.c \

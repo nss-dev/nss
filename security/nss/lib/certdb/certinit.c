@@ -34,7 +34,7 @@
 #include "cert.h"
 #include "base64.h"
 #include "mcom_db.h"
-#include "certdb.h"
+#include "certrust.h"
 
 #ifdef STATIC_CERT_INIT
 static char example_com_server_ca[] =

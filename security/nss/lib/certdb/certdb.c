@@ -49,7 +49,7 @@
 #include "keyhi.h"
 #include "secitem.h"
 #include "mcom_db.h"
-#include "certdb.h"
+#include "certtrust.h"
 #include "prprf.h"
 #include "sechash.h"
 #include "prlong.h"
@@ -58,7 +58,6 @@
 #include "secerr.h"
 #include "sslerr.h"
 #include "nsslocks.h"
-#include "cdbhdl.h"
 
 /*
  * Certificate database handling code

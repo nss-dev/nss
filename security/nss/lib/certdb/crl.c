@@ -41,7 +41,7 @@
 #include "secder.h"
 #include "secasn1.h"
 #include "secoid.h"
-#include "certdb.h"
+#include "certtrust.h"
 #include "certxutl.h"
 #include "prtime.h"
 #include "secerr.h"
