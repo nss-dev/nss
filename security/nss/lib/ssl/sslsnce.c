@@ -426,9 +426,11 @@ _getServerCacheLock(int fd, short type, PRUint32 offset, PRUint32 size)
     lock.l_len    = 128;
 
 #ifdef TRACE
-    fprintf(stderr, "%d: %s lock, offset %8x, size %4d\n", myPid,
+    if (ssl_trace) {
+	fprintf(stderr, "%d: %s lock, offset %8x, size %4d\n", myPid,
 	    (type == F_RDLCK) ? "read " : "write", offset, size);
-    fflush(stderr);
+	fflush(stderr);
+    }
 #endif
     result = fcntl(fd, F_SETLKW, &lock);
     if (result == -1) {
@@ -437,9 +439,11 @@ _getServerCacheLock(int fd, short type, PRUint32 offset, PRUint32 size)
     	return SECFailure;
     }
 #ifdef TRACE
-    fprintf(stderr, "%d:   got lock, offset %8x, size %4d\n", 
+    if (ssl_trace) {
+	fprintf(stderr, "%d:   got lock, offset %8x, size %4d\n", 
 	    myPid, offset, size);
-    fflush(stderr);
+	fflush(stderr);
+    }
 #endif
     return SECSuccess;
 }
@@ -519,9 +523,11 @@ releaseServerCacheLock(int fd, PRUint32 offset, PRUint32 size)
     lock.l_len    = 128;
 
 #ifdef TRACE
-    fprintf(stderr, "%d:     unlock, offset %8x, size %4d\n", 
+    if (ssl_trace) {
+	fprintf(stderr, "%d:     unlock, offset %8x, size %4d\n", 
 	    myPid, offset, size);
-    fflush(stderr);
+	fflush(stderr);
+    }
 #endif
     result = fcntl(fd, F_SETLK, &lock);
     if (result == -1) {
