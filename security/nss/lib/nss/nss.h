@@ -49,6 +49,11 @@ SEC_BEGIN_PROTOS
  */
 extern SECStatus NSS_Init(const char *configdir);
 
+/*
+ * initialize NSS without a creating cert db's, key db's, or secmod db's.
+ */
+SECStatus NSS_NoDB_Init(const char *configdir);
+
 /* 
  * Close the Cert, Key databases.
  */
