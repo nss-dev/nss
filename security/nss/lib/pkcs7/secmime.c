@@ -857,7 +857,7 @@ SECMIME_CreateSigned (CERTCertificate *scert,
     SECStatus rv;
 
     /* See note in header comment above about digestalg. */
-    PORT_Assert (digestalg == SEC_OID_SHA1);
+    /* Doesn't explain this. PORT_Assert (digestalg == SEC_OID_SHA1); */
 
     cinfo = SEC_PKCS7CreateSignedData (scert, certUsageEmailSigner,
 				       certdb, digestalg, digest,

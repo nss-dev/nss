@@ -1431,6 +1431,11 @@ nssTokenObjectCache_RemoveObject
     PZ_Unlock(cache->lock);
 }
 
+/* These two hash algorithms are presently sufficient.
+** They are used for fingerprints of certs which are stored as the 
+** CKA_CERT_SHA1_HASH and CKA_CERT_MD5_HASH attributes.
+** We don't need to add SHAxxx to these now.
+*/
 /* XXX of course this doesn't belong here */
 NSS_IMPLEMENT NSSAlgorithmAndParameters *
 NSSAlgorithmAndParameters_CreateSHA1Digest

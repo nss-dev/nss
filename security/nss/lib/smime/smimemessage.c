@@ -166,7 +166,7 @@ NSS_SMIMEMessage_CreateSigned(CERTCertificate *scert,
     NSSCMSSignerInfo *signerinfo;
 
     /* See note in header comment above about digestalg. */
-    PORT_Assert (digestalgtag == SEC_OID_SHA1);
+    /* Doesn't explain this.  PORT_Assert (digestalgtag == SEC_OID_SHA1); */
 
     cmsg = NSS_CMSMessage_Create(NULL);
     if (cmsg == NULL)
