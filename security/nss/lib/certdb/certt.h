@@ -49,6 +49,9 @@
 #include "prio.h"
 #include "prmon.h"
 
+#define NSS_3_4_CODE
+#include "nsspkit.h"
+
 /* Non-opaque objects */
 typedef struct CERTAVAStr                        CERTAVA;
 typedef struct CERTAttributeStr                  CERTAttribute;
@@ -294,6 +297,9 @@ struct CERTCertificateStr {
     PK11SlotInfo *slot;		/*if this cert came of a token, which is it*/
     CK_OBJECT_HANDLE pkcs11ID;	/*and which object on that token is it */
     PRBool ownSlot;		/*true if the cert owns the slot reference */
+
+    /* This is Stan stuff. */
+    NSSCertificate *nssCertificate;
 };
 #define SEC_CERTIFICATE_VERSION_1		0	/* default created */
 #define SEC_CERTIFICATE_VERSION_2		1	/* v2 */
