@@ -50,6 +50,7 @@ extern const PRUint32 nss_builtin_oid_count;
 /*extern const PRUint32 nss_attribute_type_alias_count;*/
 
 enum NSSOIDTagEnum {
+   NSS_OID_UNKNOWN = -1,
    NSS_OID_RFC1274_UID = 11,
    NSS_OID_RFC1274_EMAIL = 12,
    NSS_OID_RFC2247_DC = 13,

@@ -271,7 +271,7 @@ nssPKIXCertificate_SetTBSCertificate
 }
 
 NSS_IMPLEMENT NSSPKIXAlgorithmIdentifier *
-nssPKIXCertificate_GetAlgorithmIdentifier
+nssPKIXCertificate_GetSignatureAlgorithm
 (
   NSSPKIXCertificate *cert
 )
@@ -280,7 +280,7 @@ nssPKIXCertificate_GetAlgorithmIdentifier
 }
 
 NSS_IMPLEMENT void
-nssPKIXCertificate_SetAlgorithmIdentifier
+nssPKIXCertificate_SetSignatureAlgorithm
 (
   NSSPKIXCertificate *cert,
   NSSPKIXAlgorithmIdentifier *algid

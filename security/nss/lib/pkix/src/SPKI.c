@@ -40,51 +40,54 @@ static const char CVS_ID[] = "@(#) $Source$ $Revision$ $Date$ $Name$";
 #endif /* PKIXM_H */
 
 /*
- * nssPKIXBasicConstraints_template
+ * nssPKIXSubjectPublicKeyInfo_template
  *
  */
 
-const NSSASN1Template nssPKIXBasicConstraints_template[] = 
+const NSSASN1Template nssPKIXSubjectPublicKeyInfo_template[] = 
 {
- { NSSASN1_SEQUENCE, 0, NULL, sizeof(NSSPKIXBasicConstraints)   },
- { NSSASN1_OPTIONAL | 
-    NSSASN1_BOOLEAN, offsetof(NSSPKIXBasicConstraints, cA)    },
- { NSSASN1_OPTIONAL |
-    NSSASN1_INTEGER, offsetof(NSSPKIXBasicConstraints, plcItem) },
+ { NSSASN1_SEQUENCE,   0, NULL, sizeof(NSSPKIXSubjectPublicKeyInfo)     },
+ { NSSASN1_ANY,        offsetof(NSSPKIXSubjectPublicKeyInfo, 
+                                                      algorithm.der)    },
+ { NSSASN1_BIT_STRING, offsetof(NSSPKIXSubjectPublicKeyInfo, 
+                                                      subjectPublicKey) },
  { 0 }
 };
 
 static PRStatus
-encode_me(NSSPKIXBasicConstraints *basicConstraints)
+encode_me(NSSPKIXSubjectPublicKeyInfo *spki)
 {
+#if 0
     NSSASN1EncodingType encoding = NSSASN1DER;
-    if (NSSITEM_IS_EMPTY(&basicConstraints->der)) {
+    if (NSSITEM_IS_EMPTY(&spki->der)) {
 	if ((NSSBER *)NULL == NSSASN1_EncodeItem(
-	                                    basicConstraints->arena, 
-	                                    &basicConstraints->der,
-	                                    basicConstraints,
-	                                    nssPKIXBasicConstraints_template, 
+	                                    spki->arena, 
+	                                    &spki->der,
+	                                    spki,
+	                                    nssASN1Template_BitString, 
 	                                    encoding))
 	{
 	    return PR_FAILURE;
 	}
     }
     return PR_SUCCESS;
+#endif
+    return PR_FAILURE;
 }
 
 static PRStatus
-decode_me(NSSPKIXBasicConstraints *basicConstraints)
+decode_me(NSSPKIXSubjectPublicKeyInfo *spki)
 {
-    if (!NSSITEM_IS_EMPTY(&basicConstraints->der)) {
-	return NSSASN1_DecodeBER(basicConstraints->arena, basicConstraints, 
-	                         nssPKIXBasicConstraints_template, 
-                                 &basicConstraints->der);
+    if (!NSSITEM_IS_EMPTY(&spki->der)) {
+	return NSSASN1_DecodeBER(spki->arena, spki, 
+	                         nssPKIXSubjectPublicKeyInfo_template, 
+                                 &spki->der);
     } else {
 	return PR_FAILURE;
     }
 }
 
-static NSSPKIXBasicConstraints *
+static NSSPKIXSubjectPublicKeyInfo *
 create_me
 (
   NSSArena *arenaOpt
@@ -93,7 +96,7 @@ create_me
     NSSArena *arena;
     PRBool arena_allocated = PR_FALSE;
     nssArenaMark *mark = (nssArenaMark *)NULL;
-    NSSPKIXBasicConstraints *rv = (NSSPKIXBasicConstraints *)NULL;
+    NSSPKIXSubjectPublicKeyInfo *rv = (NSSPKIXSubjectPublicKeyInfo *)NULL;
 
     if ((NSSArena *)NULL == arenaOpt) {
 	arena = NSSArena_Create();
@@ -109,8 +112,8 @@ create_me
 	}
     }
 
-    rv = nss_ZNEW(arena, NSSPKIXBasicConstraints);
-    if ((NSSPKIXBasicConstraints *)NULL == rv) {
+    rv = nss_ZNEW(arena, NSSPKIXSubjectPublicKeyInfo);
+    if ((NSSPKIXSubjectPublicKeyInfo *)NULL == rv) {
 	goto loser;
     }
 
@@ -134,12 +137,12 @@ loser:
 	(void)NSSArena_Destroy(arena);
     }
 
-    return (NSSPKIXBasicConstraints *)NULL;
+    return (NSSPKIXSubjectPublicKeyInfo *)NULL;
 }
 
 #if 0
-NSS_IMPLEMENT NSSPKIXBasicConstraints *
-nssPKIXBasicConstraints_Create
+NSS_IMPLEMENT NSSPKIXSubjectPublicKeyInfo *
+nssPKIXSubjectPublicKeyInfo_Create
 (
   NSSArena *arenaOpt,
   NSSOID *extnID,
@@ -147,11 +150,11 @@ nssPKIXBasicConstraints_Create
   NSSItem *extnValue
 )
 {
-    NSSPKIXBasicConstraints *rv = (NSSPKIXBasicConstraints *)NULL;
+    NSSPKIXSubjectPublicKeyInfo *rv = (NSSPKIXSubjectPublicKeyInfo *)NULL;
 
     rv = create_me(arenaOpt);
     if (!rv) {
-	return (NSSPKIXBasicConstraints *)NULL;
+	return (NSSPKIXSubjectPublicKeyInfo *)NULL;
     }
 
 #if 0
@@ -164,19 +167,19 @@ nssPKIXBasicConstraints_Create
 }
 #endif
 
-NSS_IMPLEMENT NSSPKIXBasicConstraints *
-nssPKIXBasicConstraints_Decode
+NSS_IMPLEMENT NSSPKIXSubjectPublicKeyInfo *
+nssPKIXSubjectPublicKeyInfo_Decode
 (
   NSSArena *arenaOpt,
   NSSBER *ber
 )
 {
-    NSSPKIXBasicConstraints *rv = (NSSPKIXBasicConstraints *)NULL;
+    NSSPKIXSubjectPublicKeyInfo *rv = (NSSPKIXSubjectPublicKeyInfo *)NULL;
     PRStatus status;
 
     rv = create_me(arenaOpt);
     if (!rv) {
-	return (NSSPKIXBasicConstraints *)NULL;
+	return (NSSPKIXSubjectPublicKeyInfo *)NULL;
     }
 
     if ((NSSItem *)NULL == NSSItem_Duplicate(ber, rv->arena, &rv->der)) {
@@ -188,53 +191,29 @@ nssPKIXBasicConstraints_Decode
 	goto loser;
     }
 
-    /* XXX this logic belongs elsewhere, methinks */
-    if (rv->plcItem.data == NULL) {
-	/* the path length constraint is not present, for a CA cert
-	 * this implies unlimited path.
-	 */
-	if (rv->cA) {
-	    rv->pathLenConstraint = NSSPKIX_UNLIMITED_PATH_CONSTRAINT;
-	}
-    } else if (rv->cA) {
-	    /* XXX hack, should happen in decoder */
-	unsigned char *d = (unsigned char *)rv->plcItem.data;
-	if (rv->plcItem.size == 1) {
-	    rv->pathLenConstraint = *d;
-	} else {
-	    rv->pathLenConstraint = d[0] << 24 |
-	                            d[1] << 16 |
-	                            d[2] << 8  |
-	                            d[3];
-	}
-    } else {
-	/* XXX set error */
-	goto loser;
-    }
-
     return rv;
 
 loser:
-    nssPKIXBasicConstraints_Destroy(rv);
-    return (NSSPKIXBasicConstraints *)NULL;
+    nssPKIXSubjectPublicKeyInfo_Destroy(rv);
+    return (NSSPKIXSubjectPublicKeyInfo *)NULL;
 }
 
 NSS_IMPLEMENT PRStatus
-nssPKIXBasicConstraints_Destroy
+nssPKIXSubjectPublicKeyInfo_Destroy
 (
-  NSSPKIXBasicConstraints *basicConstraints
+  NSSPKIXSubjectPublicKeyInfo *spki
 )
 {
-    if (PR_TRUE == basicConstraints->i_allocated_arena) {
-	return NSSArena_Destroy(basicConstraints->arena);
+    if (PR_TRUE == spki->i_allocated_arena) {
+	return NSSArena_Destroy(spki->arena);
     }
     return PR_SUCCESS;
 }
 
 NSS_IMPLEMENT NSSBER *
-nssPKIXBasicConstraints_Encode
+nssPKIXSubjectPublicKeyInfo_Encode
 (
-  NSSPKIXBasicConstraints *basicConstraints,
+  NSSPKIXSubjectPublicKeyInfo *spki,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
   NSSArena *arenaOpt
@@ -244,11 +223,11 @@ nssPKIXBasicConstraints_Encode
     switch (encoding) {
     case NSSASN1BER:
     case NSSASN1DER:
-	status = encode_me(basicConstraints);
+	status = encode_me(spki);
 	if (status == PR_FAILURE) {
 	    return (NSSBER *)NULL;
 	}
-	return &basicConstraints->der;
+	return &spki->der;
     default:
 #ifdef nodef
 	nss_SetError(NSS_ERROR_UNSUPPORTED_ENCODING);
@@ -259,10 +238,10 @@ nssPKIXBasicConstraints_Encode
 
 #if 0
 NSS_IMPLEMENT PRBool
-nssPKIXBasicConstraints_Equal
+nssPKIXSubjectPublicKeyInfo_Equal
 (
-  NSSPKIXBasicConstraints *one,
-  NSSPKIXBasicConstraints *two,
+  NSSPKIXSubjectPublicKeyInfo *one,
+  NSSPKIXSubjectPublicKeyInfo *two,
   PRStatus *statusOpt
 )
 {
@@ -288,56 +267,56 @@ nssPKIXBasicConstraints_Equal
 }
 
 NSS_IMPLEMENT PRStatus
-nssPKIXBasicConstraints_duplicate
+nssPKIXSubjectPublicKeyInfo_duplicate
 (
-  NSSPKIXBasicConstraints *basicConstraints,
+  NSSPKIXSubjectPublicKeyInfo *spki,
   NSSArena *arena,
-  NSSPKIXBasicConstraints *copy
+  NSSPKIXSubjectPublicKeyInfo *copy
 )
 {
     PRStatus status;
 
-    if (!NSSITEM_IS_EMPTY(&basicConstraints->der)) {
-	if (NSSItem_Duplicate(&basicConstraints->der, arena, &copy->der) 
+    if (!NSSITEM_IS_EMPTY(&spki->der)) {
+	if (NSSItem_Duplicate(&spki->der, arena, &copy->der) 
 	     == (NSSItem *)NULL) 
 	{
 	    return PR_FAILURE;
 	}
     }
 
-    if (NSSItem_Duplicate(&basicConstraints->extnID, arena,  &copy->extnID)
+    if (NSSItem_Duplicate(&spki->extnID, arena,  &copy->extnID)
          == (NSSItem *)NULL)
     {
 	return PR_FAILURE;
     }
 
-    if (NSSItem_Duplicate(&basicConstraints->extnValue, arena,  &copy->extnValue)
+    if (NSSItem_Duplicate(&spki->extnValue, arena,  &copy->extnValue)
          == (NSSItem *)NULL)
     {
 	return PR_FAILURE;
     }
 
-    copy->extnID = basicConstraints->extnID;
-    copy->critical = basicConstraints->critical;
+    copy->extnID = spki->extnID;
+    copy->critical = spki->critical;
 
     return PR_SUCCESS;
 }
 
-NSS_IMPLEMENT NSSPKIXBasicConstraints *
-nssPKIXBasicConstraints_Duplicate
+NSS_IMPLEMENT NSSPKIXSubjectPublicKeyInfo *
+nssPKIXSubjectPublicKeyInfo_Duplicate
 (
-  NSSPKIXBasicConstraints *basicConstraints,
+  NSSPKIXSubjectPublicKeyInfo *spki,
   NSSArena *arenaOpt
 )
 {
-    NSSPKIXBasicConstraints *rv = (NSSPKIXBasicConstraints *)NULL;
+    NSSPKIXSubjectPublicKeyInfo *rv = (NSSPKIXSubjectPublicKeyInfo *)NULL;
 
     rv = create_me(arenaOpt);
     if (rv) {
-	if (nssPKIXBasicConstraints_duplicate(basicConstraints, rv->arena, rv) != PR_SUCCESS) 
+	if (nssPKIXSubjectPublicKeyInfo_duplicate(spki, rv->arena, rv) != PR_SUCCESS) 
 	{
-	    nssPKIXBasicConstraints_Destroy(rv);
-	    return (NSSPKIXBasicConstraints *)NULL;
+	    nssPKIXSubjectPublicKeyInfo_Destroy(rv);
+	    return (NSSPKIXSubjectPublicKeyInfo *)NULL;
 	}
     }
 
@@ -345,26 +324,40 @@ nssPKIXBasicConstraints_Duplicate
 }
 #endif
 
-NSS_IMPLEMENT PRBool
-nssPKIXBasicConstraints_IsCA
+NSS_IMPLEMENT NSSPKIXAlgorithmIdentifier *
+nssPKIXSubjectPublicKeyInfo_GetAlgorithm
 (
-  NSSPKIXBasicConstraints *basicConstraints
+  NSSPKIXSubjectPublicKeyInfo *spki
 )
 {
-    return basicConstraints->cA;
+    if (NSSITEM_IS_EMPTY(&spki->algorithm.der)) {
+	if (NSSITEM_IS_EMPTY(&spki->der) ||
+	    decode_me(spki) == PR_FAILURE)
+	{
+	    return (NSSBitString *)NULL;
+	}
+    }
+    return &spki->algorithm;
 }
 
-NSS_IMPLEMENT PRInt32
-nssPKIXBasicConstraints_GetPathLengthConstraint
+NSS_IMPLEMENT NSSBitString *
+nssPKIXSubjectPublicKeyInfo_GetSubjectPublicKey
 (
-  NSSPKIXBasicConstraints *basicConstraints
+  NSSPKIXSubjectPublicKeyInfo *spki
 )
 {
-    return basicConstraints->pathLenConstraint;
+    if (NSSITEM_IS_EMPTY(&spki->subjectPublicKey)) {
+	if (NSSITEM_IS_EMPTY(&spki->der) ||
+	    decode_me(spki) == PR_FAILURE)
+	{
+	    return (NSSBitString *)NULL;
+	}
+    }
+    return &spki->subjectPublicKey;
 }
 
 /*
- * NSSPKIXBasicConstraints_Create
+ * NSSPKIXSubjectPublicKeyInfo_Create
  *
  * -- fgmr comments --
  *
@@ -375,13 +368,13 @@ nssPKIXBasicConstraints_GetPathLengthConstraint
  *  NSS_ERROR_INVALID_POINTER
  *
  * Return value:
- *  A valid pointer to an NSSPKIXBasicConstraints upon success
+ *  A valid pointer to an NSSPKIXSubjectPublicKeyInfo upon success
  *  NULL upon failure
  */
 
 #if 0
-NSS_IMPLEMENT NSSPKIXBasicConstraints *
-NSSPKIXBasicConstraints_Create
+NSS_IMPLEMENT NSSPKIXSubjectPublicKeyInfo *
+NSSPKIXSubjectPublicKeyInfo_Create
 (
   NSSArena *arenaOpt,
   NSSOID *extnID,
@@ -391,12 +384,12 @@ NSSPKIXBasicConstraints_Create
 {
     nss_ClearErrorStack();
 
-    return nssPKIXBasicConstraints_Create(arenaOpt, extnID, critical, extnValue);
+    return nssPKIXSubjectPublicKeyInfo_Create(arenaOpt, extnID, critical, extnValue);
 }
 #endif
 
 /*
- * NSSPKIXBasicConstraints_Decode
+ * NSSPKIXSubjectPublicKeyInfo_Decode
  *
  * 
  *
@@ -406,12 +399,12 @@ NSSPKIXBasicConstraints_Create
  *  NSS_ERROR_INVALID_ARENA
  *
  * Return value:
- *  A valid pointer to an NSSPKIXBasicConstraints upon success
+ *  A valid pointer to an NSSPKIXSubjectPublicKeyInfo upon success
  *  NULL upon failure
  */
 
-NSS_IMPLEMENT NSSPKIXBasicConstraints *
-NSSPKIXBasicConstraints_Decode
+NSS_IMPLEMENT NSSPKIXSubjectPublicKeyInfo *
+NSSPKIXSubjectPublicKeyInfo_Decode
 (
   NSSArena *arenaOpt,
   NSSBER *ber
@@ -419,53 +412,53 @@ NSSPKIXBasicConstraints_Decode
 {
     nss_ClearErrorStack();
 
-    return nssPKIXBasicConstraints_Decode(arenaOpt, ber);
+    return nssPKIXSubjectPublicKeyInfo_Decode(arenaOpt, ber);
 }
 
 /*
- * NSSPKIXBasicConstraints_Destroy
+ * NSSPKIXSubjectPublicKeyInfo_Destroy
  *
  */
 
 NSS_IMPLEMENT PRStatus
-NSSPKIXBasicConstraints_Destroy
+NSSPKIXSubjectPublicKeyInfo_Destroy
 (
-  NSSPKIXBasicConstraints *basicConstraints
+  NSSPKIXSubjectPublicKeyInfo *spki
 )
 {
     nss_ClearErrorStack();
 
-    return nssPKIXBasicConstraints_Destroy(basicConstraints);
+    return nssPKIXSubjectPublicKeyInfo_Destroy(spki);
 }
 
 /*
- * NSSPKIXBasicConstraints_Duplicate
+ * NSSPKIXSubjectPublicKeyInfo_Duplicate
  *
  */
 
 #if 0
-NSS_IMPLEMENT NSSPKIXBasicConstraints *
-NSSPKIXBasicConstraints_Duplicate
+NSS_IMPLEMENT NSSPKIXSubjectPublicKeyInfo *
+NSSPKIXSubjectPublicKeyInfo_Duplicate
 (
-  NSSPKIXBasicConstraints *basicConstraints,
+  NSSPKIXSubjectPublicKeyInfo *spki,
   NSSArena *arenaOpt
 )
 {
     nss_ClearErrorStack();
 
-    return nssPKIXBasicConstraints_Duplicate(basicConstraints, arenaOpt);
+    return nssPKIXSubjectPublicKeyInfo_Duplicate(spki, arenaOpt);
 }
 #endif
 
 /*
- * NSSPKIXBasicConstraints_Encode
+ * NSSPKIXSubjectPublicKeyInfo_Encode
  *
  */
 
 NSS_IMPLEMENT NSSBER *
-NSSPKIXBasicConstraints_Encode
+NSSPKIXSubjectPublicKeyInfo_Encode
 (
-  NSSPKIXBasicConstraints *basicConstraints,
+  NSSPKIXSubjectPublicKeyInfo *spki,
   NSSASN1EncodingType encoding,
   NSSBER *rvOpt,
   NSSArena *arenaOpt
@@ -473,13 +466,31 @@ NSSPKIXBasicConstraints_Encode
 {
     nss_ClearErrorStack();
 
-    /* XXX the idea is: assert that either basicConstraints has the DER or all of the
+    /* XXX the idea is: assert that either spki has the DER or all of the
      * parts, as that could only be an application error
      */
 #if 0
-    PKIX_Assert(am_i_complete(basicConstraints));
+    PKIX_Assert(am_i_complete(spki));
 #endif
 
-    return nssPKIXBasicConstraints_Encode(basicConstraints, encoding, rvOpt, arenaOpt);
+    return nssPKIXSubjectPublicKeyInfo_Encode(spki, encoding, rvOpt, arenaOpt);
+}
+
+NSS_IMPLEMENT NSSPKIXAlgorithmIdentifier *
+NSSPKIXSubjectPublicKeyInfo_GetAlgorithm
+(
+  NSSPKIXSubjectPublicKeyInfo *spki
+)
+{
+    return nssPKIXSubjectPublicKeyInfo_GetAlgorithm(spki);
+}
+
+NSS_IMPLEMENT NSSBitString *
+NSSPKIXSubjectPublicKeyInfo_GetSubjectPublicKey
+(
+  NSSPKIXSubjectPublicKeyInfo *spki
+)
+{
+    return nssPKIXSubjectPublicKeyInfo_GetSubjectPublicKey(spki);
 }
 

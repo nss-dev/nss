@@ -131,6 +131,21 @@ nssOID_CreateFromUTF8
 );
 
 
+NSS_EXTERN NSSOIDTag
+nssOID_GetTag
+(
+  const NSSOID *oid
+);
+
+NSS_EXTERN NSSAlgorithmAndParameters *
+nssOID_CreateAlgorithmAndParameters
+(
+  const NSSOID *oid,
+  NSSParameters *parameters,
+  NSSArena *arenaOpt
+);
+
+
 /*
  * nssOID_GetDEREncoding
  *

@@ -605,6 +605,51 @@ nssAlgorithmAndParameters_CreateKeyGen
                            PR_TRUE, NULL);
 }
 
+NSS_IMPLEMENT NSSAlgorithmAndParameters *
+nssAlgorithmAndParameters_CreateFromOID
+(
+  NSSArena *arenaOpt,
+  CK_MECHANISM_TYPE algorithm,
+  const NSSItem *parametersOpt
+)
+{
+    NSSArena *arena;
+    nssArenaMark *mark = NULL;
+    NSSAlgorithmAndParameters *rvAP = NULL;
+
+    if (arenaOpt) {
+	arena = arenaOpt;
+	mark = nssArena_Mark(arena);
+	if (!mark) {
+	    return (NSSAlgorithmAndParameters *)NULL;
+	}
+    } else {
+	arena = nssArena_Create();
+	if (!arena) {
+	    return (NSSAlgorithmAndParameters *)NULL;
+	}
+    }
+    rvAP = nss_ZNEW(arena, NSSAlgorithmAndParameters);
+    if (!rvAP) {
+	goto loser;
+    }
+    rvAP->mechanism.mechanism = algorithm;
+    /* XXX */
+    if (mark) {
+	nssArena_Unmark(arena, mark);
+    } else {
+	rvAP->arena = arena;
+    }
+    return rvAP;
+loser:
+    if (mark) {
+	nssArena_Release(arena, mark);
+    } else {
+	nssArena_Destroy(arena);
+    }
+    return (NSSAlgorithmAndParameters *)NULL;
+}
+
 NSS_IMPLEMENT void
 nssAlgorithmAndParameters_Destroy
 (

@@ -1073,7 +1073,7 @@ NSSPublicKey_FindBestCertificate
 (
   NSSPublicKey *bk,
   NSSTime time,
-  NSSUsage *usagesOpt,
+  NSSUsages *usagesOpt,
   NSSPolicies *policiesOpt
 );
 
@@ -1564,7 +1564,7 @@ NSS_EXTERN NSSToken *
 NSSTrustDomain_FindTokenForAlgorithm
 (
   NSSTrustDomain *td,
-  NSSOID *algorithm
+  const NSSOID *algorithm
 );
 
 /*

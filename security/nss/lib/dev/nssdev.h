@@ -192,19 +192,6 @@ NSSToken_GetInfo
  * 
  */
 
-#ifdef notdefhere
-/* this should be a protected "friend" method available to the PKI1 module
- * (which contains the OID implementation)
- */
-NSS_EXTERN NSSAlgorithmAndParameters *
-nssAlgorithmAndParameters_CreateFromOID
-(
-  NSSArena *arenaOpt,
-  CK_MECHANISM_TYPE algorithm,
-  const NSSItem *parametersOpt /* XXX or already decoded? */
-);
-#endif
-
 NSS_EXTERN NSSAlgorithmAndParameters *
 NSSAlgorithmAndParameters_Create
 (

@@ -39,6 +39,7 @@ EXPORTS = $(NULL)
 MODULE = security
 
 CSRCS= \
+	AlgorithmID.c      \
 	ATAV.c             \
 	BasicConstraints.c \
 	Certificate.c      \
@@ -47,6 +48,7 @@ CSRCS= \
 	KeyUsage.c         \
 	Name.c             \
 	RDNSequence.c      \
+	SPKI.c             \
 	Time.c             \
 	TBSCertificate.c   \
 	Validity.c         \

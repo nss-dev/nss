@@ -35,6 +35,14 @@
 static const char CVS_ID[] = "@(#) $Source$ $Revision$ $Date$ $Name$";
 #endif /* DEBUG */
 
+#ifndef NSSDEV_H
+#include "nssdev.h"
+#endif /* NSSDEV_H */
+
+#ifndef NSSASN1_H
+#include "nssasn1.h"
+#endif /* NSSASN1_H */
+
 #ifndef PKI_H
 #include "pki.h"
 #endif /* PKI_H */
@@ -148,38 +156,6 @@ pkix_GetEmailAddress
     return NULL;
 }
 
-#if 0
-struct nss_pkix_issuer_id_str {
-};
-#endif
-
-static void *
-pkix_GetIssuerIdentifier
-(
-  void *cert
-)
-{
-    return NULL;
-}
-
-static PRBool
-pkix_IsMyIdentifier
-(
-  void *cert,
-  void *id
-)
-{
-    return PR_FALSE;
-}
-
-static void 
-pkix_FreeIdentifier
-(
-  void *id
-)
-{
-}
-
 static PRStatus
 pkix_GetValidityPeriod
 (
@@ -254,6 +230,7 @@ get_usages_from_key_usage
     if ((ku & (NSSPKIXKeyUsage_DigitalSignature |
                NSSPKIXKeyUsage_KeyAgreement)) == 0)
     {
+	/* XXX add key type as parameter */
 	usages->peer &= ~NSSUsage_SSLClient;
     }
 #if 0
@@ -264,6 +241,7 @@ get_usages_from_key_usage
                NSSPKIXKeyUsage_KeyAgreement)) == 0) 
     {
 	/* XXX ku_key_agreement_or_encipherment */
+	/* XXX add key type as parameter */
 	usages->peer &= ~(NSSUsage_SSLServer | NSSUsage_EmailRecipient);
     }
 #if 0
@@ -273,15 +251,15 @@ get_usages_from_key_usage
     if ((ku & NSSPKIXKeyUsage_KeyCertSign) == 0) {
 	usages->ca = 0;
     }
-#if 0
     if ((ku & NSSPKIXKeyUsage_CRLSign) == 0) {
+	usages->peer &= ~NSSUsage_CRLSigner;
     }
+#if 0
     if ((ku & NSSPKIXKeyUsage_EncipherOnly) == 0) {
     }
     if ((ku & NSSPKIXKeyUsage_DecipherOnly) == 0) {
     }
 #endif
-    /* XXX ssl step-up */
 }
 
 /*
@@ -299,6 +277,21 @@ get_usages_from_basic_constraints
 	usages->ca = 0;
     }
 }
+
+#if 0
+/*
+ * restrict the set of usages based on the value of the extended key usage
+ * extension
+ */
+static void
+get_usages_from_ext_key_usage
+(
+  NSSPKIXExtendedKeyUsage *extKeyUsage,
+  NSSUsages *usages
+)
+{
+}
+#endif
 
 /*
  * restrict the set of usages based on the value of the netscape cert type
@@ -328,7 +321,12 @@ get_usages_from_ns_cert_type
     if ((nsct & NSSPKIXnetscapeCertType_EmailCA) == 0) {
 	usages->ca &= ~(NSSUsage_EmailSigner | NSSUsage_EmailRecipient);
     }
-    /* XXX ssl step-up */
+    if ((nsct & NSSPKIXnetscapeCertType_ObjectSigning) == 0) {
+	usages->peer &= ~NSSUsage_CodeSigner;
+    }
+    if ((nsct & NSSPKIXnetscapeCertType_ObjectSigningCA) == 0) {
+	usages->ca &= ~NSSUsage_CodeSigner;
+    }
 }
 
 static PRStatus
@@ -397,66 +395,278 @@ pkix_GetPolicies
     return NULL;
 }
 
+static PRStatus
+pkix_GetPublicKeyInfo
+(
+  void *cert,
+  NSSOID **keyType,
+  NSSBitString *keyData
+)
+{
+    NSSPKIXCertificate *pkixCert = (NSSPKIXCertificate *)cert;
+    NSSPKIXTBSCertificate *tbsCert;
+    NSSPKIXSubjectPublicKeyInfo *spki;
+    NSSPKIXAlgorithmIdentifier *algID;
+    NSSBitString *spk;
+
+    /*
+     * cert->tbsCert
+     */
+    tbsCert = nssPKIXCertificate_GetTBSCertificate(pkixCert);
+    if (!tbsCert) {
+	return PR_FAILURE;
+    }
+    /*
+     * tbsCert->subjectPublicKeyInfo
+     */
+    spki = nssPKIXTBSCertificate_GetSubjectPublicKeyInfo(tbsCert);
+    if (!spki) {
+	return PR_FAILURE;
+    }
+    /*
+     * subjectPublicKeyInfo->algorithm
+     */
+    algID = nssPKIXSubjectPublicKeyInfo_GetAlgorithm(spki);
+    if (!algID) {
+	return PR_FAILURE;
+    }
+    /*
+     * algorithm->algorithm (OID)
+     */
+    *keyType = nssPKIXAlgorithmIdentifier_GetAlgorithm(algID);
+    if (!*keyType) {
+	return PR_FAILURE;
+    }
+    /* XXX parameters ? */
+    /*
+     * subjectPublicKeyInfo->subjectPublicKey
+     */
+    spk = nssPKIXSubjectPublicKeyInfo_GetSubjectPublicKey(spki);
+    if (!spk) {
+	return PR_FAILURE;
+    }
+    *keyData = *spk;
+    return PR_SUCCESS;
+}
+
 #if 0
-struct nss_pkix_validation_data_str {
+struct nss_pkix_issuer_id_str {
 };
 #endif
 
 static void *
-pkix_StartChainValidation
+pkix_GetIssuerIdentifier
 (
+  void *cert
 )
 {
     return NULL;
+}
+
+static PRBool
+pkix_IsMyIdentifier
+(
+  void *cert,
+  void *id
+)
+{
+    return PR_FALSE;
+}
+
+static void 
+pkix_FreeIdentifier
+(
+  void *id
+)
+{
+}
+
+struct nss_pkix_validation_data_str 
+{
+  PRInt32 pathLen;
+};
+
+static void *
+pkix_StartChainValidation
+(
+  void
+)
+{
+    struct nss_pkix_validation_data_str *validationData;
+
+    validationData = nss_ZNEW(NULL, struct nss_pkix_validation_data_str);
+    if (!validationData) {
+	return NULL;
+    }
+
+    return (void *)validationData;
+}
+
+/* XXX */
+#define NSSPKIXBasicConstraints_UNLIMITED_PATH_CONSTRAINT -2
+
+static PRStatus
+check_basic_constraints
+(
+  NSSPKIXCertificate *cert,
+  struct nss_pkix_validation_data_str *validationData
+)
+{
+    NSSPKIXTBSCertificate *tbsCert;
+    NSSPKIXExtensions *extensions;
+    NSSPKIXBasicConstraints *bc;
+    /*
+     * cert->tbsCert
+     */
+    tbsCert = nssPKIXCertificate_GetTBSCertificate(cert);
+    if (!tbsCert) {
+	return PR_FAILURE;
+    }
+    /*
+     * tbsCert->extensions
+     */
+    extensions = nssPKIXTBSCertificate_GetExtensions(tbsCert);
+    if (!extensions) {
+	if (NSS_GetError() == NSS_ERROR_INVALID_BER) {
+	    return PR_FAILURE;
+	} else {
+	    goto done;
+	}
+    }
+    /*
+     * extensions[basicConstraints]
+     */
+    bc = nssPKIXExtensions_GetBasicConstraints(extensions);
+    if (bc) {
+	PRInt32 plc;
+	if (!nssPKIXBasicConstraints_IsCA(bc)) {
+#if 0
+	    nss_SetError(NSS_ERROR_INVALID_CERTIFICATE);
+#endif
+	    return PR_FAILURE;
+	}
+	plc = nssPKIXBasicConstraints_GetPathLengthConstraint(bc);
+	if (plc != NSSPKIXBasicConstraints_UNLIMITED_PATH_CONSTRAINT &&
+	    plc <= validationData->pathLen) 
+	{
+#if 0
+	    nss_SetError(NSS_ERROR_EXCEEDED_PATH_LEN_CONSTRAINT);
+#endif
+	    return PR_FAILURE;
+	}
+    }
+done:
+    validationData->pathLen++;
+    return PR_SUCCESS;
+}
+
+static PRStatus
+verify_signature
+(
+  NSSPKIXCertificate *cert,
+  NSSPKIXCertificate *issuerCert,
+  NSSCertificate *issuer
+)
+{
+    PRStatus status;
+    NSSBitString *sig;
+    NSSPKIXAlgorithmIdentifier *sigAlg;
+    NSSPKIXTBSCertificate *tbsCert;
+    NSSDER *tbsDER;
+    NSSPublicKey *verifyKey;
+    NSSAlgorithmAndParameters *ap;
+    NSSOID *alg;
+    NSSItem *params;
+
+    sigAlg = nssPKIXCertificate_GetSignatureAlgorithm(cert);
+    if (!sigAlg) {
+	return PR_FAILURE;
+    }
+    alg = nssPKIXAlgorithmIdentifier_GetAlgorithm(sigAlg);
+    /* XXX */
+    /* there are trailing bytes in the algid of certs generated by
+     * NSS... what are they?  3.X ignores them, uses NULL params
+     */
+#if 0
+    params = nssPKIXAlgorithmIdentifier_GetParameters(sigAlg);
+#else
+    params = NULL;
+#endif
+
+    sig = nssPKIXCertificate_GetSignature(cert);
+    if (!sig) {
+	return PR_FAILURE;
+    }
+
+    tbsCert = nssPKIXCertificate_GetTBSCertificate(cert);
+    if (!tbsCert) {
+	return PR_FAILURE;
+    }
+
+    /* XXX */
+    tbsDER = nssPKIXTBSCertificate_Encode(tbsCert, NSSASN1DER, 0, 0);
+    if (!tbsDER) {
+	return PR_FAILURE;
+    }
+
+    verifyKey = NSSCertificate_GetPublicKey(issuer);
+    if (!verifyKey) {
+	return PR_FAILURE;
+    }
+
+    ap = NSSOID_CreateAlgorithmAndParameters(alg, params);
+    if (!ap) {
+	NSSPublicKey_Destroy(verifyKey);
+	return PR_FAILURE;
+    }
+
+    NSSASN1_ConvertBitString(sig);
+
+    status = NSSPublicKey_Verify(verifyKey, ap, tbsDER, sig, NULL);
+
+    NSSAlgorithmAndParameters_Destroy(ap);
+    NSSPublicKey_Destroy(verifyKey);
+    
+    return status;
 }
 
 static PRStatus
 pkix_ValidateChainLink
 (
   void *cert,
-  void *issuer,
+  NSSCertificate *issuer,
   void *vData
 )
 {
-#if 0
+    PRStatus status;
     NSSPKIXCertificate *pkixCert = (NSSPKIXCertificate *)cert;
-    NSSPKIXCertificate *pkixIssuer = (NSSPKIXCertificate *)issuer;
+    NSSPKIXCertificate *pkixIssuer;
     struct nss_pkix_validation_data_str *validationData = 
       (struct nss_pkix_validation_data_str *)vData;
 
-    /*
-     * Check the Basic Constraints extension.
-     */
-    /*
-     * extensions[basicConstraints]
-     */
-    basicConstraints = nssPKIXExtensions_GetBasicConstraints(extensions);
-    if (basicConstraints) {
+    pkixIssuer = (NSSPKIXCertificate *)NSSCertificate_GetDecoding(issuer);
+    if (!pkixIssuer) {
+	return PR_FAILURE;
     }
 
     /*
-     * Verify the signature.
+     * Check the Basic Constraints extension of the issuer against
+     * the current path length
      */
-    sig = NSSPKIXCertificate_GetSignature(cert);
+    status = check_basic_constraints(pkixIssuer, validationData);
+    if (status == PR_FAILURE) {
+	return PR_FAILURE;
+    }
 
-    sigAlg = get_signature_algorithm_from_pkix_cert(cert);
+    /* Check the Name Constraints extension against the name */
+    /* XXX */
 
-    tbsCert = NSSPKIXCertificate_GetTBSCertificate(cert);
+    /*
+     * Verify the signature
+     */
+    status = verify_signature(pkixCert, pkixIssuer, issuer);
 
-    tbsDER = NSSPKIXTBSCertificate_Encode(tbsCert);
-
-    signingCert = NSSPKIXCertificate_GetNSSCertificate(issuer);
-
-    verifyKey = NSSCertificate_GetPublicKey(signingCert);
-
-    status = NSSPublicKey_Verify(verifyKey, sigAlg, tbsDER, sig, NULL);
-
-    NSSPublicKey_Destroy(verifyKey);
-    
-    NSSCertificate_Destroy(signingCert);
-#endif
-    return PR_SUCCESS;
-
+    return status;
 }
 
 static void
@@ -490,12 +700,13 @@ NSS_EnablePKIXCertificates
     g_pkix_methods.getIssuer = pkix_GetIssuer;
     g_pkix_methods.getSerialNumber = pkix_GetSerialNumber;
     g_pkix_methods.getEmailAddress = pkix_GetEmailAddress;
-    g_pkix_methods.getIssuerIdentifier = pkix_GetIssuerIdentifier;
-    g_pkix_methods.isMyIdentifier = pkix_IsMyIdentifier;
-    g_pkix_methods.freeIdentifier = pkix_FreeIdentifier;
     g_pkix_methods.getValidityPeriod = pkix_GetValidityPeriod;
     g_pkix_methods.getUsages = pkix_GetUsages;
     g_pkix_methods.getPolicies = pkix_GetPolicies;
+    g_pkix_methods.getIssuerIdentifier = pkix_GetIssuerIdentifier;
+    g_pkix_methods.getPublicKeyInfo = pkix_GetPublicKeyInfo;
+    g_pkix_methods.isMyIdentifier = pkix_IsMyIdentifier;
+    g_pkix_methods.freeIdentifier = pkix_FreeIdentifier;
     g_pkix_methods.startChainValidation = pkix_StartChainValidation;
     g_pkix_methods.validateChainLink = pkix_ValidateChainLink;
     g_pkix_methods.freeChainValidationData = pkix_FreeChainValidationData;

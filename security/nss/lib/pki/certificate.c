@@ -720,15 +720,10 @@ validate_chain_link
 )
 {
     PRStatus status;
-    nssCertDecoding *dcs, *dci;
+    nssCertDecoding *dcs;
 
     dcs = nssCertificate_GetDecoding(subjectCert);
     if (!dcs) {
-	return PR_FAILURE;
-    }
-
-    dci = nssCertificate_GetDecoding(issuerCert);
-    if (!dci) {
 	return PR_FAILURE;
     }
 
@@ -741,7 +736,7 @@ validate_chain_link
 #endif
     }
 
-    status = dcs->methods->validateChainLink(dcs->data, dci->data, *vData);
+    status = dcs->methods->validateChainLink(dcs->data, issuerCert, *vData);
 
 #if 0
     if (*finished) {
@@ -788,8 +783,8 @@ nssCertificate_Validate
 )
 {
     PRStatus status;
+    PRBool asCA;
     PRBool trusted = PR_FALSE;
-    PRBool asCA = PR_FALSE;
     PRBool atRoot = PR_FALSE;
     NSSCertificate **cp, **chain;
     NSSCertificate *subjectCert = NULL;
@@ -803,9 +798,15 @@ nssCertificate_Validate
     if (status == PR_FAILURE) {
 	return PR_FAILURE;
     }
-
+    /* XXX restrict to ca || peer for now */
+    if (usages->ca) {
+	usage = usages->ca;
+	asCA = PR_TRUE;
+    } else {
+	usage = usages->peer;
+	asCA = PR_FALSE;
+    }
     /* Validate the chain */
-    usage = usages->ca ? usages->ca : usages->peer; /* XXX only one... */
     subjectCert = chain[0];
     for (cp = chain + 1; !atRoot; cp++) {
 	if (*cp) {
@@ -1202,7 +1203,12 @@ nssCertificate_GetPublicKey
     }
     for (tp = tokens; *tp; tp++) {
 	/* XXX need to iterate over cert instances to have session */
-	instance = nssToken_FindPublicKeyByID(*tp, NULL, &c->id);
+	nssSession *session = nssToken_CreateSession(*tp, PR_FALSE);
+	if (!session) {
+	    break;
+	}
+	instance = nssToken_FindPublicKeyByID(*tp, session, &c->id);
+	nssSession_Destroy(session);
 	if (instance) {
 	    break;
 	}
@@ -1223,6 +1229,15 @@ nssCertificate_GetPublicKey
 	    return (NSSPublicKey *)NULL;
 	}
 	return bk;
+    } else {
+	NSSOID *keyAlg;
+	NSSBitString keyBits;
+	nssCertDecoding *dc = nssCertificate_GetDecoding(c);
+
+	status = dc->methods->getPublicKeyInfo(dc->data, &keyAlg, &keyBits);
+	if (status == PR_SUCCESS) {
+	    return nssPublicKey_CreateFromInfo(td, NULL, keyAlg, &keyBits);
+	}
     }
     return (NSSPublicKey *)NULL;
 }

@@ -264,6 +264,7 @@ EOD
 
 $nextline="";
 print HFILE "enum NSSOIDTagEnum {\n";
+print HFILE "   NSS_OID_UNKNOWN = -1,\n";
 for( $i = 0; $i <= $count; $i++ ) {
   %y = %{$x[$i]};
   if( defined($y{NAME}) ) {

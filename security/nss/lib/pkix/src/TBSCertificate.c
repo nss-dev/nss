@@ -66,7 +66,7 @@ const NSSASN1Template nssPKIXTBSCertificate_template[] =
  { NSSASN1_ANY, offsetof(NSSPKIXTBSCertificate, issuer.der) },
  { NSSASN1_ANY, offsetof(NSSPKIXTBSCertificate, validity.der) },
  { NSSASN1_ANY, offsetof(NSSPKIXTBSCertificate, subject.der) },
- { NSSASN1_SKIP }, /* XXX pubkey */
+ { NSSASN1_ANY, offsetof(NSSPKIXTBSCertificate, subjectPublicKeyInfo.der) },
  { NSSASN1_OPTIONAL |  /* issuerID */
    NSSASN1_CONSTRUCTED | NSSASN1_CONTEXT_SPECIFIC | 1, 0, skipper },
  { NSSASN1_OPTIONAL |  /* subjectID */
@@ -354,6 +354,33 @@ nssPKIXTBSCertificate_SetSubject
 )
 {
     tbsCert->subject = *subject;
+    return PR_SUCCESS;
+}
+
+NSS_IMPLEMENT NSSPKIXSubjectPublicKeyInfo *
+nssPKIXTBSCertificate_GetSubjectPublicKeyInfo
+(
+  NSSPKIXTBSCertificate *tbsCert
+)
+{
+    if (NSSITEM_IS_EMPTY(&tbsCert->subjectPublicKeyInfo.der)) {
+	if (NSSITEM_IS_EMPTY(&tbsCert->der) ||
+	    decode_me(tbsCert) == PR_FAILURE)
+	{
+	    return (NSSPKIXSubjectPublicKeyInfo *)NULL;
+	}
+    }
+    return &tbsCert->subjectPublicKeyInfo;
+}
+
+NSS_IMPLEMENT PRStatus
+nssPKIXTBSCertificate_SetSubjectPublicKeyInfo
+(
+  NSSPKIXTBSCertificate *tbsCert,
+  NSSPKIXSubjectPublicKeyInfo *spki
+)
+{
+    tbsCert->subjectPublicKeyInfo = *spki;
     return PR_SUCCESS;
 }
 

@@ -3272,8 +3272,8 @@ nssPKIXDirectoryString_Encode
  *  nssPKIXCertificate_Encode
  *  nssPKIXCertificate_GetTBSCertificate
  *  nssPKIXCertificate_SetTBSCertificate
- *  nssPKIXCertificate_GetAlgorithmIdentifier
- *  nssPKIXCertificate_SetAlgorithmIdentifier
+ *  nssPKIXCertificate_GetSignatureAlgorithm
+ *  nssPKIXCertificate_SetSignatureAlgorithm
  *  nssPKIXCertificate_GetSignature
  *  nssPKIXCertificate_SetSignature
  *  nssPKIXCertificate_Equal
@@ -3422,7 +3422,7 @@ nssPKIXCertificate_SetTBSCertificate
 );
 
 /*
- * nssPKIXCertificate_GetAlgorithmIdentifier
+ * nssPKIXCertificate_GetSignatureAlgorithm
  *
  * -- fgmr comments --
  *
@@ -3437,13 +3437,13 @@ nssPKIXCertificate_SetTBSCertificate
  */
 
 NSS_EXTERN NSSPKIXAlgorithmIdentifier *
-nssPKIXCertificate_GetAlgorithmIdentifier
+nssPKIXCertificate_GetSignatureAlgorithm
 (
   NSSPKIXCertificate *cert
 );
 
 /*
- * nssPKIXCertificate_SetAlgorithmIdentifier
+ * nssPKIXCertificate_SetSignatureAlgorithm
  *
  * -- fgmr comments --
  *
@@ -3458,7 +3458,7 @@ nssPKIXCertificate_GetAlgorithmIdentifier
  */
 
 NSS_EXTERN void
-nssPKIXCertificate_SetAlgorithmIdentifier
+nssPKIXCertificate_SetSignatureAlgorithm
 (
   NSSPKIXCertificate *cert,
   NSSPKIXAlgorithmIdentifier *algid
@@ -4012,8 +4012,7 @@ nssPKIXTBSCertificate_SetSubject
 NSS_EXTERN NSSPKIXSubjectPublicKeyInfo *
 nssPKIXTBSCertificate_GetSubjectPublicKeyInfo
 (
-  NSSPKIXTBSCertificate *tbsCert,
-  NSSArena *arenaOpt
+  NSSPKIXTBSCertificate *tbsCert
 );
 
 /*
@@ -4791,8 +4790,6 @@ nssPKIXTime_Compare
   PRStatus *statusOpt
 );
 
-#ifdef nodef
-
 /*
  * UniqueIdentifier
  *
@@ -4933,8 +4930,7 @@ nssPKIXSubjectPublicKeyInfo_Encode
 NSS_EXTERN NSSPKIXAlgorithmIdentifier *
 nssPKIXSubjectPublicKeyInfo_GetAlgorithm
 (
-  NSSPKIXSubjectPublicKeyInfo *spki,
-  NSSArena *arenaOpt
+  NSSPKIXSubjectPublicKeyInfo *spki
 );
 
 /*
@@ -4973,12 +4969,10 @@ nssPKIXSubjectPublicKeyInfo_SetAlgorithm
  *  NULL upon failure
  */
 
-NSS_EXTERN NSSItem *
+NSS_EXTERN NSSBitString *
 nssPKIXSubjectPublicKeyInfo_GetSubjectPublicKey
 (
-  NSSPKIXSubjectPublicKeyInfo *spki,
-  NSSItem *spkOpt,
-  NSSArena *arenaOpt
+  NSSPKIXSubjectPublicKeyInfo *spki
 );
 
 /*
@@ -4999,7 +4993,7 @@ NSS_EXTERN PRStatus
 nssPKIXSubjectPublicKeyInfo_SetSubjectPublicKey
 (
   NSSPKIXSubjectPublicKeyInfo *spki,
-  NSSItem *spk
+  NSSBitString *spk
 );
 
 /*
@@ -5103,6 +5097,8 @@ nssPKIXSubjectPublicKeyInfo_Duplicate
  *  nssPKIXCertificateList_Duplicate
  * 
  */
+
+#ifdef nodef
 
 /*
  * nssPKIXCertificateList_Decode
@@ -6836,9 +6832,7 @@ nssPKIXAlgorithmIdentifier_SetAlgorithm
 NSS_EXTERN NSSItem *
 nssPKIXAlgorithmIdentifier_GetParameters
 (
-  NSSPKIXAlgorithmIdentifier *algid,
-  NSSItem *rvOpt,
-  NSSArena *arenaOpt
+  NSSPKIXAlgorithmIdentifier *algid
 );
 
 /*

@@ -659,6 +659,15 @@ nssToken_GenerateKeyPair
   nssCryptokiObject **privateKey
 );
 
+NSS_EXTERN nssCryptokiObject *
+nssToken_ImportPublicKey
+(
+  NSSToken *token,
+  nssSession *session,
+  NSSPublicKeyInfo *bki,
+  PRBool asTokenObject
+);
+
 NSS_EXTERN nssCryptokiObject **
 nssToken_FindPrivateKeys
 (
@@ -948,6 +957,18 @@ nssToken_FinishDigest
   nssSession *session,
   NSSItem *rvOpt,
   NSSArena *arenaOpt
+);
+
+/*
+ * NSSAlgorithmAndParameters
+ */
+
+NSS_EXTERN NSSAlgorithmAndParameters *
+nssAlgorithmAndParameters_CreateFromOID
+(
+  NSSArena *arenaOpt,
+  CK_MECHANISM_TYPE algorithm,
+  const NSSItem *parametersOpt
 );
 
 NSS_EXTERN NSSAlgorithmAndParameters *

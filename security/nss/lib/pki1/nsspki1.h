@@ -72,8 +72,6 @@ PR_BEGIN_EXTERN_C
  *  NSSOID_GetUTF8Encoding
  */
 
-extern const NSSOID *NSS_OID_UNKNOWN;
-
 NSS_EXTERN NSSOID *
 NSSOID_Create
 (

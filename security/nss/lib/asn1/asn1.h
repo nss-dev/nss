@@ -48,13 +48,17 @@ static const char ASN1_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
  * calls.
  */
 
+#ifndef BASE_H
+#include "base.h"
+#endif /* BASE_H */
+
 #ifndef ASN1T_H
 #include "asn1t.h"
 #endif /* ASN1T_H */
 
-#ifndef BASE_H
-#include "base.h"
-#endif /* BASE_H */
+#ifndef NSSASN1_H
+#include "nssasn1.h"
+#endif /* NSSASN1_H */
 
 PR_BEGIN_EXTERN_C
 
@@ -277,33 +281,6 @@ nssASN1Decoder_GetNotify
   nssASN1NotifyFunction **pCallbackOpt,
   void **pArgumentOpt
 );
-
-
-/*
- * nssASN1Decoder_verify
- *
- * This routine is only available in debug builds.
- *
- * If the specified pointer is a valid pointer to an nssASN1Decoder
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_ASN1DECODER
- *
- * Return value:
- *  PR_FAILURE upon error
- *  PR_SUCCESS upon success
- */
-
-#ifdef DEBUG
-NSS_EXTERN PRStatus
-nssASN1Decoder_verify
-(
-  nssASN1Decoder *decoder
-);
-
-#endif /* DEBUG */
 
 /*
  * nssASN1_Decode
@@ -596,33 +573,6 @@ nssASN1Encoder_GetTakeFromBuffer
   nssASN1Encoder *encoder,
   PRBool *pTakeFromBuffer
 );
-
-
-/*
- * nssASN1Encoder_verify
- *
- * This routine is only available in debug builds.
- *
- * If the specified pointer is a valid pointer to an nssASN1Encoder
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_ASN1ENCODER
- *
- * Return value:
- *  PR_FAILURE upon error
- *  PR_SUCCESS upon success
- */
-
-#ifdef DEBUG
-NSS_EXTERN PRStatus
-nssASN1Encoder_verify
-(
-  nssASN1Encoder *encoder
-);
-
-#endif /* DEBUG */
 
 /*
  * nssASN1_Encode

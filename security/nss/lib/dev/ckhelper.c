@@ -563,6 +563,11 @@ nssCryptokiPublicKey_GetAttributes
 
     i=0;
     if (keyTypeOpt) {
+#ifndef SOFTOKEN_RETURNS_PUBKEY_BUG
+	if (key_template[i].ulValueLen == -1) {
+	    return PR_FAILURE;
+	}
+#endif /* SOFTOKEN_RETURNS_PUBKEY_BUG */
 	*keyTypeOpt = nss_key_pair_type_from_ck_attrib(&key_template[i]); i++;
     }
     if (idOpt) {

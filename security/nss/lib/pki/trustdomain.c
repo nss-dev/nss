@@ -336,7 +336,7 @@ NSSTrustDomain_FindTokenBySlotName
 }
 
 NSS_IMPLEMENT NSSToken *
-nssTrustDomain_FindTokenForAlgorithm
+nssTrustDomain_FindTokenForAlgorithmAndParameters
 (
   NSSTrustDomain *td,
   const NSSAlgorithmAndParameters *ap
@@ -346,10 +346,28 @@ nssTrustDomain_FindTokenForAlgorithm
 }
 
 NSS_IMPLEMENT NSSToken *
+nssTrustDomain_FindTokenForAlgorithm
+(
+  NSSTrustDomain *td,
+  const NSSOID *algorithm
+)
+{
+    NSSAlgorithmAndParameters *ap;
+    NSSToken *token = NULL;
+
+    ap = nssOID_CreateAlgorithmAndParameters(algorithm, NULL, NULL);
+    if (ap) {
+	token = nssTrustDomain_FindTokenForAlgorithmAndParameters(td, ap);
+	nssAlgorithmAndParameters_Destroy(ap);
+    }
+    return token;
+}
+
+NSS_IMPLEMENT NSSToken *
 NSSTrustDomain_FindTokenForAlgorithm
 (
   NSSTrustDomain *td,
-  NSSOID *algorithm
+  const NSSOID *algorithm
 )
 {
     nss_SetError(NSS_ERROR_NOT_FOUND);
@@ -1461,7 +1479,7 @@ nssTrustDomain_GenerateKeyPair
 	 * that is capable of doing it, and create it there (as a
 	 * temporary object)
 	 */
-	source = nssTrustDomain_FindTokenForAlgorithm(td, ap);
+	source = nssTrustDomain_FindTokenForAlgorithmAndParameters(td, ap);
 	if (!source) {
 	    return PR_FAILURE;
 	}
@@ -1595,7 +1613,7 @@ nssTrustDomain_FindSourceToken
 	/* We can't do the math on the destination token, find one
 	 * that is capable of doing it
 	 */
-	source = nssTrustDomain_FindTokenForAlgorithm(td, ap);
+	source = nssTrustDomain_FindTokenForAlgorithmAndParameters(td, ap);
     }
     return source;
 }

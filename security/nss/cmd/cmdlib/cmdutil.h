@@ -198,4 +198,7 @@ void
 CMD_PrintPKIXCertificate(CMDPrinter *printer, NSSPKIXCertificate *pkixCert,
                          char *message);
 
+void
+CMD_PrintError(char *message);
+
 #endif /* _CMDUTIL_H_ */

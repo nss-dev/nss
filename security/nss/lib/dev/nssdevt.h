@@ -177,6 +177,41 @@ typedef enum
   NSSKeyPairType_DiffieHellman = 3
 } NSSKeyPairType;
 
+typedef struct NSSRSAPublicKeyInfoStr
+{
+  NSSItem modulus;
+  NSSItem publicExponent;
+}
+NSSRSAPublicKeyInfo;
+
+typedef struct NSSDSAPublicKeyInfoStr
+{
+#if 0
+  NSSPQGParameters params;
+#endif
+  NSSItem publicValue;
+}
+NSSDSAPublicKeyInfo;
+
+typedef struct NSSDHPublicKeyInfoStr
+{
+  NSSItem prime;
+  NSSItem base;
+  NSSItem publicValue;
+}
+NSSDHPublicKeyInfo;
+
+typedef struct NSSPublicKeyInfoStr
+{
+  NSSKeyPairType kind;
+  union {
+    NSSRSAPublicKeyInfo rsa;
+    NSSDSAPublicKeyInfo dsa;
+    NSSDHPublicKeyInfo  dh;
+  } u;
+}
+NSSPublicKeyInfo;
+
 typedef enum
 {
   NSSSymmetricKeyType_Unknown = 0,

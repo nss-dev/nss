@@ -619,6 +619,10 @@ NSSASN1_EncodeItem
   NSSASN1EncodingType encoding
 );
 
+#define NSSASN1_ConvertBitString(it)    \
+{                                       \
+    (it)->size = ((it)->size + 7) >> 3; \
+}
 
 #if 0
 /*

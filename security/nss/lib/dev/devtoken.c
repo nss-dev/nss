@@ -373,7 +373,6 @@ import_object
     void *epv = nssToken_GetCryptokiEPV(tok);
 
     PR_ASSERT(session); /* XXX for now, should remove later */
-    PR_ASSERT(session->isRW);
 
     nssSession_EnterMonitor(session);
     ckrv = CKAPI(epv)->C_CreateObject(session->handle, 
@@ -1010,6 +1009,59 @@ nssToken_FindCertificateByEncodedCertificate
     return rvObject;
 }
 
+NSS_IMPLEMENT nssCryptokiObject *
+nssToken_ImportPublicKey
+(
+  NSSToken *token,
+  nssSession *session,
+  NSSPublicKeyInfo *bki,
+  PRBool asTokenObject
+)
+{
+    CK_OBJECT_CLASS bkclass = CKO_PUBLIC_KEY;
+    CK_KEY_TYPE ckKeyType;
+    CK_ATTRIBUTE_PTR attr;
+    CK_ATTRIBUTE bktemplate[6];
+    CK_ULONG bktsize;
+
+    NSS_CK_TEMPLATE_START(bktemplate, attr, bktsize);
+    /* token or session object */
+    if (asTokenObject) {
+	NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_TOKEN, &g_ck_true);
+    } else {
+	NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_TOKEN, &g_ck_false);
+    }
+    /* public key */
+    NSS_CK_SET_ATTRIBUTE_VAR(attr, CKA_CLASS, bkclass);
+    /* key-specific attributes */
+    switch (bki->kind) {
+    case NSSKeyPairType_RSA:
+	ckKeyType = CKK_RSA;
+	NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_MODULUS, &bki->u.rsa.modulus);
+	NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_PUBLIC_EXPONENT, 
+	                                        &bki->u.rsa.publicExponent);
+	break;
+#if 0
+    case NSSKeyPairType_DSA:
+	ckKeyType = CKK_DSA;
+	NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_PRIME, &bki->u.dsa.params.prime);
+	NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_SUBPRIME, 
+	                                        &bki->u.dsa.params.subPrime);
+	NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_BASE,  &bki->u.dsa.params.base);
+	NSS_CK_SET_ATTRIBUTE_ITEM(attr, CKA_VALUE, &bki->u.dsa.publicValue);
+	break;
+#endif
+    default:
+	PR_ASSERT(0); /* XXX under construction */
+	return NULL;
+    }
+    /* key type */
+    NSS_CK_SET_ATTRIBUTE_VAR(attr, CKA_KEY_TYPE, ckKeyType);
+    NSS_CK_TEMPLATE_FINISH(bktemplate, attr, bktsize);
+
+    return import_object(token, session, bktemplate, bktsize);
+}
+
 NSS_IMPLEMENT nssCryptokiObject **
 nssToken_FindPrivateKeys
 (
@@ -1097,6 +1149,21 @@ nssToken_FindPublicKeyByID
                                        1, NULL);
     if (objects) {
 	rvKey = objects[0];
+#ifndef SOFTOKEN_RETURNS_PUBKEY_BUG
+	{
+	    /* XXX the softoken will return a valid key handle when it
+	     *     only has the cert, not the pubkey
+	     */
+	    PRStatus status;
+	    NSSKeyPairType keyType;
+	    status = nssCryptokiPublicKey_GetAttributes(rvKey, NULL, 
+	                                                &keyType, NULL);
+	    if (status == PR_FAILURE) {
+		nssCryptokiObject_Destroy(rvKey);
+		rvKey = NULL;
+	    }
+	}
+#endif /* SOFTOKEN_RETURNS_PUBKEY_BUG */
 	nss_ZFreeIf(objects);
     }
     return rvKey;
@@ -2374,11 +2441,25 @@ nssToken_Verify
 	return PR_FAILURE;
     }
     /* Do the single-part verification */
+#ifndef SOFTOKEN_SINGLE_PART_VERIFY_BUG
+    /* XXX the softoken does not do single-part verification correctly,
+     *     it fails to hash the data before signing
+     */
+    ckrv = CKAPI(epv)->C_VerifyUpdate(session->handle, 
+                                      (CK_BYTE_PTR)data->data, 
+                                      (CK_ULONG)data->size);
+    if (ckrv == CKR_OK) {
+	ckrv = CKAPI(epv)->C_VerifyFinal(session->handle, 
+	                                 (CK_BYTE_PTR)signature->data, 
+	                                 (CK_ULONG)signature->size);
+    }
+#else
     ckrv = CKAPI(epv)->C_Verify(session->handle, 
                                 (CK_BYTE_PTR)data->data, 
                                 (CK_ULONG)data->size,
                                 (CK_BYTE_PTR)signature->data,
                                 (CK_ULONG)signature->size);
+#endif /* SOFTOKEN_SINGLE_PART_VERIFY_BUG */
     nssSession_ExitMonitor(session);
     if (ckrv != CKR_OK) {
 	if (ckrv == CKR_SIGNATURE_INVALID) {

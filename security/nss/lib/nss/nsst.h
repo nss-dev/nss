@@ -38,7 +38,9 @@
 #ifndef NSST_H
 #define NSST_H
 
+/* XXX */
 #include "nsspkit.h"
+#include "nsspki1t.h"
 
 PR_BEGIN_EXTERN_C
 
@@ -61,13 +63,6 @@ typedef struct
   NSSASCII7 * (PR_CALLBACK * getEmailAddress)(void *cert);
 
   /*
-   * Unique identifiers for chain construction
-   */
-  void * (PR_CALLBACK * getIssuerIdentifier)(void *cert);
-  PRBool (PR_CALLBACK *      isMyIdentifier)(void *cert, void *id);
-  void   (PR_CALLBACK *      freeIdentifier)(void *id);
-
-  /*
    * validity period
    */
   PRStatus (PR_CALLBACK *getValidityPeriod)(void *cert, 
@@ -83,6 +78,20 @@ typedef struct
    * policies
    */
   NSSPolicies * (PR_CALLBACK *getPolicies)(void *cert);
+
+  /*
+   * public key info
+   */
+  PRStatus (PR_CALLBACK *getPublicKeyInfo)(void *cert,
+                                           NSSOID **keyAlg,
+                                           NSSBitString *keyBits);
+
+  /*
+   * Unique identifiers for chain construction
+   */
+  void * (PR_CALLBACK * getIssuerIdentifier)(void *cert);
+  PRBool (PR_CALLBACK *      isMyIdentifier)(void *cert, void *id);
+  void   (PR_CALLBACK *      freeIdentifier)(void *id);
 
   /*
    * chain validation

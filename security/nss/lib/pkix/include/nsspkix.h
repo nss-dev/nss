@@ -3287,8 +3287,8 @@ NSSPKIXDirectoryString_Encode
  *  NSSPKIXCertificate_Encode
  *  NSSPKIXCertificate_GetTBSCertificate
  *  NSSPKIXCertificate_SetTBSCertificate
- *  NSSPKIXCertificate_GetAlgorithmIdentifier
- *  NSSPKIXCertificate_SetAlgorithmIdentifier
+ *  NSSPKIXCertificate_GetSignatureAlgorithm
+ *  NSSPKIXCertificate_SetSignatureAlgorithm
  *  NSSPKIXCertificate_GetSignature
  *  NSSPKIXCertificate_SetSignature
  *  NSSPKIXCertificate_Equal
@@ -3436,7 +3436,7 @@ NSSPKIXCertificate_SetTBSCertificate
 );
 
 /*
- * NSSPKIXCertificate_GetAlgorithmIdentifier
+ * NSSPKIXCertificate_GetSignatureAlgorithm
  *
  * -- fgmr comments --
  *
@@ -3451,14 +3451,14 @@ NSSPKIXCertificate_SetTBSCertificate
  */
 
 NSS_EXTERN NSSPKIXAlgorithmIdentifier *
-NSSPKIXCertificate_GetAlgorithmIdentifier
+NSSPKIXCertificate_GetSignatureAlgorithm
 (
   NSSPKIXCertificate *cert,
   NSSArena *arenaOpt
 );
 
 /*
- * NSSPKIXCertificate_SetAlgorithmIdentifier
+ * NSSPKIXCertificate_SetSignatureAlgorithm
  *
  * -- fgmr comments --
  *
@@ -3473,7 +3473,7 @@ NSSPKIXCertificate_GetAlgorithmIdentifier
  */
 
 NSS_EXTERN PRStatus
-NSSPKIXCertificate_SetAlgorithmIdentifier
+NSSPKIXCertificate_SetSignatureAlgorithm
 (
   NSSPKIXCertificate *cert,
   NSSPKIXAlgorithmIdentifier *algid
@@ -4027,8 +4027,7 @@ NSSPKIXTBSCertificate_SetSubject
 NSS_EXTERN NSSPKIXSubjectPublicKeyInfo *
 NSSPKIXTBSCertificate_GetSubjectPublicKeyInfo
 (
-  NSSPKIXTBSCertificate *tbsCert,
-  NSSArena *arenaOpt
+  NSSPKIXTBSCertificate *tbsCert
 );
 
 /*
@@ -4968,8 +4967,7 @@ NSSPKIXSubjectPublicKeyInfo_Encode
 NSS_EXTERN NSSPKIXAlgorithmIdentifier *
 NSSPKIXSubjectPublicKeyInfo_GetAlgorithm
 (
-  NSSPKIXSubjectPublicKeyInfo *spki,
-  NSSArena *arenaOpt
+  NSSPKIXSubjectPublicKeyInfo *spki
 );
 
 /*
@@ -5008,12 +5006,10 @@ NSSPKIXSubjectPublicKeyInfo_SetAlgorithm
  *  NULL upon failure
  */
 
-NSS_EXTERN NSSItem *
+NSS_EXTERN NSSBitString *
 NSSPKIXSubjectPublicKeyInfo_GetSubjectPublicKey
 (
-  NSSPKIXSubjectPublicKeyInfo *spki,
-  NSSItem *spkOpt,
-  NSSArena *arenaOpt
+  NSSPKIXSubjectPublicKeyInfo *spki
 );
 
 /*
@@ -5034,7 +5030,7 @@ NSS_EXTERN PRStatus
 NSSPKIXSubjectPublicKeyInfo_SetSubjectPublicKey
 (
   NSSPKIXSubjectPublicKeyInfo *spki,
-  NSSItem *spk
+  NSSBitString *spk
 );
 
 /*
@@ -6871,9 +6867,7 @@ NSSPKIXAlgorithmIdentifier_SetAlgorithm
 NSS_EXTERN NSSItem *
 NSSPKIXAlgorithmIdentifier_GetParameters
 (
-  NSSPKIXAlgorithmIdentifier *algid,
-  NSSItem *rvOpt,
-  NSSArena *arenaOpt
+  NSSPKIXAlgorithmIdentifier *algid
 );
 
 /*

@@ -262,7 +262,7 @@ struct NSSPKIXAlgorithmIdentifierStr {
   NSSArena *arena;
   PRBool i_allocated_arena;
   NSSDER der;
-  NSSOID *algorithm;
+  NSSItem algID;
   NSSItem parameters;
 };
 
@@ -308,6 +308,27 @@ struct NSSPKIXValidityStr {
   NSSDER der;
   NSSPKIXTime notBefore;
   NSSPKIXTime notAfter;
+};
+
+/*
+ * SubjectPublicKeyInfo
+ *
+ * -- fgmr comments --
+ *
+ * From RFC 2459:
+ *
+ *  SubjectPublicKeyInfo  ::=  SEQUENCE  {
+ *       algorithm            AlgorithmIdentifier,
+ *       subjectPublicKey     BIT STRING  }
+ *
+ */
+
+struct NSSPKIXSubjectPublicKeyInfoStr {
+  NSSArena *arena;
+  PRBool i_allocated_arena;
+  NSSDER der;
+  NSSPKIXAlgorithmIdentifier algorithm;
+  NSSItem subjectPublicKey;
 };
 
 /*
@@ -389,8 +410,8 @@ struct NSSPKIXTBSCertificateStr {
   NSSPKIXName issuer;
   NSSPKIXValidity validity;
   NSSPKIXName subject;
+  NSSPKIXSubjectPublicKeyInfo subjectPublicKeyInfo;
 #if 0
-  NSSPKIXSubjectPublicKeyInfo *subjectPublicKeyInfo;
   NSSPKIXUniqueIdentifier *issuerUniqueID;
   NSSPKIXUniqueIdentifier *subjectUniqueID;
 #endif
@@ -475,27 +496,6 @@ struct NSSPKIXKeyUsageStr {
 #define NSSPKIX_UNLIMITED_PATH_CONSTRAINT -2
 
 #ifdef nodef
-
-/*
- * SubjectPublicKeyInfo
- *
- * -- fgmr comments --
- *
- * From RFC 2459:
- *
- *  SubjectPublicKeyInfo  ::=  SEQUENCE  {
- *       algorithm            AlgorithmIdentifier,
- *       subjectPublicKey     BIT STRING  }
- *
- */
-
-struct NSSPKIXSubjectPublicKeyInfoStr {
-  NSSArena *arena;
-  PRBool i_allocated_arena;
-  NSSDER *der;
-  NSSPKIXAlgorithmIdentifier *algorithm;
-  NSSItem *subjectPublicKey;
-};
 
 /*
  * CertificateList

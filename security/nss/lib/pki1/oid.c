@@ -45,12 +45,21 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #include "base.h"
 #endif /* BASE_H */
 
+#ifndef DEV_H
+#include "dev.h"
+#endif /* DEV_H */
+
 #ifndef PKI1_H
 #include "pki1.h"
 #endif /* PKI1_H */
 
 #include "plhash.h"
 #include "plstr.h"
+
+/* XXX grr -- not defined in stan header yet */
+#ifndef CKM_INVALID_MECHANISM
+#define CKM_INVALID_MECHANISM 0xffffffff
+#endif
 
 /*
  * NSSOID
@@ -78,8 +87,6 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
  *  nssOID_getExplanation
  *  nssOID_getTaggedUTF8
  */
-
-const NSSOID *NSS_OID_UNKNOWN = (NSSOID *)NULL;
 
 /*
  * First, the public "wrappers"
@@ -122,6 +129,21 @@ nssOID_IsTag
     return PR_FALSE;
 }
 
+/* XXX ugh */
+NSS_IMPLEMENT NSSOIDTag
+nssOID_GetTag
+(
+  const NSSOID *oid
+)
+{
+    NSSOIDTag tag;
+    tag = oid - nss_builtin_oids;
+    if (tag >= 0 && tag < nss_builtin_oid_count) {
+	return tag;
+    }
+    return NSS_OID_UNKNOWN;
+}
+
 NSS_IMPLEMENT PRBool
 NSSOID_IsTag
 (
@@ -130,6 +152,34 @@ NSSOID_IsTag
 )
 {
     return nssOID_IsTag(oid, tag);
+}
+
+NSS_IMPLEMENT NSSAlgorithmAndParameters *
+nssOID_CreateAlgorithmAndParameters
+(
+  const NSSOID *oid,
+  NSSParameters *parameters,
+  NSSArena *arenaOpt
+)
+{
+    if (oid->mechanism != CKM_INVALID_MECHANISM) {
+	return nssAlgorithmAndParameters_CreateFromOID(NULL, oid->mechanism,
+	                                               NULL /* XXX */);
+    } else {
+	nss_SetError(NSS_ERROR_INVALID_NSSOID);
+    }
+    return (NSSAlgorithmAndParameters *)NULL;
+}
+
+NSS_IMPLEMENT NSSAlgorithmAndParameters *
+NSSOID_CreateAlgorithmAndParameters
+(
+  const NSSOID *oid,
+  NSSParameters *parameters,
+  NSSArena *arenaOpt
+)
+{
+    return nssOID_CreateAlgorithmAndParameters(oid, parameters, arenaOpt);
 }
 
 NSS_EXTERN NSSOID *

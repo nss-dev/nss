@@ -361,14 +361,20 @@ ValidateCert
     if (usageStr) {
 	while ((usage = *usageStr++)) {
 	    switch (usage) {
-	    case 'c':  usages.peer |= NSSUsage_SSLClient;      break;
-	    case 'v':  usages.peer |= NSSUsage_SSLServer;      break;
-	    case 'r':  usages.peer |= NSSUsage_EmailRecipient; break;
-	    case 's':  usages.peer |= NSSUsage_EmailSigner;    break;
-	    case 'C':  usages.ca |= NSSUsage_SSLClient;        break;
-	    case 'V':  usages.ca |= NSSUsage_SSLServer;        break;
-	    case 'R':  usages.ca |= NSSUsage_EmailRecipient;   break;
-	    case 'S':  usages.ca |= NSSUsage_EmailSigner;      break;
+	    case 'c':  usages.peer |= NSSUsage_SSLClient;       break;
+	    case 'v':  usages.peer |= NSSUsage_SSLServer;       break;
+	    case 'r':  usages.peer |= NSSUsage_EmailRecipient;  break;
+	    case 's':  usages.peer |= NSSUsage_EmailSigner;     break;
+	    case 'o':  usages.peer |= NSSUsage_CodeSigner;      break;
+	    case 't':  usages.peer |= NSSUsage_StatusResponder; break;
+	    case 'u':  usages.peer |= NSSUsage_SSLServerWithStepUp; break;
+	    case 'C':  usages.ca |= NSSUsage_SSLClient;         break;
+	    case 'V':  usages.ca |= NSSUsage_SSLServer;         break;
+	    case 'R':  usages.ca |= NSSUsage_EmailRecipient;    break;
+	    case 'S':  usages.ca |= NSSUsage_EmailSigner;       break;
+	    case 'O':  usages.ca |= NSSUsage_CodeSigner;        break;
+	    case 'T':  usages.ca |= NSSUsage_StatusResponder;   break;
+	    case 'U':  usages.ca |= NSSUsage_SSLServerWithStepUp; break;
 	    }
 	}
     }
@@ -386,7 +392,7 @@ ValidateCert
     if (status == PR_SUCCESS) {
 	PR_fprintf(PR_STDOUT, "Certificate validated.\n");
     } else {
-	PR_fprintf(PR_STDERR, "Validation failed.\n");
+	CMD_PrintError("Validation failed");
     }
 
     return status;

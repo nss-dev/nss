@@ -53,10 +53,17 @@ static const char PKI_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 PR_BEGIN_EXTERN_C
 
 NSS_EXTERN NSSToken *
-nssTrustDomain_FindTokenForAlgorithm
+nssTrustDomain_FindTokenForAlgorithmAndParameters
 (
   NSSTrustDomain *td,
   const NSSAlgorithmAndParameters *ap
+);
+
+NSS_EXTERN NSSToken *
+nssTrustDomain_FindTokenForAlgorithm
+(
+  NSSTrustDomain *td,
+  const NSSOID *algorithm
 );
 
 NSS_EXTERN NSSCallback *

@@ -39,9 +39,17 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #include "base.h"
 #endif /* BASE_H */
 
+#ifndef ASN1_H
+#include "asn1.h"
+#endif /* ASN1_H */
+
 #ifndef DEV_H
 #include "dev.h"
 #endif /* DEV_H */
+
+#ifndef PKI1_H
+#include "pki1.h"
+#endif /* PKI1_H */
 
 #ifndef PKIM_H
 #include "pkim.h"
@@ -509,15 +517,14 @@ NSSPrivateKey_FindBestCertificate
 struct NSSPublicKeyStr
 {
   nssPKIObject object;
-  NSSKeyPairType kind;
   NSSItem id;
 #ifdef nodef
   NSSTime startDate;
   NSSTime endDate;
   PRUint32 flags;
   NSSDER subject;
-  nssPublicKeyData keyData;
 #endif
+  NSSPublicKeyInfo info;
 };
 
 NSS_IMPLEMENT NSSPublicKey *
@@ -538,12 +545,106 @@ nssPublicKey_Create
     /* XXX should choose instance based on some criteria */
     status = nssCryptokiPublicKey_GetAttributes(object->instances[0],
                                                 arena,
-                                                &rvKey->kind,
+                                                &rvKey->info.kind,
                                                 &rvKey->id);
     if (status != PR_SUCCESS) {
 	return (NSSPublicKey *)NULL;
     }
     return rvKey;
+}
+
+/* XXX same here */
+const NSSASN1Template NSSASN1Template_RSAPublicKey[] = 
+{
+  { NSSASN1_SEQUENCE, 0, NULL, sizeof(NSSPublicKeyInfo)               },
+  { NSSASN1_INTEGER, offsetof(NSSPublicKeyInfo, u.rsa.modulus)        },
+  { NSSASN1_INTEGER, offsetof(NSSPublicKeyInfo, u.rsa.publicExponent) },
+  { 0 }
+};
+
+NSS_IMPLEMENT NSSPublicKey *
+nssPublicKey_CreateFromInfo
+(
+  NSSTrustDomain *td,
+  NSSCryptoContext *cc,
+  NSSOID *keyAlg,
+  NSSBitString *keyBits
+)
+{
+    PRStatus status;
+    NSSArena *arena;
+    nssCryptokiObject *bko = NULL;
+    NSSPublicKeyInfo bki;
+    NSSPublicKey *rvbk = NULL;
+    NSSBER keyBER;
+    NSSToken *token = NULL;
+    nssSession *session = NULL;
+
+    keyBER = *keyBits;
+    NSSASN1_ConvertBitString(&keyBER);
+
+    arena = nssArena_Create();
+    if (!arena) {
+	return (NSSPublicKey *)NULL;
+    }
+
+    switch (nssOID_GetTag(keyAlg)) {
+    case NSS_OID_PKCS1_RSA_ENCRYPTION:
+	status = nssASN1_DecodeBER(arena, &bki, 
+	                           NSSASN1Template_RSAPublicKey, 
+	                           &keyBER);
+	bki.kind = NSSKeyPairType_RSA;
+	break;
+    default:
+	PR_ASSERT(0); /* XXX under construction */
+	return NULL;
+    }
+    if (status == PR_FAILURE) {
+	goto loser;
+    }
+
+    token = nssTrustDomain_FindTokenForAlgorithm(td, keyAlg);
+    if (!token) {
+	goto loser;
+    }
+
+    session = nssToken_CreateSession(token, (cc != NULL));
+    if (!session) {
+	goto loser;
+    }
+
+    bko = nssToken_ImportPublicKey(token, session, &bki, (cc != NULL));
+    if (bko) {
+	nssPKIObject *pkio;
+	pkio = nssPKIObject_Create(arena, bko, td, cc);
+	if (pkio) {
+	    rvbk = nssPublicKey_Create(pkio);
+	    if (!rvbk) {
+		/* loser destroys all PKIObject data */
+		goto loser;
+	    }
+	} else {
+	    goto loser;
+	}
+    } else {
+	goto loser;
+    }
+
+    nssSession_Destroy(session);
+    nssToken_Destroy(token);
+    return rvbk;
+loser:
+    if (session) {
+	nssSession_Destroy(session);
+    }
+    if (token) {
+	nssToken_Destroy(token);
+    }
+    if (bko) {
+	nssCryptokiObject_Destroy(bko);
+    }
+    nssArena_Destroy(arena);
+    return (NSSPublicKey *)NULL;
 }
 
 NSS_IMPLEMENT NSSPublicKey *
@@ -742,6 +843,38 @@ NSSPublicKey_Encrypt
 }
 
 NSS_IMPLEMENT PRStatus
+nssPublicKey_Verify
+(
+  NSSPublicKey *bk,
+  const NSSAlgorithmAndParameters *apOpt,
+  NSSItem *data,
+  NSSItem *signature,
+  NSSCallback *uhh
+)
+{
+    PRStatus status;
+    nssSession *session;
+    nssCryptokiObject **op, **objects;
+
+    /* XXX in cipher order */
+    objects = nssPKIObject_GetInstances(&bk->object);
+    for (op = objects; *op; op++) {
+	session = nssToken_CreateSession((*op)->token, PR_FALSE);
+	if (!session) {
+	    break;
+	}
+	status = nssToken_Verify((*op)->token, session, apOpt, *op,
+	                         data, signature);
+	nssSession_Destroy(session);
+	/* XXX */
+	break;
+	/* XXX this logic needs to be rethunk */
+    }
+    nssCryptokiObjectArray_Destroy(objects);
+    return status;
+}
+
+NSS_IMPLEMENT PRStatus
 NSSPublicKey_Verify
 (
   NSSPublicKey *bk,
@@ -751,8 +884,7 @@ NSSPublicKey_Verify
   NSSCallback *uhh
 )
 {
-    nss_SetError(NSS_ERROR_NOT_FOUND);
-    return PR_FAILURE;
+    return nssPublicKey_Verify(bk, apOpt, data, signature, uhh);
 }
 
 NSS_IMPLEMENT NSSItem *
@@ -850,7 +982,7 @@ NSSPublicKey_FindBestCertificate
 (
   NSSPublicKey *bk,
   NSSTime time,
-  NSSUsage *usageOpt,
+  NSSUsages *usageOpt,
   NSSPolicies *policiesOpt
 )
 {

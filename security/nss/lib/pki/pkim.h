@@ -374,6 +374,15 @@ nssPublicKey_Create
   nssPKIObject *object
 );
 
+NSS_EXTERN NSSPublicKey *
+nssPublicKey_CreateFromInfo
+(
+  NSSTrustDomain *td,
+  NSSCryptoContext *cc,
+  NSSOID *keyAlg,
+  NSSBitString *keyBits
+);
+
 NSS_EXTERN PRBool
 nssPublicKey_IsOnToken
 (
