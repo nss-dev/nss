@@ -109,6 +109,9 @@ else
 	if [ ! -f $(DIST)/lib/libdbm.$(LIB_SUFFIX) ]; then \
 		cp -du $(DIST)/lib/libmozdbm_s.a $(DIST)/lib/libdbm.$(LIB_SUFFIX) ; \
 	fi
+	if [ -d $(DIST)/include/dbm ]; then \
+		$(INSTALL) $(DIST)/include/dbm $(DIST)/public ; \
+	fi
 endif
 endif
 
