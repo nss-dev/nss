@@ -100,7 +100,7 @@ struct CRLEntryCacheStr {
 
 typedef enum {
     CRL_OriginToken = 0,    /* CRL came from PKCS#11 token */
-    CRL_OriginExplicit = 1, /* CRL was explicitly added to the cache, from RAM */
+    CRL_OriginExplicit = 1  /* CRL was explicitly added to the cache, from RAM */
 } CRLOrigin;
 
 struct CachedCrlStr {
