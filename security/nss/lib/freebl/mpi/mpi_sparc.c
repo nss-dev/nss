@@ -277,7 +277,7 @@ isSparcV8PlusVis(void)
     char buf[256];
     buflen = sysinfo(SI_ISALIST, buf, sizeof buf);
     if (buflen > 0) {
-#if defined(NSS_USE_64)
+#if defined(MP_USE_LONG_DIGIT)
         char * found = strstr(buf, "sparcv9+vis");
 #else
         char * found = strstr(buf, "sparcv8plus+vis");
