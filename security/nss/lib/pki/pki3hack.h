@@ -106,6 +106,9 @@ NSS_EXTERN PRStatus
 nssPKIX509_GetIssuerAndSerialFromDER(NSSDER *der, NSSArena *arena, 
                                      NSSDER *issuer, NSSDER *serial);
 
+NSS_EXTERN char *
+STAN_GetCERTCertificateName(NSSCertificate *c);
+
 /* exposing this */
 NSS_EXTERN NSSCertificate *
 NSSCertificate_Create
