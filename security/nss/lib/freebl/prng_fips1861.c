@@ -334,7 +334,6 @@ prng_RandomUpdate(RNGContext *rng, void *data, size_t bytes, unsigned char *q)
     /* --- UNLOCKED --- */
     /* housekeeping */
     memset(inputhash, 0, BSIZE);
-    memset(data, 0, bytes);  /* let the caller free */
     return rv;
 }
 
