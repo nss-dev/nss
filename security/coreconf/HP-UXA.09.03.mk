@@ -41,4 +41,4 @@ endif
 #
 # Config stuff for HP-UXA.09.03
 #
-include $(CORE_DEPTH)/coreconf/HP-UXA.09.mk
+include $(CORECONF_SOURCE)/HP-UXA.09.mk

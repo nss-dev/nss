@@ -64,7 +64,7 @@ platform::
 
 import::
 	@echo "== import.pl =="
-	@perl -I$(topsrcdir)/coreconf $(topsrcdir)/coreconf/import.pl \
+	@perl -I$(CORECONF_SOURCE) $(CORECONF_SOURCE)/import.pl \
 		"RELEASE_TREE=$(RELEASE_TREE)"   \
 		"IMPORTS=$(IMPORTS)"             \
 		"VERSION=$(VERSION)" \
@@ -168,7 +168,7 @@ release:: release_clean release_export release_classes release_md release_jars r
 
 release_cpdistdir:: $(SUBMAKEFILES)
 	@echo "== cpdist.pl =="
-	@perl -I$(topsrcdir)/coreconf $(topsrcdir)/coreconf/cpdist.pl \
+	@perl -I$(CORECONF_SOURCE) $(CORECONF_SOURCE)/cpdist.pl \
 		"RELEASE_TREE=$(RELEASE_TREE)" \
 		"CORE_DEPTH=$(CORE_DEPTH)" \
 		"MODULE=${MODULE}" \
@@ -194,7 +194,7 @@ release_cpdistdir:: $(SUBMAKEFILES)
 
 release_jars:: $(SUBMAKEFILES)
 	@echo "== release.pl =="
-	@perl -I$(topsrcdir)/coreconf $(topsrcdir)/coreconf/release.pl \
+	@perl -I$(CORECONF_SOURCE) $(CORECONF_SOURCE)/release.pl \
 		"RELEASE_TREE=$(RELEASE_TREE)" \
 		"PLATFORM=$(PLATFORM)" \
 		"OS_ARCH=$(OS_ARCH)" \
@@ -535,12 +535,12 @@ endif
 # Note: Passing depth to make-makefile is optional.
 #       It saves the script some work, though.
 Makefile: Makefile.in $(topsrcdir)/configure
-	@$(PERL) $(AUTOCONF_TOOLS)/make-makefile -t $(topsrcdir) -d $(CORE_DEPTH)
+	@$(PERL) $(AUTOCONF_TOOLS)/make-makefile -t $(topsrcdir) -d $(MOD_DEPTH)
 
 ifdef SUBMAKEFILES
 # VPATH does not work on some machines in this case, so add $(srcdir)
-$(SUBMAKEFILES): % : $(srcdir)/%.in
-	@$(PERL) $(AUTOCONF_TOOLS)/make-makefile -t $(topsrcdir) -d $(CORE_DEPTH) $@
+$(SUBMAKEFILES):
+	@$(PERL) $(AUTOCONF_TOOLS)/make-makefile -t $(topsrcdir) -d $(MOD_DEPTH) $@
 endif
 
 ifdef AUTOUPDATE_CONFIGURE
@@ -587,7 +587,7 @@ ifdef NETLIBDEPTH
 	CORE_DEPTH := $(NETLIBDEPTH)
 endif
 
-JAVA_EXPORT_SRCS=$(shell perl $(CORE_DEPTH)/coreconf/outofdate.pl $(PERLARG)	-d $(JAVA_DESTPATH)/$(PACKAGE) $(JSRCS) $(PRIVATE_JSRCS))
+JAVA_EXPORT_SRCS=$(shell perl $(CORECONF_SOURCE)/outofdate.pl $(PERLARG)	-d $(JAVA_DESTPATH)/$(PACKAGE) $(JSRCS) $(PRIVATE_JSRCS))
 
 export:: $(JAVA_DESTPATH) $(JAVA_DESTPATH)/$(PACKAGE)
 ifneq ($(JAVA_EXPORT_SRCS),)
@@ -623,7 +623,7 @@ export:: $(JAVA_DESTPATH) $(JAVA_DESTPATH)/$(PACKAGE)
 		if test -d $$d; then						\
 			set $(EXIT_ON_ERROR);					\
 			files=`echo $$d/*.java`;				\
-			list=`perl $(topsrcdir)/coreconf/outofdate.pl $(PERLARG)	 \
+			list=`perl $(CORECONF_SOURCE)/outofdate.pl $(PERLARG)	 \
 				    -d $(JAVA_DESTPATH)/$(PACKAGE) $$files`;	\
 			if test "$${list}x" != "x"; then			\
 			    echo Building all java files in $$d;		\
@@ -752,7 +752,7 @@ export::
 		$(JAVAH) -jni -d $(JNI_GEN_DIR) $(JNI_GEN);				\
 	else										\
 		echo "Checking for out of date header files" ;                          \
-		cmd="perl $(topsrcdir)/coreconf/jniregen.pl $(PERLARG)			\
+		cmd="perl $(CORECONF_SOURCE)/jniregen.pl $(PERLARG)			\
 				-d $(JAVA_DESTPATH) $(JNI_GEN)";			\
 		echo $$cmd;								\
 		list=`$$cmd`;								\

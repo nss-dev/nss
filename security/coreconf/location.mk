@@ -43,17 +43,17 @@ BUILD         = $(PLATFORM)
 OBJDIR        = $(PLATFORM)
 
 ifdef MOZILLA_CLIENT
-DIST          = $(CORE_DEPTH)/../dist
+DIST          = $(MOD_DEPTH)/../../dist
 else
-DIST          = $(CORE_DEPTH)/dist
+DIST          = $(MOD_DEPTH)/../dist
 endif
 
 DEPENDENCIES  = $(PLATFORM)/.md
-MKDEPEND_DIR = $(CORE_DEPTH)/coreconf/mkdepend
-MKDEPEND_SRCDIR = $(topsrcdir)/coreconf/mkdepend
+MKDEPEND_DIR = $(MOD_DEPTH)/coreconf/mkdepend
+MKDEPEND_SRCDIR = $(CORECONF_SOURCE)/mkdepend
 MKDEPEND = $(MKDEPEND_DIR)/mkdepend
 MKDEPENDENCIES = depend.mk
-NSINSTALL_DIR = $(CORE_DEPTH)/coreconf/nsinstall
+NSINSTALL_DIR = $(MOD_DEPTH)/coreconf/nsinstall
 
 ifdef BUILD_DEBUG_GC
 	DEFINES += -DDEBUG_GC

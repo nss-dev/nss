@@ -33,7 +33,7 @@
 # Config stuff for Solaris 2.4 on x86
 #
 
-include $(CORE_DEPTH)/coreconf/UNIX.mk
+include $(CORECONF_SOURCE)/UNIX.mk
 
 DEFAULT_COMPILER = cc
 

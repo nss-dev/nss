@@ -35,7 +35,7 @@
 
 SOL_CFLAGS	= -D_SVID_GETTOD
 
-include $(CORE_DEPTH)/coreconf/SunOS5.mk
+include $(CORECONF_SOURCE)/SunOS5.mk
 
 CPU_ARCH		= x86
 OS_DEFINES		+= -Di386

@@ -46,10 +46,10 @@ AR          += -NOLOGO -OUT:"$@"
 RANLIB       = echo
 BSDECHO      = echo
 
-NSINSTALL_DIR  = $(CORE_DEPTH)/coreconf/nsinstall
+NSINSTALL_DIR  = $(MOD_DEPTH)/coreconf/nsinstall
 NSINSTALL      = nsinstall
 
-MKDEPEND_DIR    = $(CORE_DEPTH)/coreconf/mkdepend
+MKDEPEND_DIR    = $(MOD_DEPTH)/coreconf/mkdepend
 MKDEPEND        = $(MKDEPEND_DIR)/$(OBJDIR_NAME)/mkdepend.exe
 # Note: MKDEPENDENCIES __MUST__ be a relative pathname, not absolute.
 # If it is absolute, gmake will crash unless the named file exists.

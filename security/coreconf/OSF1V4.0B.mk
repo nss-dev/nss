@@ -32,4 +32,4 @@
 #
 # Config stuff for DEC OSF/1 V4.0B
 #
-include $(CORE_DEPTH)/coreconf/OSF1V4.0.mk
+include $(CORECONF_SOURCE)/OSF1V4.0.mk

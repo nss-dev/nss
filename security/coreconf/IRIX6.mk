@@ -33,7 +33,7 @@
 # Config stuff for IRIX 6
 #
 
-include $(CORE_DEPTH)/coreconf/IRIX.mk
+include $(CORECONF_SOURCE)/IRIX.mk
 
 ifndef NS_USE_GCC
 	ifneq ($(USE_N32),1)

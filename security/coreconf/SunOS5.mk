@@ -33,7 +33,7 @@
 # Config stuff for SunOS5.x
 #
 
-include $(CORE_DEPTH)/coreconf/UNIX.mk
+include $(CORECONF_SOURCE)/UNIX.mk
 
 #
 # Temporary define for the Client; to be removed when binary release is used

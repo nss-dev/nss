@@ -19,7 +19,7 @@
 # Config stuff for Compaq OpenVMS
 #
 
-include $(CORE_DEPTH)/coreconf/UNIX.mk
+include $(CORECONF_SOURCE)/UNIX.mk
 
 ifdef INTERNAL_TOOLS
 CC			= c89

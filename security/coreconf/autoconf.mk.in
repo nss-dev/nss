@@ -16,6 +16,8 @@ dist_libdir	= @dist_libdir@
 
 #DIST		= $(dist_prefix)
 
+CORECONF_SOURCE	= @CORECONF_SOURCE@
+
 MOZILLA_CLIENT  = @MOZILLA_CLIENT@
 ENABLE_CMD	= @ENABLE_CMD@
 CC		= @CC@

@@ -34,7 +34,7 @@
 # Config stuff for AIX4.2
 #
 
-include $(CORE_DEPTH)/coreconf/AIX.mk
+include $(CORECONF_SOURCE)/AIX.mk
 
 OS_CFLAGS	+= -DAIX4_2
 DSO_LDOPTS	= -brtl -bM:SRE -bnoentry $(EXPORT_RULES)

@@ -37,7 +37,7 @@
 #
 # Config stuff for DEC OSF/1 V3.2
 #
-include $(CORE_DEPTH)/coreconf/OSF1.mk
+include $(CORECONF_SOURCE)/OSF1.mk
 
 ifeq ($(OS_RELEASE),V3.2)
 	OS_CFLAGS += -DOSF1V3

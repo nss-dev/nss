@@ -33,6 +33,6 @@
 #
 # Config stuff for HP-UXA.09
 #
-include $(CORE_DEPTH)/coreconf/HP-UX.mk
+include $(CORECONF_SOURCE)/HP-UX.mk
 
 OS_CFLAGS += -DHPUX9

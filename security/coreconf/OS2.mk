@@ -143,7 +143,7 @@ SHLIB_LDENDFILE		=
 endif   #NO_SHARED_LIB
 
 OS_CFLAGS          = /Q /qlibansi /Gd /Gm /Su4 /Mp /Tl-
-INCLUDES        += -I$(CORE_DEPTH)/../dist/include
+INCLUDES        += -I$(MOD_DEPTH)/../../dist/include
 DEFINES         += -DXP_OS2_VACPP -DTCPV40HDRS
 
 # Where the libraries are
@@ -173,12 +173,12 @@ endif   # XP_OS2_VACPP
 # OS/2 use nsinstall that is included in the toolkit.
 # since we do not wish to support and maintain 3 version of nsinstall in mozilla, nspr and nss
 
-NSINSTALL_DIR  = $(CORE_DEPTH)/coreconf/nsinstall
+NSINSTALL_DIR  = $(CORECONF_SOURCE)/nsinstall
 # NSINSTALL      = $(NSINSTALL_DIR)/$(OBJDIR_NAME)/nsinstall
 NSINSTALL 	= nsinstall             # HCT4OS2
 INSTALL		= $(NSINSTALL)
 
-MKDEPEND_DIR    = $(CORE_DEPTH)/coreconf/mkdepend
+MKDEPEND_DIR    = $(CORECONF_SOURCE)/mkdepend
 MKDEPEND        = $(MKDEPEND_DIR)/$(OBJDIR_NAME)/mkdepend
 MKDEPENDENCIES  = $(OBJDIR_NAME)/depend.mk
 

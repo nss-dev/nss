@@ -33,7 +33,7 @@
 # Config stuff for IRIX
 #
 
-include $(CORE_DEPTH)/coreconf/UNIX.mk
+include $(CORECONF_SOURCE)/UNIX.mk
 
 #
 # The default implementation strategy for Irix is classic nspr.

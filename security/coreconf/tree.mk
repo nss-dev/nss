@@ -35,7 +35,7 @@
 # Master "Core Components" file system "release" prefixes             #
 #######################################################################
 
-#	RELEASE_TREE = $(CORE_DEPTH)/../coredist
+#	RELEASE_TREE = $(MOD_DEPTH)/../coredist
 
 
 ifndef RELEASE_TREE

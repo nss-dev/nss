@@ -35,7 +35,7 @@
 
 SOL_CFLAGS += -D_SVID_GETTOD
 
-include $(CORE_DEPTH)/coreconf/SunOS5.mk
+include $(CORECONF_SOURCE)/SunOS5.mk
 
 ifeq ($(OS_RELEASE),5.5)
 	OS_DEFINES += -DSOLARIS2_5

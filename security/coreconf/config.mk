@@ -38,21 +38,21 @@
 #       (NOTE: may be overridden in $(OS_CONFIG).mk)                  #
 #######################################################################
 
-include $(topsrcdir)/coreconf/command.mk
+include $(CORECONF_SOURCE)/command.mk
 
 #######################################################################
 # [2.0] Master "Core Components" source and release <platform> tags   #
 #       (dependent upon <architecture> tags)                          #
 #######################################################################
 
-include $(topsrcdir)/coreconf/platform.mk
+include $(CORECONF_SOURCE)/platform.mk
 
 #######################################################################
 # [3.0] Master "Core Components" release <tree> tags                  #
 #       (dependent upon <architecture> tags)                          #
 #######################################################################
 
-include $(topsrcdir)/coreconf/tree.mk
+include $(CORECONF_SOURCE)/tree.mk
 
 #######################################################################
 # [4.0] Master "Core Components" source and release <component> tags  #
@@ -62,7 +62,7 @@ include $(topsrcdir)/coreconf/tree.mk
 #        makefiles, or more appropriately, manifest.mn)               #
 #######################################################################
 
-include $(topsrcdir)/coreconf/module.mk
+include $(CORECONF_SOURCE)/module.mk
 
 #######################################################################
 # [5.0] Master "Core Components" release <version> tags               #
@@ -71,7 +71,7 @@ include $(topsrcdir)/coreconf/module.mk
 #        makefiles, or more appropriately, manifest.mn)               #
 #######################################################################
 
-include $(topsrcdir)/coreconf/version.mk
+include $(CORECONF_SOURCE)/version.mk
 
 #######################################################################
 # [6.0] Master "Core Components" macros to figure out                 #
@@ -79,7 +79,7 @@ include $(topsrcdir)/coreconf/version.mk
 #       (dependent upon <platform> tags)                              #
 #######################################################################
 
-include $(topsrcdir)/coreconf/location.mk
+include $(CORECONF_SOURCE)/location.mk
 
 #######################################################################
 # [7.0] Master "Core Components" <component>-specific source path     #
@@ -87,7 +87,7 @@ include $(topsrcdir)/coreconf/location.mk
 #        <version>, and <platform> tags)                              #
 #######################################################################
 
-include $(topsrcdir)/coreconf/source.mk
+include $(CORECONF_SOURCE)/source.mk
 
 #######################################################################
 # [8.0] Master "Core Components" include switch for support header    #
@@ -96,32 +96,32 @@ include $(topsrcdir)/coreconf/source.mk
 #         and <platform> tags)                                        #
 #######################################################################
 
-include $(topsrcdir)/coreconf/headers.mk
+include $(CORECONF_SOURCE)/headers.mk
 
 #######################################################################
 # [9.0] Master "Core Components" for computing program prefixes       #
 #######################################################################
 
-include $(topsrcdir)/coreconf/prefix.mk
+include $(CORECONF_SOURCE)/prefix.mk
 
 #######################################################################
 # [10.0] Master "Core Components" for computing program suffixes      #
 #        (dependent upon <architecture> tags)                         #
 #######################################################################
 
-include $(topsrcdir)/coreconf/suffix.mk
+include $(CORECONF_SOURCE)/suffix.mk
 
 #######################################################################
 # [11.0] Master "Core Components" for defining JDK                    #
 #        (dependent upon <architecture>, <source>, and <suffix>  tags)#
 #######################################################################
 
-include $(topsrcdir)/coreconf/jdk.mk
+include $(CORECONF_SOURCE)/jdk.mk
 
 #######################################################################
 # [12.0] Master "Core Components" rule set                            #
 #        (should always be the last file included by config.mk)       #
 #######################################################################
 
-include $(topsrcdir)/coreconf/ruleset.mk
+include $(CORECONF_SOURCE)/ruleset.mk
 

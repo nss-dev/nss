@@ -33,7 +33,7 @@
 # Config stuff for AIX4.3
 #
 
-include $(CORE_DEPTH)/coreconf/AIX.mk
+include $(CORECONF_SOURCE)/AIX.mk
 
 
 ifeq ($(USE_64), 1)
