@@ -375,6 +375,10 @@ loser:
     }
 
     if (rv == SECSuccess) {
+	/* can this function fail?? */
+	STAN_LoadDefaultNSS3TrustDomain();
+	CERT_SetDefaultCertDB((CERTCertDBHandle *)
+				STAN_GetDefaultTrustDomain());
 #ifndef XP_MAC
 	/* only servers need this. We currently do not have a mac server */
 	if ((!readOnly) && (!noModDB) && (!noCertDB) && (!noRootInit)) {
@@ -383,10 +387,6 @@ loser:
 	    }
 	}
 #endif
-	/* can this function fail?? */
-	STAN_LoadDefaultNSS3TrustDomain();
-	CERT_SetDefaultCertDB((CERTCertDBHandle *)
-				STAN_GetDefaultTrustDomain());
     }
     return rv;
 }
