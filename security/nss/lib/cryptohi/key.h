@@ -39,6 +39,5 @@
 #define _KEY_H_
 
 #include "keyhi.h"
-#include "keylow.h"
 
 #endif /* _KEY_H_ */
