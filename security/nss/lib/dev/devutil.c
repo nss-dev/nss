@@ -883,6 +883,7 @@ get_token_certs_for_cache (
     nssCryptokiObject **objects;
     PRBool *doIt = &cache->doObjectType[cachedCerts];
     PRUint32 i, numObjects;
+    nssSession *session;
 
     if (!search_for_objects(cache) || 
          cache->searchedObjectType[cachedCerts] || 
@@ -894,7 +895,8 @@ get_token_certs_for_cache (
 	 */
 	return PR_SUCCESS;
     }
-    objects = nssToken_FindCertificates(cache->token, NULL,
+    session = nssToken_GetDefaultSession(cache->token); /* XXX */
+    objects = nssToken_FindCertificates(cache->token, session,
                                         nssTokenSearchType_TokenForced,
 				        MAX_LOCAL_CACHE_OBJECTS, &status);
     if (status != PR_SUCCESS) {
@@ -960,6 +962,7 @@ get_token_trust_for_cache (
     nssCryptokiObject **objects;
     PRBool *doIt = &cache->doObjectType[cachedTrust];
     PRUint32 i, numObjects;
+    nssSession *session;
 
     if (!search_for_objects(cache) || 
          cache->searchedObjectType[cachedTrust] || 
@@ -971,7 +974,8 @@ get_token_trust_for_cache (
 	 */
 	return PR_SUCCESS;
     }
-    objects = nssToken_FindTrustObjects(cache->token, NULL,
+    session = nssToken_GetDefaultSession(cache->token); /* XXX */
+    objects = nssToken_FindTrustObjects(cache->token, session,
                                         nssTokenSearchType_TokenForced,
 				        MAX_LOCAL_CACHE_OBJECTS, &status);
     if (status != PR_SUCCESS) {

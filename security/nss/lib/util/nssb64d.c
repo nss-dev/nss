@@ -39,8 +39,12 @@
 
 #include "nssb64.h"
 #include "nspr.h"
+#ifdef STAN_BUILD
+#include "base.h"
+#else
 #include "secitem.h"
 #include "secerr.h"
+#endif
 
 /*
  * XXX We want this basic support to go into NSPR (the PL part).
@@ -740,11 +744,21 @@ NSSBase64Decoder_Destroy (NSSBase64Decoder *data, PRBool abort_p)
  *
  * Return value is NULL on error, the Item (allocated or provided) otherwise.
  */
+#ifdef STAN_BUILD
+NSSItem *
+NSSBase64_DecodeBuffer (NSSArena *arenaOpt, NSSItem *outItemOpt,
+			const char *inStr, unsigned int inLen)
+#else
 SECItem *
 NSSBase64_DecodeBuffer (PRArenaPool *arenaOpt, SECItem *outItemOpt,
 			const char *inStr, unsigned int inLen)
+#endif
 {
+#ifdef STAN_BUILD
+    NSSItem *out_item = outItemOpt;
+#else
     SECItem *out_item = outItemOpt;
+#endif
     PRUint32 max_out_len = PL_Base64MaxDecodedLength (inLen);
     PRUint32 out_len;
     void *mark = NULL;
@@ -755,7 +769,11 @@ NSSBase64_DecodeBuffer (PRArenaPool *arenaOpt, SECItem *outItemOpt,
     if (arenaOpt != NULL)
 	mark = PORT_ArenaMark (arenaOpt);
 
+#ifdef STAN_BUILD
+    out_item = nssItem_Create(arenaOpt, outItemOpt, max_out_len, NULL);
+#else
     out_item = SECITEM_AllocItem (arenaOpt, outItemOpt, max_out_len);
+#endif
     if (out_item == NULL) {
 	if (arenaOpt != NULL)
 	    PORT_ArenaRelease (arenaOpt, mark);
@@ -769,21 +787,35 @@ NSSBase64_DecodeBuffer (PRArenaPool *arenaOpt, SECItem *outItemOpt,
 	    PORT_ArenaRelease (arenaOpt, mark);
 	    if (outItemOpt != NULL) {
 		outItemOpt->data = NULL;
+#ifdef STAN_BUILD
+		outItemOpt->size = 0;
+#else
 		outItemOpt->len = 0;
+#endif
 	    }
 	} else {
+#ifdef STAN_BUILD
+	    nss_ZFreeIf(out_item->data);
+	    if (!outItemOpt) nss_ZFreeIf(out_item);
+#else
 	    SECITEM_FreeItem (out_item,
 			      (outItemOpt == NULL) ? PR_TRUE : PR_FALSE);
+#endif
 	}
 	return NULL;
     }
 
     if (arenaOpt != NULL)
 	PORT_ArenaUnmark (arenaOpt, mark);
+#ifdef STAN_BUILD
+    out_item->size = out_len;
+#else
     out_item->len = out_len;
+#endif
     return out_item;
 }
 
+#ifndef STAN_BUILD
 
 /*
  * XXX Everything below is deprecated.  If you add new stuff, put it
@@ -859,3 +891,5 @@ ATOB_ConvertAsciiToItem(SECItem *binary_item, char *ascii)
 
     return SECSuccess;
 }
+
+#endif /* !STAN_BUILD */

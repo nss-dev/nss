@@ -47,31 +47,42 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #include "pkistore.h"
 #endif /* PKISTORE_H */
 
+typedef enum {
+  no_object = 0,
+  a_cert,
+  a_symkey,
+  a_pubkey,
+  a_privkey
+} pki_object_type;
+
 struct NSSCryptoContextStr
 {
 #if 0
   PRInt32 refCount;
 #endif
+  /* these are set when the context is created */
   NSSArena *arena;
   NSSTrustDomain *td;
-  NSSCallback *callback;
+  NSSCallback *callback; /* this can be changed or overriden */
+  /* these are set when the context is used for an operation */
   NSSToken *token;
   nssSession *session;
-  NSSAlgorithmAndParameters *ap;
-  NSSSymmetricKey *mk;
-  nssCryptokiObject *mko;
-  NSSPrivateKey *vk;
-  nssCryptokiObject *vko;
-  NSSPublicKey *bk;
-  nssCryptokiObject *bko;
-  NSSCertificate *cert;
+  NSSAlgorithmAndParameters *ap; /* this can be overriden */
+  nssCryptokiObject *key; /* key used for crypto */
+  nssCryptokiObject *bkey; /* public key of user cert */
+  union {
+    NSSSymmetricKey *mkey;
+    NSSPublicKey *bkey;
+    NSSPrivateKey *vkey;
+    NSSCertificate *cert;
+  } u; /* the distinguished object */
+  pki_object_type which;
 };
 
 struct NSSCryptoContextMarkStr
 {
   NSSArena *arena;
   NSSItem state;
-  /* unsigned char buf[512]; ? */
 };
 
 NSS_IMPLEMENT NSSCryptoContext *
@@ -106,26 +117,19 @@ nssCryptoContext_Create (
 
 NSS_IMPLEMENT NSSCryptoContext *
 nssCryptoContext_CreateForSymmetricKey (
-  NSSSymmetricKey *mk,
+  NSSSymmetricKey *mkey,
   const NSSAlgorithmAndParameters *apOpt,
-  NSSCallback *uhh
+  NSSCallback *uhhOpt
 )
 {
-    NSSCryptoContext *rvCC = NULL;
-    NSSTrustDomain *td;
+    NSSCryptoContext *rvCC;
+    NSSTrustDomain *td = nssSymmetricKey_GetTrustDomain(mkey, NULL);
 
-    td = nssSymmetricKey_GetTrustDomain(mk, NULL);
-    if (!td) {
-	nss_SetError(NSS_ERROR_INVALID_SYMKEY);
-	return (NSSCryptoContext *)NULL;
+    rvCC = nssCryptoContext_Create(td, apOpt, uhhOpt);
+    if (rvCC) {
+	rvCC->which = a_symkey;
+	rvCC->u.mkey = nssSymmetricKey_AddRef(mkey);
     }
-
-    rvCC = nssCryptoContext_Create(td, apOpt, uhh);
-    if (!rvCC) {
-	return (NSSCryptoContext *)NULL;
-    }
-    rvCC->mk = nssSymmetricKey_AddRef(mk);
-
     return rvCC;
 }
 
@@ -135,26 +139,18 @@ nssCryptoContext_Destroy (
 )
 {
     PRStatus status = PR_SUCCESS;
-    if (cc->mk) {
-	status |= nssSymmetricKey_Destroy(cc->mk);
-	if (cc->mko) {
-	    nssCryptokiObject_Destroy(cc->mko);
-	}
+    switch (cc->which) {
+    case a_cert: nssCertificate_Destroy(cc->u.cert); break;
+    case a_pubkey: nssPublicKey_Destroy(cc->u.bkey); break;
+    case a_privkey: nssPrivateKey_Destroy(cc->u.vkey); break;
+    case a_symkey: nssSymmetricKey_Destroy(cc->u.mkey); break;
+    default: break;
     }
-    if (cc->bk) {
-	status |= nssPublicKey_Destroy(cc->bk);
-	if (cc->bko) {
-	    nssCryptokiObject_Destroy(cc->bko);
-	}
+    if (cc->key) {
+	nssCryptokiObject_Destroy(cc->key);
     }
-    if (cc->vk) {
-	status |= nssPrivateKey_Destroy(cc->vk);
-	if (cc->vko) {
-	    nssCryptokiObject_Destroy(cc->vko);
-	}
-    }
-    if (cc->cert) {
-	status |= nssCertificate_Destroy(cc->cert);
+    if (cc->bkey) {
+	nssCryptokiObject_Destroy(cc->bkey);
     }
     if (cc->token) {
 	status |= nssToken_Destroy(cc->token);
@@ -284,9 +280,9 @@ prepare_context_symmetric_key (
 	/* context already has a token set */
 	if (nssToken_DoesAlgorithm(cc->token, ap)) {
 	    /* and the token can do the operation */
-	    if (!cc->mko) {
+	    if (!cc->key) {
 		/* get a key instance from it */
-		cc->mko = nssSymmetricKey_GetInstance(cc->mk, cc->token);
+		cc->key = nssSymmetricKey_GetInstance(cc->u.mkey, cc->token);
 	    } /* else we already have a key instance */
 	} else {
 	    /* the token can't do the math, so this context won't work */
@@ -294,10 +290,10 @@ prepare_context_symmetric_key (
 	}
     } else {
 	/* find an instance of the key that will do the operation */
-	cc->mko = nssSymmetricKey_FindInstanceForAlgorithm(cc->mk, cc->ap);
-	if (cc->mko) {
+	cc->key = nssSymmetricKey_FindInstanceForAlgorithm(cc->u.mkey, cc->ap);
+	if (cc->key) {
 	    /* okay, now we know what token to use */
-	    cc->token = nssToken_AddRef(cc->mko->token);
+	    cc->token = nssToken_AddRef(cc->key->token);
 	} else {
 	    /* find any token in the trust domain that can */
 	    cc->token = nssTrustDomain_FindTokenForAlgorithmAndParameters(cc->td, ap);
@@ -310,9 +306,9 @@ prepare_context_symmetric_key (
     /* the token has been set, so if we didn't find a key instance on
      * the token, copy it there
      */
-    if (!cc->mko) {
-	cc->mko = nssSymmetricKey_CopyToToken(cc->mk, cc->token);
-	if (!cc->mko) {
+    if (!cc->key) {
+	cc->key = nssSymmetricKey_CopyToToken(cc->u.mkey, cc->token);
+	if (!cc->key) {
 	    goto loser;
 	}
     }
@@ -335,22 +331,23 @@ prepare_context_private_key (
   const NSSAlgorithmAndParameters *ap
 )
 {
-    if (!cc->vk) {
-	/* try to get the key from the cert (if present) */
-	if (cc->cert) {
-	    cc->vk = nssCertificate_FindPrivateKey(cc->cert, cc->callback);
-	}
-	if (!cc->vk) {
+    NSSPrivateKey *vkey = NULL;
+    if (cc->which == a_cert) {
+	/* try to get the key from the cert */
+	vkey = nssCertificate_FindPrivateKey(cc->u.cert, cc->callback);
+	if (!vkey) {
 	    goto loser;
 	}
+    } else {
+	vkey = nssPrivateKey_AddRef(cc->u.vkey);
     }
     if (cc->token) {
 	/* context already has a token set */
 	if (nssToken_DoesAlgorithm(cc->token, ap)) {
 	    /* and the token can do the operation */
-	    if (!cc->vko) {
+	    if (!cc->key) {
 		/* get a key instance from it */
-		cc->vko = nssPrivateKey_GetInstance(cc->vk, cc->token);
+		cc->key = nssPrivateKey_GetInstance(vkey, cc->token);
 	    } /* else we already have a key instance for the token */
 	} else {
 	    /* the token can't do the math, so this context won't work */
@@ -358,10 +355,10 @@ prepare_context_private_key (
 	}
     } else {
 	/* find an instance of the key that will do the operation */
-	cc->vko = nssPrivateKey_FindInstanceForAlgorithm(cc->vk, cc->ap);
-	if (cc->vko) {
+	cc->key = nssPrivateKey_FindInstanceForAlgorithm(vkey, cc->ap);
+	if (cc->key) {
 	    /* okay, now we know what token to use */
-	    cc->token = nssToken_AddRef(cc->vko->token);
+	    cc->token = nssToken_AddRef(cc->key->token);
 	} else {
 	    /* find any token in the trust domain that can */
 	    cc->token = nssTrustDomain_FindTokenForAlgorithmAndParameters(cc->td, ap);
@@ -374,9 +371,9 @@ prepare_context_private_key (
     /* the token has been set, so if we didn't find a key instance on
      * the token, copy it there
      */
-    if (!cc->vko) {
-	cc->vko = nssPrivateKey_CopyToToken(cc->vk, cc->token);
-	if (!cc->vko) {
+    if (!cc->key) {
+	cc->key = nssPrivateKey_CopyToToken(vkey, cc->token);
+	if (!cc->key) {
 	    goto loser;
 	}
     }
@@ -387,8 +384,14 @@ prepare_context_private_key (
 	    goto loser;
 	}
     }
+    if (vkey) {
+	nssPrivateKey_Destroy(vkey);
+    }
     return PR_SUCCESS;
 loser:
+    if (vkey) {
+	nssPrivateKey_Destroy(vkey);
+    }
     nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
     return PR_FAILURE;
 }
@@ -399,22 +402,27 @@ prepare_context_public_key (
   const NSSAlgorithmAndParameters *ap
 )
 {
-    if (!cc->bk) {
-	/* try to get the key from the cert (if present) */
-	if (cc->cert) {
-	    cc->bk = nssCertificate_GetPublicKey(cc->cert);
-	}
-	if (!cc->bk) {
+    /* when the dist. object is a cert, both keys may be available,
+     * so public key is stored separately
+     */
+    nssCryptokiObject **bkp = (cc->which == a_cert) ? &cc->bkey : &cc->key;
+    NSSPublicKey *bkey = NULL;
+    if (cc->which == a_cert) {
+	/* try to get the key from the cert */
+	bkey = nssCertificate_GetPublicKey(cc->u.cert);
+	if (!bkey) {
 	    goto loser;
 	}
+    } else {
+	bkey = nssPublicKey_AddRef(cc->u.bkey);
     }
     if (cc->token) {
 	/* context already has a token set */
 	if (nssToken_DoesAlgorithm(cc->token, ap)) {
 	    /* and the token can do the operation */
-	    if (!cc->bko) {
+	    if (!*bkp) {
 		/* get a key instance from it */
-		cc->bko = nssPublicKey_GetInstance(cc->bk, cc->token);
+		*bkp = nssPublicKey_GetInstance(bkey, cc->token);
 	    } /* else we already have a key instance for the token */
 	} else {
 	    /* the token can't do the math, so this context won't work */
@@ -422,10 +430,10 @@ prepare_context_public_key (
 	}
     } else {
 	/* find an instance of the key that will do the operation */
-	cc->bko = nssPublicKey_FindInstanceForAlgorithm(cc->bk, cc->ap);
-	if (cc->bko) {
+	*bkp = nssPublicKey_FindInstanceForAlgorithm(bkey, cc->ap);
+	if (*bkp) {
 	    /* okay, now we know what token to use */
-	    cc->token = nssToken_AddRef(cc->bko->token);
+	    cc->token = nssToken_AddRef(cc->key->token);
 	} else {
 	    /* find any token in the trust domain that can */
 	    cc->token = nssTrustDomain_FindTokenForAlgorithmAndParameters(cc->td, ap);
@@ -438,9 +446,9 @@ prepare_context_public_key (
     /* the token has been set, so if we didn't find a key instance on
      * the token, copy it there
      */
-    if (!cc->bko) {
-	cc->bko = nssPublicKey_CopyToToken(cc->bk, cc->token);
-	if (!cc->bko) {
+    if (!*bkp) {
+	*bkp = nssPublicKey_CopyToToken(bkey, cc->token);
+	if (!*bkp) {
 	    goto loser;
 	}
     }
@@ -451,8 +459,14 @@ prepare_context_public_key (
 	    goto loser;
 	}
     }
+    if (bkey) {
+	nssPublicKey_Destroy(bkey);
+    }
     return PR_SUCCESS;
 loser:
+    if (bkey) {
+	nssPublicKey_Destroy(bkey);
+    }
     nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
     return PR_FAILURE;
 }
@@ -467,15 +481,24 @@ nssCryptoContext_Encrypt (
   NSSArena *arenaOpt
 )
 {
+    nssCryptokiObject *key;
     const NSSAlgorithmAndParameters *ap = apOpt ? apOpt : cc->ap;
     if (!ap) {
 	nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
 	return (NSSItem *)NULL;
     }
-    if (prepare_context_symmetric_key(cc, ap) == PR_FAILURE) {
-	return (NSSItem *)NULL;
+    if (cc->which == a_cert || cc->which == a_pubkey) {
+	if (prepare_context_public_key(cc, ap) == PR_FAILURE) {
+	    return (NSSItem *)NULL;
+	}
+	key = (cc->which == a_cert) ? cc->bkey : cc->key;
+    } else if (cc->which == a_symkey) {
+	if (prepare_context_symmetric_key(cc, ap) == PR_FAILURE) {
+	    return (NSSItem *)NULL;
+	}
+	key = cc->key;
     }
-    return nssToken_Encrypt(cc->token, cc->session, ap, cc->mko,
+    return nssToken_Encrypt(cc->token, cc->session, ap, key,
                             data, rvOpt, arenaOpt);
 }
 
@@ -489,7 +512,7 @@ NSSCryptoContext_Encrypt (
   NSSArena *arenaOpt
 )
 {
-    if (!cc->mk) {
+    if (cc->which != a_symkey) {
 	nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
 	return (NSSItem *)NULL;
     }
@@ -504,15 +527,24 @@ nssCryptoContext_BeginEncrypt (
   NSSCallback *uhhOpt
 )
 {
+    nssCryptokiObject *key;
     const NSSAlgorithmAndParameters *ap = apOpt ? apOpt : cc->ap;
     if (!ap) {
 	nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
 	return PR_FAILURE;
     }
-    if (prepare_context_symmetric_key(cc, ap) == PR_FAILURE) {
-	return PR_FAILURE;
+    if (cc->which == a_cert || cc->which == a_pubkey) {
+	if (prepare_context_public_key(cc, ap) == PR_FAILURE) {
+	    return PR_FAILURE;
+	}
+	key = (cc->which == a_cert) ? cc->bkey : cc->key;
+    } else if (cc->which == a_symkey) {
+	if (prepare_context_symmetric_key(cc, ap) == PR_FAILURE) {
+	    return PR_FAILURE;
+	}
+	key = cc->key;
     }
-    return nssToken_BeginEncrypt(cc->token, cc->session, ap, cc->mko);
+    return nssToken_BeginEncrypt(cc->token, cc->session, ap, key);
 }
 
 NSS_IMPLEMENT PRStatus
@@ -522,7 +554,7 @@ NSSCryptoContext_BeginEncrypt (
   NSSCallback *uhhOpt
 )
 {
-    if (!cc->mk) {
+    if (cc->which != a_symkey) {
 	nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
 	return PR_FAILURE;
     }
@@ -589,10 +621,16 @@ nssCryptoContext_Decrypt (
 	nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
 	return (NSSItem *)NULL;
     }
-    if (prepare_context_symmetric_key(cc, ap) == PR_FAILURE) {
-	return (NSSItem *)NULL;
+    if (cc->which == a_cert || cc->which == a_privkey) {
+	if (prepare_context_private_key(cc, ap) == PR_FAILURE) {
+	    return (NSSItem *)NULL;
+	}
+    } else if (cc->which == a_symkey) {
+	if (prepare_context_symmetric_key(cc, ap) == PR_FAILURE) {
+	    return (NSSItem *)NULL;
+	}
     }
-    return nssToken_Decrypt(cc->token, cc->session, ap, cc->mko,
+    return nssToken_Decrypt(cc->token, cc->session, ap, cc->key,
                             encryptedData, rvOpt, arenaOpt);
 }
 
@@ -606,7 +644,7 @@ NSSCryptoContext_Decrypt (
   NSSArena *arenaOpt
 )
 {
-    if (!cc->mk) {
+    if (cc->which != a_symkey) {
 	nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
 	return (NSSItem *)NULL;
     }
@@ -626,10 +664,16 @@ nssCryptoContext_BeginDecrypt (
 	nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
 	return PR_FAILURE;
     }
-    if (prepare_context_symmetric_key(cc, ap) == PR_FAILURE) {
-	return PR_FAILURE;
+    if (cc->which == a_cert || cc->which == a_privkey) {
+	if (prepare_context_private_key(cc, ap) == PR_FAILURE) {
+	    return PR_FAILURE;
+	}
+    } else if (cc->which == a_symkey) {
+	if (prepare_context_symmetric_key(cc, ap) == PR_FAILURE) {
+	    return PR_FAILURE;
+	}
     }
-    return nssToken_BeginDecrypt(cc->token, cc->session, ap, cc->mko);
+    return nssToken_BeginDecrypt(cc->token, cc->session, ap, cc->key);
 }
 
 NSS_IMPLEMENT PRStatus
@@ -639,7 +683,7 @@ NSSCryptoContext_BeginDecrypt (
   NSSCallback *uhhOpt
 )
 {
-    if (!cc->mk) {
+    if (cc->which != a_symkey) {
 	nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
 	return PR_FAILURE;
     }
@@ -709,7 +753,7 @@ nssCryptoContext_Sign (
     if (prepare_context_private_key(cc, ap) == PR_FAILURE) {
 	return (NSSItem *)NULL;
     }
-    return nssToken_Sign(cc->token, cc->session, ap, cc->vko,
+    return nssToken_Sign(cc->token, cc->session, ap, cc->key,
                          data, rvOpt, arenaOpt);
 }
 
@@ -723,7 +767,8 @@ NSSCryptoContext_Sign (
   NSSArena *arenaOpt
 )
 {
-    if (!cc->vk && !cc->cert) {
+    PR_ASSERT(cc->which == a_privkey || cc->which == a_cert);
+    if (cc->which != a_privkey && cc->which != a_cert) {
 	nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
 	return (NSSItem *)NULL;
     }
@@ -745,7 +790,7 @@ nssCryptoContext_BeginSign (
     if (prepare_context_private_key(cc, ap) == PR_FAILURE) {
 	return PR_FAILURE;
     }
-    return nssToken_BeginSign(cc->token, cc->session, ap, cc->vko);
+    return nssToken_BeginSign(cc->token, cc->session, ap, cc->key);
 }
 
 NSS_IMPLEMENT PRStatus
@@ -755,7 +800,8 @@ NSSCryptoContext_BeginSign (
   NSSCallback *uhhOpt
 )
 {
-    if (!cc->vk && !cc->cert) {
+    PR_ASSERT(cc->which == a_privkey || cc->which == a_cert);
+    if (cc->which != a_privkey && cc->which != a_cert) {
 	nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
 	return PR_FAILURE;
     }
@@ -820,7 +866,7 @@ nssCryptoContext_SignRecover (
     if (prepare_context_private_key(cc, ap) == PR_FAILURE) {
 	return (NSSItem *)NULL;
     }
-    return nssToken_SignRecover(cc->token, cc->session, ap, cc->vko,
+    return nssToken_SignRecover(cc->token, cc->session, ap, cc->key,
                                 data, rvOpt, arenaOpt);
 }
 
@@ -834,7 +880,8 @@ NSSCryptoContext_SignRecover (
   NSSArena *arenaOpt
 )
 {
-    if (!cc->vk && !cc->cert) {
+    PR_ASSERT(cc->which == a_privkey || cc->which == a_cert);
+    if (cc->which != a_privkey && cc->which != a_cert) {
 	nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
 	return (NSSItem *)NULL;
     }
@@ -843,83 +890,6 @@ NSSCryptoContext_SignRecover (
 }
 
 #if 0
-NSS_IMPLEMENT PRStatus
-nssCryptoContext_BeginSignRecover (
-  NSSCryptoContext *cc,
-  const NSSAlgorithmAndParameters *apOpt,
-  NSSCallback *uhhOpt
-)
-{
-    if (prepare_context_object_for_operation(cc, apOpt) == PR_FAILURE) {
-	return PR_FAILURE;
-    }
-    return nssToken_BeginSignRecover(cc->token, cc->session, 
-                                     cc->ap, cc->object);
-}
-
-NSS_IMPLEMENT PRStatus
-NSSCryptoContext_BeginSignRecover (
-  NSSCryptoContext *cc,
-  const NSSAlgorithmAndParameters *apOpt,
-  NSSCallback *uhhOpt
-)
-{
-    if (cc->which != context_has_private_key ||
-        cc->which != context_has_keypair) 
-    {
-	nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
-	return PR_FAILURE;
-    }
-    return nssCryptoContext_BeginSignRecover(cc, apOpt, uhhOpt);
-}
-
-NSS_IMPLEMENT NSSItem *
-nssCryptoContext_ContinueSignRecover (
-  NSSCryptoContext *cc,
-  NSSItem *data,
-  NSSItem *rvOpt,
-  NSSArena *arenaOpt
-)
-{
-    return nssToken_ContinueSignRecover(cc->token, cc->session, 
-                                        data, rvOpt, arenaOpt);
-}
-
-NSS_IMPLEMENT NSSItem *
-NSSCryptoContext_ContinueSignRecover (
-  NSSCryptoContext *cc,
-  NSSItem *data,
-  NSSItem *rvOpt,
-  NSSArena *arenaOpt
-)
-{
-    PR_ASSERT(cc->session);
-    return nssCryptoContext_ContinueSignRecover(cc, data, rvOpt, arenaOpt);
-}
-
-NSS_IMPLEMENT NSSItem *
-nssCryptoContext_FinishSignRecover (
-  NSSCryptoContext *cc,
-  NSSItem *rvOpt,
-  NSSArena *arenaOpt
-)
-{
-    return nssToken_FinishSignRecover(cc->token, cc->session, 
-                                      rvOpt, arenaOpt);
-}
-
-NSS_IMPLEMENT NSSItem *
-NSSCryptoContext_FinishSignRecover (
-  NSSCryptoContext *cc,
-  NSSItem *rvOpt,
-  NSSArena *arenaOpt
-)
-{
-    PR_ASSERT(cc->session);
-    return nssCryptoContext_FinishSignRecover(cc, rvOpt, arenaOpt);
-}
-#endif
-
 NSS_IMPLEMENT NSSSymmetricKey *
 nssCryptoContext_UnwrapSymmetricKey (
   NSSCryptoContext *cc,
@@ -984,6 +954,7 @@ NSSCryptoContext_UnwrapSymmetricKey (
                                                wrappedKey, uhhOpt, 
                                                operations, properties);
 }
+#endif
 
 NSS_IMPLEMENT PRStatus
 nssCryptoContext_Verify (
@@ -994,15 +965,17 @@ nssCryptoContext_Verify (
   NSSCallback *uhhOpt
 )
 {
+    nssCryptokiObject *key;
     const NSSAlgorithmAndParameters *ap = apOpt ? apOpt : cc->ap;
     if (!ap) {
 	nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
 	return PR_FAILURE;
     }
-    if (prepare_context_private_key(cc, ap) == PR_FAILURE) {
+    if (prepare_context_public_key(cc, ap) == PR_FAILURE) {
 	return PR_FAILURE;
     }
-    return nssToken_Verify(cc->token, cc->session, ap, cc->bko,
+    key = (cc->which == a_cert) ? cc->bkey : cc->key;
+    return nssToken_Verify(cc->token, cc->session, ap, key,
                            data, signature);
 }
 
@@ -1015,7 +988,8 @@ NSSCryptoContext_Verify (
   NSSCallback *uhhOpt
 )
 {
-    if (!cc->bk && !cc->cert) {
+    PR_ASSERT(cc->which == a_pubkey || cc->which == a_cert);
+    if (cc->which != a_pubkey && cc->which != a_cert) {
 	nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
 	return PR_FAILURE;
     }
@@ -1029,6 +1003,7 @@ nssCryptoContext_BeginVerify (
   NSSCallback *uhhOpt
 )
 {
+    nssCryptokiObject *key;
     const NSSAlgorithmAndParameters *ap = apOpt ? apOpt : cc->ap;
     if (!ap) {
 	nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
@@ -1037,7 +1012,8 @@ nssCryptoContext_BeginVerify (
     if (prepare_context_private_key(cc, ap) == PR_FAILURE) {
 	return PR_FAILURE;
     }
-    return nssToken_BeginVerify(cc->token, cc->session, ap, cc->bko);
+    key = (cc->which == a_cert) ? cc->bkey : cc->key;
+    return nssToken_BeginVerify(cc->token, cc->session, ap, key);
 }
 
 NSS_IMPLEMENT PRStatus
@@ -1047,7 +1023,8 @@ NSSCryptoContext_BeginVerify (
   NSSCallback *uhhOpt
 )
 {
-    if (!cc->bk && !cc->cert) {
+    PR_ASSERT(cc->which == a_pubkey || cc->which == a_cert);
+    if (cc->which != a_pubkey && cc->which != a_cert) {
 	nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
 	return PR_FAILURE;
     }
@@ -1102,6 +1079,7 @@ nssCryptoContext_VerifyRecover (
   NSSArena *arenaOpt
 )
 {
+    nssCryptokiObject *key;
     const NSSAlgorithmAndParameters *ap = apOpt ? apOpt : cc->ap;
     if (!ap) {
 	nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
@@ -1110,7 +1088,8 @@ nssCryptoContext_VerifyRecover (
     if (prepare_context_private_key(cc, ap) == PR_FAILURE) {
 	return (NSSItem *)NULL;
     }
-    return nssToken_VerifyRecover(cc->token, cc->session, ap, cc->bko,
+    key = (cc->which == a_cert) ? cc->bkey : cc->key;
+    return nssToken_VerifyRecover(cc->token, cc->session, ap, key,
                                   signature, rvOpt, arenaOpt);
 }
 
@@ -1124,7 +1103,8 @@ NSSCryptoContext_VerifyRecover (
   NSSArena *arenaOpt
 )
 {
-    if (!cc->bk && !cc->cert) {
+    PR_ASSERT(cc->which == a_pubkey || cc->which == a_cert);
+    if (cc->which != a_pubkey && cc->which != a_cert) {
 	nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
 	return (NSSItem *)NULL;
     }
@@ -1133,41 +1113,6 @@ NSSCryptoContext_VerifyRecover (
 }
 
 #if 0
-NSS_IMPLEMENT PRStatus
-NSSCryptoContext_BeginVerifyRecover (
-  NSSCryptoContext *cc,
-  const NSSAlgorithmAndParameters *apOpt,
-  NSSCallback *uhhOpt
-)
-{
-    nss_SetError(NSS_ERROR_NOT_FOUND);
-    return PR_FAILURE;
-}
-
-NSS_IMPLEMENT NSSItem *
-NSSCryptoContext_ContinueVerifyRecover (
-  NSSCryptoContext *cc,
-  NSSItem *data,
-  NSSItem *rvOpt,
-  NSSArena *arenaOpt
-)
-{
-    nss_SetError(NSS_ERROR_NOT_FOUND);
-    return NULL;
-}
-
-NSS_IMPLEMENT NSSItem *
-NSSCryptoContext_FinishVerifyRecover (
-  NSSCryptoContext *cc,
-  NSSItem *rvOpt,
-  NSSArena *arenaOpt
-)
-{
-    nss_SetError(NSS_ERROR_NOT_FOUND);
-    return NULL;
-}
-#endif
-
 NSS_IMPLEMENT NSSItem *
 nssCryptoContext_WrapSymmetricKey (
   NSSCryptoContext *cc,
@@ -1217,6 +1162,7 @@ NSSCryptoContext_WrapSymmetricKey (
     return nssCryptoContext_WrapSymmetricKey(cc, apOpt, keyToWrap,
                                              uhhOpt, rvOpt, arenaOpt);
 }
+#endif
 
 NSS_IMPLEMENT NSSItem *
 nssCryptoContext_Digest (

@@ -2302,7 +2302,7 @@ NSS_EXTERN NSSCertificate *
 NSSVolatileDomain_ImportEncodedCertificate (
   NSSVolatileDomain *vd,
   NSSBER *ber,
-  NSSCertificateType certType
+  NSSUTF8 *nicknameOpt
 );
 
 /*
@@ -2368,6 +2368,9 @@ NSSVolatileDomain_GenerateSymmetricKey (
   NSSVolatileDomain *vd,
   const NSSAlgorithmAndParameters *ap,
   PRUint32 keysize,
+  const NSSUTF8 *labelOpt,
+  NSSOperations operations,
+  NSSProperties properties,
   NSSToken *destination,
   NSSCallback *uhhOpt
 );

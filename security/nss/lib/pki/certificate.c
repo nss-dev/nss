@@ -304,13 +304,23 @@ nssCertificate_GetSubject (
     }
 }
 
+NSS_IMPLEMENT PRStatus
+nssCertificate_SetNickname (
+  NSSCertificate *c,
+  NSSToken *tokenOpt,
+  NSSUTF8 *nickname
+)
+{
+    return nssPKIObject_SetNickname(&c->object, tokenOpt, nickname);
+}
+
 NSS_IMPLEMENT NSSUTF8 *
 nssCertificate_GetNickname (
   NSSCertificate *c,
   NSSToken *tokenOpt
 )
 {
-    return nssPKIObject_GetNicknameForToken(&c->object, tokenOpt);
+    return nssPKIObject_GetNickname(&c->object, tokenOpt);
 }
 
 NSS_IMPLEMENT NSSToken *
@@ -555,7 +565,7 @@ NSSCertificate_DeleteStoredObject (
   NSSCallback *uhh
 )
 {
-    return nssPKIObject_DeleteStoredObject(&c->object, uhh, PR_TRUE);
+    return nssCertificate_DeleteStoredObject(c, uhh);
 }
 
 NSS_IMPLEMENT PRStatus
@@ -578,18 +588,15 @@ nssCertificate_CopyToToken (
                                           &c->encoding, &c->issuer, 
                                           &c->subject, &c->serial,
                                           c->email, PR_TRUE);
+    nssSession_Destroy(rwSession);
     if (!instance) {
-	goto loser;
+	return PR_FAILURE;
     }
     status = nssPKIObject_AddInstance(&c->object, instance);
     if (status == PR_FAILURE) {
-	goto loser;
+	return PR_FAILURE;
     }
-    nssSession_Destroy(rwSession);
     return PR_SUCCESS;
-loser:
-    nssSession_Destroy(rwSession);
-    return PR_FAILURE;
 }
 
 static NSSUsage

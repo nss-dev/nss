@@ -89,6 +89,25 @@ is_string_attribute (
     return isString;
 }
 
+NSS_IMPLEMENT PRStatus
+nssCryptokiObject_SetLabel (
+  nssCryptokiObject *object,
+  NSSUTF8 *label
+)
+{
+    NSSSlot *slot;
+    PRStatus status;
+    CK_ATTRIBUTE nickAttr;
+    nickAttr.type = CKA_LABEL;
+    nickAttr.pValue = label;
+    nickAttr.ulValueLen = nssUTF8_Length(label, NULL);
+    slot = nssToken_GetSlot(object->token);
+    status = nssCKObject_SetAttributes(object->handle, &nickAttr, 1, 
+                                       object->session, slot);
+    nssSlot_Destroy(slot);
+    return status;
+}
+
 NSS_IMPLEMENT PRStatus 
 nssCKObject_GetAttributes (
   CK_OBJECT_HANDLE object,

@@ -41,9 +41,9 @@ include $(CORE_DEPTH)/coreconf/rules.mk
 
 export:: copy_files private_export
 
-FILES=$(shell ls -d ../util/nssil*.h)
+FILES=$(shell ls -d ../util/nss[ib]*.[ch])
 
-# XXX hack to share secasn1 files for now
+# XXX hack to share some libutil files for now
 copy_files::
 	for file in $(FILES) ; do \
 	    if test -f $$file; then \

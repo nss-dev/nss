@@ -65,7 +65,8 @@ PR_BEGIN_EXTERN_C
  * nssPKIObject_HasInstance
  * nssPKIObject_GetTokens
  * nssPKIObject_IsOnToken
- * nssPKIObject_GetNicknameForToken
+ * nssPKIObject_SetNickname
+ * nssPKIObject_GetNickname
  * nssPKIObject_RemoveInstanceForToken
  * nssPKIObject_DeleteStoredObject
  */
@@ -142,13 +143,26 @@ nssPKIObject_GetInstance (
   NSSToken *token
 );
 
-/* nssPKIObject_GetNicknameForToken
+/* nssPKIObject_SetNickname
+ *
+ * tokenOpt == NULL means set the either temp nickname (for volatile 
+ * domains) or the "first" token, otherwise set nickname for the 
+ * specified token.
+ */
+NSS_EXTERN PRStatus
+nssPKIObject_SetNickname (
+  nssPKIObject *object,
+  NSSToken *tokenOpt,
+  NSSUTF8 *nickname
+);
+
+/* nssPKIObject_GetNickname
  *
  * tokenOpt == NULL means take the first available, otherwise return the
  * nickname for the specified token.
  */
 NSS_EXTERN NSSUTF8 *
-nssPKIObject_GetNicknameForToken (
+nssPKIObject_GetNickname (
   nssPKIObject *object,
   NSSToken *tokenOpt
 );
@@ -297,6 +311,13 @@ nssCRL_DeleteStoredObject (
 NSS_EXTERN NSSSymmetricKey *
 nssSymmetricKey_Create (
   nssPKIObject *object
+);
+
+NSS_EXTERN NSSSymmetricKey *
+nssSymmetricKey_CreateFromInstance (
+  nssCryptokiObject *instance,
+  NSSTrustDomain *td,
+  NSSVolatileDomain *vdOpt
 );
 
 NSS_EXTERN PRStatus

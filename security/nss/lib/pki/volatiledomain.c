@@ -229,14 +229,36 @@ NSSVolatileDomain_ImportCertificate (
 }
 
 NSS_IMPLEMENT NSSCertificate *
+nssVolatileDomain_ImportEncodedCertificate (
+  NSSVolatileDomain *vd,
+  NSSBER *ber,
+  NSSUTF8 *nickOpt
+)
+{
+    NSSCertificate *c;
+
+    c = nssCertificate_Decode(ber);
+    if (!c) {
+	return (NSSCertificate *)NULL;
+    }
+    if (nickOpt) {
+	nssCertificate_SetNickname(c, NULL, nickOpt);
+    }
+    if (nssVolatileDomain_ImportCertificate(vd, c) == PR_FAILURE) {
+	nssCertificate_Destroy(c);
+	return (NSSCertificate *)NULL;
+    }
+    return c;
+}
+
+NSS_IMPLEMENT NSSCertificate *
 NSSVolatileDomain_ImportEncodedCertificate (
   NSSVolatileDomain *vd,
   NSSBER *ber,
-  NSSCertificateType certType
+  NSSUTF8 *nickOpt
 )
 {
-    nss_SetError(NSS_ERROR_NOT_FOUND);
-    return NULL;
+    return nssVolatileDomain_ImportEncodedCertificate(vd, ber, nickOpt);
 }
 
 NSS_IMPLEMENT PRStatus
@@ -817,56 +839,39 @@ nssVolatileDomain_GenerateSymmetricKey (
   NSSVolatileDomain *vd,
   const NSSAlgorithmAndParameters *ap,
   PRUint32 keysize,
+  const NSSUTF8 *labelOpt,
+  NSSOperations operations,
+  NSSProperties properties,
   NSSToken *destination,
   NSSCallback *uhhOpt
 )
 {
-#if 0
-    NSSToken *source = NULL;
-    nssCryptokiObject *key = NULL;
-    nssPKIObject *pkio = NULL;
-    NSSSymmetricKey *symKey = NULL;
-    nssSession *session = NULL;
+    NSSToken *source;
+    nssCryptokiObject *key;
+    nssSession *session;
 
     source = nssTrustDomain_FindSourceToken(vd->td, ap, destination);
     if (!source) {
 	return (NSSSymmetricKey *)NULL;
     }
 
+    /* XXX should volatile domain keep hash of tokens? */
     session = nssToken_CreateSession(source, PR_FALSE);
     if (!session) {
-	goto loser;
+	nssToken_Destroy(source);
+	return (NSSSymmetricKey *)NULL;
     }
 
     key = nssToken_GenerateSymmetricKey(source, session, ap, keysize,
-                                        NULL, PR_FALSE, 0, 0);
+                                        labelOpt, PR_FALSE, 
+                                        operations, properties);
+    nssSession_Destroy(session);
+    nssToken_Destroy(source);
     if (!key) {
-	goto loser;
+	return (NSSSymmetricKey *)NULL;
     }
 
-
-    pkio = nssPKIObject_Create(NULL, key, vd->td, vd);
-    if (!pkio) {
-	goto loser;
-    }
-
-    symKey = nssSymmetricKey_Create(pkio);
-    if (!symKey) {
-	goto loser;
-    }
-
-    nssToken_Destroy(source);
-    return symKey;
-loser:
-    if (key) {
-	nssCryptokiObject_Destroy(key);
-    }
-    if (pkio) {
-	nssPKIObject_Destroy(pkio);
-    }
-    nssToken_Destroy(source);
-#endif
-    return (NSSSymmetricKey *)NULL;
+    return nssSymmetricKey_CreateFromInstance(key, vd->td, vd);
 }
 
 NSS_IMPLEMENT NSSSymmetricKey *
@@ -874,11 +879,16 @@ NSSVolatileDomain_GenerateSymmetricKey (
   NSSVolatileDomain *vd,
   const NSSAlgorithmAndParameters *ap,
   PRUint32 keysize,
+  const NSSUTF8 *labelOpt,
+  NSSOperations operations,
+  NSSProperties properties,
   NSSToken *destination,
   NSSCallback *uhhOpt
 )
 {
     return nssVolatileDomain_GenerateSymmetricKey(vd, ap, keysize,
+                                                 labelOpt, 
+                                                 operations, properties,
                                                  destination, uhhOpt);
 }
 

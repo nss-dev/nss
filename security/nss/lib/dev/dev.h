@@ -1016,6 +1016,12 @@ nssCryptokiObject_DeleteStoredObject (
   nssCryptokiObject *object
 );
 
+NSS_EXTERN PRStatus
+nssCryptokiObject_SetLabel (
+  nssCryptokiObject *object,
+  NSSUTF8 *label
+);
+
 NSS_EXTERN PRBool
 nssCryptokiObject_Equal (
   nssCryptokiObject *object1,

@@ -266,7 +266,7 @@ get_password_from_file(char *pwFile)
 	fprintf(stderr,"password file contains no data\n");
 	return NULL;
     }
-    return strdup(phrase);
+    return NSSUTF8_Duplicate(phrase, NULL);
 }
 
 #if 0
@@ -457,6 +457,14 @@ CMD_DestroyCallback
   NSSCallback *callback
 )
 {
-    PR_Free(callback);
+    struct password_callback_str *pwcbstr;
+    if (callback) {
+	pwcbstr = (struct password_callback_str *)callback->arg;
+	if (pwcbstr->pw) {
+	    nss_ZFreeIf(pwcbstr->pw);
+	}
+	PR_Free(callback->arg);
+	PR_Free(callback);
+    }
 }
 

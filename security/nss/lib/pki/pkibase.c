@@ -302,8 +302,43 @@ nssPKIObject_GetTokens (
     return tokens;
 }
 
+NSS_EXTERN PRStatus
+nssPKIObject_SetNickname (
+  nssPKIObject *object,
+  NSSToken *tokenOpt,
+  NSSUTF8 *nickname
+)
+{
+    PRUint32 i;
+    PRStatus status;
+    PZ_Lock(object->lock);
+    if (object->vd) {
+	object->tempName = nssUTF8_Duplicate(nickname, object->arena);
+	status = object->tempName ? PR_SUCCESS : PR_FAILURE;
+    } else  {
+	nssCryptokiObject *instance = NULL;
+	if (tokenOpt) {
+	    for (i=0; i<object->numInstances; i++) {
+		if (object->instances[i]->token == tokenOpt) {
+		    instance = object->instances[i];
+		    break;
+		}
+	    }
+	} else {
+	    instance = object->instances[0];
+	}
+	if (instance) {
+	    status = nssCryptokiObject_SetLabel(instance, nickname);
+	} else {
+	    status = PR_FAILURE;
+	}
+    }
+    PZ_Unlock(object->lock);
+    return status;
+}
+
 NSS_IMPLEMENT NSSUTF8 *
-nssPKIObject_GetNicknameForToken (
+nssPKIObject_GetNickname (
   nssPKIObject *object,
   NSSToken *tokenOpt
 )
@@ -311,13 +346,17 @@ nssPKIObject_GetNicknameForToken (
     PRUint32 i;
     NSSUTF8 *nickname = NULL;
     PZ_Lock(object->lock);
-    for (i=0; i<object->numInstances; i++) {
-	if ((!tokenOpt && object->instances[i]->label) ||
-	    (object->instances[i]->token == tokenOpt)) 
-	{
-            /* XXX should be copy? safe as long as caller has reference */
-	    nickname = object->instances[i]->label; 
-	    break;
+    if (object->vd) {
+	return object->tempName;
+    } else {
+	for (i=0; i<object->numInstances; i++) {
+	    if ((!tokenOpt && object->instances[i]->label) ||
+	        (object->instances[i]->token == tokenOpt)) 
+	    {
+		/* XXX should be copy? safe as long as caller has reference */
+		nickname = object->instances[i]->label; 
+		break;
+	    }
 	}
     }
     PZ_Unlock(object->lock);
@@ -660,7 +699,6 @@ struct nssPKIObjectCollectionStr
 {
   NSSArena *arena;
   NSSTrustDomain *td;
-  NSSCryptoContext *cc;
   PRCList head; /* list of pkiObjectCollectionNode's */
   PRUint32 size;
   pkiObjectType objectType;
@@ -673,8 +711,7 @@ struct nssPKIObjectCollectionStr
 
 static nssPKIObjectCollection *
 nssPKIObjectCollection_Create (
-  NSSTrustDomain *td,
-  NSSCryptoContext *ccOpt
+  NSSTrustDomain *td
 )
 {
     NSSArena *arena;
@@ -690,7 +727,6 @@ nssPKIObjectCollection_Create (
     PR_INIT_CLIST(&rvCollection->head);
     rvCollection->arena = arena;
     rvCollection->td = td; /* XXX */
-    rvCollection->cc = ccOpt;
     return rvCollection;
 loser:
     nssArena_Destroy(arena);
@@ -843,7 +879,7 @@ add_object_instance (
 	    goto loser;
 	}
 	node->object = nssPKIObject_Create(NULL, instance, 
-	                                   collection->td, collection->cc);
+	                                   collection->td, NULL);
 	if (!node->object) {
 	    goto loser;
 	}
@@ -1059,7 +1095,7 @@ nssCertificateCollection_Create (
 {
     PRStatus status;
     nssPKIObjectCollection *collection;
-    collection = nssPKIObjectCollection_Create(td, NULL);
+    collection = nssPKIObjectCollection_Create(td);
     collection->objectType = pkiObjectType_Certificate;
     collection->destroyObject = cert_destroyObject;
     collection->getUIDFromObject = cert_getUIDFromObject;
@@ -1159,7 +1195,7 @@ nssCRLCollection_Create (
 {
     PRStatus status;
     nssPKIObjectCollection *collection;
-    collection = nssPKIObjectCollection_Create(td, NULL);
+    collection = nssPKIObjectCollection_Create(td);
     collection->objectType = pkiObjectType_CRL;
     collection->destroyObject = crl_destroyObject;
     collection->getUIDFromObject = crl_getUIDFromObject;
@@ -1259,7 +1295,7 @@ nssPrivateKeyCollection_Create (
 {
     PRStatus status;
     nssPKIObjectCollection *collection;
-    collection = nssPKIObjectCollection_Create(td, NULL);
+    collection = nssPKIObjectCollection_Create(td);
     collection->objectType = pkiObjectType_PrivateKey;
     collection->destroyObject = privkey_destroyObject;
     collection->getUIDFromObject = privkey_getUIDFromObject;
@@ -1359,7 +1395,7 @@ nssPublicKeyCollection_Create (
 {
     PRStatus status;
     nssPKIObjectCollection *collection;
-    collection = nssPKIObjectCollection_Create(td, NULL);
+    collection = nssPKIObjectCollection_Create(td);
     collection->objectType = pkiObjectType_PublicKey;
     collection->destroyObject = pubkey_destroyObject;
     collection->getUIDFromObject = pubkey_getUIDFromObject;

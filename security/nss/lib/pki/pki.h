@@ -151,6 +151,13 @@ nssCertificate_GetSubject (
   NSSCertificate *c
 );
 
+NSS_EXTERN PRStatus
+nssCertificate_SetNickname (
+  NSSCertificate *c,
+  NSSToken *tokenOpt,
+  NSSUTF8 *nickname
+);
+
 NSS_EXTERN NSSUTF8 *
 nssCertificate_GetNickname (
   NSSCertificate *c,
@@ -230,6 +237,11 @@ NSS_EXTERN NSSUTF8 *
 nssPrivateKey_GetNickname (
   NSSPrivateKey *vk,
   NSSToken *tokenOpt
+);
+
+NSS_EXTERN NSSPublicKey *
+nssPublicKey_AddRef (
+  NSSPublicKey *bk
 );
 
 NSS_EXTERN PRStatus

@@ -503,8 +503,9 @@ parse_module_slot_parameters (
 	if (nssrv != PR_SUCCESS) break;
 	if (value) {
 	    slotNum = get_slot_number(attrib);
-	    if (slotNum < 0 || slotNum > mod->numSlots) {
-		return PR_FAILURE;
+	    if (slotNum < 0 || slotNum > (PRIntn)mod->numSlots) {
+		nssrv = PR_FAILURE;
+		break;
 	    }
 	    nssrv = parse_slot_parameters(mod->slots[slotNum], 
 	                                  value, tmparena);
@@ -513,6 +514,7 @@ parse_module_slot_parameters (
 	if (*remainder == '\0') break;
 	current = remainder;
     }
+    nssArena_Destroy(tmparena);
     return nssrv;
 }
 
@@ -664,10 +666,6 @@ nssModule_CreateFromSpec (
     }
     PR_AtomicIncrement(&thisModule->base.refCount);
     thisModule->base.arena = arena;
-    thisModule->base.lock = PZ_NewLock(nssNSSILockOther);
-    if (!thisModule->base.lock) {
-	goto loser;
-    }
     nssrv = parse_module_parameters(thisModule, moduleSpec, &slotParams);
     if (nssrv != PR_SUCCESS) {
 	goto loser;
@@ -704,9 +702,12 @@ nssModule_CreateFromSpec (
 		break;
 	    }
 	    nssModule_Destroy(child);
-	    /*nss_ZFreeIf(*index);*/
+	    /* XXX I just happen to know this is what softoken does... */
+	    PR_smprintf_free(*index);
 	}
-	/*nss_ZFreeIf(moduleSpecs);*/
+	if (moduleSpecs) {
+	    PR_Free(moduleSpecs);
+	}
     }
     /* The global list inherits the reference */
     nssrv = nssGlobalModuleList_Add(thisModule);

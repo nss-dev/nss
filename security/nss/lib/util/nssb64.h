@@ -39,7 +39,26 @@
 #ifndef _NSSB64_H_
 #define _NSSB64_H_
 
+#ifdef STAN_BUILD
+#include "base.h"
+#define PORT_SetError(e) nss_SetError(-1)
+#define SEC_BEGIN_PROTOS PR_BEGIN_EXTERN_C
+#define SEC_END_PROTOS PR_END_EXTERN_C
+#define SECStatus PRStatus
+#define SECSuccess PR_SUCCESS
+#define SECFailure PR_FAILURE
+#define PORT_ArenaMark nssArena_Mark
+#define PORT_ArenaUnmark nssArena_Unmark
+#define PORT_ArenaRelease nssArena_Release
+#define PORT_Free nss_ZFreeIf
+#define PORT_Assert PR_ASSERT
+#define PORT_ZNew(st) nss_ZNEW(NULL, st)
+#define PORT_Free nss_ZFreeIf
+#define PORT_ArenaAlloc nss_ZAlloc
+#define PORT_Alloc(d) nss_ZAlloc(NULL, d)
+#else
 #include "seccomon.h"
+#endif
 #include "nssb64t.h"
 
 SEC_BEGIN_PROTOS
@@ -95,9 +114,15 @@ NSSBase64Encoder_Destroy (NSSBase64Encoder *data, PRBool abort_p);
  *
  * Return value is NULL on error, the Item (allocated or provided) otherwise.
  */
+#ifdef STAN_BUILD
+extern NSSItem *
+NSSBase64_DecodeBuffer (NSSArena *arenaOpt, NSSItem *outItemOpt,
+			const char *inStr, unsigned int inLen);
+#else
 extern SECItem *
 NSSBase64_DecodeBuffer (PRArenaPool *arenaOpt, SECItem *outItemOpt,
 			const char *inStr, unsigned int inLen);
+#endif
 
 /*
  * Perform base64 encoding of binary data "inItem" to an ascii string.
@@ -115,9 +140,15 @@ NSSBase64_DecodeBuffer (PRArenaPool *arenaOpt, SECItem *outItemOpt,
  * Return value is NULL on error, the output buffer (allocated or provided)
  * otherwise.
  */
+#ifdef STAN_BUILD
+extern char *
+NSSBase64_EncodeItem (NSSArena *arenaOpt, char *outStrOpt,
+		      unsigned int maxOutLen, NSSItem *inItem);
+#else
 extern char *
 NSSBase64_EncodeItem (PRArenaPool *arenaOpt, char *outStrOpt,
 		      unsigned int maxOutLen, SECItem *inItem);
+#endif
 
 SEC_END_PROTOS
 

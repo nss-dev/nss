@@ -155,7 +155,7 @@ nssPrivateKey_GetNickname (
   NSSToken *tokenOpt
 )
 {
-    return nssPKIObject_GetNicknameForToken(&vk->object, tokenOpt);
+    return nssPKIObject_GetNickname(&vk->object, tokenOpt);
 }
 
 NSS_IMPLEMENT PRBool

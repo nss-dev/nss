@@ -2546,6 +2546,7 @@ CK_RV nsc_CommonFinalize (CK_VOID_PTR pReserved, PRBool isFIPS)
     pk11_CleanupFreeLists();
     /* tell freeBL to clean up after itself */
     BL_Cleanup();
+    SECOID_Shutdown();
     nsc_init = PR_FALSE;
 
     return CKR_OK;

@@ -82,12 +82,12 @@ NSS_IMPLEMENT NSSSymmetricKey *
 nssSymmetricKey_CreateFromInstance (
   nssCryptokiObject *instance,
   NSSTrustDomain *td,
-  NSSCryptoContext *ccOpt
+  NSSVolatileDomain *vdOpt
 )
 {
     nssPKIObject *pkio;
 
-    pkio = nssPKIObject_Create(NULL, instance, td, ccOpt);
+    pkio = nssPKIObject_Create(NULL, instance, td, vdOpt);
     if (pkio) {
 	return nssSymmetricKey_Create(pkio);
     }

@@ -34,9 +34,23 @@ MANIFEST_CVS_ID = "@(#) $RCSfile$ $Revision$ $Date$ $Name$"
 
 CORE_DEPTH = ../../..
 
+DEFINES = -DSTAN_BUILD
+
 PRIVATE_UTIL_EXPORTS = \
 	nssilock.h     \
 	nssilckt.h     \
+	nssb64.h   \
+	nssb64t.h  \
+	$(NULL)
+
+#PUBLIC_UTIL_EXPORTS = \
+#	nssb64.h   \
+#	nssb64t.h  \
+#	$(NULL)
+
+UTIL_CSRCS =      \
+	nssb64d.c \
+	nssb64e.c \
 	$(NULL)
 
 PRIVATE_EXPORTS = \
@@ -49,6 +63,7 @@ EXPORTS =	     \
 	nssbaset.h   \
 	nssbase.h    \
 	nsserrors.h  \
+	$(PUBLIC_UTIL_EXPORTS) \
 	$(NULL)
 
 MODULE = nss
@@ -62,6 +77,7 @@ CSRCS =		   \
 	utf8.c	   \
 	hash.c     \
 	whatnspr.c \
+	$(UTIL_CSRCS) \
 	$(NULL)
 
 

@@ -39,8 +39,12 @@
 
 #include "nssb64.h"
 #include "nspr.h"
+#ifdef STAN_BUILD
+#include "base.h"
+#else
 #include "secitem.h"
 #include "secerr.h"
+#endif
 
 /*
  * XXX See the big comment at the top of nssb64d.c about moving the
@@ -658,8 +662,13 @@ NSSBase64Encoder_Destroy (NSSBase64Encoder *data, PRBool abort_p)
  * otherwise.
  */
 char *
+#ifdef STAN_BUILD
+NSSBase64_EncodeItem (NSSArena *arenaOpt, char *outStrOpt,
+		      unsigned int maxOutLen, NSSItem *inItem)
+#else
 NSSBase64_EncodeItem (PRArenaPool *arenaOpt, char *outStrOpt,
 		      unsigned int maxOutLen, SECItem *inItem)
+#endif
 {
     char *out_string = outStrOpt;
     PRUint32 max_out_len;
@@ -667,13 +676,22 @@ NSSBase64_EncodeItem (PRArenaPool *arenaOpt, char *outStrOpt,
     void *mark = NULL;
     char *dummy;
 
+#ifdef STAN_BUILD
+    PORT_Assert(inItem != NULL && inItem->data != NULL && inItem->size != 0);
+    if (inItem == NULL || inItem->data == NULL || inItem->size == 0) {
+#else
     PORT_Assert(inItem != NULL && inItem->data != NULL && inItem->len != 0);
     if (inItem == NULL || inItem->data == NULL || inItem->len == 0) {
+#endif
 	PORT_SetError (SEC_ERROR_INVALID_ARGS);
 	return NULL;
     }
 
+#ifdef STAN_BUILD
+    max_out_len = PL_Base64MaxEncodedLength (inItem->size, 64);
+#else
     max_out_len = PL_Base64MaxEncodedLength (inItem->len, 64);
+#endif
 
     if (arenaOpt != NULL)
 	mark = PORT_ArenaMark (arenaOpt);
@@ -698,8 +716,13 @@ NSSBase64_EncodeItem (PRArenaPool *arenaOpt, char *outStrOpt,
     }
 
 
+#ifdef STAN_BUILD
+    dummy = PL_Base64EncodeBuffer (inItem->data, inItem->size, 64,
+				   out_string, max_out_len, &out_len);
+#else
     dummy = PL_Base64EncodeBuffer (inItem->data, inItem->len, 64,
 				   out_string, max_out_len, &out_len);
+#endif
     if (dummy == NULL) {
 	if (arenaOpt != NULL) {
 	    PORT_ArenaRelease (arenaOpt, mark);
@@ -716,6 +739,8 @@ NSSBase64_EncodeItem (PRArenaPool *arenaOpt, char *outStrOpt,
     return out_string;
 }
 
+
+#ifndef STAN_BUILD
 
 /*
  * XXX Everything below is deprecated.  If you add new stuff, put it
@@ -760,3 +785,5 @@ BTOA_ConvertItemToAscii (SECItem *binary_item)
 {
     return NSSBase64_EncodeItem (NULL, NULL, 0, binary_item);
 }
+
+#endif /* !STAN_BUILD */
