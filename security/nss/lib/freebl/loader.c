@@ -1247,7 +1247,7 @@ AESKeyWrap_DestroyContext(AESKeyWrapContext *cx, PRBool freeit)
 {
   if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
       return;
-  return vector->p_AESKeyWrap_DestroyContext(cx, freeit);
+  vector->p_AESKeyWrap_DestroyContext(cx, freeit);
 }
 
 SECStatus 
