@@ -44,9 +44,13 @@
 static const char CKHELPER_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #endif /* DEBUG */
 
+#ifdef NSS_3_4_CODE
+#include "pkcs11t.h"
+#else
 #ifndef NSSCKT_H
 #include "nssckt.h"
 #endif /* NSSCKT_H */
+#endif /* NSS_3_4_CODE */
 
 PR_BEGIN_EXTERN_C
 
@@ -74,6 +78,21 @@ NSS_EXTERN_DATA const NSSItem g_ck_class_privkey;
 #define NSS_CK_ATTRIBUTE_TO_ITEM(attrib, item)     \
     (item)->data = (void *)(attrib)->pValue;       \
     (item)->size = (PRUint32)(attrib)->ulValueLen; \
+
+/* NSS_CK_ATTRIBUTE_TO_UTF8(attrib, str)
+ *
+ * Convert a CK_ATTRIBUTE to a string.
+ */
+#define NSS_CK_ATTRIBUTE_TO_UTF8(attrib, str)      \
+    str = (NSSUTF8 *)((attrib)->pValue);
+
+/* NSS_CK_ITEM_TO_ATTRIBUTE(item, attrib)
+ *
+ * Convert an NSSItem to a  CK_ATTRIBUTE.
+ */
+#define NSS_CK_ITEM_TO_ATTRIBUTE(item, attrib)     \
+    (attrib)->pValue = (CK_VOID_PTR)(item)->data;  \
+    (attrib)->ulValueLen = (CK_ULONG)(item)->size; \
 
 /* Get an array of attributes from an object. */
 NSS_EXTERN PRStatus 
