@@ -1,4 +1,3 @@
-#! gmake
 #
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
@@ -14,7 +13,7 @@
 # 
 # The Initial Developer of the Original Code is Netscape
 # Communications Corporation.  Portions created by Netscape are 
-# Copyright (C) 1994-2000 Netscape Communications Corporation.  All
+# Copyright (C) 2002 Netscape Communications Corporation.  All
 # Rights Reserved.
 # 
 # Contributor(s):
@@ -31,33 +30,26 @@
 # may use your version of this file under either the MPL or the
 # GPL.
 #
-
-DEFINES += -DMEMMOVE -D__DBINTERFACE_PRIVATE $(SECURITY_FLAG)
-
-INCLUDES += -I$(CORE_DEPTH)/../dbm/include
-
-#
-#  Currently, override TARGETS variable so that only static libraries
-#  are specifed as dependencies within rules.mk.
+# On HP-UX 10.30 and 11.x, the default implementation strategy is
+# pthreads.  Classic nspr and pthreads-user are also available.
 #
 
-TARGETS        = $(LIBRARY)
-SHARED_LIBRARY =
-IMPORT_LIBRARY =
-PURE_LIBRARY   =
-PROGRAM        =
-
-ifdef SHARED_LIBRARY
-	ifeq (,$(filter-out WINNT WIN95 WINCE,$(OS_TARGET))) # list omits WIN16
-		DLLBASE=/BASE:0x30000000
-		RES=$(OBJDIR)/dbm.res
-		RESNAME=../include/dbm.rc
-	endif
-	ifeq ($(DLL_SUFFIX),dll)
-		DEFINES += -D_DLL
-	endif
+ifeq ($(OS_RELEASE),B.11.20)
+OS_CFLAGS		+= -DHPUX10
+DEFAULT_IMPL_STRATEGY = _PTH
 endif
 
-ifeq ($(OS_TARGET),AIX)
-	OS_LIBS += -lc_r
+#
+# To use the true pthread (kernel thread) library on 10.30 and
+# 11.x, we should define _POSIX_C_SOURCE to be 199506L.
+# The _REENTRANT macro is deprecated.
+#
+
+ifdef USE_PTHREADS
+	OS_CFLAGS	+= -D_POSIX_C_SOURCE=199506L
 endif
+
+#
+# Config stuff for HP-UXB.11.x.
+#
+include $(CORE_DEPTH)/coreconf/HP-UXB.11.mk
