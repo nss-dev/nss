@@ -271,14 +271,13 @@ nssPKIObject_DeleteStoredObject
 		return PR_FAILURE;
 	    }
 	}
+	/* this function will destroy the instance if successful */
 	status = nssCryptokiObject_DeleteStoredObject(instance);
 	/* XXX this should be fixed to understand read-only tokens,
 	 * for now, to handle the builtins, just make the attempt.
 	 */
 	object->instances[i] = NULL;
-	if (status == PR_SUCCESS) {
-	    nssCryptokiObject_Destroy(instance);
-	} else {
+	if (status == PR_FAILURE) {
 	    object->instances[numNotDestroyed++] = instance;
 	}
     }
