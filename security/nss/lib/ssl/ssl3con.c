@@ -396,15 +396,16 @@ ssl3_InitAlgorithms(void)
                                               NSSSSLAlgorithm_PMSGen,
                                               &params);
     params.sslpms = NSSSSLVersion_TLS;
-    s_ssl3_pms_ap = NSSAlgNParam_CreateForSSL(s_algs_arena, 
-                                              NSSSSLAlgorithm_PMSGen,
-                                              &params);
-    s_tls_pms_ap = s_ssl3_pms_ap;
+    s_tls_pms_ap = NSSAlgNParam_CreateForSSL(s_algs_arena, 
+                                             NSSSSLAlgorithm_PMSGen,
+                                             &params);
 
     /* initialize MACs and HMACS */
+    params.mac = MD5_LENGTH;
     s_mac_md5_ap = NSSAlgNParam_CreateForSSL(s_algs_arena,
                                              NSSSSLAlgorithm_MD5_MAC,
                                              &params);
+    params.mac = SHA1_LENGTH;
     s_mac_sha1_ap = NSSAlgNParam_CreateForSSL(s_algs_arena,
                                               NSSSSLAlgorithm_SHA1_MAC,
                                               &params);
@@ -2646,7 +2647,7 @@ ssl3_ComputeHandshakeHashes(sslSocket *     ss,
 	    goto loser;
 	}
 
-	NSSITEM_INIT(&out, md5_inner, sizeof(md5_inner));
+	NSSITEM_INIT(&out, sha_inner, sizeof(sha_inner));
 	if (NSSCryptoContext_FinishDigest(sha, &out, NULL) == NULL) {
 	    ssl_MapLowLevelError(SSL_ERROR_SHA_DIGEST_FAILURE);
 	    goto loser;

@@ -213,11 +213,12 @@ if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ]; then
 #HOSTADDR was a workaround for the dist. stress test, and is probably 
 #not needed anymore (purpose: be able to use IP address for the server 
 #cert instead of PC name which was not in the DNS because of dyn IP address
-    if [ -z "$USE_IP" -o "$USE_IP" != "TRUE" ] ; then
-        HOSTADDR=${HOST}.${DOMSUF}
-    else
-        HOSTADDR=${IP_ADDRESS}
-    fi
+#    if [ -z "$USE_IP" -o "$USE_IP" != "TRUE" ] ; then
+#        HOSTADDR=${HOST}.${DOMSUF}
+#    else
+#        HOSTADDR=${IP_ADDRESS}
+#    fi
+HOSTADDR="localhost"
 
 #if running remote side of the distributed stress test we need to use 
 #the files that the server side gives us...

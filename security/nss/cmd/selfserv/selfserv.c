@@ -1610,7 +1610,7 @@ main(int argc, char **argv)
 	exit(4);
     }
     td = NSS_GetDefaultTrustDomain();
-    pwcb = CMD_GetDefaultPasswordCallback(NULL, NULL);
+    pwcb = CMD_GetDefaultPasswordCallback(passwd, NULL);
     if (!pwcb) {
 	exit(4);
     }

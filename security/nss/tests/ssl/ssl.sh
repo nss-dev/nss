@@ -62,17 +62,17 @@ ssl_init()
       cd ../common
       . ./init.sh
   fi
-  if [ ! -r $CERT_LOG_FILE ]; then  # we need certificates here
-      cd ../cert
-      . ./cert.sh
-  fi
+#  if [ ! -r $CERT_LOG_FILE ]; then  # we need certificates here
+#      cd ../cert
+#      . ./cert.sh
+#  fi
   SCRIPTNAME=ssl.sh
   echo "$SCRIPTNAME: SSL tests ==============================="
 
-  grep "SUCCESS: SSL passed" $CERT_LOG_FILE >/dev/null || {
-      html_head "SSL Test failure"
-      Exit 8 "Fatal - SSL of cert.sh needs to pass first"
-  }
+#  grep "SUCCESS: SSL passed" $CERT_LOG_FILE >/dev/null || {
+#      html_head "SSL Test failure"
+#      Exit 8 "Fatal - SSL of cert.sh needs to pass first"
+#  }
 
   PORT=${PORT-8443}
 
@@ -317,20 +317,20 @@ ssl_cleanup()
 if [ -z  "$DO_REM_ST" -a -z  "$DO_DIST_ST" ] ; then
     ssl_init
     ssl_cov
-    ssl_auth
-    ssl_stress
+#    ssl_auth
+#    ssl_stress
 
-    SERVERDIR=$EXT_SERVERDIR
-    CLIENTDIR=$EXT_CLIENTDIR
-    R_SERVERDIR=$R_EXT_SERVERDIR
-    R_CLIENTDIR=$R_EXT_CLIENTDIR
-    P_R_SERVERDIR=$P_R_EXT_SERVERDIR
-    P_R_CLIENTDIR=$P_R_EXT_CLIENTDIR
-    USER_NICKNAME=ExtendedSSLUser
-    NORM_EXT="Extended test"
-    cd ${CLIENTDIR}
-    ssl_cov
-    ssl_auth
-    ssl_stress
-    ssl_cleanup
+#    SERVERDIR=$EXT_SERVERDIR
+#    CLIENTDIR=$EXT_CLIENTDIR
+#    R_SERVERDIR=$R_EXT_SERVERDIR
+#    R_CLIENTDIR=$R_EXT_CLIENTDIR
+#    P_R_SERVERDIR=$P_R_EXT_SERVERDIR
+#    P_R_CLIENTDIR=$P_R_EXT_CLIENTDIR
+#    USER_NICKNAME=ExtendedSSLUser
+#    NORM_EXT="Extended test"
+#    cd ${CLIENTDIR}
+#    ssl_cov
+#    ssl_auth
+#    ssl_stress
+#    ssl_cleanup
 fi

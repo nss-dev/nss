@@ -1343,6 +1343,7 @@ nssAlgNParam_CreateForSSL (
 	rvAP->mechanism.mechanism = CKM_SSL3_PRE_MASTER_KEY_GEN;
 	status = set_version_parameter(&rvAP->mechanism, 
 	                               &version, rvAP->arena);
+	rvAP->params.sslpms = params->sslpms; /*XXX also below */
 	break;
     case NSSSSLAlgorithm_MSDerive:
 	status = set_sslms_mechanism(&rvAP->mechanism, params, rvAP->arena);

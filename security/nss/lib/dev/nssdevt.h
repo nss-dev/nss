@@ -241,6 +241,7 @@ NSSRC5Parameters;
  */
 
 typedef PRUint32 NSSHMACParameters; /* length in bytes of desired output */
+typedef PRUint32 NSSMACParameters;  /* length in bytes of desired output */
 
 /*
  * Key derivation
@@ -322,6 +323,7 @@ typedef union
   NSSDHKeyGenParameters  dhkg;
   NSSRC2Parameters       rc2;
   NSSRC5Parameters       rc5;
+  NSSMACParameters       mac;
   NSSHMACParameters      hmac;
   NSSPBEParameters       pbe;
   NSSSSLPMSParameters    sslpms;

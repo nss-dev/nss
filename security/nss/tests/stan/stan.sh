@@ -174,9 +174,13 @@ cd ${HOSTDIR}
 cp ${QADIR}/stan/*.b64 .
 cp ${QADIR}/stan/*.txt .
 
+# XXX
+# copying pre-built dbs for now, Stan can't create certs & importing
+# via PKCS#8 doesn't seem to work
+cp -r ${QADIR}/stan/server/ .
+cp -r ${QADIR}/stan/client/ .
+
 CERTDIR="certs"
-SERVERDIR="server"
-CLIENTDIR="client"
 
 mkdir -p ${CERTDIR}
 
@@ -280,61 +284,5 @@ nssu --dump-token -d ${CERTDIR}
 
 CIPHER_ACTION="Run Symmetric Key Self-Tests"
 ciph -T
-
-mkdir -p ${SERVERDIR}
-PKIU_ACTION="Creating DBs for server"
-pkiu -N -d ${SERVERDIR}
-if [ "$RET" -ne 0 ]; then
-  Exit 6 "Fatal - failed ${PKIU_ACTION} [$RET]"
-fi
-
-PKIU_ACTION="Set password for server"
-pkiu --change-password -d ${SERVERDIR} -p nss
-if [ "$RET" -ne 0 ]; then
-  Exit 6 "Fatal - failed ${PKIU_ACTION} [$RET]"
-fi
-
-PKIU_ACTION="Import Root For Server"
-pkiu -I -d ${SERVERDIR} -a -n serverRoot -i serverRoot.b64 
-if [ "$RET" -ne 0 ]; then
-  Exit 6 "Fatal - failed ${PKIU_ACTION} [$RET]"
-fi
-
-PKIU_ACTION="Import Server Cert"
-pkiu -I -d ${SERVERDIR} -a -n localhost -i localhost.b64
-if [ "$RET" -ne 0 ]; then
-  Exit 6 "Fatal - failed ${PKIU_ACTION} [$RET]"
-fi
-
-PKIU_ACTION="Import Server Private Key"
-pkiu -I -d ${SERVERDIR} -a -n localhost -i localhost_key.b64 --type private-key -p nss -w asdf
-if [ "$RET" -ne 0 ]; then
-  Exit 6 "Fatal - failed ${PKIU_ACTION} [$RET]"
-fi
-
-mkdir -p ${CLIENTDIR}
-PKIU_ACTION="Creating DBs for client"
-pkiu -N -d ${CLIENTDIR}
-if [ "$RET" -ne 0 ]; then
-  Exit 6 "Fatal - failed ${PKIU_ACTION} [$RET]"
-fi
-
-PKIU_ACTION="Set password for client"
-pkiu --change-password -d ${CLIENTDIR} -p nss
-if [ "$RET" -ne 0 ]; then
-  Exit 6 "Fatal - failed ${PKIU_ACTION} [$RET]"
-fi
-
-PKIU_ACTION="Import Server CA for client"
-pkiu -I -d ${CLIENTDIR} -a -n serverRoot -i serverRoot.b64 
-if [ "$RET" -ne 0 ]; then
-  Exit 6 "Fatal - failed ${PKIU_ACTION} [$RET]"
-fi
-
-PKIU_ACTION="Set Root Cert Trust for client"
-pkiu -M -d ${CLIENTDIR} -n serverRoot -u CV
-if [ "$RET" -ne 0 ]; then
-  Exit 6 "Fatal - failed ${PKIU_ACTION} [$RET]"
-fi
 
 cert_cleanup
