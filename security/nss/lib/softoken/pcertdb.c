@@ -3016,12 +3016,23 @@ nsslowcert_AddPermNickname(NSSLOWCERTCertDBHandle *dbhandle,
     if (entry == NULL) goto loser;
 
     if ( entry->nickname == NULL ) {
+        certDBEntryNickname *nicknameEntry = NULL;
+
 	/* no nickname for subject */
 	rv = AddNicknameToSubject(dbhandle, cert, nickname);
 	if ( rv != SECSuccess ) {
 	    goto loser;
 	}
 	rv = AddNicknameToPermCert(dbhandle, cert, nickname);
+	if ( rv != SECSuccess ) {
+	    goto loser;
+	}
+	nicknameEntry = NewDBNicknameEntry(nickname, &cert->derSubject, 0);
+	if ( nicknameEntry == NULL ) {
+	    goto loser;
+	}
+    
+	rv = WriteDBNicknameEntry(dbhandle, nicknameEntry);
 	if ( rv != SECSuccess ) {
 	    goto loser;
 	}
