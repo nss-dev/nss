@@ -42,7 +42,7 @@ LIBRARY        =
 IMPORT_LIBRARY =
 PROGRAM        =
 
-ifeq ($(OS_ARCH), WINNT)
+ifeq (,$(filter-out OS2 WINNT,$(OS_ARCH)))
 	SHARED_LIBRARY = $(OBJDIR)/$(LIBRARY_NAME)$(LIBRARY_VERSION).dll
 endif
 
