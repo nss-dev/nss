@@ -3982,7 +3982,6 @@ openNewCertDB(const char *appName, const char *prefix, const char *certdbname,
     SECStatus rv;
     certDBEntryVersion *versionEntry = NULL;
     DB *updatedb = NULL;
-    char *tmpname;
     int status = RDB_FAIL;
 
     if (appName) {
@@ -4515,8 +4514,7 @@ nsslowcert_UpdatePermCert(NSSLOWCERTCertDBHandle *dbhandle,
     certDBEntryCert *entry;
     PRBool conflict;
     SECStatus ret;
-    SECStatus rv;
-    
+
     PORT_Assert(!cert->dbEntry);
 
     /* don't add a conflicting nickname */
@@ -4553,9 +4551,6 @@ SECStatus
 nsslowcert_AddPermCert(NSSLOWCERTCertDBHandle *dbhandle,
     NSSLOWCERTCertificate *cert, char *nickname, NSSLOWCERTCertTrust *trust)
 {
-    char *oldnn;
-    certDBEntryCert *entry;
-    PRBool conflict;
     SECStatus ret;
     SECStatus rv;
 
@@ -5263,3 +5258,4 @@ nsslowcert_DestroyGlobalLocks()
 	certTrustLock = NULL;
     }
 }
+
