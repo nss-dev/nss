@@ -170,6 +170,15 @@ AC_ARG_ENABLE(debug,
     	    MOZ_DEBUG=
 	    fi])
 
+AC_ARG_ENABLE(n32,
+    [  --enable-n32            Enable n32 ABI support (IRIX only)],
+    [ if test "$enableval" = "yes"; then
+	USE_N32=1
+      else if test "$enableval" = "no"; then
+	USE_N32=
+      fi
+    fi ])
+
 AC_ARG_ENABLE(64bit,
     [  --enable-64bit          Enable 64-bit support (on certain platforms)],
     [ if test "$enableval" = "yes"; then
