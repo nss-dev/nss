@@ -99,6 +99,10 @@ typedef struct nssArenaMarkStr nssArenaMark;
 
 #endif /* DEBUG */
 
+typedef struct nssListStr nssList;
+typedef struct nssListIteratorStr nssListIterator;
+typedef PRBool (* nssListCompareFunc)(void *a, void *b);
+
 /*
  * nssPointerTracker
  *
