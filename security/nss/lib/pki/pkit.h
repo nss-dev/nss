@@ -175,7 +175,9 @@ struct NSSCryptoContextStr
     nssCertificateStore *certStore;
 };
 
-struct NSSTimeStr;
+struct NSSTimeStr {
+    PRTime prTime;
+};
 
 struct NSSPoliciesStr;
 

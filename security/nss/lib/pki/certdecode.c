@@ -196,10 +196,6 @@ nssDecodedCert_Destroy
 
 /* Of course none of this belongs here */
 
-struct NSSTimeStr {
-    PRTime prTime;
-};
-
 /* how bad would it be to have a static now sitting around, updated whenever
  * this was called?  would avoid repeated allocs...
  */

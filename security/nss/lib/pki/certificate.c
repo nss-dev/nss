@@ -716,7 +716,12 @@ nssBestCertificate_SetArgs
   NSSPolicies *policies
 )
 {
-    best->time = (timeOpt) ? timeOpt : NSSTime_Now(NULL);
+    if (timeOpt) {
+	best->time = timeOpt;
+    } else {
+	NSSTime_Now(&best->sTime);
+	best->time = &best->sTime;
+    }
     best->usage = usage;
     best->policies = policies;
     best->cert = NULL;
