@@ -188,5 +188,26 @@ SECStatus ShutdownCRLCache(void);
 */
 extern char * cert_GetCertificateEmailAddresses(CERTCertificate *cert);
 
+/*
+ * These functions are used to map subjectKeyID extension values to certs.
+ */
+SECStatus
+cert_CreateSubjectKeyIDHashTable(void);
+
+SECStatus
+cert_AddSubjectKeyIDMapping(SECItem *subjKeyID, CERTCertificate *cert);
+
+/*
+ * Call this function to remove an entry from the mapping table.
+ */
+SECStatus
+cert_RemoveSubjectKeyIDMapping(SECItem *subjKeyID);
+
+SECStatus
+cert_DestroySubjectKeyIDHashTable(void);
+
+SECItem*
+cert_FindDERCertBySubjectKeyID(SECItem *subjKeyID);
+
 #endif /* _CERTI_H_ */
 

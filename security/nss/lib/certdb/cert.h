@@ -478,6 +478,9 @@ CERT_FindCertByKeyID (CERTCertDBHandle *handle, SECItem *name, SECItem *keyID);
 extern CERTCertificate *
 CERT_FindCertByIssuerAndSN (CERTCertDBHandle *handle, CERTIssuerAndSN *issuerAndSN);
 
+extern CERTCertificate *
+CERT_FindCertBySubjectKeyID (CERTCertDBHandle *handle, SECItem *subjKeyID);
+
 /*
 ** Find a certificate in the database by a nickname
 **	"nickname" is the ascii string nickname to look for
@@ -569,9 +572,9 @@ extern SECStatus CERT_VerifySignedData(CERTSignedData *sd,
 ** verify the signature of a signed data object with the given DER publickey
 */
 extern SECStatus
-CERT_VerifySignedDataWithPubKeyInfo(CERTSignedData *sd,
-                                    CERTSubjectPublicKeyInfo *pubKeyInfo,
-                                    void *wincx);
+CERT_VerifySignedDataWithPublicKeyInfo(CERTSignedData *sd,
+                                       CERTSubjectPublicKeyInfo *pubKeyInfo,
+                                       void *wincx);
 
 /*
 ** verify the signature of a signed data object with a SECKEYPublicKey.
@@ -922,7 +925,7 @@ extern SECStatus CERT_FindKeyUsageExtension (CERTCertificate *cert,
 /* Return the decoded value of the subjectKeyID extension. The caller should 
 ** free up the storage allocated in retItem->data.
 */
-extern SECStatus CERT_FindSubjectKeyIDExten (CERTCertificate *cert, 
+extern SECStatus CERT_FindSubjectKeyIDExtension (CERTCertificate *cert, 
 							   SECItem *retItem);
 
 /*

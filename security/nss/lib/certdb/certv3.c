@@ -291,7 +291,7 @@ CERT_FindKeyUsageExtension(CERTCertificate *cert, SECItem *retItem)
  * get the value of the X.509 v3 Key Usage Extension
  */
 SECStatus
-CERT_FindSubjectKeyIDExten(CERTCertificate *cert, SECItem *retItem)
+CERT_FindSubjectKeyIDExtension(CERTCertificate *cert, SECItem *retItem)
 {
 
     SECItem encodedValue;

@@ -493,6 +493,28 @@ GetKeyDBGlobalSalt(NSSLOWKEYDBHandle *handle)
 }
 
 static SECStatus
+StoreKeyDBGlobalSalt(NSSLOWKEYDBHandle *handle)
+{
+    DBT saltKey;
+    DBT saltData;
+    int status;
+    
+    saltKey.data = SALT_STRING;
+    saltKey.size = sizeof(SALT_STRING) - 1;
+
+    saltData.data = (void *)handle->global_salt->data;
+    saltData.size = handle->global_salt->len;
+
+    /* put global salt into the database now */
+    status = (* handle->db->put)( handle->db, &saltKey, &saltData, 0);
+    if ( status ) {
+	return(SECFailure);
+    }
+
+    return(SECSuccess);
+}
+
+static SECStatus
 makeGlobalVersion(NSSLOWKEYDBHandle *handle)
 {
     unsigned char version;
@@ -2496,20 +2518,22 @@ nsslowkey_ResetKeyDB(NSSLOWKEYDBHandle *handle)
 	goto done;
     }
 
-    rv = makeGlobalSalt(handle);
+    if (handle->global_salt) {
+	rv = StoreKeyDBGlobalSalt(handle);
+    } else {
+	rv = makeGlobalSalt(handle);
+	if ( rv == SECSuccess ) {
+	    handle->global_salt = GetKeyDBGlobalSalt(handle);
+	}
+    }
     if ( rv != SECSuccess ) {
 	errors++;
-	goto done;
     }
-
-    if (handle->global_salt) {
-	SECITEM_FreeItem(handle->global_salt,PR_TRUE);
-    }
-    handle->global_salt = GetKeyDBGlobalSalt(handle);
 
 done:
     /* sync the database */
     ret = (* handle->db->sync)(handle->db, 0);
+    db_InitComplete(handle->db);
 
     return (errors == 0 ? SECSuccess : SECFailure);
 }
