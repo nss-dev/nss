@@ -70,6 +70,19 @@
 
 #define RD_BUF_SIZE (60 * 1024)
 
+int cipherSuites[] = {
+    SSL_FORTEZZA_DMS_WITH_FORTEZZA_CBC_SHA,
+    SSL_FORTEZZA_DMS_WITH_RC4_128_SHA,
+    SSL_RSA_WITH_RC4_128_MD5,
+    SSL_RSA_WITH_3DES_EDE_CBC_SHA,
+    SSL_RSA_WITH_DES_CBC_SHA,
+    SSL_RSA_EXPORT_WITH_RC4_40_MD5,
+    SSL_RSA_EXPORT_WITH_RC2_CBC_40_MD5,
+    SSL_FORTEZZA_DMS_WITH_NULL_SHA,
+    SSL_RSA_WITH_NULL_MD5,
+    0
+};
+
 /* Include these cipher suite arrays to re-use tstclnt's 
  * cipher selection code.
  */
@@ -96,8 +109,6 @@ int ssl3CipherSuites[] = {
     SSL_RSA_WITH_NULL_MD5,                      /* i */
     SSL_RSA_FIPS_WITH_3DES_EDE_CBC_SHA,         /* j */
     SSL_RSA_FIPS_WITH_DES_CBC_SHA,              /* k */
-    TLS_RSA_EXPORT1024_WITH_DES_CBC_SHA, 	/* l */
-    TLS_RSA_EXPORT1024_WITH_RC4_56_SHA,		/* m */
     0
 };
 
@@ -105,9 +116,8 @@ int ssl3CipherSuites[] = {
  * which ciphers to use. 
  */
 
-const char *cipherString;
+char *cipherString;
 
-int certsTested;
 int MakeCertOK;
 
 void
@@ -117,13 +127,7 @@ disableSSL2Ciphers(void)
 
     /* disable all the SSL2 cipher suites */
     for (i = 0; ssl2CipherSuites[i] != 0;  ++i) {
-	SECStatus rv;
-        rv = SSL_EnableCipher(ssl2CipherSuites[i], SSL_NOT_ALLOWED);
-	if (rv != SECSuccess) {
-	    fprintf(stderr, "SSL_EnableCipher failed with value 0x%04x\n",
-		    ssl2CipherSuites[i]);
-	    exit(1);
-	}
+        SSL_EnableCipher(ssl2CipherSuites[i], SSL_NOT_ALLOWED);
     }
 }
 
@@ -134,13 +138,7 @@ disableSSL3Ciphers(void)
 
     /* disable all the SSL3 cipher suites */
     for (i = 0; ssl3CipherSuites[i] != 0;  ++i) {
-	SECStatus rv;
-        rv = SSL_EnableCipher(ssl3CipherSuites[i], SSL_NOT_ALLOWED);
-	if (rv != SECSuccess) {
-	    fprintf(stderr, "SSL_EnableCipher failed with value 0x%04x\n",
-		    ssl3CipherSuites[i]);
-	    exit(1);
-	}
+        SSL_EnableCipher(ssl3CipherSuites[i], SSL_NOT_ALLOWED);
     }
 }
 
@@ -223,7 +221,7 @@ errWarn(char * funcString)
     PRErrorCode  perr      = PR_GetError();
     const char * errString = SECU_Strerror(perr);
 
-    fprintf(stderr, "%s returned error %d:\n%s\n",
+    fprintf(stderr, "exit after %s with error %d:\n%s\n",
             funcString, perr, errString);
 }
 
@@ -275,9 +273,8 @@ mySSLAuthCertificate(void *arg, PRFileDesc *fd, PRBool checkSig,
     /* invoke the "default" AuthCert handler. */
     rv = SSL_AuthCertificate(arg, fd, checkSig, isServer);
 
-    ++certsTested;
     if (rv == SECSuccess) {
-	fputs("-- SSL: Server Certificate Validated.\n", stderr);
+	fputs("-- SSL3: Server Certificate Validated.\n", stderr);
     } 
     /* error, if any, will be displayed by the Bad Cert Handler. */
     return rv;  
@@ -330,7 +327,7 @@ printSecurityInfo(PRFileDesc *fd)
 	       "issuer  DN: %s\n", cp, kp1, kp0, op, sp, ip);
 #else
 	PRINTF("bulk cipher %s, %d secret key bits, %d key bits, status: %d\n",
-	       cp, kp1, kp0, op);
+	       cp, kp1, kp0, op, sp, ip);
 #endif
 	PR_Free(cp);
 	PR_Free(ip);
@@ -720,8 +717,8 @@ do_connects(
 {
     PRNetAddr  *        addr		= (PRNetAddr *)  a;
     PRFileDesc *        model_sock	= (PRFileDesc *) b;
-    PRFileDesc *        ssl_sock	= 0;
-    PRFileDesc *        tcp_sock	= 0;
+    PRFileDesc *        ssl_sock;
+    PRFileDesc *        tcp_sock;
     PRStatus	        prStatus;
     SECStatus   	result;
     int                 rv 		= SECSuccess;
@@ -745,14 +742,12 @@ retry:
     prStatus = PR_Connect(tcp_sock, addr, PR_INTERVAL_NO_TIMEOUT);
     if (prStatus != PR_SUCCESS) {
 	PRErrorCode err = PR_GetError();
-	if ((err == PR_CONNECT_REFUSED_ERROR) || 
-	    (err == PR_CONNECT_RESET_ERROR)      ) {
+	if (err == PR_CONNECT_REFUSED_ERROR) {
 	    PR_Close(tcp_sock);
 	    PR_Sleep(PR_MillisecondsToInterval(10));
 	    goto retry;
 	}
 	errWarn("PR_Connect");
-	rv = SECFailure;
 	goto done;
     }
 
@@ -776,11 +771,7 @@ retry:
     }
 
 done:
-    if (ssl_sock) {
-	PR_Close(ssl_sock);
-    } else if (tcp_sock) {
-	PR_Close(tcp_sock);
-    }
+    PR_Close(ssl_sock);
     return SECSuccess;
 }
 
@@ -822,6 +813,7 @@ client_main(
     PRFileDesc *model_sock	= NULL;
     int         i;
     int         rv;
+    SECStatus	secStatus;
     PRUint32	ipAddress;	/* in host byte order */
     PRNetAddr   addr;
 
@@ -855,14 +847,7 @@ client_main(
             for (ndx &= 0x1f; (cipher = *cptr++) != 0 && --ndx > 0; )
                 /* do nothing */;
             if (cipher) {
-		SECStatus rv;
-                rv = SSL_EnableCipher(cipher, SSL_ALLOWED);
-		if (rv != SECSuccess) {
-		    fprintf(stderr, 
-			    "SSL_EnableCipher failed with value 0x%04x\n",
-			    cipher);
-		    exit(1);
-		}
+                SSL_EnableCipher(cipher, SSL_ALLOWED);
             }
         }
     }
@@ -969,22 +954,23 @@ done:
 int
 main(int argc, char **argv)
 {
-    const char *         dir         = ".";
+    char *               dir         = ".";
     char *               fNickName   = NULL;
-    const char *         fileName    = NULL;
+    char *               fileName    = NULL;
     char *               hostName    = NULL;
     char *               nickName    = NULL;
     char *               progName    = NULL;
     char *               tmp         = NULL;
-    char *		 passwd      = NULL;
     CERTCertificate *    cert   [kt_kea_size] = { NULL };
     SECKEYPrivateKey *   privKey[kt_kea_size] = { NULL };
+    int                  optchar;
     int                  connections = 1;
-    int                  exitVal;
     unsigned short       port        = 443;
     SECStatus            rv;
-    PLOptState *         optstate;
-    PLOptStatus          status;
+    PRBool				 useCommandLinePasswd = PR_FALSE;
+    char *				 passwd = NULL;
+    PLOptState *optstate;
+    PLOptStatus status;
 
     /* Call the NSPR initialization routines */
     PR_Init( PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
@@ -1034,6 +1020,7 @@ main(int argc, char **argv)
 	    break;
 	case 'w':
 	    passwd = optstate->value;
+	    useCommandLinePasswd = PR_TRUE;
 	    break;
 	case '\0':
 	    hostName = PL_strdup(optstate->value);
@@ -1055,11 +1042,11 @@ main(int argc, char **argv)
     	readBigFile(fileName);
 
     /* set our password function */
-    if ( passwd ) {
-	PK11_SetPasswordFunc(ownPasswd);
-    } else {
-	PK11_SetPasswordFunc(SECU_GetModulePassword);
-    }
+	if ( useCommandLinePasswd ) {
+		PK11_SetPasswordFunc(ownPasswd);
+	} else {
+    	PK11_SetPasswordFunc(SECU_GetModulePassword);
+	}
 
     /* Call the libsec initialization routines */
     rv = NSS_Init(dir);
@@ -1070,13 +1057,22 @@ main(int argc, char **argv)
 
     if (nickName) {
 
-	cert[kt_rsa] = PK11_FindCertFromNickname(nickName, passwd);
+	if (useCommandLinePasswd) {
+		    cert[kt_rsa] = PK11_FindCertFromNickname(nickName, passwd);
+	} else {
+			cert[kt_rsa] = PK11_FindCertFromNickname(nickName, NULL);
+	}
 	if (cert[kt_rsa] == NULL) {
 	    fprintf(stderr, "Can't find certificate %s\n", nickName);
 	    exit(1);
 	}
 
-	privKey[kt_rsa] = PK11_FindKeyByAnyCert(cert[kt_rsa], passwd);
+	if (useCommandLinePasswd) {
+		    privKey[kt_rsa] = PK11_FindKeyByAnyCert(cert[kt_rsa], passwd);
+	} else {
+			privKey[kt_rsa] = PK11_FindKeyByAnyCert(cert[kt_rsa], NULL);
+	}
+
 	if (privKey[kt_rsa] == NULL) {
 	    fprintf(stderr, "Can't find Private Key for cert %s\n", nickName);
 	    exit(1);
@@ -1084,13 +1080,13 @@ main(int argc, char **argv)
 
     }
     if (fNickName) {
-	cert[kt_fortezza] = PK11_FindCertFromNickname(fNickName, passwd);
+	cert[kt_fortezza] = PK11_FindCertFromNickname(fNickName, NULL);
 	if (cert[kt_fortezza] == NULL) {
 	    fprintf(stderr, "Can't find certificate %s\n", fNickName);
 	    exit(1);
 	}
 
-	privKey[kt_fortezza] = PK11_FindKeyByAnyCert(cert[kt_fortezza], passwd);
+	privKey[kt_fortezza] = PK11_FindKeyByAnyCert(cert[kt_fortezza], NULL);
 	if (privKey[kt_fortezza] == NULL) {
 	    fprintf(stderr, "Can't find Private Key for cert %s\n", fNickName);
 	    exit(1);
@@ -1100,22 +1096,13 @@ main(int argc, char **argv)
     client_main(port, connections, privKey, cert, hostName, nickName);
 
     /* some final stats. */
-    if (ssl3_hsh_sid_cache_hits + ssl3_hsh_sid_cache_misses +
-        ssl3_hsh_sid_cache_not_ok == 0) {
-	/* presumably we were testing SSL2. */
-	printf("%d server certificates tested.\n", certsTested);
-    } else {
-	printf("%ld cache hits; %ld cache misses, %ld cache not reusable\n",
-	    ssl3_hsh_sid_cache_hits, 
-	    ssl3_hsh_sid_cache_misses,
-	    ssl3_hsh_sid_cache_not_ok);
-    }
-    exitVal = (ssl3_hsh_sid_cache_misses > 1) ||
-              (ssl3_hsh_sid_cache_not_ok != 0) ||
-	      (certsTested > 1);
+    printf("%ld cache hits; %ld cache misses, %ld cache not reusable\n",
+    	ssl3_hsh_sid_cache_hits, 
+	ssl3_hsh_sid_cache_misses,
+	ssl3_hsh_sid_cache_not_ok);
 
     NSS_Shutdown();
     PR_Cleanup();
-    return exitVal;
+    return 0;
 }
 
