@@ -88,7 +88,7 @@ extern SECStatus SEC_ASN1Decode(PRArenaPool *pool, void *dest,
 
 extern SECStatus SEC_ASN1DecodeItem(PRArenaPool *pool, void *dest,
 				    const SEC_ASN1Template *t,
-				    SECItem *item);
+				    const SECItem *src);
 
 extern SECStatus SEC_QuickDERDecodeItem(PRArenaPool* arena, void* dest,
                      const SEC_ASN1Template* templateEntry,
