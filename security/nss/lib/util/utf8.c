@@ -236,6 +236,11 @@ sec_port_ucs4_utf8_conversion_function
     return PR_TRUE;
   } else {
     unsigned int i, len = 0;
+    PORT_Assert((inBufLen % 4) == 0);
+    if ((inBufLen % 4) != 0) {
+      *outBufLen = 0;
+      return PR_FALSE;
+    }
 
     for( i = 0; i < inBufLen; i += 4 ) {
       if( inBuf[i+L_0] >= 0x04 ) len += 6;
@@ -457,6 +462,11 @@ sec_port_ucs2_utf8_conversion_function
     return PR_TRUE;
   } else {
     unsigned int i, len = 0;
+    PORT_Assert((inBufLen % 2) == 0);
+    if ((inBufLen % 2) != 0) {
+      *outBufLen = 0;
+      return PR_FALSE;
+    }
 
     for( i = 0; i < inBufLen; i += 2 ) {
       if( (inBuf[i+H_0] == 0x00) && ((inBuf[i+H_0] & 0x80) == 0x00) ) len += 1;
