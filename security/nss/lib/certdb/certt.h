@@ -473,23 +473,6 @@ typedef enum SECCertUsageEnum {
     certUsageAnyCA = 11
 } SECCertUsage;
 
-typedef PRInt32 SECCertificateUsage;
-
-#define certificateUsageSSLClient              (0x0001)
-#define certificateUsageSSLServer              (0x0002)
-#define certificateUsageSSLServerWithStepUp    (0x0004)
-#define certificateUsageSSLCA                  (0x0008)
-#define certificateUsageEmailSigner            (0x0010)
-#define certificateUsageEmailRecipient         (0x0020)
-#define certificateUsageObjectSigner           (0x0040)
-#define certificateUsageUserCertImport         (0x0080)
-#define certificateUsageVerifyCA               (0x0100)
-#define certificateUsageProtectedObjectSigner  (0x0200)
-#define certificateUsageStatusResponder        (0x0400)
-#define certificateUsageAnyCA                  (0x0800)
-
-#define highestUsage certificateUsageAnyCA
-
 /*
  * Does the cert belong to the user, a peer, or a CA.
  */
