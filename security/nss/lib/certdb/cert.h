@@ -248,7 +248,7 @@ CERT_CreateCertificateRequest (CERTName *name, CERTSubjectPublicKeyInfo *spki,
 extern void CERT_DestroyCertificateRequest(CERTCertificateRequest *r);
 
 /*
-** Extract a public key object from a SubjectPublicKeyInfo
+** Extract a public key object from a certificate
 */
 extern SECKEYPublicKey *CERT_ExtractPublicKey(CERTCertificate *cert);
 
