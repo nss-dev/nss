@@ -479,16 +479,12 @@ collect_data(
 	for (totlen = len; bufp ; bufp = __get_buf(hashp, bp[bp[0]-1], bufp, 0)) {
 		bp = (uint16 *)bufp->page;
 		mylen = hashp->BSIZE - bp[1];
-
-		/* if mylen ever goes negative it means that the
-		 * page is screwed up.
-		 */
 		if (mylen < 0) {
 			save_bufp->flags = save_flags;
 			return (-1);
  		}
 		totlen += mylen;
-		if (bp[2] == FULL_KEY_DATA) {		/* End of Data */
+		if (bp[2] == FULL_KEY_DATA) {
 			break;
 		}
 	}
