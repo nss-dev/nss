@@ -55,7 +55,11 @@
 #define NSS_MAX_FLAG_SIZE  sizeof("readOnly")+sizeof("noCertDB")+ \
 	sizeof("noModDB")+sizeof("forceOpen")+sizeof("passwordRequired")
 #define NSS_DEFAULT_MOD_NAME "NSS Internal Module"
+#ifdef macintosh
+#define SECMOD_DB "Security Modules"
+#else
 #define SECMOD_DB "secmod.db"
+#endif
 
 static char *
 nss_makeFlags(PRBool readOnly, PRBool noCertDB, 
