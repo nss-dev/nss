@@ -94,7 +94,8 @@ error_once_function
   void
 )
 {
-  return PR_NewThreadPrivateIndex(&error_stack_index, PR_Free);
+  return nss_NewThreadPrivateIndex(&error_stack_index);
+  /* return PR_NewThreadPrivateIndex(&error_stack_index, PR_Free); */
 }
 
 /*
@@ -124,7 +125,7 @@ error_get_my_stack
     }
   }
 
-  rv = (error_stack *)PR_GetThreadPrivate(error_stack_index);
+  rv = (error_stack *)nss_GetThreadPrivate(error_stack_index);
   if( (error_stack *)NULL == rv ) {
     /* Doesn't exist; create one */
     new_size = 16;
@@ -152,7 +153,7 @@ error_get_my_stack
   }
 
   /* Set the value, whether or not the allocation worked */
-  PR_SetThreadPrivate(error_stack_index, new_stack);
+  nss_SetThreadPrivate(error_stack_index, new_stack);
   return new_stack;
 }
 
