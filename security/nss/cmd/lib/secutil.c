@@ -241,7 +241,7 @@ SECU_GetModulePassword(PK11SlotInfo *slot, PRBool retry, void *arg)
 	/* it's already been dup'ed */
 	return pw;
     case PW_PLAINTEXT:
-	return PL_strdup(arg);
+	return PL_strdup(pwdata->data);
     default:
 	break;
     }
