@@ -78,17 +78,6 @@ nssUTF8_CaseIgnoreMatch
   PRStatus *statusOpt
 )
 {
-#ifdef NSSDEBUG
-  if( ((const NSSUTF8 *)NULL == a) ||
-      ((const NSSUTF8 *)NULL == b) ) {
-    nss_SetError(NSS_ERROR_INVALID_POINTER);
-    if( (PRStatus *)NULL != statusOpt ) {
-      *statusOpt = PR_FAILURE;
-    }
-    return PR_FALSE;
-  }
-#endif /* NSSDEBUG */
-
   if( (PRStatus *)NULL != statusOpt ) {
     *statusOpt = PR_SUCCESS;
   }
@@ -137,17 +126,6 @@ nssUTF8_PrintableMatch
 {
   PRUint8 *c;
   PRUint8 *d;
-
-#ifdef NSSDEBUG
-  if( ((const NSSUTF8 *)NULL == a) ||
-      ((const NSSUTF8 *)NULL == b) ) {
-    nss_SetError(NSS_ERROR_INVALID_POINTER);
-    if( (PRStatus *)NULL != statusOpt ) {
-      *statusOpt = PR_FAILURE;
-    }
-    return PR_FALSE;
-  }
-#endif /* NSSDEBUG */
 
   if( (PRStatus *)NULL != statusOpt ) {
     *statusOpt = PR_SUCCESS;
@@ -243,19 +221,6 @@ nssUTF8_Duplicate
   NSSUTF8 *rv;
   PRUint32 len;
 
-#ifdef NSSDEBUG
-  if( (const NSSUTF8 *)NULL == s ) {
-    nss_SetError(NSS_ERROR_INVALID_POINTER);
-    return (NSSUTF8 *)NULL;
-  }
-
-  if( (NSSArena *)NULL != arenaOpt ) {
-    if( PR_SUCCESS != nssArena_verifyPointer(arenaOpt) ) {
-      return (NSSUTF8 *)NULL;
-    }
-  }
-#endif /* NSSDEBUG */
-
   len = PL_strlen((const char *)s);
 #ifdef PEDANTIC
   if( '\0' != ((const char *)s)[ len ] ) {
@@ -310,16 +275,6 @@ nssUTF8_Size
 {
   PRUint32 sv;
 
-#ifdef NSSDEBUG
-  if( (const NSSUTF8 *)NULL == s ) {
-    nss_SetError(NSS_ERROR_INVALID_POINTER);
-    if( (PRStatus *)NULL != statusOpt ) {
-      *statusOpt = PR_FAILURE;
-    }
-    return 0;
-  }
-#endif /* NSSDEBUG */
-
   sv = PL_strlen((const char *)s) + 1;
 #ifdef PEDANTIC
   if( '\0' != ((const char *)s)[ sv-1 ] ) {
@@ -365,13 +320,6 @@ nssUTF8_Length
 {
   PRUint32 l = 0;
   const PRUint8 *c = (const PRUint8 *)s;
-
-#ifdef NSSDEBUG
-  if( (const NSSUTF8 *)NULL == s ) {
-    nss_SetError(NSS_ERROR_INVALID_POINTER);
-    goto loser;
-  }
-#endif /* NSSDEBUG */
 
   /*
    * From RFC 2044:
@@ -465,7 +413,6 @@ nssUTF8_Length
  *  A non-null pointer to a new UTF8 string otherwise
  */
 
-extern const NSSError NSS_ERROR_INTERNAL_ERROR; /* XXX fgmr */
 
 NSS_IMPLEMENT NSSUTF8 *
 nssUTF8_Create
@@ -477,19 +424,6 @@ nssUTF8_Create
 )
 {
   NSSUTF8 *rv = NULL;
-
-#ifdef NSSDEBUG
-  if( (NSSArena *)NULL != arenaOpt ) {
-    if( PR_SUCCESS != nssArena_verifyPointer(arenaOpt) ) {
-      return (NSSUTF8 *)NULL;
-    }
-  }
-
-  if( (const void *)NULL == inputString ) {
-    nss_SetError(NSS_ERROR_INVALID_POINTER);
-    return (NSSUTF8 *)NULL;
-  }
-#endif /* NSSDEBUG */
 
   switch( type ) {
   case nssStringType_DirectoryString:
@@ -581,19 +515,6 @@ nssUTF8_GetEncoding
   NSSItem *rv = (NSSItem *)NULL;
   PRStatus status = PR_SUCCESS;
 
-#ifdef NSSDEBUG
-  if( (NSSArena *)NULL != arenaOpt ) {
-    if( PR_SUCCESS != nssArena_verifyPointer(arenaOpt) ) {
-      return (NSSItem *)NULL;
-    }
-  }
-
-  if( (NSSUTF8 *)NULL == string ) {
-    nss_SetError(NSS_ERROR_INVALID_POINTER);
-    return (NSSItem *)NULL;
-  }
-#endif /* NSSDEBUG */
-
   switch( type ) {
   case nssStringType_DirectoryString:
     nss_SetError(NSS_ERROR_INTERNAL_ERROR); /* unimplemented */
@@ -671,23 +592,6 @@ nssUTF8_CopyIntoFixedBuffer
 {
   PRUint32 stringSize = 0;
 
-#ifdef NSSDEBUG
-  if( (char *)NULL == buffer ) {
-    nss_SetError(NSS_ERROR_INVALID_POINTER);
-    return PR_FALSE;
-  }
-
-  if( 0 == bufferSize ) {
-    nss_SetError(NSS_ERROR_INVALID_ARGUMENT);
-    return PR_FALSE;
-  }
-
-  if( (pad & 0x80) != 0x00 ) {
-    nss_SetError(NSS_ERROR_INVALID_ARGUMENT);
-    return PR_FALSE;
-  }
-#endif /* NSSDEBUG */
-
   if( (NSSUTF8 *)NULL == string ) {
     string = (NSSUTF8 *) "";
   }
@@ -739,17 +643,6 @@ nssUTF8_Equal
 )
 {
   PRUint32 la, lb;
-
-#ifdef NSSDEBUG
-  if( ((const NSSUTF8 *)NULL == a) ||
-      ((const NSSUTF8 *)NULL == b) ) {
-    nss_SetError(NSS_ERROR_INVALID_POINTER);
-    if( (PRStatus *)NULL != statusOpt ) {
-      *statusOpt = PR_FAILURE;
-    }
-    return PR_FALSE;
-  }
-#endif /* NSSDEBUG */
 
   la = nssUTF8_Size(a, statusOpt);
   if( 0 == la ) {

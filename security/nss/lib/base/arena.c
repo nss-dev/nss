@@ -76,11 +76,6 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
  *  nss_ZFreeIf
  *  nss_ZRealloc
  *
- * In debug builds, the following calls are available:
- *
- *  nssArena_verifyPointer
- *  nssArena_registerDestructor
- *  nssArena_deregisterDestructor
  */
 
 struct NSSArenaStr {
@@ -116,106 +111,6 @@ struct nssArenaMarkStr {
 };
 
 #define MARK_MAGIC 0x4d41524b /* "MARK" how original */
-
-/*
- * But first, the pointer-tracking code
- */
-#ifdef DEBUG
-extern const NSSError NSS_ERROR_INTERNAL_ERROR;
-
-static nssPointerTracker arena_pointer_tracker;
-
-static PRStatus
-arena_add_pointer
-(
-  const NSSArena *arena
-)
-{
-  PRStatus rv;
-
-  rv = nssPointerTracker_initialize(&arena_pointer_tracker);
-  if( PR_SUCCESS != rv ) {
-    return rv;
-  }
-
-  rv = nssPointerTracker_add(&arena_pointer_tracker, arena);
-  if( PR_SUCCESS != rv ) {
-    NSSError e = NSS_GetError();
-    if( NSS_ERROR_NO_MEMORY != e ) {
-      nss_SetError(NSS_ERROR_INTERNAL_ERROR);
-    }
-
-    return rv;
-  }
-
-  return PR_SUCCESS;
-}
-
-static PRStatus
-arena_remove_pointer
-(
-  const NSSArena *arena
-)
-{
-  PRStatus rv;
-
-  rv = nssPointerTracker_remove(&arena_pointer_tracker, arena);
-  if( PR_SUCCESS != rv ) {
-    nss_SetError(NSS_ERROR_INTERNAL_ERROR);
-  }
-
-  return rv;
-}
-
-/*
- * nssArena_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSArena object,
- * this routine will return PR_SUCCESS.  Otherwise, it will put an
- * error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_ARENA
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_IMPLEMENT PRStatus
-nssArena_verifyPointer
-(
-  const NSSArena *arena
-)
-{
-  PRStatus rv;
-
-  rv = nssPointerTracker_initialize(&arena_pointer_tracker);
-  if( PR_SUCCESS != rv ) {
-    /*
-     * This is a little disingenious.  We have to initialize the
-     * tracker, because someone could "legitimately" try to verify
-     * an arena pointer before one is ever created.  And this step
-     * might fail, due to lack of memory.  But the only way that
-     * this step can fail is if it's doing the call_once stuff,
-     * (later calls just no-op).  And if it didn't no-op, there
-     * aren't any valid arenas.. so the argument certainly isn't one.
-     */
-    nss_SetError(NSS_ERROR_INVALID_ARENA);
-    return PR_FAILURE;
-  }
-
-  rv = nssPointerTracker_verify(&arena_pointer_tracker, arena);
-  if( PR_SUCCESS != rv ) {
-    nss_SetError(NSS_ERROR_INVALID_ARENA);
-    return PR_FAILURE;
-  }
-
-  return PR_SUCCESS;
-}
-#endif /* DEBUG */
 
 #ifdef ARENA_DESTRUCTOR_LIST
 
@@ -262,17 +157,6 @@ nssArena_registerDestructor
 {
   struct arena_destructor_node *it;
 
-#ifdef NSSDEBUG
-  if( PR_SUCCESS != nssArena_verifyPointer(arena) ) {
-    return PR_FAILURE;
-  }
-#endif /* NSSDEBUG */
-  
-  it = nss_ZNEW(arena, struct arena_destructor_node);
-  if( (struct arena_destructor_node *)NULL == it ) {
-    return PR_FAILURE;
-  }
-
   it->prev = arena->last_destructor;
   arena->last_destructor->next = it;
   arena->last_destructor = it;
@@ -296,12 +180,6 @@ nssArena_deregisterDestructor
 )
 {
   struct arena_destructor_node *it;
-
-#ifdef NSSDEBUG
-  if( PR_SUCCESS != nssArena_verifyPointer(arena) ) {
-    return PR_FAILURE;
-  }
-#endif /* NSSDEBUG */
 
   for( it = arena->first_destructor; it; it = it->next ) {
     if( (it->destructor == destructor) && (it->arg == arg) ) {
@@ -438,19 +316,6 @@ nssArena_Create
 
   PL_InitArenaPool(&rv->pool, "NSS", 2048, sizeof(double));
 
-#ifdef DEBUG
-  {
-    PRStatus st;
-    st = arena_add_pointer(rv);
-    if( PR_SUCCESS != st ) {
-      PL_FinishArenaPool(&rv->pool);
-      PR_DestroyLock(rv->lock);
-      (void)nss_ZFreeIf(rv);
-      return (NSSArena *)NULL;
-    }
-  }
-#endif /* DEBUG */
-
   return rv;
 }
 
@@ -477,12 +342,6 @@ NSSArena_Destroy
 )
 {
   nss_ClearErrorStack();
-
-#ifdef DEBUG
-  if( PR_SUCCESS != nssArena_verifyPointer(arena) ) {
-    return PR_FAILURE;
-  }
-#endif /* DEBUG */
 
   return nssArena_Destroy(arena);
 }
@@ -511,24 +370,12 @@ nssArena_Destroy
 {
   PRLock *lock;
 
-#ifdef NSSDEBUG
-  if( PR_SUCCESS != nssArena_verifyPointer(arena) ) {
-    return PR_FAILURE;
-  }
-#endif /* NSSDEBUG */
-
   PR_Lock(arena->lock);
   if( (PRLock *)NULL == arena->lock ) {
     /* Just got destroyed */
     nss_SetError(NSS_ERROR_INVALID_ARENA);
     return PR_FAILURE;
   }
-  
-#ifdef DEBUG
-  if( PR_SUCCESS != arena_remove_pointer(arena) ) {
-    return PR_FAILURE;
-  }
-#endif /* DEBUG */
 
 #ifdef ARENA_DESTRUCTOR_LIST
   /* Note that the arena is locked at this time */
@@ -575,12 +422,6 @@ nssArena_Mark
 {
   nssArenaMark *rv;
   void *p;
-
-#ifdef NSSDEBUG
-  if( PR_SUCCESS != nssArena_verifyPointer(arena) ) {
-    return (nssArenaMark *)NULL;
-  }
-#endif /* NSSDEBUG */
 
   PR_Lock(arena->lock);
   if( (PRLock *)NULL == arena->lock ) {
@@ -653,12 +494,6 @@ nss_arena_unmark_release
 )
 {
   void *inner_mark;
-
-#ifdef NSSDEBUG
-  if( PR_SUCCESS != nssArena_verifyPointer(arena) ) {
-    return PR_FAILURE;
-  }
-#endif /* NSSDEBUG */
 
   if( MARK_MAGIC != arenaMark->magic ) {
     nss_SetError(NSS_ERROR_INVALID_ARENA_MARK);
@@ -899,11 +734,6 @@ nss_ZAlloc
   } else {
     void *rv;
     /* Arena allocation */
-#ifdef NSSDEBUG
-    if( PR_SUCCESS != nssArena_verifyPointer(arenaOpt) ) {
-      return (void *)NULL;
-    }
-#endif /* NSSDEBUG */
 
     PR_Lock(arenaOpt->lock);
     if( (PRLock *)NULL == arenaOpt->lock ) {
@@ -972,16 +802,11 @@ nss_ZFreeIf
     return PR_SUCCESS;
   } else {
     /* Arena */
-#ifdef NSSDEBUG
-    if( PR_SUCCESS != nssArena_verifyPointer(h->arena) ) {
-      return PR_FAILURE;
-    }
-#endif /* NSSDEBUG */
 
     PR_Lock(h->arena->lock);
     if( (PRLock *)NULL == h->arena->lock ) {
       /* Just got destroyed.. so this pointer is invalid */
-      nss_SetError(NSS_ERROR_INVALID_POINTER);
+      nss_SetError(NSS_ERROR_INVALID_ARENA);
       return PR_FAILURE;
     }
 
@@ -1075,12 +900,6 @@ nss_ZRealloc
   } else {
     void *p;
     /* Arena */
-#ifdef NSSDEBUG
-    if( PR_SUCCESS != nssArena_verifyPointer(h->arena) ) {
-      return (void *)NULL;
-    }
-#endif /* NSSDEBUG */
-
     PR_Lock(h->arena->lock);
     if( (PRLock *)NULL == h->arena->lock ) {
       /* Just got destroyed.. so this pointer is invalid */

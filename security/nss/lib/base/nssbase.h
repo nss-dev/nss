@@ -49,6 +49,10 @@ static const char NSSBASE_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #include "nssbaset.h"
 #endif /* NSSBASET_H */
 
+#ifndef NSSERRORS_H
+#include "nsserrors.h"
+#endif /* NSSERRORS_H */
+
 PR_BEGIN_EXTERN_C
 
 /*
@@ -80,8 +84,6 @@ NSSArena_Create
   void
 );
 
-extern const NSSError NSS_ERROR_NO_MEMORY;
-
 /*
  * NSSArena_Destroy
  *
@@ -103,8 +105,6 @@ NSSArena_Destroy
 (
   NSSArena *arena
 );
-
-extern const NSSError NSS_ERROR_INVALID_ARENA;
 
 /*
  * The error stack
@@ -135,8 +135,6 @@ NSS_GetError
 (
   void
 );
-
-extern const NSSError NSS_ERROR_NO_ERROR;
 
 /*
  * NSS_GetErrorStack

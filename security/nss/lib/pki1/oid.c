@@ -75,7 +75,6 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
  *
  * In debug builds, the following non-public calls are also available:
  *
- *  nssOID_verifyPointer
  *  nssOID_getExplanation
  *  nssOID_getTaggedUTF8
  */
@@ -266,18 +265,6 @@ NSSOID_GetDEREncoding
 {
   nss_ClearErrorStack();
 
-#ifdef DEBUG
-  if( PR_SUCCESS != nssOID_verifyPointer(oid) ) {
-    return (NSSDER *)NULL;
-  }
-
-  if( (NSSArena *)NULL != arenaOpt ) {
-    if( PR_SUCCESS != nssArena_verifyPointer(arenaOpt) ) {
-      return (NSSDER *)NULL;
-    }
-  }
-#endif /* DEBUG */
-
   return nssOID_GetDEREncoding(oid, rvOpt, arenaOpt);
 }
 
@@ -309,18 +296,6 @@ NSSOID_GetUTF8Encoding
 )
 {
   nss_ClearErrorStack();
-
-#ifdef DEBUG
-  if( PR_SUCCESS != nssOID_verifyPointer(oid) ) {
-    return (NSSUTF8 *)NULL;
-  }
-
-  if( (NSSArena *)NULL != arenaOpt ) {
-    if( PR_SUCCESS != nssArena_verifyPointer(arenaOpt) ) {
-      return (NSSUTF8 *)NULL;
-    }
-  }
-#endif /* DEBUG */
 
   return nssOID_GetUTF8Encoding(oid, arenaOpt);
 }
@@ -404,67 +379,6 @@ oid_hash_compare
 }
 
 /*
- * The pointer-tracking code
- */
-
-#ifdef DEBUG
-extern const NSSError NSS_ERROR_INTERNAL_ERROR;
-
-static nssPointerTracker oid_pointer_tracker;
-
-static PRStatus
-oid_add_pointer
-(
-  const NSSOID *oid
-)
-{
-  PRStatus rv;
-
-  rv = nssPointerTracker_initialize(&oid_pointer_tracker);
-  if( PR_SUCCESS != rv ) {
-    return rv;
-  }
-
-  rv = nssPointerTracker_add(&oid_pointer_tracker, oid);
-  if( PR_SUCCESS != rv ) {
-    NSSError e = NSS_GetError();
-    if( NSS_ERROR_NO_MEMORY != e ) {
-      nss_SetError(NSS_ERROR_INTERNAL_ERROR);
-    }
-
-    return rv;
-  }
-
-  return PR_SUCCESS;
-}
-
-#if defined(CAN_DELETE_OIDS)
-/*
- * We actually don't define NSSOID deletion, since we keep OIDs
- * in a hash table for easy comparison.  Were we to, this is
- * what the pointer-removal function would look like.
- */
-
-static PRStatus
-oid_remove_pointer
-(
-  const NSSOID *oid
-)
-{
-  PRStatus rv;
-
-  rv = nssPointerTracker_remove(&oid_pointer_tracker, oid);
-  if( PR_SUCCESS != rv ) {
-    nss_SetError(NSS_ERROR_INTERNAL_ERROR);
-  }
-
-  return rv;
-}
-#endif /* CAN_DELETE_OIDS */
-
-#endif /* DEBUG */
-
-/*
  * All dynamically-added OIDs get their memory from one statically-
  * declared arena here, merely so that any cleanup code will have
  * an easier time of it.
@@ -517,12 +431,6 @@ oid_once_func
       nss_SetError(NSS_ERROR_NO_MEMORY);
       goto loser;
     }
-
-#ifdef DEBUG
-    if( PR_SUCCESS != oid_add_pointer(oid) ) {
-      goto loser;
-    }
-#endif /* DEBUG */
   }
 
   return PR_SUCCESS;
@@ -565,54 +473,6 @@ oid_init
 {
   return PR_CallOnce(&oid_call_once, oid_once_func);
 }
-
-#ifdef DEBUG
-
-/*
- * nssOID_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSOID object, 
- * this routine will return PR_SUCCESS.  Otherwise, it will put an 
- * error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_NSSOID
- *  NSS_ERROR_NO_MEMORY
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssOID_verifyPointer
-(
-  const NSSOID *oid
-)
-{
-  PRStatus rv;
-
-  rv = oid_init();
-  if( PR_SUCCESS != rv ) {
-    return PR_FAILURE;
-  }
-
-  rv = nssPointerTracker_initialize(&oid_pointer_tracker);
-  if( PR_SUCCESS != rv ) {
-    return PR_FAILURE;
-  }
-
-  rv = nssPointerTracker_verify(&oid_pointer_tracker, oid);
-  if( PR_SUCCESS != rv ) {
-    nss_SetError(NSS_ERROR_INVALID_NSSOID);
-    return PR_FAILURE;
-  }
-
-  return PR_SUCCESS;
-}
-#endif /* DEBUG */
 
 /*
  * oid_sanity_check_ber
@@ -766,21 +626,6 @@ nssOID_CreateFromBER
     nss_SetError(NSS_ERROR_NO_MEMORY);
     return (NSSOID *)NULL;
   }
-
-#ifdef DEBUG
-  {
-    PRStatus st;
-    st = oid_add_pointer(rv);
-    if( PR_SUCCESS != st ) {
-      PZ_Lock(oid_hash_lock);
-      (void)PL_HashTableRemove(oid_hash_table, &rv->data);
-      (void)PZ_Unlock(oid_hash_lock);
-      (void)nss_ZFreeIf(rv->data.data);
-      (void)nss_ZFreeIf(rv);
-      return (NSSOID *)NULL;
-    }
-  }
-#endif /* DEBUG */
 
   return rv;
 }
@@ -1024,7 +869,6 @@ oid_encode_huge
  * one.  It assumes we've already sanity-checked the string.
  */
 
-extern const NSSError NSS_ERROR_INTERNAL_ERROR;
 
 static NSSOID *
 oid_encode_string
@@ -1236,19 +1080,6 @@ nssOID_CreateFromUTF8
     goto loser;
   }
 
-#ifdef DEBUG
-  {
-    PRStatus st;
-    st = oid_add_pointer(rv);
-    if( PR_SUCCESS != st ) {
-      PZ_Lock(oid_hash_lock);
-      (void)PL_HashTableRemove(oid_hash_table, &rv->data);
-      (void)PZ_Unlock(oid_hash_lock);
-      goto loser;
-    }
-  }
-#endif /* DEBUG */
-
   return rv;
 
  loser:
@@ -1297,18 +1128,6 @@ nssOID_GetDEREncoding
   if( PR_SUCCESS != oid_init() ) {
     return (NSSDER *)NULL;
   }
-
-#ifdef NSSDEBUG
-  if( PR_SUCCESS != nssOID_verifyPointer(oid) ) {
-    return (NSSDER *)NULL;
-  }
-
-  if( (NSSArena *)NULL != arenaOpt ) {
-    if( PR_SUCCESS != nssArena_verifyPointer(arenaOpt) ) {
-      return (NSSDER *)NULL;
-    }
-  }
-#endif /* NSSDEBUG */
 
   it = &oid->data;
 
@@ -1373,18 +1192,6 @@ nssOID_GetUTF8Encoding
   if( PR_SUCCESS != oid_init() ) {
     return (NSSUTF8 *)NULL;
   }
-
-#ifdef NSSDEBUG
-  if( PR_SUCCESS != nssOID_verifyPointer(oid) ) {
-    return (NSSUTF8 *)NULL;
-  }
-
-  if( (NSSArena *)NULL != arenaOpt ) {
-    if( PR_SUCCESS != nssArena_verifyPointer(arenaOpt) ) {
-      return (NSSUTF8 *)NULL;
-    }
-  }
-#endif /* NSSDEBUG */
 
   a = (char *)NULL;
 
@@ -1524,16 +1331,9 @@ nssOID_getExplanation
     return (const NSSUTF8 *)NULL;
   }
 
-#ifdef NSSDEBUG
-  if( PR_SUCCESS != nssOID_verifyPointer(oid) ) {
-    return (NSSUTF8 *)NULL;
-  }
-#endif /* NSSDEBUG */
-
   return oid->expl;
 }
 
-extern const NSSError NSS_ERROR_INVALID_NSSOID;
 #endif /* DEBUG */
 
 /*
@@ -1581,18 +1381,6 @@ nssOID_getTaggedUTF8
   if( PR_SUCCESS != oid_init() ) {
     return (NSSUTF8 *)NULL;
   }
-
-#ifdef NSSDEBUG
-  if( PR_SUCCESS != nssOID_verifyPointer(oid) ) {
-    return (NSSUTF8 *)NULL;
-  }
-
-  if( (NSSArena *)NULL != arenaOpt ) {
-    if( PR_SUCCESS != nssArena_verifyPointer(arenaOpt) ) {
-      return (NSSUTF8 *)NULL;
-    }
-  }
-#endif /* NSSDEBUG */
 
   a = PR_smprintf("{");
   if( (char *)NULL == a ) {
@@ -1681,6 +1469,4 @@ nssOID_getTaggedUTF8
   return rv;
 }
 
-extern const NSSError NSS_ERROR_INVALID_NSSOID;
-extern const NSSError NSS_ERROR_NO_MEMORY;
 #endif /* DEBUG */

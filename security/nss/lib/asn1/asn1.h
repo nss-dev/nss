@@ -111,9 +111,6 @@ nssASN1Decoder_Create
   const nssASN1Template template[]
 );
 
-extern const NSSError NSS_ERROR_NO_MEMORY;
-extern const NSSError NSS_ERROR_INVALID_ARENA;
-extern const NSSError NSS_ERROR_INVALID_POINTER;
 
 /*
  * nssASN1Decoder_Update
@@ -141,9 +138,6 @@ nssASN1Decoder_Update
   PRUint32 amount
 );
 
-extern const NSSError NSS_ERROR_NO_MEMORY;
-extern const NSSError NSS_ERROR_INVALID_ASN1DECODER;
-extern const NSSError NSS_ERROR_INVALID_BER;
 
 /*
  * nssASN1Decoder_Finish
@@ -166,7 +160,6 @@ nssASN1Decoder_Finish
   nssASN1Decoder *decoder
 );
 
-extern const NSSError NSS_ERROR_INVALID_ASN1DECODER;
 
 /*
  * nssASN1Decoder_SetFilter
@@ -198,7 +191,6 @@ nssASN1Decoder_SetFilter
   PRBool noStore
 );
 
-extern const NSSError NSS_ERROR_INVALID_ASN1DECODER;
 
 /*
  * nssASN1Decoder_GetFilter
@@ -231,7 +223,6 @@ nssASN1Decoder_GetFilter
   PRBool *pNoStoreOpt
 );
 
-extern const NSSError NSS_ERROR_INVALID_ASN1DECODER;
 
 /*
  * nssASN1Decoder_SetNotify
@@ -259,7 +250,6 @@ nssASN1Decoder_SetNotify
   void *argument
 );
 
-extern const NSSError NSS_ERROR_INVALID_ASN1DECODER;
 
 /*
  * nssASN1Decoder_GetNotify
@@ -288,7 +278,6 @@ nssASN1Decoder_GetNotify
   void **pArgumentOpt
 );
 
-extern const NSSError NSS_ERROR_INVALID_ASN1DECODER;
 
 /*
  * nssASN1Decoder_verify
@@ -314,7 +303,6 @@ nssASN1Decoder_verify
   nssASN1Decoder *decoder
 );
 
-extern const NSSError NSS_ERROR_INVALID_ASN1DECODER;
 #endif /* DEBUG */
 
 /*
@@ -346,10 +334,6 @@ nssASN1_Decode
   PRUint32 amount
 );
 
-extern const NSSError NSS_ERROR_NO_MEMORY;
-extern const NSSError NSS_ERROR_INVALID_ARENA;
-extern const NSSError NSS_ERROR_INVALID_POINTER;
-extern const NSSError NSS_ERROR_INVALID_BER;
 
 /*
  * nssASN1_DecodeBER
@@ -380,10 +364,6 @@ nssASN1_DecodeBER
   const NSSBER *data
 );
 
-extern const NSSError NSS_ERROR_NO_MEMORY;
-extern const NSSError NSS_ERROR_INVALID_ARENA;
-extern const NSSError NSS_ERROR_INVALID_POINTER;
-extern const NSSError NSS_ERROR_INVALID_BER;
 
 /*
  * nssASN1Encoder
@@ -439,10 +419,6 @@ nssASN1Encoder_Create
   void *argument
 );
 
-extern const NSSError NSS_ERROR_NO_MEMORY;
-extern const NSSError NSS_ERROR_INVALID_ARENA;
-extern const NSSError NSS_ERROR_INVALID_POINTER;
-extern const NSSError NSS_ERROR_ENCODING_NOT_SUPPORTED;
 
 /*
  * nssASN1Encoder_Update
@@ -464,8 +440,6 @@ nssASN1Encoder_Update
   PRUint32 length
 );
 
-extern const NSSError NSS_ERROR_INVALID_ASN1ENCODER;
-extern const NSSError NSS_ERROR_INVALID_POINTER;
 
 /*
  * nssASN1Encoder_Finish
@@ -486,7 +460,6 @@ nssASN1Encoder_Finish
   nssASN1Encoder *encoder
 );
 
-extern const NSSError NSS_ERROR_INVALID_ASN1ENCODER;
 
 /*
  * nssASN1Encoder_SetNotify
@@ -514,7 +487,6 @@ nssASN1Encoder_SetNotify
   void *argument
 );
 
-extern const NSSError NSS_ERROR_INVALID_ASN1ENCODER;
 
 /*
  * nssASN1Encoder_GetNotify
@@ -543,7 +515,6 @@ nssASN1Encoder_GetNotify
   void **pArgumentOpt
 );
 
-extern const NSSError NSS_ERROR_INVALID_ASN1ENCODER;
 
 /*
  * nssASN1Encoder_SetStreaming
@@ -564,7 +535,6 @@ nssASN1Encoder_SetStreaming
   PRBool streaming
 );
 
-extern const NSSError NSS_ERROR_INVALID_ASN1ENCODER;
 
 /*
  * nssASN1Encoder_GetStreaming
@@ -586,8 +556,6 @@ nssASN1Encoder_GetStreaming
   PRBool *pStreaming
 );
 
-extern const NSSError NSS_ERROR_INVALID_ASN1ENCODER;
-extern const NSSError NSS_ERROR_INVALID_POINTER;
 
 /*
  * nssASN1Encoder_SetTakeFromBuffer
@@ -608,7 +576,6 @@ nssASN1Encoder_SetTakeFromBuffer
   PRBool takeFromBuffer
 );
 
-extern const NSSError NSS_ERROR_INVALID_ASN1ENCODER;
 
 /*
  * nssASN1Encoder_GetTakeFromBuffer
@@ -630,8 +597,6 @@ nssASN1Encoder_GetTakeFromBuffer
   PRBool *pTakeFromBuffer
 );
 
-extern const NSSError NSS_ERROR_INVALID_ASN1ENCODER;
-extern const NSSError NSS_ERROR_INVALID_POINTER;
 
 /*
  * nssASN1Encoder_verify
@@ -657,7 +622,6 @@ nssASN1Encoder_verify
   nssASN1Encoder *encoder
 );
 
-extern const NSSError NSS_ERROR_INVALID_ASN1ENCODER;
 #endif /* DEBUG */
 
 /*
@@ -686,10 +650,6 @@ nssASN1_Encode
   void *argument
 );
 
-extern const NSSError NSS_ERROR_NO_MEMORY;
-extern const NSSError NSS_ERROR_INVALID_ARENA;
-extern const NSSError NSS_ERROR_INVALID_POINTER;
-extern const NSSError NSS_ERROR_ENCODING_NOT_SUPPORTED;
 
 /*
  * nssASN1_EncodeItem
@@ -720,10 +680,6 @@ nssASN1_EncodeItem
   NSSASN1EncodingType encoding
 );
 
-extern const NSSError NSS_ERROR_NO_MEMORY;
-extern const NSSError NSS_ERROR_INVALID_ARENA;
-extern const NSSError NSS_ERROR_INVALID_POINTER;
-extern const NSSError NSS_ERROR_ENCODING_NOT_SUPPORTED;
 
 /*
  * Other basic types' encoding and decoding helper functions:

@@ -47,7 +47,6 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #include "pkim.h"
 #endif /* PKIM_H */
 
-extern const NSSError NSS_ERROR_NOT_FOUND;
 
 #ifdef nodef
 typedef union 

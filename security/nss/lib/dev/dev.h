@@ -326,8 +326,6 @@ nssSlot_Login
   NSSSlot *slot,
   NSSCallback *pwcb
 );
-extern const NSSError NSS_ERROR_INVALID_PASSWORD;
-extern const NSSError NSS_ERROR_USER_CANCELED;
 
 NSS_EXTERN PRStatus
 nssSlot_Logout
@@ -867,9 +865,6 @@ nssToken_SignRecover
   NSSArena *arenaOpt
 );
 
-extern const NSSError NSS_ERROR_INVALID_SIGNATURE;
-extern const NSSError NSS_ERROR_INVALID_DATA;
-extern const NSSError NSS_ERROR_TOKEN_FAILURE;
 
 NSS_EXTERN PRStatus
 nssToken_Verify

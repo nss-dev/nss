@@ -115,8 +115,6 @@ NSSOID_CreateFromBER
   NSSBER *berOid
 );
 
-extern const NSSError NSS_ERROR_INVALID_BER;
-extern const NSSError NSS_ERROR_NO_MEMORY;
 
 /*
  * NSSOID_CreateFromUTF8
@@ -141,8 +139,6 @@ NSSOID_CreateFromUTF8
   NSSUTF8 *stringOid
 );
 
-extern const NSSError NSS_ERROR_INVALID_STRING;
-extern const NSSError NSS_ERROR_NO_MEMORY;
 
 /*
  * NSSOID_GetDEREncoding
@@ -170,8 +166,6 @@ NSSOID_GetDEREncoding
   NSSArena *arenaOpt
 );
 
-extern const NSSError NSS_ERROR_INVALID_NSSOID;
-extern const NSSError NSS_ERROR_NO_MEMORY;
 
 /*
  * NSSOID_GetUTF8Encoding
@@ -200,8 +194,6 @@ NSSOID_GetUTF8Encoding
   NSSArena *arenaOpt
 );
 
-extern const NSSError NSS_ERROR_INVALID_NSSOID;
-extern const NSSError NSS_ERROR_NO_MEMORY;
 
 /*
  * NSSOID_GetAlgorithmAndParameters
@@ -259,8 +251,6 @@ NSSATAV_CreateFromBER
   NSSBER *derATAV
 );
 
-extern const NSSError NSS_ERROR_INVALID_BER;
-extern const NSSError NSS_ERROR_NO_MEMORY;
 
 /*
  * NSSATAV_CreateFromUTF8
@@ -289,9 +279,6 @@ NSSATAV_CreateFromUTF8
   NSSUTF8 *stringATAV
 );
 
-extern const NSSError NSS_ERROR_UNKNOWN_ATTRIBUTE;
-extern const NSSError NSS_ERROR_INVALID_STRING;
-extern const NSSError NSS_ERROR_NO_MEMORY;
 
 /*
  * NSSATAV_Create
@@ -324,10 +311,6 @@ NSSATAV_Create
   PRUint32 length
 );
 
-extern const NSSError NSS_ERROR_INVALID_ARENA;
-extern const NSSError NSS_ERROR_INVALID_NSSOID;
-extern const NSSError NSS_ERROR_INVALID_POINTER;
-extern const NSSError NSS_ERROR_NO_MEMORY;
 
 /*
  * NSSATAV_Destroy
@@ -353,7 +336,6 @@ NSSATAV_Destroy
   NSSATAV *atav
 );
 
-extern const NSSError NSS_ERROR_INVALID_ATAV;
 
 /*
  * NSSATAV_GetDEREncoding
@@ -380,8 +362,6 @@ NSSATAV_GetDEREncoding
   NSSArena *arenaOpt
 );
 
-extern const NSSError NSS_ERROR_INVALID_ATAV;
-extern const NSSError NSS_ERROR_NO_MEMORY;
 
 /*
  * NSSATAV_GetUTF8Encoding
@@ -410,8 +390,6 @@ NSSATAV_GetUTF8Encoding
   NSSArena *arenaOpt
 );
 
-extern const NSSError NSS_ERROR_INVALID_ATAV;
-extern const NSSError NSS_ERROR_NO_MEMORY;
 
 /*
  * NSSATAV_GetType
@@ -434,7 +412,6 @@ NSSATAV_GetType
   NSSATAV *atav
 );
 
-extern const NSSError NSS_ERROR_INVALID_ATAV;
 
 /*
  * NSSATAV_GetValue
@@ -461,8 +438,6 @@ NSSATAV_GetValue
   NSSArena *arenaOpt
 );
 
-extern const NSSError NSS_ERROR_INVALID_ATAV;
-extern const NSSError NSS_ERROR_NO_MEMORY;
 
 /*
  * NSSATAV_Compare
@@ -492,8 +467,6 @@ NSSATAV_Compare
   PRBool *equalp
 );
 
-extern const NSSError NSS_ERROR_INVALID_ATAV;
-extern const NSSError NSS_ERROR_INVALID_ARGUMENT;
 
 /*
  * NSSATAV_Duplicate
@@ -520,8 +493,6 @@ NSSATAV_Duplicate
   NSSArena *arenaOpt
 );
 
-extern const NSSError NSS_ERROR_INVALID_ATAV;
-extern const NSSError NSS_ERROR_NO_MEMORY;
 
 /*
  * NSSRDN

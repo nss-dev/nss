@@ -68,7 +68,6 @@ struct NSSCryptoContextStr
   NSSCertificate *cert;
 };
 
-extern const NSSError NSS_ERROR_NOT_FOUND;
 
 NSS_IMPLEMENT NSSCryptoContext *
 nssCryptoContext_Create

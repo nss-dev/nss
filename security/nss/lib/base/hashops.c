@@ -54,14 +54,6 @@ nss_arena_hash_alloc_table
 {
   NSSArena *arena = (NSSArena *)NULL;
 
-#ifdef NSSDEBUG
-  if( (void *)NULL != arena ) {
-    if( PR_SUCCESS != nssArena_verifyPointer(arena) ) {
-      return (void *)NULL;
-    }
-  }
-#endif /* NSSDEBUG */
-
   return nss_ZAlloc(arena, size);
 }
 
@@ -83,14 +75,6 @@ nss_arena_hash_alloc_entry
 )
 {
   NSSArena *arena = NULL;
-
-#ifdef NSSDEBUG
-  if( (void *)NULL != arena ) {
-    if( PR_SUCCESS != nssArena_verifyPointer(arena) ) {
-      return (void *)NULL;
-    }
-  }
-#endif /* NSSDEBUG */
 
   return nss_ZNEW(arena, PLHashEntry);
 }

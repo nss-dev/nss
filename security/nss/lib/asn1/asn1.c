@@ -50,180 +50,6 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #include "secasn1.h"
 
 /*
- * The pointer-tracking stuff
- */
-
-#ifdef DEBUG
-extern const NSSError NSS_ERROR_INTERNAL_ERROR;
-
-static nssPointerTracker decoder_pointer_tracker;
-
-static PRStatus
-decoder_add_pointer
-(
-  const nssASN1Decoder *decoder
-)
-{
-  PRStatus rv;
-
-  rv = nssPointerTracker_initialize(&decoder_pointer_tracker);
-  if( PR_SUCCESS != rv ) {
-    return rv;
-  }
-
-  rv = nssPointerTracker_add(&decoder_pointer_tracker, decoder);
-  if( PR_SUCCESS != rv ) {
-    NSSError e = NSS_GetError();
-    if( NSS_ERROR_NO_MEMORY != e ) {
-      nss_SetError(NSS_ERROR_INTERNAL_ERROR);
-    }
-
-    return rv;
-  }
-
-  return PR_SUCCESS;
-}
-
-static PRStatus
-decoder_remove_pointer
-(
-  const nssASN1Decoder *decoder
-)
-{
-  PRStatus rv;
-
-  rv = nssPointerTracker_remove(&decoder_pointer_tracker, decoder);
-  if( PR_SUCCESS != rv ) {
-    nss_SetError(NSS_ERROR_INTERNAL_ERROR);
-  }
-
-  return rv;
-}
-
-/*
- * nssASN1Decoder_verify
- *
- * This routine is only available in debug builds.
- *
- * If the specified pointer is a valid pointer to an nssASN1Decoder
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_ASN1DECODER
- *
- * Return value:
- *  PR_FAILURE upon error
- *  PR_SUCCESS upon success
- */
-
-NSS_IMPLEMENT PRStatus
-nssASN1Decoder_verify
-(
-  nssASN1Decoder *decoder
-)
-{
-  PRStatus rv;
-
-  rv = nssPointerTracker_initialize(&decoder_pointer_tracker);
-  if( PR_SUCCESS != rv ) {
-    return PR_FAILURE;
-  }
-
-  rv = nssPointerTracker_verify(&decoder_pointer_tracker, decoder);
-  if( PR_SUCCESS != rv ) {
-    nss_SetError(NSS_ERROR_INVALID_ASN1DECODER);
-    return PR_FAILURE;
-  }
-
-  return PR_SUCCESS;
-}
-
-static nssPointerTracker encoder_pointer_tracker;
-
-static PRStatus
-encoder_add_pointer
-(
-  const nssASN1Encoder *encoder
-)
-{
-  PRStatus rv;
-
-  rv = nssPointerTracker_initialize(&encoder_pointer_tracker);
-  if( PR_SUCCESS != rv ) {
-    return rv;
-  }
-
-  rv = nssPointerTracker_add(&encoder_pointer_tracker, encoder);
-  if( PR_SUCCESS != rv ) {
-    NSSError e = NSS_GetError();
-    if( NSS_ERROR_NO_MEMORY != e ) {
-      nss_SetError(NSS_ERROR_INTERNAL_ERROR);
-    }
-
-    return rv;
-  }
-
-  return PR_SUCCESS;
-}
-
-static PRStatus
-encoder_remove_pointer
-(
-  const nssASN1Encoder *encoder
-)
-{
-  PRStatus rv;
-
-  rv = nssPointerTracker_remove(&encoder_pointer_tracker, encoder);
-  if( PR_SUCCESS != rv ) {
-    nss_SetError(NSS_ERROR_INTERNAL_ERROR);
-  }
-
-  return rv;
-}
-
-/*
- * nssASN1Encoder_verify
- *
- * This routine is only available in debug builds.
- *
- * If the specified pointer is a valid pointer to an nssASN1Encoder
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_ASN1ENCODER
- *
- * Return value:
- *  PR_FAILURE upon error
- *  PR_SUCCESS upon success
- */
-
-NSS_IMPLEMENT PRStatus
-nssASN1Encoder_verify
-(
-  nssASN1Encoder *encoder
-)
-{
-  PRStatus rv;
-
-  rv = nssPointerTracker_initialize(&encoder_pointer_tracker);
-  if( PR_SUCCESS != rv ) {
-    return PR_FAILURE;
-  }
-
-  rv = nssPointerTracker_verify(&encoder_pointer_tracker, encoder);
-  if( PR_SUCCESS != rv ) {
-    nss_SetError(NSS_ERROR_INVALID_ASN1ENCODER);
-    return PR_FAILURE;
-  }
-
-  return PR_SUCCESS;
-}
-#endif /* DEBUG */
-
-/*
  * nssASN1Decoder_Create
  *
  * This routine creates an ASN.1 Decoder, which will use the specified
@@ -255,24 +81,6 @@ nssASN1Decoder_Create
 {
   SEC_ASN1DecoderContext *rv;
 
-#ifdef DEBUG
-  if( (NSSArena *)NULL != arenaOpt ) {
-    if( PR_SUCCESS != nssArena_verifyPointer(arenaOpt) ) {
-      return (nssASN1Decoder *)NULL;
-    }
-  }
-
-  /* 
-   * May destination be NULL?  I'd think so, since one might
-   * have only a filter proc.  But if not, check the pointer here.
-   */
-
-  if( (nssASN1Template *)NULL == template ) {
-    nss_SetError(NSS_ERROR_INVALID_POINTER);
-    return (nssASN1Decoder *)NULL;
-  }
-#endif /* DEBUG */
-
   rv = SEC_ASN1DecoderStart(arenaOpt, destination, template);
   if( (SEC_ASN1DecoderContext *)NULL == rv ) {
 #if 0
@@ -280,13 +88,6 @@ nssASN1Decoder_Create
 #endif
     return (nssASN1Decoder *)NULL;
   }
-
-#ifdef DEBUG
-  if( PR_SUCCESS != decoder_add_pointer(rv) ) {
-    (void)SEC_ASN1DecoderFinish(rv);
-    return (nssASN1Decoder *)NULL;
-  }
-#endif /* DEBUG */
 
   return (nssASN1Decoder *)rv;
 }
@@ -318,17 +119,6 @@ nssASN1Decoder_Update
 )
 {
   SECStatus rv;
-
-#ifdef DEBUG
-  if( PR_SUCCESS != nssASN1Decoder_verify(decoder) ) {
-    return PR_FAILURE;
-  }
-
-  if( (void *)NULL == data ) {
-    nss_SetError(NSS_ERROR_INVALID_POINTER);
-    return PR_FAILURE;
-  }
-#endif /* DEBUG */
 
   rv = SEC_ASN1DecoderUpdate((SEC_ASN1DecoderContext *)decoder, 
                              (const char *)data,
@@ -367,12 +157,6 @@ nssASN1Decoder_Finish
   PRStatus rv = PR_SUCCESS;
   SECStatus srv;
 
-#ifdef DEBUG
-  if( PR_SUCCESS != nssASN1Decoder_verify(decoder) ) {
-    return PR_FAILURE;
-  }
-#endif /* DEBUG */
-
   srv = SEC_ASN1DecoderFinish((SEC_ASN1DecoderContext *)decoder);
 
   if( SECSuccess != srv ) {
@@ -381,15 +165,6 @@ nssASN1Decoder_Finish
 #endif
     rv = PR_FAILURE;
   }
-
-#ifdef DEBUG
-  {
-    PRStatus rv2 = decoder_remove_pointer(decoder);
-    if( PR_SUCCESS == rv ) {
-      rv = rv2;
-    }
-  }
-#endif /* DEBUG */
 
   return rv;
 }
@@ -424,11 +199,6 @@ nssASN1Decoder_SetFilter
   PRBool noStore
 )
 {
-#ifdef DEBUG
-  if( PR_SUCCESS != nssASN1Decoder_verify(decoder) ) {
-    return PR_FAILURE;
-  }
-#endif /* DEBUG */
 
   if( (nssASN1DecoderFilterFunction *)NULL == callback ) {
      SEC_ASN1DecoderClearFilterProc((SEC_ASN1DecoderContext *)decoder);
@@ -465,7 +235,6 @@ nssASN1Decoder_SetFilter
  *  PR_SUCCESS upon success
  */
 
-extern const NSSError NSS_ERROR_INTERNAL_ERROR;
 
 NSS_IMPLEMENT PRStatus
 nssASN1Decoder_GetFilter
@@ -476,12 +245,6 @@ nssASN1Decoder_GetFilter
   PRBool *pNoStoreOpt
 )
 {
-#ifdef DEBUG
-  if( PR_SUCCESS != nssASN1Decoder_verify(decoder) ) {
-    return PR_FAILURE;
-  }
-#endif /* DEBUG */
-
   if( (nssASN1DecoderFilterFunction **)NULL != pCallbackOpt ) {
     *pCallbackOpt = (nssASN1DecoderFilterFunction *)NULL;
   }
@@ -525,12 +288,6 @@ nssASN1Decoder_SetNotify
   void *argument
 )
 {
-#ifdef DEBUG
-  if( PR_SUCCESS != nssASN1Decoder_verify(decoder) ) {
-    return PR_FAILURE;
-  }
-#endif /* DEBUG */
-
   if( (nssASN1NotifyFunction *)NULL == callback ) {
     SEC_ASN1DecoderClearNotifyProc((SEC_ASN1DecoderContext *)decoder);
   } else {
@@ -571,12 +328,6 @@ nssASN1Decoder_GetNotify
   void **pArgumentOpt
 )
 {
-#ifdef DEBUG
-  if( PR_SUCCESS != nssASN1Decoder_verify(decoder) ) {
-    return PR_FAILURE;
-  }
-#endif /* DEBUG */
-
   if( (nssASN1NotifyFunction **)NULL != pCallbackOpt ) {
     *pCallbackOpt = (nssASN1NotifyFunction *)NULL;
   }
@@ -699,23 +450,6 @@ nssASN1Encoder_Create
 {
   SEC_ASN1EncoderContext *rv;
 
-#ifdef DEBUG
-  if( (void *)NULL == source ) {
-    nss_SetError(NSS_ERROR_INVALID_POINTER);
-    return (nssASN1Encoder *)NULL;
-  }
-
-  if( (nssASN1Template *)NULL == template ) {
-    nss_SetError(NSS_ERROR_INVALID_POINTER);
-    return (nssASN1Encoder *)NULL;
-  }
-
-  if( (nssASN1EncoderWriteFunction *)NULL == sink ) {
-    nss_SetError(NSS_ERROR_INVALID_POINTER);
-    return (nssASN1Encoder *)NULL;
-  }
-#endif /* DEBUG */
-
 #ifdef nodef
   switch( encoding ) {
   case NSSASN1BER:
@@ -745,13 +479,6 @@ nssASN1Encoder_Create
     sec_ASN1EncoderSetDER(rv);
   }
 
-#ifdef DEBUG
-  if( PR_SUCCESS != encoder_add_pointer(rv) ) {
-    (void)SEC_ASN1EncoderFinish(rv);
-    return (nssASN1Encoder *)NULL;
-  }
-#endif /* DEBUG */
-
   return (nssASN1Encoder *)rv;
 #endif /* nodef */
   return NULL;
@@ -778,16 +505,6 @@ nssASN1Encoder_Update
 )
 {
   SECStatus rv;
-
-#ifdef DEBUG
-  if( PR_SUCCESS != nssASN1Encoder_verify(encoder) ) {
-    return PR_FAILURE;
-  }
-
-  /*
-   * Can data legitimately be NULL?  If not, verify..
-   */
-#endif /* DEBUG */
 
   rv = SEC_ASN1EncoderUpdate((SEC_ASN1EncoderContext *)encoder,
                              (const char *)data, 
@@ -823,23 +540,8 @@ nssASN1Encoder_Finish
 {
   PRStatus rv;
 
-#ifdef DEBUG
-  if( PR_SUCCESS != nssASN1Encoder_verify(encoder) ) {
-    return PR_FAILURE;
-  }
-#endif /* DEBUG */
-
   SEC_ASN1EncoderFinish((SEC_ASN1EncoderContext *)encoder);
   rv = PR_SUCCESS; /* no error return defined for that call */
-
-#ifdef DEBUG
-  {
-    PRStatus rv2 = encoder_remove_pointer(encoder);
-    if( PR_SUCCESS == rv ) {
-      rv = rv2;
-    }
-  }
-#endif /* DEBUG */
 
   return rv;
 }
@@ -870,12 +572,6 @@ nssASN1Encoder_SetNotify
   void *argument
 )
 {
-#ifdef DEBUG
-  if( PR_SUCCESS != nssASN1Encoder_verify(encoder) ) {
-    return PR_FAILURE;
-  }
-#endif /* DEBUG */
-
   if( (nssASN1NotifyFunction *)NULL == callback ) {
     SEC_ASN1EncoderClearNotifyProc((SEC_ASN1EncoderContext *)encoder);
   } else {
@@ -916,12 +612,6 @@ nssASN1Encoder_GetNotify
   void **pArgumentOpt
 )
 {
-#ifdef DEBUG
-  if( PR_SUCCESS != nssASN1Encoder_verify(encoder) ) {
-    return PR_FAILURE;
-  }
-#endif /* DEBUG */
-
   if( (nssASN1NotifyFunction **)NULL != pCallbackOpt ) {
     *pCallbackOpt = (nssASN1NotifyFunction *)NULL;
   }
@@ -956,12 +646,6 @@ nssASN1Encoder_SetStreaming
 {
   SEC_ASN1EncoderContext *cx = (SEC_ASN1EncoderContext *)encoder;
 
-#ifdef DEBUG
-  if( PR_SUCCESS != nssASN1Encoder_verify(encoder) ) {
-    return PR_FAILURE;
-  }
-#endif /* DEBUG */
-
   if( streaming ) {
     SEC_ASN1EncoderSetStreaming(cx);
   } else {
@@ -993,12 +677,6 @@ nssASN1Encoder_GetStreaming
   PRBool *pStreaming
 )
 {
-#ifdef DEBUG
-  if( PR_SUCCESS != nssASN1Encoder_verify(encoder) ) {
-    return PR_FAILURE;
-  }
-#endif /* DEBUG */
-
   if( (PRBool *)NULL != pStreaming ) {
     *pStreaming = PR_FALSE;
   }
@@ -1028,12 +706,6 @@ nssASN1Encoder_SetTakeFromBuffer
 )
 {
   SEC_ASN1EncoderContext *cx = (SEC_ASN1EncoderContext *)encoder;
-
-#ifdef DEBUG
-  if( PR_SUCCESS != nssASN1Encoder_verify(encoder) ) {
-    return PR_FAILURE;
-  }
-#endif /* DEBUG */
 
   if( takeFromBuffer ) {
     SEC_ASN1EncoderSetTakeFromBuf(cx);
@@ -1066,12 +738,6 @@ nssASN1Encoder_GetTakeFromBuffer
   PRBool *pTakeFromBuffer
 )
 {
-#ifdef DEBUG
-  if( PR_SUCCESS != nssASN1Encoder_verify(encoder) ) {
-    return PR_FAILURE;
-  }
-#endif /* DEBUG */
-
   if( (PRBool *)NULL != pTakeFromBuffer ) {
     *pTakeFromBuffer = PR_FALSE;
   }
@@ -1207,24 +873,6 @@ nssASN1_EncodeItem
   PRUint32 len = 0;
   PRStatus status;
 
-#ifdef DEBUG
-  if( (NSSArena *)NULL != arenaOpt ) {
-    if( PR_SUCCESS != nssArena_verifyPointer(arenaOpt) ) {
-      return (NSSDER *)NULL;
-    }
-  }
-
-  if( (void *)NULL == source ) {
-    nss_SetError(NSS_ERROR_INVALID_POINTER);
-    return (NSSDER *)NULL;
-  }
-
-  if( (nssASN1Template *)NULL == template ) {
-    nss_SetError(NSS_ERROR_INVALID_POINTER);
-    return (NSSDER *)NULL;
-  }
-#endif /* DEBUG */
-
   status = nssASN1_Encode(source, template, encoding, 
                           (nssASN1EncoderWriteFunction *)nssasn1_encode_item_count, 
                           &len);
@@ -1300,14 +948,6 @@ nssASN1_GetDERFromPRUint32
   NSSDER *rv;
   NSSItem *item;
 
-#ifdef DEBUG
-  if( (NSSArena *)NULL != arenaOpt ) {
-    if( PR_SUCCESS != nssArena_verifyPointer(arenaOpt) ) {
-      return (NSSDER *)NULL;
-    }
-  }
-#endif /* DEBUG */
-
   if( (NSSDER *)NULL == rvOpt ) {
     rv = nss_ZNEW(arenaOpt, NSSDER);
     if( (NSSDER *)NULL == rv ) {
@@ -1363,14 +1003,6 @@ nssASN1_GetDERFromPRInt32
 {
   NSSDER *rv;
   NSSItem *item;
-
-#ifdef DEBUG
-  if( (NSSArena *)NULL != arenaOpt ) {
-    if( PR_SUCCESS != nssArena_verifyPointer(arenaOpt) ) {
-      return (NSSDER *)NULL;
-    }
-  }
-#endif /* DEBUG */
 
   if( (NSSDER *)NULL == rvOpt ) {
     rv = nss_ZNEW(arenaOpt, NSSDER);
@@ -1488,24 +1120,6 @@ nssUTF8_CreateFromBER
   NSSItem out;
   PRStatus st;
   const nssASN1Template *templ;
-
-#ifdef NSSDEBUG
-  if( (NSSArena *)NULL != arenaOpt ) {
-    if( PR_SUCCESS != nssArena_verifyPointer(arenaOpt) ) {
-      return (NSSUTF8 *)NULL;
-    }
-  }
-
-  if( (NSSBER *)NULL == berData ) {
-    nss_SetError(NSS_ERROR_INVALID_POINTER);
-    return (NSSUTF8 *)NULL;
-  }
-
-  if( (void *)NULL == berData->data ) {
-    nss_SetError(NSS_ERROR_INVALID_POINTER);
-    return (NSSUTF8 *)NULL;
-  }
-#endif /* NSSDEBUG */
 
   a = NSSArena_Create();
   if( (NSSArena *)NULL == a ) {
@@ -1638,19 +1252,6 @@ nssUTF8_GetDEREncoding
   NSSDER *der;
   const nssASN1Template *templ;
   NSSArena *a;
-
-#ifdef NSSDEBUG
-  if( (NSSArena *)NULL != arenaOpt ) {
-    if( PR_SUCCESS != nssArena_verifyPointer(arenaOpt) ) {
-      return (NSSDER *)NULL;
-    }
-  }
-
-  if( (const NSSUTF8 *)NULL == string ) {
-    nss_SetError(NSS_ERROR_INVALID_POINTER);
-    return (NSSDER *)NULL;
-  }
-#endif /* NSSDEBUG */
 
   str.data = (void *)string;
   str.size = nssUTF8_Size(string, (PRStatus *)NULL);

@@ -73,7 +73,6 @@ extern const PRUint32 nss_attribute_type_alias_count;
  *
  * In debug builds, the following non-public calls are also available:
  *
- *  nssOID_verifyPointer
  *  nssOID_getExplanation
  *  nssOID_getTaggedUTF8
  */
@@ -106,8 +105,6 @@ nssOID_CreateFromBER
   NSSBER *berOid
 );
 
-extern const NSSError NSS_ERROR_INVALID_BER;
-extern const NSSError NSS_ERROR_NO_MEMORY;
 
 /*
  * nssOID_CreateFromUTF8
@@ -133,8 +130,6 @@ nssOID_CreateFromUTF8
   NSSUTF8 *stringOid
 );
 
-extern const NSSError NSS_ERROR_INVALID_UTF8;
-extern const NSSError NSS_ERROR_NO_MEMORY;
 
 /*
  * nssOID_GetDEREncoding
@@ -190,33 +185,6 @@ nssOID_GetUTF8Encoding
 );
 
 /*
- * nssOID_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid poitner to an NSSOID object, 
- * this routine will return PR_SUCCESS.  Otherwise, it will put an 
- * error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_NSSOID
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-#ifdef DEBUG
-NSS_EXTERN PRStatus
-nssOID_verifyPointer
-(
-  const NSSOID *oid
-);
-
-extern const NSSError NSS_ERROR_INVALID_NSSOID;
-#endif /* DEBUG */
-
-/*
  * nssOID_getExplanation
  *
  * This method is only present in debug builds.
@@ -247,7 +215,6 @@ nssOID_getExplanation
   NSSOID *oid
 );
 
-extern const NSSError NSS_ERROR_INVALID_NSSOID;
 #endif /* DEBUG */
 
 /*
@@ -284,8 +251,6 @@ nssOID_getTaggedUTF8
   NSSArena *arenaOpt
 );
 
-extern const NSSError NSS_ERROR_INVALID_NSSOID;
-extern const NSSError NSS_ERROR_NO_MEMORY;
 #endif /* DEBUG */
 
 /*
@@ -307,7 +272,6 @@ extern const NSSError NSS_ERROR_NO_MEMORY;
  *
  * In debug builds, the following non-public call is also available:
  *
- *  nssATAV_verifyPointer
  */
 
 /*
@@ -572,8 +536,6 @@ nssATAV_Duplicate
 );
 
 /*
- * nssATAV_verifyPointer
- *
  * This method is only present in debug builds.
  *
  * If the specified pointer is a valid pointer to an NSSATAV object,
@@ -588,14 +550,6 @@ nssATAV_Duplicate
  *  PR_SUCCESS if the pointer is valid
  *  PR_FAILURE if it isn't
  */
-
-#ifdef DEBUG
-NSS_EXTERN PRStatus
-nssATAV_verifyPointer
-(
-  NSSATAV *atav
-);
-#endif /* DEBUG */
 
 /*
  * NSSRDN

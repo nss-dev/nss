@@ -39,9 +39,10 @@ PRIVATE_EXPORTS = \
 	base.h		  \
 	$(NULL)
 
-EXPORTS =	   \
-	nssbaset.h \
-	nssbase.h  \
+EXPORTS =	     \
+	nssbaset.h   \
+	nssbase.h    \
+	nsserrors.h  \
 	$(NULL)
 
 MODULE = security
@@ -49,10 +50,8 @@ MODULE = security
 CSRCS =		   \
 	arena.c	   \
 	error.c	   \
-	errorval.c \
 	hashops.c  \
 	libc.c	   \
-	tracker.c  \
 	item.c     \
 	utf8.c	   \
 	hash.c     \

@@ -102,9 +102,6 @@ NSSASN1Decoder_Create
   const NSSASN1Template template[]
 );
 
-extern const NSSError NSS_ERROR_NO_MEMORY;
-extern const NSSError NSS_ERROR_INVALID_ARENA;
-extern const NSSError NSS_ERROR_INVALID_POINTER;
 
 /*
  * NSSASN1Decoder_Update
@@ -132,9 +129,6 @@ NSSASN1Decoder_Update
   PRUint32 amount
 );
 
-extern const NSSError NSS_ERROR_NO_MEMORY;
-extern const NSSError NSS_ERROR_INVALID_ASN1DECODER;
-extern const NSSError NSS_ERROR_INVALID_BER;
 
 /*
  * NSSASN1Decoder_Finish
@@ -157,7 +151,6 @@ NSSASN1Decoder_Finish
   NSSASN1Decoder *decoder
 );
 
-extern const NSSError NSS_ERROR_INVALID_ASN1DECODER;
 
 /*
  * NSSASN1Decoder_SetFilter
@@ -189,7 +182,6 @@ NSSASN1Decoder_SetFilter
   PRBool noStore
 );
 
-extern const NSSError NSS_ERROR_INVALID_ASN1DECODER;
 
 /*
  * NSSASN1Decoder_GetFilter
@@ -222,7 +214,6 @@ NSSASN1Decoder_GetFilter
   PRBool *pNoStoreOpt
 );
 
-extern const NSSError NSS_ERROR_INVALID_ASN1DECODER;
 
 /*
  * NSSASN1Decoder_SetNotify
@@ -250,7 +241,6 @@ NSSASN1Decoder_SetNotify
   void *argument
 );
 
-extern const NSSError NSS_ERROR_INVALID_ASN1DECODER;
 
 /*
  * NSSASN1Decoder_GetNotify
@@ -279,7 +269,6 @@ NSSASN1Decoder_GetNotify
   void **pArgumentOpt
 );
 
-extern const NSSError NSS_ERROR_INVALID_ASN1DECODER;
 
 /*
  * NSSASN1_Decode
@@ -310,10 +299,6 @@ NSSASN1_Decode
   PRUint32 amount
 );
 
-extern const NSSError NSS_ERROR_NO_MEMORY;
-extern const NSSError NSS_ERROR_INVALID_ARENA;
-extern const NSSError NSS_ERROR_INVALID_POINTER;
-extern const NSSError NSS_ERROR_INVALID_BER;
 
 /*
  * NSSASN1_DecodeBER
@@ -344,10 +329,6 @@ NSSASN1_DecodeBER
   const NSSBER *data
 );
 
-extern const NSSError NSS_ERROR_NO_MEMORY;
-extern const NSSError NSS_ERROR_INVALID_ARENA;
-extern const NSSError NSS_ERROR_INVALID_POINTER;
-extern const NSSError NSS_ERROR_INVALID_BER;
 
 /*
  * NSSASN1Encoder
@@ -403,10 +384,6 @@ NSSASN1Encoder_Create
   void *argument
 );
 
-extern const NSSError NSS_ERROR_NO_MEMORY;
-extern const NSSError NSS_ERROR_INVALID_ARENA;
-extern const NSSError NSS_ERROR_INVALID_POINTER;
-extern const NSSError NSS_ERROR_ENCODING_NOT_SUPPORTED;
 
 /*
  * NSSASN1Encoder_Update
@@ -428,8 +405,6 @@ NSSASN1Encoder_Update
   PRUint32 length
 );
 
-extern const NSSError NSS_ERROR_INVALID_ASN1ENCODER;
-extern const NSSError NSS_ERROR_INVALID_POINTER;
 
 /*
  * NSSASN1Encoder_Finish
@@ -450,7 +425,6 @@ NSSASN1Encoder_Finish
   NSSASN1Encoder *encoder
 );
 
-extern const NSSError NSS_ERROR_INVALID_ASN1ENCODER;
 
 /*
  * NSSASN1Encoder_SetNotify
@@ -478,7 +452,6 @@ NSSASN1Encoder_SetNotify
   void *argument
 );
 
-extern const NSSError NSS_ERROR_INVALID_ASN1ENCODER;
 
 /*
  * NSSASN1Encoder_GetNotify
@@ -507,7 +480,6 @@ NSSASN1Encoder_GetNotify
   void **pArgumentOpt
 );
 
-extern const NSSError NSS_ERROR_INVALID_ASN1ENCODER;
 
 /*
  * NSSASN1Encoder_SetStreaming
@@ -528,7 +500,6 @@ NSSASN1Encoder_SetStreaming
   PRBool streaming
 );
 
-extern const NSSError NSS_ERROR_INVALID_ASN1ENCODER;
 
 /*
  * NSSASN1Encoder_GetStreaming
@@ -550,8 +521,6 @@ NSSASN1Encoder_GetStreaming
   PRBool *pStreaming
 );
 
-extern const NSSError NSS_ERROR_INVALID_ASN1ENCODER;
-extern const NSSError NSS_ERROR_INVALID_POINTER;
 
 /*
  * NSSASN1Encoder_SetTakeFromBuffer
@@ -572,7 +541,6 @@ NSSASN1Encoder_SetTakeFromBuffer
   PRBool takeFromBuffer
 );
 
-extern const NSSError NSS_ERROR_INVALID_ASN1ENCODER;
 
 /*
  * NSSASN1Encoder_GetTakeFromBuffer
@@ -594,8 +562,6 @@ NSSASN1Encoder_GetTakeFromBuffer
   PRBool *pTakeFromBuffer
 );
 
-extern const NSSError NSS_ERROR_INVALID_ASN1ENCODER;
-extern const NSSError NSS_ERROR_INVALID_POINTER;
 
 /*
  * NSSASN1_Encode
@@ -623,10 +589,6 @@ NSSASN1_Encode
   void *argument
 );
 
-extern const NSSError NSS_ERROR_NO_MEMORY;
-extern const NSSError NSS_ERROR_INVALID_ARENA;
-extern const NSSError NSS_ERROR_INVALID_POINTER;
-extern const NSSError NSS_ERROR_ENCODING_NOT_SUPPORTED;
 
 /*
  * NSSASN1_EncodeItem
@@ -657,10 +619,6 @@ NSSASN1_EncodeItem
   NSSASN1EncodingType encoding
 );
 
-extern const NSSError NSS_ERROR_NO_MEMORY;
-extern const NSSError NSS_ERROR_INVALID_ARENA;
-extern const NSSError NSS_ERROR_INVALID_POINTER;
-extern const NSSError NSS_ERROR_ENCODING_NOT_SUPPORTED;
 
 #if 0
 /*

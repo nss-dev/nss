@@ -102,8 +102,6 @@ extern const nssASN1Template nssPKIXExtensions_template[];
  *  nssPKIXAttribute_Duplicate
  *
  * In debug builds, the following call is available:
- *
- *  nssPKIXAttribute_verifyPointer
  */
 
 /*
@@ -554,31 +552,6 @@ nssPKIXAttribute_Duplicate
   NSSArena *arenaOpt
 );
 
-#ifdef DEBUG
-/*
- * nssPKIXAttribute_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXAttribute
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_ATTRIBUTE
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXAttribute_verifyPointer
-(
-  NSSPKIXAttribute *p
-);
-#endif /* DEBUG */
-
 /*
  * AttributeTypeAndValue
  *
@@ -610,9 +583,6 @@ nssPKIXAttribute_verifyPointer
  *  nssPKIXATAV_Equal
  *  nssPKIXATAV_Duplicate
  *
- * In debug builds, the following call is available:
- *
- *  nssPKIXATAV_verifyPointer
  */
 
 /*
@@ -879,31 +849,6 @@ nssPKIXATAV_Duplicate
   NSSArena *arenaOpt
 );
 
-#ifdef DEBUG
-/*
- * nssPKIXATAV_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXATAV
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_ATTRIBUTE_TYPE_AND_VALUE
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXATAV_verifyPointer
-(
-  NSSPKIXATAV *p
-);
-#endif /* DEBUG */
-
 /*
  * X520Name
  *
@@ -932,9 +877,6 @@ nssPKIXATAV_verifyPointer
  *  nssPKIXX520Name_Equal
  *  nssPKIXX520Name_Duplicate
  *
- * In debug builds, the following call is available:
- *
- *  nssPKIXX520Name_verifyPointer
  */
 
 /*
@@ -1111,33 +1053,6 @@ nssPKIXX520Name_Duplicate
   NSSArena *arenaOpt
 );
 
-#ifdef DEBUG
-
-/*
- * nssPKIXX520Name_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXX520Name
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_X520_NAME
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXX520Name_verifyPointer
-(
-  NSSPKIXX520Name *p
-);
-
-#endif /* DEBUG */
-
 /*
  * X520CommonName
  *
@@ -1167,9 +1082,6 @@ nssPKIXX520Name_verifyPointer
  *  nssPKIXX520CommonName_Equal
  *  nssPKIXX520CommonName_Duplicate
  *
- * In debug builds, the following call is available:
- *
- *  nssPKIXX520CommonName_verifyPointer
  */
 
 /*
@@ -1345,33 +1257,6 @@ nssPKIXX520CommonName_Duplicate
   NSSPKIXX520CommonName *name,
   NSSArena *arenaOpt
 );
-
-#ifdef DEBUG
-
-/*
- * nssPKIXX520CommonName_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXX520CommonName
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_X520_NAME
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXX520CommonName_verifyPointer
-(
-  NSSPKIXX520CommonName *p
-);
-
-#endif /* DEBUG */
 
 /*
  * X520LocalityName
@@ -2104,10 +1989,6 @@ nssPKIXPkcs9email_Encode
  *
  *  (here is where I had specific attribute value gettors in pki1)
  * 
- * In debug builds, the following call is available:
- *
- *  nssPKIXName_verifyPointer
- *
  */
 
 extern const nssASN1Template nssPKIXName_template[];
@@ -2406,10 +2287,6 @@ nssPKIXName_Duplicate
  *  nssPKIXRDNSequence_Equal
  *  nssPKIXRDNSequence_Duplicate
  * 
- * In debug builds, the following call is available:
- *
- *  nssPKIXRDNSequence_verifyPointer
- *
  */
 
 extern const nssASN1Template nssPKIXRDNSequence_template[];
@@ -2899,10 +2776,6 @@ nssPKIXRDNSequence_Duplicate
  * contain multiple ATAVs with the same type.  Verify in the RFC if
  * this is possible or not.  If not, nuke those three functions.
  *
- * In debug builds, the following call is available:
- *
- *  nssPKIXRDN_verifyPointer
- *
  */
 
 extern const nssASN1Template nssPKIXRDN_template[];
@@ -3290,31 +3163,6 @@ nssPKIXRDN_Duplicate
   NSSArena *arenaOpt
 );
 
-#ifdef DEBUG
-/*
- * nssPKIXRDN_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXRDN
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_RELATIVE_DISTINGUISHED_NAME
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXRDN_verifyPointer
-(
-  NSSPKIXRDN *p
-);
-#endif /* DEBUG */
-
 /*
  * DirectoryString
  *
@@ -3433,10 +3281,6 @@ nssPKIXDirectoryString_Encode
  *
  *  { inherit TBSCertificate gettors? }
  * 
- * In debug builds, the following call is available:
- *
- *  nssPKIXCertificate_verifyPointer
- *
  */
 #endif
 
@@ -3770,9 +3614,6 @@ extern const nssASN1Template nssPKIXTBSCertificate_template[];
  *  nssPKIXTBSCertificate_Equal
  *  nssPKIXTBSCertificate_Duplicate
  * 
- * In debug builds, the following call is available:
- *
- *  nssPKIXTBSCertificate_verifyPointer
  */
 
 /*
@@ -4504,31 +4345,6 @@ nssPKIXTBSCertificate_Duplicate
   NSSArena *arenaOpt
 );
 
-#ifdef DEBUG
-/*
- * nssPKIXTBSCertificate_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXTBSCertificate
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_TBS_CERTIFICATE
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXTBSCertificate_verifyPointer
-(
-  NSSPKIXTBSCertificate *p
-);
-#endif /* DEBUG */
-
 /*
  * CertificateSerialNumber
  *
@@ -5003,10 +4819,6 @@ nssPKIXTime_Compare
  *  nssPKIXSubjectPublicKeyInfo_Equal
  *  nssPKIXSubjectPublicKeyInfo_Duplicate
  * 
- * In debug builds, the following call is available:
- *
- *  nssPKIXSubjectPublicKeyInfo_verifyPointer
- *
  */
 
 /*
@@ -5227,31 +5039,6 @@ nssPKIXSubjectPublicKeyInfo_Duplicate
   NSSArena *arenaOpt
 );
 
-#ifdef DEBUG
-/*
- * nssPKIXSubjectPublicKeyInfo_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXSubjectPublicKeyInfo
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_SUBJECT_PUBLIC_KEY_INFO
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXSubjectPublicKeyInfo_verifyPointer
-(
-  NSSPKIXSubjectPublicKeyInfo *p
-);
-#endif /* DEBUG */
-
 /*
  * Extensions
  *
@@ -5308,10 +5095,6 @@ nssPKIXSubjectPublicKeyInfo_verifyPointer
  *  nssPKIXCertificateList_Equal
  *  nssPKIXCertificateList_Duplicate
  * 
- * In debug builds, the following call is available:
- *
- *  nssPKIXCertificateList_verifyPointer
- *
  */
 
 /*
@@ -5582,31 +5365,6 @@ nssPKIXCertificateList_Duplicate
   NSSArena *arenaOpt
 );
 
-#ifdef DEBUG
-/*
- * nssPKIXCertificateList_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXCertificateList
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_CERTIFICATE_LIST
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXCertificateList_verifyPointer
-(
-  NSSPKIXCertificateList *p
-);
-#endif /* DEBUG */
-
 /*
  * TBSCertList
  *
@@ -5657,10 +5415,6 @@ nssPKIXCertificateList_verifyPointer
  *  nssPKIXTBSCertList_Equal
  *  nssPKIXTBSCertList_Duplicate
  * 
- * In debug builds, the following call is available:
- *
- *  nssPKIXTBSCertList_verifyPointer
- *
  */
 
 /*
@@ -6187,31 +5941,6 @@ nssPKIXTBSCertList_Duplicate
   NSSArena *arenaOpt
 );
 
-#ifdef DEBUG
-/*
- * nssPKIXTBSCertList_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXTBSCertList
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_TBS_CERT_LIST
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXTBSCertList_verifyPointer
-(
-  NSSPKIXTBSCertList *p
-);
-#endif /* DEBUG */
-
 /*
  * revokedCertificates
  *
@@ -6241,10 +5970,6 @@ nssPKIXTBSCertList_verifyPointer
  *  nssPKIXrevokedCertificates_Equal
  *  nssPKIXrevokedCertificates_Duplicate
  * 
- * In debug builds, the following call is available:
- *
- *  nssPKIXrevokedCertificates_verifyPointer
- *
  */
 
 /*
@@ -6585,31 +6310,6 @@ nssPKIXrevokedCertificates_Duplicate
   NSSArena *arenaOpt
 );
 
-#ifdef DEBUG
-/*
- * nssPKIXrevokedCertificates_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXrevokedCertificates
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_REVOKED_CERTIFICATES
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXrevokedCertificates_verifyPointer
-(
-  NSSPKIXrevokedCertificates *p
-);
-#endif /* DEBUG */
-
 /*
  * revokedCertificate
  *
@@ -6639,10 +6339,6 @@ nssPKIXrevokedCertificates_verifyPointer
  *  nssPKIXrevokedCertificate_Equal
  *  nssPKIXrevokedCertificate_Duplicate
  * 
- * In debug builds, the following call is available:
- *
- *  nssPKIXrevokedCertificate_verifyPointer
- *
  */
 
 
@@ -6953,31 +6649,6 @@ nssPKIXrevokedCertificate_Duplicate
   NSSArena *arenaOpt
 );
 
-#ifdef DEBUG
-/*
- * nssPKIXrevokedCertificate_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXrevokedCertificate
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_REVOKED_CERTIFICATE
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXrevokedCertificate_verifyPointer
-(
-  NSSPKIXrevokedCertificate *p
-);
-#endif /* DEBUG */
-
 /*
  * AlgorithmIdentifier
  *
@@ -7008,10 +6679,6 @@ nssPKIXrevokedCertificate_verifyPointer
  *  nssPKIXAlgorithmIdentifier_Duplicate
  *    { algorithm-specific parameter types and accessors ? }
  * 
- * In debug builds, the following call is available:
- *
- *  nssPKIXAlgorithmIdentifier_verifyPointer
- *
  */
 
 /*
@@ -7237,31 +6904,6 @@ nssPKIXAlgorithmIdentifier_Duplicate
  *   { algorithm-specific parameter types and accessors ? }
  */
 
-#ifdef DEBUG
-/*
- * nssPKIXAlgorithmIdentifier_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXAlgorithmIdentifier
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_ALGORITHM_IDENTIFIER
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXAlgorithmIdentifier_verifyPointer
-(
-  NSSPKIXAlgorithmIdentifier *p
-);
-#endif /* DEBUG */
-
 /*
  * ORAddress
  *
@@ -7299,10 +6941,6 @@ nssPKIXAlgorithmIdentifier_verifyPointer
  *  nssPKIXORAddress_Equal
  *  nssPKIXORAddress_Duplicate
  * 
- * In debug builds, the following call is available:
- *
- *  nssPKIXORAddress_verifyPointer
- *
  */
 
 /*
@@ -7657,31 +7295,6 @@ nssPKIXORAddress_Duplicate
   NSSArena *arenaOpt
 );
 
-#ifdef DEBUG
-/*
- * nssPKIXORAddress_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXORAddress
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_OR_ADDRESS
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXORAddress_verifyPointer
-(
-  NSSPKIXORAddress *p
-);
-#endif /* DEBUG */
-
 /*
  * BuiltInStandardAttributes
  *
@@ -7749,10 +7362,6 @@ nssPKIXORAddress_verifyPointer
  *  nssPKIXBuiltInStandardAttributes_Equal
  *  nssPKIXBuiltInStandardAttributes_Duplicate
  * 
- * In debug builds, the following call is available:
- *
- *  nssPKIXBuiltInStandardAttributes_verifyPointer
- *
  */
 
 /*
@@ -8667,31 +8276,6 @@ nssPKIXBuiltInStandardAttributes_Duplicate
   NSSArena *arenaOpt
 );
 
-#ifdef DEBUG
-/*
- * nssPKIXBuiltInStandardAttributes_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXBuiltInStandardAttributes
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_BUILT_IN_STANDARD_ATTRIBUTES
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXBuiltInStandardAttributes_verifyPointer
-(
-  NSSPKIXBuiltInStandardAttributes *p
-);
-#endif /* DEBUG */
-
 /*
  * CountryName
  *
@@ -9408,10 +8992,6 @@ nssPKIXNumericUserIdentifier_Encode
  *  nssPKIXPersonalName_Equal
  *  nssPKIXPersonalName_Duplicate
  * 
- * In debug builds, the following call is available:
- *
- *  nssPKIXPersonalName_verifyPointer
- *
  */
 
 /*
@@ -9836,31 +9416,6 @@ nssPKIXPersonalName_Duplicate
   NSSArena *arenaOpt
 );
 
-#ifdef DEBUG
-/*
- * nssPKIXPersonalName_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXPersonalName
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_PERSONAL_NAME
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXPersonalName_verifyPointer
-(
-  NSSPKIXPersonalName *p
-);
-#endif /* DEBUG */
-
 /*
  * OrganizationalUnitNames
  *
@@ -9889,10 +9444,6 @@ nssPKIXPersonalName_verifyPointer
  *  nssPKIXOrganizationalUnitNames_Equal
  *  nssPKIXOrganizationalUnitNames_Duplicate
  * 
- * In debug builds, the following call is available:
- *
- *  nssPKIXOrganizationalUnitNames_verifyPointer
- *
  */
 
 /*
@@ -10232,31 +9783,6 @@ nssPKIXOrganizationalUnitNames_Duplicate
   NSSArena *arenaOpt
 );
 
-#ifdef DEBUG
-/*
- * nssPKIXOrganizationalUnitNames_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXOrganizationalUnitNames
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_ORGANIZATIONAL_UNIT_NAMES
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXOrganizationalUnitNames_verifyPointer
-(
-  NSSPKIXOrganizationalUnitNames *p
-);
-#endif /* DEBUG */
-
 /*
  * OrganizationalUnitName
  *
@@ -10370,10 +9896,6 @@ nssPKIXOrganizationalUnitName_Encode
  *  nssPKIXBuiltInDomainDefinedAttributes_Equal
  *  nssPKIXBuiltInDomainDefinedAttributes_Duplicate
  * 
- * In debug builds, the following call is available:
- *
- *  nssPKIXBuiltInDomainDefinedAttributes_verifyPointer
- *
  */
 
 /*
@@ -10717,31 +10239,6 @@ nssPKIXBuiltInDomainDefinedAttributes_Duplicate
   NSSArena *arenaOpt
 );
 
-#ifdef DEBUG
-/*
- * nssPKIXBuiltInDomainDefinedAttributes_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXBuiltInDomainDefinedAttributes
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_BUILT_IN_DOMAIN_DEFINED_ATTRIBUTES
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXBuiltInDomainDefinedAttributes_verifyPointer
-(
-  NSSPKIXBuiltInDomainDefinedAttributes *p
-);
-#endif /* DEBUG */
-
 /*
  * BuiltInDomainDefinedAttribute
  *
@@ -10768,10 +10265,6 @@ nssPKIXBuiltInDomainDefinedAttributes_verifyPointer
  *  nssPKIXBuiltInDomainDefinedAttribute_Equal
  *  nssPKIXBuiltInDomainDefinedAttribute_Duplicate
  * 
- * In debug builds, the following call is available:
- *
- *  nssPKIXBuiltInDomainDefinedAttribute_verifyPointer
- *
  */
 
 /*
@@ -10995,31 +10488,6 @@ nssPKIXBuiltInDomainDefinedAttribute_Duplicate
   NSSArena *arenaOpt
 );
 
-#ifdef DEBUG
-/*
- * nssPKIXBuiltInDomainDefinedAttribute_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXBuiltInDomainDefinedAttribute
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_BUILT_IN_DOMAIN_DEFINED_ATTRIBUTE
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXBuiltInDomainDefinedAttribute_verifyPointer
-(
-  NSSPKIXBuiltInDomainDefinedAttribute *p
-);
-#endif /* DEBUG */
-
 /*
  * ExtensionAttributes
  *
@@ -11048,10 +10516,6 @@ nssPKIXBuiltInDomainDefinedAttribute_verifyPointer
  *  nssPKIXExtensionAttributes_Equal
  *  nssPKIXExtensionAttributes_Duplicate
  * 
- * In debug builds, the following call is available:
- *
- *  nssPKIXExtensionAttributes_verifyPointer
- *
  */
 
 /*
@@ -11393,31 +10857,6 @@ nssPKIXExtensionAttributes_Duplicate
  * return the value for a specific value, etc.
  */
 
-#ifdef DEBUG
-/*
- * nssPKIXExtensionAttributes_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXExtensionAttributes
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_EXTENSION_ATTRIBUTES
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXExtensionAttributes_verifyPointer
-(
-  NSSPKIXExtensionAttributes *p
-);
-#endif /* DEBUG */
-
 /*
  * ExtensionAttribute
  *
@@ -11443,10 +10882,6 @@ nssPKIXExtensionAttributes_verifyPointer
  *  nssPKIXExtensionAttribute_Equal
  *  nssPKIXExtensionAttribute_Duplicate
  * 
- * In debug builds, the following call is available:
- *
- *  nssPKIXExtensionAttribute_verifyPointer
- *
  */
 
 /*
@@ -11668,31 +11103,6 @@ nssPKIXExtensionAttribute_Duplicate
   NSSPKIXExtensionAttribute *ea,
   NSSArena *arenaOpt
 );
-
-#ifdef DEBUG
-/*
- * nssPKIXExtensionAttribute_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXExtensionAttribute
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_EXTENSION_ATTRIBUTE
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXExtensionAttribute_verifyPointer
-(
-  NSSPKIXExtensionAttribute *p
-);
-#endif /* DEBUG */
 
 /*
  * CommonName
@@ -11985,10 +11395,6 @@ nssPKIXTeletexOrganizationName_Encode
  *  nssPKIXTeletexPersonalName_Equal
  *  nssPKIXTeletexPersonalName_Duplicate
  * 
- * In debug builds, the following call is available:
- *
- *  nssPKIXTeletexPersonalName_verifyPointer
- *
  */
 
 /*
@@ -12411,31 +11817,6 @@ nssPKIXTeletexPersonalName_Duplicate
   NSSArena *arenaOpt
 );
 
-#ifdef DEBUG
-/*
- * nssPKIXTeletexPersonalName_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXTeletexPersonalName
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_TELETEX_PERSONAL_NAME
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXTeletexPersonalName_verifyPointer
-(
-  NSSPKIXTeletexPersonalName *p
-);
-#endif /* DEBUG */
-
 /*
  * TeletexOrganizationalUnitNames
  *
@@ -12464,10 +11845,6 @@ nssPKIXTeletexPersonalName_verifyPointer
  *  nssPKIXTeletexOrganizationalUnitNames_Equal
  *  nssPKIXTeletexOrganizationalUnitNames_Duplicate
  * 
- * In debug builds, the following call is available:
- *
- *  nssPKIXTeletexOrganizationalUnitNames_verifyPointer
- *
  */
 
 /*
@@ -12806,31 +12183,6 @@ nssPKIXTeletexOrganizationalUnitNames_Duplicate
   NSSPKIXTeletexOrganizationalUnitNames *ous,
   NSSArena *arenaOpt
 );
-
-#ifdef DEBUG
-/*
- * nssPKIXTeletexOrganizationalUnitNames_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXTeletexOrganizationalUnitNames
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_TELETEX_ORGANIZATIONAL_UNIT_NAME
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXTeletexOrganizationalUnitNames_verifyPointer
-(
-  NSSPKIXTeletexOrganizationalUnitNames *p
-);
-#endif /* DEBUG */
 
 /*
  * TeletexOrganizationalUnitName
@@ -13205,10 +12557,6 @@ nssPKIXPostalCode_Encode
  *  nssPKIXPDSParameter_RemoveTeletexString
  *  nssPKIXPDSParameter_Equal
  *  nssPKIXPDSParameter_Duplicate
- * 
- * In debug builds, the following call is available:
- *
- *  nssPKIXPDSParameter_verifyPointer
  */
 
 /*
@@ -13555,31 +12903,6 @@ nssPKIXPDSParameter_Duplicate
   NSSArena *arenaOpt
 );
 
-#ifdef DEBUG
-/*
- * nssPKIXPDSParameter_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXPDSParameter
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_PDS_PARAMETER
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXPDSParameter_verifyPointer
-(
-  NSSPKIXPDSParameter *p
-);
-#endif /* DEBUG */
-
 /*
  * fgmr: what about these PDS types?
  *
@@ -13655,10 +12978,6 @@ nssPKIXPDSParameter_verifyPointer
  *  nssPKIXExtendedNetworkAddress_Equal
  *  nssPKIXExtendedNetworkAddress_Duplicate
  * 
- * In debug builds, the following call is available:
- *
- *  nssPKIXExtendedNetworkAddress_verifyPointer
- *
  */
 
 /*
@@ -13996,31 +13315,6 @@ nssPKIXExtendedNetworkAddress_Duplicate
   NSSArena *arenaOpt
 );
 
-#ifdef DEBUG
-/*
- * nssPKIXExtendedNetworkAddress_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXExtendedNetworkAddress
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_EXTENDED_NETWORK_ADDRESS
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXExtendedNetworkAddress_verifyPointer
-(
-  NSSPKIXExtendedNetworkAddress *p
-);
-#endif /* DEBUG */
-
 /*
  * e163-4-address
  *
@@ -14048,11 +13342,6 @@ nssPKIXExtendedNetworkAddress_verifyPointer
  *  nssPKIXe1634Address_RemoveSubAddress
  *  nssPKIXe1634Address_Equal
  *  nssPKIXe1634Address_Duplicate
- * 
- * In debug builds, the following call is available:
- *
- *  nssPKIXe1634Address_verifyPointer
- *
  */
 
 /*
@@ -14315,31 +13604,6 @@ nssPKIXe1634Address_Duplicate
   NSSArena *arenaOpt
 );
 
-#ifdef DEBUG
-/*
- * nssPKIXe1634Address_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXe1634Address
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_E163_4_ADDRESS
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXe1634Address_verifyPointer
-(
-  NSSPKIXe1634Address *p
-);
-#endif /* DEBUG */
-
 /*
  * PresentationAddress
  *
@@ -14378,11 +13642,6 @@ nssPKIXe1634Address_verifyPointer
  *{NAddresses must be more complex than that}
  *  nssPKIXPresentationAddress_Compare
  *  nssPKIXPresentationAddress_Duplicate
- * 
- * In debug builds, the following call is available:
- *
- *  _verifyPointer
- *
  */
 
 /*
@@ -14412,11 +13671,6 @@ nssPKIXe1634Address_verifyPointer
  *  nssPKIXTeletexDomainDefinedAttributes_FindTeletexDomainDefinedAttribute
  *  nssPKIXTeletexDomainDefinedAttributes_Equal
  *  nssPKIXTeletexDomainDefinedAttributes_Duplicate
- * 
- * In debug builds, the following call is available:
- *
- *  nssPKIXTeletexDomainDefinedAttributes_verifyPointer
- *
  */
 
 /*
@@ -14760,31 +14014,6 @@ nssPKIXTeletexDomainDefinedAttributes_Duplicate
   NSSArena *arenaOpt
 );
 
-#ifdef DEBUG
-/*
- * nssPKIXTeletexDomainDefinedAttributes_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXTeletexDomainDefinedAttributes
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_TELETEX_DOMAIN_DEFINED_ATTRIBUTES
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXTeletexDomainDefinedAttributes_verifyPointer
-(
-  NSSPKIXTeletexDomainDefinedAttributes *p
-);
-#endif /* DEBUG */
-
 /*
  * TeletexDomainDefinedAttribute
  *
@@ -14812,11 +14041,6 @@ nssPKIXTeletexDomainDefinedAttributes_verifyPointer
  *  nssPKIXTeletexDomainDefinedAttribute_GetValue
  *  nssPKIXTeletexDomainDefinedAttribute_Equal
  *  nssPKIXTeletexDomainDefinedAttribute_Duplicate
- * 
- * In debug builds, the following call is available:
- *
- *  nssPKIXTeletexDomainDefinedAttribute_verifyPointer
- *
  */
 
 /*
@@ -15087,31 +14311,6 @@ nssPKIXTeletexDomainDefinedAttribute_Duplicate
   NSSArena *arenaOpt
 );
 
-#ifdef DEBUG
-/*
- * nssPKIXTeletexDomainDefinedAttribute_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXTeletexDomainDefinedAttribute
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_TELETEX_DOMAIN_DEFINED_ATTRIBUTE
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXTeletexDomainDefinedAttribute_verifyPointer
-(
-  NSSPKIXTeletexDomainDefinedAttribute *p
-);
-#endif /* DEBUG */
-
 /*
  * AuthorityKeyIdentifier
  *
@@ -15143,11 +14342,6 @@ nssPKIXTeletexDomainDefinedAttribute_verifyPointer
  *  nssPKIXAuthorityKeyIdentifier_SetAuthorityCertIssuerAndSerialNumber
  *  nssPKIXAuthorityKeyIdentifier_Equal
  *  nssPKIXAuthorityKeyIdentifier_Duplicate
- * 
- * In debug builds, the following call is available:
- *
- *  nssPKIXAuthorityKeyIdentifier_verifyPointer
- *
  */
 
 /*
@@ -15484,31 +14678,6 @@ nssPKIXAuthorityKeyIdentifier_Duplicate
   NSSArena *arenaOpt
 );
 
-#ifdef DEBUG
-/*
- * nssPKIXAuthorityKeyIdentifier_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXAuthorityKeyIdentifier
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_AUTHORITY_KEY_IDENTIFIER
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXAuthorityKeyIdentifier_verifyPointer
-(
-  NSSPKIXAuthorityKeyIdentifier *p
-);
-#endif /* DEBUG */
-
 #endif /* nodef */
 
 /*
@@ -15542,11 +14711,6 @@ nssPKIXAuthorityKeyIdentifier_verifyPointer
  *    { bitwise accessors? }
  *  nssPKIXKeyUsage_Equal
  *  nssPKIXKeyUsage_Duplicate
- * 
- * In debug builds, the following call is available:
- *
- *  nssPKIXKeyUsage_verifyPointer
- *
  */
 
 /*
@@ -15794,11 +14958,6 @@ nssPKIXKeyUsage_Duplicate
  *  nssPKIXPrivateKeyUsagePeriod_RemoveNotAfter
  *  nssPKIXPrivateKeyUsagePeriod_Equal
  *  nssPKIXPrivateKeyUsagePeriod_Duplicate
- * 
- * In debug builds, the following call is available:
- *
- *  nssPKIXPrivateKeyUsagePeriod_verifyPointer
- *
  */
 
 /*
@@ -16107,31 +15266,6 @@ nssPKIXPrivateKeyUsagePeriod_Duplicate
   NSSArena *arenaOpt
 );
 
-#ifdef DEBUG
-/*
- * nssPKIXPrivateKeyUsagePeriod_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXPrivateKeyUsagePeriod
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_PRIVATE_KEY_USAGE_PERIOD
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXPrivateKeyUsagePeriod_verifyPointer
-(
-  NSSPKIXPrivateKeyUsagePeriod *p
-);
-#endif /* DEBUG */
-
 /*
  * CertificatePolicies
  *
@@ -16158,11 +15292,6 @@ nssPKIXPrivateKeyUsagePeriod_verifyPointer
  *  nssPKIXCertificatePolicies_FindPolicyInformation
  *  nssPKIXCertificatePolicies_Equal
  *  nssPKIXCertificatePolicies_Duplicate
- * 
- * In debug builds, the following call is available:
- *
- *  nssPKIXCertificatePolicies_verifyPointer
- *
  */
 
 /*
@@ -16502,31 +15631,6 @@ nssPKIXCertificatePolicies_Duplicate
   NSSArena *arenaOpt
 );
 
-#ifdef DEBUG
-/*
- * nssPKIXCertificatePolicies_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXCertificatePolicies
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_CERTIFICATE_POLICIES
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXCertificatePolicies_verifyPointer
-(
-  NSSPKIXCertificatePolicies *p
-);
-#endif /* DEBUG */
-
 /*
  * PolicyInformation
  *
@@ -16558,11 +15662,6 @@ nssPKIXCertificatePolicies_verifyPointer
  *  nssPKIXPolicyInformation_Equal
  *  nssPKIXPolicyInformation_Duplicate
  *    { and accessors by specific policy qualifier ID }
- * 
- * In debug builds, the following call is available:
- *
- *  nssPKIXPolicyInformation_verifyPointer
- *
  */
 
 /*
@@ -16930,31 +16029,6 @@ nssPKIXPolicyInformation_Duplicate
  *
  */
 
-#ifdef DEBUG
-/*
- * nssPKIXPolicyInformation_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXPolicyInformation
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_POLICY_INFORMATION
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXPolicyInformation_verifyPointer
-(
-  NSSPKIXPolicyInformation *p
-);
-#endif /* DEBUG */
-
 /*
  * PolicyQualifierInfo
  *
@@ -16979,11 +16053,6 @@ nssPKIXPolicyInformation_verifyPointer
  *  nssPKIXPolicyQualifierInfo_Equal
  *  nssPKIXPolicyQualifierInfo_Duplicate
  *    { and accessors by specific qualifier id/type }
- * 
- * In debug builds, the following call is available:
- *
- *  nssPKIXPolicyQualifierInfo_verifyPointer
- *
  */
 
 /*
@@ -17211,30 +16280,6 @@ nssPKIXPolicyQualifierInfo_Duplicate
  *   { and accessors by specific qualifier id/type }
  *
  */
-#ifdef DEBUG
-/*
- * nssPKIXPolicyQualifierInfo_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXPolicyQualifierInfo
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_POLICY_QUALIFIER_INFO
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXPolicyQualifierInfo_verifyPointer
-(
-  NSSPKIXPolicyQualifierInfo *p
-);
-#endif /* DEBUG */
 
 /*
  * CPSuri
@@ -17347,11 +16392,6 @@ nssPKIXCPSuri_Encode
  *  nssPKIXUserNotice_RemoveExplicitText
  *  nssPKIXUserNotice_Equal
  *  nssPKIXUserNotice_Duplicate
- * 
- * In debug builds, the following call is available:
- *
- *  nssPKIXUserNotice_verifyPointer
- *
  */
 
 
@@ -17660,31 +16700,6 @@ nssPKIXUserNotice_Duplicate
   NSSArena *arenaOpt
 );
 
-#ifdef DEBUG
-/*
- * nssPKIXUserNotice_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXUserNotice
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_USER_NOTICE
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXUserNotice_verifyPointer
-(
-  NSSPKIXUserNotice *p
-);
-#endif /* DEBUG */
-
 /*
  * NoticeReference
  *
@@ -17715,11 +16730,6 @@ nssPKIXUserNotice_verifyPointer
  *    { maybe number-exists-p gettor? }
  *  nssPKIXNoticeReference_Equal
  *  nssPKIXNoticeReference_Duplicate
- * 
- * In debug builds, the following call is available:
- *
- *  nssPKIXNoticeReference_verifyPointer
- *
  */
 
 /*
@@ -18089,31 +17099,6 @@ nssPKIXNoticeReference_Duplicate
   NSSArena *arenaOpt
 );
 
-#ifdef DEBUG
-/*
- * nssPKIXNoticeReference_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXNoticeReference
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_NOTICE_REFERENCE
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXNoticeReference_verifyPointer
-(
-  NSSPKIXNoticeReference *p
-);
-#endif /* DEBUG */
-
 /*
  * DisplayText
  *
@@ -18236,11 +17221,6 @@ nssPKIXDisplayText_Encode
  *  nssPKIXPolicyMappings_MapIssuerToSubject
  *  nssPKIXPolicyMappings_MapSubjectToIssuer
  *    { find's and map's: what if there's more than one? }
- * 
- * In debug builds, the following call is available:
- *
- *  nssPKIXPolicyMappings_verifyPointer
- *
  */
 
 /*
@@ -18583,31 +17563,6 @@ nssPKIXPolicyMappings_Duplicate
   NSSArena *arenaOpt
 );
 
-#ifdef DEBUG
-/*
- * nssPKIXPolicyMappings_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXPolicyMappings
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_POLICY_MAPPINGS
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXPolicyMappings_verifyPointer
-(
-  NSSPKIXPolicyMappings *p
-);
-#endif /* DEBUG */
-
 /*
  * nssPKIXPolicyMappings_IssuerDomainPolicyExists
  *
@@ -18765,11 +17720,6 @@ nssPKIXPolicyMappings_MapSubjectToIssuer
  *  nssPKIXpolicyMapping_SetSubjectDomainPolicy
  *  nssPKIXpolicyMapping_Equal
  *  nssPKIXpolicyMapping_Duplicate
- * 
- * In debug builds, the following call is available:
- *
- *  nssPKIXpolicyMapping_verifyPointer
- *
  */
 
 /*
@@ -18989,31 +17939,6 @@ nssPKIXpolicyMapping_Duplicate
   NSSArena *arenaOpt
 );
 
-#ifdef DEBUG
-/*
- * nssPKIXpolicyMapping_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXpolicyMapping
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_POLICY_MAPPING
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXpolicyMapping_verifyPointer
-(
-  NSSPKIXpolicyMapping *p
-);
-#endif /* DEBUG */
-
 /*
  * GeneralName
  *
@@ -19064,11 +17989,6 @@ nssPKIXpolicyMapping_verifyPointer
  *  nssPKIXGeneralName_Equal
  *  nssPKIXGeneralName_Duplicate
  *  (in pki1 I had specific attribute value gettors here too)
- * 
- * In debug builds, the following call is available:
- *
- *  nssPKIXGeneralName_verifyPointer
- *
  */
 
 /*
@@ -19705,31 +18625,6 @@ nssPKIXGeneralName_Duplicate
  *
  */
 
-#ifdef DEBUG
-/*
- * nssPKIXGeneralName_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXGeneralName
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_GENERAL_NAME
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXGeneralName_verifyPointer
-(
-  NSSPKIXGeneralName *p
-);
-#endif /* DEBUG */
-
 /*
  * GeneralNames
  *
@@ -19756,11 +18651,6 @@ nssPKIXGeneralName_verifyPointer
  *  nssPKIXGeneralNames_FindGeneralName
  *  nssPKIXGeneralNames_Equal
  *  nssPKIXGeneralNames_Duplicate
- * 
- * In debug builds, the following call is available:
- *
- *  nssPKIXGeneralNames_verifyPointer
- *
  */
 
 /*
@@ -20102,31 +18992,6 @@ nssPKIXGeneralNames_Duplicate
   NSSArena *arenaOpt
 );
 
-#ifdef DEBUG
-/*
- * nssPKIXGeneralNames_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXGeneralNames
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_GENERAL_NAMES
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXGeneralNames_verifyPointer
-(
-  NSSPKIXGeneralNames *p
-);
-#endif /* DEBUG */
-
 /*
  * AnotherName
  *
@@ -20150,11 +19015,6 @@ nssPKIXGeneralNames_verifyPointer
  *  nssPKIXAnotherName_SetValue
  *  nssPKIXAnotherName_Equal
  *  nssPKIXAnotherName_Duplicate
- * 
- * In debug builds, the following call is available:
- *
- *  nssPKIXAnotherName_verifyPointer
- *
  */
 
 /*
@@ -20377,31 +19237,6 @@ nssPKIXAnotherName_Duplicate
   NSSArena *arenaOpt
 );
 
-#ifdef DEBUG
-/*
- * nssPKIXAnotherName_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXAnotherName
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_ANOTHER_NAME
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXAnotherName_verifyPointer
-(
-  NSSPKIXAnotherName *p
-);
-#endif /* DEBUG */
-
 /*
  * EDIPartyName
  *
@@ -20428,11 +19263,6 @@ nssPKIXAnotherName_verifyPointer
  *  nssPKIXEDIPartyName_SetPartyName
  *  nssPKIXEDIPartyName_Equal
  *  nssPKIXEDIPartyName_Duplicate
- * 
- * In debug builds, the following call is available:
- *
- *  nssPKIXEDIPartyName_verifyPointer
- *
  */
 
 /*
@@ -20696,31 +19526,6 @@ nssPKIXEDIPartyName_Duplicate
   NSSArena *arenaOpt
 );
 
-#ifdef DEBUG
-/*
- * nssPKIXEDIPartyName_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXEDIPartyName
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_EDI_PARTY_NAME
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXEDIPartyName_verifyPointer
-(
-  NSSPKIXEDIPartyName *p
-);
-#endif /* DEBUG */
-
 /*
  * SubjectDirectoryAttributes
  *
@@ -20747,11 +19552,6 @@ nssPKIXEDIPartyName_verifyPointer
  *  nssPKIXSubjectDirectoryAttributes_FindAttribute
  *  nssPKIXSubjectDirectoryAttributes_Equal
  *  nssPKIXSubjectDirectoryAttributes_Duplicate
- * 
- * In debug builds, the following call is available:
- *
- *  nssPKIXSubjectDirectoryAttributes_verifyPointer
- *
  */
 
 /*
@@ -21095,31 +19895,6 @@ nssPKIXSubjectDirectoryAttributes_Duplicate
   NSSArena *arenaOpt
 );
 
-#ifdef DEBUG
-/*
- * nssPKIXSubjectDirectoryAttributes_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXSubjectDirectoryAttributes
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_SUBJECT_DIRECTORY_ATTRIBUTES
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXSubjectDirectoryAttributes_verifyPointer
-(
-  NSSPKIXSubjectDirectoryAttributes *p
-);
-#endif /* DEBUG */
-
 #endif /* nodef */
 
 /*
@@ -21459,11 +20234,6 @@ nssPKIXBasicConstraints_CompareToPathLenConstraint
  *  nssPKIXNameConstraints_Equal
  *  nssPKIXNameConstraints_Duplicate
  *    { and the comparator functions }
- * 
- * In debug builds, the following call is available:
- *
- *  nssPKIXNameConstraints_verifyPointer
- *
  */
 
 /*
@@ -21775,31 +20545,6 @@ nssPKIXNameConstraints_Duplicate
  *
  */
 
-#ifdef DEBUG
-/*
- * nssPKIXNameConstraints_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXNameConstraints
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_NAME_CONSTRAINTS
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXNameConstraints_verifyPointer
-(
-  NSSPKIXNameConstraints *p
-);
-#endif /* DEBUG */
-
 /*
  * GeneralSubtrees
  *
@@ -21827,11 +20572,6 @@ nssPKIXNameConstraints_verifyPointer
  *  nssPKIXGeneralSubtrees_Equal
  *  nssPKIXGeneralSubtrees_Duplicate
  *    { and finders and comparators }
- * 
- * In debug builds, the following call is available:
- *
- *  nssPKIXGeneralSubtrees_verifyPointer
- *
  */
 
 /*
@@ -22178,31 +20918,6 @@ nssPKIXGeneralSubtrees_Duplicate
  *
  */
 
-#ifdef DEBUG
-/*
- * nssPKIXGeneralSubtrees_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXGeneralSubtrees
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_GENERAL_SUBTREES
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXGeneralSubtrees_verifyPointer
-(
-  NSSPKIXGeneralSubtrees *p
-);
-#endif /* DEBUG */
-
 /*
  * GeneralSubtree
  *
@@ -22233,11 +20948,6 @@ nssPKIXGeneralSubtrees_verifyPointer
  *  nssPKIXGeneralSubtree_Duplicate
  *  nssPKIXGeneralSubtree_DistanceInRange
  *    {other tests and comparators}
- * 
- * In debug builds, the following call is available:
- *
- *  nssPKIXGeneralSubtree_verifyPointer
- *
  */
 
 /*
@@ -22539,31 +21249,6 @@ nssPKIXGeneralSubtree_Duplicate
   NSSArena *arenaOpt
 );
 
-#ifdef DEBUG
-/*
- * nssPKIXGeneralSubtree_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXGeneralSubtree
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_GENERAL_SUBTREE
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXGeneralSubtree_verifyPointer
-(
-  NSSPKIXGeneralSubtree *p
-);
-#endif /* DEBUG */
-
 /*
  * nssPKIXGeneralSubtree_DistanceInRange
  *
@@ -22620,10 +21305,6 @@ nssPKIXGeneralSubtree_DistanceInRange
  *  nssPKIXPolicyConstraints_RemoveInhibitPolicyMapping
  *  nssPKIXPolicyConstraints_Equal
  *  nssPKIXPolicyConstraints_Duplicate
- * 
- * In debug builds, the following call is available:
- *
- *  nssPKIXPolicyConstraints_verifyPointer
  *
  */
 
@@ -22922,31 +21603,6 @@ nssPKIXPolicyConstraints_Duplicate
   NSSArena *arenaOpt
 );
 
-#ifdef DEBUG
-/*
- * nssPKIXPolicyConstraints_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXPolicyConstraints
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_POLICY_CONSTRAINTS
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXPolicyConstraints_verifyPointer
-(
-  NSSPKIXPolicyConstraints *p
-);
-#endif /* DEBUG */
-
 /*
  * CRLDistPointsSyntax
  *
@@ -22973,10 +21629,6 @@ nssPKIXPolicyConstraints_verifyPointer
  *  nssPKIXCRLDistPointsSyntax_FindDistributionPoint
  *  nssPKIXCRLDistPointsSyntax_Equal
  *  nssPKIXCRLDistPointsSyntax_Duplicate
- * 
- * In debug builds, the following call is available:
- *
- *  nssPKIXCRLDistPointsSyntax_verifyPointer
  *
  */
 
@@ -23318,31 +21970,6 @@ nssPKIXCRLDistPointsSyntax_Duplicate
   NSSArena *arenaOpt
 );
 
-#ifdef DEBUG
-/*
- * nssPKIXCRLDistPointsSyntax_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXCRLDistPointsSyntax
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_CRL_DIST_POINTS_SYNTAX
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXCRLDistPointsSyntax_verifyPointer
-(
-  NSSPKIXCRLDistPointsSyntax *p
-);
-#endif /* DEBUG */
-
 /*
  * DistributionPoint
  *
@@ -23375,10 +22002,6 @@ nssPKIXCRLDistPointsSyntax_verifyPointer
  *  nssPKIXDistributionPoint_RemoveCRLIssuer
  *  nssPKIXDistributionPoint_Equal
  *  nssPKIXDistributionPoint_Duplicate
- * 
- * In debug builds, the following call is available:
- *
- *  nssPKIXDistributionPoint_verifyPointer
  *
  */
 
@@ -23770,31 +22393,6 @@ nssPKIXDistributionPoint_Duplicate
   NSSArena *arenaOpt
 );
 
-#ifdef DEBUG
-/*
- * nssPKIXDistributionPoint_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXDistributionPoint
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_DISTRIBUTION_POINT
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXDistributionPoint_verifyPointer
-(
-  NSSPKIXDistributionPoint *p
-);
-#endif /* DEBUG */
-
 /*
  * DistributionPointName
  *
@@ -23819,10 +22417,6 @@ nssPKIXDistributionPoint_verifyPointer
  *  nssPKIXDistributionPointName_GetNameRelativeToCRLIssuer
  *  nssPKIXDistributionPointName_Equal
  *  nssPKIXDistributionPointName_Duplicate
- * 
- * In debug builds, the following call is available:
- *
- *  nssPKIXDistributionPointName_verifyPointer
  *
  */
 
@@ -24070,31 +22664,6 @@ nssPKIXDistributionPointName_Duplicate
   NSSArena *arenaOpt
 );
 
-#ifdef DEBUG
-/*
- * nssPKIXDistributionPointName_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXDistributionPointName
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_DISTRIBUTION_POINT_NAME
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXDistributionPointName_verifyPointer
-(
-  NSSPKIXDistributionPointName *p
-);
-#endif /* DEBUG */
-
 /*
  * ReasonFlags
  *
@@ -24124,10 +22693,6 @@ nssPKIXDistributionPointName_verifyPointer
  *  nssPKIXReasonFlags_Duplicate
  *    { bitwise accessors? }
  * 
- * In debug builds, the following call is available:
- *
- *  nssPKIXReasonFlags_verifyPointer
- *
  */
 
 /*
@@ -24332,31 +22897,6 @@ nssPKIXReasonFlags_Duplicate
  *
  */
 
-#ifdef DEBUG
-/*
- * nssPKIXReasonFlags_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXReasonFlags
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_REASON_FLAGS
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXReasonFlags_verifyPointer
-(
-  NSSPKIXReasonFlags *p
-);
-#endif /* DEBUG */
-
 /*
  * ExtKeyUsageSyntax
  *
@@ -24383,10 +22923,6 @@ nssPKIXReasonFlags_verifyPointer
  *  nssPKIXExtKeyUsageSyntax_FindKeyPurposeId
  *  nssPKIXExtKeyUsageSyntax_Equal
  *  nssPKIXExtKeyUsageSyntax_Duplicate
- * 
- * In debug builds, the following call is available:
- *
- *  nssPKIXExtKeyUsageSyntax_verifyPointer
  *
  */
 
@@ -24729,31 +23265,6 @@ nssPKIXExtKeyUsageSyntax_Duplicate
   NSSArena *arenaOpt
 );
 
-#ifdef DEBUG
-/*
- * nssPKIXExtKeyUsageSyntax_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXExtKeyUsageSyntax
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_EXT_KEY_USAGE_SYNTAX
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXExtKeyUsageSyntax_verifyPointer
-(
-  NSSPKIXExtKeyUsageSyntax *p
-);
-#endif /* DEBUG */
-
 /*
  * AuthorityInfoAccessSyntax
  *
@@ -24781,10 +23292,6 @@ nssPKIXExtKeyUsageSyntax_verifyPointer
  *  nssPKIXAuthorityInfoAccessSyntax_FindAccessDescription
  *  nssPKIXAuthorityInfoAccessSyntax_Equal
  *  nssPKIXAuthorityInfoAccessSyntax_Duplicate
- * 
- * In debug builds, the following call is available:
- *
- *  nssPKIXAuthorityInfoAccessSyntax_verifyPointer
  *
  */
 
@@ -25130,31 +23637,6 @@ nssPKIXAuthorityInfoAccessSyntax_Duplicate
   NSSArena *arenaOpt
 );
 
-#ifdef DEBUG
-/*
- * nssPKIXAuthorityInfoAccessSyntax_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXAuthorityInfoAccessSyntax
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_AUTHORITY_INFO_ACCESS_SYNTAX
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXAuthorityInfoAccessSyntax_verifyPointer
-(
-  NSSPKIXAuthorityInfoAccessSyntax *p
-);
-#endif /* DEBUG */
-
 /*
  * AccessDescription
  *
@@ -25178,10 +23660,6 @@ nssPKIXAuthorityInfoAccessSyntax_verifyPointer
  *  nssPKIXAccessDescription_SetAccessLocation
  *  nssPKIXAccessDescription_Equal
  *  nssPKIXAccessDescription_Duplicate
- * 
- * In debug builds, the following call is available:
- *
- *  nssPKIXAccessDescription_verifyPointer
  *
  */
 
@@ -25404,31 +23882,6 @@ nssPKIXAccessDescription_Duplicate
   NSSArena *arenaOpt
 );
 
-#ifdef DEBUG
-/*
- * nssPKIXAccessDescription_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXAccessDescription
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_ACCESS_DESCRIPTION
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXAccessDescription_verifyPointer
-(
-  NSSPKIXAccessDescription *p
-);
-#endif /* DEBUG */
-
 /*
  * IssuingDistributionPoint
  *
@@ -25465,10 +23918,6 @@ nssPKIXAccessDescription_verifyPointer
  *  nssPKIXIssuingDistributionPoint_SetIndirectCRL
  *  nssPKIXIssuingDistributionPoint_Equal
  *  nssPKIXIssuingDistributionPoint_Duplicate
- * 
- * In debug builds, the following call is available:
- *
- *  nssPKIXIssuingDistributionPoint_verifyPointer
  *
  */
 
@@ -25900,31 +24349,6 @@ nssPKIXIssuingDistributionPoint_Duplicate
   NSSPKIXIssuingDistributionPoint *idp,
   NSSArena *arenaOpt
 );
-
-#ifdef DEBUG
-/*
- * nssPKIXIssuingDistributionPoint_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSPKIXIssuingDistributionPoint
- * object, this routine will return PR_SUCCESS.  Otherwise, it will 
- * put an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_PKIX_ISSUING_DISTRIBUTION_POINT
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-NSS_EXTERN PRStatus
-nssPKIXIssuingDistributionPoint_verifyPointer
-(
-  NSSPKIXIssuingDistributionPoint *p
-);
-#endif /* DEBUG */
 
 #endif /* nodef */
 

@@ -570,7 +570,6 @@ NSSATAV_Duplicate
  */
 
 #ifdef DEBUG
-extern const NSSError NSS_ERROR_INTERNAL_ERROR;
 
 static nssPointerTracker atav_pointer_tracker;
 
@@ -1008,7 +1007,6 @@ nss_atav_fromhex
  *  A pointer to an NSSATAV upon success
  */
 
-extern const NSSError NSS_ERROR_INTERNAL_ERROR;
 
 NSS_IMPLEMENT NSSATAV *
 nssATAV_CreateFromUTF8

@@ -63,7 +63,6 @@ struct NSSTrustDomainStr {
 #endif /* CERT_CACHE */
 };
 
-extern const NSSError NSS_ERROR_NOT_FOUND;
 
 NSS_IMPLEMENT NSSTrustDomain *
 NSSTrustDomain_Create

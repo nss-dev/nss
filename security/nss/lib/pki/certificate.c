@@ -75,7 +75,6 @@ struct NSSCertificateStr
   nssCertDecoding decoding;
 };
 
-extern const NSSError NSS_ERROR_NOT_FOUND;
 
 NSS_EXTERN NSSCertificateMethods *
 nss_GetMethodsForType

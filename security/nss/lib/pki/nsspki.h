@@ -235,7 +235,6 @@ NSSCertificate_Encode
  *
  */
 
-extern const NSSError NSS_ERROR_CERTIFICATE_ISSUER_NOT_FOUND;
 
 NSS_EXTERN NSSCertificate **
 NSSCertificate_BuildChain
@@ -2704,7 +2703,6 @@ NSSCryptoContext_FindSymmetricKeyByAlgorithmAndKeyID
  * of this crypto context.
  */
 
-extern const NSSError NSS_ERROR_INVALID_CRYPTO_CONTEXT;
 
 NSS_EXTERN NSSItem *
 NSSCryptoContext_Encrypt

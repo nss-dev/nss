@@ -80,12 +80,6 @@ PR_BEGIN_EXTERN_C
  *  nss_ZNEW
  *  nss_ZNEWARRAY
  *
- * In debug builds, the following calls are available:
- *
- *  nssArena_verifyPointer
- *  nssArena_registerDestructor
- *  nssArena_deregisterDestructor
- *
  * The following preprocessor macro is also always available:
  *
  *  nssArena_VERIFYPOINTER
@@ -125,8 +119,6 @@ nssArena_Create
   void
 );
 
-extern const NSSError NSS_ERROR_NO_MEMORY;
-
 /*
  * nssArena_Destroy
  *
@@ -148,8 +140,6 @@ nssArena_Destroy
 (
   NSSArena *arena
 );
-
-extern const NSSError NSS_ERROR_INVALID_ARENA;
 
 /*
  * nssArena_Mark
@@ -178,10 +168,6 @@ nssArena_Mark
   NSSArena *arena
 );
 
-extern const NSSError NSS_ERROR_INVALID_ARENA;
-extern const NSSError NSS_ERROR_NO_MEMORY;
-extern const NSSError NSS_ERROR_ARENA_MARKED_BY_ANOTHER_THREAD;
-
 /*
  * nssArena_Release
  *
@@ -207,9 +193,6 @@ nssArena_Release
   NSSArena *arena,
   nssArenaMark *arenaMark
 );
-
-extern const NSSError NSS_ERROR_INVALID_ARENA;
-extern const NSSError NSS_ERROR_INVALID_ARENA_MARK;
 
 /*
  * nssArena_Unmark
@@ -239,10 +222,6 @@ nssArena_Unmark
   NSSArena *arena,
   nssArenaMark *arenaMark
 );
-
-extern const NSSError NSS_ERROR_INVALID_ARENA;
-extern const NSSError NSS_ERROR_INVALID_ARENA_MARK;
-extern const NSSError NSS_ERROR_ARENA_MARKED_BY_ANOTHER_THREAD;
 
 #ifdef ARENA_DESTRUCTOR_LIST
 
@@ -280,9 +259,6 @@ nssArena_registerDestructor
   void *arg
 );
 
-extern const NSSError NSS_ERROR_INVALID_ARENA;
-extern const NSSError NSS_ERROR_NO_MEMORY;
-
 /*
  * nssArena_deregisterDestructor
  *
@@ -309,10 +285,6 @@ nssArena_deregisterDestructor
   void (*destructor)(void *argument),
   void *arg
 );
-
-extern const NSSError NSS_ERROR_INVALID_ITEM;
-extern const NSSError NSS_ERROR_INVALID_ARENA;
-extern const NSSError NSS_ERROR_NOT_FOUND;
 
 #endif /* ARENA_DESTRUCTOR_LIST */
 
@@ -346,10 +318,6 @@ nss_ZAlloc
   PRUint32 size
 );
 
-extern const NSSError NSS_ERROR_INVALID_ARENA;
-extern const NSSError NSS_ERROR_NO_MEMORY;
-extern const NSSError NSS_ERROR_ARENA_MARKED_BY_ANOTHER_THREAD;
-
 /*
  * nss_ZFreeIf
  *
@@ -373,8 +341,6 @@ nss_ZFreeIf
 (
   void *pointer
 );
-
-extern const NSSError NSS_ERROR_INVALID_POINTER;
 
 /*
  * nss_ZRealloc
@@ -402,10 +368,6 @@ nss_ZRealloc
   void *pointer,
   PRUint32 newSize
 );
-
-extern const NSSError NSS_ERROR_INVALID_POINTER;
-extern const NSSError NSS_ERROR_NO_MEMORY;
-extern const NSSError NSS_ERROR_ARENA_MARKED_BY_ANOTHER_THREAD;
 
 /*
  * nss_ZNEW
@@ -471,53 +433,6 @@ extern const NSSError NSS_ERROR_ARENA_MARKED_BY_ANOTHER_THREAD;
  *  A pointer to the replacement segment of memory
  */
 #define nss_ZREALLOCARRAY(p, type, quantity) ((type *)nss_ZRealloc((p), sizeof(type) * (quantity)))
-
-/*
- * nssArena_verifyPointer
- *
- * This method is only present in debug builds.
- *
- * If the specified pointer is a valid pointer to an NSSArena object,
- * this routine will return PR_SUCCESS.  Otherwise, it will put an
- * error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_INVALID_ARENA
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-#ifdef DEBUG
-NSS_EXTERN PRStatus
-nssArena_verifyPointer
-(
-  const NSSArena *arena
-);
-
-extern const NSSError NSS_ERROR_INVALID_ARENA;
-#endif /* DEBUG */
-
-/*
- * nssArena_VERIFYPOINTER
- *
- * This macro is always available.  In debug builds it will call
- * nssArena_verifyPointer; in non-debug builds, it will merely
- * check that the pointer is not null.  Note that in non-debug
- * builds it cannot place an error on the error stack.
- *
- * Return value:
- *  PR_SUCCESS if the pointer is valid
- *  PR_FAILURE if it isn't
- */
-
-#ifdef DEBUG
-#define nssArena_VERIFYPOINTER(p) nssArena_verifyPointer(p)
-#else /* DEBUG */
-/* The following line exceeds 72 characters, but emacs screws up if I split it. */
-#define nssArena_VERIFYPOINTER(p) (((NSSArena *)NULL == (p))?PR_FAILURE:PR_SUCCESS)
-#endif /* DEBUG */
 
 /*
  * nssArenaHashAllocOps
@@ -716,9 +631,6 @@ nssUTF8_Size
   PRStatus *statusOpt
 );
 
-extern const NSSError NSS_ERROR_INVALID_POINTER;
-extern const NSSError NSS_ERROR_VALUE_TOO_LARGE;
-
 /*
  * nssUTF8_Length
  *
@@ -742,10 +654,6 @@ nssUTF8_Length
   const NSSUTF8 *s,
   PRStatus *statusOpt
 );
-
-extern const NSSError NSS_ERROR_INVALID_POINTER;
-extern const NSSError NSS_ERROR_VALUE_TOO_LARGE;
-extern const NSSError NSS_ERROR_INVALID_STRING;
 
 /*
  * nssUTF8_Create
@@ -779,10 +687,6 @@ nssUTF8_Create
   PRUint32 size /* in bytes, not characters */
 );
 
-extern const NSSError NSS_ERROR_INVALID_POINTER;
-extern const NSSError NSS_ERROR_NO_MEMORY;
-extern const NSSError NSS_ERROR_UNSUPPORTED_TYPE;
-
 NSS_EXTERN NSSItem *
 nssUTF8_GetEncoding
 (
@@ -802,9 +706,6 @@ nssUTF8_GetEncoding
  *
  * Blah, blah, blah.
  */
-
-extern const NSSError NSS_ERROR_INVALID_POINTER;
-extern const NSSError NSS_ERROR_INVALID_ARGUMENT;
 
 NSS_EXTERN PRStatus
 nssUTF8_CopyIntoFixedBuffer
@@ -892,10 +793,6 @@ nssHash_Destroy
  *
  */
 
-#if 0
-extern const NSSError NSS_ERROR_HASH_COLLISION;
-#endif
-
 NSS_EXTERN PRStatus
 nssHash_Add
 (
@@ -959,188 +856,6 @@ nssHash_Iterate
   void *closure
 );
 
-
-/*
- * nssPointerTracker
- *
- * This type and these methods are only present in debug builds.
- * 
- * The nonpublic methods relating to this type are:
- *
- *  nssPointerTracker_initialize
- *  nssPointerTracker_finalize
- *  nssPointerTracker_add
- *  nssPointerTracker_remove
- *  nssPointerTracker_verify
- */
-
-/*
- * nssPointerTracker_initialize
- *
- * This method is only present in debug builds.
- * 
- * This routine initializes an nssPointerTracker object.  Note that
- * the object must have been declared *static* to guarantee that it
- * is in a zeroed state initially.  This routine is idempotent, and
- * may even be safely called by multiple threads simultaneously with 
- * the same argument.  This routine returns a PRStatus value; if 
- * successful, it will return PR_SUCCESS.  On failure it will set an 
- * error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_NO_MEMORY
- *
- * Return value:
- *  PR_SUCCESS
- *  PR_FAILURE
- */
-
-#ifdef DEBUG
-NSS_EXTERN PRStatus
-nssPointerTracker_initialize
-(
-  nssPointerTracker *tracker
-);
-
-extern const NSSError NSS_ERROR_NO_MEMORY;
-#endif /* DEBUG */
-
-/*
- * nssPointerTracker_finalize
- *
- * This method is only present in debug builds.
- * 
- * This routine returns the nssPointerTracker object to the pre-
- * initialized state, releasing all resources used by the object.
- * It will *NOT* destroy the objects being tracked by the pointer
- * (should any remain), and therefore cannot be used to "sweep up"
- * remaining objects.  This routine returns a PRStatus value; if
- * successful, it will return PR_SUCCES.  On failure it will set an
- * error on the error stack and return PR_FAILURE.  If any objects
- * remain in the tracker when it is finalized, that will be treated
- * as an error.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_TRACKER_NOT_EMPTY
- *
- * Return value:
- *  PR_SUCCESS
- *  PR_FAILURE
- */
-
-#ifdef DEBUG
-NSS_EXTERN PRStatus
-nssPointerTracker_finalize
-(
-  nssPointerTracker *tracker
-);
-
-extern const NSSError NSS_ERROR_TRACKER_NOT_EMPTY;
-#endif /* DEBUG */
-
-/*
- * nssPointerTracker_add
- *
- * This method is only present in debug builds.
- *
- * This routine adds the specified pointer to the nssPointerTracker
- * object.  It should be called in constructor objects to register
- * new valid objects.  The nssPointerTracker is threadsafe, but this
- * call is not idempotent.  This routine returns a PRStatus value;
- * if successful it will return PR_SUCCESS.  On failure it will set
- * an error on the error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_NO_MEMORY
- *  NSS_ERROR_TRACKER_NOT_INITIALIZED
- *  NSS_ERROR_DUPLICATE_POINTER
- *
- * Return value:
- *  PR_SUCCESS
- *  PR_FAILURE
- */
-
-#ifdef DEBUG
-NSS_EXTERN PRStatus
-nssPointerTracker_add
-(
-  nssPointerTracker *tracker,
-  const void *pointer
-);
-
-extern const NSSError NSS_ERROR_NO_MEMORY;
-extern const NSSError NSS_ERROR_TRACKER_NOT_INITIALIZED;
-extern const NSSError NSS_ERROR_DUPLICATE_POINTER;
-#endif /* DEBUG */
-
-/*
- * nssPointerTracker_remove
- *
- * This method is only present in debug builds.
- *
- * This routine removes the specified pointer from the 
- * nssPointerTracker object.  It does not call any destructor for the
- * object; rather, this should be called from the object's destructor.
- * The nssPointerTracker is threadsafe, but this call is not 
- * idempotent.  This routine returns a PRStatus value; if successful 
- * it will return PR_SUCCESS.  On failure it will set an error on the 
- * error stack and return PR_FAILURE.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_TRACKER_NOT_INITIALIZED
- *  NSS_ERROR_POINTER_NOT_REGISTERED
- *
- * Return value:
- *  PR_SUCCESS
- *  PR_FAILURE
- */
-
-#ifdef DEBUG
-NSS_EXTERN PRStatus
-nssPointerTracker_remove
-(
-  nssPointerTracker *tracker,
-  const void *pointer
-);
-
-extern const NSSError NSS_ERROR_TRACKER_NOT_INITIALIZED;
-extern const NSSError NSS_ERROR_POINTER_NOT_REGISTERED;
-#endif /* DEBUG */
-
-/*
- * nssPointerTracker_verify
- *
- * This method is only present in debug builds.
- *
- * This routine verifies that the specified pointer has been registered
- * with the nssPointerTracker object.  The nssPointerTracker object is
- * threadsafe, and this call may be safely called from multiple threads
- * simultaneously with the same arguments.  This routine returns a
- * PRStatus value; if the pointer is registered this will return 
- * PR_SUCCESS.  Otherwise it will set an error on the error stack and 
- * return PR_FAILURE.  Although the error is suitable for leaving on 
- * the stack, callers may wish to augment the information available by 
- * placing a more type-specific error on the stack.
- *
- * The error may be one of the following values:
- *  NSS_ERROR_POINTER_NOT_REGISTERED
- *
- * Return value:
- *  PR_SUCCESS
- *  PR_FAILRUE
- */
-
-#ifdef DEBUG
-NSS_EXTERN PRStatus
-nssPointerTracker_verify
-(
-  nssPointerTracker *tracker,
-  const void *pointer
-);
-
-extern const NSSError NSS_ERROR_POINTER_NOT_REGISTERED;
-#endif /* DEBUG */
-
 /*
  * libc
  *
@@ -1168,8 +883,6 @@ nsslibc_memcpy
   PRUint32 n
 );
 
-extern const NSSError NSS_ERROR_INVALID_POINTER;
-
 /*
  * nsslibc_memset
  *
@@ -1188,8 +901,6 @@ nsslibc_memset
   PRUint8 byte,
   PRUint32 n
 );
-
-extern const NSSError NSS_ERROR_INVALID_POINTER;
 
 /*
  * nsslibc_memequal
@@ -1211,8 +922,6 @@ nsslibc_memequal
   PRUint32 len,
   PRStatus *statusOpt
 );
-
-extern const NSSError NSS_ERROR_INVALID_POINTER;
 
 #define nsslibc_offsetof(str, memb) ((PRPtrdiff)(&(((str *)0)->memb)))
 
