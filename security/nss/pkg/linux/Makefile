@@ -23,7 +23,7 @@ publish:
 	find $(CORE_DEPTH)/../dist/$(OBJDIR)/lib -type l \
 		\( -name "*.so" -o -name "*.chk" \) \
         -exec cp {} opt/sun/private/lib \;
-	rm opt/sun/private/lib/libnspr4.so \
+	-rm opt/sun/private/lib/libnspr4.so \
 	   opt/sun/private/lib/libplc4.so \
 	   opt/sun/private/lib/libplds4.so \
 	   opt/sun/private/lib/libjss3.so
