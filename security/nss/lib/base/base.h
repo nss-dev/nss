@@ -1055,6 +1055,9 @@ nssHash_Destroy
  * nssHash_Add
  *
  */
+
+extern const NSSError NSS_ERROR_HASH_COLLISION;
+
 NSS_EXTERN PRStatus
 nssHash_Add
 (
