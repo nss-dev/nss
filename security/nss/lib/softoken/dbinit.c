@@ -40,18 +40,13 @@
 #include "prinit.h"
 #include "prprf.h"
 #include "prmem.h"
-#include "cert.h"
-#include "keylow.h"
-#include "keydbt.h"
-#include "ssl.h"
-#include "sslproto.h"
-#include "secmod.h"
-#include "secmodi.h"
-#include "secoid.h"
-#include "nss.h"
+#include "pcertt.h"
+#include "lowkeyi.h"
+#include "pcert.h"
+/*#include "secmodi.h" */
 #include "secrng.h"
 #include "cdbhdl.h"
-#include "pk11func.h"
+/*#include "pk11func.h" */
 #include "pkcs11i.h"
 
 static char *secmodname = NULL;  
@@ -111,26 +106,26 @@ pk11_keydb_name_cb(void *arg, int dbVersion)
 static CK_RV
 pk11_OpenCertDB(const char * configdir,  const char *prefix, PRBool readOnly)
 {
-    CERTCertDBHandle *certdb;
+    NSSLOWCERTCertDBHandle *certdb;
     CK_RV        crv = CKR_OK;
     SECStatus    rv;
     char * name = NULL;
 
-    certdb = CERT_GetDefaultCertDB();
+    certdb = nsslowcert_GetDefaultCertDB(); /* find a better way??  3.4 */
     if (certdb)
     	return CKR_OK;	/* idempotency */
 
     name = PR_smprintf("%s" PATH_SEPARATOR "%s",configdir,prefix);
     if (name == NULL) goto loser;
 
-    certdb = (CERTCertDBHandle*)PORT_ZAlloc(sizeof(CERTCertDBHandle));
+    certdb = (NSSLOWCERTCertDBHandle*)PORT_ZAlloc(sizeof(NSSLOWCERTCertDBHandle));
     if (certdb == NULL) 
     	goto loser;
 
 /* fix when we get the DB in */
-    rv = CERT_OpenCertDB(certdb, readOnly, pk11_certdb_name_cb, (void *)name);
+    rv = nsslowcert_OpenCertDB(certdb, readOnly, pk11_certdb_name_cb, (void *)name);
     if (rv == SECSuccess)
-	CERT_SetDefaultCertDB(certdb);
+	nsslowcert_SetDefaultCertDB(certdb);
     else {
 	PR_Free(certdb);
 loser: 
@@ -143,25 +138,25 @@ loser:
 static CK_RV
 pk11_OpenKeyDB(const char * configdir, const char *prefix, PRBool readOnly)
 {
-    SECKEYKeyDBHandle *keydb;
+    NSSLOWKEYDBHandle *keydb;
     char * name = NULL;
 
-    keydb = SECKEY_GetDefaultKeyDB();
+    keydb = nsslowkey_GetDefaultKeyDB();
     if (keydb)
     	return SECSuccess;
     name = PR_smprintf("%s" PATH_SEPARATOR "%s",configdir,prefix);	
     if (name == NULL) 
 	return SECFailure;
-    keydb = SECKEY_OpenKeyDB(readOnly, pk11_keydb_name_cb, (void *)name);
+    keydb = nsslowkey_OpenKeyDB(readOnly, pk11_keydb_name_cb, (void *)name);
     if (keydb == NULL)
 	return CKR_KEYDB_FAILED;
-    SECKEY_SetDefaultKeyDB(keydb);
+    nsslowkey_SetDefaultKeyDB(keydb);
     PORT_Free(name);
 
     return CKR_OK;
 }
 
-static CERTCertDBHandle certhandle = { 0 };
+static NSSLOWCERTCertDBHandle certhandle = { 0 };
 
 static PRBool isInitialized = PR_FALSE;
 
@@ -170,11 +165,11 @@ pk11_OpenVolatileCertDB() {
       SECStatus rv = SECSuccess;
       /* now we want to verify the signature */
       /*  Initialize the cert code */
-      rv = CERT_OpenVolatileCertDB(&certhandle);
+      rv = nsslowcert_OpenVolatileCertDB(&certhandle);
       if (rv != SECSuccess) {
 	   return CKR_DEVICE_ERROR;
       }
-      CERT_SetDefaultCertDB(&certhandle);
+      nsslowcert_SetDefaultCertDB(&certhandle);
       return CKR_OK;
 }
 
@@ -252,19 +247,19 @@ loser:
 void
 pk11_Shutdown(void)
 {
-    CERTCertDBHandle *certHandle;
-    SECKEYKeyDBHandle *keyHandle;
+    NSSLOWCERTCertDBHandle *certHandle;
+    NSSLOWKEYDBHandle *keyHandle;
 
     PR_FREEIF(secmodname);
-    certHandle = CERT_GetDefaultCertDB();
+    certHandle = nsslowcert_GetDefaultCertDB();
     if (certHandle)
-    	CERT_ClosePermCertDB(certHandle);
-    CERT_SetDefaultCertDB(NULL); 
+    	nsslowcert_ClosePermCertDB(certHandle);
+    nsslowcert_SetDefaultCertDB(NULL); 
 
-    keyHandle = SECKEY_GetDefaultKeyDB();
+    keyHandle = nsslowkey_GetDefaultKeyDB();
     if (keyHandle)
-    	SECKEY_CloseKeyDB(keyHandle);
-    SECKEY_SetDefaultKeyDB(NULL); 
+    	nsslowkey_CloseKeyDB(keyHandle);
+    nsslowkey_SetDefaultKeyDB(NULL); 
 
     isInitialized = PR_FALSE;
 }
