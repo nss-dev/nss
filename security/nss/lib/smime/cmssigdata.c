@@ -517,6 +517,32 @@ NSS_CMSSignedData_VerifySignerInfo(NSSCMSSignedData *sigd, int i,
 }
 
 /*
+ * NSS_CMSSignedData_VerifyCertsOnly - verify the certs in a certs-only message
+ */
+SECStatus
+NSS_CMSSignedData_VerifyCertsOnly(NSSCMSSignedData *sigd, 
+                                  CERTCertDBHandle *certdb, 
+                                  SECCertUsage usage)
+{
+    CERTCertificate *cert;
+    SECStatus rv = SECSuccess;
+    int i;
+
+    if (!sigd || !certdb) {
+	PORT_SetError(SEC_ERROR_INVALID_ARGS);
+	return SECFailure;
+    }
+
+    for (i=0; i < NSS_CMSArray_Count((void**)sigd->certs); i++) {
+	cert = sigd->certs[i];
+	rv |= CERT_VerifyCert(certdb, cert, PR_TRUE, usage, PR_Now(), 
+                              NULL, NULL);
+    }
+
+    return rv;
+}
+
+/*
  * NSS_CMSSignedData_HasDigests - see if we have digests in place
  */
 PRBool
