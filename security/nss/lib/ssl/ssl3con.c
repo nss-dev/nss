@@ -3222,7 +3222,7 @@ sendDHClientKeyExchange(sslSocket * ss, SECKEYPublicKey * svrPubKey)
     PRBool              isTLS;
     CK_MECHANISM_TYPE	target;
 
-    DHParams		dhParam;		/* DH parameters */
+    SECKEYDHParams	dhParam;		/* DH parameters */
     SECKEYPublicKey	*pubKey = NULL;		/* Ephemeral DH key */
     SECKEYPrivateKey	*privKey = NULL;	/* Ephemeral DH key */
 
