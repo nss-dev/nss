@@ -39,7 +39,7 @@ endif
 
 LIBS		= $(EXTRA_DSO_LIBS)
 ifeq ($(OS_TARGET),WINCE)
-LIBS	+= $(NSPR_LIBS) wince_console.lib
+LIBS	+= $(NSPR_LIBS) $(DIST)/lib/consolece_s.lib
 endif
 
 include $(topsrcdir)/config/rules.mk
