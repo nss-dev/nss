@@ -687,11 +687,11 @@ create_object_array
 	*doObjects = PR_FALSE;
 	*status = PR_FAILURE;
 	*numObjects = 0;
-    } else if (numObjects > 0) {
+    } else if (*numObjects > 0) {
 	rvOandA = nss_ZNEWARRAY(NULL, 
 	                        nssCryptokiObjectAndAttributes *, 
 	                        *numObjects + 1);
-	status = rvOandA ? PR_SUCCESS : PR_FALSE;
+	*status = rvOandA ? PR_SUCCESS : PR_FALSE;
     }
     return rvOandA;
 }
