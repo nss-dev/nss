@@ -34,15 +34,16 @@ MANIFEST_CVS_ID = "@(#) $RCSfile$ $Revision$ $Date$ $Name$"
 
 CORE_DEPTH = ../../..
 
+# In 4.0, move nss*.h back to EXPORTS
 PRIVATE_EXPORTS = \
 	oiddata.h \
 	pki1.h	  \
 	pki1t.h	  \
+	nsspki1.h  \
+	nsspki1t.h \
 	$(NULL)
 
 EXPORTS =	   \
-	nsspki1.h  \
-	nsspki1t.h \
 	$(NULL)
 
 MODULE = security
