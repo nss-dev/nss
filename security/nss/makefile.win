@@ -52,10 +52,6 @@ GMAKE_FLAGS = OBJDIR_NAME=$(OBJDIR) MOZILLA_CLIENT=1
 GMAKE_FLAGS = $(GMAKE_FLAGS) BUILD_OPT=1
 !endif
 
-!if "$(MOZ_BITS)" == "16"
-GMAKE_FLAGS = $(GMAKE_FLAGS) OS_TARGET=WIN16
-!else
-
 GMAKE_FLAGS = $(GMAKE_FLAGS) OS_TARGET=WIN95
 !ifdef MOZ_DEBUG
 !ifndef MOZ_NO_DEBUG_RTL
@@ -63,8 +59,6 @@ GMAKE_FLAGS = $(GMAKE_FLAGS) USE_DEBUG_RTL=1
 !endif
 !endif
 
-!endif
- 
 #
 # The rules.  Simply invoke gmake with the same target.
 # The default target is 'all'.  For Win16, set up the
@@ -79,17 +73,7 @@ install:: moz_import install_roots
 depend::
 
 export libs install clobber clobber_all clean::
-!if "$(MOZ_BITS)" == "16"
-	set PATH=%WATCPATH%
-	set INCLUDE=%WATC_INC%
-	set LIB=%WATC_LIB%
-!endif
 	$(GMAKE) -C lib $(GMAKE_FLAGS) $@
-!if "$(MOZ_BITS)" == "16"
-	set PATH=%MSVCPATH%
-	set INCLUDE=%MSVC_INC%
-	set LIB=%MSVC_LIB%
-!endif
 
 moz_import::
 	copy $(DIST)\lib\dbm32.lib $(DIST)\lib\dbm.lib
