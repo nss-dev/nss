@@ -75,17 +75,6 @@ NSSCertificate_GetID
   NSSCertificate *c
 );
 
-/*
- * Look for a specific cert in the cache.
- */
-NSS_EXTERN NSSCertificate *
-nssTrustDomain_GetCertForIssuerAndSNFromCache
-(
-  NSSTrustDomain *td,
-  NSSDER *issuer,
-  NSSDER *serialNum
-);
-
 PR_END_EXTERN_C
 
 #endif /* PKI_H */

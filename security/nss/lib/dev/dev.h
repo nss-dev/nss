@@ -298,6 +298,7 @@ nssToken_FindCertificatesByTemplate
 (
   NSSToken *tok,
   nssSession *sessionOpt,
+  nssList *cachedList,
   CK_ATTRIBUTE_PTR cktemplate,
   CK_ULONG ctsize,
   PRStatus (*callback)(NSSCertificate *c, void *arg),

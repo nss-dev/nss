@@ -187,7 +187,6 @@ nssTrustDomain_GetCertsForSubjectFromCache
   nssList *certListOpt
 );
 
-#if 0
 /*
  * Look for a specific cert in the cache.
  */
@@ -198,7 +197,6 @@ nssTrustDomain_GetCertForIssuerAndSNFromCache
   NSSDER *issuer,
   NSSDER *serialNum
 );
-#endif
 
 /*
  * Look for a specific cert in the cache.
