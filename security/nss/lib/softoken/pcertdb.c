@@ -2384,11 +2384,19 @@ DecodeDBSubjectEntry(certDBEntrySubject *entry, SECItem *dbentry,
 	    goto loser;
 	}
 	for (i=0; i < entry->nemailAddrs; i++) {
-	    int nameLen = tmpbuf[0] << 8 | tmpbuf[1];
+	    int nameLen;
+	    if (tmpbuf + 2 > end) {
+		goto loser;
+	    }
+
+	    nameLen = tmpbuf[0] << 8 | tmpbuf[1];
 	    entry->emailAddrs[i] = PORT_ArenaAlloc(arena,nameLen);
 	    if (entry->emailAddrs == NULL) {
 	        PORT_SetError(SEC_ERROR_NO_MEMORY);
 	        goto loser;
+	    }
+	    if (tmpbuf + (nameLen+2) > end) {
+		goto loser;
 	    }
 	    PORT_Memcpy(entry->emailAddrs[i],&tmpbuf[2],nameLen);
 	    tmpbuf += 2 + nameLen;
