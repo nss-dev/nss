@@ -489,11 +489,7 @@ __ADJOIN(MODULE_NAME,C_GetFunctionList)
 }
 
 /* This one is always present */
-#ifdef WIN32
-CK_RV _declspec(dllexport)
-#else
 CK_RV CK_ENTRY
-#endif
 C_GetFunctionList
 (
   CK_FUNCTION_LIST_PTR_PTR ppFunctionList
