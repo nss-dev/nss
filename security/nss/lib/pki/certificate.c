@@ -306,7 +306,8 @@ NSSCertificate_BuildChain
 	issuerID = dc->getIssuerIdentifier(dc);
 	if (issuerID) {
 	    c = find_issuer_cert_for_identifier(c, issuerID);
-	    nss_ZFreeIf(issuerID);
+	    nssItem_Destroy(issuerID);
+	    issuerID = NULL;
 	    if (!c) {
 		nss_SetError(NSS_ERROR_CERTIFICATE_ISSUER_NOT_FOUND);
 		if (statusOpt) *statusOpt = PR_FAILURE;

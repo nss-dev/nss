@@ -352,6 +352,7 @@ nss3certificate_getDERSerialNumber(nssDecodedCert *dc,
     secrv = CERT_SerialNumberFromDERCert(&cc->derCert, &derSerial);
     if (secrv == SECSuccess) {
 	(void)nssItem_Create(arena, serial, derSerial.len, derSerial.data);
+	PORT_Free(derSerial.data);
 	return PR_SUCCESS;
     }
     return PR_FAILURE;
