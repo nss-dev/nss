@@ -221,10 +221,10 @@ SSL_ResetHandshake(PRFileDesc *s, PRBool asServer)
 
     ss->firstHsDone = PR_FALSE;
     if ( asServer ) {
-	ss->securityHandshake = ssl2_BeginServerHandshake;
+	ss->handshake = ssl2_BeginServerHandshake;
 	ss->handshaking = sslHandshakingAsServer;
     } else {
-	ss->securityHandshake = ssl2_BeginClientHandshake;
+	ss->handshake = ssl2_BeginClientHandshake;
 	ss->handshaking = sslHandshakingAsClient;
     }
     ss->nextHandshake       = 0;
