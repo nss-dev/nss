@@ -1473,7 +1473,7 @@ ssl_WriteV(PRFileDesc *fd, const PRIOVec *iov, PRInt32 vectors,
 #define HANDLE_ERR(rv, len) \
     if (rv != len) { \
 	if (rv < 0) { \
-	    if (blocking \
+	    if (!blocking \
 		&& (PR_GetError() == PR_WOULD_BLOCK_ERROR) \
 		&& (sent > 0)) { \
 		return sent; \
@@ -1482,7 +1482,7 @@ ssl_WriteV(PRFileDesc *fd, const PRIOVec *iov, PRInt32 vectors,
 	    } \
 	} \
 	/* Only a nonblocking socket can have partial sends */ \
-	PR_ASSERT(blocking); \
+	PR_ASSERT(!blocking); \
 	return sent; \
     } 
 #define SEND(bfr, len) \
