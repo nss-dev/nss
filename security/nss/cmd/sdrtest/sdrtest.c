@@ -295,7 +295,9 @@ file_loser:
 loser:
     if (text.data) free(text.data);
     if (result.data) free(result.data);
-    NSS_Shutdown();
+    if (NSS_Shutdown() != SECSuccess)
+       exit(1);
+    }
 
 prdone:
     PR_Cleanup ();
