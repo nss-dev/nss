@@ -43,7 +43,6 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #include "ckhelper.h"
 #endif /* CKHELPER_H */
 
-#ifdef PURE_STAN_BUILD
 NSS_IMPLEMENT nssCryptokiObject *
 nssCryptokiObject_Create
 (
@@ -161,6 +160,7 @@ nssSlotArray_Clone
     return rvSlots;
 }
 
+#ifdef PURE_STAN_BUILD
 NSS_IMPLEMENT void
 nssModuleArray_Destroy
 (
@@ -175,6 +175,7 @@ nssModuleArray_Destroy
 	nss_ZFreeIf(modules);
     }
 }
+#endif
 
 NSS_IMPLEMENT void
 nssSlotArray_Destroy
@@ -239,6 +240,7 @@ nssCryptokiObjectArray_Destroy
     }
 }
 
+#ifdef PURE_STAN_BUILD
 /*
  * Slot lists
  */

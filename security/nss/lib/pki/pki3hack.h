@@ -125,6 +125,10 @@ nssTrust_GetCERTCertTrustForCert(NSSCertificate *c, CERTCertificate *cc);
 NSS_EXTERN PRStatus
 STAN_ChangeCertTrust(CERTCertificate *cc, CERTCertTrust *trust);
 
+NSS_EXTERN PRStatus
+nssPKIX509_GetIssuerAndSerialFromDER(NSSDER *der, NSSArena *arena, 
+                                     NSSDER *issuer, NSSDER *serial);
+
 /* exposing this */
 NSS_EXTERN NSSCertificate *
 NSSCertificate_Create

@@ -104,6 +104,18 @@ struct nssBestCertificateCBStr {
     NSSPolicies *policies;
 };
 
+typedef struct nssPKIObjectCollectionStr nssPKIObjectCollection;
+
+typedef struct
+{
+  union {
+    PRStatus (*  cert)(NSSCertificate *c, void *arg);
+    PRStatus (* pvkey)(NSSPrivateKey *vk, void *arg);
+    PRStatus (* pbkey)(NSSPublicKey *bk, void *arg);
+  } func;
+  void *arg;
+} nssPKIObjectCallback;
+
 PR_END_EXTERN_C
 
 #endif /* PKITM_H */

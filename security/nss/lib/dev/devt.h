@@ -144,7 +144,7 @@ typedef enum {
     NSSCertificateType_PKIX = 1
 } NSSCertificateType;
 
-#ifdef NSS_3_4_CODE
+#ifdef nodef
 /* the current definition of NSSTrust depends on this value being CK_ULONG */
 typedef CK_ULONG nssTrustLevel;
 #else
@@ -175,7 +175,8 @@ typedef struct nssTokenCertSearchStr nssTokenCertSearch;
 typedef enum {
     nssTokenSearchType_AllObjects = 0,
     nssTokenSearchType_SessionOnly = 1,
-    nssTokenSearchType_TokenOnly = 2
+    nssTokenSearchType_TokenOnly = 2,
+    nssTokenSearchType_TokenForced = 3
 } nssTokenSearchType;
 
 struct nssTokenCertSearchStr
