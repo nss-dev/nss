@@ -804,6 +804,8 @@ stan_GetTrustToken
   NSSCertificate *c
 )
 {
+    NSSToken *ttok = NULL;
+    NSSToken *rtok = NULL;
     NSSToken *tok = NULL;
     nssCryptokiObject **ip;
     nssCryptokiObject **instances = nssPKIObject_GetInstances(&c->object);
@@ -816,16 +818,26 @@ stan_GetTrustToken
 		nssToken_FindTrustForCertificate(instance->token, NULL,
 		&c->encoding, &c->issuer, &c->serial, 
 		nssTokenSearchType_TokenOnly);
+	NSSToken *ctok = instance->token;
+	PRBool ro = PK11_IsReadOnly(ctok->pk11slot);
+
 	if (to) {
 	    nssCryptokiObject_Destroy(to);
-	    tok = instance->token;
- 	    if (!PK11_IsReadOnly(tok->pk11slot))  {
+	    ttok = ctok;
+ 	    if (!ro) {
 		break;
+	    }
+	} else {
+	    if (!rtok && ro) {
+		rtok = ctok;
+	    } 
+	    if (!tok && !ro) {
+		tok = ctok;
 	    }
 	}
     }
     nssCryptokiObjectArray_Destroy(instances);
-    return tok;
+    return ttok ? ttok : (tok ? tok : rtok);
 }
 
 NSS_EXTERN PRStatus
@@ -886,7 +898,7 @@ STAN_ChangeCertTrust(CERTCertificate *cc, CERTCertTrust *trust)
     td = STAN_GetDefaultTrustDomain();
     tok = stan_GetTrustToken(c);
     moving_object = PR_FALSE;
-    if (PK11_IsReadOnly(tok->pk11slot))  {
+    if (tok && PK11_IsReadOnly(tok->pk11slot))  {
 	tokens = nssList_CreateIterator(td->tokenList);
 	if (!tokens) return PR_FAILURE;
 	for (tok  = (NSSToken *)nssListIterator_Start(tokens);
