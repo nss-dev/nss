@@ -69,6 +69,11 @@ static char sccsid[] = "@(#)hash.c	8.9 (Berkeley) 6/16/94";
 #include <windows.h>
 #endif
 
+#ifdef XP_OS2_VACPP
+#include "types.h"
+#define EPERM SOCEPERM
+#endif
+
 #include <assert.h>
 
 #include "mcom_db.h"
@@ -186,13 +191,15 @@ __hash_open(const char *file, int flags, int mode, const HASHINFO *info, int dfl
 	hashp->file_size = statbuf.st_size;
 
 	if (file) {				 
-#if defined(_WIN32) || defined(_WINDOWS) || defined (macintosh)  || defined(XP_OS2)
+#if defined(_WIN32) || defined(_WINDOWS) || defined (macintosh) || \
+    defined(XP_OS2_VACPP)
 		if ((hashp->fp = DBFILE_OPEN(file, flags | O_BINARY, mode)) == -1)
 			RETURN_ERROR(errno, error1);
 #else
 		if ((hashp->fp = open(file, flags, mode)) == -1)
 			RETURN_ERROR(errno, error1);
 		(void)fcntl(hashp->fp, F_SETFD, 1);
+		/* We can't use fcntl because of NFS bugs. SIGH */
 #endif
 	}
 	if (new_table) {
@@ -343,7 +350,8 @@ init_hash(HTAB *hashp, const char *file, HASHINFO *info)
 		if (stat(file, &statbuf))
 			return (NULL);
 
-#if !defined(_WIN32) && !defined(_WINDOWS) && !defined(macintosh) && !defined(VMS) && !defined(XP_OS2)
+#if !defined(_WIN32) && !defined(_WINDOWS) && !defined(macintosh) && \
+    !defined(VMS) && !defined(XP_OS2)
 #if defined(__QNX__) && !defined(__QNXNTO__)
 		hashp->BSIZE = 512; /* preferred blk size on qnx4 */
 #else
