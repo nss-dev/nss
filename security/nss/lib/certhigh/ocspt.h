@@ -56,33 +56,4 @@ typedef struct CERTOCSPCertIDStr CERTOCSPCertID;
 typedef struct CERTOCSPCertStatusStr CERTOCSPCertStatus;
 typedef struct CERTOCSPSingleResponseStr CERTOCSPSingleResponse;
 
-/*
- * Making these types public so that it is possible for 3rpd party
- * apps to parse and look at the fields of an OCSP response.
- */
-
-/*
- * This describes the value of the responseStatus field in an OCSPResponse.
- * The corresponding ASN.1 definition is:
- *
- * OCSPResponseStatus   ::=     ENUMERATED {
- *      successful              (0),    --Response has valid confirmations
- *      malformedRequest        (1),    --Illegal confirmation request
- *      internalError           (2),    --Internal error in issuer
- *      tryLater                (3),    --Try again later
- *                                      --(4) is not used
- *      sigRequired             (5),    --Must sign the request
- *      unauthorized            (6),    --Request unauthorized
- * }
- */
-typedef enum {
-    OCSPResponse_successful = 0,
-    OCSPResponse_malformedRequest = 1,
-    OCSPResponse_internalError = 2,
-    OCSPResponse_tryLater = 3,
-    OCSPResponse_unused = 4,
-    OCSPResponse_sigRequired = 5,
-    OCSPResponse_unauthorized = 6,
-    OCSPResponse_other                  /* unknown/unrecognized value */
-} OCSPResponseStatus;
 #endif /* _OCSPT_H_ */
