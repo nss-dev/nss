@@ -34,6 +34,7 @@
  * the terms of any one of the MPL, the GPL or the LGPL.
  *
  * ***** END LICENSE BLOCK ***** */
+/* $Id$ */
 
 /*  The functions that are to be called from outside of the .s file have the
  *  following interfaces and array size requirements:

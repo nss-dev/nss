@@ -34,6 +34,7 @@
 ! the terms of any one of the MPL, the GPL or the LGPL.
 !
 ! ***** END LICENSE BLOCK *****
+! $Id$
 
 ! This file is to be used in place of vis.il in 64-bit builds.
 

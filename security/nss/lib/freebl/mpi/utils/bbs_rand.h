@@ -38,6 +38,7 @@
  * the terms of any one of the MPL, the GPL or the LGPL.
  *
  * ***** END LICENSE BLOCK ***** */
+/* $Id$ */
 
 #ifndef _H_BBSRAND_
 #define _H_BBSRAND_

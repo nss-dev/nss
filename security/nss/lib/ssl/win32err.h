@@ -41,6 +41,7 @@
  * the terms of any one of the MPL, the GPL or the LGPL.
  *
  * ***** END LICENSE BLOCK ***** */
+/* $Id$ */
 
 /*  NSPR doesn't make these functions public, so we have to duplicate
 **  them in NSS.

@@ -39,6 +39,7 @@
  * the terms of any one of the MPL, the GPL or the LGPL.
  *
  * ***** END LICENSE BLOCK ***** */
+/* $Id$ */
 
 #ifndef _H_MPI_
 #define _H_MPI_
