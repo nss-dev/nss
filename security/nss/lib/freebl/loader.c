@@ -1246,7 +1246,7 @@ void
 AESKeyWrap_DestroyContext(AESKeyWrapContext *cx, PRBool freeit)
 {
   if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
-      return NULL;
+      return;
   return vector->p_AESKeyWrap_DestroyContext(cx, freeit);
 }
 
