@@ -151,6 +151,10 @@ extern unsigned char * DES_PadBuffer(PRArenaPool *arena, unsigned char *inbuf,
 */
 extern CK_RV pk11_fipsPowerUpSelfTest( void ); 
 
+/*
+** make known fixed PKCS #11 key types to their sizes in bytes
+*/	
+unsigned long pk11_MapKeySize(CK_KEY_TYPE keyType);
 
 SEC_END_PROTOS
 
