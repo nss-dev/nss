@@ -604,7 +604,7 @@ extern void pk11_CleanupFreeLists(void);
 extern NSSLOWKEYPublicKey *pk11_GetPubKey(PK11Object *object,
 					  CK_KEY_TYPE key_type);
 extern NSSLOWKEYPrivateKey *pk11_GetPrivKey(PK11Object *object,
-					    CK_KEY_TYPE key_type);
+					    CK_KEY_TYPE key_type, CK_RV *crvp);
 extern void pk11_FormatDESKey(unsigned char *key, int length);
 extern PRBool pk11_CheckDESKey(unsigned char *key);
 extern PRBool pk11_IsWeakKey(unsigned char *key,CK_KEY_TYPE key_type);
