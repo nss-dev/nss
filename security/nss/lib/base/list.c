@@ -185,7 +185,7 @@ nsslist_add_element(nssList *list, void *data)
 }
 
 NSS_IMPLEMENT PRStatus
-nssList_AddElement(nssList *list, void *data)
+nssList_Add(nssList *list, void *data)
 {
     PRStatus nssrv;
     NSSLIST_LOCK_IF(list);
@@ -195,7 +195,7 @@ nssList_AddElement(nssList *list, void *data)
 }
 
 NSS_IMPLEMENT PRStatus
-nssList_AddElementUnique(nssList *list, void *data)
+nssList_AddUnique(nssList *list, void *data)
 {
     PRStatus nssrv;
     nssListElement *node;
@@ -212,7 +212,7 @@ nssList_AddElementUnique(nssList *list, void *data)
 }
 
 NSS_IMPLEMENT PRStatus
-nssList_RemoveElement(nssList *list, void *data)
+nssList_Remove(nssList *list, void *data)
 {
     nssListElement *node;
     NSSLIST_LOCK_IF(list);
@@ -230,7 +230,7 @@ nssList_RemoveElement(nssList *list, void *data)
 }
 
 NSS_IMPLEMENT void *
-nssList_GetElement(nssList *list, void *data)
+nssList_Get(nssList *list, void *data)
 {
     nssListElement *node;
     NSSLIST_LOCK_IF(list);
@@ -250,12 +250,13 @@ nssList_GetArray(nssList *list, void **rvArray, PRUint32 maxElements)
 {
     nssListIterator *iter;
     void *el;
-    int i = 0;
+    PRUint32 i = 0;
     iter = nssList_CreateIterator(list);
-    for (el = nssListIterator_Start(iter); el != NULL && i < maxElements; 
+    for (el = nssListIterator_Start(iter); el != NULL;
          el = nssListIterator_Next(iter)) 
     {
 	rvArray[i++] = el;
+	if (maxElements > 0 && i == maxElements) break;
     }
     rvArray[i] = NULL;
     nssListIterator_Finish(iter);
