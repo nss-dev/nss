@@ -27,6 +27,7 @@ d none usr 0755 root sys
 d none usr/sfw 0755 root bin
 d none usr/sfw/bin 0755 root bin
 f none usr/sfw/bin/certutil 0755 root bin
+f none usr/sfw/bin/crlutil 0755 root bin
 f none usr/sfw/bin/cmsutil 0755 root bin
 f none usr/sfw/bin/modutil 0755 root bin
 f none usr/sfw/bin/pk12util 0755 root bin

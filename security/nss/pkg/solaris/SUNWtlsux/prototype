@@ -29,6 +29,7 @@ d none usr/sfw/bin 0755 root bin
 s none usr/sfw/bin/64=sparcv9
 d none usr/sfw/bin/sparcv9 0755 root bin
 f none usr/sfw/bin/sparcv9/certutil 0755 root bin
+f none usr/sfw/bin/sparcv9/crlutil 0755 root bin
 f none usr/sfw/bin/sparcv9/cmsutil 0755 root bin
 f none usr/sfw/bin/sparcv9/modutil 0755 root bin
 f none usr/sfw/bin/sparcv9/pk12util 0755 root bin
