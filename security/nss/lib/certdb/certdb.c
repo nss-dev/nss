@@ -925,7 +925,7 @@ CERT_CheckCertValidTimes(CERTCertificate *c, PRTime t, PRBool allowOverride)
     
     LL_I2L(llPendingSlop, pendingSlop);
     /* convert to micro seconds */
-    LL_I2L(tmp1, PR_USEC_PER_SEC);
+    LL_UI2L(tmp1, PR_USEC_PER_SEC);
     LL_MUL(llPendingSlop, llPendingSlop, tmp1);
     LL_SUB(notBefore, notBefore, llPendingSlop);
     if ( LL_CMP( t, <, notBefore ) ) {
