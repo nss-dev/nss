@@ -976,16 +976,6 @@ extern SECStatus   PQG_VerifyParams(const PQGParams *params,
  */
 extern void BL_Cleanup(void);
 
-/**************************************************************************
- *  Free the PQGParams struct and the things it points to.                *
- **************************************************************************/
-extern void PQG_DestroyParams(PQGParams *params);
-
-/**************************************************************************
- *  Free the PQGVerify struct and the things it points to.                *
- **************************************************************************/
-extern void PQG_DestroyVerify(PQGVerify *vfy);
-
 
 /**************************************************************************
  *  Verify a given Shared library signature                               *
