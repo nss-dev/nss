@@ -4206,6 +4206,7 @@ SEC_OpenPermCertDB(CERTCertDBHandle *handle, PRBool readOnly,
 	} else if ( versionEntry->common.version != CERT_DB_FILE_VERSION ) {
 	    /* wrong version number, can't update in place */
 	    DestroyDBEntry((certDBEntry *)versionEntry);
+	    PORT_Free(certdbname);
 	    return(SECFailure);
 	}
 
@@ -4300,6 +4301,8 @@ SEC_OpenPermCertDB(CERTCertDBHandle *handle, PRBool readOnly,
     }
 
     rv = CERT_AddNewCerts(handle);
+
+    PORT_Free(certdbname);
     
     return (SECSuccess);
     
@@ -4311,6 +4314,8 @@ loser:
 	certdb_Close(handle->permCertDB);
 	handle->permCertDB = 0;
     }
+
+    PORT_Free(certdbname);
 
     return(SECFailure);
 }
@@ -4812,7 +4817,7 @@ loser:
 static char *
 certDBFilenameCallback(void *arg, int dbVersion)
 {
-    return((char *)arg);
+    return(PORT_Strdup((char *)arg));
 }
 
 SECStatus
