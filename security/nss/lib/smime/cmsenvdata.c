@@ -408,7 +408,7 @@ loser:
 SECStatus
 NSS_CMSEnvelopedData_Decode_AfterData(NSSCMSEnvelopedData *envd)
 {
-    if (envd->contentInfo.ciphcx) {
+    if (envd && envd->contentInfo.ciphcx) {
 	NSS_CMSCipherContext_Destroy(envd->contentInfo.ciphcx);
 	envd->contentInfo.ciphcx = NULL;
     }
