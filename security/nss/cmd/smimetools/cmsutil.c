@@ -1035,7 +1035,6 @@ main(int argc, char **argv)
        case 'H':
            if (mode != SIGN) {
                fprintf(stderr,
-                       "%s: option -n only supported with option -D.\n",
                        "%s: option -H only supported with option -S.\n",
                        progName);
                Usage(progName);
