@@ -511,6 +511,7 @@ find_objects_by_template (
 #ifdef NSS_3_4_CODE
 	PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
 #endif
+	if (statusOpt) *statusOpt = PR_FAILURE;
 	return NULL;
     }
     /* If these objects are being cached, try looking there first */
