@@ -47,7 +47,6 @@
 #include "secoid.h"
 #include "cms.h"
 #include "smime.h"
-#include "cmslocal.h"
 
 #if defined(XP_UNIX)
 #include <unistd.h>
@@ -525,7 +524,9 @@ enveloped_data(struct envelopeOptionsStr envelopeOptions)
     }
     /* XXX find the recipient's certs by email address or nickname */
     if ((recipientcerts = 
-          (CERTCertificate **)NSS_CMSArray_Alloc(tmppoolp, cnt+1)) == NULL) {
+         (CERTCertificate **)PORT_ArenaZAlloc(tmppoolp, 
+					     (cnt+1)*sizeof(CERTCertificate*)))
+            == NULL) {
 	fprintf(stderr, "ERROR: out of memory.\n");
 	goto loser;
     }
@@ -773,7 +774,9 @@ signed_data_certsonly(struct certsonlyOptionsStr certsonlyOptions)
 	goto loser;
     }
     if ((certs = 
-           (CERTCertificate **)NSS_CMSArray_Alloc(tmppoolp, cnt+1)) == NULL) {
+         (CERTCertificate **)PORT_ArenaZAlloc(tmppoolp, 
+					     (cnt+1)*sizeof(CERTCertificate*)))
+            == NULL) {
 	fprintf(stderr, "ERROR: out of memory.\n");
 	goto loser;
     }
