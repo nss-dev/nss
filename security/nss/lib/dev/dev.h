@@ -268,6 +268,7 @@ nssToken_ImportCertificate
   NSSToken *tok,
   nssSession *sessionOpt,
   NSSCertificate *cert,
+  NSSUTF8 *nickname,
   PRBool asTokenObject
 );
  

@@ -54,6 +54,13 @@ nssCertificate_AddRef
   NSSCertificate *c
 );
 
+NSS_EXTERN NSSUTF8 *
+NSSCertificate_GetNickname
+(
+  NSSCertificate *c,
+  NSSToken *tokenOpt
+);
+
 /* putting here for now, needs more thought */
 NSS_EXTERN PRStatus
 nssCryptoContext_ImportTrust

@@ -92,6 +92,39 @@ NSSCertificate_Destroy
     return PR_SUCCESS;
 }
 
+NSS_IMPLEMENT NSSUTF8 *
+NSSCertificate_GetNickname
+(
+  NSSCertificate *c,
+  NSSToken *tokenOpt
+)
+{
+    NSSUTF8 *rvNick = NULL;
+    nssCryptokiInstance *instance;
+    nssListIterator *instances = c->object.instances;
+    if (c->object.cryptoContext) {
+	return c->object.tempName;
+    }
+    for (instance  = (nssCryptokiInstance *)nssListIterator_Start(instances);
+         instance != (nssCryptokiInstance *)NULL;
+         instance  = (nssCryptokiInstance *)nssListIterator_Next(instances)) 
+    {
+	if (tokenOpt) {
+	    if (instance->token == tokenOpt) {
+		/* take the nickname on the given token */
+		rvNick = instance->label;
+		break;
+	    }
+	} else {
+	    /* take the first one */
+	    rvNick = instance->label;
+	    break;
+	}
+    }
+    nssListIterator_Finish(instances);
+    return rvNick;
+}
+
 NSS_IMPLEMENT PRStatus
 NSSCertificate_DeleteStoredObject
 (

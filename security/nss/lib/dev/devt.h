@@ -171,6 +171,7 @@ struct nssCryptokiInstanceStr
     CK_OBJECT_HANDLE handle;
     NSSToken *token;
     PRBool isTokenObject;
+    NSSUTF8 *label;
 };
 
 typedef struct nssTokenCertSearchStr nssTokenCertSearch;
