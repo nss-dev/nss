@@ -918,6 +918,17 @@ extern void PQG_DestroyParams(PQGParams *params);
  **************************************************************************/
 extern void PQG_DestroyVerify(PQGVerify *vfy);
 
+
+/**************************************************************************
+ *  Verify a given Shared library signature                               *
+ **************************************************************************/
+PRBool BLAPI_SHVerify(const char *name, PRFuncPtr addr);
+
+/**************************************************************************
+ *  Verify Are Own Shared library signature                               *
+ **************************************************************************/
+PRBool BLAPI_VerifySelf(const char *name);
+
 SEC_END_PROTOS
 
 #endif /* _BLAPI_H_ */

@@ -167,6 +167,10 @@ static const struct FREEBLVectorStr vector = {
 
     /* End of Version 3.004. */
 
+    BLAPI_SHVerify,
+    BLAPI_VerifySelf,
+
+    /* End of Version 3.005. */
 };
 
 

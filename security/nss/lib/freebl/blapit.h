@@ -39,7 +39,9 @@
 #define _BLAPIT_H_
 
 #include "seccomon.h"
+#include "prlink.h"
 #include "plarena.h"
+
 
 /* RC2 operation modes */
 #define NSS_RC2			0
