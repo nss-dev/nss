@@ -290,3 +290,21 @@ DB * rdbopen(const char *appName, const char *prefix,
     PR_UnloadLibrary(lib);
     return NULL;
 }
+
+SECStatus
+db_Copy(DB *dest,DB *src)
+{
+    int ret;
+    DBT key,data;
+    ret = (*src->seq)(src, &key, &data, R_FIRST);
+    if (ret)  {
+	return SECSuccess;
+    }
+
+    do {
+	(void)(*dest->put)(dest,&key,&data, R_NOOVERWRITE);
+    } while ( (*src->seq)(src, &key, &data, R_NEXT) == 0);
+    (void)(*dest->sync)(dest,0);
+
+    return SECSuccess;
+}

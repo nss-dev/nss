@@ -875,6 +875,13 @@ newdb:
 
 	if (appName) {
 	    handle->db = rdbopen( appName, prefix, "key", NO_CREATE);
+	    handle->updatedb = dbopen( dbname, NO_RDONLY, 0600, DB_HASH, 0 );
+	    if (handle->updatedb) {
+		db_Copy(handle->db, handle->updatedb);
+		(*handle->updatedb->close)(handle->updatedb);
+		handle->updatedb = NULL;
+		goto done;
+	    }
 	} else {
 	    handle->db = dbopen( dbname, NO_CREATE, 0600, DB_HASH, 0 );
 	}
@@ -929,6 +936,8 @@ newdb:
 	    goto loser;
 	}
     }
+
+done:
 
     handle->global_salt = GetKeyDBGlobalSalt(handle);
     if ( dbname )
