@@ -238,9 +238,3 @@ SECITEM_ZfreeItem(SECItem *zap, PRBool freeit)
 	}
     }
 }
-
-char *
-BTOA_ConvertItemToAscii (SECItem *isrc)
-{
-    return BTOA_DataToAscii (isrc->data, isrc->len);
-}
