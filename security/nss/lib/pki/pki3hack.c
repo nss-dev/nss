@@ -665,7 +665,7 @@ STAN_GetNSSCertificate(CERTCertificate *cc)
 	nssListIterator_Destroy(c->object.instances);
 	c->object.instances = nssList_CreateIterator(c->object.instanceList);
     }
-    c->decoding = create_decoded_pkix_cert_from_nss3cert(arena, cc);
+    c->decoding = create_decoded_pkix_cert_from_nss3cert(NULL, cc);
     cc->nssCertificate = c;
     return c;
 }
