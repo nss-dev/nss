@@ -1105,6 +1105,7 @@ const ssl3BulkCipherDef *cipher_def;
 
     mac_param.data = (unsigned char *)&macLength;
     mac_param.len  = sizeof(macLength);
+    mac_param.type = 0;
     mac_mech       = pwSpec->mac_def->mmech;
 
     if (cipher_def->calg == calg_null) {
