@@ -56,6 +56,7 @@
 #include "unistd.h"
 #endif
 #include "nssrwlk.h"
+#include "prthread.h"
 
 
 #if defined(DEBUG) || defined(TRACE)
