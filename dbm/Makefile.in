@@ -98,4 +98,4 @@ ifeq ($(OS_ARCH),AIX)
 OS_LIBS		+= -lc_r
 endif
 
-PROG_LIBS	= -L. $(call EXPAND_LIBNAME,$(LIBRARY_NAME))
+PROG_LIBS	= $(LIBS_DIR) $(call EXPAND_LIBNAME,$(LIBRARY_NAME))
