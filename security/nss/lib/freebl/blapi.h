@@ -665,7 +665,7 @@ extern void SHA1_End(SHA1Context *cx, unsigned char *digest,
 /*
 ** trace the intermediate state info of the SHA1 hash.
 */
-extern void SHA1_TraceState(MD5Context *cx);
+extern void SHA1_TraceState(SHA1Context *cx);
 
 /*
  * Return the the size of a buffer needed to flatten the SHA-1 Context into
