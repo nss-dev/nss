@@ -58,6 +58,23 @@ extern SECStatus NSS_Init(const char *configdir);
 extern SECStatus NSS_InitReadWrite(const char *configdir);
 
 /*
+ * Open the Cert, Key, and Security Module databases, read/write.
+ * Initialize the Random Number Generator.
+ * Does not initialize the cipher policies or enables.
+ * Default policy settings disallow all ciphers.
+ *
+ * This allows using application defined prefixes for the cert and key db's
+ * and an alternate name for the secmod database. NOTE: In future releases,
+ * the database prefixes my not necessarily map to database names.
+ *
+ * Also NOTE: This is not the recommended method for initializing NSS. 
+ * The prefered method is NSS_init().
+ */
+extern SECStatus NSS_Initialize(const char *configdir, 
+	const char *certPrefix, const char *keyPrefix, const char *secmodName,
+	PRBool readonly);
+
+/*
  * initialize NSS without a creating cert db's, key db's, or secmod db's.
  */
 SECStatus NSS_NoDB_Init(const char *configdir);
