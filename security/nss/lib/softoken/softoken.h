@@ -130,15 +130,6 @@ SECStatus RSA_DecryptRaw(SECKEYLowPrivateKey *key, unsigned char *output,
     			     unsigned int max_output_len,
 			     unsigned char *input, unsigned int input_len);
 
-
-/* 
-** Functions called directly by applications to configure the FIPS token.
-*/
-extern void PK11_ConfigurePKCS11(char *man, char *libdes, char *tokdes, 
-		char *ptokdes, char *slotdes, char *pslotdes, char *fslotdes, 
-		char *fpslotdes, int minPwd, int pwdRequired);
-extern void PK11_ConfigureFIPS(char *slotdes, char *pslotdes);
-
 /*
 ** Prepare a buffer for DES encryption, growing to the appropriate boundary,
 ** filling with the appropriate padding.
