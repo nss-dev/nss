@@ -480,7 +480,8 @@ typedef enum {
 typedef enum {
     secCertTimeValid = 0,
     secCertTimeExpired = 1,
-    secCertTimeNotValidYet = 2
+    secCertTimeNotValidYet = 2,
+    secCertTimeUndetermined = 3
 } SECCertTimeValidity;
 
 /*
