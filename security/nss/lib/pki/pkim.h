@@ -282,6 +282,14 @@ nssBestCertificate_Callback
 );
 
 NSS_EXTERN PRStatus
+nssCertificateList_DoCallback
+(
+  nssList *certList, 
+  PRStatus (* callback)(NSSCertificate *c, void *arg),
+  void *arg
+);
+
+NSS_EXTERN PRStatus
 nssPKIObject_Initialize
 (
   struct nssPKIObjectBaseStr *object,
