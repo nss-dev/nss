@@ -393,7 +393,7 @@ CERT_DecodeDERCrl (PRArenaPool *arena, SECItem *derSignedCrl,int type);
  * same as CERT_DecodeDERCrl, plus allow options to be passed in
  */
 
-CERTSignedCrl *
+extern CERTSignedCrl *
 CERT_DecodeDERCrlEx(PRArenaPool *narena, SECItem *derSignedCrl, int type,
                           PRInt32 options);
 
@@ -407,7 +407,14 @@ CERT_DecodeDERCrlEx(PRArenaPool *narena, SECItem *derSignedCrl, int type,
    and pass that arena in as the first argument to CERT_DecodeDERCrlEx */
 
 #define CRL_DECODE_DONT_COPY_DER            0x00000001
+#define CRL_DECODE_SKIP_ENTRIES             0x00000002
 
+/* complete the decoding of a partially decoded CRL, ie. decode the
+   entries. Note that entries is an optional field in a CRL, so the
+   "entries" pointer in CERTCrlStr may still be NULL even after
+   function returns SECSuccess */
+
+extern SECStatus CERT_CompleteCRLDecodeEntries(CERTSignedCrl* crl);
 
 /* Validate CRL then import it to the dbase.  If there is already a CRL with the
  * same CA in the dbase, it will be replaced if derCRL is more up to date.  

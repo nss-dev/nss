@@ -384,6 +384,7 @@ struct CERTCrlStr {
     SECItem nextUpdate;				/* optional for x.509 CRL  */
     CERTCrlEntry **entries;
     CERTCertExtension **extensions;    
+    /* can't add anything there for binary backwards compatibility reasons */
 };
 
 struct CERTCrlKeyStr {
@@ -408,6 +409,7 @@ struct CERTSignedCrlStr {
     SECItem *derCrl;
     PK11SlotInfo *slot;
     CK_OBJECT_HANDLE pkcs11ID;
+    void* opaque; /* do not touch */
 };
 
 
