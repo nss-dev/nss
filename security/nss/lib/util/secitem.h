@@ -41,6 +41,7 @@
  */
 
 #include "plarena.h"
+#include "plhash.h"
 #include "seccomon.h"
 
 SEC_BEGIN_PROTOS
@@ -100,6 +101,11 @@ extern void SECITEM_FreeItem(SECItem *zap, PRBool freeit);
 ** Zero and then free "zap". If freeit is PR_TRUE then "zap" itself is freed.
 */
 extern void SECITEM_ZfreeItem(SECItem *zap, PRBool freeit);
+
+PLHashNumber PR_CALLBACK SECITEM_Hash ( const void *key);
+
+PRIntn PR_CALLBACK SECITEM_HashCompare ( const void *k1, const void *k2);
+
 
 SEC_END_PROTOS
 
