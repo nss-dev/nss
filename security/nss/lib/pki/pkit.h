@@ -190,6 +190,15 @@ struct NSSTimeStr {
     PRTime prTime;
 };
 
+struct NSSCRLStr {
+  nssPKIObject object;
+  NSSDER encoding;
+  NSSUTF8 *url;
+  PRBool isKRL;
+};
+
+typedef struct NSSCRLStr NSSCRL;
+
 struct NSSPoliciesStr;
 
 struct NSSAlgorithmAndParametersStr;

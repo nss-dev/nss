@@ -142,6 +142,78 @@ nssCryptokiObject_Create
   CK_OBJECT_HANDLE h
 );
 
+NSS_EXTERN nssTokenObjectCache *
+nssTokenObjectCache_Create
+(
+  NSSToken *token,
+  PRBool cacheCerts,
+  PRBool cacheTrust,
+  PRBool cacheCRLs
+);
+
+NSS_EXTERN void
+nssTokenObjectCache_Destroy
+(
+  nssTokenObjectCache *cache
+);
+
+NSS_EXTERN PRBool
+nssTokenObjectCache_HaveObjectClass
+(
+  nssTokenObjectCache *cache,
+  CK_OBJECT_CLASS objclass
+);
+
+NSS_EXTERN nssCryptokiObject **
+nssTokenObjectCache_FindObjectsByTemplate
+(
+  nssTokenObjectCache *cache,
+  CK_OBJECT_CLASS objclass,
+  CK_ATTRIBUTE_PTR otemplate,
+  CK_ULONG otlen,
+  PRUint32 maximumOpt
+);
+
+NSS_EXTERN PRStatus
+nssTokenObjectCache_GetObjectAttributes
+(
+  nssTokenObjectCache *cache,
+  NSSArena *arenaOpt,
+  nssCryptokiObject *object,
+  CK_OBJECT_CLASS objclass,
+  CK_ATTRIBUTE_PTR atemplate,
+  CK_ULONG atlen
+);
+
+NSS_EXTERN PRStatus
+nssTokenObjectCache_ImportObject
+(
+  nssTokenObjectCache *cache,
+  nssCryptokiObject *object,
+  CK_OBJECT_CLASS objclass,
+  CK_ATTRIBUTE_PTR ot,
+  CK_ULONG otlen
+);
+
+NSS_EXTERN PRStatus
+nssTokenObjectCache_RemoveObject
+(
+  nssTokenObjectCache *cache,
+  nssCryptokiObject *object
+);
+
+/* XXX allows peek back into token */
+NSS_EXTERN PRStatus
+nssToken_GetCachedObjectAttributes
+(
+  NSSToken *token,
+  NSSArena *arenaOpt,
+  nssCryptokiObject *object,
+  CK_OBJECT_CLASS objclass,
+  CK_ATTRIBUTE_PTR atemplate,
+  CK_ULONG atlen
+);
+
 /* PKCS#11 stores strings in a fixed-length buffer padded with spaces.  This
  * function gets the length of the actual string.
  */

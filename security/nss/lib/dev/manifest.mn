@@ -58,6 +58,7 @@ CSRCS =		        \
 # here is where the 3.4 glue code is added
 ifndef PURE_STAN_BUILD
 DEFINES = -DNSS_3_4_CODE
+PRIVATE_EXPORTS += devm.h devtm.h
 endif
 
 REQUIRES = security nspr

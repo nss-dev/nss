@@ -109,6 +109,15 @@ NSS_EXTERN_DATA const NSSItem g_ck_class_privkey;
 	(item)->size = 0;                              \
     }
 
+#define NSS_CK_ATTRIBUTE_TO_BOOL(attrib, boolvar)        \
+    if ((attrib)->ulValueLen > 0) {                      \
+	if (*((CK_BBOOL*)(attrib)->pValue) == CK_TRUE) { \
+	    boolvar = PR_TRUE;                           \
+	} else {                                         \
+	    boolvar = PR_FALSE;                          \
+	}                                                \
+    }
+
 /* NSS_CK_ATTRIBUTE_TO_UTF8(attrib, str)
  *
  * Convert a CK_ATTRIBUTE to a string.
