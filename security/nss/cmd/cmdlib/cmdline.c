@@ -167,13 +167,12 @@ CMD_PrintUsageString(cmdPrintState *ps, char *str)
     nprintf(ps, "%s", str);
 }
 
-/* void because it exits with Usage() if failure */
-static void
+static int
 command_line_okay(cmdCommand *cmd, char *progName)
 {
     int i, c = -1;
     /* user asked for help.  hope somebody gives it to them. */
-    if (cmd->opt[0].on) return;
+    if (cmd->opt[0].on) return 0;
     /* check that the command got all of its needed options */
     for (i=0; i<cmd->ncmd; i++) {
 	if (cmd->cmd[i].on) {
@@ -182,6 +181,7 @@ command_line_okay(cmdCommand *cmd, char *progName)
 		        "%s: only one command can be given at a time.\n",
 		        progName);
 		CMD_Usage(progName, cmd);
+		return -1;
 	    } else {
 		c = i;
 	    }
@@ -194,6 +194,7 @@ command_line_okay(cmdCommand *cmd, char *progName)
 	fprintf(stderr, "type \"%s --%s --help\" for help.\n",
 	                 progName, cmd->cmd[c].s);
 	CMD_Usage(progName, cmd);
+	return -1;
     }
     for (i=0; i<cmd->nopt; i++) {
 	if (cmd->cmd[c].req[ZERO] & CMDBIT(i)) {
@@ -203,12 +204,14 @@ command_line_okay(cmdCommand *cmd, char *progName)
 		fprintf(stderr, "%s: command --%s requires option --%s.\n",
 		                 progName, cmd->cmd[c].s, cmd->opt[i].s);
 		CMD_Usage(progName, cmd);
+		return -1;
 	    } else {
 		/* okay, its there, but does it have an arg? */
 		if (cmd->opt[i].argUse == CMDArgReq && !cmd->opt[i].arg) {
 		    fprintf(stderr, "%s: option --%s requires an argument.\n",
 		                     progName, cmd->opt[i].s);
 		    CMD_Usage(progName, cmd);
+		    return -1;
 		}
 	    }
 	} else if (cmd->cmd[c].opt[ZERO] & CMDBIT(i)) {
@@ -219,18 +222,21 @@ command_line_okay(cmdCommand *cmd, char *progName)
 		    fprintf(stderr, "%s: option --%s requires an argument.\n",
 		                     progName, cmd->opt[i].s);
 		    CMD_Usage(progName, cmd);
+		    return -1;
 		}
 	    }
 	} else {
 	   /* command knows nothing about it */
 	   if (cmd->opt[i].on) {
-		/* so why the h--- is it on? */
+		/* so why is it on? */
 		fprintf(stderr, "%s: option --%s not used with command --%s.\n",
 		                 progName, cmd->opt[i].s, cmd->cmd[c].s);
 		CMD_Usage(progName, cmd);
+		return -1;
 	   }
 	}
     }
+    return 0;
 }
 
 static char *
@@ -341,7 +347,9 @@ CMD_ParseCommandLine(int argc, char **argv, char *progName, cmdCommand *cmd)
 next_flag:
 	i++;
     } while (i < argc);
-    command_line_okay(cmd, progName);
+    if (command_line_okay(cmd, progName) < 0) {
+	return -1;
+    }
     return cmdToRun;
 }
 

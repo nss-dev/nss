@@ -692,14 +692,15 @@ nssModule_CreateFromSpec (
 	    /* load the child recursively */
 	    child = nssModule_CreateFromSpec(*index, thisModule, PR_TRUE);
 	    if (!child) {
-		/* when children fail, does the parent? */
 		nssrv = PR_FAILURE;
-		break;
+		/* when children fail, does the parent? */
+		/* XXX for now, yes, treating all as critical */
+		goto loser;
 	    }
 	    if (NSSMODULE_IS_CRITICAL(child) && !child->isLoaded) {
 		nssrv = PR_FAILURE;
 		nssModule_Destroy(child);
-		break;
+		goto loser;
 	    }
 	    nssModule_Destroy(child);
 	    /* XXX I just happen to know this is what softoken does... */

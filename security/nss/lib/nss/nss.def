@@ -296,6 +296,8 @@ NSSTokenArray_Destroy;
 nssPrivateKey_GetNickname;
 NSSTrustDomain_TraverseCertificates;
 NSSTrustDomain_TraversePrivateKeys;
+nss_GetDefaultDatabaseToken;
+nssToken_NeedsPINInitialization;
 ;+#
 ;+# friendly functions for nss libraries -- DO NOT USE!
 ;+#

@@ -281,6 +281,10 @@ nssSlot_IsHardware (
   NSSSlot *slot
 );
 
+/*
+ * nssSlot_IsLoggedIn
+ */
+
 NSS_EXTERN PRBool
 nssSlot_IsLoggedIn (
   NSSSlot *slot
@@ -323,10 +327,6 @@ nssSlot_SetPassword (
   NSSUTF8 *oldPasswordOpt,
   NSSUTF8 *newPassword
 );
-
-/*
- * nssSlot_IsLoggedIn
- */
 
 NSS_EXTERN nssSession *
 nssSlot_CreateSession (

@@ -86,7 +86,7 @@ nssItem_Create (
     goto loser;
   }
 
-  if( length > 0 ) {
+  if( length > 0 && data != NULL ) {
     (void)nsslibc_memcpy(rv->data, data, length);
   }
 

@@ -252,11 +252,9 @@ CMD_GetDataFromBuffer(unsigned char *buffer, unsigned int bufLen,
     if (*mode == CMDFileMode_Hex) {
 	/* from one of the hex flavors, mode may change */
 	rvIt = CMD_ConvertHexData(buffer, bufLen, mode);
-#ifdef nodef
     } else if (*mode == CMDFileMode_Ascii) {
 	/* from base-64 encoded */
-	rvIt = CMD_ConvertAsciiData(buffer, bufLen);
-#endif
+	rvIt = NSSBase64_DecodeBuffer(NULL, NULL, buffer, bufLen);
     } else {
 	/* it's already binary */
 	rvIt = NSSItem_Create(NULL, NULL, bufLen, buffer);
@@ -297,6 +295,8 @@ CMD_DumpOutput(NSSItem *output, CMDRunTimeData *rtData)
     int i;
     unsigned char *outBuf = output->data;
     CMDFileData *fData = &rtData->output;
+    char *outstr;
+
     switch (fData->mode) {
     case CMDFileMode_Binary:
     case CMDFileMode_PrettyPrint: /* this is the default */
@@ -322,6 +322,9 @@ CMD_DumpOutput(NSSItem *output, CMDRunTimeData *rtData)
 	PR_fprintf(fData->file, "\n");
 	break;
     case CMDFileMode_Ascii:
+	outstr = NSSBase64_EncodeItem(NULL, NULL, 0, output);
+	PR_fprintf(fData->file, "%s", outstr);
+	NSS_ZFreeIf(outstr);
 	break;
     }
 }

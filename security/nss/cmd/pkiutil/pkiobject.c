@@ -513,7 +513,7 @@ static PRStatus
 import_certificate
 (
   NSSTrustDomain *td,
-  NSSToken *tokenOpt,
+  NSSToken *token,
   char *nickname,
   CMDRunTimeData *rtData
 )
@@ -526,23 +526,29 @@ import_certificate
     encoding = CMD_GetInput(rtData);
     /* import into trust domain */
     cert = NSSTrustDomain_ImportEncodedCertificate(td, encoding,
-                                                   tokenOpt, nickname);
+                                                   token, nickname);
     if (cert) {
 	PR_fprintf(PR_STDOUT, "Import successful.\n");
 	dump_cert_info(td, cert, rtData);
 	NSSCertificate_Destroy(cert);
+	status = PR_SUCCESS;
     } else {
 	PR_fprintf(PR_STDERR, "Import failed!\n");
+	status = PR_FAILURE;
     }
     return status;
 }
+
+/* XXX */
+extern char *key_pass_hardcode;
 
 static PRStatus
 import_private_key
 (
   NSSTrustDomain *td,
-  NSSToken *tokenOpt,
+  NSSToken *token,
   char *nickname,
+  char *keypass,
   CMDRunTimeData *rtData
 )
 {
@@ -554,14 +560,16 @@ import_private_key
     encoding = CMD_GetInput(rtData);
     /* import into trust domain */
     vkey = NSSTrustDomain_ImportEncodedPrivateKey(td, encoding, NULL,
-                                              CMD_PWCallbackForKeyEncoding(), 
-                                                  tokenOpt/*, nickname */);
+                                    CMD_PWCallbackForKeyEncoding(keypass), 
+                                                  token/*, nickname */);
     if (vkey) {
 	PR_fprintf(PR_STDOUT, "Import successful.\n");
 	/* dump_cert_info(td, cert, rtData); */
 	NSSPrivateKey_Destroy(vkey);
+	status = PR_SUCCESS;
     } else {
 	PR_fprintf(PR_STDERR, "Import failed!\n");
+	status = PR_FAILURE;
     }
     return status;
 }
@@ -573,21 +581,27 @@ ImportObject
   NSSToken *tokenOpt,
   char *objectTypeOpt,
   char *nickname,
+  char *keypass,
   CMDRunTimeData *rtData
 )
 {
     PRStatus status;
     PKIObjectType objectKind;
+    NSSToken *token;
+
+    /* XXX */
+    token = tokenOpt ? tokenOpt : nss_GetDefaultDatabaseToken();
+
     objectKind = get_object_class(objectTypeOpt);
     switch (objectKind) {
     case PKIAny: /* default to certificate */
     case PKICertificate:
-	status = import_certificate(td, tokenOpt, nickname, rtData);
+	status = import_certificate(td, token, nickname, rtData);
 	break;
     case PKIPublicKey:
 	break;
     case PKIPrivateKey:
-	status = import_private_key(td, tokenOpt, nickname, rtData);
+	status = import_private_key(td, token, nickname, keypass, rtData);
 	break;
     case PKIUnknown:
 	status = PR_FAILURE;
@@ -731,7 +745,7 @@ vkeys = NULL;
 	    return PR_FAILURE;
 	}
 	encKey = NSSPrivateKey_Encode(vkey, pbe, NULL,
-	                              CMD_PWCallbackForKeyEncoding(), 
+	                              CMD_PWCallbackForKeyEncoding(NULL), 
 	                              NULL, NULL);
 	NSS_ZFreeIf(params.pbe.salt.data);
 	NSSAlgorithmAndParameters_Destroy(pbe);

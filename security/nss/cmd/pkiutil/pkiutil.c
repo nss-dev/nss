@@ -59,6 +59,7 @@ enum {
     cmd_List,
     cmd_ListChain,
     cmd_ModifyTrust,
+    cmd_NewDBs,
     cmd_Print,
     cmd_Validate,
     cmd_Version,
@@ -76,11 +77,13 @@ enum {
     opt_Nickname,
     opt_OutputFile,
     opt_Orphans,
+    opt_Password,
     opt_Binary,
     opt_Serial,
     opt_Trust,
     opt_Type,
     opt_Usages,
+    opt_KeyPassword,
     pkiutil_num_options
 };
 
@@ -89,12 +92,11 @@ static cmdCommandLineArg pkiutil_commands[] =
  { /* cmd_ChangePassword */
     0 , "change-password",
    CMDNoArg, 0, PR_FALSE,
+   { 0, 0, 0, 0 },
    { 
-     CMDBIT(opt_TokenName), 
-     0, 0, 0 
-   },
-   { 
-     CMDBIT(opt_ProfileDir),
+     CMDBIT(opt_TokenName) |
+     CMDBIT(opt_ProfileDir) |
+     CMDBIT(opt_Password),
      0, 0, 0 
    },
    "Change the password of a token"
@@ -126,8 +128,10 @@ static cmdCommandLineArg pkiutil_commands[] =
      CMDBIT(opt_ProfileDir) | 
      CMDBIT(opt_TokenName) | 
      CMDBIT(opt_InputFile) | 
+     CMDBIT(opt_Password) |
      CMDBIT(opt_Binary) | 
-     CMDBIT(opt_Type),
+     CMDBIT(opt_Type) |
+     CMDBIT(opt_KeyPassword),
      0, 0, 0
    },
    "Import an object into the profile/token"
@@ -203,10 +207,20 @@ static cmdCommandLineArg pkiutil_commands[] =
    },
    {
      CMDBIT(opt_ProfileDir) | 
-     CMDBIT(opt_Serial) | 
+     CMDBIT(opt_Serial),
      0, 0, 0
    },
    "Modify the trusted usages of a certificate"
+ },
+ { /* cmd_NewDBs */
+   'N', "newdbs",
+   CMDNoArg, 0, PR_FALSE,
+   { 0, 0, 0, 0 },
+   {
+     CMDBIT(opt_ProfileDir),
+     0, 0, 0
+   },
+   "Create new security databases"
  },
  { /* cmd_Print */
    'P', "print", 
@@ -261,11 +275,13 @@ static cmdCommandLineOpt pkiutil_options[] =
  { /* opt_Nickname    */  'n', "nickname", CMDArgReq },
  { /* opt_OutputFile  */  'o', "outfile",  CMDArgReq },
  { /* opt_Orphans     */   0 , "orphans",  CMDNoArg  },
+ { /* opt_Password    */  'p', "password", CMDArgReq },
  { /* opt_Binary      */  'r', "raw",      CMDNoArg  },
  { /* opt_Serial      */   0 , "serial",   CMDArgReq },
  { /* opt_Trust       */  't', "trust",    CMDArgReq },
  { /* opt_Type        */   0 , "type",     CMDArgReq },
  { /* opt_Usages      */  'u', "usages",   CMDArgReq },
+ { /* opt_KeyPassword */  'w', "keypass",  CMDArgReq },
 };
 
 static char * pkiutil_options_help[] =
@@ -279,6 +295,7 @@ static char * pkiutil_options_help[] =
  "nickname of object",
  "file for output (default: stdout)",
  "delete orphaned key pairs (keys not associated with a cert)",
+ "specify a slot password at the command line"
  "use raw (binary der-encoded) mode for I/O",
  "specify a certificate serial number",
  "trust level for certificate",
@@ -295,7 +312,8 @@ static char * pkiutil_options_help[] =
   "\n o - Code signer"
   "\n t - Status responder"
   "\n u - SSL server with step-up"
-  "\n  (capital letters specify CA equivalents)"
+  "\n  (capital letters specify CA equivalents)",
+ "passphrase that protects encoded private key"
 };
 
 static char pkiutil_description[] =
@@ -366,6 +384,11 @@ main(int argc, char **argv)
 	exit(1);
     }
 
+    if (cmdToRun == cmd_NewDBs) {
+	/* just creating new dbs, done */
+	goto shutdown;
+    }
+
     /* XXX */
     rv = NSS_EnablePKIXCertificates();
     if (rv == PR_FAILURE) {
@@ -420,7 +443,8 @@ pkiutil_command_dispatcher(cmdCommand *pkiutil, int cmdToRun)
 	outMode = "pretty-print";
     }
 
-    pwcb = CMD_GetDefaultPasswordCallback(NULL, NULL);
+    pwcb = CMD_GetDefaultPasswordCallback(pkiutil->opt[opt_Password].arg, 
+                                          NULL);
     if (!pwcb) {
 	return PR_FAILURE;
     }
@@ -449,7 +473,17 @@ pkiutil_command_dispatcher(cmdCommand *pkiutil, int cmdToRun)
     }
     switch (cmdToRun) {
     case cmd_ChangePassword:
-	status = CMD_ChangeSlotPassword(slot);
+	if (!slot) {
+	    /* XXX */
+	    token = nss_GetDefaultDatabaseToken();
+	    slot = NSSToken_GetSlot(token);
+	}
+	if (pkiutil->opt[opt_Password].on) {
+	    status = NSSSlot_SetPassword(slot, NULL, 
+	                                 pkiutil->opt[opt_Password].arg);
+	} else {
+	    status = CMD_ChangeSlotPassword(slot);
+	}
 	break;
     case cmd_Delete:
 	if (pkiutil->opt[opt_Orphans].on) {
@@ -466,6 +500,7 @@ pkiutil_command_dispatcher(cmdCommand *pkiutil, int cmdToRun)
 	                      token,
 	                      pkiutil->opt[opt_Type].arg,
 	                      pkiutil->opt[opt_Nickname].arg,
+	                      pkiutil->opt[opt_KeyPassword].arg,
 	                      &rtData);
 	break;
     case cmd_Export:

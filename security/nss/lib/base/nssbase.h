@@ -194,6 +194,53 @@ NSSUTF8_Duplicate (
   NSSArena *arenaOpt
 );
 
+/*
+ * Perform base64 decoding from an ascii string "inStr" to an Item.
+ * The length of the input must be provided as "inLen".  The Item
+ * may be provided (as "outItemOpt"); you can also pass in a NULL
+ * and the Item will be allocated for you.
+ *
+ * In any case, the data within the Item will be allocated for you.
+ * All allocation will happen out of the passed-in "arenaOpt", if non-NULL.
+ * If "arenaOpt" is NULL, standard allocation (heap) will be used and
+ * you will want to free the result via SECITEM_FreeItem.
+ *
+ * Return value is NULL on error, the Item (allocated or provided) otherwise.
+ */
+
+NSS_EXTERN NSSItem *
+NSSBase64_DecodeBuffer (
+  NSSArena *arenaOpt, 
+  NSSItem *outItemOpt,
+  const NSSUTF8 *inStr, 
+  PRUint32 inLen
+);
+
+/*
+ * Perform base64 encoding of binary data "inItem" to an ascii string.
+ * The output buffer may be provided (as "outStrOpt"); you can also pass
+ * in a NULL and the buffer will be allocated for you.  The result will
+ * be null-terminated, and if the buffer is provided, "maxOutLen" must
+ * specify the maximum length of the buffer and will be checked to
+ * supply sufficient space space for the encoded result.  (If "outStrOpt"
+ * is NULL, "maxOutLen" is ignored.)
+ *
+ * If "outStrOpt" is NULL, allocation will happen out of the passed-in
+ * "arenaOpt", if *it* is non-NULL, otherwise standard allocation (heap)
+ * will be used.
+ *
+ * Return value is NULL on error, the output buffer (allocated or provided)
+ * otherwise.
+ */
+
+NSS_EXTERN NSSUTF8 *
+NSSBase64_EncodeItem (
+  NSSArena *arenaOpt, 
+  NSSUTF8 *outStrOpt,
+  PRUint32 maxOutLen, 
+  NSSItem *inItem
+);
+
 PR_END_EXTERN_C
 
 #endif /* NSSBASE_H */

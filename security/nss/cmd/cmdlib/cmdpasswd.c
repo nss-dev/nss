@@ -382,23 +382,29 @@ CMD_ChangeSlotPassword(NSSSlot *slot)
     NSSUTF8 *slotName = "foo";
     struct password_callback_str pwcb;
     PRBool retry = PR_TRUE;
+    NSSToken *token;
 
-    /* need user init??? */
-
-    pwcb.pw = NULL;
-    pwcb.allowRetry = PR_TRUE;
-    pwcb.numAttempts = 0;
-    while (retry) {
-	status = default_slot_password_callback(slotName, &retry, 
-	                                        &pwcb, &oldpw);
-	if (status == PR_SUCCESS) retry = PR_FALSE;
-    }
-
-    status = NSSSlot_CheckPassword(slot, oldpw);
-    if (status == PR_FAILURE) {
-	CMD_PrintError("Login failed");
+    token = NSSSlot_GetToken(slot);
+    if (!token) {
 	return PR_FAILURE;
     }
+    if (!nssToken_NeedsPINInitialization(token)) {
+	pwcb.pw = NULL;
+	pwcb.allowRetry = PR_TRUE;
+	pwcb.numAttempts = 0;
+	while (retry) {
+	    status = default_slot_password_callback(slotName, &retry, 
+	                                            &pwcb, &oldpw);
+	    if (status == PR_SUCCESS) break;
+	}
+
+	status = NSSSlot_CheckPassword(slot, oldpw);
+	if (status == PR_FAILURE) {
+	    CMD_PrintError("Login failed");
+	    return PR_FAILURE;
+	}
+    }
+    NSSToken_Destroy(token);
 
     sprintf(prompt, "Enter New Password or Pin for \"%s\": ", slotName);
     newpw1 = (NSSUTF8 *)get_password_string(prompt);
@@ -469,6 +475,7 @@ CMD_DestroyCallback
 }
 
 NSSCallback pwCallbackForKeyEncoding;
+static char *key_pass_hardcode = NULL;
 
 static PRStatus
 key_enc_callback
@@ -480,14 +487,19 @@ key_enc_callback
 )
 {
     /* XXX different text */
-    *password = get_password_from_tty("private key");
+    if (key_pass_hardcode) {
+	*password = NSSUTF8_Duplicate(key_pass_hardcode, NULL);
+    } else {
+	*password = get_password_from_tty("private key");
+    }
     return PR_SUCCESS;
 }
 
 NSSCallback *
-CMD_PWCallbackForKeyEncoding(void)
+CMD_PWCallbackForKeyEncoding(char *pw)
 {
     pwCallbackForKeyEncoding.getPW = key_enc_callback;
+    key_pass_hardcode = pw;
     return &pwCallbackForKeyEncoding;
 }
 
