@@ -393,7 +393,7 @@ find_objects
   PRStatus *statusOpt
 )
 {
-    CK_RV ckrv;
+    CK_RV ckrv = CKR_OK;
     CK_ULONG count;
     CK_OBJECT_HANDLE *objectHandles;
     CK_OBJECT_HANDLE staticObjects[OBJECT_STACK_SIZE];
@@ -415,6 +415,7 @@ find_objects
 	objectHandles = nss_ZNEWARRAY(NULL, CK_OBJECT_HANDLE, arraySize);
     }
     if (!objectHandles) {
+	ckrv = CKR_HOST_MEMORY;
 	goto loser;
     }
     nssSession_EnterMonitor(session); /* ==== session lock === */
@@ -459,6 +460,7 @@ find_objects
 	}
 	if (!objectHandles) {
 	    nssSession_ExitMonitor(session);
+	    ckrv = CKR_HOST_MEMORY;
 	    goto loser;
 	}
     }
@@ -483,7 +485,23 @@ loser:
     if (objectHandles && objectHandles != staticObjects) {
 	nss_ZFreeIf(objectHandles);
     }
-    if (statusOpt) *statusOpt = PR_FAILURE;
+    /*
+     * These errors should be treated the same as if the objects just weren't
+     * found..
+     */
+    if ((ckrv == CKR_ATTRIBUTE_TYPE_INVALID) ||
+	(ckrv == CKR_ATTRIBUTE_VALUE_INVALID) ||
+	(ckrv == CKR_DATA_INVALID) ||
+	(ckrv == CKR_DATA_LEN_RANGE) ||
+	(ckrv == CKR_FUNCTION_NOT_SUPPORTED) ||
+	(ckrv == CKR_TEMPLATE_INCOMPLETE) ||
+	(ckrv == CKR_TEMPLATE_INCONSISTENT)) {
+
+	nss_SetError(NSS_ERROR_NOT_FOUND);
+	if (statusOpt) *statusOpt = PR_SUCCESS;
+    } else {
+	if (statusOpt) *statusOpt = PR_FAILURE;
+    }
     return (nssCryptokiObject **)NULL;
 }
 

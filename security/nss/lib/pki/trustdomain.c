@@ -116,6 +116,7 @@ NSSTrustDomain_Destroy (
   NSSTrustDomain *td
 )
 {
+    PRStatus status = PR_SUCCESS;
     if (--td->refCount == 0) {
 	/* Destroy each token in the list of tokens */
 	if (td->tokens) {
@@ -123,11 +124,14 @@ NSSTrustDomain_Destroy (
 	    nssList_Clear(td->tokenList, token_destructor);
 	    nssList_Destroy(td->tokenList);
 	}
-	nssTrustDomain_DestroyCache(td);
+	status = nssTrustDomain_DestroyCache(td);
+	if (status == PR_FAILURE) {
+	    return status;
+	}
 	/* Destroy the trust domain */
 	nssArena_Destroy(td->arena);
     }
-    return PR_SUCCESS;
+    return status;
 }
 
 /* XXX uses tokens until slot list is in place */
