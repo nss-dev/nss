@@ -170,6 +170,19 @@ nssCKObject_GetAttributes
 	    goto loser;
 	}
     }
+
+    if (count > 1 && ((ckrv == CKR_ATTRIBUTE_TYPE_INVALID) || 
+					(ckrv == CKR_ATTRIBUTE_SENSITIVE))) {
+	/* old tokens would keep the length of '0' and not deal with any
+	 * of the attributes we passed. For those tokens read them one at
+	 * a time */
+	for (i=0; i < count; i++) {
+	    if (obj_template[i].ulValueLen == 0) {
+		(void) nssCKObject_GetAttributes(object,&obj_template[i], 1,
+			arenaOpt, session, slot);
+	    }
+	}
+    }
     return PR_SUCCESS;
 loser:
     if (alloced) {
