@@ -132,25 +132,25 @@ while(<>) {
 
   @{$objects[$count][$objsize[$count]++]} = ( "$fields[0]", $fields[2], "$size" );
 
-#  print "$fields[0] | $fields[1] | $size | $fields[2]\n";
+ # print "$fields[0] | $fields[1] | $size | $fields[2]\n";
 }
 
 doprint();
 
 sub dudump {
 my $i;
-#for( $i = 0; $i <= $count; $i++ ) {
-#  print "\n";
-#  $o = $objects[$i];
-#  my @ob = @{$o};
-#  my $l;
-#  my $j;
-#  for( $j = 0; $j < @ob; $j++ ) {
-#    $l = $ob[$j];
-#    my @a = @{$l};
-#    print "$a[0] ! $a[1] ! $a[2]\n";
-#  }
-#}
+for( $i = 0; $i <= $count; $i++ ) {
+  print "\n";
+  $o = $objects[$i];
+  my @ob = @{$o};
+  my $l;
+  my $j;
+  for( $j = 0; $j < @ob; $j++ ) {
+    $l = $ob[$j];
+    my @a = @{$l};
+    print "$a[0] ! $a[1] ! $a[2]\n";
+  }
+}
 
 }
 
@@ -215,6 +215,7 @@ for( $i = 0; $i <= $count; $i++ ) {
 
   print CFILE "static const CK_ATTRIBUTE_TYPE nss_builtins_types_$i [] = {\n";
   $o = $objects[$i];
+ # print STDOUT "type $i object $o \n";
   my @ob = @{$o};
   my $j;
   for( $j = 0; $j < @ob; $j++ ) {

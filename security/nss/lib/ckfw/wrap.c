@@ -151,6 +151,11 @@ NSSCKFWC_Initialize
     goto loser;
   }
 
+  /* remember the locking args for those times we need to get a lock in code
+   * outside the framework.
+   */
+  nssSetLockArgs(pInitArgs);
+
   *pFwInstance = nssCKFWInstance_Create(pInitArgs, mdInstance, &error);
   if( (NSSCKFWInstance *)NULL == *pFwInstance ) {
     goto loser;

@@ -52,4 +52,4 @@ REQUIRES = security nspr
 
 LIBRARY_NAME = nssckbi
 
-EXTRA_SHARED_LIBS = -L$(DIST)/lib -lnssckfw -lnssb -lnspr4 -lplc4 -lplds4
+#EXTRA_SHARED_LIBS = -L$(DIST)/lib -lnssckfw -lnssb -lplc4 -lplds4
