@@ -160,7 +160,7 @@ main (int argc, char **argv)
      */
     PK11_SetPasswordFunc(SECU_GetModulePassword);
 
-    rv = NSS_Init(certDir);
+    rv = NSS_Init(SECU_ConfigDirectory(NULL));
     if (rv != SECSuccess) goto prdone;
 
     /* Convert value into an item */
