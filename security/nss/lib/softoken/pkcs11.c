@@ -976,6 +976,8 @@ pk11_handlePrivateKeyObject(PK11Object *object,CK_KEY_TYPE key_type)
 						&ckfalse,sizeof(CK_BBOOL));
     if (crv != CKR_OK)  return crv; 
 
+    /* should we check the non-token RSA private keys? */
+
     if (pk11_isTrue(object,CKA_TOKEN)) {
 	SECKEYLowPrivateKey *privKey;
 	char *label;
@@ -984,6 +986,13 @@ pk11_handlePrivateKeyObject(PK11Object *object,CK_KEY_TYPE key_type)
 
 	privKey=pk11_mkPrivKey(object,key_type);
 	if (privKey == NULL) return CKR_HOST_MEMORY;
+
+        if (key_type == CKK_RSA) {
+	    rv = RSA_PrivateKeyCheck(&privKey->u.rsa);
+	    if (rv == SECFailure) {
+		goto fail;
+	    }
+	}
 	label = object->label = pk11_getString(object,CKA_LABEL);
 
 	crv = pk11_Attribute2SecItem(NULL,&pubKey,object,CKA_NETSCAPE_DB);
@@ -1003,6 +1012,7 @@ pk11_handlePrivateKeyObject(PK11Object *object,CK_KEY_TYPE key_type)
 	    rv = SECFailure;
 	}
 
+fail:
 	SECKEY_LowDestroyPrivateKey(privKey);
 	if (rv != SECSuccess) return CKR_DEVICE_ERROR;
 	object->inDB = PR_TRUE;
