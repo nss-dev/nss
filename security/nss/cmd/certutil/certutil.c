@@ -100,7 +100,7 @@ GetGeneralName (PRArenaPool *arena)
     PORT_Assert (arena);
     mark = PORT_ArenaMark (arena);
     do {
-	fflush (stdin);
+	/*fflush (stdin);*/
 	puts ("\nSelect one of the following general name type: \n");
 	puts ("\t1 - instance of other name\n\t2 - rfc822Name\n\t3 - dnsName\n");
 	puts ("\t4 - x400Address\n\t5 - directoryName\n\t6 - ediPartyName\n");
@@ -123,7 +123,7 @@ GetGeneralName (PRArenaPool *arena)
 	}
 	current->type = intValue;
 	puts ("\nEnter data:");
-	fflush (stdin);
+	/*fflush (stdin); */
 	fflush (stdout);
 	gets (buffer);
 	switch (current->type) {
@@ -198,7 +198,7 @@ GetString(PRArenaPool *arena, char *prompt, SECItem *value)
     value->len = 0;
     
     puts (prompt);
-    fflush (stdin);
+    /*fflush (stdin);*/
     gets (buffer);
     if (strlen (buffer) > 0) {
 	value->data = PORT_ArenaAlloc (arena, strlen (buffer));
@@ -1521,7 +1521,7 @@ AddBasicConstraint(void *extHandle)
     do {
 	basicConstraint.pathLenConstraint = CERT_UNLIMITED_PATH_CONSTRAINT;
 	puts ("Is this a CA certificate [y/n]?");
-	fflush (stdin);
+	/*fflush (stdin);*/
 	gets (buffer);
 	basicConstraint.isCA = (buffer[0] == 'Y' || buffer[0] == 'y') ?
                                 PR_TRUE : PR_FALSE;
@@ -1550,7 +1550,7 @@ AddBasicConstraint(void *extHandle)
 static SECItem *
 SignCert(CERTCertDBHandle *handle, 
 CERTCertificate *cert, PRBool selfsign, 
-SECKEYPrivateKey *selfsignprivkey, char *issuerNickName)
+SECKEYPrivateKey *selfsignprivkey, char *issuerNickName, void *pwarg)
 {
     SECItem der;
     SECItem *result = NULL;
@@ -1564,14 +1564,14 @@ SECKEYPrivateKey *selfsignprivkey, char *issuerNickName)
       caPrivateKey = selfsignprivkey;
     } else {
       /*CERTCertificate *issuer = CERT_FindCertByNickname(handle, issuerNickName);*/
-      CERTCertificate *issuer = PK11_FindCertFromNickname(issuerNickName, NULL);
+      CERTCertificate *issuer = PK11_FindCertFromNickname(issuerNickName, pwarg);
       if( (CERTCertificate *)NULL == issuer ) {
         SECU_PrintError(progName, "unable to find issuer with nickname %s", 
 	                issuerNickName);
         return (SECItem *)NULL;
       }
 
-      caPrivateKey = PK11_FindKeyByAnyCert(issuer, (void *)NULL);
+      caPrivateKey = PK11_FindKeyByAnyCert(issuer, pwarg);
     if (caPrivateKey == NULL) {
 	SECU_PrintError(progName, "unable to retrieve key %s", issuerNickName);
 	return NULL;
@@ -1654,7 +1654,7 @@ AddAuthKeyID (void *extHandle)
 	    GEN_BREAK (SECFailure);
 	}
 
-	fflush (stdin);
+	/*fflush (stdin);*/
 	rv = GetString (arena, "Enter value for the key identifier fields, enter to omit:",
 			&authKeyID->keyID);
 	if (rv != SECSuccess)
@@ -1706,7 +1706,7 @@ AddCrlDistPoint(void *extHandle)
 	    GEN_BREAK (SECFailure);
 	}   
 
-	fflush (stdin);
+	/*fflush (stdin);*/
 	/* Get the distributionPointName fields - this field is optional */
 	puts ("Enter the type of the distribution point name:\n");
 	puts ("\t1 - Full Name\n\t2 - Relative Name\n\tOther - omit\n\t\tChoice: ");
@@ -1725,7 +1725,7 @@ AddCrlDistPoint(void *extHandle)
 		current->distPointType = intValue;
 		puts ("Enter the relative name: ");
 		fflush (stdout);
-		fflush (stdin);
+		/*fflush (stdin);*/
 		gets (buffer);
 		/* For simplicity, use CERT_AsciiToName to converse from a string
 		   to NAME, but we only interest in the first RDN */
@@ -1792,7 +1792,7 @@ AddCrlDistPoint(void *extHandle)
     } while (1);
     
     if (rv == SECSuccess) {
-	fflush (stdin);
+	/*fflush (stdin);*/
 	buffer[0] = 'n';
 	puts ("Is this a critical extension [y/n]? ");
 	gets (buffer);	
@@ -1817,6 +1817,7 @@ CreateCert(
 	int     serialNumber, 
 	int     warpmonths,
 	int     validitylength,
+	void	*pwarg,
 	PRBool  selfsign,
 	PRBool	keyUsage, 
 	PRBool  extKeyUsage,
@@ -1901,7 +1902,7 @@ CreateCert(
 
 	CERT_FinishExtensions(extHandle);
 
-	certDER = SignCert (handle, subjectCert, selfsign, selfsignprivkey, issuerNickName);
+	certDER = SignCert (handle, subjectCert, selfsign, selfsignprivkey, issuerNickName, pwarg);
 
 	if (certDER)
 	   PR_Write(outFile, certDER->data, certDER->len);
@@ -2480,10 +2481,15 @@ main(int argc, char **argv)
     /*  Create a certificate (-C or -S).  */
     if (certutil.commands[cmd_CreateAndAddCert].activated ||
          certutil.commands[cmd_CreateNewCert].activated) {
+	if ( certutil.options[opt_PasswordFile].arg) {
+	    pwdata.source = PW_FROMFILE;
+	    pwdata.data = certutil.options[opt_PasswordFile].arg;
+	}
 	rv = CreateCert(certHandle, 
 	                certutil.options[opt_IssuerName].arg,
 	                inFile, outFile, privkey, 
 	                serialNumber, warpmonths, validitylength,
+			&pwdata,
 	                certutil.options[opt_SelfSign].activated,
 	                certutil.options[opt_AddKeyUsageExt].activated,
 	                certutil.options[opt_AddExtKeyUsageExt].activated,

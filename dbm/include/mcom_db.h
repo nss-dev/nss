@@ -156,7 +156,7 @@
 #ifndef XP_OS2 
 #define MAXPATHLEN 	1024               
 #else
-#include "os2file.h"  /* includes dirent.h */
+#include <dirent.h>
 #endif
 
 #define	EFTYPE		EINVAL		/* POSIX 1003.1 format errno. */
@@ -200,10 +200,10 @@ XP_END_PROTOS
 #endif	/* MACINTOSH */
 
 #if defined(XP_OS2)
-#include <xp_mcom.h>
-XP_BEGIN_PROTOS
-int mkstemp(char *path);
-XP_END_PROTOS
+/* #include <xp_mcom.h> */
+/* XP_BEGIN_PROTOS */
+/* int mkstemp(char *path); */
+/* XP_END_PROTOS */
 #endif
 
 #ifndef macintosh
