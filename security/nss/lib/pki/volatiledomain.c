@@ -225,7 +225,7 @@ nssVolatileDomain_ImportCert (
 )
 {
     PZ_Lock(vd->objectLock);
-    if (nssPKIObject_IsInVolatileDomain(c, vd)) {
+    if (nssPKIObject_IsInVolatileDomain(PKIOBJECT(c), vd)) {
 	PZ_Unlock(vd->objectLock);
 	return PR_SUCCESS;
     }
@@ -249,7 +249,7 @@ nssVolatileDomain_ImportCert (
     }
     vd->certs.array[vd->certs.count++] = (void *)nssCert_AddRef(c);
     PZ_Unlock(vd->objectLock);
-    nssCert_SetVolatileDomain(c, vd);
+    nssPKIObject_SetVolatileDomain(PKIOBJECT(c), vd);
     return PR_SUCCESS;
 }
 
@@ -341,7 +341,7 @@ nssVolatileDomain_ImportPublicKey (
     }
     vd->bkeys.array[vd->bkeys.count++] = (void *)nssPublicKey_AddRef(bk);
     PZ_Unlock(vd->objectLock);
-    nssPublicKey_SetVolatileDomain(bk, vd);
+    nssPKIObject_SetVolatileDomain(PKIOBJECT(bk), vd);
     return PR_SUCCESS;
 }
 
@@ -428,7 +428,7 @@ nssVolatileDomain_ImportPrivateKey (
     }
     vd->vkeys.array[vd->vkeys.count++] = (void *)nssPrivateKey_AddRef(vk);
     PZ_Unlock(vd->objectLock);
-    nssPrivateKey_SetVolatileDomain(vk, vd);
+    nssPKIObject_SetVolatileDomain(PKIOBJECT(vk), vd);
     return PR_SUCCESS;
 }
 
@@ -496,7 +496,7 @@ nssVolatileDomain_ImportSymKey (
     }
     vd->mkeys.array[vd->mkeys.count++] = (void *)nssSymKey_AddRef(mk);
     PZ_Unlock(vd->objectLock);
-    nssSymKey_SetVolatileDomain(mk, vd);
+    nssPKIObject_SetVolatileDomain(PKIOBJECT(mk), vd);
     return PR_SUCCESS;
 }
 
@@ -1260,7 +1260,8 @@ nssVolatileDomain_UnwrapSymKey (
     NSSSymKey *mkey = NULL;
 
     /* find a token to do it on */
-    vko = nssPrivateKey_FindInstanceForAlgorithm(wrapKey, ap);
+    vko = nssPKIObject_FindInstanceForAlgorithm(PKIOBJECT(wrapKey), ap, 
+                                                PR_TRUE);
     if (!vko) {
 	return (NSSSymKey *)NULL;
     }

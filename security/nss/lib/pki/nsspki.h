@@ -692,8 +692,7 @@ NSSPrivateKey_Encode (
 
 NSS_EXTERN NSSTrustDomain *
 NSSPrivateKey_GetTrustDomain (
-  NSSPrivateKey *vk,
-  PRStatus *statusOpt
+  NSSPrivateKey *vk
 );
 
 /*
@@ -920,8 +919,7 @@ NSSPublicKey_Encode (
 
 NSS_EXTERN NSSTrustDomain *
 NSSPublicKey_GetTrustDomain (
-  NSSPublicKey *bk,
-  PRStatus *statusOpt
+  NSSPublicKey *bk
 );
 
 /*
@@ -1164,8 +1162,7 @@ NSSSymKey_IsStillPresent (
 
 NSS_EXTERN NSSTrustDomain *
 NSSSymKey_GetTrustDomain (
-  NSSSymKey *mk,
-  PRStatus *statusOpt
+  NSSSymKey *mk
 );
 
 /*

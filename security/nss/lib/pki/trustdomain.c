@@ -1053,7 +1053,7 @@ static PRStatus
 filter_out_token_certs(NSSCert *c, void *arg)
 {
     struct token_cert_filter_str *cbarg = (struct token_cert_filter_str *)arg;
-    if (nssCert_CountInstances(c) == 0) {
+    if (nssPKIObject_CountInstances(PKIOBJECT(c)) == 0) {
 	return cbarg->callback(c, cbarg->arg);
     }
     return PR_SUCCESS;

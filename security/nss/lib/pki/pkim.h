@@ -71,6 +71,9 @@ PR_BEGIN_EXTERN_C
  * nssPKIObject_DeleteStoredObject
  */
 
+/* Cast to base class */
+#define PKIOBJECT(o) ((nssPKIObject *)o)
+
 /* nssPKIObject_Create
  *
  * A generic PKI object.  It must live in a trust domain.  It may be
@@ -98,7 +101,7 @@ nssPKIObject_AddRef (
  * Returns true if object was destroyed.  This notifies the subclass that
  * all references are gone and it should delete any members it owns.
  */
-NSS_EXTERN PRBool
+NSS_EXTERN PRStatus
 nssPKIObject_Destroy (
   nssPKIObject *object
 );
@@ -205,8 +208,7 @@ nssPKIObject_DeleteStoredObject (
 
 NSS_EXTERN NSSTrustDomain *
 nssPKIObject_GetTrustDomain (
-  nssPKIObject *object,
-  PRStatus *statusOpt
+  nssPKIObject *object
 );
 
 NSS_EXTERN void
@@ -238,7 +240,18 @@ nssPKIObject_GetInstances (
 NSS_EXTERN nssCryptokiObject *
 nssPKIObject_FindInstanceForAlgorithm (
   nssPKIObject *object,
-  const NSSAlgNParam *ap
+  const NSSAlgNParam *ap,
+  PRBool allowMove
+);
+
+NSS_EXTERN PRStatus
+nssPKIObject_CopyToToken (
+  nssPKIObject *object,
+  NSSToken *destination,
+  nssSession *sessionOpt,
+  PRBool asPersistentObject,
+  NSSUTF8 *labelOpt,
+  nssCryptokiObject **rvInstanceOpt
 );
 
 NSS_EXTERN NSSToken *
@@ -327,44 +340,6 @@ nssCert_CreateFromInstance (
   NSSVolatileDomain *vdOpt
 );
 
-/* XXX XXX most of these belong in pki.h */
-
-NSS_EXTERN nssCryptokiObject *
-nssCert_FindInstanceForAlgorithm (
-  NSSCert *c,
-  NSSAlgNParam *ap
-);
-
-NSS_EXTERN void
-nssCert_SetVolatileDomain (
-  NSSCert *c,
-  NSSVolatileDomain *vd
-);
-
-NSS_EXTERN PRStatus
-nssCert_RemoveInstanceForToken (
-  NSSCert *c,
-  NSSToken *token
-);
-
-NSS_EXTERN PRBool
-nssCert_HasInstanceOnToken (
-  NSSCert *c,
-  NSSToken *token
-);
-
-NSS_EXTERN PRIntn
-nssCert_CountInstances (
-  NSSCert *c
-);
-
-NSS_EXTERN PRStatus
-nssCert_CopyToToken (
-  NSSCert *c,
-  NSSToken *token,
-  NSSUTF8 *nicknameOpt
-);
-
 NSS_EXTERN PRBool
 nssCert_HasCANameInChain (
   NSSCert *c,
@@ -403,51 +378,6 @@ nssSymKey_Destroy (
   NSSSymKey *mk
 );
 
-NSS_EXTERN void
-nssSymKey_SetVolatileDomain (
-  NSSSymKey *mk,
-  NSSVolatileDomain *vd
-);
-
-NSS_IMPLEMENT nssCryptokiObject *
-nssSymKey_CopyToToken (
-  NSSSymKey *mk,
-  NSSToken *destination,
-  PRBool asPersistentObject
-);
-
-NSS_EXTERN NSSToken **
-nssSymKey_GetTokens (
-  NSSSymKey *mk,
-  NSSToken **rvOpt,
-  PRUint32 rvMaxOpt,
-  PRStatus *statusOpt
-);
-
-NSS_EXTERN NSSTrustDomain *
-nssSymKey_GetTrustDomain (
-  NSSSymKey *mk,
-  PRStatus *statusOpt
-);
-
-NSS_EXTERN PRBool
-nssSymKey_HasInstanceOnToken (
-  NSSSymKey *mk,
-  NSSToken *token
-);
-
-NSS_EXTERN nssCryptokiObject *
-nssSymKey_GetInstance (
-  NSSSymKey *mk,
-  NSSToken *token
-);
-
-NSS_EXTERN nssCryptokiObject *
-nssSymKey_FindInstanceForAlgorithm (
-  NSSSymKey *mk,
-  const NSSAlgNParam *ap
-);
-
 NSS_EXTERN NSSDER *
 nssCRL_GetEncoding (
   NSSCRL *crl
@@ -468,94 +398,11 @@ nssPublicKey_CreateFromInstance (
   NSSVolatileDomain *vdOpt
 );
 
-NSS_EXTERN void
-nssPublicKey_SetVolatileDomain (
-  NSSPublicKey *bk,
-  NSSVolatileDomain *vd
-);
-
-NSS_EXTERN PRBool
-nssPublicKey_HasInstanceOnToken (
-  NSSPublicKey *bk,
-  NSSToken *token
-);
-
-NSS_EXTERN nssCryptokiObject *
-nssPublicKey_GetInstance (
-  NSSPublicKey *bk,
-  NSSToken *token
-);
-
-NSS_EXTERN nssCryptokiObject *
-nssPublicKey_FindInstanceForAlgorithm (
-  NSSPublicKey *bk,
-  const NSSAlgNParam *ap
-);
-
-NSS_EXTERN PRStatus
-nssPublicKey_RemoveInstanceForToken (
-  NSSPublicKey *bk,
-  NSSToken *token
-);
-
-NSS_EXTERN PRIntn
-nssPublicKey_CountInstances (
-  NSSPublicKey *bk
-);
-
-NSS_EXTERN nssCryptokiObject *
-nssPublicKey_CopyToToken (
-  NSSPublicKey *bk,
-  NSSToken *destination,
-  PRBool asPersistentObject
-);
-
 NSS_EXTERN NSSPrivateKey *
 nssPrivateKey_CreateFromInstance (
   nssCryptokiObject *instance,
   NSSTrustDomain *td,
   NSSVolatileDomain *vdOpt
-);
-
-NSS_EXTERN void
-nssPrivateKey_SetVolatileDomain (
-  NSSPrivateKey *vk,
-  NSSVolatileDomain *vd
-);
-
-NSS_EXTERN PRBool
-nssPrivateKey_HasInstanceOnToken (
-  NSSPrivateKey *vk,
-  NSSToken *token
-);
-
-NSS_EXTERN nssCryptokiObject *
-nssPrivateKey_GetInstance (
-  NSSPrivateKey *vk,
-  NSSToken *token
-);
-
-NSS_EXTERN nssCryptokiObject *
-nssPrivateKey_FindInstanceForAlgorithm (
-  NSSPrivateKey *vk,
-  const NSSAlgNParam *ap
-);
-
-NSS_EXTERN PRStatus
-nssPrivateKey_RemoveInstanceForToken (
-  NSSPrivateKey *vk,
-  NSSToken *token
-);
-
-NSS_EXTERN PRIntn
-nssPrivateKey_CountInstances (
-  NSSPrivateKey *vk
-);
-
-NSS_EXTERN nssCryptokiObject *
-nssPrivateKey_CopyToToken (
-  NSSPrivateKey *vk,
-  NSSToken *destination
 );
 
 NSS_EXTERN PRIntn

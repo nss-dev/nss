@@ -83,6 +83,63 @@ nss_GetMethodsForType (
   NSSCertType certType
 );
 
+static PRStatus
+cert_destructor(nssPKIObject *o)
+{
+    NSSCert *c = (NSSCert *)o;
+    void *dc = c->decoding.data;
+    NSSCertMethods *methods = c->decoding.methods;
+    if (dc && methods) {
+	methods->destroy(dc);
+    }
+    return PR_SUCCESS;
+}
+
+static PRStatus
+copy_cert_to_token (
+  nssPKIObject *o,
+  NSSToken *token,
+  nssSession *sessionOpt,
+  PRBool asPersistentObject,
+  NSSUTF8 *nicknameOpt,
+  nssCryptokiObject **rvInstanceOpt
+)
+{
+    PRStatus status;
+    NSSCert *c = (NSSCert *)o;
+    nssCryptokiObject *instance;
+    nssSession *session;
+
+    if (sessionOpt) {
+	session = sessionOpt;
+    } else {
+	session = nssToken_CreateSession(token, asPersistentObject);
+	if (!session)
+	    return PR_FAILURE;
+    }
+    /* XXX why not id? */
+    instance = nssToken_ImportCert(token, session,
+                                   c->kind, NULL, nicknameOpt,
+                                   &c->encoding, &c->issuer, 
+                                   &c->subject, &c->serial,
+                                   c->email, asPersistentObject);
+    if (!sessionOpt) {
+	nssSession_Destroy(session);
+    }
+    if (!instance) {
+	return PR_FAILURE;
+    }
+    status = nssPKIObject_AddInstance(&c->object, instance);
+    if (status == PR_FAILURE) {
+	nssCryptokiObject_Destroy(instance);
+	return PR_FAILURE;
+    }
+    if (rvInstanceOpt) {
+	*rvInstanceOpt = nssCryptokiObject_Clone(instance);
+    }
+    return PR_SUCCESS;
+}
+
 NSS_IMPLEMENT NSSCert *
 nssCert_CreateFromInstance (
   nssCryptokiObject *instance,
@@ -125,6 +182,8 @@ nssCert_CreateFromInstance (
     if (!rvCert->decoding.methods) {
 	goto loser;
     }
+    rvCert->object.copyToToken = copy_cert_to_token;
+    rvCert->object.destructor = cert_destructor;
     if (rvCert && vdOpt) {
 	status = nssVolatileDomain_ImportCert(vdOpt, rvCert);
 	if (status == PR_FAILURE) {
@@ -176,6 +235,8 @@ nssCert_Decode (
     } else {
 	goto loser;
     }
+    pkio->destructor = cert_destructor;
+    pkio->copyToToken = copy_cert_to_token;
     /* copy the BER encoding */
     it = nssItem_Duplicate(ber, pkio->arena, &rvCert->encoding);
     if (!it) {
@@ -257,18 +318,7 @@ nssCert_Destroy (
   NSSCert *c
 )
 {
-    PRBool destroyed;
-    if (c) {
-	void *dc = c->decoding.data;
-	NSSCertMethods *methods = c->decoding.methods;
-	destroyed = nssPKIObject_Destroy(&c->object);
-	if (destroyed) {
-	    if (dc) {
-		methods->destroy(dc);
-	    }
-	}
-    }
-    return PR_SUCCESS;
+    return nssPKIObject_Destroy(&c->object);;
 }
 
 NSS_IMPLEMENT PRStatus
@@ -681,33 +731,12 @@ nssCert_SetVolatileDomain (
     nssPKIObject_SetVolatileDomain(&c->object, vd);
 }
 
-NSS_IMPLEMENT NSSVolatileDomain **
-nssCert_GetVolatileDomains(
-  NSSCert *c,
-  NSSVolatileDomain **vdsOpt,
-  PRUint32 maximumOpt,
-  NSSArena *arenaOpt,
-  PRStatus *statusOpt
-)
-{
-    return nssPKIObject_GetVolatileDomains(&c->object, vdsOpt,
-                                           maximumOpt, arenaOpt, statusOpt);
-}
-
-NSS_IMPLEMENT NSSTrustDomain *
-nssCert_GetTrustDomain (
-  NSSCert *c
-)
-{
-    return c->object.td;
-}
-
 NSS_IMPLEMENT NSSTrustDomain *
 NSSCert_GetTrustDomain (
   NSSCert *c
 )
 {
-    return nssCert_GetTrustDomain(c);
+    return nssPKIObject_GetTrustDomain(PKIOBJECT(c));
 }
 
 NSS_IMPLEMENT NSSToken **
@@ -750,15 +779,6 @@ NSSCert_GetModule (
     return (NSSModule *)NULL;
 }
 
-NSS_IMPLEMENT nssCryptokiObject *
-nssCert_FindInstanceForAlgorithm (
-  NSSCert *c,
-  NSSAlgNParam *ap
-)
-{
-    return nssPKIObject_FindInstanceForAlgorithm(&c->object, ap);
-}
-
 NSS_IMPLEMENT PRStatus
 nssCert_DeleteStoredObject (
   NSSCert *c,
@@ -775,37 +795,6 @@ NSSCert_DeleteStoredObject (
 )
 {
     return nssCert_DeleteStoredObject(c, uhh);
-}
-
-NSS_IMPLEMENT PRStatus
-nssCert_CopyToToken (
-  NSSCert *c,
-  NSSToken *token,
-  NSSUTF8 *nicknameOpt
-)
-{
-    PRStatus status;
-    nssCryptokiObject *instance;
-    nssSession *rwSession;
-
-    rwSession = nssToken_CreateSession(token, PR_TRUE);
-    if (!rwSession) {
-	return PR_FAILURE;
-    }
-    instance = nssToken_ImportCert(token, rwSession,
-                                   c->kind, NULL, nicknameOpt,
-                                   &c->encoding, &c->issuer, 
-                                   &c->subject, &c->serial,
-                                   c->email, PR_TRUE);
-    nssSession_Destroy(rwSession);
-    if (!instance) {
-	return PR_FAILURE;
-    }
-    status = nssPKIObject_AddInstance(&c->object, instance);
-    if (status == PR_FAILURE) {
-	return PR_FAILURE;
-    }
-    return PR_SUCCESS;
 }
 
 static PRStatus
@@ -1123,7 +1112,7 @@ nssCert_SetTrustedUsages (
     c->trust.notTrustedUsages.ca &= usages->ca;
     c->trust.notTrustedUsages.peer &= usages->peer;
     /* reflect the change in the db */
-    td = nssCert_GetTrustDomain(c);
+    td = nssPKIObject_GetTrustDomain(PKIOBJECT(c));
     return nssTrustDomain_SetCertTrust(td, c, &c->trust);
 }
 
@@ -1189,8 +1178,8 @@ find_cert_issuer (
     NSSTrustDomain *td;
     NSSVolatileDomain *vd;
     /* XXX what to do with multiple vds? */
-    nssCert_GetVolatileDomains(c, &vd, 1, NULL, NULL);
-    td = nssCert_GetTrustDomain(c);
+    nssPKIObject_GetVolatileDomains(PKIOBJECT(c), &vd, 1, NULL, NULL);
+    td = nssPKIObject_GetTrustDomain(PKIOBJECT(c));
     if (vd) {
 	issuers = nssVolatileDomain_FindCertsBySubject(vd, &c->issuer,
 	                                               NULL, 0, NULL);
@@ -1240,7 +1229,7 @@ nssCert_BuildChain (
     NSSTrustDomain *td;
     NSSUsages usages = { 0 };
 
-    td = NSSCert_GetTrustDomain(c);
+    td = nssPKIObject_GetTrustDomain(PKIOBJECT(c));
     if (statusOpt) *statusOpt = PR_SUCCESS;
 
     if (rvLimit) {
@@ -1423,10 +1412,10 @@ nssCert_GetPublicKey (
 )
 {
     PRStatus status;
-    NSSTrustDomain *td = nssCert_GetTrustDomain(c);
+    NSSTrustDomain *td = nssPKIObject_GetTrustDomain(PKIOBJECT(c));
     NSSVolatileDomain *vd;
     /* XXX multiple vds? */
-    nssCert_GetVolatileDomains(c, &vd, 1, NULL, NULL);
+    nssPKIObject_GetVolatileDomains(PKIOBJECT(c), &vd, 1, NULL, NULL);
 
     if (!c->bk && c->id.size > 0) {
 	/* first try looking for a persistent object */
@@ -1466,7 +1455,7 @@ nssCert_FindPrivateKey (
   NSSCallback *uhh
 )
 {
-    NSSTrustDomain *td = nssCert_GetTrustDomain(c);
+    NSSTrustDomain *td = nssPKIObject_GetTrustDomain(PKIOBJECT(c));
     if (c->id.size > 0) {
 	return nssTrustDomain_FindPrivateKeyByID(td, &c->id);
     } else {

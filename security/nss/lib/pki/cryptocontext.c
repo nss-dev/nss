@@ -121,10 +121,10 @@ nssCryptoContext_CreateForSymKey (
 )
 {
     NSSCryptoContext *rvCC;
-    NSSTrustDomain *td = nssSymKey_GetTrustDomain(mkey, NULL);
+    NSSTrustDomain *td = nssPKIObject_GetTrustDomain(PKIOBJECT(mkey));
     /* XXX multiple vds? */
     NSSVolatileDomain *vd;
-    nssSymKey_GetVolatileDomains(mkey, &vd, 1, NULL, NULL);
+    nssPKIObject_GetVolatileDomains(PKIOBJECT(mkey), &vd, 1, NULL, NULL);
 
     rvCC = nssCryptoContext_Create(td, vd, apOpt, uhhOpt);
     if (rvCC) {
@@ -143,10 +143,10 @@ nssCryptoContext_CreateForPrivateKey (
 )
 {
     NSSCryptoContext *rvCC;
-    NSSTrustDomain *td = nssPrivateKey_GetTrustDomain(vkey, NULL);
+    NSSTrustDomain *td = nssPKIObject_GetTrustDomain(PKIOBJECT(vkey));
     /* XXX multiple vds? */
     NSSVolatileDomain *vd;
-    nssPrivateKey_GetVolatileDomains(vkey, &vd, 1, NULL, NULL);
+    nssPKIObject_GetVolatileDomains(PKIOBJECT(vkey), &vd, 1, NULL, NULL);
 
     rvCC = nssCryptoContext_Create(td, vd, apOpt, uhhOpt);
     if (rvCC) {
@@ -294,19 +294,21 @@ loser:
 }
 
 static PRStatus
-prepare_context_symmetric_key (
+prepare_context_key (
   NSSCryptoContext *cc,
+  nssPKIObject *key,
+  nssCryptokiObject **keyo,
   const NSSAlgNParam *ap
 )
 {
+    PRStatus status;
     if (cc->token) {
 	/* context already has a token set */
-	if (nssToken_DoesAlgNParam(cc->token, ap))
-	{
+	if (nssToken_DoesAlgNParam(cc->token, ap)) {
 	    /* and the token can do the operation */
-	    if (!cc->key) {
+	    if (!*keyo) {
 		/* get a key instance from it */
-		cc->key = nssSymKey_GetInstance(cc->u.mkey, cc->token);
+		*keyo = nssPKIObject_GetInstance(key, cc->token);
 	    } /* else we already have a key instance */
 	} else {
 	    /* the token can't do the math, so this context won't work */
@@ -314,8 +316,8 @@ prepare_context_symmetric_key (
 	}
     } else {
 	/* find an instance of the key that will do the operation */
-	cc->key = nssSymKey_FindInstanceForAlgorithm(cc->u.mkey, cc->ap);
-	if (cc->key) {
+	*keyo = nssPKIObject_FindInstanceForAlgorithm(key, cc->ap, PR_TRUE);
+	if (*keyo) {
 	    /* okay, now we know what token to use */
 	    cc->token = nssToken_AddRef(cc->key->token);
 	} else {
@@ -330,10 +332,11 @@ prepare_context_symmetric_key (
     /* the token has been set, so if we didn't find a key instance on
      * the token, copy it there as a temp (session) object
      */
-    if (!cc->key) {
-	cc->key = nssSymKey_CopyToToken(cc->u.mkey, cc->token, 
-	                                      PR_FALSE);
-	if (!cc->key) {
+    if (!*keyo) {
+	    /* XXX uh, get the session first */
+	status = nssPKIObject_CopyToToken(key, cc->token, NULL, PR_FALSE,
+	                                 NULL, keyo);
+	if (status == PR_FAILURE) {
 	    goto loser;
 	}
     }
@@ -348,6 +351,15 @@ prepare_context_symmetric_key (
 loser:
     nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
     return PR_FAILURE;
+}
+
+static PRStatus
+prepare_context_symmetric_key (
+  NSSCryptoContext *cc,
+  const NSSAlgNParam *ap
+)
+{
+    return prepare_context_key(cc, PKIOBJECT(cc->u.mkey), &cc->key, ap);
 }
 
 static PRStatus
@@ -356,70 +368,20 @@ prepare_context_private_key (
   const NSSAlgNParam *ap
 )
 {
+    PRStatus status;
     NSSPrivateKey *vkey = NULL;
     if (cc->which == a_cert) {
 	/* try to get the key from the cert */
 	vkey = nssCert_FindPrivateKey(cc->u.cert, cc->callback);
 	if (!vkey) {
-	    goto loser;
+	    return PR_FAILURE;
 	}
     } else {
 	vkey = nssPrivateKey_AddRef(cc->u.vkey);
     }
-    if (cc->token) {
-	/* context already has a token set */
-	if (nssToken_DoesAlgNParam(cc->token, ap)) 
-	{
-	    /* and the token can do the operation */
-	    if (!cc->key) {
-		/* get a key instance from it */
-		cc->key = nssPrivateKey_GetInstance(vkey, cc->token);
-	    } /* else we already have a key instance for the token */
-	} else {
-	    /* the token can't do the math, so this context won't work */
-	    goto loser;
-	}
-    } else {
-	/* find an instance of the key that will do the operation */
-	cc->key = nssPrivateKey_FindInstanceForAlgorithm(vkey, cc->ap);
-	if (cc->key) {
-	    /* okay, now we know what token to use */
-	    cc->token = nssToken_AddRef(cc->key->token);
-	} else {
-	    /* find any token in the trust domain that can */
-	    cc->token = nssTrustDomain_FindTokenForAlgNParam(cc->td, ap);
-	    if (!cc->token) {
-		/*nss_SetError(NSS_ERROR_NO_TOKEN_FOR_OPERATION);*/
-		goto loser;
-	    }
-	}
-    }
-    /* the token has been set, so if we didn't find a key instance on
-     * the token, copy it there
-     */
-    if (!cc->key) {
-	cc->key = nssPrivateKey_CopyToToken(vkey, cc->token);
-	if (!cc->key) {
-	    goto loser;
-	}
-    }
-    /* Obtain a session for the operation */
-    if (!cc->session) {
-	cc->session = nssToken_CreateSession(cc->token, PR_FALSE);
-	if (!cc->session) {
-	    goto loser;
-	}
-    }
-    if (vkey) {
-	nssPrivateKey_Destroy(vkey);
-    }
-    return PR_SUCCESS;
-loser:
-    if (vkey) {
-	nssPrivateKey_Destroy(vkey);
-    }
-    nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
-    return PR_FAILURE;
+    status = prepare_context_key(cc, PKIOBJECT(vkey), &cc->key, ap);
+    nssPrivateKey_Destroy(vkey);
+    return status;
 }
 
 static PRStatus
@@ -428,74 +390,24 @@ prepare_context_public_key (
   const NSSAlgNParam *ap
 )
 {
+    PRStatus status;
+    NSSPublicKey *bkey = NULL;
     /* when the dist. object is a cert, both keys may be available,
      * so public key is stored separately
      */
     nssCryptokiObject **bkp = (cc->which == a_cert) ? &cc->bkey : &cc->key;
-    NSSPublicKey *bkey = NULL;
     if (cc->which == a_cert) {
 	/* try to get the key from the cert */
 	bkey = nssCert_GetPublicKey(cc->u.cert);
 	if (!bkey) {
-	    goto loser;
+	    return PR_FAILURE;
 	}
     } else {
 	bkey = nssPublicKey_AddRef(cc->u.bkey);
     }
-    if (cc->token) {
-	/* context already has a token set */
-	if (nssToken_DoesAlgNParam(cc->token, ap))
-	{
-	    /* and the token can do the operation */
-	    if (!*bkp) {
-		/* get a key instance from it */
-		*bkp = nssPublicKey_GetInstance(bkey, cc->token);
-	    } /* else we already have a key instance for the token */
-	} else {
-	    /* the token can't do the math, so this context won't work */
-	    goto loser;
-	}
-    } else {
-	/* find an instance of the key that will do the operation */
-	*bkp = nssPublicKey_FindInstanceForAlgorithm(bkey, cc->ap);
-	if (*bkp) {
-	    /* okay, now we know what token to use */
-	    cc->token = nssToken_AddRef(cc->key->token);
-	} else {
-	    /* find any token in the trust domain that can */
-	    cc->token = nssTrustDomain_FindTokenForAlgNParam(cc->td, ap);
-	    if (!cc->token) {
-		/*nss_SetError(NSS_ERROR_NO_TOKEN_FOR_OPERATION);*/
-		goto loser;
-	    }
-	}
-    }
-    /* the token has been set, so if we didn't find a key instance on
-     * the token, copy it there
-     */
-    if (!*bkp) {
-	*bkp = nssPublicKey_CopyToToken(bkey, cc->token, PR_FALSE);
-	if (!*bkp) {
-	    goto loser;
-	}
-    }
-    /* Obtain a session for the operation */
-    if (!cc->session) {
-	cc->session = nssToken_CreateSession(cc->token, PR_FALSE);
-	if (!cc->session) {
-	    goto loser;
-	}
-    }
-    if (bkey) {
-	nssPublicKey_Destroy(bkey);
-    }
-    return PR_SUCCESS;
-loser:
-    if (bkey) {
-	nssPublicKey_Destroy(bkey);
-    }
-    nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
-    return PR_FAILURE;
+    status = prepare_context_key(cc, PKIOBJECT(bkey), bkp, ap);
+    nssPublicKey_Destroy(bkey);
+    return status;
 }
 
 NSS_IMPLEMENT NSSItem *
@@ -1338,10 +1250,12 @@ nssCryptoContext_DigestKey (
 	/* The context is being asked to digest a key that may not be
 	 * within its scope.  Copy the key if needed.
 	 */
-	mko = nssSymKey_GetInstance(mkOpt, cc->token);
+	mko = nssPKIObject_GetInstance(PKIOBJECT(mkOpt), cc->token);
 	if (!mko) {
-	    mko = nssSymKey_CopyToToken(mkOpt, cc->token, PR_FALSE);
-	    if (!mko) {
+	    status = nssPKIObject_CopyToToken(PKIOBJECT(mkOpt), cc->token, 
+	                                                cc->session, PR_FALSE,
+	                                                NULL, &mko);
+	    if (status == PR_FAILURE) {
 		return PR_FAILURE;
 	    }
 	}

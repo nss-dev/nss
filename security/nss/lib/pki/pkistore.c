@@ -827,8 +827,9 @@ unload_token_certs(nssTokenObjectStore *objectStore, nssTokenStore *store)
     if (objectStore->certs) {
 	/* notify the cert objects that the token is removed */
 	for (cp = objectStore->certs; *cp; cp++) {
-	    nssCert_RemoveInstanceForToken(*cp, objectStore->token);
-	    if (nssCert_CountInstances(*cp) == 0) {
+	    nssPKIObject_RemoveInstanceForToken(PKIOBJECT(*cp), 
+	                                        objectStore->token);
+	    if (nssPKIObject_CountInstances(PKIOBJECT(*cp)) == 0) {
 		/* the cert now has no token instances, remove it from
 		 * the token store
 		 */
@@ -887,8 +888,9 @@ unload_token_bkeys(nssTokenObjectStore *objectStore, nssTokenStore *store)
     if (objectStore->bkeys) {
 	/* notify the objects that the token is removed */
 	for (bkp = objectStore->bkeys; *bkp; bkp++) {
-	    nssPublicKey_RemoveInstanceForToken(*bkp, objectStore->token);
-	    if (nssPublicKey_CountInstances(*bkp) == 0) {
+	    nssPKIObject_RemoveInstanceForToken(PKIOBJECT(*bkp), 
+	                                        objectStore->token);
+	    if (nssPKIObject_CountInstances(PKIOBJECT(*bkp)) == 0) {
 		/* the key now has no token instances, remove it from
 		 * the token store
 		 */
@@ -947,8 +949,9 @@ unload_token_vkeys(nssTokenObjectStore *objectStore, nssTokenStore *store)
     if (objectStore->vkeys) {
 	/* notify the objects that the token is removed */
 	for (vkp = objectStore->vkeys; *vkp; vkp++) {
-	    nssPrivateKey_RemoveInstanceForToken(*vkp, objectStore->token);
-	    if (nssPrivateKey_CountInstances(*vkp) == 0) {
+	    nssPKIObject_RemoveInstanceForToken(PKIOBJECT(*vkp), 
+	                                        objectStore->token);
+	    if (nssPKIObject_CountInstances(PKIOBJECT(*vkp)) == 0) {
 		/* the key now has no token instances, remove it from
 		 * the token store
 		 */
@@ -1329,12 +1332,13 @@ nssTokenStore_ImportCert (
     /* refresh the token */
     refresh_token_object_store(objectStore, store);
     /* see if it's already there */
-    if (nssCert_HasInstanceOnToken(cert, destination)) {
+    if (nssPKIObject_HasInstanceOnToken(PKIOBJECT(cert), destination)) {
 	return PR_SUCCESS;
     }
     /* copy it onto the token and add it to the store */
     /* XXX use session */
-    status = nssCert_CopyToToken(cert, destination, nicknameOpt);
+    status = nssPKIObject_CopyToToken(PKIOBJECT(cert), destination, NULL,
+                                      PR_TRUE, nicknameOpt, NULL);
     if (status == PR_SUCCESS) {
 	status = nssCertStore_AddCert(store->certs, cert);
 	if (status == PR_FAILURE) {

@@ -269,27 +269,6 @@ nssPrivateKey_GetID (
   NSSPrivateKey *vk
 );
 
-NSS_EXTERN NSSUTF8 *
-nssPrivateKey_GetNickname (
-  NSSPrivateKey *vk,
-  NSSToken *tokenOpt
-);
-
-NSS_EXTERN NSSTrustDomain *
-nssPrivateKey_GetTrustDomain (
-  NSSPrivateKey *vk,
-  PRStatus *statusOpt
-);
-
-NSS_EXTERN NSSVolatileDomain **
-nssPrivateKey_GetVolatileDomains (
-  NSSPrivateKey *vk,
-  NSSVolatileDomain **vdsOpt,
-  PRUint32 maximumOpt,
-  NSSArena *arenaOpt,
-  PRStatus *statusOpt
-);
-
 NSS_EXTERN NSSPublicKey *
 nssPublicKey_AddRef (
   NSSPublicKey *bk
@@ -323,15 +302,6 @@ nssPublicKey_WrapSymKey (
 NSS_EXTERN NSSSymKey *
 nssSymKey_AddRef (
   NSSSymKey *mk
-);
-
-NSS_EXTERN NSSVolatileDomain **
-nssSymKey_GetVolatileDomains (
-  NSSSymKey *mk,
-  NSSVolatileDomain **vdsOpt,
-  PRUint32 maximumOpt,
-  NSSArena *arenaOpt,
-  PRStatus *statusOpt
 );
 
 NSS_EXTERN NSSVolatileDomain *

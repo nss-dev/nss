@@ -54,8 +54,7 @@ static const char PKIT_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 
 PR_BEGIN_EXTERN_C
 
-/* XXX */
-typedef struct nssCertCacheStr nssCertCache;
+typedef struct nssPKIObjectStr nssPKIObject;
 
 typedef PRUint32 nssUpdateLevel;
 

@@ -98,9 +98,11 @@ struct nssPKIObjectStr
     pkiObjectType objectType;
     NSSItem *uid[MAX_ITEMS_FOR_UID];
     PRUint32 numIDs;
+    /* these are implemented on per-object basis */
+    PRStatus (* destructor)(nssPKIObject *);
+    PRStatus (* copyToToken)(nssPKIObject *, NSSToken *, nssSession *,
+                             PRBool, NSSUTF8 *, nssCryptokiObject **);
 };
-
-typedef struct nssPKIObjectStr nssPKIObject;
 
 typedef struct nssPKIObjectTableStr nssPKIObjectTable;
 

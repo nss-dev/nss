@@ -142,15 +142,7 @@ nssPrivateKey_Destroy (
   NSSPrivateKey *vk
 )
 {
-    PRBool destroyed;
-    if (vk) {
-	destroyed = nssPKIObject_Destroy(&vk->object);
-	/*
-	if (destroyed) {
-	}
-	*/
-    }
-    return PR_SUCCESS;
+    return nssPKIObject_Destroy(&vk->object);
 }
 
 NSS_IMPLEMENT PRStatus
@@ -198,15 +190,6 @@ nssPrivateKey_GetInstance (
 )
 {
     return nssPKIObject_GetInstance(&vk->object, token);
-}
-
-NSS_IMPLEMENT nssCryptokiObject *
-nssPrivateKey_FindInstanceForAlgorithm (
-  NSSPrivateKey *vk,
-  const NSSAlgNParam *ap
-)
-{
-    return nssPKIObject_FindInstanceForAlgorithm(&vk->object, ap);
 }
 
 NSS_IMPLEMENT PRStatus
@@ -258,17 +241,6 @@ NSSPrivateKey_GetKeyType (
 )
 {
     return nssPrivateKey_GetKeyType(vk);
-}
-
-NSS_IMPLEMENT nssCryptokiObject *
-nssPrivateKey_CopyToToken (
-  NSSPrivateKey *vk,
-  NSSToken *destination
-)
-{
-    /* XXX this could get complicated... might have to wrap the key, etc. */
-    PR_ASSERT(0);
-    return NULL;
 }
 
 NSS_IMPLEMENT PRUint32
@@ -378,7 +350,7 @@ nssPrivateKey_Encode (
     }
     (void)nssAlgNParam_SetPBEPassword(ap, password);
 
-    vkey = nssPrivateKey_FindInstanceForAlgorithm(vk, ap);
+    vkey = nssPKIObject_FindInstanceForAlgorithm(PKIOBJECT(vk), ap, PR_TRUE);
     if (!vkey) {
 	/* XXX defer to trust domain? */
 	nss_ZFreeIf(password);
@@ -388,8 +360,8 @@ nssPrivateKey_Encode (
     /* XXX use GenByPassword!!! */
     /* use the supplied PBE alg/param to create a wrapping key */
     pbeKey = nssToken_GenerateSymKey(vkey->token, vkey->session, ap,
-                                           0, NULL, PR_FALSE,
-                                           NSSOperations_WRAP, 0);
+                                     0, NULL, PR_FALSE,
+                                     NSSOperations_WRAP, 0);
     nss_ZFreeIf(password);
     if (!pbeKey) {
 	return (NSSItem *)NULL;
@@ -403,8 +375,7 @@ nssPrivateKey_Encode (
 
     /* wrap the private key with the PBE key */
     wrap = nssToken_WrapKey(vkey->token, vkey->session, wrapAP, 
-                            pbeKey, vkey, 
-                            rvOpt, arenaOpt);
+                            pbeKey, vkey, rvOpt, arenaOpt);
     nssAlgNParam_Destroy(wrapAP);
     nssCryptokiObject_Destroy(pbeKey);
     nssCryptokiObject_Destroy(vkey);
@@ -587,21 +558,11 @@ nssPrivateKey_GetVolatileDomain (
 }
 
 NSS_IMPLEMENT NSSTrustDomain *
-nssPrivateKey_GetTrustDomain (
-  NSSPrivateKey *vk,
-  PRStatus *statusOpt
-)
-{
-    return vk->object.td;
-}
-
-NSS_IMPLEMENT NSSTrustDomain *
 NSSPrivateKey_GetTrustDomain (
-  NSSPrivateKey *vk,
-  PRStatus *statusOpt
+  NSSPrivateKey *vk
 )
 {
-    return nssPrivateKey_GetTrustDomain(vk, statusOpt);
+    return nssPKIObject_GetTrustDomain(PKIOBJECT(vk));
 }
 
 NSS_IMPLEMENT NSSToken **
@@ -676,7 +637,7 @@ nssPrivateKey_Decrypt (
 	}
     }
 
-    vko = nssPrivateKey_FindInstanceForAlgorithm(vk, ap);
+    vko = nssPKIObject_FindInstanceForAlgorithm(PKIOBJECT(vk), ap, PR_TRUE);
     if (!vko) {
 	if (!apOpt) nssAlgNParam_Destroy(ap);
 	return (NSSItem *)NULL;
@@ -738,7 +699,7 @@ nssPrivateKey_Sign (
 	}
     }
 
-    vko = nssPrivateKey_FindInstanceForAlgorithm(vk, ap);
+    vko = nssPKIObject_FindInstanceForAlgorithm(PKIOBJECT(vk), ap, PR_TRUE);
     if (!vko) {
 	if (!apOpt) nssAlgNParam_Destroy(ap);
 	return NULL;
@@ -841,7 +802,7 @@ nssPrivateKey_FindPublicKey (
   NSSPrivateKey *vk
 )
 {
-    NSSTrustDomain *td = nssPrivateKey_GetTrustDomain(vk, NULL);
+    NSSTrustDomain *td = nssPKIObject_GetTrustDomain(PKIOBJECT(vk));
     return nssTrustDomain_FindPublicKeyByID(td, &vk->id);
 }
 
@@ -861,7 +822,7 @@ nssPrivateKey_FindCerts (
   NSSArena *arenaOpt
 )
 {
-    NSSTrustDomain *td = nssPrivateKey_GetTrustDomain(vk, NULL);
+    NSSTrustDomain *td = nssPKIObject_GetTrustDomain(PKIOBJECT(vk));
     return nssTrustDomain_FindCertsByID(td, &vk->id, 
                                         rvOpt, maximumOpt, arenaOpt);
 }
@@ -924,6 +885,44 @@ struct NSSPublicKeyStr
   NSSPublicKeyInfo info;
 };
 
+static PRStatus
+copy_public_key_to_token (
+  nssPKIObject *o,
+  NSSToken *token,
+  nssSession *sessionOpt,
+  PRBool asPersistentObject,
+  NSSUTF8 *nicknameOpt,
+  nssCryptokiObject **rvInstanceOpt
+)
+{
+    nssCryptokiObject *bko;
+    nssSession *session;
+    NSSPublicKey *bk = (NSSPublicKey *)o;
+
+    if (sessionOpt) {
+	session = sessionOpt;
+    } else {
+	session = nssToken_CreateSession(token, asPersistentObject);
+	if (!session)
+	    return PR_FAILURE;
+    }
+    bko = nssToken_ImportPublicKey(token, session, 
+                                   &bk->info, asPersistentObject);
+    if (!sessionOpt) {
+	nssSession_Destroy(session);
+    }
+    if (!bko) {
+	return PR_FAILURE;
+    }
+    if (nssPKIObject_AddInstance(&bk->object, bko) == PR_FAILURE) {
+	nssCryptokiObject_Destroy(bko);
+	return PR_FAILURE;
+    } else if (rvInstanceOpt) {
+	*rvInstanceOpt = nssCryptokiObject_Clone(bko);
+    }
+    return PR_SUCCESS;
+}
+
 NSS_IMPLEMENT NSSPublicKey *
 nssPublicKey_CreateFromInstance (
   nssCryptokiObject *instance,
@@ -950,6 +949,7 @@ nssPublicKey_CreateFromInstance (
     pkio->objectType = pkiObjectType_PublicKey;
     pkio->numIDs = 1;
     pkio->uid[0] = &rvKey->id;
+    pkio->copyToToken = copy_public_key_to_token;
     rvKey = (NSSPublicKey *)nssPKIObjectTable_Add(objectTable, pkio);
     if (!rvKey) {
 	rvKey = (NSSPublicKey *)pkio;
@@ -1071,15 +1071,7 @@ nssPublicKey_Destroy (
   NSSPublicKey *bk
 )
 {
-    PRBool destroyed;
-    if (bk) {
-	destroyed = nssPKIObject_Destroy(&bk->object);
-	/*
-	if (destroyed) {
-	}
-	*/
-    }
-    return PR_SUCCESS;
+    return nssPKIObject_Destroy(&bk->object);
 }
 
 NSS_IMPLEMENT PRStatus
@@ -1118,15 +1110,6 @@ nssPublicKey_GetInstance (
 )
 {
     return nssPKIObject_GetInstance(&bk->object, token);
-}
-
-NSS_IMPLEMENT nssCryptokiObject *
-nssPublicKey_FindInstanceForAlgorithm (
-  NSSPublicKey *bk,
-  const NSSAlgNParam *ap
-)
-{
-    return nssPKIObject_FindInstanceForAlgorithm(&bk->object, ap);
 }
 
 NSS_IMPLEMENT PRStatus
@@ -1173,35 +1156,6 @@ NSSPublicKey_DeleteStoredObject (
     return nssPublicKey_DeleteStoredObject(bk, uhh);
 }
 
-NSS_IMPLEMENT nssCryptokiObject *
-nssPublicKey_CopyToToken (
-  NSSPublicKey *bk,
-  NSSToken *destination,
-  PRBool asPersistentObject
-)
-{
-    nssSession *session;
-    nssCryptokiObject *bko;
-
-    session = nssToken_CreateSession(destination, asPersistentObject);
-    if (!session) {
-	return (nssCryptokiObject *)NULL;
-    }
-    bko = nssToken_ImportPublicKey(destination, session, 
-                                   &bk->info, asPersistentObject);
-    nssSession_Destroy(session);
-    if (bko) {
-	if (nssPKIObject_AddInstance(&bk->object, bko) == PR_FAILURE) {
-	    nssCryptokiObject_Destroy(bko);
-	    bko = NULL;
-	} else {
-	    /* XXX maybe AddInstance should rethink not cloning */
-	    bko = nssCryptokiObject_Clone(bko);
-	}
-    }
-    return bko;
-}
-
 NSS_IMPLEMENT NSSItem *
 NSSPublicKey_Encode (
   NSSPublicKey *bk,
@@ -1216,21 +1170,11 @@ NSSPublicKey_Encode (
 }
 
 NSS_IMPLEMENT NSSTrustDomain *
-nssPublicKey_GetTrustDomain (
-  NSSPublicKey *bk,
-  PRStatus *statusOpt
-)
-{
-    return bk->object.td;
-}
-
-NSS_IMPLEMENT NSSTrustDomain *
 NSSPublicKey_GetTrustDomain (
-  NSSPublicKey *bk,
-  PRStatus *statusOpt
+  NSSPublicKey *bk
 )
 {
-    return nssPublicKey_GetTrustDomain(bk, statusOpt);
+    return nssPKIObject_GetTrustDomain(PKIOBJECT(bk));
 }
 
 NSS_IMPLEMENT NSSToken *
@@ -1355,7 +1299,7 @@ nssPublicKey_Encrypt (
 	}
     }
 
-    bko = nssPublicKey_FindInstanceForAlgorithm(bk, ap);
+    bko = nssPKIObject_FindInstanceForAlgorithm(PKIOBJECT(bk), ap, PR_TRUE);
     if (!bko) {
 	if (!apOpt) nssAlgNParam_Destroy(ap);
 	return (NSSItem *)NULL;
@@ -1496,7 +1440,10 @@ nssPublicKey_GetInstanceForAlgorithmAndObject (
 	    /* didn't find a token with both objects, but did find
 	     * one that can do the operation
 	     */
-	     instance = nssPublicKey_CopyToToken(bk, candidate, PR_FALSE);
+		/* XXX session? */
+	     status = nssPKIObject_CopyToToken(PKIOBJECT(bk), candidate, 
+	                                       NULL, PR_FALSE, 
+	                                       NULL, &instance);
 	}
 	nssTokenArray_Destroy(tokens);
     }
@@ -1566,7 +1513,7 @@ nssPublicKey_FindCerts (
   NSSArena *arenaOpt
 )
 {
-    NSSTrustDomain *td = nssPublicKey_GetTrustDomain(bk, NULL);
+    NSSTrustDomain *td = nssPKIObject_GetTrustDomain(PKIOBJECT(bk));
     return nssTrustDomain_FindCertsByID(td, &bk->id, 
                                         rvOpt, maximumOpt, arenaOpt);
 }

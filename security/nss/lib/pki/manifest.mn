@@ -54,6 +54,7 @@ CSRCS =		         \
 	cert.c           \
 	cryptocontext.c  \
 	symkey.c         \
+	pkietc.c         \
 	time.c           \
 	trustdomain.c    \
 	volatiledomain.c \

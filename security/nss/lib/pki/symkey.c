@@ -52,6 +52,48 @@ struct NSSSymKeyStr
   NSSOperations operations;
 };
 
+static PRStatus
+copy_symkey_to_token (
+  nssPKIObject *o,
+  NSSToken *token,
+  nssSession *sessionOpt,
+  PRBool asPersistentObject,
+  NSSUTF8 *nicknameOpt,
+  nssCryptokiObject **rvInstanceOpt
+)
+{
+    /* XXX this could get complicated... might have to wrap the key, etc. */
+    nssCryptokiObject *mko;
+    nssSession *session;
+    NSSSymKey *mk = (NSSSymKey *)o;
+
+    if (sessionOpt) {
+	session = sessionOpt;
+    } else {
+	session = nssToken_CreateSession(token, asPersistentObject);
+	if (!session)
+	    return PR_FAILURE;
+    }
+    /* XXX kind of a hack to peek into first instance like this */
+    mko = nssCryptokiSymKey_Copy(o->instances[0],
+                                 o->instances[0]->session,
+                                 token, session,
+                                 asPersistentObject);
+    if (!sessionOpt) {
+	nssSession_Destroy(session);
+    }
+    if (!mko) {
+	return PR_FAILURE;
+    }
+    if (nssPKIObject_AddInstance(&mk->object, mko) == PR_FAILURE) {
+	nssCryptokiObject_Destroy(mko);
+	return PR_FAILURE;
+    } else if (rvInstanceOpt) {
+	*rvInstanceOpt = nssCryptokiObject_Clone(mko);
+    }
+    return PR_SUCCESS;
+}
+
 NSS_IMPLEMENT NSSSymKey *
 nssSymKey_CreateFromInstance (
   nssCryptokiObject *instance,
@@ -77,6 +119,7 @@ nssSymKey_CreateFromInstance (
     }
     pkio->objectType = pkiObjectType_SymKey;
     pkio->numIDs = 0; /* XXX */
+    pkio->copyToToken = copy_symkey_to_token;
     /* XXX not adding to table w/o uid... */
     if (rvKey && vdOpt) {
 	status = nssVolatileDomain_ImportSymKey(vdOpt, rvKey);
@@ -149,26 +192,6 @@ nssSymKey_GetInstance (
     return nssPKIObject_GetInstance(&mk->object, token);
 }
 
-NSS_IMPLEMENT nssCryptokiObject *
-nssSymKey_FindInstanceForAlgorithm (
-  NSSSymKey *mk,
-  const NSSAlgNParam *ap
-)
-{
-    nssCryptokiObject *instance;
-    instance = nssPKIObject_FindInstanceForAlgorithm(&mk->object, ap);
-    /* XXX here for now... make it apply for all searches... */
-    if (!instance) {
-	NSSToken *token;
-	token = nssTrustDomain_FindTokenForAlgNParam(mk->object.td, ap);
-	if (token) {
-	    instance = nssSymKey_CopyToToken(mk, token, PR_FALSE);
-	    nssToken_Destroy(token);
-	}
-    }
-    return instance;
-}
-
 NSS_IMPLEMENT PRBool
 nssSymKey_HasInstanceOnToken (
   NSSSymKey *mk,
@@ -194,42 +217,6 @@ NSSSymKey_DeleteStoredObject (
 )
 {
     return nssSymKey_DeleteStoredObject(mk, uhh);
-}
-
-/* XXX should take session as arg?  crypto contexts copy instances in
- * their own session?
- */
-NSS_IMPLEMENT nssCryptokiObject *
-nssSymKey_CopyToToken (
-  NSSSymKey *mk,
-  NSSToken *destination,
-  PRBool asPersistentObject
-)
-{
-    /* XXX this could get complicated... might have to wrap the key, etc. */
-    nssSession *session;
-    nssCryptokiObject *mko;
-
-    session = nssToken_CreateSession(destination, asPersistentObject);
-    if (!session) {
-	return (nssCryptokiObject *)NULL;
-    }
-    /* XXX kind of a hack to peek into first instance like this */
-    mko = nssCryptokiSymKey_Copy(mk->object.instances[0],
-                                       mk->object.instances[0]->session,
-                                       destination, session,
-                                       asPersistentObject);
-    nssSession_Destroy(session);
-    if (mko) {
-	if (nssPKIObject_AddInstance(&mk->object, mko) == PR_FAILURE) {
-	    nssCryptokiObject_Destroy(mko);
-	    mko = NULL;
-	} else {
-	    /* XXX */
-	    mko = nssCryptokiObject_Clone(mko);
-	}
-    }
-    return mko;
 }
 
 NSS_IMPLEMENT PRUint32
@@ -287,34 +274,11 @@ nssSymKey_SetVolatileDomain (
 }
 
 NSS_IMPLEMENT NSSTrustDomain *
-nssSymKey_GetTrustDomain (
-  NSSSymKey *mk,
-  PRStatus *statusOpt
-)
-{
-    return nssPKIObject_GetTrustDomain(&mk->object, statusOpt);
-}
-
-NSS_IMPLEMENT NSSTrustDomain *
 NSSSymKey_GetTrustDomain (
-  NSSSymKey *mk,
-  PRStatus *statusOpt
+  NSSSymKey *mk
 )
 {
-    return nssSymKey_GetTrustDomain(mk, statusOpt);
-}
-
-NSS_IMPLEMENT NSSVolatileDomain **
-nssSymKey_GetVolatileDomains (
-  NSSSymKey *mk,
-  NSSVolatileDomain **vdsOpt,
-  PRUint32 maximumOpt,
-  NSSArena *arenaOpt,
-  PRStatus *statusOpt
-)
-{
-    return nssPKIObject_GetVolatileDomains(&mk->object, vdsOpt,
-                                           maximumOpt, arenaOpt, statusOpt);
+    return nssPKIObject_GetTrustDomain(PKIOBJECT(mk));
 }
 
 NSS_IMPLEMENT NSSToken *
@@ -609,9 +573,10 @@ nssSymKey_DeriveSymKey (
 {
     nssCryptokiObject *mko, *rvo;
     NSSSymKey *rvKey = NULL;
-    NSSTrustDomain *td = nssSymKey_GetTrustDomain(originalKey, NULL);
+    NSSTrustDomain *td = nssPKIObject_GetTrustDomain(PKIOBJECT(originalKey));
 
-    mko = nssSymKey_FindInstanceForAlgorithm(originalKey, ap);
+    mko = nssPKIObject_FindInstanceForAlgorithm(PKIOBJECT(originalKey), 
+                                                ap, PR_TRUE);
     if (!mko) {
 	return (NSSSymKey *)NULL;
     }
@@ -686,7 +651,8 @@ nssSymKey_DeriveSSLSessionKeys (
     PRStatus status;
     PRIntn i;
 
-    nssSymKey_GetVolatileDomains(masterSecret, &vd, 1, NULL, &status);
+    nssPKIObject_GetVolatileDomains(PKIOBJECT(masterSecret), 
+                                    &vd, 1, NULL, &status);
     if (status == PR_FAILURE) {
 	return PR_FAILURE;
     }

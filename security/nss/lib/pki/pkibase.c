@@ -48,6 +48,17 @@ struct volatile_domain_instance_str {
     NSSVolatileDomain *vd;
 };
 
+static PRStatus
+virtual_copy_to_token(nssPKIObject *object, NSSToken *destination,
+                      nssSession *sessionOpt, PRBool asPersistentObject,
+                      NSSUTF8 *labelOpt, nssCryptokiObject **rvInstanceOpt)
+{
+    PR_ASSERT(0);
+    nss_SetError(NSS_ERROR_INTERNAL_ERROR);
+    return PR_FAILURE;
+}
+
+
 NSS_IMPLEMENT nssPKIObject *
 nssPKIObject_Create (
   NSSTrustDomain *td,
@@ -69,6 +80,7 @@ nssPKIObject_Create (
     object->arena = arena;
     object->td = td; /* XXX */
     object->lock = PZ_NewLock(nssILockOther);
+    object->copyToToken = virtual_copy_to_token;
     if (!object->lock) {
 	goto loser;
     }
@@ -87,25 +99,30 @@ loser:
     return (nssPKIObject *)NULL;
 }
 
-NSS_IMPLEMENT PRBool
+NSS_IMPLEMENT PRStatus
 nssPKIObject_Destroy (
   nssPKIObject *object
 )
 {
     PRUint32 i;
+    PRStatus status;
+
     PR_ASSERT(object->refCount > 0);
     PR_AtomicDecrement(&object->refCount);
+    status = PR_SUCCESS;
     if (object->refCount == 0) {
 	for (i=0; i<object->numInstances; i++) {
 	    nssCryptokiObject_Destroy(object->instances[i]);
+	}
+	if (object->destructor) {
+	    status = object->destructor(object);
 	}
 	/*nssVolatileDomain_Destroy(object->vd);*/
 	PZ_DestroyLock(object->lock);
 	nssUTF8_Destroy(object->nickname);
 	nssArena_Destroy(object->arena);
-	return PR_TRUE;
     }
-    return PR_FALSE;
+    return status;
 }
 
 NSS_IMPLEMENT nssPKIObject *
@@ -465,10 +482,15 @@ nssPKIObject_GetInstance (
     return instance;
 }
 
+/* XXX currently, all callers of this function are using allowMove=true,
+ *     but this is in need of a scheme to determine when/how to wrap
+ *     sensitive objects before moving
+ */
 NSS_IMPLEMENT nssCryptokiObject *
 nssPKIObject_FindInstanceForAlgorithm (
   nssPKIObject *object,
-  const NSSAlgNParam *ap
+  const NSSAlgNParam *ap,
+  PRBool allowMove
 )
 {
     nssCryptokiObject *instance = NULL;
@@ -481,18 +503,23 @@ nssPKIObject_FindInstanceForAlgorithm (
 	}
     }
     PZ_Unlock(object->lock);
+    if (!instance && allowMove) {
+	NSSToken *token;
+	token = nssTrustDomain_FindTokenForAlgNParam(object->td, ap);
+	if (token) {
+	    (void)nssPKIObject_CopyToToken(object, token, NULL,
+	                                   PR_FALSE, NULL, &instance);
+	    nssToken_Destroy(token);
+	}
+    }
     return instance;
 }
 
 NSS_IMPLEMENT NSSTrustDomain *
 nssPKIObject_GetTrustDomain (
-  nssPKIObject *object,
-  PRStatus *statusOpt
+  nssPKIObject *object
 )
 {
-    if (statusOpt) {
-	*statusOpt = PR_SUCCESS;
-    }
     return object->td;
 }
 
@@ -504,7 +531,7 @@ object_is_in_vd(nssPKIObject *object, NSSVolatileDomain *vd)
     struct volatile_domain_instance_str *vdInstance;
 
     link = PR_NEXT_LINK(&object->vds);
-    while (link != &object->vds) {
+    while (link && link != &object->vds) {
 	vdInstance = (struct volatile_domain_instance_str *)link;
 	if (vdInstance->vd == vd) {
 	    inVD = PR_TRUE;
@@ -563,9 +590,13 @@ nssPKIObject_GetVolatileDomains (
 {
     PRCList *link;
     PRUint32 i;
+    NSSVolatileDomain **vds;
     struct volatile_domain_instance_str *vdInstance;
+
     if (statusOpt) *statusOpt = PR_SUCCESS;
-    if (!vdsOpt) {
+    if (vdsOpt) {
+	vds = vdsOpt;
+    } else {
 	if (maximumOpt > 0) {
 	    i = maximumOpt;
 	} else {
@@ -575,30 +606,30 @@ nssPKIObject_GetVolatileDomains (
 	         link != &object->vds; 
 	         link = PR_NEXT_LINK(link), i++);
 	    PZ_Unlock(object->lock);
-	    maximumOpt = i;
 	}
 	if (i == 0) {
 	    return (NSSVolatileDomain **)NULL;
 	}
-	vdsOpt = nss_ZNEWARRAY(arenaOpt, NSSVolatileDomain *, i + 1);
-	if (!vdsOpt) {
+	vds = nss_ZNEWARRAY(arenaOpt, NSSVolatileDomain *, i + 1);
+	if (!vds) {
 	    if (statusOpt) *statusOpt = PR_FAILURE;
 	    return (NSSVolatileDomain **)NULL;
 	}
     }
     i = 0;
+    vds[0] = NULL;
     PZ_Lock(object->lock);
     link = PR_NEXT_LINK(&object->vds);
-    while (link != &object->vds) {
+    while (link && link != &object->vds) {
 	vdInstance = (struct volatile_domain_instance_str *)link;
-	vdsOpt[i++] = nssVolatileDomain_AddRef(vdInstance->vd);
-	if (i == maximumOpt)
+	vds[i++] = nssVolatileDomain_AddRef(vdInstance->vd);
+	if (maximumOpt > 0 && i == maximumOpt)
 	    break;
 	link = PR_NEXT_LINK(link);
     }
     PZ_Unlock(object->lock);
-    vdsOpt[i] = NULL;
-    return vdsOpt;
+    if (!vdsOpt || maximumOpt == 0) vds[i] = NULL;
+    return vds;
 }
 
 NSS_IMPLEMENT NSSCert **
@@ -626,6 +657,20 @@ nssCertArray_CreateFromInstances (
 	}
     }
     return rvCerts;
+}
+
+NSS_IMPLEMENT PRStatus
+nssPKIObject_CopyToToken (
+  nssPKIObject *object,
+  NSSToken *destination,
+  nssSession *sessionOpt,
+  PRBool asPersistentObject,
+  NSSUTF8 *labelOpt,
+  nssCryptokiObject **rvInstanceOpt
+)
+{
+    return object->copyToToken(object, destination, sessionOpt,
+                               asPersistentObject, labelOpt, rvInstanceOpt);
 }
 
 NSS_IMPLEMENT void
