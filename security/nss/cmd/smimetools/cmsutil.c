@@ -923,11 +923,18 @@ main(int argc, char **argv)
     encryptOptions.bulkkey = NULL;
     encryptOptions.keysize = -1;
 
+#ifdef DEBUG
+    fprintf(stderr, "starting program\n");
+#endif
+
     /*
      * Parse command line arguments
      */
     optstate = PL_CreateOptState(argc, argv, 
                                  "CDSEOnN:TGPY:h:p:i:c:d:e:o:s:u:r:");
+#ifdef DEBUG
+    fprintf(stderr, "parsed command line\n");
+#endif
     while ((status = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
 	switch (optstate->option) {
 	case '?':
@@ -1127,6 +1134,9 @@ main(int argc, char **argv)
 	      
 	}
     }
+#ifdef DEBUG
+    fprintf(stderr, "received commands\n");
+#endif
 
     /* Call the libsec initialization routines */
     PR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
@@ -1135,13 +1145,16 @@ main(int argc, char **argv)
 	SECU_PrintError(progName, "NSS_Init failed");
 	exit(1);
     }
+#ifdef DEBUG
+    fprintf(stderr, "NSS has been initialized.\n");
+#endif
     options.certHandle = CERT_GetDefaultCertDB();
     if (!options.certHandle) {
 	SECU_PrintError(progName, "No default cert DB");
 	exit(1);
     }
 #ifdef DEBUG
-    fprintf(stderr, "NSS has been initialized.\n");
+    fprintf(stderr, "Got default certdb\n");
 #endif
 
 #if defined(WIN32)
