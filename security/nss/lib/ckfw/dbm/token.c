@@ -147,6 +147,11 @@ nss_dbm_mdToken_GetLabel
     token->label = nss_dbm_db_get_label(token->slot->token_db, token->arena, pError);
   }
 
+  /* If no label has been set, return *something* */
+  if( (NSSUTF8 *)NULL == token->label ) {
+    return token->slot->filename;
+  }
+
   return token->label;
 }
 
