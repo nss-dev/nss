@@ -104,6 +104,7 @@ NSS_IMPLEMENT NSSCertificate *
 NSSCertificate_CreateFromHandle
 (
   CK_OBJECT_HANDLE object,
+  nssSession *session,
   NSSSlot *slot
 )
 {
@@ -123,7 +124,7 @@ NSSCertificate_CreateFromHandle
     rvCert->handle = object;
     rvCert->slot = slot;
     nssrv = NSSCKObject_GetAttributes(object, cert_template, template_size,
-                                      rvCert->arena, rvCert->slot);
+                                      rvCert->arena, session, rvCert->slot);
     if (nssrv) {
 	/* okay, but if failed because one of the attributes could not be
 	 * found, do it gracefully (i.e., catch the error).

@@ -68,6 +68,7 @@ NSSTrustDomain_Create
 	return (NSSTrustDomain *)NULL;
     }
     rvTD->arena = arena;
+    rvTD->refCount = 1;
     return rvTD;
 }
 
@@ -77,8 +78,11 @@ NSSTrustDomain_Destroy
   NSSTrustDomain *td
 )
 {
-    nss_SetError(NSS_ERROR_NOT_FOUND);
-    return PR_FAILURE;
+    if (--td->refCount == 0) {
+	NSSModule_Destroy(td->module);
+	nssArena_Destroy(td->arena);
+    }
+    return PR_SUCCESS;
 }
 
 NSS_IMPLEMENT PRStatus
