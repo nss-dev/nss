@@ -106,8 +106,7 @@ nssPKIObject_Destroy (
 {
     PRUint32 i;
     PR_ASSERT(object->refCount > 0);
-    PR_AtomicDecrement(&object->refCount);
-    if (object->refCount == 0) {
+    if (PR_AtomicDecrement(&object->refCount) == 0) {
 	for (i=0; i<object->numInstances; i++) {
 	    nssCryptokiObject_Destroy(object->instances[i]);
 	}
@@ -218,12 +217,11 @@ nssPKIObject_RemoveInstanceForToken (
 	}
     }
     if (--object->numInstances > 0) {
-	object->instances = nss_ZREALLOCARRAY(object->instances,
+	nssCryptokiObject **instances = nss_ZREALLOCARRAY(object->instances,
 	                                      nssCryptokiObject *,
 	                                      object->numInstances);
-	if (!object->instances) {
-	    PZ_Unlock(object->lock);
-	    return PR_FAILURE;
+	if (instances) {
+	    object->instances = instances;
 	}
     } else {
 	nss_ZFreeIf(object->instances);
@@ -245,10 +243,12 @@ nssPKIObject_DeleteStoredObject (
 {
     PRUint32 i, numNotDestroyed;
     PRStatus status = PR_SUCCESS;
+#ifndef NSS_3_4_CODE
     NSSTrustDomain *td = object->trustDomain;
     NSSCallback *pwcb = uhh ?  /* is this optional? */
                         uhh : 
                         nssTrustDomain_GetDefaultCallback(td, NULL);
+#endif
     numNotDestroyed = 0;
     PZ_Lock(object->lock);
     for (i=0; i<object->numInstances; i++) {
@@ -808,22 +808,19 @@ nssPKIObjectCollection_AddInstances (
 	    if (numInstances > 0 && i == numInstances) {
 		break;
 	    }
-	    node = add_object_instance(collection, *instances, &foundIt);
-	    if (node == NULL) {
-		goto loser;
+	    if (status == PR_SUCCESS) {
+		node = add_object_instance(collection, *instances, &foundIt);
+		if (node == NULL) {
+		    /* add_object_instance freed the current instance */
+		    /* free the remaining instances */
+		    status = PR_FAILURE;
+		}
+	    } else {
+		nssCryptokiObject_Destroy(*instances);
 	    }
 	}
     }
     return status;
-loser:
-    /* free the remaining instances */
-    for (; *instances; instances++, i++) {
-	if (numInstances > 0 && i == numInstances) {
-	    break;
-	}
-	nssCryptokiObject_Destroy(*instances);
-    }
-    return PR_FAILURE;
 }
 
 static void

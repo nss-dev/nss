@@ -1,4 +1,5 @@
-/*
+/* alg1485.c - implementation of RFCs 1485, 1779 and 2253.
+ *
  * The contents of this file are subject to the Mozilla Public
  * License Version 1.1 (the "License"); you may not use this file
  * except in compliance with the License. You may obtain a copy of
@@ -38,24 +39,52 @@
 #include "secitem.h"
 #include "secerr.h"
 
+/* for better RFC 2253 compliance. */
+#define NSS_STRICT_RFC_2253_VALUES_ONLY 1
+
 struct NameToKind {
-    char *name;
-    SECOidTag kind;
+    const char * name;
+    unsigned int maxLen; /* max bytes in UTF8 encoded string value */
+    SECOidTag    kind;
 };
 
-static struct NameToKind name2kinds[] = {
-    { "CN",   		SEC_OID_AVA_COMMON_NAME, 		},
-    { "ST",   		SEC_OID_AVA_STATE_OR_PROVINCE, 		},
-    { "OU",   		SEC_OID_AVA_ORGANIZATIONAL_UNIT_NAME,	},
-    { "DC",   		SEC_OID_AVA_DC,	},
-    { "C",    		SEC_OID_AVA_COUNTRY_NAME, 		},
-    { "O",    		SEC_OID_AVA_ORGANIZATION_NAME, 		},
-    { "L",    		SEC_OID_AVA_LOCALITY, 			},
-    { "dnQualifier",	SEC_OID_AVA_DN_QUALIFIER, 		},
-    { "E",    		SEC_OID_PKCS9_EMAIL_ADDRESS, 		},
-    { "UID",  		SEC_OID_RFC1274_UID, 			},
-    { "MAIL", 		SEC_OID_RFC1274_MAIL, 			},
-    { 0,      		SEC_OID_UNKNOWN 			},
+/* Add new entries to this table, and maybe to function CERT_ParseRFC1485AVA */
+static const struct NameToKind name2kinds[] = {
+/* keywords given in RFC 2253 */
+    { "CN",                      64, SEC_OID_AVA_COMMON_NAME              },
+    { "L",                      128, SEC_OID_AVA_LOCALITY                 },
+    { "ST",                     128, SEC_OID_AVA_STATE_OR_PROVINCE        },
+    { "O",                       64, SEC_OID_AVA_ORGANIZATION_NAME        },
+    { "OU",                      64, SEC_OID_AVA_ORGANIZATIONAL_UNIT_NAME },
+    { "C",                        2, SEC_OID_AVA_COUNTRY_NAME             },
+    { "STREET",                 128, SEC_OID_AVA_STREET_ADDRESS           },
+    { "DC",                     128, SEC_OID_AVA_DC                       },
+    { "UID",                    256, SEC_OID_RFC1274_UID                  },
+
+#ifndef NSS_STRICT_RFC_2253_KEYWORDS_ONLY
+/* NSS legacy keywords */
+    { "dnQualifier",          32767, SEC_OID_AVA_DN_QUALIFIER             },
+    { "E",                      128, SEC_OID_PKCS9_EMAIL_ADDRESS          },
+    { "MAIL",                   256, SEC_OID_RFC1274_MAIL                 },
+
+#ifndef NSS_LEGACY_KEYWORDS_ONLY
+/* values from draft-ietf-ldapbis-user-schema-05 */
+    { "SN",                      64, SEC_OID_AVA_SURNAME                  },
+    { "serialNumber",            64, SEC_OID_AVA_SERIAL_NUMBER            },
+    { "title",                   64, SEC_OID_AVA_TITLE                    },
+    { "postalAddress",          128, SEC_OID_AVA_POSTAL_ADDRESS           },
+    { "postalCode",              40, SEC_OID_AVA_POSTAL_CODE              },
+    { "postOfficeBox",           40, SEC_OID_AVA_POST_OFFICE_BOX          },
+    { "givenName",               64, SEC_OID_AVA_GIVEN_NAME               },
+    { "initials",                64, SEC_OID_AVA_INITIALS                 },
+    { "generationQualifier",     64, SEC_OID_AVA_GENERATION_QUALIFIER     },
+    { "houseIdentifier",         64, SEC_OID_AVA_HOUSE_IDENTIFIER         },
+#if 0 /* removed.  Not yet in any IETF draft or RFC. */
+    { "pseudonym",               64, SEC_OID_AVA_PSEUDONYM                },
+#endif
+#endif
+#endif
+    { 0,                        256, SEC_OID_UNKNOWN                      }
 };
 
 #define C_DOUBLE_QUOTE '\042'
@@ -74,126 +103,6 @@ static struct NameToKind name2kinds[] = {
      ((c) == ';') || ((c) == C_BACKSLASH))
 
 
-
-
-
-
-
-#if 0
-/*
-** Find the start and end of a <string>. Strings can be wrapped in double
-** quotes to protect special characters.
-*/
-static int BracketThing(char **startp, char *end, char *result)
-{
-    char *start = *startp;
-    char c;
-
-    /* Skip leading white space */
-    while (start < end) {
-	c = *start++;
-	if (!OPTIONAL_SPACE(c)) {
-	    start--;
-	    break;
-	}
-    }
-    if (start == end) return 0;
-
-    switch (*start) {
-      case '#':
-	/* Process hex thing */
-	start++;
-	*startp = start;
-	while (start < end) {
-	    c = *start++;
-	    if (((c >= '0') && (c <= '9')) ||
-		((c >= 'a') && (c <= 'f')) ||
-		((c >= 'A') && (c <= 'F'))) {
-		continue;
-	    }
-	    break;
-	}
-	rv = IS_HEX;
-	break;
-
-      case C_DOUBLE_QUOTE:
-	start++;
-	*startp = start;
-	while (start < end) {
-	    c = *start++;
-	    if (c == C_DOUBLE_QUOTE) {
-		break;
-	    }
-	    *result++ = c;
-	}
-	rv = IS_STRING;
-	break;
-
-      default:
-	while (start < end) {
-	    c = *start++;
-	    if (SPECIAL_CHAR(c)) {
-		start--;
-		break;
-	    }
-	    *result++ = c;
-	}
-	rv = IS_STRING;
-	break;
-    }
-
-    /* Terminate result string */
-    *result = 0;
-    return start;
-}
-
-static char *BracketSomething(char **startp, char* end, int spacesOK)
-{
-    char *start = *startp;
-    char c;
-    int stopAtDQ;
-
-    /* Skip leading white space */
-    while (start < end) {
-	c = *start;
-	if (!OPTIONAL_SPACE(c)) {
-	    break;
-	}
-	start++;
-    }
-    if (start == end) return 0;
-    stopAtDQ = 0;
-    if (*start == C_DOUBLE_QUOTE) {
-	stopAtDQ = 1;
-    }
-
-    /*
-    ** Find the end of the something. The something is terminated most of
-    ** the time by a space. However, if spacesOK is true then it is
-    ** terminated by a special character only.
-    */
-    *startp = start;
-    while (start < end) {
-	c = *start;
-	if (stopAtDQ) {
-	    if (c == C_DOUBLE_QUOTE) {
-		*start = ' ';
-		break;
-	    }
-	} else {
-	if (SPECIAL_CHAR(c)) {
-	    break;
-	}
-	if (!spacesOK && OPTIONAL_SPACE(c)) {
-	    break;
-	}
-	}
-	start++;
-    }
-    return start;
-}
-#endif
-
 #define IS_PRINTABLE(c)						\
     ((((c) >= 'a') && ((c) <= 'z')) ||				\
      (((c) >= 'A') && ((c) <= 'Z')) ||				\
@@ -206,6 +115,17 @@ static char *BracketSomething(char **startp, char* end, int spacesOK)
      ((c) == ':') ||						\
      ((c) == '=') ||						\
      ((c) == '?'))
+
+int
+cert_AVAOidTagToMaxLen(SECOidTag tag)
+{
+    const struct NameToKind *n2k = name2kinds;
+
+    while (n2k->kind != tag && n2k->kind != SEC_OID_UNKNOWN) {
+	++n2k;
+    }
+    return (n2k->kind != SEC_OID_UNKNOWN) ? n2k->maxLen : -1;
+}
 
 static PRBool
 IsPrintable(unsigned char *data, unsigned len)
@@ -388,7 +308,7 @@ CERT_ParseRFC1485AVA(PRArenaPool *arena, char **pbp, char *endptr,
 		    PRBool singleAVA) 
 {
     CERTAVA *a;
-    struct NameToKind *n2k;
+    const struct NameToKind *n2k;
     int vt;
     int valLen;
     char *bp;
@@ -438,7 +358,8 @@ CERT_ParseRFC1485AVA(PRArenaPool *arena, char **pbp, char *endptr,
                 } else if (Is7Bit((unsigned char *)valBuf, valLen)) {
                     vt = SEC_ASN1_T61_STRING;
 		} else {
-		    vt = SEC_ASN1_UNIVERSAL_STRING;
+		    /* according to RFC3280, UTF8String is preferred encoding */
+		    vt = SEC_ASN1_UTF8_STRING;
 		}
 	    }
 	    a = CERT_CreateAVA(arena, n2k->kind, vt, (char *) valBuf);
@@ -528,7 +449,6 @@ typedef struct stringBufStr {
 } stringBuf;
 
 #define DEFAULT_BUFFER_SIZE 200
-#define MAX(x,y) ((x) > (y) ? (x) : (y))
 
 static SECStatus
 AppendStr(stringBuf *bufp, char *str)
@@ -544,7 +464,7 @@ AppendStr(stringBuf *bufp, char *str)
     bufSize = bufLen + len;
     if (!buf) {
 	bufSize++;
-	size = MAX(DEFAULT_BUFFER_SIZE,bufSize*2);
+	size = PR_MAX(DEFAULT_BUFFER_SIZE,bufSize*2);
 	buf = (char *) PORT_Alloc(size);
 	bufp->size = size;
     } else if (bufp->size < bufSize) {
@@ -572,12 +492,14 @@ CERT_RFC1485_EscapeAndQuote(char *dst, int dstlen, char *src, int srclen)
     int i, reqLen=0;
     char *d = dst;
     PRBool needsQuoting = PR_FALSE;
+    char lastC = 0;
     
     /* need to make an initial pass to determine if quoting is needed */
     for (i = 0; i < srclen; i++) {
 	char c = src[i];
 	reqLen++;
-	if (SPECIAL_CHAR(c)) {
+	if (!needsQuoting && (SPECIAL_CHAR(c) ||
+	    (OPTIONAL_SPACE(c) && OPTIONAL_SPACE(lastC)))) {
 	    /* entirety will need quoting */
 	    needsQuoting = PR_TRUE;
 	}
@@ -585,9 +507,10 @@ CERT_RFC1485_EscapeAndQuote(char *dst, int dstlen, char *src, int srclen)
 	    /* this char will need escaping */
 	    reqLen++;
 	}
+	lastC = c;
     }
     /* if it begins or ends in optional space it needs quoting */
-    if (srclen > 0 &&
+    if (!needsQuoting && srclen > 0 && 
 	(OPTIONAL_SPACE(src[srclen-1]) || OPTIONAL_SPACE(src[0]))) {
 	needsQuoting = PR_TRUE;
     }
@@ -618,19 +541,22 @@ CERT_RFC1485_EscapeAndQuote(char *dst, int dstlen, char *src, int srclen)
 }
 
 /* convert an OID to dotted-decimal representation */
-static char *
-get_oid_string
-(
-    SECItem *oid
-)
+/* Returns a string that must be freed with PR_smprintf_free(), */
+char *
+CERT_GetOidString(const SECItem *oid)
 {
     PRUint8 *end;
     PRUint8 *d;
     PRUint8 *e;
-    char *a;
+    char *a         = NULL;
     char *b;
 
-    a = (char *)NULL;
+#define MAX_OID_LEN 1024 /* bytes */
+
+    if (oid->len > MAX_OID_LEN) {
+    	PORT_SetError(SEC_ERROR_INPUT_LEN);
+	return NULL;
+    }
 
     /* d will point to the next sequence of bytes to decode */
     d = (PRUint8 *)oid->data;
@@ -681,7 +607,7 @@ get_oid_string
 		PRUint32 one = PR_MIN(n/40, 2); /* never > 2 */
 		PRUint32 two = n - one * 40;
         
-		a = PR_smprintf("%lu.%lu", one, two);
+		a = PR_smprintf("OID.%lu.%lu", one, two);
 		if( (char *)NULL == a ) {
 		    PORT_SetError(SEC_ERROR_NO_MEMORY);
 		    return (char *)NULL;
@@ -730,67 +656,33 @@ get_hex_string(SECItem *data)
 static SECStatus
 AppendAVA(stringBuf *bufp, CERTAVA *ava)
 {
-    char *tagName;
-    char tmpBuf[384];
+    const struct NameToKind *n2k = name2kinds;
+    const char *tagName;
     unsigned len, maxLen;
     int tag;
     SECStatus rv;
     SECItem *avaValue = NULL;
     char *unknownTag = NULL;
+    PRBool hexValue = PR_FALSE;
+    char tmpBuf[384];
 
     tag = CERT_GetAVATag(ava);
-    switch (tag) {
-      case SEC_OID_AVA_COUNTRY_NAME:
-	tagName = "C";
-	maxLen = 2;
-	break;
-      case SEC_OID_AVA_ORGANIZATION_NAME:
-	tagName = "O";
-	maxLen = 64;
-	break;
-      case SEC_OID_AVA_COMMON_NAME:
-	tagName = "CN";
-	maxLen = 64;
-	break;
-      case SEC_OID_AVA_LOCALITY:
-	tagName = "L";
-	maxLen = 128;
-	break;
-      case SEC_OID_AVA_STATE_OR_PROVINCE:
-	tagName = "ST";
-	maxLen = 128;
-	break;
-      case SEC_OID_AVA_ORGANIZATIONAL_UNIT_NAME:
-	tagName = "OU";
-	maxLen = 64;
-	break;
-      case SEC_OID_AVA_DC:
-	tagName = "DC";
-	maxLen = 128;
-	break;
-      case SEC_OID_AVA_DN_QUALIFIER:
-	tagName = "dnQualifier";
-	maxLen = 0x7fff;
-	break;
-      case SEC_OID_PKCS9_EMAIL_ADDRESS:
-	tagName = "E";
-	maxLen = 128;
-	break;
-      case SEC_OID_RFC1274_UID:
-	tagName = "UID";
-	maxLen = 256;
-	break;
-      case SEC_OID_RFC1274_MAIL:
-	tagName = "MAIL";
-	maxLen = 256;
-	break;
-      default:
-	/* handle unknown attribute types per RFC 2253 */
-	tagName = unknownTag = get_oid_string(&ava->type);
-	maxLen = 256;
-	break;
+    while (n2k->kind != tag && n2k->kind != SEC_OID_UNKNOWN) {
+        ++n2k;
     }
+    if (n2k->kind != SEC_OID_UNKNOWN) {
+        tagName = n2k->name;
+    } else {
+	/* handle unknown attribute types per RFC 2253 */
+	tagName = unknownTag = CERT_GetOidString(&ava->type);
+	if (!tagName)
+	    return SECFailure;
+    }
+    maxLen = n2k->maxLen;
 
+#ifdef NSS_STRICT_RFC_2253_VALUES_ONLY
+    if (!unknownTag)
+#endif
     avaValue = CERT_DecodeAVAValue(&ava->value);
     if(!avaValue) {
 	/* the attribute value is not recognized, get the hex value */
@@ -799,11 +691,13 @@ AppendAVA(stringBuf *bufp, CERTAVA *ava)
 	    if (unknownTag) PR_smprintf_free(unknownTag);
 	    return SECFailure;
 	}
+	hexValue = PR_TRUE;
     }
 
     /* Check value length */
     if (avaValue->len > maxLen) {
 	if (unknownTag) PR_smprintf_free(unknownTag);
+	SECITEM_FreeItem(avaValue, PR_TRUE);
 	PORT_SetError(SEC_ERROR_INVALID_AVA);
 	return SECFailure;
     }
@@ -811,6 +705,7 @@ AppendAVA(stringBuf *bufp, CERTAVA *ava)
     len = PORT_Strlen(tagName);
     if (len+1 > sizeof(tmpBuf)) {
 	if (unknownTag) PR_smprintf_free(unknownTag);
+	SECITEM_FreeItem(avaValue, PR_TRUE);
 	PORT_SetError(SEC_ERROR_OUTPUT_LEN);
 	return SECFailure;
     }
@@ -818,8 +713,18 @@ AppendAVA(stringBuf *bufp, CERTAVA *ava)
     if (unknownTag) PR_smprintf_free(unknownTag);
     tmpBuf[len++] = '=';
     
-    /* escape and quote as necessary */
-    rv = CERT_RFC1485_EscapeAndQuote(tmpBuf+len, sizeof(tmpBuf)-len, 
+    /* escape and quote as necessary - don't quote hex strings */
+    if (hexValue) {
+        /* appent avaValue to tmpBuf */
+	if (avaValue->len + len + 1 > sizeof tmpBuf) {
+	    PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+	    rv = SECFailure;
+    	} else {
+	    PORT_Strcpy(tmpBuf+len, (char *)avaValue->data);
+	    rv = SECSuccess;
+	}
+    } else 
+	rv = CERT_RFC1485_EscapeAndQuote(tmpBuf+len, sizeof(tmpBuf)-len, 
 		    		     (char *)avaValue->data, avaValue->len);
     SECITEM_FreeItem(avaValue, PR_TRUE);
     if (rv) return SECFailure;
@@ -831,12 +736,9 @@ AppendAVA(stringBuf *bufp, CERTAVA *ava)
 char *
 CERT_NameToAscii(CERTName *name)
 {
-    SECStatus rv;
     CERTRDN** rdns;
     CERTRDN** lastRdn;
     CERTRDN** rdn;
-    CERTAVA** avas;
-    CERTAVA* ava;
     PRBool first = PR_TRUE;
     stringBuf strBuf = { NULL, 0, 0 };
     
@@ -854,11 +756,19 @@ CERT_NameToAscii(CERTName *name)
      * Loop over name contents in _reverse_ RDN order appending to string
      */
     for (rdn = lastRdn; rdn >= rdns; rdn--) {
-	avas = (*rdn)->avas;
-	while ((ava = *avas++) != NULL) {
-	    /* Put in comma separator */
+	CERTAVA** avas = (*rdn)->avas;
+	CERTAVA* ava;
+	PRBool newRDN = PR_TRUE;
+
+	/* 
+	 * XXX Do we need to traverse the AVAs in reverse order, too?
+	 */
+	while (avas && (ava = *avas++) != NULL) {
+	    SECStatus rv;
+	    /* Put in comma or plus separator */
 	    if (!first) {
-		rv = AppendStr(&strBuf, ", ");
+		/* Use of spaces is deprecated in RFC 2253. */
+		rv = AppendStr(&strBuf, newRDN ? "," : "+");
 		if (rv) goto loser;
 	    } else {
 		first = PR_FALSE;
@@ -867,10 +777,11 @@ CERT_NameToAscii(CERTName *name)
 	    /* Add in tag type plus value into buf */
 	    rv = AppendAVA(&strBuf, ava);
 	    if (rv) goto loser;
+	    newRDN = PR_FALSE;
 	}
     }
     return strBuf.buffer;
-  loser:
+loser:
     if (strBuf.buffer) {
 	PORT_Free(strBuf.buffer);
     }
@@ -916,19 +827,16 @@ CERT_GetNameElement(PRArenaPool *arena, CERTName *name, int wantedTag)
 {
     CERTRDN** rdns;
     CERTRDN *rdn;
-    CERTAVA** avas;
-    CERTAVA* ava;
     char *buf = 0;
-    int tag;
-    SECItem *decodeItem = NULL;
     
     rdns = name->rdns;
-    while ((rdn = *rdns++) != 0) {
-	avas = rdn->avas;
-	while ((ava = *avas++) != 0) {
-	    tag = CERT_GetAVATag(ava);
+    while (rdns && (rdn = *rdns++) != 0) {
+	CERTAVA** avas = rdn->avas;
+	CERTAVA*  ava;
+	while (avas && (ava = *avas++) != 0) {
+	    int tag = CERT_GetAVATag(ava);
 	    if ( tag == wantedTag ) {
-		decodeItem = CERT_DecodeAVAValue(&ava->value);
+		SECItem *decodeItem = CERT_DecodeAVAValue(&ava->value);
 		if(!decodeItem) {
 		    return NULL;
 		}
@@ -1130,11 +1038,13 @@ cert_GetCertificateEmailAddresses(CERTCertificate *cert)
     }
     /* now copy superstring to cert's arena */
     finalLen = (pBuf - addrBuf) + 1;
-    pBuf = PORT_ArenaAlloc(cert->arena, finalLen);
-    if (pBuf) {
-    	PORT_Memcpy(pBuf, addrBuf, finalLen);
+    pBuf = NULL;
+    if (finalLen > 1) {
+	pBuf = PORT_ArenaAlloc(cert->arena, finalLen);
+	if (pBuf) {
+	    PORT_Memcpy(pBuf, addrBuf, finalLen);
+	}
     }
-     
 loser:
     if (tmpArena)
 	PORT_FreeArena(tmpArena, PR_FALSE);
@@ -1192,6 +1102,7 @@ CERT_GetCertEmailAddress(CERTName *name)
     return(emailAddr);
 }
 
+/* The return value must be freed with PORT_Free. */
 char *
 CERT_GetCommonName(CERTName *name)
 {

@@ -46,7 +46,7 @@
 #if defined(XP_UNIX)
 #include <unistd.h>
 #else
-#include "ctype.h"	/* for isalpha() */
+#include <ctype.h>	/* for isalpha() */
 #endif
 
 #include <stdio.h>
@@ -64,6 +64,11 @@
 #include "sslproto.h"
 #include "pk11func.h"
 #include "plgetopt.h"
+
+#if defined(WIN32)
+#include <fcntl.h>
+#include <io.h>
+#endif
 
 #define PRINTF  if (verbose)  printf
 #define FPRINTF if (verbose) fprintf
@@ -184,11 +189,11 @@ void printSecurityInfo(PRFileDesc *fd)
 	char * sp = CERT_NameToAscii(&cert->subject);
         if (sp) {
 	    fprintf(stderr, "subject DN: %s\n", sp);
-	    PR_Free(sp);
+	    PORT_Free(sp);
 	}
         if (ip) {
 	    fprintf(stderr, "issuer  DN: %s\n", ip);
-	    PR_Free(ip);
+	    PORT_Free(ip);
 	}
 	CERT_DestroyCertificate(cert);
 	cert = NULL;
@@ -208,23 +213,27 @@ handshakeCallback(PRFileDesc *fd, void *client_data)
 
 static void Usage(const char *progName)
 {
-    printf(
-"Usage:  %s -h host [-p port] [-d certdir] [-n nickname] [-23Tovx] \n"
+    fprintf(stderr, 
+"Usage:  %s -h host [-p port] [-d certdir] [-n nickname] [-23Tfovx] \n"
 "                   [-c ciphers] [-w passwd] [-q]\n", progName);
-    printf("%-20s Hostname to connect with\n", "-h host");
-    printf("%-20s Port number for SSL server\n", "-p port");
-    printf("%-20s Directory with cert database (default is ~/.netscape)\n",
-	  "-d certdir");
-    printf("%-20s Nickname of key and cert for client auth\n", "-n nickname");
-    printf("%-20s Disable SSL v2.\n", "-2");
-    printf("%-20s Disable SSL v3.\n", "-3");
-    printf("%-20s Disable TLS (SSL v3.1).\n", "-T");
-    printf("%-20s Override bad server cert. Make it OK.\n", "-o");
-    printf("%-20s Verbose progress reporting.\n", "-v");
-    printf("%-20s Use export policy.\n", "-x");
-    printf("%-20s Ping the server and then exit.\n", "-q");
-    printf("%-20s Letter(s) chosen from the following list\n", "-c ciphers");
-    printf(
+    fprintf(stderr, "%-20s Hostname to connect with\n", "-h host");
+    fprintf(stderr, "%-20s Port number for SSL server\n", "-p port");
+    fprintf(stderr, 
+            "%-20s Directory with cert database (default is ~/.netscape)\n",
+	    "-d certdir");
+    fprintf(stderr, "%-20s Nickname of key and cert for client auth\n", 
+                    "-n nickname");
+    fprintf(stderr, "%-20s Disable SSL v2.\n", "-2");
+    fprintf(stderr, "%-20s Disable SSL v3.\n", "-3");
+    fprintf(stderr, "%-20s Disable TLS (SSL v3.1).\n", "-T");
+    fprintf(stderr, "%-20s Client speaks first. \n", "-f");
+    fprintf(stderr, "%-20s Override bad server cert. Make it OK.\n", "-o");
+    fprintf(stderr, "%-20s Verbose progress reporting.\n", "-v");
+    fprintf(stderr, "%-20s Use export policy.\n", "-x");
+    fprintf(stderr, "%-20s Ping the server and then exit.\n", "-q");
+    fprintf(stderr, "%-20s Letter(s) chosen from the following list\n", 
+                    "-c ciphers");
+    fprintf(stderr, 
 "A    SSL2 RC4 128 WITH MD5\n"
 "B    SSL2 RC4 128 EXPORT40 WITH MD5\n"
 "C    SSL2 RC2 128 CBC WITH MD5\n"
@@ -233,13 +242,13 @@ static void Usage(const char *progName)
 "F    SSL2 DES 192 EDE3 CBC WITH MD5\n"
 #ifdef NSS_ENABLE_ECC
 "G    TLS ECDH ECDSA WITH NULL SHA\n"
-"H    TLS ECDH ECDSA WITH RC4 128 CBC SHA\n"
+"H    TLS ECDH ECDSA WITH RC4 128 SHA\n"
 "I    TLS ECDH ECDSA WITH DES CBC SHA\n"
 "J    TLS ECDH ECDSA WITH 3DES EDE CBC SHA\n"
 "K    TLS ECDH ECDSA WITH AES 128 CBC SHA\n"
 "L    TLS ECDH ECDSA WITH AES 256 CBC SHA\n"
 "M    TLS ECDH RSA WITH NULL SHA\n"
-"N    TLS ECDH RSA WITH RC4 128 CBC SHA\n"
+"N    TLS ECDH RSA WITH RC4 128 SHA\n"
 "O    TLS ECDH RSA WITH DES CBC SHA\n"
 "P    TLS ECDH RSA WITH 3DES EDE CBC SHA\n"
 "Q    TLS ECDH RSA WITH AES 128 CBC SHA\n"
@@ -298,7 +307,8 @@ disableAllSSLCiphers(void)
         rv = SSL_CipherPrefSetDefault(suite, PR_FALSE);
 	if (rv != SECSuccess) {
 	    PRErrorCode err = PR_GetError();
-	    printf("SSL_CipherPrefSet didn't like value 0x%04x (i = %d): %s\n",
+	    fprintf(stderr,
+	            "SSL_CipherPrefSet didn't like value 0x%04x (i = %d): %s\n",
 	    	   suite, i, SECU_Strerror(err));
 	    exit(2);
 	}
@@ -314,9 +324,111 @@ ownBadCertHandler(void * arg, PRFileDesc * socket)
 {
     PRErrorCode err = PR_GetError();
     /* can log invalid cert here */
-    printf("Bad server certificate: %d, %s\n", err, SECU_Strerror(err));
+    fprintf(stderr, "Bad server certificate: %d, %s\n", err, 
+            SECU_Strerror(err));
     return SECSuccess;	/* override, say it's OK. */
 }
+
+SECStatus
+own_GetClientAuthData(void *                       arg,
+                      PRFileDesc *                 socket,
+                      struct CERTDistNamesStr *    caNames,
+                      struct CERTCertificateStr ** pRetCert,
+                      struct SECKEYPrivateKeyStr **pRetKey)
+{
+    if (verbose > 1) {
+	SECStatus rv;
+        fprintf(stderr, "Server requested Client Authentication\n");
+	if (caNames && caNames->nnames > 0) {
+	    PLArenaPool *arena = caNames->arena;
+	    if (!arena)
+		arena = PORT_NewArena(2048);
+	    if (arena) {
+		int i;
+		for (i = 0; i < caNames->nnames; ++i) {
+		    char *nameString;
+		    CERTName dn;
+		    rv = SEC_QuickDERDecodeItem(arena, 
+					    &dn,
+					    SEC_ASN1_GET(CERT_NameTemplate), 
+					    caNames->names + i);
+		    if (rv != SECSuccess)
+			continue;
+		    nameString = CERT_NameToAscii(&dn);
+		    if (!nameString)
+			continue;
+		    fprintf(stderr, "CA[%d]: %s\n", i + 1, nameString);
+		    PORT_Free(nameString);
+		}
+		if (!caNames->arena) {
+		    PORT_FreeArena(arena, PR_FALSE);
+		}
+	    }
+	}
+	rv = NSS_GetClientAuthData(arg, socket, caNames, pRetCert, pRetKey);
+	if (rv == SECSuccess && *pRetCert) {
+	    char *nameString = CERT_NameToAscii(&((*pRetCert)->subject));
+	    if (nameString) {
+		fprintf(stderr, "sent cert: %s\n", nameString);
+		PORT_Free(nameString);
+	    }
+	} else {
+	    fprintf(stderr, "send no cert\n");
+	}
+	return rv;
+    }
+    return NSS_GetClientAuthData(arg, socket, caNames, pRetCert, pRetKey);
+}
+
+#if defined(WIN32)
+void
+thread_main(void * arg)
+{
+    PRFileDesc * ps     = (PRFileDesc *)arg;
+    PRFileDesc * std_in = PR_GetSpecialFD(PR_StandardInput);
+    int wc, rc;
+    char buf[256];
+
+    {
+	/* Put stdin into O_BINARY mode 
+	** or else incoming \r\n's will become \n's.
+	*/
+	int smrv = _setmode(_fileno(stdin), _O_BINARY);
+	if (smrv == -1) {
+	    fprintf(stderr,
+	    "%s: Cannot change stdin to binary mode. Use -i option instead.\n",
+	            progName);
+	    /* plow ahead anyway */
+	}
+    }
+
+    do {
+	rc = PR_Read(std_in, buf, sizeof buf);
+	if (rc <= 0)
+	    break;
+	wc = PR_Write(ps, buf, rc);
+    } while (wc == rc);
+    PR_Close(ps);
+}
+
+#endif
+
+static void
+printHostNameAndAddr(const char * host, const PRNetAddr * addr)
+{
+    PRUint16 port = PR_NetAddrInetPort(addr);
+    char addrBuf[80];
+    PRStatus st = PR_NetAddrToString(addr, addrBuf, sizeof addrBuf);
+
+    if (st == PR_SUCCESS) {
+	port = PR_ntohs(port);
+	FPRINTF(stderr, "%s: connecting to %s:%hu (address=%s)\n",
+	       progName, host, port, addrBuf);
+    }
+}
+
+#define SSOCK_FD 0
+#define STDIN_FD 1
 
 int main(int argc, char **argv)
 {
@@ -332,22 +444,20 @@ int main(int argc, char **argv)
     SECStatus          rv;
     PRStatus           status;
     PRInt32            filesReady;
-    PRInt32            ip;
     int                npds;
     int                override = 0;
     int                disableSSL2 = 0;
     int                disableSSL3 = 0;
     int                disableTLS  = 0;
     int                useExportPolicy = 0;
-    int                file_read = 0;
     PRSocketOptionData opt;
     PRNetAddr          addr;
     PRHostEnt          hp;
     PRPollDesc         pollset[2];
-    char               buf[PR_NETDB_BUF_SIZE];
     PRBool             useCommandLinePassword = PR_FALSE;
     PRBool             pingServerFirst = PR_FALSE;
-    int                error=0;
+    PRBool             clientSpeaksFirst = PR_FALSE;
+    int                error = 0;
     PLOptState *optstate;
     PLOptStatus optstatus;
     PRStatus prStatus;
@@ -372,11 +482,8 @@ int main(int argc, char **argv)
           case 'c': cipherString = strdup(optstate->value); break;
 
           case 'h': host = strdup(optstate->value);	break;
-#ifdef _WINDOWS
-	  case 'f': file_read = 1; 			break;
-#else
-	  case 'f': break;
-#endif
+
+          case 'f':  clientSpeaksFirst = PR_TRUE;       break;
 
 	  case 'd':
 	    certDir = strdup(optstate->value);
@@ -420,11 +527,11 @@ int main(int argc, char **argv)
     PR_Init( PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
 
     /* set our password function */
-	if ( useCommandLinePassword ) {
-		PK11_SetPasswordFunc(ownPasswd);
-	} else {
+    if ( useCommandLinePassword ) {
+	PK11_SetPasswordFunc(ownPasswd);
+    } else {
     	PK11_SetPasswordFunc(SECU_GetModulePassword);
-	}
+    }
 
     /* open the cert DB, the key DB, and the secmod DB. */
     rv = NSS_Init(certDir);
@@ -451,24 +558,33 @@ int main(int argc, char **argv)
 	disableAllSSLCiphers();
     }
 
-    /* Lookup host */
-    status = PR_GetHostByName(host, buf, sizeof(buf), &hp);
-    if (status != PR_SUCCESS) {
-	SECU_PrintError(progName, "error looking up host");
-	return 1;
-    }
-    if (PR_EnumerateHostEnt(0, &hp, atoi(port), &addr) == -1) {
-	SECU_PrintError(progName, "error looking up host address");
-	return 1;
+    status = PR_StringToNetAddr(host, &addr);
+    if (status == PR_SUCCESS) {
+	int portno = atoi(port);
+    	addr.inet.port = PR_htons((PRUint16)portno);
+    } else {
+	/* Lookup host */
+	char buf[PR_NETDB_BUF_SIZE];
+	status = PR_GetIPNodeByName(host, PR_AF_INET6, PR_AI_DEFAULT, 
+				    buf, sizeof buf, &hp);
+	if (status != PR_SUCCESS) {
+	    SECU_PrintError(progName, "error looking up host");
+	    return 1;
+	}
+	if (PR_EnumerateHostEnt(0, &hp, (PRUint16)atoi(port), &addr) == -1) {
+	    SECU_PrintError(progName, "error looking up host address");
+	    return 1;
+	}
     }
 
-    ip = PR_ntohl(addr.inet.ip);
-    PRINTF("%s: connecting to %s:%d (address=%d.%d.%d.%d)\n",
-	   progName, host, PR_ntohs(addr.inet.port),
-	   (ip >> 24) & 0xff,
-	   (ip >> 16) & 0xff,
-	   (ip >>  8) & 0xff,
-	   (ip >>  0) & 0xff);
+    if (PR_IsNetAddrType(&addr, PR_IpAddrV4Mapped)) {
+    	/* convert to IPv4.  */
+	addr.inet.family = PR_AF_INET;
+	memcpy(&addr.inet.ip, &addr.ipv6.ip.pr_s6_addr[12], 4);
+	memset(&addr.inet.pad[0], 0, sizeof addr.inet.pad);
+    }
+
+    printHostNameAndAddr(host, &addr);
 
     if (pingServerFirst) {
 	int iter = 0;
@@ -596,7 +712,7 @@ int main(int argc, char **argv)
     if (override) {
 	SSL_BadCertHook(s, ownBadCertHandler, NULL);
     }
-    SSL_GetClientAuthDataHook(s, NSS_GetClientAuthData, (void *)nickname);
+    SSL_GetClientAuthDataHook(s, own_GetClientAuthData, (void *)nickname);
     SSL_HandshakeCallback(s, handshakeCallback, NULL);
     SSL_SetURL(s, host);
 
@@ -607,20 +723,23 @@ int main(int argc, char **argv)
 	    if (verbose)
 		SECU_PrintError(progName, "connect");
 	    milliPause(50 * multiplier);
-	    pollset[0].in_flags = PR_POLL_WRITE | PR_POLL_EXCEPT;
-	    pollset[0].out_flags = 0;
-	    pollset[0].fd = s;
+	    pollset[SSOCK_FD].in_flags = PR_POLL_WRITE | PR_POLL_EXCEPT;
+	    pollset[SSOCK_FD].out_flags = 0;
+	    pollset[SSOCK_FD].fd = s;
 	    while(1) {
-		PRINTF("%s: about to call PR_Poll for connect completion!\n", progName);
+		FPRINTF(stderr, 
+		        "%s: about to call PR_Poll for connect completion!\n", 
+			progName);
 		filesReady = PR_Poll(pollset, 1, PR_INTERVAL_NO_TIMEOUT);
 		if (filesReady < 0) {
 		    SECU_PrintError(progName, "unable to connect (poll)");
 		    return 1;
 		}
-		PRINTF("%s: PR_Poll returned 0x%02x for socket out_flags.\n",
-			progName, pollset[0].out_flags);
+		FPRINTF(stderr,
+		        "%s: PR_Poll returned 0x%02x for socket out_flags.\n",
+			progName, pollset[SSOCK_FD].out_flags);
 		if (filesReady == 0) {	/* shouldn't happen! */
-		    PRINTF("%s: PR_Poll returned zero!\n", progName);
+		    FPRINTF(stderr, "%s: PR_Poll returned zero!\n", progName);
 		    return 1;
 		}
 		/* Must milliPause between PR_Poll and PR_GetConnectStatus,
@@ -645,72 +764,95 @@ int main(int argc, char **argv)
 	}
     }
 
-    pollset[0].fd        = s;
-    pollset[0].in_flags  = PR_POLL_READ;
-    pollset[1].fd        = PR_GetSpecialFD(PR_StandardInput);
-    pollset[1].in_flags  = PR_POLL_READ;
+    pollset[SSOCK_FD].fd        = s;
+    pollset[SSOCK_FD].in_flags  = clientSpeaksFirst ? 0 : PR_POLL_READ;
+    pollset[STDIN_FD].fd        = PR_GetSpecialFD(PR_StandardInput);
+    pollset[STDIN_FD].in_flags  = PR_POLL_READ;
     npds                 = 2;
     std_out              = PR_GetSpecialFD(PR_StandardOutput);
 
+#if defined(WIN32)
+    /* PR_Poll cannot be used with stdin on Windows.  (sigh). 
+    ** But use of PR_Poll and non-blocking sockets is a major feature
+    ** of this program.  So, we simulate a pollable stdin with a 
+    ** TCP socket pair and a  thread that reads stdin and writes to 
+    ** that socket pair.
+    */
+  {
+    PRFileDesc * fds[2];
+    PRThread *   thread;
 
-    if (file_read) {
-	pollset[1].out_flags = PR_POLL_READ;
-	npds=1;
+    int nspr_rv = PR_NewTCPSocketPair(fds);
+    if (nspr_rv != PR_SUCCESS) {
+        SECU_PrintError(progName, "PR_NewTCPSocketPair failed");
+	error = 1;
+	goto done;
     }
+    pollset[STDIN_FD].fd = fds[1];
+
+    thread = PR_CreateThread(PR_USER_THREAD, thread_main, fds[0], 
+                             PR_PRIORITY_NORMAL, PR_GLOBAL_THREAD, 
+                             PR_UNJOINABLE_THREAD, 0);
+    if (!thread) {
+        SECU_PrintError(progName, "PR_CreateThread failed");
+	error = 1;
+	goto done;
+    }
+  }
+#endif
 
     /*
     ** Select on stdin and on the socket. Write data from stdin to
     ** socket, read data from socket and write to stdout.
     */
-    PRINTF("%s: ready...\n", progName);
+    FPRINTF(stderr, "%s: ready...\n", progName);
 
-    while (pollset[0].in_flags || pollset[1].in_flags) {
+    while (pollset[SSOCK_FD].in_flags | pollset[STDIN_FD].in_flags) {
 	char buf[4000];	/* buffer for stdin */
 	int nb;		/* num bytes read from stdin. */
 
-	pollset[0].out_flags = 0;
-        if (!file_read) {
-	    pollset[1].out_flags = 0;
-	}
+	pollset[SSOCK_FD].out_flags = 0;
+	pollset[STDIN_FD].out_flags = 0;
 
-	PRINTF("%s: about to call PR_Poll !\n", progName);
-        if (pollset[1].in_flags && file_read) {
-		filesReady = PR_Poll(pollset, npds, PR_INTERVAL_NO_WAIT);
-		filesReady++;
-	} else {
-		filesReady = PR_Poll(pollset, npds, PR_INTERVAL_NO_TIMEOUT);
-	}
+	FPRINTF(stderr, "%s: about to call PR_Poll !\n", progName);
+	filesReady = PR_Poll(pollset, npds, PR_INTERVAL_NO_TIMEOUT);
 	if (filesReady < 0) {
-	   SECU_PrintError(progName, "select failed");
-	   error=1;
-	   goto done;
+	    SECU_PrintError(progName, "select failed");
+	    error = 1;
+	    goto done;
 	}
 	if (filesReady == 0) {	/* shouldn't happen! */
-	    PRINTF("%s: PR_Poll returned zero!\n", progName);
+	    FPRINTF(stderr, "%s: PR_Poll returned zero!\n", progName);
 	    return 1;
 	}
-	PRINTF("%s: PR_Poll returned!\n", progName);
-	if (pollset[1].in_flags) {
-	        PRINTF("%s: PR_Poll returned 0x%02x for stdin out_flags.\n",
-		    progName, pollset[1].out_flags);
-#ifndef _WINDOWS 
+	FPRINTF(stderr, "%s: PR_Poll returned!\n", progName);
+	if (pollset[STDIN_FD].in_flags) {
+	    FPRINTF(stderr,
+		    "%s: PR_Poll returned 0x%02x for stdin out_flags.\n",
+		    progName, pollset[STDIN_FD].out_flags);
 	}
-	if (pollset[1].out_flags & PR_POLL_READ) {
-#endif
+	if (pollset[SSOCK_FD].in_flags) {
+	    FPRINTF(stderr, 
+	            "%s: PR_Poll returned 0x%02x for socket out_flags.\n",
+		    progName, pollset[SSOCK_FD].out_flags);
+	}
+	if (pollset[STDIN_FD].out_flags & PR_POLL_READ) {
 	    /* Read from stdin and write to socket */
-	    nb = PR_Read(pollset[1].fd, buf, sizeof(buf));
-	    PRINTF("%s: stdin read %d bytes\n", progName, nb);
+	    nb = PR_Read(pollset[STDIN_FD].fd, buf, sizeof(buf));
+	    FPRINTF(stderr, "%s: stdin read %d bytes\n", progName, nb);
 	    if (nb < 0) {
 		if (PR_GetError() != PR_WOULD_BLOCK_ERROR) {
 		    SECU_PrintError(progName, "read from stdin failed");
-	            error=1;
+	            error = 1;
 		    break;
 		}
 	    } else if (nb == 0) {
-		pollset[1].in_flags = 0;
+		/* EOF on stdin, stop polling stdin for read. */
+		pollset[STDIN_FD].in_flags = 0;
 	    } else {
 		char * bufp = buf;
-		PRINTF("%s: Writing %d bytes to server\n", progName, nb);
+		FPRINTF(stderr, "%s: Writing %d bytes to server\n", 
+		        progName, nb);
 		do {
 		    PRInt32 cc = PR_Write(s, bufp, nb);
 		    if (cc < 0) {
@@ -718,7 +860,7 @@ int main(int argc, char **argv)
 			if (err != PR_WOULD_BLOCK_ERROR) {
 			    SECU_PrintError(progName, 
 			                    "write to SSL socket failed");
-			    error=254;
+			    error = 254;
 			    goto done;
 			}
 			cc = 0;
@@ -727,41 +869,47 @@ int main(int argc, char **argv)
 		    nb   -= cc;
 		    if (nb <= 0) 
 		    	break;
-		    pollset[0].in_flags = PR_POLL_WRITE | PR_POLL_EXCEPT;
-		    pollset[0].out_flags = 0;
-		    PRINTF("%s: about to call PR_Poll on writable socket !\n", progName);
+		    pollset[SSOCK_FD].in_flags = PR_POLL_WRITE | PR_POLL_EXCEPT;
+		    pollset[SSOCK_FD].out_flags = 0;
+		    FPRINTF(stderr,
+		            "%s: about to call PR_Poll on writable socket !\n", 
+			    progName);
 		    cc = PR_Poll(pollset, 1, PR_INTERVAL_NO_TIMEOUT);
-		    PRINTF("%s: PR_Poll returned with writable socket !\n", progName);
+		    FPRINTF(stderr,
+		            "%s: PR_Poll returned with writable socket !\n", 
+			    progName);
 		} while (1);
-		pollset[0].in_flags  = PR_POLL_READ;
+		pollset[SSOCK_FD].in_flags  = PR_POLL_READ;
 	    }
 	}
 
-	if (pollset[0].in_flags) {
-	    PRINTF("%s: PR_Poll returned 0x%02x for socket out_flags.\n",
-		   progName, pollset[0].out_flags);
+	if (pollset[SSOCK_FD].in_flags) {
+	    FPRINTF(stderr, 
+	            "%s: PR_Poll returned 0x%02x for socket out_flags.\n",
+		    progName, pollset[SSOCK_FD].out_flags);
 	}
-	if (   (pollset[0].out_flags & PR_POLL_READ) 
-	    || (pollset[0].out_flags & PR_POLL_ERR)  
+	if (   (pollset[SSOCK_FD].out_flags & PR_POLL_READ) 
+	    || (pollset[SSOCK_FD].out_flags & PR_POLL_ERR)  
 #ifdef PR_POLL_HUP
-	    || (pollset[0].out_flags & PR_POLL_HUP)
+	    || (pollset[SSOCK_FD].out_flags & PR_POLL_HUP)
 #endif
 	    ) {
 	    /* Read from socket and write to stdout */
-	    nb = PR_Read(pollset[0].fd, buf, sizeof(buf));
-	    PRINTF("%s: Read from server %d bytes\n", progName, nb);
+	    nb = PR_Read(pollset[SSOCK_FD].fd, buf, sizeof(buf));
+	    FPRINTF(stderr, "%s: Read from server %d bytes\n", progName, nb);
 	    if (nb < 0) {
 		if (PR_GetError() != PR_WOULD_BLOCK_ERROR) {
 		    SECU_PrintError(progName, "read from socket failed");
-		    error=1;
+		    error = 1;
 		    goto done;
 	    	}
 	    } else if (nb == 0) {
-		/* EOF from socket... bye bye */
-		pollset[0].in_flags = 0;
+		/* EOF from socket... stop polling socket for read */
+		pollset[SSOCK_FD].in_flags = 0;
 	    } else {
 		PR_Write(std_out, buf, nb);
-		puts("\n\n");
+		if (verbose)
+		    fputs("\n\n", stderr);
 	    }
 	}
 	milliPause(50 * multiplier);

@@ -52,7 +52,6 @@
 #include "ssl.h"
 #include "certt.h"
 #include "nss.h"
-#include "secrng.h"
 #include "secder.h"
 #include "key.h"
 #include "sslproto.h"
@@ -108,10 +107,6 @@ void errWarn(char *function);
 void exitErr(char *function);
 
 void printSecurityInfo(FILE *outfile, PRFileDesc *fd);
-
-void printCertProblems(FILE *outfile, CERTCertDBHandle *handle, 
-	CERTCertificate *cert, PRBool checksig, 
-	SECCertUsage certUsage, void *pinArg);
 
 /* Some simple thread management routines. */
 

@@ -471,6 +471,17 @@ tbx_dirs()
         echo $QASCRIPT_DIR | grep 64  >/dev/null && TBX_NOBITS=64
         TRD="${HOST}${TBX_NOBITS}-`date +%Y%m%d-%H.%M`"
         RESULTDIR="${NSS_VER_DIR}/tinderbox/tests_results/security/${TRD}"
+        if [ ${DOMSUF} = "mcom.com" -o  ${DOMSUF} = "netscape.com" -o ${DOMSUF} = "nscp.aoltw.net" ] ; then
+            URL="sbs-rel.nscp.aoltw.net"
+        else
+            URL="cindercone.red.iplanet.com"
+        fi
+        if [ "$O_WIN" = "ON" ] ; then
+            RESULTDIRURL="<a title=\"QA Results\" href=\"http://${URL}${UX_D0}/nsstip/tinderbox/tests_results/security/${TRD}\">QA</a>"
+        else
+            RESULTDIRURL="<a title=\"QA Results\" href=\"http://${URL}${RESULTDIR}\">QA</a>"
+        fi
+        Debug "RESULTDIRURL TinderboxPrint:$RESULTDIRURL"
     fi
     TBX_DAILY_BUILD=`cd ../../../../..;pwd`
     NSS_VER_DIR="${TBX_DAILY_BUILD}/../.." 
@@ -536,6 +547,7 @@ init_mcom()
         BC_MASTER=$BC_UX_MASTER
     fi
     UX_D0=/share/builds/sbsrel2/nss
+    URL="sbs-rel.nscp.aoltw.net"
 }
 ################################### init_dirs ###########################
 # global shell function, sets the directories for standard QA
@@ -543,7 +555,7 @@ init_mcom()
 ########################################################################
 init_dirs()
 {
-    if [ ${DOMSUF} = "mcom.com" -o  ${DOMSUF} = "netscape.com" ] ; then
+    if [ ${DOMSUF} = "mcom.com" -o  ${DOMSUF} = "netscape.com" -o ${DOMSUF} = "nscp.aoltw.net" ] ; then
         init_mcom
     fi
     if [ $O_WIN = "ON" ] ; then

@@ -161,6 +161,12 @@ extern void SECU_PrintSystemError(char *progName, char *msg, ...);
 /* Return informative error string */
 extern const char * SECU_Strerror(PRErrorCode errNum);
 
+/* print information about cert verification failure */
+extern void
+SECU_printCertProblems(FILE *outfile, CERTCertDBHandle *handle, 
+	CERTCertificate *cert, PRBool checksig, 
+	SECCertificateUsage certUsage, void *pinArg, PRBool verbose);
+
 /* Read the contents of a file into a SECItem */
 extern SECStatus SECU_FileToItem(SECItem *dst, PRFileDesc *src);
 extern SECStatus SECU_TextFileToItem(SECItem *dst, PRFileDesc *src);
@@ -203,8 +209,15 @@ extern void SECU_PrintUTCTime(FILE *out, SECItem *t, char *m, int level);
 extern void SECU_PrintGeneralizedTime(FILE *out, SECItem *t, char *m,
 				      int level);
 
+/*
+ * Format and print the UTC or Generalized Time "t".  If the tag message
+ * "m" is not NULL, do indent formatting based on "level" and add a newline
+ * afterward; otherwise just print the formatted time string only.
+ */
+extern void SECU_PrintTimeChoice(FILE *out, SECItem *t, char *m, int level);
+
 /* callback for listing certs through pkcs11 */
-extern SECStatus SECU_PrintCertNickname(CERTCertificate *cert, void *data);
+extern SECStatus SECU_PrintCertNickname(CERTCertListNode* cert, void *data);
 
 /* Dump all certificate nicknames in a database */
 extern SECStatus

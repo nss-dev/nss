@@ -49,11 +49,11 @@ SEC_BEGIN_PROTOS
  * The format of the version string should be
  *     "<major version>.<minor version>[.<patch level>] [<Beta>]"
  */
-#define NSS_VERSION  "3.8.1 Beta"
+#define NSS_VERSION  "3.9"
 #define NSS_VMAJOR   3
-#define NSS_VMINOR   8
-#define NSS_VPATCH   1
-#define NSS_BETA     PR_TRUE
+#define NSS_VMINOR   9
+#define NSS_VPATCH   0
+#define NSS_BETA     PR_FALSE
 
 
 /*
@@ -121,6 +121,12 @@ extern SECStatus NSS_InitReadWrite(const char *configdir);
 #define NSS_INIT_FORCEOPEN	0x8
 #define NSS_INIT_NOROOTINIT     0x10
 #define NSS_INIT_OPTIMIZESPACE  0x20
+
+#ifdef macintosh
+#define SECMOD_DB "Security Modules"
+#else
+#define SECMOD_DB "secmod.db"
+#endif
 
 extern SECStatus NSS_Initialize(const char *configdir, 
 	const char *certPrefix, const char *keyPrefix, 

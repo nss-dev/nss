@@ -195,6 +195,10 @@ ssl2_GatherData(sslSocket *ss, sslGather *gs, int flags)
 	    /*  is_escape =  (gs->hdr[0] & 0x40) != 0; */
 		gs->recordPadding = gs->hdr[2];
 	    }
+	    if (!gs->count) {
+		PORT_SetError(SSL_ERROR_RX_RECORD_TOO_LONG);
+		goto cleanup;
+	    }
 
 	    if (gs->count > gs->buf.space) {
 		err = sslBuffer_Grow(&gs->buf, gs->count);

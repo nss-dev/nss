@@ -82,6 +82,14 @@ cert_CombineNamesLists(CERTGeneralName *list1, CERTGeneralName *list2);
 extern CERTNameConstraint *
 cert_CombineConstraintsLists(CERTNameConstraint *list1, CERTNameConstraint *list2);
 
+/*********************************************************************/
+/* A thread safe implementation of General Names                     */
+/*********************************************************************/
+
+/* Destroy a Single CERTGeneralName */
+void
+CERT_DestroyGeneralName(CERTGeneralName *name);
+
 SECStatus
 CERT_CompareGeneralName(CERTGeneralName *a, CERTGeneralName *b);
 
@@ -93,33 +101,49 @@ CERT_CopyGeneralName(PRArenaPool      *arena,
 /* General Name Lists are a thread safe, reference counting layer to 
  * general names */
 
+/* Destroys a CERTGeneralNameList */
 void
 CERT_DestroyGeneralNameList(CERTGeneralNameList *list);
 
+/* Creates a CERTGeneralNameList */
 CERTGeneralNameList *
 CERT_CreateGeneralNameList(CERTGeneralName *name);
 
+/* Compares two CERTGeneralNameList */
 SECStatus
 CERT_CompareGeneralNameLists(CERTGeneralNameList *a, CERTGeneralNameList *b);
 
+/* returns a copy of the first name of the type requested */
 void *
 CERT_GetGeneralNameFromListByType(CERTGeneralNameList *list,
 				  CERTGeneralNameType type,
 				  PRArenaPool *arena);
 
+/* Adds a name to the tail of the list */
 void
 CERT_AddGeneralNameToList(CERTGeneralNameList *list, 
 			  CERTGeneralNameType type,
 			  void *data, SECItem *oid);
 
-
+/* returns a duplicate of the CERTGeneralNameList */
 CERTGeneralNameList *
 CERT_DupGeneralNameList(CERTGeneralNameList *list);
 
-
-int
+/* returns the number of CERTGeneralName objects in the  doubly linked
+** list of which *names is a member.
+*/
+extern int
 CERT_GetNamesLength(CERTGeneralName *names);
+
 /************************************************************************/
+
+SECStatus
+CERT_CompareNameSpace(CERTCertificate  *cert,
+		      CERTGeneralName  *namesList,
+ 		      CERTCertificate **certsList,
+ 		      PRArenaPool      *arena,
+ 		      CERTCertificate **pBadCert);
+
 SEC_END_PROTOS
 
 #endif

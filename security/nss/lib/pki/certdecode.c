@@ -44,7 +44,7 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #endif /* PKIM_H */
 
 #ifdef NSS_3_4_CODE
-/* This is defined in nss3hack.c */
+/* This is defined in pki3hack.c */
 NSS_EXTERN nssDecodedCert *
 nssDecodedPKIXCertificate_Create (
   NSSArena *arenaOpt,

@@ -143,6 +143,11 @@ SECITEM_CompareItem(const SECItem *a, const SECItem *b)
     unsigned m;
     SECComparison rv;
 
+    if (!a || !a->len || !a->data) 
+        return (!b || !b->len || !b->data) ? SECEqual : SECLessThan;
+    if (!b || !b->len || !b->data) 
+    	return SECGreaterThan;
+
     m = ( ( a->len < b->len ) ? a->len : b->len );
     
     rv = (SECComparison) PORT_Memcmp(a->data, b->data, m);
@@ -161,14 +166,25 @@ SECITEM_CompareItem(const SECItem *a, const SECItem *b)
 PRBool
 SECITEM_ItemsAreEqual(const SECItem *a, const SECItem *b)
 {
-    if (SECITEM_CompareItem(a, b) == SECEqual)
-	return PR_TRUE;
-
-    return PR_FALSE;
+    if (a->len != b->len)
+        return PR_FALSE;
+    if (!a->len)
+    	return PR_TRUE;
+    if (!a->data || !b->data) {
+        /* avoid null pointer crash. */
+	return (PRBool)(a->data == b->data);
+    }
+    return (PRBool)!PORT_Memcmp(a->data, b->data, a->len);
 }
 
 SECItem *
 SECITEM_DupItem(const SECItem *from)
+{
+    return SECITEM_ArenaDupItem(NULL, from);
+}
+
+SECItem *
+SECITEM_ArenaDupItem(PRArenaPool *arena, const SECItem *from)
 {
     SECItem *to;
     
@@ -176,12 +192,20 @@ SECITEM_DupItem(const SECItem *from)
 	return(NULL);
     }
     
-    to = (SECItem *)PORT_Alloc(sizeof(SECItem));
+    if ( arena != NULL ) {
+	to = (SECItem *)PORT_ArenaAlloc(arena, sizeof(SECItem));
+    } else {
+	to = (SECItem *)PORT_Alloc(sizeof(SECItem));
+    }
     if ( to == NULL ) {
 	return(NULL);
     }
 
-    to->data = (unsigned char *)PORT_Alloc(from->len);
+    if ( arena != NULL ) {
+	to->data = (unsigned char *)PORT_ArenaAlloc(arena, from->len);
+    } else {
+	to->data = (unsigned char *)PORT_Alloc(from->len);
+    }
     if ( to->data == NULL ) {
 	PORT_Free(to);
 	return(NULL);
@@ -189,7 +213,9 @@ SECITEM_DupItem(const SECItem *from)
 
     to->len = from->len;
     to->type = from->type;
-    PORT_Memcpy(to->data, from->data, to->len);
+    if ( to->len ) {
+	PORT_Memcpy(to->data, from->data, to->len);
+    }
     
     return(to);
 }

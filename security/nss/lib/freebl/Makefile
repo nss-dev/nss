@@ -17,7 +17,13 @@
 # Copyright (C) 1994-2000 Netscape Communications Corporation.  All
 # Rights Reserved.
 # 
+# Portions created by Sun Microsystems, Inc. are Copyright (C) 2003
+# Sun Microsystems, Inc. All Rights Reserved.
+#
 # Contributor(s):
+#      Stephen Fung <fungstep@hotmail.com> and
+#      Douglas Stebila <douglas@stebila.ca>, Sun Microsystems 
+#          Laboratories
 # 
 # Alternatively, the contents of this file may be used under the
 # terms of the GNU General Public License Version 2 or later (the
@@ -89,7 +95,8 @@ ifdef NS_USE_GCC
     DEFINES += -DMP_NO_MP_WORD -DMP_USE_UINT_DIGIT
 else
     ASFILES  = mpi_x86.asm
-    DEFINES += -DMP_ASSEMBLY_MULTIPLY -DMP_ASSEMBLY_SQUARE -DMP_ASSEMBLY_DIV_2DX1D
+    DEFINES += -DMP_ASSEMBLY_MULTIPLY -DMP_ASSEMBLY_SQUARE -DMP_ASSEMBLY_DIV_2DX1D \
+    -DMP_USE_UINT_DIGIT -DMP_NO_MP_WORD
 endif
 ifdef BUILD_OPT
 ifndef NS_USE_GCC
@@ -126,6 +133,12 @@ ifeq ($(OS_TARGET),Linux)
 ifeq ($(CPU_ARCH),x86)
     ASFILES  = mpi_x86.s
     DEFINES += -DMP_ASSEMBLY_MULTIPLY -DMP_ASSEMBLY_SQUARE -DMP_ASSEMBLY_DIV_2DX1D
+ifdef NSS_ENABLE_ECC
+    #enable floating point ECC code	
+    DEFINES  += -DECL_USE_FP
+    ECL_SRCS += ecp_fp160.c ecp_fp192.c ecp_fp224.c ecp_fp.c
+    ECL_HDRS += ecp_fp.h
+endif
 endif
 endif
 
@@ -211,6 +224,11 @@ else
 #   ASM_SUFFIX = .S
 endif
 endif
+ifdef NSS_ENABLE_ECC
+DEFINES  += -DECL_USE_FP
+ECL_SRCS += ecp_fp160.c ecp_fp192.c ecp_fp224.c ecp_fp.c
+ECL_HDRS += ecp_fp.h
+endif
 endif
 else
 # Solaris x86
@@ -252,40 +270,38 @@ rijndael_tables:
 	         $(DEFINES) $(INCLUDES) $(OBJDIR)/libfreebl.a
 	$(OBJDIR)/make_rijndael_tab
 
-ifdef MOZILLA_BSAFE_BUILD
-
-private_export::
-ifeq (,$(filter-out WIN%,$(OS_TARGET)))
-	rm -f $(DIST)/lib/bsafe$(BSAFEVER).lib
-endif
-	$(NSINSTALL) -R $(BSAFEPATH) $(DIST)/lib
-endif
-
 ifdef USE_PURE_32 
-vpath %.h $(FREEBL_PARENT)/mpi:$(FREEBL_PARENT)
-vpath %.c $(FREEBL_PARENT)/mpi:$(FREEBL_PARENT)
-vpath %.S $(FREEBL_PARENT)/mpi:$(FREEBL_PARENT)
-vpath %.s $(FREEBL_PARENT)/mpi:$(FREEBL_PARENT)
-vpath %.asm $(FREEBL_PARENT)/mpi:$(FREEBL_PARENT)
-INCLUDES += -I$(FREEBL_PARENT) -I$(FREEBL_PARENT)/mpi
+vpath %.h $(FREEBL_PARENT)/ecl $(FREEBL_PARENT)/mpi $(FREEBL_PARENT)
+vpath %.c $(FREEBL_PARENT)/ecl $(FREEBL_PARENT)/mpi $(FREEBL_PARENT)
+vpath %.S $(FREEBL_PARENT)/ecl $(FREEBL_PARENT)/mpi $(FREEBL_PARENT)
+vpath %.s $(FREEBL_PARENT)/ecl $(FREEBL_PARENT)/mpi $(FREEBL_PARENT)
+vpath %.asm $(FREEBL_PARENT)/ecl $(FREEBL_PARENT)/mpi $(FREEBL_PARENT)
+INCLUDES += -I$(FREEBL_PARENT) -I$(FREEBL_PARENT)/mpi -I$(FREEBL_PARENT)/ecl
 else
-vpath %.h mpi
-vpath %.c mpi
-vpath %.S mpi
-vpath %.s mpi
-vpath %.asm mpi
-INCLUDES += -Impi
+vpath %.h mpi ecl
+vpath %.c mpi ecl
+vpath %.S mpi ecl
+vpath %.s mpi ecl
+vpath %.asm mpi ecl
+INCLUDES += -Impi -Iecl
 endif
 
 
 DEFINES += -DMP_API_COMPATIBLE
 
-MPI_USERS = dh.c pqg.c dsa.c rsa.c ec.c GFp_ecl.c
+MPI_USERS = dh.c pqg.c dsa.c rsa.c ec.c
 
 MPI_OBJS = $(addprefix $(OBJDIR)/$(PROG_PREFIX), $(MPI_SRCS:.c=$(OBJ_SUFFIX)))
 MPI_OBJS += $(addprefix $(OBJDIR)/$(PROG_PREFIX), $(MPI_USERS:.c=$(OBJ_SUFFIX)))
 
+ECL_USERS = ec.c
+
+ECL_OBJS = $(addprefix $(OBJDIR)/$(PROG_PREFIX), $(ECL_SRCS:.c=$(OBJ_SUFFIX)) $(ECL_ASM_SRCS:$(ASM_SUFFIX)=$(OBJ_SUFFIX)))
+ECL_OBJS += $(addprefix $(OBJDIR)/$(PROG_PREFIX), $(ECL_USERS:.c=$(OBJ_SUFFIX)))
+
 $(MPI_OBJS): $(MPI_HDRS)
+
+$(ECL_OBJS): $(ECL_HDRS)
 
 $(OBJDIR)/$(PROG_PREFIX)mpprime$(OBJ_SUFFIX): primes.c
 
@@ -338,6 +354,8 @@ release_md::
 
 endif
 
+# Bugzilla Bug 209827: disable optimization to work around what appears
+# to be a VACPP optimizer bug.
 ifdef XP_OS2_VACPP
 $(OBJDIR)/alg2268.obj: alg2268.c
 	@$(MAKE_OBJDIR)

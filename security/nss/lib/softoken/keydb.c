@@ -16,7 +16,11 @@
  * Copyright (C) 1994-2000 Netscape Communications Corporation.  All
  * Rights Reserved.
  * 
+ * Portions created by Sun Microsystems, Inc. are Copyright (C) 2003
+ * Sun Microsystems, Inc. All Rights Reserved.
+ * 
  * Contributor(s):
+ *	Dr Vipul Gupta <vipul.gupta@sun.com>, Sun Microsystems Laboratories
  * 
  * Alternatively, the contents of this file may be used under the
  * terms of the GNU General Public License Version 2 or later (the
@@ -48,8 +52,15 @@
 #include "lowpbe.h"
 #include "secerr.h"
 #include "cdbhdl.h"
+#include "nsslocks.h"
 
 #include "keydbi.h"
+
+#ifdef NSS_ENABLE_ECC
+extern SECStatus EC_FillParams(PRArenaPool *arena, 
+			       const SECItem *encodedParams, 
+			       ECParams *params);
+#endif
 
 /*
  * Record keys for keydb
@@ -150,6 +161,36 @@ free_dbt(DBT *dbt)
 	PORT_Free(dbt);
     }
     
+    return;
+}
+
+static int keydb_Get(DB *db, DBT *key, DBT *data, unsigned int flags);
+static int keydb_Put(DB *db, DBT *key, DBT *data, unsigned int flags);
+static int keydb_Sync(DB *db, unsigned int flags);
+static int keydb_Del(DB *db, DBT *key, unsigned int flags);
+static int keydb_Seq(DB *db, DBT *key, DBT *data, unsigned int flags);
+static void keydb_Close(DB *db);
+
+static PZLock *kdbLock = NULL;
+
+static void
+keydb_InitLocks(NSSLOWKEYDBHandle *handle) 
+{
+    if (kdbLock == NULL) {
+	nss_InitLock(&kdbLock, nssILockKeyDB);
+    }
+
+    return;
+}
+
+static void
+keydb_DestroyLocks(NSSLOWKEYDBHandle *handle)
+{
+    if (kdbLock != NULL) {
+	PZ_DestroyLock(kdbLock);
+	kdbLock = NULL;
+    }
+
     return;
 }
 
@@ -310,7 +351,7 @@ get_dbkey(NSSLOWKEYDBHandle *handle, DBT *index)
     int ret;
     
     /* get it from the database */
-    ret = (* handle->db->get)(handle->db, index, &entry, 0);
+    ret = keydb_Get(handle->db, index, &entry, 0);
     if ( ret ) {
 	PORT_SetError(SEC_ERROR_BAD_DATABASE);
 	return NULL;
@@ -336,10 +377,9 @@ put_dbkey(NSSLOWKEYDBHandle *handle, DBT *index, NSSLOWKEYDBKey *dbkey, PRBool u
     
     /* put it in the database */
     if ( update ) {
-	status = (* handle->db->put)(handle->db, index, keydata, 0);
+	status = keydb_Put(handle->db, index, keydata, 0);
     } else {
-	status = (* handle->db->put)(handle->db, index, keydata,
-				     R_NOOVERWRITE);
+	status = keydb_Put(handle->db, index, keydata, R_NOOVERWRITE);
     }
     
     if ( status ) {
@@ -347,7 +387,7 @@ put_dbkey(NSSLOWKEYDBHandle *handle, DBT *index, NSSLOWKEYDBKey *dbkey, PRBool u
     }
 
     /* sync the database */
-    status = (* handle->db->sync)(handle->db, 0);
+    status = keydb_Sync(handle->db, 0);
     if ( status ) {
 	goto loser;
     }
@@ -377,7 +417,7 @@ nsslowkey_TraverseKeys(NSSLOWKEYDBHandle *handle,
 	return(SECFailure);
     }
 
-    ret = (* handle->db->seq)(handle->db, &key, &data, R_FIRST);
+    ret = keydb_Seq(handle->db, &key, &data, R_FIRST);
     if ( ret ) {
 	return(SECFailure);
     }
@@ -404,7 +444,7 @@ nsslowkey_TraverseKeys(NSSLOWKEYDBHandle *handle,
 		return(status);
 	    }
 	}
-    } while ( (* handle->db->seq)(handle->db, &key, &data, R_NEXT) == 0 );
+    } while ( keydb_Seq(handle->db, &key, &data, R_NEXT) == 0 );
 
     return(SECSuccess);
 }
@@ -484,7 +524,7 @@ GetKeyDBGlobalSalt(NSSLOWKEYDBHandle *handle)
     saltKey.data = SALT_STRING;
     saltKey.size = sizeof(SALT_STRING) - 1;
 
-    ret = (* handle->db->get)(handle->db, &saltKey, &saltData, 0);
+    ret = keydb_Get(handle->db, &saltKey, &saltData, 0);
     if ( ret ) {
 	return(NULL);
     }
@@ -506,7 +546,7 @@ StoreKeyDBGlobalSalt(NSSLOWKEYDBHandle *handle)
     saltData.size = handle->global_salt->len;
 
     /* put global salt into the database now */
-    status = (* handle->db->put)( handle->db, &saltKey, &saltData, 0);
+    status = keydb_Put(handle->db, &saltKey, &saltData, 0);
     if ( status ) {
 	return(SECFailure);
     }
@@ -529,7 +569,7 @@ makeGlobalVersion(NSSLOWKEYDBHandle *handle)
     versionKey.size = sizeof(VERSION_STRING)-1;
 		
     /* put version string into the database now */
-    status = (* handle->db->put)(handle->db, &versionKey, &versionData, 0);
+    status = keydb_Put(handle->db, &versionKey, &versionData, 0);
     if ( status ) {
 	return(SECFailure);
     }
@@ -555,7 +595,7 @@ makeGlobalSalt(NSSLOWKEYDBHandle *handle)
     RNG_GenerateGlobalRandomBytes(saltbuf, sizeof(saltbuf));
 
     /* put global salt into the database now */
-    status = (* handle->db->put)( handle->db, &saltKey, &saltData, 0);
+    status = keydb_Put(handle->db, &saltKey, &saltData, 0);
     if ( status ) {
 	return(SECFailure);
     }
@@ -595,7 +635,7 @@ nsslowkey_version(DB *db)
     versionKey.size = sizeof(VERSION_STRING)-1;
 
     /* lookup version string in database */
-    ret = (* db->get)( db, &versionKey, &versionData, 0 );
+    ret = keydb_Get( db, &versionKey, &versionData, 0 );
 
     /* error accessing the database */
     if ( ret < 0 ) {
@@ -616,7 +656,7 @@ seckey_HasAServerKey(DB *db)
     int ret;
     PRBool found = PR_FALSE;
 
-    ret = (* db->seq)(db, &key, &data, R_FIRST);
+    ret = keydb_Seq(db, &key, &data, R_FIRST);
     if ( ret ) {
 	return PR_FALSE;
     }
@@ -653,7 +693,7 @@ seckey_HasAServerKey(DB *db)
 	    }
 	    
 	}
-    } while ( (* db->seq)(db, &key, &data, R_NEXT) == 0 );
+    } while ( keydb_Seq(db, &key, &data, R_NEXT) == 0 );
 
     return found;
 }
@@ -692,7 +732,7 @@ nsslowkey_UpdateKeyDBPass1(NSSLOWKEYDBHandle *handle)
     saltKey.data = SALT_STRING;
     saltKey.size = sizeof(SALT_STRING) - 1;
 
-    ret = (* handle->updatedb->get)(handle->updatedb, &saltKey, &saltData, 0);
+    ret = keydb_Get(handle->updatedb, &saltKey, &saltData, 0);
     if ( ret ) {
 	/* no salt in old db, so it is corrupted */
 	goto done;
@@ -710,7 +750,7 @@ nsslowkey_UpdateKeyDBPass1(NSSLOWKEYDBHandle *handle)
     checkKey.data = KEYDB_PW_CHECK_STRING;
     checkKey.size = KEYDB_PW_CHECK_LEN;
     
-    ret = (* handle->updatedb->get)(handle->updatedb, &checkKey,
+    ret = keydb_Get(handle->updatedb, &checkKey,
 				   &checkData, 0 );
     if (ret) {
 	/*
@@ -731,11 +771,11 @@ nsslowkey_UpdateKeyDBPass1(NSSLOWKEYDBHandle *handle)
 	    fcheckData.data = "1";
 	    fcheckData.size = 1;
 	    /* put global salt into the new database now */
-	    ret = (* handle->db->put)( handle->db, &saltKey, &saltData, 0);
+	    ret = keydb_Put( handle->db, &saltKey, &saltData, 0);
 	    if ( ret ) {
 		goto done;
 	    }
-	    ret = (* handle->db->put)( handle->db, &fcheckKey, &fcheckData, 0);
+	    ret = keydb_Put( handle->db, &fcheckKey, &fcheckData, 0);
 	    if ( ret ) {
 		goto done;
 	    }
@@ -744,7 +784,7 @@ nsslowkey_UpdateKeyDBPass1(NSSLOWKEYDBHandle *handle)
 	}
     } else {
 	/* put global salt into the new database now */
-	ret = (* handle->db->put)( handle->db, &saltKey, &saltData, 0);
+	ret = keydb_Put( handle->db, &saltKey, &saltData, 0);
 	if ( ret ) {
 	    goto done;
 	}
@@ -774,7 +814,7 @@ nsslowkey_UpdateKeyDBPass1(NSSLOWKEYDBHandle *handle)
     
     
     /* now traverse the database */
-    ret = (* handle->updatedb->seq)(handle->updatedb, &key, &data, R_FIRST);
+    ret = keydb_Seq(handle->updatedb, &key, &data, R_FIRST);
     if ( ret ) {
 	goto done;
     }
@@ -820,16 +860,16 @@ nsslowkey_UpdateKeyDBPass1(NSSLOWKEYDBHandle *handle)
 
 	    sec_destroy_dbkey(dbkey);
 	}
-    } while ( (* handle->updatedb->seq)(handle->updatedb, &key, &data,
+    } while ( keydb_Seq(handle->updatedb, &key, &data,
 					R_NEXT) == 0 );
 
     dbkey = NULL;
 
 done:
     /* sync the database */
-    ret = (* handle->db->sync)(handle->db, 0);
+    ret = keydb_Sync(handle->db, 0);
 
-    (* handle->updatedb->close)(handle->updatedb);
+    keydb_Close(handle->updatedb);
     handle->updatedb = NULL;
     
     if ( rc4key ) {
@@ -892,10 +932,10 @@ openNewDB(const char *appName, const char *prefix, const char *dbname,
 	if (updatedb) {
 	    handle->version = nsslowkey_version(updatedb);
 	    if (handle->version != NSSLOWKEY_DB_FILE_VERSION) {
-		(updatedb->close)(updatedb);
+		keydb_Close(updatedb);
 	    } else {
 		db_Copy(handle->db, updatedb);
-		(updatedb->close)(updatedb);
+		keydb_Close(updatedb);
 		db_FinishTransaction(handle->db,PR_FALSE);
 		db_InitComplete(handle->db);
 		return SECSuccess;
@@ -941,7 +981,7 @@ openNewDB(const char *appName, const char *prefix, const char *dbname,
     }
 	
     /* sync the database */
-    ret = (* handle->db->sync)(handle->db, 0);
+    ret = keydb_Sync(handle->db, 0);
     if ( ret ) {
 	rv = SECFailure;
 	goto loser;
@@ -971,7 +1011,7 @@ openOldDB(const char *appName, const char *prefix, const char *dbname,
 	*version = nsslowkey_version(db);
 	if (*version != NSSLOWKEY_DB_FILE_VERSION ) {
 	    /* bogus version number record, reset the database */
-	    (* db->close)( db );
+	    keydb_Close( db );
 	    db = NULL;
 	}
     }
@@ -1005,6 +1045,8 @@ nsslowkey_OpenKeyDB(PRBool readOnly, const char *appName, const char *prefix,
 			(prefix ? PORT_Strdup(prefix) : NULL);
     handle->readOnly = readOnly;
 
+    keydb_InitLocks(handle);
+
 
     handle->db = openOldDB(appName, prefix, dbname, openflags, 
 							&handle->version);
@@ -1032,7 +1074,6 @@ nsslowkey_OpenKeyDB(PRBool readOnly, const char *appName, const char *prefix,
 	} else if (rv != SECSuccess) {
 	    goto loser;
 	}
-	
     }
 
     handle->global_salt = GetKeyDBGlobalSalt(handle);
@@ -1047,10 +1088,10 @@ loser:
     PORT_SetError(SEC_ERROR_BAD_DATABASE);
 
     if ( handle->db ) {
-	(* handle->db->close)(handle->db);
+	keydb_Close(handle->db);
     }
     if ( handle->updatedb ) {
-	(* handle->updatedb->close)(handle->updatedb);
+	keydb_Close(handle->updatedb);
     }
     PORT_Free(handle);
     return NULL;
@@ -1064,13 +1105,14 @@ nsslowkey_CloseKeyDB(NSSLOWKEYDBHandle *handle)
 {
     if (handle != NULL) {
 	if (handle->db != NULL) {
-	    (* handle->db->close)(handle->db);
+	    keydb_Close(handle->db);
 	}
 	if (handle->dbname) PORT_Free(handle->dbname);
 	if (handle->appname) PORT_Free(handle->appname);
 	if (handle->global_salt) {
 	    SECITEM_FreeItem(handle->global_salt,PR_TRUE);
 	}
+	keydb_DestroyLocks(handle);
 	    
 	PORT_Free(handle);
     }
@@ -1104,14 +1146,14 @@ nsslowkey_DeleteKey(NSSLOWKEYDBHandle *handle, SECItem *pubkey)
     namekey.size = pubkey->len;
 
     /* delete it from the database */
-    ret = (* handle->db->del)(handle->db, &namekey, 0);
+    ret = keydb_Del(handle->db, &namekey, 0);
     if ( ret ) {
 	PORT_SetError(SEC_ERROR_BAD_DATABASE);
 	return(SECFailure);
     }
 
     /* sync the database */
-    ret = (* handle->db->sync)(handle->db, 0);
+    ret = keydb_Sync(handle->db, 0);
     if ( ret ) {
 	PORT_SetError(SEC_ERROR_BAD_DATABASE);
 	return(SECFailure);
@@ -1156,7 +1198,7 @@ nsslowkey_KeyForIDExists(NSSLOWKEYDBHandle *handle, SECItem *id)
 
     namekey.data = (char *)id->data;
     namekey.size = id->len;
-    status = (* handle->db->get)(handle->db, &namekey, &dummy, 0);
+    status = keydb_Get(handle->db, &namekey, &dummy, 0);
     if ( status ) {
 	return PR_FALSE;
     }
@@ -1195,6 +1237,12 @@ nsslowkey_KeyForCertExists(NSSLOWKEYDBHandle *handle, NSSLOWCERTCertificate *cer
 	namekey.data = pubkey->u.dh.publicValue.data;
 	namekey.size = pubkey->u.dh.publicValue.len;
 	break;
+#ifdef NSS_ENABLE_ECC
+      case NSSLOWKEYECKey:
+	namekey.data = pubkey->u.ec.publicValue.data;
+	namekey.size = pubkey->u.ec.publicValue.len;
+	break;
+#endif /* NSS_ENABLE_ECC */
       default:
 	/* XXX We don't do Fortezza or DH yet. */
 	return PR_FALSE;
@@ -1208,7 +1256,7 @@ nsslowkey_KeyForCertExists(NSSLOWKEYDBHandle *handle, NSSLOWCERTCertificate *cer
 	namekey.size = sizeof(buf);
     }
 
-    status = (* handle->db->get)(handle->db, &namekey, &dummy, 0);
+    status = keydb_Get(handle->db, &namekey, &dummy, 0);
     /* some databases have the key stored as a signed value */
     if (status) {
 	unsigned char *buf = (unsigned char *)PORT_Alloc(namekey.size+1);
@@ -1217,7 +1265,7 @@ nsslowkey_KeyForCertExists(NSSLOWKEYDBHandle *handle, NSSLOWCERTCertificate *cer
 	    buf[0] = 0;
 	    namekey.data = buf;
 	    namekey.size ++;
-    	    status = (* handle->db->get)(handle->db, &namekey, &dummy, 0);
+    	    status = keydb_Get(handle->db, &namekey, &dummy, 0);
 	    PORT_Free(buf);
 	}
     }
@@ -1245,12 +1293,12 @@ nsslowkey_HasKeyDBPassword(NSSLOWKEYDBHandle *handle)
     checkkey.data = KEYDB_PW_CHECK_STRING;
     checkkey.size = KEYDB_PW_CHECK_LEN;
     
-    ret = (* handle->db->get)(handle->db, &checkkey, &checkdata, 0 );
+    ret = keydb_Get(handle->db, &checkkey, &checkdata, 0 );
     if ( ret ) {
 	/* see if this was an updated DB first */
 	checkkey.data = KEYDB_FAKE_PW_CHECK_STRING;
 	checkkey.size = KEYDB_FAKE_PW_CHECK_LEN;
-	ret = (* handle->db->get)(handle->db, &checkkey, &checkdata, 0 );
+	ret = keydb_Get(handle->db, &checkkey, &checkdata, 0 );
     	if ( ret ) {
 	    return(SECFailure);
 	}
@@ -1483,11 +1531,24 @@ seckey_rc4_decode(SECItem *key, SECItem *src)
     return dest;
 }
 
+
+#ifdef EC_DEBUG
+#define SEC_PRINT(str1, str2, num, sitem) \
+    printf("pkcs11c.c:%s:%s (keytype=%d) [len=%d]\n", \
+            str1, str2, num, sitem->len); \
+    for (i = 0; i < sitem->len; i++) { \
+	    printf("%02x:", sitem->data[i]); \
+    } \
+    printf("\n") 
+#else
+#define SEC_PRINT(a, b, c, d) 
+#endif /* EC_DEBUG */
+
 /* TNH - keydb is unused */
 /* TNH - the pwitem should be the derived key for RC4 */
 NSSLOWKEYEncryptedPrivateKeyInfo *
 seckey_encrypt_private_key(
-	NSSLOWKEYPrivateKey *pk, SECItem *pwitem, NSSLOWKEYDBHandle *keydb,
+        NSSLOWKEYPrivateKey *pk, SECItem *pwitem, NSSLOWKEYDBHandle *keydb,
 	SECOidTag algorithm, SECItem **salt)
 {
     NSSLOWKEYEncryptedPrivateKeyInfo *epki = NULL;
@@ -1498,6 +1559,11 @@ seckey_encrypt_private_key(
     NSSPKCS5PBEParameter *param = NULL;
     SECItem *dummy = NULL, *dest = NULL;
     SECAlgorithmID *algid;
+#ifdef NSS_ENABLE_ECC
+    SECItem *fordebug = NULL;
+    int savelen;
+    int i;
+#endif
 
     *salt = NULL;
     permarena = PORT_NewArena(SEC_ASN1_DEFAULT_ARENA_SIZE);
@@ -1582,6 +1648,46 @@ seckey_encrypt_private_key(
 	    goto loser;
 	}
 	break;
+#ifdef NSS_ENABLE_ECC
+      case NSSLOWKEYECKey:
+	prepare_low_ec_priv_key_for_asn1(pk);
+	/* Public value is encoded as a bit string so adjust length
+	 * to be in bits before ASN encoding and readjust 
+	 * immediately after.
+	 *
+	 * Since the SECG specification recommends not including the
+	 * parameters as part of ECPrivateKey, we zero out the curveOID
+	 * length before encoding and restore it later.
+	 */
+	pk->u.ec.publicValue.len <<= 3;
+	savelen = pk->u.ec.ecParams.curveOID.len;
+	pk->u.ec.ecParams.curveOID.len = 0;
+	dummy = SEC_ASN1EncodeItem(temparena, &(pki->privateKey), pk,
+				   nsslowkey_ECPrivateKeyTemplate);
+	pk->u.ec.ecParams.curveOID.len = savelen;
+	pk->u.ec.publicValue.len >>= 3;
+
+	if (dummy == NULL) {
+	    rv = SECFailure;
+	    goto loser;
+	}
+
+	dummy = &pk->u.ec.ecParams.DEREncoding;
+
+	/* At this point dummy should contain the encoded params */
+	rv = SECOID_SetAlgorithmID(temparena, &(pki->algorithm),
+				   SEC_OID_ANSIX962_EC_PUBLIC_KEY, dummy);
+
+	if (rv == SECFailure) {
+	    goto loser;
+	}
+	
+	fordebug = &(pki->privateKey);
+	SEC_PRINT("seckey_encrypt_private_key()", "PrivateKey", 
+		  pk->keyType, fordebug);
+
+	break;
+#endif /* NSS_ENABLE_ECC */
       default:
 	/* We don't support DH or Fortezza private keys yet */
 	PORT_Assert(PR_FALSE);
@@ -1591,6 +1697,10 @@ seckey_encrypt_private_key(
     /* setup encrypted private key info */
     dummy = SEC_ASN1EncodeItem(temparena, der_item, pki, 
 	nsslowkey_PrivateKeyInfoTemplate);
+
+    SEC_PRINT("seckey_encrypt_private_key()", "PrivateKeyInfo", 
+	      pk->keyType, der_item);
+
     if(dummy == NULL) {
 	rv = SECFailure;
 	goto loser;
@@ -1749,6 +1859,11 @@ seckey_decrypt_private_key(NSSLOWKEYEncryptedPrivateKeyInfo *epki,
     PLArenaPool *temparena = NULL, *permarena = NULL;
     SECItem *salt = NULL, *dest = NULL, *key = NULL;
     NSSPKCS5PBEParameter *param;
+#ifdef NSS_ENABLE_ECC
+    ECPrivateKey *ecpriv;
+    SECItem *fordebug = NULL;
+    int i;
+#endif
 
     if((epki == NULL) || (pwitem == NULL))
 	goto loser;
@@ -1805,6 +1920,9 @@ seckey_decrypt_private_key(NSSLOWKEYEncryptedPrivateKeyInfo *epki,
 
     if(dest != NULL)
     {
+        SEC_PRINT("seckey_decrypt_private_key()", "PrivateKeyInfo", -1,
+		  dest);
+
 	rv = SEC_ASN1DecodeItem(temparena, pki, 
 	    nsslowkey_PrivateKeyInfoTemplate, dest);
 	if(rv == SECSuccess)
@@ -1838,6 +1956,58 @@ seckey_decrypt_private_key(NSSLOWKEYEncryptedPrivateKeyInfo *epki,
 					nsslowkey_DHPrivateKeyTemplate,
 					&pki->privateKey);
 		break;
+#ifdef NSS_ENABLE_ECC
+	      case SEC_OID_ANSIX962_EC_PUBLIC_KEY:
+		pk->keyType = NSSLOWKEYECKey;
+		prepare_low_ec_priv_key_for_asn1(pk);
+
+		fordebug = &pki->privateKey;
+		SEC_PRINT("seckey_decrypt_private_key()", "PrivateKey", 
+			  pk->keyType, fordebug);
+		rv = SEC_ASN1DecodeItem(permarena, pk,
+					nsslowkey_ECPrivateKeyTemplate,
+					&pki->privateKey);
+		if (rv != SECSuccess)
+		    goto loser;
+
+		prepare_low_ecparams_for_asn1(&pk->u.ec.ecParams);
+
+		rv = SECITEM_CopyItem(permarena, 
+		    &pk->u.ec.ecParams.DEREncoding, 
+		    &pki->algorithm.parameters);
+
+		if (rv != SECSuccess)
+		    goto loser;
+
+		/* Fill out the rest of EC params */
+		rv = EC_FillParams(permarena, &pk->u.ec.ecParams.DEREncoding,
+				   &pk->u.ec.ecParams);
+
+		/* 
+		 * NOTE: Encoding of the publicValue is optional
+		 * so we need to be able to regenerate the publicValue
+		 * from the base point and the private key.
+		 *
+		 * XXX This part of the code needs more testing.
+		 */
+		if (pk->u.ec.publicValue.len == 0) {
+		    rv = EC_NewKeyFromSeed(&pk->u.ec.ecParams, 
+				      &ecpriv, pk->u.ec.privateValue.data,
+				      pk->u.ec.privateValue.len);
+		    if (rv == SECSuccess) {
+			SECITEM_CopyItem(permarena, &pk->u.ec.publicValue,
+					 &(ecpriv->publicValue));
+			PORT_FreeArena(ecpriv->ecParams.arena, PR_TRUE);
+		    }
+		} else {
+		    /* If publicValue was filled as part of DER decoding,
+		     * change length in bits to length in bytes.
+		     */
+		    pk->u.ec.publicValue.len >>= 3;
+		}
+
+		break;
+#endif /* NSS_ENABLE_ECC */
 	      default:
 		rv = SECFailure;
 		break;
@@ -2243,8 +2413,7 @@ nsslowkey_CheckKeyDBPassword(NSSLOWKEYDBHandle *handle, SECItem *pwitem)
     if ( dbkey == NULL ) {
 	checkkey.data = KEYDB_FAKE_PW_CHECK_STRING;
 	checkkey.size = KEYDB_FAKE_PW_CHECK_LEN;
-	ret = (* handle->db->get)(handle->db, &checkkey,
-				   &checkdata, 0 );
+	ret = keydb_Get(handle->db, &checkkey, &checkdata, 0 );
 	if (ret) {
 	    goto loser;
 	}
@@ -2389,7 +2558,7 @@ ChangeKeyDBPasswordAlg(NSSLOWKEYDBHandle *handle,
 	}
 
 	/* delete the old record */
-	ret = (* handle->db->del)(handle->db, &node->key, 0);
+	ret = keydb_Del(handle->db, &node->key, 0);
 	if ( ret ) {
 	    PORT_SetError(SEC_ERROR_BAD_DATABASE);
 	    rv = SECFailure;
@@ -2411,6 +2580,12 @@ ChangeKeyDBPasswordAlg(NSSLOWKEYDBHandle *handle,
 	    newkey.data = privkey->u.dh.publicValue.data;
 	    newkey.size = privkey->u.dh.publicValue.len;
 	    break;
+#ifdef NSS_ENABLE_ECC
+	  case NSSLOWKEYECKey:
+	    newkey.data = privkey->u.ec.publicValue.data;
+	    newkey.size = privkey->u.ec.publicValue.len;
+	    break;
+#endif /* NSS_ENABLE_ECC */
 	  default:
 	    /* should we continue here and loose the key? */
 	    PORT_SetError(SEC_ERROR_BAD_DATABASE);
@@ -2500,7 +2675,7 @@ nsslowkey_ResetKeyDB(NSSLOWKEYDBHandle *handle)
 	return SECFailure;
     }
 
-    (* handle->db->close)(handle->db);
+    keydb_Close(handle->db);
     if (handle->appname) {
 	handle->db= 
 	    rdbopen(handle->appname, handle->dbname, "key", NO_CREATE, NULL);
@@ -2532,8 +2707,104 @@ nsslowkey_ResetKeyDB(NSSLOWKEYDBHandle *handle)
 
 done:
     /* sync the database */
-    ret = (* handle->db->sync)(handle->db, 0);
+    ret = keydb_Sync(handle->db, 0);
     db_InitComplete(handle->db);
 
     return (errors == 0 ? SECSuccess : SECFailure);
 }
+
+static int
+keydb_Get(DB *db, DBT *key, DBT *data, unsigned int flags)
+{
+    PRStatus prstat;
+    int ret;
+    
+    PORT_Assert(kdbLock != NULL);
+    PZ_Lock(kdbLock);
+
+    ret = (* db->get)(db, key, data, flags);
+
+    prstat = PZ_Unlock(kdbLock);
+
+    return(ret);
+}
+
+static int
+keydb_Put(DB *db, DBT *key, DBT *data, unsigned int flags)
+{
+    PRStatus prstat;
+    int ret = 0;
+
+    PORT_Assert(kdbLock != NULL);
+    PZ_Lock(kdbLock);
+
+    ret = (* db->put)(db, key, data, flags);
+    
+    prstat = PZ_Unlock(kdbLock);
+
+    return(ret);
+}
+
+static int
+keydb_Sync(DB *db, unsigned int flags)
+{
+    PRStatus prstat;
+    int ret;
+
+    PORT_Assert(kdbLock != NULL);
+    PZ_Lock(kdbLock);
+
+    ret = (* db->sync)(db, flags);
+    
+    prstat = PZ_Unlock(kdbLock);
+
+    return(ret);
+}
+
+static int
+keydb_Del(DB *db, DBT *key, unsigned int flags)
+{
+    PRStatus prstat;
+    int ret;
+
+    PORT_Assert(kdbLock != NULL);
+    PZ_Lock(kdbLock);
+
+    ret = (* db->del)(db, key, flags);
+    
+    prstat = PZ_Unlock(kdbLock);
+
+    return(ret);
+}
+
+static int
+keydb_Seq(DB *db, DBT *key, DBT *data, unsigned int flags)
+{
+    PRStatus prstat;
+    int ret;
+    
+    PORT_Assert(kdbLock != NULL);
+    PZ_Lock(kdbLock);
+    
+    ret = (* db->seq)(db, key, data, flags);
+
+    prstat = PZ_Unlock(kdbLock);
+
+    return(ret);
+}
+
+static void
+keydb_Close(DB *db)
+{
+    PRStatus prstat;
+
+    PORT_Assert(kdbLock != NULL);
+    PZ_Lock(kdbLock);
+
+    (* db->close)(db);
+    
+    prstat = PZ_Unlock(kdbLock);
+
+    return;
+}
+

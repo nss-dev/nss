@@ -41,6 +41,7 @@
 #include "secmod.h"
 #include "secmodi.h"
 #include "pki3hack.h"
+#include "secerr.h"
    
 #include "pk11pars.h" 
 
@@ -109,10 +110,13 @@ secmod_NewModule(void)
  * for 3.4 we continue to use the old SECMODModule structure
  */
 SECMODModule *
-SECMOD_CreateModule(char *library, char *moduleName, char *parameters, char *nss)
+SECMOD_CreateModule(const char *library, const char *moduleName, 
+				const char *parameters, const char *nss)
 {
     SECMODModule *mod = secmod_NewModule();
     char *slotParams,*ciphers;
+    /* pk11pars.h still does not have const char * interfaces */
+    char *nssc = (char *)nss;
     if (mod == NULL) return NULL;
 
     mod->commonName = PORT_ArenaStrdup(mod->arena,moduleName ? moduleName : "");
@@ -123,25 +127,25 @@ SECMOD_CreateModule(char *library, char *moduleName, char *parameters, char *nss
     if (parameters) {
 	mod->libraryParams = PORT_ArenaStrdup(mod->arena,parameters);
     }
-    mod->internal = pk11_argHasFlag("flags","internal",nss);
-    mod->isFIPS = pk11_argHasFlag("flags","FIPS",nss);
-    mod->isCritical = pk11_argHasFlag("flags","critical",nss);
-    slotParams = pk11_argGetParamValue("slotParams",nss);
+    mod->internal = pk11_argHasFlag("flags","internal",nssc);
+    mod->isFIPS = pk11_argHasFlag("flags","FIPS",nssc);
+    mod->isCritical = pk11_argHasFlag("flags","critical",nssc);
+    slotParams = pk11_argGetParamValue("slotParams",nssc);
     mod->slotInfo = pk11_argParseSlotInfo(mod->arena,slotParams,
 							&mod->slotInfoCount);
     if (slotParams) PORT_Free(slotParams);
     /* new field */
-    mod->trustOrder = pk11_argReadLong("trustOrder",nss,
+    mod->trustOrder = pk11_argReadLong("trustOrder",nssc,
 						PK11_DEFAULT_TRUST_ORDER,NULL);
     /* new field */
-    mod->cipherOrder = pk11_argReadLong("cipherOrder",nss,
+    mod->cipherOrder = pk11_argReadLong("cipherOrder",nssc,
 						PK11_DEFAULT_CIPHER_ORDER,NULL);
     /* new field */
-    mod->isModuleDB = pk11_argHasFlag("flags","moduleDB",nss);
-    mod->moduleDBOnly = pk11_argHasFlag("flags","moduleDBOnly",nss);
+    mod->isModuleDB = pk11_argHasFlag("flags","moduleDB",nssc);
+    mod->moduleDBOnly = pk11_argHasFlag("flags","moduleDBOnly",nssc);
     if (mod->moduleDBOnly) mod->isModuleDB = PR_TRUE;
 
-    ciphers = pk11_argGetParamValue("ciphers",nss);
+    ciphers = pk11_argGetParamValue("ciphers",nssc);
     pk11_argSetNewCipherFlags(&mod->ssl[0],ciphers);
     if (ciphers) PORT_Free(ciphers);
 
@@ -301,6 +305,12 @@ SECMOD_LoadModule(char *modulespec,SECMODModule *parent, PRBool recurse)
     if (moduleName) PORT_Free(moduleName);
     if (parameters) PORT_Free(parameters);
     if (nss) PORT_Free(nss);
+    if (!module) {
+	goto loser;
+    }
+    if (parent) {
+    	module->parent = SECMOD_ReferenceModule(parent);
+    }
 
     /* load it */
     rv = SECMOD_LoadPKCS11Module(module);
@@ -310,32 +320,39 @@ SECMOD_LoadModule(char *modulespec,SECMODModule *parent, PRBool recurse)
 
     if (recurse && module->isModuleDB) {
 	char ** moduleSpecList;
-	char **index;
+	PORT_SetError(0);
 
 	moduleSpecList = SECMOD_GetModuleSpecList(module);
+	if (moduleSpecList) {
+	    char **index;
 
-	for (index = moduleSpecList; index && *index; index++) {
-	    SECMODModule *child;
-	    child = SECMOD_LoadModule(*index,module,PR_TRUE);
-	    if (!child) break;
-	    if (child->isCritical && !child->loaded) {
-		rv = SECFailure;
+	    for (index = moduleSpecList; *index; index++) {
+		SECMODModule *child;
+		child = SECMOD_LoadModule(*index,module,PR_TRUE);
+		if (!child) break;
+		if (child->isCritical && !child->loaded) {
+		    int err = PORT_GetError();
+		    if (!err)  
+			err = SEC_ERROR_NO_MODULE;
+		    SECMOD_DestroyModule(child);
+		    PORT_SetError(err);
+		    rv = SECFailure;
+		    break;
+		}
 		SECMOD_DestroyModule(child);
-		break;
 	    }
-	    SECMOD_DestroyModule(child);
+	    SECMOD_FreeModuleSpecList(module,moduleSpecList);
+	} else {
+	    if (!PORT_GetError())
+		PORT_SetError(SEC_ERROR_NO_MODULE);
+	    rv = SECFailure;
 	}
-
-	SECMOD_FreeModuleSpecList(module,moduleSpecList);
     }
 
     if (rv != SECSuccess) {
 	goto loser;
     }
 
-    if (parent) {
-    	module->parent = SECMOD_ReferenceModule(parent);
-    }
 
     /* inherit the reference */
     if (!module->moduleDBOnly) {

@@ -103,6 +103,10 @@ SSL_IMPORT PRFileDesc *SSL_ImportFD(PRFileDesc *model, PRFileDesc *fd);
                                           /* (on by default) */
 #define SSL_ENABLE_TLS		       13 /* enable TLS (on by default) */
 #define SSL_ROLLBACK_DETECTION         14 /* for compatibility, default: on */
+#define SSL_NO_STEP_DOWN               15 /* Disable export cipher suites   */
+                                          /* if step-down keys are needed.  */
+					  /* default: off, generate         */
+					  /* step-down keys if needed.      */
 
 #ifdef SSL_DEPRECATED_FUNCTION 
 /* Old deprecated function names */

@@ -406,15 +406,9 @@ PK11_NewSlotInfo(SECMODModule *mod)
     if (slot == NULL) return slot;
 
 #ifdef PKCS11_USE_THREADS
-    slot->refLock = PZ_NewLock(nssILockSlot);
-    if (slot->refLock == NULL) {
-	PORT_Free(slot);
-	return slot;
-    }
     slot->sessionLock = mod->isThreadSafe ?
 	PZ_NewLock(nssILockSession) : (PZLock *)mod->refLock;
     if (slot->sessionLock == NULL) {
-	PZ_DestroyLock(slot->refLock);
 	PORT_Free(slot);
 	return slot;
     }
@@ -423,13 +417,11 @@ PK11_NewSlotInfo(SECMODModule *mod)
 	if (mod->isThreadSafe) {
 	    PZ_DestroyLock(slot->sessionLock);
 	}
-	PZ_DestroyLock(slot->refLock);
 	PORT_Free(slot);
 	return slot;
     }
 #else
     slot->sessionLock = NULL;
-    slot->refLock = NULL;
     slot->freeListLock = NULL;
 #endif
     slot->freeSymKeysHead = NULL;
@@ -480,9 +472,7 @@ PK11_NewSlotInfo(SECMODModule *mod)
 PK11SlotInfo *
 PK11_ReferenceSlot(PK11SlotInfo *slot)
 {
-    PK11_USE_THREADS(PZ_Lock(slot->refLock);)
-    slot->refCount++;
-    PK11_USE_THREADS(PZ_Unlock(slot->refLock);)
+    PR_AtomicIncrement(&slot->refCount);
     return slot;
 }
 
@@ -502,10 +492,6 @@ PK11_DestroySlot(PK11SlotInfo *slot)
 	PORT_Free(slot->mechanismList);
    }
 #ifdef PKCS11_USE_THREADS
-   if (slot->refLock) {
-	PZ_DestroyLock(slot->refLock);
-	slot->refLock = NULL;
-   }
    if (slot->isThreadSafe && slot->sessionLock) {
 	PZ_DestroyLock(slot->sessionLock);
    }
@@ -530,13 +516,9 @@ PK11_DestroySlot(PK11SlotInfo *slot)
 void
 PK11_FreeSlot(PK11SlotInfo *slot)
 {
-    PRBool freeit = PR_FALSE;
-
-    PK11_USE_THREADS(PZ_Lock(slot->refLock);)
-    if (slot->refCount-- == 1) freeit = PR_TRUE;
-    PK11_USE_THREADS(PZ_Unlock(slot->refLock);)
-
-    if (freeit) PK11_DestroySlot(slot);
+    if (PR_AtomicDecrement(&slot->refCount) == 0) {
+	PK11_DestroySlot(slot);
+    }
 }
 
 void
@@ -583,6 +565,78 @@ SECMOD_HasRootCerts(void)
 /***********************************************************
  * Functions to find specific slots.
  ***********************************************************/
+PK11SlotList *
+PK11_FindSlotsByNames(const char *dllName, const char* slotName,
+                        const char* tokenName, PRBool presentOnly)
+{
+    SECMODModuleList *mlp;
+    SECMODModuleList *modules = SECMOD_GetDefaultModuleList();
+    SECMODListLock *moduleLock = SECMOD_GetDefaultModuleListLock();
+    int i;
+    PK11SlotList* slotList = NULL;
+    PRUint32 slotcount = 0;
+    SECStatus rv = SECSuccess;
+
+    slotList = PK11_NewSlotList();
+    if (!slotList) {
+        PORT_SetError(SEC_ERROR_NO_MEMORY);
+        return NULL;
+    }
+
+    if ( ((NULL == dllName) || (0 == *dllName)) &&
+        ((NULL == slotName) || (0 == *slotName)) &&
+        ((NULL == tokenName) || (0 == *tokenName)) ) {
+        /* default to softoken */
+        PK11_AddSlotToList(slotList, PK11_GetInternalKeySlot());
+        return slotList;
+    }
+
+    /* work through all the slots */
+    SECMOD_GetReadLock(moduleLock);
+    for (mlp = modules; mlp != NULL; mlp = mlp->next) {
+        PORT_Assert(mlp->module);
+        if (!mlp->module) {
+            rv = SECFailure;
+            break;
+        }
+        if ((!dllName) || (mlp->module->dllName &&
+            (0 == PORT_Strcmp(mlp->module->dllName, dllName)))) {
+            for (i=0; i < mlp->module->slotCount; i++) {
+                PK11SlotInfo *tmpSlot = (mlp->module->slots?mlp->module->slots[i]:NULL);
+                PORT_Assert(tmpSlot);
+                if (!tmpSlot) {
+                    rv = SECFailure;
+                    break;
+                }
+                if ((PR_FALSE == presentOnly || PK11_IsPresent(tmpSlot)) &&
+                    ( (!tokenName) || (tmpSlot->token_name &&
+                    (0==PORT_Strcmp(tmpSlot->token_name, tokenName)))) &&
+                    ( (!slotName) || (tmpSlot->slot_name &&
+                    (0==PORT_Strcmp(tmpSlot->slot_name, slotName)))) ) {
+                    PK11SlotInfo* slot = PK11_ReferenceSlot(tmpSlot);
+                    if (slot) {
+                        PK11_AddSlotToList(slotList, slot);
+                        slotcount++;
+                    }
+                }
+            }
+        }
+    }
+    SECMOD_ReleaseReadLock(moduleLock);
+
+    if ( (0 == slotcount) || (SECFailure == rv) ) {
+        PORT_SetError(SEC_ERROR_NO_TOKEN);
+        PK11_FreeSlotList(slotList);
+        slotList = NULL;
+    }
+
+    if (SECFailure == rv) {
+        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+    }
+
+    return slotList;
+}
+
 PK11SlotInfo *
 PK11_FindSlotByName(char *name)
 {
@@ -1694,7 +1748,7 @@ PK11_ReadMechanismList(PK11SlotInfo *slot)
 {
     CK_ULONG count;
     CK_RV crv;
-    int i;
+    PRUint32 i;
 
     if (slot->mechanismList) {
 	PORT_Free(slot->mechanismList);
@@ -1906,7 +1960,6 @@ PK11_TokenRefresh(PK11SlotInfo *slot)
 {
     CK_TOKEN_INFO tokenInfo;
     CK_RV crv;
-    SECStatus rv;
 
     /* set the slot flags to the current token values */
     if (!slot->isThreadSafe) PK11_EnterSlotMonitor(slot);
@@ -2066,7 +2119,6 @@ pk11_IsPresentCertLoad(PK11SlotInfo *slot, PRBool loadCerts)
 	if (slot->session != CK_INVALID_SESSION) {
 	    PK11_GETTAB(slot)->C_CloseSession(slot->session);
 	    slot->session = CK_INVALID_SESSION;
-	    /* force certs to be freed */
 	}
         if (!slot->isThreadSafe) PK11_ExitSlotMonitor(slot);
 	return PR_FALSE;
@@ -2141,7 +2193,7 @@ PRBool PK11_HasRootCerts(PK11SlotInfo *slot) {
     return slot->hasRootCerts;
 }
 
-/* Get the module this slot is attatched to */
+/* Get the module this slot is attached to */
 SECMODModule *
 PK11_GetModule(PK11SlotInfo *slot)
 {
@@ -2800,11 +2852,10 @@ PK11_AddMechanismEntry(CK_MECHANISM_TYPE type, CK_KEY_TYPE key,
     if (size > tableSize) {
 	int oldTableSize = tableSize;
 	tableSize += 10;
-	newt = (pk11MechanismData *)
-				PORT_Alloc(tableSize*sizeof(pk11MechanismData));
+	newt = PORT_NewArray(pk11MechanismData, tableSize);
 	if (newt == NULL) return;
 
-	if (old) PORT_Memcpy(newt,old,oldTableSize*sizeof(pk11MechanismData));
+	if (old) PORT_Memcpy(newt, old, oldTableSize*sizeof(*newt));
     } else old = NULL;
 
     newt[entry].type = type;
@@ -2823,6 +2874,58 @@ PK11_AddMechanismEntry(CK_MECHANISM_TYPE type, CK_KEY_TYPE key,
  * Get the key type needed for the given mechanism
  */
 CK_MECHANISM_TYPE
+PK11_GetKeyMechanism(CK_KEY_TYPE type)
+{
+    switch (type) {
+    case CKK_AES:
+	return CKM_AES_CBC;
+    case CKK_DES:
+	return CKM_DES_CBC;
+    case CKK_DES3:
+	return CKM_DES3_KEY_GEN;
+    case CKK_DES2:
+	return CKM_DES2_KEY_GEN;
+    case CKK_CDMF:
+	return CKM_CDMF_CBC;
+    case CKK_RC2:
+	return CKM_RC2_CBC;
+    case CKK_RC4:
+	return CKM_RC4;
+    case CKK_RC5:
+	return CKM_RC5_CBC;
+    case CKK_SKIPJACK:
+	return CKM_SKIPJACK_CBC64;
+    case CKK_BATON:
+	return CKM_BATON_CBC128;
+    case CKK_JUNIPER:
+	return CKM_JUNIPER_CBC128;
+    case CKK_IDEA:
+	return CKM_IDEA_CBC;
+    case CKK_CAST:
+	return CKM_CAST_CBC;
+    case CKK_CAST3:
+	return CKM_CAST3_CBC;
+    case CKK_CAST5:
+	return CKM_CAST5_CBC;
+    case CKK_RSA:
+	return CKM_RSA_PKCS;
+    case CKK_DSA:
+	return CKM_DSA;
+    case CKK_DH:
+	return CKM_DH_PKCS_DERIVE;
+    case CKK_KEA:
+	return CKM_KEA_KEY_DERIVE;
+    case CKK_EC:  /* CKK_ECDSA is deprecated */
+	return CKM_ECDSA;
+    case CKK_GENERIC_SECRET:
+    default:
+	return CKM_SHA_1_HMAC;
+    }
+}
+/*
+ * Get the key type needed for the given mechanism
+ */
+CK_MECHANISM_TYPE
 PK11_GetKeyType(CK_MECHANISM_TYPE type,unsigned long len)
 {
     switch (type) {
@@ -2832,6 +2935,8 @@ PK11_GetKeyType(CK_MECHANISM_TYPE type,unsigned long len)
     case CKM_AES_MAC_GENERAL:
     case CKM_AES_CBC_PAD:
     case CKM_AES_KEY_GEN:
+    case CKM_NETSCAPE_AES_KEY_WRAP:
+    case CKM_NETSCAPE_AES_KEY_WRAP_PAD:
 	return CKK_AES;
     case CKM_DES_ECB:
     case CKM_DES_CBC:
@@ -2848,7 +2953,7 @@ PK11_GetKeyType(CK_MECHANISM_TYPE type,unsigned long len)
     case CKM_DES3_MAC:
     case CKM_DES3_MAC_GENERAL:
     case CKM_DES3_CBC_PAD:
-	return (len == 128) ? CKK_DES2 : CKK_DES3;
+	return (len == 16) ? CKK_DES2 : CKK_DES3;
     case CKM_DES2_KEY_GEN:
     case CKM_PBE_SHA1_DES2_EDE_CBC:
 	return CKK_DES2;
@@ -3001,6 +3106,12 @@ PK11_GetKeyType(CK_MECHANISM_TYPE type,unsigned long len)
 CK_MECHANISM_TYPE
 PK11_GetKeyGen(CK_MECHANISM_TYPE type)
 {
+    return PK11_GetKeyGenWithSize(type, 0);
+}
+
+CK_MECHANISM_TYPE
+PK11_GetKeyGenWithSize(CK_MECHANISM_TYPE type, int size)
+{
     switch (type) {
     case CKM_AES_ECB:
     case CKM_AES_CBC:
@@ -3022,8 +3133,11 @@ PK11_GetKeyGen(CK_MECHANISM_TYPE type)
     case CKM_DES3_MAC:
     case CKM_DES3_MAC_GENERAL:
     case CKM_DES3_CBC_PAD:
+	return (size == 16) ? CKM_DES2_KEY_GEN : CKM_DES3_KEY_GEN;
     case CKM_DES3_KEY_GEN:
 	return CKM_DES3_KEY_GEN;
+    case CKM_DES2_KEY_GEN:
+	return CKM_DES2_KEY_GEN;
     case CKM_CDMF_ECB:
     case CKM_CDMF_CBC:
     case CKM_CDMF_MAC:
@@ -3655,120 +3769,109 @@ static unsigned long  rc2_unmap(unsigned long x)
 SECItem *
 PK11_ParamFromAlgid(SECAlgorithmID *algid)
 {
-    CK_RC2_CBC_PARAMS *rc2_params = NULL;
-    CK_RC2_PARAMS *rc2_ecb_params = NULL;
-    CK_RC5_CBC_PARAMS *rc5_params_cbc;
-    CK_RC5_PARAMS *rc5_params_ecb;
-    SECItem iv;
-    sec_rc2cbcParameter rc2;
-    sec_rc5cbcParameter rc5;
-    SECItem *mech;
-    CK_MECHANISM_TYPE type;
-    SECOidTag algtag;
-    SECStatus rv;
+    CK_RC2_CBC_PARAMS * rc2_cbc_params = NULL;
+    CK_RC2_PARAMS *     rc2_ecb_params = NULL;
+    CK_RC5_CBC_PARAMS * rc5_cbc_params = NULL;
+    CK_RC5_PARAMS *     rc5_ecb_params = NULL;
+    PRArenaPool *       arena          = NULL;
+    SECItem *           mech           = NULL;
+    SECOidTag           algtag;
+    SECStatus           rv;
+    CK_MECHANISM_TYPE   type;
+    /* initialize these to prevent UMRs in the ASN1 decoder. */
+    SECItem             iv  =   {siBuffer, NULL, 0};
+    sec_rc2cbcParameter rc2 = { {siBuffer, NULL, 0}, {siBuffer, NULL, 0} };
+    sec_rc5cbcParameter rc5 = { {siBuffer, NULL, 0}, {siBuffer, NULL, 0},
+                                {siBuffer, NULL, 0}, {siBuffer, NULL, 0} };
 
     algtag = SECOID_GetAlgorithmTag(algid);
     type = PK11_AlgtagToMechanism(algtag);
 
-    mech = (SECItem *) PORT_Alloc(sizeof(SECItem));
-    if (mech == NULL) return NULL;
+    mech = PORT_New(SECItem);
+    if (mech == NULL) {
+    	return NULL;
+    }
     mech->type = siBuffer;
+    mech->data = NULL;
+    mech->len  = 0;
 
+    arena = PORT_NewArena(1024);
+    if (!arena) {
+    	goto loser;
+    }
 
     /* handle the complicated cases */
     switch (type) {
     case CKM_RC2_ECB:
-        rv = SEC_ASN1DecodeItem(NULL, &rc2 ,sec_rc2ecb_parameter_template,
+        rv = SEC_ASN1DecodeItem(arena, &rc2 ,sec_rc2ecb_parameter_template,
 							&(algid->parameters));
 	if (rv != SECSuccess) { 
-	    PORT_Free(mech);
-	    return NULL;
+	    goto loser;
 	}
-	rc2_ecb_params = (CK_RC2_PARAMS *)PORT_Alloc(sizeof(CK_RC2_PARAMS));
+	rc2_ecb_params = PORT_New(CK_RC2_PARAMS);
 	if (rc2_ecb_params == NULL) {
-	    PORT_Free(rc2.rc2ParameterVersion.data);
-	    PORT_Free(mech);
-	    return NULL;
+	    goto loser;
 	}
 	*rc2_ecb_params = rc2_map(&rc2.rc2ParameterVersion);
-	PORT_Free(rc2.rc2ParameterVersion.data);
 	mech->data = (unsigned char *) rc2_ecb_params;
-	mech->len = sizeof(CK_RC2_PARAMS);
-	return mech;
+	mech->len  = sizeof *rc2_ecb_params;
+	break;
     case CKM_RC2_CBC:
     case CKM_RC2_CBC_PAD:
-        rv = SEC_ASN1DecodeItem(NULL, &rc2 ,sec_rc2cbc_parameter_template,
+        rv = SEC_ASN1DecodeItem(arena, &rc2 ,sec_rc2cbc_parameter_template,
 							&(algid->parameters));
 	if (rv != SECSuccess) { 
-	    PORT_Free(mech);
-	    return NULL;
+	    goto loser;
 	}
-	rc2_params = (CK_RC2_CBC_PARAMS *)PORT_Alloc(sizeof(CK_RC2_CBC_PARAMS));
-	if (rc2_params == NULL) {
-	    PORT_Free(rc2.iv.data);
-	    PORT_Free(rc2.rc2ParameterVersion.data);
-	    PORT_Free(mech);
-	    return NULL;
+	rc2_cbc_params = PORT_New(CK_RC2_CBC_PARAMS);
+	if (rc2_cbc_params == NULL) {
+	    goto loser;
 	}
-	rc2_params->ulEffectiveBits = rc2_map(&rc2.rc2ParameterVersion);
-	PORT_Free(rc2.rc2ParameterVersion.data);
-	PORT_Memcpy(rc2_params->iv,rc2.iv.data,sizeof(rc2_params->iv));
-	PORT_Free(rc2.iv.data);
-	mech->data = (unsigned char *) rc2_params;
-	mech->len = sizeof(CK_RC2_CBC_PARAMS);
-	return mech;
+	mech->data = (unsigned char *) rc2_cbc_params;
+	mech->len  = sizeof *rc2_cbc_params;
+	rc2_cbc_params->ulEffectiveBits = rc2_map(&rc2.rc2ParameterVersion);
+	if (rc2.iv.len != sizeof rc2_cbc_params->iv) {
+	    PORT_SetError(SEC_ERROR_INPUT_LEN);
+	    goto loser;
+	}
+	PORT_Memcpy(rc2_cbc_params->iv, rc2.iv.data, rc2.iv.len);
+	break;
     case CKM_RC5_ECB:
-        rv = SEC_ASN1DecodeItem(NULL, &rc5 ,sec_rc5ecb_parameter_template,
+        rv = SEC_ASN1DecodeItem(arena, &rc5 ,sec_rc5ecb_parameter_template,
 							&(algid->parameters));
 	if (rv != SECSuccess) { 
-	    PORT_Free(mech);
-	    return NULL;
+	    goto loser;
 	}
-	rc5_params_ecb=(CK_RC5_PARAMS *)PORT_Alloc(sizeof(CK_RC5_PARAMS));
-	PORT_Free(rc5.version.data);
-	if (rc5_params_ecb == NULL) {
-	    PORT_Free(rc5.rounds.data);
-	    PORT_Free(rc5.blockSizeInBits.data);
-	    PORT_Free(mech);
-	    return NULL;
+	rc5_ecb_params = PORT_New(CK_RC5_PARAMS);
+	if (rc5_ecb_params == NULL) {
+	    goto loser;
 	}
-	rc5_params_ecb->ulRounds = DER_GetInteger(&rc5.rounds);
-	rc5_params_ecb->ulWordsize = DER_GetInteger(&rc5.blockSizeInBits)/8;
-	PORT_Free(rc5.rounds.data);
-	PORT_Free(rc5.blockSizeInBits.data);
-	mech->data = (unsigned char *) rc5_params_ecb;
-	mech->len = sizeof(CK_RC5_PARAMS);
-	return mech;
+	rc5_ecb_params->ulRounds   = DER_GetInteger(&rc5.rounds);
+	rc5_ecb_params->ulWordsize = DER_GetInteger(&rc5.blockSizeInBits)/8;
+	mech->data = (unsigned char *) rc5_ecb_params;
+	mech->len = sizeof *rc5_ecb_params;
+	break;
     case CKM_RC5_CBC:
     case CKM_RC5_CBC_PAD:
-        rv = SEC_ASN1DecodeItem(NULL, &rc5 ,sec_rc5cbc_parameter_template,
+        rv = SEC_ASN1DecodeItem(arena, &rc5 ,sec_rc5cbc_parameter_template,
 							&(algid->parameters));
 	if (rv != SECSuccess) { 
-	    PORT_Free(mech);
-	    return NULL;
+	    goto loser;
 	}
-	rc5_params_cbc = (CK_RC5_CBC_PARAMS *)
+	rc5_cbc_params = (CK_RC5_CBC_PARAMS *)
 		PORT_Alloc(sizeof(CK_RC5_CBC_PARAMS) + rc5.iv.len);
-	PORT_Free(rc5.version.data);
-	if (rc2_params == NULL) {
-	    PORT_Free(rc5.iv.data);
-	    PORT_Free(rc5.rounds.data);
-	    PORT_Free(rc5.blockSizeInBits.data);
-	    PORT_Free(mech);
-	    return NULL;
+	if (rc5_cbc_params == NULL) {
+	    goto loser;
 	}
-	rc5_params_cbc->ulRounds = DER_GetInteger(&rc5.rounds);
-	rc5_params_cbc->ulWordsize = DER_GetInteger(&rc5.blockSizeInBits)/8;
-	PORT_Free(rc5.rounds.data);
-	PORT_Free(rc5.blockSizeInBits.data);
-        rc5_params_cbc->pIv = ((CK_BYTE_PTR)rc5_params_cbc)
+	mech->data = (unsigned char *) rc5_cbc_params;
+	mech->len = sizeof *rc5_cbc_params;
+	rc5_cbc_params->ulRounds   = DER_GetInteger(&rc5.rounds);
+	rc5_cbc_params->ulWordsize = DER_GetInteger(&rc5.blockSizeInBits)/8;
+        rc5_cbc_params->pIv        = ((CK_BYTE_PTR)rc5_cbc_params)
 						+ sizeof(CK_RC5_CBC_PARAMS);
-	PORT_Memcpy(rc5_params_cbc->pIv,rc5.iv.data,rc5.iv.len);
-        rc5_params_cbc->ulIvLen = rc5.iv.len;
-	PORT_Free(rc5.iv.data);
-	mech->data = (unsigned char *) rc5_params_cbc;
-	mech->len = sizeof(CK_RC5_CBC_PARAMS);
-	return mech;
+        rc5_cbc_params->ulIvLen    = rc5.iv.len;
+	PORT_Memcpy(rc5_cbc_params->pIv, rc5.iv.data, rc5.iv.len);
+	break;
     case CKM_PBE_MD2_DES_CBC:
     case CKM_PBE_MD5_DES_CBC:
     case CKM_NETSCAPE_PBE_SHA1_DES_CBC:
@@ -3786,25 +3889,9 @@ PK11_ParamFromAlgid(SECAlgorithmID *algid)
     case CKM_PBE_SHA1_RC4_128:
 	rv = pbe_PK11AlgidToParam(algid,mech);
 	if (rv != SECSuccess) {
-	    PORT_Free(mech);
-	    return NULL;
+	    goto loser;
 	}
-	return mech;
-    default:
-	/* must be a simple case */
 	break;
-    }
-
-    /* simple cases are simpley Octect encoded IV's */
-    rv = SEC_ASN1DecodeItem(NULL, &iv, SEC_OctetStringTemplate, 
-							&(algid->parameters));
-    if (rv !=  SECSuccess) {
-	iv.data = NULL;
-	iv.len = 0;
-    }
-
-    rv = SECSuccess;
-    switch (type) {
     case CKM_RC4:
     case CKM_AES_ECB:
     case CKM_DES_ECB:
@@ -3814,15 +3901,13 @@ PK11_ParamFromAlgid(SECAlgorithmID *algid)
     case CKM_CAST_ECB:
     case CKM_CAST3_ECB:
     case CKM_CAST5_ECB:
-	mech->data = NULL;
-	mech->len = 0;
 	break;
+
     default:
 	if (pk11_lookup(type)->iv == 0) {
-	    mech->data = NULL;
-	    mech->len = 0;
 	    break;
 	}
+	/* FALL THROUGH */
     case CKM_AES_CBC:
     case CKM_DES_CBC:
     case CKM_DES3_CBC:
@@ -3855,25 +3940,29 @@ PK11_ParamFromAlgid(SECAlgorithmID *algid)
     case CKM_JUNIPER_CBC128:
     case CKM_JUNIPER_COUNTER:
     case CKM_JUNIPER_SHUFFLE:
-	if (iv.data ==  NULL) {
-	    rv = SECFailure;
-	    break;
+	/* simple cases are simply octet string encoded IVs */
+	rv = SEC_ASN1DecodeItem(arena, &iv, SEC_OctetStringTemplate, 
+					    &(algid->parameters));
+	if (rv != SECSuccess || iv.data == NULL) {
+	    goto loser;
 	}
+	/* XXX Should be some IV length sanity check here. */
 	mech->data = (unsigned char*)PORT_Alloc(iv.len);
 	if (mech->data == NULL) {
-	    rv = SECFailure;
-	    break;
+	    goto loser;
 	}
-	PORT_Memcpy(mech->data,iv.data,iv.len);
+	PORT_Memcpy(mech->data, iv.data, iv.len);
 	mech->len = iv.len;
 	break;
     }
-    if (iv.data) PORT_Free(iv.data);
-    if (rv !=  SECSuccess) {
-	SECITEM_FreeItem(mech,PR_TRUE);
-	return NULL;
-    }
+    PORT_FreeArena(arena, PR_FALSE);
     return mech;
+
+loser:
+    if (arena)
+    	PORT_FreeArena(arena, PR_FALSE);
+    SECITEM_FreeItem(mech,PR_TRUE);
+    return NULL;
 }
 
 SECStatus

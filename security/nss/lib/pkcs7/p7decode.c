@@ -277,11 +277,8 @@ sec_pkcs7_decoder_start_digests (SEC_PKCS7DecoderContext *p7dcx, int depth,
 
     /*
      * No algorithms means no work to do.
-     * This is not expected, so cause an assert.
-     * But if it does happen, just act as if there were
-     * no algorithms specified.
+     * Just act as if there were no algorithms specified.
      */
-    PORT_Assert (digcnt != 0);
     if (digcnt == 0)
 	return SECSuccess;
 
@@ -1252,6 +1249,16 @@ SEC_PKCS7DecodeItem(SECItem *p7item,
     return SEC_PKCS7DecoderFinish(p7dcx);
 }
 
+/*
+ * Abort the ASN.1 stream. Used by pkcs 12
+ */
+void
+SEC_PKCS7DecoderAbort(SEC_PKCS7DecoderContext *p7dcx, int error)
+{
+    PORT_Assert(p7dcx);
+    SEC_ASN1DecoderAbort(p7dcx->dcx, error);
+}
+
 
 /*
  * If the thing contains any certs or crls return true; false otherwise.
@@ -1440,7 +1447,7 @@ sec_pkcs7_verify_signature(SEC_PKCS7ContentInfo *cinfo,
     SECKEYPublicKey *publickey;
     SECItem *content_type;
     PK11SymKey *sigkey;
-    SECItem *utc_stime;
+    SECItem *encoded_stime;
     int64 stime;
     SECStatus rv;
 
@@ -1564,10 +1571,10 @@ sec_pkcs7_verify_signature(SEC_PKCS7ContentInfo *cinfo,
      * both on the cert verification and for importing the sender
      * email profile.
      */
-    utc_stime = SEC_PKCS7GetSigningTime (cinfo);
-    if (utc_stime != NULL) {
-	if (DER_UTCTimeToTime (&stime, utc_stime) != SECSuccess)
-	    utc_stime = NULL;	/* conversion failed, so pretend none */
+    encoded_stime = SEC_PKCS7GetSigningTime (cinfo);
+    if (encoded_stime != NULL) {
+	if (DER_DecodeTimeChoice (&stime, encoded_stime) != SECSuccess)
+	    encoded_stime = NULL;	/* conversion failed, so pretend none */
     }
 
     /*
@@ -1579,7 +1586,7 @@ sec_pkcs7_verify_signature(SEC_PKCS7ContentInfo *cinfo,
      * maybe make them pass in the current time, always?).
      */
     if (CERT_VerifyCert (certdb, cert, PR_TRUE, certusage,
-			 utc_stime != NULL ? stime : PR_Now(),
+			 encoded_stime != NULL ? stime : PR_Now(),
 			 cinfo->pwfn_arg, NULL) != SECSuccess)
 	{
 	/*
@@ -1828,7 +1835,7 @@ savecert:
      * Only save the smime profile if we are checking an email message and
      * the cert has an email address in it.
      */
-    if ( ( cert->emailAddr != NULL ) &&
+    if ( cert->emailAddr && cert->emailAddr[0] &&
 	( ( certusage == certUsageEmailSigner ) ||
 	 ( certusage == certUsageEmailRecipient ) ) ) {
 	SECItem *profile = NULL;
@@ -1853,7 +1860,7 @@ savecert:
 	    profile = sec_PKCS7AttributeValue (attr);
 	}
 
-	rv = CERT_SaveSMimeProfile (cert, profile, utc_stime);
+	rv = CERT_SaveSMimeProfile (cert, profile, encoded_stime);
 
 	/*
 	 * Restore the saved error in case the calls above set a new
@@ -1998,7 +2005,7 @@ sec_pkcs7_get_signer_cert_info(SEC_PKCS7ContentInfo *cinfo, int selector)
 	container = CERT_GetCommonName (&signercert->subject);
 	break;
       case sec_email_address:
-	if(signercert->emailAddr) {
+	if(signercert->emailAddr && signercert->emailAddr[0]) {
 	    container = PORT_Strdup(signercert->emailAddr);
 	} else {
 	    container = NULL;

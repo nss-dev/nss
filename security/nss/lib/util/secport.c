@@ -207,13 +207,22 @@ PORT_NewArena(unsigned long chunksize)
     return(&pool->arena);
 }
 
+#define MAX_SIZE 0x7fffffffUL
+
 void *
 PORT_ArenaAlloc(PLArenaPool *arena, size_t size)
 {
-    void *p;
+    void *p = NULL;
 
     PORTArenaPool *pool = (PORTArenaPool *)arena;
 
+    if (size <= 0) {
+	size = 1;
+    }
+
+    if (size > MAX_SIZE) {
+	/* you lose. */
+    } else 
     /* Is it one of ours?  Assume so and check the magic */
     if (ARENAPOOL_MAGIC == pool->magic ) {
 	PZ_Lock(pool->lock);
@@ -245,7 +254,12 @@ PORT_ArenaAlloc(PLArenaPool *arena, size_t size)
 void *
 PORT_ArenaZAlloc(PLArenaPool *arena, size_t size)
 {
-    void *p = PORT_ArenaAlloc(arena, size);
+    void *p;
+
+    if (size <= 0)
+        size = 1;
+
+    p = PORT_ArenaAlloc(arena, size);
 
     if (p) {
 	PORT_Memset(p, 0, size);

@@ -16,7 +16,11 @@
  * Copyright (C) 1994-2000 Netscape Communications Corporation.  All
  * Rights Reserved.
  * 
+ * Portions created by Sun Microsystems, Inc. are Copyright (C) 2003
+ * Sun Microsystems, Inc. All Rights Reserved.
+ * 
  * Contributor(s):
+ *	Dr Vipul Gupta <vipul.gupta@sun.com>, Sun Microsystems Laboratories
  * 
  * Alternatively, the contents of this file may be used under the
  * terms of the GNU General Public License Version 2 or later (the
@@ -351,6 +355,13 @@ PK11_IsUserCert(PK11SlotInfo *slot, CERTCertificate *cert,
 	case dhKey:
 	    PK11_SETATTRS(&theTemplate,CKA_VALUE, pubKey->u.dh.publicValue.data,
 						pubKey->u.dh.publicValue.len);
+	    break;
+	case ecKey:
+#ifdef NSS_ENABLE_ECC
+	    PK11_SETATTRS(&theTemplate,CKA_EC_POINT, 
+			  pubKey->u.ec.publicValue.data,
+			  pubKey->u.ec.publicValue.len);
+#endif /* NSS_ENABLE_ECC */
 	    break;
 	case keaKey:
 	case fortezzaKey:
@@ -1240,7 +1251,8 @@ transfer_token_certs_to_collection(nssList *certList, NSSToken *token,
 }
 
 CERTCertificate *
-PK11_FindCertFromNickname(char *nickname, void *wincx) {
+PK11_FindCertFromNickname(char *nickname, void *wincx) 
+{
 #ifdef NSS_CLASSIC
     PK11SlotInfo *slot;
     int count=0;
@@ -1319,18 +1331,22 @@ PK11_FindCertFromNickname(char *nickname, void *wincx) {
 	if (nssPKIObjectCollection_Count(collection) == 0 &&
 	    PORT_Strchr(nickname, '@') != NULL) 
 	{
-	    (void)nssTrustDomain_GetCertsForEmailAddressFromCache(defaultTD, 
-	                                                          nickname, 
-	                                                          certList);
-	    transfer_token_certs_to_collection(certList, token, collection);
-	    instances = nssToken_FindCertificatesByEmail(token,
-		                                         NULL,
-		                                         nickname,
-		                                         tokenOnly,
-		                                         0,
-		                                         &status);
-	    nssPKIObjectCollection_AddInstances(collection, instances, 0);
-	    nss_ZFreeIf(instances);
+	    char* lowercaseName = CERT_FixupEmailAddr(nickname);
+	    if (lowercaseName) {
+		(void)nssTrustDomain_GetCertsForEmailAddressFromCache(defaultTD, 
+								      lowercaseName, 
+								      certList);
+		transfer_token_certs_to_collection(certList, token, collection);
+		instances = nssToken_FindCertificatesByEmail(token,
+							     NULL,
+							     lowercaseName,
+							     tokenOnly,
+							     0,
+							     &status);
+		nssPKIObjectCollection_AddInstances(collection, instances, 0);
+		nss_ZFreeIf(instances);
+		PORT_Free(lowercaseName);
+	    }
 	}
 	certs = nssPKIObjectCollection_GetCertificates(collection, 
 	                                               NULL, 0, NULL);
@@ -1502,6 +1518,11 @@ PK11_GetPubIndexKeyID(CERTCertificate *cert) {
     case dhKey:
         newItem = SECITEM_DupItem(&pubk->u.dh.publicValue);
 	break;
+    case ecKey:
+#ifdef NSS_ENABLE_ECC
+        newItem = SECITEM_DupItem(&pubk->u.ec.publicValue);
+#endif /* NSS_ENABLE_ECC */
+	break;
     case fortezzaKey:
     default:
 	newItem = NULL; /* Fortezza Fix later... */
@@ -1660,7 +1681,7 @@ PK11_ImportCert(PK11SlotInfo *slot, CERTCertificate *cert,
 	PK11_SETATTRS(attrs,CKA_NETSCAPE_TRUST, certUsage,
 							 sizeof(SECCertUsage));
 	attrs++;
-	if (cert->emailAddr) {
+	if (cert->emailAddr && cert->emailAddr[0]) {
 	    PK11_SETATTRS(attrs,CKA_NETSCAPE_EMAIL, cert->emailAddr,
 						PORT_Strlen(cert->emailAddr);
 	    attrs++;
@@ -1744,7 +1765,7 @@ done:
 	goto loser;
     }
 
-    if (PK11_IsInternal(slot) && cert->emailAddr) {
+    if (PK11_IsInternal(slot) && cert->emailAddr && cert->emailAddr[0]) {
 	emailAddr = cert->emailAddr;
     }
 
@@ -3308,19 +3329,6 @@ struct listCertsStr {
     CERTCertList *certList;
 };
 
-static PRBool
-isOnList(CERTCertList *certList,NSSCertificate *c)
-{
-	CERTCertListNode *cln;
-
-	for (cln = CERT_LIST_HEAD(certList); !CERT_LIST_END(cln,certList);
-			cln = CERT_LIST_NEXT(cln)) {
-	    if (cln->cert->nssCertificate == c) {
-		return PR_TRUE;
-	    }
-	}
-	return PR_FALSE;
-}
 static PRStatus
 pk11ListCertCallback(NSSCertificate *c, void *arg)
 {
@@ -3333,31 +3341,30 @@ pk11ListCertCallback(NSSCertificate *c, void *arg)
     char *nickname = NULL;
     unsigned int certType;
 
-    if ((type == PK11CertListUnique) || (type == PK11CertListRootUnique)) {
+    if ((type == PK11CertListUnique) || (type == PK11CertListRootUnique) ||
+        (type == PK11CertListCAUnique) || (type == PK11CertListUserUnique) ) {
+        /* only list one instance of each certificate, even if several exist */
 	isUnique = PR_TRUE;
     }
-    if ((type == PK11CertListCA) || (type == PK11CertListRootUnique)) {
+    if ((type == PK11CertListCA) || (type == PK11CertListRootUnique) ||
+        (type == PK11CertListCAUnique)) {
 	isCA = PR_TRUE;
     }
 
-
     /* if we want user certs and we don't have one skip this cert */
-    if ((type == PK11CertListUser) && 
+    if ( ( (type == PK11CertListUser) || (type == PK11CertListUserUnique) ) && 
 		!NSSCertificate_IsPrivateKeyAvailable(c, NULL,NULL)) {
 	return PR_SUCCESS;
     }
 
-    /* if we want root certs, skip the user certs */
+    /* PK11CertListRootUnique means we want CA certs without a private key.
+     * This is for legacy app support . PK11CertListCAUnique should be used
+     * instead to get all CA certs, regardless of private key
+     */
     if ((type == PK11CertListRootUnique) && 
 		NSSCertificate_IsPrivateKeyAvailable(c, NULL,NULL)) {
 	return PR_SUCCESS;
     }
-
-    /* if we want Unique certs and we already have it on our list, skip it */
-    if ( isUnique && isOnList(certList,c) ) {
-	return PR_SUCCESS;
-    }
-
 
     newCert = STAN_GetCERTCertificate(c);
     if (!newCert) {
@@ -3367,15 +3374,42 @@ pk11ListCertCallback(NSSCertificate *c, void *arg)
     if( isCA  && (!CERT_IsCACert(newCert, &certType)) ) {
 	return PR_SUCCESS;
     }
-    CERT_DupCertificate(newCert);
+    if (isUnique) {
+	CERT_DupCertificate(newCert);
 
-    nickname = STAN_GetCERTCertificateName(c);
+	nickname = STAN_GetCERTCertificateName(certList->arena, c);
 
-    /* put slot certs at the end */
-    if (newCert->slot && !PK11_IsInternal(newCert->slot)) {
-    	CERT_AddCertToListTailWithData(certList,newCert,nickname);
+	/* put slot certs at the end */
+	if (newCert->slot && !PK11_IsInternal(newCert->slot)) {
+	    CERT_AddCertToListTailWithData(certList,newCert,nickname);
+	} else {
+	    CERT_AddCertToListHeadWithData(certList,newCert,nickname);
+	}
     } else {
-    	CERT_AddCertToListHeadWithData(certList,newCert,nickname);
+	/* add multiple instances to the cert list */
+	nssCryptokiObject **ip;
+	nssCryptokiObject **instances = nssPKIObject_GetInstances(&c->object);
+	if (!instances) {
+	    return PR_SUCCESS;
+	}
+	for (ip = instances; *ip; ip++) {
+	    nssCryptokiObject *instance = *ip;
+	    PK11SlotInfo *slot = instance->token->pk11slot;
+
+	    /* put the same CERTCertificate in the list for all instances */
+	    CERT_DupCertificate(newCert);
+
+	    nickname = STAN_GetCERTCertificateNameForInstance(
+			certList->arena, c, instance);
+
+	    /* put slot certs at the end */
+	    if (slot && !PK11_IsInternal(slot)) {
+		CERT_AddCertToListTailWithData(certList,newCert,nickname);
+	    } else {
+		CERT_AddCertToListHeadWithData(certList,newCert,nickname);
+	    }
+	}
+	nssCryptokiObjectArray_Destroy(instances);
     }
     return PR_SUCCESS;
 }
@@ -3491,17 +3525,40 @@ PK11_GetLowLevelKeyIDForPrivateKey(SECKEYPrivateKey *privKey)
     return pk11_GetLowLevelKeyFromHandle(privKey->pkcs11Slot,privKey->pkcs11ID);
 }
 
+/* argument type for listCertsCallback */
+typedef struct {
+    CERTCertList *list;
+    PK11SlotInfo *slot;
+} ListCertsArg;
+
 static SECStatus
 listCertsCallback(CERTCertificate* cert, void*arg)
 {
-    CERTCertList *list = (CERTCertList*)arg;
+    ListCertsArg *cdata = (ListCertsArg*)arg;
     char *nickname = NULL;
+    nssCryptokiObject *instance, **ci;
+    nssCryptokiObject **instances;
+    NSSCertificate *c = STAN_GetNSSCertificate(cert);
 
-    if (cert->nickname) {
-	nickname = PORT_ArenaStrdup(list->arena,cert->nickname);
+    instances = nssPKIObject_GetInstances(&c->object);
+    instance = NULL;
+    for (ci = instances; *ci; ci++) {
+	if ((*ci)->token->pk11slot == cdata->slot) {
+	    instance = *ci;
+	    break;
+	}
     }
+    PORT_Assert(instance != NULL);
+    if (!instance) {
+	nssCryptokiObjectArray_Destroy(instances);
+	PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+	return SECFailure;
+    }
+    nickname = STAN_GetCERTCertificateNameForInstance(cdata->list->arena,
+	c, instance);
+    nssCryptokiObjectArray_Destroy(instances);
 
-    return CERT_AddCertToListTailWithData(list, 
+    return CERT_AddCertToListTailWithData(cdata->list, 
 				CERT_DupCertificate(cert),nickname);
 }
 
@@ -3510,12 +3567,15 @@ PK11_ListCertsInSlot(PK11SlotInfo *slot)
 {
     SECStatus status;
     CERTCertList *certs;
+    ListCertsArg cdata;
 
     certs = CERT_NewCertList();
     if(certs == NULL) return NULL;
+    cdata.list = certs;
+    cdata.slot = slot;
 
     status = PK11_TraverseCertsInSlot(slot, listCertsCallback,
-		(void*)certs);
+		&cdata);
 
     if( status != SECSuccess ) {
 	CERT_DestroyCertList(certs);
@@ -3776,10 +3836,14 @@ loser:
 	PORT_SetError(SEC_ERROR_CRL_NOT_FOUND);
 	return NULL;
     }
-    *slot = PK11_ReferenceSlot(crl->object.instances[0]->token->pk11slot);
-    *crlHandle = crl->object.instances[0]->handle;
     if (crl->url) {
 	*url = PORT_Strdup(crl->url);
+	if (!*url) {
+	    nssCRL_Destroy(crl);
+	    return NULL;
+	}
+    } else {
+	*url = NULL;
     }
     rvItem = SECITEM_AllocItem(NULL, NULL, crl->encoding.size);
     if (!rvItem) {
@@ -3788,6 +3852,8 @@ loser:
 	return NULL;
     }
     memcpy(rvItem->data, crl->encoding.data, crl->encoding.size);
+    *slot = PK11_ReferenceSlot(crl->object.instances[0]->token->pk11slot);
+    *crlHandle = crl->object.instances[0]->handle;
     nssCRL_Destroy(crl);
     return rvItem;
 #endif

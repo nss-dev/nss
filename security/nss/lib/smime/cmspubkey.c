@@ -128,7 +128,14 @@ PK11SymKey *
 NSS_CMSUtil_DecryptSymKey_RSA(SECKEYPrivateKey *privkey, SECItem *encKey, SECOidTag bulkalgtag)
 {
     /* that's easy */
-    return PK11_PubUnwrapSymKey(privkey, encKey, PK11_AlgtagToMechanism(bulkalgtag), CKA_DECRYPT, 0);
+    CK_MECHANISM_TYPE target;
+    PORT_Assert(bulkalgtag != SEC_OID_UNKNOWN);
+    target = PK11_AlgtagToMechanism(bulkalgtag);
+    if (bulkalgtag == SEC_OID_UNKNOWN || target == CKM_INVALID_MECHANISM) {
+	PORT_SetError(SEC_ERROR_INVALID_ALGORITHM);
+	return NULL;
+    }
+    return PK11_PubUnwrapSymKey(privkey, encKey, target, CKA_DECRYPT, 0);
 }
 
 /* ====== MISSI (Fortezza) ========================================================== */

@@ -43,6 +43,7 @@
 extern const SEC_ASN1Template SECKEY_PointerToEncryptedPrivateKeyInfoTemplate[];
 extern SEC_ASN1TemplateChooser NSS_Get_SECKEY_PointerToEncryptedPrivateKeyInfoTemplate;
 extern const SEC_ASN1Template SECKEY_EncryptedPrivateKeyInfoTemplate[];
+extern SEC_ASN1TemplateChooser NSS_Get_SECKEY_EncryptedPrivateKeyInfoTemplate;
 extern const SEC_ASN1Template SECKEY_PrivateKeyInfoTemplate[];
 extern SEC_ASN1TemplateChooser NSS_Get_SECKEY_PrivateKeyInfoTemplate;
 extern const SEC_ASN1Template SECKEY_PointerToPrivateKeyInfoTemplate[];
@@ -76,7 +77,7 @@ struct SECMODModuleStr {
     void	*functionList; /* The PKCS #11 function table */
     void	*refLock;	/* only used pk11db.c */
     int		refCount;	/* Module reference count */
-    PK11SlotInfo **slots;	/* array of slot points attatched to this mod*/
+    PK11SlotInfo **slots;	/* array of slot points attached to this mod*/
     int		slotCount;	/* count of slot in above array */
     PK11PreSlotInfo *slotInfo;	/* special info about slots default settings */
     int		slotInfoCount;  /* count */
@@ -117,10 +118,15 @@ struct PK11RSAGenParamsStr {
 };
 
 typedef enum {
-     PK11CertListUnique = 0,
-     PK11CertListUser = 1,
-     PK11CertListRootUnique = 2,
-     PK11CertListCA = 3
+     PK11CertListUnique = 0,     /* get one instance of all certs */
+     PK11CertListUser = 1,       /* get all instances of user certs */
+     PK11CertListRootUnique = 2, /* get one instance of CA certs without a private key.
+                                  * deprecated. Use PK11CertListCAUnique
+                                  */
+     PK11CertListCA = 3,         /* get all instances of CA certs */
+     PK11CertListCAUnique = 4,   /* get one instance of CA certs */
+     PK11CertListUserUnique = 5, /* get one instance of user certs */
+     PK11CertListAll = 6         /* get all instances of all certs */
 } PK11CertListType;
 
 /*
@@ -165,6 +171,8 @@ struct PK11DefaultArrayEntryStr {
 #define CKM_FAKE_RANDOM       0x80000efeL
 #define CKM_INVALID_MECHANISM 0xffffffffL
 #define CKA_DIGEST            0x81000000L
+#define CKA_FLAGS_ONLY        0 /* CKA_CLASS */
+
 
 /* Cryptographic module types */
 #define SECMOD_EXTERNAL	0	/* external module */

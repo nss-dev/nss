@@ -23,7 +23,8 @@
  *
  * Contributor(s):
  *	Dr Stephen Henson <stephen.henson@gemplus.com>
- *	Dr Vipul Gupta <vipul.gupta@sun.com>, Sun Microsystems Laboratories
+ *	Dr Vipul Gupta <vipul.gupta@sun.com> and
+ *	Douglas Stebila <douglas@stebila.ca>, Sun Microsystems Laboratories
  * 
  * Alternatively, the contents of this file may be used under the
  * terms of the GNU General Public License Version 2 or later (the
@@ -171,6 +172,9 @@ static const int compressionMethodsCount =
 static const /*SSL3ClientCertificateType */ uint8 certificate_types [] = {
     ct_RSA_sign,
     ct_DSS_sign,
+#ifdef NSS_ENABLE_ECC
+    ct_ECDSA_sign,
+#endif /* NSS_ENABLE_ECC */
 };
 
 static const /*SSL3ClientCertificateType */ uint8 fortezza_certificate_types [] = {
@@ -649,6 +653,15 @@ ssl3_config_match_init(sslSocket *ss)
 	    case kea_dhe_rsa:
 		svrAuth = ss->serverCerts + kt_rsa;
 		break;
+	    case kea_ecdh_ecdsa:
+	    case kea_ecdh_rsa:
+	        /* 
+		 * XXX We ought to have different indices for 
+		 * ECDSA- and RSA-signed EC certificates so
+		 * we could support both key exchange mechanisms
+		 * simultaneously. For now, both of them use
+		 * whatever is in the certificate slot for kt_ecdh
+		 */
 	    default:
 		svrAuth = ss->serverCerts + exchKeyType;
 		break;
@@ -830,6 +843,13 @@ ssl3_SignHashes(SSL3Hashes *hash, SECKEYPrivateKey *key, SECItem *buf,
 	hashItem.data = hash->sha;
 	hashItem.len = sizeof(hash->sha);
 	break;
+#ifdef NSS_ENABLE_ECC
+    case ecKey:
+	doDerEncode = PR_TRUE;
+	hashItem.data = hash->sha;
+	hashItem.len = sizeof(hash->sha);
+	break;
+#endif /* NSS_ENABLE_ECC */
     default:
 	PORT_SetError(SEC_ERROR_INVALID_KEY);
 	goto done;
@@ -842,7 +862,8 @@ ssl3_SignHashes(SSL3Hashes *hash, SECKEYPrivateKey *key, SECItem *buf,
     } else if (doDerEncode) {
 	SECItem   derSig	= {siBuffer, NULL, 0};
 
-    	rv = DSAU_EncodeDerSig(&derSig, buf);
+	/* This also works for an ECDSA signature */
+	rv = DSAU_EncodeDerSigWithLen(&derSig, buf, (unsigned) signatureLen);
 	if (rv == SECSuccess) {
 	    PORT_Free(buf->data);	/* discard unencoded signature. */
 	    *buf = derSig;		/* give caller encoded signature. */
@@ -870,7 +891,7 @@ ssl3_VerifySignedHashes(SSL3Hashes *hash, CERTCertificate *cert,
     SECStatus         rv;
     SECItem           hashItem;
 #ifdef NSS_ENABLE_ECC
-    int               len;
+    unsigned int      len;
 #endif /* NSS_ENABLE_ECC */
 
 
@@ -918,24 +939,11 @@ ssl3_VerifySignedHashes(SSL3Hashes *hash, CERTCertificate *cert,
 	    PORT_SetError(SEC_ERROR_UNSUPPORTED_ELLIPTIC_CURVE);
 	    return SECFailure;
 	}
-	signature = SECITEM_AllocItem(NULL, NULL, len);
-	/* XXX Use a better decoder */
-	if ((buf->len < len + 6) || 
-	    (buf->data[0] != 0x30) || /* must start with a SEQUENCE */
-	    (buf->data[1] != buf->len - 2) ||
-	    (buf->data[2] != 0x02) || /* 1st INTEGER, r */
-	    (buf->data[3] < len/2) ||
-	    (buf->data[4 + buf->data[3]] != 0x02) || /* 2nd INTEGER, s */
-	    (buf->data[5 + buf->data[3]] < len/2)) {	
-	    	PORT_SetError(SSL_ERROR_BAD_HANDSHAKE_HASH_VALUE);
-		SECITEM_FreeItem(signature, PR_TRUE);
-    		return SECFailure;
+	signature = DSAU_DecodeDerSigToLen(buf, len);
+	if (!signature) {
+	    PORT_SetError(SSL_ERROR_BAD_HANDSHAKE_HASH_VALUE);
+	    return SECFailure;
 	}
-	    
-	PORT_Memcpy(signature->data, 
-	    buf->data + 4 + (buf->data[3]-len/2), len/2);
-	PORT_Memcpy(signature->data + len/2, 
-	    buf->data + buf->len - len/2, len/2);
 	buf = signature;
 	break;
 #endif /* NSS_ENABLE_ECC */
@@ -2016,7 +2024,9 @@ SSL3_SendAlert(sslSocket *ss, SSL3AlertLevel level, SSL3AlertDescription desc)
     rv = ssl3_FlushHandshake(ss, ssl_SEND_FLAG_FORCE_INTO_BUFFER);
     if (rv == SECSuccess) {
 	PRInt32 sent;
-	sent = ssl3_SendRecord(ss, content_alert, bytes, 2, 0);
+	sent = ssl3_SendRecord(ss, content_alert, bytes, 2, 
+			       desc == no_certificate 
+			       ? ssl_SEND_FLAG_FORCE_INTO_BUFFER : 0);
 	rv = (sent >= 0) ? SECSuccess : (SECStatus)sent;
     }
     ssl_ReleaseXmitBufLock(ss);
@@ -2230,7 +2240,7 @@ ssl3_HandleChangeCipherSpecs(sslSocket *ss, sslBuffer *buf)
     SSL_TRC(3, ("%d: SSL3[%d]: handle change_cipher_spec record",
 		SSL_GETPID(), ss->fd));
 
-    if (ws != wait_change_cipher && ws != wait_cert_verify) {
+    if (ws != wait_change_cipher) {
 	(void)SSL3_SendAlert(ss, alert_fatal, unexpected_message);
 	PORT_SetError(SSL_ERROR_RX_UNEXPECTED_CHANGE_CIPHER);
 	return SECFailure;
@@ -2646,7 +2656,7 @@ ssl3_ConsumeHandshake(sslSocket *ss, void *v, PRInt32 bytes, SSL3Opaque **b,
     PORT_Assert( ssl_HaveRecvBufLock(ss) );
     PORT_Assert( ssl_HaveSSL3HandshakeLock(ss) );
 
-    if (bytes > *length) {
+    if ((PRUint32)bytes > *length) {
 	return ssl3_DecodeError(ss);
     }
     PORT_Memcpy(v, *b, bytes);
@@ -3717,6 +3727,7 @@ sendECDHClientKeyExchange(sslSocket * ss, SECKEYPublicKey * svrPubKey)
     CK_MECHANISM_TYPE	target;
     SECKEYPublicKey	*pubKey = NULL;		/* Ephemeral ECDH key */
     SECKEYPrivateKey	*privKey = NULL;	/* Ephemeral ECDH key */
+    CK_EC_KDF_TYPE	kdf;
 
     PORT_Assert( ssl_HaveSSL3HandshakeLock(ss) );
     PORT_Assert( ssl_HaveXmitBufLock(ss));
@@ -3738,9 +3749,19 @@ sendECDHClientKeyExchange(sslSocket * ss, SECKEYPublicKey * svrPubKey)
     if (isTLS) target = CKM_TLS_MASTER_KEY_DERIVE_DH;
     else target = CKM_SSL3_MASTER_KEY_DERIVE_DH;
 
+    /* If field size is not more than 24 octets, then use SHA-1 hash of result;
+     * otherwise, use result (see section 4.8 of draft-ietf-tls-ecc-03.txt).
+     */
+    if ((pubKey->u.ec.publicValue.len - 1) / 2 <= 24) {
+	kdf = CKD_SHA1_KDF;
+    } else {
+	kdf = CKD_NULL;
+    }
+
     /*  Determine the PMS */
-    pms = PK11_PubDerive(privKey, svrPubKey, PR_FALSE, NULL, NULL,
-			    CKM_ECDH1_DERIVE, target, CKA_DERIVE, 0, NULL);
+    pms = PK11_PubDeriveWithKDF(privKey, svrPubKey, PR_FALSE, NULL, NULL,
+			    CKM_ECDH1_DERIVE, target, CKA_DERIVE, 0,
+			    kdf, NULL, NULL);
 
     if (pms == NULL) {
 	ssl_MapLowLevelError(SSL_ERROR_CLIENT_KEY_EXCHANGE_FAILURE);
@@ -5017,9 +5038,7 @@ ssl3_HandleCertificateRequest(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     ssl3State *          ssl3        = ss->ssl3;
     PRArenaPool *        arena       = NULL;
     dnameNode *          node;
-    unsigned char *      data;
     PRInt32              remaining;
-    PRInt32              len;
     PRBool               isTLS       = PR_FALSE;
     int                  i;
     int                  errCode     = SSL_ERROR_RX_MALFORMED_CERT_REQUEST;
@@ -5060,33 +5079,33 @@ ssl3_HandleCertificateRequest(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     if (remaining < 0)
     	goto loser;	 	/* malformed, alert has been sent */
 
+    if ((PRUint32)remaining > length)
+	goto alert_loser;
+
     ca_list.head = node = PORT_ArenaZNew(arena, dnameNode);
     if (node == NULL)
     	goto no_mem;
 
-    while (remaining != 0) {
+    while (remaining > 0) {
+	PRInt32 len;
+
 	if (remaining < 2)
 	    goto alert_loser;	/* malformed */
 
 	node->name.len = len = ssl3_ConsumeHandshakeNumber(ss, 2, &b, &length);
-	if (len < 0)
+	if (len <= 0)
 	    goto loser;		/* malformed, alert has been sent */
 
 	remaining -= 2;
 	if (remaining < len)
 	    goto alert_loser;	/* malformed */
 
-	data = node->name.data = (unsigned char*)PORT_ArenaAlloc(arena, len);
-	if (data == NULL)
-	    goto no_mem;
-
-	rv = ssl3_ConsumeHandshake(ss, data, len, &b, &length);
-	if (rv != SECSuccess)
-	    goto loser;		/* malformed, alert has been sent */
-
+	node->name.data = b;
+	b         += len;
+	length    -= len;
 	remaining -= len;
 	nnames++;
-	if (remaining == 0)
+	if (remaining <= 0)
 	    break;		/* success */
 
 	node->next = PORT_ArenaZNew(arena, dnameNode);
@@ -5553,7 +5572,7 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	goto loser;		/* malformed */
     }
 
-    if (sidBytes.len > 0) {
+    if (sidBytes.len > 0 && !ss->noCache) {
 	SSL_TRC(7, ("%d: SSL3[%d]: server, lookup client session-id for 0x%08x%08x%08x%08x",
                     SSL_GETPID(), ss->fd, ss->sec.ci.peer.pr_s6_addr32[0],
 		    ss->sec.ci.peer.pr_s6_addr32[1], 
@@ -6174,6 +6193,7 @@ const ssl3KEADef *     kea_def     = ss->ssl3->hs.kea_def;
     SECKEYPublicKey *  ecdhePub;
     SECItem            ec_params = {siBuffer, NULL, 0};
     ECName             curve;
+    SSL3KEAType        certIndex;
 #endif /* NSS_ENABLE_ECC */
 
     SSL_TRC(3, ("%d: SSL3[%d]: send server_key_exchange handshake",
@@ -6300,12 +6320,15 @@ const ssl3KEADef *     kea_def     = ss->ssl3->hs.kea_def;
 	isTLS = (PRBool)(ss->ssl3->pwSpec->version > SSL_LIBRARY_VERSION_3_0);
 
 	/* XXX SSLKEAType isn't really a good choice for 
-	 * indexing certificates. The following line of
-	 * code will need to change when we support 
-	 * (EC)DHE-xxx ciphers on the server side where xxx
-	 * is something other than RSA.
+	 * indexing certificates but that's all we have
+	 * for now.
 	 */
-	rv = ssl3_SignHashes(&hashes, ss->serverCerts[kt_rsa].serverKey, 
+	if (kea_def->kea == kea_ecdhe_rsa)
+	    certIndex = kt_rsa;
+	else /* kea_def->kea == kea_ecdhe_ecdsa */
+	    certIndex = kt_ecdh;
+
+	rv = ssl3_SignHashes(&hashes, ss->serverCerts[certIndex].serverKey, 
 	                     &signed_hash, isTLS);
         if (rv != SECSuccess) {
 	    goto loser;		/* ssl3_SignHashes has set err. */
@@ -6927,6 +6950,7 @@ ssl3_HandleECDHClientKeyExchange(sslSocket *ss, SSL3Opaque *b,
     SECKEYPublicKey   clntPubKey;
     CK_MECHANISM_TYPE	target;
     PRBool isTLS;
+    CK_EC_KDF_TYPE	kdf;
 
     PORT_Assert( ssl_HaveRecvBufLock(ss) );
     PORT_Assert( ssl_HaveSSL3HandshakeLock(ss) );
@@ -6949,9 +6973,19 @@ ssl3_HandleECDHClientKeyExchange(sslSocket *ss, SSL3Opaque *b,
     if (isTLS) target = CKM_TLS_MASTER_KEY_DERIVE_DH;
     else target = CKM_SSL3_MASTER_KEY_DERIVE_DH;
 
+    /* If field size is not more than 24 octets, then use SHA-1 hash of result;
+     * otherwise, use result (see section 4.8 of draft-ietf-tls-ecc-03.txt).
+     */
+    if (srvrPubKey->u.ec.size <= 24 * 8) {
+	kdf = CKD_SHA1_KDF;
+    } else {
+	kdf = CKD_NULL;
+    }
+
     /*  Determine the PMS */
-    pms = PK11_PubDerive(srvrPrivKey, &clntPubKey, PR_FALSE, NULL, NULL,
-			    CKM_ECDH1_DERIVE, target, CKA_DERIVE, 0, NULL);
+    pms = PK11_PubDeriveWithKDF(srvrPrivKey, &clntPubKey, PR_FALSE, NULL, NULL,
+			    CKM_ECDH1_DERIVE, target, CKA_DERIVE, 0,
+			    kdf, NULL, NULL);
 
     PORT_Free(clntPubKey.u.ec.publicValue.data);
 
@@ -6981,6 +7015,9 @@ ssl3_HandleClientKeyExchange(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     SECKEYPrivateKey *serverKey         = NULL;
     SECStatus         rv;
 const ssl3KEADef *    kea_def;
+#ifdef NSS_ENABLE_ECC
+    SECKEYPublicKey *serverPubKey       = NULL;
+#endif /* NSS_ENABLE_ECC */
 
     SSL_TRC(3, ("%d: SSL3[%d]: handle client_key_exchange handshake",
 		SSL_GETPID(), ss->fd));
@@ -6997,11 +7034,11 @@ const ssl3KEADef *    kea_def;
     kea_def   = ss->ssl3->hs.kea_def;
 
 #ifdef NSS_ENABLE_ECC
-    /* XXX We'll need additional code here to compute serverKey and
-     * ss->sec.keaKeyBits appropriately when we add server side
-     * support for (EC)DHE-xxx cipher suites where xxx is something
-     * other than rsa. Using SSLKEAType to index server certifiates
-     * does not work for (EC)DHE ciphers.
+    /* XXX Using SSLKEAType to index server certifiates
+     * does not work for (EC)DHE ciphers. Until we have
+     * an indexing mechanism general enough for all key
+     * exchange algorithms, we'll need to deal with each
+     * one seprately.
      */
     if ((kea_def->kea == kea_ecdhe_rsa) ||
 	(kea_def->kea == kea_ecdhe_ecdsa)) {
@@ -7067,9 +7104,27 @@ const ssl3KEADef *    kea_def;
 
 #ifdef NSS_ENABLE_ECC
     case kt_ecdh:
+        /* XXX We really ought to be able to store multiple
+	 * EC certs (a requirement if we wish to support both
+	 * ECDH-RSA and ECDH-ECDSA key exchanges concurrently).
+	 * When we make that change, we'll need an index other
+	 * than kt_ecdh to pick the right EC certificate.
+	 */
+        if (((kea_def->kea == kea_ecdhe_ecdsa) ||
+	     (kea_def->kea == kea_ecdhe_rsa)) &&
+	    (ss->ephemeralECDHKeyPair != NULL)) {
+	    serverPubKey = ss->ephemeralECDHKeyPair->pubKey;
+	} else {
+	    serverPubKey = CERT_ExtractPublicKey(
+			   ss->serverCerts[kt_ecdh].serverCert);
+        }
+	if (serverPubKey == NULL) {
+	    /* XXX Is this the right error code? */
+	    PORT_SetError(SSL_ERROR_EXTRACT_PUBLIC_KEY_FAILURE);
+	    return SECFailure;
+	}
 	rv = ssl3_HandleECDHClientKeyExchange(ss, b, length, 
-	    ss->ephemeralECDHKeyPair->pubKey,
-	    serverKey);
+					      serverPubKey, serverKey);
 	if (rv != SECSuccess) {
 	    return SECFailure;	/* error code set */
 	}
@@ -7243,6 +7298,8 @@ ssl3_HandleCertificate(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	remaining = ssl3_ConsumeHandshakeNumber(ss, 3, &b, &length);
 	if (remaining < 0)
 	    goto loser;	/* fatal alert already sent by ConsumeHandshake. */
+	if ((PRUint32)remaining > length)
+	    goto decode_loser;
     }
 
     if (!remaining) {
@@ -7269,22 +7326,17 @@ ssl3_HandleCertificate(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	goto decode_loser;
 
     size = ssl3_ConsumeHandshakeNumber(ss, 3, &b, &length);
-    if (size < 0)
+    if (size <= 0)
 	goto loser;	/* fatal alert already sent by ConsumeHandshake. */
 
-    remaining -= size;
-    if (remaining < 0)
+    if (remaining < size)
 	goto decode_loser;
 
-    certItem.data = (unsigned char*)PORT_ArenaAlloc(arena, size);
-    if (certItem.data == NULL) {
-	goto loser;	/* don't send alerts on memory errors */
-    }
-
+    certItem.data = b;
     certItem.len = size;
-    rv = ssl3_ConsumeHandshake(ss, certItem.data, certItem.len, &b, &length);
-    if (rv != SECSuccess)
-	goto loser;	/* fatal alert already sent by ConsumeHandshake. */
+    b      += size;
+    length -= size;
+    remaining -= size;
 
     ss->sec.peerCert = CERT_NewTempCertificate(ss->dbHandle, &certItem, NULL,
                                             PR_FALSE, PR_TRUE);
@@ -7296,29 +7348,23 @@ ssl3_HandleCertificate(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     }
 
     /* Now get all of the CA certs. */
-    while (remaining != 0) {
+    while (remaining > 0) {
 	remaining -= 3;
 	if (remaining < 0)
 	    goto decode_loser;
 
 	size = ssl3_ConsumeHandshakeNumber(ss, 3, &b, &length);
-	if (size < 0)
+	if (size <= 0)
 	    goto loser;	/* fatal alert already sent by ConsumeHandshake. */
 
-	remaining -= size;
-	if (remaining < 0)
+	if (remaining < size)
 	    goto decode_loser;
 
-	certItem.data = (unsigned char*)PORT_ArenaAlloc(arena, size);
-	if (certItem.data == NULL) {
-	    goto loser;	/* don't send alerts on memory errors */
-	}
-
+	certItem.data = b;
 	certItem.len = size;
-	rv = ssl3_ConsumeHandshake(ss, certItem.data, certItem.len,
-				   &b, &length);
-	if (rv != SECSuccess)
-	    goto loser;	/* fatal alert already sent by ConsumeHandshake. */
+	b      += size;
+	length -= size;
+	remaining -= size;
 
 	c = PORT_ArenaNew(arena, ssl3CertNode);
 	if (c == NULL) {
@@ -7687,7 +7733,7 @@ ssl3_HandleFinished(sslSocket *ss, SSL3Opaque *b, PRUint32 length,
     PRBool            isServer     = ss->sec.isServer;
     PRBool            isTLS;
     PRBool            doStepUp;
-    CK_MECHANISM_TYPE mechanism;
+    CK_MECHANISM_TYPE mechanism    = CKM_INVALID_MECHANISM;
     SSL3KEAType       effectiveExchKeyType;
 
     PORT_Assert( ssl_HaveRecvBufLock(ss) );
@@ -7843,8 +7889,8 @@ xmit_loser:
 	    	PK11_SetWrapKey(symKeySlot, wrapKeyIndex, wrappingKey);
 	    }
 	}
-    } else {
-	/* server. */
+    } else if (!ss->noCache) {
+	/* server socket using session cache. */
 	mechanism = PK11_GetBestWrapMechanism(symKeySlot);
 	if (mechanism != CKM_INVALID_MECHANISM) {
 	    wrappingKey =
@@ -8074,7 +8120,7 @@ ssl3_HandleHandshake(sslSocket *ss, sslBuffer *origBuf)
 	*buf = *origBuf;
     }
     while (buf->len > 0) {
-	while (ssl3->hs.header_bytes < 4) {
+	if (ssl3->hs.header_bytes < 4) {
 	    uint8 t;
 	    t = *(buf->buf++);
 	    buf->len--;
@@ -8082,21 +8128,22 @@ ssl3_HandleHandshake(sslSocket *ss, sslBuffer *origBuf)
 		ssl3->hs.msg_type = (SSL3HandshakeType)t;
 	    else
 		ssl3->hs.msg_len = (ssl3->hs.msg_len << 8) + t;
+	    if (ssl3->hs.header_bytes < 4)
+	    	continue;
 
 #define MAX_HANDSHAKE_MSG_LEN 0x1ffff	/* 128k - 1 */
-
-	    if (ssl3->hs.header_bytes == 4) {
-		if (ssl3->hs.msg_len > MAX_HANDSHAKE_MSG_LEN) {
-		    (void)ssl3_DecodeError(ss);
-		    PORT_SetError(SSL_ERROR_RX_RECORD_TOO_LONG);
-		    return SECFailure;
-		}
+	    if (ssl3->hs.msg_len > MAX_HANDSHAKE_MSG_LEN) {
+		(void)ssl3_DecodeError(ss);
+		PORT_SetError(SSL_ERROR_RX_RECORD_TOO_LONG);
+		return SECFailure;
 	    }
 #undef MAX_HANDSHAKE_MSG_LEN
-	    if (buf->len == 0 && ssl3->hs.msg_len > 0) {
-		buf->buf = NULL;
-		return SECSuccess;
-	    }
+
+	    /* If msg_len is zero, be sure we fall through, 
+	    ** even if buf->len is zero. 
+	    */
+	    if (ssl3->hs.msg_len > 0) 
+	    	continue;
 	}
 
 	/*
@@ -8125,23 +8172,22 @@ ssl3_HandleHandshake(sslSocket *ss, sslBuffer *origBuf)
 	    /* must be copied to msg_body and dealt with from there */
 	    unsigned int bytes;
 
-	    bytes = PR_MIN(buf->len, ssl3->hs.msg_len);
+	    PORT_Assert(ssl3->hs.msg_body.len <= ssl3->hs.msg_len);
+	    bytes = PR_MIN(buf->len, ssl3->hs.msg_len - ssl3->hs.msg_body.len);
 
 	    /* Grow the buffer if needed */
-	    if (bytes > ssl3->hs.msg_body.space - ssl3->hs.msg_body.len) {
-		rv = sslBuffer_Grow(&ssl3->hs.msg_body,
-		                  ssl3->hs.msg_body.len + bytes);
-		if (rv != SECSuccess) {
-		    /* sslBuffer_Grow has set a memory error code. */
-		    return SECFailure;
-	    	}
+	    rv = sslBuffer_Grow(&ssl3->hs.msg_body, ssl3->hs.msg_len);
+	    if (rv != SECSuccess) {
+		/* sslBuffer_Grow has set a memory error code. */
+		return SECFailure;
 	    }
+
 	    PORT_Memcpy(ssl3->hs.msg_body.buf + ssl3->hs.msg_body.len,
-		      buf->buf, buf->len);
+		        buf->buf, bytes);
+	    ssl3->hs.msg_body.len += bytes;
 	    buf->buf += bytes;
 	    buf->len -= bytes;
 
-	    /* should not be more than one message in msg_body */
 	    PORT_Assert(ssl3->hs.msg_body.len <= ssl3->hs.msg_len);
 
 	    /* if we have a whole message, do it */

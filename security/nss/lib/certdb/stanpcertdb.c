@@ -154,6 +154,7 @@ __CERT_AddTempCertToPerm(CERTCertificate *cert, char *nickname,
     NSSCertificate *c = STAN_GetNSSCertificate(cert);
     context = c->object.cryptoContext;
     if (!context) {
+	PORT_SetError(SEC_ERROR_ADDING_CERT); 
 	return SECFailure; /* wasn't a temp cert */
     }
     stanNick = nssCertificate_GetNickname(c, NULL);
@@ -271,7 +272,7 @@ __CERT_NewTempCertificate(CERTCertDBHandle *handle, SECItem *derCert,
      */
     cc = STAN_GetCERTCertificate(c);
     if (!cc) {
-        return NULL;
+        goto loser;
     }
     nssItem_Create(c->object.arena, 
                    &c->issuer, cc->derIssuer.len, cc->derIssuer.data);
@@ -293,7 +294,7 @@ __CERT_NewTempCertificate(CERTCertDBHandle *handle, SECItem *derCert,
                                             (NSSUTF8 *)nickname, 
                                             PORT_Strlen(nickname));
     }
-    if (cc->emailAddr) {
+    if (cc->emailAddr && cc->emailAddr[0]) {
 	c->email = nssUTF8_Create(c->object.arena, 
 	                          nssStringType_PrintableString, 
 	                          (NSSUTF8 *)cc->emailAddr, 
@@ -482,13 +483,22 @@ CERT_FindCertByNicknameOrEmailAddr(CERTCertDBHandle *handle, char *name)
     NSSCertificate *c, *ct;
     CERTCertificate *cert;
     NSSUsage usage;
+
+    if (NULL == name) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+	return NULL;
+    }
     usage.anyUsage = PR_TRUE;
     cc = STAN_GetDefaultCryptoContext();
     ct = NSSCryptoContext_FindBestCertificateByNickname(cc, name, 
                                                        NULL, &usage, NULL);
-    if (!ct) {
-	ct = NSSCryptoContext_FindBestCertificateByEmail(cc, name, 
-	                                                NULL, &usage, NULL);
+    if (!ct && PORT_Strchr(name, '@') != NULL) {
+        char* lowercaseName = CERT_FixupEmailAddr(name);
+        if (lowercaseName) {
+	    ct = NSSCryptoContext_FindBestCertificateByEmail(cc, lowercaseName, 
+							    NULL, &usage, NULL);
+            PORT_Free(lowercaseName);
+        }
     }
     cert = PK11_FindCertFromNickname(name, NULL);
     if (cert) {

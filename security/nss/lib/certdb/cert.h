@@ -66,10 +66,15 @@ extern CERTName *CERT_AsciiToName(char *string);
 
 /*
 ** Convert an CERTName into its RFC1485 encoded equivalent.
+** Returns a string that must be freed with PORT_Free().
 */
 extern char *CERT_NameToAscii(CERTName *name);
 
 extern CERTAVA *CERT_CopyAVA(PRArenaPool *arena, CERTAVA *src);
+
+/* convert an OID to dotted-decimal representation */
+/* Returns a string that must be freed with PR_smprintf_free(). */
+extern char * CERT_GetOidString(const SECItem *oid);
 
 /*
 ** Examine an AVA and return the tag that refers to it. The AVA tags are
@@ -80,7 +85,7 @@ extern SECOidTag CERT_GetAVATag(CERTAVA *ava);
 /*
 ** Compare two AVA's, returning the difference between them.
 */
-extern SECComparison CERT_CompareAVA(CERTAVA *a, CERTAVA *b);
+extern SECComparison CERT_CompareAVA(const CERTAVA *a, const CERTAVA *b);
 
 /*
 ** Create an RDN (relative-distinguished-name). The argument list is a
@@ -243,7 +248,7 @@ CERT_CreateCertificateRequest (CERTName *name, CERTSubjectPublicKeyInfo *spki,
 extern void CERT_DestroyCertificateRequest(CERTCertificateRequest *r);
 
 /*
-** Extract a public key object from a SubjectPublicKeyInfo
+** Extract a public key object from a certificate
 */
 extern SECKEYPublicKey *CERT_ExtractPublicKey(CERTCertificate *cert);
 
@@ -703,7 +708,7 @@ extern char *CERT_HTMLCertInfo(CERTCertificate *cert, PRBool showImages,
 ** XXX This function resides in certhtml.c, should it be
 ** moved elsewhere?
 */
-extern SECItem *CERT_DecodeAVAValue(SECItem *derAVAValue);
+extern SECItem *CERT_DecodeAVAValue(const SECItem *derAVAValue);
 
 /*
  * take a DER certificate and decode it into a certificate structure
@@ -718,7 +723,6 @@ CERT_DecodeDERCertificate(SECItem *derSignedCert, PRBool copyDER,
 ** extract various element strings from a distinguished name.
 **	"name" the distinguished name
 */
-extern char *CERT_GetCommonName(CERTName *name);
 
 extern char *CERT_GetCertificateEmailAddress(CERTCertificate *cert);
 
@@ -729,6 +733,7 @@ extern const char * CERT_GetFirstEmailAddress(CERTCertificate * cert);
 extern const char * CERT_GetNextEmailAddress(CERTCertificate * cert, 
                                              const char * prev);
 
+/* The return value must be freed with PORT_Free. */
 extern char *CERT_GetCommonName(CERTName *name);
 
 extern char *CERT_GetCountryName(CERTName *name);
@@ -920,7 +925,7 @@ extern CERTCrlDistributionPoints * CERT_FindCRLDistributionPoints
    (CERTCertificate *cert);
 
 /* Returns value of the keyUsage extension.  This uses PR_Alloc to allocate 
-** buffer for the decoded value, The caller should free up the storage 
+** buffer for the decoded value. The caller should free up the storage 
 ** allocated in value->data.
 */
 extern SECStatus CERT_FindKeyUsageExtension (CERTCertificate *cert, 
@@ -1167,15 +1172,6 @@ CERT_CheckForEvilCert(CERTCertificate *cert);
 CERTGeneralName *
 CERT_GetCertificateNames(CERTCertificate *cert, PRArenaPool *arena);
 
-int
-CERT_GetNamesLength(CERTGeneralName *names);
-
-CERTCertificate *
-CERT_CompareNameSpace(CERTCertificate  *cert,
-		      CERTGeneralName  *namesList,
-		      SECItem          *namesListIndex,
-		      PRArenaPool      *arena,
-		      CERTCertDBHandle *handle);
 
 SECStatus 
 CERT_EncodeSubjectKeyID(PRArenaPool *arena, char *value, int len, SECItem *encodedValue);
@@ -1360,47 +1356,6 @@ CERTCertificate *
 CERT_FindMatchingCert(CERTCertDBHandle *handle, SECItem *derName,
 		      CERTCertOwner owner, SECCertUsage usage,
 		      PRBool preferTrusted, int64 validTime, PRBool validOnly);
-
-
-/*********************************************************************/
-/* A thread safe implementation of General Names                     */
-/*********************************************************************/
-
-/* Destroy a Single CERTGeneralName */
-void
-CERT_DestroyGeneralName(CERTGeneralName *name);
-
-/* Destroys a CERTGeneralNameList */
-void
-CERT_DestroyGeneralNameList(CERTGeneralNameList *list);
-
-/* Creates a CERTGeneralNameList */
-CERTGeneralNameList *
-CERT_CreateGeneralNameList(CERTGeneralName *name);
-
-/* Compares two CERTGeneralNameList */
-SECStatus
-CERT_CompareGeneralNameLists(CERTGeneralNameList *a, CERTGeneralNameList *b);
-
-/* returns a copy of the first name of the type requested */
-void *
-CERT_GetGeneralNameFromListByType(CERTGeneralNameList *list,
-				  CERTGeneralNameType type,
-				  PRArenaPool *arena);
-
-/* Adds a name to the tail of the list */
-void
-CERT_AddGeneralNameToList(CERTGeneralNameList *list, 
-			  CERTGeneralNameType type,
-			  void *data, SECItem *oid);
-
-/* returns a duplicate of the CERTGeneralNameList */
-CERTGeneralNameList *
-CERT_DupGeneralNameList(CERTGeneralNameList *list);
-
-/* returns the length of a CERTGeneralName */
-int
-CERT_GetNamesLength(CERTGeneralName *names);
 
 /*
  * Acquire the global lock on the cert database.

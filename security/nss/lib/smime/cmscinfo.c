@@ -76,6 +76,11 @@ NSS_CMSContentInfo_Destroy(NSSCMSContentInfo *cinfo)
 	/* XXX Anything else that needs to be "manually" freed/destroyed? */
 	break;
     }
+    if (cinfo->digcx) {
+	/* must destroy digest objects */
+	NSS_CMSDigestContext_Cancel(cinfo->digcx);
+	cinfo->digcx = NULL;
+    }
     if (cinfo->bulkkey)
 	PK11_FreeSymKey(cinfo->bulkkey);
 
@@ -93,20 +98,31 @@ NSS_CMSContentInfo_Destroy(NSSCMSContentInfo *cinfo)
 NSSCMSContentInfo *
 NSS_CMSContentInfo_GetChildContentInfo(NSSCMSContentInfo *cinfo)
 {
-    switch (NSS_CMSContentInfo_GetContentTypeTag(cinfo)) {
-    case SEC_OID_PKCS7_DATA:
-	return NULL;
+    void * ptr                  = NULL;
+    NSSCMSContentInfo * ccinfo  = NULL;
+    SECOidTag tag = NSS_CMSContentInfo_GetContentTypeTag(cinfo);
+    switch (tag) {
     case SEC_OID_PKCS7_SIGNED_DATA:
-	return &(cinfo->content.signedData->contentInfo);
+	ptr    = (void *)cinfo->content.signedData;
+	ccinfo = &(cinfo->content.signedData->contentInfo);
+	break;
     case SEC_OID_PKCS7_ENVELOPED_DATA:
-	return &(cinfo->content.envelopedData->contentInfo);
+	ptr    = (void *)cinfo->content.envelopedData;
+	ccinfo = &(cinfo->content.envelopedData->contentInfo);
+	break;
     case SEC_OID_PKCS7_DIGESTED_DATA:
-	return &(cinfo->content.digestedData->contentInfo);
+	ptr    = (void *)cinfo->content.digestedData;
+	ccinfo = &(cinfo->content.digestedData->contentInfo);
+	break;
     case SEC_OID_PKCS7_ENCRYPTED_DATA:
-	return &(cinfo->content.encryptedData->contentInfo);
+	ptr    = (void *)cinfo->content.encryptedData;
+	ccinfo = &(cinfo->content.encryptedData->contentInfo);
+	break;
+    case SEC_OID_PKCS7_DATA:
     default:
-	return NULL;
+	break;
     }
+    return (ptr ? ccinfo : NULL);
 }
 
 /*
@@ -193,7 +209,10 @@ NSS_CMSContentInfo_SetContent_EncryptedData(NSSCMSMessage *cmsg, NSSCMSContentIn
 void *
 NSS_CMSContentInfo_GetContent(NSSCMSContentInfo *cinfo)
 {
-    switch (cinfo->contentTypeTag->offset) {
+    SECOidTag tag = (cinfo && cinfo->contentTypeTag) 
+	                ? cinfo->contentTypeTag->offset 
+	                : SEC_OID_UNKNOWN;
+    switch (tag) {
     case SEC_OID_PKCS7_DATA:
     case SEC_OID_PKCS7_SIGNED_DATA:
     case SEC_OID_PKCS7_ENVELOPED_DATA:
@@ -214,22 +233,28 @@ SECItem *
 NSS_CMSContentInfo_GetInnerContent(NSSCMSContentInfo *cinfo)
 {
     NSSCMSContentInfo *ccinfo;
+    SECOidTag          tag;
+    SECItem           *pItem = NULL;
 
-    switch (NSS_CMSContentInfo_GetContentTypeTag(cinfo)) {
+    tag = NSS_CMSContentInfo_GetContentTypeTag(cinfo);
+    switch (tag) {
     case SEC_OID_PKCS7_DATA:
-	return cinfo->content.data;	/* end of recursion - every message has to have a data cinfo */
+	/* end of recursion - every message has to have a data cinfo */
+	pItem = cinfo->content.data; 
+	break;
     case SEC_OID_PKCS7_DIGESTED_DATA:
     case SEC_OID_PKCS7_ENCRYPTED_DATA:
     case SEC_OID_PKCS7_ENVELOPED_DATA:
     case SEC_OID_PKCS7_SIGNED_DATA:
-	if ((ccinfo = NSS_CMSContentInfo_GetChildContentInfo(cinfo)) == NULL)
-	    break;
-	return NSS_CMSContentInfo_GetContent(ccinfo);
+	ccinfo = NSS_CMSContentInfo_GetChildContentInfo(cinfo);
+	if (ccinfo != NULL)
+	    pItem = NSS_CMSContentInfo_GetContent(ccinfo);
+	break;
     default:
 	PORT_Assert(0);
 	break;
     }
-    return NULL;
+    return pItem;
 }
 
 /*

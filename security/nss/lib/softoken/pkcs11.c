@@ -263,27 +263,42 @@ static const struct mechanismList mechanisms[] = {
       */
 
      /* ------------------------- RSA Operations ---------------------------*/
-     {CKM_RSA_PKCS_KEY_PAIR_GEN,{128,CK_MAX,CKF_GENERATE_KEY_PAIR},PR_TRUE},
-     {CKM_RSA_PKCS,		{128,CK_MAX,CKF_DUZ_IT_ALL},	PR_TRUE},
+     {CKM_RSA_PKCS_KEY_PAIR_GEN,{RSA_MIN_MODULUS_BITS,CK_MAX,
+				 CKF_GENERATE_KEY_PAIR},PR_TRUE},
+     {CKM_RSA_PKCS,             {RSA_MIN_MODULUS_BITS,CK_MAX,
+                                 CKF_DUZ_IT_ALL},       PR_TRUE},
 #ifdef PK11_RSA9796_SUPPORTED
-     {CKM_RSA_9796,		{128,CK_MAX,CKF_DUZ_IT_ALL},	PR_TRUE}, 
+     {CKM_RSA_9796,		{RSA_MIN_MODULUS_BITS,CK_MAX,
+				 CKF_DUZ_IT_ALL},       PR_TRUE},
 #endif
-     {CKM_RSA_X_509,		{128,CK_MAX,CKF_DUZ_IT_ALL},	PR_TRUE}, 
+     {CKM_RSA_X_509,		{RSA_MIN_MODULUS_BITS,CK_MAX,
+				 CKF_DUZ_IT_ALL},       PR_TRUE},
      /* -------------- RSA Multipart Signing Operations -------------------- */
-     {CKM_MD2_RSA_PKCS,		{128,CK_MAX,CKF_SN_VR}, 	PR_TRUE},
-     {CKM_MD5_RSA_PKCS,		{128,CK_MAX,CKF_SN_VR}, 	PR_TRUE},
-     {CKM_SHA1_RSA_PKCS,	{128,CK_MAX,CKF_SN_VR}, 	PR_TRUE},
-     {CKM_SHA256_RSA_PKCS,	{128,CK_MAX,CKF_SN_VR}, 	PR_TRUE},
-     {CKM_SHA384_RSA_PKCS,	{128,CK_MAX,CKF_SN_VR}, 	PR_TRUE},
-     {CKM_SHA512_RSA_PKCS,	{128,CK_MAX,CKF_SN_VR}, 	PR_TRUE},
+     {CKM_MD2_RSA_PKCS,		{RSA_MIN_MODULUS_BITS,CK_MAX,
+				 CKF_SN_VR}, 	PR_TRUE},
+     {CKM_MD5_RSA_PKCS,		{RSA_MIN_MODULUS_BITS,CK_MAX,
+				 CKF_SN_VR}, 	PR_TRUE},
+     {CKM_SHA1_RSA_PKCS,	{RSA_MIN_MODULUS_BITS,CK_MAX,
+				 CKF_SN_VR}, 	PR_TRUE},
+     {CKM_SHA256_RSA_PKCS,	{RSA_MIN_MODULUS_BITS,CK_MAX,
+				 CKF_SN_VR}, 	PR_TRUE},
+     {CKM_SHA384_RSA_PKCS,	{RSA_MIN_MODULUS_BITS,CK_MAX,
+				 CKF_SN_VR}, 	PR_TRUE},
+     {CKM_SHA512_RSA_PKCS,	{RSA_MIN_MODULUS_BITS,CK_MAX,
+				 CKF_SN_VR}, 	PR_TRUE},
      /* ------------------------- DSA Operations --------------------------- */
-     {CKM_DSA_KEY_PAIR_GEN,	{512, 1024, CKF_GENERATE_KEY_PAIR}, PR_TRUE},
-     {CKM_DSA,			{512, 1024, CKF_SN_VR},		PR_TRUE},
-     {CKM_DSA_SHA1,		{512, 1024, CKF_SN_VR},		PR_TRUE},
+     {CKM_DSA_KEY_PAIR_GEN,	{DSA_MIN_P_BITS, DSA_MAX_P_BITS,
+				 CKF_GENERATE_KEY_PAIR}, PR_TRUE},
+     {CKM_DSA,			{DSA_MIN_P_BITS, DSA_MAX_P_BITS, 
+				 CKF_SN_VR},              PR_TRUE},
+     {CKM_DSA_SHA1,		{DSA_MIN_P_BITS, DSA_MAX_P_BITS,
+				 CKF_SN_VR},              PR_TRUE},
      /* -------------------- Diffie Hellman Operations --------------------- */
      /* no diffie hellman yet */
-     {CKM_DH_PKCS_KEY_PAIR_GEN,	{128, 1024, CKF_GENERATE_KEY_PAIR}, PR_TRUE}, 
-     {CKM_DH_PKCS_DERIVE,	{128, 1024, CKF_DERIVE}, 	PR_TRUE}, 
+     {CKM_DH_PKCS_KEY_PAIR_GEN,	{DH_MIN_P_BITS, DH_MAX_P_BITS, 
+				 CKF_GENERATE_KEY_PAIR}, PR_TRUE}, 
+     {CKM_DH_PKCS_DERIVE,	{DH_MIN_P_BITS, DH_MAX_P_BITS,
+				 CKF_DERIVE}, 	PR_TRUE}, 
 #ifdef NSS_ENABLE_ECC
      /* -------------------- Elliptic Curve Operations --------------------- */
      {CKM_EC_KEY_PAIR_GEN,      {112, 571, CKF_GENERATE_KEY_PAIR|CKF_EC_BPNU}, PR_TRUE}, 
@@ -1029,33 +1044,56 @@ pk11_handlePublicKeyObject(PK11Session *session, PK11Object *object,
 
     switch (key_type) {
     case CKK_RSA:
-	if ( !pk11_hasAttribute(object, CKA_MODULUS)) {
-	    return CKR_TEMPLATE_INCOMPLETE;
+	crv = pk11_ConstrainAttribute(object, CKA_MODULUS,
+						 RSA_MIN_MODULUS_BITS, 0, 0);
+	if (crv != CKR_OK) {
+	    return crv;
 	}
-	if ( !pk11_hasAttribute(object, CKA_PUBLIC_EXPONENT)) {
-	    return CKR_TEMPLATE_INCOMPLETE;
+	crv = pk11_ConstrainAttribute(object, CKA_PUBLIC_EXPONENT, 2, 0, 0);
+	if (crv != CKR_OK) {
+	    return crv;
 	}
 	pubKeyAttr = CKA_MODULUS;
 	break;
     case CKK_DSA:
-	if ( !pk11_hasAttribute(object, CKA_SUBPRIME)) {
-	    return CKR_TEMPLATE_INCOMPLETE;
+	crv = pk11_ConstrainAttribute(object, CKA_SUBPRIME, 
+						DSA_Q_BITS, DSA_Q_BITS, 0);
+	if (crv != CKR_OK) {
+	    return crv;
 	}
-	/* fall through */
+	crv = pk11_ConstrainAttribute(object, CKA_PRIME, 
+					DSA_MIN_P_BITS, DSA_MAX_P_BITS, 64);
+	if (crv != CKR_OK) {
+	    return crv;
+	}
+	crv = pk11_ConstrainAttribute(object, CKA_BASE, 1, DSA_MAX_P_BITS, 0);
+	if (crv != CKR_OK) {
+	    return crv;
+	}
+	crv = pk11_ConstrainAttribute(object, CKA_VALUE, 1, DSA_MAX_P_BITS, 0);
+	if (crv != CKR_OK) {
+	    return crv;
+	}
+	encrypt = CK_FALSE;
+	recover = CK_FALSE;
+	wrap = CK_FALSE;
+	break;
     case CKK_DH:
-	if ( !pk11_hasAttribute(object, CKA_PRIME)) {
-	    return CKR_TEMPLATE_INCOMPLETE;
+	crv = pk11_ConstrainAttribute(object, CKA_PRIME, 
+					DH_MIN_P_BITS, DH_MAX_P_BITS, 0);
+	if (crv != CKR_OK) {
+	    return crv;
 	}
-	if ( !pk11_hasAttribute(object, CKA_BASE)) {
-	    return CKR_TEMPLATE_INCOMPLETE;
+	crv = pk11_ConstrainAttribute(object, CKA_BASE, 1, DH_MAX_P_BITS, 0);
+	if (crv != CKR_OK) {
+	    return crv;
 	}
-	if ( !pk11_hasAttribute(object, CKA_VALUE)) {
-	    return CKR_TEMPLATE_INCOMPLETE;
+	crv = pk11_ConstrainAttribute(object, CKA_VALUE, 1, DH_MAX_P_BITS, 0);
+	if (crv != CKR_OK) {
+	    return crv;
 	}
-	if (key_type == CKK_DH) {
-	    verify = CK_FALSE;
-	    derive = CK_TRUE;
- 	}
+	verify = CK_FALSE;
+	derive = CK_TRUE;
 	encrypt = CK_FALSE;
 	recover = CK_FALSE;
 	wrap = CK_FALSE;
@@ -1068,6 +1106,7 @@ pk11_handlePublicKeyObject(PK11Session *session, PK11Object *object,
 	if ( !pk11_hasAttribute(object, CKA_EC_POINT)) {
 	    return CKR_TEMPLATE_INCOMPLETE;
 	}
+	pubKeyAttr = CKA_EC_POINT;
 	derive = CK_TRUE;    /* for ECDH */
 	verify = CK_TRUE;    /* for ECDSA */
 	encrypt = CK_FALSE;
@@ -1219,6 +1258,9 @@ pk11_handlePrivateKeyObject(PK11Session *session,PK11Object *object,CK_KEY_TYPE 
 	if ( !pk11_hasAttribute(object, CKA_VALUE)) {
 	    return CKR_TEMPLATE_INCOMPLETE;
 	}
+	if ( !pk11_hasAttribute(object, CKA_NETSCAPE_DB)) {
+	    return CKR_TEMPLATE_INCOMPLETE;
+	}
 	encrypt = CK_FALSE;
 	recover = CK_FALSE;
 	wrap = CK_FALSE;
@@ -1328,6 +1370,8 @@ validateSecretKey(PK11Session *session, PK11Object *object,
     CK_BBOOL cktrue = CK_TRUE;
     CK_BBOOL ckfalse = CK_FALSE;
     PK11Attribute *attribute = NULL;
+    unsigned long requiredLen;
+
     crv = pk11_defaultAttribute(object,CKA_SENSITIVE,
 				isFIPS?&cktrue:&ckfalse,sizeof(CK_BBOOL));
     if (crv != CKR_OK)  return crv; 
@@ -1390,7 +1434,13 @@ validateSecretKey(PK11Session *session, PK11Object *object,
     case CKK_CDMF:
 	attribute = pk11_FindAttribute(object,CKA_VALUE);
 	/* shouldn't happen */
-	if (attribute == NULL) return CKR_TEMPLATE_INCOMPLETE;
+	if (attribute == NULL) 
+	    return CKR_TEMPLATE_INCOMPLETE;
+	requiredLen = pk11_MapKeySize(key_type);
+	if (attribute->attrib.ulValueLen != requiredLen) {
+	    pk11_FreeAttribute(attribute);
+	    return CKR_KEY_SIZE_RANGE;
+	}
 	pk11_FormatDESKey((unsigned char*)attribute->attrib.pValue,
 						 attribute->attrib.ulValueLen);
 	pk11_FreeAttribute(attribute);
@@ -1989,10 +2039,12 @@ pk11_mkPrivKey(PK11Object *object, CK_KEY_TYPE key_type, CK_RV *crvp)
 	crv = pk11_Attribute2SSecItem(arena,&privKey->u.ec.privateValue,
 							object,CKA_VALUE);
 	if (crv != CKR_OK) break;
-	/* XXX Why does this break handlePrivateKeyObject ? 
-	crv = pk11_Attribute2SSecItem(arena,&privKey->u.ec.publicValue,
+	crv = pk11_Attribute2SSecItem(arena, &privKey->u.ec.publicValue,
 				      object,CKA_NETSCAPE_DB);
-	*/
+	if (crv != CKR_OK) break;
+        rv = DER_SetUInteger(privKey->arena, &privKey->u.ec.version,
+                          NSSLOWKEY_EC_PRIVATE_KEY_VERSION);
+	if (rv != SECSuccess) crv = CKR_HOST_MEMORY;
 	break;
 #endif /* NSS_ENABLE_ECC */
 
@@ -2107,6 +2159,8 @@ pk11_mkSecretKeyRep(PK11Object *object)
 {
     NSSLOWKEYPrivateKey *privKey = 0;
     PLArenaPool *arena = 0;
+    CK_KEY_TYPE keyType;
+    SECItem keyTypeItem;
     CK_RV crv;
     SECStatus rv;
     static unsigned char derZero[1] = { 0 };
@@ -2157,9 +2211,17 @@ pk11_mkSecretKeyRep(PK11Object *object)
     privKey->u.rsa.exponent2.data = derZero;
 
     /* Coeficient set to KEY_TYPE */
-    crv=pk11_Attribute2SecItem(arena,&privKey->u.rsa.coefficient,object,CKA_KEY_TYPE);
+    crv = pk11_GetULongAttribute(object, CKA_KEY_TYPE, &keyType);
     if (crv != CKR_OK) goto loser;
-
+    keyType = PR_htonl(keyType);
+    keyTypeItem.data = (unsigned char *)&keyType;
+    keyTypeItem.len = sizeof (keyType);
+    rv = SECITEM_CopyItem(arena, &privKey->u.rsa.coefficient, &keyTypeItem);
+    if (rv != SECSuccess) {
+	crv = CKR_HOST_MEMORY;
+	goto loser;
+    }
+    
     /* Private key version field set normally for compatibility */
     rv = DER_SetUInteger(privKey->arena, 
 			&privKey->u.rsa.version, NSSLOWKEY_VERSION);
@@ -2789,6 +2851,8 @@ CK_RV nsc_CommonFinalize (CK_VOID_PTR pReserved, PRBool isFIPS)
 	return CKR_OK;
     }
 
+    pk11_CleanupFreeLists();
+    nsslowcert_DestroyFreeLists();
     nsslowcert_DestroyGlobalLocks();
 
 #ifdef LEAK_TEST
@@ -2804,7 +2868,6 @@ CK_RV nsc_CommonFinalize (CK_VOID_PTR pReserved, PRBool isFIPS)
     RNG_RNGShutdown();
 #endif
 
-    pk11_CleanupFreeLists();
     /* tell freeBL to clean up after itself */
     BL_Cleanup();
     /* clean up the default OID table */
@@ -3309,16 +3372,16 @@ CK_RV NSC_OpenSession(CK_SLOT_ID slotID, CK_FLAGS flags,
 						 flags | CKF_SERIAL_SESSION);
     if (session == NULL) return CKR_HOST_MEMORY;
 
-    PK11_USE_THREADS(PZ_Lock(slot->slotLock);)
     if (slot->readOnly && (flags & CKF_RW_SESSION)) {
 	/* NETSCAPE_SLOT_ID is Read ONLY */
 	session->info.flags &= ~CKF_RW_SESSION;
     }
-    slot->sessionCount++;
-    if (session->info.flags & CKF_RW_SESSION) {
-	slot->rwSessionCount++;
-    }
+    PK11_USE_THREADS(PZ_Lock(slot->slotLock);)
+    ++slot->sessionCount;
     PK11_USE_THREADS(PZ_Unlock(slot->slotLock);)
+    if (session->info.flags & CKF_RW_SESSION) {
+	PR_AtomicIncrement(&slot->rwSessionCount);
+    }
 
     do {
         do {
@@ -3365,19 +3428,18 @@ CK_RV NSC_CloseSession(CK_SESSION_HANDLE hSession)
     }
     PK11_USE_THREADS(PZ_Unlock(PK11_SESSION_LOCK(slot,hSession));)
 
-    PK11_USE_THREADS(PZ_Lock(slot->slotLock);)
     if (sessionFound) {
-	slot->sessionCount--;
+	PK11_USE_THREADS(PZ_Lock(slot->slotLock);)
+	if (--slot->sessionCount == 0) {
+	    pw = slot->password;
+	    slot->isLoggedIn = PR_FALSE;
+	    slot->password = NULL;
+	}
+	PK11_USE_THREADS(PZ_Unlock(slot->slotLock);)
 	if (session->info.flags & CKF_RW_SESSION) {
-	    slot->rwSessionCount--;
+	    PR_AtomicDecrement(&slot->rwSessionCount);
 	}
     }
-    if (slot->sessionCount == 0) {
-	pw = slot->password;
-	slot->isLoggedIn = PR_FALSE;
-	slot->password = NULL;
-    }
-    PK11_USE_THREADS(PZ_Unlock(slot->slotLock);)
 
     pk11_FreeSession(session);
     if (pw) SECITEM_ZfreeItem(pw, PR_TRUE);
@@ -3423,11 +3485,11 @@ CK_RV NSC_CloseAllSessions (CK_SLOT_ID slotID)
 		session->next = session->prev = NULL;
 		PK11_USE_THREADS(PZ_Unlock(PK11_SESSION_LOCK(slot,i));)
 		PK11_USE_THREADS(PZ_Lock(slot->slotLock);)
-		slot->sessionCount--;
-		if (session->info.flags & CKF_RW_SESSION) {
-		    slot->rwSessionCount--;
-		}
+		--slot->sessionCount;
 		PK11_USE_THREADS(PZ_Unlock(slot->slotLock);)
+		if (session->info.flags & CKF_RW_SESSION) {
+		    PR_AtomicDecrement(&slot->rwSessionCount);
+		}
 	    } else {
 		PK11_USE_THREADS(PZ_Unlock(PK11_SESSION_LOCK(slot,i));)
 	    }
@@ -4056,7 +4118,7 @@ loser:
 
 static void
 pk11_searchKeys(PK11Slot *slot, SECItem *key_id, PRBool isLoggedIn,
-	unsigned long classFlags, PK11SearchResults *search,
+	unsigned long classFlags, PK11SearchResults *search, PRBool mustStrict,
 	CK_ATTRIBUTE *pTemplate, CK_ULONG ulCount)
 {
     NSSLOWKEYDBHandle *keyHandle = NULL;
@@ -4110,7 +4172,7 @@ pk11_searchKeys(PK11Slot *slot, SECItem *key_id, PRBool isLoggedIn,
     keyData.templ_count = ulCount;
     keyData.isLoggedIn = isLoggedIn;
     keyData.classFlags = classFlags;
-    keyData.strict = NSC_STRICT;
+    keyData.strict = mustStrict ? mustStrict : NSC_STRICT;
 
     nsslowkey_TraverseKeys(keyHandle, pk11_key_collect, &keyData);
 }
@@ -4573,8 +4635,9 @@ pk11_searchTokenList(PK11Slot *slot, PK11SearchResults *search,
 
     /* keys */
     if (classFlags & (NSC_PRIVATE|NSC_PUBLIC|NSC_KEY)) {
+	PRBool mustStrict = ((classFlags & NSC_KEY) != 0) && (name.len != 0);
 	pk11_searchKeys(slot, &key_id, isLoggedIn, classFlags, search,
-			pTemplate, ulCount);
+			 mustStrict, pTemplate, ulCount);
     }
 
     /* crl's */

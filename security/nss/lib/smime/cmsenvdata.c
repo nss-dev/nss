@@ -360,7 +360,11 @@ NSS_CMSEnvelopedData_Decode_BeforeData(NSSCMSEnvelopedData *envd)
 
     cinfo = &(envd->contentInfo);
     bulkalgtag = NSS_CMSContentInfo_GetContentEncAlgTag(cinfo);
-    bulkkey = NSS_CMSRecipientInfo_UnwrapBulkKey(ri,recipient->subIndex,
+    if (bulkalgtag == SEC_OID_UNKNOWN) {
+	PORT_SetError(SEC_ERROR_INVALID_ALGORITHM);
+    } else 
+	bulkkey = 
+	    NSS_CMSRecipientInfo_UnwrapBulkKey(ri,recipient->subIndex,
 						    recipient->cert,
 						    recipient->privkey,
 						    bulkalgtag);
@@ -404,7 +408,7 @@ loser:
 SECStatus
 NSS_CMSEnvelopedData_Decode_AfterData(NSSCMSEnvelopedData *envd)
 {
-    if (envd->contentInfo.ciphcx) {
+    if (envd && envd->contentInfo.ciphcx) {
 	NSS_CMSCipherContext_Destroy(envd->contentInfo.ciphcx);
 	envd->contentInfo.ciphcx = NULL;
     }

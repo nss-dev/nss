@@ -61,9 +61,12 @@
 #include <stdio.h>
 #include <string.h>
 
-extern void SEC_Init(void);		/* XXX */
 char *progName = NULL;
 static int cms_verbose = 0;
+static secuPWData pwdata = { PW_NONE, 0 };
+static PK11PasswordFunc pwcb = NULL;
+static void *pwcb_arg = NULL;
+
 
 /* XXX stolen from cmsarray.c
  * nss_CMSArray_Count - count number of elements in array
@@ -84,6 +87,7 @@ DigestFile(PLArenaPool *poolp, SECItem ***digests, SECItem *input,
            SECAlgorithmID **algids)
 {
     NSSCMSDigestContext *digcx;
+    SECStatus rv;
 
     digcx = NSS_CMSDigestContext_StartMultiple(algids);
     if (digcx == NULL)
@@ -91,7 +95,8 @@ DigestFile(PLArenaPool *poolp, SECItem ***digests, SECItem *input,
 
     NSS_CMSDigestContext_Update(digcx, input->data, input->len);
 
-    return NSS_CMSDigestContext_FinishMultiple(digcx, poolp, digests);
+    rv = NSS_CMSDigestContext_FinishMultiple(digcx, poolp, digests);
+    return rv;
 }
 
 
@@ -99,14 +104,18 @@ static void
 Usage(char *progName)
 {
     fprintf(stderr, 
-"Usage:  %s [-D|-S|-E] [<options>] [-d dbdir] [-u certusage]\n", 
-	    progName);
-    fprintf(stderr, 
+"Usage:  %s [-C|-D|-E|-O|-S] [<options>] [-d dbdir] [-u certusage]\n"
+" -C            create a CMS encrypted data message\n"
 " -D            decode a CMS message\n"
+"  -b           decode a batch of files named in infile\n"
 "  -c content   use this detached content\n"
 "  -n           suppress output of content\n"
-"  -h num       generate email headers with info about CMS message\n"
-" -S            create a CMS signed message\n"
+"  -h num       display num levels of CMS message info as email headers\n"
+"  -k           keep decoded encryption certs in perm cert db\n"
+" -E            create a CMS enveloped data message\n"
+"  -r id,...    create envelope for these recipients,\n"
+"               where id can be a certificate nickname or email address\n"
+" -S            create a CMS signed data message\n"
 "  -G           include a signing time attribute\n"
 "  -H hash      use hash (default:SHA1)\n"
 "  -N nick      use certificate named \"nick\" for signing\n"
@@ -114,16 +123,18 @@ Usage(char *progName)
 "  -T           do not include content in CMS message\n"
 "  -Y nick      include a EncryptionKeyPreference attribute with cert\n"
 "                 (use \"NONE\" to omit)\n"
-" -E            create a CMS enveloped message (NYI)\n"
-"  -r id,...    create envelope for these recipients,\n"
-"               where id can be a certificate nickname or email address\n"
+" -O            create a CMS signed message containing only certificates\n"
+" General Options:\n"
 " -d dbdir      key/cert database directory (default: ~/.netscape)\n"
+" -e envelope   enveloped data message in this file is used for bulk key\n"
 " -i infile     use infile as source of data (default: stdin)\n"
 " -o outfile    use outfile as destination of data (default: stdout)\n"
 " -p password   use password as key db password (default: prompt)\n"
 " -u certusage  set type of certificate usage (default: certUsageEmailSigner)\n"
 " -v            print debugging information\n"
-"\nCert usage codes:\n");
+"\n"
+"Cert usage codes:\n",
+	    progName);
     fprintf(stderr, "%-25s  0 - certUsageSSLClient\n", " ");
     fprintf(stderr, "%-25s  1 - certUsageSSLServer\n", " ");
     fprintf(stderr, "%-25s  2 - certUsageSSLServerWithStepUp\n", " ");
@@ -148,11 +159,12 @@ struct optionsStr {
 
 struct decodeOptionsStr {
     struct optionsStr *options;
-    PRFileDesc *contentFile;
+    SECItem            content;
     int headerLevel;
     PRBool suppressContent;
     NSSCMSGetDecryptKeyCallback dkcb;
     PK11SymKey *bulkkey;
+    PRBool      keepCerts;
 };
 
 struct signOptionsStr {
@@ -188,40 +200,14 @@ struct encryptOptionsStr {
 };
 
 static NSSCMSMessage *
-decode(FILE *out, SECItem *output, SECItem *input, 
-       const struct decodeOptionsStr *decodeOptions)
+decode(FILE *out, SECItem *input, const struct decodeOptionsStr *decodeOptions)
 {
     NSSCMSDecoderContext *dcx;
     NSSCMSMessage *cmsg;
-    NSSCMSContentInfo *cinfo;
-    NSSCMSSignedData *sigd = NULL;
-    NSSCMSEnvelopedData *envd;
-    NSSCMSEncryptedData *encd;
-    SECAlgorithmID **digestalgs;
-    int nlevels, i, nsigners, j;
-    char *signercn;
-    NSSCMSSignerInfo *si;
-    SECOidTag typetag;
-    SECItem **digests;
-    PLArenaPool *poolp;
-    PK11PasswordFunc pwcb;
-    void *pwcb_arg;
-    SECItem *item, sitem = { 0, 0, 0 };
-    secuPWData pwdata = { PW_NONE, 0 };
+    int nlevels, i;
+    SECItem sitem = { 0, 0, 0 };
 
-    if (decodeOptions->options->password)
-    {
-        pwdata.source = PW_PLAINTEXT;
-        pwdata.data = decodeOptions->options->password;
-    }
-    pwcb = SECU_GetModulePassword;
-    pwcb_arg = (void *)&pwdata;
-
-    if (decodeOptions->contentFile) {
-	/* detached content: grab content file */
-	SECU_FileToItem(&sitem, decodeOptions->contentFile);
-    }
-
+    PORT_SetError(0);
     dcx = NSS_CMSDecoder_Start(NULL, 
                                NULL, NULL,         /* content callback     */
                                pwcb, pwcb_arg,     /* password callback    */
@@ -241,6 +227,9 @@ decode(FILE *out, SECItem *output, SECItem *input,
 
     nlevels = NSS_CMSMessage_ContentLevelCount(cmsg);
     for (i = 0; i < nlevels; i++) {
+	NSSCMSContentInfo *cinfo;
+	SECOidTag typetag;
+
 	cinfo = NSS_CMSMessage_ContentLevel(cmsg, i);
 	typetag = NSS_CMSContentInfo_GetContentTypeTag(cinfo);
 
@@ -249,17 +238,29 @@ decode(FILE *out, SECItem *output, SECItem *input,
 
 	switch (typetag) {
 	case SEC_OID_PKCS7_SIGNED_DATA:
+	  {
+	    NSSCMSSignedData *sigd = NULL;
+	    SECItem **digests;
+	    int nsigners;
+	    int j;
+
 	    if (decodeOptions->headerLevel >= 0)
 		fprintf(out, "type=signedData; ");
 	    sigd = (NSSCMSSignedData *)NSS_CMSContentInfo_GetContent(cinfo);
 	    if (sigd == NULL) {
-		SECU_PrintError(progName, 
-		                "problem finding signedData component");
+		SECU_PrintError(progName, "signedData component missing");
 		goto loser;
 	    }
 
 	    /* if we have a content file, but no digests for this signedData */
-	    if (decodeOptions->contentFile != NULL && !NSS_CMSSignedData_HasDigests(sigd)) {
+	    if (decodeOptions->content.data != NULL && 
+	        !NSS_CMSSignedData_HasDigests(sigd)) {
+		PLArenaPool     *poolp;
+		SECAlgorithmID **digestalgs;
+
+		/* detached content: grab content file */
+		sitem = decodeOptions->content;
+
 		if ((poolp = PORT_NewArena(1024)) == NULL) {
 		    fprintf(stderr, "cmsutil: Out of memory.\n");
 		    goto loser;
@@ -269,12 +270,14 @@ decode(FILE *out, SECItem *output, SECItem *input,
 		      != SECSuccess) {
 		    SECU_PrintError(progName, 
 		                    "problem computing message digest");
+		    PORT_FreeArena(poolp, PR_FALSE);
 		    goto loser;
 		}
-		if (NSS_CMSSignedData_SetDigests(sigd, digestalgs, digests) != SECSuccess) {
-		    
+		if (NSS_CMSSignedData_SetDigests(sigd, digestalgs, digests) 
+		    != SECSuccess) {
 		    SECU_PrintError(progName, 
 		                    "problem setting message digests");
+		    PORT_FreeArena(poolp, PR_FALSE);
 		    goto loser;
 		}
 		PORT_FreeArena(poolp, PR_FALSE);
@@ -284,7 +287,7 @@ decode(FILE *out, SECItem *output, SECItem *input,
 	    if (NSS_CMSSignedData_ImportCerts(sigd, 
 	                                   decodeOptions->options->certHandle, 
 	                                   decodeOptions->options->certUsage, 
-	                                   PR_FALSE) 
+	                                   decodeOptions->keepCerts) 
 	          != SECSuccess) {
 		SECU_PrintError(progName, "cert import failed");
 		goto loser;
@@ -295,13 +298,11 @@ decode(FILE *out, SECItem *output, SECItem *input,
 	    if (decodeOptions->headerLevel >= 0)
 		fprintf(out, "nsigners=%d; ", nsigners);
 	    if (nsigners == 0) {
-		/* must be a cert transport message */
+		/* Might be a cert transport message
+		** or might be an invalid message, such as a QA test message
+		** or a message from an attacker.
+		*/
 		SECStatus rv;
-		/* XXX workaround for bug #54014 */
-		NSS_CMSSignedData_ImportCerts(sigd, 
-                                            decodeOptions->options->certHandle, 
-		                            decodeOptions->options->certUsage, 
-		                            PR_TRUE);
 		rv = NSS_CMSSignedData_VerifyCertsOnly(sigd, 
 		                            decodeOptions->options->certHandle, 
 		                            decodeOptions->options->certUsage);
@@ -319,32 +320,62 @@ decode(FILE *out, SECItem *output, SECItem *input,
 	    }
 
 	    for (j = 0; j < nsigners; j++) {
+		const char * svs;
+		NSSCMSSignerInfo *si;
+		NSSCMSVerificationStatus vs;
+		SECStatus bad;
+
 		si = NSS_CMSSignedData_GetSignerInfo(sigd, j);
-		signercn = NSS_CMSSignerInfo_GetSignerCommonName(si);
-		if (signercn == NULL)
-		    signercn = "";
-		if (decodeOptions->headerLevel >= 0)
+		if (decodeOptions->headerLevel >= 0) {
+		    char *signercn;
+		    static char empty[] = { "" };
+
+		    signercn = NSS_CMSSignerInfo_GetSignerCommonName(si);
+		    if (signercn == NULL)
+			signercn = empty;
 		    fprintf(out, "\n\t\tsigner%d.id=\"%s\"; ", j, signercn);
-		(void)NSS_CMSSignedData_VerifySignerInfo(sigd, j, 
+		    if (signercn != empty)
+		        PORT_Free(signercn);
+		}
+		bad = NSS_CMSSignedData_VerifySignerInfo(sigd, j, 
 		                           decodeOptions->options->certHandle, 
 		                           decodeOptions->options->certUsage);
-		if (decodeOptions->headerLevel >= 0)
-		    fprintf(out, "signer%d.status=%s; ", j, 
-		            NSS_CMSUtil_VerificationStatusToString(
-		                  NSS_CMSSignerInfo_GetVerificationStatus(si)));
-		    /* XXX what do we do if we don't print headers? */
+		vs  = NSS_CMSSignerInfo_GetVerificationStatus(si);
+		svs = NSS_CMSUtil_VerificationStatusToString(vs);
+		if (decodeOptions->headerLevel >= 0) {
+		    fprintf(out, "signer%d.status=%s; ", j, svs);
+		    /* goto loser ? */
+		} else if (bad && out) {
+		    fprintf(stderr, "signer %d status = %s\n", j, svs);
+		    goto loser;
+		}
 	    }
-	    break;
+	  }
+	  break;
 	case SEC_OID_PKCS7_ENVELOPED_DATA:
+	  {
+	    NSSCMSEnvelopedData *envd;
 	    if (decodeOptions->headerLevel >= 0)
 		fprintf(out, "type=envelopedData; ");
 	    envd = (NSSCMSEnvelopedData *)NSS_CMSContentInfo_GetContent(cinfo);
-	    break;
+	    if (envd == NULL) {
+		SECU_PrintError(progName, "envelopedData component missing");
+		goto loser;
+	    }
+	  }
+	  break;
 	case SEC_OID_PKCS7_ENCRYPTED_DATA:
+	  {
+	    NSSCMSEncryptedData *encd;
 	    if (decodeOptions->headerLevel >= 0)
 		fprintf(out, "type=encryptedData; ");
 	    encd = (NSSCMSEncryptedData *)NSS_CMSContentInfo_GetContent(cinfo);
-	    break;
+	    if (encd == NULL) {
+		SECU_PrintError(progName, "encryptedData component missing");
+		goto loser;
+	    }
+	  }
+	  break;
 	case SEC_OID_PKCS7_DATA:
 	    if (decodeOptions->headerLevel >= 0)
 		fprintf(out, "type=data; ");
@@ -356,13 +387,15 @@ decode(FILE *out, SECItem *output, SECItem *input,
 	    fprintf(out, "\n");
     }
 
-    if (!decodeOptions->suppressContent) {
-	item = decodeOptions->contentFile ? &sitem :
-	    NSS_CMSMessage_GetContent(cmsg);
-	SECITEM_CopyItem(NULL, output, item);
+    if (!decodeOptions->suppressContent && out) {
+	SECItem *item = (sitem.data ? &sitem 
+	                            : NSS_CMSMessage_GetContent(cmsg));
+	if (item && item->data && item->len) {
+	    fwrite(item->data, item->len, 1, out);
+    	}
     }
-
     return cmsg;
+
 loser:
     if (cmsg)
 	NSS_CMSMessage_Destroy(cmsg);
@@ -415,7 +448,7 @@ signed_data(struct signOptionsStr *signOptions)
                                          signOptions->nickname,
                                          signOptions->options->certUsage,
                                          PR_FALSE,
-                                         NULL)) == NULL) {
+                                         &pwdata)) == NULL) {
 	SECU_PrintError(progName, 
 	                "the corresponding cert for key \"%s\" does not exist",
 	                signOptions->nickname);
@@ -519,7 +552,7 @@ signed_data(struct signOptionsStr *signOptions)
                                               signOptions->nickname,
                                               certUsageEmailRecipient,
                                               PR_FALSE,
-                                              NULL)) == NULL) {
+                                              &pwdata)) == NULL) {
                 SECU_PrintError(progName, 
                          "the corresponding cert for key \"%s\" does not exist",
                          signOptions->encryptionKeyPreferenceNick);
@@ -551,7 +584,7 @@ signed_data(struct signOptionsStr *signOptions)
 	if ((ekpcert = CERT_FindUserCertByUsage(
                                      signOptions->options->certHandle, 
 	                             signOptions->encryptionKeyPreferenceNick,
-                                     certUsageEmailRecipient, PR_FALSE, NULL))
+                                     certUsageEmailRecipient, PR_FALSE, &pwdata))
 	      == NULL) {
 	    SECU_PrintError(progName, 
 	               "the corresponding cert for key \"%s\" does not exist",
@@ -871,14 +904,11 @@ signed_data_certsonly(struct certsonlyOptionsStr *certsonlyOptions)
         "ERROR: please indicate the nickname of a certificate to sign with.\n");
 	goto loser;
     }
-    if ((tmppoolp = PORT_NewArena (1024)) == NULL) {
+    if (!(tmppoolp = PORT_NewArena(1024))) {
 	fprintf(stderr, "ERROR: out of memory.\n");
 	goto loser;
     }
-    if ((certs = 
-         (CERTCertificate **)PORT_ArenaZAlloc(tmppoolp, 
-					     (cnt+1)*sizeof(CERTCertificate*)))
-            == NULL) {
+    if (!(certs = PORT_ArenaZNewArray(tmppoolp, CERTCertificate *, cnt + 1))) {
 	fprintf(stderr, "ERROR: out of memory.\n");
 	goto loser;
     }
@@ -948,7 +978,86 @@ loser:
     return NULL;
 }
 
+static char *
+pl_fgets(char * buf, int size, PRFileDesc * fd)
+{
+    char * bp = buf;
+    int    nb = 0;;
+
+    while (size > 1) {
+    	nb = PR_Read(fd, bp, 1);
+	if (nb < 0) {
+	    /* deal with error */
+	    return NULL;
+	} else if (nb == 0) {
+	    /* deal with EOF */
+	    return NULL;
+	} else if (*bp == '\n') {
+	    /* deal with EOL */
+	    ++bp;  /* keep EOL character */
+	    break;
+	} else {
+	    /* ordinary character */
+	    ++bp;
+	    --size;
+	}
+    }
+    *bp = '\0';
+    return buf;
+}
+
 typedef enum { UNKNOWN, DECODE, SIGN, ENCRYPT, ENVELOPE, CERTSONLY } Mode;
+
+static int 
+doBatchDecode(FILE *outFile, PRFileDesc *batchFile, 
+              const struct decodeOptionsStr *decodeOptions)
+{
+    char * str;
+    int    exitStatus = 0;
+    char   batchLine[512];
+
+    while (NULL != (str = pl_fgets(batchLine, sizeof batchLine, batchFile))) {
+	NSSCMSMessage *cmsg = NULL;
+	PRFileDesc *   inFile;
+    	int            len = strlen(str);
+	SECStatus      rv;
+	SECItem        input = {0, 0, 0};
+	char           cc;
+
+	while (len > 0 && 
+	       ((cc = str[len - 1]) == '\n' || cc == '\r')) {
+	    str[--len] = '\0';
+	}
+	if (!len) /* skip empty line */
+	    continue;
+	if (str[0] == '#')
+	    continue;  /* skip comment line */
+	fprintf(outFile, "========== %s ==========\n", str);
+	inFile = PR_Open(str, PR_RDONLY, 00660);
+	if (inFile == NULL) {
+	    fprintf(outFile, "%s: unable to open \"%s\" for reading\n",
+		    progName, str);
+	    exitStatus = 1;
+	    continue;
+	}
+	rv = SECU_FileToItem(&input, inFile);
+	PR_Close(inFile);
+	if (rv != SECSuccess) {
+	    SECU_PrintError(progName, "unable to read infile");
+	    exitStatus = 1;
+	    continue;
+	}
+	cmsg = decode(outFile, &input, decodeOptions);
+	SECITEM_FreeItem(&input, PR_FALSE);
+	if (cmsg)
+	    NSS_CMSMessage_Destroy(cmsg);
+	else {
+	    SECU_PrintError(progName, "problem decoding");
+	    exitStatus = 1;
+	}
+    }
+    return exitStatus;
+}
 
 int
 main(int argc, char **argv)
@@ -959,8 +1068,6 @@ main(int argc, char **argv)
     PLOptState *optstate;
     PLOptStatus status;
     Mode mode = UNKNOWN;
-    PK11PasswordFunc pwcb;
-    void *pwcb_arg;
     struct decodeOptionsStr decodeOptions = { 0 };
     struct signOptionsStr signOptions = { 0 };
     struct envelopeOptionsStr envelopeOptions = { 0 };
@@ -973,10 +1080,17 @@ main(int argc, char **argv)
     char *str, *tok;
     char *envFileName;
     SECItem input = { 0, 0, 0};
-    SECItem output = { 0, 0, 0};
-    SECItem dummy = { 0, 0, 0 };
     SECItem envmsg = { 0, 0, 0 };
     SECStatus rv;
+    PRFileDesc *contentFile = NULL;
+    PRBool      batch = PR_FALSE;
+
+#ifdef NISCC_TESTING
+    const char *ev = PR_GetEnv("NSS_DISABLE_ARENA_FREE_LIST");
+    PORT_Assert(ev); 
+    ev = PR_GetEnv("NSS_STRICT_SHUTDOWN");
+    PORT_Assert(ev); 
+#endif 
 
     progName = strrchr(argv[0], '/');
     if (!progName)
@@ -987,9 +1101,11 @@ main(int argc, char **argv)
     outFile = stdout;
     envFileName = NULL;
     mode = UNKNOWN;
-    decodeOptions.contentFile = NULL;
+    decodeOptions.content.data = NULL;
+    decodeOptions.content.len  = 0;
     decodeOptions.suppressContent = PR_FALSE;
     decodeOptions.headerLevel = -1;
+    decodeOptions.keepCerts = PR_FALSE;
     options.certUsage = certUsageEmailSigner;
     options.password = NULL;
     signOptions.nickname = NULL;
@@ -1010,7 +1126,7 @@ main(int argc, char **argv)
      * Parse command line arguments
      */
     optstate = PL_CreateOptState(argc, argv, 
-				 "CDEGH:N:OPSTY:c:d:e:h:i:no:p:r:s:u:v");
+				 "CDEGH:N:OPSTY:bc:d:e:h:i:kno:p:r:s:u:v");
     while ((status = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
 	switch (optstate->option) {
 	case 'C':
@@ -1035,7 +1151,6 @@ main(int argc, char **argv)
        case 'H':
            if (mode != SIGN) {
                fprintf(stderr,
-                       "%s: option -n only supported with option -D.\n",
                        "%s: option -H only supported with option -S.\n",
                        progName);
                Usage(progName);
@@ -1110,6 +1225,17 @@ main(int argc, char **argv)
 	    signOptions.encryptionKeyPreferenceNick = strdup(optstate->value);
 	    break;
 
+	case 'b':
+	    if (mode != DECODE) {
+		fprintf(stderr, 
+		        "%s: option -b only supported with option -D.\n", 
+		        progName);
+		Usage(progName);
+		exit(1);
+	    }
+	    batch = PR_TRUE;
+	    break;
+
 	case 'c':
 	    if (mode != DECODE) {
 		fprintf(stderr, 
@@ -1118,12 +1244,25 @@ main(int argc, char **argv)
 		Usage(progName);
 		exit(1);
 	    }
-	    if ((decodeOptions.contentFile = 
-	          PR_Open(optstate->value, PR_RDONLY, 006600)) == NULL) {
+	    contentFile = PR_Open(optstate->value, PR_RDONLY, 006600);
+	    if (contentFile == NULL) {
 		fprintf(stderr, "%s: unable to open \"%s\" for reading.\n",
 			progName, optstate->value);
 		exit(1);
 	    }
+
+	    rv = SECU_FileToItem(&decodeOptions.content, contentFile);
+	    PR_Close(contentFile);
+	    if (rv != SECSuccess) {
+		SECU_PrintError(progName, "problem reading content file");
+		exit(1);
+	    }
+	    if (!decodeOptions.content.data) {
+		/* file was zero length */
+		decodeOptions.content.data = (unsigned char *)PORT_Strdup("");
+		decodeOptions.content.len  = 0;
+	    }
+
 	    break;
 	case 'd':
 	    SECU_ConfigDirectory(optstate->value);
@@ -1154,6 +1293,17 @@ main(int argc, char **argv)
 			progName, optstate->value);
 		exit(1);
 	    }
+	    break;
+
+	case 'k':
+	    if (mode != DECODE) {
+		fprintf(stderr, 
+		        "%s: option -k only supported with option -D.\n", 
+		        progName);
+		Usage(progName);
+		exit(1);
+	    }
+	    decodeOptions.keepCerts = PR_TRUE;
 	    break;
 
 	case 'n':
@@ -1225,10 +1375,16 @@ main(int argc, char **argv)
     if (mode == UNKNOWN)
 	Usage(progName);
 
-    if (mode != CERTSONLY)
-	SECU_FileToItem(&input, inFile);
-    if (inFile != PR_STDIN)
-	PR_Close(inFile);
+    if (mode != CERTSONLY && !batch) {
+	rv = SECU_FileToItem(&input, inFile);
+	if (rv != SECSuccess) {
+	    SECU_PrintError(progName, "unable to read infile");
+	    exit(1);
+	}
+	if (inFile != PR_STDIN) {
+	    PR_Close(inFile);
+    	}
+    }
     if (cms_verbose) {
 	fprintf(stderr, "received commands\n");
     }
@@ -1251,6 +1407,16 @@ main(int argc, char **argv)
     if (cms_verbose) {
 	fprintf(stderr, "Got default certdb\n");
     }
+    if (options.password)
+    {
+    	pwdata.source = PW_PLAINTEXT;
+    	pwdata.data = options.password;
+    }
+    pwcb = SECU_GetModulePassword;
+    pwcb_arg = (void *)&pwdata;
+
+    PK11_SetPasswordFunc(&SECU_GetModulePassword);
+
 
 #if defined(_WIN32)
     if (outFile == stdout) {
@@ -1269,7 +1435,7 @@ main(int argc, char **argv)
 
     exitstatus = 0;
     switch (mode) {
-    case DECODE:
+    case DECODE:       /* -D */
 	decodeOptions.options = &options;
 	if (encryptOptions.envFile) {
 	    /* Decoding encrypted-data, so get the bulkkey from an
@@ -1277,8 +1443,7 @@ main(int argc, char **argv)
 	     */
 	    SECU_FileToItem(&envmsg, encryptOptions.envFile);
 	    decodeOptions.options = &options;
-	    encryptOptions.envmsg = decode(NULL, &dummy, &envmsg, 
-	                                   &decodeOptions);
+	    encryptOptions.envmsg = decode(NULL, &envmsg, &decodeOptions);
 	    if (!encryptOptions.envmsg) {
 		SECU_PrintError(progName, "problem decoding env msg");
 		exitstatus = 1;
@@ -1288,14 +1453,20 @@ main(int argc, char **argv)
 	    decodeOptions.dkcb = dkcb;
 	    decodeOptions.bulkkey = encryptOptions.bulkkey;
 	}
-	cmsg = decode(outFile, &output, &input, &decodeOptions);
-	if (!cmsg) {
-	    SECU_PrintError(progName, "problem decoding");
-	    exitstatus = 1;
+	if (!batch) {
+	    cmsg = decode(outFile, &input, &decodeOptions);
+	    if (!cmsg) {
+		SECU_PrintError(progName, "problem decoding");
+		exitstatus = 1;
+	    }
+	} else {
+	    exitstatus = doBatchDecode(outFile, inFile, &decodeOptions);
+	    if (inFile != PR_STDIN) {
+		PR_Close(inFile);
+	    }
 	}
-	fwrite(output.data, output.len, 1, outFile);
 	break;
-    case SIGN:
+    case SIGN:         /* -S */
 	signOptions.options = &options;
 	cmsg = signed_data(&signOptions);
 	if (!cmsg) {
@@ -1303,7 +1474,7 @@ main(int argc, char **argv)
 	    exitstatus = 1;
 	}
 	break;
-    case ENCRYPT:
+    case ENCRYPT:      /* -C */
 	if (!envFileName) {
 	    fprintf(stderr, "%s: you must specify an envelope file with -e.\n",
 	            progName);
@@ -1312,6 +1483,9 @@ main(int argc, char **argv)
 	encryptOptions.options = &options;
 	encryptOptions.input = &input;
 	encryptOptions.outfile = outFile;
+	/* decode an enveloped-data message to get the bulkkey (create
+	 * a new one if neccessary)
+	 */
 	if (!encryptOptions.envFile) {
 	    encryptOptions.envFile = PR_Open(envFileName, 
 	                                     PR_WRONLY|PR_CREATE_FILE, 00660);
@@ -1323,17 +1497,13 @@ main(int argc, char **argv)
 	} else {
 	    SECU_FileToItem(&envmsg, encryptOptions.envFile);
 	    decodeOptions.options = &options;
-	    encryptOptions.envmsg = decode(NULL, &dummy, &envmsg, 
-	                                   &decodeOptions);
+	    encryptOptions.envmsg = decode(NULL, &envmsg, &decodeOptions);
 	    if (encryptOptions.envmsg == NULL) {
 	    	SECU_PrintError(progName, "problem decrypting env msg");
 		exitstatus = 1;
 	    	break;
 	    }
 	}
-	/* decode an enveloped-data message to get the bulkkey (create
-	 * a new one if neccessary)
-	 */
 	rv = get_enc_params(&encryptOptions);
 	/* create the encrypted-data message */
 	cmsg = encrypted_data(&encryptOptions);
@@ -1346,7 +1516,7 @@ main(int argc, char **argv)
 	    encryptOptions.bulkkey = NULL;
 	}
 	break;
-    case ENVELOPE:
+    case ENVELOPE:     /* -E */
 	envelopeOptions.options = &options;
 	cmsg = enveloped_data(&envelopeOptions);
 	if (!cmsg) {
@@ -1354,7 +1524,7 @@ main(int argc, char **argv)
 	    exitstatus = 1;
 	}
 	break;
-    case CERTSONLY:
+    case CERTSONLY:    /* -O */
 	certsonlyOptions.options = &options;
 	cmsg = signed_data_certsonly(&certsonlyOptions);
 	if (!cmsg) {
@@ -1378,14 +1548,6 @@ main(int argc, char **argv)
 	    fprintf(stderr, "%s: out of memory.\n", progName);
 	    exit(1);
 	}
-
-	if (options.password)
-	{
-    	    pwdata.source = PW_PLAINTEXT;
-    	    pwdata.data = options.password;
-	}
-	pwcb = SECU_GetModulePassword;
-	pwcb_arg = (void *)&pwdata;
 
 	if (cms_verbose) {
 	    fprintf(stderr, "cmsg [%p]\n", cmsg);
@@ -1429,7 +1591,6 @@ main(int argc, char **argv)
 	if (cms_verbose) {
 	    fprintf(stderr, "encoding passed\n");
 	}
-	/*PR_Write(output.data, output.len);*/
 	fwrite(output.data, output.len, 1, outFile);
 	if (cms_verbose) {
 	    fprintf(stderr, "wrote to file\n");
@@ -1441,10 +1602,13 @@ main(int argc, char **argv)
     if (outFile != stdout)
 	fclose(outFile);
 
-    if (decodeOptions.contentFile)
-	PR_Close(decodeOptions.contentFile);
+    SECITEM_FreeItem(&decodeOptions.content, PR_FALSE);
+    SECITEM_FreeItem(&envmsg, PR_FALSE);
+    SECITEM_FreeItem(&input, PR_FALSE);
     if (NSS_Shutdown() != SECSuccess) {
-	exit(1);
+	SECU_PrintError(progName, "NSS_Shutdown failed");
+	exitstatus = 1;
     }
-    exit(exitstatus);
+    PR_Cleanup();
+    return exitstatus;
 }

@@ -15,8 +15,14 @@
  * Communications Corporation.	Portions created by Netscape are 
  * Copyright (C) 2000 Netscape Communications Corporation.  All
  * Rights Reserved.
+ *
+ * Portions created by Sun Microsystems, Inc. are Copyright (C) 2003
+ * Sun Microsystems, Inc. All Rights Reserved.
  * 
  * Contributor(s):
+ *      Sheueling Chang Shantz <sheueling.chang@sun.com>, 
+ *      Stephen Fung <stephen.fung@sun.com>, and
+ *      Douglas Stebila <douglas@stebila.ca> of Sun Laboratories.
  * 
  * Alternatively, the contents of this file may be used under the
  * terms of the GNU General Public License Version 2 or later (the
@@ -62,17 +68,7 @@
 #define ABORT abort()
 #endif
 
-typedef struct {
-  mp_int       N;	/* modulus N */
-  mp_digit     n0prime; /* n0' = - (n0 ** -1) mod MP_RADIX */
-  mp_size      b;	/* R == 2 ** b,  also b = # significant bits in N */
-} mp_mont_modulus;
-
-mp_err   s_mp_mul_mont(const mp_int *a, const mp_int *b, mp_int *c, 
-	               mp_mont_modulus *mmm);
-
 /* computes T = REDC(T), 2^b == R */
-STATIC
 mp_err s_mp_redc(mp_int *T, mp_mont_modulus *mmm)
 {
   mp_err res;
@@ -266,7 +262,15 @@ mp_err mp_exptmod_f(const mp_int *   montBase,
     MP_CHECKOK( mpl_get_bits(exponent, expOff, window_bits) );
     smallExp = (mp_size)res;
 
-    if (window_bits == 4) {
+    if (window_bits == 1) {
+      if (!smallExp) {
+	SQR;
+      } else if (smallExp & 1) {
+	SQR; MUL(0); 
+      } else {
+	ABORT;
+      }
+    } else if (window_bits == 4) {
       if (!smallExp) {
 	SQR; SQR; SQR; SQR;
       } else if (smallExp & 1) {
@@ -406,7 +410,15 @@ mp_err mp_exptmod_i(const mp_int *   montBase,
     MP_CHECKOK( mpl_get_bits(exponent, expOff, window_bits) );
     smallExp = (mp_size)res;
 
-    if (window_bits == 4) {
+    if (window_bits == 1) {
+      if (!smallExp) {
+	SQR(pa1,pa2); SWAPPA;
+      } else if (smallExp & 1) {
+	SQR(pa1,pa2); MUL(0,pa2,pa1);
+      } else {
+	ABORT;
+      }
+    } else if (window_bits == 4) {
       if (!smallExp) {
 	SQR(pa1,pa2); SQR(pa2,pa1); SQR(pa1,pa2); SQR(pa2,pa1);
       } else if (smallExp & 1) {
@@ -538,8 +550,13 @@ mp_err mp_exptmod(const mp_int *inBase, const mp_int *exponent,
     window_bits = 6;
   else if (bits_in_exponent > 160)
     window_bits = 5;
-  else
+  else if (bits_in_exponent > 20)
     window_bits = 4;
+  /* RSA public key exponents are typically under 20 bits (common values 
+   * are: 3, 17, 65537) and a 4-bit window is inefficient
+   */
+  else 
+    window_bits = 1;
   odd_ints = 1 << (window_bits - 1);
   i = bits_in_exponent % window_bits;
   if (i != 0) {

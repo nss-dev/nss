@@ -16,7 +16,11 @@
  * Copyright (C) 1994-2000 Netscape Communications Corporation.  All
  * Rights Reserved.
  * 
+ * Portions created by Sun Microsystems, Inc. are Copyright (C) 2003
+ * Sun Microsystems, Inc. All Rights Reserved. 
+ *
  * Contributor(s):
+ *	Dr Vipul Gupta <vipul.gupta@sun.com>, Sun Microsystems Laboratories
  * 
  * Alternatively, the contents of this file may be used under the
  * terms of the GNU General Public License Version 2 or later (the
@@ -45,7 +49,6 @@
 
 #include "secutil.h"
 #include "secpkcs7.h"
-#include "secrng.h"
 #include <stdarg.h>
 #if !defined(_WIN32_WCE)
 #include <sys/stat.h>
@@ -80,6 +83,7 @@ static char consoleName[] =  {
 #endif
 #endif
 };
+
 
 char *
 SECU_GetString(int16 error_number)
@@ -510,26 +514,23 @@ secu_StdinToItem(SECItem *dst)
 	numBytes = PR_Read(PR_STDIN, buf, sizeof(buf));
 
 	if (numBytes < 0) {
-	    PORT_SetError(PR_IO_ERROR);
 	    return SECFailure;
 	}
 
 	if (numBytes == 0)
 	    break;
 
-	if (buf[numBytes-1] == '\n') {
-	    buf[numBytes-1] = '\0';
-	    notDone = PR_FALSE;
-	}
-
 	if (dst->data) {
+	    /* XXX if PORT_Realloc fails, the old buffer is leaked. */
 	    dst->data = (unsigned char*)PORT_Realloc(dst->data, 
-	                                             dst->len+numBytes);
-	    PORT_Memcpy(dst->data+dst->len, buf, numBytes);
+	                                             dst->len + numBytes);
 	} else {
 	    dst->data = (unsigned char*)PORT_Alloc(numBytes);
-	    PORT_Memcpy(dst->data, buf, numBytes);
 	}
+	if (!dst->data) {
+	    return SECFailure;
+	}
+	PORT_Memcpy(dst->data + dst->len, buf, numBytes);
 	dst->len += numBytes;
     }
 
@@ -642,6 +643,7 @@ SECU_ReadDERFromFile(SECItem *der, PRFileDesc *inFile, PRBool ascii)
 		*trailer = '\0';
 	    } else {
 		fprintf(stderr, "input has header but no trailer\n");
+		PORT_Free(filedata.data);
 		return SECFailure;
 	    }
 	} else {
@@ -653,9 +655,11 @@ SECU_ReadDERFromFile(SECItem *der, PRFileDesc *inFile, PRBool ascii)
 	if (rv) {
 	    fprintf(stderr, "error converting ascii to binary (%s)\n",
 		    SECU_Strerror(PORT_GetError()));
+	    PORT_Free(filedata.data);
 	    return SECFailure;
 	}
 	PORT_Free(asc);
+	PORT_Free(filedata.data);
     } else {
 	/* Read in binary der */
 	rv = SECU_FileToItem(der, inFile);
@@ -689,6 +693,7 @@ SECU_PrintAsHex(FILE *out, SECItem *data, const char *m, int level)
     unsigned i;
     int column;
     PRBool isString = PR_TRUE;
+    unsigned int limit = 15;
 
     if ( m ) {
 	SECU_Indent(out, level); fprintf(out, "%s:\n", m);
@@ -696,12 +701,17 @@ SECU_PrintAsHex(FILE *out, SECItem *data, const char *m, int level)
     }
     
     SECU_Indent(out, level); column = level*INDENT_MULT;
+    /* take a pass to see if it's all printable. */
     for (i = 0; i < data->len; i++) {
 	unsigned char val = data->data[i];
-
-        if (isString && val && !isprint(val)) {
+        if (!val || !isprint(val)) {
 	    isString = PR_FALSE;
+	    break;
 	}
+    }
+
+    if (!isString) 
+      for (i = 0; i < data->len; i++) {
 	if (i != data->len - 1) {
 	    fprintf(out, "%02x:", data->data[i]);
 	    column += 3;
@@ -710,14 +720,13 @@ SECU_PrintAsHex(FILE *out, SECItem *data, const char *m, int level)
 	    column += 2;
 	    break;
 	}
-	if (column > 76 || (i % 16 == 15)) {
+	if (column > 76 || (i % 16 == limit)) {
 	    secu_Newline(out);
-	    SECU_Indent(out, level); column = level*INDENT_MULT;
+	    SECU_Indent(out, level); 
+	    column = level*INDENT_MULT;
+	    limit = i % 16;
 	}
-    }
-    if (isString) {
-	secu_Newline(out);
-        SECU_Indent(out, level); column = level*INDENT_MULT;
+    } else {
 	for (i = 0; i < data->len; i++) {
 	    unsigned char val = data->data[i];
 
@@ -734,7 +743,6 @@ SECU_PrintAsHex(FILE *out, SECItem *data, const char *m, int level)
 	}
     }
 	    
-    level--;
     if (column != level*INDENT_MULT) {
 	secu_Newline(out);
     }
@@ -793,6 +801,28 @@ SECU_PrintBuf(FILE *out, const char *msg, const void *vp, int len)
     }
 }
 
+SECStatus
+SECU_StripTagAndLength(SECItem *i)
+{
+    unsigned int start;
+
+    if (!i || !i->data || i->len < 2) { /* must be at least tag and length */
+        return SECFailure;
+    }
+    start = ((i->data[1] & 0x80) ? (i->data[1] & 0x7f) + 2 : 2);
+    if (i->len < start) {
+        return SECFailure;
+    }
+    i->data += start;
+    i->len  -= start;
+    return SECSuccess;
+}
+
+
+/* This expents i->data[0] to be the MSB of the integer.
+** if you want to print a DER-encoded integer (with the tag and length)
+** call SECU_PrintEncodedInteger();
+*/
 void
 SECU_PrintInteger(FILE *out, SECItem *i, char *m, int level)
 {
@@ -818,53 +848,61 @@ SECU_PrintInteger(FILE *out, SECItem *i, char *m, int level)
     }
 }
 
-void
-SECU_PrintString(FILE *out, SECItem *i, char *m, int level)
+static void
+secu_PrintRawString(FILE *out, SECItem *si, char *m, int level)
 {
-    char *string;
-    unsigned char *data = i->data;
-    int len = i->len;
-    int lenlen;
-    int tag;
+    int column;
+    unsigned int i;
 
-    string = PORT_ZAlloc(i->len+1);
-   
-    tag = *data++; len--;
-    if (data[1] & 0x80) {
-	    lenlen = data[1] & 0x1f;
-    } else {
-	    lenlen = 1;
+    if ( m ) {
+	SECU_Indent(out, level); fprintf(out, "%s:\n", m);
+	level++;
     }
-    data += lenlen; len -= lenlen;
-    if (len <= 0) return;
-    PORT_Memcpy(string,data,len);
+    
+    SECU_Indent(out, level); column = level*INDENT_MULT;
+    fprintf(out, "\""); column++;
 
-    /* should check the validity of tag, and convert the string as necessary */
-    SECU_Indent(out, level); 
-    if (m) {
-	fprintf(out, "%s: \"%s\"\n", m, string);
-    } else {
-	fprintf(out, "\"%s\"\n", string);
+    for (i = 0; i < si->len; i++) {
+	unsigned char val = si->data[i];
+	if (column > 76) {
+	    secu_Newline(out);
+	    SECU_Indent(out, level); column = level*INDENT_MULT;
+	}
+
+	fprintf(out,"%c", printable[val]); column++;
+    }
+
+    fprintf(out, "\""); column++;
+    if (column != level*INDENT_MULT || column > 76) {
+	secu_Newline(out);
     }
 }
 
+void
+SECU_PrintString(FILE *out, SECItem *si, char *m, int level)
+{
+    SECItem my = *si;
+
+    if (SECSuccess != SECU_StripTagAndLength(&my) || !my.len)
+    	return;
+    secu_PrintRawString(out, &my, m, level);
+}
+
+/* print an unencoded boolean */
 static void
-secu_PrintBoolean(FILE *out, SECItem *i, char *m, int level)
+secu_PrintBoolean(FILE *out, SECItem *i, const char *m, int level)
 {
     int val = 0;
     
-    if ( i->data ) {
+    if ( i->data && i->len ) {
 	val = i->data[0];
     }
 
-    if (m) {
-    	SECU_Indent(out, level); fprintf(out, "%s:\n", m); level++;
+    if (!m) {
+    	m = "Boolean";
     }
-    if ( val ) {
-	SECU_Indent(out, level); fprintf(out, "%s\n", "True");
-    } else {
-	SECU_Indent(out, level); fprintf(out, "%s\n", "False");
-    }    
+    SECU_Indent(out, level); 
+    fprintf(out, "%s: %s\n", m, (val ? "True" : "False"));
 }
 
 /*
@@ -936,102 +974,137 @@ SECU_PrintGeneralizedTime(FILE *out, SECItem *t, char *m, int level)
     secu_PrintTime(out, time, m, level);
 }
 
+/*
+ * Format and print the UTC or Generalized Time "t".  If the tag message
+ * "m" is not NULL, do indent formatting based on "level" and add a newline
+ * afterward; otherwise just print the formatted time string only.
+ */
+void
+SECU_PrintTimeChoice(FILE *out, SECItem *t, char *m, int level)
+{
+    switch (t->type) {
+        case siUTCTime:
+            SECU_PrintUTCTime(out, t, m, level);
+            break;
+
+        case siGeneralizedTime:
+            SECU_PrintGeneralizedTime(out, t, m, level);
+            break;
+
+        default:
+            PORT_Assert(0);
+            break;
+    }
+}
+
 static void secu_PrintAny(FILE *out, SECItem *i, char *m, int level);
 
+/* This prints a SET or SEQUENCE */
 void
 SECU_PrintSet(FILE *out, SECItem *t, char *m, int level)
 {
-    int type= t->data[0] & SEC_ASN1_TAGNUM_MASK;
-    int start;
-    unsigned char *bp;
+    int            type        = t->data[0] & SEC_ASN1_TAGNUM_MASK;
+    int            constructed = t->data[0] & SEC_ASN1_CONSTRUCTED;
+    const char *   label;
+    SECItem        my          = *t;
+
+    if (!constructed) {
+	SECU_PrintAsHex(out, t, m, level);
+        return;
+    }
+    if (SECSuccess != SECU_StripTagAndLength(&my))
+    	return;
 
     SECU_Indent(out, level);
     if (m) {
     	fprintf(out, "%s: ", m);
     }
 
-    fprintf(out,"%s {\n", type == SEC_ASN1_SET ? "Set" : "Sequence"); /* } */
+    if (type == SEC_ASN1_SET)
+    	label = "Set ";
+    else if (type == SEC_ASN1_SEQUENCE)
+    	label = "Sequence ";
+    else
+    	label = "";
+    fprintf(out,"%s{\n", label); /* } */
 
-    start = 2;
-    if (t->data[1] & 0x80) {
-	start += (t->data[1] & 0x7f);
-    }
-    for (bp=&t->data[start]; bp < &t->data[t->len]; ) {
-	SECItem tmp;
-	unsigned int i,len,lenlen;
+    while (my.len >= 2) {
+	SECItem  tmp = my;
 
-        if (bp[1] & 0x80) {
-	    lenlen = bp[1] & 0x1f;
-	    len = 0;
+        if (tmp.data[1] & 0x80) {
+	    unsigned int i;
+	    unsigned int lenlen = tmp.data[1] & 0x7f;
+	    if (lenlen > sizeof tmp.len)
+	        break;
+	    tmp.len = 0;
 	    for (i=0; i < lenlen; i++) {
-		len = len * 255 + bp[2+i];
+		tmp.len = (tmp.len << 8) | tmp.data[2+i];
 	    }
+	    tmp.len += lenlen + 2;
 	} else {
-	    lenlen = 1;
-	    len = bp[1];
+	    tmp.len = tmp.data[1] + 2;
 	}
-	tmp.len = len+lenlen+1;
-	if (tmp.len > &t->data[t->len] - bp) {
-	    tmp.len = &t->data[t->len] - bp;
+	if (tmp.len > my.len) {
+	    tmp.len = my.len;
 	}
-	tmp.data = bp;
-	bp += tmp.len;
-	secu_PrintAny(out,&tmp,NULL,level+1);
+	my.data += tmp.len;
+	my.len  -= tmp.len;
+	secu_PrintAny(out, &tmp, NULL, level + 1);
     }
-    /* { */SECU_Indent(out, level); fprintf(out, "}\n");
+    SECU_Indent(out, level); fprintf(out, /* { */ "}\n");
 }
 
 static void
 secu_PrintContextSpecific(FILE *out, SECItem *i, char *m, int level)
 {
-    int type= i->data[0] & SEC_ASN1_TAGNUM_MASK;
+    int type        = i->data[0] & SEC_ASN1_TAGNUM_MASK;
+    int constructed = i->data[0] & SEC_ASN1_CONSTRUCTED;
     SECItem tmp;
-    int start;
+
+    if (constructed) {
+	char * m2;
+	if (!m) 
+	    m2 = PR_smprintf("[%d]", type);
+	else
+	    m2 = PR_smprintf("%s: [%d]", m, type);
+	if (m2) {
+	    SECU_PrintSet(out, i, m2, level);
+	    PR_smprintf_free(m2);
+	}
+	return;
+    }
 
     SECU_Indent(out, level);
     if (m) {
     	fprintf(out, "%s: ", m);
     }
-
     fprintf(out,"[%d]\n", type);
-    start = 2;
-    if (i->data[1] & 0x80) {
-	start = (i->data[1] & 0x7f) +1;
-    }
-    tmp.data = &i->data[start];
-    tmp.len = i->len -start;
-    SECU_PrintAsHex(out, &tmp, m, level+1);
+
+    tmp = *i;
+    if (SECSuccess == SECU_StripTagAndLength(&tmp))
+	SECU_PrintAsHex(out, &tmp, m, level+1);
 }
 
 static void
 secu_PrintOctetString(FILE *out, SECItem *i, char *m, int level)
 {
-    SECItem tmp;
-    int start;
-
-    start = 2;
-    if (i->data[1] & 0x80) {
-	start = (i->data[1] & 0x7f) +1;
-    }
-    tmp.data = &i->data[start];
-    tmp.len = i->len - start;
-    SECU_PrintAsHex(out, &tmp, m, level);
+    SECItem tmp = *i;
+    if (SECSuccess == SECU_StripTagAndLength(&tmp))
+	SECU_PrintAsHex(out, &tmp, m, level);
 }
 
 static void
 secu_PrintBitString(FILE *out, SECItem *i, char *m, int level)
 {
-    SECItem tmp;
-    int start;
     int unused_bits;
+    SECItem tmp = *i;
 
-    start = 2;
-    if (i->data[1] & 0x80) {
-	start = (i->data[1] & 0x7f) + 1;
-    }
-    unused_bits = i->data[start++];
-    tmp.data = &i->data[start];
-    tmp.len = i->len - start;
+    if (SECSuccess != SECU_StripTagAndLength(&tmp) || tmp.len < 2)
+    	return;
+
+    unused_bits = *tmp.data++;
+    tmp.len--;
+
     SECU_PrintAsHex(out, &tmp, m, level);
     if (unused_bits) {
 	SECU_Indent(out, level + 1);
@@ -1039,26 +1112,52 @@ secu_PrintBitString(FILE *out, SECItem *i, char *m, int level)
     }
 }
 
+/* Print a DER encoded Boolean */
+void
+SECU_PrintEncodedBoolean(FILE *out, SECItem *i, char *m, int level)
+{
+    SECItem my    = *i;
+    if (SECSuccess == SECU_StripTagAndLength(&my))
+	secu_PrintBoolean(out, &my, m, level);
+}
+
+/* Print a DER encoded integer */
+void
+SECU_PrintEncodedInteger(FILE *out, SECItem *i, char *m, int level)
+{
+    SECItem my    = *i;
+    if (SECSuccess == SECU_StripTagAndLength(&my))
+	SECU_PrintInteger(out, &my, m, level);
+}
+
+/* Print a DER encoded OID */
+void
+SECU_PrintEncodedObjectID(FILE *out, SECItem *i, char *m, int level)
+{
+    SECItem my    = *i;
+    if (SECSuccess == SECU_StripTagAndLength(&my))
+	SECU_PrintObjectID(out, &my, m, level);
+}
+
 static void
 secu_PrintUniversal(FILE *out, SECItem *i, char *m, int level)
 {
 	switch (i->data[0] & SEC_ASN1_TAGNUM_MASK) {
+	  case SEC_ASN1_ENUMERATED:
 	  case SEC_ASN1_INTEGER:
-	    SECU_PrintInteger(out, i, m, level);
+	    SECU_PrintEncodedInteger(out, i, m, level);
 	    break;
 	  case SEC_ASN1_OBJECT_ID:
-	    SECU_PrintObjectID(out, i, m, level);
+	    SECU_PrintEncodedObjectID(out, i, m, level);
 	    break;
 	  case SEC_ASN1_BOOLEAN:
-	    secu_PrintBoolean(out, i, m, level);
+	    SECU_PrintEncodedBoolean(out, i, m, level);
 	    break;
 	  case SEC_ASN1_UTF8_STRING:
 	  case SEC_ASN1_PRINTABLE_STRING:
 	  case SEC_ASN1_VISIBLE_STRING:
-	  case SEC_ASN1_BMP_STRING:
 	  case SEC_ASN1_IA5_STRING:
 	  case SEC_ASN1_T61_STRING:
-	  case SEC_ASN1_UNIVERSAL_STRING:
 	    SECU_PrintString(out, i, m, level);
 	    break;
 	  case SEC_ASN1_GENERALIZED_TIME:
@@ -1080,6 +1179,8 @@ secu_PrintUniversal(FILE *out, SECItem *i, char *m, int level)
 	  case SEC_ASN1_BIT_STRING:
 	    secu_PrintBitString(out, i, m, level);
 	    break;
+	  case SEC_ASN1_BMP_STRING:
+	  case SEC_ASN1_UNIVERSAL_STRING:
 	  default:
 	    SECU_PrintAsHex(out, i, m, level);
 	    break;
@@ -1108,30 +1209,41 @@ static int
 secu_PrintValidity(FILE *out, CERTValidity *v, char *m, int level)
 {
     SECU_Indent(out, level);  fprintf(out, "%s:\n", m);
-    SECU_PrintUTCTime(out, &v->notBefore, "Not Before", level+1);
-    SECU_PrintUTCTime(out, &v->notAfter, "Not After", level+1);
+    SECU_PrintTimeChoice(out, &v->notBefore, "Not Before", level+1);
+    SECU_PrintTimeChoice(out, &v->notAfter,  "Not After ", level+1);
     return 0;
 }
 
+/* This function does NOT expect a DER type and length. */
 void
 SECU_PrintObjectID(FILE *out, SECItem *oid, char *m, int level)
 {
-    const char *name;
     SECOidData *oiddata;
+    char *      oidString = NULL;
     
     oiddata = SECOID_FindOID(oid);
-    if (oiddata == NULL) {
-	SECU_PrintAsHex(out, oid, m, level);
+    if (oiddata != NULL) {
+	const char *name = oiddata->desc;
+	SECU_Indent(out, level);
+	if (m != NULL)
+	    fprintf(out, "%s: ", m);
+	fprintf(out, "%s\n", name);
+	return;
+    } 
+    oidString = CERT_GetOidString(oid);
+    if (oidString) {
+	SECU_Indent(out, level);
+	if (m != NULL)
+	    fprintf(out, "%s: ", m);
+	fprintf(out, "%s\n", oidString);
+	PR_smprintf_free(oidString);
 	return;
     }
-    name = oiddata->desc;
-
-    SECU_Indent(out, level);
-    if (m != NULL)
-	fprintf(out, "%s: ", m);
-    fprintf(out, "%s\n", name);
+    SECU_PrintAsHex(out, oid, m, level);
 }
 
+
+/* This function does NOT expect a DER type and length. */
 void
 SECU_PrintAlgorithmID(FILE *out, SECAlgorithmID *a, char *m, int level)
 {
@@ -1178,7 +1290,7 @@ secu_PrintAttribute(FILE *out, SEC_PKCS7Attribute *attr, char *m, int level)
 		    SECU_PrintObjectID(out, value, om, level+1);
 		    break;
 		  case SEC_OID_PKCS9_SIGNING_TIME:
-		    SECU_PrintUTCTime(out, value, om, level+1);
+		    SECU_PrintTimeChoice(out, value, om, level+1);
 		    break;
 		}
 	    }
@@ -1213,6 +1325,26 @@ secu_PrintDSAPublicKey(FILE *out, SECKEYPublicKey *pk, char *m, int level)
     SECU_PrintInteger(out, &pk->u.dsa.publicValue, "PublicValue", level+1);
 }
 
+#ifdef NSS_ENABLE_ECC
+static void
+secu_PrintECPublicKey(FILE *out, SECKEYPublicKey *pk, char *m, int level)
+{
+    SECItem curveOID = { siBuffer, NULL, 0};
+
+    SECU_Indent(out, level); fprintf(out, "%s:\n", m);
+    SECU_PrintInteger(out, &pk->u.ec.publicValue, "PublicValue", level+1);
+    /* For named curves, the DEREncodedParams field contains an
+     * ASN Object ID (0x06 is SEC_ASN1_OBJECT_ID).
+     */
+    if ((pk->u.ec.DEREncodedParams.len > 2) &&
+	(pk->u.ec.DEREncodedParams.data[0] == 0x06)) {
+        curveOID.len = pk->u.ec.DEREncodedParams.data[1];
+	curveOID.data = pk->u.ec.DEREncodedParams.data + 2;
+	SECU_PrintObjectID(out, &curveOID, "Curve", level +1);
+    }
+}
+#endif /* NSS_ENABLE_ECC */
+
 static int
 secu_PrintSubjectPublicKeyInfo(FILE *out, PRArenaPool *arena,
 		       CERTSubjectPublicKeyInfo *i,  char *msg, int level)
@@ -1233,10 +1365,15 @@ secu_PrintSubjectPublicKeyInfo(FILE *out, PRArenaPool *arena,
 	    secu_PrintDSAPublicKey(out, pk, "DSA Public Key", level +1);
 	    break;
 
+#ifdef NSS_ENABLE_ECC
+	case ecKey:
+	    secu_PrintECPublicKey(out, pk, "EC Public Key", level +1);
+	    break;
+#endif
+
 	case dhKey:
 	case fortezzaKey:
 	case keaKey:
-	case ecKey:
     	    fprintf(out, "unable to format this SPKI algorithm type\n");
 	    break;
 	default:
@@ -1280,34 +1417,21 @@ secu_PrintX509InvalidDate(FILE *out, SECItem *value, char *msg, int level)
 static SECStatus
 PrintExtKeyUsageExten  (FILE *out, SECItem *value, char *msg, int level)
 {
-  CERTOidSequence *os;
-  SECItem **op;
+    CERTOidSequence *os;
+    SECItem **op;
 
-  SECU_Indent(out, level); fprintf(out, "Extended Key Usage Extension:\n");
+    SECU_Indent(out, level); fprintf(out, "Extended Key Usage Extension:\n");
 
-  os = CERT_DecodeOidSequence(value);
-  if( (CERTOidSequence *)NULL == os ) {
-    return SECFailure;
-  }
-
-  for( op = os->oids; *op; op++ ) {
-    SECOidData *od = SECOID_FindOID(*op);
-    
-    if( (SECOidData *)NULL == od ) {
-      SECU_Indent(out, level+1);
-      SECU_PrintAsHex(out, *op, "Unknown:", level+2);
-      secu_Newline(out);
-      continue;
+    os = CERT_DecodeOidSequence(value);
+    if( (CERTOidSequence *)NULL == os ) {
+	return SECFailure;
     }
 
-    SECU_Indent(out, level+1);
-    if( od->desc ) fprintf(out, "%s", od->desc);
-    else SECU_PrintAsHex(out, &od->oid, "", level+2);
-
-    secu_Newline(out);
-  }
-
-  return SECSuccess;
+    for( op = os->oids; *op; op++ ) {
+	SECU_PrintObjectID(out, *op, msg, level + 1);
+    }
+    CERT_DestroyOidSequence(os);
+    return SECSuccess;
 }
 
 char *
@@ -1354,7 +1478,8 @@ secu_PrintPolicyQualifier(FILE *out,CERTPolicyQualifier *policyQualifier,char *m
         /* fall through on error */
    case SEC_OID_PKIX_CPS_POINTER_QUALIFIER:
    default:
-	secu_PrintAny(out, &policyQualifier->qualifierValue, "Policy Qualifier Data", level+1);
+	secu_PrintAny(out, &policyQualifier->qualifierValue, 
+	              "Policy Qualifier Data", level+1);
 	break;
    }
    
@@ -1427,38 +1552,40 @@ secu_PrintBasicConstraints(FILE *out, SECItem *value, char *msg, int level) {
     return SECSuccess;
 }
 
+/* NSCertType is merely a bit string whose bits are displayed symbolically */
 static SECStatus
-secu_PrintNSCertType(FILE *out, SECItem *value, char *msg, int level) {
-	char NS_Type=0;
-	int len, i, found=0;
+secu_PrintNSCertType(FILE *out, SECItem *value, char *msg, int level) 
+{
+    int     unused;
+    int     NS_Type;
+    int     i;
+    int     found   = 0;
+    SECItem my      = *value;
 
-	if (value->data[1] & 0x80) {
-	    len = 3;
-	} else {
-	    len = value->data[1];
-	}
-	if ((value->data[0] != SEC_ASN1_BIT_STRING) || (len < 2)) {
-	    secu_PrintAny(out, value, "Data", level);
-	    return SECSuccess;
-	}
-	NS_Type=value->data[3];
+    if ((my.data[0] != SEC_ASN1_BIT_STRING) || 
+        SECSuccess != SECU_StripTagAndLength(&my)) {
+	secu_PrintAny(out, value, "Data", level);
+	return SECSuccess;
+    }
+
+    unused = (my.len == 2) ? (my.data[0] & 0x0f) : 0;  
+    NS_Type = my.data[1] & (0xff << unused);
 	
 
-	if (msg) {
-	    SECU_Indent(out, level);
-	    fprintf(out,"%s: ",msg);
-	} else {
-	    SECU_Indent(out, level);
-	    fprintf(out,"Netscape Certificate Type: ");
+    SECU_Indent(out, level);
+    if (msg) {
+	fprintf(out,"%s: ",msg);
+    } else {
+	fprintf(out,"Netscape Certificate Type: ");
+    }
+    for (i=0; i < 8; i++) {
+	if ( (0x80 >> i) & NS_Type) {
+	    fprintf(out, "%c%s", (found ? ',' : '<'), nsTypeBits[i]);
+	    found = 1;
 	}
-	for (i=0; i < 8; i++) {
-	    if ( (0x80 >> i) & NS_Type) {
-		fprintf(out,"%c%s",found?',':'<',nsTypeBits[i]);
-		found = 1;
-	    }
-	}
-	if (found) { fprintf(out,">\n"); } else { fprintf(out,"none\n"); }
-	return SECSuccess;
+    }
+    fprintf(out, (found ? ">\n" : "none\n"));
+    return SECSuccess;
 }
 
 void
@@ -1472,10 +1599,9 @@ SECU_PrintExtensions(FILE *out, CERTCertExtension **extensions,
 	
 	while ( *extensions ) {
 	    SECItem *tmpitem;
-	    SECU_Indent(out, level+1); fprintf(out, "Name:\n");
 
 	    tmpitem = &(*extensions)->id;
-	    SECU_PrintObjectID(out, tmpitem, NULL, level+2);
+	    SECU_PrintObjectID(out, tmpitem, "Name", level+1);
 
 	    tmpitem = &(*extensions)->critical;
 	    if ( tmpitem->len ) {
@@ -1518,33 +1644,8 @@ SECU_PrintExtensions(FILE *out, CERTCertExtension **extensions,
 		    secu_PrintBasicConstraints(out,tmpitem,"Data",level+1);
 		    break;
 
-		case SEC_OID_X509_SUBJECT_ALT_NAME:
-		case SEC_OID_X509_ISSUER_ALT_NAME:
-	      /*
-	       * We should add at least some of the more interesting cases
-	       * here, but need to have subroutines to back them up.
-	       */
-		case SEC_OID_NS_CERT_EXT_NETSCAPE_OK:
-		case SEC_OID_NS_CERT_EXT_ISSUER_LOGO:
-		case SEC_OID_NS_CERT_EXT_SUBJECT_LOGO:
-		case SEC_OID_NS_CERT_EXT_ENTITY_LOGO:
-		case SEC_OID_NS_CERT_EXT_USER_PICTURE:
-		case SEC_OID_NS_KEY_USAGE_GOVT_APPROVED:
-
-		/* x.509 v3 Extensions */
-		case SEC_OID_X509_SUBJECT_DIRECTORY_ATTR:
-		case SEC_OID_X509_SUBJECT_KEY_ID:
-		case SEC_OID_X509_KEY_USAGE:
-		case SEC_OID_X509_PRIVATE_KEY_USAGE_PERIOD:
-		case SEC_OID_X509_NAME_CONSTRAINTS:
-		case SEC_OID_X509_CRL_DIST_POINTS:
-		case SEC_OID_X509_POLICY_MAPPINGS:
-		case SEC_OID_X509_POLICY_CONSTRAINTS:
-		case SEC_OID_X509_AUTH_KEY_ID:
-		    goto defualt;
-
 		case SEC_OID_X509_EXT_KEY_USAGE:
-		    PrintExtKeyUsageExten(out, tmpitem, "", level+1);
+		    PrintExtKeyUsageExten(out, tmpitem, NULL, level+1);
 		    break;
 
 		case SEC_OID_X509_AUTH_INFO_ACCESS:
@@ -1573,10 +1674,33 @@ SECU_PrintExtensions(FILE *out, CERTCertExtension **extensions,
 		case SEC_OID_EXT_KEY_USAGE_CODE_SIGN:
 		case SEC_OID_EXT_KEY_USAGE_EMAIL_PROTECT:
 		case SEC_OID_EXT_KEY_USAGE_TIME_STAMP:
+		case SEC_OID_X509_SUBJECT_ALT_NAME:
+		case SEC_OID_X509_ISSUER_ALT_NAME:
+	      /*
+	       * We should add at least some of the more interesting cases
+	       * here, but need to have subroutines to back them up.
+	       */
+		case SEC_OID_NS_CERT_EXT_NETSCAPE_OK:
+		case SEC_OID_NS_CERT_EXT_ISSUER_LOGO:
+		case SEC_OID_NS_CERT_EXT_SUBJECT_LOGO:
+		case SEC_OID_NS_CERT_EXT_ENTITY_LOGO:
+		case SEC_OID_NS_CERT_EXT_USER_PICTURE:
+		case SEC_OID_NS_KEY_USAGE_GOVT_APPROVED:
+
+		/* x.509 v3 Extensions */
+		case SEC_OID_X509_SUBJECT_DIRECTORY_ATTR:
+		case SEC_OID_X509_SUBJECT_KEY_ID:
+		case SEC_OID_X509_KEY_USAGE:
+		case SEC_OID_X509_PRIVATE_KEY_USAGE_PERIOD:
+		case SEC_OID_X509_NAME_CONSTRAINTS:
+		case SEC_OID_X509_CRL_DIST_POINTS:
+		case SEC_OID_X509_POLICY_MAPPINGS:
+		case SEC_OID_X509_POLICY_CONSTRAINTS:
+		case SEC_OID_X509_AUTH_KEY_ID:
+
 
 	        default:
-          defualt:
-		secu_PrintAny(out, tmpitem, "Data", level+1);
+		    secu_PrintAny(out, tmpitem, "Data", level+1);
 		break;
 	    }
 
@@ -1590,16 +1714,23 @@ SECU_PrintExtensions(FILE *out, CERTCertExtension **extensions,
 void
 SECU_PrintName(FILE *out, CERTName *name, char *msg, int level)
 {
+    char *nameStr;
     char *str;
-    
-    SECU_Indent(out, level); fprintf(out, "%s: ", msg);
+    SECItem my;
 
-    str = CERT_NameToAscii(name);
+    str = nameStr = CERT_NameToAscii(name);
     if (!str) 
     	str = "!Invalid AVA!";
+    my.data = (unsigned char *)str;
+    my.len  = PORT_Strlen(str);
+#if 1
+    secu_PrintRawString(out, &my, msg, level);
+#else
+    SECU_Indent(out, level); fprintf(out, "%s: ", msg);
     fprintf(out, str);
-	
     secu_Newline(out);
+#endif
+    PORT_Free(nameStr);
 }
 
 void
@@ -1631,35 +1762,41 @@ printflags(char *trusts, unsigned int flags)
 
 /* callback for listing certs through pkcs11 */
 SECStatus
-SECU_PrintCertNickname(CERTCertificate *cert, void *data)
+SECU_PrintCertNickname(CERTCertListNode *node, void *data)
 {
     CERTCertTrust *trust;
+    CERTCertificate* cert;
     FILE *out;
     char trusts[30];
     char *name;
 
+    cert = node->cert;
+
     PORT_Memset (trusts, 0, sizeof (trusts));
     out = (FILE *)data;
     
-	name = cert->nickname;
-	if ( name == NULL ) {
-	    name = cert->emailAddr;
-	}
-	if ( name == NULL ) {
-	    name = "(NULL)";
-	}
-	
-        trust = cert->trust;
-	if (trust) {
-	    printflags(trusts, trust->sslFlags);
-	    PORT_Strcat(trusts, ",");
-	    printflags(trusts, trust->emailFlags);
-	    PORT_Strcat(trusts, ",");
-	    printflags(trusts, trust->objectSigningFlags);
-	} else {
-	    PORT_Memcpy(trusts,",,",3);
-	}
-	fprintf(out, "%-60s %-5s\n", name, trusts);
+    name = node->appData;
+    if (!name || !name[0]) {
+        name = cert->nickname;
+    }
+    if (!name || !name[0]) {
+        name = cert->emailAddr;
+    }
+    if (!name || !name[0]) {
+        name = "(NULL)";
+    }
+
+    trust = cert->trust;
+    if (trust) {
+        printflags(trusts, trust->sslFlags);
+        PORT_Strcat(trusts, ",");
+        printflags(trusts, trust->emailFlags);
+        PORT_Strcat(trusts, ",");
+        printflags(trusts, trust->objectSigningFlags);
+    } else {
+        PORT_Memcpy(trusts,",,",3);
+    }
+    fprintf(out, "%-60s %-5s\n", name, trusts);
 
     return (SECSuccess);
 }
@@ -1736,7 +1873,6 @@ SECU_PrintCertificate(FILE *out, SECItem *der, char *m, int level)
     if (rv)
 	goto loser;
     SECU_PrintExtensions(out, c->extensions, "Signed Extensions", level+1);
-    SECU_PrintFingerprints(out, &c->derCert, "Fingerprint", level);
 loser:
     PORT_FreeArena(arena, PR_FALSE);
     return rv;
@@ -1797,10 +1933,13 @@ SECU_PrintFingerprints(FILE *out, SECItem *derCert, char *m, int level)
 {
     unsigned char fingerprint[20];
     char *fpStr = NULL;
+    int err     = PORT_GetError();
+    SECStatus rv;
     SECItem fpItem;
+
     /* print MD5 fingerprint */
     memset(fingerprint, 0, sizeof fingerprint);
-    PK11_HashBuf(SEC_OID_MD5,fingerprint, derCert->data, derCert->len);
+    rv = PK11_HashBuf(SEC_OID_MD5,fingerprint, derCert->data, derCert->len);
     fpItem.data = fingerprint;
     fpItem.len = MD5_LENGTH;
     fpStr = CERT_Hexify(&fpItem, 1);
@@ -1808,9 +1947,12 @@ SECU_PrintFingerprints(FILE *out, SECItem *derCert, char *m, int level)
     SECU_Indent(out, level+1); fprintf(out, "%s\n", fpStr);
     PORT_Free(fpStr);
     fpStr = NULL;
+    if (rv != SECSuccess && !err)
+	err = PORT_GetError();
+
     /* print SHA1 fingerprint */
     memset(fingerprint, 0, sizeof fingerprint);
-    PK11_HashBuf(SEC_OID_SHA1,fingerprint, derCert->data, derCert->len);
+    rv = PK11_HashBuf(SEC_OID_SHA1,fingerprint, derCert->data, derCert->len);
     fpItem.data = fingerprint;
     fpItem.len = SHA1_LENGTH;
     fpStr = CERT_Hexify(&fpItem, 1);
@@ -1818,6 +1960,12 @@ SECU_PrintFingerprints(FILE *out, SECItem *derCert, char *m, int level)
     SECU_Indent(out, level+1); fprintf(out, "%s\n", fpStr);
     PORT_Free(fpStr);
     fprintf(out, "\n");
+
+    if (err) 
+	PORT_SetError(err);
+    if (err || rv != SECSuccess)
+	return SECFailure;
+
     return 0;
 }
 
@@ -1935,11 +2083,15 @@ SECU_PrintCRLInfo(FILE *out, CERTCrl *crl, char *m, int level)
     char om[100];
     
     SECU_Indent(out, level); fprintf(out, "%s:\n", m);
+    /* version is optional */
+    iv = crl->version.len ? DER_GetInteger(&crl->version) : 0;  
+    SECU_Indent(out, level+1); 
+    	fprintf(out, "%s: %d (0x%x)\n", "Version", iv + 1, iv);
     SECU_PrintAlgorithmID(out, &(crl->signatureAlg), "Signature Algorithm",
 			  level + 1);
-    SECU_PrintName(out, &(crl->name), "Name", level + 1);
-    SECU_PrintUTCTime(out, &(crl->lastUpdate), "Last Update", level + 1);
-    SECU_PrintUTCTime(out, &(crl->nextUpdate), "Next Update", level + 1);
+    SECU_PrintName(out, &(crl->name), "Issuer", level + 1);
+    SECU_PrintTimeChoice(out, &(crl->lastUpdate), "This Update", level + 1);
+    SECU_PrintTimeChoice(out, &(crl->nextUpdate), "Next Update", level + 1);
     
     if (crl->entries != NULL) {
 	iv = 0;
@@ -1948,14 +2100,13 @@ SECU_PrintCRLInfo(FILE *out, CERTCrl *crl, char *m, int level)
 	    SECU_Indent(out, level + 1); fprintf(out, om);
 	    SECU_PrintInteger(out, &(entry->serialNumber), "Serial Number",
 			      level + 2);
-	    SECU_PrintUTCTime(out, &(entry->revocationDate), "Revocation Date",
-			      level + 2);
-	    SECU_PrintExtensions
-		   (out, entry->extensions, "Signed CRL Entries Extensions", level + 1);
+	    SECU_PrintTimeChoice(out, &(entry->revocationDate), 
+	                         "Revocation Date", level + 2);
+	    SECU_PrintExtensions(out, entry->extensions, 
+	                         "Entry Extensions", level + 2);
 	}
     }
-    SECU_PrintExtensions
-	   (out, crl->extensions, "Signed CRL Extension", level + 1);
+    SECU_PrintExtensions(out, crl->extensions, "CRL Extensions", level + 1);
 }
 
 /*
@@ -2171,7 +2322,7 @@ SECU_PrintCrl (FILE *out, SECItem *der, char *m, int level)
 	if (!c)
 	    break;
 
-	rv = SEC_ASN1DecodeItem(arena, c, SEC_ASN1_GET(CERT_CrlTemplate), der);
+	rv = SEC_QuickDERDecodeItem(arena, c, SEC_ASN1_GET(CERT_CrlTemplate), der);
 	if (rv != SECSuccess)
 	    break;
 	SECU_PrintCRLInfo (out, c, m, level);
@@ -2374,13 +2525,12 @@ int SECU_PrintSignedData(FILE *out, SECItem *der, char *m,
 
     SECU_Indent(out, level); fprintf(out, "%s:\n", m);
     rv = (*inner)(out, &sd->data, "Data", level+1);
-    if (rv) 
-	goto loser;
 
     SECU_PrintAlgorithmID(out, &sd->signatureAlgorithm, "Signature Algorithm",
 			  level+1);
     DER_ConvertBitString(&sd->signature);
     SECU_PrintAsHex(out, &sd->signature, "Signature", level+1);
+    SECU_PrintFingerprints(out, der, "Fingerprint", level+1);
 loser:
     PORT_FreeArena(arena, PR_FALSE);
     return rv;
@@ -2495,7 +2645,7 @@ char *
 SECU_ErrorStringRaw(int16 err)
 {
     if (err == 0)
-	sprintf(SECUErrorBuf, "");
+	SECUErrorBuf[0] = '\0';
     else if (err == SEC_ERROR_BAD_DATA)
 	sprintf(SECUErrorBuf, "Bad data");
     else if (err == SEC_ERROR_BAD_DATABASE)
@@ -2619,4 +2769,117 @@ SECU_PrintPRandOSError(char *progName)
     if (errLen > 0 && errLen < sizeof buffer) {
         PR_fprintf(PR_STDERR, "\t%s\n", buffer);
     }
+}
+
+
+static char *
+bestCertName(CERTCertificate *cert) {
+    if (cert->nickname) {
+	return cert->nickname;
+    }
+    if (cert->emailAddr && cert->emailAddr[0]) {
+	return cert->emailAddr;
+    }
+    return cert->subjectName;
+}
+
+void
+SECU_printCertProblems(FILE *outfile, CERTCertDBHandle *handle, 
+	CERTCertificate *cert, PRBool checksig, 
+	SECCertificateUsage certUsage, void *pinArg, PRBool verbose)
+{
+    CERTVerifyLog      log;
+    CERTVerifyLogNode *node   = NULL;
+    unsigned int       depth  = (unsigned int)-1;
+    unsigned int       flags  = 0;
+    char *             errstr = NULL;
+    PRErrorCode	       err    = PORT_GetError();
+
+    log.arena = PORT_NewArena(512);
+    log.head = log.tail = NULL;
+    log.count = 0;
+    CERT_VerifyCertificate(handle, cert, checksig, certUsage, PR_Now(), pinArg, &log, NULL);
+
+    if (log.count > 0) {
+	fprintf(outfile,"PROBLEM WITH THE CERT CHAIN:\n");
+	for (node = log.head; node; node = node->next) {
+	    if (depth != node->depth) {
+		depth = node->depth;
+		fprintf(outfile,"CERT %d. %s %s:\n", depth,
+				 bestCertName(node->cert), 
+			  	 depth ? "[Certificate Authority]": "");
+	    	if (verbose) {
+		    const char * emailAddr;
+		    emailAddr = CERT_GetFirstEmailAddress(node->cert);
+		    if (emailAddr) {
+		    	fprintf(outfile,"Email Address(es): ");
+			do {
+			    fprintf(outfile, "%s\n", emailAddr);
+			    emailAddr = CERT_GetNextEmailAddress(node->cert,
+			                                         emailAddr);
+			} while (emailAddr);
+		    }
+		}
+	    }
+	    fprintf(outfile,"  ERROR %ld: %s\n", node->error,
+						SECU_Strerror(node->error));
+	    errstr = NULL;
+	    switch (node->error) {
+	    case SEC_ERROR_INADEQUATE_KEY_USAGE:
+		flags = (unsigned int)node->arg;
+		switch (flags) {
+		case KU_DIGITAL_SIGNATURE:
+		    errstr = "Cert cannot sign.";
+		    break;
+		case KU_KEY_ENCIPHERMENT:
+		    errstr = "Cert cannot encrypt.";
+		    break;
+		case KU_KEY_CERT_SIGN:
+		    errstr = "Cert cannot sign other certs.";
+		    break;
+		default:
+		    errstr = "[unknown usage].";
+		    break;
+		}
+	    case SEC_ERROR_INADEQUATE_CERT_TYPE:
+		flags = (unsigned int)node->arg;
+		switch (flags) {
+		case NS_CERT_TYPE_SSL_CLIENT:
+		case NS_CERT_TYPE_SSL_SERVER:
+		    errstr = "Cert cannot be used for SSL.";
+		    break;
+		case NS_CERT_TYPE_SSL_CA:
+		    errstr = "Cert cannot be used as an SSL CA.";
+		    break;
+		case NS_CERT_TYPE_EMAIL:
+		    errstr = "Cert cannot be used for SMIME.";
+		    break;
+		case NS_CERT_TYPE_EMAIL_CA:
+		    errstr = "Cert cannot be used as an SMIME CA.";
+		    break;
+		case NS_CERT_TYPE_OBJECT_SIGNING:
+		    errstr = "Cert cannot be used for object signing.";
+		    break;
+		case NS_CERT_TYPE_OBJECT_SIGNING_CA:
+		    errstr = "Cert cannot be used as an object signing CA.";
+		    break;
+		default:
+		    errstr = "[unknown usage].";
+		    break;
+		}
+	    case SEC_ERROR_UNKNOWN_ISSUER:
+	    case SEC_ERROR_UNTRUSTED_ISSUER:
+	    case SEC_ERROR_EXPIRED_ISSUER_CERTIFICATE:
+		errstr = node->cert->issuerName;
+		break;
+	    default:
+		break;
+	    }
+	    if (errstr) {
+		fprintf(stderr,"    %s\n",errstr);
+	    }
+	    CERT_DestroyCertificate(node->cert);
+	}    
+    }
+    PORT_SetError(err); /* restore original error code */
 }

@@ -16,7 +16,11 @@
  * Copyright (C) 1994-2000 Netscape Communications Corporation.  All
  * Rights Reserved.
  * 
+ * Portions created by Sun Microsystems, Inc. are Copyright (C) 2003
+ * Sun Microsystems, Inc. All Rights Reserved. 
+ *
  * Contributor(s):
+ *	Dr Vipul Gupta <vipul.gupta@sun.com>, Sun Microsystems Laboratories
  * 
  * Alternatively, the contents of this file may be used under the
  * terms of the GNU General Public License Version 2 or later (the
@@ -39,6 +43,7 @@
 */
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 #if defined(WIN32)
 #include "fcntl.h"
@@ -280,7 +285,7 @@ AddCert(PK11SlotInfo *slot, CERTCertDBHandle *handle, char *name, char *trusts,
         PRFileDesc *inFile, PRBool ascii, PRBool emailcert, void *pwdata)
 {
     CERTCertTrust *trust = NULL;
-    CERTCertificate *cert = NULL, *tempCert = NULL;
+    CERTCertificate *cert = NULL;
     SECItem certDER;
     SECStatus rv;
 
@@ -381,6 +386,12 @@ getSignatureOidTag(KeyType keyType, SECOidTag hashAlgTag)
 	    break;
 	}
 	break;
+#ifdef NSS_ENABLE_ECC
+    case ecKey:
+        /* XXX For now only ECDSA with SHA1 is supported */
+        sigTag = SEC_OID_ANSIX962_ECDSA_SIGNATURE_WITH_SHA1_DIGEST;
+	break;
+#endif /* NSS_ENABLE_ECC */
     default:
     	break;
     }
@@ -638,7 +649,7 @@ listCerts(CERTCertDBHandle *handle, char *name, PK11SlotInfo *slot,
 		rv = SECSuccess;
 	    } else if (raw) {
 		numBytes = PR_Write(outfile, data.data, data.len);
-		if (numBytes != data.len) {
+		if (numBytes != (PRInt32) data.len) {
 		   SECU_PrintSystemError(progName, "error writing raw cert");
 		    rv = SECFailure;
 		}
@@ -656,12 +667,14 @@ listCerts(CERTCertDBHandle *handle, char *name, PK11SlotInfo *slot,
 	if (certs) {
 	    for (node = CERT_LIST_HEAD(certs); !CERT_LIST_END(node,certs);
 						node = CERT_LIST_NEXT(node)) {
-		SECU_PrintCertNickname(node->cert,stdout);
+		SECU_PrintCertNickname(node,stdout);
 	    }
 	    rv = SECSuccess;
 	}
     }
-    CERT_DestroyCertList(certs);
+    if (certs) {
+        CERT_DestroyCertList(certs);
+    }
     if (rv) {
 	SECU_PrintError(progName, "problem printing certificate nicknames");
 	return SECFailure;
@@ -680,11 +693,11 @@ ListCerts(CERTCertDBHandle *handle, char *name, PK11SlotInfo *slot,
 	CERTCertList *list;
 	CERTCertListNode *node;
 
-	list = PK11_ListCerts(PK11CertListUnique, pwdata);
+	list = PK11_ListCerts(PK11CertListAll, pwdata);
 	for (node = CERT_LIST_HEAD(list); !CERT_LIST_END(node, list);
 	     node = CERT_LIST_NEXT(node)) 
 	{
-	    SECU_PrintCertNickname(node->cert, stdout);
+	    SECU_PrintCertNickname(node, stdout);
 	}
 	CERT_DestroyCertList(list);
 	return SECSuccess;
@@ -727,6 +740,11 @@ ValidateCert(CERTCertDBHandle *handle, char *name, char *date,
     SECCertificateUsage usage;
     CERTVerifyLog reallog;
     CERTVerifyLog *log = NULL;
+
+    if (!certUsage) {
+	    PORT_SetError (SEC_ERROR_INVALID_ARGS);
+	    return (SECFailure);
+    }
     
     switch (*certUsage) {
 	case 'C':
@@ -972,8 +990,15 @@ Usage(char *progName)
 	"\t\t [-f pwfile] [-z noisefile] [-d certdir] [-P dbprefix]\n", progName);
     FPS "\t%s -G [-h token-name] -k dsa [-q pqgfile -g key-size] [-f pwfile]\n"
 	"\t\t [-z noisefile] [-d certdir] [-P dbprefix]\n", progName);
+#ifdef NSS_ENABLE_ECC
+    FPS "\t%s -G [-h token-name] -k ec -q curve [-f pwfile]\n"
+	"\t\t [-z noisefile] [-d certdir] [-P dbprefix]\n", progName);
+    FPS "\t%s -K [-n key-name] [-h token-name] [-k dsa|ec|rsa|all]\n", 
+	progName);
+#else
     FPS "\t%s -K [-n key-name] [-h token-name] [-k dsa|rsa|all]\n", 
 	progName);
+#endif /* NSS_ENABLE_ECC */
     FPS "\t\t [-f pwfile] [-X] [-d certdir] [-P dbprefix]\n");
     FPS "\t%s -L [-n cert-name] [-X] [-d certdir] [-P dbprefix] [-r] [-a]\n", progName);
     FPS "\t%s -M -n cert-name -t trustargs [-d certdir] [-P dbprefix]\n",
@@ -986,7 +1011,7 @@ Usage(char *progName)
 	"\t\t[-X] [-d certdir] [-P dbprefix]\n",
 	progName);
     FPS "\t%s -S -n cert-name -s subj [-c issuer-name | -x]  -t trustargs\n"
-	"\t\t [-k key-type] [-h token-name] [-g key-size]\n"
+	"\t\t [-k key-type] [-q key-params] [-h token-name] [-g key-size]\n"
         "\t\t [-m serial-number] [-w warp-months] [-v months-valid]\n"
 	"\t\t [-f pwfile] [-d certdir] [-P dbprefix]\n"
         "\t\t [-p phone] [-1] [-2] [-3] [-4] [-5] [-6] [-7 emailAddrs]\n"
@@ -1073,10 +1098,17 @@ static void LongUsage(char *progName)
 	"-G");
     FPS "%-20s Name of token in which to generate key (default is internal)\n",
 	"   -h token-name");
+#ifdef NSS_ENABLE_ECC
+    FPS "%-20s Type of key pair to generate (\"dsa\", \"ec\", \"rsa\" (default))\n",
+	"   -k key-type");
+    FPS "%-20s Key size in bits, (min %d, max %d, default %d) (not for ec)\n",
+	"   -g key-size", MIN_KEY_BITS, MAX_KEY_BITS, DEFAULT_KEY_BITS);
+#else
     FPS "%-20s Type of key pair to generate (\"dsa\", \"rsa\" (default))\n",
 	"   -k key-type");
     FPS "%-20s Key size in bits, (min %d, max %d, default %d)\n",
 	"   -g key-size", MIN_KEY_BITS, MAX_KEY_BITS, DEFAULT_KEY_BITS);
+#endif /* NSS_ENABLE_ECC */
     FPS "%-20s Set the public exponent value (3, 17, 65537) (rsa only)\n",
 	"   -y exp");
     FPS "%-20s Specify the password file\n",
@@ -1085,6 +1117,27 @@ static void LongUsage(char *progName)
 	"   -z noisefile");
     FPS "%-20s read PQG value from pqgfile (dsa only)\n",
 	"   -q pqgfile");
+#ifdef NSS_ENABLE_ECC
+    FPS "%-20s Elliptic curve name (ec only)\n",
+	"   -q curve-name");
+    FPS "%-20s One of sect163k1, nistk163, sect163r1, sect163r2,\n", "");
+    FPS "%-20s nistb163, sect193r1, sect193r2, sect233k1, nistk233,\n", "");
+    FPS "%-20s sect233r1, nistb233, sect239k1, sect283k1, nistk283,\n", "");
+    FPS "%-20s sect283r1, nistb283, sect409k1, nistk409, sect409r1,\n", "");
+    FPS "%-20s nistb409, sect571k1, nistk571, sect571r1, nistb571,\n", "");
+    FPS "%-20s secp169k1, secp160r1, secp160r2, secp192k1, secp192r1,\n", "");
+    FPS "%-20s nistp192, secp224k1, secp224r1, nistp224, secp256k1,\n", "");
+    FPS "%-20s secp256r1, nistp256, secp384r1, nistp384, secp521r1,\n", "");
+    FPS "%-20s nistp521, prime192v1, prime192v2, prime192v3, \n", "");
+    FPS "%-20s prime239v1, prime239v2, prime239v3, c2pnb163v1, \n", "");
+    FPS "%-20s c2pnb163v2, c2pnb163v3, c2pnb176v1, c2tnb191v1, \n", "");
+    FPS "%-20s c2tnb191v2, c2tnb191v3, c2onb191v4, c2onb191v5, \n", "");
+    FPS "%-20s c2pnb208w1, c2tnb239v1, c2tnb239v2, c2tnb239v3, \n", "");
+    FPS "%-20s c2onb239v4, c2onb239v5, c2pnb272w1, c2pnb304w1, \n", "");
+    FPS "%-20s c2tnb359w1, c2pnb368w1, c2tnb431r1, secp112r1, \n", "");
+    FPS "%-20s secp112r2, secp128r1, secp128r2, sect113r1, sect113r2\n", "");
+    FPS "%-20s sect131r1, sect131r2\n", "");
+#endif
     FPS "%-20s Key database directory (default is ~/.netscape)\n",
 	"   -d keydir");
     FPS "%-20s Cert & Key database prefix\n",
@@ -1116,8 +1169,13 @@ static void LongUsage(char *progName)
     FPS "%-20s Name of token in which to look for keys (default is internal,"
 	" use \"all\" to list keys on all tokens)\n",
 	"   -h token-name ");
+#ifdef NSS_ENABLE_ECC
+    FPS "%-20s Type of key pair to list (\"all\", \"dsa\", \"ec\", \"rsa\" (default))\n",
+	"   -k key-type");
+#else
     FPS "%-20s Type of key pair to list (\"all\", \"dsa\", \"rsa\" (default))\n",
 	"   -k key-type");
+#endif
     FPS "%-20s Specify the password file\n",
         "   -f password-file");
     FPS "%-20s Key database directory (default is ~/.netscape)\n",
@@ -1192,12 +1250,25 @@ static void LongUsage(char *progName)
 	"   -s subject");
     FPS "%-20s Output the cert request to this file\n",
 	"   -o output-req");
+#ifdef NSS_ENABLE_ECC
+    FPS "%-20s Type of key pair to generate (\"dsa\", \"ec\", \"rsa\" (default))\n",
+	"   -k key-type");
+#else
     FPS "%-20s Type of key pair to generate (\"dsa\", \"rsa\" (default))\n",
 	"   -k key-type");
+#endif /* NSS_ENABLE_ECC */
     FPS "%-20s Name of token in which to generate key (default is internal)\n",
 	"   -h token-name");
     FPS "%-20s Key size in bits, RSA keys only (min %d, max %d, default %d)\n",
 	"   -g key-size", MIN_KEY_BITS, MAX_KEY_BITS, DEFAULT_KEY_BITS);
+    FPS "%-20s Name of file containing PQG parameters (dsa only)\n",
+	"   -q pqgfile");
+#ifdef NSS_ENABLE_ECC
+    FPS "%-20s Elliptic curve name (ec only)\n",
+	"   -q curve-name");
+    FPS "%-20s See the \"-G\" option for a full list of supported names.\n",
+	"");
+#endif /* NSS_ENABLE_ECC */
     FPS "%-20s Specify the password file\n",
 	"   -f pwfile");
     FPS "%-20s Key database directory (default is ~/.netscape)\n",
@@ -1241,12 +1312,25 @@ static void LongUsage(char *progName)
 	"   -c issuer-name");
     FPS "%-20s Set the certificate trust attributes (see -A above)\n",
 	"   -t trustargs");
+#ifdef NSS_ENABLE_ECC
+    FPS "%-20s Type of key pair to generate (\"dsa\", \"ec\", \"rsa\" (default))\n",
+	"   -k key-type");
+#else
     FPS "%-20s Type of key pair to generate (\"dsa\", \"rsa\" (default))\n",
 	"   -k key-type");
+#endif /* NSS_ENABLE_ECC */
     FPS "%-20s Name of token in which to generate key (default is internal)\n",
 	"   -h token-name");
     FPS "%-20s Key size in bits, RSA keys only (min %d, max %d, default %d)\n",
 	"   -g key-size", MIN_KEY_BITS, MAX_KEY_BITS, DEFAULT_KEY_BITS);
+    FPS "%-20s Name of file containing PQG parameters (dsa only)\n",
+	"   -q pqgfile");
+#ifdef NSS_ENABLE_ECC
+    FPS "%-20s Elliptic curve name (ec only)\n",
+	"   -q curve-name");
+    FPS "%-20s See the \"-G\" option for a full list of supported names.\n",
+	"");
+#endif /* NSS_ENABLE_ECC */
     FPS "%-20s Self sign\n",
 	"   -x");
     FPS "%-20s Cert serial number\n",
@@ -2199,10 +2283,44 @@ enum {
     opt_RW,
     opt_Exponent,
     opt_NoiseFile,
-    opt_Hash
+    opt_Hash,
+    opt_Batch
 };
 
-static secuCommandFlag certutil_commands[] =
+static int 
+certutil_main(int argc, char **argv, PRBool initialize)
+{
+    CERTCertDBHandle *certHandle;
+    PK11SlotInfo *slot = NULL;
+    CERTName *  subject         = 0;
+    PRFileDesc *inFile          = PR_STDIN;
+    PRFileDesc *outFile         = NULL;
+    char *      certfile        = "tempcert";
+    char *      certreqfile     = "tempcertreq";
+    char *      slotname        = "internal";
+    char *      certPrefix      = "";
+    KeyType     keytype         = rsaKey;
+    char *      name            = NULL;
+    SECOidTag   hashAlgTag      = SEC_OID_UNKNOWN;
+    int	        keysize	        = DEFAULT_KEY_BITS;
+    int         publicExponent  = 0x010001;
+    unsigned int serialNumber   = 0;
+    int         warpmonths      = 0;
+    int         validitylength  = 0;
+    int         commandsEntered = 0;
+    char        commandToRun    = '\0';
+    secuPWData  pwdata          = { PW_NONE, 0 };
+    PRBool 	readOnly	= PR_FALSE;
+
+    SECKEYPrivateKey *privkey = NULL;
+    SECKEYPublicKey *pubkey = NULL;
+
+    int i;
+    SECStatus rv;
+
+    secuCommand certutil;
+
+secuCommandFlag certutil_commands[] =
 {
 	{ /* cmd_AddCert             */  'A', PR_FALSE, 0, PR_FALSE },
 	{ /* cmd_CreateNewCert       */  'C', PR_FALSE, 0, PR_FALSE },
@@ -2225,7 +2343,7 @@ static secuCommandFlag certutil_commands[] =
 	{ /* cmd_Version             */  'Y', PR_FALSE, 0, PR_FALSE }
 };
 
-static secuCommandFlag certutil_options[] =
+secuCommandFlag certutil_options[] =
 {
 	{ /* opt_SSOPass             */  '0', PR_TRUE,  0, PR_FALSE },
 	{ /* opt_AddKeyUsageExt      */  '1', PR_FALSE, 0, PR_FALSE },
@@ -2264,47 +2382,17 @@ static secuCommandFlag certutil_options[] =
 	{ /* opt_RW                  */  'X', PR_FALSE, 0, PR_FALSE },
 	{ /* opt_Exponent            */  'y', PR_TRUE,  0, PR_FALSE },
 	{ /* opt_NoiseFile           */  'z', PR_TRUE,  0, PR_FALSE },
-	{ /* opt_Hash                */  'Z', PR_TRUE,  0, PR_FALSE }
+	{ /* opt_Hash                */  'Z', PR_TRUE,  0, PR_FALSE },
+	{ /* opt_Batch               */  'B', PR_TRUE,  0, PR_FALSE }
 };
 
-int 
-main(int argc, char **argv)
-{
-    CERTCertDBHandle *certHandle;
-    PK11SlotInfo *slot = NULL;
-    CERTName *  subject         = 0;
-    PRFileDesc *inFile          = PR_STDIN;
-    PRFileDesc *outFile         = 0;
-    char *      certfile        = "tempcert";
-    char *      certreqfile     = "tempcertreq";
-    char *      slotname        = "internal";
-    char *      certPrefix      = "";
-    KeyType     keytype         = rsaKey;
-    char *      name            = NULL;
-    SECOidTag   hashAlgTag      = SEC_OID_UNKNOWN;
-    int	        keysize	        = DEFAULT_KEY_BITS;
-    int         publicExponent  = 0x010001;
-    unsigned int serialNumber   = 0;
-    int         warpmonths      = 0;
-    int         validitylength  = 0;
-    int         commandsEntered = 0;
-    char        commandToRun    = '\0';
-    secuPWData  pwdata          = { PW_NONE, 0 };
-    PRBool 	readOnly	= PR_FALSE;
 
-    SECKEYPrivateKey *privkey = NULL;
-    SECKEYPublicKey *pubkey = NULL;
-
-    int i;
-    SECStatus rv;
-
-    secuCommand certutil;
     certutil.numCommands = sizeof(certutil_commands) / sizeof(secuCommandFlag);
     certutil.numOptions = sizeof(certutil_options) / sizeof(secuCommandFlag);
     certutil.commands = certutil_commands;
     certutil.options = certutil_options;
 
-    progName = strrchr(argv[0], '/');
+    progName = PORT_Strrchr(argv[0], '/');
     progName = progName ? progName+1 : argv[0];
 
     rv = SECU_ParseCommandLine(argc, argv, progName, &certutil);
@@ -2328,9 +2416,16 @@ main(int argc, char **argv)
 	if ((keysize < MIN_KEY_BITS) || (keysize > MAX_KEY_BITS)) {
 	    PR_fprintf(PR_STDERR, 
                        "%s -g:  Keysize must be between %d and %d.\n",
-	               MIN_KEY_BITS, MAX_KEY_BITS);
+		       progName, MIN_KEY_BITS, MAX_KEY_BITS);
 	    return 255;
 	}
+#ifdef NSS_ENABLE_ECC
+	if (keytype == ecKey) {
+	    PR_fprintf(PR_STDERR, "%s -g:  Not for ec keys.\n", progName);
+	    return 255;
+	}
+#endif /* NSS_ENABLE_ECC */
+
     }
 
     /*  -h specify token name  */
@@ -2372,6 +2467,10 @@ main(int argc, char **argv)
 	    keytype = rsaKey;
 	} else if (PL_strcmp(arg, "dsa") == 0) {
 	    keytype = dsaKey;
+#ifdef NSS_ENABLE_ECC
+	} else if (PL_strcmp(arg, "ec") == 0) {
+	    keytype = ecKey;
+#endif /* NSS_ENABLE_ECC */
 	} else if (PL_strcmp(arg, "all") == 0) {
 	    keytype = nullKey;
 	} else {
@@ -2396,11 +2495,18 @@ main(int argc, char **argv)
     if (certutil.options[opt_DBPrefix].activated)
 	certPrefix = strdup(certutil.options[opt_DBPrefix].arg);
 
-    /*  -q PQG file  */
+    /*  -q PQG file or curve name */
     if (certutil.options[opt_PQGFile].activated) {
+#ifdef NSS_ENABLE_ECC
+	if ((keytype != dsaKey) && (keytype != ecKey)) {
+	    PR_fprintf(PR_STDERR, "%s -q: specifies a PQG file for DSA keys" \
+		       " (-k dsa) or a named curve for EC keys (-k ec)\n)",
+	               progName);
+#else
 	if (keytype != dsaKey) {
 	    PR_fprintf(PR_STDERR, "%s -q: PQG file is for DSA key (-k dsa).\n)",
 	               progName);
+#endif /* NSS_ENABLE_ECC */
 	    return 255;
 	}
     }
@@ -2480,6 +2586,7 @@ main(int argc, char **argv)
     if ((certutil.commands[cmd_AddCert].activated ||
          certutil.commands[cmd_DeleteCert].activated ||
          certutil.commands[cmd_DeleteKey].activated ||
+	 certutil.commands[cmd_DumpChain].activated ||
          certutil.commands[cmd_ModifyCertTrust].activated ||
          certutil.commands[cmd_CreateAndAddCert].activated ||
          certutil.commands[cmd_CheckCertValidity].activated) &&
@@ -2631,14 +2738,16 @@ main(int argc, char **argv)
 
     PK11_SetPasswordFunc(SECU_GetModulePassword);
 
-    /*  Initialize NSPR and NSS.  */
-    PR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
-    rv = NSS_Initialize(SECU_ConfigDirectory(NULL), certPrefix, certPrefix,
-                        "secmod.db", readOnly ? NSS_INIT_READONLY: 0);
-    if (rv != SECSuccess) {
-	SECU_PrintPRandOSError(progName);
-	rv = SECFailure;
-	goto shutdown;
+    if (PR_TRUE == initialize) {
+        /*  Initialize NSPR and NSS.  */
+        PR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
+        rv = NSS_Initialize(SECU_ConfigDirectory(NULL), certPrefix, certPrefix,
+                            "secmod.db", readOnly ? NSS_INIT_READONLY: 0);
+        if (rv != SECSuccess) {
+	    SECU_PrintPRandOSError(progName);
+	    rv = SECFailure;
+	    goto shutdown;
+        }
     }
     certHandle = CERT_GetDefaultCertDB();
 
@@ -2873,7 +2982,94 @@ shutdown:
 	SECKEY_DestroyPublicKey(pubkey);
     }
 
-    if (NSS_Shutdown() != SECSuccess) {
+    /* Open the batch command file.
+     *
+     * - If -B <command line> option is specified, the contents in the
+     * command file will be interpreted as subsequent certutil
+     * commands to be executed in the current certutil process
+     * context after the current certutil command has been executed.
+     * - Each line in the command file consists of the command
+     * line arguments for certutil.
+     * - The -d <configdir> option will be ignored if specified in the
+     * command file.
+     * - Quoting with double quote characters ("...") is supported
+     * to allow white space in a command line argument.  The
+     * double quote character cannot be escaped and quoting cannot
+     * be nested in this version.
+     * - each line in the batch file is limited to 512 characters
+    */
+
+    if ((SECSuccess == rv) && certutil.options[opt_Batch].activated) {
+	FILE* batchFile = fopen(certutil.options[opt_Batch].arg, "r");
+        char nextcommand[512];
+        if (!batchFile) {
+	    PR_fprintf(PR_STDERR,
+	               "%s:  unable to open \"%s\" for reading (%ld, %ld).\n",
+	               progName, certutil.options[opt_Batch].arg,
+	               PR_GetError(), PR_GetOSError());
+	    return 255;
+        }
+        /* read and execute command-lines in a loop */
+        while ( (SECSuccess == rv ) &&
+                fgets(nextcommand, sizeof(nextcommand), batchFile)) {
+            /* we now need to split the command into argc / argv format */
+            char* commandline = PORT_Strdup(nextcommand);
+            PRBool invalid = PR_FALSE;
+            int newargc = 2;
+            char* space = NULL;
+            char* nextarg = NULL;
+            char** newargv = NULL;
+            char* crlf = PORT_Strrchr(commandline, '\n');
+            if (crlf) {
+                *crlf = '\0';
+            }
+
+            newargv = PORT_Alloc(sizeof(char*)*(newargc+1));
+            newargv[0] = progName;
+            newargv[1] = commandline;
+            nextarg = commandline;
+            while ((space = PORT_Strpbrk(nextarg, " \f\n\r\t\v")) ) {
+                while (isspace(*space) ) {
+                    *space = '\0';
+                    space ++;
+                }
+                if (*space == '\0') {
+                    break;
+                } else if (*space != '\"') {
+                    nextarg = space;
+                } else {
+                    char* closingquote = strchr(space+1, '\"');
+                    if (closingquote) {
+                        *closingquote = '\0';
+                        space++;
+                        nextarg = closingquote+1;
+                    } else {
+                        invalid = PR_TRUE;
+                        nextarg = space;
+                    }
+                }
+                newargc++;
+                newargv = PORT_Realloc(newargv, sizeof(char*)*(newargc+1));
+                newargv[newargc-1] = space;
+            }
+            newargv[newargc] = NULL;
+            
+            /* invoke next command */
+            if (PR_TRUE == invalid) {
+                PR_fprintf(PR_STDERR, "Missing closing quote in batch command :\n%s\nNot executed.\n",
+                           nextcommand);
+                rv = SECFailure;
+            } else {
+                if (0 != certutil_main(newargc, newargv, PR_FALSE) )
+                    rv = SECFailure;
+            }
+            PORT_Free(newargv);
+            PORT_Free(commandline);
+        }
+        fclose(batchFile);
+    }
+
+    if ((initialize == PR_TRUE) && NSS_Shutdown() != SECSuccess) {
         exit(1);
     }
 
@@ -2882,4 +3078,10 @@ shutdown:
     } else {
 	return 255;
     }
+}
+
+int
+main(int argc, char **argv)
+{
+    return certutil_main(argc, argv, PR_TRUE);
 }

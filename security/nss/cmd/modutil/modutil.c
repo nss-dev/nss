@@ -31,10 +31,13 @@
  * GPL.
  */
 
+/* To edit this file, set TABSTOPS to 4 spaces. 
+ * This is not the normal NSS convention. 
+ */
+
 #include "modutil.h"
 #include "install.h"
 #include <plstr.h>
-#include "secrng.h"
 #include "certdb.h" /* for CERT_DB_FILE_VERSION */
 #include "nss.h"
 
@@ -408,7 +411,7 @@ parse_args(int argc, char *argv[])
 			command = LIST_COMMAND;
 			/* This option may or may not have an argument */
 			if( (i+1 < argc) && (argv[i+1][0] != '-') ) {
-					moduleName = argv[++i];
+				moduleName = argv[++i];
 			}
 			break;
 		case RAW_LIST_ARG:
@@ -419,7 +422,7 @@ parse_args(int argc, char *argv[])
 			command = RAW_LIST_COMMAND;
 			/* This option may or may not have an argument */
 			if( (i+1 < argc) && (argv[i+1][0] != '-') ) {
-					moduleName = argv[++i];
+				moduleName = argv[++i];
 			}
 			break;
 		case RAW_ADD_ARG:
@@ -489,7 +492,7 @@ parse_args(int argc, char *argv[])
 			}
 			secmodName = argv[i];
 			break;
-                case STRING_ARG:
+		case STRING_ARG:
 			if(secmodString != NULL) {
 				PR_fprintf(PR_STDERR, errStrings[DUPLICATE_OPTION_ERR], arg);
 				return DUPLICATE_OPTION_ERR;
@@ -577,27 +580,23 @@ verify_params()
  * available.
  */
 static Error
-init_crypto(PRBool create, PRBool readOnly)
+check_crypto(PRBool create, PRBool readOnly)
 {
 	char *dir;
-#ifdef notdef
-	char *moddbname=NULL, *keydbname, *certdbname;
-	PRBool free_moddbname = PR_FALSE;
-#endif
+	char *moddbname=NULL;
 	Error retval;
-	SECStatus rv;
-	PRUint32 flags = 0;
+	static const char multiaccess[] = { "multiaccess:" };
 
-	if (secmodName == NULL) {
-	    secmodName = "secmod.db";
-	}
-
-	if(SECU_ConfigDirectory(dbdir)[0] == '\0') {
+	dir = SECU_ConfigDirectory(dbdir); /* dir is never NULL */
+	if (dir[0] == '\0') {
 		PR_fprintf(PR_STDERR, errStrings[NO_DBDIR_ERR]);
 		retval=NO_DBDIR_ERR;
 		goto loser;
 	}
-	dir = SECU_ConfigDirectory(NULL);
+	if (strncmp(dir, multiaccess, sizeof multiaccess - 1) == 0) {
+		/* won't attempt to handle the multiaccess case. */
+		return SUCCESS;
+	}
 
 	/* Make sure db directory exists and is readable */
 	if(PR_Access(dir, PR_ACCESS_EXISTS) != PR_SUCCESS) {
@@ -610,115 +609,76 @@ init_crypto(PRBool create, PRBool readOnly)
 		goto loser;
 	}
 
+	if (secmodName == NULL) {
+		secmodName = "secmod.db";
+	}
+
+	moddbname = PR_smprintf("%s/%s", dir, secmodName);
+	if (!moddbname)
+	    return OUT_OF_MEM_ERR;
+
 	/* Check for the proper permissions on databases */
 	if(create) {
 		/* Make sure dbs don't already exist, and the directory is
 			writeable */
-#ifdef notdef
 		if(PR_Access(moddbname, PR_ACCESS_EXISTS)==PR_SUCCESS) {
 			PR_fprintf(PR_STDERR, errStrings[FILE_ALREADY_EXISTS_ERR],
-			  moddbname);
-			retval=FILE_ALREADY_EXISTS_ERR;
-			goto loser;
-		} else if(PR_Access(keydbname, PR_ACCESS_EXISTS)==PR_SUCCESS) {
-			PR_fprintf(PR_STDERR, errStrings[FILE_ALREADY_EXISTS_ERR], keydbname);
-			retval=FILE_ALREADY_EXISTS_ERR;
-			goto loser;
-		} else if(PR_Access(certdbname, PR_ACCESS_EXISTS)==PR_SUCCESS) {
-			PR_fprintf(PR_STDERR, errStrings[FILE_ALREADY_EXISTS_ERR],certdbname);
+			           moddbname);
 			retval=FILE_ALREADY_EXISTS_ERR;
 			goto loser;
 		} else 
-#endif
 		if(PR_Access(dir, PR_ACCESS_WRITE_OK) != PR_SUCCESS) {
 			PR_fprintf(PR_STDERR, errStrings[DIR_NOT_WRITEABLE_ERR], dir);
 			retval=DIR_NOT_WRITEABLE_ERR;
 			goto loser;
 		}
 	} else {
-#ifdef notdef
 		/* Make sure dbs are readable and writeable */
 		if(PR_Access(moddbname, PR_ACCESS_READ_OK) != PR_SUCCESS) {
-#ifndef XP_PC
-			/* in serverland, they always use secmod.db, even on UNIX. Try
-			   this */
-			moddbname = PR_smprintf("%s/secmod.db", dir);
-			free_moddbname = PR_TRUE;
-			if(PR_Access(moddbname, PR_ACCESS_READ_OK) != PR_SUCCESS) {
-#endif
 			PR_fprintf(PR_STDERR, errStrings[FILE_NOT_READABLE_ERR], moddbname);
 			retval=FILE_NOT_READABLE_ERR;
 			goto loser;
-#ifndef XP_PC
-			}
-#endif
 		}
-		if(!nocertdb) { /* don't open cert and key db if -nocertdb */
-			if(PR_Access(keydbname, PR_ACCESS_READ_OK) != PR_SUCCESS) {
-				PR_fprintf(PR_STDERR, errStrings[FILE_NOT_READABLE_ERR],
-				  keydbname);
-				retval=FILE_NOT_READABLE_ERR;
-				goto loser;
-			}
-			if(PR_Access(certdbname, PR_ACCESS_READ_OK) != PR_SUCCESS) {
-				PR_fprintf(PR_STDERR, errStrings[FILE_NOT_READABLE_ERR],
-				  certdbname);
-				retval=FILE_NOT_READABLE_ERR;
-				goto loser;
-			}
-		}
-#endif
 
 		/* Check for write access if we'll be making changes */
 		if( !readOnly ) {
-#ifdef notdef
 			if(PR_Access(moddbname, PR_ACCESS_WRITE_OK) != PR_SUCCESS) {
 				PR_fprintf(PR_STDERR, errStrings[FILE_NOT_WRITEABLE_ERR],
-				  moddbname);
+							moddbname);
 				retval=FILE_NOT_WRITEABLE_ERR;
 				goto loser;
 			}
-			if(!nocertdb) { /* don't open key and cert db if -nocertdb */
-				if(PR_Access(keydbname, PR_ACCESS_WRITE_OK)
-															!= PR_SUCCESS) {
-					PR_fprintf(PR_STDERR, errStrings[FILE_NOT_WRITEABLE_ERR],
-					  keydbname);
-					retval=FILE_NOT_WRITEABLE_ERR;
-					goto loser;
-				}
-				if(PR_Access(certdbname, PR_ACCESS_WRITE_OK)
-															!= PR_SUCCESS) {
-					PR_fprintf(PR_STDERR, errStrings[FILE_NOT_WRITEABLE_ERR],
-					  certdbname);
-					retval=FILE_NOT_WRITEABLE_ERR;
-					goto loser;
-				}
-			}
-#endif
 		}
 		PR_fprintf(PR_STDOUT, msgStrings[USING_DBDIR_MSG],
 		  SECU_ConfigDirectory(NULL));
 	}
+	retval=SUCCESS;
+loser:
+	if (moddbname) {
+		PR_Free(moddbname);
+	}
+	return retval;
+}
 
+static Error
+init_crypto(PRBool create, PRBool readOnly)
+{
+
+	PRUint32  flags = 0;
+	SECStatus rv;
+	Error     retval;
 	/* Open/create key database */
-	flags = 0;
+
 	if (readOnly) flags |= NSS_INIT_READONLY;
 	if (nocertdb) flags |= NSS_INIT_NOCERTDB;
 	rv = NSS_Initialize(SECU_ConfigDirectory(NULL), dbprefix, dbprefix,
-	               secmodName, flags);
+		       secmodName, flags);
 	if (rv != SECSuccess) {
-	    SECU_PrintPRandOSError(progName);
-	    retval=NSS_INITIALIZE_FAILED_ERR;
-	    goto loser;
-	}
+		SECU_PrintPRandOSError(progName);
+		retval=NSS_INITIALIZE_FAILED_ERR;
+	} else 
+		retval=SUCCESS;
 
-	retval=SUCCESS;
-loser:
-#ifdef notdef
-	if(free_moddbname) {
-		PR_Free(moddbname);
-	}
-#endif
 	return retval;
 }
 
@@ -744,6 +704,8 @@ usage()
 "-changepw TOKEN                  Change the password on the named token\n"
 "   [-pwfile FILE]                The old password is in this file\n"
 "   [-newpwfile FILE]             The new password is in this file\n"
+"-chkfips [ true | false ]        If true, verify  FIPS mode.  If false,\n"
+"                                 verify not FIPS mode\n"
 "-create                          Create a new set of security databases\n"
 "-default MODULE                  Make the given module a default provider\n"
 "   -mechanisms MECHANISM_LIST    of the given mechanisms\n"
@@ -766,8 +728,9 @@ usage()
 "                                 directory is used\n"
 "-list [MODULE]                   Lists information about the specified module\n"
 "                                 or about all modules if none is specified\n"
-"-chkfips [ true | false ]        If true, verify  FIPS mode.  If false,\n"
-"                                 verify not FIPS mode\n"
+"-rawadd MODULESPEC               Add module spec string to secmod DB\n"
+"-rawlist [MODULE]                Display module spec(s) for one or all\n"
+"                                 loadable modules\n"
 "-undefault MODULE                The given module is NOT a default provider\n"
 "   -mechanisms MECHANISM_LIST    of the listed mechanisms\n"
 "   [-slot SLOT]                  limit change to only the given slot\n"
@@ -805,8 +768,8 @@ main(int argc, char *argv[])
 #define STDINBUF_SIZE 80
 	char stdinbuf[STDINBUF_SIZE];
 
-    progName = strrchr(argv[0], '/');
-    progName = progName ? progName+1 : argv[0];
+	progName = strrchr(argv[0], '/');
+	progName = progName ? progName+1 : argv[0];
 
 
 	PR_Init(PR_USER_THREAD, PR_PRIORITY_NORMAL, 0);
@@ -830,32 +793,11 @@ main(int argc, char *argv[])
 		goto loser;
 	}
 
-        if ((command == RAW_LIST_COMMAND) || (command == RAW_ADD_COMMAND)) {
-	    if(!moduleName) {
-		char *readOnlyStr, *noCertDBStr, *sep;
-		if (!secmodName) secmodName="secmod.db";
-		if (!dbprefix) dbprefix = "";
-		sep = ((command == RAW_LIST_COMMAND) && nocertdb) ? "," : " ";
-		readOnlyStr = (command == RAW_LIST_COMMAND) ? "readOnly" : "" ;
-		noCertDBStr = nocertdb ? "noCertDB" : "";
-		SECU_ConfigDirectory(dbdir);
-
-		moduleName=PR_smprintf("name=\"NSS default Module DB\" parameters=\"configdir=%s certPrefix=%s keyPrefix=%s secmod=%s flags=%s%s%s\" NSS=\"flags=internal,moduleDB,moduleDBOnly,critical\"",
-			SECU_ConfigDirectory(NULL),dbprefix, dbprefix,
-				secmodName,  readOnlyStr,sep,  noCertDBStr);
-	    }
-	    if (command == RAW_LIST_COMMAND) {
-		errcode = RawListModule(moduleName);
-	    } else {
-		PORT_Assert(moduleSpec);
-		errcode = RawAddModule(moduleName,moduleSpec);
-	    }
-	    goto loser;
-	}
-
 	/* Set up crypto stuff */
 	createdb = command==CREATE_COMMAND;
-	readOnly = ((command==LIST_COMMAND) || (command==CHKFIPS_COMMAND));
+	readOnly = ((command == LIST_COMMAND) || 
+	            (command == CHKFIPS_COMMAND) ||
+	            (command == RAW_LIST_COMMAND));
 
 	/* Make sure browser is not running if we're writing to a database */
 	/* Do this before initializing crypto */
@@ -878,11 +820,41 @@ main(int argc, char *argv[])
 		PR_fprintf(PR_STDOUT, "\n");
 	}
 
-	errcode = init_crypto(createdb, readOnly);
+	errcode = check_crypto(createdb, readOnly);
 	if( errcode != SUCCESS) {
 		goto loser;
 	}
 
+	if ((command == RAW_LIST_COMMAND) || (command == RAW_ADD_COMMAND)) {
+		if(!moduleName) {
+			char *readOnlyStr, *noCertDBStr, *sep;
+			if (!secmodName) secmodName="secmod.db";
+			if (!dbprefix) dbprefix = "";
+			sep = ((command == RAW_LIST_COMMAND) && nocertdb) ? "," : " ";
+			readOnlyStr = (command == RAW_LIST_COMMAND) ? "readOnly" : "" ;
+			noCertDBStr = nocertdb ? "noCertDB" : "";
+			SECU_ConfigDirectory(dbdir);
+
+			moduleName=PR_smprintf(
+    "name=\"NSS default Module DB\" parameters=\"configdir=%s certPrefix=%s "
+    "keyPrefix=%s secmod=%s flags=%s%s%s\" NSS=\"flags=internal,moduleDB,"
+    "moduleDBOnly,critical\"",
+			                       SECU_ConfigDirectory(NULL),dbprefix,dbprefix,
+			                       secmodName, readOnlyStr,sep, noCertDBStr);
+		}
+		if (command == RAW_LIST_COMMAND) {
+			errcode = RawListModule(moduleName);
+		} else {
+			PORT_Assert(moduleSpec);
+			errcode = RawAddModule(moduleName,moduleSpec);
+		}
+		goto loser;
+	}
+
+	errcode = init_crypto(createdb, readOnly);
+	if( errcode != SUCCESS) {
+		goto loser;
+	}
 
 	/* Execute the command */
 	switch(command) {
@@ -916,7 +888,7 @@ main(int argc, char *argv[])
 	case JAR_COMMAND:
 		Pk11Install_SetErrorHandler(install_error);
 		errcode = Pk11Install_DoInstall(jarFile, installDir, tempDir,
-						PR_STDOUT, force, nocertdb);
+		                                PR_STDOUT, force, nocertdb);
 		break;
 	case LIST_COMMAND:
 		if(moduleName) {
@@ -934,9 +906,9 @@ main(int argc, char *argv[])
 		break;
 	}
 
-        if (NSS_Shutdown() != SECSuccess) {
-            exit(1);
-        }
+	if (NSS_Shutdown() != SECSuccess) {
+		exit(1);
+	}
 
 loser:
 	PR_Cleanup();

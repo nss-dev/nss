@@ -88,6 +88,7 @@ STAN_GetDefaultCryptoContext()
 }
 
 extern const NSSError NSS_ERROR_ALREADY_INITIALIZED;
+extern const NSSError NSS_ERROR_INTERNAL_ERROR;
 
 NSS_IMPLEMENT PRStatus
 STAN_LoadDefaultNSS3TrustDomain (
@@ -393,7 +394,8 @@ static NSSASCII7 *
 nss3certificate_getEmailAddress(nssDecodedCert *dc)
 {
     CERTCertificate *cc = (CERTCertificate *)dc->data;
-    return cc ? (NSSASCII7 *)cc->emailAddr : NULL;
+    return (cc && cc->emailAddr && cc->emailAddr[0])
+	    ? (NSSASCII7 *)cc->emailAddr : NULL;
 }
 
 static PRStatus
@@ -412,28 +414,38 @@ nss3certificate_getDERSerialNumber(nssDecodedCert *dc,
     return PR_FAILURE;
 }
 
+/* Returns NULL if "encoding" cannot be decoded. */
 NSS_IMPLEMENT nssDecodedCert *
 nssDecodedPKIXCertificate_Create (
   NSSArena *arenaOpt,
   NSSDER *encoding
 )
 {
-    nssDecodedCert *rvDC;
-    SECItem secDER;
-    rvDC = nss_ZNEW(arenaOpt, nssDecodedCert);
-    rvDC->type = NSSCertificateType_PKIX;
+    nssDecodedCert  *rvDC = NULL;
+    CERTCertificate *cert;
+    SECItem          secDER;
+
     SECITEM_FROM_NSSITEM(&secDER, encoding);
-    rvDC->data = (void *)CERT_DecodeDERCertificate(&secDER, PR_TRUE, NULL);
-    rvDC->getIdentifier = nss3certificate_getIdentifier;
-    rvDC->getIssuerIdentifier = nss3certificate_getIssuerIdentifier;
-    rvDC->matchIdentifier = nss3certificate_matchIdentifier;
-    rvDC->isValidIssuer = nss3certificate_isValidIssuer;
-    rvDC->getUsage = nss3certificate_getUsage;
-    rvDC->isValidAtTime = nss3certificate_isValidAtTime;
-    rvDC->isNewerThan = nss3certificate_isNewerThan;
-    rvDC->matchUsage = nss3certificate_matchUsage;
-    rvDC->getEmailAddress = nss3certificate_getEmailAddress;
-    rvDC->getDERSerialNumber = nss3certificate_getDERSerialNumber;
+    cert = CERT_DecodeDERCertificate(&secDER, PR_TRUE, NULL);
+    if (cert) {
+	rvDC = nss_ZNEW(arenaOpt, nssDecodedCert);
+	if (rvDC) {
+	    rvDC->type                = NSSCertificateType_PKIX;
+	    rvDC->data                = (void *)cert;
+	    rvDC->getIdentifier       = nss3certificate_getIdentifier;
+	    rvDC->getIssuerIdentifier = nss3certificate_getIssuerIdentifier;
+	    rvDC->matchIdentifier     = nss3certificate_matchIdentifier;
+	    rvDC->isValidIssuer       = nss3certificate_isValidIssuer;
+	    rvDC->getUsage            = nss3certificate_getUsage;
+	    rvDC->isValidAtTime       = nss3certificate_isValidAtTime;
+	    rvDC->isNewerThan         = nss3certificate_isNewerThan;
+	    rvDC->matchUsage          = nss3certificate_matchUsage;
+	    rvDC->getEmailAddress     = nss3certificate_getEmailAddress;
+	    rvDC->getDERSerialNumber  = nss3certificate_getDERSerialNumber;
+	} else {
+	    CERT_DestroyCertificate(cert);
+	}
+    }
     return rvDC;
 }
 
@@ -443,19 +455,20 @@ create_decoded_pkix_cert_from_nss3cert (
   CERTCertificate *cc
 )
 {
-    nssDecodedCert *rvDC;
-    rvDC = nss_ZNEW(arenaOpt, nssDecodedCert);
-    rvDC->type = NSSCertificateType_PKIX;
-    rvDC->data = (void *)cc;
-    rvDC->getIdentifier = nss3certificate_getIdentifier;
-    rvDC->getIssuerIdentifier = nss3certificate_getIssuerIdentifier;
-    rvDC->matchIdentifier = nss3certificate_matchIdentifier;
-    rvDC->isValidIssuer = nss3certificate_isValidIssuer;
-    rvDC->getUsage = nss3certificate_getUsage;
-    rvDC->isValidAtTime = nss3certificate_isValidAtTime;
-    rvDC->isNewerThan = nss3certificate_isNewerThan;
-    rvDC->matchUsage = nss3certificate_matchUsage;
-    rvDC->getEmailAddress = nss3certificate_getEmailAddress;
+    nssDecodedCert *rvDC = nss_ZNEW(arenaOpt, nssDecodedCert);
+    if (rvDC) {
+	rvDC->type                = NSSCertificateType_PKIX;
+	rvDC->data                = (void *)cc;
+	rvDC->getIdentifier       = nss3certificate_getIdentifier;
+	rvDC->getIssuerIdentifier = nss3certificate_getIssuerIdentifier;
+	rvDC->matchIdentifier     = nss3certificate_matchIdentifier;
+	rvDC->isValidIssuer       = nss3certificate_isValidIssuer;
+	rvDC->getUsage            = nss3certificate_getUsage;
+	rvDC->isValidAtTime       = nss3certificate_isValidAtTime;
+	rvDC->isNewerThan         = nss3certificate_isNewerThan;
+	rvDC->matchUsage          = nss3certificate_matchUsage;
+	rvDC->getEmailAddress     = nss3certificate_getEmailAddress;
+    }
     return rvDC;
 }
 
@@ -586,9 +599,12 @@ get_cert_instance(NSSCertificate *c)
 }
 
 char * 
-STAN_GetCERTCertificateName(NSSCertificate *c)
+STAN_GetCERTCertificateNameForInstance (
+  PLArenaPool *arenaOpt,
+  NSSCertificate *c,
+  nssCryptokiInstance *instance
+)
 {
-    nssCryptokiInstance *instance = get_cert_instance(c);
     NSSCryptoContext *context = c->object.cryptoContext;
     PRStatus nssrv;
     int nicklen, tokenlen, len;
@@ -613,7 +629,11 @@ STAN_GetCERTCertificateName(NSSCertificate *c)
 	}
 	nicklen = nssUTF8_Size(stanNick, &nssrv);
 	len = tokenlen + nicklen;
-	nickname = PORT_Alloc(len);
+	if (arenaOpt) {
+	    nickname = PORT_ArenaAlloc(arenaOpt, len);
+	} else {
+	    nickname = PORT_Alloc(len);
+	}
 	nick = nickname;
 	if (tokenName) {
 	    memcpy(nick, tokenName, tokenlen-1);
@@ -626,6 +646,12 @@ STAN_GetCERTCertificateName(NSSCertificate *c)
     return nickname;
 }
 
+char * 
+STAN_GetCERTCertificateName(PLArenaPool *arenaOpt, NSSCertificate *c)
+{
+    nssCryptokiInstance *instance = get_cert_instance(c);
+    return STAN_GetCERTCertificateNameForInstance(arenaOpt, c, instance);
+}
 
 static void
 fill_CERTCertificateFields(NSSCertificate *c, CERTCertificate *cc, PRBool forced)
@@ -703,16 +729,41 @@ fill_CERTCertificateFields(NSSCertificate *c, CERTCertificate *cc, PRBool forced
 static CERTCertificate *
 stan_GetCERTCertificate(NSSCertificate *c, PRBool forceUpdate)
 {
-    nssDecodedCert *dc;
+    nssDecodedCert *dc = c->decoding;
     CERTCertificate *cc;
-    if (!c->decoding) {
+
+    /* There is a race in assigning c->decoding.  
+    ** This is a workaround.  Bugzilla bug 225525.
+    */
+    if (!dc) {
 	dc = nssDecodedPKIXCertificate_Create(NULL, &c->encoding);
-	if (!dc) return NULL;
-	c->decoding = dc;
-    } else {
-	dc = c->decoding;
+	if (!dc) 
+	    return NULL;
+	cc = (CERTCertificate *)dc->data;
+	PORT_Assert(cc); /* software error */
+	if (!cc) {
+	    nssDecodedPKIXCertificate_Destroy(dc);
+	    nss_SetError(NSS_ERROR_INTERNAL_ERROR);
+	    return NULL;
+	}
+	/* Once this race is fixed, an assertion should be put 
+	** here to detect any regressions. 
+    	PORT_Assert(!c->decoding); 
+	*/
+	if (!c->decoding) {
+	    c->decoding = dc;
+	} else { 
+	    /* Reduce the leaks here, until the race is fixed.  */
+	    nssDecodedPKIXCertificate_Destroy(dc);
+	    dc = c->decoding;
+	}
     }
     cc = (CERTCertificate *)dc->data;
+    PORT_Assert(cc);
+    /* When c->decoding is non-NULL on input, but dc->data is
+     * NULL, we don't destroy dc because some other errant 
+     * code allocated it .
+     */
     if (cc) {
 	if (!cc->nssCertificate || forceUpdate) {
 	    fill_CERTCertificateFields(c, cc, forceUpdate);
@@ -815,7 +866,7 @@ STAN_GetNSSCertificate(CERTCertificate *cc)
 	nssItem_Create(arena, &c->serial, derSerial.len, derSerial.data);
 	PORT_Free(derSerial.data);
     }
-    if (cc->emailAddr) {
+    if (cc->emailAddr && cc->emailAddr[0]) {
         c->email = nssUTF8_Create(arena,
                                   nssStringType_PrintableString,
                                   (NSSUTF8 *)cc->emailAddr,

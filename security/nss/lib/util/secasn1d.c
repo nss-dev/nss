@@ -38,6 +38,13 @@
  * $Id$
  */
 
+/* #define DEBUG_ASN1D_STATES 1 */
+
+#ifdef DEBUG_ASN1D_STATES
+#include <stdio.h>
+#define PR_Assert sec_asn1d_Assert
+#endif
+
 #include "secasn1.h"
 #include "secerr.h"
 
@@ -72,7 +79,7 @@ typedef enum {
 } sec_asn1d_parse_place;
 
 #ifdef DEBUG_ASN1D_STATES
-static const char *place_names[] = {
+static const char * const place_names[] = {
     "beforeIdentifier",
     "duringIdentifier",
     "afterIdentifier",
@@ -101,6 +108,114 @@ static const char *place_names[] = {
     "afterChoice",
     "notInUse"
 };
+
+static const char * const class_names[] = {
+    "UNIVERSAL",
+    "APPLICATION",
+    "CONTEXT_SPECIFIC",
+    "PRIVATE"
+};
+
+static const char * const method_names[] = { "PRIMITIVE", "CONSTRUCTED" };
+
+static const char * const type_names[] = {
+    "END_OF_CONTENTS",
+    "BOOLEAN",
+    "INTEGER",
+    "BIT_STRING",
+    "OCTET_STRING",
+    "NULL",
+    "OBJECT_ID",
+    "OBJECT_DESCRIPTOR",
+    "(type 08)",
+    "REAL",
+    "ENUMERATED",
+    "EMBEDDED",
+    "UTF8_STRING",
+    "(type 0d)",
+    "(type 0e)",
+    "(type 0f)",
+    "SEQUENCE",
+    "SET",
+    "NUMERIC_STRING",
+    "PRINTABLE_STRING",
+    "T61_STRING",
+    "VIDEOTEXT_STRING",
+    "IA5_STRING",
+    "UTC_TIME",
+    "GENERALIZED_TIME",
+    "GRAPHIC_STRING",
+    "VISIBLE_STRING",
+    "GENERAL_STRING",
+    "UNIVERSAL_STRING",
+    "(type 1d)",
+    "BMP_STRING",
+    "HIGH_TAG_VALUE"
+};
+
+static const char * const flag_names[] = { /* flags, right to left */
+    "OPTIONAL",
+    "EXPLICIT",
+    "ANY",
+    "INLINE",
+    "POINTER",
+    "GROUP",
+    "DYNAMIC",
+    "SKIP",
+    "INNER",
+    "SAVE",
+    "",            /* decoder ignores "MAY_STREAM", */
+    "SKIP_REST",
+    "CHOICE",
+    "NO_STREAM",
+    "DEBUG_BREAK",
+    "unknown 08",
+    "unknown 10",
+    "unknown 20",
+    "unknown 40",
+    "unknown 80"
+};
+
+static int /* bool */
+formatKind(unsigned long kind, char * buf)
+{
+    int i;
+    unsigned long k = kind & SEC_ASN1_TAGNUM_MASK;
+    unsigned long notag = kind & (SEC_ASN1_CHOICE | SEC_ASN1_POINTER |
+        SEC_ASN1_INLINE | SEC_ASN1_ANY | SEC_ASN1_SAVE);
+
+    buf[0] = 0;
+    if ((kind & SEC_ASN1_CLASS_MASK) != SEC_ASN1_UNIVERSAL) {
+        sprintf(buf, " %s", class_names[(kind & SEC_ASN1_CLASS_MASK) >> 6] );
+        buf += strlen(buf);
+    }
+    if (kind & SEC_ASN1_METHOD_MASK) {
+        sprintf(buf, " %s", method_names[1]);
+        buf += strlen(buf);
+    }
+    if ((kind & SEC_ASN1_CLASS_MASK) == SEC_ASN1_UNIVERSAL) {
+        if (k || !notag) {
+            sprintf(buf, " %s", type_names[k] );
+            if ((k == SEC_ASN1_SET || k == SEC_ASN1_SEQUENCE) &&
+                (kind & SEC_ASN1_GROUP)) {
+                buf += strlen(buf);
+                sprintf(buf, "_OF");
+            }
+        }
+    } else {
+        sprintf(buf, " [%d]", k);
+    }
+    buf += strlen(buf);
+
+    for (k = kind >> 8, i = 0; k; k >>= 1, ++i) {
+        if (k & 1) {
+            sprintf(buf, " %s", flag_names[i]);
+            buf += strlen(buf);
+        }
+    }
+    return notag != 0;
+}
+
 #endif /* DEBUG_ASN1D_STATES */
 
 typedef enum {
@@ -274,12 +389,7 @@ sec_asn1d_push_state (SEC_ASN1DecoderContext *cx,
     new_state = (sec_asn1d_state*)sec_asn1d_zalloc (cx->our_pool, 
 						    sizeof(*new_state));
     if (new_state == NULL) {
-	cx->status = decodeError;
-	if (state != NULL) {
-	    PORT_ArenaRelease(cx->our_pool, state->our_mark);
-	    state->our_mark = NULL;
-	}
-	return NULL;
+	goto loser;
     }
 
     new_state->top         = cx;
@@ -291,13 +401,25 @@ sec_asn1d_push_state (SEC_ASN1DecoderContext *cx,
 
     if (state != NULL) {
 	new_state->depth = state->depth;
-	if (new_depth)
-	    new_state->depth++;
+	if (new_depth) {
+	    if (++new_state->depth > SEC_ASN1D_MAX_DEPTH) {
+		PORT_SetError (SEC_ERROR_BAD_DER);
+		goto loser;
+	    }
+	}
 	state->child = new_state;
     }
 
     cx->current = new_state;
     return new_state;
+
+loser:
+    cx->status = decodeError;
+    if (state != NULL) {
+	PORT_ArenaRelease(cx->our_pool, state->our_mark);
+	state->our_mark = NULL;
+    }
+    return NULL;
 }
 
 
@@ -412,10 +534,10 @@ sec_asn1d_init_state_based_on_template (sec_asn1d_state *state)
     encode_kind &= ~SEC_ASN1_DYNAMIC;
     encode_kind &= ~SEC_ASN1_MAY_STREAM;
 
-    if( encode_kind & SEC_ASN1_CHOICE ) {
+    if (encode_kind & SEC_ASN1_CHOICE) {
 #if 0	/* XXX remove? */
       sec_asn1d_state *child = sec_asn1d_push_state(state->top, state->theTemplate, state->dest, PR_FALSE);
-      if( (sec_asn1d_state *)NULL == child ) {
+      if ((sec_asn1d_state *)NULL == child) {
         return (sec_asn1d_state *)NULL;
       }
 
@@ -600,8 +722,8 @@ sec_asn1d_init_state_based_on_template (sec_asn1d_state *state)
     return state;
 }
 
-static PRBool
-sec_asn1d_parent_is_indefinite(sec_asn1d_state *state)
+static sec_asn1d_state *
+sec_asn1d_get_enclosing_construct(sec_asn1d_state *state)
 {
     for (state = state->parent; state; state = state->parent) {
 	sec_asn1d_parse_place place = state->place;
@@ -613,16 +735,27 @@ sec_asn1d_parent_is_indefinite(sec_asn1d_state *state)
 	    place != duringChoice) {
 
             /* we've walked up the stack to a state that represents
-            ** the enclosing construct.  Is it one of the types that
-            ** permits an unexpected EOC?
-            */
-            int eoc_permitted = 
-		(place == duringGroup ||
-		 place == duringConstructedString ||
-		 state->child->optional);
-            return (state->indefinite && eoc_permitted) ? PR_TRUE : PR_FALSE;
-
+            ** the enclosing construct.  
+	    */
+            break;
 	}
+    }
+    return state;
+}
+
+static PRBool
+sec_asn1d_parent_allows_EOC(sec_asn1d_state *state)
+{
+    /* get state of enclosing construct. */
+    state = sec_asn1d_get_enclosing_construct(state);
+    if (state) {
+	sec_asn1d_parse_place place = state->place;
+        /* Is it one of the types that permits an unexpected EOC? */
+	int eoc_permitted = 
+	    (place == duringGroup ||
+	     place == duringConstructedString ||
+	     state->child->optional);
+	return (state->indefinite && eoc_permitted) ? PR_TRUE : PR_FALSE;
     }
     return PR_FALSE;
 }
@@ -642,6 +775,13 @@ sec_asn1d_parse_identifier (sec_asn1d_state *state,
     }
 
     byte = (unsigned char) *buf;
+#ifdef DEBUG_ASN1D_STATES
+    {
+        char kindBuf[256];
+        formatKind(byte, kindBuf);
+        printf("Found tag %02x %s\n", byte, kindBuf);
+    }
+#endif
     tag_number = byte & SEC_ASN1_TAGNUM_MASK;
 
     if (IS_HIGH_TAG_NUMBER (tag_number)) {
@@ -654,7 +794,7 @@ sec_asn1d_parse_identifier (sec_asn1d_state *state,
 	 */
 	state->pending = 1;
     } else {
-	if (byte == 0 && sec_asn1d_parent_is_indefinite(state)) {
+	if (byte == 0 && sec_asn1d_parent_allows_EOC(state)) {
 	    /*
 	     * Our parent has indefinite-length encoding, and the
 	     * entire tag found is 0, so it seems that we have hit the
@@ -787,6 +927,17 @@ sec_asn1d_parse_length (sec_asn1d_state *state,
 	}
     }
 
+    /* If we're parsing an ANY, SKIP, or SAVE template, and 
+    ** the object being saved is definite length encoded and constructed, 
+    ** there's no point in decoding that construct's members.
+    ** So, just forget it's constructed and treat it as primitive.
+    ** (SAVE appears as an ANY at this point)
+    */
+    if (!state->indefinite &&
+	(state->underlying_kind & (SEC_ASN1_ANY | SEC_ASN1_SKIP))) {
+	state->found_tag_modifiers &= ~SEC_ASN1_CONSTRUCTED;
+    }
+
     return 1;
 }
 
@@ -808,7 +959,7 @@ sec_asn1d_parse_more_length (sec_asn1d_state *state,
     count = 0;
 
     while (len && state->pending) {
-	if (HIGH_BITS (state->contents_length, 8) != 0) {
+	if (HIGH_BITS (state->contents_length, 9) != 0) {
 	    /*
 	     * The given full content length overflows our container;
 	     * just give up.
@@ -839,6 +990,12 @@ sec_asn1d_prepare_for_contents (sec_asn1d_state *state)
     PRArenaPool *poolp;
     unsigned long alloc_len;
 
+#ifdef DEBUG_ASN1D_STATES
+    {
+        printf("Found Length %d %s\n", state->contents_length,
+               state->indefinite ? "indefinite" : "");
+    }
+#endif
 
     /*
      * XXX I cannot decide if this allocation should exclude the case
@@ -880,6 +1037,21 @@ sec_asn1d_prepare_for_contents (sec_asn1d_state *state)
      * both contents_length and pending will be zero.
      */
     state->pending = state->contents_length;
+
+    /* If this item has definite length encoding, and 
+    ** is enclosed by a definite length constructed type,
+    ** make sure it isn't longer than the remaining space in that 
+    ** constructed type.  
+    */
+    if (state->contents_length > 0) {
+	sec_asn1d_state *parent = sec_asn1d_get_enclosing_construct(state);
+	if (parent && !parent->indefinite && 
+	    state->consumed + state->contents_length > parent->pending) {
+	    PORT_SetError (SEC_ERROR_BAD_DER);
+	    state->top->status = decodeError;
+	    return;
+	}
+    }
 
     /*
      * An EXPLICIT is nothing but an outer header, which we have
@@ -967,6 +1139,7 @@ sec_asn1d_prepare_for_contents (sec_asn1d_state *state)
 	 * implement this because in practice, it seems to be unused.
 	 */
 	PORT_Assert(0);
+	PORT_SetError (SEC_ERROR_BAD_DER); /* XXX */
 	state->top->status = decodeError;
 	break;
 
@@ -976,6 +1149,7 @@ sec_asn1d_prepare_for_contents (sec_asn1d_state *state)
 	 * An indefinite-length encoding is not alloweed.
 	 */
 	if (state->contents_length || state->indefinite) {
+	    PORT_SetError (SEC_ERROR_BAD_DER);
 	    state->top->status = decodeError;
 	    break;
 	}
@@ -990,6 +1164,7 @@ sec_asn1d_prepare_for_contents (sec_asn1d_state *state)
       case SEC_ASN1_BMP_STRING:
 	/* Error if length is not divisable by 2 */
 	if (state->contents_length % 2) {
+	   PORT_SetError (SEC_ERROR_BAD_DER);
 	   state->top->status = decodeError;
 	   break;
 	}   
@@ -999,6 +1174,7 @@ sec_asn1d_prepare_for_contents (sec_asn1d_state *state)
       case SEC_ASN1_UNIVERSAL_STRING:
 	/* Error if length is not divisable by 4 */
 	if (state->contents_length % 4) {
+	   PORT_SetError (SEC_ERROR_BAD_DER);
 	   state->top->status = decodeError;
 	   break;
 	}   
@@ -1255,7 +1431,17 @@ sec_asn1d_free_child (sec_asn1d_state *state, PRBool error)
     state->place = beforeEndOfContents;
 }
 
-
+/* We have just saved an entire encoded ASN.1 object (type) for a SAVE 
+** template, and now in the next template, we are going to decode that 
+** saved data  by calling SEC_ASN1DecoderUpdate recursively.
+** If that recursive call fails with needBytes, it is a fatal error,
+** because the encoded object should have been complete.
+** If that recursive call fails with decodeError, it will have already
+** cleaned up the state stack, so we must bail out quickly.
+**
+** These checks of the status returned by the recursive call are now
+** done in the caller of this function, immediately after it returns.
+*/
 static void
 sec_asn1d_reuse_encoding (sec_asn1d_state *state)
 {
@@ -1321,6 +1507,9 @@ sec_asn1d_reuse_encoding (sec_asn1d_state *state)
     if (SEC_ASN1DecoderUpdate (state->top,
 			       (char *) item->data, item->len) != SECSuccess)
 	return;
+    if (state->top->status == needBytes) {
+	return;
+    }
 
     PORT_Assert (state->top->current == state);
     PORT_Assert (state->child == child);
@@ -1423,8 +1612,18 @@ static unsigned long
 sec_asn1d_parse_more_bit_string (sec_asn1d_state *state,
 				 const char *buf, unsigned long len)
 {
-    PORT_Assert (state->pending > 0);
     PORT_Assert (state->place == duringBitString);
+    if (state->pending == 0) {
+	/* An empty bit string with some unused bits is invalid. */
+	if (state->bit_string_unused_bits) {
+	    PORT_SetError (SEC_ERROR_BAD_DER);
+	    state->top->status = decodeError;
+	} else {
+	    /* An empty bit string with no unused bits is OK. */
+	    state->place = beforeEndOfContents;
+	}
+	return 0;
+    }
 
     len = sec_asn1d_parse_leaf (state, buf, len);
     if (state->place == beforeEndOfContents && state->dest != NULL) {
@@ -1534,7 +1733,7 @@ sec_asn1d_next_substring (sec_asn1d_state *state)
 
     if (state->pending) {
 	PORT_Assert (!state->indefinite);
-	if( child_consumed > state->pending ) {
+	if (child_consumed > state->pending) {
 	    PORT_SetError (SEC_ERROR_BAD_DER);
 	    state->top->status = decodeError;
 	    return;
@@ -1653,7 +1852,7 @@ sec_asn1d_next_in_group (sec_asn1d_state *state)
      */
     if (state->pending) {
 	PORT_Assert (!state->indefinite);
-	if( child_consumed > state->pending ) {
+	if (child_consumed > state->pending) {
 	    PORT_SetError (SEC_ERROR_BAD_DER);
 	    state->top->status = decodeError;
 	    return;
@@ -1723,7 +1922,7 @@ sec_asn1d_next_in_sequence (sec_asn1d_state *state)
 	sec_asn1d_free_child (child, PR_FALSE);
 	if (state->pending) {
 	    PORT_Assert (!state->indefinite);
-	    if( child_consumed > state->pending ) {
+	    if (child_consumed > state->pending) {
 		PORT_SetError (SEC_ERROR_BAD_DER);
 		state->top->status = decodeError;
 		return;
@@ -1772,7 +1971,7 @@ sec_asn1d_next_in_sequence (sec_asn1d_state *state)
 	     */
 	    if (state->indefinite && child->endofcontents) {
 		PORT_Assert (child_consumed == 2);
-		if( child_consumed != 2 ) {
+		if (child_consumed != 2) {
 		    PORT_SetError (SEC_ERROR_BAD_DER);
 		    state->top->status = decodeError;
 		} else {
@@ -1992,13 +2191,9 @@ sec_asn1d_absorb_child (sec_asn1d_state *state)
     /*
      * Inherit the missing status of our child, and do the ugly
      * backing-up if necessary.
-     * (Only IMPLICIT or POINTER should encounter such; all other cases
-     * should have confirmed a tag *before* pushing a child.)
      */
     state->missing = state->child->missing;
     if (state->missing) {
-	PORT_Assert (state->place == afterImplicit
-		     || state->place == afterPointer);
 	state->found_tag_number = state->child->found_tag_number;
 	state->found_tag_modifiers = state->child->found_tag_modifiers;
 	state->endofcontents = state->child->endofcontents;
@@ -2126,7 +2321,7 @@ sec_asn1d_pop_state (sec_asn1d_state *state)
 	state->consumed += state->child->consumed;
 	if (state->pending) {
 	    PORT_Assert (!state->indefinite);
-	    if( state->child->consumed > state->pending ) {
+	    if (state->child->consumed > state->pending) {
 		PORT_SetError (SEC_ERROR_BAD_DER);
 		state->top->status = decodeError;
 	    } else {
@@ -2150,57 +2345,53 @@ sec_asn1d_pop_state (sec_asn1d_state *state)
 }
 
 static sec_asn1d_state *
-sec_asn1d_before_choice
-(
-  sec_asn1d_state *state
-)
+sec_asn1d_before_choice (sec_asn1d_state *state)
 {
-  sec_asn1d_state *child;
+    sec_asn1d_state *child;
 
-  if( state->allocate ) {
-    void *dest;
+    if (state->allocate) {
+	void *dest;
 
-    dest = sec_asn1d_zalloc(state->top->their_pool, state->theTemplate->size);
-    if( (void *)NULL == dest ) {
-      state->top->status = decodeError;
-      return (sec_asn1d_state *)NULL;
+	dest = sec_asn1d_zalloc(state->top->their_pool, state->theTemplate->size);
+	if ((void *)NULL == dest) {
+	    state->top->status = decodeError;
+	    return (sec_asn1d_state *)NULL;
+	}
+
+	state->dest = (char *)dest + state->theTemplate->offset;
     }
 
-    state->dest = (char *)dest + state->theTemplate->offset;
-  }
+    child = sec_asn1d_push_state(state->top, state->theTemplate + 1, 
+				 (char *)state->dest - state->theTemplate->offset, 
+				 PR_FALSE);
+    if ((sec_asn1d_state *)NULL == child) {
+	return (sec_asn1d_state *)NULL;
+    }
 
-  child = sec_asn1d_push_state(state->top, state->theTemplate + 1, 
-                               state->dest, PR_FALSE);
-  if( (sec_asn1d_state *)NULL == child ) {
-    return (sec_asn1d_state *)NULL;
-  }
+    sec_asn1d_scrub_state(child);
+    child = sec_asn1d_init_state_based_on_template(child);
+    if ((sec_asn1d_state *)NULL == child) {
+	return (sec_asn1d_state *)NULL;
+    }
 
-  sec_asn1d_scrub_state(child);
-  child = sec_asn1d_init_state_based_on_template(child);
-  if( (sec_asn1d_state *)NULL == child ) {
-    return (sec_asn1d_state *)NULL;
-  }
+    child->optional = PR_TRUE;
 
-  child->optional = PR_TRUE;
+    state->place = duringChoice;
 
-  state->place = duringChoice;
-
-  return child;
+    return child;
 }
 
 static sec_asn1d_state *
-sec_asn1d_during_choice
-(
-  sec_asn1d_state *state
-)
+sec_asn1d_during_choice (sec_asn1d_state *state)
 {
-  sec_asn1d_state *child = state->child;
-  
-  PORT_Assert((sec_asn1d_state *)NULL != child);
+    sec_asn1d_state *child = state->child;
+    
+    PORT_Assert((sec_asn1d_state *)NULL != child);
 
-  if( child->missing ) {
-    unsigned char child_found_tag_modifiers = 0;
-    unsigned long child_found_tag_number = 0;
+    if (child->missing) {
+	unsigned char child_found_tag_modifiers = 0;
+	unsigned long child_found_tag_number = 0;
+	void *        dest;
 
 	state->consumed += child->consumed;
 
@@ -2208,94 +2399,92 @@ sec_asn1d_during_choice
 	    /* This choice is probably the first item in a GROUP
 	    ** (e.g. SET_OF) that was indefinite-length encoded.
 	    ** We're actually at the end of that GROUP.
-	    ** We should look up the stack to be sure that we find
+	    ** We look up the stack to be sure that we find
 	    ** a state with indefinite length encoding before we
 	    ** find a state (like a SEQUENCE) that is definite.
 	    */
 	    child->place = notInUse;
 	    state->place = afterChoice;
 	    state->endofcontents = PR_TRUE;  /* propagate this up */
-	    if (sec_asn1d_parent_is_indefinite(state))
+	    if (sec_asn1d_parent_allows_EOC(state))
 		return state;
 	    PORT_SetError(SEC_ERROR_BAD_DER);
 	    state->top->status = decodeError;
 	    return NULL;
 	}
 
-    child->theTemplate++;
+	dest = (char *)child->dest - child->theTemplate->offset;
+	child->theTemplate++;
 
-    if( 0 == child->theTemplate->kind ) {
-      /* Ran out of choices */
-      PORT_SetError(SEC_ERROR_BAD_DER);
-      state->top->status = decodeError;
-      return (sec_asn1d_state *)NULL;
-    }
+	if (0 == child->theTemplate->kind) {
+	    /* Ran out of choices */
+	    PORT_SetError(SEC_ERROR_BAD_DER);
+	    state->top->status = decodeError;
+	    return (sec_asn1d_state *)NULL;
+	}
+	child->dest = (char *)dest + child->theTemplate->offset;
 
-    /* cargo'd from next_in_sequence innards */
-    if( state->pending ) {
-      PORT_Assert(!state->indefinite);
-      if( child->consumed > state->pending ) {
-	PORT_SetError (SEC_ERROR_BAD_DER);
-	state->top->status = decodeError;
-	return NULL;
-      }
-      state->pending -= child->consumed;
-      if( 0 == state->pending ) {
-        /* XXX uh.. not sure if I should have stopped this
-         * from happening before. */
-        PORT_Assert(0);
-        PORT_SetError(SEC_ERROR_BAD_DER);
-        state->top->status = decodeError;
-        return (sec_asn1d_state *)NULL;
-      }
-    }
+	/* cargo'd from next_in_sequence innards */
+	if (state->pending) {
+	    PORT_Assert(!state->indefinite);
+	    if (child->consumed > state->pending) {
+		PORT_SetError (SEC_ERROR_BAD_DER);
+		state->top->status = decodeError;
+		return NULL;
+	    }
+	    state->pending -= child->consumed;
+	    if (0 == state->pending) {
+		/* XXX uh.. not sure if I should have stopped this
+		 * from happening before. */
+		PORT_Assert(0);
+		PORT_SetError(SEC_ERROR_BAD_DER);
+		state->top->status = decodeError;
+		return (sec_asn1d_state *)NULL;
+	    }
+	}
 
-    child->consumed = 0;
-    sec_asn1d_scrub_state(child);
+	child->consumed = 0;
+	sec_asn1d_scrub_state(child);
 
-    /* move it on top again */
-    state->top->current = child;
+	/* move it on top again */
+	state->top->current = child;
 
-    child_found_tag_modifiers = child->found_tag_modifiers;
-    child_found_tag_number = child->found_tag_number;
+	child_found_tag_modifiers = child->found_tag_modifiers;
+	child_found_tag_number = child->found_tag_number;
 
-    child = sec_asn1d_init_state_based_on_template(child);
-    if( (sec_asn1d_state *)NULL == child ) {
-      return (sec_asn1d_state *)NULL;
-    }
+	child = sec_asn1d_init_state_based_on_template(child);
+	if ((sec_asn1d_state *)NULL == child) {
+	    return (sec_asn1d_state *)NULL;
+	}
 
-    /* copy our findings to the new top */
-    child->found_tag_modifiers = child_found_tag_modifiers;
-    child->found_tag_number = child_found_tag_number;
+	/* copy our findings to the new top */
+	child->found_tag_modifiers = child_found_tag_modifiers;
+	child->found_tag_number = child_found_tag_number;
 
-    child->optional = PR_TRUE;
-    child->place = afterIdentifier;
+	child->optional = PR_TRUE;
+	child->place = afterIdentifier;
 
-    return child;
-  } else {
-    if( (void *)NULL != state->dest ) {
-      /* Store the enum */
-      int *which = (int *)((char *)state->dest + state->theTemplate->offset);
-      *which = (int)child->theTemplate->size;
+	return child;
+    } 
+    if ((void *)NULL != state->dest) {
+	/* Store the enum */
+	int *which = (int *)state->dest;
+	*which = (int)child->theTemplate->size;
     }
 
     child->place = notInUse;
 
     state->place = afterChoice;
     return state;
-  }
 }
 
 static void
-sec_asn1d_after_choice
-(
-  sec_asn1d_state *state
-)
+sec_asn1d_after_choice (sec_asn1d_state *state)
 {
-  state->consumed += state->child->consumed;
-  state->child->consumed = 0;
-  state->place = afterEndOfContents;
-  sec_asn1d_pop_state(state);
+    state->consumed += state->child->consumed;
+    state->child->consumed = 0;
+    state->place = afterEndOfContents;
+    sec_asn1d_pop_state(state);
 }
 
 unsigned long
@@ -2353,29 +2542,42 @@ SEC_ASN1DecodeInteger(SECItem *src, unsigned long *value)
 
 #ifdef DEBUG_ASN1D_STATES
 static void
-dump_states
-(
-  SEC_ASN1DecoderContext *cx
-)
+dump_states(SEC_ASN1DecoderContext *cx)
 {
-  sec_asn1d_state *state;
+    sec_asn1d_state *state;
+    char kindBuf[256];
 
-  for( state = cx->current; state->parent; state = state->parent ) {
-    ;
-  }
-
-  for( ; state; state = state->child ) {
-    int i;
-    for( i = 0; i < state->depth; i++ ) {
-      printf("  ");
+    for (state = cx->current; state->parent; state = state->parent) {
+        ;
     }
 
-    printf("%s: template[0]->kind = 0x%02x, expect tag number = 0x%02x\n",
-           (state == cx->current) ? "STATE" : "State",
-           state->theTemplate->kind, state->expect_tag_number);
-  }
+    for (; state; state = state->child) {
+        int i;
+        for (i = 0; i < state->depth; i++) {
+            printf("  ");
+        }
 
-  return;
+        i = formatKind(state->theTemplate->kind, kindBuf);
+        printf("%s: tmpl %08x, kind%s",
+               (state == cx->current) ? "STATE" : "State",
+               state->theTemplate,
+               kindBuf);
+        printf(" %s", (state->place >= 0 && state->place <= notInUse)
+                       ? place_names[ state->place ]
+                       : "(undefined)");
+        if (!i)
+            printf(", expect 0x%02x",
+                   state->expect_tag_number | state->expect_tag_modifiers);
+
+        printf("%s%s%s %d\n",
+               state->indefinite    ? ", indef"   : "",
+               state->missing       ? ", miss"    : "",
+               state->endofcontents ? ", EOC"     : "",
+               state->pending
+               );
+    }
+
+    return;
 }
 #endif /* DEBUG_ASN1D_STATES */
 
@@ -2396,10 +2598,11 @@ SEC_ASN1DecoderUpdate (SEC_ASN1DecoderContext *cx,
 	what = SEC_ASN1_Contents;
 	consumed = 0;
 #ifdef DEBUG_ASN1D_STATES
-        printf("\nPLACE = %s, next byte = 0x%02x\n",
+        printf("\nPLACE = %s, next byte = 0x%02x, %08x[%d]\n",
                (state->place >= 0 && state->place <= notInUse) ?
                place_names[ state->place ] : "(undefined)",
-               (unsigned int)((unsigned char *)buf)[ consumed ]);
+               (unsigned int)((unsigned char *)buf)[ consumed ],
+               buf, consumed);
         dump_states(cx);
 #endif /* DEBUG_ASN1D_STATES */
 	switch (state->place) {
@@ -2442,6 +2645,17 @@ SEC_ASN1DecoderUpdate (SEC_ASN1DecoderContext *cx,
 	    break;
 	  case duringSaveEncoding:
 	    sec_asn1d_reuse_encoding (state);
+	    if (cx->status == decodeError) {
+		/* recursive call has already popped all states from stack.
+		** Bail out quickly.
+		*/
+		return SECFailure;
+	    }
+	    if (cx->status == needBytes) {
+		/* recursive call wanted more data. Fatal. Clean up below. */
+		PORT_SetError (SEC_ERROR_BAD_DER);
+		cx->status = decodeError;
+	    }
 	    break;
 	  case duringSequence:
 	    sec_asn1d_next_in_sequence (state);
@@ -2459,7 +2673,10 @@ SEC_ASN1DecoderUpdate (SEC_ASN1DecoderContext *cx,
 	    sec_asn1d_concat_group (state);
 	    break;
 	  case afterSaveEncoding:
-	    /* XXX comment! */
+	    /* SEC_ASN1DecoderUpdate has called itself recursively to 
+	    ** decode SAVEd encoded data, and now is done decoding that.
+	    ** Return to the calling copy of SEC_ASN1DecoderUpdate.
+	    */
 	    return SECSuccess;
 	  case beforeEndOfContents:
 	    sec_asn1d_prepare_for_end_of_contents (state);
@@ -2494,7 +2711,7 @@ SEC_ASN1DecoderUpdate (SEC_ASN1DecoderContext *cx,
 
 	/* We should not consume more than we have.  */
 	PORT_Assert (consumed <= len);
-	if( consumed > len ) {
+	if (consumed > len) {
 	    PORT_SetError (SEC_ERROR_BAD_DER);
 	    cx->status = decodeError;
 	    break;
@@ -2511,9 +2728,10 @@ SEC_ASN1DecoderUpdate (SEC_ASN1DecoderContext *cx,
 	 * length which is greater than the entire encoding.  So, we cannot
 	 * have this be an error.
 	 */
-	    if (len > 0)
+	    if (len > 0) {
+		PORT_SetError (SEC_ERROR_BAD_DER);
 		cx->status = decodeError;
-	    else
+	    } else
 #endif
 		cx->status = allDone;
 	    break;
@@ -2709,6 +2927,14 @@ SEC_ASN1DecoderClearNotifyProc (SEC_ASN1DecoderContext *cx)
     cx->notify_arg = NULL;	/* not necessary; just being clean */
 }
 
+void
+SEC_ASN1DecoderAbort(SEC_ASN1DecoderContext *cx, int error)
+{
+    PORT_Assert(cx);
+    PORT_SetError(error);
+    cx->status = decodeError;
+}
+
 
 SECStatus
 SEC_ASN1Decode (PRArenaPool *poolp, void *dest,
@@ -2735,12 +2961,19 @@ SEC_ASN1Decode (PRArenaPool *poolp, void *dest,
 SECStatus
 SEC_ASN1DecodeItem (PRArenaPool *poolp, void *dest,
 		    const SEC_ASN1Template *theTemplate,
-		    SECItem *item)
+		    const SECItem *src)
 {
     return SEC_ASN1Decode (poolp, dest, theTemplate,
-			   (char *) item->data, item->len);
+			   (const char *)src->data, src->len);
 }
 
+#ifdef DEBUG_ASN1D_STATES
+void sec_asn1d_Assert(const char *s, const char *file, PRIntn ln)
+{
+    printf("Assertion failed, \"%s\", file %s, line %d\n", s, file, ln);
+    fflush(stdout);
+}
+#endif
 
 /*
  * Generic templates for individual/simple items and pointers to

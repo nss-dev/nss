@@ -98,6 +98,10 @@ SEC_PKCS7DecoderUpdate(SEC_PKCS7DecoderContext *p7dcx,
 extern SEC_PKCS7ContentInfo *
 SEC_PKCS7DecoderFinish(SEC_PKCS7DecoderContext *p7dcx);
 
+
+/*  Abort the underlying ASN.1 stream & set an error  */
+void SEC_PKCS7DecoderAbort(SEC_PKCS7DecoderContext *p7dcx, int error);
+
 extern SEC_PKCS7ContentInfo *
 SEC_PKCS7DecodeItem(SECItem *p7item,
 		    SEC_PKCS7DecoderContentCallback cb, void *cb_arg,
@@ -546,6 +550,9 @@ extern SECStatus SEC_PKCS7EncoderUpdate (SEC_PKCS7EncoderContext *p7ecx,
 extern SECStatus SEC_PKCS7EncoderFinish (SEC_PKCS7EncoderContext *p7ecx,
 					 SECKEYGetPasswordKey pwfn,
 					 void *pwfnarg);
+
+/*  Abort the underlying ASN.1 stream & set an error  */
+void SEC_PKCS7EncoderAbort(SEC_PKCS7EncoderContext *p7dcx, int error);
 
 /* retrieve the algorithm ID used to encrypt the content info
  * for encrypted and enveloped data.  The SECAlgorithmID pointer

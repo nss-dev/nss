@@ -756,3 +756,30 @@ SECKEY_PublicKeyStrengthInBits;
 ;+    local:
 ;+       *;
 ;+};
+;+NSS_3.9 { 	# NSS 3.9 release
+;+    global:
+CERT_DestroyOidSequence;
+CERT_GetOidString;
+;;CERT_TimeChoiceTemplate DATA ;
+DER_DecodeTimeChoice;
+DER_EncodeTimeChoice;
+DSAU_DecodeDerSigToLen;
+DSAU_EncodeDerSigWithLen;
+NSS_Get_CERT_TimeChoiceTemplate;
+PK11_DeriveWithFlagsPerm;
+PK11_ExportEncryptedPrivKeyInfo;
+PK11_FindSlotsByNames;
+PK11_GetSymKeyType;
+PK11_MoveSymKey;
+PK11_PubDeriveWithKDF;
+PK11_PubUnwrapSymKeyWithFlagsPerm;
+PK11_UnwrapSymKeyWithFlagsPerm;
+SECITEM_ArenaDupItem;
+SECMOD_GetDBModuleList;
+SECMOD_GetDeadModuleList;
+SEC_ASN1DecoderAbort;
+SEC_ASN1EncoderAbort;
+SEC_DupCrl;
+;+    local:
+;+       *;
+;+};

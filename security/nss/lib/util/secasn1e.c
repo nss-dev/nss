@@ -466,7 +466,7 @@ sec_asn1e_which_choice
 )
 {
   int rv;
-  unsigned int which = *(unsigned int *)((char *)src + theTemplate->offset);
+  unsigned int which = *(unsigned int *)src;
 
   for( rv = 1, theTemplate++; theTemplate->kind != 0; rv++, theTemplate++ ) {
     if( which == theTemplate->size ) {
@@ -529,7 +529,7 @@ sec_asn1e_contents_length (const SEC_ASN1Template *theTemplate, void *src,
         return 0;
       }
 
-      src2 = (void *)((char *)src + theTemplate[indx].offset);
+      src2 = (void *)((char *)src - theTemplate->offset + theTemplate[indx].offset);
 
       return sec_asn1e_contents_length(&theTemplate[indx], src2, 
                                        PR_FALSE, noheaderp);
@@ -756,7 +756,8 @@ sec_asn1e_write_header (sec_asn1e_state *state)
 
       state->place = afterChoice;
       state = sec_asn1e_push_state(state->top, &state->theTemplate[indx],
-                                   state->src, PR_TRUE);
+                                   (char *)state->src - state->theTemplate->offset, 
+				   PR_TRUE);
 
       if( (sec_asn1e_state *)NULL != state ) {
         /*
@@ -1324,6 +1325,13 @@ SEC_ASN1EncoderClearNotifyProc (SEC_ASN1EncoderContext *cx)
     cx->notify_arg = NULL;	/* not necessary; just being clean */
 }
 
+void
+SEC_ASN1EncoderAbort(SEC_ASN1EncoderContext *cx, int error)
+{
+    PORT_Assert(cx);
+    PORT_SetError(error);
+    cx->status = encodeError;
+}
 
 void
 SEC_ASN1EncoderSetStreaming (SEC_ASN1EncoderContext *cx)

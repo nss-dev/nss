@@ -294,19 +294,28 @@ SECStatus
 CERT_FindSubjectKeyIDExtension(CERTCertificate *cert, SECItem *retItem)
 {
 
-    SECItem encodedValue;
     SECStatus rv;
+    SECItem encodedValue = {siBuffer, NULL, 0 };
+    SECItem decodedValue = {siBuffer, NULL, 0 };
 
-    encodedValue.data = NULL;
     rv = cert_FindExtension
 	 (cert->extensions, SEC_OID_X509_SUBJECT_KEY_ID, &encodedValue);
-    if (rv != SECSuccess)
-	return (rv);
-    rv = SEC_ASN1DecodeItem (NULL, retItem, SEC_OctetStringTemplate,
-			     &encodedValue);
-    PORT_Free (encodedValue.data);
-
-    return (rv);
+    if (rv == SECSuccess) {
+	PLArenaPool * tmpArena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
+	if (tmpArena) {
+	    rv = SEC_QuickDERDecodeItem(tmpArena, &decodedValue, 
+	                                SEC_OctetStringTemplate, 
+					&encodedValue);
+	    if (rv == SECSuccess) {
+	        rv = SECITEM_CopyItem(NULL, retItem, &decodedValue);
+	    }
+	    PORT_FreeArena(tmpArena, PR_FALSE);
+	} else {
+	    rv = SECFailure;
+	}
+    }
+    SECITEM_FreeItem(&encodedValue, PR_FALSE);
+    return rv;
 }
 
 SECStatus
