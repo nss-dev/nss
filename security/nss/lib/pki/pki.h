@@ -240,13 +240,14 @@ nssPrivateKey_AddRef (
 NSS_EXTERN NSSPrivateKey *
 nssPrivateKey_Decode (
   NSSBER *ber,
-  NSSKeyPairType keyPairType,
+  NSSOID *keyPairAlg,
   NSSOperations operations,
   NSSProperties properties,
   NSSUTF8 *passwordOpt,
   NSSCallback *uhhOpt,
   NSSToken *destination,
-  NSSTrustDomain *td
+  NSSTrustDomain *td,
+  NSSVolatileDomain *vdOpt
 );
 
 NSS_EXTERN PRStatus
@@ -280,6 +281,16 @@ nssPublicKey_GetID (
   NSSPublicKey *vk
 );
 
+NSS_EXTERN NSSItem *
+nssPublicKey_WrapSymmetricKey (
+  NSSPublicKey *bk,
+  const NSSAlgorithmAndParameters *ap,
+  NSSSymmetricKey *keyToWrap,
+  NSSCallback *uhh,
+  NSSItem *rvOpt,
+  NSSArena *arenaOpt
+);
+
 NSS_EXTERN NSSSymmetricKey *
 nssSymmetricKey_AddRef (
   NSSSymmetricKey *mk
@@ -294,6 +305,12 @@ nssSymmetricKey_DeriveSSLSessionKeys (
   NSSProperties properties,
   PRUint32 keySize,
   NSSSymmetricKey **sessionKeys
+);
+
+NSS_EXTERN NSSVolatileDomain *
+nssVolatileDomain_Create (
+  NSSTrustDomain *td,
+  NSSCallback *uhhOpt
 );
 
 NSS_EXTERN NSSCertificate **

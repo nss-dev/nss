@@ -55,6 +55,9 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #include "pkim.h"
 #endif /* PKIM_H */
 
+#include "pki1.h" /* XXX */
+#include "oiddata.h"
+
 
 #ifdef nodef
 typedef union 
@@ -356,16 +359,40 @@ NSSPrivateKey_Encode (
                                 rvOpt, arenaOpt);
 }
 
+/* XXX move to a lower layer to avoid extra translation? */
+/* or keep data with oid? */
+static NSSKeyPairType
+get_key_pair_type(NSSOID *kpAlg)
+{
+    switch (nssOID_GetTag(kpAlg)) {
+    case NSS_OID_PKCS1_RSA_ENCRYPTION:
+    case NSS_OID_PKCS1_MD2_WITH_RSA_ENCRYPTION:
+    case NSS_OID_PKCS1_MD5_WITH_RSA_ENCRYPTION:
+    case NSS_OID_PKCS1_SHA1_WITH_RSA_ENCRYPTION:
+    case NSS_OID_ISO_SHA_WITH_RSA_SIGNATURE:
+    case NSS_OID_X500_RSA_ENCRYPTION:
+	return NSSKeyPairType_RSA;
+    case NSS_OID_ANSIX9_DSA_SIGNATURE:
+    case NSS_OID_ANSIX9_DSA_SIGNATURE_WITH_SHA1_DIGEST:
+	return NSSKeyPairType_DSA;
+    case NSS_OID_X942_DIFFIE_HELLMAN_KEY:
+	return NSSKeyPairType_DH;
+    default:  
+	return NSSKeyPairType_Unknown;
+    }
+}
+
 NSS_IMPLEMENT NSSPrivateKey *
 nssPrivateKey_Decode (
   NSSBER *ber,
-  NSSKeyPairType keyPairType,
+  NSSOID *keyPairAlg,
   NSSOperations operations,
   NSSProperties properties,
   NSSUTF8 *passwordOpt,
   NSSCallback *uhhOpt,
   NSSToken *destination,
-  NSSTrustDomain *td
+  NSSTrustDomain *td,
+  NSSVolatileDomain *vdOpt
 )
 {
     PRStatus status;
@@ -380,6 +407,7 @@ nssPrivateKey_Decode (
     NSSArena *tmparena;
     NSSPrivateKey *rvKey = NULL;
     NSSSlot *slot;
+    NSSKeyPairType keyPairType;
 
     tmparena = nssArena_Create();
     if (!tmparena) {
@@ -435,16 +463,19 @@ nssPrivateKey_Decode (
                            nssTrustDomain_GetDefaultCallback(td, NULL));
     nssSlot_Destroy(slot);
 
+    /* XXX */
+    keyPairType = get_key_pair_type(keyPairAlg);
+
     /* unwrap the private key with the PBE key */
     vkey = nssToken_UnwrapPrivateKey(destination, session, wrapAP, 
-                                     pbeKey, &epki.encData, PR_TRUE, 
+                                     pbeKey, &epki.encData, !vdOpt, 
                                      operations, properties, 
                                      keyPairType);
     if (!vkey) {
 	goto cleanup;
     }
 
-    rvKey = nssPrivateKey_CreateFromInstance(vkey, td, NULL);
+    rvKey = nssPrivateKey_CreateFromInstance(vkey, td, vdOpt);
 
 cleanup:
     if (session) {
@@ -751,6 +782,23 @@ nssPublicKey_Create (
     return rvKey;
 }
 
+NSS_IMPLEMENT NSSPublicKey *
+nssPublicKey_CreateFromInstance (
+  nssCryptokiObject *instance,
+  NSSTrustDomain *td,
+  NSSVolatileDomain *vdOpt,
+  NSSArena *arenaOpt
+)
+{
+    nssPKIObject *pkio;
+
+    pkio = nssPKIObject_Create(arenaOpt, instance, td, vdOpt);
+    if (pkio) {
+	return nssPublicKey_Create(pkio);
+    }
+    return (NSSPublicKey *)NULL;
+}
+
 /* XXX same here */
 const NSSASN1Template NSSASN1Template_RSAPublicKey[] = 
 {
@@ -805,26 +853,17 @@ nssPublicKey_CreateFromInfo (
 	goto loser;
     }
 
-    session = nssToken_CreateSession(token, (vd != NULL));
+    session = nssToken_CreateSession(token, PR_FALSE);
     if (!session) {
 	goto loser;
     }
 
-    bko = nssToken_ImportPublicKey(token, session, &bki, (vd != NULL));
+    bko = nssToken_ImportPublicKey(token, session, &bki, PR_FALSE);
     if (bko) {
-	nssPKIObject *pkio;
-	pkio = nssPKIObject_Create(arena, bko, td, vd);
-	if (pkio) {
-	    rvbk = nssPublicKey_Create(pkio);
-	    if (!rvbk) {
-		/* loser destroys all PKIObject data */
-		goto loser;
-	    }
-	} else {
-	    goto loser;
+	rvbk = nssPublicKey_CreateFromInstance(bko, td, vd, arena);
+	if (!rvbk) {
+	    nssCryptokiObject_Destroy(bko);
 	}
-    } else {
-	goto loser;
     }
 
     nssSession_Destroy(session);
@@ -939,12 +978,27 @@ NSSPublicKey_DeleteStoredObject (
 NSS_IMPLEMENT nssCryptokiObject *
 nssPublicKey_CopyToToken (
   NSSPublicKey *bk,
-  NSSToken *destination
+  NSSToken *destination,
+  PRBool asPersistentObject
 )
 {
-    /* XXX this could get complicated... might have to wrap the key, etc. */
-    PR_ASSERT(0);
-    return NULL;
+    nssSession *session;
+    nssCryptokiObject *bko;
+
+    session = nssToken_CreateSession(destination, asPersistentObject);
+    if (!session) {
+	return (nssCryptokiObject *)NULL;
+    }
+    bko = nssToken_ImportPublicKey(destination, session, 
+                                   &bk->info, asPersistentObject);
+    nssSession_Destroy(session);
+    if (bko) {
+	if (nssPKIObject_AddInstance(&bk->object, bko) == PR_FAILURE) {
+	    nssCryptokiObject_Destroy(bko);
+	    bko = NULL;
+	}
+    }
+    return bko;
 }
 
 NSS_IMPLEMENT NSSItem *
@@ -1095,18 +1149,90 @@ NSSPublicKey_VerifyRecover (
     return NULL;
 }
 
-NSS_IMPLEMENT NSSItem *
-NSSPublicKey_WrapSymmetricKey (
+/* XXX this is kinda hacky, with the use of void * and a cast, but
+ *     the idea is to prefer moving the public key to another token
+ *     when necessary, by choosing among the target object's instances
+ */
+static nssCryptokiObject *
+nssPublicKey_GetInstanceForAlgorithmAndObject (
   NSSPublicKey *bk,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgorithmAndParameters *ap,
+  void *ob,
+  nssCryptokiObject **targetInstance
+)
+{
+    PRStatus status;
+    NSSToken **tokens, **tp;
+    NSSToken *candidate = NULL;
+    nssCryptokiObject *instance = NULL;
+
+    /* look on the target object's tokens */
+    tokens = nssPKIObject_GetTokens((nssPKIObject *)ob, &status);
+    if (tokens) {
+	for (tp = tokens; *tp; tp++) {
+	    if (nssToken_DoesAlgorithm(*tp, ap)) {
+		/* found one for the algorithm */
+		instance = nssPublicKey_GetInstance(bk, *tp);
+		if (instance) {
+		    /* and the public key is there as well, done */
+		    break;
+		} else if (!candidate) {
+		    /* remember this token, since it can do the math */
+		    candidate = *tp;
+		}
+	    }
+	}
+	if (!instance && candidate) {
+	    /* didn't find a token with both objects, but did find
+	     * one that can do the operation
+	     */
+	     instance = nssPublicKey_CopyToToken(bk, candidate, PR_FALSE);
+	}
+	nssTokenArray_Destroy(tokens);
+    }
+    if (instance) {
+	*targetInstance = nssPKIObject_GetInstance((nssPKIObject *)ob,
+	                                           instance->token);
+    }
+    return instance;
+}
+
+NSS_IMPLEMENT NSSItem *
+nssPublicKey_WrapSymmetricKey (
+  NSSPublicKey *bk,
+  const NSSAlgorithmAndParameters *ap,
   NSSSymmetricKey *keyToWrap,
   NSSCallback *uhh,
   NSSItem *rvOpt,
   NSSArena *arenaOpt
 )
 {
-    nss_SetError(NSS_ERROR_NOT_FOUND);
-    return NULL;
+    nssCryptokiObject *bko, *mko;
+    NSSItem *rvIt = NULL;
+
+    bko = nssPublicKey_GetInstanceForAlgorithmAndObject(bk, ap, 
+                                                        keyToWrap, &mko);
+    if (!bko) {
+	return (NSSItem *)NULL;
+    }
+
+    rvIt = nssToken_WrapKey(bko->token, bko->session, ap, 
+                            bko, mko, rvOpt, arenaOpt);
+    return rvIt;
+}
+
+NSS_IMPLEMENT NSSItem *
+NSSPublicKey_WrapSymmetricKey (
+  NSSPublicKey *bk,
+  const NSSAlgorithmAndParameters *ap,
+  NSSSymmetricKey *keyToWrap,
+  NSSCallback *uhh,
+  NSSItem *rvOpt,
+  NSSArena *arenaOpt
+)
+{
+    return nssPublicKey_WrapSymmetricKey(bk, ap, keyToWrap,
+                                         uhh, rvOpt, arenaOpt);
 }
 
 NSS_IMPLEMENT NSSCryptoContext *

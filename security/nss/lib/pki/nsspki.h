@@ -378,7 +378,7 @@ NSSCertificate_VerifyRecover (
 NSS_EXTERN NSSItem *
 NSSCertificate_WrapSymmetricKey (
   NSSCertificate *c,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgorithmAndParameters *ap,
   NSSSymmetricKey *keyToWrap,
   NSSTime time,
   NSSUsages *usages,
@@ -974,7 +974,7 @@ NSSPublicKey_VerifyRecover (
 NSS_EXTERN NSSItem *
 NSSPublicKey_WrapSymmetricKey (
   NSSPublicKey *bk,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgorithmAndParameters *ap,
   NSSSymmetricKey *keyToWrap,
   NSSCallback *uhh,
   NSSItem *rvOpt,
@@ -1585,7 +1585,7 @@ NSS_EXTERN NSSPrivateKey *
 NSSTrustDomain_ImportEncodedPrivateKey (
   NSSTrustDomain *td,
   NSSBER *ber,
-  NSSKeyPairType keyPairType,
+  NSSOID *keyPairAlg,
   NSSOperations operations,
   NSSProperties properties,
   NSSUTF8 *passwordOpt, /* NULL will cause a callback */
@@ -2317,6 +2317,23 @@ NSSVolatileDomain_ImportEncodedCertificateChain (
   NSSCertificateType certType
 );
 
+/*
+ * NSSVolatileDomain_ImportEncodedPrivateKey
+ *
+ */
+
+NSS_EXTERN NSSPrivateKey *
+NSSVolatileDomain_ImportEncodedPrivateKey (
+  NSSVolatileDomain *vd,
+  NSSBER *ber,
+  NSSOID *keyPairAlg,
+  NSSOperations operations,
+  NSSProperties properties,
+  NSSUTF8 *passwordOpt, /* NULL will cause a callback */
+  NSSCallback *uhhOpt,
+  NSSToken *destination
+);
+
 /* Other importations: S/MIME capabilities
  */
 
@@ -2413,6 +2430,23 @@ NSSVolatileDomain_FindSymmetricKeyByAlgorithmAndKeyID (
   NSSOID *algorithm,
   NSSItem *keyID,
   NSSCallback *uhhOpt
+);
+
+/*
+ * NSSVolatileDomain_UnwrapSymmetricKey
+ *
+ */
+
+NSS_EXTERN NSSSymmetricKey *
+NSSVolatileDomain_UnwrapSymmetricKey (
+  NSSVolatileDomain *vd,
+  const NSSAlgorithmAndParameters *ap,
+  NSSPrivateKey *wrapKey,
+  NSSItem *wrappedKey,
+  const NSSOID *targetKeyAlg,
+  NSSCallback *uhhOpt,
+  NSSOperations operations,
+  NSSProperties properties
 );
 
 /*
@@ -2710,21 +2744,6 @@ NSSCryptoContext_SignRecover (
   NSSCallback *uhhOpt,
   NSSItem *rvOpt,
   NSSArena *arenaOpt
-);
-
-/*
- * NSSCryptoContext_UnwrapSymmetricKey
- *
- */
-
-NSS_EXTERN NSSSymmetricKey *
-NSSCryptoContext_UnwrapSymmetricKey (
-  NSSCryptoContext *cc,
-  const NSSAlgorithmAndParameters *apOpt,
-  NSSItem *wrappedKey,
-  NSSCallback *uhhOpt,
-  NSSOperations operations,
-  NSSProperties properties
 );
 
 /*

@@ -349,14 +349,26 @@ set_des_mechanism (
   PRBool keygen
 )
 {
+    PRStatus status;
     if (keygen) {
 	ap->mechanism.mechanism = CKM_DES_KEY_GEN;
     } else {
 	ap->mechanism.mechanism = mech;
 	if (mech == CKM_DES_CBC) {
-	    PR_ASSERT(parameters != NULL);
+	    PR_ASSERT(parameters != NULL || encodedParams != NULL);
+	    ap->paramTemplate = nssASN1Template_OctetString; /* just IV */
+	    if (encodedParams) {
+		status = nssASN1_DecodeBER(ap->arena, &ap->params.iv, 
+		                           ap->paramTemplate, 
+	                                   encodedParams);
+		if (status == PR_FAILURE) {
+		    return PR_FAILURE;
+		}
+	    } else {
+		ap->params.iv = parameters->iv;
+	    }
 	    return set_iv_parameter(&ap->mechanism, 
-	                            &parameters->des.iv, ap->arena);
+	                            &ap->params.iv, ap->arena);
 	}
     }
     return PR_SUCCESS;
@@ -374,13 +386,27 @@ set_des3_mechanism (
   PRBool keygen
 )
 {
+    PRStatus status;
     if (keygen) {
 	ap->mechanism.mechanism = CKM_DES3_KEY_GEN;
     } else {
 	ap->mechanism.mechanism = mech;
-	PR_ASSERT(mech == CKM_DES3_CBC && parameters != NULL);
-	return set_iv_parameter(&ap->mechanism, 
-	                        &parameters->des.iv, ap->arena);
+	if (mech == CKM_DES3_CBC) {
+	    PR_ASSERT(parameters != NULL || encodedParams != NULL);
+	    ap->paramTemplate = nssASN1Template_OctetString; /* just IV */
+	    if (encodedParams) {
+		status = nssASN1_DecodeBER(ap->arena, &ap->params.iv, 
+		                           ap->paramTemplate, 
+	                                   encodedParams);
+		if (status == PR_FAILURE) {
+		    return PR_FAILURE;
+		}
+	    } else {
+		ap->params.iv = parameters->iv;
+	    }
+	    return set_iv_parameter(&ap->mechanism, 
+	                            &ap->params.iv, ap->arena);
+	}
     }
     return PR_SUCCESS;
 }
@@ -397,14 +423,26 @@ set_aes_mechanism (
   PRBool keygen
 )
 {
+    PRStatus status;
     if (keygen) {
 	ap->mechanism.mechanism = CKM_AES_KEY_GEN;
     } else {
 	ap->mechanism.mechanism = mech;
 	if (mech == CKM_AES_CBC) {
-	    PR_ASSERT(parameters != NULL);
+	    PR_ASSERT(parameters != NULL || encodedParams != NULL);
+	    ap->paramTemplate = nssASN1Template_OctetString; /* just IV */
+	    if (encodedParams) {
+		status = nssASN1_DecodeBER(ap->arena, &ap->params.iv, 
+		                           ap->paramTemplate, 
+	                                   encodedParams);
+		if (status == PR_FAILURE) {
+		    return PR_FAILURE;
+		}
+	    } else {
+		ap->params.iv = parameters->iv;
+	    }
 	    return set_iv_parameter(&ap->mechanism, 
-	                            &parameters->aes.iv, ap->arena);
+	                            &ap->params.iv, ap->arena);
 	}
     }
     return PR_SUCCESS;
@@ -1008,12 +1046,23 @@ nssAlgorithmAndParameters_Decode (
 	goto finish;
     }
 
+    /* XXX ever used for keygen? */
     status = set_cryptoki_mechanism(rvAP, alg, NULL, 
-                                    &algID.parameters, PR_TRUE);
+                                    &algID.parameters, PR_FALSE);
     rvAP->alg = alg;
 
 finish:
     return finish_create_algparam(rvAP, rvAP->arena, mark, status);
+}
+
+NSS_IMPLEMENT NSSAlgorithmAndParameters *
+NSSAlgorithmAndParameters_Decode (
+  NSSBER *algIDber,
+  NSSArena *arenaOpt
+)
+{
+/* XXX turn this around */
+    return nssAlgorithmAndParameters_Decode(arenaOpt, algIDber);
 }
 
 NSS_IMPLEMENT NSSBER *
@@ -1042,6 +1091,16 @@ nssAlgorithmAndParameters_Encode (
 	nss_ZFreeIf(params->data);
     }
     return rvBER;
+}
+
+NSS_IMPLEMENT NSSBER *
+NSSAlgorithmAndParameters_Encode (
+  NSSAlgorithmAndParameters *ap,
+  NSSBER *rvOpt,
+  NSSArena *arenaOpt
+)
+{
+    return nssAlgorithmAndParameters_Encode(ap, rvOpt, arenaOpt);
 }
 
 NSS_IMPLEMENT NSSAlgorithmAndParameters *
@@ -1145,11 +1204,28 @@ nssAlgorithmAndParameters_Clone (
     return finish_create_algparam(rvAP, rvAP->arena, mark, status);
 }
 
+NSS_IMPLEMENT const NSSOID *
+nssAlgorithmAndParameters_GetAlgorithm (
+  const NSSAlgorithmAndParameters *ap
+)
+{
+    return ap->alg;
+}
+
+NSS_IMPLEMENT const NSSOID *
+NSSAlgorithmAndParameters_GetAlgorithm (
+  const NSSAlgorithmAndParameters *ap
+)
+{
+    return nssAlgorithmAndParameters_GetAlgorithm(ap);
+}
+
+
 /*
  * convert a PBE mechanism used to generate a key to a crypto mechanism
  * that can use the key
  */
-NSS_EXTERN NSSAlgorithmAndParameters *
+NSS_IMPLEMENT NSSAlgorithmAndParameters *
 nssAlgorithmAndParameters_ConvertPBEToCrypto (
   const NSSAlgorithmAndParameters *ap,
   PRBool usePadding

@@ -93,7 +93,9 @@ NSSSlot_SetPassword;
 NSSToken_Destroy;
 NSSToken_GetInfo;
 NSSToken_GetSlot;
+NSSAlgorithmAndParameters_Decode;
 NSSAlgorithmAndParameters_Destroy;
+NSSAlgorithmAndParameters_GetAlgorithm;
 NSSCertificate_Destroy;
 NSSCertificate_DeleteStoredObject;
 NSSCertificate_Validate;
@@ -225,6 +227,7 @@ NSSTrustDomain_GenerateSymmetricKey;
 NSSTrustDomain_CreateCryptoContext;
 ;+#NSSTrustDomain_CreateCryptoContextForAlgorithm;
 ;+#NSSTrustDomain_CreateCryptoContextForAlgorithmAndParameters;
+NSSTrustDomain_CreateVolatileDomain;
 NSSCryptoContext_Destroy;
 ;+#NSSCryptoContext_SetDefaultCallback;
 ;+#NSSCryptoContext_GetDefaultCallback;
@@ -285,6 +288,7 @@ NSSVolatileDomain_FindCertificatesByEmail;
 NSSVolatileDomain_GenerateSymmetricKey;
 ;+#NSSVolatileDomain_GenerateSymmetricKeyFromPassword;
 ;+#NSSVolatileDomain_FindSymmetricKeyByAlgorithmAndKeyID;
+NSSVolatileDomain_UnwrapSymmetricKey;
 ;+#
 ;+# for debugging, determine whether to keep later
 ;+#

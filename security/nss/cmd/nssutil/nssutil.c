@@ -80,6 +80,7 @@ static cmdCommandLineArg nssutil_commands[] =
      CMDBIT(opt_Name),
      0, 0, 0
    },
+   "Add a module to the profile"
  },
  { /* cmd_DumpModule */
     0 , "dump-module", 
@@ -92,6 +93,7 @@ static cmdCommandLineArg nssutil_commands[] =
      CMDBIT(opt_ProfileDir),
      0, 0, 0
    },
+   "Dump info about a module"
  },
  { /* cmd_DumpSlot */
     0 , "dump-slot", 
@@ -104,8 +106,9 @@ static cmdCommandLineArg nssutil_commands[] =
      CMDBIT(opt_ProfileDir),
      0, 0, 0
    },
+   "dumps"
  },
- { /* cmd_DumpSlot */
+ { /* cmd_DumpToken */
     0 , "dump-token", 
    CMDNoArg, 0, PR_FALSE,
    {
@@ -116,6 +119,7 @@ static cmdCommandLineArg nssutil_commands[] =
      CMDBIT(opt_ProfileDir),
      0, 0, 0
    },
+   "dumpt"
  },
  { /* cmd_ListModules */  
    'L', "list-modules", 
@@ -127,6 +131,7 @@ static cmdCommandLineArg nssutil_commands[] =
      CMDBIT(opt_ProfileDir),
      0, 0, 0
    },
+   "List modules in the profile"
  },
  { /* cmd_ListSlots */  
     0 , "list-slots", 
@@ -138,12 +143,14 @@ static cmdCommandLineArg nssutil_commands[] =
      CMDBIT(opt_ProfileDir),
      0, 0, 0
    },
+   "lists"
  },
  { /* cmd_Version */  
    0, "version", 
    CMDNoArg, 0, PR_FALSE, 
    { 0, 0, 0, 0 }, 
-   { 0, 0, 0, 0 }
+   { 0, 0, 0, 0 },
+   "Report version"
  }
 };
 
@@ -156,43 +163,17 @@ static cmdCommandLineOpt nssutil_options[] =
  { /* opt_Name        */  'n', "name",     CMDArgReq,  0, PR_FALSE }
 };
 
-void nssutil_usage(cmdPrintState *ps, 
-                   int num, PRBool cmd, PRBool header, PRBool footer)
+static char * nssutil_options_help[] =
 {
-#define pusg CMD_PrintUsageString
-    if (header) {
-	pusg(ps, "utility for managing NSS profiles\n");
-    } else if (footer) {
-    } else if (cmd) {
-	switch(num) {
-	case cmd_AddModule: 
-	    pusg(ps, "Add a module to the profile"); break;
-	case cmd_ListModules:
-	    pusg(ps, "List modules in the profile"); break;
-	case cmd_DumpModule:
-	    pusg(ps, "Dump info about a module"); break;
-	case cmd_Version: 
-	    pusg(ps, "Report version"); break;
-	default:
-	    pusg(ps, "Unrecognized command"); break;
-	}
-    } else {
-	switch(num) {
-	case opt_ProfileDir:    
-	    pusg(ps, "Directory containing security databases (def: \".\")"); 
-	    break;
-	case opt_TokenName:  
-	    pusg(ps, "Name of PKCS#11 token to use (def: internal)"); break;
-	case opt_LibraryFile:  
-	    pusg(ps, "Path to library to load"); break;
-	case opt_Name:
-	    pusg(ps, "Name of module/slot/token"); break;
-	case opt_Help: break;
-	default:
-	    pusg(ps, "Unrecognized option");
-	}
-    }
-}
+ "get help for command",
+ "Directory containing security databases (def: \".\")",
+ "Name of PKCS#11 token to use (def: internal)",
+ "Path to library to load",
+ "Name of module/slot/token"
+};
+
+static char nssutil_description[] =
+"utility for managing NSS config";
 
 int 
 main(int argc, char **argv)
@@ -206,17 +187,37 @@ main(int argc, char **argv)
     nssutil.nopt = nssutil_num_options;
     nssutil.cmd = nssutil_commands;
     nssutil.opt = nssutil_options;
+    nssutil.optHelp = nssutil_options_help;
+    nssutil.description = nssutil_description;
 
     progName = strrchr(argv[0], '/');
+    if (!progName) {
+	progName = strrchr(argv[0], '\\');
+    }
     progName = progName ? progName+1 : argv[0];
 
     cmdToRun = CMD_ParseCommandLine(argc, argv, progName, &nssutil);
 
-    if (nssutil.opt[opt_Help].on)
-	CMD_LongUsage(progName, &nssutil, nssutil_usage);
+#if 0
+    { int i, nc;
+    for (i=0; i<nssutil.ncmd; i++)
+	printf("%s: %s <%s>\n", nssutil.cmd[i].s, 
+	                        (nssutil.cmd[i].on) ? "on" : "off",
+				nssutil.cmd[i].arg);
+    for (i=0; i<nssutil.nopt; i++)
+	printf("%s: %s <%s>\n", nssutil.opt[i].s, 
+	                        (nssutil.opt[i].on) ? "on" : "off",
+				nssutil.opt[i].arg);
+    }
+#endif
 
-    if (cmdToRun < 0)
+    if (nssutil.opt[opt_Help].on)
+	CMD_LongUsage(progName, &nssutil);
+
+    if (cmdToRun < 0) {
 	CMD_Usage(progName, &nssutil);
+	exit(1);
+    }
 
     /* -d */
     if (nssutil.opt[opt_ProfileDir].on) {

@@ -54,6 +54,7 @@ enum {
     cmd_KeyGen,
     cmd_Sign,
     cmd_Test,
+    cmd_NewTest,
     cmd_Verify,
     cmd_Version,
     cipher_num_commands
@@ -97,6 +98,7 @@ static cmdCommandLineArg cipher_commands[] =
      CMDBIT(opt_Binary) | 
      0, 0, 0
    },
+   "Decrypt data"
  },
  { /* cmd_Encrypt */  
    'E', "encrypt", 
@@ -117,6 +119,7 @@ static cmdCommandLineArg cipher_commands[] =
      CMDBIT(opt_Binary) | 
      0, 0, 0
    },
+   "Encrypt data"
  },
  { /* cmd_Hash */  
    'H', "hash", 
@@ -137,6 +140,7 @@ static cmdCommandLineArg cipher_commands[] =
      CMDBIT(opt_Binary) | 
      0, 0, 0
    },
+   "Digest data"
  },
  { /* cmd_KeyGen */  
    'G', "generate-key", 
@@ -151,6 +155,7 @@ static cmdCommandLineArg cipher_commands[] =
      CMDBIT(opt_Size) | 
      0, 0, 0
    },
+   "Generate key pair"
  },
  { /* cmd_Sign */  
    'S', "sign", 
@@ -171,6 +176,7 @@ static cmdCommandLineArg cipher_commands[] =
      CMDBIT(opt_Binary) | 
      0, 0, 0
    },
+   "Sign data"
  },
  { /* cmd_Test */  
    'T', "test", 
@@ -183,6 +189,22 @@ static cmdCommandLineArg cipher_commands[] =
      CMDBIT(opt_TokenName) | 
      0, 0, 0
    },
+   "Run self-tests"
+ },
+ { /* cmd_NewTest */  
+    0 , "new-test", 
+   CMDNoArg, 0, PR_FALSE, 
+   { 
+     CMDBIT(opt_Cipher) |
+     CMDBIT(opt_Input),
+     0, 0, 0 
+   },
+   {
+     /* CMDBIT(opt_TokenName) */
+     CMDBIT(opt_Size),
+     0, 0, 0
+   },
+   "Run self-tests"
  },
  { /* cmd_Verify */  
    'V', "verify", 
@@ -203,12 +225,14 @@ static cmdCommandLineArg cipher_commands[] =
      CMDBIT(opt_Binary) | 
      0, 0, 0
    },
+   "Verify data"
  },
  { /* cmd_Version */  
    0, "version", 
    CMDNoArg, 0, PR_FALSE, 
    { 0, 0, 0, 0 }, 
-   { 0, 0, 0, 0 }
+   { 0, 0, 0, 0 },
+   "Report version"
  }
 };
 
@@ -228,43 +252,23 @@ static cmdCommandLineOpt cipher_options[] =
  { /* opt_Size        */  's', "size",     CMDArgReq,  0, PR_FALSE }
 };
 
-void cipher_usage(cmdPrintState *ps, 
-                   int num, PRBool cmd, PRBool header, PRBool footer)
+static char * cipher_options_help[] =
 {
-#define pusg CMD_PrintUsageString
-    if (header) {
-	pusg(ps, "utility for managing PKCS#11 objects (certs and keys)\n");
-    } else if (footer) {
-    } else if (cmd) {
-	switch(num) {
-	case cmd_Decrypt:     
-	    pusg(ps, "Decrypt data"); break;
-	case cmd_Version: 
-	    pusg(ps, "Report version"); break;
-	default:
-	    pusg(ps, "Unrecognized command"); break;
-	}
-    } else {
-	switch(num) {
-	case opt_Ascii:      
-	    pusg(ps, "Use ascii (base-64 encoded) mode for I/O"); break;
-	case opt_ProfileDir:    
-	    pusg(ps, "Directory containing security databases (def: \".\")"); 
-	    break;
-	case opt_TokenName:  
-	    pusg(ps, "Name of PKCS#11 token to use (def: internal)"); break;
-	case opt_InputFile:  
-	    pusg(ps, "File for input (def: stdin)"); break;
-	case opt_OutputFile: 
-	    pusg(ps, "File for output (def: stdout)"); break;
-	case opt_Binary:    
-	    pusg(ps, "Use raw (binary der-encoded) mode for I/O"); break;
-	case opt_Help: break;
-	default:
-	    pusg(ps, "Unrecognized option");
-	}
-    }
-}
+ "get help for command",
+ "use ascii (base-64 encoded) mode for I/O",
+ "name of cipher to use",
+ "directory containing security databases (def: \".\")",
+ "name of PKCS#11 token to use (def: internal)",
+ "XXX",
+ "file for input (def: stdin)",
+ "file for output (def: stdout)",
+ "XXX",
+ "use raw (binary der-encoded) mode for I/O",
+ "XXX"
+};
+
+static char * cipher_description =
+"perform crypto operations";
 
 int 
 main(int argc, char **argv)
@@ -279,14 +283,19 @@ main(int argc, char **argv)
     cipher.nopt = cipher_num_options;
     cipher.cmd = cipher_commands;
     cipher.opt = cipher_options;
+    cipher.optHelp = cipher_options_help;
+    cipher.description = cipher_description;
 
     progName = strrchr(argv[0], '/');
+    if (!progName) {
+	progName = strrchr(argv[0], '\\');
+    }
     progName = progName ? progName+1 : argv[0];
 
     cmdToRun = CMD_ParseCommandLine(argc, argv, progName, &cipher);
 
     if (cipher.opt[opt_Help].on)
-	CMD_LongUsage(progName, &cipher, cipher_usage);
+	CMD_LongUsage(progName, &cipher);
 
     if (cmdToRun < 0)
 	CMD_Usage(progName, &cipher);
@@ -313,8 +322,16 @@ main(int argc, char **argv)
 	NSS_InitReadWrite(profiledir);
     }
 
+    /* XXX */
+    rv = NSS_EnablePKIXCertificates();
+    if (rv == PR_FAILURE) {
+	CMD_PrintError("Failed to load PKIX module");
+	goto shutdown;
+    }
+
     rv = cipher_command_dispatcher(&cipher, cmdToRun);
 
+shutdown:
     NSS_Shutdown();
 
     return rv;
@@ -428,8 +445,14 @@ NSSSymmetricKey *symkey;
 	break;
 #endif
     case cmd_Test:
-	status = Test1();
+	status = SelfTest();
 	break;
+    case cmd_NewTest:
+	if (cipher->opt[opt_Size].on) {
+	    size = atoi(cipher->opt[opt_Size].arg);
+	} else size = 0;
+	status = CreateASelfTest(cipher->opt[opt_Cipher].arg, size,
+	                         cipher->opt[opt_Input].arg);
     default:
 	status = PR_FAILURE;
 	break;

@@ -34,14 +34,12 @@
 CORE_DEPTH	= ../../..
 
 # MODULE public and private header directories are implicitly REQUIRED.
-MODULE = security 
+MODULE = nss 
 
 # This next line is used by .mk files
 # and gets translated into $LINCS in manifest.mnw
 # MODULE is implicitly REQUIRED, doesn't need to be listed below.
-REQUIRES = seccmd dbm 
-
-DEFINES = -DNSPR20
+REQUIRES = nspr seccmd 
 
 CSRCS = btoa.c
 

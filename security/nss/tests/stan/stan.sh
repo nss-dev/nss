@@ -83,12 +83,6 @@ cert_init()
 
 }
 
-cert_log() ######################    write the cert_status file
-{
-    echo "$SCRIPTNAME $*"
-    echo $* >>${CERT_LOG_FILE}
-}
-
 ################################ noise ##################################
 # Generate noise for our certs
 #
@@ -104,7 +98,6 @@ noise()
 
 cert_cleanup()
 {
-  cert_log "$SCRIPTNAME: finished $SCRIPTNAME"
   html "</TABLE><BR>" 
   cd ${QADIR}
   . common/cleanup.sh
@@ -118,9 +111,7 @@ pkiu()
   pkiutil $*
   RET=$?
   if [ "$RET" -ne 0 ]; then
-    CERTFAILED=$RET
     html_failed "<TR><TD>${PKIU_ACTION} ($RET) " 
-    cert_log "ERROR: ${PKIU_ACTION} failed $RET"
   else
     html_passed "<TR><TD>${PKIU_ACTION}"
   fi
@@ -135,11 +126,45 @@ pkiuf()
   pkiutil $*
   RET=$?
   if [ "$RET" -ne ${FAILURE_CODE} ]; then
-    CERTFAILED=$RET
     html_failed "<TR><TD>${PKIU_ACTION} ($RET) " 
-    cert_log "ERROR: ${PKIU_ACTION} failed $RET"
   else
     html_passed "<TR><TD>${PKIU_ACTION}"
+  fi
+  return $RET
+}
+
+nssu()
+{
+  echo ""
+  echo ">>>>>>>>>>>>>> ${NSSU_ACTION} <<<<<<<<<<<<<<"
+  if [ -n "${DEVNAME}" ]; then
+    echo "nssutil $* -n \"${DEVNAME}\""
+    nssutil $* -n "${DEVNAME}"
+  else
+    echo "nssutil $*"
+    nssutil $*
+  fi
+  RET=$?
+  DEVNAME=""
+  if [ "$RET" -ne 0 ]; then
+    html_failed "<TR><TD>${NSSU_ACTION} ($RET) " 
+  else
+    html_passed "<TR><TD>${NSSU_ACTION}"
+  fi
+  return $RET
+}
+
+ciph()
+{
+  echo ""
+  echo ">>>>>>>>>>>>>> ${CIPHER_ACTION} <<<<<<<<<<<<<<"
+  echo "pkiutil $*"
+  cipher $*
+  RET=$?
+  if [ "$RET" -ne 0 ]; then
+    html_failed "<TR><TD>${CIPHER_ACTION} ($RET) " 
+  else
+    html_passed "<TR><TD>${CIPHER_ACTION}"
   fi
   return $RET
 }
@@ -147,6 +172,7 @@ pkiuf()
 cert_init
 cd ${HOSTDIR}
 cp ${QADIR}/stan/*.b64 .
+cp ${QADIR}/stan/*.txt .
 
 SERVERDIR="server"
 PKIU_IMPORT="-I -d ${SERVERDIR} -a"
@@ -235,5 +261,23 @@ pkiu -L -d ${SERVERDIR}
 
 PKIU_ACTION="List Server Cert Chain"
 pkiu --list-chain -d ${SERVERDIR} -n stanCert
+
+NSSU_ACTION="List Modules"
+nssu --list-modules -d ${SERVERDIR}
+
+NSSU_ACTION="Show Internal Module"
+DEVNAME="NSS Internal PKCS #11 Module"
+nssu --dump-module -d ${SERVERDIR} 
+
+NSSU_ACTION="Show Internal DB Slot"
+DEVNAME="NSS User Private Key and Certificate Services"
+nssu --dump-slot -d ${SERVERDIR} 
+
+NSSU_ACTION="Show Internal DB Token"
+DEVNAME="NSS Certificate DB"
+nssu --dump-token -d ${SERVERDIR} 
+
+CIPHER_ACTION="Run Symmetric Key Self-Tests"
+ciph -T
 
 cert_cleanup

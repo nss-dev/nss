@@ -43,6 +43,10 @@ static const char NSSDEV_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
  * High-level methods for interaction with cryptoki devices
  */
 
+#ifndef NSSPKI1T_H
+#include "nsspki1t.h"
+#endif /* NSSPKI1T_H */
+
 #ifndef NSSDEVT_H
 #include "nssdevt.h"
 #endif /* NSSDEVT_H */
@@ -209,12 +213,30 @@ NSSAlgorithmAndParameters_GetParameters (
 );
 #endif
 
+NSS_EXTERN NSSAlgorithmAndParameters *
+NSSAlgorithmAndParameters_Decode (
+  NSSBER *algIDber,
+  NSSArena *arenaOpt
+);
+
 /* NSSAlgorithmAndParameters_Destroy
  *
  */
 NSS_EXTERN void
 NSSAlgorithmAndParameters_Destroy (
   NSSAlgorithmAndParameters *ap
+);
+
+NSS_EXTERN const NSSOID *
+NSSAlgorithmAndParameters_GetAlgorithm (
+  const NSSAlgorithmAndParameters *ap
+);
+
+NSS_EXTERN NSSBER *
+NSSAlgorithmAndParameters_Encode (
+  NSSAlgorithmAndParameters *ap,
+  NSSBER *rvOpt,
+  NSSArena *arenaOpt
 );
 
 NSS_EXTERN void

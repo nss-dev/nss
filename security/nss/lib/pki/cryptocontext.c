@@ -304,10 +304,11 @@ prepare_context_symmetric_key (
 	}
     }
     /* the token has been set, so if we didn't find a key instance on
-     * the token, copy it there
+     * the token, copy it there as a temp (session) object
      */
     if (!cc->key) {
-	cc->key = nssSymmetricKey_CopyToToken(cc->u.mkey, cc->token);
+	cc->key = nssSymmetricKey_CopyToToken(cc->u.mkey, cc->token, 
+	                                      PR_FALSE);
 	if (!cc->key) {
 	    goto loser;
 	}
@@ -447,7 +448,7 @@ prepare_context_public_key (
      * the token, copy it there
      */
     if (!*bkp) {
-	*bkp = nssPublicKey_CopyToToken(bkey, cc->token);
+	*bkp = nssPublicKey_CopyToToken(bkey, cc->token, PR_FALSE);
 	if (!*bkp) {
 	    goto loser;
 	}

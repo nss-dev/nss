@@ -191,33 +191,16 @@ NSSDHKeyGenParameters;
 
 /*
  * DES and Triple-DES
+ *
+ * only IV when in CBC mode
  */
-
-/* 
- * encryption/decryption parameters 
- * DEFAULT: ECB mode
- */
-typedef struct NSSDESParametersStr
-{
-  PRBool pkcsPad;
-  NSSItem iv;
-}
-NSSDESParameters;
 
 /*
  * AES
+ *
+ * PKCS #11 is assuming 128-bit blocks, so no params for now
+ * except IV when in CBC mode
  */
-
-/* encryption/decryption parameters */
-typedef struct NSSAESParametersStr
-{
-#if 0
-  /* PKCS #11 is assuming 128-bit blocks */
-  PRUint32 blockSizeInBits;
-#endif
-  NSSItem iv;
-}
-NSSAESParameters;
 
 /*
  * RC2
@@ -234,6 +217,8 @@ NSSRC2Parameters;
 
 /*
  * RC4
+ *
+ * no params
  */
 
 /*
@@ -322,11 +307,10 @@ NSSSSLSessionKeyParameters;
 
 typedef union
 {
+  NSSItem                iv; /* for all generic CBC ciphers */
   NSSRSAKeyGenParameters rsakg;
   NSSDSAKeyGenParameters dsakg;
   NSSDHKeyGenParameters  dhkg;
-  NSSDESParameters       des;
-  NSSAESParameters       aes;
   NSSRC2Parameters       rc2;
   NSSRC5Parameters       rc5;
   NSSHMACParameters      hmac;

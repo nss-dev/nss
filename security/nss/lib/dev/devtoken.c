@@ -1153,9 +1153,9 @@ nssToken_FindPublicKeyByID (
 	     *     only has the cert, not the pubkey
 	     */
 	    PRStatus status;
-	    NSSKeyPairType keyType;
+	    NSSPublicKeyInfo keyInfo;
 	    status = nssCryptokiPublicKey_GetAttributes(rvKey, NULL, 
-	                                                &keyType, NULL);
+	                                                &keyInfo, NULL);
 	    if (status == PR_FAILURE) {
 		nssCryptokiObject_Destroy(rvKey);
 		rvKey = NULL;
@@ -1806,7 +1806,7 @@ nssToken_WrapKey (
     CK_MECHANISM_PTR mechanism;
     void *epv = nssToken_GetCryptokiEPV(token);
     nssArenaMark *mark = NULL;
-    PRBool freeit;
+    PRBool freeit = PR_FALSE;
 
     mechanism = nssAlgorithmAndParameters_GetMechanism(ap);
 
@@ -2022,7 +2022,7 @@ nssToken_Encrypt (
     CK_MECHANISM_PTR mechanism;
     void *epv = nssToken_GetCryptokiEPV(tok);
     nssArenaMark *mark = NULL;
-    PRBool freeit;
+    PRBool freeit = PR_FALSE;
 
     mechanism = nssAlgorithmAndParameters_GetMechanism(ap);
 
@@ -2103,7 +2103,7 @@ nssToken_ContinueEncrypt (
 {
     CK_RV ckrv;
     CK_ULONG bufLen;
-    PRBool freeit;
+    PRBool freeit = PR_FALSE;
     void *epv = nssToken_GetCryptokiEPV(token);
 
     nssSession_EnterMonitor(session);
@@ -2145,7 +2145,7 @@ nssToken_FinishEncrypt (
 {
     CK_RV ckrv;
     CK_ULONG bufLen;
-    PRBool freeit;
+    PRBool freeit = PR_FALSE;
     void *epv = nssToken_GetCryptokiEPV(token);
 
     nssSession_EnterMonitor(session);
@@ -2190,7 +2190,7 @@ nssToken_Decrypt (
     CK_MECHANISM_PTR mechanism;
     void *epv = nssToken_GetCryptokiEPV(tok);
     nssArenaMark *mark = NULL;
-    PRBool freeit;
+    PRBool freeit = PR_FALSE;
 
     mechanism = nssAlgorithmAndParameters_GetMechanism(ap);
 
@@ -2271,7 +2271,7 @@ nssToken_ContinueDecrypt (
 {
     CK_RV ckrv;
     CK_ULONG bufLen;
-    PRBool freeit;
+    PRBool freeit = PR_FALSE;
     void *epv = nssToken_GetCryptokiEPV(token);
 
     nssSession_EnterMonitor(session);
@@ -2313,7 +2313,7 @@ nssToken_FinishDecrypt (
 {
     CK_RV ckrv;
     CK_ULONG bufLen;
-    PRBool freeit;
+    PRBool freeit = PR_FALSE;
     void *epv = nssToken_GetCryptokiEPV(token);
 
     nssSession_EnterMonitor(session);
@@ -2358,7 +2358,7 @@ nssToken_Sign (
     CK_MECHANISM_PTR mechanism;
     void *epv = nssToken_GetCryptokiEPV(token);
     nssArenaMark *mark = NULL;
-    PRBool freeit;
+    PRBool freeit = PR_FALSE;
 
     mechanism = nssAlgorithmAndParameters_GetMechanism(ap);
 
@@ -2456,7 +2456,7 @@ nssToken_FinishSign (
 {
     CK_RV ckrv;
     CK_ULONG sigLen;
-    PRBool freeit;
+    PRBool freeit = PR_FALSE;
     void *epv = nssToken_GetCryptokiEPV(tok);
 
     nssSession_EnterMonitor(session);
@@ -2501,7 +2501,7 @@ nssToken_SignRecover (
     CK_MECHANISM_PTR mechanism;
     void *epv = nssToken_GetCryptokiEPV(tok);
     nssArenaMark *mark = NULL;
-    PRBool freeit;
+    PRBool freeit = PR_FALSE;
 
     mechanism = nssAlgorithmAndParameters_GetMechanism(ap);
 
@@ -2697,7 +2697,7 @@ nssToken_VerifyRecover (
     CK_MECHANISM_PTR mechanism;
     void *epv = nssToken_GetCryptokiEPV(tok);
     nssArenaMark *mark = NULL;
-    PRBool freeit;
+    PRBool freeit = PR_FALSE;
 
     mechanism = nssAlgorithmAndParameters_GetMechanism(ap);
 
@@ -2764,7 +2764,7 @@ nssToken_Digest (
     CK_MECHANISM_PTR mechanism;
     void *epv = nssToken_GetCryptokiEPV(tok);
     nssArenaMark *mark = NULL;
-    PRBool freeit;
+    PRBool freeit = PR_FALSE;
 
     mechanism = nssAlgorithmAndParameters_GetMechanism(ap);
 
@@ -2861,7 +2861,7 @@ nssToken_FinishDigest (
 {
     CK_RV ckrv;
     CK_ULONG digestLen;
-    PRBool freeit;
+    PRBool freeit = PR_FALSE;
     void *epv = nssToken_GetCryptokiEPV(tok);
 
     nssSession_EnterMonitor(session);

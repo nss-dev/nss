@@ -52,7 +52,7 @@ include $(CORE_DEPTH)/coreconf/config.mk
 # (4) Include "local" platform-dependent assignments (OPTIONAL).      #
 #######################################################################
 
-include platlibs.mk
+include ../platlibs.mk
 
 
 #######################################################################

@@ -179,12 +179,31 @@ NSSSymmetricKey_DeleteStoredObject (
 NSS_IMPLEMENT nssCryptokiObject *
 nssSymmetricKey_CopyToToken (
   NSSSymmetricKey *mk,
-  NSSToken *destination
+  NSSToken *destination,
+  PRBool asPersistentObject
 )
 {
     /* XXX this could get complicated... might have to wrap the key, etc. */
-    PR_ASSERT(0);
-    return NULL;
+    nssSession *session;
+    nssCryptokiObject *mko;
+
+    session = nssToken_CreateSession(destination, asPersistentObject);
+    if (!session) {
+	return (nssCryptokiObject *)NULL;
+    }
+    /* XXX kind of a hack to peek into first instance like this */
+    mko = nssCryptokiSymmetricKey_Copy(mk->object.instances[0],
+                                       mk->object.instances[0]->session,
+                                       destination, session,
+                                       asPersistentObject);
+    nssSession_Destroy(session);
+    if (mko) {
+	if (nssPKIObject_AddInstance(&mk->object, mko) == PR_FAILURE) {
+	    nssCryptokiObject_Destroy(mko);
+	    mko = NULL;
+	}
+    }
+    return mko;
 }
 
 NSS_IMPLEMENT PRUint32

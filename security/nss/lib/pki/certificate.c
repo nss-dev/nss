@@ -72,6 +72,7 @@ struct NSSCertificateStr
   NSSDER subject;
   NSSDER serial;
   NSSASCII7 *email;
+  NSSPublicKey *bk; /* for ephemeral decoded pubkeys */
   nssCertDecoding decoding;
 };
 
@@ -149,6 +150,10 @@ nssCertificate_Decode (
     }
     /* try to decode it */
     decoder = nss_GetMethodsForType(NSSCertificateType_PKIX);
+    if (!decoder) {
+	/* nss_SetError(UNKNOWN_CERT_TYPE); */
+	goto loser;
+    }
     decoding = decoder->decode(arena, ber);
     if (decoding) {
 	/* it's a PKIX cert */
@@ -479,6 +484,7 @@ nssCertificate_SetVolatileDomain (
 )
 {
     c->object.vd = vd;
+    c->object.td = nssVolatileDomain_GetTrustDomain(vd);
 }
 
 NSS_IMPLEMENT NSSVolatileDomain *
@@ -1296,9 +1302,9 @@ NSSCertificate_VerifyRecover (
 }
 
 NSS_IMPLEMENT NSSItem *
-NSSCertificate_WrapSymmetricKey (
+nssCertificate_WrapSymmetricKey (
   NSSCertificate *c,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgorithmAndParameters *ap,
   NSSSymmetricKey *keyToWrap,
   NSSTime time,
   NSSUsages *usages,
@@ -1308,8 +1314,38 @@ NSSCertificate_WrapSymmetricKey (
   NSSArena *arenaOpt
 )
 {
-    nss_SetError(NSS_ERROR_NOT_FOUND);
-    return NULL;
+    NSSPublicKey *pubKey;
+    NSSItem *wrap;
+
+    /* XXX do some validation */
+
+    pubKey = nssCertificate_GetPublicKey(c);
+    if (!pubKey) {
+	return (NSSItem *)NULL;
+    }
+
+    wrap = nssPublicKey_WrapSymmetricKey(pubKey, ap, keyToWrap,
+                                         uhh, rvOpt, arenaOpt);
+    nssPublicKey_Destroy(pubKey);
+    return wrap;
+}
+
+NSS_IMPLEMENT NSSItem *
+NSSCertificate_WrapSymmetricKey (
+  NSSCertificate *c,
+  const NSSAlgorithmAndParameters *ap,
+  NSSSymmetricKey *keyToWrap,
+  NSSTime time,
+  NSSUsages *usages,
+  NSSPolicies *policiesOpt,
+  NSSCallback *uhh,
+  NSSItem *rvOpt,
+  NSSArena *arenaOpt
+)
+{
+    return nssCertificate_WrapSymmetricKey(c, ap, keyToWrap,
+                                           time, usages, policiesOpt,
+                                           uhh, rvOpt, arenaOpt);
 }
 
 NSS_IMPLEMENT NSSCryptoContext *
@@ -1333,37 +1369,34 @@ nssCertificate_GetPublicKey (
 {
     PRStatus status;
     NSSToken **tokens, **tp;
-    nssCryptokiObject *instance;
+    nssCryptokiObject *instance = NULL;
     NSSTrustDomain *td = nssCertificate_GetTrustDomain(c);
+    NSSVolatileDomain *vd = nssCertificate_GetVolatileDomain(c);
+
+    /* first look for a persistent object in the trust domain */
     tokens = nssPKIObject_GetTokens(&c->object, &status);
-    if (!tokens) {
-	return (NSSPublicKey *)NULL; /* actually, should defer to crypto context */
-    }
-    for (tp = tokens; *tp; tp++) {
-	/* XXX need to iterate over cert instances to have session */
-	nssSession *session = nssToken_CreateSession(*tp, PR_FALSE);
-	if (!session) {
-	    break;
+    if (tokens) {
+	for (tp = tokens; *tp; tp++) {
+	    /* XXX need to iterate over cert instances to have session */
+	    nssSession *session = nssToken_CreateSession(*tp, PR_FALSE);
+	    if (!session) {
+		break;
+	    }
+	    instance = nssToken_FindPublicKeyByID(*tp, session, &c->id);
+	    nssSession_Destroy(session);
+	    if (instance) {
+		break;
+	    }
 	}
-	instance = nssToken_FindPublicKeyByID(*tp, session, &c->id);
-	nssSession_Destroy(session);
-	if (instance) {
-	    break;
-	}
+	/* also search on other tokens? */
+	nssTokenArray_Destroy(tokens);
     }
-    /* also search on other tokens? */
-    nssTokenArray_Destroy(tokens);
     if (instance) {
-	nssPKIObject *pkio;
 	NSSPublicKey *bk = NULL;
-	pkio = nssPKIObject_Create(NULL, instance, td, /* XXX cc */ NULL);
-	if (!pkio) {
-	    nssCryptokiObject_Destroy(instance);
-	    return (NSSPublicKey *)NULL;
-	}
-	bk = nssPublicKey_Create(pkio);
+	/* found a persistent instance of the pubkey, return it */
+	bk = nssPublicKey_CreateFromInstance(instance, td, vd, NULL);
 	if (!bk) {
-	    nssPKIObject_Destroy(pkio);
+	    nssCryptokiObject_Destroy(instance);
 	    return (NSSPublicKey *)NULL;
 	}
 	return bk;
@@ -1372,9 +1405,14 @@ nssCertificate_GetPublicKey (
 	NSSBitString keyBits;
 	nssCertDecoding *dc = nssCertificate_GetDecoding(c);
 
+	/* create an ephemeral pubkey object, either in the cert's
+	 * volatile domain (if it exists), or as a standalone object
+	 * that will be destroyed with the cert
+	 */
 	status = dc->methods->getPublicKeyInfo(dc->data, &keyAlg, &keyBits);
 	if (status == PR_SUCCESS) {
-	    return nssPublicKey_CreateFromInfo(td, NULL, keyAlg, &keyBits);
+	    c->bk = nssPublicKey_CreateFromInfo(td, vd, keyAlg, &keyBits);
+	    return nssPublicKey_AddRef(c->bk);
 	}
     }
     return (NSSPublicKey *)NULL;

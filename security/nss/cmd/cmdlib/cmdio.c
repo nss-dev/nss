@@ -150,9 +150,10 @@ byte_from_str(unsigned char *byteval, unsigned char *str)
 }
 
 NSSItem *
-CMD_ConvertHexData(char *stream, unsigned int streamLen, CMDFileMode *mode)
+CMD_ConvertHexData(char *stream, unsigned int streamLen, 
+                   CMDFileMode *mode, NSSArena *arenaOpt)
 {
-    int kind;
+    int kind = -1;
     int guess_len, actual_len;
     unsigned char *output = NULL;
     PRStatus status;
@@ -208,7 +209,7 @@ CMD_ConvertHexData(char *stream, unsigned int streamLen, CMDFileMode *mode)
 	    }
 	}
     }
-    rvIt = NSSItem_Create(NULL, NULL, actual_len, output);
+    rvIt = NSSItem_Create(arenaOpt, NULL, actual_len, output);
     free(output);
     return rvIt;
 failure:
@@ -221,6 +222,13 @@ failure:
 	free(output);
     }
     return NULL;
+}
+
+NSSItem *
+CMD_ConvertHex(char *stream, unsigned int streamLen, NSSArena *arenaOpt)
+{
+    CMDFileMode mode = CMDFileMode_Hex;
+    return CMD_ConvertHexData(stream, streamLen, &mode, arenaOpt);
 }
 
 unsigned char *
@@ -251,7 +259,7 @@ CMD_GetDataFromBuffer(unsigned char *buffer, unsigned int bufLen,
     /* Convert the input to binary */
     if (*mode == CMDFileMode_Hex) {
 	/* from one of the hex flavors, mode may change */
-	rvIt = CMD_ConvertHexData(buffer, bufLen, mode);
+	rvIt = CMD_ConvertHexData(buffer, bufLen, mode, NULL);
     } else if (*mode == CMDFileMode_Ascii) {
 	/* from base-64 encoded */
 	rvIt = NSSBase64_DecodeBuffer(NULL, NULL, buffer, bufLen);
@@ -327,5 +335,110 @@ CMD_DumpOutput(NSSItem *output, CMDRunTimeData *rtData)
 	nss_ZFreeIf(outstr); /* XXX */
 	break;
     }
+}
+
+int get_arg(char *str, const char **validArgs, int numValidArgs)
+{
+    int i;
+    for (i=0; i<numValidArgs; i++) {
+	if (strcmp(str, validArgs[i]) == 0) return i;
+    }
+    return -1;
+}
+
+int
+CMD_ReadArgValue(CMDRunTimeData *rtData, CMDReadBuf *readBuf,
+                 char **value, const char **validArgs, int numValidArgs)
+{
+    int rv = -1;
+    char *val = NULL;
+    char *buf;
+    char *mark;
+    int nb, len = 0;
+
+    while (PR_TRUE) {
+	if (readBuf->finish > readBuf->start) {
+	    nb = readBuf->finish - readBuf->start;
+	} else {
+	    nb = PR_Read(rtData->input.file, 
+	                 readBuf->buf, sizeof readBuf->buf);
+	    readBuf->start = 0;
+	    readBuf->finish = nb;
+	}
+	buf = &readBuf->buf[readBuf->start];
+	if (nb < 0) {
+	    if (val) PR_Free(val);
+	    return -1;
+	} else if (nb == 0) {
+	    return rv;
+	} else if (*buf == '\n') {
+	    /* skip leading newline, or exit on terminating newline */
+	    if (rv >= 0) {
+		return rv; 
+	    } else {
+		readBuf->start++;
+		continue;
+	    }
+	}
+	if (rv < 0) {
+	    mark = memchr(buf, '=', nb);
+	    if (mark) {
+		*mark++ = '\0';
+		rv = get_arg(buf, validArgs, numValidArgs);
+	    }
+	    if (rv < 0)
+		return rv;
+	    readBuf->start += (strlen(buf) + 1);
+	    nb -= (strlen(buf) + 1);
+	    buf = mark;
+	}
+	mark = memchr(buf, '\n', nb);
+	if (mark) {
+	    *mark = '\0';
+	    nb = strlen(buf) + 1;
+	}
+	if (val) {
+	    val = PR_Realloc(val, len + nb);
+	} else {
+	    val = PR_Malloc(nb);
+	}
+	memcpy(val + len, buf, nb);
+	len += nb;
+	readBuf->start += nb;
+	if (mark) {
+	    break;
+	}
+    }
+    *value = val;
+    return rv;
+}
+
+PRStatus
+CMD_WriteArgValue(CMDRunTimeData *rtData, const char *arg, NSSItem *value,
+                  CMDFileMode outMode)
+{
+    CMDFileMode mode = rtData->output.mode;
+    rtData->output.mode = outMode;
+    PR_fprintf(rtData->output.file, "%s=", arg);
+    CMD_DumpOutput(value, rtData);
+    PR_fprintf(rtData->output.file, "\n");
+    rtData->output.mode = mode;
+    return PR_SUCCESS;
+}
+
+/* XXX move this */
+PRStatus
+CMD_SetRSAPE(NSSItem *peIt, PRUint32 pe)
+{
+    PRUint32 bepe;
+    peIt->data = nss_ZAlloc(NULL, sizeof(PRUint32)); /* XXX */
+    if (!peIt->data) {
+	CMD_PrintError("memory");
+	return PR_FAILURE;
+    } 
+    bepe = PR_htonl(pe);
+    memcpy(peIt->data, &bepe, sizeof(PRUint32));
+    peIt->size = sizeof(PRUint32);
+    return PR_SUCCESS;
 }
 

@@ -43,6 +43,9 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$";
 #include "pkim.h"
 #endif /* PKIM_H */
 
+#include "pki1.h" /* XXX */
+#include "oiddata.h"
+
 struct object_array_str
 {
   void **array;
@@ -270,6 +273,43 @@ NSSVolatileDomain_ImportEncodedCertificateChain (
 {
     nss_SetError(NSS_ERROR_NOT_FOUND);
     return PR_FAILURE;
+}
+
+NSS_IMPLEMENT NSSPrivateKey *
+nssVolatileDomain_ImportEncodedPrivateKey (
+  NSSVolatileDomain *vd,
+  NSSBER *ber,
+  NSSOID *keyPairAlg,
+  NSSOperations operations,
+  NSSProperties properties,
+  NSSUTF8 *passwordOpt,
+  NSSCallback *uhhOpt,
+  NSSToken *destination
+)
+{
+    return nssPrivateKey_Decode(ber, keyPairAlg, 
+                                operations, properties, 
+                                passwordOpt, uhhOpt, destination, 
+                                vd->td, vd);
+}
+
+NSS_IMPLEMENT NSSPrivateKey *
+NSSVolatileDomain_ImportEncodedPrivateKey (
+  NSSVolatileDomain *vd,
+  NSSBER *ber,
+  NSSOID *keyPairAlg,
+  NSSOperations operations,
+  NSSProperties properties,
+  NSSUTF8 *passwordOpt,
+  NSSCallback *uhhOpt,
+  NSSToken *destination
+)
+{
+    return nssVolatileDomain_ImportEncodedPrivateKey(vd, ber, keyPairAlg,
+                                                     operations,
+                                                     properties,
+                                                     passwordOpt, uhhOpt,
+                                                     destination);
 }
 
 #if 0
@@ -917,72 +957,80 @@ NSSVolatileDomain_FindSymmetricKeyByAlgorithmAndKeyID (
     return NULL;
 }
 
-#if 0
+/* XXX at a lower layer, or with OID? */
+static NSSSymmetricKeyType
+get_sym_key_type(const NSSOID *symKeyAlg)
+{
+    switch (nssOID_GetTag(symKeyAlg)) {
+    case NSS_OID_DES_ECB:
+    case NSS_OID_DES_CBC:
+    case NSS_OID_DES_MAC:
+	return NSSSymmetricKeyType_DES;
+    case NSS_OID_DES_EDE3_CBC:
+	return NSSSymmetricKeyType_TripleDES;
+    case NSS_OID_RC2_CBC:
+	return NSSSymmetricKeyType_RC2;
+    case NSS_OID_RC4:
+	return NSSSymmetricKeyType_RC4;
+    default:
+	return NSSSymmetricKeyType_Unknown;
+    }
+}
+
 NSS_IMPLEMENT NSSSymmetricKey *
 nssVolatileDomain_UnwrapSymmetricKey (
   NSSVolatileDomain *vd,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgorithmAndParameters *ap,
+  NSSPrivateKey *wrapKey,
   NSSItem *wrappedKey,
+  const NSSOID *targetKeyAlg,
   NSSCallback *uhhOpt,
   NSSOperations operations,
   NSSProperties properties
 )
 {
-    const NSSAlgorithmAndParameters *ap = apOpt ? apOpt : vd->ap;
-    if (!ap) {
-	nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
+    nssCryptokiObject *vko, *mko;
+    NSSSymmetricKey *mkey = NULL;
+    NSSSymmetricKeyType keyType = get_sym_key_type(targetKeyAlg);
+
+    /* find a token to do it on */
+    vko = nssPrivateKey_FindInstanceForAlgorithm(wrapKey, ap);
+    if (!vko) {
 	return (NSSSymmetricKey *)NULL;
     }
-    /* set up the private key */
-    if (prepare_context_private_key(vd, ap) == PR_FAILURE) {
-	return (NSSSymmetricKey *)NULL;
-    }
-    /* do the unwrap */
-    vd->mko = nssToken_UnwrapKey(vd->token, vd->session, ap, vd->vko,
-                                 wrappedKey, PR_FALSE, 
-                                 operations, properties);
-    /* create a new symkey */
-    if (vd->mko) {
-	nssPKIObject *pkio;
-	pkio = nssPKIObject_Create(NULL, vd->mko, vd->td, vd);
-	if (!pkio) {
-	    goto loser;
+    /* do the unwrap for a session object */
+    mko = nssToken_UnwrapSymmetricKey(vko->token, vko->session, ap, vko,
+                                      wrappedKey, PR_FALSE, 
+                                      operations, properties, keyType);
+    /* done with the private key */
+    nssCryptokiObject_Destroy(vko);
+    /* create a new symkey in the volatile domain */
+    if (mko) {
+	mkey = nssSymmetricKey_CreateFromInstance(mko, vd->td, vd);
+	if (!mkey) {
+	    nssCryptokiObject_Destroy(mko);
 	}
-	vd->mk = nssSymmetricKey_Create(pkio);
-	if (!vd->mk) {
-	    nssPKIObject_Destroy(pkio);
-	    goto loser;
-	}
-	return nssSymmetricKey_AddRef(vd->mk);
     }
-loser:
-    if (vd->mko) {
-	nssCryptokiObject_Destroy(vd->mko);
-	vd->mko = NULL;
-    }
-    nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
-    return (NSSSymmetricKey *)NULL;
+    return mkey;
 }
 
 NSS_IMPLEMENT NSSSymmetricKey *
 NSSVolatileDomain_UnwrapSymmetricKey (
   NSSVolatileDomain *vd,
-  const NSSAlgorithmAndParameters *apOpt,
+  const NSSAlgorithmAndParameters *ap,
+  NSSPrivateKey *wrapKey,
   NSSItem *wrappedKey,
+  const NSSOID *targetKeyAlg,
   NSSCallback *uhhOpt,
   NSSOperations operations,
   NSSProperties properties
 )
 {
-    if (!vd->vk && !vd->cert) {
-	nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
-	return (NSSSymmetricKey *)NULL;
-    }
-    return nssVolatileDomain_UnwrapSymmetricKey(vd, apOpt, 
-                                               wrappedKey, uhhOpt, 
-                                               operations, properties);
+    return nssVolatileDomain_UnwrapSymmetricKey(vd, ap, wrapKey,
+                                                wrappedKey, targetKeyAlg,
+                                                uhhOpt, operations, 
+                                                properties);
 }
-#endif
 
 NSS_IMPLEMENT NSSSymmetricKey *
 NSSVolatileDomain_DeriveSymmetricKey (

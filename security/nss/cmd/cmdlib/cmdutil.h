@@ -99,6 +99,24 @@ CMD_GetInput(CMDRunTimeData *rtData);
 void
 CMD_DumpOutput(NSSItem *output, CMDRunTimeData *rtData);
 
+NSSItem *
+CMD_ConvertHex(char *stream, unsigned int streamLen, NSSArena *arenaOpt);
+
+typedef struct
+{
+  PRUint8 buf[256];
+  PRUint32 start, finish;
+}
+CMDReadBuf;
+
+int
+CMD_ReadArgValue(CMDRunTimeData *rtData, CMDReadBuf *readBuf,
+                 char **value, const char **validArgs, int numValidArgs);
+
+PRStatus
+CMD_WriteArgValue(CMDRunTimeData *rtData, const char *arg, NSSItem *value,
+                  CMDFileMode outMode);
+
 /*
  * Command Line Parsing routines
  *
@@ -200,5 +218,8 @@ CMD_PrintPKIXCertificate(CMDPrinter *printer, NSSPKIXCertificate *pkixCert,
 
 void
 CMD_PrintError(char *message, ...);
+
+PRStatus
+CMD_SetRSAPE(NSSItem *peIt, PRUint32 pe);
 
 #endif /* _CMDUTIL_H_ */

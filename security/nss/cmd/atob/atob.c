@@ -32,8 +32,8 @@
  */
 
 #include "plgetopt.h"
-#include "secutil.h"
-#include "nssb64.h"
+#include "nssbase.h"
+#include "cmdutil.h"
 #include <errno.h>
 
 #if defined(XP_WIN) || (defined(__sun) && !defined(SVR4))
@@ -57,19 +57,18 @@ output_binary (void *arg, const unsigned char *obuf, PRInt32 size)
 
     nb = fwrite(obuf, 1, size, outFile);
     if (nb != size) {
-	PORT_SetError(SEC_ERROR_IO);
 	return -1;
     }
 
     return nb;
 }
 
-static SECStatus
+static PRStatus
 decode_file(FILE *outFile, FILE *inFile)
 {
     NSSBase64Decoder *cx;
     int nb;
-    SECStatus status = SECFailure;
+    PRStatus status = PR_FAILURE;
     char ibuf[4096];
 
     cx = NSSBase64Decoder_Create(output_binary, outFile);
@@ -83,7 +82,6 @@ decode_file(FILE *outFile, FILE *inFile)
 	if (nb != sizeof(ibuf)) {
 	    if (nb == 0) {
 		if (ferror(inFile)) {
-		    PORT_SetError(SEC_ERROR_IO);
 		    goto loser;
 		}
 		/* eof */
@@ -92,7 +90,7 @@ decode_file(FILE *outFile, FILE *inFile)
 	}
 
 	status = NSSBase64Decoder_Update(cx, ibuf, nb);
-	if (status != SECSuccess) goto loser;
+	if (status == PR_FAILURE) goto loser;
     }
 
     return NSSBase64Decoder_Destroy(cx, PR_FALSE);
@@ -117,7 +115,7 @@ static void Usage(char *progName)
 int main(int argc, char **argv)
 {
     char *progName;
-    SECStatus rv;
+    PRStatus rv;
     FILE *inFile, *outFile;
     PLOptState *optstate;
     PLOptStatus status;
@@ -168,9 +166,8 @@ int main(int argc, char **argv)
     	outFile = stdout;
     }
     rv = decode_file(outFile, inFile);
-    if (rv != SECSuccess) {
-	fprintf(stderr, "%s: lossage: error=%d errno=%d\n",
-		progName, PORT_GetError(), errno);
+    if (rv == PR_FAILURE) {
+	CMD_PrintError("lossage (errno=%d)", errno);
 	return -1;
     }
     return 0;

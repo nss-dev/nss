@@ -38,6 +38,9 @@ REQUIRES = security nspr libdbm
 
 DIRS =            \
 	cmdlib    \
+	atob      \
+	btoa      \
+	nssutil   \
 	pkiutil   \
  $(NULL)
 

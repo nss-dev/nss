@@ -1011,6 +1011,7 @@ CK_RV NSC_Decrypt(CK_SESSION_HANDLE hSession,
 
     if (!pData) {
 	*pulDataLen = ulEncryptedDataLen + context->blockSize;
+	rv = SECSuccess;
 	goto finish;
     }
 

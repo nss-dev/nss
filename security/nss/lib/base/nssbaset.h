@@ -150,6 +150,9 @@ typedef char NSSUTF8;
 
 typedef char NSSASCII7;
 
+typedef struct NSSBase64DecoderStr NSSBase64Decoder;
+typedef struct NSSBase64EncoderStr NSSBase64Encoder;
+
 PR_END_EXTERN_C
 
 #endif /* NSSBASET_H */

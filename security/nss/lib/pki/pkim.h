@@ -328,7 +328,8 @@ nssSymmetricKey_Destroy (
 NSS_IMPLEMENT nssCryptokiObject *
 nssSymmetricKey_CopyToToken (
   NSSSymmetricKey *mk,
-  NSSToken *destination
+  NSSToken *destination,
+  PRBool asPersistentObject
 );
 
 NSS_EXTERN NSSToken **
@@ -379,6 +380,14 @@ nssPublicKey_CreateFromInfo (
   NSSBitString *keyBits
 );
 
+NSS_EXTERN NSSPublicKey *
+nssPublicKey_CreateFromInstance (
+  nssCryptokiObject *instance,
+  NSSTrustDomain *td,
+  NSSVolatileDomain *vdOpt,
+  NSSArena *arenaOpt
+);
+
 NSS_EXTERN PRBool
 nssPublicKey_IsOnToken (
   NSSPublicKey *bk,
@@ -400,7 +409,8 @@ nssPublicKey_FindInstanceForAlgorithm (
 NSS_EXTERN nssCryptokiObject *
 nssPublicKey_CopyToToken (
   NSSPublicKey *bk,
-  NSSToken *destination
+  NSSToken *destination,
+  PRBool asPersistentObject
 );
 
 NSS_EXTERN NSSPrivateKey *

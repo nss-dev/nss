@@ -190,6 +190,59 @@ NSSUTF8_Duplicate (
 );
 
 /*
+ * Functions to start a base64 decoding/encoding context.
+ */
+
+NSS_EXTERN NSSBase64Decoder *
+NSSBase64Decoder_Create (
+  PRInt32 (*output_fn) (void *, const unsigned char *, PRInt32),
+  void *output_arg
+);
+
+NSS_EXTERN NSSBase64Encoder *
+NSSBase64Encoder_Create (
+  PRInt32 (*output_fn) (void *, const char *, PRInt32),
+  void *output_arg
+);
+
+/*
+ * Push data through the decoder/encoder, causing the output_fn (provided
+ * to Create) to be called with the decoded/encoded data.
+ */
+
+NSS_EXTERN PRStatus
+NSSBase64Decoder_Update (
+  NSSBase64Decoder *data, 
+  const char *buffer,
+  PRUint32 size
+);
+
+NSS_EXTERN PRStatus
+NSSBase64Encoder_Update (
+  NSSBase64Encoder *data, 
+  const unsigned char *buffer,
+  PRUint32 size
+);
+
+/*
+ * When you're done processing, call this to close the context.
+ * If "abort_p" is false, then calling this may cause the output_fn
+ * to be called one last time (as the last buffered data is flushed out).
+ */
+
+NSS_EXTERN PRStatus
+NSSBase64Decoder_Destroy (
+  NSSBase64Decoder *data, 
+  PRBool abort_p
+);
+
+NSS_EXTERN PRStatus
+NSSBase64Encoder_Destroy (
+  NSSBase64Encoder *data, 
+  PRBool abort_p
+);
+
+/*
  * Perform base64 decoding from an ascii string "inStr" to an Item.
  * The length of the input must be provided as "inLen".  The Item
  * may be provided (as "outItemOpt"); you can also pass in a NULL

@@ -474,7 +474,7 @@ NSS_IMPLEMENT NSSPrivateKey *
 nssTrustDomain_ImportEncodedPrivateKey (
   NSSTrustDomain *td,
   NSSBER *ber,
-  NSSKeyPairType keyPairType,
+  NSSOID *keyPairAlg,
   NSSOperations operations,
   NSSProperties properties,
   NSSUTF8 *passwordOpt,
@@ -482,16 +482,16 @@ nssTrustDomain_ImportEncodedPrivateKey (
   NSSToken *destination
 )
 {
-    return nssPrivateKey_Decode(ber, keyPairType, 
+    return nssPrivateKey_Decode(ber, keyPairAlg, 
                                 operations, properties, 
-                                passwordOpt, uhhOpt, destination, td);
+                                passwordOpt, uhhOpt, destination, td, NULL);
 }
 
 NSS_IMPLEMENT NSSPrivateKey *
 NSSTrustDomain_ImportEncodedPrivateKey (
   NSSTrustDomain *td,
   NSSBER *ber,
-  NSSKeyPairType keyPairType,
+  NSSOID *keyPairAlg,
   NSSOperations operations,
   NSSProperties properties,
   NSSUTF8 *passwordOpt,
@@ -499,7 +499,7 @@ NSSTrustDomain_ImportEncodedPrivateKey (
   NSSToken *destination
 )
 {
-    return nssTrustDomain_ImportEncodedPrivateKey(td, ber, keyPairType,
+    return nssTrustDomain_ImportEncodedPrivateKey(td, ber, keyPairAlg,
                                                   operations, properties, 
                                                   passwordOpt, uhhOpt, 
                                                   destination);
@@ -1859,6 +1859,24 @@ loser:
 	NSSSlotArray_Destroy(slots);
     }
     return NULL;
+}
+
+NSS_IMPLEMENT NSSVolatileDomain *
+nssTrustDomain_CreateVolatileDomain (
+  NSSTrustDomain *td,
+  NSSCallback *uhhOpt
+)
+{
+    return nssVolatileDomain_Create(td, uhhOpt);
+}
+
+NSS_IMPLEMENT NSSVolatileDomain *
+NSSTrustDomain_CreateVolatileDomain (
+  NSSTrustDomain *td,
+  NSSCallback *uhhOpt
+)
+{
+    return nssTrustDomain_CreateVolatileDomain(td, uhhOpt);
 }
 
 NSS_IMPLEMENT NSSCryptoContext *

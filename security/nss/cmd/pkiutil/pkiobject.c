@@ -1,3 +1,35 @@
+/*
+ * The contents of this file are subject to the Mozilla Public
+ * License Version 1.1 (the "License"); you may not use this file
+ * except in compliance with the License. You may obtain a copy of
+ * the License at http://www.mozilla.org/MPL/
+ * 
+ * Software distributed under the License is distributed on an "AS
+ * IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
+ * implied. See the License for the specific language governing
+ * rights and limitations under the License.
+ * 
+ * The Original Code is the Netscape security libraries.
+ * 
+ * The Initial Developer of the Original Code is Netscape
+ * Communications Corporation.  Portions created by Netscape are 
+ * Copyright (C) 1994-2000 Netscape Communications Corporation.  All
+ * Rights Reserved.
+ * 
+ * Contributor(s):
+ * 
+ * Alternatively, the contents of this file may be used under the
+ * terms of the GNU General Public License Version 2 or later (the
+ * "GPL"), in which case the provisions of the GPL are applicable 
+ * instead of those above.  If you wish to allow use of your 
+ * version of this file only under the terms of the GPL and not to
+ * allow others to use your version of this file under the MPL,
+ * indicate your decision by deleting the provisions above and
+ * replace them with the notice and other provisions required by
+ * the GPL.  If you do not delete the provisions above, a recipient
+ * may use your version of this file under either the MPL or the
+ * GPL.
+ */
 
 #include <string.h>
 #include "nss.h"
@@ -50,6 +82,22 @@ get_key_pair_type(char *type)
 	return NSSKeyPairType_DH;
     } else {
 	return NSSKeyPairType_Unknown;
+    }
+}
+
+static NSSOID *
+get_key_pair_alg(char *type)
+{
+    NSSKeyPairType kpType = get_key_pair_type(type);
+    switch (kpType) {
+    case NSSKeyPairType_RSA: 
+	return NSSOID_CreateFromTag(NSS_OID_PKCS1_RSA_ENCRYPTION);
+    case NSSKeyPairType_DSA: 
+	return NSSOID_CreateFromTag(NSS_OID_ANSIX9_DSA_SIGNATURE);
+    case NSSKeyPairType_DH: 
+	return NSSOID_CreateFromTag(NSS_OID_X942_DIFFIE_HELLMAN_KEY);
+    default:
+	return NULL;
     }
 }
 
@@ -619,25 +667,25 @@ import_private_key
     PRStatus status;
     NSSItem *encoding;
     NSSPrivateKey *vkey;
-    NSSKeyPairType keyPairType;
+    NSSOID *keyPairAlg;
 
     if (keyTypeOpt) {
-	keyPairType = get_key_pair_type(keyTypeOpt);
-	if (keyPairType == NSSKeyPairType_Unknown) {
+	keyPairAlg = get_key_pair_alg(keyTypeOpt);
+	if (!keyPairAlg) {
 	    PR_fprintf(PR_STDERR, "%s is not a valid key type.\n", 
 	                           keyTypeOpt);
 	    return PR_FAILURE;
 	}
     } else {
 	/* default to RSA */
-	keyPairType = NSSKeyPairType_RSA;
+	keyPairAlg = NSSOID_CreateFromTag(NSS_OID_PKCS1_RSA_ENCRYPTION);
     }
 
     /* get the encoded key from the input source */
     encoding = CMD_GetInput(rtData);
     /* import into trust domain */
     vkey = NSSTrustDomain_ImportEncodedPrivateKey(td, encoding,
-                                                  keyPairType, 0, 0,
+                                                  keyPairAlg, 0, 0,
                                                   NULL,
                                     CMD_PWCallbackForKeyEncoding(keypass), 
                                                   token/*, nickname */);
@@ -883,7 +931,6 @@ get_rsa_key_gen_params(PRUint32 keySizeInBits, PRUint32 pubExp)
 {
     NSSOID *kpAlg;
     NSSParameters params;
-    PRUint32 bepe;
 
     kpAlg = NSSOID_CreateFromTag(NSS_OID_PKCS1_RSA_ENCRYPTION);
     if (!kpAlg) {
@@ -892,15 +939,8 @@ get_rsa_key_gen_params(PRUint32 keySizeInBits, PRUint32 pubExp)
     }
 
     params.rsakg.modulusBits = keySizeInBits;
-
-    params.rsakg.publicExponent.data = nss_ZAlloc(NULL, sizeof(pubExp)); /* XXX */
-    if (!params.rsakg.publicExponent.data) {
-	CMD_PrintError("memory");
+    if (CMD_SetRSAPE(&params.rsakg.publicExponent, pubExp) == PR_FAILURE)
 	return NULL;
-    } 
-    bepe = PR_htonl(pubExp);
-    memcpy(params.rsakg.publicExponent.data, &bepe, sizeof(pubExp));
-    params.rsakg.publicExponent.size = sizeof(pubExp);
 
     return NSSOID_CreateAlgorithmAndParametersForKeyGen(kpAlg, &params, 
                                                         NULL);

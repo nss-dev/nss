@@ -82,7 +82,7 @@ DumpModuleInfo(char *moduleName, CMDRunTimeData *rtData)
     PR_fprintf(fData->file, "\n");
 
     NSSModule_Destroy(module);
-    return PR_FAILURE;
+    return PR_SUCCESS;
 }
 
 #if 0
@@ -155,7 +155,7 @@ DumpSlotInfo(char *slotName, NSSTrustDomain *td, CMDRunTimeData *rtData)
     PR_fprintf(fData->file, "\n");
 
     NSSSlot_Destroy(slot);
-    return PR_FAILURE;
+    return PR_SUCCESS;
 }
 
 PRStatus 
@@ -205,6 +205,6 @@ DumpTokenInfo(char *tokenName, NSSTrustDomain *td, CMDRunTimeData *rtData)
     PR_fprintf(fData->file, "\n");
 
     NSSToken_Destroy(token);
-    return PR_FAILURE;
+    return PR_SUCCESS;
 }
 
