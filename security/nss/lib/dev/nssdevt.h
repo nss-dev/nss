@@ -64,8 +64,6 @@ typedef struct NSSSlotStr NSSSlot;
 
 typedef struct NSSTokenStr NSSToken;
 
-typedef struct nssSessionStr nssSession;
-
 PR_END_EXTERN_C
 
 #endif /* NSSDEVT_H */

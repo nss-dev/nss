@@ -48,9 +48,10 @@ MODULE = security
 
 CSRCS =		        \
 	devmod.c        \
-	devslot.c          \
-	devtoken.c         \
-	devutil.c          \
+	devslot.c       \
+	devobject.c     \
+	devtoken.c      \
+	devutil.c       \
 	ckhelper.c      \
 	$(NULL)
 

@@ -112,7 +112,7 @@ nss_compare_items(const void *v1, const void *v2)
  * nssHash_create
  *
  */
-static nssHash *
+NSS_IMPLEMENT nssHash *
 nssHash_Create
 (
   NSSArena *arenaOpt,

@@ -57,6 +57,9 @@ PR_BEGIN_EXTERN_C
 NSS_EXTERN NSSTrustDomain *
 STAN_GetDefaultTrustDomain();
 
+NSSCryptoContext *
+STAN_GetDefaultCryptoContext();
+
 NSS_IMPLEMENT void
 STAN_LoadDefaultNSS3TrustDomain
 (
@@ -76,7 +79,7 @@ NSS_EXTERN NSSCertificate *
 STAN_GetNSSCertificate(CERTCertificate *c);
 
 NSS_EXTERN PRStatus
-STAN_ChangeCertTrust(NSSCertificate *c, CERTCertTrust *trust);
+STAN_ChangeCertTrust(CERTCertificate *cc, CERTCertTrust *trust);
 
 /* exposing this */
 NSS_EXTERN NSSCertificate *
