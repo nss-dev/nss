@@ -949,42 +949,40 @@ PK11_MakePrivKey(PK11SlotInfo *slot, KeyType keyType,
 unsigned int
 PK11_GetKeyLength(PK11SymKey *key)
 {
-    CK_KEY_TYPE keyType;
-
-    if (key->size != 0) return key->size;
-
-    /* First try to figure out the key length from its type */
-    keyType = PK11_ReadULongAttribute(key->slot,key->objectID,CKA_KEY_TYPE);
-    switch (keyType) {
-      case CKK_DES: key->size = 8; break;
-      case CKK_DES2: key->size = 16; break;
-      case CKK_DES3: key->size = 24; break;
-      case CKK_SKIPJACK: key->size = 10; break;
-      case CKK_BATON: key->size = 20; break;
-      case CKK_JUNIPER: key->size = 20; break;
-      case CKK_GENERIC_SECRET:
-	if (key->type == CKM_SSL3_PRE_MASTER_KEY_GEN)  {
-	    key->size=48;
-	}
-	break;
-      default: break;
-    }
-   if( key->size != 0 ) return key->size;
-
+   if (key->size != 0) return key->size ;
    if (key->data.data == NULL) {
 	PK11_ExtractKeyValue(key);
    }
-   /* key is probably secret. Look up its length */
+   /* key is probably secret. Look up it's type and length */
    /*  this is new PKCS #11 version 2.0 functionality. */
    if (key->size == 0) {
 	CK_ULONG keyLength;
 
 	keyLength = PK11_ReadULongAttribute(key->slot,key->objectID,CKA_VALUE_LEN);
-	if (keyLength != CK_UNAVAILABLE_INFORMATION) {
+	/* doesn't have a length field, check the known PKCS #11 key types,
+	 * which don't have this field */
+	if (keyLength == CK_UNAVAILABLE_INFORMATION) {
+	    CK_KEY_TYPE keyType;
+	    keyType = PK11_ReadULongAttribute(key->slot,key->objectID,CKA_KEY_TYPE);
+	    switch (keyType) {
+	    case CKK_DES: key->size = 8; break;
+	    case CKK_DES2: key->size = 16; break;
+	    case CKK_DES3: key->size = 24; break;
+	    case CKK_SKIPJACK: key->size = 10; break;
+	    case CKK_BATON: key->size = 20; break;
+	    case CKK_JUNIPER: key->size = 20; break;
+	    case CKK_GENERIC_SECRET:
+		if (key->type == CKM_SSL3_PRE_MASTER_KEY_GEN)  {
+		    key->size=48;
+		}
+		break;
+	    default: break;
+	    }
+	} else {
 	    key->size = (unsigned int)keyLength;
 	}
     }
-
+	
    return key->size;
 }
 
@@ -1377,7 +1375,6 @@ PK11_TokenKeyGen(PK11SlotInfo *slot, CK_MECHANISM_TYPE type, SECItem *param,
     if (isToken) {
 	PK11_Authenticate(symKey->slot,PR_TRUE,wincx);
         session = PK11_GetRWSession(symKey->slot);  /* Should always be original slot */
-	symKey->owner = PR_FALSE;
     } else {
         session = symKey->session;
         pk11_EnterKeyMonitor(symKey);
@@ -4126,9 +4123,6 @@ finalize:
     }
 
     if (crv != CKR_OK) {
-	if (buffer != stackBuf) {
-	    PORT_Free(buffer);
-	}
 	if (crv == CKR_OPERATION_NOT_INITIALIZED) {
 	    /* if there's no operation, it is finalized */
 	    return SECSuccess;
@@ -4138,20 +4132,13 @@ finalize:
     }
 
     /* try to finalize the session with a buffer */
-    if (buffer == NULL) { 
-	if (count <= sizeof stackBuf) {
+    if (buffer == NULL && count > 0) { 
+	if (count < sizeof stackBuf) {
 	    buffer = stackBuf;
+	    goto finalize;
 	} else {
-	    buffer = PORT_Alloc(count);
-	    if (buffer == NULL) {
-		PORT_SetError(SEC_ERROR_NO_MEMORY);
-		return SECFailure;
-	    }
+	    return SECFailure;
 	}
-	goto finalize;
-    }
-    if (buffer != stackBuf) {
-	PORT_Free(buffer);
     }
     return SECSuccess;
 }

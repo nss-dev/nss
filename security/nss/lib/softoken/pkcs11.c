@@ -2225,21 +2225,16 @@ PK11Slot * pk11_NewSlotFromID(CK_SLOT_ID slotID, int moduleIndex)
 static SECStatus
 pk11_set_user(NSSLOWCERTCertificate *cert, SECItem *dummy, void *arg)
 {
-    PK11Slot  *slot = (PK11Slot *)arg;
-    NSSLOWCERTCertTrust trust = *cert->trust;
+    NSSLOWKEYDBHandle *keydb = (NSSLOWKEYDBHandle *)arg;
 
-    if (nsslowkey_KeyForCertExists(slot->keyDB,cert)) {
-	trust.sslFlags |= CERTDB_USER;
-	trust.emailFlags |= CERTDB_USER;
-	trust.objectSigningFlags |= CERTDB_USER;
+    if (nsslowkey_KeyForCertExists(keydb,cert)) {
+	cert->trust->sslFlags |= CERTDB_USER;
+	cert->trust->emailFlags |= CERTDB_USER;
+	cert->trust->objectSigningFlags |= CERTDB_USER;
     } else {
-	trust.sslFlags &= ~CERTDB_USER;
-	trust.emailFlags &= ~CERTDB_USER;
-	trust.objectSigningFlags &= ~CERTDB_USER;
-    }
-
-    if (PORT_Memcmp(&trust,cert->trust, sizeof (trust)) != 0) {
-	nsslowcert_ChangeCertTrust(slot->certDB,cert, &trust);
+	cert->trust->sslFlags &= ~CERTDB_USER;
+	cert->trust->emailFlags &= ~CERTDB_USER;
+	cert->trust->objectSigningFlags &= ~CERTDB_USER;
     }
 
     /* should check for email address and make sure we have an s/mime profile */
@@ -2252,7 +2247,7 @@ pk11_DBVerify(PK11Slot *slot)
     /* walk through all the certs and check to see if there are any 
      * user certs, and make sure there are s/mime profiles for all certs with
      * email addresses */
-    nsslowcert_TraversePermCerts(slot->certDB,pk11_set_user,slot);
+    nsslowcert_TraversePermCerts(slot->certDB,pk11_set_user,slot->keyDB);
 
     return;
 }
