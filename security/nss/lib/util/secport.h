@@ -131,6 +131,7 @@ extern void PORT_FreeBlock(void *ptr);
 extern void *PORT_ZAlloc(size_t len);
 extern void PORT_Free(void *ptr);
 extern void PORT_ZFree(void *ptr, size_t len);
+extern char *PORT_Strdup(const char *s);
 extern time_t PORT_Time(void);
 extern void PORT_SetError(int value);
 extern int PORT_GetError(void);
@@ -168,34 +169,6 @@ extern char *PORT_ArenaStrdup(PLArenaPool *arena, const char *str);
 
 /* Please, keep these defines sorted alphbetically.  Thanks! */
 
-#ifdef XP_STRING_FUNCS
-
-#define PORT_Atoi 	XP_ATOI
-
-#define PORT_Memcmp 	XP_MEMCMP
-#define PORT_Memcpy 	XP_MEMCPY
-#define PORT_Memmove 	XP_MEMMOVE
-#define PORT_Memset 	XP_MEMSET
-
-#define PORT_Strcasecmp XP_STRCASECMP
-#define PORT_Strcat 	XP_STRCAT
-#define PORT_Strchr 	XP_STRCHR
-#define PORT_Strrchr	XP_STRRCHR
-#define PORT_Strcmp 	XP_STRCMP
-#define PORT_Strcpy 	XP_STRCPY
-#define PORT_Strdup 	XP_STRDUP
-#define PORT_Strlen(s) 	XP_STRLEN(s)
-#define PORT_Strncasecmp XP_STRNCASECMP
-#define PORT_Strncat 	strncat
-#define PORT_Strncmp 	XP_STRNCMP
-#define PORT_Strncpy 	strncpy
-#define PORT_Strstr 	XP_STRSTR
-#define PORT_Strtok 	XP_STRTOK_R
-
-#define PORT_Tolower 	XP_TO_LOWER
-
-#else /* XP_STRING_FUNCS */
-
 #define PORT_Atoi 	atoi
 
 #define PORT_Memcmp 	memcmp
@@ -213,7 +186,6 @@ extern char *PORT_ArenaStrdup(PLArenaPool *arena, const char *str);
 #define PORT_Strrchr    strrchr
 #define PORT_Strcmp 	strcmp
 #define PORT_Strcpy 	strcpy
-extern char *PORT_Strdup(const char *s);
 #define PORT_Strlen(s) 	strlen(s)
 #define PORT_Strncasecmp PL_strncasecmp
 #define PORT_Strncat 	strncat
@@ -224,8 +196,6 @@ extern char *PORT_Strdup(const char *s);
 #define PORT_Strtok 	strtok
 
 #define PORT_Tolower 	tolower
-
-#endif /* XP_STRING_FUNCS */
 
 typedef PRBool (PR_CALLBACK * PORTCharConversionWSwapFunc) (PRBool toUnicode,
 			unsigned char *inBuf, unsigned int inBufLen,
