@@ -79,3 +79,5 @@ const NSSError NSS_ERROR_NOT_FOUND                      = 27;
 const NSSError NSS_ERROR_INVALID_PASSWORD               = 28;
 const NSSError NSS_ERROR_USER_CANCELED                  = 29;
 
+const NSSError NSS_ERROR_MAXIMUM_FOUND                  = 30;
+

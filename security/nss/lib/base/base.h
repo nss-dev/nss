@@ -785,6 +785,7 @@ nssUTF8_Equal
 NSS_EXTERN nssList *
 nssList_Create
 (
+  NSSArena *arenaOpt,
   PRBool threadSafe
 );
 
@@ -795,6 +796,13 @@ NSS_EXTERN PRStatus
 nssList_Destroy
 (
   nssList *list
+);
+
+NSS_EXTERN PRStatus
+nssList_DestroyElements
+(
+  nssList *list, 
+  nssListElementDestructorFunc destructor
 );
 
 /*
@@ -856,10 +864,10 @@ nssList_GetElement
 );
 
 /*
- * nssList_GetNumElements
+ * nssList_Count
  */
 NSS_EXTERN PRUint32
-nssList_GetNumElements
+nssList_Count
 (
   nssList *list
 );
