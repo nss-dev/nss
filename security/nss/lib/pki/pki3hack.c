@@ -112,11 +112,6 @@ cache_token_cert(NSSCertificate *c, void *arg)
     NSSToken *token = (NSSToken *)arg;
     NSSTrustDomain *td = STAN_GetDefaultTrustDomain();
     NSSCertificate *cp = nssCertificate_AddRef(c);
-    if (nssList_Count(token->certList) > NSSTOKEN_MAX_LOCAL_CERTS) {
-	nssToken_DestroyCertList(token, PR_TRUE);
-	/* terminate the traversal */
-	return PR_FAILURE;
-    }
     nssTrustDomain_AddCertsToCache(td, &c, 1);
     if (cp == c) {
 	NSSCertificate_Destroy(cp);
