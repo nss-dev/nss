@@ -175,7 +175,7 @@ DecodeAndPrintFile(FILE *out, PRFileDesc *in, char *progName)
 
 	signing_time = SEC_PKCS7GetSigningTime(cinfo);
 	if (signing_time != NULL) {
-	    SECU_PrintUTCTime(out, signing_time, "Signing time", 0);
+	    SECU_PrintTimeChoice(out, signing_time, "Signing time", 0);
 	} else {
 	    fprintf(out, "No signing time included.\n");
 	}
