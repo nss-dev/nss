@@ -2367,6 +2367,7 @@ DecodeDBSubjectEntry(certDBEntrySubject *entry, SECItem *dbentry,
     if ((eaddrlen == 0) && (tmpbuf+1 < end)) {
 	/* read in the additional email addresses */
 	entry->nemailAddrs = tmpbuf[0] << 8 | tmpbuf[1];
+	tmpbuf = tmpbuf + 2;
 	entry->emailAddrs = (char **)
 		PORT_ArenaAlloc(arena, entry->nemailAddrs * sizeof(char *));
 	if (entry->emailAddrs == NULL) {
