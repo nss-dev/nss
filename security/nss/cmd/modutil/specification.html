@@ -139,7 +139,7 @@ If a password file is given, the password will be read from that file;
 otherwise, the password will be obtained interactively.
 <b>Storing passwords in a file is much less secure than supplying them
 interactively.</b>
-<p>The password on the Netscape internal module cannot be changed if
+<p>The password on the NSS internal module cannot be changed if
 the <code>-nocertdb</code> option is specified.
 </td>
 </tr>
@@ -240,7 +240,7 @@ Using database directory /u/nicolson/.netscape...
 
 Listing of PKCS #11 Modules
 -----------------------------------------------------------
-  1. Netscape Internal PKCS #11 Module
+  1. NSS Internal PKCS #11 Module
          slots: 2 slots attached
         status: loaded
 
@@ -256,13 +256,13 @@ Listing of PKCS #11 Modules
 and its slots and tokens.
 <blockquote>
 <pre>
-% <b>modutil -list "Netscape Internal PKCS #11 Module"</b>
+% <b>modutil -list "NSS Internal PKCS #11 Module"</b>
 Using database directory /u/nicolson/.netscape...
 
 -----------------------------------------------------------
-Name: Netscape Internal PKCS #11 Module
+Name: NSS Internal PKCS #11 Module
 Library file: **Internal ONLY module**
-Manufacturer: Netscape Communications Corp    
+Manufacturer: mozilla.org
 Description: Communicator Internal Crypto Svc
 PKCS #11 Version 2.0
 Library Version: 4.0
@@ -270,13 +270,13 @@ Cipher Enable Flags: None
 Default Mechanism Flags: RSA:DSA:RC2:RC4:DES:SHA1:MD5:MD2
 
   Slot: Communicator Internal Cryptographic Services Version 4.0
-  Manufacturer: Netscape Communications Corp    
+  Manufacturer: mozilla.org
   Type: Software
   Version Number: 4.1
   Firmware Version: 0.0
   Status: Enabled
   Token Name: Communicator Generic Crypto Svcs
-  Token Manufacturer: Netscape Communications Corp    
+  Token Manufacturer: mozilla.org
   Token Model: Libsec 4.0      
   Token Serial Number: 0000000000000000
   Token Version: 4.0
@@ -286,13 +286,13 @@ Default Mechanism Flags: RSA:DSA:RC2:RC4:DES:SHA1:MD5:MD2
   User Pin: NOT Initialized
 
   Slot: Communicator User Private Key and Certificate Services
-  Manufacturer: Netscape Communications Corp    
+  Manufacturer: mozilla.org
   Type: Software
   Version Number: 3.0
   Firmware Version: 0.0
   Status: Enabled
   Token Name: Communicator Certificate DB     
-  Token Manufacturer: Netscape Communications Corp    
+  Token Manufacturer: mozilla.org
   Token Model: Libsec 4.0      
   Token Serial Number: 0000000000000000
   Token Version: 7.0
@@ -340,7 +340,7 @@ no default, and this option must be used.</td>
 With the <code>-create</code> command, this means that only a secmod.db file
 will be created; cert7.db and key3.db will not be created.  With the
 <code>-jar</code> command, signatures on the JAR file will not be checked.
-With the <code>-changepw</code> command, the password on the Netscape internal 
+With the <code>-changepw</code> command, the password on the NSS internal 
 module cannot be set or changed, since this password is stored in key3.db.
 </td>
 </tr>
