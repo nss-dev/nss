@@ -298,7 +298,7 @@ static NSSASCII7 *
 nss3certificate_getEmailAddress(nssDecodedCert *dc)
 {
     CERTCertificate *cc = (CERTCertificate *)dc->data;
-    return (NSSASCII7 *)cc->emailAddr;
+    return cc ? (NSSASCII7 *)cc->emailAddr : NULL;
 }
 
 NSS_IMPLEMENT nssDecodedCert *
@@ -490,10 +490,12 @@ STAN_GetCERTCertificate(NSSCertificate *c)
 	dc = c->decoding;
     }
     cc = (CERTCertificate *)dc->data;
-    if (!cc->nssCertificate) {
-	fill_CERTCertificateFields(c, cc);
-    } else if (!cc->trust) {
-	cc->trust = nssTrust_GetCERTCertTrustForCert(c, cc);
+    if (cc) {
+	if (!cc->nssCertificate) {
+	    fill_CERTCertificateFields(c, cc);
+	} else if (!cc->trust) {
+	    cc->trust = nssTrust_GetCERTCertTrustForCert(c, cc);
+	}
     }
     return cc;
 }

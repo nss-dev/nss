@@ -374,8 +374,11 @@ get_token_cert
 	nssDecodedCert *dc;
 	NSSASCII7 *email;
 	dc = nssCertificate_GetDecoding(rvCert);
-	email = dc->getEmailAddress(dc);
-	if (email) rvCert->email = nssUTF8_Duplicate(email, arena);
+	if (dc) {
+	    email = dc->getEmailAddress(dc);
+	    if (email) 
+	    	rvCert->email = nssUTF8_Duplicate(email, arena);
+	}
     }
 #endif
     return rvCert;
