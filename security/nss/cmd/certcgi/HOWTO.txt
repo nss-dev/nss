@@ -78,7 +78,7 @@ Instructions:
 - In some web page (e.g. your server's home page), provide an html link to
   $DOCROOT/certomatic/index.html. This is where users start to get their
   own certs from certomatic.
-- give these files and directories appropriate permissions.
+- Give these files and directories appropriate permissions.
 
 - Create directories $CGIBIN/certomatic and $CGIBIN/certomatic/bin
   make sure that $CGIBIN/certomatic is writable by "nobody"
@@ -87,7 +87,7 @@ Instructions:
 
         certutil -N -d $CGIBIN/certomatic
 
-- when certutil prompts you for the password, enter the word foo
+- When certutil prompts you for the password, enter the word foo
   because that is compiled into the certcgi program.
 
 - Create the new Root CA cert with this command
@@ -99,7 +99,7 @@ Instructions:
   (adjust the -g, -m and -v parameters to taste.  -s and -x must be as
 shown.)
 
-- dump out the new root CA cert in base64 encoding:
+- Dump out the new root CA cert in base64 encoding:
 
         certutil -d $CGIBIN/certomatic -L -n "Cert-O-Matic II" -a > \
           $CGIBIN/certomatic/root.cacert
@@ -156,7 +156,7 @@ Known bugs:
 they didn't all have to be called "Cert-O-Matic II", but that string is 
 presently hard coded into certcgi.c.
 
-2. the html files in this directory contain numerous extraneous <FORM> tags
+2. The html files in this directory contain numerous extraneous <FORM> tags
 which appear to use the post method and have action URLS that are never
 actually used.  burp.cgi and echoform.cgi are never actually used.  This
 should be cleaned up.
