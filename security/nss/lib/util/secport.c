@@ -569,20 +569,21 @@ PORT_UCS2_ASCIIConversion(PRBool toUnicode, unsigned char *inBuf,
 int
 NSS_PutEnv(const char * envVarName, const char * envValue)
 {
+#if  defined(XP_MAC)
+    return SECFailure;
+#else
     SECStatus result = SECSuccess;
+    char *    encoded;
+    int       putEnvFailed;
 #ifdef _WIN32
     PRBool      setOK;
 
     setOK = SetEnvironmentVariable(envVarName, envValue);
     if (!setOK) {
         SET_ERROR_CODE
-        result = SECFailure;
+        return SECFailure;
     }
-#elif  defined(XP_MAC)
-	result = SECFailure;
-#else
-    char *          encoded;
-    int             putEnvFailed;
+#endif
 
     encoded = (char *)PORT_ZAlloc(strlen(envVarName) + 2 + strlen(envValue));
     strcpy(encoded, envVarName);
@@ -595,7 +596,7 @@ NSS_PutEnv(const char * envVarName, const char * envValue)
         result = SECFailure;
         PORT_Free(encoded);
     }
-#endif
     return result;
+#endif
 }
 
