@@ -2944,6 +2944,7 @@ CK_RV NSC_GetAttributeValue(CK_SESSION_HANDLE hSession,
     PK11Object *object;
     PK11Attribute *attribute;
     PRBool sensitive;
+    CK_RV ckrv;
     int i;
 
     /*
@@ -2967,28 +2968,36 @@ CK_RV NSC_GetAttributeValue(CK_SESSION_HANDLE hSession,
 	return CKR_USER_NOT_LOGGED_IN;
     }
 
+    ckrv = CKR_OK;
     sensitive = pk11_isTrue(object,CKA_SENSITIVE);
     for (i=0; i < (int) ulCount; i++) {
 	/* Make sure that this attribute is retrievable */
 	if (sensitive && pk11_isSensitive(pTemplate[i].type,object->objclass)) {
-	    pk11_FreeObject(object);
-	    return CKR_ATTRIBUTE_SENSITIVE;
+	    ckrv = CKR_ATTRIBUTE_SENSITIVE;
+	    pTemplate[i].ulValueLen = -1;
+	    continue;
 	}
 	attribute = pk11_FindAttribute(object,pTemplate[i].type);
 	if (attribute == NULL) {
-	    pk11_FreeObject(object);
-	    return CKR_ATTRIBUTE_TYPE_INVALID;
-	}
-	if (pTemplate[i].pValue != NULL) {
-	    PORT_Memcpy(pTemplate[i].pValue,attribute->attrib.pValue,
-						attribute->attrib.ulValueLen);
+	    ckrv = CKR_ATTRIBUTE_TYPE_INVALID;
+	    pTemplate[i].ulValueLen = -1;
+	    continue;
 	}
 	pTemplate[i].ulValueLen = attribute->attrib.ulValueLen;
+	if (pTemplate[i].pValue != NULL) {
+	    if (pTemplate[i].ulValueLen >= attribute->attrib.ulValueLen) {
+		PORT_Memcpy(pTemplate[i].pValue,attribute->attrib.pValue,
+		                                attribute->attrib.ulValueLen);
+	    } else {
+		pTemplate[i].ulValueLen = -1;
+		ckrv = CKR_BUFFER_TOO_SMALL;
+	    }
+	}
 	pk11_FreeAttribute(attribute);
     }
 
     pk11_FreeObject(object);
-    return CKR_OK;
+    return ckrv;
 }
 
 /* NSC_SetAttributeValue modifies the value of one or more object attributes */
