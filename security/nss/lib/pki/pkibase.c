@@ -842,6 +842,17 @@ loser:
     return PR_FAILURE;
 }
 
+static void
+nssPKIObjectCollection_RemoveNode
+(
+   nssPKIObjectCollection *collection,
+   pkiObjectCollectionNode *node
+)
+{
+    PR_REMOVE_LINK(&node->link); 
+    collection->size--;
+}
+
 static PRStatus
 nssPKIObjectCollection_GetObjects
 (
@@ -853,13 +864,16 @@ nssPKIObjectCollection_GetObjects
     PRUint32 i = 0;
     PRCList *link = PR_NEXT_LINK(&collection->head);
     pkiObjectCollectionNode *node;
-    while (link != &collection->head) {
+    while ((i < rvSize) && (link != &collection->head)) {
 	node = (pkiObjectCollectionNode *)link;
 	if (!node->haveObject) {
 	    /* Convert the proto-object to an object */
 	    node->object = (*collection->createObject)(node->object);
 	    if (!node->object) {
-		return PR_FAILURE;
+		link = PR_NEXT_LINK(link);
+		/*remove bogus object from list*/
+		nssPKIObjectCollection_RemoveNode(collection,node);
+		continue;
 	    }
 	    node->haveObject = PR_TRUE;
 	}
@@ -884,7 +898,10 @@ nssPKIObjectCollection_Traverse
 	if (!node->haveObject) {
 	    node->object = (*collection->createObject)(node->object);
 	    if (!node->object) {
-		return PR_FAILURE;
+		link = PR_NEXT_LINK(link);
+		/*remove bogus object from list*/
+		nssPKIObjectCollection_RemoveNode(collection,node);
+		continue;
 	    }
 	    node->haveObject = PR_TRUE;
 	}
@@ -926,6 +943,8 @@ nssPKIObjectCollection_AddInstanceAsObject
     if (!node->haveObject) {
 	node->object = (*collection->createObject)(node->object);
 	if (!node->object) {
+	    /*remove bogus object from list*/
+	    nssPKIObjectCollection_RemoveNode(collection,node);
 	    return PR_FAILURE;
 	}
 	node->haveObject = PR_TRUE;
