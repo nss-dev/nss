@@ -1460,6 +1460,7 @@ sec_asn1e_allocate_item (PRArenaPool *poolp, SECItem *dest, unsigned long len)
 	if (dest == NULL)
 	    dest = (SECItem*)PORT_Alloc (sizeof(SECItem));
 	if (dest != NULL) {
+	    dest->type = siBuffer;
 	    dest->data = (unsigned char*)PORT_Alloc (len);
 	    if (dest->data == NULL) {
 		if (indest == NULL)
