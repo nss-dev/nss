@@ -111,7 +111,11 @@ struct sidCacheEntryStr {
 /*  1 */    PRUint8	valid;
 /*  1 */    PRUint8     sessionIDLength;
 /* 32 */    PRUint8     sessionID[SSL3_SESSIONID_BYTES];
-/* 56  - common header total */
+/*  2 */    PRUint16    authAlgorithm;
+/*  2 */    PRUint16    authKeyBits;
+/*  2 */    PRUint16    keaType;
+/*  2 */    PRUint16    keaKeyBits;
+/* 64  - common header total */
 
     union {
 	struct {
@@ -390,6 +394,10 @@ ConvertFromSID(sidCacheEntry *to, sslSessionID *from)
     to->version = from->version;
     to->addr    = from->addr;
     to->time    = from->time;
+    to->authAlgorithm	= from->authAlgorithm;
+    to->authKeyBits	= from->authKeyBits;
+    to->keaType		= from->keaType;
+    to->keaKeyBits	= from->keaKeyBits;
 
     if (from->version < SSL_LIBRARY_VERSION_3_0) {
 	if ((from->u.ssl2.masterKey.len > SSL_MAX_MASTER_KEY_BYTES) ||
@@ -552,6 +560,10 @@ ConvertToSID(sidCacheEntry *from, certCacheEntry *pcce,
     to->cached     = in_server_cache;
     to->addr       = from->addr;
     to->references = 1;
+    to->authAlgorithm	= from->authAlgorithm;
+    to->authKeyBits	= from->authKeyBits;
+    to->keaType		= from->keaType;
+    to->keaKeyBits	= from->keaKeyBits;
     
     return to;
 

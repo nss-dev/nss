@@ -40,8 +40,8 @@
 #ifndef __sslproto_h_
 #define __sslproto_h_
 
+/* All versions less than 3_0 are treated as SSL version 2 */
 #define SSL_LIBRARY_VERSION_2			0x0002
-#define SSL_LIBRARY_VERSION_2_1			0x0201
 #define SSL_LIBRARY_VERSION_3_0			0x0300
 #define SSL_LIBRARY_VERSION_3_1_TLS		0x0301
 
