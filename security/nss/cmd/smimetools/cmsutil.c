@@ -1088,7 +1088,7 @@ main(int argc, char **argv)
     PRFileDesc *contentFile = NULL;
     PRBool      batch = PR_FALSE;
 
-#ifdef NISCC_TESTING
+#ifdef NISCC_TEST
     const char *ev = PR_GetEnv("NSS_DISABLE_ARENA_FREE_LIST");
     PORT_Assert(ev); 
     ev = PR_GetEnv("NSS_STRICT_SHUTDOWN");
