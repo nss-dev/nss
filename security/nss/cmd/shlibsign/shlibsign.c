@@ -50,7 +50,6 @@
 
 #include "plgetopt.h"
 #include "pk11sdr.h"
-#include "secrng.h"
 #include "shsign.h"
 #include "pk11pqg.h"
 

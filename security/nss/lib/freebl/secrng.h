@@ -46,7 +46,7 @@
 ** generator.
 */
 
-#include "blapit.h"
+#include "blapi.h"
 
 SEC_BEGIN_PROTOS
 

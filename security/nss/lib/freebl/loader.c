@@ -939,23 +939,6 @@ PQG_VerifyParams(const PQGParams *params, const PQGVerify *vfy,
       return SECFailure;
   return (vector->p_PQG_VerifyParams)(params, vfy, result);
 }
-#if 0
-void 
-PQG_DestroyParams(PQGParams *params)
-{
-  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
-      return;
-  (vector->p_PQG_DestroyParams)( params);
-}
-
-void 
-PQG_DestroyVerify(PQGVerify *vfy)
-{
-  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
-      return;
-  (vector->p_PQG_DestroyVerify)( vfy);
-}
-#endif
 
 void 
 BL_Cleanup(void)

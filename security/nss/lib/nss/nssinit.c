@@ -47,7 +47,6 @@
 #include "secmod.h"
 #include "secoid.h"
 #include "nss.h"
-#include "secrng.h"
 #include "pk11func.h"
 #include "secerr.h"
 #include "nssbase.h"
