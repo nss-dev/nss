@@ -1621,6 +1621,10 @@ sec_asn1d_next_in_group (sec_asn1d_state *state)
      * Now we do the next one.
      */
     sec_asn1d_scrub_state (child);
+
+    /* Initialize child state from the template */
+    sec_asn1d_init_state_based_on_template(child);
+
     state->top->current = child;
 }
 
