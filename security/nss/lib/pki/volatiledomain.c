@@ -245,7 +245,8 @@ NSS_IMPLEMENT NSSCert *
 nssVolatileDomain_ImportEncodedCert (
   NSSVolatileDomain *vd,
   NSSBER *ber,
-  NSSUTF8 *nickOpt
+  NSSUTF8 *nickOpt,
+  NSSToken *destinationOpt
 )
 {
     NSSCert *c;
@@ -268,10 +269,12 @@ NSS_IMPLEMENT NSSCert *
 NSSVolatileDomain_ImportEncodedCert (
   NSSVolatileDomain *vd,
   NSSBER *ber,
-  NSSUTF8 *nickOpt
+  NSSUTF8 *nickOpt,
+  NSSToken *destinationOpt
 )
 {
-    return nssVolatileDomain_ImportEncodedCert(vd, ber, nickOpt);
+    return nssVolatileDomain_ImportEncodedCert(vd, ber, 
+                                               nickOpt, destinationOpt);
 }
 
 NSS_IMPLEMENT NSSCertChain *
@@ -283,6 +286,62 @@ NSSVolatileDomain_ImportEncodedCertChain (
 {
     nss_SetError(NSS_ERROR_NOT_FOUND);
     return NULL;
+}
+
+NSS_IMPLEMENT NSSPublicKey *
+nssVolatileDomain_ImportPublicKey (
+  NSSVolatileDomain *vd,
+  NSSPublicKeyInfo *keyInfo,
+  NSSUTF8 *labelOpt,
+  NSSOperations operations,
+  NSSProperties properties,
+  NSSToken *destinationOpt
+)
+{
+    nssCryptokiObject *bko;
+    NSSPublicKey *rvbk = NULL;
+    NSSToken *token;
+    nssSession *session;
+    NSSSlot **slots; int foo; /* XXX */
+
+    if (destinationOpt) {
+	token = destinationOpt;
+    } else {
+	/* XXX not right at all */
+	slots = nssTrustDomain_GetActiveSlots(vd->td, &foo);
+	token = nssSlot_GetToken(slots[0]);
+	nssSlotArray_Destroy(slots);
+    }
+
+    session = nssTokenSessionHash_GetSession(vd->tokenSessionHash,
+                                             token, PR_FALSE);
+    if (!session) {
+	return NULL;
+    }
+
+    bko = nssToken_ImportPublicKey(token, session, keyInfo, PR_FALSE);
+    if (bko) {
+	rvbk = nssPublicKey_CreateFromInstance(bko, vd->td, vd, NULL);
+	if (!rvbk) {
+	    nssCryptokiObject_Destroy(bko);
+	}
+    }
+    return rvbk;
+}
+
+NSS_IMPLEMENT NSSPublicKey *
+NSSVolatileDomain_ImportPublicKey (
+  NSSVolatileDomain *vd,
+  NSSPublicKeyInfo *keyInfo,
+  NSSUTF8 *labelOpt,
+  NSSOperations operations,
+  NSSProperties properties,
+  NSSToken *destinationOpt
+)
+{
+    return nssVolatileDomain_ImportPublicKey(vd, keyInfo, labelOpt,
+                                             operations, properties,
+                                             destinationOpt);
 }
 
 NSS_IMPLEMENT NSSPrivateKey *
@@ -598,8 +657,7 @@ NSSVolatileDomain_FindCertsBySubject (
 )
 {
     return nssVolatileDomain_FindCertsBySubject(vd, subject,
-                                                      rvOpt, maximumOpt,
-                                                      arenaOpt);
+                                                rvOpt, maximumOpt, arenaOpt);
 }
 
 NSS_IMPLEMENT NSSCert *
@@ -619,8 +677,7 @@ nssVolatileDomain_FindBestCertBySubject (
                                                           NULL, 0, NULL);
     if (certs) {
 	/* find the best one */
-	rvCert = nssCertArray_FindBestCert(certs, time, 
-	                                                 usages, policiesOpt);
+	rvCert = nssCertArray_FindBestCert(certs, time, usages, policiesOpt);
 	nssCertArray_Destroy(certs);
     }
     return rvCert;
@@ -661,8 +718,7 @@ nssVolatileDomain_FindCertByEncodedCert (
     }
     PZ_Unlock(vd->objectLock);
     if (!rvCert) {
-	rvCert = nssTrustDomain_FindCertByEncodedCert(vd->td,
-	                                                      encodedCert);
+	rvCert = nssTrustDomain_FindCertByEncodedCert(vd->td, encodedCert);
     }
     return rvCert;
 }
@@ -673,8 +729,7 @@ NSSVolatileDomain_FindCertByEncodedCert (
   NSSBER *encodedCert
 )
 {
-    return nssVolatileDomain_FindCertByEncodedCert(vd,
-                                                          encodedCert);
+    return nssVolatileDomain_FindCertByEncodedCert(vd, encodedCert);
 }
 
 NSS_IMPLEMENT NSSCert **
@@ -723,8 +778,8 @@ NSSVolatileDomain_FindCertsByEmail (
   NSSArena *arenaOpt
 )
 {
-    return nssVolatileDomain_FindCertsByEmail(vd, email, rvOpt,
-                                                     maximumOpt, arenaOpt);
+    return nssVolatileDomain_FindCertsByEmail(vd, email, 
+                                              rvOpt, maximumOpt, arenaOpt);
 }
 
 NSS_IMPLEMENT NSSCert *
@@ -740,12 +795,10 @@ nssVolatileDomain_FindBestCertByEmail (
     NSSCert *rvCert = NULL;
 
     /* search the volatile domain by email */
-    certs = nssVolatileDomain_FindCertsByEmail(vd, email, 
-                                                      NULL, 0, NULL);
+    certs = nssVolatileDomain_FindCertsByEmail(vd, email, NULL, 0, NULL);
     if (certs) {
 	/* find the best one */
-	rvCert = nssCertArray_FindBestCert(certs, time, 
-	                                                 usages, policiesOpt);
+	rvCert = nssCertArray_FindBestCert(certs, time, usages, policiesOpt);
 	nssCertArray_Destroy(certs);
     }
     return rvCert;
@@ -761,7 +814,7 @@ NSSVolatileDomain_FindBestCertByEmail (
 )
 {
     return nssVolatileDomain_FindBestCertByEmail(vd, email,
-                                              time, usages, policiesOpt);
+                                                 time, usages, policiesOpt);
 }
 
 NSS_IMPLEMENT NSSCert *
@@ -943,9 +996,8 @@ NSSVolatileDomain_GenerateSymKey (
 )
 {
     return nssVolatileDomain_GenerateSymKey(vd, ap, keysize,
-                                                 labelOpt, 
-                                                 operations, properties,
-                                                 destination, uhhOpt);
+                                            labelOpt, operations, properties,
+                                            destination, uhhOpt);
 }
 
 NSS_IMPLEMENT NSSSymKey *
@@ -986,6 +1038,7 @@ nssVolatileDomain_UnwrapSymKey (
 )
 {
     nssCryptokiObject *vko, *mko;
+    nssSession *session = NULL;
     NSSSymKey *mkey = NULL;
 
     /* find a token to do it on */
@@ -993,11 +1046,16 @@ nssVolatileDomain_UnwrapSymKey (
     if (!vko) {
 	return (NSSSymKey *)NULL;
     }
+    session = nssTokenSessionHash_GetSession(vd->tokenSessionHash,
+                                             vko->token, PR_FALSE);
+    if (!session) {
+	nssCryptokiObject_Destroy(vko);
+	return (NSSSymKey *)NULL;
+    }
     /* do the unwrap for a session object */
-    mko = nssToken_UnwrapSymKey(vko->token, vko->session, ap, vko,
-                                      wrappedKey, PR_FALSE, 
-                                      operations, properties, 
-                                      targetSymKeyType);
+    mko = nssToken_UnwrapSymKey(vko->token, session, ap, vko,
+                                wrappedKey, PR_FALSE, 
+                                operations, properties, targetSymKeyType);
     /* done with the private key */
     nssCryptokiObject_Destroy(vko);
     /* create a new symkey in the volatile domain */
@@ -1119,5 +1177,210 @@ NSSVolatileDomain_CreateCryptoContext (
 )
 {
     return nssVolatileDomain_CreateCryptoContext(vd, apOpt, uhhOpt);
+}
+
+struct NSSCertChainStr
+{
+  NSSArena *arena;
+  NSSVolatileDomain *vd;
+  NSSCert **certs;
+  PRUint32 numCerts;
+  PRUint32 numAlloc;
+  NSSTime time;
+  NSSUsages usages;
+  NSSPolicies *policies;
+};
+
+NSS_IMPLEMENT NSSCertChain *
+nssVolatileDomain_CreateCertChain (
+  NSSVolatileDomain *vd,
+  NSSCert *vdCertOpt,
+  NSSTime time,
+  const NSSUsages *usages,
+  NSSPolicies *policiesOpt
+)
+{
+    PRStatus status;
+    NSSArena *arena;
+    NSSCertChain *rvChain;
+
+    arena = nssArena_Create();
+    if (!arena) {
+	return (NSSCertChain *)NULL;
+    }
+    rvChain = nss_ZNEW(arena, NSSCertChain);
+    if (!rvChain) {
+	goto loser;
+    }
+    rvChain->arena = arena;
+    rvChain->vd = vd; /* XXX */
+    rvChain->time = time;
+    rvChain->usages = *usages;
+    rvChain->policies = policiesOpt;
+    if (vdCertOpt) {
+	rvChain->certs = nssCert_BuildChain(vdCertOpt, 
+	                                    time, usages, policiesOpt,
+	                                    NULL, 0, arena, &status);
+	if (status == PR_FAILURE) {
+	    if (rvChain->certs) {
+		nssCertArray_Destroy(rvChain->certs);
+	    }
+	    goto loser;
+	}
+    } else {
+	rvChain->numAlloc = 4;
+	rvChain->certs = nss_ZNEWARRAY(arena, NSSCert *, 
+	                               rvChain->numAlloc + 1);
+	if (!rvChain->certs) {
+	    goto loser;
+	}
+    }
+    return rvChain;
+loser:
+    nssArena_Destroy(arena);
+    return (NSSCertChain *)NULL;
+}
+
+NSS_IMPLEMENT NSSCertChain *
+NSSVolatileDomain_CreateCertChain (
+  NSSVolatileDomain *vd,
+  NSSCert *vdCertOpt,
+  NSSTime time,
+  const NSSUsages *usages,
+  NSSPolicies *policiesOpt
+)
+{
+    return nssVolatileDomain_CreateCertChain(vd, vdCertOpt,
+                                             time, usages, policiesOpt);
+}
+
+NSS_IMPLEMENT PRStatus
+nssCertChain_Destroy (
+  NSSCertChain *chain
+)
+{
+    nssCertArray_Destroy(chain->certs);
+    return nssArena_Destroy(chain->arena);
+}
+
+NSS_IMPLEMENT PRStatus
+NSSCertChain_Destroy (
+  NSSCertChain *chain
+)
+{
+    return nssCertChain_Destroy(chain);
+}
+
+NSS_IMPLEMENT PRStatus
+nssCertChain_AddEncodedCert (
+  NSSCertChain *chain,
+  NSSBER *encodedCert,
+  NSSUTF8 *nicknameOpt,
+  NSSToken *destinationOpt,
+  NSSCert **rvCertOpt
+)
+{
+    NSSCert *cert;
+
+    cert = nssVolatileDomain_ImportEncodedCert(chain->vd, encodedCert, 
+                                               nicknameOpt, destinationOpt);
+    if (cert) {
+	if (chain->numCerts == chain->numAlloc) {
+	    chain->numAlloc *= 2;
+	    chain->certs = nss_ZREALLOCARRAY(chain->certs, NSSCert *, 
+	                                     chain->numAlloc + 1);
+	    if (!chain->certs) {
+		/* set error that chain is invalid? */
+		return PR_FAILURE;
+	    }
+	}
+	chain->certs[chain->numCerts++] = cert;
+	if (rvCertOpt) {
+	    *rvCertOpt = nssCert_AddRef(cert);
+	}
+	return PR_SUCCESS;
+    }
+    return PR_FAILURE;
+}
+
+NSS_IMPLEMENT PRStatus
+NSSCertChain_AddEncodedCert (
+  NSSCertChain *chain,
+  NSSBER *encodedCert,
+  NSSUTF8 *nicknameOpt,
+  NSSToken *destinationOpt,
+  NSSCert **rvCertOpt
+)
+{
+    return nssCertChain_AddEncodedCert(chain, encodedCert, nicknameOpt,
+                                       destinationOpt, rvCertOpt);
+}
+
+NSS_IMPLEMENT PRIntn
+nssCertChain_GetNumCerts (
+  NSSCertChain *chain
+)
+{
+    return chain->numCerts;
+}
+
+NSS_IMPLEMENT PRIntn
+NSSCertChain_GetNumCerts (
+  NSSCertChain *chain
+)
+{
+    return nssCertChain_GetNumCerts(chain);
+}
+
+NSS_IMPLEMENT NSSCert *
+nssCertChain_GetCert (
+  NSSCertChain *chain,
+  PRIntn index
+)
+{
+    if (index < 0 || index >= chain->numCerts) {
+	/* XXX set invalid range error */
+	return (NSSCert *)NULL;
+    }
+    return nssCert_AddRef(chain->certs[index]);
+}
+
+NSS_IMPLEMENT NSSCert *
+NSSCertChain_GetCert (
+  NSSCertChain *chain,
+  PRIntn index
+)
+{
+    return nssCertChain_GetCert(chain, index);
+}
+
+NSS_IMPLEMENT NSSCertChain *
+nssCertChain_Duplicate (
+  NSSCertChain *chain
+)
+{
+    NSSCertChain *rvChain;
+
+    rvChain = nssVolatileDomain_CreateCertChain(chain->vd, NULL,
+                                                chain->time, &chain->usages,
+                                                chain->policies);
+    if (!rvChain) {
+	return (NSSCertChain *)NULL;
+    }
+    rvChain->certs = nssCertArray_Duplicate(chain->certs, rvChain->arena);
+    if (!rvChain->certs) {
+	nssCertChain_Destroy(rvChain);
+	return (NSSCertChain *)NULL;
+    }
+    rvChain->numAlloc = rvChain->numCerts = chain->numCerts;
+    return rvChain;
+}
+
+NSS_IMPLEMENT NSSCertChain *
+NSSCertChain_Duplicate (
+  NSSCertChain *chain
+)
+{
+    return nssCertChain_Duplicate(chain);
 }
 

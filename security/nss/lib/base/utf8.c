@@ -651,6 +651,16 @@ nssUTF8_Equal (
   return nsslibc_memequal(a, b, la, statusOpt);
 }
 
+NSS_IMPLEMENT PRBool
+NSSUTF8_Equal (
+  const NSSUTF8 *a,
+  const NSSUTF8 *b,
+  PRStatus *statusOpt
+)
+{
+    return nssUTF8_Equal(a, b, statusOpt);
+}
+
 NSS_IMPLEMENT PRStatus
 nssUTF8_Destroy (
   NSSUTF8 *string

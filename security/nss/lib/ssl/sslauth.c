@@ -145,7 +145,7 @@ SSL_SecurityStatus(PRFileDesc *fd, int *op, char **cp, int *kp0, int *kp1,
 	    cert = ss->sec.peerCert;
 	    if (cert) {
 		if (ip) {
-		    *ip = NSSCert_GetIssuerName(cert);
+		    *ip = NSSCert_GetIssuerNames(cert, ip, 1, NULL);
 		}
 		if (sp) {
 		    *sp = NSSCert_GetNames(cert, sp, 1, NULL);

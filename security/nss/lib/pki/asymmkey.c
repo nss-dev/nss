@@ -214,7 +214,7 @@ NSSPrivateKey_DeleteStoredObject (
 }
 
 NSS_IMPLEMENT NSSKeyPairType
-nssPrivateKey_GetType (
+nssPrivateKey_GetKeyType (
   NSSPrivateKey *vk
 )
 {
@@ -222,11 +222,11 @@ nssPrivateKey_GetType (
 }
 
 NSS_IMPLEMENT NSSKeyPairType
-NSSPrivateKey_GetType (
+NSSPrivateKey_GetKeyType (
   NSSPrivateKey *vk
 )
 {
-    return nssPrivateKey_GetType(vk);
+    return nssPrivateKey_GetKeyType(vk);
 }
 
 NSS_IMPLEMENT nssCryptokiObject *
@@ -249,6 +249,7 @@ NSSPrivateKey_GetSignatureLength (
     return -1;
 }
 
+/* XXX */
 NSS_IMPLEMENT PRUint32
 NSSPrivateKey_GetPrivateModulusLength (
   NSSPrivateKey *vk
@@ -535,13 +536,27 @@ NSSPrivateKey_GetTrustDomain (
     return nssPrivateKey_GetTrustDomain(vk, statusOpt);
 }
 
-NSS_IMPLEMENT NSSToken *
-NSSPrivateKey_GetToken (
-  NSSPrivateKey *vk
+NSS_IMPLEMENT NSSToken **
+nssPrivateKey_GetTokens (
+  NSSPrivateKey *vk,
+  NSSToken **rvTokensOpt,
+  PRUint32 rvMaxOpt,
+  PRStatus *statusOpt
 )
 {
-    nss_SetError(NSS_ERROR_NOT_FOUND);
-    return NULL;
+    return nssPKIObject_GetTokens(&vk->object, 
+                                  rvTokensOpt, rvMaxOpt, statusOpt);
+}
+
+NSS_IMPLEMENT NSSToken **
+NSSPrivateKey_GetTokens (
+  NSSPrivateKey *vk,
+  NSSToken **rvTokensOpt,
+  PRUint32 rvMaxOpt,
+  PRStatus *statusOpt
+)
+{
+    return nssPrivateKey_GetTokens(vk, rvTokensOpt, rvMaxOpt, statusOpt);
 }
 
 NSS_IMPLEMENT NSSSlot *
@@ -579,6 +594,30 @@ NSSPrivateKey_Decrypt (
 /* XXX in 3.x, only CKM_RSA_PKCS and CKM_DSA sigs were done */
 /* XXX do we ever want raw DSA sigs?  or always DER-encoded? */
 NSS_IMPLEMENT NSSItem *
+nssPrivateKey_Sign (
+  NSSPrivateKey *vk,
+  const NSSAlgNParam *apOpt,
+  NSSItem *data,
+  NSSCallback *uhh,
+  NSSItem *rvOpt,
+  NSSArena *arenaOpt
+)
+{
+    nssCryptokiObject *vko;
+    NSSAlgNParam *ap = apOpt; /* XXX */
+    NSSItem *rvIt;
+
+    vko = nssPrivateKey_FindInstanceForAlgorithm(vk, ap);
+    if (!vko) {
+	return NULL;
+    }
+    rvIt = nssToken_Sign(vko->token, vko->session, ap, vko,
+                         data, rvOpt, arenaOpt);
+    nssCryptokiObject_Destroy(vko);
+    return rvIt;
+}
+
+NSS_IMPLEMENT NSSItem *
 NSSPrivateKey_Sign (
   NSSPrivateKey *vk,
   const NSSAlgNParam *apOpt,
@@ -588,8 +627,7 @@ NSSPrivateKey_Sign (
   NSSArena *arenaOpt
 )
 {
-    nss_SetError(NSS_ERROR_NOT_FOUND);
-    return NULL;
+    return nssPrivateKey_Sign(vk, apOpt, data, uhh, rvOpt, arenaOpt);
 }
 
 NSS_IMPLEMENT NSSItem *
@@ -607,6 +645,31 @@ NSSPrivateKey_SignRecover (
 }
 
 NSS_IMPLEMENT NSSSymKey *
+nssPrivateKey_UnwrapSymKey (
+  NSSPrivateKey *vk,
+  const NSSAlgNParam *apOpt,
+  NSSItem *wrappedKey,
+  NSSSymKeyType targetType,
+  NSSUTF8 *labelOpt,
+  NSSOperations operations,
+  NSSProperties properties,
+  NSSToken *destinationOpt,
+  NSSVolatileDomain *vdOpt,
+  NSSCallback *uhhOpt
+)
+{
+    if (vdOpt) {
+	    /* XXX destinationOpt */
+	return nssVolatileDomain_UnwrapSymKey(vdOpt, apOpt, vk, wrappedKey,
+	                                      targetType, /* labelOpt, */
+	                                      NULL, operations, properties);
+    } else {
+	PR_ASSERT(1);
+	return NULL;
+    }
+}
+
+NSS_IMPLEMENT NSSSymKey *
 NSSPrivateKey_UnwrapSymKey (
   NSSPrivateKey *vk,
   const NSSAlgNParam *apOpt,
@@ -620,8 +683,9 @@ NSSPrivateKey_UnwrapSymKey (
   NSSCallback *uhhOpt
 )
 {
-    nss_SetError(NSS_ERROR_NOT_FOUND);
-    return NULL;
+    return nssPrivateKey_UnwrapSymKey(vk, apOpt, wrappedKey, targetType,
+                                      labelOpt, operations, properties,
+                                      destinationOpt, vdOpt, uhhOpt);
 }
 
 NSS_IMPLEMENT NSSSymKey *
@@ -725,7 +789,7 @@ nssPrivateKey_FindCerts (
 {
     NSSTrustDomain *td = nssPrivateKey_GetTrustDomain(vk, NULL);
     return nssTrustDomain_FindCertsByID(td, &vk->id, 
-                                               rvOpt, maximumOpt, arenaOpt);
+                                        rvOpt, maximumOpt, arenaOpt);
 }
 
 NSS_IMPLEMENT NSSCert **
@@ -1085,19 +1149,59 @@ NSSPublicKey_GetModule (
 }
 
 NSS_IMPLEMENT NSSPublicKeyInfo *
-nssPublicKey_GetInfo (
-  NSSPublicKey *bk
+nssPublicKey_GetKeyInfo (
+  NSSPublicKey *bk,
+  NSSPublicKeyInfo *rvOpt
 )
 {
-    return &bk->info;
+    if (rvOpt) {
+	*rvOpt = bk->info;
+	return rvOpt;
+    } else {
+	return &bk->info;
+    }
 }
 
 NSS_IMPLEMENT NSSPublicKeyInfo *
-NSSPublicKey_GetInfo (
+NSSPublicKey_GetKeyInfo (
+  NSSPublicKey *bk,
+  NSSPublicKeyInfo *rvOpt
+)
+{
+    return nssPublicKey_GetKeyInfo(bk, rvOpt);
+}
+
+NSS_IMPLEMENT NSSKeyPairType
+nssPublicKey_GetKeyType (
   NSSPublicKey *bk
 )
 {
-    return nssPublicKey_GetInfo(bk);
+    return bk->info.kind;
+}
+
+NSS_IMPLEMENT NSSKeyPairType
+NSSPublicKey_GetKeyType (
+  NSSPublicKey *bk
+)
+{
+    return nssPublicKey_GetKeyType(bk);
+}
+
+NSS_IMPLEMENT PRUint32
+nssPublicKey_GetKeyStrength (
+  NSSPublicKey *bk
+)
+{
+    /* XXX */
+    return -1;
+}
+
+NSS_IMPLEMENT PRUint32
+NSSPublicKey_GetKeyStrength (
+  NSSPublicKey *bk
+)
+{
+    return nssPublicKey_GetKeyStrength(bk);
 }
 
 NSS_IMPLEMENT NSSItem *
@@ -1253,8 +1357,7 @@ NSSPublicKey_WrapSymKey (
   NSSArena *arenaOpt
 )
 {
-    return nssPublicKey_WrapSymKey(bk, ap, keyToWrap,
-                                         uhh, rvOpt, arenaOpt);
+    return nssPublicKey_WrapSymKey(bk, ap, keyToWrap, uhh, rvOpt, arenaOpt);
 }
 
 NSS_IMPLEMENT NSSCryptoContext *

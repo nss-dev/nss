@@ -291,6 +291,16 @@ nssCert_CopyToToken (
   NSSUTF8 *nicknameOpt
 );
 
+NSS_EXTERN PRBool
+nssCert_HasCANameInChain (
+  NSSCert *c,
+  NSSDER **rootCAs,
+  PRUint32 rootCAsMaxOpt,
+  NSSTime time,
+  const NSSUsages *usages,
+  NSSPolicies *policiesOpt
+);
+
 NSS_EXTERN nssTrust *
 nssTrust_Create (
   nssPKIObject *object
@@ -479,6 +489,12 @@ nssUsages_Match (
 NSS_EXTERN void
 nssCertArray_Destroy (
   NSSCert **certs
+);
+
+NSS_EXTERN NSSCert **
+nssCertArray_Duplicate (
+  NSSCert **certs,
+  NSSArena *arenaOpt
 );
 
 /* nssCertArray_Join

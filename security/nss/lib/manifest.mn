@@ -83,10 +83,11 @@ DIRS =                   \
 	$(SOFTOKEN_DIRS) \
 	$(NSS_DIRS)      \
 	$(PKIX_DIRS)     \
+	$(SSL_DIRS)      \
 	$(CKFW_DIRS)     \
 	$(NULL)
 
 #
 # these dirs are not built at the moment
 #
-#NOBUILD_DIRS = jar $(SSL_DIRS) $(SMIME_DIRS)
+#NOBUILD_DIRS = jar $(SMIME_DIRS)

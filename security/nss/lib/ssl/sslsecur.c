@@ -564,7 +564,7 @@ ssl_FindCertKEAType(NSSCert * cert)
   
   if (!cert) goto loser;
   
-  keyPairType = NSSCert_GetPublicKeyType(cert);
+  keyPairType = NSSCert_GetKeyType(cert);
   
   switch (keyPairType) {
   case NSSKeyPairType_RSA:
@@ -588,6 +588,36 @@ ssl_FindCertKEAType(NSSCert * cert)
 
 }
 
+struct clientCAList {
+    NSSDER **list;
+    PRUint32 count;
+    PRUint32 size;
+};
+
+static PRStatus ssl_get_client_CA_names(NSSCert *c, void *arg)
+{
+    struct clientCAList *calist = (struct clientCAList *)arg;
+    NSSItem *subject;
+    NSSUsages usages;
+
+    if (NSSCert_GetTrustedUsages(c, &usages) == NULL) {
+	return PR_FAILURE;
+    }
+    if (usages.peer == NSSUsage_SSLClient) {
+	if (calist->count == 0) {
+	    calist->size = 4;
+	    calist->list = nss_ZNEWARRAY(NULL, NSSCert *, calist->size + 1);
+	    if (!calist->list) return PR_FAILURE;
+	} else if (calist->count == calist->size) {
+	    calist->size *= 2;
+	    calist->list = nss_ZREALLOCARRAY(calist->list, NSSCert *, 
+	                                     calist->size + 1);
+	    if (!calist->list) return PR_FAILURE;
+	}
+	subject = nssCert_GetSubject(c);
+	calist->list[calist->count++] = NSSItem_Duplicate(subject, NULL, NULL);
+    }
+}
 
 /* XXX need to protect the data that gets changed here.!! */
 
@@ -644,10 +674,10 @@ SSL_ConfigSecureServer(PRFileDesc *fd, NSSCert *cert,
     }
     if (cert) {
 	NSSUsages usage = { 0, NSSUsage_SSLServer };
-	sc->serverCertChain = NSSVolatileDomain_CreateChain(ss->vd,
-	                                                    cert,
-	                                                    NSSTime_Now(),
-	                                                    &usage, NULL);
+	sc->serverCertChain = NSSVolatileDomain_CreateCertChain(ss->vd,
+	                                                        cert,
+	                                                        NSSTime_Now(),
+	                                                        &usage, NULL);
 	if (sc->serverCertChain == NULL)
 	     goto loser;
     }
@@ -671,10 +701,15 @@ SSL_ConfigSecureServer(PRFileDesc *fd, NSSCert *cert,
     }
 
     /* Only do this once because it's global. */
-    if (ssl3_server_ca_list == NULL)
-	ssl3_server_ca_list = NSSVolatileDomain_FindSSLCACerts(ss->vd,
-	                                                       NSSTime_Now(),
-	                                                       NULL);
+    if (ssl3_server_ca_list == NULL) {
+	struct clientCAList calist;
+	calist.list = NULL;
+	calist.count = 0;
+	(void)NSSTrustDomain_TraverseCerts(ss->td,
+	                                   ssl_get_client_CA_names, 
+	                                   &calist);
+	ssl3_server_ca_list = calist.list;
+    }
 
     return SECSuccess;
 

@@ -370,6 +370,62 @@ nssCert_GetEmailAddress (
     return c->email;
 }
 
+NSS_IMPLEMENT NSSUTF8 **
+nssCert_GetNames (
+  NSSCert *c,
+  NSSUTF8 **rvOpt,
+  PRUint32 rvMaxOpt,
+  NSSArena *arenaOpt
+)
+{
+    /* XXX need to go out to plugin for this */
+    if (!rvOpt) {
+	rvOpt = nss_ZNEWARRAY(arenaOpt, NSSUTF8 *, 2);
+    }
+    rvOpt[0] = nssUTF8_Duplicate("<not implemented>", arenaOpt);
+    rvOpt[1] = NULL;
+    return rvOpt;
+}
+
+NSS_IMPLEMENT NSSUTF8 **
+NSSCert_GetNames (
+  NSSCert *c,
+  NSSUTF8 **rvOpt,
+  PRUint32 rvMaxOpt,
+  NSSArena *arenaOpt
+)
+{
+    return nssCert_GetNames(c, rvOpt, rvMaxOpt, arenaOpt);
+}
+
+NSS_IMPLEMENT NSSUTF8 **
+nssCert_GetIssuerNames (
+  NSSCert *c,
+  NSSUTF8 **rvOpt,
+  PRUint32 rvMaxOpt,
+  NSSArena *arenaOpt
+)
+{
+    /* XXX need to go out to plugin for this */
+    if (!rvOpt) {
+	rvOpt = nss_ZNEWARRAY(arenaOpt, NSSUTF8 *, 2);
+    }
+    rvOpt[0] = nssUTF8_Duplicate("<not implemented>", arenaOpt);
+    rvOpt[1] = NULL;
+    return rvOpt;
+}
+
+NSS_IMPLEMENT NSSUTF8 **
+NSSCert_GetIssuerNames (
+  NSSCert *c,
+  NSSUTF8 **rvOpt,
+  PRUint32 rvMaxOpt,
+  NSSArena *arenaOpt
+)
+{
+    return nssCert_GetIssuerNames(c, rvOpt, rvMaxOpt, arenaOpt);
+}
+
 static nssCertDecoding *
 nssCert_GetDecoding (
   NSSCert *c
@@ -401,6 +457,29 @@ NSSCert_GetType (
 )
 {
     return c->kind;
+}
+
+NSS_EXTERN NSSKeyPairType
+nssCert_GetKeyType (
+  NSSCert *c
+)
+{
+    NSSKeyPairType keyType = NSSKeyPairType_Unknown;
+    NSSPublicKey *bk = nssCert_GetPublicKey(c);
+
+    if (bk) {
+	keyType = nssPublicKey_GetKeyType(bk);
+	nssPublicKey_Destroy(bk);
+    }
+    return keyType;
+}
+
+NSS_EXTERN NSSKeyPairType
+NSSCert_GetKeyType (
+  NSSCert *c
+)
+{
+    return nssCert_GetKeyType(c);
 }
 
 NSS_IMPLEMENT NSSUsages *
@@ -491,6 +570,45 @@ nssCert_IssuerAndSerialEqual (
 {
     return (nssItem_Equal(&c1->issuer, &c2->issuer, NULL) &&
             nssItem_Equal(&c1->serial, &c2->serial, NULL));
+}
+
+NSS_IMPLEMENT PRBool
+nssCert_HasCANameInChain (
+  NSSCert *c,
+  NSSDER **rootCAs,
+  PRUint32 rootCAsMaxOpt,
+  NSSTime time,
+  const NSSUsages *usages,
+  NSSPolicies *policiesOpt
+)
+{
+    NSSDER **caName;
+    NSSCert **chain;
+    NSSCert **cert;
+    PRUint32 i;
+    PRBool foundIt = PR_FALSE;
+
+    chain = nssCert_BuildChain(c, time, usages, policiesOpt, 
+                               NULL, 0, NULL, NULL);
+    if (!chain) {
+	return PR_FALSE;
+    }
+    /* XXX maybe in this case it is more appropriate to build the chain
+     * one-at-a-time?  I don't think this is much of a hit
+     */
+    for (cert = chain; *cert; cert++) {
+	for (caName = rootCAs, i=0; 
+	     *caName && (rootCAsMaxOpt == 0 || i < rootCAsMaxOpt);
+	     caName++, i++)
+	{
+	    if (NSSItem_Equal(&(*cert)->issuer, *caName, NULL)) {
+		foundIt = PR_TRUE;
+		break;
+	    }
+	}
+    }
+    nssCertArray_Destroy(chain);
+    return foundIt;
 }
 
 NSS_IMPLEMENT void
@@ -797,7 +915,7 @@ nssCert_Validate (
 
     /* Build the chain (this cert will be first) */
     chain = nssCert_BuildChain(c, time, usages, policiesOpt,
-                                      NULL, 0, NULL, &status);
+                               NULL, 0, NULL, &status);
     if (status == PR_FAILURE) {
 	return PR_FAILURE;
     }
@@ -1343,7 +1461,7 @@ nssCert_WrapSymKey (
     }
 
     wrap = nssPublicKey_WrapSymKey(pubKey, ap, keyToWrap,
-                                         uhh, rvOpt, arenaOpt);
+                                   uhh, rvOpt, arenaOpt);
     nssPublicKey_Destroy(pubKey);
     return wrap;
 }
@@ -1362,8 +1480,8 @@ NSSCert_WrapSymKey (
 )
 {
     return nssCert_WrapSymKey(c, ap, keyToWrap,
-                                           time, usages, policiesOpt,
-                                           uhh, rvOpt, arenaOpt);
+                              time, usages, policiesOpt,
+                              uhh, rvOpt, arenaOpt);
 }
 
 NSS_IMPLEMENT NSSCryptoContext *

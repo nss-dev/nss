@@ -133,6 +133,22 @@ NSSCert_Destroy (
   NSSCert *c
 );
 
+NSS_EXTERN NSSUTF8 **
+NSSCert_GetNames (
+  NSSCert *c,
+  NSSUTF8 **rvOpt,
+  PRUint32 rvMaxOpt,
+  NSSArena *arenaOpt
+);
+
+NSS_EXTERN NSSUTF8 **
+NSSCert_GetIssuerNames (
+  NSSCert *c,
+  NSSUTF8 **rvOpt,
+  PRUint32 rvMaxOpt,
+  NSSArena *arenaOpt
+);
+
 /*
  * NSSCert_DeleteStoredObject
  *
@@ -232,13 +248,6 @@ NSSCert_Encode (
   NSSCert *c,
   NSSBER *rvOpt,
   NSSArena *arenaOpt
-);
-
-/* XXX the difference is, this one wouldn't alloc... */
-NSS_EXTERN NSSBER *
-NSSCert_GetEncoding (
-  NSSCert *c,
-  NSSBER *rvOpt
 );
 
 /*
@@ -625,7 +634,7 @@ NSSPrivateKey_DeleteStoredObject (
 );
 
 NSS_EXTERN NSSKeyPairType
-NSSPrivateKey_GetType (
+NSSPrivateKey_GetKeyType (
   NSSPrivateKey *vk
 );
 
@@ -954,7 +963,7 @@ NSSPublicKey_GetModule (
 );
 
 NSS_EXTERN NSSKeyPairType
-NSSPublicKey_GetType (
+NSSPublicKey_GetKeyType (
   NSSPublicKey *bk
 );
 
@@ -1332,7 +1341,10 @@ NSSSymKey_DeriveSymKey (
   NSSSymKeyType target,
   PRUint32 keySizeOpt,
   NSSOperations operations,
-  NSSCallback *uhh
+  NSSProperties properties,
+  NSSToken *destinationOpt,
+  NSSVolatileDomain *vdOpt,
+  NSSCallback *uhhOpt
 );
 
 NSS_EXTERN PRStatus
@@ -1622,8 +1634,8 @@ NSS_EXTERN NSSCert *
 NSSTrustDomain_ImportEncodedCert (
   NSSTrustDomain *td,
   NSSBER *ber,
-  NSSToken *destinationOpt,
-  NSSUTF8 *nicknameOpt
+  NSSUTF8 *nicknameOpt,
+  NSSToken *destinationOpt
 );
 
 /*
@@ -1910,7 +1922,7 @@ NSS_EXTERN NSSCert *
 NSSTrustDomain_FindBestUserCertForSSLClientAuth (
   NSSTrustDomain *td,
   NSSUTF8 *sslHostOpt,
-  NSSDER *rootCAsOpt[], /* null pointer for none */
+  NSSDER **rootCAsOpt, /* null pointer for none */
   PRUint32 rootCAsMaxOpt, /* zero means list is null-terminated */
   const NSSAlgNParam *apOpt,
   NSSPolicies *policiesOpt
@@ -2374,7 +2386,8 @@ NSS_EXTERN NSSCert *
 NSSVolatileDomain_ImportEncodedCert (
   NSSVolatileDomain *vd,
   NSSBER *ber,
-  NSSUTF8 *nicknameOpt
+  NSSUTF8 *nicknameOpt,
+  NSSToken *destinationOpt
 );
 
 /*
@@ -2570,7 +2583,10 @@ NSSVolatileDomain_CreateCryptoContext (
 NSS_EXTERN NSSCertChain *
 NSSVolatileDomain_CreateCertChain (
   NSSVolatileDomain *vd,
-  NSSCert *vdCertOpt
+  NSSCert *vdCertOpt,
+  NSSTime time,
+  const NSSUsages *usages,
+  NSSPolicies *policiesOpt
 );
 
 /*

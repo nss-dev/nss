@@ -364,8 +364,7 @@ NSSTrustDomain_FindTokenForAlgorithm (
   NSSOIDTag algorithm
 )
 {
-    nss_SetError(NSS_ERROR_NOT_FOUND);
-    return NULL;
+    return nssTrustDomain_FindTokenForAlgorithm(td, algorithm);
 }
 
 NSS_IMPLEMENT NSSToken *
@@ -430,8 +429,8 @@ NSS_IMPLEMENT NSSCert *
 nssTrustDomain_ImportEncodedCert (
   NSSTrustDomain *td,
   NSSBER *ber,
-  NSSToken *destinationOpt,
-  NSSUTF8 *nicknameOpt
+  NSSUTF8 *nicknameOpt,
+  NSSToken *destinationOpt
 )
 {
     PRStatus status;
@@ -458,12 +457,12 @@ NSS_IMPLEMENT NSSCert *
 NSSTrustDomain_ImportEncodedCert (
   NSSTrustDomain *td,
   NSSBER *ber,
-  NSSToken *destinationOpt,
-  NSSUTF8 *nicknameOpt
+  NSSUTF8 *nicknameOpt,
+  NSSToken *destinationOpt
 )
 {
-    return nssTrustDomain_ImportEncodedCert(td, ber, destinationOpt,
-                                                   nicknameOpt);
+    return nssTrustDomain_ImportEncodedCert(td, ber, 
+                                            nicknameOpt, destinationOpt);
 }
 
 NSS_IMPLEMENT NSSCertChain *
@@ -1144,18 +1143,6 @@ NSSTrustDomain_FindCertByOCSPHash (
     return NULL;
 }
 
-NSS_IMPLEMENT NSSCert *
-NSSTrustDomain_FindBestUserCert (
-  NSSTrustDomain *td,
-  NSSTime time,
-  NSSUsages *usages,
-  NSSPolicies *policiesOpt
-)
-{
-    nss_SetError(NSS_ERROR_NOT_FOUND);
-    return NULL;
-}
-
 /* XXX don't keep this */
 struct stuff_str {
   NSSCert **rv;
@@ -1224,17 +1211,90 @@ NSSTrustDomain_FindUserCerts (
 }
 
 NSS_IMPLEMENT NSSCert *
-NSSTrustDomain_FindBestUserCertForSSLClientAuth (
+nssTrustDomain_FindBestUserCert (
+  NSSTrustDomain *td,
+  NSSTime time,
+  NSSUsages *usages,
+  NSSPolicies *policiesOpt
+)
+{
+    NSSCert **userCerts;
+    NSSCert *rvCert;
+
+    userCerts = nssTrustDomain_FindUserCerts(td, NULL, 0, NULL);
+    if (!userCerts) {
+	return (NSSCert *)NULL;
+    }
+    rvCert = nssCertArray_FindBestCert(userCerts, time, usages, policiesOpt);
+    nssCertArray_Destroy(userCerts);
+    return rvCert;
+}
+
+NSS_IMPLEMENT NSSCert *
+NSSTrustDomain_FindBestUserCert (
+  NSSTrustDomain *td,
+  NSSTime time,
+  NSSUsages *usages,
+  NSSPolicies *policiesOpt
+)
+{
+    return nssTrustDomain_FindBestUserCert(td, time, usages, policiesOpt);
+}
+
+NSS_IMPLEMENT NSSCert *
+nssTrustDomain_FindBestUserCertForSSLClientAuth (
   NSSTrustDomain *td,
   NSSUTF8 *sslHostOpt,
-  NSSDER *rootCAsOpt[], /* null pointer for none */
-  PRUint32 rootCAsMaxOpt, /* zero means list is null-terminated */
+  NSSDER **rootCAsOpt,
+  PRUint32 rootCAsMaxOpt,
   const NSSAlgNParam *apOpt,
   NSSPolicies *policiesOpt
 )
 {
-    nss_SetError(NSS_ERROR_NOT_FOUND);
-    return NULL;
+    NSSCert **userCerts;
+    NSSCert *rvCert = NULL;
+    NSSCert **c;
+    NSSUsages clientCA = { NSSUsage_SSLClient, 0 };
+
+    userCerts = nssTrustDomain_FindUserCerts(td, NULL, 0, NULL);
+    if (!userCerts) {
+	return (NSSCert *)NULL;
+    }
+    for (c = userCerts; *c; c++) {
+	if (!nssCert_IsValidAtTime(*c, NSSTime_Now(), NULL)) {
+	    continue;
+	}
+	if (rootCAsOpt &&
+	    !nssCert_HasCANameInChain(*c, rootCAsOpt, rootCAsMaxOpt,
+	                              NSSTime_Now(), &clientCA, NULL)) 
+	{
+	    continue;
+	}
+	/* XXX ... */
+	if (PR_TRUE) { /* everything passed */
+	    rvCert = nssCert_AddRef(*c);
+	    break;
+	}
+    }
+    nssCertArray_Destroy(userCerts);
+    return rvCert;
+}
+
+NSS_IMPLEMENT NSSCert *
+NSSTrustDomain_FindBestUserCertForSSLClientAuth (
+  NSSTrustDomain *td,
+  NSSUTF8 *sslHostOpt,
+  NSSDER **rootCAsOpt,
+  PRUint32 rootCAsMaxOpt,
+  const NSSAlgNParam *apOpt,
+  NSSPolicies *policiesOpt
+)
+{
+    return nssTrustDomain_FindBestUserCertForSSLClientAuth(td, sslHostOpt,
+                                                           rootCAsOpt,
+                                                           rootCAsMaxOpt,
+                                                           apOpt,
+                                                           policiesOpt);
 }
 
 NSS_IMPLEMENT NSSCert **

@@ -535,6 +535,26 @@ NSSCertArray_Destroy (
 }
 
 NSS_IMPLEMENT NSSCert **
+nssCertArray_Duplicate (
+  NSSCert **certs,
+  NSSArena *arenaOpt
+)
+{
+    PRUint32 i, n;
+    NSSCert **c, **rvCerts;
+
+    for (c = certs; *c; c++, n++);
+    rvCerts = nss_ZNEWARRAY(arenaOpt, NSSCert *, n + 1);
+    if (!rvCerts) {
+	return (NSSCert **)NULL;
+    }
+    for (i = 0; i < n; i++) {
+	rvCerts[i] = nssCert_AddRef(certs[i]);
+    }
+    return rvCerts;
+}
+
+NSS_IMPLEMENT NSSCert **
 nssCertArray_Join (
   NSSCert **certs1,
   NSSCert **certs2

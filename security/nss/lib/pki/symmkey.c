@@ -133,6 +133,17 @@ nssSymKey_GetTokens (
     return nssPKIObject_GetTokens(&mk->object, rvOpt, rvMaxOpt, statusOpt);
 }
 
+NSS_IMPLEMENT NSSToken **
+NSSSymKey_GetTokens (
+  NSSSymKey *mk,
+  NSSToken **rvOpt,
+  PRUint32 rvMaxOpt,
+  PRStatus *statusOpt
+)
+{
+    return nssSymKey_GetTokens(mk, rvOpt, rvMaxOpt, statusOpt);
+}
+
 NSS_IMPLEMENT nssCryptokiObject *
 nssSymKey_GetInstance (
   NSSSymKey *mk,
@@ -570,11 +581,33 @@ nssSymKey_DeriveSymKey (
   NSSSymKeyType target,
   PRUint32 keySizeOpt,
   NSSOperations operations,
-  NSSCallback *uhh
+  NSSProperties properties,
+  NSSToken *destinationOpt,
+  NSSVolatileDomain *vdOpt,
+  NSSCallback *uhhOpt
 )
 {
-    nss_SetError(NSS_ERROR_NOT_FOUND);
-    return NULL;
+    nssCryptokiObject *mko, *rvo;
+    NSSSymKey *rvKey = NULL;
+    NSSTrustDomain *td = nssSymKey_GetTrustDomain(originalKey, NULL);
+
+    mko = nssSymKey_FindInstanceForAlgorithm(originalKey, ap);
+    if (!mko) {
+	return (NSSSymKey *)NULL;
+    }
+
+    /* XXX use domains */
+    rvo = nssToken_DeriveKey(mko->token, mko->session, ap, mko, 
+                             PR_FALSE, operations, properties);
+    if (rvo) {
+	rvKey = nssSymKey_CreateFromInstance(rvo, td, vdOpt);
+	if (!rvKey) {
+	    nssCryptokiObject_Destroy(rvo);
+	}
+    }
+
+    nssCryptokiObject_Destroy(mko);
+    return rvKey;
 }
 
 NSS_IMPLEMENT NSSSymKey *
@@ -584,11 +617,15 @@ NSSSymKey_DeriveSymKey (
   NSSSymKeyType target,
   PRUint32 keySizeOpt,
   NSSOperations operations,
-  NSSCallback *uhh
+  NSSProperties properties,
+  NSSToken *destinationOpt,
+  NSSVolatileDomain *vdOpt,
+  NSSCallback *uhhOpt
 )
 {
     return nssSymKey_DeriveSymKey(originalKey, ap, target,
-                                              keySizeOpt, operations, uhh);
+                                  keySizeOpt, operations, properties,
+                                  destinationOpt, vdOpt, uhhOpt);
 }
 
 NSS_IMPLEMENT NSSCryptoContext *

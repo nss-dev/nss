@@ -74,6 +74,7 @@
 #define SSL_ERROR_UNSUPPORTED_KEY_EXCHANGE_ALG 5556
 #define NSS_ERROR_INVALID_ARGS 5557
 #define SSL_ERROR_INVALID_VERSION 5558
+static const NSSUsages s_ssl_server_usage = { 0, NSSUsage_SSLServer };
 static const NSSUsages s_ssl_client_usage = { 0, NSSUsage_SSLClient };
 
 static void      ssl3_CleanupPeerCerts(ssl3State *ssl3);
@@ -798,7 +799,7 @@ ssl3_SignHashes(SSL3Hashes *hash, NSSPrivateKey *key, NSSItem *buf,
     SECStatus rv		= SECFailure;
     PRBool    doDerEncode       = PR_FALSE;
     NSSItem   hashItem;
-    NSSKeyPairType keyType = NSSPrivateKey_GetType(key);
+    NSSKeyPairType keyType = NSSPrivateKey_GetKeyType(key);
 
     switch (keyType) {
     case NSSKeyPairType_RSA:
@@ -866,7 +867,7 @@ ssl3_VerifySignedHashes(SSL3Hashes *hash, NSSCert *cert,
     	return SECFailure;
     }
 
-    switch (NSSPublicKey_GetType(key)) {
+    switch (NSSPublicKey_GetKeyType(key)) {
     case NSSKeyPairType_RSA:
     	hashItem.data = hash->md5;
     	hashItem.size = sizeof(SSL3Hashes);
@@ -2061,7 +2062,7 @@ ssl3_DeriveMasterSecret(sslSocket *ss, NSSSymKey *pmsOpt)
     if (pmsOpt) {
 	/* generating master secret from existing pre-master secret */
 	ms = NSSSymKey_DeriveSymKey(pmsOpt, msDerive, NSSSymKeyType_SSLMS,
-	                            0, keyOps, NULL);
+	                            0, keyOps, 0, NULL, NULL, NULL);
 	if (ms && !isDH && ss->detectRollBack) {
 	    SSL3ProtocolVersion client_version;
 	    client_version = ssl3_GetVersionFromDeriveParams(msDerive);
@@ -2083,7 +2084,7 @@ ssl3_DeriveMasterSecret(sslSocket *ss, NSSSymKey *pmsOpt)
 	    if (fpms) {
 		ms = NSSSymKey_DeriveSymKey(fpms, msDerive, 
 		                            NSSSymKeyType_SSLMS,
-	                                    0, keyOps, NULL);
+	                                    0, keyOps, 0, NULL, NULL, NULL);
 		NSSSymKey_Destroy(fpms);
 	    }
 	    NSSToken_Destroy(pmsToken);
@@ -2100,7 +2101,7 @@ ssl3_DeriveMasterSecret(sslSocket *ss, NSSSymKey *pmsOpt)
 	fpms = ssl3_GenerateRSAPMS(ss, pwSpec, internal);
 	if (fpms) {
 	    ms = NSSSymKey_DeriveSymKey(fpms, msDerive, NSSSymKeyType_SSLMS,
-	                                0, keyOps, NULL);
+	                                0, keyOps, 0, NULL, NULL, NULL);
 	    if (ms) {
 		NSSSymKey_Destroy(fpms);
 	    } else {
@@ -4705,12 +4706,11 @@ ssl3_HandleCertificateRequest(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	/* Setting ssl3->clientCertChain non-NULL will cause
 	 * ssl3_HandleServerHelloDone to call SendCertificate.
 	 */
-	ssl3->clientCertChain = NSSVolatileDomain_BuildCertChain(
+	ssl3->clientCertChain = NSSVolatileDomain_CreateCertChain(ss->vd,
 	                                           ssl3->clientCertificate,
 	                                           NSSTime_Now(),
 	                                           &s_ssl_client_usage,
-	                                           NULL, NULL, 0,
-	                                           NULL, NULL /* XXX */);
+	                                           NULL);
 	if (ssl3->clientCertChain == NULL) {
 	    if (ssl3->clientCertificate != NULL) {
 		NSSCert_Destroy(ssl3->clientCertificate);
@@ -5001,13 +5001,13 @@ ssl3_SendServerHelloSequence(sslSocket *ss)
 	}
     } else if (kea_def->is_limited && kea_def->exchKeyType == ssl_kea_rsa) {
 	/* see if we can legally use the key in the cert. */
-	int keyLen;  /* bytes */
+	int keyBits;  /* bits */
 
-	keyLen = NSSPrivateKey_GetPrivateModulusLength(
+	keyBits = NSSPrivateKey_GetPrivateModulusLength(
 			    ss->serverCerts[kea_def->exchKeyType].serverKey);
 
-	if (keyLen > 0 &&
-	    keyLen <= kea_def->key_size_limit ) {
+	if (keyBits > 0 &&
+	    keyBits <= kea_def->key_size_limit ) {
 	    /* XXX AND cert is not signing only!! */
 	    /* just fall through and use it. */
 	} else if (ss->stepDownKeyPair != NULL) {
@@ -6524,7 +6524,7 @@ ssl3_SendCertificate(sslSocket *ss)
 	for (i = 0; i < numCerts; i++) {
 	    cert = NSSCertChain_GetCert(certChain, i);
 	    if (cert) {
-		if (NSSCert_GetEncoding(cert, &berCert) == NULL) {
+		if (nssCert_GetEncoding(cert, &berCert) == NULL) {
 		    return SECFailure;
 		}
 		len += berCert.size + 3;
@@ -6544,7 +6544,7 @@ ssl3_SendCertificate(sslSocket *ss)
     }
     for (i = 0; i < numCerts; i++) {
 	cert = NSSCertChain_GetCert(certChain, i);
-	(void)NSSCert_GetEncoding(cert, &berCert);
+	(void)nssCert_GetEncoding(cert, &berCert);
 	rv = ssl3_AppendHandshakeVariable(ss, berCert.data, berCert.size, 3);
 	if (rv != SECSuccess) {
 	    return rv; 		/* err set by AppendHandshake. */
@@ -6584,6 +6584,7 @@ ssl3_HandleCertificate(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     int              errCode    = SSL_ERROR_RX_MALFORMED_CERTIFICATE;
     NSSBER           berCert;
     PRStatus         status;
+    const NSSUsages *ssl_usage;
 
     SSL_TRC(3, ("%d: SSL3[%d]: handle certificate handshake",
 		SSL_GETPID(), ss->fd));
@@ -6646,8 +6647,13 @@ ssl3_HandleCertificate(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     if (remaining < 0)
 	goto decode_loser;
 
+    ssl_usage = isServer ? &s_ssl_server_usage : &s_ssl_client_usage;
+
     ssl3->peerCertChain = chain = NSSVolatileDomain_CreateCertChain(ss->vd,
-                                                                    NULL);
+                                                              NULL,
+                                                              NSSTime_Now(),
+                                                              ssl_usage,
+                                                              NULL);
 
     /* XXX or in an arena? */
     berCert.data = nss_ZAlloc(NULL, size);
