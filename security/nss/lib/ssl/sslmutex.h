@@ -77,7 +77,7 @@ typedef struct
 
 typedef int    sslPID;
 
-#elif defined(LINUX) || defined(AIX)
+#elif defined(LINUX) || defined(AIX) || defined(VMS)
 
 #include <sys/types.h>
 #include "prtypes.h"
