@@ -83,6 +83,30 @@ nssCryptoContext_FindSMIMEProfileForCertificate
   NSSCertificate *cert
 );
 
+NSS_EXTERN NSSTrust *
+nssTrust_AddRef
+(
+  NSSTrust *trust
+);
+
+NSS_EXTERN PRStatus
+nssTrust_Destroy
+(
+  NSSTrust *trust
+);
+
+NSS_EXTERN nssSMIMEProfile *
+nssSMIMEProfile_AddRef
+(
+  nssSMIMEProfile *profile
+);
+
+NSS_EXTERN PRStatus
+nssSMIMEProfile_Destroy
+(
+  nssSMIMEProfile *profile
+);
+
 NSS_EXTERN nssSMIMEProfile *
 nssSMIMEProfile_Create
 (
