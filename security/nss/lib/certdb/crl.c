@@ -408,11 +408,13 @@ SEC_FindCrlByKeyOnSlot(PK11SlotInfo *slot, SECItem *crlKey, int type)
     if (derCrl == NULL) {
 	goto loser;
     }
+    PORT_Assert(crlHandle != CK_INVALID_HANDLE);
     
     crl = CERT_DecodeDERCrl(NULL, derCrl, type);
     if (crl) {
 	crl->slot = slot;
 	slot = NULL; /* adopt it */
+	crl->pkcs11ID = crlHandle;
     }
     if (url) {
 	crl->url = PORT_ArenaStrdup(crl->arena,url);
