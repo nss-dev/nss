@@ -345,7 +345,11 @@ NSS_NoDB_Init(const char * configdir)
 {
           
       SECStatus rv = SECSuccess;
-     
+
+      if( isInitialized ) {
+	   return SECSuccess;
+      }
+
       rv = RNG_RNGInit();
       if (rv != SECSuccess) {
 	   return rv;
@@ -357,6 +361,8 @@ NSS_NoDB_Init(const char * configdir)
 	   return rv;
       }
       rv = nss_OpenVolatileSecModDB();
+
+      isInitialized = PR_TRUE;
 
       return rv;
 }
@@ -378,6 +384,8 @@ NSS_Shutdown(void)
     if (keyHandle)
     	SECKEY_CloseKeyDB(keyHandle);
     SECKEY_SetDefaultKeyDB(NULL); 
+
+    isInitialized = PR_FALSE;
 }
 
 

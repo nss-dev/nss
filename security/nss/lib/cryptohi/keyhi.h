@@ -227,6 +227,29 @@ SECKEY_CopyEncryptedPrivateKeyInfo(PRArenaPool *poolp,
 KeyType SECKEY_GetPrivateKeyType(SECKEYPrivateKey *privKey);
 KeyType SECKEY_GetPublicKeyType(SECKEYPublicKey *pubKey);
 
+/*
+ * Creates a PublicKey from its DER encoding.
+ * Currently only supports RSA and DSA keys.
+ */
+SECKEYPublicKey*
+SECKEY_ImportDERPublicKey(SECItem *derKey, CK_KEY_TYPE type);
+
+SECKEYPrivateKeyList*
+SECKEY_NewPrivateKeyList(void);
+
+void
+SECKEY_DestroyPrivateKeyList(SECKEYPrivateKeyList *keys);
+
+void
+SECKEY_RemovePrivateKeyListNode(SECKEYPrivateKeyListNode *node);
+
+SECStatus
+SECKEY_AddPrivateKeyToListTail( SECKEYPrivateKeyList *list,
+                                SECKEYPrivateKey *key);
+
+#define PRIVKEY_LIST_HEAD(l) ((SECKEYPrivateKeyListNode*)PR_LIST_HEAD(&l->list))
+#define PRIVKEY_LIST_NEXT(n) ((SECKEYPrivateKeyListNode *)n->links.next)
+#define PRIVKEY_LIST_END(n,l) (((void *)n) == ((void *)&l->list))
 
 SEC_END_PROTOS
 
