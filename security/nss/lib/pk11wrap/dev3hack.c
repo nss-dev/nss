@@ -255,6 +255,9 @@ nssSlot_IsLoggedIn
   NSSSlot *slot
 )
 {
+    if (!slot->pk11slot->needLogin) {
+	return PR_TRUE;
+    }
     return PK11_IsLoggedIn(slot->pk11slot, NULL);
 }
 

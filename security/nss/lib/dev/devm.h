@@ -171,7 +171,8 @@ nssTokenObjectCache_FindObjectsByTemplate
   CK_OBJECT_CLASS objclass,
   CK_ATTRIBUTE_PTR otemplate,
   CK_ULONG otlen,
-  PRUint32 maximumOpt
+  PRUint32 maximumOpt,
+  PRStatus *statusOpt
 );
 
 NSS_EXTERN PRStatus
