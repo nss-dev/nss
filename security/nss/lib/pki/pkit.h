@@ -74,7 +74,7 @@ PR_BEGIN_EXTERN_C
 
 typedef enum {
     NSSCertificateType_Unknown = 0,
-    NSSCertificateType_PKIX = 1,
+    NSSCertificateType_PKIX = 1
 } NSSCertificateType;
 
 typedef struct nssDecodedCertStr nssDecodedCert;
