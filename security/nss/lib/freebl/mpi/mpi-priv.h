@@ -212,7 +212,7 @@ mp_err   s_mp_sqr(mp_int *a);                  /* magnitude square        */
 #else
 #define  s_mp_sqr(a) s_mp_mul(a, a)
 #endif
-mp_err   s_mp_div(mp_int *a, mp_int *b);       /* magnitude divide        */
+mp_err   s_mp_div(mp_int *rem, mp_int *div, mp_int *quot); /* magnitude div */
 mp_err   s_mp_exptmod(const mp_int *a, const mp_int *b, const mp_int *m, mp_int *c);
 mp_err   s_mp_2expt(mp_int *a, mp_digit k);    /* a = 2^k                 */
 int      s_mp_cmp(const mp_int *a, const mp_int *b); /* magnitude comparison */
