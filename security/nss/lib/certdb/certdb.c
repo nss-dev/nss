@@ -862,7 +862,7 @@ CERT_DecodeDERCertificate(SECItem *derSignedCert, PRBool copyDER,
     }
 
     /* set the email address */
-    cert->emailAddr = CERT_GetCertificateEmailAddress(cert);
+    cert->emailAddr = cert_GetCertificateEmailAddresses(cert);
     
     /* initialize the subjectKeyID */
     rv = cert_GetKeyID(cert);

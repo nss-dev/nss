@@ -706,6 +706,11 @@ extern char *CERT_GetCertificateEmailAddress(CERTCertificate *cert);
 
 extern char *CERT_GetCertEmailAddress(CERTName *name);
 
+extern const char * CERT_GetFirstEmailAddress(CERTCertificate * cert);
+
+extern const char * CERT_GetNextEmailAddress(CERTCertificate * cert, 
+                                             const char * prev);
+
 extern char *CERT_GetCommonName(CERTName *name);
 
 extern char *CERT_GetCountryName(CERTName *name);

@@ -182,5 +182,11 @@ struct CRLCacheStr {
 SECStatus InitCRLCache(void);
 SECStatus ShutdownCRLCache(void);
 
+/* Returns a pointer to an environment-like string, a series of
+** null-terminated strings, terminated by a zero-length string.
+** This function is intended to be internal to NSS.
+*/
+extern char * cert_GetCertificateEmailAddresses(CERTCertificate *cert);
+
 #endif /* _CERTI_H_ */
 
