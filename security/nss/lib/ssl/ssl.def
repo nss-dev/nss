@@ -43,9 +43,9 @@
 ;+#  This file is passed directly to windows. Since ';' is a comment, all UNIX
 ;+#   directives are hidden behind ";", ";+", and ";-"
 ;+
-;+NSS_3.2 {       # NSS 3.2 release
+;+NSS_4.0 {       # NSS 4.0 release
 ;+    global:
-LIBRARY ssl3 ;-
+LIBRARY ssl4 ;-
 EXPORTS ;-
 SSL_ImplementedCiphers DATA ;
 SSL_NumImplementedCiphers DATA ;
@@ -93,17 +93,7 @@ SSL_SecurityStatus;
 SSL_SetPKCS11PinArg;
 SSL_SetSockPeerID;
 SSL_SetURL;
-;+    local:
-;+*;
-;+};
-;+NSS_3.2.1 {       # NSS 3.2.1 release
-;+    global:
 NSSSSL_VersionCheck;
-;+    local:
-;+*;
-;+};
-;+NSS_3.4 {         # NSS 3.4   release
-;+    global:
 SSL_GetChannelInfo;
 SSL_GetCipherSuiteInfo;
 ;+#SSL_GetMaxServerCacheLocks;

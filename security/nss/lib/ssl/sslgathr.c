@@ -242,7 +242,6 @@ ssl2_GatherData(sslSocket *ss, sslGather *gs, int flags)
 
 	  {
 	    unsigned int     macLen;
-	    int              nout;
 	    unsigned char    mac[SSL_MAX_MAC_BYTES];
 
 	    ssl_GetSpecReadLock(ss); /**********************************/

@@ -1265,6 +1265,7 @@ nssCryptoContext_BeginDigest (
   NSSCallback *uhhOpt
 )
 {
+    PRStatus status;
     const NSSAlgNParam *ap = apOpt ? apOpt : cc->ap;
     if (!ap) {
 	nss_SetError(NSS_ERROR_INVALID_CRYPTO_CONTEXT);
@@ -1273,7 +1274,26 @@ nssCryptoContext_BeginDigest (
     if (prepare_context_for_operation(cc, ap) == PR_FAILURE) {
 	return PR_FAILURE;
     }
-    return nssToken_BeginDigest(cc->token, cc->session, ap);
+    status = nssToken_BeginDigest(cc->token, cc->session, ap);
+    if (status == PR_FAILURE) {
+	NSSError e = NSS_GetError();
+	/* XXX the old code handled this...  SSL calls InitState
+         *     then HandleHandshake successively, both of which call
+	 *     BeginDigest...  perhaps change there, not here?
+	 */
+	if (e == NSS_ERROR_SESSION_IN_USE) {
+	    /* XXX ugly */
+	    unsigned char digbuf[64];
+	    NSSItem dig; dig.data = digbuf; dig.size = sizeof(digbuf);
+	    if (nssToken_FinishDigest(cc->token, cc->session, &dig, NULL) 
+	         != NULL)
+	    {
+		nss_SetError(NSS_ERROR_NO_ERROR);
+		return nssToken_BeginDigest(cc->token, cc->session, ap);
+	    }
+	}
+    }
+    return status;
 }
 
 NSS_IMPLEMENT PRStatus

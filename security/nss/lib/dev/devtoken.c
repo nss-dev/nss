@@ -2917,6 +2917,23 @@ loser:
     return (NSSItem *)NULL;
 }
 
+/* XXX move this */
+NSS_IMPLEMENT PRStatus
+nssCK_MapCKRVToNSSError
+(
+  CK_RV ckrv
+)
+{
+    NSSError e;
+    if (ckrv == CKR_OK) return PR_SUCCESS;
+    switch (ckrv) {
+    case CKR_OPERATION_ACTIVE: e = NSS_ERROR_SESSION_IN_USE; break;
+    default:                   e = NSS_ERROR_DEVICE_ERROR;
+    }
+    nss_SetError(e);
+    return PR_FAILURE;
+}
+
 NSS_IMPLEMENT PRStatus
 nssToken_BeginDigest (
   NSSToken *tok,
@@ -2932,7 +2949,7 @@ nssToken_BeginDigest (
     nssSession_EnterMonitor(session);
     ckrv = CKAPI(epv)->C_DigestInit(session->handle, mechanism);
     nssSession_ExitMonitor(session);
-    return (ckrv == CKR_OK) ? PR_SUCCESS : PR_FAILURE;
+    return nssCK_MapCKRVToNSSError(ckrv);
 }
 
 NSS_IMPLEMENT PRStatus

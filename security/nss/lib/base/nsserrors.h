@@ -76,6 +76,7 @@ static const char NSSERRORS_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$"
 #define NSS_ERROR_INVALID_DEVICE                           100
 #define NSS_ERROR_DEVICE_ERROR                             101
 #define NSS_ERROR_DEVICE_REMOVED                           102
+#define NSS_ERROR_SESSION_IN_USE                           103
 
 #define NSS_ERROR_INVALID_ALGORITHM                        200
 
