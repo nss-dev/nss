@@ -51,6 +51,8 @@
 #define SSL_IMPORT extern
 #endif
 
+SEC_BEGIN_PROTOS
+
 /* constant table enumerating all implemented SSL 2 and 3 cipher suites. */
 SSL_IMPORT const PRUint16 SSL_ImplementedCiphers[];
 
@@ -76,9 +78,6 @@ typedef struct SSL3StatisticsStr {
     long hch_sid_cache_misses;
     long hch_sid_cache_not_ok;
 } SSL3Statistics;
-
-SEC_BEGIN_PROTOS
-
 
 /*
 ** Imports fd into SSL, returning a new socket.  Copies SSL configuration
