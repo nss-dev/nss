@@ -134,6 +134,12 @@ nssToken_IsLoginRequired
   NSSToken *token
 );
 
+NSS_EXTERN void
+nssToken_Remove
+(
+  NSSToken *token
+);
+
 NSS_EXTERN nssCryptokiObject *
 nssCryptokiObject_Create
 (
@@ -153,6 +159,12 @@ nssTokenObjectCache_Create
 
 NSS_EXTERN void
 nssTokenObjectCache_Destroy
+(
+  nssTokenObjectCache *cache
+);
+
+NSS_EXTERN void
+nssTokenObjectCache_Clear
 (
   nssTokenObjectCache *cache
 );

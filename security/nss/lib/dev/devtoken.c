@@ -161,6 +161,15 @@ nssToken_Destroy
 }
 
 NSS_IMPLEMENT void
+nssToken_Remove
+(
+  NSSToken *tok
+)
+{
+    nssTokenObjectCache_Clear(tok->cache);
+}
+
+NSS_IMPLEMENT void
 NSSToken_Destroy
 (
   NSSToken *tok

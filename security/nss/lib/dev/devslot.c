@@ -301,6 +301,8 @@ nssSlot_IsTokenPresent
 	}
 #endif
 	slot->token->base.name[0] = 0; /* XXX */
+	/* clear the token cache */
+	nssToken_Remove(slot->token);
 	return PR_FALSE;
 #ifdef PURE_STAN_CODE
     } else if (!slot->token) {
