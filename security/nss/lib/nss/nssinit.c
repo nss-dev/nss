@@ -78,11 +78,6 @@ nss_mktemp(char *path)
 	sizeof("noModDB")+sizeof("forceOpen")+sizeof("passwordRequired")+ \
 	sizeof ("optimizeSpace")
 #define NSS_DEFAULT_MOD_NAME "NSS Internal Module"
-#ifdef macintosh
-#define SECMOD_DB "Security Modules"
-#else
-#define SECMOD_DB "secmod.db"
-#endif
 
 static char *
 nss_makeFlags(PRBool readOnly, PRBool noCertDB, 
