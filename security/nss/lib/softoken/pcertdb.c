@@ -2662,7 +2662,6 @@ static SECStatus
 nsslowcert_UpdateSubjectEmailAddr(NSSLOWCERTCertDBHandle *dbhandle, 
 	SECItem *derSubject, char *emailAddr, nsslowcertUpdateType updateType)
 {
-    PRBool save = PR_FALSE, delold = PR_FALSE;
     certDBEntrySubject *entry = NULL;
     int index = -1, i;
     SECStatus rv;
@@ -5235,7 +5234,6 @@ SECStatus
 nsslowcert_SaveSMimeProfile(NSSLOWCERTCertDBHandle *dbhandle, char *emailAddr, 
 	SECItem *derSubject, SECItem *emailProfile, SECItem *profileTime)
 {
-    certDBEntrySMime *entry = NULL;
     SECStatus rv = SECFailure;;
 
     rv = db_BeginTransaction(dbhandle->permCertDB);
