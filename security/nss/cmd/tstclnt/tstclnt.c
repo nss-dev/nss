@@ -664,7 +664,8 @@ int main(int argc, char **argv)
 	    nb = PR_Read(pollset[1].fd, buf, sizeof(buf));
 	    PRINTF("%s: stdin read %d bytes\n", progName, nb);
 	    if (nb < 0) {
-		if (PR_GetError() != PR_WOULD_BLOCK_ERROR) {
+		/* XXX changed to NSS_GetError b/c NSS overwrites the code */
+		if (PR_GetError() != PR_WOULD_BLOCK_ERROR || NSS_GetError()) {
 		    CMD_PrintError("read from stdin failed");
 	            error=1;
 		    break;
@@ -677,8 +678,8 @@ int main(int argc, char **argv)
 		do {
 		    PRInt32 cc = PR_Write(s, bufp, nb);
 		    if (cc < 0) {
-		    	PRErrorCode err = PR_GetError();
-			if (err != PR_WOULD_BLOCK_ERROR) {
+			/* XXX changed to NSS_GetError b/c NSS overwrites the code */
+			if (PR_GetError() != PR_WOULD_BLOCK_ERROR || NSS_GetError()) {
 			    CMD_PrintError("write to SSL socket failed");
 			    error=254;
 			    goto done;
