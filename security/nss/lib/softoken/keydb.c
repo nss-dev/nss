@@ -684,6 +684,8 @@ newdb:
     }
 
     handle->global_salt = GetKeyDBGlobalSalt(handle);
+    if ( dbname )
+        PORT_Free( dbname );
     return handle;
 
 loser:
