@@ -109,7 +109,7 @@
 #include "nspr.h"
 #include "nsslocks.h"
 
-static PRLock *cacheLock;
+static PZLock *cacheLock;
 
 /*
 ** The server session-id cache uses a simple flat cache. The cache is
@@ -962,13 +962,13 @@ IOError(int rv, char *type)
 static void 
 lock_cache(void)
 {
-    PR_Lock(cacheLock);
+    PZ_Lock(cacheLock);
 }
 
 static void 
 unlock_cache(void)
 {
-    PR_Unlock(cacheLock);
+    PZ_Unlock(cacheLock);
 }
 
 /*
@@ -1347,7 +1347,7 @@ InitSessionIDCache(int maxCacheEntries, PRUint32 timeout,
 #endif /* XP_UNIX */
 
     if (!cacheLock)
-	nss_InitLock(&cacheLock);
+	nss_InitLock(&cacheLock, nssILockCache);
     if (!cacheLock) {
 	SET_ERROR_CODE
 	goto loser;
@@ -1401,7 +1401,7 @@ InitSessionIDCache(int maxCacheEntries, PRUint32 timeout,
 	destroyServerCacheSemaphore();
 #endif
     if (cacheLock) {
-	PR_DestroyLock(cacheLock);
+	PZ_DestroyLock(cacheLock);
 	cacheLock = NULL;
     }
     PORT_Free(cfn);
@@ -1696,7 +1696,7 @@ SSL_InheritMPServerSIDCache(const char * envString)
 #endif
 
     if (!cacheLock) {
-	nss_InitLock(&cacheLock);
+	nss_InitLock(&cacheLock, nssILockCache);
 	if (!cacheLock) 
 	    goto loser;
     }

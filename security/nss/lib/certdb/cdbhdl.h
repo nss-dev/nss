@@ -51,7 +51,7 @@ struct CERTCertDBHandleStr {
     DB *tempCertDB;
     void *spkDigestInfo;
     CERTStatusConfig *statusConfig;
-    PRMonitor *dbMon;
+    PZMonitor *dbMon;
 };
 
 #endif

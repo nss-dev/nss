@@ -39,7 +39,7 @@
 #include "prtypes.h"
 #include "prinit.h"
 #include "blapi.h"
-#include "prlock.h"
+#include "nssilock.h"
 #include "secitem.h"
 #include "blapi.h"
 #include "mpi.h"

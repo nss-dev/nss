@@ -41,7 +41,7 @@
 
 #include "sslimpl.h"
 #include "sslproto.h"
-#include "prlock.h"
+#include "nssilock.h"
 #include "nsslocks.h"
 
 
@@ -49,7 +49,7 @@ PRUint32 ssl_sid_timeout = 100;
 PRUint32 ssl3_sid_timeout = 86400L; /* 24 hours */
 
 static sslSessionID *cache;
-static PRLock *      cacheLock;
+static PZLock *      cacheLock;
 
 /* sids can be in one of 4 states:
  *
@@ -60,7 +60,7 @@ static PRLock *      cacheLock;
  */
 
 #define LOCK_CACHE 	lock_cache()
-#define UNLOCK_CACHE	PR_Unlock(cacheLock)
+#define UNLOCK_CACHE	PZ_Unlock(cacheLock)
 
 static void 
 lock_cache(void)
@@ -69,8 +69,8 @@ lock_cache(void)
      * XXX init the cacheLock on the first call.  Fix in NSS 3.0.
      */
     if (!cacheLock)
-	nss_InitLock(&cacheLock);
-    PR_Lock(cacheLock);
+	nss_InitLock(&cacheLock, nssILockCache);
+    PZ_Lock(cacheLock);
 }
 
 /* BEWARE: This function gets called for both client and server SIDs !!

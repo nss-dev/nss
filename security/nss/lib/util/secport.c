@@ -182,23 +182,23 @@ PORT_GetError(void)
 
 /********************* Arena code follows *****************************/
 
-PRMonitor * arenaMonitor;
+PZMonitor * arenaMonitor;
 
 static void
 getArenaLock(void)
 {
     if (!arenaMonitor) {
-	nss_InitMonitor(&arenaMonitor);
+	nss_InitMonitor(&arenaMonitor, nssILockArena);
     }
     if (arenaMonitor) 
-	PR_EnterMonitor(arenaMonitor);
+	PZ_EnterMonitor(arenaMonitor);
 }
 
 static void
 releaseArenaLock(void)
 {
     if (arenaMonitor) 
-	PR_ExitMonitor(arenaMonitor);
+	PZ_ExitMonitor(arenaMonitor);
 }
 
 PLArenaPool *
