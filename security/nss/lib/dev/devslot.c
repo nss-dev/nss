@@ -176,16 +176,17 @@ nssSlot_Destroy
   NSSSlot *slot
 )
 {
-#ifdef PURE_STAN_BUILD
     if (slot) {
 	PR_AtomicDecrement(&slot->base.refCount);
 	if (slot->base.refCount == 0) {
+	    PZ_DestroyLock(slot->base.lock);
+#ifdef PURE_STAN_BUILD
 	    nssToken_Destroy(slot->token);
 	    nssModule_DestroyFromSlot(slot->module, slot);
+#endif
 	    return nssArena_Destroy(slot->base.arena);
 	}
     }
-#endif
     return PR_SUCCESS;
 }
 
