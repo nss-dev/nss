@@ -318,7 +318,7 @@ mp_err mpl_num_set(mp_int *a, int *num)
     cur = DIGIT(a, ix);
     
     for(db = 0; db < sizeof(mp_digit); db++) {
-      reg = (cur >> (CHAR_BIT * db)) & UCHAR_MAX;
+      reg = (unsigned char)(cur >> (CHAR_BIT * db));
 
       nset += bitc[reg];
     }
@@ -347,7 +347,7 @@ mp_err mpl_num_clear(mp_int *a, int *num)
     cur = DIGIT(a, ix);
     
     for(db = 0; db < sizeof(mp_digit); db++) {
-      reg = (cur >> (CHAR_BIT * db)) & UCHAR_MAX;
+      reg = (unsigned char)(cur >> (CHAR_BIT * db));
 
       nset += bitc[UCHAR_MAX - reg];
     }
