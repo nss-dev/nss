@@ -180,20 +180,21 @@ v8_mpv_mul_d_add_prop(const mp_digit *a, mp_size a_len, mp_digit b, mp_digit *c)
 static void 
 vis_mpv_mul_d(const mp_digit *a, mp_size a_len, mp_digit b, mp_digit *c)
 {
+    mp_digit d;
     mp_digit x[258];
     if (a_len <= 256) {
-	if (a == c) {
+	if (a == c || ((ptrdiff_t)a & 0x7) != 0 || (a_len & 1) != 0) {
 	    mp_digit * px;
 	    px = (((ptrdiff_t)x & 0x7) != 0) ? x + 1 : x;
 	    memcpy(px, a, a_len * sizeof(*a));
 	    a = px;
 	    if (a_len & 1) {
 		px[a_len] = 0;
-		a_len++;
 	    }
 	}
 	s_mp_setz(c, a_len + 1);
-	s_mpv_mul_d_add(a, a_len, b, c);
+	d = mul_add_inp(c, a, a_len, b);
+	c[a_len] = d;
     } else {
 	v8_mpv_mul_d(a, a_len, b, c);
     }
@@ -213,7 +214,6 @@ vis_mpv_mul_d_add(const mp_digit *a, mp_size a_len, mp_digit b, mp_digit *c)
 	    a = px;
 	    if (a_len & 1) {
 		px[a_len] = 0;
-		a_len++;
 	    }
 	}
 	d = mul_add_inp(c, a, a_len, b);
@@ -238,7 +238,6 @@ vis_mpv_mul_d_add_prop(const mp_digit *a, mp_size a_len, mp_digit b,
 	    a = px;
 	    if (a_len & 1) {
 		px[a_len] = 0;
-		a_len++;
 	    }
 	}
 	d = mul_add_inp(c, a, a_len, b);
