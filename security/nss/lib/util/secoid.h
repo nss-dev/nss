@@ -45,12 +45,12 @@
 #include "secoidt.h"
 #include "secasn1t.h"
 
+SEC_BEGIN_PROTOS
+
 extern const SEC_ASN1Template SECOID_AlgorithmIDTemplate[];
 
 /* This functions simply returns the address of the above-declared template. */
 SEC_ASN1_CHOOSER_DECLARE(SECOID_AlgorithmIDTemplate)
-
-SEC_BEGIN_PROTOS
 
 /*
  * OID handling routines

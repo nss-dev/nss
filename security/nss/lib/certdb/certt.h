@@ -777,6 +777,8 @@ typedef struct {
 #include "secasn1t.h"	/* way down here because I expect template stuff to
 			 * move out of here anyway */
 
+SEC_BEGIN_PROTOS
+
 extern const SEC_ASN1Template CERT_CertificateRequestTemplate[];
 extern const SEC_ASN1Template CERT_CertificateTemplate[];
 extern const SEC_ASN1Template SEC_SignedCertificateTemplate[];
@@ -810,5 +812,7 @@ SEC_ASN1_CHOOSER_DECLARE(CERT_CrlTemplate)
 SEC_ASN1_CHOOSER_DECLARE(CERT_IssuerAndSNTemplate)
 SEC_ASN1_CHOOSER_DECLARE(CERT_SetOfSignedCrlTemplate)
 SEC_ASN1_CHOOSER_DECLARE(CERT_SignedDataTemplate)
+
+SEC_END_PROTOS
 
 #endif /* _CERTT_H_ */
