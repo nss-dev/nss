@@ -34,6 +34,8 @@ MANIFEST_CVS_ID = "@(#) $RCSfile$ $Revision$ $Date$ $Name$"
 
 CORE_DEPTH = ../../..
 
+DIRS = builtins
+
 PRIVATE_EXPORTS = \
 	ck.h		  \
 	ckfw.h		  \
@@ -64,12 +66,14 @@ CSRCS =		   \
 	hash.c	   \
 	instance.c \
 	mutex.c	   \
+	nsprstub.c \
 	object.c   \
 	session.c  \
 	sessobj.c  \
 	slot.c	   \
 	token.c	   \
 	wrap.c	   \
+	mechanism.c \
 	$(NULL)
 
 REQUIRES = security nspr

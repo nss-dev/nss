@@ -1012,6 +1012,7 @@ nssCKMDFindSessionObjects_Create
     return (NSSCKMDFindObjects *)NULL;
   }
 #endif /* DEBUG */    
+  mdfso->arena = arena;
 
   return rv;
 }
@@ -1038,7 +1039,7 @@ nss_ckmdFindSessionObjects_Final
 #endif /* NSSDEBUG */
 
   mdfso = (nssCKMDFindSessionObjects *)mdFindObjects->etc;
-  NSSArena_Destroy(mdfso->arena);
+  if (mdfso->arena) NSSArena_Destroy(mdfso->arena);
 
 #ifdef DEBUG
   (void)nss_ckmdFindSessionObjects_remove_pointer(mdFindObjects);

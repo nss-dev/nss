@@ -53,10 +53,10 @@ NSS_IMPLEMENT_DATA const CK_VERSION
 nss_builtins_CryptokiVersion = { 2, 1 };
 
 NSS_IMPLEMENT_DATA const NSSUTF8 *
-nss_builtins_ManufacturerID = "Netscape Communications Corp.";
+nss_builtins_ManufacturerID = (NSSUTF8 *) "Netscape Communications Corp.";
 
 NSS_IMPLEMENT_DATA const NSSUTF8 *
-nss_builtins_LibraryDescription = "NSS Builtin Object Cryptoki Module";
+nss_builtins_LibraryDescription = (NSSUTF8 *) "NSS Builtin Object Cryptoki Module";
 
 NSS_IMPLEMENT_DATA const CK_VERSION
 nss_builtins_LibraryVersion = { 1, 0 };
@@ -71,12 +71,12 @@ NSS_IMPLEMENT_DATA const CK_VERSION
 nss_builtins_FirmwareVersion = { 1, 0 };
 
 NSS_IMPLEMENT_DATA const NSSUTF8 *
-nss_builtins_TokenLabel = "Builtin Object Token";
+nss_builtins_TokenLabel = (NSSUTF8 *) "Builtin Object Token";
 
 NSS_IMPLEMENT_DATA const NSSUTF8 *
-nss_builtins_TokenModel = "1";
+nss_builtins_TokenModel = (NSSUTF8 *) "1";
 
 /* should this be e.g. the certdata.txt RCS revision number? */
 NSS_IMPLEMENT_DATA const NSSUTF8 *
-nss_builtins_TokenSerialNumber = "1";
+nss_builtins_TokenSerialNumber = (NSSUTF8 *) "1";
 
