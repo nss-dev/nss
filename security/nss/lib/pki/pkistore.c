@@ -308,13 +308,14 @@ remove_subject_entry (
 NSS_IMPLEMENT void
 nssCertificateStore_Remove (
   nssCertificateStore *store,
-  NSSCertificate *cert
+  NSSCertificate *cert,
+  PRBool force /* described in bug 171198 */
 )
 {
     certificate_hash_entry *entry;
     PZ_Lock(store->lock);
 #ifdef NSS_3_4_CODE
-    if (cert->object.refCount > 2) {
+    if (!force && cert->object.refCount > 2) {
 	/* This continues the hack described in CERT_DestroyCertificate.
 	 * Because NSS 3.4 maintains a single, global, crypto context,
 	 * certs must be explicitly removed from it when there are no
