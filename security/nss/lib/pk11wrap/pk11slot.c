@@ -4343,6 +4343,7 @@ PK11_MapPBEMechanismToCryptoMechanism(CK_MECHANISM_PTR pPBEMechanism,
     SECStatus rv = SECFailure;
     SECAlgorithmID temp_algid;
     SECItem param, *iv;
+    CK_CHAR_PTR ivBuf = NULL;
 
     if((pPBEMechanism == CK_NULL_PTR) || (pCryptoMechanism == CK_NULL_PTR)) {
 	return CKR_HOST_MEMORY;
@@ -4352,7 +4353,7 @@ PK11_MapPBEMechanismToCryptoMechanism(CK_MECHANISM_PTR pPBEMechanism,
     iv_len = PK11_GetIVLength(pPBEMechanism->mechanism);
 
     if(pPBEparams->pInitVector == CK_NULL_PTR) {
-	pPBEparams->pInitVector = (CK_CHAR_PTR)PORT_ZAlloc(iv_len);
+	pPBEparams->pInitVector = ivBuf = (CK_CHAR_PTR)PORT_ZAlloc(iv_len);
 	if(pPBEparams->pInitVector == NULL) {
 	    return CKR_HOST_MEMORY;
 	}
@@ -4363,11 +4364,15 @@ PK11_MapPBEMechanismToCryptoMechanism(CK_MECHANISM_PTR pPBEMechanism,
 				&param, NULL, &temp_algid);
 	if(rv != SECSuccess) {
 	    SECOID_DestroyAlgorithmID(&temp_algid, PR_FALSE);
+	    PORT_ZFree(ivBuf, iv_len);
+	    pPBEparams->pInitVector = NULL;
 	    return CKR_HOST_MEMORY;
 	} else {
 	    iv = SEC_PKCS5GetIV(&temp_algid, pbe_pwd, faulty3DES);
 	    if((iv == NULL) && (iv_len != 0)) {
 	        SECOID_DestroyAlgorithmID(&temp_algid, PR_FALSE);
+		PORT_ZFree(ivBuf, iv_len);
+		pPBEparams->pInitVector = NULL;
 		return CKR_HOST_MEMORY;
 	    }
 	    SECOID_DestroyAlgorithmID(&temp_algid, PR_FALSE);
@@ -4395,6 +4400,10 @@ have_crypto_mechanism:
 	    pCryptoMechanism->pParameter = PORT_Alloc(iv_len);
 	    pCryptoMechanism->ulParameterLen = (CK_ULONG)iv_len;
 	    if(pCryptoMechanism->pParameter == NULL) {
+		if (ivBuf) {
+		    PORT_ZFree(ivBuf, iv_len);
+		    pPBEparams->pInitVector = NULL;
+		}
 		return CKR_HOST_MEMORY;
 	    }
 	    PORT_Memcpy((unsigned char *)(pCryptoMechanism->pParameter),
@@ -4421,6 +4430,10 @@ have_key_len:
 	    pCryptoMechanism->pParameter = 
 		(CK_RC2_CBC_PARAMS_PTR)PORT_ZAlloc(sizeof(CK_RC2_CBC_PARAMS));
 	    if(pCryptoMechanism->pParameter == NULL) {
+		if (ivBuf) {
+		    PORT_ZFree(ivBuf, iv_len);
+		    pPBEparams->pInitVector = NULL;
+		}
 		return CKR_HOST_MEMORY;
 	    }
 	    rc2_params = (CK_RC2_CBC_PARAMS_PTR)pCryptoMechanism->pParameter;
@@ -4430,7 +4443,16 @@ have_key_len:
 	    rc2_params->ulEffectiveBits = rc2_key_len;
 	    break;
 	default:
+	    if (ivBuf) {
+		PORT_ZFree(ivBuf, iv_len);
+		pPBEparams->pInitVector = NULL;
+	    }
 	    return CKR_MECHANISM_INVALID;
+    }
+
+    if (ivBuf) {
+	PORT_ZFree(ivBuf, iv_len);
+	pPBEparams->pInitVector = NULL;
     }
 
     return CKR_OK;

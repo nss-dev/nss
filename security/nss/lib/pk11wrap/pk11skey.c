@@ -4107,6 +4107,8 @@ PK11_CreatePBEAlgorithmID(SECOidTag algorithm, int iteration, SECItem *salt)
     return algid;
 }
 
+#define PBE_IV_SIZE 8
+
 PK11SymKey *
 PK11_PBEKeyGen(PK11SlotInfo *slot, SECAlgorithmID *algid, SECItem *pwitem,
 	       					PRBool faulty3DES, void *wincx)
@@ -4136,9 +4138,17 @@ PK11_PBEKeyGen(PK11SlotInfo *slot, SECAlgorithmID *algid, SECItem *pwitem,
 	return NULL;
     }
 
+    pbe_params->pInitVector = (CK_CHAR_PTR)PORT_ZAlloc(PBE_IV_SIZE);
+    if(pbe_params->pInitVector == NULL) {
+	PORT_ZFree(pbe_params->pPassword, pwitem->len);
+	SECITEM_ZfreeItem(mech, PR_TRUE);
+	return NULL;
+    }
+
     symKey = PK11_KeyGen(slot, type, mech, 0, wincx);
 
     PORT_ZFree(pbe_params->pPassword, pwitem->len);
+    PORT_ZFree(pbe_params->pInitVector, PBE_IV_SIZE);
     SECITEM_ZfreeItem(mech, PR_TRUE);
     return symKey;
 }

@@ -2907,17 +2907,10 @@ pk11_pbe_key_gen(SECOidTag algtag,CK_MECHANISM_PTR pMechanism,
     SECITEM_ZfreeItem(pbe_key, PR_TRUE);
     pbe_key = NULL;
 
-    if (pbe_params->pInitVector == NULL) {
+    if (pbe_params->pInitVector != NULL) {
 	pbe_key = SEC_PKCS5GetIV(&algid, &mech, faulty3DES);
 	if (pbe_key == NULL) {
 	    SECOID_DestroyAlgorithmID(&algid, PR_FALSE);
-	    SECITEM_ZfreeItem(pbe_key, PR_TRUE);
-	    return CKR_HOST_MEMORY;
-	}
-	pbe_params->pInitVector = (CK_CHAR_PTR)PORT_ZAlloc(pbe_key->len);
-	if (pbe_params->pInitVector == NULL) {
-	    SECOID_DestroyAlgorithmID(&algid, PR_FALSE);
-	    SECITEM_ZfreeItem(pbe_key, PR_TRUE);
 	    return CKR_HOST_MEMORY;
 	}
 	PORT_Memcpy(pbe_params->pInitVector, pbe_key->data, pbe_key->len);
