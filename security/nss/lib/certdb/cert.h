@@ -71,6 +71,10 @@ extern char *CERT_NameToAscii(CERTName *name);
 
 extern CERTAVA *CERT_CopyAVA(PRArenaPool *arena, CERTAVA *src);
 
+/* convert an OID to dotted-decimal representation */
+/* Returns a string that must be freed with PR_smprintf_free(), */
+extern char * CERT_GetOidString(const SECItem *oid);
+
 /*
 ** Examine an AVA and return the tag that refers to it. The AVA tags are
 ** defined as SEC_OID_AVA*.
