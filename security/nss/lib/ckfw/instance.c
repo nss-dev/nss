@@ -489,10 +489,6 @@ nssCKFWInstance_CreateMutex
   }
 #endif /* NSSDEBUG */
 
-  if( (NSSArena *)NULL == arena ) {
-    arena = fwInstance->arena;
-  }
-
   mutex = nssCKFWMutex_Create(fwInstance->pInitArgs, arena, pError);
   if( (NSSCKFWMutex *)NULL == mutex ) {
     if( CKR_OK == *pError ) {

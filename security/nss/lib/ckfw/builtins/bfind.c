@@ -71,6 +71,7 @@ builtins_mdFindObjects_Final
 
   nss_ZFreeIf(fo->objs);
   nss_ZFreeIf(fo);
+  nss_ZFreeIf(mdFindObjects);
   if ((NSSArena *)NULL != arena) {
     NSSArena_Destroy(arena);
   }
@@ -221,7 +222,7 @@ nss_builtins_FindObjectsInit
   }
 
   fo->objs = nss_ZNEWARRAY(arena, builtinsInternalObject *, fo->n);
-  if( (builtinsInternalObject **)NULL == temp ) {
+  if( (builtinsInternalObject **)NULL == fo->objs ) {
     *pError = CKR_HOST_MEMORY;
     goto loser;
   }
@@ -236,6 +237,9 @@ nss_builtins_FindObjectsInit
   nss_ZFreeIf(temp);
   nss_ZFreeIf(fo);
   nss_ZFreeIf(rv);
+  if ((NSSArena *)NULL != arena) {
+     NSSArena_Destroy(arena);
+  }
   return (NSSCKMDFindObjects *)NULL;
 }
 
