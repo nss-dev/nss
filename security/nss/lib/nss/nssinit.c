@@ -240,6 +240,10 @@ nss_Init(const char *configdir, const char *certPrefix, const char *keyPrefix,
     SECStatus status;
     SECStatus rv      = SECFailure;
 
+    if( isInitialized ) {
+	return SECSuccess;
+    }
+
     status = RNG_RNGInit();     	/* initialize random number generator */
     if (status != SECSuccess)
 	goto loser;
@@ -302,12 +306,6 @@ NSS_InitReadWrite(const char *configdir)
 {
     return nss_Init(configdir, "", "", SECMOD_DB, PR_FALSE, 
 		PR_FALSE, PR_FALSE, PR_FALSE);
-}
-
-PRBool
-NSS_IsInitialized()
-{
-    return isInitialized;
 }
 
 /*
