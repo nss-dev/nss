@@ -146,7 +146,7 @@ nssTrustDomain_GetActiveSlots (
 }
 
 /* XXX */
-static nssSession *
+NSS_IMPLEMENT nssSession *
 nssTrustDomain_GetSessionForToken (
   NSSTrustDomain *td,
   NSSToken *token,

@@ -1962,32 +1962,44 @@ ssl3_HandleChangeCipherSpecs(sslSocket *ss, sslBuffer *buf)
     return SECSuccess;
 }
 
+/* XXX move to base.h */
+#define NSSITEM_INIT_BUF(it, buf) \
+    (it)->data = (void *)buf;     \
+    (it)->size = sizeof(buf);
+
 static PRStatus
-ssl3_DeriveMasterSecret(NSSVolatileDomain *pmsVDOpt, PRBool isTLS, PRBool isDH)
+ssl3_DeriveMasterSecret(sslSocket *ss, NSSSymmetricKey *pmsOpt);
 {
-    NSSSymmetricKey *ms = NULL;
+    PRBool isTLS  = (PRBool)(kea_def->tls_keygen ||
+                             (pwSpec->version > SSL_LIBRARY_VERSION_3_0));
+    PRBool isDH = (PRBool) (ss->ssl3->hs.kea_def->exchKeyType == ssl_kea_dh);
+    NSSAlgorithmAndParameters *msDerive = NULL;
+    NSSSymmetricKey *ms = ssl->ssl3->pwSpec->master_secret;
+    NSSSymmetricKey *fpms = NULL;
     NSSSSLMSParameters msParams;
-    PRBool freePMSCx = PR_FALSE;
+    PRStatus status;
 
     /* set up parameters for master secret derivation */
-    msParams.version = isTLS ? NSSSSLVersion_TLS : NSSSSLVersion_SSL3;
+    msParams.version = isTLS ? NSSSSLVersion_TLS : NSSSSLVersion_SSLv3;
     msParams.isDH = isDH;
-    msParams.clientRandom = cr;
-    msParams.serverRandom = sr;
+    NSSITEM_INIT_BUF(&msParams.clientRandom, ss->ssl3->hs.client_random);
+    NSSITEM_INIT_BUF(&msParams.serverRandom, ss->ssl3->hs.server_random);
     msDerive = nssAlgorithmAndParameters_CreateSSLMSDerive(NULL, &msParams);
     if (!msDerive) {
 	goto loser;
     }
+
+    /* set the default key operations */
     keyOps = 0;
     if (isTLS) {
 	keyOps = NSSOperations_SIGN | NSSOperations_VERIFY;
     }
 
-    if (pmsCxOpt) {
+    if (pmsOpt) {
 	/* generating master secret from existing pre-master secret */
-	ms = NSSCryptoContext_DeriveSymKey(pmsCxOpt, msDerive,
-	                                   NSSSymmetricKeyType_SSLMS,
-	                                   0, keyOps, NULL);
+	ms = NSSSymmetricKey_DeriveSymmetricKey(pmsOpt, msDerive,
+	                                        NSSSymmetricKeyType_SSLMS,
+	                                        0, keyOps, NULL);
 	if (ms && !isDH && ss->detectRollBack) {
 	    SSL3ProtocolVersion client_version;
 	    client_version = pms_version.major << 8 | pms_version.minor;
@@ -1997,37 +2009,48 @@ ssl3_DeriveMasterSecret(NSSVolatileDomain *pmsVDOpt, PRBool isTLS, PRBool isDH)
 		ms = NULL;
 	    }
 	}
-#if 0
 	if (!ms) {
 	    /* Generate a faux master secret in the same slot as the old one. */
-		/* XXX this goes in any slot... */
-	    fpmsCx = ssl3_GenerateRSAPMS(ss, pwSpec, NULL);
-	    if (fpmsCx) {
-		ms = NSSCryptoContext_DeriveSymKey(fpmsCx, msDerive,
+	    NSSToken *pmsToken;
+	    (void)NSSSymmetricKey_GetTokens(pmsOpt, &pmsToken, 1, &status);
+	    if (status == PR_FAILURE) {
+		goto loser;
+	    }
+	    fpms = ssl3_GenerateRSAPMS(ss, pwSpec, pmsToken);
+	    if (fpms) {
+		ms = NSSSymmetricKey_DeriveSymmetricKey(fpms, msDerive,
 	                                           NSSSymmetricKeyType_SSLMS,
 	                                           0, keyOps, NULL);
 		NSSSymmetricKey_Destroy(fpms);
 	    }
+	    NSSToken_Destroy(pmsToken);
 	}
-#endif
     }
     if (!ms) {
+	/* XXX is this the correct analogue to the internal token? */
+	NSSToken *internal = nssTrustDomain_GetDefaultCryptoToken(ss->td);
+	if (!internal) goto loser;
 	/* generate a faux master secret in the internal slot */
-	fpmsCx = ssl3_GenerateRSAPMS(ss, pwSpec, internal);
-	if (fpmsCx) {
-	    ms = NSSCryptoContext_DeriveSymKey(fpmsCx, msDerive,
+	fpms = ssl3_GenerateRSAPMS(ss, pwSpec, internal);
+	if (fpms) {
+	    ms = NSSSymmetricKey_DeriveSymmetricKey(fpms, msDerive,
 	                                       NSSSymmetricKeyType_SSLMS,
 	                                       0, keyOps, NULL);
 	    if (ms) {
 		NSSSymmetricKey_Destroy(fpms);
-#if 0
 	    } else {
 		ms = fpms;
-#endif
 	    }
     	}
+	NSSToken_Destroy(internal);
     }
-    pwSpec->master_secret = ms;
+    ss->ssl3->pwSpec->master_secret = ms;
+    return PR_SUCCESS;
+loser:
+    if (msDerive) {
+	NSSAlgorithmAndParameters_Destroy(msDerive);
+    }
+    return PR_FAILURE;
 }
 
 /*
@@ -2045,24 +2068,17 @@ ssl3_DeriveMasterSecret(NSSVolatileDomain *pmsVDOpt, PRBool isTLS, PRBool isDH)
  * ssl3_InitPendingCipherSpec does that.
  */
 static PRStatus
-ssl3_GenerateSessionKeys(sslSocket *ss, NSSCryptoContext *pmsCxOpt,
-                         NSSCryptoContext **sessionCxs /* [4] */)
+ssl3_GenerateSessionKeys(sslSocket *ss, NSSSymmetricKey *pmsOpt)
 {
     ssl3CipherSpec *         pwSpec     = ss->ssl3->pwSpec;
     const ssl3BulkCipherDef *cipher_def = pwSpec->cipher_def;
     const ssl3KEADef *       kea_def    = ss->ssl3->hs.kea_def;
     void * pwArg  = ss->pkcs11PinArg;
-    PRBool isTLS  = (PRBool)(kea_def->tls_keygen ||
-                             (pwSpec->version > SSL_LIBRARY_VERSION_3_0));
     PRBool skipKeysAndIVs = (PRBool)((cipher_def->calg == calg_fortezza) ||
                                      (cipher_def->calg == calg_null));
-    PRBool isDH = (PRBool) (ss->ssl3->hs.kea_def->exchKeyType == ssl_kea_dh);
     SSLCipherAlgorithm calg;
-    NSSItem cr, sr;
     NSSSymmetricKeyType bulkKeyType;
-    NSSSSLMasterSecretParameters msParams = { 0 };
     NSSSSLSessionKeyParameters skParams = { 0 };
-    NSSAlgorithmAndParameters *msDerive = NULL;
     NSSAlgorithmAndParameters *skDerive = NULL;
     NSSOperations keyOps;
     NSSSymmetricKey *sessionKeys[4];
@@ -2071,14 +2087,11 @@ ssl3_GenerateSessionKeys(sslSocket *ss, NSSCryptoContext *pmsCxOpt,
     PORT_Assert( ssl_HaveSpecWriteLock(ss));
     PORT_Assert(ss->ssl3->prSpec == ss->ssl3->pwSpec);
 
-    cr.data = &ss->ssl3->hs.client_random; cr.size = SSL3_RANDOM_LENGTH;
-    sr.data = &ss->ssl3->hs.server_random; sr.size = SSL3_RANDOM_LENGTH;
-
     /* 
      * derive the master secret if we don't have it yet, or are generating
      * a faux master secret
      */
-    status = ssl3_DeriveMasterSecret();
+    status = ssl3_DeriveMasterSecret(ss, pmsOpt);
     if (status == PR_FAILURE) {
 	ssl_MapLowLevelError(SSL_ERROR_SESSION_KEY_GEN_FAILURE);
 	goto loser;
@@ -2089,8 +2102,8 @@ ssl3_GenerateSessionKeys(sslSocket *ss, NSSCryptoContext *pmsCxOpt,
      */
     skParams.macSizeInBits = pwSpec->mac_size * BPB;
     skParams.isExport = kea_def->is_limited;
-    skParams.clientRandom = cr;
-    skParams.serverRandom = sr;
+    NSSITEM_INIT_BUF(&skParams.clientRandom, ss->ssl3->hs.client_random);
+    NSSITEM_INIT_BUF(&skParams.serverRandom, ss->ssl3->hs.server_random);
 
     if (!skipKeysAndIVs) {
 	skParams.keySizeInBits = cipher_def->secret_key_size * BPB;
@@ -2117,20 +2130,23 @@ ssl3_GenerateSessionKeys(sslSocket *ss, NSSCryptoContext *pmsCxOpt,
 	goto loser;
     }
 
-    pwSpec->client.write_mac_key = sessionKeys[0];
-    pwSpec->server.write_mac_key = sessionKeys[1];
-    pwSpec->client.write_key     = sessionKeys[2];
-    pwSpec->server.write_key     = sessionKeys[3];
+    pwSpec->client.write_mac_cx = 
+      NSSSymmetricKey_CreateCryptoContext(sessionKeys[0], , );
 
-    NSSAlgorithmAndParameters_Destroy(msDerive);
+    pwSpec->server.write_mac_cx = 
+      NSSSymmetricKey_CreateCryptoContext(sessionKeys[1], , );
+
+    pwSpec->client.write_cx     = 
+      NSSSymmetricKey_CreateCryptoContext(sessionKeys[2], , );
+
+    pwSpec->server.write_cx     = 
+      NSSSymmetricKey_CreateCryptoContext(sessionKeys[3], , );
+
     NSSAlgorithmAndParameters_Destroy(skDerive);
 
     return PR_SUCCESS;
 
 loser:
-    if (msDerive) {
-	NSSAlgorithmAndParameters_Destroy(msDerive);
-    }
     if (skDerive) {
 	NSSAlgorithmAndParameters_Destroy(skDerive);
     }
@@ -6106,7 +6122,7 @@ fortezza_loser:
  *		ssl3_HandleRSAClientKeyExchange()  (below)
  * Caller must hold the SpecWriteLock, the SSL3HandshakeLock
  */
-static NSSCryptoContext *
+static NSSSymmetricKey *
 ssl3_GenerateRSAPMS(sslSocket *ss, ssl3CipherSpec *spec,
                     NSSToken *serverKeyToken)
 {
