@@ -90,9 +90,9 @@ p12u_DestroyExportFileInfo(p12uContext **exp_ptr, PRBool removeFile)
 	return;
     }
 #if defined(_WIN32) 
-    if (p12cxt->hasBufferData) {
-	p12cxt->hasBufferData = PR_FALSE;
-    	PR_Write(p12cxt->file, p12cxt->bufferData, (int32)1);
+    if ((*exp_ptr)->hasBufferData) {
+	(*exp_ptr)->hasBufferData = PR_FALSE;
+    	PR_Write((*exp_ptr)->file, (*exp_ptr)->bufferData, (int32)1);
 	/* what about failure? */
     }
 #endif
@@ -692,7 +692,7 @@ p12u_WriteToExportFile(void *arg, const char *buf, unsigned long len)
     /* Windows 2000 treats single byte writes as double byte characters!
      * hack to deal with this until we figure out how to tell it not to in
      * nspr */
-    if ((len == 1) && (has_buf_data == PR_FALSE)) {
+    if ((len == 1) && (p12cxt->hasBufferData == PR_FALSE)) {
 	p12cxt->bufferData[0] = (unsigned char) *buf;
 	p12cxt->hasBufferData = PR_TRUE;
 	return;
@@ -719,7 +719,8 @@ p12u_WriteToExportFile(void *arg, const char *buf, unsigned long len)
 	    p12cxt->errorValue = SEC_ERROR_PKCS12_UNABLE_TO_WRITE;
 	    p12cxt->error = PR_TRUE;
 	}
-    }  else if (len != 0) {
+    }  
+    if (len != 0) {
 #endif
     writeLen = PR_Write(p12cxt->file, (unsigned char *)buf, (int32)len);
 
