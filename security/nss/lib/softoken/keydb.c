@@ -892,10 +892,16 @@ newdb:
 	    handle->db = rdbopen( appName, prefix, "key", NO_CREATE);
 	    handle->updatedb = dbopen( dbname, NO_RDONLY, 0600, DB_HASH, 0 );
 	    if (handle->updatedb) {
-		db_Copy(handle->db, handle->updatedb);
-		(*handle->updatedb->close)(handle->updatedb);
-		handle->updatedb = NULL;
-		goto done;
+		handle->version = nsslowkey_version(handle->updatedb);
+		if (handle->version != NSSLOWKEY_DB_FILE_VERSION) {
+		    (*handle->updatedb->close)(handle->updatedb);
+		    handle->updatedb = NULL;
+		} else {
+		    db_Copy(handle->db, handle->updatedb);
+		    (*handle->updatedb->close)(handle->updatedb);
+		    handle->updatedb = NULL;
+		    goto done;
+		}
 	    }
 	} else {
 	    handle->db = dbopen( dbname, NO_CREATE, 0600, DB_HASH, 0 );
