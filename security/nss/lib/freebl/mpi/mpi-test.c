@@ -1258,7 +1258,7 @@ int test_exptmod(void)
   mp_toradix(&a, g_intbuf, 16);
 
   if(strcmp(g_intbuf, me_mp817) != 0) {
-    reason("error: computed %s, expected %s\n", g_intbuf, me_mp817);
+    reason("case 1: error: computed %s, expected %s\n", g_intbuf, me_mp817);
     res = 1; goto CLEANUP;
   }
 
@@ -1269,7 +1269,7 @@ int test_exptmod(void)
   mp_toradix(&a, g_intbuf, 16);
 
   if(strcmp(g_intbuf, me_mp1512) != 0) {
-    reason("error: computed %s, expected %s\n", g_intbuf, me_mp1512);
+    reason("case 2: error: computed %s, expected %s\n", g_intbuf, me_mp1512);
     res = 1; goto CLEANUP;
   }
 
@@ -1280,7 +1280,7 @@ int test_exptmod(void)
   mp_toradix(&a, g_intbuf, 16);
 
   if(strcmp(g_intbuf, me_mp5114) != 0) {
-    reason("error: computed %s, expected %s\n", g_intbuf, me_mp5114);
+    reason("case 3: error: computed %s, expected %s\n", g_intbuf, me_mp5114);
     res = 1;
   }
 
@@ -1291,7 +1291,7 @@ int test_exptmod(void)
   mp_toradix(&a, g_intbuf, 16);
 
   if(strcmp(g_intbuf, me_mp161718) != 0) {
-    reason("error: computed %s, expected %s\n", g_intbuf, me_mp161718);
+    reason("case 4: error: computed %s, expected %s\n", g_intbuf, me_mp161718);
     res = 1;
   }
 
