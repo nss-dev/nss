@@ -2603,6 +2603,45 @@ loser:
     return(SECFailure);
 }
 
+PRBool CERT_IsUserCert(CERTCertificate* cert)
+{
+    if ( (cert->trust->sslFlags & CERTDB_USER ) ||
+         (cert->trust->emailFlags & CERTDB_USER ) ||
+         (cert->trust->objectSigningFlags & CERTDB_USER ) ) {
+        return PR_TRUE;
+    } else {
+        return PR_FALSE;
+    }
+}
+
+SECStatus
+CERT_FilterCertListForUserCerts(CERTCertList *certList)
+{
+    CERTCertListNode *node, *freenode;
+    CERTCertificate *cert;
+
+    if (!certList) {
+        return SECFailure;
+    }
+
+    node = CERT_LIST_HEAD(certList);
+    
+    while ( ! CERT_LIST_END(node, certList) ) {
+	cert = node->cert;
+	if ( PR_TRUE != CERT_IsUserCert(cert) ) {
+	    /* Not a User Cert, so remove this cert from the list */
+	    freenode = node;
+	    node = CERT_LIST_NEXT(node);
+	    CERT_RemoveCertListNode(freenode);
+	} else {
+	    /* Is a User cert, so leave it in the list */
+	    node = CERT_LIST_NEXT(node);
+	}
+    }
+
+    return(SECSuccess);
+}
+
 static PZLock *certRefCountLock = NULL;
 
 /*
