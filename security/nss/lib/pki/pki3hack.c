@@ -530,14 +530,15 @@ nssTrust_GetCERTCertTrustForCert(NSSCertificate *c, CERTCertificate *cc)
 	    return NULL;
 	}
 	nssTrust_Destroy(t);
+    } else {
+	rvTrust = PORT_ArenaAlloc(cc->arena, sizeof(CERTCertTrust));
+	if (!rvTrust) {
+	    return NULL;
+	}
+	memset(rvTrust, 0, sizeof(*rvTrust));
     }
     if (is_user_cert(c, cc)) {
 	if (!rvTrust) {
-	    rvTrust = PORT_ArenaAlloc(cc->arena, sizeof(CERTCertTrust));
-	    if (!rvTrust) {
-		return NULL;
-	    }
-	    memset(rvTrust, 0, sizeof(*rvTrust));
 	}
 	rvTrust->sslFlags |= CERTDB_USER;
 	rvTrust->emailFlags |= CERTDB_USER;
