@@ -247,7 +247,9 @@ NSSCertificate_BuildChain
   NSSCertificate **rvOpt,
   PRUint32 rvLimit, /* zero for no limit */
   NSSArena *arenaOpt,
-  PRStatus *statusOpt
+  PRStatus *statusOpt,
+  NSSTrustDomain *td,
+  NSSCryptoContext *cc 
 );
 
 /*
