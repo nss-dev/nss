@@ -1,0 +1,62 @@
+#
+# Copyright 2002 Sun Microsystems, Inc.  All rights reserved.
+# Use is subject to license terms.
+#
+#ident	"$Id$"
+#
+# This required package information file contains a list of package contents.
+# The 'pkgmk' command uses this file to identify the contents of a package
+# and their location on the development machine when building the package.
+# Can be created via a text editor or through use of the 'pkgproto' command.
+
+#!search <pathname pathname ...>	# where to find pkg objects
+#!include <filename>			# include another 'prototype' file
+#!default <mode> <owner> <group>	# default used if not specified on entry
+#!<param>=<value>			# puts parameter in pkg environment
+
+# packaging files
+i copyright
+i pkginfo
+i depend=pkgdepend
+#
+# source locations relative to the prototype file
+#
+# SUNWtlsux
+#
+d none usr 0755 root sys
+d none usr/lib 0755 root bin
+d none usr/lib/mps 0755 root bin
+d none usr/lib/mps/bin 0755 root bin
+s none usr/lib/mps/bin/64=sparcv9
+d none usr/lib/mps/bin/sparcv9 0755 root bin
+f none usr/lib/mps/bin/sparcv9/certutil 0755 root bin
+f none usr/lib/mps/bin/sparcv9/cmsutil 0755 root bin
+f none usr/lib/mps/bin/sparcv9/modutil 0755 root bin
+f none usr/lib/mps/bin/sparcv9/pk12util 0755 root bin
+f none usr/lib/mps/bin/sparcv9/signtool 0755 root bin
+f none usr/lib/mps/bin/sparcv9/signver 0755 root bin
+f none usr/lib/mps/bin/sparcv9/ssltap 0755 root bin
+f none usr/lib/mps/bin/sparcv9/atob 0755 root bin
+f none usr/lib/mps/bin/sparcv9/btoa 0755 root bin
+f none usr/lib/mps/bin/sparcv9/bltest 0755 root bin
+f none usr/lib/mps/bin/sparcv9/makepqg 0755 root bin
+f none usr/lib/mps/bin/sparcv9/pp 0755 root bin
+f none usr/lib/mps/bin/sparcv9/certcgi 0755 root bin
+f none usr/lib/mps/bin/sparcv9/newuser 0755 root bin
+f none usr/lib/mps/bin/sparcv9/rsaperf 0755 root bin
+f none usr/lib/mps/bin/sparcv9/checkcert 0755 root bin
+f none usr/lib/mps/bin/sparcv9/ocspclnt 0755 root bin
+f none usr/lib/mps/bin/sparcv9/sdrtest 0755 root bin
+f none usr/lib/mps/bin/sparcv9/client 0755 root bin
+f none usr/lib/mps/bin/sparcv9/oidcalc 0755 root bin
+f none usr/lib/mps/bin/sparcv9/selfserv 0755 root bin
+f none usr/lib/mps/bin/sparcv9/crlutil 0755 root bin
+f none usr/lib/mps/bin/sparcv9/p7content 0755 root bin
+f none usr/lib/mps/bin/sparcv9/strsclnt 0755 root bin
+f none usr/lib/mps/bin/sparcv9/derdump 0755 root bin
+f none usr/lib/mps/bin/sparcv9/p7env 0755 root bin
+f none usr/lib/mps/bin/sparcv9/tstclnt 0755 root bin
+f none usr/lib/mps/bin/sparcv9/digest 0755 root bin
+f none usr/lib/mps/bin/sparcv9/p7sign 0755 root bin
+f none usr/lib/mps/bin/sparcv9/instinit 0755 root bin
+f none usr/lib/mps/bin/sparcv9/p7verify 0755 root bin
