@@ -209,24 +209,18 @@ loser:
 }
 
 
-#ifdef notdef
 void
-pk11_Shutdown(void)
+pk11_DBShutdown(NSSLOWCERTCertDBHandle *certHandle, 
+		NSSLOWKEYDBHandle *keyHandle)
 {
-    NSSLOWCERTCertDBHandle *certHandle;
-    NSSLOWKEYDBHandle *keyHandle;
-
-    PR_FREEIF(secmodname);
-    certHandle = nsslowcert_GetDefaultCertDB();
-    if (certHandle)
+    if (certHandle) {
     	nsslowcert_ClosePermCertDB(certHandle);
-    nsslowcert_SetDefaultCertDB(NULL); 
+	PORT_Free(certHandle);
+	certHandle= NULL;
+    }
 
-    keyHandle = nsslowkey_GetDefaultKeyDB();
-    if (keyHandle)
+    if (keyHandle) {
     	nsslowkey_CloseKeyDB(keyHandle);
-    nsslowkey_SetDefaultKeyDB(NULL); 
-
-    isInitialized = PR_FALSE;
+	keyHandle= NULL;
+    }
 }
-#endif
