@@ -31,10 +31,10 @@
 # GPL.
 #
 
-CORE_DEPTH	= ../..
+MOD_DEPTH	= ../..
 topsrcdir	= @top_srcdir@
 srcdir		= @srcdir@
-VPATH		= @srcdir@
+VPATH		= @srcdir@:$(CORECONF_SOURCE)/nsinstall
 
 MODULE		= coreconf
 
@@ -44,8 +44,8 @@ PLSRCS		= nfspwd.pl
 
 PROGRAM		= nsinstall
 
-include $(CORE_DEPTH)/coreconf/autoconf.mk
-include $(topsrcdir)/coreconf/config.mk
+include ../autoconf.mk
+include $(CORECONF_SOURCE)/config.mk
 
 ifeq ($(OS_ARCH),WINNT)
 PROGRAM		=
@@ -53,6 +53,6 @@ else
 TARGETS		= $(PROGRAM) $(PLSRCS:.pl=)
 endif
 
-include $(topsrcdir)/coreconf/rules.mk
+include $(CORECONF_SOURCE)/rules.mk
 
 export:: libs

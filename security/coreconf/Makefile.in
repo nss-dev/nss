@@ -34,11 +34,12 @@
 CORE_DEPTH	= ..
 topsrcdir	= @top_srcdir@
 srcdir		= @srcdir@
-VPATH		= @srcdir@
+VPATH		= @srcdir@:$(CORECONF_SOURCE)
 
 DIRS		= nsinstall
 
-include $(CORE_DEPTH)/coreconf/autoconf.mk
-include $(topsrcdir)/coreconf/config.mk
+include autoconf.mk
 
-include $(topsrcdir)/coreconf/rules.mk
+include $(CORECONF_SOURCE)/config.mk
+
+include $(CORECONF_SOURCE)/rules.mk

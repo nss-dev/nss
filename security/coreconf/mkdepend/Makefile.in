@@ -34,7 +34,7 @@
 CORE_DEPTH	= ../..
 topsrcdir	= @top_srcdir@
 srcdir		= @srcdir@
-VPATH		= @srcdir@
+VPATH		= @srcdir@:$(CORECONF_SOURCE)/mkdepend
 
 MODULE		= coreconf
 
@@ -49,10 +49,10 @@ CSRCS		= \
 
 PROGRAM		= mkdepend
 
-include $(CORE_DEPTH)/coreconf/autoconf.mk
-include $(topsrcdir)/coreconf/config.mk
+include ../autoconf.mk
+include $(CORECONF_SOURCE)/config.mk
 
-include $(topsrcdir)/coreconf/rules.mk
+include $(CORECONF_SOURCE)/rules.mk
 
 DEFINES         += -DINCLUDEDIR=\"/usr/include\" -DOBJSUFFIX=\".o\"
 
