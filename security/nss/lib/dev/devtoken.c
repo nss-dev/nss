@@ -152,8 +152,7 @@ nssToken_Destroy (
 )
 {
     if (tok) {
-	PR_AtomicDecrement(&tok->base.refCount);
-	if (tok->base.refCount == 0) {
+	if (PR_AtomicDecrement(&tok->base.refCount) == 0) {
 	    PZ_DestroyLock(tok->base.lock);
 	    nssTokenObjectCache_Destroy(tok->cache);
 	    return nssArena_Destroy(tok->base.arena);

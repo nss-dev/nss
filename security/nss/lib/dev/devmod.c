@@ -714,8 +714,7 @@ nssModule_Destroy (
 )
 {
     PRUint32 i, numSlots;
-    PR_AtomicDecrement(&mod->base.refCount);
-    if (mod->base.refCount == 0) {
+    if (PR_AtomicDecrement(&mod->base.refCount) == 0) {
 	if (mod->numSlots == 0) {
 	    (void)nssModule_Unload(mod);
 	    return nssArena_Destroy(mod->base.arena);
