@@ -1662,3 +1662,26 @@ loser:
     return PR_FAILURE;
 }
 
+NSS_IMPLEMENT PRStatus
+nssToken_IsPrivateKeyAvailable
+(
+  NSSToken *token,
+  NSSCertificate *c,
+  nssCryptokiObject *instance
+)
+{
+    CK_OBJECT_CLASS theClass;
+
+    if (token == NULL) return PR_FALSE;
+    if (c == NULL) return PR_FALSE;
+
+    theClass = CKO_PRIVATE_KEY;
+    if (!nssSlot_IsLoggedIn(token->slot)) {
+	theClass = CKO_PUBLIC_KEY;
+    }
+    if (PK11_MatchItem(token->pk11slot, instance->handle, theClass) 
+						!= CK_INVALID_HANDLE) {
+	return PR_TRUE;
+    }
+    return PR_FALSE;
+}
