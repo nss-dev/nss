@@ -714,9 +714,6 @@ ssl_CreateSecurityInfo(sslSocket *ss)
     status = sslBuffer_Grow(&ss->sec.writeBuf, 4096);
     ssl_ReleaseXmitBufLock(ss); 
 
-    ss->sec.lastTime = 0;
-    ss->sec.lastState = PR_TRUE;
-
     return status;
 }
 
@@ -823,8 +820,6 @@ ssl_ResetSecurityInfo(sslSecurityInfo *sec)
     }
     PORT_ZFree(sec->ci.sendBuf.buf, sec->ci.sendBuf.space);
     memset(&sec->ci, 0, sizeof sec->ci);
-    sec->lastTime = 0;
-    sec->lastState = PR_TRUE;
 }
 
 /*
