@@ -123,7 +123,8 @@ pk11_OpenCertDB(const char * configdir,  const char *prefix, PRBool readOnly)
     	goto loser;
 
 /* fix when we get the DB in */
-    rv = nsslowcert_OpenCertDB(certdb, readOnly, pk11_certdb_name_cb, (void *)name);
+    rv = nsslowcert_OpenCertDB(certdb, readOnly, 
+				pk11_certdb_name_cb, (void *)name, PR_FALSE);
     if (rv == SECSuccess)
 	nsslowcert_SetDefaultCertDB(certdb);
     else {
@@ -165,7 +166,7 @@ pk11_OpenVolatileCertDB() {
       SECStatus rv = SECSuccess;
       /* now we want to verify the signature */
       /*  Initialize the cert code */
-      rv = nsslowcert_OpenVolatileCertDB(&certhandle);
+      rv = nsslowcert_OpenCertDB(&certhandle, PR_FALSE,  NULL, NULL, PR_TRUE);
       if (rv != SECSuccess) {
 	   return CKR_DEVICE_ERROR;
       }
