@@ -49,6 +49,7 @@
 
 /* These are the  correct verion numbers that details the changes 
  * to the list of trusted certificates.  */
+#define NSS_BUILTINS_LIBRARY_VERSION "1.40"
 #define NSS_BUILTINS_LIBRARY_VERSION_MAJOR 1
 #define NSS_BUILTINS_LIBRARY_VERSION_MINOR 40
 

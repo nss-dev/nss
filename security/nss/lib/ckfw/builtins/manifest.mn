@@ -51,6 +51,7 @@ CSRCS =			\
 	bslot.c		\
 	btoken.c	\
 	certdata.c	\
+	ckbiver.c	\
 	$(NULL)
 
 REQUIRES = nspr
