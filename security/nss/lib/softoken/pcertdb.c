@@ -4066,6 +4066,7 @@ nsslowcert_AddPermCert(NSSLOWCERTCertDBHandle *dbhandle,
     certDBEntryCert *entry;
     PRBool conflict;
     SECStatus ret;
+    SECStatus rv;
 
     nsslowcert_LockDB(dbhandle);
     rv = db_BeginTransaction(dbhandle->permCertDB);
