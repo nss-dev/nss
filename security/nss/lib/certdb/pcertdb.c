@@ -3985,6 +3985,9 @@ UpdateV5DB(CERTCertDBHandle *handle, DB *updatedb)
 			       (void *)handle);
     
     PZ_DestroyMonitor(updatehandle.dbMon);
+
+    (* updatedb->close)(updatedb);
+    return(SECSuccess);
     
     return(rv);
 }
