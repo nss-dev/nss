@@ -635,8 +635,11 @@ get_trusted_usage
     /* XXX needs to be cached with cert */
     trust = nssTrustDomain_FindTrustForCertificate(c->object.trustDomain, c);
     if (!trust) {
-	/* XXX check for error */
-	*status = PR_FAILURE;
+	if (NSS_GetError() == NSS_ERROR_NO_ERROR) {
+	    *status = PR_SUCCESS;
+	} else {
+	    *status = PR_FAILURE;
+	}
 	return 0;
     }
     if (trust->clientAuth == checkLevel) {
@@ -912,6 +915,71 @@ NSSCertificate_ValidateAndDiscoverUsagesAndPolicies
 )
 {
     nss_SetError(NSS_ERROR_NOT_FOUND);
+    return PR_FAILURE;
+}
+
+NSS_IMPLEMENT NSSUsages *
+nssCertificate_GetTrustedUsages
+(
+  NSSCertificate *c,
+  NSSUsages *usagesOpt
+)
+{
+    PRStatus status;
+    PRBool freeIt = PR_FALSE;
+    if (!usagesOpt) {
+	usagesOpt = nss_ZNEW(NULL, NSSUsages);
+	if (!usagesOpt) {
+	    return (NSSUsages *)NULL;
+	}
+	freeIt = PR_TRUE;
+    }
+    usagesOpt->ca = get_trusted_usage(c, PR_TRUE, &status);
+    if (status == PR_FAILURE) {
+	if (freeIt) nss_ZFreeIf(usagesOpt);
+	return (NSSUsages *)NULL;
+    }
+    usagesOpt->peer = get_trusted_usage(c, PR_FALSE, &status);
+    if (status == PR_FAILURE) {
+	if (freeIt) nss_ZFreeIf(usagesOpt);
+	return (NSSUsages *)NULL;
+    }
+    return usagesOpt;
+}
+
+NSS_IMPLEMENT NSSUsages *
+NSSCertificate_GetTrustedUsages
+(
+  NSSCertificate *c,
+  NSSUsages *usagesOpt
+)
+{
+    return nssCertificate_GetTrustedUsages(c, usagesOpt);
+}
+
+NSS_IMPLEMENT PRBool
+nssCertificate_IsTrustedForUsages
+(
+  NSSCertificate *c,
+  NSSUsages *usages,
+  PRStatus *statusOpt
+)
+{
+    NSSUsages certUsages;
+    if (nssCertificate_GetTrustedUsages(c, &certUsages) == NULL) {
+	if (statusOpt) *statusOpt = PR_FAILURE;
+	return PR_FALSE;
+    }
+    return nssUsages_Match(usages, &certUsages);
+}
+
+NSS_IMPLEMENT PRStatus
+nssCertificate_SetTrustedUsages
+(
+  NSSCertificate *c,
+  NSSUsages *usages
+)
+{
     return PR_FAILURE;
 }
 

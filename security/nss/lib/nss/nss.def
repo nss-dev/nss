@@ -103,6 +103,7 @@ NSSCertificate_GetTokens;
 NSSCertificate_GetNickname;
 NSSCertificate_GetDecoding;
 NSSCertificate_GetType;
+NSSCertificate_GetTrustedUsages;
 ;+#NSSCertificate_Encrypt;
 ;+#NSSCertificate_Verify;
 ;+#NSSCertificate_VerifyRecover;
@@ -292,19 +293,7 @@ nssPrivateKey_GetNickname;
 NSSTrustDomain_TraverseCertificates;
 NSSTrustDomain_TraversePrivateKeys;
 ;+#
-;+# Data objects
-;+#
-;+# Don't export these DATA symbols on Windows because they don't work right.
-;;NSSAlgorithmAndParameters_DESKeyGen DATA ;
-;;NSSAlgorithmAndParameters_3DESKeyGen DATA ;
-;;NSSAlgorithmAndParameters_RC2KeyGen DATA ;
-;;NSSAlgorithmAndParameters_RC4KeyGen DATA ;
-;;NSSAlgorithmAndParameters_RC5KeyGen DATA ;
-;;NSSAlgorithmAndParameters_MD2  DATA ;
-;;NSSAlgorithmAndParameters_MD5  DATA ;
-;;NSSAlgorithmAndParameters_SHA1 DATA ;
-;+#
-;+# friendly functions for libpkix -- DO NOT USE!
+;+# friendly functions for nss libraries -- DO NOT USE!
 ;+#
 nss_SetError;
 nss_ClearErrorStack;

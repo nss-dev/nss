@@ -207,6 +207,13 @@ NSSCertificate_ValidateAndDiscoverUsagesAndPolicies
   NSSArena *arenaOpt
 );
 
+NSS_EXTERN NSSUsages *
+NSSCertificate_GetTrustedUsages
+(
+  NSSCertificate *c,
+  NSSUsages *usagesOpt
+);
+
 /*
  * NSSCertificate_Encode
  *

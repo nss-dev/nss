@@ -444,3 +444,34 @@ CMD_PrintPKIXCertificate(CMDPrinter *printer, NSSPKIXCertificate *pkixCert,
     unindent(printer);
 }
 
+/* XXX doing it the old way for now */
+void
+CMD_PrintCertificateTrust(CMDPrinter *printer, NSSUsages *usages, 
+                          char *message)
+{
+    int i;
+    if (message) {
+	print_heading(printer, message);
+    }
+    if (usages->ca & NSSUsage_SSLServer) {
+	PR_fprintf(printer->out, "C");
+    }
+    if (usages->peer & (NSSUsage_SSLClient | NSSUsage_SSLServer)) {
+	PR_fprintf(printer->out, "P");
+    }
+    PR_fprintf(printer->out, ",");
+    if (usages->ca & (NSSUsage_EmailRecipient | NSSUsage_EmailSigner)) {
+	PR_fprintf(printer->out, "C");
+    }
+    if (usages->peer & (NSSUsage_EmailRecipient | NSSUsage_EmailSigner)) {
+	PR_fprintf(printer->out, "P");
+    }
+    PR_fprintf(printer->out, ",");
+    if (usages->ca & NSSUsage_CodeSigner) {
+	PR_fprintf(printer->out, "C");
+    }
+    if (usages->peer & NSSUsage_CodeSigner) {
+	PR_fprintf(printer->out, "P");
+    }
+}
+
