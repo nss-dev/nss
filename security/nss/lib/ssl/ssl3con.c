@@ -2976,8 +2976,6 @@ getWrappingKey( sslSocket *       ss,
 	}
     }
 
-no_wrapped_key:
-
     if (!masterSecretSlot) 	/* caller doesn't want to create a new one. */
     	goto loser;
 
