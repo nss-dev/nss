@@ -2655,14 +2655,14 @@ nsslowcert_UpdateSubjectEmailAddr(NSSLOWCERTCertDBHandle *dbhandle,
 	if (emailAddr == NULL) {
 	    return SECFailure;
 	}
+    } else {
+	return SECSuccess;
     }
 
     entry = ReadDBSubjectEntry(dbhandle,derSubject);    
     if (entry == NULL) {
 	goto loser;
-    } else {
-	return SECSuccess;
-    }
+    } 
 
     if ( entry->emailAddrs ) {
 	for (i=0; i < entry->nemailAddrs; i++) {
