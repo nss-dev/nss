@@ -121,6 +121,13 @@ ConvertCertificate(SECItem *sdder, char *nickname, CERTCertTrust *trust)
     printf("CKA_CERT_MD5_HASH MULTILINE_OCTAL\n");
     dumpbytes(md5_hash,MD5_LENGTH);
     printf("END\n");
+
+    printf("CKA_ISSUER MULTILINE_OCTAL\n");
+    dumpbytes(cert->derIssuer.data,cert->derIssuer.len);
+    printf("END\n");
+    printf("CKA_SERIAL_NUMBER MULTILINE_OCTAL\n");
+    dumpbytes(cert->serialNumber.data,cert->serialNumber.len);
+    printf("END\n");
     
     printf("CKA_TRUST_SERVER_AUTH CK_TRUST %s\n",
 				 getTrustString(trust->sslFlags));
