@@ -1059,8 +1059,6 @@ PRIntn PR_CALLBACK FreeIssuer(PLHashEntry *he, PRIntn i, void *arg)
 
 SECStatus ShutdownCRLCache(void)
 {
-    PR_ASSERT(crlcache.lock);
-    PR_ASSERT(crlcache.issuers);
     if (!crlcache.lock || !crlcache.issuers)
     {
         return SECFailure;
