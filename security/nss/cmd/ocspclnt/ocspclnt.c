@@ -1116,6 +1116,7 @@ main (int argc, char **argv)
 	SECU_PrintError (program_name, "NSS_Init failed");
 	goto prdone;
     }
+    SECU_RegisterDynamicOids();
 
     if (prequest + presponse) {
 	data = read_file_into_item (in_file, siBuffer);
