@@ -281,13 +281,22 @@ nssBestCertificate_Callback
   void *arg
 );
 
+NSS_EXTERN PRStatus
+nssPKIObject_Initialize
+(
+  struct nssPKIObjectBaseStr *object,
+  NSSArena *arena,
+  NSSTrustDomain *td,
+  NSSCryptoContext *cc
+);
+
 NSS_EXTERN void
 nssPKIObject_AddRef
 (
   struct nssPKIObjectBaseStr *object
 );
 
-NSS_EXTERN void
+NSS_EXTERN PRBool
 nssPKIObject_Destroy
 (
   struct nssPKIObjectBaseStr *object
