@@ -20,8 +20,8 @@ FILES = $(DATAFILES) pkginfo
 
 PACKAGE = $(shell basename `pwd`)
 
-PRODUCT_VERSION = 3.3.2
-PRODUCT_NAME = NSS_3_3_2_RTM
+PRODUCT_VERSION = 3.3.3
+PRODUCT_NAME = NSS_3_3_3_RTM
 
 LN = /usr/bin/ln
 
