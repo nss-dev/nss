@@ -53,8 +53,6 @@ PR_BEGIN_EXTERN_C
 
 #define MAX_LOCAL_CACHE_OBJECTS 10
 
-typedef struct nssTokenObjectCacheStr nssTokenObjectCache;
-
 PR_END_EXTERN_C
 
 #endif /* DEVTM_H */

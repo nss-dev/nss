@@ -1036,3 +1036,78 @@ nssSMIMEProfile_Destroy
     return PR_SUCCESS;
 }
 
+NSS_IMPLEMENT NSSCRL *
+nssCRL_Create
+(
+  nssPKIObject *object
+)
+{
+    PRStatus status;
+    NSSCRL *rvCRL;
+    NSSArena *arena = object->arena;
+    PR_ASSERT(object->instances != NULL && object->numInstances > 0);
+    rvCRL = nss_ZNEW(arena, NSSCRL);
+    if (!rvCRL) {
+	return (NSSCRL *)NULL;
+    }
+    rvCRL->object = *object;
+    /* XXX should choose instance based on some criteria */
+    status = nssCryptokiCRL_GetAttributes(object->instances[0],
+                                          NULL,  /* XXX sessionOpt */
+                                          arena,
+                                          &rvCRL->encoding,
+                                          &rvCRL->url,
+                                          &rvCRL->isKRL);
+    if (status != PR_SUCCESS) {
+	return (NSSCRL *)NULL;
+    }
+    return rvCRL;
+}
+
+NSS_IMPLEMENT NSSCRL *
+nssCRL_AddRef
+(
+  NSSCRL *crl
+)
+{
+    if (crl) {
+	nssPKIObject_AddRef(&crl->object);
+    }
+    return crl;
+}
+
+NSS_IMPLEMENT PRStatus
+nssCRL_Destroy
+(
+  NSSCRL *crl
+)
+{
+    if (crl) {
+	(void)nssPKIObject_Destroy(&crl->object);
+    }
+    return PR_SUCCESS;
+}
+
+NSS_IMPLEMENT PRStatus
+nssCRL_DeleteStoredObject
+(
+  NSSCRL *crl,
+  NSSCallback *uhh
+)
+{
+    return nssPKIObject_DeleteStoredObject(&crl->object, uhh, PR_TRUE);
+}
+
+NSS_IMPLEMENT NSSDER *
+nssCRL_GetEncoding
+(
+  NSSCRL *crl
+)
+{
+    if (crl->encoding.data != NULL && crl->encoding.size > 0) {
+	return &crl->encoding;
+    } else {
+	return (NSSDER *)NULL;
+    }
+}
+

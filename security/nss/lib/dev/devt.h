@@ -82,6 +82,8 @@ struct nssDeviceBaseStr
   PRUint32 flags;
 };
 
+typedef struct nssTokenObjectCacheStr nssTokenObjectCache;
+
 /* XXX until devobject.c goes away */
 struct NSSTokenStr
 {
@@ -93,12 +95,9 @@ struct NSSTokenStr
     nssSession *defaultSession;
     NSSTrustDomain *trustDomain;
     PRIntervalTime lastTime;
-    PRBool hasNoTrust;
-    PRBool hasNoCrls;
+    nssTokenObjectCache *cache;
 #ifdef NSS_3_4_CODE
     PK11SlotInfo *pk11slot;
-    nssList *certList; /* local cache of certs for slow tokens */
-    PRBool loggedIn;
 #endif
 };
 
