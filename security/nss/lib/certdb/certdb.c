@@ -1480,7 +1480,7 @@ cert_VerifySubjectAltName(CERTCertificate *cert, const char *hn)
 	default:
 	    break;
 	}
-	current = cert_get_next_general_name(current);
+	current = CERT_GetNextGeneralName(current);
     } while (current != nameList);
 
     if ((!isIPaddr && !DNSextCount) || (isIPaddr && !IPextCount)) {
