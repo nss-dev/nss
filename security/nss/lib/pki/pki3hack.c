@@ -586,7 +586,6 @@ fill_CERTCertificateFields(NSSCertificate *c, CERTCertificate *cc, PRBool forced
 	int nicklen, tokenlen, len;
 	NSSUTF8 *tokenName = NULL;
 	char *nick;
-	nicklen = nssUTF8_Size(stanNick, &nssrv);
 	if (instance && !PK11_IsInternal(instance->token->pk11slot)) {
 	    tokenName = nssToken_GetName(instance->token);
 	    tokenlen = nssUTF8_Size(tokenName, &nssrv);
@@ -594,16 +593,21 @@ fill_CERTCertificateFields(NSSCertificate *c, CERTCertificate *cc, PRBool forced
 	    /* don't use token name for internal slot; 3.3 didn't */
 	    tokenlen = 0;
 	}
-	len = tokenlen + nicklen;
-	cc->nickname = PORT_ArenaAlloc(cc->arena, len);
-	nick = cc->nickname;
-	if (tokenName) {
-	    memcpy(nick, tokenName, tokenlen-1);
-	    nick += tokenlen-1;
-	    *nick++ = ':';
+	if (stanNick) {
+	    nicklen = nssUTF8_Size(stanNick, &nssrv);
+	    len = tokenlen + nicklen;
+	    cc->nickname = PORT_ArenaAlloc(cc->arena, len);
+	    nick = cc->nickname;
+	    if (tokenName) {
+		memcpy(nick, tokenName, tokenlen-1);
+		nick += tokenlen-1;
+		*nick++ = ':';
+	    }
+	    memcpy(nick, stanNick, nicklen-1);
+	    cc->nickname[len-1] = '\0';
+	} else {
+	    cc->nickname = NULL;
 	}
-	memcpy(nick, stanNick, nicklen-1);
-	cc->nickname[len-1] = '\0';
     }
     if (context) {
 	/* trust */
