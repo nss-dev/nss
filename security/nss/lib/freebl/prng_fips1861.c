@@ -356,7 +356,7 @@ prng_GenerateGlobalRandomBytes(RNGContext *rng,
                                void *dest, size_t len, unsigned char *q)
 {
     PRUint8 num;
-    SECStatus rv;
+    SECStatus rv = SECSuccess;
     unsigned char *output = dest;
     /* check for a valid global RNG context */
     PORT_Assert(rng != NULL);
