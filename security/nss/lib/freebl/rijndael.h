@@ -50,25 +50,6 @@ typedef SECStatus AESBlockFunc(AESContext *cx,
                                unsigned char *output,
                                const unsigned char *input);
 
-/* AESContextStr
- *
- * Values which maintain the state for Rijndael encryption/decryption.
- *
- * iv          - initialization vector for CBC mode
- * Nb          - the number of bytes in a block, specified by user
- * Nr          - the number of rounds, specified by a table
- * expandedKey - the round keys in 4-byte words, the length is Nr * Nb
- * worker      - the encryption/decryption function to use with this context
- */
-struct AESContextStr
-{
-    unsigned int   Nb;
-    unsigned int   Nr;
-    PRUint32      *expandedKey;
-    AESFunc       *worker;
-    unsigned char iv[RIJNDAEL_MAX_BLOCKSIZE];
-};
-
 /* RIJNDAEL_NUM_ROUNDS
  *
  * Number of rounds per execution
@@ -84,5 +65,31 @@ struct AESContextStr
  * size)
  */
 #define RIJNDAEL_MAX_STATE_SIZE 32
+
+/*
+ * This magic number is (Nb_max * (Nr_max + 1))
+ * where Nb_max is the maximum block size in 32-bit words,
+ *       Nr_max is the maximum number of rounds, which is Nb_max + 6
+ */
+#define RIJNDAEL_MAX_EXP_KEY_SIZE (8 * 15)
+
+/* AESContextStr
+ *
+ * Values which maintain the state for Rijndael encryption/decryption.
+ *
+ * iv          - initialization vector for CBC mode
+ * Nb          - the number of bytes in a block, specified by user
+ * Nr          - the number of rounds, specified by a table
+ * expandedKey - the round keys in 4-byte words, the length is Nr * Nb
+ * worker      - the encryption/decryption function to use with this context
+ */
+struct AESContextStr
+{
+    unsigned int   Nb;
+    unsigned int   Nr;
+    AESFunc       *worker;
+    unsigned char iv[RIJNDAEL_MAX_BLOCKSIZE];
+    PRUint32      expandedKey[RIJNDAEL_MAX_EXP_KEY_SIZE];
+};
 
 #endif /* _RIJNDAEL_H_ */
