@@ -22,7 +22,7 @@ echo "<HTML><BODY>" >> ${PERFRESULTS}
 mkdir -p ${CIPHERDIR}
 cd ${CIPHERDIR}
 
-if [ -z $1 ]; then
+if [ -z "$1" ]; then
     TESTSET="all"
 else
     TESTSET=$1
