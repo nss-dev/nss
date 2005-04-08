@@ -168,6 +168,8 @@ typedef enum { SSLAppOpRead = 0,
 /* This makes the cert cache entry exactly 4k. */
 #define SSL_MAX_CACHED_CERT_LEN		4060
 
+#define NUM_MIXERS                      9
+
 #ifndef BPB
 #define BPB 8 /* Bits Per Byte */
 #endif
@@ -432,12 +434,11 @@ typedef struct {
     uint32         low;
 } SSL3SequenceNumber;
 
-typedef struct {
-    SSL3Opaque write_iv[MAX_IV_LENGTH];
-    PK11SymKey *write_key;
-    PK11SymKey *write_mac_key;
-    PK11Context *write_mac_context;
-} ssl3KeyMaterial;
+#define MAX_MAC_CONTEXT_BYTES 400
+#define MAX_MAC_CONTEXT_LLONGS (MAX_MAC_CONTEXT_BYTES / 8)
+
+#define MAX_CIPHER_CONTEXT_BYTES 2080
+#define MAX_CIPHER_CONTEXT_LLONGS (MAX_CIPHER_CONTEXT_BYTES / 8)
 
 typedef struct {
     SSL3Opaque        wrapped_client_write_key[12]; /* wrapped with Ks */
@@ -447,6 +448,21 @@ typedef struct {
     SSL3Opaque        wrapped_master_secret   [48];
     PRUint16          wrapped_master_secret_len;
 } ssl3SidKeys;
+
+typedef struct {
+#ifdef PK11_BYPASS
+    SECItem     write_key;
+    SECItem     write_iv;
+    SECItem     write_mac_key;
+/*  PRUint64    write_mac_context[MAX_MAC_CONTEXT_LLONGS]; */
+    PRUint64    cipher_context[MAX_CIPHER_CONTEXT_LLONGS];
+#else
+    SSL3Opaque write_iv[MAX_IV_LENGTH];
+    PK11SymKey *write_key;
+    PK11SymKey *write_mac_key;
+    PK11Context *write_mac_context;
+#endif
+} ssl3KeyMaterial;
 
 /*
 ** These are the "specs" in the "ssl3" struct.
@@ -458,16 +474,21 @@ typedef struct {
     const ssl3MACDef * mac_def;
     int                mac_size;
     SSLCipher          encode;
-    void *             encodeContext;
     SSLCipher          decode;
-    void *             decodeContext;
     SSLDestroy         destroy;
+    void *             encodeContext;
+    void *             decodeContext;
     PK11SymKey *       master_secret;
-    ssl3KeyMaterial    client;
-    ssl3KeyMaterial    server;
     SSL3SequenceNumber write_seq_num;
     SSL3SequenceNumber read_seq_num;
     SSL3ProtocolVersion version;
+    ssl3KeyMaterial    client;
+    ssl3KeyMaterial    server;
+#ifdef PK11_BYPASS
+    SECItem            msItem;
+    unsigned char      key_block[NUM_MIXERS * MD5_LENGTH];
+    unsigned char      raw_master_secret[1024];
+#endif
 } ssl3CipherSpec;
 
 typedef enum {	never_cached, 
@@ -531,10 +552,11 @@ struct sslSessionIDStr {
 	    /* The following values are NOT restored from the server's on-disk
 	     * session cache, but are restored from the client's cache.
 	     */
+#ifndef PK11_BYPASS
  	    PK11SymKey *      clientWriteKey;
 	    PK11SymKey *      serverWriteKey;
 	    PK11SymKey *      tek;
-
+#endif
 	    /* The following values pertain to the slot that wrapped the 
 	    ** master secret. (used only in client)
 	    */
@@ -631,8 +653,13 @@ typedef struct SSL3HandshakeStateStr {
     SSL3Random            server_random;
     SSL3Random            client_random;
     SSL3WaitState         ws;
+#ifdef PK11_BYPASS
+    PRUint64              md5[MAX_MAC_CONTEXT_LLONGS];
+    PRUint64              sha[MAX_MAC_CONTEXT_LLONGS];
+#else
     PK11Context *         md5;            /* handshake running hashes */
     PK11Context *         sha;
+#endif
 const ssl3KEADef *        kea_def;
     ssl3CipherSuite       cipher_suite;
 const ssl3CipherSuiteDef *suite_def;

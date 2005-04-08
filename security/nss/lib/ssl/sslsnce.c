@@ -526,9 +526,11 @@ ConvertToSID(sidCacheEntry *from, certCacheEntry *pcce,
 	/* the portions of the SID that are only restored on the client
 	 * are set to invalid values on the server.
 	 */
+#ifndef PK11_BYPASS
 	to->u.ssl3.clientWriteKey   = NULL;
 	to->u.ssl3.serverWriteKey   = NULL;
 	to->u.ssl3.tek              = NULL;
+#endif
 	to->urlSvrName              = NULL;
 
 	to->u.ssl3.masterModuleID   = (SECMODModuleID)-1; /* invalid value */

@@ -67,6 +67,18 @@ endif # NS_USE_GCC
 
 else
 
+# $(PROGRAM) has explicit dependencies on $(EXTRA_LIBS)
+CRYPTOLIB=$(DIST)/lib/$(LIB_PREFIX)freebl.$(LIB_SUFFIX)
+CRYPTODIR=../freebl
+ifdef MOZILLA_SECURITY_BUILD
+	CRYPTOLIB=$(DIST)/lib/$(LIB_PREFIX)crypto.$(LIB_SUFFIX)
+	CRYPTODIR=../crypto
+endif
+
+EXTRA_LIBS += \
+	$(CRYPTOLIB) \
+	$(NULL)
+
 
 # $(PROGRAM) has NO explicit dependencies on $(EXTRA_SHARED_LIBS)
 # $(EXTRA_SHARED_LIBS) come before $(OS_LIBS), except on AIX.
