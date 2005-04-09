@@ -107,3 +107,25 @@ SEC_ASN1GetSubtemplate (const SEC_ASN1Template *theTemplate, void *thing,
     }
     return subt;
 }
+
+PRBool SEC_ASN1IsTemplateSimple(const SEC_ASN1Template *theTemplate)
+{
+    if (!theTemplate) {
+	return PR_TRUE; /* it doesn't get any simpler than NULL */
+    }
+    /* only templates made of one primitive type or a choice of primitive
+       types are considered simple */
+    if (! (theTemplate->kind & (~SEC_ASN1_TAGNUM_MASK))) {
+	return PR_TRUE; /* primitive type */
+    }
+    if (!theTemplate->kind & SEC_ASN1_CHOICE) {
+	return PR_FALSE; /* no choice means not simple */
+    }
+    while (++theTemplate && theTemplate->kind) {
+	if (theTemplate->kind & (~SEC_ASN1_TAGNUM_MASK)) {
+	    return PR_FALSE; /* complex type */
+	}
+    }
+    return PR_TRUE; /* choice of primitive types */
+}
+

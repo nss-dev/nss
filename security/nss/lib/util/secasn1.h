@@ -183,6 +183,11 @@ extern const SEC_ASN1Template *
 SEC_ASN1GetSubtemplate (const SEC_ASN1Template *inTemplate, void *thing,
 			PRBool encoding);
 
+/* whether the template is for a primitive type or a choice of
+ * primitive types
+ */
+extern PRBool SEC_ASN1IsTemplateSimple(const SEC_ASN1Template *theTemplate);
+
 /************************************************************************/
 
 /*
