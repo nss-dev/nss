@@ -711,7 +711,8 @@ void print_ssl3_handshake(unsigned char *tbuf,
 
 	  PR_snprintf(certFileName, sizeof certFileName, "cert.%03d",
 	              ++certFileNumber);
-	  cfd = PR_Open(certFileName, PR_WRONLY|PR_CREATE_FILE, 0664);
+	  cfd = PR_Open(certFileName, PR_WRONLY|PR_CREATE_FILE|PR_TRUNCATE, 
+	                0664);
 	  if (!cfd) {
 	    PR_fprintf(PR_STDOUT,
 	               "               data = { couldn't save file '%s' }\n",
