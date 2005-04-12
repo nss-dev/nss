@@ -157,7 +157,9 @@ void
 PORT_ZFree(void *ptr, size_t len)
 {
     if (ptr) {
+#ifdef NO_BYPASS
 	memset(ptr, 0, len);
+#endif
 	PR_Free(ptr);
     }
 }
