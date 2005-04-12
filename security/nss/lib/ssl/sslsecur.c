@@ -235,7 +235,7 @@ SSL_ResetHandshake(PRFileDesc *s, PRBool asServer)
     ** Blow away old security state and get a fresh setup.
     */
     ssl_GetXmitBufLock(ss); 
-    ssl_ResetSecurityInfo(&ss->sec);
+    ssl_ResetSecurityInfo(&ss->sec, PR_TRUE);
     status = ssl_CreateSecurityInfo(ss);
     ssl_ReleaseXmitBufLock(ss); 
 
@@ -791,7 +791,7 @@ loser:
 ** Caller holds any relevant locks.
 */
 void 
-ssl_ResetSecurityInfo(sslSecurityInfo *sec)
+ssl_ResetSecurityInfo(sslSecurityInfo *sec, PRBool doMemset)
 {
     /* Destroy MAC */
     if (sec->hash && sec->hashcx) {
@@ -833,7 +833,10 @@ ssl_ResetSecurityInfo(sslSecurityInfo *sec)
 	ssl_FreeSID(sec->ci.sid);
     }
     PORT_ZFree(sec->ci.sendBuf.buf, sec->ci.sendBuf.space);
-    memset(&sec->ci, 0, sizeof sec->ci);
+    if (PR_TRUE == doMemset) {
+        memset(&sec->ci, 0, sizeof sec->ci);
+    }
+    
 }
 
 /*
@@ -844,7 +847,7 @@ ssl_ResetSecurityInfo(sslSecurityInfo *sec)
 void 
 ssl_DestroySecurityInfo(sslSecurityInfo *sec)
 {
-    ssl_ResetSecurityInfo(sec);
+    ssl_ResetSecurityInfo(sec, PR_FALSE);
 
     PORT_ZFree(sec->writeBuf.buf, sec->writeBuf.space);
     sec->writeBuf.buf = 0;

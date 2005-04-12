@@ -1091,7 +1091,7 @@ extern int         ssl2_StartGatherBytes(sslSocket *ss, sslGather *gs,
 
 extern SECStatus   ssl_CreateSecurityInfo(sslSocket *ss);
 extern SECStatus   ssl_CopySecurityInfo(sslSocket *ss, sslSocket *os);
-extern void        ssl_ResetSecurityInfo(sslSecurityInfo *sec);
+extern void        ssl_ResetSecurityInfo(sslSecurityInfo *sec, PRBool doMemset);
 extern void        ssl_DestroySecurityInfo(sslSecurityInfo *sec);
 
 extern sslSocket * ssl_DupSocket(sslSocket *old);
