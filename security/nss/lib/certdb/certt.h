@@ -843,6 +843,7 @@ extern const SEC_ASN1Template CERT_SetOfSignedCrlTemplate[];
 extern const SEC_ASN1Template CERT_RDNTemplate[];
 extern const SEC_ASN1Template CERT_SignedDataTemplate[];
 extern const SEC_ASN1Template CERT_CrlTemplate[];
+extern const SEC_ASN1Template CERT_SignedCrlTemplate[];
 
 /*
 ** XXX should the attribute stuff be centralized for all of ns/security?
@@ -863,6 +864,7 @@ SEC_ASN1_CHOOSER_DECLARE(CERT_SetOfSignedCrlTemplate)
 SEC_ASN1_CHOOSER_DECLARE(CERT_SignedDataTemplate)
 SEC_ASN1_CHOOSER_DECLARE(CERT_SubjectPublicKeyInfoTemplate)
 SEC_ASN1_CHOOSER_DECLARE(SEC_SignedCertificateTemplate)
+SEC_ASN1_CHOOSER_DECLARE(CERT_SignedCrlTemplate)
 SEC_ASN1_CHOOSER_DECLARE(CERT_TimeChoiceTemplate)
 
 SEC_END_PROTOS
