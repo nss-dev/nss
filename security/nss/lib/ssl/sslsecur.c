@@ -388,6 +388,7 @@ SSL_ForceHandshake(PRFileDesc *fd)
 SECStatus
 sslBuffer_Grow(sslBuffer *b, unsigned int newLen)
 {
+    newLen = PR_MAX(newLen, MAX_FRAGMENT_LENGTH + 2048);
     if (newLen > b->space) {
 	if (b->buf) {
 	    b->buf = (unsigned char *) PORT_Realloc(b->buf, newLen);
