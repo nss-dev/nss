@@ -113,8 +113,10 @@ ssl_Do1stHandshake(sslSocket *ss)
 
     do {
 	PORT_Assert( ssl_Have1stHandshakeLock(ss) );
+#ifdef NO_BYPASS
 	PORT_Assert( !ssl_HaveRecvBufLock(ss)   );
 	PORT_Assert( !ssl_HaveXmitBufLock(ss)   );
+#endif
 
 	if (ss->handshake == 0) {
 	    /* Previous handshake finished. Switch to next one */
@@ -153,8 +155,10 @@ ssl_Do1stHandshake(sslSocket *ss)
      */
     } while (rv != SECFailure);  	/* was (rv >= 0); XXX_1 */
 
+#ifdef NO_BYPASS
     PORT_Assert( !ssl_HaveRecvBufLock(ss)   );
     PORT_Assert( !ssl_HaveXmitBufLock(ss)   );
+#endif
 
     if (rv == SECWouldBlock) {
 	PORT_SetError(PR_WOULD_BLOCK_ERROR);

@@ -328,7 +328,7 @@ loser:
 static void
 ssl_DestroyLocks(sslSocket *ss)
 {
-
+#ifdef NO_BYPASS
     /* Destroy locks. */
     if (ss->firstHandshakeLock) {
     	PZ_DestroyMonitor(ss->firstHandshakeLock);
@@ -359,6 +359,7 @@ ssl_DestroyLocks(sslSocket *ss)
     	PZ_DestroyMonitor(ss->recvBufLock);
 	ss->recvBufLock = NULL;
     }
+#endif
 }
 
 /* Caller holds any relevant locks */
@@ -1927,6 +1928,7 @@ ssl_NewSocket(void)
 	ssl2_InitSocketPolicy(ss);
 	ssl3_InitSocketPolicy(ss);
 
+#ifdef NO_BYPASS
 	ss->firstHandshakeLock = PZ_NewMonitor(nssILockSSL);
 	if (!ss->firstHandshakeLock) goto loser;
 	ss->ssl3HandshakeLock  = PZ_NewMonitor(nssILockSSL);
@@ -1944,6 +1946,7 @@ ssl_NewSocket(void)
 	    ss->sendLock       = PZ_NewLock(nssILockSSL);
 	    if (!ss->sendLock) goto loser;
 	}
+#endif
 	status = ssl_CreateSecurityInfo(ss);
 	if (status != SECSuccess) goto loser;
 	status = ssl_InitGather(&ss->gs);

@@ -961,6 +961,7 @@ const unsigned char *  preferredCipher;
     PRIntervalTime            wTimeout; /* timeout for NSPR I/O */
     PRIntervalTime            cTimeout; /* timeout for NSPR I/O */
 
+#ifdef NO_BYPASS
     PZLock *      recvLock;	/* lock against multiple reader threads. */
     PZLock *      sendLock;	/* lock against multiple sender threads. */
 
@@ -982,6 +983,7 @@ const unsigned char *  preferredCipher;
     ** outgoing records, and to decrypt and MAC check incoming ciphertext 
     ** records.  */
     NSSRWLock *   specLock;
+#endif
 
     /* handle to perm cert db (and implicitly to the temp cert db) used 
     ** with this socket. 
@@ -1125,6 +1127,8 @@ extern void      ssl_SetAlwaysBlock(sslSocket *ss);
 
 extern SECStatus ssl_EnableNagleDelay(sslSocket *ss, PRBool enabled);
 
+#ifdef NO_BYPASS
+
 #define SSL_LOCK_READER(ss)		if (ss->recvLock) PZ_Lock(ss->recvLock)
 #define SSL_UNLOCK_READER(ss)	if (ss->recvLock) PZ_Unlock(ss->recvLock)
 #define SSL_LOCK_WRITER(ss)		if (ss->sendLock) PZ_Lock(ss->sendLock)
@@ -1153,6 +1157,37 @@ extern SECStatus ssl_EnableNagleDelay(sslSocket *ss, PRBool enabled);
 #define ssl_ReleaseXmitBufLock(ss)	PZ_ExitMonitor( (ss)->xmitBufLock)
 #define ssl_HaveXmitBufLock(ss)		PZ_InMonitor(   (ss)->xmitBufLock)
 
+#else
+
+#define SSL_LOCK_READER(ss)
+#define SSL_UNLOCK_READER(ss)
+#define SSL_LOCK_WRITER(ss)
+#define SSL_UNLOCK_WRITER(ss)
+
+#define ssl_Get1stHandshakeLock(ss)
+#define ssl_Release1stHandshakeLock(ss)
+#define ssl_Have1stHandshakeLock(ss)        PR_TRUE
+
+#define ssl_GetSSL3HandshakeLock(ss)
+#define ssl_ReleaseSSL3HandshakeLock(ss)
+#define ssl_HaveSSL3HandshakeLock(ss)       PR_TRUE
+
+#define ssl_GetSpecReadLock(ss)
+#define ssl_ReleaseSpecReadLock(ss)
+
+#define ssl_GetSpecWriteLock(ss)
+#define ssl_ReleaseSpecWriteLock(ss)
+#define ssl_HaveSpecWriteLock(ss)           PR_TRUE
+
+#define ssl_GetRecvBufLock(ss)
+#define ssl_ReleaseRecvBufLock(ss)
+#define ssl_HaveRecvBufLock(ss)             PR_TRUE
+
+#define ssl_GetXmitBufLock(ss)
+#define ssl_ReleaseXmitBufLock(ss)
+#define ssl_HaveXmitBufLock(ss)             PR_TRUE
+
+#endif
 
 /* These functions are called from secnav, even though they're "private". */
 
