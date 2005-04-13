@@ -159,7 +159,7 @@ RC4_InitContext(RC4Context *cx, const unsigned char *key, unsigned int len,
 	PORT_Assert(len > 0 && len < ARCFOUR_STATE_SIZE);
 	if (len < 0 || len >= ARCFOUR_STATE_SIZE) {
 		PORT_SetError(SEC_ERROR_INVALID_ARGS);
-		return NULL;
+		return SECFailure;
 	}
 	if (cx == NULL) {
 	    PORT_SetError(SEC_ERROR_INVALID_ARGS);
