@@ -331,14 +331,15 @@ int main(int argc, char **argv)
 
     if (!addbuiltin.options[opt_Nickname].activated &&
         !addbuiltin.options[opt_Trust].activated) {
-	fprintf(stderr, "%s: you must specify both a nickname and trust.\n");
+	fprintf(stderr, "%s: you must specify both a nickname and trust.\n",
+		progName);
 	Usage(progName);
     }
 
     if (addbuiltin.options[opt_Input].activated) {
 	infile = PR_Open(addbuiltin.options[opt_Input].arg, PR_RDONLY, 00660);
 	if (!infile) {
-	    fprintf(stderr, "%s: failed to open input file.\n");
+	    fprintf(stderr, "%s: failed to open input file.\n", progName);
 	    exit(1);
 	}
     } else {
