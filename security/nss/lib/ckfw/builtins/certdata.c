@@ -39,15 +39,15 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$ $Name$""; @(#) $R
 #include "builtins.h"
 #endif /* BUILTINS_H */
 
-static const CK_OBJECT_CLASS cko_netscape_trust = CKO_NETSCAPE_TRUST;
-static const CK_TRUST ckt_netscape_valid = CKT_NETSCAPE_VALID;
-static const CK_OBJECT_CLASS cko_netscape_builtin_root_list = CKO_NETSCAPE_BUILTIN_ROOT_LIST;
-static const CK_TRUST ckt_netscape_trusted_delegator = CKT_NETSCAPE_TRUSTED_DELEGATOR;
-static const CK_CERTIFICATE_TYPE ckc_x_509 = CKC_X_509;
-static const CK_OBJECT_CLASS cko_data = CKO_DATA;
-static const CK_BBOOL ck_false = CK_FALSE;
-static const CK_BBOOL ck_true = CK_TRUE;
 static const CK_OBJECT_CLASS cko_certificate = CKO_CERTIFICATE;
+static const CK_CERTIFICATE_TYPE ckc_x_509 = CKC_X_509;
+static const CK_BBOOL ck_false = CK_FALSE;
+static const CK_TRUST ckt_netscape_valid = CKT_NETSCAPE_VALID;
+static const CK_TRUST ckt_netscape_trusted_delegator = CKT_NETSCAPE_TRUSTED_DELEGATOR;
+static const CK_OBJECT_CLASS cko_data = CKO_DATA;
+static const CK_BBOOL ck_true = CK_TRUE;
+static const CK_OBJECT_CLASS cko_netscape_builtin_root_list = CKO_NETSCAPE_BUILTIN_ROOT_LIST;
+static const CK_OBJECT_CLASS cko_netscape_trust = CKO_NETSCAPE_TRUST;
 #ifdef DEBUG
 static const CK_ATTRIBUTE_TYPE nss_builtins_types_0 [] = {
  CKA_CLASS,  CKA_TOKEN,  CKA_PRIVATE,  CKA_MODIFIABLE,  CKA_LABEL,  CKA_APPLICATION,  CKA_VALUE
@@ -10423,9 +10423,9 @@ static const NSSItem nss_builtins_items_157 [] = {
 , (PRUint32)59 },
   { (void *)"\002\001\044"
 , (PRUint32)3 },
+  { (void *)&ckt_netscape_valid, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
-  { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
-  { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) }
+  { (void *)&ckt_netscape_valid, (PRUint32)sizeof(CK_TRUST) }
 };
 static const NSSItem nss_builtins_items_158 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
