@@ -10548,9 +10548,9 @@ static const NSSItem nss_builtins_items_157 [] = {
 , (PRUint32)59 },
   { (void *)"\002\001\044"
 , (PRUint32)3 },
+  { (void *)&ckt_netscape_valid, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
-  { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
-  { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_valid, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
 static const NSSItem nss_builtins_items_158 [] = {
