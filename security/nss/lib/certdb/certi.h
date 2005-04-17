@@ -169,9 +169,9 @@ struct CRLDPCacheStr {
     PRBool refresh;        /* manual refresh from tokens has been forced */
     PRBool mustchoose;     /* trigger reselection algorithm, for case when
                               RAM CRL objects are dropped from the cache */
-    PRIntervalTime lastfetch; /* time a CRL token fetch was last performed */
-    PRIntervalTime lastcheck; /* time CRL token objects were last checked for
-                                 existence */
+    PRTime lastfetch;      /* time a CRL token fetch was last performed */
+    PRTime lastcheck;      /* time CRL token objects were last checked for
+                              existence */
 };
 
 /*  CRL issuer cache object
