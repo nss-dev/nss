@@ -148,6 +148,9 @@ static const char *cipherString;
 static int certsTested;
 static int MakeCertOK;
 static int NoReuse;
+static int fullhs = 0; /* percentage of full handshakes to do */
+static PRInt32 globalconid = 0;
+
 static PRBool NoDelay;
 static PRBool QuitOnTimeout = PR_FALSE;
 
@@ -181,13 +184,14 @@ Usage(const char *progName)
 {
     fprintf(stderr, 
     	"Usage: %s [-n nickname] [-p port] [-d dbdir] [-c connections]\n"
-	"          [-3DNTovq] [-2 filename]\n"
+	"          [-3DNTovq] [-2 filename] [-P fullhandshakespercentage]\n"
 	"          [-w dbpasswd] [-C cipher(s)] [-t threads] hostname\n"
 	" where -v means verbose\n"
 	"       -o means override server certificate validation\n"
 	"       -D means no TCP delays\n"
 	"       -q means quit when server gone (timeout rather than retry forever)\n"
-	"       -N means no session reuse\n",
+	"       -N means no session reuse\n"
+	"       -P means do a specified percentage of full handshakes\n",
 	progName);
     exit(1);
 }
@@ -370,6 +374,7 @@ typedef struct perThreadStr {
     PRThread *  prThread;
     PRBool	inUse;
     runState	running;
+    int         connections;
 } perThread;
 
 perThread threads[MAX_THREADS];
@@ -383,7 +388,10 @@ thread_wrapper(void * arg)
     PR_Lock(threadLock);
     PR_Unlock(threadLock);
 
-    slot->rv = (* slot->startFunc)(slot->a, slot->b, slot->c);
+    while (slot->connections--) {
+        slot->rv = (* slot->startFunc)(slot->a, slot->b, slot->c);
+    }
+    
 
     /* Handle cleanup of thread here. */
     PRINTF("strsclnt: Thread in slot %d returned %d\n", 
@@ -404,7 +412,8 @@ launch_thread(
     startFn *	startFunc,
     void *	a,
     void *	b,
-    int         c)
+    int         c,
+    int         connections)
 {
     perThread * slot;
     int         i;
@@ -437,6 +446,7 @@ launch_thread(
     slot->a = a;
     slot->b = b;
     slot->c = c;
+    slot->connections = connections;
 
     slot->startFunc = startFunc;
 
@@ -616,7 +626,7 @@ handle_fdx_connection( PRFileDesc * ssl_sock, int connection)
     lockedVars_AddToCount(&lv, 1);
 
     /* Attempt to launch the writer thread. */
-    result = launch_thread(do_writes, ssl_sock, &lv, connection);
+    result = launch_thread(do_writes, ssl_sock, &lv, connection, 1);
 
     if (result != SECSuccess) 
     	goto cleanup;
@@ -789,6 +799,15 @@ retry:
     if (!ssl_sock) {
     	PR_Close(tcp_sock);
 	return SECSuccess;
+    }
+    if (fullhs) {
+        PRInt32 savid = PR_AtomicIncrement(&globalconid);
+        PRInt32 conid = 1 + (savid % 100);
+        /* don't set this option on the very first handshake, which is always
+           a full, so the session gets stored into the client cache */
+        if (conid <= fullhs && savid != 1) {
+            rv = SSL_OptionSet(ssl_sock, SSL_NO_CACHE, 1);
+        }
     }
 
     rv = SSL_ResetHandshake(ssl_sock, /* asServer */ 0);
@@ -1123,18 +1142,21 @@ client_main(
 
     i = 1;
     if (!NoReuse) {
-	rv = launch_thread(do_connects, &addr, model_sock, i);
+	rv = launch_thread(do_connects, &addr, model_sock, i, 1);
 	--connections;
 	++i;
 	/* wait for the first connection to terminate, then launch the rest. */
 	reap_threads();
     }
     if (connections > 0) {
-	/* Start up the connections */
-	do {
-	    rv = launch_thread(do_connects, &addr, model_sock, i);
-	    ++i;
-	} while (--connections > 0);
+	/* Start up the threads */
+	for (i=0;i<max_threads;i++) {
+            int todo = connections / max_threads;
+            if (0 == i) {
+                todo += connections % max_threads;
+            }
+	    rv = launch_thread(do_connects, &addr, model_sock, i, todo);
+	}
 	reap_threads();
     }
     destroy_thread_data();
@@ -1209,7 +1231,7 @@ main(int argc, char **argv)
     progName = progName ? progName + 1 : tmp;
  
 
-    optstate = PL_CreateOptState(argc, argv, "2:3C:DNTc:d:n:op:qt:vw:");
+    optstate = PL_CreateOptState(argc, argv, "2:3C:DNP:Tc:d:n:op:qt:vw:");
     while ((status = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
 	switch(optstate->option) {
 
@@ -1234,6 +1256,8 @@ main(int argc, char **argv)
 	case 'o': MakeCertOK = 1; break;
 
 	case 'p': port = PORT_Atoi(optstate->value); break;
+
+	case 'P': fullhs = PR_MIN(100, PORT_Atoi(optstate->value)); break;
 
 	case 'q': QuitOnTimeout = PR_TRUE; break;
 
