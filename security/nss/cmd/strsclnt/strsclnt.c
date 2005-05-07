@@ -187,7 +187,9 @@ Usage(const char *progName)
 	"          [-3DNTovq] [-2 filename] [-P fullhandshakespercentage]\n"
 	"          [-w dbpasswd] [-C cipher(s)] [-t threads] hostname\n"
 	" where -v means verbose\n"
-	"       -o means override server certificate validation\n"
+	"       -o flag is interpreted as follows:\n"
+   	"          1 -o   means override the result of server certificate validation.\n"
+   	"          2 -o's mean skip server certificate validation altogether.\n"
 	"       -D means no TCP delays\n"
 	"       -q means quit when server gone (timeout rather than retry forever)\n"
 	"       -N means no session reuse\n"
@@ -257,6 +259,9 @@ mySSLAuthCertificate(void *arg, PRFileDesc *fd, PRBool checkSig,
     SECStatus rv;
     CERTCertificate *    peerCert;
 
+    if (MakeCertOK>=2) {
+        return SECSuccess;
+    }
     peerCert = SSL_PeerCertificate(fd);
 
     PRINTF("strsclnt: Subject: %s\nstrsclnt: Issuer : %s\n", 
@@ -1253,7 +1258,7 @@ main(int argc, char **argv)
 
         case 'n': nickName = PL_strdup(optstate->value); break;
 
-	case 'o': MakeCertOK = 1; break;
+	case 'o': MakeCertOK++ ; break;
 
 	case 'p': port = PORT_Atoi(optstate->value); break;
 
