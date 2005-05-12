@@ -481,7 +481,7 @@ nssCertificate_BuildChain (
 {
     NSSCertificate **rvChain = NULL;
     NSSUsage issuerUsage = *usage;
-    nssPKIObjectCollection *collection;
+    nssPKIObjectCollection *collection = NULL;
     PRUint32  rvCount = 0;
     PRStatus  st;
     PRStatus  ret = PR_SUCCESS;
