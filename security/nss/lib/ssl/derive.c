@@ -63,7 +63,7 @@ ssl3_KeyAndMacDerive(
     unsigned int    macSize;		/* size of MAC secret */
     unsigned int    IVSize;		/* size of IV */
     SECStatus       rv    = SECFailure;
-    SECStatus       status = SECSuccess;;
+    SECStatus       status = SECSuccess;
 
     SECItem         srcr;
     SECItem         crsr;

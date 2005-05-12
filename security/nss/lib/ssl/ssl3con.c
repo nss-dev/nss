@@ -666,7 +666,7 @@ ssl3_config_match_init(sslSocket *ss)
 	    /* Mark the suites that are backed by real tokens, certs and keys */
 	    suite->isPresent = (PRBool)
 		(((exchKeyType == kt_null) ||
-		    ((!isServer || (svrAuth->serverKey &&
+		    ((!isServer || (svrAuth->SERVERKEY &&
 				   svrAuth->serverCertChain)) &&
 		    PK11_TokenExists(kea_alg_defs[exchKeyType]))) &&
 		((cipher_alg == calg_null) || PK11_TokenExists(cipher_mech)));
@@ -3675,7 +3675,7 @@ getWrappingKey( sslSocket *       ss,
     SECItem                  wrappedKey;
     SSLWrappedSymWrappingKey wswk;
 
-    svrPrivKey  = ss->serverCerts[exchKeyType].serverKey;
+    svrPrivKey  = ss->serverCerts[exchKeyType].SERVERKEY;
     PORT_Assert(svrPrivKey != NULL);
     if (!svrPrivKey) {
     	return NULL;	/* why are we here?!? */
@@ -5248,7 +5248,7 @@ ssl3_SendServerHelloSequence(sslSocket *ss)
 	int keyLen;  /* bytes */
 
 	keyLen = PK11_GetPrivateModulusLen(
-			    ss->serverCerts[kea_def->exchKeyType].serverKey);
+			    ss->serverCerts[kea_def->exchKeyType].SERVERKEY);
 
 	if (keyLen > 0 &&
 	    keyLen * BPB <= kea_def->key_size_limit ) {
@@ -5967,7 +5967,7 @@ const ssl3KEADef *     kea_def     = ss->ssl3->hs.kea_def;
 	}
 
 	isTLS = (PRBool)(ss->ssl3->pwSpec->version > SSL_LIBRARY_VERSION_3_0);
-	rv = ssl3_SignHashes(&hashes, ss->serverCerts[kt_rsa].serverKey, 
+	rv = ssl3_SignHashes(&hashes, ss->serverCerts[kt_rsa].SERVERKEY, 
 	                     &signed_hash, isTLS);
         if (rv != SECSuccess) {
 	    goto loser;		/* ssl3_SignHashes has set err. */
@@ -6052,7 +6052,7 @@ const ssl3KEADef *     kea_def     = ss->ssl3->hs.kea_def;
 	else /* kea_def->kea == kea_ecdhe_ecdsa */
 	    certIndex = kt_ecdh;
 
-	rv = ssl3_SignHashes(&hashes, ss->serverCerts[certIndex].serverKey, 
+	rv = ssl3_SignHashes(&hashes, ss->serverCerts[certIndex].SERVERKEY, 
 	                     &signed_hash, isTLS);
         if (rv != SECSuccess) {
 	    goto loser;		/* ssl3_SignHashes has set err. */
@@ -6368,12 +6368,12 @@ ssl3_HandleRSAClientKeyExchange(sslSocket *ss,
     }
     /*
      * decrypt pms out of the incoming buffer
-     * Note: CKM_SSL3_PRE_MASTER_KEY_GEN is NOT the mechanism used to do 
+     * Note: CKM_SSL3_MASTER_KEY_DERIVE is NOT the mechanism used to do 
      *	the unwrap.  Rather, it is the mechanism with which the unwrapped
      *	pms will be used.
      */
     pms = PK11_PubUnwrapSymKey(serverKey, &enc_pms,
-			       CKM_SSL3_PRE_MASTER_KEY_GEN, CKA_DERIVE, 0);
+			       CKM_SSL3_MASTER_KEY_DERIVE, CKA_DERIVE, 0);
     if (pms != NULL) {
 	PRINT_BUF(60, (ss, "decrypted premaster secret:",
 		       PK11_GetKeyData(pms)->data,
@@ -6526,7 +6526,7 @@ const ssl3KEADef *    kea_def;
 		 && ss->stepDownKeyPair != NULL
 #endif
 		 ) ? ss->stepDownKeyPair->privKey
-		   : ss->serverCerts[kea_def->exchKeyType].serverKey;
+		   : ss->serverCerts[kea_def->exchKeyType].SERVERKEY;
 
     if (ss->ssl3->hs.usedStepDownKey
 #ifdef DEBUG
@@ -6539,7 +6539,7 @@ const ssl3KEADef *    kea_def;
 	ss->sec.keaKeyBits = EXPORT_RSA_KEY_LENGTH * BPB;
     } else {
 	sslServerCerts * sc = ss->serverCerts + kea_def->exchKeyType;
-	serverKey           = sc->serverKey;
+	serverKey           = sc->SERVERKEY;
 	ss->sec.keaKeyBits = sc->serverKeyBits;
     }
 
@@ -8164,7 +8164,8 @@ ssl3_NewKeyPair( SECKEYPrivateKey * privKey, SECKEYPublicKey * pubKey)
 {
     ssl3KeyPair * pair;
 
-    if (!privKey || !pubKey) {
+    if (!privKey && !pubKey) {
+	/* one or the other may be NULL, but not both. */
 	PORT_SetError(PR_INVALID_ARGUMENT_ERROR);
     	return NULL;
     }
@@ -8189,8 +8190,10 @@ ssl3_FreeKeyPair(ssl3KeyPair * keyPair)
 {
     PRInt32 newCount =  PR_AtomicDecrement(&keyPair->refCount);
     if (!newCount) {
-	SECKEY_DestroyPrivateKey(keyPair->privKey);
-	SECKEY_DestroyPublicKey( keyPair->pubKey);
+	if (keyPair->privKey)
+	    SECKEY_DestroyPrivateKey(keyPair->privKey);
+	if (keyPair->pubKey)
+	    SECKEY_DestroyPublicKey( keyPair->pubKey);
     	PORT_Free(keyPair);
     }
 }
@@ -8213,7 +8216,7 @@ ssl3_CreateRSAStepDownKeys(sslSocket *ss)
     ss->stepDownKeyPair = NULL;
 #ifndef HACKED_EXPORT_SERVER
     /* Sigh, should have a get key strength call for private keys */
-    if (PK11_GetPrivateModulusLen(ss->serverCerts[kt_rsa].serverKey) >
+    if (PK11_GetPrivateModulusLen(ss->serverCerts[kt_rsa].SERVERKEY) >
                                                      EXPORT_RSA_KEY_LENGTH) {
 	/* need to ask for the key size in bits */
 	privKey = SECKEY_CreateRSAPrivateKey(EXPORT_RSA_KEY_LENGTH * BPB,

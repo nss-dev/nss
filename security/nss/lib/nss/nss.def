@@ -848,3 +848,9 @@ NSS_Get_CERT_SequenceOfCertExtensionTemplate;
 ;+    local:
 ;+       *;
 ;+};
+;+NSS_3.99 { 	# NSS 3.99 release HACKS BRANCH labels go here
+;+    global:
+PK11_CopyTokenPrivKeyToSessionPrivKey;
+;+    local:
+;+       *;
+;+};

@@ -294,10 +294,11 @@ typedef struct sslServerCertsStr {
     /* Configuration state for server sockets */
     CERTCertificate *     serverCert;
     CERTCertificateList * serverCertChain;
-    SECKEYPrivateKey *    serverKey;
+    ssl3KeyPair *         serverKeyPair;
     unsigned int          serverKeyBits;
 } sslServerCerts;
 
+#define SERVERKEY serverKeyPair->privKey
 
 #define SSL_LOCK_RANK_SPEC 	255
 #define SSL_LOCK_RANK_GLOBAL 	NSS_RWLOCK_RANK_NONE

@@ -1593,7 +1593,7 @@ ssl2_ServerSetupSessionCypher(sslSocket *ss, int cipher, unsigned int keyBits,
 
     PORT_Assert( ssl_Have1stHandshakeLock(ss) );
     PORT_Assert( ssl_HaveRecvBufLock(ss)   );
-    PORT_Assert((sc->serverKey != 0));
+    PORT_Assert((sc->SERVERKEY != 0));
     PORT_Assert((ss->sec.ci.sid != 0));
     sid = ss->sec.ci.sid;
 
@@ -1651,11 +1651,11 @@ ssl2_ServerSetupSessionCypher(sslSocket *ss, int cipher, unsigned int keyBits,
     ** NOTE: PK11_PubDecryptRaw will barf on a non-RSA key. This is
     ** desired behavior here.
     */
-    rv = PK11_PubDecryptRaw(sc->serverKey, kbuf, &el1, ekLen, ek, ekLen);
+    rv = PK11_PubDecryptRaw(sc->SERVERKEY, kbuf, &el1, ekLen, ek, ekLen);
     if (rv != SECSuccess) 
 	goto hide_loser;
 
-    modulusLen = PK11_GetPrivateModulusLen(sc->serverKey);
+    modulusLen = PK11_GetPrivateModulusLen(sc->SERVERKEY);
     if (modulusLen == -1) {
 	/* If the key was really bad, then PK11_pubDecryptRaw
 	 * would have failed, therefore the we must assume that the card
@@ -3742,7 +3742,7 @@ ssl2_BeginServerHandshake(sslSocket *ss)
     ss->sec.rcvSequence = 0;
 
     /* don't turn on SSL2 if we don't have an RSA key and cert */
-    if (!rsaAuth->serverKey || !rsaAuth->serverCert) {
+    if (!rsaAuth->SERVERKEY || !rsaAuth->serverCert) {
 	ss->enableSSL2 = PR_FALSE;
     }
 

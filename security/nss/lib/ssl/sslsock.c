@@ -289,9 +289,9 @@ ssl_DupSocket(sslSocket *os)
 		    sc->serverCert      = NULL;
 		    sc->serverCertChain = NULL;
 		}
-		sc->serverKey = oc->serverKey ?
-				SECKEY_CopyPrivateKey(oc->serverKey) : NULL;
-		if (oc->serverKey && !sc->serverKey)
+		sc->serverKeyPair = oc->serverKeyPair ?
+				ssl3_GetKeyPairRef(oc->serverKeyPair) : NULL;
+		if (oc->serverKeyPair && !sc->serverKeyPair)
 		    goto loser;
 	        sc->serverKeyBits = oc->serverKeyBits;
 	    }
@@ -397,8 +397,8 @@ ssl_DestroySocketContents(sslSocket *ss)
 	    CERT_DestroyCertificate(sc->serverCert);
 	if (sc->serverCertChain != NULL)
 	    CERT_DestroyCertificateList(sc->serverCertChain);
-	if (sc->serverKey != NULL)
-	    SECKEY_DestroyPrivateKey(sc->serverKey);
+	if (sc->serverKeyPair != NULL)
+	    ssl3_FreeKeyPair(sc->serverKeyPair);
     }
     if (ss->stepDownKeyPair) {
 	ssl3_FreeKeyPair(ss->stepDownKeyPair);
@@ -1910,7 +1910,7 @@ ssl_NewSocket(void)
 	    sslServerCerts * sc = ss->serverCerts + i;
 	    sc->serverCert      = NULL;
 	    sc->serverCertChain = NULL;
-	    sc->serverKey       = NULL;
+	    sc->serverKeyPair   = NULL;
 	    sc->serverKeyBits   = 0;
 	}
 	ss->stepDownKeyPair    = NULL;

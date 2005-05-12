@@ -427,6 +427,8 @@ PK11SymKey *PK11_ConvertSessionSymKeyToTokenSymKey(PK11SymKey *symk,
 	void *wincx);
 SECKEYPrivateKey *PK11_ConvertSessionPrivKeyToTokenPrivKey(
 	SECKEYPrivateKey *privk, void* wincx);
+SECKEYPrivateKey * PK11_CopyTokenPrivKeyToSessionPrivKey(PK11SlotInfo *destSlot,
+				      SECKEYPrivateKey *privKey);
 
 /**********************************************************************
  *                   Certs

@@ -667,15 +667,29 @@ SSL_ConfigSecureServer(PRFileDesc *fd, CERTCertificate *cert,
     }
 
     /* load the private key */
-    if (sc->serverKey != NULL) {
-	SECKEY_DestroyPrivateKey(sc->serverKey);
-    	sc->serverKey = NULL;
+    if (sc->serverKeyPair != NULL) {
+        ssl3_FreeKeyPair(sc->serverKeyPair);
+        sc->serverKeyPair = NULL;
     }
     if (key) {
-	sc->serverKey = SECKEY_CopyPrivateKey(key);
-	if (sc->serverKey == NULL)
+	/* should call pk11_mapSignKeyType(key->keyType) here XXX */
+	CK_MECHANISM_TYPE keyMech = CKM_RSA_PKCS;
+	/* Maybe should be bestSlotMultiple? */
+	PK11SlotInfo * bestSlot = PK11_GetBestSlot(keyMech, NULL /* wincx */);
+	SECKEYPrivateKey * keyCopy;
+
+	keyCopy = PK11_CopyTokenPrivKeyToSessionPrivKey(bestSlot, key);
+        PK11_FreeSlot(bestSlot);
+	if (keyCopy == NULL)
+	    keyCopy = SECKEY_CopyPrivateKey(key);
+	if (keyCopy == NULL)
 	    goto loser;
-	SECKEY_CacheStaticFlags(sc->serverKey);
+	SECKEY_CacheStaticFlags(keyCopy);
+        sc->serverKeyPair = ssl3_NewKeyPair(keyCopy, NULL);
+        if (sc->serverKeyPair == NULL) {
+            SECKEY_DestroyPrivateKey(keyCopy);
+            goto loser;
+        }
     }
 
     if (kea == kt_rsa && cert && sc->serverKeyBits > 512) {
@@ -704,9 +718,9 @@ loser:
 	CERT_DestroyCertificateList(sc->serverCertChain);
 	sc->serverCertChain = NULL;
     }
-    if (sc->serverKey != NULL) {
-	SECKEY_DestroyPrivateKey(sc->serverKey);
-	sc->serverKey = NULL;
+    if (sc->serverKeyPair != NULL) {
+	ssl3_FreeKeyPair(sc->serverKeyPair);
+	sc->serverKeyPair = NULL;
     }
     return SECFailure;
 }
