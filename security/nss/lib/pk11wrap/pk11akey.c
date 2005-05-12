@@ -547,8 +547,14 @@ pk11_PairwiseConsistencyCheck(SECKEYPublicKey *pubKey,
     /* If the encryption attribute is set; attempt to encrypt */
     /* with the public key and decrypt with the private key.  */
     if( isEncryptable ) {
+	int modulusLen;
+	CK_MECHANISM_TYPE cryptMech = pk11_mapWrapKeyType(privKey->keyType);
+	if (cryptMech == CKM_INVALID_MECHANISM) {
+	    PORT_SetError( SEC_ERROR_NO_MODULE );
+	    return SECFailure;
+	}
 	/* Find a module to encrypt against */
-	slot = PK11_GetBestSlot(pk11_mapWrapKeyType(privKey->keyType),wincx);
+	slot = PK11_GetBestSlot(cryptMech, wincx);
 	if (slot == NULL) {
 	    PORT_SetError( SEC_ERROR_NO_MODULE );
 	    return SECFailure;
@@ -561,8 +567,19 @@ pk11_PairwiseConsistencyCheck(SECKEYPublicKey *pubKey,
 	}
 
         /* Compute max bytes encrypted from modulus length of private key. */
-	max_bytes_encrypted = PK11_GetPrivateModulusLen( privKey );
+	modulusLen = PK11_GetPrivateModulusLen( privKey );
+	if (modulusLen <= 0) {
+	    PK11_FreeSlot(slot);
+	    return SECFailure;
+	}
+	max_bytes_encrypted = (CK_ULONG)modulusLen;
 
+	PORT_Assert(slot->session != CK_INVALID_SESSION);
+	if (slot->session == CK_INVALID_SESSION) {
+	    PK11_FreeSlot(slot);
+	    PORT_SetError( SEC_ERROR_NO_MODULE );
+	    return SECFailure;
+	}
 
 	/* Prepare for encryption using the public key. */
         PK11_EnterSlotMonitor(slot);
@@ -678,8 +695,7 @@ pk11_PairwiseConsistencyCheck(SECKEYPublicKey *pubKey,
     canSignVerify = PK11_HasAttributeSet ( privKey->pkcs11Slot, 
 					  privKey->pkcs11ID, CKA_SIGN);
     
-    if (canSignVerify)
-      {
+    if (canSignVerify) {
 	/* Initialize signature and digest data. */
 	signature.data = NULL;
 	digest.data = NULL;
@@ -719,15 +735,13 @@ pk11_PairwiseConsistencyCheck(SECKEYPublicKey *pubKey,
 	
 	/* Verify the known hash using the public key. */
 	rv = PK11_Verify( pubKey, &signature, &digest, wincx );
-    if( rv != SECSuccess )
-      goto failure;
+	if( rv != SECSuccess )
+	  goto failure;
 	
 	/* Free signature and digest data. */
 	PORT_Free( signature.data );
 	PORT_Free( digest.data );
       }
-
-
 
     /**********************************************/
     /* Pairwise Consistency Check for Derivation  */
@@ -1211,12 +1225,17 @@ PK11_GenerateKeyPair(PK11SlotInfo *slot,CK_MECHANISM_TYPE type,
 	haslock = PK11_RWSessionHasLock(slot,session_handle);
 	restore = PR_TRUE;
     } else {
-        PK11_EnterSlotMonitor(slot); /* gross!! */
 	session_handle = slot->session;
+	if (session_handle != CK_INVALID_SESSION)
+	    PK11_EnterSlotMonitor(slot);
 	restore = PR_FALSE;
 	haslock = PR_TRUE;
     }
 
+    if (session_handle == CK_INVALID_SESSION) {
+    	PORT_SetError(SEC_ERROR_BAD_DATA);
+	return NULL;
+    }
     crv = PK11_GETTAB(slot)->C_GenerateKeyPair(session_handle, &mechanism,
 	pubTemplate,pubCount,privTemplate,privCount,&pubID,&privID);
 
@@ -1901,6 +1920,10 @@ PK11_ConvertSessionPrivKeyToTokenPrivKey(SECKEYPrivateKey *privk, void* wincx)
 
     PK11_Authenticate(slot, PR_TRUE, wincx);
     rwsession = PK11_GetRWSession(slot);
+    if (rwsession == CK_INVALID_SESSION) {
+    	PORT_SetError(SEC_ERROR_BAD_DATA);
+	return NULL;
+    }
     crv = PK11_GETTAB(slot)->C_CopyObject(rwsession, privk->pkcs11ID,
         template, 1, &newKeyID);
     PK11_RestoreROSession(slot, rwsession);
@@ -1913,6 +1936,7 @@ PK11_ConvertSessionPrivKeyToTokenPrivKey(SECKEYPrivateKey *privk, void* wincx)
     return PK11_MakePrivKey(slot, nullKey /*KeyType*/, PR_FALSE /*isTemp*/,
         newKeyID, NULL /*wincx*/);
 }
+
 /*
  * destroy a private key if there are no matching certs.
  * this function also frees the privKey structure.
