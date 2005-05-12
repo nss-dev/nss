@@ -244,7 +244,7 @@ myGetClientAuthData(void *arg,
 {
 
     CERTCertificate *  cert;
-    SECKEYPrivateKey * privKey;
+    SECKEYPrivateKey * privKey        = NULL;
     char *             chosenNickName = (char *)arg;
     void *             proto_win      = NULL;
     SECStatus          secStatus      = SECFailure;
@@ -457,7 +457,7 @@ launch_thread(GlobalThreadMgr *threadMGR,
               void            *a,
               int              b)
 {
-    perThread *slot;
+    perThread *slot = NULL;
     int        i;
 
     if (!threadMGR->threadStartQ) {

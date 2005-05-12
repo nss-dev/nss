@@ -400,7 +400,7 @@ thread_wrapper(void * arg)
 
     /* Handle cleanup of thread here. */
     PRINTF("strsclnt: Thread in slot %d returned %d\n", 
-	   slot - threads, slot->rv);
+	   (int)(slot - threads), slot->rv);
 
     PR_Lock(threadLock);
     slot->running = rs_idle;
