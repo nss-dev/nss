@@ -64,7 +64,7 @@ nss_cmsrecipientinfo_usessubjectkeyid(NSSCMSRecipientInfo *ri)
 }
 
 
-static SECOidData fakeContent = { 0 };
+static SECOidData fakeContent;
 NSSCMSRecipientInfo *
 nss_cmsrecipientinfo_create(NSSCMSMessage *cmsg, NSSCMSRecipientIDSelector type,
                             CERTCertificate *cert, SECKEYPublicKey *pubKey, 
