@@ -162,6 +162,9 @@ typedef enum { SSLAppOpRead = 0,
 
 #define SSL_MAX_MAC_BYTES		16
 
+#define SSL3_RSA_PMS_LENGTH 48
+#define SSL3_MASTER_SECRET_LENGTH 48
+
 /* number of wrap mechanisms potentially used to wrap master secrets. */
 #define SSL_NUM_WRAP_MECHS              13
 
@@ -1187,6 +1190,13 @@ extern SECStatus ssl_EnableNagleDelay(sslSocket *ss, PRBool enabled);
 #define ssl_GetXmitBufLock(ss)
 #define ssl_ReleaseXmitBufLock(ss)
 #define ssl_HaveXmitBufLock(ss)             PR_TRUE
+
+extern SECStatus ssl3_KeyAndMacDerive(ssl3CipherSpec * pwSpec,
+		    const unsigned char * cr, const unsigned char * sr,
+		    PRBool isTLS, PRBool isExport);
+extern  SECStatus ssl3_MasterKeyDeriveBypass( ssl3CipherSpec * pwSpec,
+		    const unsigned char * cr, const unsigned char * sr,
+		    const SECItem * pms, PRBool isTLS, PRBool isRSA);
 
 #endif
 

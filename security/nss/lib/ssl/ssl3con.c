@@ -2469,6 +2469,9 @@ ssl3_HandleChangeCipherSpecs(sslSocket *ss, sslBuffer *buf)
     return SECSuccess;
 }
 
+/* This method uses PKCS11 to derive the MS from the PMS, where PMS 
+** is a PKCS11 symkey 
+*/
 static SECStatus
 ssl3_DeriveMasterSecret(sslSocket *ss, const PK11SymKey *pms)
 {
@@ -2589,7 +2592,6 @@ ssl3_DeriveMasterSecret(sslSocket *ss, const PK11SymKey *pms)
     return SECSuccess;
 }
 
-
 /*
  * Key generation given pre master secret, or master secret (if !pms).
  * Sets a useful error code when returning SECFailure.
@@ -2615,11 +2617,6 @@ ssl3_GenerateConnectionKeys(sslSocket *ss)
                                 (pwSpec->version > SSL_LIBRARY_VERSION_3_0));
 #ifdef PK11_BYPASS
     SECStatus              rv;
-    extern SECStatus ssl3_KeyAndMacDerive(ssl3CipherSpec *      pwSpec,
-					  const unsigned char * cr,
-					  const unsigned char * sr,
-					  PRBool                isTLS,
-					  PRBool                isExport);
 #else
     const ssl3BulkCipherDef *cipher_def = pwSpec->cipher_def;
     PK11SlotInfo *         slot   = NULL;
@@ -6345,7 +6342,17 @@ ssl3_HandleRSAClientKeyExchange(sslSocket *ss,
 				PRUint32 length,
 				SECKEYPrivateKey *serverKey)
 {
+#ifdef PK11_BYPASS
+    unsigned char *   cr     = (unsigned char *)&ss->ssl3->hs.client_random;
+    unsigned char *   sr     = (unsigned char *)&ss->ssl3->hs.server_random;
+    ssl3CipherSpec *  pwSpec = ss->ssl3->pwSpec;
+    PRBool isTLS  = (PRBool)(pwSpec->version > SSL_LIBRARY_VERSION_3_0);
+    unsigned int      outLen = 0;
+    unsigned char     rsaPmsBuf[SSL3_RSA_PMS_LENGTH];
+    SECItem           pms = {siBuffer, rsaPmsBuf, sizeof rsaPmsBuf};
+#else
     PK11SymKey *      pms;
+#endif
     SECStatus         rv;
     SECItem           enc_pms;
 
@@ -6366,6 +6373,38 @@ ssl3_HandleRSAClientKeyExchange(sslSocket *ss,
 	    enc_pms.len = kLen;
 	}
     }
+
+#ifdef PK11_BYPASS
+    /* XXX TRIPLE BYPASS GOES HERE
+     * Use PK11_PrivDecryptPKCS1 to decrypt the PMS to a buffer, then, 
+     * check for version rollback attack, then 
+     * do the equivalent of ssl3_DeriveMasterSecret, placing the MS in 
+     * pwSpec->master_secret.  Finally call ssl3_InitPendingCipherSpec with 
+     * ss and NULL, so that it will use the MS we've already derived here. 
+     */
+
+    rv = PK11_PrivDecryptPKCS1(serverKey, rsaPmsBuf, &outLen, 
+			       sizeof rsaPmsBuf, enc_pms.data, enc_pms.len);
+    if (rv != SECSuccess) {
+	/* avoid Bleichenbacker attack.  generate faux pms. */
+	rv = PK11_GenerateRandom(rsaPmsBuf, sizeof rsaPmsBuf);
+	/* ignore failure */
+    } else if (ss->detectRollBack) {
+	SSL3ProtocolVersion client_version = (rsaPmsBuf[0] << 8) | rsaPmsBuf[1];
+	if (client_version != ss->clientHelloVersion) {
+	    /* Version roll-back detected. ensure failure.  */
+	    rv = PK11_GenerateRandom(rsaPmsBuf, sizeof rsaPmsBuf);
+	}
+    }
+    /* have PMS */
+    rv = ssl3_MasterKeyDeriveBypass( pwSpec, cr, sr, &pms, isTLS, PR_TRUE);
+    if (rv != SECSuccess) {
+	pwSpec->msItem.data = pwSpec->raw_master_secret;
+	pwSpec->msItem.len  = SSL3_MASTER_SECRET_LENGTH;
+	PK11_GenerateRandom(pwSpec->msItem.data, pwSpec->msItem.len);
+    }
+    rv = ssl3_InitPendingCipherSpec(ss,  NULL);
+#else
     /*
      * decrypt pms out of the incoming buffer
      * Note: CKM_SSL3_MASTER_KEY_DERIVE is NOT the mechanism used to do 
@@ -6397,9 +6436,10 @@ ssl3_HandleRSAClientKeyExchange(sslSocket *ss,
 
     rv = ssl3_InitPendingCipherSpec(ss,  pms);
     PK11_FreeSymKey(pms);
+#endif
     if (rv != SECSuccess) {
 	SEND_ALERT
-	return SECFailure;	/* error code set by ssl3_InitPendingCipherSpec */
+	return SECFailure; /* error code set by ssl3_InitPendingCipherSpec */
     }
     return SECSuccess;
 }

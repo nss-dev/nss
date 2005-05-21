@@ -23,8 +23,6 @@ buildSSLKey(unsigned char * keyBlock, unsigned int keyLen, SECItem * result)
 }
 #endif
 
-#define SSL3_PMS_LENGTH 48
-#define SSL3_MASTER_SECRET_LENGTH 48
 /*
  * SSL Key generation given pre master secret
  */
@@ -63,7 +61,9 @@ ssl3_KeyAndMacDerive(
     unsigned int    macSize;		/* size of MAC secret */
     unsigned int    IVSize;		/* size of IV */
     SECStatus       rv    = SECFailure;
+#ifdef BYPASS_TLS
     SECStatus       status = SECSuccess;
+#endif
 
     SECItem         srcr;
     SECItem         crsr;
@@ -73,7 +73,7 @@ ssl3_KeyAndMacDerive(
     PRUint64          md5buf[22];
     PRUint64          shabuf[40];
 
-#define md5ctx ((MD5Context *)md5buf)
+#define md5Ctx ((MD5Context *)md5buf)
 #define shaCtx ((SHA1Context *)shabuf)
 
     static const SECItem zed  = { siBuffer, NULL, 0 };
@@ -113,8 +113,8 @@ ssl3_KeyAndMacDerive(
     crsr.type   = siBuffer;
     crsr.data   = crsrdata;
     crsr.len    = sizeof crsrdata;
-    PORT_Memcpy(crsrdata, sr, SSL3_RANDOM_LENGTH);
-    PORT_Memcpy(crsrdata + SSL3_RANDOM_LENGTH, cr, SSL3_RANDOM_LENGTH);
+    PORT_Memcpy(crsrdata, cr, SSL3_RANDOM_LENGTH);
+    PORT_Memcpy(crsrdata + SSL3_RANDOM_LENGTH, sr, SSL3_RANDOM_LENGTH);
 
     /*
      * generate the key material:
@@ -158,10 +158,10 @@ ssl3_KeyAndMacDerive(
 	    SHA1_End(shaCtx, sha_out, &outLen, SHA1_LENGTH);
 	    PORT_Assert(outLen == SHA1_LENGTH);
 
-	    MD5_Begin(md5ctx);
-	    MD5_Update(md5ctx, pwSpec->msItem.data, pwSpec->msItem.len);
-	    MD5_Update(md5ctx, sha_out, outLen);
-	    MD5_End(md5ctx, key_block + made, &outLen, MD5_LENGTH);
+	    MD5_Begin(md5Ctx);
+	    MD5_Update(md5Ctx, pwSpec->msItem.data, pwSpec->msItem.len);
+	    MD5_Update(md5Ctx, sha_out, outLen);
+	    MD5_End(md5Ctx, key_block + made, &outLen, MD5_LENGTH);
 	    PORT_Assert(outLen == MD5_LENGTH);
 	    made += MD5_LENGTH;
 	}
@@ -235,10 +235,10 @@ ssl3_KeyAndMacDerive(
 	** final_client_write_key = MD5(client_write_key +
 	**                   ClientHello.random + ServerHello.random);
 	*/
-	MD5_Begin(md5ctx);
-	MD5_Update(md5ctx, &key_block[i], effKeySize);
-	MD5_Update(md5ctx, crsr.data, crsr.len);
-	MD5_End(md5ctx, key_block2, &outLen, MD5_LENGTH);
+	MD5_Begin(md5Ctx);
+	MD5_Update(md5Ctx, &key_block[i], effKeySize);
+	MD5_Update(md5Ctx, crsr.data, crsr.len);
+	MD5_End(md5Ctx, key_block2, &outLen, MD5_LENGTH);
 	i += effKeySize;
 	buildSSLKey(key_block2, keySize, &pwSpec->client.write_key);
 	key_block2 += keySize;
@@ -248,10 +248,10 @@ ssl3_KeyAndMacDerive(
 	** final_server_write_key = MD5(server_write_key +
 	**                    ServerHello.random + ClientHello.random);
 	*/
-	MD5_Begin(md5ctx);
-	MD5_Update(md5ctx, &key_block[i], effKeySize);
-	MD5_Update(md5ctx, srcr.data, srcr.len);
-	MD5_End(md5ctx, key_block2, &outLen, MD5_LENGTH);
+	MD5_Begin(md5Ctx);
+	MD5_Update(md5Ctx, &key_block[i], effKeySize);
+	MD5_Update(md5Ctx, srcr.data, srcr.len);
+	MD5_End(md5Ctx, key_block2, &outLen, MD5_LENGTH);
 	i += effKeySize;
 	buildSSLKey(key_block2, keySize, &pwSpec->server.write_key);
 	key_block2 += keySize;
@@ -262,9 +262,9 @@ ssl3_KeyAndMacDerive(
 	    ** client_write_IV = 
 	    **	MD5(ClientHello.random + ServerHello.random);
 	    */
-	    MD5_Begin(md5ctx);
-	    MD5_Update(md5ctx, crsr.data, crsr.len);
-	    MD5_End(md5ctx, key_block2, &outLen, MD5_LENGTH);
+	    MD5_Begin(md5Ctx);
+	    MD5_Update(md5Ctx, crsr.data, crsr.len);
+	    MD5_End(md5Ctx, key_block2, &outLen, MD5_LENGTH);
 	    buildSSLKey(key_block2, IVSize, &pwSpec->client.write_key);
 	    key_block2 += IVSize;
 
@@ -272,9 +272,9 @@ ssl3_KeyAndMacDerive(
 	    ** server_write_IV = 
 	    **	MD5(ServerHello.random + ClientHello.random);
 	    */
-	    MD5_Begin(md5ctx);
-	    MD5_Update(md5ctx, srcr.data, srcr.len);
-	    MD5_End(md5ctx, key_block2, &outLen, MD5_LENGTH);
+	    MD5_Begin(md5Ctx);
+	    MD5_Update(md5Ctx, srcr.data, srcr.len);
+	    MD5_End(md5Ctx, key_block2, &outLen, MD5_LENGTH);
 	    buildSSLKey(key_block2, IVSize, &pwSpec->server.write_key);
 	    key_block2 += IVSize;
 	}
@@ -351,9 +351,11 @@ ssl3_KeyAndMacDerive(
     }
     rv = SECSuccess;
 
+#ifdef BYPASS_TLS
 key_and_mac_derive_fail:
+#endif
 
-    MD5_DestroyContext(md5ctx, PR_FALSE);
+    MD5_DestroyContext(md5Ctx, PR_FALSE);
     SHA1_DestroyContext(shaCtx, PR_FALSE);
 
     if (rv != SECSuccess) {
@@ -362,4 +364,93 @@ key_and_mac_derive_fail:
 
     return rv;
 }
+
+
+/* derive the Master Secret from the PMS */
+SECStatus
+ssl3_MasterKeyDeriveBypass( 
+    ssl3CipherSpec *      pwSpec,
+    const unsigned char * cr,
+    const unsigned char * sr,
+    const SECItem *       pms,
+    PRBool                isTLS,
+    PRBool                isRSA)
+{
+    unsigned char * key_block    = pwSpec->key_block;
+    SECStatus       rv    = SECSuccess;
+
+    SECItem         crsr;
+
+    unsigned char     crsrdata[SSL3_RANDOM_LENGTH * 2];
+    PRUint64          md5buf[22];
+    PRUint64          shabuf[40];
+
+#define md5Ctx ((MD5Context *)md5buf)
+#define shaCtx ((SHA1Context *)shabuf)
+
+    /* first do the consistancy checks */
+    if (isRSA) { 
+	PORT_Assert(pms->len == SSL3_RSA_PMS_LENGTH);
+	if (pms->len != SSL3_RSA_PMS_LENGTH) {
+	    PORT_SetError(SEC_ERROR_INVALID_ARGS);
+	    return SECFailure;
+	}
+	/* test PMS version for rollback here?  or in caller? */
+    }
+
+    /* initialize the client random, server random block */
+    crsr.type   = siBuffer;
+    crsr.data   = crsrdata;
+    crsr.len    = sizeof crsrdata;
+    PORT_Memcpy(crsrdata, cr, SSL3_RANDOM_LENGTH);
+    PORT_Memcpy(crsrdata + SSL3_RANDOM_LENGTH, sr, SSL3_RANDOM_LENGTH);
+
+    /* finally do the key gen */
+    if (isTLS) {
+#ifndef BYPASS_TLS
+	abort();
+#else
+	SECItem master = { siBuffer, NULL, 0 };
+
+	master.data = key_block;
+	master.len = SSL3_MASTER_SECRET_LENGTH;
+
+	rv = sftk_PRF(pms, "master secret", &crsr, &master, isFIPS);
+	if (status != SECSuccess) {
+	    PORT_SetError(SSL_ERROR_SESSION_KEY_GEN_FAILURE);
+	}
+#endif
+    } else {
+	int i;
+	int made = 0;
+	for (i = 0; i < 3; i++) {
+	    unsigned int    outLen;
+	    unsigned char   sha_out[SHA1_LENGTH];
+
+	    SHA1_Begin(shaCtx);
+	    SHA1_Update(shaCtx, (unsigned char*) mixers[i], i+1);
+	    SHA1_Update(shaCtx, pms->data, pms->len);
+	    SHA1_Update(shaCtx, crsr.data, crsr.len);
+	    SHA1_End(shaCtx, sha_out, &outLen, SHA1_LENGTH);
+	    PORT_Assert(outLen == SHA1_LENGTH);
+
+	    MD5_Begin(md5Ctx);
+	    MD5_Update(md5Ctx, pms->data, pms->len);
+	    MD5_Update(md5Ctx, sha_out, outLen);
+	    MD5_End(md5Ctx, key_block + made, &outLen, MD5_LENGTH);
+	    PORT_Assert(outLen == MD5_LENGTH);
+	    made += outLen;
+	}
+    }
+
+    /* store the results */
+    PORT_Memcpy(pwSpec->raw_master_secret, key_block, 
+		SSL3_MASTER_SECRET_LENGTH);
+    pwSpec->msItem.data = pwSpec->raw_master_secret;
+    pwSpec->msItem.len  = SSL3_MASTER_SECRET_LENGTH;
+
+    return rv;
+}
+
+
 #endif /* PK11_BYPASS */
