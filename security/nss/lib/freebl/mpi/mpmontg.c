@@ -48,6 +48,7 @@
  */
 
 /* #define MP_USING_MONT_MULF 1 */
+#define MP_USING_CACHE_SAFE_MOD_EXP 1 
 #include <string.h>
 #include "mpi-priv.h"
 #include "mplogic.h"
@@ -173,6 +174,13 @@ CLEANUP:
 }
 
 #ifdef MP_USING_MONT_MULF
+
+/* the floating point multiply is already cache safe,
+ * don't turn on cache safe unless we specifically
+ * force it */
+#ifndef MP_FORCE_CACHE_SAFE
+#undef MP_USING_CACHE_SAFE_MOD_EXP
+#endif
 
 unsigned int mp_using_mont_mulf = 1;
 
@@ -504,6 +512,138 @@ CLEANUP:
 #undef SQR
 #undef MUL
 
+#ifdef MP_USING_CACHE_SAFE_MOD_EXP
+
+unsigned int mp_using_cache_safe_exp = 1;
+
+mp_set_mode_modify() { mp_using_cache_safe_exp = 0; }
+mp_set_mode_safe() { mp_using_cache_safe_exp = 1; }
+
+#define SQR(a,b) \
+  MP_CHECKOK( mp_sqr(a, b) );\
+  MP_CHECKOK( s_mp_redc(b, mmm) )
+
+#if defined(MP_MONT_USE_MP_MUL)
+#define MUL(x,a,b) \
+  MP_CHECKOK( mp_mul(a, oddPowers + (x), b) ); \
+  MP_CHECKOK( s_mp_redc(b, mmm) ) 
+#else
+#define MUL(x,a,b) \
+  MP_CHECKOK( s_mp_mul_mont(a, powers + (x), b, mmm) )
+#endif
+
+#define SWAPPA ptmp = pa1; pa1 = pa2; pa2 = ptmp
+#define MAX_POWERS MAX_ODD_INTS*2
+
+/* Do modular exponentiation using integer multiply code. */
+mp_err mp_exptmod_safe_i(const mp_int *   montBase, 
+                    const mp_int *   exponent, 
+		    const mp_int *   modulus, 
+		    mp_int *         result, 
+		    mp_mont_modulus *mmm, 
+		    int              nLen, 
+		    mp_size          bits_in_exponent, 
+		    mp_size          window_bits,
+		    mp_size          num_powers)
+{
+  mp_int *pa1, *pa2, *ptmp;
+  mp_size i;
+  mp_err  res;
+  int     expOff;
+  mp_int  accum1, accum2, powers[MAX_POWERS];
+
+  /* get the cache line size */
+
+  /* powers[i] = base ** (i); */
+
+  MP_DIGITS(&accum1) = 0;
+  MP_DIGITS(&accum2) = 0;
+  for (i = 0; i < MAX_POWERS; ++i) {
+    MP_DIGITS(powers + i) = 0;
+  }
+
+  MP_CHECKOK( mp_init_size(&accum2, 3 * nLen + 2) );
+  MP_CHECKOK( mp_init_size(&accum1, 3 * nLen + 2) );
+
+  mp_init_size(&powers[0], nLen + 2 * MP_USED(montBase) + 2);
+  mp_set(&powers[0], 1);
+  MP_CHECKOK( s_mp_to_mont(&powers[0], mmm, &powers[0]) );
+  MP_CHECKOK( mp_init_copy(&powers[1], montBase) );
+
+  /* this adds 2**(k-1)-2 square operations over just calculating the
+   * odd powers where k is the window size. We will get some of that
+   * back by not needing the first 'N' squares for the window (though
+   * squaring 1 is extremely fast, so it's not much savings) */ 
+  for (i = 2; i < num_powers; ++i) {
+    mp_init_size(powers + i, nLen + 2 * MP_USED(montBase) + 2);
+    if ( i & 1 ) {
+        MP_CHECKOK( mp_mul(powers + (i - 1), montBase, powers + i) );
+        MP_CHECKOK( s_mp_redc(powers + i, mmm) );
+    } else {
+        MP_CHECKOK( mp_sqr(powers + (i >> 1), powers + i) );
+        MP_CHECKOK( s_mp_redc(powers + i, mmm) );
+    }
+  }
+
+
+  /* save the first N squares by just loading up the accumulator from
+   * the first window */
+  MP_CHECKOK( mpl_get_bits(exponent, 
+				bits_in_exponent-window_bits, window_bits) );
+  i = (mp_size)res;
+  /* unlike mp_copy_init, mp_copy is from, to */
+  MP_CHECKOK( mp_copy(&powers[i], &accum1) );
+
+  /* set accumulator to montgomery residue of 1 */
+  pa1 = &accum1;
+  pa2 = &accum2;
+
+  for (expOff = bits_in_exponent - window_bits*2; expOff >= 0; expOff -= window_bits) {
+    mp_size smallExp;
+    MP_CHECKOK( mpl_get_bits(exponent, expOff, window_bits) );
+    smallExp = (mp_size)res;
+
+    /* handle unroll the loops */
+    switch (window_bits) {
+    case 1:
+	if (!smallExp) {
+	    SQR(pa1,pa2); SWAPPA;
+	} else if (smallExp & 1) {
+	    SQR(pa1,pa2); MUL(1,pa2,pa1);
+	} else {
+	    ABORT;
+	}
+	break;
+    case 6:
+	SQR(pa1,pa2); SQR(pa2,pa1); 
+	/* fall through */
+    case 4:
+	SQR(pa1,pa2); SQR(pa2,pa1); SQR(pa1,pa2); SQR(pa2,pa1);
+	MUL(smallExp, pa1,pa2); SWAPPA;
+	break;
+    case 5:
+	SQR(pa1,pa2); SQR(pa2,pa1); SQR(pa1,pa2); SQR(pa2,pa1); 
+	SQR(pa1,pa2); MUL(smallExp,pa2,pa1);
+	break;
+    default:
+	ABORT; /* could do a loop? */
+    }
+  }
+
+  res = s_mp_redc(pa1, mmm);
+  mp_exch(pa1, result);
+
+CLEANUP:
+  mp_clear(&accum1);
+  mp_clear(&accum2);
+  for (i = 0; i < num_powers; ++i) {
+    mp_clear(powers + i);
+  }
+  return res;
+}
+#undef SQR
+#undef MUL
+#endif
 
 mp_err mp_exptmod(const mp_int *inBase, const mp_int *exponent, 
 		  const mp_int *modulus, mp_int *result)
@@ -546,6 +686,21 @@ mp_err mp_exptmod(const mp_int *inBase, const mp_int *exponent,
   MP_CHECKOK( s_mp_to_mont(base, &mmm, &montBase) );
 
   bits_in_exponent = mpl_significant_bits(exponent);
+#ifdef MP_USING_CACHE_SAFE_MOD_EXP
+  if (mp_using_cache_safe_exp) {
+    if (bits_in_exponent > 780)
+	window_bits = 6;
+    else if (bits_in_exponent > 256)
+	window_bits = 5;
+    else if (bits_in_exponent > 20)
+	window_bits = 4;
+       /* RSA public key exponents are typically under 20 bits (common values 
+        * are: 3, 17, 65537) and a 4-bit window is inefficient
+        */
+    else 
+	window_bits = 1;
+  } else
+#endif
   if (bits_in_exponent > 480)
     window_bits = 6;
   else if (bits_in_exponent > 160)
@@ -557,6 +712,7 @@ mp_err mp_exptmod(const mp_int *inBase, const mp_int *exponent,
    */
   else 
     window_bits = 1;
+
   odd_ints = 1 << (window_bits - 1);
   i = bits_in_exponent % window_bits;
   if (i != 0) {
@@ -568,6 +724,12 @@ mp_err mp_exptmod(const mp_int *inBase, const mp_int *exponent,
     MP_CHECKOK( s_mp_pad(&montBase, nLen) );
     res = mp_exptmod_f(&montBase, exponent, modulus, result, &mmm, nLen, 
 		     bits_in_exponent, window_bits, odd_ints);
+  } else
+#endif
+#ifdef MP_USING_CACHE_SAFE_MOD_EXP
+  if (mp_using_cache_safe_exp) {
+    res = mp_exptmod_safe_i(&montBase, exponent, modulus, result, &mmm, nLen, 
+		     bits_in_exponent, window_bits, 1 << window_bits);
   } else
 #endif
   res = mp_exptmod_i(&montBase, exponent, modulus, result, &mmm, nLen, 
