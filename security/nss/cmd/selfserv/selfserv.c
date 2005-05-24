@@ -90,8 +90,9 @@
 #endif
 
 #define NUM_SID_CACHE_ENTRIES 1024
+#define RCV_BUF_BYTES (10 * 1024)
 
-static int handle_connection( PRFileDesc *, PRFileDesc *, int );
+static int handle_connection( PRFileDesc *, PRFileDesc *, char *, int );
 
 static const char envVarName[] = { SSL_ENV_VAR_NAME };
 static const char inheritableSockName[] = { "SELFSERV_LISTEN_SOCKET" };
@@ -530,7 +531,10 @@ jobLoop(PRFileDesc *a, PRFileDesc *b, int c)
 {
     PRCList * myLink = 0;
     JOB     * myJob;
+    char    * buf    = PORT_Alloc(RCV_BUF_BYTES);
 
+    if (!buf)
+	return -1;
     PZ_Lock(qLock);
     do {
 	myLink = 0;
@@ -546,12 +550,13 @@ jobLoop(PRFileDesc *a, PRFileDesc *b, int c)
 	/* myJob will be null when stopping is true and jobQ is empty */
 	if (!myJob) 
 	    break;
-	handle_connection( myJob->tcp_sock, myJob->model_sock, 
+	handle_connection( myJob->tcp_sock, myJob->model_sock, buf,
 			   myJob->requestCert);
 	PZ_Lock(qLock);
 	PR_APPEND_LINK(myLink, &freeJobs);
 	PZ_NotifyCondVar(freeListNotEmptyCv);
     } while (PR_TRUE);
+    PORT_Free(buf);
     return 0;
 }
 
@@ -918,6 +923,7 @@ int
 handle_connection( 
     PRFileDesc *tcp_sock,
     PRFileDesc *model_sock,
+    char       *buf,
     int         requestCert
     )
 {
@@ -937,12 +943,11 @@ handle_connection(
     PRSocketOptionData opt;
     PRIOVec            iovs[16];
     char               msgBuf[160];
-    char               buf[10240];
     char               fileName[513];
     char               proto[128];
 
     pBuf   = buf;
-    bufRem = sizeof buf;
+    bufRem = RCV_BUF_BYTES;
 
     VLOG(("selfserv: handle_connection: starting"));
     opt.option             = PR_SockOpt_Nonblocking;
