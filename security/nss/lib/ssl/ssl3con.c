@@ -874,7 +874,7 @@ done:
     return rv;
 }
 
-
+/* Called from ssl3_HandleServerKeyExchange, ssl3_HandleCertificateVerify */
 static SECStatus
 ssl3_VerifySignedHashes(SSL3Hashes *hash, CERTCertificate *cert, 
                         SECItem *buf, PRBool isTLS, void *pwArg)
@@ -1663,7 +1663,7 @@ ssl3_ComputeRecordMAC(
     SSL3ContentType    type,
     SSL3ProtocolVersion version,
     SSL3SequenceNumber seq_num,
-    SSL3Opaque *       input,
+    const SSL3Opaque * input,
     int                inputLength,
     unsigned char *    outbuf,
     unsigned int *     outLength)
@@ -1851,7 +1851,6 @@ ssl3_SendRecord(   sslSocket *        ss,
     SECStatus                 rv;
     PRUint32                  bufSize     =  0;
     PRInt32                   sent        =  0;
-    PRInt32                   cipherBytes = -1;
     PRBool                    isBlocking  = ssl_SocketIsBlocking(ss);
     PRBool                    ssl3WasNull = PR_FALSE;
 
@@ -1886,6 +1885,8 @@ ssl3_SendRecord(   sslSocket *        ss,
 	PRUint32  contentLen;
 	PRUint32  fragLen;
 	PRUint32  macLen;
+	PRInt32   cipherBytes =  0;
+	PRUint32  p1Len, p2Len, oddLen = 0;
 
 	contentLen = PR_MIN(bytes, MAX_FRAGMENT_LENGTH);
 	if (write->space < contentLen + SSL3_BUFFER_FUDGE) {
@@ -1906,11 +1907,8 @@ ssl3_SendRecord(   sslSocket *        ss,
 
 	/*
 	 * null compression is easy to do
-	 */
 	PORT_Memcpy(write->buf + SSL3_RECORD_HEADER_LENGTH, buf, contentLen);
-	buf   += contentLen;
-	bytes -= contentLen;
-	PORT_Assert( bytes >= 0 );
+	 */
 
 	ssl_GetSpecReadLock(ss);	/********************************/
 
@@ -1928,12 +1926,14 @@ ssl3_SendRecord(   sslSocket *        ss,
 	                       : cwSpec->client.write_mac_context,
 #endif
 	    type, cwSpec->version, cwSpec->write_seq_num,
-	    write->buf + SSL3_RECORD_HEADER_LENGTH, contentLen,
+	    buf, contentLen,
 	    write->buf + contentLen + SSL3_RECORD_HEADER_LENGTH, &macLen);
 	if (rv != SECSuccess) {
 	    ssl_MapLowLevelError(SSL_ERROR_MAC_COMPUTATION_FAILURE);
 	    goto spec_locked_loser;
 	}
+	p1Len   = contentLen;
+	p2Len   = macLen;
 	fragLen = contentLen + macLen;	/* needs to be encrypted */
 	PORT_Assert(fragLen <= MAX_FRAGMENT_LENGTH + 1024);
 
@@ -1942,10 +1942,11 @@ ssl3_SendRecord(   sslSocket *        ss,
 	 * then Encrypt it
 	 */
 	if (cipher_def->type == type_block) {
+	    unsigned char * pBuf;
 	    int             padding_length;
 	    int             i;
-	    unsigned char * pBuf;
 
+	    oddLen = contentLen % cipher_def->block_size;
 	    /* Assume blockSize is a power of two */
 	    padding_length = cipher_def->block_size - 1 -
 		((fragLen) & (cipher_def->block_size - 1));
@@ -1957,11 +1958,49 @@ ssl3_SendRecord(   sslSocket *        ss,
 	    for (i = padding_length + 1; i > 0; --i) {
 	    	*pBuf-- = padding_length;
 	    }
+	    /* now, if contentLen is not a multiple of block size, fix it */
+	    p2Len = fragLen - p1Len;
 	}
-	rv = cwSpec->encode(
-	    cwSpec->encodeContext, write->buf + SSL3_RECORD_HEADER_LENGTH,
-	    &cipherBytes, bufSize, write->buf + SSL3_RECORD_HEADER_LENGTH,
-	    fragLen);
+	if (p1Len < 256) {
+	    oddLen = p1Len;
+	    p1Len = 0;
+	} else {
+	    p1Len -= oddLen;
+	}
+	if (oddLen) {
+	    p2Len += oddLen;
+	    PORT_Assert( (cipher_def->block_size < 2) || \
+			 (p2Len % cipher_def->block_size) == 0);
+	    memcpy(write->buf + SSL3_RECORD_HEADER_LENGTH + p1Len,
+		   buf + p1Len, oddLen);
+	}
+	if (p1Len > 0) {
+	    rv = cwSpec->encode( cwSpec->encodeContext, 
+		write->buf + SSL3_RECORD_HEADER_LENGTH, /* output */
+		&cipherBytes,                           /* actual outlen */
+		p1Len,                                  /* max outlen */
+		buf, p1Len);                      /* input, and inputlen */
+	    PORT_Assert(rv == SECSuccess && cipherBytes == p1Len);
+	    if (rv != SECSuccess || cipherBytes != p1Len) {
+		PORT_SetError(SSL_ERROR_ENCRYPTION_FAILURE);
+		goto spec_locked_loser;
+	    }
+	}
+	if (p2Len > 0) {
+	    PRInt32 cipherBytesPart2 = -1;
+	    rv = cwSpec->encode( cwSpec->encodeContext, 
+		write->buf + SSL3_RECORD_HEADER_LENGTH + p1Len,
+		&cipherBytesPart2,          /* output and actual outLen */
+		p2Len,                             /* max outlen */
+		write->buf + SSL3_RECORD_HEADER_LENGTH + p1Len,
+		p2Len);                            /* input and inputLen*/
+	    PORT_Assert(rv == SECSuccess && cipherBytesPart2 == p2Len);
+	    if (rv != SECSuccess || cipherBytesPart2 != p2Len) {
+		PORT_SetError(SSL_ERROR_ENCRYPTION_FAILURE);
+		    goto spec_locked_loser;
+		}
+	    cipherBytes += cipherBytesPart2;
+	}	
 	if (rv != SECSuccess) {
 	    ssl_MapLowLevelError(SSL_ERROR_ENCRYPTION_FAILURE);
 spec_locked_loser:
@@ -1978,6 +2017,10 @@ spec_locked_loser:
 	ssl3_BumpSequenceNumber(&cwSpec->write_seq_num);
 
 	ssl_ReleaseSpecReadLock(ss); /************************************/
+
+	buf   += contentLen;
+	bytes -= contentLen;
+	PORT_Assert( bytes >= 0 );
 
 	/* PORT_Assert(fragLen == cipherBytes); */
 	write->len    = cipherBytes + SSL3_RECORD_HEADER_LENGTH;
