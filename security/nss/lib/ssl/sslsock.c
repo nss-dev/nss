@@ -374,7 +374,7 @@ ssl_DestroySocketContents(sslSocket *ss)
     /* Free up socket */
     ssl_DestroySecurityInfo(&ss->sec);
 
-    ssl3_DestroySSL3Info(ss->ssl3);
+    ssl3_DestroySSL3Info(ss);
 
     PORT_Free(ss->saveBuf.buf);
     PORT_Free(ss->pendingBuf.buf);

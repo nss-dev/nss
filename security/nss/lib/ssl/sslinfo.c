@@ -67,10 +67,10 @@ SSL_GetChannelInfo(PRFileDesc *fd, SSLChannelInfo *info, PRUintn len)
 	inf.keaKeyBits       = ss->sec.keaKeyBits;
 	if (ss->version < SSL_LIBRARY_VERSION_3_0) { /* SSL2 */
 	    inf.cipherSuite      = ss->sec.cipherType | 0xff00;
-	} else if (ss->ssl3) { 		/* SSL3 and TLS */
+	} else if (ss->ssl3.initialized) { 	/* SSL3 and TLS */
 
 	    /* XXX  These should come from crSpec */
-	    inf.cipherSuite      = ss->ssl3->hs.cipher_suite;
+	    inf.cipherSuite      = ss->ssl3.hs.cipher_suite;
 #if 0
 	    /* misc */
 	    inf.isFIPS =  (inf.symCipher == ssl_calg_des   || inf.symCipher == ssl_calg_3des)

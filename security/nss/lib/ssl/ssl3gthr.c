@@ -207,7 +207,7 @@ ssl3_GatherCompleteHandshake(sslSocket *ss, int flags)
 	if (rv < 0) {
 	    return ss->recvdCloseNotify ? 0 : rv;
 	}
-    } while (ss->ssl3->hs.ws != idle_handshake && ss->gs.buf.len == 0);
+    } while (ss->ssl3.hs.ws != idle_handshake && ss->gs.buf.len == 0);
 
     ss->gs.readOffset = 0;
     ss->gs.writeOffset = ss->gs.buf.len;

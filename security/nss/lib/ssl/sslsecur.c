@@ -912,7 +912,7 @@ ssl_SecureClose(sslSocket *ss)
     	ss->firstHsDone 			&& 
 	!(ss->shutdownHow & ssl_SHUTDOWN_SEND)	&&
 	!ss->recvdCloseNotify                   &&
-	(ss->ssl3 != NULL)) {
+	ss->ssl3.initialized) {
 
 	/* We don't want the final alert to be Nagle delayed. */
 	if (!ss->delayDisabled) {
@@ -944,7 +944,7 @@ ssl_SecureShutdown(sslSocket *ss, int nsprHow)
     	(ss->version >= SSL_LIBRARY_VERSION_3_0)	&&
 	ss->firstHsDone 				&& 
 	!ss->recvdCloseNotify                   	&&
-	(ss->ssl3 != NULL)) {
+	ss->ssl3.initialized) {
 
 	(void) SSL3_SendAlert(ss, alert_warning, close_notify);
     }

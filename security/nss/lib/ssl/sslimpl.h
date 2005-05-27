@@ -491,7 +491,7 @@ typedef struct {
 #ifdef PK11_BYPASS
     SECItem            msItem;
     unsigned char      key_block[NUM_MIXERS * MD5_LENGTH];
-    unsigned char      raw_master_secret[1024];
+    unsigned char      raw_master_secret[56];
 #endif
 } ssl3CipherSpec;
 
@@ -706,8 +706,6 @@ struct ssl3StateStr {
     ssl3CipherSpec *     pwSpec; 	/* pending write spec. */
     ssl3CipherSpec       specs[2];	/* one is current, one is pending. */
 
-    SSL3HandshakeState   hs;
-
     CERTCertificate *    clientCertificate;  /* used by client */
     SECKEYPrivateKey *   clientPrivateKey;   /* used by client */
     CERTCertificateList *clientCertChain;    /* used by client */
@@ -723,6 +721,8 @@ struct ssl3StateStr {
 			    /* chain while we are trying to validate it.   */
     CERTDistNames *      ca_list; 
 			    /* used by server.  trusted CAs for this socket. */
+    PRBool               initialized;
+    SSL3HandshakeState   hs;
 
 };
 
@@ -770,7 +770,7 @@ typedef struct SSLWrappedSymWrappingKeyStr {
  */
 
 /*
-** This is "ci", as in "ss->sec->ci".
+** This is "ci", as in "ss->sec.ci".
 **
 ** Protection:  All the variables in here are protected by 
 ** firstHandshakeLock AND (in ssl3) ssl3HandshakeLock 
@@ -939,7 +939,6 @@ struct sslSocketStr {
     /* the following variable is only used with socks or other proxies. */
     char *           peerID;	/* String uniquely identifies target server. */
 
-    ssl3State *      ssl3;
     unsigned char *  cipherSpecs;
     unsigned int     sizeCipherSpecs;
 const unsigned char *  preferredCipher;
@@ -1006,6 +1005,9 @@ const unsigned char *  preferredCipher;
 
     ssl3CipherSuiteCfg cipherSuites[ssl_V3_SUITES_IMPLEMENTED];
     ssl3KeyPair *         ephemeralECDHKeyPair; /* for ECDHE-* handshake */
+
+    /* SSL3 state info.  Formerly was a pointer */
+    ssl3State        ssl3;
 };
 
 
@@ -1281,7 +1283,7 @@ extern SECStatus ssl3_ConstructV2CipherSpecsHack(sslSocket *ss,
 
 extern SECStatus ssl3_RedoHandshake(sslSocket *ss, PRBool flushCache);
 
-extern void ssl3_DestroySSL3Info(ssl3State *ssl3);
+extern void ssl3_DestroySSL3Info(sslSocket *ss);
 
 extern SECStatus ssl3_NegotiateVersion(sslSocket *ss, 
                                        SSL3ProtocolVersion peerVersion);
