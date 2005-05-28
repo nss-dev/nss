@@ -42,6 +42,16 @@
 # (1) Include initial platform-independent assignments (MANDATORY).   #
 #######################################################################
 
+# We have to define this variable now so the right sources are pulled
+#  from manifest.mn.
+# TFM works only with gcc, and we have only tested it on AMD64 so far.
+ifeq ($(CPU_ARCH),x86_64)
+ifdef NS_USE_GCC
+	NSS_USE_TFM = 1
+endif
+endif
+
+
 include manifest.mn
 
 #######################################################################
@@ -129,22 +139,19 @@ endif
 
 ifeq ($(OS_TARGET),Linux)
 ifeq ($(CPU_ARCH),x86_64)
+    ifdef NSS_USE_TFM
+	DEFINES += -DNSS_USE_TFM
+    endif
     ASFILES  = arcfour-amd64-gas.s mpi_amd64_gas.s
     ASFLAGS += -march=opteron -m64 -fPIC
     DEFINES += -DNSS_BEVAND_ARCFOUR -DMPI_AMD64 -DMP_ASSEMBLY_MULTIPLY
     MPI_SRCS += mpi_amd64.c
-    ifdef BUILD_OPT
-	OPTIMIZER = -O3 
-    endif
 endif
 ifeq ($(CPU_ARCH),x86)
     ASFILES  = mpi_x86.s
     DEFINES += -DMP_ASSEMBLY_MULTIPLY -DMP_ASSEMBLY_SQUARE 
     DEFINES += -DMP_ASSEMBLY_DIV_2DX1D
     USE_FP_CODE = 1
-    ifdef BUILD_OPT
-	OPTIMIZER = -O3 
-    endif
 endif
 ifdef NSS_ENABLE_ECC
     ifdef USE_FP_CODE
@@ -249,9 +256,6 @@ else
 	LD = gcc
 	AS = gcc
 	ASFLAGS =
-	ifdef BUILD_OPT
-	    OPTIMIZER = -O3 
-	endif
     endif
     ifeq ($(USE_64),1)
 	# Solaris for AMD64
@@ -261,6 +265,9 @@ else
 	else
 	    ASFILES  = arcfour-amd64-sun.s mpi_amd64_sun.s
 	    ASFLAGS += -xarch=generic64 -K PIC
+	endif
+	ifdef NSS_USE_TFM
+		DEFINES += -DNSS_USE_TFM
 	endif
 	DEFINES += -DNSS_BEVAND_ARCFOUR -DMPI_AMD64 -DMP_ASSEMBLY_MULTIPLY
 	MPI_SRCS += mpi_amd64.c
@@ -308,18 +315,20 @@ vpath %.s $(FREEBL_PARENT)/ecl $(FREEBL_PARENT)/mpi $(FREEBL_PARENT)
 vpath %.asm $(FREEBL_PARENT)/ecl $(FREEBL_PARENT)/mpi $(FREEBL_PARENT)
 INCLUDES += -I$(FREEBL_PARENT) -I$(FREEBL_PARENT)/mpi -I$(FREEBL_PARENT)/ecl
 else
-vpath %.h mpi ecl
-vpath %.c mpi ecl
+vpath %.h mpi ecl tfm
+vpath %.c mpi ecl tfm
 vpath %.S mpi ecl
 vpath %.s mpi ecl
 vpath %.asm mpi ecl
-INCLUDES += -Impi -Iecl
+INCLUDES += -Impi -Iecl -Itfm
 endif
 
 
 DEFINES += -DMP_API_COMPATIBLE
 
-MPI_USERS = dh.c pqg.c dsa.c rsa.c ec.c
+# These defines force a rebuild when headers are newer than source
+
+MPI_USERS = dh.c pqg.c dsa.c rsa.c rsa_keygen.c ec.c
 
 MPI_OBJS = $(addprefix $(OBJDIR)/$(PROG_PREFIX), $(MPI_SRCS:.c=$(OBJ_SUFFIX)))
 MPI_OBJS += $(addprefix $(OBJDIR)/$(PROG_PREFIX), $(MPI_USERS:.c=$(OBJ_SUFFIX)))
@@ -329,9 +338,19 @@ ECL_USERS = ec.c
 ECL_OBJS = $(addprefix $(OBJDIR)/$(PROG_PREFIX), $(ECL_SRCS:.c=$(OBJ_SUFFIX)) $(ECL_ASM_SRCS:$(ASM_SUFFIX)=$(OBJ_SUFFIX)))
 ECL_OBJS += $(addprefix $(OBJDIR)/$(PROG_PREFIX), $(ECL_USERS:.c=$(OBJ_SUFFIX)))
 
+TFM_USERS = rsa.c rsa_keygen.c
+
+TFM_OBJS = $(addprefix $(OBJDIR)/$(PROG_PREFIX), $(TFM_SRCS:.c=$(OBJ_SUFFIX)))
+TFM_OBJS += $(addprefix $(OBJDIR)/$(PROG_PREFIX), $(TFM_USERS:.c=$(OBJ_SUFFIX)))
+
+ifdef NSS_USE_TFM
+$(TFM_OBJS): $(TFM_HDRS)
+endif
+
 $(MPI_OBJS): $(MPI_HDRS)
 
 $(ECL_OBJS): $(ECL_HDRS)
+
 
 $(OBJDIR)/$(PROG_PREFIX)mpprime$(OBJ_SUFFIX): primes.c
 

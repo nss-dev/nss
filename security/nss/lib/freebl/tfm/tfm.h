@@ -354,5 +354,11 @@ void fp_sqr_comba64(fp_int *A, fp_int *B);
 #endif
 extern const char *fp_s_rmap;
 
+/* added by fp_util.c for the sake of ex-MPI users */
+/* switches the values of p and q */
+void fp_exch(fp_int* p, fp_int* q);
+/* converts an fp bignum to an octet string of fixed length */
+int fp_to_fixlen_octets(fp_int* fp, unsigned char* str, int len);
+
 #endif
 
