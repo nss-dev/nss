@@ -112,7 +112,7 @@ ifdef NS_USE_GCC
 		OS_CFLAGS += -MDupdate $(DEPENDENCIES)
 	endif
 	ifdef BUILD_OPT
-	    OPTIMIZER = -O2
+	    OPTIMIZER = -O3
 	endif
 else
 	CC         = cc
