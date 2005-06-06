@@ -452,7 +452,7 @@ myBadCertHandler( void *arg, PRFileDesc *fd)
 /**************************************************************************
 ** Begin thread management routines and data.
 **************************************************************************/
-#define MIN_THREADS 3
+#define MIN_THREADS 1
 #define DEFAULT_THREADS 8
 #define MAX_THREADS 4096
 #define MAX_PROCS 25
