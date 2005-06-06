@@ -2814,18 +2814,23 @@ static PRInt32
 ssl3_ConsumeHandshakeNumber(sslSocket *ss, PRInt32 bytes, SSL3Opaque **b,
 			    PRUint32 *length)
 {
-    PRInt32   num = 0;
+    uint8     *buf = *b;
     int       i;
-    SECStatus status;
-    uint8     buf[4];
+    PRInt32   num = 0;
 
-    status = ssl3_ConsumeHandshake(ss, buf, bytes, b, length);
-    if (status != SECSuccess) {
-	/* ssl3_DecodeError has already been called */
-	return SECFailure;
+    PORT_Assert( ssl_HaveRecvBufLock(ss) );
+    PORT_Assert( ssl_HaveSSL3HandshakeLock(ss) );
+    PORT_Assert( bytes <= sizeof num);
+
+    if ((PRUint32)bytes > *length) {
+	return ssl3_DecodeError(ss);
     }
+    PRINT_BUF(60, (ss, "consume bytes:", *b, bytes));
+
     for (i = 0; i < bytes; i++)
 	num = (num << 8) + buf[i];
+    *b      += bytes;
+    *length -= bytes;
     return num;
 }
 
@@ -2837,13 +2842,17 @@ ssl3_ConsumeHandshakeNumber(sslSocket *ss, PRInt32 bytes, SSL3Opaque **b,
  *
  * Returns SECFailure (-1) on failure.
  * On error, an alert has been sent, and a generic error code has been set.
+ *
+ * RADICAL CHANGE for NSS 3.11.  All callers of this function make copies 
+ * of the data returned in the SECItem *i, so making a copy of it here
+ * is simply wasteful.  So, This function now just sets SECItem *i to 
+ * point to the values in the buffer **b.
  */
 static SECStatus
 ssl3_ConsumeHandshakeVariable(sslSocket *ss, SECItem *i, PRInt32 bytes,
 			      SSL3Opaque **b, PRUint32 *length)
 {
     PRInt32   count;
-    SECStatus rv;
 
     PORT_Assert(bytes <= 3);
     i->len  = 0;
@@ -2853,21 +2862,13 @@ ssl3_ConsumeHandshakeVariable(sslSocket *ss, SECItem *i, PRInt32 bytes,
     	return SECFailure;
     }
     if (count > 0) {
-	i->data = (unsigned char*)PORT_Alloc(count);
-	if (i->data == NULL) {
-	    /* XXX inconsistent.  In other places, we don't send alerts for
-	     * our own memory failures.  But here we do... */
-	    (void)SSL3_SendAlert(ss, alert_fatal, handshake_failure);
-	    PORT_SetError(SEC_ERROR_NO_MEMORY);
-	    return SECFailure;
+	if ((PRUint32)count > *length) {
+	    return ssl3_DecodeError(ss);
 	}
-	i->len = count;
-	rv = ssl3_ConsumeHandshake(ss, i->data, i->len, b, length);
-	if (rv != SECSuccess) {
-	    PORT_Free(i->data);
-	    i->data = NULL;
-	    return rv;	/* alert has already been sent. */
-	}
+	i->data = *b;
+	i->len  = count;
+	*b      += count;
+	*length -= count;
     }
     return SECSuccess;
 }
@@ -4101,9 +4102,11 @@ ssl3_HandleServerHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     }
     ss->ssl3.hs.compression = (SSL3CompressionMethod)temp;
 
+#ifdef DISALLOW_SERVER_HELLO_EXTENSIONS
     if (length != 0) {	/* malformed */
 	goto alert_loser;
     }
+#endif
 
     /* Any errors after this point are not "malformed" errors. */
     desc    = handshake_failure;
@@ -4208,7 +4211,6 @@ ssl3_HandleServerHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	if (rv != SECSuccess) {
 	    goto alert_loser;	/* err code was set */
 	}
-	SECITEM_ZfreeItem(&sidBytes, PR_FALSE);	
 	return SECSuccess;
     } while (0);
 
@@ -4231,7 +4233,6 @@ ssl3_HandleServerHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     sid->version = ss->version;
     sid->u.ssl3.sessionIDLength = sidBytes.len;
     PORT_Memcpy(sid->u.ssl3.sessionID, sidBytes.data, sidBytes.len);
-    SECITEM_ZfreeItem(&sidBytes, PR_FALSE);
 
     ss->ssl3.hs.isResuming = PR_FALSE;
     ss->ssl3.hs.ws         = wait_server_cert;
@@ -4241,8 +4242,6 @@ alert_loser:
     (void)SSL3_SendAlert(ss, alert_fatal, desc);
 
 loser:
-    if (sidBytes.data != NULL)
-	SECITEM_ZfreeItem(&sidBytes, PR_FALSE);
     errCode = ssl_MapLowLevelError(errCode);
     return SECFailure;
 }
@@ -4260,17 +4259,8 @@ ssl3_HandleServerKeyExchange(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     SECStatus        rv;
     int              errCode   = SSL_ERROR_RX_MALFORMED_SERVER_KEY_EXCH;
     SSL3AlertDescription desc  = illegal_parameter;
-    SECItem          modulus   = {siBuffer, NULL, 0};
-    SECItem          exponent  = {siBuffer, NULL, 0};
-    SECItem          signature = {siBuffer, NULL, 0};
-    SECItem          dh_p      = {siBuffer, NULL, 0};
-    SECItem          dh_g      = {siBuffer, NULL, 0};
-    SECItem          dh_Ys     = {siBuffer, NULL, 0};
     SSL3Hashes       hashes;
-#ifdef NSS_ENABLE_ECC
-    SECItem          ec_params = {siBuffer, NULL, 0};
-    SECItem          ec_point  = {siBuffer, NULL, 0};
-#endif /* NSS_ENABLE_ECC */
+    SECItem          signature = {siBuffer, NULL, 0};
 
     SSL_TRC(3, ("%d: SSL3[%d]: handle server_key_exchange handshake",
 		SSL_GETPID(), ss->fd));
@@ -4293,7 +4283,10 @@ ssl3_HandleServerKeyExchange(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 
     switch (ss->ssl3.hs.kea_def->exchKeyType) {
 
-    case kt_rsa:
+    case kt_rsa: {
+	SECItem          modulus   = {siBuffer, NULL, 0};
+	SECItem          exponent  = {siBuffer, NULL, 0};
+
     	rv = ssl3_ConsumeHandshakeVariable(ss, &modulus, 2, &b, &length);
     	if (rv != SECSuccess) {
 	    goto loser;		/* malformed. */
@@ -4362,13 +4355,15 @@ ssl3_HandleServerKeyExchange(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	    goto no_memory;
         }
     	ss->sec.peerKey = peerKey;
-	SECITEM_FreeItem(&modulus,   PR_FALSE);
-	SECITEM_FreeItem(&exponent,  PR_FALSE);
-	SECITEM_FreeItem(&signature, PR_FALSE);
     	ss->ssl3.hs.ws = wait_cert_request;
     	return SECSuccess;
+    }
 
-    case kt_dh:
+    case kt_dh: {
+	SECItem          dh_p      = {siBuffer, NULL, 0};
+	SECItem          dh_g      = {siBuffer, NULL, 0};
+	SECItem          dh_Ys     = {siBuffer, NULL, 0};
+
     	rv = ssl3_ConsumeHandshakeVariable(ss, &dh_p, 2, &b, &length);
     	if (rv != SECSuccess) {
 	    goto loser;		/* malformed. */
@@ -4446,20 +4441,23 @@ ssl3_HandleServerKeyExchange(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	    goto no_memory;
         }
     	ss->sec.peerKey = peerKey;
-	SECITEM_FreeItem(&dh_p,   PR_FALSE);
-	SECITEM_FreeItem(&dh_g,  PR_FALSE);
-	SECITEM_FreeItem(&dh_Ys, PR_FALSE);
     	ss->ssl3.hs.ws = wait_cert_request;
     	return SECSuccess;
+    }
 
 #ifdef NSS_ENABLE_ECC
-    case kt_ecdh:
+    case kt_ecdh: {
+	SECItem          ec_params = {siBuffer, NULL, 0};
+	SECItem          ec_point  = {siBuffer, NULL, 0};
+	unsigned char    paramBuf[2];
+
 	/* XXX This works only for named curves, revisit this when
 	 * we support generic curves.
 	 */
 	ec_params.len = 2;
-	ec_params.data = (unsigned char*)PORT_Alloc(ec_params.len);
-    	rv = ssl3_ConsumeHandshake(ss, ec_params.data, ec_params.len, &b, &length);
+	ec_params.data = paramBuf;
+    	rv = ssl3_ConsumeHandshake(ss, ec_params.data, ec_params.len, 
+				   &b, &length);
     	if (rv != SECSuccess) {
 	    goto loser;		/* malformed. */
 	}
@@ -4555,11 +4553,10 @@ ssl3_HandleServerKeyExchange(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	peerKey->pkcs11ID           = CK_INVALID_HANDLE;
 
     	ss->sec.peerKey = peerKey;
-	SECITEM_FreeItem(&ec_params, PR_FALSE);
-	SECITEM_FreeItem(&ec_point, PR_FALSE);
     	ss->ssl3.hs.ws = wait_cert_request;
 
 	return SECSuccess;
+}
 #endif /* NSS_ENABLE_ECC */
 
     default:
@@ -4571,30 +4568,10 @@ ssl3_HandleServerKeyExchange(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 alert_loser:
     (void)SSL3_SendAlert(ss, alert_fatal, desc);
 loser:
-    if (modulus.data   != NULL) SECITEM_FreeItem(&modulus,   PR_FALSE);
-    if (exponent.data  != NULL) SECITEM_FreeItem(&exponent,  PR_FALSE);
-    if (signature.data != NULL) SECITEM_FreeItem(&signature, PR_FALSE);
-    if (dh_p.data != NULL) SECITEM_FreeItem(&dh_p, PR_FALSE);
-    if (dh_g.data != NULL) SECITEM_FreeItem(&dh_g, PR_FALSE);
-    if (dh_Ys.data != NULL) SECITEM_FreeItem(&dh_Ys, PR_FALSE);
-#ifdef NSS_ENABLE_ECC
-    if (ec_params.data != NULL) SECITEM_FreeItem(&ec_params, PR_FALSE);
-    if (ec_point.data != NULL) SECITEM_FreeItem(&ec_point, PR_FALSE);
-#endif /* NSS_ENABLE_ECC */
     PORT_SetError( errCode );
     return SECFailure;
 
 no_memory:	/* no-memory error has already been set. */
-    if (modulus.data   != NULL) SECITEM_FreeItem(&modulus,   PR_FALSE);
-    if (exponent.data  != NULL) SECITEM_FreeItem(&exponent,  PR_FALSE);
-    if (signature.data != NULL) SECITEM_FreeItem(&signature, PR_FALSE);
-    if (dh_p.data != NULL) SECITEM_FreeItem(&dh_p, PR_FALSE);
-    if (dh_g.data != NULL) SECITEM_FreeItem(&dh_g, PR_FALSE);
-    if (dh_Ys.data != NULL) SECITEM_FreeItem(&dh_Ys, PR_FALSE);
-#ifdef NSS_ENABLE_ECC
-    if (ec_params.data != NULL) SECITEM_FreeItem(&ec_params, PR_FALSE);
-    if (ec_point.data != NULL) SECITEM_FreeItem(&ec_point, PR_FALSE);
-#endif /* NSS_ENABLE_ECC */
     ssl_MapLowLevelError(SSL_ERROR_SERVER_KEY_EXCHANGE_FAILURE);
     return SECFailure;
 }
@@ -4691,7 +4668,7 @@ ssl3_HandleCertificateRequest(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     }
 
     ca_list.nnames = nnames;
-    ca_list.names  = (SECItem*)PORT_ArenaAlloc(arena, nnames * sizeof(SECItem));
+    ca_list.names  = PORT_ArenaNewArray(arena, SECItem, nnames);
     if (nnames > 0 && ca_list.names == NULL)
         goto no_mem;
 
@@ -4784,8 +4761,6 @@ loser:
 done:
     if (arena != NULL)
     	PORT_FreeArena(arena, PR_FALSE);
-    if (cert_types.data != NULL)
-    	SECITEM_FreeItem(&cert_types, PR_FALSE);
     return rv;
 }
 
@@ -5158,7 +5133,6 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	    goto loser;
 	}
     }
-    SECITEM_FreeItem(&sidBytes, PR_FALSE);
 
     /* grab the list of cipher suites. */
     rv = ssl3_ConsumeHandshakeVariable(ss, &suites, 2, &b, &length);
@@ -5269,9 +5243,7 @@ suite_found:
     goto alert_loser;
 
 compression_found:
-    PORT_Free(suites.data);
     suites.data = NULL;
-    PORT_Free(comps.data);
     comps.data = NULL;
 
     ss->sec.send = ssl3_SendApplicationData;
@@ -5459,10 +5431,6 @@ loser:
 	ssl_ReleaseSpecWriteLock(ss);
 	haveSpecWriteLock = PR_FALSE;
     }
-
-    if (sidBytes.data != NULL) SECITEM_FreeItem(&sidBytes, PR_FALSE);
-    if (suites.data   != NULL) SECITEM_FreeItem(&suites,   PR_FALSE);
-    if (comps.data    != NULL) SECITEM_FreeItem(&comps,    PR_FALSE);
 
     if (haveXmitBufLock) {
 	ssl_ReleaseXmitBufLock(ss);
@@ -6023,7 +5991,6 @@ ssl3_HandleCertificateVerify(sslSocket *ss, SSL3Opaque *b, PRUint32 length,
 	goto alert_loser;
     }
 
-    PORT_Free(signed_hash.data);
     signed_hash.data = NULL;
 
     if (length != 0) {
@@ -6036,7 +6003,6 @@ ssl3_HandleCertificateVerify(sslSocket *ss, SSL3Opaque *b, PRUint32 length,
 alert_loser:
     SSL3_SendAlert(ss, alert_fatal, desc);
 loser:
-    if (signed_hash.data != NULL) SECITEM_FreeItem(&signed_hash, PR_FALSE);
     PORT_SetError(errCode);
     return SECFailure;
 }
@@ -7838,8 +7804,8 @@ ssl3_InitState(sslSocket *ss)
     if (ss->ssl3.initialized)
     	return SECSuccess;	/* Function should be idempotent */
 
-    /* reinitialization for renegotiated sessions XXX */
-    PORT_Memset(&ss->ssl3, 0, sizeof ss->ssl3);
+    /* 
+    PORT_Memset(&ss->ssl3, 0, sizeof ss->ssl3); */
 
     /* note that entire HandshakeState is zero, including the buffer */
     ss->ssl3.policy = SSL_ALLOWED;
