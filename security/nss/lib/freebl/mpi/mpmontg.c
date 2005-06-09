@@ -49,19 +49,29 @@
 
 /* #define MP_USING_MONT_MULF 1 */
 #define MP_USING_CACHE_SAFE_MOD_EXP 1 
+#define MP_USING_WEAVE_COPY 1 
 #include <string.h>
 #include "mpi-priv.h"
+#include "mp_gf2m-priv.h"
 #include "mplogic.h"
 #include "mpprime.h"
 #ifdef MP_USING_MONT_MULF
 #include "montmulf.h"
 #endif
+#include "prtypes.h"
+
+#include <fcntl.h>
+#include <unistd.h>
 
 #define STATIC
 /* #define DEBUG 1  */
 
 #define MAX_WINDOW_BITS 6
 #define MAX_ODD_INTS    32   /* 2 ** (WINDOW_BITS - 1) */
+#define MAX_POWERS MAX_ODD_INTS*2
+#define MAX_MODULUS_BITS 8192
+#define MAX_MODULUS_LENGTH (MAX_MODULUS_BITS/8)
+#define MAX_MODULUS_DIGITS (MAX_MODULUS_LENGTH/sizeof(mp_digit))
 
 #if defined(_WIN32_WCE)
 #define ABORT  res = MP_UNDEF; goto CLEANUP
@@ -352,15 +362,15 @@ CLEANUP:
 
 #define SQR(a,b) \
   MP_CHECKOK( mp_sqr(a, b) );\
-  MP_CHECKOK( s_mp_redc(b, mmm) )
+  MP_CHECKOK( s_mp_redc(b, mmm) );
 
 #if defined(MP_MONT_USE_MP_MUL)
 #define MUL(x,a,b) \
   MP_CHECKOK( mp_mul(a, oddPowers + (x), b) ); \
-  MP_CHECKOK( s_mp_redc(b, mmm) ) 
+  MP_CHECKOK( s_mp_redc(b, mmm) ); 
 #else
 #define MUL(x,a,b) \
-  MP_CHECKOK( s_mp_mul_mont(a, oddPowers + (x), b, mmm) )
+  MP_CHECKOK( s_mp_mul_mont(a, oddPowers + (x), b, mmm) );
 #endif
 
 #define SWAPPA ptmp = pa1; pa1 = pa2; pa2 = ptmp
@@ -516,24 +526,253 @@ CLEANUP:
 
 unsigned int mp_using_cache_safe_exp = 1;
 
-mp_set_mode_modify() { mp_using_cache_safe_exp = 0; }
-mp_set_mode_safe() { mp_using_cache_safe_exp = 1; }
+void mp_set_mode_modify() { mp_using_cache_safe_exp = 0; }
+void mp_set_mode_safe() { mp_using_cache_safe_exp = 1; }
+
+#ifndef MP_USING_WEAVE_COPY
+#if MP_DIGIT_BITS == 32
+#define WEAVE_INIT  \
+   unsigned char *_ptr;
+
+#define WEAVE_FETCH(bi, b, count) \
+   _ptr = (unsigned char *)bi; \
+   *_ptr++ = *b; b+= count;  \
+   *_ptr++ = *b; b+= count;  \
+   *_ptr++ = *b; b+= count;  \
+   *_ptr++ = *b; b+= count;
+
+#define WEAVE_PUT(bi, b, count) \
+   _ptr = (unsigned char *)bi; \
+   *b = *_ptr++; b+= count;  \
+   *b = *_ptr++; b+= count;  \
+   *b = *_ptr++; b+= count;  \
+   *b = *_ptr++; b+= count;
+#else
+#if MP_DIGIT_BITS == 64
+#define WEAVE_INIT  \
+   unsigned char *_ptr
+
+#define WEAVE_FETCH(bi, b, count) \
+   _ptr = (unsigned char *)bi; \
+   *_ptr++ = *b; b+= count;  \
+   *_ptr++ = *b; b+= count;  \
+   *_ptr++ = *b; b+= count;  \
+   *_ptr++ = *b; b+= count;  \
+   *_ptr++ = *b; b+= count;  \
+   *_ptr++ = *b; b+= count;  \
+   *_ptr++ = *b; b+= count;  \
+   *_ptr++ = *b; b+= count;
+
+#define WEAVE_PUT(bi, b, count) \
+   _ptr = (unsigned char *)bi; \
+   *b = *_ptr++; b+= count;  \
+   *b = *_ptr++; b+= count;  \
+   *b = *_ptr++; b+= count;  \
+   *b = *_ptr++; b+= count;  \
+   *b = *_ptr++; b+= count;  \
+   *b = *_ptr++; b+= count;  \
+   *b = *_ptr++; b+= count;  \
+   *b = *_ptr++; b+= count;
+#else
+
+#define WEAVE_INIT \
+   int _i; \
+   unsigned char *_ptr;
+
+   /* It would be nice to unroll this loop as well */
+#define WEAVE_FETCH(bi, b, count) \
+   _ptr = (unsigned char *)bi; \
+   for (_i=0; _i < sizeof mp_digit ; _i++) { \
+	*_ptr++ = *b; \
+	b+=count; \
+   }
+
+#define WEAVE_PUT(bi, b, count) \
+   _ptr = (unsigned char *)bi; \
+   for (_i=0; _i < sizeof mp_digit ; _i++) { \
+	*b = *_ptr++; \
+	b+=count; \
+   }
+#endif 
+#endif
+
+#if !defined(MP_MONT_USE_MP_MUL)
+/*
+ * if count <= the minimum cache line size, it means we can fit at least
+ * one element of each array on a cache line. We interleave the cache lines
+ * to prevent attackers from getting information about the exponent by looking
+ * at our cache usage.
+ * offset is the first element of our array, b_size is the size of our 
+ * multiplier, and count is the spacing between elements (the number of
+ * entries in out interwoven table.
+ */
+mp_err s_mp_mul_mont_weave(const mp_int *a, unsigned char *b,
+     mp_size b_size, mp_size count, mp_int *c, mp_mont_modulus *mmm)
+{
+  mp_digit pb;
+  mp_digit m_i;
+  mp_err   res;
+  mp_size  ib;
+  mp_size  useda;
+  WEAVE_INIT;
+
+  ARGCHK(a != NULL && b != NULL && c != NULL, MP_BADARG);
+
+
+  MP_USED(c) = 1; MP_DIGIT(c, 0) = 0;
+  MP_SIGN(c) = 0;
+  ib = MP_USED(a) + MP_MAX(b_size, MP_USED(&mmm->N)) + 2;
+  if((res = s_mp_pad(c, ib)) != MP_OKAY)
+    goto CLEANUP;
+
+  useda = MP_USED(a);
+  WEAVE_FETCH(&pb, b, count);
+  s_mpv_mul_d(MP_DIGITS(a), useda, pb, MP_DIGITS(c));
+  s_mp_setz(MP_DIGITS(c) + useda + 1, ib - (useda + 1));
+  m_i = MP_DIGIT(c, 0) * mmm->n0prime;
+  s_mp_mul_d_add_offset(&mmm->N, m_i, c, 0);
+
+  /* Outer loop:  Digits of b */
+  for (ib = 1; ib < b_size; ib++) {
+    mp_digit b_i;
+    WEAVE_FETCH(&b_i, b, count);
+
+    /* Inner product:  Digits of a */
+    if (b_i)
+      s_mpv_mul_d_add_prop(MP_DIGITS(a), useda, b_i, MP_DIGITS(c) + ib);
+    m_i = MP_DIGIT(c, ib) * mmm->n0prime;
+    s_mp_mul_d_add_offset(&mmm->N, m_i, c, ib);
+  }
+  if (b_size < MP_USED(&mmm->N)) {
+    for (b_size = MP_USED(&mmm->N); ib < b_size; ++ib ) {
+      m_i = MP_DIGIT(c, ib) * mmm->n0prime;
+      s_mp_mul_d_add_offset(&mmm->N, m_i, c, ib);
+    }
+  }
+  s_mp_clamp(c);
+  s_mp_div_2d(c, mmm->b); 
+  if (s_mp_cmp(c, &mmm->N) >= 0) {
+    MP_CHECKOK( s_mp_sub(c, &mmm->N) );
+  }
+  res = MP_OKAY;
+
+CLEANUP:
+  return res;
+}
+#endif
+
+mp_err   mp_mul_weave(const mp_int *a, const unsigned char *b, 
+	mp_size b_size, mp_size count, mp_int * c)
+{
+  mp_digit pb;
+  mp_err   res;
+  mp_size  ib;
+  mp_size  useda, usedb;
+  WEAVE_INIT;
+
+  ARGCHK(a != NULL && b != NULL && c != NULL, MP_BADARG);
+
+
+  MP_USED(c) = 1; MP_DIGIT(c, 0) = 0;
+  MP_SIGN(c) = 0;
+  if((res = s_mp_pad(c, USED(a) + b_size)) != MP_OKAY)
+    goto CLEANUP;
+
+  WEAVE_FETCH(&pb, b, count);
+  s_mpv_mul_d(MP_DIGITS(a), MP_USED(a), pb, MP_DIGITS(c));
+
+  /* Outer loop:  Digits of b */
+  useda = MP_USED(a);
+  usedb = b_size;
+  for (ib = 1; ib < usedb; ib++) {
+    mp_digit b_i;
+    WEAVE_FETCH(&b_i, b, count);
+
+    /* Inner product:  Digits of a */
+    if (b_i)
+      s_mpv_mul_d_add(MP_DIGITS(a), useda, b_i, MP_DIGITS(c) + ib);
+    else
+      MP_DIGIT(c, ib + useda) = b_i;
+  }
+
+  s_mp_clamp(c);
+
+CLEANUP:
+  return res;
+} /* end mp_mul() */
+#endif /* MP_USING_WEAVE_COPY */
+
+mp_err mpi_to_weave(const mp_int *a, unsigned char *b, 
+					mp_size b_size, mp_size count)
+{
+  mp_size i;
+  unsigned char *pb = (unsigned char *)MP_DIGITS(a);
+  mp_size useda = MP_USED(a);
+  mp_size zero =  b_size - useda;
+  unsigned char *end = pb+ (useda*sizeof(mp_digit));
+
+  ARGCHK(MP_SIGN(a) == 0, MP_BADARG);
+  ARGCHK(useda <= b_size, MP_BADARG);
+
+  for (; pb < end; pb++) {
+    *b = *pb;
+    b += count;
+  }
+  for (i=0; i < zero; i++) {
+    *b = 0;
+    b += count;
+  }
+
+  return MP_OKAY;
+}
+
+#ifdef MP_USING_WEAVE_COPY
+mp_err weave_to_mpi(mp_int *a, const unsigned char *b, 
+					mp_size b_size, mp_size count)
+{
+  unsigned char *pb = (unsigned char *)MP_DIGITS(a);
+  unsigned char *end = pb+ (b_size*sizeof(mp_digit));
+
+  MP_SIGN(a) = 0;
+  MP_USED(a) = b_size;
+
+  for (; pb < end; pb++) {
+    *pb = *b;
+    b += count;
+  }
+  return MP_OKAY;
+}
+#endif
+
 
 #define SQR(a,b) \
   MP_CHECKOK( mp_sqr(a, b) );\
-  MP_CHECKOK( s_mp_redc(b, mmm) )
+  MP_CHECKOK( s_mp_redc(b, mmm) );
 
+#ifdef MP_USING_WEAVE_COPY
 #if defined(MP_MONT_USE_MP_MUL)
 #define MUL(x,a,b) \
-  MP_CHECKOK( mp_mul(a, oddPowers + (x), b) ); \
-  MP_CHECKOK( s_mp_redc(b, mmm) ) 
+  MP_CHECKOK( weave_to_mpi(&tmp, powers + (x), nLen, num_powers) ); \
+  MP_CHECKOK( mp_mul_weave(a, &tmp, b) ); \
+  MP_CHECKOK( s_mp_redc(b, mmm) ) ; 
 #else
 #define MUL(x,a,b) \
-  MP_CHECKOK( s_mp_mul_mont(a, powers + (x), b, mmm) )
+  MP_CHECKOK( weave_to_mpi(&tmp, powers + (x), nLen, num_powers) ); \
+  MP_CHECKOK( s_mp_mul_mont(a, &tmp, b, mmm) );
+#endif
+#else
+#if defined(MP_MONT_USE_MP_MUL)
+#define MUL(x,a,b) \
+  MP_CHECKOK( mp_mul_weave(a, powers + (x), nLen, num_powers, b) ); \
+  MP_CHECKOK( s_mp_redc(b, mmm) ) ;
+#else
+#define MUL(x,a,b) \
+  MP_CHECKOK( s_mp_mul_mont_weave(a, powers + (x), nLen, num_powers, b, mmm) );
+#endif
 #endif
 
 #define SWAPPA ptmp = pa1; pa1 = pa2; pa2 = ptmp
-#define MAX_POWERS MAX_ODD_INTS*2
+#define MP_ALIGN(x,y) ((((ptrdiff_t)(x))+((y)-1))&(~((y)-1)))
 
 /* Do modular exponentiation using integer multiply code. */
 mp_err mp_exptmod_safe_i(const mp_int *   montBase, 
@@ -547,52 +786,93 @@ mp_err mp_exptmod_safe_i(const mp_int *   montBase,
 		    mp_size          num_powers)
 {
   mp_int *pa1, *pa2, *ptmp;
-  mp_size i;
+  mp_size i, j;
+  mp_size first_window;
   mp_err  res;
   int     expOff;
-  mp_int  accum1, accum2, powers[MAX_POWERS];
+  mp_int  accum1, accum2;
+#ifdef MP_USING_WEAVE_COPY
+  mp_int  tmp;
+#endif
+  unsigned char powersArray[MAX_POWERS * (MAX_MODULUS_LENGTH+1)];
+  unsigned char *powers;
 
-  /* get the cache line size */
+  ARGCHK( nLen <= MAX_MODULUS_DIGITS , MP_BADARG);
 
   /* powers[i] = base ** (i); */
+  powers = (unsigned char *)MP_ALIGN(powersArray,MAX_POWERS);
 
   MP_DIGITS(&accum1) = 0;
   MP_DIGITS(&accum2) = 0;
-  for (i = 0; i < MAX_POWERS; ++i) {
-    MP_DIGITS(powers + i) = 0;
-  }
+
+  /* grab the first window value. This allows us to preload accumulator1
+   * and save a conversion, some squares and a multiple*/
+  MP_CHECKOK( mpl_get_bits(exponent, 
+				bits_in_exponent-window_bits, window_bits) );
+  first_window = (mp_size)res;
 
   MP_CHECKOK( mp_init_size(&accum2, 3 * nLen + 2) );
   MP_CHECKOK( mp_init_size(&accum1, 3 * nLen + 2) );
+#ifdef MP_USING_WEAVE_COPY
+  MP_DIGITS(&tmp) = 0;
+  MP_CHECKOK( mp_init_size(&tmp, 3 * nLen + 2) );
+#endif
 
-  mp_init_size(&powers[0], nLen + 2 * MP_USED(montBase) + 2);
-  mp_set(&powers[0], 1);
-  MP_CHECKOK( s_mp_to_mont(&powers[0], mmm, &powers[0]) );
-  MP_CHECKOK( mp_init_copy(&powers[1], montBase) );
+  mp_set(&accum2, 1);
+  MP_CHECKOK( s_mp_to_mont(&accum2, mmm, &accum2) );
+  /* unlike mp_copy_init, mp_copy is from, to */
+  /* can this be an assert? If we are clamped, we shouldn't ever have a case
+   * where the first window is '0' */
+  if (first_window == 0) {
+    MP_CHECKOK( mp_copy(&accum2, &accum1) );
+  }
+  MP_CHECKOK( mpi_to_weave(&accum2, powers, nLen, num_powers) );
+
+  MP_CHECKOK( mp_copy(montBase, &accum2) );
+  if (first_window == 1) {
+    MP_CHECKOK( mp_copy(&accum2, &accum1) );
+  }
+  MP_CHECKOK( mpi_to_weave(&accum2, powers+1, nLen, num_powers) );
+
 
   /* this adds 2**(k-1)-2 square operations over just calculating the
    * odd powers where k is the window size. We will get some of that
    * back by not needing the first 'N' squares for the window (though
    * squaring 1 is extremely fast, so it's not much savings) */ 
-  for (i = 2; i < num_powers; ++i) {
-    mp_init_size(powers + i, nLen + 2 * MP_USED(montBase) + 2);
-    if ( i & 1 ) {
-        MP_CHECKOK( mp_mul(powers + (i - 1), montBase, powers + i) );
-        MP_CHECKOK( s_mp_redc(powers + i, mmm) );
+
+  /* This loop is like this so we can calculate all the powers with only 1
+   * temp variable. This saves us from needing a weaved square routine.
+   */
+  for (i = 2; i < num_powers; i++) {
+    if (i == 2 ) {
+        MP_CHECKOK( mp_sqr(&accum2, &accum2) );
+        MP_CHECKOK( s_mp_redc(&accum2, mmm) );
+	if (first_window == i) {
+	    MP_CHECKOK( mp_copy(&accum2, &accum1) );
+	}
+	MP_CHECKOK( mpi_to_weave(&accum2, powers+i, nLen, num_powers) );
+    } else if ( i & 1 ) {
+	MUL(i-1, montBase, &accum2);
+	if (first_window == i) {
+	    MP_CHECKOK( mp_copy(&accum2, &accum1) );
+	}
+	MP_CHECKOK( mpi_to_weave(&accum2, powers+i, nLen, num_powers) );
     } else {
-        MP_CHECKOK( mp_sqr(powers + (i >> 1), powers + i) );
-        MP_CHECKOK( s_mp_redc(powers + i, mmm) );
+	continue;
+    }
+    for (j=i*2; j < num_powers; j *= 2) {
+        MP_CHECKOK( mp_sqr(&accum2, &accum2) );
+        MP_CHECKOK( s_mp_redc(&accum2, mmm) );
+	if (first_window == j) {
+	    MP_CHECKOK( mp_copy(&accum2, &accum1) );
+	}
+	MP_CHECKOK( mpi_to_weave(&accum2, powers+j, nLen, num_powers) );
     }
   }
-
-
-  /* save the first N squares by just loading up the accumulator from
-   * the first window */
-  MP_CHECKOK( mpl_get_bits(exponent, 
-				bits_in_exponent-window_bits, window_bits) );
-  i = (mp_size)res;
-  /* unlike mp_copy_init, mp_copy is from, to */
-  MP_CHECKOK( mp_copy(&powers[i], &accum1) );
+  /* if the accum1 isn't set, then either j was out of range, or our logic
+   * above does not populate all the powers values. either case it shouldn't
+   * happen and is an internal mpi programming error */
+  ARGCHK(MP_USED(&accum1) != 0, MP_PROGERR);
 
   /* set accumulator to montgomery residue of 1 */
   pa1 = &accum1;
@@ -636,9 +916,7 @@ mp_err mp_exptmod_safe_i(const mp_int *   montBase,
 CLEANUP:
   mp_clear(&accum1);
   mp_clear(&accum2);
-  for (i = 0; i < num_powers; ++i) {
-    mp_clear(powers + i);
-  }
+  /* PORT_Memset(powers,0,sizeof(powers)); */
   return res;
 }
 #undef SQR
@@ -654,6 +932,9 @@ mp_err mp_exptmod(const mp_int *inBase, const mp_int *exponent,
   int     nLen;
   mp_int  montBase, goodBase;
   mp_mont_modulus mmm;
+#ifdef MP_USING_CACHE_SAFE_MOD_EXP
+  static int max_window_bits;
+#endif
 
   /* function for computing n0prime only works if n0 is odd */
   if (!mp_isodd(modulus))
@@ -719,6 +1000,27 @@ mp_err mp_exptmod(const mp_int *inBase, const mp_int *exponent,
     bits_in_exponent += window_bits - i;
   } 
 
+#ifdef MP_USING_CACHE_SAFE_MOD_EXP
+  /*
+   * clamp the window size based on
+   * the cache line size.
+   */
+  if (!max_window_bits) {
+    unsigned long cache_size = mpi_getProcessorLineSize();
+    /* processor has no cache, use 'fast' code always */
+    if (cache_size == 0) {
+      mp_using_cache_safe_exp = 0;
+    } 
+    if ((cache_size == 0) || (cache_size >= 64)) {
+      max_window_bits = 6;
+    } else if (cache_size >= 32) {
+      max_window_bits = 5;
+    } else if (cache_size >= 16) {
+      max_window_bits = 4;
+    } else max_window_bits = 1; /* should this be an assert? */
+  }
+#endif
+
 #ifdef MP_USING_MONT_MULF
   if (mp_using_mont_mulf) {
     MP_CHECKOK( s_mp_pad(&montBase, nLen) );
@@ -728,6 +1030,9 @@ mp_err mp_exptmod(const mp_int *inBase, const mp_int *exponent,
 #endif
 #ifdef MP_USING_CACHE_SAFE_MOD_EXP
   if (mp_using_cache_safe_exp) {
+    if (window_bits > max_window_bits) {
+      window_bits = max_window_bits;
+    }
     res = mp_exptmod_safe_i(&montBase, exponent, modulus, result, &mmm, nLen, 
 		     bits_in_exponent, window_bits, 1 << window_bits);
   } else
