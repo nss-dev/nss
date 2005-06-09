@@ -263,7 +263,7 @@ SHA1_End(SHA1Context *ctx, unsigned char *hashout,
   static const unsigned char bulk_pad[64] = { 0x80,0,0,0,0,0,0,0,0,0,
           0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
           0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0  };
-#define A lenB
+#define tmp lenB
 
   PORT_Assert (maxDigestLen >= SHA1_LENGTH);
 
@@ -336,6 +336,7 @@ SHA1_End(SHA1Context *ctx, unsigned char *hashout,
 
 #undef A
 #undef B
+#undef tmp
 /*
  *  SHA: Compression function, unrolled.
  *

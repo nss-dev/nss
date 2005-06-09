@@ -442,7 +442,7 @@ RNG_UpdateAndEnd_FIPS186_1(SHA1Context *ctx,
                            unsigned int maxDigestLen)
 {
 #if defined(IS_LITTLE_ENDIAN)
-    register PRUint32 A;
+    register PRUint32 tmp;
 #endif
     static const unsigned char bulk_pad0[64] = { 0,0,0,0,0,0,0,0,0,0,
                0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
