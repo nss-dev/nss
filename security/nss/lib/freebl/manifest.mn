@@ -75,7 +75,7 @@ PRIVATE_EXPORTS = \
 	$(NULL)
 
 MPI_HDRS = mpi-config.h mpi.h mpi-priv.h mplogic.h mpprime.h logtab.h mp_gf2m.h
-MPI_SRCS = mpprime.c mpmontg.c mplogic.c mpi.c mp_gf2m.c
+MPI_SRCS = mpprime.c mpmontg.c mplogic.c mpi.c mp_gf2m.c mpcpucache.c
 ECL_HDRS = ecl-exp.h ecl.h ec2.h ecp.h ecl-priv.h
 ifdef NSS_ENABLE_ECC
 ECL_SRCS = ecl.c ecl_curve.c ecl_mult.c ecl_gf.c \
