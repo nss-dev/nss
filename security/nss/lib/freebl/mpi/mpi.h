@@ -333,4 +333,17 @@ mp_size mp_trailing_zeros(const mp_int *mp);
 #endif
 #endif /* defined MP_API_COMPATIBLE */
 
+/*
+ * mpi_getProcessorLineSize() returns the size in bytes of the cache line
+ * if a cache exists, or zero if there is no cache. If more than one
+ * cache line exists, it should return the smallest line size (which is 
+ * usually the L1 cache).
+ *
+ * mp_modexp uses this information to make sure that private key information
+ * isn't being leaked through the cache.
+ *
+ * see mpcpucache.c for the implementation.
+ */
+unsigned long mpi_getProcessorLineSize();
+
 #endif /* end _H_MPI_ */
