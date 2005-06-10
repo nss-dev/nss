@@ -231,7 +231,7 @@ ifeq ($(CPU_ARCH),sparc)
 #	    MPI_SRCS += mpi_sparc.c
 #	    ASFILES   = mpv_sparcv9.s montmulfv9.s
 #	    DEFINES  += -DMP_ASSEMBLY_MULTIPLY -DMP_USING_MONT_MULF
-	    DEFINES  += -DMP_USE_UINT_DIGIT 
+#	    DEFINES  += -DMP_USE_UINT_DIGIT 
 	    SOLARIS_FLAGS  = -fast -xO5 -xrestrict=%all -xchip=ultra -xarch=v9a
 	    SOLARIS_FLAGS += -KPIC -mt
 	    SOLARIS_AS_FLAGS = -xarch=v9a -K PIC
@@ -241,7 +241,7 @@ ifeq ($(CPU_ARCH),sparc)
 #	    MPI_SRCS += mpi_sparc.c
 #	    ASFILES  = mpv_sparcv8.s montmulfv8.s
 #	    DEFINES  += -DMP_ASSEMBLY_MULTIPLY -DMP_USING_MONT_MULF 
-	    DEFINES  += -DMP_NO_MP_WORD -DMP_USE_UINT_DIGIT 
+	    DEFINES  += -DMP_NO_MP_WORD
 	    SOLARIS_AS_FLAGS = -xarch=v8plusa -K PIC
 	endif # USE_64
     endif # USE_PURE_32
