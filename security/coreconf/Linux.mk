@@ -69,8 +69,14 @@ ifeq ($(OS_TEST),ia64)
 	CPU_ARCH	= ia64
 else
 ifeq ($(OS_TEST),x86_64)
+ifeq ($(USE_64),1)
 	OS_REL_CFLAGS	= -DLINUX1_2 -D_XOPEN_SOURCE
 	CPU_ARCH	= x86_64
+else
+	OS_REL_CFLAGS	= -DLINUX1_2 -Di386 -D_XOPEN_SOURCE
+	CPU_ARCH	= x86
+	ARCHFLAG    = -m32
+endif
 else
 ifeq ($(OS_TEST),sparc)
 	OS_REL_CFLAGS   = -DLINUX1_2 -D_XOPEN_SOURCE
@@ -140,7 +146,8 @@ ifeq ($(USE_PTHREADS),1)
 OS_PTHREAD = -lpthread 
 endif
 
-OS_CFLAGS		= $(DSO_CFLAGS) $(OS_REL_CFLAGS) -ansi -Wall -pipe -DLINUX -Dlinux -D_POSIX_SOURCE -D_BSD_SOURCE -DHAVE_STRERROR
+ANSI=-ansi
+OS_CFLAGS		= $(DSO_CFLAGS) $(OS_REL_CFLAGS) $(ARCHFLAG) $(ANSI) -Wall -pipe -DLINUX -Dlinux -D_POSIX_SOURCE -D_BSD_SOURCE -DHAVE_STRERROR
 OS_LIBS			= $(OS_PTHREAD) -ldl -lc
 
 ifdef USE_PTHREADS
@@ -149,9 +156,20 @@ endif
 
 ARCH			= linux
 
+# -fPIC doesn't work with TFM on x86 - it runs out of registers
+ifeq ($(NSS_USE_TFM),1)
+ifeq ($(CPU_ARCH),x86)
+NOFPIC = 1
+endif
+endif
+
+ifndef NOFPIC
 DSO_CFLAGS		= -fPIC
-DSO_LDOPTS		= -shared
+endif
+
+DSO_LDOPTS		= -shared $(ARCHFLAG)
 DSO_LDFLAGS		=
+LDFLAGS += $(ARCHFLAG)
 
 # INCLUDES += -I/usr/include -Y/usr/include/linux
 G++INCLUDES		= -I/usr/include/g++
