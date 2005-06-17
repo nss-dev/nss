@@ -9,7 +9,7 @@
  */
 #include <tfm.h>
 
-/* y = g**x (mod b) 
+/* y = g**x (mod P) 
  * Some restrictions... x must be positive and < b
  */
 static int _fp_exptmod(fp_int * G, fp_int * X, fp_int * P, fp_int * Y)
@@ -168,23 +168,26 @@ static int _fp_exptmod(fp_int * G, fp_int * X, fp_int * P, fp_int * Y)
   return FP_OKAY;
 }
 
+/* not static, to avoid inlining */
+int _fp_negexptmod(fp_int * G, fp_int * X, fp_int * P, fp_int * Y)
+{
+   fp_int tmpG, tmpX;
+   int    err;
+
+   /* copy G and invmod it */
+   fp_abs(X, &tmpX);
+   if ((err = fp_invmod(G, P, &tmpG)) != FP_OKAY) {
+      return err;
+   }
+   err =  _fp_exptmod(&tmpG, &tmpX, P, Y);
+   return err;
+}
 
 int fp_exptmod(fp_int * G, fp_int * X, fp_int * P, fp_int * Y)
 {
-   fp_int tmp;
-   int    err;
-   
    /* is X negative?  */
    if (X->sign == FP_NEG) {
-      /* yes, copy G and invmod it */
-      fp_copy(G, &tmp);
-      if ((err = fp_invmod(&tmp, P, &tmp)) != FP_OKAY) {
-         return err;
-      }
-      X->sign = FP_ZPOS;
-      err =  _fp_exptmod(&tmp, X, P, Y);
-      X->sign = FP_NEG;
-      return err;
+      return _fp_negexptmod(G, X, P, Y);
    } else {
       /* Positive exponent so just exptmod */
       return _fp_exptmod(G, X, P, Y);
