@@ -81,7 +81,7 @@ AESKeyWrap_InitContext(AESKeyWrapContext *cx,
     SECStatus rv = SECFailure;
     if (!cx) {
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
-    	return NULL;
+    	return SECFailure;
     }
     if (iv) {
     	memcpy(cx->iv, iv, sizeof cx->iv);
