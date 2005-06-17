@@ -38,9 +38,9 @@
 include $(CORE_DEPTH)/coreconf/Linux.mk
 
 OS_REL_CFLAGS   += -DLINUX2_1
-MKSHLIB         = $(CC) -shared -Wl,-soname -Wl,$(@:$(OBJDIR)/%.so=%.so)
+MKSHLIB         = $(CC) -shared $(ARCHFLAG) -Wl,-soname -Wl,$(@:$(OBJDIR)/%.so=%.so)
 ifdef BUILD_OPT
-            OPTIMIZER       = -O2
+            OPTIMIZER       = -O3
 endif
 
 ifdef MAPFILE
