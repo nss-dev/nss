@@ -2605,7 +2605,7 @@ ReadDBSubjectEntry(NSSLOWCERTCertDBHandle *handle, SECItem *derSubject)
     entry->common.type = certDBEntryTypeSubject;
 
     rv = EncodeDBSubjectKey(derSubject, tmparena, &dbkey);
-    if ( rv != SECSuccess ) {
+     if ( rv != SECSuccess ) {
 	goto loser;
     }
     
@@ -3464,7 +3464,25 @@ UpdateV7DB(NSSLOWCERTCertDBHandle *handle, DB *updatedb);
 static SECStatus
 UpdateV8DB(NSSLOWCERTCertDBHandle *handle, DB *updatedb)
 {
-    return UpdateV7DB(handle,updatedb);
+    SECStatus rv;
+    certDBEntryVersion *versionEntry = NULL;
+
+    versionEntry = NewDBVersionEntry(0);
+    if ( versionEntry == NULL ) {
+	rv = SECFailure;
+	goto loser;
+    }
+	
+    rv = WriteDBVersionEntry(handle, versionEntry);
+
+    DestroyDBEntry((certDBEntry *)versionEntry);
+
+    if ( rv != SECSuccess ) {
+	goto loser;
+    }
+    rv =  UpdateV7DB(handle,updatedb);
+loser:
+    return rv;
 }
 
 
@@ -3513,6 +3531,9 @@ UpdateV7DB(NSSLOWCERTCertDBHandle *handle, DB *updatedb)
 	case certDBEntryTypeSubject:
 	case certDBEntryTypeContentVersion:
 	case certDBEntryTypeNickname:
+	/* smime profiles need entries created after the certs have
+         * been imported, loop over them in a second run */
+	case certDBEntryTypeSMimeProfile:
 	    break;
 
 	case certDBEntryTypeCert:
@@ -3560,22 +3581,45 @@ UpdateV7DB(NSSLOWCERTCertDBHandle *handle, DB *updatedb)
 	    crlEntry.common.arena = NULL;
 	    break;
 
-	case certDBEntryTypeSMimeProfile:
-    	    smimeEntry.common.version = (unsigned int)dataBuf[0];
-	    smimeEntry.common.type = entryType;
-	    smimeEntry.common.flags = (unsigned int)dataBuf[2];
-	    smimeEntry.common.arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
-	    rv = DecodeDBSMimeEntry(&smimeEntry,&dbEntry,(char *)dbKey.data);
-	    /* decode entry */
-	    nsslowcert_UpdateSMimeProfile(handle, smimeEntry.emailAddr,
-		&smimeEntry.subjectName, &smimeEntry.smimeOptions,
-						 &smimeEntry.optionsDate);
-	    PORT_FreeArena(smimeEntry.common.arena, PR_FALSE);
-	    smimeEntry.common.arena = NULL;
-	    break;
 	default:
 	    break;
 	}
+    } while ( (* updatedb->seq)(updatedb, &key, &data, R_NEXT) == 0 );
+
+    /* now loop again updating just the SMimeProfile. */
+    ret = (* updatedb->seq)(updatedb, &key, &data, R_FIRST);
+
+    if ( ret ) {
+	return(SECFailure);
+    }
+    
+    do {
+	unsigned char *dataBuf = (unsigned char *)data.data;
+	unsigned char *keyBuf = (unsigned char *)key.data;
+	dbEntry.data = &dataBuf[SEC_DB_ENTRY_HEADER_LEN];
+	dbEntry.len = data.size - SEC_DB_ENTRY_HEADER_LEN;
+ 	entryType = (certDBEntryType) keyBuf[0];
+	if (entryType != certDBEntryTypeSMimeProfile) {
+	    continue;
+	}
+	dbKey.data = &keyBuf[SEC_DB_KEY_HEADER_LEN];
+	dbKey.len = key.size - SEC_DB_KEY_HEADER_LEN;
+	if ((dbEntry.len <= 0) || (dbKey.len <= 0)) {
+	    continue;
+	}
+        smimeEntry.common.version = (unsigned int)dataBuf[0];
+	smimeEntry.common.type = entryType;
+	smimeEntry.common.flags = (unsigned int)dataBuf[2];
+	smimeEntry.common.arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
+	/* decode entry */
+	rv = DecodeDBSMimeEntry(&smimeEntry,&dbEntry,(char *)dbKey.data);
+	if (rv == SECSuccess) {
+	    nsslowcert_UpdateSMimeProfile(handle, smimeEntry.emailAddr,
+		&smimeEntry.subjectName, &smimeEntry.smimeOptions,
+						 &smimeEntry.optionsDate);
+	}
+	PORT_FreeArena(smimeEntry.common.arena, PR_FALSE);
+	smimeEntry.common.arena = NULL;
     } while ( (* updatedb->seq)(updatedb, &key, &data, R_NEXT) == 0 );
 
     (* updatedb->close)(updatedb);
