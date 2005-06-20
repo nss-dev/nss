@@ -52,6 +52,8 @@ EXTRA_SHARED_LIBS += -lbe
 endif
 
 
+CFLAGS += -DHAVE_USLEEP=1
+
 ifeq ($(OS_TARGET),SunOS)
 # The -R '$ORIGIN' linker option instructs this library to search for its
 # dependencies in the same directory where it resides.
