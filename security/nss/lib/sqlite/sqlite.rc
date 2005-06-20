@@ -86,12 +86,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Mozilla foundation\0"
             VALUE "FileDescription", MY_FILEDESCRIPTION MY_DEBUG_STR "\0"
-            VALUE "FileVersion", 3.2.2 "\0"
+            VALUE "FileVersion", "3.2.2" "\0"
             VALUE "InternalName", MY_INTERNAL_NAME "\0"
-            VALUE "LegalCopyright", None"
+            VALUE "LegalCopyright", "None"
             VALUE "OriginalFilename", MY_INTERNAL_NAME ".dll\0"
             VALUE "ProductName", "SQL Lite\0"
-            VALUE "ProductVersion", Version"\0"
+            VALUE "ProductVersion", "3.2.2" "\0"
         END
     END
     BLOCK "VarFileInfo"
