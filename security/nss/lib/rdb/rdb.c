@@ -9,9 +9,11 @@
 #include "string.h"
 #include "sys/stat.h"
 #include "fcntl.h"
-#include "direct.h"
 #ifdef _WINDOWS
+#include "direct.h"
 #define usleep(x)
+#else
+#include "unistd.h"
 #endif
 
 #define STATIC_CMD_SIZE 2048
@@ -92,9 +94,6 @@ static int rdbmapSQLError(sqlite3 *db, int sqlerr)
 	(sqlerr == SQLITE_DONE)) {
 	return DBM_OK;
     } else {
-#ifdef DEBUG
-	char *errorStr =sqlite3_errmsg(db);
-#endif
 	return DBM_ERROR;
     }
 }
@@ -128,8 +127,6 @@ int rdbxactstart(DB *db)
 	}
     } while (!rdbdone(sqlerr,&retry));
     sqlite3_reset(stmt);
-
-    //sqlite3_clear_bindings(stmt);
 
     return rdbmapSQLError(psqlDB, sqlerr);
 }
@@ -166,8 +163,6 @@ int rdbxactdone(DB *db, PRBool abort)
 	}
     } while (!rdbdone(sqlerr,&retry));
     sqlite3_reset(stmt);
-
-    //sqlite3_clear_bindings(stmt);
 
     return rdbmapSQLError(psqlDB, sqlerr);
 }
@@ -223,8 +218,6 @@ int rdbdel(const DB *db, const DBT *key, uint flags)
 	}
     } while (!rdbdone(sqlerr,&retry));
     sqlite3_reset(stmt);
-
-    //sqlite3_clear_bindings(stmt);
     sqlite3_bind_null(stmt,1);
 
     return rdbmapSQLError(psqlDB, sqlerr);
