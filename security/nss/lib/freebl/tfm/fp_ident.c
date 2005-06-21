@@ -45,10 +45,12 @@ const char *fp_ident(void)
 #ifdef TFM_HUGE
 " TFM_HUGE "
 #endif
-"\n", __DATE__, sizeof(fp_digit), sizeof(fp_word), FP_MAX_SIZE);
+"\n", 
+__DATE__, (unsigned)sizeof(fp_digit), (unsigned)sizeof(fp_word), FP_MAX_SIZE);
 
    if (sizeof(fp_digit) == sizeof(fp_word)) {
-      strncat(buf, "WARNING: sizeof(fp_digit) == sizeof(fp_word), this build is likely to not work properly.\n", 
+      strncat(buf, "WARNING: sizeof(fp_digit) == sizeof(fp_word).\n"
+		   "This build is likely to not work properly.\n", 
               sizeof(buf)-1);
    }
    return buf;
