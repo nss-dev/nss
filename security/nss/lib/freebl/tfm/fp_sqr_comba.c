@@ -197,33 +197,33 @@ asm volatile (                                            \
      "adcl  $0,%2        \n\t"                            \
      :"=r"(c0), "=r"(c1), "=r"(c2): "0"(c0), "1"(c1), "2"(c2), "m"(i), "m"(j)  :"%eax","%edx","%cc");
 
-#define SQRADDSC(i, j)                                                         \
-asm volatile (                                            \
-     "movd  %6,%%mm0     \n\t"                            \
-     "pmuludq %%mm0,%%mm0\n\t"                            \
-     "movd  %%mm0,%%eax  \n\t"                            \
-     "psrlq $32,%%mm0    \n\t"                            \
-     "movl  %%eax,%0     \n\t"                            \
-     "movd  %%mm0,%%eax  \n\t"                            \
-     "movl  %%eax,%1     \n\t"                            \
-     "xorl  %2,%2        \n\t"                            \
-     :"=r"(sc0), "=r"(sc1), "=r"(sc2): "0"(sc0), "1"(sc1), "2"(sc2), "m"(i) :"%eax","%cc");
+#define SQRADDSC(i, j) \
+asm volatile ( \
+     "movd  %6,%%mm0     \n\t" \
+     "movd  %7,%%mm1     \n\t" \
+     "pmuludq %%mm1,%%mm0\n\t" \
+     "movd  %%mm0,%0     \n\t" \
+     "psrlq $32,%%mm0    \n\t" \
+     "movd  %%mm0,%1     \n\t" \
+     "xorl  %2,%2        \n\t" \
+     :"=r"(sc0), "=r"(sc1), "=r"(sc2)\
+     : "0"(sc0), "1"(sc1), "2"(sc2), "m"(i), "m"(j) \
+     :"%eax","%cc");
 
-#define SQRADDAC(i, j)                                                         \
-asm volatile (                                            \
-     "movd  %6,%%mm0     \n\t"                            \
-     "movd  %7,%%mm1     \n\t"                            \
-     "pmuludq %%mm1,%%mm0\n\t"                            \
-     "movd  %%mm0,%%eax  \n\t"                            \
-     "psrlq $32,%%mm0    \n\t"                            \
-     "movd  %%mm0,%%edx  \n\t"                            \
-     "addl  %%eax,%0     \n\t"                            \
-     "adcl  %%edx,%1     \n\t"                            \
-     "adcl  $0,%2        \n\t"                            \
-     "addl  %%eax,%0     \n\t"                            \
-     "adcl  %%edx,%1     \n\t"                            \
-     "adcl  $0,%2        \n\t"                            \
-     :"=r"(sc0), "=r"(sc1), "=r"(sc2): "0"(sc0), "1"(sc1), "2"(sc2), "m"(i), "m"(j)  :"%eax","%edx","%cc");
+#define SQRADDAC(i, j) \
+asm volatile ( \
+     "movd  %6,%%mm0     \n\t" \
+     "movd  %7,%%mm1     \n\t" \
+     "pmuludq %%mm1,%%mm0\n\t" \
+     "movd  %%mm0,%%eax  \n\t" \
+     "psrlq $32,%%mm0    \n\t" \
+     "movd  %%mm0,%%edx  \n\t" \
+     "addl  %%eax,%0     \n\t" \
+     "adcl  %%edx,%1     \n\t" \
+     "adcl  $0,%2        \n\t" \
+     :"=r"(sc0), "=r"(sc1), "=r"(sc2) \
+     : "0"(sc0), "1"(sc1), "2"(sc2), "m"(i), "m"(j) \
+     :"%eax","%edx","%cc");
 
 #define SQRADDDB                                                               \
 asm (                                                     \
