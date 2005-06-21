@@ -16,7 +16,7 @@ int fp_invmod(fp_int *a, fp_int *b, fp_int *c)
   int     neg;
 
   /* 2. [modified] b must be odd   */
-  if (fp_iseven (b) == FP_YES) {
+  if (fp_isodd (b) == FP_NO) {
     return FP_VAL;
   }
 
