@@ -14,6 +14,7 @@
 /* x86-32 code */
 #define MONT_START 
 #define MONT_FINI
+#define LOOP_END
 #define LOOP_START \
    mu = c[x] * mp
 
@@ -46,6 +47,7 @@ asm( \
 
 #define MONT_START 
 #define MONT_FINI
+#define LOOP_END
 #define LOOP_START \
    mu = c[x] * mp
 
@@ -73,7 +75,55 @@ asm( \
 : "%rax", "%cc")
 
 /******************************************************************/
-/* #elif defined(TFM_SSE2)  SSE2 code */
+#elif defined(TFM_SSE2)  
+/* SSE2 code (assumes 32-bit fp_digits) */
+/* XMM register assignments:
+ * xmm0  *tmpm++, then Mu * (*tmpm++)
+ * xmm1  c[x], then Mu
+ * xmm2  mp
+ * xmm3  cy
+ * xmm4  _c[LO]
+ */
+
+#define MONT_START \
+asm("movd %0,%%mm2"::"g"(mp))
+
+#define MONT_FINI \
+asm("emms")
+
+#define LOOP_START \
+asm(\
+"movd %1,%%mm1        \n\t" \
+"movd %0,%%mm3        \n\t" \
+"pmuludq %%mm2,%%mm1  \n" \
+:: "r"(cy), "g"(c[x]))
+
+/* pmuludq on mmx registers does a 32x32->64 multiply. */
+#define INNERMUL \
+asm(             \
+"movd %2,%%mm0        \n\t" \
+"pmuludq %%mm1,%%mm0  \n\t" \
+"movd %1,%%mm4        \n\t" \
+"paddq %%mm3,%%mm0    \n\t" \
+"paddq %%mm4,%%mm0    \n\t" \
+"movd %%mm0,%0        \n\t" \
+"psrlq $32, %%mm0     \n\t" \
+"movq %%mm0,%%mm3     \n"   \
+:"=g"(_c[LO]) : "0"(_c[LO]), "g"(*tmpm++) );
+
+#define LOOP_END \
+asm( "movd %%mm3,%0  \n" :"=r"(cy))
+
+#define PROPCARRY \
+asm( \
+"addl   %5,%0    \n\t"  \
+"setb   %%al     \n\t"  \
+"movzbl  %%al,%2 \n"  \
+:"=g"(_c[LO]), "=g"(_c[HI]), "=r"(cy) \
+:"0"(_c[LO]), "1"(_c[HI]), "2"(cy),   \
+ "m"(_c[LO]), "m"(_c[HI+1]), "m"(_c[CY+1])  \
+: "%eax", "%cc")
+
 /******************************************************************/
 /* #elif defined(TFM_ARM)   ARM code */
 /******************************************************************/
@@ -82,6 +132,7 @@ asm( \
 /* ISO C code */
 #define MONT_START 
 #define MONT_FINI
+#define LOOP_END
 #define LOOP_START \
    mu = c[x] * mp
 
@@ -141,6 +192,7 @@ void fp_montgomery_reduce(fp_int *a, fp_int *m, fp_digit mp)
           INNERMUL;
           ++_c;
        }
+       LOOP_END;
        while (cy) {
            PROPCARRY; //  cy = cy > (*_c += cy);
            ++_c;
