@@ -164,7 +164,7 @@
 /* a FP type */
 typedef struct {
     fp_digit dp[FP_SIZE];
-    int      used, 
+    fp_digit used, 
              sign;
 } fp_int;
 
@@ -178,23 +178,27 @@ const char *fp_ident(void);
 #define fp_zero(a)  fp_init(a)
 
 /* zero/even/odd ? */
-#define fp_iszero(a) (((a)->used == 0) ? FP_YES : FP_NO)
-#define fp_iseven(a) (((a)->used > 0 && (((a)->dp[0] & 1) == 0)) ? FP_YES : FP_NO)
-#define fp_isodd(a)  (((a)->used > 0 && (((a)->dp[0] & 1) == 1)) ? FP_YES : FP_NO)
+/* NOTE: iseven means "is even but is not ZERO" */
+#define fp_iszero(a) (!(a)->used)
+#define fp_iseven(a) ((a)->used && (((a)->dp[0] & 1) == 0))
+#define fp_isodd(a)  ((a)->used ? ((a)->dp[0] & 1) : FP_NO)
 
 /* set to a small digit */
 void fp_set(fp_int *a, fp_digit b);
 
 /* copy from a to b */
-#define fp_copy(a, b)      (void)(((a) != (b)) && memcpy((b), (a), sizeof(fp_int)))
+#define fp_copy(a, b)  (void)(((a) != (b)) && memcpy((b), (a), sizeof(fp_int)))
 #define fp_init_copy(a, b) fp_copy(b, a)
 
 /* negate and absolute */
-#define fp_neg(a, b)  { fp_copy(a, b); (b)->sign ^= 1; }
-#define fp_abs(a, b)  { fp_copy(a, b); (b)->sign  = 0; }
+#define fp_neg(a, b)  { fp_copy(a, b); (b)->sign = !(b)->sign; }
+#define fp_abs(a, b)  { fp_copy(a, b); (b)->sign = FP_ZPOS; }
 
 /* clamp digits */
-#define fp_clamp(a)   { while ((a)->used && (a)->dp[(a)->used-1] == 0) --((a)->used); (a)->sign = (a)->used ? (a)->sign : FP_ZPOS; }
+#define fp_clamp(a) { register fp_digit used = (a)->used; \
+    while (used && (a)->dp[used-1] == 0) --used; \
+    (a)->used = used; \
+    if (!used) (a)->sign = FP_ZPOS; }
 
 /* right shift x digits */
 void fp_rshd(fp_int *a, int x);
