@@ -99,10 +99,12 @@ static PRIntn subject_list_sort(void *v1, void *v2)
     NSSCertificate *c2 = (NSSCertificate *)v2;
     nssDecodedCert *dc1 = nssCertificate_GetDecoding(c1);
     nssDecodedCert *dc2 = nssCertificate_GetDecoding(c2);
-    if (dc1->isNewerThan(dc1, dc2)) {
+    if (!dc1) {
+	return dc2 ? 1 : 0;
+    } else if (!dc2) {
 	return -1;
     } else {
-	return 1;
+	return dc1->isNewerThan(dc1, dc2) ? -1 : 1;
     }
 }
 
