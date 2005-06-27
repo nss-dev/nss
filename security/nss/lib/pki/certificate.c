@@ -767,6 +767,26 @@ NSSCertificate_IsPrivateKeyAvailable (
     return isUser;
 }
 
+/* sort the subject cert list from newest to oldest */
+PRIntn
+nssCertificate_SubjectListSort (
+  void *v1,
+  void *v2
+)
+{
+    NSSCertificate *c1 = (NSSCertificate *)v1;
+    NSSCertificate *c2 = (NSSCertificate *)v2;
+    nssDecodedCert *dc1 = nssCertificate_GetDecoding(c1);
+    nssDecodedCert *dc2 = nssCertificate_GetDecoding(c2);
+    if (!dc1) {
+	return dc2 ? 1 : 0;
+    } else if (!dc2) {
+	return -1;
+    } else {
+	return dc1->isNewerThan(dc1, dc2) ? -1 : 1;
+    }
+}
+
 NSS_IMPLEMENT PRBool
 NSSUserCertificate_IsStillPresent (
   NSSUserCertificate *uc,
