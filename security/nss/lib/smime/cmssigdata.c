@@ -86,7 +86,7 @@ loser:
 void
 NSS_CMSSignedData_Destroy(NSSCMSSignedData *sigd)
 {
-    CERTCertificate **certs, *cert;
+    CERTCertificate **certs, **tempCerts, *cert;
     CERTCertificateList **certlists, *certlist;
     NSSCMSSignerInfo **signerinfos, *si;
 
@@ -94,11 +94,17 @@ NSS_CMSSignedData_Destroy(NSSCMSSignedData *sigd)
 	return;
 
     certs = sigd->certs;
+    tempCerts = sigd->tempCerts;
     certlists = sigd->certLists;
     signerinfos = sigd->signerInfos;
 
     if (certs != NULL) {
 	while ((cert = *certs++) != NULL)
+	    CERT_DestroyCertificate (cert);
+    }
+
+    if (tempCerts != NULL) {
+	while ((cert = *tempCerts++) != NULL)
 	    CERT_DestroyCertificate (cert);
     }
 
@@ -550,6 +556,13 @@ NSS_CMSSignedData_ImportCerts(NSSCMSSignedData *sigd, CERTCertDBHandle *certdb,
 	goto loser;
     }
 
+    /* save the certs so they don't get destroyed */
+    for (i=0; i < certcount; i++) {
+	CERTCertificate *cert = certArray[i];
+	if (cert)
+            NSS_CMSSignedData_AddTempCertificate(sigd, cert);
+    }
+
     if (!keepcerts) {
 	goto done;
     }
@@ -779,6 +792,22 @@ NSS_CMSSignedData_AddCertChain(NSSCMSSignedData *sigd, CERTCertificate *cert)
 
     rv = NSS_CMSSignedData_AddCertList(sigd, certlist);
 
+    return rv;
+}
+
+extern SECStatus
+NSS_CMSSignedData_AddTempCertificate(NSSCMSSignedData *sigd, CERTCertificate *cert)
+{
+    CERTCertificate *c;
+    SECStatus rv;
+
+    if (!sigd || !cert) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+
+    c = CERT_DupCertificate(cert);
+    rv = NSS_CMSArray_Add(sigd->cmsg->poolp, (void ***)&(sigd->tempCerts), (void *)c);
     return rv;
 }
 
