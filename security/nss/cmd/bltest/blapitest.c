@@ -35,6 +35,11 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
+/* After modifying this file, ensure that the NSS QA test scripts,
+ * cipher.sh and performance.sh run to completion and produce valid results
+ * on windows and at least one other platform. 
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -49,7 +54,13 @@
 #include "secutil.h"
 #include "plgetopt.h"
 #include "softoken.h"
+#include "nspr.h"
 #include "nss.h"
+
+#if defined(WIN32)
+#include "fcntl.h"
+#include "io.h"
+#endif
 
 #ifdef NSS_ENABLE_ECC
 #include "ecl-curve.h"
@@ -59,6 +70,178 @@ SECStatus EC_CopyParams(PRArenaPool *arena, ECParams *dstParams,
 	      const ECParams *srcParams);
 SECStatus secoid_Init(void);
 #endif
+
+typedef enum {
+    bltestINVALID = -1,
+    bltestDES_ECB,	  /* Symmetric Key Ciphers */
+    bltestDES_CBC,	  /* .			   */
+    bltestDES_EDE_ECB,	  /* .			   */
+    bltestDES_EDE_CBC,	  /* .			   */
+    bltestRC2_ECB,	  /* .			   */
+    bltestRC2_CBC,	  /* .			   */
+    bltestRC4,		  /* .			   */
+    bltestRC5_ECB,	  /* .			   */
+    bltestRC5_CBC,	  /* .			   */
+    bltestAES_ECB,        /* .                     */
+    bltestAES_CBC,        /* .                     */
+    bltestRSA,		  /* Public Key Ciphers	   */
+#ifdef NSS_ENABLE_ECC
+    bltestECDSA,	  /* . (Public Key Sig.)   */
+#endif
+    bltestDSA,		  /* .                     */
+    bltestMD2,		  /* Hash algorithms	   */
+    bltestMD5,		  /* .			   */
+    bltestSHA1,           /* .			   */
+    bltestSHA256,         /* .			   */
+    bltestSHA384,         /* .			   */
+    bltestSHA512,         /* .			   */
+    NUMMODES
+} bltestCipherMode;
+
+typedef enum {
+    bltestBase64Encoded,       /* Base64 encoded ASCII */
+    bltestBinary,	       /* straight binary */
+    bltestBinary_CRLF,         /* binary, followed by LF or CRLF */
+    bltestHexSpaceDelim,       /* 0x12 0x34 0xab 0xCD ... */
+    bltestHexStream 	       /* 1234abCD ... */
+} bltestIOFormat;
+
+typedef struct {
+    SECItem	   buf;
+    SECItem	   pBuf;
+    bltestIOFormat ioFormat;
+    PRFileDesc*	   file;
+    PRBool         forOutput;
+} bltestIO;
+
+typedef SECStatus (* bltestSymmCipherFn)(void *cx,
+					 unsigned char *output,
+					 unsigned int *outputLen,
+					 unsigned int maxOutputLen,
+					 const unsigned char *input,
+					 unsigned int inputLen);
+
+typedef SECStatus (* bltestPubKeyCipherFn)(void *key,
+					   SECItem *output,
+					   const SECItem *input);
+
+typedef SECStatus (* bltestHashCipherFn)(unsigned char *dest,
+					 const unsigned char *src,
+					 uint32 src_length);
+
+typedef struct {
+    bltestIO key;
+    bltestIO iv;
+    int	     rounds;
+    int	     wordsize;
+} bltestSymmKeyParams;
+
+#define bltestRC5Params bltestSymmKeyParams
+
+typedef struct {
+    bltestIO key;
+    int	     keysizeInBits;
+    RSAPrivateKey *rsakey;
+} bltestRSAParams;
+
+typedef struct {
+    bltestIO   key;
+    bltestIO   pqgdata;
+    unsigned int j;
+    bltestIO   keyseed;
+    bltestIO   sigseed;
+    bltestIO   sig; /* if doing verify, have additional input */
+    PQGParams *pqg;
+    DSAPrivateKey *dsakey;
+} bltestDSAParams;
+
+#ifdef NSS_ENABLE_ECC
+typedef struct {
+    bltestIO   key;
+    char      *curveName;
+    bltestIO   sigseed;
+    bltestIO   sig; /* if doing verify, have additional input */
+    ECPrivateKey *eckey;
+    SECItem *     ecParamsDER;
+} bltestECDSAParams;
+#endif
+
+typedef struct {
+    bltestIO   key; /* unused */
+    PRBool     restart;
+} bltestHashParams;
+
+typedef union {
+    bltestIO		key;
+    bltestSymmKeyParams sk;
+    bltestRSAParams	rsa;
+    bltestDSAParams	dsa;
+#ifdef NSS_ENABLE_ECC
+    bltestECDSAParams	ecdsa;
+#endif
+    bltestHashParams	hash;
+} bltestParams;
+
+typedef struct bltestCipherInfoStr bltestCipherInfo;
+
+struct  bltestCipherInfoStr {
+    PRArenaPool *arena;
+    /* link to next in multithreaded test */
+    bltestCipherInfo *next;
+    PRThread         *cipherThread;
+
+    /* MonteCarlo test flag*/
+    PRBool mCarlo;
+    /* cipher context */
+    void *cx;
+    /* I/O streams */
+    bltestIO input;
+    bltestIO output;
+    /* Cipher-specific parameters */
+    bltestParams params;
+    /* Cipher mode */
+    bltestCipherMode  mode;
+    /* Cipher function (encrypt/decrypt/sign/verify/hash) */
+    union {
+	bltestSymmCipherFn   symmkeyCipher;
+	bltestPubKeyCipherFn pubkeyCipher;
+	bltestHashCipherFn   hashCipher;
+    } cipher;
+    /* performance testing */
+    int   repetitionsToPerfom;
+    int   seconds;
+    int	  repetitions;
+    int   cxreps;
+    double cxtime;
+    double optime;
+};
+
+static const char * const mode_strings[] =
+{
+    "des_ecb",
+    "des_cbc",
+    "des3_ecb",
+    "des3_cbc",
+    "rc2_ecb",
+    "rc2_cbc",
+    "rc4",
+    "rc5_ecb",
+    "rc5_cbc",
+    "aes_ecb",
+    "aes_cbc",
+    "rsa",
+#ifdef NSS_ENABLE_ECC
+    "ecdsa",
+#endif
+    /*"pqg",*/
+    "dsa",
+    "md2",
+    "md5",
+    "sha1",
+    "sha256",
+    "sha384",
+    "sha512",
+};
 
 /* Temporary - add debugging ouput on windows for RSA to track QA failure */
 #ifdef _WIN32
@@ -90,101 +273,84 @@ char *testdir = NULL;
     time1 = PR_IntervalToMilliseconds(time2); \
     time = ((double)(time1))/reps;
 
+#define TIMEMARK(seconds) \
+    time1 = PR_SecondsToInterval(seconds); \
+    { \
+        PRInt64 tmp, L100; \
+        LL_I2L(L100, 100); \
+        if (time2 == 0) { \
+            time2 = 1; \
+        } \
+        LL_DIV(tmp, time1, time2); \
+        if (tmp < 10) { \
+            if (tmp == 0) { \
+                opsBetweenChecks = 1; \
+            } else { \
+                LL_L2I(opsBetweenChecks, tmp); \
+            } \
+        } else { \
+            opsBetweenChecks = 10; \
+        } \
+    } \
+    time2 = time1; \
+    time1 = PR_IntervalNow();
+
+#define TIMETOFINISH() \
+    PR_IntervalNow() - time1 >= time2
+
+#define PU(subject, option, predicate) \
+    fprintf(stderr, "%10s %s\t%s\n", subject, option, predicate);
+
 static void Usage()
 {
-#define PRINTUSAGE(subject, option, predicate) \
-    fprintf(stderr, "%10s %s\t%s\n", subject, option, predicate);
+
     fprintf(stderr, "\n");
-    PRINTUSAGE(progName, "[-DEHSV]", "List available cipher modes"); /* XXX */
+    PU(progName, "[-DEFHNPSTV]", "List available cipher modes"); 
     fprintf(stderr, "\n");
-    PRINTUSAGE(progName, "-E -m mode ", "Encrypt a buffer");
-    PRINTUSAGE("",	"", "[-i plaintext] [-o ciphertext] [-k key] [-v iv]");
-    PRINTUSAGE("",	"", "[-b bufsize] [-g keysize] [-e exp] [-r rounds]");
-    PRINTUSAGE("",	"", "[-w wordsize] [-p repetitions]");
-    PRINTUSAGE("",	"-m", "cipher mode to use");
-    PRINTUSAGE("",	"-i", "file which contains input buffer");
-    PRINTUSAGE("",	"-o", "file for output buffer");
-    PRINTUSAGE("",	"-k", "file which contains key");
-    PRINTUSAGE("",	"-v", "file which contains initialization vector");
-    PRINTUSAGE("",	"-b", "size of input buffer");
-    PRINTUSAGE("",	"-g", "key size (in bytes)");
-    PRINTUSAGE("",	"-p", "do performance test");
-    PRINTUSAGE("(rsa)", "-e", "rsa public exponent");
-    PRINTUSAGE("(rc5)", "-r", "number of rounds");
-    PRINTUSAGE("(rc5)", "-w", "wordsize (32 or 64)");
+    fprintf(stderr, "Command Options:\n");
+    PU(progName, "-D -m mode", "Decrypt a buffer");
+    PU("",       "-E -m mode", "Encrypt a buffer");
+    PU("",       "-F        ", "Run the FIPS self-test");
+    PU("",       "-H -m mode", "Hash a buffer");
+    PU("",       "-N -m mode", "Create a nonce plaintext and key");
+    PU("",       "-P -m mode", "Dump private key");
+    PU("",       "-S -m mode", "Sign a buffer");
+    PU("",       "-T [-m mode1,mode2...]", "Run the BLAPI self-test");
+    PU("",       "-V -m mode", "Verify a signed buffer");
     fprintf(stderr, "\n");
-    PRINTUSAGE(progName, "-D -m mode", "Decrypt a buffer");
-    PRINTUSAGE("",	"", "[-i plaintext] [-o ciphertext] [-k key] [-v iv]");
-    PRINTUSAGE("",	"", "[-p repetitions]");
-    PRINTUSAGE("",	"-m", "cipher mode to use");
-    PRINTUSAGE("",	"-i", "file which contains input buffer");
-    PRINTUSAGE("",	"-o", "file for output buffer");
-    PRINTUSAGE("",	"-k", "file which contains key");
-    PRINTUSAGE("",	"-v", "file which contains initialization vector");
-    PRINTUSAGE("",	"-p", "do performance test");
+    fprintf(stderr, "Options without arguments:\n");
+
+    PU("",	"-a",          "input and output are base64 encoded");
+    PU("",	"-h",          "input and output are hex stream encoded");
+    PU("",	"-l",          "input and output are spaced hex pairs");
+    PU("",	"",            "(default is binary)");
     fprintf(stderr, "\n");
-    PRINTUSAGE(progName, "-H -m mode", "Hash a buffer");
-    PRINTUSAGE("",	"", "[-i plaintext] [-o hash]");
-    PRINTUSAGE("",	"", "[-b bufsize]");
-    PRINTUSAGE("",	"", "[-p repetitions]");
-    PRINTUSAGE("",	"-m", "cipher mode to use");
-    PRINTUSAGE("",	"-i", "file which contains input buffer");
-    PRINTUSAGE("",	"-o", "file for hash");
-    PRINTUSAGE("",	"-b", "size of input buffer");
-    PRINTUSAGE("",	"-p", "do performance test");
-    fprintf(stderr, "\n");
-    PRINTUSAGE(progName, "-S -m mode", "Sign a buffer");
-    PRINTUSAGE("",	"", "[-i plaintext] [-o signature] [-k key]");
-    PRINTUSAGE("",	"", "[-b bufsize]");
+    fprintf(stderr, "Options with arguments:\n");
+
+    PU("",	"-b bytes",    "size of input buffer");
+    PU("(-T)",	"-d directory", "self test files are in this directory");
+    PU("(rsa)", "-e exponent", "rsa public exponent");
+    PU("",	"-f filename", "file with signature of input buffer");
+    PU("",	"-g bytes",    "key size (in bytes)");
+    PU("",	"-i filename", "file with input buffer");
+    PU("(dsa)",	"-j filename", "file with PQG parameters");
+    PU("",	"-k filename", "file with key");
+    PU("",	"-m mode",     "cipher mode to use");
 #ifdef NSS_ENABLE_ECC
-    PRINTUSAGE("",	"", "[-n curvename]");
+    PU("",	"-n name ",    "curve for EC key generation");
 #endif
-    PRINTUSAGE("",	"", "[-p repetitions]");
-    PRINTUSAGE("",	"-m", "cipher mode to use");
-    PRINTUSAGE("",	"-i", "file which contains input buffer");
-    PRINTUSAGE("",	"-o", "file for signature");
-    PRINTUSAGE("",	"-k", "file which contains key");
-#ifdef NSS_ENABLE_ECC
-    PRINTUSAGE("",	"-n", "name of curve for EC key generation; one of:");
-    PRINTUSAGE("",  "",   "  sect163k1, nistk163, sect163r1, sect163r2,");
-    PRINTUSAGE("",  "",   "  nistb163, sect193r1, sect193r2, sect233k1, nistk233,");
-    PRINTUSAGE("",  "",   "  sect233r1, nistb233, sect239k1, sect283k1, nistk283,");
-    PRINTUSAGE("",  "",   "  sect283r1, nistb283, sect409k1, nistk409, sect409r1,");
-    PRINTUSAGE("",  "",   "  nistb409, sect571k1, nistk571, sect571r1, nistb571,");
-    PRINTUSAGE("",  "",   "  secp169k1, secp160r1, secp160r2, secp192k1, secp192r1,");
-    PRINTUSAGE("",  "",   "  nistp192, secp224k1, secp224r1, nistp224, secp256k1,");
-    PRINTUSAGE("",  "",   "  secp256r1, nistp256, secp384r1, nistp384, secp521r1,");
-    PRINTUSAGE("",  "",   "  nistp521, prime192v1, prime192v2, prime192v3,");
-    PRINTUSAGE("",  "",   "  prime239v1, prime239v2, prime239v3, c2pnb163v1,");
-    PRINTUSAGE("",  "",   "  c2pnb163v2, c2pnb163v3, c2pnb176v1, c2tnb191v1,");
-    PRINTUSAGE("",  "",   "  c2tnb191v2, c2tnb191v3, c2onb191v4, c2onb191v5,");
-    PRINTUSAGE("",  "",   "  c2pnb208w1, c2tnb239v1, c2tnb239v2, c2tnb239v3,");
-    PRINTUSAGE("",  "",   "  c2onb239v4, c2onb239v5, c2pnb272w1, c2pnb304w1,");
-    PRINTUSAGE("",  "",   "  c2tnb359w1, c2pnb368w1, c2tnb431r1, secp112r1,");
-    PRINTUSAGE("",  "",   "  secp112r2, secp128r1, secp128r2, sect113r1, sect113r2,");
-    PRINTUSAGE("",  "",   "  sect131r1, sect131r2");
-#endif
-    PRINTUSAGE("",	"-p", "do performance test");
+    PU("",	"-o filename", "file for output buffer");
+    PU("",	"-p count",    "repeat operation count time");
+    PU("(rc5)", "-r rounds",   "number of rounds");
+    PU("",      "-u count",    "repetitions of context creation");
+    PU("",	"-v filename", "file with initialization vector");
+    PU("(rc5)", "-w wordsize", "(32 or 64)");
+    PU("",	"-1 offset",   "misalign input  this many bytes" );
+    PU("",	"-2 offset",   "misalign output this many bytes" );
+    PU("",	"-4 count",    "test with count threads" );
+    PU("",	"-5 seconds",  "run test for seconds");
     fprintf(stderr, "\n");
-    PRINTUSAGE(progName, "-V -m mode", "Verify a signed buffer");
-    PRINTUSAGE("",	"", "[-i plaintext] [-s signature] [-k key]");
-    PRINTUSAGE("",	"", "[-p repetitions]");
-    PRINTUSAGE("",	"-m", "cipher mode to use");
-    PRINTUSAGE("",	"-i", "file which contains input buffer");
-    PRINTUSAGE("",	"-s", "file which contains signature of input buffer");
-    PRINTUSAGE("",	"-k", "file which contains key");
-    PRINTUSAGE("",	"-p", "do performance test");
-    fprintf(stderr, "\n");
-    PRINTUSAGE(progName, "-N -m mode -b bufsize", 
-                                            "Create a nonce plaintext and key");
-    PRINTUSAGE("",      "", "[-g keysize] [-u cxreps]");
-    PRINTUSAGE("",	"-g", "key size (in bytes)");
-    PRINTUSAGE("",      "-u", "number of repetitions of context creation");
-    fprintf(stderr, "\n");
-    PRINTUSAGE(progName, "-F", "Run the FIPS self-test");
-    fprintf(stderr, "\n");
-    PRINTUSAGE(progName, "-T [-m mode1,mode2...]", "Run the BLAPI self-test");
-    fprintf(stderr, "\n");
+
     exit(1);
 }
 
@@ -219,7 +385,7 @@ get_binary(void *arg, const unsigned char *ibuf, PRInt32 size)
 static SECStatus
 atob(SECItem *ascii, SECItem *binary, PRArenaPool *arena)
 {
-    SECStatus status;
+    SECStatus status = SECFailure;
     NSSBase64Decoder *cx;
     struct item_with_arena it;
     int len;
@@ -227,11 +393,18 @@ atob(SECItem *ascii, SECItem *binary, PRArenaPool *arena)
     binary->len = 0;
     it.item = binary;
     it.arena = arena;
-    len = (strcmp(&ascii->data[ascii->len-2],"\r\n")) ? 
-           ascii->len : ascii->len-2;
+
+    len = ascii->len;
+    if (ascii->data[len-1] == '\n') 
+	--len;
+    if (ascii->data[len-1] == '\r') 
+	--len;
+
     cx = NSSBase64Decoder_Create(get_binary, &it);
-    status = NSSBase64Decoder_Update(cx, (const char *)ascii->data, len);
-    status = NSSBase64Decoder_Destroy(cx, PR_FALSE);
+    if (cx) {
+	status  = NSSBase64Decoder_Update(cx, (const char *)ascii->data, len);
+	status |= NSSBase64Decoder_Destroy(cx, PR_FALSE);
+    }
     return status;
 }
 
@@ -250,7 +423,7 @@ output_ascii(void *arg, const char *obuf, PRInt32 size)
 static SECStatus
 btoa_file(SECItem *binary, PRFileDesc *outfile)
 {
-    SECStatus status;
+    SECStatus status = SECFailure;
     NSSBase64Encoder *cx;
     SECItem ascii;
     ascii.data = NULL;
@@ -258,9 +431,13 @@ btoa_file(SECItem *binary, PRFileDesc *outfile)
     if (binary->len == 0)
 	return SECSuccess;
     cx = NSSBase64Encoder_Create(output_ascii, outfile);
-    status = NSSBase64Encoder_Update(cx, binary->data, binary->len);
-    status = NSSBase64Encoder_Destroy(cx, PR_FALSE);
-    status = PR_Write(outfile, "\r\n", 2);
+    if (cx) {
+	status  = NSSBase64Encoder_Update(cx, binary->data, binary->len);
+	status |= NSSBase64Encoder_Destroy(cx, PR_FALSE);
+	if (2 != PR_Write(outfile, "\r\n", 2)) {
+	    status = SECFailure;
+	}
+    }
     return status;
 }
 
@@ -303,41 +480,54 @@ char2_from_hex(unsigned char byteval, unsigned char *c2)
     return SECSuccess;
 }
 
-void
-serialize_key(SECItem *it, int ni, PRFileDesc *file)
+/* XXX FIX ME.
+ * This function always outputs the file in bltestBase64Encoded ioFormat,
+ * even when some other format has been requested. 
+ * It should put the data into a bltestIO buffer, and then let function
+ * outputIO() output it in the proper format.
+ */
+SECStatus
+serialize_key(SECItem *it, 
+	      unsigned int ni, 
+	      PRFileDesc *file)
 {
-    unsigned char len[4];
-    int i;
-    SECStatus status;
     NSSBase64Encoder *cx;
-    SECItem ascii;
-    ascii.data = NULL;
-    ascii.len = 0;
+    int i;
+    SECStatus     status    = SECSuccess;
+    SECItem       ascii     = { 0, NULL, 0 };
+    unsigned char len[4];
+
     cx = NSSBase64Encoder_Create(output_ascii, file);
+    if (!cx) return SECFailure;
     for (i=0; i<ni; i++, it++) {
-	len[0] = (it->len >> 24) & 0xff;
-	len[1] = (it->len >> 16) & 0xff;
-	len[2] = (it->len >>  8) & 0xff;
-	len[3] = (it->len	 & 0xff);
-	status = NSSBase64Encoder_Update(cx, len, 4);
-	status = NSSBase64Encoder_Update(cx, it->data, it->len);
+	len[0] = (unsigned char)(it->len >> 24);
+	len[1] = (unsigned char)(it->len >> 16);
+	len[2] = (unsigned char)(it->len >>  8);
+	len[3] = (unsigned char)(it->len );
+	status |= NSSBase64Encoder_Update(cx, len, 4);
+	status |= NSSBase64Encoder_Update(cx, it->data, it->len);
     }
-    status = NSSBase64Encoder_Destroy(cx, PR_FALSE);
-    status = PR_Write(file, "\r\n", 2);
+    status |= NSSBase64Encoder_Destroy(cx, PR_FALSE);
+    status |= (2 == PR_Write(file, "\r\n", 2)) - 1;
+    return status;
 }
 
 void
-key_from_filedata(PRArenaPool *arena, SECItem *it, int ns, int ni, SECItem *filedata)
+key_from_filedata(PRArenaPool *arena, 
+		  SECItem *it,       /* array for decoded results */
+                  unsigned int ns,   /* skip this many input items */
+		  unsigned int ni,   /* number of input items in buffer */
+		  SECItem *filedata) /* buffer containing input items */
 {
     int fpos = 0;
-    int i, len;
+    unsigned int i, len;
     unsigned char *buf = filedata->data;
     for (i=0; i<ni; i++) {
-	len  = (buf[fpos++] & 0xff) << 24;
-	len |= (buf[fpos++] & 0xff) << 16;
-	len |= (buf[fpos++] & 0xff) <<  8;
-	len |= (buf[fpos++] & 0xff);
-	if (ns <= i) {
+	len  = (unsigned int)buf[fpos++] << 24;
+	len |= (unsigned int)buf[fpos++] << 16;
+	len |= (unsigned int)buf[fpos++] <<  8;
+	len |= (unsigned int)buf[fpos++];
+	if (i >= ns) {
 	    if (len > 0) {
 		it->len = len;
 		it->data = PORT_ArenaAlloc(arena, it->len);
@@ -383,7 +573,7 @@ dsakey_from_filedata(SECItem *filedata)
     PRArenaPool *arena;
     arena = PORT_NewArena(BLTEST_DEFAULT_CHUNKSIZE);
     key = (DSAPrivateKey *)PORT_ArenaZAlloc(arena, sizeof(DSAPrivateKey));
-    key->params.arena = arena;
+    key->params.arena = arena;  /* why not key->arena ? XXXXXXXXXXXXXX */
     key_from_filedata(arena, &key->params.prime, 0, 5, filedata);
     return key;
 }
@@ -423,7 +613,7 @@ typedef struct curveNameTagPairStr {
 #define DEFAULT_CURVE_OID_TAG  SEC_OID_SECG_EC_SECP192R1
 /* #define DEFAULT_CURVE_OID_TAG  SEC_OID_SECG_EC_SECP160R1 */
 
-static CurveNameTagPair nameTagPair[] =
+static const CurveNameTagPair nameTagPair[] =
 { 
   { "sect163k1", SEC_OID_SECG_EC_SECT163K1},
   { "nistk163", SEC_OID_SECG_EC_SECT163K1},
@@ -505,8 +695,21 @@ static CurveNameTagPair nameTagPair[] =
   { "sect131r2", SEC_OID_SECG_EC_SECT131R2},
 };
 
+static void
+printCurveNames()
+{
+    int i;
+    int numCurves = (sizeof nameTagPair) / (sizeof nameTagPair[0]);
+    fprintf(stderr, "%s: Available curve names (specify with -n):\n", progName);
+    for (i=0; i < numCurves; ) {
+	fprintf(stderr, "%19.19s", nameTagPair[i].curveName);
+	if (!(++i%4)) fprintf(stderr, "\n");
+    }
+    if ((i > 0) && (--i%4)) fprintf(stderr, "\n");
+}
+
 static SECKEYECParams * 
-getECParams(char *curve)
+getECParams(PRArenaPool *arena, char *curve)
 {
     SECKEYECParams *ecparams;
     SECOidData *oidData = NULL;
@@ -526,10 +729,11 @@ getECParams(char *curve)
     if ((curveOidTag == SEC_OID_UNKNOWN) || 
 	(oidData = SECOID_FindOIDByTag(curveOidTag)) == NULL) {
         fprintf(stderr, "Unrecognized elliptic curve %s\n", curve);
+	printCurveNames();
 	return NULL;
     }
 
-    ecparams = SECITEM_AllocItem(NULL, NULL, (2 + oidData->oid.len));
+    ecparams = SECITEM_AllocItem(arena, NULL, (2 + oidData->oid.len));
 
     /* 
      * ecparams->data needs to contain the ASN encoding of an object ID (OID)
@@ -591,177 +795,33 @@ dump_rsakey(RSAPrivateKey *key)
     SECU_PrintInteger(stdout, &key->coefficient, "CRT COEFFICIENT:", 0);
 }
 
-typedef enum {
-    bltestBase64Encoded,       /* Base64 encoded ASCII */
-    bltestBinary,	       /* straight binary */
-    bltestHexSpaceDelim,       /* 0x12 0x34 0xab 0xCD ... */
-    bltestHexStream 	       /* 1234abCD ... */
-} bltestIOMode;
-
-typedef struct
+bltestCipherInfo *
+createCipherInfo(void)
 {
-    SECItem	   buf;
-    SECItem	   pBuf;
-    bltestIOMode   mode;
-    PRFileDesc*	   file;
-} bltestIO;
+    bltestCipherInfo *cipherInfo;
+    PRArenaPool    *arena;
 
-typedef SECStatus (* bltestSymmCipherFn)(void *cx,
-					 unsigned char *output,
-					 unsigned int *outputLen,
-					 unsigned int maxOutputLen,
-					 const unsigned char *input,
-					 unsigned int inputLen);
+    arena = PORT_NewArena(BLTEST_DEFAULT_CHUNKSIZE);
+    if (!arena) {
+	SECU_PrintError(progName, "allocating cipher info for threads");
+	return NULL;
+    }
+    cipherInfo = PORT_ArenaZNew(arena, bltestCipherInfo);
+    if (!cipherInfo) {
+	SECU_PrintError(progName, "allocating cipher info for threads");
+	PORT_FreeArena(arena, PR_FALSE);
+	return NULL;
+    }
+    cipherInfo->arena = arena;
+    return cipherInfo;
+}
 
-typedef SECStatus (* bltestPubKeyCipherFn)(void *key,
-					   SECItem *output,
-					   const SECItem *input);
-
-typedef SECStatus (* bltestHashCipherFn)(unsigned char *dest,
-					 const unsigned char *src,
-					 uint32 src_length);
-
-typedef enum {
-    bltestINVALID = -1,
-    bltestDES_ECB,	  /* Symmetric Key Ciphers */
-    bltestDES_CBC,	  /* .			   */
-    bltestDES_EDE_ECB,	  /* .			   */
-    bltestDES_EDE_CBC,	  /* .			   */
-    bltestRC2_ECB,	  /* .			   */
-    bltestRC2_CBC,	  /* .			   */
-    bltestRC4,		  /* .			   */
-    bltestRC5_ECB,	  /* .			   */
-    bltestRC5_CBC,	  /* .			   */
-    bltestAES_ECB,        /* .                     */
-    bltestAES_CBC,        /* .                     */
-    bltestRSA,		  /* Public Key Ciphers	   */
-#ifdef NSS_ENABLE_ECC
-    bltestECDSA,	  /* . (Public Key Sig.)   */
-#endif
-    bltestDSA,		  /* .                     */
-    bltestMD2,		  /* Hash algorithms	   */
-    bltestMD5,		  /* .			   */
-    bltestSHA1,           /* .			   */
-    bltestSHA256,         /* .			   */
-    bltestSHA384,         /* .			   */
-    bltestSHA512,         /* .			   */
-    NUMMODES
-} bltestCipherMode;
-
-static char *mode_strings[] =
+void
+destroyCipherInfo( bltestCipherInfo *cipherInfo)
 {
-    "des_ecb",
-    "des_cbc",
-    "des3_ecb",
-    "des3_cbc",
-    "rc2_ecb",
-    "rc2_cbc",
-    "rc4",
-    "rc5_ecb",
-    "rc5_cbc",
-    "aes_ecb",
-    "aes_cbc",
-    "rsa",
-#ifdef NSS_ENABLE_ECC
-    "ecdsa",
-#endif
-    /*"pqg",*/
-    "dsa",
-    "md2",
-    "md5",
-    "sha1",
-    "sha256",
-    "sha384",
-    "sha512",
-};
-
-typedef struct
-{
-    bltestIO key;
-    bltestIO iv;
-} bltestSymmKeyParams;
-
-typedef struct
-{
-    bltestIO key;
-    bltestIO iv;
-    int	     rounds;
-    int	     wordsize;
-} bltestRC5Params;
-
-typedef struct
-{
-    bltestIO key;
-    int	     keysizeInBits;
-    RSAPrivateKey *rsakey;
-} bltestRSAParams;
-
-typedef struct
-{
-    bltestIO   key;
-    bltestIO   pqgdata;
-    unsigned int j;
-    bltestIO   keyseed;
-    bltestIO   sigseed;
-    bltestIO   sig; /* if doing verify, have additional input */
-    PQGParams *pqg;
-    DSAPrivateKey *dsakey;
-} bltestDSAParams;
-
-#ifdef NSS_ENABLE_ECC
-typedef struct
-{
-    bltestIO   key;
-    char      *curveName;
-    bltestIO   sigseed;
-    bltestIO   sig; /* if doing verify, have additional input */
-    ECPrivateKey *eckey;
-} bltestECDSAParams;
-#endif
-
-typedef struct
-{
-    bltestIO   key; /* unused */
-    PRBool     restart;
-} bltestHashParams;
-
-typedef union
-{
-    bltestIO		key;
-    bltestSymmKeyParams sk;
-    bltestRC5Params	rc5;
-    bltestRSAParams	rsa;
-    bltestDSAParams	dsa;
-#ifdef NSS_ENABLE_ECC
-    bltestECDSAParams	ecdsa;
-#endif
-    bltestHashParams	hash;
-} bltestParams;
-
-typedef struct
-{
-    PRArenaPool *arena;
-    /* cipher context */
-    void *cx;
-    /* I/O streams */
-    bltestIO input;
-    bltestIO output;
-    /* Cipher-specific parameters */
-    bltestParams params;
-    /* Cipher mode */
-    bltestCipherMode  mode;
-    /* Cipher function (encrypt/decrypt/sign/verify/hash) */
-    union {
-	bltestSymmCipherFn   symmkeyCipher;
-	bltestPubKeyCipherFn pubkeyCipher;
-	bltestHashCipherFn   hashCipher;
-    } cipher;
-    /* performance testing */
-    int	  repetitions;
-    int   cxreps;
-    double cxtime;
-    double optime;
-} bltestCipherInfo;
+    /* destroy any keys or pqgparams referenced in the cipherInfo. XXX */
+    PORT_FreeArena(cipherInfo->arena, PR_FALSE);
+}
 
 PRBool
 is_symmkeyCipher(bltestCipherMode mode)
@@ -814,10 +874,12 @@ cipher_requires_IV(bltestCipherMode mode)
     return PR_FALSE;
 }
 
-SECStatus finishIO(bltestIO *output, PRFileDesc *file);
 
+/* This function exists to read input from the source, in 
+** whatever format is expected for the input.
+*/
 SECStatus
-setupIO(PRArenaPool *arena, bltestIO *input, PRFileDesc *file,
+inputIO(PRArenaPool *arena, bltestIO *input, PRFileDesc *file,
 	char *str, int numBytes)
 {
     SECStatus rv = SECSuccess;
@@ -826,35 +888,45 @@ setupIO(PRArenaPool *arena, bltestIO *input, PRFileDesc *file,
     unsigned char *tok;
     unsigned int i, j;
 
-    if (file && (numBytes == 0 || file == PR_STDIN)) {
+    if (file) {
 	/* grabbing data from a file */
 	rv = SECU_FileToItem(&fileData, file);
 	if (rv != SECSuccess) {
-	    PR_Close(file);
+	    /* Caller must close file, error or not. */
 	    return SECFailure;
+	}
+	if (numBytes) {
+	    if (numBytes > fileData.len) {
+		SECITEM_FreeItem(&fileData, PR_FALSE);
+	    	PORT_SetError(SEC_ERROR_INPUT_LEN);
+		puts("Input data too short");
+		return SECFailure;
+	    }
+	    fileData.len = numBytes;
 	}
 	in = &fileData;
     } else if (str) {
 	/* grabbing data from command line */
-	fileData.data = str;
+	fileData.data = (unsigned char *)str;
 	fileData.len = PL_strlen(str);
 	in = &fileData;
-    } else if (file) {
-	/* create nonce */
+    } else {
 	SECITEM_AllocItem(arena, &input->buf, numBytes);
 	RNG_GenerateGlobalRandomBytes(input->buf.data, numBytes);
-	return finishIO(input, file);
-    } else {
-	return SECFailure;
+	return SECSuccess;
     }
 
-    switch (input->mode) {
+    switch (input->ioFormat) {
     case bltestBase64Encoded:
 	rv = atob(in, &input->buf, arena);
 	break;
+    case bltestBinary_CRLF:
+	if (in->data[in->len-1] == '\n') 
+	    --in->len;
+	if (in->data[in->len-1] == '\r') 
+	    --in->len;
+	/* Fall through */
     case bltestBinary:
-	if (in->data[in->len-1] == '\n') --in->len;
-	if (in->data[in->len-1] == '\r') --in->len;
 	SECITEM_CopyItem(arena, &input->buf, in);
 	break;
     case bltestHexSpaceDelim:
@@ -886,24 +958,32 @@ setupIO(PRArenaPool *arena, bltestIO *input, PRFileDesc *file,
     return rv;
 }
 
+/* This function outputs data. It should never be passed a
+** bltestIO or PRFileDesc for an input file.
+*/
 SECStatus
-finishIO(bltestIO *output, PRFileDesc *file)
+outputIO(bltestIO *output, PRFileDesc *file)
 {
     SECStatus rv = SECSuccess;
     PRInt32 nb;
-    unsigned char byteval;
     SECItem *it;
-    char hexstr[5];
     unsigned int i;
+    unsigned char byteval;
+    unsigned char hexstr[5];
+
     if (output->pBuf.len > 0) {
 	it = &output->pBuf;
     } else {
 	it = &output->buf;
     }
-    switch (output->mode) {
+    switch (output->ioFormat) {
     case bltestBase64Encoded:
 	rv = btoa_file(it, file);
 	break;
+    /* We never write the trailing CRLF.  But we support this as an
+    ** output ioFormat because input format must match output format. :(
+    */
+    case bltestBinary_CRLF:
     case bltestBinary:
 	nb = PR_Write(file, it->data, it->len);
 	rv = (nb == (PRInt32)it->len) ? SECSuccess : SECFailure;
@@ -943,17 +1023,24 @@ bltestCopyIO(PRArenaPool *arena, bltestIO *dest, bltestIO *src)
 	dest->pBuf.len = src->pBuf.len;
 	dest->pBuf.data = dest->buf.data + (src->pBuf.data - src->buf.data);
     }
-    dest->mode = src->mode;
+    dest->ioFormat = src->ioFormat;
     dest->file = src->file;
 }
 
-void
-misalignBuffer(PRArenaPool *arena, bltestIO *io, int off)
+SECStatus
+misalignInputBuf(PRArenaPool *arena, bltestIO *io, int off)
 {
     ptrdiff_t offset = (ptrdiff_t)io->buf.data % WORDSIZE;
     int length = io->buf.len;
+    SECStatus rv = SECSuccess;
+
     if (offset != off) {
-	SECITEM_ReallocItem(arena, &io->buf, length, length + 2*WORDSIZE);
+	unsigned char * old = io->buf.data;
+	rv = SECITEM_ReallocItem(arena, &io->buf, length, length + 2*WORDSIZE);
+	if (rv != SECSuccess) {
+	    io->buf.data = old; /* restore lost buffer address */
+	    return SECFailure;
+	}
 	io->buf.len = length + 2*WORDSIZE; /* why doesn't realloc do this? */
 	/* offset may have changed? */
 	offset = (ptrdiff_t)io->buf.data % WORDSIZE;
@@ -969,6 +1056,22 @@ misalignBuffer(PRArenaPool *arena, bltestIO *io, int off)
 	io->pBuf.data = io->buf.data;
 	io->pBuf.len = length;
     }
+    return rv;
+}
+
+SECStatus 
+misalignOutputBuf(PRArenaPool *arena, bltestIO *io, int off)
+{
+    ptrdiff_t offset = (ptrdiff_t)io->buf.data % WORDSIZE;
+    int length = io->buf.len;
+    SECStatus rv = SECSuccess;
+
+    io->pBuf = io->buf;
+    if (offset != off) {
+    	io->pBuf.data -= offset;
+    	io->pBuf.data += off;
+    }
+    return rv;
 }
 
 SECStatus
@@ -1197,7 +1300,7 @@ bltest_rc5_init(bltestCipherInfo *cipherInfo, PRBool encrypt)
 {
 #if NSS_SOFTOKEN_DOES_RC5
     PRIntervalTime time1, time2;
-    bltestRC5Params *rc5p = &cipherInfo->params.rc5;
+    bltestRC5Params *rc5p = &cipherInfo->params.sk;
     int minorMode;
     switch (cipherInfo->mode) {
     case bltestRC5_ECB: minorMode = NSS_RC5;	 break;
@@ -1569,7 +1672,7 @@ sha1_restart(unsigned char *dest, const unsigned char *src, uint32 src_length)
 	PORT_Free(cxbytes);
 	src_length -= quarter;
     }
-    SHA1_End(cx, dest, &len, MD5_LENGTH);
+    SHA1_End(cx, dest, &len, SHA1_LENGTH);
 finish:
     SHA1_DestroyContext(cx, PR_TRUE);
     return rv;
@@ -1608,7 +1711,7 @@ SHA256_restart(unsigned char *dest, const unsigned char *src, uint32 src_length)
 	PORT_Free(cxbytes);
 	src_length -= quarter;
     }
-    SHA256_End(cx, dest, &len, MD5_LENGTH);
+    SHA256_End(cx, dest, &len, SHA256_LENGTH);
 finish:
     SHA256_DestroyContext(cx, PR_TRUE);
     return rv;
@@ -1647,7 +1750,7 @@ SHA384_restart(unsigned char *dest, const unsigned char *src, uint32 src_length)
 	PORT_Free(cxbytes);
 	src_length -= quarter;
     }
-    SHA384_End(cx, dest, &len, MD5_LENGTH);
+    SHA384_End(cx, dest, &len, SHA384_LENGTH);
 finish:
     SHA384_DestroyContext(cx, PR_TRUE);
     return rv;
@@ -1686,92 +1789,38 @@ SHA512_restart(unsigned char *dest, const unsigned char *src, uint32 src_length)
 	PORT_Free(cxbytes);
 	src_length -= quarter;
     }
-    SHA512_End(cx, dest, &len, MD5_LENGTH);
+    SHA512_End(cx, dest, &len, SHA512_LENGTH);
 finish:
     SHA512_DestroyContext(cx, PR_TRUE);
     return rv;
 }
 
 SECStatus
-pubkeyInitKey(bltestCipherInfo *cipherInfo, PRFileDesc *file,
-#ifdef NSS_ENABLE_ECC
-	      int keysize, int exponent, char *curveName)
-#else
-	      int keysize, int exponent)
-#endif
+dumpPubKey(bltestCipherInfo *cipherInfo, PRFileDesc *file)
 {
-    int i;
-    SECStatus rv = SECSuccess;
-    bltestRSAParams *rsap;
-    bltestDSAParams *dsap;
-#ifdef NSS_ENABLE_ECC
-    bltestECDSAParams *ecdsap;
-    SECItem *tmpECParamsDER;
-    ECParams *tmpECParams = NULL;
-    SECItem ecSerialize[3];
-#endif
     switch (cipherInfo->mode) {
-    case bltestRSA:
-	rsap = &cipherInfo->params.rsa;
-	if (keysize > 0) {
-	    SECItem expitem = { 0, 0, 0 };
-	    SECITEM_AllocItem(cipherInfo->arena, &expitem, sizeof(int));
-	    for (i = 1; i <= sizeof(int); i++)
-		expitem.data[i-1] = exponent >> (8*(sizeof(int) - i));
-	    rsap->rsakey = RSA_NewKey(keysize * 8, &expitem);
-	    serialize_key(&rsap->rsakey->version, 9, file);
-	    rsap->keysizeInBits = keysize * 8;
-	} else {
-	    setupIO(cipherInfo->arena, &cipherInfo->params.key, file, NULL, 0);
-	    rsap->rsakey = rsakey_from_filedata(&cipherInfo->params.key.buf);
-	    rsap->keysizeInBits = rsap->rsakey->modulus.len * 8;
-	}
-	break;
-    case bltestDSA:
-	dsap = &cipherInfo->params.dsa;
-	if (keysize > 0) {
-	    dsap->j = PQG_PBITS_TO_INDEX(8*keysize);
-	    if (!dsap->pqg)
-		bltest_pqg_init(dsap);
-	    rv = DSA_NewKey(dsap->pqg, &dsap->dsakey);
-	    CHECKERROR(rv, __LINE__);
-	    serialize_key(&dsap->dsakey->params.prime, 5, file);
-	} else {
-	    setupIO(cipherInfo->arena, &cipherInfo->params.key, file, NULL, 0);
-	    dsap->dsakey = dsakey_from_filedata(&cipherInfo->params.key.buf);
-	    dsap->j = PQG_PBITS_TO_INDEX(8*dsap->dsakey->params.prime.len);
-	}
-	break;
+    case bltestRSA: {
+	bltestRSAParams *rsap = &cipherInfo->params.rsa;
+	serialize_key(&rsap->rsakey->version, 9, file);
+    }
+    break;
+    case bltestDSA: {
+	bltestDSAParams *dsap = &cipherInfo->params.dsa;
+	serialize_key(&dsap->dsakey->params.prime, 5, file);
+    }
+    break;
+
 #ifdef NSS_ENABLE_ECC
-    case bltestECDSA:
-	ecdsap = &cipherInfo->params.ecdsa;
-	if (curveName != NULL) {
-	    tmpECParamsDER = getECParams(curveName);
-	    rv = secoid_Init();
-	    CHECKERROR(rv, __LINE__);
-	    rv = EC_DecodeParams(tmpECParamsDER, &tmpECParams) == SECFailure;
-	    CHECKERROR(rv, __LINE__);
-	    rv = EC_NewKey(tmpECParams, &ecdsap->eckey);
-	    CHECKERROR(rv, __LINE__);
-	    ecSerialize[0].type = tmpECParamsDER->type;
-	    ecSerialize[0].data = tmpECParamsDER->data;
-	    ecSerialize[0].len  = tmpECParamsDER->len;
-	    ecSerialize[1].type = ecdsap->eckey->publicValue.type;
-	    ecSerialize[1].data = ecdsap->eckey->publicValue.data;
-	    ecSerialize[1].len  = ecdsap->eckey->publicValue.len;
-	    ecSerialize[2].type = ecdsap->eckey->privateValue.type;
-	    ecSerialize[2].data = ecdsap->eckey->privateValue.data;
-	    ecSerialize[2].len  = ecdsap->eckey->privateValue.len;
-	    serialize_key(&(ecSerialize[0]), 3, file);
-	    free(tmpECParamsDER);
-	    PORT_FreeArena(tmpECParams->arena, PR_TRUE);
-	    rv = SECOID_Shutdown();
-	    CHECKERROR(rv, __LINE__);
-	} else {
-	    setupIO(cipherInfo->arena, &cipherInfo->params.key, file, NULL, 0);
-	    ecdsap->eckey = eckey_from_filedata(&cipherInfo->params.key.buf);
-	}
-	break;
+    case bltestECDSA: {
+	bltestECDSAParams *ecdsap = &cipherInfo->params.ecdsa;
+	SECItem ecSerialize[3];
+
+	ecSerialize[0] = ecdsap->ecParamsDER[0];
+	ecSerialize[1] = ecdsap->eckey->publicValue;
+	ecSerialize[2] = ecdsap->eckey->privateValue;
+	serialize_key(&(ecSerialize[0]), 3, file);
+    }
+    break;
 #endif
     default:
 	return SECFailure;
@@ -1780,109 +1829,178 @@ pubkeyInitKey(bltestCipherInfo *cipherInfo, PRFileDesc *file,
 }
 
 SECStatus
+pubkeyInitKey(bltestCipherInfo *cipherInfo, PRFileDesc *file,
+	      int keysize, int exponent, char *curveName)
+{
+    switch (cipherInfo->mode) {
+    case bltestRSA: {
+	bltestRSAParams *rsap = &cipherInfo->params.rsa;
+	if (keysize > 0) {
+	    int i;
+	    SECItem expitem = { 0, 0, 0 };
+
+	    SECITEM_AllocItem(cipherInfo->arena, &expitem, sizeof(int));
+	    for (i = 1; i <= sizeof(int); i++)
+		expitem.data[i-1] = exponent >> (8*(sizeof(int) - i));
+	    rsap->rsakey = RSA_NewKey(keysize * 8, &expitem);
+	    rsap->keysizeInBits = keysize * 8;
+	} else {
+	    if (!file) { 
+		PORT_SetError(SEC_ERROR_INVALID_ARGS); 
+		return SECFailure; 
+	    }
+	    inputIO(cipherInfo->arena, &cipherInfo->params.key, file, NULL, 0);
+	    rsap->rsakey = rsakey_from_filedata(&cipherInfo->params.key.buf);
+	    rsap->keysizeInBits = rsap->rsakey->modulus.len * 8;
+	}
+      }
+	break;
+    case bltestDSA: {
+	bltestDSAParams *dsap = &cipherInfo->params.dsa;
+	SECStatus rv = SECSuccess;
+
+	if (keysize > 0) {
+	    dsap->j = PQG_PBITS_TO_INDEX(8*keysize);
+	    if (!dsap->pqg)
+		bltest_pqg_init(dsap);
+	    rv = DSA_NewKey(dsap->pqg, &dsap->dsakey);
+	    CHECKERROR(rv, __LINE__);
+	} else {
+	    if (!file) { 
+		PORT_SetError(SEC_ERROR_INVALID_ARGS); 
+		return SECFailure; 
+	    }
+	    inputIO(cipherInfo->arena, &cipherInfo->params.key, file, NULL, 0);
+	    dsap->dsakey = dsakey_from_filedata(&cipherInfo->params.key.buf);
+	    dsap->j = PQG_PBITS_TO_INDEX(8*dsap->dsakey->params.prime.len);
+	}
+      }
+	break;
+#ifdef NSS_ENABLE_ECC
+    case bltestECDSA: {
+	bltestECDSAParams *ecdsap = &cipherInfo->params.ecdsa;
+	ECParams *         tmpECParams     = NULL;
+	SECStatus          rv              = SECSuccess;
+
+	if (curveName != NULL) {
+	    ecdsap->ecParamsDER = getECParams(cipherInfo->arena, curveName);
+	    rv = secoid_Init();
+	    CHECKERROR(rv, __LINE__);
+	    rv = EC_DecodeParams(tmpECParamsDER, &tmpECParams) == SECFailure;
+	    CHECKERROR(rv, __LINE__);
+	    rv = EC_NewKey(tmpECParams, &ecdsap->eckey);
+	    CHECKERROR(rv, __LINE__);
+	    PORT_FreeArena(tmpECParams->arena, PR_TRUE);
+	    rv = SECOID_Shutdown();
+	    CHECKERROR(rv, __LINE__);
+	} else {
+	    if (!file) { 
+		PORT_SetError(SEC_ERROR_INVALID_ARGS); 
+		return SECFailure; 
+	    }
+	    inputIO(cipherInfo->arena, &cipherInfo->params.key, file, NULL, 0);
+	    ecdsap->eckey = eckey_from_filedata(&cipherInfo->params.key.buf);
+	}
+      }
+	break;
+#endif
+    default:
+	return SECFailure;
+    }
+    return SECSuccess;
+}
+
+#define ALLOC_OUT(ln) \
+  SECITEM_AllocItem(cipherInfo->arena, &cipherInfo->output.buf, \
+       (ln) + 2*WORDSIZE); \
+  if (cipherInfo->output.buf.data == NULL) return SECFailure; \
+  cipherInfo->output.buf.len = (ln); 
+
+SECStatus
 cipherInit(bltestCipherInfo *cipherInfo, PRBool encrypt)
 {
     PRBool restart;
+    SECStatus rv = SECSuccess;
+
     switch (cipherInfo->mode) {
     case bltestDES_ECB:
     case bltestDES_CBC:
     case bltestDES_EDE_ECB:
     case bltestDES_EDE_CBC:
-	SECITEM_AllocItem(cipherInfo->arena, &cipherInfo->output.buf,
-			  cipherInfo->input.pBuf.len);
+	ALLOC_OUT( cipherInfo->input.pBuf.len);
 	return bltest_des_init(cipherInfo, encrypt);
 	break;
     case bltestRC2_ECB:
     case bltestRC2_CBC:
-	SECITEM_AllocItem(cipherInfo->arena, &cipherInfo->output.buf,
-			  cipherInfo->input.pBuf.len);
+	ALLOC_OUT( cipherInfo->input.pBuf.len);
 	return bltest_rc2_init(cipherInfo, encrypt);
 	break;
     case bltestRC4:
-	SECITEM_AllocItem(cipherInfo->arena, &cipherInfo->output.buf,
-			  cipherInfo->input.pBuf.len);
+	ALLOC_OUT( cipherInfo->input.pBuf.len);
 	return bltest_rc4_init(cipherInfo, encrypt);
 	break;
     case bltestRC5_ECB:
     case bltestRC5_CBC:
-#if NSS_SOFTOKEN_DOES_RC5
-	SECITEM_AllocItem(cipherInfo->arena, &cipherInfo->output.buf,
-			  cipherInfo->input.pBuf.len);
-#endif
+	ALLOC_OUT( cipherInfo->input.pBuf.len);
 	return bltest_rc5_init(cipherInfo, encrypt);
 	break;
     case bltestAES_ECB:
     case bltestAES_CBC:
-	SECITEM_AllocItem(cipherInfo->arena, &cipherInfo->output.buf,
-			  cipherInfo->input.pBuf.len);
+	ALLOC_OUT( cipherInfo->input.pBuf.len);
 	return bltest_aes_init(cipherInfo, encrypt);
 	break;
     case bltestRSA:
-	SECITEM_AllocItem(cipherInfo->arena, &cipherInfo->output.buf,
-			  cipherInfo->input.pBuf.len);
+	ALLOC_OUT( cipherInfo->input.pBuf.len);
 	return bltest_rsa_init(cipherInfo, encrypt);
 	break;
     case bltestDSA:
-	SECITEM_AllocItem(cipherInfo->arena, &cipherInfo->output.buf,
-			  DSA_SIGNATURE_LEN);
+	ALLOC_OUT( DSA_SIGNATURE_LEN);
 	return bltest_dsa_init(cipherInfo, encrypt);
 	break;
 #ifdef NSS_ENABLE_ECC
     case bltestECDSA:
-	SECITEM_AllocItem(cipherInfo->arena, &cipherInfo->output.buf,
-			  2 * MAX_ECKEY_LEN);
+	ALLOC_OUT( 2 * MAX_ECKEY_LEN);
 	return bltest_ecdsa_init(cipherInfo, encrypt);
 	break;
 #endif
     case bltestMD2:
 	restart = cipherInfo->params.hash.restart;
-	SECITEM_AllocItem(cipherInfo->arena, &cipherInfo->output.buf,
-			  MD2_LENGTH);
+	ALLOC_OUT( MD2_LENGTH);
 	cipherInfo->cipher.hashCipher = (restart) ? md2_restart : md2_HashBuf;
-	return SECSuccess;
 	break;
     case bltestMD5:
 	restart = cipherInfo->params.hash.restart;
-	SECITEM_AllocItem(cipherInfo->arena, &cipherInfo->output.buf,
-			  MD5_LENGTH);
+	ALLOC_OUT( MD5_LENGTH);
 	cipherInfo->cipher.hashCipher = (restart) ? md5_restart : MD5_HashBuf;
-	return SECSuccess;
 	break;
     case bltestSHA1:
 	restart = cipherInfo->params.hash.restart;
-	SECITEM_AllocItem(cipherInfo->arena, &cipherInfo->output.buf,
-			  SHA1_LENGTH);
+	ALLOC_OUT( SHA1_LENGTH);
 	cipherInfo->cipher.hashCipher = (restart) ? sha1_restart : SHA1_HashBuf;
-	return SECSuccess;
 	break;
     case bltestSHA256:
 	restart = cipherInfo->params.hash.restart;
-	SECITEM_AllocItem(cipherInfo->arena, &cipherInfo->output.buf,
-			  SHA256_LENGTH);
+	ALLOC_OUT( SHA256_LENGTH);
 	cipherInfo->cipher.hashCipher = (restart) ? SHA256_restart 
 	                                          : SHA256_HashBuf;
-	return SECSuccess;
 	break;
     case bltestSHA384:
 	restart = cipherInfo->params.hash.restart;
-	SECITEM_AllocItem(cipherInfo->arena, &cipherInfo->output.buf,
-			  SHA384_LENGTH);
+	ALLOC_OUT( SHA384_LENGTH);
 	cipherInfo->cipher.hashCipher = (restart) ? SHA384_restart 
 	                                          : SHA384_HashBuf;
-	return SECSuccess;
 	break;
     case bltestSHA512:
 	restart = cipherInfo->params.hash.restart;
-	SECITEM_AllocItem(cipherInfo->arena, &cipherInfo->output.buf,
-			  SHA512_LENGTH);
+	ALLOC_OUT( SHA512_LENGTH);
 	cipherInfo->cipher.hashCipher = (restart) ? SHA512_restart 
 	                                          : SHA512_HashBuf;
-	return SECSuccess;
 	break;
     default:
+	PORT_SetError(SEC_ERROR_INVALID_ARGS);
 	return SECFailure;
     }
-    return SECSuccess;
+    return rv;
 }
 
 SECStatus
@@ -1893,51 +2011,117 @@ dsaOp(bltestCipherInfo *cipherInfo)
     int i;
     int maxLen = cipherInfo->output.pBuf.len;
     SECItem dummyOut = { 0, 0, 0 };
-    SECITEM_AllocItem(NULL, &dummyOut, maxLen);
+
+    SECITEM_AllocItem(cipherInfo->arena, &dummyOut, maxLen + 16);
+    if (!dummyOut.data) return SECFailure;
+    dummyOut.data += 0xf & (unsigned long)cipherInfo->output.pBuf.data;
+    dummyOut.len = maxLen;
+
     if (cipherInfo->cipher.pubkeyCipher == dsa_signDigest) {
 	if (cipherInfo->params.dsa.sigseed.buf.len > 0) {
-	    rv = DSA_SignDigestWithSeed((DSAPrivateKey *)cipherInfo->cx,
-				       &cipherInfo->output.pBuf,
-				       &cipherInfo->input.pBuf,
-				       cipherInfo->params.dsa.sigseed.buf.data);
-	    CHECKERROR(rv, __LINE__);
-	    TIMESTART();
-	    for (i=0; i<cipherInfo->repetitions; i++) {
-		rv |= DSA_SignDigestWithSeed((DSAPrivateKey *)cipherInfo->cx,
-				       &dummyOut,
-				       &cipherInfo->input.pBuf,
-				       cipherInfo->params.dsa.sigseed.buf.data);
-	    }
-	    TIMEFINISH(cipherInfo->optime, 1.0);
-	    CHECKERROR(rv, __LINE__);
-	} else {
-	    rv = DSA_SignDigest((DSAPrivateKey *)cipherInfo->cx,
-				&cipherInfo->output.pBuf,
-				&cipherInfo->input.pBuf);
-	    CHECKERROR(rv, __LINE__);
-	    TIMESTART();
-	    for (i=0; i<cipherInfo->repetitions; i++) {
-		DSA_SignDigest((DSAPrivateKey *)cipherInfo->cx, &dummyOut,
-			       &cipherInfo->input.pBuf);
-	    }
-	    TIMEFINISH(cipherInfo->optime, 1.0);
-	}
-	bltestCopyIO(cipherInfo->arena, &cipherInfo->params.dsa.sig, 
-	             &cipherInfo->output);
+            bltestDSAParams *dsa = &cipherInfo->params.dsa;
+            DSAPrivateKey *key = (DSAPrivateKey *)cipherInfo->cx;
+
+            TIMESTART();
+            rv = DSA_SignDigestWithSeed(key,
+                                        &cipherInfo->output.pBuf,
+                                        &cipherInfo->input.pBuf,
+                                        dsa->sigseed.buf.data);
+            TIMEFINISH(cipherInfo->optime, 1.0);
+            CHECKERROR(rv, __LINE__);
+            cipherInfo->repetitions = 0;
+            if (cipherInfo->repetitionsToPerfom != 0) {
+                TIMESTART();
+                for (i=0; i<cipherInfo->repetitionsToPerfom;
+                     i++, cipherInfo->repetitions++) {
+                    rv = DSA_SignDigestWithSeed(key, &dummyOut,
+                                                &cipherInfo->input.pBuf,
+                                                dsa->sigseed.buf.data);
+                    CHECKERROR(rv, __LINE__);
+                }
+            } else {
+                int opsBetweenChecks = 0;
+                TIMEMARK(cipherInfo->seconds);
+                while (! (TIMETOFINISH())) {
+                    int j = 0;
+                    for (;j < opsBetweenChecks;j++) {
+                        rv = DSA_SignDigestWithSeed(key, &dummyOut,
+                                                    &cipherInfo->input.pBuf,
+                                                    dsa->sigseed.buf.data);
+                        CHECKERROR(rv, __LINE__);
+                    }
+                    cipherInfo->repetitions += j;
+                }
+            }
+            TIMEFINISH(cipherInfo->optime, 1.0);
+        } else {
+            TIMESTART();
+            rv = DSA_SignDigest((DSAPrivateKey *)cipherInfo->cx,
+                                &cipherInfo->output.pBuf,
+                                &cipherInfo->input.pBuf);
+            TIMEFINISH(cipherInfo->optime, 1.0);
+            CHECKERROR(rv, __LINE__);
+            cipherInfo->repetitions = 0;
+            if (cipherInfo->repetitionsToPerfom != 0) {
+                TIMESTART();
+                for (i=0; i<cipherInfo->repetitionsToPerfom;
+                     i++, cipherInfo->repetitions++) {
+                    rv = DSA_SignDigest((DSAPrivateKey *)cipherInfo->cx,
+                                        &dummyOut,
+                                        &cipherInfo->input.pBuf);
+                    CHECKERROR(rv, __LINE__);
+                }
+            } else {
+                int opsBetweenChecks = 0;
+                TIMEMARK(cipherInfo->seconds);
+                while (! (TIMETOFINISH())) {
+                    int j = 0;
+                    for (;j < opsBetweenChecks;j++) {
+                        rv = DSA_SignDigest((DSAPrivateKey *)cipherInfo->cx,
+                                            &dummyOut,
+                                            &cipherInfo->input.pBuf);
+                        CHECKERROR(rv, __LINE__);
+                    }
+                    cipherInfo->repetitions += j;
+                }
+            }
+            TIMEFINISH(cipherInfo->optime, 1.0);
+        }
+        bltestCopyIO(cipherInfo->arena, &cipherInfo->params.dsa.sig, 
+                     &cipherInfo->output);
     } else {
-	rv = DSA_VerifyDigest((DSAPublicKey *)cipherInfo->cx,
-			      &cipherInfo->params.dsa.sig.buf,
-			      &cipherInfo->input.pBuf);
-	CHECKERROR(rv, __LINE__);
-	TIMESTART();
-	for (i=0; i<cipherInfo->repetitions; i++) {
-	    DSA_VerifyDigest((DSAPublicKey *)cipherInfo->cx,
-			     &cipherInfo->params.dsa.sig.buf,
-			     &cipherInfo->input.pBuf);
-	}
-	TIMEFINISH(cipherInfo->optime, 1.0);
+        TIMESTART();
+        rv = DSA_VerifyDigest((DSAPublicKey *)cipherInfo->cx,
+                              &cipherInfo->params.dsa.sig.buf,
+                              &cipherInfo->input.pBuf);
+        TIMEFINISH(cipherInfo->optime, 1.0);
+        CHECKERROR(rv, __LINE__);
+        cipherInfo->repetitions = 0;
+        if (cipherInfo->repetitionsToPerfom != 0) {
+            TIMESTART();
+            for (i=0; i<cipherInfo->repetitionsToPerfom;
+                 i++, cipherInfo->repetitions++) {
+                rv = DSA_VerifyDigest((DSAPublicKey *)cipherInfo->cx,
+                                      &cipherInfo->params.dsa.sig.buf,
+                                      &cipherInfo->input.pBuf);
+                CHECKERROR(rv, __LINE__);
+            }
+        } else {
+            int opsBetweenChecks = 0;
+            TIMEMARK(cipherInfo->seconds);
+            while (! (TIMETOFINISH())) {
+                int j = 0;
+                for (;j < opsBetweenChecks;j++) {
+                    rv = DSA_VerifyDigest((DSAPublicKey *)cipherInfo->cx,
+                                          &cipherInfo->params.dsa.sig.buf,
+                                          &cipherInfo->input.pBuf);
+                    CHECKERROR(rv, __LINE__);
+                }
+                cipherInfo->repetitions += j;
+            }
+        }
+        TIMEFINISH(cipherInfo->optime, 1.0);
     }
-    SECITEM_FreeItem(&dummyOut, PR_FALSE);
     return rv;
 }
 
@@ -1950,53 +2134,120 @@ ecdsaOp(bltestCipherInfo *cipherInfo)
     int i;
     int maxLen = cipherInfo->output.pBuf.len;
     SECItem dummyOut = { 0, 0, 0 };
-    SECITEM_AllocItem(NULL, &dummyOut, maxLen);
+
+    SECITEM_AllocItem(cipherInfo->arena, &dummyOut, maxLen + 16);
+    if (!dummyOut->data) return SECFailure;
+    dummyOut.data += 0xf & (unsigned long)cipherInfo->output.pBuf.data;
+    dummyOut.len = maxLen;
+
     if (cipherInfo->cipher.pubkeyCipher == ecdsa_signDigest) {
-	if (cipherInfo->params.ecdsa.sigseed.buf.len > 0) {
-	    rv = ECDSA_SignDigestWithSeed((ECPrivateKey *)cipherInfo->cx,
-				       &cipherInfo->output.pBuf,
-				       &cipherInfo->input.pBuf,
-				       cipherInfo->params.ecdsa.sigseed.buf.data,
-				       cipherInfo->params.ecdsa.sigseed.buf.len);
-	    CHECKERROR(rv, __LINE__);
-	    TIMESTART();
-	    for (i=0; i<cipherInfo->repetitions; i++) {
-		rv |= ECDSA_SignDigestWithSeed((ECPrivateKey *)cipherInfo->cx,
-				       &dummyOut,
-				       &cipherInfo->input.pBuf,
-				       cipherInfo->params.ecdsa.sigseed.buf.data,
-				       cipherInfo->params.ecdsa.sigseed.buf.len);
-	    }
-	    TIMEFINISH(cipherInfo->optime, 1.0);
-	    CHECKERROR(rv, __LINE__);
-	} else {
-	    rv = ECDSA_SignDigest((ECPrivateKey *)cipherInfo->cx,
-				&cipherInfo->output.pBuf,
-				&cipherInfo->input.pBuf);
-	    CHECKERROR(rv, __LINE__);
-	    TIMESTART();
-	    for (i=0; i<cipherInfo->repetitions; i++) {
-		ECDSA_SignDigest((ECPrivateKey *)cipherInfo->cx, &dummyOut,
-			       &cipherInfo->input.pBuf);
-	    }
-	    TIMEFINISH(cipherInfo->optime, 1.0);
-	}
-	bltestCopyIO(cipherInfo->arena, &cipherInfo->params.ecdsa.sig, 
-	             &cipherInfo->output);
+        if (cipherInfo->params.ecdsa.sigseed.buf.len > 0) {
+            ECPrivateKey *key = (ECPrivateKey *)cipherInfo->cx;
+            bltestECDSAParams *ecdsa = &cipherInfo->params.ecdsa;
+
+            TIMESTART();
+            rv = ECDSA_SignDigestWithSeed(key,
+                                          &cipherInfo->output.pBuf,
+                                          &cipherInfo->input.pBuf,
+                                          ecdsa->sigseed.buf.data,
+                                          ecdsa->sigseed.buf.len);
+            TIMEFINISH(cipherInfo->optime, 1.0);
+            CHECKERROR(rv, __LINE__);
+            cipherInfo->repetitions = 0;
+            if (cipherInfo->repetitionsToPerfom != 0) {
+                TIMESTART();
+                for (i=0; i<cipherInfo->repetitionsToPerfom;
+                     i++, cipherInfo->repetitions++) {
+                    rv = ECDSA_SignDigestWithSeed(key, &dummyOut,
+                                                  &cipherInfo->input.pBuf,
+                                                  ecdsa->sigseed.buf.data,
+                                                  ecdsa->sigseed.buf.len);
+                    CHECKERROR(rv, __LINE__);
+                }
+            } else {
+                int opsBetweenChecks = 0;
+                TIMEMARK(cipherInfo->seconds);
+                while (! (TIMETOFINISH())) {
+                    int j = 0;
+                    for (;j < opsBetweenChecks;j++) {
+                        rv = ECDSA_SignDigestWithSeed(key, &dummyOut,
+                                                      &cipherInfo->input.pBuf,
+                                                      ecdsa->sigseed.buf.data,
+                                                      ecdsa->sigseed.buf.len);
+                        CHECKERROR(rv, __LINE__);
+                    }
+                    cipherInfo->repetitions += j;
+                }
+            }
+            TIMEFINISH(cipherInfo->optime, 1.0);
+        } else {
+            TIMESTART();
+            rv = ECDSA_SignDigest((ECPrivateKey *)cipherInfo->cx,
+                                  &cipherInfo->output.pBuf,
+                                  &cipherInfo->input.pBuf);
+            TIMEFINISH(cipherInfo->optime, 1.0);
+            CHECKERROR(rv, __LINE__);
+            cipherInfo->repetitions = 0;
+            if (cipherInfo->repetitionsToPerfom != 0) {
+                TIMESTART();
+                for (i=0; i<cipherInfo->repetitionsToPerfom;
+                     i++, cipherInfo->repetitions++) {
+                    rv = ECDSA_SignDigest((ECPrivateKey *)cipherInfo->cx,
+                                          &dummyOut,
+                                          &cipherInfo->input.pBuf);
+                    CHECKERROR(rv, __LINE__);
+                }
+            } else {
+                int opsBetweenChecks = 0;
+                TIMEMARK(cipherInfo->seconds);
+                while (! (TIMETOFINISH())) {
+                    int j = 0;
+                    for (;j < opsBetweenChecks;j++) {
+                        rv = ECDSA_SignDigest((ECPrivateKey *)cipherInfo->cx,
+                                              &dummyOut,
+                                              &cipherInfo->input.pBuf);
+                        CHECKERROR(rv, __LINE__);
+                    }
+                    cipherInfo->repetitions += j;
+                }
+            }
+            TIMEFINISH(cipherInfo->optime, 1.0);
+        }
+        bltestCopyIO(cipherInfo->arena, &cipherInfo->params.ecdsa.sig, 
+                     &cipherInfo->output);
     } else {
-	rv = ECDSA_VerifyDigest((ECPublicKey *)cipherInfo->cx,
-			      &cipherInfo->params.ecdsa.sig.buf,
-			      &cipherInfo->input.pBuf);
-	CHECKERROR(rv, __LINE__);
-	TIMESTART();
-	for (i=0; i<cipherInfo->repetitions; i++) {
-	    ECDSA_VerifyDigest((ECPublicKey *)cipherInfo->cx,
-			     &cipherInfo->params.ecdsa.sig.buf,
-			     &cipherInfo->input.pBuf);
-	}
-	TIMEFINISH(cipherInfo->optime, 1.0);
+        TIMESTART();
+        rv = ECDSA_VerifyDigest((ECPublicKey *)cipherInfo->cx,
+                                &cipherInfo->params.ecdsa.sig.buf,
+                                &cipherInfo->input.pBuf);
+        TIMEFINISH(cipherInfo->optime, 1.0);
+        CHECKERROR(rv, __LINE__);
+        cipherInfo->repetitions = 0;
+        if (cipherInfo->repetitionsToPerfom != 0) {
+            TIMESTART();
+            for (i=0; i<cipherInfo->repetitionsToPerfom;
+                 i++, cipherInfo->repetitions++) {
+                rv = ECDSA_VerifyDigest((ECPublicKey *)cipherInfo->cx,
+                                        &cipherInfo->params.ecdsa.sig.buf,
+                                        &cipherInfo->input.pBuf);
+                CHECKERROR(rv, __LINE__);
+            }
+        } else {
+            int opsBetweenChecks = 0;
+            TIMEMARK(cipherInfo->seconds);
+            while (! (TIMETOFINISH())) {
+                int j = 0;
+                for (;j < opsBetweenChecks;j++) {
+                    rv = ECDSA_VerifyDigest((ECPublicKey *)cipherInfo->cx,
+                                            &cipherInfo->params.ecdsa.sig.buf,
+                                            &cipherInfo->input.pBuf);
+                    CHECKERROR(rv, __LINE__);
+                }
+                cipherInfo->repetitions += j;
+            }
+        }
+        TIMEFINISH(cipherInfo->optime, 1.0);
     }
-    SECITEM_FreeItem(&dummyOut, PR_FALSE);
     return rv;
 }
 #endif
@@ -2006,57 +2257,127 @@ cipherDoOp(bltestCipherInfo *cipherInfo)
 {
     PRIntervalTime time1, time2;
     SECStatus rv = SECSuccess;
-    int i, len;
+    int i;
+    unsigned int  len;
     int maxLen = cipherInfo->output.pBuf.len;
-    unsigned char *dummyOut;
+    SECItem dummyOut = { 0, 0, 0 };
+
     if (cipherInfo->mode == bltestDSA)
 	return dsaOp(cipherInfo);
 #ifdef NSS_ENABLE_ECC
     else if (cipherInfo->mode == bltestECDSA)
 	return ecdsaOp(cipherInfo);
 #endif
-    dummyOut = PORT_Alloc(maxLen);
-    if (is_symmkeyCipher(cipherInfo->mode)) {
-	rv = (*cipherInfo->cipher.symmkeyCipher)(cipherInfo->cx,
-						 cipherInfo->output.pBuf.data,
-						 &len, maxLen,
-						 cipherInfo->input.pBuf.data,
-						 cipherInfo->input.pBuf.len);
-	TIMESTART();
-	for (i=0; i<cipherInfo->repetitions; i++) {
-	    (*cipherInfo->cipher.symmkeyCipher)(cipherInfo->cx, dummyOut,
-						&len, maxLen,
-						cipherInfo->input.pBuf.data,
-						cipherInfo->input.pBuf.len);
 
-	}
-	TIMEFINISH(cipherInfo->optime, 1.0);
+    SECITEM_AllocItem(cipherInfo->arena, &dummyOut, maxLen + 16);
+    if (!dummyOut.data) return SECFailure;
+    dummyOut.data += 0xf & (unsigned long)cipherInfo->output.pBuf.data;
+    dummyOut.len = maxLen;
+
+    if (is_symmkeyCipher(cipherInfo->mode)) {
+        TIMESTART();
+        rv = (*cipherInfo->cipher.symmkeyCipher)(cipherInfo->cx,
+                                                 cipherInfo->output.pBuf.data,
+                                                 &len, maxLen,
+                                                 cipherInfo->input.pBuf.data,
+                                                 cipherInfo->input.pBuf.len);
+        TIMEFINISH(cipherInfo->optime, 1.0);
+        CHECKERROR(rv, __LINE__);
+        cipherInfo->repetitions = 0;
+        if (cipherInfo->repetitionsToPerfom != 0) {
+            TIMESTART();
+            for (i=0; i<cipherInfo->repetitionsToPerfom; i++,
+                     cipherInfo->repetitions++) {
+                (*cipherInfo->cipher.symmkeyCipher)(cipherInfo->cx, 
+						    dummyOut.data,
+                                                    &len, maxLen,
+                                                    cipherInfo->input.pBuf.data,
+                                                    cipherInfo->input.pBuf.len);
+
+                CHECKERROR(rv, __LINE__);
+            }
+        } else {
+            int opsBetweenChecks = 0;
+            bltestIO *input = &cipherInfo->input;
+            TIMEMARK(cipherInfo->seconds);
+            while (! (TIMETOFINISH())) {
+                int j = 0;
+                for (;j < opsBetweenChecks;j++) {
+                    (*cipherInfo->cipher.symmkeyCipher)(cipherInfo->cx,
+                                                        dummyOut.data,
+                                                        &len, maxLen,
+                                                        input->pBuf.data,
+                                                        input->pBuf.len);
+                }
+                cipherInfo->repetitions += j;
+            }
+        }
+        TIMEFINISH(cipherInfo->optime, 1.0);
     } else if (is_pubkeyCipher(cipherInfo->mode)) {
-	rv = (*cipherInfo->cipher.pubkeyCipher)(cipherInfo->cx,
-						&cipherInfo->output.pBuf,
-						&cipherInfo->input.pBuf);
-	TIMESTART();
-	for (i=0; i<cipherInfo->repetitions; i++) {
-	    SECItem dummy;
-	    dummy.data = dummyOut;
-	    dummy.len = maxLen;
-	    (*cipherInfo->cipher.pubkeyCipher)(cipherInfo->cx, &dummy,
-					       &cipherInfo->input.pBuf);
-	}
-	TIMEFINISH(cipherInfo->optime, 1.0);
+        TIMESTART();
+        rv = (*cipherInfo->cipher.pubkeyCipher)(cipherInfo->cx,
+                                                &cipherInfo->output.pBuf,
+                                                &cipherInfo->input.pBuf);
+        TIMEFINISH(cipherInfo->optime, 1.0);
+        CHECKERROR(rv, __LINE__);
+        cipherInfo->repetitions = 0;
+        if (cipherInfo->repetitionsToPerfom != 0) {
+            TIMESTART();
+            for (i=0; i<cipherInfo->repetitionsToPerfom;
+                 i++, cipherInfo->repetitions++) {
+                (*cipherInfo->cipher.pubkeyCipher)(cipherInfo->cx, &dummyOut, 
+                                                   &cipherInfo->input.pBuf);
+                CHECKERROR(rv, __LINE__);
+            }
+        } else {
+            int opsBetweenChecks = 0;
+            TIMEMARK(cipherInfo->seconds);
+            while (! (TIMETOFINISH())) {
+                int j = 0;
+                for (;j < opsBetweenChecks;j++) {
+                    (*cipherInfo->cipher.pubkeyCipher)(cipherInfo->cx, 
+						       &dummyOut,
+                                                       &cipherInfo->input.pBuf);
+                    CHECKERROR(rv, __LINE__);
+                }
+                cipherInfo->repetitions += j;
+            }
+        }
+        TIMEFINISH(cipherInfo->optime, 1.0);
     } else if (is_hashCipher(cipherInfo->mode)) {
-	rv = (*cipherInfo->cipher.hashCipher)(cipherInfo->output.pBuf.data,
-					      cipherInfo->input.pBuf.data,
-					      cipherInfo->input.pBuf.len);
-	TIMESTART();
-	for (i=0; i<cipherInfo->repetitions; i++) {
-	    (*cipherInfo->cipher.hashCipher)(dummyOut,
-					     cipherInfo->input.pBuf.data,
-					     cipherInfo->input.pBuf.len);
-	}
-	TIMEFINISH(cipherInfo->optime, 1.0);
+        TIMESTART();
+        rv = (*cipherInfo->cipher.hashCipher)(cipherInfo->output.pBuf.data,
+                                              cipherInfo->input.pBuf.data,
+                                              cipherInfo->input.pBuf.len);
+        TIMEFINISH(cipherInfo->optime, 1.0);
+        CHECKERROR(rv, __LINE__);
+        cipherInfo->repetitions = 0;
+        if (cipherInfo->repetitionsToPerfom != 0) {
+            TIMESTART();
+            for (i=0; i<cipherInfo->repetitionsToPerfom;
+                 i++, cipherInfo->repetitions++) {
+                (*cipherInfo->cipher.hashCipher)(dummyOut.data,
+                                                 cipherInfo->input.pBuf.data,
+                                                 cipherInfo->input.pBuf.len);
+                CHECKERROR(rv, __LINE__);
+            }
+        } else {
+            int opsBetweenChecks = 0;
+            TIMEMARK(cipherInfo->seconds);
+            while (! (TIMETOFINISH())) {
+                int j = 0;
+                for (;j < opsBetweenChecks;j++) {
+                    bltestIO *input = &cipherInfo->input;
+                    (*cipherInfo->cipher.hashCipher)(dummyOut.data,
+                                                     input->pBuf.data,
+                                                     input->pBuf.len);
+                    CHECKERROR(rv, __LINE__);
+                }
+                cipherInfo->repetitions += j;
+            }
+        }
+        TIMEFINISH(cipherInfo->optime, 1.0);
     }
-    PORT_Free(dummyOut);
     return rv;
 }
 
@@ -2110,9 +2431,12 @@ void
 print_exponent(SECItem *exp)
 {
     int i;
-    int e = 0;
+    unsigned int e = 0;
     if (exp->len <= 4) {
-	for (i=exp->len; i >=0; --i) e |= exp->data[exp->len-i] << 8*(i-1);
+	for (i = 0; i < exp->len ; ++i) {
+	    e <<= 8;
+	    e |= exp->data[i];
+	}
 	fprintf(stdout, "%12d", e);
     } else {
 	e = 8*exp->len;
@@ -2120,88 +2444,190 @@ print_exponent(SECItem *exp)
     }
 }
 
-void
-dump_performance_info(bltestCipherInfo *info, PRBool encrypt, PRBool cxonly)
+static void
+splitToReportUnit(PRInt64 res, int *resArr, int *del, int size)
 {
+    PRInt64 remaining = res, tmp = 0;
+    PRInt64 Ldel;
+    int i = -1;
+
+    while (remaining > 0 && ++i < size) {
+        LL_I2L(Ldel, del[i]);
+        LL_MOD(tmp, remaining, Ldel);
+        LL_L2I(resArr[i], tmp);
+        LL_DIV(remaining, remaining, Ldel);
+    }
+}
+
+static char*
+getHighUnitBytes(PRInt64 res)
+{
+    int spl[] = {0, 0, 0, 0};
+    int del[] = {1024, 1024, 1024, 1024};
+    char *marks[] = {"b", "Kb", "Mb", "Gb"};
+    int i = 3;
+
+    splitToReportUnit(res, spl, del, 4);
+
+    for (;i>0;i--) {
+        if (spl[i] != 0) {
+            break;
+        }
+    }
+
+    return PR_smprintf("%d%s", spl[i], marks[i]);
+}
+
+
+static void
+printPR_smpString(const char *sformat, char *reportStr,
+                  const char *nformat, PRInt64 rNum)
+{
+    if (reportStr) {
+        fprintf(stdout, sformat, reportStr);
+        PR_smprintf_free(reportStr);
+    } else {
+        int prnRes;
+        LL_L2I(prnRes, rNum);
+        fprintf(stdout, nformat, rNum);
+    }
+}
+
+static char*
+getHighUnitOps(PRInt64 res)
+{
+    int spl[] = {0, 0, 0, 0};
+    int del[] = {1000, 1000, 1000, 1000};
+    char *marks[] = {"", "K", "M", "G"};
+    int i = 3;
+
+    splitToReportUnit(res, spl, del, 4);
+
+    for (;i>0;i--) {
+        if (spl[i] != 0) {
+            break;
+        }
+    }
+
+    return PR_smprintf("%d%s", spl[i], marks[i]);
+}
+
+void
+dump_performance_info(bltestCipherInfo *infoList, double totalTime,
+                      PRBool encrypt, PRBool cxonly)
+{
+    bltestCipherInfo *info = infoList;
+
+    PRInt64 totalIn = 0;
     PRBool td = PR_TRUE;
+
+    int   repetitions = 0;
+    int   cxreps = 0;
+    double cxtime = 0;
+    double optime = totalTime;
+    while (info != NULL) {
+        repetitions += info->repetitions;
+        cxreps += info->cxreps;
+        cxtime += info->cxtime;
+/*      optime += info->optime;  No, totalTime is just that. */
+        totalIn += info->input.buf.len * info->repetitions;
+
+        info = info->next;
+    }
+    info = infoList;
+
     fprintf(stdout, "#%9s", "mode");
     fprintf(stdout, "%12s", "in");
 print_td:
     switch (info->mode) {
-    case bltestDES_ECB:
-    case bltestDES_CBC:
-    case bltestDES_EDE_ECB:
-    case bltestDES_EDE_CBC:
-    case bltestAES_ECB:
-    case bltestAES_CBC:
-    case bltestRC2_ECB:
-    case bltestRC2_CBC:
-    case bltestRC4:
-	if (td)
-	    fprintf(stdout, "%8s", "symmkey");
-	else
-	    fprintf(stdout, "%8d", 8*info->params.sk.key.buf.len);
-	break;
+      case bltestDES_ECB:
+      case bltestDES_CBC:
+      case bltestDES_EDE_ECB:
+      case bltestDES_EDE_CBC:
+      case bltestAES_ECB:
+      case bltestAES_CBC:
+      case bltestRC2_ECB:
+      case bltestRC2_CBC:
+      case bltestRC4:
+          if (td)
+              fprintf(stdout, "%8s", "symmkey");
+          else
+              fprintf(stdout, "%8d", 8*info->params.sk.key.buf.len);
+          break;
 #if NSS_SOFTOKEN_DOES_RC5
-    case bltestRC5_ECB:
-    case bltestRC5_CBC:
-	if (info->params.sk.key.buf.len > 0)
-	    printf("symmetric key(bytes)=%d,", info->params.sk.key.buf.len);
-	if (info->rounds > 0)
-	    printf("rounds=%d,", info->params.rc5.rounds);
-	if (info->wordsize > 0)
-	    printf("wordsize(bytes)=%d,", info->params.rc5.wordsize);
-	break;
+      case bltestRC5_ECB:
+      case bltestRC5_CBC:
+          if (info->params.sk.key.buf.len > 0)
+              printf("symmetric key(bytes)=%d,", info->params.sk.key.buf.len);
+          if (info->rounds > 0)
+              printf("rounds=%d,", info->params.sk.rounds);
+          if (info->wordsize > 0)
+              printf("wordsize(bytes)=%d,", info->params.sk.wordsize);
+          break;
 #endif
-    case bltestRSA:
-	if (td) {
-	    fprintf(stdout, "%8s", "rsa_mod");
-	    fprintf(stdout, "%12s", "rsa_pe");
-	} else {
-	    fprintf(stdout, "%8d", info->params.rsa.keysizeInBits);
-	    print_exponent(&info->params.rsa.rsakey->publicExponent);
-	}
-	break;
-    case bltestDSA:
-	if (td)
-	    fprintf(stdout, "%8s", "pqg_mod");
-	else
-	    fprintf(stdout, "%8d", PQG_INDEX_TO_PBITS(info->params.dsa.j));
-	break;
+      case bltestRSA:
+          if (td) {
+              fprintf(stdout, "%8s", "rsa_mod");
+              fprintf(stdout, "%12s", "rsa_pe");
+          } else {
+              fprintf(stdout, "%8d", info->params.rsa.keysizeInBits);
+              print_exponent(&info->params.rsa.rsakey->publicExponent);
+          }
+          break;
+      case bltestDSA:
+          if (td)
+              fprintf(stdout, "%8s", "pqg_mod");
+          else
+              fprintf(stdout, "%8d", PQG_INDEX_TO_PBITS(info->params.dsa.j));
+          break;
 #ifdef NSS_ENABLE_ECC
-    case bltestECDSA:
-	if (td)
-	    fprintf(stdout, "%12s", "ec_curve");
-	else
-	    fprintf(stdout, "%12s", ecCurve_map[info->params.ecdsa.eckey->ecParams.name]->text);
-	break;
+      case bltestECDSA:
+          if (td)
+              fprintf(stdout, "%12s", "ec_curve");
+          else
+              fprintf(stdout, "%12s",
+                      ecCurve_map[info->params.ecdsa.eckey->ecParams.name]->text);
+          break;
 #endif
-    case bltestMD2:
-    case bltestMD5:
-    case bltestSHA1:
-    case bltestSHA256:
-    case bltestSHA384:
-    case bltestSHA512:
-    default:
-	break;
+      case bltestMD2:
+      case bltestMD5:
+      case bltestSHA1:
+      case bltestSHA256:
+      case bltestSHA384:
+      case bltestSHA512:
+      default:
+          break;
     }
     if (!td) {
-	fprintf(stdout, "%8d", info->repetitions);
-	fprintf(stdout, "%8d", info->cxreps);
-	fprintf(stdout, "%12.3f", info->cxtime);
-	fprintf(stdout, "%12.3f", info->optime);
-	fprintf(stdout, "\n");
-	return;
+        PRInt64 totalThroughPut;
+
+        printPR_smpString("%8s", getHighUnitOps(repetitions),
+                          "%8d", repetitions);
+
+        printPR_smpString("%8s", getHighUnitOps(cxreps), "%8d", cxreps);
+
+        fprintf(stdout, "%12.3f", cxtime);
+        fprintf(stdout, "%12.3f", optime);
+        fprintf(stdout, "%12.03f", totalTime / 1000);
+
+        totalThroughPut = (PRInt64)(totalIn / totalTime * 1000);
+        printPR_smpString("%12s", getHighUnitBytes(totalThroughPut),
+                          "%12d", totalThroughPut);
+
+        fprintf(stdout, "\n");
+        return;
     }
 
     fprintf(stdout, "%8s", "opreps");
     fprintf(stdout, "%8s", "cxreps");
     fprintf(stdout, "%12s", "context");
     fprintf(stdout, "%12s", "op");
+    fprintf(stdout, "%12s", "time(sec)");
+    fprintf(stdout, "%12s", "thrgput");
     fprintf(stdout, "\n");
     fprintf(stdout, "%8s", mode_strings[info->mode]);
     fprintf(stdout, "_%c", (cxonly) ? 'c' : (encrypt) ? 'e' : 'd');
-    fprintf(stdout, "%12d", info->input.buf.len * info->repetitions);
+    printPR_smpString("%12s", getHighUnitBytes(totalIn), "%12d", totalIn);
 
     td = !td;
     goto print_td;
@@ -2213,8 +2639,11 @@ printmodes()
     bltestCipherMode mode;
     int nummodes = sizeof(mode_strings) / sizeof(char *);
     fprintf(stderr, "%s: Available modes (specify with -m):\n", progName);
-    for (mode=0; mode<nummodes; mode++)
-	fprintf(stderr, "%s\n", mode_strings[mode]);
+    for (mode=0; mode<nummodes; ) {
+	fprintf(stderr, "%15.15s", mode_strings[mode]);
+	if (!(++mode % 5)) fprintf(stderr,"\n");
+    }
+    if ((mode > 0) && (--mode % 5)) fprintf(stderr,"\n");
 }
 
 bltestCipherMode
@@ -2229,26 +2658,32 @@ get_mode(const char *modestring)
     return bltestINVALID;
 }
 
+/* only used within selftest mode (-T) and Dump command (-P) */
 void
 load_file_data(PRArenaPool *arena, bltestIO *data,
-	       char *fn, bltestIOMode ioMode)
+	       char *fn, bltestIOFormat ioFormat)
 {
     PRFileDesc *file;
-    data->mode = ioMode;
+    if (ioFormat == bltestBinary)
+	ioFormat =  bltestBinary_CRLF;
+    data->ioFormat = ioFormat;
     data->file = NULL; /* don't use -- not saving anything */
     data->pBuf.data = NULL;
     data->pBuf.len = 0;
     file = PR_Open(fn, PR_RDONLY, 00660);
-    if (file)
-	setupIO(arena, data, file, NULL, 0);
+    if (file) {
+	inputIO(arena, data, file, NULL, 0);
+	PR_Close(file);
+    }
 }
 
+/* only used within selftest mode (-T) */
 void
 get_params(PRArenaPool *arena, bltestParams *params, 
 	   bltestCipherMode mode, int j)
 {
     char filename[256];
-    char *modestr = mode_strings[mode];
+    const char *modestr = mode_strings[mode];
 #if NSS_SOFTOKEN_DOES_RC5
     FILE *file;
     char *mark, *param, *val;
@@ -2260,22 +2695,22 @@ get_params(PRArenaPool *arena, bltestParams *params,
     case bltestRC2_CBC:
     case bltestAES_CBC:
 	sprintf(filename, "%s/tests/%s/%s%d", testdir, modestr, "iv", j);
-	load_file_data(arena, &params->sk.iv, filename, bltestBinary);
+	load_file_data(arena, &params->sk.iv, filename, bltestBinary_CRLF);
     case bltestDES_ECB:
     case bltestDES_EDE_ECB:
     case bltestRC2_ECB:
     case bltestRC4:
     case bltestAES_ECB:
 	sprintf(filename, "%s/tests/%s/%s%d", testdir, modestr, "key", j);
-	load_file_data(arena, &params->sk.key, filename, bltestBinary);
+	load_file_data(arena, &params->sk.key, filename, bltestBinary_CRLF);
 	break;
 #if NSS_SOFTOKEN_DOES_RC5
     case bltestRC5_ECB:
     case bltestRC5_CBC:
 	sprintf(filename, "%s/tests/%s/%s%d", testdir, modestr, "iv", j);
-	load_file_data(arena, &params->sk.iv, filename, bltestBinary);
+	load_file_data(arena, &params->sk.iv, filename, bltestBinary_CRLF);
 	sprintf(filename, "%s/tests/%s/%s%d", testdir, modestr, "key", j);
-	load_file_data(arena, &params->sk.key, filename, bltestBinary);
+	load_file_data(arena, &params->sk.key, filename, bltestBinary_CRLF);
 	    sprintf(filename, "%s/tests/%s/%s%d", testdir, modestr,
 			      "params", j);
 	file = fopen(filename, "r");
@@ -2289,9 +2724,9 @@ get_params(PRArenaPool *arena, bltestParams *params,
 	    mark = PL_strchr(val, '\n');
 	    *mark = '\0';
 	    if (PL_strcmp(param, "rounds") == 0) {
-		params->rc5.rounds = atoi(val);
+		params->sk.rounds = atoi(val);
 	    } else if (PL_strcmp(param, "wordsize") == 0) {
-		params->rc5.wordsize = atoi(val);
+		params->sk.wordsize = atoi(val);
 	    }
 	    index += PL_strlen(param) + PL_strlen(val) + 2;
 	    param = mark + 1;
@@ -2346,12 +2781,13 @@ get_params(PRArenaPool *arena, bltestParams *params,
     }
 }
 
+/* only used within selftest mode (-T) */
 SECStatus
 verify_self_test(bltestIO *result, bltestIO *cmp, bltestCipherMode mode,
 		 PRBool forward, SECStatus sigstatus)
 {
     int res;
-    char *modestr = mode_strings[mode];
+    const char *modestr = mode_strings[mode];
     res = SECITEM_CompareItem(&result->pBuf, &cmp->buf);
     if (is_sigCipher(mode)) {
 	if (forward) {
@@ -2392,26 +2828,26 @@ verify_self_test(bltestIO *result, bltestIO *cmp, bltestCipherMode mode,
     return (res != 0);
 }
 
+/* only used within selftest mode (-T) */
 static SECStatus
 blapi_selftest(bltestCipherMode *modes, int numModes, int inoff, int outoff,
                PRBool encrypt, PRBool decrypt)
 {
-    bltestCipherInfo cipherInfo;
+    bltestCipherInfo *cipherInfo;
     bltestIO pt, ct;
     bltestCipherMode mode;
     bltestParams *params;
     int i, j, nummodes, numtests;
-    char *modestr;
+    const char *modestr;
     char filename[256];
     PRFileDesc *file;
-    PRArenaPool *arena;
     SECItem item;
     PRBool finished;
     SECStatus rv = SECSuccess, srv;
 
-    PORT_Memset(&cipherInfo, 0, sizeof(cipherInfo));
-    arena = PORT_NewArena(BLTEST_DEFAULT_CHUNKSIZE);
-    cipherInfo.arena = arena;
+    cipherInfo = createCipherInfo();
+    if (!cipherInfo)
+    	return SECFailure;
 
     finished = PR_FALSE;
     nummodes = (numModes == 0) ? NUMMODES : numModes;
@@ -2426,8 +2862,8 @@ blapi_selftest(bltestCipherMode *modes, int numModes, int inoff, int outoff,
 	    continue;
 	}
 	modestr = mode_strings[mode];
-	cipherInfo.mode = mode;
-	params = &cipherInfo.params;
+	cipherInfo->mode = mode;
+	params = &cipherInfo->params;
 #ifdef TRACK_BLTEST_BUG
 	if (mode == bltestRSA) {
 	    fprintf(stderr, "[%s] Self-Testing RSA\n", __bltDBG);
@@ -2438,21 +2874,42 @@ blapi_selftest(bltestCipherMode *modes, int numModes, int inoff, int outoff,
 	file = PR_Open(filename, PR_RDONLY, 00660);
 	if (!file) {
 	    fprintf(stderr, "%s: File %s does not exist.\n", progName,filename);
-	    return SECFailure;
+	    goto fail;
 	}
 	rv = SECU_FileToItem(&item, file);
+	if (rv != SECSuccess) {
+	    fprintf(stderr, "%s: File %s contents invalid.\n", 
+		   progName, filename);
+	    goto fail;
+	}
 #ifdef TRACK_BLTEST_BUG
 	if (mode == bltestRSA) {
 	    fprintf(stderr, "[%s] Loaded data from %s\n", __bltDBG, filename);
 	}
 #endif
 	PR_Close(file);
-	/* loop over the tests in the directory */
-	numtests = (int) (item.data[0] - '0');
-	for (j=1; j<item.len - 1; j++) {
+	/* item string contains a decimal number and some end-of-line chars. */
+	numtests = 0;
+	for (j=0; j < item.len; j++) {
+	    unsigned int cx = item.data[j];
+	    if (cx == '\r' || cx == '\n')
+	    	break;
+	    cx -= '0';
+	    if (cx >= 10) {
+		fprintf(stderr, "%s: File %s contents invalid.\n", 
+		       progName, filename);
+	    	goto fail;
+	    }
 	    numtests *= 10;
-	    numtests += (int) (item.data[j] - '0');
+	    numtests += cx;
 	}
+	PORT_Assert(numtests > 0);
+	if (!numtests) {
+	    fprintf(stderr, "%s: File %s contents invalid.\n", 
+		   progName, filename);
+	    goto fail;
+	}
+	/* loop over the tests in the directory */
 	for (j=0; j<numtests; j++) {
 #ifdef TRACK_BLTEST_BUG
 	    if (mode == bltestRSA) {
@@ -2461,22 +2918,22 @@ blapi_selftest(bltestCipherMode *modes, int numModes, int inoff, int outoff,
 #endif
 	    sprintf(filename, "%s/tests/%s/%s%d", testdir, modestr,
 			      "plaintext", j);
-	    load_file_data(arena, &pt, filename, 
+	    load_file_data(cipherInfo->arena, &pt, filename, 
 #ifdef NSS_ENABLE_ECC
 	                   ((mode == bltestDSA) || (mode == bltestECDSA))
 #else
 	                   (mode == bltestDSA)
 #endif
-	                   ? bltestBase64Encoded : bltestBinary);
+	                   ? bltestBase64Encoded : bltestBinary_CRLF);
 	    sprintf(filename, "%s/tests/%s/%s%d", testdir, modestr,
 			      "ciphertext", j);
-	    load_file_data(arena, &ct, filename, bltestBase64Encoded);
+	    load_file_data(cipherInfo->arena, &ct, filename, bltestBase64Encoded);
 #ifdef TRACK_BLTEST_BUG
 	    if (mode == bltestRSA) {
 		fprintf(stderr, "[%s] Loaded data for  self-test #%d\n", __bltDBG, j);
 	    }
 #endif
-	    get_params(arena, params, mode, j);
+	    get_params(cipherInfo->arena, params, mode, j);
 #ifdef TRACK_BLTEST_BUG
 	    if (mode == bltestRSA) {
 		fprintf(stderr, "[%s] Got parameters for #%d\n", __bltDBG, j);
@@ -2489,29 +2946,29 @@ blapi_selftest(bltestCipherMode *modes, int numModes, int inoff, int outoff,
 	    /* XXX for now */
 	    rv = SECSuccess;
 	    if (encrypt) {
-		bltestCopyIO(arena, &cipherInfo.input, &pt);
-		misalignBuffer(arena, &cipherInfo.input, inoff);
-		memset(&cipherInfo.output.buf, 0, sizeof cipherInfo.output.buf);
-		rv |= cipherInit(&cipherInfo, PR_TRUE);
-		misalignBuffer(arena, &cipherInfo.output, outoff);
+		bltestCopyIO(cipherInfo->arena, &cipherInfo->input, &pt);
+		misalignInputBuf(cipherInfo->arena, &cipherInfo->input, inoff);
+		memset(&cipherInfo->output.buf, 0, sizeof cipherInfo->output.buf);
+		rv |= cipherInit(cipherInfo, PR_TRUE);
+		misalignOutputBuf(cipherInfo->arena, &cipherInfo->output, outoff);
 #ifdef TRACK_BLTEST_BUG
 		if (mode == bltestRSA) {
 		    fprintf(stderr, "[%s] Inited cipher context and buffers for #%d\n", __bltDBG, j);
 		}
 #endif
-		rv |= cipherDoOp(&cipherInfo);
+		rv |= cipherDoOp(cipherInfo);
 #ifdef TRACK_BLTEST_BUG
 		if (mode == bltestRSA) {
 		    fprintf(stderr, "[%s] Performed encrypt for #%d\n", __bltDBG, j);
 		}
 #endif
-		rv |= cipherFinish(&cipherInfo);
+		rv |= cipherFinish(cipherInfo);
 #ifdef TRACK_BLTEST_BUG
 		if (mode == bltestRSA) {
 		    fprintf(stderr, "[%s] Finished encrypt for #%d\n", __bltDBG, j);
 		}
 #endif
-		rv |= verify_self_test(&cipherInfo.output, 
+		rv |= verify_self_test(&cipherInfo->output, 
 		                       &ct, mode, PR_TRUE, 0);
 #ifdef TRACK_BLTEST_BUG
 		if (mode == bltestRSA) {
@@ -2536,32 +2993,32 @@ blapi_selftest(bltestCipherMode *modes, int numModes, int inoff, int outoff,
 #else
 	    if (mode != bltestDSA)
 #endif
-		bltestCopyIO(arena, &cipherInfo.input, &ct);
+		bltestCopyIO(cipherInfo->arena, &cipherInfo->input, &ct);
 	    else
-		bltestCopyIO(arena, &cipherInfo.input, &pt);
-	    misalignBuffer(arena, &cipherInfo.input, inoff);
-	    memset(&cipherInfo.output.buf, 0, sizeof cipherInfo.output.buf);
-	    rv |= cipherInit(&cipherInfo, PR_FALSE);
-	    misalignBuffer(arena, &cipherInfo.output, outoff);
+		bltestCopyIO(cipherInfo->arena, &cipherInfo->input, &pt);
+	    misalignInputBuf(cipherInfo->arena, &cipherInfo->input, inoff);
+	    memset(&cipherInfo->output.buf, 0, sizeof cipherInfo->output.buf);
+	    rv |= cipherInit(cipherInfo, PR_FALSE);
+	    misalignOutputBuf(cipherInfo->arena, &cipherInfo->output, outoff);
 #ifdef TRACK_BLTEST_BUG
 	    if (mode == bltestRSA) {
 		fprintf(stderr, "[%s] Inited cipher context and buffers for #%d\n", __bltDBG, j);
 	    }
 #endif
 	    srv = SECSuccess;
-	    srv |= cipherDoOp(&cipherInfo);
+	    srv |= cipherDoOp(cipherInfo);
 #ifdef TRACK_BLTEST_BUG
 	    if (mode == bltestRSA) {
 		fprintf(stderr, "[%s] Performed decrypt for #%d\n", __bltDBG, j);
 	    }
 #endif
-	    rv |= cipherFinish(&cipherInfo);
+	    rv |= cipherFinish(cipherInfo);
 #ifdef TRACK_BLTEST_BUG
 	    if (mode == bltestRSA) {
 		fprintf(stderr, "[%s] Finished decrypt for #%d\n", __bltDBG, j);
 	    }
 #endif
-	    rv |= verify_self_test(&cipherInfo.output, 
+	    rv |= verify_self_test(&cipherInfo->output, 
 	                           &pt, mode, PR_FALSE, srv);
 #ifdef TRACK_BLTEST_BUG
 	    if (mode == bltestRSA) {
@@ -2571,9 +3028,15 @@ blapi_selftest(bltestCipherMode *modes, int numModes, int inoff, int outoff,
 	    /*if (rv) return rv;*/
 	}
     }
+    if (0) {
+fail:
+	rv = SECFailure;
+    }
+    destroyCipherInfo(cipherInfo);
     return rv;
 }
 
+/* only used with Dump command (-P) */
 SECStatus
 dump_file(bltestCipherMode mode, char *filename)
 {
@@ -2608,6 +3071,31 @@ dump_file(bltestCipherMode mode, char *filename)
     return SECFailure;
 }
 
+SECStatus 
+doTest(bltestCipherInfo *cipherInfo)
+{
+    SECStatus rv = SECSuccess;
+
+    if (cipherInfo->mCarlo) {
+        int mciter;
+        for (mciter=0; mciter<10000; mciter++) {
+            rv |= cipherDoOp(cipherInfo);
+            memcpy(cipherInfo->input.buf.data,
+                   cipherInfo->output.buf.data,
+                   cipherInfo->input.buf.len);
+        }
+    } else {
+        rv = cipherDoOp(cipherInfo);
+    }
+    rv |= cipherFinish(cipherInfo);
+    return rv;
+}
+
+void threadMain(void *data)
+{
+    (void)doTest( (bltestCipherInfo*)data );
+}
+
 /* bltest commands */
 enum {
     cmd_Decrypt = 0,
@@ -2625,7 +3113,7 @@ enum {
 enum {
     opt_B64 = 0,
     opt_BufSize,
-    opt_Restart,
+    opt_Restart,		/* implementation incomplete */
     opt_SelfTestDir,
     opt_Exponent,
     opt_SigFile,
@@ -2641,23 +3129,25 @@ enum {
 #endif
     opt_Output,
     opt_Repetitions,
-    opt_ZeroBuf,
+    opt_ZeroBuf,		/* unimplemented */
     opt_Rounds,
-    opt_Seed,
-    opt_SigSeedFile,
+    opt_Seed, 			/* unimplemented */
+    opt_SigSeedFile, 		/* unimplemented */
     opt_CXReps,
     opt_IV,
     opt_WordSize,
-    opt_UseSeed,
-    opt_UseSigSeed,
-    opt_SeedFile,
+    opt_UseSeed, 		/* unimplemented */
+    opt_UseSigSeed, 		/* unimplemented */
+    opt_SeedFile, 		/* unimplemented */
     opt_InputOffset,
     opt_OutputOffset,
     opt_MonteCarlo,
+    opt_ThreadNum,
+    opt_SecondsToRun,
     opt_CmdLine
 };
 
-static secuCommandFlag bltest_commands[] =
+static /* const */ secuCommandFlag bltest_commands[] =
 {
     { /* cmd_Decrypt	*/ 'D', PR_FALSE, 0, PR_FALSE },
     { /* cmd_Encrypt	*/ 'E', PR_FALSE, 0, PR_FALSE },
@@ -2670,11 +3160,11 @@ static secuCommandFlag bltest_commands[] =
     { /* cmd_Verify	*/ 'V', PR_FALSE, 0, PR_FALSE }
 };
 
-static secuCommandFlag bltest_options[] =
+static /* const */ secuCommandFlag bltest_options[] =
 {
     { /* opt_B64	  */ 'a', PR_FALSE, 0, PR_FALSE },
     { /* opt_BufSize	  */ 'b', PR_TRUE,  0, PR_FALSE },
-    { /* opt_Restart	  */ 'c', PR_FALSE, 0, PR_FALSE },
+    { /* opt_Restart	  */ 'c', PR_FALSE, 0, PR_FALSE }, /* incomplete */
     { /* opt_SelfTestDir  */ 'd', PR_TRUE,  0, PR_FALSE },
     { /* opt_Exponent	  */ 'e', PR_TRUE,  0, PR_FALSE },
     { /* opt_SigFile      */ 'f', PR_TRUE,  0, PR_FALSE },
@@ -2690,39 +3180,42 @@ static secuCommandFlag bltest_options[] =
 #endif
     { /* opt_Output	  */ 'o', PR_TRUE,  0, PR_FALSE },
     { /* opt_Repetitions  */ 'p', PR_TRUE,  0, PR_FALSE },
-    { /* opt_ZeroBuf	  */ 'q', PR_FALSE, 0, PR_FALSE },
+    { /* opt_ZeroBuf	  */ 'q', PR_FALSE, 0, PR_FALSE }, /* unimplemented */
     { /* opt_Rounds	  */ 'r', PR_TRUE,  0, PR_FALSE },
-    { /* opt_Seed	  */ 's', PR_TRUE,  0, PR_FALSE },
-    { /* opt_SigSeedFile  */ 't', PR_TRUE,  0, PR_FALSE },
+    { /* opt_Seed	  */ 's', PR_TRUE,  0, PR_FALSE }, /* unimplemented */
+    { /* opt_SigSeedFile  */ 't', PR_TRUE,  0, PR_FALSE }, /* unimplemented */
     { /* opt_CXReps       */ 'u', PR_TRUE,  0, PR_FALSE },
     { /* opt_IV		  */ 'v', PR_TRUE,  0, PR_FALSE },
     { /* opt_WordSize	  */ 'w', PR_TRUE,  0, PR_FALSE },
-    { /* opt_UseSeed	  */ 'x', PR_FALSE, 0, PR_FALSE },
-    { /* opt_UseSigSeed	  */ 'y', PR_FALSE, 0, PR_FALSE },
-    { /* opt_SeedFile	  */ 'z', PR_FALSE, 0, PR_FALSE },
+    { /* opt_UseSeed	  */ 'x', PR_FALSE, 0, PR_FALSE }, /* unimplemented */
+    { /* opt_UseSigSeed	  */ 'y', PR_FALSE, 0, PR_FALSE }, /* unimplemented */
+    { /* opt_SeedFile	  */ 'z', PR_FALSE, 0, PR_FALSE }, /* unimplemented */
     { /* opt_InputOffset  */ '1', PR_TRUE,  0, PR_FALSE },
     { /* opt_OutputOffset */ '2', PR_TRUE,  0, PR_FALSE },
     { /* opt_MonteCarlo   */ '3', PR_FALSE, 0, PR_FALSE },
+    { /* opt_ThreadNum    */ '4', PR_TRUE,  0, PR_FALSE },
+    { /* opt_SecondsToRun */ '5', PR_TRUE,  0, PR_FALSE },
     { /* opt_CmdLine	  */ '-', PR_FALSE, 0, PR_FALSE }
 };
 
 int main(int argc, char **argv)
 {
     char *infileName, *outfileName, *keyfileName, *ivfileName;
-    SECStatus rv;
+    PRFileDesc     *infile = NULL;
+    char           *instr = NULL;
+    SECStatus rv = SECFailure;
 
-    bltestCipherInfo	 cipherInfo;
-    bltestParams	*params;
-    PRFileDesc		*file, *infile, *outfile;
-    char		*instr = NULL;
-    PRArenaPool		*arena;
-    bltestIOMode	 ioMode;
-    int			 keysize, bufsize, exponent;
-#ifdef NSS_ENABLE_ECC
+    double              totalTime = 0.0;
+    PRIntervalTime      time1, time2;
+    PRFileDesc          *outfile = NULL;           
+    bltestCipherInfo    *cipherInfoListHead = NULL, *cipherInfo;
+    bltestIOFormat      ioFormat;
+    int                 bufsize, exponent;
     char		*curveName = NULL;
-#endif
     int			 i, commandsEntered;
     int			 inoff, outoff;
+    int                  threads = 1;
+    int            keysize = 0;
 
     secuCommand bltest;
     bltest.numCommands = sizeof(bltest_commands) / sizeof(secuCommandFlag);
@@ -2743,11 +3236,19 @@ int main(int argc, char **argv)
     RNG_SystemInfoForRNG();
 
     rv = SECU_ParseCommandLine(argc, argv, progName, &bltest);
+    if (rv == SECFailure) {
+        fprintf(stderr, "%s: command line parsing error!\n", progName);
+        goto print_usage;
+    }
+    rv = SECFailure;
 
-    PORT_Memset(&cipherInfo, 0, sizeof(cipherInfo));
-    arena = PORT_NewArena(BLTEST_DEFAULT_CHUNKSIZE);
-    cipherInfo.arena = arena;
-    params = &cipherInfo.params;
+
+    cipherInfo = createCipherInfo();
+    if (!cipherInfo) {
+	SECU_PrintError(progName, "Failed to open output file.");
+	exit(1);
+    }
+
     /* set some defaults */
     infileName = outfileName = keyfileName = ivfileName = NULL;
 
@@ -2760,11 +3261,12 @@ int main(int argc, char **argv)
     if (commandsEntered > 1 &&
 	!(commandsEntered == 2 && bltest.commands[cmd_SelfTest].activated)) {
 	fprintf(stderr, "%s: one command at a time!\n", progName);
-	Usage();
+        goto print_usage;
     }
+
     if (commandsEntered == 0) {
 	fprintf(stderr, "%s: you must enter a command!\n", progName);
-	Usage();
+        goto print_usage;
     }
 
     if (bltest.commands[cmd_Sign].activated)
@@ -2776,9 +3278,9 @@ int main(int argc, char **argv)
 
     inoff = outoff = 0;
     if (bltest.options[opt_InputOffset].activated)
-	inoff = PORT_Atoi(bltest.options[opt_InputOffset].arg);
+	inoff = PORT_Atoi(bltest.options[opt_InputOffset].arg) & 0xf;
     if (bltest.options[opt_OutputOffset].activated)
-	outoff = PORT_Atoi(bltest.options[opt_OutputOffset].arg);
+	outoff = PORT_Atoi(bltest.options[opt_OutputOffset].arg) & 0xf;
 
     testdir = (bltest.options[opt_SelfTestDir].activated) ? 
                  strdup(bltest.options[opt_SelfTestDir].arg) : ".";
@@ -2812,15 +3314,20 @@ int main(int argc, char **argv)
 	if (bltest.commands[cmd_Encrypt].activated &&
 	    !bltest.commands[cmd_Decrypt].activated)
 	    decrypt = PR_FALSE;
-	return blapi_selftest(modesToTest, numModesToTest, inoff, outoff,
-	                      encrypt, decrypt);
+	rv = blapi_selftest(modesToTest, numModesToTest, inoff, outoff,
+                            encrypt, decrypt);
+	destroyCipherInfo( cipherInfo);
+        return rv;
     }
 
     /* Do FIPS self-test */
     if (bltest.commands[cmd_FIPS].activated) {
 	CK_RV ckrv = sftk_fipsPowerUpSelfTest();
 	fprintf(stdout, "CK_RV: %ld.\n", ckrv);
-	return 0;
+	destroyCipherInfo( cipherInfo);
+        if (ckrv == CKR_OK)
+            return SECSuccess;
+        return SECFailure;
     }
 
     /*
@@ -2830,52 +3337,67 @@ int main(int argc, char **argv)
     if ((bltest.commands[cmd_Decrypt].activated ||
 	 bltest.commands[cmd_Verify].activated) &&
 	bltest.options[opt_BufSize].activated) {
-	fprintf(stderr, "%s: cannot use a nonce as input to decrypt/verify.\n",
+	fprintf(stderr, "%s: Cannot use a nonce as input to decrypt/verify.\n",
 			 progName);
-	Usage();
+        goto print_usage;
     }
 
-    if (bltest.options[opt_Mode].activated) {
-	cipherInfo.mode = get_mode(bltest.options[opt_Mode].arg);
-	if (cipherInfo.mode == bltestINVALID) {
-	    fprintf(stderr, "%s: Invalid mode \"%s\"\n", progName,
-			     bltest.options[opt_Mode].arg);
-	    Usage();
-	}
-    } else {
+    if (!bltest.options[opt_Mode].activated ||
+	bltestINVALID == 
+	    (cipherInfo->mode = get_mode(bltest.options[opt_Mode].arg))) {
 	fprintf(stderr, "%s: You must specify a cipher mode with -m.\n",
 			 progName);
-	Usage();
+	printmodes();
+        exit(1);
+    }
+
+    if (bltest.options[opt_Repetitions].activated &&
+        bltest.options[opt_SecondsToRun].activated) {
+        fprintf(stderr, "%s: Operation time should be defined in either "
+                "repetitions(-p) or seconds(-5) not both",
+                progName);
+        goto print_usage;
     }
 
     if (bltest.options[opt_Repetitions].activated) {
-	cipherInfo.repetitions = PORT_Atoi(bltest.options[opt_Repetitions].arg);
+        cipherInfo->repetitionsToPerfom =
+            PORT_Atoi(bltest.options[opt_Repetitions].arg);
     } else {
-	cipherInfo.repetitions = 0;
+        cipherInfo->repetitionsToPerfom = 0;
+    }
+
+    if (bltest.options[opt_SecondsToRun].activated) {
+        cipherInfo->seconds = PORT_Atoi(bltest.options[opt_SecondsToRun].arg);
+    } else {
+        cipherInfo->seconds = 0;
     }
 
 
     if (bltest.options[opt_CXReps].activated) {
-	cipherInfo.cxreps = PORT_Atoi(bltest.options[opt_CXReps].arg);
+        cipherInfo->cxreps = PORT_Atoi(bltest.options[opt_CXReps].arg);
     } else {
-	cipherInfo.cxreps = 0;
+        cipherInfo->cxreps = 0;
+    }
+
+    if (bltest.options[opt_ThreadNum].activated) {
+        threads = PORT_Atoi(bltest.options[opt_ThreadNum].arg);
+        if (threads <= 0) {
+            threads = 1;
+        }
     }
 
     /* Dump a file (rsakey, dsakey, etc.) */
     if (bltest.commands[cmd_Dump].activated) {
-	return dump_file(cipherInfo.mode, bltest.options[opt_Input].arg);
+        rv = dump_file(cipherInfo->mode, bltest.options[opt_Input].arg);
+	destroyCipherInfo( cipherInfo);
+        return rv;
     }
 
     /* default input mode is binary */
-    ioMode = (bltest.options[opt_B64].activated)     ? bltestBase64Encoded :
-	     (bltest.options[opt_Hex].activated)     ? bltestHexStream :
-	     (bltest.options[opt_HexWSpc].activated) ? bltestHexSpaceDelim :
-						       bltestBinary;
-
-    if (bltest.options[opt_KeySize].activated)
-	keysize = PORT_Atoi(bltest.options[opt_KeySize].arg);
-    else
-	keysize = 0;
+    ioFormat = (bltest.options[opt_B64].activated)     ? bltestBase64Encoded :
+	       (bltest.options[opt_Hex].activated)     ? bltestHexStream :
+	       (bltest.options[opt_HexWSpc].activated) ? bltestHexSpaceDelim :
+						         bltestBinary;
 
     if (bltest.options[opt_Exponent].activated)
 	exponent = PORT_Atoi(bltest.options[opt_Exponent].arg);
@@ -2885,34 +3407,59 @@ int main(int argc, char **argv)
 #ifdef NSS_ENABLE_ECC
     if (bltest.options[opt_CurveName].activated)
 	curveName = PORT_Strdup(bltest.options[opt_CurveName].arg);
-    else
-	curveName = NULL;
 #endif
+
+    if (bltest.commands[cmd_Verify].activated &&
+        !bltest.options[opt_SigFile].activated) {
+        fprintf(stderr, "%s: You must specify a signature file with -f.\n",
+                progName);
+
+print_usage:
+	destroyCipherInfo( cipherInfo);
+        Usage();
+    }
+
+    if (bltest.options[opt_MonteCarlo].activated) {
+        cipherInfo->mCarlo = PR_TRUE;
+    } else {
+        cipherInfo->mCarlo = PR_FALSE;
+    }
+
+    if ((threads > 1) && 
+         (bltest.options[opt_MonteCarlo].activated ||
+          bltest.options[opt_Output    ].activated ||
+	  bltest.commands[cmd_Nonce    ].activated ||
+	  bltest.commands[cmd_SelfTest ].activated    ) ) {
+	fprintf(stderr,
+	    "Multiple threads may not be used with the -o or -3 options.\n");
+	exit(1);
+    }
 
     /* Set up an encryption key. */
     keysize = 0;
-    file = NULL;
-    if (is_symmkeyCipher(cipherInfo.mode)) {
+    if (is_symmkeyCipher(cipherInfo->mode)) {
+	PRFileDesc *file = NULL;
 	char *keystr = NULL;  /* if key is on command line */
 	if (bltest.options[opt_Key].activated) {
 	    if (bltest.options[opt_CmdLine].activated) {
 		keystr = bltest.options[opt_Key].arg;
 	    } else {
-		file = PR_Open(bltest.options[opt_Key].arg, PR_RDONLY, 00660);
+		file = PR_Open(bltest.options[opt_Key].arg,
+			       PR_RDONLY, 00660);
 	    }
 	} else {
 	    if (bltest.options[opt_KeySize].activated)
 		keysize = PORT_Atoi(bltest.options[opt_KeySize].arg);
 	    else
 		keysize = 8; /* use 64-bit default (DES) */
-	    /* save the random key for reference */
-	    file = PR_Open("tmp.key", PR_WRONLY|PR_CREATE_FILE, 00660);
 	}
-	params->key.mode = ioMode;
-	setupIO(cipherInfo.arena, &params->key, file, keystr, keysize);
+	cipherInfo->params.key.ioFormat = ioFormat;
+	inputIO(cipherInfo->arena, &cipherInfo->params.key, 
+	        file, keystr, keysize);
 	if (file)
 	    PR_Close(file);
-    } else if (is_pubkeyCipher(cipherInfo.mode)) {
+    } else if (is_pubkeyCipher(cipherInfo->mode)) {
+	PRFileDesc *file = NULL;
 	if (bltest.options[opt_Key].activated) {
 	    file = PR_Open(bltest.options[opt_Key].arg, PR_RDONLY, 00660);
 	} else {
@@ -2920,155 +3467,334 @@ int main(int argc, char **argv)
 		keysize = PORT_Atoi(bltest.options[opt_KeySize].arg);
 	    else
 		keysize = 64; /* use 512-bit default */
-	    file = PR_Open("tmp.key", PR_WRONLY|PR_CREATE_FILE, 00660);
 	}
-	params->key.mode = bltestBase64Encoded;
-#ifdef NSS_ENABLE_ECC
-	pubkeyInitKey(&cipherInfo, file, keysize, exponent, curveName);
-#else
-	pubkeyInitKey(&cipherInfo, file, keysize, exponent);
-#endif
-	PR_Close(file);
+	cipherInfo->params.key.ioFormat = bltestBase64Encoded;
+	pubkeyInitKey(cipherInfo, file, keysize, exponent, curveName);
+	if (file)
+	    PR_Close(file);
     }
 
     /* set up an initialization vector. */
-    if (cipher_requires_IV(cipherInfo.mode)) {
+    if (cipher_requires_IV(cipherInfo->mode)) {
 	char *ivstr = NULL;
-	bltestSymmKeyParams *skp;
-	file = NULL;
-	if (cipherInfo.mode == bltestRC5_CBC)
-	    skp = (bltestSymmKeyParams *)&params->rc5;
-	else
-	    skp = &params->sk;
+	PRFileDesc *file = NULL;
+
 	if (bltest.options[opt_IV].activated) {
 	    if (bltest.options[opt_CmdLine].activated) {
 		ivstr = bltest.options[opt_IV].arg;
 	    } else {
 		file = PR_Open(bltest.options[opt_IV].arg, PR_RDONLY, 00660);
 	    }
-	} else {
-	    /* save the random iv for reference */
-	    file = PR_Open("tmp.iv", PR_WRONLY|PR_CREATE_FILE, 00660);
 	}
-	memset(&skp->iv, 0, sizeof skp->iv);
-	skp->iv.mode = ioMode;
-	setupIO(cipherInfo.arena, &skp->iv, file, ivstr, keysize);
-	if (file)
+	memset(&cipherInfo->params.sk.iv, 0, sizeof cipherInfo->params.sk.iv);
+	cipherInfo->params.sk.iv.ioFormat = ioFormat;
+	inputIO(cipherInfo->arena, &cipherInfo->params.sk.iv, 
+                file, ivstr, keysize);
+	if (file) {
 	    PR_Close(file);
+	}
     }
 
     if (bltest.commands[cmd_Verify].activated) {
-	if (!bltest.options[opt_SigFile].activated) {
-	    fprintf(stderr, "%s: You must specify a signature file with -f.\n",
-	            progName);
-	    exit(-1);
-	}
+	PRFileDesc *file = NULL;
 	file = PR_Open(bltest.options[opt_SigFile].arg, PR_RDONLY, 00660);
-	if (cipherInfo.mode == bltestDSA) {
-	    memset(&cipherInfo.params.dsa.sig, 0, sizeof(bltestIO));
-	    cipherInfo.params.dsa.sig.mode = ioMode;
-	    setupIO(cipherInfo.arena, &cipherInfo.params.dsa.sig, file, NULL, 0);
+	if (cipherInfo->mode == bltestDSA) {
+	    memset(&cipherInfo->params.dsa.sig, 0, 
+	           sizeof(cipherInfo->params.dsa.sig));
+	    cipherInfo->params.dsa.sig.ioFormat = ioFormat;
+	    inputIO(cipherInfo->arena, &cipherInfo->params.dsa.sig,
+		    file, NULL, 0);
 #ifdef NSS_ENABLE_ECC
-	} else if (cipherInfo.mode == bltestECDSA) {
-	    memset(&cipherInfo.params.ecdsa.sig, 0, sizeof(bltestIO));
-	    cipherInfo.params.ecdsa.sig.mode = ioMode;
-	    setupIO(cipherInfo.arena, &cipherInfo.params.ecdsa.sig, file, NULL, 0);
+	} else if (cipherInfo->mode == bltestECDSA) {
+	    memset(&cipherInfo->params.ecdsa.sig, 0, 
+	           sizeof(cipherInfo->params.dsa.sig));
+	    cipherInfo->params.ecdsa.sig.ioFormat = ioFormat;
+	    inputIO(cipherInfo->arena, &cipherInfo->params.ecdsa.sig,
+		    file, NULL, 0);
 #endif
+	}
+	if (file) {
+	    PR_Close(file);
 	}
     }
 
     if (bltest.options[opt_PQGFile].activated) {
+	PRFileDesc *file = NULL;
 	file = PR_Open(bltest.options[opt_PQGFile].arg, PR_RDONLY, 00660);
-	params->dsa.pqgdata.mode = bltestBase64Encoded;
-	setupIO(cipherInfo.arena, &params->dsa.pqgdata, file, NULL, 0);
-    }
-
-    /* Set up the input buffer */
-    if (bltest.options[opt_Input].activated) {
-	if (bltest.options[opt_CmdLine].activated) {
-	    instr = bltest.options[opt_Input].arg;
-	    infile = NULL;
-	} else {
-	    /* form file name from testdir and input arg. */
-	    char * filename = bltest.options[opt_Input].arg;
-	    if (bltest.options[opt_SelfTestDir].activated && 
-		testdir && filename && filename[0] != '/') 
-		filename = PR_smprintf("%s/tests/%s/%s", testdir, 
-		               mode_strings[cipherInfo.mode], filename);
-	    infile = PR_Open(filename, PR_RDONLY, 00660);
+	cipherInfo->params.dsa.pqgdata.ioFormat = bltestBase64Encoded;
+	inputIO(cipherInfo->arena, &cipherInfo->params.dsa.pqgdata, file, 
+	        NULL, 0);
+	if (file) {
+	    PR_Close(file);
 	}
-    } else if (bltest.options[opt_BufSize].activated) {
-	/* save the random plaintext for reference */
-	infile = PR_Open("tmp.in", PR_WRONLY|PR_CREATE_FILE, 00660);
-    } else {
-	infile = PR_STDIN;
     }
-    if (!infile) {
-        fprintf(stderr, "%s: Failed to open input file.\n", progName);
-	    exit(-1);
-    }
-    cipherInfo.input.mode = ioMode;
-
-    /* Set up the output stream */
-    if (bltest.options[opt_Output].activated) {
-        /* form file name from testdir and input arg. */
-	char * filename = bltest.options[opt_Output].arg;
-	if (bltest.options[opt_SelfTestDir].activated && 
-	    testdir && filename && filename[0] != '/') 
-	    filename = PR_smprintf("%s/tests/%s/%s", testdir, 
-	               mode_strings[cipherInfo.mode], filename);
-	outfile = PR_Open(filename, PR_WRONLY|PR_CREATE_FILE, 00660);
-    } else {
-	outfile = PR_STDOUT;
-    }
-    if (!outfile) {
-        fprintf(stderr, "%s: Failed to open output file.\n", progName);
-	    exit(-1);
-    }
-    cipherInfo.output.mode = ioMode;
-    if (bltest.options[opt_SelfTestDir].activated && ioMode == bltestBinary)
-	cipherInfo.output.mode = bltestBase64Encoded;
-
-    if (is_hashCipher(cipherInfo.mode))
-	cipherInfo.params.hash.restart = bltest.options[opt_Restart].activated;
 
     bufsize = 0;
     if (bltest.options[opt_BufSize].activated)
 	bufsize = PORT_Atoi(bltest.options[opt_BufSize].arg);
 
-    /*infile = NULL;*/
-    setupIO(cipherInfo.arena, &cipherInfo.input, infile, instr, bufsize);
-    misalignBuffer(cipherInfo.arena, &cipherInfo.input, inoff);
-
-    cipherInit(&cipherInfo, bltest.commands[cmd_Encrypt].activated);
-    misalignBuffer(cipherInfo.arena, &cipherInfo.output, outoff);
-
-    if (!bltest.commands[cmd_Nonce].activated) {
-	if (bltest.options[opt_MonteCarlo].activated) {
-	    int mciter;
-	    for (mciter=0; mciter<10000; mciter++) {
-		cipherDoOp(&cipherInfo);
-		memcpy(cipherInfo.input.buf.data,
-		       cipherInfo.output.buf.data,
-		       cipherInfo.input.buf.len);
-	    }
+    infile = NULL;
+    /* Set up the input buffer */
+    if (bltest.options[opt_Input].activated) {
+	if (bltest.options[opt_CmdLine].activated) {
+	    instr = bltest.options[opt_Input].arg;
 	} else {
-	    cipherDoOp(&cipherInfo);
+	    /* form file name from testdir and input arg. */
+	    char * filename = bltest.options[opt_Input].arg;
+	    if (bltest.options[opt_SelfTestDir].activated && 
+		testdir && filename && filename[0] != '/') {
+		filename = PR_smprintf("%s/tests/%s/%s", testdir, 
+				       mode_strings[cipherInfo->mode],
+				       filename);
+		if (!filename) {
+		    SECU_PrintError(progName, "building input file name");
+		    goto exit_point;
+		}
+		infile = PR_Open(filename, PR_RDONLY, 00660);
+		PR_smprintf_free(filename);
+	    } else {
+		infile = PR_Open(filename, PR_RDONLY, 00660);
+	    }
 	}
-	cipherFinish(&cipherInfo);
-	finishIO(&cipherInfo.output, outfile);
+    } else if (!bufsize) {
+	infile = PR_STDIN;
+#if defined(WIN32)
+	/* If we're going to read binary data from stdin, we must put stdin
+	** into O_BINARY mode or else incoming \r\n's will become \n's.
+	*/
+	if (ioFormat == bltestBinary) {
+	    int smrv = _setmode(_fileno(stdin), _O_BINARY);
+	    if (smrv == -1) {
+		fprintf(stderr,
+	"%s: Cannot change stdin to binary mode. Use -i option instead.\n",
+			progName);
+		exit(98);
+	    }
+	}
+#endif
     }
+    if (!infile && !instr && !bufsize) {
+	SECU_PrintError(progName, "Failed to open input file.");
+	goto exit_point;
+    }
+    cipherInfo->input.ioFormat = ioFormat;
 
-    if (cipherInfo.repetitions > 0 || cipherInfo.cxreps > 0)
-	dump_performance_info(&cipherInfo, 
-	                      bltest.commands[cmd_Encrypt].activated,
-	                      (cipherInfo.repetitions == 0));
+    /* Set up the output stream */
+    if (bltest.options[opt_Output].activated) {
+	/* form file name from testdir and input arg. */
+	char * filename = bltest.options[opt_Output].arg;
+	if (bltest.options[opt_SelfTestDir].activated && 
+	    testdir && filename && filename[0] != '/') {
+	    filename = PR_smprintf("%s/tests/%s/%s", testdir, 
+				   mode_strings[cipherInfo->mode],
+				   filename);
+	    if (!filename) {
+		SECU_PrintError(progName, "building output file name");
+		goto exit_point;
+	    }
+	    outfile = PR_Open(filename, PR_WRONLY|PR_CREATE_FILE, 00660);
+	    PR_smprintf_free(filename);
+	} else {
+	    outfile = PR_Open(filename, PR_WRONLY|PR_CREATE_FILE, 00660);
+	}
+    } else {
+	outfile = PR_STDOUT;
+#if defined(WIN32)
+	if (ioFormat == bltestBinary) {
+	    int smrv = _setmode(_fileno(stdout), _O_BINARY);
+	    if (smrv == -1) {
+		fprintf(stderr,
+	   "%s: Cannot change stdout to binary mode. Use -o option instead.\n",
+			progName);
+		exit(99);
+	    }
+    	}
+#endif
+    }
+    if (!outfile) {
+	SECU_PrintError(progName, "Failed to open output file.");
+	rv = SECFailure;
+	goto exit_point;
+    }
+    cipherInfo->output.ioFormat = ioFormat;
+    if (bltest.options[opt_SelfTestDir].activated && 
+	ioFormat == bltestBinary)
+	cipherInfo->output.ioFormat = bltestBase64Encoded;
 
+    if (is_hashCipher(cipherInfo->mode))
+	cipherInfo->params.hash.restart =
+	    bltest.options[opt_Restart].activated;
+
+    rv = inputIO(cipherInfo->arena, &cipherInfo->input, infile, instr, bufsize);
     if (infile && infile != PR_STDIN)
 	PR_Close(infile);
+    if (rv != SECSuccess) {
+	SECU_PrintError(progName, "Failed to obtain input data");
+	goto exit_point;
+    }
+
+    rv = misalignInputBuf(cipherInfo->arena, &cipherInfo->input, inoff);
+    if (rv != SECSuccess) {
+	SECU_PrintError(progName, "Failed to align input data");
+	goto exit_point;
+    }
+
+    /* All input is done.  If multiple threads are to be used, they will
+     * all process the same input from the same shared input buffer.
+     */
+
+    cipherInfoListHead = cipherInfo;
+    if (bltest.commands[cmd_Nonce].activated) {
+	PRFileDesc *file = NULL;
+	/* for -N, we do no crypto computations.  We merely output
+	 * the data computed for the inpuf to files with fixed names.
+	 */
+	if (!bltest.options[opt_Key].activated) {
+	    /* use variable keysize */
+	    /* save the random key for reference */
+	    if (is_symmkeyCipher(cipherInfo->mode)) {
+		file = PR_Open("tmp.key", PR_WRONLY|PR_CREATE_FILE, 00660);
+		if (!file) {
+		    SECU_PrintError(progName, "Creating file tmp.key");
+		    goto exit_point;
+		}
+		outputIO( &cipherInfo->params.key, file);
+		PR_Close(file);
+	    } else if (is_pubkeyCipher(cipherInfo->mode)) {
+		file = PR_Open("tmp.key", PR_WRONLY|PR_CREATE_FILE, 00660);
+		if (!file) {
+		    SECU_PrintError(progName, "Creating file tmp.key");
+		    goto exit_point;
+		}
+		dumpPubKey(cipherInfo, file);
+		PR_Close(file);
+	    }
+	}
+	if (!bltest.options[opt_IV].activated &&
+	    cipherInfo->params.sk.iv.buf.len > 0) {
+	    /* save the random iv for reference */
+	    file = PR_Open("tmp.iv", PR_WRONLY|PR_CREATE_FILE, 00660);
+	    if (!file) {
+		SECU_PrintError(progName, "Creating file tmp.iv");
+		goto exit_point;
+	    }
+	    outputIO( &cipherInfo->params.sk.iv, file);
+	    PR_Close(file);
+	}
+	if (!bltest.options[opt_Input].activated && bufsize > 0) {
+	    /* save the random plaintext for reference */  
+	    file = PR_Open("tmp.in", PR_WRONLY|PR_CREATE_FILE, 00660); 
+	    if (!file) {
+		SECU_PrintError(progName, "Creating file tmp.in");
+		goto exit_point;
+	    }
+	    outputIO( &cipherInfo->input, file);
+	    PR_Close(file);
+	}
+
+	if (cipherInfo->cxreps > 0) {
+	    rv = cipherInit(cipherInfo, bltest.commands[cmd_Encrypt].activated);
+	    if (rv != SECSuccess) {
+		SECU_PrintError(progName, "Failed to init cipher");
+		goto exit_point;
+	    }
+	    totalTime = cipherInfo->cxtime;
+	}
+    } else if (threads <= 1) {
+	/* This step creates the output buffer as a side effect */
+        rv = cipherInit(cipherInfo, bltest.commands[cmd_Encrypt].activated);
+	if (rv != SECSuccess) {
+	    SECU_PrintError(progName, "Failed to init cipher");
+	    goto exit_point;
+	}
+
+        misalignOutputBuf(cipherInfo->arena, &cipherInfo->output, outoff);
+	TIMESTART();
+	rv = doTest(cipherInfo);
+	TIMEFINISH(totalTime, 1);
+	if (rv != SECSuccess) {
+	    SECU_PrintError(progName, "Failed to complete cipher test");
+	    goto exit_point;
+	}
+
+	rv = outputIO(&cipherInfo->output, outfile);
+	if (rv != SECSuccess) {
+	    SECU_PrintError(progName, "Failed to output result");
+	    goto exit_point;
+	}
+
+    } else {
+	/* multiple threads */
+	int curThrdNum;
+	bltestCipherInfo  *cur = cipherInfo, *prev = NULL;
+
+	for (curThrdNum = 0; curThrdNum < threads; curThrdNum++) {
+
+	    if (prev) {
+		PRArenaPool    *arena;
+
+		cur = createCipherInfo();
+		if (!cur) {
+		    SECU_PrintError(progName, "creating cipher info");
+		    goto exit_point;
+		}
+		arena = cur->arena;
+		*cur  = *cipherInfo;
+		cur->arena = arena;
+		cur->next  = NULL;
+		cur->output.buf.data = NULL;
+		cur->output.buf.len = 0;
+		prev->next = cur;
+	    }
+
+	    rv = cipherInit(cur, bltest.commands[cmd_Encrypt].activated);
+
+	    rv = misalignOutputBuf(cur->arena, &cur->output, outoff);
+	    prev = cur;
+	}
+
+	TIMESTART();
+	for (cur = cipherInfoListHead; cur != NULL; cur = cur->next) {
+	    cur->cipherThread = 
+		PR_CreateThread(PR_USER_THREAD,
+				    threadMain,
+				    cur,
+				    PR_PRIORITY_NORMAL,
+				    PR_GLOBAL_THREAD,
+				    PR_JOINABLE_THREAD,
+				    0);
+	    if (!cur->cipherThread) {
+		SECU_PrintError(progName, "Failed to launch thread");
+		break;
+	    }
+	} 
+
+	for (cur = cipherInfoListHead; cur != NULL; cur = cur->next) {
+	    if (cur->cipherThread)
+		PR_JoinThread(cur->cipherThread);
+	}
+	TIMEFINISH(totalTime, 1);
+
+	rv = SECSuccess;
+    }
+
+    cipherInfo = cipherInfoListHead;
+    if ((cipherInfo->repetitions > 0 || 
+        cipherInfo->cxreps > 0 ||
+	threads > 1) && (totalTime > 0.0000001)) {
+	dump_performance_info(cipherInfoListHead, totalTime,
+			      bltest.commands[cmd_Encrypt].activated,
+			      (cipherInfo->repetitions == 0));
+    }
+
+exit_point:
     if (outfile && outfile != PR_STDOUT)
 	PR_Close(outfile);
-    PORT_FreeArena(cipherInfo.arena, PR_TRUE);
+
+    while (NULL != ( cipherInfo = cipherInfoListHead )) {
+        cipherInfoListHead = cipherInfo->next;
+	destroyCipherInfo(cipherInfo);
+    }
 
     /*NSS_Shutdown();*/
 
