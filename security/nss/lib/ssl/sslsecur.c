@@ -389,16 +389,18 @@ SECStatus
 sslBuffer_Grow(sslBuffer *b, unsigned int newLen)
 {
     if (newLen > b->space) {
+	unsigned char *newBuf;
 	if (b->buf) {
-	    b->buf = (unsigned char *) PORT_Realloc(b->buf, newLen);
+	    newBuf = (unsigned char *) PORT_Realloc(b->buf, newLen);
 	} else {
-	    b->buf = (unsigned char *) PORT_Alloc(newLen);
+	    newBuf = (unsigned char *) PORT_Alloc(newLen);
 	}
-	if (!b->buf) {
+	if (!newBuf) {
 	    return SECFailure;
 	}
 	SSL_TRC(10, ("%d: SSL: grow buffer from %d to %d",
 		     SSL_GETPID(), b->space, newLen));
+	b->buf = newBuf;
 	b->space = newLen;
     }
     return SECSuccess;
