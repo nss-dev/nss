@@ -545,6 +545,7 @@ cert_GetCertType(CERTCertificate *cert)
 
     tmpitem.data = NULL;
     CERT_FindNSCertTypeExtension(cert, &tmpitem);
+    encodedExtKeyUsage.data = NULL;
     rv = CERT_FindCertExtension(cert, SEC_OID_X509_EXT_KEY_USAGE, 
 				&encodedExtKeyUsage);
     if (rv == SECSuccess) {
@@ -671,8 +672,10 @@ cert_GetCertType(CERTCertificate *cert)
 	}
     }
 
-    if (extKeyUsage != NULL) {
+    if (encodedExtKeyUsage.data != NULL) {
 	PORT_Free(encodedExtKeyUsage.data);
+    }
+    if (extKeyUsage != NULL) {
 	CERT_DestroyOidSequence(extKeyUsage);
     }
     /* Assert that it is safe to cast &cert->nsCertType to "PRInt32 *" */

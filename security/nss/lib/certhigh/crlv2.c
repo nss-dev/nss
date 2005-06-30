@@ -133,9 +133,8 @@ SECStatus CERT_FindInvalidDateExten (CERTCrl *crl, int64 *value)
 
     rv = SEC_ASN1DecodeItem (NULL, &decodedExtenValue,
 			     SEC_GeneralizedTimeTemplate, &encodedExtenValue);
-    if (rv != SECSuccess)
-	return (rv);
-    rv = DER_GeneralizedTimeToTime(value, &encodedExtenValue);
+    if (rv == SECSuccess)
+	rv = DER_GeneralizedTimeToTime(value, &encodedExtenValue);
     PORT_Free (decodedExtenValue.data);
     PORT_Free (encodedExtenValue.data);
     return (rv);
