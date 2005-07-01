@@ -494,7 +494,6 @@ serialize_key(SECItem *it,
     NSSBase64Encoder *cx;
     int i;
     SECStatus     status    = SECSuccess;
-    SECItem       ascii     = { 0, NULL, 0 };
     unsigned char len[4];
 
     cx = NSSBase64Encoder_Create(output_ascii, file);
@@ -1063,7 +1062,6 @@ SECStatus
 misalignOutputBuf(PRArenaPool *arena, bltestIO *io, int off)
 {
     ptrdiff_t offset = (ptrdiff_t)io->buf.data % WORDSIZE;
-    int length = io->buf.len;
     SECStatus rv = SECSuccess;
 
     io->pBuf = io->buf;
@@ -2463,8 +2461,8 @@ static char*
 getHighUnitBytes(PRInt64 res)
 {
     int spl[] = {0, 0, 0, 0};
-    int del[] = {1024, 1024, 1024, 1024};
-    char *marks[] = {"b", "Kb", "Mb", "Gb"};
+    int del[] = {1000, 1000, 1000, 1000};
+    char *marks[] = {"B", "KB", "MB", "GB"};
     int i = 3;
 
     splitToReportUnit(res, spl, del, 4);
@@ -2474,8 +2472,12 @@ getHighUnitBytes(PRInt64 res)
             break;
         }
     }
+    if (spl[i] < 10 && i > 0) {
+	--i;
+	spl[i] += (spl[i+1] * 1000);
+    }
 
-    return PR_smprintf("%d%s", spl[i], marks[i]);
+    return PR_smprintf("%d %s", spl[i], marks[i]);
 }
 
 
@@ -2508,8 +2510,12 @@ getHighUnitOps(PRInt64 res)
             break;
         }
     }
+    if (spl[i] < 10 && i > 0) {
+	--i;
+	spl[i] += (spl[i+1] * 1000);
+    }
 
-    return PR_smprintf("%d%s", spl[i], marks[i]);
+    return PR_smprintf("%d %s", spl[i], marks[i]);
 }
 
 void
@@ -2611,7 +2617,7 @@ print_td:
         fprintf(stdout, "%12.03f", totalTime / 1000);
 
         totalThroughPut = (PRInt64)(totalIn / totalTime * 1000);
-        printPR_smpString("%12s", getHighUnitBytes(totalThroughPut),
+        printPR_smpString("%12s/s", getHighUnitBytes(totalThroughPut),
                           "%12d", totalThroughPut);
 
         fprintf(stdout, "\n");
@@ -2621,7 +2627,7 @@ print_td:
     fprintf(stdout, "%8s", "opreps");
     fprintf(stdout, "%8s", "cxreps");
     fprintf(stdout, "%12s", "context");
-    fprintf(stdout, "%12s", "op");
+    fprintf(stdout, "%12s", "op(mSec)");
     fprintf(stdout, "%12s", "time(sec)");
     fprintf(stdout, "%12s", "thrgput");
     fprintf(stdout, "\n");
@@ -3208,7 +3214,7 @@ int main(int argc, char **argv)
     double              totalTime = 0.0;
     PRIntervalTime      time1, time2;
     PRFileDesc          *outfile = NULL;           
-    bltestCipherInfo    *cipherInfoListHead = NULL, *cipherInfo;
+    bltestCipherInfo    *cipherInfoListHead = NULL, *cipherInfo = NULL;
     bltestIOFormat      ioFormat;
     int                 bufsize, exponent;
     char		*curveName = NULL;
