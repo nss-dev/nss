@@ -14,15 +14,14 @@
  */
 static int _fp_exptmod(fp_int * G, fp_int * X, fp_int * P, fp_int * Y)
 {
-  fp_int   M[64], res;
+  fp_int   M1, res, M[32]; /* half of max window size */
   fp_digit buf, mp;
   int      err, bitbuf, bitcpy, bitcnt, mode, digidx, x, y, winsize;
+  int      halfwin;
 
   /* find window size */
   x = fp_count_bits (X);
-  if (x <= 7) {
-    winsize = 1;
-  } else if (x <= 36) {
+  if (x <= 36) {
     winsize = 1;
   } else if (x <= 140) {
     winsize = 4;
@@ -33,7 +32,7 @@ static int _fp_exptmod(fp_int * G, fp_int * X, fp_int * P, fp_int * Y)
   } 
 
   /* init M array */
-  memset(M, 0, sizeof(M)); 
+  /* memset(M, 0, sizeof(M));  */
 
   /* now setup montgomery  */
   if ((err = fp_montgomery_setup (P, &mp)) != FP_OKAY) {
@@ -45,33 +44,35 @@ static int _fp_exptmod(fp_int * G, fp_int * X, fp_int * P, fp_int * Y)
 
   /* create M table
    *
-   * The M table contains powers of the input base, e.g. M[x] = G^x mod P
-   *
-   * The first half of the table is not computed though accept for M[0] and M[1]
+   * The M table contains powers of the input base, e.g. G^x mod P
+   * Since the high order bit in the exponent window is always 1, we 
+   * only need values for x >= 2**(winsize-1), which we call "halfwin".
+   * So the table contains "halfwin" values.  M[x] = G**(x + halfwin) mod P
    */
 
    /* now we need R mod m */
    fp_montgomery_calc_normalization (&res, P);
 
-   /* now set M[1] to G * R mod m */
+   /* now set M1 to G * R mod m */
    if (fp_cmp_mag(P, G) != FP_GT) {
       /* G > P so we reduce it first */
-      fp_mod(G, P, &M[1]);
+      fp_mod(G, P, &M1);
    } else {
-      fp_copy(G, &M[1]);
+      fp_copy(G, &M1);
    }
-   fp_mulmod (&M[1], &res, P, &M[1]);
+   fp_mulmod (&M1, &res, P, &M1);
 
-  /* compute the value at M[1<<(winsize-1)] by squaring M[1] (winsize-1) times */
-  fp_copy (&M[1], &M[1 << (winsize - 1)]);
+  /* compute the value at M[0] by squaring M1 (winsize-1) times */
+  halfwin = 1 << (winsize - 1);
+  fp_copy (&M1, &M[0]);
   for (x = 0; x < (winsize - 1); x++) {
-    fp_sqr (&M[1 << (winsize - 1)], &M[1 << (winsize - 1)]);
-    fp_montgomery_reduce (&M[1 << (winsize - 1)], P, mp);
+    fp_sqr (&M[0], &M[0]);
+    fp_montgomery_reduce (&M[0], P, mp);
   }
 
   /* create upper table */
-  for (x = (1 << (winsize - 1)) + 1; x < (1 << winsize); x++) {
-    fp_mul(&M[x - 1], &M[1], &M[x]);
+  for (x = 1; x < halfwin; x++) {
+    fp_mul(&M[x - 1], &M1, &M[x]);
     fp_montgomery_reduce(&M[x], P, mp);
   }
 
@@ -128,7 +129,7 @@ static int _fp_exptmod(fp_int * G, fp_int * X, fp_int * P, fp_int * Y)
       }
 
       /* then multiply */
-      fp_mul(&res, &M[bitbuf], &res);
+      fp_mul(&res, &M[bitbuf - halfwin], &res);
       fp_montgomery_reduce(&res, P, mp);
 
       /* empty window and reset */
@@ -149,7 +150,7 @@ static int _fp_exptmod(fp_int * G, fp_int * X, fp_int * P, fp_int * Y)
       bitbuf <<= 1;
       if ((bitbuf & (1 << winsize)) != 0) {
         /* then multiply */
-        fp_mul(&res, &M[1], &res);
+        fp_mul(&res, &M1, &res);
         fp_montgomery_reduce(&res, P, mp);
       }
     }
