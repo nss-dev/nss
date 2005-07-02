@@ -64,6 +64,99 @@ asm(                  \
 :"0"(_c[LO]), "1"(_c[HI]), "2"(cy), "g"(mu), "g"(*tmpm++) \
 : "%rax", "%rdx", "%cc")
 
+#define INNERMUL8 \
+asm(                  \
+"movq 0(%5),%%rax    \n\t"  \
+"movq 0(%2),%%r10    \n\t"  \
+"movq 0x8(%5),%%r11  \n\t"  \
+"mulq %4             \n\t"  \
+"addq %%r10,%%rax    \n\t"  \
+"adcq $0,%%rdx       \n\t"  \
+"movq 0x8(%2),%%r10  \n\t"  \
+"addq %3,%%rax       \n\t"  \
+"adcq $0,%%rdx       \n\t"  \
+"movq %%rax,0(%0)    \n\t"  \
+"movq %%rdx,%1       \n\t"  \
+\
+"movq %%r11,%%rax    \n\t"  \
+"movq 0x10(%5),%%r11 \n\t"  \
+"mulq %4             \n\t"  \
+"addq %%r10,%%rax    \n\t"  \
+"adcq $0,%%rdx       \n\t"  \
+"movq 0x10(%2),%%r10 \n\t"  \
+"addq %3,%%rax       \n\t"  \
+"adcq $0,%%rdx       \n\t"  \
+"movq %%rax,0x8(%0)  \n\t"  \
+"movq %%rdx,%1       \n\t"  \
+\
+"movq %%r11,%%rax    \n\t"  \
+"movq 0x18(%5),%%r11 \n\t"  \
+"mulq %4             \n\t"  \
+"addq %%r10,%%rax    \n\t"  \
+"adcq $0,%%rdx       \n\t"  \
+"movq 0x18(%2),%%r10 \n\t"  \
+"addq %3,%%rax       \n\t"  \
+"adcq $0,%%rdx       \n\t"  \
+"movq %%rax,0x10(%0) \n\t"  \
+"movq %%rdx,%1       \n\t"  \
+\
+"movq %%r11,%%rax    \n\t"  \
+"movq 0x20(%5),%%r11 \n\t"  \
+"mulq %4             \n\t"  \
+"addq %%r10,%%rax    \n\t"  \
+"adcq $0,%%rdx       \n\t"  \
+"movq 0x20(%2),%%r10 \n\t"  \
+"addq %3,%%rax       \n\t"  \
+"adcq $0,%%rdx       \n\t"  \
+"movq %%rax,0x18(%0) \n\t"  \
+"movq %%rdx,%1       \n\t"  \
+\
+"movq %%r11,%%rax    \n\t"  \
+"movq 0x28(%5),%%r11 \n\t"  \
+"mulq %4             \n\t"  \
+"addq %%r10,%%rax    \n\t"  \
+"adcq $0,%%rdx       \n\t"  \
+"movq 0x28(%2),%%r10 \n\t"  \
+"addq %3,%%rax       \n\t"  \
+"adcq $0,%%rdx       \n\t"  \
+"movq %%rax,0x20(%0) \n\t"  \
+"movq %%rdx,%1       \n\t"  \
+\
+"movq %%r11,%%rax    \n\t"  \
+"movq 0x30(%5),%%r11 \n\t"  \
+"mulq %4             \n\t"  \
+"addq %%r10,%%rax    \n\t"  \
+"adcq $0,%%rdx       \n\t"  \
+"movq 0x30(%2),%%r10 \n\t"  \
+"addq %3,%%rax       \n\t"  \
+"adcq $0,%%rdx       \n\t"  \
+"movq %%rax,0x28(%0) \n\t"  \
+"movq %%rdx,%1       \n\t"  \
+\
+"movq %%r11,%%rax    \n\t"  \
+"movq 0x38(%5),%%r11 \n\t"  \
+"mulq %4             \n\t"  \
+"addq %%r10,%%rax    \n\t"  \
+"adcq $0,%%rdx       \n\t"  \
+"movq 0x38(%2),%%r10 \n\t"  \
+"addq %3,%%rax       \n\t"  \
+"adcq $0,%%rdx       \n\t"  \
+"movq %%rax,0x30(%0) \n\t"  \
+"movq %%rdx,%1       \n\t"  \
+\
+"movq %%r11,%%rax    \n\t"  \
+"mulq %4             \n\t"  \
+"addq %%r10,%%rax    \n\t"  \
+"adcq $0,%%rdx       \n\t"  \
+"addq %3,%%rax       \n\t"  \
+"adcq $0,%%rdx       \n\t"  \
+"movq %%rax,0x38(%0) \n\t"  \
+"movq %%rdx,%1       \n\t"  \
+\
+:"=r"(_c), "=r"(cy) \
+: "0"(_c),  "1"(cy), "g"(mu), "r"(tmpm)\
+: "%rax", "%rdx", "%r10", "%r11", "%cc")
+
 #define PROPCARRY \
 asm( \
 "addq   %5,%0    \n\t"  \
@@ -159,7 +252,7 @@ void fp_montgomery_reduce(fp_int *a, fp_int *m, fp_digit mp)
 {
 #define CSIZE (3*FP_SIZE)
    fp_digit c[CSIZE], *_c, *tmpm, mu;
-   int      oldused, x, y, pa;
+   int      aused, x, mused;
 
 #if defined(USE_MEMSET)
    /* now zero the buff */
@@ -167,28 +260,37 @@ void fp_montgomery_reduce(fp_int *a, fp_int *m, fp_digit mp)
 #else
    int limit;
 #endif
-   pa = m->used;
+   mused = m->used;
 
    /* copy the input */
-   oldused = a->used;
-   for (x = 0; x < oldused; x++) {
+   aused = a->used;
+   for (x = 0; x < aused; x++) {
        c[x] = a->dp[x];
    }
 #if !defined(USE_MEMSET)
-   limit = oldused + 2*pa + 3;
+   limit = aused + 2*mused + 3;
    for (; x < limit; x++) {
        c[x] = 0;
    }
 #endif
    MONT_START;
 
-   for (x = 0; x < pa; x++) {
+   for (x = 0; x < mused; x++) {
+       int y;
        fp_digit cy = 0;
        /* get Mu for this round */
        LOOP_START;
        _c   = c + x;
        tmpm = m->dp;
-       for (y = 0; y < pa; y++) {
+       y    = 0;
+#if defined(TFM_X86_64)
+       for (; y < mused; y += 8) {
+          INNERMUL8;
+          _c   += 8;
+	  tmpm += 8;
+       }
+#endif
+       for (; y < mused; y++) {
           INNERMUL;
           ++_c;
        }
@@ -197,22 +299,22 @@ void fp_montgomery_reduce(fp_int *a, fp_int *m, fp_digit mp)
            PROPCARRY; //  cy = cy > (*_c += cy);
            ++_c;
        }
-  }         
+  }
 
   /* now copy out */
-  _c   = c + pa;
+  _c   = c + mused;
   tmpm = a->dp;
-  for (x = 0; x < pa+1; x++) {
+  for (x = 0; x < mused+1; x++) {
      *tmpm++ = *_c++;
   }
 
-  for (; x < oldused; x++)   {
+  for (; x < aused; x++)   {
      *tmpm++ = 0;
   }
 
   MONT_FINI;
 
-  a->used = pa+1;
+  a->used = mused+1;
   fp_clamp(a);
   
   /* if A >= m then A = A - m */
