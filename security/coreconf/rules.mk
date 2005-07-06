@@ -305,10 +305,14 @@ get_objs:
 $(LIBRARY): $(OBJS)
 	@$(MAKE_OBJDIR)
 	rm -f $@
+ifeq (,$(filter-out WINCE%,$(OS_TARGET)))
+	$(AR) $(OBJS) -OUT:$@
+else
 ifeq (,$(filter-out _WIN%,$(NS_USE_GCC)_$(OS_TARGET)))
 	$(AR) $(subst /,\\,$(OBJS))
 else
 	$(AR) $(OBJS)
+endif
 endif
 	$(RANLIB) $@
 
@@ -331,6 +335,10 @@ endif
 $(SHARED_LIBRARY): $(OBJS) $(RES) $(MAPFILE) $(SUB_SHLOBJS)
 	@$(MAKE_OBJDIR)
 	rm -f $@
+
+ifeq (,$(filter-out WINCE%,$(OS_TARGET)))
+	$(LINK) -DLL -NOLOGO  -DEF:$(MAPFILE) -OUT:"$@" $(OBJS) $(SUB_SHLOBJS) $(EXTRA_LIBS) $(EXTRA_SHARED_LIBS) $(OS_LIBS) $(LD_LIBS) $(RES)
+else
 ifeq ($(OS_TARGET)$(OS_RELEASE), AIX4.1)
 	echo "#!" > $(OBJDIR)/lib$(LIBRARY_NAME)_syms
 	nm -B -C -g $(OBJS) \
@@ -352,6 +360,7 @@ ifdef XP_OS2_VACPP
 else
 	$(MKSHLIB) -o $@ $(OBJS) $(SUB_SHLOBJS) $(LD_LIBS) $(EXTRA_LIBS) $(EXTRA_SHARED_LIBS)
 endif
+endif
 	chmod +x $@
 ifeq ($(OS_TARGET),Darwin)
 ifdef MAPFILE
@@ -361,6 +370,11 @@ endif
 endif
 endif
 
+ifeq (,$(filter-out WINCE%,$(OS_TARGET)))
+$(RES): $(RESNAME)
+# The resource compiler does not understand the -U option.
+	$(RC) -r $(RC_DEFINES) $(INCLUDES) -Fo$@ $<
+else
 ifeq (,$(filter-out WIN%,$(OS_TARGET)))
 $(RES): $(RESNAME)
 	@$(MAKE_OBJDIR)
@@ -371,6 +385,7 @@ else
 	$(RC) $(filter-out -U%,$(DEFINES)) $(INCLUDES) -Fo$@ $<
 endif
 	@echo $(RES) finished
+endif
 endif
 
 $(MAPFILE): $(LIBRARY_NAME).def

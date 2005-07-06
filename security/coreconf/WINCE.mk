@@ -36,39 +36,23 @@
 # ***** END LICENSE BLOCK *****
 
 #
-# Configuration common to all versions of Windows CE and Pocket PC x.
+# Configuration common to all versions of Windows NT
+# and Windows 95
 #
 
-ifeq ($(CPU_ARCH),x86)
-    DEFAULT_COMPILER = cl
-    CC           = cl
-    CCC          = cl
-else
-ifeq ($(CPU_ARCH),ARM)
-    DEFAULT_COMPILER = clarm
-    CC           = clarm
-    CCC          = clarm
-else
-include CPU_ARCH_is_not_recognized
-include _$(CPU_ARCH)
-endif
-endif
-
-LINK         = link
-AR           = lib
-AR          += -NOLOGO -OUT:"$@"
-RANLIB       = echo
-BSDECHO      = echo
+DEFAULT_COMPILER = cl
 
 ifdef BUILD_TREE
 NSINSTALL_DIR  = $(BUILD_TREE)/nss
 else
 NSINSTALL_DIR  = $(CORE_DEPTH)/coreconf/nsinstall
 endif
+
 NSINSTALL      = nsinstall
 
 MKDEPEND_DIR    = $(CORE_DEPTH)/coreconf/mkdepend
 MKDEPEND        = $(MKDEPEND_DIR)/$(OBJDIR_NAME)/mkdepend.exe
+
 # Note: MKDEPENDENCIES __MUST__ be a relative pathname, not absolute.
 # If it is absolute, gmake will crash unless the named file exists.
 MKDEPENDENCIES  = $(OBJDIR_NAME)/depend.mk
@@ -76,74 +60,52 @@ MKDEPENDENCIES  = $(OBJDIR_NAME)/depend.mk
 INSTALL      = $(NSINSTALL)
 MAKE_OBJDIR  = mkdir
 MAKE_OBJDIR += $(OBJDIR)
-RC           = rc.exe
-GARBAGE     += $(OBJDIR)/vc20.pdb $(OBJDIR)/vc40.pdb
+
 XP_DEFINE   += -DXP_PC
 LIB_SUFFIX   = lib
 DLL_SUFFIX   = dll
 
-ifdef BUILD_OPT
-#   OS_CFLAGS  += -MD
-    OPTIMIZER  += -O2
-    DEFINES    += -UDEBUG -U_DEBUG -DNDEBUG
-    DLLFLAGS   += -OUT:"$@"
-else
-    #
-    # Define USE_DEBUG_RTL if you want to use the debug runtime library
-    # (RTL) in the debug build
-    #
-    ifdef USE_DEBUG_RTL
-#	OS_CFLAGS += -MDd
-    else
-#	OS_CFLAGS += -MD
-    endif
-    OPTIMIZER  += -Od -Z7
-    #OPTIMIZER += -Zi -Fd$(OBJDIR)/ -Od
-    DEFINES    += -DDEBUG -D_DEBUG -UNDEBUG -DDEBUG_$(USERNAME)
-    DLLFLAGS   += -DEBUG -DEBUGTYPE:CV -OUT:"$@"
-    LDFLAGS    += -DEBUG -DEBUGTYPE:CV
-endif
-
-# DEFINES += -DWIN32
+NULLSTRING :=
+SPACE      := $(NULLSTRING) # end of the line
+USERNAME   := $(subst $(SPACE),_,$(USERNAME))
+USERNAME   := $(subst -,_,$(USERNAME))
 
 ifdef MAPFILE
-    DLLFLAGS += -DEF:$(MAPFILE)
+DLLFLAGS += -DEF:$(MAPFILE)
 endif
-
-# Change PROCESS to put the mapfile in the correct format for this platform
-PROCESS_MAP_FILE = cp $(LIBRARY_NAME).def $@
 
 #
 #  The following is NOT needed for the NSPR 2.0 library.
 #
 
-DEFINES += -D_WINDOWS
+DEFINES += -DWIN32 -D_WINDOWS
 
-# override default, which is ASFLAGS = CFLAGS
-AS	= ml.exe
-ASFLAGS = -Cp -Sn -Zi -coff $(INCLUDES)
 
-#
-# override the definitions of RELEASE_TREE found in tree.mk
-#
-ifndef RELEASE_TREE
-    ifdef BUILD_SHIP
-	ifdef USE_SHIPS
-	    RELEASE_TREE = $(NTBUILD_SHIP)
-	else
-	    RELEASE_TREE = //redbuild/components
-	endif
-    else
-	RELEASE_TREE = //redbuild/components
-    endif
+RC_DEFINES = -D_WIN32_WCE=420
+
+ifeq ($(TARGET_DEVICE),emulator)
+RC_DEFINES += -D_X86_
+CPU_ARCH    = x86
+else
+RC_DEFINES += -D_ARM_
+CPU_ARCH    = arm
 endif
 
+CC =
+CCC =
+LINK =
+
 #
-# override the definitions of LIB_PREFIX and DLL_PREFIX in prefix.mk
+# override the definitions of IMPORT_LIB_PREFIX, LIB_PREFIX, and
+# DLL_PREFIX in prefix.mk
 #
 
+ifndef IMPORT_LIB_PREFIX
+	IMPORT_LIB_PREFIX = $(NULL)
+endif
+
 ifndef LIB_PREFIX
-    LIB_PREFIX =  $(NULL)
+	LIB_PREFIX = $(NULL)
 endif
 
 ifndef DLL_PREFIX
@@ -158,14 +120,14 @@ endif
 # Object suffixes
 #
 ifndef OBJ_SUFFIX
-    OBJ_SUFFIX = .obj
+	OBJ_SUFFIX = .obj
 endif
 
 #
 # Assembler source suffixes
 #
 ifndef ASM_SUFFIX
-    ASM_SUFFIX = .asm
+	ASM_SUFFIX = .asm
 endif
 
 #
@@ -188,6 +150,14 @@ ifndef PROG_SUFFIX
 endif
 
 #
+# When the processor is NOT 386-based on Windows NT, override the
+# value of $(CPU_TAG).  For WinNT, 95, 16, not CE.
+#
+ifneq ($(CPU_ARCH),x386)
+    CPU_TAG = _$(CPU_ARCH)
+endif
+
+#
 # override ruleset.mk, removing the "lib" prefix for library names, and
 # adding the "32" after the LIBRARY_VERSION.
 #
@@ -203,9 +173,8 @@ ifndef TARGETS
     TARGETS = $(LIBRARY) $(SHARED_LIBRARY) $(IMPORT_LIBRARY) $(PROGRAM)
 endif
 
+OPTIMIZER  += -Os
 
-#
-# Always set CPU_TAG on Linux, OpenVMS, WINCE.
-#
-CPU_TAG = _$(CPU_ARCH)
+# Change PROCESS to put the mapfile in the correct format for this platform
+PROCESS_MAP_FILE = cp $(LIBRARY_NAME).def $@
 
