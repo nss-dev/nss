@@ -914,13 +914,16 @@ static SECStatus DPCache_Destroy(CRLDPCache* cache);
 
 /* add a new CRL object to the dynamic array of CRLs of the DPCache, and
    returns the cached CRL object . Needs write access to DPCache. */
-static SECStatus DPCache_AddCRL(CRLDPCache* cache, CachedCrl* crl, PRBool* added);
+static SECStatus DPCache_AddCRL(CRLDPCache* cache, CachedCrl* crl,
+                                PRBool* added);
 
 /* fetch the CRL for this DP from the PKCS#11 tokens */
-static SECStatus DPCache_FetchFromTokens(CRLDPCache* cache, PRTime vfdate, void* wincx);
+static SECStatus DPCache_FetchFromTokens(CRLDPCache* cache, PRTime vfdate,
+                                         void* wincx);
 
 /* check if a particular SN is in the CRL cache and return its entry */
-static SECStatus DPCache_Lookup(CRLDPCache* cache, SECItem* sn, CERTCrlEntry** returned);
+static SECStatus DPCache_Lookup(CRLDPCache* cache, SECItem* sn,
+                                CERTCrlEntry** returned);
 
 /* update the content of the CRL cache, including fetching of CRLs, and
    reprocessing with specified issuer and date */
@@ -945,8 +948,9 @@ static SECStatus IssuerCache_Create(CRLIssuerCache** returned,
 SECStatus IssuerCache_Destroy(CRLIssuerCache* cache);
 
 /* add a DPCache to the issuer cache */
-static SECStatus IssuerCache_AddDP(CRLIssuerCache* cache, CERTCertificate* issuer,
-                            SECItem* subject, SECItem* dp, CRLDPCache** newdpc);
+static SECStatus IssuerCache_AddDP(CRLIssuerCache* cache,
+                                   CERTCertificate* issuer, SECItem* subject,
+                                   SECItem* dp, CRLDPCache** newdpc);
 
 /* get a particular DPCache object from an IssuerCache */
 static CRLDPCache* IssuerCache_GetDPCache(CRLIssuerCache* cache, SECItem* dp);
@@ -1657,6 +1661,32 @@ static SECStatus DPCache_FetchFromTokens(CRLDPCache* cache, PRTime vfdate,
     return rv;
 }
 
+static SECStatus CachedCrl_GetEntry(CachedCrl* crl, SECItem* sn,
+                                    CERTCrlEntry** returned)
+{
+    CERTCrlEntry* acrlEntry;
+     
+    PORT_Assert(crl);
+    PORT_Assert(crl->entries);
+    PORT_Assert(sn);
+    PORT_Assert(returned);
+    if (!crl || !sn || !returned || !crl->entries)
+    {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+    acrlEntry = PL_HashTableLookup(crl->entries, (void*)sn);
+    if (acrlEntry)
+    {
+        *returned = acrlEntry;
+    }
+    else
+    {
+        *returned = NULL;
+    }
+    return SECSuccess;
+}
+
 /* check if a particular SN is in the CRL cache and return its entry */
 static SECStatus DPCache_Lookup(CRLDPCache* cache, SECItem* sn,
                                 CERTCrlEntry** returned)
@@ -1681,18 +1711,7 @@ static SECStatus DPCache_Lookup(CRLDPCache* cache, SECItem* sn,
         *returned = NULL;
         return SECSuccess;
     }
-    PORT_Assert(cache->selected->entries);
-    if (!cache->selected->entries)
-    {
-        return SECFailure;
-    }
-    /* XXX should probably use CachedCrl accessor function here */
-    acrlEntry = PL_HashTableLookup(cache->selected->entries, (void*)sn);
-    if (acrlEntry)
-    {
-        *returned = acrlEntry;
-    }
-    return SECSuccess;
+    return CachedCrl_GetEntry(cache->selected, sn, returned);
 }
 
 #if defined(DPC_RWLOCK)
@@ -2067,14 +2086,9 @@ static SECStatus DPCache_SelectCRL(CRLDPCache* cache)
 
     if (cache->invalid)
     {
-        /* cache is in an invalid state, so destroy it */
+        /* cache is in an invalid state, so reset it */
         if (cache->selected)
         {
-            if (SECSuccess != CachedCrl_Depopulate(cache->selected))
-            {
-                PORT_Assert(0);
-                return SECFailure;
-            }
             cache->selected = NULL;
         }
         /* also sort the CRLs imperfectly */
@@ -2093,15 +2107,6 @@ static SECStatus DPCache_SelectCRL(CRLDPCache* cache)
     
         /* and populate the cache */
         if (SECSuccess != CachedCrl_Populate(selected))
-        {
-            return SECFailure;
-        }
-    }
-
-    /* free the old CRL cache, if it's for a different CRL */
-    if (cache->selected && cache->selected != selected)
-    {
-        if (SECSuccess != CachedCrl_Depopulate(cache->selected))
         {
             return SECFailure;
         }
@@ -2346,9 +2351,9 @@ static CRLDPCache* IssuerCache_GetDPCache(CRLIssuerCache* cache, SECItem* dp)
 /* get a DPCache object for the given issuer subject and dp
    Automatically creates the cache object if it doesn't exist yet.
    */
-static SECStatus AcquireDPCache(CERTCertificate* issuer, SECItem* subject,
-                                SECItem* dp, int64 t, void* wincx,
-                                CRLDPCache** dpcache, PRBool* writeLocked)
+SECStatus AcquireDPCache(CERTCertificate* issuer, SECItem* subject,
+                         SECItem* dp, PRTime t, void* wincx,
+                         CRLDPCache** dpcache, PRBool* writeLocked)
 {
     SECStatus rv = SECSuccess;
     CRLIssuerCache* issuercache = NULL;
@@ -2541,7 +2546,7 @@ static void ReleaseDPCache(CRLDPCache* dpcache, PRBool writeLocked)
 /* check CRL revocation status of given certificate and issuer */
 SECStatus
 CERT_CheckCRL(CERTCertificate* cert, CERTCertificate* issuer, SECItem* dp,
-              int64 t, void* wincx)
+              PRTime t, void* wincx)
 {
     PRBool lockedwrite = PR_FALSE;
     SECStatus rv = SECSuccess;
@@ -2574,7 +2579,7 @@ CERT_CheckCRL(CERTCertificate* cert, CERTCertificate* issuer, SECItem* dp,
             /* check the time if we have one */
             if (entry->revocationDate.data && entry->revocationDate.len)
             {
-                int64 revocationDate = 0;
+                PRTime revocationDate = 0;
                 if (SECSuccess == DER_DecodeTimeChoice(&revocationDate,
                                                &entry->revocationDate))
                 {
@@ -2801,6 +2806,22 @@ SECStatus CERT_UncacheCRL(CERTCertDBHandle* dbhandle, SECItem* olddercrl)
     return rv;
 }
 
+static SECStatus CachedCrl_(CachedCrl* crlobject)
+{
+    if (!crlobject)
+    {
+        PORT_Assert(0);
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return PR_FALSE;
+    }
+    if (crlobject->entries && crlobject->prebuffer)
+    {
+        /* cache is already built */
+        return PR_TRUE;
+    }
+    return PR_FALSE;
+}
+
 static SECStatus CachedCrl_Create(CachedCrl** returned, CERTSignedCrl* crl,
                                   CRLOrigin origin)
 {
@@ -2874,6 +2895,7 @@ static SECStatus CachedCrl_Populate(CachedCrl* crlobject)
     rv = CERT_CompleteCRLDecodeEntries(crlobject->crl);
     if (SECSuccess != rv)
     {
+        crlobject->unbuildable = PR_TRUE; /* don't try to build this again */
         return SECFailure;
     }
 
@@ -2999,5 +3021,93 @@ static SECStatus CachedCrl_Compare(CachedCrl* a, CachedCrl* b, PRBool* isDupe,
     return SECSuccess;
 }
 
+/* this function assumes the caller holds a read lock on the DPCache */
+SECStatus DPCache_GetAllCRLs(CRLDPCache* dpc, PRArenaPool* arena,
+                             CERTSignedCrl*** crls, PRUint16* status)
+{
+    CERTSignedCrl** allcrls;
+    PRUint32 index;
+    if (!dpc || !crls || !status)
+    {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
 
+    *status = dpc->invalid;
+    *crls = NULL;
+    if (!dpc->ncrls)
+    {
+        /* no CRLs to return */
+        return SECSuccess;
+    }
+    allcrls = PORT_ArenaZNewArray(arena, CERTSignedCrl*, dpc->ncrls +1);
+    if (!allcrls)
+    {
+        return SECFailure;
+    }
+    for (index=0; index < dpc->ncrls ; index ++) {
+        CachedCrl* cachedcrl = dpc->crls[index];
+        if (!cachedcrl || !cachedcrl->crl)
+        {
+            PORT_Assert(0); /* this should never happen */
+            continue;
+        }
+        allcrls[index] = cachedcrl->crl;
+    }
+    return SECSuccess;
+}
+
+static CachedCrl* DPCache_FindCRL(CRLDPCache* cache, CERTSignedCrl* crl)
+{
+    PRUint32 index;
+    CachedCrl* cachedcrl = NULL;
+    for (index=0; index < cache->ncrls ; index ++) {
+        cachedcrl = cache->crls[index];
+        if (!cachedcrl || !cachedcrl->crl)
+        {
+            PORT_Assert(0); /* this should never happen */
+            continue;
+        }
+        if (cachedcrl->crl == crl) {
+            break;
+        }
+    }
+    return cachedcrl;
+}
+
+/* this function assumes the caller holds a lock on the DPCache */
+SECStatus DPCache_GetCRLEntry(CRLDPCache* cache, PRBool readlocked,
+                              CERTSignedCrl* crl, SECItem* sn,
+                              CERTCrlEntry** returned)
+{
+    CachedCrl* cachedcrl = NULL;
+    if (!cache || !crl || !sn || !returned)
+    {
+        PORT_Assert(0);
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+    *returned = NULL;
+    /* first, we need to find the CachedCrl* that matches this CERTSignedCRL */
+    cachedcrl = DPCache_FindCRL(cache, crl);
+    if (!cachedcrl) {
+        PORT_SetError(SEC_ERROR_CRL_NOT_FOUND);
+        return SECFailure;
+    }
+
+    if (cachedcrl->unbuildable) {
+        /* this CRL could not be fully decoded */
+        PORT_SetError(SEC_ERROR_BAD_DER);
+        return SECFailure;
+    }
+    /* now, make sure it has a hash table. Otherwise, we'll need to build one */
+    if (!cachedcrl->entries || !cachedcrl->prebuffer) {
+        DPCache_LockWrite();
+        CachedCrl_Populate(cachedcrl);
+        DPCache_UnlockWrite();
+    }
+
+    /* finally, get the CRL entry */       
+    return CachedCrl_GetEntry(cachedcrl, sn, returned);
+}
 

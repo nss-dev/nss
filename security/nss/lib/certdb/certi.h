@@ -121,7 +121,8 @@ struct CachedCrlStr {
     PreAllocator* prebuffer; /* big pre-allocated buffer mentioned above */
     PRBool sigChecked; /* this CRL signature has already been checked */
     PRBool sigValid; /* signature verification status .
-                     Only meaningful if checked is PR_TRUE . */
+                        Only meaningful if checked is PR_TRUE . */
+    PRBool unbuildable;
 };
 
 /*  CRL distribution point cache object
@@ -242,6 +243,23 @@ cert_FindDERCertBySubjectKeyID(SECItem *subjKeyID);
 
 /* return maximum length of AVA value based on its type OID tag. */
 extern int cert_AVAOidTagToMaxLen(SECOidTag tag);
+
+/* get a DPCache object for the given issuer subject and dp
+   Automatically creates the cache object if it doesn't exist yet.
+   */
+SECStatus AcquireDPCache(CERTCertificate* issuer, SECItem* subject,
+                         SECItem* dp, int64 t, void* wincx,
+                         CRLDPCache** dpcache, PRBool* writeLocked);
+
+/* this function assumes the caller holds a lock on the DPCache */
+SECStatus DPCache_GetAllCRLs(CRLDPCache* dpc, PRArenaPool* arena,
+                             CERTSignedCrl*** crls, PRUint16* status);
+
+
+/* this function assumes the caller holds a lock on the DPCache */
+SECStatus DPCache_GetCRLEntry(CRLDPCache* cache, PRBool readlocked,
+                              CERTSignedCrl* crl, SECItem* sn,
+                              CERTCrlEntry** returned);
 
 #endif /* _CERTI_H_ */
 
