@@ -522,6 +522,14 @@ typedef enum SECCertTimeValidityEnum {
                                    cert, most likely because it was NULL */
 } SECCertTimeValidity;
 
+typedef enum CERT_CompareValidityStatusType
+{
+    ValidityUndetermined = 0,
+    ValidityChooseB = 1,
+    ValidityEqual = 2,
+    ValidityChooseA = 3,
+} CERT_CompareValidityStatus;
+
 /*
  * Interface for getting certificate nickname strings out of the database
  */
