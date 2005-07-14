@@ -12,11 +12,11 @@
 # for the specific language governing rights and limitations under the
 # License.
 #
-# The Original Code is the Netscape security libraries.
+# The Original Code is Red Hat, Inc.
 #
 # The Initial Developer of the Original Code is
-# Netscape Communications Corporation.
-# Portions created by the Initial Developer are Copyright (C) 1994-2000
+# Red Hat, Inc.
+# Portions created by the Initial Developer are Copyright (C) 2005
 # the Initial Developer. All Rights Reserved.
 #
 # Contributor(s):
@@ -36,8 +36,6 @@
 # ***** END LICENSE BLOCK *****
 CORE_DEPTH = ../../..
 
-# DEFINES = -DTRACE
-
 MODULE = rdb
 MAPFILE = $(OBJDIR)/rdb.def
 
@@ -46,11 +44,6 @@ CSRCS = \
 	$(NULL)
 
 
-REQUIRES = dbm nss sqlite
-
-ifdef NSS_ENABLE_ECC
-DEFINES += -DNSS_ENABLE_ECC
-endif
+REQUIRES = dbm nss sqlite nspr
 
 LIBRARY_NAME = rdb
-#LIBRARY_VERSION = 3
