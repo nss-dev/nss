@@ -2522,7 +2522,7 @@ SECStatus AcquireDPCache(CERTCertificate* issuer, SECItem* subject,
 }
 
 /* unlock access to the DPCache */
-static void ReleaseDPCache(CRLDPCache* dpcache, PRBool writeLocked)
+void ReleaseDPCache(CRLDPCache* dpcache, PRBool writeLocked)
 {
     if (!dpcache)
     {
@@ -3052,8 +3052,9 @@ SECStatus DPCache_GetAllCRLs(CRLDPCache* dpc, PRArenaPool* arena,
             PORT_Assert(0); /* this should never happen */
             continue;
         }
-        allcrls[index] = cachedcrl->crl;
+        allcrls[index] = SEC_DupCrl(cachedcrl->crl);
     }
+    *crls = allcrls;
     return SECSuccess;
 }
 
