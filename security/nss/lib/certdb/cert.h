@@ -1523,6 +1523,47 @@ SECStatus CERT_CheckCRL(CERTCertificate* cert, CERTCertificate* issuer,
                         SECItem* dp, int64 t, void* wincx);
 
 
+/* This function adds a CERTNameConstraint to the CERTNameConstraint list
+ */
+extern CERTNameConstraint *
+CERT_AddNameConstraint(CERTNameConstraint *list, 
+		       CERTNameConstraint *constraint);
+
+/* This function allocates space and copies CERTNameConstraint from src to dest
+*/
+extern CERTNameConstraint *
+CERT_CopyNameConstraint(PRArenaPool         *arena, 
+			CERTNameConstraint  *dest, 
+			CERTNameConstraint  *src);
+
+/* This function adds and links a CERTGeneralName to a CERTNameConstraint
+** list. Most likely the CERTNameConstraint passed in is either the permitted
+** list or the excluded list of a CERTNameConstraints.
+*/
+extern SECStatus
+CERT_AddNameConstraintByGeneralName(PLArenaPool *arena,
+				    CERTNameConstraint **constraints,
+				    CERTGeneralName *name);
+
+/* This function verifies name against all the constraints relevant
+** to that type of the name.
+*/
+extern SECStatus
+CERT_CheckNameSpace(PRArenaPool          *arena,
+		    CERTNameConstraints  *constraints,
+		    CERTGeneralName      *currentName);
+
+/* This function extract the name constraints extension from the CA cert.
+*/
+extern SECStatus
+CERT_FindNameConstraintsExten(PRArenaPool      *arena,
+			      CERTCertificate  *cert,
+			      CERTNameConstraints **constraints);
+
+/* This function initializes a new GERTGeneralName fields (link) */
+extern CERTGeneralName *
+cert_NewGeneralName(PLArenaPool *arena, CERTGeneralNameType type);
+
 SEC_END_PROTOS
 
 #endif /* _CERT_H_ */
