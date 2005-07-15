@@ -325,9 +325,11 @@ CONST_OID x509NameConstraints[]       		= { ID_CE_OID, 30 };
 CONST_OID x509CRLDistPoints[]         		= { ID_CE_OID, 31 };
 CONST_OID x509CertificatePolicies[]   		= { ID_CE_OID, 32 };
 CONST_OID x509PolicyMappings[]        		= { ID_CE_OID, 33 };
-CONST_OID x509PolicyConstraints[]     		= { ID_CE_OID, 34 };
+
 CONST_OID x509AuthKeyID[]             		= { ID_CE_OID, 35 };
+CONST_OID x509PolicyConstraints[]     		= { ID_CE_OID, 36 };
 CONST_OID x509ExtKeyUsage[]           		= { ID_CE_OID, 37 };
+CONST_OID x509InhibitAny[]	     		= { ID_CE_OID, 54 };
 CONST_OID x509AuthInfoAccess[]        		= { PKIX_CERT_EXTENSIONS, 1 };
 
 /* Standard x.509 v3 CRL Extensions */
@@ -784,13 +786,13 @@ const static SECOidData oids[] = {
 	CKM_INVALID_MECHANISM, UNSUPPORTED_CERT_EXTENSION ),
     OD( x509CertificatePolicies, SEC_OID_X509_CERTIFICATE_POLICIES,
 	"Certificate Policies",
-        CKM_INVALID_MECHANISM, UNSUPPORTED_CERT_EXTENSION ),
+        CKM_INVALID_MECHANISM, SUPPORTED_CERT_EXTENSION ),
     OD( x509PolicyMappings, SEC_OID_X509_POLICY_MAPPINGS, 
 	"Certificate Policy Mappings",
-        CKM_INVALID_MECHANISM, UNSUPPORTED_CERT_EXTENSION ),
+        CKM_INVALID_MECHANISM, SUPPORTED_CERT_EXTENSION ),
     OD( x509PolicyConstraints, SEC_OID_X509_POLICY_CONSTRAINTS, 
 	"Certificate Policy Constraints",
-        CKM_INVALID_MECHANISM, UNSUPPORTED_CERT_EXTENSION ),
+        CKM_INVALID_MECHANISM, SUPPORTED_CERT_EXTENSION ),
     OD( x509AuthKeyID, SEC_OID_X509_AUTH_KEY_ID, 
 	"Certificate Authority Key Identifier",
 	CKM_INVALID_MECHANISM, SUPPORTED_CERT_EXTENSION ),
@@ -1435,6 +1437,10 @@ const static SECOidData oids[] = {
     OD( pkcs9ExtensionRequest, SEC_OID_PKCS9_EXTENSION_REQUEST,
     	"PKCS #9 Extension Request",
         CKM_INVALID_MECHANISM, INVALID_CERT_EXTENSION ),
+
+    OD( x509InhibitAny, SEC_OID_X509_INHIBIT_ANY, 
+	"Inhibit Any Policy",
+        CKM_INVALID_MECHANISM, SUPPORTED_CERT_EXTENSION ),
 };
 
 /*

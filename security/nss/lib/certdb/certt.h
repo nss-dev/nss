@@ -817,6 +817,33 @@ typedef struct {
     SECItem **oids;
 } CERTOidSequence;
 
+/*
+ * these types are for the PKIX Policy Mappings extension
+ */
+typedef struct {
+    SECItem issuerDomainPolicy;
+    SECItem subjectDomainPolicy;
+} CERTPolicyMap;
+
+typedef struct {
+    PRArenaPool *arena;
+    CERTPolicyMap **policyMaps;
+} CERTCertificatePolicyMappings;
+
+/*
+ * these types are for the PKIX inhibitAnyPolicy extension
+ */
+typedef struct {
+    SECItem inhibitAnySkipCerts;
+} CERTCertificateInhibitAny;
+
+/*
+ * these types are for the PKIX Policy Constraints extension
+ */
+typedef struct {
+    SECItem explicitPolicySkipCerts;
+    SECItem inhibitMappingSkipCerts;
+} CERTCertificatePolicyConstraints;
 
 /* XXX Lisa thinks the template declarations belong in cert.h, not here? */
 

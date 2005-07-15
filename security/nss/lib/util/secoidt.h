@@ -403,6 +403,8 @@ typedef enum {
     SEC_OID_PKIX_CA_ISSUERS          = 273,
     SEC_OID_PKCS9_EXTENSION_REQUEST  = 274,
 
+    SEC_OID_X509_INHIBIT_ANY         = 275,
+
     SEC_OID_TOTAL
 } SECOidTag;
 

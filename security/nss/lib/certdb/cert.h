@@ -257,7 +257,7 @@ void *
 CERT_StartCertificateRequestAttributes(CERTCertificateRequest *req);
 
 /*
-** Reformat the certifcate extension list into a CertificateRequest
+** Reformat the certificate extension list into a CertificateRequest
 ** attribute list.
 */
 SECStatus
@@ -1144,6 +1144,18 @@ CERT_DecodeCertificatePoliciesExtension(SECItem *extnValue);
 
 void
 CERT_DestroyCertificatePoliciesExtension(CERTCertificatePolicies *policies);
+
+CERTCertificatePolicyMappings *
+CERT_DecodePolicyMappingsExtension(SECItem *encodedCertPolicyMaps);
+
+void CERT_DestroyPolicyMappingsExtension
+    (CERTCertificatePolicyMappings *mappings);
+
+SECStatus CERT_DecodePolicyConstraintsExtension
+    (CERTCertificatePolicyConstraints *decodedValue, SECItem *encodedValue);
+
+SECStatus CERT_DecodeInhibitAnyExtension
+    (CERTCertificateInhibitAny *decodedValue, SECItem *extnValue);
 
 CERTUserNotice *
 CERT_DecodeUserNotice(SECItem *noticeItem);
