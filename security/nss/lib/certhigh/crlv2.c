@@ -92,7 +92,8 @@ CERT_StartCRLEntryExtensions(CERTCrl *crl, CERTCrlEntry *entry)
     return (cert_StartExtensions (entry, crl->arena, SetCrlEntryExts));
 }
 
-SECStatus CERT_FindCRLNumberExten (CERTCrl *crl, CERTCrlNumber *value)
+SECStatus CERT_FindCRLNumberExten (PRArenaPool* arena, CERTCrl *crl,
+                                   SECItem *value)
 {
     SECItem encodedExtenValue;
     SECStatus rv;
@@ -105,8 +106,11 @@ SECStatus CERT_FindCRLNumberExten (CERTCrl *crl, CERTCrlNumber *value)
     if ( rv != SECSuccess )
 	return (rv);
 
-    rv = SEC_ASN1DecodeItem (NULL, value, SEC_IntegerTemplate,
-			     &encodedExtenValue);
+    rv = SEC_QuickDERDecodeItem (arena, value, SEC_IntegerTemplate,
+			         &encodedExtenValue);
+    if ( rv != SECSuccess )
+	return (rv);
+
     PORT_Free (encodedExtenValue.data);
     return (rv);
 }

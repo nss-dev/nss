@@ -1025,7 +1025,8 @@ extern CERTCertNicknames *CERT_GetCertNicknames (CERTCertDBHandle *handle,
 /*
 ** Finds the crlNumber extension and decodes its value into 'value'
 */
-extern SECStatus CERT_FindCRLNumberExten (CERTCrl *crl, CERTCrlNumber *value);
+extern SECStatus CERT_FindCRLNumberExten (PRArenaPool* arena, CERTCrl *crl,
+                                          SECItem *value);
 
 extern void CERT_FreeNicknames(CERTCertNicknames *nicknames);
 
