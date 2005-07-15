@@ -115,10 +115,25 @@ SECStatus CERT_FindCRLNumberExten (PRArenaPool* arena, CERTCrl *crl,
     return (rv);
 }
 
-SECStatus CERT_FindCRLReasonExten (CERTCrl *crl, SECItem *value)
+SECStatus CERT_FindCRLReasonExten (CERTCrlEntry *crlEntry, int *value)
 {
-    return (CERT_FindBitStringExtension
-	    (crl->extensions, SEC_OID_X509_REASON_CODE, value));    
+    SECStatus rv;
+    SECItem tmpItem;
+
+    tmpItem.data = NULL;
+    tmpItem.len = 0;
+
+    rv = CERT_FindExtensionWithTemplate
+	(crlEntry->extensions, SEC_OID_X509_REASON_CODE, 
+	 SEC_EnumeratedTemplate, &tmpItem);
+
+    if ( rv != SECSuccess )
+	return (rv);
+
+    *value = DER_GetInteger(&tmpItem);
+    SECITEM_FreeItem(&tmpItem, PR_FALSE);
+
+    return (rv);
 }
 
 SECStatus CERT_FindInvalidDateExten (CERTCrl *crl, int64 *value)

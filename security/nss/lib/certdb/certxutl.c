@@ -477,6 +477,63 @@ done:
     return(rv);
 }
 
+SECStatus
+CERT_FindExtensionWithTemplate (CERTCertExtension **extensions, int tag,
+				const SEC_ASN1Template* templateEntry,
+				SECItem *retItem)
+{
+    SECItem wrapperItem, tmpItem = {siBuffer,0};
+    SECStatus rv;
+    PRArenaPool *arena = NULL;
+    
+    wrapperItem.data = NULL;
+    tmpItem.data = NULL;
+    
+    arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
+    
+    if ( ! arena ) {
+	return(SECFailure);
+    }
+    
+    rv = cert_FindExtension(extensions, tag, &wrapperItem);
+    if ( rv != SECSuccess ) {
+	goto loser;
+    }
+
+    rv = SEC_QuickDERDecodeItem(arena, &tmpItem, templateEntry, 
+			    &wrapperItem);
+
+    if ( rv != SECSuccess ) {
+	goto loser;
+    }
+
+    retItem->data = (unsigned char *)PORT_Alloc(tmpItem.len);
+    if ( retItem->data == NULL ) {
+	goto loser;
+    }
+    
+    PORT_Memcpy(retItem->data, tmpItem.data, tmpItem.len);
+    retItem->len = tmpItem.len;
+    
+    rv = SECSuccess;
+    goto done;
+    
+loser:
+    rv = SECFailure;
+
+done:
+    if ( arena ) {
+	PORT_FreeArena(arena, PR_FALSE);
+    }
+    
+    if ( wrapperItem.data ) {
+	PORT_Free(wrapperItem.data);
+    }
+
+    return(rv);
+}
+
+
 PRBool
 cert_HasCriticalExtension (CERTCertExtension **extensions)
 {
