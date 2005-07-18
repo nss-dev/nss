@@ -173,7 +173,7 @@ ifndef TARGETS
     TARGETS = $(LIBRARY) $(SHARED_LIBRARY) $(IMPORT_LIBRARY) $(PROGRAM)
 endif
 
-OPTIMIZER  += -Os
+OPTIMIZER  += -O1
 
 # Change PROCESS to put the mapfile in the correct format for this platform
 PROCESS_MAP_FILE = cp $(LIBRARY_NAME).def $@
