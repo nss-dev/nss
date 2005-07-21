@@ -882,28 +882,19 @@ cert_CombineConstraintsLists(CERTNameConstraint *list1, CERTNameConstraint *list
     PRCList *end2;
 
     if (list1 == NULL){
-	return list2;
+        return list2;
     } else if (list2 == NULL) {
-	return list1;
+        return list1;
     } else {
-	begin1 = &list1->l;
-	begin2 = &list2->l;
-	end1 = list1->l.prev;
-	end2 = list2->l.prev;
-
-	if (list1->l.prev == list1->l.next) {
-		end1->next = begin2;
-	} else {
-		end1->next = begin2;
-		begin1->prev = end2;
-	}
-	if (list2->l.prev == list2->l.next) {
-		end2->next = begin1;
-	} else {
-		end2->next = begin1;
-		begin2->prev = end1;
-	}
-	return list1;
+        begin1 = &list1->l;
+        begin2 = &list2->l;
+        end1 = list1->l.prev;
+        end2 = list2->l.prev;
+        end1->next = begin2;
+        end2->next = begin1;
+        begin1->prev = end2;
+        begin2->prev = end1;
+        return list1;
     }
 }
 
