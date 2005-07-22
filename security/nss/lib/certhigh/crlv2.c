@@ -115,7 +115,7 @@ SECStatus CERT_FindCRLNumberExten (PRArenaPool* arena, CERTCrl *crl,
     return (rv);
 }
 
-SECStatus CERT_FindCRLReasonExten (CERTCrlEntry *crlEntry, int *value)
+SECStatus CERT_FindCRLEntryReasonExten (CERTCrlEntry *crlEntry, int *value)
 {
     SECStatus rv;
     SECItem tmpItem;
