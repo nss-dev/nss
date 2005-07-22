@@ -1691,7 +1691,6 @@ static SECStatus CachedCrl_GetEntry(CachedCrl* crl, SECItem* sn,
 static SECStatus DPCache_Lookup(CRLDPCache* cache, SECItem* sn,
                                 CERTCrlEntry** returned)
 {
-    CERTCrlEntry* acrlEntry = NULL;
     if (!cache || !sn || !returned)
     {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
