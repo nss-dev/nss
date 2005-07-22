@@ -251,6 +251,9 @@ SECStatus AcquireDPCache(CERTCertificate* issuer, SECItem* subject,
                          SECItem* dp, int64 t, void* wincx,
                          CRLDPCache** dpcache, PRBool* writeLocked);
 
+/* release a DPCache object that was previously acquired */
+void ReleaseDPCache(CRLDPCache* dpcache, PRBool writeLocked);
+
 /* this function assumes the caller holds a lock on the DPCache */
 SECStatus DPCache_GetAllCRLs(CRLDPCache* dpc, PRArenaPool* arena,
                              CERTSignedCrl*** crls, PRUint16* status);
