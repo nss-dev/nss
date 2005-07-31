@@ -1521,6 +1521,7 @@ ssl3_ComputeRecordMAC(
     ssl_hash_begin     begin;
     ssl_hash_update    update;
     ssl_hash_end       end;
+    const SECHashObject *hashObj;
     PRUint64           write_mac_context[MAX_MAC_CONTEXT_LLONGS];
 #endif
 
@@ -1545,10 +1546,16 @@ ssl3_ComputeRecordMAC(
 	update = (ssl_hash_update) SHA1_Update;
 	end    = (ssl_hash_end)    SHA1_End;
 	break;
-    case ssl_hmac_md5:
-    case ssl_hmac_sha:
+    case ssl_hmac_md5: /* used with TLS */
+	hashObj = SEC_GetRawHashObject(HASH_AlgMD5);
+	break;
+    case ssl_hmac_sha: /* used with TLS */
+	hashObj = SEC_GetRawHashObject(HASH_AlgSHA1);
+	break;
     default:
-	abort();
+	PORT_Assert(0);
+	PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+	return SECFailure;
     }
 #else
     if (mac_def->mac == mac_null) {
@@ -1619,8 +1626,24 @@ ssl3_ComputeRecordMAC(
 	update(write_mac_context, temp,   tempLen);
 	end(write_mac_context,    outbuf, outLength, spec->mac_size);
 	rv = SECSuccess;
-    } else {
-	abort();
+    } else { /* is TLS */
+#define cx ((HMACContext *)write_mac_context)
+	if (useServerMacKey) {
+	    rv = HMAC_Init(cx, hashObj, 
+			   spec->server.write_mac_key.data,
+			   spec->server.write_mac_key.len, PR_FALSE);
+	} else {
+	    rv = HMAC_Init(cx, hashObj, 
+	                   spec->client.write_mac_key.data,
+			   spec->client.write_mac_key.len, PR_FALSE);
+	}
+	if (rv == SECSuccess) {
+	    HMAC_Begin(cx);
+	    HMAC_Update(cx, temp, tempLen);
+	    HMAC_Update(cx, input, inputLength);
+	    rv = HMAC_Finish(cx, outbuf, outLength, spec->mac_size);
+	}
+#undef cx
     }
 #else
     rv  = PK11_DigestBegin(mac_context);
@@ -6892,29 +6915,39 @@ ssl3_ComputeTLSFinished(ssl3CipherSpec *spec,
                 const   SSL3Finished *  hashes,
                         TLSFinished  *  tlsFinished)
 {
-    PK11Context *prf_context;
     const char * label;
     unsigned int len;
     SECStatus    rv;
-    SECItem      param 		= {siBuffer, NULL, 0};
 
     label = isServer ? "server finished" : "client finished";
     len   = 15;
 
-    prf_context = 
-	PK11_CreateContextBySymKey(CKM_TLS_PRF_GENERAL, CKA_SIGN, 
-	                           spec->master_secret, &param);
-    if (!prf_context)
-    	return SECFailure;
+    if (spec->master_secret != CK_INVALID_HANDLE) {
+	SECItem      param       = {siBuffer, NULL, 0};
+	PK11Context *prf_context =
+	    PK11_CreateContextBySymKey(CKM_TLS_PRF_GENERAL, CKA_SIGN, 
+				       spec->master_secret, &param);
+	if (!prf_context)
+	    return SECFailure;
 
-    rv  = PK11_DigestBegin(prf_context);
-    rv |= PK11_DigestOp(prf_context, (const unsigned char *) label, len);
-    rv |= PK11_DigestOp(prf_context, hashes->md5, sizeof *hashes);
-    rv |= PK11_DigestFinal(prf_context, tlsFinished->verify_data, 
-                           &len, sizeof *tlsFinished);
-    PORT_Assert(rv != SECSuccess || len == sizeof *tlsFinished);
+	rv  = PK11_DigestBegin(prf_context);
+	rv |= PK11_DigestOp(prf_context, (const unsigned char *) label, len);
+	rv |= PK11_DigestOp(prf_context, hashes->md5, sizeof *hashes);
+	rv |= PK11_DigestFinal(prf_context, tlsFinished->verify_data, 
+			       &len, sizeof tlsFinished->verify_data);
+	PORT_Assert(rv != SECSuccess || len == sizeof *tlsFinished);
 
-    PK11_DestroyContext(prf_context, PR_TRUE);
+	PK11_DestroyContext(prf_context, PR_TRUE);
+    } else {
+	/* bypass PKCS11 */
+	SECItem inData  = { siBuffer, hashes->md5, sizeof *hashes };
+	SECItem outData = { siBuffer, tlsFinished->verify_data, 
+			       sizeof tlsFinished->verify_data};
+	PRBool isFIPS   = PR_FALSE;
+	rv = TLS_PRF(&spec->msItem, label, &inData, &outData, isFIPS);
+	PORT_Assert(rv != SECSuccess || \
+		    outData.len == sizeof tlsFinished->verify_data);
+    }
     return rv;
 }
 

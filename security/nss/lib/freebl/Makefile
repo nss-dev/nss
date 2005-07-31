@@ -42,15 +42,6 @@
 # (1) Include initial platform-independent assignments (MANDATORY).   #
 #######################################################################
 
-# We have to define this variable now so the right sources are pulled
-#  from manifest.mn.
-# TFM works only with gcc, and we have only tested it on AMD64 so far.
-ifeq ($(CPU_ARCH),x86_64)
-ifdef NS_USE_GCC
-	NSS_USE_TFM = 1
-endif
-endif
-
 include manifest.mn
 
 #######################################################################
@@ -63,7 +54,18 @@ include $(CORE_DEPTH)/coreconf/config.mk
 # (3) Include "component" configuration information. (OPTIONAL)       #
 #######################################################################
 
+GCC_OPTIMIZER = -O3  -mno-omit-leaf-frame-pointer -fno-omit-frame-pointer
 
+# We have to define this variable now so the right sources are pulled
+#  from manifest.mn.
+# TFM works only with gcc, and we have only tested it on AMD64 so far.
+ifeq ($(CPU_ARCH),x86_64)
+ifdef NS_USE_GCC
+    NSS_USE_TFM = 1
+    CSRCS += $(TFM_SRCS)
+    OPTIMIZER += $(GCC_OPTIMIZER)
+endif
+endif
 
 #######################################################################
 # (4) Include "local" platform-dependent assignments (OPTIONAL).      #
@@ -147,6 +149,9 @@ ifeq ($(CPU_ARCH),x86_64)
     ASFLAGS += -march=opteron -m64 -fPIC
     DEFINES += -DNSS_BEVAND_ARCFOUR -DMPI_AMD64 -DMP_ASSEMBLY_MULTIPLY
     MPI_SRCS += mpi_amd64.c
+    ifdef BUILD_OPT
+	OPTIMIZER = $(GCC_OPTIMIZER)
+    endif
 endif
 ifeq ($(CPU_ARCH),x86)
 ifndef NSS_USE_TFM
@@ -154,10 +159,13 @@ ifndef NSS_USE_TFM
     DEFINES += -DMP_ASSEMBLY_MULTIPLY -DMP_ASSEMBLY_SQUARE 
     DEFINES += -DMP_ASSEMBLY_DIV_2DX1D
 else
-	OPTIMIZER = -O3 -fomit-frame-pointer
-#	DEFINES += -DTFM_SSE2
+    OPTIMIZER = -O3 -fomit-frame-pointer
+    DEFINES += -DTFM_SSE2
 endif
     USE_FP_CODE = 1
+    ifdef BUILD_OPT
+	OPTIMIZER = $(GCC_OPTIMIZER)
+    endif
 endif
 ifdef NSS_ENABLE_ECC
     ifdef USE_FP_CODE
@@ -264,6 +272,9 @@ else
 	LD = gcc
 	AS = gcc
 	ASFLAGS =
+	ifdef BUILD_OPT
+	    OPTIMIZER = $(GCC_OPTIMIZER)
+	endif
     endif
     ifeq ($(USE_64),1)
 	# Solaris for AMD64
@@ -338,23 +349,21 @@ MPI_USERS = dh.c pqg.c dsa.c rsa.c rsa_keygen.c ec.c
 MPI_OBJS = $(addprefix $(OBJDIR)/$(PROG_PREFIX), $(MPI_SRCS:.c=$(OBJ_SUFFIX)))
 MPI_OBJS += $(addprefix $(OBJDIR)/$(PROG_PREFIX), $(MPI_USERS:.c=$(OBJ_SUFFIX)))
 
+$(MPI_OBJS): $(MPI_HDRS)
+
 ECL_USERS = ec.c
 
 ECL_OBJS = $(addprefix $(OBJDIR)/$(PROG_PREFIX), $(ECL_SRCS:.c=$(OBJ_SUFFIX)) $(ECL_ASM_SRCS:$(ASM_SUFFIX)=$(OBJ_SUFFIX)))
 ECL_OBJS += $(addprefix $(OBJDIR)/$(PROG_PREFIX), $(ECL_USERS:.c=$(OBJ_SUFFIX)))
+
+$(ECL_OBJS): $(ECL_HDRS)
 
 TFM_USERS = rsa.c rsa_keygen.c
 
 TFM_OBJS = $(addprefix $(OBJDIR)/$(PROG_PREFIX), $(TFM_SRCS:.c=$(OBJ_SUFFIX)))
 TFM_OBJS += $(addprefix $(OBJDIR)/$(PROG_PREFIX), $(TFM_USERS:.c=$(OBJ_SUFFIX)))
 
-ifdef NSS_USE_TFM
 $(TFM_OBJS): $(TFM_HDRS)
-endif
-
-$(MPI_OBJS): $(MPI_HDRS)
-
-$(ECL_OBJS): $(ECL_HDRS)
 
 
 $(OBJDIR)/$(PROG_PREFIX)mpprime$(OBJ_SUFFIX): primes.c

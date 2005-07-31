@@ -61,9 +61,8 @@ ssl3_KeyAndMacDerive(
     unsigned int    macSize;		/* size of MAC secret */
     unsigned int    IVSize;		/* size of IV */
     SECStatus       rv    = SECFailure;
-#ifdef BYPASS_TLS
     SECStatus       status = SECSuccess;
-#endif
+    PRBool          isFIPS = PR_FALSE;
 
     SECItem         srcr;
     SECItem         crsr;
@@ -120,22 +119,18 @@ ssl3_KeyAndMacDerive(
      * generate the key material:
      */
     if (isTLS) {
-#ifndef BYPASS_TLS
-	abort();
-#else
 	SECItem       keyblk;
 
 	keyblk.type = siBuffer;
 	keyblk.data = key_block;
 	keyblk.len  = block_needed;
 
-	status = pk11_PRF(pMasterSecret, "key expansion", &srcr, &keyblk,
+	status = TLS_PRF(&pwSpec->msItem, "key expansion", &srcr, &keyblk,
 			  isFIPS);
 	if (status != SECSuccess) {
 	    goto key_and_mac_derive_fail;
 	}
-	block_bytes = ???
-#endif
+	block_bytes = keyblk.len;
     } else {
 	/* key_block = 
 	 *     MD5(master_secret + SHA('A' + master_secret + 
@@ -265,7 +260,7 @@ ssl3_KeyAndMacDerive(
 	    MD5_Begin(md5Ctx);
 	    MD5_Update(md5Ctx, crsr.data, crsr.len);
 	    MD5_End(md5Ctx, key_block2, &outLen, MD5_LENGTH);
-	    buildSSLKey(key_block2, IVSize, &pwSpec->client.write_key);
+	    buildSSLKey(key_block2, IVSize, &pwSpec->client.write_iv);
 	    key_block2 += IVSize;
 
 	    /*
@@ -275,15 +270,12 @@ ssl3_KeyAndMacDerive(
 	    MD5_Begin(md5Ctx);
 	    MD5_Update(md5Ctx, srcr.data, srcr.len);
 	    MD5_End(md5Ctx, key_block2, &outLen, MD5_LENGTH);
-	    buildSSLKey(key_block2, IVSize, &pwSpec->server.write_key);
+	    buildSSLKey(key_block2, IVSize, &pwSpec->server.write_iv);
 	    key_block2 += IVSize;
 	}
 
 	PORT_Assert(key_block2 - key_block <= sizeof pwSpec->key_block);
     } else {
-#ifndef BYPASS_TLS
-	abort();
-#else
 	/*
 	** Generate TLS Export write keys and IVs.
 	*/
@@ -303,11 +295,11 @@ ssl3_KeyAndMacDerive(
 	i          += effKeySize;
 	keyblk.data = key_block2;
 	keyblk.len  = keySize;
-	status = pk11_PRF(&secret, "client write key", &crsr, &keyblk, isFIPS);
+	status = TLS_PRF(&secret, "client write key", &crsr, &keyblk, isFIPS);
 	if (status != SECSuccess) {
 	    goto key_and_mac_derive_fail;
 	}
-	buildSSLKey(key_block2, keySize, pwSpec->client.write_key);
+	buildSSLKey(key_block2, keySize, &pwSpec->client.write_key);
 	key_block2 += keySize;
 
 	/*
@@ -321,11 +313,11 @@ ssl3_KeyAndMacDerive(
 	i          += effKeySize;
 	keyblk.data = key_block2;
 	keyblk.len  = keySize;
-	status = pk11_PRF(&secret, "server write key", &crsr, &keyblk, isFIPS);
+	status = TLS_PRF(&secret, "server write key", &crsr, &keyblk, isFIPS);
 	if (status != SECSuccess) {
 	    goto key_and_mac_derive_fail;
 	}
-	buildSSLKey(key_block2, keySize, pwSpec->server.write_key);
+	buildSSLKey(key_block2, keySize, &pwSpec->server.write_key);
 	key_block2 += keySize;
 
 	/*
@@ -338,22 +330,19 @@ ssl3_KeyAndMacDerive(
 	    secret.len  = 0;
 	    keyblk.data = &key_block[i];
 	    keyblk.len  = 2 * IVSize;
-	    status = pk11_PRF(&secret, "IV block", &crsr, &keyblk, isFIPS);
+	    status = TLS_PRF(&secret, "IV block", &crsr, &keyblk, isFIPS);
 	    if (status != SECSuccess) {
 		goto key_and_mac_derive_fail;
 	    }
-	    buildSSLKey(key_block2,          IVSize, pwSpec->client.write_iv);
-	    buildSSLKey(key_block2 + IVSize, IVSize, pwSpec->server.write_iv);
+	    buildSSLKey(key_block2,          IVSize, &pwSpec->client.write_iv);
+	    buildSSLKey(key_block2 + IVSize, IVSize, &pwSpec->server.write_iv);
 	    key_block2 += 2 * IVSize;
 	}
 	PORT_Assert(key_block2 - key_block <= sizeof pwSpec->key_block);
-#endif
     }
     rv = SECSuccess;
 
-#ifdef BYPASS_TLS
 key_and_mac_derive_fail:
-#endif
 
     MD5_DestroyContext(md5Ctx, PR_FALSE);
     SHA1_DestroyContext(shaCtx, PR_FALSE);
@@ -378,6 +367,7 @@ ssl3_MasterKeyDeriveBypass(
 {
     unsigned char * key_block    = pwSpec->key_block;
     SECStatus       rv    = SECSuccess;
+    PRBool          isFIPS = PR_FALSE;
 
     SECItem         crsr;
 
@@ -407,19 +397,15 @@ ssl3_MasterKeyDeriveBypass(
 
     /* finally do the key gen */
     if (isTLS) {
-#ifndef BYPASS_TLS
-	abort();
-#else
 	SECItem master = { siBuffer, NULL, 0 };
 
 	master.data = key_block;
 	master.len = SSL3_MASTER_SECRET_LENGTH;
 
-	rv = sftk_PRF(pms, "master secret", &crsr, &master, isFIPS);
-	if (status != SECSuccess) {
+	rv = TLS_PRF(pms, "master secret", &crsr, &master, isFIPS);
+	if (rv != SECSuccess) {
 	    PORT_SetError(SSL_ERROR_SESSION_KEY_GEN_FAILURE);
 	}
-#endif
     } else {
 	int i;
 	int made = 0;
