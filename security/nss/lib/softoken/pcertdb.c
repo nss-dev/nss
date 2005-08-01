@@ -389,16 +389,24 @@ pkcs11_freeStaticData (unsigned char *data, unsigned char *space)
 }
 
 unsigned char *
+pkcs11_allocStaticData(int len, unsigned char *space, int spaceLen)
+{
+    unsigned char *data = NULL;
+
+    if (len <= spaceLen) {
+	data = space;
+    } else {
+	data = (unsigned char *) PORT_Alloc(len);
+    }
+
+    return data;
+}
+
+unsigned char *
 pkcs11_copyStaticData(unsigned char *data, int len, 
 					unsigned char *space, int spaceLen)
 {
-    unsigned char *copy = NULL;
-
-    if (len <= spaceLen) {
-	copy = space;
-    } else {
-	copy = (unsigned char *) PORT_Alloc(len);
-    }
+    unsigned char *copy = pkcs11_allocStaticData(len, space, spaceLen);
     if (copy) {
 	PORT_Memcpy(copy,data,len);
     }
