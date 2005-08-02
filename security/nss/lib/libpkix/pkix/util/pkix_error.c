@@ -428,60 +428,6 @@ PKIX_ERRORNAMES[PKIX_NUMERRORS] =
 };
 
 /*
- * PKIX_ALLOC_ERROR is a special error object hard-coded into the
- * pkix_error.o object file. It is thrown if system memory cannot be
- * allocated. PKIX_ALLOC_ERROR is immutable.
- * IncRef, DecRef, and Settor functions cannot be called.
- */
-
-/*
- * This data looks like a UTF-16 string of "PKIX_ALLOC_ERROR".
- * It is used to create a static PKIX_PL_String object, pkix_Alloc_Error_desc.
- */
-static const char pkix_Alloc_Error_Msg[32] =
-        {
-                0, 'P', 0, 'K', 0, 'I', 0, 'X',
-                0, ' ',
-                0, 'A', 0, 'L', 0, 'L', 0, 'O', 0, 'C',
-                0, ' ',
-                0, 'E', 0, 'R', 0, 'R', 0, 'O', 0, 'R'
-        };
-
-/*
- * This is raw data laid out to look like a PKIX_PL_String in memory
- * XXX If PKIX_PL_StringStruct is changed, this will break.
- */
-static PKIX_UInt32
-pkix_Alloc_Error_Desc[4] =
-{
-        (PKIX_UInt32)&pkix_Alloc_Error_Msg, /* Error Desc Utf16 Rep */
-        32, /* Error Desc Utf16 Length */
-        0, /* Error EscASCII Desc */
-        0 /* Error EscASCII Length */
-};
-
-/*
- * This is raw data laid out to look like a PKIX_Error in memory
- * XXX PKIX_PL_ObjectStruct or PKIX_ErrorStruct are changed, this will break.
- */
-static PKIX_UInt32
-pkix_Alloc_Error_Data[11] = {
-        PKIX_MAGIC_HEADER, /* Object Magic Header */
-        PKIX_ERROR_TYPE, /* Object Type */
-        1, /* Object References */
-        0, /* Object Lock */ /* XXX Cannot Ref Count with NULL lock */
-        0,
-        0,
-        0,
-        PKIX_FATAL_ERROR, /* Error code */
-        0, /* Error Cause */
-        0, /* Error info */
-        (PKIX_UInt32)pkix_Alloc_Error_Desc /* Error description */
-};
-
-PKIX_Error *PKIX_ALLOC_ERROR = (PKIX_Error *)(pkix_Alloc_Error_Data+7);
-
-/*
  * FUNCTION: pkix_Error_RegisterSelf
  * DESCRIPTION:
  *  Registers PKIX_ERROR_TYPE and its related functions with systemClasses[]

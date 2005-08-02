@@ -65,15 +65,11 @@ pkix_Raw_ClassTable_Buckets[] = {
  * Allocate static memory for a ClassTable.
  * XXX This assumes the bucket pointer will fit into a PKIX_UInt32
  */
-static PKIX_UInt32
-pkix_Raw_ClassTable[2] = {
-        (PKIX_UInt32)pkix_Raw_ClassTable_Buckets, /* Buckets */
+static pkix_pl_PrimHashTable pkix_Raw_ClassTable = {
+        (void *)pkix_Raw_ClassTable_Buckets, /* Buckets */
         20 /* Number of Buckets */
 };
-
-/* Cast the raw Class Table to a PrimHashTable */
-static pkix_pl_PrimHashTable *
-classTable = (pkix_pl_PrimHashTable *)pkix_Raw_ClassTable;
+static pkix_pl_PrimHashTable * classTable = &pkix_Raw_ClassTable;
 
 /* --Private-Functions-------------------------------------------- */
 

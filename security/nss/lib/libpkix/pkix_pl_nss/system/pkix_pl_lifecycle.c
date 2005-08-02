@@ -52,6 +52,62 @@ PKIX_PL_HashTable *cachedCrlSigTable = NULL;
 PKIX_PL_HashTable *cachedCertSigTable = NULL;
 
 /*
+ * PKIX_ALLOC_ERROR is a special error object hard-coded into the
+ * pkix_error.o object file. It is thrown if system memory cannot be
+ * allocated. PKIX_ALLOC_ERROR is immutable.
+ * IncRef, DecRef, and Settor functions cannot be called.
+ */
+
+/*
+ * This data looks like a UTF-16 string of "PKIX_ALLOC_ERROR".
+ * It is used to create a static PKIX_PL_String object, pkix_Alloc_Error_desc.
+ */
+static const char pkix_Alloc_Error_Msg[32] =
+        {
+                0, 'P', 0, 'K', 0, 'I', 0, 'X',
+                0, ' ',
+                0, 'A', 0, 'L', 0, 'L', 0, 'O', 0, 'C',
+                0, ' ',
+                0, 'E', 0, 'R', 0, 'R', 0, 'O', 0, 'R'
+        };
+
+/*
+ * This is raw data laid out to look like a PKIX_PL_String in memory
+ * XXX If PKIX_PL_StringStruct is changed, this will break.
+ */
+static PKIX_PL_String pkix_Alloc_Error_Desc = {
+        &pkix_Alloc_Error_Msg,  /* void* utf16String */
+        (PKIX_UInt32)32,        /* PKIX_UInt32 utf16Length */
+        (char *)NULL,           /* char* escAsciiString */
+        (PKIX_UInt32)0          /* PKIX_UInt32 escAsciiLength */
+};
+
+/*
+ * This is raw data laid out to look like a PKIX_Error in memory. Do not
+ * separate the following two structures. The first is a header for the second!
+ * XXX If PKIX_PL_ObjectStruct or PKIX_ErrorStruct are changed, this will break.
+ */
+static PKIX_PL_Object pkix_Alloc_Error_Data = {
+        (PKIX_UInt32)PKIX_MAGIC_HEADER, /* PKIX_UInt32 magicHeader */
+        (PKIX_UInt32)PKIX_ERROR_TYPE,   /* PKIX_UInt32 type */
+        (PKIX_UInt32)1,                 /* PKIX_UInt32 references */
+        /* Warning! Cannot Ref Count with NULL lock */
+        (void *)0,                      /* PRLock *lock */
+        (PKIX_PL_String *)0,            /* PKIX_PL_String *stringRep */
+        (PKIX_UInt32)0,                 /* PKIX_UInt32 hashcode */
+        (PKIX_Boolean)PKIX_FALSE        /* PKIX_Boolean hashcodeCached */
+};
+
+static PKIX_Error pkix_Alloc_Error = {
+        PKIX_FATAL_ERROR,       /* PKIX_UInt32 code */
+        (PKIX_Error *)0,        /* PKIX_Error *cause */
+        (PKIX_PL_Object *)0,    /* PKIX_PL_Object *info */
+        &pkix_Alloc_Error_Desc  /* PKIX_PL_String *desc */
+};
+
+PKIX_Error *PKIX_ALLOC_ERROR = &pkix_Alloc_Error;
+
+/*
  * PKIX_PL_Initialize (see comments in pkix_pl_system.h)
  */
 PKIX_Error *
