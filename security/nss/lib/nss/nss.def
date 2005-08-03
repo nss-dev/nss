@@ -854,8 +854,8 @@ CERT_CheckNameSpace;
 CERT_FindCRLEntryReasonExten;
 CERT_FindCRLNumberExten;
 CERT_FindNameConstraintsExten;
-# libpkix functions
-# May not become part of the NSS public API. Needed for unit testing for now.
+;+# libpkix functions
+;+# May not become part of the NSS public API. Needed for unit testing for now.
 PKIX_ALLOC_ERROR;
 PKIX_BuildChain;
 PKIX_BuildParams_Create;
@@ -1106,5 +1106,4 @@ pkix_ValidateResult_Create;
 PKIX_ValidateResult_GetPolicyTree;
 PKIX_ValidateResult_GetPublicKey;
 PKIX_ValidateResult_GetTrustAnchor;
-;+       *;
 ;+};
