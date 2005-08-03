@@ -50,8 +50,6 @@
 extern "C" {
 #endif
 
-#if defined(__STDC__)
-
 /* This structure reflects the contents of the basic constraints
  * extension as described in Section 4.2.1.10 of RFC 3280.
  * The cA flag indicates whether the public key in this certificate
@@ -74,12 +72,6 @@ pkix_pl_CertBasicConstraints_Create(
 PKIX_Error *
 pkix_pl_CertBasicConstraints_RegisterSelf(
         void *plContext);
-
-#else /* __STDC__ */
-
-#error No function declarations for non-ISO C yet
-
-#endif /* __STDC__ */
 
 #ifdef __cplusplus
 }

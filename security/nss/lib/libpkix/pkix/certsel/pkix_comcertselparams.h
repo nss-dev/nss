@@ -50,8 +50,6 @@
 extern "C" {
 #endif
 
-#if defined(__STDC__)
-
 /*
  * pathToNamesConstraint is Name Constraints generated based on the
  * pathToNames. We save a cached copy to save regeneration for each
@@ -83,12 +81,6 @@ struct PKIX_ComCertSelParamsStruct {
 /* see source file for function documentation */
 
 PKIX_Error *pkix_ComCertSelParams_RegisterSelf(void *plContext);
-
-#else /* __STDC__ */
-
-#error No function declarations for non-ISO C yet
-
-#endif /* __STDC__ */
 
 #ifdef __cplusplus
 }

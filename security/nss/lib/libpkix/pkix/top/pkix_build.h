@@ -49,8 +49,6 @@
 extern "C" {
 #endif
 
-#if defined(__STDC__)
-
 typedef struct PKIX_ForwardBuilderStateStruct PKIX_ForwardBuilderState;
 
 struct PKIX_ForwardBuilderStateStruct{
@@ -74,12 +72,6 @@ struct PKIX_ForwardBuilderStateStruct{
 
 PKIX_Error *
 pkix_ForwardBuilderState_RegisterSelf(void *plContext);
-
-#else /* __STDC__ */
-
-#error No function declarations for non-ISO C yet
-
-#endif /* __STDC__ */
 
 #ifdef __cplusplus
 }

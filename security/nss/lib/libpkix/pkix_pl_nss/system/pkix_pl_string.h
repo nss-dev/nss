@@ -50,8 +50,6 @@
 extern "C" {
 #endif
 
-#if defined(__STDC__)
-
 struct PKIX_PL_StringStruct {
         void* utf16String;
         PKIX_UInt32 utf16Length;
@@ -64,12 +62,6 @@ struct PKIX_PL_StringStruct {
 
 PKIX_Error *
 pkix_pl_String_RegisterSelf(void *plContext);
-
-#else /* __STDC__ */
-
-#error No function declarations for non-ISO C yet
-
-#endif /* __STDC__ */
 
 #ifdef __cplusplus
 }

@@ -57,13 +57,9 @@
 #include "pkix_pl_pki.h"
 #include "pkix_sample_modules.h"
 
-#pragma ident "@(#)pkix.h       1.5     04/06/29 SMI"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#if defined(__STDC__)
 
 /* General
  *
@@ -223,12 +219,6 @@ PKIX_BuildChain(
         PKIX_BuildParams *params,
         PKIX_BuildResult **pResult,
         void *plContext);
-
-#else /* __STDC__ */
-
-#error No function declarations for non-ISO C yet
-
-#endif /* __STDC__ */
 
 #ifdef __cplusplus
 }

@@ -50,8 +50,6 @@
 extern "C" {
 #endif
 
-#if defined(__STDC__)
-
 struct PKIX_RevocationCheckerStruct {
         PKIX_RevocationChecker_RevCallback checkCallback;
         PKIX_PL_Object *revCheckerContext;
@@ -60,12 +58,6 @@ struct PKIX_RevocationCheckerStruct {
 /* see source file for function documentation */
 
 PKIX_Error *pkix_RevocationChecker_RegisterSelf(void *plContext);
-
-#else /* __STDC__ */
-
-#error No function declarations for non-ISO C yet
-
-#endif /* __STDC__ */
 
 #ifdef __cplusplus
 }

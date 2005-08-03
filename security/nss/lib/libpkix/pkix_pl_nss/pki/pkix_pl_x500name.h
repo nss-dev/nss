@@ -50,8 +50,6 @@
 extern "C" {
 #endif
 
-#if defined(__STDC__)
-
 struct PKIX_PL_X500NameStruct{
         CERTName *nssDN;
 };
@@ -70,12 +68,6 @@ PKIX_Error * pkix_pl_X500Name_CreateFromUtf8(
         char *stringRep,
         PKIX_PL_X500Name **pName,
         void *plContext);
-
-#else /* __STDC__ */
-
-#error No function declarations for non-ISO C yet
-
-#endif /* __STDC__ */
 
 #ifdef __cplusplus
 }

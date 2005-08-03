@@ -50,8 +50,6 @@
 extern "C" {
 #endif
 
-#if defined(__STDC__)
-
 struct PKIX_ListStruct {
         PKIX_PL_Object *item;
         PKIX_List *next;
@@ -89,12 +87,6 @@ pkix_List_AppendList(
         PKIX_List *toList,
         PKIX_List *fromList,
         void *plContext);
-
-#else /* __STDC__ */
-
-#error No function declarations for non-ISO C yet
-
-#endif /* __STDC__ */
 
 #ifdef __cplusplus
 }

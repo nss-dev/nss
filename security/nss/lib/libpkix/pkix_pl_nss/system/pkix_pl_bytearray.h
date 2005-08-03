@@ -50,8 +50,6 @@
 extern "C" {
 #endif
 
-#if defined(__STDC__)
-
 struct PKIX_PL_ByteArrayStruct {
         void *array;
         PKIX_UInt32 length;
@@ -67,12 +65,6 @@ pkix_pl_ByteArray_ToHexString(
 
 PKIX_Error *
 pkix_pl_ByteArray_RegisterSelf(void *plContext);
-
-#else /* __STDC__ */
-
-#error No function declarations for non-ISO C yet
-
-#endif /* __STDC__ */
 
 #ifdef __cplusplus
 }

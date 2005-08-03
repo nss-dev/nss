@@ -50,8 +50,6 @@
 extern "C" {
 #endif
 
-#if defined(__STDC__)
-
 typedef struct pkix_BasicConstraintsCheckerStateStruct \
         pkix_BasicConstraintsCheckerState;
 
@@ -69,12 +67,6 @@ pkix_BasicConstraintsChecker_Initialize(
 
 PKIX_Error *
 pkix_BasicConstraintsCheckerState_RegisterSelf(void *plContext);
-
-#else /* __STDC__ */
-
-#error No function declarations for non-ISO C yet
-
-#endif /* __STDC__ */
 
 #ifdef __cplusplus
 }

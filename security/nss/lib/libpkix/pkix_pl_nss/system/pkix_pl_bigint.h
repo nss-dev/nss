@@ -50,8 +50,6 @@
 extern "C" {
 #endif
 
-#if defined(__STDC__)
-
 struct PKIX_PL_BigIntStruct {
         char *dataRep;
         PKIX_UInt32 length;
@@ -67,12 +65,6 @@ pkix_pl_BigInt_CreateWithBytes(
         void *plContext);
 
 PKIX_Error *pkix_pl_BigInt_RegisterSelf(void *plContext);
-
-#else /* __STDC__ */
-
-#error No function declarations for non-ISO C yet
-
-#endif /* __STDC__ */
 
 #ifdef __cplusplus
 }

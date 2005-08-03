@@ -48,8 +48,6 @@
 extern "C" {
 #endif
 
-#if defined(__STDC__)
-
 /* General
  *
  * Please refer to the libpkix Programmer's Guide for detailed information
@@ -409,11 +407,6 @@ PKIX_CertChainChecker_SetCertChainCheckerState(
         PKIX_CertChainChecker *checker,
         PKIX_PL_Object *certChainCheckerState,
         void *plContext);
-#else /* __STDC__ */
-
-#error No function declarations for non-ISO C yet
-
-#endif /* __STDC__ */
 
 #ifdef __cplusplus
 }

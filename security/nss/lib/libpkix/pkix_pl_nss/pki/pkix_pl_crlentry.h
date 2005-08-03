@@ -50,8 +50,6 @@
 extern "C" {
 #endif
 
-#if defined(__STDC__)
-
 #define PKIX_PL_CRL_REASONCODE_NOTSET (-1)
 
 struct PKIX_PL_CRLEntryStruct {
@@ -73,12 +71,6 @@ pkix_pl_CRLEntry_Create(
         CERTCrlEntry **nssCrlEntry, /* head of entry list */
         PKIX_List **pCrlEntryList,
         void *plContext);
-
-#else /* __STDC__ */
-
-#error No function declarations for non-ISO C yet
-
-#endif /* __STDC__ */
 
 #ifdef __cplusplus
 }

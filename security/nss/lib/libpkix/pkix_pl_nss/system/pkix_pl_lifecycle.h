@@ -94,19 +94,11 @@
 extern "C" {
 #endif
 
-#if defined(__STDC__)
-
 struct PKIX_PL_InitializeParamsStruct {
         PKIX_List *loggers;
         PKIX_UInt32 majorVersion;
         PKIX_UInt32 minorVersion;
 };
-
-#else /* __STDC__ */
-
-#error No function declarations for non-ISO C yet
-
-#endif /* __STDC__ */
 
 #ifdef __cplusplus
 }

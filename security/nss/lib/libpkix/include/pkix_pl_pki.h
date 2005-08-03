@@ -49,8 +49,6 @@
 extern "C" {
 #endif
 
-#if defined(__STDC__)
-
 /* General
  *
  * Please refer to the libpkix Programmer's Guide for detailed information
@@ -1986,12 +1984,6 @@ PKIX_PL_CertNameConstraints_CheckNamesInNameSpace(
         PKIX_PL_CertNameConstraints *nameConstraints,
         PKIX_Boolean *pCheckPass,
         void *plContext);
-
-#else /* __STDC__ */
-
-#error No function declarations for non-ISO C yet
-
-#endif /* __STDC__ */
 
 #ifdef __cplusplus
 }

@@ -50,8 +50,6 @@
 extern "C" {
 #endif
 
-#if defined(__STDC__)
-
 struct PKIX_BuildResultStruct {
         PKIX_ValidateResult *valResult;
         PKIX_CertChain *certChain;
@@ -67,13 +65,6 @@ pkix_BuildResult_Create(
         void *plContext);
 
 PKIX_Error *pkix_BuildResult_RegisterSelf(void *plContext);
-
-
-#else /* __STDC__ */
-
-#error No function declarations for non-ISO C yet
-
-#endif /* __STDC__ */
 
 #ifdef __cplusplus
 }

@@ -50,8 +50,6 @@
 extern "C" {
 #endif
 
-#if defined(__STDC__)
-
 struct PKIX_PL_CertStruct {
         CERTCertificate *nssCert;
         CERTGeneralName *nssSubjAltNames;
@@ -116,12 +114,6 @@ pkix_pl_Cert_CheckExtendedKeyUsage(
         PKIX_UInt32 requiredExtendedKeyUsages,
         PKIX_Boolean *pPass,
         void *plContext);
-
-#else /* __STDC__ */
-
-#error No function declarations for non-ISO C yet
-
-#endif /* __STDC__ */
 
 #ifdef __cplusplus
 }

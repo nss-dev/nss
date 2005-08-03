@@ -77,8 +77,6 @@
 extern "C" {
 #endif
 
-#if defined(__STDC__)
-
 /*
  * UTILITY MACROS
  * Documentation for these common utility macros can be found in the
@@ -1105,12 +1103,6 @@ pkix_i2hex(char c);
 
 PKIX_Boolean
 pkix_isPlaintext(unsigned char c, PKIX_Boolean debug);
-
-#else /* __STDC__ */
-
-#error No function declarations for non-ISO C yet
-
-#endif /* __STDC__ */
 
 #ifdef __cplusplus
 }

@@ -50,8 +50,6 @@
 extern "C" {
 #endif
 
-#if defined(__STDC__)
-
 struct PKIX_PL_DateStruct{
         SECItem nssTime;
 };
@@ -76,12 +74,6 @@ pkix_pl_Date_CreateFromPRTime(
         PRTime prtime,
         PKIX_PL_Date **pDate,
         void *plContext);
-
-#else /* __STDC__ */
-
-#error No function declarations for non-ISO C yet
-
-#endif /* __STDC__ */
 
 #ifdef __cplusplus
 }

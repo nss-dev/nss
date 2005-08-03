@@ -50,8 +50,6 @@
 extern "C" {
 #endif
 
-#if defined(__STDC__)
-
 /* General
  *
  * Please refer to the libpkix Programmer's Guide for detailed information
@@ -690,12 +688,6 @@ PKIX_ComCRLSelParams_SetMinCRLNumber(
         PKIX_ComCRLSelParams *params,
         PKIX_PL_BigInt *number,
         void *plContext);
-
-#else /* __STDC__ */
-
-#error No function declarations for non-ISO C yet
-
-#endif /* __STDC__ */
 
 #ifdef __cplusplus
 }

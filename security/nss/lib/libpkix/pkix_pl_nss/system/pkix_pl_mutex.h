@@ -50,8 +50,6 @@
 extern "C" {
 #endif
 
-#if defined(__STDC__)
-
 struct PKIX_PL_MutexStruct {
         PRLock* lock;
 };
@@ -60,12 +58,6 @@ struct PKIX_PL_MutexStruct {
 
 PKIX_Error *
 pkix_pl_Mutex_RegisterSelf(void *plContext);
-
-#else /* __STDC__ */
-
-#error No function declarations for non-ISO C yet
-
-#endif /* __STDC__ */
 
 #ifdef __cplusplus
 }

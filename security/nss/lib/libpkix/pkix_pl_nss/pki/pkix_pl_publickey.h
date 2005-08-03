@@ -50,8 +50,6 @@
 extern "C" {
 #endif
 
-#if defined(__STDC__)
-
 struct PKIX_PL_PublicKeyStruct {
         CERTSubjectPublicKeyInfo *nssSPKI;
 };
@@ -65,12 +63,6 @@ PKIX_PL_PublicKey_NeedsDSAParameters(
         PKIX_PL_PublicKey *pubKey,
         PKIX_Boolean *pNeedsParams,
         void *plContext);
-
-#else /* __STDC__ */
-
-#error No function declarations for non-ISO C yet
-
-#endif /* __STDC__ */
 
 #ifdef __cplusplus
 }

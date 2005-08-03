@@ -50,8 +50,6 @@
 extern "C" {
 #endif
 
-#if defined(__STDC__)
-
 #define PKIX_EKUCHECKERSTATE_TYPE (PKIX_USER_OBJECT_TYPEBASE+1)
 
 typedef struct pkix_pl_EkuCheckerState pkix_pl_EkuCheckerState;
@@ -62,12 +60,6 @@ struct pkix_pl_EkuCheckerState {
 };
 
 /* see source file for function documentation */
-
-#else /* __STDC__ */
-
-#error No function declarations for non-ISO C yet
-
-#endif /* __STDC__ */
 
 #ifdef __cplusplus
 }

@@ -50,19 +50,11 @@
 extern "C" {
 #endif
 
-#if defined(__STDC__)
-
 PKIX_Error *
 pkix_ExpirationChecker_Initialize(
         PKIX_PL_Date *testDate,
         PKIX_CertChainChecker **pChecker,
         void *plContext);
-
-#else /* __STDC__ */
-
-#error No function declarations for non-ISO C yet
-
-#endif /* __STDC__ */
 
 #ifdef __cplusplus
 }

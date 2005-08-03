@@ -47,8 +47,6 @@
 extern "C" {
 #endif
 
-#if defined(__STDC__)
-
 /* Types
  *
  * This header file provides typedefs for the abstract types used by libpkix.
@@ -152,14 +150,6 @@ typedef struct PKIX_PL_CollectionCertStoreContext
  * typedef these types depending on the platform. XXX This needs more work!
  */
 
-#ifdef SOLARIS
-#define PKIX_INT32
-#elif defined(WIN32)
-#define PKIX_INT32
-#elif defined(WIN16)
-#define PKIX_LONG32
-#endif
-
 /* XXX Try compiling these files (and maybe the whole libpkix-nss) on Win32.
  * We don't know what type is at least 32 bits long. ISO C probably requires
  * at least 32 bits for long. we could default to that and only list platforms
@@ -170,17 +160,10 @@ typedef struct PKIX_PL_CollectionCertStoreContext
  * #endif
  */
 
-#ifdef PKIX_INT32
-typedef unsigned int PKIX_UInt32;
-#elif defined(PKIX_LONG32)
-typedef unsigned long PKIX_UInt32;
-#endif
+/* currently, int is 32 bits on all our supported platforms */
 
-#ifdef PKIX_INT32
+typedef unsigned int PKIX_UInt32;
 typedef int PKIX_Int32;
-#elif defined(PKIX_LONG32)
-typedef long PKIX_Int32;
-#endif
 
 typedef int PKIX_Boolean;
 
@@ -421,12 +404,6 @@ extern PKIX_Error *PKIX_ALLOC_ERROR;
 #define PKIX_POLICYCONSTRAINTS_OID "2.5.29.36"
 #define PKIX_EXTENDEDKEYUSAGE_OID "2.5.29.37"
 #define PKIX_INHIBITANYPOLICY_OID "2.5.29.54"
-
-#else /* __STDC__ */
-
-#error No function declarations for non-ISO C yet
-
-#endif /* __STDC__ */
 
 #ifdef __cplusplus
 }

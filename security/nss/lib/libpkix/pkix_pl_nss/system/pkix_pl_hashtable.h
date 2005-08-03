@@ -50,8 +50,6 @@
 extern "C" {
 #endif
 
-#if defined(__STDC__)
-
 struct PKIX_PL_HashTableStruct {
         pkix_pl_PrimHashTable *primHash;
         PKIX_PL_Mutex *tableLock;
@@ -61,12 +59,6 @@ struct PKIX_PL_HashTableStruct {
 
 PKIX_Error *
 pkix_pl_HashTable_RegisterSelf(void *plContext);
-
-#else /* __STDC__ */
-
-#error No function declarations for non-ISO C yet
-
-#endif /* __STDC__ */
 
 #ifdef __cplusplus
 }

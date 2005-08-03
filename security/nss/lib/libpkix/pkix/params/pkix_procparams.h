@@ -51,8 +51,6 @@
 extern "C" {
 #endif
 
-#if defined(__STDC__)
-
 struct PKIX_ProcessingParamsStruct {
         PKIX_List *trustAnchors;        /* Never NULL */
         PKIX_CertSelector *constraints;
@@ -78,12 +76,6 @@ pkix_ProcessingParams_GetRevocationEnabled(
         PKIX_ProcessingParams *params,
         PKIX_Boolean *pEnabled,
         void *plContext);
-
-#else /* __STDC__ */
-
-#error No function declarations for non-ISO C yet
-
-#endif /* __STDC__ */
 
 #ifdef __cplusplus
 }

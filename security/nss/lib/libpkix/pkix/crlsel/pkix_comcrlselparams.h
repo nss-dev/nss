@@ -50,8 +50,6 @@
 extern "C" {
 #endif
 
-#if defined(__STDC__)
-
 struct PKIX_ComCRLSelParamsStruct {
         PKIX_List *issuerNames; /* list of PKIX_PL_X500Name */
         PKIX_PL_Cert *cert; /* certificate being checked */
@@ -63,12 +61,6 @@ struct PKIX_ComCRLSelParamsStruct {
 /* see source file for function documentation */
 
 PKIX_Error *pkix_ComCRLSelParams_RegisterSelf(void *plContext);
-
-#else /* __STDC__ */
-
-#error No function declarations for non-ISO C yet
-
-#endif /* __STDC__ */
 
 #ifdef __cplusplus
 }

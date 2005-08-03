@@ -50,8 +50,6 @@
 extern "C" {
 #endif
 
-#if defined(__STDC__)
-
 typedef struct pkix_pl_HT_Elem pkix_pl_HT_Elem;
 
 typedef struct pkix_pl_PrimHashTable pkix_pl_PrimHashTable;
@@ -113,12 +111,6 @@ PKIX_Error*
 pkix_pl_PrimHashTable_Destroy(
         pkix_pl_PrimHashTable *ht,
         void *plContext);
-
-#else /* __STDC__ */
-
-#error No function declarations for non-ISO C yet
-
-#endif /* __STDC__ */
 
 #ifdef __cplusplus
 }

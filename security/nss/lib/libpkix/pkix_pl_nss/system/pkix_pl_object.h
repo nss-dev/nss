@@ -50,8 +50,6 @@
 extern "C" {
 #endif
 
-#if defined(__STDC__)
-
 /*
  * Object Implementation Notes:
  *
@@ -104,12 +102,6 @@ PKIX_PL_Object_RegisterSystemType(
 extern PKIX_Boolean initializing;
 extern PKIX_Boolean initialized;
 extern PRLock *classTableLock;
-
-#else /* __STDC__ */
-
-#error No function declarations for non-ISO C yet
-
-#endif /* __STDC__ */
 
 #ifdef __cplusplus
 }

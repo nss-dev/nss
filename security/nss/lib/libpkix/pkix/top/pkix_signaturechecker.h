@@ -50,8 +50,6 @@
 extern "C" {
 #endif
 
-#if defined(__STDC__)
-
 typedef struct pkix_SignatureCheckerState pkix_SignatureCheckerState;
 
 struct pkix_SignatureCheckerState {
@@ -71,12 +69,6 @@ pkix_SignatureChecker_Initialize(
 
 PKIX_Error *
 pkix_SignatureCheckerState_RegisterSelf(void *plContext);
-
-#else /* __STDC__ */
-
-#error No function declarations for non-ISO C yet
-
-#endif /* __STDC__ */
 
 #ifdef __cplusplus
 }

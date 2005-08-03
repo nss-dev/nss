@@ -50,8 +50,6 @@
 extern "C" {
 #endif
 
-#if defined(__STDC__)
-
 struct PKIX_PL_CollectionCertStoreContext {
         PKIX_PL_String *storeDir;
         PKIX_List *crlList;
@@ -61,12 +59,6 @@ struct PKIX_PL_CollectionCertStoreContext {
 /* see source file for function documentation */
 
 PKIX_Error *pkix_pl_CollectionCertStoreContext_RegisterSelf(void *plContext);
-
-#else /* __STDC__ */
-
-#error No function declarations for non-ISO C yet
-
-#endif /* __STDC__ */
 
 #ifdef __cplusplus
 }

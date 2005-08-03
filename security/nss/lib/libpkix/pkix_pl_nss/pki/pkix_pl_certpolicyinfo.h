@@ -50,8 +50,6 @@
 extern "C" {
 #endif
 
-#if defined(__STDC__)
-
 /*
  * This structure reflects the contents of the policy info extension as
  * described in Section 4.2.1.5 of RFC3280.
@@ -77,12 +75,6 @@ pkix_pl_CertPolicyInfo_Create(
 PKIX_Error *
 pkix_pl_CertPolicyInfo_RegisterSelf(
         void *plContext);
-
-#else /* __STDC__ */
-
-#error No function declarations for non-ISO C yet
-
-#endif /* __STDC__ */
 
 #ifdef __cplusplus
 }

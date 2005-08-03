@@ -50,8 +50,6 @@
 extern "C" {
 #endif
 
-#if defined(__STDC__)
-
 struct PKIX_PL_OIDStruct {
         PKIX_UInt32 *components;
         PKIX_UInt32 length;
@@ -67,12 +65,6 @@ pkix_pl_OID_GetCriticalExtensionOIDs(
         CERTCertExtension **extensions,
         PKIX_List **pOidsList,
         void *plContext);
-
-#else /* __STDC__ */
-
-#error No function declarations for non-ISO C yet
-
-#endif /* __STDC__ */
 
 #ifdef __cplusplus
 }

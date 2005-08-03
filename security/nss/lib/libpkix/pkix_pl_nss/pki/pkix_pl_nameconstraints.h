@@ -50,8 +50,6 @@
 extern "C" {
 #endif
 
-#if defined(__STDC__)
-
 struct PKIX_PL_CertNameConstraintsStruct {
         PLArenaPool *arena;
         CERTNameConstraints **nssNameConstraintsList;
@@ -95,12 +93,6 @@ PKIX_Error *pkix_pl_CertNameConstraints_Merge(
         PKIX_PL_CertNameConstraints *secondNC,
         PKIX_PL_CertNameConstraints **pMergedNC,
         void *plContext);
-
-#else /* __STDC__ */
-
-#error No function declarations for non-ISO C yet
-
-#endif /* __STDC__ */
 
 #ifdef __cplusplus
 }

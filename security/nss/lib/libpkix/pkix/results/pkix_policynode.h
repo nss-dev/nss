@@ -50,8 +50,6 @@
 extern "C" {
 #endif
 
-#if defined(__STDC__)
-
 /* This structure reflects the contents of a policy node...
  */
 struct PKIX_PolicyNodeStruct {
@@ -101,12 +99,6 @@ pkix_PolicyNode_Prune(
 PKIX_Error *
 pkix_PolicyNode_RegisterSelf(
         void *plContext);
-
-#else /* __STDC__ */
-
-#error No function declarations for non-ISO C yet
-
-#endif /* __STDC__ */
 
 #ifdef __cplusplus
 }

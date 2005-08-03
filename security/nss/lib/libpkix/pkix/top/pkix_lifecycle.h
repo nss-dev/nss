@@ -49,14 +49,6 @@
 extern "C" {
 #endif
 
-#if defined(__STDC__)
-
-#else /* __STDC__ */
-
-#error No function declarations for non-ISO C yet
-
-#endif /* __STDC__ */
-
 #ifdef __cplusplus
 }
 #endif
