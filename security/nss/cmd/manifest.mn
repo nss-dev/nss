@@ -41,6 +41,7 @@ DEPTH	= ../..
 REQUIRES = nss nspr libdbm
 
 DIRS = lib  \
+ libpkix \
  zlib \
  addbuiltin \
  atob  \
