@@ -1499,12 +1499,12 @@ TLS_PRF(const SECItem *secret, const char *label,
   return (vector->p_TLS_PRF)(secret, label, seed, result, isFIPS);
 }
 
-SECHashObject *
+const SECHashObject *
 SEC_GetRawHashObject(HASH_HashType hashType)
 {
   if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
       return NULL;
-  return (vector->p_SEC_GetRawHashObject(hashType);
+  return (vector->p_SEC_GetRawHashObject)(hashType);
 }
 
 
@@ -1547,7 +1547,7 @@ HMAC_Update(HMACContext *cx, const unsigned char *data, unsigned int data_len)
 {
   if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
       return;
-  (vector->p HMAC_Update)(cx, data, data_len);
+  (vector->p_HMAC_Update)(cx, data, data_len);
 }
 
 SECStatus
