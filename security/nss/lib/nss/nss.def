@@ -845,6 +845,8 @@ SECOID_AddEntry;
 ;+# Don't export these DATA symbols on Windows because they don't work right.
 ;;CERT_SequenceOfCertExtensionTemplate DATA ;
 ;;CERT_SignedCrlTemplate DATA ;
+NSS_Get_CERT_SequenceOfCertExtensionTemplate;
+NSS_Get_CERT_SignedCrlTemplate;
 ;+    local:
 ;+       *;
 ;+};
