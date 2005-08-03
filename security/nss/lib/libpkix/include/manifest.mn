@@ -61,6 +61,3 @@ CSRCS = \
 	$(NULL)
 
 REQUIRES = dbm
-
-LIBRARY_NAME = \
-	$(NULL)
