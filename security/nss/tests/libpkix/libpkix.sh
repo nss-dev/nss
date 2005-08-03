@@ -145,7 +145,7 @@ fi
 ################## main #################################################
 
 libpkix_init 
-libpkix_main  >$LIBPKIX_LOG 2>&1
+libpkix_main  # >$LIBPKIX_LOG 2>&1
 libpkix_cleanup
 
 
