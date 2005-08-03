@@ -358,12 +358,14 @@ ECL_OBJS += $(addprefix $(OBJDIR)/$(PROG_PREFIX), $(ECL_USERS:.c=$(OBJ_SUFFIX)))
 
 $(ECL_OBJS): $(ECL_HDRS)
 
+ifdef NSS_USE_TFM
 TFM_USERS = rsa.c rsa_keygen.c
 
 TFM_OBJS = $(addprefix $(OBJDIR)/$(PROG_PREFIX), $(TFM_SRCS:.c=$(OBJ_SUFFIX)))
 TFM_OBJS += $(addprefix $(OBJDIR)/$(PROG_PREFIX), $(TFM_USERS:.c=$(OBJ_SUFFIX)))
 
 $(TFM_OBJS): $(TFM_HDRS)
+endif
 
 
 $(OBJDIR)/$(PROG_PREFIX)mpprime$(OBJ_SUFFIX): primes.c
