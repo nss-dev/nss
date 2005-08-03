@@ -91,6 +91,9 @@ function Cleanup
             rm ./rev_data/multiple_certstores/$i
         fi
     done
+    if [[ -d ./rev_data/multiple_certstores ]]; then
+        rm -fr rev_data/multiple_certstores
+    fi
 
     return ${result}
 }
@@ -142,11 +145,17 @@ else
 
     ln -s ${NIST_FILES_DIR} ../../nist_pkits/certs
 
+    if [[ -d ./rev_data/multiple_certstores ]]; then
+        rm -fr ./rev_data/multiple_certstores
+    fi
+    mkdir ./rev_data/multiple_certstores
+    mkdir ./rev_data/multiple_certstores/store1
+    mkdir ./rev_data/multiple_certstores/store2
     for i in ${linkMStoreNistFiles}; do
         if [[ -f ./rev_data/multiple_certstores/$i ]]; then
             rm ./rev_data/multiple_certstores/$i
         fi
-	fname=`basename $i`
+        fname=`basename $i`
         ln -s ${NIST_FILES_DIR}/${fname} ./rev_data/multiple_certstores/$i
     done
 
@@ -194,8 +203,8 @@ Display "***********************************************************************
         hasNIST=`echo ${args} | grep NIST-Test`
         if [ ! -z "${hasNIST}" ]; then
           Display "SKIPPING ${testPgm} ${test_purpose}"
-	  continue
-	fi
+          continue
+        fi
       fi
 
       if [[ ${testPgm} == "#" ]]; then
