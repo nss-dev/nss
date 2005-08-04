@@ -48,6 +48,7 @@ include manifest.mn
 
 include $(PKIX_DEPTH)/pkixrules.mk
 include $(CORE_DEPTH)/coreconf/config.mk
+include config.mk
 EXTRA_LIBS = \
         $(NULL)
 
