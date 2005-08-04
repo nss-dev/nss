@@ -44,7 +44,7 @@
 #include "testutil.h"
 #include "testutil_nss.h"
 
-#ifdef 0
+#if 0
 extern char *pkix_pl_PK11ConfigDir = "../../nist_pkits/certs_and_crls";
 #endif
 
@@ -245,7 +245,7 @@ int main(int argc, char *argv[])
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_CollectionCertStore_Create
                                     (dirNameString, &certStore, plContext));
 
-#ifdef 0
+#if 0
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Pk11CertStore_Create
                                     (&certStore, plContext));
 #endif

@@ -48,6 +48,8 @@ include manifest.mn
 
 include $(PKIX_DEPTH)/pkixrules.mk
 include $(CORE_DEPTH)/coreconf/config.mk
+EXTRA_LIBS = \
+        $(NULL)
 
 #######################################################################
 # (3) Include "component" configuration information. (OPTIONAL)       #

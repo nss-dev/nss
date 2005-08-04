@@ -101,12 +101,13 @@ extern "C" {
         char *pkixErrorMsg = NULL; \
         PKIX_Boolean pkixErrorReceived = PKIX_FALSE; \
         PKIX_Boolean pkixTempErrorReceived = PKIX_FALSE; \
-        /* ARGSUSED */ PKIX_UInt32 pkixErrorCode; \
+        /* ARGSUSED */ PKIX_UInt32 pkixErrorCode = 0; \
         char *myFuncName = (funcName); \
         PKIX_Boolean objectIsLocked = PKIX_FALSE; \
         PKIX_PL_Object *lockedObject = NULL; \
         PKIX_Boolean mutexIsLocked = PKIX_FALSE; \
         PKIX_PL_Mutex *lockedMutex = NULL; \
+        pkixTempErrorReceived = PKIX_FALSE; 
 
 #define PKIX_DEBUG_ENTER(type) \
         PKIX_ ## type ## _DEBUG_ARG("( Entering %s).\n", myFuncName)

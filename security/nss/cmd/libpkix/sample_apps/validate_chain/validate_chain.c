@@ -184,7 +184,7 @@ int main(int argc, char *argv[])
         PKIX_TEST_EXPECT_NO_ERROR
                 (PKIX_ComCertSelParams_Create(&certSelParams, plContext));
 
-#ifdef 0
+#if 0
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_ComCertSelParams_SetSubject
                                     (certSelParams, subject, plContext));
 #endif
