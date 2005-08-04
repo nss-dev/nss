@@ -174,6 +174,7 @@ ifndef TARGETS
 endif
 
 OPTIMIZER  += -O1
+DEFINES    += -UDEBUG -U_DEBUG -DNDEBUG
 
 # Change PROCESS to put the mapfile in the correct format for this platform
 PROCESS_MAP_FILE = cp $(LIBRARY_NAME).def $@
