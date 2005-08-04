@@ -56,8 +56,6 @@
 extern "C" {
 #endif
 
-#if defined(__STDC__)
-
 #include "pkix_pl_generalname.h"
 
 /* see source file for function documentation */
@@ -146,12 +144,6 @@ createGeneralName(
         PKIX_UInt32 nameType,
         char *asciiName,
         void *plContext);
-
-#else /* __STDC__ */
-
-#error No function declarations for non-ISO C yet
-
-#endif /* __STDC__ */
 
 #ifdef __cplusplus
 }

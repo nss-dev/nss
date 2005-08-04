@@ -56,8 +56,6 @@
 extern "C" {
 #endif
 
-#if defined(__STDC__)
-
 /*
  * In order to have a consistent format for displaying test information,
  * all tests are REQUIRED to use the functions provided by this library
@@ -334,12 +332,6 @@ void
 testDuplicateHelper(
         PKIX_PL_Object *object,
         void *plContext);
-
-#else /* __STDC__ */
-
-#error No function declarations for non-ISO C yet
-
-#endif /* __STDC__ */
 
 #ifdef __cplusplus
 }
