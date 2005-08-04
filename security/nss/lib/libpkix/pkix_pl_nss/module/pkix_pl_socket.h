@@ -51,8 +51,6 @@
 extern "C" {
 #endif
 
-#if defined(__STDC__)
-
 typedef enum {
         SOCKET_BOUND,
         SOCKET_LISTENING,
@@ -200,12 +198,6 @@ pkix_pl_Socket_GetPRFileDesc(
         PKIX_PL_Socket *socket,
         PRFileDesc **pDesc,
         void *plContext);
-
-#else /* __STDC__ */
-
-#error No function declarations for non-ISO C yet
-
-#endif /* __STDC__ */
 
 #ifdef __cplusplus
 }

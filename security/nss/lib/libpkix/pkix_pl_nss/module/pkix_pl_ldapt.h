@@ -45,8 +45,6 @@
 extern "C" {
 #endif
 
-#if defined(__STDC__)
-
 extern const SEC_ASN1Template LDAPMessageTemplate[];
 
 /* ********************************************************************** */
@@ -257,12 +255,6 @@ typedef struct LDAPMessageStruct {
         SECItem messageID;
         LDAPProtocolOp protocolOp;
 } LDAPMessage;
-
-#else /* __STDC__ */
-
-#error No function declarations for non-ISO C yet
-
-#endif /* __STDC__ */
 
 #ifdef __cplusplus
 }

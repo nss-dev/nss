@@ -50,8 +50,6 @@
 extern "C" {
 #endif
 
-#if defined(__STDC__)
-
 /*
  * Note: the following definitions are taken unchanged from the Mozilla
  * file /mozilla/directory/c-sdk/ldap/include/ldaprot.h. If that
@@ -129,12 +127,6 @@ pkix_pl_LdapRequest_GetEncoded(
         void *plContext);
 
 PKIX_Error *pkix_pl_LdapRequest_RegisterSelf(void *plContext);
-
-#else /* __STDC__ */
-
-#error No function declarations for non-ISO C yet
-
-#endif /* __STDC__ */
 
 #ifdef __cplusplus
 }
