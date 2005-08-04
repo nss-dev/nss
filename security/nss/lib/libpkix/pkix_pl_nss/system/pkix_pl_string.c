@@ -494,7 +494,7 @@ PKIX_PL_Sprintf(
         PKIX_STRING_DEBUG("\tCalling va_start).\n");
 
         va_start(args, fmt);
-        argsCopy = args;
+        va_copy(argsCopy, args);
 
         /* Convert PKIX_PL_Strings to char*s */
         j = 0;
