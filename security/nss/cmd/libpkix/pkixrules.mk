@@ -44,3 +44,6 @@ PLAT_DEPTH = $(PKIX_DEPTH)/..
 # Listing it here in REQUIRES makes it appear twice in the cc command line.
 REQUIRES += pkixtestutil 
 
+EXTRA_LIBS += \
+	$(DIST)/lib/$(LIB_PREFIX)pkixutil.$(LIB_SUFFIX) \
+	$(NULL)

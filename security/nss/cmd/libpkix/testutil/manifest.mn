@@ -37,7 +37,7 @@
 
 PKIX_DEPTH = ./..
 
-LIBRARY_NAME = pkixtestutil
+LIBRARY_NAME = pkixutil
 
 EXPORTS = \
 	testutil_nss.h \

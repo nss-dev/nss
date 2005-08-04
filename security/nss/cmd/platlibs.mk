@@ -120,7 +120,6 @@ EXTRA_LIBS += \
 	$(CRYPTOLIB) \
 	$(DIST)/lib/$(LIB_PREFIX)secutil.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)dbm.$(LIB_SUFFIX) \
-	$(DIST)/lib/$(LIB_PREFIX)pkixtestutil.$(LIB_SUFFIX) \
 	$(NULL)
 
 ifeq ($(OS_ARCH), AIX) 
@@ -226,7 +225,6 @@ EXTRA_SHARED_LIBS += \
 	-lplc4 \
 	-lplds4 \
 	-lnspr4 \
-	-lpkixtestutil \
 	$(NULL)
 
 JAR_LIBS = $(DIST)/lib/$(LIB_PREFIX)jar.$(LIB_SUFFIX) \
