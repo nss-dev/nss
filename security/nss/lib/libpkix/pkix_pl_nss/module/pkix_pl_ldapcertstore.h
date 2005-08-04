@@ -35,47 +35,89 @@
  *
  * ***** END LICENSE BLOCK ***** */
 /*
- * pkix_pl_x500name.h
+ * pkix_pl_ldapcertstore.h
  *
- * X500Name Object Type Definitions
+ * LDAPCertstore Object Type Definition
  *
  */
 
-#ifndef _PKIX_PL_X500NAME_H
-#define _PKIX_PL_X500NAME_H
+#ifndef _PKIX_PL_LDAPCERTSTORE_H
+#define _PKIX_PL_LDAPCERTSTORE_H
 
+#include "pkix_pl_ldapt.h"
 #include "pkix_pl_common.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-struct PKIX_PL_X500NameStruct{
-        CERTName *nssDN;
+#if defined(__STDC__)
+
+typedef enum {
+        LDAP_NOT_CONNECTED,
+        LDAP_CONNECT_PENDING,
+        LDAP_CONNECTED,
+        LDAP_BIND_PENDING,
+        LDAP_BIND_RESPONSE,
+        LDAP_BIND_RESPONSE_PENDING,
+        LDAP_BOUND,
+        LDAP_SEND_PENDING,
+        LDAP_RECV,
+        LDAP_RECV_PENDING,
+        LDAP_RECV_INITIAL,
+        LDAP_RECV_NONINITIAL
+} LDAPConnectStatus;
+
+#define LDAP_CACHEBUCKETS       128
+#define RCVBUFSIZE              512
+
+struct PKIX_PL_LdapCertStoreContext {
+        LDAPConnectStatus connectStatus;
+        PKIX_UInt32 messageID;
+        PKIX_PL_HashTable *cachePtr;
+        PKIX_PL_Socket *clientSocket;
+        PRPollDesc pollDesc;
+        void *callbackList; /* cast this to (PKIX_PL_Socket_Callback *) */
+        char *bindName;
+        char *authentication;
+        PRArenaPool *arena;
+        PRTime lastIO;
+        void *sendBuf;
+        PKIX_UInt32 bytesToWrite;
+        void *rcvBuf;
+        PKIX_UInt32 capacity;
+        void *currentInPtr;
+        PKIX_UInt32 currentBytesAvailable;
+        void *bindMsg;
+        PKIX_UInt32 bindMsgLen;
+        PKIX_List *entriesFound;
+        PKIX_PL_LdapRequest *currentRequest;
+        PKIX_PL_LdapResponse *currentResponse;
 };
 
 /* see source file for function documentation */
 
-PKIX_Error *pkix_pl_X500Name_RegisterSelf(void *plContext);
+PKIX_Error *pkix_pl_LdapCertStoreContext_RegisterSelf(void *plContext);
 
-PKIX_Error *pkix_pl_X500Name_GetSECName(
-        PKIX_PL_X500Name *xname,
-        PRArenaPool *arena,
-        SECItem **pSECName,
+PKIX_Error *
+PKIX_PL_LdapCertStore_Create(
+        in_port_t port,
+        in_addr_t ipaddr,
+        PRIntervalTime timeout,
+        char *bindname,
+        char *authentication,
+        PRPollDesc **pDesc,
+        PKIX_CertStore **certStore,
         void *plContext);
 
-PKIX_Error * pkix_pl_X500Name_CreateFromUtf8(
-        char *stringRep,
-        PKIX_PL_X500Name **pName,
-        void *plContext);
+#else /* __STDC__ */
 
-PKIX_Error *pkix_pl_X500Name_GetCommonName(
-        PKIX_PL_X500Name *xname,
-        unsigned char **pCommonName,
-        void *plContext);
+#error No function declarations for non-ISO C yet
+
+#endif /* __STDC__ */
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* _PKIX_PL_X500NAME_H */
+#endif /* _PKIX_PL_LDAPCERTSTORE_H */

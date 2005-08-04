@@ -583,9 +583,8 @@ pkix_pl_X500Name_GetSECName(
          * SEC_ASN1EncodeItem returns NULL if unsuccessful. We just
          * store the NULL result.
          */
-        PKIX_X500NAME_DEBUG("\t\tSEC_ASN1EncodeItem).\n");
-        *pSECName = SEC_ASN1EncodeItem
-                (arena, NULL, (void *)xname->nssDN, CERT_NameTemplate);
+        PKIX_PL_NSSCALLRV(X500NAME, *pSECName, SEC_ASN1EncodeItem,
+                (arena, NULL, (void *)xname->nssDN, CERT_NameTemplate));
 
 cleanup:
 
@@ -594,7 +593,27 @@ cleanup:
 
 /*
  * FUNCTION: pkix_pl_X500Name_CreateFromUtf8
- * XXX Docs needed
+ *
+ * DESCRIPTION:
+ *  Creates an X500Name object from the RFC1485 string representation pointed
+ *  to by "stringRep", and stores the result at "pName". If the string cannot
+ *  be successfully converted, a non-fatal error is returned.
+ *
+ * PARAMETERS:
+ *  "stringRep"
+ *      Address of the RFC1485 string to be converted. Must be non-NULL.
+ *  "pName"
+ *      Address where the X500Name result will be stored. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ *
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ *
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns an X500NAME Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
  */
 PKIX_Error *
 pkix_pl_X500Name_CreateFromUtf8(
@@ -634,6 +653,52 @@ cleanup:
                 CERT_DestroyName(nssDN);
                 nssDN = NULL;
         }
+
+        PKIX_RETURN(X500NAME);
+}
+
+/*
+ * FUNCTION: pkix_pl_X500Name_GetCommonName
+ *
+ * DESCRIPTION:
+ *  Extracts the CommonName component of the X500Name object pointed to by
+ *  "xname", and stores the result at "pCommonName". If the CommonName cannot
+ *  be successfully extracted, NULL is stored at "pSECName".
+ *
+ *  The returned string must be freed with PORT_Free.
+ *
+ * PARAMETERS:
+ *  "xname"
+ *      Address of X500Name whose CommonName is to be extracted. Must be
+ *      non-NULL.
+ *  "pCommonName"
+ *      Address where result will be stored. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ *
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ *
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+pkix_pl_X500Name_GetCommonName(
+        PKIX_PL_X500Name *xname,
+        unsigned char **pCommonName,
+        void *plContext)
+{
+        PKIX_ENTER(X500NAME, "pkix_pl_X500Name_GetCommonName");
+        PKIX_NULLCHECK_TWO(xname, pCommonName);
+
+        PKIX_PL_NSSCALLRV
+                (X500NAME,
+                *pCommonName,
+                (unsigned char *)CERT_GetCommonName,
+                (xname->nssDN));
+
+cleanup:
 
         PKIX_RETURN(X500NAME);
 }

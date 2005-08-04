@@ -440,6 +440,10 @@ extern "C" {
 #define PKIX_SIGNATURECHECKERSTATEDEBUG 1
 #define PKIX_USERDEFINEDMODULESDEBUG 1
 #define PKIX_CONTEXTDEBUG 1
+#define PKIX_LDAPCERTSTORECONTEXTDEBUG  1
+#define PKIX_LDAPREQUESTDEBUG           1
+#define PKIX_LDAPRESPONSEDEBUG          1
+#define PKIX_SOCKETDEBUG                1
 #endif
 
 /*
@@ -1018,6 +1022,46 @@ extern "C" {
 #else
 #define PKIX_CONTEXT_DEBUG(expr)
 #define PKIX_CONTEXT_DEBUG_ARG(expr, arg)
+#endif
+
+#if PKIX_LDAPCERTSTORECONTEXTDEBUG
+#define PKIX_LDAPCERTSTORECONTEXT_DEBUG(expr) \
+        PKIX_DEBUG(expr)
+#define PKIX_LDAPCERTSTORECONTEXT_DEBUG_ARG(expr, arg) \
+        PKIX_DEBUG_ARG(expr, arg)
+#else
+#define PKIX_LDAPCERTSTORECONTEXT_DEBUG(expr)
+#define PKIX_LDAPCERTSTORECONTEXT_DEBUG_ARG(expr, arg)
+#endif
+
+#if PKIX_LDAPREQUESTDEBUG
+#define PKIX_LDAPREQUEST_DEBUG(expr) \
+        PKIX_DEBUG(expr)
+#define PKIX_LDAPREQUEST_DEBUG_ARG(expr, arg) \
+        PKIX_DEBUG_ARG(expr, arg)
+#else
+#define PKIX_LDAPREQUEST_DEBUG(expr)
+#define PKIX_LDAPREQUEST_DEBUG_ARG(expr, arg)
+#endif
+
+#if PKIX_LDAPRESPONSEDEBUG
+#define PKIX_LDAPRESPONSE_DEBUG(expr) \
+        PKIX_DEBUG(expr)
+#define PKIX_LDAPRESPONSE_DEBUG_ARG(expr, arg) \
+        PKIX_DEBUG_ARG(expr, arg)
+#else
+#define PKIX_LDAPRESPONSE_DEBUG(expr)
+#define PKIX_LDAPRESPONSE_DEBUG_ARG(expr, arg)
+#endif
+
+#if PKIX_SOCKETDEBUG
+#define PKIX_SOCKET_DEBUG(expr) \
+        PKIX_DEBUG(expr)
+#define PKIX_SOCKET_DEBUG_ARG(expr, arg) \
+        PKIX_DEBUG_ARG(expr, arg)
+#else
+#define PKIX_SOCKET_DEBUG(expr)
+#define PKIX_SOCKET_DEBUG_ARG(expr, arg)
 #endif
 
 /*

@@ -35,14 +35,14 @@
  *
  * ***** END LICENSE BLOCK ***** */
 /*
- * pkix_pl_x500name.h
+ * pkix_pl_ldapresponse.h
  *
- * X500Name Object Type Definitions
+ * LdapResponse Object Definitions
  *
  */
 
-#ifndef _PKIX_PL_X500NAME_H
-#define _PKIX_PL_X500NAME_H
+#ifndef _PKIX_PL_LDAPRESPONSE_H
+#define _PKIX_PL_LDAPRESPONSE_H
 
 #include "pkix_pl_common.h"
 
@@ -50,32 +50,82 @@
 extern "C" {
 #endif
 
-struct PKIX_PL_X500NameStruct{
-        CERTName *nssDN;
+#if defined(__STDC__)
+
+struct PKIX_PL_LdapResponseStruct{
+        LDAPMessage decoded;
+        PKIX_UInt32 partialLength;
+        PKIX_UInt32 totalLength;
+        SECItem derEncoded;
 };
 
 /* see source file for function documentation */
 
-PKIX_Error *pkix_pl_X500Name_RegisterSelf(void *plContext);
+PKIX_Error *
+pkix_pl_LdapResponse_Create(
+        LDAPMessageType responseType,
+        PKIX_UInt32 totalLength,
+        PKIX_UInt32 bytesAvailable,
+        void *partialData,
+        PKIX_UInt32 *pBytesConsumed,
+        PKIX_PL_LdapResponse **pResponse,
+        void *plContext);
 
-PKIX_Error *pkix_pl_X500Name_GetSECName(
-        PKIX_PL_X500Name *xname,
+PKIX_Error *
+pkix_pl_LdapResponse_Append(
+        PKIX_PL_LdapResponse *response,
+        PKIX_UInt32 partialLength,
+        void *partialData,
+        PKIX_UInt32 *bytesConsumed,
+        void *plContext);
+
+PKIX_Error *
+pkix_pl_LdapResponse_IsComplete(
+        PKIX_PL_LdapResponse *response,
+        PKIX_Boolean *pIsComplete,
+        void *plContext);
+
+PKIX_Error *
+pkix_pl_LdapResponse_Decode(
         PRArenaPool *arena,
-        SECItem **pSECName,
+        PKIX_PL_LdapResponse *response,
+        SECStatus *pStatus,
         void *plContext);
 
-PKIX_Error * pkix_pl_X500Name_CreateFromUtf8(
-        char *stringRep,
-        PKIX_PL_X500Name **pName,
+PKIX_Error *
+pkix_pl_LdapResponse_GetMessage(
+        PKIX_PL_LdapResponse *response,
+        LDAPMessage **pMessage,
         void *plContext);
 
-PKIX_Error *pkix_pl_X500Name_GetCommonName(
-        PKIX_PL_X500Name *xname,
-        unsigned char **pCommonName,
+PKIX_Error *
+pkix_pl_LdapResponse_GetMessageType(
+        PKIX_PL_LdapResponse *response,
+        LDAPMessageType *pMessageType,
         void *plContext);
+
+PKIX_Error *
+pkix_pl_LdapResponse_GetResultCode(
+        PKIX_PL_LdapResponse *response,
+        LDAPResultCode *pResultCode,
+        void *plContext);
+
+PKIX_Error *
+pkix_pl_LdapResponse_GetAttributes(
+        PKIX_PL_LdapResponse *response,
+        LDAPSearchResponseAttr ***pAttributes,
+        void *plContext);
+
+PKIX_Error *pkix_pl_LdapResponse_RegisterSelf(void *plContext);
+
+#else /* __STDC__ */
+
+#error No function declarations for non-ISO C yet
+
+#endif /* __STDC__ */
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* _PKIX_PL_X500NAME_H */
+#endif /* _PKIX_PL_LDAPRESPONSE_H */

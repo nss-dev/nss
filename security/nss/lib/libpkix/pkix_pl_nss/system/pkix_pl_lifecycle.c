@@ -214,6 +214,10 @@ PKIX_PL_Initialize(void *plContext){
         pkix_BuildParams_RegisterSelf(plContext);
         pkix_ForwardBuilderState_RegisterSelf(plContext);
         pkix_NameConstraintsCheckerState_RegisterSelf(plContext);
+        pkix_pl_LdapCertStoreContext_RegisterSelf(plContext);
+        pkix_pl_LdapRequest_RegisterSelf(plContext);
+        pkix_pl_LdapResponse_RegisterSelf(plContext);
+        pkix_pl_Socket_RegisterSelf(plContext);
 
 
         pkix_pl_initialized = PKIX_TRUE;

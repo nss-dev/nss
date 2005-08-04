@@ -424,7 +424,11 @@ PKIX_ERRORNAMES[PKIX_NUMERRORS] =
         "CertNameConstraintsCheckerState Error",
         "RevocationChecker Error",
         "User Defined Modules Error",
-        "Context Error"
+        "Context Error",
+        "LdapCertStoreContext Error",
+        "LdapRequest Error",
+        "LdapResponse Error",
+        "Socket Error"
 };
 
 /*

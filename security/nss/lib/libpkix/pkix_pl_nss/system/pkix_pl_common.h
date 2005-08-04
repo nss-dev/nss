@@ -95,6 +95,11 @@
 #include "pkix_pl_crlentry.h"
 #include "pkix_pl_nameconstraints.h"
 #include "pkix_pl_pk11certstore.h"
+#include "pkix_pl_socket.h"
+#include "pkix_pl_ldapt.h"
+#include "pkix_pl_ldapcertstore.h"
+#include "pkix_pl_ldaprequest.h"
+#include "pkix_pl_ldapresponse.h"
 #include "pkix_pl_nsscontext.h"
 
 #define MAX_DIGITS_32 (PKIX_UInt32) 10

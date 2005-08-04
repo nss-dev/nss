@@ -143,6 +143,10 @@ typedef struct PKIX_PL_CRLEntryStruct PKIX_PL_CRLEntry;
 typedef struct PKIX_PL_CollectionCertStoreStruct PKIX_PL_CollectionCertStore;
 typedef struct PKIX_PL_CollectionCertStoreContext
                         PKIX_PL_CollectionCertStoreContext;
+typedef struct PKIX_PL_LdapCertStoreContext PKIX_PL_LdapCertStoreContext;
+typedef struct PKIX_PL_LdapRequestStruct PKIX_PL_LdapRequest;
+typedef struct PKIX_PL_LdapResponseStruct PKIX_PL_LdapResponse;
+typedef struct PKIX_PL_SocketStruct PKIX_PL_Socket;
 
 /* Primitive types
  *
@@ -223,8 +227,12 @@ typedef int PKIX_Boolean;
 #define PKIX_FORWARDBUILDERSTATE_TYPE   ((PKIX_UInt32) 43)
 #define PKIX_SIGNATURECHECKERSTATE_TYPE ((PKIX_UInt32) 44)
 #define PKIX_CERTNAMECONSTRAINTSCHECKERSTATE_TYPE ((PKIX_UInt32) 45)
+#define PKIX_LDAPCERTSTORECONTEXT_TYPE  ((PKIX_UInt32) 46)
+#define PKIX_LDAPREQUEST_TYPE           ((PKIX_UInt32) 47)
+#define PKIX_LDAPRESPONSE_TYPE          ((PKIX_UInt32) 48)
+#define PKIX_SOCKET_TYPE                ((PKIX_UInt32) 49)
 
-#define PKIX_NUMTYPES                   ((PKIX_UInt32) 46)
+#define PKIX_NUMTYPES                   ((PKIX_UInt32) 50)
 
 /* User Define Object Types
  *
@@ -289,11 +297,14 @@ typedef int PKIX_Boolean;
 #define PKIX_CERTNAMECONSTRAINTS_ERROR ((PKIX_UInt32) 47)
 #define PKIX_CERTNAMECONSTRAINTSCHECKERSTATE_ERROR ((PKIX_UInt32) 48)
 #define PKIX_REVOCATIONCHECKER_ERROR    ((PKIX_UInt32) 49)
-
 #define PKIX_USERDEFINEDMODULES_ERROR   ((PKIX_UInt32) 50)
-#define PKIX_CONTEXT_ERROR      ((PKIX_UInt32) 51)
+#define PKIX_CONTEXT_ERROR              ((PKIX_UInt32) 51)
+#define PKIX_LDAPCERTSTORECONTEXT_ERROR ((PKIX_UInt32) 52)
+#define PKIX_LDAPREQUEST_ERROR          ((PKIX_UInt32) 53)
+#define PKIX_LDAPRESPONSE_ERROR         ((PKIX_UInt32) 54)
+#define PKIX_SOCKET_ERROR               ((PKIX_UInt32) 55)
 
-#define PKIX_NUMERRORS                  ((PKIX_UInt32) 52)
+#define PKIX_NUMERRORS                  ((PKIX_UInt32) 56)
 
 /* String Formats
  *
