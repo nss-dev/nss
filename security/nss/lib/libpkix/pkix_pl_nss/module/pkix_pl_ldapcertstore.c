@@ -2770,8 +2770,7 @@ cleanup:
  */
 PKIX_Error *
 PKIX_PL_LdapCertStore_Create(
-        in_port_t port,
-        in_addr_t ipaddr,
+	PRNetAddr *sockaddr,
         PRIntervalTime timeout,
         char *bindName,
         char *authentication,
@@ -2783,14 +2782,9 @@ PKIX_PL_LdapCertStore_Create(
         PKIX_PL_Socket *socket = NULL;
         PKIX_PL_LdapCertStoreContext *ldapCertStoreContext = NULL;
         PRFileDesc *fileDesc = NULL;
-        PRNetAddr sockaddr;
 
         PKIX_ENTER(CERTSTORE, "PKIX_PL_LdapCertStore_Create");
         PKIX_NULLCHECK_THREE(bindName, authentication, pCertStore);
-
-        sockaddr.inet.family = AF_INET;
-        sockaddr.inet.port = port;
-        sockaddr.inet.ip = ipaddr;
 
         PKIX_CHECK(pkix_pl_Socket_Create
                 (PKIX_FALSE, timeout, sockaddr, &socket, plContext),

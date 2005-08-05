@@ -38,6 +38,6 @@
 PKIX_DEPTH      = ../..
 
 #
-DIRS =  colcertstore  ekuchecker  pk11certstore socket \
+DIRS =  colcertstore  ekuchecker  pk11certstore socket ldapcertstore \
 	$(NULL)
 

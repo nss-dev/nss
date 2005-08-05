@@ -438,7 +438,7 @@ pkix_pl_Socket_CreateServer(
 #endif
 
         PKIX_PL_NSSCALLRV(SOCKET, rv, PR_Bind,
-                (serverSock, &socket->serverSockaddr));
+                (serverSock, socket->serverSockaddr));
 
         if (rv == PR_FAILURE) {
 #ifdef PKIX_SOCKETDEBUG
@@ -497,7 +497,7 @@ pkix_pl_Socket_Connect(
         PKIX_NULLCHECK_TWO(socket, socket->clientSock);
 
         PKIX_PL_NSSCALLRV(SOCKET, rv, PR_Connect,
-                (socket->clientSock, &socket->serverSockaddr, socket->timeout));
+                (socket->clientSock, socket->serverSockaddr, socket->timeout));
 
         if (rv == PR_FAILURE) {
                 errorcode = PR_GetError();
@@ -561,48 +561,6 @@ cleanup:
 }
 
 /*
- * FUNCTION: pkix_pl_Socket_ToString
- * (see comments for PKIX_PL_ToStringCallback in pkix_pl_system.h)
- */
-static PKIX_Error *
-pkix_pl_Socket_ToString(
-        PKIX_PL_Object *object,
-        PKIX_PL_String **pString,
-        void *plContext)
-{
-        PKIX_PL_Socket *socket = NULL;
-        PKIX_PL_String *format = NULL;
-        PKIX_PL_String *outString = NULL;
-
-        PKIX_ENTER (SOCKET, "pkix_pl_Socket_ToString");
-
-        PKIX_NULLCHECK_TWO(object, pString);
-
-        PKIX_CHECK(pkix_CheckType
-                (object, PKIX_SOCKET_TYPE, plContext),
-                "Object is not an Socket");
-
-        socket = (PKIX_PL_Socket *)object;
-
-#if 0
-        PKIX_CHECK(PKIX_PL_String_Create
-                (PKIX_ESCASCII, "xxx", NULL, &format, plContext),
-                "Error in PKIX_PL_String_Create");
-
-        PKIX_CHECK(PKIX_PL_Sprintf
-                (&outString, plContext, format, ...),
-                "Error in PKIX_PL_Sprintf");
-#endif
-
-        *pString = outString;
-
-cleanup:
-        PKIX_DECREF(format);
-
-        PKIX_RETURN(SOCKET);
-}
-
-/*
  * FUNCTION: pkix_pl_Socket_RegisterSelf
  *
  * DESCRIPTION:
@@ -628,7 +586,7 @@ pkix_pl_Socket_RegisterSelf(void *plContext)
         entry.destructor = pkix_pl_Socket_Destroy;
         entry.equalsFunction = NULL;
         entry.hashcodeFunction = NULL;
-        entry.toStringFunction = pkix_pl_Socket_ToString;
+        entry.toStringFunction = NULL;
         entry.comparator = NULL;
         entry.duplicateFunction = NULL;
 
@@ -1116,9 +1074,7 @@ pkix_pl_Socket_Accept(
         newSocket->timeout = serverSocket->timeout;
         newSocket->clientSock = rendezvousSock;
         newSocket->serverSock = NULL;
-        newSocket->serverSockaddr.inet.family = 0;
-        newSocket->serverSockaddr.inet.port = 0;
-        newSocket->serverSockaddr.inet.ip = 0;
+        newSocket->serverSockaddr = NULL;
         newSocket->status = SOCKET_CONNECTED;
         newSocket->callbackList.shutdownCallback = pkix_pl_Socket_Shutdown;
         newSocket->callbackList.listenCallback = pkix_pl_Socket_Listen;
@@ -1177,7 +1133,7 @@ PKIX_Error *
 pkix_pl_Socket_Create(
         PKIX_Boolean isServer,
         PRIntervalTime timeout,
-        PRNetAddr serverSockaddr,
+        PRNetAddr *serverSockaddr,
         PKIX_PL_Socket **pSocket,
         void *plContext)
 {

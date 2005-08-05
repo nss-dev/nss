@@ -130,7 +130,10 @@ struct PKIX_PL_SocketStruct {
         void *writeBuf;
         PKIX_UInt32 readBufSize;
         PKIX_UInt32 writeBufSize;
+#if 0
         PRNetAddr serverSockaddr;
+#endif
+        PRNetAddr *serverSockaddr;
         PKIX_PL_Socket_Callback callbackList;
 };
 
@@ -142,7 +145,10 @@ PKIX_Error *
 pkix_pl_Socket_Create(
         PKIX_Boolean isServer,
         PRIntervalTime timeout, /* zero for non-blocking I/O */
+#if 0
         PRNetAddr serverSockaddr,
+#endif
+        PRNetAddr *serverSockaddr,
         PKIX_PL_Socket **pSocket,
         void *plContext);
 
