@@ -88,7 +88,7 @@ PKIX_Int32 bytesWritten = 0;
 
 /* Functional tests for Socket public functions */
 void do_other_work(void) { /* while waiting for nonblocking I/O to complete */
-	(void) sleep(2);
+	(void) PR_Sleep(2*60);
 }
 
 void server()
