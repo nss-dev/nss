@@ -494,8 +494,11 @@ PKIX_PL_Sprintf(
         PKIX_STRING_DEBUG("\tCalling va_start).\n");
 
         va_start(args, fmt);
+#ifdef SOLARIS
         va_copy(argsCopy, args);
-
+#else
+	argsCopy = args;
+#endif
         /* Convert PKIX_PL_Strings to char*s */
         j = 0;
         for (i = 0; i < length; i++) {
