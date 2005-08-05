@@ -46,7 +46,7 @@
  * If PKIX_SOCKETTRACE is defined, messages sent and received will be
  * timestamped and dumped (to stdout) in standard hex-dump format. E.g.,
  *
- * 1116612359.156140:
+ * 1116612359156140:
  * 28F0: 48 65 6C 6C 6F 2C 20 77   6F 72 6C 64 21 00    Hello, world!.
  *
  * The timestamp is not formatted to be meaningful except as an increasing
@@ -83,9 +83,9 @@
  *  none
  */
 static void pkix_pl_socket_timestamp() {
-        struct timeval tm;
-        gettimeofday(&tm);
-        printf("%ld.%ld:\n", tm.tv_sec, tm.tv_usec);
+	PRInt64 prTime;
+	prTime = PR_Now();
+        printf("%lld:\n", prTime);
 }
 
 /*
