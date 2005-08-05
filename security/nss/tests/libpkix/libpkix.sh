@@ -64,6 +64,20 @@ libpkix_init()
   fi
   cd ${LIBPKIX_CURDIR}
 
+  # test at libpkix is written in ksh and hence cannot be sourced "."
+  # by this sh script. While we want to provide each libpkix test script the
+  # ability to be executed alone, we will need to use common/init.sh
+  # to set up bin etc. Since variable values can not be passed to sub-directory
+  # script for checking ($INIT_SOURCED), log is recreated and old data lost.
+  # The cludge way provided here is not ideal, but works (for now) :
+  # We save the log up to this point then concatenate it with libpkix log
+  # as the final one.
+  LOGFILE_ALL=${LOGFILE}
+  if [ ! -z ${LOGFILE_ALL} ] ; then
+       mv ${LOGFILE_ALL} ${LOGFILE_ALL}.tmp
+       touch ${LOGFILE_ALL}
+  fi
+
   SCRIPTNAME="libpkixs.sh"
   LIBPKIX_LOG=${HOSTDIR}/libpkix.log    #we don't want all the errormessages 
          # in the output.log, otherwise we can't tell what's a real error
@@ -78,6 +92,12 @@ libpkix_init()
 ########################################################################
 libpkix_cleanup()
 {
+  if [ ! -z ${LOGFILE_ALL} ] ; then
+       rm ${LOGFILE_ALL}
+       cat ${LOGFILE_ALL}.tmp ${LIBPKIX_LOG} > ${LOGFILE_ALL}
+       rm ${LOGFILE_ALL}.tmp
+  fi
+
   html "</TABLE><BR>" 
   cd ${QADIR}
   . common/cleanup.sh
@@ -149,7 +169,7 @@ fi
 ################## main #################################################
 
 libpkix_init 
-libpkix_main  | tee $LIBPKIX_LOG
+libpkix_main  | tee ${LIBPKIX_LOG}
 libpkix_cleanup
 
 
