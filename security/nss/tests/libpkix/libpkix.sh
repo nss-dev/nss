@@ -58,7 +58,7 @@ libpkix_init()
   fi
 
   LIBPKIX_CURDIR=`pwd`
-  if [ -z "${INIT_SOURCED}" ] ; then
+  if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ] ; then
       cd ../common
       . ./init.sh
   fi
@@ -109,15 +109,16 @@ echo "**************************************************************************
 echo ""
 
 echo "RUNNING tests in pkix_pl_test";
-pwd
 cd pkix_pl_tests;
 runPLTests.sh ${arenasArg} ${checkMemArg} ${quietArg}
 pkixplErrors=$?
+html_msg $? 0 "RUNNING tests in pkix_pl_test"
 
 echo "RUNNING tests in pkix_test";
 cd ../pkix_tests;
 runTests.sh ${arenasArg} ${checkMemArg} ${quietArg}
 pkixErrors=$?
+html_msg $? 0 "RUNNING tests in pkix_test"
 
 totalErrors=pkixErrors+pkixplErrors
 
@@ -125,6 +126,8 @@ if [ ${totalErrors} -eq 0 ]; then
     echo "\n************************************************************"
     echo "END OF ALL TESTS: ALL TESTS COMPLETED SUCCESSFULLY"
     echo "************************************************************"
+    html_msg ${totalErrors} 0 "ALL LIBPKIX TESTS COMPLETED SUCCESSFULLY"
+
     return 0
 fi
 
@@ -138,6 +141,7 @@ if [ ${totalErrors} -ne 0 ]; then
     echo "\n************************************************************"
     echo "END OF ALL TESTS: ${totalErrors} TEST${plural} FAILED"
     echo "************************************************************"
+    html_msg 1 0 "${totalErrors} TEST${plural} FAILED"
 return 1
 fi
 }
@@ -145,7 +149,7 @@ fi
 ################## main #################################################
 
 libpkix_init 
-libpkix_main  # >$LIBPKIX_LOG 2>&1
+libpkix_main  | tee $LIBPKIX_LOG
 libpkix_cleanup
 
 
