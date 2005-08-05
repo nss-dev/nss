@@ -140,7 +140,7 @@ runTests.sh ${arenasArg} ${checkMemArg} ${quietArg}
 pkixErrors=$?
 html_msg $? 0 "RUNNING tests in pkix_test"
 
-totalErrors=pkixErrors+pkixplErrors
+totalErrors=`expr ${pkixErrors} + ${pkixplErrors}`
 
 if [ ${totalErrors} -eq 0 ]; then
     echo "\n************************************************************"
@@ -161,7 +161,7 @@ if [ ${totalErrors} -ne 0 ]; then
     echo "\n************************************************************"
     echo "END OF ALL TESTS: ${totalErrors} TEST${plural} FAILED"
     echo "************************************************************"
-    html_msg 1 0 "${totalErrors} TEST${plural} FAILED"
+    html_msg 1 0 "${totalErrors} LIBPKIX TEST${plural} FAILED"
 return 1
 fi
 }
