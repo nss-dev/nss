@@ -142,7 +142,6 @@ pkix_pl_LdapResponse_Equals(
 {
         PKIX_PL_LdapResponse *rsp1 = NULL;
         PKIX_PL_LdapResponse *rsp2 = NULL;
-        PKIX_Int32 cmpResult = 0;
         PKIX_UInt32 secondType = 0;
         PKIX_UInt32 firstLen = 0;
         const unsigned char *firstData = NULL;
@@ -268,8 +267,6 @@ pkix_pl_LdapResponse_RegisterSelf(void *plContext)
         entry.duplicateFunction = pkix_duplicateImmutable;
 
         systemClasses[PKIX_LDAPRESPONSE_TYPE] = entry;
-
-cleanup:
 
         PKIX_RETURN(LDAPRESPONSE);
 }
@@ -456,8 +453,6 @@ pkix_pl_LdapResponse_Append(
 
         *pBytesConsumed = bytesConsumed;
 
-cleanup:
-
         PKIX_RETURN(LDAPRESPONSE);
 }
 
@@ -504,7 +499,6 @@ pkix_pl_LdapResponse_IsComplete(
         } else {
                 *pIsComplete = PKIX_FALSE;
         }
-cleanup:
 
         PKIX_RETURN(LDAPRESPONSE);
 }
@@ -605,8 +599,6 @@ pkix_pl_LdapResponse_GetMessage(
 
         *pMessage = &response->decoded;
 
-cleanup:
-
         PKIX_RETURN(LDAPRESPONSE);
 }
 
@@ -643,8 +635,6 @@ pkix_pl_LdapResponse_GetMessageType(
         PKIX_NULLCHECK_TWO(response, pMessageType);
 
         *pMessageType = response->decoded.protocolOp.selector;
-
-cleanup:
 
         PKIX_RETURN(LDAPRESPONSE);
 }
@@ -729,7 +719,6 @@ pkix_pl_LdapResponse_GetAttributes(
         void *plContext)
 {
         LDAPMessageType messageType = 0;
-        LDAPSearchResponseEntry *entryMsg = NULL;
 
         PKIX_ENTER(LDAPRESPONSE, "PKIX_PL_LdapResponse_GetResultCode");
         PKIX_NULLCHECK_TWO(response, pAttributes);

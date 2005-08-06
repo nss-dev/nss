@@ -106,7 +106,5 @@ PKIX_PL_NssContext_Destroy(
 
         PKIX_PL_Free(nssContext, NULL);
 
-cleanup:
-
         PKIX_RETURN(CONTEXT);
 }

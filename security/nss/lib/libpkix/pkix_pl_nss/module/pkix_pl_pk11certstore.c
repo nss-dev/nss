@@ -273,8 +273,6 @@ pkix_pl_Pk11CertStore_CrlQuery(
         PKIX_List *crlList = NULL;
         PKIX_PL_CRL *crl = NULL;
         CERTCrlHeadNode pk11CrlHead = {NULL, NULL, NULL, NULL};
-        CERTCrlNode *node = NULL;
-        CERTSignedCrl *nssCrl = NULL;
         CRLDPCache* dpcache = NULL;
         CERTSignedCrl** crls = NULL;
         PRBool writeLocked = PR_FALSE;
@@ -551,7 +549,6 @@ pkix_pl_Pk11CertStore_GetCRL(
         PKIX_PL_CRL *candidate = NULL;
         PKIX_List *selected = NULL;
         PKIX_List *filtered = NULL;
-        PKIX_PL_Object *object = NULL;
         PKIX_CRLSelector_MatchCallback callback = NULL;
         PKIX_ComCRLSelParams *params = NULL;
 

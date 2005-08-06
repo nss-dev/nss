@@ -208,9 +208,9 @@ static const SEC_ASN1Template LDAPAttributeValueAssertionTemplate[] = {
 
 static const SEC_ASN1Template LDAPSubstringFilterChoiceTemplate[] = {
     { SEC_ASN1_SEQUENCE_OF, 0, NULL, sizeof (SECItem) },
-    { SEC_ASN1_CONTEXT_SPECIFIC | 0, NULL, LDAPSubstringFilterInitialTemplate },
-    { SEC_ASN1_CONTEXT_SPECIFIC | 1, NULL, LDAPSubstringFilterAnyTemplate },
-    { SEC_ASN1_CONTEXT_SPECIFIC | 2, NULL, LDAPSubstringFilterFinalTemplate },
+    { SEC_ASN1_CONTEXT_SPECIFIC | 0, 0, LDAPSubstringFilterInitialTemplate },
+    { SEC_ASN1_CONTEXT_SPECIFIC | 1, 0, LDAPSubstringFilterAnyTemplate },
+    { SEC_ASN1_CONTEXT_SPECIFIC | 2, 0, LDAPSubstringFilterFinalTemplate },
     { 0 }
 };
 

@@ -304,7 +304,6 @@ pkix_pl_LdapCertStore_DecodeBindResponse(
         }
 
         *pStatus = rv;
-cleanup:
 
         PKIX_RETURN(LDAPCERTSTORECONTEXT);
 }
@@ -621,10 +620,7 @@ pkix_pl_LdapCertStoreContext_Destroy(
         PKIX_PL_Object *object,
         void *plContext)
 {
-        SECItem *encoded = NULL;
-        PKIX_Int32 bytesWritten = 0;
         PKIX_PL_LdapCertStoreContext *lcs = NULL;
-        PKIX_PL_Socket_Callback *callbackList;
 
         PKIX_ENTER(LDAPCERTSTORECONTEXT,
                     "pkix_pl_LdapCertStoreContext_Destroy");
@@ -716,13 +712,13 @@ pkix_pl_LdapCertStoreContext_ToString(
         PKIX_CHECK(PKIX_PL_String_Create
                 (PKIX_ESCASCII,
                 (void *)connectedStatusStrings[ldapCSC->connectStatus],
-                NULL,
+                0,
                 &statusString,
                 plContext),
                 "Error in PKIX_PL_String_Create");
 
         PKIX_CHECK(PKIX_PL_String_Create
-                (PKIX_ESCASCII, asciiFormat, NULL, &format, plContext),
+                (PKIX_ESCASCII, asciiFormat, 0, &format, plContext),
                 "Error in PKIX_PL_String_Create");
 
         PKIX_CHECK(PKIX_PL_Sprintf
@@ -778,8 +774,6 @@ pkix_pl_LdapCertStoreContext_RegisterSelf(void *plContext)
 
         systemClasses[PKIX_LDAPCERTSTORECONTEXT_TYPE] = entry;
 
-cleanup:
-
         PKIX_RETURN(LDAPCERTSTORECONTEXT);
 }
 
@@ -826,7 +820,6 @@ pkix_pl_LdapCertStore_IsIOPending(
                 *pPending = PKIX_FALSE;
         }
 
-cleanup:
         PKIX_RETURN(LDAPCERTSTORECONTEXT);
 }
 
@@ -1118,7 +1111,6 @@ pkix_pl_LdapCertStore_BindResponse(
         void *plContext)
 {
         PKIX_Int32 bytesRead = 0;
-        void *rcvBuf = NULL;
         PKIX_PL_Socket_Callback *callbackList = NULL;
 
         PKIX_ENTER(LDAPCERTSTORECONTEXT, "pkix_pl_LdapCertStore_BindResponse");
@@ -1853,7 +1845,6 @@ pkix_pl_LdapCertStore_SendRequest(
         PKIX_List **pResponse,
         void *plContext)
 {
-        PKIX_UInt32 bytesRead = 0;
         PKIX_PL_LdapRequest *searchRequest = NULL;
         PKIX_List *searchResponseList = NULL;
         SECItem *encoded = NULL;
@@ -2302,7 +2293,6 @@ pkix_pl_LdapCertStore_GetCRLsByIssuer(
         PKIX_List *responseList = NULL;
         PKIX_List *crlList = NULL;
         unsigned char *commonName = NULL;
-        PKIX_PL_LdapResponse *response = NULL;
 
         PKIX_ENTER(CERTSTORE, "pkix_pl_LdapCertStore_GetCRLsByIssuer");
         PKIX_NULLCHECK_FOUR(lcs, issuerNames, numNames, pSelected);
@@ -2406,7 +2396,6 @@ pkix_pl_LdapCertStore_CertQuery(
 {
         PKIX_PL_X500Name *subjectName = NULL;
         PKIX_Int32 minPathLen = 0;
-        PRErrorCode prError = 0;
         PKIX_List *certList = NULL;
 
         PKIX_ENTER(CERTSTORE, "pkix_pl_LdapCertStore_CertQuery");
@@ -2683,7 +2672,6 @@ pkix_pl_LdapCertStore_GetCRL(
         PKIX_PL_CRL *candidate = NULL;
         PKIX_List *selected = NULL;
         PKIX_List *filtered = NULL;
-        PKIX_PL_Object *object = NULL;
         PKIX_CRLSelector_MatchCallback callback = NULL;
         PKIX_ComCRLSelParams *params = NULL;
         PKIX_Error *errReturn = NULL;
