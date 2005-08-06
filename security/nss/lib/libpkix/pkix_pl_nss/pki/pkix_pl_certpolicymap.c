@@ -168,7 +168,7 @@ pkix_pl_CertPolicyMap_ToString(
 
         /* Put them together in the form issuerPolicy=>subjectPolicy */
         PKIX_CHECK(PKIX_PL_String_Create
-                (PKIX_ESCASCII, "%s=>%s", NULL, &format, plContext),
+                (PKIX_ESCASCII, "%s=>%s", 0, &format, plContext),
                 "Error in PKIX_PL_String_Create");
 
         PKIX_CHECK(PKIX_PL_Sprintf
@@ -365,8 +365,6 @@ pkix_pl_CertPolicyMap_RegisterSelf(void *plContext)
 
         systemClasses[PKIX_CERTPOLICYMAP_TYPE] = entry;
 
-cleanup:
-
         PKIX_RETURN(CERTPOLICYMAP);
 }
 
@@ -390,8 +388,6 @@ PKIX_PL_CertPolicyMap_GetIssuerDomainPolicy(
         PKIX_INCREF(policyMapping->issuerDomainPolicy);
         *pIssuerDomainPolicy = policyMapping->issuerDomainPolicy;
 
-cleanup:
-
         PKIX_RETURN(CERTPOLICYMAP);
 }
 
@@ -412,8 +408,6 @@ PKIX_PL_CertPolicyMap_GetSubjectDomainPolicy(
 
         PKIX_INCREF(policyMapping->subjectDomainPolicy);
         *pSubjectDomainPolicy = policyMapping->subjectDomainPolicy;
-
-cleanup:
 
         PKIX_RETURN(CERTPOLICYMAP);
 }
