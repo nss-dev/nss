@@ -161,7 +161,7 @@ pkix_pl_BigInt_ToString(
         PKIX_CHECK(PKIX_PL_String_Create
                     (PKIX_ESCASCII,
                     outputText,
-                    NULL,
+                    0,
                     pString,
                     plContext),
                     "PKIX_PL_String_Create failed");
@@ -273,8 +273,6 @@ pkix_pl_BigInt_RegisterSelf(void *plContext)
         entry.duplicateFunction = pkix_duplicateImmutable;
 
         systemClasses[PKIX_BIGINT_TYPE] = entry;
-
-cleanup:
 
         PKIX_RETURN(BIGINT);
 }
