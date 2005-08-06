@@ -322,7 +322,7 @@ pkix_pl_Object_ToString_Default(
         PKIX_CHECK(PKIX_PL_String_Create
                     (PKIX_ESCASCII,
                     (void *)format,
-                    NULL,
+                    0,
                     &formatString,
                     plContext),
                     "PKIX_PL_String_Create failed");
@@ -330,7 +330,7 @@ pkix_pl_Object_ToString_Default(
         PKIX_CHECK(PKIX_PL_String_Create
                     (PKIX_ESCASCII,
                     (void *)description,
-                    NULL,
+                    0,
                     &descString,
                     plContext),
                     "PKIX_PL_String_Create failed");
@@ -527,8 +527,8 @@ PKIX_PL_Object_Alloc(
         object->type = type;
         object->references = 1; /* Default to a single reference */
         object->stringRep = NULL;
-        object->hashcode = NULL;
-        object->hashcodeCached = NULL;
+        object->hashcode = 0;
+        object->hashcodeCached = 0;
 
         /* XXX Debugging - not thread safe */
         refCountTotal++;
