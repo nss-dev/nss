@@ -429,7 +429,6 @@ pkix_pl_X500Name_RegisterSelf(void *plContext)
 
         systemClasses[PKIX_X500NAME_TYPE] = entry;
 
-cleanup:
         PKIX_RETURN(X500NAME);
 }
 
@@ -586,8 +585,6 @@ pkix_pl_X500Name_GetSECName(
         PKIX_PL_NSSCALLRV(X500NAME, *pSECName, SEC_ASN1EncodeItem,
                 (arena, NULL, (void *)xname->nssDN, CERT_NameTemplate));
 
-cleanup:
-
         PKIX_RETURN(X500NAME);
 }
 
@@ -697,8 +694,6 @@ pkix_pl_X500Name_GetCommonName(
                 *pCommonName,
                 (unsigned char *)CERT_GetCommonName,
                 (xname->nssDN));
-
-cleanup:
 
         PKIX_RETURN(X500NAME);
 }

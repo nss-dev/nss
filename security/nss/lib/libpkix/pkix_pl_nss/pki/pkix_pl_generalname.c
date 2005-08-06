@@ -81,8 +81,6 @@ pkix_pl_GeneralName_GetNssGeneralName(
 
         *pNssGenName = nssGenName;
 
-cleanup:
-
         PKIX_RETURN(GENERALNAME);
 }
 
@@ -439,7 +437,7 @@ pkix_pl_GeneralName_ToString_Helper(
                 ediPartyName = "EDIPartyName: <DER-encoded value>";
                 PKIX_CHECK(PKIX_PL_String_Create(PKIX_ESCASCII,
                                                 ediPartyName,
-                                                NULL,
+                                                0,
                                                 pString,
                                                 plContext),
                             "PKIX_PL_String_Create failed.");
@@ -449,7 +447,7 @@ pkix_pl_GeneralName_ToString_Helper(
                 x400AsciiName = "X400Address: <DER-encoded value>";
                 PKIX_CHECK(PKIX_PL_String_Create(PKIX_ESCASCII,
                                                 x400AsciiName,
-                                                NULL,
+                                                0,
                                                 pString,
                                                 plContext),
                             "PKIX_PL_String_Create failed.");
@@ -461,7 +459,7 @@ pkix_pl_GeneralName_ToString_Helper(
 
                 PKIX_CHECK(PKIX_PL_String_Create(PKIX_ESCASCII,
                                                 asciiName,
-                                                NULL,
+                                                0,
                                                 pString,
                                                 plContext),
                             "PKIX_PL_String_Create failed.");
@@ -478,7 +476,7 @@ pkix_pl_GeneralName_ToString_Helper(
                 PKIX_CHECK(PKIX_PL_String_Create
                             (PKIX_ESCASCII,
                             asciiName,
-                            NULL,
+                            0,
                             pString,
                             plContext),
                             "PKIX_PL_String_Create failed.");
@@ -605,7 +603,6 @@ pkix_pl_GeneralName_Hashcode(
         void *plContext)
 {
         PKIX_PL_GeneralName *name = NULL;
-        PKIX_PL_String *string = NULL;
         PKIX_UInt32 firstHash, secondHash, nameHash;
 
         PKIX_ENTER(GENERALNAME, "pkix_pl_GeneralName_Hashcode");
@@ -807,8 +804,6 @@ pkix_pl_GeneralName_RegisterSelf(void *plContext)
         entry.duplicateFunction = pkix_duplicateImmutable;
 
         systemClasses[PKIX_GENERALNAME_TYPE] = entry;
-
-cleanup:
 
         PKIX_RETURN(GENERALNAME);
 }

@@ -212,7 +212,6 @@ pkix_pl_CRL_GetSignatureAlgId(
         SECAlgorithmID algorithm;
         SECItem algBytes;
         char *asciiOID = NULL;
-        SECOidData *signatureOidData = NULL;
 
         PKIX_ENTER(CRL, "pkix_pl_CRL_GetSignatureAlgId");
         PKIX_NULLCHECK_THREE(crl, crl->nssSignedCrl, pSignatureAlgId);
@@ -426,7 +425,7 @@ pkix_pl_CRL_ToString_Helper(
         PKIX_CHECK(PKIX_PL_String_Create
                     (PKIX_ESCASCII,
                     asciiFormat,
-                    NULL,
+                    0,
                     &formatString,
                     plContext),
                     "PKIX_PL_String_Create failed");
@@ -692,8 +691,6 @@ pkix_pl_CRL_RegisterSelf(void *plContext)
 
         systemClasses[PKIX_CRL_TYPE] = entry;
 
-cleanup:
-
         PKIX_RETURN(CRL);
 }
 
@@ -775,9 +772,7 @@ pkix_pl_CRL_CreateWithSignedCRL(
         PKIX_PL_CRL **pCrl,
         void *plContext)
 {
-        SECItem *derCrlItem = NULL;
         SECStatus status;
-        void *derBytes = NULL;
         PKIX_PL_CRL *crl = NULL;
 
         PKIX_ENTER(CRL, "pkix_pl_CRL_CreateWithSignedCRL");

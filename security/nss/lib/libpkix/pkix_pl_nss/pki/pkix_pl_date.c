@@ -208,7 +208,7 @@ pkix_pl_Date_ToString_Helper(
         }
 
         PKIX_CHECK(PKIX_PL_String_Create
-                    (PKIX_ESCASCII, asciiDate, NULL, pString, plContext),
+                    (PKIX_ESCASCII, asciiDate, 0, pString, plContext),
                     "PKIX_PL_String_Create failed");
 
 cleanup:
@@ -409,8 +409,6 @@ pkix_pl_Date_RegisterSelf(void *plContext)
         entry.duplicateFunction = pkix_duplicateImmutable;
 
         systemClasses[PKIX_DATE_TYPE] = entry;
-
-cleanup:
 
         PKIX_RETURN(DATE);
 }

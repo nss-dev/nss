@@ -131,7 +131,7 @@ pkix_pl_CRLEntry_ToString_Helper(
         PKIX_CHECK(PKIX_PL_String_Create
                     (PKIX_ESCASCII,
                     asciiFormat,
-                    NULL,
+                    0,
                     &formatString,
                     plContext),
                     "PKIX_PL_String_Create failed");
@@ -670,8 +670,6 @@ pkix_pl_CRLEntry_RegisterSelf(void *plContext)
 
         systemClasses[PKIX_CRLENTRY_TYPE] = entry;
 
-cleanup:
-
         PKIX_RETURN(CRLENTRY);
 }
 
@@ -709,7 +707,6 @@ pkix_pl_CRLEntry_CreateEntry(
         PKIX_PL_CRLEntry **pCrlEntry,
         void *plContext)
 {
-        PKIX_List *entryList = NULL;
         PKIX_PL_CRLEntry *crlEntry = NULL;
 
         PKIX_ENTER(CRLENTRY, "pkix_pl_CRLEntry_CreateEntry");
@@ -832,8 +829,6 @@ PKIX_PL_CRLEntry_GetCRLEntryReasonCode (
         PKIX_Int32 *pReason,
         void *plContext)
 {
-        CERTCertExtension **extensions = NULL;
-        CERTCertExtension *extension = NULL;
         SECStatus status;
         PKIX_Int32 nssReasonCode;
 
