@@ -135,7 +135,6 @@ pkix_CertChain_Hashcode(
 {
         PKIX_CertChain *chain = NULL;
         PKIX_List *certList = NULL;
-        PKIX_PL_Object *element = NULL;
         PKIX_UInt32 hash = 0;
         PKIX_UInt32 tempHash = 0;
 
@@ -227,8 +226,6 @@ pkix_CertChain_RegisterSelf(void *plContext)
 
         systemClasses[PKIX_CERTCHAIN_TYPE] = entry;
 
-cleanup:
-
         PKIX_RETURN(CERTCHAIN);
 }
 
@@ -290,8 +287,6 @@ PKIX_CertChain_GetCertificates(
         PKIX_INCREF(chain->certs);
 
         *pList = chain->certs;
-
-cleanup:
 
         PKIX_RETURN(CERTCHAIN);
 }

@@ -176,7 +176,7 @@ pkix_List_ToString_Helper(
                         PKIX_CHECK(PKIX_PL_String_Create
                                     (PKIX_ESCASCII,
                                     "EMPTY",
-                                    NULL,
+                                    0,
                                     &itemString,
                                     plContext),
                                     "Error creating item string");
@@ -191,7 +191,7 @@ pkix_List_ToString_Helper(
 
                 /* Create a string object from the format */
                 PKIX_CHECK(PKIX_PL_String_Create
-                            (PKIX_ESCASCII, "%s", NULL, &format, plContext),
+                            (PKIX_ESCASCII, "%s", 0, &format, plContext),
                             "PKIX_PL_String_Create failed");
 
                 PKIX_CHECK(PKIX_PL_Sprintf
@@ -203,7 +203,7 @@ pkix_List_ToString_Helper(
                         PKIX_CHECK(PKIX_PL_String_Create
                                     (PKIX_ESCASCII,
                                     "(null)",
-                                    NULL,
+                                    0,
                                     &itemString,
                                     plContext),
                                     "PKIX_PL_String_Create failed");
@@ -230,7 +230,7 @@ pkix_List_ToString_Helper(
                 PKIX_CHECK(PKIX_PL_String_Create
                             (PKIX_ESCASCII,
                             "%s, %s",
-                            NULL,
+                            0,
                             &format,
                             plContext),
                             "PKIX_PL_String_Create failed");
@@ -283,7 +283,7 @@ pkix_List_ToString(
                     "pkix_List_ToString Helper failed");
 
         PKIX_CHECK(PKIX_PL_String_Create
-                    (PKIX_ESCASCII, "(%s)", NULL, &format, plContext),
+                    (PKIX_ESCASCII, "(%s)", 0, &format, plContext),
                     "PKIX_PL_String_Create failed");
 
         PKIX_CHECK(PKIX_PL_Sprintf(pString, plContext, format, listString),
@@ -600,8 +600,6 @@ pkix_List_RegisterSelf(void *plContext)
         entry.duplicateFunction = pkix_List_Duplicate;
 
         systemClasses[PKIX_LIST_TYPE] = entry;
-
-cleanup:
 
         PKIX_RETURN(LIST);
 }

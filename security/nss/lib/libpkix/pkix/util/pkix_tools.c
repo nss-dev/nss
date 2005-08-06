@@ -173,21 +173,21 @@ pkix_Throw(
 
         pkixTempResult = PKIX_PL_String_Create(PKIX_ESCASCII,
                                                 (void *)format,
-                                                NULL,
+                                                0,
                                                 &formatString,
                                                 plContext);
         if (pkixTempResult) goto cleanup;
 
         pkixTempResult = PKIX_PL_String_Create(PKIX_ESCASCII,
                                                 (void *)funcName,
-                                                NULL,
+                                                0,
                                                 &funcNameString,
                                                 plContext);
         if (pkixTempResult) goto cleanup;
 
         pkixTempResult = PKIX_PL_String_Create(PKIX_ESCASCII,
                                                 (void *)errorText,
-                                                NULL,
+                                                0,
                                                 &textString,
                                                 plContext);
         if (pkixTempResult) goto cleanup;
@@ -392,8 +392,6 @@ pkix_duplicateImmutable(
         PKIX_INCREF(object);
 
         *pNewObject = object;
-
-cleanup:
 
         PKIX_RETURN(OBJECT);
 }

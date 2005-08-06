@@ -270,7 +270,7 @@ pkix_Error_ToString(
                 PKIX_CHECK(PKIX_PL_String_Create
                             (PKIX_ESCASCII,
                             format,
-                            NULL,
+                            0,
                             &formatString,
                             plContext),
                             "PKIX_PL_String_Create failed");
@@ -304,7 +304,7 @@ pkix_Error_ToString(
         PKIX_CHECK(PKIX_PL_String_Create
                     (PKIX_ESCASCII,
                     (void *)PKIX_ERRORNAMES[code],
-                    NULL,
+                    0,
                     &errorNameString,
                     plContext),
                     "PKIX_PL_String_Create failed");
@@ -312,7 +312,7 @@ pkix_Error_ToString(
         PKIX_CHECK(PKIX_PL_String_Create
                     (PKIX_ESCASCII,
                     format,
-                    NULL,
+                    0,
                     &formatString,
                     plContext),
                     "PKIX_PL_String_Create failed");
@@ -460,8 +460,6 @@ pkix_Error_RegisterSelf(void *plContext)
 
         systemClasses[PKIX_ERROR_TYPE] = entry;
 
-cleanup:
-
         PKIX_RETURN(ERROR);
 }
 
@@ -521,8 +519,6 @@ PKIX_Error_Create(
 
         *pError = error;
 
-cleanup:
-
         PKIX_RETURN(ERROR);
 }
 
@@ -561,8 +557,6 @@ PKIX_Error_GetCause(
 
         *pCause = error->cause;
 
-cleanup:
-
         PKIX_RETURN(ERROR);
 }
 
@@ -581,8 +575,6 @@ PKIX_Error_GetSupplementaryInfo(
         PKIX_INCREF(error->info);
 
         *pInfo = error->info;
-
-cleanup:
 
         PKIX_RETURN(ERROR);
 }
@@ -604,8 +596,6 @@ PKIX_Error_GetDescription(
         }
 
         *pDesc = error->desc;
-
-cleanup:
 
         PKIX_RETURN(ERROR);
 }
