@@ -312,7 +312,6 @@ pkix_pl_CertNameConstraints_CheckNameSpaceNssNames(
         CERTNameConstraints *nssNameConstraints = NULL;
         CERTGeneralName *nssMatchName = NULL;
         PRArenaPool *arena = NULL;
-        PKIX_PL_GeneralName *name = NULL;
         PKIX_UInt32 numItems = 0;
         PKIX_UInt32 i;
         SECStatus status = SECSuccess;
@@ -483,7 +482,7 @@ pkix_pl_CertNameConstraints_ToString_Helper(
         PKIX_CHECK(PKIX_PL_String_Create
                     (PKIX_ESCASCII,
                     asciiFormat,
-                    NULL,
+                    0,
                     &formatString,
                     plContext),
                     "PKIX_PL_String_Create failed");
@@ -738,8 +737,6 @@ pkix_pl_CertNameConstraints_RegisterSelf(void *plContext)
         entry.duplicateFunction = pkix_duplicateImmutable;
 
         systemClasses[PKIX_CERTNAMECONSTRAINTS_TYPE] = entry;
-
-cleanup:
 
         PKIX_RETURN(CERTNAMECONSTRAINTS);
 }

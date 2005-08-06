@@ -138,7 +138,6 @@ pkix_pl_CertBasicConstraints_ToString(
         PKIX_PL_String **pString,
         void *plContext)
 {
-        PKIX_PL_Object *objectHeader = NULL;
         PKIX_PL_String *certBasicConstraintsString = NULL;
         PKIX_PL_CertBasicConstraints *certB = NULL;
         PKIX_Boolean isCA = PKIX_FALSE;
@@ -188,7 +187,7 @@ pkix_pl_CertBasicConstraints_ToString(
         PKIX_CHECK(PKIX_PL_String_Create
                     (PKIX_ESCASCII,
                     fmtString,
-                    NULL,
+                    0,
                     &certBasicConstraintsString,
                     plContext),
                     "PKIX_PL_String_Create failed");
@@ -395,8 +394,6 @@ pkix_pl_CertBasicConstraints_RegisterSelf(void *plContext)
 
         systemClasses[PKIX_CERTBASICCONSTRAINTS_TYPE] = entry;
 
-cleanup:
-
         PKIX_RETURN(CERTBASICCONSTRAINTS);
 }
 
@@ -418,8 +415,6 @@ PKIX_PL_BasicConstraints_GetCAFlag(
 
         *pResult = basicConstraints->isCA;
 
-cleanup:
-
         PKIX_RETURN(CERTBASICCONSTRAINTS);
 }
 
@@ -438,8 +433,6 @@ PKIX_PL_BasicConstraints_GetPathLenConstraint(
         PKIX_NULLCHECK_TWO(basicConstraints, pPathLenConstraint);
 
         *pPathLenConstraint = basicConstraints->pathLen;
-
-cleanup:
 
         PKIX_RETURN(CERTBASICCONSTRAINTS);
 }

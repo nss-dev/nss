@@ -103,8 +103,6 @@ pkix_pl_Cert_IsExtensionCritical(
                 *pCritical = PKIX_FALSE;
         }
 
-cleanup:
-
         PKIX_RETURN(CERT);
 }
 
@@ -956,7 +954,7 @@ pkix_pl_Cert_ToString_Helper(
 
 
         PKIX_CHECK(PKIX_PL_String_Create
-                (PKIX_ESCASCII, asciiFormat, NULL, &formatString, plContext),
+                (PKIX_ESCASCII, asciiFormat, 0, &formatString, plContext),
                 "PKIX_PL_String_Create failed");
 
         /* Issuer */
@@ -1230,7 +1228,6 @@ pkix_pl_Cert_ToString(
         PKIX_PL_String **pString,
         void *plContext)
 {
-        PKIX_PL_Object *objectHeader = NULL;
         PKIX_PL_String *certString = NULL;
         PKIX_PL_Cert *pkixCert = NULL;
 
@@ -1379,8 +1376,6 @@ pkix_pl_Cert_RegisterSelf(void *plContext)
         entry.duplicateFunction = pkix_duplicateImmutable;
 
         systemClasses[PKIX_CERT_TYPE] = entry;
-
-cleanup:
 
         PKIX_RETURN(CERT);
 }
@@ -1748,7 +1743,6 @@ PKIX_PL_Cert_GetSubjectAltNames(
 
         CERTGeneralName *nssOriginalAltName = NULL;
         CERTGeneralName *nssTempAltName = NULL;
-        CERTCertificate *nssCert = NULL;
 
         PKIX_ENTER(CERT, "PKIX_PL_Cert_GetSubjectAltNames");
         PKIX_NULLCHECK_TWO(cert, pSubjectAltNames);
@@ -1930,7 +1924,6 @@ PKIX_PL_Cert_GetSubjectPublicKeyAlgId(
         SECAlgorithmID algorithm;
         SECItem algBytes;
         char *asciiOID = NULL;
-        SECOidData *pubKeyOidData = NULL;
 
         PKIX_ENTER(CERT, "PKIX_PL_Cert_GetSubjectPublicKeyAlgId");
         PKIX_NULLCHECK_THREE(cert, cert->nssCert, pSubjKeyAlgId);
@@ -2240,7 +2233,7 @@ PKIX_PL_Cert_GetSubjectKeyIdentifier(
                 if ((cert->subjKeyId == NULL) && (!cert->subjKeyIdAbsent)){
 
                         PKIX_CERT_DEBUG("\t\tCalling SECITEM_AllocItem).\n");
-                        retItem = SECITEM_AllocItem(NULL, NULL, NULL);
+                        retItem = SECITEM_AllocItem(NULL, NULL, 0);
                         if (retItem == NULL){
                                 PKIX_ERROR("Unable to allocate SECItem");
                         }
@@ -2988,7 +2981,6 @@ PKIX_PL_Cert_CheckNameConstraints(
         PKIX_PL_CertNameConstraints *nameConstraints,
         void *plContext)
 {
-        PKIX_PL_CertNameConstraints *checkedNC = NULL;
         PKIX_Boolean checkPass = PKIX_TRUE;
         CERTGeneralName *nssSubjectNames = NULL;
         PRArenaPool *arena = NULL;
