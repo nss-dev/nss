@@ -397,9 +397,10 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	serverSockaddr.inet.family = AF_INET;
-	serverSockaddr.inet.port = 2001; /* LDAP_PORT = 389; */
-	serverSockaddr.inet.ip = 0x7F000001;  /* 127.0.0.1 = localhost */
+	serverSockaddr.inet.family = PR_AF_INET;
+	serverSockaddr.inet.port = PR_htons(2001); /* LDAP_PORT = 389; */
+	serverSockaddr.inet.ip = PR_htonl(0x7F000001); 
+					      /* 127.0.0.1 = localhost */
 	backlog = 5;
 
 	/* timeout = PR_INTERVAL_NO_TIMEOUT; */
