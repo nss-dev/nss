@@ -130,7 +130,7 @@ pkix_ComCRLSelParams_ToString_Helper(
         PKIX_CHECK(PKIX_PL_String_Create
                     (PKIX_ESCASCII,
                     asciiFormat,
-                    NULL,
+                    0,
                     &formatString,
                     plContext),
                     "PKIX_PL_String_Create failed");
@@ -458,8 +458,6 @@ pkix_ComCRLSelParams_RegisterSelf(void *plContext)
 
         systemClasses[PKIX_COMCRLSELPARAMS_TYPE] = entry;
 
-cleanup:
-
         PKIX_RETURN(COMCRLSELPARAMS);
 }
 
@@ -514,8 +512,6 @@ PKIX_ComCRLSelParams_GetIssuerNames(
         PKIX_INCREF(params->issuerNames);
 
         *pIssuerNames = params->issuerNames;
-
-cleanup:
 
         PKIX_RETURN(COMCRLSELPARAMS);
 }
@@ -604,8 +600,6 @@ PKIX_ComCRLSelParams_GetCertificateChecking(
 
         *pCert = params->cert;
 
-cleanup:
-
         PKIX_RETURN(COMCRLSELPARAMS);
 }
 
@@ -655,8 +649,6 @@ PKIX_ComCRLSelParams_GetDateAndTime(
         PKIX_INCREF(params->date);
 
         *pDate = params->date;
-
-cleanup:
 
         PKIX_RETURN(COMCRLSELPARAMS);
 }
@@ -708,8 +700,6 @@ PKIX_ComCRLSelParams_GetMaxCRLNumber(
 
         *pMaxCRLNumber = params->maxCRLNumber;
 
-cleanup:
-
         PKIX_RETURN(COMCRLSELPARAMS);
 }
 
@@ -760,8 +750,6 @@ PKIX_ComCRLSelParams_GetMinCRLNumber(
         PKIX_INCREF(params->minCRLNumber);
 
         *pMinCRLNumber = params->minCRLNumber;
-
-cleanup:
 
         PKIX_RETURN(COMCRLSELPARAMS);
 }
