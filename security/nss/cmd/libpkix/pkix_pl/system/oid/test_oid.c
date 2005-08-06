@@ -183,7 +183,6 @@ int main(int argc, char *argv[]) {
                 "2.39.3"
         };
 
-        char *temp = NULL;
         char *badOID[11] = {
                 "1.2.4294967299",
                 "this. is. a. bad. oid",
