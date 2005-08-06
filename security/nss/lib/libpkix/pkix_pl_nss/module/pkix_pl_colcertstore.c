@@ -618,8 +618,6 @@ pkix_pl_CollectionCertStoreContext_PopulateCRL(
 {
         PKIX_List *crlList = NULL;
         PKIX_PL_CRL *crlItem = NULL;
-        PKIX_Error *createCrlFail = NULL;
-        PKIX_Error *error = NULL;
         char *dirName = NULL;
         char *prErrorText = NULL;
         char *pathName = NULL;
@@ -1147,8 +1145,6 @@ pkix_pl_CollectionCertStoreContext_RegisterSelf(void *plContext)
         entry.duplicateFunction = NULL;
 
         systemClasses[PKIX_COLLECTIONCERTSTORECONTEXT_TYPE] = entry;
-
-cleanup:
 
         PKIX_RETURN(COLLECTIONCERTSTORECONTEXT);
 }
