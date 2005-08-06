@@ -219,7 +219,7 @@ pkix_pl_OID_ToString(
                     "pkix_pl_helperBytes2Ascii failed");
 
         PKIX_CHECK(PKIX_PL_String_Create
-                (PKIX_ESCASCII, ascii, NULL, pString, plContext),
+                (PKIX_ESCASCII, ascii, 0, pString, plContext),
                 "PKIX_PL_String_Create failed");
 
 cleanup:
@@ -259,8 +259,6 @@ pkix_pl_OID_RegisterSelf(
         entry.duplicateFunction = pkix_duplicateImmutable;
 
         systemClasses[PKIX_OID_TYPE] = entry;
-
-cleanup:
 
         PKIX_RETURN(OID);
 }
@@ -317,7 +315,7 @@ pkix_pl_OID_GetNextToken(
         }
 
         if (*input == '.'){
-                *input = NULL;
+                *input = 0;
                 *pRem = input + 1;
         } else { /* NULL case */
                 *pRem = NULL;
@@ -433,7 +431,6 @@ PKIX_PL_OID_Create(
         PKIX_UInt32 value;
         PKIX_Boolean firstFieldTwo;
         PKIX_UInt32 *components = NULL;
-        const char *max32bit = "4294967295";
         char *rem = NULL;
 
         PKIX_ENTER(OID, "PKIX_PL_OID_Create");

@@ -245,8 +245,6 @@ cleanup:
 PKIX_Error *
 PKIX_PL_Shutdown(void *plContext)
 {
-        PKIX_UInt32 i = 0;
-
         PKIX_ENTER(OBJECT, "PKIX_PL_Shutdown");
 
         PKIX_DECREF(cachedCertSigTable);
@@ -257,8 +255,6 @@ PKIX_PL_Shutdown(void *plContext)
         NSS_Shutdown();
 
         pkix_pl_initialized = PKIX_FALSE;
-
-cleanup:
 
         PKIX_RETURN(OBJECT);
 

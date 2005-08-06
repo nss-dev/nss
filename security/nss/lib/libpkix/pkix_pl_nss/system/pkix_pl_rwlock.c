@@ -100,8 +100,6 @@ pkix_pl_RWLock_RegisterSelf(
 
         systemClasses[PKIX_RWLOCK_TYPE] = entry;
 
-cleanup:
-
         PKIX_RETURN(RWLOCK);
 }
 
