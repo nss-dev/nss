@@ -359,7 +359,7 @@ createDate(
         PKIX_TEST_STD_VARS();
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create
-            (PKIX_ESCASCII, asciiDate, NULL, &plString, plContext));
+            (PKIX_ESCASCII, asciiDate, 0, &plString, plContext));
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Date_Create_UTCTime
                                     (plString, &date, plContext));
@@ -420,7 +420,7 @@ createProcessingParams(
                         (PKIX_PL_String_Create
                         (PKIX_ESCASCII,
                         dateAscii,
-                        NULL,
+                        0,
                         &dateString,
                         plContext));
 
@@ -562,7 +562,7 @@ createGeneralName(
         PKIX_TEST_STD_VARS();
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create
-            (PKIX_ESCASCII, asciiName, NULL, &plString, plContext));
+            (PKIX_ESCASCII, asciiName, 0, &plString, plContext));
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_GeneralName_Create
             (nameType, plString, &generalName, plContext));

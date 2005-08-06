@@ -111,7 +111,7 @@ void testGetCRL(void)
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create
                                     (PKIX_ESCASCII,
                                     crlDir,
-                                    NULL,
+                                    0,
                                     &dirString,
                                     plContext));
 
@@ -173,7 +173,7 @@ void testGetCert(void)
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create
                                     (PKIX_ESCASCII,
                                     certDir,
-                                    NULL,
+                                    0,
                                     &dirString,
                                     plContext));
 
