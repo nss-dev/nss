@@ -171,7 +171,7 @@ pkix_pl_CertPolicyInfo_ToString(
 
         /* Put them together in the form OID[Qualifiers] */
         PKIX_CHECK(PKIX_PL_String_Create
-                (PKIX_ESCASCII, "%s[%s]", NULL, &format, plContext),
+                (PKIX_ESCASCII, "%s[%s]", 0, &format, plContext),
                 "Error in PKIX_PL_String_Create");
 
         PKIX_CHECK(PKIX_PL_Sprintf
@@ -346,8 +346,6 @@ pkix_pl_CertPolicyInfo_RegisterSelf(void *plContext)
 
         systemClasses[PKIX_CERTPOLICYINFO_TYPE] = entry;
 
-cleanup:
-
         PKIX_RETURN(CERTPOLICYINFO);
 }
 
@@ -370,8 +368,6 @@ PKIX_PL_CertPolicyInfo_GetPolicyId(
         PKIX_INCREF(policyInfo->cpID);
 
         *pPolicyId = policyInfo->cpID;
-
-cleanup:
 
         PKIX_RETURN(CERTPOLICYINFO);
 }
@@ -397,8 +393,6 @@ PKIX_PL_CertPolicyInfo_GetPolQualifiers(
          * and is set immutable immediately after being created.
          */
         *pQuals = policyInfo->policyQualifiers;
-
-cleanup:
 
         PKIX_RETURN(CERTPOLICYINFO);
 }
