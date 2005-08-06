@@ -81,8 +81,6 @@ PKIX_PL_Malloc(
                 }
         }
 
-cleanup:
-
         PKIX_RETURN(MEM);
 }
 
@@ -124,8 +122,6 @@ PKIX_PL_Calloc(
                     }
                 }
         }
-
-cleanup:
 
         PKIX_RETURN(MEM);
 }
@@ -175,8 +171,6 @@ PKIX_PL_Realloc(
                 }
         }
 
-cleanup:
-
         PKIX_RETURN(MEM);
 }
 
@@ -194,8 +188,6 @@ PKIX_PL_Free(
                 PKIX_MEM_DEBUG("\tCalling PR_Free.\n");
                 (void) PR_Free(ptr);
         }
-
-cleanup:
 
         PKIX_RETURN(MEM);
 }
@@ -218,8 +210,6 @@ PKIX_PL_Memcpy(
         }
         PKIX_MEM_DEBUG("\tCalling PORT_Memcpy.\n");
         (void) PORT_Memcpy(*pDest, source, length);
-
-cleanup:
 
         PKIX_RETURN(MEM);
 }

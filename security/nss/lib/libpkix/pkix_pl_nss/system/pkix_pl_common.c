@@ -165,8 +165,6 @@ pkix_pl_UInt32_Overflows(char *string){
         PKIX_UInt32 length, i;
         char *MAX_UINT32_STRING = "4294967295";
 
-        char *myFuncName = "pkix_pl_UInt32_Overflows";
-
         PKIX_DEBUG_ENTER(OID);
 
         PKIX_OID_DEBUG("\tCalling PL_strlen).\n");
