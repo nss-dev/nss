@@ -125,7 +125,7 @@ pkix_CRLSelector_ToString_Helper(
         PKIX_CHECK(PKIX_PL_String_Create
                     (PKIX_ESCASCII,
                     asciiFormat,
-                    NULL,
+                    0,
                     &formatString,
                     plContext),
                     "PKIX_PL_String_Create failed");
@@ -582,7 +582,6 @@ pkix_CRLSelector_RegisterSelf(void *plContext)
 
         systemClasses[PKIX_CRLSELECTOR_TYPE] = entry;
 
-cleanup:
         PKIX_RETURN(CRLSELECTOR);
 }
 
@@ -652,8 +651,6 @@ PKIX_CRLSelector_GetMatchCallback(
 
         *pCallback = selector->matchCallback;
 
-cleanup:
-
         PKIX_RETURN(CRLSELECTOR);
 }
 
@@ -675,8 +672,6 @@ PKIX_CRLSelector_GetCRLSelectorContext(
 
         *pCrlSelectorContext = selector->context;
 
-cleanup:
-
         PKIX_RETURN(CRLSELECTOR);
 }
 
@@ -696,8 +691,6 @@ PKIX_CRLSelector_GetCommonCRLSelectorParams(
         PKIX_INCREF(selector->params);
 
         *pParams = selector->params;
-
-cleanup:
 
         PKIX_RETURN(CRLSELECTOR);
 }
