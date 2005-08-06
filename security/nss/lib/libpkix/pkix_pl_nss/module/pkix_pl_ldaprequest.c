@@ -84,7 +84,6 @@ pkix_pl_LdapRequest_EncodeAttrs(
         PKIX_PL_LdapRequest *request,
         void *plContext)
 {
-        SECItem *encoding = NULL;
         SECItem **attrArray = NULL;
         PKIX_UInt32 attrIndex = 0;
         LdapAttrIncludeMask attrBits;
@@ -136,8 +135,6 @@ pkix_pl_LdapRequest_EncodeAttrs(
                 attrIndex++;
         }
         attrArray[attrIndex] = (SECItem *)NULL;
-
-cleanup:
 
         PKIX_RETURN(LDAPREQUEST);
 }
@@ -244,7 +241,6 @@ pkix_pl_LdapRequest_Equals(
         PKIX_PL_LdapRequest *firstReq = NULL;
         PKIX_PL_LdapRequest *secondReq = NULL;
         PKIX_UInt32 secondType = 0;
-        PKIX_Boolean compare = PKIX_FALSE;
         PKIX_UInt32 firstLen = 0;
         const unsigned char *firstData = NULL;
         const unsigned char *secondData = NULL;
@@ -370,8 +366,6 @@ pkix_pl_LdapRequest_RegisterSelf(void *plContext)
         entry.duplicateFunction = pkix_duplicateImmutable;
 
         systemClasses[PKIX_LDAPREQUEST_TYPE] = entry;
-
-cleanup:
 
         PKIX_RETURN(LDAPREQUEST);
 }
@@ -651,13 +645,10 @@ pkix_pl_LdapRequest_GetEncoded(
         SECItem **pRequestBuf,
         void *plContext)
 {
-        PKIX_PL_LdapRequest *ldapRequest = NULL;
-
         PKIX_ENTER(LDAPREQUEST, "pkix_pl_LdapRequest_GetEncoded");
         PKIX_NULLCHECK_TWO(request, pRequestBuf);
 
         *pRequestBuf = request->encoded;
-cleanup:
 
         PKIX_RETURN(LDAPREQUEST);
 }

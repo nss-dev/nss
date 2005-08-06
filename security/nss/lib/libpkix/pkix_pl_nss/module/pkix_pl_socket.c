@@ -491,7 +491,6 @@ pkix_pl_Socket_Connect(
 {
         PRStatus rv = PR_FAILURE;
         PRErrorCode errorcode = 0;
-        PRFileDesc *mySock = NULL;
 
         PKIX_ENTER(SOCKET, "pkix_pl_Socket_Connect");
         PKIX_NULLCHECK_TWO(socket, socket->clientSock);
@@ -591,8 +590,6 @@ pkix_pl_Socket_RegisterSelf(void *plContext)
         entry.duplicateFunction = NULL;
 
         systemClasses[PKIX_SOCKET_TYPE] = entry;
-
-cleanup:
 
         PKIX_RETURN(SOCKET);
 }
@@ -1194,8 +1191,6 @@ pkix_pl_Socket_GetCallbackList(
 
         *pCallbackList = &(socket->callbackList);
 
-cleanup:
-
         PKIX_RETURN(SOCKET);
 }
 
@@ -1212,8 +1207,6 @@ pkix_pl_Socket_GetPRFileDesc(
         PKIX_NULLCHECK_TWO(socket, pDesc);
 
         *pDesc = socket->clientSock;
-
-cleanup:
 
         PKIX_RETURN(SOCKET);
 }
