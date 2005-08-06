@@ -56,7 +56,7 @@ createX500Name(char *asciiName, PKIX_Boolean expectedToPass){
 
         PKIX_TEST_EXPECT_NO_ERROR
                 (PKIX_PL_String_Create
-                (PKIX_ESCASCII, asciiName, NULL, &plString, plContext));
+                (PKIX_ESCASCII, asciiName, 0, &plString, plContext));
 
         if (expectedToPass){
                 PKIX_TEST_EXPECT_NO_ERROR
