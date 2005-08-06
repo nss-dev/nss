@@ -210,7 +210,7 @@ pkix_ValidateParams_ToString(
         PKIX_CHECK(PKIX_PL_String_Create
                     (PKIX_ESCASCII,
                     asciiFormat,
-                    NULL,
+                    0,
                     &formatString,
                     plContext),
                     "PKIX_PL_String_Create failed");
@@ -279,8 +279,6 @@ pkix_ValidateParams_RegisterSelf(void *plContext)
 
         systemClasses[PKIX_VALIDATEPARAMS_TYPE] = entry;
 
-cleanup:
-
         PKIX_RETURN(VALIDATEPARAMS);
 }
 
@@ -340,8 +338,6 @@ PKIX_ValidateParams_GetProcessingParams(
 
         *pProcParams = valParams->procParams;
 
-cleanup:
-
         PKIX_RETURN(VALIDATEPARAMS);
 }
 
@@ -360,8 +356,6 @@ PKIX_ValidateParams_GetCertChain(
         PKIX_INCREF(valParams->chain);
 
         *pChain = valParams->chain;
-
-cleanup:
 
         PKIX_RETURN(VALIDATEPARAMS);
 }

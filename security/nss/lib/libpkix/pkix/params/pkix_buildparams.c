@@ -169,11 +169,9 @@ pkix_BuildParams_ToString(
 {
         PKIX_BuildParams *buildParams = NULL;
         char *asciiFormat = NULL;
-        char *asciiNullString = "(null)";
         PKIX_PL_String *formatString = NULL;
         PKIX_PL_String *buildParamsString = NULL;
 
-        PKIX_ProcessingParams *procParams = NULL;
         PKIX_PL_String *procParamsString = NULL;
 
         PKIX_ENTER(BUILDPARAMS, "pkix_BuildParams_ToString");
@@ -254,8 +252,6 @@ pkix_BuildParams_RegisterSelf(void *plContext)
 
         systemClasses[PKIX_BUILDPARAMS_TYPE] = entry;
 
-cleanup:
-
         PKIX_RETURN(BUILDPARAMS);
 }
 
@@ -310,8 +306,6 @@ PKIX_BuildParams_GetProcessingParams(
         PKIX_INCREF(buildParams->procParams);
 
         *pProcParams = buildParams->procParams;
-
-cleanup:
 
         PKIX_RETURN(BUILDPARAMS);
 }

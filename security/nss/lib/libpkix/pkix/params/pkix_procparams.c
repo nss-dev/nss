@@ -289,7 +289,7 @@ pkix_ProcessingParams_ToString(
         PKIX_CHECK(PKIX_PL_String_Create
                     (PKIX_ESCASCII,
                     asciiFormat,
-                    NULL,
+                    0,
                     &formatString,
                     plContext),
                     "PKIX_PL_String_Create failed");
@@ -312,7 +312,7 @@ pkix_ProcessingParams_ToString(
         PKIX_CHECK(PKIX_PL_String_Create
                 (PKIX_ESCASCII,
                 (procParams->qualifiersRejected)?"TRUE":"FALSE",
-                NULL,
+                0,
                 &qualsRejectedString,
                 plContext),
                 "PKIX_PL_String_Create failed");
@@ -384,8 +384,6 @@ pkix_ProcessingParams_RegisterSelf(void *plContext)
         entry.duplicateFunction = NULL; /* XXX should we have a duplicate */
 
         systemClasses[PKIX_PROCESSINGPARAMS_TYPE] = entry;
-
-cleanup:
 
         PKIX_RETURN(PROCESSINGPARAMS);
 }
@@ -465,8 +463,6 @@ PKIX_ProcessingParams_GetTrustAnchors(
 
         *pAnchors = params->trustAnchors;
 
-cleanup:
-
         PKIX_RETURN(PROCESSINGPARAMS);
 }
 
@@ -484,8 +480,6 @@ PKIX_ProcessingParams_GetDate(
 
         PKIX_INCREF(params->date);
         *pDate = params->date;
-
-cleanup:
 
         PKIX_RETURN(PROCESSINGPARAMS);
 }
@@ -537,8 +531,6 @@ PKIX_ProcessingParams_GetTargetCertConstraints(
 
         PKIX_INCREF(params->constraints);
         *pConstraints = params->constraints;
-
-cleanup:
 
         PKIX_RETURN(PROCESSINGPARAMS);
 }
@@ -656,8 +648,6 @@ PKIX_ProcessingParams_GetPolicyQualifiersRejected(
 
         *pRejected = params->qualifiersRejected;
 
-cleanup:
-
         PKIX_RETURN(PROCESSINGPARAMS);
 }
 
@@ -707,8 +697,6 @@ PKIX_ProcessingParams_GetCertChainCheckers(
         }
 
         *pCheckers = params->certChainCheckers;
-
-cleanup:
 
         PKIX_RETURN(PROCESSINGPARAMS);
 }
@@ -809,8 +797,6 @@ PKIX_ProcessingParams_GetRevocationCheckers(
         }
 
         *pCheckers = params->revCheckers;
-
-cleanup:
 
         PKIX_RETURN(PROCESSINGPARAMS);
 }
@@ -996,8 +982,6 @@ PKIX_ProcessingParams_IsCRLRevocationCheckingEnabled(
 
         *pEnabled = params->isCrlRevocationCheckingEnabled;
 
-cleanup:
-
         PKIX_RETURN(PROCESSINGPARAMS);
 }
 
@@ -1065,8 +1049,6 @@ pkix_ProcessingParams_GetRevocationEnabled(
 
         *pEnabled = params->isCrlRevocationCheckingEnabled;
 
-cleanup:
-
         PKIX_RETURN(PROCESSINGPARAMS);
 }
 
@@ -1086,8 +1068,6 @@ PKIX_ProcessingParams_IsAnyPolicyInhibited(
         PKIX_NULLCHECK_TWO(params, pInhibited);
 
         *pInhibited = params->initialAnyPolicyInhibit;
-
-cleanup:
 
         PKIX_RETURN(PROCESSINGPARAMS);
 }
@@ -1135,8 +1115,6 @@ PKIX_ProcessingParams_IsExplicitPolicyRequired(
 
         *pRequired = params->initialExplicitPolicy;
 
-cleanup:
-
         PKIX_RETURN(PROCESSINGPARAMS);
 }
 
@@ -1182,8 +1160,6 @@ PKIX_ProcessingParams_IsPolicyMappingInhibited(
         PKIX_NULLCHECK_TWO(params, pInhibited);
 
         *pInhibited = params->initialPolicyMappingInhibit;
-
-cleanup:
 
         PKIX_RETURN(PROCESSINGPARAMS);
 }

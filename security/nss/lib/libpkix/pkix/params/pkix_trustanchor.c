@@ -259,7 +259,7 @@ pkix_TrustAnchor_ToString(
                 PKIX_CHECK(PKIX_PL_String_Create
                             (PKIX_ESCASCII,
                             asciiFormat,
-                            NULL,
+                            0,
                             &formatString,
                             plContext),
                             "PKIX_PL_String_Create failed");
@@ -287,7 +287,7 @@ pkix_TrustAnchor_ToString(
                 PKIX_CHECK(PKIX_PL_String_Create
                             (PKIX_ESCASCII,
                             asciiFormat,
-                            NULL,
+                            0,
                             &formatString,
                             plContext),
                             "PKIX_PL_String_Create failed");
@@ -362,8 +362,6 @@ pkix_TrustAnchor_RegisterSelf(void *plContext)
         entry.duplicateFunction = pkix_duplicateImmutable;
 
         systemClasses[PKIX_TRUSTANCHOR_TYPE] = entry;
-
-cleanup:
 
         PKIX_RETURN(TRUSTANCHOR);
 }
@@ -467,8 +465,6 @@ PKIX_TrustAnchor_GetTrustedCert(
 
         *pCert = anchor->trustedCert;
 
-cleanup:
-
         PKIX_RETURN(TRUSTANCHOR);
 
 }
@@ -488,8 +484,6 @@ PKIX_TrustAnchor_GetCAName(
         PKIX_INCREF(anchor->caName);
 
         *pCAName = anchor->caName;
-
-cleanup:
 
         PKIX_RETURN(TRUSTANCHOR);
 
@@ -511,8 +505,6 @@ PKIX_TrustAnchor_GetCAPublicKey(
 
         *pPubKey = anchor->caPubKey;
 
-cleanup:
-
         PKIX_RETURN(TRUSTANCHOR);
 }
 
@@ -532,8 +524,6 @@ PKIX_TrustAnchor_GetNameConstraints(
         PKIX_INCREF(anchor->nameConstraints);
 
         *pNameConstraints = anchor->nameConstraints;
-
-cleanup:
 
         PKIX_RETURN(TRUSTANCHOR);
 }
