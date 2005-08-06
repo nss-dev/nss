@@ -203,7 +203,7 @@ pkix_pl_PrimHashTable_Add(
 {
         pkix_pl_HT_Elem **elemPtr = NULL;
         pkix_pl_HT_Elem *element = NULL;
-        PKIX_Boolean compResult = NULL;
+        PKIX_Boolean compResult = PKIX_FALSE;
 
         PKIX_ENTER(HASHTABLE, "pkix_pl_PrimHashTable_Add");
         PKIX_NULLCHECK_THREE(ht, key, value);
@@ -404,7 +404,7 @@ pkix_pl_PrimHashTable_Lookup(
         void *plContext)
 {
         pkix_pl_HT_Elem *element = NULL;
-        PKIX_Boolean compResult = NULL;
+        PKIX_Boolean compResult = PKIX_FALSE;
 
         PKIX_ENTER(HASHTABLE, "pkix_pl_PrimHashTable_Lookup");
         PKIX_NULLCHECK_THREE(ht, key, pResult);
