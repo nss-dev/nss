@@ -1062,14 +1062,14 @@ testCheckValidity(
 
         /* create newer date when newer cert is valid but older cert is not */
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create
-            (PKIX_ESCASCII, newerAscii, NULL, &newerString, plContext));
+            (PKIX_ESCASCII, newerAscii, 0, &newerString, plContext));
         PKIX_TEST_EXPECT_NO_ERROR
                 (PKIX_PL_Date_Create_UTCTime
                 (newerString, &newerDate, plContext));
 
         /* create older date when older cert is valid but newer cert is not */
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create
-            (PKIX_ESCASCII, olderAscii, NULL, &olderString, plContext));
+            (PKIX_ESCASCII, olderAscii, 0, &olderString, plContext));
         PKIX_TEST_EXPECT_NO_ERROR
                 (PKIX_PL_Date_Create_UTCTime
                 (olderString, &olderDate, plContext));
@@ -1304,7 +1304,6 @@ testBasicConstraints_GetPathLenConstraint()
         char *goodCertName = "../../certs/yassir2yassir";
         char *diffCertName = "../../certs/sun2sun";
         PKIX_Int32 goodPathLen = 0;
-        PKIX_Int32 equalPathLen = 0;
         PKIX_Int32 diffPathLen = 0;
 
         PKIX_TEST_STD_VARS();
@@ -1380,8 +1379,6 @@ testGetBasicConstraints()
         goodCertName = "../../certs/anchor2dsa";
         diffCertName = "../../certs/sun2sun";
         testBasicConstraintsHelper(goodCertName, diffCertName, "CA(-1)");
-
-cleanup:
 
         PKIX_TEST_RETURN();
 }
