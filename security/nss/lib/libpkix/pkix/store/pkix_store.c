@@ -105,8 +105,6 @@ pkix_CertStore_RegisterSelf(void *plContext)
 
         systemClasses[PKIX_CERTSTORE_TYPE] = entry;
 
-cleanup:
-
         PKIX_RETURN(CERTSTORE);
 }
 
@@ -162,8 +160,6 @@ PKIX_CertStore_GetCertCallback(
 
         *pCallback = store->certCallback;
 
-cleanup:
-
         PKIX_RETURN(CERTSTORE);
 }
 
@@ -180,8 +176,6 @@ PKIX_CertStore_GetCRLCallback(
         PKIX_NULLCHECK_TWO(store, pCallback);
 
         *pCallback = store->crlCallback;
-
-cleanup:
 
         PKIX_RETURN(CERTSTORE);
 }
@@ -201,8 +195,6 @@ PKIX_CertStore_GetCertStoreContext(
 
         PKIX_INCREF(store->certStoreContext);
         *pCertStoreContext = store->certStoreContext;
-
-cleanup:
 
         PKIX_RETURN(CERTSTORE);
 }
