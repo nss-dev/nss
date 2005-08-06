@@ -1538,7 +1538,6 @@ pkix_CertSelector_RegisterSelf(void *plContext)
 
         systemClasses[PKIX_CERTSELECTOR_TYPE] = entry;
 
-cleanup:
         PKIX_RETURN(CERTSELECTOR);
 }
 
@@ -1608,8 +1607,6 @@ PKIX_CertSelector_GetMatchCallback(
 
         *pCallback = selector->matchCallback;
 
-cleanup:
-
         PKIX_RETURN(CERTSELECTOR);
 }
 
@@ -1629,8 +1626,6 @@ PKIX_CertSelector_GetCertSelectorContext(
         PKIX_INCREF(selector->context);
 
         *pCertSelectorContext = selector->context;
-
-cleanup:
 
         PKIX_RETURN(CERTSELECTOR);
 }
@@ -1652,8 +1647,6 @@ PKIX_CertSelector_GetCommonCertSelectorParams(
 
         PKIX_INCREF(selector->params);
         *pParams = selector->params;
-
-cleanup:
 
         PKIX_RETURN(CERTSELECTOR);
 
