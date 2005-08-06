@@ -426,6 +426,26 @@ struct FREEBLVectorStr {
  void (* p_SHA384_Clone)(SHA384Context *dest, SHA384Context *src);
  void (* p_SHA512_Clone)(SHA512Context *dest, SHA512Context *src);
 
+ SECStatus (* p_TLS_PRF)(const SECItem *secret, const char *label, 
+		         SECItem *seed, SECItem *result, PRBool isFIPS);
+
+ const SECHashObject *(* p_SEC_GetRawHashObject)(HASH_HashType hashType);
+
+ void (* p_HMAC_Destroy)(HMACContext *cx);
+ HMACContext * (* p_HMAC_Create)(const SECHashObject *hashObj, 
+				 const unsigned char *secret, 
+				 unsigned int secret_len, PRBool isFIPS);
+ SECStatus (* p_HMAC_Init)(HMACContext *cx, const SECHashObject *hash_obj, 
+			   const unsigned char *secret, 
+			   unsigned int secret_len, PRBool isFIPS);
+ void (* p_HMAC_Begin)(HMACContext *cx);
+ void  (* p_HMAC_Update)(HMACContext *cx, const unsigned char *data, 
+			 unsigned int data_len);
+ SECStatus (* p_HMAC_Finish)(HMACContext *cx, unsigned char *result, 
+			     unsigned int *result_len, 
+			     unsigned int max_result_len);
+ HMACContext * (* p_HMAC_Clone)(HMACContext *cx);
+
   /* Version 3.008 came to here */
 };
 

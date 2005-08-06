@@ -40,6 +40,7 @@
 /* $Id$ */
 
 #include "loader.h"
+#include "alghmac.h"
 
 static const struct FREEBLVectorStr vector = 
 {
@@ -206,6 +207,17 @@ static const struct FREEBLVectorStr vector =
     SHA256_Clone,
     SHA384_Clone,
     SHA512_Clone,
+
+    TLS_PRF,
+    SEC_GetRawHashObject,
+
+    HMAC_Destroy,
+    HMAC_Create,
+    HMAC_Init,
+    HMAC_Begin,
+    HMAC_Update,
+    HMAC_Finish,
+    HMAC_Clone,
 
     /* End of Version 3.008. */
 };
