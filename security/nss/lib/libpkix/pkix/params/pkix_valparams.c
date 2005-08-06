@@ -186,12 +186,8 @@ pkix_ValidateParams_ToString(
 {
         PKIX_ValidateParams *valParams = NULL;
         char *asciiFormat = NULL;
-        char *asciiNullString = "(null)";
         PKIX_PL_String *formatString = NULL;
         PKIX_PL_String *valParamsString = NULL;
-
-        PKIX_ProcessingParams *procParams = NULL;
-        PKIX_CertChain *chain = NULL;
 
         PKIX_PL_String *procParamsString = NULL;
         PKIX_PL_String *chainString = NULL;
