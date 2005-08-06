@@ -150,7 +150,6 @@ pkix_RevocationChecker_RegisterSelf(void *plContext)
 
         systemClasses[PKIX_REVOCATIONCHECKER_TYPE] = entry;
 
-cleanup:
         PKIX_RETURN(REVOCATIONCHECKER);
 }
 
@@ -209,8 +208,6 @@ PKIX_RevocationChecker_GetRevCallback(
 
         *pCallback = checker->checkCallback;
 
-cleanup:
-
         PKIX_RETURN(REVOCATIONCHECKER);
 }
 
@@ -232,8 +229,6 @@ PKIX_RevocationChecker_GetRevCheckerContext(
         PKIX_INCREF(checker->revCheckerContext);
 
         *pRevCheckerContext = checker->revCheckerContext;
-
-cleanup:
 
         PKIX_RETURN(REVOCATIONCHECKER);
 

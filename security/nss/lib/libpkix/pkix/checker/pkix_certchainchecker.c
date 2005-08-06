@@ -164,7 +164,6 @@ pkix_CertChainChecker_RegisterSelf(void *plContext)
 
         systemClasses[PKIX_CERTCHAINCHECKER_TYPE] = entry;
 
-cleanup:
         PKIX_RETURN(CERTCHAINCHECKER);
 }
 
@@ -230,8 +229,6 @@ PKIX_CertChainChecker_GetCheckCallback(
 
         *pCallback = checker->checkCallback;
 
-cleanup:
-
         PKIX_RETURN(CERTCHAINCHECKER);
 }
 
@@ -252,8 +249,6 @@ PKIX_CertChainChecker_IsForwardCheckingSupported(
 
         *pForwardCheckingSupported = checker->forwardChecking;
 
-cleanup:
-
         PKIX_RETURN(CERTCHAINCHECKER);
 }
 
@@ -273,8 +268,6 @@ PKIX_CertChainChecker_IsForwardDirectionExpected(
         PKIX_NULLCHECK_TWO(checker, pForwardDirectionExpected);
 
         *pForwardDirectionExpected = checker->isForwardDirectionExpected;
-
-cleanup:
 
         PKIX_RETURN(CERTCHAINCHECKER);
 }
@@ -297,8 +290,6 @@ PKIX_CertChainChecker_GetCertChainCheckerState(
         PKIX_INCREF(checker->state);
 
         *pCertChainCheckerState = checker->state;
-
-cleanup:
 
         PKIX_RETURN(CERTCHAINCHECKER);
 
@@ -352,8 +343,6 @@ PKIX_CertChainChecker_GetSupportedExtensions(
         PKIX_INCREF(checker->extensions);
 
         *pExtensions = checker->extensions;
-
-cleanup:
 
         PKIX_RETURN(CERTCHAINCHECKER);
 
