@@ -208,9 +208,7 @@ pkix_SignatureChecker_Check(
         PKIX_PL_CertBasicConstraints *basicConstraints = NULL;
         PKIX_Error *checkKeyUsageFail = NULL;
         PKIX_Error *verifyFail = NULL;
-        PKIX_Boolean selfIssued = PKIX_FALSE;
         PKIX_Boolean certVerified = PKIX_FALSE;
-        PKIX_UInt32 numKeys = 0;
 
         PKIX_ENTER(CERTCHAINCHECKER, "pkix_SignatureChecker_Check");
 

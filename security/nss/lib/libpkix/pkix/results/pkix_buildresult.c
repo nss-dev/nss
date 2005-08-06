@@ -202,7 +202,6 @@ pkix_BuildResult_ToString(
         PKIX_PL_String *valResultString = NULL;
         PKIX_PL_String *certChainString = NULL;
 
-        char *asciiNullString = "(null)";
         char *asciiFormat =
                 "[\n"
                 "\tValidateResult: \t\t%s"

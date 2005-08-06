@@ -124,7 +124,6 @@ PKIX_CertStore_Create(
         void *plContext)
 {
         PKIX_CertStore *certStore = NULL;
-        PKIX_CRLSelector *crlSelector = NULL;
 
         PKIX_ENTER(CERTSTORE, "PKIX_CertStore_Create");
         PKIX_NULLCHECK_THREE(certCallback, crlCallback, pStore);
