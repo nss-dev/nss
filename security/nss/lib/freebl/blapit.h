@@ -348,4 +348,19 @@ struct ECPrivateKeyStr {
 };
 typedef struct ECPrivateKeyStr ECPrivateKey;
 
+typedef void * (*BLapiAllocateFunc)(void);
+typedef void (*BLapiDestroyContextFunc)(void *cx, PRBool freeit);
+typedef SECStatus (*BLapiInitContextFunc)(void *cx, 
+				   const unsigned char *key, 
+				   unsigned int keylen,
+				   const unsigned char *, 
+				   int, 
+				   unsigned int ,
+				   unsigned int );
+typedef SECStatus (*BLapiEncrypt)(void *cx, unsigned char *output,
+				unsigned int *outputLen, 
+				unsigned int maxOutputLen,
+				const unsigned char *input, 
+				unsigned int inputLen);
+
 #endif /* _BLAPIT_H_ */
