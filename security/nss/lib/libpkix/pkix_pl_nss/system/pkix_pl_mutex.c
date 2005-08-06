@@ -105,8 +105,6 @@ pkix_pl_Mutex_RegisterSelf(
 
         systemClasses[PKIX_MUTEX_TYPE] = entry;
 
-cleanup:
-
         PKIX_RETURN(MUTEX);
 }
 
@@ -190,8 +188,6 @@ PKIX_PL_Mutex_Unlock(
         if (result == PR_FAILURE) {
                 PKIX_ERROR_FATAL("Error unlocking mutex");
         }
-
-cleanup:
 
         PKIX_RETURN(MUTEX);
 }
