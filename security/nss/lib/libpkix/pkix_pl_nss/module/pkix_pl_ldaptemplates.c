@@ -229,7 +229,7 @@ static const SEC_ASN1Template LDAPSubstringFilterTemplate[] = {
 #define LDAPApproxMatchFilterTemplate LDAPAttributeValueAssertionTemplate
 #define LDAPPresentFilterTemplate LDAPAttributeTypeTemplate
 
-static const SEC_ASN1Template LDAPFilterTemplate[]; /* forward reference */
+static const SEC_ASN1Template LDAPFilterTemplate[10]; /* forward reference */
 
 static const SEC_ASN1Template LDAPAndFilterTemplate[] = {
     { SEC_ASN1_SET_OF, 0, LDAPFilterTemplate }
