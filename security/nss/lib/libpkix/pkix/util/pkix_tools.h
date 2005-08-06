@@ -321,7 +321,7 @@ extern "C" {
                         ((PKIX_PL_Object *)(a), (b), (c)), (d)); \
                 } else { \
                     PKIX_CHECK(PKIX_PL_String_Create(PKIX_ESCASCII, "(null)", \
-                        NULL, (b), (c)), "PKIX_PL_String_Create failed"); \
+                        0, (b), (c)), "PKIX_PL_String_Create failed"); \
                 } \
         } while (0)
 
