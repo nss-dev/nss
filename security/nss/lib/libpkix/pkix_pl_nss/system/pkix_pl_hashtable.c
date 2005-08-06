@@ -117,8 +117,6 @@ pkix_pl_HashTable_RegisterSelf(
 
         systemClasses[PKIX_HASHTABLE_TYPE] = entry;
 
-cleanup:
-
         PKIX_RETURN(HASHTABLE);
 }
 

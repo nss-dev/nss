@@ -109,7 +109,6 @@ pkix_SignatureCheckerState_RegisterSelf(void *plContext)
 
         systemClasses[PKIX_SIGNATURECHECKERSTATE_TYPE] = entry;
 
-cleanup:
         PKIX_RETURN(SIGNATURECHECKERSTATE);
 }
 
