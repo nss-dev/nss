@@ -105,8 +105,6 @@ void testDate(char *goodInput, char *diffInput){
 
         testDestroy(goodDate, equalDate, diffDate);
 
-cleanup:
-
         PKIX_TEST_RETURN();
 
 }

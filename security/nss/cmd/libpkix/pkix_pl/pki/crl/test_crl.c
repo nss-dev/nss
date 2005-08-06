@@ -64,8 +64,6 @@ void createCRLs(
         subTest("PKIX_PL_CRL_Create <diffObject>");
         *diffObject = createCRL(diffInput, plContext);
 
-cleanup:
-
         PKIX_TEST_RETURN();
 }
 
