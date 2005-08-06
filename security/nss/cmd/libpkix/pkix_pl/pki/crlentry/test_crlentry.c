@@ -115,7 +115,6 @@ cleanup:
 static void testGetReasonCode(
         PKIX_PL_CRLEntry *goodObject)
 {
-        PKIX_PL_CRLEntry *crlEntry = NULL;
         PKIX_Int32 reasonCode = 0;
         PKIX_Int32 expectedReasonCode = 260;
 
