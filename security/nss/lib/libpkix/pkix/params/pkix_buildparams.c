@@ -191,7 +191,7 @@ pkix_BuildParams_ToString(
         PKIX_CHECK(PKIX_PL_String_Create
                     (PKIX_ESCASCII,
                     asciiFormat,
-                    NULL,
+                    0,
                     &formatString,
                     plContext),
                     "PKIX_PL_String_Create failed");
