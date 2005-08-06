@@ -164,8 +164,10 @@ pkix_pl_String_ToString(
                 "PKIX_PL_String_GetEncoded failed");
 
         PKIX_CHECK(PKIX_PL_String_Create
-                    (PKIX_ESCASCII, ascii, NULL, pString, plContext),
+                    (PKIX_ESCASCII, ascii, 0, pString, plContext),
                     "PKIX_PL_String_Create failed");
+
+        goto cleanup;
 
 cleanup:
 
@@ -283,8 +285,6 @@ pkix_pl_String_RegisterSelf(
 
         systemClasses[PKIX_STRING_TYPE] = entry;
 
-cleanup:
-
         PKIX_RETURN(STRING);
 }
 
@@ -303,7 +303,6 @@ PKIX_PL_String_Create(
         void *plContext)
 {
         PKIX_PL_String *string = NULL;
-        PKIX_Error *decRefError = NULL;
         unsigned char *utf16Char = NULL;
         PKIX_UInt32 i;
 
@@ -587,7 +586,7 @@ PKIX_PL_Sprintf(
 
         /* Copy temporary char * into a string object */
         PKIX_CHECK(PKIX_PL_String_Create
-                (PKIX_ESCASCII, (void *)asciiText, NULL, pOut, plContext),
+                (PKIX_ESCASCII, (void *)asciiText, 0, pOut, plContext),
                 "PKIX_PL_String_Create failed");
 
 cleanup:
@@ -631,7 +630,7 @@ PKIX_PL_GetString(
 
         /* XXX Optimization - use stringID for caching */
         PKIX_CHECK(PKIX_PL_String_Create
-                    (PKIX_ESCASCII, defaultString, NULL, pString, plContext),
+                    (PKIX_ESCASCII, defaultString, 0, pString, plContext),
                     "PKIX_PL_String_Create failed");
 
 cleanup:
