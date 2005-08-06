@@ -161,7 +161,6 @@ testLookup(
 {
         PKIX_PL_String *targetString = NULL;
         PKIX_PL_String *targetOID = NULL;
-        char *temp = NULL;
         PKIX_Boolean cmpResult;
 
         PKIX_TEST_STD_VARS();
@@ -335,11 +334,6 @@ int main(int argc, char *argv[]) {
         PKIX_PL_OID *testOID;
         PKIX_UInt32 actualMinorVersion;
         PKIX_UInt32 j = 0;
-
-        char *dummyString = "test string 1";
-        char *dummyString2 = "test string 2";
-        char *dummyString3 = "test string 3";
-        char *dummyOID = "2.11.22222.33333";
 
         PKIX_TEST_STD_VARS();
 
