@@ -86,7 +86,6 @@ testEkuSetup(
         PKIX_ComCertSelParams *selParams = NULL;
         PKIX_CertSelector *certSelector = NULL;
         PKIX_Boolean last_token = PKIX_FALSE;
-        PKIX_UInt32 length = 0;
         PKIX_UInt32 i, tokeni;
 
         PKIX_TEST_STD_VARS();
@@ -194,7 +193,6 @@ testEkuChecker(
         PKIX_Boolean only4EE)
 {
         PKIX_ProcessingParams *procParams = NULL;
-        PKIX_UInt32 length = 0;
 
         PKIX_TEST_STD_VARS();
 
