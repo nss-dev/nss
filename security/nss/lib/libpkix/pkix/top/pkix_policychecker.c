@@ -2147,14 +2147,10 @@ pkix_PolicyChecker_WrapUpProcessing(
         PKIX_PolicyCheckerState *state,
         void *plContext)
 {
-        PKIX_UInt32 initialLen = 0;
-        PKIX_UInt32 initialIx = 0;
         PKIX_Int32 explicitPolicySkipCerts = 0;
         PKIX_Boolean isSelfIssued = PKIX_FALSE;
-        PKIX_Boolean match = PKIX_FALSE;
         PKIX_Boolean shouldBePruned = PKIX_FALSE;
         PKIX_List *nominees = NULL; /* OIDs */
-        PKIX_PL_OID *polOID = NULL;
 #if PKIX_CERTPOLICYCHECKERSTATEDEBUG
         PKIX_PL_String *stateString = NULL;
         char *stateAscii = NULL;
@@ -2351,8 +2347,6 @@ pkix_PolicyChecker_Check(
 {
         PKIX_UInt32 numPolicies = 0;
         PKIX_UInt32 polX = 0;
-        PKIX_UInt32 numCritical = 0;
-        PKIX_UInt32 item = 0;
         PKIX_Boolean result = PKIX_FALSE;
         PKIX_Int32 inhibitMappingSkipCerts = 0;
         PKIX_Int32 explicitPolicySkipCerts = 0;

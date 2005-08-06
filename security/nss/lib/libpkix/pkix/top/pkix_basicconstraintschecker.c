@@ -191,9 +191,7 @@ pkix_BasicConstraintsChecker_Check(
         PKIX_Boolean caFlag = PKIX_FALSE;
         PKIX_Int32 pathLength = 0;
         PKIX_Int32 maxPathLength_now;
-        PKIX_PL_OID *theOID = NULL;
         PKIX_Boolean isSelfIssued = PKIX_FALSE;
-        PKIX_Boolean isLastCert = PKIX_FALSE;
 
         PKIX_ENTER(CERTCHAINCHECKER, "pkix_BasicConstraintsChecker_Check");
         PKIX_NULLCHECK_TWO(checker, cert);
