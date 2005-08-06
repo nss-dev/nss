@@ -177,7 +177,7 @@ pkix_PolicyCheckerState_ToString(
                 state->userInitialPolicySet);
 
         PKIX_CHECK(PKIX_PL_String_Create
-                (PKIX_ESCASCII, asciiFormat, NULL, &formatString, plContext),
+                (PKIX_ESCASCII, asciiFormat, 0, &formatString, plContext),
                 "PKIX_PL_String_Create failed");
         /*
          * Create TRUE, FALSE, and "NULL" PKIX_PL_Strings. But creating a
@@ -195,19 +195,19 @@ pkix_PolicyCheckerState_ToString(
             initialAnyPolicyInhibit || initialIsAnyPolicy ||
             policyQualifiersRejected || certPoliciesCritical) {
                 PKIX_CHECK(PKIX_PL_String_Create
-                        (PKIX_ESCASCII, "TRUE", NULL, &trueString, plContext),
+                        (PKIX_ESCASCII, "TRUE", 0, &trueString, plContext),
                         "PKIX_PL_String_Create failed");
         }
         if (!initialPolicyMappingInhibit || !initialExplicitPolicy ||
             !initialAnyPolicyInhibit || !initialIsAnyPolicy ||
             !policyQualifiersRejected || !certPoliciesCritical) {
                 PKIX_CHECK(PKIX_PL_String_Create
-                        (PKIX_ESCASCII, "FALSE", NULL, &falseString, plContext),
+                        (PKIX_ESCASCII, "FALSE", 0, &falseString, plContext),
                         "PKIX_PL_String_Create failed");
         }
         if (!(state->anyPolicyNodeAtBottom) || !(state->newAnyPolicyNode)) {
                 PKIX_CHECK(PKIX_PL_String_Create
-                        (PKIX_ESCASCII, "(null)", NULL, &nullString, plContext),
+                        (PKIX_ESCASCII, "(null)", 0, &nullString, plContext),
                         "PKIX_PL_String_Create failed");
         }
 
@@ -365,8 +365,6 @@ pkix_PolicyCheckerState_RegisterSelf(void *plContext)
         entry.duplicateFunction = NULL;
 
         systemClasses[PKIX_POLICYCHECKERSTATE_TYPE] = entry;
-
-cleanup:
 
         PKIX_RETURN(CERTPOLICYCHECKERSTATE);
 }

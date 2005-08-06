@@ -129,7 +129,6 @@ pkix_DefaultCRLCheckerState_RegisterSelf(void *plContext)
 
         systemClasses[PKIX_DEFAULTCRLCHECKERSTATE_TYPE] = entry;
 
-cleanup:
         PKIX_RETURN(DEFAULTCRLCHECKERSTATE);
 }
 
@@ -266,7 +265,6 @@ pkix_DefaultCRLChecker_CheckCRLs(
         PKIX_UInt32 numCrls = 0;
         PKIX_UInt32 numKeys = 0;
         PKIX_UInt32 numCritExtOIDs = 0;
-        PKIX_Boolean cmpResult = PKIX_FALSE;
         PKIX_Boolean crlVerified = PKIX_FALSE;
         PKIX_Int32 reasonCode = 0;
         PKIX_UInt32 i;
@@ -518,7 +516,6 @@ pkix_DefaultCRLChecker_Check_Helper(
         PKIX_PL_Date *nowDate = NULL;
 
         PKIX_Error *checkCrlFail = NULL;
-        PKIX_UInt32 type = 0;
         PKIX_UInt32 numCertStores = 0;
         PKIX_UInt32 i = 0;
 

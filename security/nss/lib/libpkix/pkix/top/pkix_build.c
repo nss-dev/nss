@@ -291,8 +291,6 @@ pkix_ForwardBuilderState_RegisterSelf(void *plContext)
 
         systemClasses[PKIX_FORWARDBUILDERSTATE_TYPE] = entry;
 
-cleanup:
-
         PKIX_RETURN(FORWARDBUILDERSTATE);
 }
 
@@ -746,6 +744,7 @@ pkix_IsChainCompleted(
 
         *pMatchingAnchor = anchorResult;
 
+        goto cleanup;
 cleanup:
 
         if (PKIX_ERROR_RECEIVED){
@@ -1148,8 +1147,6 @@ pkix_BuildForwardDepthFirstSearch(
         PKIX_PL_Cert *matchingCert = NULL;
         PKIX_TrustAnchor *matchingAnchor = NULL;
         PKIX_UInt32 numMatchingCerts, numChainCerts, i;
-        PKIX_Boolean chainCompleted = PKIX_FALSE;
-        PKIX_List *unresCritExtOIDs = NULL;
         PKIX_PL_PublicKey *finalSubjPubKey = NULL;
         PKIX_PolicyNode *finalPolicyTree = NULL;
 
@@ -1488,8 +1485,6 @@ PKIX_BuildChain(
         void *plContext)
 {
         PKIX_List *certs = NULL;
-        PKIX_UInt32 i = 0;
-        PKIX_Boolean chainCompleted = PKIX_FALSE;
         PKIX_ValidateResult *valResult = NULL;
         PKIX_BuildResult *buildResult = NULL;
         PKIX_CertChain *certChain = NULL;

@@ -79,9 +79,7 @@ pkix_CheckCert(
         PKIX_CertChainChecker_CheckCallback checkerCheck = NULL;
         PKIX_CertChainChecker *checker = NULL;
         PKIX_List *unresCritExtOIDs = NULL;
-        PKIX_PL_OID *pkixOid = NULL;
         PKIX_UInt32 numCheckers, i;
-        PKIX_Boolean supportedOid = PKIX_TRUE;
         PKIX_UInt32 numUnresCritExtOIDs = 0;
 
         PKIX_ENTER(VALIDATE, "pkix_CheckCert");
@@ -653,8 +651,6 @@ pkix_ExtractParameters(
         PKIX_UInt32 *pNumAnchors,
         void *plContext)
 {
-        PKIX_PL_Cert *cert = NULL;
-
         PKIX_ENTER(VALIDATE, "pkix_ExtractParameters");
         PKIX_NULLCHECK_FOUR(valParams, pChain, pCerts, pNumCerts);
         PKIX_NULLCHECK_THREE(pProcParams, pAnchors, pNumAnchors);

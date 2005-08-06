@@ -108,7 +108,6 @@ pkix_NameConstraintsCheckerState_RegisterSelf(void *plContext)
 
         systemClasses[PKIX_CERTNAMECONSTRAINTSCHECKERSTATE_TYPE] = entry;
 
-cleanup:
         PKIX_RETURN(CERTNAMECONSTRAINTSCHECKERSTATE);
 }
 
@@ -305,7 +304,6 @@ pkix_NameConstraintsChecker_Initialize(
         void *plContext)
 {
         pkix_NameConstraintsCheckerState *state = NULL;
-        PKIX_PL_CertNameConstraints *nameConstraints = NULL;
 
         PKIX_ENTER(CERTCHAINCHECKER, "pkix_NameConstraintsChecker_Initialize");
         PKIX_NULLCHECK_ONE(pChecker);

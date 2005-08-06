@@ -111,8 +111,6 @@ pkix_TargetCertCheckerState_RegisterSelf(void *plContext)
 
         systemClasses[PKIX_TARGETCERTCHECKERSTATE_TYPE] = entry;
 
-cleanup:
-
         PKIX_RETURN(TARGETCERTCHECKERSTATE);
 }
 
