@@ -250,7 +250,7 @@ pkix_ValidateResult_ToString(
         anchor = valResult->anchor;
 
         PKIX_CHECK(PKIX_PL_String_Create
-                (PKIX_ESCASCII, asciiFormat, NULL, &formatString, plContext),
+                (PKIX_ESCASCII, asciiFormat, 0, &formatString, plContext),
                 "PKIX_PL_String_Create failed");
 
         PKIX_CHECK(PKIX_PL_Object_ToString
@@ -275,7 +275,7 @@ pkix_ValidateResult_ToString(
                 PKIX_CHECK(PKIX_PL_String_Create
                         (PKIX_ESCASCII,
                         asciiNullString,
-                        NULL,
+                        0,
                         &treeString,
                         plContext),
                         "PKIX_PL_String_Create failed");
@@ -333,8 +333,6 @@ pkix_ValidateResult_RegisterSelf(void *plContext)
         entry.duplicateFunction = pkix_duplicateImmutable;
 
         systemClasses[PKIX_VALIDATERESULT_TYPE] = entry;
-
-cleanup:
 
         PKIX_RETURN(VALIDATERESULT);
 }
@@ -421,8 +419,6 @@ PKIX_ValidateResult_GetPublicKey(
         PKIX_INCREF(result->pubKey);
         *pPublicKey = result->pubKey;
 
-cleanup:
-
         PKIX_RETURN(VALIDATERESULT);
 }
 
@@ -460,8 +456,6 @@ PKIX_ValidateResult_GetPolicyTree(
 
         PKIX_INCREF(result->policyTree);
         (*pPolicyTree) = result->policyTree;
-
-cleanup:
 
         PKIX_RETURN(VALIDATERESULT);
 }

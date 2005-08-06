@@ -88,8 +88,6 @@ pkix_BuildResult_Equals(
         PKIX_Boolean cmpResult;
         PKIX_BuildResult *firstBuildResult = NULL;
         PKIX_BuildResult *secondBuildResult = NULL;
-        PKIX_PolicyNode *firstTree = NULL;
-        PKIX_PolicyNode *secondTree = NULL;
 
         PKIX_ENTER(BUILDRESULT, "pkix_BuildResult_Equals");
         PKIX_NULLCHECK_THREE(first, second, pResult);
@@ -219,7 +217,7 @@ pkix_BuildResult_ToString(
         valResult = buildResult->valResult;
 
         PKIX_CHECK(PKIX_PL_String_Create
-                (PKIX_ESCASCII, asciiFormat, NULL, &formatString, plContext),
+                (PKIX_ESCASCII, asciiFormat, 0, &formatString, plContext),
                 "PKIX_PL_String_Create failed");
 
         PKIX_CHECK(PKIX_PL_Object_ToString
@@ -281,8 +279,6 @@ pkix_BuildResult_RegisterSelf(void *plContext)
         entry.duplicateFunction = pkix_duplicateImmutable;
 
         systemClasses[PKIX_BUILDRESULT_TYPE] = entry;
-
-cleanup:
 
         PKIX_RETURN(BUILDRESULT);
 }
@@ -364,8 +360,6 @@ PKIX_BuildResult_GetValidateResult(
         PKIX_INCREF(result->valResult);
         *pResult = result->valResult;
 
-cleanup:
-
         PKIX_RETURN(BUILDRESULT);
 }
 
@@ -386,8 +380,6 @@ PKIX_BuildResult_GetCertChain(
 
         PKIX_INCREF(result->certChain);
         *pChain = result->certChain;
-
-cleanup:
 
         PKIX_RETURN(BUILDRESULT);
 }

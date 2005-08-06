@@ -92,8 +92,6 @@ pkix_PolicyNode_GetChildrenMutable(
 
         *pChildren = node->children;
 
-cleanup:
-
         PKIX_RETURN(CERTPOLICYNODE);
 }
 
@@ -145,7 +143,6 @@ pkix_PolicyNode_Create(
         void *plContext)
 {
         PKIX_PolicyNode *node = NULL;
-        PKIX_UInt32 parentDepth = 0;
 
         PKIX_ENTER(CERTPOLICYNODE, "pkix_PolicyNode_Create");
 
@@ -436,7 +433,7 @@ pkix_SinglePolicyNode_ToString(
         PKIX_CHECK(PKIX_PL_String_Create
                 (PKIX_ESCASCII,
                 "{%s,%s,%s,%s,%d}",
-                NULL,
+                0,
                 &fmtString,
                 plContext),
                 "Can't create PKIX_PL_String");
@@ -463,7 +460,7 @@ pkix_SinglePolicyNode_ToString(
                 PKIX_CHECK(PKIX_PL_String_Create
                         (PKIX_ESCASCII,
                         "{}",
-                        NULL,
+                        0,
                         &qualifierString,
                         plContext),
                         "Can't create PKIX_PL_String");
@@ -472,7 +469,7 @@ pkix_SinglePolicyNode_ToString(
         PKIX_CHECK(PKIX_PL_String_Create
                 (PKIX_ESCASCII,
                 (node->criticality)?"Critical":"Not Critical",
-                NULL,
+                0,
                 &criticalityString,
                 plContext),
                 "Can't create PKIX_PL_String");
@@ -559,7 +556,7 @@ pkix_PolicyNode_ToString_Helper(
                 PKIX_CHECK(PKIX_PL_String_Create
                         (PKIX_ESCASCII,
                         "%s%s",
-                        NULL,
+                        0,
                         &thisNodeFormat,
                         plContext),
                         "Error creating format string");
@@ -575,7 +572,7 @@ pkix_PolicyNode_ToString_Helper(
                 PKIX_CHECK(PKIX_PL_String_Create
                         (PKIX_ESCASCII,
                         "%s",
-                        NULL,
+                        0,
                         &thisNodeFormat,
                         plContext),
                         "Error creating format string");
@@ -609,7 +606,7 @@ pkix_PolicyNode_ToString_Helper(
                         PKIX_CHECK(PKIX_PL_String_Create
                                 (PKIX_ESCASCII,
                                 "%s. ",
-                                NULL,
+                                0,
                                 &nextIndentFormat,
                                 plContext),
                                 "Error creating format string");
@@ -624,7 +621,7 @@ pkix_PolicyNode_ToString_Helper(
                         PKIX_CHECK(PKIX_PL_String_Create
                                 (PKIX_ESCASCII,
                                 ". ",
-                                NULL,
+                                0,
                                 &nextIndentString,
                                 plContext),
                                 "Error creating indent string");
@@ -634,7 +631,7 @@ pkix_PolicyNode_ToString_Helper(
                 PKIX_CHECK(PKIX_PL_String_Create
                         (PKIX_ESCASCII,
                         "%s\n%s",
-                        NULL,
+                        0,
                         &childrenFormat,
                         plContext),
                         "Error creating format string");
@@ -987,8 +984,6 @@ pkix_PolicyNode_Equals(
 {
         PKIX_PolicyNode *firstPN = NULL;
         PKIX_PolicyNode *secondPN = NULL;
-        PKIX_List *firstChildren = NULL;
-        PKIX_List *secondChildren = NULL;
         PKIX_UInt32 secondType;
         PKIX_Boolean compResult = PKIX_FALSE;
 
@@ -1228,8 +1223,6 @@ pkix_PolicyNode_RegisterSelf(void *plContext)
 
         systemClasses[PKIX_CERTPOLICYNODE_TYPE] = entry;
 
-cleanup:
-
         PKIX_RETURN(CERTPOLICYNODE);
 }
 
@@ -1291,8 +1284,6 @@ PKIX_PolicyNode_GetParent(
         PKIX_INCREF(node->parent);
         *pParent = node->parent;
 
-cleanup:
-
         PKIX_RETURN(CERTPOLICYNODE);
 }
 
@@ -1313,8 +1304,6 @@ PKIX_PolicyNode_GetValidPolicy(
 
         PKIX_INCREF(node->validPolicy);
         *pValidPolicy = node->validPolicy;
-
-cleanup:
 
         PKIX_RETURN(CERTPOLICYNODE);
 }
@@ -1371,8 +1360,6 @@ PKIX_PolicyNode_GetExpectedPolicies(
         PKIX_INCREF(node->expectedPolicySet);
         *pExpPolicies = node->expectedPolicySet;
 
-cleanup:
-
         PKIX_RETURN(CERTPOLICYNODE);
 }
 
@@ -1393,8 +1380,6 @@ PKIX_PolicyNode_IsCritical(
 
         *pCritical = node->criticality;
 
-cleanup:
-
         PKIX_RETURN(CERTPOLICYNODE);
 }
 
@@ -1414,8 +1399,6 @@ PKIX_PolicyNode_GetDepth(
         PKIX_NULLCHECK_TWO(node, pDepth);
 
         *pDepth = node->depth;
-
-cleanup:
 
         PKIX_RETURN(CERTPOLICYNODE);
 }
