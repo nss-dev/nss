@@ -87,7 +87,7 @@ typedef enum {
         LDAP_GREATEROREQUALFILTER_TYPE  = 5,
         LDAP_LESSOREQUALFILTER_TYPE     = 6,
         LDAP_PRESENTFILTER_TYPE         = 7,
-        LDAP_APPROXMATCHFILTER_TYPE     = 8,
+        LDAP_APPROXMATCHFILTER_TYPE     = 8
 } LDAPFilterType;
 
 typedef enum {
