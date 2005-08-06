@@ -83,7 +83,7 @@ pkix_pl_ByteArray_ToHexString(
 
         if ((array->length) == 0) {
                 PKIX_CHECK(PKIX_PL_String_Create
-                        (PKIX_ESCASCII, "[]", NULL, pString, plContext),
+                        (PKIX_ESCASCII, "[]", 0, pString, plContext),
                         "Could not create string");
         } else {
                 /*
@@ -137,7 +137,7 @@ pkix_pl_ByteArray_ToHexString(
                 PKIX_CHECK(PKIX_PL_String_Create
                         (PKIX_ESCASCII,
                         stringText,
-                        NULL,
+                        0,
                         pString,
                         plContext),
                         "Could not create string");
@@ -234,7 +234,7 @@ pkix_pl_ByteArray_ToString(
 
         if ((array->length) == 0) {
                 PKIX_CHECK(PKIX_PL_String_Create
-                        (PKIX_ESCASCII, "[]", NULL, pString, plContext),
+                        (PKIX_ESCASCII, "[]", 0, pString, plContext),
                         "Could not create string");
         } else {
                 /* Allocate space for "XXX, ". */
@@ -286,7 +286,7 @@ pkix_pl_ByteArray_ToString(
                 stringText[outputLen] = 0;
 
                 PKIX_CHECK(PKIX_PL_String_Create
-                        (PKIX_ESCASCII, stringText, NULL, pString, plContext),
+                        (PKIX_ESCASCII, stringText, 0, pString, plContext),
                         "PKIX_PL_String_Create failed");
 
         }
@@ -430,8 +430,6 @@ pkix_pl_ByteArray_RegisterSelf(void *plContext)
 
         systemClasses[PKIX_BYTEARRAY_TYPE] = entry;
 
-cleanup:
-
         PKIX_RETURN(BYTEARRAY);
 }
 
@@ -532,8 +530,6 @@ PKIX_PL_ByteArray_GetLength(
         PKIX_NULLCHECK_TWO(byteArray, pLength);
 
         *pLength = byteArray->length;
-
-cleanup:
 
         PKIX_RETURN(BYTEARRAY);
 }
