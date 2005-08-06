@@ -62,16 +62,7 @@
 #include "pkcs11t.h"
 
 /* NSPR headers */
-#include "prprf.h"
-#include "plstr.h"
-#include "prlock.h"
-#include "prmem.h"
-#include "plhash.h"
-#include "prtypes.h"
-#include "prrwlock.h"
-#include "prerror.h"
-#include "prinit.h"
-#include "prthread.h" /* For debugging only */
+#include "nspr.h"
 
 /* private PKIX_PL_NSS system headers */
 #include "pkix_pl_object.h"
