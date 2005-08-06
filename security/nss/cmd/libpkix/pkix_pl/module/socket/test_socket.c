@@ -398,7 +398,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	serverSockaddr.inet.family = PR_AF_INET;
-	serverSockaddr.inet.port = PR_htons(2001); /* LDAP_PORT = 389; */
+	serverSockaddr.inet.port = PR_htons(389); /* LDAP_PORT = 389; */
 	serverSockaddr.inet.ip = PR_htonl(0x7F000001); 
 					      /* 127.0.0.1 = localhost */
 	backlog = 5;
