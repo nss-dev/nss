@@ -61,8 +61,6 @@ EXTRA_LIBS = \
 #######################################################################
 
 include $(PLAT_DEPTH)/platlibs.mk
-EXTRA_SHARED_LIBS = \
-	$(NULL)
 
 #######################################################################
 # (5) Execute "global" rules. (OPTIONAL)                              #
