@@ -144,7 +144,6 @@ pkix_pl_CertPolicyQualifier_ToString(
         PKIX_PL_String *pqIDString = NULL;
         PKIX_PL_String *pqValString = NULL;
         PKIX_PL_String *outString = NULL;
-        void *array = NULL;
 
         PKIX_ENTER(CERTPOLICYQUALIFIER, "pkix_pl_CertPolicyQualifier_ToString");
 
@@ -163,7 +162,7 @@ pkix_pl_CertPolicyQualifier_ToString(
         PKIX_NULLCHECK_TWO(certPQ->policyQualifierId, certPQ->qualifier);
 
         PKIX_CHECK(PKIX_PL_String_Create
-                (PKIX_ESCASCII, asciiFormat, NULL, &formatString, plContext),
+                (PKIX_ESCASCII, asciiFormat, 0, &formatString, plContext),
                 "PKIX_PL_String_Create failed");
 
         PKIX_TOSTRING(certPQ->policyQualifierId, &pqIDString, plContext,
@@ -344,8 +343,6 @@ pkix_pl_CertPolicyQualifier_RegisterSelf(void *plContext)
 
         systemClasses[PKIX_CERTPOLICYQUALIFIER_TYPE] = entry;
 
-cleanup:
-
         PKIX_RETURN(CERTPOLICYQUALIFIER);
 }
 
@@ -369,8 +366,6 @@ PKIX_PL_PolicyQualifier_GetPolicyQualifierId(
         PKIX_INCREF(policyQualifierInfo->policyQualifierId);
 
         *pPolicyQualifierId = policyQualifierInfo->policyQualifierId;
-cleanup:
-
         PKIX_RETURN(CERTPOLICYQUALIFIER);
 }
 
@@ -391,8 +386,6 @@ PKIX_PL_PolicyQualifier_GetQualifier(
         PKIX_INCREF(policyQualifierInfo->qualifier);
 
         *pQualifier = policyQualifierInfo->qualifier;
-
-cleanup:
 
         PKIX_RETURN(CERTPOLICYQUALIFIER);
 }

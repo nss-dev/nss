@@ -113,7 +113,7 @@ pkix_pl_PublicKey_ToString_Helper(
         }
 
         PKIX_CHECK(PKIX_PL_String_Create
-                (PKIX_ESCASCII, (void *)asciiOID, NULL, pString, plContext),
+                (PKIX_ESCASCII, (void *)asciiOID, 0, pString, plContext),
                 "Unable to create pString");
 
 cleanup:
@@ -149,8 +149,6 @@ pkix_pl_DestroySPKI(
         CERTSubjectPublicKeyInfo *nssSPKI,
         void *plContext)
 {
-        PKIX_PL_PublicKey *pubKey = NULL;
-
         PKIX_ENTER(PUBLICKEY, "pkix_pl_DestroySPKI");
 
         PKIX_NULLCHECK_ONE(nssSPKI);
@@ -160,8 +158,6 @@ pkix_pl_DestroySPKI(
 
         PKIX_PUBLICKEY_DEBUG("\t\tCalling SECITEM_FreeItem).\n");
         SECITEM_FreeItem(&nssSPKI->subjectPublicKey, PKIX_FALSE);
-
-cleanup:
 
         PKIX_RETURN(PUBLICKEY);
 }
@@ -382,8 +378,6 @@ pkix_pl_PublicKey_RegisterSelf(void *plContext)
         entry.comparator = NULL;
         entry.duplicateFunction = pkix_duplicateImmutable;
         systemClasses[PKIX_PUBLICKEY_TYPE] = entry;
-
-cleanup:
 
         PKIX_RETURN(PUBLICKEY);
 }
