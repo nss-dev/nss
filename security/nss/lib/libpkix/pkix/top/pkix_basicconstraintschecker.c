@@ -105,8 +105,6 @@ pkix_BasicConstraintsCheckerState_RegisterSelf(void *plContext)
 
         systemClasses[PKIX_BASICCONSTRAINTSCHECKERSTATE_TYPE] = entry;
 
-cleanup:
-
         PKIX_RETURN(BASICCONSTRAINTSCHECKERSTATE);
 }
 
