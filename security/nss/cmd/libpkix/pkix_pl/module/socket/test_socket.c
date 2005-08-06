@@ -368,8 +368,6 @@ void dispatcher()
 	
 	} while ((serverState != SERVER_DONE) || (clientState != CLIENT_DONE));
 
-cleanup:
-
 	PKIX_TEST_RETURN();
 }
 
@@ -377,7 +375,6 @@ int main(int argc, char *argv[]) {
 
 	PKIX_UInt32 j = 0;
 	PKIX_UInt32 actualMinorVersion;
-	PKIX_Error *errorReturn = NULL;
 
 	PKIX_TEST_STD_VARS();
 
