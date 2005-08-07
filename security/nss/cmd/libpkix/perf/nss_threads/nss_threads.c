@@ -150,7 +150,7 @@ void Test(CERTCertificate* cert, PRIntervalTime duration, PRUint32 threads)
 }
 
 
-void end(char* message, int code)
+void finish(char* message, int code)
 {
         (void) printf(message);
         exit(code);
@@ -160,7 +160,7 @@ void usage(char* progname)
 {
         (void) printf("Usage : %s <duration> <threads> <certnickname>\n\n",
                     progname);
-        end("", 0);
+        finish("", 0);
 }
 
 int main(int argc, char** argv)
@@ -186,14 +186,14 @@ int main(int argc, char** argv)
                             "secmod.db", NSS_INIT_READONLY);
         if (SECSuccess != rv)
                 {
-                        end("Unable to initialize NSS.\n", 1);
+                        finish("Unable to initialize NSS.\n", 1);
                 }
         handle = CERT_GetDefaultCertDB();
         PR_ASSERT(handle);
         cert = CERT_FindCertByNicknameOrEmailAddr(handle, argv[3]);
         if (!cert)
                 {
-                        end("Unable to find certificate.\n", 1);
+                        finish("Unable to find certificate.\n", 1);
                 }
         Test(cert, duration, threads);
 

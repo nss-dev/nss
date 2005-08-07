@@ -220,7 +220,7 @@ Test(
 }
 
 
-void end(char* message, int code)
+void finish(char* message, int code)
 {
         (void) printf(message);
         exit(code);
@@ -230,7 +230,7 @@ void usage(char* progname)
 {
         (void) printf("Usage : %s <duration> <threads> <anchorNickname> "
                 "<eecertNickname>\n\n", progname);
-        end("", 0);
+        finish("", 0);
 }
 
 void
@@ -276,16 +276,16 @@ int main(int argc, char** argv)
         /*
          * This code is retired
          *      anchor = CERT_FindCertByNicknameOrEmailAddr(handle, argv[3]);
-         *      if (!anchor) end("Unable to find anchor.\n", 1);
+         *      if (!anchor) finish("Unable to find anchor.\n", 1);
          *
          *      eecert = CERT_FindCertByNicknameOrEmailAddr(handle, argv[4]);
-         *      if (!eecert) end("Unable to find eecert.\n", 1);
+         *      if (!eecert) finish("Unable to find eecert.\n", 1);
          *
          *      Test(anchor, eecert, duration, threads);
          */
 
         eecert = CERT_FindCertByNicknameOrEmailAddr(handle, argv[3]);
-        if (!eecert) end("Unable to find eecert.\n", 1);
+        if (!eecert) finish("Unable to find eecert.\n", 1);
 
         Test(NULL, eecert, duration, threads);
 
