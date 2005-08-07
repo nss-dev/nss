@@ -50,11 +50,10 @@ PRIVATE_EXPORTS = \
 	$(NULL)
 
 MODULE = nss
+MAPFILE = $(OBJDIR)/pkixutil.def
 
 CSRCS = \
 	testutil_nss.c \
 	testutil.c \
 	$(NULL)
-
-TARGET = $(SHARED_LIBRARY)
 
