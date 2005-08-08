@@ -198,6 +198,7 @@ test_bigint
 test_bytearray
 test_mutex
 test_mutex2
+test_mutex3
 test_oid
 test_hashtable
 EOF
