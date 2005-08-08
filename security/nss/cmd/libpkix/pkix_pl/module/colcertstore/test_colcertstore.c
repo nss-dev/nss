@@ -234,6 +234,8 @@ cleanup:
 
         PKIX_Shutdown(plContext);
 
+        PKIX_TEST_RETURN();
+
         endTests("CollectionCertStore");
 
         return (0);
