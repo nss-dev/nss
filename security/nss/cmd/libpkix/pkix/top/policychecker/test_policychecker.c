@@ -429,7 +429,7 @@ int main(int argc, char *argv[])
 
         j = 0;
 
-        PKIX_TEST_NSSCONTEXT_SETUP(0x10, argv[1], &plContext);
+        PKIX_TEST_NSSCONTEXT_SETUP(0x10, argv[1], NULL, &plContext);
 
         /*
          * Perform hard-coded tests if no command line args.

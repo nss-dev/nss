@@ -507,7 +507,7 @@ int main(int argc, char *argv[]) {
                 &actualMinorVersion,
                 plContext));
 
-        PKIX_TEST_NSSCONTEXT_SETUP(0x10, argv[1], &plContext);
+        PKIX_TEST_NSSCONTEXT_SETUP(0x10, argv[1], NULL, &plContext);
 
         subTest("Creating OID objects");
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_OID_Create

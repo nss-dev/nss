@@ -224,7 +224,7 @@ int main(int argc, char *argv[]) {
                                     &actualMinorVersion,
                                     plContext));
 
-        PKIX_TEST_NSSCONTEXT_SETUP(0x10, argv[1], &plContext);
+        PKIX_TEST_NSSCONTEXT_SETUP(0x10, argv[1], NULL, &plContext);
 
         subTest("PKIX_ValidateParams_Create");
         chain = createCertChain(diffInput, goodInput, plContext);

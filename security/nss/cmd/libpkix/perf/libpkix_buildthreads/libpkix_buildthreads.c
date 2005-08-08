@@ -93,6 +93,7 @@ void ThreadEntry(void* data)
         PKIX_List *certStores = NULL;
         void *stringRep = NULL;
         void *plContext = NULL;
+        void *wincx = NULL;
         PKIX_ComCertSelParams *certSelParams = NULL;
         PKIX_CertSelector *certSelector = NULL;
 
@@ -105,7 +106,8 @@ void ThreadEntry(void* data)
                 /* libpkix code */
 
                 /* CertUsage is 0x10 and no NSS arena */
-                PKIX_PL_NssContext_Create(0x10, PKIX_FALSE, &plContext);
+                /* We haven't determined how we obtain the value of wincx */
+                PKIX_PL_NssContext_Create(0x10, PKIX_FALSE, wincx, &plContext);
 
                 pkix_pl_Cert_CreateWithNSSCert
                         (tdata->eecert, &eeCert, plContext);

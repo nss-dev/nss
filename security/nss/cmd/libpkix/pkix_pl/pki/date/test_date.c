@@ -127,7 +127,7 @@ int main(int argc, char *argv[]) {
                                     &actualMinorVersion,
                                     NULL));
 
-        PKIX_TEST_NSSCONTEXT_SETUP(0x10, argv[1], &plContext);
+        PKIX_TEST_NSSCONTEXT_SETUP(0x10, argv[1], NULL, &plContext);
 
         goodInput = "040329134847Z";
         diffInput = "050329135847Z";
