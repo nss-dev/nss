@@ -110,8 +110,6 @@ int main(int argc, char *argv[])
         PKIX_List *certs = NULL;
         PKIX_PL_Cert *cert = NULL;
         PKIX_ProcessingParams *procParams = NULL;
-        char *trustedCertFile = NULL;
-        char *targetCertFile = NULL;
         char *dirName = NULL;
         PKIX_PL_String *dirNameString = NULL;
         PKIX_PL_Cert *trustedCert = NULL;
@@ -123,9 +121,7 @@ int main(int argc, char *argv[])
         PKIX_Boolean result;
         PKIX_CertChain *chain = NULL;
         PKIX_Boolean testValid = PKIX_TRUE;
-        PKIX_Error *error = NULL;
         PKIX_List *expectedCerts = NULL;
-        PKIX_PL_Cert *intermediateCert = NULL;
         PKIX_PL_Cert *dirCert = NULL;
         PKIX_PL_String *actualCertsString = NULL;
         PKIX_PL_String *expectedCertsString = NULL;

@@ -332,6 +332,8 @@ void
 testDuplicateHelper(
         PKIX_PL_Object *object,
         void *plContext);
+void
+testErrorUndo(char *msg);
 
 #ifdef __cplusplus
 }
