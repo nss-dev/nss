@@ -459,6 +459,8 @@ cleanup:
 
         PKIX_Shutdown(plContext);
 
+        PKIX_TEST_RETURN();
+
         endTests("Errors");
 
         return (0);

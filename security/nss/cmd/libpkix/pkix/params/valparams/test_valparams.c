@@ -281,6 +281,8 @@ cleanup:
 
         PKIX_Shutdown(plContext);
 
+        PKIX_TEST_RETURN();
+
         endTests("ValidateParams");
 
         return (0);

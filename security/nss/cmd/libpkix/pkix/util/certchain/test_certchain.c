@@ -200,6 +200,8 @@ cleanup:
 
         PKIX_Shutdown(plContext);
 
+        PKIX_TEST_RETURN();
+
         endTests("CertChain");
 
         return (0);
