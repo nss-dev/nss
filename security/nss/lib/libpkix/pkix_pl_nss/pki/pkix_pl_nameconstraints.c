@@ -594,7 +594,7 @@ pkix_pl_CertNameConstraints_Hashcode(
         PKIX_HASHCODE(excludedList, &excludeHash, plContext,
                     "PKIX_PL_Object_Hashcode failed");
 
-        *pHashcode = (permitHash << 7 + excludeHash) << 7 +
+        *pHashcode = (((permitHash << 7) + excludeHash) << 7) +
                 nameConstraints->numNssNameConstraints;
 
 cleanup:

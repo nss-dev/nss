@@ -227,7 +227,10 @@ pkix_pl_CRL_GetSignatureAlgId(
                         algorithm = nssCrl->signatureAlg;
                         algBytes = algorithm.algorithm;
 
-                        PKIX_NULLCHECK_TWO(algBytes.data, algBytes.len);
+                        PKIX_NULLCHECK_ONE(algBytes.data);
+                        if (algBytes.len == 0) {
+                                PKIX_ERROR_FATAL("Oid bytes length is 0");
+                        }
 
                         PKIX_CHECK(pkix_pl_oidBytes2Ascii
                                     (&algBytes, &asciiOID, plContext),
