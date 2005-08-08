@@ -104,6 +104,8 @@ PKIX_UInt32 getNameType(char *name){
                 nameType = 0xFFFF;
         }
 
+        goto cleanup;
+
 cleanup:
         PKIX_TEST_RETURN();
         return (nameType);
