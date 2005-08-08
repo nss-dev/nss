@@ -1457,10 +1457,10 @@ loser:
 static SECStatus
 ssl2_CreateSessionCypher(sslSocket *ss, sslSessionID *sid, PRBool isClient)
 {
-    sslSecurityInfo * sec;
+    sslSecurityInfo * sec = NULL;
     sslConnectInfo *  ci;
-    SECItem         * rk;
-    SECItem         * wk;
+    SECItem         * rk = NULL;
+    SECItem         * wk = NULL;
     SECItem *         param;
     SECStatus         rv;
     int               cipherType  = sid->u.ssl2.cipherType;
@@ -1495,7 +1495,7 @@ ssl2_CreateSessionCypher(sslSocket *ss, sslSessionID *sid, PRBool isClient)
 	SSL_DBG(("%d: SSL[%d]: ssl2_CreateSessionCypher: unknown cipher=%d",
 		 SSL_GETPID(), ss->fd, cipherType));
 	PORT_SetError(isClient ? SSL_ERROR_BAD_SERVER : SSL_ERROR_BAD_CLIENT);
-	goto loser;
+        goto sec_loser;
     }
 
     sec = ss->sec;
@@ -1580,8 +1580,12 @@ ssl2_CreateSessionCypher(sslSocket *ss, sslSessionID *sid, PRBool isClient)
     rv = SECFailure;
 
   done:
-    SECITEM_ZfreeItem(rk, PR_FALSE);
-    SECITEM_ZfreeItem(wk, PR_FALSE);
+    if (rk) {
+        SECITEM_ZfreeItem(rk, PR_FALSE);
+    }
+    if (wk) {
+        SECITEM_ZfreeItem(wk, PR_FALSE);
+    }
     return rv;
 }
 
@@ -1613,7 +1617,7 @@ ssl2_ServerSetupSessionCypher(sslSocket *ss, int cipher, unsigned int keyBits,
 			 PRUint8 *ek, unsigned int ekLen,
 			 PRUint8 *ca, unsigned int caLen)
 {
-    PRUint8           *kk;
+    PRUint8           *kk = NULL;
     sslSecurityInfo * sec;
     sslSessionID *    sid;
     PRUint8       *   kbuf = 0;	/* buffer for RSA decrypted data. */
@@ -1729,6 +1733,9 @@ hide_loser:
 	 * Instead, Generate a completely bogus master key .
 	 */
 	PK11_GenerateRandom(kbuf, ekLen);
+        if (!kk) {
+            kk = kbuf + ekLen - (keySize - ckLen);
+        }
     }
 
     /*
@@ -2967,7 +2974,7 @@ ssl2_BeginClientHandshake(sslSocket *ss)
     PRUint8           *localCipherSpecs = NULL;
     unsigned int      localCipherSize;
     unsigned int      i;
-    int               sendLen, sidLen;
+    int               sendLen, sidLen = 0;
     SECStatus         rv;
 
     PORT_Assert( ssl_Have1stHandshakeLock(ss) );
@@ -3747,8 +3754,6 @@ NSSSSL_VersionCheck(const char *importedVersion)
      * not compatible with future major, minor, or
      * patch releases.
      */
-    int vmajor = 0, vminor = 0, vpatch = 0;
-    const char *ptr = importedVersion;
     volatile char c; /* force a reference that won't get optimized away */
 
     c = __nss_ssl_rcsid[0] + __nss_ssl_sccsid[0]; 

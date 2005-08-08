@@ -306,7 +306,9 @@ ssl_FreeSocket(sslSocket *ss)
     int        i;
 
     sslSocket *fs;
+#ifdef DEBUG
     sslSocket  lSock;
+#endif
 
 /* Get every lock you can imagine!
 ** Caller already holds these:
