@@ -320,7 +320,12 @@ pkix_pl_helperBytes2Ascii(
         PKIX_Int32 error;
 
         PKIX_ENTER(OBJECT, "pkix_pl_helperBytes2Ascii");
-        PKIX_NULLCHECK_THREE(tokens, numTokens, pAscii);
+        PKIX_NULLCHECK_TWO(tokens, pAscii);
+
+        if (numTokens == 0) {
+                PKIX_ERROR_FATAL("pkix_pl_helperBytes2Ascii: "
+                "numTokens is zero");
+        }
 
         /*
          * tempString will hold the string representation of a PKIX_UInt32 type
@@ -435,7 +440,12 @@ pkix_pl_ipAddrBytes2Ascii(
         char *asciiString = NULL;
 
         PKIX_ENTER(OBJECT, "pkix_pl_ipAddrBytes2Ascii");
-        PKIX_NULLCHECK_FOUR(secItem, pAscii, secItem->data, secItem->len);
+        PKIX_NULLCHECK_THREE(secItem, pAscii, secItem->data);
+
+        if (secItem->len == 0) {
+                PKIX_ERROR_FATAL("pkix_pl_ipAddrBytes2Ascii: "
+                "data length is zero");
+        }
 
         data = (char *)(secItem->data);
         numTokens = secItem->len;
@@ -514,7 +524,12 @@ pkix_pl_oidBytes2Ascii(
         char *asciiString = NULL;
 
         PKIX_ENTER(OID, "pkix_pl_oidBytes2Ascii");
-        PKIX_NULLCHECK_FOUR(secItem, pAscii, secItem->data, secItem->len);
+        PKIX_NULLCHECK_THREE(secItem, pAscii, secItem->data);
+
+        if (secItem->len == 0) {
+                PKIX_ERROR_FATAL("pkix_pl_oidBytes2Ascii: "
+                "data length is zero");
+        }
 
         data = (char *)(secItem->data);
         numBytes = secItem->len;
