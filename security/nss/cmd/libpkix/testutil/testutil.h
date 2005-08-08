@@ -83,7 +83,6 @@ extern "C" {
  */
 #define PKIX_TEST_STD_VARS() \
         PKIX_Error *pkixTestErrorResult = NULL; \
-        PKIX_Error *pkixTestTempResult = NULL; \
         char *pkixTestErrorMsg = NULL;
 
 /*
@@ -158,6 +157,7 @@ extern "C" {
 #define PKIX_TEST_DECREF_AC(obj) \
         do { \
                 if (obj){ \
+                        PKIX_Error *pkixTestTempResult = NULL; \
                         pkixTestTempResult = \
                         PKIX_PL_Object_DecRef \
                                 ((PKIX_PL_Object*)(obj), plContext); \
