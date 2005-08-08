@@ -95,7 +95,6 @@ testDefaultCertStore(PKIX_ValidateParams *valParams, char *crlDir)
         PKIX_PL_String *dirString = NULL;
         PKIX_CertStore *certStore = NULL;
         PKIX_ProcessingParams *procParams = NULL;
-        PKIX_UInt32 length = 0;
 
         PKIX_TEST_STD_VARS();
 
@@ -106,7 +105,7 @@ testDefaultCertStore(PKIX_ValidateParams *valParams, char *crlDir)
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create
                                     (PKIX_ESCASCII,
                                     crlDir,
-                                    NULL,
+                                    0,
                                     &dirString,
                                     plContext));
 
@@ -145,7 +144,7 @@ int main(int argc, char *argv[]){
         PKIX_ValidateParams *valParams = NULL;
         PKIX_ValidateResult *valResult = NULL;
         PKIX_UInt32 actualMinorVersion;
-        PKIX_UInt32 i, j, k, chainLength;
+        PKIX_UInt32 j, k, chainLength;
         PKIX_Boolean testValid = PKIX_TRUE;
         PKIX_List *chainCerts = NULL;
         PKIX_PL_Cert *dirCert = NULL;

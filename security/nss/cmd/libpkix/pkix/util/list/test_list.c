@@ -90,14 +90,14 @@ testReverseList(void)
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create
                                     (PKIX_ESCASCII,
                                     testItemString,
-                                    NULL,
+                                    0,
                                     &testItem,
                                     plContext));
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create
                                     (PKIX_ESCASCII,
                                     testItemString2,
-                                    NULL,
+                                    0,
                                     &testItem2,
                                     plContext));
 
@@ -205,7 +205,7 @@ testZeroLengthList(PKIX_List *list)
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create
                                     (PKIX_ESCASCII,
                                     testItemString,
-                                    NULL,
+                                    0,
                                     &testItem,
                                     plContext));
 

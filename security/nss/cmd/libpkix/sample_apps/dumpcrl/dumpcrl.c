@@ -128,6 +128,8 @@ cleanup:
                 PKIX_PL_Object_DecRef((PKIX_PL_Object *)(byteArray), plContext);
         }
 
+        PKIX_TEST_RETURN();
+
         return (crl);
 }
 

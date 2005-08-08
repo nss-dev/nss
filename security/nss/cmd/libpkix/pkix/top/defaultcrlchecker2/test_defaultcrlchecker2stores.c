@@ -65,12 +65,7 @@ getCertCallback(
         PKIX_List **pCerts,
         void *plContext)
 {
-        PKIX_CertStore *s = store;
-        PKIX_CertSelector *c = certSelector;
-        PKIX_List **pc = pCerts;
-        void *context = plContext;
-
-        return (0);
+        return (NULL);
 }
 
 PKIX_Error *
@@ -84,7 +79,6 @@ testDefaultMultipleCertStores(PKIX_ValidateParams *valParams,
         PKIX_CertStore *certStore2 = NULL;
         PKIX_List *certStoreList = NULL;
         PKIX_ProcessingParams *procParams = NULL;
-        PKIX_UInt32 length = 0;
 
         PKIX_TEST_STD_VARS();
 
@@ -95,7 +89,7 @@ testDefaultMultipleCertStores(PKIX_ValidateParams *valParams,
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create
                                     (PKIX_ESCASCII,
                                     crlDir1,
-                                    NULL,
+                                    0,
                                     &dirString1,
                                     plContext));
 
@@ -107,7 +101,7 @@ testDefaultMultipleCertStores(PKIX_ValidateParams *valParams,
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create
                                     (PKIX_ESCASCII,
                                     crlDir2,
-                                    NULL,
+                                    0,
                                     &dirString2,
                                     plContext));
 
@@ -172,7 +166,6 @@ int main(int argc, char *argv[]){
         PKIX_PL_Cert *certs[PKIX_TEST_MAX_CERTS];
         PKIX_UInt32 chainLength, i, j;
         PKIX_Boolean testValid = PKIX_TRUE;
-        PKIX_Boolean testcertStore = PKIX_TRUE;
 
         PKIX_TEST_STD_VARS();
 

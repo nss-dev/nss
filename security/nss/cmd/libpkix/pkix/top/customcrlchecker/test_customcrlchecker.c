@@ -97,6 +97,8 @@ getCRLCallback(
 
 cleanup:
 
+        PKIX_TEST_RETURN();
+
         return (0); /* this function is called by libpkix */
 
 }
@@ -108,12 +110,7 @@ getCertCallback(
         PKIX_List **pCerts,
         void *plContext)
 {
-        PKIX_CertStore *s = store;
-        PKIX_CertSelector *c = certSelector;
-        PKIX_List **pc = pCerts;
-        void *context = plContext;
-
-        return (0);
+        return (NULL);
 }
 
 PKIX_Error *
@@ -132,7 +129,6 @@ testCRLSelectorMatchCallback(
         PKIX_Error *error = NULL;
         PKIX_PL_String *textString = NULL;
         char *errorText = "Not an error, CRL Select mismatch";
-        void *context = plContext;
 
         PKIX_TEST_STD_VARS();
 
@@ -183,7 +179,7 @@ testCRLSelectorMatchCallback(
                                         (PKIX_PL_String_Create
                                         (PKIX_ESCASCII,
                                         (void *) errorText,
-                                        NULL,
+                                        0,
                                         &textString,
                                         plContext));
 
@@ -213,6 +209,8 @@ cleanup:
         PKIX_TEST_DECREF_AC(issuer);
         PKIX_TEST_DECREF_AC(issuerList);
         PKIX_TEST_DECREF_AC(textString);
+
+        PKIX_TEST_RETURN();
 
         return (error);
 
@@ -258,7 +256,6 @@ cleanup:
 PKIX_Error *
 testCustomCertStore(PKIX_ValidateParams *valParams)
 {
-        PKIX_PL_String *dirString = NULL;
         PKIX_CertStore_CRLCallback crlCallback;
         PKIX_CertStore *certStore = NULL;
         PKIX_ProcessingParams *procParams = NULL;
@@ -270,7 +267,6 @@ testCustomCertStore(PKIX_ValidateParams *valParams)
         PKIX_CRLSelector *crlSelector = NULL;
         PKIX_List *crlList = NULL;
         PKIX_UInt32 numCrl = 0;
-        PKIX_UInt32 length = 0;
 
         PKIX_TEST_STD_VARS();
 
@@ -380,7 +376,6 @@ int main(int argc, char *argv[]){
         PKIX_PL_Cert *certs[PKIX_TEST_MAX_CERTS];
         PKIX_UInt32 chainLength, i, j;
         PKIX_Boolean testValid = PKIX_TRUE;
-        PKIX_Boolean testcertStore = PKIX_TRUE;
 
         PKIX_TEST_STD_VARS();
 
