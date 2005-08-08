@@ -57,10 +57,6 @@ testCRLSelectorMatchCallback(
         PKIX_PL_CRL *crl,
         void *plContext)
 {
-        PKIX_CRLSelector *s = selector; /* to fake lint complaints */
-        PKIX_PL_CRL *c = crl;
-        void *context = plContext;
-
         return (0);
 }
 
@@ -71,10 +67,6 @@ testCertSelectorMatchCallback(
         PKIX_Boolean *pResult,
         void *plContext)
 {
-        PKIX_CertSelector *s = selector; /* to fake lint complaints */
-        PKIX_PL_Cert *c = cert;
-        void *context = plContext;
-
         *pResult = PKIX_TRUE;
 
         return (0);
@@ -87,11 +79,6 @@ getCertCallback(
         PKIX_List **pCerts,
         void *plContext)
 {
-        PKIX_CertStore *s = store;
-        PKIX_CertSelector *c = certSelector;
-        PKIX_List **pc = pCerts;
-        void *context = plContext;
-
         return (0);
 }
 

@@ -65,10 +65,6 @@ testCertSelectorMatchCallback(
         PKIX_Boolean *pResult,
         void *plContext)
 {
-        PKIX_CertSelector *s = selector; /* to fake lint complaints */
-        PKIX_PL_Cert *c = cert;
-        void *context = plContext;
-
         *pResult = PKIX_TRUE;
 
         return (0);
