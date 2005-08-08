@@ -52,11 +52,6 @@ PKIX_Error *testCRLCallback(
         PKIX_List **pCrls,  /* list of PKIX_PL_Crl */
         void *plContext)
 {
-        PKIX_CertStore *s = store; /* to fake out lint check */
-        PKIX_CRLSelector *sel = selector;
-        PKIX_List **list = pCrls;
-        void *context = plContext;
-
         return (0);
 }
 
@@ -66,11 +61,6 @@ PKIX_Error *testCertCallback(
         PKIX_List **pCerts,  /* list of PKIX_PL_Cert */
         void *plContext)
 {
-        PKIX_CertStore *s = store;
-        PKIX_CertSelector *sel = selector;
-        PKIX_List **list = pCerts;
-        void *context = plContext;
-
         return (0);
 }
 
@@ -82,14 +72,13 @@ void testCertStore(void)
         PKIX_CertStore_CertCallback certCallback = NULL;
         PKIX_CertStore_CRLCallback crlCallback = NULL;
         char *crlDir = "../top/rev_data/crlchecker";
-        PKIX_UInt32 numCrl = 0;
 
         PKIX_TEST_STD_VARS();
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create
                                     (PKIX_ESCASCII,
                                     crlDir,
-                                    NULL,
+                                    0,
                                     &dirString,
                                     plContext));
 
