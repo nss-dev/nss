@@ -104,6 +104,8 @@ createStringOther(
                     nullText,
                     PL_strlen(nullText));
 
+        goto cleanup;
+
 cleanup:
 
         PKIX_TEST_RETURN();
@@ -118,7 +120,6 @@ testGetEncoded(
         PKIX_UInt32 *utf16data)
 {
         char *temp = NULL;
-        char *temp2 = NULL;
         void *dest = NULL;
         void *dest2 = NULL;
         char *plainText = "string with\nnewlines and\ttabs";
@@ -264,7 +265,7 @@ testErrorHandling(void)
         PKIX_TEST_EXPECT_ERROR(PKIX_PL_Sprintf(&testString, NULL, plContext));
 
         PKIX_TEST_EXPECT_ERROR
-                (PKIX_PL_GetString(0, NULL, &testString, plContext));
+                (PKIX_PL_GetString(NULL, NULL, &testString, plContext));
 
         PKIX_TEST_EXPECT_ERROR(PKIX_PL_GetString(NULL, "blah", 0, plContext));
 
@@ -387,7 +388,6 @@ int main(int argc, char *argv[]) {
         PKIX_PL_String *testEscAscii = NULL;
         PKIX_PL_String *testUtf16 = NULL;
         PKIX_PL_String *ampString = NULL;
-        PKIX_PL_String *sprintfString = NULL;
         PKIX_UInt32 utf16Data[3] = {0x00A1D800, 0xDC000FFF, 0xDBC0DC01};
         PKIX_UInt32 i, size = 6;
 
@@ -470,6 +470,8 @@ int main(int argc, char *argv[]) {
 cleanup:
 
         PKIX_Shutdown(plContext);
+
+        PKIX_TEST_RETURN();
 
         endTests("String");
 

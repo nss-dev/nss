@@ -146,7 +146,7 @@ testGetEncoded(PKIX_PL_String *string, PKIX_UInt32 format)
                                 plContext));
 
         if (dest){
-                (void) printf("\tResult: %s\n", dest);
+                (void) printf("\tResult: %s\n", (char *)dest);
                 PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Free(dest, plContext));
         }
 
@@ -313,7 +313,6 @@ int main(int argc, char *argv[]) {
 
         PKIX_PL_String *vivaEspanaString, *straussString, *testUTF16String;
         PKIX_PL_String *chineseString, *jeanRenoString, *gorbachevString;
-        char *temp = NULL;
         PKIX_UInt32 actualMinorVersion;
         PKIX_UInt32 j = 0;
 
@@ -372,6 +371,8 @@ int main(int argc, char *argv[]) {
 cleanup:
 
         PKIX_Shutdown(plContext);
+
+        PKIX_TEST_RETURN();
 
         endTests("Unicode Strings");
 

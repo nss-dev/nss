@@ -189,8 +189,7 @@ int main(int argc, char *argv[]) {
 
 cleanup:
 
-        pkixTestTempResult = PKIX_Shutdown(plContext);
-        if (pkixTestTempResult) pkixTestErrorResult = pkixTestTempResult;
+        PKIX_Shutdown(plContext);
 
         PKIX_TEST_RETURN();
 

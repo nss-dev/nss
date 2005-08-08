@@ -123,8 +123,7 @@ cleanup:
 
         PKIX_TEST_DECREF_AC(mutex);
 
-        pkixTestTempResult = PKIX_Shutdown(plContext);
-        if (pkixTestTempResult) pkixTestErrorResult = pkixTestTempResult;
+        PKIX_Shutdown(plContext);
 
         PKIX_TEST_RETURN();
 

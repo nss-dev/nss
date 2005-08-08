@@ -184,8 +184,7 @@ cleanup:
                 PKIX_TEST_DECREF_AC(byteArrays[i]);
         }
 
-        pkixTestTempResult = PKIX_Shutdown(plContext);
-        if (pkixTestTempResult) pkixTestErrorResult = pkixTestTempResult;
+        PKIX_Shutdown(plContext);
 
         PKIX_TEST_RETURN();
 
