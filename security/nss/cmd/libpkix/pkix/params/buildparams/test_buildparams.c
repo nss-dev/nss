@@ -170,7 +170,9 @@ int main(void) {
 
 cleanup:
 
-        PKIX_Shutdown(NULL);
+        PKIX_Shutdown(plContext);
+
+        PKIX_TEST_RETURN();
 
         endTests("BuildParams");
 

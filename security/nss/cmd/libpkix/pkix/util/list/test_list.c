@@ -875,6 +875,8 @@ cleanup:
 
         PKIX_Shutdown(plContext);
 
+        PKIX_TEST_RETURN();
+
         endTests("Lists");
 
         return (0);
