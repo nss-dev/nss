@@ -486,7 +486,7 @@ void test_Version_Issuer_SerialNumber(void)
 
         /* Issuer */
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create
-                (PKIX_ESCASCII, "CN=Test,O=Sun,C=US", NULL, &str, plContext));
+                (PKIX_ESCASCII, "CN=Test,O=Sun,C=US", 0, &str, plContext));
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_X500Name_Create
                 (str, &setIssuer, plContext));
@@ -754,7 +754,7 @@ int main(int argc, char *argv[]) {
 
         PKIX_TEST_EXPECT_NO_ERROR
                 (PKIX_PL_String_Create
-                (PKIX_ESCASCII, asciiRep, NULL, &stringRep, plContext));
+                (PKIX_ESCASCII, asciiRep, 0, &stringRep, plContext));
         PKIX_TEST_EXPECT_NO_ERROR
                 (PKIX_PL_Date_Create_UTCTime(stringRep, &testDate, plContext));
 

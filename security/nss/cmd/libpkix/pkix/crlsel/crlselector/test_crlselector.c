@@ -202,6 +202,8 @@ cleanup:
 
         PKIX_Shutdown(plContext);
 
+        PKIX_TEST_RETURN();
+
         endTests("CRLSelector");
 
         return (0);

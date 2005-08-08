@@ -987,7 +987,7 @@ void testCertificateValidMatch(
                 (&params, plContext));
         PKIX_TEST_EXPECT_NO_ERROR
                 (PKIX_PL_String_Create
-                (PKIX_ESCASCII, asciiRep, NULL, &stringRep, plContext));
+                (PKIX_ESCASCII, asciiRep, 0, &stringRep, plContext));
         PKIX_TEST_EXPECT_NO_ERROR
                 (PKIX_PL_Date_Create_UTCTime(stringRep, &testDate, plContext));
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_ComCertSelParams_SetCertificateValid
@@ -1109,7 +1109,7 @@ void testExtendedKeyUsageMatch(void)
                 (goodParams, ekuOidList, plContext));
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create
-                (PKIX_ESCASCII, certDir, NULL, &dirString, plContext));
+                (PKIX_ESCASCII, certDir, 0, &dirString, plContext));
 
         subTest("    PKIX_PL_CollectionCertStoreContext_Create");
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_CollectionCertStore_Create
@@ -1175,7 +1175,7 @@ void testKeyUsageMatch(void)
                 (goodParams, PKIX_CRL_SIGN, plContext));
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create
-                (PKIX_ESCASCII, certDir, NULL, &dirString, plContext));
+                (PKIX_ESCASCII, certDir, 0, &dirString, plContext));
 
         subTest("    PKIX_PL_CollectionCertStoreContext_Create");
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_CollectionCertStore_Create
@@ -1242,7 +1242,7 @@ void testCertValidMatch(void)
                 (goodParams, validDate, plContext));
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create
-                (PKIX_ESCASCII, certDir, NULL, &dirString, plContext));
+                (PKIX_ESCASCII, certDir, 0, &dirString, plContext));
 
         subTest("    PKIX_PL_CollectionCertStoreContext_Create");
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_CollectionCertStore_Create
@@ -1306,7 +1306,7 @@ void testIssuerMatch(void)
                 (&goodParams, plContext));
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create
-                (PKIX_ESCASCII, issuerName, NULL, &issuerStr, plContext));
+                (PKIX_ESCASCII, issuerName, 0, &issuerStr, plContext));
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_X500Name_Create
                 (issuerStr, &issuer, plContext));
@@ -1316,7 +1316,7 @@ void testIssuerMatch(void)
                 (goodParams, issuer, plContext));
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create
-                (PKIX_ESCASCII, certDir, NULL, &dirString, plContext));
+                (PKIX_ESCASCII, certDir, 0, &dirString, plContext));
 
         subTest("    PKIX_PL_CollectionCertStoreContext_Create");
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_CollectionCertStore_Create
@@ -1380,7 +1380,7 @@ void testSerialNumberVersionMatch(void)
                 (&goodParams, plContext));
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create
-                (PKIX_ESCASCII, "01", NULL, &serialNumberStr, plContext));
+                (PKIX_ESCASCII, "01", 0, &serialNumberStr, plContext));
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_BigInt_Create
                 (serialNumberStr, &serialNumber, plContext));
@@ -1394,7 +1394,7 @@ void testSerialNumberVersionMatch(void)
                 (goodParams, 0, plContext));
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create
-                (PKIX_ESCASCII, certDir, NULL, &dirString, plContext));
+                (PKIX_ESCASCII, certDir, 0, &dirString, plContext));
 
         subTest("    PKIX_PL_CollectionCertStoreContext_Create");
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_CollectionCertStore_Create
