@@ -61,6 +61,7 @@
 #include "pk11pub.h"
 #include "pkcs11.h"
 #include "pkcs11t.h"
+#include "prio.h"
 
 /* NSPR headers */
 #include "nspr.h"
@@ -93,6 +94,7 @@
 #include "pkix_pl_ldaprequest.h"
 #include "pkix_pl_ldapresponse.h"
 #include "pkix_pl_nsscontext.h"
+#include "pkix_sample_modules.h"
 
 #define MAX_DIGITS_32 (PKIX_UInt32) 10
 

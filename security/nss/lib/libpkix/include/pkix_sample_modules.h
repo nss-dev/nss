@@ -43,7 +43,7 @@
 #ifndef _PKIX_SAMPLEMODULES_H
 #define _PKIX_SAMPLEMODULES_H
 
-#include "pkixt.h"
+#include "pkix_pl_common.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -150,6 +150,63 @@ PKIX_PL_Pk11CertStore_Create(
         PKIX_CertStore **pPk11CertStore,
         void *plContext);
 
+/* PKIX_PL_LdapCertStore
+ *
+ * A PKIX_PL_LdapCertStore retrieves certificates and CRLs from an LDAP server
+ * over a socket connection. It used the LDAP protocol as described in RFC1777.
+ *
+ * Once the caller has created the LdapCertStore object, the caller can call
+ * pkix_pl_LdapCertStore_GetCert or pkix_pl_LdapCertStore_GetCert to obtain
+ * a List of PKIX_PL_Certs or PKIX_PL_CRL objects, respectively.
+ */
+
+/*
+ * FUNCTION: PKIX_PL_LdapCertStore_Create
+ * DESCRIPTION:
+ *
+ *  Creates a new LdapCertStore using the PRNetAddr poined to by "sockaddr",
+ *  with a timeout value of "timeout", a bindname and authentication pointed
+ *  to by "bindname" and "authentication", respectively; and stores the address
+ *  of a PRPollDesc on which the caller can wait for completion (if non-blocking
+ *  I/O was specified by a zero value of "timeout") at "pDesc" and the CertStore
+ *  at "pLdapCertStore".
+ *
+ * PARAMETERS:
+ *  "sockaddr"
+ *      Address of the PRNetAddr to be used for the socket connection. Must be
+ *      non-NULL.
+ *  "timeout"
+ *      The PRIntervalTime value to be used as a timeout value in socket calls;
+ *      a zero value indicates non-blocking I/O is to be used.
+ *  "bindname"
+ *      The address of a name String to be used if a BIND message is sent. May
+ *      be an empty String but must be non-NULL.
+ *  "authentication"
+ *      The address of a password String to be used if a BIND message is sent.
+ *      May be an empty String but must be non-NULL.
+ *  "pDesc"
+ *      The address at which a PRPollDesc is to be stored. Must be non-NULL.
+ *  "pLdapCertStore"
+ *      Address where object pointer will be stored. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a CertStore Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_PL_LdapCertStore_Create(
+        PRNetAddr *sockaddr,
+        PRIntervalTime timeout,
+        char *bindname,
+        char *authentication,
+        PRPollDesc **pDesc,
+        PKIX_CertStore **pLdapCertStore,
+        void *plContext);
+
 /*
  * FUNCTION: PKIX_PL_EkuChecker_Initialize
  *
@@ -222,10 +279,12 @@ pkix_pl_EkuChecker_GetRequiredEku(
  *
  * In this case, NSS serves as both the application and the Portability Layer.
  * We define an NSS-specific structure, which includes an arena and a number
- * of SECCertificateUsage bit flags encoded as a PKIX_UInt32. Before calling
- * any of the libpkix functions, the caller should create the NSS context,
- * by calling PKIX_PL_NssContext_Create, and provide that NSS context as the
- * "plContext" argument in every libpkix function call the caller makes.
+ * of SECCertificateUsage bit flags encoded as a PKIX_UInt32. A third argument,
+ * wincx, is used on Windows platforms for PKCS11 access, and should be set to
+ * NULL for other platforms.
+ * Before calling any of the libpkix functions, the caller should create the NSS
+ * context, by calling PKIX_PL_NssContext_Create, and provide that NSS context
+ * as the "plContext" argument in every libpkix function call the caller makes.
  * When the caller is finished using the NSS context (usually just after he
  * calls PKIX_Shutdown), the caller should call PKIX_PL_NssContext_Destroy to
  * free the NSS context structure.
@@ -246,20 +305,22 @@ pkix_pl_EkuChecker_GetRequiredEku(
  *      The desired SECCertificateUsage(s).
  *  "useNssArena"
  *      Boolean flag indicates NSS Arena is used for memory allocation.
+ *  "wincx"
+ *      A Windows-dependent pointer for PKCS11 token handling.
  *  "pNssContext"
  *      Address where object pointer will be stored. Must be non-NULL.
  * THREAD SAFETY:
  *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
  * RETURNS:
  *  Returns NULL if the function succeeds.
- *  Returns a CollectionCertStoreContext Error if the function fails in
- *      a non-fatal way.
+ *  Returns a Context Error if the function fails in a non-fatal way.
  *  Returns a Fatal Error if the function fails in an unrecoverable way.
  */
 PKIX_Error *
 PKIX_PL_NssContext_Create(
         PKIX_UInt32 certificateUsage,
         PKIX_Boolean useNssArena,
+        void *wincx,
         void **pNssContext);
 
 /*
@@ -277,8 +338,7 @@ PKIX_PL_NssContext_Create(
  *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
  * RETURNS:
  *  Returns NULL if the function succeeds.
- *  Returns a CollectionCertStoreContext Error if the function fails in
- *      a non-fatal way.
+ *  Returns a Context Error if the function fails in a non-fatal way.
  *  Returns a Fatal Error if the function fails in an unrecoverable way.
  */
 PKIX_Error *

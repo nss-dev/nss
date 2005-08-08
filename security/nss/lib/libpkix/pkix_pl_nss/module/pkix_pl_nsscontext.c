@@ -54,6 +54,7 @@ PKIX_Error *
 PKIX_PL_NssContext_Create(
         PKIX_UInt32 certificateUsage,
         PKIX_Boolean useNssArena,
+	void *wincx,
         void **pNssContext)
 {
         PKIX_PL_NssContext *context = NULL;
@@ -74,6 +75,7 @@ PKIX_PL_NssContext_Create(
         
         context->arena = arena;
         context->certificateUsage = (SECCertificateUsage)certificateUsage;
+	context->wincx = wincx;
 
         *pNssContext = context;
 
@@ -105,6 +107,46 @@ PKIX_PL_NssContext_Destroy(
         }
 
         PKIX_PL_Free(nssContext, NULL);
+
+        PKIX_RETURN(CONTEXT);
+}
+
+/*
+ * FUNCTION: pkix_pl_NssContext_GetWincx
+ * DESCRIPTION:
+ *
+ *  This function obtains the platform-dependent wincx parameter from the
+ *  context object pointed to by "nssContext", storing the result at "pWincx".
+ *
+ * PARAMETERS:
+ *  "nssContext"
+ *      The address of the context object whose wincx parameter is to be
+ *      obtained. Must be non-NULL.
+ *  "pWincx"
+ *      The address where the result is stored. Must be non-NULL.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Context Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+pkix_pl_NssContext_GetWincx(
+	void *nssContext,
+	void **pWincx)
+{
+        void *plContext = NULL;
+        PKIX_PL_NssContext *context = NULL;
+
+        PKIX_ENTER(CONTEXT, "pkix_pl_NssContext_GetWincx");
+        PKIX_NULLCHECK_TWO(nssContext, pWincx);
+
+        context = (PKIX_PL_NssContext *)nssContext;
+
+	*pWincx = context->wincx;
+
+cleanup:
 
         PKIX_RETURN(CONTEXT);
 }

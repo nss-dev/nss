@@ -68,7 +68,6 @@
 #include "pkix_comcertselparams.h"
 #include "pkix_comcrlselparams.h"
 #include "pkix_procparams.h"
-#include "pkix_sample_modules.h"
 #include "pkix_store.h"
 #include "pkix_error.h"
 #include "pkix_validate.h"

@@ -327,7 +327,7 @@ int main(int argc, char *argv[]) {
                                     &actualMinorVersion,
                                     plContext));
 
-        PKIX_TEST_NSSCONTEXT_SETUP(0x10, argv[1], &plContext);
+        PKIX_TEST_NSSCONTEXT_SETUP(0x10, argv[1], NULL, &plContext);
 
         subTest("PKIX_PL_String_Create");
         createString(&vivaEspanaString,

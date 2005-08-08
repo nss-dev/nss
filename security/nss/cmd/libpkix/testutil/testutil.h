@@ -269,7 +269,7 @@ extern "C" {
                 } \
         } while (0)
 
-#define PKIX_TEST_NSSCONTEXT_SETUP(certUsage, arena, context) \
+#define PKIX_TEST_NSSCONTEXT_SETUP(certUsage, arena, wincx, context) \
         do { \
                 PKIX_Boolean useNssArena = PKIX_FALSE; \
                 if (arena) { \
@@ -279,7 +279,7 @@ extern "C" {
                         } \
                 } \
                 PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_NssContext_Create \
-                        (certUsage, useNssArena, context)); \
+                        (certUsage, useNssArena, wincx, context)); \
         } while (0)
 
 #define PKIX_TEST_ERROR_RECEIVED (pkixTestErrorMsg || pkixTestErrorResult)

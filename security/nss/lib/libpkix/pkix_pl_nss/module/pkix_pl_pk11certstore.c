@@ -91,6 +91,7 @@ pkix_pl_Pk11CertStore_CertQuery(
 
         PRArenaPool *arena = NULL;
         SECItem *nameItem = NULL;
+	void *wincx = NULL;
 
         PKIX_ENTER(CERTSTORE, "pkix_pl_Pk11CertStore_CertQuery");
         PKIX_NULLCHECK_TWO(params, pSelected);
@@ -152,11 +153,14 @@ pkix_pl_Pk11CertStore_CertQuery(
 
         } else {
 
+                PKIX_CHECK(pkix_pl_NssContext_GetWincx(plContext, &wincx),
+		        "pkix_pl_NssContext_GetWincx failed");
+
                 PKIX_PL_NSSCALLRV
                         (CERTSTORE,
                         pk11CertList,
                         PK11_ListCerts,
-                        (PK11CertListAll, NULL));
+                        (PK11CertListAll, wincx));
         }
 
         if (pk11CertList) {
@@ -277,6 +281,7 @@ pkix_pl_Pk11CertStore_CrlQuery(
         CERTSignedCrl** crls = NULL;
         PRBool writeLocked = PR_FALSE;
         PRUint16 status = 0;
+	void *wincx = NULL;
 
         PKIX_ENTER(CERTSTORE, "pkix_pl_Pk11CertStore_CrlQuery");
         PKIX_NULLCHECK_TWO(params, pSelected);
@@ -300,6 +305,9 @@ pkix_pl_Pk11CertStore_CrlQuery(
                 (DER_DEFAULT_CHUNKSIZE));
         PKIX_PL_NSSCALLRV
                 (CERTSTORE, pk11CrlHead.dbhandle, CERT_GetDefaultCertDB, ());
+
+	PKIX_CHECK(pkix_pl_NssContext_GetWincx(plContext, &wincx),
+		"pkix_pl_NssContext_GetWincx failed");
 
         /*
          * If we have <info> for <a smart query>,
@@ -344,28 +352,20 @@ pkix_pl_Pk11CertStore_CrlQuery(
                          * no CRLs were appended.
                          */
                         PKIX_PL_NSSCALLRV
-                            (CERTSTORE,
-                            rv,
-                            AcquireDPCache,
+                            (CERTSTORE, rv, AcquireDPCache,
                             (NULL,
                             nameItem,
                             NULL,
                             0,
-                            NULL,
+                            wincx,
                             &dpcache,
                             &writeLocked));
 
                         PKIX_PL_NSSCALLRV
-                            (CERTSTORE,
-                            rv,
-                            DPCache_GetAllCRLs,
-                            (dpcache,
-                            arena,
-                            &crls,
-                            &status));
+                            (CERTSTORE, rv, DPCache_GetAllCRLs,
+                            (dpcache, arena, &crls, &status));
 
-                        if ((status & (~CRL_CACHE_INVALID_CRLS))
-                            != 0) {
+                        if ((status & (~CRL_CACHE_INVALID_CRLS)) != 0) {
                             PKIX_ERROR("Fetching Cached CRLfailed");
                         }
 

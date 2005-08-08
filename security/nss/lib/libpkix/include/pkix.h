@@ -55,7 +55,6 @@
 #include "pkix_revchecker.h"
 #include "pkix_pl_system.h"
 #include "pkix_pl_pki.h"
-#include "pkix_sample_modules.h"
 
 #ifdef __cplusplus
 extern "C" {

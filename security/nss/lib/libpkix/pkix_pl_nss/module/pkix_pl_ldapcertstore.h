@@ -97,20 +97,6 @@ struct PKIX_PL_LdapCertStoreContext {
 
 PKIX_Error *pkix_pl_LdapCertStoreContext_RegisterSelf(void *plContext);
 
-PKIX_Error *
-PKIX_PL_LdapCertStore_Create(
-#if 0
-        in_port_t port,
-        in_addr_t ipaddr,
-#endif
-	PRNetAddr *sockaddr,
-        PRIntervalTime timeout,
-        char *bindname,
-        char *authentication,
-        PRPollDesc **pDesc,
-        PKIX_CertStore **certStore,
-        void *plContext);
-
 #ifdef __cplusplus
 }
 #endif
