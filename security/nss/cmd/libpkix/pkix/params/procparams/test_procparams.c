@@ -136,6 +136,7 @@ PKIX_Error *userChecker1cb(
         PKIX_List *unresolvedCriticalExtensions,  /* list of PKIX_PL_OID */
         void *plContext)
 {
+        return(NULL);
 }
 
 void testGetSetCertChainCheckers(
@@ -205,6 +206,7 @@ PKIX_Error *userChecker2cb(
         PKIX_UInt32 *pResult,
         void *plContext)
 {
+        return(NULL);
 }
 
 void testGetSetRevocationCheckers(
@@ -457,6 +459,8 @@ int main(int argc, char *argv[]) {
 cleanup:
 
         PKIX_Shutdown(plContext);
+
+        PKIX_TEST_RETURN();
 
         endTests("ProcessingParams");
 
