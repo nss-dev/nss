@@ -209,15 +209,15 @@ static const struct FREEBLVectorStr vector =
     SHA512_Clone,
 
     TLS_PRF,
-    SEC_GetRawHashObject,
+    HASH_GetRawHashObject,
 
-    HMAC_Destroy,
     HMAC_Create,
     HMAC_Init,
     HMAC_Begin,
     HMAC_Update,
-    HMAC_Finish,
     HMAC_Clone,
+    HMAC_Finish,
+    HMAC_Destroy,
 
     /* End of Version 3.008. */
 };
