@@ -91,6 +91,8 @@ ifeq ($(OS_TARGET),SunOS)
 # The -R '$ORIGIN' linker option instructs this library to search for its
 # dependencies in the same directory where it resides.
 MKSHLIB += -R '$$ORIGIN'
+#EXTRA_SHARED_LIBS += -ldl -lrt -lc -z defs
+EXTRA_SHARED_LIBS += -lc -z defs
 endif
 
 ifeq ($(OS_TARGET),WINCE)

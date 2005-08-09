@@ -107,6 +107,8 @@ SHARED_LIBRARY_DIRS = \
 
 
 ifeq ($(OS_TARGET),SunOS)
+#EXTRA_SHARED_LIBS += -ldl -lrt -lc -z defs
+EXTRA_SHARED_LIBS += -lc -z defs
 ifeq ($(BUILD_SUN_PKG), 1)
 # The -R '$ORIGIN' linker option instructs this library to search for its
 # dependencies in the same directory where it resides.

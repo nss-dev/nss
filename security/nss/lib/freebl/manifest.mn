@@ -45,18 +45,29 @@ CORE_DEPTH = ../../..
 
 MODULE = nss
 
-ifndef FREEBL_RECURSIVE_BUILD
-  LIBRARY_NAME = freebl
-else
-  ifdef USE_PURE_32
-    CORE_DEPTH = ../../../..
-    LIBRARY_NAME = freebl_pure32
-  else
-    LIBRARY_NAME = freebl_hybrid
+ifdef FREEBL_RECURSIVE_BUILD
+  CORE_DEPTH = ../../../../.. # doesn't seem to matter
+  ifdef USE_ABI32_INT32
+    LIBRARY_NAME = freebl_32int
+  endif
+  ifdef USE_ABI32_INT64
+    LIBRARY_NAME = freebl_32int64
+  endif
+  ifdef USE_ABI32_FPU
+    LIBRARY_NAME = freebl_32fpu
+  endif
+  ifdef USE_ABI64_INT
+    LIBRARY_NAME = freebl_64int
+  endif
+  ifdef USE_ABI64_FPU
+    LIBRARY_NAME = freebl_64fpu
   endif
 endif
+ifndef LIBRARY_NAME
+  LIBRARY_NAME = freebl
+endif
 
-# same version as rest of freebl
+# same version as rest of NSS
 LIBRARY_VERSION = _3
 
 DEFINES += -DSHLIB_SUFFIX=\"$(DLL_SUFFIX)\" -DSHLIB_PREFIX=\"$(DLL_PREFIX)\"
@@ -81,23 +92,6 @@ PRIVATE_EXPORTS = \
 
 MPI_HDRS = mpi-config.h mpi.h mpi-priv.h mplogic.h mpprime.h logtab.h mp_gf2m.h
 MPI_SRCS = mpprime.c mpmontg.c mplogic.c mpi.c mp_gf2m.c
-
-
-TFM_HDRS = tfm.h tfm_mpi.h
-TFM_SRCS = fp_set.c fp_rshd.c fp_lshd.c fp_div_2d.c fp_mod_2d.c fp_mul_2d.c \
-  fp_2expt.c fp_mul_2.c fp_div_2.c fp_cnt_lsb.c fp_add.c fp_sub.c fp_mul.c \
-  fp_sqr.c fp_div.c fp_mod.c s_fp_add.c s_fp_sub.c fp_cmp_d.c fp_add_d.c \
-  fp_sub_d.c fp_mul_d.c fp_div_d.c fp_mod_d.c fp_addmod.c fp_submod.c \
-  fp_mulmod.c fp_sqrmod.c fp_invmod.c fp_gcd.c fp_lcm.c \
-  fp_prime_miller_rabin.c fp_isprime.c fp_prime_random_ex.c fp_mul_comba.c \
-  fp_sqr_comba.c fp_montgomery_setup.c fp_montgomery_calc_normalization.c \
-  fp_montgomery_reduce.c fp_exptmod.c fp_cmp.c fp_cmp_mag.c \
-  fp_unsigned_bin_size.c fp_read_unsigned_bin.c fp_to_unsigned_bin.c \
-  fp_signed_bin_size.c fp_read_signed_bin.c fp_to_signed_bin.c \
-  fp_read_radix.c fp_toradix.c fp_radix_size.c fp_count_bits.c \
-  fp_reverse.c fp_s_rmap.c fp_ident.c fp_util.c
-
-
 
 
 ECL_HDRS = ecl-exp.h ecl.h ec2.h ecp.h ecl-priv.h
@@ -141,7 +135,7 @@ CSRCS = \
 	$(ECL_SRCS) \
 	$(NULL)
 
-ALL_CSRCS := $(CSRCS) $(TFM_SRCS)
+ALL_CSRCS := $(CSRCS)
 
 ALL_HDRS =  \
 	alghmac.h \
@@ -156,7 +150,6 @@ ALL_HDRS =  \
 	sha_fast.h \
 	shsign.h \
 	vis_proto.h \
-	$(TFM_HDRS) \
 	$(NULL)
 
 

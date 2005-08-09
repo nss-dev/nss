@@ -446,6 +446,8 @@ struct FREEBLVectorStr {
 			     unsigned int max_result_len);
  HMACContext * (* p_HMAC_Clone)(HMACContext *cx);
 
+ void (* p_RNG_SystemInfoForRNG)(void);
+
   /* Version 3.008 came to here */
 };
 

@@ -982,6 +982,7 @@ extern SECStatus RNG_GenerateGlobalRandomBytes(void *dest, size_t len);
 */
 extern void  RNG_RNGShutdown(void);
 
+extern void RNG_SystemInfoForRNG(void);
 
 /* Generate PQGParams and PQGVerify structs.
  * Length of seed and length of h both equal length of P. 

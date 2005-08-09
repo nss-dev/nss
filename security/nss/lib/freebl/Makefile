@@ -79,11 +79,11 @@ DEFINES += -DNSS_USE_TFM
 endif
 
 ifdef USE_64
-	DEFINES += -DNSS_USE_64
+    DEFINES += -DNSS_USE_64
 endif
 
-ifdef USE_HYBRID
-	DEFINES += -DNSS_USE_HYBRID
+ifdef USE_ABI32_FPU
+    DEFINES += -DNSS_USE_ABI32_FPU
 endif
 
 # des.c wants _X86_ defined for intel CPUs.  
@@ -188,7 +188,7 @@ ifeq ($(OS_TARGET), HP-UX)
 ifneq ($(OS_TEST), ia64)
 MKSHLIB += +k +vshlibunsats -u FREEBL_GetVector +e FREEBL_GetVector
 ifndef FREEBL_EXTENDED_BUILD
-ifdef USE_PURE_32
+ifdef USE_ABI32_INT32
 # build for DA1.1 (HP PA 1.1) pure 32 bit model
     DEFINES  += -DMP_USE_UINT_DIGIT -DMP_NO_MP_WORD
     DEFINES += -DSHA_NO_LONG_LONG # avoid 64-bit arithmetic in SHA512
@@ -199,7 +199,7 @@ ifdef USE_64
     ASFILES  += hpma512.s hppa20.s 
     DEFINES  += -DMP_ASSEMBLY_MULTIPLY -DMP_ASSEMBLY_SQUARE
 else
-# this builds for DA2.0 (HP PA 2.0 Narrow) hybrid model 
+# this builds for DA2.0 (HP PA 2.0 Narrow) ABI32_FPU model 
 # (the 32-bit ABI with 64-bit registers) using 32-bit digits
     MPI_SRCS += mpi_hp.c 
     ASFILES  += hpma512.s hppa20.s 
@@ -219,9 +219,9 @@ MKSHLIB += -R '$$ORIGIN'
 
 ifeq ($(CPU_ARCH),sparc)
     ifndef NS_USE_GCC
-	ifdef USE_HYBRID
+	ifdef USE_ABI32_FPU
 	    OS_CFLAGS += -xchip=ultra2
-	endif # USE_HYBRID
+	endif # USE_ABI32_FPU
     endif # NS_USE_GCC
     SYSV_SPARC=1
     SOLARIS_AS = /usr/ccs/bin/as
@@ -234,33 +234,49 @@ ifeq ($(CPU_ARCH),sparc)
     else
 	MKSHLIB += -B symbolic -z defs -z now -z text -M mapfile.Solaris
     endif # NS_USE_GCC
-    ifdef USE_PURE_32
+    ifdef USE_ABI32_INT32
 	# this builds for Sparc v8 pure 32-bit architecture
-	ASFILES = mpv_sparcv8x.s
-	DEFINES += -DMP_USE_LONG_LONG_MULTIPLY -DMP_USE_UINT_DIGIT 
-	DEFINES += -DMP_NO_MP_WORD
-	DEFINES += -DSHA_NO_LONG_LONG # avoid 64-bit arithmetic in SHA512
 	DEFINES += -DMP_ASSEMBLY_MULTIPLY
-    else
-	ifdef USE_64
-	    # this builds for Sparc v9a pure 64-bit architecture
-#	    MPI_SRCS += mpi_sparc.c
-#	    ASFILES   = mpv_sparcv9.s montmulfv9.s
-#	    DEFINES  += -DMP_ASSEMBLY_MULTIPLY -DMP_USING_MONT_MULF
-#	    DEFINES  += -DMP_USE_UINT_DIGIT 
-	    SOLARIS_FLAGS  = -fast -xO5 -xrestrict=%all -xchip=ultra -xarch=v9a
-	    SOLARIS_FLAGS += -KPIC -mt
-	    SOLARIS_AS_FLAGS = -xarch=v9a -K PIC
-	else
-	    # this builds for Sparc v8+a hybrid architecture, 64-bit registers, 
-	    # 32-bit ABI
-#	    MPI_SRCS += mpi_sparc.c
-#	    ASFILES  = mpv_sparcv8.s montmulfv8.s
-#	    DEFINES  += -DMP_ASSEMBLY_MULTIPLY -DMP_USING_MONT_MULF 
-	    DEFINES  += -DMP_NO_MP_WORD
-	    SOLARIS_AS_FLAGS = -xarch=v8plusa -K PIC
-	endif # USE_64
-    endif # USE_PURE_32
+	ASFILES  = mpv_sparcv8x.s
+	DEFINES += -DMP_NO_MP_WORD -DMP_USE_UINT_DIGIT 
+	DEFINES += -DSHA_NO_LONG_LONG # avoid 64-bit arithmetic in SHA512
+    endif
+    ifdef USE_ABI32_INT64
+	# this builds for Sparc v8+a ABI32_FPU architecture, 64-bit registers, 
+	# 32-bit ABI, it uses 64-bit words, integer arithmetic, no FPU
+#	DEFINES  += -DMP_USE_UINT_DIGIT 
+	DEFINES  += -DMP_NO_MP_WORD 
+	SOLARIS_AS_FLAGS = -xarch=v8plusa -K PIC
+    endif
+    ifdef USE_ABI32_FPU
+	# this builds for Sparc v8+a ABI32_FPU architecture, 64-bit registers, 
+	# 32-bit ABI, it uses FPU code, and 32-bit word size
+	MPI_SRCS += mpi_sparc.c
+	ASFILES  = mpv_sparcv8.s montmulfv8.s
+	DEFINES  += -DMP_ASSEMBLY_MULTIPLY -DMP_USING_MONT_MULF 
+	DEFINES  += -DMP_NO_MP_WORD  -DMP_USE_UINT_DIGIT
+	SOLARIS_AS_FLAGS = -xarch=v8plusa -K PIC
+    endif
+    ifdef USE_ABI64_INT
+	# this builds for Sparc v9a pure 64-bit architecture
+#	DEFINES  += -DMP_USE_UINT_DIGIT 
+	DEFINES  += -DMP_NO_MP_WORD 
+	SOLARIS_FLAGS  = -fast -xO5 -xrestrict=%all -xchip=ultra -xarch=v9a
+	SOLARIS_FLAGS += -KPIC -mt
+	SOLARIS_AS_FLAGS = -xarch=v9a -K PIC
+    endif
+    ifdef USE_ABI64_FPU
+	# this builds for Sparc v9a pure 64-bit architecture
+	# It uses floating point, and 32-bit word size
+	MPI_SRCS += mpi_sparc.c
+	ASFILES   = mpv_sparcv9.s montmulfv9.s
+	DEFINES  += -DMP_ASSEMBLY_MULTIPLY -DMP_USING_MONT_MULF
+	DEFINES  += -DMP_USE_UINT_DIGIT 
+	SOLARIS_FLAGS  = -fast -xO5 -xrestrict=%all -xchip=ultra -xarch=v9a
+	SOLARIS_FLAGS += -KPIC -mt
+	SOLARIS_AS_FLAGS = -xarch=v9a -K PIC
+    endif
+
     ifdef NSS_ENABLE_ECC
 	DEFINES  += -DECL_USE_FP
 	ECL_SRCS += ecp_fp160.c ecp_fp192.c ecp_fp224.c ecp_fp.c
@@ -323,7 +339,7 @@ rijndael_tables:
 	         $(DEFINES) $(INCLUDES) $(OBJDIR)/libfreebl.a
 	$(OBJDIR)/make_rijndael_tab
 
-ifdef USE_PURE_32 
+ifdef FREEBL_RECURSIVE_BUILD
 vpath %.h $(FREEBL_PARENT)/ecl $(FREEBL_PARENT)/mpi $(FREEBL_PARENT)
 vpath %.c $(FREEBL_PARENT)/ecl $(FREEBL_PARENT)/mpi $(FREEBL_PARENT)
 vpath %.S $(FREEBL_PARENT)/ecl $(FREEBL_PARENT)/mpi $(FREEBL_PARENT)
@@ -388,36 +404,116 @@ endif
 
 ifdef FREEBL_EXTENDED_BUILD
 
-PURE32DIR = $(OBJDIR)/$(OS_TARGET)pure32
-ALL_TRASH += $(PURE32DIR)
-
+CDDIR := $(shell pwd)
 FILES2LN = \
  $(wildcard *.tab) \
  $(wildcard mapfile.*) \
  Makefile manifest.mn config.mk 
 
-LINKEDFILES = $(addprefix $(PURE32DIR)/, $(FILES2LN))
+ifndef USE_64 
+######################## ABI32_FPU stuff #########################
+ABI32_FPU_DIR = $(OBJDIR)/$(OS_TARGET)_ABI32_FPU
+ABI32_FPU_FILES = $(addprefix $(ABI32_FPU_DIR)/, $(FILES2LN))
+ALL_TRASH += $(ABI32_FPU_DIR) 
 
-CDDIR := $(shell pwd)
+$(ABI32_FPU_DIR):
+	-mkdir $(ABI32_FPU_DIR)
+	-ln -s $(CDDIR)/mpi $(ABI32_FPU_DIR)
 
-$(PURE32DIR):
-	-mkdir $(PURE32DIR)
-	-ln -s $(CDDIR)/mpi $(PURE32DIR)
+$(ABI32_FPU_FILES) : $(ABI32_FPU_DIR)/% : % 
+	ln -s $(CDDIR)/$* $(ABI32_FPU_DIR)
 
-$(LINKEDFILES) : $(PURE32DIR)/% : % 
-	ln -s $(CDDIR)/$* $(PURE32DIR)
+libs:: $(ABI32_FPU_DIR) $(ABI32_FPU_FILES)
+	cd $(ABI32_FPU_DIR) && $(MAKE) FREEBL_RECURSIVE_BUILD=1 USE_ABI32_FPU=1 \
+ FREEBL_PARENT=$(CDDIR) CORE_DEPTH=$(CDDIR)/$(CORE_DEPTH) libs
 
-libs:: 
-	$(MAKE) FREEBL_RECURSIVE_BUILD=1 USE_HYBRID=1 libs
+######################## ABI32_INT32 stuff #########################
+ABI32_INT32_DIR = $(OBJDIR)/$(OS_TARGET)_ABI32_INT32
+ABI32_INT32_FILES = $(addprefix $(ABI32_INT32_DIR)/, $(FILES2LN))
+ALL_TRASH += $(ABI32_INT32_DIR) 
 
-libs:: $(PURE32DIR) $(LINKEDFILES)
-	cd $(PURE32DIR) && $(MAKE) FREEBL_RECURSIVE_BUILD=1 USE_PURE_32=1 FREEBL_PARENT=$(CDDIR) CORE_DEPTH=$(CDDIR)/$(CORE_DEPTH) libs
+$(ABI32_INT32_DIR):
+	-mkdir $(ABI32_INT32_DIR)
+	-ln -s $(CDDIR)/mpi $(ABI32_INT32_DIR)
 
-release_md::
-	$(MAKE) FREEBL_RECURSIVE_BUILD=1 USE_HYBRID=1 $@
-	cd $(PURE32DIR) && $(MAKE) FREEBL_RECURSIVE_BUILD=1 USE_PURE_32=1 FREEBL_PARENT=$(CDDIR) CORE_DEPTH=$(CDDIR)/$(CORE_DEPTH) $@
+$(ABI32_INT32_FILES) : $(ABI32_INT32_DIR)/% : % 
+	ln -s $(CDDIR)/$* $(ABI32_INT32_DIR)
 
+libs:: $(ABI32_INT32_DIR) $(ABI32_INT32_FILES)
+	cd $(ABI32_INT32_DIR) && $(MAKE) FREEBL_RECURSIVE_BUILD=1 USE_ABI32_INT32=1 \
+ FREEBL_PARENT=$(CDDIR) CORE_DEPTH=$(CDDIR)/$(CORE_DEPTH) libs
+
+######################## ABI32_INT64 stuff #########################
+ifeq ($(OS_TARGET),SunOS)
+ifeq ($(CPU_ARCH),sparc)
+
+ABI32_INT64_DIR = $(OBJDIR)/$(OS_TARGET)_ABI32_INT64
+ABI32_INT64_FILES = $(addprefix $(ABI32_INT64_DIR)/, $(FILES2LN))
+ALL_TRASH += $(ABI32_INT64_DIR) 
+
+$(ABI32_INT64_DIR):
+	-mkdir $(ABI32_INT64_DIR)
+	-ln -s $(CDDIR)/mpi $(ABI32_INT64_DIR)
+
+$(ABI32_INT64_FILES) : $(ABI32_INT64_DIR)/% : % 
+	ln -s $(CDDIR)/$* $(ABI32_INT64_DIR)
+
+libs:: $(ABI32_INT64_DIR) $(ABI32_INT64_FILES)
+	cd $(ABI32_INT64_DIR) && $(MAKE) FREEBL_RECURSIVE_BUILD=1 USE_ABI32_INT64=1 \
+ FREEBL_PARENT=$(CDDIR) CORE_DEPTH=$(CDDIR)/$(CORE_DEPTH) libs
 endif
+endif
+######################## END of 32-bit stuff #########################
+
+else # above is 32-bit builds, below is 64-bit builds
+
+######################## ABI64_FPU stuff #########################
+ifeq ($(OS_TARGET),SunOS)
+ifeq ($(CPU_ARCH),sparc)
+ABI64_FPU_DIR = $(OBJDIR)/$(OS_TARGET)_ABI64_FPU
+ABI64_FPU_FILES = $(addprefix $(ABI64_FPU_DIR)/, $(FILES2LN))
+ALL_TRASH += $(ABI64_FPU_DIR) 
+
+$(ABI64_FPU_DIR):
+	-mkdir $(ABI64_FPU_DIR)
+	-ln -s $(CDDIR)/mpi $(ABI64_FPU_DIR)
+
+$(ABI64_FPU_FILES) : $(ABI64_FPU_DIR)/% : % 
+	ln -s $(CDDIR)/$* $(ABI64_FPU_DIR)
+
+libs:: $(ABI64_FPU_DIR) $(ABI64_FPU_FILES)
+	cd $(ABI64_FPU_DIR) && $(MAKE) FREEBL_RECURSIVE_BUILD=1 USE_ABI64_FPU=1 \
+ FREEBL_PARENT=$(CDDIR) CORE_DEPTH=$(CDDIR)/$(CORE_DEPTH) libs
+endif
+endif
+
+######################## ABI64_INT stuff #########################
+ifeq ($(OS_TARGET),SunOS)
+ifeq ($(CPU_ARCH),sparc)
+ABI64_INT_DIR = $(OBJDIR)/$(OS_TARGET)_ABI64_INT
+ABI64_INT_FILES = $(addprefix $(ABI64_INT_DIR)/, $(FILES2LN))
+ALL_TRASH += $(ABI64_INT_DIR) 
+
+$(ABI64_INT_DIR):
+	-mkdir $(ABI64_INT_DIR)
+	-ln -s $(CDDIR)/mpi $(ABI64_INT_DIR)
+
+$(ABI64_INT_FILES) : $(ABI64_INT_DIR)/% : % 
+	ln -s $(CDDIR)/$* $(ABI64_INT_DIR)
+
+libs:: $(ABI64_INT_DIR) $(ABI64_INT_FILES)
+	cd $(ABI64_INT_DIR) && $(MAKE) FREEBL_RECURSIVE_BUILD=1 USE_ABI64_INT=1 \
+ FREEBL_PARENT=$(CDDIR) CORE_DEPTH=$(CDDIR)/$(CORE_DEPTH) libs
+endif
+endif
+######################## common stuff #########################
+
+endif # 32b or 64b recursive builds
+
+
+release_md:: $(libs)
+
+endif  # FREEBL_EXTENDED_BUILD
 
 # Bugzilla Bug 209827: disable optimization to work around what appears
 # to be a VACPP optimizer bug.

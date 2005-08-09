@@ -37,12 +37,12 @@
 
 # only do this in the outermost freebl build.
 ifndef FREEBL_RECURSIVE_BUILD
-# we only do this stuff for some of the 32-bit builds, no 64-bit builds
-ifndef USE_64
 
 ifeq ($(OS_TARGET), HP-UX)
   ifneq ($(OS_TEST), ia64)
-    FREEBL_EXTENDED_BUILD = 1
+    ifndef USE_64
+      FREEBL_EXTENDED_BUILD = 1
+    endif
   endif
 endif
 
@@ -59,15 +59,15 @@ ifdef FREEBL_EXTENDED_BUILD
 # To build libfreebl.a with just loader.c, we must now override many
 # of the make variables setup by the prior inclusion of CORECONF's config.mk
 
-CSRCS		= loader.c sysrand.c
+CSRCS		= loader.c 
 SIMPLE_OBJS 	= $(CSRCS:.c=$(OBJ_SUFFIX))
 OBJS 		= $(addprefix $(OBJDIR)/$(PROG_PREFIX), $(SIMPLE_OBJS))
 ALL_TRASH :=    $(TARGETS) $(OBJS) $(OBJDIR) LOGS TAGS $(GARBAGE) \
                 $(NOSUCHFILE) so_locations 
-endif
 
-#end of 32-bit only stuff.
-endif
+endif #extended build
+
+# this is not a recursive child make.  We make a .a static lib.
 
 # Override the values defined in coreconf's ruleset.mk.
 #
@@ -83,7 +83,7 @@ endif
   PROGRAM        =
 
 else
-# This is a recursive build.  
+# This is a recursive build.  We're the child make. We build the shared lib.
 
 TARGETS	     = $(SHARED_LIBRARY)
 LIBRARY      =

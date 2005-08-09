@@ -44,56 +44,84 @@
 #include "prerror.h"
 #include "prinit.h"
 
+/* getLibName() returns the name of the library to load. */
+
 #if defined(SOLARIS)
 #include <stddef.h>
 #include <strings.h>
 #include <sys/systeminfo.h>
-#if defined(SOLARIS2_5)
-static int
-isHybrid(void)
-{
-    long buflen;
-    int  rv             = 0;    /* false */
-    char buf[256];
-    buflen = sysinfo(SI_MACHINE, buf, sizeof buf);
-    if (buflen > 0) {
-        rv = (!strcmp(buf, "sun4u") || !strcmp(buf, "sun4u1"));
-    }
-    return rv;
-}
-#else   /* SunOS2.6or higher has SI_ISALIST */
 
-static int
-isHybrid(void)
-{
-    long buflen;
-    int  rv             = 0;    /* false */
-    char buf[256];
-    buflen = sysinfo(SI_ISALIST, buf, sizeof buf);
-    if (buflen > 0) {
-#if defined(NSS_USE_64)
-        char * found = strstr(buf, "sparcv9+vis");
+#ifdef NSS_USE_64
+
+const char fast_hybrid_shared_lib[] = { "libfreebl_64fpu_3.so"  };
+const char slow_hybrid_shared_lib[] = { "libfreebl_64int_3.so" };
+const char  non_hybrid_shared_lib[] = { "libfreebl_64fpu_3.so" };
+
+const char slow_hybrid_isa[] = { "sparcv9" };
+const char fast_hybrid_isa[] = { "sparcv9+vis" };
+
 #else
-        char * found = strstr(buf, "sparcv8plus+vis");
+
+const char fast_hybrid_shared_lib[] = { "libfreebl_32fpu_3.so"  };
+const char slow_hybrid_shared_lib[] = { "libfreebl_32int64_3.so" };
+const char  non_hybrid_shared_lib[] = { "libfreebl_32int_3.so"  };
+
+const char slow_hybrid_isa[] = { "sparcv8plus" };
+const char fast_hybrid_isa[] = { "sparcv8plus+vis" };
+
 #endif
-        rv = (found != 0);
+
+static const char *
+getLibName(void)
+{
+    char * found_slow_hybrid;
+    char * found_fast_hybrid;
+    long buflen;
+    char buf[256];
+
+    buflen = sysinfo(SI_ISALIST, buf, sizeof buf);
+    if (buflen <= 0) 
+	return ".";
+    found_slow_hybrid = strstr(buf, slow_hybrid_isa);
+    found_fast_hybrid = strstr(buf, fast_hybrid_isa);
+    /* since the slow string is a subset of the fast string,
+     * if the fast string is found, the slow string will definitely
+     * be found, and will never appear to come after the fast string.
+     * The slow string will either be before the fast string, or
+     * at the same place as the fast string, not after it.
+     */
+    if (found_fast_hybrid && 
+	(!found_slow_hybrid ||
+	 (found_slow_hybrid - found_fast_hybrid) >= 0)) {
+	return fast_hybrid_shared_lib;
     }
-    return rv;
+    if (found_slow_hybrid) {
+	return slow_hybrid_shared_lib;
+    }
+    return non_hybrid_shared_lib;
 }
-#endif
+
 #elif defined(HPUX)
 /* This code tests to see if we're running on a PA2.x CPU.
 ** It returns true (1) if so, and false (0) otherwise.
 */
-static int 
-isHybrid(void)
+static const char *
+getLibName(void)
 {
     long cpu = sysconf(_SC_CPU_VERSION);
-    return (cpu == CPU_PA_RISC2_0);
+    return (cpu == CPU_PA_RISC2_0) 
+		? "libfreebl_abi32_fpu_3.sl"
+	        : "libfreebl_abi32_int32_3.sl" ;
 }
 
+
 #else
-#error "code for this platform is missing."
+
+static const char *
+getLibName(void)
+{
+    return "libfreebl_3.sl";
+}
 #endif
 
 /*
@@ -240,6 +268,9 @@ bl_UnloadLibrary(BLLibrary *lib)
 
 #else
 #error "code for this platform is missing."
+#if defined( AIX )
+	       "libfreebl_hybrid_3_shr.a" : "libfreebl_pure32_3_shr.a";
+#endif
 #endif
 
 #define LSB(x) ((x)&0xff)
@@ -253,18 +284,13 @@ static const char *libraryName = NULL;
 static PRStatus
 freebl_LoadDSO( void ) 
 {
-  int          hybrid   = isHybrid();
   BLLibrary *  handle;
-  const char * name;
+  const char * name = getLibName();
 
-  name = hybrid ?
-#if defined( AIX )
-	       "libfreebl_hybrid_3_shr.a" : "libfreebl_pure32_3_shr.a";
-#elif defined( HPUX )
-               "libfreebl_hybrid_3.sl"    : "libfreebl_pure32_3.sl";
-#else
-               "libfreebl_hybrid_3.so"    : "libfreebl_pure32_3.so";
-#endif
+  if (!name) {
+    PR_SetError(PR_LOAD_LIBRARY_ERROR, 0);
+    return PR_FAILURE;
+  }
 
   handle = bl_LoadLibrary(name);
   if (handle) {
@@ -1567,3 +1593,11 @@ HMAC_Clone(HMACContext *cx)
   return (vector->p_HMAC_Clone)(cx);
 }
 
+void
+RNG_SystemInfoForRNG(void)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return ;
+  (vector->p_RNG_SystemInfoForRNG)();
+
+}
