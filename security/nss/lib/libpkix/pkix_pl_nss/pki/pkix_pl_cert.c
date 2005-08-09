@@ -1939,7 +1939,10 @@ PKIX_PL_Cert_GetSubjectPublicKeyAlgId(
                         algorithm = nssCert->subjectPublicKeyInfo.algorithm;
                         algBytes = algorithm.algorithm;
 
-                        PKIX_NULLCHECK_TWO(algBytes.data, algBytes.len);
+                        PKIX_NULLCHECK_ONE(algBytes.data);
+                        if (algBytes.len == 0) {
+				PKIX_ERROR_FATAL("Algorithm bytes length is 0");
+                        }
 
                         PKIX_CHECK(pkix_pl_oidBytes2Ascii
                                     (&algBytes, &asciiOID, plContext),
