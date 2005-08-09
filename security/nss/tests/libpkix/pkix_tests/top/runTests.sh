@@ -69,6 +69,8 @@ if [ -z "${INIT_SOURCED}" ] ; then
     cd ${curdir}
 fi
 
+DIST_BIN=${DIST}/${OBJDIR}/bin
+
 ####################
 # cleanup from tests
 ####################
@@ -212,9 +214,9 @@ Display "***********************************************************************
       else
         Display "RUNNING ${testPgm} ${arenaCmd} ${test_purpose}"
         if [[ ${checkmem} -eq 1 ]]; then
-            dbx -C -c "runargs ${arenaCmd} $args; check -all ;run;exit" ${testPgm} > ${testOut} 2>&1
+            dbx -C -c "runargs ${arenaCmd} $args; check -all ;run;exit" ${DIST_BIN}/${testPgm} > ${testOut} 2>&1
         else
-            ${testPgm} ${arenaCmd} ${args}> ${testOut} 2>&1
+            ${DIST_BIN}/${testPgm} ${arenaCmd} ${args}> ${testOut} 2>&1
         fi
 
         # Examine output file to see if test failed and keep track of number

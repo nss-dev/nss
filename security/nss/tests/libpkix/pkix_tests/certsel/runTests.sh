@@ -63,6 +63,8 @@ if [ -z "${INIT_SOURCED}" ] ; then
     cd ${curdir}
 fi
 
+DIST_BIN=${DIST}/${OBJDIR}/bin
+
 ####################
 # cleanup from tests
 ####################
@@ -172,9 +174,9 @@ Display "***********************************************************************
         Display "RUNNING ${testPgm}"
 
         if [[ ${checkmem} -eq 1 ]]; then
-            /net/zhadum/export/tools/sparc/on10/SUNWspro/SOS8/bin/dbx -C -c "check -all;run;exit" ${testPgm} > ${testOut} 2>&1
+            /net/zhadum/export/tools/sparc/on10/SUNWspro/SOS8/bin/dbx -C -c "check -all;run;exit" ${DIST_BIN}/${testPgm} > ${testOut} 2>&1
         else
-            ${testPgm} > ${testOut} 2>&1
+            ${DIST_BIN}/${testPgm} > ${testOut} 2>&1
         fi
 
         # Examine output file to see if test failed and keep track of number

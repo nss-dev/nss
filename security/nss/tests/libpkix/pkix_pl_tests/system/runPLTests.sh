@@ -102,6 +102,7 @@ function Display # string
     fi
 }
 
+DIST_BIN=${DIST}/${OBJDIR}/bin
 
 ###########
 # RunTests
@@ -142,12 +143,12 @@ Display "***********************************************************************
         if [[ ${checkmem} -eq 1 ]]; then
             # We add the "ignore ABRT" command for the test_mutex case
             if [[ ${testPgm} == "test_mutex" ]]; then
-            /net/zhadum/export/tools/sparc/on10/SUNWspro/SOS8/bin/dbx -C -c "check -all;ignore ABRT;run;exit" ${testPgm} ${arenaCmd}> ${testOut} 2>&1
+            /net/zhadum/export/tools/sparc/on10/SUNWspro/SOS8/bin/dbx -C -c "check -all;ignore ABRT;run;exit" ${DIST_BIN}/${testPgm} ${arenaCmd}> ${testOut} 2>&1
             else
-                dbx -C -c "check -all;run;exit" ${testPgm} ${arenaCmd} > ${testOut} 2>&1
+                dbx -C -c "check -all;run;exit" ${DIST_BIN}/${testPgm} ${arenaCmd} > ${testOut} 2>&1
             fi
         else
-            ${testPgm} > ${testOut} 2>&1
+            ${DIST_BIN}/${testPgm} > ${testOut} 2>&1
         fi
 
         # Examine output file to see if test failed and keep track of number
