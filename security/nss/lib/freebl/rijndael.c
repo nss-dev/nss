@@ -1020,6 +1020,10 @@ AES_InitContext(AESContext *cx, const unsigned char *key, unsigned int keysize,
 	cx->worker = (encrypt) ? &rijndael_encryptECB : &rijndael_decryptECB;
     }
     PORT_Assert((cx->Nb * (cx->Nr + 1)) <= RIJNDAEL_MAX_EXP_KEY_SIZE);
+    if ((cx->Nb * (cx->Nr + 1)) > RIJNDAEL_MAX_EXP_KEY_SIZE) {
+	PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+	goto cleanup;
+    }
     /* Generate expanded key */
     if (encrypt) {
 	if (rijndael_key_expansion(cx, key, Nk) != SECSuccess)
