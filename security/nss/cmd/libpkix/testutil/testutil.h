@@ -48,6 +48,7 @@
 #include "plstr.h"
 #include "prprf.h"
 #include "prlong.h"
+#include "pkix_pl_common.h"
 #include "secutil.h"
 #include <stdio.h>
 #include <ctype.h>
