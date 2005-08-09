@@ -234,7 +234,7 @@ int main(int argc, char *argv[])
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create
                                     (PKIX_ESCASCII,
                                     dirName,
-                                    NULL,
+                                    0,
                                     &dirNameString,
                                     plContext));
 

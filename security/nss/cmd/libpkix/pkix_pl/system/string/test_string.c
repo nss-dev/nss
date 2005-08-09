@@ -265,9 +265,9 @@ testErrorHandling(void)
         PKIX_TEST_EXPECT_ERROR(PKIX_PL_Sprintf(&testString, NULL, plContext));
 
         PKIX_TEST_EXPECT_ERROR
-                (PKIX_PL_GetString(NULL, NULL, &testString, plContext));
+                (PKIX_PL_GetString(0, NULL, &testString, plContext));
 
-        PKIX_TEST_EXPECT_ERROR(PKIX_PL_GetString(NULL, "blah", 0, plContext));
+        PKIX_TEST_EXPECT_ERROR(PKIX_PL_GetString(0, "blah", 0, plContext));
 
         /* ---------------------------- */
         subTest("Unicode Error Handling");

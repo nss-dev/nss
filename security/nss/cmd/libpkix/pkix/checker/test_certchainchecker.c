@@ -54,6 +54,8 @@ PKIX_Error *dummyChecker_Check(
 {
         PKIX_ENTER(CERTCHAINCHECKER, "dummyChecker_Check");
 
+	goto cleanup;
+
 cleanup:
 
         PKIX_RETURN(CERTCHAINCHECKER);

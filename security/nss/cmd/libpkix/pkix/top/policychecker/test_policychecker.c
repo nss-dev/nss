@@ -404,7 +404,8 @@ int main(int argc, char *argv[])
         PKIX_UInt32 chainLength = 0;
         PKIX_UInt32 initArgs = 0;
         PKIX_UInt32 firstCert = 0;
-        PKIX_UInt32 i = 0, j = 0;
+        PKIX_UInt32 i = 0;
+        PKIX_Int32  j = 0;
         PKIX_UInt32 actualMinorVersion;
         PKIX_ProcessingParams *procParams = NULL;
         char *firstTrustAnchor = "../../certs/yassir2yassir";
