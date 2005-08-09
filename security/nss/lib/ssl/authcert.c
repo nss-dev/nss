@@ -59,8 +59,8 @@ NSS_GetClientAuthData(void *                       arg,
 		      struct CERTCertificateStr ** pRetCert, 
 		      struct SECKEYPrivateKeyStr **pRetKey)
 {
-  CERTCertificate *  cert = NULL;
-  SECKEYPrivateKey * privkey = NULL;
+  CERTCertificate *  cert;
+  SECKEYPrivateKey * privkey;
   char *             chosenNickName = (char *)arg;    /* CONST */
   void *             proto_win  = NULL;
   SECStatus          rv         = SECFailure;

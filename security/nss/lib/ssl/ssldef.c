@@ -41,10 +41,8 @@
 
 #if defined(WIN32)
 #define MAP_ERROR(from,to) if (err == from) { PORT_SetError(to); }
-#define DEFINE_ERROR       PRErrorCode err = PR_GetError();
 #else
 #define MAP_ERROR(from,to)
-#define DEFINE_ERROR
 #endif
 
 int ssl_DefConnect(sslSocket *ss, const PRNetAddr *sa)
@@ -90,7 +88,7 @@ int ssl_DefRecv(sslSocket *ss, unsigned char *buf, int len, int flags)
 
     rv = lower->methods->recv(lower, (void *)buf, len, flags, ss->rTimeout);
     if (rv < 0) {
-        DEFINE_ERROR
+	PRErrorCode err = PR_GetError();
 	MAP_ERROR(PR_SOCKET_SHUTDOWN_ERROR, PR_CONNECT_RESET_ERROR)
     } else if (rv > len) {
 	PORT_Assert(rv <= len);
@@ -154,7 +152,7 @@ int ssl_DefRead(sslSocket *ss, unsigned char *buf, int len)
 
     rv = lower->methods->read(lower, (void *)buf, len);
     if (rv < 0) {
-        DEFINE_ERROR
+	PRErrorCode err = PR_GetError();
 	MAP_ERROR(PR_SOCKET_SHUTDOWN_ERROR, PR_CONNECT_RESET_ERROR)
     }
     return rv;

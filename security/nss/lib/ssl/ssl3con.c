@@ -444,9 +444,9 @@ ssl3_config_match_init(sslSocket *ss)
 	    /* Mark the suites that are backed by real tokens, certs and keys */
 	    suite->isPresent = (PRBool)
 		(((exchKeyType == kt_null) ||
-                    ((!isServer || (ss->serverKey[exchKeyType] &&
+		    (!isServer || (ss->serverKey[exchKeyType] &&
 				   ss->serverCertChain[exchKeyType])) &&
-                    PK11_TokenExists(kea_alg_defs[exchKeyType]))) &&
+		    PK11_TokenExists(kea_alg_defs[exchKeyType])) &&
 		((cipher_alg == calg_null) || PK11_TokenExists(cipher_alg)));
 	    if (suite->isPresent)
 	    	++numPresent;
@@ -2922,10 +2922,6 @@ ssl_UnwrapSymWrappingKey(
 	    PK11_PubUnwrapSymKey(svrPrivKey, &wrappedKey,
 				 masterWrapMech, CKA_UNWRAP, 0);
 	break;
-    default:
-        /* Assert? */
-        SET_ERROR_CODE
-        goto loser;
     }
 loser:
     return unwrappedWrappingKey;
@@ -2958,7 +2954,7 @@ getWrappingKey( sslSocket *       ss,
     SECKEYPublicKey *        svrPubKey             = NULL;
     PK11SymKey *             unwrappedWrappingKey  = NULL;
     PK11SymKey **            pSymWrapKey;
-    CK_MECHANISM_TYPE        asymWrapMechanism = CKM_INVALID_MECHANISM;
+    CK_MECHANISM_TYPE        asymWrapMechanism;
     int                      length;
     int                      symWrapMechIndex;
     SECStatus                rv;
@@ -3093,8 +3089,6 @@ no_wrapped_key:
 	ssl_MapLowLevelError(SSL_ERROR_CLIENT_KEY_EXCHANGE_FAILURE);
 	goto loser;
     }
-
-    PORT_Assert(asymWrapMechanism != CKM_INVALID_MECHANISM);
 
     wswk.symWrapMechanism  = masterWrapMech;
     wswk.symWrapMechIndex  = symWrapMechIndex;
@@ -3492,7 +3486,7 @@ loser:
 static SECStatus
 sendFortezzaClientKeyExchange(sslSocket * ss, SECKEYPublicKey * serverKey)
 {
-    ssl3CipherSpec *    pwSpec = NULL;
+    ssl3CipherSpec *	pwSpec;
     sslSessionID *	sid 		= ss->sec->ci.sid;
     PK11SlotInfo *	slot		= NULL;
     PK11SymKey *	pms 		= NULL;
