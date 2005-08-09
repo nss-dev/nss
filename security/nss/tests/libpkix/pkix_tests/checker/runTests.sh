@@ -133,7 +133,7 @@ Display "***********************************************************************
         Display "RUNNING ${testPgm}"
 
         if [[ ${checkmem} -eq 1 ]]; then
-            /net/zhadum/export/tools/sparc/on10/SUNWspro/SOS8/bin/dbx -C -c "check -all;run;exit" ${DIST_BIN}/${testPgm} > ${testOut} 2>&1
+            dbx -C -c "check -all;run;exit" ${DIST_BIN}/${testPgm} > ${testOut} 2>&1
         else
             ${DIST_BIN}/${testPgm} > ${testOut} 2>&1
         fi

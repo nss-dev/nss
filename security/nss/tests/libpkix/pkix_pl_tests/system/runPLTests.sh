@@ -143,7 +143,7 @@ Display "***********************************************************************
         if [[ ${checkmem} -eq 1 ]]; then
             # We add the "ignore ABRT" command for the test_mutex case
             if [[ ${testPgm} == "test_mutex" ]]; then
-            /net/zhadum/export/tools/sparc/on10/SUNWspro/SOS8/bin/dbx -C -c "check -all;ignore ABRT;run;exit" ${DIST_BIN}/${testPgm} ${arenaCmd}> ${testOut} 2>&1
+                dbx -C -c "check -all;ignore ABRT;run;exit" ${DIST_BIN}/${testPgm} ${arenaCmd}> ${testOut} 2>&1
             else
                 dbx -C -c "check -all;run;exit" ${DIST_BIN}/${testPgm} ${arenaCmd} > ${testOut} 2>&1
             fi
