@@ -40,7 +40,6 @@
  * Socket Function Definitions
  *
  */
-#define PKIX_SOCKETDEBUG 1
 
 /*
  * If PKIX_SOCKETTRACE is defined, messages sent and received will be
@@ -54,9 +53,6 @@
  * sides of a message exchange and to figure durations.
  */
 
-/* #define      PKIX_SOCKETDEBUG 1 */
-
-#define PKIX_SOCKETTRACE 1
 #ifdef PKIX_SOCKETDEBUG
 #define PKIX_SOCKETTRACE 1
 #endif
@@ -437,8 +433,7 @@ pkix_pl_Socket_CreateServer(
         printf("Created socket, PRFileDesc @  %#X\n", serverSock);
 #endif
 
-        PKIX_PL_NSSCALLRV(SOCKET, rv, PR_Bind,
-                (serverSock, socket->serverSockaddr));
+        PKIX_PL_NSSCALLRV(SOCKET, rv, PR_Bind, (serverSock, socket->netAddr));
 
         if (rv == PR_FAILURE) {
 #ifdef PKIX_SOCKETDEBUG
@@ -471,12 +466,14 @@ cleanup:
  * DESCRIPTION:
  *
  *  This functions performs the connect function for the client socket
- *  specified in "socket".
+ *  specified in "socket", storing the status at "pStatus".
  *
  * PARAMETERS:
- * "socket"
+ *  "socket"
  *      The address of the Socket for which a connect is to be performed.
  *      Must be non-NULL.
+ *  "pStatus"
+ *      The address at which the connection status is stored. Must be non-NULL.
  *  "plContext"
  *      Platform-specific context pointer
  * THREAD SAFETY:
@@ -487,6 +484,7 @@ cleanup:
 static PKIX_Error *
 pkix_pl_Socket_Connect(
         PKIX_PL_Socket *socket,
+	PRErrorCode *pStatus,
         void *plContext)
 {
         PRStatus rv = PR_FAILURE;
@@ -496,17 +494,14 @@ pkix_pl_Socket_Connect(
         PKIX_NULLCHECK_TWO(socket, socket->clientSock);
 
         PKIX_PL_NSSCALLRV(SOCKET, rv, PR_Connect,
-                (socket->clientSock, socket->serverSockaddr, socket->timeout));
+                (socket->clientSock, socket->netAddr, socket->timeout));
 
         if (rv == PR_FAILURE) {
                 errorcode = PR_GetError();
+		*pStatus = errorcode;
                 if (errorcode == PR_IN_PROGRESS_ERROR) {
                         socket->status = SOCKET_CONNECTPENDING;
                         goto cleanup;
-                }
-
-                if (errorcode == PR_IN_PROGRESS_ERROR) {
-                        PKIX_ERROR("PR_WOULD_BLOCK_ERROR");
                 } else {
 #ifdef PKIX_SOCKETDEBUG
                         printf
@@ -521,6 +516,86 @@ pkix_pl_Socket_Connect(
         printf("Successful connect!\n");
 #endif
 
+	*pStatus = 0;
+        socket->status = SOCKET_CONNECTED;
+
+cleanup:
+
+        PKIX_RETURN(SOCKET);
+}
+
+/*
+ * FUNCTION: pkix_pl_Socket_ConnectContinue
+ * DESCRIPTION:
+ *
+ *  This functions continues the connect function for the client socket
+ *  specified in "socket", storing the status at "pStatus". It is expected that
+ *  the non-blocking connect has returned PR_IN_PROGRESS_ERROR.
+ *
+ * PARAMETERS:
+ *  "socket"
+ *      The address of the Socket for which a connect is to be continued.
+ *      Must be non-NULL.
+ *  "pStatus"
+ *      The address at which the connection status is stored. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety definitions in Programmer's Guide)
+ * RETURNS:
+ *  none
+ */
+static PKIX_Error *
+pkix_pl_Socket_ConnectContinue(
+        PKIX_PL_Socket *socket,
+	PRErrorCode *pStatus,
+        void *plContext)
+{
+        PRStatus rv = PR_FAILURE;
+        PRErrorCode errorcode = 0;
+        PRPollDesc pollDesc;
+        PRInt32 numEvents = 0;
+
+        PKIX_ENTER(SOCKET, "pkix_pl_Socket_ConnectContinue");
+        PKIX_NULLCHECK_TWO(socket, socket->clientSock);
+
+        pollDesc.fd = socket->clientSock;
+        pollDesc.in_flags = PR_POLL_WRITE | PR_POLL_EXCEPT;
+        pollDesc.out_flags = 0;
+        PKIX_PL_NSSCALLRV(SOCKET, numEvents, PR_Poll, (&pollDesc, 1, 0));
+        if (numEvents < 0) {
+                PKIX_ERROR("PR_Poll failed");
+        } else if (numEvents == 0) {
+                errorcode = PR_GetError();
+                if (errorcode != PR_WOULD_BLOCK_ERROR) {
+                	PKIX_ERROR("PR_Poll failed");
+		}
+	}
+
+        /* if (numEvents > 0) */
+       	PKIX_PL_NSSCALLRV(SOCKET, rv, PR_ConnectContinue,
+       		(socket->clientSock, pollDesc.out_flags));
+
+        if (rv == PR_FAILURE) {
+                errorcode = PR_GetError();
+		*pStatus = errorcode;
+                if (errorcode == PR_IN_PROGRESS_ERROR) {
+                        goto cleanup;
+                } else {
+#ifdef PKIX_SOCKETDEBUG
+                        printf
+                                ("pkix_pl_Socket_ConnectContinue: %s\n",
+                                PR_ErrorToString(errorcode, PR_LANGUAGE_EN));
+#endif
+                        PKIX_ERROR("PR_Connect failed");
+                }
+        }
+
+#ifdef PKIX_SOCKETDEBUG
+        printf("Successful connect!\n");
+#endif
+
+	*pStatus = 0;
         socket->status = SOCKET_CONNECTED;
 
 cleanup:
@@ -1071,11 +1146,13 @@ pkix_pl_Socket_Accept(
         newSocket->timeout = serverSocket->timeout;
         newSocket->clientSock = rendezvousSock;
         newSocket->serverSock = NULL;
-        newSocket->serverSockaddr = NULL;
+        newSocket->netAddr = NULL;
         newSocket->status = SOCKET_CONNECTED;
         newSocket->callbackList.shutdownCallback = pkix_pl_Socket_Shutdown;
         newSocket->callbackList.listenCallback = pkix_pl_Socket_Listen;
         newSocket->callbackList.acceptCallback = pkix_pl_Socket_Accept;
+        newSocket->callbackList.connectcontinueCallback =
+		pkix_pl_Socket_ConnectContinue;
         newSocket->callbackList.sendCallback = pkix_pl_Socket_Send;
         newSocket->callbackList.recvCallback = pkix_pl_Socket_Recv;
         newSocket->callbackList.pollCallback = pkix_pl_Socket_Poll;
@@ -1098,10 +1175,10 @@ cleanup:
  * FUNCTION: pkix_pl_Socket_Create
  * DESCRIPTION:
  *
- *  This function creates a new Socket, setting it to be a server or a
- *  client according to the value of "isServer", setting its timeout
- *  value from "timeout" and server address from "serverSockaddr", and
- *  stores the created Socket at "pSocket".
+ *  This function creates a new Socket, setting it to be a server or a client
+ *  according to the value of "isServer", setting its timeout value from
+ *  "timeout" and server address from "netAddr", and stores the created Socket
+ *  at "pSocket".
  *
  * PARAMETERS:
  *  "isServer"
@@ -1111,7 +1188,7 @@ cleanup:
  *  "timeout"
  *      A PRTimeInterval value to be used for I/O waits for this socket. If
  *      zero, non-blocking I/O is to be used.
- *  "serverSockaddr"
+ *  "netAddr"
  *      The PRNetAddr to be used for the Bind function, if this is a server
  *      socket, or for the Connect, if this is a client socket.
  *  "pSocket"
@@ -1130,7 +1207,8 @@ PKIX_Error *
 pkix_pl_Socket_Create(
         PKIX_Boolean isServer,
         PRIntervalTime timeout,
-        PRNetAddr *serverSockaddr,
+        PRNetAddr *netAddr,
+	PRErrorCode *status,
         PKIX_PL_Socket **pSocket,
         void *plContext)
 {
@@ -1150,10 +1228,12 @@ pkix_pl_Socket_Create(
         socket->timeout = timeout;
         socket->clientSock = NULL;
         socket->serverSock = NULL;
-        socket->serverSockaddr = serverSockaddr;
+        socket->netAddr = netAddr;
 
         socket->callbackList.listenCallback = pkix_pl_Socket_Listen;
         socket->callbackList.acceptCallback = pkix_pl_Socket_Accept;
+        socket->callbackList.connectcontinueCallback =
+		 pkix_pl_Socket_ConnectContinue;
         socket->callbackList.sendCallback = pkix_pl_Socket_Send;
         socket->callbackList.recvCallback = pkix_pl_Socket_Recv;
         socket->callbackList.pollCallback = pkix_pl_Socket_Poll;
@@ -1162,11 +1242,12 @@ pkix_pl_Socket_Create(
         if (isServer) {
                 PKIX_CHECK(pkix_pl_Socket_CreateServer(socket, plContext),
                         "pkix_pl_Socket_CreateServer failed");
+		*status = 0;
         } else {
                 socket->timeout = timeout;
                 PKIX_CHECK(pkix_pl_Socket_CreateClient(socket, plContext),
                         "pkix_pl_Socket_CreateClient failed");
-                PKIX_CHECK(pkix_pl_Socket_Connect(socket, plContext),
+                PKIX_CHECK(pkix_pl_Socket_Connect(socket, status, plContext),
                         "pkix_pl_Socket_Connect failed");
         }
 

@@ -39,6 +39,8 @@
 #include "testutil_nss.h"
 #include "pkix_pl_common.h"
 
+#define LDAP_PORT 389
+
 void *plContext = NULL;
 
 typedef enum {
@@ -55,6 +57,7 @@ typedef enum {
 } SERVER_STATE;
 
 typedef enum {
+	CLIENT_WAITFORCONNECT,
 	CLIENT_SEND1,
 	CLIENT_POLL1,
 	CLIENT_RECV2,
@@ -74,7 +77,7 @@ PKIX_PL_Socket *rendezvousSock = NULL;
 PKIX_PL_Socket_Callback *sCallbackList;
 PKIX_PL_Socket_Callback *cCallbackList;
 PKIX_PL_Socket_Callback *rvCallbackList;
-PRNetAddr serverSockaddr;
+PRNetAddr netAddr;
 PRIntn backlog = 0;
 PRIntervalTime timeout = 0;
 char *sendBuf1 = "Hello, world!";
@@ -86,13 +89,20 @@ char rcvBuf2[100];
 PKIX_Int32 bytesRead = 0;
 PKIX_Int32 bytesWritten = 0;
 
+void printUsage(char *testname) {
+        char *fmt = "USAGE: %s [-arenas] server:port\n";
+        printf(fmt, testname);
+}
+
 /* Functional tests for Socket public functions */
 void do_other_work(void) { /* while waiting for nonblocking I/O to complete */
 	(void) PR_Sleep(2*60);
 }
 
-void server()
+PKIX_Boolean server()
 {
+	PKIX_Boolean keepGoing = PKIX_FALSE;
+
 	PKIX_TEST_STD_VARS();
 
 	switch (serverState) {
@@ -124,6 +134,7 @@ void server()
 			}
 
 			serverState = SERVER_SEND2;
+			keepGoing = PKIX_TRUE;
 		} else {
 			serverState = SERVER_POLL1;
 		}
@@ -141,6 +152,7 @@ void server()
 			}
 
 			serverState = SERVER_SEND2;
+			keepGoing = PKIX_TRUE;
 		}
 		break;
 	case SERVER_SEND2:
@@ -176,6 +188,7 @@ void server()
 
 		if (bytesRead >= 0) {
 			serverState = SERVER_SEND4;
+			keepGoing = PKIX_TRUE;
 		} else {
 			serverState = SERVER_POLL3;
 		}
@@ -186,6 +199,7 @@ void server()
 			(rendezvousSock, NULL, &bytesRead, plContext));
 		if (bytesRead >= 0) {
 			serverState = SERVER_SEND4;
+			keepGoing = PKIX_TRUE;
 		}
 		break;
 	case SERVER_SEND4:
@@ -228,12 +242,26 @@ void server()
 cleanup:
 
 	PKIX_TEST_RETURN();
+
+	return (keepGoing);
 }
 
-void client() {
+PKIX_Boolean client() {
+	PKIX_Boolean keepGoing = PKIX_FALSE;
+	PRErrorCode cStat = 0;
+
 	PKIX_TEST_STD_VARS();
 
 	switch (clientState) {
+	case CLIENT_WAITFORCONNECT:
+		subTest("CLIENT_WAITFORCONNECT");
+		PKIX_TEST_EXPECT_NO_ERROR(cCallbackList->connectcontinueCallback
+			(cSock, &cStat, plContext));
+		if (cStat == 0) {
+			clientState = CLIENT_SEND1;
+			keepGoing = PKIX_TRUE;
+		}
+		break;
 	case CLIENT_SEND1:
 		subTest("CLIENT_SEND1");
 		PKIX_TEST_EXPECT_NO_ERROR(cCallbackList->sendCallback
@@ -272,6 +300,7 @@ void client() {
 				testError("Receive buffer mismatch\n");
 			}
 			clientState = CLIENT_SEND3;
+			keepGoing = PKIX_TRUE;
 		} else {
 			clientState = CLIENT_POLL2;
 		}
@@ -350,19 +379,26 @@ void client() {
 cleanup:
 
 	PKIX_TEST_RETURN();
+
+	return (keepGoing);
 }
 
 void dispatcher()
 {
+	PKIX_Boolean keepGoing = PKIX_FALSE;
 
 	PKIX_TEST_STD_VARS();
 
 	do {
 		if (serverState != SERVER_DONE) {
-			server();
+			do {
+				keepGoing = server();
+			} while (keepGoing == PKIX_TRUE);
 		}
 		if (clientState != CLIENT_DONE) {
-			client();
+			do {
+				keepGoing = client();
+			} while (keepGoing == PKIX_TRUE);
 		}
 		do_other_work();
 	
@@ -375,6 +411,14 @@ int main(int argc, char *argv[]) {
 
 	PKIX_UInt32 j = 0;
 	PKIX_UInt32 actualMinorVersion;
+	char buf[PR_NETDB_BUF_SIZE];
+	char *serverName = NULL;
+	char *sepPtr = NULL;
+	PRHostEnt hostent;
+	PKIX_UInt32 portNum = 0;
+	PRStatus prstatus = PR_FAILURE;
+	PRErrorCode cStat = 0;
+	void *ipaddr = NULL;
 
 	PKIX_TEST_STD_VARS();
 
@@ -394,17 +438,42 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	serverSockaddr.inet.family = PR_AF_INET;
-	serverSockaddr.inet.port = PR_htons(389); /* LDAP_PORT = 389; */
-	serverSockaddr.inet.ip = PR_htonl(0x7F000001); 
-					      /* 127.0.0.1 = localhost */
+	if (argc != (j + 2)) {
+                printUsage(argv[0]);
+                pkixTestErrorMsg = "Missing command line argument.";
+                goto cleanup;
+	}
+
+	serverName = argv[j + 1];
+	sepPtr = strchr(serverName, ':');
+	if (sepPtr) {
+		*sepPtr++ = '\0';
+		prstatus = PR_GetHostByName(serverName, buf, sizeof(buf), &hostent);
+		portNum = atoi(sepPtr);
+	} else {
+		prstatus = PR_GetHostByName(serverName, buf, sizeof(buf), &hostent);
+		portNum = LDAP_PORT;
+	}
+
+	if ((prstatus != PR_SUCCESS) || (hostent.h_length != 4)) {
+                printUsage(argv[0]);
+                pkixTestErrorMsg = "Invalid command line argument.";
+                goto cleanup;
+	}
+
+	netAddr.inet.family = PR_AF_INET;
+	netAddr.inet.port = PR_htons(portNum);
+	ipaddr = hostent.h_addr_list[0]; 
+	netAddr.inet.ip = PR_htonl(*(PKIX_UInt32 *)ipaddr); 
+
 	backlog = 5;
 
 	/* timeout = PR_INTERVAL_NO_TIMEOUT; */
-	timeout = 0; /* nonblocking */
+	timeout = 0;
+	/* timeout = 0; /* nonblocking */
 
 	PKIX_TEST_EXPECT_NO_ERROR(pkix_pl_Socket_Create
-		(PKIX_TRUE, timeout, &serverSockaddr, &sSock, plContext));
+		(PKIX_TRUE, timeout, &netAddr, &cStat, &sSock, plContext));
 
         PKIX_TEST_EXPECT_NO_ERROR(pkix_pl_Socket_GetCallbackList
 		(sSock, &sCallbackList, plContext));
@@ -415,12 +484,16 @@ int main(int argc, char *argv[]) {
 	serverState = SERVER_LISTENING;
 
 	PKIX_TEST_EXPECT_NO_ERROR(pkix_pl_Socket_Create
-		(PKIX_FALSE, timeout, &serverSockaddr, &cSock, plContext));
+		(PKIX_FALSE, timeout, &netAddr, &cStat, &cSock, plContext));
 
        	PKIX_TEST_EXPECT_NO_ERROR(pkix_pl_Socket_GetCallbackList
 		(cSock, &cCallbackList, plContext));
 
-	clientState = CLIENT_SEND1;
+	if ((timeout == 0) && (cStat == PR_IN_PROGRESS_ERROR)) {
+		clientState = CLIENT_WAITFORCONNECT;
+	} else {
+		clientState = CLIENT_SEND1;
+	}
 
 	dispatcher();
 

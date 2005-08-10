@@ -85,6 +85,12 @@ typedef PKIX_Error *
         void *plContext);
 
 typedef PKIX_Error *
+(*pkix_pl_Socket_ConnectContinueCallback)(
+        PKIX_PL_Socket *socket,
+	PRErrorCode *pStatus,
+        void *plContext);
+
+typedef PKIX_Error *
 (*pkix_pl_Socket_SendCallback)(
         PKIX_PL_Socket *sendSock,
         void *buf,
@@ -114,6 +120,7 @@ typedef PKIX_Error *
 typedef struct PKIX_PL_Socket_CallbackStruct {
         pkix_pl_Socket_ListenCallback listenCallback;
         pkix_pl_Socket_AcceptCallback acceptCallback;
+        pkix_pl_Socket_ConnectContinueCallback connectcontinueCallback;
         pkix_pl_Socket_SendCallback sendCallback;
         pkix_pl_Socket_RecvCallback recvCallback;
         pkix_pl_Socket_PollCallback pollCallback;
@@ -130,10 +137,7 @@ struct PKIX_PL_SocketStruct {
         void *writeBuf;
         PKIX_UInt32 readBufSize;
         PKIX_UInt32 writeBufSize;
-#if 0
-        PRNetAddr serverSockaddr;
-#endif
-        PRNetAddr *serverSockaddr;
+        PRNetAddr *netAddr;
         PKIX_PL_Socket_Callback callbackList;
 };
 
@@ -145,10 +149,8 @@ PKIX_Error *
 pkix_pl_Socket_Create(
         PKIX_Boolean isServer,
         PRIntervalTime timeout, /* zero for non-blocking I/O */
-#if 0
-        PRNetAddr serverSockaddr,
-#endif
-        PRNetAddr *serverSockaddr,
+        PRNetAddr *netAddr,
+	PRErrorCode *status,
         PKIX_PL_Socket **pSocket,
         void *plContext);
 
@@ -163,6 +165,12 @@ pkix_pl_Socket_Create(
  *      pkix_pl_Socket_Accept(
  *              PKIX_PL_Socket *socket,
  *              PKIX_PL_Socket **pRendezvousSock,
+ *              void *plContext);
+ *      
+ *      static PKIX_Error *
+ *      pkix_pl_Socket_ConnectContinue(
+ *              PKIX_PL_Socket *socket,
+ *              PRErrorCode *pStatus,
  *              void *plContext);
  *      
  *      static PKIX_Error *

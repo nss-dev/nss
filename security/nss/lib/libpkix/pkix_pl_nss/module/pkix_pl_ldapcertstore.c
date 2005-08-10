@@ -40,7 +40,6 @@
  * LDAPCertStore Function Definitions
  *
  */
-#define PKIX_LDAPCERTSTORECONTEXTDEBUG 1
 
 #include "pkix_pl_ldapcertstore.h"
 
@@ -551,14 +550,7 @@ pkix_pl_LdapCertStoreContext_Create(
                     plContext),
                     "Could not create LdapCertStoreContext object");
 
-        /* Assume caller provided a socket already connected */
-        /* ldapCertStoreContext->connectStatus = LDAP_CONNECTED; */
-
-        /*
-         * Assume caller provided a socket already connected, and
-         * Server does not require a BIND.
-         */ 
-        ldapCertStoreContext->connectStatus = LDAP_BOUND;
+        ldapCertStoreContext->connectStatus = LDAP_NOT_CONNECTED;
 
         PKIX_CHECK(PKIX_PL_HashTable_Create
                 (LDAP_CACHEBUCKETS, &ht, plContext),
@@ -878,6 +870,7 @@ pkix_pl_LdapCertStore_Connect(
 cleanup:
         PKIX_RETURN(LDAPCERTSTORECONTEXT);
 }
+#endif
 
 /*
  * FUNCTION: pkix_pl_LdapCertStore_ConnectContinue
@@ -911,25 +904,37 @@ pkix_pl_LdapCertStore_ConnectContinue(
         PKIX_Boolean *pKeepGoing,
         void *plContext)
 {
+        PKIX_PL_Socket_Callback *callbackList;
+	PRErrorCode status;
+        PKIX_Boolean keepGoing = PKIX_FALSE;
+
         PKIX_ENTER
                 (LDAPCERTSTORECONTEXT,
                 "pkix_pl_LdapCertStore_ConnectContinue");
         PKIX_NULLCHECK_ONE(lcs);
 
-        /* connects are instantaneous, so far */
-        /* if ConnectContinue completes... */
-        lcs->connectStatus = LDAP_CONNECTED;
+        callbackList = (PKIX_PL_Socket_Callback *)(lcs->callbackList);
+
+        PKIX_CHECK(callbackList->connectcontinueCallback
+                (lcs->clientSocket, &status, plContext),
+		"pkix_pl_Socket_ConnectContinue failed");
+
+	if (status == 0) {
+        	lcs->connectStatus = LDAP_CONNECTED;
+        	keepGoing = PKIX_TRUE;
+	} else if (status != PR_IN_PROGRESS_ERROR) {
+		PKIX_ERROR("Unexpected error in establishing connection");
+	}
 
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                 ((PKIX_PL_Object *)lcs, plContext),
                 "PKIX_PL_Object_InvalidateCache failed");
 
-        *pKeepGoing = PKIX_TRUE;
+        *pKeepGoing = keepGoing;
 
 cleanup:
         PKIX_RETURN(LDAPCERTSTORECONTEXT);
 }
-#endif
 
 /*
  * FUNCTION: pkix_pl_LdapCertStore_Bind
@@ -1724,13 +1729,13 @@ pkix_pl_LdapCertstore_Dispatch(
                                 (lcs, &keepGoing, plContext),
                                 "pkix_pl_LdapCertStore_Connect failed");
                         break;
+#endif
                 case LDAP_CONNECT_PENDING:
                         PKIX_CHECK
                                 (pkix_pl_LdapCertStore_ConnectContinue
                                 (lcs, &keepGoing, plContext),
                                 "pkix_pl_LdapCertStore_ConnectContinue failed");
                         break;
-#endif
                 case LDAP_CONNECTED:
                         PKIX_CHECK
                                 (pkix_pl_LdapCertStore_Bind
@@ -2769,13 +2774,14 @@ PKIX_PL_LdapCertStore_Create(
         PKIX_CertStore *certStore = NULL;
         PKIX_PL_Socket *socket = NULL;
         PKIX_PL_LdapCertStoreContext *ldapCertStoreContext = NULL;
+	PRErrorCode status = 0;
         PRFileDesc *fileDesc = NULL;
 
         PKIX_ENTER(CERTSTORE, "PKIX_PL_LdapCertStore_Create");
         PKIX_NULLCHECK_THREE(bindName, authentication, pCertStore);
 
         PKIX_CHECK(pkix_pl_Socket_Create
-                (PKIX_FALSE, timeout, sockaddr, &socket, plContext),
+                (PKIX_FALSE, timeout, sockaddr, &status, &socket, plContext),
                 "pkix_pl_Socket_Create failed");
 
         PKIX_CHECK(pkix_pl_LdapCertStoreContext_Create
@@ -2801,6 +2807,16 @@ PKIX_PL_LdapCertStore_Create(
         ldapCertStoreContext->pollDesc.fd = fileDesc;
         ldapCertStoreContext->pollDesc.in_flags = 0;
         ldapCertStoreContext->pollDesc.out_flags = 0;
+
+	/* Did Socket_Create say the connection was made? */
+	if (status == 0) {
+        	ldapCertStoreContext->connectStatus = LDAP_CONNECTED;
+
+	        /* Assume server does not require a BIND. */ 
+       		ldapCertStoreContext->connectStatus = LDAP_BOUND;
+	} else {
+        	ldapCertStoreContext->connectStatus = LDAP_CONNECT_PENDING;
+	}
 
         *pDesc = &(ldapCertStoreContext->pollDesc);
         *pCertStore = certStore;
