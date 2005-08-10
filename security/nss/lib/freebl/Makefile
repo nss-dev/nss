@@ -56,16 +56,16 @@ include $(CORE_DEPTH)/coreconf/config.mk
 
 GCC_OPTIMIZER = -O3  -mno-omit-leaf-frame-pointer -fno-omit-frame-pointer
 
-# We have to define this variable now so the right sources are pulled
-#  from manifest.mn.
-# TFM works only with gcc, and we have only tested it on AMD64 so far.
-ifeq ($(CPU_ARCH),x86_64)
-ifdef NS_USE_GCC
-    NSS_USE_TFM = 1
-    CSRCS += $(TFM_SRCS)
-    OPTIMIZER += $(GCC_OPTIMIZER)
-endif
-endif
+## We have to define this variable now so the right sources are pulled
+##  from manifest.mn.
+## TFM works only with gcc, and we have only tested it on AMD64 so far.
+#ifeq ($(CPU_ARCH),x86_64)
+#ifdef NS_USE_GCC
+#    NSS_USE_TFM = 1
+#    CSRCS += $(TFM_SRCS)
+#    OPTIMIZER += $(GCC_OPTIMIZER)
+#endif
+#endif
 
 #######################################################################
 # (4) Include "local" platform-dependent assignments (OPTIONAL).      #
