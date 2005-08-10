@@ -721,12 +721,21 @@ PKIX_PL_Object_IncRef(
 {
         PKIX_Boolean refCountError = PKIX_FALSE;
         PKIX_PL_Object *objectHeader = NULL;
+        PKIX_PL_NssContext *context = NULL;
 
         PKIX_ENTER(OBJECT, "PKIX_PL_Object_IncRef");
         PKIX_NULLCHECK_ONE(object);
 
         if (plContext){
-                goto cleanup;
+                /* 
+                 * PKIX_PL_NssContext is not a complete PKIX Type, it doesn't
+                 * have a header therefore we cannot verify its type before
+                 * casting.
+                 */  
+                context = (PKIX_PL_NssContext *) plContext;
+                if (context->arena != NULL) {
+                        goto cleanup;
+                }
         }
 
         if (object == (PKIX_PL_Object*)PKIX_ALLOC_ERROR) {
@@ -778,13 +787,22 @@ PKIX_PL_Object_DecRef(
         PKIX_PL_DestructorCallback func = NULL;
         PKIX_PL_Object *objectHeader = NULL;
         pkix_ClassTable_Entry entry;
+        PKIX_PL_NssContext *context = NULL;
         PKIX_Boolean refCountError = PKIX_FALSE;
 
         PKIX_ENTER(OBJECT, "PKIX_PL_Object_DecRef");
         PKIX_NULLCHECK_ONE(object);
 
         if (plContext){
-                goto cleanup;
+                /* 
+                 * PKIX_PL_NssContext is not a complete PKIX Type, it doesn't
+                 * have a header therefore we cannot verify its type before
+                 * casting.
+                 */  
+                context = (PKIX_PL_NssContext *) plContext;
+                if (context->arena != NULL) {
+                        goto cleanup;
+                }
         }
 
         if (object == (PKIX_PL_Object*)PKIX_ALLOC_ERROR) {
