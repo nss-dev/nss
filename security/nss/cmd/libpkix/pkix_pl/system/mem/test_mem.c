@@ -144,7 +144,7 @@ int main(int argc, char *argv[]) {
 
         (void) printf("Attempting to reallocate 0 sized memory...\n");
 
-        PKIX_TEST_EXPECT_ERROR
+        PKIX_TEST_EXPECT_NO_ERROR
                 (PKIX_PL_Realloc(array, 0, (void **) &array, plContext));
 
         (void) printf("Attempting to allocate to null pointer...\n");
