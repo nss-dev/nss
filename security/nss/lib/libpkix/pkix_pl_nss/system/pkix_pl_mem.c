@@ -186,12 +186,15 @@ PKIX_PL_Free(
 
         PKIX_ENTER(MEM, "PKIX_PL_Free");
 
-        if (plContext){
-                context = (PKIX_PL_NssContext *) plContext;
+        context = (PKIX_PL_NssContext *) plContext;
+        if (context != NULL) {
                 if (context->arena == NULL) {
-                        PKIX_MEM_DEBUG("\tCalling PR_Free.\n");
-                        (void) PR_Free(ptr);
+                    PKIX_MEM_DEBUG("\tCalling PR_Free.\n");
+                    (void) PR_Free(ptr);
                 }
+        } else {
+                PKIX_MEM_DEBUG("\tCalling PR_Free.\n");
+                (void) PR_Free(ptr);
         }
 
         PKIX_RETURN(MEM);
@@ -207,15 +210,17 @@ PKIX_PL_Memcpy(
         void **pDest,
         void *plContext)
 {
+        PKIX_PL_NssContext *nssContext = NULL;
+
         PKIX_ENTER(MEM, "PKIX_PL_Memcpy");
         PKIX_NULLCHECK_TWO(source, pDest);
 
-#if 0
-        /* plContext is not referenced here for memcpy, why checking ? */
-        if (plContext){
+        nssContext = (PKIX_PL_NssContext *)plContext; 
+
+        if (nssContext != NULL && nssContext->arena != NULL) {
                 return (PKIX_ALLOC_ERROR);
         }
-#endif
+
         PKIX_MEM_DEBUG("\tCalling PORT_Memcpy.\n");
         (void) PORT_Memcpy(*pDest, source, length);
 
