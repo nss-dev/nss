@@ -152,11 +152,11 @@ pkix_pl_LdapCertStore_MakeBind(
         len = strlen (authentication);
         msg.protocolOp.op.bindMsg.authentication.len = len;
 
-        PKIX_PL_NSSCALLRV
-                (LDAPCERTSTORECONTEXT,
-                encoded,
-                SEC_ASN1EncodeItem,
-                (arena, NULL, (void *)&msg, LDAPMessageTemplate));
+        PKIX_PL_NSSCALLRV(LDAPCERTSTORECONTEXT, encoded, SEC_ASN1EncodeItem,
+                (arena,
+                NULL,
+                (void *)&msg,
+                SEC_ASN1_GET(PKIX_PL_LDAPMessageTemplate)));
         if (!encoded) {
                 PKIX_ERROR("failed in encoding bindRequest");
         }
@@ -226,11 +226,11 @@ pkix_pl_LdapCertStore_MakeUnbind(
         msg.protocolOp.op.unbindMsg.dummy.data = NULL;
         msg.protocolOp.op.unbindMsg.dummy.len = 0;
 
-        PKIX_PL_NSSCALLRV
-                (LDAPCERTSTORECONTEXT,
-                encoded,
-                SEC_ASN1EncodeItem,
-                (arena, NULL, (void *)&msg, LDAPMessageTemplate));
+        PKIX_PL_NSSCALLRV(LDAPCERTSTORECONTEXT, encoded, SEC_ASN1EncodeItem,
+                (arena,
+                NULL,
+                (void *)&msg,
+                SEC_ASN1_GET(PKIX_PL_LDAPMessageTemplate)));
         if (!encoded) {
                 PKIX_ERROR("failed in encoding unbind");
         }
@@ -292,11 +292,8 @@ pkix_pl_LdapCertStore_DecodeBindResponse(
                 PORT_Memset,
                 (&response, 0, sizeof (LDAPMessage)));
 
-        PKIX_PL_NSSCALLRV
-                (LDAPCERTSTORECONTEXT,
-                rv,
-                SEC_ASN1DecodeItem,
-                (arena, &response, LDAPMessageTemplate, src));
+        PKIX_PL_NSSCALLRV(LDAPCERTSTORECONTEXT, rv, SEC_ASN1DecodeItem,
+            (arena, &response, SEC_ASN1_GET(PKIX_PL_LDAPMessageTemplate), src));
 
         if (rv == SECSuccess) {
                 *pBindResponse = response;

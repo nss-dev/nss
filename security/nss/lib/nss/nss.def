@@ -858,7 +858,7 @@ CERT_FindCRLNumberExten;
 CERT_FindNameConstraintsExten;
 ;+# libpkix functions
 ;+# May not become part of the NSS public API. Needed for unit testing for now.
-LDAPMessageTemplate;
+NSS_Get_PKIX_PL_LDAPMessageTemplate;
 PKIX_ALLOC_ERROR;
 PKIX_BuildChain;
 PKIX_BuildParams_Create;

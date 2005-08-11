@@ -411,10 +411,15 @@ static const SEC_ASN1Template LDAPMessageProtocolOpTemplate[] = {
     { 0 }
 };
 
-const SEC_ASN1Template LDAPMessageTemplate[] = {
+const SEC_ASN1Template PKIX_PL_LDAPMessageTemplate[] = {
     { SEC_ASN1_SEQUENCE, 0, NULL },
     { SEC_ASN1_INTEGER, offsetof(LDAPMessage, messageID) },
     { SEC_ASN1_INLINE, offsetof(LDAPMessage, protocolOp),
         LDAPMessageProtocolOpTemplate },
     { 0 }
 };
+
+/* This function simply returns the address of the message template.
+ * This is necessary for Windows DLLs.
+ */
+SEC_ASN1_CHOOSER_IMPLEMENT(PKIX_PL_LDAPMessageTemplate)

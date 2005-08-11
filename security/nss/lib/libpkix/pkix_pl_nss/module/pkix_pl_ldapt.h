@@ -45,7 +45,7 @@
 extern "C" {
 #endif
 
-extern const SEC_ASN1Template LDAPMessageTemplate[];
+SEC_ASN1_CHOOSER_DECLARE(PKIX_PL_LDAPMessageTemplate)
 
 /* ********************************************************************** */
 

@@ -557,7 +557,10 @@ pkix_pl_LdapResponse_Decode(
         selector = msg->protocolOp.selector;
 
         PKIX_PL_NSSCALLRV(LDAPRESPONSE, rv, SEC_ASN1DecodeItem,
-                (arena, msg, LDAPMessageTemplate, &(response->derEncoded)));
+            (arena,
+            msg,
+            SEC_ASN1_GET(PKIX_PL_LDAPMessageTemplate),
+            &(response->derEncoded)));
 
         *pStatus = rv;
 cleanup:

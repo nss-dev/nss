@@ -597,10 +597,11 @@ pkix_pl_LdapRequest_Create(
         search->attributes = attrArray;
 
         PKIX_PL_NSSCALLRV
-                (LDAPCERTSTORECONTEXT,
-                ldapRequest->encoded,
-                SEC_ASN1EncodeItem,
-                (arena, NULL, (void *)&msg, LDAPMessageTemplate));
+                (LDAPCERTSTORECONTEXT, ldapRequest->encoded, SEC_ASN1EncodeItem,
+                (arena,
+                NULL,
+                (void *)&msg,
+                SEC_ASN1_GET(PKIX_PL_LDAPMessageTemplate)));
         if (!(ldapRequest->encoded)) {
                 PKIX_ERROR("failed in encoding searchRequest");
         }
