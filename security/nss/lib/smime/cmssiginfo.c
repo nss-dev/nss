@@ -19,6 +19,7 @@
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
+ *   Dr Vipul Gupta <vipul.gupta@sun.com>, Sun Microsystems Laboratories
  *
  * Alternatively, the contents of this file may be used under the terms of
  * either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -381,6 +382,9 @@ NSS_CMSSignerInfo_Verify(NSSCMSSignerInfo *signerinfo,
     case SEC_OID_ANSIX9_DSA_SIGNATURE_WITH_SHA1_DIGEST:
     case SEC_OID_PKCS1_SHA1_WITH_RSA_ENCRYPTION:
     case SEC_OID_PKCS1_MD5_WITH_RSA_ENCRYPTION:
+#ifdef NSS_ENABLE_ECC
+    case SEC_OID_ANSIX962_EC_PUBLIC_KEY:
+#endif /* NSS_ENABLE_ECC */
 	/* ok */
 	break;
     case SEC_OID_UNKNOWN:

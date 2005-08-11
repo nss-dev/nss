@@ -124,7 +124,7 @@ SGN_NewContext(SECOidTag alg, SECKEYPrivateKey *key)
 #ifdef NSS_ENABLE_ECC
       case SEC_OID_ANSIX962_ECDSA_SIGNATURE_WITH_SHA1_DIGEST:
 	hashalg = SEC_OID_SHA1;
-	signalg = SEC_OID_ANSIX962_ECDSA_SIGNATURE_WITH_SHA1_DIGEST;
+	signalg = SEC_OID_ANSIX962_EC_PUBLIC_KEY;
 	keyType = ecKey;
 	break;
 #endif /* NSS_ENABLE_ECC */
@@ -266,7 +266,7 @@ SGN_End(SGNContext *cx, SECItem *result)
     }
 
     if ((cx->signalg == SEC_OID_ANSIX9_DSA_SIGNATURE) ||
-        (cx->signalg == SEC_OID_ANSIX962_ECDSA_SIGNATURE_WITH_SHA1_DIGEST)) {
+        (cx->signalg == SEC_OID_ANSIX962_EC_PUBLIC_KEY)) {
         /* DSAU_EncodeDerSigWithLen works for DSA and ECDSA */
 	rv = DSAU_EncodeDerSigWithLen(result, &sigitem, signatureLen); 
 	PORT_Free(sigitem.data);
