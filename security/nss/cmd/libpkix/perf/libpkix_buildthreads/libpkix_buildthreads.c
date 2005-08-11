@@ -78,20 +78,15 @@ void ThreadEntry(void* data)
 {
         tData* tdata = (tData*) data;
         PRIntervalTime duration = tdata->duration;
-        PRTime now = PR_Now();
         PRIntervalTime start = PR_IntervalNow();
 
-        PKIX_TrustAnchor *anchor = NULL;
         PKIX_List *anchors = NULL;
         PKIX_ProcessingParams *procParams = NULL;
-        PKIX_PL_String *pString = NULL;
         PKIX_BuildParams *buildParams = NULL;
         PKIX_BuildResult *buildResult = NULL;
-        PKIX_PL_Cert *anchorCert = NULL;
         PKIX_PL_Cert *eeCert = NULL;
         PKIX_CertStore *certStore = NULL;
         PKIX_List *certStores = NULL;
-        void *stringRep = NULL;
         void *plContext = NULL;
         void *wincx = NULL;
         PKIX_ComCertSelParams *certSelParams = NULL;
@@ -244,9 +239,7 @@ Test(
 
 int main(int argc, char** argv)
 {
-        SECStatus rv = SECSuccess;
         CERTCertDBHandle *handle = NULL;
-        CERTCertificate* anchor = NULL;
         CERTCertificate* eecert = NULL;
         PRIntervalTime duration = PR_SecondsToInterval(1);
         PRUint32 threads = 1;
