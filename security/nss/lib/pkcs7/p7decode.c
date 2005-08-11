@@ -19,6 +19,7 @@
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
+ *   Dr Vipul Gupta <vipul.gupta@sun.com>, Sun Microsystems Laboratories
  *
  * Alternatively, the contents of this file may be used under the terms of
  * either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -1674,6 +1675,9 @@ sec_pkcs7_verify_signature(SEC_PKCS7ContentInfo *cinfo,
     algiddata = SECOID_FindOID (&(signerinfo->digestEncAlg.algorithm));
     if (algiddata == NULL ||
 	((algiddata->offset != SEC_OID_PKCS1_RSA_ENCRYPTION) &&
+#ifdef NSS_ENABLE_ECC
+	 (algiddata->offset != SEC_OID_ANSIX962_EC_PUBLIC_KEY) &&
+#endif /* NSS_ENABLE_ECC */
 	 (algiddata->offset != SEC_OID_ANSIX9_DSA_SIGNATURE))) {
 	PORT_SetError (SEC_ERROR_PKCS7_BAD_SIGNATURE);
 	goto done;
