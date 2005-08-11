@@ -220,6 +220,15 @@ ifeq ($(OS_TARGET),SunOS)
 # The -R '$ORIGIN' linker option instructs this library to search for its
 # dependencies in the same directory where it resides.
 MKSHLIB += -R '$$ORIGIN'
+ifdef NS_USE_GCC
+  ifdef GCC_USE_GNU_LD
+    MKSHLIB += -Wl,-Bsymbolic,-z,defs,-z,now,-z,text,--version-script,mapfile.Solaris
+  else
+    MKSHLIB += -Wl,-B,symbolic,-z,defs,-z,now,-z,text,-M,mapfile.Solaris
+  endif # GCC_USE_GNU_LD
+else
+  MKSHLIB += -B symbolic -z defs -z now -z text -M mapfile.Solaris
+endif # NS_USE_GCC
 
 ifeq ($(CPU_ARCH),sparc)
     ifndef NS_USE_GCC
@@ -229,15 +238,6 @@ ifeq ($(CPU_ARCH),sparc)
     endif # NS_USE_GCC
     SYSV_SPARC=1
     SOLARIS_AS = /usr/ccs/bin/as
-    ifdef NS_USE_GCC
-	ifdef GCC_USE_GNU_LD
-	    MKSHLIB += -Wl,-Bsymbolic,-z,defs,-z,now,-z,text,--version-script,mapfile.Solaris
-	else
-	    MKSHLIB += -Wl,-B,symbolic,-z,defs,-z,now,-z,text,-M,mapfile.Solaris
-	endif # GCC_USE_GNU_LD
-    else
-	MKSHLIB += -B symbolic -z defs -z now -z text -M mapfile.Solaris
-    endif # NS_USE_GCC
     ifdef USE_ABI32_INT32
 	# this builds for Sparc v8 pure 32-bit architecture
 	DEFINES += -DMP_ASSEMBLY_MULTIPLY
@@ -510,6 +510,26 @@ $(ABI64_INT_FILES) : $(ABI64_INT_DIR)/% : %
 
 libs:: $(ABI64_INT_DIR) $(ABI64_INT_FILES)
 	cd $(ABI64_INT_DIR) && $(MAKE) FREEBL_RECURSIVE_BUILD=1 USE_ABI64_INT=1 \
+ FREEBL_PARENT=$(CDDIR) CORE_DEPTH=$(CDDIR)/$(CORE_DEPTH) libs
+endif
+endif
+
+################### Single 64-bit ABI stuff #########################
+ifeq ($(OS_TARGET),SunOS)
+ifneq ($(CPU_ARCH),sparc)
+ABI64_INT_DIR = $(OBJDIR)/$(OS_TARGET)_ABI64_INT
+ABI64_INT_FILES = $(addprefix $(ABI64_INT_DIR)/, $(FILES2LN))
+ALL_TRASH += $(ABI64_INT_DIR) 
+
+$(ABI64_INT_DIR):
+	-mkdir $(ABI64_INT_DIR)
+	-ln -s $(CDDIR)/mpi $(ABI64_INT_DIR)
+
+$(ABI64_INT_FILES) : $(ABI64_INT_DIR)/% : % 
+	ln -s $(CDDIR)/$* $(ABI64_INT_DIR)
+
+libs:: $(ABI64_INT_DIR) $(ABI64_INT_FILES)
+	cd $(ABI64_INT_DIR) && $(MAKE) FREEBL_RECURSIVE_BUILD=1 \
  FREEBL_PARENT=$(CDDIR) CORE_DEPTH=$(CDDIR)/$(CORE_DEPTH) libs
 endif
 endif

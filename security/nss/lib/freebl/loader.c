@@ -51,7 +51,12 @@
 #include <strings.h>
 #include <sys/systeminfo.h>
 
-#ifdef NSS_USE_64
+#if defined(__x86_64__) || defined(__x86_64) 
+
+static const char * getLibName(void) { return "libfreebl_3.so"; }
+
+#else
+#if defined(NSS_USE_64)
 
 const char fast_hybrid_shared_lib[] = { "libfreebl_64fpu_3.so"  };
 const char slow_hybrid_shared_lib[] = { "libfreebl_64int_3.so" };
@@ -100,6 +105,7 @@ getLibName(void)
     }
     return non_hybrid_shared_lib;
 }
+#endif /* x86_64 Solaris */
 
 #elif defined(HPUX)
 /* This code tests to see if we're running on a PA2.x CPU.

@@ -50,6 +50,9 @@ ifeq ($(OS_TARGET),SunOS)
   ifeq ($(CPU_ARCH),sparc)
     FREEBL_EXTENDED_BUILD = 1
   endif
+  ifeq ($(USE_64),1)
+    FREEBL_EXTENDED_BUILD = 1
+  endif
 endif
 
 ifdef FREEBL_EXTENDED_BUILD
