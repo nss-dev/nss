@@ -276,7 +276,6 @@ pkix_pl_Pk11CertStore_CrlQuery(
         SECStatus rv = SECFailure;
         PKIX_List *crlList = NULL;
         PKIX_PL_CRL *crl = NULL;
-        CERTCrlHeadNode pk11CrlHead = {NULL, NULL, NULL, NULL};
         CRLDPCache* dpcache = NULL;
         CERTSignedCrl** crls = NULL;
         PRBool writeLocked = PR_FALSE;
@@ -285,26 +284,6 @@ pkix_pl_Pk11CertStore_CrlQuery(
 
         PKIX_ENTER(CERTSTORE, "pkix_pl_Pk11CertStore_CrlQuery");
         PKIX_NULLCHECK_TWO(params, pSelected);
-
-        /*
-         * Any of the ComCRLSelParams may be obtained and used to constrain
-         * the database query, to allow the use of a "smart" query. See
-         * pkix_crlsel.h for a list of the PKIX_ComCRLSelParams_Get*
-         * calls available. No corresponding "smart" queries exist at present,
-         * except for PK11_RetrieveCrls, which is based on the Issuer. When
-         * others are are added, corresponding code should be added to
-         * pkix_pl_Pk11CertStore_CrlQuery to use them when appropriate
-         * selector parameters have been set.
-         */
-
-        /* initialize fields of pk11CrlHead */
-        PKIX_PL_NSSCALLRV
-                (CERTSTORE,
-                pk11CrlHead.arena,
-                PORT_NewArena,
-                (DER_DEFAULT_CHUNKSIZE));
-        PKIX_PL_NSSCALLRV
-                (CERTSTORE, pk11CrlHead.dbhandle, CERT_GetDefaultCertDB, ());
 
 	PKIX_CHECK(pkix_pl_NssContext_GetWincx(plContext, &wincx),
 		"pkix_pl_NssContext_GetWincx failed");
@@ -395,23 +374,6 @@ pkix_pl_Pk11CertStore_CrlQuery(
                 }
 
             }
-        /*
-         * This code will ask the database for all Crls. In addition
-         * to being monstrously inefficient, it creates a problem in
-         * that all Crls, the CERTCrlHeadNode, and the CERTCrlNodes, are
-         * allocated from the same arena. We have no mechanism for
-         * freeing multiple PKIX_PL_Crls whose nssCrls share an arena.
-         * But if those problems are overcome, here is the code:
-         *
-         * } else {
-         *      PKIX_CERTSTORE_DEBUG("\t\tPK11_LookupCrls).\n");
-         *      rv = PK11_LookupCrls(&pk11CrlHead, SEC_CRL_TYPE, NULL);
-         *
-         * If this code is used, you do NOT want to free the arena, below;
-         * it will free all your CRLs. Put the call to PORT_FreeArena in
-         * an "if (issuerNames)" conditional.
-         *
-         */
         } else {
                 PKIX_ERROR("Insufficient criteria for Crl Query");
         }
@@ -422,12 +384,6 @@ cleanup:
 
         if (PKIX_ERROR_RECEIVED) {
                 PKIX_DECREF(crlList);
-                if (pk11CrlHead.arena) {
-                        PKIX_PL_NSSCALL
-                                (CERTSTORE,
-                                PORT_FreeArena,
-                                (pk11CrlHead.arena, PR_FALSE));
-                }
         }
 
         PKIX_PL_NSSCALL(CERTSTORE, ReleaseDPCache, (dpcache, writeLocked));
