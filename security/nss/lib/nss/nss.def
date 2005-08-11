@@ -1053,7 +1053,6 @@ PKIX_PL_RWLock_Create;
 PKIX_PL_Shutdown;
 pkix_pl_Socket_Create;
 pkix_pl_Socket_GetCallbackList;
-pkix_pl_socket_tracebuff;
 PKIX_PL_Sprintf;
 PKIX_PL_String_Create;
 PKIX_PL_String_GetEncoded;
