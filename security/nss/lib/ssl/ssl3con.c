@@ -6120,13 +6120,13 @@ ssl3_HandleRSAClientKeyExchange(sslSocket *ss,
     unsigned char *   cr     = (unsigned char *)&ss->ssl3.hs.client_random;
     unsigned char *   sr     = (unsigned char *)&ss->ssl3.hs.server_random;
     ssl3CipherSpec *  pwSpec = ss->ssl3.pwSpec;
-    PRBool isTLS  = (PRBool)(pwSpec->version > SSL_LIBRARY_VERSION_3_0);
     unsigned int      outLen = 0;
     unsigned char     rsaPmsBuf[SSL3_RSA_PMS_LENGTH];
     SECItem           pms = {siBuffer, rsaPmsBuf, sizeof rsaPmsBuf};
 #else
     PK11SymKey *      pms;
 #endif
+    PRBool            isTLS  = PR_FALSE;
     SECStatus         rv;
     SECItem           enc_pms;
 
@@ -6146,6 +6146,9 @@ ssl3_HandleRSAClientKeyExchange(sslSocket *ss,
 	if ((unsigned)kLen < enc_pms.len) {
 	    enc_pms.len = kLen;
 	}
+	isTLS = PR_TRUE;
+    } else {
+	isTLS = (PRBool)(ss->ssl3.hs.kea_def->tls_keygen != 0);
     }
 
 #ifdef PK11_BYPASS
