@@ -148,7 +148,11 @@ ifeq ($(CPU_ARCH),x86_64)
     ASFILES  = arcfour-amd64-gas.s mpi_amd64_gas.s
     ASFLAGS += -march=opteron -m64 -fPIC
     DEFINES += -DNSS_BEVAND_ARCFOUR -DMPI_AMD64 -DMP_ASSEMBLY_MULTIPLY
-    MPI_SRCS += mpi_amd64.c
+    DEFINES += -DNSS_USE_COMBA
+    MPI_SRCS += mpi_amd64.c mp_comba.c
+# When compiling with -ansi, gcc chokes on some of the asm
+# statements in mp_comba.c.  Clear the flag for freebl.
+    ANSI =
     ifdef BUILD_OPT
 	OPTIMIZER = $(GCC_OPTIMIZER)
     endif
@@ -297,11 +301,14 @@ else
 	ifdef NS_USE_GCC
 	    ASFILES  = arcfour-amd64-gas.s mpi_amd64_gas.s
 	    ASFLAGS += -march=opteron -m64 -fPIC
+	    MPI_SRCS += mp_comba.c
 	else
 	    ASFILES  = arcfour-amd64-sun.s mpi_amd64_sun.s
+	    ASFILES += mp_comba_amd64_sun.s
 	    ASFLAGS += -xarch=generic64 -K PIC
 	endif
 	DEFINES += -DNSS_BEVAND_ARCFOUR -DMPI_AMD64 -DMP_ASSEMBLY_MULTIPLY
+	DEFINES += -DNSS_USE_COMBA
 	MPI_SRCS += mpi_amd64.c
     else
 	# Solaris x86
