@@ -415,7 +415,7 @@ pkix_CRLSelector_DefaultMatch(
         PKIX_PL_Date *selDate = NULL;
         PKIX_Boolean result = PKIX_TRUE;
         PKIX_UInt32 numIssuers = 0;
-        PKIX_Int32 i;
+        PKIX_UInt32 i;
         PKIX_PL_BigInt *minCRLNumber = NULL;
         PKIX_PL_BigInt *maxCRLNumber = NULL;
         PKIX_PL_BigInt *crlNumber = NULL;

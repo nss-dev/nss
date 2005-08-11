@@ -152,8 +152,8 @@ pkix_pl_BigInt_ToString(
                     "PKIX_PL_Malloc failed");
 
         for (i = 0, j = 0; i < bigInt->length; i += 1, j += 2){
-                outputText[j] = pkix_i2hex((bigInt->dataRep[i] & 0xf0) >> 4);
-                outputText[j+1] = pkix_i2hex(bigInt->dataRep[i] & 0x0f);
+                outputText[j] = pkix_i2hex((*(bigInt->dataRep+i) & 0xf0) >> 4);
+                outputText[j+1] = pkix_i2hex(*(bigInt->dataRep+i) & 0x0f);
         }
 
         outputText[lengthChars-1] = '\0';
@@ -312,7 +312,11 @@ pkix_pl_BigInt_CreateWithBytes(
         PKIX_PL_BigInt *bigInt = NULL;
 
         PKIX_ENTER(BIGINT, "pkix_pl_BigInt_CreateWithBytes");
-        PKIX_NULLCHECK_THREE(pBigInt, bytes, length);
+        PKIX_NULLCHECK_TWO(pBigInt, bytes);
+
+        if (length == 0) {
+                PKIX_ERROR("BigInt length 0 is invalid")
+        }
 
         PKIX_CHECK(PKIX_PL_Object_Alloc
                 (PKIX_BIGINT_TYPE,

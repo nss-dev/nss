@@ -310,7 +310,7 @@ pkix_pl_OID_GetNextToken(
                 goto cleanup;
         }
 
-        while (*input != '.' && *input != NULL){
+        while (*input != '.' && *input != '\0'){
                 input++;
         }
 

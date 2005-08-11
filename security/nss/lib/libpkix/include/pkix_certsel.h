@@ -1150,9 +1150,9 @@ PKIX_ComCertSelParams_SetSerialNumber(
  *  The version number will either be 0, 1, or 2 (corresponding to
  *  v1, v2, or v3, respectively).
  *
- *  If "params" does not have this criterion set, this function stores -1 at
- *  "pVersion", in which case all certificates are considered to match this
- *  criterion.
+ *  If "params" does not have this criterion set, this function stores
+ *  0xFFFFFFFF at "pVersion", in which case all certificates are considered
+ *  to match this criterion.
  *
  * PARAMETERS:
  *  "params"
@@ -1173,7 +1173,7 @@ PKIX_ComCertSelParams_SetSerialNumber(
 PKIX_Error *
 PKIX_ComCertSelParams_GetVersion(
         PKIX_ComCertSelParams *params,
-        PKIX_Int32 *pVersion,
+        PKIX_UInt32 *pVersion,
         void *plContext);
 
 /*

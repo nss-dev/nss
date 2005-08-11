@@ -260,7 +260,7 @@ PKIX_ComCertSelParams_Create(
                     "Could not create common certsel params object");
 
         /* initialize fields */
-        params->version = -1;
+        params->version = 0xFFFFFFFF;
         params->minPathLength = -1;
         params->matchAllSubjAltNames = PKIX_TRUE;
         params->subject = NULL;
@@ -936,7 +936,7 @@ cleanup:
 PKIX_Error *
 PKIX_ComCertSelParams_GetVersion(
         PKIX_ComCertSelParams *params,
-        PKIX_Int32 *pVersion,
+        PKIX_UInt32 *pVersion,
         void *plContext)
 {
         PKIX_ENTER(COMCERTSELPARAMS, "PKIX_ComCertSelParams_GetVersion");

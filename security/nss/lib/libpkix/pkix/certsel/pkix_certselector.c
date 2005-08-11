@@ -1200,7 +1200,7 @@ pkix_CertSelector_DefaultMatch(
         PKIX_PL_Cert *selCert = NULL;
         PKIX_PL_Date *selDate = NULL;
         PKIX_UInt32 requiredKeyUsage = 0;
-        PKIX_Int32 selVersion = -1;
+        PKIX_UInt32 selVersion = 0xFFFFFFFF;
         PKIX_UInt32 certVersion = 0;
         PKIX_Boolean result = PKIX_TRUE;
 
@@ -1225,7 +1225,7 @@ pkix_CertSelector_DefaultMatch(
                     (params, &selVersion, plContext),
                     "PKIX_ComCertSelParams_GetVersion failed");
 
-        if (selVersion != -1){
+        if (selVersion != 0xFFFFFFFF){
                 PKIX_CHECK(PKIX_PL_Cert_GetVersion
                             (cert, &certVersion, plContext),
                             "PKIX_PL_Cert_GetVersion failed");

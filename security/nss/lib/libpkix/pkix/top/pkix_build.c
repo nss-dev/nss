@@ -712,7 +712,7 @@ pkix_IsChainCompleted(
         PKIX_ENTER(BUILD, "pkix_IsChainCompleted");
         PKIX_NULLCHECK_THREE(state, candidateCert, pMatchingAnchor);
 
-        for (i = 0; i < ((state->numAnchors) && (!anchorResult)); i++){
+        for (i = 0; (i < (state->numAnchors)) && (!anchorResult); i++){
 
                 PKIX_CHECK_ONLY_FATAL
                         (PKIX_List_GetItem

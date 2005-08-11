@@ -567,7 +567,7 @@ pkix_CheckChain(
         PKIX_PolicyNode **pPolicyTree,
         void *plContext)
 {
-        PKIX_Int32 j = 0;
+        PKIX_UInt32 j = 0;
         PKIX_PL_Cert *cert = NULL;
 
         PKIX_ENTER(VALIDATE, "pkix_CheckChain");

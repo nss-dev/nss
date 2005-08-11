@@ -146,6 +146,8 @@ pkix_pl_NssContext_GetWincx(
 
 	*pWincx = context->wincx;
 
+        goto cleanup;
+
 cleanup:
 
         PKIX_RETURN(CONTEXT);
