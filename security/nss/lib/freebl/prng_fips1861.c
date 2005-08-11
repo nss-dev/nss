@@ -441,7 +441,7 @@ RNG_UpdateAndEnd_FIPS186_1(SHA1Context *ctx,
                            unsigned char *hashout, unsigned int *pDigestLen, 
                            unsigned int maxDigestLen)
 {
-#if defined(IS_LITTLE_ENDIAN)
+#if defined(SHA_NEED_TMP_VARIABLE)
     register PRUint32 tmp;
 #endif
     static const unsigned char bulk_pad0[64] = { 0,0,0,0,0,0,0,0,0,0,
@@ -465,20 +465,8 @@ RNG_UpdateAndEnd_FIPS186_1(SHA1Context *ctx,
     /*
      *  Output hash
      */
-#if defined(IS_LITTLE_ENDIAN)
-    SHA_BYTESWAP(ctx->H[0]);
-    SHA_BYTESWAP(ctx->H[1]);
-    SHA_BYTESWAP(ctx->H[2]);
-    SHA_BYTESWAP(ctx->H[3]);
-    SHA_BYTESWAP(ctx->H[4]);
-#endif
-    memcpy(hashout, ctx->H, SHA1_LENGTH);
+    SHA_STORE_RESULT;
     *pDigestLen = SHA1_LENGTH;
-
-    /*
-     *  Re-initialize the context (also zeroizes contents)
-     */
-    SHA1_Begin(ctx);
 }
 
 /*
