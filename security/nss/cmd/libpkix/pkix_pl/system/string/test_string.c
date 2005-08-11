@@ -216,7 +216,7 @@ testSprintf(void)
                                         plContext));
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Sprintf(&sprintfString,
-                                NULL,
+                                plContext,
                                 formatString,
                                 testString, x, y, y));
         PKIX_TEST_DECREF_BC(testString);
@@ -262,7 +262,7 @@ testErrorHandling(void)
         PKIX_TEST_EXPECT_ERROR(PKIX_PL_String_Create(PKIX_ESCASCII,
                                         "blah", 4, NULL, plContext));
 
-        PKIX_TEST_EXPECT_ERROR(PKIX_PL_Sprintf(&testString, NULL, plContext));
+        PKIX_TEST_EXPECT_ERROR(PKIX_PL_Sprintf(&testString, plContext, NULL));
 
         PKIX_TEST_EXPECT_ERROR
                 (PKIX_PL_GetString(0, NULL, &testString, plContext));
