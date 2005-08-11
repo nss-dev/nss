@@ -905,7 +905,7 @@ pkix_pl_LdapCertStore_ConnectContinue(
         void *plContext)
 {
         PKIX_PL_Socket_Callback *callbackList;
-	PRErrorCode status;
+        PRErrorCode status;
         PKIX_Boolean keepGoing = PKIX_FALSE;
 
         PKIX_ENTER
@@ -917,14 +917,14 @@ pkix_pl_LdapCertStore_ConnectContinue(
 
         PKIX_CHECK(callbackList->connectcontinueCallback
                 (lcs->clientSocket, &status, plContext),
-		"pkix_pl_Socket_ConnectContinue failed");
+                "pkix_pl_Socket_ConnectContinue failed");
 
-	if (status == 0) {
-        	lcs->connectStatus = LDAP_CONNECTED;
-        	keepGoing = PKIX_TRUE;
-	} else if (status != PR_IN_PROGRESS_ERROR) {
-		PKIX_ERROR("Unexpected error in establishing connection");
-	}
+        if (status == 0) {
+                lcs->connectStatus = LDAP_CONNECTED;
+                keepGoing = PKIX_TRUE;
+        } else if (status != PR_IN_PROGRESS_ERROR) {
+                PKIX_ERROR("Unexpected error in establishing connection");
+        }
 
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                 ((PKIX_PL_Object *)lcs, plContext),
@@ -2300,7 +2300,11 @@ pkix_pl_LdapCertStore_GetCRLsByIssuer(
         unsigned char *commonName = NULL;
 
         PKIX_ENTER(CERTSTORE, "pkix_pl_LdapCertStore_GetCRLsByIssuer");
-        PKIX_NULLCHECK_FOUR(lcs, issuerNames, numNames, pSelected);
+        PKIX_NULLCHECK_THREE(lcs, issuerNames, pSelected);
+
+        if (numNames == 0) {
+                PKIX_ERROR_FATAL("Zero argument");
+        }
 
         for (thisName = 0; thisName < numNames; thisName++) {
                 PKIX_CHECK(PKIX_List_GetItem
@@ -2763,7 +2767,7 @@ cleanup:
  */
 PKIX_Error *
 PKIX_PL_LdapCertStore_Create(
-	PRNetAddr *sockaddr,
+        PRNetAddr *sockaddr,
         PRIntervalTime timeout,
         char *bindName,
         char *authentication,
@@ -2774,7 +2778,7 @@ PKIX_PL_LdapCertStore_Create(
         PKIX_CertStore *certStore = NULL;
         PKIX_PL_Socket *socket = NULL;
         PKIX_PL_LdapCertStoreContext *ldapCertStoreContext = NULL;
-	PRErrorCode status = 0;
+        PRErrorCode status = 0;
         PRFileDesc *fileDesc = NULL;
 
         PKIX_ENTER(CERTSTORE, "PKIX_PL_LdapCertStore_Create");
@@ -2808,15 +2812,15 @@ PKIX_PL_LdapCertStore_Create(
         ldapCertStoreContext->pollDesc.in_flags = 0;
         ldapCertStoreContext->pollDesc.out_flags = 0;
 
-	/* Did Socket_Create say the connection was made? */
-	if (status == 0) {
-        	ldapCertStoreContext->connectStatus = LDAP_CONNECTED;
+        /* Did Socket_Create say the connection was made? */
+        if (status == 0) {
+                ldapCertStoreContext->connectStatus = LDAP_CONNECTED;
 
-	        /* Assume server does not require a BIND. */ 
-       		ldapCertStoreContext->connectStatus = LDAP_BOUND;
-	} else {
-        	ldapCertStoreContext->connectStatus = LDAP_CONNECT_PENDING;
-	}
+                /* Assume server does not require a BIND. */ 
+                ldapCertStoreContext->connectStatus = LDAP_BOUND;
+        } else {
+                ldapCertStoreContext->connectStatus = LDAP_CONNECT_PENDING;
+        }
 
         *pDesc = &(ldapCertStoreContext->pollDesc);
         *pCertStore = certStore;

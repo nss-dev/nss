@@ -79,8 +79,8 @@
  *  none
  */
 static void pkix_pl_socket_timestamp() {
-	PRInt64 prTime;
-	prTime = PR_Now();
+        PRInt64 prTime;
+        prTime = PR_Now();
         printf("%lld:\n", prTime);
 }
 
@@ -484,7 +484,7 @@ cleanup:
 static PKIX_Error *
 pkix_pl_Socket_Connect(
         PKIX_PL_Socket *socket,
-	PRErrorCode *pStatus,
+        PRErrorCode *pStatus,
         void *plContext)
 {
         PRStatus rv = PR_FAILURE;
@@ -498,7 +498,7 @@ pkix_pl_Socket_Connect(
 
         if (rv == PR_FAILURE) {
                 errorcode = PR_GetError();
-		*pStatus = errorcode;
+                *pStatus = errorcode;
                 if (errorcode == PR_IN_PROGRESS_ERROR) {
                         socket->status = SOCKET_CONNECTPENDING;
                         goto cleanup;
@@ -516,7 +516,7 @@ pkix_pl_Socket_Connect(
         printf("Successful connect!\n");
 #endif
 
-	*pStatus = 0;
+        *pStatus = 0;
         socket->status = SOCKET_CONNECTED;
 
 cleanup:
@@ -548,7 +548,7 @@ cleanup:
 static PKIX_Error *
 pkix_pl_Socket_ConnectContinue(
         PKIX_PL_Socket *socket,
-	PRErrorCode *pStatus,
+        PRErrorCode *pStatus,
         void *plContext)
 {
         PRStatus rv = PR_FAILURE;
@@ -568,17 +568,17 @@ pkix_pl_Socket_ConnectContinue(
         } else if (numEvents == 0) {
                 errorcode = PR_GetError();
                 if (errorcode != PR_WOULD_BLOCK_ERROR) {
-                	PKIX_ERROR("PR_Poll failed");
-		}
-	}
+                        PKIX_ERROR("PR_Poll failed");
+                }
+        }
 
         /* if (numEvents > 0) */
-       	PKIX_PL_NSSCALLRV(SOCKET, rv, PR_ConnectContinue,
-       		(socket->clientSock, pollDesc.out_flags));
+        PKIX_PL_NSSCALLRV(SOCKET, rv, PR_ConnectContinue,
+                (socket->clientSock, pollDesc.out_flags));
 
         if (rv == PR_FAILURE) {
                 errorcode = PR_GetError();
-		*pStatus = errorcode;
+                *pStatus = errorcode;
                 if (errorcode == PR_IN_PROGRESS_ERROR) {
                         goto cleanup;
                 } else {
@@ -595,7 +595,7 @@ pkix_pl_Socket_ConnectContinue(
         printf("Successful connect!\n");
 #endif
 
-	*pStatus = 0;
+        *pStatus = 0;
         socket->status = SOCKET_CONNECTED;
 
 cleanup:
@@ -997,7 +997,7 @@ pkix_pl_Socket_Poll(
         PKIX_Int32 bytesRead = 0;
         PKIX_Int32 bytesWritten = 0;
         PRErrorCode errorcode = 0;
-        PKIX_Int32 save_inflags, save_outflags;
+        PRInt16 save_inflags, save_outflags;
 
         PKIX_ENTER(SOCKET, "pkix_pl_Socket_Poll");
         PKIX_NULLCHECK_ONE(sock);
@@ -1152,7 +1152,7 @@ pkix_pl_Socket_Accept(
         newSocket->callbackList.listenCallback = pkix_pl_Socket_Listen;
         newSocket->callbackList.acceptCallback = pkix_pl_Socket_Accept;
         newSocket->callbackList.connectcontinueCallback =
-		pkix_pl_Socket_ConnectContinue;
+                pkix_pl_Socket_ConnectContinue;
         newSocket->callbackList.sendCallback = pkix_pl_Socket_Send;
         newSocket->callbackList.recvCallback = pkix_pl_Socket_Recv;
         newSocket->callbackList.pollCallback = pkix_pl_Socket_Poll;
@@ -1208,7 +1208,7 @@ pkix_pl_Socket_Create(
         PKIX_Boolean isServer,
         PRIntervalTime timeout,
         PRNetAddr *netAddr,
-	PRErrorCode *status,
+        PRErrorCode *status,
         PKIX_PL_Socket **pSocket,
         void *plContext)
 {
@@ -1233,7 +1233,7 @@ pkix_pl_Socket_Create(
         socket->callbackList.listenCallback = pkix_pl_Socket_Listen;
         socket->callbackList.acceptCallback = pkix_pl_Socket_Accept;
         socket->callbackList.connectcontinueCallback =
-		 pkix_pl_Socket_ConnectContinue;
+                 pkix_pl_Socket_ConnectContinue;
         socket->callbackList.sendCallback = pkix_pl_Socket_Send;
         socket->callbackList.recvCallback = pkix_pl_Socket_Recv;
         socket->callbackList.pollCallback = pkix_pl_Socket_Poll;
@@ -1242,7 +1242,7 @@ pkix_pl_Socket_Create(
         if (isServer) {
                 PKIX_CHECK(pkix_pl_Socket_CreateServer(socket, plContext),
                         "pkix_pl_Socket_CreateServer failed");
-		*status = 0;
+                *status = 0;
         } else {
                 socket->timeout = timeout;
                 PKIX_CHECK(pkix_pl_Socket_CreateClient(socket, plContext),

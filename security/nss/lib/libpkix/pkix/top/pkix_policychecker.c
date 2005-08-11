@@ -2640,8 +2640,10 @@ pkix_PolicyChecker_Check(
                         "PKIX_PL_Cert_GetRequireExplicitPolicy failed");
 
                 if (explicitPolicySkipCerts != -1) {
-                        if (explicitPolicySkipCerts < (state->explicitPolicy)) {
-                                state->explicitPolicy = explicitPolicySkipCerts;
+                        if (((PKIX_UInt32)explicitPolicySkipCerts) <
+                            (state->explicitPolicy)) {
+                                state->explicitPolicy =
+                                   ((PKIX_UInt32) explicitPolicySkipCerts);
                         }
                 }
 
@@ -2650,8 +2652,10 @@ pkix_PolicyChecker_Check(
                         "PKIX_PL_Cert_GetPolicyMappingInhibited failed");
 
                 if (inhibitMappingSkipCerts != -1) {
-                        if (inhibitMappingSkipCerts < (state->policyMapping)) {
-                                state->policyMapping = inhibitMappingSkipCerts;
+                        if (((PKIX_UInt32)inhibitMappingSkipCerts) <
+                            (state->policyMapping)) {
+                                state->policyMapping =
+                                    ((PKIX_UInt32)inhibitMappingSkipCerts);
                         }
                 }
 
@@ -2660,10 +2664,10 @@ pkix_PolicyChecker_Check(
                         "PKIX_PL_Cert_GetInhibitAnyPolicy failed");
 
                 if (inhibitAnyPolicySkipCerts != -1) {
-                        if (inhibitAnyPolicySkipCerts <
-                                (state->inhibitAnyPolicy)) {
+                        if (((PKIX_UInt32)inhibitAnyPolicySkipCerts) <
+                            (state->inhibitAnyPolicy)) {
                                 state->inhibitAnyPolicy =
-                                        inhibitAnyPolicySkipCerts;
+                                    ((PKIX_UInt32)inhibitAnyPolicySkipCerts);
                         }
                 }
 

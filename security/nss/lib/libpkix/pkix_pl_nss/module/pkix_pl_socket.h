@@ -87,7 +87,7 @@ typedef PKIX_Error *
 typedef PKIX_Error *
 (*pkix_pl_Socket_ConnectContinueCallback)(
         PKIX_PL_Socket *socket,
-	PRErrorCode *pStatus,
+        PRErrorCode *pStatus,
         void *plContext);
 
 typedef PKIX_Error *
@@ -150,7 +150,7 @@ pkix_pl_Socket_Create(
         PKIX_Boolean isServer,
         PRIntervalTime timeout, /* zero for non-blocking I/O */
         PRNetAddr *netAddr,
-	PRErrorCode *status,
+        PRErrorCode *status,
         PKIX_PL_Socket **pSocket,
         void *plContext);
 
