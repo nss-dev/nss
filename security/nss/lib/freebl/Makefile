@@ -62,6 +62,13 @@ GCC_OPTIMIZER = -O3  -mno-omit-leaf-frame-pointer -fno-omit-frame-pointer
 
 -include config.mk
 
+# default for all platforms
+# unset this on those that have multiple libraries
+FREEBL_BUILD_SINGLE_SHLIB=1
+
+DEFINES += -DDSO_PREFIX=\"$(DLL_PREFIX)\"
+DEFINES += -DDSO_SUFFIX=\"$(DLL_SUFFIX)\"
+DEFINES += -DDSO_VERSION=\"$(LIBRARY_VERSION)\"
 
 ifdef USE_64
     DEFINES += -DNSS_USE_64
@@ -170,8 +177,14 @@ endif # AIX
 
 ifeq ($(OS_TARGET), HP-UX)
 ifneq ($(OS_TEST), ia64)
+# PA-RISC
+FREEBL_BUILD_SINGLE_SHLIB=
+ifndef USE_64
+HAVE_ABI32_INT32=1
+HAVE_ABI32_FPU=1
+endif
 MKSHLIB += +k +vshlibunsats -u FREEBL_GetVector +e FREEBL_GetVector
-ifndef FREEBL_EXTENDED_BUILD
+ifdef FREEBL_CHILD_BUILD
 ifdef USE_ABI32_INT32
 # build for DA1.1 (HP PA 1.1) pure 32 bit model
     DEFINES  += -DMP_USE_UINT_DIGIT -DMP_NO_MP_WORD
@@ -211,6 +224,15 @@ else
 endif # NS_USE_GCC
 
 ifeq ($(CPU_ARCH),sparc)
+    FREEBL_BUILD_SINGLE_SHLIB=
+    ifdef USE_64
+        HAVE_ABI64_INT=1
+        HAVE_ABI64_FPU=1
+    else
+        HAVE_ABI32_INT32=1
+        HAVE_ABI32_FPU=1
+        HAVE_ABI32_INT64=1
+    endif
     ifndef NS_USE_GCC
 	ifdef USE_ABI32_FPU
 	    OS_CFLAGS += -xchip=ultra2
@@ -228,7 +250,6 @@ ifeq ($(CPU_ARCH),sparc)
     ifdef USE_ABI32_INT64
 	# this builds for Sparc v8+a ABI32_FPU architecture, 64-bit registers, 
 	# 32-bit ABI, it uses 64-bit words, integer arithmetic, no FPU
-#	DEFINES  += -DMP_USE_UINT_DIGIT 
 	DEFINES  += -DMP_NO_MP_WORD 
 	SOLARIS_AS_FLAGS = -xarch=v8plusa -K PIC
     endif
@@ -243,7 +264,6 @@ ifeq ($(CPU_ARCH),sparc)
     endif
     ifdef USE_ABI64_INT
 	# this builds for Sparc v9a pure 64-bit architecture
-#	DEFINES  += -DMP_USE_UINT_DIGIT 
 	DEFINES  += -DMP_NO_MP_WORD 
 	SOLARIS_FLAGS  = -fast -xO5 -xrestrict=%all -xchip=ultra -xarch=v9a
 	SOLARIS_FLAGS += -KPIC -mt
@@ -326,7 +346,7 @@ rijndael_tables:
 	         $(DEFINES) $(INCLUDES) $(OBJDIR)/libfreebl.a
 	$(OBJDIR)/make_rijndael_tab
 
-ifdef FREEBL_RECURSIVE_BUILD
+ifdef FREEBL_CHILD_BUILD
 vpath %.h $(FREEBL_PARENT)/ecl $(FREEBL_PARENT)/mpi $(FREEBL_PARENT)
 vpath %.c $(FREEBL_PARENT)/ecl $(FREEBL_PARENT)/mpi $(FREEBL_PARENT)
 vpath %.S $(FREEBL_PARENT)/ecl $(FREEBL_PARENT)/mpi $(FREEBL_PARENT)
@@ -369,7 +389,7 @@ $(OBJDIR)/ldvector$(OBJ_SUFFIX) $(OBJDIR)/loader$(OBJ_SUFFIX) : loader.h
 
 ifeq ($(SYSV_SPARC),1)
 
-$(OBJDIR)/mpv_sparcv8.o $(OBJDIR)/montmulfv8.o : $(OBJDIR)/%.o : %.s 
+$(OBJDIR)/mpv_sparcv8.o $(OBJDIR)/mpv_sparcv8x.o $(OBJDIR)/montmulfv8.o : $(OBJDIR)/%.o : %.s
 	@$(MAKE_OBJDIR)
 	$(SOLARIS_AS) -o $@ $(SOLARIS_AS_FLAGS) $<
 
@@ -381,7 +401,9 @@ $(OBJDIR)/mpmontg.o: mpmontg.c montmulf.h
 
 endif
 
-ifdef FREEBL_EXTENDED_BUILD
+ifndef FREEBL_CHILD_BUILD
+
+# Parent build. This is where we decide which shared libraries to build
 
 CDDIR := $(shell pwd)
 FILES2LN = \
@@ -389,106 +411,8 @@ FILES2LN = \
  $(wildcard mapfile.*) \
  Makefile manifest.mn config.mk 
 
-ifndef USE_64 
-######################## ABI32_FPU stuff #########################
-ABI32_FPU_DIR = $(OBJDIR)/$(OS_TARGET)_ABI32_FPU
-ABI32_FPU_FILES = $(addprefix $(ABI32_FPU_DIR)/, $(FILES2LN))
-ALL_TRASH += $(ABI32_FPU_DIR) 
-
-$(ABI32_FPU_DIR):
-	-mkdir $(ABI32_FPU_DIR)
-	-ln -s $(CDDIR)/mpi $(ABI32_FPU_DIR)
-
-$(ABI32_FPU_FILES) : $(ABI32_FPU_DIR)/% : % 
-	ln -s $(CDDIR)/$* $(ABI32_FPU_DIR)
-
-libs:: $(ABI32_FPU_DIR) $(ABI32_FPU_FILES)
-	cd $(ABI32_FPU_DIR) && $(MAKE) FREEBL_RECURSIVE_BUILD=1 USE_ABI32_FPU=1 \
- FREEBL_PARENT=$(CDDIR) CORE_DEPTH=$(CDDIR)/$(CORE_DEPTH) libs
-
-######################## ABI32_INT32 stuff #########################
-ABI32_INT32_DIR = $(OBJDIR)/$(OS_TARGET)_ABI32_INT32
-ABI32_INT32_FILES = $(addprefix $(ABI32_INT32_DIR)/, $(FILES2LN))
-ALL_TRASH += $(ABI32_INT32_DIR) 
-
-$(ABI32_INT32_DIR):
-	-mkdir $(ABI32_INT32_DIR)
-	-ln -s $(CDDIR)/mpi $(ABI32_INT32_DIR)
-
-$(ABI32_INT32_FILES) : $(ABI32_INT32_DIR)/% : % 
-	ln -s $(CDDIR)/$* $(ABI32_INT32_DIR)
-
-libs:: $(ABI32_INT32_DIR) $(ABI32_INT32_FILES)
-	cd $(ABI32_INT32_DIR) && $(MAKE) FREEBL_RECURSIVE_BUILD=1 USE_ABI32_INT32=1 \
- FREEBL_PARENT=$(CDDIR) CORE_DEPTH=$(CDDIR)/$(CORE_DEPTH) libs
-
-######################## ABI32_INT64 stuff #########################
-ifeq ($(OS_TARGET),SunOS)
-ifeq ($(CPU_ARCH),sparc)
-
-ABI32_INT64_DIR = $(OBJDIR)/$(OS_TARGET)_ABI32_INT64
-ABI32_INT64_FILES = $(addprefix $(ABI32_INT64_DIR)/, $(FILES2LN))
-ALL_TRASH += $(ABI32_INT64_DIR) 
-
-$(ABI32_INT64_DIR):
-	-mkdir $(ABI32_INT64_DIR)
-	-ln -s $(CDDIR)/mpi $(ABI32_INT64_DIR)
-
-$(ABI32_INT64_FILES) : $(ABI32_INT64_DIR)/% : % 
-	ln -s $(CDDIR)/$* $(ABI32_INT64_DIR)
-
-libs:: $(ABI32_INT64_DIR) $(ABI32_INT64_FILES)
-	cd $(ABI32_INT64_DIR) && $(MAKE) FREEBL_RECURSIVE_BUILD=1 USE_ABI32_INT64=1 \
- FREEBL_PARENT=$(CDDIR) CORE_DEPTH=$(CDDIR)/$(CORE_DEPTH) libs
-endif
-endif
-######################## END of 32-bit stuff #########################
-
-else # above is 32-bit builds, below is 64-bit builds
-
-######################## ABI64_FPU stuff #########################
-ifeq ($(OS_TARGET),SunOS)
-ifeq ($(CPU_ARCH),sparc)
-ABI64_FPU_DIR = $(OBJDIR)/$(OS_TARGET)_ABI64_FPU
-ABI64_FPU_FILES = $(addprefix $(ABI64_FPU_DIR)/, $(FILES2LN))
-ALL_TRASH += $(ABI64_FPU_DIR) 
-
-$(ABI64_FPU_DIR):
-	-mkdir $(ABI64_FPU_DIR)
-	-ln -s $(CDDIR)/mpi $(ABI64_FPU_DIR)
-
-$(ABI64_FPU_FILES) : $(ABI64_FPU_DIR)/% : % 
-	ln -s $(CDDIR)/$* $(ABI64_FPU_DIR)
-
-libs:: $(ABI64_FPU_DIR) $(ABI64_FPU_FILES)
-	cd $(ABI64_FPU_DIR) && $(MAKE) FREEBL_RECURSIVE_BUILD=1 USE_ABI64_FPU=1 \
- FREEBL_PARENT=$(CDDIR) CORE_DEPTH=$(CDDIR)/$(CORE_DEPTH) libs
-endif
-endif
-
-######################## ABI64_INT stuff #########################
-ifeq ($(OS_TARGET),SunOS)
-ifeq ($(CPU_ARCH),sparc)
-ABI64_INT_DIR = $(OBJDIR)/$(OS_TARGET)_ABI64_INT
-ABI64_INT_FILES = $(addprefix $(ABI64_INT_DIR)/, $(FILES2LN))
-ALL_TRASH += $(ABI64_INT_DIR) 
-
-$(ABI64_INT_DIR):
-	-mkdir $(ABI64_INT_DIR)
-	-ln -s $(CDDIR)/mpi $(ABI64_INT_DIR)
-
-$(ABI64_INT_FILES) : $(ABI64_INT_DIR)/% : % 
-	ln -s $(CDDIR)/$* $(ABI64_INT_DIR)
-
-libs:: $(ABI64_INT_DIR) $(ABI64_INT_FILES)
-	cd $(ABI64_INT_DIR) && $(MAKE) FREEBL_RECURSIVE_BUILD=1 USE_ABI64_INT=1 \
- FREEBL_PARENT=$(CDDIR) CORE_DEPTH=$(CDDIR)/$(CORE_DEPTH) libs
-endif
-endif
-
-endif # 32b or 64b recursive builds
-
 ifdef FREEBL_BUILD_SINGLE_SHLIB
+
 ################### Single ABI stuff #########################
 SINGLE_SHLIB_DIR = $(OBJDIR)/$(OS_TARGET)_SINGLE_SHLIB
 SINGLE_SHLIB_FILES = $(addprefix $(SINGLE_SHLIB_DIR)/, $(FILES2LN))
@@ -502,15 +426,116 @@ $(SINGLE_SHLIB_FILES) : $(SINGLE_SHLIB_DIR)/% : %
 	ln -s $(CDDIR)/$* $(SINGLE_SHLIB_DIR)
 
 libs:: $(SINGLE_SHLIB_DIR) $(SINGLE_SHLIB_FILES)
-	cd $(SINGLE_SHLIB_DIR) && $(MAKE) FREEBL_RECURSIVE_BUILD=1 \
+	cd $(SINGLE_SHLIB_DIR) && $(MAKE) FREEBL_CHILD_BUILD=1 \
  FREEBL_PARENT=$(CDDIR) CORE_DEPTH=$(CDDIR)/$(CORE_DEPTH) libs
 ######################## common stuff #########################
+
+else
+
+# multiple ABIs
+
+ifndef USE_64 
+
+######################## ABI32_FPU stuff #########################
+ifdef HAVE_ABI32_FPU
+ABI32_FPU_DIR = $(OBJDIR)/$(OS_TARGET)_ABI32_FPU
+ABI32_FPU_FILES = $(addprefix $(ABI32_FPU_DIR)/, $(FILES2LN))
+ALL_TRASH += $(ABI32_FPU_DIR) 
+
+$(ABI32_FPU_DIR):
+	-mkdir $(ABI32_FPU_DIR)
+	-ln -s $(CDDIR)/mpi $(ABI32_FPU_DIR)
+
+$(ABI32_FPU_FILES) : $(ABI32_FPU_DIR)/% : % 
+	ln -s $(CDDIR)/$* $(ABI32_FPU_DIR)
+
+libs:: $(ABI32_FPU_DIR) $(ABI32_FPU_FILES)
+	cd $(ABI32_FPU_DIR) && $(MAKE) FREEBL_CHILD_BUILD=1 USE_ABI32_FPU=1 \
+ FREEBL_PARENT=$(CDDIR) CORE_DEPTH=$(CDDIR)/$(CORE_DEPTH) libs
 endif
 
+######################## ABI32_INT32 stuff #########################
+ifdef HAVE_ABI32_INT32
+ABI32_INT32_DIR = $(OBJDIR)/$(OS_TARGET)_ABI32_INT32
+ABI32_INT32_FILES = $(addprefix $(ABI32_INT32_DIR)/, $(FILES2LN))
+ALL_TRASH += $(ABI32_INT32_DIR) 
 
+$(ABI32_INT32_DIR):
+	-mkdir $(ABI32_INT32_DIR)
+	-ln -s $(CDDIR)/mpi $(ABI32_INT32_DIR)
+
+$(ABI32_INT32_FILES) : $(ABI32_INT32_DIR)/% : % 
+	ln -s $(CDDIR)/$* $(ABI32_INT32_DIR)
+
+libs:: $(ABI32_INT32_DIR) $(ABI32_INT32_FILES)
+	cd $(ABI32_INT32_DIR) && $(MAKE) FREEBL_CHILD_BUILD=1 USE_ABI32_INT32=1 \
+ FREEBL_PARENT=$(CDDIR) CORE_DEPTH=$(CDDIR)/$(CORE_DEPTH) libs
+endif
+
+######################## ABI32_INT64 stuff #########################
+ifdef HAVE_ABI32_INT64
+ABI32_INT64_DIR = $(OBJDIR)/$(OS_TARGET)_ABI32_INT64
+ABI32_INT64_FILES = $(addprefix $(ABI32_INT64_DIR)/, $(FILES2LN))
+ALL_TRASH += $(ABI32_INT64_DIR) 
+
+$(ABI32_INT64_DIR):
+	-mkdir $(ABI32_INT64_DIR)
+	-ln -s $(CDDIR)/mpi $(ABI32_INT64_DIR)
+
+$(ABI32_INT64_FILES) : $(ABI32_INT64_DIR)/% : % 
+	ln -s $(CDDIR)/$* $(ABI32_INT64_DIR)
+
+libs:: $(ABI32_INT64_DIR) $(ABI32_INT64_FILES)
+	cd $(ABI32_INT64_DIR) && $(MAKE) FREEBL_CHILD_BUILD=1 USE_ABI32_INT64=1 \
+ FREEBL_PARENT=$(CDDIR) CORE_DEPTH=$(CDDIR)/$(CORE_DEPTH) libs
+endif
+
+######################## END of 32-bit stuff #########################
+
+else # above is 32-bit builds, below is 64-bit builds
+
+######################## ABI64_FPU stuff #########################
+ifdef HAVE_ABI64_FPU
+ABI64_FPU_DIR = $(OBJDIR)/$(OS_TARGET)_ABI64_FPU
+ABI64_FPU_FILES = $(addprefix $(ABI64_FPU_DIR)/, $(FILES2LN))
+ALL_TRASH += $(ABI64_FPU_DIR) 
+
+$(ABI64_FPU_DIR):
+	-mkdir $(ABI64_FPU_DIR)
+	-ln -s $(CDDIR)/mpi $(ABI64_FPU_DIR)
+
+$(ABI64_FPU_FILES) : $(ABI64_FPU_DIR)/% : % 
+	ln -s $(CDDIR)/$* $(ABI64_FPU_DIR)
+
+libs:: $(ABI64_FPU_DIR) $(ABI64_FPU_FILES)
+	cd $(ABI64_FPU_DIR) && $(MAKE) FREEBL_CHILD_BUILD=1 USE_ABI64_FPU=1 \
+ FREEBL_PARENT=$(CDDIR) CORE_DEPTH=$(CDDIR)/$(CORE_DEPTH) libs
+endif
+
+######################## ABI64_INT stuff #########################
+ifdef HAVE_ABI64_INT
+ABI64_INT_DIR = $(OBJDIR)/$(OS_TARGET)_ABI64_INT
+ABI64_INT_FILES = $(addprefix $(ABI64_INT_DIR)/, $(FILES2LN))
+ALL_TRASH += $(ABI64_INT_DIR) 
+
+$(ABI64_INT_DIR):
+	-mkdir $(ABI64_INT_DIR)
+	-ln -s $(CDDIR)/mpi $(ABI64_INT_DIR)
+
+$(ABI64_INT_FILES) : $(ABI64_INT_DIR)/% : % 
+	ln -s $(CDDIR)/$* $(ABI64_INT_DIR)
+
+libs:: $(ABI64_INT_DIR) $(ABI64_INT_FILES)
+	cd $(ABI64_INT_DIR) && $(MAKE) FREEBL_CHILD_BUILD=1 USE_ABI64_INT=1 \
+ FREEBL_PARENT=$(CDDIR) CORE_DEPTH=$(CDDIR)/$(CORE_DEPTH) libs
+endif
+
+endif # 32b or 64b recursive builds
+
+endif # FREEBL_BUILD_SINGLE_SHLIB
 release_md:: $(libs)
 
-endif  # FREEBL_EXTENDED_BUILD
+endif  # FREEBL_CHILD_BUILD
 
 # Bugzilla Bug 209827: disable optimization to work around what appears
 # to be a VACPP optimizer bug.

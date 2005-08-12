@@ -36,25 +36,25 @@
 # ***** END LICENSE BLOCK *****
 
 # only do this in the outermost freebl build.
-ifndef FREEBL_RECURSIVE_BUILD
+ifndef FREEBL_CHILD_BUILD
 
-ifeq ($(OS_TARGET), HP-UX)
-  ifneq ($(OS_TEST), ia64)
-    FREEBL_EXTENDED_BUILD = 1
-    ifdef USE_64
-      FREEBL_BUILD_SINGLE_SHLIB = 1
-    endif
-  endif
-endif
+#ifeq ($(OS_TARGET), HP-UX)
+#  ifneq ($(OS_TEST), ia64)
+#    FREEBL_EXTENDED_BUILD = 1
+#    ifdef USE_64
+#      FREEBL_BUILD_SINGLE_SHLIB = 1
+#    endif
+#  endif
+#endif
 
-ifeq ($(OS_TARGET),SunOS)
-    FREEBL_EXTENDED_BUILD = 1
-    ifneq ($(CPU_ARCH),sparc)
-      FREEBL_BUILD_SINGLE_SHLIB = 1
-    endif
-endif
+#ifeq ($(OS_TARGET),SunOS)
+#    FREEBL_EXTENDED_BUILD = 1
+#    ifneq ($(CPU_ARCH),sparc)
+#      FREEBL_BUILD_SINGLE_SHLIB = 1
+#    endif
+#endif
 
-ifdef FREEBL_EXTENDED_BUILD
+#ifdef FREEBL_EXTENDED_BUILD
 # We're going to change this build so that it builds libfreebl.a with
 # just loader.c.  Then we have to build this directory twice again to 
 # build the two DSOs.
@@ -67,7 +67,7 @@ OBJS 		= $(addprefix $(OBJDIR)/$(PROG_PREFIX), $(SIMPLE_OBJS))
 ALL_TRASH :=    $(TARGETS) $(OBJS) $(OBJDIR) LOGS TAGS $(GARBAGE) \
                 $(NOSUCHFILE) so_locations 
 
-endif #extended build
+#endif #extended build
 
 # this is not a recursive child make.  We make a .a static lib.
 
@@ -91,8 +91,7 @@ TARGETS	     = $(SHARED_LIBRARY)
 LIBRARY      =
 PROGRAM      =
 
-#ifeq ($(OS_TARGET), HP-UX)
-  EXTRA_LIBS        += \
+EXTRA_LIBS        += \
 	$(DIST)/lib/libsecutil.$(LIB_SUFFIX) \
 	$(NULL)
 
@@ -104,6 +103,5 @@ PROGRAM      =
 	-lplds4 \
 	-lnspr4 \
 	-lc
-#endif
 
 endif

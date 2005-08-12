@@ -44,17 +44,8 @@
 #include "prerror.h"
 #include "prinit.h"
 
-static const char default_name[] = {
-#if defined(XP_WIN) || defined(_WINDOWS) || defined(_WIN32_WCE)
-				    "freebl_3.dll"
-#elif defined( AIX )
-				    "libfreebl_3_shr.a"
-#elif defined( HPUX )
-				    "libfreebl_3.sl"
-#else
-				    "libfreebl_3.so"
-#endif
-};
+static const char* default_name =
+    DSO_PREFIX"freebl"DSO_VERSION"."DSO_SUFFIX;
 
 /* getLibName() returns the name of the library to load. */
 
@@ -64,7 +55,7 @@ static const char default_name[] = {
 #include <sys/systeminfo.h>
 
 
-#if defined(__x86_64__) || defined(__x86_64) 
+#if defined(__x86_64__) || defined(__x86_64) || defined(_X86_)
 
 static const char * getLibName(void) { return default_name; }
 
@@ -129,8 +120,8 @@ getLibName(void)
 {
     long cpu = sysconf(_SC_CPU_VERSION);
     return (cpu == CPU_PA_RISC2_0) 
-		? "libfreebl_abi32_fpu_3.sl"
-	        : "libfreebl_abi32_int32_3.sl" ;
+		? "libfreebl_32fpu_3.sl"
+	        : "libfreebl_32int32_3.sl" ;
 }
 #else
 /* default case, for platforms/ABIs that have only one freebl shared lib. */
@@ -149,6 +140,17 @@ static const char * getLibName(void) { return default_name; }
  * libnspr4.so, be the shared library that calls dlopen().
  * Therefore we have to duplicate the relevant code in the PR
  * load library functions here.
+ *
+ * UPDATE : This workaround is no longer needed if we use
+ * PR_GetLibraryFilePathname to get the path to softokn3, and then
+ * do a PR_LoadLibrary with an absolute pathname for the freebl
+ * shared library .
+ */
+
+#if 0
+
+/* The following code should be deleted after we confirm that NSPR is now
+ * adequate for all platforms.
  */
 
 #if defined(SOLARIS)
@@ -285,6 +287,95 @@ bl_UnloadLibrary(BLLibrary *lib)
 	       "libfreebl_hybrid_3_shr.a" : "libfreebl_pure32_3_shr.a";
 #endif
 #endif
+
+#endif
+
+#include "prio.h"
+#include "prprf.h"
+#include "stdio.h"
+
+const char* softoken=DSO_PREFIX"softokn"DSO_VERSION"."DSO_SUFFIX;
+
+typedef struct {
+    PRLibrary *dlh;
+} BLLibrary;
+
+static BLLibrary *
+bl_LoadLibrary(const char *name)
+{
+    BLLibrary *lib = NULL;
+    PRLibrary* loadinglib;
+    PRFuncPtr fn_addr;
+    char* softokenPath = NULL;
+    char* fullName = NULL;
+    PRLibSpec libSpec;
+
+    libSpec.type = PR_LibSpec_Pathname;
+    lib = PR_NEWZAP(BLLibrary);
+    if (NULL == lib) {
+        PR_SetError(PR_OUT_OF_MEMORY_ERROR, 0);
+        return NULL;
+    }
+
+    /* Get the pathname for the loaded libsoftokn, i.e. /usr/lib/libsoftokn.so */
+    fn_addr = PR_FindFunctionSymbolAndLibrary("NSC_GetFunctionList" , &loadinglib);
+    softokenPath = PR_GetLibraryFilePathname(softoken, fn_addr);
+    
+    /* Remove "libsoftokn" from the pathname and add the freebl libname */
+    if (softokenPath) {
+       char* c = strrchr(softokenPath, '/');
+       if (c) {
+           size_t softoknPathSize = 1+c - softokenPath;
+           fullName = (char*) PORT_ZAlloc(strlen(name) + softoknPathSize + 2);
+           if (fullName) {
+               strncat(fullName, softokenPath, softoknPathSize);
+               strcat(fullName, name); 
+           }
+       }
+    }
+    if (fullName) {
+#ifdef DEBUG_LOADER
+        PR_fprintf(PR_STDOUT, "\nAttempting to load %s\n", fullName);
+#endif
+        libSpec.value.pathname = fullName;
+        lib->dlh = PR_LoadLibraryWithFlags(libSpec, PR_LD_NOW | PR_LD_LOCAL);
+        PORT_Free(fullName);
+    }
+    if (!lib->dlh) {
+#ifdef DEBUG_LOADER
+        PR_fprintf(PR_STDOUT, "\nAttempting to load %s\n", name);
+#endif
+        libSpec.value.pathname = name;
+        lib->dlh = PR_LoadLibraryWithFlags(libSpec, PR_LD_NOW | PR_LD_LOCAL);
+    }
+    if (NULL == lib->dlh) {
+#ifdef DEBUG_LOADER
+        PR_fprintf(PR_STDOUT, "\nLoading failed : %s.\n", name);
+#endif
+        PR_Free(lib);
+        lib = NULL;
+    }
+    return lib;
+}
+
+static void *
+bl_FindSymbol(BLLibrary *lib, const char *name)
+{
+    void *f;
+
+    f = PR_FindSymbol(lib->dlh, name);
+    return f;
+}
+
+static PRStatus
+bl_UnloadLibrary(BLLibrary *lib)
+{
+    if (PR_SUCCESS != PR_UnloadLibrary(lib->dlh)) {
+        return PR_FAILURE;
+    }
+    PR_Free(lib);
+    return PR_SUCCESS;
+}
 
 #define LSB(x) ((x)&0xff)
 #define MSB(x) ((x)>>8)
@@ -1569,7 +1660,7 @@ HMAC_Init(HMACContext *cx, const SECHashObject *hashObj,
 	  const unsigned char *secret, unsigned int secret_len, PRBool isFIPS)
 {
   if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
-      return NULL;
+      return SECFailure;
   return (vector->p_HMAC_Init)(cx, hashObj, secret, secret_len, isFIPS);
 }
 

@@ -45,8 +45,7 @@ CORE_DEPTH = ../../..
 
 MODULE = nss
 
-ifdef FREEBL_RECURSIVE_BUILD
-  CORE_DEPTH = ../../../../.. # doesn't seem to matter
+ifdef FREEBL_CHILD_BUILD
   ifdef USE_ABI32_INT32
     LIBRARY_NAME = freebl_32int
   endif
