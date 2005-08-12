@@ -91,6 +91,10 @@ ifeq ($(OS_TARGET),OSF1)
     MPI_SRCS += mpvalpha.c
 endif
 
+ifeq (OS2,$(OS_TARGET))
+LN_S     = cp
+endif
+
 ifeq (,$(filter-out WINNT WIN95,$(OS_TARGET)))  #omits WIN16 and WINCE
 ifdef NS_USE_GCC
 # Ideally, we want to use assembler
