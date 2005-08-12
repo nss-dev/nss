@@ -1,8 +1,14 @@
 #!/bin/sh
+# expected args are:
+# $1 path name for DIST/OBJDIR/bin
+# $2 OBJDIR      (simple form)
+# $3 OS platform name
+# $4 pathname of dll/dso to sign
+
 case "${3}" in
 WIN*)
     if echo "${PATH}" | grep -c \; >/dev/null; then
-        PATH=${1}/bin\;${1}/lib\;${PATH}
+        PATH="${1}/bin;${1}/lib;${PATH}"
     else
         # ARG1 is ${1} with the drive letter escaped.
         if echo "${1}" | grep -c : >/dev/null; then
