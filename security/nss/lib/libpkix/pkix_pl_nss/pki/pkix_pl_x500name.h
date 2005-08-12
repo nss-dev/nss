@@ -74,6 +74,18 @@ PKIX_Error *pkix_pl_X500Name_GetCommonName(
         unsigned char **pCommonName,
         void *plContext);
 
+PKIX_Error *
+pkix_pl_X500Name_GetCountryName(
+        PKIX_PL_X500Name *xname,
+        unsigned char **pCountryName,
+        void *plContext);
+
+PKIX_Error *
+pkix_pl_X500Name_GetOrgName(
+        PKIX_PL_X500Name *xname,
+        unsigned char **pOrgName,
+        void *plContext);
+
 #ifdef __cplusplus
 }
 #endif

@@ -859,6 +859,7 @@ CERT_FindNameConstraintsExten;
 ;+# libpkix functions
 ;+# May not become part of the NSS public API. Needed for unit testing for now.
 NSS_Get_PKIX_PL_LDAPMessageTemplate;
+PKIX_PL_LDAPMessageTemplate;
 PKIX_ALLOC_ERROR;
 PKIX_BuildChain;
 PKIX_BuildParams_Create;
@@ -1057,6 +1058,9 @@ PKIX_PL_Sprintf;
 PKIX_PL_String_Create;
 PKIX_PL_String_GetEncoded;
 PKIX_PL_X500Name_Create;
+pkix_pl_X500Name_GetCommonName;
+pkix_pl_X500Name_GetCountryName;
+pkix_pl_X500Name_GetOrgName;
 PKIX_PL_X500Name_Match;
 pkix_PolicyNode_AddToParent;
 pkix_PolicyNode_Create;

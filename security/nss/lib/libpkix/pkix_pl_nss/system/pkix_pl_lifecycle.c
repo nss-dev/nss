@@ -76,9 +76,9 @@ static const char pkix_Alloc_Error_Msg[32] =
  * XXX If PKIX_PL_StringStruct is changed, this will break.
  */
 static PKIX_PL_String pkix_Alloc_Error_Desc = {
-        (void *)&pkix_Alloc_Error_Msg,  /* void* utf16String */
+        (void *)&pkix_Alloc_Error_Msg,  /* void *utf16String */
         (PKIX_UInt32)32,                /* PKIX_UInt32 utf16Length */
-        (char *)NULL,                   /* char* escAsciiString */
+        (char *)NULL,                   /* char *escAsciiString */
         (PKIX_UInt32)0                  /* PKIX_UInt32 escAsciiLength */
 };
 

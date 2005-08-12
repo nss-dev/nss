@@ -506,7 +506,7 @@ pkix_pl_LdapRequest_Create(
         PKIX_UInt32 sizeLimit,
         PKIX_UInt32 timeLimit,
         char attrsOnly,
-        SECItem *subjectName,
+        LDAPFilter *filter,
         LdapAttrIncludeMask attrBits,
         PKIX_PL_LdapRequest **pRequestMsg,
         void *plContext)
@@ -537,7 +537,7 @@ pkix_pl_LdapRequest_Create(
         ldapRequest->sizeLimit = sizeLimit;
         ldapRequest->timeLimit = timeLimit;
         ldapRequest->attrsOnly = attrsOnly;
-        ldapRequest->subjectName = subjectName;
+        ldapRequest->filter = filter;
         ldapRequest->attrBits = attrBits;
 
         ldapRequest->attrArray = attrArray;
@@ -559,7 +559,7 @@ pkix_pl_LdapRequest_Create(
 
         search->baseObject.type = siAsciiString;
         search->baseObject.data = (void *)issuerDN;
-        search->baseObject.len = strlen(issuerDN);
+        search->baseObject.len = PL_strlen(issuerDN);
         scopeTypeAsChar = (char)scope;
         search->scope.type = siUnsignedInteger;
         search->scope.data = (void *)&scopeTypeAsChar;
@@ -580,28 +580,13 @@ pkix_pl_LdapRequest_Create(
         search->attrsOnly.data = (void *)&attrsOnly;
         search->attrsOnly.len = sizeof (attrsOnly);
 
-        search->filter.selector = LDAP_EQUALITYMATCHFILTER_TYPE;
-        search->filter.filter.equalityMatchFilter.attrType.data = (void *)"cn";
-        search->filter.filter.equalityMatchFilter.attrType.len = 2;
-        search->filter.filter.equalityMatchFilter.attrValue.data =
-                subjectName->data;
-#if 0
-                (void *)"Basic Directory Trust Anchor SubSubCA1";
-#endif
-        search->filter.filter.equalityMatchFilter.attrValue.len =
-                subjectName->len;
-#if 0
-                strlen(search->filter.filter.equalityMatchFilter.attrValue.data);
-#endif
+        search->filter = filter;
 
         search->attributes = attrArray;
 
         PKIX_PL_NSSCALLRV
                 (LDAPCERTSTORECONTEXT, ldapRequest->encoded, SEC_ASN1EncodeItem,
-                (arena,
-                NULL,
-                (void *)&msg,
-                SEC_ASN1_GET(PKIX_PL_LDAPMessageTemplate)));
+                (arena, NULL, (void *)&msg, PKIX_PL_LDAPMessageTemplate));
         if (!(ldapRequest->encoded)) {
                 PKIX_ERROR("failed in encoding searchRequest");
         }

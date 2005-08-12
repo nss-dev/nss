@@ -54,7 +54,7 @@ PKIX_Error *
 PKIX_PL_NssContext_Create(
         PKIX_UInt32 certificateUsage,
         PKIX_Boolean useNssArena,
-	void *wincx,
+        void *wincx,
         void **pNssContext)
 {
         PKIX_PL_NssContext *context = NULL;
@@ -75,7 +75,7 @@ PKIX_PL_NssContext_Create(
         
         context->arena = arena;
         context->certificateUsage = (SECCertificateUsage)certificateUsage;
-	context->wincx = wincx;
+        context->wincx = wincx;
 
         *pNssContext = context;
 
@@ -133,8 +133,8 @@ PKIX_PL_NssContext_Destroy(
  */
 PKIX_Error *
 pkix_pl_NssContext_GetWincx(
-	void *nssContext,
-	void **pWincx)
+        void *nssContext,
+        void **pWincx)
 {
         void *plContext = NULL;
         PKIX_PL_NssContext *context = NULL;
@@ -144,7 +144,7 @@ pkix_pl_NssContext_GetWincx(
 
         context = (PKIX_PL_NssContext *)nssContext;
 
-	*pWincx = context->wincx;
+        *pWincx = context->wincx;
 
         goto cleanup;
 

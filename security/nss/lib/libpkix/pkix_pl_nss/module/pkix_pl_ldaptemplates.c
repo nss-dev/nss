@@ -78,8 +78,7 @@ static const SEC_ASN1Template LDAPBindApplTemplate[] = {
 
 static const SEC_ASN1Template LDAPBindTemplate[] = {
     { SEC_ASN1_CONSTRUCTED | SEC_ASN1_APPLICATION | LDAP_BIND_TYPE, 0,
-        LDAPBindApplTemplate, sizeof (LDAPBind) } /* ,
-    { 0 } */
+        LDAPBindApplTemplate, sizeof (LDAPBind) }
 };
 
 /*
@@ -138,8 +137,7 @@ static const SEC_ASN1Template LDAPResultTemplate[] = {
 
 static const SEC_ASN1Template LDAPBindResponseTemplate[] = {
     { SEC_ASN1_CONSTRUCTED | SEC_ASN1_APPLICATION | LDAP_BINDRESPONSE_TYPE, 0,
-        LDAPResultTemplate, sizeof (LDAPBindResponse) } /* ,
-    { 0 } */
+        LDAPResultTemplate, sizeof (LDAPBindResponse) }
 };
 
 /*
@@ -148,8 +146,7 @@ static const SEC_ASN1Template LDAPBindResponseTemplate[] = {
 
 static const SEC_ASN1Template LDAPUnbindTemplate[] = {
     { SEC_ASN1_CONSTRUCTED | SEC_ASN1_APPLICATION | LDAP_UNBIND_TYPE, 0,
-        SEC_NullTemplate } /* ,
-    { 0 } */
+        SEC_NullTemplate }
 };
 
 /*
@@ -306,15 +303,14 @@ static const SEC_ASN1Template LDAPSearchApplTemplate[] = {
     { SEC_ASN1_INTEGER, offsetof(LDAPSearch, sizeLimit) },
     { SEC_ASN1_INTEGER, offsetof(LDAPSearch, timeLimit) },
     { SEC_ASN1_BOOLEAN, offsetof(LDAPSearch, attrsOnly) },
-    { SEC_ASN1_INLINE, offsetof(LDAPSearch, filter), LDAPFilterTemplate },
+    { SEC_ASN1_POINTER, offsetof(LDAPSearch, filter), LDAPFilterTemplate },
     { SEC_ASN1_SEQUENCE_OF, offsetof(LDAPSearch, attributes), LDAPAttributeTemplate },
     { 0 }
 };
 
 static const SEC_ASN1Template LDAPSearchTemplate[] = {
     { SEC_ASN1_CONSTRUCTED | SEC_ASN1_APPLICATION | LDAP_SEARCH_TYPE, 0,
-        LDAPSearchApplTemplate, sizeof (LDAPSearch) } /* ,
-    { 0 } */
+        LDAPSearchApplTemplate, sizeof (LDAPSearch) } 
 };
 
 /*
@@ -348,14 +344,12 @@ static const SEC_ASN1Template LDAPEntryTemplate[] = {
 
 static const SEC_ASN1Template LDAPSearchResponseEntryTemplate[] = {
     { SEC_ASN1_CONSTRUCTED | SEC_ASN1_APPLICATION | LDAP_SEARCHRESPONSEENTRY_TYPE, 0,
-        LDAPEntryTemplate, sizeof (LDAPSearchResponseEntry) } /* ,
-    { 0 } */
+        LDAPEntryTemplate, sizeof (LDAPSearchResponseEntry) }
 };
 
 static const SEC_ASN1Template LDAPSearchResponseResultTemplate[] = {
     { SEC_ASN1_APPLICATION | LDAP_SEARCHRESPONSERESULT_TYPE, 0,
-        LDAPResultTemplate, sizeof (LDAPSearchResponseResult) } /* ,
-    { 0 } */
+        LDAPResultTemplate, sizeof (LDAPSearchResponseResult) }
 };
 
 /*
@@ -369,8 +363,7 @@ static const SEC_ASN1Template LDAPAbandonTemplate[] = {
 
 static const SEC_ASN1Template LDAPAbandonRequestTemplate[] = {
     { SEC_ASN1_CONSTRUCTED | SEC_ASN1_APPLICATION | LDAP_ABANDONREQUEST_TYPE, 0,
-        LDAPAbandonTemplate, sizeof (LDAPAbandonRequest) } /* ,
-    { 0 } */
+        LDAPAbandonTemplate, sizeof (LDAPAbandonRequest) }
 };
 
 /*

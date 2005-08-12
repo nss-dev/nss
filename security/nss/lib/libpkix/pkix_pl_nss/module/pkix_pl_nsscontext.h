@@ -56,7 +56,7 @@ typedef struct PKIX_PL_NssContextStruct PKIX_PL_NssContext;
 struct PKIX_PL_NssContextStruct {
         SECCertificateUsage certificateUsage;
         PRArenaPool *arena;
-	void *wincx;
+        void *wincx;
 };
 
 PKIX_Error *

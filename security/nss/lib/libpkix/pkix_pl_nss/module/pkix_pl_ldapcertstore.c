@@ -136,27 +136,24 @@ pkix_pl_LdapCertStore_MakeBind(
 
         msg.protocolOp.op.bindMsg.bindName.type = siAsciiString;
         msg.protocolOp.op.bindMsg.bindName.data = (void *)bindName;
-        msg.protocolOp.op.bindMsg.bindName.len = strlen (bindName);
+        msg.protocolOp.op.bindMsg.bindName.len = PL_strlen (bindName);
 
 #if 0
         msg.protocolOp.op.bindMsg.authentication.selector = SIMPLE_AUTH;
         msg.protocolOp.op.bindMsg.authentication.ch.simple.type = siAsciiString;
         msg.protocolOp.op.bindMsg.authentication.ch.simple.data =
                 (void *)authentication;
-        len = strlen (authentication);
+        len = PL_strlen (authentication);
         if (len == 0) len = 1;
         msg.protocolOp.op.bindMsg.authentication.ch.simple.len = len;
 #endif
         msg.protocolOp.op.bindMsg.authentication.type = siAsciiString;
         msg.protocolOp.op.bindMsg.authentication.data = (void *)authentication;
-        len = strlen (authentication);
+        len = PL_strlen (authentication);
         msg.protocolOp.op.bindMsg.authentication.len = len;
 
         PKIX_PL_NSSCALLRV(LDAPCERTSTORECONTEXT, encoded, SEC_ASN1EncodeItem,
-                (arena,
-                NULL,
-                (void *)&msg,
-                SEC_ASN1_GET(PKIX_PL_LDAPMessageTemplate)));
+                (arena, NULL, (void *)&msg, PKIX_PL_LDAPMessageTemplate));
         if (!encoded) {
                 PKIX_ERROR("failed in encoding bindRequest");
         }
@@ -227,10 +224,7 @@ pkix_pl_LdapCertStore_MakeUnbind(
         msg.protocolOp.op.unbindMsg.dummy.len = 0;
 
         PKIX_PL_NSSCALLRV(LDAPCERTSTORECONTEXT, encoded, SEC_ASN1EncodeItem,
-                (arena,
-                NULL,
-                (void *)&msg,
-                SEC_ASN1_GET(PKIX_PL_LDAPMessageTemplate)));
+                (arena, NULL, (void *)&msg, PKIX_PL_LDAPMessageTemplate));
         if (!encoded) {
                 PKIX_ERROR("failed in encoding unbind");
         }
@@ -293,7 +287,7 @@ pkix_pl_LdapCertStore_DecodeBindResponse(
                 (&response, 0, sizeof (LDAPMessage)));
 
         PKIX_PL_NSSCALLRV(LDAPCERTSTORECONTEXT, rv, SEC_ASN1DecodeItem,
-            (arena, &response, SEC_ASN1_GET(PKIX_PL_LDAPMessageTemplate), src));
+            (arena, &response, PKIX_PL_LDAPMessageTemplate, src));
 
         if (rv == SECSuccess) {
                 *pBindResponse = response;
@@ -1842,7 +1836,7 @@ cleanup:
 static PKIX_Error *
 pkix_pl_LdapCertStore_SendRequest(
         PKIX_PL_LdapCertStoreContext *lcs,
-        SECItem *subjectName,
+        LDAPFilter *filter,
         LdapAttrIncludeMask attrBits,
         PKIX_List **pResponse,
         void *plContext)
@@ -1854,7 +1848,7 @@ pkix_pl_LdapCertStore_SendRequest(
         PKIX_ENTER
                 (LDAPCERTSTORECONTEXT,
                 "pkix_pl_LdapCertStore_SendRequest");
-        PKIX_NULLCHECK_THREE(lcs, subjectName, pResponse);
+        PKIX_NULLCHECK_THREE(lcs, filter, pResponse);
 
         PKIX_CHECK(pkix_pl_LdapRequest_Create
                 (lcs->arena,
@@ -1865,7 +1859,7 @@ pkix_pl_LdapCertStore_SendRequest(
                 0,                      /* sizeLimit            */
                 0,                      /* timeLimit            */
                 PKIX_FALSE,             /* attrsOnly            */
-                subjectName,            /* equalityMatch filter */
+                filter,
                 attrBits,               /* attributes           */
                 &searchRequest,
                 plContext),
@@ -2151,6 +2145,253 @@ cleanup:
 }
 
 /*
+ * FUNCTION: pkix_pl_LdapCertStore_DestroyAndFilter
+ * DESCRIPTION:
+ *
+ *  This function frees the space allocated for the components of the
+ *  equalityMatch filters that make up the andFilter pointed to by "filter".
+ *
+ * PARAMETERS:
+ *  "andFilter"
+ *      The address of the andFilter whose components are to be freed. Must be
+ *      non-NULL.
+ * "plContext"
+ *      Platform-specific context pointer
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a CertStore Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+static PKIX_Error *
+pkix_pl_LdapCertStore_DestroyAndFilter(
+        LDAPFilter *andFilter,
+        void *plContext)
+{
+        LDAPFilter *currentFilter = NULL;
+        LDAPFilter **setOfFilter = NULL;
+        unsigned char* component = NULL;
+
+        PKIX_ENTER(CERTSTORE, "pkix_pl_LdapCertStore_DestroyAndFilter");
+        PKIX_NULLCHECK_ONE(andFilter);
+
+        if (andFilter->selector != LDAP_ANDFILTER_TYPE) {
+            PKIX_ERROR
+                ("Invalid argument to pkix_pl_LdapCertStore_DestroyAndFilter");
+        }
+
+        /* Set currentFilter to point to first EqualityMatchFilter pointer */
+        setOfFilter = andFilter->filter.andFilter.setOfFilter;
+
+        currentFilter = *setOfFilter++;
+
+        while (currentFilter != NULL) {
+                component = 
+                    currentFilter->filter.equalityMatchFilter.attrValue.data;
+                if (component != NULL) {
+                    PORT_Free(component);
+                }
+                currentFilter = *setOfFilter++;
+        }
+
+cleanup:
+
+        PKIX_RETURN(CERTSTORE);
+
+}
+
+/*
+ * FUNCTION: pkix_pl_LdapCertStore_DestroyOrFilter
+ * DESCRIPTION:
+ *
+ *  This function frees the space allocated for the components of the
+ *  andFilters that make up the orFilter pointed to by "filter".
+ *
+ * PARAMETERS:
+ *  "orFilter"
+ *      The address of the orFilter whose components are to be freed. Must be
+ *      non-NULL.
+ * "plContext"
+ *      Platform-specific context pointer
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a CertStore Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+static PKIX_Error *
+pkix_pl_LdapCertStore_DestroyOrFilter(
+        LDAPFilter *orFilter,
+        void *plContext)
+{
+        LDAPFilter *currentFilter = NULL;
+        LDAPFilter **setOfFilter = NULL;
+        unsigned char* component = NULL;
+
+        PKIX_ENTER(CERTSTORE, "pkix_pl_LdapCertStore_DestroyOrFilter");
+        PKIX_NULLCHECK_ONE(orFilter);
+
+        if (orFilter->selector != LDAP_ORFILTER_TYPE) {
+            PKIX_ERROR
+                ("Invalid argument to pkix_pl_LdapCertStore_DestroyOrFilter");
+        }
+
+        /* Set currentFilter to point to first AndFilter pointer */
+        setOfFilter = orFilter->filter.orFilter.setOfFilter;
+
+        currentFilter = *setOfFilter++;
+
+        while (currentFilter != NULL) {
+                PKIX_CHECK(pkix_pl_LdapCertStore_DestroyAndFilter
+                        (currentFilter, plContext),
+                        "pkix_pl_LdapCertStore_DestroyAndFilter failed");
+                currentFilter = *setOfFilter++;
+        }
+
+cleanup:
+
+        PKIX_RETURN(CERTSTORE);
+
+}
+
+/*
+ * FUNCTION: pkix_pl_LdapCertStore_MakeAndFilter
+ * DESCRIPTION:
+ *
+ *  This function allocates space from the arena pointed to by "arena" to
+ *  construct a filter that will match components of the X500Name pointed to by
+ *  "subjectName", and stores the resulting filter at "pFilter".
+ *
+ *  "subjectName" is checked for commonName, organizationName, and countryName
+ *  components (cn=, o=, and c=) and the filter is the "and" of an
+ *  equality match on each component found.
+ *
+ *  The component strings are extracted using the family of CERT_Get* functions,
+ *  and each must be freed with PORT_Free.
+ *
+ * PARAMETERS:
+ *  "arena"
+ *      The address of the PRArenaPool used in creating the filter. Must be
+ *       non-NULL.
+ * "subjectName"
+ *      The address of the X500Name whose components are the subject of the
+ *      desired matches. Must be non-NULL.
+ * "pFilter"
+ *      The address at which the result is stored.
+ * "plContext"
+ *      Platform-specific context pointer
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a CertStore Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+static PKIX_Error *
+pkix_pl_LdapCertStore_MakeAndFilter(
+        PRArenaPool *arena,
+        PKIX_PL_X500Name *subjectName, 
+        LDAPFilter **pFilter,
+        void *plContext)
+{
+        LDAPFilter **setOfFilter;
+        LDAPFilter *andFilter = NULL;
+        LDAPFilter *currentFilter = NULL;
+        PKIX_UInt32 componentsPresent = 0;
+        void *v = NULL;
+        unsigned char *component = NULL;
+
+        PKIX_ENTER(CERTSTORE, "pkix_pl_LdapCertStore_MakeAndFilter");
+        PKIX_NULLCHECK_THREE(arena, subjectName, pFilter);
+
+        /* Increase this if additional components may be extracted */
+#define MAX_NUM_COMPONENTS 3
+
+        /* Space for (MAX_NUM_COMPONENTS + 1) pointers to LDAPFilter */
+        PKIX_PL_NSSCALLRV(CERTSTORE, v, PORT_ArenaZAlloc,
+                (arena, (MAX_NUM_COMPONENTS + 1)*sizeof(LDAPFilter *)));
+        setOfFilter = (LDAPFilter **)v;
+
+        /* Space for AndFilter and MAX_NUM_COMPONENTS EqualityMatchFilters */
+        PKIX_PL_NSSCALLRV(CERTSTORE, v, PORT_ArenaZNewArray,
+                (arena, LDAPFilter, MAX_NUM_COMPONENTS + 1));
+        setOfFilter[0] = (LDAPFilter *)v;
+
+        /* Claim the first array element for the ANDFilter */
+        andFilter = setOfFilter[0];
+
+        /* Set ANDFilter to point to the first EqualityMatchFilter pointer */
+        andFilter->selector = LDAP_ANDFILTER_TYPE;
+        andFilter->filter.andFilter.setOfFilter = setOfFilter;
+
+        currentFilter = andFilter + 1;
+        /* Try for commonName */
+        PKIX_CHECK(pkix_pl_X500Name_GetCommonName
+                (subjectName, &component, plContext),
+                "pkix_pl_X500Name_GetCommonName failed");
+        if (component) {
+                setOfFilter[componentsPresent] = currentFilter;
+                currentFilter->selector = LDAP_EQUALITYMATCHFILTER_TYPE;
+                currentFilter->filter.equalityMatchFilter.attrType.data =
+                        (unsigned char *)"cn";
+                currentFilter->filter.equalityMatchFilter.attrType.len = 2;
+                currentFilter->filter.equalityMatchFilter.attrValue.data =
+                        component;
+                currentFilter->filter.equalityMatchFilter.attrValue.len =
+                        PL_strlen((const char *)component);
+                componentsPresent++;
+                currentFilter++;
+        }
+
+        /* Try for orgName */
+        PKIX_CHECK(pkix_pl_X500Name_GetOrgName
+                (subjectName, &component, plContext),
+                "pkix_pl_X500Name_GetOrgName failed");
+        if (component) {
+                setOfFilter[componentsPresent] = currentFilter;
+                currentFilter->selector = LDAP_EQUALITYMATCHFILTER_TYPE;
+                currentFilter->filter.equalityMatchFilter.attrType.data =
+                        (unsigned char *)"o";
+                currentFilter->filter.equalityMatchFilter.attrType.len = 1;
+                currentFilter->filter.equalityMatchFilter.attrValue.data =
+                        component;
+                currentFilter->filter.equalityMatchFilter.attrValue.len =
+                        PL_strlen((const char *)component);
+                componentsPresent++;
+                currentFilter++;
+        }
+
+        /* Try for countryName */
+        PKIX_CHECK(pkix_pl_X500Name_GetCountryName
+                (subjectName, &component, plContext),
+                "pkix_pl_X500Name_GetCountryName failed");
+        if (component) {
+                setOfFilter[componentsPresent] = currentFilter;
+                currentFilter->selector = LDAP_EQUALITYMATCHFILTER_TYPE;
+                currentFilter->filter.equalityMatchFilter.attrType.data =
+                        (unsigned char *)"c";
+                currentFilter->filter.equalityMatchFilter.attrType.len = 1;
+                currentFilter->filter.equalityMatchFilter.attrValue.data =
+                        component;
+                currentFilter->filter.equalityMatchFilter.attrValue.len =
+                        PL_strlen((const char *)component);
+                componentsPresent++;
+                currentFilter++;
+        }
+
+        setOfFilter[componentsPresent] = NULL;
+
+        *pFilter = andFilter;
+
+cleanup:
+
+        PKIX_RETURN(CERTSTORE);
+
+}
+
+/*
  * FUNCTION: pkix_pl_LdapCertStore_GetCertsBySubject
  * DESCRIPTION:
  *
@@ -2192,22 +2433,33 @@ pkix_pl_LdapCertStore_GetCertsBySubject(
         PKIX_List **pSelected,
         void *plContext)
 {
-        SECItem nameItem = {siAsciiString, NULL, 0};
+        LDAPFilter *andFilter = NULL;
         LdapAttrIncludeMask attrBits = 0;
         PKIX_List *responseList = NULL;
         PKIX_List *certList = NULL;
-        unsigned char *commonName = NULL;
+        PRArenaPool *arena = NULL;
 
         PKIX_ENTER
                 (CERTSTORE, "pkix_pl_LdapCertStore_GetCertsBySubject");
         PKIX_NULLCHECK_THREE(lcs, subjectName, pSelected);
 
-        PKIX_CHECK(pkix_pl_X500Name_GetCommonName
-                (subjectName, &commonName, plContext),
-                "pkix_pl_X500Name_GetCommonName failed");
+        /*
+         * Get a short-lived arena. We'll be done with this space once
+         * the request is encoded.
+         */
+        PKIX_PL_NSSCALLRV
+                (LDAPCERTSTORECONTEXT,
+                arena,
+                PORT_NewArena,
+                (DER_DEFAULT_CHUNKSIZE));
 
-        nameItem.data = commonName;
-        nameItem.len = PORT_Strlen((const char *)commonName);
+        if (!arena) {
+                PKIX_ERROR_FATAL("Out of memory");
+        }
+
+        PKIX_CHECK(pkix_pl_LdapCertStore_MakeAndFilter
+                (arena, subjectName, &andFilter, plContext),
+                "pkix_pl_LdapCertStore_MakeAndFilter failed");
 
         if (minPathLen < 0) {
 
@@ -2228,8 +2480,11 @@ pkix_pl_LdapCertStore_GetCertsBySubject(
         attrBits = LDAPATTR_INCLUDE_CACERTS;
 #endif
         PKIX_CHECK(pkix_pl_LdapCertStore_SendRequest
-                (lcs, &nameItem, attrBits, &responseList, plContext),
+                (lcs, andFilter, attrBits, &responseList, plContext),
                 "pkix_pl_LdapCertStore_SendRequest failed");
+
+        PKIX_CHECK(pkix_pl_LdapCertStore_DestroyAndFilter(andFilter, plContext),
+                "pkix_pl_LdapCertStore_DestroyAndFilter failed");
 
         if (responseList) {
                 PKIX_CHECK(pkix_pl_LdapCertStore_BuildCertList
@@ -2244,8 +2499,8 @@ cleanup:
                 PKIX_DECREF(certList);
         }
 
-        if (commonName) {
-                PKIX_PL_NSSCALL(CERTSTORE, PORT_Free, (commonName));
+        if (arena) {
+                PKIX_PL_NSSCALL(CERTSTORE, PORT_FreeArena, (arena, PR_FALSE));
         }
 
         PKIX_DECREF(responseList);
@@ -2294,6 +2549,11 @@ pkix_pl_LdapCertStore_GetCRLsByIssuer(
         PKIX_PL_X500Name *name = NULL;
         PKIX_List *responseList = NULL;
         PKIX_List *crlList = NULL;
+        PRArenaPool *arena = NULL;
+        LDAPFilter **setOfFilter = NULL;
+        LDAPFilter orFilter;
+        void *v = NULL;
+
         unsigned char *commonName = NULL;
 
         PKIX_ENTER(CERTSTORE, "pkix_pl_LdapCertStore_GetCRLsByIssuer");
@@ -2303,6 +2563,29 @@ pkix_pl_LdapCertStore_GetCRLsByIssuer(
                 PKIX_ERROR_FATAL("Zero argument");
         }
 
+        /*
+         * Get a short-lived arena. We'll be done with this space once
+         * the request is encoded.
+         */
+        PKIX_PL_NSSCALLRV
+                (LDAPCERTSTORECONTEXT,
+                arena,
+                PORT_NewArena,
+                (DER_DEFAULT_CHUNKSIZE));
+
+        if (!arena) {
+                PKIX_ERROR_FATAL("Out of memory");
+        }
+
+        /* Space for (numNames + 1) pointers to LDAPFilter */
+        PKIX_PL_NSSCALLRV(CERTSTORE, v, PORT_ArenaZAlloc,
+                (arena, (numNames + 1)*sizeof(LDAPFilter *)));
+        setOfFilter = (LDAPFilter **)v;
+        setOfFilter[0] = (LDAPFilter *)v;
+
+        orFilter.selector = LDAP_ORFILTER_TYPE;
+        orFilter.filter.orFilter.setOfFilter = setOfFilter;
+
         for (thisName = 0; thisName < numNames; thisName++) {
                 PKIX_CHECK(PKIX_List_GetItem
                         (issuerNames,
@@ -2311,19 +2594,14 @@ pkix_pl_LdapCertStore_GetCRLsByIssuer(
                         plContext),
                         "PKIX_List_GetItem failed");
 
-                PKIX_CHECK(pkix_pl_X500Name_GetCommonName
-                        (name, &commonName, plContext),
-                        "pkix_pl_X500Name_GetCommonName failed");
-
-                nameItem.data = commonName;
-                nameItem.len = PORT_Strlen((const char *)commonName);
-
-                /* add nameItem to request */
+                PKIX_CHECK(pkix_pl_LdapCertStore_MakeAndFilter
+                        (arena, name, &setOfFilter[thisName], plContext),
+                        "pkix_pl_LdapCertStore_MakeAndFilter failed");
 
                 PKIX_DECREF(name);
         }
 
-        /* For now, we'll only request the last issuer name (from a list of 1) */
+        setOfFilter[numNames] = NULL;
 
         attrBits = LDAPATTR_INCLUDE_CROSSPAIRCERTS |
                 LDAPATTR_INCLUDE_CERTREVLIST | LDAPATTR_INCLUDE_AUTHREVLIST;
@@ -2334,8 +2612,11 @@ pkix_pl_LdapCertStore_GetCRLsByIssuer(
 
         /* send request */
         PKIX_CHECK(pkix_pl_LdapCertStore_SendRequest
-                (lcs, &nameItem, attrBits, &responseList, plContext),
+                (lcs, &orFilter, attrBits, &responseList, plContext),
                 "pkix_pl_LdapCertStore_SendRequest failed");
+
+        PKIX_CHECK(pkix_pl_LdapCertStore_DestroyOrFilter(&orFilter, plContext),
+                "pkix_pl_LdapCertStore_DestroyOrFilter failed");
 
         if (responseList) {
                 PKIX_CHECK(pkix_pl_LdapCertStore_BuildCrlList
@@ -2347,13 +2628,12 @@ pkix_pl_LdapCertStore_GetCRLsByIssuer(
 
 cleanup:
 
-        /* XXX We'll have to do this for each nameItem in list */
-        if (commonName) {
-                PKIX_PL_NSSCALL(CERTSTORE, PORT_Free, (commonName));
-        }
-
         if (PKIX_ERROR_RECEIVED) {
                 PKIX_DECREF(crlList);
+        }
+
+        if (arena) {
+                PKIX_PL_NSSCALL(CERTSTORE, PORT_FreeArena, (arena, PR_FALSE));
         }
 
         PKIX_DECREF(name);
@@ -2459,7 +2739,7 @@ cleanup:
  * FUNCTION: pkix_pl_LdapCertStore_CrlQuery
  * DESCRIPTION:
  *
- *  This function iuses the CertStore embodied by the LdapCertStoreContext "lcs"
+ *  This function uses the CertStore embodied by the LdapCertStoreContext "lcs"
  *  to obtain from the database the CRLs specified by the ComCRLSelParams
  *  pointed to by "params" and stores the List at "pSelected". If no Crls are
  *  found matching the criteria a NULL pointer is stored. If the query is still

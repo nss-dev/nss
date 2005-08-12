@@ -91,7 +91,7 @@ pkix_pl_Pk11CertStore_CertQuery(
 
         PRArenaPool *arena = NULL;
         SECItem *nameItem = NULL;
-	void *wincx = NULL;
+        void *wincx = NULL;
 
         PKIX_ENTER(CERTSTORE, "pkix_pl_Pk11CertStore_CertQuery");
         PKIX_NULLCHECK_TWO(params, pSelected);
@@ -154,7 +154,7 @@ pkix_pl_Pk11CertStore_CertQuery(
         } else {
 
                 PKIX_CHECK(pkix_pl_NssContext_GetWincx(plContext, &wincx),
-		        "pkix_pl_NssContext_GetWincx failed");
+                        "pkix_pl_NssContext_GetWincx failed");
 
                 PKIX_PL_NSSCALLRV
                         (CERTSTORE,
@@ -280,13 +280,13 @@ pkix_pl_Pk11CertStore_CrlQuery(
         CERTSignedCrl** crls = NULL;
         PRBool writeLocked = PR_FALSE;
         PRUint16 status = 0;
-	void *wincx = NULL;
+        void *wincx = NULL;
 
         PKIX_ENTER(CERTSTORE, "pkix_pl_Pk11CertStore_CrlQuery");
         PKIX_NULLCHECK_TWO(params, pSelected);
 
-	PKIX_CHECK(pkix_pl_NssContext_GetWincx(plContext, &wincx),
-		"pkix_pl_NssContext_GetWincx failed");
+        PKIX_CHECK(pkix_pl_NssContext_GetWincx(plContext, &wincx),
+                "pkix_pl_NssContext_GetWincx failed");
 
         /*
          * If we have <info> for <a smart query>,

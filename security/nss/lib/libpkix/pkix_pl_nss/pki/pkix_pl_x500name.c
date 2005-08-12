@@ -660,7 +660,7 @@ cleanup:
  * DESCRIPTION:
  *  Extracts the CommonName component of the X500Name object pointed to by
  *  "xname", and stores the result at "pCommonName". If the CommonName cannot
- *  be successfully extracted, NULL is stored at "pSECName".
+ *  be successfully extracted, NULL is stored at "pCommonName".
  *
  *  The returned string must be freed with PORT_Free.
  *
@@ -693,6 +693,94 @@ pkix_pl_X500Name_GetCommonName(
                 (X500NAME,
                 *pCommonName,
                 (unsigned char *)CERT_GetCommonName,
+                (xname->nssDN));
+
+        PKIX_RETURN(X500NAME);
+}
+
+/*
+ * FUNCTION: pkix_pl_X500Name_GetCountryName
+ *
+ * DESCRIPTION:
+ *  Extracts the CountryName component of the X500Name object pointed to by
+ *  "xname", and stores the result at "pCountryName". If the CountryName cannot
+ *  be successfully extracted, NULL is stored at "pCountryName".
+ *
+ *  The returned string must be freed with PORT_Free.
+ *
+ * PARAMETERS:
+ *  "xname"
+ *      Address of X500Name whose CountryName is to be extracted. Must be
+ *      non-NULL.
+ *  "pCountryName"
+ *      Address where result will be stored. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ *
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ *
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+pkix_pl_X500Name_GetCountryName(
+        PKIX_PL_X500Name *xname,
+        unsigned char **pCountryName,
+        void *plContext)
+{
+        PKIX_ENTER(X500NAME, "pkix_pl_X500Name_GetCountryName");
+        PKIX_NULLCHECK_TWO(xname, pCountryName);
+
+        PKIX_PL_NSSCALLRV
+                (X500NAME,
+                *pCountryName,
+                (unsigned char *)CERT_GetCountryName,
+                (xname->nssDN));
+
+        PKIX_RETURN(X500NAME);
+}
+
+/*
+ * FUNCTION: pkix_pl_X500Name_GetOrgName
+ *
+ * DESCRIPTION:
+ *  Extracts the OrganizationName component of the X500Name object pointed to by
+ *  "xname", and stores the result at "pOrgName". If the OrganizationName cannot
+ *  be successfully extracted, NULL is stored at "pOrgName".
+ *
+ *  The returned string must be freed with PORT_Free.
+ *
+ * PARAMETERS:
+ *  "xname"
+ *      Address of X500Name whose OrganizationName is to be extracted. Must be
+ *      non-NULL.
+ *  "pOrgName"
+ *      Address where result will be stored. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ *
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ *
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+pkix_pl_X500Name_GetOrgName(
+        PKIX_PL_X500Name *xname,
+        unsigned char **pOrgName,
+        void *plContext)
+{
+        PKIX_ENTER(X500NAME, "pkix_pl_X500Name_GetOrgName");
+        PKIX_NULLCHECK_TWO(xname, pOrgName);
+
+        PKIX_PL_NSSCALLRV
+                (X500NAME,
+                *pOrgName,
+                (unsigned char *)CERT_GetOrgName,
                 (xname->nssDN));
 
         PKIX_RETURN(X500NAME);

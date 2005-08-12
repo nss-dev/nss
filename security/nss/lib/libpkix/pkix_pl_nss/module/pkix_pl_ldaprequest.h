@@ -96,7 +96,7 @@ struct PKIX_PL_LdapRequestStruct{
         PKIX_UInt32 sizeLimit;
         PKIX_UInt32 timeLimit;
         char attrsOnly;
-        SECItem *subjectName;
+        LDAPFilter *filter;
         LdapAttrIncludeMask attrBits;
         SECItem attributes[MAX_LDAPATTRS];
         SECItem **attrArray;
@@ -115,7 +115,7 @@ pkix_pl_LdapRequest_Create(
         PKIX_UInt32 sizeLimit,
         PKIX_UInt32 timeLimit,
         char attrsOnly,
-        SECItem *subjectName,
+        LDAPFilter *filter,
         LdapAttrIncludeMask attrBits,
         PKIX_PL_LdapRequest **pRequestMsg,
         void *plContext);
