@@ -58,33 +58,9 @@ include $(CORE_DEPTH)/coreconf/config.mk
 
 include ../platlibs.mk
 
-#
-# we really should have this driven from a list file made during the normal
-# NSS build prodecure.
-#
-ifeq ($(OS_TARGET), HP-UX)
-  ifneq ($(OS_TEST), ia64)
-    ifdef USE_64
-      CHECKFILES += freebl_3.chk 
-    else
-      CHECKFILES += freebl_32fpu_3.chk freebl_32int_3.chk 
-    endif
-  endif
-endif
-ifeq ($(OS_TARGET), SunOS)
-  ifeq ($(CPU_ARCH), sparc)
-    ifdef USE_64
-      CHECKFILES += freebl_64fpu_3.chk freebl_64int_3.chk
-    else
-      CHECKFILES += freebl_32fpu_3.chk freebl_32int_3.chk freebl_32int64_3.chk
-    endif
-  else
-      CHECKFILES += freebl_3.chk 
-  endif
-endif
+# sign any and all shared libraries that contain the word freebl
 
-
-CHECKLOC=$(addprefix $(DIST)/lib/$(DLL_PREFIX), $(CHECKFILES))
+CHECKLOC = $(subst .$(DLL_SUFFIX),.chk,$(wildcard $(DIST)/lib/$(DLL_PREFIX)freebl*.$(DLL_SUFFIX)))
 
 MD_LIB_RELEASE_FILES = $(CHECKLOC)
 ALL_TRASH += $(CHECKLOC)
