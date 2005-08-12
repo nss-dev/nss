@@ -132,7 +132,7 @@ SGN_NewContext(SECOidTag alg, SECKEYPrivateKey *key)
        * we *CERTAINLY* don't want to sign one! */
       case SEC_OID_PKCS1_MD4_WITH_RSA_ENCRYPTION:
       default:
-	PORT_SetError(SEC_ERROR_INVALID_ARGS);
+	PORT_SetError(SEC_ERROR_INVALID_ALGORITHM);
 	return 0;
     }
 
@@ -431,8 +431,8 @@ SEC_DerSignData(PRArenaPool *arena, SECItem *result,
 	    break;
 #endif /* NSS_ENABLE_ECC */
 	  default:
+	    PORT_SetError(SEC_ERROR_INVALID_KEY);
 	    return SECFailure;
-	    break;
 	}
     }
 
