@@ -40,19 +40,18 @@ ifndef FREEBL_RECURSIVE_BUILD
 
 ifeq ($(OS_TARGET), HP-UX)
   ifneq ($(OS_TEST), ia64)
-    ifndef USE_64
-      FREEBL_EXTENDED_BUILD = 1
+    FREEBL_EXTENDED_BUILD = 1
+    ifdef USE_64
+      FREEBL_BUILD_SINGLE_SHLIB = 1
     endif
   endif
 endif
 
 ifeq ($(OS_TARGET),SunOS)
-  ifeq ($(CPU_ARCH),sparc)
     FREEBL_EXTENDED_BUILD = 1
-  endif
-  ifeq ($(USE_64),1)
-    FREEBL_EXTENDED_BUILD = 1
-  endif
+    ifneq ($(CPU_ARCH),sparc)
+      FREEBL_BUILD_SINGLE_SHLIB = 1
+    endif
 endif
 
 ifdef FREEBL_EXTENDED_BUILD

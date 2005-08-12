@@ -44,6 +44,18 @@
 #include "prerror.h"
 #include "prinit.h"
 
+static const char default_name[] = {
+#if defined(XP_WIN) || defined(_WINDOWS) || defined(_WIN32_WCE)
+				    "freebl_3.dll"
+#elif defined( AIX )
+				    "libfreebl_3_shr.a"
+#elif defined( HPUX )
+				    "libfreebl_3.sl"
+#else
+				    "libfreebl_3.so"
+#endif
+};
+
 /* getLibName() returns the name of the library to load. */
 
 #if defined(SOLARIS)
@@ -51,9 +63,10 @@
 #include <strings.h>
 #include <sys/systeminfo.h>
 
+
 #if defined(__x86_64__) || defined(__x86_64) 
 
-static const char * getLibName(void) { return "libfreebl_3.so"; }
+static const char * getLibName(void) { return default_name; }
 
 #else
 #if defined(NSS_USE_64)
@@ -107,7 +120,7 @@ getLibName(void)
 }
 #endif /* x86_64 Solaris */
 
-#elif defined(HPUX)
+#elif defined(HPUX) && !defined(NSS_USE_64)
 /* This code tests to see if we're running on a PA2.x CPU.
 ** It returns true (1) if so, and false (0) otherwise.
 */
@@ -119,15 +132,9 @@ getLibName(void)
 		? "libfreebl_abi32_fpu_3.sl"
 	        : "libfreebl_abi32_int32_3.sl" ;
 }
-
-
 #else
-
-static const char *
-getLibName(void)
-{
-    return "libfreebl_3.sl";
-}
+/* default case, for platforms/ABIs that have only one freebl shared lib. */
+static const char * getLibName(void) { return default_name; }
 #endif
 
 /*

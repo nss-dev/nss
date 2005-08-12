@@ -62,22 +62,27 @@ include ../platlibs.mk
 # we really should have this driven from a list file made during the normal
 # NSS build prodecure.
 #
-ifndef USE_64
 ifeq ($(OS_TARGET), HP-UX)
-   ifneq ($(OS_TEST), ia64)
-     LOADABLE_FREEBL= 1
-   endif
+  ifneq ($(OS_TEST), ia64)
+    ifdef USE_64
+      CHECKFILES += freebl_3.chk 
+    else
+      CHECKFILES += freebl_32fpu_3.chk freebl_32int_3.chk 
+    endif
+  endif
 endif
 ifeq ($(OS_TARGET), SunOS)
-   ifeq ($(CPU_ARCH), sparc)
-     LOADABLE_FREEBL = 1 
-   endif
-endif
+  ifeq ($(CPU_ARCH), sparc)
+    ifdef USE_64
+      CHECKFILES += freebl_64fpu_3.chk freebl_64int_3.chk
+    else
+      CHECKFILES += freebl_32fpu_3.chk freebl_32int_3.chk freebl_32int64_3.chk
+    endif
+  else
+      CHECKFILES += freebl_3.chk 
+  endif
 endif
 
-ifdef LOADABLE_FREEBL
-    CHECKFILES += freebl_pure32_3.chk freebl_hybrid_3.chk
-endif
 
 CHECKLOC=$(addprefix $(DIST)/lib/$(DLL_PREFIX), $(CHECKFILES))
 

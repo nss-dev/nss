@@ -56,27 +56,12 @@ include $(CORE_DEPTH)/coreconf/config.mk
 
 GCC_OPTIMIZER = -O3  -mno-omit-leaf-frame-pointer -fno-omit-frame-pointer
 
-## We have to define this variable now so the right sources are pulled
-##  from manifest.mn.
-## TFM works only with gcc, and we have only tested it on AMD64 so far.
-#ifeq ($(CPU_ARCH),x86_64)
-#ifdef NS_USE_GCC
-#    NSS_USE_TFM = 1
-#    CSRCS += $(TFM_SRCS)
-#    OPTIMIZER += $(GCC_OPTIMIZER)
-#endif
-#endif
-
 #######################################################################
 # (4) Include "local" platform-dependent assignments (OPTIONAL).      #
 #######################################################################
 
 -include config.mk
 
-ifdef NSS_USE_TFM
-ANSI=
-DEFINES += -DNSS_USE_TFM
-endif
 
 ifdef USE_64
     DEFINES += -DNSS_USE_64
@@ -158,14 +143,9 @@ ifeq ($(CPU_ARCH),x86_64)
     endif
 endif
 ifeq ($(CPU_ARCH),x86)
-ifndef NSS_USE_TFM
     ASFILES  = mpi_x86.s
     DEFINES += -DMP_ASSEMBLY_MULTIPLY -DMP_ASSEMBLY_SQUARE 
     DEFINES += -DMP_ASSEMBLY_DIV_2DX1D
-else
-    OPTIMIZER = -O3 -fomit-frame-pointer
-    DEFINES += -DTFM_SSE2
-endif
     USE_FP_CODE = 1
     ifdef BUILD_OPT
 	OPTIMIZER = $(GCC_OPTIMIZER)
@@ -354,12 +334,12 @@ vpath %.s $(FREEBL_PARENT)/ecl $(FREEBL_PARENT)/mpi $(FREEBL_PARENT)
 vpath %.asm $(FREEBL_PARENT)/ecl $(FREEBL_PARENT)/mpi $(FREEBL_PARENT)
 INCLUDES += -I$(FREEBL_PARENT) -I$(FREEBL_PARENT)/mpi -I$(FREEBL_PARENT)/ecl
 else
-vpath %.h mpi ecl tfm
-vpath %.c mpi ecl tfm
+vpath %.h mpi ecl
+vpath %.c mpi ecl
 vpath %.S mpi ecl
 vpath %.s mpi ecl
 vpath %.asm mpi ecl
-INCLUDES += -Impi -Iecl -Itfm
+INCLUDES += -Impi -Iecl
 endif
 
 
@@ -381,14 +361,6 @@ ECL_OBJS += $(addprefix $(OBJDIR)/$(PROG_PREFIX), $(ECL_USERS:.c=$(OBJ_SUFFIX)))
 
 $(ECL_OBJS): $(ECL_HDRS)
 
-ifdef NSS_USE_TFM
-TFM_USERS = rsa.c rsa_keygen.c
-
-TFM_OBJS = $(addprefix $(OBJDIR)/$(PROG_PREFIX), $(TFM_SRCS:.c=$(OBJ_SUFFIX)))
-TFM_OBJS += $(addprefix $(OBJDIR)/$(PROG_PREFIX), $(TFM_USERS:.c=$(OBJ_SUFFIX)))
-
-$(TFM_OBJS): $(TFM_HDRS)
-endif
 
 
 $(OBJDIR)/$(PROG_PREFIX)mpprime$(OBJ_SUFFIX): primes.c
@@ -514,28 +486,26 @@ libs:: $(ABI64_INT_DIR) $(ABI64_INT_FILES)
 endif
 endif
 
-################### Single 64-bit ABI stuff #########################
-ifeq ($(OS_TARGET),SunOS)
-ifneq ($(CPU_ARCH),sparc)
-ABI64_INT_DIR = $(OBJDIR)/$(OS_TARGET)_ABI64_INT
-ABI64_INT_FILES = $(addprefix $(ABI64_INT_DIR)/, $(FILES2LN))
-ALL_TRASH += $(ABI64_INT_DIR) 
-
-$(ABI64_INT_DIR):
-	-mkdir $(ABI64_INT_DIR)
-	-ln -s $(CDDIR)/mpi $(ABI64_INT_DIR)
-
-$(ABI64_INT_FILES) : $(ABI64_INT_DIR)/% : % 
-	ln -s $(CDDIR)/$* $(ABI64_INT_DIR)
-
-libs:: $(ABI64_INT_DIR) $(ABI64_INT_FILES)
-	cd $(ABI64_INT_DIR) && $(MAKE) FREEBL_RECURSIVE_BUILD=1 \
- FREEBL_PARENT=$(CDDIR) CORE_DEPTH=$(CDDIR)/$(CORE_DEPTH) libs
-endif
-endif
-######################## common stuff #########################
-
 endif # 32b or 64b recursive builds
+
+ifdef FREEBL_BUILD_SINGLE_SHLIB
+################### Single ABI stuff #########################
+SINGLE_SHLIB_DIR = $(OBJDIR)/$(OS_TARGET)_SINGLE_SHLIB
+SINGLE_SHLIB_FILES = $(addprefix $(SINGLE_SHLIB_DIR)/, $(FILES2LN))
+ALL_TRASH += $(SINGLE_SHLIB_DIR) 
+
+$(SINGLE_SHLIB_DIR):
+	-mkdir $(SINGLE_SHLIB_DIR)
+	-ln -s $(CDDIR)/mpi $(SINGLE_SHLIB_DIR)
+
+$(SINGLE_SHLIB_FILES) : $(SINGLE_SHLIB_DIR)/% : % 
+	ln -s $(CDDIR)/$* $(SINGLE_SHLIB_DIR)
+
+libs:: $(SINGLE_SHLIB_DIR) $(SINGLE_SHLIB_FILES)
+	cd $(SINGLE_SHLIB_DIR) && $(MAKE) FREEBL_RECURSIVE_BUILD=1 \
+ FREEBL_PARENT=$(CDDIR) CORE_DEPTH=$(CDDIR)/$(CORE_DEPTH) libs
+######################## common stuff #########################
+endif
 
 
 release_md:: $(libs)
