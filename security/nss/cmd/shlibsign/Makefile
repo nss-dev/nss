@@ -88,7 +88,7 @@ include ../platrules.mk
 ifeq ($(OS_TARGET), OS2)
 	@cmd.exe /c sign.cmd $(DIST) $(OBJDIR) $(OS_TARGET) $<
 else
-	@sh ./sign.sh $(DIST) $(OBJDIR) $(OS_TARGET) $<
+	sh ./sign.sh $(DIST) $(OBJDIR) $(OS_TARGET) $<
 endif
 
 libs install :: $(CHECKLOC)
