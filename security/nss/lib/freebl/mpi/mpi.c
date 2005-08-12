@@ -820,24 +820,6 @@ mp_err   mp_mul(const mp_int *a, const mp_int *b, mp_int * c)
 
   ARGCHK(a != NULL && b != NULL && c != NULL, MP_BADARG);
 
-#ifdef NSS_USE_COMBA
-  if ((a->used == b->used) && isPowerof2(b->used)) {
-      if (a->used == 4) {
-          mp_mul_comba_4(a, b, c);
-          return MP_OKAY;
-      } else if (a->used == 8) {
-          mp_mul_comba_8(a, b, c);
-          return MP_OKAY;
-      } else if (a->used == 16) {
-          mp_mul_comba_16(a, b, c);
-          return MP_OKAY;
-      } else if (a->used == 32) {
-          mp_mul_comba_32(a, b, c);
-          return MP_OKAY;
-      } 
-  }
-#endif
-
   if (a == c) {
     if ((res = mp_init_copy(&tmp, a)) != MP_OKAY)
       return res;
@@ -861,6 +843,27 @@ mp_err   mp_mul(const mp_int *a, const mp_int *b, mp_int * c)
   MP_USED(c) = 1; MP_DIGIT(c, 0) = 0;
   if((res = s_mp_pad(c, USED(a) + USED(b))) != MP_OKAY)
     goto CLEANUP;
+
+#ifdef NSS_USE_COMBA
+  if ((a->used == b->used) && isPowerof2(b->used)) {
+      if (a->used == 4) {
+          mp_mul_comba_4(a, b, c);
+          return MP_OKAY;
+      }
+      if (a->used == 8) {
+          mp_mul_comba_8(a, b, c);
+          return MP_OKAY;
+      }
+      if (a->used == 16) {
+          mp_mul_comba_16(a, b, c);
+          return MP_OKAY;
+      }
+      if (a->used == 32) {
+          mp_mul_comba_32(a, b, c);
+          return MP_OKAY;
+      } 
+  }
+#endif
 
   pb = MP_DIGITS(b);
   s_mpv_mul_d(MP_DIGITS(a), MP_USED(a), *pb++, MP_DIGITS(c));
@@ -915,24 +918,6 @@ mp_err   mp_sqr(const mp_int *a, mp_int *sqr)
 
   ARGCHK(a != NULL && sqr != NULL, MP_BADARG);
 
-#ifdef NSS_USE_COMBA
-  if ((a->used <= 16) && isPowerof2(a->used)) {
-      if (a->used == 4) {
-          mp_sqr_comba_4(a, sqr);
-          return MP_OKAY;
-      } else if (a->used == 8) {
-          mp_sqr_comba_8(a, sqr);
-          return MP_OKAY;
-      } else if (a->used == 16) {
-          mp_sqr_comba_16(a, sqr);
-          return MP_OKAY;
-      } else if (a->used == 32) {
-          mp_sqr_comba_32(a, sqr);
-          return MP_OKAY;
-      } 
-  }
-#endif
-
   if (a == sqr) {
     if((res = mp_init_copy(&tmp, a)) != MP_OKAY)
       return res;
@@ -949,6 +934,27 @@ mp_err   mp_sqr(const mp_int *a, mp_int *sqr)
   } 
   MP_USED(sqr) = ix;
   MP_DIGIT(sqr, 0) = 0;
+
+#ifdef NSS_USE_COMBA
+  if ((a->used <= 16) && isPowerof2(a->used)) {
+      if (a->used == 4) {
+          mp_sqr_comba_4(a, sqr);
+          return MP_OKAY;
+      }
+      if (a->used == 8) {
+          mp_sqr_comba_8(a, sqr);
+          return MP_OKAY;
+      }
+      if (a->used == 16) {
+          mp_sqr_comba_16(a, sqr);
+          return MP_OKAY;
+      }
+      if (a->used == 32) {
+          mp_sqr_comba_32(a, sqr);
+          return MP_OKAY;
+      } 
+  }
+#endif
 
   pa = MP_DIGITS(a);
   count = MP_USED(a) - 1;
