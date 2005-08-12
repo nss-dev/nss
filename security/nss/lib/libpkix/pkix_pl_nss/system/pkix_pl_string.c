@@ -434,7 +434,7 @@ PKIX_PL_Sprintf(
         char *asciiText = NULL;
         char *asciiFormat = NULL;
         char *convertedAsciiFormat = NULL;
-        va_list args, argsCopy;
+        va_list args;
         PKIX_UInt32 numStrings = 0;
         PKIX_UInt32 numNumbers = 0;
         PKIX_UInt32 length, i, j, k, dummyLen;
@@ -493,11 +493,7 @@ PKIX_PL_Sprintf(
         PKIX_STRING_DEBUG("\tCalling va_start).\n");
 
         va_start(args, fmt);
-#ifdef SOLARIS
-        va_copy(argsCopy, args);
-#else
-	argsCopy = args;
-#endif
+
         /* Convert PKIX_PL_Strings to char*s */
         j = 0;
         for (i = 0; i < length; i++) {
@@ -510,9 +506,9 @@ PKIX_PL_Sprintf(
                                  * since it is modifying values on the stack
                                  */
 
-                                pArgsList = (void **)argsCopy;
+                                pArgsList = (void **)args;
                                 tempString = va_arg
-                                        (argsCopy, PKIX_PL_String *);
+                                        (args, PKIX_PL_String *);
                                 if (tempString != NULL) {
                                         PKIX_CHECK(PKIX_PL_String_GetEncoded
                                                     ((PKIX_PL_String*)
@@ -527,7 +523,7 @@ PKIX_PL_Sprintf(
                                 }
                                 break;
                         default:
-                                (void) va_arg(argsCopy, PKIX_UInt32);
+                                (void) va_arg(args, PKIX_UInt32);
                                 break;
                         }
                         i++;
@@ -569,6 +565,9 @@ PKIX_PL_Sprintf(
                 }
                 convertedAsciiFormat[k] = '\0';
         }
+
+        va_end(args);
+        va_start(args, fmt);
 
         PKIX_STRING_DEBUG("\tCalling PR_vsmprintf).\n");
         if (convertedAsciiFormat){
