@@ -256,7 +256,7 @@ typedef enum {
      */
     ct_ECDSA_sign	=  7, 
     ct_RSA_fixed_ECDH	=  8, 
-    ct_ECDSA_fixed_ECDH	=  9, 
+    ct_ECDSA_fixed_ECDH	=  9 
 
 } SSL3ClientCertificateType;
      

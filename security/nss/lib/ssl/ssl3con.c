@@ -6945,12 +6945,12 @@ ssl3_ComputeTLSFinished(ssl3CipherSpec *spec,
 	/* bypass PKCS11 */
 	SECItem inData  = { siBuffer, };
 	SECItem outData = { siBuffer, };
+	PRBool isFIPS   = PR_FALSE;
 
 	inData.data  = (unsigned char *)hashes->md5;
 	inData.len   = sizeof hashes[0];
 	outData.data = tlsFinished->verify_data;
 	outData.len  = sizeof tlsFinished->verify_data;
-	PRBool isFIPS   = PR_FALSE;
 	rv = TLS_PRF(&spec->msItem, label, &inData, &outData, isFIPS);
 	PORT_Assert(rv != SECSuccess || \
 		    outData.len == sizeof tlsFinished->verify_data);
