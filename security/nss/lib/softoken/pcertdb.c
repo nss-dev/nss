@@ -4082,8 +4082,7 @@ openNewCertDB(const char *appName, const char *prefix, const char *certdbname,
     if (appName &&
        (updatedb = dbsopen(certdbname, NO_RDONLY, 0600, DB_HASH, 0)) != NULL) {
 	rv = UpdateV8DB(handle, updatedb);
-    }
-    if ((updatedb = nsslowcert_openolddb(namecb,cbarg,7)) != NULL) {
+    } else if ((updatedb = nsslowcert_openolddb(namecb,cbarg,7)) != NULL) {
 	rv = UpdateV7DB(handle, updatedb);
     } else if ((updatedb = nsslowcert_openolddb(namecb,cbarg,6)) != NULL) {
 	rv = UpdateV6DB(handle, updatedb);
