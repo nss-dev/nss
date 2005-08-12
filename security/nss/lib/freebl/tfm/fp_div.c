@@ -16,7 +16,7 @@ int fp_div(fp_int *a, fp_int *b, fp_int *c, fp_int *d)
   int     n, t, i, norm, neg;
 
   /* is divisor zero ? */
-  if (fp_iszero (b) == 1) {
+  if (fp_iszero (b)) {
     return FP_VAL;
   }
 
@@ -58,7 +58,7 @@ int fp_div(fp_int *a, fp_int *b, fp_int *c, fp_int *d)
   t = y.used - 1;
 
   /* while (x >= y*b**n-t) do { q[n-t] += 1; x -= y*b**{n-t} } */
-  fp_lshd (&y, n - t);                                             /* y = y*b**{n-t} */
+  fp_lshd (&y, n - t);  /* y = y*b**{n-t} */
 
   while (fp_cmp (&x, &y) != FP_LT) {
     ++(q.dp[n - t]);
@@ -86,9 +86,7 @@ int fp_div(fp_int *a, fp_int *b, fp_int *c, fp_int *d)
       q.dp[i - t - 1] = (fp_digit) (tmp);
     }
 
-    /* while (q{i-t-1} * (yt * b + y{t-1})) > 
-             xi * b**2 + xi-1 * b + xi-2 
-     
+    /* while ((q{i-t-1} * (yt * b + y{t-1})) > xi * b**2 + xi-1 * b + xi-2 )
        do q{i-t-1} -= 1; 
     */
     q.dp[i - t - 1] = (q.dp[i - t - 1] + 1);
@@ -139,8 +137,8 @@ int fp_div(fp_int *a, fp_int *b, fp_int *c, fp_int *d)
   if (d != NULL) {
     fp_div_2d (&x, norm, &x, NULL);
 
-/* the following is a kludge, essentially we were seeing the right remainder but 
-   with excess digits that should have been zero
+/* the following is a kludge, essentially we were seeing the right remainder 
+ * but with excess digits that should have been zero
  */
     for (i = b->used; i < x.used; i++) {
         x.dp[i] = 0;
