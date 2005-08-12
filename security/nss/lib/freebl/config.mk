@@ -91,17 +91,42 @@ TARGETS	     = $(SHARED_LIBRARY)
 LIBRARY      =
 PROGRAM      =
 
-EXTRA_LIBS        += \
-	$(DIST)/lib/libsecutil.$(LIB_SUFFIX) \
-	$(NULL)
+EXTRA_LIBS   += $(DIST)/lib/$(LIB_PREFIX)secutil.$(LIB_SUFFIX)
 
-# $(PROGRAM) has NO explicit dependencies on $(EXTRA_SHARED_LIBS)
-# $(EXTRA_SHARED_LIBS) come before $(OS_LIBS), except on AIX.
-  EXTRA_SHARED_LIBS += \
+ifeq (,$(filter-out WIN%,$(OS_TARGET)))
+
+# don't want the 32 in the shared library name
+SHARED_LIBRARY = $(OBJDIR)/$(DLL_PREFIX)$(LIBRARY_NAME)$(LIBRARY_VERSION).$(DLL_SUFFIX)
+IMPORT_LIBRARY = $(OBJDIR)/$(IMPORT_LIB_PREFIX)$(LIBRARY_NAME)$(LIBRARY_VERSION)$(IMPORT_LIB_SUFFIX)
+
+# do we need these?
+#RES = $(OBJDIR)/freebl.res
+#RESNAME = freebl.rc
+
+ifdef NS_USE_GCC
+EXTRA_SHARED_LIBS += \
+	-L$(DIST)/lib \
+	-lplc4 \
+	-lplds4 \
+	-lnspr4 \
+	-lc
+else # ! NS_USE_GCC
+EXTRA_SHARED_LIBS += \
+	$(DIST)/lib/$(NSPR31_LIB_PREFIX)plc4.lib \
+	$(DIST)/lib/$(NSPR31_LIB_PREFIX)plds4.lib \
+	$(DIST)/lib/$(NSPR31_LIB_PREFIX)nspr4.lib \
+	$(NULL)
+endif # NS_USE_GCC
+
+else
+
+EXTRA_SHARED_LIBS += \
 	-L$(DIST)/lib/ \
 	-lplc4 \
 	-lplds4 \
 	-lnspr4 \
 	-lc
+
+endif
 
 endif
