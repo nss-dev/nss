@@ -146,7 +146,9 @@
  * function takes desired number of bits in P,
  * returns index (0..8) or -1 if number of bits is invalid.
  */
-#define PQG_PBITS_TO_INDEX(bits) ((((bits)-512) % 64) ? -1 : (int)((bits)-512)/64)
+#define PQG_PBITS_TO_INDEX(bits) \
+    (((bits) < 512 || (bits) > 1024 || (bits) % 64) ? \
+    -1 : (int)((bits)-512)/64)
 
 /*
  * function takes index (0-8)
