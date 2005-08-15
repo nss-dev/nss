@@ -136,8 +136,8 @@ static void pkix_pl_socket_hexDigit(char byteVal) {
  *  none
  */
 static void pkix_pl_socket_linePrefix(PKIX_UInt32 addr) {
-        pkix_pl_socket_hexDigit((addr >> 8) & 0xff);
-        pkix_pl_socket_hexDigit(addr & 0xff);
+        pkix_pl_socket_hexDigit((char)((addr >> 8) & 0xff));
+        pkix_pl_socket_hexDigit((char)(addr & 0xff));
         (void) printf(": ");
 }
 
@@ -999,15 +999,12 @@ pkix_pl_Socket_Poll(
         PKIX_Int32 bytesRead = 0;
         PKIX_Int32 bytesWritten = 0;
         PRErrorCode errorcode = 0;
-        PRInt16 save_inflags, save_outflags;
 
         PKIX_ENTER(SOCKET, "pkix_pl_Socket_Poll");
         PKIX_NULLCHECK_ONE(sock);
 
         pollDesc.fd = sock->clientSock;
-        save_inflags = pollDesc.in_flags;
         pollDesc.in_flags = 0;
-        save_outflags = pollDesc.out_flags;
         pollDesc.out_flags = 0;
 
         if ((pBytesWritten) &&
