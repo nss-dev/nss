@@ -152,8 +152,10 @@ pkix_pl_BigInt_ToString(
                     "PKIX_PL_Malloc failed");
 
         for (i = 0, j = 0; i < bigInt->length; i += 1, j += 2){
-                outputText[j] = pkix_i2hex((*(bigInt->dataRep+i) & 0xf0) >> 4);
-                outputText[j+1] = pkix_i2hex(*(bigInt->dataRep+i) & 0x0f);
+                outputText[j] = pkix_i2hex
+                        ((char) ((*(bigInt->dataRep+i) & 0xf0) >> 4));
+                outputText[j+1] = pkix_i2hex
+                        ((char) (*(bigInt->dataRep+i) & 0x0f));
         }
 
         outputText[lengthChars-1] = '\0';
