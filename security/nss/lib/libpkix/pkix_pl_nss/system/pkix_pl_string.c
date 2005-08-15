@@ -429,15 +429,15 @@ PKIX_PL_Sprintf(
         ...)
 {
         PKIX_PL_String *tempString = NULL;
-        void **pArgsList = NULL;
-        void **stringsAllocated = NULL;
-        char *asciiText = NULL;
+        PKIX_UInt32 tempUInt = 0;
+        void *pArg = NULL;
+        char *asciiText =  NULL;
         char *asciiFormat = NULL;
         char *convertedAsciiFormat = NULL;
+        char *convertedAsciiFormatBase = NULL;
+        char *p = NULL;
         va_list args;
-        PKIX_UInt32 numStrings = 0;
-        PKIX_UInt32 numNumbers = 0;
-        PKIX_UInt32 length, i, j, k, dummyLen;
+        PKIX_UInt32 length, i, j, dummyLen;
 
         PKIX_ENTER(STRING, "PKIX_PL_Sprintf");
         PKIX_NULLCHECK_TWO(pOut, fmt);
@@ -450,138 +450,94 @@ PKIX_PL_Sprintf(
                     plContext),
                     "PKIX_PL_String_GetEncoded failed");
 
-        /*
-         * Count how many "%s" specifiers there are in the asciiFormat,
-         * and how many "%diouxX" specifiers there are in the asciiFormat
-         */
-
-        for (i = 0; i < length; i++){
-                if ((asciiFormat[i] == '%')&&((i+1) < length)) {
-                        switch (asciiFormat[i+1]) {
-                        case 's':
-                                numStrings++;
-                                i++;
-                                break;
-                        case 'd':
-                        case 'i':
-                        case 'o':
-                        case 'u':
-                        case 'x':
-                        case 'X':
-                                numNumbers++;
-                                i++;
-                                break;
-                        default:
-                                break;
-                        }
-                }
-        }
-
-        if (numStrings > 0){
-                PKIX_STRING_DEBUG("\tCalling PR_Calloc).\n");
-                stringsAllocated = PR_Calloc(numStrings, sizeof (void *));
-                if (stringsAllocated == NULL) return PKIX_ALLOC_ERROR;
-        }
-
-        if (numNumbers > 0){
-                PKIX_STRING_DEBUG("\tCalling PR_Calloc).\n");
-                convertedAsciiFormat =
-                        PR_Calloc((length + 1) + numNumbers, sizeof (char));
-                if (convertedAsciiFormat == NULL) return PKIX_ALLOC_ERROR;
-        }
+        PKIX_STRING_DEBUG("\tCalling PR_Malloc).\n");
+        convertedAsciiFormat = PR_Malloc(length + 1);
+        if (convertedAsciiFormat == NULL) return PKIX_ALLOC_ERROR;
+        convertedAsciiFormatBase = convertedAsciiFormat;
 
         PKIX_STRING_DEBUG("\tCalling va_start).\n");
-
         va_start(args, fmt);
 
-        /* Convert PKIX_PL_Strings to char*s */
+        i = 0;
         j = 0;
-        for (i = 0; i < length; i++) {
+        while (i < length) {
                 if ((asciiFormat[i] == '%')&&((i+1) < length)) {
                         switch (asciiFormat[i+1]) {
                         case 's':
+                                convertedAsciiFormat[j++] = asciiFormat[i++];
+                                convertedAsciiFormat[j++] = asciiFormat[i++];
+                                convertedAsciiFormat[j] = '\0';
 
-                                /*
-                                 * XXX not clear whether this code is portable
-                                 * since it is modifying values on the stack
-                                 */
-
-                                pArgsList = (void **)args;
-                                tempString = va_arg
-                                        (args, PKIX_PL_String *);
+                                tempString = va_arg(args, PKIX_PL_String *);
                                 if (tempString != NULL) {
                                         PKIX_CHECK(PKIX_PL_String_GetEncoded
                                                     ((PKIX_PL_String*)
                                                     tempString,
                                                     PKIX_ESCASCII,
-                                                    pArgsList,
+                                                    &pArg,
                                                     &dummyLen,
                                                     plContext),
                                                     "PKIX_PL_String_GetEncoded"
                                                     " failed");
-                                        stringsAllocated[j++] = *pArgsList;
                                 }
+                                if (asciiText != NULL) {
+                                    asciiText = PR_sprintf_append(asciiText,
+                                          (const char *)convertedAsciiFormat,
+                                          pArg);
+                                } else {
+                                    asciiText = PR_smprintf
+                                        ((const char *)convertedAsciiFormat,
+                                        pArg);
+                                }
+                                PKIX_PL_Free(pArg, plContext);
+                                convertedAsciiFormat += j;
+                                j = 0;
+                                break;
+                         case 'd':
+                         case 'i':
+                         case 'o':
+                         case 'u':
+                         case 'x':
+                         case 'X':
+                                convertedAsciiFormat[j++] = asciiFormat[i++];
+                                convertedAsciiFormat[j++] = asciiFormat[i++];
+                                convertedAsciiFormat[j] = '\0';
+
+                                tempUInt = va_arg(args, PKIX_UInt32);
+                                if (asciiText != NULL) {
+                                    asciiText = PR_sprintf_append(asciiText,
+                                          (const char *)convertedAsciiFormat,
+                                          tempUInt);
+                                } else {
+                                    asciiText = PR_smprintf
+                                        ((const char *)convertedAsciiFormat,
+                                        tempUInt);
+                                }     
+                                convertedAsciiFormat += j;
+                                j = 0;
                                 break;
                         default:
-                                (void) va_arg(args, PKIX_UInt32);
+                                convertedAsciiFormat[j++] = asciiFormat[i++];
+                                convertedAsciiFormat[j++] = asciiFormat[i++];
                                 break;
                         }
-                        i++;
+                } else {
+                        convertedAsciiFormat[j++] = asciiFormat[i++];
                 }
         }
 
-        /*
-         * in order to force PR_vsmprintf to deal with numerical inputs
-         * as 32-bit integers, we insert the 'l' (long) size modifier between
-         * the '%' and the conversion character ["%d" -> "%ld", etc.]
-         */
-
-        if (convertedAsciiFormat){
-                k = 0;
-                for (i = 0; i < length; i++) {
-                        if ((asciiFormat[i] == '%')&&((i+1) < length)) {
-                                switch (asciiFormat[i+1]) {
-                                case 'd':
-                                case 'i':
-                                case 'o':
-                                case 'u':
-                                case 'x':
-                                case 'X':
-                                        convertedAsciiFormat[k++] = '%';
-                                        convertedAsciiFormat[k++] = 'l';
-                                        convertedAsciiFormat[k++] =
-                                                asciiFormat[i+1];
-                                        break;
-                                default:
-                                        convertedAsciiFormat[k++] =
-                                                asciiFormat[i];
-                                        convertedAsciiFormat[k++] =
-                                                asciiFormat[i+1];
-                                }
-                                i++;
-                        } else {
-                                convertedAsciiFormat[k++] = asciiFormat[i];
-                        }
+        /* for constant string value at end of fmt */
+        if (j > 0) {
+                convertedAsciiFormat[j] = '\0';
+                if (asciiText != NULL) {
+                    asciiText = PR_sprintf_append(asciiText,
+                                    (const char *)convertedAsciiFormat);
+                } else {
+                    asciiText = PR_smprintf((const char *)convertedAsciiFormat);
                 }
-                convertedAsciiFormat[k] = '\0';
         }
 
         va_end(args);
-        va_start(args, fmt);
-
-        PKIX_STRING_DEBUG("\tCalling PR_vsmprintf).\n");
-        if (convertedAsciiFormat){
-                asciiText =
-                        PR_vsmprintf((const char *)convertedAsciiFormat, args);
-        } else {
-                asciiText = PR_vsmprintf((const char *)asciiFormat, args);
-        }
-
-        va_end(args);
-
-        if (asciiText == NULL) {
-                PKIX_ERROR("Error in PR_vsmprintf");
-        }
 
         /* Copy temporary char * into a string object */
         PKIX_CHECK(PKIX_PL_String_Create
@@ -592,23 +548,13 @@ cleanup:
 
         PKIX_FREE(asciiFormat);
 
-        if (convertedAsciiFormat){
-                PR_Free(convertedAsciiFormat);
-                convertedAsciiFormat = NULL;
+        if (convertedAsciiFormatBase){
+                PR_Free(convertedAsciiFormatBase);
         }
 
         if (asciiText){
                 PKIX_STRING_DEBUG("\tCalling PR_smprintf_free).\n");
                 PR_smprintf_free(asciiText);
-                asciiText = NULL;
-        }
-
-        if (stringsAllocated){
-                for (i = 0; i < j; i++){
-                        PKIX_FREE(stringsAllocated[i]);
-                }
-                PR_Free(stringsAllocated);
-                stringsAllocated = NULL;
         }
 
         PKIX_RETURN(STRING);
