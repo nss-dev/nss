@@ -161,6 +161,8 @@ static sslOptions ssl_defaults = {
     PR_TRUE,	/* v2CompatibleHello  */
     PR_TRUE,	/* detectRollBack     */
     PR_FALSE,   /* noStepDown         */
+    PR_FALSE,   /* bypassPKCS11       */
+    PR_FALSE,   /* noLocks            */
 };
 
 sslSessionIDLookupFunc  ssl_sid_lookup;
@@ -170,6 +172,7 @@ sslSessionIDUncacheFunc ssl_sid_uncache;
 static PRBool ssl_inited = PR_FALSE;
 static PRDescIdentity ssl_layer_id;
 
+PRBool                  locksEverDisabled;
 int                     ssl_lock_readers	= 1;	/* default true. */
 char                    ssl_debug;
 char                    ssl_trace;
@@ -229,8 +232,8 @@ ssl_DupSocket(sslSocket *os)
 
     ss = ssl_NewSocket();
     if (ss) {
-	ss->useSocks           = PR_FALSE;
 	ss->useSecurity        = os->useSecurity;
+	ss->useSocks           = PR_FALSE;
 	ss->requestCertificate = os->requestCertificate;
 	ss->requireCertificate = os->requireCertificate;
 	ss->handshakeAsClient  = os->handshakeAsClient;
@@ -243,6 +246,8 @@ ssl_DupSocket(sslSocket *os)
 	ss->v2CompatibleHello  = os->v2CompatibleHello;
 	ss->detectRollBack     = os->detectRollBack;
 	ss->noStepDown         = os->noStepDown;
+	ss->bypassPKCS11       = os->bypassPKCS11;
+	ss->noLocks            = os->noLocks;
 
 	ss->peerID             = !os->peerID ? NULL : PORT_Strdup(os->peerID);
 	ss->url                = !os->url    ? NULL : PORT_Strdup(os->url);
@@ -609,6 +614,22 @@ SSL_OptionSet(PRFileDesc *fd, PRInt32 which, PRBool on)
 	    SSL_DisableExportCipherSuites(fd);
 	break;
 
+      case SSL_BYPASS_PKCS11:
+	if (ss->handshakeBegun) {
+	    PORT_SetError(PR_INVALID_STATE_ERROR);
+	    rv = SECFailure;
+	} else {
+	    ss->bypassPKCS11   = on;
+	}
+	break;
+
+      case SSL_NO_LOCKS:
+	/* Need logic here to not let this be changed after the
+	** locks have been created. XXX NBB */
+	ss->noLocks        = on;
+	locksEverDisabled = PR_TRUE;
+	break;
+
       default:
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
 	rv = SECFailure;
@@ -655,6 +676,8 @@ SSL_OptionGet(PRFileDesc *fd, PRInt32 which, PRBool *pOn)
     case SSL_V2_COMPATIBLE_HELLO: on = ss->v2CompatibleHello;  break;
     case SSL_ROLLBACK_DETECTION:  on = ss->detectRollBack;     break;
     case SSL_NO_STEP_DOWN:        on = ss->noStepDown;         break;
+    case SSL_BYPASS_PKCS11:       on = ss->bypassPKCS11;       break;
+    case SSL_NO_LOCKS:            on = ss->noLocks;            break;
 
     default:
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
@@ -694,6 +717,8 @@ SSL_OptionGetDefault(PRInt32 which, PRBool *pOn)
     case SSL_V2_COMPATIBLE_HELLO: on = ssl_defaults.v2CompatibleHello;  break;
     case SSL_ROLLBACK_DETECTION:  on = ssl_defaults.detectRollBack;     break;
     case SSL_NO_STEP_DOWN:        on = ssl_defaults.noStepDown;         break;
+    case SSL_BYPASS_PKCS11:       on = ssl_defaults.bypassPKCS11;       break;
+    case SSL_NO_LOCKS:            on = ssl_defaults.noLocks;            break;
 
     default:
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
@@ -789,6 +814,15 @@ SSL_OptionSetDefault(PRInt32 which, PRBool on)
 	ssl_defaults.noStepDown     = on;         
 	if (on)
 	    SSL_DisableDefaultExportCipherSuites();
+	break;
+
+      case SSL_BYPASS_PKCS11:
+	ssl_defaults.bypassPKCS11   = on;
+	break;
+
+      case SSL_NO_LOCKS:
+	ssl_defaults.noLocks        = on;
+	locksEverDisabled = PR_TRUE;
 	break;
 
       default:
@@ -1892,11 +1926,14 @@ ssl_NewSocket(void)
 	ss->enableSSL2         = ssl_defaults.enableSSL2;
 	ss->enableSSL3         = ssl_defaults.enableSSL3;
 	ss->enableTLS          = ssl_defaults.enableTLS ;
+	ss->noCache            = ssl_defaults.noCache;
 	ss->fdx                = ssl_defaults.fdx;
 	ss->v2CompatibleHello  = ssl_defaults.v2CompatibleHello;
 	ss->detectRollBack     = ssl_defaults.detectRollBack;
 	ss->noStepDown         = ssl_defaults.noStepDown;
-	ss->noCache            = ssl_defaults.noCache;
+	ss->bypassPKCS11       = ssl_defaults.bypassPKCS11;
+	ss->noLocks            = ssl_defaults.noLocks;
+
 	ss->peerID             = NULL;
 	ss->rTimeout	       = PR_INTERVAL_NO_TIMEOUT;
 	ss->wTimeout	       = PR_INTERVAL_NO_TIMEOUT;
@@ -1930,25 +1967,33 @@ ssl_NewSocket(void)
 
 #ifdef NO_BYPASS
 	ss->firstHandshakeLock = PZ_NewMonitor(nssILockSSL);
-	if (!ss->firstHandshakeLock) goto loser;
+	if (!ss->firstHandshakeLock) 
+	    goto loser;
 	ss->ssl3HandshakeLock  = PZ_NewMonitor(nssILockSSL);
-	if (!ss->ssl3HandshakeLock) goto loser;
+	if (!ss->ssl3HandshakeLock) 
+	    goto loser;
 	ss->specLock           = NSSRWLock_New(SSL_LOCK_RANK_SPEC, NULL);
-	if (!ss->specLock) goto loser;
+	if (!ss->specLock) 
+	    goto loser;
 	ss->recvBufLock        = PZ_NewMonitor(nssILockSSL);
-	if (!ss->recvBufLock) goto loser;
+	if (!ss->recvBufLock) 
+	    goto loser;
 	ss->xmitBufLock        = PZ_NewMonitor(nssILockSSL);
-	if (!ss->xmitBufLock) goto loser;
+	if (!ss->xmitBufLock) 
+	    goto loser;
 	ss->writerThread       = NULL;
 	if (ssl_lock_readers) {
 	    ss->recvLock       = PZ_NewLock(nssILockSSL);
-	    if (!ss->recvLock) goto loser;
+	    if (!ss->recvLock) 
+		goto loser;
 	    ss->sendLock       = PZ_NewLock(nssILockSSL);
-	    if (!ss->sendLock) goto loser;
+	    if (!ss->sendLock) 
+		goto loser;
 	}
 #endif
 	status = ssl_CreateSecurityInfo(ss);
-	if (status != SECSuccess) goto loser;
+	if (status != SECSuccess) 
+	    goto loser;
 	status = ssl_InitGather(&ss->gs);
 	if (status != SECSuccess) {
 loser:

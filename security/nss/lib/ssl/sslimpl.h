@@ -286,6 +286,8 @@ typedef struct sslOptionsStr {
     unsigned int v2CompatibleHello	: 1;  /* 13 */
     unsigned int detectRollBack  	: 1;  /* 14 */
     unsigned int noStepDown             : 1;  /* 15 */
+    unsigned int bypassPKCS11           : 1;  /* 16 */
+    unsigned int noLocks                : 1;  /* 17 */
 } sslOptions;
 
 typedef enum { sslHandshakingUndetermined = 0,
@@ -892,30 +894,32 @@ struct sslSocketStr {
     /* Pointer to operations vector for this socket */
     const sslSocketOps * ops;
 
-    /* State flags */
-    unsigned int     useSocks		: 1;
+    /* SSL socket options */
     unsigned int     useSecurity	: 1;
+    unsigned int     useSocks		: 1;
     unsigned int     requestCertificate	: 1;
     unsigned int     requireCertificate	: 2;
     unsigned int     handshakeAsClient	: 1;
     unsigned int     handshakeAsServer	: 1;
     unsigned int     enableSSL2		: 1;
-
     unsigned int     enableSSL3		: 1;
     unsigned int     enableTLS		: 1;
-    unsigned int     clientAuthRequested: 1;
     unsigned int     noCache		: 1;
     unsigned int     fdx		: 1; /* simultaneous R/W threads */
     unsigned int     v2CompatibleHello	: 1; /* Send v3+ client hello in v2 format */
     unsigned int     detectRollBack   	: 1; /* Detect rollback to SSL v3 */
-    unsigned int     firstHsDone	: 1; /* first handshake is complete. */
-
-    unsigned int     recvdCloseNotify	: 1; /* received SSL EOF. */
-    unsigned int     lastWriteBlocked   : 1;
-    unsigned int     TCPconnected       : 1;
-    unsigned int     handshakeBegun     : 1;
-    unsigned int     delayDisabled      : 1; /* Nagle delay disabled */
     unsigned int     noStepDown         : 1;
+    unsigned int     bypassPKCS11       : 1; 
+    unsigned int     noLocks            : 1; 
+
+    /* State flags */
+    unsigned long    clientAuthRequested;
+    unsigned long    delayDisabled;       /* Nagle delay disabled */
+    unsigned long    firstHsDone;         /* first handshake is complete. */
+    unsigned long    handshakeBegun;     
+    unsigned long    lastWriteBlocked;   
+    unsigned long    recvdCloseNotify;    /* received SSL EOF. */
+    unsigned long    TCPconnected;       
 
     /* version of the protocol to use */
     SSL3ProtocolVersion version;
@@ -926,15 +930,9 @@ struct sslSocketStr {
     /* protected by firstHandshakeLock AND (in ssl3) ssl3HandshakeLock. */
     const char      *url;				/* ssl 2 & 3 */
 
-    /* Gather object used for gathering data */
-    sslGather        gs;				/*recvBufLock*/
-
     sslHandshakeFunc handshake;				/*firstHandshakeLock*/
     sslHandshakeFunc nextHandshake;			/*firstHandshakeLock*/
     sslHandshakeFunc securityHandshake;			/*firstHandshakeLock*/
-
-    sslBuffer        saveBuf;				/*xmitBufLock*/
-    sslBuffer        pendingBuf;			/*xmitBufLock*/
 
     /* the following variable is only used with socks or other proxies. */
     char *           peerID;	/* String uniquely identifies target server. */
@@ -942,10 +940,6 @@ struct sslSocketStr {
     unsigned char *  cipherSpecs;
     unsigned int     sizeCipherSpecs;
 const unsigned char *  preferredCipher;
-
-    /* Configuration state for server sockets */
-    /* server cert and key for each KEA type */
-    sslServerCerts        serverCerts[kt_kea_size];
 
     ssl3KeyPair *         stepDownKeyPair;	/* RSA step down keys */
 
@@ -1002,6 +996,16 @@ const unsigned char *  preferredCipher;
     PRUint16	chosenPreference;         /* SSL2 cipher preferences. */
 
     sslHandshakingType handshaking;
+
+    /* Gather object used for gathering data */
+    sslGather        gs;				/*recvBufLock*/
+
+    sslBuffer        saveBuf;				/*xmitBufLock*/
+    sslBuffer        pendingBuf;			/*xmitBufLock*/
+
+    /* Configuration state for server sockets */
+    /* server cert and key for each KEA type */
+    sslServerCerts        serverCerts[kt_kea_size];
 
     ssl3CipherSuiteCfg cipherSuites[ssl_V3_SUITES_IMPLEMENTED];
     ssl3KeyPair *         ephemeralECDHKeyPair; /* for ECDHE-* handshake */

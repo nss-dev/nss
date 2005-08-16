@@ -110,6 +110,8 @@ SSL_IMPORT PRFileDesc *SSL_ImportFD(PRFileDesc *model, PRFileDesc *fd);
                                           /* if step-down keys are needed.  */
 					  /* default: off, generate         */
 					  /* step-down keys if needed.      */
+#define SSL_BYPASS_PKCS11              16 /* Attempt to bypass PKCS#11      */
+#define SSL_NO_LOCKS                   17 /* Don't use locks for protection */
 
 #ifdef SSL_DEPRECATED_FUNCTION 
 /* Old deprecated function names */
