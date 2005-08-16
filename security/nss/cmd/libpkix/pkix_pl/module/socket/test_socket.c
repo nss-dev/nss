@@ -128,7 +128,7 @@ PKIX_Boolean server()
 
 		if (bytesRead >= 0) {
 			/* confirm that rcvBuf1 = sendBuf1 */
-			if ((bytesRead != strlen(sendBuf1) + 1) ||
+			if ((bytesRead != (PRInt32)PL_strlen(sendBuf1) + 1) ||
 			    (strncmp(sendBuf1, rcvBuf1, bytesRead) != 0)) {
 				testError("Receive buffer mismatch\n");
 			}
@@ -146,7 +146,7 @@ PKIX_Boolean server()
 
 		if (bytesRead >= 0) {
 			/* confirm that rcvBuf1 = sendBuf1 */
-			if ((bytesRead != strlen(sendBuf1) + 1) ||
+			if ((bytesRead != (PRInt32)PL_strlen(sendBuf1) + 1) ||
 			    (strncmp(sendBuf1, rcvBuf1, bytesRead) != 0)) {
 				testError("Receive buffer mismatch\n");
 			}
@@ -295,7 +295,7 @@ PKIX_Boolean client() {
 
 		if (bytesRead >= 0) {
 			/* confirm that rcvBuf2 = sendBuf2 */
-			if ((bytesRead != strlen(sendBuf2) + 1) ||
+			if ((bytesRead != (PRInt32)PL_strlen(sendBuf2) + 1) ||
 			    (strncmp(sendBuf2, rcvBuf2, bytesRead) != 0)) {
 				testError("Receive buffer mismatch\n");
 			}
@@ -311,7 +311,7 @@ PKIX_Boolean client() {
 			(cSock, NULL, &bytesRead, plContext));
 		if (bytesRead >= 0) {
 			/* confirm that rcvBuf2 = sendBuf2 */
-			if ((bytesRead != strlen(sendBuf2) + 1) ||
+			if ((bytesRead != (PRInt32)PL_strlen(sendBuf2) + 1) ||
 			    (strncmp(sendBuf2, rcvBuf2, bytesRead) != 0)) {
 				testError("Receive buffer mismatch\n");
 			}
@@ -409,13 +409,13 @@ void dispatcher()
 
 int main(int argc, char *argv[]) {
 
-	PKIX_UInt32 j = 0;
+	int j = 0;
 	PKIX_UInt32 actualMinorVersion;
 	char buf[PR_NETDB_BUF_SIZE];
 	char *serverName = NULL;
 	char *sepPtr = NULL;
 	PRHostEnt hostent;
-	PKIX_UInt32 portNum = 0;
+	PRUint16 portNum = 0;
 	PRStatus prstatus = PR_FAILURE;
 	PRErrorCode cStat = 0;
 	void *ipaddr = NULL;
@@ -449,10 +449,10 @@ int main(int argc, char *argv[]) {
 	if (sepPtr) {
 		*sepPtr++ = '\0';
 		prstatus = PR_GetHostByName(serverName, buf, sizeof(buf), &hostent);
-		portNum = atoi(sepPtr);
+		portNum = (PRUint16)atoi(sepPtr);
 	} else {
 		prstatus = PR_GetHostByName(serverName, buf, sizeof(buf), &hostent);
-		portNum = LDAP_PORT;
+		portNum = (PRUint16)LDAP_PORT;
 	}
 
 	if ((prstatus != PR_SUCCESS) || (hostent.h_length != 4)) {
@@ -464,7 +464,7 @@ int main(int argc, char *argv[]) {
 	netAddr.inet.family = PR_AF_INET;
 	netAddr.inet.port = PR_htons(portNum);
 	ipaddr = hostent.h_addr_list[0]; 
-	netAddr.inet.ip = PR_htonl(*(PKIX_UInt32 *)ipaddr); 
+	netAddr.inet.ip = PR_htonl(*(PRUint32 *)ipaddr); 
 
 	backlog = 5;
 
