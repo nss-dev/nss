@@ -418,7 +418,7 @@ CDDIR := $(shell pwd)
 FILES2LN = \
  $(wildcard *.tab) \
  $(wildcard mapfile.*) \
- Makefile manifest.mn config.mk 
+ Makefile manifest.mn config.mk freebl.def
 
 ifdef FREEBL_BUILD_SINGLE_SHLIB
 
@@ -436,7 +436,7 @@ $(SINGLE_SHLIB_FILES) : $(SINGLE_SHLIB_DIR)/% : %
 
 libs:: $(SINGLE_SHLIB_DIR) $(SINGLE_SHLIB_FILES)
 	cd $(SINGLE_SHLIB_DIR) && $(MAKE) FREEBL_CHILD_BUILD=1 \
- FREEBL_PARENT=$(CDDIR) CORE_DEPTH=$(CDDIR)/$(CORE_DEPTH) libs
+ FREEBL_PARENT=../.. CORE_DEPTH=../../$(CORE_DEPTH) libs
 ######################## common stuff #########################
 
 else

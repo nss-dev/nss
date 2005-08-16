@@ -46,6 +46,7 @@ CORE_DEPTH = ../../..
 MODULE = nss
 
 ifdef FREEBL_CHILD_BUILD
+MAPFILE = $(OBJDIR)/freebl.def
   ifdef USE_ABI32_INT32
     LIBRARY_NAME = freebl_32int
   endif
