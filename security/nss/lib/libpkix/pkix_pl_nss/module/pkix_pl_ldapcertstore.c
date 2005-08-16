@@ -2228,7 +2228,6 @@ pkix_pl_LdapCertStore_DestroyOrFilter(
 {
         LDAPFilter *currentFilter = NULL;
         LDAPFilter **setOfFilter = NULL;
-        unsigned char* component = NULL;
 
         PKIX_ENTER(CERTSTORE, "pkix_pl_LdapCertStore_DestroyOrFilter");
         PKIX_NULLCHECK_ONE(orFilter);
@@ -2545,7 +2544,6 @@ pkix_pl_LdapCertStore_GetCRLsByIssuer(
 {
         LdapAttrIncludeMask attrBits = 0;
         PKIX_UInt32 thisName = 0;
-        SECItem nameItem = {siAsciiString, NULL, 0};
         PKIX_PL_X500Name *name = NULL;
         PKIX_List *responseList = NULL;
         PKIX_List *crlList = NULL;
@@ -2553,8 +2551,6 @@ pkix_pl_LdapCertStore_GetCRLsByIssuer(
         LDAPFilter **setOfFilter = NULL;
         LDAPFilter orFilter;
         void *v = NULL;
-
-        unsigned char *commonName = NULL;
 
         PKIX_ENTER(CERTSTORE, "pkix_pl_LdapCertStore_GetCRLsByIssuer");
         PKIX_NULLCHECK_THREE(lcs, issuerNames, pSelected);
