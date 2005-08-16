@@ -308,9 +308,10 @@ else
 	    ASFLAGS += -march=opteron -m64 -fPIC
 	    MPI_SRCS += mp_comba.c
 	else
-	    ASFILES  = arcfour-amd64-sun.s mpi_amd64_sun.s
+	    ASFILES  = arcfour-amd64-sun.s mpi_amd64_sun.s sha-fast-amd64-sun.s
 	    ASFILES += mp_comba_amd64_sun.s
 	    ASFLAGS += -xarch=generic64 -K PIC
+	    SHA_SRCS =
 	endif
 	DEFINES += -DNSS_BEVAND_ARCFOUR -DMPI_AMD64 -DMP_ASSEMBLY_MULTIPLY
 	DEFINES += -DNSS_USE_COMBA
