@@ -173,7 +173,7 @@ Test(
         PRUint32 msecs;
         float total = 0;
         PRThread** pthreads = NULL;
-        int i = 0;
+        PRUint32 i = 0;
 
         data.duration = duration;
         data.anchor = anchor;
