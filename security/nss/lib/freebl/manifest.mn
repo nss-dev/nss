@@ -46,7 +46,6 @@ CORE_DEPTH = ../../..
 MODULE = nss
 
 ifdef FREEBL_CHILD_BUILD
-MAPFILE = $(OBJDIR)/freebl.def
   ifdef USE_ABI32_INT32
     LIBRARY_NAME = freebl_32int
   endif
@@ -66,6 +65,11 @@ endif
 ifndef LIBRARY_NAME
   LIBRARY_NAME = freebl
 endif
+
+$(LIBRARY_NAME).def: freebl.def
+	cp freebl.def $(LIBRARY_NAME).def
+
+MAPFILE = $(OBJDIR)/freebl.def
 
 # same version as rest of NSS
 LIBRARY_VERSION = _3

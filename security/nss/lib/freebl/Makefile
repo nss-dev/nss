@@ -220,12 +220,12 @@ ifeq ($(OS_TARGET),SunOS)
 MKSHLIB += -R '$$ORIGIN'
 ifdef NS_USE_GCC
   ifdef GCC_USE_GNU_LD
-    MKSHLIB += -Wl,-Bsymbolic,-z,defs,-z,now,-z,text,--version-script,mapfile.Solaris
+    MKSHLIB += -Wl,-Bsymbolic,-z,defs,-z,now,-z,text,--version-script
   else
-    MKSHLIB += -Wl,-B,symbolic,-z,defs,-z,now,-z,text,-M,mapfile.Solaris
+    MKSHLIB += -Wl,-B,symbolic,-z,defs,-z,now,-z,text
   endif # GCC_USE_GNU_LD
 else
-  MKSHLIB += -B symbolic -z defs -z now -z text -M mapfile.Solaris
+  MKSHLIB += -B symbolic -z defs -z now -z text
 endif # NS_USE_GCC
 
 ifeq ($(CPU_ARCH),sparc)
