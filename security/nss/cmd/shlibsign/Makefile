@@ -60,7 +60,9 @@ include ../platlibs.mk
 
 # sign any and all shared libraries that contain the word freebl
 
-CHECKLOC = $(subst .$(DLL_SUFFIX),.chk,$(wildcard $(DIST)/lib/$(DLL_PREFIX)freebl*.$(DLL_SUFFIX)))
+CHECKLIBS = $(DIST)/lib/$(DLL_PREFIX)softokn3.$(DLL_SUFFIX)
+CHECKLIBS += $(wildcard $(DIST)/lib/$(DLL_PREFIX)freebl*.$(DLL_SUFFIX))
+CHECKLOC = $(subst .$(DLL_SUFFIX),.chk,$(CHECKLIBS))
 
 MD_LIB_RELEASE_FILES = $(CHECKLOC)
 ALL_TRASH += $(CHECKLOC)
