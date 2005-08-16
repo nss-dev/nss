@@ -41,8 +41,6 @@
  *
  */
 
-#define PKIX_SOCKETTRACE 1
-
 /*
  * If PKIX_SOCKETTRACE is defined, messages sent and received will be
  * timestamped and dumped (to stdout) in standard hex-dump format. E.g.,
