@@ -319,9 +319,10 @@ bl_LoadLibrary(const char *name)
 
     /* Get the pathname for the loaded libsoftokn, i.e. /usr/lib/libsoftokn.so */
     fn_addr = PR_FindFunctionSymbolAndLibrary("NSC_GetFunctionList" , &loadinglib);
-    if (fn_addr) {
-	softokenPath = PR_GetLibraryFilePathname(softoken, fn_addr);
-    }
+    /* PR_GetLibraryFilePathname works with either the base library name or a
+       function pointer, depending on the platform. So call it even if fn_addr
+       is NULL. */
+    softokenPath = PR_GetLibraryFilePathname(softoken, fn_addr);
 
     /* Remove "libsoftokn" from the pathname and add the freebl libname */
     if (softokenPath) {
