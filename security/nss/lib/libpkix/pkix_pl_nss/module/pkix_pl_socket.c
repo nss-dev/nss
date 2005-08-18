@@ -567,7 +567,16 @@ pkix_pl_Socket_ConnectContinue(
                 PKIX_ERROR("PR_Poll failed");
         } else if (numEvents == 0) {
                 errorcode = PR_GetError();
-                if (errorcode != PR_WOULD_BLOCK_ERROR) {
+                *pStatus = errorcode;
+                if ((errorcode == PR_WOULD_BLOCK_ERROR) ||
+                    (errorcode == PR_IN_PROGRESS_ERROR)) {
+                        goto cleanup;
+                } else {
+#ifdef PKIX_SOCKETDEBUG
+                        printf
+                                ("pkix_pl_Socket_ConnectContinue: %s\n",
+                                PR_ErrorToString(errorcode, PR_LANGUAGE_EN));
+#endif
                         PKIX_ERROR("PR_Poll failed");
                 }
         }
@@ -587,7 +596,7 @@ pkix_pl_Socket_ConnectContinue(
                                 ("pkix_pl_Socket_ConnectContinue: %s\n",
                                 PR_ErrorToString(errorcode, PR_LANGUAGE_EN));
 #endif
-                        PKIX_ERROR("PR_Connect failed");
+                        PKIX_ERROR("PR_ConnectContinue failed");
                 }
         }
 

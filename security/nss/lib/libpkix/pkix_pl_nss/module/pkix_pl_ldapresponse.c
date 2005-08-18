@@ -531,6 +531,8 @@ pkix_pl_LdapResponse_IsComplete(
  *  Returns an LdapResponse Error if the function fails in a non-fatal way.
  *  Returns a Fatal Error if the function fails in an unrecoverable way.
  */
+#include <stdio.h>
+
 PKIX_Error *
 pkix_pl_LdapResponse_Decode(
         PRArenaPool *arena,
@@ -557,10 +559,7 @@ pkix_pl_LdapResponse_Decode(
         selector = msg->protocolOp.selector;
 
         PKIX_PL_NSSCALLRV(LDAPRESPONSE, rv, SEC_ASN1DecodeItem,
-            (arena,
-            msg,
-            SEC_ASN1_GET(PKIX_PL_LDAPMessageTemplate),
-            &(response->derEncoded)));
+            (arena, msg, PKIX_PL_LDAPMessageTemplate, &(response->derEncoded)));
 
         *pStatus = rv;
 cleanup:

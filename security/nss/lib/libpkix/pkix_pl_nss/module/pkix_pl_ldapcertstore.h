@@ -63,7 +63,8 @@ typedef enum {
         LDAP_RECV,
         LDAP_RECV_PENDING,
         LDAP_RECV_INITIAL,
-        LDAP_RECV_NONINITIAL
+        LDAP_RECV_NONINITIAL,
+        LDAP_ABANDON_PENDING
 } LDAPConnectStatus;
 
 #define LDAP_CACHEBUCKETS       128

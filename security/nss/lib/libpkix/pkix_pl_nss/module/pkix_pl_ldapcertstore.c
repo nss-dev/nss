@@ -169,9 +169,8 @@ cleanup:
  * DESCRIPTION:
  *
  *  This function creates and encodes a Unbind message, using the arena pointed
- *  to by "arena", the version number contained in "versionData", the strings
- *  pointed to by "bindName" and "authentication", and the messageID contained
- *  in "msgNum", and stores a pointer to the encoded string at "pBindMsg".
+ *  to by "arena" and the messageID contained in "msgNum", and stores a pointer
+ *  to the encoded string at "pUnbindMsg".
  *
  *  See pkix_pl_ldaptemplates.c for the ASN.1 description of an Unbind message.
  *
@@ -230,6 +229,73 @@ pkix_pl_LdapCertStore_MakeUnbind(
         }
 
         *pUnbindMsg = encoded;
+cleanup:
+
+        PKIX_RETURN(LDAPCERTSTORECONTEXT);
+}
+
+/*
+ * FUNCTION: pkix_pl_LdapCertStoreContext_MakeAbandon
+ * DESCRIPTION:
+ *
+ *  This function creates and encodes a Abandon message, using the arena pointed
+ *  to by "arena" and the messageID contained in "msgNum", and stores a pointer
+ *  to the encoded string at "pAbandonMsg".
+ *
+ *  See pkix_pl_ldaptemplates.c for the ASN.1 description of an Abandon message.
+ *
+ * PARAMETERS:
+ *  "arena"
+ *      The address of the PRArenaPool used in encoding the message. Must be
+ *       non-NULL.
+ *  "msgNum"
+ *      The Int32 containing the MessageID to be encoded in the Abandon message.
+ *  "pAbandonMsg"
+ *      The address at which the encoded Abandon message will be stored. Must
+ *      be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a LdapCertStoreContext Error if the function fails in a
+ *      non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+static PKIX_Error *
+pkix_pl_LdapCertStore_MakeAbandon(
+        PRArenaPool *arena,
+        PKIX_UInt32 msgNum,
+        SECItem **pAbandonMsg,
+        void *plContext)
+{
+        LDAPMessage msg;
+        SECItem *encoded = NULL;
+
+        PKIX_ENTER(LDAPCERTSTORECONTEXT, "pkix_pl_LdapCertStore_MakeAbandon");
+        PKIX_NULLCHECK_TWO(arena, pAbandonMsg);
+
+        PKIX_PL_NSSCALL(LDAPCERTSTORECONTEXT, PORT_Memset,
+                (&msg, 0, sizeof (LDAPMessage)));
+
+        msg.messageID.type = siUnsignedInteger;
+        msg.messageID.data = (void*)&msgNum;
+        msg.messageID.len = sizeof (msgNum);
+
+        msg.protocolOp.selector = LDAP_ABANDONREQUEST_TYPE;
+
+        msg.protocolOp.op.abandonRequestMsg.messageID.type = siBuffer;
+        msg.protocolOp.op.abandonRequestMsg.messageID.data = (void*)&msgNum;
+        msg.protocolOp.op.abandonRequestMsg.messageID.len = sizeof (msgNum);
+
+        PKIX_PL_NSSCALLRV(LDAPCERTSTORECONTEXT, encoded, SEC_ASN1EncodeItem,
+                (arena, NULL, (void *)&msg, PKIX_PL_LDAPMessageTemplate));
+        if (!encoded) {
+                PKIX_ERROR("failed in encoding Abandon");
+        }
+
+        *pAbandonMsg = encoded;
 cleanup:
 
         PKIX_RETURN(LDAPCERTSTORECONTEXT);
@@ -361,7 +427,7 @@ cleanup:
 }
 
 /*
- * FUNCTION: pkix_pl_LdapCertStore_RecvCheckComplete
+ * FUNCTION: pkix_pl_LdapCertStoreContext_RecvCheckComplete
  * DESCRIPTION:
  *
  *  This function determines whether the current response in the
@@ -393,7 +459,7 @@ cleanup:
  *  Returns a Fatal Error if the function fails in an unrecoverable way.
  */
 static PKIX_Error *
-pkix_pl_LdapCertStore_RecvCheckComplete(
+pkix_pl_LdapCertStoreContext_RecvCheckComplete(
         PKIX_PL_LdapCertStoreContext *lcs,
         PKIX_UInt32 bytesProcessed,
         PKIX_Boolean *pKeepGoing,
@@ -406,7 +472,7 @@ pkix_pl_LdapCertStore_RecvCheckComplete(
 
         PKIX_ENTER
                 (LDAPCERTSTORECONTEXT,
-                "pkix_pl_LdapCertStore_RecvCheckComplete");
+                "pkix_pl_LdapCertStoreContext_RecvCheckComplete");
         PKIX_NULLCHECK_TWO(lcs, pKeepGoing);
 
         PKIX_CHECK(pkix_pl_LdapResponse_IsComplete
@@ -603,7 +669,10 @@ pkix_pl_LdapCertStoreContext_Destroy(
         PKIX_PL_Object *object,
         void *plContext)
 {
+        PKIX_Int32 bytesWritten = 0;
         PKIX_PL_LdapCertStoreContext *lcs = NULL;
+        PKIX_PL_Socket_Callback *callbackList = NULL;
+        SECItem *encoded = NULL;
 
         PKIX_ENTER(LDAPCERTSTORECONTEXT,
                     "pkix_pl_LdapCertStoreContext_Destroy");
@@ -627,6 +696,7 @@ pkix_pl_LdapCertStoreContext_Destroy(
         case LDAP_RECV:
         case LDAP_RECV_PENDING:
         case LDAP_BOUND:
+        case LDAP_ABANDON_PENDING:
 #if 0
                 PKIX_CHECK(pkix_pl_LdapCertStore_MakeUnbind
                         (lcs->arena, ++(lcs->messageID), &encoded, plContext),
@@ -793,11 +863,11 @@ pkix_pl_LdapCertStore_IsIOPending(
         PKIX_ENTER(LDAPCERTSTORECONTEXT, "pkix_pl_LdapCertStore_IsIOPending");
         PKIX_NULLCHECK_TWO(lcs, pPending);
 
-        if ((lcs->connectStatus == LDAP_CONNECT_PENDING) ||
-            (lcs->connectStatus == LDAP_BIND_PENDING) ||
+        if ((lcs->connectStatus == LDAP_BIND_PENDING) ||
             (lcs->connectStatus == LDAP_BIND_RESPONSE_PENDING) ||
             (lcs->connectStatus == LDAP_SEND_PENDING) ||
-            (lcs->connectStatus == LDAP_RECV_PENDING)) {
+            (lcs->connectStatus == LDAP_RECV_PENDING) ||
+            (lcs->connectStatus == LDAP_ABANDON_PENDING)) {
                 *pPending = PKIX_TRUE;
         } else {
                 *pPending = PKIX_FALSE;
@@ -911,8 +981,11 @@ pkix_pl_LdapCertStore_ConnectContinue(
                 "pkix_pl_Socket_ConnectContinue failed");
 
         if (status == 0) {
+#if 0
                 lcs->connectStatus = LDAP_CONNECTED;
-                keepGoing = PKIX_TRUE;
+#endif
+                lcs->connectStatus = LDAP_BOUND;
+                keepGoing = PKIX_FALSE;
         } else if (status != PR_IN_PROGRESS_ERROR) {
                 PKIX_ERROR("Unexpected error in establishing connection");
         }
@@ -1500,6 +1573,66 @@ cleanup:
 }
 
 /*
+ * FUNCTION: pkix_pl_LdapCertStore_AbandonContinue
+ * DESCRIPTION:
+ *
+ *  This function determines whether the abandon-message request of the
+ *  LDAP-protocol message for the CertStore embodied in the LdapCertStoreContext
+ *  "lcs" has completed, and stores in "pKeepGoing" a flag indicating whether
+ *  processing can continue without further input.
+ *
+ * PARAMETERS:
+ *  "lcs"
+ *      The address of the LdapCertStoreContext object. Must be non-NULL.
+ *  "pKeepGoing"
+ *      The address at which the Boolean state machine flag is stored to
+ *      indicate whether processing can continue without further input.
+ *      Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a LdapCertStoreContext Error if the function fails in a
+ *      non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+static PKIX_Error *
+pkix_pl_LdapCertStore_AbandonContinue(
+        PKIX_PL_LdapCertStoreContext *lcs,
+        PKIX_Boolean *pKeepGoing,
+        void *plContext)
+{
+        PKIX_Int32 bytesWritten = 0;
+        PKIX_PL_Socket_Callback *callbackList = NULL;
+
+        PKIX_ENTER
+                (LDAPCERTSTORECONTEXT, "pkix_pl_LdapCertStore_AbandonContinue");
+        PKIX_NULLCHECK_TWO(lcs, pKeepGoing);
+
+        callbackList = (PKIX_PL_Socket_Callback *)(lcs->callbackList);
+
+        PKIX_CHECK(callbackList->pollCallback
+                (lcs->clientSocket, &bytesWritten, NULL, plContext),
+                "pkix_pl_Socket_Poll failed");
+
+        if (bytesWritten > 0) {
+                lcs->connectStatus = LDAP_BOUND;
+                *pKeepGoing = PKIX_TRUE;
+
+                PKIX_CHECK(PKIX_PL_Object_InvalidateCache
+                        ((PKIX_PL_Object *)lcs, plContext),
+                        "PKIX_PL_Object_InvalidateCache failed");
+        } else {
+                *pKeepGoing = PKIX_FALSE;
+        }
+
+cleanup:
+        PKIX_RETURN(LDAPCERTSTORECONTEXT);
+}
+
+/*
  * FUNCTION: pkix_pl_LdapCertStore_RecvInitial
  * DESCRIPTION:
  *
@@ -1612,9 +1745,9 @@ pkix_pl_LdapCertStore_RecvInitial(
 
         lcs->currentBytesAvailable -= bytesProcessed;
 
-        PKIX_CHECK(pkix_pl_LdapCertStore_RecvCheckComplete
+        PKIX_CHECK(pkix_pl_LdapCertStoreContext_RecvCheckComplete
                 (lcs, bytesProcessed, pKeepGoing, plContext),
-                "pkix_pl_LdapCertStore_RecvCheckComplete failed");
+                "pkix_pl_LdapCertStoreContext_RecvCheckComplete failed");
 
 cleanup:
 
@@ -1670,9 +1803,9 @@ pkix_pl_LdapCertStore_RecvNonInitial(
 
         lcs->currentBytesAvailable -= bytesProcessed;
 
-        PKIX_CHECK(pkix_pl_LdapCertStore_RecvCheckComplete
+        PKIX_CHECK(pkix_pl_LdapCertStoreContext_RecvCheckComplete
                 (lcs, bytesProcessed, pKeepGoing, plContext),
-                "pkix_pl_LdapCertStore_RecvCheckComplete failed");
+                "pkix_pl_LdapCertStoreContext_RecvCheckComplete failed");
 
 cleanup:
 
@@ -1788,6 +1921,12 @@ pkix_pl_LdapCertstore_Dispatch(
                                 (lcs, &keepGoing, plContext),
                                 "pkix_pl_LdapCertStore_RecvNonInitial failed");
                         break;
+                case LDAP_ABANDON_PENDING:
+                        PKIX_CHECK
+                                (pkix_pl_LdapCertStore_AbandonContinue
+                                (lcs, &keepGoing, plContext),
+                                "pkix_pl_LdapCertStore_AbandonContinue failed");
+                        break;
                 default:
                         PKIX_ERROR("LDAP CertStore in illegal state");
                 }
@@ -1802,10 +1941,11 @@ cleanup:
  * FUNCTION: pkix_pl_LdapCertStore_SendRequest
  * DESCRIPTION:
  *
- *  This function constructs an LDAPRequest object using the
- *  LdapCertStoreContext pointed to by "lcs", the subject name pointed to by
- *  "subjectName", and the attribute bits provided in "attrBits", and stores the
- *  response at "pResponse".
+ *  This function tries to obtain a response for the LdapRequest contained in
+ *  the LdapCertStoreContext pointed to by "lcs", and stores the response at
+ *  "pResponse". If the LdapRequest was previously stored with a response in
+ *  the certstore's cache, that response is retrieved immediately. Otherwise,
+ *  the request is transmitted.
  *
  *  If non-blocking I/O is in use and the response is not yet available, NULL is
  *  stored at "pResponse". If the response has come back but contained no items
@@ -1814,12 +1954,6 @@ cleanup:
  * PARAMETERS:
  *  "lcs"
  *      The address of the LdapCertStoreContext object. Must be non-NULL.
- *  "subjectName"
- *      The address of a SECItem containing the encoded subject name. Must be
- *      non-NULL.
- *  "attrBits"
- *      An LDAPAttrIncludeMask (defined in pkix_pl_ldapt.h) indicating
- *      attributes to be included in the LDAP-protocol Search request.
  *  "pResponse"
  *      The address where the List, or NULL for an unfinished request, is
  *      stored. Must be non-NULL.
@@ -1836,50 +1970,30 @@ cleanup:
 static PKIX_Error *
 pkix_pl_LdapCertStore_SendRequest(
         PKIX_PL_LdapCertStoreContext *lcs,
-        LDAPFilter *filter,
-        LdapAttrIncludeMask attrBits,
         PKIX_List **pResponse,
         void *plContext)
 {
-        PKIX_PL_LdapRequest *searchRequest = NULL;
         PKIX_List *searchResponseList = NULL;
         SECItem *encoded = NULL;
 
         PKIX_ENTER
                 (LDAPCERTSTORECONTEXT,
                 "pkix_pl_LdapCertStore_SendRequest");
-        PKIX_NULLCHECK_THREE(lcs, filter, pResponse);
-
-        PKIX_CHECK(pkix_pl_LdapRequest_Create
-                (lcs->arena,
-                ++(lcs->messageID),
-                "c=US",                 /* baseObject           */
-                (char)WHOLE_SUBTREE,    /* scope                */
-                (char)NEVER_DEREF,      /* derefAliases         */
-                0,                      /* sizeLimit            */
-                0,                      /* timeLimit            */
-                PKIX_FALSE,             /* attrsOnly            */
-                filter,
-                attrBits,               /* attributes           */
-                &searchRequest,
-                plContext),
-                "pkix_pl_LdapRequest_Create failed");
+        PKIX_NULLCHECK_TWO(lcs, pResponse);
 
         /* check hashtable for matching request */
         PKIX_CHECK(PKIX_PL_HashTable_Lookup
                 (lcs->cachePtr,
-                (PKIX_PL_Object *)searchRequest,
+                (PKIX_PL_Object *)(lcs->currentRequest),
                 (PKIX_PL_Object **)&searchResponseList,
                 plContext),
                 "PKIX_PL_HashTable_Lookup failed");
 
         if (!searchResponseList) {
                 /* It wasn't cached. We'll have to actually send it. */
-                lcs->currentRequest = searchRequest;
-                PKIX_INCREF(searchRequest);
 
                 PKIX_CHECK(pkix_pl_LdapRequest_GetEncoded
-                        (searchRequest, &encoded, plContext),
+                        (lcs->currentRequest, &encoded, plContext),
                         "pkix_pl_LdapRequest_GetEncoded failed");
 
                 lcs->sendBuf = encoded->data;
@@ -1901,8 +2015,6 @@ pkix_pl_LdapCertStore_SendRequest(
 
 cleanup:
 
-        PKIX_DECREF(searchRequest);
-
         PKIX_RETURN(LDAPCERTSTORECONTEXT);
 }
 
@@ -1914,7 +2026,8 @@ cleanup:
  *
  *  This function takes a List of LdapResponse objects pointed to by
  *  "responseList" and extracts and decodes the Certificates in those responses,
- *  storing the List of those Certificates at "pCerts".
+ *  storing the List of those Certificates at "pCerts". If none of the objects
+ *  can be decoded into a Cert, the returned List is empty.
  *
  * PARAMETERS:
  * "responseList"
@@ -1953,6 +2066,9 @@ pkix_pl_LdapCertStore_BuildCertList(
 
         PKIX_ENTER(CERTSTORE, "pkix_pl_LdapCertStore_BuildCertList");
         PKIX_NULLCHECK_TWO(responseList, pCerts);
+
+        PKIX_CHECK(PKIX_List_Create(&certList, plContext),
+                "PKIX_List_Create failed");
 
         /* extract certs from response */
         PKIX_CHECK(PKIX_List_GetLength
@@ -1993,11 +2109,6 @@ pkix_pl_LdapCertStore_BuildCertList(
 
                             /* skip bad certs and append good ones */
                             if (!PKIX_ERROR_RECEIVED) {
-                                if (certList == NULL) {
-                                        PKIX_CHECK(PKIX_List_Create
-                                        (&certList, plContext),
-                                        "PKIX_List_Create failed");
-                                }
                                 PKIX_CHECK(PKIX_List_AppendItem
                                         (certList,
                                         (PKIX_PL_Object *) cert,
@@ -2032,7 +2143,8 @@ cleanup:
  *
  *  This function takes a List of LdapResponse objects pointed to by
  *  "responseList" and extracts and decodes the CRLs in those responses, storing
- *  the List of those CRLs at "pCrls".
+ *  the List of those CRLs at "pCrls". If none of the objects can be decoded
+ *  into a CRL, the returned List is empty.
  *
  * PARAMETERS:
  * "responseList"
@@ -2071,6 +2183,9 @@ pkix_pl_LdapCertStore_BuildCrlList(
 
         PKIX_ENTER(CERTSTORE, "pkix_pl_LdapCertStore_BuildCrlList");
         PKIX_NULLCHECK_TWO(responseList, pCrls);
+
+        PKIX_CHECK(PKIX_List_Create(&crlList, plContext),
+                "PKIX_List_Create failed");
 
         /* extract crls from response */
         PKIX_CHECK(PKIX_List_GetLength
@@ -2111,11 +2226,6 @@ pkix_pl_LdapCertStore_BuildCrlList(
 
                             /* skip bad crls and append good ones */
                             if (!PKIX_ERROR_RECEIVED) {
-                                if (crlList == NULL) {
-                                        PKIX_CHECK(PKIX_List_Create
-                                        (&crlList, plContext),
-                                        "PKIX_List_Create failed");
-                                }
                                 PKIX_CHECK(PKIX_List_AppendItem
                                         (crlList,
                                         (PKIX_PL_Object *) crl,
@@ -2344,6 +2454,7 @@ pkix_pl_LdapCertStore_MakeAndFilter(
                 currentFilter++;
         }
 
+#if 0
         /* Try for orgName */
         PKIX_CHECK(pkix_pl_X500Name_GetOrgName
                 (subjectName, &component, plContext),
@@ -2379,6 +2490,7 @@ pkix_pl_LdapCertStore_MakeAndFilter(
                 componentsPresent++;
                 currentFilter++;
         }
+#endif
 
         setOfFilter[componentsPresent] = NULL;
 
@@ -2391,21 +2503,21 @@ cleanup:
 }
 
 /*
- * FUNCTION: pkix_pl_LdapCertStore_GetCertsBySubject
+ * FUNCTION: pkix_pl_LdapCertStore_MakeSubjectCertRequest
  * DESCRIPTION:
  *
- *  This function queries the CertStore embodied by LdapCertStoreContext "lcs"
- *  for Certificates whose subject matches the X500Name pointed to by
- *  "subjectName", using attributes depending on the minimum path length
- *  specified by "minPathLen", and stores the resulting List of Certificates at
- *  "pSelected".
- *
- *  If no matching Certificates are found an empty List is stored. If the query
- *  is still in progress (non-blocking I/O) a NULL pointer is stored.
+ *  This function creates an LdapRequest for Certificates whose subject matches
+ *  the X500Name pointed to by "subjectName", using the arena pointed to by
+ *  "msgArena", the messageID in "msgnum", and attributes depending on the
+ *  minimum path length specified by "minPathLen", and stores the resulting
+ *  LdapRequest at "pRequest".
  *
  * PARAMETERS:
- * "lcs"
- *      The address of the LdapCertStoreContext object. Must be non-NULL.
+ * "msgArena"
+ *      The address of the arena to be used for encoding of the LdapRequest.
+ *      Must be non-NULL.
+ * "msgnum"
+ *      The UInt32 value of the messageID.
  * "subjectName"
  *      The address of the X500Name that will be the subject of the desired
  *      Certificates. Must be non-NULL.
@@ -2413,7 +2525,7 @@ cleanup:
  *      The path length that will be used in determining whether to request
  *      user Certificates, CA Certificates, Cross-Pair Certificates,
  *      Certificate Revocation Lists, or Authority Revocation Lists.
- * "pSelected"
+ * "pRequest"
  *      The address at which the result is stored.
  * "plContext"
  *      Platform-specific context pointer
@@ -2425,22 +2537,22 @@ cleanup:
  *  Returns a Fatal Error if the function fails in an unrecoverable way.
  */
 static PKIX_Error *
-pkix_pl_LdapCertStore_GetCertsBySubject(
-        PKIX_PL_LdapCertStoreContext *lcs,
+pkix_pl_LdapCertStore_MakeSubjectCertRequest(
+        PRArenaPool *msgArena,
+        PKIX_UInt32 msgnum,
         PKIX_PL_X500Name *subjectName,
         PKIX_Int32 minPathLen,
-        PKIX_List **pSelected,
+        PKIX_PL_LdapRequest **pRequest,
         void *plContext)
 {
         LDAPFilter *andFilter = NULL;
         LdapAttrIncludeMask attrBits = 0;
-        PKIX_List *responseList = NULL;
-        PKIX_List *certList = NULL;
-        PRArenaPool *arena = NULL;
+        PKIX_PL_LdapRequest *request;
+        PRArenaPool *filterArena = NULL;
 
         PKIX_ENTER
-                (CERTSTORE, "pkix_pl_LdapCertStore_GetCertsBySubject");
-        PKIX_NULLCHECK_THREE(lcs, subjectName, pSelected);
+                (CERTSTORE, "pkix_pl_LdapCertStore_MakeSubjectCertRequest");
+        PKIX_NULLCHECK_THREE(msgArena, subjectName, pRequest);
 
         /*
          * Get a short-lived arena. We'll be done with this space once
@@ -2448,16 +2560,16 @@ pkix_pl_LdapCertStore_GetCertsBySubject(
          */
         PKIX_PL_NSSCALLRV
                 (LDAPCERTSTORECONTEXT,
-                arena,
+                filterArena,
                 PORT_NewArena,
                 (DER_DEFAULT_CHUNKSIZE));
 
-        if (!arena) {
+        if (!filterArena) {
                 PKIX_ERROR_FATAL("Out of memory");
         }
 
         PKIX_CHECK(pkix_pl_LdapCertStore_MakeAndFilter
-                (arena, subjectName, &andFilter, plContext),
+                (filterArena, subjectName, &andFilter, plContext),
                 "pkix_pl_LdapCertStore_MakeAndFilter failed");
 
         if (minPathLen < 0) {
@@ -2478,52 +2590,56 @@ pkix_pl_LdapCertStore_GetCertsBySubject(
 #if 1
         attrBits = LDAPATTR_INCLUDE_CACERTS;
 #endif
-        PKIX_CHECK(pkix_pl_LdapCertStore_SendRequest
-                (lcs, andFilter, attrBits, &responseList, plContext),
-                "pkix_pl_LdapCertStore_SendRequest failed");
+        PKIX_CHECK(pkix_pl_LdapRequest_Create
+                (msgArena,
+                msgnum,
+                "c=US",                 /* baseObject           */
+                (char)WHOLE_SUBTREE,    /* scope                */
+                (char)NEVER_DEREF,      /* derefAliases         */
+                0,                      /* sizeLimit            */
+                0,                      /* timeLimit            */
+                PKIX_FALSE,             /* attrsOnly            */
+                andFilter,
+                attrBits,               /* attributes           */
+                &request,
+                plContext),
+
+                "pkix_pl_LdapRequest_Create failed");
 
         PKIX_CHECK(pkix_pl_LdapCertStore_DestroyAndFilter(andFilter, plContext),
                 "pkix_pl_LdapCertStore_DestroyAndFilter failed");
 
-        if (responseList) {
-                PKIX_CHECK(pkix_pl_LdapCertStore_BuildCertList
-                        (responseList, &certList, plContext),
-                        "pkix_pl_LdapCertStore_BuildCertList failed");
-        }
-
-        *pSelected = certList;
+        *pRequest = request;
 
 cleanup:
-        if (PKIX_ERROR_RECEIVED) {
-                PKIX_DECREF(certList);
+        if (filterArena) {
+                PKIX_PL_NSSCALL(CERTSTORE, PORT_FreeArena, (filterArena, PR_FALSE));
         }
-
-        if (arena) {
-                PKIX_PL_NSSCALL(CERTSTORE, PORT_FreeArena, (arena, PR_FALSE));
-        }
-
-        PKIX_DECREF(responseList);
 
         PKIX_RETURN(CERTSTORE);
 }
 
 /*
- * FUNCTION: pkix_pl_LdapCertStore_GetCRLsByIssuer
+ * FUNCTION: pkix_pl_LdapCertStore_MakeIssuerCRLRequest
  * DESCRIPTION:
  *
- *  This function queries the CertStore embodied by LdapCertStoreContext "lcs"
- *  for Certificate Revocation Lists whose issuers match the X500Names pointed
- *  to by "issuerName", and stores the resulting List of CRLs at "pSelected".
+ *  This function creates an LdapRequest to request Certificate Revocation Lists
+ *  whose issuers match the X500Names pointed to by "issuerName", using the
+ *  arena pointed to by "msgArena" and the messageID in "msgnum", and stores the
+ *  resulting LdapRequest at "pRequest".
  *
  * PARAMETERS:
- * "lcs"
- *      The address of the LdapCertStoreContext object. Must be non-NULL.
+ * "msgArena"
+ *      The address of the arena to be used for encoding of the LdapRequest.
+ *      Must be non-NULL.
+ * "msgnum"
+ *      The UInt32 value of the messageID.
  * "issuerNames"
  *      The address of a List of X500Names that are the issuers of the desired
  *      CRLs. Must be non-NULL.
  * "numNames"
  *      The number of elements in the "issuerNames" List. Must be non-zero.
- * "pSelected"
+ * "pRequest"
  *      The address at which the result is stored.
  * "plContext"
  *      Platform-specific context pointer
@@ -2535,25 +2651,25 @@ cleanup:
  *  Returns a Fatal Error if the function fails in an unrecoverable way.
  */
 static PKIX_Error *
-pkix_pl_LdapCertStore_GetCRLsByIssuer(
-        PKIX_PL_LdapCertStoreContext *lcs,
+pkix_pl_LdapCertStore_MakeIssuerCRLRequest(
+        PRArenaPool *msgArena,
+        PKIX_UInt32 msgnum,
         PKIX_List *issuerNames, /* List of X500Name */
         PKIX_UInt32 numNames,
-        PKIX_List **pSelected,
+        PKIX_PL_LdapRequest **pRequest,
         void *plContext)
 {
         LdapAttrIncludeMask attrBits = 0;
         PKIX_UInt32 thisName = 0;
         PKIX_PL_X500Name *name = NULL;
-        PKIX_List *responseList = NULL;
-        PKIX_List *crlList = NULL;
-        PRArenaPool *arena = NULL;
+        PKIX_PL_LdapRequest *request;
+        PRArenaPool *filterArena = NULL;
         LDAPFilter **setOfFilter = NULL;
         LDAPFilter orFilter;
         void *v = NULL;
 
-        PKIX_ENTER(CERTSTORE, "pkix_pl_LdapCertStore_GetCRLsByIssuer");
-        PKIX_NULLCHECK_THREE(lcs, issuerNames, pSelected);
+        PKIX_ENTER(CERTSTORE, "pkix_pl_LdapCertStore_MakeIssuerCRLRequest");
+        PKIX_NULLCHECK_THREE(msgArena, issuerNames, pRequest);
 
         if (numNames == 0) {
                 PKIX_ERROR_FATAL("Zero argument");
@@ -2565,17 +2681,17 @@ pkix_pl_LdapCertStore_GetCRLsByIssuer(
          */
         PKIX_PL_NSSCALLRV
                 (LDAPCERTSTORECONTEXT,
-                arena,
+                filterArena,
                 PORT_NewArena,
                 (DER_DEFAULT_CHUNKSIZE));
 
-        if (!arena) {
+        if (!filterArena) {
                 PKIX_ERROR_FATAL("Out of memory");
         }
 
         /* Space for (numNames + 1) pointers to LDAPFilter */
         PKIX_PL_NSSCALLRV(CERTSTORE, v, PORT_ArenaZAlloc,
-                (arena, (numNames + 1)*sizeof(LDAPFilter *)));
+                (filterArena, (numNames + 1)*sizeof(LDAPFilter *)));
         setOfFilter = (LDAPFilter **)v;
         setOfFilter[0] = (LDAPFilter *)v;
 
@@ -2591,7 +2707,7 @@ pkix_pl_LdapCertStore_GetCRLsByIssuer(
                         "PKIX_List_GetItem failed");
 
                 PKIX_CHECK(pkix_pl_LdapCertStore_MakeAndFilter
-                        (arena, name, &setOfFilter[thisName], plContext),
+                        (filterArena, name, &setOfFilter[thisName], plContext),
                         "pkix_pl_LdapCertStore_MakeAndFilter failed");
 
                 PKIX_DECREF(name);
@@ -2606,60 +2722,61 @@ pkix_pl_LdapCertStore_GetCRLsByIssuer(
         attrBits = LDAPATTR_INCLUDE_CERTREVLIST | LDAPATTR_INCLUDE_AUTHREVLIST;
 #endif
 
-        /* send request */
-        PKIX_CHECK(pkix_pl_LdapCertStore_SendRequest
-                (lcs, &orFilter, attrBits, &responseList, plContext),
-                "pkix_pl_LdapCertStore_SendRequest failed");
+        PKIX_CHECK(pkix_pl_LdapRequest_Create
+                (msgArena,
+                msgnum,
+                "c=US",                 /* baseObject           */
+                (char)WHOLE_SUBTREE,    /* scope                */
+                (char)NEVER_DEREF,      /* derefAliases         */
+                0,                      /* sizeLimit            */
+                0,                      /* timeLimit            */
+                PKIX_FALSE,             /* attrsOnly            */
+                &orFilter,
+                attrBits,               /* attributes           */
+                &request,
+                plContext),
+                "pkix_pl_LdapRequest_Create failed");
 
         PKIX_CHECK(pkix_pl_LdapCertStore_DestroyOrFilter(&orFilter, plContext),
                 "pkix_pl_LdapCertStore_DestroyOrFilter failed");
 
-        if (responseList) {
-                PKIX_CHECK(pkix_pl_LdapCertStore_BuildCrlList
-                        (responseList, &crlList, plContext),
-                        "pkix_pl_LdapCertStore_BuildCrlList failed");
-        }
-
-        *pSelected = crlList;
+        *pRequest = request;
 
 cleanup:
 
-        if (PKIX_ERROR_RECEIVED) {
-                PKIX_DECREF(crlList);
-        }
-
-        if (arena) {
-                PKIX_PL_NSSCALL(CERTSTORE, PORT_FreeArena, (arena, PR_FALSE));
+        if (filterArena) {
+                PKIX_PL_NSSCALL(CERTSTORE, PORT_FreeArena, (filterArena, PR_FALSE));
         }
 
         PKIX_DECREF(name);
-        PKIX_DECREF(responseList);
 
         PKIX_RETURN(CERTSTORE);
 }
 
 /*
- * FUNCTION: pkix_pl_LdapCertStore_CertQuery
+ * FUNCTION: pkix_pl_LdapCertStore_MakeCertRequest
  * DESCRIPTION:
  *
- *  This function iuses the CertStore embodied by the LdapCertStoreContext "lcs"
- *  to obtain from the database the Certs specified by the ComCertSelParams
- *  pointed to by "params" and stores the resulting List at "pSelected". If no
- *  matching Certs are found an empty List is stored. If the query is still in
- *  progress (non-blocking I/O) a NULL pointer is stored.
+ *  This function creates an LdapRequest to obtain from the server the Certs
+ *  specified by the ComCertSelParams pointed to by "params", using the arena
+ *  pointed to by "msgArena" and the UInt32 messageID in "msgnum", and stores
+ *  the resulting request at "pRequest".
  *
- *  This function uses a "smart" database query if suitable criteria have been
- *  set in ComCertSelParams. Otherwise, this function returns a CertStore Error
- *  if the selector has not been provided with parameters that allow for a
- *  "smart" query. (Currently, only the Subject Name meets this requirement.)
+ *  This function creates a "smart" database query if suitable criteria have
+ *  been set in ComCertSelParams. If the selector has not been provided with
+ *  parameters that allow for a "smart" query, this function returns a CertStore
+ *  Error. (Currently, only the Subject Name meets this requirement.)
  *
  * PARAMETERS:
- *  "lcs"
- *      The address of the LdapCertStoreContext object. Must be non-NULL.
+ * "msgArena"
+ *      The address of the arena to be used for encoding of the LdapRequest.
+ *      Must be non-NULL.
+ * "msgnum"
+ *      The UInt32 value of the messageID.
  * "params"
  *      Address of the ComCertSelParams. Must be non-NULL.
- * "pSelected"
- *      Address at which List will be stored. Must be non-NULL.
+ * "pRequest"
+ *      Address at which LdapRequest will be stored. Must be non-NULL.
  * "plContext"
  *      Platform-specific context pointer
  * THREAD SAFETY:
@@ -2670,33 +2787,34 @@ cleanup:
  *  Returns a Fatal Error if the function fails in an unrecoverable way.
  */
 static PKIX_Error *
-pkix_pl_LdapCertStore_CertQuery(
-        PKIX_PL_LdapCertStoreContext *lcs,
+pkix_pl_LdapCertStore_MakeCertRequest(
+        PRArenaPool *msgArena,
+        PKIX_UInt32 msgnum,
         PKIX_ComCertSelParams *params,
-        PKIX_List **pSelected,
+        PKIX_PL_LdapRequest **pRequest,
         void *plContext)
 {
         PKIX_PL_X500Name *subjectName = NULL;
         PKIX_Int32 minPathLen = 0;
-        PKIX_List *certList = NULL;
+        PKIX_PL_LdapRequest *request;
 
-        PKIX_ENTER(CERTSTORE, "pkix_pl_LdapCertStore_CertQuery");
-        PKIX_NULLCHECK_THREE(lcs, params, pSelected);
+        PKIX_ENTER(CERTSTORE, "pkix_pl_LdapCertStore_MakeCertRequest");
+        PKIX_NULLCHECK_THREE(msgArena, params, pRequest);
 
         /*
          * Any of the ComCertSelParams may be obtained and used to constrain
          * the database query, to allow the use of a "smart" query. See
          * pkix_certsel.h for a list of the PKIX_ComCertSelParams_Get*
          * calls available. No corresponding "smart" queries exist at present,
-         * that we assume we can make an LDAP request based on Subject. When
-         * others are added, corresponding code should be added to
-         * pkix_pl_LdapCertStore_CertQuery to use them when appropriate
+         * except that we assume we can make an LDAP request based on Subject.
+         * When others are added, corresponding code should be added to
+         * pkix_pl_LdapCertStore_MakeCertRequest to use them when appropriate
          * selector parameters have been set.
          */
 
         /*
          * If we have the subject name for the desired subject,
-         * ask the database for Certs with that subject.
+         * ask the server for Certs with that subject.
          */
         PKIX_CHECK(PKIX_ComCertSelParams_GetSubject
                 (params, &subjectName, plContext),
@@ -2708,9 +2826,14 @@ pkix_pl_LdapCertStore_CertQuery(
 
         if (subjectName) {
 
-                PKIX_CHECK(pkix_pl_LdapCertStore_GetCertsBySubject
-                        (lcs, subjectName, minPathLen, &certList, plContext),
-                        "pkix_pl_LdapCertStore_GetCertsBySubject failed");
+                PKIX_CHECK(pkix_pl_LdapCertStore_MakeSubjectCertRequest
+                        (msgArena,
+                        msgnum,
+                        subjectName,
+                        minPathLen,
+                        &request,
+                        plContext),
+                        "pkix_pl_LdapCertStore_MakeSubjectCertRequest failed");
 
         /*
          * } else {
@@ -2722,7 +2845,7 @@ pkix_pl_LdapCertStore_CertQuery(
                 PKIX_ERROR("Insufficient criteria for Cert query");
         }
 
-        *pSelected = certList;
+        *pRequest = request;
 
 cleanup:
 
@@ -2732,23 +2855,25 @@ cleanup:
 }
 
 /*
- * FUNCTION: pkix_pl_LdapCertStore_CrlQuery
+ * FUNCTION: pkix_pl_LdapCertStore_MakeCrlRequest
  * DESCRIPTION:
  *
- *  This function uses the CertStore embodied by the LdapCertStoreContext "lcs"
- *  to obtain from the database the CRLs specified by the ComCRLSelParams
- *  pointed to by "params" and stores the List at "pSelected". If no Crls are
- *  found matching the criteria a NULL pointer is stored. If the query is still
- *  in progress (non-blocking I/O) a NULL pointer is stored.
+ *  This function creates an LdapRequest to obtain from the server the CRLs
+ *  specified by the ComCRLSelParams pointed to by "params", using the arena
+ *  pointed to by msgArena and the messageID in "msgnum", and stores the
+ *  LdapRequest at "pRequest".
  *
  *  This function uses a "smart" database query if suitable criteria have been
- *  set in ComCertSelParams. Otherwise, this function returns a CertStore Error
- *  if the selector has not been provided with parameters that allow for a
- *  "smart" query. (Currently, only the Issuer Name meets this requirement.)
+ *  set in ComCertSelParams. If the selector has not been provided with
+ *  parameters that allow for a "smart" query, this function returns a CertStore
+ *  Error. (Currently, only the Issuer Name meets this requirement.)
  *
  * PARAMETERS:
- *  "lcs"
- *      The address of the LdapCertStoreContext object. Must be non-NULL.
+ * "msgArena"
+ *      The address of the arena to be used for encoding of the LdapRequest.
+ *      Must be non-NULL.
+ * "msgnum"
+ *      The UInt32 value of the messageID.
  * "params"
  *      Address of the ComCRLSelParams. Must be non-NULL.
  * "pSelected"
@@ -2763,18 +2888,20 @@ cleanup:
  *  Returns a Fatal Error if the function fails in an unrecoverable way.
  */
 PKIX_Error *
-pkix_pl_LdapCertStore_CrlQuery(
-        PKIX_PL_LdapCertStoreContext *lcs,
+pkix_pl_LdapCertStore_MakeCrlRequest(
+        PRArenaPool *msgArena,
+        PKIX_UInt32 msgnum,
         PKIX_ComCRLSelParams *params,
-        PKIX_List **pSelected,
+        PKIX_PL_LdapRequest **pRequest,
         void *plContext)
 {
         PKIX_List *issuerNames = NULL;
         PKIX_List *crlList = NULL;
         PKIX_UInt32 numNames = 0;
+        PKIX_PL_LdapRequest *request = NULL;
 
-        PKIX_ENTER(CERTSTORE, "pkix_pl_LdapCertStore_CrlQuery");
-        PKIX_NULLCHECK_THREE(lcs, params, pSelected);
+        PKIX_ENTER(CERTSTORE, "pkix_pl_LdapCertStore_MakeCrlRequest");
+        PKIX_NULLCHECK_THREE(msgArena, params, pRequest);
 
         /*
          * Any of the ComCRLSelParams may be obtained and used to constrain the
@@ -2783,7 +2910,7 @@ pkix_pl_LdapCertStore_CrlQuery(
          * available. No corresponding "smart" queries exist at present, except
          * that we assume we can make an LDAP request based on the Issuer. When
          * others are added, corresponding code should be added to
-         * pkix_pl_LdapCertStore_CrlQuery to use them when appropriate
+         * pkix_pl_LdapCertStore_MakeCrlRequest to use them when appropriate
          * selector parameters have been set.
          */
 
@@ -2808,10 +2935,14 @@ pkix_pl_LdapCertStore_CrlQuery(
                         "PKIX_List_GetLength failed");
 
                 if (numNames > 0) {
-
-                        PKIX_CHECK(pkix_pl_LdapCertStore_GetCRLsByIssuer
-                            (lcs, issuerNames, numNames, &crlList, plContext),
-                            "pkix_pl_LdapCertStore_GetCRLsByIssuer failed");
+                    PKIX_CHECK(pkix_pl_LdapCertStore_MakeIssuerCRLRequest
+                        (msgArena,
+                        msgnum,
+                        issuerNames,
+                        numNames,
+                        &request,
+                        plContext),
+                        "pkix_pl_LdapCertStore_MakeIssuerCRLRequest failed");
 
                 } else {
                         PKIX_ERROR("Impossible criterion for Crl Query");
@@ -2826,7 +2957,7 @@ pkix_pl_LdapCertStore_CrlQuery(
                 PKIX_ERROR("Insufficient criteria for Crl Query");
         }
 
-        *pSelected = crlList;
+        *pRequest = request;
 
 cleanup:
 
@@ -2849,23 +2980,42 @@ pkix_pl_LdapCertStore_GetCert(
         PKIX_UInt32 i = 0;
         PKIX_UInt32 numFound = 0;
         PKIX_Boolean pending = PKIX_FALSE;
+        PKIX_Boolean match = PKIX_FALSE;
         PKIX_PL_Cert *candidate = NULL;
-        PKIX_List *selected = NULL;
+        PKIX_List *responses = NULL;
+        PKIX_List *certList = NULL;
         PKIX_List *filtered = NULL;
         PKIX_CertSelector_MatchCallback callback = NULL;
         PKIX_ComCertSelParams *params = NULL;
-        PKIX_Error *errReturn = NULL;
+        PKIX_PL_LdapRequest *request = NULL;
         PKIX_PL_LdapCertStoreContext *lcs = NULL;
 
         PKIX_ENTER(CERTSTORE, "pkix_pl_LdapCertStore_GetCert");
         PKIX_NULLCHECK_THREE(store, selector, pCertList);
 
         PKIX_CHECK(PKIX_CertStore_GetCertStoreContext
-                (store,
-                (PKIX_PL_Object **)&lcs,
-                plContext),
+                (store, (PKIX_PL_Object **)&lcs, plContext),
                 "PKIX_CertStore_GetCertStoreContext failed");
 
+        /*
+         * If we're still waiting for a connection, we can do
+         * nothing until the connection completes.
+         */
+        if (lcs->connectStatus == LDAP_CONNECT_PENDING) {
+
+                PKIX_CHECK(pkix_pl_LdapCertstore_Dispatch(lcs, plContext),
+                        "pkix_pl_LdapCertstore_Dispatch failed");
+
+                if (lcs->connectStatus == LDAP_CONNECT_PENDING) {
+                        *pCertList = NULL;
+                        goto cleanup;
+                }
+        }
+
+        /*
+         * If we're waiting for an I/O completion, check whether we have
+         * a complete message received.
+         */
         PKIX_CHECK(pkix_pl_LdapCertStore_IsIOPending(lcs, &pending, plContext),
                 "pkix_pl_LdapCertStore_IsIOPending failed");
 
@@ -2873,6 +3023,17 @@ pkix_pl_LdapCertStore_GetCert(
 
                 PKIX_CHECK(pkix_pl_LdapCertstore_Dispatch(lcs, plContext),
                         "pkix_pl_LdapCertstore_Dispatch failed");
+
+                if (lcs->entriesFound) {
+                        responses = lcs->entriesFound;
+                        PKIX_INCREF(responses);
+                        PKIX_DECREF(lcs->entriesFound);
+                        PKIX_DECREF(lcs->currentRequest);
+
+                        PKIX_CHECK(PKIX_CertSelector_GetMatchCallback
+                                (selector, &callback, plContext),
+                                "PKIX_CertSelector_GetMatchCallback failed");
+                }
 
         } else {
 
@@ -2884,14 +3045,31 @@ pkix_pl_LdapCertStore_GetCert(
                         (selector, &params, plContext),
                         "PKIX_CertSelector_GetComCertSelParams failed");
 
-                PKIX_CHECK(pkix_pl_LdapCertStore_CertQuery
-                        (lcs, params, &selected, plContext),
-                        "pkix_pl_LdapCertStore_CertQuery failed");
+                PKIX_CHECK(pkix_pl_LdapCertStore_MakeCertRequest
+                        (lcs->arena,
+                        lcs->messageID,
+                        params,
+                        &request,
+                        plContext),
+                        "pkix_pl_LdapCertStore_MakeCertRequest failed");
 
+                lcs->currentRequest = request;
+
+                PKIX_CHECK(pkix_pl_LdapCertStore_SendRequest
+                        (lcs, &responses, plContext),
+                        "pkix_pl_LdapCertStore_SendRequest failed");
         }
 
-        if (selected) {
-                PKIX_CHECK(PKIX_List_GetLength(selected, &numFound, plContext),
+        if (responses) {
+                /*
+                 * We have a List of LdapResponse objects that still have to be
+                 * turned into Certs.
+                 */
+                PKIX_CHECK(pkix_pl_LdapCertStore_BuildCertList
+                        (responses, &certList, plContext),
+                        "pkix_pl_LdapCertStore_BuildCertList failed");
+
+                PKIX_CHECK(PKIX_List_GetLength(certList, &numFound, plContext),
                         "PKIX_List_GetLength failed");
 
                 PKIX_CHECK(PKIX_List_Create(&filtered, plContext),
@@ -2899,28 +3077,33 @@ pkix_pl_LdapCertStore_GetCert(
 
                 for (i = 0; i < numFound; i++) {
                         PKIX_CHECK(PKIX_List_GetItem
-                                (selected,
+                                (certList,
                                 i,
                                 (PKIX_PL_Object **)&candidate,
                                 plContext),
                                 "PKIX_List_GetItem failed");
 
-#if 0
-                        errReturn = callback(selector, candidate, plContext);
-                        if (!errReturn) {
-#endif
-                                PKIX_CHECK(PKIX_List_AppendItem
+                        PKIX_CHECK_ONLY_FATAL(callback
+                                (selector, candidate, &match, plContext),
+                                "PKIX_CertSelector_MatchCallback failed");
+
+                        if ((!(PKIX_ERROR_RECEIVED)) && (match == PKIX_TRUE)) {
+                                PKIX_CHECK_ONLY_FATAL(PKIX_List_AppendItem
                                         (filtered,
                                         (PKIX_PL_Object *)candidate,
                                         plContext),
                                         "PKIX_List_AppendItem failed");
-#if 0
                         }
-                        PKIX_DECREF(errReturn);
-#endif
                         PKIX_DECREF(candidate);
                 }
+
+                PKIX_CHECK(PKIX_List_SetImmutable(filtered, plContext),
+                        "PKIX_List_SetImmutable failed");
+
         }
+
+        /* Don't throw away the list if one Cert was bad! */
+        pkixTempErrorReceived = PKIX_FALSE;
 
         *pCertList = filtered;
 
@@ -2929,9 +3112,9 @@ cleanup:
                 PKIX_DECREF(filtered);
         }
         PKIX_DECREF(candidate);
-        PKIX_DECREF(selected);
+        PKIX_DECREF(certList);
+        PKIX_DECREF(responses);
         PKIX_DECREF(params);
-        PKIX_DECREF(errReturn);
         PKIX_DECREF(lcs);
 
         PKIX_RETURN(CERTSTORE);
@@ -2952,21 +3135,31 @@ pkix_pl_LdapCertStore_GetCRL(
         PKIX_UInt32 numFound = 0;
         PKIX_Boolean pending = PKIX_FALSE;
         PKIX_PL_CRL *candidate = NULL;
-        PKIX_List *selected = NULL;
+        PKIX_List *responses = NULL;
+        PKIX_List *crlList = NULL;
         PKIX_List *filtered = NULL;
         PKIX_CRLSelector_MatchCallback callback = NULL;
         PKIX_ComCRLSelParams *params = NULL;
-        PKIX_Error *errReturn = NULL;
         PKIX_PL_LdapCertStoreContext *lcs = NULL;
+        PKIX_PL_LdapRequest *request = NULL;
 
         PKIX_ENTER(CERTSTORE, "pkix_pl_LdapCertStore_GetCRL");
         PKIX_NULLCHECK_THREE(store, selector, pCrlList);
 
         PKIX_CHECK(PKIX_CertStore_GetCertStoreContext
-                (store,
-                (PKIX_PL_Object **)&lcs,
-                plContext),
+                (store, (PKIX_PL_Object **)&lcs, plContext),
                 "PKIX_CertStore_GetCertStoreContext failed");
+
+        if (lcs->connectStatus == LDAP_CONNECT_PENDING) {
+
+                PKIX_CHECK(pkix_pl_LdapCertstore_Dispatch(lcs, plContext),
+                        "pkix_pl_LdapCertstore_Dispatch failed");
+
+                if (lcs->connectStatus == LDAP_CONNECT_PENDING) {
+                        *pCrlList = NULL;
+                        goto cleanup;
+                }
+        }
 
         PKIX_CHECK(pkix_pl_LdapCertStore_IsIOPending(lcs, &pending, plContext),
                 "pkix_pl_LdapCertStore_IsIOPending failed");
@@ -2976,6 +3169,16 @@ pkix_pl_LdapCertStore_GetCRL(
                 PKIX_CHECK(pkix_pl_LdapCertstore_Dispatch(lcs, plContext),
                         "pkix_pl_LdapCertstore_Dispatch failed");
 
+                if (lcs->entriesFound) {
+                        responses = lcs->entriesFound;
+                        PKIX_INCREF(responses);
+                        PKIX_DECREF(lcs->entriesFound);
+                        PKIX_DECREF(lcs->currentRequest);
+
+                        PKIX_CHECK(PKIX_CRLSelector_GetMatchCallback
+                                (selector, &callback, plContext),
+                                "PKIX_CRLSelector_GetMatchCallback failed");
+                }
         } else {
 
                 PKIX_CHECK(PKIX_CRLSelector_GetMatchCallback
@@ -2986,47 +3189,75 @@ pkix_pl_LdapCertStore_GetCRL(
                         (selector, &params, plContext),
                         "PKIX_CRLSelector_GetComCertSelParams failed");
 
-                PKIX_CHECK(pkix_pl_LdapCertStore_CrlQuery
-                        (lcs, params, &selected, plContext),
-                        "pkix_pl_LdapCertStore_CrlQuery failed");
-
-        }
-
-        if (selected) {
-                PKIX_CHECK(PKIX_List_GetLength(selected, &numFound, plContext),
-                        "PKIX_List_GetLength failed");
-        }
-
-        PKIX_CHECK(PKIX_List_Create(&filtered, plContext),
-                "PKIX_List_Create failed");
-
-        for (i = 0; i < numFound; i++) {
-                PKIX_CHECK(PKIX_List_GetItem
-                        (selected,
-                        i,
-                        (PKIX_PL_Object **)&candidate,
+                PKIX_CHECK(pkix_pl_LdapCertStore_MakeCrlRequest
+                        (lcs->arena,
+                        lcs->messageID,
+                        params,
+                        &request,
                         plContext),
-                        "PKIX_List_GetItem failed");
+                        "pkix_pl_LdapCertStore_MakeCrlRequest failed");
 
-                errReturn = callback(selector, candidate, plContext);
-                if (!errReturn) {
-                        PKIX_CHECK(PKIX_List_AppendItem
-                                (filtered,
-                                (PKIX_PL_Object *)candidate,
-                                plContext),
-                                "PKIX_List_AppendItem failed");
-                }
-                PKIX_DECREF(candidate);
-                PKIX_DECREF(errReturn);
+                lcs->currentRequest = request;
+
+                PKIX_CHECK(pkix_pl_LdapCertStore_SendRequest
+                        (lcs, &responses, plContext),
+                        "pkix_pl_LdapCertStore_SendRequest failed");
         }
+
+        if (responses) {
+                /*
+                 * We have a List of LdapResponse objects that still have to be
+                 * turned into Crls.
+                 */
+                PKIX_CHECK(pkix_pl_LdapCertStore_BuildCrlList
+                        (responses, &crlList, plContext),
+                        "pkix_pl_LdapCertStore_BuildCrlList failed");
+
+                PKIX_CHECK(PKIX_List_GetLength(crlList, &numFound, plContext),
+                        "PKIX_List_GetLength failed");
+
+                PKIX_CHECK(PKIX_List_Create(&filtered, plContext),
+                        "PKIX_List_Create failed");
+
+                for (i = 0; i < numFound; i++) {
+                        PKIX_CHECK(PKIX_List_GetItem
+                                (crlList,
+                                i,
+                                (PKIX_PL_Object **)&candidate,
+                                plContext),
+                                "PKIX_List_GetItem failed");
+
+                        PKIX_CHECK_ONLY_FATAL(callback(selector, candidate, plContext),
+                                "PKIX_CRLSelector_MatchCallback failed");
+                        if (!PKIX_ERROR_RECEIVED) {
+                                PKIX_CHECK_ONLY_FATAL(PKIX_List_AppendItem
+                                        (filtered,
+                                        (PKIX_PL_Object *)candidate,
+                                        plContext),
+                                        "PKIX_List_AppendItem failed");
+                        }
+                        PKIX_DECREF(candidate);
+                }
+
+                PKIX_CHECK(PKIX_List_SetImmutable(filtered, plContext),
+                        "PKIX_List_SetImmutable failed");
+
+        }
+
+        /* Don't throw away the list if one CRL was bad! */
+        pkixTempErrorReceived = PKIX_FALSE;
 
         *pCrlList = filtered;
 
 cleanup:
+        if (PKIX_ERROR_RECEIVED) {
+                PKIX_DECREF(filtered);
+        }
+
         PKIX_DECREF(candidate);
-        PKIX_DECREF(selected);
+        PKIX_DECREF(responses);
+        PKIX_DECREF(crlList);
         PKIX_DECREF(params);
-        PKIX_DECREF(errReturn);
         PKIX_DECREF(lcs);
 
         PKIX_RETURN(CERTSTORE);
@@ -3102,6 +3333,58 @@ cleanup:
 
         PKIX_DECREF(socket);
         PKIX_DECREF(ldapCertStoreContext);
+
+        PKIX_RETURN(CERTSTORE);
+}
+
+/*
+ * FUNCTION: PKIX_PL_LdapCertStore_AbandonRequest
+ */
+PKIX_Error *
+PKIX_PL_LdapCertStore_AbandonRequest(
+        PKIX_CertStore *store,
+        void *plContext)
+{
+        PKIX_Int32 bytesWritten = 0;
+        PKIX_PL_LdapCertStoreContext *lcs = NULL;
+        PKIX_PL_Socket_Callback *callbackList = NULL;
+        SECItem *encoded = NULL;
+
+        PKIX_ENTER(CERTSTORE, "PKIX_PL_LdapCertStore_AbandonRequest");
+        PKIX_NULLCHECK_ONE(store);
+
+        PKIX_CHECK(PKIX_CertStore_GetCertStoreContext
+                (store, (PKIX_PL_Object **)&lcs, plContext),
+                "PKIX_CertStore_GetCertStoreContext failed");
+
+        if (lcs->connectStatus == LDAP_RECV_PENDING) {
+                PKIX_CHECK(pkix_pl_LdapCertStore_MakeAbandon
+                        (lcs->arena, (lcs->messageID) - 1, &encoded, plContext),
+                        "pkix_pl_LdapCertStore_MakeAbandon failed");
+
+                callbackList = (PKIX_PL_Socket_Callback *)(lcs->callbackList);
+                PKIX_CHECK(callbackList->sendCallback
+                        (lcs->clientSocket,
+                        encoded->data,
+                        encoded->len,
+                        &bytesWritten,
+                        plContext),
+                        "pkix_pl_Socket_Send failed");
+
+                if (bytesWritten < 0) {
+                        lcs->connectStatus = LDAP_ABANDON_PENDING;
+                } else {
+                        lcs->connectStatus = LDAP_BOUND;
+                }
+        }
+
+        PKIX_DECREF(lcs->entriesFound);
+        PKIX_DECREF(lcs->currentRequest);
+        PKIX_DECREF(lcs->currentResponse);
+
+cleanup:
+
+        PKIX_DECREF(lcs);
 
         PKIX_RETURN(CERTSTORE);
 }
