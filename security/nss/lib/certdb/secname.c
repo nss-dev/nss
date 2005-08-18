@@ -67,8 +67,8 @@ CountArray(void **array)
     return count;
 }
 
-static void
-**AddToArray(PRArenaPool *arena, void **array, void *element)
+static void **
+AddToArray(PRArenaPool *arena, void **array, void *element)
 {
     unsigned count;
     void **ap;
@@ -96,35 +96,6 @@ static void
     return array;
 }
 
-#if 0
-static void
-**RemoveFromArray(void **array, void *element)
-{
-    unsigned count;
-    void **ap;
-    int slot;
-
-    /* Look for element */
-    ap = array;
-    if (ap) {
-	count = 1;			/* count the null at the end */
-	slot = -1;
-	for (; *ap; ap++, count++) {
-	    if (*ap == element) {
-		/* Found it */
-		slot = ap - array;
-	    }
-	}
-	if (slot >= 0) {
-	    /* Found it. Squish array down */
-	    PORT_Memmove((void*) (array + slot), (void*) (array + slot + 1),
-		       (count - slot - 1) * sizeof(void*));
-	    /* Don't bother reallocing the memory */
-	}
-    }
-    return array;
-}
-#endif /* 0 */
 
 SECOidTag
 CERT_GetAVATag(CERTAVA *ava)
@@ -217,6 +188,7 @@ SetupAVAValue(PRArenaPool *arena, int valueType, char *value, SECItem *it,
       case SEC_ASN1_PRINTABLE_STRING:
       case SEC_ASN1_IA5_STRING:
       case SEC_ASN1_T61_STRING:
+      case SEC_ASN1_UTF8_STRING: /* no conversion required */
 	valueLen = PORT_Strlen(value);
 	break;
       case SEC_ASN1_UNIVERSAL_STRING:
@@ -352,17 +324,27 @@ SECStatus
 CERT_CopyRDN(PRArenaPool *arena, CERTRDN *to, CERTRDN *from)
 {
     CERTAVA **avas, *fava, *tava;
-    SECStatus rv;
+    SECStatus rv = SECSuccess;
 
     /* Copy each ava from from */
     avas = from->avas;
-    while ((fava = *avas++) != 0) {
-	tava = CERT_CopyAVA(arena, fava);
-	if (!tava) return SECFailure;
-	rv = CERT_AddAVA(arena, to, tava);
-	if (rv) return rv;
+    if (avas) {
+	if (avas[0] == NULL) {
+	    rv = CERT_AddAVA(arena, to, NULL);
+	    return rv;
+	}
+	while ((fava = *avas++) != 0) {
+	    tava = CERT_CopyAVA(arena, fava);
+	    if (!tava) {
+	    	rv = SECFailure;
+		break;
+	    }
+	    rv = CERT_AddAVA(arena, to, tava);
+	    if (rv != SECSuccess) 
+	    	break;
+	}
     }
-    return SECSuccess;
+    return rv;
 }
 
 /************************************************************************/
@@ -453,24 +435,38 @@ SECStatus
 CERT_CopyName(PRArenaPool *arena, CERTName *to, CERTName *from)
 {
     CERTRDN **rdns, *frdn, *trdn;
-    SECStatus rv;
+    SECStatus rv = SECSuccess;
+
+    if (!to || !from) {
+	PORT_SetError(SEC_ERROR_INVALID_ARGS);
+	return SECFailure;
+    }
 
     CERT_DestroyName(to);
     to->arena = arena;
 
     /* Copy each rdn from from */
     rdns = from->rdns;
-    while ((frdn = *rdns++) != 0) {
-	trdn = CERT_CreateRDN(arena, 0);
-	if ( trdn == NULL ) {
-	    return(SECFailure);
+    if (rdns) {
+    	if (rdns[0] == NULL) {
+	    rv = CERT_AddRDN(to, NULL);
+	    return rv;
 	}
-	rv = CERT_CopyRDN(arena, trdn, frdn);
-	if (rv) return rv;
-	rv = CERT_AddRDN(to, trdn);
-	if (rv) return rv;
+	while ((frdn = *rdns++) != NULL) {
+	    trdn = CERT_CreateRDN(arena, 0);
+	    if (!trdn) {
+		rv = SECFailure;
+		break;
+	    }
+	    rv = CERT_CopyRDN(arena, trdn, frdn);
+	    if (rv != SECSuccess) 
+	        break;
+	    rv = CERT_AddRDN(to, trdn);
+	    if (rv != SECSuccess) 
+	        break;
+	}
     }
-    return SECSuccess;
+    return rv;
 }
 
 /************************************************************************/

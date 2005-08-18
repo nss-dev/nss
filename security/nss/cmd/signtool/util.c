@@ -284,10 +284,17 @@ void
 VerifyCertDir(char *dir, char *keyName)
 {
   char fn [FNSIZE];
+  PRStatus hasDB;
 
-  sprintf (fn, "%s/cert7.db", dir);
+  sprintf (fn, "%s/cert8.db", dir);
+  hasDB = PR_Access (fn, PR_ACCESS_EXISTS);
 
-  if (PR_Access (fn, PR_ACCESS_EXISTS))
+  if (hasDB == PR_FAILURE) {
+    sprintf (fn, "%s/cert7.db", dir);
+    hasDB = PR_Access (fn, PR_ACCESS_EXISTS);
+  }
+
+  if (hasDB == PR_FAILURE)
     {
     PR_fprintf(errorFD, "%s: No certificate database in \"%s\"\n", PROGRAM_NAME,
 		dir);

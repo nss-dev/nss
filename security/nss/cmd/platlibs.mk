@@ -110,6 +110,10 @@ EXTRA_LIBS += \
 	$(DIST)/lib/libdbm.$(LIB_SUFFIX) \
 	$(NULL)
 
+ifeq ($(OS_ARCH), SunOS) 
+EXTRA_SHARED_LIBS += -R '$$ORIGIN/../lib' -R '$$ORIGIN/..'
+endif
+
 ifeq ($(OS_ARCH), AIX) 
 EXTRA_SHARED_LIBS += -brtl 
 endif

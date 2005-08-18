@@ -1,0 +1,122 @@
+#
+# Copyright 2002 Sun Microsystems, Inc.  All rights reserved.
+# Use is subject to license terms.
+#
+#ident	"$Id$"
+#
+# This required package information file contains a list of package contents.
+# The 'pkgmk' command uses this file to identify the contents of a package
+# and their location on the development machine when building the package.
+# Can be created via a text editor or through use of the 'pkgproto' command.
+
+#!search <pathname pathname ...>	# where to find pkg objects
+#!include <filename>			# include another 'prototype' file
+#!default <mode> <owner> <group>	# default used if not specified on entry
+#!<param>=<value>			# puts parameter in pkg environment
+
+# packaging files
+i copyright
+i pkginfo
+i depend=pkgdepend
+#
+# source locations relative to the prototype file
+#
+# SUNWtlsdx
+#
+d none usr 0755 root sys
+d none usr/include 0755 root bin
+s none usr/include/mps/64=sparcv9
+d none usr/include/mps/sparcv9 0755 root bin
+f none usr/include/mps/sparcv9/base64.h 0644 root bin
+f none usr/include/mps/sparcv9/blapi.h 0644 root bin
+f none usr/include/mps/sparcv9/blapit.h 0644 root bin
+f none usr/include/mps/sparcv9/cert.h 0644 root bin
+f none usr/include/mps/sparcv9/certdb.h 0644 root bin
+f none usr/include/mps/sparcv9/certt.h 0644 root bin
+f none usr/include/mps/sparcv9/ciferfam.h 0644 root bin
+f none usr/include/mps/sparcv9/cmmf.h 0644 root bin
+f none usr/include/mps/sparcv9/cmmft.h 0644 root bin
+f none usr/include/mps/sparcv9/cms.h 0644 root bin
+f none usr/include/mps/sparcv9/cmsreclist.h 0644 root bin
+f none usr/include/mps/sparcv9/cmst.h 0644 root bin
+f none usr/include/mps/sparcv9/crmf.h 0644 root bin
+f none usr/include/mps/sparcv9/crmft.h 0644 root bin
+f none usr/include/mps/sparcv9/cryptohi.h 0644 root bin
+f none usr/include/mps/sparcv9/cryptoht.h 0644 root bin
+f none usr/include/mps/sparcv9/hasht.h 0644 root bin
+f none usr/include/mps/sparcv9/jar-ds.h 0644 root bin
+f none usr/include/mps/sparcv9/jar.h 0644 root bin
+f none usr/include/mps/sparcv9/jarfile.h 0644 root bin
+f none usr/include/mps/sparcv9/key.h 0644 root bin
+f none usr/include/mps/sparcv9/keydbt.h 0644 root bin
+f none usr/include/mps/sparcv9/keyhi.h 0644 root bin
+f none usr/include/mps/sparcv9/keylow.h 0644 root bin
+f none usr/include/mps/sparcv9/keyt.h 0644 root bin
+f none usr/include/mps/sparcv9/keytboth.h 0644 root bin
+f none usr/include/mps/sparcv9/keythi.h 0644 root bin
+f none usr/include/mps/sparcv9/keytlow.h 0644 root bin
+f none usr/include/mps/sparcv9/nss.h 0644 root bin
+f none usr/include/mps/sparcv9/nssb64.h 0644 root bin
+f none usr/include/mps/sparcv9/nssb64t.h 0644 root bin
+f none usr/include/mps/sparcv9/nssbase.h 0644 root bin
+f none usr/include/mps/sparcv9/nssbaset.h 0644 root bin
+f none usr/include/mps/sparcv9/nssckepv.h 0644 root bin
+f none usr/include/mps/sparcv9/nssckft.h 0644 root bin
+f none usr/include/mps/sparcv9/nssckfw.h 0644 root bin
+f none usr/include/mps/sparcv9/nssckfwc.h 0644 root bin
+f none usr/include/mps/sparcv9/nssckfwt.h 0644 root bin
+f none usr/include/mps/sparcv9/nssckg.h 0644 root bin
+f none usr/include/mps/sparcv9/nssckmdt.h 0644 root bin
+f none usr/include/mps/sparcv9/nssckp.h 0644 root bin
+f none usr/include/mps/sparcv9/nssckt.h 0644 root bin
+f none usr/include/mps/sparcv9/nsscku.h 0644 root bin
+f none usr/include/mps/sparcv9/nssilock.h 0644 root bin
+f none usr/include/mps/sparcv9/nsslocks.h 0644 root bin
+f none usr/include/mps/sparcv9/nssrwlk.h 0644 root bin
+f none usr/include/mps/sparcv9/nssrwlkt.h 0644 root bin
+f none usr/include/mps/sparcv9/ocsp.h 0644 root bin
+f none usr/include/mps/sparcv9/ocspt.h 0644 root bin
+f none usr/include/mps/sparcv9/p12.h 0644 root bin
+f none usr/include/mps/sparcv9/p12plcy.h 0644 root bin
+f none usr/include/mps/sparcv9/p12t.h 0644 root bin
+f none usr/include/mps/sparcv9/pk11func.h 0644 root bin
+f none usr/include/mps/sparcv9/pk11pqg.h 0644 root bin
+f none usr/include/mps/sparcv9/pk11sdr.h 0644 root bin
+f none usr/include/mps/sparcv9/pkcs11.h 0644 root bin
+f none usr/include/mps/sparcv9/pkcs11f.h 0644 root bin
+f none usr/include/mps/sparcv9/pkcs11p.h 0644 root bin
+f none usr/include/mps/sparcv9/pkcs11t.h 0644 root bin
+f none usr/include/mps/sparcv9/pkcs11u.h 0644 root bin
+f none usr/include/mps/sparcv9/pkcs12.h 0644 root bin
+f none usr/include/mps/sparcv9/pkcs12t.h 0644 root bin
+f none usr/include/mps/sparcv9/pkcs7t.h 0644 root bin
+f none usr/include/mps/sparcv9/portreg.h 0644 root bin
+f none usr/include/mps/sparcv9/pqgutil.h 0644 root bin
+f none usr/include/mps/sparcv9/preenc.h 0644 root bin
+f none usr/include/mps/sparcv9/secasn1.h 0644 root bin
+f none usr/include/mps/sparcv9/secasn1t.h 0644 root bin
+f none usr/include/mps/sparcv9/seccomon.h 0644 root bin
+f none usr/include/mps/sparcv9/secder.h 0644 root bin
+f none usr/include/mps/sparcv9/secdert.h 0644 root bin
+f none usr/include/mps/sparcv9/secdig.h 0644 root bin
+f none usr/include/mps/sparcv9/secdigt.h 0644 root bin
+f none usr/include/mps/sparcv9/secerr.h 0644 root bin
+f none usr/include/mps/sparcv9/sechash.h 0644 root bin
+f none usr/include/mps/sparcv9/secitem.h 0644 root bin
+f none usr/include/mps/sparcv9/secmime.h 0644 root bin
+f none usr/include/mps/sparcv9/secmod.h 0644 root bin
+f none usr/include/mps/sparcv9/secmodt.h 0644 root bin
+f none usr/include/mps/sparcv9/secoid.h 0644 root bin
+f none usr/include/mps/sparcv9/secoidt.h 0644 root bin
+f none usr/include/mps/sparcv9/secpkcs5.h 0644 root bin
+f none usr/include/mps/sparcv9/secpkcs7.h 0644 root bin
+f none usr/include/mps/sparcv9/secport.h 0644 root bin
+f none usr/include/mps/sparcv9/secrng.h 0644 root bin
+f none usr/include/mps/sparcv9/secrngt.h 0644 root bin
+f none usr/include/mps/sparcv9/smime.h 0644 root bin
+f none usr/include/mps/sparcv9/ssl.h 0644 root bin
+f none usr/include/mps/sparcv9/sslerr.h 0644 root bin
+f none usr/include/mps/sparcv9/sslproto.h 0644 root bin
+f none usr/include/mps/sparcv9/swfort.h 0644 root bin
+f none usr/include/mps/sparcv9/swfortt.h 0644 root bin
+f none usr/include/mps/sparcv9/watcomfx.h 0644 root bin

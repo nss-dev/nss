@@ -1457,10 +1457,10 @@ loser:
 static SECStatus
 ssl2_CreateSessionCypher(sslSocket *ss, sslSessionID *sid, PRBool isClient)
 {
-    sslSecurityInfo * sec;
+    sslSecurityInfo * sec = NULL;
     sslConnectInfo *  ci;
-    SECItem         * rk;
-    SECItem         * wk;
+    SECItem         * rk = NULL;
+    SECItem         * wk = NULL;
     SECItem *         param;
     SECStatus         rv;
     int               cipherType  = sid->u.ssl2.cipherType;
@@ -1495,7 +1495,7 @@ ssl2_CreateSessionCypher(sslSocket *ss, sslSessionID *sid, PRBool isClient)
 	SSL_DBG(("%d: SSL[%d]: ssl2_CreateSessionCypher: unknown cipher=%d",
 		 SSL_GETPID(), ss->fd, cipherType));
 	PORT_SetError(isClient ? SSL_ERROR_BAD_SERVER : SSL_ERROR_BAD_CLIENT);
-	goto loser;
+        goto sec_loser;
     }
 
     sec = ss->sec;
@@ -1580,8 +1580,12 @@ ssl2_CreateSessionCypher(sslSocket *ss, sslSessionID *sid, PRBool isClient)
     rv = SECFailure;
 
   done:
-    SECITEM_ZfreeItem(rk, PR_FALSE);
-    SECITEM_ZfreeItem(wk, PR_FALSE);
+    if (rk) {
+        SECITEM_ZfreeItem(rk, PR_FALSE);
+    }
+    if (wk) {
+        SECITEM_ZfreeItem(wk, PR_FALSE);
+    }
     return rv;
 }
 
@@ -1613,7 +1617,7 @@ ssl2_ServerSetupSessionCypher(sslSocket *ss, int cipher, unsigned int keyBits,
 			 PRUint8 *ek, unsigned int ekLen,
 			 PRUint8 *ca, unsigned int caLen)
 {
-    PRUint8           *kk;
+    PRUint8           *kk = NULL;
     sslSecurityInfo * sec;
     sslSessionID *    sid;
     PRUint8       *   kbuf = 0;	/* buffer for RSA decrypted data. */
@@ -1729,6 +1733,9 @@ hide_loser:
 	 * Instead, Generate a completely bogus master key .
 	 */
 	PK11_GenerateRandom(kbuf, ekLen);
+        if (!kk) {
+            kk = kbuf + ekLen - (keySize - ckLen);
+        }
     }
 
     /*
@@ -2545,7 +2552,7 @@ ssl2_HandleMessage(sslSocket *ss)
 
     case SSL_MT_REQUEST_CERTIFICATE:
 	len = gs->recordLen - 2;
-	if ((len != SSL_MIN_CHALLENGE_BYTES) ||
+	if ((len < SSL_MIN_CHALLENGE_BYTES) ||
 	    (len > SSL_MAX_CHALLENGE_BYTES)) {
 	    /* Bad challenge */
 	    SSL_DBG(("%d: SSL[%d]: bad cert request message: code len=%d",
@@ -2589,6 +2596,11 @@ ssl2_HandleMessage(sslSocket *ss)
 	    PORT_SetError(SSL_ERROR_UNSUPPORTED_CERTIFICATE_TYPE);
 	    goto loser;
 	}
+	if (certLen + responseLen + SSL_HL_CLIENT_CERTIFICATE_HBYTES 
+            > ss->gather->recordLen) {
+	    /* prevent overflow crash. */
+	    rv = SECFailure;
+	} else
 	rv = ssl2_HandleClientCertificate(ss, data[1],
 		data + SSL_HL_CLIENT_CERTIFICATE_HBYTES,
 		certLen,
@@ -2791,8 +2803,22 @@ ssl2_HandleServerHelloMessage(sslSocket *ss)
 	}
     }
 
-    /* Save connection-id for later */
-    PORT_Memcpy(ci->connectionID, cs + csLen, sizeof(ci->connectionID));
+    if ((SSL_HL_SERVER_HELLO_HBYTES + certLen + csLen + cidLen 
+                                                  > ss->gather->recordLen)
+	|| (csLen % 3) != 0   
+	/* || cidLen < SSL_CONNECTIONID_BYTES || cidLen > 32  */
+	) {
+	goto bad_server;
+    }
+
+    /* Save connection-id.
+    ** This code only saves the first 16 byte of the connectionID.
+    ** If the connectionID is shorter than 16 bytes, it is zero-padded.
+    */
+    if (cidLen < sizeof ci->connectionID)
+	memset(ci->connectionID, 0, sizeof ci->connectionID);
+    cidLen = PR_MIN(cidLen, sizeof ci->connectionID);
+    PORT_Memcpy(ci->connectionID, cs + csLen, cidLen);
 
     /* See if session-id hit */
     needed = CIS_HAVE_MASTER_KEY | CIS_HAVE_FINISHED | CIS_HAVE_VERIFY;
@@ -2948,7 +2974,7 @@ ssl2_BeginClientHandshake(sslSocket *ss)
     PRUint8           *localCipherSpecs = NULL;
     unsigned int      localCipherSize;
     unsigned int      i;
-    int               sendLen, sidLen;
+    int               sendLen, sidLen = 0;
     SECStatus         rv;
 
     PORT_Assert( ssl_Have1stHandshakeLock(ss) );
@@ -3480,7 +3506,11 @@ ssl2_HandleClientHelloMessage(sslSocket *ss)
     challenge    = sd + sdLen;
     PRINT_BUF(7, (ss, "server, client session-id value:", sd, sdLen));
 
-    if ((unsigned)gs->recordLen != 
+    if (!csLen || (csLen % 3) != 0 || 
+        (sdLen != 0 && sdLen != SSL_SESSIONID_BYTES) ||
+	challengeLen < SSL_MIN_CHALLENGE_BYTES || 
+	challengeLen > SSL_MAX_CHALLENGE_BYTES ||
+        (unsigned)ss->gather->recordLen != 
             SSL_HL_CLIENT_HELLO_HBYTES + csLen + sdLen + challengeLen) {
 	SSL_DBG(("%d: SSL[%d]: bad client hello message, len=%d should=%d",
 		 SSL_GETPID(), ss->fd, gs->recordLen,
@@ -3724,8 +3754,6 @@ NSSSSL_VersionCheck(const char *importedVersion)
      * not compatible with future major, minor, or
      * patch releases.
      */
-    int vmajor = 0, vminor = 0, vpatch = 0;
-    const char *ptr = importedVersion;
     volatile char c; /* force a reference that won't get optimized away */
 
     c = __nss_ssl_rcsid[0] + __nss_ssl_sccsid[0]; 

@@ -377,7 +377,8 @@ seckey_UpdateCertPQGChain(CERTCertificate * subjectCert, int count)
              (tag != SEC_OID_MISSI_DSS) &&               
              (tag != SEC_OID_ANSIX9_DSA_SIGNATURE) &&
              (tag != SEC_OID_ANSIX9_DSA_SIGNATURE_WITH_SHA1_DIGEST) &&
-             (tag != SEC_OID_BOGUS_DSA_SIGNATURE_WITH_SHA1_DIGEST) ) {
+             (tag != SEC_OID_BOGUS_DSA_SIGNATURE_WITH_SHA1_DIGEST) &&
+             (tag != SEC_OID_SDN702_DSA_SIGNATURE) ) {
             
             return SECSuccess;
         }
@@ -423,7 +424,8 @@ seckey_UpdateCertPQGChain(CERTCertificate * subjectCert, int count)
              (tag != SEC_OID_MISSI_DSS) &&               
              (tag != SEC_OID_ANSIX9_DSA_SIGNATURE) &&
              (tag != SEC_OID_ANSIX9_DSA_SIGNATURE_WITH_SHA1_DIGEST) &&
-             (tag != SEC_OID_BOGUS_DSA_SIGNATURE_WITH_SHA1_DIGEST) ) {
+             (tag != SEC_OID_BOGUS_DSA_SIGNATURE_WITH_SHA1_DIGEST) &&
+             (tag != SEC_OID_SDN702_DSA_SIGNATURE) ) {
             
             return SECFailure;
         }
@@ -865,6 +867,7 @@ seckey_ExtractPublicKey(CERTSubjectPublicKeyInfo *spki)
 	    return pubk;
 	break;
       case SEC_OID_ANSIX9_DSA_SIGNATURE:
+      case SEC_OID_SDN702_DSA_SIGNATURE:
 	pubk->keyType = dsaKey;
 	rv = SEC_ASN1DecodeItem(arena, pubk, SECKEY_DSAPublicKeyTemplate, &os);
 	if (rv != SECSuccess) break;
@@ -909,7 +912,7 @@ seckey_ExtractPublicKey(CERTSubjectPublicKeyInfo *spki)
 	if (rv == SECSuccess)
 	    return pubk;
 
-      break;
+        break;
 
       case SEC_OID_MISSI_ALT_KEA:
 	pubk->keyType = keaKey;
@@ -923,7 +926,7 @@ seckey_ExtractPublicKey(CERTSubjectPublicKeyInfo *spki)
 	if (rv == SECSuccess)
 	    return pubk;
 
-      break;
+        break;
 
 
       default:

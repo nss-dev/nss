@@ -240,6 +240,10 @@ RSA_FormatOneBlock(unsigned modulusLen, RSA_BlockType blockType,
 	 */
 	padLen = modulusLen - data->len - 3;
 	PORT_Assert (padLen >= RSA_BLOCK_MIN_PAD_LEN);
+	if (padLen < RSA_BLOCK_MIN_PAD_LEN) {
+	    PORT_Free(block);
+	    return NULL;
+	}
 	for (i = 0; i < padLen; i++) {
 	    /* Pad with non-zero random data. */
 	    do {
@@ -776,6 +780,8 @@ RSA_EncryptBlock(SECKEYLowPublicKey *key,
     SECItem       unformatted;
 
     formatted.data = NULL;
+    if (modulus_len == 0)
+	goto failure;
     if (max_output_len < modulus_len) 
     	goto failure;
     PORT_Assert(key->keyType == rsaKey);

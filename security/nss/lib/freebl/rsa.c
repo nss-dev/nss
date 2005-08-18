@@ -226,7 +226,9 @@ RSA_NewKey(int keySizeInBits, SECItem *publicExponent)
     RSAPrivateKey *key = NULL;
     PRArenaPool *arena = NULL;
     /* Require key size to be a multiple of 16 bits. */
-    if (!publicExponent || keySizeInBits % 16 != 0) {
+    if (!publicExponent || keySizeInBits % 16 != 0 || 
+	 keySizeInBits == 0 || publicExponent->len == 0 ||
+	 (publicExponent->len == 1 && publicExponent->data[0] == 1)) {
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
 	return NULL;
     }
@@ -759,11 +761,13 @@ swap_in_key_value(PRArenaPool *arena, mp_int *mpval, SECItem *buffer)
     if ((unsigned int)len <= buffer->len) {
 	/* The new value is no longer than the old buffer, so use it */
 	err = mp_to_unsigned_octets(mpval, buffer->data, len);
+	if (err >= 0) err = MP_OKAY;
 	buffer->len = len;
     } else if (arena) {
 	/* The new value is longer, but working within an arena */
 	(void)SECITEM_AllocItem(arena, buffer, len);
 	err = mp_to_unsigned_octets(mpval, buffer->data, len);
+	if (err >= 0) err = MP_OKAY;
     } else {
 	/* The new value is longer, no arena, can't handle this key */
 	return SECFailure;
@@ -810,6 +814,7 @@ RSA_PrivateKeyCheck(RSAPrivateKey *key)
 	/* mind the p's and q's (and d_p's and d_q's) */
 	SECItem tmp;
 	mp_exch(&p, &q);
+	mp_exch(&d_p,&d_q);
 	tmp = key->prime1;
 	key->prime1 = key->prime2;
 	key->prime2 = tmp;

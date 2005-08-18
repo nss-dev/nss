@@ -191,6 +191,8 @@ typedef struct sec_ASN1Template_struct {
 #define SEC_ASN1_SET_OF		(SEC_ASN1_GROUP | SEC_ASN1_SET)
 #define SEC_ASN1_ANY_CONTENTS	(SEC_ASN1_ANY | SEC_ASN1_INNER)
 
+/* Maximum depth of nested SEQUENCEs and SETs */
+#define SEC_ASN1D_MAX_DEPTH 32
 
 /*
 ** Function used for SEC_ASN1_DYNAMIC.

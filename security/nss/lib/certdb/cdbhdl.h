@@ -54,4 +54,8 @@ struct CERTCertDBHandleStr {
     PZMonitor *dbMon;
 };
 
+DB *
+dbsopen(const char *dbname, int flags, int mode, DBTYPE type,
+        const void *userData);
+
 #endif

@@ -61,6 +61,23 @@
 CERTCertificate *
 CERT_FindCertByDERCertNoLocking(CERTCertDBHandle *handle, SECItem *derCert);
 
+extern void nss_MD_map_system_error();
+
+static void map_dbm_error(int dbmrv)
+{
+    /* a return > 0 indicates the database operation succeeded, but
+     *  1) a record that should have been in the db wasn't (read)
+     *  2) a record that should not have been in the db was (write)
+     * this is a corruption of the db, and hence a SEC_ERROR
+     */
+    if (dbmrv > 0) {
+	PORT_SetError(SEC_ERROR_BAD_DATABASE);
+    } else {
+	/* otherwise, a system error occurred during a dbm operation */
+	nss_MD_map_system_error();
+    }
+}
+
 /*
  * the following functions are wrappers for the db library that implement
  * a global lock to make the database thread safe.
@@ -195,13 +212,13 @@ DeleteDBEntry(CERTCertDBHandle *handle, certDBEntryType type, SECItem *dbkey)
     /* delete entry from database */
     ret = certdb_Del(handle->permCertDB, &key, 0 );
     if ( ret != 0 ) {
-	PORT_SetError(SEC_ERROR_BAD_DATABASE);
+	map_dbm_error(ret);
 	goto loser;
     }
 
     ret = certdb_Sync(handle->permCertDB, 0);
     if ( ret ) {
-	PORT_SetError(SEC_ERROR_BAD_DATABASE);
+	map_dbm_error(ret);
 	goto loser;
     }
 
@@ -228,13 +245,13 @@ ReadDBEntry(CERTCertDBHandle *handle, certDBEntryCommon *entry,
     /* read entry from database */
     ret = certdb_Get(handle->permCertDB, &key, &data, 0 );
     if ( ret != 0 ) {
-	PORT_SetError(SEC_ERROR_BAD_DATABASE);
+	map_dbm_error(ret);
 	goto loser;
     }
     
     /* validate the entry */
     if ( data.size < SEC_DB_ENTRY_HEADER_LEN ) {
-	PORT_SetError(SEC_ERROR_BAD_DATABASE);
+	map_dbm_error(ret);
 	goto loser;
     }
     buf = (unsigned char *)data.data;
@@ -2904,12 +2921,12 @@ FindSubjectList(CERTCertDBHandle *handle, SECItem *subject, PRBool create)
 
     /* error accessing the database */
     if ( ret < 0 ) {
-	PORT_SetError(SEC_ERROR_BAD_DATABASE);
+	map_dbm_error(ret);
 	goto loser;
     }
 
     if ( ret == 0 ) {	/* found in temp database */
-	if ( tmpdata.size != sizeof(CERTCertificate *) ) {
+	if ( tmpdata.size != sizeof(CERTSubjectList *) ) {
 	    PORT_SetError(SEC_ERROR_BAD_DATABASE);
 	    goto loser;
 	}
@@ -2929,6 +2946,7 @@ FindSubjectList(CERTCertDBHandle *handle, SECItem *subject, PRBool create)
 		ret = certdb_Put(handle->tempCertDB, &namekey,
 				 &tmpdata, R_NOOVERWRITE);
 		if ( ret ) {
+		    map_dbm_error(ret);
 		    goto loser;
 		}
 	    }
@@ -4855,7 +4873,7 @@ CERT_OpenCertDB(CERTCertDBHandle *handle, PRBool readOnly,
         DBM_DEFAULT,    /* bucket size */
         DBM_DEFAULT,    /* fill factor */
         DBM_DEFAULT,    /* number of elements */
-        256 * 1024, 	/* bytes to cache */
+        1024 * 1024, 	/* bytes to cache */
         DBM_DEFAULT,    /* hash function */
         DBM_DEFAULT     /* byte order */
     };
@@ -4964,7 +4982,7 @@ SEC_AddTempNickname(CERTCertDBHandle *handle, char *nickname,
     ret = certdb_Put(handle->tempCertDB, &namekey, &keydata, R_NOOVERWRITE);
 
     if ( ret ) {
-	PORT_SetError(SEC_ERROR_BAD_DATABASE);
+	map_dbm_error(ret);
 	goto loser;
     }
 
@@ -5085,6 +5103,7 @@ NewTempCertificate(CERTCertDBHandle *handle, SECItem *derCert, char *nickname,
 	/* enter into the subject index */
 	rv = AddTempCertToSubjectList(cert);
 	if ( rv != SECSuccess ) {
+	    promoteError = PR_FALSE;
 	    goto loser;
 	}
 	/*
@@ -5111,6 +5130,8 @@ NewTempCertificate(CERTCertDBHandle *handle, SECItem *derCert, char *nickname,
     /* enter into main db */
     status = certdb_Put(handle->tempCertDB, &key, &data, R_NOOVERWRITE);
     if ( status ) {
+	map_dbm_error(status);
+	promoteError = PR_FALSE;
 	goto loser;
     }
 
@@ -5310,7 +5331,7 @@ FindCertByKey(CERTCertDBHandle *handle, SECItem *certKey, PRBool lockdb)
 
     /* error accessing the database */
     if ( ret < 0 ) {
-	PORT_SetError(SEC_ERROR_BAD_DATABASE);
+	map_dbm_error(ret);
 	goto loser;
     }
 
@@ -5493,7 +5514,7 @@ CERT_FindCertByNickname(CERTCertDBHandle *handle, char *nickname)
 
     /* error accessing the database */
     if ( ret < 0 ) {
-	PORT_SetError(SEC_ERROR_BAD_DATABASE);
+	map_dbm_error(ret);
 	goto loser;
     }
 
@@ -6296,6 +6317,7 @@ SEC_AddPermCrlToTemp(CERTCertDBHandle *handle, certDBEntryRevocation *entry)
     /* enter into main db */
     status = certdb_Put(handle->tempCertDB, &key, &data, R_NOOVERWRITE);
     if ( status ) {
+	map_dbm_error(status);
 	goto loser;
     }
 
@@ -6319,7 +6341,6 @@ loser:
 	PORT_FreeArena(arena, PR_FALSE);
     }
     
-    PORT_SetError(SEC_ERROR_BAD_DATABASE);
     return(0);
 }
 
@@ -6408,7 +6429,7 @@ SEC_FindCrlByKey(CERTCertDBHandle *handle, SECItem *crlKey, int type)
 
     /* error accessing the database */
     if ( ret < 0 ) {
-	PORT_SetError(SEC_ERROR_BAD_DATABASE);
+	map_dbm_error(ret);
 	goto loser;
     }
 

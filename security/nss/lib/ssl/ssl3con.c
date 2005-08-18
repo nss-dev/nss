@@ -93,11 +93,17 @@ static SECStatus Null_Cipher(void *ctx, unsigned char *output, int *outputLen,
  */
 static ssl3CipherSuiteCfg cipherSuites[ssl_V3_SUITES_IMPLEMENTED] = {
    /*      cipher_suite                         policy      enabled is_present*/
- { TLS_DHE_DSS_WITH_RC4_128_SHA,           SSL_NOT_ALLOWED, PR_FALSE,PR_FALSE},
- { SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA,      SSL_NOT_ALLOWED, PR_FALSE,PR_FALSE},
- { SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA,      SSL_NOT_ALLOWED, PR_FALSE,PR_FALSE},
+ { TLS_DHE_DSS_WITH_AES_256_CBC_SHA, 	   SSL_NOT_ALLOWED, PR_FALSE,PR_FALSE},
+ { TLS_DHE_RSA_WITH_AES_256_CBC_SHA, 	   SSL_NOT_ALLOWED, PR_FALSE,PR_FALSE},
+ { TLS_RSA_WITH_AES_256_CBC_SHA,     	   SSL_NOT_ALLOWED, PR_FALSE,PR_FALSE},
+ { TLS_DHE_DSS_WITH_AES_128_CBC_SHA, 	   SSL_NOT_ALLOWED, PR_FALSE,PR_FALSE},
+ { TLS_DHE_RSA_WITH_AES_128_CBC_SHA,       SSL_NOT_ALLOWED, PR_FALSE,PR_FALSE},
+ { TLS_DHE_DSS_WITH_RC4_128_SHA,           SSL_NOT_ALLOWED, PR_TRUE, PR_FALSE},
+ { SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA,      SSL_NOT_ALLOWED, PR_TRUE, PR_FALSE},
+ { SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA,      SSL_NOT_ALLOWED, PR_TRUE, PR_FALSE},
  { SSL_FORTEZZA_DMS_WITH_FORTEZZA_CBC_SHA, SSL_NOT_ALLOWED, PR_TRUE, PR_FALSE},
  { SSL_FORTEZZA_DMS_WITH_RC4_128_SHA,      SSL_NOT_ALLOWED, PR_TRUE, PR_FALSE},
+ { TLS_RSA_WITH_AES_128_CBC_SHA,     	   SSL_NOT_ALLOWED, PR_FALSE,PR_FALSE},
  { SSL_RSA_WITH_RC4_128_SHA,               SSL_NOT_ALLOWED, PR_FALSE,PR_FALSE},
  { SSL_RSA_WITH_RC4_128_MD5,               SSL_NOT_ALLOWED, PR_TRUE, PR_FALSE},
  { SSL_RSA_FIPS_WITH_3DES_EDE_CBC_SHA,     SSL_NOT_ALLOWED, PR_TRUE, PR_FALSE},
@@ -168,6 +174,8 @@ static const ssl3BulkCipherDef bulk_cipher_defs[] = {
     {cipher_des40,     calg_des,       8,  5, type_block,   8, 8, kg_export},
     {cipher_idea,      calg_idea,     16, 16, type_block,   8, 8, kg_strong},
     {cipher_fortezza,  calg_fortezza, 10, 10, type_block,  24, 8, kg_null},
+    {cipher_aes_128,   calg_aes,      16, 16, type_block,  16,16, kg_strong},
+    {cipher_aes_256,   calg_aes,      32, 32, type_block,  16,16, kg_strong},
     {cipher_missing,   calg_null,      0,  0, type_stream,  0, 0, kg_null},
 };
 
@@ -262,6 +270,22 @@ static const ssl3CipherSuiteDef cipher_suite_defs[] = {
                                   cipher_fortezza, mac_sha, kea_fortezza},
     {SSL_FORTEZZA_DMS_WITH_RC4_128_SHA, cipher_rc4, mac_sha, kea_fortezza},
 
+/* New TLS cipher suites */
+    {TLS_RSA_WITH_AES_128_CBC_SHA,     	cipher_aes_128, mac_sha, kea_rsa},
+    {TLS_DHE_DSS_WITH_AES_128_CBC_SHA, 	cipher_aes_128, mac_sha, kea_dhe_dss},
+    {TLS_DHE_RSA_WITH_AES_128_CBC_SHA, 	cipher_aes_128, mac_sha, kea_dhe_rsa},
+    {TLS_RSA_WITH_AES_256_CBC_SHA,     	cipher_aes_256, mac_sha, kea_rsa},
+    {TLS_DHE_DSS_WITH_AES_256_CBC_SHA, 	cipher_aes_256, mac_sha, kea_dhe_dss},
+    {TLS_DHE_RSA_WITH_AES_256_CBC_SHA, 	cipher_aes_256, mac_sha, kea_dhe_rsa},
+#if 0
+    {TLS_DH_DSS_WITH_AES_128_CBC_SHA,  	cipher_aes_128, mac_sha, kea_dh_dss},
+    {TLS_DH_RSA_WITH_AES_128_CBC_SHA,  	cipher_aes_128, mac_sha, kea_dh_rsa},
+    {TLS_DH_ANON_WITH_AES_128_CBC_SHA, 	cipher_aes_128, mac_sha, kea_dh_anon},
+    {TLS_DH_DSS_WITH_AES_256_CBC_SHA,  	cipher_aes_256, mac_sha, kea_dh_dss},
+    {TLS_DH_RSA_WITH_AES_256_CBC_SHA,  	cipher_aes_256, mac_sha, kea_dh_rsa},
+    {TLS_DH_ANON_WITH_AES_256_CBC_SHA, 	cipher_aes_256, mac_sha, kea_dh_anon},
+#endif
+
     {TLS_RSA_EXPORT1024_WITH_DES_CBC_SHA,
                                     cipher_des,    mac_sha,kea_rsa_export_1024},
     {TLS_RSA_EXPORT1024_WITH_RC4_56_SHA,
@@ -285,6 +309,8 @@ const char * const ssl3_cipherName[] = {
     "DES-CBC-40",
     "IDEA-CBC",
     "FORTEZZA",
+    "AES-128",
+    "AES-256",
     "missing"
 };
 
@@ -418,9 +444,9 @@ ssl3_config_match_init(sslSocket *ss)
 	    /* Mark the suites that are backed by real tokens, certs and keys */
 	    suite->isPresent = (PRBool)
 		(((exchKeyType == kt_null) ||
-		    (!isServer || (ss->serverKey[exchKeyType] &&
+                    ((!isServer || (ss->serverKey[exchKeyType] &&
 				   ss->serverCertChain[exchKeyType])) &&
-		    PK11_TokenExists(kea_alg_defs[exchKeyType])) &&
+                    PK11_TokenExists(kea_alg_defs[exchKeyType]))) &&
 		((cipher_alg == calg_null) || PK11_TokenExists(cipher_alg)));
 	    if (suite->isPresent)
 	    	++numPresent;
@@ -1845,7 +1871,7 @@ ssl3_HandleChangeCipherSpecs(sslSocket *ss, sslBuffer *buf)
     SSL_TRC(3, ("%d: SSL3[%d]: handle change_cipher_spec record",
 		SSL_GETPID(), ss->fd));
 
-    if (ws != wait_change_cipher && ws != wait_cert_verify) {
+    if (ws != wait_change_cipher) {
 	(void)SSL3_SendAlert(ss, alert_fatal, unexpected_message);
 	PORT_SetError(SSL_ERROR_RX_UNEXPECTED_CHANGE_CIPHER);
 	return SECFailure;
@@ -2366,6 +2392,10 @@ ssl3_ComputeHandshakeHashes(sslSocket *     ss,
     PORT_Assert( ssl_HaveSSL3HandshakeLock(ss) );
 
     isTLS = (PRBool)(spec->version > SSL_LIBRARY_VERSION_3_0);
+    if (!spec->master_secret) {
+        PORT_SetError(SSL_ERROR_RX_UNEXPECTED_HANDSHAKE);
+        return SECFailure;
+    }
 
     md5 = PK11_CloneContext(ssl3->hs.md5);
     if (md5 == NULL) {
@@ -2892,6 +2922,10 @@ ssl_UnwrapSymWrappingKey(
 	    PK11_PubUnwrapSymKey(svrPrivKey, &wrappedKey,
 				 masterWrapMech, CKA_UNWRAP, 0);
 	break;
+    default:
+        /* Assert? */
+        SET_ERROR_CODE
+        goto loser;
     }
 loser:
     return unwrappedWrappingKey;
@@ -2924,7 +2958,7 @@ getWrappingKey( sslSocket *       ss,
     SECKEYPublicKey *        svrPubKey             = NULL;
     PK11SymKey *             unwrappedWrappingKey  = NULL;
     PK11SymKey **            pSymWrapKey;
-    CK_MECHANISM_TYPE        asymWrapMechanism;
+    CK_MECHANISM_TYPE        asymWrapMechanism = CKM_INVALID_MECHANISM;
     int                      length;
     int                      symWrapMechIndex;
     SECStatus                rv;
@@ -3059,6 +3093,8 @@ no_wrapped_key:
 	ssl_MapLowLevelError(SSL_ERROR_CLIENT_KEY_EXCHANGE_FAILURE);
 	goto loser;
     }
+
+    PORT_Assert(asymWrapMechanism != CKM_INVALID_MECHANISM);
 
     wswk.symWrapMechanism  = masterWrapMech;
     wswk.symWrapMechIndex  = symWrapMechIndex;
@@ -3456,7 +3492,7 @@ loser:
 static SECStatus
 sendFortezzaClientKeyExchange(sslSocket * ss, SECKEYPublicKey * serverKey)
 {
-    ssl3CipherSpec *	pwSpec;
+    ssl3CipherSpec *    pwSpec = NULL;
     sslSessionID *	sid 		= ss->sec->ci.sid;
     PK11SlotInfo *	slot		= NULL;
     PK11SymKey *	pms 		= NULL;
@@ -7080,7 +7116,7 @@ ssl3_HandleHandshake(sslSocket *ss, sslBuffer *origBuf)
 	*buf = *origBuf;
     }
     while (buf->len > 0) {
-	while (ssl3->hs.header_bytes < 4) {
+	if (ssl3->hs.header_bytes < 4) {
 	    uint8 t;
 	    t = *(buf->buf++);
 	    buf->len--;
@@ -7088,21 +7124,22 @@ ssl3_HandleHandshake(sslSocket *ss, sslBuffer *origBuf)
 		ssl3->hs.msg_type = (SSL3HandshakeType)t;
 	    else
 		ssl3->hs.msg_len = (ssl3->hs.msg_len << 8) + t;
+	    if (ssl3->hs.header_bytes < 4)
+	    	continue;
 
 #define MAX_HANDSHAKE_MSG_LEN 0x1ffff	/* 128k - 1 */
-
-	    if (ssl3->hs.header_bytes == 4) {
-		if (ssl3->hs.msg_len > MAX_HANDSHAKE_MSG_LEN) {
-		    (void)ssl3_DecodeError(ss);
-		    PORT_SetError(SSL_ERROR_RX_RECORD_TOO_LONG);
-		    return SECFailure;
-		}
+	    if (ssl3->hs.msg_len > MAX_HANDSHAKE_MSG_LEN) {
+		(void)ssl3_DecodeError(ss);
+		PORT_SetError(SSL_ERROR_RX_RECORD_TOO_LONG);
+		return SECFailure;
 	    }
 #undef MAX_HANDSHAKE_MSG_LEN
-	    if (buf->len == 0 && ssl3->hs.msg_len > 0) {
-		buf->buf = NULL;
-		return SECSuccess;
-	    }
+
+	    /* If msg_len is zero, be sure we fall through, 
+	    ** even if  bug->len is zero. 
+	    */
+	    if (ssl3->hs.msg_len > 0) 
+	    	continue;
 	}
 
 	/*
@@ -7131,23 +7168,22 @@ ssl3_HandleHandshake(sslSocket *ss, sslBuffer *origBuf)
 	    /* must be copied to msg_body and dealt with from there */
 	    unsigned int bytes;
 
-	    bytes = PR_MIN(buf->len, ssl3->hs.msg_len);
+	    PORT_Assert(ssl3->hs.msg_body.len <= ssl3->hs.msg_len);
+	    bytes = PR_MIN(buf->len, ssl3->hs.msg_len - ssl3->hs.msg_body.len);
 
 	    /* Grow the buffer if needed */
-	    if (bytes > ssl3->hs.msg_body.space - ssl3->hs.msg_body.len) {
-		rv = sslBuffer_Grow(&ssl3->hs.msg_body,
-		                  ssl3->hs.msg_body.len + bytes);
-		if (rv != SECSuccess) {
-		    /* sslBuffer_Grow has set a memory error code. */
-		    return SECFailure;
-	    	}
+	    rv = sslBuffer_Grow(&ssl3->hs.msg_body, ssl3->hs.msg_len);
+	    if (rv != SECSuccess) {
+		/* sslBuffer_Grow has set a memory error code. */
+		return SECFailure;
 	    }
+
 	    PORT_Memcpy(ssl3->hs.msg_body.buf + ssl3->hs.msg_body.len,
-		      buf->buf, buf->len);
+		        buf->buf, bytes);
+	    ssl3->hs.msg_body.len += bytes;
 	    buf->buf += bytes;
 	    buf->len -= bytes;
 
-	    /* should not be more than one message in msg_body */
 	    PORT_Assert(ssl3->hs.msg_body.len <= ssl3->hs.msg_len);
 
 	    /* if we have a whole message, do it */
