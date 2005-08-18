@@ -307,10 +307,7 @@ pkix_pl_Socket_SetNonBlocking(
         sockOptionData.option = PR_SockOpt_Nonblocking;
         sockOptionData.value.non_blocking = PR_TRUE;
 
-        PKIX_PL_NSSCALLRV
-                (SOCKET,
-                rv,
-                fileDesc->methods->setsocketoption,
+        PKIX_PL_NSSCALLRV(SOCKET, rv, fileDesc->methods->setsocketoption,
                 (fileDesc, &sockOptionData));
 
         if (rv != PR_SUCCESS) {
@@ -414,6 +411,7 @@ pkix_pl_Socket_CreateServer(
 #endif
         PRStatus rv = PR_FAILURE;
         PRFileDesc *serverSock = NULL;
+        PRSocketOptionData sockOptionData;
 
         PKIX_ENTER(SOCKET, "pkix_pl_Socket_CreateServer");
         PKIX_NULLCHECK_ONE(socket);
@@ -433,6 +431,21 @@ pkix_pl_Socket_CreateServer(
         printf("Created socket, PRFileDesc @  %#X\n", serverSock);
 #endif
 
+        if (socket->timeout == 0) {
+                PKIX_CHECK(pkix_pl_Socket_SetNonBlocking(serverSock, plContext),
+                        "pkix_pl_Socket_SetNonBlocking failed");
+        }
+
+        sockOptionData.option = PR_SockOpt_Reuseaddr;
+        sockOptionData.value.reuse_addr = PR_TRUE;
+
+        PKIX_PL_NSSCALLRV(SOCKET, rv, serverSock->methods->setsocketoption,
+                (serverSock, &sockOptionData));
+
+        if (rv != PR_SUCCESS) {
+                PKIX_ERROR("Unable to set socket to non-blocking I/O");
+        }
+
         PKIX_PL_NSSCALLRV(SOCKET, rv, PR_Bind, (serverSock, socket->netAddr));
 
         if (rv == PR_FAILURE) {
@@ -451,10 +464,6 @@ pkix_pl_Socket_CreateServer(
 
         socket->serverSock = serverSock;
         socket->status = SOCKET_BOUND;
-        if (socket->timeout == 0) {
-                PKIX_CHECK(pkix_pl_Socket_SetNonBlocking(serverSock, plContext),
-                        "pkix_pl_Socket_SetNonBlocking failed");
-        }
 
 cleanup:
 
@@ -1165,8 +1174,7 @@ pkix_pl_Socket_Accept(
 
         if (serverSocket->timeout == 0) {
                 PKIX_CHECK(pkix_pl_Socket_SetNonBlocking
-                        (rendezvousSock,
-                        plContext),
+                        (rendezvousSock, plContext),
                         "pkix_pl_Socket_SetNonBlocking failed");
         }
 
