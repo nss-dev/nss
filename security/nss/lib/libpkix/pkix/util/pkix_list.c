@@ -740,6 +740,65 @@ cleanup:
 }
 
 /*
+ * FUNCTION: pkix_List_RemoveItems
+ * DESCRIPTION:
+ *
+ *  Traverses the List pointed to by "list", to find and delete an entry
+ *  that is equal to the Object in the "deleteList". If no such entry
+ *  is found the function does not return an error.
+ *
+ * PARAMETERS:
+ *  "list"
+ *      List to be searched; may be empty; must be non-NULL
+ *  "deleteList"
+ *      Object in "deleteList" is checked for in "list" and deleted if found;
+ *      may be empty; must be non-NULL
+ *  "plContext"
+ *      platform-specific context pointer
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds
+ *  Returns a Validate Error if the functions fails in a non-fatal way
+ *  Returns a Fatal Error if the function fails in an unrecoverable way
+ */
+PKIX_Error *
+pkix_List_RemoveItems(
+        PKIX_List *list,
+        PKIX_List *deleteList,
+        void *plContext)
+{
+        PKIX_PL_Object *current = NULL;
+        PKIX_UInt32 numEntries = 0;
+        PKIX_UInt32 index = 0;
+
+        PKIX_ENTER(LIST, "pkix_List_RemoveItems");
+        PKIX_NULLCHECK_TWO(list, deleteList);
+
+        PKIX_CHECK(PKIX_List_GetLength(list, &numEntries, plContext),
+                "PKIX_List_GetLength failed");
+
+        for (index = 0; index < numEntries; index++) {
+                PKIX_CHECK(PKIX_List_GetItem
+                        (list, index, &current, plContext),
+                        "PKIX_List_GetItem failed");
+
+                if (current) {
+                        PKIX_CHECK(pkix_List_Remove
+                                (deleteList, current, plContext),
+                                "PKIX_PL_Object_Equals failed");
+
+                        PKIX_DECREF(current);
+                }
+        }
+
+cleanup:
+
+        PKIX_DECREF(current);
+        PKIX_RETURN(LIST);
+}
+
+/*
  * FUNCTION: pkix_List_MergeLists
  * DESCRIPTION:
  *

@@ -66,6 +66,7 @@ struct PKIX_ForwardBuilderStateStruct{
         PKIX_List *anchors;
         PKIX_UInt32 numAnchors;
         PKIX_CertChainChecker *crlCheckerEnabled;
+        PKIX_List *userCheckers;
 };
 
 /* --Private-Functions-------------------------------------------- */

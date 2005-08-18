@@ -88,6 +88,12 @@ pkix_List_AppendList(
         PKIX_List *fromList,
         void *plContext);
 
+PKIX_Error *
+pkix_List_RemoveItems(
+        PKIX_List *list,
+        PKIX_List *deleteList,
+        void *plContext);
+
 #ifdef __cplusplus
 }
 #endif

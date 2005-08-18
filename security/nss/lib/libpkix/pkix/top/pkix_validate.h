@@ -54,6 +54,7 @@ pkix_CheckChain(
         PKIX_List *certs,
         PKIX_UInt32 numCerts,
         PKIX_List *checkers,
+        PKIX_List *buildCheckedExtOIDs,
         PKIX_PL_PublicKey **pFinalSubjPubKey,
         PKIX_PolicyNode **pPolicyTree,
         void *plContext);

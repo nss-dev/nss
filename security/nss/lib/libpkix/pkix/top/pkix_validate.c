@@ -61,6 +61,10 @@
  *  "checkers"
  *      List of CertChainCheckers which must each validate the certificate.
  *      Must be non-NULL.
+ *  "checkedExtOIDs"
+ *      List of PKIX_PL_OID that has been processed. If called from building
+ *      chain, it is the list of critical extension OIDs taht has been
+ *      processed prior to validation. May be NULL.
  *  "plContext"
  *      Platform-specific context pointer.
  * THREAD SAFETY:
@@ -74,6 +78,7 @@ static PKIX_Error *
 pkix_CheckCert(
         PKIX_PL_Cert *cert,
         PKIX_List *checkers,
+        PKIX_List *checkedExtOIDsList,
         void *plContext)
 {
         PKIX_CertChainChecker_CheckCallback checkerCheck = NULL;
@@ -114,10 +119,6 @@ pkix_CheckCert(
 
         if (unresCritExtOIDs){
 
-                PKIX_CHECK(PKIX_List_GetLength
-                        (unresCritExtOIDs, &numUnresCritExtOIDs, plContext),
-                        "PKIX_List_GetLength failed");
-
 #ifdef PKIX_VALIDATEDEBUG
                 {
                         PKIX_PL_String *oidString = NULL;
@@ -139,11 +140,22 @@ pkix_CheckCert(
                 }
 #endif
 
-#ifdef CRITICAL_EXT_WORK_CHECK_FOR_BUILD_IS_IN
+                if (checkedExtOIDsList != NULL) {
+                 /* Take out OID's that had been processed, if any */
+                        PKIX_CHECK(pkix_List_RemoveItems
+			    (checkedExtOIDsList,
+                            unresCritExtOIDs,
+                            plContext),
+                            "pkix_List_RemoveFromList");
+                }
+
+                PKIX_CHECK(PKIX_List_GetLength
+                        (unresCritExtOIDs, &numUnresCritExtOIDs, plContext),
+                        "PKIX_List_GetLength failed");
+
                 if (numUnresCritExtOIDs != 0){
                         PKIX_ERROR("Unrecognized Critical Extension");
                 }
-#endif
 
         }
 
@@ -489,22 +501,27 @@ pkix_RetrieveOutputs(
                             (checker, &state, plContext),
                             "PKIX_CertChainChecker_GetCertChainCheckerState "
                             "failed");
-                PKIX_CHECK(PKIX_PL_Object_GetType(state, &type, plContext),
+
+                /* user defined checker may have no state */
+                if (state != NULL) {
+
+                    PKIX_CHECK(PKIX_PL_Object_GetType(state, &type, plContext),
                             "PKIX_PL_Object_GetType failed");
 
-                if (type == PKIX_SIGNATURECHECKERSTATE_TYPE){
+                    if (type == PKIX_SIGNATURECHECKERSTATE_TYPE){
                         /* final pubKey will include any inherited DSA params */
                         finalSubjPubKey =
                             ((pkix_SignatureCheckerState *)state)->
                                 prevPublicKey;
                         PKIX_INCREF(finalSubjPubKey);
                         *pFinalSubjPubKey = finalSubjPubKey;
-                }
+                    }
 
-                if (type == PKIX_POLICYCHECKERSTATE_TYPE) {
+                    if (type == PKIX_POLICYCHECKERSTATE_TYPE) {
                         validPolicyTree =
                             ((PKIX_PolicyCheckerState *)state)->validPolicyTree;
                         break;
+                    }
                 }
 
                 PKIX_DECREF(checker);
@@ -545,6 +562,10 @@ cleanup:
  *  "checkers"
  *      List of CertChainCheckers which must each validate the List of
  *      certificates. Must be non-NULL.
+ *  "buildCheckedExtOIDs"
+ *      List of PKIX_PL_OID that has been processed. If called from building
+ *      chain, it is the list of critical extension OIDs taht has been
+ *      processed prior to validation. May be NULL.
  *  "pFinalSubjPubKey"
  *      Address where the final public key will be stored. Must be non-NULL.
  *  "pPolicyTree"
@@ -563,6 +584,7 @@ pkix_CheckChain(
         PKIX_List *certs,
         PKIX_UInt32 numCerts,
         PKIX_List *checkers,
+        PKIX_List *buildCheckedExtOIDs,
         PKIX_PL_PublicKey **pFinalSubjPubKey,
         PKIX_PolicyNode **pPolicyTree,
         void *plContext)
@@ -584,7 +606,11 @@ pkix_CheckChain(
                                 ("Validation failed: NULL Cert pointer");
                 }
 
-                PKIX_CHECK(pkix_CheckCert(cert, checkers, plContext),
+                PKIX_CHECK(pkix_CheckCert
+                        (cert,
+                        checkers,
+                        buildCheckedExtOIDs,
+                        plContext),
                         "pkix_CheckCert failed");
 
                 PKIX_DECREF(cert);
@@ -743,6 +769,7 @@ PKIX_ValidateChain(
                         (certs,
                         numCerts,
                         checkers,
+                        NULL,
                         &finalPubKey,
                         &validPolicyTree,
                         plContext);

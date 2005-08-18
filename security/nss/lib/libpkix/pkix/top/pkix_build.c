@@ -43,6 +43,20 @@
 
 #include "pkix_build.h"
 
+/*
+ * List of critical extension OIDs associate with what build chain has
+ * checked. Those OIDs need to be removed from the unresolved critical
+ * extension OIDs list manually (instead of by checker automatically).
+ */  
+static char *buildCheckedCritExtOIDs[] = {
+        PKIX_CERTKEYUSAGE_OID,
+        PKIX_CERTSUBJALTNAME_OID,
+        PKIX_BASICCONSTRAINTS_OID,
+        PKIX_NAMECONSTRAINTS_OID,
+        PKIX_EXTENDEDKEYUSAGE_OID,
+        NULL
+};
+
 /* --Private-ForwardBuilderState-Functions---------------------------------- */
 
 /*
@@ -74,6 +88,7 @@ pkix_ForwardBuilderState_Destroy(
         PKIX_DECREF(state->certStores);
         PKIX_DECREF(state->anchors);
         PKIX_DECREF(state->crlCheckerEnabled);
+        PKIX_DECREF(state->userCheckers);
 
         state->numCertStores = 0;
         state->numAnchors = 0;
@@ -120,6 +135,8 @@ cleanup:
  *      Number of TrustAnchors specified by caller.
  *  "crlCheckerEnabled"
  *      Address of CertChainChecker representing enabled crlChecker, if any.
+ *  "userCheckers"
+ *      Address of List of user defined checkers.
  *  "pState"
  *      Address where ForwardBuilderState will be stored. Must be non-NULL.
  *  "plContext"
@@ -147,6 +164,7 @@ pkix_ForwardBuilderState_Create(
         PKIX_List *anchors,
         PKIX_UInt32 numAnchors,
         PKIX_CertChainChecker *crlCheckerEnabled,
+        PKIX_List *userCheckers,
         PKIX_ForwardBuilderState **pState,
         void *plContext)
 {
@@ -198,6 +216,9 @@ pkix_ForwardBuilderState_Create(
         PKIX_INCREF(crlCheckerEnabled);
         state->crlCheckerEnabled = crlCheckerEnabled;
 
+        PKIX_INCREF(userCheckers);
+        state->userCheckers = userCheckers;
+
         *pState = state;
 
 cleanup:
@@ -246,6 +267,7 @@ pkix_ForwardBuilderState_Duplicate(
                     state->anchors,
                     state->numAnchors,
                     state->crlCheckerEnabled,
+                    state->userCheckers,
                     &stateDuplicate,
                     plContext),
                     "PKIX_ForwardBuilderState_Create failed");
@@ -937,6 +959,7 @@ pkix_ValidateEntireChain(
 {
         PKIX_List *checkers = NULL;
         PKIX_List *initPolicies = NULL;
+        PKIX_List *buildCheckedCritExtOIDsList = NULL;
         PKIX_PL_Cert *trustedCert = NULL;
         PKIX_PL_PublicKey *trustedPubKey = NULL;
         PKIX_PL_PublicKey *finalSubjPubKey = NULL;
@@ -944,8 +967,13 @@ pkix_ValidateEntireChain(
         PKIX_CertChainChecker *sigChecker = NULL;
         PKIX_CertChainChecker *crlCheckerEnabled = NULL;
         PKIX_CertChainChecker *policyChecker = NULL;
+        PKIX_CertChainChecker *userChecker = NULL;
         PKIX_List *reversedCerts = NULL;
+        PKIX_List *userCheckersList = NULL;
+        PKIX_PL_OID *oid = NULL;
         PKIX_UInt32 numChainCerts;
+        PKIX_UInt32 numCertCheckers;
+        PKIX_UInt32 i;
 
         PKIX_ENTER(BUILD, "pkix_ValidateEntireChain");
         PKIX_NULLCHECK_THREE(state, certs, anchor);
@@ -981,6 +1009,56 @@ pkix_ValidateEntireChain(
                     (checkers, (PKIX_PL_Object *)policyChecker, plContext),
                     "PKIX_List_AppendItem failed");
 #endif
+
+        /*
+         * Create an OID list that contains critical extensions
+         * processed by BuildChain.
+         */
+        PKIX_CHECK(PKIX_List_Create
+            (&buildCheckedCritExtOIDsList, plContext),
+            "PKIX_List_Create failed");
+
+        i = 0;
+        while (buildCheckedCritExtOIDs[i] != NULL) {
+                PKIX_CHECK(PKIX_PL_OID_Create
+                    (buildCheckedCritExtOIDs[i],
+                    &oid,
+                    plContext),
+                   "PKIX_PL_OID_Create failed");
+
+                PKIX_CHECK(PKIX_List_AppendItem
+                    (buildCheckedCritExtOIDsList,
+                    (PKIX_PL_Object *) oid,
+                    plContext),
+                    "PKIX_List_AppendItem failed");
+ 
+                i++;
+        }
+
+        if (state->userCheckers != NULL) {
+
+                PKIX_CHECK(PKIX_List_GetLength
+                    (state->userCheckers, &numCertCheckers, plContext),
+                    "PKIX_List_GetLength failed");
+
+                for (i = 0; i < numCertCheckers; i++) {
+
+                        PKIX_CHECK(PKIX_List_GetItem
+                            (state->userCheckers,
+                            i,
+                            (PKIX_PL_Object **) &userChecker,
+                            plContext),
+                            "PKIX_List_GetItem failed");
+
+                        PKIX_CHECK(PKIX_List_AppendItem
+                            (checkers,
+                            (PKIX_PL_Object *)userChecker,
+                            plContext),
+                            "PKIX_List_AppendItem failed");
+
+                        PKIX_DECREF(userChecker);
+                }
+        }
 
         if ((state->dsaParamsNeeded) || (state->revCheckDelayed)){
 
@@ -1034,6 +1112,7 @@ pkix_ValidateEntireChain(
                     (reversedCerts,
                     numChainCerts,
                     checkers,
+                    buildCheckedCritExtOIDsList,
                     &finalSubjPubKey,
                     &finalPolicyTree,
                     plContext),
@@ -1051,12 +1130,15 @@ cleanup:
 
         PKIX_DECREF(checkers);
         PKIX_DECREF(initPolicies);
+        PKIX_DECREF(buildCheckedCritExtOIDsList);
         PKIX_DECREF(trustedCert);
         PKIX_DECREF(trustedPubKey);
         PKIX_DECREF(sigChecker);
         PKIX_DECREF(crlCheckerEnabled);
         PKIX_DECREF(policyChecker);
         PKIX_DECREF(reversedCerts);
+        PKIX_DECREF(userChecker);
+        PKIX_DECREF(userCheckersList);
 
         PKIX_RETURN(BUILD);
 }
@@ -1238,7 +1320,7 @@ pkix_BuildForwardDepthFirstSearch(
                             plContext),
                             "pkix_IsChainCompleted failed");
 
-                if (matchingAnchor){ /* chainCompleted */
+                if (matchingAnchor){
                         PKIX_CHECK_ONLY_FATAL
                                 (pkix_ValidateEntireChain
                                 (nextState,
@@ -1344,6 +1426,7 @@ pkix_InitializeBuilderState(
         PKIX_ComCertSelParams *targetParams = NULL;
         PKIX_List *anchors = NULL;
         PKIX_List *certStores = NULL;
+        PKIX_List *userCheckers = NULL;
         PKIX_UInt32 numAnchors, numCertStores;
         PKIX_PL_Cert *targetCert = NULL;
         PKIX_PL_PublicKey *targetPubKey = NULL;
@@ -1414,6 +1497,10 @@ pkix_InitializeBuilderState(
         PKIX_CHECK(PKIX_List_GetLength(certStores, &numCertStores, plContext),
                     "PKIX_List_GetLength failed");
 
+        PKIX_CHECK(PKIX_ProcessingParams_GetCertChainCheckers
+                    (procParams, &userCheckers, plContext),
+                    "PKIX_ProcessingParams_GetCertChainCheckers");
+
         if (isCrlEnabled) {
                 if (numCertStores > 0) {
                         PKIX_CHECK(pkix_DefaultCRLChecker_Initialize
@@ -1444,6 +1531,7 @@ pkix_InitializeBuilderState(
                     anchors,
                     numAnchors,
                     defaultCrlChecker,
+                    userCheckers,
                     &state,
                     plContext),
                     "pkix_ForwardBuilderState_Create failed");
@@ -1467,6 +1555,7 @@ cleanup:
         PKIX_DECREF(targetSubjNames);
         PKIX_DECREF(targetPubKey);
         PKIX_DECREF(defaultCrlChecker);
+        PKIX_DECREF(userCheckers);
 
         PKIX_RETURN(BUILD);
 }
