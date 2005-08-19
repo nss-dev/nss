@@ -87,7 +87,6 @@ ALL_TRASH :=    $(TARGETS) $(OBJS) $(OBJDIR) LOGS TAGS $(GARBAGE) \
 else
 # This is a recursive build.  We're the child make. We build the shared lib.
 
-TARGETS	     = $(SHARED_LIBRARY)
 LIBRARY      =
 PROGRAM      =
 
