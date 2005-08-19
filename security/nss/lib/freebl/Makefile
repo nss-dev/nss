@@ -66,8 +66,6 @@ GCC_OPTIMIZER = -O3  -mno-omit-leaf-frame-pointer -fno-omit-frame-pointer
 # unset this on those that have multiple libraries
 FREEBL_BUILD_SINGLE_SHLIB=1
 
-DEFINES += -DSHLIB_VERSION=\"$(LIBRARY_VERSION)\"
-
 ifdef USE_64
     DEFINES += -DNSS_USE_64
 endif

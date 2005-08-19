@@ -295,7 +295,7 @@ bl_UnloadLibrary(BLLibrary *lib)
 #include "stdio.h"
 #include "prsystem.h"
 
-const char* softoken=SHLIB_PREFIX"softokn"SHLIB_VERSION"."SHLIB_SUFFIX;
+const char* softoken=SHLIB_PREFIX"softokn"SOFTOKEN_SHLIB_VERSION"."SHLIB_SUFFIX;
 
 typedef struct {
     PRLibrary *dlh;
@@ -305,7 +305,6 @@ static BLLibrary *
 bl_LoadLibrary(const char *name)
 {
     BLLibrary *lib = NULL;
-    PRLibrary* loadinglib;
     PRFuncPtr fn_addr;
     char* softokenPath = NULL;
     char* fullName = NULL;
