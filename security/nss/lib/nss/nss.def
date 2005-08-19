@@ -1019,6 +1019,7 @@ PKIX_PL_HashTable_Create;
 PKIX_PL_HashTable_Lookup;
 PKIX_PL_HashTable_Remove;
 PKIX_PL_Initialize;
+PKIX_PL_LdapCertStore_AbandonRequest;
 PKIX_PL_LdapCertStore_Create;
 pkix_pl_LdapResponse_Create;
 PKIX_PL_Malloc;

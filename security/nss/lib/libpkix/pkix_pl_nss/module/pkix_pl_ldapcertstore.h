@@ -51,13 +51,31 @@
 extern "C" {
 #endif
 
+/*
+ * At the time of this version, there are unresolved questions about the LDAP
+ * protocol. Although RFC1777 describes a BIND and UNBIND message, it is not
+ * clear whether they are appropriate to this application. We have tested only
+ * using servers that do not expect authentication, and that reject BIND
+ * messages. It is not clear what values might be appropriate for the bindname
+ * and authentication fields, which are currently implemented as char strings
+ * supplied by the caller. (If this changes, the API and possibly the templates
+ * will have to change.) Therefore the code to BIND and UNBIND is inhibited
+ * unless the conditional PROTOCOL_INCLUDES_BIND is defined in pkix_pl_ldapt.h.
+ *
+ * It is further assumed that a given LdapCertStore will connect only to a
+ * single server, and that the creation of the socket will initiate the
+ * CONNECT. Therefore the LdapCertStore handles only the case of continuing
+ * the connection, if nonblocking I/O is being used.
+ */
+
 typedef enum {
-        LDAP_NOT_CONNECTED,
         LDAP_CONNECT_PENDING,
+#ifdef PROTOCOL_INCLUDES_BIND
         LDAP_CONNECTED,
         LDAP_BIND_PENDING,
         LDAP_BIND_RESPONSE,
         LDAP_BIND_RESPONSE_PENDING,
+#endif
         LDAP_BOUND,
         LDAP_SEND_PENDING,
         LDAP_RECV,
