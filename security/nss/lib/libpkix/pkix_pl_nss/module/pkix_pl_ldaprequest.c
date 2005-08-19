@@ -44,16 +44,92 @@
 /* --Private-LdapRequest-Functions------------------------------------- */
 
 /* Note: lengths do not include the NULL terminator */
-static unsigned char caAttr[] = "caCertificate;binary";
+static const char caAttr[] = "caCertificate;binary";
 static unsigned int caAttrLen = sizeof(caAttr) - 1;
-static unsigned char uAttr[] = "userCertificate;binary";
+static const char uAttr[] = "userCertificate;binary";
 static unsigned int uAttrLen = sizeof(uAttr) - 1;
-static unsigned char ccpAttr[] = "crossCertificatePair;binary";
+static const char ccpAttr[] = "crossCertificatePair;binary";
 static unsigned int ccpAttrLen = sizeof(ccpAttr) - 1;
-static unsigned char crlAttr[] = "certificateRevocationList;binary";
+static const char crlAttr[] = "certificateRevocationList;binary";
 static unsigned int crlAttrLen = sizeof(crlAttr) - 1;
-static unsigned char arlAttr[] = "authorityRevocationList;binary";
+static const char arlAttr[] = "authorityRevocationList;binary";
 static unsigned int arlAttrLen = sizeof(arlAttr) - 1;
+
+/*
+ * FUNCTION: pkix_pl_LdapRequest_AttrTypeToBit
+ * DESCRIPTION:
+ *
+ *  This function creates an attribute mask bit corresponding to the SECItem
+ *  pointed to by "attrType", storing the result at "pAttrBit". The comparison
+ *  is case-insensitive. If "attrType" does not match any of the known types,
+ *  zero is stored at "pAttrBit".
+ *
+ * PARAMETERS
+ *  "attrType"
+ *      The address of the SECItem whose string contents are to be compared to
+ *      the various known attribute types. Must be non-NULL.
+ *  "pAttrBit"
+ *      The address where the result is stored. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns an LdapRequest Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+pkix_pl_LdapRequest_AttrTypeToBit(
+        SECItem *attrType,
+        LdapAttrMask *pAttrBit,
+        void *plContext)
+{
+        LdapAttrMask attrBit = 0;
+        unsigned int attrLen = 0;
+        const char *s = NULL;
+
+        PKIX_ENTER(LDAPREQUEST, "pkix_pl_LdapRequest_AttrTypeToBit");
+        PKIX_NULLCHECK_TWO(attrType, pAttrBit);
+
+        s = (const char *)attrType->data;
+        attrLen = attrType->len;
+
+        /*
+         * Taking note of the fact that all of the comparand strings are
+         * different lengths, we do a slight optimization. If a string
+         * length matches but the string does not match, we skip comparing
+         * to the other strings. If new strings are added to the comparand
+         * list, and any are of equal length, be careful to change the
+         * grouping of tests accordingly.
+         */
+        if (attrLen == caAttrLen) {
+                if (PORT_Strncasecmp(caAttr, s, attrLen) == 0) {
+                        attrBit = LDAPATTR_CACERT;
+                }
+        } else if (attrLen == uAttrLen) {
+                if (PORT_Strncasecmp(uAttr, s, attrLen) == 0) {
+                        attrBit = LDAPATTR_USERCERT;
+                }
+        } else if (attrLen == ccpAttrLen) {
+                if (PORT_Strncasecmp(ccpAttr, s, attrLen) == 0) {
+                        attrBit = LDAPATTR_CROSSPAIRCERT;
+                }
+        } else if (attrLen == crlAttrLen) {
+                if (PORT_Strncasecmp(crlAttr, s, attrLen) == 0) {
+                        attrBit = LDAPATTR_CERTREVLIST;
+                }
+        } else if (attrLen == arlAttrLen) {
+                if (PORT_Strncasecmp(arlAttr, s, attrLen) == 0) {
+                        attrBit = LDAPATTR_AUTHREVLIST;
+                }
+        }
+
+        *pAttrBit = attrBit;
+cleanup:
+
+        PKIX_RETURN(LDAPREQUEST);
+}
 
 /*
  * FUNCTION: pkix_pl_LdapRequest_EncodeAttrs
@@ -75,9 +151,6 @@ static unsigned int arlAttrLen = sizeof(arlAttr) - 1;
  *  Returns NULL if the function succeeds.
  *  Returns an LdapRequest Error if the function fails in a non-fatal way.
  *  Returns a Fatal Error if the function fails in an unrecoverable way.
- *  "plContext"
- *      Platform-specific context pointer.
- * XXX need Docs
  */
 static PKIX_Error *
 pkix_pl_LdapRequest_EncodeAttrs(
@@ -86,7 +159,7 @@ pkix_pl_LdapRequest_EncodeAttrs(
 {
         SECItem **attrArray = NULL;
         PKIX_UInt32 attrIndex = 0;
-        LdapAttrIncludeMask attrBits;
+        LdapAttrMask attrBits;
 
         PKIX_ENTER(LDAPREQUEST, "pkix_pl_LdapRequest_EncodeAttrs");
         PKIX_NULLCHECK_ONE(request);
@@ -94,47 +167,44 @@ pkix_pl_LdapRequest_EncodeAttrs(
         /* construct "attrs" according to bits in request->attrBits */
         attrBits = request->attrBits;
         attrArray = request->attrArray;
-        if ((attrBits & LDAPATTR_INCLUDE_CACERTS) ==
-                 LDAPATTR_INCLUDE_CACERTS) {
+        if ((attrBits & LDAPATTR_CACERT) == LDAPATTR_CACERT) {
                 attrArray[attrIndex] = &(request->attributes[attrIndex]);
                 request->attributes[attrIndex].type = siAsciiString;
-                request->attributes[attrIndex].data = caAttr;
+                request->attributes[attrIndex].data = (unsigned char *)caAttr;
                 request->attributes[attrIndex].len = caAttrLen;
                 attrIndex++;
         }
-        if ((attrBits & LDAPATTR_INCLUDE_USERCERTS) ==
-                 LDAPATTR_INCLUDE_USERCERTS) {
+        if ((attrBits & LDAPATTR_USERCERT) == LDAPATTR_USERCERT) {
                 attrArray[attrIndex] = &(request->attributes[attrIndex]);
                 request->attributes[attrIndex].type = siAsciiString;
-                request->attributes[attrIndex].data = uAttr;
+                request->attributes[attrIndex].data = (unsigned char *)uAttr;
                 request->attributes[attrIndex].len = uAttrLen;
                 attrIndex++;
         }
-        if ((attrBits & LDAPATTR_INCLUDE_CROSSPAIRCERTS) ==
-                 LDAPATTR_INCLUDE_CROSSPAIRCERTS) {
+        if ((attrBits & LDAPATTR_CROSSPAIRCERT) == LDAPATTR_CROSSPAIRCERT) {
                 attrArray[attrIndex] = &(request->attributes[attrIndex]);
                 request->attributes[attrIndex].type = siAsciiString;
-                request->attributes[attrIndex].data = ccpAttr;
+                request->attributes[attrIndex].data = (unsigned char *)ccpAttr;
                 request->attributes[attrIndex].len = ccpAttrLen;
                 attrIndex++;
         }
-        if ((attrBits & LDAPATTR_INCLUDE_CERTREVLIST) ==
-                 LDAPATTR_INCLUDE_CERTREVLIST) {
+        if ((attrBits & LDAPATTR_CERTREVLIST) == LDAPATTR_CERTREVLIST) {
                 attrArray[attrIndex] = &(request->attributes[attrIndex]);
                 request->attributes[attrIndex].type = siAsciiString;
-                request->attributes[attrIndex].data = crlAttr;
+                request->attributes[attrIndex].data = (unsigned char *)crlAttr;
                 request->attributes[attrIndex].len = crlAttrLen;
                 attrIndex++;
         }
-        if ((attrBits & LDAPATTR_INCLUDE_AUTHREVLIST) ==
-                 LDAPATTR_INCLUDE_AUTHREVLIST) {
+        if ((attrBits & LDAPATTR_AUTHREVLIST) == LDAPATTR_AUTHREVLIST) {
                 attrArray[attrIndex] = &(request->attributes[attrIndex]);
                 request->attributes[attrIndex].type = siAsciiString;
-                request->attributes[attrIndex].data = arlAttr;
+                request->attributes[attrIndex].data = (unsigned char *)arlAttr;
                 request->attributes[attrIndex].len = arlAttrLen;
                 attrIndex++;
         }
         attrArray[attrIndex] = (SECItem *)NULL;
+
+cleanup:
 
         PKIX_RETURN(LDAPREQUEST);
 }
@@ -416,8 +486,8 @@ pkix_pl_LdapRequest_RegisterSelf(void *plContext)
  *      The address of the SECItem to be used for the filter component of the
  *      LDAP SearchRequest message
  *  "attrBits"
- *      The LdapAttrIncludeMask bits indicating the attributes to be included
- *      in the attributes sequence of the LDAP SearchRequest message
+ *      The LdapAttrMask bits indicating the attributes to be included in the
+ *      attributes sequence of the LDAP SearchRequest message
  *  "pRequestMsg"
  *      The address at which the address of the LdapRequest is stored. Must
  *      be non-NULL.
@@ -507,7 +577,7 @@ pkix_pl_LdapRequest_Create(
         PKIX_UInt32 timeLimit,
         char attrsOnly,
         LDAPFilter *filter,
-        LdapAttrIncludeMask attrBits,
+        LdapAttrMask attrBits,
         PKIX_PL_LdapRequest **pRequestMsg,
         void *plContext)
 {

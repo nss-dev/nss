@@ -72,7 +72,11 @@ static const SEC_ASN1Template LDAPBindApplTemplate[] = {
     { SEC_ASN1_SEQUENCE, 0, NULL },
     { SEC_ASN1_INTEGER, offsetof(LDAPBind, version) },
     { SEC_ASN1_LDAP_STRING, offsetof(LDAPBind, bindName) },
+#ifdef PROTOCOL_INCLUDES_BIND
+    { SEC_ASN1_INLINE, offsetof(LDAPBind, authentication), LDAPBindAuthTemplate },
+#else
     { SEC_ASN1_LDAP_STRING, offsetof(LDAPBind, authentication) },
+#endif
     { 0 }
 };
 
@@ -328,7 +332,7 @@ static const SEC_ASN1Template LDAPSearchTemplate[] = {
  */
 
 static const SEC_ASN1Template LDAPSearchResponseAttrTemplate[] = {
-    { SEC_ASN1_SEQUENCE, 0, NULL },
+    { SEC_ASN1_SEQUENCE, 0, NULL, sizeof(LDAPSearchResponseAttr) },
     { SEC_ASN1_LDAP_STRING, offsetof(LDAPSearchResponseAttr, attrType) },
     { SEC_ASN1_SET_OF, offsetof(LDAPSearchResponseAttr, val), LDAPStringTemplate },
     { 0 }

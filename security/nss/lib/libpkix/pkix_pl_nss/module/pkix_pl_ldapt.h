@@ -51,15 +51,17 @@ extern const SEC_ASN1Template PKIX_PL_LDAPMessageTemplate[];
 
 /* ********************************************************************** */
 
+/* #define PROTOCOL_INCLUDES_BIND 1 */
+
 #define SEC_ASN1_LDAP_STRING SEC_ASN1_OCTET_STRING
 
-#define LDAPATTR_INCLUDE_CACERTS        (1<<0)
-#define LDAPATTR_INCLUDE_USERCERTS      (1<<1)
-#define LDAPATTR_INCLUDE_CROSSPAIRCERTS (1<<2)
-#define LDAPATTR_INCLUDE_CERTREVLIST    (1<<3)
-#define LDAPATTR_INCLUDE_AUTHREVLIST    (1<<4)
+#define LDAPATTR_CACERT         (1<<0)
+#define LDAPATTR_USERCERT       (1<<1)
+#define LDAPATTR_CROSSPAIRCERT  (1<<2)
+#define LDAPATTR_CERTREVLIST    (1<<3)
+#define LDAPATTR_AUTHREVLIST    (1<<4)
 #define MAX_LDAPATTRS                   5
-typedef PKIX_UInt32 LdapAttrIncludeMask;
+typedef PKIX_UInt32 LdapAttrMask;
 
 typedef enum {
         SIMPLE_AUTH                     = 0,
@@ -176,10 +178,11 @@ struct LDAPBindAuthStruct {
 struct LDAPBindStruct {
         SECItem version;
         SECItem bindName;
-#if 0
+#ifdef PROTOCOL_INCLUDES_BIND
         LDAPBindAuth authentication;
-#endif
+#else
         SECItem authentication;
+#endif
 };
 
 struct LDAPResultStruct {
