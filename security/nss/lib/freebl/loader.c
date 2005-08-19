@@ -45,7 +45,7 @@
 #include "prinit.h"
 
 static const char* default_name =
-    DSO_PREFIX"freebl"DSO_VERSION"."DSO_SUFFIX;
+    SHLIB_PREFIX"freebl"SHLIB_VERSION"."SHLIB_SUFFIX;
 
 /* getLibName() returns the name of the library to load. */
 
@@ -293,8 +293,9 @@ bl_UnloadLibrary(BLLibrary *lib)
 #include "prio.h"
 #include "prprf.h"
 #include "stdio.h"
+#include "prsystem.h"
 
-const char* softoken=DSO_PREFIX"softokn"DSO_VERSION"."DSO_SUFFIX;
+const char* softoken=SHLIB_PREFIX"softokn"SHLIB_VERSION"."SHLIB_SUFFIX;
 
 typedef struct {
     PRLibrary *dlh;
@@ -318,15 +319,17 @@ bl_LoadLibrary(const char *name)
     }
 
     /* Get the pathname for the loaded libsoftokn, i.e. /usr/lib/libsoftokn.so */
-    fn_addr = PR_FindFunctionSymbolAndLibrary("NSC_GetFunctionList" , &loadinglib);
     /* PR_GetLibraryFilePathname works with either the base library name or a
        function pointer, depending on the platform. So call it even if fn_addr
-       is NULL. */
+       is NULL. We can't query a well-known symbol such as NSC_GetFunctionList,
+       because even C function names get mangled by the compiler on some
+       platforms (OS/2). But we can just get the address of this function ! */
+    fn_addr = (PRFuncPtr) &bl_LoadLibrary;
     softokenPath = PR_GetLibraryFilePathname(softoken, fn_addr);
 
     /* Remove "libsoftokn" from the pathname and add the freebl libname */
     if (softokenPath) {
-       char* c = strrchr(softokenPath, '/');
+       char* c = strrchr(softokenPath, PR_GetDirectorySeparator());
        if (c) {
            size_t softoknPathSize = 1+c - softokenPath;
            fullName = (char*) PORT_ZAlloc(strlen(name) + softoknPathSize + 2);
@@ -338,7 +341,7 @@ bl_LoadLibrary(const char *name)
     }
     if (fullName) {
 #ifdef DEBUG_LOADER
-        PR_fprintf(PR_STDOUT, "\nAttempting to load %s\n", fullName);
+        PR_fprintf(PR_STDOUT, "\nAttempting to load fully-qualified %s\n", fullName);
 #endif
         libSpec.value.pathname = fullName;
         lib->dlh = PR_LoadLibraryWithFlags(libSpec, PR_LD_NOW | PR_LD_LOCAL);
