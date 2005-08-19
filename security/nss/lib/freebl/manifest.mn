@@ -66,10 +66,10 @@ ifndef LIBRARY_NAME
   LIBRARY_NAME = freebl
 endif
 
-$(LIBRARY_NAME).def: freebl.def
-	cp freebl.def $(LIBRARY_NAME).def
+$(LIBRARY_NAME).def: ../../freebl.def
+	cp ../../freebl.def $(LIBRARY_NAME).def
 
-MAPFILE = $(OBJDIR)/freebl.def
+MAPFILE = $(OBJDIR)/$(LIBRARY_NAME).def
 
 # same version as rest of NSS
 LIBRARY_VERSION = _3
