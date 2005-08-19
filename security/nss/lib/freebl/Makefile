@@ -417,9 +417,7 @@ ifndef FREEBL_CHILD_BUILD
 
 CDDIR := $(shell pwd)
 FILES2LN = \
- $(wildcard *.tab) \
- $(wildcard mapfile.*) \
- Makefile manifest.mn config.mk freebl.def
+ Makefile manifest.mn config.mk
 
 ifdef FREEBL_BUILD_SINGLE_SHLIB
 
@@ -430,7 +428,6 @@ ALL_TRASH += $(SINGLE_SHLIB_DIR)
 
 $(SINGLE_SHLIB_DIR):
 	-mkdir $(SINGLE_SHLIB_DIR)
-	-$(LN_S) $(CDDIR)/mpi $(SINGLE_SHLIB_DIR)
 
 $(SINGLE_SHLIB_FILES) : $(SINGLE_SHLIB_DIR)/% : % 
 	$(LN_S) $(CDDIR)/$* $(SINGLE_SHLIB_DIR)
