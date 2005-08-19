@@ -210,7 +210,6 @@ endif
 endif
 endif
 
-# Note: -xarch=v8 or v9 is now done in coreconf
 ifeq ($(OS_TARGET),SunOS)
 
 # The -R '$ORIGIN' linker option instructs this library to search for its
@@ -226,6 +225,11 @@ else
   MKSHLIB += -B symbolic -z defs -z now -z text
 endif # NS_USE_GCC
 
+# Sun's WorkShop defines v8, v8plus and v9 architectures.
+# gcc on Solaris defines v8 and v9 "cpus".  
+# gcc's v9 is equivalent to Workshop's v8plus.
+# gcc's -m64 is equivalent to Workshop's v9
+# We always use Sun's assembler and linker, which use Sun's naming convention.
 ifeq ($(CPU_ARCH),sparc)
     FREEBL_BUILD_SINGLE_SHLIB=
     ifdef USE_64
@@ -236,52 +240,88 @@ ifeq ($(CPU_ARCH),sparc)
         HAVE_ABI32_FPU=1
         HAVE_ABI32_INT64=1
     endif
-    ifndef NS_USE_GCC
-	ifdef USE_ABI32_FPU
-	    OS_CFLAGS += -xchip=ultra2
-	endif # USE_ABI32_FPU
-    endif # NS_USE_GCC
     SYSV_SPARC=1
     SOLARIS_AS = /usr/ccs/bin/as
+    #### set arch, asm, c flags
+    ifdef NS_USE_GCC
+	ifdef USE_ABI32_INT32
+	    # default ARCHFLAG=-mcpu=v8 set by coreconf/sunOS5.mk
+	endif
+	ifdef USE_ABI32_INT64
+	    ARCHFLAG=-mcpu=v9 -Wa,-xarch=v8plus
+	endif
+	ifdef USE_ABI32_FPU
+	    ARCHFLAG=-mcpu=v9 -Wa,-xarch=v8plus
+	endif # USE_ABI32_FPU
+	ifdef USE_64
+	    #ARCHFLAG=-m64 set by coreconf/sunOS5.mk
+	endif
+    else # NS_USE_GCC
+	ifdef USE_ABI32_INT32
+	    #ARCHFLAG=-xarch=v8 set in coreconf/sunOS5.mk
+	endif
+	ifdef USE_ABI32_INT64
+	    # this builds for Sparc v8+a ABI32_FPU architecture, 64-bit registers, 
+	    # 32-bit ABI, it uses 64-bit words, integer arithmetic, no FPU
+	    SOL_CFLAGS += -fast -xO5 -xrestrict=%all -xchip=ultra
+	    ARCHFLAG = -xarch=v8plusa
+	    SOLARIS_AS_FLAGS = -xarch=v8plusa -K PIC
+	endif
+	ifdef USE_ABI32_FPU
+	    # this builds for Sparc v8+a ABI32_FPU architecture, 64-bit registers, 
+	    # 32-bit ABI, it uses FPU code, and 32-bit word size
+	    SOL_CFLAGS += -fast -xO5 -xrestrict=%all -xchip=ultra
+	    ARCHFLAG = -xarch=v8plusa
+	    SOLARIS_AS_FLAGS = -xarch=v8plusa -K PIC
+	endif
+	ifdef USE_ABI64_INT
+	    # this builds for Sparc v9a pure 64-bit architecture
+	    SOL_CFLAGS += -fast -xO5 -xrestrict=%all -xchip=ultra
+	    SOL_CFLAGS += -mt
+	    ARCHFLAG = -xarch=v9a
+	    SOLARIS_AS_FLAGS = -xarch=v9a -K PIC
+	endif
+	ifdef USE_ABI64_FPU
+	    # this builds for Sparc v9a pure 64-bit architecture
+	    # It uses floating point, and 32-bit word size
+	    SOL_CFLAGS += -fast -xO5 -xrestrict=%all -xchip=ultra
+	    SOL_CFLAGS += -mt
+	    ARCHFLAG = -xarch=v9a
+	    SOLARIS_AS_FLAGS = -xarch=v9a -K PIC
+	endif
+    endif # NS_USE_GCC
+
+    ### set MP_ flags for both GCC and Sun cc
     ifdef USE_ABI32_INT32
 	# this builds for Sparc v8 pure 32-bit architecture
 	DEFINES += -DMP_ASSEMBLY_MULTIPLY
 	ASFILES  = mpv_sparcv8x.s
-	DEFINES += -DMP_NO_MP_WORD -DMP_USE_UINT_DIGIT 
 	DEFINES += -DSHA_NO_LONG_LONG # avoid 64-bit arithmetic in SHA512
     endif
     ifdef USE_ABI32_INT64
 	# this builds for Sparc v8+a ABI32_FPU architecture, 64-bit registers, 
 	# 32-bit ABI, it uses 64-bit words, integer arithmetic, no FPU
-	DEFINES  += -DMP_NO_MP_WORD 
-	SOLARIS_AS_FLAGS = -xarch=v8plusa -K PIC
+	# best times are with no MP_ flags specified
     endif
     ifdef USE_ABI32_FPU
 	# this builds for Sparc v8+a ABI32_FPU architecture, 64-bit registers, 
 	# 32-bit ABI, it uses FPU code, and 32-bit word size
 	MPI_SRCS += mpi_sparc.c
 	ASFILES  = mpv_sparcv8.s montmulfv8.s
-	DEFINES  += -DMP_ASSEMBLY_MULTIPLY -DMP_USING_MONT_MULF 
-	DEFINES  += -DMP_NO_MP_WORD  -DMP_USE_UINT_DIGIT
-	SOLARIS_AS_FLAGS = -xarch=v8plusa -K PIC
+	DEFINES  += -DMP_NO_MP_WORD -DMP_USE_UINT_DIGIT -DMP_ASSEMBLY_MULTIPLY
+	DEFINES  += -DMP_USING_MONT_MULF -DMP_MONT_USE_MP_MUL
     endif
     ifdef USE_ABI64_INT
 	# this builds for Sparc v9a pure 64-bit architecture
-	DEFINES  += -DMP_NO_MP_WORD 
-	SOLARIS_FLAGS  = -fast -xO5 -xrestrict=%all -xchip=ultra -xarch=v9a
-	SOLARIS_FLAGS += -KPIC -mt
-	SOLARIS_AS_FLAGS = -xarch=v9a -K PIC
+	# best times are with no MP_ flags specified
     endif
     ifdef USE_ABI64_FPU
 	# this builds for Sparc v9a pure 64-bit architecture
 	# It uses floating point, and 32-bit word size
 	MPI_SRCS += mpi_sparc.c
 	ASFILES   = mpv_sparcv9.s montmulfv9.s
-	DEFINES  += -DMP_ASSEMBLY_MULTIPLY -DMP_USING_MONT_MULF
-	DEFINES  += -DMP_USE_UINT_DIGIT 
-	SOLARIS_FLAGS  = -fast -xO5 -xrestrict=%all -xchip=ultra -xarch=v9a
-	SOLARIS_FLAGS += -KPIC -mt
-	SOLARIS_AS_FLAGS = -xarch=v9a -K PIC
+	DEFINES  += -DMP_NO_MP_WORD -DMP_USE_UINT_DIGIT -DMP_ASSEMBLY_MULTIPLY
+	DEFINES  += -DMP_USING_MONT_MULF -DMP_MONT_USE_MP_MUL
     endif
 
     ifdef NSS_ENABLE_ECC
