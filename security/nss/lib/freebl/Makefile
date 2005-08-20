@@ -292,7 +292,7 @@ ifeq ($(CPU_ARCH),sparc)
     ### set MP_ flags for both GCC and Sun cc
     ifdef USE_ABI32_INT32
 	# this builds for Sparc v8 pure 32-bit architecture
-	DEFINES += -DMP_ASSEMBLY_MULTIPLY
+	DEFINES += -DMP_USE_UINT_DIGIT -DMP_ASSEMBLY_MULTIPLY
 	ASFILES  = mpv_sparcv8x.s
 	DEFINES += -DSHA_NO_LONG_LONG # avoid 64-bit arithmetic in SHA512
     endif
