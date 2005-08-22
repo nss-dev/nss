@@ -749,10 +749,10 @@ cleanup:
  *
  * PARAMETERS:
  *  "list"
- *      List to be searched; may be empty; must be non-NULL
+ *      Object in "list" is checked for object in "deleteList" and deleted if
+ *      found; may be empty; must be non-NULL
  *  "deleteList"
- *      Object in "deleteList" is checked for in "list" and deleted if found;
- *      may be empty; must be non-NULL
+ *      List of objects to be searched ; may be empty; must be non-NULL
  *  "plContext"
  *      platform-specific context pointer
  * THREAD SAFETY:
@@ -775,17 +775,17 @@ pkix_List_RemoveItems(
         PKIX_ENTER(LIST, "pkix_List_RemoveItems");
         PKIX_NULLCHECK_TWO(list, deleteList);
 
-        PKIX_CHECK(PKIX_List_GetLength(list, &numEntries, plContext),
+        PKIX_CHECK(PKIX_List_GetLength(deleteList, &numEntries, plContext),
                 "PKIX_List_GetLength failed");
 
         for (index = 0; index < numEntries; index++) {
                 PKIX_CHECK(PKIX_List_GetItem
-                        (list, index, &current, plContext),
+                        (deleteList, index, &current, plContext),
                         "PKIX_List_GetItem failed");
 
                 if (current) {
                         PKIX_CHECK(pkix_List_Remove
-                                (deleteList, current, plContext),
+                                (list, current, plContext),
                                 "PKIX_PL_Object_Equals failed");
 
                         PKIX_DECREF(current);

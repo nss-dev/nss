@@ -143,8 +143,8 @@ pkix_CheckCert(
                 if (checkedExtOIDsList != NULL) {
                  /* Take out OID's that had been processed, if any */
                         PKIX_CHECK(pkix_List_RemoveItems
-			    (checkedExtOIDsList,
-                            unresCritExtOIDs,
+			    (unresCritExtOIDs,
+                            checkedExtOIDsList,
                             plContext),
                             "pkix_List_RemoveFromList");
                 }
@@ -562,10 +562,11 @@ cleanup:
  *  "checkers"
  *      List of CertChainCheckers which must each validate the List of
  *      certificates. Must be non-NULL.
- *  "buildCheckedExtOIDs"
+ *  "removeCheckedExtOIDs"
  *      List of PKIX_PL_OID that has been processed. If called from building
  *      chain, it is the list of critical extension OIDs taht has been
- *      processed prior to validation. May be NULL.
+ *      processed prior to validation. Extension OIDs that user defined
+ *      checker processes are also in the list. May be NULL.
  *  "pFinalSubjPubKey"
  *      Address where the final public key will be stored. Must be non-NULL.
  *  "pPolicyTree"
@@ -584,7 +585,7 @@ pkix_CheckChain(
         PKIX_List *certs,
         PKIX_UInt32 numCerts,
         PKIX_List *checkers,
-        PKIX_List *buildCheckedExtOIDs,
+        PKIX_List *removeCheckedExtOIDs,
         PKIX_PL_PublicKey **pFinalSubjPubKey,
         PKIX_PolicyNode **pPolicyTree,
         void *plContext)
@@ -609,7 +610,7 @@ pkix_CheckChain(
                 PKIX_CHECK(pkix_CheckCert
                         (cert,
                         checkers,
-                        buildCheckedExtOIDs,
+                        removeCheckedExtOIDs,
                         plContext),
                         "pkix_CheckCert failed");
 
@@ -724,14 +725,20 @@ PKIX_ValidateChain(
 
         PKIX_ProcessingParams *procParams = NULL;
         PKIX_CertChain *chain = NULL;
+        PKIX_CertChainChecker *userChecker = NULL;
         PKIX_List *certs = NULL;
         PKIX_List *checkers = NULL;
         PKIX_List *anchors = NULL;
+        PKIX_List *userCheckers = NULL;
+        PKIX_List *userCheckerExtOIDs = NULL;
+        PKIX_List *validateCheckedCritExtOIDsList = NULL;
         PKIX_TrustAnchor *anchor = NULL;
         PKIX_ValidateResult *valResult = NULL;
         PKIX_PL_PublicKey *finalPubKey = NULL;
         PKIX_PolicyNode *validPolicyTree = NULL;
+        PKIX_Boolean supportForwarding = PKIX_FALSE;
         PKIX_UInt32 i, numCerts, numAnchors;
+        PKIX_UInt32 numUserCheckers = 0;
 
         PKIX_ENTER(VALIDATE, "PKIX_ValidateChain");
         PKIX_NULLCHECK_TWO(valParams, pResult);
@@ -747,6 +754,66 @@ PKIX_ValidateChain(
                     &numAnchors,
                     plContext),
                     "pkix_ExtractParameters failed");
+
+        /*
+         * setup an extension OID list that user had defined for his checker
+         * processing. User checker is not responsible for taking out OIDs
+         * from unresolved critical extension list as the libpkix checker
+         * is doing. Here we add those user checkers' OIDs to the removal
+         * list to be taken out by  CheckChain
+         */
+        PKIX_CHECK(PKIX_ProcessingParams_GetCertChainCheckers
+                    (procParams, &userCheckers, plContext),
+                    "PKIX_ProcessingParams_GetCertChainCheckers");
+
+
+        if (userCheckers != NULL) {
+
+                PKIX_CHECK(PKIX_List_Create
+                    (&validateCheckedCritExtOIDsList,
+                    plContext),
+                    "PKIX_List_Create failed");
+
+                PKIX_CHECK(PKIX_List_GetLength
+                    (userCheckers, &numUserCheckers, plContext),
+                    "PKIX_List_GetLength failed");
+
+                for (i = 0; i < numUserCheckers; i++) {
+
+                        PKIX_CHECK(PKIX_List_GetItem
+                            (userCheckers,
+                            i,
+                            (PKIX_PL_Object **) &userChecker,
+                            plContext),
+                            "PKIX_List_GetItem failed");
+
+                        PKIX_CHECK
+                            (PKIX_CertChainChecker_IsForwardCheckingSupported
+                            (userChecker, &supportForwarding, plContext),
+                            "PKIX_CertChainChecker_IsForwardCheckingSupported "
+                            "failed");
+
+                        if (supportForwarding == PKIX_FALSE) {
+
+			    PKIX_CHECK
+                                (PKIX_CertChainChecker_GetSupportedExtensions
+                                (userChecker, &userCheckerExtOIDs, plContext),
+                                "PKIX_CertChainChecker_GetSupportedExtensions "
+                                "failed");
+
+                            if (userCheckerExtOIDs != NULL) {
+                                PKIX_CHECK(pkix_List_AppendList
+                                    (validateCheckedCritExtOIDsList,
+                                    userCheckerExtOIDs,
+                                    plContext),
+                                    "pkix_List_AppendList failed");
+                            }
+                        }
+
+                        PKIX_DECREF(userCheckerExtOIDs);
+                        PKIX_DECREF(userChecker);
+                }
+        }
 
         /* try to validate the chain with each anchor */
         for (i = 0; i < numAnchors; i++){
@@ -769,7 +836,7 @@ PKIX_ValidateChain(
                         (certs,
                         numCerts,
                         checkers,
-                        NULL,
+                        validateCheckedCritExtOIDsList,
                         &finalPubKey,
                         &validPolicyTree,
                         plContext);
@@ -817,6 +884,8 @@ cleanup:
         PKIX_DECREF(chainFailed);
         PKIX_DECREF(chain);
         PKIX_DECREF(procParams);
+        PKIX_DECREF(userCheckers);
+        PKIX_DECREF(validateCheckedCritExtOIDsList);
 
         PKIX_RETURN(VALIDATE);
 }

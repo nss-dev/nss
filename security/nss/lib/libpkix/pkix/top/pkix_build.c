@@ -813,8 +813,15 @@ pkix_VerifyCertificate(
         PKIX_Boolean loopFound = PKIX_FALSE;
         PKIX_Boolean dsaParamsNeeded = PKIX_FALSE;
         PKIX_Boolean isSelfIssued = PKIX_FALSE;
+        PKIX_Boolean supportForwarding = PKIX_FALSE;
         PKIX_PL_PublicKey *candidatePubKey = NULL;
+        PKIX_CertChainChecker *userChecker = NULL;
+        PKIX_CertChainChecker_CheckCallback checkerCheck = NULL;
+        PKIX_List *unresCritExtOIDs = NULL;
         PKIX_PL_Object *crlCheckerState = NULL;
+        PKIX_UInt32 numUserCheckers = 0;
+        PKIX_UInt32 numItems = 0;
+        PKIX_UInt32 i;
 
         PKIX_ENTER(BUILD, "pkix_VerifyCertificate");
         PKIX_NULLCHECK_FOUR(candidateCert, state, state->prevCert, certs);
@@ -828,6 +835,46 @@ pkix_VerifyCertificate(
         if (loopFound){
                 PKIX_ERROR("Loop discovered: "
                             "duplicate certificates not allowed");
+        }
+
+        if (state->userCheckers != NULL) {
+
+                PKIX_CHECK(PKIX_List_GetLength
+                    (state->userCheckers, &numUserCheckers, plContext),
+                    "PKIX_List_GetLength failed");
+
+                for (i = 0; i < numUserCheckers; i++) {
+
+                        PKIX_CHECK(PKIX_List_GetItem
+                            (state->userCheckers,
+                            i,
+                            (PKIX_PL_Object **) &userChecker,
+                            plContext),
+                            "PKIX_List_GetItem failed");
+
+                        PKIX_CHECK
+                            (PKIX_CertChainChecker_IsForwardCheckingSupported
+                            (userChecker, &supportForwarding, plContext),
+                            "PKIX_CertChainChecker_IsForwardCheckingSupported "
+                            "failed");
+
+                        if (supportForwarding == PKIX_TRUE) {
+
+                            PKIX_CHECK(PKIX_CertChainChecker_GetCheckCallback
+                                (userChecker, &checkerCheck, plContext),
+                                "PKIX_CertChainChecker_GetCheckCallback "
+                                "failed");
+
+                            PKIX_CHECK(checkerCheck
+                                (userChecker,
+                                candidateCert,
+                                NULL,
+                                plContext),
+                                "checkerCheck failed");
+                        }
+
+                        PKIX_DECREF(userChecker);
+                }
         }
 
         /* signature check */
@@ -970,7 +1017,9 @@ pkix_ValidateEntireChain(
         PKIX_CertChainChecker *userChecker = NULL;
         PKIX_List *reversedCerts = NULL;
         PKIX_List *userCheckersList = NULL;
+        PKIX_List *userCheckerExtOIDs = NULL;
         PKIX_PL_OID *oid = NULL;
+        PKIX_Boolean supportForwarding = PKIX_FALSE;
         PKIX_UInt32 numChainCerts;
         PKIX_UInt32 numCertCheckers;
         PKIX_UInt32 i;
@@ -1050,12 +1099,43 @@ pkix_ValidateEntireChain(
                             plContext),
                             "PKIX_List_GetItem failed");
 
-                        PKIX_CHECK(PKIX_List_AppendItem
-                            (checkers,
-                            (PKIX_PL_Object *)userChecker,
-                            plContext),
-                            "PKIX_List_AppendItem failed");
+                        PKIX_CHECK
+                            (PKIX_CertChainChecker_IsForwardCheckingSupported
+                            (userChecker, &supportForwarding, plContext),
+                            "PKIX_CertChainChecker_IsForwardCheckingSupported "
+                            "failed");
 
+                        /*
+                         * If this userChecker supports forwarding then it
+                         * should have been checked during build chain, skip
+                         * checking but need to add checker's extension OIDs
+                         * to buildCheckedCritExtOIDsList.
+                         */
+                        if (supportForwarding == PKIX_TRUE) {
+
+			    PKIX_CHECK
+                                (PKIX_CertChainChecker_GetSupportedExtensions
+                                (userChecker, &userCheckerExtOIDs, plContext),
+                                "PKIX_CertChainChecker_GetSupportedExtensions "
+                                "failed");
+
+                            if (userCheckerExtOIDs != NULL) {
+                                PKIX_CHECK(pkix_List_AppendList
+                                    (buildCheckedCritExtOIDsList,
+                                    userCheckerExtOIDs,
+                                    plContext),
+                                    "pkix_List_AppendList failed");
+                            }
+
+                        } else {
+                            PKIX_CHECK(PKIX_List_AppendItem
+                                (checkers,
+                                (PKIX_PL_Object *)userChecker,
+                                plContext),
+                                "PKIX_List_AppendItem failed");
+                        }
+
+                        PKIX_DECREF(userCheckerExtOIDs);
                         PKIX_DECREF(userChecker);
                 }
         }

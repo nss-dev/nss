@@ -45,6 +45,7 @@
 #include "testutil_nss.h"
 
 #define PKIX_TESTUSERCHECKER_TYPE (PKIX_NUMTYPES+30)
+
 #if 0
 extern char *pkix_pl_PK11ConfigDir = "../../nist_pkits/certs_and_crls";
 #endif
@@ -54,13 +55,16 @@ static PKIX_UInt32 numUserCheckerCalled = 0;
 
 void printUsage(void){
         (void) printf("\nUSAGE:\ttest_buildchain_uchecker [ENE|EE] "
+                    "[-|[F]<userOID>] "
                     "<trustedCert> <targetCert> <certStoreDirectory>\n\n");
         (void) printf
                 ("Builds a chain of certificates between "
                 "<trustedCert> and <targetCert>\n"
-                "using the certs and CRLs in <certStoreDirectory>. "
-                "If ENE is specified,\n"
-                "then an Error is Not Expected. "
+                "using the certs and CRLs in <certStoreDirectory>.\n"
+                "If <userOID> is not an empty string, its value is used as\n"
+                "user defined checker's critical extension OID.\n"
+                "A - for <userOID> is no OID and F is for supportingForward.\n"
+                "If ENE is specified, then an Error is Not Expected.\n"
                 "If EE is specified, an Error is Expected.\n");
 }
 
@@ -105,7 +109,7 @@ static PKIX_Error *
 testUserChecker(
         PKIX_CertChainChecker *checker,
         PKIX_PL_Cert *cert,
-        PKIX_List *unresolvedCriticalExtensions,
+        PKIX_List *unresExtOIDs,
         void *plContext)
 {
         numUserCheckerCalled++;
@@ -135,12 +139,16 @@ int main(int argc, char *argv[])
         PKIX_Boolean result;
         PKIX_CertChain *chain = NULL;
         PKIX_Boolean testValid = PKIX_TRUE;
+        PKIX_Boolean supportForward = PKIX_FALSE;
         PKIX_List *expectedCerts = NULL;
+        PKIX_List *userOIDs = NULL;
+        PKIX_PL_OID *oid = NULL;
         PKIX_PL_Cert *dirCert = NULL;
         PKIX_PL_String *actualCertsString = NULL;
         PKIX_PL_String *expectedCertsString = NULL;
         char *actualCertsAscii = NULL;
         char *expectedCertsAscii = NULL;
+        char *oidString = NULL;
 
         PKIX_TEST_STD_VARS();
 
@@ -156,7 +164,7 @@ int main(int argc, char *argv[])
                                     PKIX_MINOR_VERSION,
                                     &actualMinorVersion,
                                     plContext));
-        if (argc < 4){
+        if (argc < 5){
                 printUsage();
                 return (0);
         }
@@ -175,17 +183,37 @@ int main(int argc, char *argv[])
                 return (0);
         }
 
+        /* OID specified at argv[3+j] */
+
+        if (*argv[3+j] != '-') {
+
+                if (*argv[3+j] == 'F') {
+                        supportForward = PKIX_TRUE;
+                        oidString = argv[3+j]+1;
+                } else {
+                        oidString = argv[3+j];
+                }
+
+                PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_Create
+                                (&userOIDs, plContext));
+                PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_OID_Create
+                                (oidString, &oid, plContext));
+                PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_AppendItem
+                                (userOIDs, (PKIX_PL_Object *)oid, plContext));
+                PKIX_TEST_DECREF_BC(oid);
+        }
+
         subTest(argv[1+j]);
 
-        dirName = argv[3+j];
+        dirName = argv[4+j];
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_Create(&expectedCerts, plContext));
 
-        chainLength = argc - j - 4;
+        chainLength = argc - j - 5;
 
         for (k = 0; k < chainLength; k++){
 
-                dirCert = createDirCert(dirName, argv[4+k+j], plContext);
+                dirCert = createDirCert(dirName, argv[5+k+j], plContext);
 
                 if (k == (chainLength - 1)){
                         PKIX_TEST_EXPECT_NO_ERROR
@@ -257,9 +285,9 @@ int main(int argc, char *argv[])
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_CertChainChecker_Create
                                     (testUserChecker,
+                                    supportForward,
                                     PKIX_FALSE,
-                                    PKIX_FALSE,
-                                    NULL,
+                                    userOIDs,
                                     NULL,
                                     &checker,
 				     plContext));
@@ -428,6 +456,7 @@ cleanup:
         PKIX_TEST_DECREF_AC(certSelector);
         PKIX_TEST_DECREF_AC(buildResult);
         PKIX_TEST_DECREF_AC(buildParams);
+        PKIX_TEST_DECREF_AC(userOIDs);
 
         PKIX_TEST_RETURN();
 

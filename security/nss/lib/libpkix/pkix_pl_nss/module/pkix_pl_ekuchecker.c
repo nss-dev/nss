@@ -353,22 +353,6 @@ pkix_pl_EkuChecker_Check(
 
         }
 
-        /* Get extended key usage OIDs from the cert */
-        PKIX_CHECK(PKIX_PL_Cert_GetExtendedKeyUsage
-                    (cert, &certEkuList, plContext),
-                    "PKIX_PL_Cert_GetExtendedKeyUsage failed");
-
-        if (certEkuList != NULL) {
-        /* Remove Extended Key Usage OID from list */
-                if (unresolvedCriticalExtensions != NULL) {
-                    PKIX_CHECK(pkix_List_Remove
-                            (unresolvedCriticalExtensions,
-                            (PKIX_PL_Object *) state->ekuOID,
-                            plContext),
-                            "PKIX_List_Remove failed");
-                }
-        }
-
 cleanup:
 
         PKIX_DECREF(certEkuList);
@@ -388,6 +372,7 @@ PKIX_PL_EkuChecker_Initialize(
 {
         PKIX_CertChainChecker *checker = NULL;
         pkix_pl_EkuCheckerState *state = NULL;
+        PKIX_List *critExtOIDsList = NULL;
 
         PKIX_ENTER(USERDEFINEDMODULES, "PKIX_PL_EkuChecker_Initialize");
         PKIX_NULLCHECK_ONE(params);
@@ -414,11 +399,20 @@ PKIX_PL_EkuChecker_Initialize(
                     (params, &state, plContext),
                     "pkix_pl_EkuCheckerState_Create failed");
 
+        PKIX_CHECK(PKIX_List_Create(&critExtOIDsList, plContext),
+                    "PKIX_List_Create failed");
+
+        PKIX_CHECK(PKIX_List_AppendItem
+                    (critExtOIDsList,
+                    (PKIX_PL_Object *)state->ekuOID,
+                    plContext),
+                    "PKIX_List_AppendItem failed");
+
         PKIX_CHECK(PKIX_CertChainChecker_Create
                     (pkix_pl_EkuChecker_Check,
+                    PKIX_TRUE,
                     PKIX_FALSE,
-                    PKIX_FALSE,
-                    NULL,
+                    critExtOIDsList,
                     (PKIX_PL_Object *) state,
                     &checker,
                     plContext),
@@ -430,6 +424,7 @@ PKIX_PL_EkuChecker_Initialize(
 
 cleanup:
 
+        PKIX_DECREF(critExtOIDsList);
         PKIX_DECREF(checker);
         PKIX_DECREF(state);
 

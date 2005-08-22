@@ -474,7 +474,9 @@ test_basicconstraintschecker NIST-Test.4.13.37 EE $NIST/TrustAnchorRootCertifica
 test_basicconstraintschecker NIST-Test.4.13.38 EE $NIST/TrustAnchorRootCertificate.crt $NIST/nameConstraintsDNS1CACert.crt $NIST/InvalidDNSnameConstraintsTest38EE.crt
 test_basicconstraintschecker NIST-Test.4.16.1 ENE $NIST/TrustAnchorRootCertificate.crt $NIST/ValidUnknownNotCriticalCertificateExtensionTest1EE.crt
 test_basicconstraintschecker NIST-Test.4.16.2 EE $NIST/TrustAnchorRootCertificate.crt $NIST/InvalidUnknownCriticalCertificateExtensionTest2EE.crt
-test_buildchain_uchecker NIST-Test.4.1.1 ENE $NIST ValidCertificatePathTest1EE.crt GoodCACert.crt TrustAnchorRootCertificate.crt
+test_buildchain_uchecker NIST-Test.4.1.1-without-OID ENE - $NIST ValidCertificatePathTest1EE.crt GoodCACert.crt TrustAnchorRootCertificate.crt
+test_buildchain_uchecker NIST-Test.4.1.1-with-OID-without-forwardSupport ENE 2.5.29.19 $NIST ValidCertificatePathTest1EE.crt GoodCACert.crt TrustAnchorRootCertificate.crt
+test_buildchain_uchecker NIST-Test.4.1.1-with-OID-forwardSupport ENE F2.5.29.19 $NIST ValidCertificatePathTest1EE.crt GoodCACert.crt TrustAnchorRootCertificate.crt
 test_buildchain NIST-Test.4.1.1 ENE $NIST ValidCertificatePathTest1EE.crt GoodCACert.crt TrustAnchorRootCertificate.crt 
 test_buildchain NIST-Test.4.1.2 EE $NIST InvalidCASignatureTest2EE.crt BadSignedCACert.crt TrustAnchorRootCertificate.crt 
 test_buildchain NIST-Test.4.1.3 EE $NIST InvalidEESignatureTest3EE.crt GoodCACert.crt TrustAnchorRootCertificate.crt 
