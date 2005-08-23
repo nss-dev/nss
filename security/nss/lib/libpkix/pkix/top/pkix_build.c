@@ -434,6 +434,7 @@ pkix_FindMatchingCerts(
         void *plContext)
 {
         PKIX_List *matchingCerts = NULL;
+        PKIX_List *allMatchingCerts = NULL;
         PKIX_CertSelector *certSel = NULL;
         PKIX_ComCertSelParams *certSelParams = NULL;
         PKIX_PL_X500Name *currentIssuer = NULL;
@@ -449,72 +450,82 @@ pkix_FindMatchingCerts(
                 PKIX_ERROR("Must have at least one CertStore");
         }
 
+
+        PKIX_CHECK(PKIX_List_GetItem
+                    (state->certStores,
+                    i,
+                    (PKIX_PL_Object **)&certStore,
+                    plContext),
+                    "PKIX_List_GetItem failed");
+
+        PKIX_CHECK(PKIX_CertStore_GetCertCallback
+                    (certStore, &certStoreGetCerts, plContext),
+                    "PKIX_CertStore_GetCertCallback failed");
+
+        PKIX_CHECK(PKIX_CertSelector_Create
+                    (NULL, NULL, &certSel, plContext),
+                    "PKIX_CertSelector_Create failed");
+
+        PKIX_CHECK(PKIX_ComCertSelParams_Create
+                    (&certSelParams, plContext),
+                    "PKIX_ComCertSelParams_Create failed");
+
+        PKIX_NULLCHECK_ONE(state->prevCert);
+
+        PKIX_CHECK(PKIX_PL_Cert_GetIssuer
+                    (state->prevCert, &currentIssuer, plContext),
+                    "PKIX_PL_Cert_GetIssuer failed");
+
+        PKIX_CHECK(PKIX_ComCertSelParams_SetSubject
+                    (certSelParams, currentIssuer, plContext),
+                    "PKIX_ComCertSelParams_SetSubject failed");
+
+        if (state->testDate){
+                PKIX_INCREF(state->testDate);
+                testDate = state->testDate;
+        } else {
+                PKIX_CHECK(PKIX_PL_Date_Create_UTCTime
+                            (NULL, &testDate, plContext),
+                            "PKIX_PL_Date_Create_UTCTime failed");
+        }
+        PKIX_CHECK(PKIX_ComCertSelParams_SetCertificateValid
+                    (certSelParams, testDate, plContext),
+                    "PKIX_ComCertSelParams_SetCertificateValid failed");
+
+        PKIX_CHECK(PKIX_ComCertSelParams_SetBasicConstraints
+                    (certSelParams, state->traversedCACerts, plContext),
+                    "PKIX_ComCertSelParams_SetBasicConstraints failed");
+
+        PKIX_NULLCHECK_ONE(state->traversedSubjNames);
+
+        PKIX_CHECK(PKIX_ComCertSelParams_SetPathToNames
+                    (certSelParams,
+                    state->traversedSubjNames,
+                    plContext),
+                    "PKIX_ComCertSelParams_SetPathToNames failed");
+
+        PKIX_CHECK(PKIX_CertSelector_SetCommonCertSelectorParams
+                    (certSel, certSelParams, plContext),
+                    "PKIX_CertSelector_SetCommonCertSelectorParams "
+                    "failed");
+
+        PKIX_CHECK(PKIX_List_Create(&allMatchingCerts, plContext),
+                    "PKIX_List_Create failed");
+
         for (i = 0; i < state->numCertStores; i ++){
-
-                PKIX_CHECK(PKIX_List_GetItem
-                            (state->certStores,
-                            i,
-                            (PKIX_PL_Object **)&certStore,
-                            plContext),
-                            "PKIX_List_GetItem failed");
-
-                PKIX_CHECK(PKIX_CertStore_GetCertCallback
-                            (certStore, &certStoreGetCerts, plContext),
-                            "PKIX_CertStore_GetCertCallback failed");
-
-                PKIX_CHECK(PKIX_CertSelector_Create
-                            (NULL, NULL, &certSel, plContext),
-                            "PKIX_CertSelector_Create failed");
-
-                PKIX_CHECK(PKIX_ComCertSelParams_Create
-                            (&certSelParams, plContext),
-                            "PKIX_ComCertSelParams_Create failed");
-
-                PKIX_NULLCHECK_ONE(state->prevCert);
-
-                PKIX_CHECK(PKIX_PL_Cert_GetIssuer
-                            (state->prevCert, &currentIssuer, plContext),
-                            "PKIX_PL_Cert_GetIssuer failed");
-
-                PKIX_CHECK(PKIX_ComCertSelParams_SetSubject
-                            (certSelParams, currentIssuer, plContext),
-                            "PKIX_ComCertSelParams_SetSubject failed");
-
-                if (state->testDate){
-                        PKIX_INCREF(state->testDate);
-                        testDate = state->testDate;
-                } else {
-                        PKIX_CHECK(PKIX_PL_Date_Create_UTCTime
-                                    (NULL, &testDate, plContext),
-                                    "PKIX_PL_Date_Create_UTCTime failed");
-                }
-                PKIX_CHECK(PKIX_ComCertSelParams_SetCertificateValid
-                            (certSelParams, testDate, plContext),
-                            "PKIX_ComCertSelParams_SetCertificateValid failed");
-
-                PKIX_CHECK(PKIX_ComCertSelParams_SetBasicConstraints
-                            (certSelParams, state->traversedCACerts, plContext),
-                            "PKIX_ComCertSelParams_SetBasicConstraints failed");
-
-                PKIX_NULLCHECK_ONE(state->traversedSubjNames);
-
-                PKIX_CHECK(PKIX_ComCertSelParams_SetPathToNames
-                            (certSelParams,
-                            state->traversedSubjNames,
-                            plContext),
-                            "PKIX_ComCertSelParams_SetPathToNames failed");
-
-                PKIX_CHECK(PKIX_CertSelector_SetCommonCertSelectorParams
-                            (certSel, certSelParams, plContext),
-                            "PKIX_CertSelector_SetCommonCertSelectorParams "
-                            "failed");
 
                 PKIX_CHECK(certStoreGetCerts
                             (certStore, certSel, &matchingCerts, plContext),
                             "certStoreGetCerts failed");
+
+                PKIX_CHECK(pkix_List_AppendList
+                            (allMatchingCerts, matchingCerts, plContext),
+			    "PKIX_List_AppendList failed");
+
+                PKIX_DECREF(matchingCerts);
         }
 
-        *pMatchingCerts = matchingCerts;
+        *pMatchingCerts = allMatchingCerts;
 
 cleanup:
 
