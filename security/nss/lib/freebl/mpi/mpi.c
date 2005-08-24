@@ -848,19 +848,19 @@ mp_err   mp_mul(const mp_int *a, const mp_int *b, mp_int * c)
   if ((a->used == b->used) && isPowerof2(b->used)) {
       if (a->used == 4) {
           mp_mul_comba_4(a, b, c);
-          return MP_OKAY;
+          goto CLEANUP;
       }
       if (a->used == 8) {
           mp_mul_comba_8(a, b, c);
-          return MP_OKAY;
+          goto CLEANUP;
       }
       if (a->used == 16) {
           mp_mul_comba_16(a, b, c);
-          return MP_OKAY;
+          goto CLEANUP;
       }
       if (a->used == 32) {
           mp_mul_comba_32(a, b, c);
-          return MP_OKAY;
+          goto CLEANUP;
       } 
   }
 #endif
@@ -936,22 +936,22 @@ mp_err   mp_sqr(const mp_int *a, mp_int *sqr)
   MP_DIGIT(sqr, 0) = 0;
 
 #ifdef NSS_USE_COMBA
-  if ((a->used <= 16) && isPowerof2(a->used)) {
+  if (isPowerof2(a->used)) {
       if (a->used == 4) {
           mp_sqr_comba_4(a, sqr);
-          return MP_OKAY;
+          goto CLEANUP;
       }
       if (a->used == 8) {
           mp_sqr_comba_8(a, sqr);
-          return MP_OKAY;
+          goto CLEANUP;
       }
       if (a->used == 16) {
           mp_sqr_comba_16(a, sqr);
-          return MP_OKAY;
+          goto CLEANUP;
       }
       if (a->used == 32) {
           mp_sqr_comba_32(a, sqr);
-          return MP_OKAY;
+          goto CLEANUP;
       } 
   }
 #endif
