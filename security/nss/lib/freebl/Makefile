@@ -54,7 +54,7 @@ include $(CORE_DEPTH)/coreconf/config.mk
 # (3) Include "component" configuration information. (OPTIONAL)       #
 #######################################################################
 
-GCC_OPTIMIZER = -O3  -mno-omit-leaf-frame-pointer -fno-omit-frame-pointer
+
 
 #######################################################################
 # (4) Include "local" platform-dependent assignments (OPTIONAL).      #
@@ -67,11 +67,11 @@ GCC_OPTIMIZER = -O3  -mno-omit-leaf-frame-pointer -fno-omit-frame-pointer
 FREEBL_BUILD_SINGLE_SHLIB=1
 
 ifdef USE_64
-    DEFINES += -DNSS_USE_64
+	DEFINES += -DNSS_USE_64
 endif
 
 ifdef USE_ABI32_FPU
-    DEFINES += -DNSS_USE_ABI32_FPU
+	DEFINES += -DNSS_USE_ABI32_FPU
 endif
 
 # des.c wants _X86_ defined for intel CPUs.  
@@ -143,21 +143,12 @@ ifeq ($(CPU_ARCH),x86_64)
     DEFINES += -DNSS_BEVAND_ARCFOUR -DMPI_AMD64 -DMP_ASSEMBLY_MULTIPLY
     DEFINES += -DNSS_USE_COMBA
     MPI_SRCS += mpi_amd64.c mp_comba.c
-# When compiling with -ansi, gcc chokes on some of the asm
-# statements in mp_comba.c.  Clear the flag for freebl.
-    ANSI =
-    ifdef BUILD_OPT
-	OPTIMIZER = $(GCC_OPTIMIZER)
-    endif
 endif
 ifeq ($(CPU_ARCH),x86)
     ASFILES  = mpi_x86.s
     DEFINES += -DMP_ASSEMBLY_MULTIPLY -DMP_ASSEMBLY_SQUARE 
     DEFINES += -DMP_ASSEMBLY_DIV_2DX1D
     USE_FP_CODE = 1
-    ifdef BUILD_OPT
-	OPTIMIZER = $(GCC_OPTIMIZER)
-    endif
 endif
 ifdef NSS_ENABLE_ECC
     ifdef USE_FP_CODE
@@ -333,9 +324,6 @@ else
 	LD = gcc
 	AS = gcc
 	ASFLAGS =
-	ifdef BUILD_OPT
-	    OPTIMIZER = $(GCC_OPTIMIZER)
-	endif
     endif
     ifeq ($(USE_64),1)
 	# Solaris for AMD64
@@ -407,9 +395,7 @@ endif
 
 DEFINES += -DMP_API_COMPATIBLE
 
-# These defines force a rebuild when headers are newer than source
-
-MPI_USERS = dh.c pqg.c dsa.c rsa.c rsa_keygen.c ec.c
+MPI_USERS = dh.c pqg.c dsa.c rsa.c ec.c
 
 MPI_OBJS = $(addprefix $(OBJDIR)/$(PROG_PREFIX), $(MPI_SRCS:.c=$(OBJ_SUFFIX)))
 MPI_OBJS += $(addprefix $(OBJDIR)/$(PROG_PREFIX), $(MPI_USERS:.c=$(OBJ_SUFFIX)))
