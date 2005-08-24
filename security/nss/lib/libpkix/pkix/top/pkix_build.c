@@ -1093,6 +1093,7 @@ pkix_ValidateEntireChain(
                     "PKIX_List_AppendItem failed");
  
                 i++;
+                PKIX_DECREF(oid);
         }
 
         if (state->userCheckers != NULL) {
