@@ -68,7 +68,6 @@ CSRCS =		   \
 	hash.c	   \
 	instance.c \
 	mutex.c	   \
-	nsprstub.c \
 	object.c   \
 	session.c  \
 	sessobj.c  \

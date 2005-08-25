@@ -161,11 +161,4 @@ nssCKFWHash_Iterate
   void *closure
 );
 
-NSS_EXTERN CK_RV
-nssSetLockArgs(
-   CK_C_INITIALIZE_ARGS_PTR pInitArgs,
-   CryptokiLockingState* returned
-);
-
-
 #endif /* CKFWM_H */
