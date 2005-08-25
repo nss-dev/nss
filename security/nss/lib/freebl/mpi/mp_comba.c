@@ -37,7 +37,7 @@
 
 /* this should multiply i and j  */
 #define MULADD(i, j)                                      \
-asm  (                                                    \
+__asm__  (                                                    \
      "movq  %6,%%rax     \n\t"                            \
      "mulq  %7           \n\t"                            \
      "addq  %%rax,%0     \n\t"                            \
@@ -64,7 +64,7 @@ asm  (                                                    \
 #define COMBA_FINI
 
 #define SQRADD(i, j)                                      \
-asm (                                                     \
+__asm__ (                                                     \
      "movq  %6,%%rax     \n\t"                            \
      "mulq  %%rax        \n\t"                            \
      "addq  %%rax,%0     \n\t"                            \
@@ -73,7 +73,7 @@ asm (                                                     \
      :"=r"(c0), "=r"(c1), "=r"(c2): "0"(c0), "1"(c1), "2"(c2), "g"(i) :"%rax","%rdx","%cc");
 
 #define SQRADD2(i, j)                                     \
-asm (                                                     \
+__asm__ (                                                     \
      "movq  %6,%%rax     \n\t"                            \
      "mulq  %7           \n\t"                            \
      "addq  %%rax,%0     \n\t"                            \
@@ -85,7 +85,7 @@ asm (                                                     \
      :"=r"(c0), "=r"(c1), "=r"(c2): "0"(c0), "1"(c1), "2"(c2), "g"(i), "g"(j)  :"%rax","%rdx","%cc");
 
 #define SQRADDSC(i, j)                                    \
-asm (                                                     \
+__asm__ (                                                     \
      "movq  %6,%%rax     \n\t"                            \
      "mulq  %7           \n\t"                            \
      "movq  %%rax,%0     \n\t"                            \
@@ -94,7 +94,7 @@ asm (                                                     \
      :"=r"(sc0), "=r"(sc1), "=r"(sc2): "0"(sc0), "1"(sc1), "2"(sc2), "g"(i), "g"(j) :"%rax","%rdx","%cc");
 
 #define SQRADDAC(i, j)                                                         \
-asm (                                                     \
+__asm__ (                                                     \
      "movq  %6,%%rax     \n\t"                            \
      "mulq  %7           \n\t"                            \
      "addq  %%rax,%0     \n\t"                            \
@@ -103,7 +103,7 @@ asm (                                                     \
      :"=r"(sc0), "=r"(sc1), "=r"(sc2): "0"(sc0), "1"(sc1), "2"(sc2), "g"(i), "g"(j) :"%rax","%rdx","%cc");
 
 #define SQRADDDB                                                               \
-asm (                                                     \
+__asm__ (                                                     \
      "addq %3,%0         \n\t"                            \
      "adcq %4,%1         \n\t"                            \
      "adcq %5,%2         \n\t"                            \
