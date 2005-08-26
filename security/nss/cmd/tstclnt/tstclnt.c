@@ -214,7 +214,7 @@ handshakeCallback(PRFileDesc *fd, void *client_data)
 static void Usage(const char *progName)
 {
     fprintf(stderr, 
-"Usage:  %s -h host [-p port] [-d certdir] [-n nickname] [-23Tfovx] \n"
+"Usage:  %s -h host [-p port] [-d certdir] [-n nickname] [-23BTfovx] \n"
 "                   [-c ciphers] [-w passwd] [-q]\n", progName);
     fprintf(stderr, "%-20s Hostname to connect with\n", "-h host");
     fprintf(stderr, "%-20s Port number for SSL server\n", "-p port");
@@ -223,6 +223,8 @@ static void Usage(const char *progName)
 	    "-d certdir");
     fprintf(stderr, "%-20s Nickname of key and cert for client auth\n", 
                     "-n nickname");
+    fprintf(stderr, 
+            "%-20s Bypass PKCS11 layer for SSL encryption and MACing.\n", "-B");
     fprintf(stderr, "%-20s Disable SSL v2.\n", "-2");
     fprintf(stderr, "%-20s Disable SSL v3.\n", "-3");
     fprintf(stderr, "%-20s Disable TLS (SSL v3.1).\n", "-T");
@@ -446,6 +448,7 @@ int main(int argc, char **argv)
     int                disableSSL2 = 0;
     int                disableSSL3 = 0;
     int                disableTLS  = 0;
+    int                bypassPKCS11 = 0;
     int                useExportPolicy = 0;
     PRSocketOptionData opt;
     PRNetAddr          addr;
@@ -464,7 +467,7 @@ int main(int argc, char **argv)
 	progName = strrchr(argv[0], '\\');
     progName = progName ? progName+1 : argv[0];
 
-    optstate = PL_CreateOptState(argc, argv, "23Tfc:h:p:d:m:n:oqvw:x");
+    optstate = PL_CreateOptState(argc, argv, "23BTfc:h:p:d:m:n:oqvw:x");
     while ((optstatus = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
 	switch (optstate->option) {
 	  case '?':
@@ -473,6 +476,8 @@ int main(int argc, char **argv)
           case '2': disableSSL2 = 1; 			break;
 
           case '3': disableSSL3 = 1; 			break;
+
+          case 'B': bypassPKCS11 = 1; 			break;
 
           case 'T': disableTLS  = 1; 			break;
 
@@ -698,6 +703,13 @@ int main(int argc, char **argv)
     rv = SSL_OptionSet(s, SSL_V2_COMPATIBLE_HELLO, !disableSSL2);
     if (rv != SECSuccess) {
 	SECU_PrintError(progName, "error disabling v2 compatibility");
+	return 1;
+    }
+
+    /* enable PKCS11 bypass */
+    rv = SSL_OptionSet(s, SSL_BYPASS_PKCS11, bypassPKCS11);
+    if (rv != SECSuccess) {
+	SECU_PrintError(progName, "error enabling PKCS11 bypass");
 	return 1;
     }
 

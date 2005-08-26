@@ -159,6 +159,7 @@ static SSL3Statistics * ssl3stats;
 static int failed_already = 0;
 static PRBool disableSSL3     = PR_FALSE;
 static PRBool disableTLS      = PR_FALSE;
+static PRBool bypassPKCS11    = PR_FALSE;
 
 
 char * ownPasswd( PK11SlotInfo *slot, PRBool retry, void *arg)
@@ -184,7 +185,7 @@ Usage(const char *progName)
 {
     fprintf(stderr, 
     	"Usage: %s [-n nickname] [-p port] [-d dbdir] [-c connections]\n"
-	"          [-3DNTovq] [-2 filename] [-P fullhandshakespercentage]\n"
+	"          [-3BDNTovq] [-2 filename] [-P fullhandshakespercentage]\n"
 	"          [-w dbpasswd] [-C cipher(s)] [-t threads] hostname\n"
 	" where -v means verbose\n"
 	"       -o flag is interpreted as follows:\n"
@@ -193,7 +194,10 @@ Usage(const char *progName)
 	"       -D means no TCP delays\n"
 	"       -q means quit when server gone (timeout rather than retry forever)\n"
 	"       -N means no session reuse\n"
-	"       -P means do a specified percentage of full handshakes\n",
+	"       -P means do a specified percentage of full handshakes\n"
+	"       -3 disables SSL v3\n"
+	"       -T disables TLS\n"
+	"       -B bypasses the PKCS11 layer for SSL encryption and MACing\n",
 	progName);
     exit(1);
 }
@@ -1133,6 +1137,13 @@ client_main(
 	}
     }
 
+    if (bypassPKCS11) {
+	rv = SSL_OptionSet(model_sock, SSL_BYPASS_PKCS11, 1);
+	if (rv < 0) {
+	    errExit("SSL_OptionSet SSL_BYPASS_PKCS11");
+	}
+    }
+
     SSL_SetURL(model_sock, hostName);
 
     SSL_AuthCertificateHook(model_sock, mySSLAuthCertificate, 
@@ -1236,13 +1247,15 @@ main(int argc, char **argv)
     progName = progName ? progName + 1 : tmp;
  
 
-    optstate = PL_CreateOptState(argc, argv, "2:3C:DNP:Tc:d:n:op:qt:vw:");
+    optstate = PL_CreateOptState(argc, argv, "2:3BC:DNP:Tc:d:n:op:qt:vw:");
     while ((status = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
 	switch(optstate->option) {
 
 	case '2': fileName = optstate->value; break;
 
 	case '3': disableSSL3 = PR_TRUE; break;
+
+	case 'B': bypassPKCS11 = PR_TRUE; break;
 
 	case 'C': cipherString = optstate->value; break;
 
