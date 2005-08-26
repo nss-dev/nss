@@ -388,6 +388,7 @@ ssl_run()
 
 if [ -z  "$DO_REM_ST" -a -z  "$DO_DIST_ST" ] ; then
 
+    ssl_init
 
     # save the directories as setup by init.sh
     ORIG_SERVERDIR=$SERVERDIR
