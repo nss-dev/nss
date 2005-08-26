@@ -117,7 +117,7 @@ int ssl_DefSend(sslSocket *ss, const unsigned char *buf, int len, int flags)
     /* Although this is overkill, we disable Nagle delays completely for 
     ** SSL sockets.
     */
-    if (ss->useSecurity && !ss->delayDisabled) {
+    if (ss->opt.useSecurity && !ss->delayDisabled) {
 	ssl_EnableNagleDelay(ss, PR_FALSE);   /* ignore error */
     	ss->delayDisabled = 1;
     }

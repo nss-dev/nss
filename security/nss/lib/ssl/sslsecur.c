@@ -112,9 +112,9 @@ ssl_Do1stHandshake(sslSocket *ss)
     int loopCount = 0;
 
     do {
-	PORT_Assert(ss->noLocks ||  ssl_Have1stHandshakeLock(ss) );
-	PORT_Assert(ss->noLocks || !ssl_HaveRecvBufLock(ss));
-	PORT_Assert(ss->noLocks || !ssl_HaveXmitBufLock(ss));
+	PORT_Assert(ss->opt.noLocks ||  ssl_Have1stHandshakeLock(ss) );
+	PORT_Assert(ss->opt.noLocks || !ssl_HaveRecvBufLock(ss));
+	PORT_Assert(ss->opt.noLocks || !ssl_HaveXmitBufLock(ss));
 
 	if (ss->handshake == 0) {
 	    /* Previous handshake finished. Switch to next one */
@@ -153,8 +153,8 @@ ssl_Do1stHandshake(sslSocket *ss)
      */
     } while (rv != SECFailure);  	/* was (rv >= 0); XXX_1 */
 
-    PORT_Assert(ss->noLocks || !ssl_HaveRecvBufLock(ss));
-    PORT_Assert(ss->noLocks || !ssl_HaveXmitBufLock(ss));
+    PORT_Assert(ss->opt.noLocks || !ssl_HaveRecvBufLock(ss));
+    PORT_Assert(ss->opt.noLocks || !ssl_HaveXmitBufLock(ss));
 
     if (rv == SECWouldBlock) {
 	PORT_SetError(PR_WOULD_BLOCK_ERROR);
@@ -202,7 +202,7 @@ SSL_ResetHandshake(PRFileDesc *s, PRBool asServer)
     }
 
     /* Don't waste my time */
-    if (!ss->useSecurity)
+    if (!ss->opt.useSecurity)
 	return SECSuccess;
 
     SSL_LOCK_READER(ss);
@@ -264,7 +264,7 @@ SSL_ReHandshake(PRFileDesc *fd, PRBool flushCache)
 	return SECFailure;
     }
 
-    if (!ss->useSecurity)
+    if (!ss->opt.useSecurity)
 	return SECSuccess;
     
     ssl_Get1stHandshakeLock(ss);
@@ -306,7 +306,7 @@ SSL_HandshakeCallback(PRFileDesc *fd, SSLHandshakeCallback cb,
 	return SECFailure;
     }
 
-    if (!ss->useSecurity) {
+    if (!ss->opt.useSecurity) {
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
 	return SECFailure;
     }
@@ -347,7 +347,7 @@ SSL_ForceHandshake(PRFileDesc *fd)
     }
 
     /* Don't waste my time */
-    if (!ss->useSecurity) 
+    if (!ss->opt.useSecurity) 
     	return SECSuccess;
 
     ssl_Get1stHandshakeLock(ss);
@@ -418,7 +418,7 @@ ssl_SaveWriteData(sslSocket *ss, sslBuffer *buf, const void *data,
     unsigned int newlen;
     SECStatus    rv;
 
-    PORT_Assert( ss->noLocks || ssl_HaveXmitBufLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveXmitBufLock(ss) );
     newlen = buf->len + len;
     if (newlen > buf->space) {
 	rv = sslBuffer_Grow(buf, newlen);
@@ -445,7 +445,7 @@ ssl_SendSavedWriteData(sslSocket *ss, sslBuffer *buf, sslSendFunc send)
     int rv	= 0;
     int len	= buf->len;
 
-    PORT_Assert( ss->noLocks || ssl_HaveXmitBufLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveXmitBufLock(ss) );
     if (len != 0) {
 	SSL_TRC(5, ("%d: SSL[%d]: sending %d bytes of saved data",
 		     SSL_GETPID(), ss->fd, len));
@@ -689,7 +689,7 @@ SSL_ConfigSecureServer(PRFileDesc *fd, CERTCertificate *cert,
     }
 
     if (kea == kt_rsa && cert && sc->serverKeyBits > 512) {
-	if (ss->noStepDown) {
+	if (ss->opt.noStepDown) {
 	    /* disable all export ciphersuites */
 	} else {
 	    rv = ssl3_CreateRSAStepDownKeys(ss);
@@ -873,7 +873,7 @@ ssl_SecureConnect(sslSocket *ss, const PRNetAddr *sa)
     PRFileDesc *osfd = ss->fd->lower;
     int rv;
 
-    if ( ss->handshakeAsServer ) {
+    if ( ss->opt.handshakeAsServer ) {
 	ss->securityHandshake = ssl2_BeginServerHandshake;
 	ss->handshaking = sslHandshakingAsServer;
     } else {
@@ -972,7 +972,7 @@ ssl_SecureRecv(sslSocket *ss, unsigned char *buf, int len, int flags)
     	return PR_FAILURE;
     }
 
-    if (!ssl_SocketIsBlocking(ss) && !ss->fdx) {
+    if (!ssl_SocketIsBlocking(ss) && !ss->opt.fdx) {
 	ssl_GetXmitBufLock(ss);
 	if (ss->pendingBuf.len != 0) {
 	    rv = ssl_SendSavedWriteData(ss, &ss->pendingBuf, ssl_DefSend);
@@ -1148,7 +1148,7 @@ SSL_DataPending(PRFileDesc *fd)
 
     ss = ssl_FindSocket(fd);
 
-    if (ss && ss->useSecurity) {
+    if (ss && ss->opt.useSecurity) {
 
 	ssl_Get1stHandshakeLock(ss);
 	ssl_GetSSL3HandshakeLock(ss);
@@ -1196,7 +1196,7 @@ SSL_GetSessionID(PRFileDesc *fd)
 	ssl_Get1stHandshakeLock(ss);
 	ssl_GetSSL3HandshakeLock(ss);
 
-	if (ss->useSecurity && ss->firstHsDone && ss->sec.ci.sid) {
+	if (ss->opt.useSecurity && ss->firstHsDone && ss->sec.ci.sid) {
 	    item = (SECItem *)PORT_Alloc(sizeof(SECItem));
 	    if (item) {
 		sslSessionID * sid = ss->sec.ci.sid;

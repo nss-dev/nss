@@ -60,7 +60,7 @@ SSL_GetChannelInfo(PRFileDesc *fd, SSLChannelInfo *info, PRUintn len)
     memset(&inf, 0, sizeof inf);
     inf.length = PR_MIN(sizeof inf, len);
 
-    if (ss->useSecurity && ss->firstHsDone) {
+    if (ss->opt.useSecurity && ss->firstHsDone) {
         sid = ss->sec.ci.sid;
 	inf.protocolVersion  = ss->version;
 	inf.authKeyBits      = ss->sec.authKeyBits;

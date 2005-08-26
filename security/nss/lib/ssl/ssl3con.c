@@ -509,7 +509,7 @@ ssl3_config_match_init(sslSocket *ss)
     PRBool                    isServer;
     sslServerCerts           *svrAuth;
 
-    if (!ss->enableSSL3 && !ss->enableTLS) {
+    if (!ss->opt.enableSSL3 && !ss->opt.enableTLS) {
     	return 0;
     }
     isServer = (PRBool)( ss && ss->sec.isServer );
@@ -604,7 +604,7 @@ count_cipher_suites(sslSocket *ss, int policy, PRBool enabled)
 {
     int i, count = 0;
 
-    if (!ss->enableSSL3 && !ss->enableTLS) {
+    if (!ss->opt.enableSSL3 && !ss->opt.enableTLS) {
     	return 0;
     }
     for (i = 0; i < ssl_V3_SUITES_IMPLEMENTED; i++) {
@@ -622,7 +622,7 @@ anyRestrictedEnabled(sslSocket *ss)
 {
     int i;
 
-    if (!ss->enableSSL3 && !ss->enableTLS) {
+    if (!ss->opt.enableSSL3 && !ss->opt.enableTLS) {
     	return PR_FALSE;
     }
     for (i = 0; i < ssl_V3_SUITES_IMPLEMENTED; i++) {
@@ -659,21 +659,21 @@ ssl3_NegotiateVersion(sslSocket *ss, SSL3ProtocolVersion peerVersion)
     SSL3ProtocolVersion version;
     SSL3ProtocolVersion maxVersion;
 
-    if (ss->enableTLS) {
+    if (ss->opt.enableTLS) {
 	maxVersion = SSL_LIBRARY_VERSION_3_1_TLS;
-    } else if (ss->enableSSL3) {
+    } else if (ss->opt.enableSSL3) {
 	maxVersion = SSL_LIBRARY_VERSION_3_0;
     } else {
     	/* what are we doing here? */
-	PORT_Assert(ss->enableSSL3 || ss->enableTLS);
+	PORT_Assert(ss->opt.enableSSL3 || ss->opt.enableTLS);
 	PORT_SetError(SSL_ERROR_SSL_DISABLED);
 	return SECFailure;
     }
 
     ss->version = version = PR_MIN(maxVersion, peerVersion);
 
-    if ((version == SSL_LIBRARY_VERSION_3_1_TLS && ss->enableTLS) ||
-    	(version == SSL_LIBRARY_VERSION_3_0     && ss->enableSSL3)) {
+    if ((version == SSL_LIBRARY_VERSION_3_1_TLS && ss->opt.enableTLS) ||
+    	(version == SSL_LIBRARY_VERSION_3_0     && ss->opt.enableSSL3)) {
 	return SECSuccess;
     }
 
@@ -1029,7 +1029,7 @@ static void
 ssl3_DestroyCipherSpec(ssl3CipherSpec *spec)
 {
     PRBool freeit = (PRBool)(!spec->bypassCiphers);
-/*  PORT_Assert( ss->noLocks || ssl_HaveSpecWriteLock(ss)); Don't have ss! */
+/*  PORT_Assert( ss->opt.noLocks || ssl_HaveSpecWriteLock(ss)); Don't have ss! */
     if (spec->destroy) {
 	spec->destroy(spec->encodeContext, freeit);
 	spec->destroy(spec->decodeContext, freeit);
@@ -1066,7 +1066,7 @@ ssl3_SetupPendingCipherSpec(sslSocket *ss)
     const ssl3CipherSuiteDef *suite_def;
     PRBool                    isTLS;
 
-    PORT_Assert( ss->noLocks || ssl_HaveSSL3HandshakeLock(ss));
+    PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
 
     ssl_GetSpecWriteLock(ss);  /*******************************/
 
@@ -1143,7 +1143,7 @@ const ssl3BulkCipherDef *cipher_def;
       SSLCipherAlgorithm calg;
       SECStatus          rv;
 
-    PORT_Assert( ss->noLocks || ssl_HaveSSL3HandshakeLock(ss));
+    PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
 
     PORT_Assert(ss->ssl3.prSpec == ss->ssl3.pwSpec);
 
@@ -1292,7 +1292,7 @@ const ssl3BulkCipherDef *cipher_def;
       SECItem            mac_param;
       SSLCipherAlgorithm calg;
 
-    PORT_Assert( ss->noLocks || ssl_HaveSSL3HandshakeLock(ss));
+    PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
 
     PORT_Assert(ss->ssl3.prSpec == ss->ssl3.pwSpec);
 
@@ -1430,7 +1430,7 @@ ssl3_InitPendingCipherSpec(sslSocket *ss, PK11SymKey *pms)
     ssl3CipherSpec  *  pwSpec;
     SECStatus          rv;
 
-    PORT_Assert( ss->noLocks || ssl_HaveSSL3HandshakeLock(ss));
+    PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
 
     ssl_GetSpecWriteLock(ss);	/**************************************/
 
@@ -1724,7 +1724,7 @@ ssl3_SendRecord(   sslSocket *        ss,
 		bytes));
     PRINT_BUF(3, (ss, "Send record (plain text)", buf, bytes));
 
-    PORT_Assert( ss->noLocks || ssl_HaveXmitBufLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveXmitBufLock(ss) );
 
     if (ss->ssl3.initialized == PR_FALSE) {
 	/* This can happen on a server if the very first incoming record
@@ -1957,7 +1957,7 @@ ssl3_SendApplicationData(sslSocket *ss, const unsigned char *in,
 {
     PRInt32   sent	= 0;
 
-    PORT_Assert( ss->noLocks || ssl_HaveXmitBufLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveXmitBufLock(ss) );
 
     while (len > 0) {
 	PRInt32   count;
@@ -2001,8 +2001,8 @@ ssl3_FlushHandshake(sslSocket *ss, PRInt32 flags)
 {
     PRInt32 rv;
 
-    PORT_Assert( ss->noLocks || ssl_HaveSSL3HandshakeLock(ss));
-    PORT_Assert( ss->noLocks || ssl_HaveXmitBufLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
+    PORT_Assert( ss->opt.noLocks || ssl_HaveXmitBufLock(ss) );
 
     if (!ss->sec.ci.sendBuf.buf || !ss->sec.ci.sendBuf.len)
 	return SECSuccess;
@@ -2042,9 +2042,9 @@ ssl3_HandleNoCertificate(sslSocket *ss)
      * first handshake because if we're redoing the handshake we 
      * know the server is paying attention to the certificate.
      */
-    if ((ss->requireCertificate == SSL_REQUIRE_ALWAYS) ||
+    if ((ss->opt.requireCertificate == SSL_REQUIRE_ALWAYS) ||
 	(!ss->firstHsDone && 
-	 (ss->requireCertificate == SSL_REQUIRE_FIRST_HANDSHAKE))) {
+	 (ss->opt.requireCertificate == SSL_REQUIRE_FIRST_HANDSHAKE))) {
 	PRFileDesc * lower;
 
 	ss->sec.uncache(ss->sec.ci.sid);
@@ -2171,8 +2171,8 @@ ssl3_HandleAlert(sslSocket *ss, sslBuffer *buf)
     SSL3AlertDescription desc;
     int                  error;
 
-    PORT_Assert( ss->noLocks || ssl_HaveRecvBufLock(ss) );
-    PORT_Assert( ss->noLocks || ssl_HaveSSL3HandshakeLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveRecvBufLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss) );
 
     SSL_TRC(3, ("%d: SSL3[%d]: handle alert record", SSL_GETPID(), ss->fd));
 
@@ -2269,8 +2269,8 @@ ssl3_SendChangeCipherSpecs(sslSocket *ss)
     SSL_TRC(3, ("%d: SSL3[%d]: send change_cipher_spec record",
 		SSL_GETPID(), ss->fd));
 
-    PORT_Assert( ss->noLocks || ssl_HaveXmitBufLock(ss) );
-    PORT_Assert( ss->noLocks || ssl_HaveSSL3HandshakeLock(ss));
+    PORT_Assert( ss->opt.noLocks || ssl_HaveXmitBufLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
 
     rv = ssl3_FlushHandshake(ss, ssl_SEND_FLAG_FORCE_INTO_BUFFER);
     if (rv != SECSuccess) {
@@ -2319,8 +2319,8 @@ ssl3_HandleChangeCipherSpecs(sslSocket *ss, sslBuffer *buf)
     SSL3WaitState              ws      = ss->ssl3.hs.ws;
     SSL3ChangeCipherSpecChoice change;
 
-    PORT_Assert( ss->noLocks || ssl_HaveRecvBufLock(ss) );
-    PORT_Assert( ss->noLocks || ssl_HaveSSL3HandshakeLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveRecvBufLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss) );
 
     SSL_TRC(3, ("%d: SSL3[%d]: handle change_cipher_spec record",
 		SSL_GETPID(), ss->fd));
@@ -2396,8 +2396,8 @@ ssl3_DeriveMasterSecret(sslSocket *ss, const PK11SymKey *pms)
     CK_VERSION        pms_version;
     CK_SSL3_MASTER_KEY_DERIVE_PARAMS master_params;
 
-    PORT_Assert( ss->noLocks || ssl_HaveSSL3HandshakeLock(ss));
-    PORT_Assert( ss->noLocks || ssl_HaveSpecWriteLock(ss));
+    PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
+    PORT_Assert( ss->opt.noLocks || ssl_HaveSpecWriteLock(ss));
     PORT_Assert(ss->ssl3.prSpec == ss->ssl3.pwSpec);
     if (isTLS) {
 	if(isDH) master_derive = CKM_TLS_MASTER_KEY_DERIVE_DH;
@@ -2426,7 +2426,7 @@ ssl3_DeriveMasterSecret(sslSocket *ss, const PK11SymKey *pms)
 	pwSpec->master_secret = PK11_DeriveWithFlags((PK11SymKey *)pms, 
 					master_derive, &params, key_derive, 
 					CKA_DERIVE, 0, keyFlags);
-	if (!isDH && pwSpec->master_secret && ss->detectRollBack) {
+	if (!isDH && pwSpec->master_secret && ss->opt.detectRollBack) {
 	    SSL3ProtocolVersion client_version;
 	    client_version = pms_version.major << 8 | pms_version.minor;
 	    if (client_version != ss->clientHelloVersion) {
@@ -2472,7 +2472,7 @@ ssl3_DeriveMasterSecret(sslSocket *ss, const PK11SymKey *pms)
 	ssl_MapLowLevelError(SSL_ERROR_SESSION_KEY_GEN_FAILURE);
 	return rv;
     }
-    if (ss->bypassPKCS11) {
+    if (ss->opt.bypassPKCS11) {
 	SECItem * keydata;
 	/* In hope of doing a "double bypass", 
 	 * need to extract the master secret's value from the key object 
@@ -2537,8 +2537,8 @@ ssl3_DeriveConnectionKeysPKCS11(sslSocket *ss)
     SECItem                params;
     PRBool         skipKeysAndIVs = (PRBool)(cipher_def->calg == calg_null);
 
-    PORT_Assert( ss->noLocks || ssl_HaveSSL3HandshakeLock(ss));
-    PORT_Assert( ss->noLocks || ssl_HaveSpecWriteLock(ss));
+    PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
+    PORT_Assert( ss->opt.noLocks || ssl_HaveSpecWriteLock(ss));
     PORT_Assert(ss->ssl3.prSpec == ss->ssl3.pwSpec);
 
     if (!pwSpec->master_secret) {
@@ -2651,11 +2651,11 @@ ssl3_UpdateHandshakeHashes(sslSocket *ss, unsigned char *b, unsigned int l)
 {
     SECStatus  rv = SECSuccess;
 
-    PORT_Assert( ss->noLocks || ssl_HaveSSL3HandshakeLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss) );
 
     PRINT_BUF(90, (NULL, "MD5 & SHA handshake hash input:", b, l));
 
-    if (ss->bypassPKCS11) {
+    if (ss->opt.bypassPKCS11) {
 	MD5_Update((MD5Context *)ss->ssl3.hs.md5_cx, b, l);
 	SHA1_Update((SHA1Context *)ss->ssl3.hs.sha_cx, b, l);
 	return rv;
@@ -2685,7 +2685,7 @@ ssl3_AppendHandshake(sslSocket *ss, const void *void_src, PRInt32 bytes)
     int              room = ss->sec.ci.sendBuf.space - ss->sec.ci.sendBuf.len;
     SECStatus        rv;
 
-    PORT_Assert( ss->noLocks || ssl_HaveSSL3HandshakeLock(ss) ); /* protects sendBuf. */
+    PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss) ); /* protects sendBuf. */
 
     if (ss->sec.ci.sendBuf.space < MAX_SEND_BUF_LENGTH && room < bytes) {
 	rv = sslBuffer_Grow(&ss->sec.ci.sendBuf, PR_MAX(MIN_SEND_BUF_LENGTH,
@@ -2800,8 +2800,8 @@ static SECStatus
 ssl3_ConsumeHandshake(sslSocket *ss, void *v, PRInt32 bytes, SSL3Opaque **b,
 		      PRUint32 *length)
 {
-    PORT_Assert( ss->noLocks || ssl_HaveRecvBufLock(ss) );
-    PORT_Assert( ss->noLocks || ssl_HaveSSL3HandshakeLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveRecvBufLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss) );
 
     if ((PRUint32)bytes > *length) {
 	return ssl3_DecodeError(ss);
@@ -2832,8 +2832,8 @@ ssl3_ConsumeHandshakeNumber(sslSocket *ss, PRInt32 bytes, SSL3Opaque **b,
     int       i;
     PRInt32   num = 0;
 
-    PORT_Assert( ss->noLocks || ssl_HaveRecvBufLock(ss) );
-    PORT_Assert( ss->noLocks || ssl_HaveSSL3HandshakeLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveRecvBufLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss) );
     PORT_Assert( bytes <= sizeof num);
 
     if ((PRUint32)bytes > *length) {
@@ -2912,9 +2912,9 @@ ssl3_ComputeHandshakeHashes(sslSocket *     ss,
     SSL3Opaque    md5_inner[MAX_MAC_LENGTH];
     SSL3Opaque    sha_inner[MAX_MAC_LENGTH];
 
-    PORT_Assert( ss->noLocks || ssl_HaveSSL3HandshakeLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss) );
 
-    if (ss->bypassPKCS11) {
+    if (ss->opt.bypassPKCS11) {
 	/* compute them without PKCS11 */
 	PRUint64      md5_cx[MAX_MAC_CONTEXT_LLONGS];
 	PRUint64      sha_cx[MAX_MAC_CONTEXT_LLONGS];
@@ -3200,8 +3200,8 @@ ssl3_SendClientHello(sslSocket *ss)
     SSL_TRC(3, ("%d: SSL3[%d]: send client_hello handshake", SSL_GETPID(),
 		ss->fd));
 
-    PORT_Assert( ss->noLocks || ssl_HaveSSL3HandshakeLock(ss) );
-    PORT_Assert( ss->noLocks || ssl_HaveXmitBufLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveXmitBufLock(ss) );
 
     rv = ssl3_InitState(ss);
     if (rv != SECSuccess) {
@@ -3210,7 +3210,7 @@ ssl3_SendClientHello(sslSocket *ss)
 
     SSL_TRC(30,("%d: SSL3[%d]: reset handshake hashes",
 	    SSL_GETPID(), ss->fd ));
-    if (ss->bypassPKCS11) {
+    if (ss->opt.bypassPKCS11) {
 	MD5_Begin((MD5Context *)ss->ssl3.hs.md5_cx);
 	SHA1_Begin((SHA1Context *)ss->ssl3.hs.sha_cx);
     } else {
@@ -3230,7 +3230,7 @@ ssl3_SendClientHello(sslSocket *ss)
      * XXX If we've been called from ssl2_BeginClientHandshake, then
      * this lookup is duplicative and wasteful.
      */
-    sid = (ss->noCache) ? NULL
+    sid = (ss->opt.noCache) ? NULL
 	    : ssl_LookupSID(&ss->sec.ci.peer, ss->sec.ci.port, ss->peerID, ss->url);
 
     /* We can't resume based on a different token. If the sid exists,
@@ -3320,8 +3320,8 @@ ssl3_SendClientHello(sslSocket *ss)
     ss->sec.send = ssl3_SendApplicationData;
 
     /* shouldn't get here if SSL3 is disabled, but ... */
-    PORT_Assert(ss->enableSSL3 || ss->enableTLS);
-    if (!ss->enableSSL3 && !ss->enableTLS) {
+    PORT_Assert(ss->opt.enableSSL3 || ss->opt.enableTLS);
+    if (!ss->opt.enableSSL3 && !ss->opt.enableTLS) {
 	PORT_SetError(SSL_ERROR_SSL_DISABLED);
     	return SECFailure;
     }
@@ -3436,8 +3436,8 @@ ssl3_HandleHelloRequest(sslSocket *ss)
     SSL_TRC(3, ("%d: SSL3[%d]: handle hello_request handshake",
 		SSL_GETPID(), ss->fd));
 
-    PORT_Assert( ss->noLocks || ssl_HaveRecvBufLock(ss) );
-    PORT_Assert( ss->noLocks || ssl_HaveSSL3HandshakeLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveRecvBufLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss) );
 
     if (ss->ssl3.hs.ws == wait_server_hello)
 	return SECSuccess;
@@ -3739,8 +3739,8 @@ sendRSAClientKeyExchange(sslSocket * ss, SECKEYPublicKey * svrPubKey)
     SECItem 		enc_pms 	= {siBuffer, NULL, 0};
     PRBool              isTLS;
 
-    PORT_Assert( ss->noLocks || ssl_HaveSSL3HandshakeLock(ss) );
-    PORT_Assert( ss->noLocks || ssl_HaveXmitBufLock(ss));
+    PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveXmitBufLock(ss));
 
     /* Generate the pre-master secret ...  */
     ssl_GetSpecWriteLock(ss);
@@ -3815,8 +3815,8 @@ sendDHClientKeyExchange(sslSocket * ss, SECKEYPublicKey * svrPubKey)
     SECKEYPublicKey	*pubKey = NULL;		/* Ephemeral DH key */
     SECKEYPrivateKey	*privKey = NULL;	/* Ephemeral DH key */
 
-    PORT_Assert( ss->noLocks || ssl_HaveSSL3HandshakeLock(ss) );
-    PORT_Assert( ss->noLocks || ssl_HaveXmitBufLock(ss));
+    PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveXmitBufLock(ss));
 
     isTLS = (PRBool)(ss->ssl3.pwSpec->version > SSL_LIBRARY_VERSION_3_0);
 
@@ -3903,8 +3903,8 @@ ssl3_SendClientKeyExchange(sslSocket *ss)
     SSL_TRC(3, ("%d: SSL3[%d]: send client_key_exchange handshake",
 		SSL_GETPID(), ss->fd));
 
-    PORT_Assert( ss->noLocks || ssl_HaveXmitBufLock(ss));
-    PORT_Assert( ss->noLocks || ssl_HaveSSL3HandshakeLock(ss));
+    PORT_Assert( ss->opt.noLocks || ssl_HaveXmitBufLock(ss));
+    PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
 
     if (ss->sec.peerKey == NULL) {
 	serverKey = CERT_ExtractPublicKey(ss->sec.peerCert);
@@ -3975,8 +3975,8 @@ ssl3_SendCertificateVerify(sslSocket *ss)
     SECItem       buf           = {siBuffer, NULL, 0};
     SSL3Hashes    hashes;
 
-    PORT_Assert( ss->noLocks || ssl_HaveXmitBufLock(ss));
-    PORT_Assert( ss->noLocks || ssl_HaveSSL3HandshakeLock(ss));
+    PORT_Assert( ss->opt.noLocks || ssl_HaveXmitBufLock(ss));
+    PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
 
     SSL_TRC(3, ("%d: SSL3[%d]: send certificate_verify handshake",
 		SSL_GETPID(), ss->fd));
@@ -4053,8 +4053,8 @@ ssl3_HandleServerHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 
     SSL_TRC(3, ("%d: SSL3[%d]: handle server_hello handshake",
     	SSL_GETPID(), ss->fd));
-    PORT_Assert( ss->noLocks || ssl_HaveRecvBufLock(ss) );
-    PORT_Assert( ss->noLocks || ssl_HaveSSL3HandshakeLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveRecvBufLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss) );
 
     rv = ssl3_InitState(ss);
     if (rv != SECSuccess) {
@@ -4200,7 +4200,7 @@ ssl3_HandleServerHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	 * c) key is unwrapped, and we're bypassing PKCS11.
 	 */
 	if (sid->u.ssl3.keys.msIsWrapped) {
-	    if (ss->bypassPKCS11) {
+	    if (ss->opt.bypassPKCS11) {
 		/* we cannot restart a non-bypass session in a 
 		** bypass socket.
 		*/
@@ -4240,7 +4240,7 @@ ssl3_HandleServerHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	    if (pwSpec->master_secret == NULL) {
 		break;	/* errorCode set just after call to UnwrapSymKey. */
 	    }
-	} else if (ss->bypassPKCS11) {
+	} else if (ss->opt.bypassPKCS11) {
 	    /* MS is not wrapped */
 	    wrappedMS.data = sid->u.ssl3.keys.wrapped_master_secret;
 	    wrappedMS.len  = sid->u.ssl3.keys.wrapped_master_secret_len;
@@ -4331,8 +4331,8 @@ ssl3_HandleServerKeyExchange(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 
     SSL_TRC(3, ("%d: SSL3[%d]: handle server_key_exchange handshake",
 		SSL_GETPID(), ss->fd));
-    PORT_Assert( ss->noLocks || ssl_HaveRecvBufLock(ss) );
-    PORT_Assert( ss->noLocks || ssl_HaveSSL3HandshakeLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveRecvBufLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss) );
 
     if (ss->ssl3.hs.ws != wait_server_key &&
 	ss->ssl3.hs.ws != wait_server_cert) {
@@ -4382,7 +4382,7 @@ ssl3_HandleServerKeyExchange(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     	rv = ssl3_ComputeExportRSAKeyHash(modulus, exponent,
 					  &ss->ssl3.hs.client_random,
 					  &ss->ssl3.hs.server_random, 
-					  &hashes, ss->bypassPKCS11);
+					  &hashes, ss->opt.bypassPKCS11);
         if (rv != SECSuccess) {
 	    errCode =
 	    	ssl_MapLowLevelError(SSL_ERROR_SERVER_KEY_EXCHANGE_FAILURE);
@@ -4468,7 +4468,7 @@ ssl3_HandleServerKeyExchange(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     	rv = ssl3_ComputeDHKeyHash(dh_p, dh_g, dh_Ys,
 					  &ss->ssl3.hs.client_random,
 					  &ss->ssl3.hs.server_random, 
-					  &hashes, ss->bypassPKCS11);
+					  &hashes, ss->opt.bypassPKCS11);
         if (rv != SECSuccess) {
 	    errCode =
 	    	ssl_MapLowLevelError(SSL_ERROR_SERVER_KEY_EXCHANGE_FAILURE);
@@ -4672,8 +4672,8 @@ ssl3_HandleCertificateRequest(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 
     SSL_TRC(3, ("%d: SSL3[%d]: handle certificate_request handshake",
 		SSL_GETPID(), ss->fd));
-    PORT_Assert( ss->noLocks || ssl_HaveRecvBufLock(ss) );
-    PORT_Assert( ss->noLocks || ssl_HaveSSL3HandshakeLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveRecvBufLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss) );
 
     if (ss->ssl3.hs.ws != wait_cert_request &&
     	ss->ssl3.hs.ws != wait_server_key) {
@@ -4906,8 +4906,8 @@ ssl3_HandleServerHelloDone(sslSocket *ss)
 
     SSL_TRC(3, ("%d: SSL3[%d]: handle server_hello_done handshake",
 		SSL_GETPID(), ss->fd));
-    PORT_Assert( ss->noLocks || ssl_HaveRecvBufLock(ss) );
-    PORT_Assert( ss->noLocks || ssl_HaveSSL3HandshakeLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveRecvBufLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss) );
 
     if (ws != wait_hello_done  &&
         ws != wait_server_cert &&
@@ -4978,8 +4978,8 @@ ssl3_SendHelloRequest(sslSocket *ss)
     SSL_TRC(3, ("%d: SSL3[%d]: send hello_request handshake", SSL_GETPID(),
 		ss->fd));
 
-    PORT_Assert( ss->noLocks || ssl_HaveSSL3HandshakeLock(ss) );
-    PORT_Assert( ss->noLocks || ssl_HaveXmitBufLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveXmitBufLock(ss) );
 
     rv = ssl3_AppendHandshakeHeader(ss, hello_request, 0);
     if (rv != SECSuccess) {
@@ -5050,8 +5050,8 @@ ssl3_SendServerHelloSequence(sslSocket *ss)
     SSL_TRC(3, ("%d: SSL3[%d]: begin send server_hello sequence",
 		SSL_GETPID(), ss->fd));
 
-    PORT_Assert( ss->noLocks || ssl_HaveSSL3HandshakeLock(ss) );
-    PORT_Assert( ss->noLocks || ssl_HaveXmitBufLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveXmitBufLock(ss) );
 
     rv = ssl3_SendServerHello(ss);
     if (rv != SECSuccess) {
@@ -5100,7 +5100,7 @@ ssl3_SendServerHelloSequence(sslSocket *ss)
 #endif /* NSS_ENABLE_ECC */
     }
 
-    if (ss->requestCertificate) {
+    if (ss->opt.requestCertificate) {
 	rv = ssl3_SendCertificateRequest(ss);
 	if (rv != SECSuccess) {
 	    return rv;		/* err code is set. */
@@ -5111,7 +5111,7 @@ ssl3_SendServerHelloSequence(sslSocket *ss)
 	return rv;		/* err code is set. */
     }
 
-    ss->ssl3.hs.ws = (ss->requestCertificate) ? wait_client_cert
+    ss->ssl3.hs.ws = (ss->opt.requestCertificate) ? wait_client_cert
                                                : wait_client_key;
     return SECSuccess;
 }
@@ -5140,8 +5140,8 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     SSL_TRC(3, ("%d: SSL3[%d]: handle client_hello handshake",
     	SSL_GETPID(), ss->fd));
 
-    PORT_Assert( ss->noLocks || ssl_HaveRecvBufLock(ss) );
-    PORT_Assert( ss->noLocks || ssl_HaveSSL3HandshakeLock(ss));
+    PORT_Assert( ss->opt.noLocks || ssl_HaveRecvBufLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
 
     /* Get peer name of client */
     rv = ssl_GetPeerInfo(ss);
@@ -5185,7 +5185,7 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	goto loser;		/* malformed */
     }
 
-    if (sidBytes.len > 0 && !ss->noCache) {
+    if (sidBytes.len > 0 && !ss->opt.noCache) {
 	SSL_TRC(7, ("%d: SSL3[%d]: server, lookup client session-id for 0x%08x%08x%08x%08x",
                     SSL_GETPID(), ss->fd, ss->sec.ci.peer.pr_s6_addr32[0],
 		    ss->sec.ci.peer.pr_s6_addr32[1], 
@@ -5226,10 +5226,10 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	 * and this is the first handshake on this connection (not a redo),
 	 * then drop this old cache entry and start a new session.
 	 */
-	if ((sid->peerCert == NULL) && ss->requestCertificate &&
-	    ((ss->requireCertificate == SSL_REQUIRE_ALWAYS) ||
-	     (ss->requireCertificate == SSL_REQUIRE_NO_ERROR) ||
-	     ((ss->requireCertificate == SSL_REQUIRE_FIRST_HANDSHAKE) 
+	if ((sid->peerCert == NULL) && ss->opt.requestCertificate &&
+	    ((ss->opt.requireCertificate == SSL_REQUIRE_ALWAYS) ||
+	     (ss->opt.requireCertificate == SSL_REQUIRE_NO_ERROR) ||
+	     ((ss->opt.requireCertificate == SSL_REQUIRE_FIRST_HANDSHAKE) 
 	      && !ss->firstHsDone))) {
 
 	    ++ssl3stats.hch_sid_cache_not_ok;
@@ -5342,7 +5342,7 @@ compression_found:
 	if (sid->u.ssl3.keys.msIsWrapped) {
 	    PK11SymKey *    wrapKey; 	/* wrapping key */
 	    CK_FLAGS        keyFlags      = 0;
-	    if (ss->bypassPKCS11) {
+	    if (ss->opt.bypassPKCS11) {
 		/* we cannot restart a non-bypass session in a 
 		** bypass socket.
 		*/
@@ -5373,7 +5373,7 @@ compression_found:
 	    if (pwSpec->master_secret == NULL) {
 		break;	/* not an error */
 	    }
-	} else if (ss->bypassPKCS11) {
+	} else if (ss->opt.bypassPKCS11) {
 	    wrappedMS.data = sid->u.ssl3.keys.wrapped_master_secret;
 	    wrappedMS.len  = sid->u.ssl3.keys.wrapped_master_secret_len;
 	    memcpy(pwSpec->raw_master_secret, wrappedMS.data, wrappedMS.len);
@@ -5539,7 +5539,7 @@ ssl3_HandleV2ClientHello(sslSocket *ss, unsigned char *buffer, int length)
 
     SSL_TRC(3, ("%d: SSL3[%d]: handle v2 client_hello", SSL_GETPID(), ss->fd));
 
-    PORT_Assert( ss->noLocks || ssl_HaveRecvBufLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveRecvBufLock(ss) );
 
     ssl_GetSSL3HandshakeLock(ss);
 
@@ -5690,8 +5690,8 @@ ssl3_SendServerHello(sslSocket *ss)
     SSL_TRC(3, ("%d: SSL3[%d]: send server_hello handshake", SSL_GETPID(),
 		ss->fd));
 
-    PORT_Assert( ss->noLocks || ssl_HaveXmitBufLock(ss));
-    PORT_Assert( ss->noLocks || ssl_HaveSSL3HandshakeLock(ss));
+    PORT_Assert( ss->opt.noLocks || ssl_HaveXmitBufLock(ss));
+    PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
     PORT_Assert( MSB(ss->version) == MSB(SSL_LIBRARY_VERSION_3_0));
 
     if (MSB(ss->version) != MSB(SSL_LIBRARY_VERSION_3_0)) {
@@ -5769,8 +5769,8 @@ const ssl3KEADef *     kea_def     = ss->ssl3.hs.kea_def;
     SSL_TRC(3, ("%d: SSL3[%d]: send server_key_exchange handshake",
 		SSL_GETPID(), ss->fd));
 
-    PORT_Assert( ss->noLocks || ssl_HaveXmitBufLock(ss));
-    PORT_Assert( ss->noLocks || ssl_HaveSSL3HandshakeLock(ss));
+    PORT_Assert( ss->opt.noLocks || ssl_HaveXmitBufLock(ss));
+    PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
 
     switch (kea_def->exchKeyType) {
     case kt_rsa:
@@ -5785,7 +5785,7 @@ const ssl3KEADef *     kea_def     = ss->ssl3.hs.kea_def;
 					  sdPub->u.rsa.publicExponent,
 	                                  &ss->ssl3.hs.client_random,
 	                                  &ss->ssl3.hs.server_random,
-					  &hashes, ss->bypassPKCS11);
+					  &hashes, ss->opt.bypassPKCS11);
         if (rv != SECSuccess) {
 	    ssl_MapLowLevelError(SSL_ERROR_SERVER_KEY_EXCHANGE_FAILURE);
 	    return rv;
@@ -5953,8 +5953,8 @@ const uint8 *      certTypes;
     SSL_TRC(3, ("%d: SSL3[%d]: send certificate_request handshake",
 		SSL_GETPID(), ss->fd));
 
-    PORT_Assert( ss->noLocks || ssl_HaveXmitBufLock(ss));
-    PORT_Assert( ss->noLocks || ssl_HaveSSL3HandshakeLock(ss));
+    PORT_Assert( ss->opt.noLocks || ssl_HaveXmitBufLock(ss));
+    PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
 
     /* ssl3.ca_list is initialized to NULL, and never changed. */
     ca_list = ss->ssl3.ca_list;
@@ -6011,8 +6011,8 @@ ssl3_SendServerHelloDone(sslSocket *ss)
     SSL_TRC(3, ("%d: SSL3[%d]: send server_hello_done handshake",
 		SSL_GETPID(), ss->fd));
 
-    PORT_Assert( ss->noLocks || ssl_HaveXmitBufLock(ss));
-    PORT_Assert( ss->noLocks || ssl_HaveSSL3HandshakeLock(ss));
+    PORT_Assert( ss->opt.noLocks || ssl_HaveXmitBufLock(ss));
+    PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
 
     rv = ssl3_AppendHandshakeHeader(ss, server_hello_done, 0);
     if (rv != SECSuccess) {
@@ -6041,8 +6041,8 @@ ssl3_HandleCertificateVerify(sslSocket *ss, SSL3Opaque *b, PRUint32 length,
 
     SSL_TRC(3, ("%d: SSL3[%d]: handle certificate_verify handshake",
 		SSL_GETPID(), ss->fd));
-    PORT_Assert( ss->noLocks || ssl_HaveRecvBufLock(ss) );
-    PORT_Assert( ss->noLocks || ssl_HaveSSL3HandshakeLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveRecvBufLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss) );
 
     if (ss->ssl3.hs.ws != wait_cert_verify || ss->sec.peerCert == NULL) {
 	desc    = unexpected_message;
@@ -6104,7 +6104,7 @@ ssl3_GenerateRSAPMS(sslSocket *ss, ssl3CipherSpec *spec,
     CK_VERSION 	      version;
     CK_MECHANISM_TYPE mechanism_array[3];
 
-    PORT_Assert( ss->noLocks || ssl_HaveSSL3HandshakeLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss) );
 
     if (slot == NULL) {
 	SSLCipherAlgorithm calg;
@@ -6112,7 +6112,7 @@ ssl3_GenerateRSAPMS(sslSocket *ss, ssl3CipherSpec *spec,
 	** read locks.  Also, all the callers who call with a non-null
 	** slot already hold the SpecWriteLock.
 	*/
-	PORT_Assert( ss->noLocks || ssl_HaveSpecWriteLock(ss));
+	PORT_Assert( ss->opt.noLocks || ssl_HaveSpecWriteLock(ss));
 	PORT_Assert(ss->ssl3.prSpec == ss->ssl3.pwSpec);
 
         calg = spec->cipher_def->calg;
@@ -6179,8 +6179,8 @@ ssl3_HandleRSAClientKeyExchange(sslSocket *ss,
     unsigned char     rsaPmsBuf[SSL3_RSA_PMS_LENGTH];
     SECItem           pmsItem = {siBuffer, rsaPmsBuf, sizeof rsaPmsBuf};
 
-    PORT_Assert( ss->noLocks || ssl_HaveRecvBufLock(ss) );
-    PORT_Assert( ss->noLocks || ssl_HaveSSL3HandshakeLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveRecvBufLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss) );
 
     enc_pms.data = b;
     enc_pms.len  = length;
@@ -6200,7 +6200,7 @@ ssl3_HandleRSAClientKeyExchange(sslSocket *ss,
 	isTLS = (PRBool)(ss->ssl3.hs.kea_def->tls_keygen != 0);
     }
 
-    if (ss->bypassPKCS11) {
+    if (ss->opt.bypassPKCS11) {
 	/* TRIPLE BYPASS, get PMS directly from RSA decryption.
 	 * Use PK11_PrivDecryptPKCS1 to decrypt the PMS to a buffer, 
 	 * then, check for version rollback attack, then 
@@ -6215,7 +6215,7 @@ ssl3_HandleRSAClientKeyExchange(sslSocket *ss,
 	    /* avoid Bleichenbacker attack.  generate faux pms. */
 	    rv = PK11_GenerateRandom(rsaPmsBuf, sizeof rsaPmsBuf);
 	    /* ignore failure */
-	} else if (ss->detectRollBack) {
+	} else if (ss->opt.detectRollBack) {
 	    SSL3ProtocolVersion client_version = 
 					 (rsaPmsBuf[0] << 8) | rsaPmsBuf[1];
 	    if (client_version != ss->clientHelloVersion) {
@@ -6290,8 +6290,8 @@ const ssl3KEADef *    kea_def;
     SSL_TRC(3, ("%d: SSL3[%d]: handle client_key_exchange handshake",
 		SSL_GETPID(), ss->fd));
 
-    PORT_Assert( ss->noLocks || ssl_HaveRecvBufLock(ss) );
-    PORT_Assert( ss->noLocks || ssl_HaveSSL3HandshakeLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveRecvBufLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss) );
 
     if (ss->ssl3.hs.ws != wait_client_key) {
 	SSL3_SendAlert(ss, alert_fatal, unexpected_message);
@@ -6498,8 +6498,8 @@ ssl3_SendCertificate(sslSocket *ss)
     SSL_TRC(3, ("%d: SSL3[%d]: send certificate handshake",
 		SSL_GETPID(), ss->fd));
 
-    PORT_Assert( ss->noLocks || ssl_HaveXmitBufLock(ss));
-    PORT_Assert( ss->noLocks || ssl_HaveSSL3HandshakeLock(ss));
+    PORT_Assert( ss->opt.noLocks || ssl_HaveXmitBufLock(ss));
+    PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
 
     if (ss->sec.localCert)
     	CERT_DestroyCertificate(ss->sec.localCert);
@@ -6618,8 +6618,8 @@ ssl3_HandleCertificate(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 
     SSL_TRC(3, ("%d: SSL3[%d]: handle certificate handshake",
 		SSL_GETPID(), ss->fd));
-    PORT_Assert( ss->noLocks || ssl_HaveRecvBufLock(ss) );
-    PORT_Assert( ss->noLocks || ssl_HaveSSL3HandshakeLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveRecvBufLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss) );
 
     if ((ss->ssl3.hs.ws != wait_server_cert) &&
 	(ss->ssl3.hs.ws != wait_client_cert)) {
@@ -7026,8 +7026,8 @@ ssl3_SendFinished(sslSocket *ss, PRInt32 flags)
 
     SSL_TRC(3, ("%d: SSL3[%d]: send finished handshake", SSL_GETPID(), ss->fd));
 
-    PORT_Assert( ss->noLocks || ssl_HaveXmitBufLock(ss));
-    PORT_Assert( ss->noLocks || ssl_HaveSSL3HandshakeLock(ss));
+    PORT_Assert( ss->opt.noLocks || ssl_HaveXmitBufLock(ss));
+    PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
 
     ssl_GetSpecReadLock(ss);
     cwSpec = ss->ssl3.cwSpec;
@@ -7164,8 +7164,8 @@ ssl3_HandleFinished(sslSocket *ss, SSL3Opaque *b, PRUint32 length,
     PRBool            doStepUp;
     SSL3KEAType       effectiveExchKeyType;
 
-    PORT_Assert( ss->noLocks || ssl_HaveRecvBufLock(ss) );
-    PORT_Assert( ss->noLocks || ssl_HaveSSL3HandshakeLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveRecvBufLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss) );
 
     SSL_TRC(3, ("%d: SSL3[%d]: handle finished handshake",
     	SSL_GETPID(), ss->fd));
@@ -7259,7 +7259,7 @@ xmit_loser:
 	effectiveExchKeyType = ss->ssl3.hs.kea_def->exchKeyType;
     }
 
-    if (sid->cached == never_cached && !ss->noCache && ss->sec.cache) {
+    if (sid->cached == never_cached && !ss->opt.noCache && ss->sec.cache) {
 	/* fill in the sid */
 	sid->u.ssl3.cipherSuite = ss->ssl3.hs.cipher_suite;
 	sid->u.ssl3.compression = ss->ssl3.hs.compression;
@@ -7320,8 +7320,8 @@ ssl3_HandleHandshakeMessage(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     SSL3Hashes        hashes;	/* computed hashes are put here. */
     PRUint8           hdr[4];
 
-    PORT_Assert( ss->noLocks || ssl_HaveRecvBufLock(ss) );
-    PORT_Assert( ss->noLocks || ssl_HaveSSL3HandshakeLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveRecvBufLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss) );
     /*
      * We have to compute the hashes before we update them with the
      * current message.
@@ -7357,7 +7357,7 @@ ssl3_HandleHandshakeMessage(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     if (ss->ssl3.hs.msg_type == client_hello) {
 	SSL_TRC(30,("%d: SSL3[%d]: reset handshake hashes",
 		SSL_GETPID(), ss->fd ));
-	if (ss->bypassPKCS11) {
+	if (ss->opt.bypassPKCS11) {
 	    MD5_Begin((MD5Context *)ss->ssl3.hs.md5_cx);
 	    SHA1_Begin((SHA1Context *)ss->ssl3.hs.sha_cx);
 	} else {
@@ -7489,8 +7489,8 @@ ssl3_HandleHandshake(sslSocket *ss, sslBuffer *origBuf)
     sslBuffer *buf = &ss->ssl3.hs.msgState; /* do not lose the original buffer pointer */
     SECStatus rv;
 
-    PORT_Assert( ss->noLocks || ssl_HaveRecvBufLock(ss) );
-    PORT_Assert( ss->noLocks || ssl_HaveSSL3HandshakeLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveRecvBufLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss) );
 
     if (buf->buf == NULL) {
 	*buf = *origBuf;
@@ -7630,7 +7630,7 @@ const ssl3BulkCipherDef *cipher_def;
     SSL3ContentType      rType;
     SSL3Opaque           hash[MAX_MAC_LENGTH];
 
-    PORT_Assert( ss->noLocks || ssl_HaveRecvBufLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveRecvBufLock(ss) );
 
     if (!ss->ssl3.initialized) {
 	ssl_GetSSL3HandshakeLock(ss);
@@ -7848,7 +7848,7 @@ ssl3_InitCipherSpec(sslSocket *ss, ssl3CipherSpec *spec)
     spec->read_seq_num.high        = 0;
     spec->read_seq_num.low         = 0;
 
-    spec->version                  = ss->enableTLS
+    spec->version                  = ss->opt.enableTLS
                                           ? SSL_LIBRARY_VERSION_3_1_TLS
                                           : SSL_LIBRARY_VERSION_3_0;
 }
@@ -7871,7 +7871,7 @@ ssl3_InitState(sslSocket *ss)
     PK11Context *md5  = NULL;
     PK11Context *sha  = NULL;
     SECStatus    rv;
-    PORT_Assert( ss->noLocks || ssl_HaveSSL3HandshakeLock(ss));
+    PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
 
     if (ss->ssl3.initialized)
     	return SECSuccess;	/* Function should be idempotent */
@@ -7894,7 +7894,7 @@ ssl3_InitState(sslSocket *ss)
      * that the master secret will wind up in ...
      */
     SSL_TRC(30,("%d: SSL3[%d]: start handshake hashes", SSL_GETPID(), ss->fd));
-    if (ss->bypassPKCS11) {
+    if (ss->opt.bypassPKCS11) {
 	MD5_Begin((MD5Context *)ss->ssl3.hs.md5_cx);
 	SHA1_Begin((SHA1Context *)ss->ssl3.hs.sha_cx);
     } else {
@@ -8132,7 +8132,7 @@ ssl3_ConstructV2CipherSpecsHack(sslSocket *ss, unsigned char *cs, int *size)
 	PORT_SetError(PR_INVALID_ARGUMENT_ERROR);
 	return SECFailure;
     }
-    if (!ss->enableSSL3 && !ss->enableTLS) {
+    if (!ss->opt.enableSSL3 && !ss->opt.enableTLS) {
     	*size = 0;
 	return SECSuccess;
     }
@@ -8171,7 +8171,7 @@ ssl3_RedoHandshake(sslSocket *ss, PRBool flushCache)
     sslSessionID *   sid = ss->sec.ci.sid;
     SECStatus        rv;
 
-    PORT_Assert( ss->noLocks || ssl_HaveSSL3HandshakeLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss) );
 
     if (!ss->firstHsDone ||
         ((ss->version >= SSL_LIBRARY_VERSION_3_0) &&
@@ -8216,7 +8216,7 @@ ssl3_DestroySSL3Info(sslSocket *ss)
     }
 
     /* clean up handshake */
-    if (ss->bypassPKCS11) {
+    if (ss->opt.bypassPKCS11) {
 	SHA1_DestroyContext((SHA1Context *)ss->ssl3.hs.sha_cx, PR_FALSE);
 	MD5_DestroyContext((MD5Context *)ss->ssl3.hs.md5_cx, PR_FALSE);
     } 

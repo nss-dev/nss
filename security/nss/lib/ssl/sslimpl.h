@@ -885,22 +885,7 @@ struct sslSocketStr {
     const sslSocketOps * ops;
 
     /* SSL socket options */
-    unsigned int     useSecurity	: 1;
-    unsigned int     useSocks		: 1;
-    unsigned int     requestCertificate	: 1;
-    unsigned int     requireCertificate	: 2;
-    unsigned int     handshakeAsClient	: 1;
-    unsigned int     handshakeAsServer	: 1;
-    unsigned int     enableSSL2		: 1;
-    unsigned int     enableSSL3		: 1;
-    unsigned int     enableTLS		: 1;
-    unsigned int     noCache		: 1;
-    unsigned int     fdx		: 1; /* simultaneous R/W threads */
-    unsigned int     v2CompatibleHello	: 1; /* Send v3+ client hello in v2 format */
-    unsigned int     detectRollBack   	: 1; /* Detect rollback to SSL v3 */
-    unsigned int     noStepDown         : 1;
-    unsigned int     bypassPKCS11       : 1; 
-    unsigned int     noLocks            : 1; 
+    sslOptions       opt;
 
     /* State flags */
     unsigned long    clientAuthRequested;
@@ -1131,42 +1116,42 @@ extern SECStatus ssl_EnableNagleDelay(sslSocket *ss, PRBool enabled);
 #define SSL_UNLOCK_WRITER(ss)		if (ss->sendLock) PZ_Unlock(ss->sendLock)
 
 #define ssl_Get1stHandshakeLock(ss)     \
-    { if (!ss->noLocks) PZ_EnterMonitor((ss)->firstHandshakeLock); }
+    { if (!ss->opt.noLocks) PZ_EnterMonitor((ss)->firstHandshakeLock); }
 #define ssl_Release1stHandshakeLock(ss) \
-    { if (!ss->noLocks) PZ_ExitMonitor((ss)->firstHandshakeLock); }
+    { if (!ss->opt.noLocks) PZ_ExitMonitor((ss)->firstHandshakeLock); }
 #define ssl_Have1stHandshakeLock(ss)    \
     (PZ_InMonitor((ss)->firstHandshakeLock))
 
 #define ssl_GetSSL3HandshakeLock(ss)	\
-    { if (!ss->noLocks) PZ_EnterMonitor((ss)->ssl3HandshakeLock); }
+    { if (!ss->opt.noLocks) PZ_EnterMonitor((ss)->ssl3HandshakeLock); }
 #define ssl_ReleaseSSL3HandshakeLock(ss) \
-    { if (!ss->noLocks) PZ_ExitMonitor((ss)->ssl3HandshakeLock); }
+    { if (!ss->opt.noLocks) PZ_ExitMonitor((ss)->ssl3HandshakeLock); }
 #define ssl_HaveSSL3HandshakeLock(ss)	\
     (PZ_InMonitor((ss)->ssl3HandshakeLock))
 
 #define ssl_GetSpecReadLock(ss)		\
-    { if (!ss->noLocks) NSSRWLock_LockRead((ss)->specLock); }
+    { if (!ss->opt.noLocks) NSSRWLock_LockRead((ss)->specLock); }
 #define ssl_ReleaseSpecReadLock(ss)	\
-    { if (!ss->noLocks) NSSRWLock_UnlockRead((ss)->specLock); }
+    { if (!ss->opt.noLocks) NSSRWLock_UnlockRead((ss)->specLock); }
 
 #define ssl_GetSpecWriteLock(ss)	\
-    { if (!ss->noLocks) NSSRWLock_LockWrite((ss)->specLock); }
+    { if (!ss->opt.noLocks) NSSRWLock_LockWrite((ss)->specLock); }
 #define ssl_ReleaseSpecWriteLock(ss)	\
-    { if (!ss->noLocks) NSSRWLock_UnlockWrite((ss)->specLock); }
+    { if (!ss->opt.noLocks) NSSRWLock_UnlockWrite((ss)->specLock); }
 #define ssl_HaveSpecWriteLock(ss)	\
     (NSSRWLock_HaveWriteLock((ss)->specLock))
 
 #define ssl_GetRecvBufLock(ss)		\
-    { if (!ss->noLocks) PZ_EnterMonitor((ss)->recvBufLock); }
+    { if (!ss->opt.noLocks) PZ_EnterMonitor((ss)->recvBufLock); }
 #define ssl_ReleaseRecvBufLock(ss)	\
-    { if (!ss->noLocks) PZ_ExitMonitor( (ss)->recvBufLock); }
+    { if (!ss->opt.noLocks) PZ_ExitMonitor( (ss)->recvBufLock); }
 #define ssl_HaveRecvBufLock(ss)		\
     (PZ_InMonitor((ss)->recvBufLock))
 
 #define ssl_GetXmitBufLock(ss)		\
-    { if (!ss->noLocks) PZ_EnterMonitor((ss)->xmitBufLock); }
+    { if (!ss->opt.noLocks) PZ_EnterMonitor((ss)->xmitBufLock); }
 #define ssl_ReleaseXmitBufLock(ss)	\
-    { if (!ss->noLocks) PZ_ExitMonitor( (ss)->xmitBufLock); }
+    { if (!ss->opt.noLocks) PZ_ExitMonitor( (ss)->xmitBufLock); }
 #define ssl_HaveXmitBufLock(ss)		\
     (PZ_InMonitor((ss)->xmitBufLock))
 
