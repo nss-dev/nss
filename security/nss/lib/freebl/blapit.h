@@ -357,10 +357,10 @@ typedef SECStatus (*BLapiInitContextFunc)(void *cx,
 				   int, 
 				   unsigned int ,
 				   unsigned int );
-typedef SECStatus (*BLapiEncrypt)(void *cx, unsigned char *output,
-				unsigned int *outputLen, 
-				unsigned int maxOutputLen,
-				const unsigned char *input, 
-				unsigned int inputLen);
+typedef SECStatus (*BLapiEncryptFunc)(void *cx, unsigned char *output,
+				    unsigned int *outputLen, 
+				    unsigned int maxOutputLen,
+				    const unsigned char *input, 
+				    unsigned int inputLen);
 
 #endif /* _BLAPIT_H_ */
