@@ -453,21 +453,19 @@ typedef struct {
     SSL3Opaque        server_write_iv         [24];
     SSL3Opaque        wrapped_master_secret   [48];
     PRUint16          wrapped_master_secret_len;
+    PRUint8           msIsWrapped;
+    PRUint8           resumable;
 } ssl3SidKeys;
 
 typedef struct {
-#ifdef PK11_BYPASS
-    SECItem     write_key;
-    SECItem     write_iv;
-    SECItem     write_mac_key;
-/*  PRUint64    write_mac_context[MAX_MAC_CONTEXT_LLONGS]; */
-    PRUint64    cipher_context[MAX_CIPHER_CONTEXT_LLONGS];
-#else
-    SSL3Opaque write_iv[MAX_IV_LENGTH];
-    PK11SymKey *write_key;
-    PK11SymKey *write_mac_key;
+    PK11SymKey  *write_key;
+    PK11SymKey  *write_mac_key;
     PK11Context *write_mac_context;
-#endif
+    SECItem     write_key_item;
+    SECItem     write_iv_item;
+    SECItem     write_mac_key_item;
+    SSL3Opaque  write_iv[MAX_IV_LENGTH];
+    PRUint64    cipher_context[MAX_CIPHER_CONTEXT_LLONGS];
 } ssl3KeyMaterial;
 
 /*
@@ -484,17 +482,16 @@ typedef struct {
     SSLDestroy         destroy;
     void *             encodeContext;
     void *             decodeContext;
+    PRBool             bypassCiphers;	/* did double bypass (at least) */
     PK11SymKey *       master_secret;
     SSL3SequenceNumber write_seq_num;
     SSL3SequenceNumber read_seq_num;
     SSL3ProtocolVersion version;
     ssl3KeyMaterial    client;
     ssl3KeyMaterial    server;
-#ifdef PK11_BYPASS
     SECItem            msItem;
     unsigned char      key_block[NUM_MIXERS * MD5_LENGTH];
     unsigned char      raw_master_secret[56];
-#endif
 } ssl3CipherSpec;
 
 typedef enum {	never_cached, 
@@ -546,7 +543,6 @@ struct sslSessionIDStr {
 
 	    ssl3CipherSuite       cipherSuite;
 	    SSL3CompressionMethod compression;
-	    PRBool                resumable;
 	    int                   policy;
 	    ssl3SidKeys           keys;
 	    CK_MECHANISM_TYPE     masterWrapMech;
@@ -558,11 +554,9 @@ struct sslSessionIDStr {
 	    /* The following values are NOT restored from the server's on-disk
 	     * session cache, but are restored from the client's cache.
 	     */
-#ifndef PK11_BYPASS
  	    PK11SymKey *      clientWriteKey;
 	    PK11SymKey *      serverWriteKey;
-	    PK11SymKey *      tek;
-#endif
+
 	    /* The following values pertain to the slot that wrapped the 
 	    ** master secret. (used only in client)
 	    */
@@ -659,13 +653,10 @@ typedef struct SSL3HandshakeStateStr {
     SSL3Random            server_random;
     SSL3Random            client_random;
     SSL3WaitState         ws;
-#ifdef PK11_BYPASS
-    PRUint64              md5[MAX_MAC_CONTEXT_LLONGS];
-    PRUint64              sha[MAX_MAC_CONTEXT_LLONGS];
-#else
+    PRUint64              md5_cx[MAX_MAC_CONTEXT_LLONGS];
+    PRUint64              sha_cx[MAX_MAC_CONTEXT_LLONGS];
     PK11Context *         md5;            /* handshake running hashes */
     PK11Context *         sha;
-#endif
 const ssl3KEADef *        kea_def;
     ssl3CipherSuite       cipher_suite;
 const ssl3CipherSuiteDef *suite_def;
@@ -706,7 +697,6 @@ struct ssl3StateStr {
     ssl3CipherSpec *     prSpec; 	/* pending read spec. */
     ssl3CipherSpec *     cwSpec; 	/* current write spec. */
     ssl3CipherSpec *     pwSpec; 	/* pending write spec. */
-    ssl3CipherSpec       specs[2];	/* one is current, one is pending. */
 
     CERTCertificate *    clientCertificate;  /* used by client */
     SECKEYPrivateKey *   clientPrivateKey;   /* used by client */
@@ -725,7 +715,7 @@ struct ssl3StateStr {
 			    /* used by server.  trusted CAs for this socket. */
     PRBool               initialized;
     SSL3HandshakeState   hs;
-
+    ssl3CipherSpec       specs[2];	/* one is current, one is pending. */
 };
 
 typedef struct {
@@ -958,7 +948,6 @@ const unsigned char *  preferredCipher;
     PRIntervalTime            wTimeout; /* timeout for NSPR I/O */
     PRIntervalTime            cTimeout; /* timeout for NSPR I/O */
 
-#ifdef NO_BYPASS
     PZLock *      recvLock;	/* lock against multiple reader threads. */
     PZLock *      sendLock;	/* lock against multiple sender threads. */
 
@@ -980,7 +969,6 @@ const unsigned char *  preferredCipher;
     ** outgoing records, and to decrypt and MAC check incoming ciphertext 
     ** records.  */
     NSSRWLock *   specLock;
-#endif
 
     /* handle to perm cert db (and implicitly to the temp cert db) used 
     ** with this socket. 
@@ -1137,74 +1125,58 @@ extern void      ssl_SetAlwaysBlock(sslSocket *ss);
 
 extern SECStatus ssl_EnableNagleDelay(sslSocket *ss, PRBool enabled);
 
-#ifdef NO_BYPASS
-
 #define SSL_LOCK_READER(ss)		if (ss->recvLock) PZ_Lock(ss->recvLock)
-#define SSL_UNLOCK_READER(ss)	if (ss->recvLock) PZ_Unlock(ss->recvLock)
+#define SSL_UNLOCK_READER(ss)		if (ss->recvLock) PZ_Unlock(ss->recvLock)
 #define SSL_LOCK_WRITER(ss)		if (ss->sendLock) PZ_Lock(ss->sendLock)
-#define SSL_UNLOCK_WRITER(ss)	if (ss->sendLock) PZ_Unlock(ss->sendLock)
+#define SSL_UNLOCK_WRITER(ss)		if (ss->sendLock) PZ_Unlock(ss->sendLock)
 
-#define ssl_Get1stHandshakeLock(ss)    PZ_EnterMonitor((ss)->firstHandshakeLock)
-#define ssl_Release1stHandshakeLock(ss) PZ_ExitMonitor((ss)->firstHandshakeLock)
-#define ssl_Have1stHandshakeLock(ss)	PZ_InMonitor(  (ss)->firstHandshakeLock)
+#define ssl_Get1stHandshakeLock(ss)     \
+    { if (!ss->noLocks) PZ_EnterMonitor((ss)->firstHandshakeLock); }
+#define ssl_Release1stHandshakeLock(ss) \
+    { if (!ss->noLocks) PZ_ExitMonitor((ss)->firstHandshakeLock); }
+#define ssl_Have1stHandshakeLock(ss)    \
+    (PZ_InMonitor((ss)->firstHandshakeLock))
 
-#define ssl_GetSSL3HandshakeLock(ss)	PZ_EnterMonitor((ss)->ssl3HandshakeLock)
-#define ssl_ReleaseSSL3HandshakeLock(ss) PZ_ExitMonitor((ss)->ssl3HandshakeLock)
-#define ssl_HaveSSL3HandshakeLock(ss)	PZ_InMonitor(   (ss)->ssl3HandshakeLock)
+#define ssl_GetSSL3HandshakeLock(ss)	\
+    { if (!ss->noLocks) PZ_EnterMonitor((ss)->ssl3HandshakeLock); }
+#define ssl_ReleaseSSL3HandshakeLock(ss) \
+    { if (!ss->noLocks) PZ_ExitMonitor((ss)->ssl3HandshakeLock); }
+#define ssl_HaveSSL3HandshakeLock(ss)	\
+    (PZ_InMonitor((ss)->ssl3HandshakeLock))
 
-#define ssl_GetSpecReadLock(ss)		NSSRWLock_LockRead(     (ss)->specLock)
-#define ssl_ReleaseSpecReadLock(ss)	NSSRWLock_UnlockRead(   (ss)->specLock)
+#define ssl_GetSpecReadLock(ss)		\
+    { if (!ss->noLocks) NSSRWLock_LockRead((ss)->specLock); }
+#define ssl_ReleaseSpecReadLock(ss)	\
+    { if (!ss->noLocks) NSSRWLock_UnlockRead((ss)->specLock); }
 
-#define ssl_GetSpecWriteLock(ss)	NSSRWLock_LockWrite(  (ss)->specLock)
-#define ssl_ReleaseSpecWriteLock(ss)	NSSRWLock_UnlockWrite((ss)->specLock)
-#define ssl_HaveSpecWriteLock(ss)	NSSRWLock_HaveWriteLock((ss)->specLock)
+#define ssl_GetSpecWriteLock(ss)	\
+    { if (!ss->noLocks) NSSRWLock_LockWrite((ss)->specLock); }
+#define ssl_ReleaseSpecWriteLock(ss)	\
+    { if (!ss->noLocks) NSSRWLock_UnlockWrite((ss)->specLock); }
+#define ssl_HaveSpecWriteLock(ss)	\
+    (NSSRWLock_HaveWriteLock((ss)->specLock))
 
-#define ssl_GetRecvBufLock(ss)		PZ_EnterMonitor((ss)->recvBufLock)
-#define ssl_ReleaseRecvBufLock(ss)	PZ_ExitMonitor( (ss)->recvBufLock)
-#define ssl_HaveRecvBufLock(ss)		PZ_InMonitor(   (ss)->recvBufLock)
+#define ssl_GetRecvBufLock(ss)		\
+    { if (!ss->noLocks) PZ_EnterMonitor((ss)->recvBufLock); }
+#define ssl_ReleaseRecvBufLock(ss)	\
+    { if (!ss->noLocks) PZ_ExitMonitor( (ss)->recvBufLock); }
+#define ssl_HaveRecvBufLock(ss)		\
+    (PZ_InMonitor((ss)->recvBufLock))
 
-#define ssl_GetXmitBufLock(ss)		PZ_EnterMonitor((ss)->xmitBufLock)
-#define ssl_ReleaseXmitBufLock(ss)	PZ_ExitMonitor( (ss)->xmitBufLock)
-#define ssl_HaveXmitBufLock(ss)		PZ_InMonitor(   (ss)->xmitBufLock)
+#define ssl_GetXmitBufLock(ss)		\
+    { if (!ss->noLocks) PZ_EnterMonitor((ss)->xmitBufLock); }
+#define ssl_ReleaseXmitBufLock(ss)	\
+    { if (!ss->noLocks) PZ_ExitMonitor( (ss)->xmitBufLock); }
+#define ssl_HaveXmitBufLock(ss)		\
+    (PZ_InMonitor((ss)->xmitBufLock))
 
-#else
 
-#define SSL_LOCK_READER(ss)
-#define SSL_UNLOCK_READER(ss)
-#define SSL_LOCK_WRITER(ss)
-#define SSL_UNLOCK_WRITER(ss)
-
-#define ssl_Get1stHandshakeLock(ss)
-#define ssl_Release1stHandshakeLock(ss)
-#define ssl_Have1stHandshakeLock(ss)        PR_TRUE
-
-#define ssl_GetSSL3HandshakeLock(ss)
-#define ssl_ReleaseSSL3HandshakeLock(ss)
-#define ssl_HaveSSL3HandshakeLock(ss)       PR_TRUE
-
-#define ssl_GetSpecReadLock(ss)
-#define ssl_ReleaseSpecReadLock(ss)
-
-#define ssl_GetSpecWriteLock(ss)
-#define ssl_ReleaseSpecWriteLock(ss)
-#define ssl_HaveSpecWriteLock(ss)           PR_TRUE
-
-#define ssl_GetRecvBufLock(ss)
-#define ssl_ReleaseRecvBufLock(ss)
-#define ssl_HaveRecvBufLock(ss)             PR_TRUE
-
-#define ssl_GetXmitBufLock(ss)
-#define ssl_ReleaseXmitBufLock(ss)
-#define ssl_HaveXmitBufLock(ss)             PR_TRUE
-
-extern SECStatus ssl3_KeyAndMacDerive(ssl3CipherSpec * pwSpec,
+extern SECStatus ssl3_KeyAndMacDeriveBypass(ssl3CipherSpec * pwSpec,
 		    const unsigned char * cr, const unsigned char * sr,
 		    PRBool isTLS, PRBool isExport);
 extern  SECStatus ssl3_MasterKeyDeriveBypass( ssl3CipherSpec * pwSpec,
 		    const unsigned char * cr, const unsigned char * sr,
 		    const SECItem * pms, PRBool isTLS, PRBool isRSA);
-
-#endif
 
 /* These functions are called from secnav, even though they're "private". */
 

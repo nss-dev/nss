@@ -193,7 +193,7 @@ ssl_LookupSID(const PRIPv6Addr *addr, PRUint16 port, const char *peerID,
 		     PORT_Strcmp(sid->peerID, peerID) == 0)) &&
 		   /* is cacheable */
 		   (sid->version < SSL_LIBRARY_VERSION_3_0 ||
-		    sid->u.ssl3.resumable) &&
+		    sid->u.ssl3.keys.resumable) &&
 		   /* server hostname matches. */
 	           (sid->urlSvrName != NULL) &&
 		   ((0 == PORT_Strcmp(urlSvrName, sid->urlSvrName)) ||

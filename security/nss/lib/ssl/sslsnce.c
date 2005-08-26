@@ -146,9 +146,7 @@ struct sidCacheEntryStr {
 /*  2 */    ssl3CipherSuite  cipherSuite;
 /*  2 */    PRUint16    compression; 	/* SSL3CompressionMethod */
 
-/*122 */    ssl3SidKeys keys;	/* keys and ivs, wrapped as needed. */
-/*  1 */    PRUint8     unused; /* was hasFortezza; */
-/*  1 */    PRUint8     resumable;
+/*124 */    ssl3SidKeys keys;	/* keys and ivs, wrapped as needed. */
 
 /*  4 */    PRUint32    masterWrapMech; 
 /*  4 */    SSL3KEAType exchKeyType;
@@ -441,7 +439,6 @@ ConvertFromSID(sidCacheEntry *to, sslSessionID *from)
 
 	to->u.ssl3.cipherSuite      = from->u.ssl3.cipherSuite;
 	to->u.ssl3.compression      = (uint16)from->u.ssl3.compression;
-	to->u.ssl3.resumable        = from->u.ssl3.resumable;
 	to->u.ssl3.keys             = from->u.ssl3.keys;
 	to->u.ssl3.masterWrapMech   = from->u.ssl3.masterWrapMech;
 	to->u.ssl3.exchKeyType      = from->u.ssl3.exchKeyType;
@@ -516,7 +513,6 @@ ConvertToSID(sidCacheEntry *from, certCacheEntry *pcce,
 	to->u.ssl3.sessionIDLength  = from->sessionIDLength;
 	to->u.ssl3.cipherSuite      = from->u.ssl3.cipherSuite;
 	to->u.ssl3.compression      = (SSL3CompressionMethod)from->u.ssl3.compression;
-	to->u.ssl3.resumable        = from->u.ssl3.resumable;
 	to->u.ssl3.keys             = from->u.ssl3.keys;
 	to->u.ssl3.masterWrapMech   = from->u.ssl3.masterWrapMech;
 	to->u.ssl3.exchKeyType      = from->u.ssl3.exchKeyType;
@@ -526,11 +522,9 @@ ConvertToSID(sidCacheEntry *from, certCacheEntry *pcce,
 	/* the portions of the SID that are only restored on the client
 	 * are set to invalid values on the server.
 	 */
-#ifndef PK11_BYPASS
 	to->u.ssl3.clientWriteKey   = NULL;
 	to->u.ssl3.serverWriteKey   = NULL;
-	to->u.ssl3.tek              = NULL;
-#endif
+
 	to->urlSvrName              = NULL;
 
 	to->u.ssl3.masterModuleID   = (SECMODModuleID)-1; /* invalid value */

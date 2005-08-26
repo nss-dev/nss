@@ -1,4 +1,43 @@
-#ifdef PK11_BYPASS
+/*
+ * Key Derivation that doesn't use PKCS11
+ *
+ * ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is the Netscape security libraries.
+ *
+ * The Initial Developer of the Original Code is
+ * Netscape Communications Corporation.
+ * Portions created by the Initial Developer are Copyright (C) 1994-2000
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+/* $Id$ */
+
 #include "ssl.h" 	/* prereq to sslimpl.h */
 #include "certt.h"	/* prereq to sslimpl.h */
 #include "keythi.h"	/* prereq to sslimpl.h */
@@ -43,7 +82,7 @@ static const char * const mixers[NUM_MIXERS] = {
 
 
 SECStatus
-ssl3_KeyAndMacDerive( 
+ssl3_KeyAndMacDeriveBypass(
     ssl3CipherSpec *      pwSpec,
     const unsigned char * cr,
     const unsigned char * sr,
@@ -96,10 +135,10 @@ ssl3_KeyAndMacDerive(
     /*
      * clear out our returned keys so we can recover on failure
      */
-    pwSpec->client.write_key        = zed;
-    pwSpec->client.write_mac_key    = zed;
-    pwSpec->server.write_key        = zed;
-    pwSpec->server.write_mac_key    = zed;
+    pwSpec->client.write_key_item     = zed;
+    pwSpec->client.write_mac_key_item = zed;
+    pwSpec->server.write_key_item     = zed;
+    pwSpec->server.write_mac_key_item = zed;
 
     /* initialize the server random, client random block */
     srcr.type   = siBuffer;
@@ -175,46 +214,46 @@ ssl3_KeyAndMacDerive(
      * The key_block is partitioned as follows:
      * client_write_MAC_secret[CipherSpec.hash_size]
      */
-    buildSSLKey(&key_block[i],macSize, &pwSpec->client.write_mac_key);
+    buildSSLKey(&key_block[i],macSize, &pwSpec->client.write_mac_key_item);
     i += macSize;
 
     /* 
      * server_write_MAC_secret[CipherSpec.hash_size]
      */
-    buildSSLKey(&key_block[i],macSize, &pwSpec->server.write_mac_key);
+    buildSSLKey(&key_block[i],macSize, &pwSpec->server.write_mac_key_item);
     i += macSize;
 
     if (!keySize) {
 	/* only MACing */
-	buildSSLKey(NULL, 0, &pwSpec->client.write_key);
-	buildSSLKey(NULL, 0, &pwSpec->server.write_key);
-	buildSSLKey(NULL, 0, &pwSpec->client.write_iv);
-	buildSSLKey(NULL, 0, &pwSpec->server.write_iv);
+	buildSSLKey(NULL, 0, &pwSpec->client.write_key_item);
+	buildSSLKey(NULL, 0, &pwSpec->server.write_key_item);
+	buildSSLKey(NULL, 0, &pwSpec->client.write_iv_item);
+	buildSSLKey(NULL, 0, &pwSpec->server.write_iv_item);
     } else if (!isExport) {
 	/* 
 	** Generate Domestic write keys and IVs.
 	** client_write_key[CipherSpec.key_material]
 	*/
-	buildSSLKey(&key_block[i], keySize, &pwSpec->client.write_key);
+	buildSSLKey(&key_block[i], keySize, &pwSpec->client.write_key_item);
 	i += keySize;
 
 	/* 
 	** server_write_key[CipherSpec.key_material]
 	*/
-	buildSSLKey(&key_block[i], keySize, &pwSpec->server.write_key);
+	buildSSLKey(&key_block[i], keySize, &pwSpec->server.write_key_item);
 	i += keySize;
 
 	if (IVSize > 0) {
 	    /* 
 	    ** client_write_IV[CipherSpec.IV_size]
 	    */
-	    buildSSLKey(&key_block[i], IVSize, &pwSpec->client.write_iv);
+	    buildSSLKey(&key_block[i], IVSize, &pwSpec->client.write_iv_item);
 	    i += IVSize;
 
 	    /* 
 	    ** server_write_IV[CipherSpec.IV_size]
 	    */
-	    buildSSLKey(&key_block[i], IVSize, &pwSpec->server.write_iv);
+	    buildSSLKey(&key_block[i], IVSize, &pwSpec->server.write_iv_item);
 	    i += IVSize;
 	}
 	PORT_Assert(i <= block_bytes);
@@ -235,7 +274,7 @@ ssl3_KeyAndMacDerive(
 	MD5_Update(md5Ctx, crsr.data, crsr.len);
 	MD5_End(md5Ctx, key_block2, &outLen, MD5_LENGTH);
 	i += effKeySize;
-	buildSSLKey(key_block2, keySize, &pwSpec->client.write_key);
+	buildSSLKey(key_block2, keySize, &pwSpec->client.write_key_item);
 	key_block2 += keySize;
 
 	/*
@@ -248,7 +287,7 @@ ssl3_KeyAndMacDerive(
 	MD5_Update(md5Ctx, srcr.data, srcr.len);
 	MD5_End(md5Ctx, key_block2, &outLen, MD5_LENGTH);
 	i += effKeySize;
-	buildSSLKey(key_block2, keySize, &pwSpec->server.write_key);
+	buildSSLKey(key_block2, keySize, &pwSpec->server.write_key_item);
 	key_block2 += keySize;
 	PORT_Assert(i <= block_bytes);
 
@@ -260,7 +299,7 @@ ssl3_KeyAndMacDerive(
 	    MD5_Begin(md5Ctx);
 	    MD5_Update(md5Ctx, crsr.data, crsr.len);
 	    MD5_End(md5Ctx, key_block2, &outLen, MD5_LENGTH);
-	    buildSSLKey(key_block2, IVSize, &pwSpec->client.write_iv);
+	    buildSSLKey(key_block2, IVSize, &pwSpec->client.write_iv_item);
 	    key_block2 += IVSize;
 
 	    /*
@@ -270,7 +309,7 @@ ssl3_KeyAndMacDerive(
 	    MD5_Begin(md5Ctx);
 	    MD5_Update(md5Ctx, srcr.data, srcr.len);
 	    MD5_End(md5Ctx, key_block2, &outLen, MD5_LENGTH);
-	    buildSSLKey(key_block2, IVSize, &pwSpec->server.write_iv);
+	    buildSSLKey(key_block2, IVSize, &pwSpec->server.write_iv_item);
 	    key_block2 += IVSize;
 	}
 
@@ -299,7 +338,7 @@ ssl3_KeyAndMacDerive(
 	if (status != SECSuccess) {
 	    goto key_and_mac_derive_fail;
 	}
-	buildSSLKey(key_block2, keySize, &pwSpec->client.write_key);
+	buildSSLKey(key_block2, keySize, &pwSpec->client.write_key_item);
 	key_block2 += keySize;
 
 	/*
@@ -317,7 +356,7 @@ ssl3_KeyAndMacDerive(
 	if (status != SECSuccess) {
 	    goto key_and_mac_derive_fail;
 	}
-	buildSSLKey(key_block2, keySize, &pwSpec->server.write_key);
+	buildSSLKey(key_block2, keySize, &pwSpec->server.write_key_item);
 	key_block2 += keySize;
 
 	/*
@@ -328,14 +367,14 @@ ssl3_KeyAndMacDerive(
 	if (IVSize) {
 	    secret.data = NULL;
 	    secret.len  = 0;
-	    keyblk.data = &key_block[i];
+	    keyblk.data = key_block2;
 	    keyblk.len  = 2 * IVSize;
 	    status = TLS_PRF(&secret, "IV block", &crsr, &keyblk, isFIPS);
 	    if (status != SECSuccess) {
 		goto key_and_mac_derive_fail;
 	    }
-	    buildSSLKey(key_block2,          IVSize, &pwSpec->client.write_iv);
-	    buildSSLKey(key_block2 + IVSize, IVSize, &pwSpec->server.write_iv);
+	    buildSSLKey(key_block2,          IVSize, &pwSpec->client.write_iv_item);
+	    buildSSLKey(key_block2 + IVSize, IVSize, &pwSpec->server.write_iv_item);
 	    key_block2 += 2 * IVSize;
 	}
 	PORT_Assert(key_block2 - key_block <= sizeof pwSpec->key_block);
@@ -356,6 +395,7 @@ key_and_mac_derive_fail:
 
 
 /* derive the Master Secret from the PMS */
+/* Presently, this is only done wtih RSA PMS, os isRSA is always true. */
 SECStatus
 ssl3_MasterKeyDeriveBypass( 
     ssl3CipherSpec *      pwSpec,
@@ -439,4 +479,3 @@ ssl3_MasterKeyDeriveBypass(
 }
 
 
-#endif /* PK11_BYPASS */

@@ -72,7 +72,7 @@ ssl3_GatherData(sslSocket *ss, sslGather *gs, int flags)
     int            err;
     int            rv		= 1;
 
-    PORT_Assert( ssl_HaveRecvBufLock(ss) );
+    PORT_Assert( ss->noLocks || ssl_HaveRecvBufLock(ss) );
     if (gs->state == GS_INIT) {
 	gs->state       = GS_HEADER;
 	gs->remainder   = 5;
@@ -189,7 +189,7 @@ ssl3_GatherCompleteHandshake(sslSocket *ss, int flags)
     SSL3Ciphertext cText;
     int            rv;
 
-    PORT_Assert( ssl_HaveRecvBufLock(ss) );
+    PORT_Assert( ss->noLocks || ssl_HaveRecvBufLock(ss) );
     do {
 	/* bring in the next sslv3 record. */
 	rv = ssl3_GatherData(ss, &ss->gs, flags);
@@ -230,7 +230,7 @@ ssl3_GatherAppDataRecord(sslSocket *ss, int flags)
 {
     int            rv;
 
-    PORT_Assert( ssl_HaveRecvBufLock(ss) );
+    PORT_Assert( ss->noLocks || ssl_HaveRecvBufLock(ss) );
     do {
 	rv = ssl3_GatherCompleteHandshake(ss, flags);
     } while (rv > 0 && ss->gs.buf.len == 0);

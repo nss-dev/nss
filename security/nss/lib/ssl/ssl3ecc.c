@@ -254,8 +254,8 @@ sendECDHClientKeyExchange(sslSocket * ss, SECKEYPublicKey * svrPubKey)
     SECKEYPrivateKey	*privKey = NULL;	/* Ephemeral ECDH key */
     CK_EC_KDF_TYPE	kdf;
 
-    PORT_Assert( ssl_HaveSSL3HandshakeLock(ss) );
-    PORT_Assert( ssl_HaveXmitBufLock(ss));
+    PORT_Assert( ss->noLocks || ssl_HaveSSL3HandshakeLock(ss) );
+    PORT_Assert( ss->noLocks || ssl_HaveXmitBufLock(ss));
 
     isTLS = (PRBool)(ss->ssl3.pwSpec->version > SSL_LIBRARY_VERSION_3_0);
 
@@ -346,8 +346,8 @@ ssl3_HandleECDHClientKeyExchange(sslSocket *ss, SSL3Opaque *b,
     PRBool isTLS;
     CK_EC_KDF_TYPE	kdf;
 
-    PORT_Assert( ssl_HaveRecvBufLock(ss) );
-    PORT_Assert( ssl_HaveSSL3HandshakeLock(ss) );
+    PORT_Assert( ss->noLocks || ssl_HaveRecvBufLock(ss) );
+    PORT_Assert( ss->noLocks || ssl_HaveSSL3HandshakeLock(ss) );
 
     clntPubKey.keyType = ecKey;
     clntPubKey.u.ec.DEREncodedParams.len = 

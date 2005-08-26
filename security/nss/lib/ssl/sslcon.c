@@ -186,7 +186,7 @@ ssl2_ConstructCipherSpecs(sslSocket *ss)
     int 		i;
     SECStatus 		rv;
 
-    PORT_Assert( ssl_Have1stHandshakeLock(ss) );
+    PORT_Assert( ss->noLocks || ssl_Have1stHandshakeLock(ss) );
 
     count = 0;
     PORT_Assert(ss != 0);
@@ -495,7 +495,7 @@ ssl2_GetSendBuffer(sslSocket *ss, unsigned int len)
 {
     SECStatus rv = SECSuccess;
 
-    PORT_Assert(ssl_HaveXmitBufLock(ss));
+    PORT_Assert(ss->noLocks || ssl_HaveXmitBufLock(ss));
 
     if (len < 128) {
 	len = 128;
@@ -530,7 +530,7 @@ ssl2_SendErrorMessage(sslSocket *ss, int error)
     int rv;
     PRUint8 msg[SSL_HL_ERROR_HBYTES];
 
-    PORT_Assert( ssl_Have1stHandshakeLock(ss) );
+    PORT_Assert( ss->noLocks || ssl_Have1stHandshakeLock(ss) );
 
     msg[0] = SSL_MT_ERROR;
     msg[1] = MSB(error);
@@ -559,7 +559,7 @@ ssl2_SendClientFinishedMessage(sslSocket *ss)
     int              sent;
     PRUint8    msg[1 + SSL_CONNECTIONID_BYTES];
 
-    PORT_Assert( ssl_Have1stHandshakeLock(ss) );
+    PORT_Assert( ss->noLocks || ssl_Have1stHandshakeLock(ss) );
 
     ssl_GetXmitBufLock(ss);    /***************************************/
 
@@ -595,7 +595,7 @@ ssl2_SendServerVerifyMessage(sslSocket *ss)
     int              sent;
     SECStatus        rv;
 
-    PORT_Assert( ssl_Have1stHandshakeLock(ss) );
+    PORT_Assert( ss->noLocks || ssl_Have1stHandshakeLock(ss) );
 
     ssl_GetXmitBufLock(ss);    /***************************************/
 
@@ -630,7 +630,7 @@ ssl2_SendServerFinishedMessage(sslSocket *ss)
     int              sendLen, sent;
     SECStatus        rv    = SECSuccess;
 
-    PORT_Assert( ssl_Have1stHandshakeLock(ss) );
+    PORT_Assert( ss->noLocks || ssl_Have1stHandshakeLock(ss) );
 
     ssl_GetXmitBufLock(ss);    /***************************************/
 
@@ -689,7 +689,7 @@ ssl2_SendSessionKeyMessage(sslSocket *ss, int cipher, int keySize,
     int              sent;
     SECStatus        rv;
 
-    PORT_Assert( ssl_Have1stHandshakeLock(ss) );
+    PORT_Assert( ss->noLocks || ssl_Have1stHandshakeLock(ss) );
 
     ssl_GetXmitBufLock(ss);    /***************************************/
 
@@ -735,7 +735,7 @@ ssl2_SendCertificateRequestMessage(sslSocket *ss)
     int              sendLen;
     SECStatus        rv;
 
-    PORT_Assert( ssl_Have1stHandshakeLock(ss) );
+    PORT_Assert( ss->noLocks || ssl_Have1stHandshakeLock(ss) );
 
     ssl_GetXmitBufLock(ss);    /***************************************/
 
@@ -775,7 +775,7 @@ ssl2_SendCertificateResponseMessage(sslSocket *ss, SECItem *cert,
     PRUint8 *msg;
     int rv, sendLen;
 
-    PORT_Assert( ssl_Have1stHandshakeLock(ss) );
+    PORT_Assert( ss->noLocks || ssl_Have1stHandshakeLock(ss) );
 
     ssl_GetXmitBufLock(ss);    /***************************************/
 
@@ -887,7 +887,7 @@ ssl2_SendClear(sslSocket *ss, const PRUint8 *in, PRInt32 len, PRInt32 flags)
     int               amount;
     int               count	= 0;
 
-    PORT_Assert( ssl_HaveXmitBufLock(ss) );
+    PORT_Assert( ss->noLocks || ssl_HaveXmitBufLock(ss) );
 
     SSL_TRC(10, ("%d: SSL[%d]: sending %d bytes in the clear",
 		 SSL_GETPID(), ss->fd, len));
@@ -962,7 +962,7 @@ ssl2_SendStream(sslSocket *ss, const PRUint8 *in, PRInt32 len, PRInt32 flags)
     int              nout;
     int              buflen;
 
-    PORT_Assert( ssl_HaveXmitBufLock(ss) );
+    PORT_Assert( ss->noLocks || ssl_HaveXmitBufLock(ss) );
 
     SSL_TRC(10, ("%d: SSL[%d]: sending %d bytes using stream cipher",
 		 SSL_GETPID(), ss->fd, len));
@@ -1067,7 +1067,7 @@ ssl2_SendBlock(sslSocket *ss, const PRUint8 *in, PRInt32 len, PRInt32 flags)
     int              nout;		    /* ciphertext size after header. */
     int              buflen;		    /* size of generated record.     */
 
-    PORT_Assert( ssl_HaveXmitBufLock(ss) );
+    PORT_Assert( ss->noLocks || ssl_HaveXmitBufLock(ss) );
 
     SSL_TRC(10, ("%d: SSL[%d]: sending %d bytes using block cipher",
 		 SSL_GETPID(), ss->fd, len));
@@ -1251,7 +1251,7 @@ ssl_GatherRecord1stHandshake(sslSocket *ss)
 {
     int rv;
 
-    PORT_Assert( ssl_Have1stHandshakeLock(ss) );
+    PORT_Assert( ss->noLocks || ssl_Have1stHandshakeLock(ss) );
 
     ssl_GetRecvBufLock(ss);
 
@@ -1369,7 +1369,7 @@ ssl2_ProduceKeys(sslSocket *    ss,
     readKey->data = 0;
     writeKey->data = 0;
 
-    PORT_Assert( ssl_Have1stHandshakeLock(ss) );
+    PORT_Assert( ss->noLocks || ssl_Have1stHandshakeLock(ss) );
 
     rv = SECSuccess;
     cx = PK11_CreateDigestContext(SEC_OID_MD5);
@@ -1441,7 +1441,7 @@ ssl2_CreateSessionCypher(sslSocket *ss, sslSessionID *sid, PRBool isClient)
     readKey.data = 0;
     writeKey.data = 0;
 
-    PORT_Assert( ssl_Have1stHandshakeLock(ss) );
+    PORT_Assert( ss->noLocks || ssl_Have1stHandshakeLock(ss) );
     if((ss->sec.ci.sid == 0))
     	goto sec_loser;	/* don't crash if asserts are off */
 
@@ -1591,8 +1591,8 @@ ssl2_ServerSetupSessionCypher(sslSocket *ss, int cipher, unsigned int keyBits,
     PRUint8           mkbuf[SSL_MAX_MASTER_KEY_BYTES];
     sslServerCerts  * sc = ss->serverCerts + kt_rsa;
 
-    PORT_Assert( ssl_Have1stHandshakeLock(ss) );
-    PORT_Assert( ssl_HaveRecvBufLock(ss)   );
+    PORT_Assert( ss->noLocks || ssl_Have1stHandshakeLock(ss) );
+    PORT_Assert( ss->noLocks || ssl_HaveRecvBufLock(ss)   );
     PORT_Assert((sc->SERVERKEY != 0));
     PORT_Assert((ss->sec.ci.sid != 0));
     sid = ss->sec.ci.sid;
@@ -1763,8 +1763,8 @@ ssl2_QualifyCypherSpecs(sslSocket *ss,
     int          hc;
     PRUint8      qualifiedSpecs[ssl2_NUM_SUITES_IMPLEMENTED * 3];
 
-    PORT_Assert( ssl_Have1stHandshakeLock(ss) );
-    PORT_Assert( ssl_HaveRecvBufLock(ss)   );
+    PORT_Assert( ss->noLocks || ssl_Have1stHandshakeLock(ss) );
+    PORT_Assert( ss->noLocks || ssl_HaveRecvBufLock(ss)   );
 
     if (!ss->cipherSpecs) {
 	ssl2_ConstructCipherSpecs(ss);
@@ -1824,8 +1824,8 @@ ssl2_ChooseSessionCypher(sslSocket *ss,
     int             realKeySize;
     PRUint8 *       ohs               = hs;
 
-    PORT_Assert( ssl_Have1stHandshakeLock(ss) );
-    PORT_Assert( ssl_HaveRecvBufLock(ss)   );
+    PORT_Assert( ss->noLocks || ssl_Have1stHandshakeLock(ss) );
+    PORT_Assert( ss->noLocks || ssl_HaveRecvBufLock(ss)   );
 
     if (!ss->cipherSpecs) {
 	ssl2_ConstructCipherSpecs(ss);
@@ -2044,7 +2044,7 @@ ssl2_ClientSetupSessionCypher(sslSocket *ss, PRUint8 *cs, int csLen)
     PRUint8           keyData[SSL_MAX_MASTER_KEY_BYTES];
     PRUint8           iv     [8];
 
-    PORT_Assert( ssl_Have1stHandshakeLock(ss) );
+    PORT_Assert( ss->noLocks || ssl_Have1stHandshakeLock(ss) );
 
     eblock = NULL;
 
@@ -2195,7 +2195,7 @@ ssl2_TriggerNextMessage(sslSocket *ss)
 {
     SECStatus        rv;
 
-    PORT_Assert( ssl_Have1stHandshakeLock(ss) );
+    PORT_Assert( ss->noLocks || ssl_Have1stHandshakeLock(ss) );
 
     if ((ss->sec.ci.requiredElements & CIS_HAVE_CERTIFICATE) &&
 	!(ss->sec.ci.sentElements & CIS_HAVE_CERTIFICATE)) {
@@ -2223,7 +2223,7 @@ ssl2_TryToFinish(sslSocket *ss)
     SECStatus        rv;
     char             e, ef;
 
-    PORT_Assert( ssl_Have1stHandshakeLock(ss) );
+    PORT_Assert( ss->noLocks || ssl_Have1stHandshakeLock(ss) );
 
     e = ss->sec.ci.elements;
     ef = e | CIS_HAVE_FINISHED;
@@ -2261,7 +2261,7 @@ ssl2_SignResponse(sslSocket *ss,
     unsigned int     len;
     SECStatus        rv		= SECFailure;
     
-    PORT_Assert( ssl_Have1stHandshakeLock(ss) );
+    PORT_Assert( ss->noLocks || ssl_Have1stHandshakeLock(ss) );
 
     challenge = ss->sec.ci.serverChallenge;
     len = ss->sec.ci.serverChallengeLen;
@@ -2424,8 +2424,8 @@ ssl2_HandleClientCertificate(sslSocket *    ss,
     SECItem          certItem;
     SECItem          rep;
 
-    PORT_Assert( ssl_Have1stHandshakeLock(ss) );
-    PORT_Assert( ssl_HaveRecvBufLock(ss)   );
+    PORT_Assert( ss->noLocks || ssl_Have1stHandshakeLock(ss) );
+    PORT_Assert( ss->noLocks || ssl_HaveRecvBufLock(ss)   );
 
     /* Extract the certificate */
     certItem.data = cd;
@@ -2512,7 +2512,7 @@ ssl2_HandleMessage(sslSocket *ss)
     int              rv;
     int              rv2;
 
-    PORT_Assert( ssl_Have1stHandshakeLock(ss) );
+    PORT_Assert( ss->noLocks || ssl_Have1stHandshakeLock(ss) );
 
     ssl_GetRecvBufLock(ss);
 
@@ -2706,7 +2706,7 @@ ssl2_HandleVerifyMessage(sslSocket *ss)
     PRUint8 *        data;
     SECStatus        rv;
 
-    PORT_Assert( ssl_Have1stHandshakeLock(ss) );
+    PORT_Assert( ss->noLocks || ssl_Have1stHandshakeLock(ss) );
     ssl_GetRecvBufLock(ss);
 
     data = ss->gs.buf.buf + ss->gs.recordOffset;
@@ -2758,7 +2758,7 @@ ssl2_HandleServerHelloMessage(sslSocket *ss)
     SECStatus        rv; 
     int              needed, sidHit, certLen, csLen, cidLen, certType, err;
 
-    PORT_Assert( ssl_Have1stHandshakeLock(ss) );
+    PORT_Assert( ss->noLocks || ssl_Have1stHandshakeLock(ss) );
 
     if (!ss->enableSSL2) {
 	PORT_SetError(SSL_ERROR_SSL2_DISABLED);
@@ -2989,7 +2989,7 @@ ssl2_BeginClientHandshake(sslSocket *ss)
     int               sendLen, sidLen = 0;
     SECStatus         rv;
 
-    PORT_Assert( ssl_Have1stHandshakeLock(ss) );
+    PORT_Assert( ss->noLocks || ssl_Have1stHandshakeLock(ss) );
 
     ss->sec.isServer     = 0;
     ss->sec.sendSequence = 0;
@@ -3441,7 +3441,7 @@ ssl2_HandleClientHelloMessage(sslSocket *ss)
 #endif
     PRUint8         csImpl[sizeof implementedCipherSuites];
 
-    PORT_Assert( ssl_Have1stHandshakeLock(ss) );
+    PORT_Assert( ss->noLocks || ssl_Have1stHandshakeLock(ss) );
 
     sc = ss->serverCerts + kt_rsa;
     serverCert = sc->serverCert;

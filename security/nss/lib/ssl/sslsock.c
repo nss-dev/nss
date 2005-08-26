@@ -179,7 +179,8 @@ char                    ssl_trace;
 
 
 /* forward declarations. */
-static sslSocket *ssl_NewSocket(void);
+static sslSocket *ssl_NewSocket(PRBool makeLocks);
+static SECStatus  ssl_MakeLocks(sslSocket *ss);
 static PRStatus   ssl_PushIOLayer(sslSocket *ns, PRFileDesc *stack, 
                                   PRDescIdentity id);
 
@@ -230,7 +231,7 @@ ssl_DupSocket(sslSocket *os)
     sslSocket *ss;
     SECStatus rv;
 
-    ss = ssl_NewSocket();
+    ss = ssl_NewSocket((PRBool)(!os->noLocks));
     if (ss) {
 	ss->useSecurity        = os->useSecurity;
 	ss->useSocks           = PR_FALSE;
@@ -333,7 +334,6 @@ loser:
 static void
 ssl_DestroyLocks(sslSocket *ss)
 {
-#ifdef NO_BYPASS
     /* Destroy locks. */
     if (ss->firstHandshakeLock) {
     	PZ_DestroyMonitor(ss->firstHandshakeLock);
@@ -364,7 +364,6 @@ ssl_DestroyLocks(sslSocket *ss)
     	PZ_DestroyMonitor(ss->recvBufLock);
 	ss->recvBufLock = NULL;
     }
-#endif
 }
 
 /* Caller holds any relevant locks */
@@ -1034,7 +1033,7 @@ SSL_ImportFD(PRFileDesc *model, PRFileDesc *fd)
 
     if (model == NULL) {
 	/* Just create a default socket if we're given NULL for the model */
-	ns = ssl_NewSocket();
+	ns = ssl_NewSocket((PRBool)(!ssl_defaults.noLocks));
     } else {
 	sslSocket * ss = ssl_FindSocket(model);
 	if (ss == NULL) {
@@ -1875,11 +1874,45 @@ loser:
     return PR_FAILURE;
 }
 
+/* if this fails, caller must destroy socket. */
+static SECStatus
+ssl_MakeLocks(sslSocket *ss)
+{
+    ss->firstHandshakeLock = PZ_NewMonitor(nssILockSSL);
+    if (!ss->firstHandshakeLock) 
+	goto loser;
+    ss->ssl3HandshakeLock  = PZ_NewMonitor(nssILockSSL);
+    if (!ss->ssl3HandshakeLock) 
+	goto loser;
+    ss->specLock           = NSSRWLock_New(SSL_LOCK_RANK_SPEC, NULL);
+    if (!ss->specLock) 
+	goto loser;
+    ss->recvBufLock        = PZ_NewMonitor(nssILockSSL);
+    if (!ss->recvBufLock) 
+	goto loser;
+    ss->xmitBufLock        = PZ_NewMonitor(nssILockSSL);
+    if (!ss->xmitBufLock) 
+	goto loser;
+    ss->writerThread       = NULL;
+    if (ssl_lock_readers) {
+	ss->recvLock       = PZ_NewLock(nssILockSSL);
+	if (!ss->recvLock) 
+	    goto loser;
+	ss->sendLock       = PZ_NewLock(nssILockSSL);
+	if (!ss->sendLock) 
+	    goto loser;
+    }
+    return SECSuccess;
+loser:
+    return SECFailure;
+}
+
+
 /*
 ** Create a newsocket structure for a file descriptor.
 */
 static sslSocket *
-ssl_NewSocket(void)
+ssl_NewSocket(PRBool makeLocks)
 {
     sslSocket *ss;
 #ifdef DEBUG
@@ -1932,7 +1965,7 @@ ssl_NewSocket(void)
 	ss->detectRollBack     = ssl_defaults.detectRollBack;
 	ss->noStepDown         = ssl_defaults.noStepDown;
 	ss->bypassPKCS11       = ssl_defaults.bypassPKCS11;
-	ss->noLocks            = ssl_defaults.noLocks;
+	ss->noLocks            = !makeLocks;
 
 	ss->peerID             = NULL;
 	ss->rTimeout	       = PR_INTERVAL_NO_TIMEOUT;
@@ -1965,32 +1998,11 @@ ssl_NewSocket(void)
 	ssl2_InitSocketPolicy(ss);
 	ssl3_InitSocketPolicy(ss);
 
-#ifdef NO_BYPASS
-	ss->firstHandshakeLock = PZ_NewMonitor(nssILockSSL);
-	if (!ss->firstHandshakeLock) 
-	    goto loser;
-	ss->ssl3HandshakeLock  = PZ_NewMonitor(nssILockSSL);
-	if (!ss->ssl3HandshakeLock) 
-	    goto loser;
-	ss->specLock           = NSSRWLock_New(SSL_LOCK_RANK_SPEC, NULL);
-	if (!ss->specLock) 
-	    goto loser;
-	ss->recvBufLock        = PZ_NewMonitor(nssILockSSL);
-	if (!ss->recvBufLock) 
-	    goto loser;
-	ss->xmitBufLock        = PZ_NewMonitor(nssILockSSL);
-	if (!ss->xmitBufLock) 
-	    goto loser;
-	ss->writerThread       = NULL;
-	if (ssl_lock_readers) {
-	    ss->recvLock       = PZ_NewLock(nssILockSSL);
-	    if (!ss->recvLock) 
-		goto loser;
-	    ss->sendLock       = PZ_NewLock(nssILockSSL);
-	    if (!ss->sendLock) 
+	if (makeLocks) {
+	    status = ssl_MakeLocks(ss);
+	    if (status != SECSuccess)
 		goto loser;
 	}
-#endif
 	status = ssl_CreateSecurityInfo(ss);
 	if (status != SECSuccess) 
 	    goto loser;

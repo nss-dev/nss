@@ -112,11 +112,9 @@ ssl_Do1stHandshake(sslSocket *ss)
     int loopCount = 0;
 
     do {
-	PORT_Assert( ssl_Have1stHandshakeLock(ss) );
-#ifdef NO_BYPASS
-	PORT_Assert( !ssl_HaveRecvBufLock(ss)   );
-	PORT_Assert( !ssl_HaveXmitBufLock(ss)   );
-#endif
+	PORT_Assert(ss->noLocks ||  ssl_Have1stHandshakeLock(ss) );
+	PORT_Assert(ss->noLocks || !ssl_HaveRecvBufLock(ss));
+	PORT_Assert(ss->noLocks || !ssl_HaveXmitBufLock(ss));
 
 	if (ss->handshake == 0) {
 	    /* Previous handshake finished. Switch to next one */
@@ -155,10 +153,8 @@ ssl_Do1stHandshake(sslSocket *ss)
      */
     } while (rv != SECFailure);  	/* was (rv >= 0); XXX_1 */
 
-#ifdef NO_BYPASS
-    PORT_Assert( !ssl_HaveRecvBufLock(ss)   );
-    PORT_Assert( !ssl_HaveXmitBufLock(ss)   );
-#endif
+    PORT_Assert(ss->noLocks || !ssl_HaveRecvBufLock(ss));
+    PORT_Assert(ss->noLocks || !ssl_HaveXmitBufLock(ss));
 
     if (rv == SECWouldBlock) {
 	PORT_SetError(PR_WOULD_BLOCK_ERROR);
@@ -422,7 +418,7 @@ ssl_SaveWriteData(sslSocket *ss, sslBuffer *buf, const void *data,
     unsigned int newlen;
     SECStatus    rv;
 
-    PORT_Assert( ssl_HaveXmitBufLock(ss) );
+    PORT_Assert( ss->noLocks || ssl_HaveXmitBufLock(ss) );
     newlen = buf->len + len;
     if (newlen > buf->space) {
 	rv = sslBuffer_Grow(buf, newlen);
@@ -449,7 +445,7 @@ ssl_SendSavedWriteData(sslSocket *ss, sslBuffer *buf, sslSendFunc send)
     int rv	= 0;
     int len	= buf->len;
 
-    PORT_Assert( ssl_HaveXmitBufLock(ss) );
+    PORT_Assert( ss->noLocks || ssl_HaveXmitBufLock(ss) );
     if (len != 0) {
 	SSL_TRC(5, ("%d: SSL[%d]: sending %d bytes of saved data",
 		     SSL_GETPID(), ss->fd, len));
