@@ -208,7 +208,7 @@ extern SECStatus EC_NewKeyFromSeed(ECParams *  params,
                            int                 seedlen);
 
 /* Validates an EC public key as described in Section 5.2.2 of
- * X9.63. Such validation prevents against small subgroup attacks
+ * X9.62. Such validation prevents against small subgroup attacks
  * when the ECDH primitive is used with the cofactor.
  */
 extern SECStatus EC_ValidatePublicKey(ECParams * params, 
