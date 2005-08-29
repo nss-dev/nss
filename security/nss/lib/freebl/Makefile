@@ -194,6 +194,7 @@ else
     MPI_SRCS += mpi_hp.c 
     ASFILES  += hpma512.s hppa20.s 
     DEFINES  += -DMP_ASSEMBLY_MULTIPLY -DMP_ASSEMBLY_SQUARE
+    HPUX_OS_CFLAGS = -Aa +e +DA2.0 +DS2.0
 endif
 endif
 endif
