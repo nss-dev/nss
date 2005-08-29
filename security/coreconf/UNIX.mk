@@ -46,7 +46,7 @@ ifdef BUILD_OPT
 	DEFINES    += -UDEBUG -DNDEBUG
 else
 	OPTIMIZER  += -g
-	DEFINES    += -DDEBUG -UNDEBUG -DDEBUG_$(shell whoami)
+	DEFINES    += -DDEBUG -UNDEBUG -DDEBUG_$(USER:-$(shell whoami))
 endif
 
 ifdef BUILD_TREE
