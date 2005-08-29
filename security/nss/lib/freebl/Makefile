@@ -208,7 +208,7 @@ ifeq ($(OS_TARGET),SunOS)
 MKSHLIB += -R '$$ORIGIN'
 ifdef NS_USE_GCC
     ifdef GCC_USE_GNU_LD
-	MKSHLIB += -Wl,-Bsymbolic,-z,defs,-z,now,-z,text,--version-script
+	MKSHLIB += -Wl,-Bsymbolic,-z,defs,-z,now,-z,text
     else
 	MKSHLIB += -Wl,-B,symbolic,-z,defs,-z,now,-z,text
     endif # GCC_USE_GNU_LD
