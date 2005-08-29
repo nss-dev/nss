@@ -165,11 +165,21 @@ PKIX_PL_Pk11CertStore_Create(
  * DESCRIPTION:
  *
  *  Creates a new LdapCertStore using the PRNetAddr poined to by "sockaddr",
- *  with a timeout value of "timeout", a bindname and authentication pointed
- *  to by "bindname" and "authentication", respectively; and stores the address
- *  of a PRPollDesc on which the caller can wait for completion (if non-blocking
- *  I/O was specified by a zero value of "timeout") at "pDesc" and the CertStore
- *  at "pLdapCertStore".
+ *  with a timeout value of "timeout", and a BindAPI pointed to by "bindAPI";
+ *  and stores the address of a PRPollDesc on which the caller can wait for
+ *  completion (if non-blocking I/O was specified by a zero value of "timeout")
+ *  at "pDesc" and the CertStore at "pLdapCertStore".
+ *
+ *  At the time of this version, there are unresolved questions about the LDAP
+ *  protocol. Although RFC1777 describes a BIND and UNBIND message, it is not
+ *  clear whether they are appropriate to this application. We have tested only
+ *  using servers that do not expect authentication, and that reject BIND
+ *  messages. It is not clear what values might be appropriate for the bindname
+ *  and authentication fields, which are currently implemented as char strings
+ *  supplied by the caller. (If this changes, the API and possibly the templates
+ *  will have to change.) Therefore the CertStore_Create API contains a BindAPI
+ *  structure, a union, which will have to be revised and extended when this
+ *  area of the protocol is better understood.
  *
  * PARAMETERS:
  *  "sockaddr"
@@ -178,12 +188,9 @@ PKIX_PL_Pk11CertStore_Create(
  *  "timeout"
  *      The PRIntervalTime value to be used as a timeout value in socket calls;
  *      a zero value indicates non-blocking I/O is to be used.
- *  "bindname"
- *      The address of a name String to be used if a BIND message is sent. May
- *      be an empty String but must be non-NULL.
- *  "authentication"
- *      The address of a password String to be used if a BIND message is sent.
- *      May be an empty String but must be non-NULL.
+ *  "bindAPI"
+ *      The address of a BindAPI to be used if a BIND message is required. If
+ *      this argument is NULL, no Bind (or Unbind) will be sent.
  *  "pDesc"
  *      The address at which a PRPollDesc is to be stored. Must be non-NULL.
  *  "pLdapCertStore"
@@ -201,8 +208,7 @@ PKIX_Error *
 PKIX_PL_LdapCertStore_Create(
         PRNetAddr *sockaddr,
         PRIntervalTime timeout,
-        char *bindname,
-        char *authentication,
+        LDAPBindAPI *bindAPI,
         PRPollDesc **pDesc,
         PKIX_CertStore **pLdapCertStore,
         void *plContext);

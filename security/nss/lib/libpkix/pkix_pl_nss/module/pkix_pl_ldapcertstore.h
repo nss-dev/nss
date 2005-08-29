@@ -59,8 +59,9 @@ extern "C" {
  * messages. It is not clear what values might be appropriate for the bindname
  * and authentication fields, which are currently implemented as char strings
  * supplied by the caller. (If this changes, the API and possibly the templates
- * will have to change.) Therefore the code to BIND and UNBIND is inhibited
- * unless the conditional PROTOCOL_INCLUDES_BIND is defined in pkix_pl_ldapt.h.
+ * will have to change.) Therefore the CertStore_Create API contains a BindAPI
+ * structure, a union, which will have to be revised and extended when this
+ * area of the protocol is better understood.
  *
  * It is further assumed that a given LdapCertStore will connect only to a
  * single server, and that the creation of the socket will initiate the
@@ -70,12 +71,10 @@ extern "C" {
 
 typedef enum {
         LDAP_CONNECT_PENDING,
-#ifdef PROTOCOL_INCLUDES_BIND
         LDAP_CONNECTED,
         LDAP_BIND_PENDING,
         LDAP_BIND_RESPONSE,
         LDAP_BIND_RESPONSE_PENDING,
-#endif
         LDAP_BOUND,
         LDAP_SEND_PENDING,
         LDAP_RECV,
@@ -95,8 +94,7 @@ struct PKIX_PL_LdapCertStoreContext {
         PKIX_PL_Socket *clientSocket;
         PRPollDesc pollDesc;
         void *callbackList; /* cast this to (PKIX_PL_Socket_Callback *) */
-        char *bindName;
-        char *authentication;
+        LDAPBindAPI *bindAPI;
         PRArenaPool *arena;
         PRTime lastIO;
         void *sendBuf;

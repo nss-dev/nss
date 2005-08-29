@@ -55,28 +55,12 @@
  */
 
 #define LDAPStringTemplate SEC_OctetStringTemplate
-#define SequenceOfLDAPStringTemplate SEC_SequenceOfOctetStringTemplate
-
-static const SEC_ASN1Template LDAPBindAuthTemplate[] = {
-    { SEC_ASN1_CHOICE, offsetof(LDAPBindAuth, selector), 0, sizeof (LDAPBindAuth) },
-    { SEC_ASN1_INLINE, offsetof(LDAPBindAuth, ch.simple),
-                SEC_OctetStringTemplate, SIMPLE_AUTH },
-    { SEC_ASN1_INLINE, offsetof(LDAPBindAuth, ch.krbv42LDAP),
-                SEC_OctetStringTemplate, KRBV42LDAP_AUTH },
-    { SEC_ASN1_INLINE, offsetof(LDAPBindAuth, ch.krbv42DSA),
-                SEC_OctetStringTemplate, KRBV42DSA_AUTH },
-    { 0 }
-};
 
 static const SEC_ASN1Template LDAPBindApplTemplate[] = {
     { SEC_ASN1_SEQUENCE, 0, NULL },
     { SEC_ASN1_INTEGER, offsetof(LDAPBind, version) },
     { SEC_ASN1_LDAP_STRING, offsetof(LDAPBind, bindName) },
-#ifdef PROTOCOL_INCLUDES_BIND
-    { SEC_ASN1_INLINE, offsetof(LDAPBind, authentication), LDAPBindAuthTemplate },
-#else
     { SEC_ASN1_LDAP_STRING, offsetof(LDAPBind, authentication) },
-#endif
     { 0 }
 };
 

@@ -368,6 +368,9 @@ pkix_pl_Pk11CertStore_CrlQuery(
                             PKIX_DECREF(crl);
                             crls++;
                         }
+
+                        /* Don't throw away the list if one cert was bad! */
+                        pkixTempErrorReceived = PKIX_FALSE;
                         
                     }
                     PKIX_DECREF(issuer);

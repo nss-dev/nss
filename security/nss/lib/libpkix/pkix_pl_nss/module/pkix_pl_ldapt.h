@@ -47,11 +47,8 @@ extern "C" {
 
 extern const SEC_ASN1Template PKIX_PL_LDAPMessageTemplate[];
 SEC_ASN1_CHOOSER_DECLARE(PKIX_PL_LDAPMessageTemplate)
-extern const SEC_ASN1Template PKIX_PL_LDAPMessageTemplate[];
 
 /* ********************************************************************** */
-
-/* #define PROTOCOL_INCLUDES_BIND 1 */
 
 #define SEC_ASN1_LDAP_STRING SEC_ASN1_OCTET_STRING
 
@@ -141,7 +138,8 @@ typedef enum {
         OTHER                           = 80
 } LDAPResultCode;
 
-typedef struct LDAPBindAuthStruct                LDAPBindAuth;
+typedef struct LDAPSimpleBindStruct              LDAPSimpleBind;
+typedef struct LDAPBindAPIStruct                 LDAPBindAPI;
 typedef struct LDAPBindStruct                    LDAPBind;
 typedef struct LDAPResultStruct                  LDAPBindResponse;
 typedef struct LDAPResultStruct                  LDAPResult;
@@ -165,24 +163,22 @@ typedef LDAPAttributeValueAssertion LDAPGreaterOrEqualFilter;
 typedef LDAPAttributeValueAssertion LDAPLessOrEqualFilter;
 typedef LDAPAttributeValueAssertion LDAPApproxMatchFilter;
 
-
-struct LDAPBindAuthStruct {
-        AuthType selector;
-        union {
-                SECItem simple;
-                SECItem krbv42LDAP;
-                SECItem krbv42DSA;
-        } ch;
+struct LDAPSimpleBindStruct {
+        char *bindName;
+        char *authentication;
 };
 
-struct LDAPBindStruct {
+struct LDAPBindAPIStruct {
+        AuthType selector;
+        union {
+                LDAPSimpleBind simple;
+        } chooser;
+};
+
+static struct LDAPBindStruct {
         SECItem version;
         SECItem bindName;
-#ifdef PROTOCOL_INCLUDES_BIND
-        LDAPBindAuth authentication;
-#else
         SECItem authentication;
-#endif
 };
 
 struct LDAPResultStruct {
