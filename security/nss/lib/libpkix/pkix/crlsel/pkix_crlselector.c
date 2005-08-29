@@ -96,7 +96,7 @@ cleanup:
  *
  * RETURNS:
  *  Returns NULL if the function succeeds.
- *  Returns a CRLEntry Error if the function fails in a non-fatal way.
+ *  Returns a CRLSelector Error if the function fails in a non-fatal way.
  *  Returns a Fatal Error if the function fails in an unrecoverable way.
  */
 static PKIX_Error *
@@ -113,7 +113,7 @@ pkix_CRLSelector_ToString_Helper(
 
         PKIX_ENTER(CRLSELECTOR, "pkix_CRLSelector_ToString_Helper");
         PKIX_NULLCHECK_TWO(crlSelector, pString);
-        PKIX_NULLCHECK_TWO(crlSelector->params, crlSelector->context);
+        PKIX_NULLCHECK_ONE(crlSelector->params);
 
         asciiFormat =
                 "\n\t[\n"
@@ -140,13 +140,6 @@ pkix_CRLSelector_ToString_Helper(
         /* Context */
         PKIX_TOSTRING(crlSelector->context, &crlContextString, plContext,
                     "PKIX_LIST_ToString failed");
-
-
-
-
-
-
-
 
         PKIX_CHECK(PKIX_PL_Sprintf
                     (&crlSelectorString,
@@ -379,10 +372,11 @@ cleanup:
  * FUNCTION: pkix_CRLSelector_DefaultMatch
  *
  * DESCRIPTION:
- *  This functions compares passing-in CRL's Issuer, date, CRL number
- *  with the corresponding parameter values set in CRLSelector's Params.
- *  When this CRL matches all the criteria set in Params, a NULL is returned.
- *  Otherwise, an PKIX_Error is returned.
+ *  This function compares the parameter values (Issuer, date, and CRL number)
+ *  set in the ComCRLSelParams of the CRLSelector pointed to by "selector" with
+ *  the corresponding values in the CRL pointed to by "crl". When all the
+ *  criteria set in the parameter values match the values in "crl", NULL is
+ *  returned. Otherwise, an PKIX_Error is returned.
  *
  * PARAMETERS
  *  "selector"
@@ -399,7 +393,7 @@ cleanup:
  *
  * RETURNS:
  *  Returns NULL if the function succeeds.
- *  Returns a List Error if the function fails in a non-fatal way.
+ *  Returns a CRLSelector Error if the function fails in a non-fatal way.
  *  Returns a Fatal Error if the function fails in an unrecoverable way.
  */
 static PKIX_Error *

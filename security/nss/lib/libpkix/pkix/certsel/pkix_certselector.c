@@ -1149,8 +1149,9 @@ cleanup:
  *
  *  This default match function determines whether the specified Cert pointed
  *  to by "cert" matches the criteria of the CertSelector pointed to by
- *  "selector". If the Cert does not match the CertSelector's criteria, an
- *  Error pointer is returned.
+ *  "selector". If the Cert satisfies the CertSelector's criteria, PKIX_TRUE
+ *  is stored at "pResult". If the Cert does not match the CertSelector's
+ *  criteria, PKIX_FALSE is stored at "pResult". 
  *
  *  This default match function understands how to process the most common
  *  parameters. Any common parameter that is not set is assumed to be disabled,
