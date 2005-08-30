@@ -2025,11 +2025,13 @@ struct LDAPCertPairStruct {
 };
 
 static const SEC_ASN1Template LDAPCrossCertForwardTemplate[] = {
-    { SEC_ASN1_POINTER, offsetof(LDAPCertPair, forward), SEC_SignedCertificateTemplate }
+    { SEC_ASN1_POINTER, offsetof(LDAPCertPair, forward),
+        SEC_SignedCertificateTemplate }
 };
 
 static const SEC_ASN1Template LDAPCrossCertReverseTemplate[] = {
-    { SEC_ASN1_POINTER, offsetof(LDAPCertPair, reverse), SEC_SignedCertificateTemplate }
+    { SEC_ASN1_POINTER, offsetof(LDAPCertPair, reverse),
+        SEC_SignedCertificateTemplate }
 };
 
 static const SEC_ASN1Template LDAPCrossCertPairTemplate[] = {
@@ -3009,7 +3011,6 @@ pkix_pl_LdapCertStore_MakeCrlRequest(
         void *plContext)
 {
         PKIX_List *issuerNames = NULL;
-        PKIX_List *crlList = NULL;
         PKIX_UInt32 numNames = 0;
         PKIX_PL_LdapRequest *request = NULL;
 
@@ -3387,10 +3388,6 @@ PKIX_PL_LdapCertStore_Create(
         PRNetAddr *sockaddr,
         PRIntervalTime timeout,
         LDAPBindAPI *bindAPI,
-#if 0
-        char *bindName,
-        char *authentication,
-#endif
         PRPollDesc **pDesc,
         PKIX_CertStore **pCertStore,
         void *plContext)

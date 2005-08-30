@@ -175,7 +175,7 @@ struct LDAPBindAPIStruct {
         } chooser;
 };
 
-static struct LDAPBindStruct {
+struct LDAPBindStruct {
         SECItem version;
         SECItem bindName;
         SECItem authentication;
