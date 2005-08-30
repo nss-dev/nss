@@ -1601,10 +1601,10 @@ ssl3_ComputeRecordMAC(
 	    end    = (ssl_hash_end)    SHA1_End;
 	    break;
 	case ssl_hmac_md5: /* used with TLS */
-	    hashObj = SEC_GetRawHashObject(HASH_AlgMD5);
+	    hashObj = HASH_GetRawHashObject(HASH_AlgMD5);
 	    break;
 	case ssl_hmac_sha: /* used with TLS */
-	    hashObj = SEC_GetRawHashObject(HASH_AlgSHA1);
+	    hashObj = HASH_GetRawHashObject(HASH_AlgSHA1);
 	    break;
 	default:
 	    PORT_Assert(0);

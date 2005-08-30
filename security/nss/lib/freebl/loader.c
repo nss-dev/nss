@@ -1635,11 +1635,11 @@ TLS_PRF(const SECItem *secret, const char *label,
 }
 
 const SECHashObject *
-SEC_GetRawHashObject(HASH_HashType hashType)
+HASH_GetRawHashObject(HASH_HashType hashType)
 {
   if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
       return NULL;
-  return (vector->p_SEC_GetRawHashObject)(hashType);
+  return (vector->p_HASH_GetRawHashObject)(hashType);
 }
 
 

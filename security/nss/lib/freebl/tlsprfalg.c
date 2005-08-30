@@ -56,7 +56,7 @@ sftk_P_hash(HASH_HashType hashType, const SECItem *secret, const char *label,
     SECStatus status;
     HMACContext *cx;
     SECStatus rv = SECFailure;
-    const SECHashObject *hashObj = SEC_GetRawHashObject(hashType);
+    const SECHashObject *hashObj = HASH_GetRawHashObject(hashType);
 
     PORT_Assert((secret != NULL) && (secret->data != NULL || !secret->len));
     PORT_Assert((seed != NULL) && (seed->data != NULL));

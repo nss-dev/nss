@@ -1055,7 +1055,7 @@ PRBool BLAPI_SHVerify(const char *name, PRFuncPtr addr);
 PRBool BLAPI_VerifySelf(const char *name);
 
 /*********************************************************************/
-extern const SECHashObject * SEC_GetRawHashObject(HASH_HashType hashType);
+extern const SECHashObject * HASH_GetRawHashObject(HASH_HashType hashType);
 
 SEC_END_PROTOS
 
