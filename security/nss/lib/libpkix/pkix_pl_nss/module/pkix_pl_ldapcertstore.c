@@ -3402,9 +3402,6 @@ PKIX_PL_LdapCertStore_Create(
         PRFileDesc *fileDesc = NULL;
 
         PKIX_ENTER(CERTSTORE, "PKIX_PL_LdapCertStore_Create");
-#if 0
-        PKIX_NULLCHECK_THREE(bindName, authentication, pCertStore);
-#endif
         PKIX_NULLCHECK_ONE(pCertStore);
 
         PKIX_CHECK(pkix_pl_Socket_Create
@@ -3413,10 +3410,6 @@ PKIX_PL_LdapCertStore_Create(
 
         PKIX_CHECK(pkix_pl_LdapCertStoreContext_Create
                 (socket,
-#if 0
-                bindName,
-                authentication,
-#endif
                 bindAPI,
                 &ldapCertStoreContext,
                 plContext),
