@@ -56,12 +56,12 @@ memText=""
 function ParseArgs # args
 {
     while [[ $# -gt 0 ]]; do
-        if [[ $1 == "-checkmem" ]]; then
+        if [[ $1 = "-checkmem" ]]; then
             checkMemArg=$1
             memText="   (Memory Checking Enabled)"
-        elif [[ $1 == "-quiet" ]]; then
+        elif [[ $1 = "-quiet" ]]; then
             quietArg=$1
-        elif [[ $1 == "-arenas" ]]; then
+        elif [[ $1 = "-arenas" ]]; then
             arenasArg=$1
         fi
         shift

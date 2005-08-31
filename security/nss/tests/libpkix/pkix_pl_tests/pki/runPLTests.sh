@@ -114,11 +114,11 @@ function Cleanup
 function ParseArgs # args
 {
     while [[ $# -gt 0 ]]; do
-        if [[ $1 == "-checkmem" ]]; then
+        if [[ $1 = "-checkmem" ]]; then
             checkmem=1
-        elif [[ $1 == "-quiet" ]]; then
+        elif [[ $1 = "-quiet" ]]; then
             quiet=1
-        elif [[ $1 == "-arenas" ]]; then
+        elif [[ $1 = "-arenas" ]]; then
             arenas=1
         fi
         shift
@@ -217,7 +217,7 @@ function RunTests
         # uses our utility library for displaying information
 
         if [[ ${checkmem} -eq 1 ]]; then
-            if [[ ${testPgm} == "testCert" ]]; then
+            if [[ ${testPgm} = "testCert" ]]; then
                 grep "TEST FAILURE: *** Cert Error - PKIX_PL_Cert_VerifySignature: Signature did not verify with this public key" ${testOut} >/dev/null 2>&1
             fi
         else

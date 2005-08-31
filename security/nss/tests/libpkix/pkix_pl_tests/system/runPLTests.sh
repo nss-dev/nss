@@ -84,11 +84,11 @@ function Cleanup
 function ParseArgs # args
 {
     while [[ $# -gt 0 ]]; do
-        if [[ $1 == "-checkmem" ]]; then
+        if [[ $1 = "-checkmem" ]]; then
             checkmem=1
-        elif [[ $1 == "-quiet" ]]; then
+        elif [[ $1 = "-quiet" ]]; then
             quiet=1
-        elif [[ $1 == "-arenas" ]]; then
+        elif [[ $1 = "-arenas" ]]; then
             arenas=1
         fi
         shift
@@ -142,7 +142,7 @@ Display "***********************************************************************
 
         if [[ ${checkmem} -eq 1 ]]; then
             # We add the "ignore ABRT" command for the test_mutex case
-            if [[ ${testPgm} == "test_mutex" ]]; then
+            if [[ ${testPgm} = "test_mutex" ]]; then
                 dbx -C -c "check -all;ignore ABRT;run;exit" ${DIST_BIN}/${testPgm} ${arenaCmd}> ${testOut} 2>&1
             else
                 dbx -C -c "check -all;run;exit" ${DIST_BIN}/${testPgm} ${arenaCmd} > ${testOut} 2>&1
@@ -171,7 +171,7 @@ Display "***********************************************************************
                 Display "...program terminated prematurely (unable to check for memory leak errors) ..."
             else
                 # special consideration for test_mutex2
-                if [[ ${testPgm} == "test_mutex2" ]]; then
+                if [[ ${testPgm} = "test_mutex2" ]]; then
                     grep  "(actual leaks:         4  total size:     124 bytes)" ${testOut} > /dev/null 2>&1
                     if [[ $? -ne 0 ]]; then
                         memErrors=`expr ${memErrors} + 1`
