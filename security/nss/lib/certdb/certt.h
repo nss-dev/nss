@@ -605,6 +605,20 @@ struct CERTBasicConstraintsStr {
 #define RF_CESSATION_OF_OPERATION	(0x04)  /* bit 5 */
 #define RF_CERTIFICATE_HOLD		(0x02)  /* bit 6 */
 
+/* enum for CRL Entry Reason Code */
+typedef enum CERTCRLEntryReasonCodeEnum {
+    crlEntryReasonUnspecified = 0,
+    crlEntryReasonKeyCompromise = 1,
+    crlEntryReasonCaCompromise =2,
+    crlEntryReasonAffiliationChanged = 3,
+    crlEntryReasonSuperseded = 4,
+    crlEntryReasonCessationOfOperation = 5,
+    crlEntryReasoncertificatedHold = 6,
+    crlEntryReasonRemoveFromCRL = 8,
+    crlEntryReasonPrivilegeWithdrawn = 9,
+    crlEntryReasonAaCompromise = 10
+} CERTCRLEntryReasonCode;
+
 /* If we needed to extract the general name field, use this */
 /* General Name types */
 typedef enum CERTGeneralNameTypeEnum {

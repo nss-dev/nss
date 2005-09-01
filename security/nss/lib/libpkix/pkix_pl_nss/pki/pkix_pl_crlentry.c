@@ -830,7 +830,7 @@ PKIX_PL_CRLEntry_GetCRLEntryReasonCode (
         void *plContext)
 {
         SECStatus status;
-        PKIX_Int32 nssReasonCode;
+        CERTCRLEntryReasonCode nssReasonCode;
 
         PKIX_ENTER(CRLENTRY, "PKIX_PL_CRLEntry_GetCRLEntryReasonCode");
         PKIX_NULLCHECK_TWO(crlEntry, pReason);
@@ -848,7 +848,7 @@ PKIX_PL_CRLEntry_GetCRLEntryReasonCode (
                         (crlEntry->nssCrlEntry, &nssReasonCode);
 
                 if (status == SECSuccess) {
-                        crlEntry->userReasonCode = nssReasonCode;
+                        crlEntry->userReasonCode = (PKIX_UInt32) nssReasonCode;
                 } else {
                         crlEntry->userReasonCodeAbsent = PKIX_TRUE;
                 }

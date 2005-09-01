@@ -934,11 +934,6 @@ CERT_DecodeOidSequence(SECItem *seqItem);
 extern SECStatus CERT_FindCertExtension
    (CERTCertificate *cert, int tag, SECItem *value);
 
-extern SECStatus
-CERT_FindExtensionWithTemplate (CERTCertExtension **extensions, int tag,
-				const SEC_ASN1Template* templateEntry,
-				SECItem *retItem);
-
 extern SECStatus CERT_FindNSCertTypeExtension
    (CERTCertificate *cert, SECItem *value);
 
@@ -1034,7 +1029,7 @@ extern SECStatus CERT_FindCRLNumberExten (PRArenaPool* arena, CERTCrl *crl,
                                           SECItem *value);
 
 extern SECStatus CERT_FindCRLEntryReasonExten (CERTCrlEntry *crlEntry,
-					       int *value);
+					       CERTCRLEntryReasonCode *value);
 
 extern void CERT_FreeNicknames(CERTCertNicknames *nicknames);
 

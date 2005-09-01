@@ -96,6 +96,7 @@ SECStatus CERT_FindCRLNumberExten (PRArenaPool* arena, CERTCrl *crl,
                                    SECItem *value)
 {
     SECItem encodedExtenValue;
+    SECItem *tmpItem = NULL;
     SECStatus rv;
 
     encodedExtenValue.data = NULL;
@@ -106,8 +107,14 @@ SECStatus CERT_FindCRLNumberExten (PRArenaPool* arena, CERTCrl *crl,
     if ( rv != SECSuccess )
 	return (rv);
 
+    tmpItem = SECITEM_ArenaDupItem(arena, &encodedExtenValue);
+    if (tmpItem == NULL) {
+	    return(SECFailure);
+    }
+
     rv = SEC_QuickDERDecodeItem (arena, value, SEC_IntegerTemplate,
-			         &encodedExtenValue);
+			         tmpItem);
+
     if ( rv != SECSuccess )
 	return (rv);
 
@@ -115,23 +122,49 @@ SECStatus CERT_FindCRLNumberExten (PRArenaPool* arena, CERTCrl *crl,
     return (rv);
 }
 
-SECStatus CERT_FindCRLEntryReasonExten (CERTCrlEntry *crlEntry, int *value)
+SECStatus CERT_FindCRLEntryReasonExten (CERTCrlEntry *crlEntry,
+                                        CERTCRLEntryReasonCode *value)
 {
+    SECItem wrapperItem, tmpItem = {siBuffer,0};
     SECStatus rv;
-    SECItem tmpItem;
+    PRArenaPool *arena = NULL;
 
     tmpItem.data = NULL;
     tmpItem.len = 0;
 
-    rv = CERT_FindExtensionWithTemplate
-	(crlEntry->extensions, SEC_OID_X509_REASON_CODE, 
-	 SEC_EnumeratedTemplate, &tmpItem);
+    arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);   
+    if ( ! arena ) {
+	return(SECFailure);
+    }
+    
+    rv = cert_FindExtension(crlEntry->extensions, SEC_OID_X509_REASON_CODE, 
+                            &wrapperItem);
+    if ( rv != SECSuccess ) {
+	goto loser;
+    }
 
-    if ( rv != SECSuccess )
-	return (rv);
+    rv = SEC_QuickDERDecodeItem(arena, &tmpItem, SEC_EnumeratedTemplate,
+                                &wrapperItem);
 
-    *value = DER_GetInteger(&tmpItem);
-    SECITEM_FreeItem(&tmpItem, PR_FALSE);
+    if ( rv != SECSuccess ) {
+	goto loser;
+    }
+
+    *value = (CERTCRLEntryReasonCode) DER_GetInteger(&tmpItem);
+
+    goto done;
+
+loser:
+    rv = SECFailure;
+
+done:
+    if ( arena ) {
+	PORT_FreeArena(arena, PR_FALSE);
+    }
+    
+    if ( wrapperItem.data ) {
+	PORT_Free(wrapperItem.data);
+    }
 
     return (rv);
 }
