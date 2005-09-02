@@ -264,7 +264,7 @@ test_ekuchecker "Test-EKU-only-EE-codesigning-without-OID" EE "E1.3.6.1.5.5.7.3.
 test_ekuchecker "Test-EKU-only-EE-emailProtection" ENE "E1.3.6.1.5.5.7.3.4" rev_data/test_eku_all.crt rev_data/test_eku_allbutcodesigningEE.crt
 test_ekuchecker "Test-EKU-only-EE-timestamping" ENE "E1.3.6.1.5.5.7.3.8" rev_data/test_eku_all.crt rev_data/test_eku_allbutcodesigningEE.crt
 test_ekuchecker "Test-EKU-only-EE-ocspSigning" ENE "E1.3.6.1.5.5.7.3.9" rev_data/test_eku_all.crt rev_data/test_eku_allbutcodesigningEE.crt
-test_socket localhost:2000
+test_socket `hostname`:2000
 EOF
 
     if [[ ${errors} -eq 0 ]]; then
