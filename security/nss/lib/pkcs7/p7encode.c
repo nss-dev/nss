@@ -870,7 +870,6 @@ sec_pkcs7_pick_sign_alg (SECOidTag hashalg, SECOidTag encalg)
 	  default:
 	    return SEC_OID_UNKNOWN;
 	}
-#ifdef NSS_ENABLE_ECC
       case SEC_OID_ANSIX962_EC_PUBLIC_KEY:
 	switch (hashalg) {
 	  case SEC_OID_SHA1:
@@ -878,7 +877,6 @@ sec_pkcs7_pick_sign_alg (SECOidTag hashalg, SECOidTag encalg)
 	  default:
 	    return SEC_OID_UNKNOWN;
 	}
-#endif /* NSS_ENABLE_ECC */
       default:
 	break;
     }
