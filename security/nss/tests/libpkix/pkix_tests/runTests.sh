@@ -71,7 +71,7 @@ function ParseArgs # args
 ParseArgs $*
 
 echo "*******************************************************************************"
-echo "START OF TESTS FOR PKIX${memText}"
+echo "START OF TESTS FOR PKIX${memText} (TZ=$TZ)"
 echo "*******************************************************************************"
 echo ""
 

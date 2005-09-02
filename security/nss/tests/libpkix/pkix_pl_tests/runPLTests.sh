@@ -78,7 +78,7 @@ ParseArgs $*
 
 
 Display "*******************************************************************************"
-Display "START OF TESTS FOR PKIX_PL${memText}"
+Display "START OF TESTS FOR PKIX_PL${memText} (TZ=$TZ)"
 Display "*******************************************************************************"
 Display ""
 

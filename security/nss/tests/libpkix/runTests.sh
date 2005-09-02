@@ -79,6 +79,7 @@ echo ""
 
 TZ=US/Eastern
 export TZ
+
 echo "RUNNING tests in pkix_pl_test";
 cd pkix_pl_tests;
 runPLTests.sh ${arenasArg} ${checkMemArg} ${quietArg}
