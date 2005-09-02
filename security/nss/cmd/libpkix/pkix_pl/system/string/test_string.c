@@ -133,8 +133,11 @@ testGetEncoded(
                                         &length,
                                         plContext));
         for (i = 0; i < length; i++) {
-                if (((char*)dest)[i] != ((char*)utf16data)[i])
+                if (((char*)dest)[i] != ((char*)utf16data)[i]) {
                         testError("UTF-16 Data Differs from Source");
+                        printf("%d-th char is different -%c-%c-\n", i,
+                               ((char*)dest)[i], ((char*)utf16data)[i]);
+                }
         }
 
         length = 0;
