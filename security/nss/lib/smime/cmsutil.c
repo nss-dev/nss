@@ -256,7 +256,6 @@ NSS_CMSUtil_MakeSignatureAlgorithm(SECOidTag hashalg, SECOidTag encalg)
 	  default:
 	    return SEC_OID_UNKNOWN;
 	}
-#ifdef NSS_ENABLE_ECC
       case SEC_OID_ANSIX962_EC_PUBLIC_KEY:
 	switch (hashalg) {
 	  case SEC_OID_SHA1:
@@ -264,7 +263,6 @@ NSS_CMSUtil_MakeSignatureAlgorithm(SECOidTag hashalg, SECOidTag encalg)
 	  default:
 	    return SEC_OID_UNKNOWN;
 	}
-#endif /* NSS_ENABLE_ECC */
       default:
 	break;
     }

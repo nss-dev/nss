@@ -121,13 +121,11 @@ SGN_NewContext(SECOidTag alg, SECKEYPrivateKey *key)
 	signalg = SEC_OID_MISSI_DSS; /* XXX Is there a better algid? */
 	keyType = fortezzaKey;
 	break;
-#ifdef NSS_ENABLE_ECC
       case SEC_OID_ANSIX962_ECDSA_SIGNATURE_WITH_SHA1_DIGEST:
 	hashalg = SEC_OID_SHA1;
 	signalg = SEC_OID_ANSIX962_EC_PUBLIC_KEY;
 	keyType = ecKey;
 	break;
-#endif /* NSS_ENABLE_ECC */
       /* we don't implement MD4 hashes. 
        * we *CERTAINLY* don't want to sign one! */
       case SEC_OID_PKCS1_MD4_WITH_RSA_ENCRYPTION:
@@ -374,11 +372,9 @@ SEC_DerSignData(PRArenaPool *arena, SECItem *result,
 	  case dsaKey:
 	    algID = SEC_OID_ANSIX9_DSA_SIGNATURE_WITH_SHA1_DIGEST;
 	    break;
-#ifdef NSS_ENABLE_ECC
 	  case ecKey:
 	    algID = SEC_OID_ANSIX962_ECDSA_SIGNATURE_WITH_SHA1_DIGEST;
 	    break;
-#endif /* NSS_ENABLE_ECC */
 	  default:
 	    PORT_SetError(SEC_ERROR_INVALID_KEY);
 	    return SECFailure;
@@ -506,12 +502,10 @@ SEC_GetSignatureAlgorithmOidTag(KeyType keyType, SECOidTag hashAlgTag)
 	    break;
 	}
 	break;
-#ifdef NSS_ENABLE_ECC
     case ecKey:
         /* XXX For now only ECDSA with SHA1 is supported */
         sigTag = SEC_OID_ANSIX962_ECDSA_SIGNATURE_WITH_SHA1_DIGEST;
 	break;
-#endif /* NSS_ENABLE_ECC */
     default:
     	break;
     }
