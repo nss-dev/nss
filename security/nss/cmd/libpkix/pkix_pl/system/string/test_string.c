@@ -391,7 +391,9 @@ int main(int argc, char *argv[]) {
         PKIX_PL_String *testEscAscii = NULL;
         PKIX_PL_String *testUtf16 = NULL;
         PKIX_PL_String *ampString = NULL;
-        PKIX_UInt32 utf16Data[3] = {0x00A1D800, 0xDC000FFF, 0xDBC0DC01};
+        unsigned char utf16Data[] = {0x00, 0xA1, 0xD8, 0x00,
+                            0xDC, 0x00, 0x0F, 0xFF,
+                            0xDB, 0xC0, 0xDC, 0x01};
         PKIX_UInt32 i, size = 6;
 
         char *plainText[6] = {
@@ -436,7 +438,7 @@ int main(int argc, char *argv[]) {
                 &ampString,
                 &testDebugAscii,
                 &testNullString,
-                utf16Data);
+                (PKIX_UInt32 *)utf16Data);
 
         PKIX_TEST_EQ_HASH_TOSTR_DUP
                 (testString[0],
@@ -452,7 +454,7 @@ int main(int argc, char *argv[]) {
                 testString[0],
                 testDebugAscii,
                 testNullString,
-                utf16Data);
+                (PKIX_UInt32 *)utf16Data);
 
         subTest("PKIX_PL_Sprintf");
         testSprintf();
