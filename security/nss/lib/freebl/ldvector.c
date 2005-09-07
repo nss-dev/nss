@@ -219,6 +219,8 @@ static const struct FREEBLVectorStr vector =
     HMAC_Finish,
     HMAC_Destroy,
 
+    RNG_SystemInfoForRNG,
+
     /* End of Version 3.008. */
 };
 
