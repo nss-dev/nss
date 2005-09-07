@@ -435,7 +435,6 @@ PKIX_PL_Sprintf(
         char *asciiFormat = NULL;
         char *convertedAsciiFormat = NULL;
         char *convertedAsciiFormatBase = NULL;
-        char *p = NULL;
         va_list args;
         PKIX_UInt32 length, i, j, dummyLen;
 
@@ -479,6 +478,9 @@ PKIX_PL_Sprintf(
                                                     plContext),
                                                     "PKIX_PL_String_GetEncoded"
                                                     " failed");
+                                } else {
+                                        /* there may be a NULL in var_args */
+                                        pArg = NULL;
                                 }
                                 if (asciiText != NULL) {
                                     asciiText = PR_sprintf_append(asciiText,
@@ -489,7 +491,10 @@ PKIX_PL_Sprintf(
                                         ((const char *)convertedAsciiFormat,
                                         pArg);
                                 }
-                                PKIX_PL_Free(pArg, plContext);
+                                if (pArg != NULL) {
+                                        PKIX_PL_Free(pArg, plContext);
+                                        pArg = NULL;
+                                }
                                 convertedAsciiFormat += j;
                                 j = 0;
                                 break;
