@@ -53,7 +53,7 @@ SSL_PeerCertificate(PRFileDesc *fd)
 		 SSL_GETPID(), fd));
 	return 0;
     }
-    if (ss->useSecurity && ss->sec.peerCert) {
+    if (ss->opt.useSecurity && ss->sec.peerCert) {
 	return CERT_DupCertificate(ss->sec.peerCert);
     }
     return 0;
@@ -71,7 +71,7 @@ SSL_LocalCertificate(PRFileDesc *fd)
 		 SSL_GETPID(), fd));
 	return NULL;
     }
-    if (ss->useSecurity) {
+    if (ss->opt.useSecurity) {
     	if (ss->sec.localCert) {
 	    return CERT_DupCertificate(ss->sec.localCert);
 	}
@@ -109,7 +109,7 @@ SSL_SecurityStatus(PRFileDesc *fd, int *op, char **cp, int *kp0, int *kp1,
 	*op = SSL_SECURITY_STATUS_OFF;
     }
 
-    if (ss->useSecurity && ss->firstHsDone) {
+    if (ss->opt.useSecurity && ss->firstHsDone) {
 
 	if (ss->version < SSL_LIBRARY_VERSION_3_0) {
 	    cipherName = ssl_cipherName[ss->sec.cipherType];

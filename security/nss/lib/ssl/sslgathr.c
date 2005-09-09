@@ -90,7 +90,7 @@ ssl2_GatherData(sslSocket *ss, sslGather *gs, int flags)
     unsigned char *  pBuf;
     int              nb, err, rv;
 
-    PORT_Assert( ssl_HaveRecvBufLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveRecvBufLock(ss) );
 
     if (gs->state == GS_INIT) {
 	/* Initialize gathering engine */
@@ -141,9 +141,9 @@ ssl2_GatherData(sslSocket *ss, sslGather *gs, int flags)
 	/* Probably finished this piece */
 	switch (gs->state) {
 	case GS_HEADER: 
-	    if ((ss->enableSSL3 || ss->enableTLS) && !ss->firstHsDone) {
+	    if ((ss->opt.enableSSL3 || ss->opt.enableTLS) && !ss->firstHsDone) {
 
-		PORT_Assert( ssl_Have1stHandshakeLock(ss) );
+		PORT_Assert( ss->opt.noLocks || ssl_Have1stHandshakeLock(ss) );
 
 		/* If this looks like an SSL3 handshake record, 
 		** and we're expecting an SSL2 Hello message from our peer, 
@@ -185,7 +185,7 @@ ssl2_GatherData(sslSocket *ss, sslGather *gs, int flags)
 			return SECFailure;
 		    }
 		}
-	    }	/* ((ss->enableSSL3 || ss->enableTLS) && !ss->firstHsDone) */
+	    }	/* ((ss->opt.enableSSL3 || ss->opt.enableTLS) && !ss->firstHsDone) */
 
 	    /* we've got the first 3 bytes.  The header may be two or three. */
 	    if (gs->hdr[0] & 0x80) {
@@ -411,7 +411,7 @@ ssl2_StartGatherBytes(sslSocket *ss, sslGather *gs, unsigned int count)
 {
     int rv;
 
-    PORT_Assert( ssl_HaveRecvBufLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveRecvBufLock(ss) );
     gs->state     = GS_DATA;
     gs->remainder = count;
     gs->count     = count;
@@ -455,8 +455,8 @@ ssl2_HandleV3HandshakeRecord(sslSocket *ss)
     SECStatus           rv;
     SSL3ProtocolVersion version = (ss->gs.hdr[1] << 8) | ss->gs.hdr[2];
 
-    PORT_Assert( ssl_HaveRecvBufLock(ss) );
-    PORT_Assert( ssl_Have1stHandshakeLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveRecvBufLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_Have1stHandshakeLock(ss) );
 
     /* We've read in 3 bytes, there are 2 more to go in an ssl3 header. */
     ss->gs.remainder         = 2;
