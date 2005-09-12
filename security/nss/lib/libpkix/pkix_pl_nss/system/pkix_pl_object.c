@@ -109,7 +109,7 @@ pkix_pl_Object_GetHeader(
         PKIX_OBJECT_DEBUG("\tShifting object pointer).\n");
 
         /* The header is sizeof(PKIX_PL_Object) before the object pointer */
-        header = object-1;
+        header = (PKIX_PL_Object *)((char *)object - sizeof(PKIX_PL_Object));
 
         myType = header->type;
 

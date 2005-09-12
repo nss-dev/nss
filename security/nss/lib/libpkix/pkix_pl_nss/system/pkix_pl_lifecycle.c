@@ -82,12 +82,14 @@ static PKIX_PL_String pkix_Alloc_Error_Desc = {
         (PKIX_UInt32)0                  /* PKIX_UInt32 escAsciiLength */
 };
 
-/*
- * This is raw data laid out to look like a PKIX_Error in memory. Do not
- * separate the following two structures. The first is a header for the second!
- * XXX If PKIX_PL_ObjectStruct or PKIX_ErrorStruct are changed, this will break.
- */
-static PKIX_PL_Object pkix_Alloc_Error_Data = {
+/* Keep this structure definition here for its is used only once here */
+struct PKIX_Alloc_Error_ObjectStruct {
+        PKIX_PL_Object header;
+        PKIX_Error error;
+};
+typedef struct PKIX_Alloc_Error_ObjectStruct PKIX_Alloc_Error_Object;
+
+static PKIX_Alloc_Error_Object pkix_Alloc_Error_Data = {
         (PKIX_UInt32)PKIX_MAGIC_HEADER, /* PKIX_UInt32 magicHeader */
         (PKIX_UInt32)PKIX_ERROR_TYPE,   /* PKIX_UInt32 type */
         (PKIX_UInt32)1,                 /* PKIX_UInt32 references */
@@ -95,17 +97,14 @@ static PKIX_PL_Object pkix_Alloc_Error_Data = {
         (void *)0,                      /* PRLock *lock */
         (PKIX_PL_String *)0,            /* PKIX_PL_String *stringRep */
         (PKIX_UInt32)0,                 /* PKIX_UInt32 hashcode */
-        (PKIX_Boolean)PKIX_FALSE        /* PKIX_Boolean hashcodeCached */
+        (PKIX_Boolean)PKIX_FALSE,       /* PKIX_Boolean hashcodeCached */
+        PKIX_FATAL_ERROR,               /* PKIX_UInt32 code */
+        (PKIX_Error *)0,                /* PKIX_Error *cause */
+        (PKIX_PL_Object *)0,            /* PKIX_PL_Object *info */
+        &pkix_Alloc_Error_Desc          /* PKIX_PL_String *desc */
 };
 
-static PKIX_Error pkix_Alloc_Error = {
-        PKIX_FATAL_ERROR,       /* PKIX_UInt32 code */
-        (PKIX_Error *)0,        /* PKIX_Error *cause */
-        (PKIX_PL_Object *)0,    /* PKIX_PL_Object *info */
-        &pkix_Alloc_Error_Desc  /* PKIX_PL_String *desc */
-};
-
-PKIX_Error *PKIX_ALLOC_ERROR = &pkix_Alloc_Error;
+PKIX_Error *PKIX_ALLOC_ERROR = &pkix_Alloc_Error_Data.error;
 
 /*
  * PKIX_PL_Initialize (see comments in pkix_pl_system.h)
