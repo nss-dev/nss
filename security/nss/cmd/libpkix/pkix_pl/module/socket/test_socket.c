@@ -77,7 +77,8 @@ PKIX_PL_Socket *rendezvousSock = NULL;
 PKIX_PL_Socket_Callback *sCallbackList;
 PKIX_PL_Socket_Callback *cCallbackList;
 PKIX_PL_Socket_Callback *rvCallbackList;
-PRNetAddr netAddr;
+PRNetAddr serverNetAddr;
+PRNetAddr clientNetAddr;
 PRIntn backlog = 0;
 PRIntervalTime timeout = 0;
 char *sendBuf1 = "Hello, world!";
@@ -446,14 +447,22 @@ int main(int argc, char *argv[]) {
 
 	serverName = argv[j + 1];
 	sepPtr = strchr(serverName, ':');
+	/* First strip off the portnum, if present, from the end of the name */
 	if (sepPtr) {
 		*sepPtr++ = '\0';
-		prstatus = PR_GetHostByName(serverName, buf, sizeof(buf), &hostent);
 		portNum = (PRUint16)atoi(sepPtr);
 	} else {
-		prstatus = PR_GetHostByName(serverName, buf, sizeof(buf), &hostent);
 		portNum = (PRUint16)LDAP_PORT;
 	}
+	/*
+	 * The hostname may be a fully-qualified name. Just
+	 * use the leftmost component in our lookup.
+	 */
+	sepPtr = strchr(serverName, '.');
+	if (sepPtr) {
+		*sepPtr++ = '\0';
+	}
+	prstatus = PR_GetHostByName(serverName, buf, sizeof(buf), &hostent);
 
 	if ((prstatus != PR_SUCCESS) || (hostent.h_length != 4)) {
                 printUsage(argv[0]);
@@ -461,10 +470,14 @@ int main(int argc, char *argv[]) {
                 goto cleanup;
 	}
 
-	netAddr.inet.family = PR_AF_INET;
-	netAddr.inet.port = PR_htons(portNum);
+	serverNetAddr.inet.family = PR_AF_INET;
+	serverNetAddr.inet.port = PR_htons(portNum);
+	serverNetAddr.inet.ip = PR_INADDR_ANY;
+
+	clientNetAddr.inet.family = PR_AF_INET;
+	clientNetAddr.inet.port = PR_htons(portNum);
 	ipaddr = hostent.h_addr_list[0]; 
-	netAddr.inet.ip = PR_htonl(*(PRUint32 *)ipaddr); 
+	clientNetAddr.inet.ip = PR_htonl(*(PRUint32 *)ipaddr); 
 
 	backlog = 5;
 
@@ -473,7 +486,7 @@ int main(int argc, char *argv[]) {
 	/* timeout = 0; /* nonblocking */
 
 	PKIX_TEST_EXPECT_NO_ERROR(pkix_pl_Socket_Create
-		(PKIX_TRUE, timeout, &netAddr, &cStat, &sSock, plContext));
+		(PKIX_TRUE, timeout, &serverNetAddr, &cStat, &sSock, plContext));
 
         PKIX_TEST_EXPECT_NO_ERROR(pkix_pl_Socket_GetCallbackList
 		(sSock, &sCallbackList, plContext));
@@ -484,7 +497,7 @@ int main(int argc, char *argv[]) {
 	serverState = SERVER_LISTENING;
 
 	PKIX_TEST_EXPECT_NO_ERROR(pkix_pl_Socket_Create
-		(PKIX_FALSE, timeout, &netAddr, &cStat, &cSock, plContext));
+		(PKIX_FALSE, timeout, &clientNetAddr, &cStat, &cSock, plContext));
 
        	PKIX_TEST_EXPECT_NO_ERROR(pkix_pl_Socket_GetCallbackList
 		(cSock, &cCallbackList, plContext));
