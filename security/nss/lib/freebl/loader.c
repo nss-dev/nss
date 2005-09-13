@@ -123,12 +123,39 @@ bl_LoadLibrary(const char *name)
 {
     BLLibrary *lib;
     const char *error;
+    Dl_info dli;
 
     lib = PR_NEWZAP(BLLibrary);
     if (NULL == lib) {
         PR_SetError(PR_OUT_OF_MEMORY_ERROR, 0);
         return NULL;
     }
+
+    /*
+     * In setuid applications, Solaris is unwilling to load freebl unless
+     * we specify an absolute path.  We construct one from the path of the
+     * library that contains this function.
+     */
+    if (dladdr((void *)bl_LoadLibrary, &dli) != 0) {
+        const char *slash = strrchr(dli.dli_fname, '/');
+        if (slash) {
+            ptrdiff_t dirsize = slash - dli.dli_fname + 1;
+            char *pathname;
+            pathname = PR_Malloc(dirsize + strlen(name) + 1);
+            if (NULL == pathname) {
+                PR_Free(lib);
+                PR_SetError(PR_OUT_OF_MEMORY_ERROR, 0);
+                return NULL;
+            }
+            memcpy(pathname, dli.dli_fname, dirsize);
+            strcpy(pathname + dirsize, name);
+            lib->dlh = dlopen(pathname, RTLD_NOW | RTLD_LOCAL);
+            PR_Free(pathname);
+            if (NULL != lib->dlh)
+                return lib;
+        }
+    }
+
     lib->dlh = dlopen(name, RTLD_NOW | RTLD_LOCAL);
     if (NULL == lib->dlh) {
         PR_SetError(PR_LOAD_LIBRARY_ERROR, 0);
