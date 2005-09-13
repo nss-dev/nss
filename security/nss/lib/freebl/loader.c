@@ -139,9 +139,8 @@ bl_LoadLibrary(const char *name)
     if (dladdr((void *)bl_LoadLibrary, &dli) != 0) {
         const char *slash = strrchr(dli.dli_fname, '/');
         if (slash) {
-            ptrdiff_t dirsize = slash - dli.dli_fname + 1;
-            char *pathname;
-            pathname = PR_Malloc(dirsize + strlen(name) + 1);
+            size_t dirsize = slash - dli.dli_fname + 1;
+            char *pathname = PR_Malloc(dirsize + strlen(name) + 1);
             if (NULL == pathname) {
                 PR_Free(lib);
                 PR_SetError(PR_OUT_OF_MEMORY_ERROR, 0);
