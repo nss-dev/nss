@@ -444,7 +444,7 @@ struct FREEBLVectorStr {
  SECStatus (* p_HMAC_Finish)(HMACContext *cx, unsigned char *result, 
 			     unsigned int *result_len, 
 			     unsigned int max_result_len);
- void (* p_HMAC_Destroy)(HMACContext *cx);
+ void (* p_HMAC_Destroy)(HMACContext *cx, PRBool freeit);
 
  void (* p_RNG_SystemInfoForRNG)(void);
 

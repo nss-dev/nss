@@ -1648,6 +1648,7 @@ ssl3_ComputeRecordMAC(
 		HMAC_Update(cx, temp, tempLen);
 		HMAC_Update(cx, input, inputLength);
 		rv = HMAC_Finish(cx, outbuf, outLength, spec->mac_size);
+		HMAC_Destroy(cx, PR_FALSE);
 	    }
 #undef cx
 	}
