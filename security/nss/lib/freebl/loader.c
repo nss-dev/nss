@@ -1487,11 +1487,11 @@ HASH_GetRawHashObject(HASH_HashType hashType)
 
 
 void
-HMAC_Destroy(HMACContext *cx)
+HMAC_Destroy(HMACContext *cx, PRBool freeit)
 {
   if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
       return;
-  (vector->p_HMAC_Destroy)(cx);
+  (vector->p_HMAC_Destroy)(cx, freeit);
 }
 
 HMACContext *

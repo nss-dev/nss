@@ -109,7 +109,8 @@ sftk_P_hash(HASH_HashType hashType, const SECItem *secret, const char *label,
 
 loser:
     /* clear out state so it's not left on the stack */
-    if (cx) HMAC_Destroy(cx);
+    if (cx) 
+    	HMAC_Destroy(cx, PR_TRUE);
     PORT_Memset(state, 0, sizeof(state));
     PORT_Memset(outbuf, 0, sizeof(outbuf));
     return rv;
