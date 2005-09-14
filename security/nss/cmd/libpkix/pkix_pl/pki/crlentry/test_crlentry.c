@@ -210,7 +210,7 @@ int main(int argc, char *argv[]) {
                 (goodObject,
                 equalObject,
                 diffObject,
-                expectedAscii,
+                NULL, /* expectedAscii, */
                 CRLENTRY,
                 PKIX_TRUE);
 

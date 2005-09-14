@@ -450,7 +450,7 @@ int main(int argc, char *argv[]) {
                 (goodObject,
                 equalObject,
                 diffObject,
-                expectedAscii,
+                NULL, /* expectedAscii, */
                 ProcessingParams,
                 PKIX_FALSE);
 

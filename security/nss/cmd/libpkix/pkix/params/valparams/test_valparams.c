@@ -269,7 +269,7 @@ int main(int argc, char *argv[]) {
                 (goodObject,
                 equalObject,
                 diffObject,
-                expectedAscii,
+                NULL, /* expectedAscii, */
                 ValidateParams,
                 PKIX_FALSE);
 

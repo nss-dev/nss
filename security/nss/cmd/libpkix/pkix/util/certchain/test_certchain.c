@@ -188,7 +188,7 @@ int main(int argc, char *argv[]) {
                 (goodObject,
                 equalObject,
                 diffObject,
-                expectedAscii,
+                NULL, /* expectedAscii, */
                 CertChain,
                 PKIX_TRUE);
 

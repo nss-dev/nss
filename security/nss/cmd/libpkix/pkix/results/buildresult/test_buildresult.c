@@ -222,7 +222,7 @@ int main(void) {
                 (goodObject,
                 equalObject,
                 diffObject,
-                expectedAscii,
+                NULL, /* expectedAscii, */
                 BuildResult,
                 PKIX_FALSE);
 
