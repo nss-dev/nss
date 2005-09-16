@@ -457,6 +457,7 @@ cleanup:
         PKIX_TEST_DECREF_AC(buildResult);
         PKIX_TEST_DECREF_AC(buildParams);
         PKIX_TEST_DECREF_AC(userOIDs);
+        PKIX_TEST_DECREF_AC(checker);
 
         PKIX_TEST_RETURN();
 
