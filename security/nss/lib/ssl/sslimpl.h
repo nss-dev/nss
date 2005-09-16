@@ -1108,8 +1108,6 @@ extern PRBool    ssl_FdIsBlocking(PRFileDesc *fd);
 
 extern SECStatus ssl_SetTimeout(PRFileDesc *fd, PRIntervalTime timeout);
 
-extern SECStatus ssl_SetTimeout(PRFileDesc *fd, PRIntervalTime timeout);
-
 extern PRBool    ssl_SocketIsBlocking(sslSocket *ss);
 
 extern void      ssl_SetAlwaysBlock(sslSocket *ss);
