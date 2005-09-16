@@ -173,6 +173,12 @@ SSL_IMPORT SECStatus SSL_ResetHandshake(PRFileDesc *fd, PRBool asServer);
 SSL_IMPORT SECStatus SSL_ForceHandshake(PRFileDesc *fd);
 
 /*
+** Same as above, but with an I/O timeout.
+ */
+SSL_IMPORT SECStatus SSL_ForceHandshakeWithTimeout(PRFileDesc *fd,
+                                                   PRIntervalTime timeout);
+
+/*
 ** Query security status of socket. *on is set to one if security is
 ** enabled. *keySize will contain the stream key size used. *issuer will
 ** contain the RFC1485 verison of the name of the issuer of the
@@ -336,6 +342,14 @@ SSL_IMPORT SECStatus SSL_HandshakeCallback(PRFileDesc *fd,
 ** session keys without doing another private key operation.
 */
 SSL_IMPORT SECStatus SSL_ReHandshake(PRFileDesc *fd, PRBool flushCache);
+
+/*
+** Same as above, but with an I/O timeout.
+ */
+SSL_IMPORT SECStatus SSL_ReHandshakeWithTimeout(PRFileDesc *fd,
+                                                PRBool flushCache,
+                                                PRIntervalTime timeout);
+
 
 #ifdef SSL_DEPRECATED_FUNCTION 
 /* deprecated!

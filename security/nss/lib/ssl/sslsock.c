@@ -1410,6 +1410,54 @@ SSL_SetSockPeerID(PRFileDesc *fd, char *peerID)
     return SECSuccess;
 }
 
+SECStatus PR_CALLBACK
+ssl_SetTimeout(PRFileDesc *fd, PRIntervalTime timeout)
+{
+    sslSocket *ss;
+    int        rv;
+
+    ss = ssl_GetPrivate(fd);
+    if (!ss) {
+	SSL_DBG(("%d: SSL[%d]: bad socket in SetTimeout", SSL_GETPID(), fd));
+	return SECFailure;
+    }
+    SSL_LOCK_READER(ss);
+    ss->rTimeout = timeout;
+    if (ss->fdx) {
+        SSL_LOCK_WRITER(ss);
+    }
+    ss->wTimeout = timeout;
+    if (ss->fdx) {
+        SSL_UNLOCK_WRITER(ss);
+    }
+    SSL_UNLOCK_READER(ss);
+    return SECSuccess;
+}
+
+SECStatus PR_CALLBACK
+ssl_SetTimeout(PRFileDesc *fd, PRIntervalTime timeout)
+{
+    sslSocket *ss;
+    int        rv;
+
+    ss = ssl_GetPrivate(fd);
+    if (!ss) {
+	SSL_DBG(("%d: SSL[%d]: bad socket in SetTimeout", SSL_GETPID(), fd));
+	return SECFailure;
+    }
+    SSL_LOCK_READER(ss);
+    ss->rTimeout = timeout;
+    if (ss->fdx) {
+        SSL_LOCK_WRITER(ss);
+    }
+    ss->wTimeout = timeout;
+    if (ss->fdx) {
+        SSL_UNLOCK_WRITER(ss);
+    }
+    SSL_UNLOCK_READER(ss);
+    return SECSuccess;
+}
+
 #define PR_POLL_RW (PR_POLL_WRITE | PR_POLL_READ)
 
 static PRInt16 PR_CALLBACK
