@@ -406,9 +406,9 @@ pkix_pl_Socket_CreateServer(
         PKIX_PL_Socket *socket,
         void *plContext)
 {
-#ifdef PKIX_SOCKETDEBUG
+/* #ifdef PKIX_SOCKETDEBUG */
         PRErrorCode errorcode = 0;
-#endif
+/* #endif */
         PRStatus rv = PR_FAILURE;
         PRFileDesc *serverSock = NULL;
         PRSocketOptionData sockOptionData;
@@ -424,7 +424,7 @@ pkix_pl_Socket_CreateServer(
                         ("pkix_pl_Socket_CreateServer: %s\n",
                         PR_ErrorToString(errorcode, PR_LANGUAGE_EN));
 #endif
-                PKIX_ERROR("PR_NewUDPSocket failed");
+                PKIX_ERROR("PR_NewTCPSocket failed");
         }
 
 #ifdef PKIX_SOCKETDEBUG
