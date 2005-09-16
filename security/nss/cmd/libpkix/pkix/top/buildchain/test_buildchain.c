@@ -50,7 +50,7 @@ extern char *pkix_pl_PK11ConfigDir = "../../nist_pkits/certs_and_crls";
 
 void *plContext = NULL;
 
-void printUsage(void){
+void printUsage(void) {
         (void) printf("\nUSAGE:\tbuildChain [ENE|EE] "
                     "<trustedCert> <targetCert> <certStoreDirectory>\n\n");
         (void) printf
@@ -132,17 +132,13 @@ int main(int argc, char *argv[])
 
         startTests("BuildChain");
 
-        /* This must precede the call to PKIX_Initialize! */
-
-
-
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_Initialize
                                     (PKIX_MAJOR_VERSION,
                                     PKIX_MINOR_VERSION,
                                     PKIX_MINOR_VERSION,
                                     &actualMinorVersion,
                                     plContext));
-        if (argc < 4){
+        if (argc < 4) {
                 printUsage();
                 return (0);
         }
@@ -169,13 +165,12 @@ int main(int argc, char *argv[])
 
         chainLength = argc - j - 4;
 
-        for (k = 0; k < chainLength; k++){
+        for (k = 0; k < chainLength; k++) {
 
                 dirCert = createDirCert(dirName, argv[4+k+j], plContext);
 
-                if (k == (chainLength - 1)){
-                        PKIX_TEST_EXPECT_NO_ERROR
-                                (PKIX_PL_Object_IncRef
+                if (k == (chainLength - 1)) {
+                        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Object_IncRef
                                 ((PKIX_PL_Object *)dirCert, plContext));
                         trustedCert = dirCert;
                 } else {
@@ -186,11 +181,9 @@ int main(int argc, char *argv[])
                                 (PKIX_PL_Object *)dirCert,
                                 plContext));
 
-                        if (k == 0){
-                                PKIX_TEST_EXPECT_NO_ERROR
-                                        (PKIX_PL_Object_IncRef
-                                        ((PKIX_PL_Object *)dirCert,
-                                        plContext));
+                        if (k == 0) {
+                                PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Object_IncRef
+                                        ((PKIX_PL_Object *)dirCert, plContext));
                                 targetCert = dirCert;
                         }
                 }
@@ -266,14 +259,14 @@ int main(int argc, char *argv[])
                 PKIX_BuildChain(buildParams, &buildResult, plContext);
 
         if (testValid == PKIX_TRUE) { /* ENE */
-                if (pkixTestErrorResult){
+                if (pkixTestErrorResult) {
                         (void) printf("UNEXPECTED RESULT RECEIVED!\n");
                 } else {
                         (void) printf("EXPECTED RESULT RECEIVED!\n");
                         PKIX_TEST_DECREF_BC(pkixTestErrorResult);
                 }
         } else { /* EE */
-                if (pkixTestErrorResult){
+                if (pkixTestErrorResult) {
                         (void) printf("EXPECTED RESULT RECEIVED!\n");
                         PKIX_TEST_DECREF_BC(pkixTestErrorResult);
                 } else {
@@ -281,7 +274,7 @@ int main(int argc, char *argv[])
                 }
         }
 
-        if (buildResult){
+        if (buildResult) {
 
                 PKIX_TEST_EXPECT_NO_ERROR
                         (PKIX_BuildResult_GetCertChain
@@ -296,7 +289,7 @@ int main(int argc, char *argv[])
 
                 printf("\n");
 
-                for (i = 0; i < numCerts; i++){
+                for (i = 0; i < numCerts; i++) {
                         PKIX_TEST_EXPECT_NO_ERROR
                                 (PKIX_List_GetItem
                                 (certs,
@@ -322,7 +315,7 @@ int main(int argc, char *argv[])
                         &result,
                         plContext));
 
-                if (!result){
+                if (!result) {
                         testError("BUILT CERTCHAIN IS "
                                     "NOT THE ONE THAT WAS EXPECTED");
 
@@ -334,7 +327,7 @@ int main(int argc, char *argv[])
 
                         actualCertsAscii = PKIX_String2ASCII
                                 (actualCertsString, plContext);
-                        if (actualCertsAscii == NULL){
+                        if (actualCertsAscii == NULL) {
                                 pkixTestErrorMsg = "PKIX_String2ASCII Failed";
                                 goto cleanup;
                         }
@@ -347,7 +340,7 @@ int main(int argc, char *argv[])
 
                         expectedCertsAscii = PKIX_String2ASCII
                                 (expectedCertsString, plContext);
-                        if (expectedCertsAscii == NULL){
+                        if (expectedCertsAscii == NULL) {
                                 pkixTestErrorMsg = "PKIX_String2ASCII Failed";
                                 goto cleanup;
                         }
@@ -370,21 +363,22 @@ cleanup:
         PKIX_TEST_DECREF_AC(actualCertsString);
         PKIX_TEST_DECREF_AC(expectedCertsString);
         PKIX_TEST_DECREF_AC(expectedCerts);
-        PKIX_TEST_DECREF_AC(chain);
-        PKIX_TEST_DECREF_AC(certs);
-        PKIX_TEST_DECREF_AC(cert);
-        PKIX_TEST_DECREF_AC(certStore);
-        PKIX_TEST_DECREF_AC(certStores);
-        PKIX_TEST_DECREF_AC(dirNameString);
-        PKIX_TEST_DECREF_AC(trustedCert);
-        PKIX_TEST_DECREF_AC(targetCert);
-        PKIX_TEST_DECREF_AC(anchor);
-        PKIX_TEST_DECREF_AC(anchors);
-        PKIX_TEST_DECREF_AC(procParams);
-        PKIX_TEST_DECREF_AC(certSelParams);
-        PKIX_TEST_DECREF_AC(certSelector);
         PKIX_TEST_DECREF_AC(buildResult);
         PKIX_TEST_DECREF_AC(buildParams);
+        PKIX_TEST_DECREF_AC(procParams);
+        PKIX_TEST_DECREF_AC(certStores);
+        PKIX_TEST_DECREF_AC(certStore);
+        PKIX_TEST_DECREF_AC(dirNameString);
+        PKIX_TEST_DECREF_AC(certSelParams);
+        PKIX_TEST_DECREF_AC(certSelector);
+        PKIX_TEST_DECREF_AC(chain);
+        PKIX_TEST_DECREF_AC(anchors);
+        PKIX_TEST_DECREF_AC(anchor);
+        PKIX_TEST_DECREF_AC(trustedCert);
+
+        PKIX_TEST_DECREF_AC(certs);
+        PKIX_TEST_DECREF_AC(cert);
+        PKIX_TEST_DECREF_AC(targetCert);
 
         PKIX_TEST_RETURN();
 
