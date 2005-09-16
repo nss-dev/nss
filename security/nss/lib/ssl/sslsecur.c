@@ -284,6 +284,32 @@ SSL_ReHandshake(PRFileDesc *fd, PRBool flushCache)
     return rv;
 }
 
+/*
+** Same as above, but with an I/O timeout.
+ */
+SSL_IMPORT SECStatus SSL_ReHandshakeWithTimeout(PRFileDesc *fd,
+                                                PRBool flushCache,
+                                                PRIntervalTime timeout)
+{
+    if (SECSuccess != ssl_SetTimeout(fd, timeout)) {
+        return SECFailure;
+    }
+    return SSL_ReHandshake(fd, flushCache);
+}
+
+/*
+** Same as above, but with an I/O timeout.
+ */
+SSL_IMPORT SECStatus SSL_ReHandshakeWithTimeout(PRFileDesc *fd,
+                                                PRBool flushCache,
+                                                PRIntervalTime timeout)
+{
+    if (SECSuccess != ssl_SetTimeout(fd, timeout)) {
+        return SECFailure;
+    }
+    return SSL_ReHandshake(fd, flushCache);
+}
+
 SECStatus
 SSL_RedoHandshake(PRFileDesc *fd)
 {
@@ -365,6 +391,19 @@ SSL_ForceHandshake(PRFileDesc *fd)
 	} else if (gatherResult == SECWouldBlock) {
 	    PORT_SetError(PR_WOULD_BLOCK_ERROR);
 	}
+/*
+ ** Same as above, but with an I/O timeout.
+ */
+SSL_IMPORT SECStatus SSL_ForceHandshakeWithTimeout(PRFileDesc *fd,
+                                                   PRIntervalTime timeout)
+{
+    if (SECSuccess != ssl_SetTimeout(fd, timeout)) {
+        return SECFailure;
+    }
+    return SSL_ForceHandshake(fd);
+}
+
+
     } else if (!ss->firstHsDone) {
 	rv = ssl_Do1stHandshake(ss);
     } else {
@@ -377,6 +416,19 @@ SSL_ForceHandshake(PRFileDesc *fd)
 
     return rv;
 }
+
+/*
+ ** Same as above, but with an I/O timeout.
+ */
+SSL_IMPORT SECStatus SSL_ForceHandshakeWithTimeout(PRFileDesc *fd,
+                                                   PRIntervalTime timeout)
+{
+    if (SECSuccess != ssl_SetTimeout(fd, timeout)) {
+        return SECFailure;
+    }
+    return SSL_ForceHandshake(fd);
+}
+
 
 /************************************************************************/
 
