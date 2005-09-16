@@ -449,12 +449,12 @@ pkix_pl_Socket_CreateServer(
         PKIX_PL_NSSCALLRV(SOCKET, rv, PR_Bind, (serverSock, socket->netAddr));
 
         if (rv == PR_FAILURE) {
-#ifdef PKIX_SOCKETDEBUG
+/* #ifdef PKIX_SOCKETDEBUG */
                 errorcode = PR_GetError();
                 printf
                         ("pkix_pl_Socket_CreateServer: %s\n",
                         PR_ErrorToString(errorcode, PR_LANGUAGE_EN));
-#endif
+/* #endif */
                 PKIX_ERROR("PR_Bind failed");
         }
 
