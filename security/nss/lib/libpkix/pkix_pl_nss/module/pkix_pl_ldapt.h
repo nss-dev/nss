@@ -45,6 +45,8 @@
 extern "C" {
 #endif
 
+extern const SEC_ASN1Template PKIX_PL_LDAPCrossCertPairTemplate[];
+SEC_ASN1_CHOOSER_DECLARE(PKIX_PL_LDAPCrossCertPairTemplate)
 extern const SEC_ASN1Template PKIX_PL_LDAPMessageTemplate[];
 SEC_ASN1_CHOOSER_DECLARE(PKIX_PL_LDAPMessageTemplate)
 
@@ -138,6 +140,7 @@ typedef enum {
         OTHER                           = 80
 } LDAPResultCode;
 
+typedef struct LDAPCertPairStruct                LDAPCertPair;
 typedef struct LDAPSimpleBindStruct              LDAPSimpleBind;
 typedef struct LDAPBindAPIStruct                 LDAPBindAPI;
 typedef struct LDAPBindStruct                    LDAPBind;
@@ -156,12 +159,17 @@ typedef struct LDAPSearchStruct                  LDAPSearch;
 typedef struct LDAPAbandonRequestStruct          LDAPAbandonRequest;
 typedef struct protocolOpStruct                  LDAPProtocolOp;
 typedef struct LDAPMessageStruct                 LDAPMessage;
-typedef LDAPAndFilter               LDAPOrFilter;
-typedef LDAPFilter                  LDAPNotFilter;
-typedef LDAPAttributeValueAssertion LDAPEqualityMatchFilter;
-typedef LDAPAttributeValueAssertion LDAPGreaterOrEqualFilter;
-typedef LDAPAttributeValueAssertion LDAPLessOrEqualFilter;
-typedef LDAPAttributeValueAssertion LDAPApproxMatchFilter;
+typedef LDAPAndFilter                            LDAPOrFilter;
+typedef LDAPFilter                               LDAPNotFilter;
+typedef LDAPAttributeValueAssertion              LDAPEqualityMatchFilter;
+typedef LDAPAttributeValueAssertion              LDAPGreaterOrEqualFilter;
+typedef LDAPAttributeValueAssertion              LDAPLessOrEqualFilter;
+typedef LDAPAttributeValueAssertion              LDAPApproxMatchFilter;
+
+struct LDAPCertPairStruct {
+        SECItem forward;
+        SECItem reverse;
+};
 
 struct LDAPSimpleBindStruct {
         char *bindName;

@@ -2010,43 +2010,6 @@ cleanup:
         PKIX_RETURN(CERTSTORE);
 }
 
-/*
- * CertificatePair      ::= SEQUENCE {
- *      forward [0]     Certificate OPTIONAL,
- *      reverse [1]     Certificate OPTIONAL
- *                      -- at least one of the pair shall be present --
- *  }
- */
-
-typedef struct LDAPCertPairStruct LDAPCertPair;
-struct LDAPCertPairStruct {
-        SECItem forward;
-        SECItem reverse;
-};
-
-static const SEC_ASN1Template LDAPCrossCertForwardTemplate[] = {
-    { SEC_ASN1_POINTER, offsetof(LDAPCertPair, forward),
-        SEC_SignedCertificateTemplate }
-};
-
-static const SEC_ASN1Template LDAPCrossCertReverseTemplate[] = {
-    { SEC_ASN1_POINTER, offsetof(LDAPCertPair, reverse),
-        SEC_SignedCertificateTemplate }
-};
-
-static const SEC_ASN1Template LDAPCrossCertPairTemplate[] = {
-    { SEC_ASN1_SEQUENCE, 0, NULL, sizeof(LDAPCertPair) },
-    { SEC_ASN1_OPTIONAL | SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC |
-        SEC_ASN1_EXPLICIT | 0,
-        offsetof(LDAPCertPair, forward),
-	LDAPCrossCertForwardTemplate },
-    { SEC_ASN1_OPTIONAL | SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC |
-        SEC_ASN1_EXPLICIT | 1,
-        offsetof(LDAPCertPair, reverse),
-	LDAPCrossCertReverseTemplate },
-    { 0 }
-};
-
 PKIX_Error *
 pkix_pl_LdapCertStore_DecodeCrossCertPair(
         SECItem *derCCPItem,
@@ -2054,7 +2017,7 @@ pkix_pl_LdapCertStore_DecodeCrossCertPair(
         PKIX_List *certList,
         void *plContext)
 {
-        LDAPCertPair *certPair = NULL;
+        LDAPCertPair certPair = {{ siBuffer, NULL, 0 }, { siBuffer, NULL, 0 }};
         CERTCertificate *nssCert = NULL;
         PKIX_PL_Cert *cert = NULL;
         SECStatus rv = SECFailure;
@@ -2065,18 +2028,18 @@ pkix_pl_LdapCertStore_DecodeCrossCertPair(
         PKIX_PL_NSSCALLRV(CERTSTORE, rv, SEC_ASN1DecodeItem,
                 (arena,
                 &certPair,
-                LDAPCrossCertPairTemplate,
+                PKIX_PL_LDAPCrossCertPairTemplate,
                 derCCPItem));
 
         if (rv != SECSuccess) {
                 goto cleanup;
         }
 
-	if (certPair->forward.data != NULL) {
+	if (certPair.forward.data != NULL) {
 
                 PKIX_PL_NSSCALLRV
                         (CERTSTORE, nssCert, CERT_DecodeDERCertificate,
-                        (&certPair->forward, PR_FALSE, NULL));
+                        (&certPair.forward, PR_FALSE, NULL));
 
                 if (nssCert) {
                         PKIX_CHECK_ONLY_FATAL(pkix_pl_Cert_CreateWithNSSCert
@@ -2096,15 +2059,11 @@ pkix_pl_LdapCertStore_DecodeCrossCertPair(
                 }
 	}
 
-	if (certPair->reverse.data != NULL) {
+	if (certPair.reverse.data != NULL) {
 
-#if 1
-                certPair->reverse.data = (derCCPItem->data + 8);
-	        certPair->reverse.len = (derCCPItem->len - 8);
-#endif
                 PKIX_PL_NSSCALLRV
                         (CERTSTORE, nssCert, CERT_DecodeDERCertificate,
-                        (&certPair->reverse, PR_FALSE, NULL));
+                        (&certPair.reverse, PR_FALSE, NULL));
 
                 if (nssCert) {
                         PKIX_CHECK_ONLY_FATAL(pkix_pl_Cert_CreateWithNSSCert
@@ -2123,27 +2082,6 @@ pkix_pl_LdapCertStore_DecodeCrossCertPair(
                         PKIX_DECREF(cert);
                 }
         }
-#if 0
-        derCCPItem->data += 8;
-        derCCPItem->len -= 8;
-        PKIX_PL_NSSCALLRV(CERTSTORE, nssCert, CERT_DecodeDERCertificate,
-                (derCCPItem, PR_FALSE, NULL));
-
-        if (nssCert) {
-                PKIX_CHECK_ONLY_FATAL(pkix_pl_Cert_CreateWithNSSCert
-                        (nssCert, &cert, plContext),
-                        "pkix_pl_Cert_CreateWithNSSCert failed");
-
-                /* skip bad certs and append good ones */
-                if (!PKIX_ERROR_RECEIVED) {
-                        PKIX_CHECK(PKIX_List_AppendItem
-                                (certList, (PKIX_PL_Object *) cert, plContext),
-                                "PKIX_List_AppendItem failed");
-                }
-
-                PKIX_DECREF(cert);
-        }
-#endif
 
 cleanup:
 

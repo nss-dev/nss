@@ -38,6 +38,25 @@
 #include "pkix_pl_ldapt.h"
 
 /*
+ * CertificatePair      ::= SEQUENCE {
+ *      forward [0]     Certificate OPTIONAL,
+ *      reverse [1]     Certificate OPTIONAL
+ *                      -- at least one of the pair shall be present --
+ *  }
+ */
+
+const SEC_ASN1Template PKIX_PL_LDAPCrossCertPairTemplate[] = {
+    { SEC_ASN1_SEQUENCE, 0, NULL, sizeof(LDAPCertPair) },
+    { SEC_ASN1_OPTIONAL | SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC |
+        SEC_ASN1_EXPLICIT | 0,
+        offsetof(LDAPCertPair, forward), SEC_AnyTemplate },
+    { SEC_ASN1_OPTIONAL | SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC |
+        SEC_ASN1_EXPLICIT | 1,
+        offsetof(LDAPCertPair, reverse), SEC_AnyTemplate },
+    { 0 }
+};
+
+/*
  * BindRequest ::=
  *      [APPLICATION 0] SEQUENCE {
  *                      version INTEGER (1..127),
