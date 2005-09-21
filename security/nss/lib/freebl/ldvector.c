@@ -224,10 +224,15 @@ static const struct FREEBLVectorStr vector =
     /* End of Version 3.008. */
 };
 
-
 const FREEBLVector * 
 FREEBL_GetVector(void)
 {
-  return &vector;
+    extern const char __nss_freebl_rcsid[];
+    extern const char __nss_freebl_sccsid[];
+
+    /* force a reference that won't get optimized away */
+    volatile char c = __nss_freebl_rcsid[0] + __nss_freebl_sccsid[0]; 
+
+    return &vector;
 }
 
