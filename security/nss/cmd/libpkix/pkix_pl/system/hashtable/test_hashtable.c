@@ -50,12 +50,19 @@ void
 createHashTables(
         PKIX_PL_HashTable **ht,
         PKIX_PL_HashTable **ht2,
-        PKIX_PL_HashTable **ht3)
+        PKIX_PL_HashTable **ht3,
+        PKIX_PL_HashTable **ht4)
 {
         PKIX_TEST_STD_VARS();
 
-        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_HashTable_Create(1, ht, plContext));
-        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_HashTable_Create(5, ht2, plContext));
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_HashTable_Create
+                (1, 0, ht, plContext));
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_HashTable_Create
+                (5, 0, ht2, plContext));
+
+        /* at most two entries per bucket */
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_HashTable_Create
+                (1, 2, ht4, plContext));
 
         *ht3 = *ht;
         PKIX_TEST_EXPECT_NO_ERROR
@@ -145,6 +152,71 @@ testAdd(
                 (PKIX_PL_Object *)*testOID,
                 (PKIX_PL_Object *)*testOID,
                 plContext));
+
+cleanup:
+        PKIX_TEST_RETURN();
+}
+
+void
+testAddFIFO(
+        PKIX_PL_HashTable *ht,
+        PKIX_PL_String **testString,
+        PKIX_PL_String **testString2,
+        PKIX_PL_String **testString3)
+{
+        PKIX_PL_String *targetString = NULL;
+        PKIX_Boolean cmpResult;
+
+        PKIX_TEST_STD_VARS();
+
+        /*
+         * ht is created as one bucket, two entries per bucket. Since we add
+         * three items to the ht, we expect the first one to be deleted.
+         */
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_HashTable_Add
+                (ht,
+                (PKIX_PL_Object *)*testString,
+                (PKIX_PL_Object *)*testString,
+                plContext));
+
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_HashTable_Add
+                (ht,
+                (PKIX_PL_Object *)*testString2,
+                (PKIX_PL_Object *)*testString2,
+                plContext));
+
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_HashTable_Add
+                (ht,
+                (PKIX_PL_Object *)*testString3,
+                (PKIX_PL_Object *)*testString3,
+                plContext));
+
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_HashTable_Lookup
+                                    (ht,
+                                    (PKIX_PL_Object *)*testString,
+                                    (PKIX_PL_Object**)&targetString,
+                                    plContext));
+        if (targetString != NULL) {
+                testError("HashTable_Lookup retrieved a supposed deleted item");
+                PKIX_TEST_DECREF_BC(targetString);
+        }
+
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_HashTable_Lookup
+                                    (ht,
+                                    (PKIX_PL_Object *)*testString3,
+                                    (PKIX_PL_Object**)&targetString,
+                                    plContext));
+
+         PKIX_TEST_EXPECT_NO_ERROR
+                (PKIX_PL_Object_Equals(
+                                    (PKIX_PL_Object *)targetString,
+                                    (PKIX_PL_Object *)*testString3,
+                                    &cmpResult,
+                                    plContext));
+        if (cmpResult != PKIX_TRUE){
+                testError("HashTable_Lookup failed");
+        }
+        PKIX_TEST_DECREF_BC(targetString);
 
 cleanup:
         PKIX_TEST_RETURN();
@@ -312,13 +384,15 @@ void
 testDestroy(
         PKIX_PL_HashTable *ht,
         PKIX_PL_HashTable *ht2,
-        PKIX_PL_HashTable *ht3)
+        PKIX_PL_HashTable *ht3,
+        PKIX_PL_HashTable *ht4)
 {
         PKIX_TEST_STD_VARS();
 
         PKIX_TEST_DECREF_BC(ht);
         PKIX_TEST_DECREF_BC(ht2);
         PKIX_TEST_DECREF_BC(ht3);
+        PKIX_TEST_DECREF_BC(ht4);
 
 cleanup:
         PKIX_TEST_RETURN();
@@ -329,7 +403,7 @@ cleanup:
 
 int main(int argc, char *argv[]) {
 
-        PKIX_PL_HashTable *ht, *ht2, *ht3;
+        PKIX_PL_HashTable *ht, *ht2, *ht3, *ht4;
         PKIX_PL_String *testString, *testString2, *testString3;
         PKIX_PL_OID *testOID;
         PKIX_UInt32 actualMinorVersion;
@@ -349,7 +423,7 @@ int main(int argc, char *argv[]) {
         PKIX_TEST_NSSCONTEXT_SETUP(0x10, argv[1], NULL, &plContext);
 
         subTest("PKIX_PL_HashTable_Create");
-        createHashTables(&ht, &ht2, &ht3);
+        createHashTables(&ht, &ht2, &ht3, &ht4);
 
         PKIX_TEST_EQ_HASH_TOSTR_DUP
                 (ht,
@@ -361,6 +435,9 @@ int main(int argc, char *argv[]) {
 
         subTest("PKIX_PL_HashTable_Add");
         testAdd(ht, ht2, &testString, &testString2, &testString3, &testOID);
+
+        subTest("PKIX_PL_HashTable_ADD - with Bucket Size limit");
+        testAddFIFO(ht4, &testString, &testString2, &testString3);
 
         subTest("PKIX_PL_HashTable_Lookup");
         testLookup(ht, ht2, testString, testString2, testString3, testOID);
@@ -374,7 +451,7 @@ int main(int argc, char *argv[]) {
         PKIX_TEST_DECREF_BC(testOID);
 
         subTest("PKIX_PL_HashTable_Destroy");
-        testDestroy(ht, ht2, ht3);
+        testDestroy(ht, ht2, ht3, ht4);
 
 cleanup:
 

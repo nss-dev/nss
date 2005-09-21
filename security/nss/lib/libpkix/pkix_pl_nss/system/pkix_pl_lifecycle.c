@@ -43,6 +43,16 @@
 
 #include "pkix_pl_lifecycle.h"
 
+/* Can reference those number to verify cache table usages */
+int pkix_ccAddCount = 0;
+int pkix_ccLookupCount = 0;
+int pkix_ccRemoveCount = 0;
+int pkix_cAddCount = 0;
+int pkix_cLookupCount = 0;
+int pkix_cRemoveCount = 0;
+int pkix_ceAddCount = 0;
+int pkix_ceLookupCount = 0;
+
 char *pkix_pl_PK11ConfigDir = NULL;
 PKIX_Boolean pkix_pl_initialized = PKIX_FALSE;
 pkix_ClassTable_Entry systemClasses[PKIX_NUMTYPES];
@@ -50,6 +60,9 @@ PRLock *classTableLock;
 
 PKIX_PL_HashTable *cachedCrlSigTable = NULL;
 PKIX_PL_HashTable *cachedCertSigTable = NULL;
+PKIX_PL_HashTable *cachedCertChainTable = NULL;
+PKIX_PL_HashTable *cachedCertTable = NULL;
+PKIX_PL_HashTable *cachedCrlEntryTable = NULL;
 
 /*
  * PKIX_ALLOC_ERROR is a special error object hard-coded into the
@@ -222,15 +235,23 @@ PKIX_PL_Initialize(void *plContext){
         pkix_pl_initialized = PKIX_TRUE;
 
         PKIX_CHECK(PKIX_PL_HashTable_Create
-                    (32,
-                    &cachedCertSigTable,
-                    plContext),
+                    (32, 0, &cachedCertSigTable, plContext),
                     "PKIX_PL_HashTable_Create failed");
 
         PKIX_CHECK(PKIX_PL_HashTable_Create
-                    (32,
-                    &cachedCrlSigTable,
-                    plContext),
+                    (32, 0, &cachedCrlSigTable, plContext),
+                    "PKIX_PL_HashTable_Create failed");
+
+        PKIX_CHECK(PKIX_PL_HashTable_Create
+                    (32, 10, &cachedCertChainTable, plContext),
+                    "PKIX_PL_HashTable_Create failed");
+
+        PKIX_CHECK(PKIX_PL_HashTable_Create
+                    (32, 10, &cachedCertTable, plContext),
+                    "PKIX_PL_HashTable_Create failed");
+
+        PKIX_CHECK(PKIX_PL_HashTable_Create
+                    (32, 10, &cachedCrlEntryTable, plContext),
                     "PKIX_PL_HashTable_Create failed");
 
 cleanup:
@@ -248,6 +269,9 @@ PKIX_PL_Shutdown(void *plContext)
 
         PKIX_DECREF(cachedCertSigTable);
         PKIX_DECREF(cachedCrlSigTable);
+        PKIX_DECREF(cachedCertChainTable);
+        PKIX_DECREF(cachedCertTable);
+        PKIX_DECREF(cachedCrlEntryTable);
 
         if (!pkix_pl_initialized) return (PKIX_ALLOC_ERROR);
 

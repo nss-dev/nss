@@ -220,6 +220,98 @@ cleanup:
 }
 
 /*
+ * FUNCTION: pkix_pl_CollectionCertStoreContext_Hashcode
+ * (see comments for PKIX_PL_HashcodeCallback in pkix_pl_system.h)
+ */
+static PKIX_Error *
+pkix_pl_CollectionCertStoreContext_Hashcode(
+        PKIX_PL_Object *object,
+        PKIX_UInt32 *pHashcode,
+        void *plContext)
+{
+        PKIX_PL_CollectionCertStoreContext *collectionCSContext = NULL;
+        PKIX_UInt32 tempHash = 0;
+
+        PKIX_ENTER(COLLECTIONCERTSTORECONTEXT,
+                    "pkix_pl_CollectionCertStoreContext_Hashcode");
+        PKIX_NULLCHECK_TWO(object, pHashcode);
+
+        PKIX_CHECK(pkix_CheckType
+                    (object,
+                    PKIX_COLLECTIONCERTSTORECONTEXT_TYPE,
+                    plContext),
+                    "Object is not a CollectionCertStoreContext");
+
+        collectionCSContext = (PKIX_PL_CollectionCertStoreContext *)object;
+
+        PKIX_CHECK(PKIX_PL_Object_Hashcode
+                    ((PKIX_PL_Object *) collectionCSContext->storeDir,
+                    &tempHash,
+                    plContext),
+                   "pkix_pl_String_Hashcode failed");
+
+        *pHashcode = tempHash << 7;
+
+        /* should not hash on crlList and certList, values are dynamic */
+
+cleanup:
+
+        PKIX_RETURN(COLLECTIONCERTSTORECONTEXT);
+}
+
+/*
+ * FUNCTION: pkix_pl_CollectionCertStoreContext_Equals
+ * (see comments for PKIX_PL_EqualsCallback in pkix_pl_system.h)
+ */
+static PKIX_Error *
+pkix_pl_CollectionCertStoreContext_Equals(
+        PKIX_PL_Object *firstObject,
+        PKIX_PL_Object *secondObject,
+        PKIX_Int32 *pResult,
+        void *plContext)
+{
+        PKIX_PL_CollectionCertStoreContext *firstCCSContext = NULL;
+        PKIX_PL_CollectionCertStoreContext *secondCCSContext = NULL;
+        PKIX_Boolean cmpResult = 0;
+
+        PKIX_ENTER(COLLECTIONCERTSTORECONTEXT,
+                    "pkix_pl_CollectionCertStoreContext_Equals");
+        PKIX_NULLCHECK_THREE(firstObject, secondObject, pResult);
+
+        PKIX_CHECK(pkix_CheckTypes
+                    (firstObject,
+                    secondObject,
+                    PKIX_COLLECTIONCERTSTORECONTEXT_TYPE,
+                    plContext),
+                    "Object is not a CollectionCertStoreContext");
+
+        firstCCSContext = (PKIX_PL_CollectionCertStoreContext *)firstObject;
+        secondCCSContext = (PKIX_PL_CollectionCertStoreContext *)secondObject;
+
+        if (firstCCSContext->storeDir == secondCCSContext->storeDir) {
+
+                cmpResult = PKIX_TRUE;
+
+        } else {
+
+                PKIX_CHECK(PKIX_PL_Object_Equals
+                    ((PKIX_PL_Object *) firstCCSContext->storeDir,
+                    (PKIX_PL_Object *) secondCCSContext->storeDir,
+                    &cmpResult,
+                    plContext),
+                    "pkix_pl_String_Equals failed");
+        }
+
+        *pResult = cmpResult;
+
+        /* should not check equal on crlList and certList, data are dynamic */
+
+cleanup:
+
+        PKIX_RETURN(COLLECTIONCERTSTORECONTEXT);
+}
+
+/*
  * FUNCTION: pkix_pl_CollectionCertStoreContext_CreateCert
  * DESCRIPTION:
  *
@@ -1138,8 +1230,8 @@ pkix_pl_CollectionCertStoreContext_RegisterSelf(void *plContext)
 
         entry.description = "CollectionCertStoreContext";
         entry.destructor = pkix_pl_CollectionCertStoreContext_Destroy;
-        entry.equalsFunction = NULL;
-        entry.hashcodeFunction = NULL;
+        entry.equalsFunction = pkix_pl_CollectionCertStoreContext_Equals;
+        entry.hashcodeFunction = pkix_pl_CollectionCertStoreContext_Hashcode;
         entry.toStringFunction = NULL;
         entry.comparator = NULL;
         entry.duplicateFunction = NULL;
@@ -1175,6 +1267,8 @@ PKIX_PL_CollectionCertStore_Create(
                     (pkix_pl_CollectionCertStore_GetCert,
                     pkix_pl_CollectionCertStore_GetCRL,
                     (PKIX_PL_Object *)colCertStoreContext,
+                    PKIX_FALSE, /* cache flag */
+                    NULL, /* don't support trust */
                     &certStore,
                     plContext),
                     "PKIX_CertStore_Create failed");

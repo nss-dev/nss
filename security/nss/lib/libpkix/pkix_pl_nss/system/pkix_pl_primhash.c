@@ -504,3 +504,108 @@ pkix_pl_PrimHashTable_Destroy(
 
         PKIX_RETURN(HASHTABLE);
 }
+
+/*
+ * FUNCTION: pkix_pl_PrimHashTable_GetBucketSize
+ * DESCRIPTION:
+ *
+ *  Retruns number of entries in the bucket the "hashCode" is designated in
+ *  the hashtable "ht" in the address "pBucketSize".
+ *
+ * PARAMETERS:
+ *  "ht"
+ *      Address of PrimHashtable to get entries count. Must be non-NULL.
+ *  "hashCode"
+ *      Hashcode value of the key.
+ *  "pBucketSize"
+ *      Address that an PKIX_UInt32 is returned for number of entries in the
+ *      bucket associated with the hashCode. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Not Thread Safe - assumes exclusive access to "ht"
+ *  (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a HashTable Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+pkix_pl_PrimHashTable_GetBucketSize(
+        pkix_pl_PrimHashTable *ht,
+        PKIX_UInt32 hashCode,
+        PKIX_UInt32 *pBucketSize,
+        void *plContext)
+{
+        pkix_pl_HT_Elem **elemPtr = NULL;
+        pkix_pl_HT_Elem *element = NULL;
+        PKIX_UInt32 bucketSize = 0;
+
+        PKIX_ENTER(HASHTABLE, "pkix_pl_PrimHashTable_GetBucketSize");
+        PKIX_NULLCHECK_TWO(ht, pBucketSize);
+
+        for (elemPtr = &((ht->buckets)[hashCode%ht->size]), element = *elemPtr;
+            element != NULL; elemPtr = &(element->next), element = *elemPtr) {
+                bucketSize++;
+	}
+
+        *pBucketSize = bucketSize;
+
+        PKIX_RETURN(HASHTABLE);
+}
+
+/*
+ * FUNCTION: pkix_pl_PrimHashTable_RemoveFIFO
+ * DESCRIPTION:
+ *
+ *  Remove the first entry in the bucket the "hashCode" is designated in
+ *  the hashtable "ht". Since new entry is added at end of the link list
+ *  the first one is the oldest (FI) therefore removed first (FO).
+ *
+ * PARAMETERS:
+ *  "ht"
+ *      Address of PrimHashtable to get entries count. Must be non-NULL.
+ *  "hashCode"
+ *      Hashcode value of the key.
+ *  "pKey"
+ *      Address of key of the entry deleted. Must be non-NULL.
+ *  "pValue"
+ *      Address of Value of the entry deleted. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Not Thread Safe - assumes exclusive access to "ht"
+ *  (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a HashTable Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+pkix_pl_PrimHashTable_RemoveFIFO(
+        pkix_pl_PrimHashTable *ht,
+        PKIX_UInt32 hashCode,
+        void **pKey,
+        void **pValue,
+        void *plContext)
+{
+        pkix_pl_HT_Elem *element = NULL;
+
+        PKIX_ENTER(HASHTABLE, "pkix_pl_PrimHashTable_Remove");
+        PKIX_NULLCHECK_THREE(ht, pKey, pValue);
+
+        element = (ht->buckets)[hashCode%ht->size];
+
+        if (element != NULL) {
+
+                *pKey = element->key;
+                *pValue = element->value;
+                ht->buckets[hashCode%ht->size] = element->next;
+                element->key = NULL;
+                element->value = NULL;
+                element->next = NULL;
+                PKIX_FREE(element);
+        }
+
+        PKIX_RETURN(HASHTABLE);
+}

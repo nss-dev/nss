@@ -306,6 +306,8 @@ testCustomCertStore(PKIX_ValidateParams *valParams)
                                     (getCertCallback,
                                     getCRLCallback,
                                     (PKIX_PL_Object *)crlSelector, /* fake */
+                                    PKIX_TRUE,
+                                    NULL,
                                     &certStore,
                                     plContext));
 

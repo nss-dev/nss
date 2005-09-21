@@ -87,6 +87,8 @@ void testCertStore(void)
                                     (testCertCallback,
                                     testCRLCallback,
                                     (PKIX_PL_Object *) dirString,
+                                    PKIX_TRUE,
+                                    NULL,
                                     &certStore,
                                     plContext));
 

@@ -1195,11 +1195,14 @@ PKIX_PL_String_GetEncoded(
  * DESCRIPTION:
  *
  *  Creates a new Hashtable with an initial capacity of "numBuckets" buckets
- *  and stores it at "pResult".
+ *  and "maxEntriesPerBucket" of entries limit for each bucket and stores it
+ *  at "pResult".
  *
  * PARAMETERS:
  *  "numBuckets"
  *      The initial number of hash table buckets. Must be non-zero.
+ *  "maxEntriesPerBucket"
+ *      The limit of entries per bucket. Zero means no limit.
  *  "pResult"
  *      Address where object pointer will be stored. Must be non-NULL.
  *  "plContext"
@@ -1213,6 +1216,7 @@ PKIX_PL_String_GetEncoded(
 PKIX_Error *
 PKIX_PL_HashTable_Create(
         PKIX_UInt32 numBuckets,
+        PKIX_UInt32 maxEntriesPerBucket,
         PKIX_PL_HashTable **pResult,
         void *plContext);
 

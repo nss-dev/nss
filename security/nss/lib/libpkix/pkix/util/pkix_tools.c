@@ -43,6 +43,22 @@
 
 #include "pkix_tools.h"
 
+#define CACHE_ITEM_PERIOD_SECONDS  (3600)  /* one hour */
+
+extern PKIX_PL_HashTable *cachedCertChainTable;
+extern PKIX_PL_HashTable *cachedCertTable;
+extern PKIX_PL_HashTable *cachedCrlEntryTable;
+
+/* Following variables are used to checked cache hits - can be taken out */
+extern int pkix_ccAddCount;
+extern int pkix_ccLookupCount;
+extern int pkix_ccRemoveCount;
+extern int pkix_cAddCount;
+extern int pkix_cLookupCount;
+extern int pkix_cRemoveCount;
+extern int pkix_ceAddCount;
+extern int pkix_ceLookupCount;
+
 /* --Private-Functions-------------------------------------------- */
 
 /*
@@ -473,4 +489,909 @@ pkix_i2hex(char digit)
 PKIX_Boolean
 pkix_isPlaintext(unsigned char c, PKIX_Boolean debug) {
         return ((c >= 0x01)&&(c <= 0x7E)&&(c != '&')&&(!debug || (c >= 20)));
+}
+
+/* --Cache-Functions------------------------ */
+
+/*
+ * FUNCTION: pkix_CacheCertChain_Lookup
+ * DESCRIPTION:
+ *
+ *  Look up CertChain Hash Table for a cached item based on "targetCert" and
+ *  "anchors" as the hash keys and returns values in "pMatchingAnchor",
+ *  "pCerts", "pFinalSubjPubKey" and "pFinalPolicyTree". If there isn't an
+ *  item to match the key, a PKIX_FALSE is returned at "pFound". The item's 
+ *  cache time is verified with "testDate". If out-dated, this item is removed
+ *  and PKIX_FALSE is returned at "pFound".
+ *  The hashtable is maintained in the following ways:
+ *  1) When creating the hashtable, maximum bucket size can be specified (0 for
+ *     unlimited). If items in a bucket reaches its full size, an new addition
+ *     will trigger the removal of the old as FIFO sequence.
+ *  2) A PKIX_PL_Date created with current time offset by constant 
+ *     CACHE_ITEM_PERIOD_SECONDS is attached to each item in the Hash Table.
+ *     When an item is retrieved, this date is compared against "testDate" for
+ *     validity. If comparison indicates this item is expired, the item is
+ *     removed from the bucket.
+ *
+ * PARAMETERS:
+ *  "targetCert"
+ *      Address of Target Cert as key to retrieve this CertChain. Must be 
+ *      non-NULL.
+ *  "anchors"
+ *      Address of PKIX_List of "anchors" is used as key to retrive CertChain.
+ *      Must be non-NULL.
+ *  "testDate"
+ *      Address of PKIX_PL_Date for verifying time validity and cache validity.
+ *      May be NULL. If testDate is NULL, this cache item will not be out-dated.
+ *  "pFound"
+ *      Address of KPKIX_Boolean indicating valid data is found.
+ *      Must be non-NULL.
+ *  "pMatchingAnchor"
+ *      Address where Matching Anchor will be stored. Must be non-NULL.
+ *  "pCerst"
+ *      Address where CertChain will be stored. Must be non-NULL.
+ *  "pFinalSubjPubKey"
+ *      Address where Final Subject Public Key  will be stored.
+ *      Must be non-NULL.
+ *  "pFinalPolicyTree"
+ *      Address where Final Policy Tree will be stored. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns an Error Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+pkix_CacheCertChain_Lookup(
+        PKIX_PL_Cert* targetCert,
+        PKIX_List* anchors,
+        PKIX_PL_Date *testDate,
+        PKIX_Boolean *pFound,
+        PKIX_TrustAnchor **pMatchingAnchor,
+        PKIX_List **pCerts,
+        PKIX_PL_PublicKey **pFinalSubjPubKey,
+        PKIX_PolicyNode **pFinalPolicyTree,
+        void *plContext)
+{
+        PKIX_List *cachedValues = NULL;
+        PKIX_List *cachedKeys = NULL;
+        PKIX_Error *cachedCertChainError = NULL;
+        PKIX_PL_Date *cacheValidUntilDate = NULL;
+        PKIX_PL_Date *validityDate = NULL;
+        PKIX_Boolean certChainInHash = PKIX_FALSE;
+        PKIX_Boolean found = PKIX_FALSE;
+        PKIX_Int32 cmpValidTimeResult = 0;
+        PKIX_Int32 cmpCacheTimeResult = 0;
+        PKIX_UInt32 item = 0;
+
+        PKIX_ENTER(BUILD, "pkix_CacheCertChain_Lookup");
+
+        PKIX_NULLCHECK_TWO(targetCert, anchors);
+        PKIX_NULLCHECK_THREE(pFound, pMatchingAnchor, pCerts);
+        PKIX_NULLCHECK_TWO(pFinalSubjPubKey, pFinalPolicyTree);
+
+        *pFound = PKIX_FALSE;
+
+        /* use trust anchors and target cert as hash key */
+
+        PKIX_CHECK(PKIX_List_Create(&cachedKeys, plContext),
+                    "PKIX_List_Create failed");
+
+        PKIX_CHECK(PKIX_List_AppendItem
+                    (cachedKeys,
+                    (PKIX_PL_Object *)targetCert,
+                    plContext),
+                    "PKIX_List_AppendItem failed");
+
+        PKIX_CHECK(PKIX_List_AppendItem
+                    (cachedKeys,
+                    (PKIX_PL_Object *)anchors,
+                    plContext),
+                    "PKIX_List_AppendItem failed");
+
+        cachedCertChainError = PKIX_PL_HashTable_Lookup
+                    (cachedCertChainTable,
+                    (PKIX_PL_Object *) cachedKeys,
+                    (PKIX_PL_Object **) &cachedValues,
+                    plContext);
+
+        pkix_ccLookupCount++;
+
+        /* retrieve data from hashed value list */
+
+        if (cachedValues != NULL && cachedCertChainError == NULL) {
+
+            PKIX_CHECK(PKIX_List_GetItem
+                    (cachedValues,
+                    item++,
+                    (PKIX_PL_Object **) &cacheValidUntilDate,
+                    plContext),
+                    "PKIX_List_GetItem");
+
+            /* check validity time and cache age time */
+            PKIX_CHECK(PKIX_List_GetItem
+                    (cachedValues,
+                    item++,
+                    (PKIX_PL_Object **) &validityDate,
+                    plContext),
+                    "PKIX_List_GetItem");
+
+            /* if testDate is not set, this cache item is not out-dated */
+            if (testDate) {
+
+                PKIX_CHECK(PKIX_PL_Object_Compare
+                     ((PKIX_PL_Object *)testDate,
+                     (PKIX_PL_Object *)cacheValidUntilDate,
+                     &cmpCacheTimeResult,
+                     plContext),
+                     "PKIX_PL_Object_Comparator failed");
+
+                PKIX_CHECK(PKIX_PL_Object_Compare
+                     ((PKIX_PL_Object *)testDate,
+                     (PKIX_PL_Object *)validityDate,
+                     &cmpValidTimeResult,
+                     plContext),
+                     "PKIX_PL_Object_Comparator failed");
+            }
+
+            /* certs' date are all valid and cache item is not old */
+            if (cmpValidTimeResult <= 0 && cmpCacheTimeResult <=0) {
+
+                PKIX_CHECK(PKIX_List_GetItem
+                    (cachedValues,
+                    item++,
+                    (PKIX_PL_Object **) pMatchingAnchor,
+                    plContext),
+                    "PKIX_List_GetItem");
+
+                PKIX_CHECK(PKIX_List_GetItem
+                    (cachedValues,
+                    item++,
+                    (PKIX_PL_Object **) pCerts,
+                    plContext),
+                    "PKIX_List_GetItem");
+
+                PKIX_CHECK(PKIX_List_GetItem
+                    (cachedValues,
+                    item++,
+                    (PKIX_PL_Object **) pFinalSubjPubKey,
+                    plContext),
+                    "PKIX_List_GetItem");
+
+                PKIX_CHECK(PKIX_List_GetItem
+                    (cachedValues,
+                    item++,
+                    (PKIX_PL_Object **) pFinalPolicyTree,
+                    plContext),
+                    "PKIX_List_GetItem");
+
+                *pFound = PKIX_TRUE;
+
+            } else {
+
+                pkix_ccRemoveCount++;
+                *pFound = PKIX_FALSE;
+
+                /* out-dated item, remove it from cache */
+                PKIX_CHECK(PKIX_PL_HashTable_Remove
+                    (cachedCertChainTable,
+                    (PKIX_PL_Object *) cachedKeys,
+                    plContext),
+                    "PKIX_PL_HashTable_Remove failed");
+                cachedKeys = NULL; /* object destroy by hash remove */
+                cachedValues = NULL; /* object destroy by hash remove */
+	    }
+        }
+
+cleanup:
+
+        PKIX_DECREF(cachedValues);
+        PKIX_DECREF(cachedKeys);
+        PKIX_DECREF(cachedCertChainError);
+        PKIX_DECREF(cacheValidUntilDate);
+        PKIX_DECREF(validityDate);
+
+        PKIX_RETURN(BUILD);
+
+}
+
+/*
+ * FUNCTION: pkix_CacheCertChain_Add
+ * DESCRIPTION:
+ *
+ *  Add CertChain Hash Table for a cached item based on "targetCert" and
+ *  "anchors" as the hash keys and have "validityDate", "matchingAnchor",
+ *  "certs", "finalSubjPubKey" and "finalPolicyTree" as its hash values.
+ *  "validityDate" is the most restricted notAfter date of all Certs in
+ *  this CertChain and is verified when this item is retrieved.
+ *  The hashtable is maintained in the following ways:
+ *  1) When creating the hashtable, maximum bucket size can be specified (0 for
+ *     unlimited). If items in a bucket reaches its full size, an new addition
+ *     will trigger the removal of the old as FIFO sequence.
+ *  2) A PKIX_PL_Date created with current time offset by constant 
+ *     CACHE_ITEM_PERIOD_SECONDS is attached to each item in the Hash Table.
+ *     When an item is retrieved, this date is compared against "testDate" for
+ *     validity. If comparison indicates this item is expired, the item is
+ *     removed from the bucket.
+ *
+ * PARAMETERS:
+ *  "targetCert"
+ *      Address of Target Cert as key to retrieve this CertChain. Must be 
+ *      non-NULL.
+ *  "anchors"
+ *      Address of PKIX_List of "anchors" is used as key to retrive CertChain.
+ *      Must be non-NULL.
+ *  "validityDate"
+ *      Address of PKIX_PL_Date contains the most restriced notAfter time of
+ *      all "certs". Must be non-NULL.
+ *      Address of KPKIX_Boolean indicating valid data is found.
+ *      Must be non-NULL.
+ *  "matchingAnchor"
+ *      Address where Matching Anchor is stored. Must be non-NULL.
+ *  "cerst"
+ *      Address where CertChain is stored. Must be non-NULL.
+ *  "finalSubjPubKey"
+ *      Address where Final Subject Public Key is stored. Must be non-NULL.
+ *  "finalPolicyTree"
+ *      Address where Final Policy Tree is stored. May be NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns an Error Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+pkix_CacheCertChain_Add(
+        PKIX_PL_Cert* targetCert,
+        PKIX_List* anchors,
+        PKIX_PL_Date *validityDate,
+        PKIX_TrustAnchor *matchingAnchor,
+        PKIX_List *certs,
+        PKIX_PL_PublicKey *finalSubjPubKey,
+        PKIX_PolicyNode *finalPolicyTree,
+        void *plContext)
+{
+        PKIX_List *cachedValues = NULL;
+        PKIX_List *cachedKeys = NULL;
+        PKIX_Error *cachedCertChainError = NULL;
+        PKIX_PL_Date *date = NULL;
+        PKIX_PL_Date *cacheValidUntilDate = NULL;
+        PKIX_Boolean certChainInHash = PKIX_FALSE;
+        PKIX_Boolean found = PKIX_FALSE;
+        PKIX_Int32 cmpValidTimeResult = 0;
+
+        PKIX_ENTER(BUILD, "pkix_CacheCertChain_Add");
+
+        PKIX_NULLCHECK_THREE(targetCert, anchors, validityDate);
+        PKIX_NULLCHECK_THREE(matchingAnchor, certs, finalSubjPubKey);
+
+        PKIX_CHECK(PKIX_List_Create(&cachedKeys, plContext),
+                "PKIX_List_Create failed");
+
+        PKIX_CHECK(PKIX_List_AppendItem
+                (cachedKeys, (PKIX_PL_Object *)targetCert, plContext),
+                "PKIX_List_AppendItem failed");
+
+        PKIX_CHECK(PKIX_List_AppendItem
+                (cachedKeys, (PKIX_PL_Object *)anchors, plContext),
+                "PKIX_List_AppendItem failed");
+
+        PKIX_CHECK(PKIX_List_Create(&cachedValues, plContext),
+                "PKIX_List_Create failed");
+
+        PKIX_CHECK(PKIX_PL_Date_Create_CurrentOffBySeconds
+                (CACHE_ITEM_PERIOD_SECONDS,
+                &cacheValidUntilDate,
+                plContext),
+               "PKIX_PL_Date_Create_CurrentOffBySeconds failed");
+
+        PKIX_CHECK(PKIX_List_AppendItem
+                (cachedValues,
+                (PKIX_PL_Object *)cacheValidUntilDate,
+                plContext),
+                "PKIX_List_AppendItem failed");
+
+        PKIX_CHECK(PKIX_List_AppendItem
+                (cachedValues, (PKIX_PL_Object *)validityDate, plContext),
+                "PKIX_List_AppendItem failed");
+
+        PKIX_CHECK(PKIX_List_AppendItem
+                (cachedValues, (PKIX_PL_Object *)matchingAnchor, plContext),
+                "PKIX_List_AppendItem failed");
+
+        PKIX_CHECK(PKIX_List_AppendItem
+                (cachedValues, (PKIX_PL_Object *)certs, plContext),
+                "PKIX_List_AppendItem failed");
+
+        PKIX_CHECK(PKIX_List_AppendItem
+                (cachedValues, (PKIX_PL_Object *)finalSubjPubKey, plContext),
+                        "PKIX_List_AppendItem failed");
+
+        PKIX_CHECK(PKIX_List_AppendItem
+                (cachedValues, (PKIX_PL_Object *)finalPolicyTree, plContext),
+                "PKIX_List_AppendItem failed");
+
+        cachedCertChainError = PKIX_PL_HashTable_Add
+                (cachedCertChainTable,
+                (PKIX_PL_Object *) cachedKeys,
+                (PKIX_PL_Object *) cachedValues,
+                plContext);
+
+        pkix_ccAddCount++;
+
+        if (cachedCertChainError != NULL) {
+                PKIX_DEBUG("PKIX_PL_HashTable_Add for CertChain skipped: "
+                        "entry existed\n");
+        }
+
+cleanup:
+
+        PKIX_DECREF(cachedValues);
+        PKIX_DECREF(cachedKeys);
+        PKIX_DECREF(cachedCertChainError);
+        PKIX_DECREF(cacheValidUntilDate);
+        PKIX_DECREF(date);
+
+        PKIX_RETURN(BUILD);
+}
+
+/*
+ * FUNCTION: pkix_CacheCert_Lookup
+ * DESCRIPTION:
+ *
+ *  Look up Cert Hash Table for a cached item based on "store" and Subject in
+ *  "certSelParams" as the hash keys and returns values Certs in "pCerts".
+ *  If there isn't an item to match the key, a PKIX_FALSE is returned at
+ *  "pFound". The item's cache time is verified with "testDate". If out-dated,
+ *  this item is removed and PKIX_FALSE is returned at "pFound".
+ *  This hashtable is maintained in the following ways:
+ *  1) When creating the hashtable, maximum bucket size can be specified (0 for
+ *     unlimited). If items in a bucket reaches its full size, an new addition
+ *     will trigger the removal of the old as FIFO sequence.
+ *  2) A PKIX_PL_Date created with current time offset by constant 
+ *     CACHE_ITEM_PERIOD_SECONDS is attached to each item in the Hash Table.
+ *     When an item is retrieved, this date is compared against "testDate" for
+ *     validity. If comparison indicates this item is expired, the item is
+ *     removed from the bucket.
+ *
+ * PARAMETERS:
+ *  "store"
+ *      Address of CertStore as key to retrieve this CertChain. Must be 
+ *      non-NULL.
+ *  "certSelParams"
+ *      Address of ComCertSelParams that its subject is used as key to retrieve
+ *      this CertChain. Must be non-NULL.
+ *  "testDate"
+ *      Address of PKIX_PL_Date for verifying time cache validity.
+ *      Must be non-NULL. If testDate is NULL, this cache item won't be out
+ *      dated.
+ *  "pFound"
+ *      Address of KPKIX_Boolean indicating valid data is found.
+ *      Must be non-NULL.
+ *  "pCerts"
+ *      Address PKIX_List where the CertChain will be stored. Must be no-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns an Error Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+pkix_CacheCert_Lookup(
+        PKIX_CertStore *store,
+        PKIX_ComCertSelParams *certSelParams,
+        PKIX_PL_Date *testDate,
+        PKIX_Boolean *pFound,
+        PKIX_List** pCerts,
+        void *plContext)
+{
+        PKIX_PL_Cert *cert = NULL;
+        PKIX_List *cachedKeys = NULL;
+        PKIX_List *cachedValues = NULL;
+        PKIX_List *cachedCertList = NULL;
+        PKIX_List *selCertList = NULL;
+        PKIX_PL_X500Name *subject = NULL;
+        PKIX_PL_Date *invalidAfterDate = NULL;
+        PKIX_PL_Date *cacheValidUntilDate = NULL;
+        PKIX_CertSelector *certSel = NULL;
+        PKIX_Error *cachedCertError = NULL;
+        PKIX_CertSelector_MatchCallback selectorMatch = NULL;
+        PKIX_Int32 cmpValidTimeResult = PKIX_FALSE;
+        PKIX_Int32 cmpCacheTimeResult = 0;
+        PKIX_Boolean certMatch = PKIX_FALSE;
+        PKIX_UInt32 numItems = 0;
+        PKIX_UInt32 i;
+
+        PKIX_ENTER(BUILD, "pkix_CacheCert_Lookup");
+        PKIX_NULLCHECK_TWO(store, certSelParams);
+        PKIX_NULLCHECK_TWO(pFound, pCerts);
+
+        *pFound = PKIX_FALSE;
+
+        PKIX_CHECK(PKIX_List_Create(&cachedKeys, plContext),
+                "PKIX_List_Create failed");
+
+        PKIX_CHECK(PKIX_List_AppendItem
+                (cachedKeys, (PKIX_PL_Object *)store, plContext),
+                "PKIX_List_AppendItem failed");
+
+        PKIX_CHECK(PKIX_ComCertSelParams_GetSubject
+                (certSelParams, &subject, plContext),
+                "PKIX_ComCertSelParams_GetSubject failed");
+
+        PKIX_NULLCHECK_ONE(subject);
+
+        PKIX_CHECK(PKIX_List_AppendItem
+                (cachedKeys, (PKIX_PL_Object *)subject, plContext),
+                "PKIX_List_AppendItem failed");
+
+        cachedCertError = PKIX_PL_HashTable_Lookup
+                    (cachedCertTable,
+                    (PKIX_PL_Object *) cachedKeys,
+                    (PKIX_PL_Object **) &cachedValues,
+                    plContext);
+        pkix_cLookupCount++;
+
+        if (cachedValues != NULL && cachedCertError == NULL) {
+
+                PKIX_CHECK(PKIX_List_GetItem
+                        (cachedValues,
+                        0,
+                        (PKIX_PL_Object **) &cacheValidUntilDate,
+                        plContext),
+                        "PKIX_List_GetItem");
+
+                if (testDate) {
+                    PKIX_CHECK(PKIX_PL_Object_Compare
+                         ((PKIX_PL_Object *)testDate,
+                         (PKIX_PL_Object *)cacheValidUntilDate,
+                         &cmpCacheTimeResult,
+                         plContext),
+                         "PKIX_PL_Object_Comparator failed");
+                }
+
+                if (cmpCacheTimeResult <= 0) {
+
+                    PKIX_CHECK(PKIX_List_GetItem
+                        (cachedValues,
+                        1,
+                        (PKIX_PL_Object **) &cachedCertList,
+                        plContext),
+                        "PKIX_List_GetItem");
+
+                    /*
+                     * Certs put on cache satifies only for Subject,
+                     * user selector and ComCertSelParams to filter.
+                     */
+                    PKIX_CHECK(PKIX_CertSelector_Create
+                            (NULL, NULL, &certSel, plContext),
+                            "PKIX_CertSelector_Create failed");
+
+                    PKIX_CHECK(PKIX_CertSelector_SetCommonCertSelectorParams
+                            (certSel, certSelParams, plContext),
+                            "PKIX_CertSelector_SetCommonCertSelectorParams "
+                            "failed");
+
+                    PKIX_CHECK(PKIX_CertSelector_GetMatchCallback
+                            (certSel, &selectorMatch, plContext),
+                            "PKIX_CertSelector_GetMatchCallback failed");
+
+                    PKIX_CHECK(PKIX_List_Create(&selCertList, plContext),
+                            "PKIX_List_Create failed");
+
+                    /* 
+                     * If any of the Cert on the list is out-dated, invalidate
+                     * this cache item.
+                     */
+                    PKIX_CHECK(PKIX_List_GetLength
+                        (cachedCertList, &numItems, plContext),
+                        "PKIX_List_GetLength failed");
+
+                    for (i = 0; i < numItems; i++){
+
+                        PKIX_CHECK(PKIX_List_GetItem
+                            (cachedCertList,
+                            i,
+                            (PKIX_PL_Object **)&cert,
+                            plContext),
+                            "PKIX_List_GetItem failed");
+
+                        PKIX_CHECK(PKIX_PL_Cert_GetValidityNotAfter
+                            (cert, &invalidAfterDate, plContext),
+                            "PKIX_PL_Cert_GetValidityNotAfter failed");
+
+                        if (testDate) {
+                            PKIX_CHECK(PKIX_PL_Object_Compare
+                                ((PKIX_PL_Object *)invalidAfterDate,
+                                (PKIX_PL_Object *)testDate,
+                                &cmpValidTimeResult,
+                                plContext),
+                                "PKIX_PL_Object_Comparator failed");
+                        }
+
+                        if (cmpValidTimeResult < 0) {
+
+                            pkix_cRemoveCount++;
+                            *pFound = PKIX_FALSE;
+
+                            /* one cert is out-dated, remove item from cache */
+                            PKIX_CHECK(PKIX_PL_HashTable_Remove
+                                    (cachedCertTable,
+                                    (PKIX_PL_Object *) cachedKeys,
+                                    plContext),
+                                    "PKIX_PL_HashTable_Remove failed");
+                           cachedKeys = NULL; /* object destroy by remove */
+                           cachedValues = NULL; /* object destroy by remove */
+                            goto cleanup;
+                        }
+
+                        PKIX_CHECK(selectorMatch
+                                    (certSel,
+                                    cert,
+                                    &certMatch,
+                                    plContext),
+                                    "selectorMatch failed");
+
+                        if (certMatch){
+                            /* put on the return list */
+                            PKIX_CHECK(PKIX_List_AppendItem
+                                   (selCertList,
+                                   (PKIX_PL_Object *)cert,
+                                   plContext),
+                                  "PKIX_List_AppendItem failed");
+
+                            *pFound = PKIX_TRUE;
+                        }
+
+                        PKIX_DECREF(cert);
+                    }
+
+                    if (*pFound) {
+                        PKIX_INCREF(selCertList);
+                        *pCerts = selCertList;
+                    }
+
+                } else {
+
+                    pkix_cRemoveCount++;
+                    *pFound = PKIX_FALSE;
+                    /* cache item is out-dated, remove it from cache */
+                    PKIX_CHECK(PKIX_PL_HashTable_Remove
+                                (cachedCertTable,
+                                (PKIX_PL_Object *) cachedKeys,
+                                plContext),
+                                "PKIX_PL_HashTable_Remove failed");
+                    cachedKeys = NULL; /* object destroy by hash remove */
+                    cachedValues = NULL; /* object destroy by hash remove */
+                }
+
+        } 
+
+cleanup:
+
+        PKIX_DECREF(subject);
+        PKIX_DECREF(certSel);
+        PKIX_DECREF(cachedKeys);
+        PKIX_DECREF(cachedValues);
+        PKIX_DECREF(cacheValidUntilDate);
+        PKIX_DECREF(cert);
+        PKIX_DECREF(cachedCertList);
+        PKIX_DECREF(selCertList);
+        PKIX_DECREF(invalidAfterDate);
+        PKIX_DECREF(cachedCertError);
+
+        PKIX_RETURN(BUILD);
+}
+
+/*
+ * FUNCTION: pkix_CacheCert_Add
+ * DESCRIPTION:
+ *
+ *  Add Cert Hash Table for a cached item based on "store" and Subject in
+ *  "certSelParams" as the hash keys and have "certs" as the key value.
+ *  This hashtable is maintained in the following ways:
+ *  1) When creating the hashtable, maximum bucket size can be specified (0 for
+ *     unlimited). If items in a bucket reaches its full size, an new addition
+ *     will trigger the removal of the old as FIFO sequence.
+ *  2) A PKIX_PL_Date created with current time offset by constant 
+ *     CACHE_ITEM_PERIOD_SECONDS is attached to each item in the Hash Table.
+ *     When an item is retrieved, this date is compared against "testDate" for
+ *     validity. If comparison indicates this item is expired, the item is
+ *     removed from the bucket.
+ *
+ * PARAMETERS:
+ *  "store"
+ *      Address of CertStore as key to retrieve this CertChain. Must be 
+ *      non-NULL.
+ *  "certSelParams"
+ *      Address of ComCertSelParams that its subject is used as key to retrieve
+ *      this CertChain. Must be non-NULL.
+ *  "certs"
+ *      Address PKIX_List of Certs will be stored. Must be no-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns an Error Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+pkix_CacheCert_Add(
+        PKIX_CertStore *store,
+        PKIX_ComCertSelParams *certSelParams,
+        PKIX_List* certs,
+        void *plContext)
+{
+        PKIX_List *cachedKeys = NULL;
+        PKIX_List *cachedValues = NULL;
+        PKIX_PL_Date *cacheValidUntilDate = NULL;
+        PKIX_PL_X500Name *subject = NULL;
+        PKIX_Error *cachedCertError = NULL;
+
+        PKIX_ENTER(BUILD, "pkix_CacheCert_Add");
+        PKIX_NULLCHECK_THREE(store, certSelParams, certs);
+
+        PKIX_CHECK(PKIX_List_Create(&cachedKeys, plContext),
+                "PKIX_List_Create failed");
+
+        PKIX_CHECK(PKIX_List_AppendItem
+                (cachedKeys, (PKIX_PL_Object *)store, plContext),
+                "PKIX_List_AppendItem failed");
+
+        PKIX_CHECK(PKIX_ComCertSelParams_GetSubject
+                (certSelParams, &subject, plContext),
+                "PKIX_ComCertSelParams_GetSubject failed");
+
+        PKIX_NULLCHECK_ONE(subject);
+
+        PKIX_CHECK(PKIX_List_AppendItem
+                (cachedKeys, (PKIX_PL_Object *)subject, plContext),
+                "PKIX_List_AppendItem failed");
+
+        PKIX_CHECK(PKIX_List_Create(&cachedValues, plContext),
+                "PKIX_List_Create failed");
+
+        PKIX_CHECK(PKIX_PL_Date_Create_CurrentOffBySeconds
+                (CACHE_ITEM_PERIOD_SECONDS,
+                &cacheValidUntilDate,
+                plContext),
+               "PKIX_PL_Date_Create_CurrentOffBySeconds failed");
+
+        PKIX_CHECK(PKIX_List_AppendItem
+                (cachedValues,
+                (PKIX_PL_Object *)cacheValidUntilDate,
+                plContext),
+                "PKIX_List_AppendItem failed");
+
+        PKIX_CHECK(PKIX_List_AppendItem
+                (cachedValues,
+                (PKIX_PL_Object *)certs,
+                plContext),
+                "PKIX_List_AppendItem failed");
+
+        cachedCertError = PKIX_PL_HashTable_Add
+                    (cachedCertTable,
+                    (PKIX_PL_Object *) cachedKeys,
+                    (PKIX_PL_Object *) cachedValues,
+                    plContext);
+
+        pkix_cAddCount++;
+
+        if (cachedCertError != NULL) {
+                PKIX_DEBUG("PKIX_PL_HashTable_Add for Certs skipped: "
+                        "entry existed\n");
+        }
+
+cleanup:
+
+        PKIX_DECREF(subject);
+        PKIX_DECREF(cachedKeys);
+        PKIX_DECREF(cachedValues);
+        PKIX_DECREF(cacheValidUntilDate);
+        PKIX_DECREF(cachedCertError);
+
+        PKIX_RETURN(BUILD);
+}
+
+/*
+ * FUNCTION: pkix_CacheCrlEntry_Lookup
+ * DESCRIPTION:
+ *
+ *  Look up CrlEntry Hash Table for a cached item based on "store",
+ *  "certIssuer" and "certSerialNumber" as the hash keys and returns values
+ *  "pCrls". If there isn't an item to match the key, a PKIX_FALSE is
+ *  returned at "pFound".
+ *  This hashtable is maintained in the following way:
+ *  1) When creating the hashtable, maximum bucket size can be specified (0 for
+ *     unlimited). If items in a bucket reaches its full size, an new addition
+ *     will trigger the removal of the old as FIFO sequence.
+ *
+ * PARAMETERS:
+ *  "store"
+ *      Address of CertStore as key to retrieve this CertChain. Must be 
+ *      non-NULL.
+ *  "certIssuer"
+ *      Address of X500Name that is used as key to retrieve the CRLEntries.
+ *      Must be non-NULL.
+ *  "certSerialNumber"
+ *      Address of BigInt that is used as key to retrieve the CRLEntries.
+ *      Must be non-NULL.
+ *  "pFound"
+ *      Address of KPKIX_Boolean indicating valid data is found.
+ *      Must be non-NULL.
+ *  "pCrls"
+ *      Address PKIX_List where the CRLEntry will be stored. Must be no-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns an Error Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+pkix_CacheCrlEntry_Lookup(
+        PKIX_CertStore *store,
+        PKIX_PL_X500Name *certIssuer,
+        PKIX_PL_BigInt *certSerialNumber,
+        PKIX_Boolean *pFound,
+        PKIX_List** pCrls,
+        void *plContext)
+{
+        PKIX_List *cachedKeys = NULL;
+        PKIX_List *cachedCrlEntryList = NULL;
+        PKIX_Error *cachedCrlEntryError = NULL;
+
+        PKIX_ENTER(BUILD, "pkix_CacheCrlEntry_Lookup");
+        PKIX_NULLCHECK_THREE(store, certIssuer, certSerialNumber);
+        PKIX_NULLCHECK_TWO(pFound, pCrls);
+
+        *pFound = PKIX_FALSE;
+
+        /* Find CrlEntry(s) by issuer and serial number */
+         
+        PKIX_CHECK(PKIX_List_Create(&cachedKeys, plContext),
+                    "PKIX_List_Create failed");
+
+        PKIX_CHECK(PKIX_List_AppendItem
+                    (cachedKeys, (PKIX_PL_Object *)store, plContext),
+                    "PKIX_List_AppendItem failed");
+
+        PKIX_CHECK(PKIX_List_AppendItem
+                    (cachedKeys, (PKIX_PL_Object *)certIssuer, plContext),
+                    "PKIX_List_AppendItem failed");
+
+        PKIX_CHECK(PKIX_List_AppendItem
+                    (cachedKeys,
+                    (PKIX_PL_Object *)certSerialNumber,
+                    plContext),
+                    "PKIX_List_AppendItem failed");
+
+        cachedCrlEntryError = PKIX_PL_HashTable_Lookup
+                    (cachedCrlEntryTable,
+                    (PKIX_PL_Object *) cachedKeys,
+                    (PKIX_PL_Object **) &cachedCrlEntryList,
+                    plContext);
+        pkix_ceLookupCount++;
+
+	/* 
+         * We don't need check Date to invalidate this cache item,
+         * the item is uniquely defined and won't be reverted. Let
+         * the FIFO for cleaning up.
+         */
+
+        if (cachedCrlEntryList != NULL && cachedCrlEntryError == NULL ) {
+
+                PKIX_INCREF(cachedCrlEntryList);
+                *pCrls = cachedCrlEntryList;
+
+                *pFound = PKIX_TRUE;
+
+        } else {
+
+                *pFound = PKIX_FALSE;
+        }
+
+cleanup:
+
+        PKIX_DECREF(cachedKeys);
+        PKIX_DECREF(cachedCrlEntryList);
+        PKIX_DECREF(cachedCrlEntryError);
+
+        PKIX_RETURN(CERTCHAINCHECKER);
+}
+
+/*
+ * FUNCTION: pkix_CacheCrlEntry_Add
+ * DESCRIPTION:
+ *
+ *  Look up CrlEntry Hash Table for a cached item based on "store",
+ *  "certIssuer" and "certSerialNumber" as the hash keys and have "pCrls" as
+ *  the hash value. If there isn't an item to match the key, a PKIX_FALSE is
+ *  returned at "pFound".
+ *  This hashtable is maintained in the following way:
+ *  1) When creating the hashtable, maximum bucket size can be specified (0 for
+ *     unlimited). If items in a bucket reaches its full size, an new addition
+ *     will trigger the removal of the old as FIFO sequence.
+ *
+ * PARAMETERS:
+ *  "store"
+ *      Address of CertStore as key to retrieve this CertChain. Must be 
+ *      non-NULL.
+ *  "certIssuer"
+ *      Address of X500Name that is used as key to retrieve the CRLEntries.
+ *      Must be non-NULL.
+ *  "certSerialNumber"
+ *      Address of BigInt that is used as key to retrieve the CRLEntries.
+ *      Must be non-NULL.
+ *  "crls"
+ *      Address PKIX_List where the CRLEntry is stored. Must be no-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns an Error Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+pkix_CacheCrlEntry_Add(
+        PKIX_CertStore *store,
+        PKIX_PL_X500Name *certIssuer,
+        PKIX_PL_BigInt *certSerialNumber,
+        PKIX_List* crls,
+        void *plContext)
+{
+        PKIX_List *cachedKeys = NULL;
+        PKIX_Error *cachedCrlEntryError = NULL;
+
+        PKIX_ENTER(BUILD, "pkix_CacheCrlEntry_Add");
+        PKIX_NULLCHECK_THREE(store, certIssuer, certSerialNumber);
+        PKIX_NULLCHECK_ONE(crls);
+
+        /* Add CrlEntry(s) by issuer and serial number */
+         
+        PKIX_CHECK(PKIX_List_Create(&cachedKeys, plContext),
+                    "PKIX_List_Create failed");
+
+        PKIX_CHECK(PKIX_List_AppendItem
+                    (cachedKeys, (PKIX_PL_Object *)store, plContext),
+                    "PKIX_List_AppendItem failed");
+
+        PKIX_CHECK(PKIX_List_AppendItem
+                    (cachedKeys, (PKIX_PL_Object *)certIssuer, plContext),
+                    "PKIX_List_AppendItem failed");
+
+        PKIX_CHECK(PKIX_List_AppendItem
+                    (cachedKeys,
+                    (PKIX_PL_Object *)certSerialNumber,
+                    plContext),
+                    "PKIX_List_AppendItem failed");
+
+        cachedCrlEntryError = PKIX_PL_HashTable_Add
+                    (cachedCrlEntryTable,
+                    (PKIX_PL_Object *) cachedKeys,
+                    (PKIX_PL_Object *) crls,
+                    plContext);
+        pkix_ceAddCount++;
+
+cleanup:
+
+        PKIX_DECREF(cachedKeys);
+        PKIX_DECREF(cachedCrlEntryError);
+
+        PKIX_RETURN(CERTCHAINCHECKER);
 }

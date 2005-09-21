@@ -86,13 +86,29 @@ extern "C" {
  * name of an LDAP server. Note that this certStoreContext must be an
  * Object (although any object type), allowing it to be reference-counted and
  * allowing it to provide the standard Object functions (Equals, Hashcode,
- * ToString, Compare, Duplicate).
+ * ToString, Compare, Duplicate). Please note that each certStoreConext must
+ * provide Equals and Hashcode functions in order for the caching (on Cert and
+ * CertChain) to work correctly. When providing those two functions, it is not
+ * required to have all the elements in object to be hashed or checked for 
+ * equality, but to provide an unique identification of this certStoreContext
+ * instance.
  *
  * Once the caller has created the CertStore object, the caller then specifies
  * these CertStore objects in a ProcessingParams object and passes that object
  * to PKIX_ValidateChain or PKIX_BuildChain, which uses the objects to call the
  * user's callback functions as needed during the validation or building
  * process.
+ *
+ * The CheckTrustCallback function is used when the CertStore object
+ * supports trust status, which means a Cert's trust status can be altered
+ * dynamically. When a CertStore object is created, if the
+ * CheckTrustCallback is initialized to be non-NULL, this CertStore is
+ * defaulted as supporting trust. Then whenever a Cert needs to (re)check its
+ * trust status, this callback can be invoked. When a Cert is retrieved by
+ * a CertStore supports trust, at its GetCertCallback, the CertStore
+ * information should be updated in Cert's data structure so the link between
+ * the Cert and CertStore exists.
+ *
  */
 
 /*
@@ -133,6 +149,42 @@ typedef PKIX_Error *
         PKIX_CertStore *store,
         PKIX_CertSelector *selector,
         PKIX_List **pCerts,  /* list of PKIX_PL_Cert */
+        void *plContext);
+
+/*
+ * FUNCTION: PKIX_CertStore_CheckTrustCallback
+ * DESCRIPTION:
+ *
+ *  This callback function rechecks "cert's" trust status from the CertStore
+ *  pointed to by "store".
+ *
+ * PARAMETERS:
+ *  "store"
+ *      Address of CertStore from which Certs are to be checked.
+ *      Must be non-NULL.
+ *  "cert"
+ *      Address of Cert whose trust status needs to be rechecked.
+ *      Must be non-NULL.
+ *  "pTrusted"
+ *      Address of PKIX_Boolean where the trust status is returned.
+ *      Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe
+ *
+ *  Multiple threads must be able to safely call this function without
+ *  worrying about conflicts, even if they're operating on the same object.
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a CertStore Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+typedef PKIX_Error *
+(*PKIX_CertStore_CheckTrustCallback)(
+        PKIX_CertStore *store,
+        PKIX_PL_Cert *cert,
+        PKIX_Boolean *pTrusted,
         void *plContext);
 
 /*
@@ -198,6 +250,11 @@ typedef PKIX_Error *
  *      The CRLCallback function to be used. Must be non-NULL.
  *  "certStoreContext"
  *      Address of Object representing the CertStore's context (if any).
+ *  "cachedFlag"
+ *      If TRUE indicates data retrieved from CertStore should be cached.
+ *  "trustCallback"
+ *      Address of PKIX_CertStore_CheckTrustCallback which is called to
+ *      verify the trust status of Certs in this CertStore.
  *  "pStore"
  *      Address where object pointer will be stored. Must be non-NULL.
  *  "plContext"
@@ -214,6 +271,8 @@ PKIX_CertStore_Create(
         PKIX_CertStore_CertCallback certCallback,
         PKIX_CertStore_CRLCallback crlCallback,
         PKIX_PL_Object *certStoreContext,
+        PKIX_Boolean cachedFlag,
+        PKIX_CertStore_CheckTrustCallback trustCallback,
         PKIX_CertStore **pStore,
         void *plContext);
 
@@ -221,7 +280,7 @@ PKIX_CertStore_Create(
  * FUNCTION: PKIX_CertStore_GetCertCallback
  * DESCRIPTION:
  *
- *  Retrieves a pointer to "store's" Cert callback function and puts it in
+ *  Retrieves a pointer to "store's" Cert callback function and put it in
  *  "pCallback".
  *
  * PARAMETERS:
@@ -249,7 +308,7 @@ PKIX_CertStore_GetCertCallback(
  * FUNCTION: PKIX_CertStore_GetCRLCallback
  * DESCRIPTION:
  *
- *  Retrieves a pointer to "store's" CRL callback function and puts it in
+ *  Retrieves a pointer to "store's" CRL callback function and put it in
  *  "pCallback".
  *
  * PARAMETERS:
@@ -299,6 +358,61 @@ PKIX_Error *
 PKIX_CertStore_GetCertStoreContext(
         PKIX_CertStore *store,
         PKIX_PL_Object **pCertStoreContext,
+        void *plContext);
+
+/*
+ * FUNCTION: PKIX_CertStore_GetCertStoreCacheFlag
+ * DESCRIPTION:
+ *
+ *  Retrieves a Boolean representing the cache flag of the CertStore pointed
+ *  to by "store" and stores it at "pCachedFlag".
+ *
+ * PARAMETERS:
+ *  "store"
+ *      Address of CertStore whose context is to be stored. Must be non-NULL.
+ *  "pCacheFalg"
+ *      Address where a boolean will be stored. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a CertStore Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_CertStore_GetCertStoreCacheFlag(
+        PKIX_CertStore *store,
+        PKIX_Boolean *pCacheFlag,
+        void *plContext);
+
+/*
+ * FUNCTION: PKIX_CertStore_GetTrustCallback
+ * DESCRIPTION:
+ *
+ *  Retrieves a pointer to "store's" CheckTrust callback function and
+ *  put it in "pCallback".
+ *
+ * PARAMETERS:
+ *  "store"
+ *      The CertStore whose Cert callback is desired. Must be non-NULL.
+ *  "pCallback"
+ *      Address where CheckTrust callback function pointer will be stored.
+ *      Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a CertStore Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_CertStore_GetTrustCallback(
+        PKIX_CertStore *store,
+        PKIX_CertStore_CheckTrustCallback *pCallback,
         void *plContext);
 
 #ifdef __cplusplus

@@ -1148,6 +1148,62 @@ pkix_i2hex(char c);
 PKIX_Boolean
 pkix_isPlaintext(unsigned char c, PKIX_Boolean debug);
 
+PKIX_Error *
+pkix_CacheCertChain_Lookup(
+        PKIX_PL_Cert* targetCert,
+        PKIX_List* anchors,
+        PKIX_PL_Date *testDate,
+        PKIX_Boolean *pFound,
+        PKIX_TrustAnchor **pMatchingAnchor,
+        PKIX_List **pCerts,
+        PKIX_PL_PublicKey **pFinalSubjPubKey,
+        PKIX_PolicyNode **pFinalPolicyTree,
+        void *plContext);
+
+PKIX_Error *
+pkix_CacheCertChain_Add(
+        PKIX_PL_Cert* targetCert,
+        PKIX_List* anchors,
+        PKIX_PL_Date *validityDate,
+        PKIX_TrustAnchor *matchingAnchor,
+        PKIX_List *certs,
+        PKIX_PL_PublicKey *finalSubjPubKey,
+        PKIX_PolicyNode *finalPolicyTree,
+        void *plContext);
+
+PKIX_Error *
+pkix_CacheCert_Lookup(
+        PKIX_CertStore *store,
+        PKIX_ComCertSelParams *certSelParams,
+        PKIX_PL_Date *testDate,
+        PKIX_Boolean *pFound,
+        PKIX_List** pCerts,
+        void *plContext);
+
+PKIX_Error *
+pkix_CacheCert_Add(
+        PKIX_CertStore *store,
+        PKIX_ComCertSelParams *certSelParams,
+        PKIX_List* certs,
+        void *plContext);
+
+PKIX_Error *
+pkix_CacheCrlEntry_Lookup(
+        PKIX_CertStore *store,
+        PKIX_PL_X500Name *certIssuer,
+        PKIX_PL_BigInt *certSerialNumber,
+        PKIX_Boolean *pFound,
+        PKIX_List** pCrlEntryList,
+        void *plContext);
+
+PKIX_Error *
+pkix_CacheCrlEntry_Add(
+        PKIX_CertStore *store,
+        PKIX_PL_X500Name *certIssuer,
+        PKIX_PL_BigInt *certSerialNumber,
+        PKIX_List* crlEntryList,
+        void *plContext);
+
 #ifdef __cplusplus
 }
 #endif

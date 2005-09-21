@@ -324,6 +324,41 @@ cleanup:
 }
 
 /*
+ * FUNCTION: pkix_pl_Date_Comparator
+ * (see comments for PKIX_PL_ComparatorCallback in pkix_pl_system.h)
+ */
+static PKIX_Error *
+pkix_pl_Date_Comparator(
+        PKIX_PL_Object *firstObject,
+        PKIX_PL_Object *secondObject,
+        PKIX_Int32 *pResult,
+        void *plContext)
+{
+        SECItem *firstTime = NULL;
+        SECItem *secondTime = NULL;
+        SECComparison cmpResult;
+
+        PKIX_ENTER(DATE, "pkix_pl_Date_Comparator");
+        PKIX_NULLCHECK_THREE(firstObject, secondObject, pResult);
+
+        PKIX_CHECK(pkix_CheckTypes
+                    (firstObject, secondObject, PKIX_DATE_TYPE, plContext),
+                    "Arguments are not Dates");
+
+        firstTime = &((PKIX_PL_Date *)firstObject)->nssTime;
+        secondTime = &((PKIX_PL_Date *)secondObject)->nssTime;
+
+        PKIX_DATE_DEBUG("\t\tCalling SECITEM_CompareItem).\n");
+        cmpResult = SECITEM_CompareItem(firstTime, secondTime);
+
+        *pResult = cmpResult;
+
+cleanup:
+
+        PKIX_RETURN(DATE);
+}
+
+/*
  * FUNCTION: pkix_pl_Date_Equals
  * (see comments for PKIX_PL_Equals_Callback in pkix_pl_system.h)
  */
@@ -405,7 +440,7 @@ pkix_pl_Date_RegisterSelf(void *plContext)
         entry.equalsFunction = pkix_pl_Date_Equals;
         entry.hashcodeFunction = pkix_pl_Date_Hashcode;
         entry.toStringFunction = pkix_pl_Date_ToString;
-        entry.comparator = NULL;
+        entry.comparator = pkix_pl_Date_Comparator;
         entry.duplicateFunction = pkix_duplicateImmutable;
 
         systemClasses[PKIX_DATE_TYPE] = entry;
@@ -477,6 +512,57 @@ PKIX_PL_Date_Create_UTCTime(
 cleanup:
 
         PKIX_FREE(asciiString);
+
+        if (PKIX_ERROR_RECEIVED){
+                PR_Free(nssTime.data);
+        }
+
+        PKIX_RETURN(DATE);
+}
+
+/*
+ * FUNCTION: PKIX_PL_Date_Create_CurrentOffBySeconds
+ * (see comments in pkix_pl_pki.h)
+ */
+PKIX_Error *
+PKIX_PL_Date_Create_CurrentOffBySeconds(
+        PKIX_Int32 secondsOffset,
+        PKIX_PL_Date **pDate,
+        void *plContext)
+{
+        PKIX_PL_Date *date = NULL;
+        SECItem nssTime;
+        SECStatus rv;
+        PRTime time;
+
+        PKIX_ENTER(DATE, "PKIX_PL_Date_Create_CurrentOffBySeconds");
+        PKIX_NULLCHECK_ONE(pDate);
+
+        PKIX_DATE_DEBUG("\t\tCalling PR_Now).\n");
+        time = PR_Now();
+
+        time += (secondsOffset * PR_USEC_PER_SEC);
+
+        PKIX_DATE_DEBUG("\t\tCalling DER_TimeToUTCTime).\n");
+        rv = DER_TimeToUTCTime(&nssTime, time);
+        if (rv != SECSuccess){
+                PKIX_ERROR("DER_TimeToUTCTime failed");
+        }
+
+        /* create a PKIX_PL_Date object */
+        PKIX_CHECK(PKIX_PL_Object_Alloc
+                    (PKIX_DATE_TYPE,
+                    sizeof (PKIX_PL_Date),
+                    (PKIX_PL_Object **)&date,
+                    plContext),
+                    "Could not create object");
+
+        /* populate the nssTime field */
+        date->nssTime = nssTime;
+
+        *pDate = date;
+
+cleanup:
 
         if (PKIX_ERROR_RECEIVED){
                 PR_Free(nssTime.data);

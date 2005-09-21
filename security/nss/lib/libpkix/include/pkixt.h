@@ -334,7 +334,7 @@ typedef int PKIX_Boolean;
 
 /* Key Usages
  *
- * These macros specify supported Key Usages
+ * These typess specify supported Key Usages
  */
 
 #define PKIX_DIGITAL_SIGNATURE  0x001

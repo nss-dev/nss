@@ -1378,6 +1378,39 @@ PKIX_PL_Cert_CheckValidity(
         void *plContext);
 
 /*
+ * FUNCTION: PKIX_PL_Cert_GetValidityNotAfter
+ * DESCRIPTION:
+ *
+ *  Retrieves a pointer to the Date that represents the notAfter time of the
+ *  Certificate pointed to by "cert" and stores it at "pDate".
+ *
+ *  Validity ::= SEQUENCE {
+ *      notBefore       Time,
+ *      notAfter        Time }
+ *
+ * PARAMETERS:
+ *  "cert"
+ *      Address of Cert whose validity time is to be retrieved. Must be
+ *      non-NULL.
+ *  "date"
+ *      Address of Date at which the Cert's notAfter time is being retrieved.
+ *      Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Cert Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_PL_Cert_GetValidityNotAfter(
+        PKIX_PL_Cert *cert,
+        PKIX_PL_Date **pDate,
+        void *plContext);
+
+/*
  * FUNCTION: PKIX_PL_Cert_VerifySignature
  * DESCRIPTION:
  *
@@ -1438,6 +1471,116 @@ PKIX_Error *
 PKIX_PL_Cert_IsCertTrusted(
         PKIX_PL_Cert *cert,
         PKIX_Boolean *pTrusted,
+        void *plContext);
+
+/*
+ * FUNCTION: PKIX_PL_Cert_GetCacheFlag
+ * DESCRIPTION:
+ *
+ *  Retrieves the value of the cache flag in "cert" and return it at address
+ *  pointed by "pCacheFlag". The initila cache flag is determined by the
+ *  CertStore this "cert" is fetched from. When CertStore is created, user
+ *  need to specify if the data should be cached.
+ *
+ * PARAMETERS:
+ *  "cert"
+ *      Address of Cert whose cache flag is fetched. Must be non-NULL.
+ *  "pCacheFlag"
+ *      Address where PKIX_Boolean will be stored. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Cert Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_PL_Cert_GetCacheFlag(
+        PKIX_PL_Cert *cert,
+        PKIX_Boolean *pCacheFlag,
+        void *plContext);
+
+/*
+ * FUNCTION: PKIX_PL_Cert_SetCacheFlag
+ * DESCRIPTION:
+ *
+ *  Set the value of the cache flag in "cert" base on the boolean value stored
+ *  at "cacheFlag". This function is meant to be used by CertStore after a
+ *  Cert is created.
+ *
+ * PARAMETERS:
+ *  "cert"
+ *      Address of Cert where "cacheFlag" is stored. Must be non-NULL.
+ *  "cacheFlag"
+ *      PKIX_Boolean flag for cache flag.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Cert Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_PL_Cert_SetCacheFlag(
+        PKIX_PL_Cert *cert,
+        PKIX_Boolean cacheFlag,
+        void *plContext);
+
+/*
+ * FUNCTION: PKIX_PL_Cert_GetTrustCertStore
+ * DESCRIPTION:
+ *
+ *  Retrieves the value of the CertStore in "cert" and return it at address
+ *  pointed by "pCertStore".
+ *
+ * PARAMETERS:
+ *  "cert"
+ *      Address of Cert whose CertStore is fetched. Must be non-NULL.
+ *  "pTrustCertStore"
+ *      Address where CertStore will be stored and returned. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Cert Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_PL_Cert_GetTrustCertStore(
+        PKIX_PL_Cert *cert,
+        PKIX_CertStore **pTrustCertStore,
+        void *plContext);
+
+/*
+ * FUNCTION: PKIX_PL_Cert_SetTrustCertStore
+ * DESCRIPTION:
+ *
+ *  Set the value of the CertStore "certStore" in "cert".
+ *
+ * PARAMETERS:
+ *  "cert"
+ *      Address of Cert where "certStore" will be stored. Must be non-NULL.
+ *  "trustCertStore"
+ *      Address where the CertStore is. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Cert Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_PL_Cert_SetTrustCertStore(
+        PKIX_PL_Cert *cert,
+        PKIX_CertStore *trustCertStore,
         void *plContext);
 
 /*
@@ -1705,10 +1848,10 @@ PKIX_PL_CRL_VerifySignature(
  *
  * PARAMETERS:
  *  "crlEntry"
- *      Address of CRLEntry whose reason code bit values are to be stored.
- *      Must be non-NULL.
+ *      Address of CRLEntry whose reason code bit values are to be returned
+ *      at "pReason". Must be non-NULL.
  *  "pReason"
- *      Address where PKIX_Int32 will be stored. Must be non-NULL.
+ *      Address of PKIX_Int32 where reason code is stored. Must be non-NULL.
  *  "plContext"
  *      Platform-specific context pointer.
  * THREAD SAFETY:
@@ -1898,6 +2041,33 @@ PKIX_PL_X500Name_Match(
 PKIX_Error *
 PKIX_PL_Date_Create_UTCTime (
         PKIX_PL_String *stringRep,
+        PKIX_PL_Date **pDate,
+        void *plContext);
+
+/*
+ * FUNCTION: PKIX_PL_Date_Create_CurrentOffBySeconds
+ * DESCRIPTION:
+ *  Creates a new Date of type UTCTime for current time with seconds off by
+ *  "secondsOffset" and returns it at "pDate".
+ *
+ * PARAMETERS:
+ *  "secondsOffset"
+ *      A PKIX_Int32 indicates the time offset from current. If "secondsOffset"
+ *      is negative, the time is in past.
+ *  "pDate"
+ *      Address where object pointer will be stored. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Date Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_PL_Date_Create_CurrentOffBySeconds(
+        PKIX_Int32 secondsOffset,
         PKIX_PL_Date **pDate,
         void *plContext);
 

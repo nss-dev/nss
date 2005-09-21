@@ -54,6 +54,8 @@ struct PKIX_CertStoreStruct {
         PKIX_CertStore_CertCallback certCallback;
         PKIX_CertStore_CRLCallback crlCallback;
         PKIX_PL_Object *certStoreContext;
+        PKIX_Boolean cacheFlag;
+        PKIX_CertStore_CheckTrustCallback trustCallback;
 };
 
 /* see source file for function documentation */

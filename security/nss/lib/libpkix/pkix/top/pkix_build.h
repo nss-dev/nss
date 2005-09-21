@@ -57,6 +57,8 @@ struct PKIX_ForwardBuilderStateStruct{
         PKIX_List *traversedSubjNames;  /* changes */
         PKIX_Boolean dsaParamsNeeded;   /* changes */
         PKIX_Boolean revCheckDelayed;   /* changes */
+        PKIX_PL_Date *validityDate;     /* changes */
+        PKIX_Boolean cacheFlag;         /* changes */
         PKIX_BuildParams *buildParams;  /* rest don't change */
         PKIX_PL_Date *testDate;
         PKIX_PL_Cert *targetCert;

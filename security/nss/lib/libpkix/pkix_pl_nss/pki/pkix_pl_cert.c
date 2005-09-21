@@ -1213,6 +1213,10 @@ pkix_pl_Cert_Destroy(
         CERT_DestroyCertificate(cert->nssCert);
         cert->nssCert = NULL;
 
+        if (cert->store) {
+		PKIX_DECREF(cert->store);
+        }
+
 cleanup:
 
         PKIX_RETURN(CERT);
@@ -1467,6 +1471,8 @@ pkix_pl_Cert_CreateWithNSSCert(
         cert->nameConstraintsAbsent = PKIX_FALSE;
         cert->arenaNameConstraints = NULL;
         cert->nssSubjAltNames = NULL;
+        cert->cacheFlag = PKIX_FALSE;
+        cert->store = NULL;
 
         *pCert = cert;
 
@@ -2858,6 +2864,36 @@ cleanup:
 }
 
 /*
+ * FUNCTION: PKIX_PL_Cert_GetValidityNotAfter (see comments in pkix_pl_pki.h)
+ */
+PKIX_Error *
+PKIX_PL_Cert_GetValidityNotAfter(
+        PKIX_PL_Cert *cert,
+        PKIX_PL_Date **pDate,
+        void *plContext)
+{
+        PRTime prtime;
+        SECStatus rv = SECFailure;
+
+        PKIX_ENTER(CERT, "PKIX_PL_Cert_GetValidityNotAfter");
+        PKIX_NULLCHECK_TWO(cert, pDate);
+
+        PKIX_DATE_DEBUG("\t\tCalling DER_DecodeTimeChoice).\n");
+        rv = DER_DecodeTimeChoice(&prtime, &(cert->nssCert->validity.notAfter));
+        if (rv != SECSuccess){
+                PKIX_ERROR("DER_DecodeTimeChoice failed");
+        }
+
+        PKIX_CHECK(pkix_pl_Date_CreateFromPRTime
+                    (prtime, pDate, plContext),
+                    "pkix_pl_Date_CreateFromPRTime failed");
+
+cleanup:
+
+        PKIX_RETURN(CERT);
+}
+
+/*
  * FUNCTION: PKIX_PL_Cert_VerifyKeyUsage (see comments in pkix_pl_pki.h)
  */
 PKIX_Error *
@@ -3072,6 +3108,8 @@ PKIX_PL_Cert_IsCertTrusted(
         PKIX_Boolean *pTrusted,
         void *plContext)
 {
+        PKIX_CertStore_CheckTrustCallback trustCallback = NULL;
+        PKIX_CertStore *store = NULL;
         SECCertUsage certUsage = 0;
         PKIX_Boolean trusted = PKIX_FALSE;
         SECStatus rv = SECFailure;
@@ -3088,6 +3126,23 @@ PKIX_PL_Cert_IsCertTrusted(
         if (plContext == NULL) {
                 *pTrusted = PKIX_FALSE;
                 goto cleanup;
+        }
+
+        if (cert->store) {
+                PKIX_CHECK(PKIX_CertStore_GetTrustCallback
+                        (cert->store, &trustCallback, plContext),
+                        "PKIX_CertStore_GetTrustCallback failed");
+
+                PKIX_CHECK_ONLY_FATAL(trustCallback
+                        (cert->store, cert, &trusted, plContext),
+                        "CheckTrustCallback failed");
+
+                if (PKIX_ERROR_RECEIVED || (trusted == PKIX_FALSE)) {
+
+                        *pTrusted = PKIX_FALSE;
+                        goto cleanup;
+                }
+
         }
 
         certificateUsage = ((PKIX_PL_NssContext*)plContext)->certificateUsage;
@@ -3120,6 +3175,84 @@ PKIX_PL_Cert_IsCertTrusted(
         }
 
         *pTrusted = trusted;
+
+cleanup:
+
+        PKIX_RETURN(CERT);
+}
+
+/*
+ * FUNCTION: PKIX_PL_Cert_GetCacheFlag (see comments in pkix_pl_pki.h)
+ */
+PKIX_Error *
+PKIX_PL_Cert_GetCacheFlag(
+        PKIX_PL_Cert *cert,
+        PKIX_Boolean *pCacheFlag,
+        void *plContext)
+{
+        PKIX_ENTER(CERT, "PKIX_PL_Cert_GetCacheFlag");
+        PKIX_NULLCHECK_TWO(cert, pCacheFlag);
+
+        *pCacheFlag = cert->cacheFlag;
+
+cleanup:
+
+        PKIX_RETURN(CERT);
+}
+
+/*
+ * FUNCTION: PKIX_PL_Cert_SetCacheFlag (see comments in pkix_pl_pki.h)
+ */
+PKIX_Error *
+PKIX_PL_Cert_SetCacheFlag(
+        PKIX_PL_Cert *cert,
+        PKIX_Boolean cacheFlag,
+        void *plContext)
+{
+        PKIX_ENTER(CERT, "PKIX_PL_Cert_SetCacheFlag");
+        PKIX_NULLCHECK_ONE(cert);
+
+        cert->cacheFlag = cacheFlag;
+
+cleanup:
+
+        PKIX_RETURN(CERT);
+}
+
+/*
+ * FUNCTION: PKIX_PL_Cert_GetTrustCertStore (see comments in pkix_pl_pki.h)
+ */
+PKIX_Error *
+PKIX_PL_Cert_GetTrustCertStore(
+        PKIX_PL_Cert *cert,
+        PKIX_CertStore **pTrustCertStore,
+        void *plContext)
+{
+        PKIX_ENTER(CERT, "PKIX_PL_Cert_GetTrustCertStore");
+        PKIX_NULLCHECK_TWO(cert, pTrustCertStore);
+
+        PKIX_INCREF(cert->store);
+        *pTrustCertStore = cert->store;
+
+cleanup:
+
+        PKIX_RETURN(CERT);
+}
+
+/*
+ * FUNCTION: PKIX_PL_Cert_SetTrustCertStore (see comments in pkix_pl_pki.h)
+ */
+PKIX_Error *
+PKIX_PL_Cert_SetTrustCertStore(
+        PKIX_PL_Cert *cert,
+        PKIX_CertStore *trustCertStore,
+        void *plContext)
+{
+        PKIX_ENTER(CERT, "PKIX_PL_Cert_SetTrustCertStore");
+        PKIX_NULLCHECK_TWO(cert, trustCertStore);
+
+        PKIX_INCREF(trustCertStore);
+        cert->store = trustCertStore;
 
 cleanup:
 

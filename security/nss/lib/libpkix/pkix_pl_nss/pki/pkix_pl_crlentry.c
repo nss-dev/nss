@@ -848,7 +848,7 @@ PKIX_PL_CRLEntry_GetCRLEntryReasonCode (
                         (crlEntry->nssCrlEntry, &nssReasonCode);
 
                 if (status == SECSuccess) {
-                        crlEntry->userReasonCode = (PKIX_UInt32) nssReasonCode;
+                        crlEntry->userReasonCode = (PKIX_Int32) nssReasonCode;
                 } else {
                         crlEntry->userReasonCodeAbsent = PKIX_TRUE;
                 }

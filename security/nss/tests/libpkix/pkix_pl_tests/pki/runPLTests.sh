@@ -83,6 +83,7 @@ if [ -z "${INIT_SOURCED}" ] ; then
     curdir=`pwd`
     cd ../../../common
     . ./init.sh > /dev/null
+    echo "Running executibles from $OBJDIR\n"
     cd ${curdir}
 fi
 

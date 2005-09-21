@@ -112,6 +112,21 @@ pkix_pl_PrimHashTable_Destroy(
         pkix_pl_PrimHashTable *ht,
         void *plContext);
 
+PKIX_Error *
+pkix_pl_PrimHashTable_GetBucketSize(
+        pkix_pl_PrimHashTable *ht,
+        PKIX_UInt32 hashCode,
+        PKIX_UInt32 *pBucketSize,
+        void *plContext);
+
+PKIX_Error *
+pkix_pl_PrimHashTable_RemoveFIFO(
+        pkix_pl_PrimHashTable *ht,
+        PKIX_UInt32 hashCode,
+        void **pKey,
+        void **pValue,
+        void *plContext);
+
 #ifdef __cplusplus
 }
 #endif

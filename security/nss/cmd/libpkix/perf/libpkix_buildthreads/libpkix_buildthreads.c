@@ -63,14 +63,28 @@
 #include "pkix_tools.h"
 #include "pkix_pl_cert.h"
 
+void *plContext = NULL;
+
+#define PERF_DECREF(obj) \
+        do { \
+        PKIX_Error *pkixTempResult = NULL; \
+                if (obj){ \
+                        pkixTempResult = PKIX_PL_Object_DecRef \
+                        ((PKIX_PL_Object *)(obj), plContext); \
+                        obj = NULL; \
+                } \
+        } while (0)
+
 extern char *pkix_pl_PK11ConfigDir = ".";
+void finish(char* message, int code);
 
 typedef struct ThreadDataStr tData;
 
 struct ThreadDataStr {
     CERTCertificate* anchor;
-    CERTCertificate* eecert;
+    char* eecertName;
     PRIntervalTime duration;
+    CERTCertDBHandle *handle;
     PRUint32 iterations;
 };
 
@@ -84,28 +98,38 @@ void ThreadEntry(void* data)
         PKIX_ProcessingParams *procParams = NULL;
         PKIX_BuildParams *buildParams = NULL;
         PKIX_BuildResult *buildResult = NULL;
+        CERTCertificate* nsseecert;
         PKIX_PL_Cert *eeCert = NULL;
         PKIX_CertStore *certStore = NULL;
         PKIX_List *certStores = NULL;
-        void *plContext = NULL;
         void *wincx = NULL;
         PKIX_ComCertSelParams *certSelParams = NULL;
         PKIX_CertSelector *certSelector = NULL;
+        PKIX_PL_Date *nowDate = NULL;
 
         PR_ASSERT(duration);
         if (!duration){
                 return;
         }
 
+        PKIX_PL_NssContext_Create(0x10, PKIX_FALSE, wincx, &plContext);
+
         do {
+
                 /* libpkix code */
+
+                /* keep more update time, testing cache */
+                PKIX_PL_Date_Create_UTCTime(NULL, &nowDate, plContext);
 
                 /* CertUsage is 0x10 and no NSS arena */
                 /* We haven't determined how we obtain the value of wincx */
-                PKIX_PL_NssContext_Create(0x10, PKIX_FALSE, wincx, &plContext);
+
+                nsseecert = CERT_FindCertByNicknameOrEmailAddr(tdata->handle,
+                        tdata->eecertName);
+                if (!nsseecert) finish("Unable to find eecert.\n", 1);
 
                 pkix_pl_Cert_CreateWithNSSCert
-                        (tdata->eecert, &eeCert, plContext);
+                        (nsseecert, &eeCert, plContext);
 
                 PKIX_List_Create(&anchors, plContext);
 
@@ -121,6 +145,9 @@ void ThreadEntry(void* data)
 
                 PKIX_ProcessingParams_SetRevocationEnabled
                         (procParams, PKIX_TRUE, plContext);
+
+                PKIX_ProcessingParams_SetDate
+                        (procParams, nowDate, plContext);
 
                 /* create CertSelector with target certificate in params */
 
@@ -157,14 +184,29 @@ void ThreadEntry(void* data)
                 }
 
                 tdata->iterations ++;
+
+                PERF_DECREF(nowDate);
+                PERF_DECREF(anchors);
+                PERF_DECREF(procParams);
+                PERF_DECREF(buildParams);
+                PERF_DECREF(buildResult);
+                PERF_DECREF(certStore);
+                PERF_DECREF(certStores);
+                PERF_DECREF(certSelParams);
+                PERF_DECREF(certSelector);
+                PERF_DECREF(eeCert);
+
         } while ((PR_IntervalNow() - start) < duration);
+
+
 }
 
 void
 Test(
         CERTCertificate* anchor,
-        CERTCertificate* eecert,
+        char* eecertName,
         PRIntervalTime duration,
+        CERTCertDBHandle *handle,
         PRUint32 threads)
 {
         tData data;
@@ -177,7 +219,8 @@ Test(
 
         data.duration = duration;
         data.anchor = anchor;
-        data.eecert = eecert;
+        data.eecertName = eecertName;
+        data.handle = handle;
 
         data.iterations = 0;
 
@@ -233,8 +276,9 @@ void usage(char* progname)
 void
 Test(
         CERTCertificate* anchor,
-        CERTCertificate* eecert,
+        char* eecert,
         PRIntervalTime duration,
+        CERTCertDBHandle *handle,
         PRUint32 threads);
 
 int main(int argc, char** argv)
@@ -263,7 +307,7 @@ int main(int argc, char** argv)
                         PKIX_MINOR_VERSION,
                         PKIX_MINOR_VERSION,
                         &actualMinorVersion,
-                        NULL);
+                        plContext);
 
         handle = CERT_GetDefaultCertDB();
         PR_ASSERT(handle);
@@ -279,10 +323,11 @@ int main(int argc, char** argv)
          *      Test(anchor, eecert, duration, threads);
          */
 
-        eecert = CERT_FindCertByNicknameOrEmailAddr(handle, argv[3]);
-        if (!eecert) finish("Unable to find eecert.\n", 1);
+        Test(NULL, argv[3], duration, handle, threads);
 
-        Test(NULL, eecert, duration, threads);
+        /* need to free handle XXX */
+
+        PKIX_Shutdown(plContext);
 
         return (0);
 }

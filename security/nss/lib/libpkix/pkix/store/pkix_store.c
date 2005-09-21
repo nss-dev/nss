@@ -67,8 +67,95 @@ pkix_CertStore_Destroy(
 
         certStore->certCallback = NULL;
         certStore->crlCallback = NULL;
+        certStore->trustCallback = NULL;
 
         PKIX_DECREF(certStore->certStoreContext);
+
+cleanup:
+
+        PKIX_RETURN(CERTSTORE);
+}
+
+/*
+ * FUNCTION: pkix_CertStore_Hashcode
+ * (see comments for PKIX_PL_HashcodeCallback in pkix_pl_system.h)
+ */
+static PKIX_Error *
+pkix_CertStore_Hashcode(
+        PKIX_PL_Object *object,
+        PKIX_UInt32 *pHashcode,
+        void *plContext)
+{
+        PKIX_CertStore *certStore = NULL;
+        PKIX_UInt32 tempHash = 0;
+
+        PKIX_ENTER(CERTSTORE, "pkix_CertStore_Hashcode");
+        PKIX_NULLCHECK_TWO(object, pHashcode);
+
+        PKIX_CHECK(pkix_CheckType(object, PKIX_CERTSTORE_TYPE, plContext),
+                    "Object is not a CertStore");
+
+        certStore = (PKIX_CertStore *)object;
+
+        if (certStore->certStoreContext) {
+                PKIX_CHECK(PKIX_PL_Object_Hashcode
+                    ((PKIX_PL_Object *) certStore->certStoreContext,
+                    &tempHash,
+                    plContext),
+                   "pkix_CertStore_Hashcode failed");
+        }
+
+        *pHashcode = (PKIX_UInt32) certStore->certCallback +
+                     (PKIX_UInt32) certStore->crlCallback +
+                     (PKIX_UInt32) certStore->trustCallback +
+                     tempHash << 7;
+
+cleanup:
+
+        PKIX_RETURN(CERTSTORE);
+}
+
+/*
+ * FUNCTION: pkix_CertStore_Equals
+ * (see comments for PKIX_PL_EqualsCallback in pkix_pl_system.h)
+ */
+static PKIX_Error *
+pkix_CertStore_Equals(
+        PKIX_PL_Object *firstObject,
+        PKIX_PL_Object *secondObject,
+        PKIX_Int32 *pResult,
+        void *plContext)
+{
+        PKIX_CertStore *firstCS = NULL;
+        PKIX_CertStore *secondCS = NULL;
+        PKIX_Boolean cmpResult = PKIX_FALSE;
+
+        PKIX_ENTER(CERTSTORE, "pkix_CertStore_Equals");
+        PKIX_NULLCHECK_THREE(firstObject, secondObject, pResult);
+
+        PKIX_CHECK(pkix_CheckTypes
+                    (firstObject, secondObject, PKIX_CERTSTORE_TYPE, plContext),
+                    "Arguments are not Dates");
+
+        firstCS = (PKIX_CertStore *)firstObject;
+        secondCS = (PKIX_CertStore *)secondObject;
+
+        cmpResult = (firstCS->certCallback == secondCS->certCallback) &&
+                    (firstCS->crlCallback == secondCS->crlCallback) &&
+                    (firstCS->trustCallback == secondCS->trustCallback);
+
+        if (cmpResult &&
+            (firstCS->certStoreContext != secondCS->certStoreContext)) {
+
+                PKIX_CHECK(PKIX_PL_Object_Equals
+                    ((PKIX_PL_Object *) firstCS->certStoreContext,
+                    (PKIX_PL_Object *) secondCS->certStoreContext,
+                    &cmpResult,
+                    plContext),
+                    "pkix_CertStore_Equals failed");
+        }
+
+        *pResult = cmpResult;
 
 cleanup:
 
@@ -97,8 +184,8 @@ pkix_CertStore_RegisterSelf(void *plContext)
 
         entry.description = "CertStore";
         entry.destructor = pkix_CertStore_Destroy;
-        entry.equalsFunction = NULL;
-        entry.hashcodeFunction = NULL;
+        entry.equalsFunction = pkix_CertStore_Equals;
+        entry.hashcodeFunction = pkix_CertStore_Hashcode;
         entry.toStringFunction = NULL;
         entry.comparator = NULL;
         entry.duplicateFunction = pkix_duplicateImmutable;
@@ -118,6 +205,8 @@ PKIX_CertStore_Create(
         PKIX_CertStore_CertCallback certCallback,
         PKIX_CertStore_CRLCallback crlCallback,
         PKIX_PL_Object *certStoreContext,
+        PKIX_Boolean cacheFlag,
+        PKIX_CertStore_CheckTrustCallback trustCallback,
         PKIX_CertStore **pStore,
         void *plContext)
 {
@@ -135,6 +224,8 @@ PKIX_CertStore_Create(
 
         certStore->certCallback = certCallback;
         certStore->crlCallback = crlCallback;
+        certStore->cacheFlag = cacheFlag;
+        certStore->trustCallback = trustCallback;
 
         PKIX_INCREF(certStoreContext);
         certStore->certStoreContext = certStoreContext;
@@ -198,3 +289,39 @@ PKIX_CertStore_GetCertStoreContext(
 
         PKIX_RETURN(CERTSTORE);
 }
+
+/*
+ * FUNCTION: PKIX_CertStore_GetCertStoreCachedFlag
+ * (see comments in pkix_certstore.h)
+ */
+PKIX_Error *
+PKIX_CertStore_GetCertStoreCacheFlag(
+        PKIX_CertStore *store,
+        PKIX_Boolean *pCacheFlag,
+        void *plContext)
+{
+        PKIX_ENTER(CERTSTORE, "PKIX_CertStore_GetCertStoreCacheFlag");
+        PKIX_NULLCHECK_TWO(store, pCacheFlag);
+
+        *pCacheFlag = store->cacheFlag;
+
+        PKIX_RETURN(CERTSTORE);
+}
+
+/*
+ * FUNCTION: PKIX_CertStore_GetTrustCallback (see comments in pkix_certstore.h)
+ */
+PKIX_Error *
+PKIX_CertStore_GetTrustCallback(
+        PKIX_CertStore *store,
+        PKIX_CertStore_CheckTrustCallback *pCallback,
+        void *plContext)
+{
+        PKIX_ENTER(CERTSTORE, "PKIX_CertStore_GetTrustCallback");
+        PKIX_NULLCHECK_TWO(store, pCallback);
+
+        *pCallback = store->trustCallback;
+
+        PKIX_RETURN(CERTSTORE);
+}
+

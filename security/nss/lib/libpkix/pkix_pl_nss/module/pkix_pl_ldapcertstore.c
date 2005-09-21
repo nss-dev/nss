@@ -593,7 +593,7 @@ pkix_pl_LdapCertStoreContext_Create(
         /* ldapCertStoreContext->connectStatus = undefined; */
 
         PKIX_CHECK(PKIX_PL_HashTable_Create
-                (LDAP_CACHEBUCKETS, &ht, plContext),
+                (LDAP_CACHEBUCKETS, 0, &ht, plContext),
                 "PKIX_PL_HashTable_Create failed");
 
         ldapCertStoreContext->cachePtr = ht;
@@ -3041,6 +3041,7 @@ pkix_pl_LdapCertStore_GetCert(
         PKIX_ComCertSelParams *params = NULL;
         PKIX_PL_LdapRequest *request = NULL;
         PKIX_PL_LdapCertStoreContext *lcs = NULL;
+        PKIX_Boolean cacheFlag = PKIX_FALSE;
 
         PKIX_ENTER(CERTSTORE, "pkix_pl_LdapCertStore_GetCert");
         PKIX_NULLCHECK_THREE(store, selector, pCertList);
@@ -3124,6 +3125,10 @@ pkix_pl_LdapCertStore_GetCert(
                 PKIX_CHECK(PKIX_List_GetLength(certList, &numFound, plContext),
                         "PKIX_List_GetLength failed");
 
+                PKIX_CHECK(PKIX_CertStore_GetCertStoreCacheFlag
+                        (store, &cacheFlag, plContext),
+                        "PKIX_CertStore_GetCertStoreCacheFlag failed");
+
                 PKIX_CHECK(PKIX_List_Create(&filtered, plContext),
                         "PKIX_List_Create failed");
 
@@ -3140,6 +3145,11 @@ pkix_pl_LdapCertStore_GetCert(
                                 "PKIX_CertSelector_MatchCallback failed");
 
                         if ((!(PKIX_ERROR_RECEIVED)) && (match == PKIX_TRUE)) {
+
+                                PKIX_CHECK(PKIX_PL_Cert_SetCacheFlag
+                                        (candidate, cacheFlag, plContext),
+                                        "PKIX_PL_Cert_SetCacheFlag failed");
+
                                 PKIX_CHECK_ONLY_FATAL(PKIX_List_AppendItem
                                         (filtered,
                                         (PKIX_PL_Object *)candidate,
@@ -3354,6 +3364,8 @@ PKIX_PL_LdapCertStore_Create(
                 (pkix_pl_LdapCertStore_GetCert,
                 pkix_pl_LdapCertStore_GetCRL,
                 (PKIX_PL_Object *)ldapCertStoreContext,
+                PKIX_TRUE, /* cache flag */
+                NULL, /* don't support trust */
                 &certStore,
                 plContext),
                 "PKIX_CertStore_Create failed");

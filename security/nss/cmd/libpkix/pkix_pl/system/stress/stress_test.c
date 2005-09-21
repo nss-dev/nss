@@ -126,7 +126,7 @@ int main(int argc, char *argv[]) {
         /* ---------------------------- */
         subTest("Put each string into a Hashtable");
         PKIX_TEST_EXPECT_NO_ERROR
-                (PKIX_PL_HashTable_Create(size/2, &ht, plContext));
+                (PKIX_PL_HashTable_Create(size/2, 0, &ht, plContext));
 
         for (i = 0; i < size; i++) {
                 PKIX_TEST_EXPECT_NO_ERROR

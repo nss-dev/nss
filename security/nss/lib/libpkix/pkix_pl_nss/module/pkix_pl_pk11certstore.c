@@ -46,6 +46,62 @@
 /* --Private-Pk11CertStore-Functions---------------------------------- */
 
 /*
+ * FUNCTION: pkix_pl_Pk11CertStore_CheckTrust
+ * DESCRIPTION:
+ * This function checks the trust status of this "cert" that was retrieved
+ * from the CertStore "store" and returns its trust status at "pTrusted".
+ *
+ * PARAMETERS:
+ * "store"
+ *      Address of the CertStore. Must be non-NULL.
+ * "cert"
+ *      Address of the Cert. Must be non-NULL.
+ * "pTrusted"
+ *      Address of PKIX_Boolean where the "cert" trust status is returned.
+ *      Must be non-NULL.
+ * "plContext"
+ *      Platform-specific context pointer
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a CertStore Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+static PKIX_Error *
+pkix_pl_Pk11CertStore_CheckTrust(
+        PKIX_CertStore *store,
+        PKIX_PL_Cert *cert,
+        PKIX_Boolean *pTrusted,
+        void *plContext)
+{
+        CERTCertTrust nssTrusted;
+        SECStatus rv = SECFailure;
+        PKIX_Boolean trusted = PKIX_FALSE;
+        PKIX_UInt32 trustedValues = 0;
+
+        PKIX_ENTER(CERTSTORE, "pkix_pl_Pk11CertStore_CheckTrust");
+        PKIX_NULLCHECK_THREE(store, cert, pTrusted);
+        PKIX_NULLCHECK_ONE(cert->nssCert);
+
+        trustedValues = CERTDB_TRUSTED_CA | CERTDB_VALID_CA;
+
+        PKIX_CERT_DEBUG("\t\tCalling CERT_GetCertTrust).\n");
+        rv = CERT_GetCertTrust(cert->nssCert, &nssTrusted);
+        if (SECSuccess == rv) {
+                if (nssTrusted.sslFlags & trustedValues ||
+                    nssTrusted.emailFlags & trustedValues ||
+                    nssTrusted.objectSigningFlags & trustedValues) {
+                        trusted = PKIX_TRUE;
+                }
+        }
+
+        *pTrusted = trusted;
+
+        PKIX_RETURN(CERTSTORE);
+}
+
+/*
  * FUNCTION: pkix_pl_Pk11CertStore_CertQuery
  * DESCRIPTION:
  *
@@ -420,8 +476,10 @@ pkix_pl_Pk11CertStore_GetCert(
         PKIX_List *selected = NULL;
         PKIX_List *filtered = NULL;
         PKIX_CertSelector_MatchCallback callback = NULL;
+        PKIX_CertStore_CheckTrustCallback trustCallback = NULL;
         PKIX_ComCertSelParams *params = NULL;
         PKIX_Boolean pass = PKIX_TRUE;
+        PKIX_Boolean cacheFlag = PKIX_FALSE;
 
         PKIX_ENTER(CERTSTORE, "pkix_pl_Pk11CertStore_GetCert");
         PKIX_NULLCHECK_THREE(store, selector, pCertList);
@@ -443,6 +501,14 @@ pkix_pl_Pk11CertStore_GetCert(
                         "PKIX_List_GetLength failed");
         }
 
+        PKIX_CHECK(PKIX_CertStore_GetCertStoreCacheFlag
+                (store, &cacheFlag, plContext),
+                "PKIX_CertStore_GetCertStoreCacheFlag failed");
+
+        PKIX_CHECK(PKIX_CertStore_GetTrustCallback
+                (store, &trustCallback, plContext),
+                "PKIX_CertStore_GetTrustCallback failed");
+
         PKIX_CHECK(PKIX_List_Create(&filtered, plContext),
                 "PKIX_List_Create failed");
 
@@ -463,6 +529,17 @@ pkix_pl_Pk11CertStore_GetCert(
                         "certSelector failed");
 
                 if (!(PKIX_ERROR_RECEIVED) && pass) {
+
+                        PKIX_CHECK(PKIX_PL_Cert_SetCacheFlag
+                                (candidate, cacheFlag, plContext),
+                                "PKIX_PL_Cert_SetCacheFlag failed");
+
+                        if (trustCallback) {
+                                PKIX_CHECK(PKIX_PL_Cert_SetTrustCertStore
+                                    (candidate, store, plContext),
+                                    "PKIX_PL_Cert_SetTrustCertStore failed");
+                        }
+
                         PKIX_CHECK_ONLY_FATAL(PKIX_List_AppendItem
                                 (filtered,
                                 (PKIX_PL_Object *)candidate,
@@ -599,6 +676,8 @@ PKIX_PL_Pk11CertStore_Create(
                 (pkix_pl_Pk11CertStore_GetCert,
                 pkix_pl_Pk11CertStore_GetCRL,
                 NULL,
+                PKIX_TRUE, /* cache flag */
+                pkix_pl_Pk11CertStore_CheckTrust,
                 &certStore,
                 plContext),
                 "PKIX_CertStore_Create failed");
