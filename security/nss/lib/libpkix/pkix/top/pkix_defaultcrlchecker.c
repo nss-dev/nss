@@ -276,6 +276,7 @@ pkix_DefaultCRLChecker_CheckCRLs(
         PKIX_UInt32 numKeys = 0;
         PKIX_UInt32 numCritExtOIDs = 0;
         PKIX_Boolean crlVerified = PKIX_FALSE;
+        PKIX_Boolean crlRevoking = PKIX_FALSE;
         PKIX_Int32 reasonCode = 0;
         PKIX_UInt32 i;
         PKIX_Int32 j;
@@ -390,6 +391,8 @@ pkix_DefaultCRLChecker_CheckCRLs(
                     goto cleanup_loop;
                 }
 
+                crlRevoking = PKIX_TRUE;
+
                 PKIX_CHECK(PKIX_PL_CRLEntry_GetCRLEntryReasonCode
                             (crlEntry,
                             &reasonCode,
@@ -446,11 +449,8 @@ pkix_DefaultCRLChecker_CheckCRLs(
                     }
                 }
 
-                PKIX_ERROR("Certificate is revoked by CRL");
-
-                break;
-
         cleanup_loop:
+
                 PKIX_DECREF(pKey);
                 PKIX_DECREF(verifyFail);
                 PKIX_DECREF(pKey);
@@ -460,7 +460,12 @@ pkix_DefaultCRLChecker_CheckCRLs(
                 PKIX_DECREF(unresCrlEntryCritExtOIDs);
         }
 
-        *pCrlEntryList = NULL;
+        *pCrlEntryList = crlEntryList;
+
+        if (crlRevoking == PKIX_TRUE) {
+
+                PKIX_ERROR("Certificate is revoked by CRL");
+        }
 
 cleanup:
 
@@ -679,7 +684,7 @@ pkix_DefaultCRLChecker_Check_Helper(
                     PKIX_DECREF(crlList);
                     PKIX_DECREF(certStore);
 
-                } else {
+               } else {
 
                     /* Use cached data */
                     state->certHasValidCrl = PKIX_TRUE;
@@ -723,6 +728,8 @@ pkix_DefaultCRLChecker_Check_Helper(
                     }
  
                 }
+                PKIX_DECREF(crlEntryList);
+
         }
 
         if (state->certHasValidCrl == PKIX_FALSE) {
@@ -738,7 +745,6 @@ cleanup:
         PKIX_DECREF(certIssuer);
         PKIX_DECREF(certStore);
         PKIX_DECREF(crlList);
-        PKIX_DECREF(crlEntryList);
         PKIX_DECREF(crlEntryList);
         PKIX_DECREF(checkCrlFail);
 

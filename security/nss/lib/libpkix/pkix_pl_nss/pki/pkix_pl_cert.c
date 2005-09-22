@@ -1200,6 +1200,7 @@ pkix_pl_Cert_Destroy(
         PKIX_DECREF(cert->certPolicyInfos);
         PKIX_DECREF(cert->certPolicyMappings);
         PKIX_DECREF(cert->nameConstraints);
+        PKIX_DECREF(cert->store);
 
         if (cert->arenaNameConstraints){
                 /* This arena was allocated for SubjectAltNames */
@@ -1212,10 +1213,6 @@ pkix_pl_Cert_Destroy(
         PKIX_CERT_DEBUG("\t\tCalling CERT_DestroyCertificate).\n");
         CERT_DestroyCertificate(cert->nssCert);
         cert->nssCert = NULL;
-
-        if (cert->store) {
-		PKIX_DECREF(cert->store);
-        }
 
 cleanup:
 
