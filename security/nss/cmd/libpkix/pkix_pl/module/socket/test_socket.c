@@ -425,6 +425,7 @@ int main(int argc, char *argv[]) {
         PRStatus prstatus = PR_FAILURE;
         PRErrorCode cStat = 0;
         void *ipaddr = NULL;
+	PKIX_Error *bindError = NULL;
 
         PKIX_TEST_STD_VARS();
 
@@ -488,11 +489,25 @@ int main(int argc, char *argv[]) {
         backlog = 5;
 
         /* timeout = PR_INTERVAL_NO_TIMEOUT; */
+        /* timeout = 0; nonblocking */
         timeout = 0;
-        /* timeout = 0; /* nonblocking */
 
-        PKIX_TEST_EXPECT_NO_ERROR(pkix_pl_Socket_Create
-            (PKIX_TRUE, timeout, &serverNetAddr, &cStat, &sSock, plContext));
+	bindError = pkix_pl_Socket_Create
+            (PKIX_TRUE, timeout, &serverNetAddr, &cStat, &sSock, plContext);
+
+	/* If PR_Bind can't handle INADDR_ANY, try it with the real name */
+	if (bindError) {
+		PKIX_TEST_DECREF_BC(bindError);
+        	serverNetAddr.inet.ip = PR_htonl(*(PRUint32 *)ipaddr); 
+
+        	PKIX_TEST_EXPECT_NO_ERROR(pkix_pl_Socket_Create
+            		(PKIX_TRUE,
+			timeout,
+			&serverNetAddr,
+			&cStat,
+			&sSock,
+			plContext));
+	}
 
         PKIX_TEST_EXPECT_NO_ERROR(pkix_pl_Socket_GetCallbackList
             (sSock, &sCallbackList, plContext));
