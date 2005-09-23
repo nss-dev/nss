@@ -89,6 +89,12 @@ pkix_List_AppendList(
         void *plContext);
 
 PKIX_Error *
+pkix_List_AppendUnique(
+        PKIX_List *toList,
+        PKIX_List *fromList,
+        void *plContext);
+
+PKIX_Error *
 pkix_List_RemoveItems(
         PKIX_List *list,
         PKIX_List *deleteList,

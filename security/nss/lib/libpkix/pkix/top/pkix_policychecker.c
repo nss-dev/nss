@@ -1866,73 +1866,6 @@ cleanup:
 }
 
 /*
- * FUNCTION: pkix_PolicyChecker_AppendUnique
- * DESCRIPTION:
- *
- *  Adds each Object in the List pointed to by "source" to the List pointed to
- *  by "sink", if it is not already a member of that List. In other words,
- *  "sink" becomes the union of the two sets.
- *
- * PARAMETERS:
- *  "source"
- *      Address of a List of Objects to be added, if not already present, to
- *      "sink". Must be non-NULL, but may be empty.
- *  "sink"
- *      Address of a List of Objects to be augmented by "source". Must be
- *      non-NULL, but may be empty.
- *  "plContext"
- *      Platform-specific context pointer.
- * THREAD SAFETY:
- *  Not Thread Safe (see Thread Safety Definitions in Programmer's Guide)
- * RETURNS:
- *  Returns NULL if the function succeeds
- *  Returns a CertChainChecker Error if the functions fails in a non-fatal way
- *  Returns a Fatal Error if the function fails in an unrecoverable way
- */
-static PKIX_Error *
-pkix_PolicyChecker_AppendUnique(
-        PKIX_List *source,
-        PKIX_List *sink,
-        void *plContext)
-{
-        PKIX_Boolean isContained = PKIX_FALSE;
-        PKIX_UInt32 listLen = 0;
-        PKIX_UInt32 listIx = 0;
-        PKIX_PL_Object *object;
-
-        PKIX_ENTER(CERTCHAINCHECKER, "pkix_PolicyChecker_AppendUnique");
-        PKIX_NULLCHECK_TWO(source, sink);
-
-        PKIX_CHECK(PKIX_List_GetLength(source, &listLen, plContext),
-                "PKIX_List_GetLength failed");
-
-        for (listIx = 0; listIx < listLen; listIx++) {
-
-                PKIX_CHECK(PKIX_List_GetItem
-                        (source, listIx, &object, plContext),
-                        "PKIX_List_GetItem failed");
-
-                PKIX_CHECK(pkix_List_Contains
-                        (sink, object, &isContained, plContext),
-                        "PKIX_List_Contains failed");
-
-                if (isContained == PKIX_FALSE) {
-                        PKIX_CHECK(PKIX_List_AppendItem
-                                (sink, object, plContext),
-                                "PKIX_List_AppendItem failed");
-                }
-
-                PKIX_DECREF(object);
-        }
-
-cleanup:
-
-        PKIX_DECREF(object);
-
-        PKIX_RETURN(CERTCHAINCHECKER);
-}
-
-/*
  * FUNCTION: pkix_PolicyChecker_PolicyMapProcessing
  * DESCRIPTION:
  *
@@ -2019,11 +1952,11 @@ pkix_PolicyChecker_PolicyMapProcessing(
 
             if (subjectDomainPolicies) {
 
-                PKIX_CHECK(pkix_PolicyChecker_AppendUnique
-                        (subjectDomainPolicies,
-                        newMappedPolicies,
+                PKIX_CHECK(pkix_List_AppendUnique
+                        (newMappedPolicies,
+                        subjectDomainPolicies,
                         plContext),
-                        "pkix_PolicyChecker_AppendUnique failed");
+                        "pkix_List_AppendUnique failed");
 
                 PKIX_DECREF(subjectDomainPolicies);
 
@@ -2084,11 +2017,11 @@ pkix_PolicyChecker_PolicyMapProcessing(
                         plContext),
                         "pkix_PolicyChecker_Spawn failed");
 
-                    PKIX_CHECK(pkix_PolicyChecker_AppendUnique
-                        (subjectDomainPolicies,
-                        newMappedPolicies,
+                    PKIX_CHECK(pkix_List_AppendUnique
+                        (newMappedPolicies,
+                        subjectDomainPolicies,
                         plContext),
-                        "pkix_PolicyChecker_AppendUnique failed");
+                        "pkix_List_AppendUnique failed");
 
                     PKIX_DECREF(subjectDomainPolicies);
                     PKIX_DECREF(policyOID);

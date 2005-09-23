@@ -626,7 +626,6 @@ pkix_List_RegisterSelf(void *plContext)
  *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
  * RETURNS:
  *  Returns NULL if the function succeeds
- *  Returns a Validate Error if the functions fails in a non-fatal way
  *  Returns a Fatal Error if the function fails in an unrecoverable way
  */
 PKIX_Error *
@@ -957,6 +956,74 @@ cleanup:
 
         PKIX_RETURN(LIST);
 }
+
+/*
+ * FUNCTION: pkix_List_AppendUnique
+ * DESCRIPTION:
+ *
+ *  Adds each Object in the List pointed to by "fromList" to the List pointed
+ *  to by "toList", if it is not already a member of that List. In other words,
+ *  "toList" becomes the union of the two sets.
+ *
+ * PARAMETERS:
+ *  "fromList"
+ *      Address of a List of Objects to be added, if not already present, to
+ *      "toList". Must be non-NULL, but may be empty.
+ *  "toList"
+ *      Address of a List of Objects to be augmented by "fromList". Must be
+ *      non-NULL, but may be empty.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Not Thread Safe - assumes exclusive access to "toList"
+ *  (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds
+ *  Returns a Fatal Error if the function fails in an unrecoverable way
+ */
+PKIX_Error *
+pkix_List_AppendUnique(
+        PKIX_List *toList,
+        PKIX_List *fromList,
+        void *plContext)
+{
+        PKIX_Boolean isContained = PKIX_FALSE;
+        PKIX_UInt32 listLen = 0;
+        PKIX_UInt32 listIx = 0;
+        PKIX_PL_Object *object;
+
+        PKIX_ENTER(BUILD, "pkix_AppendUnique");
+        PKIX_NULLCHECK_TWO(fromList, toList);
+
+        PKIX_CHECK(PKIX_List_GetLength(fromList, &listLen, plContext),
+                "PKIX_List_GetLength failed");
+
+        for (listIx = 0; listIx < listLen; listIx++) {
+
+                PKIX_CHECK(PKIX_List_GetItem
+                        (fromList, listIx, &object, plContext),
+                        "PKIX_List_GetItem failed");
+
+                PKIX_CHECK(pkix_List_Contains
+                        (toList, object, &isContained, plContext),
+                        "PKIX_List_Contains failed");
+
+                if (isContained == PKIX_FALSE) {
+                        PKIX_CHECK(PKIX_List_AppendItem
+                                (toList, object, plContext),
+                                "PKIX_List_AppendItem failed");
+                }
+
+                PKIX_DECREF(object);
+        }
+
+cleanup:
+
+        PKIX_DECREF(object);
+
+        PKIX_RETURN(LIST);
+}
+
 
 /* --Public-List-Functions--------------------------------------------- */
 
