@@ -51,24 +51,45 @@ extern "C" {
 
 typedef struct PKIX_ForwardBuilderStateStruct PKIX_ForwardBuilderState;
 
-struct PKIX_ForwardBuilderStateStruct{
-        PKIX_PL_Cert *prevCert;         /* changes */
-        PKIX_Int32 traversedCACerts;    /* changes */
-        PKIX_List *traversedSubjNames;  /* changes */
-        PKIX_Boolean dsaParamsNeeded;   /* changes */
-        PKIX_Boolean revCheckDelayed;   /* changes */
-        PKIX_PL_Date *validityDate;     /* changes */
-        PKIX_Boolean cacheFlag;         /* changes */
-        PKIX_BuildParams *buildParams;  /* rest don't change */
+typedef enum {
+	BUILD_INITIAL,
+	BUILD_IOPENDING,
+	BUILD_COLLECTINGCERTS,
+	BUILD_CHAINBUILDING
+} BuildStatus;
+
+typedef struct BuildConstantsStruct BuildConstants;
+
+struct BuildConstantsStruct {
+        PKIX_UInt32 numAnchors;
+        PKIX_UInt32 numCertStores;
+        PKIX_ProcessingParams *procParams;
         PKIX_PL_Date *testDate;
         PKIX_PL_Cert *targetCert;
         PKIX_PL_PublicKey *targetPubKey;
         PKIX_List *certStores;
-        PKIX_UInt32 numCertStores;
         PKIX_List *anchors;
-        PKIX_UInt32 numAnchors;
-        PKIX_CertChainChecker *crlCheckerEnabled;
         PKIX_List *userCheckers;
+        PKIX_CertChainChecker *crlChecker;
+};
+
+struct PKIX_ForwardBuilderStateStruct{
+	BuildStatus status;
+        PKIX_Int32 traversedCACerts;
+        PKIX_UInt32 certStoreIndex;
+        PKIX_UInt32 numCerts;
+        PKIX_UInt32 certIndex;
+        PKIX_Boolean dsaParamsNeeded;
+        PKIX_Boolean revCheckDelayed;
+	PKIX_Boolean canBeCached;
+	PKIX_PL_Date *validityDate;
+        PKIX_PL_Cert *prevCert;
+	PKIX_PL_Cert *candidateCert;
+        PKIX_List *traversedSubjNames;
+	PKIX_List *trustChain;
+	PKIX_List *candidateCerts;
+	PKIX_CertSelector *certSel;
+	PKIX_ForwardBuilderState *parentState;
 };
 
 /* --Private-Functions-------------------------------------------- */
