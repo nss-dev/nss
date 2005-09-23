@@ -1154,10 +1154,7 @@ pkix_CacheCertChain_Lookup(
         PKIX_List* anchors,
         PKIX_PL_Date *testDate,
         PKIX_Boolean *pFound,
-        PKIX_TrustAnchor **pMatchingAnchor,
-        PKIX_List **pCerts,
-        PKIX_PL_PublicKey **pFinalSubjPubKey,
-        PKIX_PolicyNode **pFinalPolicyTree,
+        PKIX_BuildResult **pBuildResult,
         void *plContext);
 
 PKIX_Error *
@@ -1165,10 +1162,7 @@ pkix_CacheCertChain_Add(
         PKIX_PL_Cert* targetCert,
         PKIX_List* anchors,
         PKIX_PL_Date *validityDate,
-        PKIX_TrustAnchor *matchingAnchor,
-        PKIX_List *certs,
-        PKIX_PL_PublicKey *finalSubjPubKey,
-        PKIX_PolicyNode *finalPolicyTree,
+        PKIX_BuildResult *buildResult,
         void *plContext);
 
 PKIX_Error *
