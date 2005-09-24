@@ -128,7 +128,6 @@ PKIX_PL_NssContext_Destroy(
  *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
  * RETURNS:
  *  Returns NULL if the function succeeds.
- *  Returns a Context Error if the function fails in a non-fatal way.
  *  Returns a Fatal Error if the function fails in an unrecoverable way.
  */
 PKIX_Error *
