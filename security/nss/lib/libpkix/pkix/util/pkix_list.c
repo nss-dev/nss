@@ -990,7 +990,7 @@ pkix_List_AppendUnique(
         PKIX_Boolean isContained = PKIX_FALSE;
         PKIX_UInt32 listLen = 0;
         PKIX_UInt32 listIx = 0;
-        PKIX_PL_Object *object;
+        PKIX_PL_Object *object = NULL;
 
         PKIX_ENTER(BUILD, "pkix_AppendUnique");
         PKIX_NULLCHECK_TWO(fromList, toList);
