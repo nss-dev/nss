@@ -45,6 +45,7 @@
 #include "nspr.h"
 #include "mcom_db.h"
 #include "pcertt.h"
+#include "prtypes.h"
 
 /*
  * Handle structure for open certificate databases
@@ -53,7 +54,10 @@ struct NSSLOWCERTCertDBHandleStr {
     DB *permCertDB;
     PZMonitor *dbMon;
     PRBool dbVerify;
+    PRInt32  ref; /* reference count */
 };
+
+#define nsslowcert_reference(x) (PR_AtomicIncrement(&(x)->ref) , (x))
 
 #ifdef DBM_USING_NSPR
 #define NO_RDONLY	PR_RDONLY
