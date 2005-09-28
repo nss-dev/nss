@@ -449,6 +449,7 @@ nsslowcert_DecodeDERCertificate(SECItem *derSignedCert, char *nickname)
     cert->subjectKeyID.len = 0;
     cert->dbEntry = NULL;
     cert ->trust = NULL;
+    cert ->dbhandle = NULL;
 
     /* generate and save the database key for the cert */
     rv = nsslowcert_KeyFromIssuerAndSNStatic(cert->certKeySpace,
