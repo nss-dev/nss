@@ -557,7 +557,8 @@ ssl3_config_match_init(sslSocket *ss)
 	    /* Mark the suites that are backed by real tokens, certs and keys */
 	    suite->isPresent = (PRBool)
 		(((exchKeyType == kt_null) ||
-		    ((!isServer || (svrAuth->SERVERKEY &&
+		   ((!isServer || (svrAuth->serverKeyPair &&
+		                   svrAuth->SERVERKEY &&
 				   svrAuth->serverCertChain)) &&
 		    PK11_TokenExists(kea_alg_defs[exchKeyType]))) &&
 		((cipher_alg == calg_null) || PK11_TokenExists(cipher_mech)));
