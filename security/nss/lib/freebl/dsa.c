@@ -53,7 +53,7 @@
 
 /* DSA-specific random number function defined in prng_fips1861.c. */
 extern SECStatus 
-DSA_GenerateGlobalRandomBytes(void *dest, size_t len, unsigned char *q);
+DSA_GenerateGlobalRandomBytes(void *dest, size_t len, const unsigned char *q);
 
 static void translate_mpi_error(mp_err err)
 {
