@@ -35,51 +35,35 @@
  *
  * ***** END LICENSE BLOCK ***** */
 /*
- * pkix_procparams.h
+ * pkix_resourcelimits.h
  *
- * ProcessingParams Object Type Definition
+ * ResourceLimits Object Type Definition
  *
  */
 
-#ifndef _PKIX_PROCESSINGPARAMS_H
-#define _PKIX_PROCESSINGPARAMS_H
+#ifndef _PKIX_RESOURCELIMITS_H
+#define _PKIX_RESOURCELIMITS_H
 
 #include "pkix_tools.h"
-
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-struct PKIX_ProcessingParamsStruct {
-        PKIX_List *trustAnchors;        /* Never NULL */
-        PKIX_CertSelector *constraints;
-        PKIX_PL_Date *date;
-        PKIX_List *initialPolicies;     /* list of PKIX_PL_OID */
-        PKIX_Boolean initialPolicyMappingInhibit;
-        PKIX_Boolean initialAnyPolicyInhibit;
-        PKIX_Boolean initialExplicitPolicy;
-        PKIX_Boolean qualifiersRejected;
-        PKIX_List *certChainCheckers;
-        PKIX_List *revCheckers;
-        PKIX_List *certStores;
-        PKIX_List *mutableCertStores;
-        PKIX_Boolean isCrlRevocationCheckingEnabled;
-        PKIX_ResourceLimits *resourceLimits;
+struct PKIX_ResourceLimitsStruct {
+        PKIX_UInt32 maxTime;
+        PKIX_UInt32 maxFanout;
+        PKIX_UInt32 maxDepth;
+        PKIX_UInt32 maxCertsNumber;
+        PKIX_UInt32 maxCrlsNumber;
 };
 
 /* see source file for function documentation */
 
-PKIX_Error *pkix_ProcessingParams_RegisterSelf(void *plContext);
-
-PKIX_Error *
-pkix_ProcessingParams_GetRevocationEnabled(
-        PKIX_ProcessingParams *params,
-        PKIX_Boolean *pEnabled,
-        void *plContext);
+PKIX_Error *pkix_ResourceLimits_RegisterSelf(void *plContext);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* _PKIX_PROCESSINGPARAMS_H */
+#endif /* _PKIX_RESOURCELIMITS_H */

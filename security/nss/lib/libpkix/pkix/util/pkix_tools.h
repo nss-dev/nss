@@ -63,6 +63,7 @@
 #include "pkix_signaturechecker.h"
 #include "pkix_targetcertchecker.h"
 #include "pkix_valresult.h"
+#include "pkix_resourcelimits.h"
 #include "pkix_defaultcrlchecker.h"
 #include "pkix_nameconstraintschecker.h"
 #include "pkix_comcertselparams.h"
@@ -443,6 +444,7 @@ extern "C" {
 #define PKIX_LDAPREQUESTDEBUG           1
 #define PKIX_LDAPRESPONSEDEBUG          1
 #define PKIX_SOCKETDEBUG                1
+#define PKIX_RESOURCELIMITSDEBUG        1
 #endif
 
 /*
@@ -1063,6 +1065,16 @@ extern "C" {
 #define PKIX_SOCKET_DEBUG_ARG(expr, arg)
 #endif
 
+#if PKIX_RESOURCELIMITSDEBUG
+#define PKIX_RESOURCELIMITS_DEBUG(expr) \
+        PKIX_DEBUG(expr)
+#define PKIX_RESOURCELIMITS_DEBUG_ARG(expr, arg) \
+        PKIX_DEBUG_ARG(expr, arg)
+#else
+#define PKIX_RESOURCELIMITS_DEBUG(expr)
+#define PKIX_RESOURCELIMITS_DEBUG_ARG(expr, arg)
+#endif
+
 /*
  * All object types register themselves with the system using a
  * pkix_ClassTable_Entry, which consists of a set of functions for that
@@ -1155,6 +1167,12 @@ pkix_CacheCertChain_Lookup(
         PKIX_PL_Date *testDate,
         PKIX_Boolean *pFound,
         PKIX_BuildResult **pBuildResult,
+        void *plContext);
+
+PKIX_Error *
+pkix_CacheCertChain_Remove(
+        PKIX_PL_Cert* targetCert,
+        PKIX_List* anchors,
         void *plContext);
 
 PKIX_Error *

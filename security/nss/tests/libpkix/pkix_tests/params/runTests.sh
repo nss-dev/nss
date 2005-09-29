@@ -222,6 +222,7 @@ test_valparams
 test_procparams
 test_trustanchor NIST-Test-Files-Used
 test_buildparams
+test_resourcelimits
 EOF
 
     if [[ ${errors} -eq 0 ]]; then

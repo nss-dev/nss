@@ -704,6 +704,71 @@ PKIX_ProcessingParams_GetTrustAnchors(
         void *plContext);
 
 /*
+ * FUNCTION: PKIX_ProcessingParams_GetResourceLimits
+ * DESCRIPTION:
+ *
+ *  Retrieves a pointer to the ResourceLimits (if any) that is set in the
+ *  ProcessingParams pointed to by "params" and stores it at "pResourceLimits".
+ *  The ResourceLimits represent the maximum resource usage that the caller 
+ *  desires (such as MaxTime). The ValidateChain or BuildChain call will not
+ *  exceed these maximum limits. If "params" does not have any ResourceLimits
+ *  set, this function stores NULL at "pResourceLimits".
+ *
+ * PARAMETERS:
+ *  "params"
+ *      Address of ProcessingParams whose ResourceLimits (if any) are to be
+ *      stored. Must be non-NULL.
+ *  "pResourceLimits"
+ *      Address where object pointer will be stored. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Conditionally Thread Safe
+ *      (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Params Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_ProcessingParams_GetResourceLimits(
+        PKIX_ProcessingParams *params,
+        PKIX_ResourceLimits **pResourceLimits,
+        void *plContext);
+
+/*
+ * FUNCTION: PKIX_ProcessingParams_SetResourceLimits
+ * DESCRIPTION:
+ *
+ *  Sets the ProcessingParams pointed to by "params" with a ResourceLimits
+ *  object pointed to by "resourceLimits". The ResourceLimits represent the
+ *  maximum resource usage that the caller desires (such as MaxTime). The
+ *  ValidateChain or BuildChain call will not exceed these maximum limits.
+ *  If "resourceLimits" is NULL, no ResourceLimits are defined.
+ *
+ * PARAMETERS:
+ *  "params"
+ *      Address of ProcessingParams whose ResourceLimits are to be set.
+ *      Must be non-NULL.
+ *  "resourceLimits"
+ *      Address of ResourceLimits to be set. If NULL, no limits are defined.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Not Thread Safe - assumes exclusive access to "params"
+ *  (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Params Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_ProcessingParams_SetResourceLimits(
+        PKIX_ProcessingParams *params,
+        PKIX_ResourceLimits *resourceLimits,
+        void *plContext);
+
+/*
  * FUNCTION: PKIX_ProcessingParams_IsAnyPolicyInhibited
  * DESCRIPTION:
  *
@@ -1292,6 +1357,391 @@ PKIX_Error *
 PKIX_TrustAnchor_GetNameConstraints(
         PKIX_TrustAnchor *anchor,
         PKIX_PL_CertNameConstraints **pNameConstraints,
+        void *plContext);
+
+/* PKIX_ResourceLimits
+ *
+ *  A PKIX_ResourceLimits object represents the maximum resource usage that
+ *  the caller desires. The ValidateChain or BuildChain call
+ *  will not exceed these maximum limits. For example, the caller may want
+ *  a timeout value of 1 minute, meaning that if the ValidateChain or
+ *  BuildChain function is unable to finish in 1 minute, it should abort
+ *  with an Error.
+ */
+
+/*
+ * FUNCTION: PKIX_ResourceLimits_Create
+ * DESCRIPTION:
+ *
+ *  Creates a new ResourceLimits object and stores it at "pResourceLimits".
+ *
+ * PARAMETERS:
+ *  "pResourceLimits"
+ *      Address where object pointer will be stored. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a ResourceLimits Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_ResourceLimits_Create(
+        PKIX_ResourceLimits **pResourceLimits,
+        void *plContext);
+
+/*
+ * FUNCTION: PKIX_ResourceLimits_GetMaxTime
+ * DESCRIPTION:
+ *
+ *  Retrieves a PKIX_UInt32 (if any) representing the maximum time that is
+ *  set in the ResourceLimits object pointed to by "resourceLimits" and stores
+ *  it at "pMaxTime". This maximum time (in seconds) should not be exceeded
+ *  by the function whose ProcessingParams contain this ResourceLimits object
+ *  (typically ValidateChain or BuildChain). It essentially functions as a
+ *  time-out value and is only appropriate if blocking I/O is being used.
+ *
+ * PARAMETERS:
+ *  "resourceLimits"
+ *      Address of ResourceLimits object whose maximum time (in seconds) is
+ *      to be stored. Must be non-NULL.
+ *  "pMaxTime"
+ *      Address where PKIX_UInt32 will be stored. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Conditionally Thread Safe
+ *      (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a ResourceLimits Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_ResourceLimits_GetMaxTime(
+        PKIX_ResourceLimits *resourceLimits,
+        PKIX_UInt32 *pMaxTime,
+        void *plContext);
+
+/*
+ * FUNCTION: PKIX_ResourceLimits_SetMaxTime
+ * DESCRIPTION:
+ *
+ *  Sets the maximum time of the ResourceLimits object pointed to by
+ *  "resourceLimits" using the PKIX_UInt32 value of "maxTime". This
+ *  maximum time (in seconds) should not be exceeded by the function
+ *  whose ProcessingParams contain this ResourceLimits object
+ *  (typically ValidateChain or BuildChain). It essentially functions as a
+ *  time-out value and is only appropriate if blocking I/O is being used.
+ *
+ * PARAMETERS:
+ *  "resourceLimits"
+ *      Address of ResourceLimits object whose maximum time (in seconds) is
+ *      to be set. Must be non-NULL.
+ *  "maxTime"
+ *      Value of PKIX_UInt32 representing the maximum time (in seconds)
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Not Thread Safe - assumes exclusive access to "params"
+ *  (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a ResourceLimits Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_ResourceLimits_SetMaxTime(
+        PKIX_ResourceLimits *resourceLimits,
+        PKIX_UInt32 maxTime,
+        void *plContext);
+
+/*
+ * FUNCTION: PKIX_ResourceLimits_GetMaxFanout
+ * DESCRIPTION:
+ *
+ *  Retrieves a PKIX_UInt32 (if any) representing the maximum fanout that is
+ *  set in the ResourceLimits object pointed to by "resourceLimits" and stores
+ *  it at "pMaxFanout". This maximum fanout (number of certs) should not be
+ *  exceeded by the function whose ProcessingParams contain this ResourceLimits
+ *  object (typically ValidateChain or BuildChain). If the builder encounters
+ *  more than this maximum number of certificates when searching for the next
+ *  candidate certificate, it should abort and return an error. This
+ *  parameter is only relevant for ValidateChain if it needs to internally call
+ *  BuildChain (e.g. in order to build the chain to a CRL's issuer).
+ *
+ * PARAMETERS:
+ *  "resourceLimits"
+ *      Address of ResourceLimits object whose maximum fanout (number of certs)
+ *      is to be stored. Must be non-NULL.
+ *  "pMaxFanout"
+ *      Address where PKIX_UInt32 will be stored. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Conditionally Thread Safe
+ *      (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a ResourceLimits Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_ResourceLimits_GetMaxFanout(
+        PKIX_ResourceLimits *resourceLimits,
+        PKIX_UInt32 *pMaxFanout,
+        void *plContext);
+
+/*
+ * FUNCTION: PKIX_ResourceLimits_SetMaxFanout
+ * DESCRIPTION:
+ *
+ *  Sets the maximum fanout of the ResourceLimits object pointed to by
+ *  "resourceLimits" using the PKIX_UInt32 value of "maxFanout". This maximum
+ *  fanout (number of certs) should not be exceeded by the function whose
+ *  ProcessingParams contain this ResourceLimits object (typically ValidateChain
+ *  or BuildChain). If the builder encounters more than this maximum number of
+ *  certificates when searching for the next candidate certificate, it should
+ *  abort and return an Error. This parameter is only relevant for ValidateChain
+ *  if it needs to internally call BuildChain (e.g. in order to build the
+ *  chain to a CRL's issuer).
+ *
+ * PARAMETERS:
+ *  "resourceLimits"
+ *      Address of ResourceLimits object whose maximum fanout (number of certs)
+ *      is to be set. Must be non-NULL.
+ *  "maxFanout"
+ *      Value of PKIX_UInt32 representing the maximum fanout (number of certs)
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Not Thread Safe - assumes exclusive access to "params"
+ *  (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a ResourceLimits Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_ResourceLimits_SetMaxFanout(
+        PKIX_ResourceLimits *resourceLimits,
+        PKIX_UInt32 maxFanout,
+        void *plContext);
+
+/*
+ * FUNCTION: PKIX_ResourceLimits_GetMaxDepth
+ * DESCRIPTION:
+ *
+ *  Retrieves a PKIX_UInt32 (if any) representing the maximum depth that is
+ *  set in the ResourceLimits object pointed to by "resourceLimits" and stores
+ *  it at "pMaxDepth". This maximum depth (number of certs) should not be
+ *  exceeded by the function whose ProcessingParams contain this ResourceLimits
+ *  object (typically ValidateChain or BuildChain). If the builder encounters
+ *  more than this maximum number of certificates when searching for the next
+ *  candidate certificate, it should abort and return an error. This
+ *  parameter is only relevant for ValidateChain if it needs to internally call
+ *  BuildChain (e.g. in order to build the chain to a CRL's issuer).
+ *
+ * PARAMETERS:
+ *  "resourceLimits"
+ *      Address of ResourceLimits object whose maximum depth (number of certs)
+ *      is to be stored. Must be non-NULL.
+ *  "pMaxDepth"
+ *      Address where PKIX_UInt32 will be stored. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Conditionally Thread Safe
+ *      (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a ResourceLimits Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_ResourceLimits_GetMaxDepth(
+        PKIX_ResourceLimits *resourceLimits,
+        PKIX_UInt32 *pMaxDepth,
+        void *plContext);
+
+/*
+ * FUNCTION: PKIX_ResourceLimits_SetMaxDepth
+ * DESCRIPTION:
+ *
+ *  Sets the maximum depth of the ResourceLimits object pointed to by
+ *  "resourceLimits" using the PKIX_UInt32 value of "maxDepth". This maximum
+ *  depth (number of certs) should not be exceeded by the function whose
+ *  ProcessingParams contain this ResourceLimits object (typically ValidateChain
+ *  or BuildChain). If the builder encounters more than this maximum number of
+ *  certificates when searching for the next candidate certificate, it should
+ *  abort and return an Error. This parameter is only relevant for ValidateChain
+ *  if it needs to internally call BuildChain (e.g. in order to build the
+ *  chain to a CRL's issuer).
+ *
+ * PARAMETERS:
+ *  "resourceLimits"
+ *      Address of ResourceLimits object whose maximum depth (number of certs)
+ *      is to be set. Must be non-NULL.
+ *  "maxDepth"
+ *      Value of PKIX_UInt32 representing the maximum depth (number of certs)
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Not Thread Safe - assumes exclusive access to "params"
+ *  (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a ResourceLimits Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_ResourceLimits_SetMaxDepth(
+        PKIX_ResourceLimits *resourceLimits,
+        PKIX_UInt32 maxDepth,
+        void *plContext);
+
+/*
+ * FUNCTION: PKIX_ResourceLimits_GetMaxNumberOfCerts
+ * DESCRIPTION:
+ *
+ *  Retrieves a PKIX_UInt32 (if any) representing the maximum number of traversed
+ *  certs that is set in the ResourceLimits object pointed to by "resourceLimits"
+ *  and stores it at "pMaxNumber". This maximum number of traversed certs should
+ *  not be exceeded by the function whose ProcessingParams contain this ResourceLimits
+ *  object (typically ValidateChain or BuildChain). If the builder traverses more
+ *  than this number of certs during the build process, it should abort and
+ *  return an Error. This parameter is only relevant for ValidateChain if it
+ *  needs to internally call BuildChain (e.g. in order to build the chain to a
+ *  CRL's issuer).
+ *
+ * PARAMETERS:
+ *  "resourceLimits"
+ *      Address of ResourceLimits object whose maximum number of traversed certs
+ *      is to be stored. Must be non-NULL.
+ *  "pMaxNumber"
+ *      Address where PKIX_UInt32 will be stored. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Conditionally Thread Safe
+ *      (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a ResourceLimits Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_ResourceLimits_GetMaxNumberOfCerts(
+        PKIX_ResourceLimits *resourceLimits,
+        PKIX_UInt32 *pMaxNumber,
+        void *plContext);
+
+/*
+ * FUNCTION: PKIX_ResourceLimits_SetMaxNumberOfCerts
+ * DESCRIPTION:
+ *
+ *  Sets the maximum number of traversed certs of the ResourceLimits object
+ *  pointed to by "resourceLimits" using the PKIX_UInt32 value of "maxNumber".
+ *  This maximum number of traversed certs should not be exceeded by the function 
+ *  whose ProcessingParams contain this ResourceLimits object (typically ValidateChain
+ *  or BuildChain). If the builder traverses more than this number of certs
+ *  during the build process, it should abort and return an Error. This parameter
+ *  is only relevant for ValidateChain if it needs to internally call BuildChain
+ *  (e.g. in order to build the chain to a CRL's issuer).
+ *
+ * PARAMETERS:
+ *  "resourceLimits"
+ *      Address of ResourceLimits object whose maximum number of traversed certs
+ *      is to be set. Must be non-NULL.
+ *  "maxNumber"
+ *      Value of PKIX_UInt32 representing the maximum number of traversed certs
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Not Thread Safe - assumes exclusive access to "params"
+ *  (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a ResourceLimits Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_ResourceLimits_SetMaxNumberOfCerts(
+        PKIX_ResourceLimits *resourceLimits,
+        PKIX_UInt32 maxNumber,
+        void *plContext);
+
+/*
+ * FUNCTION: PKIX_ResourceLimits_GetMaxNumberOfCRLs
+ * DESCRIPTION:
+ *
+ *  Retrieves a PKIX_UInt32 (if any) representing the maximum number of traversed
+ *  CRLs that is set in the ResourceLimits object pointed to by "resourceLimits"
+ *  and stores it at "pMaxNumber". This maximum number of traversed CRLs should
+ *  not be exceeded by the function whose ProcessingParams contain this ResourceLimits
+ *  object (typically ValidateChain or BuildChain). If the builder traverses more
+ *  than this number of CRLs during the build process, it should abort and
+ *  return an Error. This parameter is only relevant for ValidateChain if it
+ *  needs to internally call BuildChain (e.g. in order to build the chain to a
+ *  CRL's issuer).
+ *
+ * PARAMETERS:
+ *  "resourceLimits"
+ *      Address of ResourceLimits object whose maximum number of traversed CRLs
+ *      is to be stored. Must be non-NULL.
+ *  "pMaxNumber"
+ *      Address where PKIX_UInt32 will be stored. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Conditionally Thread Safe
+ *      (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a ResourceLimits Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_ResourceLimits_GetMaxNumberOfCRLs(
+        PKIX_ResourceLimits *resourceLimits,
+        PKIX_UInt32 *pMaxNumber,
+        void *plContext);
+
+/*
+ * FUNCTION: PKIX_ResourceLimits_SetMaxNumberOfCRLs
+ * DESCRIPTION:
+ *
+ *  Sets the maximum number of traversed CRLs of the ResourceLimits object
+ *  pointed to by "resourceLimits" using the PKIX_UInt32 value of "maxNumber".
+ *  This maximum number of traversed CRLs should not be exceeded by the function 
+ *  whose ProcessingParams contain this ResourceLimits object (typically ValidateChain
+ *  or BuildChain). If the builder traverses more than this number of CRLs
+ *  during the build process, it should abort and return an Error. This parameter
+ *  is only relevant for ValidateChain if it needs to internally call BuildChain
+ *  (e.g. in order to build the chain to a CRL's issuer).
+ *
+ * PARAMETERS:
+ *  "resourceLimits"
+ *      Address of ResourceLimits object whose maximum number of traversed CRLs
+ *      is to be set. Must be non-NULL.
+ *  "maxNumber"
+ *      Value of PKIX_UInt32 representing the maximum number of traversed CRLs
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Not Thread Safe - assumes exclusive access to "params"
+ *  (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a ResourceLimits Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_ResourceLimits_SetMaxNumberOfCRLs(
+        PKIX_ResourceLimits *resourceLimits,
+        PKIX_UInt32 maxNumber,
         void *plContext);
 
 #ifdef __cplusplus

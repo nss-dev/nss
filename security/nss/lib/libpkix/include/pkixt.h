@@ -99,6 +99,7 @@ typedef struct PKIX_CertChainStruct PKIX_CertChain;
 typedef struct PKIX_ProcessingParamsStruct PKIX_ProcessingParams;
 typedef struct PKIX_ValidateParamsStruct PKIX_ValidateParams;
 typedef struct PKIX_ValidateResultStruct PKIX_ValidateResult;
+typedef struct PKIX_ResourceLimitsStruct PKIX_ResourceLimits;
 typedef struct PKIX_BuildParamsStruct PKIX_BuildParams;
 typedef struct PKIX_BuildResultStruct PKIX_BuildResult;
 typedef struct PKIX_CertStoreStruct PKIX_CertStore;
@@ -231,8 +232,9 @@ typedef int PKIX_Boolean;
 #define PKIX_LDAPREQUEST_TYPE           ((PKIX_UInt32) 47)
 #define PKIX_LDAPRESPONSE_TYPE          ((PKIX_UInt32) 48)
 #define PKIX_SOCKET_TYPE                ((PKIX_UInt32) 49)
+#define PKIX_RESOURCELIMITS_TYPE        ((PKIX_UInt32) 50)
 
-#define PKIX_NUMTYPES                   ((PKIX_UInt32) 50)
+#define PKIX_NUMTYPES                   ((PKIX_UInt32) 51)
 
 /* User Define Object Types
  *
@@ -303,8 +305,9 @@ typedef int PKIX_Boolean;
 #define PKIX_LDAPREQUEST_ERROR          ((PKIX_UInt32) 53)
 #define PKIX_LDAPRESPONSE_ERROR         ((PKIX_UInt32) 54)
 #define PKIX_SOCKET_ERROR               ((PKIX_UInt32) 55)
+#define PKIX_RESOURCELIMITS_ERROR       ((PKIX_UInt32) 56)
 
-#define PKIX_NUMERRORS                  ((PKIX_UInt32) 56)
+#define PKIX_NUMERRORS                  ((PKIX_UInt32) 57)
 
 /* String Formats
  *

@@ -44,6 +44,7 @@ PRIVATE_EXPORTS = \
 	pkix_procparams.h \
 	pkix_trustanchor.h \
 	pkix_valparams.h \
+	pkix_resourcelimits.h \
 	$(NULL)
 
 MODULE = nss
@@ -53,6 +54,7 @@ CSRCS = \
 	pkix_procparams.c \
 	pkix_valparams.c \
 	pkix_buildparams.c \
+	pkix_resourcelimits.c \
 	$(NULL)
 
 REQUIRES = dbm

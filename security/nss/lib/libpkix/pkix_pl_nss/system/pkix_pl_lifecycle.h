@@ -76,6 +76,7 @@
 #include "pkix_certchain.h"
 #include "pkix_valparams.h"
 #include "pkix_valresult.h"
+#include "pkix_resourcelimits.h"
 #include "pkix_certchainchecker.h"
 #include "pkix_revocationchecker.h"
 #include "pkix_certselector.h"

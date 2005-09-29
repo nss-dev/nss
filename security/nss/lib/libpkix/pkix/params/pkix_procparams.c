@@ -73,6 +73,7 @@ pkix_ProcessingParams_Destroy(
         PKIX_DECREF(params->certChainCheckers);
         PKIX_DECREF(params->revCheckers);
         PKIX_DECREF(params->certStores);
+        PKIX_DECREF(params->resourceLimits);
 
 cleanup:
 
@@ -169,6 +170,15 @@ pkix_ProcessingParams_Equals(
                     plContext,
                     "PKIX_PL_Object_Equals failed");
 
+        if (!cmpResult) goto cleanup;
+
+        PKIX_EQUALS
+                (firstProcParams->resourceLimits,
+                secondProcParams->resourceLimits,
+                &cmpResult,
+                plContext,
+                "PKIX_PL_Object_Equals failed");
+
         if (cmpResult == PKIX_FALSE) {
                 *pResult = PKIX_FALSE;
                 goto cleanup;
@@ -201,6 +211,7 @@ pkix_ProcessingParams_Hashcode(
         PKIX_UInt32 certChainCheckersHash = 0;
         PKIX_UInt32 revCheckersHash = 0;
         PKIX_UInt32 certStoresHash = 0;
+        PKIX_UInt32 resourceLimitsHash = 0;
 
         PKIX_ENTER(PROCESSINGPARAMS, "pkix_ProcessingParams_Hashcode");
         PKIX_NULLCHECK_TWO(object, pHashcode);
@@ -230,10 +241,16 @@ pkix_ProcessingParams_Hashcode(
         PKIX_HASHCODE(procParams->certStores, &certStoresHash, plContext,
                 "PKIX_PL_Object_Hashcode failed");
 
+        PKIX_HASHCODE(procParams->resourceLimits,
+                &resourceLimitsHash,
+                plContext,
+                "PKIX_PL_Object_Hashcode failed");
+
         hash = (31 * ((31 * anchorsHash) + dateHash + constraintsHash)) +
                 initialHash + rejectedHash;
 
-        hash += certStoresHash + certChainCheckersHash + revCheckersHash +
+        hash += certStoresHash + resourceLimitsHash << 7 +
+                certChainCheckersHash + revCheckersHash +
                 (procParams->isCrlRevocationCheckingEnabled << 7);
 
         *pHashcode = hash;
@@ -264,6 +281,7 @@ pkix_ProcessingParams_ToString(
         PKIX_PL_String *qualsRejectedString = NULL;
         PKIX_List *certStores = NULL;
         PKIX_PL_String *certStoresString = NULL;
+        PKIX_PL_String *resourceLimitsString = NULL;
 
         PKIX_ENTER(PROCESSINGPARAMS, "pkix_ProcessingParams_ToString");
         PKIX_NULLCHECK_TWO(object, pString);
@@ -283,6 +301,7 @@ pkix_ProcessingParams_ToString(
                 "\tInitial Policies:      %s\n"
                 "\tQualifiers Rejected:   %s\n"
                 "\tCert Stores:           %s\n"
+                "\tResource Limits:       %s\n"
                 "\tCRL Checking Enabled:  %d\n"
                 "]\n";
 
@@ -319,12 +338,17 @@ pkix_ProcessingParams_ToString(
 
         /* There is no ToString function for CertChainCheckers */
 
-        PKIX_CHECK(PKIX_ProcessingParams_GetCertStores
+       PKIX_CHECK(PKIX_ProcessingParams_GetCertStores
                 (procParams, &certStores, plContext),
                 "PKIX_ProcessingParams_GetCertStores failed");
 
         PKIX_TOSTRING(certStores, &certStoresString, plContext,
                 "PKIX_LIST_ToString failed");
+
+        PKIX_TOSTRING(procParams->resourceLimits,
+                &resourceLimitsString,
+                plContext,
+                "PKIX_PL_Object_ToString failed");
 
         PKIX_CHECK(PKIX_PL_Sprintf
                 (&procParamsString,
@@ -336,6 +360,7 @@ pkix_ProcessingParams_ToString(
                 InitialPoliciesString,
                 qualsRejectedString,
                 certStoresString,
+                resourceLimitsString,
                 procParams->isCrlRevocationCheckingEnabled),
                 "PKIX_PL_Sprintf failed");
 
@@ -351,6 +376,7 @@ cleanup:
         PKIX_DECREF(qualsRejectedString);
         PKIX_DECREF(certStores);
         PKIX_DECREF(certStoresString);
+        PKIX_DECREF(resourceLimitsString);
 
         PKIX_RETURN(PROCESSINGPARAMS);
 }
@@ -427,6 +453,7 @@ PKIX_ProcessingParams_Create(
         params->certChainCheckers = NULL;
         params->revCheckers = NULL;
         params->certStores = NULL;
+        params->resourceLimits = NULL;
 
         /*
          * XXX CRL checking should be enabled as default, but before
@@ -1048,6 +1075,47 @@ pkix_ProcessingParams_GetRevocationEnabled(
         PKIX_NULLCHECK_TWO(params, pEnabled);
 
         *pEnabled = params->isCrlRevocationCheckingEnabled;
+
+        PKIX_RETURN(PROCESSINGPARAMS);
+}
+
+/*
+ * FUNCTION: PKIX_ProcessingParams_SetResourceLimits
+ * (see comments in pkix_params.h)
+ */
+PKIX_Error *
+PKIX_ProcessingParams_SetResourceLimits(
+        PKIX_ProcessingParams *params,
+        PKIX_ResourceLimits *resourceLimits,
+        void *plContext)
+{
+        PKIX_ENTER(PROCESSINGPARAMS, "PKIX_ProcessingParams_SetResourceLimits");
+
+        PKIX_NULLCHECK_TWO(params, resourceLimits);
+
+        PKIX_DECREF(params->resourceLimits);
+        PKIX_INCREF(resourceLimits);
+        params->resourceLimits = resourceLimits;
+
+        PKIX_RETURN(PROCESSINGPARAMS);
+}
+
+/*
+ * FUNCTION: PKIX_ProcessingParams_GetResourceLimits
+ * (see comments in pkix_params.h)
+ */
+PKIX_Error *
+PKIX_ProcessingParams_GetResourceLimits(
+        PKIX_ProcessingParams *params,
+        PKIX_ResourceLimits **pResourceLimits,
+        void *plContext)
+{
+        PKIX_ENTER(PROCESSINGPARAMS, "PKIX_ProcessingParams_GetResourceLimits");
+
+        PKIX_NULLCHECK_TWO(params, pResourceLimits);
+
+        PKIX_INCREF(params->resourceLimits);
+        *pResourceLimits = params->resourceLimits;
 
         PKIX_RETURN(PROCESSINGPARAMS);
 }

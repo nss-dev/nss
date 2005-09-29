@@ -230,7 +230,7 @@ PKIX_PL_Initialize(void *plContext){
         pkix_pl_LdapRequest_RegisterSelf(plContext);
         pkix_pl_LdapResponse_RegisterSelf(plContext);
         pkix_pl_Socket_RegisterSelf(plContext);
-
+        pkix_ResourceLimits_RegisterSelf(plContext);
 
         pkix_pl_initialized = PKIX_TRUE;
 

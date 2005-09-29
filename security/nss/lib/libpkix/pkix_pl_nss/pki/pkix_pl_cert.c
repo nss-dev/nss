@@ -3120,7 +3120,8 @@ PKIX_PL_Cert_IsCertTrusted(
         PKIX_ENTER(CERT, "pkix_pl_Cert_IsCertTrusted");
         PKIX_NULLCHECK_TWO(cert, pTrusted);
 
-        if (plContext == NULL) {
+        /* no key usage information and store is not trusted */
+        if (plContext == NULL || cert->store == NULL) {
                 *pTrusted = PKIX_FALSE;
                 goto cleanup;
         }

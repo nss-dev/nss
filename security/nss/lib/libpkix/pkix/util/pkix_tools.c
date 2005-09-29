@@ -45,6 +45,12 @@
 
 #define CACHE_ITEM_PERIOD_SECONDS  (3600)  /* one hour */
 
+/*
+ * This cahce period is only for CertCache. A Cert from a trusted CertStore
+ * should be checked more frequently for update new arrival, etc.
+ */
+#define CACHE_TRUST_ITEM_PERIOD_SECONDS  (CACHE_ITEM_PERIOD_SECONDS/10)
+
 extern PKIX_PL_HashTable *cachedCertChainTable;
 extern PKIX_PL_HashTable *cachedCertTable;
 extern PKIX_PL_HashTable *cachedCrlEntryTable;
@@ -665,6 +671,83 @@ cleanup:
 }
 
 /*
+ * FUNCTION: pkix_CacheCertChain_Remove
+ * DESCRIPTION:
+ *
+ *  Remove CertChain Hash Table entry based on "targetCert" and "anchors"
+ *  as the hash keys. If there is no item to match the key, no action is
+ *  taken.
+ *  The hashtable is maintained in the following ways:
+ *  1) When creating the hashtable, maximum bucket size can be specified (0 for
+ *     unlimited). If items in a bucket reaches its full size, an new addition
+ *     will trigger the removal of the old as FIFO sequence.
+ *  2) A PKIX_PL_Date created with current time offset by constant 
+ *     CACHE_ITEM_PERIOD_SECONDS is attached to each item in the Hash Table.
+ *     When an item is retrieved, this date is compared against "testDate" for
+ *     validity. If comparison indicates this item is expired, the item is
+ *     removed from the bucket.
+ *
+ * PARAMETERS:
+ *  "targetCert"
+ *      Address of Target Cert as key to retrieve this CertChain. Must be 
+ *      non-NULL.
+ *  "anchors"
+ *      Address of PKIX_List of "anchors" is used as key to retrive CertChain.
+ *      Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns an Error Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+pkix_CacheCertChain_Remove(
+        PKIX_PL_Cert* targetCert,
+        PKIX_List* anchors,
+        void *plContext)
+{
+        PKIX_List *cachedKeys = NULL;
+
+        PKIX_ENTER(BUILD, "pkix_CacheCertChain_Remove");
+        PKIX_NULLCHECK_TWO(targetCert, anchors);
+
+        /* use trust anchors and target cert as hash key */
+
+        PKIX_CHECK(PKIX_List_Create(&cachedKeys, plContext),
+                    "PKIX_List_Create failed");
+
+        PKIX_CHECK(PKIX_List_AppendItem
+                    (cachedKeys,
+                    (PKIX_PL_Object *)targetCert,
+                    plContext),
+                    "PKIX_List_AppendItem failed");
+
+        PKIX_CHECK(PKIX_List_AppendItem
+                    (cachedKeys,
+                    (PKIX_PL_Object *)anchors,
+                    plContext),
+                    "PKIX_List_AppendItem failed");
+
+        PKIX_CHECK_ONLY_FATAL(PKIX_PL_HashTable_Remove
+                    (cachedCertChainTable,
+                    (PKIX_PL_Object *) cachedKeys,
+                    plContext),
+                    "PKIX_PL_HashTable_Remove failed");
+
+        pkix_ccRemoveCount++;
+
+cleanup:
+
+        PKIX_DECREF(cachedKeys);
+
+        PKIX_RETURN(BUILD);
+
+}
+
+/*
  * FUNCTION: pkix_CacheCertChain_Add
  * DESCRIPTION:
  *
@@ -799,6 +882,8 @@ cleanup:
  *     will trigger the removal of the old as FIFO sequence.
  *  2) A PKIX_PL_Date created with current time offset by constant 
  *     CACHE_ITEM_PERIOD_SECONDS is attached to each item in the Hash Table.
+ *     If the CertStore this Cert is from is a trusted one, the cache period is
+ *     shorter so cache can be updated more frequently.
  *     When an item is retrieved, this date is compared against "testDate" for
  *     validity. If comparison indicates this item is expired, the item is
  *     removed from the bucket.
@@ -996,6 +1081,8 @@ pkix_CacheCert_Lookup(
                         }
 
                         PKIX_DECREF(cert);
+                        PKIX_DECREF(invalidAfterDate);
+
                     }
 
                     if (*pFound) {
@@ -1047,6 +1134,8 @@ cleanup:
  *     will trigger the removal of the old as FIFO sequence.
  *  2) A PKIX_PL_Date created with current time offset by constant 
  *     CACHE_ITEM_PERIOD_SECONDS is attached to each item in the Hash Table.
+ *     If the CertStore this Cert is from is a trusted one, the cache period is
+ *     shorter so cache can be updated more frequently.
  *     When an item is retrieved, this date is compared against "testDate" for
  *     validity. If comparison indicates this item is expired, the item is
  *     removed from the bucket.
@@ -1081,6 +1170,8 @@ pkix_CacheCert_Add(
         PKIX_PL_Date *cacheValidUntilDate = NULL;
         PKIX_PL_X500Name *subject = NULL;
         PKIX_Error *cachedCertError = NULL;
+        PKIX_CertStore_CheckTrustCallback trustCallback = NULL;
+        PKIX_UInt32 cachePeriod = CACHE_ITEM_PERIOD_SECONDS;
 
         PKIX_ENTER(BUILD, "pkix_CacheCert_Add");
         PKIX_NULLCHECK_THREE(store, certSelParams, certs);
@@ -1105,10 +1196,16 @@ pkix_CacheCert_Add(
         PKIX_CHECK(PKIX_List_Create(&cachedValues, plContext),
                 "PKIX_List_Create failed");
 
+        PKIX_CHECK(PKIX_CertStore_GetTrustCallback
+                (store, &trustCallback, plContext),
+                "PKIX_CertStore_GetTrustCallback failed");
+
+        if (trustCallback) {
+                cachePeriod = CACHE_TRUST_ITEM_PERIOD_SECONDS;
+        }
+
         PKIX_CHECK(PKIX_PL_Date_Create_CurrentOffBySeconds
-                (CACHE_ITEM_PERIOD_SECONDS,
-                &cacheValidUntilDate,
-                plContext),
+               (cachePeriod, &cacheValidUntilDate, plContext),
                "PKIX_PL_Date_Create_CurrentOffBySeconds failed");
 
         PKIX_CHECK(PKIX_List_AppendItem

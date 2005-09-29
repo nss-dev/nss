@@ -130,6 +130,7 @@ int main(void) {
                 "\tInitial Policies:      (null)\n"
                 "\tQualifiers Rejected:   FALSE\n"
                 "\tCert Stores:           (EMPTY)\n"
+                "\tResource Limits:       (null)\n"
                 "\tCRL Checking Enabled:  0\n"
                 "]\n"
                 "\n"

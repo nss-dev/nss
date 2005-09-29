@@ -264,6 +264,49 @@ cleanup:
         PKIX_TEST_RETURN();
 }
 
+void testGetSetResourceLimits(
+        PKIX_ProcessingParams *goodObject,
+        PKIX_ProcessingParams *equalObject)
+
+{
+        PKIX_ResourceLimits *resourceLimits1 = NULL;
+        PKIX_ResourceLimits *resourceLimits2 = NULL;
+
+        PKIX_TEST_STD_VARS();
+        subTest("PKIX_ProcessingParams_Get/SetResourceLimits");
+
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_ResourceLimits_Create
+                    (&resourceLimits1, plContext));
+
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_ResourceLimits_Create
+                    (&resourceLimits2, plContext));
+
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_ResourceLimits_SetMaxFanout
+                    (resourceLimits1, 3, plContext));
+
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_ResourceLimits_SetMaxDepth
+                    (resourceLimits1, 3, plContext));
+
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_ResourceLimits_SetMaxTime
+                    (resourceLimits1, 2, plContext));
+
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_ProcessingParams_SetResourceLimits
+                    (goodObject, resourceLimits1, plContext));
+
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_ProcessingParams_GetResourceLimits
+                    (goodObject, &resourceLimits2, plContext));
+
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_ProcessingParams_SetResourceLimits
+                    (equalObject, resourceLimits2, plContext));
+
+cleanup:
+
+        PKIX_TEST_DECREF_AC(resourceLimits1);
+        PKIX_TEST_DECREF_AC(resourceLimits2);
+
+        PKIX_TEST_RETURN();
+}
+
 void testGetSetConstraints(PKIX_ProcessingParams *goodObject){
 
         PKIX_CertSelector *setConstraints = NULL;
@@ -404,6 +447,11 @@ int main(int argc, char *argv[]) {
                 "\tInitial Policies:      (2.5.29.32.0)\n"
                 "\tQualifiers Rejected:   FALSE\n"
                 "\tCert Stores:           (EMPTY)\n"
+                "\tResource Limits:       [\n"
+                "\tMaxTime:           		2\n"
+                "\tMaxFanout:         		3\n"
+                "\tMaxDepth:         		3\n"
+                "]\n\n"
                 "\tCRL Checking Enabled:  0\n"
                 "]\n";
 
@@ -434,6 +482,7 @@ int main(int argc, char *argv[]) {
         testGetSetDate(goodObject, equalObject);
         testGetSetCertChainCheckers(goodObject, equalObject);
         testGetSetRevocationCheckers(goodObject, equalObject);
+        testGetSetResourceLimits(goodObject, equalObject);
 
         /*
         * XXX testGetSetConstraints(goodObject);

@@ -99,6 +99,12 @@ extern "C" {
  * user's callback functions as needed during the validation or building
  * process.
  *
+ * The order of CertStores stored (as a list) at ProcessingParams is decisive
+ * to the priority certificates are retrieved. We recommend a trusted CertStore
+ * should always be the first one on the CertStores list so its certificates
+ * are evaluated ahead of other certificates selected based on the same
+ * selector criteria.
+ *
  * The CheckTrustCallback function is used when the CertStore object
  * supports trust status, which means a Cert's trust status can be altered
  * dynamically. When a CertStore object is created, if the
@@ -117,7 +123,7 @@ extern "C" {
  *
  *  This callback function retrieves from the CertStore pointed to by "store"
  *  all the certificates that match the CertSelector pointed to by "selector".
- *  It places these Certs in a List and stores a pointer to the List at
+ *  It places these certificates in a List and stores a pointer to the List at
  *  "pCerts". If no certificates are found which match the CertSelector's
  *  criteria, this function stores an empty List at "pCerts".
  *

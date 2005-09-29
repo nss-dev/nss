@@ -63,6 +63,9 @@ typedef struct BuildConstantsStruct BuildConstants;
 struct BuildConstantsStruct {
         PKIX_UInt32 numAnchors;
         PKIX_UInt32 numCertStores;
+        PKIX_UInt32 maxDepth;
+        PKIX_UInt32 maxFanout;
+        PKIX_UInt32 maxTime;
         PKIX_ProcessingParams *procParams;
         PKIX_PL_Date *testDate;
         PKIX_PL_Cert *targetCert;
@@ -79,6 +82,8 @@ struct PKIX_ForwardBuilderStateStruct{
         PKIX_UInt32 certStoreIndex;
         PKIX_UInt32 numCerts;
         PKIX_UInt32 certIndex;
+        PKIX_UInt32 numFanout;
+        PKIX_UInt32 numDepth;
         PKIX_Boolean dsaParamsNeeded;
         PKIX_Boolean revCheckDelayed;
 	PKIX_Boolean canBeCached;

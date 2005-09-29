@@ -312,6 +312,44 @@ cleanup:
 }
 
 /*
+ * FUNCTION: pkix_pl_CollectionCertStore_CheckTrust
+ * DESCRIPTION:
+ * This function checks the trust status of this "cert" that was retrieved
+ * from the CertStore "store" and returns its trust status at "pTrusted".
+ *
+ * PARAMETERS:
+ * "store"
+ *      Address of the CertStore. Must be non-NULL.
+ * "cert"
+ *      Address of the Cert. Must be non-NULL.
+ * "pTrusted"
+ *      Address of PKIX_Boolean where the "cert" trust status is returned.
+ *      Must be non-NULL.
+ * "plContext"
+ *      Platform-specific context pointer
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a CertStore Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+static PKIX_Error *
+pkix_pl_CollectionCertStore_CheckTrust(
+        PKIX_CertStore *store,
+        PKIX_PL_Cert *cert,
+        PKIX_Boolean *pTrusted,
+        void *plContext)
+{
+        PKIX_ENTER(CERTSTORE, "pkix_pl_CollectionCertStore_CheckTrust");
+        PKIX_NULLCHECK_THREE(store, cert, pTrusted);
+
+        *pTrusted = PKIX_TRUE;
+
+        PKIX_RETURN(CERTSTORE);
+}
+
+/*
  * FUNCTION: pkix_pl_CollectionCertStoreContext_CreateCert
  * DESCRIPTION:
  *
@@ -1267,8 +1305,8 @@ PKIX_PL_CollectionCertStore_Create(
                     (pkix_pl_CollectionCertStore_GetCert,
                     pkix_pl_CollectionCertStore_GetCRL,
                     (PKIX_PL_Object *)colCertStoreContext,
-                    PKIX_FALSE, /* cache flag */
-                    NULL, /* don't support trust */
+                    PKIX_TRUE, /* cache flag */
+                    pkix_pl_CollectionCertStore_CheckTrust,
                     &certStore,
                     plContext),
                     "PKIX_CertStore_Create failed");

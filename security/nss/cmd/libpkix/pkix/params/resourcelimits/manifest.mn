@@ -35,9 +35,17 @@
 #
 # ***** END LICENSE BLOCK *****
 
-PKIX_DEPTH = ../..
+PKIX_DEPTH	= ../../..
 
-#
-DIRS =  buildparams  procparams  trustanchor  valparams   resourcelimits \
-	$(NULL)
+# MODULE public and private header  directories are implicitly REQUIRED.
+MODULE = nss 
 
+DEFINES = -DNSPR20
+
+CSRCS = test_resourcelimits.c
+
+# this has to be different for NT and UNIX.
+# PROGRAM	=$(OBJDIR)/test_resourcelimits
+PROGRAM	= test_resourcelimits
+
+#USE_STATIC_LIBS = 1
