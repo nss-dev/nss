@@ -1345,7 +1345,7 @@ cleanup:
  *  This function performs several steps at each node in the constructed chain:
  *
  *  1) It retrieves Certs from the registered CertStores that match the
- *  criteria established by the ForwardBuilderState pointed to by "initialState", such
+ *  criteria established by the ForwardBuilderState pointed to by "state", such
  *  as a subject name matching the issuer name of the previous Cert. If there
  *  are no matching Certs, the function returns to the previous, or "parent",
  *  state and tries to continue the chain building with another of the Certs
@@ -1382,7 +1382,7 @@ cleanup:
  *  "buildConstants"
  *      Address of the BuildConstants structure used in this chain-building.
  *      Must be non-NULL.
- *  "initialState"
+ *  "state"
  *      Address of ForwardBuilderState to be used. Must be non-NULL.
  *  "pValResult"
  *      Address at which the ValidateResult is stored. Must be non-NULL.
@@ -1398,7 +1398,7 @@ cleanup:
 static PKIX_Error *
 pkix_BuildForwardDepthFirstSearch(
         const BuildConstants *buildConstants,
-        PKIX_ForwardBuilderState *initialState,
+        PKIX_ForwardBuilderState *state,
         PKIX_ValidateResult **pValResult,
 /*      PRPollDesc **pPollDesc, */
         void *plContext)
@@ -1425,7 +1425,6 @@ pkix_BuildForwardDepthFirstSearch(
         PKIX_PL_Object *subjectName = NULL;
         PKIX_ValidateResult *valResult = NULL;
 /*      PRPollDesc *pollDesc = NULL; */
-        PKIX_ForwardBuilderState *state = NULL;
         PKIX_ForwardBuilderState *childState = NULL;
         PKIX_ForwardBuilderState *parentState = NULL;
         PKIX_PL_PublicKey *finalSubjPubKey = NULL;
@@ -1441,10 +1440,7 @@ pkix_BuildForwardDepthFirstSearch(
 #endif
 
         PKIX_ENTER(BUILD, "pkix_BuildForwardDepthFirstSearch");
-        PKIX_NULLCHECK_THREE(buildConstants, initialState, pValResult);
-
-        PKIX_INCREF(initialState);
-        state = initialState;
+        PKIX_NULLCHECK_THREE(buildConstants, state, pValResult);
 
         /* Initialize ResourceLimits: maxTime */
         if (buildConstants->maxTime != 0) {
@@ -1961,7 +1957,6 @@ cleanup:
         PKIX_DECREF(maxTimeAllowed);
         PKIX_DECREF(currTime);
         PKIX_DECREF(notAfter);
-        PKIX_DECREF(parentState);
 
         PKIX_RETURN(BUILD);
 }

@@ -293,6 +293,7 @@ void testGetSetResourceLimits(
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_ProcessingParams_SetResourceLimits
                     (goodObject, resourceLimits1, plContext));
 
+        PKIX_TEST_DECREF_BC(resourceLimits2);
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_ProcessingParams_GetResourceLimits
                     (goodObject, &resourceLimits2, plContext));
 
