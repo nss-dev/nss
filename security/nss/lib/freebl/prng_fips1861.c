@@ -114,8 +114,6 @@ dsa_reduce_mod_q(const unsigned char *w, const unsigned char *q,
     mp_err err;
     SECStatus rv = SECSuccess;
 
-    PORT_Assert(q[0] >= 0x80);
-
     /* Initialize MPI integers. */
     MP_DIGITS(&W) = 0;
     MP_DIGITS(&Q) = 0;
@@ -545,6 +543,10 @@ DSA_GenerateGlobalRandomBytes(void *dest, size_t len, const unsigned char *q)
     unsigned char w[2*GSIZE];
 
     PORT_Assert(q && len == DSA_SUBPRIME_LEN);
+    if (len != DSA_SUBPRIME_LEN) {
+	PORT_SetError(SEC_ERROR_OUTPUT_LEN);
+	return SECFailure;
+    }
     if (*q == 0) {
         ++q;
     }
