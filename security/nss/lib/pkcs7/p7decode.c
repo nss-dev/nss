@@ -691,16 +691,6 @@ sec_pkcs7_decoder_start_decrypt (SEC_PKCS7DecoderContext *p7dcx, int depth,
     decryptobj = sec_PKCS7CreateDecryptObject (bulkkey,
 					       &(enccinfo->contentEncAlg));
 
-    /* 
-     * For PKCS5 Encryption Algorithms, the bulkkey is actually a different
-     * structure.  Therefore, we need to set the bulkkey to the actual key 
-     * prior to freeing it.
-     */
-    if ( SEC_PKCS5IsAlgorithmPBEAlg(&(enccinfo->contentEncAlg)) && bulkkey ) {
-	SEC_PKCS5KeyAndPassword *keyPwd = (SEC_PKCS5KeyAndPassword *)bulkkey;
-	bulkkey = keyPwd->key;
-    }
-
     /*
      * We are done with (this) bulkkey now.
      */
