@@ -245,16 +245,6 @@ NSS_CMSEncryptedData_Decode_BeforeData(NSSCMSEncryptedData *encd)
     if (cinfo->ciphcx == NULL)
 	goto loser;		/* error has been set by NSS_CMSCipherContext_StartDecrypt */
 
-    /* 
-     * HACK ALERT!!
-     * For PKCS5 Encryption Algorithms, the bulkkey is actually a different
-     * structure.  Therefore, we need to set the bulkkey to the actual key 
-     * prior to freeing it.
-     */
-    if (SEC_PKCS5IsAlgorithmPBEAlg(bulkalg)) {
-	SEC_PKCS5KeyAndPassword *keyPwd = (SEC_PKCS5KeyAndPassword *)bulkkey;
-	bulkkey = keyPwd->key;
-    }
 
     /* we are done with (this) bulkkey now. */
     PK11_FreeSymKey(bulkkey);
