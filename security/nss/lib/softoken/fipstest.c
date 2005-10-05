@@ -571,7 +571,7 @@ sftk_fips_AES_PowerUpSelfTest( int aes_key_size )
     static const PRUint8 aes_known_key[] = 
         { "AES-128 RIJNDAELLEADNJIR 821-SEA" };
 
-    /* AES-CBC Known Initialization Vector 128-bits. */
+    /* AES-CBC Known Initialization Vector (128-bits). */
     static const PRUint8 aes_cbc_known_initialization_vector[] = 
         { "SecurityytiruceS" };
 
