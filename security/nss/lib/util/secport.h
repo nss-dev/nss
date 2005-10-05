@@ -88,10 +88,7 @@
 #include "watcomfx.h"
 #endif
 
-#if defined(_WIN32_WCE)
-#include <windef.h>
-#include <types.h>
-#elif defined( XP_MAC ) 
+#if defined( XP_MAC ) 
 #include <types.h>
 #include <time.h> /* for time_t below */
 #else
