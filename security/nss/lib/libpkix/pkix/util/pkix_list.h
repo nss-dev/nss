@@ -50,6 +50,13 @@
 extern "C" {
 #endif
 
+typedef PKIX_Error *
+(*PKIX_List_SortComparatorCallback)(
+        PKIX_PL_Object *obj1,
+        PKIX_PL_Object *obj2,
+        PKIX_Int32 *pResult,
+        void *plContext);
+
 struct PKIX_ListStruct {
         PKIX_PL_Object *item;
         PKIX_List *next;
@@ -98,6 +105,20 @@ PKIX_Error *
 pkix_List_RemoveItems(
         PKIX_List *list,
         PKIX_List *deleteList,
+        void *plContext);
+
+PKIX_Error *
+pkix_List_QuickSort(
+        PKIX_List *fromList,
+        PKIX_List_SortComparatorCallback comparator,
+        PKIX_List **pSortedList,
+        void *plContext);
+
+PKIX_Error *
+pkix_List_BubbleSort(
+        PKIX_List *fromList,
+        PKIX_List_SortComparatorCallback comparator,
+        PKIX_List **pSortedList,
         void *plContext);
 
 #ifdef __cplusplus

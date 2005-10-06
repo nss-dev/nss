@@ -966,12 +966,12 @@ cleanup:
  *  "toList" becomes the union of the two sets.
  *
  * PARAMETERS:
- *  "fromList"
- *      Address of a List of Objects to be added, if not already present, to
- *      "toList". Must be non-NULL, but may be empty.
  *  "toList"
  *      Address of a List of Objects to be augmented by "fromList". Must be
  *      non-NULL, but may be empty.
+ *  "fromList"
+ *      Address of a List of Objects to be added, if not already present, to
+ *      "toList". Must be non-NULL, but may be empty.
  *  "plContext"
  *      Platform-specific context pointer.
  * THREAD SAFETY:
@@ -992,7 +992,7 @@ pkix_List_AppendUnique(
         PKIX_UInt32 listIx = 0;
         PKIX_PL_Object *object = NULL;
 
-        PKIX_ENTER(BUILD, "pkix_AppendUnique");
+        PKIX_ENTER(BUILD, "pkix_List_AppendUnique");
         PKIX_NULLCHECK_TWO(fromList, toList);
 
         PKIX_CHECK(PKIX_List_GetLength(fromList, &listLen, plContext),
@@ -1024,6 +1024,257 @@ cleanup:
         PKIX_RETURN(LIST);
 }
 
+/*
+ * FUNCTION: pkix_List_QuickSort
+ * DESCRIPTION:
+ *
+ *  Sorts List of Objects "fromList" using "comparatorCallback"'s result as
+ *  comasrison key and returns the sorted List at "pSortedList". The sorting
+ *  algorithm used is quick sort (n*logn).
+ *
+ * PARAMETERS:
+ *  "fromList"
+ *      Address of a List of Objects to be sorted. Must be non-NULL, but may be
+ *      empty.
+ *  "comparatorCallback"
+ *      Address of callback function that will compare two Objects on the List.
+ *      It should return -1 for less, 0 for equal and 1 for greater. The
+ *      callback implementation chooses what in Objects to be compared. Must be
+ *      non-NULL.
+ *  "pSortedList"
+ *      Address of a List of Objects that shall be sorted and returned. Must be
+ *      non-NULL, but may be empty.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Not Thread Safe - assumes exclusive access to "toList"
+ *  (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds
+ *  Returns a Fatal Error if the function fails in an unrecoverable way
+ */
+PKIX_Error *
+pkix_List_QuickSort(
+        PKIX_List *fromList,
+        PKIX_List_SortComparatorCallback comparator,
+        PKIX_List **pSortedList,
+        void *plContext)
+{
+        PKIX_List *sortedList = NULL;
+        PKIX_List *lessList = NULL;
+        PKIX_List *greaterList = NULL;
+        PKIX_List *sortedLessList = NULL;
+        PKIX_List *sortedGreaterList = NULL;
+        PKIX_PL_Object *object = NULL;
+        PKIX_PL_Object *cmpObj = NULL;
+        PKIX_Int32 cmpResult = 0;
+        PKIX_UInt32 size = 0;
+        PKIX_UInt32 i;
+
+        PKIX_ENTER(BUILD, "pkix_List_QuickSort");
+        PKIX_NULLCHECK_THREE(fromList, comparator, pSortedList);
+
+        PKIX_CHECK(PKIX_List_GetLength(fromList, &size, plContext),
+                "PKIX_List_GetLength failed");
+
+        PKIX_CHECK(PKIX_List_Create(&lessList, plContext),
+                    "PKIX_List_Create failed");
+
+        PKIX_CHECK(PKIX_List_Create(&greaterList, plContext),
+                    "PKIX_List_Create failed");
+
+        PKIX_CHECK(PKIX_List_GetItem
+                (fromList, 0, &object, plContext),
+                "PKIX_List_GetItem failed");
+
+        /*
+         * Pick the first item on the list as the one to be compared.
+         * Separate rest of the itmes into two lists: less-than or greater-
+         * than lists. Sort those two lists recursively. Insert sorted
+         * less-than list before the picked item and append the greater-
+         * than list after the picked item.
+         */
+        for (i = 1; i < size; i++) {
+
+                PKIX_CHECK(PKIX_List_GetItem
+                        (fromList, i, &cmpObj, plContext),
+                        "PKIX_List_GetItem failed");
+
+                PKIX_CHECK(comparator(object, cmpObj, &cmpResult, plContext),
+                        "comparator callback failed");
+
+                if (cmpResult >= 0) {
+                        PKIX_CHECK(PKIX_List_AppendItem
+                                (lessList, cmpObj, plContext),
+                                "PKIX_List_AppendItem failed");
+                } else {
+                        PKIX_CHECK(PKIX_List_AppendItem
+                                (greaterList, cmpObj, plContext),
+                                "PKIX_List_AppendItem failed");
+                }
+                PKIX_DECREF(cmpObj);
+        }
+
+        PKIX_CHECK(PKIX_List_Create(&sortedList, plContext),
+                    "PKIX_List_Create failed");
+
+        PKIX_CHECK(PKIX_List_GetLength(lessList, &size, plContext),
+                "PKIX_List_GetLength failed");
+
+        if (size > 1) {
+
+                PKIX_CHECK(pkix_List_QuickSort
+                        (lessList, comparator, &sortedLessList, plContext),
+                        "pkix_List_QuickSort failed");
+
+                PKIX_CHECK(pkix_List_AppendList
+                        (sortedList, sortedLessList, plContext),
+                        "pkix_List_AppendList failed");
+        } else {
+                PKIX_CHECK(pkix_List_AppendList
+                        (sortedList, lessList, plContext),
+                        "pkix_List_AppendList failed");
+        }
+
+        PKIX_CHECK(PKIX_List_AppendItem(sortedList, object, plContext),
+                "PKIX_List_Append failed");
+
+        PKIX_CHECK(PKIX_List_GetLength(greaterList, &size, plContext),
+                "PKIX_List_GetLength failed");
+
+        if (size > 1) {
+
+                PKIX_CHECK(pkix_List_QuickSort
+                        (greaterList, comparator, &sortedGreaterList, plContext),
+                        "pkix_List_QuickSort failed");
+
+                PKIX_CHECK(pkix_List_AppendList
+                        (sortedList, sortedGreaterList, plContext),
+                        "pkix_List_AppendList failed");
+        } else {
+                PKIX_CHECK(pkix_List_AppendList
+                        (sortedList, greaterList, plContext),
+                        "pkix_List_AppendList failed");
+        }
+
+        *pSortedList = sortedList;
+
+cleanup:
+
+        PKIX_DECREF(cmpObj);
+        PKIX_DECREF(object);
+        PKIX_DECREF(sortedGreaterList);
+        PKIX_DECREF(sortedLessList);
+        PKIX_DECREF(greaterList);
+        PKIX_DECREF(lessList);
+
+        PKIX_RETURN(LIST);
+}
+
+/*
+ * FUNCTION: pkix_List_BubbleSort
+ * DESCRIPTION:
+ *
+ *  Sorts List of Objects "fromList" using "comparatorCallback"'s result as
+ *  comasrison key and returns the sorted List at "pSortedList". The sorting
+ *  algorithm used is bubble sort (n*n).
+ *
+ * PARAMETERS:
+ *  "fromList"
+ *      Address of a List of Objects to be sorted. Must be non-NULL, but may be
+ *      empty.
+ *  "comparatorCallback"
+ *      Address of callback function that will compare two Objects on the List.
+ *      It should return -1 for less, 0 for equal and 1 for greater. The
+ *      callback implementation chooses what in Objects to be compared. Must be
+ *      non-NULL.
+ *  "pSortedList"
+ *      Address of a List of Objects that shall be sorted and returned. Must be
+ *      non-NULL, but may be empty.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Not Thread Safe - assumes exclusive access to "toList"
+ *  (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds
+ *  Returns a Fatal Error if the function fails in an unrecoverable way
+ */
+PKIX_Error *
+pkix_List_BubbleSort(
+        PKIX_List *fromList,
+        PKIX_List_SortComparatorCallback comparator,
+        PKIX_List **pSortedList,
+        void *plContext)
+{
+        PKIX_List *sortedList = NULL;
+        PKIX_PL_Object *cmpObj = NULL;
+        PKIX_PL_Object *leastObj = NULL;
+        PKIX_Int32 cmpResult = 0;
+        PKIX_UInt32 size = 0;
+        PKIX_UInt32 i, j;
+
+        PKIX_ENTER(BUILD, "pkix_List_BubbleSort");
+        PKIX_NULLCHECK_THREE(fromList, comparator, pSortedList);
+
+        PKIX_CHECK(pkix_List_Duplicate(fromList, &sortedList, plContext),
+                "pkix_List_Duplicate failed");
+
+        PKIX_CHECK(PKIX_List_GetLength(sortedList, &size, plContext),
+                "PKIX_List_GetLength failed");
+
+        /*
+         * Move from the first of the item on the list, For each iteration,
+         * compare and swap the least value to the head of the comparisoning
+         * sub-list.
+         */
+        for (i = 0; i < size - 1; i++) {
+
+                PKIX_CHECK(PKIX_List_GetItem
+                        (fromList, i, &leastObj, plContext),
+                        "PKIX_List_GetItem failed");
+
+                for (j = i + 1; j < size; j++) {
+
+                        PKIX_CHECK(PKIX_List_GetItem
+                                (fromList, j, &cmpObj, plContext),
+                                "PKIX_List_GetItem failed");
+
+                        PKIX_CHECK(comparator
+                                (leastObj, cmpObj, &cmpResult, plContext),
+                                "comparator callback failed");
+
+                        if (cmpResult > 0) {
+
+                                PKIX_CHECK(PKIX_List_SetItem
+                                    (sortedList, i, cmpObj, plContext),
+                                    "PKIX_List_SetItem failed");
+                                PKIX_CHECK(PKIX_List_SetItem
+                                    (sortedList, j, leastObj, plContext),
+                                    "PKIX_List_SetItem failed");
+
+                                PKIX_DECREF(leastObj);
+                                PKIX_INCREF(cmpObj);
+                                leastObj = cmpObj;
+
+                        }
+
+                        PKIX_DECREF(cmpObj);
+                }
+
+                PKIX_DECREF(leastObj);
+                
+        }
+
+        *pSortedList = sortedList;
+
+cleanup:
+
+        PKIX_DECREF(leastObj);
+        PKIX_DECREF(cmpObj);
+
+        PKIX_RETURN(LIST);
+}
 
 /* --Public-List-Functions--------------------------------------------- */
 

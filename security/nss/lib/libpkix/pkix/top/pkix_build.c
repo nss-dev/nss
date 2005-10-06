@@ -312,6 +312,8 @@ pkix_ForwardBuilderState_ToString
                 "\tcertStoreIndex: \t%d\n"
                 "\tnumCerts: \t%d\n"
                 "\tcertIndex: \t%d\n"
+                "\tnumFanout: \t%d\n"
+                "\tnumDepth:  \t%d\n"
                 "\tdsaParamsNeeded: \t%d\n"
                 "\trevCheckDelayed: \t%d\n"
                 "\tcanBeCached: \t%d\n"
@@ -398,6 +400,8 @@ pkix_ForwardBuilderState_ToString
                 (PKIX_UInt32)state->certStoreIndex,
                 (PKIX_UInt32)state->numCerts,
                 (PKIX_UInt32)state->certIndex,
+                (PKIX_UInt32)state->numFanout,
+                (PKIX_UInt32)state->numDepth,
                 state->dsaParamsNeeded,
                 state->revCheckDelayed,
                 state->canBeCached,
@@ -724,6 +728,92 @@ cleanup:
         if (PKIX_ERROR_RECEIVED){
                 PKIX_DECREF(anchor);
         }
+
+        PKIX_RETURN(BUILD);
+}
+
+/*
+ * FUNCTION: pkix_Build_SortCertComparator
+ * DESCRIPTION:
+ *
+ *  This Function takes two Certificates cast in "obj1" and "obj2",
+ *  compares their validity NotAfter dates and returns the result at
+ *  "pResult". The comparison key(s) can be expanded by using other
+ *  data in the Certificate in the future.
+ *
+ * PARAMETERS:
+ *  "obj1"
+ *      Address of the PKIX_PL_Object that is a cast of PKIX_PL_Cert.
+ *      Must be non-NULL.
+ *  "obj2"
+ *      Address of the PKIX_PL_Object that is a cast of PKIX_PL_Cert.
+ *      Must be non-NULL.
+ *  "pResult"
+ *      Address where the comparison result is returned. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Build Error if the function fails in a non-fatal way
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+pkix_Build_SortCertComparator(
+        PKIX_PL_Object *obj1,
+        PKIX_PL_Object *obj2,
+        PKIX_Int32 *pResult,
+        void *plContext)
+{
+        PKIX_PL_Cert *cert1 = NULL;
+        PKIX_PL_Cert *cert2 = NULL;
+        PKIX_PL_Date *date1 = NULL;
+        PKIX_PL_Date *date2 = NULL;
+        PKIX_Boolean result = PKIX_FALSE;
+
+        PKIX_ENTER(BUILD, "pkix_Build_SortCertComparator");
+        PKIX_NULLCHECK_THREE(obj1, obj2, pResult);
+
+        /*
+	 * For sorting candidate certificates, we use NotAfter date as the
+         * sorted key for now (can be expanded if desired in the future).
+         * Also in PKIX_BuildChain, the CertStores is reordered so 
+         * trusted CertStores are at beginning of the list for higher
+         * priority. These codes should be taken out if it doesn't help
+         * performance or in some way, hinders the solution of choosing
+         * desired candidates.
+         */
+
+        PKIX_CHECK(pkix_CheckType(obj1, PKIX_CERT_TYPE, plContext),
+                    "Object is not a Cert");
+        PKIX_INCREF(obj1);
+        cert1 = (PKIX_PL_Cert *)obj1;
+        PKIX_CHECK(PKIX_PL_Cert_GetValidityNotAfter(cert1, &date1, plContext),
+                "PKIX_PL_Cert_GetValidityNotAfter failed");
+
+        PKIX_CHECK(pkix_CheckType(obj2, PKIX_CERT_TYPE, plContext),
+                    "Object is not a Cert");
+        PKIX_INCREF(obj2);
+        cert2 = (PKIX_PL_Cert *)obj2;
+        PKIX_CHECK(PKIX_PL_Cert_GetValidityNotAfter(cert2, &date2, plContext),
+                "PKIX_PL_Cert_GetValidityNotAfter failed");
+	
+	PKIX_CHECK(PKIX_PL_Object_Compare
+                ((PKIX_PL_Object *)date1,
+                (PKIX_PL_Object *)date2,
+                &result,
+                plContext),
+                "PKIX_PL_Object_Comparator failed");
+
+        *pResult = result;
+
+cleanup:
+
+        PKIX_DECREF(cert1);
+        PKIX_DECREF(cert2);
+        PKIX_DECREF(date1);
+        PKIX_DECREF(date2);
 
         PKIX_RETURN(BUILD);
 }
@@ -1422,6 +1512,7 @@ pkix_BuildForwardDepthFirstSearch(
         PKIX_List *childTraversedSubjNames = NULL;
         PKIX_List *certsFound = NULL;
         PKIX_List *subjectNames = NULL;
+        PKIX_List *sortedList = NULL;
         PKIX_PL_Object *subjectName = NULL;
         PKIX_ValidateResult *valResult = NULL;
 /*      PRPollDesc *pollDesc = NULL; */
@@ -1592,10 +1683,34 @@ pkix_BuildForwardDepthFirstSearch(
                                 &state->numCerts,
                                 plContext),
                                 "PKIX_List_GetLength failed");
-                        /* sort state->candidateCerts */
+
+                        /*
+                         * sort state->candidateCerts:
+                         * Both bubble and quick sort algorithms are available.
+                         * For short list, bubble sort is more efficient.
+                         * The cutting size is around 100 items on a list.
+                         * This number is evaluated by experimenting both
+                         * algorithms on Java List.
+                         * If the candidate list is small, using the sort
+                         * can drag down the performance a little bit.
+                         * If it is considered redundant, take out the
+                         * following codes.
+                         */
+
+                        PKIX_CHECK(pkix_List_BubbleSort
+                                (state->candidateCerts,
+                                pkix_Build_SortCertComparator,
+                                &sortedList,
+                                plContext),
+                                "pkix_List_QuickSort failed");
+                        PKIX_DECREF(state->candidateCerts);
+                        state->candidateCerts = sortedList;
+
                         state->certIndex = 0;
+
                 /* } else {  Yes, remain in phase 1 */
                 }
+
             } /* while (state->status != BUILD_CHAINBUILDING) */
 
             /* ****Phase 2 - Chain building***** */
@@ -2005,6 +2120,7 @@ PKIX_BuildChain(
         PKIX_ForwardBuilderState *initialState = NULL;
         PKIX_PL_PublicKey *finalSubjPubKey = NULL;
         PKIX_PolicyNode *finalPolicyTree = NULL;
+        PKIX_CertStore_CheckTrustCallback trustCallback = NULL;
 
         PKIX_ENTER(BUILD, "PKIX_BuildChain");
         PKIX_NULLCHECK_TWO(buildParams, pResult);
@@ -2082,6 +2198,33 @@ PKIX_BuildChain(
 
         PKIX_CHECK(PKIX_List_GetLength(certStores, &numCertStores, plContext),
                 "PKIX_List_GetLength failed");
+
+        /* Reorder CertStores so trusted are at front of the CertStore List */
+        if (numCertStores > 1) {
+            for (i = numCertStores - 1; i >= 0; i--) {
+                PKIX_CHECK_ONLY_FATAL(PKIX_List_GetItem
+                    (certStores, i, (PKIX_PL_Object **)&certStore, plContext),
+                    "PKIX_List_GetItem failed");
+                PKIX_CHECK_ONLY_FATAL(PKIX_CertStore_GetTrustCallback
+                    (certStore, &trustCallback, plContext),
+                    "PKIX_CertStore_GetTrustCallback failed");
+
+                if (trustCallback != NULL) {
+                    /* Is a trusted Cert, move CertStore to front */
+                    PKIX_CHECK(PKIX_List_DeleteItem(certStores, i, plContext),
+                        "PKIX_List_DeleteItem failed");
+                    PKIX_CHECK(PKIX_List_InsertItem
+                        (certStores,
+                        0,
+                        (PKIX_PL_Object *)certStore,
+                        plContext),
+                    "PKIX_List_InsertItem failed");
+
+                }
+
+                PKIX_DECREF(certStore);
+            }
+        }
 
         PKIX_CHECK(PKIX_ProcessingParams_GetCertChainCheckers
                     (procParams, &userCheckers, plContext),
@@ -2287,6 +2430,7 @@ cleanup:
         PKIX_DECREF(targetCert);
         PKIX_DECREF(crlChecker);
         PKIX_DECREF(certStores);
+        PKIX_DECREF(certStore);
         PKIX_DECREF(userCheckers);
         PKIX_DECREF(testDate);
         PKIX_DECREF(targetPubKey);

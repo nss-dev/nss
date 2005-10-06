@@ -417,6 +417,7 @@ static void testAltNamesMultiple(){
                 "\tInhibitMapping:  -1\n"
                 "\tInhibitAnyPolicy:-1\n"
                 "\tNameConstraints: (null)\n"
+                "\tCacheFlag:       0\n"
                 "]\n";
 
         PKIX_TEST_STD_VARS();
@@ -2244,6 +2245,7 @@ int main(int argc, char *argv[]) {
                 "\tInhibitMapping:  -1\n"
                 "\tInhibitAnyPolicy:-1\n"
                 "\tNameConstraints: (null)\n"
+                "\tCacheFlag:       0\n"
                 "]\n";
 
         PKIX_TEST_STD_VARS();

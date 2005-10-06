@@ -948,6 +948,7 @@ pkix_pl_Cert_ToString_Helper(
                         "\tInhibitMapping:  %d\n"
                         "\tInhibitAnyPolicy:%d\n"
                         "\tNameConstraints: %s\n"
+                        "\tCacheFlag:       %d\n"
                         "]\n";
         }
 
@@ -1127,7 +1128,8 @@ pkix_pl_Cert_ToString_Helper(
                     certExplicitPolicy,         /* an Int32, not a String */
                     certInhibitMapping,         /* an Int32, not a String */
                     certInhibitAnyPolicy,       /* an Int32, not a String */
-                    nameConstraintsString),
+                    nameConstraintsString,
+                    cert->cacheFlag),           /* a boolean */
                     "PKIX_PL_Sprintf failed");
 
         *pString = certString;
