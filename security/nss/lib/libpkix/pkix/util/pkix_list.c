@@ -1211,8 +1211,8 @@ pkix_List_BubbleSort(
         PKIX_PL_Object *cmpObj = NULL;
         PKIX_PL_Object *leastObj = NULL;
         PKIX_Int32 cmpResult = 0;
-        PKIX_UInt32 size = 0;
-        PKIX_UInt32 i, j;
+        PKIX_Int32 size = 0;
+        PKIX_Int32 i, j;
 
         PKIX_ENTER(BUILD, "pkix_List_BubbleSort");
         PKIX_NULLCHECK_THREE(fromList, comparator, pSortedList);
