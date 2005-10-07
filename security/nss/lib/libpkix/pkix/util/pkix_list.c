@@ -1211,24 +1211,29 @@ pkix_List_BubbleSort(
         PKIX_PL_Object *cmpObj = NULL;
         PKIX_PL_Object *leastObj = NULL;
         PKIX_Int32 cmpResult = 0;
-        PKIX_Int32 size = 0;
-        PKIX_Int32 i, j;
+        PKIX_UInt32 size = 0;
+        PKIX_UInt32 i, j;
 
         PKIX_ENTER(BUILD, "pkix_List_BubbleSort");
         PKIX_NULLCHECK_THREE(fromList, comparator, pSortedList);
 
-        PKIX_CHECK(pkix_List_Duplicate(fromList, &sortedList, plContext),
+        PKIX_CHECK(pkix_List_Duplicate
+                ((PKIX_PL_Object *) fromList,
+                (PKIX_PL_Object **) &sortedList,
+                 plContext),
                 "pkix_List_Duplicate failed");
 
         PKIX_CHECK(PKIX_List_GetLength(sortedList, &size, plContext),
                 "PKIX_List_GetLength failed");
+
+        if (size > 1) {
 
         /*
          * Move from the first of the item on the list, For each iteration,
          * compare and swap the least value to the head of the comparisoning
          * sub-list.
          */
-        for (i = 0; i < size - 1; i++) {
+            for (i = 0; i < size - 1; i++) {
 
                 PKIX_CHECK(PKIX_List_GetItem
                         (fromList, i, &leastObj, plContext),
@@ -1263,6 +1268,7 @@ pkix_List_BubbleSort(
                 }
 
                 PKIX_DECREF(leastObj);
+            }
                 
         }
 
