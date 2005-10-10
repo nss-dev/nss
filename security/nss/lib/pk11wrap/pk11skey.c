@@ -409,7 +409,7 @@ PK11_ImportSymKeyWithFlags(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
 	 * default for secret keys */
 	PK11_SETATTRS(attrs, CKA_PRIVATE, &cktrue, sizeof(cktrue) ); attrs++;
     }
-    attrs += pk11_FlagsToAttributes(flags, attrs, &cktrue);
+    attrs += pk11_OpFlagsToAttributes(flags, attrs, &cktrue);
     if ((operation != CKA_FLAGS_ONLY) &&
     	 !pk11_FindAttrInTemplate(keyTemplate, attrs-keyTemplate, operation)) {
         PK11_SETATTRS(attrs, operation, &cktrue, sizeof(cktrue)); attrs++;
@@ -766,9 +766,131 @@ PK11_MoveSymKey(PK11SlotInfo *slot, CK_ATTRIBUTE_TYPE operation,
 
 
 /*
- * Use the token to Generate a key. keySize must be 'zero' for fixed key
- * length algorithms. NOTE: this means we can never generate a DES2 key
- * from this interface!
+ * Use the token to generate a key. keySize must be 'zero' for fixed key
+ * length algorithms. A nonzero keySize causes the CKA_VALUE_LEN attribute
+ * to be added to the template for the key. PKCS #11 modules fail if you
+ * specify the CKA_VALUE_LEN attribute for keys with fixed length.
+ * NOTE: this means to generate a DES2 key from this interface you must
+ * specify CKM_DES2_KEY_GEN as the mechanism directly; specifying
+ * CKM_DES3_CBC as the mechanism and 16 as keySize currently doesn't work.
+ *
+ * CK_FLAGS flags: key operation flags
+ * PK11AttrFlags attrFlags: PK11_ATTR_XXX key attribute flags
+ */
+PK11SymKey *
+PK11_TokenKeyGenWithFlags(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
+    SECItem *param, int keySize, SECItem *keyid, CK_FLAGS opFlags,
+    PK11AttrFlags attrFlags, void *wincx)
+{
+    PK11SymKey *symKey;
+    CK_ATTRIBUTE genTemplate[MAX_TEMPL_ATTRS];
+    CK_ATTRIBUTE *attrs = genTemplate;
+    int count = sizeof(genTemplate)/sizeof(genTemplate[0]);
+    CK_SESSION_HANDLE session;
+    CK_MECHANISM mechanism;
+    CK_RV crv;
+    CK_BBOOL cktrue = CK_TRUE;
+    CK_BBOOL ckfalse = CK_FALSE;
+    CK_ULONG ck_key_size;       /* only used for variable-length keys */
+    PRBool isToken = ((attrFlags & PK11_ATTR_TOKEN) != 0);
+
+    if (pk11_BadAttrFlags(attrFlags)) {
+	PORT_SetError( SEC_ERROR_INVALID_ARGS );
+	return NULL;
+    }
+
+    if (keySize != 0) {
+        ck_key_size = keySize; /* Convert to PK11 type */
+
+        PK11_SETATTRS(attrs, CKA_VALUE_LEN, &ck_key_size, sizeof(ck_key_size)); 
+							attrs++;
+    }
+
+    /* Include key id value if provided */
+    if (keyid) {
+        PK11_SETATTRS(attrs, CKA_ID, keyid->data, keyid->len); attrs++;
+    }
+
+    attrs += pk11_AttrFlagsToAttributes(attrFlags, attrs, &cktrue, &ckfalse);
+    attrs += pk11_OpFlagsToAttributes(opFlags, attrs, &cktrue);
+
+    count = attrs - genTemplate;
+    PR_ASSERT(count <= sizeof(genTemplate)/sizeof(CK_ATTRIBUTE));
+
+    /* find a slot to generate the key into */
+    /* Only do slot management if this is not a token key */
+    if (!isToken && (slot == NULL || !PK11_DoesMechanism(slot,type))) {
+        PK11SlotInfo *bestSlot;
+
+        bestSlot = PK11_GetBestSlot(type,wincx);
+        if (bestSlot == NULL) {
+	    PORT_SetError( SEC_ERROR_NO_MODULE );
+	    return NULL;
+	}
+
+        symKey = pk11_CreateSymKey(bestSlot, type, !isToken, wincx);
+
+        PK11_FreeSlot(bestSlot);
+    } else {
+	symKey = pk11_CreateSymKey(slot, type, !isToken, wincx);
+    }
+    if (symKey == NULL) return NULL;
+
+    symKey->size = keySize;
+    symKey->origin = PK11_OriginGenerated;
+
+    /* Initialize the Key Gen Mechanism */
+    mechanism.mechanism = PK11_GetKeyGenWithSize(type, keySize);
+    if (mechanism.mechanism == CKM_FAKE_RANDOM) {
+	PORT_SetError( SEC_ERROR_NO_MODULE );
+	return NULL;
+    }
+
+    /* Set the parameters for the key gen if provided */
+    mechanism.pParameter = NULL;
+    mechanism.ulParameterLen = 0;
+    if (param) {
+	mechanism.pParameter = param->data;
+	mechanism.ulParameterLen = param->len;
+    }
+
+    /* Get session and perform locking */
+    if (isToken) {
+	PK11_Authenticate(symKey->slot,PR_TRUE,wincx);
+        session = PK11_GetRWSession(symKey->slot);  /* Should always be original slot */
+	symKey->owner = PR_FALSE;
+    } else {
+        session = symKey->session;
+        pk11_EnterKeyMonitor(symKey);
+    }
+
+    crv = PK11_GETTAB(symKey->slot)->C_GenerateKey(session,
+			 &mechanism, genTemplate, count, &symKey->objectID);
+
+    /* Release lock and session */
+    if (isToken) {
+        PK11_RestoreROSession(symKey->slot, session);
+    } else {
+        pk11_ExitKeyMonitor(symKey);
+    }
+
+    if (crv != CKR_OK) {
+	PK11_FreeSymKey(symKey);
+	PORT_SetError( PK11_MapError(crv) );
+	return NULL;
+    }
+
+    return symKey;
+}
+
+/*
+ * Use the token to generate a key. keySize must be 'zero' for fixed key
+ * length algorithms. A nonzero keySize causes the CKA_VALUE_LEN attribute
+ * to be added to the template for the key. PKCS #11 modules fail if you
+ * specify the CKA_VALUE_LEN attribute for keys with fixed length.
+ * NOTE: this means to generate a DES2 key from this interface you must
+ * specify CKM_DES2_KEY_GEN as the mechanism directly; specifying
+ * CKM_DES3_CBC as the mechanism and 16 as keySize currently doesn't work.
  */
 PK11SymKey *
 PK11_TokenKeyGen(PK11SlotInfo *slot, CK_MECHANISM_TYPE type, SECItem *param,
@@ -821,7 +943,7 @@ PK11_TokenKeyGen(PK11SlotInfo *slot, CK_MECHANISM_TYPE type, SECItem *param,
     if (!isToken && (slot == NULL || !PK11_DoesMechanism(slot,type))) {
         PK11SlotInfo *bestSlot;
 
-        bestSlot = PK11_GetBestSlot(type,wincx); /* TNH: references the slot? */
+        bestSlot = PK11_GetBestSlot(type,wincx);
         if (bestSlot == NULL) {
 	    PORT_SetError( SEC_ERROR_NO_MODULE );
 	    return NULL;
@@ -1164,7 +1286,7 @@ PK11_DeriveWithFlags( PK11SymKey *baseKey, CK_MECHANISM_TYPE derive,
     CK_ATTRIBUTE    keyTemplate[MAX_TEMPL_ATTRS];
     unsigned int    templateCount;
 
-    templateCount = pk11_FlagsToAttributes(flags, keyTemplate, &ckTrue);
+    templateCount = pk11_OpFlagsToAttributes(flags, keyTemplate, &ckTrue);
     return pk11_DeriveWithTemplate(baseKey, derive, param, target, operation, 
 		  keySize, keyTemplate, templateCount, PR_FALSE);
 }
@@ -1184,7 +1306,7 @@ PK11_DeriveWithFlagsPerm( PK11SymKey *baseKey, CK_MECHANISM_TYPE derive,
         PK11_SETATTRS(attrs, CKA_TOKEN,  &cktrue, sizeof(CK_BBOOL)); attrs++;
     }
     templateCount = attrs - keyTemplate;
-    templateCount += pk11_FlagsToAttributes(flags, attrs, &cktrue);
+    templateCount += pk11_OpFlagsToAttributes(flags, attrs, &cktrue);
     return pk11_DeriveWithTemplate(baseKey, derive, param, target, operation, 
 				   keySize, keyTemplate, templateCount, isPerm);
 }
@@ -1847,7 +1969,7 @@ PK11_UnwrapSymKeyWithFlags(PK11SymKey *wrappingKey, CK_MECHANISM_TYPE wrapType,
     CK_ATTRIBUTE    keyTemplate[MAX_TEMPL_ATTRS];
     unsigned int    templateCount;
 
-    templateCount = pk11_FlagsToAttributes(flags, keyTemplate, &ckTrue);
+    templateCount = pk11_OpFlagsToAttributes(flags, keyTemplate, &ckTrue);
     return pk11_AnyUnwrapKey(wrappingKey->slot, wrappingKey->objectID,
 		    wrapType, param, wrappedKey, target, operation, keySize, 
 		    wrappingKey->cx, keyTemplate, templateCount, PR_FALSE);
@@ -1870,7 +1992,7 @@ PK11_UnwrapSymKeyWithFlagsPerm(PK11SymKey *wrappingKey,
         PK11_SETATTRS(attrs, CKA_TOKEN,  &cktrue, sizeof(CK_BBOOL)); attrs++;
     }
     templateCount = attrs-keyTemplate;
-    templateCount += pk11_FlagsToAttributes(flags, attrs, &cktrue);
+    templateCount += pk11_OpFlagsToAttributes(flags, attrs, &cktrue);
 
     return pk11_AnyUnwrapKey(wrappingKey->slot, wrappingKey->objectID,
 		    wrapType, param, wrappedKey, target, operation, keySize, 
@@ -1907,7 +2029,7 @@ PK11_PubUnwrapSymKeyWithFlags(SECKEYPrivateKey *wrappingKey,
     unsigned int    templateCount;
     PK11SlotInfo    *slot = wrappingKey->pkcs11Slot;
 
-    templateCount = pk11_FlagsToAttributes(flags, keyTemplate, &ckTrue);
+    templateCount = pk11_OpFlagsToAttributes(flags, keyTemplate, &ckTrue);
 
     if (SECKEY_HAS_ATTRIBUTE_SET(wrappingKey,CKA_PRIVATE)) {
 	PK11_HandlePasswordCheck(slot,wrappingKey->wincx);
@@ -1937,7 +2059,7 @@ PK11_PubUnwrapSymKeyWithFlagsPerm(SECKEYPrivateKey *wrappingKey,
     }
     templateCount = attrs-keyTemplate;
 
-    templateCount += pk11_FlagsToAttributes(flags, attrs, &cktrue);
+    templateCount += pk11_OpFlagsToAttributes(flags, attrs, &cktrue);
 
     if (SECKEY_HAS_ATTRIBUTE_SET(wrappingKey,CKA_PRIVATE)) {
 	PK11_HandlePasswordCheck(slot,wrappingKey->wincx);

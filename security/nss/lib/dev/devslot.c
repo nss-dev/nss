@@ -356,8 +356,10 @@ nssSlot_IsTokenPresent (
     if (session->handle != CK_INVALID_SESSION) {
 	return PR_TRUE;
     } else {
-	/* the token has been removed, and reinserted, invalidate all the old
-	 * information we had on this token */
+	/* the token has been removed, and reinserted, or the slot contains
+	 * a token it doesn't recognize. invalidate all the old
+	 * information we had on this token, if we can't refresh, clear
+	 * the present flag */
 #ifdef NSS_3_4_CODE
 	nssToken_NotifyCertsNotVisible(slot->token);
 #endif /* NSS_3_4_CODE */
@@ -366,6 +368,7 @@ nssSlot_IsTokenPresent (
 	nssrv = nssSlot_Refresh(slot);
 	if (nssrv != PR_SUCCESS) {
 	    slot->token->base.name[0] = 0; /* XXX */
+	    slot->ckFlags &= ~CKF_TOKEN_PRESENT;
 	    return PR_FALSE;
 	}
 	return PR_TRUE;
