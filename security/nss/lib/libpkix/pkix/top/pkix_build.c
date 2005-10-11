@@ -1702,7 +1702,7 @@ pkix_BuildForwardDepthFirstSearch(
                                 pkix_Build_SortCertComparator,
                                 &sortedList,
                                 plContext),
-                                "pkix_List_QuickSort failed");
+                                "pkix_List_BubbleSort failed");
                         PKIX_DECREF(state->candidateCerts);
                         state->candidateCerts = sortedList;
 
@@ -2439,6 +2439,7 @@ cleanup:
         PKIX_DECREF(certChain);
         PKIX_DECREF(certList);
         PKIX_DECREF(matchingAnchor);
+        PKIX_DECREF(trustedCert);
         PKIX_DECREF(initialState);
         PKIX_DECREF(finalSubjPubKey);
         PKIX_DECREF(finalPolicyTree);
