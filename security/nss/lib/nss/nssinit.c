@@ -285,7 +285,7 @@ done:
 static const char *dllname =
 #if defined(XP_WIN32) || defined(XP_OS2)
 	"nssckbi.dll";
-#elif defined(HPUX)
+#elif defined(HPUX) && !defined(__ia64)  /* HP-UX PA-RISC */
 	"libnssckbi.sl";
 #elif defined(DARWIN)
 	"libnssckbi.dylib";
