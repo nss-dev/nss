@@ -375,8 +375,6 @@ ssl3_HandleECDHClientKeyExchange(sslSocket *ss, SSL3Opaque *b,
 			    CKM_ECDH1_DERIVE, target, CKA_DERIVE, 0,
 			    kdf, NULL, NULL);
 
-    PORT_Free(clntPubKey.u.ec.publicValue.data);
-
     if (pms == NULL) {
 	/* last gasp.  */
 	ssl_MapLowLevelError(SSL_ERROR_CLIENT_KEY_EXCHANGE_FAILURE);
