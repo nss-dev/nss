@@ -1,35 +1,39 @@
 #
-# The contents of this file are subject to the Mozilla Public
-# License Version 1.1 (the "License"); you may not use this file
-# except in compliance with the License. You may obtain a copy of
-# the License at http://www.mozilla.org/MPL/
-# 
-# Software distributed under the License is distributed on an "AS
-# IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-# implied. See the License for the specific language governing
-# rights and limitations under the License.
-# 
-# The Original Code is the Netscape security libraries.
-# 
-# The Initial Developer of the Original Code is Netscape
-# Communications Corporation.  Portions created by Netscape are 
-# Copyright (C) 1994-2000 Netscape Communications Corporation.  All
-# Rights Reserved.
-# 
-# Contributor(s):
-# 
-# Alternatively, the contents of this file may be used under the
-# terms of the GNU General Public License Version 2 or later (the
-# "GPL"), in which case the provisions of the GPL are applicable 
-# instead of those above.  If you wish to allow use of your 
-# version of this file only under the terms of the GPL and not to
-# allow others to use your version of this file under the MPL,
-# indicate your decision by deleting the provisions above and
-# replace them with the notice and other provisions required by
-# the GPL.  If you do not delete the provisions above, a recipient
-# may use your version of this file under either the MPL or the
-# GPL.
+# ***** BEGIN LICENSE BLOCK *****
+# Version: MPL 1.1/GPL 2.0/LGPL 2.1
 #
+# The contents of this file are subject to the Mozilla Public License Version
+# 1.1 (the "License"); you may not use this file except in compliance with
+# the License. You may obtain a copy of the License at
+# http://www.mozilla.org/MPL/
+#
+# Software distributed under the License is distributed on an "AS IS" basis,
+# WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+# for the specific language governing rights and limitations under the
+# License.
+#
+# The Original Code is the Netscape security libraries.
+#
+# The Initial Developer of the Original Code is
+# Netscape Communications Corporation.
+# Portions created by the Initial Developer are Copyright (C) 1994-2000
+# the Initial Developer. All Rights Reserved.
+#
+# Contributor(s):
+#
+# Alternatively, the contents of this file may be used under the terms of
+# either the GNU General Public License Version 2 or later (the "GPL"), or
+# the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+# in which case the provisions of the GPL or the LGPL are applicable instead
+# of those above. If you wish to allow use of your version of this file only
+# under the terms of either the GPL or the LGPL, and not to allow others to
+# use your version of this file under the terms of the MPL, indicate your
+# decision by deleting the provisions above and replace them with the notice
+# and other provisions required by the GPL or the LGPL. If you do not delete
+# the provisions above, a recipient may use your version of this file under
+# the terms of any one of the MPL, the GPL or the LGPL.
+#
+# ***** END LICENSE BLOCK *****
 
 #######################################################################
 ###                                                                 ###
@@ -312,7 +316,7 @@ endif
 ifeq ($(OS_TARGET),OS2)
 $(IMPORT_LIBRARY): $(MAPFILE)
 	rm -f $@
-	$(IMPLIB) $@ $(MAPFILE)
+	$(IMPLIB) $@ $<
 	$(RANLIB) $@
 endif
 
@@ -377,10 +381,10 @@ $(MAPFILE): $(LIBRARY_NAME).def
 $(OBJDIR)/$(PROG_PREFIX)%$(PROG_SUFFIX): $(OBJDIR)/$(PROG_PREFIX)%$(OBJ_SUFFIX)
 	@$(MAKE_OBJDIR)
 ifeq (,$(filter-out _WIN%,$(NS_USE_GCC)_$(OS_TARGET)))
-	$(MKPROG) $(OBJDIR)/$(PROG_PREFIX)$*$(OBJ_SUFFIX) -Fe$@ -link \
+	$(MKPROG) $< -Fe$@ -link \
 	$(LDFLAGS) $(EXTRA_LIBS) $(EXTRA_SHARED_LIBS) $(OS_LIBS)
 else
-	$(MKPROG) -o $@ $(OBJDIR)/$(PROG_PREFIX)$*$(OBJ_SUFFIX) \
+	$(MKPROG) -o $@ $(CFLAGS) $< \
 	$(LDFLAGS) $(EXTRA_LIBS) $(EXTRA_SHARED_LIBS) $(OS_LIBS)
 endif
 
@@ -391,7 +395,7 @@ WCCFLAGS3 := $(subst -D,-d,$(WCCFLAGS2))
 # Translate source filenames to absolute paths. This is required for
 # debuggers under Windows & OS/2 to find source files automatically
 
-ifeq (,$(filter-out OS2%,$(OS_TARGET)))
+ifeq (,$(filter-out OS2 AIX,$(OS_TARGET)))
 NEED_ABSOLUTE_PATH := 1
 PWD := $(shell pwd)
 endif
@@ -492,25 +496,25 @@ endif
 endif #STRICT_CPLUSPLUS_SUFFIX
 
 %.i: %.cpp
-	$(CCC) -C -E $(CFLAGS) $< > $*.i
+	$(CCC) -C -E $(CFLAGS) $< > $@
 
 %.i: %.c
 ifeq (,$(filter-out WIN%,$(OS_TARGET)))
 	$(CC) -C /P $(CFLAGS) $< 
 else
-	$(CC) -C -E $(CFLAGS) $< > $*.i
+	$(CC) -C -E $(CFLAGS) $< > $@
 endif
 
 ifneq (,$(filter-out WIN%,$(OS_TARGET)))
 %.i: %.s
-	$(CC) -C -E $(CFLAGS) $< > $*.i
+	$(CC) -C -E $(CFLAGS) $< > $@
 endif
 
 %: %.pl
-	rm -f $@; cp $*.pl $@; chmod +x $@
+	rm -f $@; cp $< $@; chmod +x $@
 
 %: %.sh
-	rm -f $@; cp $*.sh $@; chmod +x $@
+	rm -f $@; cp $< $@; chmod +x $@
 
 ifdef DIRS
 $(DIRS)::
@@ -776,9 +780,9 @@ $(JMC_GEN_DIR)/M%.h: $(JMCSRCDIR)/%.class
 $(JMC_GEN_DIR)/M%.c: $(JMCSRCDIR)/%.class
 	$(JMC) -d $(JMC_GEN_DIR) -module $(JMC_GEN_FLAGS) $(?F:.class=)
 
-$(OBJDIR)/M%$(OBJ_SUFFIX): $(JMC_GEN_DIR)/M%.h $(JMC_GEN_DIR)/M%.c
+$(OBJDIR)/M%$(OBJ_SUFFIX): $(JMC_GEN_DIR)/M%.c $(JMC_GEN_DIR)/M%.h
 	@$(MAKE_OBJDIR)
-	$(CC) -o $@ -c $(CFLAGS) $(JMC_GEN_DIR)/M$*.c
+	$(CC) -o $@ -c $(CFLAGS) $<
 
 export:: $(JMC_HEADERS) $(JMC_STUBS)
 endif
