@@ -645,7 +645,7 @@ return ${totalErrors}
 # 4.14.* Distribution Point - functionality not yet implemented
 # 4.15.* Delta CRL - not supported
 ##########################################################
-# Following tests are not run becuase of bugs beyond libpkix:
+# Following tests are not run because of bugs beyond libpkix:
 # test_buildchain NIST-Test.4.3.8 ENE $NIST ValidRFC3280OptionalAttributeTypesTest8EE.crt RFC3280OptionalAttributeTypesCACert.crt TrustAnchorRootCertificate.crt
 
 # Following tests are not supported by libpkix : separate certificate
