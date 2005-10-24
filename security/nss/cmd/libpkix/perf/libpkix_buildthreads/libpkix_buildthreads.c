@@ -63,6 +63,9 @@
 #include "pkix_tools.h"
 #include "pkix_pl_cert.h"
 
+#include "testutil.h"
+#include "testutil_nss.h"
+
 void *plContext = NULL;
 
 #define PERF_DECREF(obj) \
@@ -88,6 +91,41 @@ struct ThreadDataStr {
     PRUint32 iterations;
 };
 
+#define PKIX_LOGGER_ON 1
+
+#ifdef PKIX_LOGGER_ON
+
+char *logLevels[] = {
+        "None",
+        "Fatal Error",
+        "Error",
+        "Warning",
+        "Debug",
+        "Trace"
+};
+
+PKIX_Error *loggerCallback(
+        PKIX_Logger *logger,
+        PKIX_PL_String *message,
+        PKIX_UInt32 logLevel,
+        PKIX_PL_String *logComponent,
+        void *plContext)
+{
+        char *comp = NULL;
+        char *msg = NULL;
+        static int callCount = 0;
+
+        msg = PKIX_String2ASCII(message, plContext);
+        comp = PKIX_String2ASCII(logComponent, plContext);
+        printf("Logging %s (%s): %s\n", logLevels[logLevel], comp, msg);
+        PR_Free((void *)msg);
+        PR_Free((void *)comp);
+
+        return(NULL);
+}
+
+#endif /* PKIX_LOGGER_ON */
+
 void ThreadEntry(void* data)
 {
         tData* tdata = (tData*) data;
@@ -102,7 +140,6 @@ void ThreadEntry(void* data)
         PKIX_PL_Cert *eeCert = NULL;
         PKIX_CertStore *certStore = NULL;
         PKIX_List *certStores = NULL;
-        void *wincx = NULL;
         PKIX_ComCertSelParams *certSelParams = NULL;
         PKIX_CertSelector *certSelector = NULL;
         PKIX_PL_Date *nowDate = NULL;
@@ -111,8 +148,6 @@ void ThreadEntry(void* data)
         if (!duration){
                 return;
         }
-
-        PKIX_PL_NssContext_Create(0x10, PKIX_FALSE, wincx, &plContext);
 
         do {
 
@@ -288,6 +323,8 @@ int main(int argc, char** argv)
         PRIntervalTime duration = PR_SecondsToInterval(1);
         PRUint32 threads = 1;
         PKIX_UInt32 actualMinorVersion;
+        PKIX_Logger *logger = NULL;
+        void *wincx = NULL;
 
         /* if (argc != 5) -- when TrustAnchor used to be on command line */
         if (argc != 4)
@@ -312,12 +349,26 @@ int main(int argc, char** argv)
         handle = CERT_GetDefaultCertDB();
         PR_ASSERT(handle);
 
+        PKIX_PL_NssContext_Create(0x10, PKIX_FALSE, wincx, &plContext);
+
+#ifdef PKIX_LOGGER_ON
+
+        /* set logger to log trace and up */
+        PKIX_SetLoggers(NULL, plContext);
+        PKIX_Logger_Create(loggerCallback, NULL, &logger, plContext);
+        PKIX_Logger_SetMaxLoggingLevel
+                (logger, PKIX_LOGGER_LEVEL_WARNING, plContext);
+        PKIX_AddLogger(logger, plContext);
+
+#endif /* PKIX_LOGGER_ON */
+
         /*
          * This code is retired
          *      anchor = CERT_FindCertByNicknameOrEmailAddr(handle, argv[3]);
          *      if (!anchor) finish("Unable to find anchor.\n", 1);
          *
          *      eecert = CERT_FindCertByNicknameOrEmailAddr(handle, argv[4]);
+     
          *      if (!eecert) finish("Unable to find eecert.\n", 1);
          *
          *      Test(anchor, eecert, duration, threads);
@@ -326,6 +377,8 @@ int main(int argc, char** argv)
         Test(NULL, argv[3], duration, handle, threads);
 
         /* need to free handle XXX */
+
+        PERF_DECREF(logger);
 
         PKIX_Shutdown(plContext);
 

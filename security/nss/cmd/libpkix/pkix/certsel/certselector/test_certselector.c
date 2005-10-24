@@ -258,49 +258,62 @@ custom_CertSelector_MatchCallback(
         PKIX_List *certPolicies = NULL;
         PKIX_List *quals = NULL;
         PKIX_PL_CertPolicyInfo *policy = NULL;
+        PKIX_PL_String *errorDesc = NULL;
+        PKIX_Error *error = NULL;
 
-        PKIX_ENTER(CERTSELECTOR, "custom_CertSelector_MatchCallback");
+        PKIX_TEST_STD_VARS();
 
         *pResult = PKIX_TRUE;
 
-        PKIX_CHECK(PKIX_PL_Cert_GetPolicyInformation
-                (cert, &certPolicies, plContext),
-                "PKIX_PL_Cert_GetPolicyInformation failed");
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Cert_GetPolicyInformation
+                (cert, &certPolicies, plContext));
 
         if (certPolicies) {
-                PKIX_CHECK(PKIX_List_GetLength
-                        (certPolicies, &numPolicies, plContext),
-                        "PKIX_List_GetLength failed");
-
+                PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_GetLength
+                        (certPolicies, &numPolicies, plContext));
+                      
                 for (i = 0; i < numPolicies; i++) {
-                        PKIX_CHECK(PKIX_List_GetItem
+                        PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_GetItem
                             (certPolicies,
                             i,
                             (PKIX_PL_Object **)&policy,
-                            plContext),
-                            "PKIX_List_GetItem failed");
-                        PKIX_CHECK(PKIX_PL_CertPolicyInfo_GetPolQualifiers
-                            (policy, &quals, plContext),
-                            "PKIX_PL_CertPolicyInfo_GetPolQualifiers failed");
+                            plContext));
+                        PKIX_TEST_EXPECT_NO_ERROR
+                            (PKIX_PL_CertPolicyInfo_GetPolQualifiers
+                            (policy, &quals, plContext));
                         if (quals) {
                             goto cleanup;
                         }
-                        PKIX_DECREF(policy);
+                        PKIX_TEST_DECREF_BC(policy);
                 }
-                PKIX_DECREF(certPolicies);
+                PKIX_TEST_DECREF_BC(certPolicies);
                 *pResult = PKIX_FALSE;
-                PKIX_THROW
-                        (CERTSELECTOR,
-                        "Policies extension but no Policy Qualifiers");
+
+                /* Policies extension but no Policy Qualifiers */
+                PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create
+                        (PKIX_ESCASCII,
+                        "Policies extension but no Policy Qualifiers",
+                        0,
+                        &errorDesc,
+                        plContext));
+                PKIX_TEST_EXPECT_NO_ERROR(PKIX_Error_Create
+                        (PKIX_CERTSELECTOR_ERROR,
+                        NULL,
+                        NULL,
+                        errorDesc,
+                        &error,
+                        plContext));
+
         }
 
 cleanup:
 
-        PKIX_DECREF(certPolicies);
-        PKIX_DECREF(policy);
-        PKIX_DECREF(quals);
+        PKIX_TEST_DECREF_AC(certPolicies);
+        PKIX_TEST_DECREF_AC(policy);
+        PKIX_TEST_DECREF_AC(quals);
+        PKIX_TEST_DECREF_AC(errorDesc);
 
-        PKIX_RETURN(CERTSELECTOR);
+        return(error);
 }
 
 /*
@@ -323,66 +336,80 @@ custom_CertSelector_MatchOIDCallback(
         PKIX_List *certPolicies = NULL;
         PKIX_PL_CertPolicyInfo *policy = NULL;
         PKIX_PL_OID *policyOID = NULL;
+        PKIX_PL_String *errorDesc = NULL;
+        PKIX_Error *error = NULL;
 
-        PKIX_ENTER(CERTSELECTOR, "custom_CertSelector_MatchOIDCallback");
+        PKIX_TEST_STD_VARS();
 
         *pResult = PKIX_TRUE;
 
-        PKIX_CHECK(PKIX_CertSelector_GetCertSelectorContext
-                (selector, &certSelectorContext, plContext),
-                "PKIX_CertSelector_GetCertSelectorContext failed");
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_CertSelector_GetCertSelectorContext
+                (selector, &certSelectorContext, plContext));
 
-        PKIX_CHECK(pkix_CheckType
-                (certSelectorContext, PKIX_OID_TYPE, plContext),
-                "Object is not an OID");
+        PKIX_TEST_EXPECT_NO_ERROR(pkix_CheckType
+                (certSelectorContext, PKIX_OID_TYPE, plContext));
 
         constraintOID = (PKIX_PL_OID *)certSelectorContext;
 
-        PKIX_CHECK(PKIX_PL_Cert_GetPolicyInformation
-                (cert, &certPolicies, plContext),
-                "PKIX_PL_Cert_GetPolicyInformation failed");
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Cert_GetPolicyInformation
+                (cert, &certPolicies, plContext));
 
         if (certPolicies) {
-                PKIX_CHECK(PKIX_List_GetLength
-                        (certPolicies, &numPolicies, plContext),
-                        "PKIX_List_GetLength failed");
+                PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_GetLength
+                        (certPolicies, &numPolicies, plContext));
 
                 for (i = 0; i < numPolicies; i++) {
-                        PKIX_CHECK(PKIX_List_GetItem
+                        PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_GetItem
                                 (certPolicies,
                                 i,
                                 (PKIX_PL_Object **)&policy,
-                                plContext),
-                                "PKIX_List_GetItem failed");
-                        PKIX_CHECK(PKIX_PL_CertPolicyInfo_GetPolicyId
-                                (policy, &policyOID, plContext),
-                                "PKIX_PL_CertPolicyInfo_GetPolicyId failed");
-                        PKIX_CHECK(PKIX_PL_Object_Equals
+                                plContext));
+
+                        PKIX_TEST_EXPECT_NO_ERROR
+                                (PKIX_PL_CertPolicyInfo_GetPolicyId
+                                (policy, &policyOID, plContext));
+
+                        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Object_Equals
                                 ((PKIX_PL_Object *)policyOID,
                                 (PKIX_PL_Object *)constraintOID,
                                 &match,
-                                plContext),
-                                "PKIX_PL_Object_Equals failed");
+                                plContext));
+
                         if (match) {
                                 goto cleanup;
                         }
-                        PKIX_DECREF(policy);
-                        PKIX_DECREF(policyOID);
+                        PKIX_TEST_DECREF_BC(policy);
+                        PKIX_TEST_DECREF_BC(policyOID);
                 }
         }
 
-        PKIX_DECREF(certSelectorContext);
-        PKIX_DECREF(certPolicies);
-        PKIX_THROW(CERTSELECTOR, "No matching Policy");
+        PKIX_TEST_DECREF_BC(certSelectorContext);
+        PKIX_TEST_DECREF_BC(certPolicies);
+
+        /* No matching Policy */
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create
+                        (PKIX_ESCASCII,
+                        "No matching Policy",
+                        0,
+                        &errorDesc,
+                        plContext));
+                PKIX_TEST_EXPECT_NO_ERROR(PKIX_Error_Create
+                        (PKIX_CERTSELECTOR_ERROR,
+                        NULL,
+                        NULL,
+                        errorDesc,
+                        &error,
+                        plContext));
 
 cleanup:
 
-        PKIX_DECREF(certSelectorContext);
-        PKIX_DECREF(certPolicies);
-        PKIX_DECREF(policy);
-        PKIX_DECREF(policyOID);
+        PKIX_TEST_DECREF_AC(certSelectorContext);
+        PKIX_TEST_DECREF_AC(certPolicies);
+        PKIX_TEST_DECREF_AC(policy);
+        PKIX_TEST_DECREF_AC(policyOID);
+        PKIX_TEST_DECREF_AC(errorDesc);
 
-        PKIX_RETURN(CERTSELECTOR);
+        return(error);
 }
 
 void testSubjectMatch(

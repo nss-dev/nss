@@ -200,6 +200,7 @@ test_bytearray
 test_mutex
 test_mutex2
 test_mutex3
+test_monitorlock
 test_oid
 test_hashtable
 EOF

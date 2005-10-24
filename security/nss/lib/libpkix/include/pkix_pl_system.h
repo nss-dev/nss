@@ -1030,6 +1030,77 @@ PKIX_PL_Mutex_Unlock(
         PKIX_PL_Mutex *lock,
         void *plContext);
 
+/* monitor (locks) */
+
+/*
+ * FUNCTION: PKIX_PL_MonitorLock_Create
+ * DESCRIPTION:
+ *
+ *  Creates a new PKIX_PL_MonitorLock and stores it at "pNewLock".
+ *
+ * PARAMETERS:
+ *  "pNewLock"
+ *      Address where object pointer will be stored. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_PL_MonitorLock_Create(
+        PKIX_PL_MonitorLock **pNewLock,
+        void *plContext);
+
+/*
+ * FUNCTION: PKIX_PL_MonitorLock_Enter
+ * DESCRIPTION:
+ *
+ *  Locks the MonitorLock pointed to by "lock". If the MonitorLock is already
+ *  locked by other thread, this function will block the current thread. If
+ *  the "lock" had been locked by current thread, this function will NOT block.
+ *
+ * PARAMETERS:
+ *  "lock"
+ *      Address of MonitorLock to lock. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_PL_MonitorLock_Enter(
+        PKIX_PL_MonitorLock *lock,
+        void *plContext);
+
+/*
+ * FUNCTION: PKIX_PL_MonitorLock_Exit
+ * DESCRIPTION:
+ *
+ *  Unlocks the MonitorLock pointed to by "lock" if the lock counter of 
+ *  current thread holds the MonitorLock reach 0, the lock is released.
+ *
+ * PARAMETERS:
+ *  "lock"
+ *      Address of MonitorLock to unlock. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_PL_MonitorLock_Exit(
+        PKIX_PL_MonitorLock *lock,
+        void *plContext);
+
 /* strings and formatted printing */
 
 /*

@@ -52,13 +52,11 @@ PKIX_Error *dummyChecker_Check(
         PKIX_List *unresolvedCriticalExtensions,
         void *plContext)
 {
-        PKIX_ENTER(CERTCHAINCHECKER, "dummyChecker_Check");
-
 	goto cleanup;
 
 cleanup:
 
-        PKIX_RETURN(CERTCHAINCHECKER);
+        return(NULL);
 }
 
 

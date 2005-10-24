@@ -429,7 +429,9 @@ PKIX_ERRORNAMES[PKIX_NUMERRORS] =
         "LdapRequest Error",
         "LdapResponse Error",
         "Socket Error",
-        "Resource Limits Error"
+        "Resource Limits Error",
+        "Logger Error",
+        "MonitorLock Error"
 };
 
 /*

@@ -40,6 +40,6 @@ PKIX_DEPTH      = ../..
 # rwlock is taken out, need to link to libpkix internals
 #
 DIRS =  bigint  bytearray  hashtable  mem  mutex  mutex2 \
-	mutex3  object  oid  stress  string  string2 \
+	mutex3  monitorlock  object  oid  stress  string  string2 \
 	$(NULL)
 

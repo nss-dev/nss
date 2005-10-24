@@ -125,6 +125,7 @@ typedef struct PKIX_PL_ByteArrayStruct PKIX_PL_ByteArray;
 typedef struct PKIX_PL_HashTableStruct PKIX_PL_HashTable;
 typedef struct PKIX_PL_MutexStruct PKIX_PL_Mutex;
 typedef struct PKIX_PL_RWLockStruct PKIX_PL_RWLock;
+typedef struct PKIX_PL_MonitorLockStruct PKIX_PL_MonitorLock;
 typedef struct PKIX_PL_BigIntStruct PKIX_PL_BigInt;
 typedef struct PKIX_PL_StringStruct PKIX_PL_String;
 typedef struct PKIX_PL_OIDStruct PKIX_PL_OID;
@@ -222,7 +223,7 @@ typedef int PKIX_Boolean;
 
 #define PKIX_TARGETCERTCHECKERSTATE_TYPE ((PKIX_UInt32) 38)
 #define PKIX_BASICCONSTRAINTSCHECKERSTATE_TYPE ((PKIX_UInt32) 39)
-#define PKIX_POLICYCHECKERSTATE_TYPE    ((PKIX_UInt32) 40)
+#define PKIX_CERTPOLICYCHECKERSTATE_TYPE ((PKIX_UInt32) 40)
 #define PKIX_COLLECTIONCERTSTORECONTEXT_TYPE ((PKIX_UInt32) 41)
 #define PKIX_DEFAULTCRLCHECKERSTATE_TYPE ((PKIX_UInt32) 42)
 #define PKIX_FORWARDBUILDERSTATE_TYPE   ((PKIX_UInt32) 43)
@@ -233,8 +234,9 @@ typedef int PKIX_Boolean;
 #define PKIX_LDAPRESPONSE_TYPE          ((PKIX_UInt32) 48)
 #define PKIX_SOCKET_TYPE                ((PKIX_UInt32) 49)
 #define PKIX_RESOURCELIMITS_TYPE        ((PKIX_UInt32) 50)
+#define PKIX_MONITORLOCK_TYPE           ((PKIX_UInt32) 51)
 
-#define PKIX_NUMTYPES                   ((PKIX_UInt32) 51)
+#define PKIX_NUMTYPES                   ((PKIX_UInt32) 52)
 
 /* User Define Object Types
  *
@@ -246,7 +248,13 @@ typedef int PKIX_Boolean;
  *
  * Every PKIX_Error is associated with an integer error code. Therefore
  * this list must correspond, one-to-one, with the strings in the table
- * "const char *PKIX_ERRORNAMES[PKIX_NUMERRORS]" in pkix_error.c
+ * "const char *PKIX_ERRORNAMES[PKIX_NUMERRORS]" in pkix_error.c and the
+ * table "const char PKIX_COMPONENTNAMES[PKIX_NUMERRORS]" in pkix_logger.c.
+ *
+ * Also, those Error Codes that doesn't have association with Object Types
+ * defined earlier are sometimes used as the Object Type for the macro
+ * PKIX_ENTER(). This is because there are functions that are not associated
+ * with any defined Objects but need to relate to an Object Type.
  */
 
 #define PKIX_OBJECT_ERROR               ((PKIX_UInt32) 0)
@@ -306,8 +314,10 @@ typedef int PKIX_Boolean;
 #define PKIX_LDAPRESPONSE_ERROR         ((PKIX_UInt32) 54)
 #define PKIX_SOCKET_ERROR               ((PKIX_UInt32) 55)
 #define PKIX_RESOURCELIMITS_ERROR       ((PKIX_UInt32) 56)
+#define PKIX_LOGGER_ERROR               ((PKIX_UInt32) 57)
+#define PKIX_MONITORLOCK_ERROR          ((PKIX_UInt32) 58)
 
-#define PKIX_NUMERRORS                  ((PKIX_UInt32) 57)
+#define PKIX_NUMERRORS                  ((PKIX_UInt32) 59)
 
 /* String Formats
  *

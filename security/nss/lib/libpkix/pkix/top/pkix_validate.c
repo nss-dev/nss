@@ -517,7 +517,7 @@ pkix_RetrieveOutputs(
                         *pFinalSubjPubKey = finalSubjPubKey;
                     }
 
-                    if (type == PKIX_POLICYCHECKERSTATE_TYPE) {
+                    if (type == PKIX_CERTPOLICYCHECKERSTATE_TYPE) {
                         validPolicyTree =
                             ((PKIX_PolicyCheckerState *)state)->validPolicyTree;
                         break;

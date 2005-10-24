@@ -1350,7 +1350,7 @@ cleanup:
         PKIX_DECREF(cachedCrlEntryList);
         PKIX_DECREF(cachedCrlEntryError);
 
-        PKIX_RETURN(CERTCHAINCHECKER);
+        PKIX_RETURN(BUILD);
 }
 
 /*
@@ -1433,5 +1433,5 @@ cleanup:
         PKIX_DECREF(cachedKeys);
         PKIX_DECREF(cachedCrlEntryError);
 
-        PKIX_RETURN(CERTCHAINCHECKER);
+        PKIX_RETURN(BUILD);
 }

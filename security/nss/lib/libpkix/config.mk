@@ -39,6 +39,7 @@
 #  Override TARGETS variable so that only static libraries
 #  are specifed as dependencies within rules.mk.
 #
+#  DEFINES+=-DPKIX_LISTDEBUG Can be used to turn on debug compilation
 
 TARGETS        = $(LIBRARY)
 SHARED_LIBRARY =

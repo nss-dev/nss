@@ -68,7 +68,7 @@ pkix_PolicyCheckerState_Destroy(
         PKIX_NULLCHECK_ONE(object);
 
         PKIX_CHECK(pkix_CheckType
-                (object, PKIX_POLICYCHECKERSTATE_TYPE, plContext),
+                (object, PKIX_CERTPOLICYCHECKERSTATE_TYPE, plContext),
                 "Object is not a PKIX_PolicyCheckerState");
 
         checkerState = (PKIX_PolicyCheckerState *)object;
@@ -163,7 +163,7 @@ pkix_PolicyCheckerState_ToString(
         PKIX_NULLCHECK_TWO(object, pCheckerStateString);
 
         PKIX_CHECK(pkix_CheckType
-                (object, PKIX_POLICYCHECKERSTATE_TYPE, plContext),
+                (object, PKIX_CERTPOLICYCHECKERSTATE_TYPE, plContext),
                 "Object is not a PKIX_PolicyCheckerState");
 
         state = (PKIX_PolicyCheckerState *)object;
@@ -364,7 +364,7 @@ pkix_PolicyCheckerState_RegisterSelf(void *plContext)
         entry.comparator = NULL;
         entry.duplicateFunction = NULL;
 
-        systemClasses[PKIX_POLICYCHECKERSTATE_TYPE] = entry;
+        systemClasses[PKIX_CERTPOLICYCHECKERSTATE_TYPE] = entry;
 
         PKIX_RETURN(CERTPOLICYCHECKERSTATE);
 }
@@ -428,7 +428,7 @@ pkix_PolicyCheckerState_Create(
         PKIX_NULLCHECK_TWO(initialPolicies, pCheckerState);
 
         PKIX_CHECK(PKIX_PL_Object_Alloc
-                (PKIX_POLICYCHECKERSTATE_TYPE,
+                (PKIX_CERTPOLICYCHECKERSTATE_TYPE,
                 sizeof (PKIX_PolicyCheckerState),
                 (PKIX_PL_Object **)&checkerState,
                 plContext),

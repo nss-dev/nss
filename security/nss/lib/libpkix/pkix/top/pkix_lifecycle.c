@@ -45,6 +45,32 @@
 
 PKIX_Boolean pkix_initialized = PKIX_FALSE;
 
+/* Lock used by Logger - is reentrant by the same thread */
+extern PKIX_PL_MonitorLock *pkixLoggerLock;
+
+/* 
+ * Following pkix_* variables are for debugging purpose. They should be taken
+ * out eventually. The purpose is to verify cache tables usage (via debugger).
+ */
+int pkix_ccAddCount = 0;
+int pkix_ccLookupCount = 0;
+int pkix_ccRemoveCount = 0;
+int pkix_cAddCount = 0;
+int pkix_cLookupCount = 0;
+int pkix_cRemoveCount = 0;
+int pkix_ceAddCount = 0;
+int pkix_ceLookupCount = 0;
+
+PKIX_PL_HashTable *cachedCrlSigTable = NULL;
+PKIX_PL_HashTable *cachedCertSigTable = NULL;
+PKIX_PL_HashTable *cachedCertChainTable = NULL;
+PKIX_PL_HashTable *cachedCertTable = NULL;
+PKIX_PL_HashTable *cachedCrlEntryTable = NULL;
+
+extern PKIX_List *pkixLoggers;
+extern PKIX_List *pkixLoggersErrors;
+extern PKIX_List *pkixLoggersDebugTrace;
+
 /* --Public-Functions--------------------------------------------- */
 
 /*
@@ -89,6 +115,33 @@ PKIX_Initialize(
 
         pkix_initialized = PKIX_TRUE;
 
+        /* Create Cache Tables */
+        PKIX_CHECK(PKIX_PL_HashTable_Create
+                    (32, 0, &cachedCertSigTable, plContext),
+                    "PKIX_PL_HashTable_Create failed");
+
+        PKIX_CHECK(PKIX_PL_HashTable_Create
+                    (32, 0, &cachedCrlSigTable, plContext),
+                    "PKIX_PL_HashTable_Create failed");
+
+        PKIX_CHECK(PKIX_PL_HashTable_Create
+                    (32, 10, &cachedCertChainTable, plContext),
+                    "PKIX_PL_HashTable_Create failed");
+
+        PKIX_CHECK(PKIX_PL_HashTable_Create
+                    (32, 10, &cachedCertTable, plContext),
+                    "PKIX_PL_HashTable_Create failed");
+
+        PKIX_CHECK(PKIX_PL_HashTable_Create
+                    (32, 10, &cachedCrlEntryTable, plContext),
+                    "PKIX_PL_HashTable_Create failed");
+
+        if (pkixLoggerLock == NULL) {
+                PKIX_CHECK(PKIX_PL_MonitorLock_Create
+                        (&pkixLoggerLock, plContext),
+                        "PKIX_PL_MonitorLock_Create failed");
+        }
+
 cleanup:
 
         PKIX_RETURN(LIFECYCLE);
@@ -100,11 +153,35 @@ cleanup:
 PKIX_Error *
 PKIX_Shutdown(void *plContext)
 {
+        PKIX_List *savedPkixLoggers = NULL;
+        PKIX_List *savedPkixLoggersErrors = NULL;
+        PKIX_List *savedPkixLoggersDebugTrace = NULL;
+
         PKIX_ENTER(LIFECYCLE, "PKIX_Shutdown");
 
         if (!pkix_initialized){
                 return (PKIX_ALLOC_ERROR);
         }
+
+        if (pkixLoggers) {
+                savedPkixLoggers = pkixLoggers;
+                savedPkixLoggersErrors = pkixLoggersErrors;
+                savedPkixLoggersDebugTrace = pkixLoggersDebugTrace;
+                pkixLoggers = NULL;
+                pkixLoggersErrors = NULL;
+                pkixLoggersDebugTrace = NULL;
+                PKIX_DECREF(savedPkixLoggers);
+                PKIX_DECREF(savedPkixLoggersErrors);
+                PKIX_DECREF(savedPkixLoggersDebugTrace);
+        }
+        PKIX_DECREF(pkixLoggerLock);
+
+        /* Destroy Cache Tables */
+        PKIX_DECREF(cachedCertSigTable);
+        PKIX_DECREF(cachedCrlSigTable);
+        PKIX_DECREF(cachedCertChainTable);
+        PKIX_DECREF(cachedCertTable);
+        PKIX_DECREF(cachedCrlEntryTable);
 
         PKIX_CHECK(PKIX_PL_Shutdown(plContext), "PKIX_PL_Shutdown failed");
 

@@ -64,6 +64,7 @@
 #include "pkix_targetcertchecker.h"
 #include "pkix_valresult.h"
 #include "pkix_resourcelimits.h"
+#include "pkix_logger.h"
 #include "pkix_defaultcrlchecker.h"
 #include "pkix_nameconstraintschecker.h"
 #include "pkix_comcertselparams.h"
@@ -92,7 +93,20 @@ extern "C" {
 
 #define PKIX_ENTER(type, funcName) \
         PKIX_STD_VARS(funcName); \
-        PKIX_DEBUG_ENTER(type)
+        pkixType = PKIX_ ## type ## _ERROR; \
+        PKIX_DEBUG_ENTER(type); \
+        do { \
+	    if (pkixLoggersDebugTrace) { \
+                (pkix_Logger_Check(pkixLoggersDebugTrace, \
+                        funcName, ">>>", pkixType, \
+                        PKIX_LOGGER_LEVEL_TRACE, plContext)); \
+            } \
+        } while (0)
+
+#define PKIX_ENTER_NO_LOGGER(type, funcName) \
+        PKIX_STD_VARS(funcName); \
+        pkixType = PKIX_ ## type ## _ERROR; \
+        PKIX_DEBUG_ENTER(type);
 
 #define PKIX_STD_VARS(funcName) \
         PKIX_Error *pkixErrorResult = NULL;     \
@@ -103,6 +117,7 @@ extern "C" {
         PKIX_Boolean pkixTempErrorReceived = PKIX_FALSE; \
         /* ARGSUSED */ PKIX_UInt32 pkixErrorCode = 0; \
         char *myFuncName = (funcName); \
+        PKIX_UInt32 pkixType = 0; \
         PKIX_Boolean objectIsLocked = PKIX_FALSE; \
         PKIX_PL_Object *lockedObject = NULL; \
         PKIX_Boolean mutexIsLocked = PKIX_FALSE; \
@@ -185,6 +200,11 @@ extern "C" {
 
 #define PKIX_ERROR(desc) \
         { \
+	        if (pkixLoggersErrors) { \
+                    (pkix_Logger_Check(pkixLoggersErrors, \
+                        desc, NULL, pkixType, \
+                        PKIX_LOGGER_LEVEL_ERROR, plContext)); \
+                } \
                 pkixErrorReceived = PKIX_TRUE; \
                 pkixErrorMsg = (desc); \
                 goto cleanup; \
@@ -192,6 +212,11 @@ extern "C" {
 
 #define PKIX_ERROR_FATAL(desc) \
         { \
+	        if (pkixLoggersErrors) { \
+                    (pkix_Logger_Check(pkixLoggersErrors, \
+                        desc, NULL, pkixType, \
+                        PKIX_LOGGER_LEVEL_FATALERROR, plContext)); \
+                } \
                 pkixErrorReceived = PKIX_TRUE; \
                 pkixErrorMsg = (desc); \
                 PKIX_RETURN(FATAL); \
@@ -243,6 +268,29 @@ extern "C" {
 
 
 #define PKIX_RETURN(type) \
+        { \
+                if (objectIsLocked){ \
+                        PKIX_OBJECT_UNLOCK(lockedObject); \
+                } \
+                if (mutexIsLocked){ \
+                        PKIX_MUTEX_UNLOCK(lockedMutex); \
+                } \
+                if ((pkixErrorReceived) || (pkixErrorResult)){ \
+                        PKIX_THROW(type, pkixErrorMsg); \
+                } \
+                PKIX_DEBUG_EXIT(type); \
+                do { \
+                    if (pkixLoggersDebugTrace) { \
+                        (pkix_Logger_Check(pkixLoggersDebugTrace, \
+                            myFuncName, "<<<", \
+                            pkixType, PKIX_LOGGER_LEVEL_TRACE, plContext)); \
+                    } \
+                } while (0); \
+                pkixErrorCode = 0; \
+                return (NULL); \
+        }
+
+#define PKIX_RETURN_NO_LOGGER(type) \
         { \
                 if (objectIsLocked){ \
                         PKIX_OBJECT_UNLOCK(lockedObject); \
@@ -445,6 +493,8 @@ extern "C" {
 #define PKIX_LDAPRESPONSEDEBUG          1
 #define PKIX_SOCKETDEBUG                1
 #define PKIX_RESOURCELIMITSDEBUG        1
+#define PKIX_LOGGERDEBUG        1
+#define PKIX_MONITORLOCKDEBUG        1
 #endif
 
 /*
@@ -454,11 +504,16 @@ extern "C" {
 
 #define PKIX_DEBUG(expr) \
         do { \
+	        if (pkixLoggersErrors) { \
+                     (pkix_Logger_Check(pkixLoggersDebugTrace, \
+                                myFuncName, expr, pkixType, \
+                                PKIX_LOGGER_LEVEL_DEBUG, plContext)); \
+                } \
                 (void) printf("(%s: ", myFuncName); \
                 (void) printf(expr); \
         } while (0)
 
-
+/* Logging doesn't support DEBUG with ARG: cannot convert control and arg */
 #define PKIX_DEBUG_ARG(expr, arg) \
         do { \
                 (void) printf("(%s: ", myFuncName); \
@@ -1073,6 +1128,26 @@ extern "C" {
 #else
 #define PKIX_RESOURCELIMITS_DEBUG(expr)
 #define PKIX_RESOURCELIMITS_DEBUG_ARG(expr, arg)
+#endif
+
+#if PKIX_LOGGERDEBUG
+#define PKIX_LOGGER_DEBUG(expr) \
+        PKIX_DEBUG(expr)
+#define PKIX_LOGGER_DEBUG_ARG(expr, arg) \
+        PKIX_DEBUG_ARG(expr, arg)
+#else
+#define PKIX_LOGGER_DEBUG(expr)
+#define PKIX_LOGGER_DEBUG_ARG(expr, arg)
+#endif
+
+#if PKIX_MONITORLOCKDEBUG
+#define PKIX_MONITORLOCK_DEBUG(expr) \
+        PKIX_DEBUG(expr)
+#define PKIX_MONITORLOCK_DEBUG_ARG(expr, arg) \
+        PKIX_DEBUG_ARG(expr, arg)
+#else
+#define PKIX_MONITORLOCK_DEBUG(expr)
+#define PKIX_MONITORLOCK_DEBUG_ARG(expr, arg)
 #endif
 
 /*

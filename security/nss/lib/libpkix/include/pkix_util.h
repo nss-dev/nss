@@ -96,6 +96,14 @@ extern "C" {
  * Implementor's Guide or Programmer's Guide.
  */
 
+#define PKIX_LOGGER_LEVEL_TRACE                5
+#define PKIX_LOGGER_LEVEL_DEBUG                4
+#define PKIX_LOGGER_LEVEL_WARNING              3
+#define PKIX_LOGGER_LEVEL_ERROR                2
+#define PKIX_LOGGER_LEVEL_FATALERROR           1
+
+#define PKIX_LOGGER_LEVEL_MAX                  5
+
 /*
  * FUNCTION: PKIX_Logger_LogCallback
  * DESCRIPTION:
