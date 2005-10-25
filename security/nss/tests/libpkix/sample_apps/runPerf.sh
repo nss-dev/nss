@@ -36,13 +36,25 @@
 #
 # ***** END LICENSE BLOCK *****
 #
-# runPLTests.sh
+# runPerf.sh
 #
 
 ### when the script is exiting, handle it in the Cleanup routine...the result
 ### value will get set to 0 if all the tests completed successfully, so we can
 ### use that value in the handler
 trap 'Cleanup' EXIT
+result=1
+checkmem=0
+arenas=0
+typeset -i combinedErrors=0
+typeset -i totalErrors=0
+prematureTermination=0
+
+### setup some defaults
+WD=`pwd`
+prog=`basename $0`
+testOut=${WD}/${prog}.$$
+testOutMem=${WD}/${prog}_mem.$$
 
 ### setup NIST files need to link in
 linkNistFiles="ValidCertificatePathTest1EE.crt"
@@ -52,6 +64,14 @@ linkNistFiles="ValidCertificatePathTest1EE.crt"
 ####################
 function Cleanup
 {
+    if [[ ${testOut} != "" ]]; then
+        rm -f ${testOut}
+    fi
+
+    if [[ ${testOutMem} != "" ]]; then
+        rm -f ${testOutMem}
+    fi
+
     for i in ${linkNistFiles}; do
         if [[ -f ./$i ]]; then
             rm ./$i
@@ -65,6 +85,45 @@ function Display # string
         echo "$1"
     fi
 }
+
+if [ -z "${INIT_SOURCED}" ] ; then
+    curdir=`pwd`
+    cd ../../common
+    . ./init.sh > /dev/null
+    cd ${curdir}
+fi
+
+Display ""
+Display "*******************************************************************************"
+Display "START OF PKIX PERFORMANCE"
+Display "*******************************************************************************"
+
+DIST_BIN=${DIST}/${OBJDIR}/bin
+echo "\nRunning executibles at ${DIST_BIN}"
+echo "Using libraries at ${LD_LIBRARY_PATH}"
+
+### ParseArgs
+function ParseArgs # args
+{
+    while [[ $# -gt 0 ]]; do
+        if [[ $1 = "-checkmem" ]]; then
+            checkmem=1
+        elif [[ $1 = "-quiet" ]]; then
+            quiet=1
+        elif [[ $1 = "-arenas" ]]; then
+            echo "option -arenas is not supported with performance tests"
+            arenas=1
+        fi
+        shift
+    done
+
+    memText=""
+    if [[ ${checkmem} -eq 1 ]]; then
+            memText="   (Memory Checking Enabled)"
+    fi
+
+}
+
 
 #
 # Any test that use NIST files should have a tag of NIST-Test-Files-Used
@@ -89,12 +148,130 @@ else
     done
 fi
 
-perf_bin=../../../../../dist/SunOS5.9_DBG.OBJ/bin
-Display "${perf_bin}/libpkix_buildthreads 5 1 ValidCertificatePathTest1EE"
-${perf_bin}/libpkix_buildthreads 5 1 ValidCertificatePathTest1EE
-Display "${perf_bin}/libpkix_buildthreads 5 8 ValidCertificatePathTest1EE"
-${perf_bin}/libpkix_buildthreads 5 8 ValidCertificatePathTest1EE
-Display "${perf_bin}/nss_threads 5 1 ValidCertificatePathTest1EE"
-${perf_bin}/nss_threads 5 1 ValidCertificatePathTest1EE
-Display "${perf_bin}/nss_threads 5 8 ValidCertificatePathTest1EE"
-${perf_bin}/nss_threads 5 8 ValidCertificatePathTest1EE
+
+# Check the performance data ...
+function perfTest
+{
+    Display ""
+    Display "*******************************************************************************"
+    Display "START OF PKIX PERFORMANCE SCENAROS ${memText}"
+Display "*******************************************************************************"
+    Display ""
+
+    perf_bin=../../../../../dist/SunOS5.9_DBG.OBJ/bin
+    while read -r perfPgm args; do
+        Display "Running ${perfPgm} ${args}"
+        if [[ ${checkmem} -eq 1 ]]; then
+            dbx -C -c "runargs $args; check -all ;run;exit" ${DIST_BIN}/${perfPgm} > ${testOut} 2>&1
+        else
+            ${DIST_BIN}/${perfPgm} ${args} > ${testOut} 2>&1
+        fi
+
+        # Examine output file to see if test failed and keep track of number
+        # of failures and names of failed tests. This assumes that the test
+        # uses our utility library for displaying information
+
+        cat ${testOut} | grep "per second"
+
+        if [[ $? -ne 0 ]]; then
+            errors=`expr ${errors} + 1`
+            failedpgms="${failedpgms}${perfPgm} ${args}\n"
+            cat ${testOut}
+        fi
+
+        if [[ ${checkmem} -eq 1 ]]; then
+            grep "(actual leaks:" ${testOut} > ${testOutMem} 2>&1
+            if [[ $? -ne 0 ]]; then
+                prematureErrors=`expr ${prematureErrors} + 1`
+                failedprematurepgms="${failedprematurepgms}${perfPgm} "
+                Display "...program terminated prematurely (unable to check for memory leak errors) ..."
+            else
+                grep  "(actual leaks:         1  total size:       4 bytes)" ${testOut} > /dev/null 2>&1
+                if [[ $? -ne 0 ]]; then
+                    memErrors=`expr ${memErrors} + 1`
+                    failedmempgms="${failedmempgms}${perfPgm} "
+                    cat ${testOutMem}
+                fi
+            fi
+        fi
+    done <<EOF
+libpkix_buildthreads 5 1 ValidCertificatePathTest1EE
+libpkix_buildthreads 5 8 ValidCertificatePathTest1EE
+nss_threads 5 1 ValidCertificatePathTest1EE
+nss_threads 5 8 ValidCertificatePathTest1EE
+EOF
+    return ${errors}
+
+}
+
+
+# If there is race condition bug, may this test catch it...
+function loopTest
+{
+    typeset -i totalLoop=10
+
+    Display ""
+    Display "*******************************************************************************"
+    Display "START OF TESTS FOR PKIX PERFORMANCE SANITY LOOP (${totalLoop} times)"
+Display "*******************************************************************************"
+    Display ""
+
+    typeset -i iLoop=0
+    perfPgm="${DIST_BIN}/libpkix_buildthreads 5 8 ValidCertificatePathTest1EE"
+
+    while [[ $iLoop -lt $totalLoop ]]
+    do
+        iLoop=iLoop+1
+
+        Display "Running ${perfPgm}"
+        ${perfPgm} | grep "per second" > ${testOut} 2>&1
+
+        if [[ $? -ne 0 ]]; then
+            errors=`expr ${errors} + 1`
+            failedpgms="${failedpgms}${perfPgm} ${args}\n"
+            cat ${testOut}
+        fi
+    done
+
+    return ${errors}
+
+}
+
+#main
+
+ParseArgs $*
+perfTest
+totalErrors=$?
+loopTest
+totalErrors=${totalError}+$?
+
+if [[ ${totalErrors} -eq 0 ]]; then
+    Display "\n************************************************************"
+    Display "END OF TESTS FOR PKIX PERFORMANCE: ALL TESTS COMPLETED SUCCESSFULLY"
+    Display "************************************************************"
+    return 0
+fi
+
+    Display "\n*******************************************************************************"
+    Display "END OF TESTS FOR PKIX TOP: ${errors} UNIT TEST${plural} FAILED:\n${failedpgms}"
+    if [[ ${checkmem} -eq 1 ]]; then
+        if [[ ${memErrors} -eq 1 ]]; then
+            memPlural=""
+        else
+            memPlural="S"
+        fi
+        Display "                          ${memErrors} MEMORY LEAK TEST${memPlural} FAILED: ${failedmempgms}"
+        
+        if [[ ${prematureErrors} -ne 0 ]]; then
+            if [[ ${prematureErrors} -eq 1 ]]; then
+                prematurePlural=""
+            else
+                prematurePlural="S"
+            fi
+            Display "                          ${prematureErrors} MEMORY LEAK TEST${prematurePlural} INDETERMINATE: ${failedprematurepgms}"
+        fi
+
+    fi
+    #Display "*******************************************************************************"
+
+return ${totalErrors}
