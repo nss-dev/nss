@@ -2128,10 +2128,9 @@ PKIX_PL_Cert_GetCriticalExtensionOIDs(
             PKIX_OBJECT_UNLOCK(cert);
         }
 
-
-        /* This list should not be immutable */
-        PKIX_INCREF(cert->critExtOids);
-        *pList = cert->critExtOids;
+        /* We should return a copy of the List since this list changes */
+        PKIX_DUPLICATE(cert->critExtOids, pList, plContext,
+                "PKIX_PL_Object_Duplicate List failed");
 
 cleanup:
 

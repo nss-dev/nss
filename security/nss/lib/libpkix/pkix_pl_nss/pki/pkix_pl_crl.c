@@ -1002,9 +1002,9 @@ PKIX_PL_CRL_GetCriticalExtensionOIDs(
 
         }
 
-        PKIX_INCREF(crl->critExtOids);
-
-        *pExtensions = crl->critExtOids;
+        /* We should return a copy of the List since this list changes */
+        PKIX_DUPLICATE(crl->critExtOids, pExtensions, plContext,
+                "PKIX_PL_Object_Duplicate List failed");
 
 cleanup:
 
