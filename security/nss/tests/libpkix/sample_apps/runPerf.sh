@@ -48,6 +48,7 @@ checkmem=0
 arenas=0
 typeset -i combinedErrors=0
 typeset -i totalErrors=0
+typeset -i errors=0
 prematureTermination=0
 
 ### setup some defaults
@@ -173,7 +174,9 @@ Display "***********************************************************************
 
         cat ${testOut} | grep "per second"
 
-        if [[ $? -ne 0 ]]; then
+        outputCount=`cat ${testOut} | grep "per second"`
+
+        if [[ $? -ne 0 || ${outputCount} == "" ]]; then
             errors=`expr ${errors} + 1`
             failedpgms="${failedpgms}${perfPgm} ${args}\n"
             cat ${testOut}
@@ -224,11 +227,14 @@ Display "***********************************************************************
         iLoop=iLoop+1
 
         Display "Running ${perfPgm}"
-        ${perfPgm} | grep "per second" > ${testOut} 2>&1
+        ${perfPgm} > ${testOut} 2>&1
+        cat ${testOut} | grep "per second"
 
-        if [[ $? -ne 0 ]]; then
+        outputCount=`cat ${testOut} | grep "per second"`
+
+        if [[ $? -ne 0 || ${outputCount} == "" ]]; then
             errors=`expr ${errors} + 1`
-            failedpgms="${failedpgms}${perfPgm} ${args}\n"
+            failedpgms="${failedpgms} ${perfPgm}\n"
             cat ${testOut}
         fi
     done
@@ -272,6 +278,6 @@ fi
         fi
 
     fi
-    #Display "*******************************************************************************"
+    Display "*******************************************************************************"
 
 return ${totalErrors}
