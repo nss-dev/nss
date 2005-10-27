@@ -143,7 +143,13 @@ runTests.sh ${arenasArg} ${checkMemArg} ${quietArg}
 pkixErrors=$?
 html_msg $? 0 "RUNNING tests in pkix_test"
 
-totalErrors=`expr ${pkixErrors} + ${pkixplErrors}`
+echo "RUNNING performance tests in sample_apps";
+cd ../sample_apps;
+runPerf.sh ${arenasArg} ${checkMemArg} ${quietArg}
+pkixPerfErrors=$?
+html_msg $? 0 "RUNNING performance tests in sample_apps"
+
+totalErrors=`expr ${pkixErrors} + ${pkixplErrors} + ${pkixPerfErrors}`
 
 if [ ${totalErrors} -eq 0 ]; then
     echo "\n************************************************************"

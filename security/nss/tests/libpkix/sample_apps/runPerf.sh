@@ -134,8 +134,10 @@ function ParseArgs # args
 if [ -z "${NIST_FILES_DIR}" ] ; then
     Display "\n*******************************************************************************"
     Display "NIST_FILES_DIR is not set but we need NIST file to run the"
-    Display "performance for this nss db. Exiting..."
-    Display "*******************************************************************************"
+    Display "performance for this nss db."
+    Display "Set NIST_FILES_DIR to where NIST Certificates and CRLs located"
+    Display "to enable tests at this directory"
+    Display "Now exiting..."
     exit
 else
 
@@ -159,7 +161,6 @@ function perfTest
 Display "*******************************************************************************"
     Display ""
 
-    perf_bin=../../../../../dist/SunOS5.9_DBG.OBJ/bin
     while read -r perfPgm args; do
         Display "Running ${perfPgm} ${args}"
         if [[ ${checkmem} -eq 1 ]]; then
