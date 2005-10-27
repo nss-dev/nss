@@ -208,7 +208,11 @@ ifeq ($(OS_ARCH), HP-UX)
 	JAVA_CLIBS =
 
 	JAVA_LIBS  = -L$(JAVA_HOME)/$(JAVA_LIBDIR)/$(JDK_THREADING_MODEL) -lhpi
-	JAVA_LIBS += -L$(JAVA_HOME)/$(JAVA_LIBDIR)/classic -ljvm
+	ifeq ($(JDK_VERSION), 1.4)
+		JAVA_LIBS += -L$(JAVA_HOME)/$(JAVA_LIBDIR)/server -ljvm
+	else
+		JAVA_LIBS += -L$(JAVA_HOME)/$(JAVA_LIBDIR)/classic -ljvm
+	endif
 	JAVA_LIBS += -L$(JAVA_HOME)/$(JAVA_LIBDIR) -ljava
 	JAVA_LIBS += $(JAVA_CLIBS)
 
