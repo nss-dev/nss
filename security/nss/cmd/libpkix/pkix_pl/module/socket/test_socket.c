@@ -426,9 +426,9 @@ int main(int argc, char *argv[]) {
         PRErrorCode cStat = 0;
         void *ipaddr = NULL;
 	PKIX_Error *bindError = NULL;
+        PRIntn hostenum;
 
         PKIX_TEST_STD_VARS();
-        PRIntn hostenum;
 
         startTests("Socket");
 
