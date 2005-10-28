@@ -428,6 +428,7 @@ int main(int argc, char *argv[]) {
 	PKIX_Error *bindError = NULL;
 
         PKIX_TEST_STD_VARS();
+        PRIntn hostenum;
 
         startTests("Socket");
 
@@ -481,10 +482,12 @@ int main(int argc, char *argv[]) {
         serverNetAddr.inet.port = PR_htons(portNum);
         serverNetAddr.inet.ip = PR_INADDR_ANY;
 
-        clientNetAddr.inet.family = PR_AF_INET;
-        clientNetAddr.inet.port = PR_htons(portNum);
-        ipaddr = hostent.h_addr_list[0]; 
-        clientNetAddr.inet.ip = PR_htonl(*(PRUint32 *)ipaddr); 
+	hostenum = PR_EnumerateHostEnt(0, &hostent, portNum, &clientNetAddr);
+	if (hostenum == -1) {
+                pkixTestErrorMsg =
+                    "PR_EnumerateHostEnt failed.";
+		goto cleanup;
+	}
 
         backlog = 5;
 
