@@ -39,117 +39,15 @@
 # runPerf.sh
 #
 
-### when the script is exiting, handle it in the Cleanup routine...the result
-### value will get set to 0 if all the tests completed successfully, so we can
-### use that value in the handler
-trap 'Cleanup' EXIT
-result=1
-checkmem=0
-arenas=0
-typeset -i combinedErrors=0
-typeset -i totalErrors=0
-typeset -i errors=0
-prematureTermination=0
+curdir=`pwd`
+cd ../common
+. ./libpkix_init.sh > /dev/null
+cd ${curdir}
 
-### setup some defaults
-WD=`pwd`
-prog=`basename $0`
-testOut=${WD}/${prog}.$$
-testOutMem=${WD}/${prog}_mem.$$
+testunit=PERFORMANCE
 
-### setup NIST files need to link in
-linkNistFiles="ValidCertificatePathTest1EE.crt"
-
-####################
-# cleanup from tests
-####################
-function Cleanup
-{
-    if [[ ${testOut} != "" ]]; then
-        rm -f ${testOut}
-    fi
-
-    if [[ ${testOutMem} != "" ]]; then
-        rm -f ${testOutMem}
-    fi
-
-    for i in ${linkNistFiles}; do
-        if [[ -f ./$i ]]; then
-            rm ./$i
-        fi
-    done
-}
-
-function Display # string
-{
-    if [[ ${quiet} -eq 0 ]]; then
-        echo "$1"
-    fi
-}
-
-if [ -z "${INIT_SOURCED}" ] ; then
-    curdir=`pwd`
-    cd ../../common
-    . ./init.sh > /dev/null
-    cd ${curdir}
-fi
-
-Display ""
-Display "*******************************************************************************"
-Display "START OF PKIX PERFORMANCE"
-Display "*******************************************************************************"
-
-DIST_BIN=${DIST}/${OBJDIR}/bin
 echo "\nRunning executibles at ${DIST_BIN}"
 echo "Using libraries at ${LD_LIBRARY_PATH}"
-
-### ParseArgs
-function ParseArgs # args
-{
-    while [[ $# -gt 0 ]]; do
-        if [[ $1 = "-checkmem" ]]; then
-            checkmem=1
-        elif [[ $1 = "-quiet" ]]; then
-            quiet=1
-        elif [[ $1 = "-arenas" ]]; then
-            echo "option -arenas is not supported with performance tests"
-            arenas=1
-        fi
-        shift
-    done
-
-    memText=""
-    if [[ ${checkmem} -eq 1 ]]; then
-            memText="   (Memory Checking Enabled)"
-    fi
-
-}
-
-
-#
-# Any test that use NIST files should have a tag of NIST-Test-Files-Used
-# at the command option so if there is no NIST files installed in the system,
-# the test can be skipped
-#
-if [ -z "${NIST_FILES_DIR}" ] ; then
-    Display "\n*******************************************************************************"
-    Display "NIST_FILES_DIR is not set but we need NIST file to run the"
-    Display "performance for this nss db."
-    Display "Set NIST_FILES_DIR to where NIST Certificates and CRLs located"
-    Display "to enable tests at this directory"
-    Display "Now exiting..."
-    exit
-else
-
-    NIST=${NIST_FILES_DIR}
-
-    for i in ${linkNistFiles}; do
-        if [[ -f ./$i ]]; then
-            rm ./$i
-        fi
-        ln -s ${NIST_FILES_DIR}/$i ./$i
-    done
-fi
 
 
 # Check the performance data ...
@@ -249,36 +147,8 @@ Display "***********************************************************************
 ParseArgs $*
 perfTest
 totalErrors=$?
+
 loopTest
 totalErrors=${totalError}+$?
-
-if [[ ${totalErrors} -eq 0 ]]; then
-    Display "\n************************************************************"
-    Display "END OF TESTS FOR PKIX PERFORMANCE: ALL TESTS COMPLETED SUCCESSFULLY"
-    Display "************************************************************"
-    return 0
-fi
-
-    Display "\n*******************************************************************************"
-    Display "END OF TESTS FOR PKIX TOP: ${errors} UNIT TEST${plural} FAILED:\n${failedpgms}"
-    if [[ ${checkmem} -eq 1 ]]; then
-        if [[ ${memErrors} -eq 1 ]]; then
-            memPlural=""
-        else
-            memPlural="S"
-        fi
-        Display "                          ${memErrors} MEMORY LEAK TEST${memPlural} FAILED: ${failedmempgms}"
-        
-        if [[ ${prematureErrors} -ne 0 ]]; then
-            if [[ ${prematureErrors} -eq 1 ]]; then
-                prematurePlural=""
-            else
-                prematurePlural="S"
-            fi
-            Display "                          ${prematureErrors} MEMORY LEAK TEST${prematurePlural} INDETERMINATE: ${failedprematurepgms}"
-        fi
-
-    fi
-    Display "*******************************************************************************"
 
 return ${totalErrors}

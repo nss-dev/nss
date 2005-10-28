@@ -36,28 +36,33 @@
 #
 # ***** END LICENSE BLOCK *****
 #
-# runTests.sh
+# libpkix_init_nist.sh
 #
 
-curdir=`pwd`
-cd ../../common
-. ./libpkix_init.sh > /dev/null
-cd ${curdir}
+#
+# Any test that use NIST files should have a tag of either NIST-Test or
+# NIST-Test-Files-Used at the command option so if there is no NIST files
+# installed in the system, the test can be skipped
+#
+if [ -z "${NIST_FILES_DIR}" ] ; then
+    Display "\n*******************************************************************************"
+    Display "NIST_FILES_DIR is not set, therefore some tests sre skipped"
+    Display "Set NIST_FILES_DIR to where NIST Certificates and CRLs located"
+    Display "to enable tests at this directory"
+    Display "*******************************************************************************"
+    doNIST=0
+else
 
-testunit=UTIL
+    NIST=${NIST_FILES_DIR}
+    if [[ ! -d ../nist_pkits ]]; then
+      mkdir -p ../nist_pkits
+    else
+      if [[ -d ../nist_pkits/certs ]]; then
+        rm ../nist_pkits/certs
+      fi
+    fi
 
-##########
-# main
-##########
+    ln -s ${NIST_FILES_DIR} ../nist_pkits/certs
 
-ParseArgs $*
-
-RunTests <<EOF
-test_certchain
-test_error
-test_list
-test_list2
-EOF
-
-totalErrors=$?
-return ${totalErrors}
+    doNIST=1
+fi

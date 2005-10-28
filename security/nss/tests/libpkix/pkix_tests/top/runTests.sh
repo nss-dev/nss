@@ -39,114 +39,19 @@
 # runTests.sh
 #
 
+curdir=`pwd`
+cd ../../common
+. ./libpkix_init.sh > /dev/null
+. ./libpkix_init_nist.sh > /dev/null
+cd ${curdir}
 
-### when the script is exiting, handle it in the Cleanup routine...the result
-### value will get set to 0 if all the tests completed successfully, so we can
-### use that value in the handler
-trap 'Cleanup' EXIT
-result=1
-checkmem=0
-arenas=0
-typeset -i combinedErrors=0
-typeset -i totalErrors=0
-prematureTermination=0
-
-### setup some defaults
-WD=`pwd`
-prog=`basename $0`
-testOut=${WD}/${prog}.$$
-testOutMem=${WD}/${prog}_mem.$$
-
-### setup NIST files need to link in
+testunit=TOP
+doTop=1
 linkMStoreNistFiles="store1/TrustAnchorRootCRL.crl
     store1/TwoCRLsCABadCRL.crl
     store2/TwoCRLsCAGoodCRL.crl"
 
-if [ -z "${INIT_SOURCED}" ] ; then
-    curdir=`pwd`
-    cd ../../../common
-    . ./init.sh > /dev/null
-    cd ${curdir}
-fi
-
-DIST_BIN=${DIST}/${OBJDIR}/bin
-
-####################
-# cleanup from tests
-####################
-function Cleanup
-{
-    if [[ ${testOut} != "" ]]; then
-        rm -f ${testOut}
-    fi
-
-    if [[ ${testOutMem} != "" ]]; then
-        rm -f ${testOutMem}
-    fi
-
-    if [[ -d ../../nist_pkits/certs ]]; then
-        rm ../../nist_pkits/certs
-    fi
-
-    for i in ${linkMStoreNistFiles}; do
-        if [[ -f ./rev_data/multiple_certstores/$i ]]; then
-            rm ./rev_data/multiple_certstores/$i
-        fi
-    done
-    if [[ -d ./rev_data/multiple_certstores ]]; then
-        rm -fr rev_data/multiple_certstores
-    fi
-
-    return ${result}
-}
-
-### ParseArgs
-function ParseArgs # args
-{
-    while [[ $# -gt 0 ]]; do
-        if [[ $1 = "-checkmem" ]]; then
-            checkmem=1
-        elif [[ $1 = "-quiet" ]]; then
-            quiet=1
-        elif [[ $1 = "-arenas" ]]; then
-            arenas=1
-        fi
-        shift
-    done
-}
-
-function Display # string
-{
-    if [[ ${quiet} -eq 0 ]]; then
-        echo "$1"
-    fi
-}
-
-#
-# Any test that use NIST files should have a tag of either NIST-Test or
-# NIST-Test-Files-Used at the command option so if there is no NIST files
-# installed in the system, the test can be skipped
-#
-if [ -z "${NIST_FILES_DIR}" ] ; then
-    Display "\n*******************************************************************************"
-    Display "NIST_FILES_DIR is not set, therefore some tests sre skipped"
-    Display "Set NIST_FILES_DIR to where NIST Certificates and CRLs located"
-    Display "to enable tests at this directory"
-    Display "*******************************************************************************"
-    doNIST=0
-else
-
-    NIST=${NIST_FILES_DIR}
-    if [[ ! -d ../../nist_pkits ]]; then
-      mkdir -p ../../nist_pkits
-    else
-      if [[ -d ../../nist_pkits/certs ]]; then
-        rm ../../nist_pkits/certs
-      fi
-    fi
-
-    ln -s ${NIST_FILES_DIR} ../../nist_pkits/certs
-
+if [ ! -z "${NIST_FILES_DIR}" ] ; then
     if [[ -d ./rev_data/multiple_certstores ]]; then
         rm -fr ./rev_data/multiple_certstores
     fi
@@ -154,104 +59,25 @@ else
     mkdir ./rev_data/multiple_certstores/store1
     mkdir ./rev_data/multiple_certstores/store2
     for i in ${linkMStoreNistFiles}; do
-        if [[ -f ./rev_data/multiple_certstores/$i ]]; then
+        if [[ -L ./rev_data/multiple_certstores/$i ]]; then
             rm ./rev_data/multiple_certstores/$i
         fi
         fname=`basename $i`
         ln -s ${NIST_FILES_DIR}/${fname} ./rev_data/multiple_certstores/$i
     done
-
-    doNIST=1
 fi
 
-###########
-# RunTests
-###########
-function RunTests
-{
-    typeset -i errors=0
-    typeset -i memErrors=0
-    typeset -i prematureErrors=0
 
-    failedpgms=""
-    failedmempgms=""
-    failedprematurepgms=""
-    memText=""
-    arenaCmd=""
+##########
+# main
+##########
 
-    if [[ ${checkmem} -eq 1 ]]; then
-            memText="   (Memory Checking Enabled)"
-    fi
+ParseArgs $*
 
-    if [[ ${arenas} -eq 1 ]]; then
-            arenaCmd="-arenas"
-    fi
+echo "\n#    ENE = expect no error (validation should succeed)"
+echo "#    EE = expect error (validation should fail)\n"
 
-    #
-    # Announce start of tests
-    #
-    Display "*******************************************************************************"
-    Display "START OF TESTS FOR PKIX TOP${memText}"
-Display "*******************************************************************************"
-    Display ""
-
-    # run each test specified by the input redirection below
-
-    while read -r testPgm args; do
-
-      test_purpose=`echo $args | awk '{print $1 " " $2 " "}'`
-
-      if [[ ${doNIST} -eq 0 ]]; then
-        hasNIST=`echo ${args} | grep NIST-Test`
-        if [ ! -z "${hasNIST}" ]; then
-          Display "SKIPPING ${testPgm} ${test_purpose}"
-          continue
-        fi
-      fi
-
-      if [[ ${testPgm} = "#" ]]; then
-        Display "${testPgm} ${args}"
-      else
-        Display "RUNNING ${testPgm} ${arenaCmd} ${test_purpose}"
-        if [[ ${checkmem} -eq 1 ]]; then
-            dbx -C -c "runargs ${arenaCmd} $args; check -all ;run;exit" ${DIST_BIN}/${testPgm} > ${testOut} 2>&1
-        else
-            ${DIST_BIN}/${testPgm} ${arenaCmd} ${args}> ${testOut} 2>&1
-        fi
-
-        # Examine output file to see if test failed and keep track of number
-        # of failures and names of failed tests. This assumes that the test
-        # uses our utility library for displaying information
-
-        grep "END OF TESTS FOR" ${testOut} | tail -1 | grep "COMPLETED SUCCESSFULLY" >/dev/null 2>&1
-        
-        if [[ $? -ne 0 ]]; then
-            errors=`expr ${errors} + 1`
-            failedpgms="${failedpgms}${testPgm} ${test_purpose}\n"
-            cat ${testOut}
-        fi
-
-        if [[ ${checkmem} -eq 1 ]]; then
-            grep "(actual leaks:" ${testOut} > ${testOutMem} 2>&1
-            if [[ $? -ne 0 ]]; then
-                prematureErrors=`expr ${prematureErrors} + 1`
-                failedprematurepgms="${failedprematurepgms}${testPgm} "
-                Display "...program terminated prematurely (unable to check for memory leak errors) ..."
-            else
-                #grep "(actual leaks:         0" ${testOut} > /dev/null 2>&1
-                # special consideration for memory leak in NSS_NoDB_Init
-                grep  "(actual leaks:         1  total size:       4 bytes)" ${testOut} > /dev/null 2>&1
-                if [[ $? -ne 0 ]]; then
-                    memErrors=`expr ${memErrors} + 1`
-                    failedmempgms="${failedmempgms}${testPgm} "
-                    cat ${testOutMem}
-                fi
-            fi
-        fi
-    fi
-    done <<EOF
-#    ENE = expect no error (validation should succeed)
-#    EE = expect error (validation should fail)
+RunTests <<EOF
 test_basicchecker
 test_basicconstraintschecker "Two-Certificates-Chain" ENE ../../certs/hy2hy-bc0 ../../certs/hy2hc-bc
 test_basicconstraintschecker "Three-Certificates-Chain" ENE ../../certs/hy2hy-bc0 ../../certs/hy2hy-bc0 ../../certs/hy2hc-bc
@@ -585,53 +411,6 @@ test_buildchain NIST-Test.4.13.37 EE $NIST InvalidURInameConstraintsTest37EE.crt
 test_buildchain NIST-Test.4.13.38 EE $NIST InvalidDNSnameConstraintsTest38EE.crt nameConstraintsDNS1CACert.crt TrustAnchorRootCertificate.crt 
 EOF
 
-
-    if [[ ${errors} -eq 0 ]]; then
-        if [[ ${memErrors} -eq 0 ]]; then
-            Display "\n************************************************************"
-            Display "END OF TESTS FOR PKIX TOP: ALL TESTS COMPLETED SUCCESSFULLY"
-            Display "************************************************************"
-            return 0
-        fi
-    fi
-
-    if [[ ${errors} -eq 1 ]]; then
-        plural=""
-    else
-        plural="S"
-    fi
-
-    Display "\n*******************************************************************************"
-    Display "END OF TESTS FOR PKIX TOP: ${errors} UNIT TEST${plural} FAILED:\n${failedpgms}"
-    if [[ ${checkmem} -eq 1 ]]; then
-        if [[ ${memErrors} -eq 1 ]]; then
-            memPlural=""
-        else
-            memPlural="S"
-        fi
-        Display "                          ${memErrors} MEMORY LEAK TEST${memPlural} FAILED: ${failedmempgms}"
-        
-        if [[ ${prematureErrors} -ne 0 ]]; then
-            if [[ ${prematureErrors} -eq 1 ]]; then
-                prematurePlural=""
-            else
-                prematurePlural="S"
-            fi
-            Display "                          ${prematureErrors} MEMORY LEAK TEST${prematurePlural} INDETERMINATE: ${failedprematurepgms}"
-        fi
-
-    fi
-    Display "*******************************************************************************"
-    combinedErrors=${errors}+${memErrors}+${prematureErrors}
-    return ${combinedErrors}
-}
-
-
-##########
-# main
-##########
-ParseArgs $*
-RunTests
 totalErrors=$?
 return ${totalErrors}
 

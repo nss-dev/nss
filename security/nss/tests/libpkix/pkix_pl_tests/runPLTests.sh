@@ -113,7 +113,7 @@ else
 fi
 
 Display "\n************************************************************"
-Display "END OF TESTS FOR PKIX_PL: ${testErrors} TEST${plural} FAILED"
+Display "END OF TESTS FOR PKIX_PL: ${totalErrors} TEST${plural} FAILED"
 Display "************************************************************"
 
 
