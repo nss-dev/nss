@@ -157,7 +157,7 @@ function perfTest
 {
     Display ""
     Display "*******************************************************************************"
-    Display "START OF PKIX PERFORMANCE SCENAROS ${memText}"
+    Display "START OF PKIX PERFORMANCE SCENARIOS ${memText}"
 Display "*******************************************************************************"
     Display ""
 
