@@ -92,6 +92,13 @@ extern SECStatus SEC_ASN1Decode(PRArenaPool *pool, void *dest,
 				const SEC_ASN1Template *t,
 				const char *buf, long len);
 
+/* Both classic ASN.1 and QuickDER have a feature that removes leading zeroes
+   out of SEC_ASN1_INTEGER if the caller sets siUnsignedInteger in the type
+   field of the target SECItem prior to calling the decoder. Otherwise, the
+   type field is ignored and untouched. For SECItem that are dynamically
+   allocated (from POINTER, SET OF, SEQUENCE OF) the decoder sets the type
+   field to siBuffer. */
+
 extern SECStatus SEC_ASN1DecodeItem(PRArenaPool *pool, void *dest,
 				    const SEC_ASN1Template *t,
 				    const SECItem *src);
