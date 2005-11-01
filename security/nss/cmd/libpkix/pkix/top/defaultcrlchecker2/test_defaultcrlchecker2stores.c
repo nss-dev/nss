@@ -146,7 +146,7 @@ cleanup:
 
 /*
  * Validate Certificate Chain with Certificate Revocation List
- *      Certiticate Chain is build based on input certs' sequence.
+ *      Certificate Chain is build based on input certs' sequence.
  *      CRL is fetched from the directory specified in CollectionCertStore.
  *      while CollectionCertStore is linked in CertStore Object which then
  *      linked in ProcessParam. During validation, CRLChecker will invoke
@@ -248,9 +248,9 @@ int main(int argc, char *argv[]){
 
 cleanup:
 
-        PKIX_TEST_DECREF_AC(chain);
         PKIX_TEST_DECREF_AC(valParams);
         PKIX_TEST_DECREF_AC(valResult);
+        PKIX_TEST_DECREF_AC(chain);
 
         PKIX_Shutdown(plContext);
 
