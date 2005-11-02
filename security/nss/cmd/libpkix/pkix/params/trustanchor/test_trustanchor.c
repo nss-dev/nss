@@ -120,7 +120,7 @@ cleanup:
         PKIX_TEST_RETURN();
 }
 
-void testGetNameConstraints(void)
+void testGetNameConstraints(char *dirName)
 {
         PKIX_TrustAnchor *goodObject = NULL;
         PKIX_TrustAnchor *equalObject = NULL;
@@ -128,8 +128,8 @@ void testGetNameConstraints(void)
         PKIX_PL_Cert *diffCert;
         PKIX_PL_CertNameConstraints *diffNC = NULL;
         PKIX_PL_CertNameConstraints *equalNC = NULL;
-
-        char *goodInput = "../../nist_pkits/certs/nameConstraintsDN5CACert.crt";
+        char pathName[512];
+        char *goodInput = "/nameConstraintsDN5CACert.crt";
         char *expectedAscii =
                 "[\n"
                 "\tTrusted CA Name:         CN=nameConstraints DN5 CA,"
@@ -148,8 +148,11 @@ void testGetNameConstraints(void)
 
         subTest("Create TrustAnchors and compare");
 
+        PL_strcpy(pathName, dirName);
+        PL_strcat(pathName, goodInput);
+
         createTrustAnchors
-                (goodInput, &goodObject, &equalObject, &diffObject);
+                (pathName, &goodObject, &equalObject, &diffObject);
 
         PKIX_TEST_EQ_HASH_TOSTR_DUP
                 (goodObject,
@@ -208,6 +211,10 @@ cleanup:
 
 }
 
+void printUsage(void) {
+        (void) printf("\nUSAGE:\ttest_trustanchor <NIST_FILES_DIR> \n\n");
+}
+
 int main(int argc, char *argv[]) {
 
         PKIX_TrustAnchor *goodObject = NULL;
@@ -225,6 +232,7 @@ int main(int argc, char *argv[]) {
                 "\tTrusted CA PublicKey:    ANSI X9.57 DSA Signature\n"
                 "\tInitial Name Constraints:(null)\n"
                 "]\n";
+        char *dirName = NULL;
 
         PKIX_TEST_STD_VARS();
 
@@ -237,7 +245,16 @@ int main(int argc, char *argv[]) {
                                     &actualMinorVersion,
                                     plContext));
 
+        if (argc < 2) {
+                printUsage();
+                return (0);
+        }
+
+        j = 0;
+
         PKIX_TEST_NSSCONTEXT_SETUP(0x10, argv[1], NULL, &plContext);
+
+        dirName = argv[j+1];
 
         createTrustAnchors
                 (goodInput, &goodObject, &equalObject, &diffObject);
@@ -257,7 +274,7 @@ int main(int argc, char *argv[]) {
         testGetCAName(diffCert, equalObject);
         testGetCAPublicKey(diffCert, equalObject);
 
-        testGetNameConstraints();
+        testGetNameConstraints(dirName);
 
         testDestroy(goodObject, equalObject, diffObject);
 

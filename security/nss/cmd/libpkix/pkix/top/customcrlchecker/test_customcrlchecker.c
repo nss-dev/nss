@@ -378,6 +378,8 @@ int main(int argc, char *argv[]){
         PKIX_PL_Cert *certs[PKIX_TEST_MAX_CERTS];
         PKIX_UInt32 chainLength, i, j;
         PKIX_Boolean testValid = PKIX_TRUE;
+        char *dirName = NULL;
+        char *anchorName = NULL;
 
         PKIX_TEST_STD_VARS();
 
@@ -420,16 +422,29 @@ int main(int argc, char *argv[]){
                 certs[i] = NULL;
         }
 
+        dirName = argv[3+j];
+
         subTest(argv[1+j]);
 
         subTest("Custom-CRL-Checker - Create Cert Chain");
 
-        chain = createCertChainPlus(certNames, certs, chainLength, plContext);
+        chain = createDirCertChainPlus
+                (dirName, certNames, certs, chainLength, plContext);
 
         subTest("Custom-CRL-Checker - Create Params");
 
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Malloc
+                (PL_strlen(dirName) + PL_strlen(argv[4+j]) + 2,
+                (void **) &anchorName,
+                plContext));
+
+        PL_strcpy(anchorName, dirName);
+        PL_strcat(anchorName, "/");
+        PL_strcat(anchorName, argv[4+j]);
+        printf("anchorName = %s\n", anchorName);
+
         valParams = createValidateParams
-                (argv[4+j],
+                (anchorName,
                 NULL,
                 NULL,
                 NULL,
@@ -455,6 +470,8 @@ int main(int argc, char *argv[]){
         }
 
 cleanup:
+
+        PKIX_PL_Free(anchorName, plContext);
 
         PKIX_TEST_DECREF_AC(chain);
         PKIX_TEST_DECREF_AC(valParams);

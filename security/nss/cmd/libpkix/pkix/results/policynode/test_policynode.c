@@ -357,6 +357,10 @@ cleanup:
         PKIX_TEST_RETURN();
 }
 
+void printUsage(void) {
+        (void) printf("\nUSAGE:\ttest_policynode <NIST_FILES_DIR> \n\n");
+}
+
 int main(int argc, char *argv[]) {
 
         /*
@@ -495,6 +499,7 @@ int main(int argc, char *argv[]) {
 
         PKIX_UInt32 actualMinorVersion;
         PKIX_UInt32 j = 0;
+        char *dirName = NULL;
 
         PKIX_TEST_STD_VARS();
 
@@ -507,7 +512,16 @@ int main(int argc, char *argv[]) {
                 &actualMinorVersion,
                 plContext));
 
+        if (argc < 2) {
+                printUsage();
+                return (0);
+        }
+
+        j = 0;
+
         PKIX_TEST_NSSCONTEXT_SETUP(0x10, argv[1], NULL, &plContext);
+
+        dirName = argv[j+1];
 
         subTest("Creating OID objects");
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_OID_Create
@@ -515,9 +529,8 @@ int main(int argc, char *argv[]) {
 
         /* Read certificates to get real policies, qualifiers */
 
-        cert = createCert
-                ("../../nist_pkits/certs/UserNoticeQualifierTest16EE.crt",
-                plContext);
+        cert = createDirCert
+                (dirName, "UserNoticeQualifierTest16EE.crt", plContext);
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Cert_GetPolicyInformation
                 (cert, &expectedNist1Nist2List, plContext));

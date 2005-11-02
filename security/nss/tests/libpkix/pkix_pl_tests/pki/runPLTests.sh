@@ -70,16 +70,18 @@ linkPkiNistFiles="InvalidDNnameConstraintsTest3EE.crt
         UserNoticeQualifierTest18EE.crt 
         CPSPointerQualifierTest20EE.crt"
 
-if [[ ! -d ./rev_data/local ]]; then
-    mkdir -p ./rev_data/local
-fi
-
-for i in ${linkPkiNistFiles}; do
-    if [[ -L ./rev_data/local/$i ]]; then
-        rm ./rev_data/local/$i
+if [[ ! -z ${NIST_FILES_DIR} ]]; then
+    if [[ ! -d ./rev_data/local ]]; then
+        mkdir -p ./rev_data/local
     fi
-    ln -s ${NIST_FILES_DIR}/$i ./rev_data/local/$i
-done
+
+    for i in ${linkPkiNistFiles}; do
+        if [[ -f ./rev_data/local/$i ]]; then
+            rm ./rev_data/local/$i
+        fi
+        cp ${NIST_FILES_DIR}/$i ./rev_data/local/$i
+    done
+fi
 
 ##########
 # main

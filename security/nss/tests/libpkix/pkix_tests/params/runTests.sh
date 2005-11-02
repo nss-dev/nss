@@ -42,6 +42,7 @@
 curdir=`pwd`
 cd ../../common
 . ./libpkix_init.sh > /dev/null
+. ./libpkix_init_nist.sh > /dev/null
 cd ${curdir}
 
 testunit=PARAMS
@@ -56,7 +57,7 @@ ParseArgs $*
 RunTests <<EOF
 test_valparams
 test_procparams
-test_trustanchor NIST-Test-Files-Used
+test_trustanchor ${NIST} NIST-Test-Files-Used
 test_buildparams
 test_resourcelimits
 EOF

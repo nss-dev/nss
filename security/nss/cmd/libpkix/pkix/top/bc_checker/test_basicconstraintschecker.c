@@ -68,6 +68,8 @@ int main(int argc, char *argv[]){
         PKIX_PL_Cert *certs[PKIX_TEST_MAX_CERTS];
         PKIX_UInt32 chainLength, i, j;
         PKIX_Boolean testValid = PKIX_TRUE;
+        char *dirName = NULL;
+        char *anchorName = NULL;
 
         PKIX_TEST_STD_VARS();
 
@@ -99,13 +101,15 @@ int main(int argc, char *argv[]){
                 return (0);
         }
 
-        chainLength = (argc - j) - 3;
+        dirName = argv[3+j];
+
+        chainLength = (argc - j) - 4;
         if (chainLength > PKIX_TEST_MAX_CERTS) {
                 printUsageMax(chainLength);
         }
 
         for (i = 0; i < chainLength; i++) {
-                certNames[i] = argv[(3+j)+i];
+                certNames[i] = argv[(4+j)+i];
                 certs[i] = NULL;
         }
 
@@ -113,7 +117,8 @@ int main(int argc, char *argv[]){
 
         subTest("Basic-Constraints - Create Cert Chain");
 
-        chain = createCertChainPlus(certNames, certs, chainLength, plContext);
+        chain = createDirCertChainPlus
+                (dirName, certNames, certs, chainLength, plContext);
 
         /*
          * Error occurrs when creating Cert, this is critical and test
@@ -134,8 +139,18 @@ int main(int argc, char *argv[]){
 
         subTest("Basic-Constraints - Create Params");
 
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Malloc
+                (PL_strlen(dirName) + PL_strlen(argv[4+j]) + 2,
+                (void **) &anchorName,
+                plContext));
+
+        PL_strcpy(anchorName, dirName);
+        PL_strcat(anchorName, "/");
+        PL_strcat(anchorName, argv[4+j]);
+        printf("anchorName = %s\n", anchorName);
+
         valParams = createValidateParams
-                (argv[3+j],
+                (anchorName,
                 NULL,
                 NULL,
                 NULL,
@@ -157,6 +172,8 @@ int main(int argc, char *argv[]){
         }
 
 cleanup:
+
+        PKIX_PL_Free(anchorName, plContext);
 
         PKIX_TEST_DECREF_AC(chain);
         PKIX_TEST_DECREF_AC(valParams);

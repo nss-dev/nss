@@ -42,6 +42,7 @@
 curdir=`pwd`
 cd ../../common
 . ./libpkix_init.sh > /dev/null
+. ./libpkix_init_nist.sh > /dev/null
 cd ${curdir}
 
 testunit=RESULTS
@@ -54,7 +55,7 @@ testunit=RESULTS
 ParseArgs $*
 
 RunTests <<EOF
-test_policynode NIST-Test-Files-Used
+test_policynode ${NIST} NIST-Test-Files-Used
 test_valresult
 test_buildresult
 EOF

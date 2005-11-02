@@ -227,15 +227,15 @@ cleanup:
         PKIX_TEST_RETURN();
 }
 
-void testNistTest1(void)
+void testNistTest1(char *dirName)
 {
 #define PKIX_TEST_NUM_CERTS     2
         char *trustAnchor =
-                "../../nist_pkits/certs/TrustAnchorRootCertificate.crt";
+                "TrustAnchorRootCertificate.crt";
         char *intermediateCert =
-                "../../nist_pkits/certs/GoodCACert.crt";
+                "GoodCACert.crt";
         char *endEntityCert =
-                "../../nist_pkits/certs/ValidCertificatePathTest1EE.crt";
+                "ValidCertificatePathTest1EE.crt";
         char *certNames[PKIX_TEST_NUM_CERTS];
         char *asciiAnyPolicy = "2.5.29.32.0";
         PKIX_PL_Cert *certs[PKIX_TEST_NUM_CERTS] = { NULL, NULL };
@@ -245,6 +245,7 @@ void testNistTest1(void)
         PKIX_CertChain *chain = NULL;
         PKIX_PL_OID *anyPolicyOID = NULL;
         PKIX_List *initialPolicies = NULL;
+        char *anchorName = NULL;
 
         PKIX_TEST_STD_VARS();
 
@@ -256,8 +257,8 @@ void testNistTest1(void)
          */
         certNames[0] = intermediateCert;
         certNames[1] = endEntityCert;
-        chain = createCertChainPlus
-                (certNames, certs, PKIX_TEST_NUM_CERTS, plContext);
+        chain = createDirCertChainPlus
+                (dirName, certNames, certs, PKIX_TEST_NUM_CERTS, plContext);
 
         subTest("testNistTest1: Creating the Validate Parameters");
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_OID_Create
@@ -269,8 +270,18 @@ void testNistTest1(void)
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_SetImmutable
                 (initialPolicies, plContext));
 
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Malloc
+                (PL_strlen(dirName) + PL_strlen(trustAnchor) + 2,
+                (void **) &anchorName,
+                plContext));
+
+        PL_strcpy(anchorName, dirName);
+        PL_strcat(anchorName, "/");
+        PL_strcat(anchorName, trustAnchor);
+        printf("anchorName = %s\n", anchorName);
+
         valParams = createValidateParams
-                (trustAnchor,
+                (anchorName,
                 NULL,
                 NULL,
                 initialPolicies,
@@ -288,6 +299,8 @@ void testNistTest1(void)
 
 cleanup:
 
+        PKIX_PL_Free(anchorName, plContext);
+
         PKIX_TEST_DECREF_AC(anyPolicyOID);
         PKIX_TEST_DECREF_AC(initialPolicies);
         PKIX_TEST_DECREF_AC(valParams);
@@ -297,15 +310,15 @@ cleanup:
         PKIX_TEST_RETURN();
 }
 
-void testNistTest2(void)
+void testNistTest2(char *dirName)
 {
 #define PKIX_TEST_NUM_CERTS     2
         char *trustAnchor =
-                "../../nist_pkits/certs/TrustAnchorRootCertificate.crt";
+                "TrustAnchorRootCertificate.crt";
         char *intermediateCert =
-                "../../nist_pkits/certs/GoodCACert.crt";
+                "GoodCACert.crt";
         char *endEntityCert =
-                "../../nist_pkits/certs/ValidCertificatePathTest1EE.crt";
+                "ValidCertificatePathTest1EE.crt";
         char *certNames[PKIX_TEST_NUM_CERTS];
         char *asciiNist1Policy = "2.16.840.1.101.3.2.1.48.1";
         PKIX_PL_Cert *certs[PKIX_TEST_NUM_CERTS] = { NULL, NULL };
@@ -315,6 +328,7 @@ void testNistTest2(void)
         PKIX_CertChain *chain = NULL;
         PKIX_PL_OID *Nist1PolicyOID = NULL;
         PKIX_List *initialPolicies = NULL;
+        char *anchorName = NULL;
 
         PKIX_TEST_STD_VARS();
 
@@ -326,8 +340,8 @@ void testNistTest2(void)
          */
         certNames[0] = intermediateCert;
         certNames[1] = endEntityCert;
-        chain = createCertChainPlus
-                (certNames, certs, PKIX_TEST_NUM_CERTS, plContext);
+        chain = createDirCertChainPlus
+                (dirName, certNames, certs, PKIX_TEST_NUM_CERTS, plContext);
 
         subTest("testNistTest2: Creating the Validate Parameters");
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_OID_Create
@@ -339,8 +353,18 @@ void testNistTest2(void)
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_SetImmutable
                 (initialPolicies, plContext));
 
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Malloc
+                (PL_strlen(dirName) + PL_strlen(trustAnchor) + 2,
+                (void **) &anchorName,
+                plContext));
+
+        PL_strcpy(anchorName, dirName);
+        PL_strcat(anchorName, "/");
+        PL_strcat(anchorName, trustAnchor);
+        printf("anchorName = %s\n", anchorName);
+
         valParams = createValidateParams
-                (trustAnchor,
+                (anchorName,
                 NULL,
                 NULL,
                 initialPolicies,
@@ -357,6 +381,8 @@ void testNistTest2(void)
 
 
 cleanup:
+
+        PKIX_PL_Free(anchorName, plContext);
 
         PKIX_TEST_DECREF_AC(Nist1PolicyOID);
         PKIX_TEST_DECREF_AC(initialPolicies);
@@ -418,6 +444,8 @@ int main(int argc, char *argv[])
         PKIX_PL_Cert *certs[PKIX_TEST_MAX_CERTS];
         PKIX_CertChain *chain = NULL;
         PKIX_Error *validationError = NULL;
+        char *dirName = NULL;
+        char *anchorName = NULL;
 
         PKIX_TEST_STD_VARS();
 
@@ -437,9 +465,10 @@ int main(int argc, char *argv[])
          * If command line args are provided, they must be:
          * arg[1]: test name
          * arg[2]: "ENE" or "EE", for "expect no error" or "expect error"
-         * arg[3]: user-initial-policy-set, consisting of braces
+         * arg[3]: directory for certificates
+         * arg[4]: user-initial-policy-set, consisting of braces
          *      containing zero or more OID sequences, separated by commas
-         * arg[4]: (optional) "E", indicating initialExplicitPolicy
+         * arg[5]: (optional) "E", indicating initialExplicitPolicy
          * arg[firstCert]: the path and filename of the trust anchor certificate
          * arg[firstCert+1..(n-1)]: successive certificates in the chain
          * arg[n]: the end entity certificate
@@ -447,18 +476,25 @@ int main(int argc, char *argv[])
          * Example: test_policychecker test1EE ENE
          *      {2.5.29.32.0,2.5.29.32.3.6} Anchor CA EndEntity
          */
-        if ((1 == argc) || (2 == argc) || ((3 == argc) && (j))) {
+        if (argc < 4+j) {
+                printUsage(argv[0]);
+                goto cleanup;
+        }
+
+        dirName = argv[3+j];
+
+        if (argc <= 4 || ((5 == argc) && (j))) {
 
                 testPass(firstTrustAnchor, secondTrustAnchor, dateAscii);
 
-                testNistTest1();
+                testNistTest1(dirName);
 
-                testNistTest2();
+                testNistTest2(dirName);
 
                 goto cleanup;
         }
 
-        if (argc < (5 + j)) {
+        if (argc < (6 + j)) {
                 printUsage(argv[0]);
                 pkixTestErrorMsg = "Invalid command line arguments.";
                 goto cleanup;
@@ -474,7 +510,7 @@ int main(int argc, char *argv[])
                 goto cleanup;
         }
 
-        userInitialPolicySet = policySetParse(argv[3+j]);
+        userInitialPolicySet = policySetParse(argv[4+j]);
         if (!userInitialPolicySet) {
                 printUsage(argv[0]);
                 pkixTestErrorMsg = "Invalid command line arguments.";
@@ -482,18 +518,18 @@ int main(int argc, char *argv[])
         }
 
         for (initArgs = 0; initArgs < 3; initArgs++) {
-                if (PORT_Strcmp(argv[4+j+initArgs], "A") == 0) {
+                if (PORT_Strcmp(argv[5+j+initArgs], "A") == 0) {
                         initialAnyPolicyInhibit = PKIX_TRUE;
-                } else if (PORT_Strcmp(argv[4+j+initArgs], "E") == 0) {
+                } else if (PORT_Strcmp(argv[5+j+initArgs], "E") == 0) {
                         initialExplicitPolicy = PKIX_TRUE;
-                } else if (PORT_Strcmp(argv[4+j+initArgs], "P") == 0) {
+                } else if (PORT_Strcmp(argv[5+j+initArgs], "P") == 0) {
                         initialPolicyMappingInhibit = PKIX_TRUE;
                 } else {
                         break;
                 }
         }
 
-        firstCert = initArgs + j + 4;
+        firstCert = initArgs + j + 5;
         chainLength = argc - (firstCert + 1);
         if (chainLength > PKIX_TEST_MAX_CERTS) {
                 printUsageMax(chainLength);
@@ -511,12 +547,23 @@ int main(int argc, char *argv[])
                 certNames[i] = argv[i + (firstCert + 1)];
                 certs[i] = NULL;
         }
-        chain = createCertChainPlus(certNames, certs, chainLength, plContext);
+        chain = createDirCertChainPlus
+                (dirName, certNames, certs, chainLength, plContext);
 
         subTest(argv[1+j]);
 
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Malloc
+                (PL_strlen(dirName) + PL_strlen(argv[firstCert]) + 2,
+                (void **) &anchorName,
+                plContext));
+
+        PL_strcpy(anchorName, dirName);
+        PL_strcat(anchorName, "/");
+        PL_strcat(anchorName, argv[firstCert]);
+        printf("anchorName = %s\n", anchorName);
+
         valParams = createValidateParams
-                (argv[firstCert],
+                (anchorName,
                 NULL,
                 NULL,
                 userInitialPolicySet,
@@ -547,6 +594,8 @@ int main(int argc, char *argv[])
         }
 
 cleanup:
+
+        PKIX_PL_Free(anchorName, plContext);
 
         PKIX_TEST_DECREF_AC(userInitialPolicySet);
         PKIX_TEST_DECREF_AC(chain);

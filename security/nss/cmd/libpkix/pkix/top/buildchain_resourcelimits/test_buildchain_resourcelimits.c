@@ -47,7 +47,7 @@
 #define PKIX_TESTUSERCHECKER_TYPE (PKIX_NUMTYPES+30)
 
 #if 0
-extern char *pkix_pl_PK11ConfigDir = "../../nist_pkits/certs_and_crls";
+extern char *pkix_pl_PK11ConfigDir = "somewhere-pk11-db-existed";
 #endif
 
 void *plContext = NULL;
@@ -62,43 +62,6 @@ void printUsage(void){
                 "using the certs and CRLs in <certStoreDirectory>.\n"
                 "If ENE is specified, then an Error is Not Expected.\n"
                 "If EE is specified, an Error is Expected.\n");
-}
-
-PKIX_PL_Cert *
-createDirCert(
-        char *dirName,
-        char *certFile,
-        void *plContext)
-{
-        PKIX_PL_Cert *cert = NULL;
-        char *certPathName = NULL;
-        PKIX_UInt32 certFileLen;
-        PKIX_UInt32 dirNameLen;
-
-        PKIX_TEST_STD_VARS();
-
-        certFileLen = PL_strlen(certFile);
-        dirNameLen = PL_strlen(dirName);
-
-        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Malloc
-                                    (dirNameLen + certFileLen + 2,
-                                    (void **)&certPathName,
-                                    plContext));
-
-        PL_strcpy(certPathName, dirName);
-        PL_strcat(certPathName, "/");
-        PL_strcat(certPathName, certFile);
-        printf("certPathName = %s\n", certPathName);
-        cert = createCert(certPathName, plContext);
-
-cleanup:
-
-        PKIX_PL_Free(certPathName, plContext);
-
-        PKIX_TEST_RETURN();
-
-        return (cert);
-
 }
 
 void Test_BuildResult(

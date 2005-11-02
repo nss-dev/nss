@@ -166,6 +166,8 @@ int main(int argc, char *argv[]){
         PKIX_PL_Cert *certs[PKIX_TEST_MAX_CERTS];
         PKIX_UInt32 chainLength, i, j;
         PKIX_Boolean testValid = PKIX_TRUE;
+        char *dirName = NULL;
+        char *anchorName = NULL;
 
         PKIX_TEST_STD_VARS();
 
@@ -178,7 +180,7 @@ int main(int argc, char *argv[]){
                                     &actualMinorVersion,
                                     plContext));
 
-        if (argc < 5){
+        if (argc < 6){
                 printUsage1(argv[0]);
                 return (0);
         }
@@ -197,14 +199,14 @@ int main(int argc, char *argv[]){
                 return (0);
         }
 
-        chainLength = (argc - j) - 6;
+        chainLength = (argc - j) - 7;
         if (chainLength > PKIX_TEST_MAX_CERTS) {
                 printUsageMax(chainLength);
         }
 
         for (i = 0; i < chainLength; i++) {
 
-                certNames[i] = argv[(6+j)+i];
+                certNames[i] = argv[(7+j)+i];
                 certs[i] = NULL;
         }
 
@@ -215,12 +217,25 @@ int main(int argc, char *argv[]){
 
         subTest("Default-CRL-Checker - Create Cert Chain");
 
-        chain = createCertChainPlus(certNames, certs, chainLength, plContext);
+        dirName = argv[3+j];
+
+        chain = createDirCertChainPlus
+                (dirName, certNames, certs, chainLength, plContext);
 
         subTest("Default-CRL-Checker - Create Params");
 
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Malloc
+                (PL_strlen(dirName) + PL_strlen(argv[6+j]) + 2,
+                (void **) &anchorName,
+                plContext));
+
+        PL_strcpy(anchorName, dirName);
+        PL_strcat(anchorName, "/");
+        PL_strcat(anchorName, argv[6+j]);
+        printf("anchorName = %s\n", anchorName);
+
         valParams = createValidateParams
-                (argv[5+j],
+                (anchorName,
                 NULL,
                 NULL,
                 NULL,
@@ -233,7 +248,7 @@ int main(int argc, char *argv[]){
 
         subTest("Multiple-CertStores");
 
-        testDefaultMultipleCertStores(valParams, argv[3+j], argv[4+j]);
+        testDefaultMultipleCertStores(valParams, argv[4+j], argv[5+j]);
 
         subTest("Default-CRL-Checker - Validate Chain");
 
@@ -247,6 +262,8 @@ int main(int argc, char *argv[]){
 
 
 cleanup:
+
+        PKIX_PL_Free(anchorName, plContext);
 
         PKIX_TEST_DECREF_AC(valParams);
         PKIX_TEST_DECREF_AC(valResult);

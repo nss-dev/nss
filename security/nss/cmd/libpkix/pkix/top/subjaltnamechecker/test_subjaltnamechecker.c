@@ -131,6 +131,8 @@ int main(int argc, char *argv[]){
         PKIX_UInt32 nameType;
         PKIX_Boolean matchAll = PKIX_TRUE;
         PKIX_Boolean testValid = PKIX_TRUE;
+        char *dirName = NULL;
+        char *anchorName = NULL;
 
         PKIX_TEST_STD_VARS();
 
@@ -143,7 +145,7 @@ int main(int argc, char *argv[]){
                                     &actualMinorVersion,
                                     plContext));
 
-        if (argc < 4){
+        if (argc < 5){
                 printUsage1(argv[0]);
                 return (0);
         }
@@ -192,13 +194,13 @@ int main(int argc, char *argv[]){
                 }
         }
 
-        chainLength = (argc - j) - 3;
+        chainLength = (argc - j) - 4;
         if (chainLength > PKIX_TEST_MAX_CERTS) {
                 printUsageMax(chainLength);
         }
 
         for (i = 0; i < chainLength; i++) {
-                certNames[i] = argv[(3+j)+i];
+                certNames[i] = argv[(4+j)+i];
                 certs[i] = NULL;
         }
 
@@ -235,12 +237,25 @@ int main(int argc, char *argv[]){
 
         subTest("SubjAltName-Constraints - Create Cert Chain");
 
-        chain = createCertChainPlus(certNames, certs, chainLength, plContext);
+        dirName = argv[3+j];
+
+        chain = createDirCertChainPlus
+                (dirName, certNames, certs, chainLength, plContext);
 
         subTest("SubjAltName-Constraints - Create Params");
 
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Malloc
+                (PL_strlen(dirName) + PL_strlen(argv[4+j]) + 2,
+                (void **) &anchorName,
+                plContext));
+
+        PL_strcpy(anchorName, dirName);
+        PL_strcat(anchorName, "/");
+        PL_strcat(anchorName, argv[4+j]);
+        printf("anchorName = %s\n", anchorName);
+
         valParams = createValidateParams
-                (argv[3+j],
+                (anchorName,
                 NULL,
                 NULL,
                 NULL,
@@ -270,6 +285,8 @@ int main(int argc, char *argv[]){
         }
 
 cleanup:
+
+        PKIX_PL_Free(anchorName, plContext);
 
         PKIX_TEST_DECREF_AC(chain);
         PKIX_TEST_DECREF_AC(valParams);

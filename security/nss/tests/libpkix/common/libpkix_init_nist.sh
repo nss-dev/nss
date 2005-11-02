@@ -54,15 +54,5 @@ if [ -z "${NIST_FILES_DIR}" ] ; then
 else
 
     NIST=${NIST_FILES_DIR}
-    if [[ ! -d ../nist_pkits ]]; then
-      mkdir -p ../nist_pkits
-    else
-      if [[ -d ../nist_pkits/certs ]]; then
-        rm ../nist_pkits/certs
-      fi
-    fi
-
-    ln -s ${NIST_FILES_DIR} ../nist_pkits/certs
-
     doNIST=1
 fi

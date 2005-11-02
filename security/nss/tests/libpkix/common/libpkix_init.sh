@@ -93,7 +93,7 @@ function Cleanup
 
     if [[ ${doTop} -eq 1 ]]; then
         for i in ${linkMStoreNistFiles}; do
-            if [[ -L ./rev_data/multiple_certstores/$i ]]; then
+            if [[ -f ./rev_data/multiple_certstores/$i ]]; then
                 rm -f ./rev_data/multiple_certstores/$i
             fi
         done
@@ -104,7 +104,7 @@ function Cleanup
 
     if [[ ${doModule} -eq 1 ]]; then
         for i in ${linkModuleNistFiles}; do
-            if [[ -L ./rev_data/local/$i ]]; then
+            if [[ -f ./rev_data/local/$i ]]; then
                 rm -f ./rev_data/local/$i
             fi
         done
@@ -112,7 +112,7 @@ function Cleanup
 
     if [[ ${doPki} -eq 1 ]]; then
         for i in ${linkPkiNistFiles}; do
-            if [[ -L ./rev_data/local/$i ]]; then
+            if [[ -f ./rev_data/local/$i ]]; then
                 rm -f ./rev_data/local/$i
             fi
         done

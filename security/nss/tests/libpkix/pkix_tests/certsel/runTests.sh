@@ -52,9 +52,11 @@ cd ${curdir}
 
 ParseArgs $*
 
+echo $NIST
+
 RunTests <<EOF
-test_comcertselparams NIST-Test-Files-Used
-test_certselector NIST-Test-Files-Used
+test_comcertselparams ${NIST} NIST-Test-Files-Used
+test_certselector ${NIST} NIST-Test-Files-Used
 EOF
 
 totalErrors=$?

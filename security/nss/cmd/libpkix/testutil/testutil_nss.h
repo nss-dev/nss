@@ -65,6 +65,12 @@ createCert(
         char *certFileName,
         void *plContext);
 
+PKIX_PL_Cert *
+createDirCert(
+        char *dirName,
+        char *certFile,
+        void *plContext);
+
 PKIX_PL_CRL *
 createCRL(
         char *inFileName,
@@ -83,7 +89,22 @@ createCertChain(
         void *plContext);
 
 PKIX_CertChain *
+createDirCertChain(
+        char *dirName,
+        char *firstCertFileName,
+        char *secondCertFileName,
+        void *plContext);
+
+PKIX_CertChain *
 createCertChainPlus(
+        char *certNames[],
+        PKIX_PL_Cert *certs[],
+        PKIX_UInt32 numCerts,
+        void *plContext);
+
+PKIX_CertChain *
+createDirCertChainPlus(
+        char *dirName,
         char *certNames[],
         PKIX_PL_Cert *certs[],
         PKIX_UInt32 numCerts,

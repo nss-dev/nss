@@ -58,21 +58,21 @@ void *plContext = NULL;
  */
 static char *certList[] = {
 #define POLICY1CERT 0
-                "../../nist_pkits/certs/GoodCACert.crt",
+                "GoodCACert.crt",
 #define ANYPOLICYCERT 1
-                "../../nist_pkits/certs/anyPolicyCACert.crt",
+                "anyPolicyCACert.crt",
 #define POLICY2CERT 2
-                "../../nist_pkits/certs/PoliciesP12CACert.crt",
+                "PoliciesP12CACert.crt",
 #define SUBJECTCERT 3
-                "../../nist_pkits/certs/PoliciesP3CACert.crt",
-                "../../nist_pkits/certs/PoliciesP1234CACert.crt",
-                "../../nist_pkits/certs/pathLenConstraint0CACert.crt",
-                "../../nist_pkits/certs/pathLenConstraint1CACert.crt",
-                "../../nist_pkits/certs/pathLenConstraint6CACert.crt",
-                "../../nist_pkits/certs/TrustAnchorRootCertificate.crt",
-                "../../nist_pkits/certs/GoodsubCACert.crt",
-                "../../nist_pkits/certs/AnyPolicyTest14EE.crt",
-                "../../nist_pkits/certs/UserNoticeQualifierTest16EE.crt"
+                "PoliciesP3CACert.crt",
+                "PoliciesP1234CACert.crt",
+                "pathLenConstraint0CACert.crt",
+                "pathLenConstraint1CACert.crt",
+                "pathLenConstraint6CACert.crt",
+                "TrustAnchorRootCertificate.crt",
+                "GoodsubCACert.crt",
+                "AnyPolicyTest14EE.crt",
+                "UserNoticeQualifierTest16EE.crt"
         };
 #define NUMCERTS (sizeof (certList)/sizeof (certList[0]))
 
@@ -114,19 +114,19 @@ static char *certList[] = {
  *
  */
 static char *ncCertList[] = {
-        "../../nist_pkits/certs/nameConstraintsDN1subCA1Cert.crt",
-        "../../nist_pkits/certs/nameConstraintsDN3subCA2Cert.crt",
-        "../../nist_pkits/certs/nameConstraintsDN2CACert.crt",
-        "../../nist_pkits/certs/nameConstraintsDN3subCA1Cert.crt",
-        "../../nist_pkits/certs/nameConstraintsDN4CACert.crt",
-        "../../nist_pkits/certs/nameConstraintsDN5CACert.crt",
-        "../../nist_pkits/certs/ValidDNnameConstraintsTest1EE.crt"
+        "nameConstraintsDN1subCA1Cert.crt",
+        "nameConstraintsDN3subCA2Cert.crt",
+        "nameConstraintsDN2CACert.crt",
+        "nameConstraintsDN3subCA1Cert.crt",
+        "nameConstraintsDN4CACert.crt",
+        "nameConstraintsDN5CACert.crt",
+        "ValidDNnameConstraintsTest1EE.crt"
 };
 #define NUMNCCERTS (sizeof (ncCertList)/sizeof (ncCertList[0]))
 
 static char *sanCertList[] = {
-        "../../nist_pkits/certs/InvalidDNnameConstraintsTest3EE.crt",
-        "../../nist_pkits/certs/InvalidDNSnameConstraintsTest38EE.crt"
+        "InvalidDNnameConstraintsTest3EE.crt",
+        "InvalidDNSnameConstraintsTest38EE.crt"
 };
 #define NUMSANCERTS (sizeof (sanCertList)/sizeof (sanCertList[0]))
 
@@ -1799,6 +1799,10 @@ cleanup:
         PKIX_TEST_RETURN();
 }
 
+void printUsage(void) {
+        (void) printf("\nUSAGE:\ttest_certselector <NIST_FILES_DIR> \n\n");
+}
+
 int main(int argc, char *argv[]) {
 
         PKIX_UInt32 i = 0;
@@ -1815,6 +1819,7 @@ int main(int argc, char *argv[]) {
         PKIX_PL_Cert *anyPolicyCert = NULL;
         PKIX_PL_Cert *subjectCert = NULL;
         PKIX_ComCertSelParams *selParams = NULL;
+        char *dirName = NULL;
 
         PKIX_TEST_STD_VARS();
 
@@ -1827,13 +1832,24 @@ int main(int argc, char *argv[]) {
                                     &actualMinorVersion,
                                     plContext));
 
+        if (argc < 2) {
+                printUsage();
+                return (0);
+        }
+
+        j = 0;
+
         PKIX_TEST_NSSCONTEXT_SETUP(0x10, argv[1], NULL, &plContext);
+
+        dirName = argv[j+1];
 
         /* Create a List of certs to use in testing the selector */
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_Create(&certs, plContext));
 
         for (i = 0; i < NUMCERTS; i++) {
-                cert = createCert(certList[i], plContext);
+
+                cert = createDirCert(dirName, certList[i], plContext);
+
                 PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_AppendItem
                         (certs, (PKIX_PL_Object *)cert, plContext));
                 if (i == POLICY1CERT) {
@@ -1864,7 +1880,7 @@ int main(int argc, char *argv[]) {
 
         for (i = 0; i < NUMNCCERTS; i++) {
 
-                cert = createCert(ncCertList[i], plContext);
+                cert = createDirCert(dirName, ncCertList[i], plContext);
 
                 PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_AppendItem
                         (nameConstraintsCerts,
@@ -1879,7 +1895,7 @@ int main(int argc, char *argv[]) {
 
         for (i = 0; i < NUMSANCERTS; i++) {
 
-                cert = createCert(sanCertList[i], plContext);
+                cert = createDirCert(dirName, sanCertList[i], plContext);
 
                 PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_AppendItem
                         (subjAltNamesCerts,

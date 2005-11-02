@@ -90,7 +90,7 @@ cleanup:
         PKIX_TEST_RETURN();
 }
 
-void test_NameConstraints(void)
+void test_NameConstraints(char *dirName)
 {
         PKIX_PL_Cert *goodCert = NULL;
         PKIX_PL_CertNameConstraints *getNameConstraints = NULL;
@@ -107,9 +107,9 @@ void test_NameConstraints(void)
         PKIX_TEST_STD_VARS();
 
         subTest("Create Cert for NameConstraints test");
-        goodCert = createCert
-                ("../../nist_pkits/certs/nameConstraintsDN2CACert.crt",
-                plContext);
+
+        goodCert = createDirCert
+                (dirName, "nameConstraintsDN2CACert.crt", plContext);
 
         subTest("PKIX_PL_Cert_GetNameConstraints");
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Cert_GetNameConstraints
@@ -456,7 +456,7 @@ cleanup:
 void test_Version_Issuer_SerialNumber(void)
 {
         PKIX_ComCertSelParams *goodParams = NULL;
-        PKIX_Int32 version = 0;
+        PKIX_UInt32 version = 0;
         PKIX_PL_X500Name *setIssuer = NULL;
         PKIX_PL_X500Name *getIssuer = NULL;
         PKIX_PL_String *str = NULL;
@@ -621,7 +621,7 @@ cleanup:
         PKIX_TEST_RETURN();
 }
 
-void test_SubjAlgId_SubjPublicKey(void)
+void test_SubjAlgId_SubjPublicKey(char *dirName)
 {
         PKIX_ComCertSelParams *goodParams = NULL;
         PKIX_PL_OID *setAlgId = NULL;
@@ -663,9 +663,9 @@ void test_SubjAlgId_SubjPublicKey(void)
 
         /* Subject Public Key */
         subTest("Getting Cert for Subject Public Key");
-        goodCert = createCert
-                ("../../nist_pkits/certs/nameConstraintsDN2CACert.crt",
-                plContext);
+
+        goodCert = createDirCert
+                (dirName, "nameConstraintsDN2CACert.crt", plContext);
 
         subTest("PKIX_PL_Cert_GetSubjectPublicKey");
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Cert_GetSubjectPublicKey
@@ -702,6 +702,10 @@ cleanup:
         PKIX_TEST_RETURN();
 }
 
+void printUsage(void) {
+        (void) printf("\nUSAGE:\ttest_comcertselparams <NIST_FILES_DIR> \n\n");
+}
+
 int main(int argc, char *argv[]) {
 
         PKIX_UInt32 actualMinorVersion;
@@ -736,6 +740,7 @@ int main(int argc, char *argv[]) {
         PKIX_PL_Date *equalDate = NULL;
         PKIX_PL_String *stringRep = NULL;
         char *asciiRep = NULL;
+        char *dirName = NULL;
 
         PKIX_TEST_STD_VARS();
 
@@ -748,7 +753,16 @@ int main(int argc, char *argv[]) {
                 &actualMinorVersion,
                 plContext));
 
+        if (argc < 2) {
+                printUsage();
+                return (0);
+        }
+
+        j = 0;
+
         PKIX_TEST_NSSCONTEXT_SETUP(0x10, argv[1], NULL, &plContext);
+
+        dirName = argv[j+1];
 
         asciiRep = "050501000000Z";
 
@@ -758,8 +772,9 @@ int main(int argc, char *argv[]) {
         PKIX_TEST_EXPECT_NO_ERROR
                 (PKIX_PL_Date_Create_UTCTime(stringRep, &testDate, plContext));
 
-        testCert = createCert
-                ("../../nist_pkits/certs/PoliciesP1234CACert.crt", plContext);
+        testCert = createDirCert
+                (dirName, "PoliciesP1234CACert.crt",  plContext);
+
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Cert_GetSubject
                 (testCert, &testSubject, plContext));
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Cert_GetBasicConstraints
@@ -849,9 +864,9 @@ int main(int argc, char *argv[]) {
 
         subTest("Set different values and verify differences");
 
-        diffCert = createCert
-                ("../../nist_pkits/certs/pathLenConstraint6CACert.crt",
-                plContext);
+        diffCert = createDirCert
+                (dirName, "pathLenConstraint6CACert.crt", plContext);
+
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Cert_GetSubject
                 (diffCert, &diffSubject, plContext));
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Cert_GetBasicConstraints
@@ -894,13 +909,13 @@ int main(int argc, char *argv[]) {
                 PKIX_FALSE,
                 plContext);
 
-        test_NameConstraints();
+        test_NameConstraints(dirName);
         test_PathToNames();
         test_SubjAltNames();
         test_KeyUsages();
         test_Version_Issuer_SerialNumber();
         test_SubjKeyId_AuthKeyId();
-        test_SubjAlgId_SubjPublicKey();
+        test_SubjAlgId_SubjPublicKey(dirName);
 
 cleanup:
 
