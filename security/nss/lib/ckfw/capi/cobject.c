@@ -692,7 +692,10 @@ ckcapi_FetchPrivKeyAttribute(ckcapiInternalObject *io,
 }
 
 const NSSItem *
-nss_ckcapi_FetchAttribute(ckcapiInternalObject *io, CK_ATTRIBUTE_TYPE type)
+nss_ckcapi_FetchAttribute(
+  ckcapiInternalObject *io, 
+  CK_ATTRIBUTE_TYPE type
+)
 {
   CK_ULONG i;
 
