@@ -493,8 +493,9 @@ extern "C" {
 #define PKIX_LDAPRESPONSEDEBUG          1
 #define PKIX_SOCKETDEBUG                1
 #define PKIX_RESOURCELIMITSDEBUG        1
-#define PKIX_LOGGERDEBUG        1
-#define PKIX_MONITORLOCKDEBUG        1
+#define PKIX_LOGGERDEBUG                1
+#define PKIX_MONITORLOCKDEBUG           1
+#define PKIX_INFOACCESSDEBUG            1
 #endif
 
 /*
@@ -1148,6 +1149,16 @@ extern "C" {
 #else
 #define PKIX_MONITORLOCK_DEBUG(expr)
 #define PKIX_MONITORLOCK_DEBUG_ARG(expr, arg)
+#endif
+
+#if PKIX_INFOACCESSDEBUG
+#define PKIX_INFOACCESS_DEBUG(expr) \
+        PKIX_DEBUG(expr)
+#define PKIX_INFOACCESS_DEBUG_ARG(expr, arg) \
+        PKIX_DEBUG_ARG(expr, arg)
+#else
+#define PKIX_INFOACCESS_DEBUG(expr)
+#define PKIX_INFOACCESS_DEBUG_ARG(expr, arg)
 #endif
 
 /*

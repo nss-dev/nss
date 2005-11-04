@@ -140,7 +140,8 @@ PKIX_COMPONENTNAMES[PKIX_NUMERRORS] =
         "Socket",
         "ResourceLimits",
         "Logger",
-        "MonitorLock"
+        "MonitorLock",
+        "InfoAccess"
 };
 
 /* --Private-Functions-------------------------------------------- */

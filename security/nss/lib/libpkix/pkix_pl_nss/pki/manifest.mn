@@ -52,6 +52,7 @@ PRIVATE_EXPORTS = \
 	pkix_pl_crl.h \
 	pkix_pl_date.h \
 	pkix_pl_x500name.h \
+	pkix_pl_infoaccess.h \
 	$(NULL)
 
 MODULE = nss
@@ -69,6 +70,7 @@ CSRCS = \
 	pkix_pl_crl.c \
 	pkix_pl_date.c \
 	pkix_pl_x500name.c \
+	pkix_pl_infoaccess.c \
 	$(NULL)
 
 REQUIRES = dbm

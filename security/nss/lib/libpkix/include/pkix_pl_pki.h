@@ -1583,6 +1583,163 @@ PKIX_PL_Cert_SetTrustCertStore(
         PKIX_CertStore *trustCertStore,
         void *plContext);
 
+
+/*
+ * FUNCTION: PKIX_PL_Cert_GetAuthorityInfoAccess
+ * DESCRIPTION:
+ *
+ *  Retrieves the value(s) of the Authority Information Access in "cert" and
+ *  returns it in a list at address pointed by "pAuthorityInfoAccess".
+ *
+ *  SubjectInfoAccess ::=
+ *    SEQUENCE SIZE (1..MAX) of AccessDescription
+ *    AccessDescription ::= DEQUENCE {
+ *        accessMethod     OBJECT IDENTIFIER,
+ *        accessLocation   GeneralName
+ *    }
+ *
+ * PARAMETERS:
+ *  "cert"
+ *      Address of Cert whose Authority Information Access is fetched.
+ *      Must be non-NULL.
+ *  "pAuthorityInfoAccess"
+ *      Address where Authority InfoAccess will be stored and returned.
+ *      Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Cert Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_PL_Cert_GetAuthorityInfoAccess(
+        PKIX_PL_Cert *cert,
+        PKIX_List **pAiaList, /* of PKIX_PL_InfoAccess */
+        void *plContext);
+
+
+/*
+ * FUNCTION: PKIX_PL_Cert_GetSubjectInfoAccess
+ * DESCRIPTION:
+ *
+ *  Retrieves the value(s) of the Subject Information Access in "cert" and
+ *  returns it in a list at address pointed by "pSubjectInfoAccess".
+ *
+ *  SubjectInfoAccess ::=
+ *    SEQUENCE SIZE (1..MAX) of AccessDescription
+ *    AccessDescription ::= DEQUENCE {
+ *        accessMethod     OBJECT IDENTIFIER,
+ *        accessLocation   GeneralName
+ *    }
+ *
+ * PARAMETERS:
+ *  "cert"
+ *      Address of Cert whose Subject Information Access is fetched.
+ *      Must be non-NULL.
+ *  "pSubjectInfoAccess"
+ *      Address where Subject InfoAccess will be stored and returned.
+ *      Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Cert Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_PL_Cert_GetSubjectInfoAccess(
+        PKIX_PL_Cert *cert,
+        PKIX_List **pSiaList, /* of PKIX_PL_InfoAccess */
+        void *plContext);
+
+
+/*
+ * InfoAccess 
+ *
+ * To hold Authority Information Access or Subject Information Access
+ * retrieved from a Certificate.
+ */
+
+#define PKIX_INFOACCESS_OCSP          1
+#define PKIX_INFOACCESS_CA_ISSUERS    2
+#define PKIX_INFOACCESS_TIMESTAMPING  3
+#define PKIX_INFOACCESS_CA_REPOSITORY 5
+
+/*
+ * FUNCTION: PKIX_PL_InfoAccess_GetMethod
+ * DESCRIPTION:
+ *
+ *  Stores the method of the Information Access from "infoAccess" and
+ *  returns in "pMethod".
+ *
+ *  SubjectInfoAccess ::=
+ *    AccessDescription ::= DEQUENCE {
+ *        accessMethod     OBJECT IDENTIFIER,
+ *        accessLocation   GeneralName
+ *    }
+ *
+ * PARAMETERS:
+ *  "infoAccess"
+ *      Address of PKIX_PL_InfoAccess that has the access data.
+ *      Must be non-NULL.
+ *  "pMethod"
+ *      Address where access method will be stored and returned.
+ *      Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Cert Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_PL_InfoAccess_GetMethod(
+        PKIX_PL_InfoAccess *infoAccess,
+        PKIX_UInt32 *pMethod,
+        void *plContext);
+
+/*
+ * FUNCTION: PKIX_PL_InfoAccess_GetLocation
+ * DESCRIPTION:
+ *
+ *  Stores the location of the Information Access from "infoAccess" and
+ *  returns in "pLocation".
+ *
+ *  SubjectInfoAccess ::=
+ *    AccessDescription ::= DEQUENCE {
+ *        accessMethod     OBJECT IDENTIFIER,
+ *        accessLocation   GeneralName
+ *    }
+ *
+ * PARAMETERS:
+ *  "infoAccess"
+ *      Address of PKIX_PL_InfoAccess that has the access data.
+ *      Must be non-NULL.
+ *  "pLocation"
+ *      Address where access location will be stored and returned.
+ *      Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Cert Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_PL_InfoAccess_GetLocation(
+        PKIX_PL_InfoAccess *infoAccess,
+        PKIX_PL_GeneralName **pLocation,
+        void *plContext);
+
 /*
  * CRL
  *

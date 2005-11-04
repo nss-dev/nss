@@ -417,6 +417,8 @@ static void testAltNamesMultiple(){
                 "\tInhibitMapping:  -1\n"
                 "\tInhibitAnyPolicy:-1\n"
                 "\tNameConstraints: (null)\n"
+                "\tAuthorityInfoAccess: (null)\n"
+                "\tSubjectInfoAccess: (null)\n"
                 "\tCacheFlag:       0\n"
                 "]\n";
 
@@ -2245,6 +2247,8 @@ int main(int argc, char *argv[]) {
                 "\tInhibitMapping:  -1\n"
                 "\tInhibitAnyPolicy:-1\n"
                 "\tNameConstraints: (null)\n"
+                "\tAuthorityInfoAccess: (null)\n"
+                "\tSubjectInfoAccess: (null)\n"
                 "\tCacheFlag:       0\n"
                 "]\n";
 

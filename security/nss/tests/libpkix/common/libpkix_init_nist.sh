@@ -44,15 +44,35 @@
 # NIST-Test-Files-Used at the command option so if there is no NIST files
 # installed in the system, the test can be skipped
 #
+
 if [ -z "${NIST_FILES_DIR}" ] ; then
     Display "\n*******************************************************************************"
     Display "NIST_FILES_DIR is not set, therefore some tests sre skipped"
     Display "Set NIST_FILES_DIR to where NIST Certificates and CRLs located"
     Display "to enable tests at this directory"
-    Display "*******************************************************************************"
+    Display "*******************************************************************************\n"
     doNIST=0
 else
 
     NIST=${NIST_FILES_DIR}
     doNIST=1
+fi
+
+#
+# Any test that use NIST Path Discovery files should have a tag of NIST-PDTest
+# at the command option so if there is no NIST Path Discovery files
+# installed in the system, the test can be skipped
+#
+
+if [[ -z "${PDVAL}" && ${doPD} -eq 1 ]] ; then
+    Display "\n*******************************************************************************"
+    Display "PDVAL is not set, therefore some tests sre skipped"
+    Display "Set PDVAL to top directory of where NIST Path Discovery"
+    Display "Certificates located to enable tests at this directory"
+    Display "*******************************************************************************\n"
+    doNIST_PDTest=0
+else
+
+    NIST_PDTEST=${PDVAL}
+    doNIST_PDTest=1
 fi

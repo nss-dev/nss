@@ -914,6 +914,10 @@ pkix_pl_Cert_ToString_Helper(
         PKIX_Int32 certInhibitAnyPolicy = 0;
         PKIX_PL_CertNameConstraints *nameConstraints = NULL;
         PKIX_PL_String *nameConstraintsString = NULL;
+        PKIX_List *authorityInfoAccess = NULL;
+        PKIX_PL_String *authorityInfoAccessString = NULL;
+        PKIX_List *subjectInfoAccess = NULL;
+        PKIX_PL_String *subjectInfoAccessString = NULL;
 
         PKIX_ENTER(CERT, "pkix_pl_Cert_ToString_Helper");
         PKIX_NULLCHECK_THREE(cert, cert->nssCert, pString);
@@ -948,6 +952,8 @@ pkix_pl_Cert_ToString_Helper(
                         "\tInhibitMapping:  %d\n"
                         "\tInhibitAnyPolicy:%d\n"
                         "\tNameConstraints: %s\n"
+                        "\tAuthorityInfoAccess: %s\n"
+                        "\tSubjectInfoAccess: %s\n"
                         "\tCacheFlag:       %d\n"
                         "]\n";
         }
@@ -1106,6 +1112,22 @@ pkix_pl_Cert_ToString_Helper(
         PKIX_TOSTRING(nameConstraints, &nameConstraintsString, plContext,
                 "PKIX_List_ToString failed");
 
+        /* Authority Information Access */
+        PKIX_CHECK(PKIX_PL_Cert_GetAuthorityInfoAccess
+                (cert, &authorityInfoAccess, plContext),
+                "PKIX_PL_Cert_GetAuthorityInfoAccess failed");
+
+        PKIX_TOSTRING(authorityInfoAccess, &authorityInfoAccessString, plContext,
+                "PKIX_List_ToString failed");
+
+        /* Subject Information Access */
+        PKIX_CHECK(PKIX_PL_Cert_GetSubjectInfoAccess
+                (cert, &subjectInfoAccess, plContext),
+                "PKIX_PL_Cert_GetSubjectInfoAccess failed");
+
+        PKIX_TOSTRING(subjectInfoAccess, &subjectInfoAccessString, plContext,
+                "PKIX_List_ToString failed");
+
         PKIX_CHECK(PKIX_PL_Sprintf
                     (&certString,
                     plContext,
@@ -1129,6 +1151,8 @@ pkix_pl_Cert_ToString_Helper(
                     certInhibitMapping,         /* an Int32, not a String */
                     certInhibitAnyPolicy,       /* an Int32, not a String */
                     nameConstraintsString,
+                    authorityInfoAccessString,
+                    subjectInfoAccessString,
                     cert->cacheFlag),           /* a boolean */
                     "PKIX_PL_Sprintf failed");
 
@@ -1164,6 +1188,10 @@ cleanup:
         PKIX_DECREF(certPolicyMappingsString);
         PKIX_DECREF(nameConstraints);
         PKIX_DECREF(nameConstraintsString);
+        PKIX_DECREF(authorityInfoAccess);
+        PKIX_DECREF(authorityInfoAccessString);
+        PKIX_DECREF(subjectInfoAccess);
+        PKIX_DECREF(subjectInfoAccessString);
         PKIX_DECREF(formatString);
 
         PKIX_RETURN(CERT);
@@ -1203,6 +1231,8 @@ pkix_pl_Cert_Destroy(
         PKIX_DECREF(cert->certPolicyMappings);
         PKIX_DECREF(cert->nameConstraints);
         PKIX_DECREF(cert->store);
+        PKIX_DECREF(cert->authorityInfoAccess);
+        PKIX_DECREF(cert->subjectInfoAccess);
 
         if (cert->arenaNameConstraints){
                 /* This arena was allocated for SubjectAltNames */
@@ -1472,6 +1502,8 @@ pkix_pl_Cert_CreateWithNSSCert(
         cert->nssSubjAltNames = NULL;
         cert->cacheFlag = PKIX_FALSE;
         cert->store = NULL;
+        cert->authorityInfoAccess = NULL;
+        cert->subjectInfoAccess = NULL;
 
         *pCert = cert;
 
@@ -3257,3 +3289,186 @@ cleanup:
 
         PKIX_RETURN(CERT);
 }
+
+/*
+ * FUNCTION: PKIX_PL_Cert_GetAuthorityInfoAccess
+ * (see comments in pkix_pl_pki.h)
+ */
+PKIX_Error *
+PKIX_PL_Cert_GetAuthorityInfoAccess(
+        PKIX_PL_Cert *cert,
+        PKIX_List **pAiaList, /* of PKIX_PL_InfoAccess */
+        void *plContext)
+{
+        PKIX_List *aiaList; /* of PKIX_PL_InfoAccess */
+        SECItem *encodedAuthInfoAccess = NULL;
+        CERTAuthInfoAccess **authInfoAccess = NULL;
+        PRArenaPool *arena = NULL;
+        SECStatus rv;
+
+        PKIX_ENTER(CERT, "PKIX_PL_Cert_GetAuthorityInfoAccess");
+        PKIX_NULLCHECK_THREE(cert, cert->nssCert, pAiaList);
+
+        /* if we don't have a cached copy from before, we create one */
+        if (cert->authorityInfoAccess == NULL) {
+
+                PKIX_OBJECT_LOCK(cert);
+
+                if (cert->authorityInfoAccess == NULL) {
+
+                    PKIX_CERT_DEBUG("\t\tCalling SECITEM_AllocItem).\n");
+                    encodedAuthInfoAccess = SECITEM_AllocItem(NULL, NULL, 0);
+                    if (encodedAuthInfoAccess == NULL) {
+	                goto cleanup;
+                    }
+
+                    PKIX_CERT_DEBUG("\t\tCalling CERT_FindCertExtension).\n");
+                    rv = CERT_FindCertExtension
+                        (cert->nssCert,
+                        SEC_OID_X509_AUTH_INFO_ACCESS,
+                        encodedAuthInfoAccess);
+
+                    if (rv == SECFailure) {
+	                goto cleanup;
+                    }
+
+                    PKIX_CERT_DEBUG("\t\tCalling PORT_NewArena).\n");
+                    arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
+                    if (arena == NULL) {
+	                goto cleanup;
+                    }
+
+                    PKIX_CERT_DEBUG
+                        ("\t\tCalling CERT_DecodeAuthInfoAccessExtension).\n");
+                    authInfoAccess = CERT_DecodeAuthInfoAccessExtension
+                        (arena, encodedAuthInfoAccess);
+
+                    PKIX_CHECK(pkix_pl_InfoAccess_CreateList
+                        (authInfoAccess, &aiaList, plContext),
+                        "pkix_pl_InfoAccess_CreateList failed");
+
+                    cert->authorityInfoAccess = aiaList;
+                }
+
+                PKIX_OBJECT_UNLOCK(cert);
+        }
+
+        PKIX_INCREF(cert->authorityInfoAccess);
+
+        *pAiaList = cert->authorityInfoAccess;
+
+cleanup:
+
+        if (arena != NULL) {
+                PKIX_CERT_DEBUG("\t\tCalling PORT_FreeArena).\n");
+                PORT_FreeArena(arena, PR_FALSE);
+        }
+
+        if (encodedAuthInfoAccess != NULL) {
+                PKIX_CERT_DEBUG("\t\tCalling SECITEM_FreeItem).\n");
+                SECITEM_FreeItem(encodedAuthInfoAccess, PR_TRUE);
+        }
+
+        PKIX_RETURN(CERT);
+}
+
+/* XXX Following defines belongs to NSS */
+static const unsigned char siaOIDString[] = {0x2b, 0x06, 0x01, 0x05, 0x05,
+                                0x07, 0x01, 0x0b};
+#define OI(x) { siDEROID, (unsigned char *)x, sizeof x }
+
+/*
+ * FUNCTION: PKIX_PL_Cert_GetSubjectInfoAccess
+ * (see comments in pkix_pl_pki.h)
+ */
+PKIX_Error *
+PKIX_PL_Cert_GetSubjectInfoAccess(
+        PKIX_PL_Cert *cert,
+        PKIX_List **pSiaList, /* of PKIX_PL_InfoAccess */
+        void *plContext)
+{
+        PKIX_List *siaList; /* of PKIX_PL_InfoAccess */
+        SECItem siaOID = OI(siaOIDString);
+        SECItem *encodedSubjInfoAccess = NULL;
+        CERTAuthInfoAccess **subjInfoAccess = NULL;
+        PRArenaPool *arena = NULL;
+        SECStatus rv;
+
+        PKIX_ENTER(CERT, "PKIX_PL_Cert_GetSubjectInfoAccess");
+        PKIX_NULLCHECK_THREE(cert, cert->nssCert, pSiaList);
+
+        /* XXX
+         * Codes to deal with SubjectInfoAccess OID should be moved to
+         * NSS soon. I implemented them here so we don't touch NSS
+         * source tree, from JP's suggestion.
+         */
+
+        /* if we don't have a cached copy from before, we create one */
+        if (cert->subjectInfoAccess == NULL) {
+
+                PKIX_OBJECT_LOCK(cert);
+
+                if (cert->subjectInfoAccess == NULL) {
+
+                    PKIX_CERT_DEBUG("\t\tCalling SECITEM_AllocItem).\n");
+                    encodedSubjInfoAccess = SECITEM_AllocItem(NULL, NULL, 0);
+                    if (encodedSubjInfoAccess == NULL) {
+	                goto cleanup;
+                    }
+
+                    PKIX_CERT_DEBUG
+                        ("\t\tCalling CERT_FindCertExtensionByOID).\n");
+		    rv = CERT_FindCertExtensionByOID
+                                (cert->nssCert, &siaOID, encodedSubjInfoAccess);
+
+                    if (rv == SECFailure) {
+	                goto cleanup;
+                    }
+
+                    PKIX_CERT_DEBUG("\t\tCalling PORT_NewArena).\n");
+                    arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
+                    if (arena == NULL) {
+	                goto cleanup;
+                    }
+
+                    /* XXX
+                     * Decode Subject Information Access -
+                     * since its type is the same as Authority Information
+                     * Access, reuse the call. NSS- chagne name to avoid
+                     * confusion.
+                     */
+                    PKIX_CERT_DEBUG
+                        ("\t\tCalling CERT_DecodeAuthInfoAccessExtension).\n");
+                    subjInfoAccess = CERT_DecodeAuthInfoAccessExtension
+                        (arena, encodedSubjInfoAccess);
+
+                    PKIX_CHECK(pkix_pl_InfoAccess_CreateList
+                            (subjInfoAccess, &siaList, plContext),
+                            "pkix_pl_InfoAccess_CreateList failed");
+
+                    cert->subjectInfoAccess = siaList;
+
+                }
+
+                PKIX_OBJECT_UNLOCK(cert);
+        }
+
+        PKIX_INCREF(cert->subjectInfoAccess);
+
+        *pSiaList = cert->subjectInfoAccess;
+
+cleanup:
+
+        if (arena != NULL) {
+                PKIX_CERT_DEBUG("\t\tCalling PORT_FreeArena).\n");
+                PORT_FreeArena(arena, PR_FALSE);
+        }
+
+        if (encodedSubjInfoAccess != NULL) {
+                PKIX_CERT_DEBUG("\t\tCalling SECITEM_FreeItem).\n");
+                SECITEM_FreeItem(encodedSubjInfoAccess, PR_TRUE);
+        }
+
+        PKIX_RETURN(CERT);
+}
+

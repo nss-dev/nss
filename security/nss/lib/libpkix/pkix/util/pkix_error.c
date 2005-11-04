@@ -431,7 +431,8 @@ PKIX_ERRORNAMES[PKIX_NUMERRORS] =
         "Socket Error",
         "Resource Limits Error",
         "Logger Error",
-        "MonitorLock Error"
+        "MonitorLock Error",
+        "InfoAccess Error"
 };
 
 /*

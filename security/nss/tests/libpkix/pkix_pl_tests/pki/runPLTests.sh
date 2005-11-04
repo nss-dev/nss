@@ -42,7 +42,8 @@
 curdir=`pwd`
 cd ../../common
 . ./libpkix_init.sh > /dev/null
-. ./libpkix_init_nist.sh > /dev/null
+doPD=1
+. ./libpkix_init_nist.sh
 cd ${curdir}
 
 testunit=PKI
@@ -97,6 +98,8 @@ test_generalname
 test_date NIST-Test-Files-Used
 test_crlentry
 test_nameconstraints NIST-Test-Files-Used
+test_authorityinfoaccess NIST-PDTest ${NIST_PDTEST} certs/BasicLDAPURIPathDiscoveryOU1EE1.crt certs/BasicHTTPURITrustAnchorRootCert.crt
+test_subjectinfoaccess NIST-PDTest ${NIST_PDTEST} certs/BasicHTTPURITrustAnchorRootCert.crt certs/BasicLDAPURIPathDiscoveryOU1EE1.crt
 EOF
 
 totalErrors=$?

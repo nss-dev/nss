@@ -50,6 +50,7 @@ checkMem=0
 arenas=0
 
 doNist=1
+doPD=0
 doTop=0
 doModule=0
 doPki=0
@@ -178,14 +179,28 @@ Display "***********************************************************************
 
     while read -r testPgm args; do
 
-        if [[ ${doTop} -eq 1 || ${doModule} -eq 1 ]]; then
+        if [[ ${doTop} -eq 1 || ${doModule} -eq 1 || ${doPki} -eq 1 ]]; then
             testPurpose=`echo $args | awk '{print $1 " " $2 " "}'`
         else
-            testPurPose=${args}
+            testPurpose=${args}
         fi
+
+        # If we want shorter command printout for NIST tests, delete next line
+        testPurpose=${args}
 
         if [[ ${doNIST} -eq 0 ]]; then
             hasNIST=`echo ${args} | grep NIST-Test`
+            if [ ! -z "${hasNIST}" ]; then
+                Display "SKIPPING ${testPgm} ${testPurpose}"
+	        continue
+	    fi
+        fi
+
+        # Watch out for the logic, if doNIST is not set, this won't reach
+        # so implies NIST tests is basic, NIST Path Discovery tests is
+        # additional
+        if [[ ${doNIST_PDTest} -eq 0 ]]; then
+            hasNIST=`echo ${args} | grep NIST-PDTest`
             if [ ! -z "${hasNIST}" ]; then
                 Display "SKIPPING ${testPgm} ${testPurpose}"
 	        continue

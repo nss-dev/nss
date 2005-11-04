@@ -69,6 +69,7 @@
 #include "pkix_pl_ldaprequest.h"
 #include "pkix_pl_ldapresponse.h"
 #include "pkix_pl_socket.h"
+#include "pkix_pl_infoaccess.h"
 #include "pkix_store.h"
 #include "pkix_error.h"
 #include "pkix_logger.h"

@@ -42,7 +42,7 @@
 curdir=`pwd`
 cd ../../common
 . ./libpkix_init.sh > /dev/null
-. ./libpkix_init_nist.sh > /dev/null
+. ./libpkix_init_nist.sh
 cd ${curdir}
 
 testunit=PARAMS

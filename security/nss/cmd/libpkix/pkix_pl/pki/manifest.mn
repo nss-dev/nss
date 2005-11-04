@@ -39,6 +39,6 @@ PKIX_DEPTH      = ../..
 
 #
 DIRS =  cert  crl  crlentry  date  generalname  nameconstraints \
-	x500name \
+	x500name  authorityinfoaccess  subjectinfoaccess \
 	$(NULL)
 
