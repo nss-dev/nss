@@ -52,30 +52,32 @@
 ;+    global:
 LIBRARY pkixutil ;-
 EXPORTS	;-
-startTests;
-PKIX_Error2ASCII;
-subTest;
-endTests;
-testError;
-createValidateParams;
+createBuildParams;
+createBuildResult;
+createCRL;
+createCert;
+createCertChain;
 createCertChainPlus;
 createDate;
-createCert;
-testToStringHelper;
-testEqualsHelper;
-testHashcodeHelper;
-testDuplicateHelper;
-createCRL;
+createDirCert;
+createDirCertChainPlus;
 createGeneralName;
-PKIX_String2ASCII;
-createBuildParams;
 createProcessingParams;
 createTrustAnchor;
-createCertChain;
-createBuildResult;
+createValidateParams;
 createValidateResult;
+endTests;
+startTests;
+subTest;
+testDuplicateHelper;
+testEqualsHelper;
+testError;
 testErrorUndo;
+testHashcodeHelper;
+testToStringHelper;
 PKIX_Cert2ASCII;
+PKIX_Error2ASCII;
+PKIX_String2ASCII;
 ;+    local:
 ;+       *;
 ;+};
