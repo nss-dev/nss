@@ -245,7 +245,7 @@ ckcapi_GetRawHash
 }
 
 /*
- * So everyone else in the works stores their bignum data MSB first, but not
+ * So everyone else in the worlds stores their bignum data MSB first, but not
  * Microsoft, we need to byte swap everything coming into and out of CAPI.
  */
 void
