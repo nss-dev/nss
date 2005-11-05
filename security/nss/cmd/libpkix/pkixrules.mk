@@ -42,8 +42,5 @@ PLAT_DEPTH = $(PKIX_DEPTH)/..
 # and gets translated into $LINCS in manifest.mnw
 # The MODULE is always implicitly required.
 # Listing it here in REQUIRES makes it appear twice in the cc command line.
-REQUIRES += pkixtestutil 
+REQUIRES += pkixutil 
 
-EXTRA_LIBS += \
-	$(DIST)/lib/$(LIB_PREFIX)pkixutil.$(LIB_SUFFIX) \
-	$(NULL)

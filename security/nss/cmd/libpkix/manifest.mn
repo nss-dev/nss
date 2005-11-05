@@ -41,3 +41,4 @@ PKIX_DEPTH	= .
 DIRS =  testutil  pkix_pl  pkix  sample_apps  perf \
 	$(NULL)
 
+TARGETS = $(SHARED_LIBRARY)

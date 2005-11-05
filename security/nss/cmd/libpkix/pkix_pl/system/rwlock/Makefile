@@ -63,6 +63,7 @@ include $(CORE_DEPTH)/coreconf/config.mk
 #######################################################################
 
 include $(PLAT_DEPTH)/platlibs.mk
+include $(PKIX_DEPTH)/pkixlibs.mk
 
 #######################################################################
 # (5) Execute "global" rules. (OPTIONAL)                              #

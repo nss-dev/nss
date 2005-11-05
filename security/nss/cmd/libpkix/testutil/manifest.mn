@@ -35,7 +35,9 @@
 #
 # ***** END LICENSE BLOCK *****
 
-PKIX_DEPTH = ./..
+CORE_DEPTH = ../../../..
+PLAT_DEPTH = ../..
+
 
 LIBRARY_NAME = pkixutil
 
