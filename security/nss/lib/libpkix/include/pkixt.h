@@ -406,7 +406,7 @@ typedef int PKIX_Boolean;
  * XXX Why no DecRef? Would be good to handle it the same.
  */
 
-extern PKIX_Error *PKIX_ALLOC_ERROR;
+PKIX_Error* PKIX_ALLOC_ERROR(void);
 
 /*
  * In a CertBasicConstraints extension, if the CA flag is set,

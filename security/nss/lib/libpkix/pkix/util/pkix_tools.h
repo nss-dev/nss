@@ -311,7 +311,7 @@ extern "C" {
                 pkixTempResult = (PKIX_Error*)pkix_Throw \
                         (PKIX_ ## type ## _ERROR, myFuncName, (desc), \
                         pkixErrorResult, &pkixReturnResult, plContext); \
-                if (pkixErrorResult != PKIX_ALLOC_ERROR){ \
+                if (pkixErrorResult != PKIX_ALLOC_ERROR()){ \
                         PKIX_DECREF(pkixErrorResult); \
                 } \
                 if (pkixTempResult) return (pkixTempResult); \

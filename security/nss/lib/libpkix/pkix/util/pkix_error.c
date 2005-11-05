@@ -555,7 +555,7 @@ PKIX_Error_GetCause(
         PKIX_ENTER(ERROR, "PKIX_Error_GetCause");
         PKIX_NULLCHECK_TWO(error, pCause);
 
-        if (error->cause != PKIX_ALLOC_ERROR){
+        if (error->cause != PKIX_ALLOC_ERROR()){
                 PKIX_INCREF(error->cause);
         }
 
@@ -595,7 +595,7 @@ PKIX_Error_GetDescription(
         PKIX_ENTER(ERROR, "PKIX_Error_GetDescription");
         PKIX_NULLCHECK_TWO(error, pDesc);
 
-        if (error != PKIX_ALLOC_ERROR){
+        if (error != PKIX_ALLOC_ERROR()){
                 PKIX_INCREF(error->desc);
         }
 

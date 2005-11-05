@@ -74,7 +74,7 @@ PKIX_PL_Malloc(
                     if (result == NULL) {
                         PKIX_MEM_DEBUG("Fatal Error Occurred: "
                                         "PR_Malloc failed.\n");
-                        return (PKIX_ALLOC_ERROR);
+                        return (PKIX_ALLOC_ERROR());
                     } else {
                         *pMemory = result;
                     }
@@ -116,7 +116,7 @@ PKIX_PL_Calloc(
                     if (result == NULL) {
                         PKIX_MEM_DEBUG("Fatal Error Occurred: "
                                         "PR_Calloc failed.\n");
-                        return (PKIX_ALLOC_ERROR);
+                        return (PKIX_ALLOC_ERROR());
                     } else {
                         *pMemory = result;
                     }
@@ -164,7 +164,7 @@ PKIX_PL_Realloc(
                                 PKIX_MEM_DEBUG
                                         ("Fatal Error Occurred: "
                                         "PR_Realloc failed.\n");
-                                return (PKIX_ALLOC_ERROR);
+                                return (PKIX_ALLOC_ERROR());
                         }
                 } else {
                         *pMemory = result;
@@ -218,7 +218,7 @@ PKIX_PL_Memcpy(
         nssContext = (PKIX_PL_NssContext *)plContext; 
 
         if (nssContext != NULL && nssContext->arena != NULL) {
-                return (PKIX_ALLOC_ERROR);
+                return (PKIX_ALLOC_ERROR());
         }
 
         PKIX_MEM_DEBUG("\tCalling PORT_Memcpy.\n");

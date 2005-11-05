@@ -96,7 +96,7 @@ PKIX_Initialize(
          */
 
         if (pkix_initialized){
-                return (PKIX_ALLOC_ERROR);
+                return (PKIX_ALLOC_ERROR());
         }
 
         PKIX_CHECK(PKIX_PL_Initialize(plContext), "PKIX_PL_Initialize failed");
@@ -160,7 +160,7 @@ PKIX_Shutdown(void *plContext)
         PKIX_ENTER(LIFECYCLE, "PKIX_Shutdown");
 
         if (!pkix_initialized){
-                return (PKIX_ALLOC_ERROR);
+                return (PKIX_ALLOC_ERROR());
         }
 
         if (pkixLoggers) {

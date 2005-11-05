@@ -101,7 +101,10 @@ static PKIX_Alloc_Error_Object pkix_Alloc_Error_Data = {
         &pkix_Alloc_Error_Desc          /* PKIX_PL_String *desc */
 };
 
-PKIX_Error *PKIX_ALLOC_ERROR = &pkix_Alloc_Error_Data.error;
+PKIX_Error* PKIX_ALLOC_ERROR(void)
+{
+    return &pkix_Alloc_Error_Data.error;
+}
 
 /*
  * PKIX_PL_Initialize (see comments in pkix_pl_system.h)
@@ -123,7 +126,7 @@ PKIX_PL_Initialize(void *plContext){
          * responsibility.
          */
 
-        if (pkix_pl_initialized) return (PKIX_ALLOC_ERROR);
+        if (pkix_pl_initialized) return (PKIX_ALLOC_ERROR());
 
 
         /*  Initialize NSPR and NSS.  */
@@ -132,17 +135,17 @@ PKIX_PL_Initialize(void *plContext){
         /* if using databases, use NSS_Init and not NSS_NoDB_Init */
         if (pkix_pl_PK11ConfigDir) {
                 if (NSS_Init(pkix_pl_PK11ConfigDir) != SECSuccess) {
-                        return (PKIX_ALLOC_ERROR);
+                        return (PKIX_ALLOC_ERROR());
                 }
         } else {
                 if (NSS_NoDB_Init(NULL) != 0){
-                        return (PKIX_ALLOC_ERROR);
+                        return (PKIX_ALLOC_ERROR());
                 }
         }
 
         PKIX_OBJECT_DEBUG("\tCalling PR_NewLock).\n");
         classTableLock = PR_NewLock();
-        if (classTableLock == NULL) return (PKIX_ALLOC_ERROR);
+        if (classTableLock == NULL) return (PKIX_ALLOC_ERROR());
 
         /* we don't need to register OBJECT */
         systemClasses[PKIX_OBJECT_TYPE] = nullEntry;
@@ -233,7 +236,7 @@ PKIX_PL_Shutdown(void *plContext)
 {
         PKIX_ENTER(OBJECT, "PKIX_PL_Shutdown");
 
-        if (!pkix_pl_initialized) return (PKIX_ALLOC_ERROR);
+        if (!pkix_pl_initialized) return (PKIX_ALLOC_ERROR());
 
         NSS_Shutdown();
 

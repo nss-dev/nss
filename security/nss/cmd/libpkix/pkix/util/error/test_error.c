@@ -158,7 +158,7 @@ void testGetErrorCode(PKIX_Error *error, PKIX_Error *error2){
                 testError("Incorrect Code Returned");
         }
 
-        PKIX_TEST_EXPECT_NO_ERROR(PKIX_Error_GetErrorCode(PKIX_ALLOC_ERROR,
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_Error_GetErrorCode(PKIX_ALLOC_ERROR(),
                                             &code, plContext));
         if (code != PKIX_FATAL_ERROR) {
                 testError("Incorrect Code Returned");
@@ -311,7 +311,7 @@ testPrimitiveError(void)
         PKIX_TEST_STD_VARS();
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Object_ToString
-                    ((PKIX_PL_Object*)PKIX_ALLOC_ERROR,
+                    ((PKIX_PL_Object*)PKIX_ALLOC_ERROR(),
                     &targetString, plContext));
 
         temp = PKIX_String2ASCII(targetString, plContext);

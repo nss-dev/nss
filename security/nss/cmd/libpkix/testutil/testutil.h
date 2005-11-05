@@ -193,7 +193,7 @@ extern "C" {
                         } else { \
                                 testError("PKIX_Error2ASCII Failed"); \
                         } \
-                        if (pkixTestErrorResult != PKIX_ALLOC_ERROR){ \
+                        if (pkixTestErrorResult != PKIX_ALLOC_ERROR()){ \
                                 PKIX_PL_Object_DecRef \
                                 ((PKIX_PL_Object*)pkixTestErrorResult, \
                                 plContext); \

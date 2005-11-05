@@ -72,7 +72,7 @@ pkix_LockObject(
         PKIX_ENTER(OBJECT, "pkix_LockObject");
         PKIX_NULLCHECK_ONE(object);
 
-        if (object == (PKIX_PL_Object *)PKIX_ALLOC_ERROR) {
+        if (object == (PKIX_PL_Object *)PKIX_ALLOC_ERROR()) {
                 goto cleanup;
         }
 
@@ -117,7 +117,7 @@ pkix_UnlockObject(
         PKIX_ENTER(OBJECT, "pkix_UnlockObject");
         PKIX_NULLCHECK_ONE(object);
 
-        if (object == (PKIX_PL_Object *)PKIX_ALLOC_ERROR) {
+        if (object == (PKIX_PL_Object *)PKIX_ALLOC_ERROR()) {
                 goto cleanup;
         }
 

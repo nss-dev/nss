@@ -136,7 +136,7 @@ pkix_pl_Object_GetHeader(
 
         if ((header == NULL)||
             (header->magicHeader != PKIX_MAGIC_HEADER)) {
-                return (PKIX_ALLOC_ERROR);
+                return (PKIX_ALLOC_ERROR());
         }
 
         *pObjectHeader = header;
@@ -554,7 +554,7 @@ PKIX_PL_Object_Alloc(
         object->lock = PR_NewLock();
         if (object->lock == NULL) {
                 PKIX_FREE(pObject);
-                return (PKIX_ALLOC_ERROR);
+                return (PKIX_ALLOC_ERROR());
         }
 
         PKIX_OBJECT_DEBUG("\tShifting object pointer).\n");
@@ -738,7 +738,7 @@ PKIX_PL_Object_IncRef(
                 }
         }
 
-        if (object == (PKIX_PL_Object*)PKIX_ALLOC_ERROR) {
+        if (object == (PKIX_PL_Object*)PKIX_ALLOC_ERROR()) {
                 PKIX_ERROR_FATAL("Attempt to IncRef Alloc Error");
         }
 
@@ -805,7 +805,7 @@ PKIX_PL_Object_DecRef(
                 }
         }
 
-        if (object == (PKIX_PL_Object*)PKIX_ALLOC_ERROR) {
+        if (object == (PKIX_PL_Object*)PKIX_ALLOC_ERROR()) {
                 PKIX_ERROR_FATAL("Attempt to DecRef Alloc Error");
         }
 
@@ -883,7 +883,7 @@ PKIX_PL_Object_DecRef(
 
         /* if a reference count was already zero, throw an error */
         if (refCountError) {
-                return (PKIX_ALLOC_ERROR);
+                return (PKIX_ALLOC_ERROR());
         }
 
 cleanup:
