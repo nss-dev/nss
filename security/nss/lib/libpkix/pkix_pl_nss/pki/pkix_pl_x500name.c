@@ -785,3 +785,16 @@ pkix_pl_X500Name_GetOrgName(
 
         PKIX_RETURN(X500NAME);
 }
+PKIX_Error *
+pkix_pl_X500Name_GetCERTName(
+        PKIX_PL_X500Name *xname,
+        CERTName **pCERTName,
+        void *plContext)
+{
+        PKIX_ENTER(X500NAME, "pkix_pl_X500Name_GetCERTName");
+        PKIX_NULLCHECK_TWO(xname, pCERTName);
+
+	*pCERTName = xname->nssDN;
+
+        PKIX_RETURN(X500NAME);
+}

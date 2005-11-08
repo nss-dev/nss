@@ -188,6 +188,7 @@ pkix_NameConstraintsChecker_Check(
         PKIX_CertChainChecker *checker,
         PKIX_PL_Cert *cert,
         PKIX_List *unresolvedCriticalExtensions,
+        PKIX_Boolean *pFinished,
         void *plContext)
 {
         pkix_NameConstraintsCheckerState *state = NULL;
@@ -196,7 +197,9 @@ pkix_NameConstraintsChecker_Check(
         PKIX_Boolean selfIssued = PKIX_FALSE;
 
         PKIX_ENTER(CERTCHAINCHECKER, "pkix_NameConstraintsChecker_Check");
-        PKIX_NULLCHECK_TWO(checker, cert);
+        PKIX_NULLCHECK_THREE(checker, cert, pFinished);
+
+        *pFinished = PKIX_TRUE; /* we never block on pending I/O */
 
         PKIX_CHECK(PKIX_CertChainChecker_GetCertChainCheckerState
                     (checker, (PKIX_PL_Object **)&state, plContext),

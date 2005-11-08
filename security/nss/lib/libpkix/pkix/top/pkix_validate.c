@@ -79,16 +79,22 @@ pkix_CheckCert(
         PKIX_PL_Cert *cert,
         PKIX_List *checkers,
         PKIX_List *checkedExtOIDsList,
+        PKIX_UInt32 *pCheckerIndex,
+        PKIX_Boolean *pFinished,
         void *plContext)
 {
         PKIX_CertChainChecker_CheckCallback checkerCheck = NULL;
         PKIX_CertChainChecker *checker = NULL;
         PKIX_List *unresCritExtOIDs = NULL;
-        PKIX_UInt32 numCheckers, i;
+        PKIX_UInt32 numCheckers;
         PKIX_UInt32 numUnresCritExtOIDs = 0;
+        PKIX_UInt32 checkerIndex = 0;
+        PKIX_Boolean finished = PKIX_TRUE;
 
         PKIX_ENTER(VALIDATE, "pkix_CheckCert");
-        PKIX_NULLCHECK_TWO(cert, checkers);
+        PKIX_NULLCHECK_THREE(cert, checkers, pCheckerIndex);
+
+        *pFinished = PKIX_TRUE; /* prepare for case of error exit */
 
         PKIX_CHECK(PKIX_PL_Cert_GetCriticalExtensionOIDs
                     (cert, &unresCritExtOIDs, plContext),
@@ -97,22 +103,30 @@ pkix_CheckCert(
         PKIX_CHECK(PKIX_List_GetLength(checkers, &numCheckers, plContext),
                     "PKIX_List_GetLength failed");
 
-        for (i = 0; i < numCheckers; i++){
+        for (checkerIndex = *pCheckerIndex;
+                checkerIndex < numCheckers;
+                checkerIndex++) {
 
                 PKIX_CHECK(PKIX_List_GetItem
-                            (checkers,
-                            i,
-                            (PKIX_PL_Object **)&checker,
-                            plContext),
+                        (checkers,
+                        checkerIndex,
+                        (PKIX_PL_Object **)&checker,
+                        plContext),
                         "PKIX_List_GetItem failed");
 
                 PKIX_CHECK(PKIX_CertChainChecker_GetCheckCallback
-                            (checker, &checkerCheck, plContext),
-                            "PKIX_CertChainChecker_GetCheckCallback failed");
+                        (checker, &checkerCheck, plContext),
+                        "PKIX_CertChainChecker_GetCheckCallback failed");
 
                 PKIX_CHECK(checkerCheck
-                            (checker, cert, unresCritExtOIDs, plContext),
-                            "checkerCheck failed");
+                        (checker, cert, unresCritExtOIDs, &finished, plContext),
+                        "checkerCheck failed");
+
+                if (finished == PKIX_FALSE) {
+                        *pCheckerIndex = checkerIndex;
+                        *pFinished = PKIX_FALSE;
+                        goto cleanup;
+                }
 
                 PKIX_DECREF(checker);
         }
@@ -125,14 +139,14 @@ pkix_CheckCert(
                         PKIX_UInt32 length;
                         char *oidAscii = NULL;
                         PKIX_TOSTRING(unresCritExtOIDs, &oidString, plContext,
-                                    "PKIX_PL_List_ToString failed");
+                                "PKIX_PL_List_ToString failed");
                         PKIX_CHECK(PKIX_PL_String_GetEncoded
-                                    (oidString,
-                                    PKIX_ESCASCII,
-                                    (void **) &oidAscii,
-                                    &length,
-                                    plContext),
-                                    "PKIX_PL_String_GetEncoded failed");
+                                (oidString,
+                                PKIX_ESCASCII,
+                                (void **) &oidAscii,
+                                &length,
+                                plContext),
+                                "PKIX_PL_String_GetEncoded failed");
                         PKIX_VALIDATE_DEBUG_ARG("unrecognizied critical "
                                         "extension OIDs: %s\n", oidAscii);
                         PKIX_DECREF(oidString);
@@ -143,10 +157,10 @@ pkix_CheckCert(
                 if (checkedExtOIDsList != NULL) {
                  /* Take out OID's that had been processed, if any */
                         PKIX_CHECK(pkix_List_RemoveItems
-			    (unresCritExtOIDs,
-                            checkedExtOIDsList,
-                            plContext),
-                            "pkix_List_RemoveFromList");
+                                (unresCritExtOIDs,
+                                checkedExtOIDsList,
+                                plContext),
+                                "pkix_List_RemoveFromList");
                 }
 
                 PKIX_CHECK(PKIX_List_GetLength
@@ -567,6 +581,12 @@ cleanup:
  *      chain, it is the list of critical extension OIDs taht has been
  *      processed prior to validation. Extension OIDs that user defined
  *      checker processes are also in the list. May be NULL.
+ *  "pCheckerIndex"
+ *      Address where Int32 index to trhe CheckerChain is obtained and
+ *      returned. Must be non-NULL.
+ *  "pFinished"
+ *      Address where Boolean indication is stored of whether checking is
+ *      complete. Must be non-NULL.
  *  "pFinalSubjPubKey"
  *      Address where the final public key will be stored. Must be non-NULL.
  *  "pPolicyTree"
@@ -586,17 +606,22 @@ pkix_CheckChain(
         PKIX_UInt32 numCerts,
         PKIX_List *checkers,
         PKIX_List *removeCheckedExtOIDs,
+        PKIX_UInt32 *pCertCheckedIndex,
+        PKIX_UInt32 *pCheckerIndex,
+        PKIX_Boolean *pFinished,
         PKIX_PL_PublicKey **pFinalSubjPubKey,
         PKIX_PolicyNode **pPolicyTree,
         void *plContext)
 {
         PKIX_UInt32 j = 0;
+        PKIX_Boolean finished = PKIX_TRUE;
         PKIX_PL_Cert *cert = NULL;
 
         PKIX_ENTER(VALIDATE, "pkix_CheckChain");
-        PKIX_NULLCHECK_FOUR(certs, checkers, pFinalSubjPubKey, pPolicyTree);
+        PKIX_NULLCHECK_THREE(certs, checkers, pCheckerIndex);
+        PKIX_NULLCHECK_THREE(pFinished, pFinalSubjPubKey, pPolicyTree);
 
-        for (j = 0; j < numCerts; j++){
+        for (j = *pCertCheckedIndex; j < numCerts; j++){
                 PKIX_CHECK(PKIX_List_GetItem
                         (certs, j, (PKIX_PL_Object **)&cert, plContext),
                         "PKIX_List_GetItem failed");
@@ -611,8 +636,16 @@ pkix_CheckChain(
                         (cert,
                         checkers,
                         removeCheckedExtOIDs,
+                        pCheckerIndex,
+                        &finished,
                         plContext),
                         "pkix_CheckCert failed");
+
+                if (finished == PKIX_FALSE) {
+                        *pCertCheckedIndex = j;
+                        *pFinished = PKIX_FALSE;
+                        goto cleanup;
+                }
 
                 PKIX_DECREF(cert);
         }
@@ -620,6 +653,8 @@ pkix_CheckChain(
         PKIX_CHECK(pkix_RetrieveOutputs
                     (checkers, pFinalSubjPubKey, pPolicyTree, plContext),
                     "pkix_RetrieveOutputs failed");
+
+        *pFinished = PKIX_TRUE;
 
 cleanup:
 
@@ -739,6 +774,9 @@ PKIX_ValidateChain(
         PKIX_Boolean supportForwarding = PKIX_FALSE;
         PKIX_UInt32 i, numCerts, numAnchors;
         PKIX_UInt32 numUserCheckers = 0;
+        PKIX_UInt32 certCheckedIndex = 0;
+        PKIX_UInt32 checkerIndex = 0;
+        PKIX_Boolean finished = PKIX_FALSE;
 
         PKIX_ENTER(VALIDATE, "PKIX_ValidateChain");
         PKIX_NULLCHECK_TWO(valParams, pResult);
@@ -795,7 +833,7 @@ PKIX_ValidateChain(
 
                         if (supportForwarding == PKIX_FALSE) {
 
-			    PKIX_CHECK
+                            PKIX_CHECK
                                 (PKIX_CertChainChecker_GetSupportedExtensions
                                 (userChecker, &userCheckerExtOIDs, plContext),
                                 "PKIX_CertChainChecker_GetSupportedExtensions "
@@ -829,14 +867,20 @@ PKIX_ValidateChain(
                         "pkix_InitializeCheckers failed");
 
                 /*
-                 * validate the chain using this trust anchor
-                 * and these checkers
+                 * Validate the chain using this trust anchor and these
+                 * checkers. (WARNING: checkers that use non-blocking I/O
+                 * are not curreently supported.)
                  */
+                certCheckedIndex = 0;
+                checkerIndex = 0;
                 chainFailed = pkix_CheckChain
                         (certs,
                         numCerts,
                         checkers,
                         validateCheckedCritExtOIDsList,
+                        &certCheckedIndex,
+                        &checkerIndex,
+                        &finished,
                         &finalPubKey,
                         &validPolicyTree,
                         plContext);

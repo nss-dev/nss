@@ -41,12 +41,15 @@
  *
  */
 
+/* We can't decode the length of a message without at least this many bytes */
+#define MINIMUM_MSG_LENGTH 5
+
 #include "pkix_pl_ldapcertstore.h"
 
 /* --Private-LdapCertStoreContext-Message-Building-Functions---------------- */
 
 /*
- * FUNCTION: pkix_pl_LdapCertStoreContext_MakeBind
+ * FUNCTION: pkix_pl_LdapCertStore_MakeBind
  * DESCRIPTION:
  *
  *  This function creates and encodes a Bind message, using the arena pointed
@@ -150,7 +153,7 @@ cleanup:
 }
 
 /*
- * FUNCTION: pkix_pl_LdapCertStoreContext_MakeUnbind
+ * FUNCTION: pkix_pl_LdapCertStore_MakeUnbind
  * DESCRIPTION:
  *
  *  This function creates and encodes a Unbind message, using the arena pointed
@@ -221,7 +224,7 @@ cleanup:
 }
 
 /*
- * FUNCTION: pkix_pl_LdapCertStoreContext_MakeAbandon
+ * FUNCTION: pkix_pl_LdapCertStore_MakeAbandon
  * DESCRIPTION:
  *
  *  This function creates and encodes a Abandon message, using the arena pointed
@@ -288,7 +291,7 @@ cleanup:
 }
 
 /*
- * FUNCTION: pkix_pl_LdapCertStoreContext_DecodeBindResponse
+ * FUNCTION: pkix_pl_LdapCertStore_DecodeBindResponse
  * DESCRIPTION:
  *
  *  This function decodes the encoded data pointed to by "src", using the arena
@@ -351,7 +354,7 @@ pkix_pl_LdapCertStore_DecodeBindResponse(
 }
 
 /*
- * FUNCTION: pkix_pl_LdapCertStoreContext_VerifyBindResponse
+ * FUNCTION: pkix_pl_LdapCertStore_VerifyBindResponse
  * DESCRIPTION:
  *
  *  This function verifies that the contents of the message in the rcvbuf of
@@ -510,16 +513,20 @@ pkix_pl_LdapCertStoreContext_RecvCheckComplete(
                                 (lcs->currentResponse, &resultCode, plContext),
                                 "pkix_pl_LdapResponse_GetResultCode failed");
 
-                        if (resultCode == SUCCESS) {
-
-                                PKIX_NULLCHECK_ONE(lcs->entriesFound);
+                        if ((lcs->entriesFound == NULL) &&
+                            ((resultCode == SUCCESS) ||
+                            (resultCode == NOSUCHOBJECT))) {
+                                PKIX_CHECK(PKIX_List_Create
+                                        (&(lcs->entriesFound),
+                                        plContext),
+                                        "PKIX_List_Create failed");
+                        } else if (resultCode == SUCCESS) {
                                 PKIX_CHECK(PKIX_PL_HashTable_Add
                                         (lcs->cachePtr,
                                         (PKIX_PL_Object *)lcs->currentRequest,
                                         (PKIX_PL_Object *)lcs->entriesFound,
                                         plContext),
                                         "PKIX_PL_HashTable_Add failed");
-
                         }
 
                         lcs->connectStatus = LDAP_BOUND;
@@ -570,7 +577,7 @@ cleanup:
 static PKIX_Error *
 pkix_pl_LdapCertStoreContext_Create(
         PKIX_PL_Socket *socket,
-	LDAPBindAPI *bindAPI,
+        LDAPBindAPI *bindAPI,
         PKIX_PL_LdapCertStoreContext **pContext,
         void *plContext)
 {
@@ -719,6 +726,112 @@ cleanup:
 }
 
 /*
+ * FUNCTION: pkix_pl_LdapCertStoreContext_Hashcode
+ * (see comments for PKIX_PL_HashcodeCallback in pkix_pl_system.h)
+ */
+static PKIX_Error *
+pkix_pl_LdapCertStoreContext_Hashcode(
+        PKIX_PL_Object *object,
+        PKIX_UInt32 *pHashcode,
+        void *plContext)
+{
+        PKIX_PL_LdapCertStoreContext *ldapCertStoreContext = NULL;
+        PKIX_UInt32 tempHash = 0;
+
+        PKIX_ENTER
+                (LDAPCERTSTORECONTEXT, "pkix_pl_LdapCertStoreContext_Hashcode");
+        PKIX_NULLCHECK_TWO(object, pHashcode);
+
+        PKIX_CHECK(pkix_CheckType
+                (object, PKIX_LDAPCERTSTORECONTEXT_TYPE, plContext),
+                "Object is not an LdapCertStoreContext");
+
+        ldapCertStoreContext = (PKIX_PL_LdapCertStoreContext *)object;
+
+        PKIX_CHECK(PKIX_PL_Object_Hashcode
+                ((PKIX_PL_Object *)ldapCertStoreContext->clientSocket,
+                &tempHash,
+                plContext),
+                "PKIX_PL_Socket_Hashcode failed");
+
+        if (ldapCertStoreContext->bindAPI != NULL) {
+                tempHash = (tempHash << 7) +
+                        ldapCertStoreContext->bindAPI->selector;
+        }
+
+        *pHashcode = tempHash;
+
+cleanup:
+
+        PKIX_RETURN(LDAPCERTSTORECONTEXT);
+}
+
+/*
+ * FUNCTION: pkix_pl_LdapCertStoreContext_Equals
+ * (see comments for PKIX_PL_EqualsCallback in pkix_pl_system.h)
+ */
+static PKIX_Error *
+pkix_pl_LdapCertStoreContext_Equals(
+        PKIX_PL_Object *firstObject,
+        PKIX_PL_Object *secondObject,
+        PKIX_Int32 *pResult,
+        void *plContext)
+{
+        PKIX_PL_LdapCertStoreContext *firstLCSContext = NULL;
+        PKIX_PL_LdapCertStoreContext *secondLCSContext = NULL;
+        PKIX_Int32 compare = 0;
+
+        PKIX_ENTER(LDAPCERTSTORECONTEXT, "pkix_pl_LdapCertStoreContext_Equals");
+        PKIX_NULLCHECK_THREE(firstObject, secondObject, pResult);
+
+        *pResult = PKIX_FALSE;
+
+        PKIX_CHECK(pkix_CheckTypes
+                (firstObject,
+                secondObject,
+                PKIX_LDAPCERTSTORECONTEXT_TYPE,
+                plContext),
+                "Object is not an LdapCertStoreContext");
+
+        firstLCSContext = (PKIX_PL_LdapCertStoreContext *)firstObject;
+        secondLCSContext = (PKIX_PL_LdapCertStoreContext *)secondObject;
+
+        if (firstLCSContext == secondLCSContext) {
+                *pResult = PKIX_TRUE;
+                goto cleanup;
+        }
+
+        PKIX_CHECK(PKIX_PL_Object_Equals
+                ((PKIX_PL_Object *)firstLCSContext->clientSocket,
+                (PKIX_PL_Object *)secondLCSContext->clientSocket,
+                &compare,
+                plContext),
+                "PKIX_PL_Socket_Equals failed");
+
+        if (!compare) {
+                goto cleanup;
+        }
+
+        if (PKIX_EXACTLY_ONE_NULL
+                (firstLCSContext->bindAPI, secondLCSContext->bindAPI)) {
+                goto cleanup;
+        }
+
+        if (firstLCSContext->bindAPI) {
+                if (firstLCSContext->bindAPI->selector !=
+                    secondLCSContext->bindAPI->selector) {
+                        goto cleanup;
+                }
+        }
+
+        *pResult = PKIX_TRUE;
+
+cleanup:
+
+        PKIX_RETURN(LDAPCERTSTORECONTEXT);
+}
+
+/*
  * FUNCTION: pkix_pl_LdapCertStoreContext_RegisterSelf
  *
  * DESCRIPTION:
@@ -744,8 +857,8 @@ pkix_pl_LdapCertStoreContext_RegisterSelf(void *plContext)
 
         entry.description = "LdapCertStoreContext";
         entry.destructor = pkix_pl_LdapCertStoreContext_Destroy;
-        entry.equalsFunction = NULL;
-        entry.hashcodeFunction = NULL;
+        entry.equalsFunction = pkix_pl_LdapCertStoreContext_Equals;
+        entry.hashcodeFunction = pkix_pl_LdapCertStoreContext_Hashcode;
         entry.toStringFunction = NULL;
         entry.comparator = NULL;
         entry.duplicateFunction = NULL;
@@ -755,12 +868,48 @@ pkix_pl_LdapCertStoreContext_RegisterSelf(void *plContext)
         PKIX_RETURN(LDAPCERTSTORECONTEXT);
 }
 
+/*
+ * FUNCTION: pkix_pl_LdapCertStoreContext_GetPollDesc
+ * DESCRIPTION:
+ *
+ *  This function retrieves the PRPollDesc from the LdapCertStoreContext
+ *  pointed to by "context" and stores the address at "pPollDesc".
+ *
+ * PARAMETERS:
+ *  "context"
+ *      The LdapCertStoreContext whose PRPollDesc is desired. Must be non-NULL.
+ *  "pPollDesc"
+ *      Address where PRPollDesc will be stored. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+pkix_pl_LdapCertStoreContext_GetPollDesc(
+        PKIX_PL_LdapCertStoreContext *context,
+        PRPollDesc **pPollDesc,
+        void *plContext)
+{
+        PKIX_ENTER
+                (LDAPCERTSTORECONTEXT,
+                "pkix_pl_LdapCertStoreContext_GetPollDesc");
+        PKIX_NULLCHECK_TWO(context, pPollDesc);
+
+        *pPollDesc = &(context->pollDesc);
+
+        PKIX_RETURN(LDAPCERTSTORECONTEXT);
+}
+
 /* --Private-Ldap-CertStore-I/O-Functions---------------------------- */
 /*
  * FUNCTION: pkix_pl_LdapCertStore_IsIOPending
  * DESCRIPTION:
  *
- *  This function determined whether the state of the connection of the
+ *  This function determines whether the state of the connection of the
  *  LdapCertStoreContext pointed to by "lcs" indicates I/O is in progress, and
  *  stores the Boolean result at "pPending".
  *
@@ -1354,6 +1503,7 @@ pkix_pl_LdapCertStore_Recv(
         void *plContext)
 {
         PKIX_Int32 bytesRead = 0;
+        PKIX_UInt32 bytesToRead = 0;
         PKIX_PL_Socket_Callback *callbackList = NULL;
 
         PKIX_ENTER(LDAPCERTSTORECONTEXT, "pkix_pl_LdapCertStore_Recv");
@@ -1361,10 +1511,33 @@ pkix_pl_LdapCertStore_Recv(
 
         callbackList = (PKIX_PL_Socket_Callback *)(lcs->callbackList);
 
+        /*
+         * If we attempt to fill our buffer with every read, we increase
+         * the risk of an ugly situation: one or two bytes of a new message
+         * left over at the end of processing one message. With such a
+         * fragment, we can't decode a byte count and so won't know how much
+         * space to allocate for the next LdapResponse. We try to avoid that
+         * case by reading just enough to complete the current message, unless
+         * there will be at least MINIMUM_MSG_LENGTH bytes left over.
+         */
+        if (lcs->currentResponse) {
+                PKIX_CHECK(pkix_pl_LdapResponse_GetCapacity
+                        (lcs->currentResponse, &bytesToRead, plContext),
+                        "pkix_pl_LdapResponse_GetCapacity failed");
+                if ((bytesToRead > lcs->capacity) ||
+                    ((bytesToRead + MINIMUM_MSG_LENGTH) < lcs->capacity)) {
+                        bytesToRead = lcs->capacity;
+                }
+        } else {
+                bytesToRead = lcs->capacity;
+        }
+
+        lcs->currentBytesAvailable = 0;
+
         PKIX_CHECK(callbackList->recvCallback
                 (lcs->clientSocket,
                 (void *)lcs->rcvBuf,
-                lcs->capacity,
+                bytesToRead,
                 &bytesRead,
                 plContext),
                 "pkix_pl_Socket_Recv failed");
@@ -1434,7 +1607,7 @@ pkix_pl_LdapCertStore_RecvContinue(
                 "pkix_pl_Socket_Poll failed");
 
         if (bytesRead > 0) {
-                lcs->currentBytesAvailable = bytesRead;
+                lcs->currentBytesAvailable += bytesRead;
                 lcs->connectStatus = LDAP_RECV_INITIAL;
                 *pKeepGoing = PKIX_TRUE;
 
@@ -1542,12 +1715,16 @@ pkix_pl_LdapCertStore_RecvInitial(
         void *plContext)
 {
         unsigned char *msgBuf = NULL;
+        unsigned char *to = NULL;
+        unsigned char *from = NULL;
         PKIX_UInt32 dataIndex = 0;
         PKIX_UInt32 messageLength = 0;
         PKIX_UInt32 sizeofLength = 0;
         PKIX_UInt32 bytesProcessed = 0;
         unsigned char messageChar = 0;
         LDAPMessageType messageType = 0;
+        PKIX_Int32 bytesRead = 0;
+        PKIX_PL_Socket_Callback *callbackList = NULL;
 
         PKIX_ENTER(LDAPCERTSTORECONTEXT, "pkix_pl_LdapCertStore_RecvInitial");
         PKIX_NULLCHECK_TWO(lcs, pKeepGoing);
@@ -1564,14 +1741,46 @@ pkix_pl_LdapCertStore_RecvInitial(
         }
         msgBuf = lcs->currentInPtr;
 
+        /* Do we have enough of the message to decode the message length? */
+        if (lcs->currentBytesAvailable < MINIMUM_MSG_LENGTH) {
+                /*
+                 * No! Move these few bytes to the beginning of rcvBuf
+                 * and hang another read.
+                 */
+                to = (unsigned char *)lcs->rcvBuf;
+                from = lcs->currentInPtr;
+                for (dataIndex = 0;
+                    dataIndex < lcs->currentBytesAvailable;
+                    dataIndex++) {
+                        *to++ = *from++;
+                }
+                callbackList = (PKIX_PL_Socket_Callback *)(lcs->callbackList);
+                PKIX_CHECK(callbackList->recvCallback
+                        (lcs->clientSocket,
+                        (void *)to,
+                        lcs->capacity - lcs->currentBytesAvailable,
+                        &bytesRead,
+                        plContext),
+                        "pkix_pl_Socket_Recv failed");
+
+                lcs->currentInPtr = lcs->rcvBuf;
+                lcs->lastIO = PR_Now();
+
+                if (bytesRead <= 0) {
+                        lcs->connectStatus = LDAP_RECV_PENDING;
+                        *pKeepGoing = PKIX_FALSE;
+                        goto cleanup;
+                } else {
+                        lcs->currentBytesAvailable += bytesRead;
+                }
+        }
+
         /*
          * We have to determine whether the response is an entry, with
          * application-specific tag LDAP_SEARCHRESPONSEENTRY_TYPE, or a
          * resultCode, with application tag LDAP_SEARCHRESPONSERESULT_TYPE.
          * First, we have to figure out where to look for the tag.
          */
-
-        /* XXX need to deal with currentBytesAvailable < sizeofLength */
 
         /* Is the message length short form (one octet) or long form? */
         if ((msgBuf[1] & 0x80) != 0) {
@@ -1858,7 +2067,7 @@ pkix_pl_LdapCertStore_SendRequest(
                 plContext),
                 "PKIX_PL_HashTable_Lookup failed");
 
-        if (!searchResponseList) {
+        if (searchResponseList == NULL) {
                 /* It wasn't cached. We'll have to actually send it. */
 
                 PKIX_CHECK(pkix_pl_LdapRequest_GetEncoded
@@ -2035,7 +2244,7 @@ pkix_pl_LdapCertStore_DecodeCrossCertPair(
                 goto cleanup;
         }
 
-	if (certPair.forward.data != NULL) {
+        if (certPair.forward.data != NULL) {
 
                 PKIX_PL_NSSCALLRV
                         (CERTSTORE, nssCert, CERT_DecodeDERCertificate,
@@ -2057,9 +2266,9 @@ pkix_pl_LdapCertStore_DecodeCrossCertPair(
 
                         PKIX_DECREF(cert);
                 }
-	}
+        }
 
-	if (certPair.reverse.data != NULL) {
+        if (certPair.reverse.data != NULL) {
 
                 PKIX_PL_NSSCALLRV
                         (CERTSTORE, nssCert, CERT_DecodeDERCertificate,
@@ -2322,7 +2531,7 @@ cleanup:
  * DESCRIPTION:
  *
  *  This function frees the space allocated for the components of the
- *  equalityMatch filters that make up the andFilter pointed to by "filter".
+ *  equalFilters that make up the andFilter pointed to by "filter".
  *
  * PARAMETERS:
  *  "andFilter"
@@ -2354,14 +2563,14 @@ pkix_pl_LdapCertStore_DestroyAndFilter(
                 ("Invalid argument to pkix_pl_LdapCertStore_DestroyAndFilter");
         }
 
-        /* Set currentFilter to point to first EqualityMatchFilter pointer */
-        setOfFilter = andFilter->filter.andFilter.setOfFilter;
+        /* Set currentFilter to point to first EqualFilter pointer */
+        setOfFilter = andFilter->filter.andFilter.filters;
 
         currentFilter = *setOfFilter++;
 
         while (currentFilter != NULL) {
                 component = 
-                    currentFilter->filter.equalityMatchFilter.attrValue.data;
+                    currentFilter->filter.equalFilter.attrValue.data;
                 if (component != NULL) {
                     PORT_Free(component);
                 }
@@ -2411,7 +2620,7 @@ pkix_pl_LdapCertStore_DestroyOrFilter(
         }
 
         /* Set currentFilter to point to first AndFilter pointer */
-        setOfFilter = orFilter->filter.orFilter.setOfFilter;
+        setOfFilter = orFilter->filter.orFilter.filters;
 
         currentFilter = *setOfFilter++;
 
@@ -2436,12 +2645,15 @@ cleanup:
  *  construct a filter that will match components of the X500Name pointed to by
  *  "subjectName", and stores the resulting filter at "pFilter".
  *
- *  "subjectName" is checked for commonName, organizationName, and countryName
- *  components (cn=, o=, and c=) and the filter is the "and" of an
+ *  "subjectName" is checked for commonName and organizationName
+ *  components (cn=, and o=) and the filter is the "and" of an
  *  equality match on each component found.
  *
  *  The component strings are extracted using the family of CERT_Get* functions,
  *  and each must be freed with PORT_Free.
+ *
+ *  It is not clear which components should be in a request, so, for now,
+ *  we stop adding components after we have found one.
  *
  * PARAMETERS:
  *  "arena"
@@ -2479,14 +2691,14 @@ pkix_pl_LdapCertStore_MakeAndFilter(
         PKIX_NULLCHECK_THREE(arena, subjectName, pFilter);
 
         /* Increase this if additional components may be extracted */
-#define MAX_NUM_COMPONENTS 3
+#define MAX_NUM_COMPONENTS 8
 
         /* Space for (MAX_NUM_COMPONENTS + 1) pointers to LDAPFilter */
         PKIX_PL_NSSCALLRV(CERTSTORE, v, PORT_ArenaZAlloc,
                 (arena, (MAX_NUM_COMPONENTS + 1)*sizeof(LDAPFilter *)));
         setOfFilter = (LDAPFilter **)v;
 
-        /* Space for AndFilter and MAX_NUM_COMPONENTS EqualityMatchFilters */
+        /* Space for AndFilter and MAX_NUM_COMPONENTS EqualFilters */
         PKIX_PL_NSSCALLRV(CERTSTORE, v, PORT_ArenaZNewArray,
                 (arena, LDAPFilter, MAX_NUM_COMPONENTS + 1));
         setOfFilter[0] = (LDAPFilter *)v;
@@ -2494,46 +2706,50 @@ pkix_pl_LdapCertStore_MakeAndFilter(
         /* Claim the first array element for the ANDFilter */
         andFilter = setOfFilter[0];
 
-        /* Set ANDFilter to point to the first EqualityMatchFilter pointer */
+        /* Set ANDFilter to point to the first EqualFilter pointer */
         andFilter->selector = LDAP_ANDFILTER_TYPE;
-        andFilter->filter.andFilter.setOfFilter = setOfFilter;
+        andFilter->filter.andFilter.filters = setOfFilter;
 
         currentFilter = andFilter + 1;
+
         /* Try for commonName */
         PKIX_CHECK(pkix_pl_X500Name_GetCommonName
                 (subjectName, &component, plContext),
                 "pkix_pl_X500Name_GetCommonName failed");
         if (component) {
                 setOfFilter[componentsPresent] = currentFilter;
-                currentFilter->selector = LDAP_EQUALITYMATCHFILTER_TYPE;
-                currentFilter->filter.equalityMatchFilter.attrType.data =
+                currentFilter->selector = LDAP_EQUALFILTER_TYPE;
+                currentFilter->filter.equalFilter.attrType.data =
                         (unsigned char *)"cn";
-                currentFilter->filter.equalityMatchFilter.attrType.len = 2;
-                currentFilter->filter.equalityMatchFilter.attrValue.data =
+                currentFilter->filter.equalFilter.attrType.len = 2;
+                currentFilter->filter.equalFilter.attrValue.data =
                         component;
-                currentFilter->filter.equalityMatchFilter.attrValue.len =
+                currentFilter->filter.equalFilter.attrValue.len =
                         PL_strlen((const char *)component);
                 componentsPresent++;
                 currentFilter++;
+
+                goto enough;
         }
 
-#if 0
         /* Try for orgName */
         PKIX_CHECK(pkix_pl_X500Name_GetOrgName
                 (subjectName, &component, plContext),
                 "pkix_pl_X500Name_GetOrgName failed");
         if (component) {
                 setOfFilter[componentsPresent] = currentFilter;
-                currentFilter->selector = LDAP_EQUALITYMATCHFILTER_TYPE;
-                currentFilter->filter.equalityMatchFilter.attrType.data =
+                currentFilter->selector = LDAP_EQUALFILTER_TYPE;
+                currentFilter->filter.equalFilter.attrType.data =
                         (unsigned char *)"o";
-                currentFilter->filter.equalityMatchFilter.attrType.len = 1;
-                currentFilter->filter.equalityMatchFilter.attrValue.data =
+                currentFilter->filter.equalFilter.attrType.len = 1;
+                currentFilter->filter.equalFilter.attrValue.data =
                         component;
-                currentFilter->filter.equalityMatchFilter.attrValue.len =
+                currentFilter->filter.equalFilter.attrValue.len =
                         PL_strlen((const char *)component);
                 componentsPresent++;
                 currentFilter++;
+
+                goto enough;
         }
 
         /* Try for countryName */
@@ -2542,18 +2758,21 @@ pkix_pl_LdapCertStore_MakeAndFilter(
                 "pkix_pl_X500Name_GetCountryName failed");
         if (component) {
                 setOfFilter[componentsPresent] = currentFilter;
-                currentFilter->selector = LDAP_EQUALITYMATCHFILTER_TYPE;
-                currentFilter->filter.equalityMatchFilter.attrType.data =
+                currentFilter->selector = LDAP_EQUALFILTER_TYPE;
+                currentFilter->filter.equalFilter.attrType.data =
                         (unsigned char *)"c";
-                currentFilter->filter.equalityMatchFilter.attrType.len = 1;
-                currentFilter->filter.equalityMatchFilter.attrValue.data =
+                currentFilter->filter.equalFilter.attrType.len = 1;
+                currentFilter->filter.equalFilter.attrValue.data =
                         component;
-                currentFilter->filter.equalityMatchFilter.attrValue.len =
+                currentFilter->filter.equalFilter.attrValue.len =
                         PL_strlen((const char *)component);
                 componentsPresent++;
                 currentFilter++;
+
+                goto enough;
         }
-#endif
+
+enough:
 
         setOfFilter[componentsPresent] = NULL;
 
@@ -2650,7 +2869,7 @@ pkix_pl_LdapCertStore_MakeSubjectCertRequest(
         PKIX_CHECK(pkix_pl_LdapRequest_Create
                 (msgArena,
                 msgnum,
-                "c=US",                 /* baseObject           */
+                "o=Test Certificates,c=US",                     /* baseObject           */
                 (char)WHOLE_SUBTREE,    /* scope                */
                 (char)NEVER_DEREF,      /* derefAliases         */
                 0,                      /* sizeLimit            */
@@ -2753,7 +2972,7 @@ pkix_pl_LdapCertStore_MakeIssuerCRLRequest(
         setOfFilter[0] = (LDAPFilter *)v;
 
         orFilter.selector = LDAP_ORFILTER_TYPE;
-        orFilter.filter.orFilter.setOfFilter = setOfFilter;
+        orFilter.filter.orFilter.filters = setOfFilter;
 
         for (thisName = 0; thisName < numNames; thisName++) {
                 PKIX_CHECK(PKIX_List_GetItem
@@ -3077,7 +3296,15 @@ pkix_pl_LdapCertStore_GetCert(
                 PKIX_CHECK(pkix_pl_LdapCertstore_Dispatch(lcs, plContext),
                         "pkix_pl_LdapCertstore_Dispatch failed");
 
-                if (lcs->entriesFound) {
+                /*
+                 * Another buffer completed does not mean we're done.
+                 * We're done only when I/O is no longer pending.
+                 */
+                PKIX_CHECK(pkix_pl_LdapCertStore_IsIOPending
+                        (lcs, &pending, plContext),
+                        "pkix_pl_LdapCertStore_IsIOPending failed");
+
+                if ((pending == PKIX_FALSE) && (lcs->entriesFound)) {
                         responses = lcs->entriesFound;
                         PKIX_INCREF(responses);
                         PKIX_DECREF(lcs->entriesFound);
@@ -3114,6 +3341,11 @@ pkix_pl_LdapCertStore_GetCert(
         }
 
         if (responses) {
+                PKIX_DECREF(lcs->currentRequest);
+
+                PKIX_CHECK(PKIX_List_Create(&filtered, plContext),
+                        "PKIX_List_Create failed");
+
                 /*
                  * We have a List of LdapResponse objects that still have to be
                  * turned into Certs.
@@ -3128,9 +3360,6 @@ pkix_pl_LdapCertStore_GetCert(
                 PKIX_CHECK(PKIX_CertStore_GetCertStoreCacheFlag
                         (store, &cacheFlag, plContext),
                         "PKIX_CertStore_GetCertStoreCacheFlag failed");
-
-                PKIX_CHECK(PKIX_List_Create(&filtered, plContext),
-                        "PKIX_List_Create failed");
 
                 for (i = 0; i < numFound; i++) {
                         PKIX_CHECK(PKIX_List_GetItem
@@ -3231,7 +3460,15 @@ pkix_pl_LdapCertStore_GetCRL(
                 PKIX_CHECK(pkix_pl_LdapCertstore_Dispatch(lcs, plContext),
                         "pkix_pl_LdapCertstore_Dispatch failed");
 
-                if (lcs->entriesFound) {
+                /*
+                 * Another buffer completed does not mean we're done.
+                 * We're done only when I/O is no longer pending.
+                 */
+                PKIX_CHECK(pkix_pl_LdapCertStore_IsIOPending
+                        (lcs, &pending, plContext),
+                        "pkix_pl_LdapCertStore_IsIOPending failed");
+
+                if ((pending == PKIX_FALSE) && (lcs->entriesFound)) {
                         responses = lcs->entriesFound;
                         PKIX_INCREF(responses);
                         PKIX_DECREF(lcs->entriesFound);
@@ -3267,6 +3504,11 @@ pkix_pl_LdapCertStore_GetCRL(
         }
 
         if (responses) {
+                PKIX_DECREF(lcs->currentRequest);
+
+                PKIX_CHECK(PKIX_List_Create(&filtered, plContext),
+                        "PKIX_List_Create failed");
+
                 /*
                  * We have a List of LdapResponse objects that still have to be
                  * turned into Crls.
@@ -3277,9 +3519,6 @@ pkix_pl_LdapCertStore_GetCRL(
 
                 PKIX_CHECK(PKIX_List_GetLength(crlList, &numFound, plContext),
                         "PKIX_List_GetLength failed");
-
-                PKIX_CHECK(PKIX_List_Create(&filtered, plContext),
-                        "PKIX_List_Create failed");
 
                 for (i = 0; i < numFound; i++) {
                         PKIX_CHECK(PKIX_List_GetItem
@@ -3336,7 +3575,6 @@ PKIX_PL_LdapCertStore_Create(
         PRNetAddr *sockaddr,
         PRIntervalTime timeout,
         LDAPBindAPI *bindAPI,
-        PRPollDesc **pDesc,
         PKIX_CertStore **pCertStore,
         void *plContext)
 {
@@ -3360,16 +3598,6 @@ PKIX_PL_LdapCertStore_Create(
                 plContext),
                 "pkix_pl_LdapCertStoreContext_Create failed");
 
-        PKIX_CHECK(PKIX_CertStore_Create
-                (pkix_pl_LdapCertStore_GetCert,
-                pkix_pl_LdapCertStore_GetCRL,
-                (PKIX_PL_Object *)ldapCertStoreContext,
-                PKIX_TRUE, /* cache flag */
-                NULL, /* don't support trust */
-                &certStore,
-                plContext),
-                "PKIX_CertStore_Create failed");
-
         PKIX_CHECK(pkix_pl_Socket_GetPRFileDesc
                 (socket, &fileDesc, plContext),
                 "pkix_pl_Socket_GetPRFileDesc failed");
@@ -3377,6 +3605,18 @@ PKIX_PL_LdapCertStore_Create(
         ldapCertStoreContext->pollDesc.fd = fileDesc;
         ldapCertStoreContext->pollDesc.in_flags = 0;
         ldapCertStoreContext->pollDesc.out_flags = 0;
+
+        PKIX_CHECK(PKIX_CertStore_Create
+                (pkix_pl_LdapCertStore_GetCert,
+                pkix_pl_LdapCertStore_GetCRL,
+                (PKIX_PL_Object *)ldapCertStoreContext,
+                PKIX_TRUE, /* cache flag */
+                NULL, /* don't support trust */
+                (timeout == 0)?PKIX_TRUE:PKIX_FALSE, /* supports NBIO */
+                PKIX_FALSE, /* not local */
+                &certStore,
+                plContext),
+                "PKIX_CertStore_Create failed");
 
         /* Did Socket_Create say the connection was made? */
         if (status == 0) {
@@ -3389,7 +3629,6 @@ PKIX_PL_LdapCertStore_Create(
                 ldapCertStoreContext->connectStatus = LDAP_CONNECT_PENDING;
         }
 
-        *pDesc = &(ldapCertStoreContext->pollDesc);
         *pCertStore = certStore;
 
 cleanup:

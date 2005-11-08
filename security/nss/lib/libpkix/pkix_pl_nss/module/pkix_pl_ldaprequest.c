@@ -451,7 +451,7 @@ pkix_pl_LdapRequest_RegisterSelf(void *plContext)
  *  by "issuerDN", a scope whose value is "scope", a derefAliases flag whose
  *  value is "derefAliases", a sizeLimit whose value is "sizeLimit", a timeLimit
  *  whose value is "timeLimit", an attrsOnly flag whose value is "attrsOnly", a
- *  subjectName pointed to by "subjectName", and attribute bits whose value is
+ *  filter whose value is "filter", and attribute bits whose value is
  *  "attrBits"; storing the result at "pRequestMsg".
  *
  *  See pkix_pl_ldaptemplates.c (and below) for the ASN.1 representation of
@@ -482,9 +482,9 @@ pkix_pl_LdapRequest_RegisterSelf(void *plContext)
  *  "attrsOnly"
  *      The Boolean value to be used for the attrsOnly component of the LDAP
  *      SearchRequest message
- *  "subjectName"
- *      The address of the SECItem to be used for the filter component of the
- *      LDAP SearchRequest message
+ *  "filter"
+ *      The filter to be used for the filter component of the LDAP
+ *      SearchRequest message
  *  "attrBits"
  *      The LdapAttrMask bits indicating the attributes to be included in the
  *      attributes sequence of the LDAP SearchRequest message
@@ -650,13 +650,17 @@ pkix_pl_LdapRequest_Create(
         search->attrsOnly.data = (void *)&attrsOnly;
         search->attrsOnly.len = sizeof (attrsOnly);
 
-        search->filter = filter;
+        PKIX_PL_NSSCALL
+                (LDAPREQUEST,
+                PORT_Memcpy,
+                (&search->filter, filter, sizeof (LDAPFilter)));
 
         search->attributes = attrArray;
 
         PKIX_PL_NSSCALLRV
                 (LDAPCERTSTORECONTEXT, ldapRequest->encoded, SEC_ASN1EncodeItem,
                 (arena, NULL, (void *)&msg, PKIX_PL_LDAPMessageTemplate));
+
         if (!(ldapRequest->encoded)) {
                 PKIX_ERROR("failed in encoding searchRequest");
         }

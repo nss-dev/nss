@@ -191,8 +191,6 @@ PKIX_PL_Pk11CertStore_Create(
  *  "bindAPI"
  *      The address of a BindAPI to be used if a BIND message is required. If
  *      this argument is NULL, no Bind (or Unbind) will be sent.
- *  "pDesc"
- *      The address at which a PRPollDesc is to be stored. Must be non-NULL.
  *  "pLdapCertStore"
  *      Address where object pointer will be stored. Must be non-NULL.
  *  "plContext"
@@ -209,7 +207,6 @@ PKIX_PL_LdapCertStore_Create(
         PRNetAddr *sockaddr,
         PRIntervalTime timeout,
         LDAPBindAPI *bindAPI,
-        PRPollDesc **pDesc,
         PKIX_CertStore **pLdapCertStore,
         void *plContext);
 

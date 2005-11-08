@@ -191,17 +191,27 @@ PKIX_ValidateChain(
  * FUNCTION: PKIX_BuildChain
  * DESCRIPTION:
  *
- *  This function attempts to build and validate a CertChain according to the
- *  parameters set in the BuildParams pointed to by "params" using an RFC
- *  3280-compliant validation algorithm. If successful, this function returns
- *  NULL and stores the BuildResult at "pResult", which holds the built
+ *  If called with a NULL "state", this function attempts to build and validate
+ *  a CertChain according to the BuildParams pointed to by "params", using an
+ *  RFC 3280-compliant validation algorithm. If successful, this function
+ *  returns NULL and stores the BuildResult at "pResult", which holds the built
  *  CertChain, as well as additional information, such as the policy tree and
  *  the target's public key. If unsuccessful, an Error is returned.
+ *
+ *  If the chain building is blocked by a CertStore using non-blocking I/O, this
+ *  function will store its state at "pState" and NULL at "pResult". On some
+ *  platforms, the caller may be able to obtain information from the state that
+ *  will allow the caller to determine when the I/O has completed. In any case,
+ *  calling the function again with "pState" containing the returned value will
+ *  cause the chain building to resume where it left off. 
  *
  * PARAMETERS:
  *  "params"
  *      Address of BuildParams used to build and validate CertChain.
  *      Must be non-NULL.
+ *  "pState"
+ *      Address of BuildChain state. Must be NULL on initial call, and the
+ *      value previously returned on subsequent calls.
  *  "pResult"
  *      Address where object pointer will be stored. Must be non-NULL.
  *  "plContext"
@@ -216,6 +226,7 @@ PKIX_ValidateChain(
 PKIX_Error *
 PKIX_BuildChain(
         PKIX_BuildParams *params,
+        void **pState,
         PKIX_BuildResult **pResult,
         void *plContext);
 

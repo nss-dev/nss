@@ -56,6 +56,8 @@ struct PKIX_CertStoreStruct {
         PKIX_PL_Object *certStoreContext;
         PKIX_Boolean cacheFlag;
         PKIX_CertStore_CheckTrustCallback trustCallback;
+        PKIX_Boolean NBIOFlag; /* TRUE if CertStore supports non-blocking I/O */
+        PKIX_Boolean localFlag; /* TRUE if CertStore is local */
 };
 
 /* see source file for function documentation */

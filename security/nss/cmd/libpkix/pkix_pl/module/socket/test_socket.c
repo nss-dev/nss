@@ -439,12 +439,7 @@ int main(int argc, char *argv[]) {
                 &actualMinorVersion,
                 plContext));
 
-        if (argv[1]){
-                if (PORT_Strcmp(argv[1], "-arenas") == 0) {
-                        plContext = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
-                        j++;
-                }
-        }
+        PKIX_TEST_NSSCONTEXT_SETUP(0x10, argv[1], NULL, &plContext);
 
         if (argc != (j + 2)) {
                 printUsage(argv[0]);

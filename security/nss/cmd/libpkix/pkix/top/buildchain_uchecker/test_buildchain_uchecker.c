@@ -112,6 +112,7 @@ int main(int argc, char *argv[])
         char *actualCertsAscii = NULL;
         char *expectedCertsAscii = NULL;
         char *oidString = NULL;
+	void *buildState = NULL; /* needed by pkix_build for non-blocking I/O */
 
         PKIX_TEST_STD_VARS();
 
@@ -292,8 +293,8 @@ int main(int argc, char *argv[])
 
         /* build cert chain using build params and return buildResult */
 
-        pkixTestErrorResult =
-                PKIX_BuildChain(buildParams, &buildResult, plContext);
+        pkixTestErrorResult = PKIX_BuildChain
+                (buildParams, &buildState, &buildResult, plContext);
 
         if (testValid == PKIX_TRUE) { /* ENE */
                 if (pkixTestErrorResult){

@@ -113,9 +113,15 @@ extern "C" {
  *  This callback function checks whether the specified Cert pointed to by
  *  "cert" is valid using "checker's" internal certChainCheckerState (if any)
  *  and removes the critical extensions that it processes (if any) from the
- *  List of OIDs (possibly empty) pointed to by
- *  "unresolvedCriticalExtensions". If the checker finds that the certificate
- *  is not valid, an Error pointer is returned.
+ *  List of OIDs (possibly empty) pointed to by "unresolvedCriticalExtensions".
+ *  If the checker finds that the certificate is not valid, an Error pointer is
+ *  returned.
+ *
+ *  If the checker does not use non-blocking I/O, PKIX_TRUE will always be
+ *  stored at "pFinished". If the checker uses non-blocking I/O, PKIX_FALSE will
+ *  be stored while I/O is still pending. On a subsequent call the checker will
+ *  attempt to complete the pending I/O and, if successful, PKIX_TRUE will be
+ *  stored at "pFinished".
  *
  * PARAMETERS:
  *  "checker"
@@ -128,6 +134,9 @@ extern "C" {
  *      Address of List of OIDs that represents the critical certificate
  *      extensions that have yet to be resolved. This parameter may be
  *      modified during the function call. Must be non-NULL.
+ *  "pFinished"
+ *      Address at which is stored a Boolean indication of whether checking
+ *      was completed. Must be non-NULL.
  *  "plContext"
  *      Platform-specific context pointer.
  * THREAD SAFETY:
@@ -145,6 +154,7 @@ typedef PKIX_Error *
         PKIX_CertChainChecker *checker,
         PKIX_PL_Cert *cert,
         PKIX_List *unresolvedCriticalExtensions,  /* list of PKIX_PL_OID */
+	PKIX_Boolean *pFinished,
         void *plContext);
 
 /*

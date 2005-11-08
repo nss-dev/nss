@@ -325,6 +325,7 @@ pkix_pl_EkuChecker_Check(
         PKIX_CertChainChecker *checker,
         PKIX_PL_Cert *cert,
         PKIX_List *unresolvedCriticalExtensions,
+        PKIX_Boolean *pFinished,
         void *plContext)
 {
         pkix_pl_EkuCheckerState *state = NULL;
@@ -332,7 +333,9 @@ pkix_pl_EkuChecker_Check(
         PKIX_Boolean checkPassed = PKIX_TRUE;
 
         PKIX_ENTER(USERDEFINEDMODULES, "pkix_pl_EkuChecker_Check");
-        PKIX_NULLCHECK_TWO(checker, cert);
+        PKIX_NULLCHECK_THREE(checker, cert, pFinished);
+
+        *pFinished = PKIX_TRUE; /* no non-blocking IO */
 
         PKIX_CHECK(PKIX_CertChainChecker_GetCertChainCheckerState
                     (checker, (PKIX_PL_Object **)&state, plContext),

@@ -574,25 +574,20 @@ pkix_pl_Socket_ConnectContinue(
         PKIX_PL_NSSCALLRV(SOCKET, numEvents, PR_Poll, (&pollDesc, 1, 0));
         if (numEvents < 0) {
                 PKIX_ERROR("PR_Poll failed");
-        } else if (numEvents == 0) {
-                errorcode = PR_GetError();
-                *pStatus = errorcode;
-                if ((errorcode == PR_WOULD_BLOCK_ERROR) ||
-                    (errorcode == PR_IN_PROGRESS_ERROR)) {
-                        goto cleanup;
-                } else {
-#ifdef PKIX_SOCKETDEBUG
-                        printf
-                                ("pkix_pl_Socket_ConnectContinue: %s\n",
-                                PR_ErrorToString(errorcode, PR_LANGUAGE_EN));
-#endif
-                        PKIX_ERROR("PR_Poll failed");
-                }
         }
 
-        /* if (numEvents > 0) */
         PKIX_PL_NSSCALLRV(SOCKET, rv, PR_ConnectContinue,
                 (socket->clientSock, pollDesc.out_flags));
+
+        /*
+         * PR_ConnectContinue sometimes lies. It returns PR_SUCCESS
+         * even though the connection is not yet ready. But its deceit
+         * is betrayed by the contents of out_flags!
+         */
+        if ((rv == PR_SUCCESS) && (pollDesc.out_flags == PR_POLL_ERR)) {
+                *pStatus = PR_IN_PROGRESS_ERROR;
+                goto cleanup;
+        }
 
         if (rv == PR_FAILURE) {
                 errorcode = PR_GetError();
@@ -653,6 +648,90 @@ cleanup:
 }
 
 /*
+ * FUNCTION: pkix_pl_Socket_Hashcode
+ * (see comments for PKIX_PL_HashcodeCallback in pkix_pl_system.h)
+ */
+static PKIX_Error *
+pkix_pl_Socket_Hashcode(
+        PKIX_PL_Object *object,
+        PKIX_UInt32 *pHashcode,
+        void *plContext)
+{
+        PKIX_PL_Socket *socket = NULL;
+        PKIX_UInt32 tempHash = 0;
+
+        PKIX_ENTER(SOCKET, "pkix_pl_Socket_Hashcode");
+        PKIX_NULLCHECK_TWO(object, pHashcode);
+
+        PKIX_CHECK(pkix_CheckType(object, PKIX_SOCKET_TYPE, plContext),
+                "Object is not a Socket");
+
+        socket = (PKIX_PL_Socket *)object;
+
+        *pHashcode = (((socket->timeout << 3) +
+                 socket->netAddr->inet.family << 3) +
+                (*((PKIX_UInt32 *)&(socket->netAddr->inet.ip)))) +
+                socket->netAddr->inet.port;
+
+cleanup:
+
+        PKIX_RETURN(SOCKET);
+}
+
+/*
+ * FUNCTION: pkix_pl_Socket_Equals
+ * (see comments for PKIX_PL_EqualsCallback in pkix_pl_system.h)
+ */
+static PKIX_Error *
+pkix_pl_Socket_Equals(
+        PKIX_PL_Object *firstObject,
+        PKIX_PL_Object *secondObject,
+        PKIX_Int32 *pResult,
+        void *plContext)
+{
+        PKIX_PL_Socket *firstSocket = NULL;
+        PKIX_PL_Socket *secondSocket = NULL;
+
+        PKIX_ENTER(SOCKET, "pkix_pl_Socket_Equals");
+        PKIX_NULLCHECK_THREE(firstObject, secondObject, pResult);
+
+        *pResult = PKIX_FALSE;
+
+        PKIX_CHECK(pkix_CheckTypes
+                (firstObject, secondObject, PKIX_SOCKET_TYPE, plContext),
+                "Object is not a Socket");
+
+        firstSocket = (PKIX_PL_Socket *)firstObject;
+        secondSocket = (PKIX_PL_Socket *)secondObject;
+
+        if (firstSocket->timeout != secondSocket->timeout) {
+                goto cleanup;
+        }
+
+        if (firstSocket->netAddr == secondSocket->netAddr) {
+                *pResult = PKIX_TRUE;
+                goto cleanup;
+        }
+
+        if ((firstSocket->netAddr->inet.family !=
+                secondSocket->netAddr->inet.family) ||
+            (*((PKIX_UInt32 *)&(firstSocket->netAddr->inet.ip)) !=
+                *((PKIX_UInt32 *)&(secondSocket->netAddr->inet.ip))) ||
+            (firstSocket->netAddr->inet.port !=
+                secondSocket->netAddr->inet.port)) {
+
+                goto cleanup;
+
+        }
+
+        *pResult = PKIX_TRUE;
+
+cleanup:
+
+        PKIX_RETURN(SOCKET);
+}
+
+/*
  * FUNCTION: pkix_pl_Socket_RegisterSelf
  *
  * DESCRIPTION:
@@ -676,8 +755,8 @@ pkix_pl_Socket_RegisterSelf(void *plContext)
 
         entry.description = "Socket";
         entry.destructor = pkix_pl_Socket_Destroy;
-        entry.equalsFunction = NULL;
-        entry.hashcodeFunction = NULL;
+        entry.equalsFunction = pkix_pl_Socket_Equals;
+        entry.hashcodeFunction = pkix_pl_Socket_Hashcode;
         entry.toStringFunction = NULL;
         entry.comparator = NULL;
         entry.duplicateFunction = NULL;
@@ -886,7 +965,7 @@ cleanup:
 }
 
 /*
- * FUNCTION: pkix_socket_Recv
+ * FUNCTION: pkix_pl_Socket_Recv
  * DESCRIPTION:
  *
  *  This functions receives a message on the socket pointed to by "rcvSock",

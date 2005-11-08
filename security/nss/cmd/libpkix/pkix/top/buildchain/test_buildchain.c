@@ -48,18 +48,76 @@
 extern char *pkix_pl_PK11ConfigDir = "somewhere-pk11-db-existed";
 #endif
 
+#define LDAP_PORT 389
+PKIX_Boolean usebind = PKIX_FALSE;
+PKIX_Boolean useLDAP = PKIX_FALSE;
+char buf[PR_NETDB_BUF_SIZE];
+char *serverName = NULL;
+char *sepPtr = NULL;
+PRNetAddr netAddr;
+PRHostEnt hostent;
+PKIX_UInt32 portNum = 0;
+PRIntn hostenum = 0;
+PRStatus prstatus = PR_FAILURE;
+void *ipaddr = NULL;
+
+
 void *plContext = NULL;
 
 void printUsage(void) {
-        (void) printf("\nUSAGE:\tbuildChain [ENE|EE] "
-                    "<trustedCert> <targetCert> <certStoreDirectory>\n\n");
-        (void) printf
-                ("Builds a chain of certificates between "
-                "<trustedCert> and <targetCert>\n"
-                "using the certs and CRLs in <certStoreDirectory>. "
-                "If ENE is specified,\n"
-                "then an Error is Not Expected. "
-                "If EE is specified, an Error is Expected.\n");
+    (void) printf("\nUSAGE:\ttest_buildchain [-arenas] [usebind] "
+	"servername[:port] <testName> [ENE|EE]\n"
+	"\t <certStoreDirectory> <targetCert>"
+	" <intermediate Certs...> <trustedCert>\n\n");
+    (void) printf
+        ("Builds a chain of certificates from <targetCert> to <trustedCert>\n"
+        "using the certs and CRLs in <certStoreDirectory>. "
+	"servername[:port] gives\n"
+	"the address of an LDAP server. If port is not"
+	" specified, port 389 is used. \"-\" means no LDAP server.\n"
+        "If ENE is specified, then an Error is Not Expected. "
+        "EE indicates an Error is Expected.\n");
+}
+
+PKIX_Error *
+createLdapCertStore(
+	PRNetAddr *netAddr,
+	PRIntervalTime timeout,
+	PKIX_CertStore **pLdapCertStore,
+	void* plContext)
+{
+	PRIntn backlog = 0;
+
+        char *bindname = "";
+        char *auth = "";
+
+        LDAPBindAPI bindAPI;
+        LDAPBindAPI *bindPtr = NULL;
+	PKIX_CertStore *ldapCertStore = NULL;
+
+        PKIX_TEST_STD_VARS();
+
+	if (usebind) {
+                bindPtr = &bindAPI;
+                bindAPI.selector = SIMPLE_AUTH;
+                bindAPI.chooser.simple.bindName = bindname;
+                bindAPI.chooser.simple.authentication = auth;
+        }
+
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_LdapCertStore_Create
+                (netAddr,
+		timeout,
+		bindPtr,
+		&ldapCertStore,
+		plContext));
+
+	*pLdapCertStore = ldapCertStore;
+cleanup:
+
+        PKIX_TEST_RETURN();
+
+	return (pkixTestErrorResult);
+
 }
 
 int main(int argc, char *argv[])
@@ -77,7 +135,10 @@ int main(int argc, char *argv[])
         PKIX_PL_String *dirNameString = NULL;
         PKIX_PL_Cert *trustedCert = NULL;
         PKIX_PL_Cert *targetCert = NULL;
-        PKIX_UInt32 actualMinorVersion, numCerts, i, j, k, chainLength;
+        PKIX_UInt32 actualMinorVersion, numCerts, i, j, k;
+        PKIX_CertStore *ldapCertStore = NULL;
+	PRIntervalTime timeout = 0; /* 0 for non-blocking */
+	PRPollDesc *pollDesc = NULL;
         PKIX_CertStore *certStore = NULL;
         PKIX_List *certStores = NULL;
         char * asciiResult = NULL;
@@ -88,6 +149,7 @@ int main(int argc, char *argv[])
         PKIX_PL_Cert *dirCert = NULL;
         PKIX_PL_String *actualCertsString = NULL;
         PKIX_PL_String *expectedCertsString = NULL;
+	void *state = NULL;
         char *actualCertsAscii = NULL;
         char *expectedCertsAscii = NULL;
 
@@ -108,31 +170,88 @@ int main(int argc, char *argv[])
 
         j = 0;
 
+	/*
+	 * arguments:
+	 * [optional] -arenas
+	 * [optional] usebind
+	 *            servername or servername:port ( - for no server)
+	 *            testname
+         *            EE or ENE
+	 *            cert directory
+         *            target cert (end entity)
+         *            intermediate certs
+         *            trust anchor
+         */
         PKIX_TEST_NSSCONTEXT_SETUP(0x10, argv[1], NULL, &plContext);
 
+	/* optional argument "usebind" for Ldap CertStore */
+        if (argv[j + 1]) {
+                if (PORT_Strcmp(argv[j + 1], "usebind") == 0) {
+                        usebind = PKIX_TRUE;
+                        j++;
+                }
+        }
+
+        if (PORT_Strcmp(argv[++j], "-") == 0) {
+		useLDAP = PKIX_FALSE;
+	} else {
+	        serverName = argv[j];
+	        sepPtr = strchr(serverName, ':');
+	        if (sepPtr) {
+	                *sepPtr++ = '\0';
+	                portNum = (PRUint16)atoi(sepPtr);
+	        } else {
+	                portNum = (PRUint16)LDAP_PORT;
+	        }
+	        /*
+	         * The hostname may be a fully-qualified name. Just
+	         * use the leftmost component in our lookup.
+	         */
+	        sepPtr = strchr(serverName, '.');
+	        if (sepPtr) {
+	                *sepPtr++ = '\0';
+	        }
+	        prstatus = PR_GetHostByName
+			(serverName, buf, sizeof(buf), &hostent);
+
+	        if ((prstatus != PR_SUCCESS) || (hostent.h_length != 4)) {
+	                printUsage();
+	                pkixTestErrorMsg =
+	                    "PR_GetHostByName rejects command line argument.";
+	                goto cleanup;
+	        }
+
+	        netAddr.inet.family = PR_AF_INET;
+	        netAddr.inet.port = PR_htons(portNum);
+
+	        hostenum = PR_EnumerateHostEnt(0, &hostent, portNum, &netAddr);
+	        if (hostenum == -1) {
+	                pkixTestErrorMsg = "PR_EnumerateHostEnt failed.";
+	                goto cleanup;
+	        }
+        }
+
+        subTest(argv[++j]);
+
         /* ENE = expect no error; EE = expect error */
-        if (PORT_Strcmp(argv[2+j], "ENE") == 0) {
+        if (PORT_Strcmp(argv[++j], "ENE") == 0) {
                 testValid = PKIX_TRUE;
-        } else if (PORT_Strcmp(argv[2+j], "EE") == 0) {
+        } else if (PORT_Strcmp(argv[j], "EE") == 0) {
                 testValid = PKIX_FALSE;
         } else {
                 printUsage();
                 return (0);
         }
 
-        subTest(argv[1+j]);
-
-        dirName = argv[3+j];
+        dirName = argv[++j];
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_Create(&expectedCerts, plContext));
 
-        chainLength = argc - j - 4;
+        for (k = ++j; k < argc; k++) {
 
-        for (k = 0; k < chainLength; k++) {
+                dirCert = createDirCert(dirName, argv[k], plContext);
 
-                dirCert = createDirCert(dirName, argv[4+k+j], plContext);
-
-                if (k == (chainLength - 1)) {
+                if (k == (argc - 1)) {
                         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Object_IncRef
                                 ((PKIX_PL_Object *)dirCert, plContext));
                         trustedCert = dirCert;
@@ -144,7 +263,7 @@ int main(int argc, char *argv[])
                                 (PKIX_PL_Object *)dirCert,
                                 plContext));
 
-                        if (k == 0) {
+                        if (k == j) {
                                 PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Object_IncRef
                                         ((PKIX_PL_Object *)dirCert, plContext));
                                 targetCert = dirCert;
@@ -187,23 +306,24 @@ int main(int argc, char *argv[])
 
         /* create CertStores */
 
-        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create
-                                    (PKIX_ESCASCII,
-                                    dirName,
-                                    0,
-                                    &dirNameString,
-                                    plContext));
+	PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create
+                (PKIX_ESCASCII, dirName, 0, &dirNameString, plContext));
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_CollectionCertStore_Create
-                                    (dirNameString, &certStore, plContext));
-
-#if 0
-        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Pk11CertStore_Create
-                                    (&certStore, plContext));
-#endif
-
+                (dirNameString, &certStore, plContext));
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_Create(&certStores, plContext));
+
+	if (useLDAP == PKIX_TRUE) {
+		PKIX_TEST_EXPECT_NO_ERROR(createLdapCertStore
+	                (&netAddr, timeout, &ldapCertStore, plContext));
+
+        	PKIX_TEST_EXPECT_NO_ERROR
+	                (PKIX_List_AppendItem
+	                (certStores,
+			(PKIX_PL_Object *)ldapCertStore,
+			plContext));
+	}
 
         PKIX_TEST_EXPECT_NO_ERROR
                 (PKIX_List_AppendItem
@@ -218,30 +338,32 @@ int main(int argc, char *argv[])
 
         /* build cert chain using build params and return buildResult */
 
-        pkixTestErrorResult =
-                PKIX_BuildChain(buildParams, &buildResult, plContext);
+	do {
+	        pkixTestErrorResult = PKIX_BuildChain
+			(buildParams, &state, &buildResult, plContext);
 
-        if (testValid == PKIX_TRUE) { /* ENE */
-                if (pkixTestErrorResult) {
-                        (void) printf("UNEXPECTED RESULT RECEIVED!\n");
-                } else {
-                        (void) printf("EXPECTED RESULT RECEIVED!\n");
-                        PKIX_TEST_DECREF_BC(pkixTestErrorResult);
-                }
-        } else { /* EE */
-                if (pkixTestErrorResult) {
-                        (void) printf("EXPECTED RESULT RECEIVED!\n");
-                        PKIX_TEST_DECREF_BC(pkixTestErrorResult);
-                } else {
-                        testError("UNEXPECTED RESULT RECEIVED");
-                }
+	        if (pkixTestErrorResult) {
+		        if (testValid == PKIX_FALSE) { /* EE */
+	                        (void) printf("EXPECTED ERROR RECEIVED!\n");
+        		} else { /* ENE */
+	                        testError("UNEXPECTED ERROR RECEIVED");
+	                }
+	                PKIX_TEST_DECREF_BC(pkixTestErrorResult);
+			goto cleanup;
+	        }
+
+		sleep(2);
+	} while ((state != NULL) && (buildResult == NULL));
+
+	if (testValid == PKIX_FALSE) { /* EE */
+                (void) printf("UNEXPECTED NON-ERROR RECEIVED!\n");
         }
 
         if (buildResult) {
 
                 PKIX_TEST_EXPECT_NO_ERROR
                         (PKIX_BuildResult_GetCertChain
-                        (buildResult, &chain, NULL));
+                        (buildResult, &chain, plContext));
 
                 PKIX_TEST_EXPECT_NO_ERROR
                         (PKIX_CertChain_GetCertificates
@@ -264,8 +386,9 @@ int main(int argc, char *argv[])
 
                         printf("CERT[%d]:\n%s\n", i, asciiResult);
 
+			/* PKIX_Cert2ASCII used PKIX_PL_Malloc(...,,NULL) */
                         PKIX_TEST_EXPECT_NO_ERROR
-                                (PKIX_PL_Free(asciiResult, plContext));
+                                (PKIX_PL_Free(asciiResult, NULL));
                         asciiResult = NULL;
 
                         PKIX_TEST_DECREF_BC(cert);
@@ -311,8 +434,6 @@ int main(int argc, char *argv[])
                         (void) printf("Actual value:\t%s\n", actualCertsAscii);
                         (void) printf("Expected value:\t%s\n",
                                         expectedCertsAscii);
-
-                        goto cleanup;
                 }
 
         }
@@ -323,6 +444,7 @@ cleanup:
         PKIX_PL_Free(actualCertsAscii, plContext);
         PKIX_PL_Free(expectedCertsAscii, plContext);
 
+	PKIX_TEST_DECREF_AC(state);
         PKIX_TEST_DECREF_AC(actualCertsString);
         PKIX_TEST_DECREF_AC(expectedCertsString);
         PKIX_TEST_DECREF_AC(expectedCerts);
@@ -330,6 +452,7 @@ cleanup:
         PKIX_TEST_DECREF_AC(buildParams);
         PKIX_TEST_DECREF_AC(procParams);
         PKIX_TEST_DECREF_AC(certStores);
+        PKIX_TEST_DECREF_AC(ldapCertStore);
         PKIX_TEST_DECREF_AC(certStore);
         PKIX_TEST_DECREF_AC(dirNameString);
         PKIX_TEST_DECREF_AC(certSelParams);

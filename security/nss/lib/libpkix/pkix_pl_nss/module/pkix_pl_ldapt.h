@@ -49,6 +49,8 @@ extern const SEC_ASN1Template PKIX_PL_LDAPCrossCertPairTemplate[];
 SEC_ASN1_CHOOSER_DECLARE(PKIX_PL_LDAPCrossCertPairTemplate)
 extern const SEC_ASN1Template PKIX_PL_LDAPMessageTemplate[];
 SEC_ASN1_CHOOSER_DECLARE(PKIX_PL_LDAPMessageTemplate)
+extern const SEC_ASN1Template LDAPFilterTemplate[];
+SEC_ASN1_CHOOSER_DECLARE(LDAPFilterTemplate)
 
 /* ********************************************************************** */
 
@@ -82,10 +84,16 @@ typedef enum {
 } DerefType;
 
 typedef enum {
+        LDAP_INITIALSUBSTRING_TYPE      = 0,
+        LDAP_ANYSUBSTRING_TYPE          = 1,
+        LDAP_FINALSUBSTRING_TYPE        = 2,
+} LDAPSubstringFilterType;
+
+typedef enum {
         LDAP_ANDFILTER_TYPE             = 0,
         LDAP_ORFILTER_TYPE              = 1,
         LDAP_NOTFILTER_TYPE             = 2,
-        LDAP_EQUALITYMATCHFILTER_TYPE   = 3,
+        LDAP_EQUALFILTER_TYPE           = 3,
         LDAP_SUBSTRINGFILTER_TYPE       = 4,
         LDAP_GREATEROREQUALFILTER_TYPE  = 5,
         LDAP_LESSOREQUALFILTER_TYPE     = 6,
@@ -152,6 +160,8 @@ typedef struct LDAPResultStruct                  LDAPSearchResponseResult;
 typedef struct LDAPUnbindStruct                  LDAPUnbind;
 typedef struct LDAPFilterStruct                  LDAPFilter;
 typedef struct LDAPAndFilterStruct               LDAPAndFilter;
+typedef struct LDAPNotFilterStruct               LDAPNotFilter;
+typedef struct LDAPSubstringStruct               LDAPSubstring;
 typedef struct LDAPSubstringFilterStruct         LDAPSubstringFilter;
 typedef struct LDAPPresentFilterStruct           LDAPPresentFilter;
 typedef struct LDAPAttributeValueAssertionStruct LDAPAttributeValueAssertion;
@@ -160,8 +170,7 @@ typedef struct LDAPAbandonRequestStruct          LDAPAbandonRequest;
 typedef struct protocolOpStruct                  LDAPProtocolOp;
 typedef struct LDAPMessageStruct                 LDAPMessage;
 typedef LDAPAndFilter                            LDAPOrFilter;
-typedef LDAPFilter                               LDAPNotFilter;
-typedef LDAPAttributeValueAssertion              LDAPEqualityMatchFilter;
+typedef LDAPAttributeValueAssertion              LDAPEqualFilter;
 typedef LDAPAttributeValueAssertion              LDAPGreaterOrEqualFilter;
 typedef LDAPAttributeValueAssertion              LDAPLessOrEqualFilter;
 typedef LDAPAttributeValueAssertion              LDAPApproxMatchFilter;
@@ -210,15 +219,21 @@ struct LDAPUnbindStruct {
 };
 
 struct LDAPAndFilterStruct {
-        LDAPFilter **setOfFilter;
+        LDAPFilter **filters;
 };
 
-/* How do we prevent this from being infinitely recursive? */
-/* typedef LDAPFilter LDAPNotFilter; */
+struct LDAPNotFilterStruct {
+        LDAPFilter *filter;
+};
+
+struct LDAPSubstringStruct {
+        LDAPSubstringFilterType selector;
+        SECItem item;
+};
 
 struct LDAPSubstringFilterStruct {
         SECItem attrType;
-        SECItem *substrChoice;
+        LDAPSubstring *strings;
 };
 
 struct LDAPPresentFilterStruct {
@@ -235,8 +250,8 @@ struct LDAPFilterStruct {
         union {
                 LDAPAndFilter andFilter;
                 LDAPOrFilter orFilter;
-             /* LDAPNotFilter notFilter; */
-                LDAPEqualityMatchFilter equalityMatchFilter;
+                LDAPNotFilter notFilter;
+                LDAPEqualFilter equalFilter;
                 LDAPSubstringFilter substringFilter;
                 LDAPGreaterOrEqualFilter greaterOrEqualFilter;
                 LDAPLessOrEqualFilter lessOrEqualFilter;
@@ -252,7 +267,7 @@ struct LDAPSearchStruct {
         SECItem sizeLimit;
         SECItem timeLimit;
         SECItem attrsOnly;
-        LDAPFilter *filter;
+        LDAPFilter filter;
         SECItem **attributes;
 };
 

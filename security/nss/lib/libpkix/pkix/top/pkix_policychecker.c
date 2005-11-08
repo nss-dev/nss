@@ -2274,6 +2274,7 @@ pkix_PolicyChecker_Check(
         PKIX_CertChainChecker *checker,
         PKIX_PL_Cert *cert,
         PKIX_List *unresolvedCriticals,  /* OIDs */
+        PKIX_Boolean *pFinished,
         void *plContext)
 {
         PKIX_UInt32 numPolicies = 0;
@@ -2306,6 +2307,8 @@ pkix_PolicyChecker_Check(
 
         PKIX_ENTER(CERTCHAINCHECKER, "pkix_PolicyChecker_Check");
         PKIX_NULLCHECK_THREE(checker, cert, unresolvedCriticals);
+
+        *pFinished = PKIX_TRUE; /* we never block on pending I/O */
 
         PKIX_CHECK(PKIX_CertChainChecker_GetCertChainCheckerState
                     (checker, (PKIX_PL_Object **)&state, plContext),

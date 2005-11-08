@@ -143,6 +143,7 @@ void ThreadEntry(void* data)
         PKIX_ComCertSelParams *certSelParams = NULL;
         PKIX_CertSelector *certSelector = NULL;
         PKIX_PL_Date *nowDate = NULL;
+	void *state = NULL; /* only relevant with non-blocking I/O */
 
         PR_ASSERT(duration);
         if (!duration){
@@ -210,7 +211,7 @@ void ThreadEntry(void* data)
 
                 PKIX_BuildParams_Create(procParams, &buildParams, plContext);
 
-                PKIX_BuildChain(buildParams, &buildResult, plContext);
+                PKIX_BuildChain(buildParams, &state, &buildResult, plContext);
 
                 if (!buildResult){
                         (void) fprintf(stderr, "libpkix BuildChain failed.\n");

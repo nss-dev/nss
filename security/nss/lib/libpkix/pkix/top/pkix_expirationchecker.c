@@ -54,12 +54,16 @@ PKIX_Error *
 pkix_ExpirationChecker_Check(
         PKIX_CertChainChecker *checker,
         PKIX_PL_Cert *cert,
-        /* ARGSUSED */PKIX_List *unresolvedCriticalExtensions,
+        PKIX_List *unresolvedCriticalExtensions,
+        PKIX_Boolean *pFinished,
         void *plContext)
 {
         PKIX_PL_Date *testDate = NULL;
 
         PKIX_ENTER(CERTCHAINCHECKER, "pkix_ExpirationChecker_Check");
+        PKIX_NULLCHECK_THREE(checker, cert, pFinished);
+
+        *pFinished = PKIX_TRUE; /* we never block on pending I/O */
 
         PKIX_CHECK(PKIX_CertChainChecker_GetCertChainCheckerState
                     (checker, (PKIX_PL_Object **)&testDate, plContext),

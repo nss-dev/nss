@@ -103,6 +103,12 @@ pkix_pl_LdapResponse_GetMessageType(
         void *plContext);
 
 PKIX_Error *
+pkix_pl_LdapResponse_GetCapacity(
+        PKIX_PL_LdapResponse *response,
+        PKIX_UInt32 *pCapacity,
+        void *plContext);
+
+PKIX_Error *
 pkix_pl_LdapResponse_GetResultCode(
         PKIX_PL_LdapResponse *response,
         LDAPResultCode *pResultCode,

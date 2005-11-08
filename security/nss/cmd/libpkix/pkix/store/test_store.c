@@ -87,8 +87,10 @@ void testCertStore(void)
                                     (testCertCallback,
                                     testCRLCallback,
                                     (PKIX_PL_Object *) dirString,
-                                    PKIX_TRUE,
-                                    NULL,
+                                    PKIX_TRUE,   /* cacheFlag */
+                                    NULL,        /* trustCallback */
+                                    PKIX_FALSE,  /* non-blocking I/O */
+                                    PKIX_TRUE,   /* local */
                                     &certStore,
                                     plContext));
 

@@ -86,6 +86,12 @@ pkix_pl_X500Name_GetOrgName(
         unsigned char **pOrgName,
         void *plContext);
 
+PKIX_Error *
+pkix_pl_X500Name_GetCERTName(
+        PKIX_PL_X500Name *xname,
+        CERTName **pCERTName,
+        void *plContext);
+
 #ifdef __cplusplus
 }
 #endif

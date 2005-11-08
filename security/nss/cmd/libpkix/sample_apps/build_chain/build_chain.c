@@ -156,6 +156,7 @@ int main(int argc, char *argv[])
         PKIX_List *certStores = NULL;
         char * asciiResult = NULL;
         PKIX_CertChain *chain = NULL;
+        void *buildState = NULL; /* needed by pkix_build for non-blocking I/O */
 
         PKIX_TEST_STD_VARS();
 
@@ -234,8 +235,8 @@ int main(int argc, char *argv[])
 
         /* build cert chain using build params and return buildResult */
 
-        PKIX_TEST_EXPECT_NO_ERROR
-                (PKIX_BuildChain(buildParams, &buildResult, plContext));
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_BuildChain
+                (buildParams, &buildState, &buildResult, plContext));
 
         PKIX_TEST_EXPECT_NO_ERROR
                 (PKIX_BuildResult_GetCertChain(buildResult, &chain, plContext));

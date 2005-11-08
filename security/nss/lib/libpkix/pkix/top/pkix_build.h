@@ -49,17 +49,36 @@
 extern "C" {
 #endif
 
-typedef struct PKIX_ForwardBuilderStateStruct PKIX_ForwardBuilderState;
-
 typedef enum {
-	BUILD_INITIAL,
-	BUILD_IOPENDING,
-	BUILD_COLLECTINGCERTS,
-	BUILD_CHAINBUILDING
+        BUILD_SHORTCUTPENDING,
+        BUILD_INITIAL,
+        BUILD_CERTIOPENDING,
+        BUILD_COLLECTINGCERTS,
+        BUILD_CERTVALIDATING,
+        BUILD_ABANDONNODE,
+        BUILD_CRLPREP,
+        BUILD_CRL1,
+        BUILD_DATEPREP,
+        BUILD_CHECKTRUSTED,
+        BUILD_CHECKTRUSTED2,
+        BUILD_ADDTOCHAIN,
+        BUILD_CHECKWITHANCHORS,
+        BUILD_CRL2PREP,
+        BUILD_CRL2,
+        BUILD_VALCHAIN,
+        BUILD_VALCHAIN2,
+        BUILD_EXTENDCHAIN,
+        BUILD_GETNEXTCERT
 } BuildStatus;
 
 typedef struct BuildConstantsStruct BuildConstants;
 
+/*
+ * These fields (the ones that are objects) are not reference-counted
+ * in *each* state, but only in the root, the state that has no parent.
+ * That saves time in creation and destruction of child states, but is
+ * safe enough since they are constants.
+ */
 struct BuildConstantsStruct {
         PKIX_UInt32 numAnchors;
         PKIX_UInt32 numCertStores;
@@ -68,6 +87,7 @@ struct BuildConstantsStruct {
         PKIX_UInt32 maxTime;
         PKIX_ProcessingParams *procParams;
         PKIX_PL_Date *testDate;
+        PKIX_PL_Date *timeLimit;
         PKIX_PL_Cert *targetCert;
         PKIX_PL_PublicKey *targetPubKey;
         PKIX_List *certStores;
@@ -77,24 +97,32 @@ struct BuildConstantsStruct {
 };
 
 struct PKIX_ForwardBuilderStateStruct{
-	BuildStatus status;
+        BuildStatus status;
         PKIX_Int32 traversedCACerts;
         PKIX_UInt32 certStoreIndex;
         PKIX_UInt32 numCerts;
         PKIX_UInt32 certIndex;
+        PKIX_UInt32 anchorIndex;
+        PKIX_UInt32 certCheckedIndex;
+        PKIX_UInt32 checkerIndex;
         PKIX_UInt32 numFanout;
         PKIX_UInt32 numDepth;
         PKIX_Boolean dsaParamsNeeded;
         PKIX_Boolean revCheckDelayed;
-	PKIX_Boolean canBeCached;
-	PKIX_PL_Date *validityDate;
+        PKIX_Boolean canBeCached;
+        PKIX_Boolean useOnlyLocal;
+        PKIX_PL_Date *validityDate;
         PKIX_PL_Cert *prevCert;
-	PKIX_PL_Cert *candidateCert;
+        PKIX_PL_Cert *candidateCert;
         PKIX_List *traversedSubjNames;
-	PKIX_List *trustChain;
-	PKIX_List *candidateCerts;
-	PKIX_CertSelector *certSel;
-	PKIX_ForwardBuilderState *parentState;
+        PKIX_List *trustChain;
+        PKIX_List *candidateCerts;
+        PKIX_List *reversedCertChain;
+        PKIX_List *checkedCritExtOIDs;
+        PKIX_List *checkerChain;
+        PKIX_CertSelector *certSel;
+        PKIX_ForwardBuilderState *parentState;
+        BuildConstants buildConstants;
 };
 
 /* --Private-Functions-------------------------------------------- */

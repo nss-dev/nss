@@ -172,13 +172,6 @@ static const SEC_ASN1Template LDAPUnbindTemplate[] = {
 
 #define LDAPAttributeTypeTemplate LDAPStringTemplate
 
-static const SEC_ASN1Template LDAPAttributeValueAssertionTemplate[] = {
-    { SEC_ASN1_SEQUENCE, 0, NULL, sizeof (LDAPAttributeValueAssertion) },
-    { SEC_ASN1_LDAP_STRING, offsetof(LDAPAttributeValueAssertion, attrType) },
-    { SEC_ASN1_OCTET_STRING, offsetof(LDAPAttributeValueAssertion, attrValue) },
-    { 0 }
-};
-
 /*
  * SubstringFilter ::=
  *      SEQUENCE {
@@ -195,6 +188,18 @@ static const SEC_ASN1Template LDAPAttributeValueAssertionTemplate[] = {
 #define LDAPSubstringFilterAnyTemplate LDAPStringTemplate
 #define LDAPSubstringFilterFinalTemplate LDAPStringTemplate
 
+static const SEC_ASN1Template LDAPSubstringFilterChoiceTemplate[] = {
+    { SEC_ASN1_CHOICE, offsetof(LDAPSubstring, selector), 0,
+        sizeof (LDAPFilter) },
+    { SEC_ASN1_CONTEXT_SPECIFIC | 0, offsetof(LDAPSubstring, item),
+        LDAPSubstringFilterInitialTemplate, LDAP_INITIALSUBSTRING_TYPE },
+    { SEC_ASN1_CONTEXT_SPECIFIC | 1, offsetof(LDAPSubstring, item),
+        LDAPSubstringFilterAnyTemplate, LDAP_ANYSUBSTRING_TYPE },
+    { SEC_ASN1_CONTEXT_SPECIFIC | 2, offsetof(LDAPSubstring, item),
+        LDAPSubstringFilterFinalTemplate, LDAP_FINALSUBSTRING_TYPE },
+    { 0 }
+};
+
 /*
  * Filter ::=
  *      CHOICE {
@@ -210,63 +215,70 @@ static const SEC_ASN1Template LDAPAttributeValueAssertionTemplate[] = {
         }
  */
 
-static const SEC_ASN1Template LDAPSubstringFilterChoiceTemplate[] = {
-    { SEC_ASN1_SEQUENCE_OF, 0, NULL, sizeof (SECItem) },
-    { SEC_ASN1_CONTEXT_SPECIFIC | 0, 0, LDAPSubstringFilterInitialTemplate },
-    { SEC_ASN1_CONTEXT_SPECIFIC | 1, 0, LDAPSubstringFilterAnyTemplate },
-    { SEC_ASN1_CONTEXT_SPECIFIC | 2, 0, LDAPSubstringFilterFinalTemplate },
-    { 0 }
-};
-
 static const SEC_ASN1Template LDAPSubstringFilterTemplate[] = {
     { SEC_ASN1_SEQUENCE, 0, NULL, sizeof (LDAPSubstringFilter) },
     { SEC_ASN1_LDAP_STRING, offsetof(LDAPSubstringFilter, attrType) },
-    { SEC_ASN1_POINTER, offsetof(LDAPSubstringFilter, substrChoice),
+    { SEC_ASN1_SEQUENCE_OF, offsetof(LDAPSubstringFilter, strings),
         LDAPSubstringFilterChoiceTemplate },
     { 0 }
 };
 
-#define LDAPNotFilterTemplate LDAPFilterTemplate
-#define LDAPEqualityMatchFilterTemplate LDAPAttributeValueAssertionTemplate
-#define LDAPGreaterOrEqualFilterTemplate LDAPAttributeValueAssertionTemplate
-#define LDAPLessOrEqualFilterTemplate LDAPAttributeValueAssertionTemplate
-#define LDAPApproxMatchFilterTemplate LDAPAttributeValueAssertionTemplate
-#define LDAPPresentFilterTemplate LDAPAttributeTypeTemplate
+static const SEC_ASN1Template LDAPFilterTemplate[]; /* forward reference */
 
-static const SEC_ASN1Template LDAPFilterTemplate[10]; /* forward reference */
+static const SEC_ASN1Template LDAPSetOfFiltersTemplate[] =
+    { SEC_ASN1_SET_OF, 0, LDAPFilterTemplate };
 
-static const SEC_ASN1Template LDAPAndFilterTemplate[] = {
-    { SEC_ASN1_SET_OF, 0, LDAPFilterTemplate }
+static const SEC_ASN1Template LDAPAVAFilterTemplate[] = {
+    { SEC_ASN1_SEQUENCE, 0, NULL, sizeof (LDAPAttributeValueAssertion) },
+    { SEC_ASN1_LDAP_STRING, offsetof(LDAPAttributeValueAssertion, attrType) },
+    { SEC_ASN1_OCTET_STRING, offsetof(LDAPAttributeValueAssertion, attrValue) },
+    { 0 }
 };
-static const SEC_ASN1Template LDAPOrFilterTemplate[] = {
-    { SEC_ASN1_SET_OF, 0, LDAPFilterTemplate }
-};
+
+static const SEC_ASN1Template LDAPPresentFilterTemplate[] =
+    { SEC_ASN1_LDAP_STRING, offsetof(LDAPPresentFilter, attrType) };
+
+#define LDAPEqualFilterTemplate LDAPAVAFilterTemplate
+#define LDAPGreaterOrEqualFilterTemplate LDAPAVAFilterTemplate
+#define LDAPLessOrEqualFilterTemplate LDAPAVAFilterTemplate
+#define LDAPApproxMatchFilterTemplate LDAPAVAFilterTemplate
 
 static const SEC_ASN1Template LDAPFilterTemplate[] = {
     { SEC_ASN1_CHOICE, offsetof(LDAPFilter, selector), 0, sizeof(LDAPFilter) },
-    { SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC | LDAP_ANDFILTER_TYPE,
-        offsetof(LDAPFilter, filter),
-        LDAPAndFilterTemplate, LDAP_ANDFILTER_TYPE },
-    { SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC | LDAP_ORFILTER_TYPE,
-        offsetof(LDAPFilter, filter),
-        LDAPOrFilterTemplate, LDAP_ORFILTER_TYPE },
-    { SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC | LDAP_EQUALITYMATCHFILTER_TYPE,
-        offsetof(LDAPFilter, filter),
-        LDAPEqualityMatchFilterTemplate, LDAP_EQUALITYMATCHFILTER_TYPE },
-    { SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC | LDAP_SUBSTRINGFILTER_TYPE,
-        offsetof(LDAPFilter, filter),
+    { SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC |
+        LDAP_ANDFILTER_TYPE,
+        offsetof(LDAPFilter, filter.andFilter.filters),
+        LDAPSetOfFiltersTemplate, LDAP_ANDFILTER_TYPE },
+    { SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC |
+        LDAP_ORFILTER_TYPE,
+        offsetof(LDAPFilter, filter.orFilter.filters),
+        LDAPSetOfFiltersTemplate, LDAP_ORFILTER_TYPE },
+    { SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC |
+        LDAP_NOTFILTER_TYPE | SEC_ASN1_POINTER,
+        offsetof(LDAPFilter, filter.notFilter),
+        LDAPFilterTemplate, LDAP_NOTFILTER_TYPE },
+    { SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC |
+        LDAP_EQUALFILTER_TYPE,
+        offsetof(LDAPFilter, filter.equalFilter),
+        LDAPEqualFilterTemplate, LDAP_EQUALFILTER_TYPE },
+    { SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC |
+        LDAP_SUBSTRINGFILTER_TYPE, offsetof(LDAPFilter, filter.substringFilter),
         LDAPSubstringFilterTemplate, LDAP_SUBSTRINGFILTER_TYPE },
-    { SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC | LDAP_GREATEROREQUALFILTER_TYPE,
-        offsetof(LDAPFilter, filter),
+    { SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC |
+        LDAP_GREATEROREQUALFILTER_TYPE,
+        offsetof(LDAPFilter, filter.greaterOrEqualFilter),
         LDAPGreaterOrEqualFilterTemplate, LDAP_GREATEROREQUALFILTER_TYPE },
-    { SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC | LDAP_LESSOREQUALFILTER_TYPE,
-        offsetof(LDAPFilter, filter),
+    { SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC |
+        LDAP_LESSOREQUALFILTER_TYPE,
+        offsetof(LDAPFilter, filter.lessOrEqualFilter),
         LDAPLessOrEqualFilterTemplate, LDAP_LESSOREQUALFILTER_TYPE },
-    { SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC | LDAP_PRESENTFILTER_TYPE,
-        offsetof(LDAPFilter, filter),
+    { SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC |
+        LDAP_PRESENTFILTER_TYPE,
+        offsetof(LDAPFilter, filter.presentFilter),
         LDAPPresentFilterTemplate, LDAP_PRESENTFILTER_TYPE },
-    { SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC | LDAP_APPROXMATCHFILTER_TYPE,
-        offsetof(LDAPFilter, filter),
+    { SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC |
+        LDAP_APPROXMATCHFILTER_TYPE,
+        offsetof(LDAPFilter, filter.approxMatchFilter),
         LDAPApproxMatchFilterTemplate, LDAP_APPROXMATCHFILTER_TYPE },
     { 0 }
 };
@@ -310,7 +322,7 @@ static const SEC_ASN1Template LDAPSearchApplTemplate[] = {
     { SEC_ASN1_INTEGER, offsetof(LDAPSearch, sizeLimit) },
     { SEC_ASN1_INTEGER, offsetof(LDAPSearch, timeLimit) },
     { SEC_ASN1_BOOLEAN, offsetof(LDAPSearch, attrsOnly) },
-    { SEC_ASN1_POINTER, offsetof(LDAPSearch, filter), LDAPFilterTemplate },
+    { SEC_ASN1_INLINE, offsetof(LDAPSearch, filter), LDAPFilterTemplate },
     { SEC_ASN1_SEQUENCE_OF, offsetof(LDAPSearch, attributes), LDAPAttributeTemplate },
     { 0 }
 };

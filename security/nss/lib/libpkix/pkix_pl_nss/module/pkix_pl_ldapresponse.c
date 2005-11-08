@@ -268,6 +268,8 @@ pkix_pl_LdapResponse_RegisterSelf(void *plContext)
 
         systemClasses[PKIX_LDAPRESPONSE_TYPE] = entry;
 
+cleanup:
+
         PKIX_RETURN(LDAPRESPONSE);
 }
 
@@ -453,6 +455,8 @@ pkix_pl_LdapResponse_Append(
 
         *pBytesConsumed = bytesConsumed;
 
+cleanup:
+
         PKIX_RETURN(LDAPRESPONSE);
 }
 
@@ -499,6 +503,8 @@ pkix_pl_LdapResponse_IsComplete(
         } else {
                 *pIsComplete = PKIX_FALSE;
         }
+
+cleanup:
 
         PKIX_RETURN(LDAPRESPONSE);
 }
@@ -587,7 +593,6 @@ cleanup:
  *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
  * RETURNS:
  *  Returns NULL if the function succeeds.
- *  Returns an LdapResponse Error if the function fails in a non-fatal way.
  *  Returns a Fatal Error if the function fails in an unrecoverable way.
  */
 PKIX_Error *
@@ -600,6 +605,49 @@ pkix_pl_LdapResponse_GetMessage(
         PKIX_NULLCHECK_TWO(response, pMessage);
 
         *pMessage = &response->decoded;
+
+cleanup:
+
+        PKIX_RETURN(LDAPRESPONSE);
+}
+
+/*
+ * FUNCTION: pkix_pl_LdapResponse_GetCapacity
+ * DESCRIPTION:
+ *
+ *  This function obtains from the LdapResponse pointed to by "response" the
+ *  number of bytes remaining to be read, based on the totalLength that was
+ *  provided to LdapResponse_Create and the data subsequently provided to
+ *  LdapResponse_Append, storing the result at "pMessage".
+ *
+ * PARAMETERS
+ *  "response"
+ *      The address of the LdapResponse whose remaining capacity is to be
+ *      retrieved. Must be non-NULL.
+ *  "pCapacity"
+ *      The address at which is stored the address of the decoded message. Must
+ *      be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns an LdapResponse Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+pkix_pl_LdapResponse_GetCapacity(
+        PKIX_PL_LdapResponse *response,
+        PKIX_UInt32 *pCapacity,
+        void *plContext)
+{
+        PKIX_ENTER(LDAPRESPONSE, "PKIX_PL_LdapResponse_GetCapacity");
+        PKIX_NULLCHECK_TWO(response, pCapacity);
+
+        *pCapacity = response->totalLength - response->partialLength;
+
+cleanup:
 
         PKIX_RETURN(LDAPRESPONSE);
 }
@@ -624,7 +672,6 @@ pkix_pl_LdapResponse_GetMessage(
  *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
  * RETURNS:
  *  Returns NULL if the function succeeds.
- *  Returns an LdapResponse Error if the function fails in a non-fatal way.
  *  Returns a Fatal Error if the function fails in an unrecoverable way.
  */
 PKIX_Error *
@@ -637,6 +684,8 @@ pkix_pl_LdapResponse_GetMessageType(
         PKIX_NULLCHECK_TWO(response, pMessageType);
 
         *pMessageType = response->decoded.protocolOp.selector;
+
+cleanup:
 
         PKIX_RETURN(LDAPRESPONSE);
 }
@@ -731,7 +780,8 @@ pkix_pl_LdapResponse_GetAttributes(
                 PKIX_ERROR("GetAttributes called for non-Entry message");
         }
 
-        *pAttributes = response->decoded.protocolOp.op.searchResponseEntryMsg.attributes;
+        *pAttributes = response->
+                decoded.protocolOp.op.searchResponseEntryMsg.attributes;
 
 cleanup:
 

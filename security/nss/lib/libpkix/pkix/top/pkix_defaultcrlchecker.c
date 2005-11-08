@@ -40,6 +40,7 @@
  * Functions for default CRL Checkers
  *
  */
+#define CERTCHAINCHECKERDEBUG 1
 
 #include "pkix_defaultcrlchecker.h"
 
@@ -90,6 +91,11 @@ pkix_DefaultCRLCheckerState_Destroy(
         PKIX_DECREF(state->prevPublicKey);
         PKIX_DECREF(state->prevPublicKeyList);
         PKIX_DECREF(state->crlReasonCodeOID);
+        PKIX_DECREF(state->certIssuer);
+        PKIX_DECREF(state->certSerialNumber);
+        PKIX_DECREF(state->crlSelector);
+        state->crlStoreIndex = 0;
+        state->numCrlStores = 0;
 
 cleanup:
 
@@ -206,6 +212,12 @@ pkix_DefaultCRLCheckerState_Create(
                     &state->crlReasonCodeOID,
                     plContext),
                     "PKIX_PL_OID_Create failed");
+
+        state->certIssuer = NULL;
+        state->certSerialNumber = NULL;
+        state->crlSelector = NULL;
+        state->crlStoreIndex = 0;
+        state->numCrlStores = 0;
 
         *pCheckerState = state;
 
@@ -479,6 +491,249 @@ cleanup:
         PKIX_RETURN(CERTCHAINCHECKER);
 }
 
+PKIX_Error *
+pkix_DefaultCRLChecker_Check_SetSelector(
+        PKIX_PL_Cert *cert,
+        pkix_DefaultCRLCheckerState *state,
+        void *plContext)
+{
+        PKIX_PL_X500Name *certIssuer = NULL;
+        PKIX_PL_BigInt *certSerialNumber = NULL;
+        PKIX_PL_Date *nowDate = NULL;
+        PKIX_ComCRLSelParams *comCrlSelParams = NULL;
+        PKIX_CRLSelector *crlSelector = NULL;
+
+        PKIX_ENTER
+                (CERTCHAINCHECKER, "pkix_DefaultCRLChecker_Check_SetSelector");
+        PKIX_NULLCHECK_TWO(cert, state);
+
+        PKIX_CHECK(PKIX_PL_Cert_GetIssuer(cert, &certIssuer, plContext),
+                "PKIX_PL_Cert_GetIssuer failed");
+
+        PKIX_CHECK(PKIX_PL_Cert_GetSerialNumber
+                (cert, &certSerialNumber, plContext),
+                "PKIX_PL_Cert_GetSerialNumber failed");
+
+        if (state->testDate != NULL) {
+
+                PKIX_INCREF(state->testDate);
+                nowDate = state->testDate;
+
+        } else {
+
+                PKIX_CHECK(PKIX_PL_Date_Create_UTCTime
+                        (NULL, &nowDate, plContext),
+                        "PKIX_PL_Date_Create_UTCTime failed");
+        }
+
+        PKIX_CHECK(PKIX_ComCRLSelParams_Create
+                (&comCrlSelParams, plContext),
+                "PKIX_ComCRLSelParams_Create failed");
+
+        PKIX_CHECK(PKIX_ComCRLSelParams_AddIssuerName
+                (comCrlSelParams, certIssuer, plContext),
+                "PKIX_ComCRLSelParams_AddIssuerName failed");
+
+        PKIX_CHECK(PKIX_ComCRLSelParams_SetDateAndTime
+                (comCrlSelParams, nowDate, plContext),
+                "PKIX_ComCRLSelParams_SetDateAndTime failed");
+
+        PKIX_CHECK(PKIX_CRLSelector_Create
+                (NULL,
+                NULL, /* never used? (PKIX_PL_Object *)checker, */
+                &crlSelector,
+                plContext),
+                "PKIX_CRLSelector_Create failed");
+
+        PKIX_CHECK(PKIX_CRLSelector_SetCommonCRLSelectorParams
+                (crlSelector, comCrlSelParams, plContext),
+                "PKIX_CRLSelector_SetCommonCRLSelectorParams failed");
+
+        PKIX_DECREF(state->certIssuer);
+        PKIX_INCREF(certIssuer);
+        state->certIssuer = certIssuer;
+        PKIX_DECREF(state->certSerialNumber);
+        PKIX_INCREF(certSerialNumber);
+        state->certSerialNumber = certSerialNumber;
+        PKIX_DECREF(state->crlSelector);
+        PKIX_INCREF(crlSelector);
+        state->crlSelector = crlSelector;
+
+        state->crlStoreIndex = 0;
+
+        PKIX_CHECK(PKIX_List_GetLength
+                    (state->certStores, &(state->numCrlStores), plContext),
+                    "PKIX_List_GetLength failed");
+
+        state->certHasValidCrl = PKIX_FALSE;
+
+cleanup:
+
+        PKIX_DECREF(certIssuer);
+        PKIX_DECREF(certSerialNumber);
+        PKIX_DECREF(nowDate);
+        PKIX_DECREF(comCrlSelParams);
+        PKIX_DECREF(crlSelector);
+
+        PKIX_RETURN(CERTCHAINCHECKER);
+}
+
+PKIX_Error *
+pkix_DefaultCRLChecker_Check_Store(
+        PKIX_CertChainChecker *checker,
+        PKIX_PL_Cert *cert,
+        PKIX_PL_PublicKey *prevPublicKey,
+        pkix_DefaultCRLCheckerState *state,
+        PKIX_List *unresolvedCriticalExtensions,
+        PKIX_CertStore *certStore,
+        PKIX_Boolean *pFinished,
+        void *plContext)
+{
+
+        PKIX_Boolean cacheFlag = PKIX_FALSE;
+        PKIX_Boolean cacheHit = PKIX_FALSE;
+        PKIX_UInt32 numEntries = 0;
+        PKIX_UInt32 i = 0;
+        PKIX_Int32 reasonCode = 0;
+        PKIX_UInt32 allReasonCodes = 0;
+        PKIX_List *crlList = NULL;
+        PKIX_List *crlEntryList = NULL;
+        PKIX_PL_CRLEntry *crlEntry = NULL;
+        PKIX_Error *checkCrlFail = NULL;
+        PKIX_CertStore_CRLCallback getCrls = NULL;
+
+        PKIX_ENTER(CERTCHAINCHECKER, "pkix_DefaultCRLChecker_Check_Store");
+        PKIX_NULLCHECK_TWO(checker, cert);
+        PKIX_NULLCHECK_THREE(state, certStore, pFinished);
+
+        /* Are this CertStore's entries in cache? */
+        PKIX_CHECK(PKIX_CertStore_GetCertStoreCacheFlag
+                (certStore, &cacheFlag, plContext),
+                "PKIX_CertStore_GetCertStoreCacheFlag failed");
+
+        if (cacheFlag) {
+
+                PKIX_CHECK(pkix_CacheCrlEntry_Lookup
+                        (certStore,
+                        state->certIssuer,
+                        state->certSerialNumber,
+                        &cacheHit,
+                        &crlEntryList,
+                        plContext),
+                        "pkix_CacheCrlEntry_Lookup failed");
+
+        }
+
+        if (cacheHit) {
+
+                /* Use cached data */
+                *pFinished = PKIX_TRUE;
+
+                PKIX_CHECK(PKIX_List_GetLength
+                        (crlEntryList, &numEntries, plContext),
+                        "PKIX_List_GetLength failed");
+
+                for (i = 0; i < numEntries; i++) {
+
+                    PKIX_CHECK(PKIX_List_GetItem
+                            (crlEntryList,
+                            i,
+                            (PKIX_PL_Object **)&crlEntry,
+                            plContext),
+                            "PKIX_List_GetItem failed");
+
+                    PKIX_CHECK(PKIX_PL_CRLEntry_GetCRLEntryReasonCode
+                            (crlEntry, &reasonCode, plContext),
+                            "PKIX_PL_CrlEntry_GetCrlEntryReasonCode failed");
+
+                    if ((reasonCode >= 0) &&
+                        (reasonCode < sizeof (reasonCodeMsgString))) {
+
+                            allReasonCodes |= (1 << (reasonCode - 1));
+
+                            PKIX_DEFAULTCRLCHECKERSTATE_DEBUG_ARG
+                                    ("CRL revocation Reason: %s\n ",
+                                    reasonCodeMsgString[reasonCode]);
+
+                    }
+
+                    PKIX_DECREF(crlEntry);
+                }
+
+                state->reasonCodeMask |= allReasonCodes;
+
+                if (allReasonCodes != 0) {
+
+                        PKIX_ERROR("Certificate is revoked by CRL");
+                }
+ 
+                PKIX_DECREF(crlEntryList);
+
+       } else {
+
+                PKIX_CHECK(PKIX_CertStore_GetCRLCallback
+                        (certStore, &getCrls, plContext),
+                        "PKIX_CertStore_GetCRLCallback failed");
+
+                PKIX_CHECK(getCrls
+                        (certStore,
+                        state->crlSelector,
+                        &crlList,
+                        plContext),
+                        "getCrls failed");
+
+                /*
+                 * Verify Certificate validity: if one CertStore provides
+                 * reason code, we stop here. Instead of exhausting all
+                 * CertStores to get all possible reason codes associated
+                 *  with the Cert. May be expanded if desire otherwise.
+                 */
+
+                if (crlList == NULL) {
+
+                        *pFinished = PKIX_FALSE;
+                } else {
+
+                        *pFinished = PKIX_TRUE;
+
+                        checkCrlFail = pkix_DefaultCRLChecker_CheckCRLs
+                                (cert,
+                                state->certIssuer,
+                                state->certSerialNumber,
+                                prevPublicKey,
+                                crlList,
+                                state,
+                                &crlEntryList,
+                                plContext);
+
+                        if (checkCrlFail) {
+                                if (crlEntryList != NULL) {
+                                        /* Add to cache */
+                                        PKIX_CHECK(pkix_CacheCrlEntry_Add
+                                               (certStore,
+                                               state->certIssuer,
+                                               state->certSerialNumber,
+                                               crlEntryList,
+                                               plContext),
+                                               "pkix_CacheCrlEntry_Add failed");
+                                }
+                                PKIX_ERROR("Certificate is revoked by CRL");
+                        }
+                }
+
+                PKIX_DECREF(crlList);
+
+        }
+
+cleanup:
+        PKIX_DECREF(crlEntryList);
+        PKIX_DECREF(crlEntry);
+        PKIX_DECREF(crlList);
+        PKIX_DECREF(checkCrlFail);
+
+        PKIX_RETURN(CERTCHAINCHECKER);
+}
+
 /*
  * FUNCTION: pkix_DefaultCRLChecker_Check_Helper
  *
@@ -518,86 +773,20 @@ pkix_DefaultCRLChecker_Check_Helper(
         PKIX_PL_PublicKey *prevPublicKey,
         pkix_DefaultCRLCheckerState *state,
         PKIX_List *unresolvedCriticalExtensions,
+        PKIX_Boolean useOnlyLocal,
+        PKIX_Boolean *pFinished,
         void *plContext)
 {
 
-        PKIX_CertStore_CRLCallback certStoreGetCrlCallback = NULL;
+        PKIX_Boolean finished = PKIX_FALSE;
+        PKIX_Boolean certStoreCanBeUsed = PKIX_FALSE;
         PKIX_CertStore *certStore = NULL;
-        PKIX_CRLSelector *crlSelector = NULL;
-        PKIX_List *crlList = NULL;
-        PKIX_PL_X500Name *certIssuer = NULL;
-        PKIX_PL_BigInt *certSerialNumber = NULL;
-        PKIX_ComCRLSelParams *comCrlSelParams = NULL;
-        PKIX_PL_Date *nowDate = NULL;
-        PKIX_PL_CRLEntry *crlEntry = NULL;
-        PKIX_List *crlEntryList = NULL;
-        PKIX_Error *checkCrlFail = NULL;
-        PKIX_Boolean cacheFlag = PKIX_FALSE;
-        PKIX_Boolean found = PKIX_FALSE;
-        PKIX_Int32 reasonCode = 0;
-        PKIX_UInt32 reasonCodes = 0;
-        PKIX_UInt32 numCertStores = 0;
         PKIX_UInt32 numEntries = 0;
-        PKIX_UInt32 i = 0;
 
         PKIX_ENTER(CERTCHAINCHECKER, "pkix_DefaultCRLChecker_Check_Helper");
         PKIX_NULLCHECK_THREE(checker, cert, state);
-
-        /* Set up CRLSelector */
-        PKIX_CHECK(PKIX_PL_Cert_GetIssuer(cert, &certIssuer, plContext),
-                    "PKIX_PL_Cert_GetIssuer failed");
-
-        PKIX_CHECK(PKIX_PL_Cert_GetSerialNumber
-                    (cert, &certSerialNumber, plContext),
-                    "PKIX_PL_Cert_GetSerialNumber failed");
-
-        if (state->testDate != NULL) {
-
-                PKIX_INCREF(state->testDate);
-
-                nowDate = state->testDate;
-
-        } else {
-
-                PKIX_CHECK(PKIX_PL_Date_Create_UTCTime
-                            (NULL, &nowDate, plContext),
-                            "PKIX_PL_Date_Create_UTCTime failed");
-        }
-
-        PKIX_CHECK(PKIX_ComCRLSelParams_Create
-                            (&comCrlSelParams, plContext),
-                            "PKIX_ComCRLSelParams_Create failed");
-
-        PKIX_CHECK(PKIX_ComCRLSelParams_AddIssuerName
-                            (comCrlSelParams, certIssuer, plContext),
-                            "PKIX_ComCRLSelParams_AddIssuerName failed");
-
-        PKIX_CHECK(PKIX_ComCRLSelParams_SetDateAndTime
-                            (comCrlSelParams, nowDate, plContext),
-                            "PKIX_ComCRLSelParams_SetDateAndTime failed");
-
-        PKIX_CHECK(PKIX_CRLSelector_Create
-                            (NULL,
-                            (PKIX_PL_Object *)checker,
-                            &crlSelector,
-                            plContext),
-                            "PKIX_CRLSelector_Create failed");
-
-        PKIX_CHECK(PKIX_CRLSelector_SetCommonCRLSelectorParams
-                        (crlSelector, comCrlSelParams, plContext),
-                        "PKIX_CRLSelector_SetCommonCRLSelectorParams failed");
-
-        /* Set up CertStores */
-
-        state->certHasValidCrl = PKIX_FALSE;
-
-        PKIX_NULLCHECK_ONE(state->certStores);
-
-        PKIX_CHECK(PKIX_List_GetLength
-                    (state->certStores, &numCertStores, plContext),
-                    "PKIX_List_GetLength failed");
-
-        for (i = 0; i < numCertStores; i++){
+        *pFinished = PKIX_TRUE; /* prepare for Error exit */
+        while ((state->crlStoreIndex) < (state->numCrlStores)) {
 
                 /*
                  * For Basic CRL work, exit the loop when there is a valid
@@ -610,127 +799,43 @@ pkix_DefaultCRLChecker_Check_Helper(
                 }
 
                 PKIX_CHECK(PKIX_List_GetItem
-                            (state->certStores,
-                            i,
-                            (PKIX_PL_Object **)&certStore,
-                            plContext),
-                            "PKIX_List_GetItem failed");
+                        (state->certStores,
+                        state->crlStoreIndex,
+                        (PKIX_PL_Object **)&certStore,
+                        plContext),
+                        "PKIX_List_GetItem failed");
 
-                /* Does CertStore inquire cache */
-                PKIX_CHECK(PKIX_CertStore_GetCertStoreCacheFlag
-                            (certStore, &cacheFlag, plContext),
-                            "PKIX_CertStore_GetCertStoreCacheFlag failed");
-
-                if (cacheFlag) {
-
-                        PKIX_CHECK(pkix_CacheCrlEntry_Lookup
-                            (certStore,
-                            certIssuer,
-                            certSerialNumber,
-                            &found,
-                            &crlEntryList,
-                            plContext),
-                            "pkix_CacheCrlEntry_Lookup failed");
-
+                if (useOnlyLocal == PKIX_FALSE) {
+                        certStoreCanBeUsed = PKIX_TRUE;
+                } else {
+                        PKIX_CHECK(PKIX_CertStore_GetLocalFlag
+                                (certStore, &certStoreCanBeUsed, plContext),
+                                "PKIX_CertStore_GetLocalFlag failed");
                 }
 
-                if (!found) {
-
-                    /*
-                     * From CertStore, get CRLCallback to retrieve selected
-                     * CRLs.
-                     */
-                    PKIX_CHECK(PKIX_CertStore_GetCRLCallback
-                            (certStore, &certStoreGetCrlCallback, plContext),
-                            "PKIX_CertStore_GetCRLCallback failed");
-
-                    PKIX_CHECK(certStoreGetCrlCallback
-                            (certStore, crlSelector, &crlList, plContext),
-                            "certStoreGetCrlCallback failed");
-
-                    /*
-                     * Verify Certificate validity: if one CertStore provides
-                     * reason code, we stop here. Instead of exhausting all
-                     * CertStores to get all possible reason codes associated
-                     *  with the Cert. May be expanded if desire otherwise.
-                     */
-
-                    if (crlList != NULL) {
-                        checkCrlFail = pkix_DefaultCRLChecker_CheckCRLs
-                                (cert,
-                                certIssuer,
-                                certSerialNumber,
+                if (certStoreCanBeUsed == PKIX_TRUE)
+                {
+                        PKIX_CHECK(pkix_DefaultCRLChecker_Check_Store
+                                (checker,
+                                cert,
                                 prevPublicKey,
-                                crlList,
                                 state,
-                                &crlEntryList,
-                                plContext);
+                                unresolvedCriticalExtensions,
+                                certStore,
+                                &finished,
+                                plContext),
+                                "pkix_DefaultCRLChecker_Check_Store failed");
 
-                        if (checkCrlFail) {
-                                if (crlEntryList != NULL) {
-                                    /* Add to cache */
-                                    PKIX_CHECK(pkix_CacheCrlEntry_Add
-                                       (certStore,
-                                       certIssuer,
-                                       certSerialNumber,
-                                       crlEntryList,
-                                       plContext),
-                                       "pkix_CacheCrlEntry_Add failed");
-                                }
-                                PKIX_ERROR("Certificate is revoked by CRL");
+                        if (finished == PKIX_FALSE) {
+                                /* I/O still pending. Exit and resume later. */
+                                *pFinished = PKIX_FALSE;
+                                goto cleanup;
                         }
-                    }
-
-                    PKIX_DECREF(crlList);
-                    PKIX_DECREF(certStore);
-
-               } else {
-
-                    /* Use cached data */
-                    state->certHasValidCrl = PKIX_TRUE;
-
-                    PKIX_CHECK(PKIX_List_GetLength
-                            (crlEntryList, &numEntries, plContext),
-                            "PKIX_List_GetLength failed");
-
-                    for (i = 0; i < numEntries; i++){
-
-                        PKIX_CHECK(PKIX_List_GetItem
-                            (crlEntryList,
-                            i,
-                            (PKIX_PL_Object **)&crlEntry,
-                            plContext),
-                            "PKIX_List_GetItem failed");
-
-                        PKIX_CHECK(PKIX_PL_CRLEntry_GetCRLEntryReasonCode
-                            (crlEntry, &reasonCode, plContext),
-                            "PKIX_PL_CrlEntry_GetCrlEntryReasonCode failed");
-
-                        if (reasonCode >= 0 &&
-                            reasonCode < sizeof (reasonCodeMsgString)) {
-
-				reasonCodes |= 1 << reasonCode-1;
-
-                            PKIX_DEFAULTCRLCHECKERSTATE_DEBUG_ARG
-                                ("CRL revocation Reason: %s\n ",
-                                reasonCodeMsgString[reasonCode]);
-
-                        }
-
-                        PKIX_DECREF(crlEntry);
-                    }
-
-                    state->reasonCodeMask |= reasonCodes;
-
-                    if (reasonCodes != 0) {
-
-                        PKIX_ERROR("Certificate is revoked by CRL");
-                    }
- 
                 }
-                PKIX_DECREF(crlEntryList);
 
-        }
+                PKIX_DECREF(certStore);
+                state->crlStoreIndex++;
+        } /* while ((state->crlStoreIndex) < (state->numCrlStores)) */
 
         if (state->certHasValidCrl == PKIX_FALSE) {
                 PKIX_ERROR("Certificate doesn't have a valid CRL");
@@ -738,15 +843,7 @@ pkix_DefaultCRLChecker_Check_Helper(
 
 cleanup:
 
-        PKIX_DECREF(nowDate);
-        PKIX_DECREF(comCrlSelParams);
-        PKIX_DECREF(crlSelector);
-        PKIX_DECREF(certSerialNumber);
-        PKIX_DECREF(certIssuer);
         PKIX_DECREF(certStore);
-        PKIX_DECREF(crlList);
-        PKIX_DECREF(crlEntryList);
-        PKIX_DECREF(checkCrlFail);
 
         PKIX_RETURN(CERTCHAINCHECKER);
 }
@@ -783,16 +880,20 @@ pkix_DefaultCRLChecker_Check(
         PKIX_CertChainChecker *checker,
         PKIX_PL_Cert *cert,
         PKIX_List *unresolvedCriticalExtensions,
+        PKIX_Boolean *pFinished,
         void *plContext)
 {
         pkix_DefaultCRLCheckerState *state = NULL;
         PKIX_PL_PublicKey *publicKey = NULL;
         PKIX_PL_PublicKey *newPublicKey = NULL;
         PKIX_Error *checkKeyUsageFail = NULL;
+        PKIX_Boolean finished = PKIX_FALSE;
         PKIX_Boolean selfIssued = PKIX_FALSE;
 
         PKIX_ENTER(CERTCHAINCHECKER, "pkix_DefaultCRLChecker_Check");
-        PKIX_NULLCHECK_TWO(checker, cert);
+        PKIX_NULLCHECK_THREE(checker, cert, pFinished);
+
+        *pFinished = PKIX_TRUE; /* prepare for Error exit */
 
         PKIX_CHECK(PKIX_CertChainChecker_GetCertChainCheckerState
                     (checker, (PKIX_PL_Object **)&state, plContext),
@@ -802,12 +903,26 @@ pkix_DefaultCRLChecker_Check(
                     (cert, &publicKey, plContext),
                     "PKIX_PL_Cert_GetSubjectPublicKey failed");
 
-        state->certsRemaining--;
+        /*
+         * If we already have a selector, we were in the middle of checking
+         * when a certStore returned with non-blocking I/O pendning.
+         */
+        if ((state->crlSelector) == NULL) {
+                state->certsRemaining--;
 
-        PKIX_NULLCHECK_ONE(state->prevPublicKey);
+                PKIX_NULLCHECK_ONE(state->prevPublicKey);
 
-        if (state->prevCertCrlSign == PKIX_FALSE) {
-                PKIX_ERROR("Validation failed: KeyUsage cRLSign bit is not on");
+                if (state->prevCertCrlSign == PKIX_FALSE) {
+                        PKIX_ERROR
+                                ("Validation failed:"
+                                " KeyUsage cRLSign bit is not on");
+                }
+
+                /* Set up CRLSelector */
+                PKIX_CHECK(pkix_DefaultCRLChecker_Check_SetSelector
+                        (cert, state, plContext),
+                        "pkix_DefaultCRLChecker_Check_SetSelector failed");
+
         }
 
         PKIX_CHECK(pkix_DefaultCRLChecker_Check_Helper
@@ -816,8 +931,17 @@ pkix_DefaultCRLChecker_Check(
                     state->prevPublicKey,
                     state,
                     unresolvedCriticalExtensions,
+                    PKIX_FALSE,
+                    &finished,
                     plContext),
                     "pkix_DefaultCRLChecker_Check_Helper failed");
+
+        if (finished == PKIX_FALSE) {
+                *pFinished = PKIX_FALSE;
+                goto cleanup;
+        }
+
+        PKIX_DECREF(state->crlSelector);
 
         /*
          * Some NIST test case in 4.5.* use different publicKeys for
@@ -872,7 +996,7 @@ pkix_DefaultCRLChecker_Check(
         PKIX_INCREF(newPublicKey);
         state->prevPublicKey = newPublicKey;
 
-        /* Save current Cert's cRLSign bit for CRL checking later */
+        /* Save current Cert's crlSign bit for CRL checking later */
         if (state->certsRemaining != 0) {
                 checkKeyUsageFail = PKIX_PL_Cert_VerifyKeyUsage
                         (cert, PKIX_CRL_SIGN, plContext);
@@ -883,9 +1007,11 @@ pkix_DefaultCRLChecker_Check(
                 PKIX_DECREF(checkKeyUsageFail);
         }
 
+/*
         PKIX_CHECK(PKIX_CertChainChecker_SetCertChainCheckerState
                 (checker, (PKIX_PL_Object *)state, plContext),
                 "PKIX_CertChainChecker_SetCertChainCheckerState failed");
+ */
 
 cleanup:
 

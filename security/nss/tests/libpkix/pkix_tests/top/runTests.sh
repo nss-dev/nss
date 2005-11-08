@@ -39,6 +39,7 @@
 # runTests.sh
 #
 
+LDAP='-'
 curdir=`pwd`
 cd ../../common
 . ./libpkix_init.sh > /dev/null
@@ -304,111 +305,111 @@ test_basicconstraintschecker NIST-Test.4.16.2 EE $NIST TrustAnchorRootCertificat
 test_buildchain_uchecker NIST-Test.4.1.1-without-OID ENE - $NIST ValidCertificatePathTest1EE.crt GoodCACert.crt TrustAnchorRootCertificate.crt
 test_buildchain_uchecker NIST-Test.4.1.1-with-OID-without-forwardSupport ENE 2.5.29.19 $NIST ValidCertificatePathTest1EE.crt GoodCACert.crt TrustAnchorRootCertificate.crt
 test_buildchain_uchecker NIST-Test.4.1.1-with-OID-forwardSupport ENE F2.5.29.19 $NIST ValidCertificatePathTest1EE.crt GoodCACert.crt TrustAnchorRootCertificate.crt
-test_buildchain NIST-Test.4.1.1 ENE $NIST ValidCertificatePathTest1EE.crt GoodCACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.1.2 EE $NIST InvalidCASignatureTest2EE.crt BadSignedCACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.1.3 EE $NIST InvalidEESignatureTest3EE.crt GoodCACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.1.4 ENE $NIST ValidDSASignaturesTest4EE.crt DSACACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.1.5 ENE $NIST ValidDSAParameterInheritanceTest5EE.crt DSAParametersInheritedCACert.crt DSACACert.crt TrustAnchorRootCertificate.crt  
-test_buildchain NIST-Test.4.1.6 EE $NIST InvalidDSASignatureTest6EE.crt DSACACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.2.1 EE $NIST InvalidCAnotBeforeDateTest1EE.crt BadnotBeforeDateCACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.2.2 EE $NIST InvalidEEnotBeforeDateTest2EE.crt GoodCACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.2.3 ENE $NIST Validpre2000UTCnotBeforeDateTest3EE.crt GoodCACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.2.4 ENE $NIST ValidGeneralizedTimenotBeforeDateTest4EE.crt GoodCACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.2.5 EE $NIST InvalidCAnotAfterDateTest5EE.crt BadnotAfterDateCACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.2.6 EE $NIST InvalidEEnotAfterDateTest6EE.crt GoodCACert.crt TrustAnchorRootCertificate.crt
-test_buildchain NIST-Test.4.2.7 EE $NIST Invalidpre2000UTCEEnotAfterDateTest7EE.crt GoodCACert.crt TrustAnchorRootCertificate.crt
-test_buildchain NIST-Test.4.2.8 ENE $NIST ValidGeneralizedTimenotAfterDateTest8EE.crt GoodCACert.crt TrustAnchorRootCertificate.crt
-test_buildchain NIST-Test.4.3.1 EE $NIST InvalidNameChainingTest1EE.crt GoodCACert.crt TrustAnchorRootCertificate.crt
-test_buildchain NIST-Test.4.3.2 EE $NIST InvalidNameChainingOrderTest2EE.crt NameOrderingCACert.crt TrustAnchorRootCertificate.crt
-test_buildchain NIST-Test.4.3.3 ENE $NIST ValidNameChainingWhitespaceTest3EE.crt GoodCACert.crt TrustAnchorRootCertificate.crt
-test_buildchain NIST-Test.4.3.4 ENE $NIST ValidNameChainingWhitespaceTest4EE.crt GoodCACert.crt TrustAnchorRootCertificate.crt
-test_buildchain NIST-Test.4.3.5 ENE $NIST ValidNameChainingCapitalizationTest5EE.crt GoodCACert.crt TrustAnchorRootCertificate.crt
-test_buildchain NIST-Test.4.3.6 ENE $NIST ValidNameUIDsTest6EE.crt UIDCACert.crt TrustAnchorRootCertificate.crt
-test_buildchain NIST-Test.4.3.7 ENE $NIST ValidRFC3280MandatoryAttributeTypesTest7EE.crt RFC3280MandatoryAttributeTypesCACert.crt TrustAnchorRootCertificate.crt
-test_buildchain NIST-Test.4.3.9 ENE $NIST ValidUTF8StringEncodedNamesTest9EE.crt UTF8StringEncodedNamesCACert.crt TrustAnchorRootCertificate.crt
-test_buildchain NIST-Test.4.3.10 ENE $NIST ValidRolloverfromPrintableStringtoUTF8StringTest10EE.crt RolloverfromPrintableStringtoUTF8StringCACert.crt TrustAnchorRootCertificate.crt
-test_buildchain NIST-Test.4.3.11 ENE $NIST ValidUTF8StringCaseInsensitiveMatchTest11EE.crt UTF8StringCaseInsensitiveMatchCACert.crt TrustAnchorRootCertificate.crt
-test_buildchain NIST-Test.4.4.1 EE $NIST InvalidMissingCRLTest1EE.crt NoCRLCACert.crt TrustAnchorRootCertificate.crt
-test_buildchain NIST-Test.4.4.2 EE $NIST InvalidRevokedCATest2EE.crt RevokedsubCACert.crt GoodCACert.crt TrustAnchorRootCertificate.crt
-test_buildchain NIST-Test.4.4.3 EE $NIST InvalidRevokedEETest3EE.crt GoodCACert.crt TrustAnchorRootCertificate.crt
-test_buildchain NIST-Test.4.4.4 EE $NIST InvalidBadCRLSignatureTest4EE.crt BadSignedCACert.crt TrustAnchorRootCertificate.crt
-test_buildchain NIST-Test.4.4.5 EE $NIST InvalidBadCRLIssuerNameTest5EE.crt BadCRLIssuerNameCACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.4.6 EE $NIST InvalidWrongCRLTest6EE.crt WrongCRLCACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.4.7 ENE $NIST ValidTwoCRLsTest7EE.crt TwoCRLsCACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.4.8 EE $NIST InvalidUnknownCRLEntryExtensionTest8EE.crt UnknownCRLEntryExtensionCACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.4.9 EE $NIST InvalidUnknownCRLExtensionTest9EE.crt UnknownCRLExtensionCACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.4.10 EE $NIST InvalidUnknownCRLExtensionTest10EE.crt UnknownCRLExtensionCACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.4.11 EE $NIST InvalidOldCRLnextUpdateTest11EE.crt OldCRLnextUpdateCACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.4.12 EE $NIST Invalidpre2000CRLnextUpdateTest12EE.crt pre2000CRLnextUpdateCACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.4.13 ENE $NIST ValidGeneralizedTimeCRLnextUpdateTest13EE.crt GeneralizedTimeCRLnextUpdateCACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.4.14 ENE $NIST ValidNegativeSerialNumberTest14EE.crt NegativeSerialNumberCACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.4.15 EE $NIST InvalidNegativeSerialNumberTest15EE.crt NegativeSerialNumberCACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.4.16 ENE $NIST ValidLongSerialNumberTest16EE.crt LongSerialNumberCACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.4.17 ENE $NIST ValidLongSerialNumberTest17EE.crt LongSerialNumberCACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.4.18 EE $NIST InvalidLongSerialNumberTest18EE.crt LongSerialNumberCACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.4.20 EE $NIST InvalidSeparateCertificateandCRLKeysTest20EE.crt SeparateCertificateandCRLKeysCRLSigningCert.crt TrustAnchorRootCertificate.crt SeparateCertificateandCRLKeysCertificateSigningCACert.crt 
-test_buildchain NIST-Test.4.5.1 ENE $NIST ValidBasicSelfIssuedOldWithNewTest1EE.crt BasicSelfIssuedNewKeyOldWithNewCACert.crt BasicSelfIssuedNewKeyCACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.5.2 EE $NIST InvalidBasicSelfIssuedOldWithNewTest2EE.crt BasicSelfIssuedNewKeyOldWithNewCACert.crt BasicSelfIssuedNewKeyCACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.6.1 EE $NIST InvalidMissingbasicConstraintsTest1EE.crt MissingbasicConstraintsCACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.6.2 EE $NIST InvalidcAFalseTest2EE.crt basicConstraintsCriticalcAFalseCACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.6.3 EE $NIST InvalidcAFalseTest3EE.crt basicConstraintsNotCriticalcAFalseCACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.6.4 ENE $NIST ValidbasicConstraintsNotCriticalTest4EE.crt basicConstraintsNotCriticalCACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.6.5 EE $NIST InvalidpathLenConstraintTest5EE.crt pathLenConstraint0subCACert.crt pathLenConstraint0CACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.6.6 EE $NIST InvalidpathLenConstraintTest6EE.crt pathLenConstraint0subCACert.crt pathLenConstraint0CACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.6.7 ENE $NIST ValidpathLenConstraintTest7EE.crt pathLenConstraint0CACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.6.8 ENE $NIST ValidpathLenConstraintTest8EE.crt pathLenConstraint0CACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.6.9 EE $NIST InvalidpathLenConstraintTest9EE.crt pathLenConstraint6subCA0Cert.crt pathLenConstraint6subsubCA00Cert.crt pathLenConstraint6CACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.6.10 EE $NIST InvalidpathLenConstraintTest10EE.crt pathLenConstraint6subsubCA00Cert.crt pathLenConstraint6subCA0Cert.crt pathLenConstraint6CACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.6.11 EE $NIST InvalidpathLenConstraintTest11EE.crt pathLenConstraint6subsubsubCA11XCert.crt pathLenConstraint6subsubCA11Cert.crt pathLenConstraint6subCA1Cert.crt pathLenConstraint6CACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.6.12 EE $NIST InvalidpathLenConstraintTest12EE.crt pathLenConstraint6subsubsubCA11XCert.crt pathLenConstraint6subsubCA11Cert.crt pathLenConstraint6subCA1Cert.crt pathLenConstraint6CACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.6.13 ENE $NIST ValidpathLenConstraintTest13EE.crt pathLenConstraint6subsubsubCA41XCert.crt pathLenConstraint6subsubCA41Cert.crt pathLenConstraint6subCA4Cert.crt pathLenConstraint6CACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.6.14 ENE $NIST ValidpathLenConstraintTest14EE.crt pathLenConstraint6subsubsubCA41XCert.crt pathLenConstraint6subsubCA41Cert.crt pathLenConstraint6subCA4Cert.crt pathLenConstraint6CACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.6.15 ENE $NIST ValidSelfIssuedpathLenConstraintTest15EE.crt pathLenConstraint0SelfIssuedCACert.crt pathLenConstraint0CACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.6.16 EE $NIST InvalidSelfIssuedpathLenConstraintTest16EE.crt pathLenConstraint0subCA2Cert.crt pathLenConstraint0SelfIssuedCACert.crt pathLenConstraint0CACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.6.17 ENE $NIST ValidSelfIssuedpathLenConstraintTest17EE.crt pathLenConstraint1SelfIssuedsubCACert.crt pathLenConstraint1subCACert.crt pathLenConstraint1SelfIssuedCACert.crt pathLenConstraint1CACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.7.1 EE $NIST InvalidkeyUsageCriticalkeyCertSignFalseTest1EE.crt keyUsageCriticalkeyCertSignFalseCACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.7.2 EE $NIST InvalidkeyUsageNotCriticalkeyCertSignFalseTest2EE.crt keyUsageNotCriticalkeyCertSignFalseCACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.7.3 ENE $NIST ValidkeyUsageNotCriticalTest3EE.crt keyUsageNotCriticalCACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.7.4 EE $NIST InvalidkeyUsageCriticalcRLSignFalseTest4EE.crt keyUsageCriticalcRLSignFalseCACert.crt TrustAnchorRootCertificate.crt  
-test_buildchain NIST-Test.4.7.5 EE $NIST InvalidkeyUsageNotCriticalcRLSignFalseTest5EE.crt keyUsageNotCriticalcRLSignFalseCACert.crt TrustAnchorRootCertificate.crt  
-test_buildchain NIST-Test.4.13.1 ENE $NIST ValidDNnameConstraintsTest1EE.crt nameConstraintsDN1CACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.13.2 EE $NIST InvalidDNnameConstraintsTest2EE.crt nameConstraintsDN1CACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.13.3 EE $NIST InvalidDNnameConstraintsTest3EE.crt nameConstraintsDN1CACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.13.4 ENE $NIST ValidDNnameConstraintsTest4EE.crt nameConstraintsDN1CACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.13.5 ENE $NIST ValidDNnameConstraintsTest5EE.crt nameConstraintsDN2CACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.13.6 ENE $NIST ValidDNnameConstraintsTest6EE.crt nameConstraintsDN3CACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.13.7 EE $NIST InvalidDNnameConstraintsTest7EE.crt nameConstraintsDN3CACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.13.8 EE $NIST InvalidDNnameConstraintsTest8EE.crt nameConstraintsDN4CACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.13.9 EE $NIST InvalidDNnameConstraintsTest9EE.crt nameConstraintsDN4CACert.crt nameConstraintsDN4CACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.13.10 EE $NIST InvalidDNnameConstraintsTest10EE.crt nameConstraintsDN5CACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.13.11 ENE $NIST ValidDNnameConstraintsTest11EE.crt nameConstraintsDN5CACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.13.12 EE $NIST InvalidDNnameConstraintsTest12EE.crt nameConstraintsDN1subCA1Cert.crt nameConstraintsDN1CACert.crt TrustAnchorRootCertificate.crt
-test_buildchain NIST-Test.4.13.13 EE $NIST InvalidDNnameConstraintsTest13EE.crt nameConstraintsDN1subCA2Cert.crt nameConstraintsDN1subCA2Cert.crt nameConstraintsDN1CACert.crt TrustAnchorRootCertificate.crt
-test_buildchain NIST-Test.4.13.14 ENE $NIST ValidDNnameConstraintsTest14EE.crt  nameConstraintsDN1subCA2Cert.crt nameConstraintsDN1CACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.13.15 EE $NIST InvalidDNnameConstraintsTest15EE.crt nameConstraintsDN3subCA1Cert.crt nameConstraintsDN3CACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.13.16 EE $NIST InvalidDNnameConstraintsTest16EE.crt nameConstraintsDN3subCA1Cert.crt nameConstraintsDN3CACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.13.17 EE $NIST InvalidDNnameConstraintsTest17EE.crt nameConstraintsDN3subCA2Cert.crt nameConstraintsDN3CACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.13.18 ENE $NIST ValidDNnameConstraintsTest18EE.crt nameConstraintsDN3subCA2Cert.crt nameConstraintsDN3CACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.13.19 ENE $NIST ValidDNnameConstraintsTest19EE.crt nameConstraintsDN1SelfIssuedCACert.crt nameConstraintsDN1CACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.13.20 EE $NIST InvalidDNnameConstraintsTest20EE.crt nameConstraintsDN1CACert.crt TrustAnchorRootCertificate.crt
-test_buildchain NIST-Test.4.13.21 ENE $NIST ValidRFC822nameConstraintsTest21EE.crt nameConstraintsRFC822CA1Cert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.13.22 EE $NIST InvalidRFC822nameConstraintsTest22EE.crt nameConstraintsRFC822CA1Cert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.13.23 ENE $NIST ValidRFC822nameConstraintsTest23EE.crt nameConstraintsRFC822CA2Cert.crt  TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.13.24 EE $NIST InvalidRFC822nameConstraintsTest24EE.crt nameConstraintsRFC822CA2Cert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.13.25 ENE $NIST ValidRFC822nameConstraintsTest25EE.crt nameConstraintsRFC822CA3Cert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.13.26 EE $NIST InvalidRFC822nameConstraintsTest26EE.crt nameConstraintsRFC822CA3Cert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.13.27 ENE $NIST ValidDNandRFC822nameConstraintsTest27EE.crt nameConstraintsDN1subCA3Cert.crt nameConstraintsDN1CACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.13.28 EE $NIST InvalidDNandRFC822nameConstraintsTest28EE.crt nameConstraintsDN1subCA3Cert.crt nameConstraintsDN1CACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.13.29 EE $NIST InvalidDNandRFC822nameConstraintsTest29EE.crt nameConstraintsDN1subCA3Cert.crt nameConstraintsDN1CACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.13.30 ENE $NIST ValidDNSnameConstraintsTest30EE.crt nameConstraintsDNS1CACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.13.31 EE $NIST InvalidDNSnameConstraintsTest31EE.crt nameConstraintsDNS1CACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.13.32 ENE $NIST ValidDNSnameConstraintsTest32EE.crt nameConstraintsDNS2CACert.crt TrustAnchorRootCertificate.crt
-test_buildchain NIST-Test.4.13.33 EE $NIST InvalidDNSnameConstraintsTest33EE.crt nameConstraintsDNS2CACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.13.34 ENE $NIST ValidURInameConstraintsTest34EE.crt nameConstraintsURI1CACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.13.35 EE $NIST InvalidURInameConstraintsTest35EE.crt nameConstraintsURI1CACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.13.36 ENE $NIST ValidURInameConstraintsTest36EE.crt nameConstraintsURI2CACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.13.37 EE $NIST InvalidURInameConstraintsTest37EE.crt nameConstraintsURI2CACert.crt TrustAnchorRootCertificate.crt 
-test_buildchain NIST-Test.4.13.38 EE $NIST InvalidDNSnameConstraintsTest38EE.crt nameConstraintsDNS1CACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.1.1 ENE $NIST ValidCertificatePathTest1EE.crt GoodCACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.1.2 EE $NIST InvalidCASignatureTest2EE.crt BadSignedCACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.1.3 EE $NIST InvalidEESignatureTest3EE.crt GoodCACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.1.4 ENE $NIST ValidDSASignaturesTest4EE.crt DSACACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.1.5 ENE $NIST ValidDSAParameterInheritanceTest5EE.crt DSAParametersInheritedCACert.crt DSACACert.crt TrustAnchorRootCertificate.crt  
+test_buildchain ${LDAP}  NIST-Test.4.1.6 EE $NIST InvalidDSASignatureTest6EE.crt DSACACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.2.1 EE $NIST InvalidCAnotBeforeDateTest1EE.crt BadnotBeforeDateCACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.2.2 EE $NIST InvalidEEnotBeforeDateTest2EE.crt GoodCACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.2.3 ENE $NIST Validpre2000UTCnotBeforeDateTest3EE.crt GoodCACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.2.4 ENE $NIST ValidGeneralizedTimenotBeforeDateTest4EE.crt GoodCACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.2.5 EE $NIST InvalidCAnotAfterDateTest5EE.crt BadnotAfterDateCACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.2.6 EE $NIST InvalidEEnotAfterDateTest6EE.crt GoodCACert.crt TrustAnchorRootCertificate.crt
+test_buildchain ${LDAP}  NIST-Test.4.2.7 EE $NIST Invalidpre2000UTCEEnotAfterDateTest7EE.crt GoodCACert.crt TrustAnchorRootCertificate.crt
+test_buildchain ${LDAP}  NIST-Test.4.2.8 ENE $NIST ValidGeneralizedTimenotAfterDateTest8EE.crt GoodCACert.crt TrustAnchorRootCertificate.crt
+test_buildchain ${LDAP}  NIST-Test.4.3.1 EE $NIST InvalidNameChainingTest1EE.crt GoodCACert.crt TrustAnchorRootCertificate.crt
+test_buildchain ${LDAP}  NIST-Test.4.3.2 EE $NIST InvalidNameChainingOrderTest2EE.crt NameOrderingCACert.crt TrustAnchorRootCertificate.crt
+test_buildchain ${LDAP}  NIST-Test.4.3.3 ENE $NIST ValidNameChainingWhitespaceTest3EE.crt GoodCACert.crt TrustAnchorRootCertificate.crt
+test_buildchain ${LDAP}  NIST-Test.4.3.4 ENE $NIST ValidNameChainingWhitespaceTest4EE.crt GoodCACert.crt TrustAnchorRootCertificate.crt
+test_buildchain ${LDAP}  NIST-Test.4.3.5 ENE $NIST ValidNameChainingCapitalizationTest5EE.crt GoodCACert.crt TrustAnchorRootCertificate.crt
+test_buildchain ${LDAP}  NIST-Test.4.3.6 ENE $NIST ValidNameUIDsTest6EE.crt UIDCACert.crt TrustAnchorRootCertificate.crt
+test_buildchain ${LDAP}  NIST-Test.4.3.7 ENE $NIST ValidRFC3280MandatoryAttributeTypesTest7EE.crt RFC3280MandatoryAttributeTypesCACert.crt TrustAnchorRootCertificate.crt
+test_buildchain ${LDAP}  NIST-Test.4.3.9 ENE $NIST ValidUTF8StringEncodedNamesTest9EE.crt UTF8StringEncodedNamesCACert.crt TrustAnchorRootCertificate.crt
+test_buildchain ${LDAP}  NIST-Test.4.3.10 ENE $NIST ValidRolloverfromPrintableStringtoUTF8StringTest10EE.crt RolloverfromPrintableStringtoUTF8StringCACert.crt TrustAnchorRootCertificate.crt
+test_buildchain ${LDAP}  NIST-Test.4.3.11 ENE $NIST ValidUTF8StringCaseInsensitiveMatchTest11EE.crt UTF8StringCaseInsensitiveMatchCACert.crt TrustAnchorRootCertificate.crt
+test_buildchain ${LDAP}  NIST-Test.4.4.1 EE $NIST InvalidMissingCRLTest1EE.crt NoCRLCACert.crt TrustAnchorRootCertificate.crt
+test_buildchain ${LDAP}  NIST-Test.4.4.2 EE $NIST InvalidRevokedCATest2EE.crt RevokedsubCACert.crt GoodCACert.crt TrustAnchorRootCertificate.crt
+test_buildchain ${LDAP}  NIST-Test.4.4.3 EE $NIST InvalidRevokedEETest3EE.crt GoodCACert.crt TrustAnchorRootCertificate.crt
+test_buildchain ${LDAP}  NIST-Test.4.4.4 EE $NIST InvalidBadCRLSignatureTest4EE.crt BadSignedCACert.crt TrustAnchorRootCertificate.crt
+test_buildchain ${LDAP}  NIST-Test.4.4.5 EE $NIST InvalidBadCRLIssuerNameTest5EE.crt BadCRLIssuerNameCACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.4.6 EE $NIST InvalidWrongCRLTest6EE.crt WrongCRLCACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.4.7 ENE $NIST ValidTwoCRLsTest7EE.crt TwoCRLsCACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.4.8 EE $NIST InvalidUnknownCRLEntryExtensionTest8EE.crt UnknownCRLEntryExtensionCACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.4.9 EE $NIST InvalidUnknownCRLExtensionTest9EE.crt UnknownCRLExtensionCACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.4.10 EE $NIST InvalidUnknownCRLExtensionTest10EE.crt UnknownCRLExtensionCACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.4.11 EE $NIST InvalidOldCRLnextUpdateTest11EE.crt OldCRLnextUpdateCACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.4.12 EE $NIST Invalidpre2000CRLnextUpdateTest12EE.crt pre2000CRLnextUpdateCACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.4.13 ENE $NIST ValidGeneralizedTimeCRLnextUpdateTest13EE.crt GeneralizedTimeCRLnextUpdateCACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.4.14 ENE $NIST ValidNegativeSerialNumberTest14EE.crt NegativeSerialNumberCACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.4.15 EE $NIST InvalidNegativeSerialNumberTest15EE.crt NegativeSerialNumberCACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.4.16 ENE $NIST ValidLongSerialNumberTest16EE.crt LongSerialNumberCACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.4.17 ENE $NIST ValidLongSerialNumberTest17EE.crt LongSerialNumberCACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.4.18 EE $NIST InvalidLongSerialNumberTest18EE.crt LongSerialNumberCACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.4.20 EE $NIST InvalidSeparateCertificateandCRLKeysTest20EE.crt SeparateCertificateandCRLKeysCRLSigningCert.crt TrustAnchorRootCertificate.crt SeparateCertificateandCRLKeysCertificateSigningCACert.crt 
+test_buildchain ${LDAP}  NIST-Test.4.5.1 ENE $NIST ValidBasicSelfIssuedOldWithNewTest1EE.crt BasicSelfIssuedNewKeyOldWithNewCACert.crt BasicSelfIssuedNewKeyCACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.5.2 EE $NIST InvalidBasicSelfIssuedOldWithNewTest2EE.crt BasicSelfIssuedNewKeyOldWithNewCACert.crt BasicSelfIssuedNewKeyCACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.6.1 EE $NIST InvalidMissingbasicConstraintsTest1EE.crt MissingbasicConstraintsCACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.6.2 EE $NIST InvalidcAFalseTest2EE.crt basicConstraintsCriticalcAFalseCACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.6.3 EE $NIST InvalidcAFalseTest3EE.crt basicConstraintsNotCriticalcAFalseCACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.6.4 ENE $NIST ValidbasicConstraintsNotCriticalTest4EE.crt basicConstraintsNotCriticalCACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.6.5 EE $NIST InvalidpathLenConstraintTest5EE.crt pathLenConstraint0subCACert.crt pathLenConstraint0CACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.6.6 EE $NIST InvalidpathLenConstraintTest6EE.crt pathLenConstraint0subCACert.crt pathLenConstraint0CACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.6.7 ENE $NIST ValidpathLenConstraintTest7EE.crt pathLenConstraint0CACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.6.8 ENE $NIST ValidpathLenConstraintTest8EE.crt pathLenConstraint0CACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.6.9 EE $NIST InvalidpathLenConstraintTest9EE.crt pathLenConstraint6subCA0Cert.crt pathLenConstraint6subsubCA00Cert.crt pathLenConstraint6CACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.6.10 EE $NIST InvalidpathLenConstraintTest10EE.crt pathLenConstraint6subsubCA00Cert.crt pathLenConstraint6subCA0Cert.crt pathLenConstraint6CACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.6.11 EE $NIST InvalidpathLenConstraintTest11EE.crt pathLenConstraint6subsubsubCA11XCert.crt pathLenConstraint6subsubCA11Cert.crt pathLenConstraint6subCA1Cert.crt pathLenConstraint6CACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.6.12 EE $NIST InvalidpathLenConstraintTest12EE.crt pathLenConstraint6subsubsubCA11XCert.crt pathLenConstraint6subsubCA11Cert.crt pathLenConstraint6subCA1Cert.crt pathLenConstraint6CACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.6.13 ENE $NIST ValidpathLenConstraintTest13EE.crt pathLenConstraint6subsubsubCA41XCert.crt pathLenConstraint6subsubCA41Cert.crt pathLenConstraint6subCA4Cert.crt pathLenConstraint6CACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.6.14 ENE $NIST ValidpathLenConstraintTest14EE.crt pathLenConstraint6subsubsubCA41XCert.crt pathLenConstraint6subsubCA41Cert.crt pathLenConstraint6subCA4Cert.crt pathLenConstraint6CACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.6.15 ENE $NIST ValidSelfIssuedpathLenConstraintTest15EE.crt pathLenConstraint0SelfIssuedCACert.crt pathLenConstraint0CACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.6.16 EE $NIST InvalidSelfIssuedpathLenConstraintTest16EE.crt pathLenConstraint0subCA2Cert.crt pathLenConstraint0SelfIssuedCACert.crt pathLenConstraint0CACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.6.17 ENE $NIST ValidSelfIssuedpathLenConstraintTest17EE.crt pathLenConstraint1SelfIssuedsubCACert.crt pathLenConstraint1subCACert.crt pathLenConstraint1SelfIssuedCACert.crt pathLenConstraint1CACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.7.1 EE $NIST InvalidkeyUsageCriticalkeyCertSignFalseTest1EE.crt keyUsageCriticalkeyCertSignFalseCACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.7.2 EE $NIST InvalidkeyUsageNotCriticalkeyCertSignFalseTest2EE.crt keyUsageNotCriticalkeyCertSignFalseCACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.7.3 ENE $NIST ValidkeyUsageNotCriticalTest3EE.crt keyUsageNotCriticalCACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.7.4 EE $NIST InvalidkeyUsageCriticalcRLSignFalseTest4EE.crt keyUsageCriticalcRLSignFalseCACert.crt TrustAnchorRootCertificate.crt  
+test_buildchain ${LDAP}  NIST-Test.4.7.5 EE $NIST InvalidkeyUsageNotCriticalcRLSignFalseTest5EE.crt keyUsageNotCriticalcRLSignFalseCACert.crt TrustAnchorRootCertificate.crt  
+test_buildchain ${LDAP}  NIST-Test.4.13.1 ENE $NIST ValidDNnameConstraintsTest1EE.crt nameConstraintsDN1CACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.13.2 EE $NIST InvalidDNnameConstraintsTest2EE.crt nameConstraintsDN1CACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.13.3 EE $NIST InvalidDNnameConstraintsTest3EE.crt nameConstraintsDN1CACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.13.4 ENE $NIST ValidDNnameConstraintsTest4EE.crt nameConstraintsDN1CACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.13.5 ENE $NIST ValidDNnameConstraintsTest5EE.crt nameConstraintsDN2CACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.13.6 ENE $NIST ValidDNnameConstraintsTest6EE.crt nameConstraintsDN3CACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.13.7 EE $NIST InvalidDNnameConstraintsTest7EE.crt nameConstraintsDN3CACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.13.8 EE $NIST InvalidDNnameConstraintsTest8EE.crt nameConstraintsDN4CACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.13.9 EE $NIST InvalidDNnameConstraintsTest9EE.crt nameConstraintsDN4CACert.crt nameConstraintsDN4CACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.13.10 EE $NIST InvalidDNnameConstraintsTest10EE.crt nameConstraintsDN5CACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.13.11 ENE $NIST ValidDNnameConstraintsTest11EE.crt nameConstraintsDN5CACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.13.12 EE $NIST InvalidDNnameConstraintsTest12EE.crt nameConstraintsDN1subCA1Cert.crt nameConstraintsDN1CACert.crt TrustAnchorRootCertificate.crt
+test_buildchain ${LDAP}  NIST-Test.4.13.13 EE $NIST InvalidDNnameConstraintsTest13EE.crt nameConstraintsDN1subCA2Cert.crt nameConstraintsDN1subCA2Cert.crt nameConstraintsDN1CACert.crt TrustAnchorRootCertificate.crt
+test_buildchain ${LDAP}  NIST-Test.4.13.14 ENE $NIST ValidDNnameConstraintsTest14EE.crt  nameConstraintsDN1subCA2Cert.crt nameConstraintsDN1CACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.13.15 EE $NIST InvalidDNnameConstraintsTest15EE.crt nameConstraintsDN3subCA1Cert.crt nameConstraintsDN3CACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.13.16 EE $NIST InvalidDNnameConstraintsTest16EE.crt nameConstraintsDN3subCA1Cert.crt nameConstraintsDN3CACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.13.17 EE $NIST InvalidDNnameConstraintsTest17EE.crt nameConstraintsDN3subCA2Cert.crt nameConstraintsDN3CACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.13.18 ENE $NIST ValidDNnameConstraintsTest18EE.crt nameConstraintsDN3subCA2Cert.crt nameConstraintsDN3CACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.13.19 ENE $NIST ValidDNnameConstraintsTest19EE.crt nameConstraintsDN1SelfIssuedCACert.crt nameConstraintsDN1CACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.13.20 EE $NIST InvalidDNnameConstraintsTest20EE.crt nameConstraintsDN1CACert.crt TrustAnchorRootCertificate.crt
+test_buildchain ${LDAP}  NIST-Test.4.13.21 ENE $NIST ValidRFC822nameConstraintsTest21EE.crt nameConstraintsRFC822CA1Cert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.13.22 EE $NIST InvalidRFC822nameConstraintsTest22EE.crt nameConstraintsRFC822CA1Cert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.13.23 ENE $NIST ValidRFC822nameConstraintsTest23EE.crt nameConstraintsRFC822CA2Cert.crt  TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.13.24 EE $NIST InvalidRFC822nameConstraintsTest24EE.crt nameConstraintsRFC822CA2Cert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.13.25 ENE $NIST ValidRFC822nameConstraintsTest25EE.crt nameConstraintsRFC822CA3Cert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.13.26 EE $NIST InvalidRFC822nameConstraintsTest26EE.crt nameConstraintsRFC822CA3Cert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.13.27 ENE $NIST ValidDNandRFC822nameConstraintsTest27EE.crt nameConstraintsDN1subCA3Cert.crt nameConstraintsDN1CACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.13.28 EE $NIST InvalidDNandRFC822nameConstraintsTest28EE.crt nameConstraintsDN1subCA3Cert.crt nameConstraintsDN1CACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.13.29 EE $NIST InvalidDNandRFC822nameConstraintsTest29EE.crt nameConstraintsDN1subCA3Cert.crt nameConstraintsDN1CACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.13.30 ENE $NIST ValidDNSnameConstraintsTest30EE.crt nameConstraintsDNS1CACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.13.31 EE $NIST InvalidDNSnameConstraintsTest31EE.crt nameConstraintsDNS1CACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.13.32 ENE $NIST ValidDNSnameConstraintsTest32EE.crt nameConstraintsDNS2CACert.crt TrustAnchorRootCertificate.crt
+test_buildchain ${LDAP}  NIST-Test.4.13.33 EE $NIST InvalidDNSnameConstraintsTest33EE.crt nameConstraintsDNS2CACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.13.34 ENE $NIST ValidURInameConstraintsTest34EE.crt nameConstraintsURI1CACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.13.35 EE $NIST InvalidURInameConstraintsTest35EE.crt nameConstraintsURI1CACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.13.36 ENE $NIST ValidURInameConstraintsTest36EE.crt nameConstraintsURI2CACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.13.37 EE $NIST InvalidURInameConstraintsTest37EE.crt nameConstraintsURI2CACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain ${LDAP}  NIST-Test.4.13.38 EE $NIST InvalidDNSnameConstraintsTest38EE.crt nameConstraintsDNS1CACert.crt TrustAnchorRootCertificate.crt 
 EOF
 
 totalErrors=$?

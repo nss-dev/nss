@@ -62,6 +62,12 @@ struct pkix_DefaultCRLCheckerState {
         PKIX_UInt32 reasonCodeMask;
         PKIX_UInt32 certsRemaining;
         PKIX_PL_OID *crlReasonCodeOID;
+
+        PKIX_PL_X500Name *certIssuer;
+        PKIX_PL_BigInt *certSerialNumber;
+        PKIX_CRLSelector *crlSelector;
+        PKIX_UInt32 crlStoreIndex;
+        PKIX_UInt32 numCrlStores;
 };
 
 PKIX_Error *
@@ -80,6 +86,14 @@ pkix_DefaultCRLChecker_Check_Helper(
         PKIX_PL_PublicKey *prevPublicKey,
         pkix_DefaultCRLCheckerState *state,
         PKIX_List *unresolvedCriticalExtensions,
+        PKIX_Boolean useOnlyLocal,
+        PKIX_Boolean *pFinished,
+        void *plContext);
+
+PKIX_Error *
+pkix_DefaultCRLChecker_Check_SetSelector(
+        PKIX_PL_Cert *cert,
+        pkix_DefaultCRLCheckerState *state,
         void *plContext);
 
 PKIX_Error *

@@ -678,6 +678,8 @@ PKIX_PL_Pk11CertStore_Create(
                 NULL,
                 PKIX_TRUE, /* cache flag */
                 pkix_pl_Pk11CertStore_CheckTrust,
+                PKIX_FALSE, /* does not support non-blocking I/O */
+                PKIX_TRUE, /* local - no network I/O */
                 &certStore,
                 plContext),
                 "PKIX_CertStore_Create failed");

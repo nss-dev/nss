@@ -308,6 +308,8 @@ testCustomCertStore(PKIX_ValidateParams *valParams)
                                     (PKIX_PL_Object *)crlSelector, /* fake */
                                     PKIX_TRUE,
                                     NULL,
+                                    PKIX_FALSE,
+                                    PKIX_TRUE,
                                     &certStore,
                                     plContext));
 

@@ -125,7 +125,9 @@ extern "C" {
  *  all the certificates that match the CertSelector pointed to by "selector".
  *  It places these certificates in a List and stores a pointer to the List at
  *  "pCerts". If no certificates are found which match the CertSelector's
- *  criteria, this function stores an empty List at "pCerts".
+ *  criteria, this function stores an empty List at "pCerts". A CertStore which
+ *  uses non-blocking I/O may store NULL at "pCerts" to indicate that I/O is
+ *  pending. A subsequent call is required to obtain the List of Certs.
  *
  *  Note that the List returned by this function is immutable.
  *
@@ -201,7 +203,9 @@ typedef PKIX_Error *
  *  all the CRLs that match the CRLSelector pointed to by "selector". It
  *  places these CRLs in a List and stores a pointer to the List at "pCRLs".
  *  If no CRLs are found which match the CRLSelector's criteria, this function
- *  stores an empty List at "pCRLs".
+ *  stores an empty List at "pCRLs". A CertStore which uses non-blocking I/O may
+ *  store NULL at "pCRLs" to indicate that I/O is pending. A subsequent call is
+ *  required to obtain the resulting List of CRLs.
  *
  *  Note that the List returned by this function is immutable.
  *
@@ -261,6 +265,10 @@ typedef PKIX_Error *
  *  "trustCallback"
  *      Address of PKIX_CertStore_CheckTrustCallback which is called to
  *      verify the trust status of Certs in this CertStore.
+ *  "NBIOFlag"
+ *      Boolean value indicating whether this CertStore uses non-blocking I/O.
+ *  "localFlag"
+ *      Boolean value indicating whether this CertStore is local.
  *  "pStore"
  *      Address where object pointer will be stored. Must be non-NULL.
  *  "plContext"
@@ -279,6 +287,8 @@ PKIX_CertStore_Create(
         PKIX_PL_Object *certStoreContext,
         PKIX_Boolean cachedFlag,
         PKIX_CertStore_CheckTrustCallback trustCallback,
+        PKIX_Boolean NBIOFlag,
+        PKIX_Boolean localFlag,
         PKIX_CertStore **pStore,
         void *plContext);
 
@@ -301,7 +311,6 @@ PKIX_CertStore_Create(
  *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
  * RETURNS:
  *  Returns NULL if the function succeeds.
- *  Returns a CertStore Error if the function fails in a non-fatal way.
  *  Returns a Fatal Error if the function fails in an unrecoverable way.
  */
 PKIX_Error *
@@ -329,7 +338,6 @@ PKIX_CertStore_GetCertCallback(
  *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
  * RETURNS:
  *  Returns NULL if the function succeeds.
- *  Returns a CertStore Error if the function fails in a non-fatal way.
  *  Returns a Fatal Error if the function fails in an unrecoverable way.
  */
 PKIX_Error *
@@ -357,7 +365,6 @@ PKIX_CertStore_GetCRLCallback(
  *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
  * RETURNS:
  *  Returns NULL if the function succeeds.
- *  Returns a CertStore Error if the function fails in a non-fatal way.
  *  Returns a Fatal Error if the function fails in an unrecoverable way.
  */
 PKIX_Error *
@@ -370,21 +377,20 @@ PKIX_CertStore_GetCertStoreContext(
  * FUNCTION: PKIX_CertStore_GetCertStoreCacheFlag
  * DESCRIPTION:
  *
- *  Retrieves a Boolean representing the cache flag of the CertStore pointed
- *  to by "store" and stores it at "pCachedFlag".
+ *  Retrieves the Boolean cache flag of the CertStore pointed to by "store" and
+ *  stores it at "pCachedFlag".
  *
  * PARAMETERS:
  *  "store"
- *      Address of CertStore whose context is to be stored. Must be non-NULL.
- *  "pCacheFalg"
- *      Address where a boolean will be stored. Must be non-NULL.
+ *      Address of CertStore whose cache flag is to be stored. Must be non-NULL.
+ *  "pCacheFlag"
+ *      Address where the result will be stored. Must be non-NULL.
  *  "plContext"
  *      Platform-specific context pointer.
  * THREAD SAFETY:
  *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
  * RETURNS:
  *  Returns NULL if the function succeeds.
- *  Returns a CertStore Error if the function fails in a non-fatal way.
  *  Returns a Fatal Error if the function fails in an unrecoverable way.
  */
 PKIX_Error *
@@ -397,12 +403,12 @@ PKIX_CertStore_GetCertStoreCacheFlag(
  * FUNCTION: PKIX_CertStore_GetTrustCallback
  * DESCRIPTION:
  *
- *  Retrieves a pointer to "store's" CheckTrust callback function and
- *  put it in "pCallback".
+ *  Retrieves the function pointer to the CheckTrust callback function of the
+ *  CertStore pointed to by "store" and stores it at "pCallback".
  *
  * PARAMETERS:
  *  "store"
- *      The CertStore whose Cert callback is desired. Must be non-NULL.
+ *      The CertStore whose CheckTrust callback is desired. Must be non-NULL.
  *  "pCallback"
  *      Address where CheckTrust callback function pointer will be stored.
  *      Must be non-NULL.
@@ -412,13 +418,65 @@ PKIX_CertStore_GetCertStoreCacheFlag(
  *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
  * RETURNS:
  *  Returns NULL if the function succeeds.
- *  Returns a CertStore Error if the function fails in a non-fatal way.
  *  Returns a Fatal Error if the function fails in an unrecoverable way.
  */
 PKIX_Error *
 PKIX_CertStore_GetTrustCallback(
         PKIX_CertStore *store,
         PKIX_CertStore_CheckTrustCallback *pCallback,
+        void *plContext);
+
+/*
+ * FUNCTION: PKIX_CertStore_GetNBIOFlag
+ * DESCRIPTION:
+ *
+ *  Retrieves the Boolean non-blocking I/O (NBIO) flag for the CertStore pointed
+ *  to by "store" and stores it at "pNBIOFlag".
+ *
+ * PARAMETERS:
+ *  "store"
+ *      The CertStore whose NBIO flag is desired. Must be non-NULL.
+ *  "pCallback"
+ *      Address where the Boolean NBIOFlag will be stored. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_CertStore_GetNBIOFlag(
+        PKIX_CertStore *store,
+        PKIX_Boolean *pNBIOFlag,
+        void *plContext);
+
+/*
+ * FUNCTION: PKIX_CertStore_GetLocalFlag
+ * DESCRIPTION:
+ *
+ *  Retrieves the Boolean localFlag for the CertStore pointed to by "store" and
+ *  stores it at "pLocalFlag". The localFlag is TRUE if the CertStore can
+ *  fulfill a request without performing network I/O.
+ *
+ * PARAMETERS:
+ *  "store"
+ *      The CertStore whose Local flag is desired. Must be non-NULL.
+ *  "pCallback"
+ *      Address where the Boolean LocalFlag will be stored. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_CertStore_GetLocalFlag(
+        PKIX_CertStore *store,
+        PKIX_Boolean *pLocalFlag,
         void *plContext);
 
 #ifdef __cplusplus

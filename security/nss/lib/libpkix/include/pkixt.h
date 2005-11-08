@@ -113,6 +113,7 @@ typedef struct PKIX_TrustAnchorStruct PKIX_TrustAnchor;
 typedef struct PKIX_PolicyNodeStruct PKIX_PolicyNode;
 typedef struct PKIX_LoggerStruct PKIX_Logger;
 typedef struct PKIX_ListStruct PKIX_List;
+typedef struct PKIX_ForwardBuilderStateStruct PKIX_ForwardBuilderState;
 
 /* Portability Layer (PL) data types
  *

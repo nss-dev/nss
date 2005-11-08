@@ -1307,6 +1307,8 @@ PKIX_PL_CollectionCertStore_Create(
                     (PKIX_PL_Object *)colCertStoreContext,
                     PKIX_TRUE, /* cache flag */
                     pkix_pl_CollectionCertStore_CheckTrust,
+                    PKIX_FALSE, /* don't support non-blocking I/O */
+                    PKIX_TRUE, /* local - no network I/O */
                     &certStore,
                     plContext),
                     "PKIX_CertStore_Create failed");
