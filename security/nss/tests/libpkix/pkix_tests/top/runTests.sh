@@ -1,4 +1,4 @@
-#! /bin/ksh
+#!/bin/sh
 # 
 # ***** BEGIN LICENSE BLOCK *****
 # Version: MPL 1.1/GPL 2.0/LGPL 2.1
@@ -52,14 +52,14 @@ linkMStoreNistFiles="store1/TrustAnchorRootCRL.crl
     store2/TwoCRLsCAGoodCRL.crl"
 
 if [ ! -z "${NIST_FILES_DIR}" ] ; then
-    if [[ -d ./rev_data/multiple_certstores ]]; then
+    if [ -d ./rev_data/multiple_certstores ]; then
         rm -fr ./rev_data/multiple_certstores
     fi
     mkdir ./rev_data/multiple_certstores
     mkdir ./rev_data/multiple_certstores/store1
     mkdir ./rev_data/multiple_certstores/store2
     for i in ${linkMStoreNistFiles}; do
-        if [[ -f ./rev_data/multiple_certstores/$i ]]; then
+        if [ -f ./rev_data/multiple_certstores/$i ]; then
             rm ./rev_data/multiple_certstores/$i
         fi
         fname=`basename $i`
@@ -74,8 +74,8 @@ fi
 
 ParseArgs $*
 
-echo "\n#    ENE = expect no error (validation should succeed)"
-echo "#    EE = expect error (validation should fail)\n"
+Display "\n#    ENE = expect no error (validation should succeed)"
+Display "#    EE = expect error (validation should fail)\n"
 
 RunTests <<EOF
 test_basicchecker
@@ -412,7 +412,7 @@ test_buildchain NIST-Test.4.13.38 EE $NIST InvalidDNSnameConstraintsTest38EE.crt
 EOF
 
 totalErrors=$?
-return ${totalErrors}
+exit ${totalErrors}
 
 ##########################################################
 #

@@ -1,4 +1,4 @@
-#! /bin/ksh
+#!/bin/sh
 # 
 # ***** BEGIN LICENSE BLOCK *****
 # Version: MPL 1.1/GPL 2.0/LGPL 2.1
@@ -63,10 +63,10 @@ fi
 # at the command option so if there is no NIST Path Discovery files
 # installed in the system, the test can be skipped
 #
+if [ ${doPD} -eq 1 -a -z "${PDVAL}" ] ; then
 
-if [[ -z "${PDVAL}" && ${doPD} -eq 1 ]] ; then
     Display "\n*******************************************************************************"
-    Display "PDVAL is not set, therefore some tests sre skipped"
+    Display "PDVAL is not set, therefore some tests are skipped"
     Display "Set PDVAL to top directory of where NIST Path Discovery"
     Display "Certificates located to enable tests at this directory"
     Display "*******************************************************************************\n"

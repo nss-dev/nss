@@ -1,4 +1,4 @@
-#! /bin/ksh
+#!/bin/sh
 # 
 # ***** BEGIN LICENSE BLOCK *****
 # Version: MPL 1.1/GPL 2.0/LGPL 2.1
@@ -46,17 +46,19 @@
 trap 'Cleanup' EXIT
 
 result=1
-checkMem=0
+checkmem=0
 arenas=0
+quiet=0
 
-doNist=1
+doNIST=1
+doNIST_PDTest=0
 doPD=0
 doTop=0
 doModule=0
 doPki=0
 
-typeset -i combinedErrors=0
-typeset -i totalErrors=0
+combinedErrors=0
+totalErrors=0
 prematureTermination=0
 errors=0
 
@@ -78,42 +80,42 @@ testOutMem=${HOSTDIR}/${prog}_mem.$$
 ####################
 # cleanup from tests
 ####################
-function Cleanup
+Cleanup()
 {
-    if [[ ${testOut} != "" ]]; then
+    if [ ${testOut} != "" ]; then
         rm -f ${testOut}
     fi
 
-    if [[ ${testOutMem} != "" ]]; then
+    if [ ${testOutMem} != "" ]; then
         rm -f ${testOutMem}
     fi
 
-    if [[ -d ../../nist_pkits/certs ]]; then
+    if [ -d ../../nist_pkits/certs ]; then
         rm -f ../../nist_pkits/certs
     fi
 
-    if [[ ${doTop} -eq 1 ]]; then
+    if [ ${doTop} -eq 1 ]; then
         for i in ${linkMStoreNistFiles}; do
-            if [[ -f ./rev_data/multiple_certstores/$i ]]; then
+            if [ -f ./rev_data/multiple_certstores/$i ]; then
                 rm -f ./rev_data/multiple_certstores/$i
             fi
         done
-        if [[ -d ./rev_data/multiple_certstores ]]; then
+        if [ -d ./rev_data/multiple_certstores ]; then
             rm -fr rev_data/multiple_certstores
         fi
     fi
 
-    if [[ ${doModule} -eq 1 ]]; then
+    if [ ${doModule} -eq 1 ]; then
         for i in ${linkModuleNistFiles}; do
-            if [[ -f ./rev_data/local/$i ]]; then
+            if [ -f ./rev_data/local/$i ]; then
                 rm -f ./rev_data/local/$i
             fi
         done
     fi
 
-    if [[ ${doPki} -eq 1 ]]; then
+    if [ ${doPki} -eq 1 ]; then
         for i in ${linkPkiNistFiles}; do
-            if [[ -f ./rev_data/local/$i ]]; then
+            if [ -f ./rev_data/local/$i ]; then
                 rm -f ./rev_data/local/$i
             fi
         done
@@ -123,35 +125,64 @@ function Cleanup
 }
 
 ### ParseArgs
-function ParseArgs # args
+ParseArgs() # args
 {
-    while [[ $# -gt 0 ]]; do
-        if [[ $1 = "-checkmem" ]]; then
+    while [ $# -gt 0 ]; do
+        if [ $1 = "-checkmem" ]; then
             checkmem=1
-        elif [[ $1 = "-quiet" ]]; then
+        elif [ $1 = "-quiet" ]; then
             quiet=1
-        elif [[ $1 = "-arenas" ]]; then
+        elif [ $1 = "-arenas" ]; then
             arenas=1
         fi
         shift
     done
 }
 
-function Display # string
+Display() # string
 {
-    if [[ ${quiet} -eq 0 ]]; then
+    if [ ${quiet} -eq 0 ]; then
         echo "$1"
     fi
+}
+
+testHeadingEcho()
+{
+    echo "*******************************************************************************"
+    echo "START OF TESTS FOR ${testunit}${memText} (TZ=$TZ)"
+    echo "*******************************************************************************"
+    echo ""
+}
+
+testEndingEcho()
+{
+    if [ ${totalErrors} -eq 0 ]; then
+        echo "\n************************************************************"
+        echo "END OF TESTS FOR ${testunit}: ALL TESTS COMPLETED SUCCESSFULLY"
+        echo "************************************************************\n"
+        return 0
+    fi
+
+    if [ ${totalErrors} -eq 1 ]; then
+        plural=""
+    else
+        plural="S"
+    fi
+
+    echo "\n************************************************************"
+    echo "END OF TESTS FOR ${testunit}: ${totalErrors} TEST${plural} FAILED"
+    echo "************************************************************\n"
+    return ${totalErrors}
 }
 
 ###########
 # RunTests
 ###########
-function RunTests
+RunTests()
 {
-    typeset -i errors=0
-    typeset -i memErrors=0
-    typeset -i prematureErrors=0
+    errors=0
+    memErrors=0
+    prematureErrors=0
 
     failedpgms=""
     failedmempgms=""
@@ -159,11 +190,11 @@ function RunTests
     memText=""
     arenaCmd=""
 
-    if [[ ${checkmem} -eq 1 ]]; then
+    if [ ${checkmem} -eq 1 ]; then
             memText="   (Memory Checking Enabled)"
     fi
 
-    if [[ ${arenas} -eq 1 ]]; then
+    if [ ${arenas} -eq 1 ]; then
             arenaCmd="-arenas"
     fi
 
@@ -177,9 +208,9 @@ Display "***********************************************************************
 
     # run each test specified by the input redirection below
 
-    while read -r testPgm args; do
+    while read testPgm args; do
 
-        if [[ ${doTop} -eq 1 || ${doModule} -eq 1 || ${doPki} -eq 1 ]]; then
+        if [ ${doTop} -eq 1 -o ${doModule} -eq 1 -o ${doPki} -eq 1 ]; then
             testPurpose=`echo $args | awk '{print $1 " " $2 " "}'`
         else
             testPurpose=${args}
@@ -188,7 +219,7 @@ Display "***********************************************************************
         # If we want shorter command printout for NIST tests, delete next line
         testPurpose=${args}
 
-        if [[ ${doNIST} -eq 0 ]]; then
+        if [ ${doNIST} -eq 0 ]; then
             hasNIST=`echo ${args} | grep NIST-Test`
             if [ ! -z "${hasNIST}" ]; then
                 Display "SKIPPING ${testPgm} ${testPurpose}"
@@ -199,7 +230,7 @@ Display "***********************************************************************
         # Watch out for the logic, if doNIST is not set, this won't reach
         # so implies NIST tests is basic, NIST Path Discovery tests is
         # additional
-        if [[ ${doNIST_PDTest} -eq 0 ]]; then
+        if [ ${doNIST_PDTest} -eq 0 ]; then
             hasNIST=`echo ${args} | grep NIST-PDTest`
             if [ ! -z "${hasNIST}" ]; then
                 Display "SKIPPING ${testPgm} ${testPurpose}"
@@ -209,10 +240,10 @@ Display "***********************************************************************
 
         Display "RUNNING ${testPgm} ${arenaCmd} ${testPurpose}"
 
-        if [[ ${checkmem} -eq 1 ]]; then
+        if [ ${checkmem} -eq 1 ]; then
             dbx -C -c "runargs ${arenaCmd} ${args};check -all;run;exit" ${DIST_BIN}/${testPgm} > ${testOut} 2>&1
         else
-            ${DIST_BIN}/${testPgm} ${arenaCmd} ${args}> ${testOut} 2>&1
+            ${DIST_BIN}/${testPgm} ${arenaCmd} ${args} > ${testOut} 2>&1
         fi
 
         # Examine output file to see if test failed and keep track of number
@@ -221,15 +252,15 @@ Display "***********************************************************************
 
         grep "END OF TESTS FOR" ${testOut} | tail -1 | grep "COMPLETED SUCCESSFULLY" >/dev/null 2>&1
         
-        if [[ $? -ne 0 ]]; then
+        if [ $? -ne 0 ]; then
             errors=`expr ${errors} + 1`
             failedpgms="${failedpgms}${testPgm} ${testPurpose} "
             cat ${testOut}
         fi
 
-        if [[ ${checkmem} -eq 1 ]]; then
+        if [ ${checkmem} -eq 1 ]; then
             grep "(actual leaks:" ${testOut} > ${testOutMem} 2>&1
-            if [[ $? -ne 0 ]]; then
+            if [ $? -ne 0 ]; then
                 prematureErrors=`expr ${prematureErrors} + 1`
                 failedprematurepgms="${failedprematurepgms}${testPgm} "
                 Display "...program terminated prematurely (unable to check for memory leak errors) ..."
@@ -237,7 +268,7 @@ Display "***********************************************************************
                 #grep "(actual leaks:         0" ${testOut} > /dev/null 2>&1
                 # special consideration for memory leak in NSS_NoDB_Init
                 grep  "(actual leaks:         1  total size:       4 bytes)" ${testOut} > /dev/null 2>&1
-                if [[ $? -ne 0 ]]; then
+                if [ $? -ne 0 ]; then
                     memErrors=`expr ${memErrors} + 1`
                     failedmempgms="${failedmempgms}${testPgm} "
                     cat ${testOutMem}
@@ -247,33 +278,33 @@ Display "***********************************************************************
 
     done
 
-    if [[ ${errors} -eq 0 ]]; then
-        if [[ ${memErrors} -eq 0 ]]; then
+    if [ ${errors} -eq 0 ]; then
+        if [ ${memErrors} -eq 0 ]; then
             Display "\n************************************************************"
             Display "END OF TESTS FOR PKIX ${testunit}: ALL TESTS COMPLETED SUCCESSFULLY"
-            Display "************************************************************"
+            Display "************************************************************\n"
             return 0
         fi
     fi
 
-    if [[ ${errors} -eq 1 ]]; then
+    if [ ${errors} -eq 1 ]; then
         plural=""
     else
         plural="S"
     fi
 
     Display "\n*******************************************************************************"
-    Display "END OF TESTS FOR PKIX ${testunit}: ${errors} UNIT TEST${plural} FAILED: ${failedpgms}"
-    if [[ ${checkmem} -eq 1 ]]; then
-        if [[ ${memErrors} -eq 1 ]]; then
+    Display "END OF TESTS FOR PKIX ${testunit}: ${errors} UNIT TEST${plural} FAILED: ${failedpgms}\n"
+    if [ ${checkmem} -eq 1 ]; then
+        if [ ${memErrors} -eq 1 ]; then
             memPlural=""
         else
             memPlural="S"
         fi
         Display "                          ${memErrors} MEMORY LEAK TEST${memPlural} FAILED: ${failedmempgms}"
         
-        if [[ ${prematureErrors} -ne 0 ]]; then
-            if [[ ${prematureErrors} -eq 1 ]]; then
+        if [ ${prematureErrors} -ne 0 ]; then
+            if [ ${prematureErrors} -eq 1 ]; then
                 prematurePlural=""
             else
                 prematurePlural="S"
@@ -282,7 +313,9 @@ Display "***********************************************************************
         fi
 
     fi
-    Display "*******************************************************************************"
-    combinedErrors=${errors}+${memErrors}+${prematureErrors}
+    Display "*******************************************************************************\n"
+    combinedErrors=`expr ${errors} + ${memErrors} + ${prematureErrors}`
+
     return ${combinedErrors}
+
 }

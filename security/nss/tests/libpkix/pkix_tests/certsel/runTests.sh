@@ -1,4 +1,4 @@
-#! /bin/ksh
+#!/bin/sh
 # 
 # ***** BEGIN LICENSE BLOCK *****
 # Version: MPL 1.1/GPL 2.0/LGPL 2.1
@@ -45,6 +45,7 @@ cd ../../common
 . ./libpkix_init_nist.sh
 cd ${curdir}
 
+testunit=CERTSEL
 
 ##########
 # main
@@ -52,12 +53,10 @@ cd ${curdir}
 
 ParseArgs $*
 
-echo $NIST
-
 RunTests <<EOF
 test_comcertselparams ${NIST} NIST-Test-Files-Used
 test_certselector ${NIST} NIST-Test-Files-Used
 EOF
 
 totalErrors=$?
-return ${totalErrors}
+exit ${totalErrors}

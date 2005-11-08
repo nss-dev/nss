@@ -1,4 +1,4 @@
-#! /bin/ksh
+#!/bin/sh
 # 
 # ***** BEGIN LICENSE BLOCK *****
 # Version: MPL 1.1/GPL 2.0/LGPL 2.1
@@ -58,4 +58,4 @@ test_store
 EOF
 
 totalErrors=$?
-return ${totalErrors}
+exit ${totalErrors}

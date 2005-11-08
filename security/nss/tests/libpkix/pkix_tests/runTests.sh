@@ -1,4 +1,4 @@
-#! /bin/ksh
+#!/bin/sh
 # 
 # ***** BEGIN LICENSE BLOCK *****
 # Version: MPL 1.1/GPL 2.0/LGPL 2.1
@@ -39,29 +39,39 @@
 # runTests.sh
 #
 
-typeset -i errors=0
-typeset -i utilErrors=0
-typeset -i crlselErrors=0
-typeset -i paramsErrors=0
-typeset -i resultsErrors=0
-typeset -i topErrors=0
-typeset -i checkerErrors=0
-typeset -i certselErrors=0
+curdir=`pwd`
+cd ../common
+. ./libpkix_init.sh > /dev/null
+cd ${curdir}
+
+testunit="PKIX"
+
+totalErrors=0
+utilErrors=0
+crlselErrors=0
+paramsErrors=0
+resultsErrors=0
+topErrors=0
+checkerErrors=0
+certselErrors=0
+quiet=0
+
 checkMemArg=""
 arenasArg=""
 quietArg=""
 memText=""
 
 ### ParseArgs
-function ParseArgs # args
+ParseArgs() # args
 {
-    while [[ $# -gt 0 ]]; do
-        if [[ $1 = "-checkmem" ]]; then
+    while [ $# -gt 0 ]; do
+        if [ $1 = "-checkmem" ]; then
             checkMemArg=$1
             memText="   (Memory Checking Enabled)"
-        elif [[ $1 = "-quiet" ]]; then
+        elif [ $1 = "-quiet" ]; then
             quietArg=$1
-        elif [[ $1 = "-arenas" ]]; then
+            quiet=1
+        elif [ $1 = "-arenas" ]; then
             arenasArg=$1
         fi
         shift
@@ -70,10 +80,7 @@ function ParseArgs # args
 
 ParseArgs $*
 
-echo "*******************************************************************************"
-echo "START OF TESTS FOR PKIX${memText} (TZ=$TZ)"
-echo "*******************************************************************************"
-echo ""
+testHeadingEcho
 
 echo "RUNNING tests in certsel";
 cd certsel;
@@ -115,26 +122,11 @@ cd ../top;
 runTests.sh ${arenasArg} ${checkMemArg} ${quietArg}
 topErrors=$?
 
-errors=utilErrors+storeErrors+crlselErrors+paramsErrors+resultsErrors+topErrors
-errors=errors+checkerErrors+certselErrors
+totalErrors=`expr $utilErrors + $storeErrors + $crlselErrors + $paramsErrors + $resultsErrors + $topErrors + $checkerErrors + $certselErrors`
 
-if [[ ${errors} -eq 0 ]]; then
-    echo "\n************************************************************"
-    echo "END OF TESTS FOR PKIX: ALL TESTS COMPLETED SUCCESSFULLY"
-    echo "************************************************************"
-    return 0
-fi
+testEndingEcho
 
-if [[ ${errors} -eq 1 ]]; then
-    plural=""
-else
-    plural="S"
-fi
-
-echo "\n************************************************************"
-echo "END OF TESTS FOR PKIX: ${errors} TEST${plural} FAILED"
-echo "************************************************************"
-return 1
+exit ${totalErrors}
 
 
 

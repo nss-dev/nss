@@ -1,4 +1,4 @@
-#! /bin/ksh
+#!/bin/sh
 # 
 # ***** BEGIN LICENSE BLOCK *****
 # Version: MPL 1.1/GPL 2.0/LGPL 2.1
@@ -71,13 +71,13 @@ linkPkiNistFiles="InvalidDNnameConstraintsTest3EE.crt
         UserNoticeQualifierTest18EE.crt 
         CPSPointerQualifierTest20EE.crt"
 
-if [[ ! -z ${NIST_FILES_DIR} ]]; then
-    if [[ ! -d ./rev_data/local ]]; then
+if [ ! -z ${NIST_FILES_DIR} ]; then
+    if [ ! -d ./rev_data/local ]; then
         mkdir -p ./rev_data/local
     fi
 
     for i in ${linkPkiNistFiles}; do
-        if [[ -f ./rev_data/local/$i ]]; then
+        if [ -f ./rev_data/local/$i ]; then
             rm ./rev_data/local/$i
         fi
         cp ${NIST_FILES_DIR}/$i ./rev_data/local/$i
@@ -103,5 +103,6 @@ test_subjectinfoaccess NIST-PDTest ${NIST_PDTEST} certs/BasicHTTPURITrustAnchorR
 EOF
 
 totalErrors=$?
-return ${totalErrors}
+exit ${totalErrors}
+
 

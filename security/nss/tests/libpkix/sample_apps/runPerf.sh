@@ -1,4 +1,4 @@
-#! /bin/ksh
+#!/bin/sh
 # 
 # ***** BEGIN LICENSE BLOCK *****
 # Version: MPL 1.1/GPL 2.0/LGPL 2.1
@@ -46,12 +46,18 @@ cd ${curdir}
 
 testunit=PERFORMANCE
 
-echo "\nRunning executibles at ${DIST_BIN}"
-echo "Using libraries at ${LD_LIBRARY_PATH}"
+totalErrors=0
+
+ParseArgs $*
+
+testHeadingEcho
+
+Display "\nRunning executibles at ${DIST_BIN}"
+Display "Using libraries at ${LD_LIBRARY_PATH}"
 
 
 # Check the performance data ...
-function perfTest
+perfTest()
 {
     Display ""
     Display "*******************************************************************************"
@@ -59,9 +65,9 @@ function perfTest
 Display "*******************************************************************************"
     Display ""
 
-    while read -r perfPgm args; do
+    while read perfPgm args; do
         Display "Running ${perfPgm} ${args}"
-        if [[ ${checkmem} -eq 1 ]]; then
+        if [ ${checkmem} -eq 1 ]; then
             dbx -C -c "runargs $args; check -all ;run;exit" ${DIST_BIN}/${perfPgm} > ${testOut} 2>&1
         else
             ${DIST_BIN}/${perfPgm} ${args} > ${testOut} 2>&1
@@ -70,29 +76,28 @@ Display "***********************************************************************
         # Examine output file to see if test failed and keep track of number
         # of failures and names of failed tests. This assumes that the test
         # uses our utility library for displaying information
-
-        cat ${testOut} | grep "per second"
-
+	
         outputCount=`cat ${testOut} | grep "per second"`
+        Display ${outputCount}
 
-        if [[ $? -ne 0 || ${outputCount} == "" ]]; then
+        if [ $? -ne 0 -o ! -n ${outputCount} ]; then
             errors=`expr ${errors} + 1`
             failedpgms="${failedpgms}${perfPgm} ${args}\n"
-            cat ${testOut}
+            Display ${testOut}
         fi
 
-        if [[ ${checkmem} -eq 1 ]]; then
+        if [ ${checkmem} -eq 1 ]; then
             grep "(actual leaks:" ${testOut} > ${testOutMem} 2>&1
-            if [[ $? -ne 0 ]]; then
+            if [ $? -ne 0 ]; then
                 prematureErrors=`expr ${prematureErrors} + 1`
                 failedprematurepgms="${failedprematurepgms}${perfPgm} "
                 Display "...program terminated prematurely (unable to check for memory leak errors) ..."
             else
                 grep  "(actual leaks:         1  total size:       4 bytes)" ${testOut} > /dev/null 2>&1
-                if [[ $? -ne 0 ]]; then
+                if [ $? -ne 0 ]; then
                     memErrors=`expr ${memErrors} + 1`
                     failedmempgms="${failedmempgms}${perfPgm} "
-                    cat ${testOutMem}
+                    Display ${testOutMem}
                 fi
             fi
         fi
@@ -108,9 +113,9 @@ EOF
 
 
 # If there is race condition bug, may this test catch it...
-function loopTest
+loopTest()
 {
-    typeset -i totalLoop=10
+    totalLoop=10
 
     Display ""
     Display "*******************************************************************************"
@@ -118,23 +123,23 @@ function loopTest
 Display "*******************************************************************************"
     Display ""
 
-    typeset -i iLoop=0
+    iLoop=0
     perfPgm="${DIST_BIN}/libpkix_buildthreads 5 8 ValidCertificatePathTest1EE"
 
-    while [[ $iLoop -lt $totalLoop ]]
+    while [ $iLoop -lt $totalLoop ]
     do
-        iLoop=iLoop+1
+        iLoop=`expr $iLoop + 1`
 
         Display "Running ${perfPgm}"
         ${perfPgm} > ${testOut} 2>&1
-        cat ${testOut} | grep "per second"
+        Display `cat ${testOut} | grep "per second"`
 
         outputCount=`cat ${testOut} | grep "per second"`
 
-        if [[ $? -ne 0 || ${outputCount} == "" ]]; then
+        if [ $? -ne 0 -o ! -n ${outputCount} ]; then
             errors=`expr ${errors} + 1`
             failedpgms="${failedpgms} ${perfPgm}\n"
-            cat ${testOut}
+            Display ${testOut}
         fi
     done
 
@@ -144,11 +149,12 @@ Display "***********************************************************************
 
 #main
 
-ParseArgs $*
 perfTest
 totalErrors=$?
 
 loopTest
-totalErrors=${totalError}+$?
+totalErrors=`expr ${totalErrors} + $?`
 
-return ${totalErrors}
+testEndingEcho
+
+exit ${totalErrors}

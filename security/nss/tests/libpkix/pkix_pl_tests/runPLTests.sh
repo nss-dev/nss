@@ -1,4 +1,4 @@
-#! /bin/ksh
+#!/bin/sh
 # 
 # ***** BEGIN LICENSE BLOCK *****
 # Version: MPL 1.1/GPL 2.0/LGPL 2.1
@@ -39,83 +39,61 @@
 # runPLTests.sh
 #
 
+curdir=`pwd`
+cd ../common
+. ./libpkix_init.sh > /dev/null
+cd ${curdir}
 
-typeset -i totalErrors=0
-typeset -i moduleErrors=0
-typeset -i systemErrors=0
-typeset -i pkiErrors=0
-typeset -i quiet=0
+testunit="PKIX_PL"
+
+totalErrors=0
+moduleErrors=0
+systemErrors=0
+pkiErrors=0
+quiet=0
+
 checkMemArg=""
 arenasArg=""
 quietArg=""
 
 ### ParseArgs
-function ParseArgs # args
+myParseArgs() # args
 {
-    while [[ $# -gt 0 ]]; do
-        if [[ $1 = "-checkmem" ]]; then
+    while [ $# -gt 0 ]; do
+        if [ $1 = "-checkmem" ]; then
             checkMemArg=$1
-        elif [[ $1 = "-quiet" ]]; then
+        elif [ $1 = "-quiet" ]; then
             quietArg=$1
             quiet=1
-        elif [[ $1 = "-arenas" ]]; then
+        elif [ $1 = "-arenas" ]; then
             arenasArg=$1
-            quiet=1
         fi
         shift
     done
 }
 
-function Display # string
-{
-    if [[ ${quiet} -eq 0 ]]; then
-        echo "$1"
-    fi
-}
+myParseArgs $*
 
-ParseArgs $*
+testHeadingEcho
 
-
-
-Display "*******************************************************************************"
-Display "START OF TESTS FOR PKIX_PL${memText} (TZ=$TZ)"
-Display "*******************************************************************************"
-Display ""
-
-Display "RUNNING tests in pki";
+echo "RUNNING tests in pki";
 cd pki;
 runPLTests.sh ${arenasArg} ${checkMemArg} ${quietArg}
 pkiErrors=$?
 
-Display "RUNNING tests in system";
+echo "RUNNING tests in system";
 cd ../system;
 runPLTests.sh ${arenasArg} ${checkMemArg} ${quietArg}
 systemErrors=$?
 
-Display "RUNNING tests in module";
+echo "RUNNING tests in module";
 cd ../module;
 runPLTests.sh ${arenasArg} ${checkMemArg} ${quietArg}
 moduleErrors=$?
 
-totalErrors=moduleErrors+systemErrors+pkiErrors
+totalErrors=`expr $moduleErrors + $systemErrors + $pkiErrors`
 
-if [[ ${totalErrors} -eq 0 ]]; then
-    Display "\n************************************************************"
-    Display "END OF TESTS FOR PKIX_PL: ALL TESTS COMPLETED SUCCESSFULLY"
-    Display "************************************************************"
-    return 0
-fi
+testEndingEcho
 
-if [[ ${totalErrors} -eq 1 ]]; then
-    plural=""
-else
-    plural="S"
-fi
-
-Display "\n************************************************************"
-Display "END OF TESTS FOR PKIX_PL: ${totalErrors} TEST${plural} FAILED"
-Display "************************************************************"
-
-
-return ${totalErrors}
+exit ${totalErrors}
 

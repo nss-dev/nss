@@ -1,4 +1,4 @@
-#! /bin/ksh
+#! /bin/sh
 #
 # ***** BEGIN LICENSE BLOCK *****
 # Version: MPL 1.1/GPL 2.0/LGPL 2.1
@@ -46,24 +46,24 @@
 # options of checking memory and using different memory allcation schemes.
 #
 
-typeset -i errors=0
-typeset -i pkixErrors=0
-typeset -i pkixplErrors=0
+errors=0
+pkixErrors=0
+pkixplErrors=0
 checkMemArg=""
 arenasArg=""
 quietArg=""
 memText=""
 
 ### ParseArgs
-function ParseArgs # args
+ParseArgs() # args
 {
-    while [[ $# -gt 0 ]]; do
-	if [[ $1 == "-checkmem" ]]; then
+    while [ $# -gt 0 ]; do
+	if [ $1 = "-checkmem" ]; then
 	    checkMemArg=$1
 	    memText="   (Memory Checking Enabled)"
-	elif [[ $1 == "-quiet" ]]; then
+	elif [ $1 = "-quiet" ]; then
 	    quietArg=$1
-	elif [[ $1 == "-arenas" ]]; then
+	elif [ $1 = "-arenas" ]; then
 	    arenasArg=$1
 	fi
 	shift
@@ -95,16 +95,16 @@ cd ../sample_apps;
 runPerf.sh ${arenasArg} ${checkMemArg} ${quietArg}
 pkixPerfErrors=$?
 
-errors=pkixPerfErrors+pkixErrors+pkixplErrors
+errors=`expr $pkixPerfErrors + $pkixErrors + $pkixplErrors`
 
-if [[ ${errors} -eq 0 ]]; then
+if [ ${errors} -eq 0 ]; then
     echo "\n************************************************************"
     echo "END OF ALL TESTS: ALL TESTS COMPLETED SUCCESSFULLY"
     echo "************************************************************"
-    return 0
+    exit 0
 fi
 
-if [[ ${errors} -eq 1 ]]; then
+if [ ${errors} -eq 1 ]; then
     plural=""
 else
     plural="S"
@@ -113,7 +113,7 @@ fi
 echo "\n************************************************************"
 echo "END OF ALL TESTS: ${errors} TEST${plural} FAILED"
 echo "************************************************************"
-return 1
+exit 1
 
 
 
