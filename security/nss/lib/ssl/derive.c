@@ -425,7 +425,7 @@ ssl3_MasterKeyDeriveBypass(
 	    PORT_SetError(SEC_ERROR_INVALID_ARGS);
 	    return SECFailure;
 	}
-	/* test PMS version for rollback here?  or in caller? */
+	/* caller must test PMS version for rollback */
     }
 
     /* initialize the client random, server random block */
