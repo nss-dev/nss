@@ -105,18 +105,6 @@ ifeq ($(OS_ARCH), WINNT)
 	INCLUDES += -I$(JAVA_HOME)/include
 	INCLUDES += -I$(JAVA_HOME)/include/$(JAVA_ARCH)
 
-	# (3) specify "linker" information
-	JAVA_CPU =
-
-	JAVA_LIBDIR = lib
-
-	JAVA_CLIBS =
-
-	JAVA_LIBS  = -LIBPATH:$(JAVA_HOME)/$(JAVA_LIBDIR) jvm.lib
-	JAVA_LIBS += $(JAVA_CLIBS)
-
-	LDFLAGS += $(JAVA_LIBS)
-
 	#     currently, disable JIT option on this platform
 	JDK_JIT_OPT = -nojit
 endif
@@ -141,39 +129,6 @@ ifeq ($(OS_ARCH), SunOS)
 
 	INCLUDES += -I$(JAVA_HOME)/include
 	INCLUDES += -I$(JAVA_HOME)/include/$(JAVA_ARCH)
-
-	# (3) specify "linker" information
-ifeq ($(USE_64), 1)
-	JAVA_CPU = $(shell uname -p)v9
-else
-	JAVA_CPU = $(shell uname -p)
-endif
-
-ifeq ($(JDK_VERSION), 1.1)
-	JAVA_LIBDIR = lib/$(JAVA_CPU)
-else
-	JAVA_LIBDIR = jre/lib/$(JAVA_CPU)
-endif
-
-	#     ** IMPORTANT ** having -lthread before -lnspr is critical on solaris
-	#     when linking with -ljava as nspr redefines symbols in libthread that
-	#     cause JNI executables to fail with assert of bad thread stack values.
-	JAVA_CLIBS = -lthread
-
-ifneq ($(JDK_VERSION), 1.1)
-ifeq ($(USE_64), 1)
-	JAVA_LIBS += -L$(JAVA_HOME)/$(JAVA_LIBDIR)/server
-else
-	JAVA_LIBS += -L$(JAVA_HOME)/$(JAVA_LIBDIR)/classic
-endif
-	JAVA_LIBS += -L$(JAVA_HOME)/$(JAVA_LIBDIR)
-	JAVA_LIBS += -ljvm -ljava
-else
-	JAVA_LIBS += -L$(JAVA_HOME)/$(JAVA_LIBDIR)/$(JDK_THREADING_MODEL) -ljava
-endif
-	JAVA_LIBS += $(JAVA_CLIBS)
-
-	LDFLAGS += $(JAVA_LIBS)
 
 	#     currently, disable JIT option on this platform
 	JDK_JIT_OPT =
@@ -200,24 +155,6 @@ ifeq ($(OS_ARCH), HP-UX)
 	INCLUDES += -I$(JAVA_HOME)/include
 	INCLUDES += -I$(JAVA_HOME)/include/$(JAVA_ARCH)
 
-	# (3) specify "linker" information
-	JAVA_CPU = PA_RISC
-
-	JAVA_LIBDIR = jre/lib/$(JAVA_CPU)
-
-	JAVA_CLIBS =
-
-	JAVA_LIBS  = -L$(JAVA_HOME)/$(JAVA_LIBDIR)/$(JDK_THREADING_MODEL) -lhpi
-	ifeq ($(JDK_VERSION), 1.4)
-		JAVA_LIBS += -L$(JAVA_HOME)/$(JAVA_LIBDIR)/server -ljvm
-	else
-		JAVA_LIBS += -L$(JAVA_HOME)/$(JAVA_LIBDIR)/classic -ljvm
-	endif
-	JAVA_LIBS += -L$(JAVA_HOME)/$(JAVA_LIBDIR) -ljava
-	JAVA_LIBS += $(JAVA_CLIBS)
-
-	LDFLAGS += $(JAVA_LIBS)
-
 	# no JIT option available on this platform
 	JDK_JIT_OPT =
 endif
@@ -242,30 +179,6 @@ ifeq ($(OS_ARCH), Linux)
 
 	INCLUDES += -I$(JAVA_HOME)/include
 	INCLUDES += -I$(JAVA_HOME)/include/$(JAVA_ARCH)
-
-	# (3) specify "linker" information
-	JAVA_CPU = i386
-
-	# Sun JDK
-	JAVA_LIBDIR = jre/lib/$(JAVA_CPU)
-	# IBM JDK
-	IBM_JAVA_LIBDIR = jre/bin
-
-	JAVA_CLIBS =
-
-        ifeq ($(JDK_VERSION), 1.4)
-	    JAVA_LIBS += -L$(JAVA_HOME)/$(JAVA_LIBDIR)/server \
-			 -L$(JAVA_HOME)/$(IBM_JAVA_LIBDIR)/classic \
-			 -ljvm
-        else
-	    JAVA_LIBS += -L$(JAVA_HOME)/$(JAVA_LIBDIR)/classic -ljvm
-	endif
-	JAVA_LIBS += -L$(JAVA_HOME)/$(JAVA_LIBDIR) \
-		     -L$(JAVA_HOME)/$(IBM_JAVA_LIBDIR) \
-		     -ljava
-	JAVA_LIBS += $(JAVA_CLIBS)
-
-	LDFLAGS += $(JAVA_LIBS)
 
 	# no JIT option available on this platform
 	JDK_JIT_OPT =
@@ -292,20 +205,6 @@ ifeq ($(OS_ARCH), AIX)
 	INCLUDES += -I$(JAVA_HOME)/include
 	INCLUDES += -I$(JAVA_HOME)/include/$(JAVA_ARCH)
 
-	# (3) specify "linker" information
-	JAVA_CPU = aix
-
-	JAVA_LIBDIR = jre/bin
-
-	JAVA_CLIBS =
-
-	JAVA_LIBS  = -L$(JAVA_HOME)/$(JAVA_LIBDIR) -lhpi
-	JAVA_LIBS += -L$(JAVA_HOME)/$(JAVA_LIBDIR)/classic -ljvm
-	JAVA_LIBS += -L$(JAVA_HOME)/$(JAVA_LIBDIR) -ljava
-	JAVA_LIBS += $(JAVA_CLIBS)
-
-	LDFLAGS += $(JAVA_LIBS)
-
 	# no JIT option available on this platform
 	JDK_JIT_OPT =
 endif
@@ -331,20 +230,6 @@ ifeq ($(OS_ARCH), OSF1)
 	INCLUDES += -I$(JAVA_HOME)/include
 	INCLUDES += -I$(JAVA_HOME)/include/$(JAVA_ARCH)
 
-	# (3) specify "linker" information
-	JAVA_CPU = alpha
-
-	JAVA_LIBDIR = jre/lib/$(JAVA_CPU)
-
-	JAVA_CLIBS =
-
-	JAVA_LIBS  = -L$(JAVA_HOME)/$(JAVA_LIBDIR)/$(JDK_THREADING_MODEL) -lhpi
-	JAVA_LIBS += -L$(JAVA_HOME)/$(JAVA_LIBDIR)/classic -ljvm
-	JAVA_LIBS += -L$(JAVA_HOME)/$(JAVA_LIBDIR) -ljava
-	JAVA_LIBS += $(JAVA_CLIBS)
-
-	LDFLAGS += $(JAVA_LIBS)
-
 	# no JIT option available on this platform
 	JDK_JIT_OPT =
 endif
@@ -369,21 +254,6 @@ ifeq ($(OS_ARCH), IRIX)
 
 	INCLUDES += -I$(JAVA_HOME)/include
 	INCLUDES += -I$(JAVA_HOME)/include/$(JAVA_ARCH)
-
-	# (3) specify "-n32 linker" information
-	JAVA_CPU = sgi
-
-	JAVA_LIBDIR = lib32/$(JAVA_CPU)
-
-	JAVA_CLIBS =
-
-	JAVA_LIBS  = -L$(JAVA_HOME)/$(JAVA_LIBDIR)/$(JDK_THREADING_MODEL) -lhpi
-	JAVA_LIBS += -lirixextra
-	JAVA_LIBS += -L$(JAVA_HOME)/$(JAVA_LIBDIR)/classic -ljvm
-	JAVA_LIBS += -L$(JAVA_HOME)/$(JAVA_LIBDIR) -ljava
-	JAVA_LIBS += $(JAVA_CLIBS)
-
-	LDFLAGS += $(JAVA_LIBS)
 
 	# no JIT option available on this platform
 	JDK_JIT_OPT =
