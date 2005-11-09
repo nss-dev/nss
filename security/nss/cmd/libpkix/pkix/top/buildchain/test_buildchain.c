@@ -351,8 +351,9 @@ int main(int argc, char *argv[])
 	                PKIX_TEST_DECREF_BC(pkixTestErrorResult);
 			goto cleanup;
 	        }
-
+#if 0
 		sleep(2);
+#endif
 	} while ((state != NULL) && (buildResult == NULL));
 
 	if (testValid == PKIX_FALSE) { /* EE */
