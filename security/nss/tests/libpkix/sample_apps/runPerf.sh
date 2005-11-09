@@ -59,6 +59,7 @@ Display "Using libraries at ${LD_LIBRARY_PATH}"
 # Check the performance data ...
 perfTest()
 {
+
     Display ""
     Display "*******************************************************************************"
     Display "START OF PKIX PERFORMANCE SCENARIOS ${memText}"
@@ -78,12 +79,13 @@ Display "***********************************************************************
         # uses our utility library for displaying information
 	
         outputCount=`cat ${testOut} | grep "per second"`
-        Display ${outputCount}
 
-        if [ $? -ne 0 -o ! -n ${outputCount} ]; then
+        if [ $? -ne 0 ]; then
             errors=`expr ${errors} + 1`
             failedpgms="${failedpgms}${perfPgm} ${args}\n"
-            Display ${testOut}
+            cat ${testOut}
+        else
+            Display ${outputCount}
         fi
 
         if [ ${checkmem} -eq 1 ]; then
@@ -107,8 +109,8 @@ libpkix_buildthreads 5 8 ValidCertificatePathTest1EE
 nss_threads 5 1 ValidCertificatePathTest1EE
 nss_threads 5 8 ValidCertificatePathTest1EE
 EOF
-    return ${errors}
 
+    return ${errors}
 }
 
 
@@ -136,10 +138,10 @@ Display "***********************************************************************
 
         outputCount=`cat ${testOut} | grep "per second"`
 
-        if [ $? -ne 0 -o ! -n ${outputCount} ]; then
+        if [ $? -ne 0 ]; then
             errors=`expr ${errors} + 1`
             failedpgms="${failedpgms} ${perfPgm}\n"
-            Display ${testOut}
+            cat ${testOut}
         fi
     done
 
