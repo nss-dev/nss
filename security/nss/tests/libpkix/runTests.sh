@@ -90,7 +90,7 @@ cd ../pkix_tests;
 runTests.sh ${arenasArg} ${checkMemArg} ${quietArg}
 pkixErrors=$?
 
-echo "RUNNING tests in samples_apps (performance)";
+echo "RUNNING tests in sample_apps (performance)";
 cd ../sample_apps;
 runPerf.sh ${arenasArg} ${checkMemArg} ${quietArg}
 pkixPerfErrors=$?
