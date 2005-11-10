@@ -3502,7 +3502,8 @@ PKIX_BuildChain(
                                 "pkix_CacheCertChain_Add failed");
                 }
 
-                *pState = state;
+		PKIX_DECREF(state);
+                *pState = NULL;
                 *pBuildResult = buildResult;
         }
 
