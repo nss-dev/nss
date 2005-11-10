@@ -86,7 +86,7 @@ typedef enum {
 typedef enum {
         LDAP_INITIALSUBSTRING_TYPE      = 0,
         LDAP_ANYSUBSTRING_TYPE          = 1,
-        LDAP_FINALSUBSTRING_TYPE        = 2,
+        LDAP_FINALSUBSTRING_TYPE        = 2
 } LDAPSubstringFilterType;
 
 typedef enum {
