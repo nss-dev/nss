@@ -243,7 +243,7 @@ static const SEC_ASN1Template LDAPPresentFilterTemplate[] =
 #define LDAPLessOrEqualFilterTemplate LDAPAVAFilterTemplate
 #define LDAPApproxMatchFilterTemplate LDAPAVAFilterTemplate
 
-static const SEC_ASN1Template LDAPFilterTemplate[] = {
+const SEC_ASN1Template LDAPFilterTemplate[] = {
     { SEC_ASN1_CHOICE, offsetof(LDAPFilter, selector), 0, sizeof(LDAPFilter) },
     { SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC |
         LDAP_ANDFILTER_TYPE,
