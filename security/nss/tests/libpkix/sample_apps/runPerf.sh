@@ -52,7 +52,7 @@ ParseArgs $*
 
 testHeadingEcho
 
-Display "\nRunning executibles at ${DIST_BIN}"
+Display "\nRunning executables at ${DIST_BIN}"
 Display "Using libraries at ${LD_LIBRARY_PATH}"
 
 
