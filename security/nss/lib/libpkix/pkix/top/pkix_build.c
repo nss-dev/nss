@@ -111,6 +111,7 @@ pkix_ForwardBuilderState_Destroy(
                 state->buildConstants.numCertStores = 0;
                 state->buildConstants.procParams = 0;
                 PKIX_DECREF(state->buildConstants.testDate);
+                PKIX_DECREF(state->buildConstants.timeLimit);
                 PKIX_DECREF(state->buildConstants.targetCert);
                 PKIX_DECREF(state->buildConstants.targetPubKey);
                 PKIX_DECREF(state->buildConstants.certStores);
@@ -2548,7 +2549,7 @@ pkix_BuildForwardDepthFirstSearch(
 
                     /* Check whether we are allowed to extend the chain */
                     if ((state->buildConstants.maxDepth != 0) &&
-                        (state->numDepth == 0)) {
+                        (state->numDepth <= 1)) {
                             PKIX_ERROR("Depth would exceed Resource Limits");
                     }
 
@@ -3102,6 +3103,7 @@ pkix_Build_InitiateBuildChain(
             buildConstants.numCertStores = numCertStores;
             buildConstants.procParams = procParams;
             buildConstants.testDate = testDate;
+            buildConstants.timeLimit = NULL;
             buildConstants.targetCert = targetCert;
             buildConstants.targetPubKey = targetPubKey;
             buildConstants.certStores = certStores;
@@ -3137,6 +3139,7 @@ pkix_Build_InitiateBuildChain(
             state->buildConstants.procParams = buildConstants.procParams; 
             PKIX_INCREF(buildConstants.testDate);
             state->buildConstants.testDate = buildConstants.testDate;
+            state->buildConstants.timeLimit = buildConstants.timeLimit;
             PKIX_INCREF(buildConstants.targetCert);
             state->buildConstants.targetCert = buildConstants.targetCert;
             PKIX_INCREF(buildConstants.targetPubKey);
@@ -3155,8 +3158,8 @@ pkix_Build_InitiateBuildChain(
             if (buildConstants.maxTime != 0) {
                     PKIX_CHECK(PKIX_PL_Date_Create_CurrentOffBySeconds
                             (buildConstants.maxTime,
-                        &state->buildConstants.timeLimit,
-                        plContext),
+                            &state->buildConstants.timeLimit,
+                            plContext),
                             "PKIX_PL_Date_Create_CurrentOffBySeconds failed");
             }
     
