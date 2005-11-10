@@ -64,7 +64,7 @@ void *ipaddr = NULL;
 
 void *plContext = NULL;
 
-void printUsage(void) {
+static void printUsage(void) {
     (void) printf("\nUSAGE:\ttest_buildchain [-arenas] [usebind] "
 	"servername[:port] <testName> [ENE|EE]\n"
 	"\t <certStoreDirectory> <targetCert>"
@@ -79,7 +79,7 @@ void printUsage(void) {
         "EE indicates an Error is Expected.\n");
 }
 
-PKIX_Error *
+static PKIX_Error *
 createLdapCertStore(
 	PRNetAddr *netAddr,
 	PRIntervalTime timeout,
@@ -138,7 +138,6 @@ int main(int argc, char *argv[])
         PKIX_UInt32 actualMinorVersion, numCerts, i, j, k;
         PKIX_CertStore *ldapCertStore = NULL;
 	PRIntervalTime timeout = 0; /* 0 for non-blocking */
-	PRPollDesc *pollDesc = NULL;
         PKIX_CertStore *certStore = NULL;
         PKIX_List *certStores = NULL;
         char * asciiResult = NULL;
@@ -163,7 +162,7 @@ int main(int argc, char *argv[])
                                     PKIX_MINOR_VERSION,
                                     &actualMinorVersion,
                                     plContext));
-        if (argc < 4) {
+        if (argc < 5) {
                 printUsage();
                 return (0);
         }
@@ -351,12 +350,18 @@ int main(int argc, char *argv[])
 	                PKIX_TEST_DECREF_BC(pkixTestErrorResult);
 			goto cleanup;
 	        }
-#if 0
-		sleep(2);
-#endif
+
+                /*
+                 * if ((state != NULL) && (buildResult == NULL)) {
+                 *         wait for completion when a mechanism is provided
+                 * }
+                 */
+
 	} while ((state != NULL) && (buildResult == NULL));
 
-	if (testValid == PKIX_FALSE) { /* EE */
+	if (testValid == PKIX_TRUE) { /* ENE */
+                (void) printf("EXPECTED NON-ERROR RECEIVED!\n");
+	} else { /* EE */
                 (void) printf("UNEXPECTED NON-ERROR RECEIVED!\n");
         }
 
@@ -441,7 +446,7 @@ int main(int argc, char *argv[])
 
 
 cleanup:
-        PKIX_PL_Free(asciiResult, plContext);
+        PKIX_PL_Free(asciiResult, NULL);
         PKIX_PL_Free(actualCertsAscii, plContext);
         PKIX_PL_Free(expectedCertsAscii, plContext);
 
