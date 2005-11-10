@@ -44,10 +44,6 @@
 #include "testutil.h"
 #include "testutil_nss.h"
 
-#if 0
-extern char *pkix_pl_PK11ConfigDir = "somewhere-pk11-db-existed";
-#endif
-
 #define LDAP_PORT 389
 PKIX_Boolean usebind = PKIX_FALSE;
 PKIX_Boolean useLDAP = PKIX_FALSE;

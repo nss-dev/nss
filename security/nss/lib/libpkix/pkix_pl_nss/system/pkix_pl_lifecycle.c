@@ -43,7 +43,7 @@
 
 #include "pkix_pl_lifecycle.h"
 
-char *pkix_pl_PK11ConfigDir = NULL;
+extern char *pkix_PK11ConfigDir;
 PKIX_Boolean pkix_pl_initialized = PKIX_FALSE;
 pkix_ClassTable_Entry systemClasses[PKIX_NUMTYPES];
 PRLock *classTableLock;
@@ -133,8 +133,8 @@ PKIX_PL_Initialize(void *plContext){
         PR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
 
         /* if using databases, use NSS_Init and not NSS_NoDB_Init */
-        if (pkix_pl_PK11ConfigDir) {
-                if (NSS_Init(pkix_pl_PK11ConfigDir) != SECSuccess) {
+        if (pkix_PK11ConfigDir) {
+                if (NSS_Init(pkix_PK11ConfigDir) != SECSuccess) {
                         return (PKIX_ALLOC_ERROR());
                 }
         } else {

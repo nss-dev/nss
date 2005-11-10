@@ -44,6 +44,7 @@
 #include "pkix_lifecycle.h"
 
 PKIX_Boolean pkix_initialized = PKIX_FALSE;
+char *pkix_PK11ConfigDir = NULL;
 
 /* Lock used by Logger - is reentrant by the same thread */
 extern PKIX_PL_MonitorLock *pkixLoggerLock;
@@ -114,6 +115,7 @@ PKIX_Initialize(
         *pActualMinorVersion = PKIX_MINOR_VERSION;
 
         pkix_initialized = PKIX_TRUE;
+        pkix_PK11ConfigDir = NULL;
 
         /* Create Cache Tables */
         PKIX_CHECK(PKIX_PL_HashTable_Create
@@ -140,6 +142,35 @@ PKIX_Initialize(
                 PKIX_CHECK(PKIX_PL_MonitorLock_Create
                         (&pkixLoggerLock, plContext),
                         "PKIX_PL_MonitorLock_Create failed");
+        }
+
+cleanup:
+
+        PKIX_RETURN(LIFECYCLE);
+}
+
+/*
+ * FUNCTION: PKIX_Initialize_SetConfigDir (see comments in pkix.h)
+ */
+PKIX_Error *
+PKIX_Initialize_SetConfigDir(
+        PKIX_UInt32 storeType,
+        char *configDir,
+        void *plContext)
+{
+        PKIX_ENTER(LIFECYCLE, "PKIX_Initialize_SetConfigDir");
+        PKIX_NULLCHECK_ONE(configDir);
+
+        switch(storeType) {
+
+            case PKIX_STORE_TYPE_PK11:
+
+		    pkix_PK11ConfigDir = configDir;
+                break;
+
+            default:
+                PKIX_ERROR("Invalid Store type for Setting ConfigDir");
+                break;
         }
 
 cleanup:

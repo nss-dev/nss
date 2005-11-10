@@ -44,7 +44,6 @@
 #include "testutil.h"
 #include "testutil_nss.h"
 
-extern char *pkix_pl_PK11ConfigDir;
 
 void *plContext = NULL;
 
@@ -632,7 +631,8 @@ int main(int argc, char *argv[]) {
         startTests("Pk11CertStore");
 
         /* This must precede the call to PKIX_Initialize! */
-        pkix_pl_PK11ConfigDir = "../../pkix_pl_tests/module";
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_Initialize_SetConfigDir
+            (PKIX_STORE_TYPE_PK11, "../../pkix_pl_tests/module", plContext));
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_Initialize
                 (PKIX_MAJOR_VERSION,

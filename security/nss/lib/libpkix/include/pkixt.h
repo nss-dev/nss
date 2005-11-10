@@ -88,6 +88,10 @@ extern "C" {
 
 #define PKIX_MAX_MINOR_VERSION          ((PKIX_UInt32) 4000000000)
 
+/* Define Cert Store type for database access */
+#define PKIX_STORE_TYPE_NONE            0
+#define PKIX_STORE_TYPE_PK11            1
+
 /* Portable Code (PC) data types
  *
  * These types are used to perform the primary operations of this library:

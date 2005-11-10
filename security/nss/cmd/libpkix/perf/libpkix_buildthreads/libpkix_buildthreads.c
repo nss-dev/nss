@@ -78,7 +78,6 @@ void *plContext = NULL;
                 } \
         } while (0)
 
-extern char *pkix_pl_PK11ConfigDir = ".";
 void finish(char* message, int code);
 
 typedef struct ThreadDataStr tData;
@@ -340,6 +339,8 @@ int main(int argc, char** argv)
                 {
                         threads = atoi(argv[2]);
                 }
+
+	PKIX_Initialize_SetConfigDir(PKIX_STORE_TYPE_PK11, ".", plContext);
 
         PKIX_Initialize(PKIX_MAJOR_VERSION,
                         PKIX_MINOR_VERSION,

@@ -46,10 +46,6 @@
 
 #define PKIX_TESTUSERCHECKER_TYPE (PKIX_NUMTYPES+30)
 
-#if 0
-extern char *pkix_pl_PK11ConfigDir = "somewhere-pk11-db-existed";
-#endif
-
 void *plContext = NULL;
 static PKIX_UInt32 numUserCheckerCalled = 0;
 
