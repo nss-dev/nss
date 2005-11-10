@@ -86,7 +86,7 @@ test_basicconstraintschecker "Four-Certificates-Chain-with-error" EE . ../../cer
 test_validatechain_bc  ../../certs/hy2hy-bc0 ../../certs/hy2hc-bc
 test_policychecker NIST-Test-Files-Used ENE $NIST
 test_defaultcrlchecker2stores NIST-Test.4.4.7-with-multiple-CRL-stores ENE $NIST ./rev_data/multiple_certstores/store1 ./rev_data/multiple_certstores/store2 TrustAnchorRootCertificate.crt TwoCRLsCACert.crt ValidTwoCRLsTest7EE.crt
-test_buildchain_resourcelimits NIST-Test.4.5.1 ENE $NIST ValidBasicSelfIssuedOldWithNewTest1EE.crt BasicSelfIssuedNewKeyOldWithNewCACert.crt BasicSelfIssuedNewKeyCACert.crt TrustAnchorRootCertificate.crt
+test_buildchain_resourcelimits ${LDAP} NIST-Test.4.5.1 ENE $NIST ValidBasicSelfIssuedOldWithNewTest1EE.crt BasicSelfIssuedNewKeyOldWithNewCACert.crt BasicSelfIssuedNewKeyCACert.crt TrustAnchorRootCertificate.crt
 test_customcrlchecker "CRL-test-without-revocation" ENE ./rev_data/crlchecker sci2sci.crt sci2phy.crt phy2prof.crt prof2test.crt
 test_customcrlchecker "CRL-test-with-revocation-reasoncode" EE ./rev_data/crlchecker sci2sci.crt sci2chem.crt chem2prof.crt prof2test.crt
 test_subjaltnamechecker "NIST-Test-Files-Used" "0R:testcertificates.gov+R:Test23EE@testcertificates.gov" ENE $NIST TrustAnchorRootCertificate.crt nameConstraintsRFC822CA2Cert.crt ValidRFC822nameConstraintsTest23EE.crt
