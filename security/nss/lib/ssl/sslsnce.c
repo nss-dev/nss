@@ -921,6 +921,11 @@ InitCache(cacheDesc *cache, int maxCacheEntries, PRUint32 ssl2_timeout,
     int           locks_to_initialize = 0;
     PRUint32      init_time;
 
+    if ( (!cache) || (maxCacheEntries < 0) || (!directory) ) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+
     if (cache->cacheMem) {
 	/* Already done */
 	return SECSuccess;
