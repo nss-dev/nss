@@ -80,10 +80,9 @@ endif
 PROCESS_MAP_FILE = grep -v ';+' $(LIBRARY_NAME).def | grep -v ';-' | \
          sed -e 's; DATA ;;' -e 's,;;,,' -e 's,;.*,,' -e 's,^,+e ,' > $@
 
+DSO_LDOPTS		= -b +h $(notdir $@)
 ifeq ($(OS_TEST),ia64)
-	DSO_LDOPTS	= -b +h $(notdir $@) +b '$$ORIGIN'
-else
-	DSO_LDOPTS	= -b +h $(notdir $@)
+	DSO_LDOPTS	+= +b '$$ORIGIN'
 endif
 DSO_LDFLAGS		=
 
