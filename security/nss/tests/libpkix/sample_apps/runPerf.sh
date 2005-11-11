@@ -103,13 +103,7 @@ Display "***********************************************************************
                 fi
             fi
         fi
-    done <<EOF
-libpkix_buildthreads 5 1 ValidCertificatePathTest1EE
-libpkix_buildthreads 5 8 ValidCertificatePathTest1EE
-nss_threads 5 1 ValidCertificatePathTest1EE
-nss_threads 5 8 ValidCertificatePathTest1EE
-EOF
-
+    done
     return ${errors}
 }
 
@@ -125,6 +119,7 @@ loopTest()
 Display "*******************************************************************************"
     Display ""
 
+    errors=0
     iLoop=0
     perfPgm="${DIST_BIN}/libpkix_buildthreads 5 8 ValidCertificatePathTest1EE"
 
@@ -151,7 +146,13 @@ Display "***********************************************************************
 
 #main
 
-perfTest
+perfTest <<EOF
+libpkix_buildthreads 5 1 ValidCertificatePathTest1EE
+libpkix_buildthreads 5 8 ValidCertificatePathTest1EE
+nss_threads 5 1 ValidCertificatePathTest1EE
+nss_threads 5 8 ValidCertificatePathTest1EE
+EOF
+
 totalErrors=$?
 
 loopTest
