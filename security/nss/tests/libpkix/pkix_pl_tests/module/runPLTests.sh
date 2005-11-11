@@ -70,7 +70,7 @@ linkModuleNistFiles="InvalidDNnameConstraintsTest3EE.crt
         UserNoticeQualifierTest18EE.crt 
         CPSPointerQualifierTest20EE.crt"
 
-if [ ! -z ${NIST_FILES_DIR} ]; then
+if [ ! -z "${NIST_FILES_DIR}" ]; then
     if [ ! -d ./rev_data/local ]; then
         mkdir -p ./rev_data/local
     fi
