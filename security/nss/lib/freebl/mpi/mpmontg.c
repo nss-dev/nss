@@ -49,11 +49,10 @@
 
 /* #define MP_USING_MONT_MULF 1 */
 #define MP_USING_CACHE_SAFE_MOD_EXP 1 
-#define MP_USING_WEAVE_COPY 1 
-#define MP_CHAR_STORE_SLOW 1
+/*#define MP_USING_WEAVE_COPY 1  */
+/*#define MP_CHAR_STORE_SLOW 1 */
 #include <string.h>
 #include "mpi-priv.h"
-#include "mp_gf2m-priv.h"
 #include "mplogic.h"
 #include "mpprime.h"
 #ifdef MP_USING_MONT_MULF
@@ -70,7 +69,6 @@
 #endif
 
 #define STATIC
-/* #define DEBUG 1  */
 
 #define MAX_WINDOW_BITS 6
 #define MAX_ODD_INTS    32   /* 2 ** (WINDOW_BITS - 1) */
@@ -532,7 +530,7 @@ CLEANUP:
 unsigned int mp_using_cache_safe_exp = 1;
 #endif
 
-mp_err mp_set_modexp_mode(int value)
+mp_err mp_set_safe_modexp(int value) 
 {
 #ifdef MP_USING_CACHE_SAFE_MOD_EXP
  mp_using_cache_safe_exp = value;
@@ -545,9 +543,7 @@ mp_err mp_set_modexp_mode(int value)
 #endif
 }
 
-
 #ifdef MP_USING_CACHE_SAFE_MOD_EXP
-
 #ifndef MP_USING_WEAVE_COPY
 #ifndef MP_CHAR_STORE_SLOW
 #define WEAVE_BASE_INIT \
@@ -588,8 +584,7 @@ mp_err mp_set_modexp_mode(int value)
   WEAVE_MIDDLE(bi,b,count) \
   WEAVE_LAST(bi,b,count)
 
-#else
-#ifdef MP_DIGIT_BITS == 64 
+#elif MP_DIGIT_BITS == 64 
 
 #define WEAVE_INIT  \
   WEAVE_BASE_INIT
@@ -613,13 +608,11 @@ mp_err mp_set_modexp_mode(int value)
   /* It would be nice to unroll this loop as well */
 #define WEAVE_FETCH(bi, b, count) \
   WEAVE_FIRST(bi,b,count) \
-  WEAVE_LAST(bi,b,count) \
   for (_i=1; _i < sizeof(mp_digit) -1 ; _i++) { \
     WEAVE_MIDDLE(bi,b,count) \
   } \
   WEAVE_LAST(bi,b,count)
 
-#endif
 #endif
 
 #if !defined(MP_MONT_USE_MP_MUL)
@@ -731,6 +724,41 @@ CLEANUP:
 #define WEAVE_WORD_SIZE 4
 
 #ifndef MP_CHAR_STORE_SLOW
+/*
+ *  a is an array of WEAVE_WORD_SIZE mp_ints (that is 4). 
+ * It is a partial window into a logical array mp_int p[N] containing
+ * the base to the 0 through N powers. Ideally this code would be much more
+ * simple if we stored one element of that array at a time, but on some 
+ * platforms the cost of storing a byte incurs a full read modify write cycle
+ * and increases the memory bandwidth cost by a factor of 4 or 8. By collecting
+ * for mp_ints together, we can arrange to store all 4 values in a single
+ * word write. 
+ * 
+ * NOTE: this version of the function does not do word writes. The only reason 
+ * for passing in 4 mp_ints at a time is to make the caller less dependent on 
+ * the * variant we are using.
+ *
+ *  b is the targeted weaved location. b[0] points to the first byte where
+ *  a[0][0] needs to be stored.
+ * 
+ *  count is 2^window size. (same as N above and below).
+ *
+ *  b_size is the size in mp_digits of each mp_int in the array.
+ *
+ *
+ * Data is stored as follows :
+ * The mp_int array is treated as a byte array.
+ * we want to store the logical array mp_int p[N]. p[N].digit is treated as 
+ * a byte array (rather than * an mp_digit array) and n is b_size
+ * *sizeof(mp_digit):
+ *
+ * p[0].digit[0]   p[1].digit[0]   ...... p[N-1].digit[0]   p[N].digit[0]
+ * p[0].digit[1]   p[1].digit[1]   ...... p[N-1].digit[1]   p[N].digit[1]
+ *            .                                         .
+ *            .                                         .
+ * p[0].digit[n-1] p[1].digit[n-1] ...... p[N-1].digit[n-1] p[N].digit[n-1]
+ * p[0].digit[n]   p[1].digit[n]   ...... p[N-1].digit[n]   p[N].digit[n] 
+ */
 mp_err mpi_to_weave(const mp_int *a, unsigned char *b, 
 			             mp_size b_size,  mp_size count)
 {
@@ -762,15 +790,8 @@ mp_err mpi_to_weave(const mp_int *a, unsigned char *b,
 }
 #else
 /* Need a primitive that we know is 32 bits long... */
-#if UINT_MAX == MP_32BIT_MAX
+/* this is true on all modern processors we know of today*/
 typedef unsigned int mp_weave_word;
-#else
-#if ULONG_MAX == MP_32BIT_MAX
-typedef unsigned long mp_weave_word;
-#else
-#error "Can't find 32 bit primitive type for this platform"
-#endif
-#endif
 
 /*
  * on some platforms character stores into memory is very expensive since they
@@ -785,7 +806,39 @@ typedef unsigned long mp_weave_word;
  * also need to make sure the uint32 is arranged so that the first value of 
  * the first array winds up in b[0]. This means construction of that uint32
  * is endian specific (even though the layout of the array is always big
- * endian.
+ * endian).
+ *
+ *  a is an array of WEAVE_WORD_SIZE mp_ints (that is 4). 
+ * It is a partial window into a logical array mp_int p[N] containing
+ * the base to the 0 through N powers. 
+ *
+ *  b is the targeted weaved location. b[0] points to the first byte where
+ *  a[0][0] needs to be stored.
+ * 
+ *  count is 2^window size. (same as N above and below).
+ *
+ *  b_size is the size in mp_digits of each mp_int in the array.
+ *
+ *
+ * Data is stored as follows :
+ *
+ * Our same logical array p array, m is sizeof(mp_digit),
+ * N is still count and n is now b_size. If we define p[i].digit[j]0 as the 
+ * most significant byte of the word p[i].digit[j], p[i].digit[j]1 as 
+ * the next most significant byte of p[i].digit[j], ...  and p[i].digit[j]m 
+ * is the least significant byte.our array would look like:
+
+ * p[0].digit[0]0   p[1].digit[0]0   ...... p[N-1].digit[0]0   p[N].digit[0]0
+ * p[0].digit[0]1   p[1].digit[0]1   ...... p[N-1].digit[0]1   p[N].digit[0]1
+ *                .                                         .
+ * p[0].digit[0]m   p[1].digit[0]m   ...... p[N-1].digit[0]m   p[N].digit[0]m
+ * p[0].digit[1]0   p[1].digit[1]0   ...... p[N-1].digit[1]0   p[N].digit[1]0
+ *                .                                         .
+ *                .                                         .
+ * p[0].digit[n]m-1 p[1].digit[n]m-1 ...... p[N-1].digit[n]m-1 p[N].digit[n]m-1
+ * p[0].digit[n]m   p[1].digit[n]m   ...... p[N-1].digit[n]m   p[N].digit[n]m 
+ */
+ *
  */
 mp_err mpi_to_weave(const mp_int *a, unsigned char *b, 
 					mp_size b_size, mp_size count)
@@ -807,7 +860,10 @@ mp_err mpi_to_weave(const mp_int *a, unsigned char *b,
   count = count/sizeof(mp_weave_word);
 
   /* this code pretty much depends on this ! */
-  /*assert(WEAVE_WORD_SIZE == 4); */
+#if MP_ARGCHK < 2
+  assert(WEAVE_WORD_SIZE == 4);
+  assert(sizeof(mp_weave_word) == 4);
+#endif
 
   digitsa0 = MP_DIGITS(&a[0]);
   digitsa1 = MP_DIGITS(&a[1]);
@@ -861,7 +917,6 @@ mp_err mpi_to_weave(const mp_int *a, unsigned char *b,
     acc |= (d3 >> (MP_DIGIT_BITS-32)) & 0xff000000; d3 <<= 8; /*b3*/ \
     *weaved = acc; weaved += count;
 #else 
-#error "Intel is Little endian, but IS_LITTLE_ENDIAN is not defined!"
 #define MPI_WEAVE_ONE_STEP \
     acc  = (d0 >> (MP_DIGIT_BITS-32)) & 0xff000000; d0 <<= 8; /*b0*/ \
     acc |= (d1 >> (MP_DIGIT_BITS-24)) & 0xff0000  ; d1 <<= 8; /*b1*/ \
@@ -1018,10 +1073,6 @@ mp_err mp_exptmod_safe_i(const mp_int *   montBase,
 				bits_in_exponent-window_bits, window_bits) );
   first_window = (mp_size)res;
 
-  MP_CHECKOK( mp_init_size(&accum[0], 3 * nLen + 2) );
-  MP_CHECKOK( mp_init_size(&accum[1], 3 * nLen + 2) );
-  MP_CHECKOK( mp_init_size(&accum[2], 3 * nLen + 2) );
-  MP_CHECKOK( mp_init_size(&accum[3], 3 * nLen + 2) );
   MP_CHECKOK( mp_init_size(&accum1, 3 * nLen + 2) );
   MP_CHECKOK( mp_init_size(&accum2, 3 * nLen + 2) );
 #ifdef MP_USING_WEAVE_COPY
@@ -1031,6 +1082,10 @@ mp_err mp_exptmod_safe_i(const mp_int *   montBase,
 
   /* build the first 4 powers inline */
   if (num_powers > 2) {
+    MP_CHECKOK( mp_init_size(&accum[0], 3 * nLen + 2) );
+    MP_CHECKOK( mp_init_size(&accum[1], 3 * nLen + 2) );
+    MP_CHECKOK( mp_init_size(&accum[2], 3 * nLen + 2) );
+    MP_CHECKOK( mp_init_size(&accum[3], 3 * nLen + 2) );
     mp_set(&accum[0], 1);
     MP_CHECKOK( s_mp_to_mont(&accum[0], mmm, &accum[0]) );
     MP_CHECKOK( mp_copy(montBase, &accum[1]) );
@@ -1042,15 +1097,20 @@ mp_err mp_exptmod_safe_i(const mp_int *   montBase,
       first_window = num_powers;
     }
   } else {
-      /* assert first_window == 1? */
-      MP_CHECKOK( mp_copy(montBase, &accum1) );
+      if (first_window == 0) {
+        mp_set(&accum1, 1);
+        MP_CHECKOK( s_mp_to_mont(&accum1, mmm, &accum1) );
+      } else {
+        /* assert first_window == 1? */
+        MP_CHECKOK( mp_copy(montBase, &accum1) );
+      }
   }
 
 
   /* this adds 2**(k-1)-2 square operations over just calculating the
    * odd powers where k is the window size. We will get some of that
-   * back by not needing the first 'N' squares for the window (though
-   * squaring 1 is extremely fast, so it's not much savings) */ 
+   * back by not needing the first 'k' squares and one multiply for the 
+   * first window */ 
   for (i = 4; i < num_powers; i++) {
     int acc_index = i & 0x3; /* i % 4 */
     if ( i & 1 ) {
@@ -1089,10 +1149,12 @@ mp_err mp_exptmod_safe_i(const mp_int *   montBase,
       }
     }
   }
-  /* if the accum1 isn't set, then either j was out of range, or our logic
-   * above does not populate all the powers values. either case it shouldn't
-   * happen and is an internal mpi programming error */
-  ARGCHK(MP_USED(&accum1) != 0, MP_PROGERR);
+  /* if the accum1 isn't set, or our logic above does not populate all the 
+   * powers values. either case it shouldn't happen and is an internal mpi 
+   * programming error */
+#if MP_ARGCHK == 2
+  assert(MP_USED(&accum1) != 0);
+#endif
 
   /* set accumulator to montgomery residue of 1 */
   pa1 = &accum1;
@@ -1136,6 +1198,10 @@ mp_err mp_exptmod_safe_i(const mp_int *   montBase,
 CLEANUP:
   mp_clear(&accum1);
   mp_clear(&accum2);
+  mp_clear(&accum[0]);
+  mp_clear(&accum[1]);
+  mp_clear(&accum[2]);
+  mp_clear(&accum[3]);
   /* PORT_Memset(powers,0,sizeof(powers)); */
   return res;
 }
@@ -1214,12 +1280,6 @@ mp_err mp_exptmod(const mp_int *inBase, const mp_int *exponent,
   else 
     window_bits = 1;
 
-  odd_ints = 1 << (window_bits - 1);
-  i = bits_in_exponent % window_bits;
-  if (i != 0) {
-    bits_in_exponent += window_bits - i;
-  } 
-
 #ifdef MP_USING_CACHE_SAFE_MOD_EXP
   /*
    * clamp the window size based on
@@ -1239,7 +1299,20 @@ mp_err mp_exptmod(const mp_int *inBase, const mp_int *exponent,
       max_window_bits = 4;
     } else max_window_bits = 1; /* should this be an assert? */
   }
+
+  /* clamp the window size down before we caclulate bits_in_exponent */
+  if (mp_using_cache_safe_exp) {
+    if (window_bits > max_window_bits) {
+      window_bits = max_window_bits;
+    }
+  }
 #endif
+
+  odd_ints = 1 << (window_bits - 1);
+  i = bits_in_exponent % window_bits;
+  if (i != 0) {
+    bits_in_exponent += window_bits - i;
+  } 
 
 #ifdef MP_USING_MONT_MULF
   if (mp_using_mont_mulf) {
@@ -1250,9 +1323,6 @@ mp_err mp_exptmod(const mp_int *inBase, const mp_int *exponent,
 #endif
 #ifdef MP_USING_CACHE_SAFE_MOD_EXP
   if (mp_using_cache_safe_exp) {
-    if (window_bits > max_window_bits) {
-      window_bits = max_window_bits;
-    }
     res = mp_exptmod_safe_i(&montBase, exponent, modulus, result, &mmm, nLen, 
 		     bits_in_exponent, window_bits, 1 << window_bits);
   } else
