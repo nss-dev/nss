@@ -395,6 +395,7 @@ nss_FindExternalRoot(const char *dbpath, const char* secmodprefix)
  */
 
 static PRBool nss_IsInitted = PR_FALSE;
+static void* plContext = NULL;
 
 extern SECStatus secoid_Init(void);
 
@@ -490,8 +491,9 @@ loser:
 	nss_IsInitted = PR_TRUE;
     }
 
-    pkixError = PKIX_Initialize(PKIX_FALSE, PKIX_TRUE, PKIX_MAJOR_VERSION,
-        PKIX_MINOR_VERSION, PKIX_MINOR_VERSION, &actualMinorVersion, NULL);
+    pkixError = PKIX_Initialize
+        (PKIX_FALSE, PKIX_TRUE, PKIX_MAJOR_VERSION, PKIX_MINOR_VERSION,
+        PKIX_MINOR_VERSION, &actualMinorVersion, &plContext);
 
     if (pkixError != NULL) {
         return SECFailure;
