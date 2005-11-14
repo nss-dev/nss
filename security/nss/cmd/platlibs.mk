@@ -137,6 +137,7 @@ EXTRA_SHARED_LIBS += \
 else
 EXTRA_SHARED_LIBS += \
 	-L$(DIST)/lib \
+	-lnss3 \
 	-lplc4 \
 	-lplds4 \
 	-lnspr4 \
