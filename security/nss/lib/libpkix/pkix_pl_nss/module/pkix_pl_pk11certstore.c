@@ -209,7 +209,8 @@ pkix_pl_Pk11CertStore_CertQuery(
 
         } else {
 
-                PKIX_CHECK(pkix_pl_NssContext_GetWincx(plContext, &wincx),
+                PKIX_CHECK(pkix_pl_NssContext_GetWincx
+                        ((PKIX_PL_NssContext *)plContext, &wincx),
                         "pkix_pl_NssContext_GetWincx failed");
 
                 PKIX_PL_NSSCALLRV
@@ -341,7 +342,8 @@ pkix_pl_Pk11CertStore_CrlQuery(
         PKIX_ENTER(CERTSTORE, "pkix_pl_Pk11CertStore_CrlQuery");
         PKIX_NULLCHECK_TWO(params, pSelected);
 
-        PKIX_CHECK(pkix_pl_NssContext_GetWincx(plContext, &wincx),
+        PKIX_CHECK(pkix_pl_NssContext_GetWincx
+                ((PKIX_PL_NssContext *)plContext, &wincx),
                 "pkix_pl_NssContext_GetWincx failed");
 
         /*

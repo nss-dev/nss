@@ -1820,26 +1820,27 @@ int main(int argc, char *argv[]) {
         PKIX_PL_Cert *subjectCert = NULL;
         PKIX_ComCertSelParams *selParams = NULL;
         char *dirName = NULL;
+        PKIX_Boolean useArenas = PKIX_FALSE;
 
         PKIX_TEST_STD_VARS();
-
-        startTests("CertSelector");
-
-        PKIX_TEST_EXPECT_NO_ERROR(PKIX_Initialize
-                                    (PKIX_MAJOR_VERSION,
-                                    PKIX_MINOR_VERSION,
-                                    PKIX_MINOR_VERSION,
-                                    &actualMinorVersion,
-                                    plContext));
 
         if (argc < 2) {
                 printUsage();
                 return (0);
         }
 
-        j = 0;
+        startTests("CertSelector");
 
-        PKIX_TEST_NSSCONTEXT_SETUP(0x10, argv[1], NULL, &plContext);
+        useArenas = PKIX_TEST_ARENAS_ARG(argv[1]);
+
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_Initialize
+                                    (PKIX_TRUE, /* nssInitNeeded */
+                                    useArenas,
+                                    PKIX_MAJOR_VERSION,
+                                    PKIX_MINOR_VERSION,
+                                    PKIX_MINOR_VERSION,
+                                    &actualMinorVersion,
+                                    &plContext));
 
         dirName = argv[j+1];
 

@@ -323,6 +323,7 @@ int main(int argc, char** argv)
         PRIntervalTime duration = PR_SecondsToInterval(1);
         PRUint32 threads = 1;
         PKIX_UInt32 actualMinorVersion;
+        PKIX_UInt32 j = 0;
         PKIX_Logger *logger = NULL;
         void *wincx = NULL;
 
@@ -342,16 +343,16 @@ int main(int argc, char** argv)
 
 	PKIX_Initialize_SetConfigDir(PKIX_STORE_TYPE_PK11, ".", plContext);
 
-        PKIX_Initialize(PKIX_MAJOR_VERSION,
+        PKIX_Initialize(PKIX_TRUE, /* nssInitNeeded */
+                        PKIX_FALSE, /* useArenas */
+                        PKIX_MAJOR_VERSION,
                         PKIX_MINOR_VERSION,
                         PKIX_MINOR_VERSION,
                         &actualMinorVersion,
-                        plContext);
+                        &plContext);
 
         handle = CERT_GetDefaultCertDB();
         PR_ASSERT(handle);
-
-        PKIX_PL_NssContext_Create(0x10, PKIX_FALSE, wincx, &plContext);
 
 #ifdef PKIX_LOGGER_ON
 

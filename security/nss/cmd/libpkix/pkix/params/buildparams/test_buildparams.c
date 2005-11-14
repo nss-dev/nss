@@ -93,12 +93,14 @@ cleanup:
         PKIX_TEST_RETURN();
 }
 
-int main(void) {
+int main(int argc, char *argv[]) {
 
         PKIX_BuildParams *goodObject = NULL;
         PKIX_BuildParams *equalObject = NULL;
         PKIX_BuildParams *diffObject = NULL;
         PKIX_UInt32 actualMinorVersion;
+        PKIX_UInt32 j = 0;
+	PKIX_Boolean useArenas = PKIX_FALSE;
 
         char *goodInput = "../../certs/yassir2yassir";
         char *diffInput = "../../certs/yassir2bcn";
@@ -141,12 +143,16 @@ int main(void) {
 
         startTests("BuildParams");
 
+        useArenas = PKIX_TEST_ARENAS_ARG(argv[1]);
+
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_Initialize
-                                    (PKIX_MAJOR_VERSION,
+                                    (PKIX_TRUE, /* nssInitNeeded */
+                                    useArenas,
+                                    PKIX_MAJOR_VERSION,
                                     PKIX_MINOR_VERSION,
                                     PKIX_MINOR_VERSION,
                                     &actualMinorVersion,
-                                    NULL));
+                                    &plContext));
 
         subTest("PKIX_BuildParams_Create");
 

@@ -136,7 +136,9 @@ int main(int argc, char *argv[])
         PKIX_PL_Cert *cert = NULL;
         PKIX_Error *error = NULL;
         char *ascii = NULL;
-        PKIX_UInt32 length, j;
+        PKIX_UInt32 length = 0;
+        PKIX_UInt32 j = 0;
+	PKIX_Boolean useArenas = PKIX_FALSE;
         PKIX_UInt32 actualMinorVersion;
 
         PKIX_TEST_STD_VARS();
@@ -146,16 +148,16 @@ int main(int argc, char *argv[])
                 return (0);
         }
 
+        useArenas = PKIX_TEST_ARENAS_ARG(argv[1]);
+
         PKIX_Initialize
-                (PKIX_MAJOR_VERSION,
+                (PKIX_TRUE, /* nssInitNeeded */
+                useArenas,
+                PKIX_MAJOR_VERSION,
                 PKIX_MINOR_VERSION,
                 PKIX_MINOR_VERSION,
                 &actualMinorVersion,
-                plContext);
-
-        j = 0;
-
-        PKIX_TEST_NSSCONTEXT_SETUP(0x10, argv[1], NULL, &plContext);
+                &plContext);
 
         cert = createCert(argv[1+j]);
 

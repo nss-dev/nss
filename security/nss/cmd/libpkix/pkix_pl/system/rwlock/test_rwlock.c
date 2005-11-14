@@ -128,7 +128,8 @@ int main() {
         startTests("RWLocks");
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_Initialize
-                                    (PKIX_MAJOR_VERSION,
+                                    (PKIX_TRUE, /* nssInitNeeded */
+                                    PKIX_MAJOR_VERSION,
                                     PKIX_MINOR_VERSION,
                                     PKIX_MINOR_VERSION,
                                     &actualMinorVersion,

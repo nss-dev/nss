@@ -73,6 +73,7 @@ int main(int argc, char *argv[]) {
         PKIX_UInt32 maxDepth = 0;
         PKIX_UInt32 actualMinorVersion;
         PKIX_UInt32 j = 0;
+        PKIX_Boolean useArenas = PKIX_FALSE;
         char *expectedAscii =
                 "[\n"
                 "\tMaxTime:           		10\n"
@@ -84,14 +85,16 @@ int main(int argc, char *argv[]) {
 
         startTests("ResourceLimits");
 
+        useArenas = PKIX_TEST_ARENAS_ARG(argv[1]);
+
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_Initialize
-                                    (PKIX_MAJOR_VERSION,
+                                    (PKIX_TRUE, /* nssInitNeeded */
+                                    useArenas,
+                                    PKIX_MAJOR_VERSION,
                                     PKIX_MINOR_VERSION,
                                     PKIX_MINOR_VERSION,
                                     &actualMinorVersion,
-                                    plContext));
-
-        PKIX_TEST_NSSCONTEXT_SETUP(0x10, argv[1], NULL, &plContext);
+                                    &plContext));
 
         subTest("PKIX_ResourceLimits_Create");
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_ResourceLimits_Create

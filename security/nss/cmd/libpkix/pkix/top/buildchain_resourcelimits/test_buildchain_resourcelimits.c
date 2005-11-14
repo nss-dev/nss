@@ -288,36 +288,39 @@ int main(int argc, char *argv[])
         PKIX_PL_Cert *trustedCert = NULL;
         PKIX_PL_Cert *targetCert = NULL;
         PKIX_PL_Cert *dirCert = NULL;
-        PKIX_UInt32 actualMinorVersion, j, k, chainLength;
+        PKIX_UInt32 actualMinorVersion = 0;
+        PKIX_UInt32 j = 0;
+        PKIX_UInt32 k = 0;
+        PKIX_UInt32 chainLength = 0;
         PKIX_CertStore *ldapCertStore = NULL;
 	PRIntervalTime timeout = 0; /* 0 for non-blocking */
         PKIX_CertStore *certStore = NULL;
         PKIX_List *certStores = NULL;
         PKIX_List *expectedCerts = NULL;
+        PKIX_Boolean useArenas = PKIX_FALSE;
         PKIX_Boolean testValid = PKIX_FALSE;
         PKIX_Boolean usebind = PKIX_FALSE;
         PKIX_Boolean useLDAP = PKIX_FALSE;
 
         PKIX_TEST_STD_VARS();
 
-        startTests("BuildChain_ResourceLimits");
-
-        /* This must precede the call to PKIX_Initialize! */
-
-
-
-        PKIX_TEST_EXPECT_NO_ERROR(PKIX_Initialize
-                                    (PKIX_MAJOR_VERSION,
-                                    PKIX_MINOR_VERSION,
-                                    PKIX_MINOR_VERSION,
-                                    &actualMinorVersion,
-                                    plContext));
         if (argc < 5){
                 printUsage();
                 return (0);
         }
 
-        j = 0;
+        startTests("BuildChain_ResourceLimits");
+
+        useArenas = PKIX_TEST_ARENAS_ARG(argv[1]);
+
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_Initialize
+                                    (PKIX_TRUE, /* nssInitNeeded */
+                                    useArenas,
+                                    PKIX_MAJOR_VERSION,
+                                    PKIX_MINOR_VERSION,
+                                    PKIX_MINOR_VERSION,
+                                    &actualMinorVersion,
+                                    &plContext));
 
 	/*
 	 * arguments:
@@ -331,7 +334,6 @@ int main(int argc, char *argv[])
          *            intermediate certs
          *            trust anchor
          */
-        PKIX_TEST_NSSCONTEXT_SETUP(0x10, argv[1], NULL, &plContext);
 
 	/* optional argument "usebind" for Ldap CertStore */
         if (argv[j + 1]) {

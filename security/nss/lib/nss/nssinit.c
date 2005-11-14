@@ -53,6 +53,8 @@
 #include "pk11func.h"
 #include "secerr.h"
 #include "nssbase.h"
+#include "pkixt.h"
+#include "pkix.h"
 
 #include "pki3hack.h"
 #include "certi.h"
@@ -383,7 +385,7 @@ nss_FindExternalRoot(const char *dbpath, const char* secmodprefix)
  * keyPrefix - prefix added to the beginning of the key database example: "
  * 			"https-server1-"
  * secmodName - name of the security module database (usually "secmod.db").
- * readOnly - Boolean: true if the databases are to be openned read only.
+ * readOnly - Boolean: true if the databases are to be opened read only.
  * nocertdb - Don't open the cert DB and key DB's, just initialize the 
  *			Volatile certdb.
  * nomoddb - Don't open the security module DB, just initialize the 
@@ -409,6 +411,8 @@ nss_Init(const char *configdir, const char *certPrefix, const char *keyPrefix,
     char *lcertPrefix = NULL;
     char *lkeyPrefix = NULL;
     char *lsecmodName = NULL;
+    PKIX_UInt32 actualMinorVersion = 0;
+    PKIX_Error *pkixError = NULL;;
 
     if (nss_IsInitted) {
 	return SECSuccess;
@@ -485,6 +489,14 @@ loser:
 	cert_CreateSubjectKeyIDHashTable();
 	nss_IsInitted = PR_TRUE;
     }
+
+    pkixError = PKIX_Initialize(PKIX_FALSE, PKIX_TRUE, PKIX_MAJOR_VERSION,
+        PKIX_MINOR_VERSION, PKIX_MINOR_VERSION, &actualMinorVersion, NULL);
+
+    if (pkixError != NULL) {
+        return SECFailure;
+    }
+
     return rv;
 }
 

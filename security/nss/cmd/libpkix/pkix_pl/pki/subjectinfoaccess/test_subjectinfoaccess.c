@@ -64,6 +64,7 @@ int main(int argc, char *argv[]) {
         PKIX_UInt32 actualMinorVersion;
         PKIX_UInt32 size, i;
         PKIX_UInt32 j = 0;
+        PKIX_Boolean useArenas = PKIX_FALSE;
         char *expectedAscii = "[method:caRepository, "
                 "location:http://betty.nist.gov/pathdiscoverytestsuite/"
                 "p7cfiles/IssuedByTrustAnchor1.p7c]";
@@ -72,14 +73,16 @@ int main(int argc, char *argv[]) {
 
         startTests("SubjectInfoAccess");
 
+        useArenas = PKIX_TEST_ARENAS_ARG(argv[1]);
+
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_Initialize
-                                    (PKIX_MAJOR_VERSION,
+                                    (PKIX_TRUE, /* nssInitNeeded */
+                                    useArenas,
+                                    PKIX_MAJOR_VERSION,
                                     PKIX_MINOR_VERSION,
                                     PKIX_MINOR_VERSION,
                                     &actualMinorVersion,
-                                    NULL));
-
-        PKIX_TEST_NSSCONTEXT_SETUP(0x10, argv[1], NULL, &plContext);
+                                    &plContext));
 
         if (argc < 5+j) {
                 printf("Usage: %s <test-purpose> <cert> <diff-cert>\n", argv[0]);

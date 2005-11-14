@@ -48,7 +48,7 @@ void *plContext = NULL;
 
 int main(int argc, char *argv[]) {
 
-        PKIX_UInt32 i, j, k, length, hashcode;
+        PKIX_UInt32 i, k, length, hashcode;
         PKIX_UInt32 size = 17576;
         char temp[4];
         PKIX_Boolean result;
@@ -58,19 +58,23 @@ int main(int argc, char *argv[]) {
         void *dest;
         PKIX_PL_HashTable *ht = NULL;
         PKIX_UInt32 actualMinorVersion;
+        PKIX_Boolean useArenas = PKIX_FALSE;
+        PKIX_UInt32 j = 0;
 
         PKIX_TEST_STD_VARS();
 
         startTests("Stress Test");
 
+        useArenas = PKIX_TEST_ARENAS_ARG(argv[1]);
+
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_Initialize
-                                    (PKIX_MAJOR_VERSION,
+                                    (PKIX_TRUE, /* nssInitNeeded */
+                                    useArenas,
+                                    PKIX_MAJOR_VERSION,
                                     PKIX_MINOR_VERSION,
                                     PKIX_MINOR_VERSION,
                                     &actualMinorVersion,
-                                    plContext));
-
-        PKIX_TEST_NSSCONTEXT_SETUP(0x10, argv[1], NULL, &plContext);
+                                    &plContext));
 
         /* ---------------------------- */
         subTest("Create every three letter String");

@@ -112,6 +112,80 @@ PKIX_PL_NssContext_Destroy(
 }
 
 /*
+ * FUNCTION: pkix_pl_NssContext_GetCertUsage
+ * DESCRIPTION:
+ *
+ *  This function obtains the platform-dependent SECCertificateUsage  parameter
+ *  from the context object pointed to by "nssContext", storing the result at
+ *  "pCertUsage".
+ *
+ * PARAMETERS:
+ *  "nssContext"
+ *      The address of the context object whose wincx parameter is to be
+ *      obtained. Must be non-NULL.
+ *  "pCertUsage"
+ *      The address where the result is stored. Must be non-NULL.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+pkix_pl_NssContext_GetCertUsage(
+        PKIX_PL_NssContext *nssContext,
+        SECCertificateUsage *pCertUsage)
+{
+        void *plContext = NULL;
+
+        PKIX_ENTER(CONTEXT, "pkix_pl_NssContext_GetCertUsage");
+        PKIX_NULLCHECK_TWO(nssContext, pCertUsage);
+
+        *pCertUsage = nssContext->certificateUsage;
+
+cleanup:
+
+        PKIX_RETURN(CONTEXT);
+}
+
+/*
+ * FUNCTION: pkix_pl_NssContext_SetCertUsage
+ * DESCRIPTION:
+ *
+ *  This function sets the platform-dependent SECCertificateUsage parameter in
+ *  the context object pointed to by "nssContext" to the value provided in
+ *  "certUsage".
+ *
+ * PARAMETERS:
+ *  "certUsage"
+ *      Platform-dependent value to be stored.
+ *  "nssContext"
+ *      The address of the context object whose wincx parameter is to be
+ *      obtained. Must be non-NULL.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+pkix_pl_NssContext_SetCertUsage(
+        SECCertificateUsage certUsage,
+        PKIX_PL_NssContext *nssContext)
+{
+        void *plContext = NULL;
+
+        PKIX_ENTER(CONTEXT, "pkix_pl_NssContext_SetCertUsage");
+        PKIX_NULLCHECK_ONE(nssContext);
+
+        nssContext->certificateUsage = certUsage;
+
+cleanup:
+
+        PKIX_RETURN(CONTEXT);
+}
+
+/*
  * FUNCTION: pkix_pl_NssContext_GetWincx
  * DESCRIPTION:
  *
@@ -132,7 +206,7 @@ PKIX_PL_NssContext_Destroy(
  */
 PKIX_Error *
 pkix_pl_NssContext_GetWincx(
-        void *nssContext,
+        PKIX_PL_NssContext *nssContext,
         void **pWincx)
 {
         void *plContext = NULL;
@@ -145,7 +219,41 @@ pkix_pl_NssContext_GetWincx(
 
         *pWincx = context->wincx;
 
-        goto cleanup;
+cleanup:
+
+        PKIX_RETURN(CONTEXT);
+}
+
+/*
+ * FUNCTION: pkix_pl_NssContext_SetWincx
+ * DESCRIPTION:
+ *
+ *  This function sets the platform-dependent wincx parameter in the context
+ *  object pointed to by "nssContext" to the value provided in "wincx".
+ *
+ * PARAMETERS:
+ *  "wincx"
+ *      Platform-dependent value to be stored.
+ *  "nssContext"
+ *      The address of the context object whose wincx parameter is to be
+ *      obtained. Must be non-NULL.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+pkix_pl_NssContext_SetWincx(
+        void *wincx,
+        PKIX_PL_NssContext *nssContext)
+{
+        void *plContext = NULL;
+
+        PKIX_ENTER(CONTEXT, "pkix_pl_NssContext_SetWincx");
+        PKIX_NULLCHECK_ONE(nssContext);
+
+        nssContext->wincx = wincx;
 
 cleanup:
 

@@ -95,8 +95,14 @@ extern "C" {
  *  called and returns successfully.
  *
  * PARAMETERS:
- *  "plContext"
- *      Platform-specific context pointer.
+ *  "platformInitNeeded"
+ *      Boolean indicating whether platform initialization is to be called
+ *  "useArenas"
+ *      Boolean indicating whether allocation is to be done using arenas or
+ *      individual allocation (malloc).
+ *  "pPlContext"
+ *      Address at which platform-specific context pointer is stored. Must be
+ *      non-NULL.
  * THREAD SAFETY:
  *  Not Thread Safe
  *
@@ -107,7 +113,10 @@ extern "C" {
  *  Returns a Fatal Error if the function fails in an unrecoverable way.
  */
 PKIX_Error *
-PKIX_PL_Initialize(void *plContext);
+PKIX_PL_Initialize(
+        PKIX_Boolean platformInitNeeded,
+        PKIX_Boolean useArenas,
+        void **pPlContext);
 
 /*
  * FUNCTION: PKIX_PL_Shutdown

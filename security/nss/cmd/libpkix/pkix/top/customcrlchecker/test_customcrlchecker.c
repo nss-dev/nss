@@ -378,30 +378,33 @@ int main(int argc, char *argv[]){
         PKIX_UInt32 actualMinorVersion;
         char *certNames[PKIX_TEST_MAX_CERTS];
         PKIX_PL_Cert *certs[PKIX_TEST_MAX_CERTS];
-        PKIX_UInt32 chainLength, i, j;
+        PKIX_UInt32 chainLength = 0;
+        PKIX_UInt32 i = 0;
+        PKIX_UInt32 j = 0;
         PKIX_Boolean testValid = PKIX_TRUE;
+        PKIX_Boolean useArenas = PKIX_FALSE;
         char *dirName = NULL;
         char *anchorName = NULL;
 
         PKIX_TEST_STD_VARS();
 
-        startTests("CRL Checker");
-
-        PKIX_TEST_EXPECT_NO_ERROR(PKIX_Initialize
-                                    (PKIX_MAJOR_VERSION,
-                                    PKIX_MINOR_VERSION,
-                                    PKIX_MINOR_VERSION,
-                                    &actualMinorVersion,
-                                    plContext));
-
-        if (argc < 5){
+        if (argc < 5) {
                 printUsage1(argv[0]);
                 return (0);
         }
 
-        j = 0;
+        startTests("CRL Checker");
 
-        PKIX_TEST_NSSCONTEXT_SETUP(0x10, argv[1], NULL, &plContext);
+        useArenas = PKIX_TEST_ARENAS_ARG(argv[1]);
+
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_Initialize
+                                    (PKIX_TRUE, /* nssInitNeeded */
+                                    useArenas,
+                                    PKIX_MAJOR_VERSION,
+                                    PKIX_MINOR_VERSION,
+                                    PKIX_MINOR_VERSION,
+                                    &actualMinorVersion,
+                                    &plContext));
 
         /* ENE = expect no error; EE = expect error */
         if (PORT_Strcmp(argv[2+j], "ENE") == 0) {

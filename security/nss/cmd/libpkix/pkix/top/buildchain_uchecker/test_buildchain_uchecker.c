@@ -91,7 +91,12 @@ int main(int argc, char *argv[])
         PKIX_PL_String *dirNameString = NULL;
         PKIX_PL_Cert *trustedCert = NULL;
         PKIX_PL_Cert *targetCert = NULL;
-        PKIX_UInt32 actualMinorVersion, numCerts, i, j, k, chainLength;
+        PKIX_UInt32 actualMinorVersion = 0;
+        PKIX_UInt32 numCerts = 0;
+        PKIX_UInt32 i = 0;
+        PKIX_UInt32 j = 0;
+        PKIX_UInt32 k = 0;
+        PKIX_UInt32 chainLength = 0;
         PKIX_CertStore *certStore = NULL;
         PKIX_List *certStores = NULL;
         char * asciiResult = NULL;
@@ -109,29 +114,27 @@ int main(int argc, char *argv[])
         char *expectedCertsAscii = NULL;
         char *oidString = NULL;
 	void *buildState = NULL; /* needed by pkix_build for non-blocking I/O */
+        PKIX_Boolean useArenas = PKIX_FALSE;
 
         PKIX_TEST_STD_VARS();
 
-        startTests("BuildChain_UserChecker");
-
-        /* This must precede the call to PKIX_Initialize! */
-
-
-
-        PKIX_TEST_EXPECT_NO_ERROR(PKIX_Initialize
-                                    (PKIX_MAJOR_VERSION,
-                                    PKIX_MINOR_VERSION,
-                                    PKIX_MINOR_VERSION,
-                                    &actualMinorVersion,
-                                    plContext));
         if (argc < 5){
                 printUsage();
                 return (0);
         }
 
-        j = 0;
+        startTests("BuildChain_UserChecker");
 
-        PKIX_TEST_NSSCONTEXT_SETUP(0x10, argv[1], NULL, &plContext);
+        useArenas = PKIX_TEST_ARENAS_ARG(argv[1]);
+
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_Initialize
+                                    (PKIX_TRUE, /* nssInitNeeded */
+                                    useArenas,
+                                    PKIX_MAJOR_VERSION,
+                                    PKIX_MINOR_VERSION,
+                                    PKIX_MINOR_VERSION,
+                                    &actualMinorVersion,
+                                    &plContext));
 
         /* ENE = expect no error; EE = expect error */
         if (PORT_Strcmp(argv[2+j], "ENE") == 0) {

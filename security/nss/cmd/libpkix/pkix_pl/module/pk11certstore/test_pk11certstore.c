@@ -475,6 +475,7 @@ cleanup:
 
 int main(int argc, char *argv[]) {
 
+        PKIX_Boolean useArenas = PKIX_FALSE;
         PKIX_UInt32 j = 0;
         PKIX_UInt32 actualMinorVersion;
         PKIX_PL_Date *validityDate = NULL;
@@ -634,14 +635,16 @@ int main(int argc, char *argv[]) {
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_Initialize_SetConfigDir
             (PKIX_STORE_TYPE_PK11, "../../pkix_pl_tests/module", plContext));
 
+        useArenas = PKIX_TEST_ARENAS_ARG(argv[1]);
+
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_Initialize
-                (PKIX_MAJOR_VERSION,
+                (PKIX_TRUE, /* nssInitNeeded */
+                useArenas,
+                PKIX_MAJOR_VERSION,
                 PKIX_MINOR_VERSION,
                 PKIX_MINOR_VERSION,
                 &actualMinorVersion,
-                plContext));
-
-        PKIX_TEST_NSSCONTEXT_SETUP(0x10, argv[1], NULL, &plContext);
+                &plContext));
 
         /* Two certs for prof should be valid now */
         PKIX_TEST_EXPECT_NO_ERROR(pkix_pl_Date_CreateFromPRTime

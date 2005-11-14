@@ -110,7 +110,12 @@ PKIX_Error* PKIX_ALLOC_ERROR(void)
  * PKIX_PL_Initialize (see comments in pkix_pl_system.h)
  */
 PKIX_Error *
-PKIX_PL_Initialize(void *plContext){
+PKIX_PL_Initialize(
+        PKIX_Boolean platformInitNeeded,
+        PKIX_Boolean useArenas,
+        void **pPlContext)
+{
+        void *plContext = NULL;
 
         pkix_ClassTable_Entry nullEntry = {NULL};
         /* XXX currently using canned value for config dir; add to plContext */
@@ -128,18 +133,20 @@ PKIX_PL_Initialize(void *plContext){
 
         if (pkix_pl_initialized) return (PKIX_ALLOC_ERROR());
 
+        if (platformInitNeeded) {
 
-        /*  Initialize NSPR and NSS.  */
-        PR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
+                /*  Initialize NSPR and NSS.  */
+                PR_Init(PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
 
-        /* if using databases, use NSS_Init and not NSS_NoDB_Init */
-        if (pkix_PK11ConfigDir) {
-                if (NSS_Init(pkix_PK11ConfigDir) != SECSuccess) {
-                        return (PKIX_ALLOC_ERROR());
-                }
-        } else {
-                if (NSS_NoDB_Init(NULL) != 0){
-                        return (PKIX_ALLOC_ERROR());
+                /* if using databases, use NSS_Init and not NSS_NoDB_Init */
+                if (pkix_PK11ConfigDir) {
+                        if (NSS_Init(pkix_PK11ConfigDir) != SECSuccess) {
+                                return (PKIX_ALLOC_ERROR());
+                        }
+                } else {
+                        if (NSS_NoDB_Init(NULL) != 0){
+                                return (PKIX_ALLOC_ERROR());
+                        }
                 }
         }
 
@@ -220,6 +227,12 @@ PKIX_PL_Initialize(void *plContext){
         pkix_pl_Socket_RegisterSelf(plContext);
         pkix_ResourceLimits_RegisterSelf(plContext);
         pkix_pl_InfoAccess_RegisterSelf(plContext);
+
+        PKIX_CHECK(PKIX_PL_NssContext_Create
+                (0x10, useArenas, NULL, &plContext),
+                "PKIX_PL_NssContext_Create failed");
+
+        *pPlContext = plContext;
 
         pkix_pl_initialized = PKIX_TRUE;
 

@@ -134,6 +134,7 @@ PKIX_Error *userChecker1cb(
         PKIX_CertChainChecker *checker,
         PKIX_PL_Cert *cert,
         PKIX_List *unresolvedCriticalExtensions,  /* list of PKIX_PL_OID */
+        PKIX_Boolean *finished,
         void *plContext)
 {
         return(NULL);
@@ -418,6 +419,7 @@ int main(int argc, char *argv[]) {
         PKIX_ProcessingParams *diffObject = NULL;
         PKIX_UInt32 actualMinorVersion;
         PKIX_UInt32 j = 0;
+        PKIX_Boolean useArenas = PKIX_FALSE;
 
         char *oidAnyPolicy = PKIX_CERTIFICATEPOLICIES_ANYPOLICY_OID;
         char *oidNist1Policy = "2.16.840.1.101.3.2.1.48.2";
@@ -460,14 +462,16 @@ int main(int argc, char *argv[]) {
 
         startTests("ProcessingParams");
 
+        useArenas = PKIX_TEST_ARENAS_ARG(argv[1]);
+
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_Initialize
-                                    (PKIX_MAJOR_VERSION,
+                                    (PKIX_TRUE, /* nssInitNeeded */
+                                    useArenas,
+                                    PKIX_MAJOR_VERSION,
                                     PKIX_MINOR_VERSION,
                                     PKIX_MINOR_VERSION,
                                     &actualMinorVersion,
-                                    plContext));
-
-        PKIX_TEST_NSSCONTEXT_SETUP(0x10, argv[1], NULL, &plContext);
+                                    &plContext));
 
         subTest("PKIX_ProcessingParams_Create");
         goodObject = createProcessingParams

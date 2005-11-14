@@ -44,6 +44,7 @@
 #include "pkix_lifecycle.h"
 
 PKIX_Boolean pkix_initialized = PKIX_FALSE;
+PKIX_Boolean pkix_initInProgress = PKIX_FALSE;
 char *pkix_PK11ConfigDir = NULL;
 
 /* Lock used by Logger - is reentrant by the same thread */
@@ -79,17 +80,33 @@ extern PKIX_List *pkixLoggersDebugTrace;
  */
 PKIX_Error *
 PKIX_Initialize(
+        PKIX_Boolean platformInitNeeded,
+        PKIX_Boolean useArenas,
         PKIX_UInt32 desiredMajorVersion,
         PKIX_UInt32 minDesiredMinorVersion,
         PKIX_UInt32 maxDesiredMinorVersion,
         PKIX_UInt32 *pActualMinorVersion,
-        void *plContext)
+        void **pPlContext)
 {
+	void *plContext = NULL;
+
         PKIX_ENTER(LIFECYCLE, "PKIX_Initialize");
 
         /*
-         * This function can only be called once. If it has already been
-         * called, we return a statically allocated error. Our technique works
+         * This function can only be called once, except for a special-situation
+         * recursive call. If platformInitNeeded is TRUE, this function
+         * initializes the platform support layer, such as NSS. But that
+         * layer expects to initialize us! So we return immediately if we
+         * recognize that we are in this nested call situation.
+         */
+
+        if (pkix_initInProgress && (platformInitNeeded == PKIX_FALSE)) {
+                goto cleanup;
+        }
+
+        /*
+         * If we are called a second time other than in the situation handled
+         * above, we return a statically allocated error. Our technique works
          * most of the time, but may not work if multiple threads call this
          * function simultaneously. However, the function's documentation
          * makes it clear that this is prohibited, so it's not our
@@ -100,7 +117,13 @@ PKIX_Initialize(
                 return (PKIX_ALLOC_ERROR());
         }
 
-        PKIX_CHECK(PKIX_PL_Initialize(plContext), "PKIX_PL_Initialize failed");
+        pkix_initInProgress = PKIX_TRUE;
+
+        PKIX_CHECK(PKIX_PL_Initialize
+                (platformInitNeeded, useArenas, &plContext),
+                "PKIX_PL_Initialize failed");
+
+	*pPlContext = plContext;
 
         if (desiredMajorVersion != PKIX_MAJOR_VERSION){
                 PKIX_ERROR("Major versions don't match");

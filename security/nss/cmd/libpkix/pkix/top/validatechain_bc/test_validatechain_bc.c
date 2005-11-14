@@ -147,28 +147,31 @@ int main(int argc, char *argv[])
         char *chainCertFile = NULL;
         PKIX_PL_Cert *trustedCert = NULL;
         PKIX_PL_Cert *chainCert = NULL;
-        PKIX_UInt32 chainLength, i, j;
+        PKIX_UInt32 chainLength = 0;
+        PKIX_UInt32 i = 0;
+        PKIX_UInt32 j = 0;
         PKIX_UInt32 actualMinorVersion;
+        PKIX_Boolean useArenas = PKIX_FALSE;
 
         PKIX_TEST_STD_VARS();
-
-        startTests("ValidateChainBasicConstraints");
-
-        PKIX_TEST_EXPECT_NO_ERROR(PKIX_Initialize
-                                    (PKIX_MAJOR_VERSION,
-                                    PKIX_MINOR_VERSION,
-                                    PKIX_MINOR_VERSION,
-                                    &actualMinorVersion,
-                                    plContext));
 
         if (argc < 3){
                 printUsage();
                 return (0);
         }
 
-        j = 0;
+        startTests("ValidateChainBasicConstraints");
 
-        PKIX_TEST_NSSCONTEXT_SETUP(0x10, argv[1], NULL, &plContext);
+        useArenas = PKIX_TEST_ARENAS_ARG(argv[1]);
+
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_Initialize
+                                    (PKIX_TRUE, /* nssInitNeeded */
+                                    useArenas,
+                                    PKIX_MAJOR_VERSION,
+                                    PKIX_MINOR_VERSION,
+                                    PKIX_MINOR_VERSION,
+                                    &actualMinorVersion,
+                                    &plContext));
 
         chainLength = (argc - j) - 2;
 

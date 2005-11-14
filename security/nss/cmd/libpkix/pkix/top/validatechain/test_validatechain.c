@@ -144,8 +144,11 @@ int main(int argc, char *argv[]){
         PKIX_ValidateParams *valParams = NULL;
         PKIX_ValidateResult *valResult = NULL;
         PKIX_UInt32 actualMinorVersion;
-        PKIX_UInt32 j, k, chainLength;
+        PKIX_UInt32 j = 0;
+        PKIX_UInt32 k = 0;
+        PKIX_UInt32 chainLength = 0;
         PKIX_Boolean testValid = PKIX_TRUE;
+        PKIX_Boolean useArenas = PKIX_FALSE;
         PKIX_List *chainCerts = NULL;
         PKIX_PL_Cert *dirCert = NULL;
         char *dirCertName = NULL;
@@ -154,23 +157,23 @@ int main(int argc, char *argv[]){
 
         PKIX_TEST_STD_VARS();
 
-        startTests("ValidateChain");
-
-        PKIX_TEST_EXPECT_NO_ERROR(PKIX_Initialize
-                                    (PKIX_MAJOR_VERSION,
-                                    PKIX_MINOR_VERSION,
-                                    PKIX_MINOR_VERSION,
-                                    &actualMinorVersion,
-                                    plContext));
-
-        if (argc < 5){
+        if (argc < 5) {
                 printUsage();
                 return (0);
         }
 
-        j = 0;
+        startTests("ValidateChain");
 
-        PKIX_TEST_NSSCONTEXT_SETUP(0x10, argv[1], NULL, &plContext);
+        useArenas = PKIX_TEST_ARENAS_ARG(argv[1]);
+
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_Initialize
+                                    (PKIX_TRUE, /* nssInitNeeded */
+                                    useArenas,
+                                    PKIX_MAJOR_VERSION,
+                                    PKIX_MINOR_VERSION,
+                                    PKIX_MINOR_VERSION,
+                                    &actualMinorVersion,
+                                    &plContext));
 
         /* ENE = expect no error; EE = expect error */
         if (PORT_Strcmp(argv[2+j], "ENE") == 0) {

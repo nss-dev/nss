@@ -50,9 +50,10 @@ PKIX_Error *dummyChecker_Check(
         PKIX_CertChainChecker *checker,
         PKIX_PL_Cert *cert,
         PKIX_List *unresolvedCriticalExtensions,
+        PKIX_Boolean *finished,
         void *plContext)
 {
-	goto cleanup;
+        goto cleanup;
 
 cleanup:
 
@@ -150,7 +151,7 @@ cleanup:
         PKIX_TEST_RETURN();
 }
 
-int main(void){
+int main(int argc, char *argv[]) {
 
         PKIX_UInt32 actualMinorVersion;
         PKIX_PL_OID *bcOID = NULL;
@@ -162,17 +163,23 @@ int main(void){
         PKIX_CertChainChecker *dummyChecker = NULL;
         PKIX_List *supportedExtensions = NULL;
         PKIX_PL_Object *initialState = NULL;
+        PKIX_UInt32 j = 0;
+        PKIX_Boolean useArenas = PKIX_FALSE;
 
         PKIX_TEST_STD_VARS();
 
         startTests("CertChainChecker");
 
+        useArenas = PKIX_TEST_ARENAS_ARG(argv[1]);
+
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_Initialize
-                                    (PKIX_MAJOR_VERSION,
+                                    (PKIX_TRUE, /* nssInitNeeded */
+                                    useArenas,
+                                    PKIX_MAJOR_VERSION,
                                     PKIX_MINOR_VERSION,
                                     PKIX_MINOR_VERSION,
                                     &actualMinorVersion,
-                                    plContext));
+                                    &plContext));
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_Create
                 (&supportedExtensions, plContext));

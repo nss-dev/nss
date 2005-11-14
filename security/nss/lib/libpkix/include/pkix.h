@@ -93,6 +93,11 @@ extern "C" {
  * and returns successfully. This function should only be called once. If it
  * is called more than once, the behavior is undefined.
  *
+ * NSS applications are expected to call NSS_Init, and need not know that
+ * NSS will call this function (with "platformInitNeeded" set to PKIX_FALSE).
+ * PKIX applications are expected instead to call this function with
+ * "platformInitNeeded" set to PKIX_TRUE.
+ *
  * This function initializes data structures critical to the operation of
  * libpkix. It also ensures that the API version (major.minor) desired by the
  * caller (the "desiredMajorVersion", "minDesiredMinorVersion", and
@@ -108,6 +113,12 @@ extern "C" {
  * be set to the macro PKIX_MAX_MINOR_VERSION (defined in pkixt.h).
  *
  * PARAMETERS:
+ *  "platformInitNeeded"
+ *      Boolean indicating whether the platform layer initialization code
+ *      has previously been run, or should be called from this function.
+ *  "useArenas"
+ *      Boolean indicating whether allocation is to be done using arenas or
+ *      individual allocation (malloc).
  *  "desiredMajorVersion"
  *      The major version of the libpkix API the application wishes to use.
  *  "minDesiredMinorVersion"
@@ -118,8 +129,9 @@ extern "C" {
  *      to use.
  *  "pActualMinorVersion"
  *      Address where PKIX_UInt32 will be stored. Must be non-NULL.
- *  "plContext"
- *      Platform-specific context pointer.
+ *  "pPlContext"
+ *      Address at which platform-specific context pointer is stored. Must
+ *      be non-NULL.
  * THREAD SAFETY:
  *  Not Thread Safe
  * RETURNS:
@@ -129,11 +141,13 @@ extern "C" {
  */
 PKIX_Error *
 PKIX_Initialize(
+        PKIX_Boolean platformInitNeeded,
+        PKIX_Boolean useArenas,
         PKIX_UInt32 desiredMajorVersion,
         PKIX_UInt32 minDesiredMinorVersion,
         PKIX_UInt32 maxDesiredMinorVersion,
         PKIX_UInt32 *pActualMinorVersion,
-        void *plContext);
+        void **pPlContext);
 
 /*
  * FUNCTION: PKIX_Shutdown

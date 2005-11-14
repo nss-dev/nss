@@ -272,18 +272,10 @@ extern "C" {
                 } \
         } while (0)
 
-#define PKIX_TEST_NSSCONTEXT_SETUP(certUsage, arena, wincx, context) \
-        do { \
-                PKIX_Boolean useNssArena = PKIX_FALSE; \
-                if (arena) { \
-                        if (PORT_Strcmp(arena, "-arenas") == 0) { \
-			        useNssArena = PKIX_TRUE; \
-                                j++; \
-                        } \
-                } \
-                PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_NssContext_Create \
-                        (certUsage, useNssArena, wincx, context)); \
-        } while (0)
+#define PKIX_TEST_ARENAS_ARG(arena) \
+        (arena? \
+        (PORT_Strcmp(arena, "-arenas") ? PKIX_FALSE : (j++, PKIX_TRUE)): \
+        PKIX_FALSE)
 
 #define PKIX_TEST_ERROR_RECEIVED (pkixTestErrorMsg || pkixTestErrorResult)
 

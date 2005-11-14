@@ -50,7 +50,8 @@ int main(int argc, char *argv[]) {
 
         PKIX_List *list;
         char *temp;
-        PKIX_UInt32 i, j;
+        PKIX_UInt32 i = 0;
+        PKIX_UInt32 j = 0;
         PKIX_Int32 cmpResult;
         PKIX_PL_OID *testOID;
         PKIX_PL_String *testString;
@@ -68,19 +69,23 @@ int main(int argc, char *argv[]) {
                 "1.2.3.4.5",
                 "0.39.1.300"
         };
+        PKIX_Boolean useArenas = PKIX_FALSE;
         PKIX_UInt32 actualMinorVersion;
 
         PKIX_TEST_STD_VARS();
+
         startTests("List Sorting");
 
+        useArenas = PKIX_TEST_ARENAS_ARG(argv[1]);
+
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_Initialize
-                                    (PKIX_MAJOR_VERSION,
+                                    (PKIX_TRUE, /* nssInitNeeded */
+                                    useArenas,
+                                    PKIX_MAJOR_VERSION,
                                     PKIX_MINOR_VERSION,
                                     PKIX_MINOR_VERSION,
                                     &actualMinorVersion,
-                                    plContext));
-
-        PKIX_TEST_NSSCONTEXT_SETUP(0x10, argv[1], NULL, &plContext);
+                                    &plContext));
 
         subTest("Creating Unsorted Lists");
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_Create(&list, plContext));
