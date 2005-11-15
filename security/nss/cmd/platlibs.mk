@@ -71,6 +71,17 @@ EXTRA_LIBS += \
 	$(DIST)/lib/$(LIB_PREFIX)nsspki.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)nssdev.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)nssb.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)certsel.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)checker.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)params.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)results.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)top.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)util.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)crlsel.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)store.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)pki.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)system.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)module.$(LIB_SUFFIX) \        
 	$(DIST)/lib/$(LIB_PREFIX)dbm.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(NSPR31_LIB_PREFIX)plc4.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(NSPR31_LIB_PREFIX)plds4.$(LIB_SUFFIX) \
@@ -120,6 +131,19 @@ EXTRA_LIBS += \
 	$(CRYPTOLIB) \
 	$(DIST)/lib/$(LIB_PREFIX)secutil.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)dbm.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)top.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)system.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)util.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)crlsel.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)module.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)store.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)params.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)pki.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)top.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)results.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)certsel.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)checker.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)certhi.$(LIB_SUFFIX) \
 	$(NULL)
 
 ifeq ($(OS_ARCH), AIX) 
@@ -137,7 +161,6 @@ EXTRA_SHARED_LIBS += \
 else
 EXTRA_SHARED_LIBS += \
 	-L$(DIST)/lib \
-	-lnss3 \
 	-lplc4 \
 	-lplds4 \
 	-lnspr4 \
