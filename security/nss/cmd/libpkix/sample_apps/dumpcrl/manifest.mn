@@ -48,4 +48,4 @@ CSRCS = dumpcrl.c
 # PROGRAM	=$(OBJDIR)/dumpcrl
 PROGRAM	= dumpcrl
 
-#USE_STATIC_LIBS = 1
+

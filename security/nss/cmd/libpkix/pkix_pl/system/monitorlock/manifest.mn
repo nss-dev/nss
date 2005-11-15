@@ -48,4 +48,4 @@ CSRCS = test_monitorlock.c
 # PROGRAM	=$(OBJDIR)/test_monitorlock
 PROGRAM	= test_monitorlock
 
-#USE_STATIC_LIBS = 1
+

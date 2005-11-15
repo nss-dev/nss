@@ -48,4 +48,4 @@ CSRCS = test_resourcelimits.c
 # PROGRAM	=$(OBJDIR)/test_resourcelimits
 PROGRAM	= test_resourcelimits
 
-#USE_STATIC_LIBS = 1
+

@@ -48,4 +48,4 @@ CSRCS = test_subjaltnamechecker.c
 # PROGRAM	=$(OBJDIR)/test_subjaltnamechecker
 PROGRAM	= test_subjaltnamechecker
 
-#USE_STATIC_LIBS = 1
+

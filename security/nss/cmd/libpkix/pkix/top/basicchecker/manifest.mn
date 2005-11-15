@@ -48,4 +48,4 @@ CSRCS = test_basicchecker.c
 # PROGRAM	=$(OBJDIR)/test_basicchecker
 PROGRAM	= test_basicchecker
 
-#USE_STATIC_LIBS = 1
+

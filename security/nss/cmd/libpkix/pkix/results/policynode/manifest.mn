@@ -48,4 +48,4 @@ CSRCS = test_policynode.c
 # PROGRAM	=$(OBJDIR)/test_policynode
 PROGRAM	= test_policynode
 
-#USE_STATIC_LIBS = 1
+

@@ -48,4 +48,4 @@ CSRCS = test_trustanchor.c
 # PROGRAM	=$(OBJDIR)/test_trustanchor
 PROGRAM	= test_trustanchor
 
-#USE_STATIC_LIBS = 1
+

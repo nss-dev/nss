@@ -48,4 +48,4 @@ CSRCS = test_mem.c
 # PROGRAM	=$(OBJDIR)/test_mem
 PROGRAM	= test_mem
 
-#USE_STATIC_LIBS = 1
+

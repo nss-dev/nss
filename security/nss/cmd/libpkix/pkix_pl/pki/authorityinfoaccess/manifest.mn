@@ -48,4 +48,4 @@ CSRCS = test_authorityinfoaccess.c
 # PROGRAM	=$(OBJDIR)/test_authorityinfoaccess
 PROGRAM	= test_authorityinfoaccess
 
-#USE_STATIC_LIBS = 1
+

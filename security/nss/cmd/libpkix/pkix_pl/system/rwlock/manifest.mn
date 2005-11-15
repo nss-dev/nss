@@ -48,4 +48,4 @@ CSRCS = test_rwlock.c
 # PROGRAM	=$(OBJDIR)/test_rwlock
 PROGRAM	= test_rwlock
 
-#USE_STATIC_LIBS = 1
+

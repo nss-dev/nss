@@ -48,4 +48,4 @@ CSRCS = test_mutex2.c
 # PROGRAM	=$(OBJDIR)/test_mutex2
 PROGRAM	= test_mutex2
 
-#USE_STATIC_LIBS = 1
+

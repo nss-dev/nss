@@ -47,5 +47,3 @@ CSRCS = libpkix_buildthreads.c
 # this has to be different for NT and UNIX.
 # PROGRAM	=$(OBJDIR)/libpkix_buildthreads
 PROGRAM	= libpkix_buildthreads
-
-#USE_STATIC_LIBS = 1

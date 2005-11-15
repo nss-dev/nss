@@ -48,4 +48,4 @@ CSRCS = test_string2.c
 # PROGRAM	=$(OBJDIR)/test_string2
 PROGRAM	= test_string2
 
-#USE_STATIC_LIBS = 1
+

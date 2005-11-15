@@ -48,4 +48,4 @@ CSRCS = stress_test.c
 # PROGRAM	=$(OBJDIR)/test_stress
 PROGRAM	= stress_test
 
-#USE_STATIC_LIBS = 1
+

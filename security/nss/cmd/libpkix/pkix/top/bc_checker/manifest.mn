@@ -48,4 +48,4 @@ CSRCS = test_basicconstraintschecker.c
 # PROGRAM	=$(OBJDIR)/test_basicconstraintschecker
 PROGRAM	= test_basicconstraintschecker
 
-#USE_STATIC_LIBS = 1
+

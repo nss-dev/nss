@@ -48,4 +48,4 @@ CSRCS = test_nameconstraints.c
 # PROGRAM	=$(OBJDIR)/test_nameconstraints
 PROGRAM	= test_nameconstraints
 
-#USE_STATIC_LIBS = 1
+

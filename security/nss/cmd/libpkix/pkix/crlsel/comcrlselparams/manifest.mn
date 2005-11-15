@@ -48,4 +48,4 @@ CSRCS = test_comcrlselparams.c
 # PROGRAM	=$(OBJDIR)/test_comcrlselparams
 PROGRAM	= test_comcrlselparams
 
-#USE_STATIC_LIBS = 1
+

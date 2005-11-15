@@ -48,4 +48,4 @@ CSRCS = test_policychecker.c
 # PROGRAM	=$(OBJDIR)/test_policychecker
 PROGRAM	= test_policychecker
 
-#USE_STATIC_LIBS = 1
+

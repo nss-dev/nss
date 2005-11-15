@@ -48,4 +48,4 @@ CSRCS = build_chain.c
 # PROGRAM	=$(OBJDIR)/build_chain
 PROGRAM	= build_chain
 
-#USE_STATIC_LIBS = 1
+

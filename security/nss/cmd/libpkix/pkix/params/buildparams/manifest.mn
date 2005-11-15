@@ -48,4 +48,4 @@ CSRCS = test_buildparams.c
 # PROGRAM	=$(OBJDIR)/test_buildparams
 PROGRAM	= test_buildparams
 
-#USE_STATIC_LIBS = 1
+

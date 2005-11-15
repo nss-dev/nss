@@ -48,4 +48,4 @@ CSRCS = test_valparams.c
 # PROGRAM	=$(OBJDIR)/test_valparams
 PROGRAM	= test_valparams
 
-#USE_STATIC_LIBS = 1
+

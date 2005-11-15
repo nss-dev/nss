@@ -48,4 +48,4 @@ CSRCS = test_subjectinfoaccess.c
 # PROGRAM	=$(OBJDIR)/test_subjectinfoaccess
 PROGRAM	= test_subjectinfoaccess
 
-#USE_STATIC_LIBS = 1
+

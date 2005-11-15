@@ -48,4 +48,4 @@ CSRCS = test_procparams.c
 # PROGRAM	=$(OBJDIR)/test_procparams
 PROGRAM	= test_procparams
 
-#USE_STATIC_LIBS = 1
+

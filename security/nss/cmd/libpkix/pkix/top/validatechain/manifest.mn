@@ -48,4 +48,4 @@ CSRCS = test_validatechain.c
 # PROGRAM	=$(OBJDIR)/test_validatechain
 PROGRAM	= test_validatechain
 
-#USE_STATIC_LIBS = 1
+

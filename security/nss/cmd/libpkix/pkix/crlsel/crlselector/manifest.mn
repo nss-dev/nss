@@ -48,4 +48,4 @@ CSRCS = test_crlselector.c
 # PROGRAM	=$(OBJDIR)/test_crlselector
 PROGRAM	= test_crlselector
 
-#USE_STATIC_LIBS = 1
+

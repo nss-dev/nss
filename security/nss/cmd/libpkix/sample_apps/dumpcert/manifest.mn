@@ -48,4 +48,4 @@ CSRCS = dumpcert.c
 # PROGRAM	=$(OBJDIR)/dumpcert
 PROGRAM	= dumpcert
 
-#USE_STATIC_LIBS = 1
+

@@ -48,4 +48,4 @@ CSRCS = test_ekuchecker.c
 # PROGRAM	=$(OBJDIR)/test_ekuchecker
 PROGRAM	= test_ekuchecker
 
-#USE_STATIC_LIBS = 1
+
