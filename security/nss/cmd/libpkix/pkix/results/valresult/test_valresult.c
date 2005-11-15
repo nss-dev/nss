@@ -157,6 +157,10 @@ cleanup:
         PKIX_TEST_RETURN();
 }
 
+void printUsage(char *pName){
+        printf("\nUSAGE: %s <central-data-dir>\n\n", pName);
+}
+
 int main(int argc, char *argv[]) {
 
         PKIX_ValidateResult *goodObject = NULL;
@@ -167,8 +171,9 @@ int main(int argc, char *argv[]) {
         PKIX_UInt32 j = 0;
         PKIX_Boolean useArenas = PKIX_FALSE;
 
-        char *goodInput = "../../certs/yassir2yassir";
-        char *diffInput = "../../certs/yassir2bcn";
+        char *goodInput = "yassir2yassir";
+        char *diffInput = "yassir2bcn";
+        char *dirName = NULL;
 
         char *expectedAscii =
                 "[\n"
@@ -199,11 +204,21 @@ int main(int argc, char *argv[]) {
                                     &actualMinorVersion,
                                     &plContext));
 
+        if (argc < 2){
+                printUsage(argv[0]);
+                return (0);
+        }
+
+        dirName = argv[j+1];
+
         subTest("pkix_ValidateResult_Create");
 
-        goodObject = createValidateResult(goodInput, diffInput, plContext);
-        equalObject = createValidateResult(goodInput, diffInput, plContext);
-        diffObject = createValidateResult(diffInput, goodInput, plContext);
+        goodObject = createValidateResult
+                (dirName, goodInput, diffInput, plContext);
+        equalObject = createValidateResult
+                (dirName, goodInput, diffInput, plContext);
+        diffObject = createValidateResult
+                (dirName, diffInput, goodInput, plContext);
 
         testGetPublicKey(goodObject, equalObject);
         testGetTrustAnchor(goodObject, equalObject);

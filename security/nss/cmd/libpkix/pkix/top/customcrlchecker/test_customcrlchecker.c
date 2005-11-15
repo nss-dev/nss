@@ -48,6 +48,7 @@
 #define PKIX_TEST_COLLECTIONCERTSTORE_NUM_CRLS 5
 
 void *plContext = NULL;
+char *dirName = NULL; /* also used in callback */
 
 void printUsage1(char *pName){
         printf("\nUSAGE: %s test-purpose [ENE|EE] ", pName);
@@ -66,11 +67,11 @@ getCRLCallback(
         PKIX_List **pCrlList,
         void *plContext)
 {
-        char *crlFileNames[] = {"./rev_data/crlchecker/chem.crl",
-                                "./rev_data/crlchecker/phys.crl",
-                                "./rev_data/crlchecker/prof.crl",
-                                "./rev_data/crlchecker/sci.crl",
-                                "./rev_data/crlchecker/test.crl",
+        char *crlFileNames[] = {"chem.crl",
+                                "phys.crl",
+                                "prof.crl",
+                                "sci.crl",
+                                "test.crl",
                                 0 };
         PKIX_PL_CRL *crl = NULL;
         PKIX_List *crlList = NULL;
@@ -82,7 +83,7 @@ getCRLCallback(
 
         while (crlFileNames[i]) {
 
-                crl = createCRL(crlFileNames[i++], plContext);
+                crl = createCRL(dirName, crlFileNames[i++], plContext);
 
                 if (crl != NULL) {
 
@@ -383,7 +384,6 @@ int main(int argc, char *argv[]){
         PKIX_UInt32 j = 0;
         PKIX_Boolean testValid = PKIX_TRUE;
         PKIX_Boolean useArenas = PKIX_FALSE;
-        char *dirName = NULL;
         char *anchorName = NULL;
 
         PKIX_TEST_STD_VARS();
@@ -433,23 +433,16 @@ int main(int argc, char *argv[]){
 
         subTest("Custom-CRL-Checker - Create Cert Chain");
 
-        chain = createDirCertChainPlus
+        chain = createCertChainPlus
                 (dirName, certNames, certs, chainLength, plContext);
 
         subTest("Custom-CRL-Checker - Create Params");
 
-        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Malloc
-                (PL_strlen(dirName) + PL_strlen(argv[4+j]) + 2,
-                (void **) &anchorName,
-                plContext));
-
-        PL_strcpy(anchorName, dirName);
-        PL_strcat(anchorName, "/");
-        PL_strcat(anchorName, argv[4+j]);
-        printf("anchorName = %s\n", anchorName);
+        anchorName = argv[4+j];
 
         valParams = createValidateParams
-                (anchorName,
+                (dirName,
+                anchorName,
                 NULL,
                 NULL,
                 NULL,
@@ -475,8 +468,6 @@ int main(int argc, char *argv[]){
         }
 
 cleanup:
-
-        PKIX_PL_Free(anchorName, plContext);
 
         PKIX_TEST_DECREF_AC(chain);
         PKIX_TEST_DECREF_AC(valParams);

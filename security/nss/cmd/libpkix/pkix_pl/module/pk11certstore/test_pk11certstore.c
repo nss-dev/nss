@@ -128,6 +128,7 @@ cleanup:
  * It is intended to test a "smart" database query.
  */
 void testMatchCertSubject(
+        char *crlDir,
         char *desiredSubjectCert,
         char *expectedAscii,
         PKIX_PL_Date *validityDate,
@@ -142,7 +143,8 @@ void testMatchCertSubject(
 
         PKIX_TEST_STD_VARS();
 
-        certWithDesiredSubject = createCert(desiredSubjectCert, plContext);
+        certWithDesiredSubject = createCert
+                (crlDir, desiredSubjectCert, plContext);
 
         test_makeSubjectCertSelector
                 (certWithDesiredSubject,
@@ -232,68 +234,6 @@ cleanup:
 }
 
 /*
- * FUNCTION: testCreateCRL
- *  This function reads the file at the path given by "crlFileName" and creates
- *  a CRL, storing the result at "pCRL".
- */
-static PKIX_PL_CRL *
-testCreateCrl(
-        const char *crlFileName,
-        void *plContext)
-{
-        PKIX_UInt32 len = 0;
-        PKIX_PL_ByteArray *byteArray = NULL;
-        void *buf = NULL;
-        PKIX_PL_CRL *crl = NULL;
-        PRFileDesc *inFile = NULL;
-        SECItem crlDER = {siBuffer, NULL, 0};
-        SECStatus rv = SECFailure;
-
-        PKIX_TEST_STD_VARS();
-
-        inFile = PR_Open(crlFileName, PR_RDONLY, 0);
-
-        if (!inFile){
-                testError("Unable to open CRL file");
-        } else {
-                rv = SECU_ReadDERFromFile(&crlDER, inFile, PR_FALSE);
-                if (!rv){
-
-                        buf = (void *)crlDER.data;
-                        len = crlDER.len;
-
-                        PKIX_TEST_EXPECT_NO_ERROR
-                                (PKIX_PL_ByteArray_Create
-                                (buf, len, &byteArray, plContext));
-
-                        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_CRL_Create
-                                (byteArray, &crl, plContext));
-
-                        SECITEM_FreeItem(&crlDER, PR_FALSE);
-
-                } else {
-                        testError("Unable to read DER from crl file");
-                }
-        }
-
-cleanup:
-
-        if (inFile){
-                PR_Close(inFile);
-        }
-
-        if (PKIX_TEST_ERROR_RECEIVED){
-                SECITEM_FreeItem(&crlDER, PR_FALSE);
-        }
-
-        PKIX_TEST_DECREF_AC(byteArray);
-
-        PKIX_TEST_RETURN();
-
-        return (crl);
-}
-
-/*
  * This function creates a crlSelector with ComCrlSelParams set up to
  * select entries whose Issuer Name matches that in the given Crl.
  */
@@ -374,6 +314,7 @@ cleanup:
  * It is intended to test the case of a "smart" database query.
  */
 void testMatchCrlIssuer(
+        char *crlDir,
         char *desiredIssuerCrl,
         char *expectedAscii,
         void *plContext)
@@ -389,7 +330,7 @@ void testMatchCrlIssuer(
 
         subTest("Searching CRLs for matching Issuer");
 
-        crlWithDesiredIssuer = testCreateCrl(desiredIssuerCrl, plContext);
+        crlWithDesiredIssuer = createCRL(crlDir, desiredIssuerCrl, plContext);
 
         test_makeIssuerCRLSelector
                 (crlWithDesiredIssuer, &crlSelector, plContext);
@@ -471,6 +412,10 @@ cleanup:
         PKIX_TEST_RETURN();
 }
 
+void printUsage(char *pName){
+        printf("\nUSAGE: %s <data-dir> <database-dir>\n\n", pName);
+}
+
 /* Functional tests for Pk11CertStore public functions */
 
 int main(int argc, char *argv[]) {
@@ -480,6 +425,8 @@ int main(int argc, char *argv[]) {
         PKIX_UInt32 actualMinorVersion;
         PKIX_PL_Date *validityDate = NULL;
         PKIX_PL_Date *betweenDate = NULL;
+        char *crlDir = NULL;
+        char *databaseDir = NULL;
         char *expectedProfAscii = "([\n"
                 "\tVersion:         v3\n"
                 "\tSerialNumber:    00ca\n"
@@ -631,9 +578,21 @@ int main(int argc, char *argv[]) {
 
         startTests("Pk11CertStore");
 
+        if (argc < 3) {
+                printUsage(argv[0]);
+                return (0);
+        }
+
+        /* too bad we cannot do this after the macro NSSCONTEXT_SETUP */
+        databaseDir = argv[1];
+        if (databaseDir[0] == '-') {
+                /* with -arenas at front */
+                databaseDir = argv[2];
+        }
+
         /* This must precede the call to PKIX_Initialize! */
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_Initialize_SetConfigDir
-            (PKIX_STORE_TYPE_PK11, "../../pkix_pl_tests/module", plContext));
+            (PKIX_STORE_TYPE_PK11, databaseDir, plContext));
 
         useArenas = PKIX_TEST_ARENAS_ARG(argv[1]);
 
@@ -646,6 +605,8 @@ int main(int argc, char *argv[]) {
                 &actualMinorVersion,
                 &plContext));
 
+        crlDir = argv[j+2];
+
         /* Two certs for prof should be valid now */
         PKIX_TEST_EXPECT_NO_ERROR(pkix_pl_Date_CreateFromPRTime
                 (PR_Now(), &validityDate, plContext));
@@ -653,7 +614,8 @@ int main(int argc, char *argv[]) {
         subTest("Searching Certs for Subject");
 
         testMatchCertSubject
-                ("../../pkix_tests/top/rev_data/crlchecker/phy2prof.crt",
+                (crlDir,
+                "phy2prof.crt",
                 NULL, /* expectedProfAscii, */
                 validityDate,
                 plContext);
@@ -664,7 +626,8 @@ int main(int argc, char *argv[]) {
         subTest("Searching Certs for Subject and Validity");
 
         testMatchCertSubject
-                ("../../pkix_tests/top/rev_data/crlchecker/phy2prof.crt",
+                (crlDir,
+                "phy2prof.crt",
                 NULL, /* expectedValidityAscii, */
                 betweenDate,
                 plContext);
@@ -675,7 +638,8 @@ int main(int argc, char *argv[]) {
         	plContext);
 
         testMatchCrlIssuer
-                ("../../pkix_tests/top/rev_data/crlchecker/phys.crl",
+                (crlDir,
+                "phys.crl",
                 NULL, /* expectedIssuerAscii, */
                 plContext);
 

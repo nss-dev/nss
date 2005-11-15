@@ -62,34 +62,25 @@ extern "C" {
 
 PKIX_PL_Cert *
 createCert(
-        char *certFileName,
-        void *plContext);
-
-PKIX_PL_Cert *
-createDirCert(
         char *dirName,
         char *certFile,
         void *plContext);
 
 PKIX_PL_CRL *
 createCRL(
-        char *inFileName,
+        char *dirName,
+        char *crlFileName,
         void *plContext);
 
 PKIX_TrustAnchor *
 createTrustAnchor(
-        char *certFileName,
+        char *dirName,
+        char *taFileName,
         PKIX_Boolean useCert,
         void *plContext);
 
 PKIX_CertChain *
 createCertChain(
-        char *firstCertFileName,
-        char *secondCertFileName,
-        void *plContext);
-
-PKIX_CertChain *
-createDirCertChain(
         char *dirName,
         char *firstCertFileName,
         char *secondCertFileName,
@@ -97,13 +88,6 @@ createDirCertChain(
 
 PKIX_CertChain *
 createCertChainPlus(
-        char *certNames[],
-        PKIX_PL_Cert *certs[],
-        PKIX_UInt32 numCerts,
-        void *plContext);
-
-PKIX_CertChain *
-createDirCertChainPlus(
         char *dirName,
         char *certNames[],
         PKIX_PL_Cert *certs[],
@@ -118,6 +102,7 @@ createDate(
 
 PKIX_ProcessingParams *
 createProcessingParams(
+        char *dirName,
         char *firstAnchorFileName,
         char *secondAnchorFileName,
         char *dateAscii,
@@ -126,6 +111,7 @@ createProcessingParams(
 
 PKIX_ValidateParams *
 createValidateParams(
+        char *dirName,
         char *firstAnchorFileName,
         char *secondAnchorFileName,
         char *dateAscii,
@@ -139,6 +125,7 @@ createValidateParams(
 
 PKIX_BuildParams *
 createBuildParams(
+        char *dirName,
         char *firstAnchorFileName,
         char *secondAnchorFileName,
         char *dateAscii,
@@ -148,12 +135,14 @@ createBuildParams(
 
 PKIX_ValidateResult *
 createValidateResult(
+        char *dirName,
         char *anchorFileName,
         char *pubKeyCertFileName,
         void *plContext);
 
 PKIX_BuildResult *
 createBuildResult(
+        char *dirName,
         char *anchorFileName,
         char *pubKeyCertFileName,
         char *firstChainCertFileName,

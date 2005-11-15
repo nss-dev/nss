@@ -53,7 +53,7 @@ testunit=UTIL
 ParseArgs $*
 
 RunTests <<EOF
-test_certchain
+test_certchain ${curdir}/../../certs
 test_error
 test_list
 test_list2

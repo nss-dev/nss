@@ -123,6 +123,10 @@ cleanup:
         PKIX_TEST_RETURN();
 }
 
+void printUsage(char *pName){
+        printf("\nUSAGE: %s <central-data-dir>\n\n", pName);
+}
+
 int main(int argc, char *argv[]) {
 
         PKIX_BuildResult *goodObject = NULL;
@@ -130,11 +134,12 @@ int main(int argc, char *argv[]) {
         PKIX_BuildResult *diffObject = NULL;
         PKIX_CertChain *chain = NULL;
         PKIX_UInt32 actualMinorVersion;
+        char *dirName = NULL;
 	PKIX_UInt32 j = 0;
 	PKIX_Boolean useArenas = PKIX_FALSE;
 
-        char *goodInput = "../../certs/yassir2yassir";
-        char *diffInput = "../../certs/yassir2bcn";
+        char *goodInput = "yassir2yassir";
+        char *diffInput = "yassir2bcn";
 
         char *expectedAscii =
                 "[\n"
@@ -212,14 +217,21 @@ int main(int argc, char *argv[]) {
                                     &actualMinorVersion,
                                     &plContext));
 
+        if (argc < 2){
+                printUsage(argv[0]);
+                return (0);
+        }
+
+        dirName = argv[j+1];
+
         subTest("pkix_BuildResult_Create");
 
         goodObject = createBuildResult
-                (goodInput, diffInput, goodInput, diffInput, plContext);
+            (dirName, goodInput, diffInput, goodInput, diffInput, plContext);
         equalObject = createBuildResult
-                (goodInput, diffInput, goodInput, diffInput, plContext);
+            (dirName, goodInput, diffInput, goodInput, diffInput, plContext);
         diffObject = createBuildResult
-                (diffInput, goodInput, diffInput, goodInput, plContext);
+            (dirName, diffInput, goodInput, diffInput, goodInput, plContext);
 
         testGetValidateResult(goodObject, equalObject);
         testGetCertChain(goodObject, equalObject);

@@ -66,8 +66,37 @@
 #include "keythi.h"
 #include "nss.h"
 
+static char *catDirName(char *dir, char *name, void *plContext)
+{
+        char *pathName = NULL;
+        PKIX_UInt32 nameLen;
+        PKIX_UInt32 dirLen;
+
+        PKIX_TEST_STD_VARS();
+
+        nameLen = PL_strlen(name);
+        dirLen = PL_strlen(dir);
+
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Malloc
+                                    (dirLen + nameLen + 2,
+                                    (void **)&pathName,
+                                    plContext));
+
+        PL_strcpy(pathName, dir);
+        PL_strcat(pathName, "/");
+        PL_strcat(pathName, name);
+        printf("pathName = %s\n", pathName);
+
+cleanup:
+
+        PKIX_TEST_RETURN();
+
+        return (pathName);
+}
+
 PKIX_PL_Cert *
 createCert(
+        char *dirName,
         char *certFileName,
         void *plContext)
 {
@@ -79,12 +108,15 @@ createCert(
         SECStatus rv;
         /* default: NULL cert (failure case) */
         PKIX_PL_Cert *cert = NULL;
+        char *pathName = NULL;
 
         PKIX_TEST_STD_VARS();
 
+
         certDER.data = NULL;
 
-        certFile = PR_Open(certFileName, PR_RDONLY, 0);
+        pathName = catDirName(dirName, certFileName, plContext);
+        certFile = PR_Open(pathName, PR_RDONLY, 0);
 
         if (!certFile){
                 pkixTestErrorMsg = "Unable to open cert file";
@@ -111,6 +143,8 @@ createCert(
 
 cleanup:
 
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Free(pathName, plContext));
+
         if (certFile){
                 PR_Close(certFile);
         }
@@ -126,45 +160,9 @@ cleanup:
         return (cert);
 }
 
-PKIX_PL_Cert *
-createDirCert(
-        char *dirName,
-        char *certFile,
-        void *plContext)
-{
-        PKIX_PL_Cert *cert = NULL;
-        char *certPathName = NULL;
-        PKIX_UInt32 certFileLen;
-        PKIX_UInt32 dirNameLen;
-
-        PKIX_TEST_STD_VARS();
-
-        certFileLen = PL_strlen(certFile);
-        dirNameLen = PL_strlen(dirName);
-
-        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Malloc
-                                    (dirNameLen + certFileLen + 2,
-                                    (void **)&certPathName,
-                                    plContext));
-
-        PL_strcpy(certPathName, dirName);
-        PL_strcat(certPathName, "/");
-        PL_strcat(certPathName, certFile);
-        printf("certPathName = %s\n", certPathName);
-        cert = createCert(certPathName, plContext);
-
-cleanup:
-
-        PKIX_PL_Free(certPathName, plContext);
-
-        PKIX_TEST_RETURN();
-
-        return (cert);
-
-}
-
 PKIX_PL_CRL *
 createCRL(
+        char *dirName,
         char *crlFileName,
         void *plContext)
 {
@@ -176,12 +174,14 @@ createCRL(
         void *buf = NULL;
         PKIX_UInt32 len;
         SECStatus rv;
+        char *pathName = NULL;
 
         PKIX_TEST_STD_VARS();
 
         crlDER.data = NULL;
 
-        inFile = PR_Open(crlFileName, PR_RDONLY, 0);
+        pathName = catDirName(dirName, crlFileName, plContext);
+        inFile = PR_Open(pathName, PR_RDONLY, 0);
 
         if (!inFile){
                 pkixTestErrorMsg = "Unable to open crl file";
@@ -216,6 +216,8 @@ createCRL(
 
 cleanup:
 
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Free(pathName, plContext));
+
         if (inFile){
                 PR_Close(inFile);
         }
@@ -234,6 +236,7 @@ cleanup:
 
 PKIX_TrustAnchor *
 createTrustAnchor(
+        char *dirName,
         char *certFileName,
         PKIX_Boolean useCert,
         void *plContext)
@@ -246,7 +249,7 @@ createTrustAnchor(
 
         PKIX_TEST_STD_VARS();
 
-        cert = createCert(certFileName, plContext);
+        cert = createCert(dirName, certFileName, plContext);
 
         if (useCert){
                 PKIX_TEST_EXPECT_NO_ERROR(PKIX_TrustAnchor_CreateWithCert
@@ -288,51 +291,6 @@ cleanup:
 
 PKIX_CertChain *
 createCertChain(
-        char *firstCertFileName,
-        char *secondCertFileName,
-        void *plContext)
-{
-        PKIX_PL_Cert *firstCert = NULL;
-        PKIX_PL_Cert *secondCert = NULL;
-        PKIX_List *certList = NULL;
-        PKIX_CertChain *certChain = NULL;
-
-        PKIX_TEST_STD_VARS();
-
-        PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_Create(&certList, plContext));
-
-        firstCert = createCert(firstCertFileName, plContext);
-
-        PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_AppendItem
-                (certList, (PKIX_PL_Object *)firstCert, plContext));
-
-        if (secondCertFileName){
-                secondCert = createCert(secondCertFileName, plContext);
-
-                PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_AppendItem
-                        (certList, (PKIX_PL_Object *)secondCert, plContext));
-        }
-
-        PKIX_TEST_EXPECT_NO_ERROR(PKIX_CertChain_Create
-                                    (certList, &certChain, plContext));
-
-cleanup:
-
-        if (PKIX_TEST_ERROR_RECEIVED){
-                PKIX_TEST_DECREF_AC(certChain);
-        }
-
-        PKIX_TEST_DECREF_AC(firstCert);
-        PKIX_TEST_DECREF_AC(secondCert);
-        PKIX_TEST_DECREF_AC(certList);
-
-        PKIX_TEST_RETURN();
-
-        return (certChain);
-}
-
-PKIX_CertChain *
-createDirCertChain(
         char *dirName,
         char *firstCertFileName,
         char *secondCertFileName,
@@ -342,50 +300,18 @@ createDirCertChain(
         PKIX_PL_Cert *secondCert = NULL;
         PKIX_List *certList = NULL;
         PKIX_CertChain *certChain = NULL;
-        char *certPathName = NULL;
-        PKIX_UInt32 certFileLen;
-        PKIX_UInt32 dirNameLen;
 
         PKIX_TEST_STD_VARS();
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_Create(&certList, plContext));
 
-        dirNameLen = PL_strlen(dirName);
-        certFileLen = PL_strlen(firstCertFileName);
-
-        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Malloc
-                                    (dirNameLen + certFileLen + 2,
-                                    (void **)&certPathName,
-                                    plContext));
-
-        PL_strcpy(certPathName, dirName);
-        PL_strcat(certPathName, "/");
-        PL_strcat(certPathName, firstCertFileName);
-        printf("certPathName = %s\n", certPathName);
-
-        firstCert = createCert(certPathName, plContext);
-
-        PKIX_PL_Free(certPathName, plContext);
+        firstCert = createCert(dirName, firstCertFileName, plContext);
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_AppendItem
                 (certList, (PKIX_PL_Object *)firstCert, plContext));
 
         if (secondCertFileName){
-                certFileLen = PL_strlen(secondCertFileName);
-
-        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Malloc
-                                    (dirNameLen + certFileLen + 2,
-                                    (void **)&certPathName,
-                                    plContext));
-
-                PL_strcpy(certPathName, dirName);
-                PL_strcat(certPathName, "/");
-                PL_strcat(certPathName, secondCertFileName);
-                printf("certPathName = %s\n", certPathName);
-
-                secondCert = createCert(certPathName, plContext);
-
-                PKIX_PL_Free(certPathName, plContext);
+                secondCert = createCert(dirName, secondCertFileName, plContext);
 
                 PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_AppendItem
                         (certList, (PKIX_PL_Object *)secondCert, plContext));
@@ -411,59 +337,6 @@ cleanup:
 
 PKIX_CertChain *
 createCertChainPlus(
-        char *certNames[],
-        PKIX_PL_Cert *certs[],
-        PKIX_UInt32 numCerts,
-        void *plContext)
-{
-        PKIX_List *certList = NULL;
-        PKIX_CertChain *certChain = NULL;
-        PKIX_UInt32 i;
-
-        PKIX_TEST_STD_VARS();
-
-        PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_Create(&certList, plContext));
-
-        for (i = 0; i < numCerts; i++) {
-
-                certs[i] = createCert(certNames[i], plContext);
-
-                /* Create Cert may fail */
-                if (certs[i] == NULL) {
-                        PKIX_TEST_DECREF_BC(certList);
-                        goto cleanup;
-                }
-
-                PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_AppendItem
-                                            (certList,
-                                            (PKIX_PL_Object *)certs[i],
-                                            plContext));
-        }
-
-        PKIX_TEST_EXPECT_NO_ERROR(PKIX_CertChain_Create
-                                    (certList, &certChain, plContext));
-
-
-cleanup:
-
-        if (PKIX_TEST_ERROR_RECEIVED){
-                PKIX_TEST_DECREF_AC(certChain);
-        }
-
-        for (i = 0; i < numCerts; i++) {
-                PKIX_TEST_DECREF_AC(certs[i]);
-        }
-
-        PKIX_TEST_DECREF_AC(certList);
-
-        PKIX_TEST_RETURN();
-
-        return (certChain);
-
-}
-
-PKIX_CertChain *
-createDirCertChainPlus(
         char *dirName,
         char *certNames[],
         PKIX_PL_Cert *certs[],
@@ -472,41 +345,21 @@ createDirCertChainPlus(
 {
         PKIX_List *certList = NULL;
         PKIX_CertChain *certChain = NULL;
-        char *certPathName = NULL;
-        PKIX_UInt32 certFileLen;
-        PKIX_UInt32 dirNameLen;
         PKIX_UInt32 i;
 
         PKIX_TEST_STD_VARS();
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_Create(&certList, plContext));
 
-        dirNameLen = PL_strlen(dirName);
-
         for (i = 0; i < numCerts; i++) {
 
-                certFileLen = PL_strlen(certNames[i]);
-
-                PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Malloc
-                                    (dirNameLen + certFileLen + 2,
-                                    (void **)&certPathName,
-                                    plContext));
-
-                PL_strcpy(certPathName, dirName);
-                PL_strcat(certPathName, "/");
-                PL_strcat(certPathName, certNames[i]);
-                printf("certPathName = %s\n", certPathName);
-
-                certs[i] = createCert(certPathName, plContext);
+                certs[i] = createCert(dirName, certNames[i], plContext);
 
                 /* Create Cert may fail */
                 if (certs[i] == NULL) {
                         PKIX_TEST_DECREF_BC(certList);
                         goto cleanup;
                 }
-
-                PKIX_PL_Free(certPathName, plContext);
-                certPathName = NULL;
 
                 PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_AppendItem
                                             (certList,
@@ -519,8 +372,6 @@ createDirCertChainPlus(
 
 
 cleanup:
-
-        PKIX_PL_Free(certPathName, plContext);
 
         if (PKIX_TEST_ERROR_RECEIVED){
                 PKIX_TEST_DECREF_AC(certChain);
@@ -535,7 +386,6 @@ cleanup:
         PKIX_TEST_RETURN();
 
         return (certChain);
-
 
 }
 
@@ -566,6 +416,7 @@ cleanup:
 
 PKIX_ProcessingParams *
 createProcessingParams(
+        char *dirName,
         char *firstAnchorFileName,
         char *secondAnchorFileName,
         char *dateAscii,
@@ -585,7 +436,7 @@ createProcessingParams(
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_Create(&anchorsList, plContext));
 
         firstAnchor = createTrustAnchor
-                (firstAnchorFileName, PKIX_FALSE, plContext);
+                (dirName, firstAnchorFileName, PKIX_FALSE, plContext);
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_AppendItem
                                     (anchorsList,
@@ -595,7 +446,7 @@ createProcessingParams(
         if (secondAnchorFileName){
                 secondAnchor =
                         createTrustAnchor
-                        (secondAnchorFileName, PKIX_FALSE, plContext);
+                        (dirName, secondAnchorFileName, PKIX_FALSE, plContext);
 
                 PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_AppendItem
                                             (anchorsList,
@@ -646,6 +497,7 @@ cleanup:
 
 PKIX_ValidateParams *
 createValidateParams(
+        char *dirName,
         char *firstAnchorFileName,
         char *secondAnchorFileName,
         char *dateAscii,
@@ -665,7 +517,8 @@ createValidateParams(
 
         procParams =
                 createProcessingParams
-                    (firstAnchorFileName,
+                    (dirName,
+                    firstAnchorFileName,
                     secondAnchorFileName,
                     dateAscii,
                     isCrlEnabled,
@@ -703,6 +556,7 @@ cleanup:
 
 PKIX_ValidateResult *
 createValidateResult(
+        char *dirName,
         char *anchorFileName,
         char *pubKeyCertFileName,
         void *plContext)
@@ -715,8 +569,9 @@ createValidateResult(
 
         PKIX_TEST_STD_VARS();
 
-        anchor = createTrustAnchor(anchorFileName, PKIX_FALSE, plContext);
-        cert = createCert(pubKeyCertFileName, plContext);
+        anchor = createTrustAnchor
+                    (dirName, anchorFileName, PKIX_FALSE, plContext);
+        cert = createCert(dirName, pubKeyCertFileName, plContext);
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Cert_GetSubjectPublicKey
                                     (cert, &pubKey, plContext));
@@ -769,6 +624,7 @@ cleanup:
 
 PKIX_BuildParams *
 createBuildParams(
+        char *dirName,
         char *firstAnchorFileName,
         char *secondAnchorFileName,
         char *dateAscii,
@@ -783,7 +639,8 @@ createBuildParams(
 
         procParams =
             createProcessingParams
-                (firstAnchorFileName,
+                (dirName,
+                firstAnchorFileName,
                 secondAnchorFileName,
                 dateAscii,
                 isCrlEnabled,
@@ -810,6 +667,7 @@ cleanup:
 
 PKIX_BuildResult *
 createBuildResult(
+        char *dirName,
         char *anchorFileName,
         char *pubKeyCertFileName,
         char *firstChainCertFileName,
@@ -823,9 +681,12 @@ createBuildResult(
         PKIX_TEST_STD_VARS();
 
         valResult = createValidateResult
-                (anchorFileName, pubKeyCertFileName, plContext);
+                (dirName, anchorFileName, pubKeyCertFileName, plContext);
         certChain = createCertChain
-                (firstChainCertFileName, secondChainCertFileName, plContext);
+                        (dirName,
+                        firstChainCertFileName,
+                        secondChainCertFileName,
+                        plContext);
 
         PKIX_TEST_EXPECT_NO_ERROR
                 (pkix_BuildResult_Create

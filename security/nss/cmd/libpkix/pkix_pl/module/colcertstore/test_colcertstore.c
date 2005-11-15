@@ -83,14 +83,13 @@ getCertCallback(
 }
 
 
-void testGetCRL(void)
+void testGetCRL(char *crlDir)
 {
         PKIX_PL_String *dirString = NULL;
         PKIX_CertStore_CRLCallback crlCallback;
         PKIX_CertStore *certStore = NULL;
         PKIX_CRLSelector *crlSelector = NULL;
         PKIX_List *crlList = NULL;
-        char *crlDir = "./rev_data/local";
         PKIX_UInt32 numCrl = 0;
 
         PKIX_TEST_STD_VARS();
@@ -145,14 +144,13 @@ cleanup:
         PKIX_TEST_RETURN();
 }
 
-void testGetCert(void)
+void testGetCert(char *certDir)
 {
         PKIX_PL_String *dirString = NULL;
         PKIX_CertStore_CertCallback certCallback;
         PKIX_CertStore *certStore = NULL;
         PKIX_CertSelector *certSelector = NULL;
         PKIX_List *certList = NULL;
-        char *certDir = "./rev_data/local";
         PKIX_UInt32 numCert = 0;
 
         PKIX_TEST_STD_VARS();
@@ -207,6 +205,10 @@ cleanup:
         PKIX_TEST_RETURN();
 }
 
+void printUsage(char *pName){
+        printf("\nUSAGE: %s test-purpose <data-dir> \n\n", pName);
+}
+
 /* Functional tests for CollectionCertStore public functions */
 
 int main(int argc, char *argv[]) {
@@ -214,6 +216,8 @@ int main(int argc, char *argv[]) {
         PKIX_UInt32 actualMinorVersion;
         PKIX_Boolean useArenas = PKIX_FALSE;
         PKIX_UInt32 j = 0;
+        char *dataDir = NULL;
+
 
         PKIX_TEST_STD_VARS();
 
@@ -230,8 +234,15 @@ int main(int argc, char *argv[]) {
                                     &actualMinorVersion,
                                     &plContext));
 
-        testGetCRL();
-        testGetCert();
+        if (argc < 3+j) {
+                printUsage(argv[0]);
+                return (0);
+        }
+
+        dataDir = argv[j+2];
+
+        testGetCRL(dataDir);
+        testGetCert(dataDir);
 
 cleanup:
 

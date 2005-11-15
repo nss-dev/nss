@@ -68,6 +68,7 @@ static PKIX_PL_Cert *altNameMultipleCert = NULL;
 void *plContext = NULL;
 
 void createCerts(
+        char *dataCentralDir,
         char *goodInput,
         char *diffInput,
         PKIX_PL_Cert **goodObject,
@@ -75,99 +76,99 @@ void createCerts(
         PKIX_PL_Cert **diffObject)
 {
         subTest("PKIX_PL_Cert_Create <goodObject>");
-        *goodObject = createCert(goodInput, plContext);
+        *goodObject = createCert(dataCentralDir, goodInput, plContext);
 
         subTest("PKIX_PL_Cert_Create <equalObject>");
-        *equalObject = createCert(goodInput, plContext);
+        *equalObject = createCert(dataCentralDir, goodInput, plContext);
 
         subTest("PKIX_PL_Cert_Create <diffObject>");
-        *diffObject = createCert(diffInput, plContext);
+        *diffObject = createCert(dataCentralDir, diffInput, plContext);
 }
 
 
 static void
-createCertsWithSubjectAltNames()
+createCertsWithSubjectAltNames(char *dataCentralDir)
 {
         subTest("PKIX_PL_Cert_Create <altNameDNS>");
         altNameDnsCert = createCert
-                ("../../certs/generalName/altNameDnsCert", plContext);
+                (dataCentralDir, "generalName/altNameDnsCert", plContext);
 
         subTest("PKIX_PL_Cert_Create <altNameDNS_diff>");
         altNameDnsCert_diff = createCert
-                ("../../certs/generalName/altNameDnsCert_diff", plContext);
+                (dataCentralDir, "generalName/altNameDnsCert_diff", plContext);
 
 
         subTest("PKIX_PL_Cert_Create <altNameRFC822>");
         altNameRfc822Cert = createCert
-                ("../../certs/generalName/altNameRfc822Cert", plContext);
+                (dataCentralDir, "generalName/altNameRfc822Cert", plContext);
 
         subTest("PKIX_PL_Cert_Create <altNameRFC822_diff>");
         altNameRfc822Cert_diff = createCert
-                ("../../certs/generalName/altNameRfc822Cert_diff", plContext);
+                (dataCentralDir, "generalName/altNameRfc822Cert_diff", plContext);
 
         subTest("PKIX_PL_Cert_Create <altNameX400Cert>");
         altNameX400Cert = createCert
-                ("../../certs/generalName/altNameX400Cert", plContext);
+                (dataCentralDir, "generalName/altNameX400Cert", plContext);
 
         subTest("PKIX_PL_Cert_Create <altNameX400_diff>");
         altNameX400Cert_diff = createCert
-                ("../../certs/generalName/altNameX400Cert_diff", plContext);
+                (dataCentralDir, "generalName/altNameX400Cert_diff", plContext);
 
         subTest("PKIX_PL_Cert_Create <altNameDN>");
         altNameDnCert = createCert
-                ("../../certs/generalName/altNameDnCert", plContext);
+                (dataCentralDir, "generalName/altNameDnCert", plContext);
 
         subTest("PKIX_PL_Cert_Create <altNameDN_diff>");
         altNameDnCert_diff = createCert
-                ("../../certs/generalName/altNameDnCert_diff", plContext);
+                (dataCentralDir, "generalName/altNameDnCert_diff", plContext);
 
         subTest("PKIX_PL_Cert_Create <altNameEdiCert>");
         altNameEdiCert = createCert
-                ("../../certs/generalName/altNameEdiCert", plContext);
+                (dataCentralDir, "generalName/altNameEdiCert", plContext);
 
         subTest("PKIX_PL_Cert_Create <altNameEdi_diff>");
         altNameEdiCert_diff = createCert
-                ("../../certs/generalName/altNameEdiCert_diff", plContext);
+                (dataCentralDir, "generalName/altNameEdiCert_diff", plContext);
 
         subTest("PKIX_PL_Cert_Create <altNameURI>");
         altNameUriCert = createCert
-                ("../../certs/generalName/altNameUriCert", plContext);
+                (dataCentralDir, "generalName/altNameUriCert", plContext);
 
         subTest("PKIX_PL_Cert_Create <altNameURI_diff>");
         altNameUriCert_diff = createCert
-                ("../../certs/generalName/altNameUriCert_diff", plContext);
+                (dataCentralDir, "generalName/altNameUriCert_diff", plContext);
 
         subTest("PKIX_PL_Cert_Create <altNameIP>");
         altNameIpCert = createCert
-                ("../../certs/generalName/altNameIpCert", plContext);
+                (dataCentralDir, "generalName/altNameIpCert", plContext);
 
         subTest("PKIX_PL_Cert_Create <altNameIP_diff>");
         altNameIpCert_diff = createCert
-                ("../../certs/generalName/altNameIpCert_diff", plContext);
+                (dataCentralDir, "generalName/altNameIpCert_diff", plContext);
 
         subTest("PKIX_PL_Cert_Create <altNameOID>");
         altNameOidCert = createCert
-                ("../../certs/generalName/altNameOidCert", plContext);
+                (dataCentralDir, "generalName/altNameOidCert", plContext);
 
         subTest("PKIX_PL_Cert_Create <altNameOID_diff>");
         altNameOidCert_diff = createCert
-                ("../../certs/generalName/altNameOidCert_diff", plContext);
+                (dataCentralDir, "generalName/altNameOidCert_diff", plContext);
 
         subTest("PKIX_PL_Cert_Create <altNameOther>");
         altNameOtherCert = createCert
-                ("../../certs/generalName/altNameOtherCert", plContext);
+                (dataCentralDir, "generalName/altNameOtherCert", plContext);
 
         subTest("PKIX_PL_Cert_Create <altNameOther_diff>");
         altNameOtherCert_diff = createCert
-                ("../../certs/generalName/altNameOtherCert_diff", plContext);
+                (dataCentralDir, "generalName/altNameOtherCert_diff", plContext);
 
         subTest("PKIX_PL_Cert_Create <altNameNone>");
         altNameNoneCert = createCert
-                ("../../certs/generalName/altNameNoneCert", plContext);
+                (dataCentralDir, "generalName/altNameNoneCert", plContext);
 
         subTest("PKIX_PL_Cert_Create <altNameMultiple>");
         altNameMultipleCert = createCert
-                ("../../certs/generalName/altNameRfc822DnsCert", plContext);
+                (dataCentralDir, "generalName/altNameRfc822DnsCert", plContext);
 }
 
 static void testGetVersion(
@@ -459,11 +460,11 @@ cleanup:
         PKIX_TEST_RETURN();
 }
 
-static void testGetSubjectAltNames(){
+static void testGetSubjectAltNames(char *dataCentralDir){
 
         char *expectedAscii = NULL;
 
-        createCertsWithSubjectAltNames();
+        createCertsWithSubjectAltNames(dataCentralDir);
 
         subTest("PKIX_PL_Cert_GetSubjectAltNames <DNS>");
         expectedAscii = "east.sun.com";
@@ -632,7 +633,7 @@ cleanup:
 
 
 static void
-testAllExtensionsAbsent()
+testAllExtensionsAbsent(char *dataCentralDir)
 {
         PKIX_List *oidList = NULL;
         PKIX_PL_Cert *cert = NULL;
@@ -641,7 +642,7 @@ testAllExtensionsAbsent()
         PKIX_TEST_STD_VARS();
 
         subTest("PKIX_PL_Cert_Create <noExtensionsCert>");
-        cert = createCert("../../certs/noExtensionsCert", plContext);
+        cert = createCert(dataCentralDir, "noExtensionsCert", plContext);
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Cert_GetCriticalExtensionOIDs
                                     (cert, &oidList, plContext));
@@ -661,7 +662,7 @@ cleanup:
 }
 
 static void
-testGetCriticalExtensionOIDs(PKIX_PL_Cert *goodObject)
+testGetCriticalExtensionOIDs(char *dataCentralDir, PKIX_PL_Cert *goodObject)
 {
         subTest("PKIX_PL_Cert_GetCriticalExtensionOIDs "
                 "<CritExtensionsPresent>");
@@ -675,11 +676,11 @@ testGetCriticalExtensionOIDs(PKIX_PL_Cert *goodObject)
 
         subTest("PKIX_PL_Cert_GetCriticalExtensionOIDs "
                 "<AllExtensionsAbsent>");
-        testAllExtensionsAbsent();
+        testAllExtensionsAbsent(dataCentralDir);
 }
 
 static void
-testKeyIdentifiersMatching()
+testKeyIdentifiersMatching(char *dataCentralDir)
 {
         PKIX_PL_Cert *subjKeyIDCert = NULL;
         PKIX_PL_Cert *authKeyIDCert = NULL;
@@ -695,11 +696,11 @@ testKeyIdentifiersMatching()
 
         subTest("PKIX_PL_Cert_Create <subjKeyIDCert>");
         subjKeyIDCert = createCert
-                ("../../certs/keyIdentifier/subjKeyIDCert", plContext);
+                (dataCentralDir, "keyIdentifier/subjKeyIDCert", plContext);
 
         subTest("PKIX_PL_Cert_Create <authKeyIDCert>");
         authKeyIDCert = createCert
-                ("../../certs/keyIdentifier/authKeyIDCert", plContext);
+                (dataCentralDir, "keyIdentifier/authKeyIDCert", plContext);
 
         subTest("PKIX_PL_Cert_GetSubjectKeyIdentifier <good>");
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Cert_GetSubjectKeyIdentifier
@@ -765,14 +766,17 @@ cleanup:
 }
 
 static void
-testGetKeyIdentifiers(PKIX_PL_Cert *goodObject)
+testGetKeyIdentifiers(char *dataCentralDir, PKIX_PL_Cert *goodObject)
 {
-        testKeyIdentifiersMatching();
+        testKeyIdentifiersMatching(dataCentralDir);
         testKeyIdentifierAbsent(goodObject);
 }
 
 static void
-testVerifyKeyUsage(PKIX_PL_Cert *multiKeyUsagesCert)
+testVerifyKeyUsage(
+        char *dataCentralDir,
+        char *dataDir,
+        PKIX_PL_Cert *multiKeyUsagesCert)
 {
         PKIX_PL_Cert *encipherOnlyCert = NULL;
         PKIX_PL_Cert *decipherOnlyCert = NULL;
@@ -781,15 +785,15 @@ testVerifyKeyUsage(PKIX_PL_Cert *multiKeyUsagesCert)
 
         subTest("PKIX_PL_Cert_Create <encipherOnlyCert>");
         encipherOnlyCert = createCert
-                ("../../certs/keyUsage/encipherOnlyCert", plContext);
+                (dataCentralDir, "keyUsage/encipherOnlyCert", plContext);
 
         subTest("PKIX_PL_Cert_Create <decipherOnlyCert>");
         decipherOnlyCert = createCert
-                ("../../certs/keyUsage/decipherOnlyCert", plContext);
+                (dataCentralDir, "keyUsage/decipherOnlyCert", plContext);
 
         subTest("PKIX_PL_Cert_Create <noKeyUsagesCert>");
         noKeyUsagesCert = createCert
-                ("../../certs/keyUsage/noKeyUsagesCert", plContext);
+                (dataCentralDir, "keyUsage/noKeyUsagesCert", plContext);
 
         subTest("PKIX_PL_Cert_VerifyKeyUsage <key_cert_sign>");
         PKIX_TEST_EXPECT_NO_ERROR
@@ -826,7 +830,7 @@ cleanup:
 }
 
 static void
-testGetExtendedKeyUsage()
+testGetExtendedKeyUsage(char *dataCentralDir)
 {
 
         PKIX_PL_Cert *codeSigningEKUCert = NULL;
@@ -848,15 +852,15 @@ testGetExtendedKeyUsage()
 
         subTest("PKIX_PL_Cert_Create <codeSigningEKUCert>");
         codeSigningEKUCert = createCert
-                ("../../certs/extKeyUsage/codeSigningEKUCert", plContext);
+                (dataCentralDir, "extKeyUsage/codeSigningEKUCert", plContext);
 
         subTest("PKIX_PL_Cert_Create <multiEKUCert>");
         multiEKUCert = createCert
-                ("../../certs/extKeyUsage/multiEKUCert", plContext);
+                (dataCentralDir, "extKeyUsage/multiEKUCert", plContext);
 
         subTest("PKIX_PL_Cert_Create <noEKUCert>");
         noEKUCert = createCert
-                ("../../certs/extKeyUsage/noEKUCert", plContext);
+                (dataCentralDir, "extKeyUsage/noEKUCert", plContext);
 
         subTest("PKIX_PL_Cert_ExtendedKeyUsage <codeSigningEKU>");
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Cert_GetExtendedKeyUsage
@@ -938,7 +942,7 @@ cleanup:
         PKIX_TEST_RETURN();
 }
 
-static void testMakeInheritedDSAPublicKey(){
+static void testMakeInheritedDSAPublicKey(char *dataCentralDir){
         PKIX_PL_PublicKey *firstKey = NULL;
         PKIX_PL_PublicKey *secondKey = NULL;
         PKIX_PL_PublicKey *resultKeyPositive = NULL;
@@ -950,11 +954,11 @@ static void testMakeInheritedDSAPublicKey(){
 
         subTest("PKIX_PL_Cert_Create <dsaWithoutParams>");
         firstCert = createCert
-                ("../../certs/publicKey/dsaWithoutParams", plContext);
+                (dataCentralDir, "publicKey/dsaWithoutParams", plContext);
 
         subTest("PKIX_PL_Cert_Create <dsaWithParams>");
         secondCert = createCert
-                ("../../certs/publicKey/dsaWithParams", plContext);
+                (dataCentralDir, "publicKey/dsaWithParams", plContext);
 
         subTest("PKIX_PL_Cert_GetSubjectPublicKey <firstKey>");
         PKIX_TEST_EXPECT_NO_ERROR
@@ -990,7 +994,7 @@ cleanup:
         PKIX_TEST_RETURN();
 }
 
-static void testVerifySignature(){
+static void testVerifySignature(char *dataCentralDir){
         PKIX_PL_Cert *firstCert = NULL;
         PKIX_PL_Cert *secondCert = NULL;
         PKIX_PL_PublicKey *firstPubKey = NULL;
@@ -999,10 +1003,10 @@ static void testVerifySignature(){
         PKIX_TEST_STD_VARS();
 
         subTest("PKIX_PL_Cert_Create <labs2yassir>");
-        firstCert = createCert("../../certs/publicKey/labs2yassir", plContext);
+        firstCert = createCert(dataCentralDir, "publicKey/labs2yassir", plContext);
 
         subTest("PKIX_PL_Cert_Create <yassir2labs>");
-        secondCert = createCert("../../certs/publicKey/yassir2labs", plContext);
+        secondCert = createCert(dataCentralDir, "publicKey/yassir2labs", plContext);
 
         subTest("PKIX_PL_Cert_GetSubjectPublicKey <labs2yassir>");
         PKIX_TEST_EXPECT_NO_ERROR
@@ -1119,6 +1123,7 @@ cleanup:
 
 static void
 readCertBasicConstraints(
+        char *dataDir,
         char *goodCertName,
         char *diffCertName,
         PKIX_PL_CertBasicConstraints **goodBasicConstraints,
@@ -1131,7 +1136,7 @@ readCertBasicConstraints(
 
         PKIX_TEST_STD_VARS();
 
-        createCerts(goodCertName, diffCertName,
+        createCerts(dataDir, goodCertName, diffCertName,
                 &goodCert, &equalCert, &diffCert);
         /*
          * Warning: pointer will be NULL if BasicConstraints
@@ -1154,6 +1159,7 @@ cleanup:
 
 static void
 testBasicConstraintsHelper(
+        char *dataDir,
         char *goodCertName,
         char *diffCertName,
         char *expectedAscii)
@@ -1165,7 +1171,8 @@ testBasicConstraintsHelper(
         PKIX_TEST_STD_VARS();
 
         readCertBasicConstraints
-                (goodCertName,
+                (dataDir,
+                goodCertName,
                 diffCertName,
                 &goodBasicConstraints,
                 &equalBasicConstraints,
@@ -1244,7 +1251,7 @@ cleanup:
 }
 
 static void
-testBasicConstraints_GetCAFlag()
+testBasicConstraints_GetCAFlag(char *dataCentralDir)
 {
         /*
          * XXX  When we have a certificate with a non-null Basic
@@ -1257,8 +1264,8 @@ testBasicConstraints_GetCAFlag()
         PKIX_PL_CertBasicConstraints *goodBasicConstraints = NULL;
         PKIX_PL_CertBasicConstraints *equalBasicConstraints = NULL;
         PKIX_PL_CertBasicConstraints *diffBasicConstraints = NULL;
-        char *goodCertName = "../../certs/yassir2yassir";
-        char *diffCertName = "../../certs/nss2alice";
+        char *goodCertName = "yassir2yassir";
+        char *diffCertName = "nss2alice";
         PKIX_Boolean goodCAFlag = PKIX_FALSE;
         PKIX_Boolean diffCAFlag = PKIX_FALSE;
 
@@ -1267,7 +1274,8 @@ testBasicConstraints_GetCAFlag()
         subTest("PKIX_PL_BasicConstraints_GetCAFlag");
 
         readCertBasicConstraints
-                (goodCertName,
+                (dataCentralDir,
+                goodCertName,
                 diffCertName,
                 &goodBasicConstraints,
                 &equalBasicConstraints,
@@ -1299,13 +1307,13 @@ cleanup:
 }
 
 static void
-testBasicConstraints_GetPathLenConstraint()
+testBasicConstraints_GetPathLenConstraint(char *dataCentralDir)
 {
         PKIX_PL_CertBasicConstraints *goodBasicConstraints = NULL;
         PKIX_PL_CertBasicConstraints *equalBasicConstraints = NULL;
         PKIX_PL_CertBasicConstraints *diffBasicConstraints = NULL;
-        char *goodCertName = "../../certs/yassir2yassir";
-        char *diffCertName = "../../certs/sun2sun";
+        char *goodCertName = "yassir2yassir";
+        char *diffCertName = "sun2sun";
         PKIX_Int32 goodPathLen = 0;
         PKIX_Int32 diffPathLen = 0;
 
@@ -1314,7 +1322,8 @@ testBasicConstraints_GetPathLenConstraint()
         subTest("PKIX_PL_BasicConstraints_GetPathLenConstraint");
 
         readCertBasicConstraints
-                (goodCertName,
+                (dataCentralDir,
+                goodCertName,
                 diffCertName,
                 &goodBasicConstraints,
                 &equalBasicConstraints,
@@ -1350,7 +1359,7 @@ cleanup:
 }
 
 static void
-testGetBasicConstraints()
+testGetBasicConstraints(char *dataCentralDir)
 {
         char *goodCertName = NULL;
         char *diffCertName = NULL;
@@ -1358,44 +1367,42 @@ testGetBasicConstraints()
         PKIX_TEST_STD_VARS();
 
         subTest("PKIX_PL_Cert_GetBasicConstraints <CA(0) and non-CA>");
-        goodCertName = "../../certs/yassir2yassir";
-        diffCertName = "../../certs/nss2alice";
-        testBasicConstraintsHelper(goodCertName,
-                diffCertName,
-                "CA(0)");
+        goodCertName = "yassir2yassir";
+        diffCertName = "nss2alice";
+        testBasicConstraintsHelper
+                (dataCentralDir, goodCertName, diffCertName, "CA(0)");
 
         subTest("PKIX_PL_Cert_GetBasicConstraints <non-CA and CA(1)>");
-        goodCertName = "../../certs/nss2alice";
-        diffCertName = "../../certs/sun2sun";
-        testBasicConstraintsHelper(goodCertName,
-                diffCertName,
-                NULL);
+        goodCertName = "nss2alice";
+        diffCertName = "sun2sun";
+        testBasicConstraintsHelper
+                (dataCentralDir, goodCertName, diffCertName, NULL);
 
         subTest("PKIX_PL_Cert_GetBasicConstraints <CA(0) and CA(1)>");
-        goodCertName = "../../certs/yassir2bcn";
-        diffCertName = "../../certs/sun2sun";
-        testBasicConstraintsHelper(goodCertName,
-                diffCertName,
-                "CA(0)");
+        goodCertName = "yassir2bcn";
+        diffCertName = "sun2sun";
+        testBasicConstraintsHelper
+                (dataCentralDir, goodCertName, diffCertName, "CA(0)");
 
         subTest("PKIX_PL_Cert_GetBasicConstraints <CA(-1) and CA(1)>");
-        goodCertName = "../../certs/anchor2dsa";
-        diffCertName = "../../certs/sun2sun";
-        testBasicConstraintsHelper(goodCertName, diffCertName, "CA(-1)");
+        goodCertName = "anchor2dsa";
+        diffCertName = "sun2sun";
+        testBasicConstraintsHelper
+                (dataCentralDir, goodCertName, diffCertName, "CA(-1)");
 
         PKIX_TEST_RETURN();
 }
 
 static void
-testGetPolicyInformation()
+testGetPolicyInformation(char *dataDir)
 {
 
         char *goodCertName =
-                "./rev_data/local/UserNoticeQualifierTest15EE.crt";
+                "UserNoticeQualifierTest15EE.crt";
         char *equalCertName =
-                "./rev_data/local/UserNoticeQualifierTest15EE.crt";
+                "UserNoticeQualifierTest15EE.crt";
         char *diffCertName =
-                "./rev_data/local/UserNoticeQualifierTest17EE.crt";
+                "UserNoticeQualifierTest17EE.crt";
         PKIX_Boolean isImmutable = PKIX_FALSE;
         PKIX_PL_Cert *goodCert = NULL;
         PKIX_PL_Cert *equalCert = NULL;
@@ -1416,13 +1423,13 @@ testGetPolicyInformation()
          */
 
         /* Get the PolicyInfo objects */
-        goodCert = createCert(goodCertName, plContext);
+        goodCert = createCert(dataDir, goodCertName, plContext);
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Cert_GetPolicyInformation
                 (goodCert, &goodPolicyInfo, plContext));
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_GetItem
                 (goodPolicyInfo, 0, (PKIX_PL_Object **)&goodPolicy, plContext));
 
-        equalCert = createCert(equalCertName, plContext);
+        equalCert = createCert(dataDir, equalCertName, plContext);
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Cert_GetPolicyInformation
                 (equalCert, &equalPolicyInfo, plContext));
         PKIX_TEST_EXPECT_NO_ERROR
@@ -1432,7 +1439,7 @@ testGetPolicyInformation()
                 (PKIX_PL_Object **)&equalPolicy,
                 plContext));
 
-        diffCert = createCert(diffCertName, plContext);
+        diffCert = createCert(dataDir, diffCertName, plContext);
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Cert_GetPolicyInformation
                 (diffCert, &diffPolicyInfo, plContext));
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_GetItem
@@ -1468,14 +1475,14 @@ cleanup:
 }
 
 static void
-testCertPolicy_GetPolicyId()
+testCertPolicy_GetPolicyId(char *dataDir)
 {
         char *goodCertName =
-                "./rev_data/local/UserNoticeQualifierTest15EE.crt";
+                "UserNoticeQualifierTest15EE.crt";
         char *equalCertName =
-                "./rev_data/local/UserNoticeQualifierTest16EE.crt";
+                "UserNoticeQualifierTest16EE.crt";
         char *diffCertName =
-                "./rev_data/local/UserNoticeQualifierTest17EE.crt";
+                "UserNoticeQualifierTest17EE.crt";
         PKIX_PL_Cert *goodCert = NULL;
         PKIX_PL_Cert *equalCert = NULL;
         PKIX_PL_Cert *diffCert = NULL;
@@ -1499,7 +1506,7 @@ testCertPolicy_GetPolicyId()
          */
 
         /* Get the PolicyInfo objects */
-        goodCert = createCert(goodCertName, plContext);
+        goodCert = createCert(dataDir, goodCertName, plContext);
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Cert_GetPolicyInformation
                 (goodCert, &goodPolicyInfo, plContext));
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_GetItem
@@ -1507,7 +1514,7 @@ testCertPolicy_GetPolicyId()
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_CertPolicyInfo_GetPolicyId
                 (goodPolicy, &goodID, plContext));
 
-        equalCert = createCert(equalCertName, plContext);
+        equalCert = createCert(dataDir, equalCertName, plContext);
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Cert_GetPolicyInformation
                 (equalCert, &equalPolicyInfo, plContext));
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_GetItem
@@ -1518,7 +1525,7 @@ testCertPolicy_GetPolicyId()
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_CertPolicyInfo_GetPolicyId
                 (equalPolicy, &equalID, plContext));
 
-        diffCert = createCert(diffCertName, plContext);
+        diffCert = createCert(dataDir, diffCertName, plContext);
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Cert_GetPolicyInformation
                 (diffCert, &diffPolicyInfo, plContext));
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_GetItem
@@ -1547,14 +1554,14 @@ cleanup:
 }
 
 static void
-testCertPolicy_GetPolQualifiers()
+testCertPolicy_GetPolQualifiers(char *dataDir)
 {
         char *goodCertName =
-                "./rev_data/local/UserNoticeQualifierTest15EE.crt";
+                "UserNoticeQualifierTest15EE.crt";
         char *equalCertName =
-                "./rev_data/local/UserNoticeQualifierTest16EE.crt";
+                "UserNoticeQualifierTest16EE.crt";
         char *diffCertName =
-                "./rev_data/local/UserNoticeQualifierTest18EE.crt";
+                "UserNoticeQualifierTest18EE.crt";
         PKIX_Boolean isImmutable = PKIX_FALSE;
         PKIX_PL_Cert *goodCert = NULL;
         PKIX_PL_Cert *equalCert = NULL;
@@ -1579,7 +1586,7 @@ testCertPolicy_GetPolQualifiers()
          */
 
         /* Get the PolicyInfo objects */
-        goodCert = createCert(goodCertName, plContext);
+        goodCert = createCert(dataDir, goodCertName, plContext);
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Cert_GetPolicyInformation
                 (goodCert, &goodPolicyInfo, plContext));
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_GetItem
@@ -1587,7 +1594,7 @@ testCertPolicy_GetPolQualifiers()
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_CertPolicyInfo_GetPolQualifiers
                 (goodPolicy, &goodQuals, plContext));
 
-        equalCert = createCert(equalCertName, plContext);
+        equalCert = createCert(dataDir, equalCertName, plContext);
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Cert_GetPolicyInformation
                 (equalCert, &equalPolicyInfo, plContext));
         PKIX_TEST_EXPECT_NO_ERROR
@@ -1600,7 +1607,7 @@ testCertPolicy_GetPolQualifiers()
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_CertPolicyInfo_GetPolQualifiers
                 (equalPolicy, &equalQuals, plContext));
 
-        diffCert = createCert(diffCertName, plContext);
+        diffCert = createCert(dataDir, diffCertName, plContext);
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Cert_GetPolicyInformation
                 (diffCert, &diffPolicyInfo, plContext));
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_GetItem
@@ -1642,14 +1649,14 @@ cleanup:
 }
 
 static void
-testPolicyQualifier_GetQualifier()
+testPolicyQualifier_GetQualifier(char *dataDir)
 {
         char *goodCertName =
-                "./rev_data/local/UserNoticeQualifierTest15EE.crt";
+                "UserNoticeQualifierTest15EE.crt";
         char *equalCertName =
-                "./rev_data/local/UserNoticeQualifierTest16EE.crt";
+                "UserNoticeQualifierTest16EE.crt";
         char *diffCertName =
-                "./rev_data/local/UserNoticeQualifierTest18EE.crt";
+                "UserNoticeQualifierTest18EE.crt";
         PKIX_PL_Cert *goodCert = NULL;
         PKIX_PL_Cert *equalCert = NULL;
         PKIX_PL_Cert *diffCert = NULL;
@@ -1681,7 +1688,7 @@ testPolicyQualifier_GetQualifier()
          */
 
         /* Get the PolicyInfo objects */
-        goodCert = createCert(goodCertName, plContext);
+        goodCert = createCert(dataDir, goodCertName, plContext);
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Cert_GetPolicyInformation
                 (goodCert, &goodPolicyInfo, plContext));
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_GetItem
@@ -1698,7 +1705,7 @@ testPolicyQualifier_GetQualifier()
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_PolicyQualifier_GetQualifier
                 (goodPolQualifier, &goodArray, plContext));
 
-        equalCert = createCert(equalCertName, plContext);
+        equalCert = createCert(dataDir, equalCertName, plContext);
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Cert_GetPolicyInformation
                 (equalCert, &equalPolicyInfo, plContext));
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_GetItem
@@ -1718,7 +1725,7 @@ testPolicyQualifier_GetQualifier()
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_PolicyQualifier_GetQualifier
                 (equalPolQualifier, &equalArray, plContext));
 
-        diffCert = createCert(diffCertName, plContext);
+        diffCert = createCert(dataDir, diffCertName, plContext);
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Cert_GetPolicyInformation
                 (diffCert, &diffPolicyInfo, plContext));
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_GetItem
@@ -1762,14 +1769,14 @@ cleanup:
 }
 
 static void
-testPolicyQualifier_GetPolicyQualifierId()
+testPolicyQualifier_GetPolicyQualifierId(char *dataDir)
 {
         char *goodCertName =
-                "./rev_data/local/UserNoticeQualifierTest15EE.crt";
+                "UserNoticeQualifierTest15EE.crt";
         char *equalCertName =
-                "./rev_data/local/UserNoticeQualifierTest16EE.crt";
+                "UserNoticeQualifierTest16EE.crt";
         char *diffCertName =
-                "./rev_data/local/CPSPointerQualifierTest20EE.crt";
+                "CPSPointerQualifierTest20EE.crt";
         PKIX_PL_Cert *goodCert = NULL;
         PKIX_PL_Cert *equalCert = NULL;
         PKIX_PL_Cert *diffCert = NULL;
@@ -1801,7 +1808,7 @@ testPolicyQualifier_GetPolicyQualifierId()
          */
 
         /* Get the PolicyQualifier objects */
-        goodCert = createCert(goodCertName, plContext);
+        goodCert = createCert(dataDir, goodCertName, plContext);
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Cert_GetPolicyInformation
                 (goodCert, &goodPolicyInfo, plContext));
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_GetItem
@@ -1818,7 +1825,7 @@ testPolicyQualifier_GetPolicyQualifierId()
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_PolicyQualifier_GetPolicyQualifierId
                 (goodPolQualifier, &goodID, plContext));
 
-        equalCert = createCert(equalCertName, plContext);
+        equalCert = createCert(dataDir, equalCertName, plContext);
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Cert_GetPolicyInformation
                 (equalCert, &equalPolicyInfo, plContext));
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_GetItem
@@ -1838,7 +1845,7 @@ testPolicyQualifier_GetPolicyQualifierId()
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_PolicyQualifier_GetPolicyQualifierId
                 (equalPolQualifier, &equalID, plContext));
 
-        diffCert = createCert(diffCertName, plContext);
+        diffCert = createCert(dataDir, diffCertName, plContext);
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Cert_GetPolicyInformation
                 (diffCert, &diffPolicyInfo, plContext));
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_GetItem
@@ -1882,12 +1889,11 @@ cleanup:
 }
 
 static void
-testAreCertPoliciesCritical()
+testAreCertPoliciesCritical(char *dataCentralDir, char *dataDir)
 {
 
-        char *trueCertName = "../../certs/CertificatePoliciesCritical.crt";
-        char *falseCertName =
-                "./rev_data/local/UserNoticeQualifierTest15EE.crt";
+        char *trueCertName = "CertificatePoliciesCritical.crt";
+        char *falseCertName = "UserNoticeQualifierTest15EE.crt";
         PKIX_PL_Cert *trueCert = NULL;
         PKIX_PL_Cert *falseCert = NULL;
         PKIX_Boolean trueVal = PKIX_FALSE;
@@ -1896,7 +1902,7 @@ testAreCertPoliciesCritical()
         PKIX_TEST_STD_VARS();
         subTest("PKIX_PL_Cert_AreCertPoliciesCritical - <true>");
 
-        trueCert = createCert(trueCertName, plContext);
+        trueCert = createCert(dataCentralDir, trueCertName, plContext);
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Cert_AreCertPoliciesCritical
                 (trueCert, &trueVal, plContext));
@@ -1910,7 +1916,7 @@ testAreCertPoliciesCritical()
 
         subTest("PKIX_PL_Cert_AreCertPoliciesCritical - <false>");
 
-        falseCert = createCert(falseCertName, plContext);
+        falseCert = createCert(dataDir, falseCertName, plContext);
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Cert_AreCertPoliciesCritical
                 (falseCert, &falseVal, plContext));
@@ -1931,16 +1937,16 @@ cleanup:
 }
 
 static void
-testCertPolicyConstraints()
+testCertPolicyConstraints(char *dataDir)
 {
         char *requireExplicitPolicy2CertName =
-                "./rev_data/local/requireExplicitPolicy2CACert.crt";
+                "requireExplicitPolicy2CACert.crt";
         char *inhibitPolicyMapping5CertName =
-                "./rev_data/local/inhibitPolicyMapping5CACert.crt";
+                "inhibitPolicyMapping5CACert.crt";
         char *inhibitAnyPolicy5CertName =
-                "./rev_data/local/inhibitAnyPolicy5CACert.crt";
+                "inhibitAnyPolicy5CACert.crt";
         char *inhibitAnyPolicy0CertName =
-                "./rev_data/local/inhibitAnyPolicy0CACert.crt";
+                "inhibitAnyPolicy0CACert.crt";
         PKIX_PL_Cert *requireExplicitPolicy2Cert = NULL;
         PKIX_PL_Cert *inhibitPolicyMapping5Cert = NULL;
         PKIX_PL_Cert *inhibitAnyPolicy5Cert = NULL;
@@ -1951,27 +1957,27 @@ testCertPolicyConstraints()
 
         subTest("PKIX_PL_Cert_GetRequireExplicitPolicy");
         requireExplicitPolicy2Cert = createCert
-                (requireExplicitPolicy2CertName, plContext);
+                (dataDir, requireExplicitPolicy2CertName, plContext);
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Cert_GetRequireExplicitPolicy
                 (requireExplicitPolicy2Cert, &skipCerts, NULL));
         PR_ASSERT(skipCerts == 2);
 
         subTest("PKIX_PL_Cert_GetPolicyMappingInhibited");
         inhibitPolicyMapping5Cert = createCert
-                (inhibitPolicyMapping5CertName, plContext);
+                (dataDir, inhibitPolicyMapping5CertName, plContext);
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Cert_GetPolicyMappingInhibited
                 (inhibitPolicyMapping5Cert, &skipCerts, NULL));
         PR_ASSERT(skipCerts == 5);
 
         subTest("PKIX_PL_Cert_GetInhibitAnyPolicy");
         inhibitAnyPolicy5Cert = createCert
-                (inhibitAnyPolicy5CertName, plContext);
+                (dataDir, inhibitAnyPolicy5CertName, plContext);
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Cert_GetInhibitAnyPolicy
                 (inhibitAnyPolicy5Cert, &skipCerts, NULL));
         PR_ASSERT(skipCerts == 5);
 
         inhibitAnyPolicy0Cert = createCert
-                (inhibitAnyPolicy0CertName, plContext);
+                (dataDir, inhibitAnyPolicy0CertName, plContext);
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Cert_GetInhibitAnyPolicy
                 (inhibitAnyPolicy0Cert, &skipCerts, NULL));
         PR_ASSERT(skipCerts == 0);
@@ -1987,10 +1993,10 @@ cleanup:
 }
 
 static void
-testCertPolicyMaps()
+testCertPolicyMaps(char *dataDir)
 {
         char *policyMappingsCertName =
-                "./rev_data/local/P1Mapping1to234CACert.crt";
+                "P1Mapping1to234CACert.crt";
         char *expectedAscii =
                 "2.16.840.1.101.3.2.1.48.1=>2.16.840.1.101.3.2.1.48.2";
 
@@ -2007,7 +2013,8 @@ testCertPolicyMaps()
 
         subTest("PKIX_PL_Cert_GetPolicyMappings");
 
-        policyMappingsCert = createCert(policyMappingsCertName, plContext);
+        policyMappingsCert = createCert
+                (dataDir, policyMappingsCertName, plContext);
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Cert_GetPolicyMappings
                 (policyMappingsCert, &mappings, NULL));
 
@@ -2060,13 +2067,12 @@ cleanup:
 
 
 static void
-testNameConstraints()
+testNameConstraints(char *dataDir)
 {
-        char *firstPname = "./rev_data/local/nameConstraintsDN3subCA2Cert.crt";
-        char *secondPname = "./rev_data/local/nameConstraintsDN4CACert.crt";
-        char *thirdPname = "./rev_data/local/nameConstraintsDN5CACert.crt";
-        char *lastPname = "./rev_data/local/"
-                            "InvalidDNnameConstraintsTest3EE.crt";
+        char *firstPname = "nameConstraintsDN3subCA2Cert.crt";
+        char *secondPname = "nameConstraintsDN4CACert.crt";
+        char *thirdPname = "nameConstraintsDN5CACert.crt";
+        char *lastPname = "InvalidDNnameConstraintsTest3EE.crt";
         PKIX_PL_Cert *firstCert = NULL;
         PKIX_PL_Cert *secondCert = NULL;
         PKIX_PL_Cert *thirdCert = NULL;
@@ -2096,10 +2102,10 @@ testNameConstraints()
         PKIX_TEST_STD_VARS();
         subTest("PKIX_PL_CertNameConstraints");
 
-        firstCert = createCert(firstPname, plContext);
-        secondCert = createCert(secondPname, plContext);
-        thirdCert = createCert(thirdPname, plContext);
-        lastCert = createCert(lastPname, plContext);
+        firstCert = createCert(dataDir, firstPname, plContext);
+        secondCert = createCert(dataDir, secondPname, plContext);
+        thirdCert = createCert(dataDir, thirdPname, plContext);
+        lastCert = createCert(dataDir, lastPname, plContext);
 
         subTest("PKIX_PL_Cert_GetNameConstraints <total=3>");
 
@@ -2216,6 +2222,10 @@ cleanup:
 
 }
 
+void printUsage(void) {
+        (void) printf("\nUSAGE:\ttest_cert <test-purpose> <data-central-dir> <data-dir>\n\n");
+}
+
 int main(int argc, char *argv[]) {
 
         PKIX_PL_Cert *goodObject = NULL;
@@ -2225,8 +2235,10 @@ int main(int argc, char *argv[]) {
         PKIX_Boolean useArenas = PKIX_FALSE;
         PKIX_UInt32 j = 0;
 
-        char *goodInput = "../../certs/yassir2bcn";
-        char *diffInput = "../../certs/nss2alice";
+        char *dataCentralDir = NULL;
+        char *dataDir = NULL;
+        char *goodInput = "yassir2bcn";
+        char *diffInput = "nss2alice";
         char *expectedAscii =
                 "[\n"
                 "\tVersion:         v3\n"
@@ -2268,8 +2280,21 @@ int main(int argc, char *argv[]) {
                                     &actualMinorVersion,
                                     &plContext));
 
+        if (argc < 3+j) {
+                printUsage();
+                return (0);
+        }
+
+        dataCentralDir = argv[2+j];
+        dataDir = argv[3+j];
+
         createCerts
-                (goodInput, diffInput, &goodObject, &equalObject, &diffObject);
+                (dataCentralDir,
+                goodInput,
+                diffInput,
+                &goodObject,
+                &equalObject,
+                &diffObject);
 
         testToStringHelper
                 ((PKIX_PL_Object*)goodObject, expectedAscii, plContext);
@@ -2282,11 +2307,11 @@ int main(int argc, char *argv[]) {
                 Cert,
                 PKIX_TRUE);
 
-        testVerifyKeyUsage(goodObject);
+        testVerifyKeyUsage(dataCentralDir, dataDir, goodObject);
 
 
-        testGetExtendedKeyUsage();
-        testGetKeyIdentifiers(goodObject);
+        testGetExtendedKeyUsage(dataCentralDir);
+        testGetKeyIdentifiers(dataCentralDir, goodObject);
 
         testGetVersion(goodObject);
         testGetSerialNumber(goodObject, equalObject, diffObject);
@@ -2294,34 +2319,34 @@ int main(int argc, char *argv[]) {
         testGetSubject(goodObject, equalObject, diffObject);
         testGetIssuer(goodObject, equalObject, diffObject);
 
-        testGetSubjectAltNames();
-        testGetCriticalExtensionOIDs(goodObject);
+        testGetSubjectAltNames(dataCentralDir);
+        testGetCriticalExtensionOIDs(dataCentralDir, goodObject);
 
         testGetSubjectPublicKey(goodObject, equalObject, diffObject);
         testGetSubjectPublicKeyAlgId(goodObject);
-        testMakeInheritedDSAPublicKey();
+        testMakeInheritedDSAPublicKey(dataCentralDir);
 
         testCheckValidity(goodObject, diffObject);
 
-        testBasicConstraints_GetCAFlag();
-        testBasicConstraints_GetPathLenConstraint();
-        testGetBasicConstraints();
+        testBasicConstraints_GetCAFlag(dataCentralDir);
+        testBasicConstraints_GetPathLenConstraint(dataCentralDir);
+        testGetBasicConstraints(dataCentralDir);
 
         /* Basic Policy Processing */
-        testGetPolicyInformation();
-        testCertPolicy_GetPolicyId();
-        testCertPolicy_GetPolQualifiers();
-        testPolicyQualifier_GetPolicyQualifierId();
-        testPolicyQualifier_GetQualifier();
-        testAreCertPoliciesCritical();
+        testGetPolicyInformation(dataDir);
+        testCertPolicy_GetPolicyId(dataDir);
+        testCertPolicy_GetPolQualifiers(dataDir);
+        testPolicyQualifier_GetPolicyQualifierId(dataDir);
+        testPolicyQualifier_GetQualifier(dataDir);
+        testAreCertPoliciesCritical(dataCentralDir, dataDir);
 
         /* Advanced Policy Processing */
-        testCertPolicyConstraints();
-        testCertPolicyMaps();
+        testCertPolicyConstraints(dataDir);
+        testCertPolicyMaps(dataDir);
 
-        testNameConstraints();
+        testNameConstraints(dataDir);
 
-        testVerifySignature();
+        testVerifySignature(dataCentralDir);
 
         testDestroy(goodObject, equalObject, diffObject);
 

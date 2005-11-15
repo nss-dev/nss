@@ -47,6 +47,7 @@
 void *plContext = NULL;
 
 void createCRLEntries(
+        char *dataDir,
         char *crlInput,
         PKIX_PL_CRL **pCrl,
         PKIX_PL_CRLEntry **goodObject,
@@ -64,7 +65,7 @@ void createCRLEntries(
         PKIX_TEST_STD_VARS();
 
         subTest("PKIX_PL_CRL_Create <crl>");
-        crl = createCRL(crlInput, plContext);
+        crl = createCRL(dataDir, crlInput, plContext);
 
         subTest("PKIX_PL_CRL_GetCRLEntryForSerialNumber");
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create(
@@ -169,6 +170,10 @@ testGetCriticalExtensionOIDs(PKIX_PL_CRLEntry *goodObject)
 
 }
 
+void printUsage(void) {
+        (void) printf("\nUSAGE:\ttest_crlentry <data-dir>\n\n");
+}
+
 /* Functional tests for CRLENTRY public functions */
 
 int main(int argc, char *argv[]) {
@@ -180,7 +185,8 @@ int main(int argc, char *argv[]) {
         PKIX_UInt32 j = 0;
         PKIX_Boolean useArenas = PKIX_FALSE;
 
-        char *goodInput = "./rev_data/local/crlgood.crl";
+        char *dataDir = NULL;
+        char *goodInput = "crlgood.crl";
         char *expectedAscii =
                 "\n\t[\n"
                 "\tSerialNumber:    010932\n"
@@ -206,8 +212,15 @@ int main(int argc, char *argv[]) {
                                     &actualMinorVersion,
                                     &plContext));
 
+        if (argc < 1+j) {
+                printUsage();
+                return (0);
+        }
+
+        dataDir = argv[1+j];
+
         createCRLEntries
-                (goodInput, &crl, &goodObject, &equalObject, &diffObject);
+            (dataDir, goodInput, &crl, &goodObject, &equalObject, &diffObject);
 
         PKIX_TEST_EQ_HASH_TOSTR_DUP
                 (goodObject,

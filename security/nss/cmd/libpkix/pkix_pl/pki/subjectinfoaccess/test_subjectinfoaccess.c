@@ -92,12 +92,12 @@ int main(int argc, char *argv[]) {
         certPathName = argv[3+j];
 
         subTest("Creating Cert with Subject Info Access");
-        cert = createDirCert(dirName, certPathName, plContext);
+        cert = createCert(dirName, certPathName, plContext);
 
         certPathName = argv[4+j];
 
         subTest("Creating Cert with Subject Info Access");
-        certDiff = createDirCert(dirName, certPathName, plContext);
+        certDiff = createCert(dirName, certPathName, plContext);
 
         subTest("Getting Subject Info Access");
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Cert_GetSubjectInfoAccess

@@ -400,7 +400,7 @@ int main(int argc, char *argv[])
 
         for (k = ++j; k < argc; k++) {
 
-                dirCert = createDirCert(dirName, argv[k], plContext);
+                dirCert = createCert(dirName, argv[k], plContext);
 
                 if (k == (argc - 1)) {
                         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Object_IncRef

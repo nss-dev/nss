@@ -254,7 +254,7 @@ Display "***********************************************************************
         
         if [ $? -ne 0 ]; then
             errors=`expr ${errors} + 1`
-            failedpgms="${failedpgms}${testPgm} ${testPurpose} "
+            failedpgms="${failedpgms}\n${testPgm} ${testPurpose} "
             cat ${testOut}
         fi
 

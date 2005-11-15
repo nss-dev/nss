@@ -242,23 +242,14 @@ int main(int argc, char *argv[]){
 
         dirName = argv[3+j];
 
-        chain = createDirCertChainPlus
+        chain = createCertChainPlus
                 (dirName, certNames, certs, chainLength, plContext);
 
         subTest("SubjAltName-Constraints - Create Params");
 
-        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Malloc
-                (PL_strlen(dirName) + PL_strlen(argv[4+j]) + 2,
-                (void **) &anchorName,
-                plContext));
-
-        PL_strcpy(anchorName, dirName);
-        PL_strcat(anchorName, "/");
-        PL_strcat(anchorName, argv[4+j]);
-        printf("anchorName = %s\n", anchorName);
-
         valParams = createValidateParams
-                (anchorName,
+                (dirName,
+                argv[4+j],
                 NULL,
                 NULL,
                 NULL,

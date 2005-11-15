@@ -412,20 +412,25 @@ cleanup:
         PKIX_TEST_RETURN();
 }
 
+void printUsage(char *pName){
+        printf("\nUSAGE: %s <central-data-dir>\n\n", pName);
+}
+
 int main(int argc, char *argv[]) {
 
         PKIX_ProcessingParams *goodObject = NULL;
         PKIX_ProcessingParams *equalObject = NULL;
         PKIX_ProcessingParams *diffObject = NULL;
         PKIX_UInt32 actualMinorVersion;
+        char *dataCentralDir = NULL;
         PKIX_UInt32 j = 0;
         PKIX_Boolean useArenas = PKIX_FALSE;
 
         char *oidAnyPolicy = PKIX_CERTIFICATEPOLICIES_ANYPOLICY_OID;
         char *oidNist1Policy = "2.16.840.1.101.3.2.1.48.2";
 
-        char *goodInput = "../../certs/yassir2yassir";
-        char *diffInput = "../../certs/yassir2bcn";
+        char *goodInput = "yassir2yassir";
+        char *diffInput = "yassir2bcn";
 
         char *expectedAscii =
                 "[\n"
@@ -473,15 +478,22 @@ int main(int argc, char *argv[]) {
                                     &actualMinorVersion,
                                     &plContext));
 
+        if (argc < 2){
+                printUsage(argv[0]);
+                return (0);
+        }
+
+        dataCentralDir = argv[j+1];
+
         subTest("PKIX_ProcessingParams_Create");
         goodObject = createProcessingParams
-                (goodInput, diffInput, NULL, PKIX_FALSE, plContext);
+            (dataCentralDir, goodInput, diffInput, NULL, PKIX_FALSE, plContext);
 
         equalObject = createProcessingParams
-                (goodInput, diffInput, NULL, PKIX_FALSE, plContext);
+            (dataCentralDir, goodInput, diffInput, NULL, PKIX_FALSE, plContext);
 
         diffObject = createProcessingParams
-                (diffInput, goodInput, NULL, PKIX_FALSE, plContext);
+            (dataCentralDir, diffInput, goodInput, NULL, PKIX_FALSE, plContext);
 
         testGetAnchors(goodObject, equalObject);
         testGetSetDate(goodObject, equalObject);

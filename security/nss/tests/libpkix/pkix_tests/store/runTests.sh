@@ -54,7 +54,7 @@ testunit=STORE
 ParseArgs $*
 
 RunTests <<EOF
-test_store
+test_store ${curdir}/../top/rev_data/crlchecker
 EOF
 
 totalErrors=$?

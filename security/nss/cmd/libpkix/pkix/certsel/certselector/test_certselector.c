@@ -1091,7 +1091,7 @@ cleanup:
         PKIX_TEST_RETURN();
 }
 
-void testExtendedKeyUsageMatch(void)
+void testExtendedKeyUsageMatch(char *certDir)
 {
         PKIX_ComCertSelParams *goodParams = NULL;
         PKIX_PL_OID *ekuOid = NULL;
@@ -1101,7 +1101,6 @@ void testExtendedKeyUsageMatch(void)
         PKIX_CertStore *certStore = NULL;
         PKIX_CertSelector *certSelector = NULL;
         PKIX_List *certList = NULL;
-        char *certDir = "../../pkix_pl_tests/module/rev_data";
         PKIX_UInt32 numCert = 0;
 
         PKIX_TEST_STD_VARS();
@@ -1178,7 +1177,7 @@ cleanup:
         PKIX_TEST_RETURN();
 }
 
-void testKeyUsageMatch(void)
+void testKeyUsageMatch(char *certDir)
 {
         PKIX_ComCertSelParams *goodParams = NULL;
         PKIX_PL_String *dirString = NULL;
@@ -1186,7 +1185,6 @@ void testKeyUsageMatch(void)
         PKIX_CertStore *certStore = NULL;
         PKIX_CertSelector *certSelector = NULL;
         PKIX_List *certList = NULL;
-        char *certDir = "../../pkix_pl_tests/module/rev_data";
         PKIX_UInt32 numCert = 0;
 
         PKIX_TEST_STD_VARS();
@@ -1242,7 +1240,7 @@ cleanup:
         PKIX_TEST_RETURN();
 }
 
-void testCertValidMatch(void)
+void testCertValidMatch(char *certDir)
 {
         PKIX_ComCertSelParams *goodParams = NULL;
         PKIX_PL_Date *validDate = NULL;
@@ -1251,7 +1249,6 @@ void testCertValidMatch(void)
         PKIX_CertStore *certStore = NULL;
         PKIX_CertSelector *certSelector = NULL;
         PKIX_List *certList = NULL;
-        char *certDir = "../../pkix_pl_tests/module/rev_data";
         PKIX_UInt32 numCert = 0;
 
         PKIX_TEST_STD_VARS();
@@ -1310,7 +1307,7 @@ cleanup:
         PKIX_TEST_RETURN();
 }
 
-void testIssuerMatch(void)
+void testIssuerMatch(char *certDir)
 {
         PKIX_ComCertSelParams *goodParams = NULL;
         PKIX_PL_X500Name *issuer = NULL;
@@ -1320,7 +1317,6 @@ void testIssuerMatch(void)
         PKIX_CertStore *certStore = NULL;
         PKIX_CertSelector *certSelector = NULL;
         PKIX_List *certList = NULL;
-        char *certDir = "../../pkix_pl_tests/module/rev_data";
         char *issuerName = "CN=science,O=mit,C=US";
         PKIX_UInt32 numCert = 0;
 
@@ -1385,7 +1381,7 @@ cleanup:
         PKIX_TEST_RETURN();
 }
 
-void testSerialNumberVersionMatch(void)
+void testSerialNumberVersionMatch(char *certDir)
 {
         PKIX_ComCertSelParams *goodParams = NULL;
         PKIX_PL_BigInt *serialNumber = NULL;
@@ -1395,7 +1391,6 @@ void testSerialNumberVersionMatch(void)
         PKIX_CertStore *certStore = NULL;
         PKIX_CertSelector *certSelector = NULL;
         PKIX_List *certList = NULL;
-        char *certDir = "../../pkix_pl_tests/module/rev_data";
         PKIX_UInt32 numCert = 0;
 
         PKIX_TEST_STD_VARS();
@@ -1800,7 +1795,7 @@ cleanup:
 }
 
 void printUsage(void) {
-        (void) printf("\nUSAGE:\ttest_certselector <NIST_FILES_DIR> \n\n");
+        (void) printf("\nUSAGE:\ttest_certselector <NIST_FILES_DIR> <cert-dir>\n\n");
 }
 
 int main(int argc, char *argv[]) {
@@ -1819,15 +1814,11 @@ int main(int argc, char *argv[]) {
         PKIX_PL_Cert *anyPolicyCert = NULL;
         PKIX_PL_Cert *subjectCert = NULL;
         PKIX_ComCertSelParams *selParams = NULL;
+        char *certDir = NULL;
         char *dirName = NULL;
         PKIX_Boolean useArenas = PKIX_FALSE;
 
         PKIX_TEST_STD_VARS();
-
-        if (argc < 2) {
-                printUsage();
-                return (0);
-        }
 
         startTests("CertSelector");
 
@@ -1842,14 +1833,20 @@ int main(int argc, char *argv[]) {
                                     &actualMinorVersion,
                                     &plContext));
 
+        if (argc < 3) {
+                printUsage();
+                return (0);
+        }
+
         dirName = argv[j+1];
+        certDir = argv[j+3];
 
         /* Create a List of certs to use in testing the selector */
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_Create(&certs, plContext));
 
         for (i = 0; i < NUMCERTS; i++) {
 
-                cert = createDirCert(dirName, certList[i], plContext);
+                cert = createCert(dirName, certList[i], plContext);
 
                 PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_AppendItem
                         (certs, (PKIX_PL_Object *)cert, plContext));
@@ -1881,7 +1878,7 @@ int main(int argc, char *argv[]) {
 
         for (i = 0; i < NUMNCCERTS; i++) {
 
-                cert = createDirCert(dirName, ncCertList[i], plContext);
+                cert = createCert(dirName, ncCertList[i], plContext);
 
                 PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_AppendItem
                         (nameConstraintsCerts,
@@ -1896,7 +1893,7 @@ int main(int argc, char *argv[]) {
 
         for (i = 0; i < NUMSANCERTS; i++) {
 
-                cert = createDirCert(dirName, sanCertList[i], plContext);
+                cert = createCert(dirName, sanCertList[i], plContext);
 
                 PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_AppendItem
                         (subjAltNamesCerts,
@@ -1940,15 +1937,15 @@ int main(int argc, char *argv[]) {
 
         testSubjAltNamesMatch(subjAltNamesCerts);
 
-        testExtendedKeyUsageMatch();
+        testExtendedKeyUsageMatch(certDir);
 
-        testKeyUsageMatch();
+        testKeyUsageMatch(certDir);
 
-        testIssuerMatch();
+        testIssuerMatch(certDir);
 
-        testSerialNumberVersionMatch();
+        testSerialNumberVersionMatch(certDir);
 
-        testCertValidMatch();
+        testCertValidMatch(certDir);
 
         testSubjKeyIdMatch(nameConstraintsCerts);
 

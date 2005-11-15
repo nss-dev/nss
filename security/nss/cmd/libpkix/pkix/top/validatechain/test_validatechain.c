@@ -189,25 +189,17 @@ int main(int argc, char *argv[]){
 
         dirName = argv[3+j];
 
-        PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_Create(&chainCerts, plContext));
-
-        anchorCertName = createFullPathName(dirName, argv[4+j], plContext);
-
         chainLength = argc - j - 5;
+
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_Create(&chainCerts, plContext));
 
         for (k = 0; k < chainLength; k++){
 
-                dirCertName = createFullPathName
-                        (dirName, argv[5+k+j], plContext);
-
-                dirCert = createCert(dirCertName, plContext);
+                dirCert = createCert(dirName, argv[5+k+j], plContext);
 
                 PKIX_TEST_EXPECT_NO_ERROR
                         (PKIX_List_AppendItem
                         (chainCerts, (PKIX_PL_Object *)dirCert, plContext));
-
-                PKIX_TEST_EXPECT_NO_ERROR
-                        (PKIX_PL_Free(dirCertName, plContext));
 
                 PKIX_TEST_DECREF_BC(dirCert);
         }
@@ -216,7 +208,8 @@ int main(int argc, char *argv[]){
                                     (chainCerts, &chain, plContext));
 
         valParams = createValidateParams
-                (anchorCertName,
+                (dirName,
+                argv[4+j],
                 NULL,
                 NULL,
                 NULL,
@@ -226,10 +219,6 @@ int main(int argc, char *argv[]){
                 PKIX_FALSE,
                 chain,
                 plContext);
-
-        PKIX_TEST_EXPECT_NO_ERROR
-                (PKIX_PL_Free(anchorCertName, plContext));
-
 
         testDefaultCertStore(valParams, dirName);
 

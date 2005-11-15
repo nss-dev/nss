@@ -108,7 +108,7 @@ void test_NameConstraints(char *dirName)
 
         subTest("Create Cert for NameConstraints test");
 
-        goodCert = createDirCert
+        goodCert = createCert
                 (dirName, "nameConstraintsDN2CACert.crt", plContext);
 
         subTest("PKIX_PL_Cert_GetNameConstraints");
@@ -664,7 +664,7 @@ void test_SubjAlgId_SubjPublicKey(char *dirName)
         /* Subject Public Key */
         subTest("Getting Cert for Subject Public Key");
 
-        goodCert = createDirCert
+        goodCert = createCert
                 (dirName, "nameConstraintsDN2CACert.crt", plContext);
 
         subTest("PKIX_PL_Cert_GetSubjectPublicKey");
@@ -773,7 +773,7 @@ int main(int argc, char *argv[]) {
         PKIX_TEST_EXPECT_NO_ERROR
                 (PKIX_PL_Date_Create_UTCTime(stringRep, &testDate, plContext));
 
-        testCert = createDirCert
+        testCert = createCert
                 (dirName, "PoliciesP1234CACert.crt",  plContext);
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Cert_GetSubject
@@ -865,7 +865,7 @@ int main(int argc, char *argv[]) {
 
         subTest("Set different values and verify differences");
 
-        diffCert = createDirCert
+        diffCert = createCert
                 (dirName, "pathLenConstraint6CACert.crt", plContext);
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Cert_GetSubject

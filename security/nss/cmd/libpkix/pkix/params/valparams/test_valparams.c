@@ -124,6 +124,10 @@ cleanup:
         PKIX_TEST_RETURN();
 }
 
+void printUsage(char *pName){
+        printf("\nUSAGE: %s <central-data-dir>\n\n", pName);
+}
+
 int main(int argc, char *argv[]) {
 
         PKIX_ValidateParams *goodObject = NULL;
@@ -132,10 +136,11 @@ int main(int argc, char *argv[]) {
         PKIX_CertChain *chain = NULL;
         PKIX_UInt32 actualMinorVersion;
         PKIX_UInt32 j = 0;
+        char *dirName = NULL;
         PKIX_Boolean useArenas = PKIX_FALSE;
 
-        char *goodInput = "../../certs/yassir2yassir";
-        char *diffInput = "../../certs/yassir2bcn";
+        char *goodInput = "yassir2yassir";
+        char *diffInput = "yassir2bcn";
 
         char *expectedAscii =
                 "[\n"
@@ -229,10 +234,18 @@ int main(int argc, char *argv[]) {
                                     &actualMinorVersion,
                                     &plContext));
 
+        if (argc < 2){
+                printUsage(argv[0]);
+                return (0);
+        }
+
+        dirName = argv[j+1];
+
         subTest("PKIX_ValidateParams_Create");
-        chain = createCertChain(diffInput, goodInput, plContext);
+        chain = createCertChain(dirName, diffInput, goodInput, plContext);
         goodObject = createValidateParams
-                (goodInput,
+                (dirName,
+                goodInput,
                 diffInput,
                 NULL,
                 NULL,
@@ -243,7 +256,8 @@ int main(int argc, char *argv[]) {
                 chain,
                 plContext);
         equalObject = createValidateParams
-                (goodInput,
+                (dirName,
+                goodInput,
                 diffInput,
                 NULL,
                 NULL,
@@ -254,7 +268,8 @@ int main(int argc, char *argv[]) {
                 chain,
                 plContext);
         diffObject = createValidateParams
-                (diffInput,
+                (dirName,
+                diffInput,
                 goodInput,
                 NULL,
                 NULL,

@@ -530,7 +530,7 @@ int main(int argc, char *argv[]) {
 
         /* Read certificates to get real policies, qualifiers */
 
-        cert = createDirCert
+        cert = createCert
                 (dirName, "UserNoticeQualifierTest16EE.crt", plContext);
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Cert_GetPolicyInformation

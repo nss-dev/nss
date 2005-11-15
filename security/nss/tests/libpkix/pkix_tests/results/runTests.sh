@@ -56,8 +56,8 @@ ParseArgs $*
 
 RunTests <<EOF
 test_policynode ${NIST} NIST-Test-Files-Used
-test_valresult
-test_buildresult
+test_valresult ${curdir}/../../certs
+test_buildresult ${curdir}/../../certs
 EOF
 
 totalErrors=$?

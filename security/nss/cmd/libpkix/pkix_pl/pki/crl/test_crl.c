@@ -47,6 +47,7 @@
 void *plContext = NULL;
 
 void createCRLs(
+        char *dataDir,
         char *goodInput,
         char *diffInput,
         PKIX_PL_CRL **goodObject,
@@ -56,13 +57,13 @@ void createCRLs(
         PKIX_TEST_STD_VARS();
 
         subTest("PKIX_PL_CRL_Create <goodObject>");
-        *goodObject = createCRL(goodInput, plContext);
+        *goodObject = createCRL(dataDir, goodInput, plContext);
 
         subTest("PKIX_PL_CRL_Create <equalObject>");
-        *equalObject = createCRL(goodInput, plContext);
+        *equalObject = createCRL(dataDir, goodInput, plContext);
 
         subTest("PKIX_PL_CRL_Create <diffObject>");
-        *diffObject = createCRL(diffInput, plContext);
+        *diffObject = createCRL(dataDir, diffInput, plContext);
 
         PKIX_TEST_RETURN();
 }
@@ -192,7 +193,7 @@ testGetCriticalExtensionOIDs(PKIX_PL_CRL *goodObject)
 
 }
 
-static void testVerifySignature(PKIX_PL_CRL *crl){
+static void testVerifySignature(char *dataCentralDir, PKIX_PL_CRL *crl){
         PKIX_PL_Cert *firstCert = NULL;
         PKIX_PL_Cert *secondCert = NULL;
         PKIX_PL_PublicKey *firstPubKey = NULL;
@@ -201,10 +202,10 @@ static void testVerifySignature(PKIX_PL_CRL *crl){
         PKIX_TEST_STD_VARS();
 
         subTest("PKIX_PL_Cert_Create <hanfeiyu2hanfeiyu>");
-        firstCert = createCert("../../certs/hanfeiyu2hanfeiyu", plContext);
+        firstCert = createCert(dataCentralDir, "hanfeiyu2hanfeiyu", plContext);
 
         subTest("PKIX_PL_Cert_Create <hy2hy-bc0>");
-        secondCert = createCert("../../certs/hy2hy-bc0", plContext);
+        secondCert = createCert(dataCentralDir, "hy2hy-bc0", plContext);
 
         subTest("PKIX_PL_Cert_GetSubjectPublicKey <hanfeiyu2hanfeiyu>");
         PKIX_TEST_EXPECT_NO_ERROR
@@ -235,6 +236,10 @@ cleanup:
         PKIX_TEST_RETURN();
 }
 
+void printUsage(void) {
+        (void) printf("\nUSAGE:\ttest_crl <test-purpose> <data-central-dir> <data-dir>\n\n");
+}
+
 /* Functional tests for CRL public functions */
 
 int main(int argc, char *argv[]) {
@@ -245,8 +250,10 @@ int main(int argc, char *argv[]) {
         PKIX_UInt32 actualMinorVersion;
         PKIX_UInt32 j = 0;
 
-        char *goodInput = "./rev_data/local/crlgood.crl";
-        char *diffInput = "./rev_data/local/crldiff.crl";
+        char *dataDir = NULL;
+        char *dataCentralDir = NULL;
+        char *goodInput = "crlgood.crl";
+        char *diffInput = "crldiff.crl";
         char *expectedAscii =
                 "[\n"
                 "\tVersion:         v2\n"
@@ -290,8 +297,21 @@ int main(int argc, char *argv[]) {
                                     &actualMinorVersion,
                                     &plContext));
 
+        if (argc < 3+j) {
+                printUsage();
+                return (0);
+        }
+
+        dataCentralDir = argv[2+j];
+        dataDir = argv[3+j];
+
         createCRLs
-                (goodInput, diffInput, &goodObject, &equalObject, &diffObject);
+                (dataDir,
+                goodInput,
+                diffInput,
+                &goodObject,
+                &equalObject,
+                &diffObject);
 
         PKIX_TEST_EQ_HASH_TOSTR_DUP
                 (goodObject,
@@ -307,7 +327,7 @@ int main(int argc, char *argv[]) {
 
         testGetCRLEntryForSerialNumber(goodObject);
 
-        testVerifySignature(goodObject);
+        testVerifySignature(dataCentralDir, goodObject);
 
 cleanup:
 

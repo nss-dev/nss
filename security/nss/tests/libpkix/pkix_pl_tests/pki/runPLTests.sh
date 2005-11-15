@@ -91,13 +91,13 @@ fi
 ParseArgs $*
 
 RunTests <<EOF
-test_cert NIST-Test-Files-Used
-test_crl NIST-Test-Files-Used
+test_cert NIST-Test-Files-Used ${curdir}/../../certs ${curdir}/rev_data/local
+test_crl NIST-Test-Files-Used ${curdir}/../../certs ${curdir}/rev_data/local
 test_x500name
 test_generalname
 test_date NIST-Test-Files-Used
-test_crlentry
-test_nameconstraints NIST-Test-Files-Used
+test_crlentry ${curdir}/rev_data/local
+test_nameconstraints NIST-Test-Files-Used ${curdir}/rev_data/local
 test_authorityinfoaccess NIST-PDTest ${NIST_PDTEST} certs/BasicLDAPURIPathDiscoveryOU1EE1.crt certs/BasicHTTPURITrustAnchorRootCert.crt
 test_subjectinfoaccess NIST-PDTest ${NIST_PDTEST} certs/BasicHTTPURITrustAnchorRootCert.crt certs/BasicLDAPURIPathDiscoveryOU1EE1.crt
 EOF

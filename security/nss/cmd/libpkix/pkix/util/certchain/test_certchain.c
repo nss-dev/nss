@@ -47,6 +47,7 @@
 void *plContext = NULL;
 
 void createCertChains(
+        char *dirName,
         char *goodInput,
         char *diffInput,
         PKIX_CertChain **goodObject,
@@ -54,13 +55,13 @@ void createCertChains(
         PKIX_CertChain **diffObject)
 {
         subTest("PKIX_CertChain_Create <goodObject>");
-        *goodObject = createCertChain(goodInput, diffInput, plContext);
+        *goodObject = createCertChain(dirName, goodInput, diffInput, plContext);
 
         subTest("PKIX_CertChain_Create <equalObject>");
-        *equalObject = createCertChain(goodInput, diffInput, plContext);
+        *equalObject = createCertChain(dirName, goodInput, diffInput, plContext);
 
         subTest("PKIX_CertChain_Create <diffObject>");
-        *diffObject = createCertChain(diffInput, goodInput, plContext);
+        *diffObject = createCertChain(dirName, diffInput, goodInput, plContext);
 
 }
 
@@ -112,17 +113,22 @@ cleanup:
 
 }
 
+void printUsage(char *pName){
+        printf("\nUSAGE: %s <central-data-dir>\n\n", pName);
+}
+
 int main(int argc, char *argv[]) {
 
         PKIX_CertChain *goodObject = NULL;
         PKIX_CertChain *equalObject = NULL;
         PKIX_CertChain *diffObject = NULL;
         PKIX_UInt32 actualMinorVersion;
+        char *dataCentralDir = NULL;
         PKIX_Boolean useArenas = PKIX_FALSE;
 
         PKIX_UInt32 j = 0;
-        char *goodInput = "../../certs/yassir2yassir";
-        char *diffInput = "../../certs/yassir2bcn";
+        char *goodInput = "yassir2yassir";
+        char *diffInput = "yassir2bcn";
 
         char *expectedAscii =
                 "([\n"
@@ -184,8 +190,20 @@ int main(int argc, char *argv[]) {
                                     &actualMinorVersion,
                                     &plContext));
 
+        if (argc < 2){
+                printUsage(argv[0]);
+                return (0);
+        }
+
+        dataCentralDir = argv[j+1];
+
         createCertChains
-                (goodInput, diffInput, &goodObject, &equalObject, &diffObject);
+                (dataCentralDir,
+                goodInput,
+                diffInput,
+                &goodObject,
+                &equalObject,
+                &diffObject);
 
         PKIX_TEST_EQ_HASH_TOSTR_DUP
                 (goodObject,

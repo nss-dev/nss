@@ -59,8 +59,6 @@ createCert;
 createCertChain;
 createCertChainPlus;
 createDate;
-createDirCert;
-createDirCertChainPlus;
 createGeneralName;
 createProcessingParams;
 createTrustAnchor;

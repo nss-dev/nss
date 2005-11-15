@@ -47,9 +47,9 @@
 void *plContext = NULL;
 
 static void
-testNameConstraints()
+testNameConstraints(char *dataDir)
 {
-        char *goodPname = "./rev_data/local/nameConstraintsDN5CACert.crt";
+        char *goodPname = "nameConstraintsDN5CACert.crt";
         PKIX_PL_Cert *goodCert = NULL;
         PKIX_PL_CertNameConstraints *goodNC = NULL;
         char *expectedAscii =
@@ -64,7 +64,7 @@ testNameConstraints()
 
         subTest("PKIX_PL_CertNameConstraints");
 
-        goodCert = createCert(goodPname, plContext);
+        goodCert = createCert(dataDir, goodPname, plContext);
 
         subTest("PKIX_PL_Cert_GetNameConstraints");
 
@@ -82,11 +82,16 @@ cleanup:
         PKIX_TEST_RETURN();
 }
 
+void printUsage(void) {
+        (void) printf("\nUSAGE:\ttest_nameconstraints <test-purpose> <data-dir>\n\n");
+}
+
 /* Functional tests for CRL public functions */
 
 int main(int argc, char *argv[]) {
         PKIX_UInt32 actualMinorVersion;
         PKIX_UInt32 j = 0;
+        char *dataDir = NULL;
         PKIX_Boolean useArenas = PKIX_FALSE;
 
         /* Note XXX serialnumber and reasoncode need debug */
@@ -106,7 +111,14 @@ int main(int argc, char *argv[]) {
                                     &actualMinorVersion,
                                     &plContext));
 
-        testNameConstraints();
+        if (argc < 2+j) {
+                printUsage();
+                return (0);
+        }
+
+        dataDir = argv[2+j];
+
+        testNameConstraints(dataDir);
 
 cleanup:
 

@@ -93,6 +93,10 @@ cleanup:
         PKIX_TEST_RETURN();
 }
 
+void printUsage(char *pName){
+        printf("\nUSAGE: %s <central-data-dir>\n\n", pName);
+}
+
 int main(int argc, char *argv[]) {
 
         PKIX_BuildParams *goodObject = NULL;
@@ -102,8 +106,9 @@ int main(int argc, char *argv[]) {
         PKIX_UInt32 j = 0;
 	PKIX_Boolean useArenas = PKIX_FALSE;
 
-        char *goodInput = "../../certs/yassir2yassir";
-        char *diffInput = "../../certs/yassir2bcn";
+        char *dataCentralDir = NULL;
+        char *goodInput = "yassir2yassir";
+        char *diffInput = "yassir2bcn";
 
         char *expectedAscii =
                 "[\n"
@@ -154,14 +159,41 @@ int main(int argc, char *argv[]) {
                                     &actualMinorVersion,
                                     &plContext));
 
+        if (argc < 2){
+                printUsage(argv[0]);
+                return (0);
+        }
+
+        dataCentralDir = argv[j+1];
+
         subTest("PKIX_BuildParams_Create");
 
         goodObject = createBuildParams
-                (goodInput, diffInput, NULL, NULL, PKIX_FALSE, plContext);
+                (dataCentralDir,
+                goodInput,
+                diffInput,
+                NULL,
+                NULL,
+                PKIX_FALSE,
+                plContext);
+
         equalObject = createBuildParams
-                (goodInput, diffInput, NULL, NULL, PKIX_FALSE,  plContext);
+                (dataCentralDir,
+                goodInput,
+                diffInput,
+                NULL,
+                NULL,
+                PKIX_FALSE,
+                plContext);
+
         diffObject = createBuildParams
-                (diffInput, goodInput, NULL, NULL, PKIX_FALSE, plContext);
+                (dataCentralDir,
+                diffInput,
+                goodInput,
+                NULL,
+                NULL,
+                PKIX_FALSE,
+                plContext);
 
         testGetProcParams(goodObject, equalObject);
 

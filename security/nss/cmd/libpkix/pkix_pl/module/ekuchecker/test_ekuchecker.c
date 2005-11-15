@@ -50,7 +50,7 @@ void *plContext = NULL;
 
 void printUsage1(char *pName){
         printf("\nUSAGE: %s test-purpose [ENE|EE] ", pName);
-        printf("[E]oid[,oid]* cert [certs].\n");
+        printf("[E]oid[,oid]* <data-dir> cert [certs].\n");
 }
 
 void printUsageMax(PKIX_UInt32 numCerts){
@@ -220,6 +220,7 @@ int main(int argc, char *argv[]){
         PKIX_ValidateResult *valResult = NULL;
         PKIX_UInt32 actualMinorVersion;
         char *certNames[PKIX_TEST_MAX_CERTS];
+        char *dirName = NULL;
         PKIX_PL_Cert *certs[PKIX_TEST_MAX_CERTS];
         PKIX_UInt32 chainLength = 0;
         PKIX_UInt32 i = 0;
@@ -258,14 +259,16 @@ int main(int argc, char *argv[]){
                 return (0);
         }
 
-        chainLength = (argc - j) - 5;
+        dirName = argv[4+j];
+
+        chainLength = (argc - j) - 6;
         if (chainLength > PKIX_TEST_MAX_CERTS) {
                 printUsageMax(chainLength);
         }
 
         for (i = 0; i < chainLength; i++) {
 
-                certNames[i] = argv[5+i+j];
+                certNames[i] = argv[6+i+j];
                 certs[i] = NULL;
         }
 
@@ -275,12 +278,14 @@ int main(int argc, char *argv[]){
 
         subTest("Extended-Key-Usage-Checke - Create Cert Chain");
 
-        chain = createCertChainPlus(certNames, certs, chainLength, plContext);
+        chain = createCertChainPlus
+                (dirName, certNames, certs, chainLength, plContext);
 
         subTest("Extended-Key-Usage-Checke - Create Params");
 
         valParams = createValidateParams
-                (argv[4+j],
+                (dirName,
+                argv[5+j],
                 NULL,
                 NULL,
                 NULL,

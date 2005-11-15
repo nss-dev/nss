@@ -198,7 +198,10 @@ cleanup:
 
 }
 
-void testCertificateChecking(char *goodInput, PKIX_ComCRLSelParams *goodObject)
+void testCertificateChecking(
+        char *dataCentralDir,
+        char *goodInput,
+        PKIX_ComCRLSelParams *goodObject)
 {
         PKIX_PL_Cert *setCert = NULL;
         PKIX_PL_Cert *getCert = NULL;
@@ -207,7 +210,7 @@ void testCertificateChecking(char *goodInput, PKIX_ComCRLSelParams *goodObject)
         PKIX_TEST_STD_VARS();
 
         subTest("Test CertificateChecking Cert Create");
-        setCert = createCert(goodInput, plContext);
+        setCert = createCert(dataCentralDir, goodInput, plContext);
         if (setCert == NULL) {
                 pkixTestErrorMsg = "create certificate failed";
                 goto cleanup;
@@ -394,11 +397,16 @@ cleanup:
         PKIX_TEST_RETURN();
 }
 
+void printUsage(char *pName){
+        printf("\nUSAGE: %s <central-data-dir>\n\n", pName);
+}
+
 /* Functional tests for ComCRLSelParams public functions */
 
 int main(int argc, char *argv[]){
 
-        char *goodInput = "../../certs/yassir2yassir";
+        char *dataCentralDir = NULL;
+        char *goodInput = "yassir2yassir";
         PKIX_ComCRLSelParams *goodObject = NULL;
         PKIX_ComCRLSelParams *diffObject = NULL;
         PKIX_UInt32 actualMinorVersion;
@@ -420,6 +428,13 @@ int main(int argc, char *argv[]){
                                     &actualMinorVersion,
                                     &plContext));
 
+        if (argc < 2){
+                printUsage(argv[0]);
+                return (0);
+        }
+
+        dataCentralDir = argv[j+1];
+
         subTest("PKIX_ComCRLSelParams_Create");
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_ComCRLSelParams_Create
@@ -432,7 +447,7 @@ int main(int argc, char *argv[]){
 
         testIssuer(goodObject);
 
-        testCertificateChecking(goodInput, goodObject);
+        testCertificateChecking(dataCentralDir, goodInput, goodObject);
 
         testDateAndTime(goodObject);
 

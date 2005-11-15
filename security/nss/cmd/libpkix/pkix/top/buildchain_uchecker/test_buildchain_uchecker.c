@@ -69,6 +69,7 @@ testUserChecker(
         PKIX_CertChainChecker *checker,
         PKIX_PL_Cert *cert,
         PKIX_List *unresExtOIDs,
+        PKIX_Boolean *pFinished,
         void *plContext)
 {
         numUserCheckerCalled++;
@@ -176,7 +177,7 @@ int main(int argc, char *argv[])
 
         for (k = 0; k < chainLength; k++){
 
-                dirCert = createDirCert(dirName, argv[5+k+j], plContext);
+                dirCert = createCert(dirName, argv[5+k+j], plContext);
 
                 if (k == (chainLength - 1)){
                         PKIX_TEST_EXPECT_NO_ERROR

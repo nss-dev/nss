@@ -46,7 +46,7 @@
 
 void *plContext = NULL;
 
-void testPass(char *goodInput, char *diffInput, char *dateAscii){
+void testPass(char *dirName, char *goodInput, char *diffInput, char *dateAscii){
 
         PKIX_CertChain *chain = NULL;
         PKIX_ValidateParams *valParams = NULL;
@@ -59,10 +59,11 @@ void testPass(char *goodInput, char *diffInput, char *dateAscii){
          * Tests the Expiration, NameChaining, and Signature Checkers
          */
 
-        chain = createCertChain(goodInput, diffInput, plContext);
+        chain = createCertChain(dirName, goodInput, diffInput, plContext);
 
         valParams = createValidateParams
-                (goodInput,
+                (dirName,
+                goodInput,
                 diffInput,
                 dateAscii,
                 NULL,
@@ -85,8 +86,12 @@ cleanup:
         PKIX_TEST_RETURN();
 }
 
-void testNameChainingFail(char *goodInput, char *diffInput, char *dateAscii){
-
+void testNameChainingFail(
+        char *dirName,
+        char *goodInput,
+        char *diffInput,
+        char *dateAscii)
+{
         PKIX_CertChain *chain = NULL;
         PKIX_ValidateParams *valParams = NULL;
         PKIX_ValidateResult *valResult = NULL;
@@ -95,10 +100,11 @@ void testNameChainingFail(char *goodInput, char *diffInput, char *dateAscii){
 
         subTest("NameChaining <fail>");
 
-        chain = createCertChain(diffInput, goodInput, plContext);
+        chain = createCertChain(dirName, diffInput, goodInput, plContext);
 
         valParams = createValidateParams
-                (goodInput,
+                (dirName,
+                goodInput,
                 diffInput,
                 dateAscii,
                 NULL,
@@ -121,7 +127,7 @@ cleanup:
         PKIX_TEST_RETURN();
 }
 
-void testDateFail(char *goodInput, char *diffInput){
+void testDateFail(char *dirName, char *goodInput, char *diffInput){
 
         PKIX_CertChain *chain = NULL;
         PKIX_ValidateParams *valParams = NULL;
@@ -129,11 +135,12 @@ void testDateFail(char *goodInput, char *diffInput){
 
         PKIX_TEST_STD_VARS();
 
-        chain = createCertChain(goodInput, diffInput, plContext);
+        chain = createCertChain(dirName, goodInput, diffInput, plContext);
 
         subTest("Expiration <fail>");
         valParams = createValidateParams
-                (goodInput,
+                (dirName,
+                goodInput,
                 diffInput,
                 NULL,
                 NULL,
@@ -156,8 +163,12 @@ cleanup:
         PKIX_TEST_RETURN();
 }
 
-void testSignatureFail(char *goodInput, char *diffInput, char *dateAscii){
-
+void testSignatureFail(
+       char *dirName,
+       char *goodInput,
+       char *diffInput,
+       char *dateAscii)
+{
         PKIX_CertChain *chain = NULL;
         PKIX_ValidateParams *valParams = NULL;
         PKIX_ValidateResult *valResult = NULL;
@@ -166,10 +177,11 @@ void testSignatureFail(char *goodInput, char *diffInput, char *dateAscii){
 
         subTest("Signature <fail>");
 
-        chain = createCertChain(diffInput, goodInput, plContext);
+        chain = createCertChain(dirName, diffInput, goodInput, plContext);
 
         valParams = createValidateParams
-                (goodInput,
+                (dirName,
+                goodInput,
                 diffInput,
                 dateAscii,
                 NULL,
@@ -192,11 +204,16 @@ cleanup:
         PKIX_TEST_RETURN();
 }
 
+void printUsage(char *pName){
+        printf("\nUSAGE: %s <central-data-dir>\n\n", pName);
+}
+
 int main(int argc, char *argv[]) {
 
-        char *goodInput = "../../certs/yassir2yassir";
-        char *diffInput = "../../certs/yassir2bcn";
+        char *goodInput = "yassir2yassir";
+        char *diffInput = "yassir2bcn";
         char *dateAscii = "991201000000Z";
+        char *dirName = NULL;
         PKIX_UInt32 j = 0;
         PKIX_Boolean useArenas = PKIX_FALSE;
         PKIX_UInt32 actualMinorVersion;
@@ -216,12 +233,19 @@ int main(int argc, char *argv[]) {
                                     &actualMinorVersion,
                                     &plContext));
 
+        if (argc < 2){
+                printUsage(argv[0]);
+                return (0);
+        }
+
+        dirName = argv[j+1];
+
         /* The NameChaining, Expiration, and Signature Checkers all pass */
-        testPass(goodInput, diffInput, dateAscii);
+        testPass(dirName, goodInput, diffInput, dateAscii);
 
         /* Individual Checkers fail */
-        testNameChainingFail(goodInput, diffInput, dateAscii);
-        testDateFail(goodInput, diffInput);
+        testNameChainingFail(dirName, goodInput, diffInput, dateAscii);
+        testDateFail(dirName, goodInput, diffInput);
 
         /*
          * XXX

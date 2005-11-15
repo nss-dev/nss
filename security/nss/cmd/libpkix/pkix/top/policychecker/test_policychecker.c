@@ -188,7 +188,7 @@ cleanup:
         PKIX_TEST_RETURN();
 }
 
-void testPass(char *goodInput, char *diffInput, char *dateAscii){
+void testPass(char *dirName, char *goodInput, char *diffInput, char *dateAscii){
 
         PKIX_CertChain *chain = NULL;
         PKIX_ValidateParams *valParams = NULL;
@@ -201,10 +201,11 @@ void testPass(char *goodInput, char *diffInput, char *dateAscii){
          * Tests the Expiration, NameChaining, and Signature Checkers
          */
 
-        chain = createCertChain(goodInput, diffInput, plContext);
+        chain = createCertChain(dirName, goodInput, diffInput, plContext);
 
         valParams = createValidateParams
-                (goodInput,
+                (dirName,
+                goodInput,
                 diffInput,
                 dateAscii,
                 NULL,
@@ -257,7 +258,7 @@ void testNistTest1(char *dirName)
          */
         certNames[0] = intermediateCert;
         certNames[1] = endEntityCert;
-        chain = createDirCertChainPlus
+        chain = createCertChainPlus
                 (dirName, certNames, certs, PKIX_TEST_NUM_CERTS, plContext);
 
         subTest("testNistTest1: Creating the Validate Parameters");
@@ -270,18 +271,9 @@ void testNistTest1(char *dirName)
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_SetImmutable
                 (initialPolicies, plContext));
 
-        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Malloc
-                (PL_strlen(dirName) + PL_strlen(trustAnchor) + 2,
-                (void **) &anchorName,
-                plContext));
-
-        PL_strcpy(anchorName, dirName);
-        PL_strcat(anchorName, "/");
-        PL_strcat(anchorName, trustAnchor);
-        printf("anchorName = %s\n", anchorName);
-
         valParams = createValidateParams
-                (anchorName,
+                (dirName,
+                trustAnchor,
                 NULL,
                 NULL,
                 initialPolicies,
@@ -340,7 +332,7 @@ void testNistTest2(char *dirName)
          */
         certNames[0] = intermediateCert;
         certNames[1] = endEntityCert;
-        chain = createDirCertChainPlus
+        chain = createCertChainPlus
                 (dirName, certNames, certs, PKIX_TEST_NUM_CERTS, plContext);
 
         subTest("testNistTest2: Creating the Validate Parameters");
@@ -353,18 +345,9 @@ void testNistTest2(char *dirName)
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_SetImmutable
                 (initialPolicies, plContext));
 
-        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Malloc
-                (PL_strlen(dirName) + PL_strlen(trustAnchor) + 2,
-                (void **) &anchorName,
-                plContext));
-
-        PL_strcpy(anchorName, dirName);
-        PL_strcat(anchorName, "/");
-        PL_strcat(anchorName, trustAnchor);
-        printf("anchorName = %s\n", anchorName);
-
         valParams = createValidateParams
-                (anchorName,
+                (dirName,
+                trustAnchor,
                 NULL,
                 NULL,
                 initialPolicies,
@@ -435,8 +418,8 @@ int main(int argc, char *argv[])
         PKIX_Int32  j = 0;
         PKIX_UInt32 actualMinorVersion;
         PKIX_ProcessingParams *procParams = NULL;
-        char *firstTrustAnchor = "../../certs/yassir2yassir";
-        char *secondTrustAnchor = "../../certs/yassir2bcn";
+        char *firstTrustAnchor = "yassir2yassir";
+        char *secondTrustAnchor = "yassir2bcn";
         char *dateAscii = "991201000000Z";
         PKIX_ValidateParams *valParams = NULL;
         PKIX_ValidateResult *valResult = NULL;
@@ -446,6 +429,7 @@ int main(int argc, char *argv[])
         PKIX_CertChain *chain = NULL;
         PKIX_Error *validationError = NULL;
         char *dirName = NULL;
+        char *dataCentralDir = NULL;
         char *anchorName = NULL;
 
         PKIX_TEST_STD_VARS();
@@ -477,16 +461,17 @@ int main(int argc, char *argv[])
          * Example: test_policychecker test1EE ENE
          *      {2.5.29.32.0,2.5.29.32.3.6} Anchor CA EndEntity
          */
-        if (argc < 4+j) {
-                printUsage(argv[0]);
-                goto cleanup;
-        }
 
         dirName = argv[3+j];
+        dataCentralDir = argv[4+j];
 
-        if (argc <= 4 || ((5 == argc) && (j))) {
+        if (argc <= 5 || ((6 == argc) && (j))) {
 
-                testPass(firstTrustAnchor, secondTrustAnchor, dateAscii);
+                testPass
+                    (dataCentralDir,
+                    firstTrustAnchor,
+                    secondTrustAnchor,
+                    dateAscii);
 
                 testNistTest1(dirName);
 
@@ -495,7 +480,7 @@ int main(int argc, char *argv[])
                 goto cleanup;
         }
 
-        if (argc < (6 + j)) {
+        if (argc < (7 + j)) {
                 printUsage(argv[0]);
                 pkixTestErrorMsg = "Invalid command line arguments.";
                 goto cleanup;
@@ -511,7 +496,7 @@ int main(int argc, char *argv[])
                 goto cleanup;
         }
 
-        userInitialPolicySet = policySetParse(argv[4+j]);
+        userInitialPolicySet = policySetParse(argv[5+j]);
         if (!userInitialPolicySet) {
                 printUsage(argv[0]);
                 pkixTestErrorMsg = "Invalid command line arguments.";
@@ -519,18 +504,18 @@ int main(int argc, char *argv[])
         }
 
         for (initArgs = 0; initArgs < 3; initArgs++) {
-                if (PORT_Strcmp(argv[5+j+initArgs], "A") == 0) {
+                if (PORT_Strcmp(argv[6+j+initArgs], "A") == 0) {
                         initialAnyPolicyInhibit = PKIX_TRUE;
-                } else if (PORT_Strcmp(argv[5+j+initArgs], "E") == 0) {
+                } else if (PORT_Strcmp(argv[6+j+initArgs], "E") == 0) {
                         initialExplicitPolicy = PKIX_TRUE;
-                } else if (PORT_Strcmp(argv[5+j+initArgs], "P") == 0) {
+                } else if (PORT_Strcmp(argv[6+j+initArgs], "P") == 0) {
                         initialPolicyMappingInhibit = PKIX_TRUE;
                 } else {
                         break;
                 }
         }
 
-        firstCert = initArgs + j + 5;
+        firstCert = initArgs + j + 6;
         chainLength = argc - (firstCert + 1);
         if (chainLength > PKIX_TEST_MAX_CERTS) {
                 printUsageMax(chainLength);
@@ -548,23 +533,14 @@ int main(int argc, char *argv[])
                 certNames[i] = argv[i + (firstCert + 1)];
                 certs[i] = NULL;
         }
-        chain = createDirCertChainPlus
+        chain = createCertChainPlus
                 (dirName, certNames, certs, chainLength, plContext);
 
         subTest(argv[1+j]);
 
-        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Malloc
-                (PL_strlen(dirName) + PL_strlen(argv[firstCert]) + 2,
-                (void **) &anchorName,
-                plContext));
-
-        PL_strcpy(anchorName, dirName);
-        PL_strcat(anchorName, "/");
-        PL_strcat(anchorName, argv[firstCert]);
-        printf("anchorName = %s\n", anchorName);
-
         valParams = createValidateParams
-                (anchorName,
+                (dirName,
+                argv[firstCert],
                 NULL,
                 NULL,
                 userInitialPolicySet,

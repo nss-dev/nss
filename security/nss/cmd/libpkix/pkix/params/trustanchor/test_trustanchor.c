@@ -47,19 +47,23 @@
 void *plContext = NULL;
 
 void createTrustAnchors(
+        char *dirName,
         char *goodInput,
         PKIX_TrustAnchor **goodObject,
         PKIX_TrustAnchor **equalObject,
         PKIX_TrustAnchor **diffObject)
 {
         subTest("PKIX_TrustAnchor_CreateWithNameKeyPair <goodObject>");
-        *goodObject = createTrustAnchor(goodInput, PKIX_FALSE, plContext);
+        *goodObject = createTrustAnchor
+                        (dirName, goodInput, PKIX_FALSE, plContext);
 
         subTest("PKIX_TrustAnchor_CreateWithNameKeyPair <equalObject>");
-        *equalObject = createTrustAnchor(goodInput, PKIX_FALSE, plContext);
+        *equalObject = createTrustAnchor
+                        (dirName, goodInput, PKIX_FALSE, plContext);
 
         subTest("PKIX_TrustAnchor_CreateWithCert <diffObject>");
-        *diffObject = createTrustAnchor(goodInput, PKIX_TRUE, plContext);
+        *diffObject = createTrustAnchor
+                        (dirName, goodInput, PKIX_TRUE, plContext);
 }
 
 void testGetCAName(
@@ -128,8 +132,7 @@ void testGetNameConstraints(char *dirName)
         PKIX_PL_Cert *diffCert;
         PKIX_PL_CertNameConstraints *diffNC = NULL;
         PKIX_PL_CertNameConstraints *equalNC = NULL;
-        char pathName[512];
-        char *goodInput = "/nameConstraintsDN5CACert.crt";
+        char *goodInput = "nameConstraintsDN5CACert.crt";
         char *expectedAscii =
                 "[\n"
                 "\tTrusted CA Name:         CN=nameConstraints DN5 CA,"
@@ -148,11 +151,8 @@ void testGetNameConstraints(char *dirName)
 
         subTest("Create TrustAnchors and compare");
 
-        PL_strcpy(pathName, dirName);
-        PL_strcat(pathName, goodInput);
-
         createTrustAnchors
-                (pathName, &goodObject, &equalObject, &diffObject);
+                (dirName, goodInput, &goodObject, &equalObject, &diffObject);
 
         PKIX_TEST_EQ_HASH_TOSTR_DUP
                 (goodObject,
@@ -212,7 +212,7 @@ cleanup:
 }
 
 void printUsage(void) {
-        (void) printf("\nUSAGE:\ttest_trustanchor <NIST_FILES_DIR> \n\n");
+        (void) printf("\nUSAGE:\ttest_trustanchor <NIST_FILES_DIR> <central-data-dir>\n\n");
 }
 
 int main(int argc, char *argv[]) {
@@ -225,7 +225,7 @@ int main(int argc, char *argv[]) {
         PKIX_Boolean useArenas = PKIX_FALSE;
         PKIX_UInt32 j = 0;
 
-        char *goodInput = "../../certs/yassir2yassir";
+        char *goodInput = "yassir2yassir";
         char *expectedAscii =
                 "[\n"
                 "\tTrusted CA Name:         "
@@ -234,13 +234,9 @@ int main(int argc, char *argv[]) {
                 "\tInitial Name Constraints:(null)\n"
                 "]\n";
         char *dirName = NULL;
+        char *dataCentralDir = NULL;
 
         PKIX_TEST_STD_VARS();
-
-        if (argc < 2) {
-                printUsage();
-                return (0);
-        }
 
         startTests("TrustAnchor");
 
@@ -255,10 +251,20 @@ int main(int argc, char *argv[]) {
                                     &actualMinorVersion,
                                     &plContext));
 
+        if (argc < 3) {
+                printUsage();
+                return (0);
+        }
+
         dirName = argv[j+1];
+        dataCentralDir = argv[j+2];
 
         createTrustAnchors
-                (goodInput, &goodObject, &equalObject, &diffObject);
+                (dataCentralDir,
+                goodInput,
+                &goodObject,
+                &equalObject,
+                &diffObject);
 
         PKIX_TEST_EQ_HASH_TOSTR_DUP
                 (goodObject,

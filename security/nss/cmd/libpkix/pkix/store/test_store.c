@@ -64,14 +64,13 @@ PKIX_Error *testCertCallback(
         return (0);
 }
 
-void testCertStore(void)
+void testCertStore(char *crlDir)
 {
         PKIX_PL_String *dirString = NULL;
         PKIX_CertStore *certStore = NULL;
         PKIX_PL_Object *getCertStoreContext = NULL;
         PKIX_CertStore_CertCallback certCallback = NULL;
         PKIX_CertStore_CRLCallback crlCallback = NULL;
-        char *crlDir = "../top/rev_data/crlchecker";
 
         PKIX_TEST_STD_VARS();
 
@@ -128,10 +127,16 @@ cleanup:
         PKIX_TEST_RETURN();
 }
 
+
+void printUsage(char *pName){
+        printf("\nUSAGE: %s <data-dir>\n\n", pName);
+}
+
 /* Functional tests for CertStore public functions */
 
 int main(int argc, char *argv[]) {
 
+        char *crlDir = NULL;
         PKIX_UInt32 actualMinorVersion;
         PKIX_Boolean useArenas = PKIX_FALSE;
         PKIX_UInt32 j = 0;
@@ -151,7 +156,14 @@ int main(int argc, char *argv[]) {
                                     &actualMinorVersion,
                                     &plContext));
 
-        testCertStore();
+        if (argc < 2){
+                printUsage(argv[0]);
+                return (0);
+        }
+
+        crlDir = argv[j+1];
+
+        testCertStore(crlDir);
 
 
 cleanup:

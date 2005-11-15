@@ -222,23 +222,16 @@ int main(int argc, char *argv[]){
 
         dirName = argv[3+j];
 
-        chain = createDirCertChainPlus
+        chain = createCertChainPlus
                 (dirName, certNames, certs, chainLength, plContext);
 
         subTest("Default-CRL-Checker - Create Params");
 
-        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Malloc
-                (PL_strlen(dirName) + PL_strlen(argv[6+j]) + 2,
-                (void **) &anchorName,
-                plContext));
-
-        PL_strcpy(anchorName, dirName);
-        PL_strcat(anchorName, "/");
-        PL_strcat(anchorName, argv[6+j]);
-        printf("anchorName = %s\n", anchorName);
+        anchorName = argv[6+j];
 
         valParams = createValidateParams
-                (anchorName,
+                (dirName,
+                anchorName,
                 NULL,
                 NULL,
                 NULL,
@@ -265,8 +258,6 @@ int main(int argc, char *argv[]){
 
 
 cleanup:
-
-        PKIX_PL_Free(anchorName, plContext);
 
         PKIX_TEST_DECREF_AC(valParams);
         PKIX_TEST_DECREF_AC(valResult);
