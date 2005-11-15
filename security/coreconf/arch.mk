@@ -38,13 +38,13 @@
 #######################################################################
 # Master "Core Components" macros for getting the OS architecture     #
 # defines these symbols:
+# 64BIT_TAG
 # OS_ARCH	(from uname -r)
 # OS_TEST	(from uname -m)
 # OS_RELEASE	(from uname -v and/or -r)
 # OS_TARGET	User defined, or set to OS_ARCH
 # CPU_ARCH  	(from unmame -m or -p, ONLY on WINNT)
 # OS_CONFIG	OS_TARGET + OS_RELEASE
-# 64BIT_TAG
 # OBJDIR_TAG
 # OBJDIR_NAME
 #######################################################################
@@ -52,6 +52,12 @@
 #
 # Macros for getting the OS architecture
 #
+
+ifeq ($(USE_64), 1)
+	64BIT_TAG=_64
+else
+	64BIT_TAG=
+endif
 
 OS_ARCH := $(subst /,_,$(shell uname -s))
 
@@ -284,27 +290,6 @@ endif
 #
 
 OS_CONFIG = $(OS_TARGET)$(OS_RELEASE)
-
-#
-# 64BIT_TAG distinguishes between 32-bit and 64-bit builds.
-#
-
-ifeq ($(USE_64), 1)
-    64BIT_TAG=_64
-else
-    64BIT_TAG=
-endif
-
-#
-# Changes for HP-UX ia64
-#
-ifeq ($(OS_ARCH), HP-UX)
-    ifeq ($(OS_TEST), ia64)
-	ifneq ($(USE_64), 1)
-	    64BIT_TAG=_32
-	endif
-    endif
-endif
 
 #
 # OBJDIR_TAG depends on the predefined variable BUILD_OPT,
