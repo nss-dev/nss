@@ -66,6 +66,24 @@ ckcapi_mdSession_FindObjectsInit
   return nss_ckcapi_FindObjectsInit(fwSession, pTemplate, ulAttributeCount, pError);
 }
 
+static NSSCKMDObject *
+ckcapi_mdSession_CreateObject
+(
+  NSSCKMDSession *mdSession,
+  NSSCKFWSession *fwSession,
+  NSSCKMDToken *mdToken,
+  NSSCKFWToken *fwToken,
+  NSSCKMDInstance *mdInstance,
+  NSSCKFWInstance *fwInstance,
+  NSSArena        *arena,
+  CK_ATTRIBUTE_PTR pTemplate,
+  CK_ULONG ulAttributeCount,
+  CK_RV *pError
+)
+{
+  return nss_ckcapi_CreateObject(fwSession, pTemplate, ulAttributeCount, pError);
+}
+
 NSS_IMPLEMENT NSSCKMDSession *
 nss_ckcapi_CreateSession
 (
@@ -102,7 +120,7 @@ nss_ckcapi_CreateSession
   /* rv->GetOperationStateLen */
   /* rv->GetOperationState */
   /* rv->SetOperationState */
-  /* rv->CreateObject */
+  rv->CreateObject = ckcapi_mdSession_CreateObject;
   /* rv->CopyObject */
   rv->FindObjectsInit = ckcapi_mdSession_FindObjectsInit;
   /* rv->SeedRandom */
