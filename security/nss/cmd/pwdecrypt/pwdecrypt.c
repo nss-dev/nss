@@ -317,8 +317,8 @@ main (int argc, char **argv)
 		free(dataString);
 		continue;
 	   }
-	   result.data = malloc(inText->len+1);
-	   result.len = inText->len+1;
+	   result.data = NULL;
+	   result.len  = 0;
 	   rv = PK11SDR_Decrypt(inText, &result, NULL);
 	   SECITEM_FreeItem(inText, PR_TRUE);
 	   if (rv != SECSuccess) {
@@ -330,12 +330,12 @@ main (int argc, char **argv)
 		}
 		fputs(dataString,outFile);
 		free(dataString);
-		free(result.data);
+		SECITEM_ZfreeItem(&result, PR_FALSE);
 		continue;
 	   }
-	   result.data[result.len] = 0;
-	   fputs(result.data,outFile);
-	   free(result.data);
+	   /* result buffer has no extra space for a NULL */
+	   fprintf(outFile, "%.*s", result.len, result.data);
+	   SECITEM_ZfreeItem(&result, PR_FALSE);
          } else {
 	   putc(c,outFile);
          }
@@ -356,18 +356,3 @@ prdone:
     PR_Cleanup ();
     return retval;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
