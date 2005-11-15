@@ -45,9 +45,9 @@ DEFAULT_COMPILER = cc
 
 ifeq ($(OS_TEST),ia64)
 	CPU_ARCH = ia64
-	CPU_TAG  = _$(CPU_ARCH)
-	ifneq ($(USE_64), 1)
-		64BIT_TAG=_32
+	CPU_TAG = _$(CPU_ARCH)
+	ifneq ($(USE_64),1)
+		64BIT_TAG = _32
 	endif
 	DLL_SUFFIX = so
 else
