@@ -117,6 +117,19 @@ ckcapi_mdInstance_GetSlots
   return CKR_OK;
 }
 
+static CK_BBOOL
+ckcapi_mdInstance_ModuleHandlesSessionObjects
+(
+  NSSCKMDInstance *mdInstance,
+  NSSCKFWInstance *fwInstance
+)
+{
+  /* we don't want to allow any session object creation, at least
+   * until we can investigate whether or not we can use those objects
+   */
+  return CK_TRUE;
+}
+
 NSS_IMPLEMENT_DATA const NSSCKMDInstance
 nss_ckcapi_mdInstance = {
   (void *)NULL, /* etc */
@@ -127,7 +140,8 @@ nss_ckcapi_mdInstance = {
   ckcapi_mdInstance_GetManufacturerID,
   ckcapi_mdInstance_GetLibraryDescription,
   ckcapi_mdInstance_GetLibraryVersion,
-  NULL, /* ModuleHandlesSessionObjects -- defaults to false */
+  ckcapi_mdInstance_ModuleHandlesSessionObjects, 
+  /*NULL, /* HandleSessionObjects */
   ckcapi_mdInstance_GetSlots,
   NULL, /* WaitForSlotEvent */
   (void *)NULL /* null terminator */

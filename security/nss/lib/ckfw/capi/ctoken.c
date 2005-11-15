@@ -110,6 +110,19 @@ ckcapi_mdToken_GetIsWriteProtected
   NSSCKFWInstance *fwInstance
 )
 {
+  return CK_FALSE;
+}
+
+/* fake out Mozilla so we don't try to initialize the token */
+static CK_BBOOL
+ckcapi_mdToken_GetUserPinInitialized
+(
+  NSSCKMDToken *mdToken,
+  NSSCKFWToken *fwToken,
+  NSSCKMDInstance *mdInstance,
+  NSSCKFWInstance *fwInstance
+)
+{
   return CK_TRUE;
 }
 
@@ -209,7 +222,7 @@ nss_ckcapi_mdToken = {
   NULL, /* GetHasRNG -- default is false */
   ckcapi_mdToken_GetIsWriteProtected,
   NULL, /* GetLoginRequired -- default is false */
-  NULL, /* GetUserPinInitialized -- default is false */
+  ckcapi_mdToken_GetUserPinInitialized,
   NULL, /* GetRestoreKeyNotNeeded -- irrelevant */
   NULL, /* GetHasClockOnToken -- default is false */
   NULL, /* GetHasProtectedAuthenticationPath -- default is false */

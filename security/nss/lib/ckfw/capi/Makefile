@@ -62,6 +62,7 @@ EXTRA_SHARED_LIBS += \
         $(NSPR_LIB_DIR)/$(NSPR31_LIB_PREFIX)nspr4.lib \
         crypt32.lib \
 	advapi32.lib \
+	rpcrt4.lib \
         $(NULL)
 endif # NS_USE_GCC
 else

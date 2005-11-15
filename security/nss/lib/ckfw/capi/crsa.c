@@ -738,12 +738,9 @@ nss_ckcapi_mdMechanismRSA = {
   NULL, /* VerifyInit - default errs */
   ckcapi_mdMechanismRSA_SignInit,  /* SignRecoverInit */
   NULL, /* VerifyRecoverInit - default errs */
-  NULL, /* DigestEncryptUpdate - default errs */
-  NULL, /* DecryptDigestUpdate - default errs */
-  NULL, /* SignEncryptUpdate - default errs */
-  NULL, /* DecryptVerifyUpdate - default errs */
   NULL, /* GenerateKey - default errs */
   NULL, /* GenerateKeyPair - default errs */
+  NULL, /* GetWrapKeyLength - default errs */
   NULL, /* WrapKey - default errs */
   NULL, /* UnwrapKey - default errs */
   NULL, /* DeriveKey - default errs */
