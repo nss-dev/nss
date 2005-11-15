@@ -81,7 +81,7 @@ EXTRA_LIBS += \
 	$(DIST)/lib/$(LIB_PREFIX)store.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)pki.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)system.$(LIB_SUFFIX) \
-	$(DIST)/lib/$(LIB_PREFIX)module.$(LIB_SUFFIX) \        
+	$(DIST)/lib/$(LIB_PREFIX)module.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)dbm.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(NSPR31_LIB_PREFIX)plc4.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(NSPR31_LIB_PREFIX)plds4.$(LIB_SUFFIX) \
