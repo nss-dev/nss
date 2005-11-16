@@ -47,7 +47,6 @@
 #define PKIX_TESTUSERCHECKER_TYPE (PKIX_NUMTYPES+30)
 
 void *plContext = NULL;
-static PKIX_UInt32 numUserCheckerCalled = 0;
 #define LDAP_PORT 389
 PKIX_Boolean usebind = PKIX_FALSE;
 PKIX_Boolean useLDAP = PKIX_FALSE;
@@ -120,7 +119,6 @@ cleanup:
 static void Test_BuildResult(
         PKIX_BuildParams *buildParams,
         PKIX_Boolean testValid,
-        PKIX_UInt32 chainLength,
         PKIX_List *expectedCerts,
         void *plContext)
 {
@@ -245,13 +243,6 @@ static void Test_BuildResult(
                         (void) printf("Actual value:\t%s\n", actualCertsAscii);
                         (void) printf("Expected value:\t%s\n",
                                         expectedCertsAscii);
-
-                        if (chainLength - 1 != numUserCheckerCalled) {
-		                pkixTestErrorMsg =
-                                    "PKIX user defined checker not called";
-                        }
-
-                        goto cleanup;
                 }
 
         }
@@ -291,7 +282,6 @@ int main(int argc, char *argv[])
         PKIX_UInt32 actualMinorVersion = 0;
         PKIX_UInt32 j = 0;
         PKIX_UInt32 k = 0;
-        PKIX_UInt32 chainLength = 0;
         PKIX_CertStore *ldapCertStore = NULL;
 	PRIntervalTime timeout = 0; /* 0 for non-blocking */
         PKIX_CertStore *certStore = NULL;
@@ -521,7 +511,6 @@ int main(int argc, char *argv[])
         Test_BuildResult
                 (buildParams,
                 testValid,
-                chainLength,
                 expectedCerts,
                 plContext);
 
@@ -532,7 +521,6 @@ int main(int argc, char *argv[])
         Test_BuildResult
                 (buildParams,
                 PKIX_FALSE,
-                chainLength,
                 expectedCerts,
                 plContext);
 
@@ -545,7 +533,6 @@ int main(int argc, char *argv[])
         Test_BuildResult
                 (buildParams,
                 PKIX_FALSE,
-                chainLength,
                 expectedCerts,
                 plContext);
 
@@ -560,7 +547,6 @@ int main(int argc, char *argv[])
         Test_BuildResult
                 (buildParams,
                 testValid,
-                chainLength,
                 expectedCerts,
                 plContext);
 
