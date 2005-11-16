@@ -205,6 +205,7 @@ pkix_ForwardBuilderState_Create(
         state->certStoreIndex = 0;
         state->numCerts = 0;
         state->certIndex = 0;
+        state->anchorIndex = 0;
         state->dsaParamsNeeded = dsaParamsNeeded;
         state->revCheckDelayed = revCheckDelayed;
         state->canBeCached = canBeCached;
