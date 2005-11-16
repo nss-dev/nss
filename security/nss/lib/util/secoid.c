@@ -1815,7 +1815,7 @@ SECOID_Shutdown(void)
     /* Have to handle the case where the lock was created, but
     ** the pool wasn't. 
     ** I'm not going to attempt to create the lock, just to protect
-    ** the destruction of data the probably isn't inisialized anyway.
+    ** the destruction of data that probably isn't initialized anyway.
     */
     if (dynOidLock) {
 	NSSRWLock_LockWrite(dynOidLock);
