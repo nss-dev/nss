@@ -44,6 +44,7 @@
 
 static PKIX_PL_RWLock *rwlock = NULL, *rwlock2 = NULL, *rwlock3 = NULL;
 static PRThread *thread = NULL, *thread2 = NULL, *thread3 = NULL;
+void *plContext = NULL;
 
 static void reader(void) {
         PKIX_Error *errorResult;
@@ -121,33 +122,36 @@ static void reader2(void) {
 
 int main() {
         PKIX_PL_String* outputString = NULL;
+        PKIX_UInt32 j = 0;
+        PKIX_Boolean useArenas = PKIX_FALSE;
         PKIX_Boolean bool;
         PKIX_UInt32 actualMinorVersion;
 
         PKIX_TEST_STD_VARS();
         startTests("RWLocks");
 
+        useArenas = PKIX_TEST_ARENAS_ARG(argv[1]);
+
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_Initialize
                                     (PKIX_TRUE, /* nssInitNeeded */
+                                    useArenas,
                                     PKIX_MAJOR_VERSION,
                                     PKIX_MINOR_VERSION,
                                     PKIX_MINOR_VERSION,
                                     &actualMinorVersion,
-                                    NULL));
+                                    &plContext));
 
         (void) printf("Attempting to create new rwlock...\n");
 
-        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_RWLock_Create(&rwlock, NULL));
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_RWLock_Create(&rwlock, plContext));
 
-        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_RWLock_Create(&rwlock2, NULL));
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_RWLock_Create(&rwlock2, plContext));
 
-        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_RWLock_Create(&rwlock3, NULL));
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_RWLock_Create(&rwlock3, plContext));
 
         /* Test toString functionality */
-        PKIX_TEST_EXPECT_NO_ERROR
-                (PKIX_PL_Object_ToString((PKIX_PL_Object*)rwlock,
-                                        &outputString,
-                                        NULL));
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Object_ToString
+                ((PKIX_PL_Object*)rwlock, &outputString, plContext));
 
         (void) printf("Testing RWLock toString: %s\n",
                 PKIX_String2ASCII(outputString));
@@ -155,8 +159,11 @@ int main() {
         PKIX_TEST_DECREF_BC(outputString);
 
         /* Call Equals on two different objects */
-        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Object_Equals((PKIX_PL_Object*)rwlock,
-                                    (PKIX_PL_Object*)rwlock2, &bool, NULL));
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Object_Equals
+                ((PKIX_PL_Object*)rwlock,
+                (PKIX_PL_Object*)rwlock2,
+                &bool,
+                plContext));
 
         (void) printf("Testing RWLock Equals: %d (should be 0)\n", bool);
 
@@ -165,7 +172,7 @@ int main() {
 
         /* Call Equals on two equal objects */
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Object_Equals((PKIX_PL_Object*)rwlock,
-                                    (PKIX_PL_Object*)rwlock, &bool, NULL));
+                            (PKIX_PL_Object*)rwlock, &bool, plContext));
 
         (void) printf("Testing RWLock Equals: %d (should be 1)\n", bool);
         if (bool != 1)
@@ -173,7 +180,8 @@ int main() {
 
         subTest("Multi-Thread Read/Write Lock Testing");
 
-        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_AcquireReaderLock(rwlock, NULL));
+        PKIX_TEST_EXPECT_NO_ERROR
+                (PKIX_PL_AcquireReaderLock(rwlock, plContext));
         (void) printf("\t[Main Thread Read Lock #1.]\n");
 
         thread = PR_CreateThread(PR_USER_THREAD,
@@ -201,7 +209,8 @@ int main() {
                             0);
 
         PR_JoinThread(thread);
-        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_ReleaseReaderLock(rwlock, NULL));
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_ReleaseReaderLock
+                (rwlock, plContext));
         (void) printf("\t[Main Thread Read Unlock #1.]\n");
 
         PR_JoinThread(thread2);
@@ -216,7 +225,7 @@ cleanup:
         PKIX_TEST_DECREF_AC(rwlock2);
         PKIX_TEST_DECREF_AC(rwlock3);
 
-        pkixTestTempResult = PKIX_Shutdown(NULL);
+        pkixTestTempResult = PKIX_Shutdown(plContext);
         if (pkixTestTempResult) pkixTestErrorResult = pkixTestTempResult;
 
         PKIX_TEST_RETURN();
