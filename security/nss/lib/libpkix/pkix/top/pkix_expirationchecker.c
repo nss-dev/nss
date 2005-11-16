@@ -129,6 +129,7 @@ pkix_ExpirationChecker_Initialize(
 
         PKIX_CHECK(PKIX_CertChainChecker_Create
                     (pkix_ExpirationChecker_Check,
+                    NULL, /* getNBIOCallback */
                     PKIX_TRUE,
                     PKIX_FALSE,
                     NULL,

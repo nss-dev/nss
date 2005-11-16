@@ -413,6 +413,7 @@ PKIX_PL_EkuChecker_Initialize(
 
         PKIX_CHECK(PKIX_CertChainChecker_Create
                     (pkix_pl_EkuChecker_Check,
+                    NULL, /* getNBIOCallback */
                     PKIX_TRUE,
                     PKIX_FALSE,
                     critExtOIDsList,

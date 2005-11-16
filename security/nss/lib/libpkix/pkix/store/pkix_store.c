@@ -68,6 +68,7 @@ pkix_CertStore_Destroy(
         certStore->certCallback = NULL;
         certStore->crlCallback = NULL;
         certStore->trustCallback = NULL;
+        certStore->nbioCallback = NULL;
 
         PKIX_DECREF(certStore->certStoreContext);
 
@@ -108,6 +109,7 @@ pkix_CertStore_Hashcode(
         *pHashcode = (PKIX_UInt32) certStore->certCallback +
                      (PKIX_UInt32) certStore->crlCallback +
                      (PKIX_UInt32) certStore->trustCallback +
+                     (PKIX_UInt32) certStore->nbioCallback +
                      tempHash << 7;
 
 cleanup:
@@ -142,7 +144,8 @@ pkix_CertStore_Equals(
 
         cmpResult = (firstCS->certCallback == secondCS->certCallback) &&
                     (firstCS->crlCallback == secondCS->crlCallback) &&
-                    (firstCS->trustCallback == secondCS->trustCallback);
+                    (firstCS->trustCallback == secondCS->trustCallback) &&
+                    (firstCS->nbioCallback == secondCS->nbioCallback);
 
         if (cmpResult &&
             (firstCS->certStoreContext != secondCS->certStoreContext)) {
@@ -204,10 +207,10 @@ PKIX_Error *
 PKIX_CertStore_Create(
         PKIX_CertStore_CertCallback certCallback,
         PKIX_CertStore_CRLCallback crlCallback,
+        PKIX_CertStore_CheckTrustCallback trustCallback,
+        PKIX_CertStore_NBIOCallback nbioCallback,
         PKIX_PL_Object *certStoreContext,
         PKIX_Boolean cacheFlag,
-        PKIX_CertStore_CheckTrustCallback trustCallback,
-        PKIX_Boolean NBIOFlag,
         PKIX_Boolean localFlag,
         PKIX_CertStore **pStore,
         void *plContext)
@@ -226,9 +229,9 @@ PKIX_CertStore_Create(
 
         certStore->certCallback = certCallback;
         certStore->crlCallback = crlCallback;
-        certStore->cacheFlag = cacheFlag;
         certStore->trustCallback = trustCallback;
-        certStore->NBIOFlag = NBIOFlag;
+        certStore->nbioCallback = nbioCallback;
+        certStore->cacheFlag = cacheFlag;
         certStore->localFlag = localFlag;
 
         PKIX_INCREF(certStoreContext);
@@ -276,6 +279,40 @@ PKIX_CertStore_GetCRLCallback(
 }
 
 /*
+ * FUNCTION: PKIX_CertStore_GetTrustCallback (see comments in pkix_certstore.h)
+ */
+PKIX_Error *
+PKIX_CertStore_GetTrustCallback(
+        PKIX_CertStore *store,
+        PKIX_CertStore_CheckTrustCallback *pCallback,
+        void *plContext)
+{
+        PKIX_ENTER(CERTSTORE, "PKIX_CertStore_GetTrustCallback");
+        PKIX_NULLCHECK_TWO(store, pCallback);
+
+        *pCallback = store->trustCallback;
+
+        PKIX_RETURN(CERTSTORE);
+}
+
+/*
+ * FUNCTION: PKIX_CertStore_GetNBIOCallback (see comments in pkix_certstore.h)
+ */
+PKIX_Error *
+PKIX_CertStore_GetNBIOCallback(
+        PKIX_CertStore *store,
+        PKIX_CertStore_NBIOCallback *pNBIOCallback,
+        void *plContext)
+{
+        PKIX_ENTER(CERTSTORE, "PKIX_CertStore_GetNBIOCallback");
+        PKIX_NULLCHECK_TWO(store, pNBIOCallback);
+
+        *pNBIOCallback = store->nbioCallback;
+
+        PKIX_RETURN(CERTSTORE);
+}
+
+/*
  * FUNCTION: PKIX_CertStore_GetCertStoreContext
  * (see comments in pkix_certstore.h)
  */
@@ -308,41 +345,6 @@ PKIX_CertStore_GetCertStoreCacheFlag(
         PKIX_NULLCHECK_TWO(store, pCacheFlag);
 
         *pCacheFlag = store->cacheFlag;
-
-        PKIX_RETURN(CERTSTORE);
-}
-
-/*
- * FUNCTION: PKIX_CertStore_GetTrustCallback (see comments in pkix_certstore.h)
- */
-PKIX_Error *
-PKIX_CertStore_GetTrustCallback(
-        PKIX_CertStore *store,
-        PKIX_CertStore_CheckTrustCallback *pCallback,
-        void *plContext)
-{
-        PKIX_ENTER(CERTSTORE, "PKIX_CertStore_GetTrustCallback");
-        PKIX_NULLCHECK_TWO(store, pCallback);
-
-        *pCallback = store->trustCallback;
-
-        PKIX_RETURN(CERTSTORE);
-}
-
-/*
- * FUNCTION: PKIX_CertStore_GetNBIOFlag
- * (see comments in pkix_certstore.h)
- */
-PKIX_Error *
-PKIX_CertStore_GetNBIOFlag(
-        PKIX_CertStore *store,
-        PKIX_Boolean *pNBIOFlag,
-        void *plContext)
-{
-        PKIX_ENTER(CERTSTORE, "PKIX_CertStore_GetNBIOFlag");
-        PKIX_NULLCHECK_TWO(store, pNBIOFlag);
-
-        *pNBIOFlag = store->NBIOFlag;
 
         PKIX_RETURN(CERTSTORE);
 }

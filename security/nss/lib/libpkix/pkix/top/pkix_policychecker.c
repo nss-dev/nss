@@ -2781,6 +2781,7 @@ pkix_PolicyChecker_Initialize(
 
         PKIX_CHECK(PKIX_CertChainChecker_Create
                 (pkix_PolicyChecker_Check,
+                NULL, /* getNBIOCallback */
                 PKIX_FALSE,     /* forwardCheckingSupported */
                 PKIX_FALSE,
                 policyExtensions,

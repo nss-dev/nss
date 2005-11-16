@@ -677,10 +677,10 @@ PKIX_PL_Pk11CertStore_Create(
         PKIX_CHECK(PKIX_CertStore_Create
                 (pkix_pl_Pk11CertStore_GetCert,
                 pkix_pl_Pk11CertStore_GetCRL,
+                pkix_pl_Pk11CertStore_CheckTrust,
+                NULL,      /* does not support non-blocking I/O */
                 NULL,
                 PKIX_TRUE, /* cache flag */
-                pkix_pl_Pk11CertStore_CheckTrust,
-                PKIX_FALSE, /* does not support non-blocking I/O */
                 PKIX_TRUE, /* local - no network I/O */
                 &certStore,
                 plContext),

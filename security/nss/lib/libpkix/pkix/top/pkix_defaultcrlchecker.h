@@ -97,6 +97,12 @@ pkix_DefaultCRLChecker_Check_SetSelector(
         void *plContext);
 
 PKIX_Error *
+pkix_DefaultCRLChecker_GetNBIOContext(
+        pkix_DefaultCRLCheckerState *state,
+        void **pNBIOContext,
+        void *plContext);
+
+PKIX_Error *
 pkix_DefaultCRLCheckerState_RegisterSelf(void *plContext);
 
 #ifdef __cplusplus

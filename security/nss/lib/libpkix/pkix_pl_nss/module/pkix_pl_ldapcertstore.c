@@ -2099,6 +2099,61 @@ cleanup:
 /* --Private-Ldap-CertStore-Database-Functions----------------------- */
 
 /*
+ * FUNCTION: pkix_pl_LdapCertStore_GetNBIOContext
+ * DESCRIPTION:
+ *
+ *  This function retrieves the PRPollDesc from the LdapCertStore
+ *  pointed to by "store" and stores the address at "pNBIOContext".
+ *
+ * PARAMETERS:
+ *  "store"
+ *      The LdapCertStore whose PRPollDesc is desired. Must be non-NULL.
+ *  "pNBIOContext"
+ *      Address where PRPollDesc will be stored. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+pkix_pl_LdapCertStore_GetNBIOContext(
+        PKIX_CertStore *store,
+        void **pNBIOContext,
+        void *plContext)
+{
+        PKIX_PL_Object *object = NULL;
+        PKIX_PL_LdapCertStoreContext *lcs = NULL;
+        PRPollDesc *pollDesc = NULL;
+
+        PKIX_ENTER(CERTSTORE, "pkix_pl_LdapCertStore_GetNBIOContext");
+        PKIX_NULLCHECK_TWO(store, pNBIOContext);
+
+	PKIX_CHECK(PKIX_CertStore_GetCertStoreContext
+                (store, &object, plContext),
+                "PKIX_CertStore_GetCertStoreContext failed");
+
+        PKIX_CHECK(pkix_CheckType
+                    (object, PKIX_LDAPCERTSTORECONTEXT_TYPE, plContext),
+                    "Object is not an LdapCertStoreContext");
+
+        lcs = (PKIX_PL_LdapCertStoreContext *)object;
+
+	PKIX_CHECK(pkix_pl_LdapCertStoreContext_GetPollDesc
+                (lcs, &pollDesc, plContext),
+                "pkix_pl_LdapCertStore_GetPollDesc failed");
+
+        *pNBIOContext = (void *)pollDesc;
+
+cleanup:
+        PKIX_DECREF(lcs);
+
+        PKIX_RETURN(CERTSTORE);
+}
+
+/*
  * FUNCTION: pkix_pl_LdapCertStore_DecodeCert
  * DESCRIPTION:
  *
@@ -3609,10 +3664,10 @@ PKIX_PL_LdapCertStore_Create(
         PKIX_CHECK(PKIX_CertStore_Create
                 (pkix_pl_LdapCertStore_GetCert,
                 pkix_pl_LdapCertStore_GetCRL,
+                NULL,       /* don't support trust */
+                (timeout == 0) ? pkix_pl_LdapCertStore_GetNBIOContext : NULL,
                 (PKIX_PL_Object *)ldapCertStoreContext,
-                PKIX_TRUE, /* cache flag */
-                NULL, /* don't support trust */
-                (timeout == 0)?PKIX_TRUE:PKIX_FALSE, /* supports NBIO */
+                PKIX_TRUE,  /* cache flag */
                 PKIX_FALSE, /* not local */
                 &certStore,
                 plContext),

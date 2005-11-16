@@ -1304,10 +1304,10 @@ PKIX_PL_CollectionCertStore_Create(
         PKIX_CHECK(PKIX_CertStore_Create
                     (pkix_pl_CollectionCertStore_GetCert,
                     pkix_pl_CollectionCertStore_GetCRL,
+                    pkix_pl_CollectionCertStore_CheckTrust,
+                    NULL,      /* don't support non-blocking I/O */
                     (PKIX_PL_Object *)colCertStoreContext,
                     PKIX_TRUE, /* cache flag */
-                    pkix_pl_CollectionCertStore_CheckTrust,
-                    PKIX_FALSE, /* don't support non-blocking I/O */
                     PKIX_TRUE, /* local - no network I/O */
                     &certStore,
                     plContext),

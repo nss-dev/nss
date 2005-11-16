@@ -99,9 +99,9 @@ extern "C" {
  * user's callback functions as needed during the validation or building
  * process.
  *
- * The order of CertStores stored (as a list) at ProcessingParams is decisive
- * to the priority certificates are retrieved. We recommend a trusted CertStore
- * should always be the first one on the CertStores list so its certificates
+ * The order of CertStores stored (as a list) at ProcessingParams determines
+ * the order in which certificates are retrieved. Trusted CertStores should
+ * precede non-trusted ones on the list of CertStores so their certificates
  * are evaluated ahead of other certificates selected based on the same
  * selector criteria.
  *
@@ -160,42 +160,6 @@ typedef PKIX_Error *
         void *plContext);
 
 /*
- * FUNCTION: PKIX_CertStore_CheckTrustCallback
- * DESCRIPTION:
- *
- *  This callback function rechecks "cert's" trust status from the CertStore
- *  pointed to by "store".
- *
- * PARAMETERS:
- *  "store"
- *      Address of CertStore from which Certs are to be checked.
- *      Must be non-NULL.
- *  "cert"
- *      Address of Cert whose trust status needs to be rechecked.
- *      Must be non-NULL.
- *  "pTrusted"
- *      Address of PKIX_Boolean where the trust status is returned.
- *      Must be non-NULL.
- *  "plContext"
- *      Platform-specific context pointer.
- * THREAD SAFETY:
- *  Thread Safe
- *
- *  Multiple threads must be able to safely call this function without
- *  worrying about conflicts, even if they're operating on the same object.
- * RETURNS:
- *  Returns NULL if the function succeeds.
- *  Returns a CertStore Error if the function fails in a non-fatal way.
- *  Returns a Fatal Error if the function fails in an unrecoverable way.
- */
-typedef PKIX_Error *
-(*PKIX_CertStore_CheckTrustCallback)(
-        PKIX_CertStore *store,
-        PKIX_PL_Cert *cert,
-        PKIX_Boolean *pTrusted,
-        void *plContext);
-
-/*
  * FUNCTION: PKIX_CertStore_CRLCallback
  * DESCRIPTION:
  *
@@ -238,6 +202,74 @@ typedef PKIX_Error *
         void *plContext);
 
 /*
+ * FUNCTION: PKIX_CertStore_CheckTrustCallback
+ * DESCRIPTION:
+ *
+ *  This callback function rechecks "cert's" trust status from the CertStore
+ *  pointed to by "store".
+ *
+ * PARAMETERS:
+ *  "store"
+ *      Address of CertStore from which Certs are to be checked.
+ *      Must be non-NULL.
+ *  "cert"
+ *      Address of Cert whose trust status needs to be rechecked.
+ *      Must be non-NULL.
+ *  "pTrusted"
+ *      Address of PKIX_Boolean where the trust status is returned.
+ *      Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe
+ *
+ *  Multiple threads must be able to safely call this function without
+ *  worrying about conflicts, even if they're operating on the same object.
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a CertStore Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+typedef PKIX_Error *
+(*PKIX_CertStore_CheckTrustCallback)(
+        PKIX_CertStore *store,
+        PKIX_PL_Cert *cert,
+        PKIX_Boolean *pTrusted,
+        void *plContext);
+
+/*
+ * FUNCTION: PKIX_CertStore_NBIOCallback
+ * DESCRIPTION:
+ *
+ *  This callback function obtains the NBIOContext for the CertStore
+ *  pointed to by "store". The NBIOContext provides platform-dependent
+ *  by which a caller can determine when non-blocking I/O has completed.
+ *
+ * PARAMETERS:
+ *  "store"
+ *      Address of CertStore from which an NBIO context is to be retrieved.
+ *      Must be non-NULL if CertStore supports non-blocking I/O.
+ *  "pNBIOContext"
+ *      Address at which the NBIOContext is stored. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe
+ *
+ *  Multiple threads must be able to safely call this function without
+ *  worrying about conflicts, even if they're operating on the same object.
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a CertStore Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+typedef PKIX_Error *
+(*PKIX_CertStore_NBIOCallback)(
+        PKIX_CertStore *store,
+        void **pNBIOContext,
+        void *plContext);
+
+/*
  * FUNCTION: PKIX_CertStore_Create
  * DESCRIPTION:
  *
@@ -258,15 +290,16 @@ typedef PKIX_Error *
  *      The CertCallback function to be used. Must be non-NULL.
  *  "crlCallback"
  *      The CRLCallback function to be used. Must be non-NULL.
+ *  "trustCallback"
+ *      Address of PKIX_CertStore_CheckTrustCallback which is called to
+ *      verify the trust status of Certs in this CertStore.
+ *  "nbioCallback"
+ *      The NBIOCallback function to be used. Must be non-NULL if the
+ *      CertStore supports nonblocking I/O, NULL otherwise.
  *  "certStoreContext"
  *      Address of Object representing the CertStore's context (if any).
  *  "cachedFlag"
  *      If TRUE indicates data retrieved from CertStore should be cached.
- *  "trustCallback"
- *      Address of PKIX_CertStore_CheckTrustCallback which is called to
- *      verify the trust status of Certs in this CertStore.
- *  "NBIOFlag"
- *      Boolean value indicating whether this CertStore uses non-blocking I/O.
  *  "localFlag"
  *      Boolean value indicating whether this CertStore is local.
  *  "pStore"
@@ -284,10 +317,10 @@ PKIX_Error *
 PKIX_CertStore_Create(
         PKIX_CertStore_CertCallback certCallback,
         PKIX_CertStore_CRLCallback crlCallback,
+        PKIX_CertStore_CheckTrustCallback trustCallback,
+        PKIX_CertStore_NBIOCallback nbioCallback,
         PKIX_PL_Object *certStoreContext,
         PKIX_Boolean cachedFlag,
-        PKIX_CertStore_CheckTrustCallback trustCallback,
-        PKIX_Boolean NBIOFlag,
         PKIX_Boolean localFlag,
         PKIX_CertStore **pStore,
         void *plContext);
@@ -347,6 +380,60 @@ PKIX_CertStore_GetCRLCallback(
         void *plContext);
 
 /*
+ * FUNCTION: PKIX_CertStore_GetTrustCallback
+ * DESCRIPTION:
+ *
+ *  Retrieves the function pointer to the CheckTrust callback function of the
+ *  CertStore pointed to by "store" and stores it at "pCallback".
+ *
+ * PARAMETERS:
+ *  "store"
+ *      The CertStore whose CheckTrust callback is desired. Must be non-NULL.
+ *  "pCallback"
+ *      Address where CheckTrust callback function pointer will be stored.
+ *      Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_CertStore_GetTrustCallback(
+        PKIX_CertStore *store,
+        PKIX_CertStore_CheckTrustCallback *pCallback,
+        void *plContext);
+
+/*
+ * FUNCTION: PKIX_CertStore_GetNBIOCallback
+ * DESCRIPTION:
+ *
+ *  Retrieves the function pointer to the NBIO callback function of the
+ *  CertStore pointed to by "store" and stores it at "pCallback".
+ *
+ * PARAMETERS:
+ *  "store"
+ *      The CertStore whose NBIO callback is desired. Must be non-NULL.
+ *  "pCallback"
+ *      Address where NBIO callback function pointer will be stored.
+ *      Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_CertStore_GetNBIOCallback(
+        PKIX_CertStore *store,
+        PKIX_CertStore_NBIOCallback *pCallback,
+        void *plContext);
+
+/*
  * FUNCTION: PKIX_CertStore_GetCertStoreContext
  * DESCRIPTION:
  *
@@ -397,59 +484,6 @@ PKIX_Error *
 PKIX_CertStore_GetCertStoreCacheFlag(
         PKIX_CertStore *store,
         PKIX_Boolean *pCacheFlag,
-        void *plContext);
-
-/*
- * FUNCTION: PKIX_CertStore_GetTrustCallback
- * DESCRIPTION:
- *
- *  Retrieves the function pointer to the CheckTrust callback function of the
- *  CertStore pointed to by "store" and stores it at "pCallback".
- *
- * PARAMETERS:
- *  "store"
- *      The CertStore whose CheckTrust callback is desired. Must be non-NULL.
- *  "pCallback"
- *      Address where CheckTrust callback function pointer will be stored.
- *      Must be non-NULL.
- *  "plContext"
- *      Platform-specific context pointer.
- * THREAD SAFETY:
- *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
- * RETURNS:
- *  Returns NULL if the function succeeds.
- *  Returns a Fatal Error if the function fails in an unrecoverable way.
- */
-PKIX_Error *
-PKIX_CertStore_GetTrustCallback(
-        PKIX_CertStore *store,
-        PKIX_CertStore_CheckTrustCallback *pCallback,
-        void *plContext);
-
-/*
- * FUNCTION: PKIX_CertStore_GetNBIOFlag
- * DESCRIPTION:
- *
- *  Retrieves the Boolean non-blocking I/O (NBIO) flag for the CertStore pointed
- *  to by "store" and stores it at "pNBIOFlag".
- *
- * PARAMETERS:
- *  "store"
- *      The CertStore whose NBIO flag is desired. Must be non-NULL.
- *  "pCallback"
- *      Address where the Boolean NBIOFlag will be stored. Must be non-NULL.
- *  "plContext"
- *      Platform-specific context pointer.
- * THREAD SAFETY:
- *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
- * RETURNS:
- *  Returns NULL if the function succeeds.
- *  Returns a Fatal Error if the function fails in an unrecoverable way.
- */
-PKIX_Error *
-PKIX_CertStore_GetNBIOFlag(
-        PKIX_CertStore *store,
-        PKIX_Boolean *pNBIOFlag,
         void *plContext);
 
 /*

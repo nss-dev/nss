@@ -1791,7 +1791,6 @@ pkix_Build_GatherCerts(
                         plContext),
                         "PKIX_List_GetItem failed");
 
-
                 if ((state->useOnlyLocal) == PKIX_FALSE) {
                     certStoreCanBeUsed = PKIX_TRUE;
                 } else {
@@ -3509,6 +3508,123 @@ PKIX_BuildChain(
         }
 
 cleanup:
+
+        PKIX_RETURN(BUILD);
+}
+
+/*
+ * FUNCTION: PKIX_Build_GetNBIOContext (see comments in pkix.h)
+ */
+PKIX_Error *
+PKIX_Build_GetNBIOContext(
+        void *state,
+        void **pNBIOContext,
+        void *plContext)
+{
+	PKIX_ForwardBuilderState *fbs = NULL;
+        PKIX_CertStore *certStore = NULL;
+        PKIX_CertChainChecker *checker = NULL;
+        PKIX_CertStore_NBIOCallback callBack = NULL;
+        PKIX_PL_Object *crlCheckerStateObj = NULL;
+        pkix_DefaultCRLCheckerState *crlCheckerState = NULL;
+	PKIX_Boolean ioPending = PKIX_FALSE;
+
+        PKIX_ENTER(BUILD, "PKIX_Build_GetNBIOContext");
+        PKIX_NULLCHECK_TWO(state, pNBIOContext);
+
+        PKIX_CHECK(pkix_CheckType
+                (state, PKIX_FORWARDBUILDERSTATE_TYPE, plContext),
+                "Argument is not a PKIX_ForwardBuilderState");
+
+        fbs = (PKIX_ForwardBuilderState *)state;
+
+        switch(fbs->status) {
+            case BUILD_SHORTCUTPENDING:
+            case BUILD_CRL1:
+            case BUILD_CRL2:
+
+                    /* WOULDBLOCK from CRLChecker */
+                    PKIX_CHECK(PKIX_CertChainChecker_GetCertChainCheckerState
+                            (fbs->buildConstants.crlChecker,
+                            &crlCheckerStateObj,
+                            plContext),
+                            "PKIX_CertChainChecker_GetCertChainCheckerState"
+                            " failed");
+
+                    PKIX_CHECK(pkix_CheckType
+                            (crlCheckerStateObj,
+                            PKIX_DEFAULTCRLCHECKERSTATE_TYPE,
+                            plContext),
+                            "Object is not a DefaultCRLCheckerState object");
+
+                    crlCheckerState =
+                            (pkix_DefaultCRLCheckerState *)crlCheckerStateObj;
+
+                    PKIX_CHECK(pkix_DefaultCRLChecker_GetNBIOContext
+                            (crlCheckerState, pNBIOContext, plContext),
+                            "pkix_DefaultCRLChecker_GetNBIOContext failed");
+
+                    break;
+
+            case BUILD_INITIAL:
+            case BUILD_CHECKTRUSTED2:
+            case BUILD_VALCHAIN2:
+
+                    /* WOULDBLOCK from CheckCert */
+                    PKIX_CHECK(PKIX_List_GetItem
+                            (fbs->checkerChain,
+                            &fbs->checkerIndex,
+                            (PKIX_PL_Object **)&checker,
+                            plContext),
+                            "PKIX_List_GetItem failed");
+                    /*
+                     * XXX add call to PKIX_CertChainChecker_GetNBIOCallback
+                     * add call to PKIX_CertChainChecker_nbioCallback
+                     */
+
+                    break;
+
+            case BUILD_CERTIOPENDING:
+
+                    /* WOULDBLOCK from CertStore:GetCert */
+                    PKIX_CHECK(PKIX_List_GetItem
+                            (fbs->buildConstants.certStores,
+                            fbs->certStoreIndex,
+                            (PKIX_PL_Object **)&certStore,
+                            plContext),
+                            "PKIX_List_GetItem failed");
+
+                    PKIX_CHECK(PKIX_CertStore_GetNBIOCallback
+                            (certStore, &callBack, plContext),
+                            "PKIX_CertStore_GetNBIOCallback failed");
+
+                    PKIX_CHECK(callBack(certStore, pNBIOContext, plContext),
+                            "PKIX_CertStore_NBIOCallback failed");
+
+                    break;
+
+            case BUILD_COLLECTINGCERTS:
+            case BUILD_CERTVALIDATING:
+            case BUILD_ABANDONNODE:
+            case BUILD_CRLPREP:
+            case BUILD_DATEPREP:
+            case BUILD_CHECKTRUSTED:
+            case BUILD_ADDTOCHAIN:
+            case BUILD_CHECKWITHANCHORS:
+            case BUILD_CRL2PREP:
+            case BUILD_VALCHAIN:
+            case BUILD_EXTENDCHAIN:
+            case BUILD_GETNEXTCERT:
+            default:
+                *pNBIOContext = NULL;
+                break;
+        }
+
+cleanup:
+
+        PKIX_DECREF(certStore);
+        PKIX_DECREF(checker);
+        PKIX_DECREF(crlCheckerState);
 
         PKIX_RETURN(BUILD);
 }

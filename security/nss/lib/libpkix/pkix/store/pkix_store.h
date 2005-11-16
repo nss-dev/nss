@@ -53,10 +53,10 @@ extern "C" {
 struct PKIX_CertStoreStruct {
         PKIX_CertStore_CertCallback certCallback;
         PKIX_CertStore_CRLCallback crlCallback;
+        PKIX_CertStore_CheckTrustCallback trustCallback;
+        PKIX_CertStore_NBIOCallback nbioCallback;
         PKIX_PL_Object *certStoreContext;
         PKIX_Boolean cacheFlag;
-        PKIX_CertStore_CheckTrustCallback trustCallback;
-        PKIX_Boolean NBIOFlag; /* TRUE if CertStore supports non-blocking I/O */
         PKIX_Boolean localFlag; /* TRUE if CertStore is local */
 };
 

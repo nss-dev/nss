@@ -43,8 +43,9 @@
 
 #include "pkix_lifecycle.h"
 
-PKIX_Boolean pkix_initialized = PKIX_FALSE;
-PKIX_Boolean pkix_initInProgress = PKIX_FALSE;
+static PKIX_Boolean pkixIsInitialized = PKIX_FALSE;
+static PKIX_Boolean pkixPlatformInit = PKIX_FALSE;
+static PKIX_Boolean pkixInitInProgress = PKIX_FALSE;
 char *pkix_PK11ConfigDir = NULL;
 
 /* Lock used by Logger - is reentrant by the same thread */
@@ -100,7 +101,7 @@ PKIX_Initialize(
          * recognize that we are in this nested call situation.
          */
 
-        if (pkix_initInProgress && (platformInitNeeded == PKIX_FALSE)) {
+        if (pkixInitInProgress && (platformInitNeeded == PKIX_FALSE)) {
                 goto cleanup;
         }
 
@@ -113,11 +114,12 @@ PKIX_Initialize(
          * responsibility.
          */
 
-        if (pkix_initialized){
+        if (pkixIsInitialized){
                 return (PKIX_ALLOC_ERROR());
         }
 
-        pkix_initInProgress = PKIX_TRUE;
+        pkixInitInProgress = PKIX_TRUE;
+        pkixPlatformInit = platformInitNeeded; /* remember this for shutdown */
 
         PKIX_CHECK(PKIX_PL_Initialize
                 (platformInitNeeded, useArenas, &plContext),
@@ -137,7 +139,8 @@ PKIX_Initialize(
 
         *pActualMinorVersion = PKIX_MINOR_VERSION;
 
-        pkix_initialized = PKIX_TRUE;
+        pkixInitInProgress = PKIX_FALSE;
+        pkixIsInitialized = PKIX_TRUE;
         pkix_PK11ConfigDir = NULL;
 
         /* Create Cache Tables */
@@ -213,7 +216,7 @@ PKIX_Shutdown(void *plContext)
 
         PKIX_ENTER(LIFECYCLE, "PKIX_Shutdown");
 
-        if (!pkix_initialized){
+        if (!pkixIsInitialized){
                 return (PKIX_ALLOC_ERROR());
         }
 
@@ -237,9 +240,10 @@ PKIX_Shutdown(void *plContext)
         PKIX_DECREF(cachedCertTable);
         PKIX_DECREF(cachedCrlEntryTable);
 
-        PKIX_CHECK(PKIX_PL_Shutdown(plContext), "PKIX_PL_Shutdown failed");
+        PKIX_CHECK(PKIX_PL_Shutdown(pkixPlatformInit, plContext),
+                "PKIX_PL_Shutdown failed");
 
-        pkix_initialized = PKIX_FALSE;
+        pkixIsInitialized = PKIX_FALSE;
 
 cleanup:
 

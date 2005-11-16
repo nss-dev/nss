@@ -130,6 +130,9 @@ struct PKIX_ForwardBuilderStateStruct{
 PKIX_Error *
 pkix_ForwardBuilderState_RegisterSelf(void *plContext);
 
+PKIX_Error *
+PKIX_Build_GetNBIOContext(void *state, void **pNBIOContext, void *plContext);
+
 #ifdef __cplusplus
 }
 #endif

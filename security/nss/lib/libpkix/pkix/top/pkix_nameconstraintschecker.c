@@ -317,6 +317,7 @@ pkix_NameConstraintsChecker_Initialize(
 
         PKIX_CHECK(PKIX_CertChainChecker_Create
                     (pkix_NameConstraintsChecker_Check,
+                    NULL, /* getNBIOCallback */
                     PKIX_FALSE,
                     PKIX_FALSE,
                     NULL,

@@ -110,12 +110,6 @@ struct PKIX_PL_LdapCertStoreContext {
         PKIX_PL_LdapResponse *currentResponse;
 };
 
-PKIX_Error *
-pkix_pl_LdapCertStoreContext_GetPollDesc(
-        PKIX_PL_LdapCertStoreContext *context,
-        PRPollDesc **pPollDesc,
-        void *plContext);
-
 /* see source file for function documentation */
 
 PKIX_Error *pkix_pl_LdapCertStoreContext_RegisterSelf(void *plContext);

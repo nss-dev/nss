@@ -245,13 +245,22 @@ cleanup:
  * PKIX_PL_Shutdown (see comments in pkix_pl_system.h)
  */
 PKIX_Error *
-PKIX_PL_Shutdown(void *plContext)
+PKIX_PL_Shutdown(
+        PKIX_Boolean platformInitNeeded,
+        void *plContext)
 {
         PKIX_ENTER(OBJECT, "PKIX_PL_Shutdown");
 
         if (!pkix_pl_initialized) return (PKIX_ALLOC_ERROR());
 
-        NSS_Shutdown();
+        if (plContext != NULL) {
+                PKIX_PL_NssContext_Destroy(plContext);
+        }
+
+        /* Shut down NSS only if we initialized it */
+        if (platformInitNeeded) {
+                NSS_Shutdown();
+        }
 
         pkix_pl_initialized = PKIX_FALSE;
 
