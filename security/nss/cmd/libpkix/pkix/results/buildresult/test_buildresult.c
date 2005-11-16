@@ -250,7 +250,7 @@ cleanup:
 
         PKIX_TEST_DECREF_AC(chain);
 
-        PKIX_Shutdown(NULL);
+        PKIX_Shutdown(plContext);
 
         PKIX_TEST_RETURN();
 
