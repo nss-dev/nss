@@ -157,6 +157,7 @@ void testGetSetCertChainCheckers(
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_CertChainChecker_Create
                     (userChecker1cb,
+                    NULL, /* getNBIOCallback */
                     PKIX_FALSE,
                     PKIX_FALSE,
                     NULL,
@@ -168,28 +169,27 @@ void testGetSetCertChainCheckers(
                 (&setCheckersList, plContext));
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_AppendItem
-                    (setCheckersList,
-                    (PKIX_PL_Object *) checker,
-                    plContext));
+                (setCheckersList, (PKIX_PL_Object *) checker, plContext));
         PKIX_TEST_DECREF_BC(checker);
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_ProcessingParams_SetCertChainCheckers
-                    (goodObject, setCheckersList, plContext));
+                (goodObject, setCheckersList, plContext));
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_CertChainChecker_Create
-                    (userChecker1cb,
-                    PKIX_FALSE,
-                    PKIX_FALSE,
-                    NULL,
-                    (PKIX_PL_Object *) date,
-                    &checker,
-                    plContext));
+                (userChecker1cb,
+                NULL, /* getNBIOCallback */
+                PKIX_FALSE,
+                PKIX_FALSE,
+                NULL,
+                (PKIX_PL_Object *) date,
+                &checker,
+                plContext));
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_ProcessingParams_AddCertChainChecker
-                    (goodObject, checker, plContext));
+                (goodObject, checker, plContext));
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_ProcessingParams_GetCertChainCheckers
-                    (goodObject, &getCheckersList, plContext));
+                (goodObject, &getCheckersList, plContext));
 
 cleanup:
 

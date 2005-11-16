@@ -306,11 +306,11 @@ testCustomCertStore(PKIX_ValidateParams *valParams)
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_CertStore_Create
                                     (getCertCallback,
                                     getCRLCallback,
+                                    NULL,       /* trustCallback */
+                                    NULL,       /* nbioCallback */
                                     (PKIX_PL_Object *)crlSelector, /* fake */
-                                    PKIX_TRUE,
-                                    NULL,
-                                    PKIX_FALSE,
-                                    PKIX_TRUE,
+                                    PKIX_FALSE, /* cacheFlag */
+                                    PKIX_TRUE,  /* localFlag */
                                     &certStore,
                                     plContext));
 

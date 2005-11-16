@@ -356,6 +356,10 @@ int main(int argc, char *argv[])
 
                 /*
                  * if ((state != NULL) && (buildResult == NULL)) {
+                 * PKIX_TEST_EXPECT_NO_ERROR(PKIX_Build_GetNBIOContext
+                 *         (state, &nbioContext, plContext));
+                 * pollDesc = (PRPollDesc *)nbioContext;
+                 * PRPoll(pollDesc)
                  *         wait for completion when a mechanism is provided
                  * }
                  */

@@ -249,12 +249,13 @@ int main(int argc, char *argv[])
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_CertChainChecker_Create
                                     (testUserChecker,
+                                    NULL, /* getNBIOCallback */
                                     supportForward,
                                     PKIX_FALSE,
                                     userOIDs,
                                     NULL,
                                     &checker,
-				     plContext));
+				    plContext));
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_ProcessingParams_AddCertChainChecker
 				  (procParams, checker, plContext));

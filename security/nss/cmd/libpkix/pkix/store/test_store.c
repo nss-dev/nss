@@ -85,10 +85,10 @@ void testCertStore(char *crlDir)
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_CertStore_Create
                                     (testCertCallback,
                                     testCRLCallback,
+                                    NULL,        /* trustCallback */
+                                    NULL,        /* non-blocking I/O */
                                     (PKIX_PL_Object *) dirString,
                                     PKIX_TRUE,   /* cacheFlag */
-                                    NULL,        /* trustCallback */
-                                    PKIX_FALSE,  /* non-blocking I/O */
                                     PKIX_TRUE,   /* local */
                                     &certStore,
                                     plContext));

@@ -229,6 +229,7 @@ int main(int argc, char *argv[]) {
         subTest("CertChainChecker_Create");
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_CertChainChecker_Create
                 (dummyChecker_Check,
+                NULL, /* getNBIOCallback */
                 PKIX_FALSE,
                 PKIX_FALSE,
                 supportedExtensions,
@@ -251,7 +252,7 @@ cleanup:
         PKIX_TEST_DECREF_AC(initialState);
         PKIX_TEST_DECREF_AC(supportedExtensions);
 
-        PKIX_Shutdown(NULL);
+        PKIX_Shutdown(plContext);
 
         PKIX_TEST_RETURN();
 
