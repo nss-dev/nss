@@ -491,12 +491,14 @@ loser:
 	nss_IsInitted = PR_TRUE;
     }
 
-    pkixError = PKIX_Initialize
-        (PKIX_FALSE, PKIX_TRUE, PKIX_MAJOR_VERSION, PKIX_MINOR_VERSION,
-        PKIX_MINOR_VERSION, &actualMinorVersion, &plContext);
+    if (SECSuccess == rv) {
+	pkixError = PKIX_Initialize
+	    (PKIX_FALSE, PKIX_TRUE, PKIX_MAJOR_VERSION, PKIX_MINOR_VERSION,
+	    PKIX_MINOR_VERSION, &actualMinorVersion, &plContext);
 
-    if (pkixError != NULL) {
-        return SECFailure;
+	if (pkixError != NULL) {
+	    rv = SECFailure;
+	}
     }
 
     return rv;
