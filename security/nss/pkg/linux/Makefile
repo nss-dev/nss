@@ -44,7 +44,9 @@
 CORE_DEPTH = ../../..
 
 NAME        = sun-nss
-RELEASE     = 1
+ifndef RPM_RELEASE
+RPM_RELEASE = 1
+endif
 VERSION     = `grep NSS_VERSION $(CORE_DEPTH)/../dist/public/nss/nss.h \
 		| sed -e 's/"$$//' -e 's/.*"//' -e 's/ .*//'`
 PWD         = `pwd`
@@ -76,7 +78,7 @@ publish:
 	echo "%define _topdir `pwd`" >temp.spec
 	sed -e "s/NAME_REPLACE/$(NAME)/" \
 		-e "s/VERSION_REPLACE/$(VERSION)/" \
-		-e "s/RELEASE_REPLACE/$(RELEASE)/" \
+		-e "s/RELEASE_REPLACE/$(RPM_RELEASE)/" \
 	<$(NAME).spec >>temp.spec
 	echo "" >>temp.spec
 	echo "%files" >>temp.spec
