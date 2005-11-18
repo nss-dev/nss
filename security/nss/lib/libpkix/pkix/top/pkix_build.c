@@ -3573,7 +3573,7 @@ PKIX_Build_GetNBIOContext(
                     /* WOULDBLOCK from CheckCert */
                     PKIX_CHECK(PKIX_List_GetItem
                             (fbs->checkerChain,
-                            &fbs->checkerIndex,
+                            fbs->checkerIndex,
                             (PKIX_PL_Object **)&checker,
                             plContext),
                             "PKIX_List_GetItem failed");
