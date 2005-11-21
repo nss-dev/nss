@@ -1670,6 +1670,10 @@ PKIX_PL_Cert_GetSubjectInfoAccess(
 #define PKIX_INFOACCESS_TIMESTAMPING  3
 #define PKIX_INFOACCESS_CA_REPOSITORY 5
 
+#define PKIX_INFOACCESS_LOCATION_UNKNOWN 0
+#define PKIX_INFOACCESS_LOCATION_HTTP    1
+#define PKIX_INFOACCESS_LOCATION_LDAP    2
+
 /*
  * FUNCTION: PKIX_PL_InfoAccess_GetMethod
  * DESCRIPTION:
@@ -1738,6 +1742,41 @@ PKIX_Error *
 PKIX_PL_InfoAccess_GetLocation(
         PKIX_PL_InfoAccess *infoAccess,
         PKIX_PL_GeneralName **pLocation,
+        void *plContext);
+
+/*
+ * FUNCTION: PKIX_PL_InfoAccess_GetLocationType
+ * DESCRIPTION:
+ *
+ *  Stores the type of location of the Information Access from "infoAccess" and
+ *  returns in "pType".
+ *
+ *  SubjectInfoAccess ::=
+ *    AccessDescription ::= DEQUENCE {
+ *        accessMethod     OBJECT IDENTIFIER,
+ *        accessLocation   GeneralName
+ *    }
+ *
+ * PARAMETERS:
+ *  "infoAccess"
+ *      Address of PKIX_PL_InfoAccess that has the access data.
+ *      Must be non-NULL.
+ *  "pType"
+ *      Address where access location type will be stored and returned.
+ *      Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Cert Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_PL_InfoAccess_GetLocationType(
+        PKIX_PL_InfoAccess *infoAccess,
+        PKIX_UInt32 *pType,
         void *plContext);
 
 /*

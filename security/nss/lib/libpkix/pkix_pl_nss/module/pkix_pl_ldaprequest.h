@@ -78,6 +78,12 @@ extern "C" {
  * End of Ldaprot.h definitions
  */
 
+struct pkix_pl_LdapLocation {
+        void *serverSite;
+        void **filterString;
+        void **attrBitString;
+};
+
 typedef enum {
         USER_CERT,
         CA_CERT,
@@ -101,6 +107,7 @@ struct PKIX_PL_LdapRequestStruct{
         SECItem attributes[MAX_LDAPATTRS];
         SECItem **attrArray;
         SECItem *encoded;
+        struct pkix_pl_LdapLocation *parsedLocation;
 };
 
 /* see source file for function documentation */

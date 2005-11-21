@@ -477,3 +477,48 @@ cleanup:
 
         PKIX_RETURN(INFOACCESS);
 }
+
+/*
+ * FUNCTION: PKIX_PL_InfoAccess_GetLocationType (see comments in pkix_pl_pki.h)
+ */
+PKIX_Error *
+PKIX_PL_InfoAccess_GetLocationType(
+        PKIX_PL_InfoAccess *infoAccess,
+        PKIX_UInt32 *pType,
+        void *plContext)
+{
+        PKIX_PL_String *locationString = NULL;
+        PKIX_UInt32 type = PKIX_INFOACCESS_LOCATION_UNKNOWN;
+        PKIX_UInt32 len = 0;
+        void *location = NULL;
+
+        PKIX_ENTER(INFOACCESS, "PKIX_PL_InfoAccess_GetLocationType");
+        PKIX_NULLCHECK_TWO(infoAccess, pType);
+
+        if (infoAccess->location != NULL) {
+
+                PKIX_TOSTRING(infoAccess->location, &locationString, plContext,
+                    "pkix_pl_GeneralName_ToString failed");
+
+                PKIX_CHECK(PKIX_PL_String_GetEncoded
+                    (locationString, PKIX_ESCASCII, &location, &len, plContext),
+                    "PKIX_PL_String_GetEncoded failed");
+
+                PKIX_OID_DEBUG("\tCalling PORT_Strcmp).\n");
+                if (PORT_Strncmp(location, "ldap:", 5) == 0){
+                        type = PKIX_INFOACCESS_LOCATION_LDAP;
+                } else
+                if (PORT_Strncmp(location, "http:", 5) == 0){
+                        type = PKIX_INFOACCESS_LOCATION_HTTP;
+                }
+        }
+
+        *pType = type;
+
+cleanup:
+
+        PKIX_PL_Free(location, plContext);
+        PKIX_DECREF(locationString);
+
+        PKIX_RETURN(INFOACCESS);
+}

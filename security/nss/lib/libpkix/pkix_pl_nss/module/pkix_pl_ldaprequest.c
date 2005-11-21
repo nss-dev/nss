@@ -712,3 +712,264 @@ pkix_pl_LdapRequest_GetEncoded(
 
         PKIX_RETURN(LDAPREQUEST);
 }
+
+/*
+ * FUNCTION: pkix_pl_LdapRequest_ParseTokens
+ * DESCRIPTION:
+ *
+ *  This function parses the string stored at "startPos" into tokens based on
+ *  "separtor" as the separator and "terminator" as end of parsing. It returns
+ *  an array of pointers that holds those tokens and the array is terminated
+ *  with NULL.
+ *   *
+ * PARAMETERS
+ *  "request"
+ *      The address of the LdapRequest whose parsedLocation is to be updated.
+ *      Must be non-NULL.
+ *  "startPos"
+ *      The address of char string that contains a subset of ldap location.
+ *  "tokens"
+ *      The address of an array of char string for storing returned tokens.
+ *      Must be non-NULL.
+ *  "separator"
+ *      The character that is taken as token separator. Must be non-NULL.
+ *  "terminator"
+ *      The character that is taken as parsing terminator. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns an LdapRequest Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+static PKIX_Error *
+pkix_pl_LdapRequest_ParseTokens(
+        PKIX_PL_LdapRequest *request,
+        char **startPos, /* return update */
+        char ***tokens,
+        char separator,
+        char terminator,
+        void *plContext)
+{
+        PKIX_UInt32 len = 0;
+        PKIX_UInt32 numFilters = 0;
+        PKIX_Int32 cmpResult = -1;
+        char *endPos = NULL;
+        char *p = NULL;
+        char **filterP = NULL;
+
+        PKIX_ENTER(LDAPREQUEST, "pkix_pl_LdapRequest_ParseTokens");
+        PKIX_NULLCHECK_THREE(request, startPos, tokens);
+
+        endPos = *startPos;
+
+        /* Firs path: parse to <terminator> to count number of components */
+        numFilters = 0;
+        while (*endPos != terminator && *endPos != '\0') {
+                endPos++;
+		if (*endPos == separator) {
+                        numFilters++;
+                }
+        }
+
+        if (*endPos != terminator) {
+                PKIX_ERROR("Unexpected LDAP location string format filter/bit");
+        }
+
+        /* Last one doesn't have a "," as separator, although we allow it */
+        if (*(endPos-1) != ',') {
+                numFilters++;
+        }
+
+        PKIX_PL_NSSCALLRV
+                (LDAPREQUEST, *tokens, PORT_ArenaZAlloc,
+                (request->arena, (numFilters+1)*sizeof(void *)));
+
+        /* Second path: parse to fill in components in token array */
+        filterP = *tokens;
+        endPos = *startPos;
+
+	while (numFilters) {
+		if (*endPos == separator || *endPos == terminator) {
+                        len = endPos - *startPos;
+                        PKIX_PL_NSSCALLRV(LDAPREQUEST, p, PORT_ArenaZAlloc,
+                            (request->arena, (len+1)));
+
+                        *filterP = p;
+
+                        while(len) {
+                            if (**startPos == '%') {
+                            /* replacing %20 by blank */
+                                PKIX_PL_NSSCALLRV(LDAPREQUEST, cmpResult,
+                                    strncmp, ((void *)*startPos, "%20", 3));
+                                if (cmpResult == 0) {
+                                    *p = ' ';
+                                    *startPos += 3;
+                                    len -= 3;
+                                }
+                            } else {
+                                *p = **startPos;
+                                (*startPos)++;
+                                len--;
+                            }
+                            p++;
+                        }
+
+                        *p = '\0';
+                        filterP++;
+                        numFilters--;
+
+                        if (endPos == '\0') {
+                            break;
+                        } else {
+                            endPos++;
+                            *startPos = endPos;
+                            continue;
+                        }
+
+                }
+
+                endPos++;
+        }
+
+        *filterP = NULL;
+
+cleanup:
+
+        PKIX_RETURN(LDAPREQUEST);
+}
+
+/*
+ * FUNCTION: pkix_pl_LdapRequest_ParseLocation
+ * DESCRIPTION:
+ *
+ *  This function parses the "location" for the LdapRequest pointed to
+ *  by "request", and storing the result at parsedLocation field in "request".
+ *  The expected location string should be in the following BNF format:
+ *
+ *  ldap://<ldap-server-site>/[cn=<cname>][,o=<org>][,c=<country>]?
+ *  [caCertificate|crossCertificatPair|certificateRevocationList];
+ *  [binary|<other-type>]
+ *  [[,caCertificate|crossCertificatPair|certificateRevocationList]
+ *   [binary|<other-type>]]*
+ *
+ *
+ * PARAMETERS
+ *  "request"
+ *      The address of the LdapRequest whose LDAP location is to be
+ *      parsed. Must be non-NULL.
+ *  "location"
+ *      The address of char that contains the ldap location. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns an LdapRequest Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+pkix_pl_LdapRequest_ParseLocation(
+        PKIX_PL_LdapRequest *request,
+        PKIX_PL_GeneralName *location,
+        void *plContext)
+{
+        struct pkix_pl_LdapLocation *parsedLocation;
+        PKIX_PL_String *locationString = NULL;
+        PKIX_UInt32 len = 0;
+        char *locationAscii = NULL;
+        char *startPos = NULL;
+        char *endPos = NULL;
+
+        PKIX_ENTER(LDAPREQUEST, "pkix_pl_LdapRequest_ParseLocation");
+        PKIX_NULLCHECK_TWO(request, location);
+
+        PKIX_TOSTRING(location, &locationString, plContext,
+            "pkix_pl_GeneralName_ToString failed");
+
+        PKIX_CHECK(PKIX_PL_String_GetEncoded
+		   (locationString,
+                   PKIX_ESCASCII,
+                   (void **)&locationAscii,
+                   &len,
+                   plContext),
+                   "PKIX_PL_String_GetEncoded failed");
+
+        PKIX_PL_NSSCALLRV(LDAPREQUEST, parsedLocation, PORT_ArenaZAlloc,
+                (request->arena, sizeof(struct pkix_pl_LdapLocation)));
+
+        /* Skip "ldap:" */
+        endPos = locationAscii;
+        while (*endPos != ':' && *endPos != '\0') {
+                endPos++;
+        }
+        if (*endPos == '\0') {
+                PKIX_ERROR("Unexpected LDAP location string format: ldap:");
+        }
+
+        /* Skip "//" */
+        endPos++;
+        if (*endPos != '\0' && *(endPos+1) != '0' &&
+            *endPos == '/' && *(endPos+1) == '/') {
+                endPos += 2;
+        } else {
+                PKIX_ERROR("Unexpected LDAP location string format: //");
+        }
+
+        /* Get the server-site */
+        startPos = endPos;
+        while(*endPos != '/' && *(endPos) != '\0') {
+                endPos++;
+        }
+        if (*endPos == '\0') {
+                PKIX_ERROR
+                    ("Unexpected LDAP location string format: <server-site>/");
+        }
+
+        len = endPos - startPos;
+        endPos++;
+
+        PKIX_PL_NSSCALLRV
+                (LDAPREQUEST,
+                parsedLocation->serverSite,
+                PORT_ArenaZAlloc,
+                (request->arena, len+1));
+
+        PKIX_PL_NSSCALL(LDAPREQUEST, PORT_Memcpy,
+                (parsedLocation->serverSite, startPos, len));
+
+        *((char *)parsedLocation->serverSite+len+1) = '\0';
+
+        /* Get filter strings in pointer array */
+        startPos = endPos;
+        PKIX_CHECK(pkix_pl_LdapRequest_ParseTokens
+            (request,
+            &startPos,
+            (char ***) &parsedLocation->filterString,
+            ',',
+            '?',
+            plContext),
+            "pkix_pl_ldaprequest_ParseTokens failed");
+
+        /* Get Attr Bits in pointer array */
+        PKIX_CHECK(pkix_pl_LdapRequest_ParseTokens
+            (request,
+            (char **) &startPos,
+            (char ***) &parsedLocation->attrBitString,
+            ',',
+            '\0',
+            plContext),
+            "pkix_pl_ldaprequest_ParseTokens failed");
+
+        request->parsedLocation = parsedLocation;
+
+cleanup:
+
+        PKIX_PL_Free(locationAscii, plContext);
+        PKIX_DECREF(locationString);
+
+        PKIX_RETURN(LDAPREQUEST);
+}
