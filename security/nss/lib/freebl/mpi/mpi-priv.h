@@ -300,6 +300,19 @@ mp_err s_mp_mul_mont(const mp_int *a, const mp_int *b, mp_int *c,
 	               mp_mont_modulus *mmm);
 mp_err s_mp_redc(mp_int *T, mp_mont_modulus *mmm);
 
+/*
+ * s_mpi_getProcessorLineSize() returns the size in bytes of the cache line
+ * if a cache exists, or zero if there is no cache. If more than one
+ * cache line exists, it should return the smallest line size (which is
+ * usually the L1 cache).
+ *
+ * mp_modexp uses this information to make sure that private key information
+ * isn't being leaked through the cache.
+ *
+ * see mpcpucache.c for the implementation.
+ */
+unsigned long s_mpi_getProcessorLineSize();
+
 /* }}} */
 #endif
 
