@@ -56,6 +56,14 @@ static const char arlAttr[] = "authorityRevocationList;binary";
 static unsigned int arlAttrLen = sizeof(arlAttr) - 1;
 
 /*
+ * XXX If this function were moved into pkix_pl_ldapcertstore.c then all of
+ * LdapRequest and LdapResponse could be considered part of the LDAP client.
+ * But the constants, above, would have to be copied as well, and they are
+ * also needed in pkix_pl_LdapRequest_EncodeAttrs. So there would have to be
+ * two copies.
+ */
+
+/*
  * FUNCTION: pkix_pl_LdapRequest_AttrTypeToBit
  * DESCRIPTION:
  *
@@ -229,7 +237,7 @@ pkix_pl_LdapRequest_Destroy(
         ldapRq = (PKIX_PL_LdapRequest *)object;
 
         /*
-         * All dynamic field in an LDAPRequest are allocated
+         * All dynamic fields in an LDAPRequest are allocated
          * in an arena, and will be freed when the arena is destroyed.
          */
 
@@ -765,11 +773,11 @@ pkix_pl_LdapRequest_ParseTokens(
 
         endPos = *startPos;
 
-        /* Firs path: parse to <terminator> to count number of components */
+        /* First pass: parse to <terminator> to count number of components */
         numFilters = 0;
         while (*endPos != terminator && *endPos != '\0') {
                 endPos++;
-		if (*endPos == separator) {
+                if (*endPos == separator) {
                         numFilters++;
                 }
         }
@@ -787,19 +795,19 @@ pkix_pl_LdapRequest_ParseTokens(
                 (LDAPREQUEST, *tokens, PORT_ArenaZAlloc,
                 (request->arena, (numFilters+1)*sizeof(void *)));
 
-        /* Second path: parse to fill in components in token array */
+        /* Second pass: parse to fill in components in token array */
         filterP = *tokens;
         endPos = *startPos;
 
-	while (numFilters) {
-		if (*endPos == separator || *endPos == terminator) {
-                        len = endPos - *startPos;
-                        PKIX_PL_NSSCALLRV(LDAPREQUEST, p, PORT_ArenaZAlloc,
+        while (numFilters) {
+            if (*endPos == separator || *endPos == terminator) {
+                    len = endPos - *startPos;
+                    PKIX_PL_NSSCALLRV(LDAPREQUEST, p, PORT_ArenaZAlloc,
                             (request->arena, (len+1)));
 
-                        *filterP = p;
+                    *filterP = p;
 
-                        while(len) {
+                    while (len) {
                             if (**startPos == '%') {
                             /* replacing %20 by blank */
                                 PKIX_PL_NSSCALLRV(LDAPREQUEST, cmpResult,
@@ -815,23 +823,21 @@ pkix_pl_LdapRequest_ParseTokens(
                                 len--;
                             }
                             p++;
-                        }
+                    }
 
-                        *p = '\0';
-                        filterP++;
-                        numFilters--;
+                    *p = '\0';
+                    filterP++;
+                    numFilters--;
 
-                        if (endPos == '\0') {
-                            break;
-                        } else {
-                            endPos++;
-                            *startPos = endPos;
-                            continue;
-                        }
-
-                }
-
-                endPos++;
+                    if (endPos == '\0') {
+                        break;
+                    } else {
+                        endPos++;
+                        *startPos = endPos;
+                        continue;
+                    }
+            }
+            endPos++;
         }
 
         *filterP = NULL;
@@ -891,7 +897,7 @@ pkix_pl_LdapRequest_ParseLocation(
             "pkix_pl_GeneralName_ToString failed");
 
         PKIX_CHECK(PKIX_PL_String_GetEncoded
-		   (locationString,
+                   (locationString,
                    PKIX_ESCASCII,
                    (void **)&locationAscii,
                    &len,

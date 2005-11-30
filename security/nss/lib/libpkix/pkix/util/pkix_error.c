@@ -428,6 +428,8 @@ PKIX_ERRORNAMES[PKIX_NUMERRORS] =
         "LdapCertStoreContext Error",
         "LdapRequest Error",
         "LdapResponse Error",
+        "LdapClient Error",
+        "LdapDefaultClient Error",
         "Socket Error",
         "Resource Limits Error",
         "Logger Error",

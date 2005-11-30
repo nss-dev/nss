@@ -221,7 +221,7 @@ PKIX_PL_Initialize(
         pkix_BuildParams_RegisterSelf(plContext);
         pkix_ForwardBuilderState_RegisterSelf(plContext);
         pkix_NameConstraintsCheckerState_RegisterSelf(plContext);
-        pkix_pl_LdapCertStoreContext_RegisterSelf(plContext);
+        pkix_pl_LdapDefaultClient_RegisterSelf(plContext);
         pkix_pl_LdapRequest_RegisterSelf(plContext);
         pkix_pl_LdapResponse_RegisterSelf(plContext);
         pkix_pl_Socket_RegisterSelf(plContext);

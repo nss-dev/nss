@@ -137,6 +137,8 @@ PKIX_COMPONENTNAMES[PKIX_NUMERRORS] =
         "LdapCertStoreContext",
         "LdapRequest",
         "LdapResponse",
+        "LdapClient",
+        "LdapDefaultClient",
         "Socket",
         "ResourceLimits",
         "Logger",
@@ -866,7 +868,7 @@ PKIX_GetLoggers(
         locked = PKIX_TRUE;
 
         if (pkixLoggersDebugTrace != NULL) {
-		/*
+                /*
                  * Temporarily disable DEBUG/TRACE Logging to avoid possible
                  * deadlock:
                  * When the Logger List is being accessed, e.g. by DECREF,

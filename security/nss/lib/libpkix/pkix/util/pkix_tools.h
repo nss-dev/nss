@@ -96,7 +96,7 @@ extern "C" {
         pkixType = PKIX_ ## type ## _ERROR; \
         PKIX_DEBUG_ENTER(type); \
         do { \
-	    if (pkixLoggersDebugTrace) { \
+            if (pkixLoggersDebugTrace) { \
                 (pkix_Logger_Check(pkixLoggersDebugTrace, \
                         funcName, ">>>", pkixType, \
                         PKIX_LOGGER_LEVEL_TRACE, plContext)); \
@@ -200,7 +200,7 @@ extern "C" {
 
 #define PKIX_ERROR(desc) \
         { \
-	        if (pkixLoggersErrors) { \
+                if (pkixLoggersErrors) { \
                     (pkix_Logger_Check(pkixLoggersErrors, \
                         desc, NULL, pkixType, \
                         PKIX_LOGGER_LEVEL_ERROR, plContext)); \
@@ -212,7 +212,7 @@ extern "C" {
 
 #define PKIX_ERROR_FATAL(desc) \
         { \
-	        if (pkixLoggersErrors) { \
+                if (pkixLoggersErrors) { \
                     (pkix_Logger_Check(pkixLoggersErrors, \
                         desc, NULL, pkixType, \
                         PKIX_LOGGER_LEVEL_FATALERROR, plContext)); \
@@ -491,6 +491,8 @@ extern "C" {
 #define PKIX_LDAPCERTSTORECONTEXTDEBUG  1
 #define PKIX_LDAPREQUESTDEBUG           1
 #define PKIX_LDAPRESPONSEDEBUG          1
+#define PKIX_LDAPCLIENTDEBUG            1
+#define PKIX_LDAPDEFAULTCLIENTDEBUG     1
 #define PKIX_SOCKETDEBUG                1
 #define PKIX_RESOURCELIMITSDEBUG        1
 #define PKIX_LOGGERDEBUG                1
@@ -505,7 +507,7 @@ extern "C" {
 
 #define PKIX_DEBUG(expr) \
         do { \
-	        if (pkixLoggersErrors) { \
+                if (pkixLoggersErrors) { \
                      (pkix_Logger_Check(pkixLoggersDebugTrace, \
                                 myFuncName, expr, pkixType, \
                                 PKIX_LOGGER_LEVEL_DEBUG, plContext)); \
@@ -1109,6 +1111,26 @@ extern "C" {
 #else
 #define PKIX_LDAPRESPONSE_DEBUG(expr)
 #define PKIX_LDAPRESPONSE_DEBUG_ARG(expr, arg)
+#endif
+
+#if PKIX_LDAPCLIENTDEBUG
+#define PKIX_LDAPCLIENT_DEBUG(expr) \
+        PKIX_DEBUG(expr)
+#define PKIX_LDAPCLIENT_DEBUG_ARG(expr, arg) \
+        PKIX_DEBUG_ARG(expr, arg)
+#else
+#define PKIX_LDAPCLIENT_DEBUG(expr)
+#define PKIX_LDAPCLIENT_DEBUG_ARG(expr, arg)
+#endif
+
+#if PKIX_LDAPDEFAULTCLIENTDEBUG
+#define PKIX_LDAPDEFAULTCLIENT_DEBUG(expr) \
+        PKIX_DEBUG(expr)
+#define PKIX_LDAPDEFAULTCLIENT_DEBUG_ARG(expr, arg) \
+        PKIX_DEBUG_ARG(expr, arg)
+#else
+#define PKIX_LDAPDEFAULTCLIENT_DEBUG(expr)
+#define PKIX_LDAPDEFAULTCLIENT_DEBUG_ARG(expr, arg)
 #endif
 
 #if PKIX_SOCKETDEBUG

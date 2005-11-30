@@ -88,27 +88,22 @@ typedef enum {
 #define RCVBUFSIZE              512
 
 struct PKIX_PL_LdapCertStoreContext {
-        LDAPConnectStatus connectStatus;
-        PKIX_UInt32 messageID;
-        PKIX_PL_HashTable *cachePtr;
-        PKIX_PL_Socket *clientSocket;
-        PRPollDesc pollDesc;
-        void *callbackList; /* cast this to (PKIX_PL_Socket_Callback *) */
-        LDAPBindAPI *bindAPI;
-        PRArenaPool *arena;
-        PRTime lastIO;
-        void *sendBuf;
-        PKIX_UInt32 bytesToWrite;
-        void *rcvBuf;
-        PKIX_UInt32 capacity;
-        void *currentInPtr;
-        PKIX_UInt32 currentBytesAvailable;
-        void *bindMsg;
-        PKIX_UInt32 bindMsgLen;
-        PKIX_List *entriesFound;
-        PKIX_PL_LdapRequest *currentRequest;
-        PKIX_PL_LdapResponse *currentResponse;
+        PKIX_PL_LdapClient *client;
 };
+
+PKIX_Error *PKIX_PL_LdapClient_InitiateRequest(
+        PKIX_PL_LdapClient *client,
+        LDAPRequestParams *requestParams,
+        PRPollDesc **pPollDesc,
+        PKIX_List **pResponse,
+        void *plContext);
+
+PKIX_Error *PKIX_PL_LdapClient_ResumeRequest(
+        PKIX_PL_LdapClient *client,
+        PRPollDesc **pPollDesc,
+        PKIX_List **pResponse,
+        void *plContext);
+
 
 /* see source file for function documentation */
 

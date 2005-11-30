@@ -161,14 +161,12 @@ PKIX_PL_Pk11CertStore_Create(
  */
 
 /*
- * FUNCTION: PKIX_PL_LdapCertStore_Create
+ * FUNCTION: PKIX_PL_LdapDefaultClient_Create
  * DESCRIPTION:
  *
- *  Creates a new LdapCertStore using the PRNetAddr poined to by "sockaddr",
+ *  Creates an LdapDefaultClient using the PRNetAddr poined to by "sockaddr",
  *  with a timeout value of "timeout", and a BindAPI pointed to by "bindAPI";
- *  and stores the address of a PRPollDesc on which the caller can wait for
- *  completion (if non-blocking I/O was specified by a zero value of "timeout")
- *  at "pDesc" and the CertStore at "pLdapCertStore".
+ *  and stores the address of the default LdapClient at "pClient".
  *
  *  At the time of this version, there are unresolved questions about the LDAP
  *  protocol. Although RFC1777 describes a BIND and UNBIND message, it is not
@@ -177,7 +175,7 @@ PKIX_PL_Pk11CertStore_Create(
  *  messages. It is not clear what values might be appropriate for the bindname
  *  and authentication fields, which are currently implemented as char strings
  *  supplied by the caller. (If this changes, the API and possibly the templates
- *  will have to change.) Therefore the CertStore_Create API contains a BindAPI
+ *  will have to change.) Therefore the Client_Create API contains a BindAPI
  *  structure, a union, which will have to be revised and extended when this
  *  area of the protocol is better understood.
  *
@@ -191,7 +189,36 @@ PKIX_PL_Pk11CertStore_Create(
  *  "bindAPI"
  *      The address of a BindAPI to be used if a BIND message is required. If
  *      this argument is NULL, no Bind (or Unbind) will be sent.
- *  "pLdapCertStore"
+ *  "pClient"
+ *      Address where object pointer will be stored. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a CertStore Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_PL_LdapDefaultClient_Create(
+        PRNetAddr *sockaddr,
+        PRIntervalTime timeout,
+        LDAPBindAPI *bindAPI,
+	PKIX_PL_LdapDefaultClient **pClient,
+        void *plContext);
+
+/*
+ * FUNCTION: PKIX_PL_LdapCertStore_Create
+ * DESCRIPTION:
+ *
+ *  Creates a new LdapCertStore using the LdapClient pointed to by "client",
+ *  and stores the address of the CertStore at "pCertStore".
+ *
+ * PARAMETERS:
+ *  "client"
+ *      Address of the LdapClient to be used. Must be non-NULL.
+ *  "pCertStore"
  *      Address where object pointer will be stored. Must be non-NULL.
  *  "plContext"
  *      Platform-specific context pointer.
@@ -204,10 +231,8 @@ PKIX_PL_Pk11CertStore_Create(
  */
 PKIX_Error *
 PKIX_PL_LdapCertStore_Create(
-        PRNetAddr *sockaddr,
-        PRIntervalTime timeout,
-        LDAPBindAPI *bindAPI,
-        PKIX_CertStore **pLdapCertStore,
+	PKIX_PL_LdapClient *client,
+        PKIX_CertStore **pCertStore,
         void *plContext);
 
 /*

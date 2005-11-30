@@ -165,6 +165,8 @@ typedef struct LDAPSubstringStruct               LDAPSubstring;
 typedef struct LDAPSubstringFilterStruct         LDAPSubstringFilter;
 typedef struct LDAPPresentFilterStruct           LDAPPresentFilter;
 typedef struct LDAPAttributeValueAssertionStruct LDAPAttributeValueAssertion;
+typedef struct LDAPNameComponentStruct           LDAPNameComponent;
+typedef struct LDAPRequestParamsStruct           LDAPRequestParams;
 typedef struct LDAPSearchStruct                  LDAPSearch;
 typedef struct LDAPAbandonRequestStruct          LDAPAbandonRequest;
 typedef struct protocolOpStruct                  LDAPProtocolOp;
@@ -260,6 +262,21 @@ struct LDAPFilterStruct {
         } filter;
 };
 
+struct LDAPNameComponentStruct {
+        unsigned char *attrType;
+        unsigned char *attrValue;
+};
+
+struct LDAPRequestParamsStruct {
+        char *baseObject;          /* e.g. "c=US" */
+        ScopeType scope;
+        DerefType derefAliases;
+        PKIX_UInt32 sizeLimit;     /* 0 = no limit */
+        PRIntervalTime timeLimit;  /* 0 = no limit */
+        LDAPNameComponent **nc; /* e.g. {{"cn","xxx"},{"o","yyy"},NULL} */
+        LdapAttrMask attributes;
+};
+
 struct LDAPSearchStruct {
         SECItem baseObject;
         SECItem scope;
@@ -291,6 +308,28 @@ struct protocolOpStruct {
 struct LDAPMessageStruct {
         SECItem messageID;
         LDAPProtocolOp protocolOp;
+};
+
+typedef struct PKIX_PL_LdapClientStruct PKIX_PL_LdapClient;
+
+typedef PKIX_Error *
+(*PKIX_PL_LdapClient_InitiateFcn)(
+        PKIX_PL_LdapClient *client,
+        LDAPRequestParams *requestParams,
+        PRPollDesc **pPollDesc,
+        PKIX_List **pResponse,
+        void *plContext);
+
+typedef PKIX_Error *
+(*PKIX_PL_LdapClient_ResumeFcn)(
+        PKIX_PL_LdapClient *client,
+        PRPollDesc **pPollDesc,
+        PKIX_List **pResponse,
+        void *plContext);
+
+struct PKIX_PL_LdapClientStruct {
+        PKIX_PL_LdapClient_InitiateFcn initiateFcn;
+        PKIX_PL_LdapClient_ResumeFcn resumeFcn;
 };
 
 #ifdef __cplusplus
