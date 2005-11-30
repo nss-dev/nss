@@ -142,7 +142,8 @@ void ThreadEntry(void* data)
         PKIX_ComCertSelParams *certSelParams = NULL;
         PKIX_CertSelector *certSelector = NULL;
         PKIX_PL_Date *nowDate = NULL;
-	void *state = NULL; /* only relevant with non-blocking I/O */
+        void *state = NULL; /* only relevant with non-blocking I/O */
+        void *nbioContext = NULL; /* only relevant with non-blocking I/O */
 
         PR_ASSERT(duration);
         if (!duration){
@@ -210,7 +211,17 @@ void ThreadEntry(void* data)
 
                 PKIX_BuildParams_Create(procParams, &buildParams, plContext);
 
-                PKIX_BuildChain(buildParams, &state, &buildResult, plContext);
+                PKIX_BuildChain
+                        (buildParams,
+                        &nbioContext,
+                        &state,
+                        &buildResult,
+                        plContext);
+
+                /*
+                 * As long as we use only CertStores with blocking I/O, we
+                 * know we must be done at this point.
+                 */
 
                 if (!buildResult){
                         (void) fprintf(stderr, "libpkix BuildChain failed.\n");
@@ -341,7 +352,7 @@ int main(int argc, char** argv)
                         threads = atoi(argv[2]);
                 }
 
-	PKIX_Initialize_SetConfigDir(PKIX_STORE_TYPE_PK11, ".", plContext);
+        PKIX_Initialize_SetConfigDir(PKIX_STORE_TYPE_PK11, ".", plContext);
 
         PKIX_Initialize(PKIX_TRUE, /* nssInitNeeded */
                         PKIX_FALSE, /* useArenas */

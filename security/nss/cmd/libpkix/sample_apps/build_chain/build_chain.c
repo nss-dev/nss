@@ -156,8 +156,9 @@ int main(int argc, char *argv[])
         PKIX_List *certStores = NULL;
         char * asciiResult = NULL;
         PKIX_CertChain *chain = NULL;
-        void *buildState = NULL; /* needed by pkix_build for non-blocking I/O */
         PKIX_Boolean useArenas = PKIX_FALSE;
+        void *buildState = NULL; /* needed by pkix_build for non-blocking I/O */
+        void *nbioContext = NULL;
 
         PKIX_TEST_STD_VARS();
 
@@ -216,30 +217,34 @@ int main(int argc, char *argv[])
         storeDirAscii = argv[j+3];
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create
-                                    (PKIX_ESCASCII,
-                                    storeDirAscii,
-                                    0,
-                                    &storeDirString,
-                                    plContext));
+                (PKIX_ESCASCII, storeDirAscii, 0, &storeDirString, plContext));
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_CollectionCertStore_Create
-                                    (storeDirString, &certStore, plContext));
+                (storeDirString, &certStore, plContext));
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_Create(&certStores, plContext));
-        PKIX_TEST_EXPECT_NO_ERROR
-                (PKIX_List_AppendItem
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_AppendItem
                 (certStores, (PKIX_PL_Object *)certStore, plContext));
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_ProcessingParams_SetCertStores
-                                    (procParams, certStores, plContext));
+                (procParams, certStores, plContext));
 
         /* create build params with processing params */
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_BuildParams_Create
-                                    (procParams, &buildParams, plContext));
+                (procParams, &buildParams, plContext));
 
         /* build cert chain using build params and return buildResult */
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_BuildChain
-                (buildParams, &buildState, &buildResult, plContext));
+                (buildParams,
+                &nbioContext,
+                &buildState,
+                &buildResult,
+                plContext));
+
+        /*
+         * As long as we use only CertStores with blocking I/O, we can omit
+         * checking for completion with nbioContext.
+         */
 
         PKIX_TEST_EXPECT_NO_ERROR
                 (PKIX_BuildResult_GetCertChain(buildResult, &chain, plContext));

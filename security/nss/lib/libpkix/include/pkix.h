@@ -241,16 +241,22 @@ PKIX_ValidateChain(
  *  the target's public key. If unsuccessful, an Error is returned.
  *
  *  If the chain building is blocked by a CertStore using non-blocking I/O, this
- *  function will store its state at "pState" and NULL at "pResult". On some
- *  platforms, the caller may be able to obtain information from the state that
- *  will allow the caller to determine when the I/O has completed. In any case,
- *  calling the function again with "pState" containing the returned value will
- *  cause the chain building to resume where it left off. 
+ *  function stores platform-dependent non-blocking I/O context at
+ *  "pNBIOContext", its state at "pState", and NULL at "pResult". The caller
+ *  may be able to determine, in a platform-dependent way, when the I/O has
+ *  completed. In any case, calling the function again with "pState" containing
+ *  the returned value will allow the chain building to resume.
+ *
+ *  If chain building is completed, either successfully or unsuccessfully, NULL
+ *  is stored at "pNBIOContext".
  *
  * PARAMETERS:
  *  "params"
  *      Address of BuildParams used to build and validate CertChain.
  *      Must be non-NULL.
+ *  "pNBIOContext"
+ *      Address where platform-dependent information is store if the build
+ *      is suspended waiting for non-blocking I/O. Must be non-NULL.
  *  "pState"
  *      Address of BuildChain state. Must be NULL on initial call, and the
  *      value previously returned on subsequent calls.
@@ -268,6 +274,7 @@ PKIX_ValidateChain(
 PKIX_Error *
 PKIX_BuildChain(
         PKIX_BuildParams *params,
+	void **pNBIOContext,
         void **pState,
         PKIX_BuildResult **pResult,
         void *plContext);
