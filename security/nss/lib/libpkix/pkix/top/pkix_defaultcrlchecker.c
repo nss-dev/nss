@@ -586,7 +586,7 @@ pkix_DefaultCRLChecker_Check_Store(
         pkix_DefaultCRLCheckerState *state,
         PKIX_List *unresolvedCriticalExtensions,
         PKIX_CertStore *certStore,
-        PKIX_Boolean *pFinished,
+        void **pNBIOContext,
         void *plContext)
 {
 
@@ -601,10 +601,11 @@ pkix_DefaultCRLChecker_Check_Store(
         PKIX_PL_CRLEntry *crlEntry = NULL;
         PKIX_Error *checkCrlFail = NULL;
         PKIX_CertStore_CRLCallback getCrls = NULL;
+        void *nbioContext = NULL;
 
         PKIX_ENTER(CERTCHAINCHECKER, "pkix_DefaultCRLChecker_Check_Store");
         PKIX_NULLCHECK_TWO(checker, cert);
-        PKIX_NULLCHECK_THREE(state, certStore, pFinished);
+        PKIX_NULLCHECK_THREE(state, certStore, pNBIOContext);
 
         /* Are this CertStore's entries in cache? */
         PKIX_CHECK(PKIX_CertStore_GetCertStoreCacheFlag
@@ -627,7 +628,7 @@ pkix_DefaultCRLChecker_Check_Store(
         if (cacheHit) {
 
                 /* Use cached data */
-                *pFinished = PKIX_TRUE;
+                *pNBIOContext = NULL;
 
                 PKIX_CHECK(PKIX_List_GetLength
                         (crlEntryList, &numEntries, plContext),
@@ -678,6 +679,7 @@ pkix_DefaultCRLChecker_Check_Store(
                 PKIX_CHECK(getCrls
                         (certStore,
                         state->crlSelector,
+                        &nbioContext,
                         &crlList,
                         plContext),
                         "getCrls failed");
@@ -691,10 +693,10 @@ pkix_DefaultCRLChecker_Check_Store(
 
                 if (crlList == NULL) {
 
-                        *pFinished = PKIX_FALSE;
+                        *pNBIOContext = nbioContext;
                 } else {
 
-                        *pFinished = PKIX_TRUE;
+                        *pNBIOContext = NULL;
 
                         checkCrlFail = pkix_DefaultCRLChecker_CheckCRLs
                                 (cert,
@@ -774,18 +776,18 @@ pkix_DefaultCRLChecker_Check_Helper(
         pkix_DefaultCRLCheckerState *state,
         PKIX_List *unresolvedCriticalExtensions,
         PKIX_Boolean useOnlyLocal,
-        PKIX_Boolean *pFinished,
+        void **pNBIOContext,
         void *plContext)
 {
 
-        PKIX_Boolean finished = PKIX_FALSE;
+        void *nbioContext = NULL;
         PKIX_Boolean certStoreCanBeUsed = PKIX_FALSE;
         PKIX_CertStore *certStore = NULL;
         PKIX_UInt32 numEntries = 0;
 
         PKIX_ENTER(CERTCHAINCHECKER, "pkix_DefaultCRLChecker_Check_Helper");
         PKIX_NULLCHECK_THREE(checker, cert, state);
-        *pFinished = PKIX_TRUE; /* prepare for Error exit */
+        *pNBIOContext = NULL; /* prepare for Error exit */
         while ((state->crlStoreIndex) < (state->numCrlStores)) {
 
                 /*
@@ -822,13 +824,13 @@ pkix_DefaultCRLChecker_Check_Helper(
                                 state,
                                 unresolvedCriticalExtensions,
                                 certStore,
-                                &finished,
+                                &nbioContext,
                                 plContext),
                                 "pkix_DefaultCRLChecker_Check_Store failed");
 
-                        if (finished == PKIX_FALSE) {
+                        if (nbioContext != NULL) {
                                 /* I/O still pending. Exit and resume later. */
-                                *pFinished = PKIX_FALSE;
+                                *pNBIOContext = nbioContext;
                                 goto cleanup;
                         }
                 }
@@ -880,20 +882,20 @@ pkix_DefaultCRLChecker_Check(
         PKIX_CertChainChecker *checker,
         PKIX_PL_Cert *cert,
         PKIX_List *unresolvedCriticalExtensions,
-        PKIX_Boolean *pFinished,
+        void **pNBIOContext,
         void *plContext)
 {
         pkix_DefaultCRLCheckerState *state = NULL;
         PKIX_PL_PublicKey *publicKey = NULL;
         PKIX_PL_PublicKey *newPublicKey = NULL;
         PKIX_Error *checkKeyUsageFail = NULL;
-        PKIX_Boolean finished = PKIX_FALSE;
         PKIX_Boolean selfIssued = PKIX_FALSE;
+        void *nbioContext = PKIX_FALSE;
 
         PKIX_ENTER(CERTCHAINCHECKER, "pkix_DefaultCRLChecker_Check");
-        PKIX_NULLCHECK_THREE(checker, cert, pFinished);
+        PKIX_NULLCHECK_THREE(checker, cert, pNBIOContext);
 
-        *pFinished = PKIX_TRUE; /* prepare for Error exit */
+        *pNBIOContext = NULL; /* prepare for Error exit */
 
         PKIX_CHECK(PKIX_CertChainChecker_GetCertChainCheckerState
                     (checker, (PKIX_PL_Object **)&state, plContext),
@@ -932,12 +934,12 @@ pkix_DefaultCRLChecker_Check(
                     state,
                     unresolvedCriticalExtensions,
                     PKIX_FALSE,
-                    &finished,
+                    &nbioContext,
                     plContext),
                     "pkix_DefaultCRLChecker_Check_Helper failed");
 
-        if (finished == PKIX_FALSE) {
-                *pFinished = PKIX_FALSE;
+        if (nbioContext != NULL) {
+                *pNBIOContext = nbioContext;
                 goto cleanup;
         }
 
@@ -1077,7 +1079,6 @@ pkix_DefaultCRLChecker_Initialize(
 
         PKIX_CHECK(PKIX_CertChainChecker_Create
                     (pkix_DefaultCRLChecker_Check,
-                    NULL, /* getNBIOCallback */
                     PKIX_FALSE,
                     PKIX_FALSE,
                     NULL,
@@ -1089,39 +1090,6 @@ pkix_DefaultCRLChecker_Initialize(
 cleanup:
 
         PKIX_DECREF(state);
-
-        PKIX_RETURN(CERTCHAINCHECKER);
-}
-
-PKIX_Error *
-pkix_DefaultCRLChecker_GetNBIOContext(
-        pkix_DefaultCRLCheckerState *state,
-        void **pNBIOContext,
-        void *plContext)
-{
-        PKIX_CertStore *certStore = NULL;
-        PKIX_CertStore_NBIOCallback csCallBack = NULL;
-
-        PKIX_ENTER(CERTCHAINCHECKER, "pkix_DefaultCRLChecker_GetNBIOContext");
-        PKIX_NULLCHECK_TWO(state, pNBIOContext);
-
-                PKIX_CHECK(PKIX_List_GetItem
-                        (state->certStores,
-                        state->crlStoreIndex,
-                        (PKIX_PL_Object **)&certStore,
-                        plContext),
-                        "PKIX_List_GetItem failed");
-
-                PKIX_CHECK(PKIX_CertStore_GetNBIOCallback
-                        (certStore, &csCallBack, plContext),
-                        "PKIX_CertStore_GetNBIOCallback failed");
-
-                PKIX_CHECK(csCallBack(certStore, pNBIOContext, plContext),
-                        "PKIX_CertStore_NBIOCallback failed");
-
-cleanup:
-
-        PKIX_DECREF(certStore);
 
         PKIX_RETURN(CERTCHAINCHECKER);
 }

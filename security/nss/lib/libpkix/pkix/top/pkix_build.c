@@ -933,7 +933,6 @@ pkix_Build_VerifyCertificate(
         PKIX_Boolean loopFound = PKIX_FALSE;
         PKIX_Boolean dsaParamsNeeded = PKIX_FALSE;
         PKIX_Boolean isSelfIssued = PKIX_FALSE;
-        PKIX_Boolean finished = PKIX_FALSE;
         PKIX_Boolean supportForwardChecking = PKIX_FALSE;
         PKIX_Boolean trusted = PKIX_FALSE;
         PKIX_PL_Cert *candidateCert = NULL;
@@ -941,6 +940,7 @@ pkix_Build_VerifyCertificate(
         PKIX_CertChainChecker *userChecker = NULL;
         PKIX_CertChainChecker_CheckCallback checkerCheck = NULL;
         PKIX_List *unresCritExtOIDs = NULL;
+        void *nbioContext = NULL;
 
         PKIX_ENTER(BUILD, "pkix_Build_VerifyCertificate");
         PKIX_NULLCHECK_THREE(state, pTrusted, pNeedsCRLChecking);
@@ -1011,7 +1011,7 @@ pkix_Build_VerifyCertificate(
                                 (userChecker,
                                 candidateCert,
                                 NULL,
-                                &finished, /* XXX handle non-blocking I/O ! */
+                                &nbioContext,
                                 plContext),
                                 "checkerCheck failed");
                         }
@@ -1360,9 +1360,10 @@ cleanup:
  *  TrustAnchor pointed to by "anchor" and other parameters contained, as was
  *  the Cert List, in "state".
  *
- *  If a checker using non-blocking I/O returns with an indication that I/O is
- *  in progress and the checking has not been completed, this function stores
- *  FALSE at "pFinished". Otherwise, it stores TRUE at "pFinished".
+ *  If a checker using non-blocking I/O returns with a non-NULL non-blocking I/O
+ *  context (NBIOContext), an indication that I/O is in progress and the
+ *  checking has not been completed, this function stores that context at
+ *  "pNBIOContext". Otherwise, it stores NULL at "pNBIOContext".
  *
  *  If not awaiting I/O and if successful, a ValidateResult is created
  *  containing the Public Key of the target certificate (including DSA parameter
@@ -1375,9 +1376,9 @@ cleanup:
  *      Address of ForwardBuilderState to be used. Must be non-NULL.
  *  "anchor"
  *      Address of TrustAnchor to be used. Must be non-NULL.
- *  "pFinished"
- *      Address at which the Boolean is stored indicating whether the validation
- *      is complete. Must be non-NULL.
+ *  "pNBIOContext"
+ *      Address at which the NBIOContext is stored indicating whether the
+ *      validation is complete. Must be non-NULL.
  *  "pValResult"
  *      Address at which the ValidateResult is stored. Must be non-NULL.
  *  "plContext"
@@ -1393,20 +1394,20 @@ static PKIX_Error *
 pkix_Build_ValidateEntireChain(
         PKIX_ForwardBuilderState *state,
         PKIX_TrustAnchor *anchor,
-        PKIX_Boolean *pFinished,
+        void **pNBIOContext,
         PKIX_ValidateResult **pValResult,
         void *plContext)
 {
         PKIX_UInt32 numChainCerts = 0;
-        PKIX_Boolean finished = PKIX_FALSE;
         PKIX_PL_PublicKey *subjPubKey = NULL;
         PKIX_PolicyNode *policyTree = NULL;
         PKIX_ValidateResult *valResult = NULL;
+        void *nbioContext = PKIX_FALSE;
 
         PKIX_ENTER(BUILD, "pkix_Build_ValidateEntireChain");
-        PKIX_NULLCHECK_FOUR(state, anchor, pFinished, pValResult);
+        PKIX_NULLCHECK_FOUR(state, anchor, pNBIOContext, pValResult);
 
-        *pFinished = PKIX_TRUE; /* prepare for case of error exit */
+        *pNBIOContext = NULL; /* prepare for case of error exit */
 
         PKIX_CHECK(PKIX_List_GetLength
                 (state->reversedCertChain, &numChainCerts, plContext),
@@ -1419,14 +1420,14 @@ pkix_Build_ValidateEntireChain(
                     state->checkedCritExtOIDs,
                     &state->certCheckedIndex,
                     &state->checkerIndex,
-                    &finished,
+                    &nbioContext,
                     &subjPubKey,
                     &policyTree,
                     plContext),
                     "pkix_CheckChain failed");
 
-        if (finished == PKIX_FALSE) {
-                *pFinished = PKIX_FALSE;
+        if (nbioContext != NULL) {
+                *pNBIOContext = nbioContext;
                 goto cleanup;
         }
 
@@ -1767,6 +1768,7 @@ static PKIX_Error *
 pkix_Build_GatherCerts(
         PKIX_ForwardBuilderState *state,
         PKIX_ComCertSelParams *certSelParams,
+        void **pNBIOContext,
         PKIX_List **pCerts,
         void *plContext)
 {
@@ -1777,9 +1779,12 @@ pkix_Build_GatherCerts(
         PKIX_CertStore_CertCallback getCerts = NULL;
         PKIX_List *certsFound = NULL;
         PKIX_List *sorted = NULL;
+        void *nbioContext = NULL;
 
         PKIX_ENTER(BUILD, "pkix_Build_GatherCerts");
-        PKIX_NULLCHECK_THREE(state, certSelParams, pCerts);
+        PKIX_NULLCHECK_FOUR(state, certSelParams, pNBIOContext, pCerts);
+
+        *pNBIOContext = NULL;
 
         while (state->certStoreIndex < state->buildConstants.numCertStores) {
 
@@ -1848,6 +1853,7 @@ pkix_Build_GatherCerts(
                         PKIX_CHECK(getCerts
                                 (certStore,
                                 state->certSel,
+                                &nbioContext,
                                 &certsFound,
                                 plContext),
                                 "getCerts failed");
@@ -1869,6 +1875,7 @@ pkix_Build_GatherCerts(
                      */
                     if (certsFound == NULL) {
                         state->status = BUILD_CERTIOPENDING;
+                        *pNBIOContext = nbioContext;
                         *pCerts = NULL;
                         goto cleanup;
                     } else {
@@ -2052,9 +2059,9 @@ cleanup:
  *  This function performs a depth first search in the "forward" direction (from
  *  the target Cert to the trust anchor). A non-NULL targetCert must be stored
  *  in the ForwardBuilderState before this function is called. It is not written
- *  recursively since execution may be suspended in step 1 pending completion of
- *  non-blocking I/O. This iterative structure makes it much easier to resume
- *  where it left off.
+ *  recursively since execution may be suspended in in any of several places
+ *  pending completion of non-blocking I/O. This iterative structure makes it
+ *  much easier to resume where it left off.
  *
  *  Since the nature of the search is recursive, the recursion is handled by
  *  chaining states. That is, each new step involves creating a new
@@ -2064,14 +2071,14 @@ cleanup:
  *  (canBeCached and validityDate) are copied to the state provided by the
  *  caller, so that the caller can retrieve those values.
  *
- *  There are two return arguments, the ValidateResult and the
- *  ForwardBuilderState. If both are NULL, it means the search has failed. If
- *  the ValidateResult is non-NULL, it means the search has concluded
- *  successfully. If the ValidateResult is NULL but the ForwardBuilderState is
- *  non-NULL, it means the search is suspended until the results of a
- *  non-blocking IO become available. The caller may wait for the completion
- *  using platform-dependent methods and then call this function again, allowing
- *  it to resume the search.
+ *  There are three return arguments, the NBIOContext, the ValidateResult and
+ *  the ForwardBuilderState. If NBIOContext is non-NULL, it means the search is
+ *  suspended until the results of a non-blocking IO become available. The
+ *  caller may wait for the completion using platform-dependent methods and then
+ *  call this function again, allowing it to resume the search. If NBIOContext
+ *  is NULL and the ValidateResult is non-NULL, it means the search has
+ *  concluded successfully. If the NBIOContext is NULL but the ValidateResult is
+ *  NULL, it means the search was unsuccessful.
  *
  *  This function performs several steps at each node in the constructed chain:
  *
@@ -2110,6 +2117,9 @@ cleanup:
  *  are at the top level.
  *
  * PARAMETERS:
+ *  "pNBIOContext"
+ *      Address at which platform-dependent information is returned if building
+ *      is suspended for non-blocking I/O. Must be non-NULL.
  *  "pState"
  *      Address at which input ForwardBuilderState is found, and at which output
  *      ForwardBuilderState is stored. Must be non-NULL.
@@ -2126,6 +2136,7 @@ cleanup:
  */
 static PKIX_Error *
 pkix_BuildForwardDepthFirstSearch(
+        void **pNBIOContext,
         PKIX_ForwardBuilderState **pState,
         PKIX_ValidateResult **pValResult,
         void *plContext)
@@ -2136,7 +2147,6 @@ pkix_BuildForwardDepthFirstSearch(
         PKIX_Boolean canBeCached = PKIX_FALSE;
         PKIX_Boolean passed = PKIX_FALSE;
         PKIX_Boolean needsCRLChecking = PKIX_FALSE;
-        PKIX_Boolean finished = PKIX_FALSE;
         PKIX_Boolean ioPending = PKIX_FALSE;
         PKIX_PL_Date *validityDate = NULL;
         PKIX_PL_Date *maxTimeAllowed = NULL;
@@ -2161,10 +2171,12 @@ pkix_BuildForwardDepthFirstSearch(
         PKIX_ComCertSelParams *certSelParams = NULL;
         PKIX_TrustAnchor *trustAnchor = NULL;
         PKIX_PL_Cert *trustedCert = NULL;
+        void *nbioContext = NULL;
 
         PKIX_ENTER(BUILD, "pkix_BuildForwardDepthFirstSearch");
-        PKIX_NULLCHECK_THREE(pState, *pState, pValResult);
+        PKIX_NULLCHECK_FOUR(pNBIOContext, pState, *pState, pValResult);
 
+        *pNBIOContext = NULL;
         state = *pState;
         *pState = NULL; /* no net change in reference count */
         PKIX_INCREF(state->validityDate);
@@ -2219,11 +2231,16 @@ pkix_BuildForwardDepthFirstSearch(
 #endif
 
                 PKIX_CHECK(pkix_Build_GatherCerts
-                        (state, certSelParams, &certsFound, plContext),
+                        (state,
+                        certSelParams,
+                        &nbioContext,
+                        &certsFound,
+                        plContext),
                         "pkix_Build_GatherCerts failed");
 
                 if (certsFound == NULL) {
                         /* IO still pending, resume later */
+                        *pNBIOContext = nbioContext;
                         goto cleanup;
                 }
 
@@ -2302,14 +2319,14 @@ pkix_BuildForwardDepthFirstSearch(
                             (pkix_DefaultCRLCheckerState *) crlCheckerState,
                             NULL, /* unresolved crit extensions */
                             state->useOnlyLocal,
-                            &finished,
+                            &nbioContext,
                             plContext),
                             "pkix_DefaultCRLChecker_Check_Helper failed");
 
                     PKIX_DECREF(candidatePubKey);
                     PKIX_DECREF(crlCheckerState);
 
-                    if (finished == PKIX_FALSE) {
+                    if (nbioContext != NULL) {
                         /* IO still pending, resume later */
                         goto cleanup;
                     } else if (PKIX_ERROR_RECEIVED) {
@@ -2363,12 +2380,12 @@ pkix_BuildForwardDepthFirstSearch(
                       (pkix_Build_ValidateEntireChain
                       (state,
                       trustAnchor,
-                      &finished,
+                      &nbioContext,
                       &valResult,
                       plContext),
                       "pkix_Build_ValidateEntireChain failed");
 
-                    if (finished == PKIX_FALSE) {
+                    if (nbioContext != NULL) {
                             /* IO still pending, resume later */
                             goto cleanup;
                     } else {
@@ -2483,7 +2500,7 @@ pkix_BuildForwardDepthFirstSearch(
                                 (pkix_DefaultCRLCheckerState *) crlCheckerState,
                                 NULL, /* unresolved crit extensions */
                                 state->useOnlyLocal,
-                                &finished,
+                                &nbioContext,
                                 plContext),
                                 "pkix_DefaultCRLChecker_Check_Helper failed");
 
@@ -2491,7 +2508,7 @@ pkix_BuildForwardDepthFirstSearch(
                             PKIX_DECREF(trustedPubKey);
                             PKIX_DECREF(crlCheckerState);
 
-                            if (finished == PKIX_FALSE) {
+                            if (nbioContext != NULL) {
                                     /* IO still pending, resume later */
                                     goto cleanup;
                             } else if (PKIX_ERROR_RECEIVED) {
@@ -2518,12 +2535,12 @@ pkix_BuildForwardDepthFirstSearch(
                                     (pkix_Build_ValidateEntireChain
                                     (state,
                                     trustAnchor,
-                                    &finished,
+                                    &nbioContext,
                                     &valResult,
                                     plContext),
                                     "pkix_Build_ValidateEntireChain failed");
 
-                            if (finished == PKIX_FALSE) {
+                            if (nbioContext != NULL) {
                                     /* IO still pending, resume later */
                                     goto cleanup;
                             } else {
@@ -2737,20 +2754,21 @@ cleanup:
  *  with any of the trust anchors.
  * 
  *  If a crlChecker using non-blocking I/O returns with an indication that I/O
- *  is in progress, this function stores PKIX_FALSE at "pFinished". Otherwise,
- *  it stores PKIX_TRUE at "pFinished" and indicates in "pAnchor" whether a
- *  complete trust chain was found. If no successful trust chain is found, NULL
- *  is stored at "pAnchor". If a successful trust chain is found, the anchor
- *  that completed the chain is stored at "pAnchor".
+ *  is in progress, this function stores the NBIOContext (returned by the
+ *  checker) at "pNBIOContext". Otherwise, it stores NULL at "pNBIOContext" and
+ *  indicates in "pAnchor" whether a complete trust chain was found. If no
+ *  successful trust chain is found, NULL is stored at "pAnchor". If a
+ *  successful trust chain is found, the anchor that completed the chain is
+ *  stored at "pAnchor".
  *
  * PARAMETERS:
  *  "state"
  *      Address of ForwardBuilderState to be used. Must be non-NULL.
  *  "targetSubjNames"
  *      Address of List of subject names in targetCertificate. Must be non-NULL.
- *  "pFinished"
- *      Address at which the Boolean is stored indicating whether the checking
- *      is complete. Must be non-NULL.
+ *  "pNBIOContext"
+ *      Address at which the NBIOContext is stored indicating whether the
+ *      checking is complete. Must be non-NULL.
  *  "pAnchor"
  *      Address at which successful trustAnchor is stored, if trustAnchor and
  *      Certificate form a complete trust chain. Must be non-NULL.
@@ -2767,21 +2785,21 @@ static PKIX_Error *
 pkix_Build_TryShortcut(
         PKIX_ForwardBuilderState *state,
         PKIX_List *targetSubjNames,
-        PKIX_Boolean *pFinished,
+        void **pNBIOContext,
         PKIX_TrustAnchor **pAnchor,
         void *plContext)
 {
         PKIX_Boolean passed = PKIX_FALSE;
-        PKIX_Boolean finished = PKIX_FALSE;
+        void *nbioContext = NULL;
         PKIX_TrustAnchor *anchor = NULL;
         PKIX_PL_Cert *trustedCert = NULL;
         PKIX_PL_PublicKey *trustedPubKey = NULL;
         PKIX_PL_Object *crlCheckerState = NULL;
 
         PKIX_ENTER(BUILD, "pkix_Build_TryShortcut");
-        PKIX_NULLCHECK_THREE(state, pFinished, pAnchor);
+        PKIX_NULLCHECK_THREE(state, pNBIOContext, pAnchor);
 
-        *pFinished = PKIX_TRUE; /* prepare in case of error exit */
+        *pNBIOContext = NULL; /* prepare in case of error exit */
 
         /*
          * Does the target cert, with any of our trust
@@ -2840,13 +2858,13 @@ pkix_Build_TryShortcut(
                                 (pkix_DefaultCRLCheckerState *) crlCheckerState,
                                 NULL, /* unresolved crit extensions */
                                 PKIX_FALSE,
-                                &finished,
+                                &nbioContext,
                                 plContext),
                                 "pkix_DefaultCRLChecker_Check_Helper failed");
 
-                        if (finished == PKIX_FALSE) {
+                        if (nbioContext != NULL) {
                                 state->status = BUILD_SHORTCUTPENDING;
-                                *pFinished = PKIX_FALSE;
+                                *pNBIOContext = nbioContext;
                                 goto cleanup;
                         }
 
@@ -2888,9 +2906,10 @@ cleanup:
  *  If a successful chain is built, this function stores the BuildResult at
  *  "pBuildResult". Alternatively, if an operation using non-blocking I/O
  *  is in progress and the operation has not been completed, this function
- *  stores the FowardBuilderState at "pState" and NULL at "pBuildResult".
- *  Finally, if chain building was unsuccessful, this function stores NULL
- *  at both "pState" and at "pBuildResult".
+ *  stores the platform-dependent non-blocking I/O context (nbioContext) at
+ *  "pNBIOContext", the FowardBuilderState at "pState", and NULL at
+ *  "pBuildResult". Finally, if chain building was unsuccessful, this function
+ *  stores NULL at both "pState" and at "pBuildResult".
  *
  *  Note: This function is re-entered only for the case of non-blocking I/O
  *  in the "short-cut" attempt to build a chain using the target Certificate
@@ -2900,6 +2919,9 @@ cleanup:
  * PARAMETERS:
  *  "buildParams"
  *      Address of the BuildParams for the search. Must be non-NULL.
+ *  "pNBIOContext"
+ *      Address at which the NBIOContext is stored indicating whether the
+ *      validation is complete. Must be non-NULL.
  *  "pState"
  *      Address at which the ForwardBuilderState is stored, if the chain
  *      building is suspended for waiting I/O; also, the address at which the
@@ -2920,6 +2942,7 @@ cleanup:
 static PKIX_Error *
 pkix_Build_InitiateBuildChain(
         PKIX_BuildParams *buildParams,
+        void **pNBIOContext,
         PKIX_ForwardBuilderState **pState,
         PKIX_BuildResult **pBuildResult,
         void *plContext)
@@ -2933,7 +2956,6 @@ pkix_Build_InitiateBuildChain(
         PKIX_Boolean cacheHit = PKIX_FALSE;
         PKIX_Boolean validChain = PKIX_FALSE;
         PKIX_Boolean trusted = PKIX_FALSE;
-        PKIX_Boolean finished = PKIX_FALSE;
         PKIX_Boolean ioPending = PKIX_FALSE;
         PKIX_PL_Cert *trustedCert = NULL;
         PKIX_ProcessingParams *procParams = NULL;
@@ -2948,6 +2970,7 @@ pkix_Build_InitiateBuildChain(
         PKIX_List *userCheckers = NULL;
         PKIX_PL_Date *testDate = NULL;
         PKIX_PL_PublicKey *targetPubKey = NULL;
+        void *nbioContext = NULL;
         BuildConstants buildConstants;
 
         PKIX_List *tentativeChain = NULL;
@@ -2960,7 +2983,9 @@ pkix_Build_InitiateBuildChain(
         PKIX_CertStore_CheckTrustCallback trustCallback = NULL;
 
         PKIX_ENTER(BUILD, "pkix_Build_InitiateBuildChain");
-        PKIX_NULLCHECK_THREE(buildParams, pState, pBuildResult);
+        PKIX_NULLCHECK_FOUR(buildParams, pNBIOContext, pState, pBuildResult);
+
+        *pNBIOContext = NULL;
 
         if (*pState != NULL) {
             state = *pState;
@@ -3219,13 +3244,14 @@ pkix_Build_InitiateBuildChain(
                             PKIX_CHECK_ONLY_FATAL(pkix_Build_ValidateEntireChain
                                     (state,
                                     matchingAnchor,
-                                    &finished,
+                                    &nbioContext,
                                     &valResult,
                                     plContext),
                                     "pkix_Build_ValidateEntireChain failed");
     
-                        if (finished == PKIX_FALSE) {
+                        if (nbioContext != NULL) {
                                 /* IO still pending, resume later */
+                                *pNBIOContext = nbioContext;
                                 goto cleanup;
                             } else {
                                 PKIX_DECREF(state->reversedCertChain);
@@ -3269,10 +3295,15 @@ pkix_Build_InitiateBuildChain(
          * anchors, forms a complete trust chain.
          */
         PKIX_CHECK_ONLY_FATAL(pkix_Build_TryShortcut
-                (state, targetSubjNames, &finished, &matchingAnchor, plContext),
+                (state,
+                targetSubjNames,
+                &nbioContext,
+                &matchingAnchor,
+                plContext),
                 "pkix_Build_TryShortcut failed");
 
-        if (finished == PKIX_FALSE) {
+        if (nbioContext != NULL) {
+                *pNBIOContext = nbioContext;
                 PKIX_INCREF(state);
                 *pState = state;
                 goto cleanup;
@@ -3290,23 +3321,23 @@ pkix_Build_InitiateBuildChain(
                         "pkix_ValidateResult_Create failed");
         } else {
                 PKIX_CHECK(pkix_BuildForwardDepthFirstSearch
-                        (&state, &valResult, plContext),
+                        (&nbioContext, &state, &valResult, plContext),
                         "pkix_BuildForwardDepthFirstSearch failed");
         }
 
-        /* no valResult means the build has failed or would block */
-        if (valResult == NULL) {
-                PKIX_CHECK(pkix_ForwardBuilderState_IsIOPending
-                        (state, &ioPending, plContext),
-                        "pkix_ForwardBuilderState_IsIOPending failed");
+        /* non-null nbioContext means the build would block */
+        if (nbioContext != NULL) {
 
-                if (ioPending == PKIX_FALSE) {
-                        PKIX_DECREF(state);
-                        *pState = NULL;
-                        PKIX_ERROR("Unable to build chain");
-                } else {
-                        *pBuildResult = NULL;
-                }
+                *pNBIOContext = nbioContext;
+                *pBuildResult = NULL;
+
+        /* no valResult means the build has failed */
+        } else if (valResult == NULL) {
+
+                PKIX_DECREF(state);
+                *pState = NULL;
+                PKIX_ERROR("Unable to build chain");
+
         } else {
 
                 PKIX_CHECK(PKIX_CertChain_Create
@@ -3362,8 +3393,9 @@ cleanup:
  *  at both "pState" and at "pBuildResult".
  *
  * PARAMETERS:
- *  "buildParams"
- *      Address of the BuildParams for the search. Must be non-NULL.
+ *  "pNBIOContext"
+ *      Address at which the NBIOContext is stored indicating whether the
+ *      validation is complete. Must be non-NULL.
  *  "pState"
  *     Address at which the ForwardBuilderState is provided for resumption of
  *     the chain building attempt; also, the address at which the
@@ -3383,7 +3415,7 @@ cleanup:
  */
 static PKIX_Error *
 pkix_Build_ResumeBuildChain(
-        PKIX_BuildParams *buildParams,
+        void **pNBIOContext,
         PKIX_ForwardBuilderState **pState,
         PKIX_BuildResult **pBuildResult,
         void *plContext)
@@ -3393,29 +3425,32 @@ pkix_Build_ResumeBuildChain(
         PKIX_ValidateResult *valResult = NULL;
         PKIX_CertChain *certChain = NULL;
         PKIX_BuildResult *buildResult = NULL;
+        void *nbioContext = NULL;
 
         PKIX_ENTER(BUILD, "pkix_Build_ResumeBuildChain");
-        PKIX_NULLCHECK_FOUR(buildParams, pState, *pState, pBuildResult);
+        PKIX_NULLCHECK_THREE(pState, *pState, pBuildResult);
+
+        *pNBIOContext = NULL;
 
         state = *pState;
 
         PKIX_CHECK(pkix_BuildForwardDepthFirstSearch
-                (&state, &valResult, plContext),
+                (&nbioContext, &state, &valResult, plContext),
                 "pkix_BuildForwardDepthFirstSearch failed");
 
-        /* no valResult means the build has failed or would block */
-        if (valResult == NULL) {
-                PKIX_CHECK(pkix_ForwardBuilderState_IsIOPending
-                        (state, &ioPending, plContext),
-                        "pkix_ForwardBuilderState_IsIOPending failed");
+        /* non-null nbioContext means the build would block */
+        if (nbioContext != NULL) {
 
-                if (ioPending == PKIX_FALSE) {
-                        PKIX_DECREF(state);
-                        *pState = NULL;
-                        PKIX_ERROR("Unable to build chain");
-                } else {
-                        *pBuildResult = NULL;
-                }
+                *pNBIOContext = nbioContext;
+                *pBuildResult = NULL;
+
+        /* no valResult means the build has failed */
+        } else if (valResult == NULL) {
+
+                PKIX_DECREF(state);
+                *pState = NULL;
+                PKIX_ERROR("Unable to build chain");
+
         } else {
 
                 PKIX_CHECK(PKIX_CertChain_Create
@@ -3447,6 +3482,7 @@ cleanup:
 PKIX_Error *
 PKIX_BuildChain(
         PKIX_BuildParams *buildParams,
+        void **pNBIOContext,
         void **pState,
         PKIX_BuildResult **pBuildResult,
         void *plContext)
@@ -3454,37 +3490,49 @@ PKIX_BuildChain(
         PKIX_ForwardBuilderState *state = NULL;
         PKIX_BuildResult *buildResult = NULL;
         PKIX_ValidateResult *valResult = NULL;
+        void *nbioContext = NULL;
 
         PKIX_ENTER(BUILD, "PKIX_BuildChain");
-        PKIX_NULLCHECK_THREE(buildParams, pState, pBuildResult);
+        PKIX_NULLCHECK_FOUR(buildParams, pNBIOContext, pState, pBuildResult);
+
+        *pNBIOContext = NULL;
 
         if (*pState == NULL) {
                 PKIX_CHECK(pkix_Build_InitiateBuildChain
-                        (buildParams, &state, &buildResult, plContext),
+                        (buildParams,
+                        &nbioContext,
+                        &state,
+                        &buildResult,
+                        plContext),
                         "pkix_Build_InitiateBuildChain failed");
         } else {
                 state = (PKIX_ForwardBuilderState *)(*pState);
                 *pState = NULL; /* no net change in reference count */
                 if (state->status == BUILD_SHORTCUTPENDING) {
                         PKIX_CHECK(pkix_Build_InitiateBuildChain
-                                (buildParams, &state, &buildResult, plContext),
+                                (buildParams,
+                                &nbioContext,
+                                &state,
+                                &buildResult,
+                                plContext),
                                 "pkix_Build_InitiateBuildChain failed");
                 } else {
                         PKIX_CHECK(pkix_Build_ResumeBuildChain
-                                (buildParams, &state, &buildResult, plContext),
+                                (&nbioContext, &state, &buildResult, plContext),
                                 "pkix_Build_InitiateBuildChain failed");
                 }
         }
 
-        /* no buildResult means the build has failed or would block */
-        if (buildResult == NULL) {
-                if (state == NULL) {
-                        PKIX_ERROR("Unable to build chain");
-                } else {
-                        /* Non-blocking I/O is pending. */
-                        *pState = state;
-                        *pBuildResult = NULL;
-                }
+        /* non-null nbioContext means the build would block */
+        if (nbioContext != NULL) {
+
+                *pNBIOContext = nbioContext;
+                *pState = state;
+                *pBuildResult = NULL;
+
+        /* no buildResult means the build has failed */
+        } else if (buildResult == NULL) {
+                PKIX_ERROR("Unable to build chain");
         } else {
                 /*
                  * If we made a successful chain by combining the target Cert
@@ -3502,129 +3550,12 @@ PKIX_BuildChain(
                                 "pkix_CacheCertChain_Add failed");
                 }
 
-		PKIX_DECREF(state);
+                PKIX_DECREF(state);
                 *pState = NULL;
                 *pBuildResult = buildResult;
         }
 
 cleanup:
-
-        PKIX_RETURN(BUILD);
-}
-
-/*
- * FUNCTION: PKIX_Build_GetNBIOContext (see comments in pkix.h)
- */
-PKIX_Error *
-PKIX_Build_GetNBIOContext(
-        void *state,
-        void **pNBIOContext,
-        void *plContext)
-{
-	PKIX_ForwardBuilderState *fbs = NULL;
-        PKIX_CertStore *certStore = NULL;
-        PKIX_CertChainChecker *checker = NULL;
-        PKIX_CertStore_NBIOCallback callBack = NULL;
-        PKIX_PL_Object *crlCheckerStateObj = NULL;
-        pkix_DefaultCRLCheckerState *crlCheckerState = NULL;
-	PKIX_Boolean ioPending = PKIX_FALSE;
-
-        PKIX_ENTER(BUILD, "PKIX_Build_GetNBIOContext");
-        PKIX_NULLCHECK_TWO(state, pNBIOContext);
-
-        PKIX_CHECK(pkix_CheckType
-                (state, PKIX_FORWARDBUILDERSTATE_TYPE, plContext),
-                "Argument is not a PKIX_ForwardBuilderState");
-
-        fbs = (PKIX_ForwardBuilderState *)state;
-
-        switch(fbs->status) {
-            case BUILD_SHORTCUTPENDING:
-            case BUILD_CRL1:
-            case BUILD_CRL2:
-
-                    /* WOULDBLOCK from CRLChecker */
-                    PKIX_CHECK(PKIX_CertChainChecker_GetCertChainCheckerState
-                            (fbs->buildConstants.crlChecker,
-                            &crlCheckerStateObj,
-                            plContext),
-                            "PKIX_CertChainChecker_GetCertChainCheckerState"
-                            " failed");
-
-                    PKIX_CHECK(pkix_CheckType
-                            (crlCheckerStateObj,
-                            PKIX_DEFAULTCRLCHECKERSTATE_TYPE,
-                            plContext),
-                            "Object is not a DefaultCRLCheckerState object");
-
-                    crlCheckerState =
-                            (pkix_DefaultCRLCheckerState *)crlCheckerStateObj;
-
-                    PKIX_CHECK(pkix_DefaultCRLChecker_GetNBIOContext
-                            (crlCheckerState, pNBIOContext, plContext),
-                            "pkix_DefaultCRLChecker_GetNBIOContext failed");
-
-                    break;
-
-            case BUILD_INITIAL:
-            case BUILD_CHECKTRUSTED2:
-            case BUILD_VALCHAIN2:
-
-                    /* WOULDBLOCK from CheckCert */
-                    PKIX_CHECK(PKIX_List_GetItem
-                            (fbs->checkerChain,
-                            fbs->checkerIndex,
-                            (PKIX_PL_Object **)&checker,
-                            plContext),
-                            "PKIX_List_GetItem failed");
-                    /*
-                     * XXX add call to PKIX_CertChainChecker_GetNBIOCallback
-                     * add call to PKIX_CertChainChecker_nbioCallback
-                     */
-
-                    break;
-
-            case BUILD_CERTIOPENDING:
-
-                    /* WOULDBLOCK from CertStore:GetCert */
-                    PKIX_CHECK(PKIX_List_GetItem
-                            (fbs->buildConstants.certStores,
-                            fbs->certStoreIndex,
-                            (PKIX_PL_Object **)&certStore,
-                            plContext),
-                            "PKIX_List_GetItem failed");
-
-                    PKIX_CHECK(PKIX_CertStore_GetNBIOCallback
-                            (certStore, &callBack, plContext),
-                            "PKIX_CertStore_GetNBIOCallback failed");
-
-                    PKIX_CHECK(callBack(certStore, pNBIOContext, plContext),
-                            "PKIX_CertStore_NBIOCallback failed");
-
-                    break;
-
-            case BUILD_COLLECTINGCERTS:
-            case BUILD_CERTVALIDATING:
-            case BUILD_ABANDONNODE:
-            case BUILD_CRLPREP:
-            case BUILD_DATEPREP:
-            case BUILD_CHECKTRUSTED:
-            case BUILD_ADDTOCHAIN:
-            case BUILD_CHECKWITHANCHORS:
-            case BUILD_CRL2PREP:
-            case BUILD_VALCHAIN:
-            case BUILD_EXTENDCHAIN:
-            case BUILD_GETNEXTCERT:
-            default:
-                *pNBIOContext = NULL;
-                break;
-        }
-
-cleanup:
-
-        PKIX_DECREF(certStore);
-        PKIX_DECREF(checker);
-        PKIX_DECREF(crlCheckerState);
 
         PKIX_RETURN(BUILD);
 }

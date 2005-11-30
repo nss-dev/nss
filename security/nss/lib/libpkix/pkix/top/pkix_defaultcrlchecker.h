@@ -87,19 +87,13 @@ pkix_DefaultCRLChecker_Check_Helper(
         pkix_DefaultCRLCheckerState *state,
         PKIX_List *unresolvedCriticalExtensions,
         PKIX_Boolean useOnlyLocal,
-        PKIX_Boolean *pFinished,
+        void **pNBIOContext,
         void *plContext);
 
 PKIX_Error *
 pkix_DefaultCRLChecker_Check_SetSelector(
         PKIX_PL_Cert *cert,
         pkix_DefaultCRLCheckerState *state,
-        void *plContext);
-
-PKIX_Error *
-pkix_DefaultCRLChecker_GetNBIOContext(
-        pkix_DefaultCRLCheckerState *state,
-        void **pNBIOContext,
         void *plContext);
 
 PKIX_Error *

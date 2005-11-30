@@ -89,7 +89,7 @@ PKIX_Initialize(
         PKIX_UInt32 *pActualMinorVersion,
         void **pPlContext)
 {
-	void *plContext = NULL;
+        void *plContext = NULL;
 
         PKIX_ENTER(LIFECYCLE, "PKIX_Initialize");
 
@@ -125,7 +125,7 @@ PKIX_Initialize(
                 (platformInitNeeded, useArenas, &plContext),
                 "PKIX_PL_Initialize failed");
 
-	*pPlContext = plContext;
+        *pPlContext = plContext;
 
         if (desiredMajorVersion != PKIX_MAJOR_VERSION){
                 PKIX_ERROR("Major versions don't match");
@@ -191,7 +191,7 @@ PKIX_Initialize_SetConfigDir(
 
             case PKIX_STORE_TYPE_PK11:
 
-		    pkix_PK11ConfigDir = configDir;
+                    pkix_PK11ConfigDir = configDir;
                 break;
 
             default:

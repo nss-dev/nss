@@ -80,7 +80,7 @@ pkix_CheckCert(
         PKIX_List *checkers,
         PKIX_List *checkedExtOIDsList,
         PKIX_UInt32 *pCheckerIndex,
-        PKIX_Boolean *pFinished,
+        void **pNBIOContext,
         void *plContext)
 {
         PKIX_CertChainChecker_CheckCallback checkerCheck = NULL;
@@ -89,12 +89,12 @@ pkix_CheckCert(
         PKIX_UInt32 numCheckers;
         PKIX_UInt32 numUnresCritExtOIDs = 0;
         PKIX_UInt32 checkerIndex = 0;
-        PKIX_Boolean finished = PKIX_TRUE;
+        void *nbioContext = NULL;
 
         PKIX_ENTER(VALIDATE, "pkix_CheckCert");
-        PKIX_NULLCHECK_THREE(cert, checkers, pCheckerIndex);
+        PKIX_NULLCHECK_FOUR(cert, checkers, pCheckerIndex, pNBIOContext);
 
-        *pFinished = PKIX_TRUE; /* prepare for case of error exit */
+        *pNBIOContext = NULL; /* prepare for case of error exit */
 
         PKIX_CHECK(PKIX_PL_Cert_GetCriticalExtensionOIDs
                     (cert, &unresCritExtOIDs, plContext),
@@ -119,12 +119,16 @@ pkix_CheckCert(
                         "PKIX_CertChainChecker_GetCheckCallback failed");
 
                 PKIX_CHECK(checkerCheck
-                        (checker, cert, unresCritExtOIDs, &finished, plContext),
+                        (checker,
+                        cert,
+                        unresCritExtOIDs,
+                        &nbioContext,
+                        plContext),
                         "checkerCheck failed");
 
-                if (finished == PKIX_FALSE) {
+                if (nbioContext != NULL) {
                         *pCheckerIndex = checkerIndex;
-                        *pFinished = PKIX_FALSE;
+                        *pNBIOContext = nbioContext;
                         goto cleanup;
                 }
 
@@ -608,18 +612,18 @@ pkix_CheckChain(
         PKIX_List *removeCheckedExtOIDs,
         PKIX_UInt32 *pCertCheckedIndex,
         PKIX_UInt32 *pCheckerIndex,
-        PKIX_Boolean *pFinished,
+        void **pNBIOContext,
         PKIX_PL_PublicKey **pFinalSubjPubKey,
         PKIX_PolicyNode **pPolicyTree,
         void *plContext)
 {
         PKIX_UInt32 j = 0;
-        PKIX_Boolean finished = PKIX_TRUE;
+        void *nbioContext = NULL;
         PKIX_PL_Cert *cert = NULL;
 
         PKIX_ENTER(VALIDATE, "pkix_CheckChain");
         PKIX_NULLCHECK_THREE(certs, checkers, pCheckerIndex);
-        PKIX_NULLCHECK_THREE(pFinished, pFinalSubjPubKey, pPolicyTree);
+        PKIX_NULLCHECK_THREE(pNBIOContext, pFinalSubjPubKey, pPolicyTree);
 
         for (j = *pCertCheckedIndex; j < numCerts; j++){
                 PKIX_CHECK(PKIX_List_GetItem
@@ -637,13 +641,13 @@ pkix_CheckChain(
                         checkers,
                         removeCheckedExtOIDs,
                         pCheckerIndex,
-                        &finished,
+                        &nbioContext,
                         plContext),
                         "pkix_CheckCert failed");
 
-                if (finished == PKIX_FALSE) {
+                if (nbioContext != NULL) {
                         *pCertCheckedIndex = j;
-                        *pFinished = PKIX_FALSE;
+                        *pNBIOContext = nbioContext;
                         goto cleanup;
                 }
 
@@ -654,7 +658,7 @@ pkix_CheckChain(
                     (checkers, pFinalSubjPubKey, pPolicyTree, plContext),
                     "pkix_RetrieveOutputs failed");
 
-        *pFinished = PKIX_TRUE;
+        *pNBIOContext = NULL;
 
 cleanup:
 
@@ -776,7 +780,7 @@ PKIX_ValidateChain(
         PKIX_UInt32 numUserCheckers = 0;
         PKIX_UInt32 certCheckedIndex = 0;
         PKIX_UInt32 checkerIndex = 0;
-        PKIX_Boolean finished = PKIX_FALSE;
+        void *nbioContext = NULL;
 
         PKIX_ENTER(VALIDATE, "PKIX_ValidateChain");
         PKIX_NULLCHECK_TWO(valParams, pResult);
@@ -880,7 +884,7 @@ PKIX_ValidateChain(
                         validateCheckedCritExtOIDsList,
                         &certCheckedIndex,
                         &checkerIndex,
-                        &finished,
+                        &nbioContext,
                         &finalPubKey,
                         &validPolicyTree,
                         plContext);
