@@ -140,6 +140,7 @@ void testMatchCertSubject(
         PKIX_CertSelector *certSelector = NULL;
         PKIX_List *certList = NULL;
         PKIX_CertStore_CertCallback getCert = NULL;
+	void *nbioContext = NULL;
 
         PKIX_TEST_STD_VARS();
 
@@ -159,7 +160,11 @@ void testMatchCertSubject(
                 (certStore, &getCert, plContext));
 
         PKIX_TEST_EXPECT_NO_ERROR(getCert
-                (certStore, certSelector, &certList, plContext));
+                (certStore,
+		certSelector,
+		&nbioContext,
+		&certList,
+		plContext));
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_GetLength
                 (certList, &numCert, plContext));
@@ -202,6 +207,7 @@ void testMatchCertMinPath(
         PKIX_CertSelector *certSelector = NULL;
         PKIX_List *certList = NULL;
         PKIX_CertStore_CertCallback getCert = NULL;
+	void *nbioContext = NULL;
 
         PKIX_TEST_STD_VARS();
 
@@ -217,7 +223,11 @@ void testMatchCertMinPath(
                 (certStore, &getCert, plContext));
 
         PKIX_TEST_EXPECT_NO_ERROR(getCert
-                (certStore, certSelector, &certList, plContext));
+                (certStore,
+		certSelector,
+		&nbioContext,
+		&certList,
+		plContext));
 
         if (expectedAscii) {
                 testToStringHelper
@@ -325,6 +335,7 @@ void testMatchCrlIssuer(
         PKIX_CRLSelector *crlSelector = NULL;
         PKIX_List *crlList = NULL;
         PKIX_CertStore_CRLCallback getCrl = NULL;
+	void *nbioContext = NULL;
 
         PKIX_TEST_STD_VARS();
 
@@ -342,7 +353,11 @@ void testMatchCrlIssuer(
                 (crlStore, &getCrl, plContext));
 
         PKIX_TEST_EXPECT_NO_ERROR(getCrl
-                (crlStore, crlSelector, &crlList, plContext));
+                (crlStore,
+		crlSelector,
+                &nbioContext,
+		&crlList,
+		plContext));
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_GetLength
                 (crlList, &numCrl, plContext));
@@ -400,7 +415,7 @@ void testMatchCrlDate(
                 (crlStore, &getCrl, plContext));
 
         PKIX_TEST_EXPECT_ERROR(getCrl
-                (crlStore, crlSelector, &crlList, plContext));
+                (crlStore, crlSelector, NULL, &crlList, plContext));
 
 cleanup:
 

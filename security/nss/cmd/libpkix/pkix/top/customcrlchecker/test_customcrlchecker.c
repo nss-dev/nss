@@ -64,6 +64,7 @@ PKIX_Error *
 getCRLCallback(
         PKIX_CertStore *store,
         PKIX_CRLSelector *crlSelector,
+        void **pNBIOContext,
         PKIX_List **pCrlList,
         void *plContext)
 {
@@ -105,9 +106,32 @@ cleanup:
 }
 
 PKIX_Error *
+getCRLContinue(
+        PKIX_CertStore *store,
+        PKIX_CRLSelector *crlSelector,
+        void **pNBIOContext,
+        PKIX_List **pCrlList,
+        void *plContext)
+{
+        return (NULL);
+}
+
+PKIX_Error *
 getCertCallback(
         PKIX_CertStore *store,
         PKIX_CertSelector *certSelector,
+        void **pNBIOContext,
+        PKIX_List **pCerts,
+        void *plContext)
+{
+        return (NULL);
+}
+
+PKIX_Error *
+getCertContinue(
+        PKIX_CertStore *store,
+        PKIX_CertSelector *certSelector,
+        void **pNBIOContext,
         PKIX_List **pCerts,
         void *plContext)
 {
@@ -268,6 +292,7 @@ testCustomCertStore(PKIX_ValidateParams *valParams)
         PKIX_CRLSelector *crlSelector = NULL;
         PKIX_List *crlList = NULL;
         PKIX_UInt32 numCrl = 0;
+        void *nbioContext = NULL;
 
         PKIX_TEST_STD_VARS();
 
@@ -306,8 +331,9 @@ testCustomCertStore(PKIX_ValidateParams *valParams)
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_CertStore_Create
                                     (getCertCallback,
                                     getCRLCallback,
+                                    getCertContinue,
+                                    getCRLContinue,
                                     NULL,       /* trustCallback */
-                                    NULL,       /* nbioCallback */
                                     (PKIX_PL_Object *)crlSelector, /* fake */
                                     PKIX_FALSE, /* cacheFlag */
                                     PKIX_TRUE,  /* localFlag */
@@ -333,6 +359,7 @@ testCustomCertStore(PKIX_ValidateParams *valParams)
         PKIX_TEST_EXPECT_NO_ERROR(crlCallback
                                     (certStore,
                                     crlSelector,
+                                    &nbioContext,
                                     &crlList,
                                     plContext));
 

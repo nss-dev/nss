@@ -91,6 +91,7 @@ void testGetCRL(char *crlDir)
         PKIX_CRLSelector *crlSelector = NULL;
         PKIX_List *crlList = NULL;
         PKIX_UInt32 numCrl = 0;
+	void *nbioContext = NULL;
 
         PKIX_TEST_STD_VARS();
 
@@ -122,6 +123,7 @@ void testGetCRL(char *crlDir)
         PKIX_TEST_EXPECT_NO_ERROR(crlCallback
                                     (certStore,
                                     crlSelector,
+                                    &nbioContext,
                                     &crlList,
                                     plContext));
 
@@ -152,6 +154,7 @@ void testGetCert(char *certDir)
         PKIX_CertSelector *certSelector = NULL;
         PKIX_List *certList = NULL;
         PKIX_UInt32 numCert = 0;
+	void *nbioContext = NULL;
 
         PKIX_TEST_STD_VARS();
 
@@ -183,6 +186,7 @@ void testGetCert(char *certDir)
         PKIX_TEST_EXPECT_NO_ERROR(certCallback
                                     (certStore,
                                     certSelector,
+                                    &nbioContext,
                                     &certList,
                                     plContext));
 

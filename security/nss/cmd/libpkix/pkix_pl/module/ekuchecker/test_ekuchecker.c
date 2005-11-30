@@ -276,12 +276,12 @@ int main(int argc, char *argv[]){
 
         subTest("Extended-Key-Usage-Checker");
 
-        subTest("Extended-Key-Usage-Checke - Create Cert Chain");
+        subTest("Extended-Key-Usage-Checker - Create Cert Chain");
 
         chain = createCertChainPlus
                 (dirName, certNames, certs, chainLength, plContext);
 
-        subTest("Extended-Key-Usage-Checke - Create Params");
+        subTest("Extended-Key-Usage-Checker - Create Params");
 
         valParams = createValidateParams
                 (dirName,
@@ -302,7 +302,7 @@ int main(int argc, char *argv[]){
 
         testEkuChecker(valParams, only4EE);
 
-        subTest("Extended-Key-Usage-Checke - Validate Chain");
+        subTest("Extended-Key-Usage-Checker - Validate Chain");
 
         if (testValid == PKIX_TRUE) {
                 PKIX_TEST_EXPECT_NO_ERROR(PKIX_ValidateChain
