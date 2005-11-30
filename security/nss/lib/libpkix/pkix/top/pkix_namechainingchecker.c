@@ -55,7 +55,7 @@ pkix_NameChainingChecker_Check(
         PKIX_CertChainChecker *checker,
         PKIX_PL_Cert *cert,
         PKIX_List *unresolvedCriticalExtensions,
-        PKIX_Boolean *pFinished,
+        void **pNBIOContext,
         void *plContext)
 {
         PKIX_PL_X500Name *prevSubject = NULL;
@@ -64,9 +64,9 @@ pkix_NameChainingChecker_Check(
         PKIX_Boolean result;
 
         PKIX_ENTER(CERTCHAINCHECKER, "pkix_NameChainingChecker_Check");
-        PKIX_NULLCHECK_THREE(checker, cert, pFinished);
+        PKIX_NULLCHECK_THREE(checker, cert, pNBIOContext);
 
-        *pFinished = PKIX_TRUE; /* we never block on pending I/O */
+        *pNBIOContext = NULL; /* we never block on pending I/O */
 
         PKIX_CHECK(PKIX_CertChainChecker_GetCertChainCheckerState
                     (checker, (PKIX_PL_Object **)&prevSubject, plContext),
@@ -139,7 +139,6 @@ pkix_NameChainingChecker_Initialize(
 
         PKIX_CHECK(PKIX_CertChainChecker_Create
                     (pkix_NameChainingChecker_Check,
-                    NULL, /* getNBIOCallback */
                     PKIX_FALSE,
                     PKIX_FALSE,
                     NULL,

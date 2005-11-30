@@ -52,7 +52,6 @@ extern "C" {
 
 struct PKIX_CertChainCheckerStruct {
         PKIX_CertChainChecker_CheckCallback checkCallback;
-        PKIX_CertChainChecker_nbioCallback nbioCallback;
         PKIX_List *extensions;
         PKIX_PL_Object *state;
         PKIX_Boolean forwardChecking;

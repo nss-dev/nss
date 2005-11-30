@@ -117,11 +117,13 @@ extern "C" {
  *  If the checker finds that the certificate is not valid, an Error pointer is
  *  returned.
  *
- *  If the checker does not use non-blocking I/O, PKIX_TRUE will always be
- *  stored at "pFinished". If the checker uses non-blocking I/O, PKIX_FALSE will
- *  be stored while I/O is still pending. On a subsequent call the checker will
- *  attempt to complete the pending I/O and, if successful, PKIX_TRUE will be
- *  stored at "pFinished".
+ *  If the checker uses non-blocking I/O, the address of a platform-dependent
+ *  non-blocking I/O context ("nbioContext") will be stored at "pNBIOContext",
+ *  which the caller may use, in a platform-dependent way, to wait, poll, or
+ *  otherwise determine when to try again. If the checker does not use
+ *  non-blocking I/O, NULL will always be stored at "pNBIOContext". If a non-NULL
+ *  value was stored, on a subsequent call the checker will attempt to complete
+ *  the pending I/O and, if successful, NULL will be stored at "pNBIOContext".
  *
  * PARAMETERS:
  *  "checker"
@@ -134,9 +136,9 @@ extern "C" {
  *      Address of List of OIDs that represents the critical certificate
  *      extensions that have yet to be resolved. This parameter may be
  *      modified during the function call. Must be non-NULL.
- *  "pFinished"
- *      Address at which is stored a Boolean indication of whether checking
- *      was completed. Must be non-NULL.
+ *  "pNBIOContext"
+ *      Address at which is stored a platform-dependent structure indicating
+ *      whether checking was suspended for non-blocking I/O. Must be non-NULL.
  *  "plContext"
  *      Platform-specific context pointer.
  * THREAD SAFETY:
@@ -154,43 +156,7 @@ typedef PKIX_Error *
         PKIX_CertChainChecker *checker,
         PKIX_PL_Cert *cert,
         PKIX_List *unresolvedCriticalExtensions,  /* list of PKIX_PL_OID */
-	PKIX_Boolean *pFinished,
-        void *plContext);
-
-/*
- * FUNCTION: PKIX_CertChainChecker_nbioCallback
- * DESCRIPTION:
- *
- *  This callback function obtains platform-dependent information that can
- *  be used (obviously, in a platform-dependent way) to determine when non-
- *  blocking I/O has completed. If the checker does not use non-blocking I/O,
- *  this function will store NULL at "pNBIOContext". If the checker uses non-
- *  blocking I/O, but is not currently processing such I/O, the result of
- *  calling this function is undefined.
- *
- * PARAMETERS:
- *  "checker"
- *      Address of CertChainChecker whose certChainCheckerState and
- *      CheckCallback logic is to be used. Must be non-NULL.
- *  "pNBIOContext"
- *      Address at which is stored a platform-dependent context that can be used
- *      in determining when non-blocking I/O has completed. Must be non-NULL.
- *  "plContext"
- *      Platform-specific context pointer.
- * THREAD SAFETY:
- *  Thread Safe
- *
- *  Multiple threads must be able to safely call this function without
- *  worrying about conflicts, even if they're operating on the same object.
- * RETURNS:
- *  Returns NULL if the function succeeds.
- *  Returns a CertChainChecker Error if the function fails in a non-fatal way.
- *  Returns a Fatal Error if the function fails in an unrecoverable way.
- */
-typedef PKIX_Error *
-(*PKIX_CertChainChecker_nbioCallback)(
-        PKIX_CertChainChecker *checker,
-        void **pNBIOContext,
+	void **pNBIOContext,
         void *plContext);
 
 /*
@@ -226,16 +192,9 @@ typedef PKIX_Error *
  *  not recognize or process any certificate extensions, "extensions" should
  *  be set to NULL.
  *
- *  A CertChainChecker that may use non-blocking I/O must provide a callback
- *  function by which the user can obtain the platform-dependent information
- *  needed to wait, e.g. by polling, for I/O completion. A CertChainChecker
- *  that does not do I/O may provide NULL for this callback function.
- *
  * PARAMETERS:
  *  "callback"
  *      The CheckCallback function to be used. Must be non-NULL.
- *  "nbioCallback"
- *      The GetNBIOCallback function to be used. May be NULL.
  *  "forwardCheckingSupported"
  *      A Boolean value indicating whether or not this CertChainChecker is
  *      capable of checking certificates in the "forward" direction.
@@ -261,7 +220,6 @@ typedef PKIX_Error *
 PKIX_Error *
 PKIX_CertChainChecker_Create(
     PKIX_CertChainChecker_CheckCallback callback,
-    PKIX_CertChainChecker_nbioCallback nbioCallback,
     PKIX_Boolean forwardCheckingSupported,
     PKIX_Boolean forwardDirectionExpected,
     PKIX_List *extensions,  /* list of PKIX_PL_OID */
@@ -295,34 +253,6 @@ PKIX_Error *
 PKIX_CertChainChecker_GetCheckCallback(
         PKIX_CertChainChecker *checker,
         PKIX_CertChainChecker_CheckCallback *pCallback,
-        void *plContext);
-
-/*
- * FUNCTION: PKIX_CertChainChecker_GetNBIOCallback
- * DESCRIPTION:
- *
- *  Retrieves a pointer, which could be NULL, to "checker's" NBIO callback
- *  function and puts it in "pNBIOCallback".
- *
- * PARAMETERS:
- *  "checker"
- *      The CertChainChecker whose Check callback is desired. Must be non-NULL.
- *  "pNBIOCallback"
- *      Address where NBIO callback function pointer will be stored.
- *      Must be non-NULL.
- *  "plContext"
- *      Platform-specific context pointer.
- * THREAD SAFETY:
- *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
- * RETURNS:
- *  Returns NULL if the function succeeds.
- *  Returns a CertChainChecker Error if the function fails in a non-fatal way.
- *  Returns a Fatal Error if the function fails in an unrecoverable way.
- */
-PKIX_Error *
-PKIX_CertChainChecker_GetNBIOCallback(
-        PKIX_CertChainChecker *checker,
-        PKIX_CertChainChecker_nbioCallback *pNBIOCallback,
         void *plContext);
 
 /*

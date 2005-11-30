@@ -116,7 +116,6 @@ pkix_CertChainChecker_Duplicate(
 
         PKIX_CHECK(PKIX_CertChainChecker_Create
                     (checker->checkCallback,
-                    checker->nbioCallback,
                     checker->forwardChecking,
                     checker->isForwardDirectionExpected,
                     extensionsDuplicate,
@@ -177,7 +176,6 @@ pkix_CertChainChecker_RegisterSelf(void *plContext)
 PKIX_Error *
 PKIX_CertChainChecker_Create(
     PKIX_CertChainChecker_CheckCallback callback,
-    PKIX_CertChainChecker_nbioCallback nbioCallback,
     PKIX_Boolean forwardCheckingSupported,
     PKIX_Boolean isForwardDirectionExpected,
     PKIX_List *list,  /* list of PKIX_PL_OID */
@@ -199,7 +197,6 @@ PKIX_CertChainChecker_Create(
 
         /* initialize fields */
         checker->checkCallback = callback;
-        checker->nbioCallback = nbioCallback;
         checker->forwardChecking = forwardCheckingSupported;
         checker->isForwardDirectionExpected = isForwardDirectionExpected;
 
@@ -231,24 +228,6 @@ PKIX_CertChainChecker_GetCheckCallback(
         PKIX_NULLCHECK_TWO(checker, pCallback);
 
         *pCallback = checker->checkCallback;
-
-        PKIX_RETURN(CERTCHAINCHECKER);
-}
-
-/*
- * FUNCTION: PKIX_CertChainChecker_GetNBIOCallback
- *      (see comments in pkix_checker.h)
- */
-PKIX_Error *
-PKIX_CertChainChecker_GetNBIOCallback(
-        PKIX_CertChainChecker *checker,
-        PKIX_CertChainChecker_nbioCallback *pCallback,
-        void *plContext)
-{
-        PKIX_ENTER(CERTCHAINCHECKER, "PKIX_CertChainChecker_GetNBIOCallback");
-        PKIX_NULLCHECK_TWO(checker, pCallback);
-
-        *pCallback = checker->nbioCallback;
 
         PKIX_RETURN(CERTCHAINCHECKER);
 }

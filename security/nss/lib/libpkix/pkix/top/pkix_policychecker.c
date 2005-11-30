@@ -2274,7 +2274,7 @@ pkix_PolicyChecker_Check(
         PKIX_CertChainChecker *checker,
         PKIX_PL_Cert *cert,
         PKIX_List *unresolvedCriticals,  /* OIDs */
-        PKIX_Boolean *pFinished,
+        void **pNBIOContext,
         void *plContext)
 {
         PKIX_UInt32 numPolicies = 0;
@@ -2306,9 +2306,9 @@ pkix_PolicyChecker_Check(
 #endif
 
         PKIX_ENTER(CERTCHAINCHECKER, "pkix_PolicyChecker_Check");
-        PKIX_NULLCHECK_THREE(checker, cert, unresolvedCriticals);
+        PKIX_NULLCHECK_FOUR(checker, cert, unresolvedCriticals, pNBIOContext);
 
-        *pFinished = PKIX_TRUE; /* we never block on pending I/O */
+        *pNBIOContext = NULL; /* we never block on pending I/O */
 
         PKIX_CHECK(PKIX_CertChainChecker_GetCertChainCheckerState
                     (checker, (PKIX_PL_Object **)&state, plContext),
@@ -2781,7 +2781,6 @@ pkix_PolicyChecker_Initialize(
 
         PKIX_CHECK(PKIX_CertChainChecker_Create
                 (pkix_PolicyChecker_Check,
-                NULL, /* getNBIOCallback */
                 PKIX_FALSE,     /* forwardCheckingSupported */
                 PKIX_FALSE,
                 policyExtensions,

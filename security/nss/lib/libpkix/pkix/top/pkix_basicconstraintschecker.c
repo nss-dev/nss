@@ -182,7 +182,7 @@ pkix_BasicConstraintsChecker_Check(
         PKIX_CertChainChecker *checker,
         PKIX_PL_Cert *cert,
         PKIX_List *unresolvedCriticalExtensions,  /* list of PKIX_PL_OID */
-        PKIX_Boolean *pFinished,
+        void **pNBIOContext,
         void *plContext)
 {
         PKIX_PL_CertBasicConstraints *basicConstraints = NULL;
@@ -193,9 +193,9 @@ pkix_BasicConstraintsChecker_Check(
         PKIX_Boolean isSelfIssued = PKIX_FALSE;
 
         PKIX_ENTER(CERTCHAINCHECKER, "pkix_BasicConstraintsChecker_Check");
-        PKIX_NULLCHECK_THREE(checker, cert, pFinished);
+        PKIX_NULLCHECK_THREE(checker, cert, pNBIOContext);
 
-        *pFinished = PKIX_TRUE; /* we never block on pending I/O */
+        *pNBIOContext = NULL; /* we never block on pending I/O */
 
         PKIX_CHECK(PKIX_CertChainChecker_GetCertChainCheckerState
                     (checker, (PKIX_PL_Object **)&state, plContext),
@@ -325,7 +325,6 @@ pkix_BasicConstraintsChecker_Initialize(
 
         PKIX_CHECK(PKIX_CertChainChecker_Create
                     (pkix_BasicConstraintsChecker_Check,
-                    NULL, /* getNBIOCallback */
                     PKIX_FALSE,
                     PKIX_FALSE,
                     NULL,
