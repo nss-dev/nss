@@ -1102,6 +1102,7 @@ void testExtendedKeyUsageMatch(char *certDir)
         PKIX_CertSelector *certSelector = NULL;
         PKIX_List *certList = NULL;
         PKIX_UInt32 numCert = 0;
+        void *nbioContext = NULL;
 
         PKIX_TEST_STD_VARS();
 
@@ -1155,7 +1156,7 @@ void testExtendedKeyUsageMatch(char *certDir)
 
         subTest("    Getting data from Cert Callback");
         PKIX_TEST_EXPECT_NO_ERROR(certCallback
-                (certStore, certSelector, &certList, plContext));
+                (certStore, certSelector, &nbioContext, &certList, plContext));
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_GetLength
                 (certList, &numCert, plContext));
@@ -1186,6 +1187,7 @@ void testKeyUsageMatch(char *certDir)
         PKIX_CertSelector *certSelector = NULL;
         PKIX_List *certList = NULL;
         PKIX_UInt32 numCert = 0;
+        void *nbioContext = NULL;
 
         PKIX_TEST_STD_VARS();
 
@@ -1220,7 +1222,7 @@ void testKeyUsageMatch(char *certDir)
 
         subTest("    Getting data from Cert Callback");
         PKIX_TEST_EXPECT_NO_ERROR(certCallback
-                (certStore, certSelector, &certList, plContext));
+                (certStore, certSelector, &nbioContext, &certList, plContext));
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_GetLength
                 (certList, &numCert, plContext));
@@ -1250,6 +1252,7 @@ void testCertValidMatch(char *certDir)
         PKIX_CertSelector *certSelector = NULL;
         PKIX_List *certList = NULL;
         PKIX_UInt32 numCert = 0;
+        void *nbioContext = NULL;
 
         PKIX_TEST_STD_VARS();
 
@@ -1286,7 +1289,7 @@ void testCertValidMatch(char *certDir)
 
         subTest("    Getting data from Cert Callback");
         PKIX_TEST_EXPECT_NO_ERROR(certCallback
-                (certStore, certSelector, &certList, plContext));
+                (certStore, certSelector, &nbioContext, &certList, plContext));
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_GetLength
                 (certList, &numCert, plContext));
@@ -1319,6 +1322,7 @@ void testIssuerMatch(char *certDir)
         PKIX_List *certList = NULL;
         char *issuerName = "CN=science,O=mit,C=US";
         PKIX_UInt32 numCert = 0;
+        void *nbioContext = NULL;
 
         PKIX_TEST_STD_VARS();
 
@@ -1359,7 +1363,7 @@ void testIssuerMatch(char *certDir)
 
         subTest("    Getting data from Cert Callback");
         PKIX_TEST_EXPECT_NO_ERROR(certCallback
-                (certStore, certSelector, &certList, plContext));
+                (certStore, certSelector, &nbioContext, &certList, plContext));
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_GetLength
                 (certList, &numCert, plContext));
@@ -1392,6 +1396,7 @@ void testSerialNumberVersionMatch(char *certDir)
         PKIX_CertSelector *certSelector = NULL;
         PKIX_List *certList = NULL;
         PKIX_UInt32 numCert = 0;
+        void *nbioContext = NULL;
 
         PKIX_TEST_STD_VARS();
 
@@ -1436,7 +1441,7 @@ void testSerialNumberVersionMatch(char *certDir)
 
         subTest("    Getting data from Cert Callback");
         PKIX_TEST_EXPECT_NO_ERROR(certCallback
-                (certStore, certSelector, &certList, plContext));
+                (certStore, certSelector, &nbioContext, &certList, plContext));
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_GetLength
                 (certList, &numCert, plContext));
@@ -1453,7 +1458,7 @@ void testSerialNumberVersionMatch(char *certDir)
 
         subTest("    Getting data from Cert Callback");
         PKIX_TEST_EXPECT_NO_ERROR(certCallback
-                (certStore, certSelector, &certList, plContext));
+                (certStore, certSelector, &nbioContext, &certList, plContext));
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_GetLength
                 (certList, &numCert, plContext));

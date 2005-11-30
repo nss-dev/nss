@@ -469,6 +469,7 @@ PKIX_Error *
 pkix_pl_Pk11CertStore_GetCert(
         PKIX_CertStore *store,
         PKIX_CertSelector *selector,
+        void **pNBIOContext,
         PKIX_List **pCertList,
         void *plContext)
 {
@@ -484,7 +485,9 @@ pkix_pl_Pk11CertStore_GetCert(
         PKIX_Boolean cacheFlag = PKIX_FALSE;
 
         PKIX_ENTER(CERTSTORE, "pkix_pl_Pk11CertStore_GetCert");
-        PKIX_NULLCHECK_THREE(store, selector, pCertList);
+        PKIX_NULLCHECK_FOUR(store, selector, pNBIOContext, pCertList);
+
+        *pNBIOContext = NULL;   /* We don't use non-blocking I/O */
 
         PKIX_CHECK(PKIX_CertSelector_GetMatchCallback
                 (selector, &callback, plContext),
@@ -579,6 +582,7 @@ PKIX_Error *
 pkix_pl_Pk11CertStore_GetCRL(
         PKIX_CertStore *store,
         PKIX_CRLSelector *selector,
+        void **pNBIOContext,
         PKIX_List **pCrlList,
         void *plContext)
 {
@@ -591,7 +595,9 @@ pkix_pl_Pk11CertStore_GetCRL(
         PKIX_ComCRLSelParams *params = NULL;
 
         PKIX_ENTER(CERTSTORE, "pkix_pl_Pk11CertStore_GetCRL");
-        PKIX_NULLCHECK_THREE(store, selector, pCrlList);
+        PKIX_NULLCHECK_FOUR(store, selector, pNBIOContext, pCrlList);
+
+        *pNBIOContext = NULL;   /* We don't use non-blocking I/O */
 
         PKIX_CHECK(PKIX_CRLSelector_GetMatchCallback
                 (selector, &callback, plContext),
@@ -677,8 +683,9 @@ PKIX_PL_Pk11CertStore_Create(
         PKIX_CHECK(PKIX_CertStore_Create
                 (pkix_pl_Pk11CertStore_GetCert,
                 pkix_pl_Pk11CertStore_GetCRL,
+                NULL, /* getCertContinue */
+                NULL, /* getCrlContinue */
                 pkix_pl_Pk11CertStore_CheckTrust,
-                NULL,      /* does not support non-blocking I/O */
                 NULL,
                 PKIX_TRUE, /* cache flag */
                 PKIX_TRUE, /* local - no network I/O */

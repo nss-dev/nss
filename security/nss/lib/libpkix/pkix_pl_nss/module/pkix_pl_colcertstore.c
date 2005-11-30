@@ -1099,6 +1099,9 @@ cleanup:
  *      The object CertStore is the object passed in by checker call.
  *  "crlSelector"
  *      CRLSelector specifies criteria for chosing CRL's
+ *  "pNBIOContext"
+ *      Address where platform-dependent information is returned for CertStores
+ *      that use non-blocking I/O. Must be non-NULL.
  *  "pCertList"
  *      Address where object pointer will be returned. Must be non-NULL.
  *  "plContext"
@@ -1115,6 +1118,7 @@ PKIX_Error *
 pkix_pl_CollectionCertStore_GetCert(
         PKIX_CertStore *certStore,
         PKIX_CertSelector *selector,
+        void **pNBIOContext,
         PKIX_List **pCerts,
         void *plContext)
 {
@@ -1122,7 +1126,9 @@ pkix_pl_CollectionCertStore_GetCert(
         PKIX_List *selectedCerts = NULL;
 
         PKIX_ENTER(CERTSTORE, "pkix_pl_CollectionCertStore_GetCert");
-        PKIX_NULLCHECK_THREE(certStore, selector, pCerts);
+        PKIX_NULLCHECK_FOUR(certStore, selector, pNBIOContext, pCerts);
+
+        *pNBIOContext = NULL;   /* We don't use non-blocking I/O */
 
         PKIX_CHECK(PKIX_CertStore_GetCertStoreContext
                     (certStore,
@@ -1176,6 +1182,9 @@ cleanup:
  *      The object CertStore is passed in by checker call.
  *  "crlSelector"
  *      CRLSelector specifies criteria for chosing CRL's
+ *  "pNBIOContext"
+ *      Address where platform-dependent information is returned for CertStores
+ *      that use non-blocking I/O. Must be non-NULL.
  *  "pCrlList"
  *      Address where object pointer will be returned. Must be non-NULL.
  *  "plContext"
@@ -1192,6 +1201,7 @@ PKIX_Error *
 pkix_pl_CollectionCertStore_GetCRL(
         PKIX_CertStore *certStore,
         PKIX_CRLSelector *selector,
+        void **pNBIOContext,
         PKIX_List **pCrlList,
         void *plContext)
 {
@@ -1199,7 +1209,9 @@ pkix_pl_CollectionCertStore_GetCRL(
         PKIX_List *selectCrl = NULL;
 
         PKIX_ENTER(CERTSTORE, "pkix_pl_CollectionCertStore_GetCRL");
-        PKIX_NULLCHECK_THREE(certStore, selector, pCrlList);
+        PKIX_NULLCHECK_FOUR(certStore, selector, pNBIOContext, pCrlList);
+
+        *pNBIOContext = NULL;   /* We don't use non-blocking I/O */
 
         PKIX_CHECK(PKIX_CertStore_GetCertStoreContext
                     (certStore,
@@ -1212,7 +1224,7 @@ pkix_pl_CollectionCertStore_GetCRL(
                 PKIX_OBJECT_LOCK(colCertStoreContext);
 
                 /*
-                 * CRLs in the directory is cached in based on the
+                 * CRLs in the directory are cached based on the
                  * assumption that the directory contents won't be
                  * changed dynamically.
                  */
@@ -1304,8 +1316,9 @@ PKIX_PL_CollectionCertStore_Create(
         PKIX_CHECK(PKIX_CertStore_Create
                     (pkix_pl_CollectionCertStore_GetCert,
                     pkix_pl_CollectionCertStore_GetCRL,
+                    NULL, /* GetCertContinue */
+                    NULL, /* GetCRLContinue */
                     pkix_pl_CollectionCertStore_CheckTrust,
-                    NULL,      /* don't support non-blocking I/O */
                     (PKIX_PL_Object *)colCertStoreContext,
                     PKIX_TRUE, /* cache flag */
                     PKIX_TRUE, /* local - no network I/O */
