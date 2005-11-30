@@ -49,6 +49,17 @@ void *plContext = NULL;
 PKIX_Error *testCRLCallback(
         PKIX_CertStore *store,
         PKIX_CRLSelector *selector,
+	void **pNBIOContext,
+        PKIX_List **pCrls,  /* list of PKIX_PL_Crl */
+        void *plContext)
+{
+        return (0);
+}
+
+PKIX_Error *testCRLContinue(
+        PKIX_CertStore *store,
+        PKIX_CRLSelector *selector,
+	void **pNBIOContext,
         PKIX_List **pCrls,  /* list of PKIX_PL_Crl */
         void *plContext)
 {
@@ -58,6 +69,17 @@ PKIX_Error *testCRLCallback(
 PKIX_Error *testCertCallback(
         PKIX_CertStore *store,
         PKIX_CertSelector *selector,
+	void **pNBIOContext,
+        PKIX_List **pCerts,  /* list of PKIX_PL_Cert */
+        void *plContext)
+{
+        return (0);
+}
+
+PKIX_Error *testCertContinue(
+        PKIX_CertStore *store,
+        PKIX_CertSelector *selector,
+	void **pNBIOContext,
         PKIX_List **pCerts,  /* list of PKIX_PL_Cert */
         void *plContext)
 {
@@ -85,8 +107,9 @@ void testCertStore(char *crlDir)
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_CertStore_Create
                                     (testCertCallback,
                                     testCRLCallback,
+                                    testCertContinue,
+                                    testCRLContinue,
                                     NULL,        /* trustCallback */
-                                    NULL,        /* non-blocking I/O */
                                     (PKIX_PL_Object *) dirString,
                                     PKIX_TRUE,   /* cacheFlag */
                                     PKIX_TRUE,   /* local */
