@@ -325,7 +325,7 @@ pkix_pl_EkuChecker_Check(
         PKIX_CertChainChecker *checker,
         PKIX_PL_Cert *cert,
         PKIX_List *unresolvedCriticalExtensions,
-        PKIX_Boolean *pFinished,
+        void **pNBIOContext,
         void *plContext)
 {
         pkix_pl_EkuCheckerState *state = NULL;
@@ -333,9 +333,9 @@ pkix_pl_EkuChecker_Check(
         PKIX_Boolean checkPassed = PKIX_TRUE;
 
         PKIX_ENTER(USERDEFINEDMODULES, "pkix_pl_EkuChecker_Check");
-        PKIX_NULLCHECK_THREE(checker, cert, pFinished);
+        PKIX_NULLCHECK_THREE(checker, cert, pNBIOContext);
 
-        *pFinished = PKIX_TRUE; /* no non-blocking IO */
+        *pNBIOContext = NULL; /* no non-blocking IO */
 
         PKIX_CHECK(PKIX_CertChainChecker_GetCertChainCheckerState
                     (checker, (PKIX_PL_Object **)&state, plContext),
@@ -412,15 +412,14 @@ PKIX_PL_EkuChecker_Initialize(
                     "PKIX_List_AppendItem failed");
 
         PKIX_CHECK(PKIX_CertChainChecker_Create
-                    (pkix_pl_EkuChecker_Check,
-                    NULL, /* getNBIOCallback */
-                    PKIX_TRUE,
-                    PKIX_FALSE,
-                    critExtOIDsList,
-                    (PKIX_PL_Object *) state,
-                    &checker,
-                    plContext),
-                    "PKIX_CertChainChecker_Create failed");
+                (pkix_pl_EkuChecker_Check,
+                PKIX_TRUE,                 /* forwardCheckingSupported */
+                PKIX_FALSE,                /* forwardDirectionExpected */
+                critExtOIDsList,
+                (PKIX_PL_Object *) state,
+                &checker,
+                plContext),
+                "PKIX_CertChainChecker_Create failed");
 
         PKIX_CHECK(PKIX_ProcessingParams_AddCertChainChecker
                     (params, checker, plContext),

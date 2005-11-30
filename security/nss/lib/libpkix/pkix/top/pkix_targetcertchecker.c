@@ -255,7 +255,7 @@ pkix_TargetCertChecker_Check(
         PKIX_CertChainChecker *checker,
         PKIX_PL_Cert *cert,
         PKIX_List *unresolvedCriticalExtensions,
-        PKIX_Boolean *pFinished,
+        void **pNBIOContext,
         void *plContext)
 {
         pkix_TargetCertCheckerState *state = NULL;
@@ -270,9 +270,9 @@ pkix_TargetCertChecker_Check(
         PKIX_UInt32 matchCount = 0;
 
         PKIX_ENTER(CERTCHAINCHECKER, "pkix_TargetCertChecker_Check");
-        PKIX_NULLCHECK_THREE(checker, cert, pFinished);
+        PKIX_NULLCHECK_THREE(checker, cert, pNBIOContext);
 
-        *pFinished = PKIX_TRUE; /* we never block on pending I/O */
+        *pNBIOContext = NULL; /* we never block on pending I/O */
 
         PKIX_CHECK(PKIX_CertChainChecker_GetCertChainCheckerState
                     (checker, (PKIX_PL_Object **)&state, plContext),
@@ -521,7 +521,6 @@ pkix_TargetCertChecker_Initialize(
 
         PKIX_CHECK(PKIX_CertChainChecker_Create
                     (pkix_TargetCertChecker_Check,
-                    NULL, /* getNBIOCallback */
                     PKIX_FALSE,
                     PKIX_FALSE,
                     NULL,

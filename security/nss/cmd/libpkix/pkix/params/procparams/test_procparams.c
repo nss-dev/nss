@@ -134,7 +134,7 @@ PKIX_Error *userChecker1cb(
         PKIX_CertChainChecker *checker,
         PKIX_PL_Cert *cert,
         PKIX_List *unresolvedCriticalExtensions,  /* list of PKIX_PL_OID */
-        PKIX_Boolean *finished,
+        void **pNBIOContext,
         void *plContext)
 {
         return(NULL);
@@ -157,7 +157,6 @@ void testGetSetCertChainCheckers(
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_CertChainChecker_Create
                     (userChecker1cb,
-                    NULL, /* getNBIOCallback */
                     PKIX_FALSE,
                     PKIX_FALSE,
                     NULL,
@@ -177,7 +176,6 @@ void testGetSetCertChainCheckers(
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_CertChainChecker_Create
                 (userChecker1cb,
-                NULL, /* getNBIOCallback */
                 PKIX_FALSE,
                 PKIX_FALSE,
                 NULL,
@@ -456,9 +454,9 @@ int main(int argc, char *argv[]) {
                 "\tQualifiers Rejected:   FALSE\n"
                 "\tCert Stores:           (EMPTY)\n"
                 "\tResource Limits:       [\n"
-                "\tMaxTime:           		2\n"
-                "\tMaxFanout:         		3\n"
-                "\tMaxDepth:         		3\n"
+                "\tMaxTime:                     2\n"
+                "\tMaxFanout:                   3\n"
+                "\tMaxDepth:                    3\n"
                 "]\n\n"
                 "\tCRL Checking Enabled:  0\n"
                 "]\n";

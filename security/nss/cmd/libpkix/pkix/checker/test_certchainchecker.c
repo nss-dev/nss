@@ -50,7 +50,7 @@ PKIX_Error *dummyChecker_Check(
         PKIX_CertChainChecker *checker,
         PKIX_PL_Cert *cert,
         PKIX_List *unresolvedCriticalExtensions,
-        PKIX_Boolean *finished,
+        void **pNBIOContext,
         void *plContext)
 {
         goto cleanup;
@@ -228,12 +228,11 @@ int main(int argc, char *argv[]) {
 
         subTest("CertChainChecker_Create");
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_CertChainChecker_Create
-                (dummyChecker_Check,
-                NULL, /* getNBIOCallback */
-                PKIX_FALSE,
-                PKIX_FALSE,
+                (dummyChecker_Check, /* PKIX_CertChainChecker_CheckCallback */
+                PKIX_FALSE,          /* forwardCheckingSupported */
+                PKIX_FALSE,          /* forwardDirectionExpected */
                 supportedExtensions,
-                NULL,
+                NULL,                /* PKIX_PL_Object *initialState */
                 &dummyChecker,
                 plContext));
 

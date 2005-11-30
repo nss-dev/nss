@@ -197,7 +197,7 @@ pkix_SignatureChecker_Check(
         PKIX_CertChainChecker *checker,
         PKIX_PL_Cert *cert,
         PKIX_List *unresolvedCriticalExtensions,
-        PKIX_Boolean *pFinished,
+        void **pNBIOContext,
         void *plContext)
 {
         pkix_SignatureCheckerState *state = NULL;
@@ -211,9 +211,9 @@ pkix_SignatureChecker_Check(
         PKIX_Boolean certVerified = PKIX_FALSE;
 
         PKIX_ENTER(CERTCHAINCHECKER, "pkix_SignatureChecker_Check");
-        PKIX_NULLCHECK_THREE(checker, cert, pFinished);
+        PKIX_NULLCHECK_THREE(checker, cert, pNBIOContext);
 
-        *pFinished = PKIX_TRUE; /* we never block on pending I/O */
+        *pNBIOContext = NULL; /* we never block on pending I/O */
 
         PKIX_CHECK(PKIX_CertChainChecker_GetCertChainCheckerState
                     (checker, (PKIX_PL_Object **)&state, plContext),
@@ -456,7 +456,6 @@ pkix_SignatureChecker_Initialize(
 
         PKIX_CHECK(PKIX_CertChainChecker_Create
                     (pkix_SignatureChecker_Check,
-                    NULL, /* getNBIOCallback */
                     PKIX_FALSE,
                     PKIX_FALSE,
                     NULL,

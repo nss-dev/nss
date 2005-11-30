@@ -69,7 +69,7 @@ testUserChecker(
         PKIX_CertChainChecker *checker,
         PKIX_PL_Cert *cert,
         PKIX_List *unresExtOIDs,
-        PKIX_Boolean *pFinished,
+        void **pNBIOContext,
         void *plContext)
 {
         numUserCheckerCalled++;
@@ -114,7 +114,8 @@ int main(int argc, char *argv[])
         char *actualCertsAscii = NULL;
         char *expectedCertsAscii = NULL;
         char *oidString = NULL;
-	void *buildState = NULL; /* needed by pkix_build for non-blocking I/O */
+        void *buildState = NULL; /* needed by pkix_build for non-blocking I/O */
+        void *nbioContext = NULL; /* needed by pkix_build for non-blocking I/O */
         PKIX_Boolean useArenas = PKIX_FALSE;
 
         PKIX_TEST_STD_VARS();
@@ -249,16 +250,15 @@ int main(int argc, char *argv[])
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_CertChainChecker_Create
                                     (testUserChecker,
-                                    NULL, /* getNBIOCallback */
                                     supportForward,
                                     PKIX_FALSE,
                                     userOIDs,
                                     NULL,
                                     &checker,
-				    plContext));
+                                    plContext));
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_ProcessingParams_AddCertChainChecker
-				  (procParams, checker, plContext));
+                                  (procParams, checker, plContext));
 
 
         /* create CertStores */
@@ -295,7 +295,11 @@ int main(int argc, char *argv[])
         /* build cert chain using build params and return buildResult */
 
         pkixTestErrorResult = PKIX_BuildChain
-                (buildParams, &buildState, &buildResult, plContext);
+                (buildParams,
+                &nbioContext,
+                &buildState,
+                &buildResult,
+                plContext);
 
         if (testValid == PKIX_TRUE) { /* ENE */
                 if (pkixTestErrorResult){
@@ -389,7 +393,7 @@ int main(int argc, char *argv[])
                                         expectedCertsAscii);
 
                         if (chainLength - 1 != numUserCheckerCalled) {
-		                pkixTestErrorMsg =
+                                pkixTestErrorMsg =
                                     "PKIX user defined checker not called";
                         }
 
