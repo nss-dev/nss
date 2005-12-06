@@ -47,9 +47,10 @@
 
 if [ -z "${NIST_FILES_DIR}" ] ; then
     Display "\n*******************************************************************************"
-    Display "NIST_FILES_DIR is not set, therefore some tests sre skipped"
-    Display "Set NIST_FILES_DIR to where NIST Certificates and CRLs located"
-    Display "to enable tests at this directory"
+    Display "The environment variable NIST_FILES_DIR is not defined. Therefore"
+    Display "tests depending on it will be skipped. To enable these tests set"
+    Display "NIST_FILES_DIR to the directory where NIST Certificates and CRLs"
+    Display "are located." 
     Display "*******************************************************************************\n"
     doNIST=0
 else
@@ -66,9 +67,9 @@ fi
 if [ ${doPD} -eq 1 -a -z "${PDVAL}" ] ; then
 
     Display "\n*******************************************************************************"
-    Display "PDVAL is not set, therefore some tests are skipped"
-    Display "Set PDVAL to top directory of where NIST Path Discovery"
-    Display "Certificates located to enable tests at this directory"
+    Display "The environment variable PDVAL is not defined. Therefore tests"
+    Display "depending on it will be skipped. To enable these tests set PDVAL to"
+    Display "the directory where NIST Path Discovery Certificates are located." 
     Display "*******************************************************************************\n"
     doNIST_PDTest=0
 else
