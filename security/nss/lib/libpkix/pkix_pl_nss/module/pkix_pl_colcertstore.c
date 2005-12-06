@@ -1165,6 +1165,9 @@ pkix_pl_CollectionCertStore_GetCert(
         *pCerts = selectedCerts;
 
 cleanup:
+        if (objectIsLocked == PKIX_TRUE) {
+                PKIX_OBJECT_UNLOCK(lockedObject);
+        }
 
         PKIX_DECREF(colCertStoreContext);
 
@@ -1249,6 +1252,9 @@ pkix_pl_CollectionCertStore_GetCRL(
         *pCrlList = selectCrl;
 
 cleanup:
+        if (objectIsLocked == PKIX_TRUE) {
+                PKIX_OBJECT_UNLOCK(lockedObject);
+        }
 
         PKIX_DECREF(colCertStoreContext);
 
