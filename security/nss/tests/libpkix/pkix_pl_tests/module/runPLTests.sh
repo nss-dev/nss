@@ -70,18 +70,27 @@ linkModuleNistFiles="InvalidDNnameConstraintsTest3EE.crt
         UserNoticeQualifierTest18EE.crt 
         CPSPointerQualifierTest20EE.crt"
 
-if [ ! -z "${NIST_FILES_DIR}" ]; then
-    if [ ! -d ./rev_data/local ]; then
-        mkdir -p ./rev_data/local
+if [ -n "${NIST_FILES_DIR}" ]; then
+    if [ ! -d ${HOSTDIR}/rev_data/local ]; then
+        mkdir -p ${HOSTDIR}/rev_data/local
     fi
-
-    for i in ${linkModuleNistFiles}; do
-        if [ -f ./rev_data/local/$i ]; then
-            rm ./rev_data/local/$i
-        fi
-        cp ${NIST_FILES_DIR}/$i ./rev_data/local/$i
-    done
+ 
+     for i in ${linkModuleNistFiles}; do
+         if [ -f ${HOSTDIR}/rev_data/local/$i ]; then
+             rm ${HOSTDIR}/rev_data/local/$i
+         fi
+         cp ${NIST_FILES_DIR}/$i ${HOSTDIR}/rev_data/local/$i
+     done
 fi
+
+localCRLFiles="crlgood.crl
+	crldiff.crl
+	issuer-hanfei.crl
+	issuer-none.crl"
+
+for i in ${localCRLFiles}; do
+    cp ${curdir}/rev_data/local/$i ${HOSTDIR}/rev_data/local/$i
+done
 
 ##########
 # main
@@ -90,7 +99,7 @@ fi
 ParseArgs $*
 
 RunTests <<EOF
-test_colcertstore NIST-Test-Files-Used ${curdir}/rev_data/local
+test_colcertstore NIST-Test-Files-Used ${HOSTDIR}/rev_data/local
 test_pk11certstore ${curdir}/../../pkix_pl_tests/module ${curdir}/../../pkix_tests/top/rev_data/crlchecker
 test_ekuchecker "Test-EKU-without-OID" ENE "" ${curdir}/rev_data test_eku_codesigning_clientauth.crt test_eku_clientauth.crt test_eku_clientauthEE.crt
 test_ekuchecker "Test-EKU-with-good-OID" ENE "1.3.6.1.5.5.7.3.3" ${curdir}/rev_data test_eku_codesigning_clientauth.crt test_eku_clientauth.crt test_eku_clientauthEE.crt 

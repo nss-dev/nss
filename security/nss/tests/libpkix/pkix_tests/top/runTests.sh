@@ -53,18 +53,18 @@ linkMStoreNistFiles="store1/TrustAnchorRootCRL.crl
     store2/TwoCRLsCAGoodCRL.crl"
 
 if [ ! -z "${NIST_FILES_DIR}" ] ; then
-    if [ -d ./rev_data/multiple_certstores ]; then
-        rm -fr ./rev_data/multiple_certstores
+    if [ -d ${HOSTDIR}/rev_data/multiple_certstores ]; then
+        rm -fr ${HOSTDIR}/rev_data/multiple_certstores
     fi
-    mkdir ./rev_data/multiple_certstores
-    mkdir ./rev_data/multiple_certstores/store1
-    mkdir ./rev_data/multiple_certstores/store2
+    mkdir -p ${HOSTDIR}/rev_data/multiple_certstores
+    mkdir -p ${HOSTDIR}/rev_data/multiple_certstores/store1
+    mkdir -p ${HOSTDIR}/rev_data/multiple_certstores/store2
     for i in ${linkMStoreNistFiles}; do
-        if [ -f ./rev_data/multiple_certstores/$i ]; then
-            rm ./rev_data/multiple_certstores/$i
+        if [ -f ${HOSTDIR}/rev_data/multiple_certstores/$i ]; then
+            rm ${HOSTDIR}/rev_data/multiple_certstores/$i
         fi
         fname=`basename $i`
-        cp ${NIST_FILES_DIR}/${fname} ./rev_data/multiple_certstores/$i
+        cp ${NIST_FILES_DIR}/${fname} ${HOSTDIR}/rev_data/multiple_certstores/$i
     done
 fi
 
@@ -85,7 +85,7 @@ test_basicconstraintschecker "Three-Certificates-Chain" ENE ${curdir}/../../cert
 test_basicconstraintschecker "Four-Certificates-Chain-with-error" EE ${curdir}/../../certs hy2hy-bc0 hy2hy-bc0 hy2hc-bc hy2hc-bc
 test_validatechain_bc  ${curdir}/../../certs/hy2hy-bc0 ${curdir}/../../certs/hy2hc-bc
 test_policychecker NIST-Test-Files-Used ENE $NIST ${curdir}/../../certs
-test_defaultcrlchecker2stores NIST-Test.4.4.7-with-multiple-CRL-stores ENE $NIST ${curdir}/rev_data/multiple_certstores/store1 ${curdir}/rev_data/multiple_certstores/store2 TrustAnchorRootCertificate.crt TwoCRLsCACert.crt ValidTwoCRLsTest7EE.crt
+test_defaultcrlchecker2stores NIST-Test.4.4.7-with-multiple-CRL-stores ENE $NIST ${HOSTDIR}/rev_data/multiple_certstores/store1 ${HOSTDIR}/rev_data/multiple_certstores/store2 TrustAnchorRootCertificate.crt TwoCRLsCACert.crt ValidTwoCRLsTest7EE.crt
 test_buildchain_resourcelimits ${LDAP} NIST-Test.4.5.1 ENE $NIST ValidBasicSelfIssuedOldWithNewTest1EE.crt BasicSelfIssuedNewKeyOldWithNewCACert.crt BasicSelfIssuedNewKeyCACert.crt TrustAnchorRootCertificate.crt
 test_customcrlchecker "CRL-test-without-revocation" ENE ${curdir}/rev_data/crlchecker sci2sci.crt sci2phy.crt phy2prof.crt prof2test.crt
 test_customcrlchecker "CRL-test-with-revocation-reasoncode" EE ${curdir}/rev_data/crlchecker sci2sci.crt sci2chem.crt chem2prof.crt prof2test.crt

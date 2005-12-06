@@ -72,15 +72,15 @@ linkPkiNistFiles="InvalidDNnameConstraintsTest3EE.crt
         CPSPointerQualifierTest20EE.crt"
 
 if [ -n "${NIST_FILES_DIR}" ]; then
-    if [ ! -d ./rev_data/local ]; then
-        mkdir -p ./rev_data/local
+    if [ ! -d ${HOSTDIR}/rev_data/local ]; then
+        mkdir -p ${HOSTDIR}/rev_data/local
     fi
 
     for i in ${linkPkiNistFiles}; do
-        if [ -f ./rev_data/local/$i ]; then
-            rm ./rev_data/local/$i
+        if [ -f ${HOSTDIR}/rev_data/local/$i ]; then
+            rm ${HOSTDIR}/rev_data/local/$i
         fi
-        cp ${NIST_FILES_DIR}/$i ./rev_data/local/$i
+        cp ${NIST_FILES_DIR}/$i ${HOSTDIR}/rev_data/local/$i
     done
 fi
 
@@ -89,15 +89,16 @@ fi
 #########
 
 ParseArgs $*
+Display `ls ${HOSTDIR}/rev_data_local`
 
 RunTests <<EOF
-test_cert NIST-Test-Files-Used ${curdir}/../../certs ${curdir}/rev_data/local
-test_crl NIST-Test-Files-Used ${curdir}/../../certs ${curdir}/rev_data/local
+test_cert NIST-Test-Files-Used ${curdir}/../../certs ${HOSTDIR}/rev_data/local
+test_crl NIST-Test-Files-Used ${curdir}/../../certs ${HOSTDIR}/rev_data/local
 test_x500name
 test_generalname
 test_date NIST-Test-Files-Used
-test_crlentry ${curdir}/rev_data/local
-test_nameconstraints NIST-Test-Files-Used ${curdir}/rev_data/local
+test_crlentry ${curdir}/../../certs
+test_nameconstraints NIST-Test-Files-Used ${HOSTDIR}/rev_data/local
 test_authorityinfoaccess NIST-PDTest ${NIST_PDTEST} certs/BasicLDAPURIPathDiscoveryOU1EE1.crt certs/BasicHTTPURITrustAnchorRootCert.crt
 test_subjectinfoaccess NIST-PDTest ${NIST_PDTEST} certs/BasicHTTPURITrustAnchorRootCert.crt certs/BasicLDAPURIPathDiscoveryOU1EE1.crt
 EOF

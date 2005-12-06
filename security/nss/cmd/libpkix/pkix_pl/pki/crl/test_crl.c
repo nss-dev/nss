@@ -306,7 +306,7 @@ int main(int argc, char *argv[]) {
         dataDir = argv[3+j];
 
         createCRLs
-                (dataDir,
+                (dataCentralDir,
                 goodInput,
                 diffInput,
                 &goodObject,

@@ -96,27 +96,27 @@ Cleanup()
 
     if [ ${doTop} -eq 1 ]; then
         for i in ${linkMStoreNistFiles}; do
-            if [ -f ./rev_data/multiple_certstores/$i ]; then
-                rm -f ./rev_data/multiple_certstores/$i
+            if [ -f ${HOSTDIR}/rev_data/multiple_certstores/$i ]; then
+                rm -f ${HOSTDIR}/rev_data/multiple_certstores/$i
             fi
         done
-        if [ -d ./rev_data/multiple_certstores ]; then
-            rm -fr rev_data/multiple_certstores
+        if [ -d ${HOSTDIR}/rev_data/multiple_certstores ]; then
+            rm -fr ${HOSTDIR}/rev_data/multiple_certstores
         fi
     fi
 
     if [ ${doModule} -eq 1 ]; then
         for i in ${linkModuleNistFiles}; do
-            if [ -f ./rev_data/local/$i ]; then
-                rm -f ./rev_data/local/$i
+            if [ -f ${HOSTDIR}/rev_data/local/$i ]; then
+                rm -f ${HOSTDIR}/rev_data/local/$i
             fi
         done
     fi
 
     if [ ${doPki} -eq 1 ]; then
         for i in ${linkPkiNistFiles}; do
-            if [ -f ./rev_data/local/$i ]; then
-                rm -f ./rev_data/local/$i
+            if [ -f ${HOSTDIR}/rev_data/local/$i ]; then
+                rm -f ${HOSTDIR}/rev_data/local/$i
             fi
         done
     fi
@@ -227,8 +227,8 @@ Display "***********************************************************************
 	    fi
         fi
 
-        # Watch out for the logic, if doNIST is not set, this won't reach
-        # so implies NIST tests is basic, NIST Path Discovery tests is
+        # This "if" is not reached when doNIST is not set. The assumption
+        # is that NIST tests are basic, NIST Path Discovery tests are
         # additional
         if [ ${doNIST_PDTest} -eq 0 ]; then
             hasNIST=`echo ${args} | grep NIST-PDTest`
