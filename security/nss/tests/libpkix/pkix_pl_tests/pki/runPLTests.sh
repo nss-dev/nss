@@ -89,7 +89,6 @@ fi
 #########
 
 ParseArgs $*
-Display `ls ${HOSTDIR}/rev_data_local`
 
 RunTests <<EOF
 test_cert NIST-Test-Files-Used ${curdir}/../../certs ${HOSTDIR}/rev_data/local
