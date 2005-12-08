@@ -202,8 +202,8 @@ RunTests()
     # Announce start of tests
     #
     Display "*******************************************************************************"
-    Display "START OF TESTS FOR PKIX ${testunit} ${memText}"
-Display "*******************************************************************************"
+    Display "START OF TESTS FOR PKIX ${testunit} ${memText} (TZ=$TZ)"
+    Display "*******************************************************************************"
     Display ""
 
     # run each test specified by the input redirection below
