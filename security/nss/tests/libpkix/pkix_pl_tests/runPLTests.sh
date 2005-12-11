@@ -78,7 +78,7 @@ testHeadingEcho
 
 echo "RUNNING tests in pki";
 cd pki;
-runPLTests.sh ${arenasArg} ${checkMemArg} ${quietArg}
+TZ=US/Eastern runPLTests.sh ${arenasArg} ${checkMemArg} ${quietArg}
 pkiErrors=$?
 
 echo "RUNNING tests in system";

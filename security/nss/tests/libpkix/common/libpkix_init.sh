@@ -149,7 +149,7 @@ Display() # string
 testHeadingEcho()
 {
     echo "*******************************************************************************"
-    echo "START OF TESTS FOR ${testunit}${memText} (TZ=$TZ)"
+    echo "START OF TESTS FOR ${testunit}${memText}"
     echo "*******************************************************************************"
     echo ""
 }
@@ -202,7 +202,7 @@ RunTests()
     # Announce start of tests
     #
     Display "*******************************************************************************"
-    Display "START OF TESTS FOR PKIX ${testunit} ${memText} (TZ=$TZ)"
+    Display "START OF TESTS FOR PKIX ${testunit} ${memText}"
     Display "*******************************************************************************"
     Display ""
 
