@@ -241,9 +241,9 @@ RunTests()
         Display "RUNNING ${testPgm} ${arenaCmd} ${testPurpose}"
 
         if [ ${checkmem} -eq 1 ]; then
-            dbx -C -c "runargs ${arenaCmd} ${args};check -all;run;exit" ${DIST_BIN}/${testPgm} > ${testOut} 2>&1
+            TZ=US/Eastern dbx -C -c "runargs ${arenaCmd} ${args};check -all;run;exit" ${DIST_BIN}/${testPgm} > ${testOut} 2>&1
         else
-            ${DIST_BIN}/${testPgm} ${arenaCmd} ${args} > ${testOut} 2>&1
+            TZ=US/Eastern ${DIST_BIN}/${testPgm} ${arenaCmd} ${args} > ${testOut} 2>&1
         fi
 
         # Examine output file to see if test failed and keep track of number
