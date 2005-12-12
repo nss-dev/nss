@@ -64,6 +64,9 @@ typedef enum {
         SOCKET_SHUTDOWN
 } SockStatus;
 
+/* This is the default port number, if none is supplied to CreateByName. */
+#define LDAP_PORT 389
+
 /*
  * These callbacks allow a user to substitute a counterfeit socket in places
  * where a PKIX_PL_Socket is expected. A conforming usage will use the
@@ -151,6 +154,15 @@ pkix_pl_Socket_Create(
         PRIntervalTime timeout, /* zero for non-blocking I/O */
         PRNetAddr *netAddr,
         PRErrorCode *status,
+        PKIX_PL_Socket **pSocket,
+        void *plContext);
+
+PKIX_Error *
+pkix_pl_Socket_CreateByName(
+        PKIX_Boolean isServer,
+        PRIntervalTime timeout,
+	char *serverName,
+        PRErrorCode *pStatus,
         PKIX_PL_Socket **pSocket,
         void *plContext);
 

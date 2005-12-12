@@ -451,6 +451,36 @@ int main(int argc, char *argv[]) {
         }
 
         serverName = argv[j + 1];
+
+	subTest("Using pkix_pl_Socket_CreateByName");
+
+	PKIX_TEST_EXPECT_NO_ERROR(pkix_pl_Socket_CreateByName
+                (PKIX_TRUE, timeout, serverName, &cStat, &sSock, plContext));
+
+        PKIX_TEST_EXPECT_NO_ERROR(pkix_pl_Socket_GetCallbackList
+            (sSock, &sCallbackList, plContext));
+
+        PKIX_TEST_EXPECT_NO_ERROR(sCallbackList->listenCallback
+            (sSock, backlog, plContext));
+
+        serverState = SERVER_LISTENING;
+
+        PKIX_TEST_EXPECT_NO_ERROR(pkix_pl_Socket_CreateByName
+                (PKIX_FALSE, timeout, serverName, &cStat, &cSock, plContext));
+
+        PKIX_TEST_EXPECT_NO_ERROR(pkix_pl_Socket_GetCallbackList
+            (cSock, &cCallbackList, plContext));
+
+        if ((timeout == 0) && (cStat == PR_IN_PROGRESS_ERROR)) {
+            clientState = CLIENT_WAITFORCONNECT;
+        } else {
+            clientState = CLIENT_SEND1;
+        }
+
+        dispatcher();
+
+	subTest("Using pkix_pl_Socket_Create");
+
         sepPtr = strchr(serverName, ':');
         /* First strip off the portnum, if present, from the end of the name */
         if (sepPtr) {

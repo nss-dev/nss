@@ -427,6 +427,8 @@ pkix_pl_Socket_CreateServer(
                 PKIX_ERROR("PR_NewTCPSocket failed");
         }
 
+        socket->serverSock = serverSock;
+
 #ifdef PKIX_SOCKETDEBUG
         printf("Created socket, PRFileDesc @  %#X\n", serverSock);
 #endif
@@ -462,7 +464,6 @@ pkix_pl_Socket_CreateServer(
         printf("Successful bind!\n");
 #endif
 
-        socket->serverSock = serverSock;
         socket->status = SOCKET_BOUND;
 
 cleanup:
@@ -637,9 +638,13 @@ pkix_pl_Socket_Destroy(
         socket = (PKIX_PL_Socket *)object;
 
         if (socket->isServer) {
-                PR_Close(socket->serverSock);
+		if (socket->serverSock) {
+                	PR_Close(socket->serverSock);
+		}
         } else {
-                PR_Close(socket->clientSock);
+		if (socket->clientSock) {
+                	PR_Close(socket->clientSock);
+		}
         }
 
 cleanup:
@@ -1347,6 +1352,155 @@ pkix_pl_Socket_Create(
         *pSocket = socket;
 
 cleanup:
+	if (PKIX_ERROR_RECEIVED) {
+		PKIX_DECREF(socket);
+	}
+
+        PKIX_RETURN(SOCKET);
+}
+
+/*
+ * FUNCTION: pkix_pl_Socket_CreateByName
+ * DESCRIPTION:
+ *
+ *  This function creates a new Socket, setting it to be a server or a client
+ *  according to the value of "isServer", setting its timeout value from
+ *  "timeout" and server address and port number from "serverName", and stores
+ *  the status at "pStatus" and the created Socket at "pSocket".
+ *
+ *  If isServer is PKIX_TRUE, it is attempted to create the socket with an ip
+ *  address of PR_INADDR_ANY.
+ *
+ * PARAMETERS:
+ *  "isServer"
+ *      The Boolean value indicating if PKIX_TRUE, that a server socket (using
+ *      Bind, Listen, and Accept) is to be created, or if PKIX_FALSE, that a
+ *      client socket (using Connect) is to be created.
+ *  "timeout"
+ *      A PRTimeInterval value to be used for I/O waits for this socket. If
+ *      zero, non-blocking I/O is to be used.
+ *  "serverName"
+ *      Address of a character string consisting of the server's domain name
+ *      followed by a colon and a port number for the desired socket.
+ *  "pStatus"
+ *      Address at which the PRErrorCode resulting from the create is
+ *      stored. Must be non-NULL.
+ *  "pSocket"
+ *      The address at which the Socket is to be stored. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Socket Error if the function fails in
+ *      a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+pkix_pl_Socket_CreateByName(
+        PKIX_Boolean isServer,
+        PRIntervalTime timeout,
+	char *serverName,
+        PRErrorCode *pStatus,
+        PKIX_PL_Socket **pSocket,
+        void *plContext)
+{
+        PRNetAddr netAddr;
+        PKIX_PL_Socket *socket = NULL;
+	char *sepPtr = NULL;
+        PRHostEnt hostent;
+	PRIntn hostenum;
+        PRStatus prstatus = PR_FAILURE;
+        char buf[PR_NETDB_BUF_SIZE];
+	PRUint16 portNum = 0;
+	PKIX_UInt32 localCopyLen = 0;
+	char *localCopyName = NULL;
+
+        PKIX_ENTER(SOCKET, "pkix_pl_Socket_CreateByName");
+        PKIX_NULLCHECK_TWO(serverName, pSocket);
+
+	localCopyName = PL_strdup(serverName);
+
+	sepPtr = strchr(localCopyName, ':');
+	/* First strip off the portnum, if present, from the end of the name */
+	if (sepPtr) {
+	        *sepPtr++ = '\0';
+                 portNum = (PRUint16)atoi(sepPtr);
+        } else {
+                 portNum = (PRUint16)LDAP_PORT;
+        }
+
+        /*
+         * The hostname may be a fully-qualified name. Just
+         * use the leftmost component in our lookup.
+         */
+        sepPtr = strchr(localCopyName, '.');
+        if (sepPtr) {
+                *sepPtr++ = '\0';
+        }
+        prstatus = PR_GetHostByName(localCopyName, buf, sizeof(buf), &hostent);
+
+        if ((prstatus != PR_SUCCESS) || (hostent.h_length != 4)) {
+		PKIX_ERROR("PR_GetHostByName rejects hostname argument.");
+        }
+
+	netAddr.inet.family = PR_AF_INET;
+       	netAddr.inet.port = PR_htons(portNum);
+
+	if (isServer) {
+
+       		netAddr.inet.ip = PR_INADDR_ANY;
+
+	} else {
+
+	        hostenum = PR_EnumerateHostEnt(0, &hostent, portNum, &netAddr);
+        	if (hostenum == -1) {
+			PKIX_ERROR("PR_EnumerateHostEnt failed.");
+		}
+        }
+
+        PKIX_CHECK(PKIX_PL_Object_Alloc
+                (PKIX_SOCKET_TYPE,
+                sizeof (PKIX_PL_Socket),
+                (PKIX_PL_Object **)&socket,
+                plContext),
+                "Could not create Socket object");
+
+        socket->isServer = isServer;
+        socket->timeout = timeout;
+        socket->clientSock = NULL;
+        socket->serverSock = NULL;
+        socket->netAddr = &netAddr;
+
+        socket->callbackList.listenCallback = pkix_pl_Socket_Listen;
+        socket->callbackList.acceptCallback = pkix_pl_Socket_Accept;
+        socket->callbackList.connectcontinueCallback =
+                 pkix_pl_Socket_ConnectContinue;
+        socket->callbackList.sendCallback = pkix_pl_Socket_Send;
+        socket->callbackList.recvCallback = pkix_pl_Socket_Recv;
+        socket->callbackList.pollCallback = pkix_pl_Socket_Poll;
+        socket->callbackList.shutdownCallback = pkix_pl_Socket_Shutdown;
+
+        if (isServer) {
+                PKIX_CHECK(pkix_pl_Socket_CreateServer(socket, plContext),
+                        "pkix_pl_Socket_CreateServer failed");
+                *pStatus = 0;
+        } else {
+                PKIX_CHECK(pkix_pl_Socket_CreateClient(socket, plContext),
+                        "pkix_pl_Socket_CreateClient failed");
+                PKIX_CHECK(pkix_pl_Socket_Connect(socket, pStatus, plContext),
+                        "pkix_pl_Socket_Connect failed");
+        }
+
+        *pSocket = socket;
+
+cleanup:
+	PL_strfree(localCopyName);
+
+	if (PKIX_ERROR_RECEIVED) {
+		PKIX_DECREF(socket);
+	}
 
         PKIX_RETURN(SOCKET);
 }

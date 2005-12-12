@@ -1078,6 +1078,7 @@ PKIX_PL_ReleaseWriterLock;
 PKIX_PL_RWLock_Create;
 PKIX_PL_Shutdown;
 pkix_pl_Socket_Create;
+pkix_pl_Socket_CreateByName;
 pkix_pl_Socket_GetCallbackList;
 PKIX_PL_Sprintf;
 PKIX_PL_String_Create;
