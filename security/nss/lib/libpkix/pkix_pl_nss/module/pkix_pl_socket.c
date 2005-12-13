@@ -1431,18 +1431,24 @@ pkix_pl_Socket_CreateByName(
                  portNum = (PRUint16)LDAP_PORT;
         }
 
-        /*
-         * The hostname may be a fully-qualified name. Just
-         * use the leftmost component in our lookup.
-         */
-        sepPtr = strchr(localCopyName, '.');
-        if (sepPtr) {
-                *sepPtr++ = '\0';
-        }
         prstatus = PR_GetHostByName(localCopyName, buf, sizeof(buf), &hostent);
 
         if ((prstatus != PR_SUCCESS) || (hostent.h_length != 4)) {
-		PKIX_ERROR("PR_GetHostByName rejects hostname argument.");
+        	/*
+	         * The hostname may be a fully-qualified name. Try using just
+	         * the leftmost component in our lookup.
+	         */
+	        sepPtr = strchr(localCopyName, '.');
+	        if (sepPtr) {
+	                *sepPtr++ = '\0';
+	        }
+        	prstatus = PR_GetHostByName
+			(localCopyName, buf, sizeof(buf), &hostent);
+
+        	if ((prstatus != PR_SUCCESS) || (hostent.h_length != 4)) {
+			PKIX_ERROR
+				("PR_GetHostByName rejects hostname argument.");
+		}
         }
 
 	netAddr.inet.family = PR_AF_INET;
