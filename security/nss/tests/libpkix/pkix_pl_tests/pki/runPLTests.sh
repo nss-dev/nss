@@ -88,6 +88,8 @@ fi
 # main
 #########
 
+TZ=US/Eastern
+
 ParseArgs $*
 
 RunTests <<EOF
