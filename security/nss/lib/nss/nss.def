@@ -1043,6 +1043,7 @@ PKIX_PL_LdapCertStore_Create;
 PKIX_PL_LdapClient_InitiateRequest;
 PKIX_PL_LdapClient_ResumeRequest;
 PKIX_PL_LdapDefaultClient_Create;
+PKIX_PL_LdapDefaultClient_CreateByName;
 pkix_pl_LdapResponse_Create;
 PKIX_PL_Malloc;
 PKIX_PL_Memcpy;

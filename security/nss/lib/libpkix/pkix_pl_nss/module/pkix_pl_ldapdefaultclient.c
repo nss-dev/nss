@@ -563,7 +563,7 @@ pkix_pl_LdapDefaultClient_ResumeRequest(
         void *plContext);
 
 /*
- * FUNCTION: PKIX_PL_LdapDefaultClient_Create
+ * FUNCTION: pkix_pl_LdapDefaultClient_CreateHelper
  * DESCRIPTION:
  *
  *  This function creates a new LdapDefaultClient using the Socket pointed to
@@ -574,11 +574,8 @@ pkix_pl_LdapDefaultClient_ResumeRequest(
  *  I/O.
  *
  * PARAMETERS:
- *  "sockaddr"
- *      Address of the PRNetAddr to be used for the socket connection. Must be
- *      non-NULL.
- *  "timeout"
- *      The PRIntervalTime to be used in I/O requests for this client.
+ *  "socket"
+ *      Address of the Socket to be used for the client. Must be non-NULL.
  *  "bindAPI"
  *      The address of the LDAPBindAPI containing the Bind information to be
  *      encoded in the Bind message.
@@ -596,23 +593,21 @@ pkix_pl_LdapDefaultClient_ResumeRequest(
  *  Returns a Fatal Error if the function fails in an unrecoverable way.
  */
 PKIX_Error *
-PKIX_PL_LdapDefaultClient_Create(
-        PRNetAddr *sockaddr,
-        PRIntervalTime timeout,
+pkix_pl_LdapDefaultClient_CreateHelper(
+        PKIX_PL_Socket *socket,
         LDAPBindAPI *bindAPI,
         PKIX_PL_LdapDefaultClient **pClient,
         void *plContext)
 {
         PRErrorCode status = 0;
-        PKIX_PL_Socket *socket = NULL;
         PKIX_PL_HashTable *ht;
         PKIX_PL_LdapDefaultClient *ldapDefaultClient = NULL;
         PKIX_PL_Socket_Callback *callbackList;
         PRFileDesc *fileDesc = NULL;
         PRArenaPool *arena = NULL;
 
-        PKIX_ENTER(LDAPDEFAULTCLIENT, "pkix_pl_LdapDefaultClient_Create");
-        PKIX_NULLCHECK_TWO(sockaddr, pClient);
+        PKIX_ENTER(LDAPDEFAULTCLIENT, "pkix_pl_LdapDefaultClient_CreateHelper");
+        PKIX_NULLCHECK_TWO(socket, pClient);
 
         PKIX_CHECK(PKIX_PL_Object_Alloc
                     (PKIX_LDAPDEFAULTCLIENT_TYPE,
@@ -626,10 +621,6 @@ PKIX_PL_LdapDefaultClient_Create(
         ldapDefaultClient->vtable.resumeFcn =
                 pkix_pl_LdapDefaultClient_ResumeRequest;
 
-        PKIX_CHECK(pkix_pl_Socket_Create
-                (PKIX_FALSE, timeout, sockaddr, &status, &socket, plContext),
-                "pkix_pl_Socket_Create failed");
-
         PKIX_CHECK(pkix_pl_Socket_GetPRFileDesc
                 (socket, &fileDesc, plContext),
                 "pkix_pl_Socket_GetPRFileDesc failed");
@@ -639,17 +630,6 @@ PKIX_PL_LdapDefaultClient_Create(
         ldapDefaultClient->pollDesc.out_flags = 0;
 
         ldapDefaultClient->bindAPI = bindAPI;
-
-        /* Did Socket_Create say the connection was made? */
-        if (status == 0) {
-                if (ldapDefaultClient->bindAPI != NULL) {
-                        ldapDefaultClient->connectStatus = CONNECTED;
-                } else {
-                        ldapDefaultClient->connectStatus = BOUND;
-                }
-        } else {
-                ldapDefaultClient->connectStatus = CONNECT_PENDING;
-        }
 
         PKIX_CHECK(PKIX_PL_HashTable_Create
                 (LDAP_CACHEBUCKETS, 0, &ht, plContext),
@@ -696,7 +676,168 @@ PKIX_PL_LdapDefaultClient_Create(
         *pClient = ldapDefaultClient;
 
 cleanup:
+	if (PKIX_ERROR_RECEIVED) {
+		PKIX_DECREF(ldapDefaultClient);
+	}
+
         PKIX_DECREF(ht);
+
+        PKIX_RETURN(LDAPDEFAULTCLIENT);
+}
+
+/*
+ * FUNCTION: PKIX_PL_LdapDefaultClient_Create
+ * DESCRIPTION:
+ *
+ *  This function creates a new LdapDefaultClient using the PRNetAddr pointed to
+ *  by "sockaddr", the PRIntervalTime pointed to by "timeout", and the
+ *  LDAPBindAPI pointed to by "bindAPI", and stores the result at "pClient".
+ *
+ *  A value of zero for "timeout" means the LDAPClient will use non-blocking
+ *  I/O.
+ *
+ * PARAMETERS:
+ *  "sockaddr"
+ *      Address of the PRNetAddr to be used for the socket connection. Must be
+ *      non-NULL.
+ *  "timeout"
+ *      The PRIntervalTime to be used in I/O requests for this client.
+ *  "bindAPI"
+ *      The address of the LDAPBindAPI containing the Bind information to be
+ *      encoded in the Bind message.
+ *  "pClient"
+ *      The address at which the created LdapDefaultClient is to be stored.
+ *      Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a LdapDefaultClient Error if the function fails in
+ *      a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_PL_LdapDefaultClient_Create(
+        PRNetAddr *sockaddr,
+        PRIntervalTime timeout,
+        LDAPBindAPI *bindAPI,
+        PKIX_PL_LdapDefaultClient **pClient,
+        void *plContext)
+{
+        PRErrorCode status = 0;
+        PKIX_PL_Socket *socket = NULL;
+        PKIX_PL_LdapDefaultClient *client = NULL;
+
+        PKIX_ENTER(LDAPDEFAULTCLIENT, "PKIX_PL_LdapDefaultClient_Create");
+        PKIX_NULLCHECK_TWO(sockaddr, pClient);
+
+        PKIX_CHECK(pkix_pl_Socket_Create
+                (PKIX_FALSE, timeout, sockaddr, &status, &socket, plContext),
+                "pkix_pl_Socket_Create failed");
+
+        PKIX_CHECK(pkix_pl_LdapDefaultClient_CreateHelper
+                (socket, bindAPI, &client, plContext),
+                "pkix_pl_LdapDefaultClient_CreateHelper failed");
+
+        /* Did Socket_Create say the connection was made? */
+        if (status == 0) {
+                if (client->bindAPI != NULL) {
+                        client->connectStatus = CONNECTED;
+                } else {
+                        client->connectStatus = BOUND;
+                }
+        } else {
+                client->connectStatus = CONNECT_PENDING;
+        }
+
+        *pClient = client;
+
+cleanup:
+	if (PKIX_ERROR_RECEIVED) {
+		PKIX_DECREF(client);
+	}
+
+        PKIX_DECREF(socket);
+
+        PKIX_RETURN(LDAPDEFAULTCLIENT);
+}
+
+/*
+ * FUNCTION: PKIX_PL_LdapDefaultClient_CreateByName
+ * DESCRIPTION:
+ *
+ *  This function creates a new LdapDefaultClient using the hostname pointed to
+ *  by "hostname", the PRIntervalTime pointed to by "timeout", and the
+ *  LDAPBindAPI pointed to by "bindAPI", and stores the result at "pClient".
+ *
+ *  A value of zero for "timeout" means the LDAPClient will use non-blocking
+ *  I/O.
+ *
+ * PARAMETERS:
+ *  "hostname"
+ *      Address of the hostname to be used for the socket connection. Must be
+ *      non-NULL.
+ *  "timeout"
+ *      The PRIntervalTime to be used in I/O requests for this client.
+ *  "bindAPI"
+ *      The address of the LDAPBindAPI containing the Bind information to be
+ *      encoded in the Bind message.
+ *  "pClient"
+ *      The address at which the created LdapDefaultClient is to be stored.
+ *      Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a LdapDefaultClient Error if the function fails in
+ *      a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_PL_LdapDefaultClient_CreateByName(
+        char *hostname,
+        PRIntervalTime timeout,
+        LDAPBindAPI *bindAPI,
+        PKIX_PL_LdapDefaultClient **pClient,
+        void *plContext)
+{
+        PRErrorCode status = 0;
+        PKIX_PL_Socket *socket = NULL;
+        PKIX_PL_LdapDefaultClient *client = NULL;
+
+        PKIX_ENTER(LDAPDEFAULTCLIENT, "PKIX_PL_LdapDefaultClient_CreateByName");
+        PKIX_NULLCHECK_TWO(hostname, pClient);
+
+        PKIX_CHECK(pkix_pl_Socket_CreateByName
+                (PKIX_FALSE, timeout, hostname, &status, &socket, plContext),
+                "pkix_pl_Socket_CreateByName failed");
+
+        PKIX_CHECK(pkix_pl_LdapDefaultClient_CreateHelper
+                (socket, bindAPI, &client, plContext),
+                "pkix_pl_LdapDefaultClient_CreateHelper failed");
+
+        /* Did Socket_Create say the connection was made? */
+        if (status == 0) {
+                if (client->bindAPI != NULL) {
+                        client->connectStatus = CONNECTED;
+                } else {
+                        client->connectStatus = BOUND;
+                }
+        } else {
+                client->connectStatus = CONNECT_PENDING;
+        }
+
+        *pClient = client;
+
+cleanup:
+	if (PKIX_ERROR_RECEIVED) {
+		PKIX_DECREF(client);
+	}
+
         PKIX_DECREF(socket);
 
         PKIX_RETURN(LDAPDEFAULTCLIENT);

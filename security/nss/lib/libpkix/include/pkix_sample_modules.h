@@ -209,6 +209,54 @@ PKIX_PL_LdapDefaultClient_Create(
         void *plContext);
 
 /*
+ * FUNCTION: PKIX_PL_LdapDefaultClient_CreateByName
+ * DESCRIPTION:
+ *
+ *  Creates an LdapDefaultClient using the hostname poined to by "hostname",
+ *  with a timeout value of "timeout", and a BindAPI pointed to by "bindAPI";
+ *  and stores the address of the default LdapClient at "pClient".
+ *
+ *  At the time of this version, there are unresolved questions about the LDAP
+ *  protocol. Although RFC1777 describes a BIND and UNBIND message, it is not
+ *  clear whether they are appropriate to this application. We have tested only
+ *  using servers that do not expect authentication, and that reject BIND
+ *  messages. It is not clear what values might be appropriate for the bindname
+ *  and authentication fields, which are currently implemented as char strings
+ *  supplied by the caller. (If this changes, the API and possibly the templates
+ *  will have to change.) Therefore the Client_Create API contains a BindAPI
+ *  structure, a union, which will have to be revised and extended when this
+ *  area of the protocol is better understood.
+ *
+ * PARAMETERS:
+ *  "hostname"
+ *      Address of the hostname to be used for the socket connection. Must be
+ *      non-NULL.
+ *  "timeout"
+ *      The PRIntervalTime value to be used as a timeout value in socket calls;
+ *      a zero value indicates non-blocking I/O is to be used.
+ *  "bindAPI"
+ *      The address of a BindAPI to be used if a BIND message is required. If
+ *      this argument is NULL, no Bind (or Unbind) will be sent.
+ *  "pClient"
+ *      Address where object pointer will be stored. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a CertStore Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_PL_LdapDefaultClient_CreateByName(
+        char *hostname,
+        PRIntervalTime timeout,
+        LDAPBindAPI *bindAPI,
+	PKIX_PL_LdapDefaultClient **pClient,
+        void *plContext);
+
+/*
  * FUNCTION: PKIX_PL_LdapCertStore_Create
  * DESCRIPTION:
  *

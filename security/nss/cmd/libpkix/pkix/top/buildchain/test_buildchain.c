@@ -77,7 +77,7 @@ static void printUsage(void) {
 
 static PKIX_Error *
 createLdapCertStore(
-        PRNetAddr *netAddr,
+        char *hostname,
         PRIntervalTime timeout,
         PKIX_CertStore **pLdapCertStore,
         void* plContext)
@@ -101,11 +101,13 @@ createLdapCertStore(
                 bindAPI.chooser.simple.authentication = auth;
         }
 
-        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_LdapDefaultClient_Create
-                (netAddr, timeout, bindPtr, &ldapClient, plContext));
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_LdapDefaultClient_CreateByName
+                (hostname, timeout, bindPtr, &ldapClient, plContext));
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_LdapCertStore_Create
-                (ldapClient, &ldapCertStore, plContext));
+                ((PKIX_PL_LdapClient *)ldapClient,
+		&ldapCertStore,
+		plContext));
 
         *pLdapCertStore = ldapCertStore;
 cleanup:
@@ -201,41 +203,6 @@ int main(int argc, char *argv[])
                 useLDAP = PKIX_FALSE;
         } else {
                 serverName = argv[j];
-                sepPtr = strchr(serverName, ':');
-                if (sepPtr) {
-                        *sepPtr++ = '\0';
-                        portNum = (PRUint16)atoi(sepPtr);
-                } else {
-                        portNum = (PRUint16)LDAP_PORT;
-                }
-#if 0
-                /*
-                 * The hostname may be a fully-qualified name. Just
-                 * use the leftmost component in our lookup.
-                 */
-                sepPtr = strchr(serverName, '.');
-                if (sepPtr) {
-                        *sepPtr++ = '\0';
-                }
-#endif
-                prstatus = PR_GetHostByName
-                        (serverName, buf, sizeof(buf), &hostent);
-
-                if ((prstatus != PR_SUCCESS) || (hostent.h_length != 4)) {
-                        printUsage();
-                        pkixTestErrorMsg =
-                            "PR_GetHostByName rejects command line argument.";
-                        goto cleanup;
-                }
-
-                netAddr.inet.family = PR_AF_INET;
-                netAddr.inet.port = PR_htons(portNum);
-
-                hostenum = PR_EnumerateHostEnt(0, &hostent, portNum, &netAddr);
-                if (hostenum == -1) {
-                        pkixTestErrorMsg = "PR_EnumerateHostEnt failed.";
-                        goto cleanup;
-                }
                 useLDAP = PKIX_TRUE;
         }
 
@@ -321,7 +288,7 @@ int main(int argc, char *argv[])
 
         if (useLDAP == PKIX_TRUE) {
                 PKIX_TEST_EXPECT_NO_ERROR(createLdapCertStore
-                        (&netAddr, timeout, &ldapCertStore, plContext));
+                        (serverName, timeout, &ldapCertStore, plContext));
 
                 PKIX_TEST_EXPECT_NO_ERROR
                         (PKIX_List_AppendItem
