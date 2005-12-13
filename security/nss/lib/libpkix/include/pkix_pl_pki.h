@@ -1593,7 +1593,7 @@ PKIX_PL_Cert_SetTrustCertStore(
  *
  *  SubjectInfoAccess ::=
  *    SEQUENCE SIZE (1..MAX) of AccessDescription
- *    AccessDescription ::= DEQUENCE {
+ *    AccessDescription ::= SEQUENCE {
  *        accessMethod     OBJECT IDENTIFIER,
  *        accessLocation   GeneralName
  *    }
@@ -1630,7 +1630,7 @@ PKIX_PL_Cert_GetAuthorityInfoAccess(
  *
  *  SubjectInfoAccess ::=
  *    SEQUENCE SIZE (1..MAX) of AccessDescription
- *    AccessDescription ::= DEQUENCE {
+ *    AccessDescription ::= SEQUENCE {
  *        accessMethod     OBJECT IDENTIFIER,
  *        accessLocation   GeneralName
  *    }
@@ -1682,7 +1682,7 @@ PKIX_PL_Cert_GetSubjectInfoAccess(
  *  returns in "pMethod".
  *
  *  SubjectInfoAccess ::=
- *    AccessDescription ::= DEQUENCE {
+ *    AccessDescription ::= SEQUENCE {
  *        accessMethod     OBJECT IDENTIFIER,
  *        accessLocation   GeneralName
  *    }
@@ -1717,7 +1717,7 @@ PKIX_PL_InfoAccess_GetMethod(
  *  returns in "pLocation".
  *
  *  SubjectInfoAccess ::=
- *    AccessDescription ::= DEQUENCE {
+ *    AccessDescription ::= SEQUENCE {
  *        accessMethod     OBJECT IDENTIFIER,
  *        accessLocation   GeneralName
  *    }
@@ -1752,7 +1752,7 @@ PKIX_PL_InfoAccess_GetLocation(
  *  returns in "pType".
  *
  *  SubjectInfoAccess ::=
- *    AccessDescription ::= DEQUENCE {
+ *    AccessDescription ::= SEQUENCE {
  *        accessMethod     OBJECT IDENTIFIER,
  *        accessLocation   GeneralName
  *    }
