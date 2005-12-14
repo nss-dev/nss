@@ -270,9 +270,9 @@ typedef struct {
 } ssl3CipherSuiteCfg;
 
 #ifdef NSS_ENABLE_ECC
-#define ssl_V3_SUITES_IMPLEMENTED 40
+#define ssl_V3_SUITES_IMPLEMENTED 43
 #else
-#define ssl_V3_SUITES_IMPLEMENTED 26
+#define ssl_V3_SUITES_IMPLEMENTED 23
 #endif /* NSS_ENABLE_ECC */
 
 typedef struct sslOptionsStr {
