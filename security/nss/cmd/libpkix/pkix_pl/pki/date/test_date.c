@@ -93,7 +93,8 @@ void testDate(char *goodInput, char *diffInput){
          * This particular string was generated on a SPARC running Solaris 9
          * in an English locale
          */
-        char *expectedAscii = "Mon Mar 29 08:48:47 2004";
+        /* char *expectedAscii = "Mon Mar 29 08:48:47 2004"; */
+        char *expectedAscii = "Mon Mar 29, 2004";
 
         PKIX_TEST_STD_VARS();
 

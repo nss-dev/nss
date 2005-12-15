@@ -397,14 +397,17 @@ static void testAltNamesMultiple(){
         PKIX_PL_GeneralName *secondAltName = NULL;
         PKIX_Int32 secondExpectedType = PKIX_DNS_NAME;
 
+
         char *expectedAscii =
                 "[\n"
                 "\tVersion:         v3\n"
                 "\tSerialNumber:    2d\n"
                 "\tIssuer:          OU=labs,O=sun,C=us\n"
                 "\tSubject:         CN=yassir,OU=labs,O=sun,C=us\n"
-                "\tValidity: [From: Mon Feb 09 14:43:52 2004\n"
-                "\t           To:   Mon Feb 09 14:43:52 2004]\n"
+                "\tValidity: [From: Mon Feb 09, 2004\n"
+        /*      "\tValidity: [From: Mon Feb 09 14:43:52 2004\n" */
+                "\t           To:   Mon Feb 09, 2004]\n"
+        /*      "\t           To:   Mon Feb 09 14:43:52 2004]\n" */
                 "\tSubjectAltNames: (yassir@sun.com, sunray.sun.com)\n"
                 "\tAuthorityKeyId:  (null)\n"
                 "\tSubjectKeyId:    (null)\n"
@@ -2239,14 +2242,17 @@ int main(int argc, char *argv[]) {
         char *dataDir = NULL;
         char *goodInput = "yassir2bcn";
         char *diffInput = "nss2alice";
+
         char *expectedAscii =
                 "[\n"
                 "\tVersion:         v3\n"
                 "\tSerialNumber:    37bc66ec\n"
                 "\tIssuer:          CN=yassir,OU=bcn,OU=east,O=sun,C=us\n"
                 "\tSubject:         OU=bcn,OU=east,O=sun,C=us\n"
-                "\tValidity: [From: Thu Aug 19 16:19:56 1999\n"
-                "\t           To:   Fri Aug 18 16:19:56 2000]\n"
+                "\tValidity: [From: Thu Aug 19, 1999\n"
+        /*      "\tValidity: [From: Thu Aug 19 16:19:56 1999\n"  */
+                "\t           To:   Fri Aug 18, 2000]\n"
+        /*      "\t           To:   Fri Aug 18 16:19:56 2000]\n" */
                 "\tSubjectAltNames: (null)\n"
                 "\tAuthorityKeyId:  (null)\n"
                 "\tSubjectKeyId:    (null)\n"

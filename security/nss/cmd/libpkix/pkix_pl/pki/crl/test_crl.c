@@ -80,7 +80,8 @@ static void testGetCRLEntryForSerialNumber(
                 "\n\t[\n"
                 "\tSerialNumber:    3039\n"
                 "\tReasonCode:      257\n"
-                "\tRevocationDate:  Fri Jan 07 15:09:10 2005\n"
+                "\tRevocationDate:  Fri Jan 07, 2005\n"
+        /*      "\tRevocationDate:  Fri Jan 07 15:09:10 2005\n" */
                 "\tCritExtOIDs:     (EMPTY)\n"
                 "\t]\n\t";
 
@@ -258,22 +259,26 @@ int main(int argc, char *argv[]) {
                 "[\n"
                 "\tVersion:         v2\n"
                 "\tIssuer:          CN=hanfeiyu,O=sun,C=us\n"
-                "\tUpdate:   [Last: Fri Jan 07 15:09:10 2005\n"
-                "\t           Next: Sat Jan 07 15:09:10 2006]\n"
+                "\tUpdate:   [Last: Fri Jan 07, 2005\n"
+        /*      "\tUpdate:   [Last: Fri Jan 07 15:09:10 2005\n" */
+                "\t           Next: Sat Jan 07, 2006]\n"
+        /*      "\t           Next: Sat Jan 07 15:09:10 2006]\n" */
                 "\tSignatureAlgId:  1.2.840.10040.4.3\n"
                 "\tCRL Number     : (null)\n"
                 "\n\tEntry List:      (\n"
                 "\t[\n"
                 "\tSerialNumber:    010932\n"
                 "\tReasonCode:      260\n"
-                "\tRevocationDate:  Fri Jan 07 15:09:10 2005\n"
+                "\tRevocationDate:  Fri Jan 07, 2005\n"
+        /*      "\tRevocationDate:  Fri Jan 07 15:09:10 2005\n" */
                 "\tCritExtOIDs:     (EMPTY)\n"
                 "\t]\n\t"
                 ", "
                 "\n\t[\n"
                 "\tSerialNumber:    3039\n"
                 "\tReasonCode:      257\n"
-                "\tRevocationDate:  Fri Jan 07 15:09:10 2005\n"
+                "\tRevocationDate:  Fri Jan 07, 2005\n"
+        /*      "\tRevocationDate:  Fri Jan 07 15:09:10 2005\n" */
                 "\tCritExtOIDs:     (EMPTY)\n"
                 "\t]\n\t"
                 ")"
