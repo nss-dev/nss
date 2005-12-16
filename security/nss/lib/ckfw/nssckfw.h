@@ -242,7 +242,7 @@ NSSCKFWToken_GetMDSlot
  */
 
 NSS_EXTERN CK_STATE
-NSSCKFWSession_GetSessionState
+NSSCKFWToken_GetSessionState
 (
   NSSCKFWToken *fwToken
 );
@@ -285,6 +285,7 @@ NSSCKFWMechanism_GetParameter
  *  NSSCKFWSession_CallNotification
  *  NSSCKFWSession_IsRWSession
  *  NSSCKFWSession_IsSO
+ *  NSSCKFWSession_GetCurrentCryptoOperation
  *
  */
 
@@ -343,6 +344,18 @@ NSS_EXTERN CK_BBOOL
 NSSCKFWSession_IsSO
 (
   NSSCKFWSession *fwSession
+);
+
+/*
+ * NSSCKFWSession_GetCurrentCryptoOperation
+ *
+ */
+
+NSS_EXTERN NSSCKFWCryptoOperation *
+NSSCKFWSession_GetCurrentCryptoOperation
+(
+  NSSCKFWSession *fwSession,
+  NSSCKFWCryptoOperationState state
 );
 
 /*
