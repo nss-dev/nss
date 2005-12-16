@@ -60,3 +60,7 @@ export:: private_export
 ifeq (,$(filter-out WIN%,$(OS_TARGET)))
 DIRS += capi
 endif
+
+ifeq ($(OS_ARCH), Darwin)
+DIRS += nssmkey
+endif
