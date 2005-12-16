@@ -38,7 +38,7 @@ MANIFEST_CVS_ID = "@(#) $RCSfile$ $Revision$ $Date$"
 
 CORE_DEPTH = ../../..
 
-DIRS = builtins
+DIRS = builtins 
 
 PRIVATE_EXPORTS = \
 	ck.h		  \
@@ -64,6 +64,7 @@ EXPORTS =	   \
 MODULE = nss
 
 CSRCS =		   \
+	crypto.c   \
 	find.c	   \
 	hash.c	   \
 	instance.c \
