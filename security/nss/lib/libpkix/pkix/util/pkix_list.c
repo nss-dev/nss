@@ -803,8 +803,8 @@ cleanup:
  *
  *  Creates a new list consisting of the items from "firstList", followed by
  *  the items on "secondList", returns the new list at "pMergedList". If
- *  neither of the input lists contained any item, the result is an empty list.
- *  If an error occurrs, the result is NULL.
+ *  both input lists are NULL or empty, the result is an empty list. If an error
+ *  occurs, the result is NULL.
  *
  * PARAMETERS:
  *  "firstList"
@@ -897,7 +897,7 @@ cleanup:
  * DESCRIPTION:
  *
  *  Append items on "fromList" to the "toList". Item reference count on
- *  "toList" is not incremented, but items appended from "fromList" is
+ *  "toList" is not incremented, but items appended from "fromList" are
  *  incremented.
  *
  * PARAMETERS:
