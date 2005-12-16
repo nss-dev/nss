@@ -308,11 +308,9 @@ nssCKFWCryptoOperation_DigestKey
     return CKR_FUNCTION_FAILED;
   }
   mdObject = nssCKFWObject_GetMDObject(fwObject);
-  return fwOperation->mdOperation->DigestUpdate(
+  return fwOperation->mdOperation->DigestKey(
                 fwOperation->mdOperation,
                 fwOperation,
-                fwOperation->mdSession,
-                fwOperation->fwSession,
                 fwOperation->mdToken,
                 fwOperation->fwToken,
                 fwOperation->mdInstance,
