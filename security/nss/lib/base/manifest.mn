@@ -61,7 +61,6 @@ CSRCS =		   \
 	utf8.c	   \
 	list.c     \
 	hash.c     \
-	whatnspr.c \
 	$(NULL)
 
 REQUIRES = nspr
