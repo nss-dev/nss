@@ -937,6 +937,7 @@ handle_connection(
     int                newln    = 0;		/* # of consecutive newlns */
     int                firstTime = 1;
     int                reqLen;
+    int                cLen     = 0;
     int                rv;
     int                numIOVs;
     PRSocketOptionData opt;
@@ -984,9 +985,9 @@ handle_connection(
 	}
     }
 
-    while (1) {
-	newln = 0;
-	reqLen     = 0;
+    newln  = 0;
+    reqLen = 0;
+    while (bufRem > 1 && newln < 2) {
 	rv = PR_Read(ssl_sock, pBuf, bufRem - 1);
 	if (rv == 0 || 
 	    (rv < 0 && PR_END_OF_FILE_ERROR == PR_GetError())) {
@@ -1021,35 +1022,56 @@ handle_connection(
 		newln = 0;
 	    }
 	}
-
+    
 	/* came to the end of the buffer, or second newln
 	 * If we didn't get an empty line (CRLFCRLF) then keep on reading.
 	 */
-	if (newln < 2) 
-	    continue;
+    } /* read header loop */
+    if (newln < 2) {
+	/* http request header exceeded our buffer size.  Punt. */
+	goto cleanup;
+    }
+    buf[reqLen - 1] = 0; /* plant NULL at end of request header */
 
-	/* we're at the end of the HTTP request.
-	 * If the request is a POST, then there will be one more
-	 * line of data.
-	 * This parsing is a hack, but ok for SSL test purposes.
-	 */
-	post = PORT_Strstr(buf, "POST ");
-	if (!post || *post != 'P') 
-	    break;
-
-	/* It's a post, so look for the next and final CR/LF. */
-	/* We should parse content length here, but ... */
-	while (reqLen < bufDat && newln < 3) {
-	    int octet = buf[reqLen++];
-	    if (octet == '\n') {
-		newln++;
-	    }
+    /* we're at the end of the HTTP request.
+     * If the request is a POST, then there will be more data.
+     * This parsing is a hack, but ok for SSL test purposes.
+     */
+    post = PORT_Strstr(buf, "POST ");
+    if (post && *post == 'P') {
+	/* It's a post.  Look for the Content-Length header */
+	post = PORT_Strstr(buf, "Content-Length:");
+	if (post && *post == 'C') {
+	    post += 15;
+	    cLen = atoi(post);
 	}
-	if (newln == 3)
-	    break;
-    } /* read loop */
+	if (cLen <= 0) {
+	    /* invalid input format, drop the rest */
+	    goto send_reply;
+	}
 
-    bufDat = pBuf - buf;
+	if (reqLen < bufDat) {
+	    cLen -= bufDat - reqLen;
+	}
+	while (cLen > 0) {   /* discard cLen characters */
+	    int toRead = PR_MIN(cLen, (sizeof fileName) - 1);
+	    rv = PR_Read(ssl_sock, fileName, toRead);
+	    if (rv == 0 || 
+		(rv < 0 && PR_END_OF_FILE_ERROR == PR_GetError())) {
+		if (verbose)
+		    errWarn("HDX PR_Read hit EOF");
+		break;
+	    }
+	    if (rv < 0) {
+		errWarn("HDX PR_Read");
+		goto cleanup;
+	    }
+	    cLen -= rv;
+	    bufDat += rv;
+	}
+    } /* POST */
+
+    buf[reqLen - 1] = '\n';  /* bufDat = pBuf - buf; */
     if (bufDat) do {	/* just close if no data */
 	/* Have either (a) a complete get, (b) a complete post, (c) EOF */
 	if (reqLen > 0 && !strncmp(buf, getCmd, sizeof getCmd - 1)) {
@@ -1115,7 +1137,7 @@ handle_connection(
 		}
 	    }
 	}
-
+send_reply:
 	numIOVs = 0;
 
 	iovs[numIOVs].iov_base = (char *)outHeader;
@@ -1151,7 +1173,7 @@ handle_connection(
                 if (reload_crl(local_file_fd) == SECFailure) {
                     errString = errWarn("CERT_CacheCRL");
                     if (!errString)
-                        errString = "Unknow error";
+                        errString = "Unknown error";
                     PR_snprintf(msgBuf, sizeof(msgBuf), "%s%s ",
                                 crlCacheErr, errString);
                     
