@@ -2325,7 +2325,7 @@ void sha_test(char *reqfn)
             fputs(buf, resp);
             msg = PORT_Realloc(msg, msgLen);
             memset(msg, 0, msgLen);
-            if (msg == NULL) {
+            if (msg == NULL && msgLen != 0) {
                 goto loser;
             } 
             continue;
