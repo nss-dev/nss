@@ -60,6 +60,13 @@ struct PKIX_CRLSelectorStruct {
 
 PKIX_Error *pkix_CRLSelector_RegisterSelf(void *plContext);
 
+PKIX_Error *
+pkix_CRLSelector_Select(
+	PKIX_CRLSelector *selector,
+	PKIX_List *before,
+	PKIX_List **pAfter,
+	void *plContext);
+
 #ifdef __cplusplus
 }
 #endif

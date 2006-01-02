@@ -546,7 +546,7 @@ cleanup:
  * DESCRIPTION:
  *
  *  Create list of Certs from *.crt files at directory specified in dirName,
- *  Not recursive to sub-dirctory. Also assume the directory contents are
+ *  Not recursive to sub-directory. Also assume the directory contents are
  *  not changed dynamically.
  *
  * PARAMETERS
@@ -1030,6 +1030,7 @@ pkix_pl_CollectionCertStoreContext_GetSelectedCRL(
         PKIX_CRLSelector_MatchCallback crlSelectorMatch = NULL;
         PKIX_UInt32 numCrls = 0;
         PKIX_UInt32 i = 0;
+        PKIX_Boolean match = PKIX_FALSE;
 
         PKIX_ENTER(COLLECTIONCERTSTORECONTEXT,
                     "pkix_pl_CollectionCertStoreContext_GetSelectedCRL");
@@ -1048,8 +1049,7 @@ pkix_pl_CollectionCertStoreContext_GetSelectedCRL(
                             "PKIX_List_Create failed");
 
                 for (i = 0; i < numCrls; i++) {
-                        PKIX_CHECK_ONLY_FATAL
-                                (PKIX_List_GetItem
+                        PKIX_CHECK_ONLY_FATAL(PKIX_List_GetItem
                                 (crlList,
                                 i,
                                 (PKIX_PL_Object **) &crlItem,
@@ -1059,10 +1059,10 @@ pkix_pl_CollectionCertStoreContext_GetSelectedCRL(
                         if (!PKIX_ERROR_RECEIVED){
                                 PKIX_CHECK_ONLY_FATAL
                                         (crlSelectorMatch
-                                        (selector, crlItem, plContext),
+                                        (selector, crlItem, &match, plContext),
                                         "crlSelectorMatch failed");
 
-                                if (!PKIX_ERROR_RECEIVED){
+                                if (!(PKIX_ERROR_RECEIVED) && match) {
                                         PKIX_CHECK_ONLY_FATAL
                                                 (PKIX_List_AppendItem
                                                 (selectCrlList,
@@ -1080,6 +1080,9 @@ pkix_pl_CollectionCertStoreContext_GetSelectedCRL(
 
                 selectCrlList = crlList;
         }
+
+        /* Don't throw away the list if one CRL was bad! */
+        pkixTempErrorReceived = PKIX_FALSE;
 
         *pSelectedCrlList = selectCrlList;
 

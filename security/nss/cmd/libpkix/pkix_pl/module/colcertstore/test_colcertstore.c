@@ -55,8 +55,11 @@ PKIX_Error *
 testCRLSelectorMatchCallback(
         PKIX_CRLSelector *selector,
         PKIX_PL_CRL *crl,
+	PKIX_Boolean *pMatch,
         void *plContext)
 {
+	*pMatch = PKIX_TRUE;
+
         return (0);
 }
 

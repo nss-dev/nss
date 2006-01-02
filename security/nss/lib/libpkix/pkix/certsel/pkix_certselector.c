@@ -1681,3 +1681,92 @@ cleanup:
         PKIX_RETURN(CERTSELECTOR);
 
 }
+
+/*
+ * FUNCTION: pkix_CertSelector_Select
+ * DESCRIPTION:
+ *
+ *  This function applies the selector pointed to by "selector" to each Cert,
+ *  in turn, in the List pointed to by "before", and creates a List containing
+ *  all the Certs that matched, or passed the selection process, storing that
+ *  List at "pAfter". If no Certs match, an empty List is stored at "pAfter".
+ *
+ *  The List returned in "pAfter" is immutable.
+ *
+ * PARAMETERS:
+ *  "selector"
+ *      Address of CertSelelector to be applied to the List. Must be non-NULL.
+ *  "before"
+ *      Address of List that is to be filtered. Must be non-NULL.
+ *  "pAfter"
+ *      Address at which resulting List, possibly empty, is stored. Must be
+ *      non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a CertSelector Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+pkix_CertSelector_Select(
+	PKIX_CertSelector *selector,
+	PKIX_List *before,
+	PKIX_List **pAfter,
+	void *plContext)
+{
+	PKIX_Boolean match = PKIX_FALSE;
+	PKIX_UInt32 numBefore = 0;
+	PKIX_UInt32 i = 0;
+        PKIX_List *filtered = NULL;
+	PKIX_PL_Cert *candidate = NULL;
+
+        PKIX_ENTER(CERTSELECTOR, "PKIX_CertSelector_Select");
+        PKIX_NULLCHECK_THREE(selector, before, pAfter);
+
+        PKIX_CHECK(PKIX_List_Create(&filtered, plContext),
+                "PKIX_List_Create failed");
+
+        PKIX_CHECK(PKIX_List_GetLength(before, &numBefore, plContext),
+                "PKIX_List_GetLength failed");
+
+        for (i = 0; i < numBefore; i++) {
+
+                PKIX_CHECK(PKIX_List_GetItem
+                        (before, i, (PKIX_PL_Object **)&candidate, plContext),
+                        "PKIX_List_GetItem failed");
+
+                PKIX_CHECK_ONLY_FATAL(selector->matchCallback
+                        (selector, candidate, &match, plContext),
+                        "PKIX_CertSelector_MatchCallback failed");
+
+                if ((!(PKIX_ERROR_RECEIVED)) && (match == PKIX_TRUE)) {
+
+                        PKIX_CHECK_ONLY_FATAL(PKIX_List_AppendItem
+                                (filtered,
+                                (PKIX_PL_Object *)candidate,
+                                plContext),
+                                "PKIX_List_AppendItem failed");
+                }
+
+                pkixTempErrorReceived = PKIX_FALSE;
+                PKIX_DECREF(candidate);
+        }
+
+        PKIX_CHECK(PKIX_List_SetImmutable(filtered, plContext),
+                "PKIX_List_SetImmutable failed");
+
+        /* Don't throw away the list if one Cert was bad! */
+        pkixTempErrorReceived = PKIX_FALSE;
+
+        *pAfter = filtered;
+
+cleanup:
+
+        PKIX_DECREF(candidate);
+
+        PKIX_RETURN(CERTSELECTOR);
+
+}

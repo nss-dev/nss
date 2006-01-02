@@ -588,6 +588,7 @@ pkix_pl_Pk11CertStore_GetCRL(
 {
         PKIX_UInt32 i = 0;
         PKIX_UInt32 numFound = 0;
+        PKIX_Boolean match = PKIX_FALSE;
         PKIX_PL_CRL *candidate = NULL;
         PKIX_List *selected = NULL;
         PKIX_List *filtered = NULL;
@@ -631,10 +632,11 @@ pkix_pl_Pk11CertStore_GetCRL(
                         continue; /* just skip bad CRLs */
                 }
 
-                PKIX_CHECK_ONLY_FATAL(callback(selector, candidate, plContext),
+                PKIX_CHECK_ONLY_FATAL(callback
+                        (selector, candidate, &match, plContext),
                         "crlSelector failed");
 
-                if (!(PKIX_ERROR_RECEIVED)) {
+                if (!(PKIX_ERROR_RECEIVED) && match) {
                         PKIX_CHECK_ONLY_FATAL(PKIX_List_AppendItem
                                 (filtered,
                                 (PKIX_PL_Object *)candidate,

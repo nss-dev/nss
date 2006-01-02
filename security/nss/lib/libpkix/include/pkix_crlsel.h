@@ -113,16 +113,17 @@ extern "C" {
  *
  *  This callback function determines whether the specified CRL pointed to by
  *  "crl" matches the criteria of the CRLSelector pointed to by "selector".
- *  If the CRL does not match the CRLSelector's criteria, an Error pointer is
- *  returned.
+ *  If the CRL matches the CRLSelector's criteria, PKIX_TRUE is stored at
+ *  "pMatch". Otherwise PKIX_FALSE is stored at "pMatch".
  *
  * PARAMETERS:
  *  "selector"
  *      Address of CRLSelector whose MatchCallback logic and parameters are
  *      to be used. Must be non-NULL.
  *  "crl"
- *      Address of CRL that is to be matched using "selector".
- *      Must be non-NULL.
+ *      Address of CRL that is to be matched using "selector". Must be non-NULL.
+ *  "pMatch"
+ *      Address at which Boolean result is stored. Must be non-NULL.
  *  "plContext"
  *      Platform-specific context pointer.
  * THREAD SAFETY:
@@ -139,6 +140,7 @@ typedef PKIX_Error *
 (*PKIX_CRLSelector_MatchCallback)(
         PKIX_CRLSelector *selector,
         PKIX_PL_CRL *crl,
+        PKIX_Boolean *pMatch,
         void *plContext);
 
 /*

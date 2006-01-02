@@ -58,6 +58,13 @@ struct PKIX_CertSelectorStruct {
 
 /* see source file for function documentation */
 
+PKIX_Error *
+pkix_CertSelector_Select(
+	PKIX_CertSelector *selector,
+	PKIX_List *before,
+	PKIX_List **pAfter,
+	void *plContext);
+
 PKIX_Error *pkix_CertSelector_RegisterSelf(void *plContext);
 
 #ifdef __cplusplus

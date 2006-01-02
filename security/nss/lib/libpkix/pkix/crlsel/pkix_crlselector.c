@@ -375,8 +375,9 @@ cleanup:
  *  This function compares the parameter values (Issuer, date, and CRL number)
  *  set in the ComCRLSelParams of the CRLSelector pointed to by "selector" with
  *  the corresponding values in the CRL pointed to by "crl". When all the
- *  criteria set in the parameter values match the values in "crl", NULL is
- *  returned. Otherwise, an PKIX_Error is returned.
+ *  criteria set in the parameter values match the values in "crl", PKIX_TRUE is
+ *  stored at "pMatch". If the CRL does not match the CRLSelector's criteria,
+ *  PKIX_FALSE is stored at "pMatch".
  *
  * PARAMETERS
  *  "selector"
@@ -384,6 +385,8 @@ cleanup:
  *      Must be non-NULL.
  *  "crl"
  *      Address of the CRL object to be verified. Must be non-NULL.
+ *  "pMatch"
+ *      Address at which Boolean result is stored. Must be non-NULL.
  *  "plContext"
  *      Platform-specific context pointer.
  *
@@ -400,6 +403,7 @@ static PKIX_Error *
 pkix_CRLSelector_DefaultMatch(
         PKIX_CRLSelector *selector,
         PKIX_PL_CRL *crl,
+	PKIX_Boolean *pMatch,
         void *plContext)
 {
         PKIX_ComCRLSelParams *params = NULL;
@@ -417,6 +421,7 @@ pkix_CRLSelector_DefaultMatch(
         PKIX_ENTER(CRLSELECTOR, "pkix_CRLSelector_DefaultMatch");
         PKIX_NULLCHECK_TWO(selector, crl);
 
+        *pMatch = PKIX_TRUE;
         params = selector->params;
 
         /* No matching parameter provided, just a match */
@@ -465,7 +470,9 @@ pkix_CRLSelector_DefaultMatch(
                 }
 
                 if (result == PKIX_FALSE) {
-                        PKIX_ERROR("Issuer Match Failed");
+                        PKIX_CRLSELECTOR_DEBUG("Issuer Match Failed\N");
+                        *pMatch = PKIX_FALSE;
+                        goto cleanup;
                 }
 
         }
@@ -484,7 +491,9 @@ pkix_CRLSelector_DefaultMatch(
                             "pkix_pl_CRL_VerifyUpdateTime failed");
 
                 if (result == PKIX_FALSE) {
-                        PKIX_ERROR("DateAndTime match Failed");
+                        PKIX_CRLSELECTOR_DEBUG("DateAndTime match Failed\n");
+                        *pMatch = PKIX_FALSE;
+                        goto cleanup;
                 }
 
         }
@@ -510,7 +519,10 @@ pkix_CRLSelector_DefaultMatch(
                                     "PKIX_PL_Object_Comparator failed");
 
                         if (result == 1) {
-                                PKIX_ERROR("CRL MinNumber Range Match FAILED");
+                                PKIX_CRLSELECTOR_DEBUG
+					("CRL MinNumber Range Match Failed\n");
+                        	*pMatch = PKIX_FALSE;
+	                        goto cleanup;
                         }
                 }
 
@@ -528,7 +540,10 @@ pkix_CRLSelector_DefaultMatch(
                                     "PKIX_PL_Object_Comparator failed");
 
                         if (result == 1) {
-                                PKIX_ERROR("CRL MaxNumber Range Match FAILED");
+                               PKIX_CRLSELECTOR_DEBUG 
+					("CRL MaxNumber Range Match Failed");
+                        	*pMatch = PKIX_FALSE;
+	                        goto cleanup;
                         }
                 }
         }
@@ -714,4 +729,93 @@ PKIX_CRLSelector_SetCommonCRLSelectorParams(
 cleanup:
 
         PKIX_RETURN(CRLSELECTOR);
+}
+
+/*
+ * FUNCTION: pkix_CRLSelector_Select
+ * DESCRIPTION:
+ *
+ *  This function applies the selector pointed to by "selector" to each CRL,
+ *  in turn, in the List pointed to by "before", and creates a List containing
+ *  all the CRLs that matched, or passed the selection process, storing that
+ *  List at "pAfter". If no CRLs match, an empty List is stored at "pAfter".
+ *
+ *  The List returned in "pAfter" is immutable.
+ *
+ * PARAMETERS:
+ *  "selector"
+ *      Address of CRLSelelector to be applied to the List. Must be non-NULL.
+ *  "before"
+ *      Address of List that is to be filtered. Must be non-NULL.
+ *  "pAfter"
+ *      Address at which resulting List, possibly empty, is stored. Must be
+ *      non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a CRLSelector Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+pkix_CRLSelector_Select(
+	PKIX_CRLSelector *selector,
+	PKIX_List *before,
+	PKIX_List **pAfter,
+	void *plContext)
+{
+	PKIX_Boolean match = PKIX_FALSE;
+	PKIX_UInt32 numBefore = 0;
+	PKIX_UInt32 i = 0;
+        PKIX_List *filtered = NULL;
+	PKIX_PL_CRL *candidate = NULL;
+
+        PKIX_ENTER(CRLSELECTOR, "PKIX_CRLSelector_Select");
+        PKIX_NULLCHECK_THREE(selector, before, pAfter);
+
+        PKIX_CHECK(PKIX_List_Create(&filtered, plContext),
+                "PKIX_List_Create failed");
+
+        PKIX_CHECK(PKIX_List_GetLength(before, &numBefore, plContext),
+                "PKIX_List_GetLength failed");
+
+        for (i = 0; i < numBefore; i++) {
+
+                PKIX_CHECK(PKIX_List_GetItem
+                        (before, i, (PKIX_PL_Object **)&candidate, plContext),
+                        "PKIX_List_GetItem failed");
+
+                PKIX_CHECK_ONLY_FATAL(selector->matchCallback
+                        (selector, candidate, &match, plContext),
+                        "PKIX_CRLSelector_MatchCallback failed");
+
+                if ((!(PKIX_ERROR_RECEIVED)) && (match == PKIX_TRUE)) {
+
+                        PKIX_CHECK_ONLY_FATAL(PKIX_List_AppendItem
+                                (filtered,
+                                (PKIX_PL_Object *)candidate,
+                                plContext),
+                                "PKIX_List_AppendItem failed");
+                }
+
+                pkixTempErrorReceived = PKIX_FALSE;
+                PKIX_DECREF(candidate);
+        }
+
+        PKIX_CHECK(PKIX_List_SetImmutable(filtered, plContext),
+                "PKIX_List_SetImmutable failed");
+
+        /* Don't throw away the list if one CRL was bad! */
+        pkixTempErrorReceived = PKIX_FALSE;
+
+        *pAfter = filtered;
+
+cleanup:
+
+        PKIX_DECREF(candidate);
+
+        PKIX_RETURN(CRLSELECTOR);
+
 }
