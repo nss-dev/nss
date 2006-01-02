@@ -125,9 +125,13 @@ extern "C" {
  *  all the certificates that match the CertSelector pointed to by "selector".
  *  It places these certificates in a List and stores a pointer to the List at
  *  "pCerts". If no certificates are found which match the CertSelector's
- *  criteria, this function stores an empty List at "pCerts". A CertStore which
- *  uses non-blocking I/O may store NULL at "pCerts" to indicate that I/O is
- *  pending. A subsequent call is required to obtain the List of Certs.
+ *  criteria, this function stores an empty List at "pCerts". In either case, if
+ *  the operation is completed, NULL is stored at "pNBIOContext".
+ *
+ *  A CertStore which uses non-blocking I/O may store platform-dependent
+ *  information at "pNBIOContext" and NULL at "pCerts" to indicate that I/O is
+ *  pending. A subsequent call to PKIX_CertStore_CertContinue is required to
+ *  finish the operation and to obtain the List of Certs.
  *
  *  Note that the List returned by this function is immutable.
  *
@@ -138,6 +142,9 @@ extern "C" {
  *  "selector"
  *      Address of CertSelector whose criteria must be satisfied.
  *      Must be non-NULL.
+ *  "pNBIOContext"
+ *      Address at which platform-dependent information is stored if the
+ *      operation is suspended for non-blocking I/O. Must be non-NULL.
  *  "pCerts"
  *      Address where object pointer will be stored. Must be non-NULL.
  *  "plContext"
@@ -156,7 +163,60 @@ typedef PKIX_Error *
 (*PKIX_CertStore_CertCallback)(
         PKIX_CertStore *store,
         PKIX_CertSelector *selector,
-	void **pNBIOContext,
+        void **pNBIOContext,
+        PKIX_List **pCerts,  /* list of PKIX_PL_Cert */
+        void *plContext);
+
+/*
+ * FUNCTION: PKIX_CertStore_CertContinue
+ * DESCRIPTION:
+ *
+ *  This function continues the non-blocking operation initiated by an earlier
+ *  call to the CertCallback function, for the CertStore pointed to by "store". 
+ *  If an earlier call did not terminate with the WOULDBLOCK indication (non-NULL
+ *  value returned in "pNBIOContext") calling this function will return a fatal
+ *  error. If the operation is completed the certificates found are placed in a
+ *  List, a pointer to which is stored at "pCerts". If no certificates are found
+ *  which match the CertSelector's criteria, this function stores an empty List
+ *  at "pCerts". In either case, if the operation is completed, NULL is stored
+ *  at "pNBIOContext".
+ *
+ *  If non-blocking I/O is still pending this function stores platform-dependent
+ *  information at "pNBIOContext" and NULL at "pCerts". A subsequent call to
+ *  PKIX_CertStore_CertContinue is required to finish the operation and to
+ *  obtain the List of Certs.
+ *
+ *  Note that the List returned by this function is immutable.
+ *
+ * PARAMETERS:
+ *  "store"
+ *      Address of CertStore from which Certs are to be retrieved.
+ *      Must be non-NULL.
+ *  "selector"
+ *      Address of CertSelector whose criteria must be satisfied.
+ *      Must be non-NULL.
+ *  "pNBIOContext"
+ *      Address at which platform-dependent information is stored if the
+ *      operation is suspended for non-blocking I/O. Must be non-NULL.
+ *  "pCerts"
+ *      Address where object pointer will be stored. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe
+ *
+ *  Multiple threads must be able to safely call this function without
+ *  worrying about conflicts, even if they're operating on the same object.
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a CertStore Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_CertStore_CertContinue(
+        PKIX_CertStore *store,
+        PKIX_CertSelector *selector,
+        void **pNBIOContext,
         PKIX_List **pCerts,  /* list of PKIX_PL_Cert */
         void *plContext);
 
@@ -164,7 +224,7 @@ typedef PKIX_Error *
 (*PKIX_CertStore_CertContinueFunction)(
         PKIX_CertStore *store,
         PKIX_CertSelector *selector,
-	void **pNBIOContext,
+        void **pNBIOContext,
         PKIX_List **pCerts,  /* list of PKIX_PL_Cert */
         void *plContext);
 
@@ -176,9 +236,13 @@ typedef PKIX_Error *
  *  all the CRLs that match the CRLSelector pointed to by "selector". It
  *  places these CRLs in a List and stores a pointer to the List at "pCRLs".
  *  If no CRLs are found which match the CRLSelector's criteria, this function
- *  stores an empty List at "pCRLs". A CertStore which uses non-blocking I/O may
- *  store NULL at "pCRLs" to indicate that I/O is pending. A subsequent call is
- *  required to obtain the resulting List of CRLs.
+ *  stores an empty List at "pCRLs". In either case, if the operation is
+ *  completed, NULL is stored at "pNBIOContext".
+ *
+ *  A CertStore which uses non-blocking I/O may store platform-dependent
+ *  information at "pNBIOContext" and NULL at "pCrls" to indicate that I/O is
+ *  pending. A subsequent call to PKIX_CertStore_CRLContinue is required to
+ *  finish the operation and to obtain the List of Crls.
  *
  *  Note that the List returned by this function is immutable.
  *
@@ -207,7 +271,59 @@ typedef PKIX_Error *
 (*PKIX_CertStore_CRLCallback)(
         PKIX_CertStore *store,
         PKIX_CRLSelector *selector,
-	void **pNBIOContext,
+        void **pNBIOContext,
+        PKIX_List **pCrls,  /* list of PKIX_PL_CRL */
+        void *plContext);
+
+/*
+ * FUNCTION: PKIX_CertStore_CRLContinue
+ * DESCRIPTION:
+ *
+ *  This function continues the non-blocking operation initiated by an earlier
+ *  call to the CRLCallback function, for the CertStore pointed to by "store". 
+ *  If an earlier call did not terminate with the WOULDBLOCK indication (non-NULL
+ *  value returned in "pNBIOContext") calling this function will return a fatal
+ *  error. If the operation is completed the crls found are placed in a List, a
+ *  pointer to which is stored at "pCrls". If no crls are found which match the
+ *  CRLSelector's criteria, this function stores an empty List at "pCrls". In
+ *  either case, if the operation is completed, NULL is stored at "pNBIOContext".
+ *
+ *  If non-blocking I/O is still pending this function stores platform-dependent
+ *  information at "pNBIOContext" and NULL at "pCrls". A subsequent call to
+ *  PKIX_CertStore_CRLContinue is required to finish the operation and to
+ *  obtain the List of Crls.
+ *
+ *  Note that the List returned by this function is immutable.
+ *
+ * PARAMETERS:
+ *  "store"
+ *      Address of CertStore from which Crls are to be retrieved.
+ *      Must be non-NULL.
+ *  "selector"
+ *      Address of CRLSelector whose criteria must be satisfied.
+ *      Must be non-NULL.
+ *  "pNBIOContext"
+ *      Address at which platform-dependent information is stored if the
+ *      operation is suspended for non-blocking I/O. Must be non-NULL.
+ *  "pCrls"
+ *      Address where object pointer will be stored. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe
+ *
+ *  Multiple threads must be able to safely call this function without
+ *  worrying about conflicts, even if they're operating on the same object.
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a CertStore Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_CertStore_CRLContinue(
+        PKIX_CertStore *store,
+        PKIX_CRLSelector *selector,
+        void **pNBIOContext,
         PKIX_List **pCrls,  /* list of PKIX_PL_CRL */
         void *plContext);
 
@@ -215,7 +331,7 @@ typedef PKIX_Error *
 (*PKIX_CertStore_CRLContinueFunction)(
         PKIX_CertStore *store,
         PKIX_CRLSelector *selector,
-	void **pNBIOContext,
+        void **pNBIOContext,
         PKIX_List **pCrls,  /* list of PKIX_PL_CRL */
         void *plContext);
 
