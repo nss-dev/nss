@@ -50,40 +50,6 @@
 extern "C" {
 #endif
 
-/*
- * Note: the following definitions are taken unchanged from the Mozilla
- * file /mozilla/directory/c-sdk/ldap/include/ldaprot.h. If that
- * file is accessible to this build these definitions should be replaced
- * by an "include" of that file:
- */
-#define LDAP_VERSION1   1
-#define LDAP_VERSION2   2
-#define LDAP_VERSION3   3
-#define LDAP_VERSION    LDAP_VERSION2
-
-/* possible operations a client can invoke */
-#define LDAP_REQ_BIND           0x60L   /* application + constructed + 0 */
-#define LDAP_REQ_UNBIND         0x42L   /* application + primitive   + 2 */
-#define LDAP_REQ_SEARCH         0x63L   /* application + constructed + 3 */
-#define LDAP_REQ_MODIFY         0x66L   /* application + constructed + 6 */
-#define LDAP_REQ_ADD            0x68L   /* application + constructed + 8 */
-#define LDAP_REQ_DELETE         0x4aL   /* application + primitive   + 10 */
-#define LDAP_REQ_MODRDN         0x6cL   /* application + constructed + 12 */
-#define LDAP_REQ_MODDN          0x6cL   /* application + constructed + 12 */
-#define LDAP_REQ_RENAME         0x6cL   /* application + constructed + 12 */
-#define LDAP_REQ_COMPARE        0x6eL   /* application + constructed + 14 */
-#define LDAP_REQ_ABANDON        0x50L   /* application + primitive   + 16 */
-#define LDAP_REQ_EXTENDED       0x77L   /* application + constructed + 23 */
-/*
- * End of Ldaprot.h definitions
- */
-
-struct pkix_pl_LdapLocation {
-        void *serverSite;
-        void **filterString;
-        void **attrBitString;
-};
-
 typedef enum {
         USER_CERT,
         CA_CERT,
@@ -107,7 +73,6 @@ struct PKIX_PL_LdapRequestStruct{
         SECItem attributes[MAX_LDAPATTRS];
         SECItem **attrArray;
         SECItem *encoded;
-        struct pkix_pl_LdapLocation *parsedLocation;
 };
 
 /* see source file for function documentation */
@@ -130,6 +95,12 @@ pkix_pl_LdapRequest_Create(
 PKIX_Error *
 pkix_pl_LdapRequest_AttrTypeToBit(
         SECItem *attrType,
+        LdapAttrMask *pAttrBit,
+        void *plContext);
+
+PKIX_Error *
+pkix_pl_LdapRequest_AttrStringToBit(
+        char *attrString,
         LdapAttrMask *pAttrBit,
         void *plContext);
 
