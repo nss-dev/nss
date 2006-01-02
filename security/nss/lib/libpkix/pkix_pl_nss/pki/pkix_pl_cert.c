@@ -689,11 +689,10 @@ pkix_pl_Cert_GetNssSubjectAltNames(
                 if ((cert->nssSubjAltNames == NULL) &&
                     (!cert->subjAltNamesAbsent)){
 
-                    PKIX_CERT_DEBUG("\t\tCalling CERT_FindCertExtension).\n");
-                    rv = CERT_FindCertExtension
+                    PKIX_PL_NSSCALLRV(CERT, rv, CERT_FindCertExtension,
                         (nssCert,
                         SEC_OID_X509_SUBJECT_ALT_NAME,
-                        &altNameExtension);
+                        &altNameExtension));
 
                     if (rv != SECSuccess) {
                         *pNssSubjAltNames = NULL;
@@ -702,22 +701,23 @@ pkix_pl_Cert_GetNssSubjectAltNames(
                     }
 
                     if (cert->arenaNameConstraints == NULL) {
-                        PKIX_CERT_DEBUG("\t\tCalling PORT_NewArena).\n");
-                        arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
+                        PKIX_PL_NSSCALLRV(CERT, arena, PORT_NewArena,
+                                (DER_DEFAULT_CHUNKSIZE));
+
                         if (arena == NULL) {
                             PKIX_ERROR("PORT_NewArena failed");
                         }
                         cert->arenaNameConstraints = arena;
                     }
 
-                    PKIX_CERT_DEBUG
-                        ("\t\tCalling CERT_DecodeAltNameExtension).\n");
-                    nssOriginalAltName = (CERTGeneralName *)
-                        CERT_DecodeAltNameExtension
-                        (cert->arenaNameConstraints, &altNameExtension);
+                    PKIX_PL_NSSCALLRV
+                        (CERT,
+                        nssOriginalAltName,
+                        (CERTGeneralName *) CERT_DecodeAltNameExtension,
+                        (cert->arenaNameConstraints, &altNameExtension));
 
-                    PKIX_CERT_DEBUG("\t\tCalling PORT_Free).\n");
-                    PORT_Free(altNameExtension.data);
+                    PKIX_PL_NSSCALL(CERT, PORT_Free, (altNameExtension.data));
+
                     if (nssOriginalAltName == NULL) {
                         PKIX_ERROR("CERT_DecodeAltNameExtension failed");
                     }
@@ -733,6 +733,9 @@ pkix_pl_Cert_GetNssSubjectAltNames(
         *pNssSubjAltNames = cert->nssSubjAltNames;
 
 cleanup:
+        if (objectIsLocked == PKIX_TRUE) {
+                PKIX_OBJECT_UNLOCK(lockedObject);
+        }
 
         PKIX_RETURN(CERT);
 }
@@ -778,7 +781,7 @@ pkix_pl_Cert_CheckExtendedKeyUsage(
         PKIX_UInt32 requiredExtendedKeyUsage = 0;
         PKIX_UInt32 i;
         PKIX_Boolean isCA = PKIX_FALSE;
-        SECStatus rv;
+        SECStatus rv = SECFailure;
 
         PKIX_ENTER(CERT, "pkix_pl_Cert_CheckExtendKeyUsage");
         PKIX_NULLCHECK_THREE(cert, pPass, cert->nssCert);
@@ -816,21 +819,19 @@ pkix_pl_Cert_CheckExtendedKeyUsage(
 
                 requiredExtendedKeyUsage = i;
 
-                PKIX_CERT_DEBUG
-                        ("\t\tCalling CERT_KeyUsageAndTypeForCertUsage).\n");
-                rv = CERT_KeyUsageAndTypeForCertUsage
+                PKIX_PL_NSSCALLRV(CERT, rv, CERT_KeyUsageAndTypeForCertUsage,
                         (requiredExtendedKeyUsage,
                         isCA,
                         &requiredKeyUsage,
-                        &requiredCertType);
+                        &requiredCertType));
 
                 if (!(certType & requiredCertType)) {
                         goto cleanup;
                 }
 
-                PKIX_CERT_DEBUG("\t\tCalling CERT_CheckKeyUsage).\n");
-                if (CERT_CheckKeyUsage(cert->nssCert, requiredKeyUsage) !=
-                    SECSuccess) {
+                PKIX_PL_NSSCALLRV(CERT, rv, CERT_CheckKeyUsage,
+                        (cert->nssCert, requiredKeyUsage));
+                if (rv != SECSuccess) {
                         goto cleanup;
                 }
                 i++;
@@ -1236,14 +1237,15 @@ pkix_pl_Cert_Destroy(
 
         if (cert->arenaNameConstraints){
                 /* This arena was allocated for SubjectAltNames */
-                PKIX_CERT_DEBUG("\t\tCalling PORT_FreeArena).\n");
-                PORT_FreeArena(cert->arenaNameConstraints, PR_FALSE);
+                PKIX_PL_NSSCALL(CERT, PORT_FreeArena,
+                        (cert->arenaNameConstraints, PR_FALSE));
+
                 cert->arenaNameConstraints = NULL;
                 cert->nssSubjAltNames = NULL;
         }
 
-        PKIX_CERT_DEBUG("\t\tCalling CERT_DestroyCertificate).\n");
-        CERT_DestroyCertificate(cert->nssCert);
+        PKIX_PL_NSSCALL(CERT, CERT_DestroyCertificate, (cert->nssCert));
+
         cert->nssCert = NULL;
 
 cleanup:
@@ -1662,6 +1664,10 @@ PKIX_PL_Cert_GetSerialNumber(
         *pSerialNumber = cert->serialNumber;
 
 cleanup:
+        if (objectIsLocked == PKIX_TRUE) {
+                PKIX_OBJECT_UNLOCK(lockedObject);
+        }
+
 
         PKIX_RETURN(CERT);
 }
@@ -1715,6 +1721,10 @@ PKIX_PL_Cert_GetSubject(
         *pCertSubject = cert->subject;
 
 cleanup:
+        if (objectIsLocked == PKIX_TRUE) {
+                PKIX_OBJECT_UNLOCK(lockedObject);
+        }
+
 
         PKIX_RETURN(CERT);
 
@@ -1978,7 +1988,7 @@ PKIX_PL_Cert_GetSubjectPublicKeyAlgId(
 
                         PKIX_NULLCHECK_ONE(algBytes.data);
                         if (algBytes.len == 0) {
-				PKIX_ERROR_FATAL("Algorithm bytes length is 0");
+                                PKIX_ERROR_FATAL("Algorithm bytes length is 0");
                         }
 
                         PKIX_CHECK(pkix_pl_oidBytes2Ascii
@@ -2103,6 +2113,10 @@ PKIX_PL_Cert_GetSubjectPublicKey(
         *pPublicKey = cert->publicKey;
 
 cleanup:
+        if (objectIsLocked == PKIX_TRUE) {
+                PKIX_OBJECT_UNLOCK(lockedObject);
+        }
+
 
         if (PKIX_ERROR_RECEIVED){
                 PKIX_DECREF(pkixPubKey);
@@ -2165,6 +2179,10 @@ PKIX_PL_Cert_GetCriticalExtensionOIDs(
                 "PKIX_PL_Object_Duplicate List failed");
 
 cleanup:
+        if (objectIsLocked == PKIX_TRUE) {
+                PKIX_OBJECT_UNLOCK(lockedObject);
+        }
+
 
         PKIX_RETURN(CERT);
 }
@@ -2237,6 +2255,10 @@ PKIX_PL_Cert_GetAuthorityKeyIdentifier(
         *pAuthKeyId = cert->authKeyId;
 
 cleanup:
+        if (objectIsLocked == PKIX_TRUE) {
+                PKIX_OBJECT_UNLOCK(lockedObject);
+        }
+
 
         if (arena){
                 PKIX_CERT_DEBUG("\t\tCalling PORT_FreeArena).\n");
@@ -2305,6 +2327,10 @@ PKIX_PL_Cert_GetSubjectKeyIdentifier(
         *pSubjKeyId = cert->subjKeyId;
 
 cleanup:
+        if (objectIsLocked == PKIX_TRUE) {
+                PKIX_OBJECT_UNLOCK(lockedObject);
+        }
+
 
         if (retItem){
                 PKIX_CERT_DEBUG("\t\tCalling SECITEM_FreeItem).\n");
@@ -2417,6 +2443,9 @@ PKIX_PL_Cert_GetExtendedKeyUsage(
         *pKeyUsage = cert->extKeyUsages;
 
 cleanup:
+        if (objectIsLocked == PKIX_TRUE) {
+                PKIX_OBJECT_UNLOCK(lockedObject);
+        }
 
         PKIX_FREE(oidAscii);
         PKIX_DECREF(pkixOID);
@@ -2498,6 +2527,10 @@ PKIX_PL_Cert_GetBasicConstraints(
         *pBasicConstraints = cert->certBasicConstraints;
 
 cleanup:
+        if (objectIsLocked == PKIX_TRUE) {
+                PKIX_OBJECT_UNLOCK(lockedObject);
+        }
+
 
         PKIX_RETURN(CERT);
 }
@@ -2548,6 +2581,9 @@ PKIX_PL_Cert_GetPolicyInformation(
         *pPolicyInfo = cert->certPolicyInfos;
 
 cleanup:
+        if (objectIsLocked == PKIX_TRUE) {
+                PKIX_OBJECT_UNLOCK(lockedObject);
+        }
 
         PKIX_RETURN(CERT);
 }
@@ -2595,6 +2631,9 @@ PKIX_PL_Cert_GetPolicyMappings(
         *pPolicyMappings = cert->certPolicyMappings;
 
 cleanup:
+        if (objectIsLocked == PKIX_TRUE) {
+                PKIX_OBJECT_UNLOCK(lockedObject);
+        }
 
         PKIX_RETURN(CERT);
 }
@@ -2648,6 +2687,10 @@ PKIX_PL_Cert_GetRequireExplicitPolicy(
 
 cleanup:
 
+        if (objectIsLocked == PKIX_TRUE) {
+                PKIX_OBJECT_UNLOCK(lockedObject);
+        }
+
         PKIX_RETURN(CERT);
 }
 
@@ -2700,6 +2743,10 @@ PKIX_PL_Cert_GetPolicyMappingInhibited(
 
 cleanup:
 
+        if (objectIsLocked == PKIX_TRUE) {
+                PKIX_OBJECT_UNLOCK(lockedObject);
+        }
+
         PKIX_RETURN(CERT);
 }
 
@@ -2741,6 +2788,10 @@ PKIX_PL_Cert_GetInhibitAnyPolicy(
         }
 
 cleanup:
+
+        if (objectIsLocked == PKIX_TRUE) {
+                PKIX_OBJECT_UNLOCK(lockedObject);
+        }
 
         *pSkipCerts = cert->inhibitAnySkipCerts;
 
@@ -3037,6 +3088,10 @@ PKIX_PL_Cert_GetNameConstraints(
 
 cleanup:
 
+        if (objectIsLocked == PKIX_TRUE) {
+                PKIX_OBJECT_UNLOCK(lockedObject);
+        }
+
         PKIX_RETURN(CERT);
 }
 
@@ -3300,9 +3355,9 @@ PKIX_PL_Cert_GetAuthorityInfoAccess(
         PKIX_List **pAiaList, /* of PKIX_PL_InfoAccess */
         void *plContext)
 {
-        PKIX_List *aiaList; /* of PKIX_PL_InfoAccess */
-        SECItem *encodedAuthInfoAccess = NULL;
-        CERTAuthInfoAccess **authInfoAccess = NULL;
+        PKIX_List *aiaList = NULL; /* of PKIX_PL_InfoAccess */
+        SECItem *encodedAIA = NULL;
+        CERTAuthInfoAccess **aia = NULL;
         PRArenaPool *arena = NULL;
         SECStatus rv;
 
@@ -3316,35 +3371,35 @@ PKIX_PL_Cert_GetAuthorityInfoAccess(
 
                 if (cert->authorityInfoAccess == NULL) {
 
-                    PKIX_CERT_DEBUG("\t\tCalling SECITEM_AllocItem).\n");
-                    encodedAuthInfoAccess = SECITEM_AllocItem(NULL, NULL, 0);
-                    if (encodedAuthInfoAccess == NULL) {
-	                goto cleanup;
+                    PKIX_PL_NSSCALLRV(CERT, encodedAIA, SECITEM_AllocItem,
+                        (NULL, NULL, 0));
+
+                    if (encodedAIA == NULL) {
+                        goto cleanup;
                     }
 
-                    PKIX_CERT_DEBUG("\t\tCalling CERT_FindCertExtension).\n");
-                    rv = CERT_FindCertExtension
+                    PKIX_PL_NSSCALLRV(CERT, rv, CERT_FindCertExtension,
                         (cert->nssCert,
                         SEC_OID_X509_AUTH_INFO_ACCESS,
-                        encodedAuthInfoAccess);
+                        encodedAIA));
 
                     if (rv == SECFailure) {
-	                goto cleanup;
+                        goto cleanup;
                     }
 
-                    PKIX_CERT_DEBUG("\t\tCalling PORT_NewArena).\n");
-                    arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
+                    PKIX_PL_NSSCALLRV(CERT, arena, PORT_NewArena,
+                        (DER_DEFAULT_CHUNKSIZE));
+
                     if (arena == NULL) {
-	                goto cleanup;
+                        goto cleanup;
                     }
 
-                    PKIX_CERT_DEBUG
-                        ("\t\tCalling CERT_DecodeAuthInfoAccessExtension).\n");
-                    authInfoAccess = CERT_DecodeAuthInfoAccessExtension
-                        (arena, encodedAuthInfoAccess);
+                    PKIX_PL_NSSCALLRV
+                        (CERT, aia, CERT_DecodeAuthInfoAccessExtension,
+                        (arena, encodedAIA));
 
                     PKIX_CHECK(pkix_pl_InfoAccess_CreateList
-                        (authInfoAccess, &aiaList, plContext),
+                        (aia, &aiaList, plContext),
                         "pkix_pl_InfoAccess_CreateList failed");
 
                     cert->authorityInfoAccess = aiaList;
@@ -3358,15 +3413,18 @@ PKIX_PL_Cert_GetAuthorityInfoAccess(
         *pAiaList = cert->authorityInfoAccess;
 
 cleanup:
+        if (objectIsLocked == PKIX_TRUE) {
+                PKIX_OBJECT_UNLOCK(lockedObject);
+        }
 
         if (arena != NULL) {
                 PKIX_CERT_DEBUG("\t\tCalling PORT_FreeArena).\n");
                 PORT_FreeArena(arena, PR_FALSE);
         }
 
-        if (encodedAuthInfoAccess != NULL) {
+        if (encodedAIA != NULL) {
                 PKIX_CERT_DEBUG("\t\tCalling SECITEM_FreeItem).\n");
-                SECITEM_FreeItem(encodedAuthInfoAccess, PR_TRUE);
+                SECITEM_FreeItem(encodedAIA, PR_TRUE);
         }
 
         PKIX_RETURN(CERT);
@@ -3413,28 +3471,28 @@ PKIX_PL_Cert_GetSubjectInfoAccess(
                     PKIX_CERT_DEBUG("\t\tCalling SECITEM_AllocItem).\n");
                     encodedSubjInfoAccess = SECITEM_AllocItem(NULL, NULL, 0);
                     if (encodedSubjInfoAccess == NULL) {
-	                goto cleanup;
+                        goto cleanup;
                     }
 
                     PKIX_CERT_DEBUG
                         ("\t\tCalling CERT_FindCertExtensionByOID).\n");
-		    rv = CERT_FindCertExtensionByOID
+                    rv = CERT_FindCertExtensionByOID
                                 (cert->nssCert, &siaOID, encodedSubjInfoAccess);
 
                     if (rv == SECFailure) {
-	                goto cleanup;
+                        goto cleanup;
                     }
 
                     PKIX_CERT_DEBUG("\t\tCalling PORT_NewArena).\n");
                     arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
                     if (arena == NULL) {
-	                goto cleanup;
+                        goto cleanup;
                     }
 
                     /* XXX
                      * Decode Subject Information Access -
                      * since its type is the same as Authority Information
-                     * Access, reuse the call. NSS- chagne name to avoid
+                     * Access, reuse the call. NSS- change name to avoid
                      * confusion.
                      */
                     PKIX_CERT_DEBUG
@@ -3458,6 +3516,9 @@ PKIX_PL_Cert_GetSubjectInfoAccess(
         *pSiaList = cert->subjectInfoAccess;
 
 cleanup:
+        if (objectIsLocked == PKIX_TRUE) {
+                PKIX_OBJECT_UNLOCK(lockedObject);
+        }
 
         if (arena != NULL) {
                 PKIX_CERT_DEBUG("\t\tCalling PORT_FreeArena).\n");

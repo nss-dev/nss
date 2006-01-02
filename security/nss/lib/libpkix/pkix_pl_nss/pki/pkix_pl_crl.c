@@ -108,7 +108,7 @@ PKIX_PL_CRL_GetCRLNumber(
 {
         PKIX_PL_BigInt *crlNumber = NULL;
         SECItem nssCrlNumber;
-	PLArenaPool *arena = NULL;
+        PLArenaPool *arena = NULL;
         SECStatus status;
         PKIX_UInt32 length = 0;
         char *bytes = NULL;
@@ -126,11 +126,11 @@ PKIX_PL_CRL_GetCRLNumber(
                 nssCrlNumber.len = 0;
                 nssCrlNumber.data = NULL;
 
-		PKIX_CRL_DEBUG("\t\tCalling PORT_NewArena).\n");
-		arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
-		if (arena == NULL) {
-			PKIX_ERROR("PORT_NewArena failed");
-		}
+                PKIX_CRL_DEBUG("\t\tCalling PORT_NewArena).\n");
+                arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
+                if (arena == NULL) {
+                        PKIX_ERROR("PORT_NewArena failed");
+                }
 
                 PKIX_CRL_DEBUG("\t\tCalling CERT_FindCRLNumberExten\n");
                 status = CERT_FindCRLNumberExten
@@ -145,10 +145,10 @@ PKIX_PL_CRL_GetCRLNumber(
                                     (bytes, length, &crlNumber, plContext),
                                     "pkix_pl_BigInt_CreateWithBytes failed");
 
-			/* arena release does the job 
+                        /* arena release does the job 
                         PKIX_CRL_DEBUG("\t\tCalling SECITEM_FreeItem\n");
                         SECITEM_FreeItem(&nssCrlNumber, PKIX_FALSE);
-			*/
+                        */
                         crl->crlNumber = crlNumber;
 
                 } else {
@@ -167,10 +167,10 @@ PKIX_PL_CRL_GetCRLNumber(
 
 cleanup:
 
-	if (arena){
-		PKIX_CRL_DEBUG("\t\tCalling PORT_FreeArena).\n");
-		PORT_FreeArena(arena, PR_FALSE);
-	}
+        if (arena){
+                PKIX_CRL_DEBUG("\t\tCalling PORT_FreeArena).\n");
+                PORT_FreeArena(arena, PR_FALSE);
+        }
 
         PKIX_RETURN(CRL);
 }
