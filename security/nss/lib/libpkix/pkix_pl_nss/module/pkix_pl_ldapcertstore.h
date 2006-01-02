@@ -91,23 +91,28 @@ struct PKIX_PL_LdapCertStoreContext {
         PKIX_PL_LdapClient *client;
 };
 
+/* see source file for function documentation */
+
+PKIX_Error *pkix_pl_LdapCertStoreContext_RegisterSelf(void *plContext);
+
+PKIX_Error *pkix_pl_LdapCertStore_ConvertCertResponses(
+        PKIX_List *responses,
+        PKIX_Boolean cacheFlag,
+        PKIX_List **pCertList,
+        void *plContext);
+
 PKIX_Error *PKIX_PL_LdapClient_InitiateRequest(
         PKIX_PL_LdapClient *client,
         LDAPRequestParams *requestParams,
-        PRPollDesc **pPollDesc,
+        void **pPollDesc,
         PKIX_List **pResponse,
         void *plContext);
 
 PKIX_Error *PKIX_PL_LdapClient_ResumeRequest(
         PKIX_PL_LdapClient *client,
-        PRPollDesc **pPollDesc,
+        void **pPollDesc,
         PKIX_List **pResponse,
         void *plContext);
-
-
-/* see source file for function documentation */
-
-PKIX_Error *pkix_pl_LdapCertStoreContext_RegisterSelf(void *plContext);
 
 #ifdef __cplusplus
 }
