@@ -184,8 +184,8 @@ pkix_pl_Date_ToString_Helper(
 
         switch (nssTime->type) {
         case siUTCTime:
-		PKIX_PL_NSSCALLRV
-			(DATE, asciiDate, DER_UTCDayToAscii, (nssTime));
+                PKIX_PL_NSSCALLRV
+                        (DATE, asciiDate, DER_UTCDayToAscii, (nssTime));
                 if (!asciiDate){
                         PKIX_ERROR("DER_UTCTimeToAscii failed");
                 }
@@ -196,8 +196,8 @@ pkix_pl_Date_ToString_Helper(
                  * this code is only here so that it will be in place when
                  * we do have the capability to create GeneralizedTime.
                  */
-		PKIX_PL_NSSCALLRV
-			(DATE, asciiDate, DER_GeneralizedDayToAscii, (nssTime));
+                PKIX_PL_NSSCALLRV
+                        (DATE, asciiDate, DER_GeneralizedDayToAscii, (nssTime));
                 if (!asciiDate){
                         PKIX_ERROR("DER_GeneralizedDayToAscii failed");
                 }

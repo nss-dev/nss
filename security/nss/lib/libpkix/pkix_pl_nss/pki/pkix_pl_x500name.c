@@ -794,7 +794,7 @@ pkix_pl_X500Name_GetCERTName(
         PKIX_ENTER(X500NAME, "pkix_pl_X500Name_GetCERTName");
         PKIX_NULLCHECK_TWO(xname, pCERTName);
 
-	*pCERTName = xname->nssDN;
+        *pCERTName = xname->nssDN;
 
         PKIX_RETURN(X500NAME);
 }
