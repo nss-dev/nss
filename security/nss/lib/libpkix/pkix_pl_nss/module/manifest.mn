@@ -40,6 +40,7 @@ EXPORTS = \
 	$(NULL)
 
 PRIVATE_EXPORTS = \
+	pkix_pl_aiamgr.h \
 	pkix_pl_colcertstore.h \
 	pkix_pl_ekuchecker.h \
 	pkix_pl_pk11certstore.h \
@@ -55,6 +56,7 @@ PRIVATE_EXPORTS = \
 MODULE = nss
 
 CSRCS = \
+	pkix_pl_aiamgr.c \
 	pkix_pl_ekuchecker.c \
 	pkix_pl_colcertstore.c \
 	pkix_pl_pk11certstore.c \

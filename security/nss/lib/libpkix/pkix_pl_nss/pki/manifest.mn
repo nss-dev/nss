@@ -40,7 +40,6 @@ EXPORTS = \
 	$(NULL)
 
 PRIVATE_EXPORTS = \
-	pkix_pl_aiamgr.h \
 	pkix_pl_basicconstraints.h \
 	pkix_pl_cert.h \
 	pkix_pl_certpolicyinfo.h \
@@ -59,7 +58,6 @@ PRIVATE_EXPORTS = \
 MODULE = nss
 
 CSRCS = \
-	pkix_pl_aiamgr.c \
 	pkix_pl_basicconstraints.c \
 	pkix_pl_cert.c \
 	pkix_pl_certpolicyinfo.c \

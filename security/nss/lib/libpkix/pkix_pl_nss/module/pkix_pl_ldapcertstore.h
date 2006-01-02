@@ -101,19 +101,6 @@ PKIX_Error *pkix_pl_LdapCertStore_ConvertCertResponses(
         PKIX_List **pCertList,
         void *plContext);
 
-PKIX_Error *PKIX_PL_LdapClient_InitiateRequest(
-        PKIX_PL_LdapClient *client,
-        LDAPRequestParams *requestParams,
-        void **pPollDesc,
-        PKIX_List **pResponse,
-        void *plContext);
-
-PKIX_Error *PKIX_PL_LdapClient_ResumeRequest(
-        PKIX_PL_LdapClient *client,
-        void **pPollDesc,
-        PKIX_List **pResponse,
-        void *plContext);
-
 #ifdef __cplusplus
 }
 #endif

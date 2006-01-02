@@ -46,47 +46,6 @@
 
 #include "pkix_pl_ldapcertstore.h"
 
-/* --Virtual-LdapClient-Functions------------------------------------ */
-
-PKIX_Error *
-PKIX_PL_LdapClient_InitiateRequest(
-        PKIX_PL_LdapClient *client,
-        LDAPRequestParams *requestParams,
-        void **pNBIO,
-        PKIX_List **pResponse,
-        void *plContext)
-{
-        PKIX_ENTER(LDAPCLIENT, "PKIX_PL_LdapClient_InitiateRequest");
-        PKIX_NULLCHECK_TWO(client, client->initiateFcn);
-
-        PKIX_CHECK(client->initiateFcn
-                (client, requestParams, pNBIO, pResponse, plContext),
-                "PKIX_PL_LdapClient_InitiateRequest failed");
-cleanup:
-
-        PKIX_RETURN(LDAPCLIENT);
-
-}
-
-PKIX_Error *
-PKIX_PL_LdapClient_ResumeRequest(
-        PKIX_PL_LdapClient *client,
-        void **pNBIO,
-        PKIX_List **pResponse,
-        void *plContext)
-{
-        PKIX_ENTER(LDAPCLIENT, "PKIX_PL_LdapClient_ResumeRequest");
-        PKIX_NULLCHECK_TWO(client, client->resumeFcn);
-
-        PKIX_CHECK(client->resumeFcn
-                (client, pNBIO, pResponse, plContext),
-                "PKIX_PL_LdapClient_ResumeRequest failed");
-cleanup:
-
-        PKIX_RETURN(LDAPCLIENT);
-
-}
-
 /* --Private-Ldap-CertStore-Database-Functions----------------------- */
 
 /*
