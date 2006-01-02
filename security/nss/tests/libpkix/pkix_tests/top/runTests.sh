@@ -127,7 +127,7 @@ test_validatechain NIST-Test.4.3.11 ENE $NIST TrustAnchorRootCertificate.crt UTF
 test_validatechain NIST-Test.4.4.1 EE $NIST TrustAnchorRootCertificate.crt NoCRLCACert.crt InvalidMissingCRLTest1EE.crt
 test_validatechain NIST-Test.4.4.2 EE $NIST TrustAnchorRootCertificate.crt GoodCACert.crt RevokedsubCACert.crt InvalidRevokedCATest2EE.crt
 test_validatechain NIST-Test.4.4.3 EE $NIST TrustAnchorRootCertificate.crt GoodCACert.crt InvalidRevokedEETest3EE.crt
-test_validatechain NIST-Test.4.4.4 EE $NIST TrustAnchorRootCertificate.crt BadSignedCACert.crt InvalidBadCRLSignatureTest4EE.crt
+test_validatechain NIST-Test.4.4.4 EE $NIST TrustAnchorRootCertificate.crt BadCRLSignatureCACert.crt InvalidBadCRLSignatureTest4EE.crt
 test_validatechain NIST-Test.4.4.5 EE $NIST TrustAnchorRootCertificate.crt BadCRLIssuerNameCACert.crt InvalidBadCRLIssuerNameTest5EE.crt
 test_validatechain NIST-Test.4.4.6 EE $NIST TrustAnchorRootCertificate.crt WrongCRLCACert.crt InvalidWrongCRLTest6EE.crt
 test_validatechain NIST-Test.4.4.7 ENE $NIST TrustAnchorRootCertificate.crt TwoCRLsCACert.crt ValidTwoCRLsTest7EE.crt
@@ -332,7 +332,7 @@ test_buildchain ${LDAP}  NIST-Test.4.3.11 ENE $NIST ValidUTF8StringCaseInsensiti
 test_buildchain ${LDAP}  NIST-Test.4.4.1 EE $NIST InvalidMissingCRLTest1EE.crt NoCRLCACert.crt TrustAnchorRootCertificate.crt
 test_buildchain ${LDAP}  NIST-Test.4.4.2 EE $NIST InvalidRevokedCATest2EE.crt RevokedsubCACert.crt GoodCACert.crt TrustAnchorRootCertificate.crt
 test_buildchain ${LDAP}  NIST-Test.4.4.3 EE $NIST InvalidRevokedEETest3EE.crt GoodCACert.crt TrustAnchorRootCertificate.crt
-test_buildchain ${LDAP}  NIST-Test.4.4.4 EE $NIST InvalidBadCRLSignatureTest4EE.crt BadSignedCACert.crt TrustAnchorRootCertificate.crt
+test_buildchain ${LDAP}  NIST-Test.4.4.4 EE $NIST InvalidBadCRLSignatureTest4EE.crt BadCRLSignatureCACert.crt TrustAnchorRootCertificate.crt
 test_buildchain ${LDAP}  NIST-Test.4.4.5 EE $NIST InvalidBadCRLIssuerNameTest5EE.crt BadCRLIssuerNameCACert.crt TrustAnchorRootCertificate.crt 
 test_buildchain ${LDAP}  NIST-Test.4.4.6 EE $NIST InvalidWrongCRLTest6EE.crt WrongCRLCACert.crt TrustAnchorRootCertificate.crt 
 test_buildchain ${LDAP}  NIST-Test.4.4.7 ENE $NIST ValidTwoCRLsTest7EE.crt TwoCRLsCACert.crt TrustAnchorRootCertificate.crt 
