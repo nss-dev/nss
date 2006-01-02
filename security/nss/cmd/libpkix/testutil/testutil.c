@@ -363,13 +363,13 @@ PKIX_Cert2ASCII(PKIX_PL_Cert *cert)
                 subjectAscii = PKIX_Object2ASCII((PKIX_PL_Object*)subject);
         }
 
-        errorResult = PKIX_PL_Malloc(100, &asciiString, NULL);
+        errorResult = PKIX_PL_Malloc(200, &asciiString, NULL);
         if (errorResult) goto cleanup;
 
         numChars =
                 PR_snprintf
                 (asciiString,
-                100,
+                200,
                 "Issuer=%s\nSubject=%s\n",
                 issuerAscii,
                 subjectAscii);
