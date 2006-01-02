@@ -156,6 +156,7 @@ typedef struct PKIX_PL_LdapResponseStruct PKIX_PL_LdapResponse;
 typedef struct PKIX_PL_LdapDefaultClientStruct PKIX_PL_LdapDefaultClient;
 typedef struct PKIX_PL_SocketStruct PKIX_PL_Socket;
 typedef struct PKIX_PL_InfoAccessStruct PKIX_PL_InfoAccess;
+typedef struct PKIX_PL_AIAMgrStruct PKIX_PL_AIAMgr;
 
 /* Primitive types
  *
@@ -244,8 +245,9 @@ typedef int PKIX_Boolean;
 #define PKIX_RESOURCELIMITS_TYPE        ((PKIX_UInt32) 51)
 #define PKIX_MONITORLOCK_TYPE           ((PKIX_UInt32) 52)
 #define PKIX_INFOACCESS_TYPE            ((PKIX_UInt32) 53)
+#define PKIX_AIAMGR_TYPE                ((PKIX_UInt32) 54)
 
-#define PKIX_NUMTYPES                   ((PKIX_UInt32) 54)
+#define PKIX_NUMTYPES                   ((PKIX_UInt32) 55)
 
 /* User Define Object Types
  *
@@ -328,9 +330,10 @@ typedef int PKIX_Boolean;
 #define PKIX_LOGGER_ERROR               ((PKIX_UInt32) 59)
 #define PKIX_MONITORLOCK_ERROR          ((PKIX_UInt32) 60)
 #define PKIX_INFOACCESS_ERROR           ((PKIX_UInt32) 61)
+#define PKIX_AIAMGR_ERROR               ((PKIX_UInt32) 62)
 
 /* YOU NEED TO UPDATE NEW ENTRY at pkix_error.c and pkix_logger.c */
-#define PKIX_NUMERRORS                  ((PKIX_UInt32) 62)
+#define PKIX_NUMERRORS                  ((PKIX_UInt32) 63)
 
 /* String Formats
  *

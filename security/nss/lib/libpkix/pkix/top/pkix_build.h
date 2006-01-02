@@ -44,6 +44,7 @@
 #ifndef _PKIX_BUILD_H
 #define _PKIX_BUILD_H
 #include "pkix_tools.h"
+#include "pkix_pl_ldapt.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -52,8 +53,10 @@ extern "C" {
 typedef enum {
         BUILD_SHORTCUTPENDING,
         BUILD_INITIAL,
-        BUILD_CERTIOPENDING,
+        BUILD_TRYAIA,
+        BUILD_AIAPENDING,
         BUILD_COLLECTINGCERTS,
+        BUILD_GATHERPENDING,
         BUILD_CERTVALIDATING,
         BUILD_ABANDONNODE,
         BUILD_CRLPREP,
@@ -94,6 +97,7 @@ struct BuildConstantsStruct {
         PKIX_List *anchors;
         PKIX_List *userCheckers;
         PKIX_CertChainChecker *crlChecker;
+	PKIX_PL_AIAMgr *aiaMgr;
 };
 
 struct PKIX_ForwardBuilderStateStruct{
@@ -101,7 +105,9 @@ struct PKIX_ForwardBuilderStateStruct{
         PKIX_Int32 traversedCACerts;
         PKIX_UInt32 certStoreIndex;
         PKIX_UInt32 numCerts;
+	PKIX_UInt32 numAias;
         PKIX_UInt32 certIndex;
+	PKIX_UInt32 aiaIndex;
         PKIX_UInt32 anchorIndex;
         PKIX_UInt32 certCheckedIndex;
         PKIX_UInt32 checkerIndex;
@@ -111,16 +117,19 @@ struct PKIX_ForwardBuilderStateStruct{
         PKIX_Boolean revCheckDelayed;
         PKIX_Boolean canBeCached;
         PKIX_Boolean useOnlyLocal;
+        PKIX_Boolean alreadyTriedAIA;
         PKIX_PL_Date *validityDate;
         PKIX_PL_Cert *prevCert;
         PKIX_PL_Cert *candidateCert;
         PKIX_List *traversedSubjNames;
         PKIX_List *trustChain;
+        PKIX_List *aia;
         PKIX_List *candidateCerts;
         PKIX_List *reversedCertChain;
         PKIX_List *checkedCritExtOIDs;
         PKIX_List *checkerChain;
         PKIX_CertSelector *certSel;
+	void *client; /* messageHandler, such as LDAPClient */
         PKIX_ForwardBuilderState *parentState;
         BuildConstants buildConstants;
 };

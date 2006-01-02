@@ -227,6 +227,7 @@ PKIX_PL_Initialize(
         pkix_pl_Socket_RegisterSelf(plContext);
         pkix_ResourceLimits_RegisterSelf(plContext);
         pkix_pl_InfoAccess_RegisterSelf(plContext);
+        pkix_pl_AIAMgr_RegisterSelf(plContext);
 
         PKIX_CHECK(PKIX_PL_NssContext_Create
                 (0x10, useArenas, NULL, &plContext),

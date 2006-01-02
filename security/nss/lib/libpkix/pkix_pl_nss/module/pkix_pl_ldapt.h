@@ -148,6 +148,7 @@ typedef enum {
         OTHER                           = 80
 } LDAPResultCode;
 
+typedef struct LDAPLocationStruct                LDAPLocation;
 typedef struct LDAPCertPairStruct                LDAPCertPair;
 typedef struct LDAPSimpleBindStruct              LDAPSimpleBind;
 typedef struct LDAPBindAPIStruct                 LDAPBindAPI;
@@ -176,6 +177,13 @@ typedef LDAPAttributeValueAssertion              LDAPEqualFilter;
 typedef LDAPAttributeValueAssertion              LDAPGreaterOrEqualFilter;
 typedef LDAPAttributeValueAssertion              LDAPLessOrEqualFilter;
 typedef LDAPAttributeValueAssertion              LDAPApproxMatchFilter;
+
+struct LDAPLocationStruct {
+        PRArenaPool *arena;
+        void *serverSite;
+        void **filterString;
+        void **attrBitString;
+};
 
 struct LDAPCertPairStruct {
         SECItem forward;
@@ -316,14 +324,14 @@ typedef PKIX_Error *
 (*PKIX_PL_LdapClient_InitiateFcn)(
         PKIX_PL_LdapClient *client,
         LDAPRequestParams *requestParams,
-        PRPollDesc **pPollDesc,
+        void **pNBIO,
         PKIX_List **pResponse,
         void *plContext);
 
 typedef PKIX_Error *
 (*PKIX_PL_LdapClient_ResumeFcn)(
         PKIX_PL_LdapClient *client,
-        PRPollDesc **pPollDesc,
+        void **pNBIO,
         PKIX_List **pResponse,
         void *plContext);
 

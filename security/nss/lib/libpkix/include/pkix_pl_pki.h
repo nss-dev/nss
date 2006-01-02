@@ -1779,6 +1779,14 @@ PKIX_PL_InfoAccess_GetLocationType(
         PKIX_UInt32 *pType,
         void *plContext);
 
+PKIX_Error *
+pkix_pl_InfoAccess_GetAIACerts(
+        PKIX_PL_InfoAccess *ia,
+        void **pNBIOContext,
+        void **pHandle,
+        PKIX_List **pCerts,
+        void *plContext);
+
 /*
  * CRL
  *
@@ -2322,19 +2330,20 @@ PKIX_PL_GeneralName_Create (
  * FUNCTION: PKIX_PL_CertNameConstraints_CheckNamesInNameSpace
  * DESCRIPTION:
  *
- *  This function checks if names in "nameList" are complied with
- *  "nameConstraints". It returns PKIX_TRUE in "pCheckPass" if
- *  the names meet the requirement of the NameConstraints.
+ *  This function checks whether names in "nameList" comply with
+ *  "nameConstraints". It stores PKIX_TRUE at "pCheckPass" if the names meet the
+ *  requirement of the NameConstraints, PKIX_FALSE otherwise.
  *
  * PARAMETERS
  *  "nameList"
- *      List of PKIX_PLGeneralName that verification is based on.
+ *      List of GeneralNames that are checked for compliance. May be empty
+ *      or NULL.
  *  "nameConstraints"
  *      Address of CertNameConstraints that provides lists of permitted
  *      and excluded names. Must be non-NULL.
  *  "pCheckPass"
  *      Address where PKIX_TRUE is returned if the all names in "nameList" are
- *      valid.
+ *      valid. Must be non-NULL.
  *  "plContext" - Platform-specific context pointer.
  * THREAD SAFETY:
  *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
@@ -2349,6 +2358,82 @@ PKIX_PL_CertNameConstraints_CheckNamesInNameSpace(
         PKIX_List *nameList, /* List of PKIX_PL_GeneralName */
         PKIX_PL_CertNameConstraints *nameConstraints,
         PKIX_Boolean *pCheckPass,
+        void *plContext);
+
+/*
+ * FUNCTION: PKIX_PL_AIAMgr_Create
+ * DESCRIPTION:
+ *
+ *  This function creates an AIAMgr to handle retrieval of Certs and CRLs
+ *  from servers given by AIA Certificate extensions. It manages connections
+ *  and caches. The manager created is stored at "pAIAMgr".
+ *
+ * PARAMETERS:
+ *  "pAIAMgr"
+ *      The address at which the result is stored. Must be non-NULL.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns an AIAMgr Error if the function fails in a non-fatal way
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_PL_AIAMgr_Create(
+        PKIX_PL_AIAMgr **pAIAMgr,
+        void *plContext);
+
+/*
+ * FUNCTION: PKIX_PL_AIAMgr_GetAIACerts
+ * DESCRIPTION:
+ *
+ *  This function uses the AIAMgr pointed to by "aiaMgr" to retrieve the Certs
+ *  specified by an AIA certificate extension, if any, in the Cert pointed to by
+ *  "prevCert", storing the results at "pCerts". If the certificate has no such
+ *  extension, this function stores NULL at "pCerts".
+ *
+ *  If the request is suspended for non-blocking I/O, a platform-dependent
+ *  context is stored at "pNBIOContext" and NULL is stored at "pCerts". This
+ *  return is referred to as the WOULDBLOCK state. Note that the caller must
+ *  check for a non-NULL value at "pNBIOContext", to distinguish this state from
+ *  the "no such extension" return described in the first paragraph. (The
+ *  alternative would be to return an empty List, but it seemed wrong to incur
+ *  the overhead of creating and destroying an empty List for the most common
+ *  situation.)
+ *
+ *  After a WOULDBLOCK return, the user may continue the operation by calling
+ *  pkix_AIAMgr_GetAIACerts (possibly more than once, if the function again
+ *  returns in the WOULDBLOCK state) with the previously-returned non-NULL
+ *  value of "pNBIOContext". When results are complete, NULL is stored at
+ *  "pNBIOContext", and the results (which may be NULL) are stored at "pCerts".
+ *
+ * PARAMETERS:
+ *  "aiaMgr"
+ *      The AIAMgr which controls the retrieval of certificates. Must be
+ *      non-NULL.
+ *  "prevCert"
+ *      Address of PKIX_PL_Cert which may provide an AIA or SIA extension. Must
+ *      be non-NULL.
+ *  "pNBIOContext"
+ *      Address at which platform-dependent information is returned if request
+ *      is suspended for non-blocking I/O. Must be non-NULL.
+ *  "pCerts"
+ *      Address at which the returned List is stored. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns an AIAMgr Error if the function fails in a non-fatal way
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_PL_AIAMgr_GetAIACerts(
+        PKIX_PL_AIAMgr *aiaMgr,
+        PKIX_PL_Cert *prevCert,
+        void **pNBIOContext,
+        PKIX_List **pCerts,
         void *plContext);
 
 #ifdef __cplusplus

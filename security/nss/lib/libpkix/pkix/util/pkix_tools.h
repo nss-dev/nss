@@ -50,29 +50,30 @@
 
 /* private PKIX system headers */
 #include "pkix_basicconstraintschecker.h"
-#include "pkix_buildresult.h"
 #include "pkix_buildparams.h"
+#include "pkix_buildresult.h"
 #include "pkix_certchainchecker.h"
-#include "pkix_revocationchecker.h"
+#include "pkix_certselector.h"
+#include "pkix_comcertselparams.h"
+#include "pkix_comcrlselparams.h"
+#include "pkix_crlselector.h"
+#include "pkix_defaultcrlchecker.h"
 #include "pkix_error.h"
 #include "pkix_expirationchecker.h"
 #include "pkix_list.h"
+#include "pkix_logger.h"
 #include "pkix_namechainingchecker.h"
+#include "pkix_nameconstraintschecker.h"
 #include "pkix_policychecker.h"
 #include "pkix_policynode.h"
-#include "pkix_signaturechecker.h"
-#include "pkix_targetcertchecker.h"
-#include "pkix_valresult.h"
-#include "pkix_resourcelimits.h"
-#include "pkix_logger.h"
-#include "pkix_defaultcrlchecker.h"
-#include "pkix_nameconstraintschecker.h"
-#include "pkix_comcertselparams.h"
-#include "pkix_comcrlselparams.h"
 #include "pkix_procparams.h"
+#include "pkix_resourcelimits.h"
+#include "pkix_revocationchecker.h"
+#include "pkix_signaturechecker.h"
 #include "pkix_store.h"
-#include "pkix_error.h"
+#include "pkix_targetcertchecker.h"
 #include "pkix_validate.h"
+#include "pkix_valresult.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -498,6 +499,7 @@ extern "C" {
 #define PKIX_LOGGERDEBUG                1
 #define PKIX_MONITORLOCKDEBUG           1
 #define PKIX_INFOACCESSDEBUG            1
+#define PKIX_AIAMGRDEBUG            1
 #endif
 
 /*
@@ -1181,6 +1183,16 @@ extern "C" {
 #else
 #define PKIX_INFOACCESS_DEBUG(expr)
 #define PKIX_INFOACCESS_DEBUG_ARG(expr, arg)
+#endif
+
+#if PKIX_AIAMGRDEBUG
+#define PKIX_AIAMGR_DEBUG(expr) \
+        PKIX_DEBUG(expr)
+#define PKIX_AIAMGR_DEBUG_ARG(expr, arg) \
+        PKIX_DEBUG_ARG(expr, arg)
+#else
+#define PKIX_AIAMGR_DEBUG(expr)
+#define PKIX_AIAMGR_DEBUG_ARG(expr, arg)
 #endif
 
 /*

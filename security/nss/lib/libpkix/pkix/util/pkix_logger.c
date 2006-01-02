@@ -143,7 +143,8 @@ PKIX_COMPONENTNAMES[PKIX_NUMERRORS] =
         "ResourceLimits",
         "Logger",
         "MonitorLock",
-        "InfoAccess"
+        "InfoAccess",
+        "AIAMgr"
 };
 
 /* --Private-Functions-------------------------------------------- */

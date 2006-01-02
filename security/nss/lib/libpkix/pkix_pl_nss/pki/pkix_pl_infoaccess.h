@@ -65,6 +65,14 @@ pkix_pl_InfoAccess_CreateList(
         PKIX_List **pAiaList, /* of PKIX_PL_InfoAccess */
         void *plContext);
 
+PKIX_Error *
+pkix_pl_InfoAccess_ParseLocation(
+        PKIX_PL_GeneralName *generalName,
+        PRArenaPool *arena,
+        LDAPRequestParams *request,
+        char **pDomainName,
+        void *plContext);
+
 #ifdef __cplusplus
 }
 #endif

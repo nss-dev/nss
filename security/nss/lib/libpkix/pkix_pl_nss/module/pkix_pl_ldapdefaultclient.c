@@ -510,7 +510,9 @@ pkix_pl_LdapDefaultClient_RecvCheckComplete(
 
                 } else if (messageType == LDAP_SEARCHRESPONSERESULT_TYPE) {
                         PKIX_CHECK(pkix_pl_LdapResponse_GetResultCode
-                                (client->currentResponse, &resultCode, plContext),
+                                (client->currentResponse,
+                                &resultCode,
+                                plContext),
                                 "pkix_pl_LdapResponse_GetResultCode failed");
 
                         if ((client->entriesFound == NULL) &&
@@ -521,6 +523,9 @@ pkix_pl_LdapDefaultClient_RecvCheckComplete(
                                         plContext),
                                         "PKIX_List_Create failed");
                         } else if (resultCode == SUCCESS) {
+                                PKIX_CHECK(PKIX_List_SetImmutable
+                                        (client->entriesFound, plContext),
+                                        "PKIX_List_SetImmutable failed");
                                 PKIX_CHECK(PKIX_PL_HashTable_Add
                                         (client->cachePtr,
                                         (PKIX_PL_Object *)client->currentRequest,
@@ -551,14 +556,14 @@ static PKIX_Error *
 pkix_pl_LdapDefaultClient_InitiateRequest(
         PKIX_PL_LdapClient *client,
         LDAPRequestParams *requestParams,
-        PRPollDesc **pPollDesc,
+        void **pPollDesc,
         PKIX_List **pResponse,
         void *plContext);
 
 static PKIX_Error *
 pkix_pl_LdapDefaultClient_ResumeRequest(
         PKIX_PL_LdapClient *client,
-        PRPollDesc **pPollDesc,
+        void **pPollDesc,
         PKIX_List **pResponse,
         void *plContext);
 
@@ -676,9 +681,9 @@ pkix_pl_LdapDefaultClient_CreateHelper(
         *pClient = ldapDefaultClient;
 
 cleanup:
-	if (PKIX_ERROR_RECEIVED) {
-		PKIX_DECREF(ldapDefaultClient);
-	}
+        if (PKIX_ERROR_RECEIVED) {
+                PKIX_DECREF(ldapDefaultClient);
+        }
 
         PKIX_DECREF(ht);
 
@@ -755,9 +760,9 @@ PKIX_PL_LdapDefaultClient_Create(
         *pClient = client;
 
 cleanup:
-	if (PKIX_ERROR_RECEIVED) {
-		PKIX_DECREF(client);
-	}
+        if (PKIX_ERROR_RECEIVED) {
+                PKIX_DECREF(client);
+        }
 
         PKIX_DECREF(socket);
 
@@ -834,9 +839,9 @@ PKIX_PL_LdapDefaultClient_CreateByName(
         *pClient = client;
 
 cleanup:
-	if (PKIX_ERROR_RECEIVED) {
-		PKIX_DECREF(client);
-	}
+        if (PKIX_ERROR_RECEIVED) {
+                PKIX_DECREF(client);
+        }
 
         PKIX_DECREF(socket);
 
@@ -2209,88 +2214,6 @@ cleanup:
         PKIX_RETURN(LDAPDEFAULTCLIENT);
 }
 
-#if 0
-/*
- * FUNCTION: pkix_pl_LdapDefaultClient_SendRequest
- * DESCRIPTION:
- *
- *  This function tries to obtain a response for the LdapRequest contained in
- *  the LdapDefaultClient pointed to by "client", and stores the response at
- *  "pResponse". If the LdapRequest was previously stored with a response in
- *  the certstore's cache, that response is retrieved immediately. Otherwise,
- *  the request is transmitted.
- *
- *  If non-blocking I/O is in use and the response is not yet available, NULL is
- *  stored at "pResponse". If the response has come back but contained no items
- *  satisfying the request, an empty List is stored at "pResponse".
- *
- * PARAMETERS:
- *  "client"
- *      The address of the LdapDefaultClient object. Must be non-NULL.
- *  "pResponse"
- *      The address where the List, or NULL for an unfinished request, is
- *      stored. Must be non-NULL.
- *  "plContext"
- *      Platform-specific context pointer.
- * THREAD SAFETY:
- *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
- * RETURNS:
- *  Returns NULL if the function succeeds.
- *  Returns a LdapDefaultClient Error if the function fails in a
- *      non-fatal way.
- *  Returns a Fatal Error if the function fails in an unrecoverable way.
- */
-static PKIX_Error *
-pkix_pl_LdapDefaultClient_SendRequest(
-        PKIX_PL_LdapDefaultClient *client,
-        PKIX_List **pResponse,
-        void *plContext)
-{
-        PKIX_List *searchResponseList = NULL;
-        SECItem *encoded = NULL;
-
-        PKIX_ENTER
-                (LDAPDEFAULTCLIENT,
-                "pkix_pl_LdapDefaultClient_SendRequest");
-        PKIX_NULLCHECK_TWO(client, pResponse);
-
-        /* check hashtable for matching request */
-        PKIX_CHECK(PKIX_PL_HashTable_Lookup
-                (client->cachePtr,
-                (PKIX_PL_Object *)(client->currentRequest),
-                (PKIX_PL_Object **)&searchResponseList,
-                plContext),
-                "PKIX_PL_HashTable_Lookup failed");
-
-        if (searchResponseList == NULL) {
-                /* It wasn't cached. We'll have to actually send it. */
-
-                PKIX_CHECK(pkix_pl_LdapRequest_GetEncoded
-                        (client->currentRequest, &encoded, plContext),
-                        "pkix_pl_LdapRequest_GetEncoded failed");
-
-                client->sendBuf = encoded->data;
-                client->bytesToWrite = encoded->len;
-
-                PKIX_CHECK(pkix_pl_LdapDefaultClient_Dispatch(client, plContext),
-                        "pkix_pl_LdapDefaultClient_Dispatch failed");
-
-                if (client->entriesFound) {
-                        searchResponseList = client->entriesFound;
-                        PKIX_INCREF(searchResponseList);
-
-                        PKIX_DECREF(client->entriesFound);
-                        PKIX_DECREF(client->currentRequest);
-                }
-        }
-
-        *pResponse = searchResponseList;
-
-cleanup:
-
-        PKIX_RETURN(LDAPDEFAULTCLIENT);
-}
-#endif
 /*
  * FUNCTION: pkix_pl_LdapDefaultClient_MakeAndFilter
  * DESCRIPTION:
@@ -2410,11 +2333,11 @@ cleanup:
  *      non-fatal way.
  *  Returns a Fatal Error if the function fails in an unrecoverable way.
  */
-static  PKIX_Error *
+static PKIX_Error *
 pkix_pl_LdapDefaultClient_InitiateRequest(
         PKIX_PL_LdapClient *genericClient,
         LDAPRequestParams *requestParams,
-        PRPollDesc **pPollDesc,
+        void **pPollDesc,
         PKIX_List **pResponse,
         void *plContext)
 {
@@ -2525,7 +2448,7 @@ cleanup:
 static PKIX_Error *
 pkix_pl_LdapDefaultClient_ResumeRequest(
         PKIX_PL_LdapClient *genericClient,
-        PRPollDesc **pPollDesc,
+        void **pPollDesc,
         PKIX_List **pResponse,
         void *plContext)
 {
@@ -2536,7 +2459,7 @@ pkix_pl_LdapDefaultClient_ResumeRequest(
 
         PKIX_ENTER
                 (LDAPDEFAULTCLIENT, "pkix_pl_LdapDefaultClient_ResumeRequest");
-        PKIX_NULLCHECK_THREE(client, pPollDesc, pResponse);
+        PKIX_NULLCHECK_THREE(genericClient, pPollDesc, pResponse);
 
         PKIX_CHECK(pkix_CheckType
                 ((PKIX_PL_Object *)genericClient,

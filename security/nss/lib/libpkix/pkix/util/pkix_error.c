@@ -434,7 +434,8 @@ PKIX_ERRORNAMES[PKIX_NUMERRORS] =
         "Resource Limits Error",
         "Logger Error",
         "MonitorLock Error",
-        "InfoAccess Error"
+        "InfoAccess Error",
+        "AIAMgr Error"
 };
 
 /*

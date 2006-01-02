@@ -86,11 +86,14 @@ pkix_ForwardBuilderState_Destroy(
         state->traversedCACerts = 0;
         state->certStoreIndex = 0;
         state->numCerts = 0;
+        state->numAias = 0;
         state->certIndex = 0;
+        state->aiaIndex = 0;
         state->dsaParamsNeeded = PKIX_FALSE;
         state->revCheckDelayed = PKIX_FALSE;
         state->canBeCached = PKIX_FALSE;
         state->useOnlyLocal = PKIX_FALSE;
+        state->alreadyTriedAIA = PKIX_FALSE;
         PKIX_DECREF(state->validityDate);
         PKIX_DECREF(state->prevCert);
         PKIX_DECREF(state->candidateCert);
@@ -101,6 +104,7 @@ pkix_ForwardBuilderState_Destroy(
         PKIX_DECREF(state->checkedCritExtOIDs);
         PKIX_DECREF(state->checkerChain);
         PKIX_DECREF(state->certSel);
+        PKIX_DECREF(state->client);
 
         /*
          * If we ever add a child link we have to be careful not to have loops
@@ -118,6 +122,7 @@ pkix_ForwardBuilderState_Destroy(
                 PKIX_DECREF(state->buildConstants.anchors);
                 PKIX_DECREF(state->buildConstants.userCheckers);
                 PKIX_DECREF(state->buildConstants.crlChecker);
+                PKIX_DECREF(state->buildConstants.aiaMgr);
         } else {
                 PKIX_DECREF(state->parentState);
         }
@@ -204,12 +209,15 @@ pkix_ForwardBuilderState_Create(
         state->numDepth = numDepth;
         state->certStoreIndex = 0;
         state->numCerts = 0;
+        state->numAias = 0;
         state->certIndex = 0;
+        state->aiaIndex = 0;
         state->anchorIndex = 0;
         state->dsaParamsNeeded = dsaParamsNeeded;
         state->revCheckDelayed = revCheckDelayed;
         state->canBeCached = canBeCached;
         state->useOnlyLocal = PKIX_TRUE;
+        state->alreadyTriedAIA = PKIX_FALSE;
 
         PKIX_INCREF(validityDate);
         state->validityDate = validityDate;
@@ -225,11 +233,13 @@ pkix_ForwardBuilderState_Create(
         PKIX_INCREF(trustChain);
         state->trustChain = trustChain;
 
+        state->aia = NULL;
         state->candidateCerts = NULL;
         state->reversedCertChain = NULL;
         state->checkedCritExtOIDs = NULL;
         state->checkerChain = NULL;
         state->certSel = NULL;
+        state->client = NULL;
 
         PKIX_INCREF(parentState);
         state->parentState = parentState;
@@ -263,6 +273,8 @@ pkix_ForwardBuilderState_Create(
                         parentState->buildConstants.userCheckers;
                 state->buildConstants.crlChecker =
                         parentState->buildConstants.crlChecker;
+                state->buildConstants.aiaMgr =
+                        parentState->buildConstants.aiaMgr;
         }
 
         *pState = state;
@@ -364,13 +376,16 @@ pkix_ForwardBuilderState_ToString
                 "\ttraversedCACerts: \t%d\n"
                 "\tcertStoreIndex: \t%d\n"
                 "\tnumCerts: \t%d\n"
+                "\tnumAias: \t%d\n"
                 "\tcertIndex: \t%d\n"
+                "\taiaIndex: \t%d\n"
                 "\tnumFanout: \t%d\n"
                 "\tnumDepth:  \t%d\n"
                 "\tdsaParamsNeeded: \t%d\n"
                 "\trevCheckDelayed: \t%d\n"
                 "\tcanBeCached: \t%d\n"
                 "\tuseOnlyLocal: \t%d\n"
+                "\talreadyTriedAIA: \t%d\n"
                 "\tvalidityDate: \t%s\n"
                 "\tprevCert: \t%s\n"
                 "\tcandidateCert: \t%s\n"
@@ -399,9 +414,13 @@ pkix_ForwardBuilderState_ToString
                                         break;
             case BUILD_INITIAL:         asciiStatus = "BUILD_INITIAL";
                                         break;
-            case BUILD_CERTIOPENDING:   asciiStatus = "BUILD_CERTIOPENDING";
+            case BUILD_TRYAIA:          asciiStatus = "BUILD_TRYAIA";
+                                        break;
+            case BUILD_AIAPENDING:      asciiStatus = "BUILD_AIAPENDING";
                                         break;
             case BUILD_COLLECTINGCERTS: asciiStatus = "BUILD_COLLECTINGCERTS";
+                                        break;
+            case BUILD_GATHERPENDING:   asciiStatus = "BUILD_GATHERPENDING";
                                         break;
             case BUILD_CERTVALIDATING:  asciiStatus = "BUILD_CERTVALIDATING";
                                         break;
@@ -483,13 +502,16 @@ pkix_ForwardBuilderState_ToString
                 (PKIX_Int32)state->traversedCACerts,
                 (PKIX_UInt32)state->certStoreIndex,
                 (PKIX_UInt32)state->numCerts,
+                (PKIX_UInt32)state->numAias,
                 (PKIX_UInt32)state->certIndex,
+                (PKIX_UInt32)state->aiaIndex,
                 (PKIX_UInt32)state->numFanout,
                 (PKIX_UInt32)state->numDepth,
                 state->dsaParamsNeeded,
                 state->revCheckDelayed,
                 state->canBeCached,
                 state->useOnlyLocal,
+                state->alreadyTriedAIA,
                 validityDateString,
                 prevCertString,
                 candidateCertString,
@@ -639,11 +661,12 @@ pkix_ForwardBuilderState_IsIOPending(
         PKIX_ENTER(FORWARDBUILDERSTATE, "pkix_ForwardBuilderState_IsIOPending");
         PKIX_NULLCHECK_TWO(state, pPending);
 
-        if ((state->status == BUILD_CERTIOPENDING) ||
+        if ((state->status == BUILD_GATHERPENDING) ||
             (state->status == BUILD_CRL1) ||
             (state->status == BUILD_CRL2) ||
             (state->status == BUILD_CHECKTRUSTED2) ||
-            (state->status == BUILD_VALCHAIN2)) {
+            (state->status == BUILD_VALCHAIN2) ||
+            (state->status == BUILD_AIAPENDING)) {
                 *pPending = PKIX_TRUE;
         } else {
                 *pPending = PKIX_FALSE;
@@ -1740,8 +1763,8 @@ cleanup:
  * 
  *  If a CertStore using non-blocking I/O returns with an indication that I/O is
  *  in progress and the checking has not been completed, this function stores
- *  NULL at "pCerts". Otherwise, it stores the List of results, which may be
- *  empty, at "pCerts".
+ *  platform-dependent information at "pNBIOContext". Otherwise it stores NULL
+ *  at "pNBIOContext", and state is updated with the results of the search.
  *
  * PARAMETERS:
  *  "state"
@@ -1750,10 +1773,9 @@ cleanup:
  *      Address of ComCertSelParams which were used in creating the current
  *      CertSelector, and to be used in querying and updating any caches that
  *      may be associated with with the CertStores.
- *  "pCerts"
- *      Address at which NULL is stored, if non-blocking I/O is in progress, or
- *      at which the List of results (possibly empty) is store on completion
- *      of the search. Must be non-NULL.
+ *  "pNBIOContext"
+ *      Address at which platform-dependent information is returned if request
+ *      is suspended for non-blocking I/O. Must be non-NULL.
  *  "plContext"
  *      Platform-specific context pointer.
  * THREAD SAFETY:
@@ -1769,7 +1791,6 @@ pkix_Build_GatherCerts(
         PKIX_ForwardBuilderState *state,
         PKIX_ComCertSelParams *certSelParams,
         void **pNBIOContext,
-        PKIX_List **pCerts,
         void *plContext)
 {
         PKIX_Boolean certStoreIsCached = PKIX_FALSE;
@@ -1782,8 +1803,9 @@ pkix_Build_GatherCerts(
         void *nbioContext = NULL;
 
         PKIX_ENTER(BUILD, "pkix_Build_GatherCerts");
-        PKIX_NULLCHECK_FOUR(state, certSelParams, pNBIOContext, pCerts);
+        PKIX_NULLCHECK_THREE(state, certSelParams, pNBIOContext);
 
+	nbioContext = *pNBIOContext;
         *pNBIOContext = NULL;
 
         while (state->certStoreIndex < state->buildConstants.numCertStores) {
@@ -1805,8 +1827,8 @@ pkix_Build_GatherCerts(
                 }
 
                 if (certStoreCanBeUsed == PKIX_TRUE) {
-                    /* If CERTIOPENDING, we've already checked the cache */
-                    if (state->status == BUILD_CERTIOPENDING) {
+                    /* If GATHERPENDING, we've already checked the cache */
+                    if (state->status == BUILD_GATHERPENDING) {
                         certStoreIsCached = PKIX_FALSE;
                         foundInCache = PKIX_FALSE;
                     } else {
@@ -1820,7 +1842,7 @@ pkix_Build_GatherCerts(
                          * the key. Then the ComCertSelParams are used to filter
                          * for qualified certs. If none are found, then the
                          * certStores are queried. When we eventually add items
-                         * to the cache, we will only add items that passed thea
+                         * to the cache, we will only add items that passed the
                          * ComCertSelParams filter, rather than all Certs which
                          * matched the SubjectName.
                          */
@@ -1846,17 +1868,27 @@ pkix_Build_GatherCerts(
                      */
                     if (!foundInCache) {
 
-                        PKIX_CHECK(PKIX_CertStore_GetCertCallback
-                                (certStore, &getCerts, plContext),
-                                "PKIX_CertStore_GetCertCallback failed");
+			if (nbioContext == NULL) {
+	                        PKIX_CHECK(PKIX_CertStore_GetCertCallback
+	                                (certStore, &getCerts, plContext),
+	                                "PKIX_CertStore_GetCertCallback failed");
 
-                        PKIX_CHECK(getCerts
-                                (certStore,
-                                state->certSel,
-                                &nbioContext,
-                                &certsFound,
-                                plContext),
-                                "getCerts failed");
+	                        PKIX_CHECK(getCerts
+	                                (certStore,
+	                                state->certSel,
+	                                &nbioContext,
+	                                &certsFound,
+	                                plContext),
+	                                "getCerts failed");
+			} else {
+	                        PKIX_CHECK(PKIX_CertStore_CertContinue
+	                                (certStore,
+	                                state->certSel,
+	                                &nbioContext,
+	                                &certsFound,
+	                                plContext),
+	                                "PKIX_CertStore_CertContinue failed");
+			}
 
                         if (certStoreIsCached && certsFound) {
 
@@ -1874,9 +1906,8 @@ pkix_Build_GatherCerts(
                      * a NULL list for "would block"
                      */
                     if (certsFound == NULL) {
-                        state->status = BUILD_CERTIOPENDING;
+                        state->status = BUILD_GATHERPENDING;
                         *pNBIOContext = nbioContext;
-                        *pCerts = NULL;
                         goto cleanup;
                     } else {
                         PKIX_CHECK(pkix_Build_CombineWithTrust
@@ -1909,12 +1940,10 @@ pkix_Build_GatherCerts(
 
         state->certIndex = 0;
 
-        PKIX_INCREF(state->candidateCerts);
-        *pCerts = state->candidateCerts;
-
 cleanup:
 
         PKIX_DECREF(certStore);
+        PKIX_DECREF(certsFound);
 
         PKIX_RETURN(BUILD);
 }
@@ -2157,9 +2186,10 @@ pkix_BuildForwardDepthFirstSearch(
         PKIX_Int32 cmpTimeResult = 0;
         PKIX_UInt32 i = 0;
         PKIX_List *childTraversedSubjNames = NULL;
-        PKIX_List *certsFound = NULL;
         PKIX_List *subjectNames = NULL;
         PKIX_List *sortedList = NULL;
+        PKIX_List *unfilteredCerts = NULL;
+        PKIX_List *filteredCerts = NULL;
         PKIX_PL_Object *subjectName = NULL;
         PKIX_ValidateResult *valResult = NULL;
         PKIX_ForwardBuilderState *state = NULL;
@@ -2171,11 +2201,12 @@ pkix_BuildForwardDepthFirstSearch(
         PKIX_ComCertSelParams *certSelParams = NULL;
         PKIX_TrustAnchor *trustAnchor = NULL;
         PKIX_PL_Cert *trustedCert = NULL;
-        void *nbioContext = NULL;
+        void *nbio = NULL;
 
         PKIX_ENTER(BUILD, "pkix_BuildForwardDepthFirstSearch");
         PKIX_NULLCHECK_FOUR(pNBIOContext, pState, *pState, pValResult);
 
+	nbio = *pNBIOContext;
         *pNBIOContext = NULL;
         state = *pState;
         *pState = NULL; /* no net change in reference count */
@@ -2213,7 +2244,114 @@ pkix_BuildForwardDepthFirstSearch(
                 PKIX_CHECK(pkix_Build_BuildSelectorAndParams(state, plContext),
                         "pkix_Build_BuildSelectorAndParams failed");
 
-                state->status = BUILD_COLLECTINGCERTS;
+                state->status = BUILD_TRYAIA;
+
+            }
+
+            if (state->status == BUILD_TRYAIA) {
+                if ((state->useOnlyLocal == PKIX_TRUE) ||
+                    (state->alreadyTriedAIA == PKIX_TRUE)) {
+                	state->status = BUILD_COLLECTINGCERTS;
+		} else {
+                	state->status = BUILD_AIAPENDING;
+		}
+            }
+
+            if (state->status == BUILD_AIAPENDING) {
+                PKIX_CHECK(PKIX_PL_AIAMgr_GetAIACerts
+			(state->buildConstants.aiaMgr,
+			state->prevCert,
+			&nbio,
+			&unfilteredCerts,
+			plContext),
+                        "PKIX_PL_AIAMgr_GetAIACerts failed");
+
+                if (nbio != NULL) {
+                        /* IO still pending, resume later */
+                        *pNBIOContext = nbio;
+                        goto cleanup;
+                }
+
+                state->numCerts = 0;
+
+#ifdef PKIX_BUILDDEBUG
+		/* Turn this on to trace the List of Certs, before CertSelect */
+		{
+				PKIX_PL_String *unString;
+			        char *unAscii;
+			        PKIX_UInt32 length;
+			        PKIX_TOSTRING
+					((PKIX_PL_Object*)unfilteredCerts,
+					&unString,
+					plContext,
+			                "PKIX_PL_Object_ToString failed");
+
+			        PKIX_CHECK(PKIX_PL_String_GetEncoded
+			                    (unString,
+			                    PKIX_ESCASCII,
+			                    (void **)&unAscii,
+			                    &length,
+			                    plContext),
+			                    "PKIX_PL_String_GetEncoded failed");
+
+			        PKIX_DEBUG_ARG
+					("unfilteredCerts = %s\n", unAscii);
+				PKIX_DECREF(unString);
+			        PKIX_FREE(unAscii);
+}
+#endif
+
+		if (unfilteredCerts) {
+			PKIX_CHECK(pkix_CertSelector_Select
+				(state->certSel,
+				unfilteredCerts,
+				&filteredCerts,
+				plContext),
+				"pkix_CertSelector_Select failed");
+
+			PKIX_DECREF(unfilteredCerts);
+
+			PKIX_CHECK(PKIX_List_GetLength
+				(filteredCerts, &(state->numCerts), plContext),
+				"PKIX_List_GetLength failed");
+
+#ifdef PKIX_BUILDDEBUG
+		/* Turn this on to trace the List of Certs, after CertSelect */
+		{
+			PKIX_PL_String *unString;
+		        char *unAscii;
+		        PKIX_UInt32 length;
+		        PKIX_TOSTRING
+				((PKIX_PL_Object*)filteredCerts,
+				&unString,
+				plContext,
+		                "PKIX_PL_Object_ToString failed");
+
+		        PKIX_CHECK(PKIX_PL_String_GetEncoded
+		                    (unString,
+		                    PKIX_ESCASCII,
+		                    (void **)&unAscii,
+		                    &length,
+		                    plContext),
+		                    "PKIX_PL_String_GetEncoded failed");
+
+		        PKIX_DEBUG_ARG("filteredCerts = %s\n", unAscii);
+			PKIX_DECREF(unString);
+		        PKIX_FREE(unAscii);
+		}
+#endif
+
+			state->candidateCerts = filteredCerts;
+			filteredCerts = NULL;
+
+		}
+
+                /* Are there any Certs to try? */
+                if (state->numCerts > 0) {
+                        state->status = BUILD_CERTVALIDATING;
+                } else {
+                	state->status = BUILD_COLLECTINGCERTS;
+                }
             }
 
             PKIX_DECREF(certSelParams);
@@ -2221,9 +2359,9 @@ pkix_BuildForwardDepthFirstSearch(
                 (state->certSel, &certSelParams, plContext),
                 "PKIX_CertSelector_GetCommonCertSelectorParams failed");
 
-            /* ****Phase 1 - Finding all possible Certs***** */
+            /* **** Querying the CertStores ***** */
             if ((state->status == BUILD_COLLECTINGCERTS) ||
-                (state->status == BUILD_CERTIOPENDING)) {
+                (state->status == BUILD_GATHERPENDING)) {
 
 #if PKIX_FORWARDBUILDERSTATEDEBUG
                 PKIX_CHECK(pkix_ForwardBuilderState_DumpState(state, plContext),
@@ -2231,27 +2369,21 @@ pkix_BuildForwardDepthFirstSearch(
 #endif
 
                 PKIX_CHECK(pkix_Build_GatherCerts
-                        (state,
-                        certSelParams,
-                        &nbioContext,
-                        &certsFound,
-                        plContext),
+                        (state, certSelParams, &nbio, plContext),
                         "pkix_Build_GatherCerts failed");
 
-                if (certsFound == NULL) {
+                if (nbio != NULL) {
                         /* IO still pending, resume later */
-                        *pNBIOContext = nbioContext;
+                        *pNBIOContext = nbio;
                         goto cleanup;
                 }
 
                 /* Are there any Certs to try? */
-                PKIX_DECREF(certsFound);
                 if (state->numCerts > 0) {
                         state->status = BUILD_CERTVALIDATING;
                 } else {
                         state->status = BUILD_ABANDONNODE;
                 }
-
             }
 
             /* ****Phase 2 - Chain building***** */
@@ -2319,14 +2451,14 @@ pkix_BuildForwardDepthFirstSearch(
                             (pkix_DefaultCRLCheckerState *) crlCheckerState,
                             NULL, /* unresolved crit extensions */
                             state->useOnlyLocal,
-                            &nbioContext,
+                            &nbio,
                             plContext),
                             "pkix_DefaultCRLChecker_Check_Helper failed");
 
                     PKIX_DECREF(candidatePubKey);
                     PKIX_DECREF(crlCheckerState);
 
-                    if (nbioContext != NULL) {
+                    if (nbio != NULL) {
                         /* IO still pending, resume later */
                         goto cleanup;
                     } else if (PKIX_ERROR_RECEIVED) {
@@ -2378,14 +2510,10 @@ pkix_BuildForwardDepthFirstSearch(
 
                     PKIX_CHECK_ONLY_FATAL
                       (pkix_Build_ValidateEntireChain
-                      (state,
-                      trustAnchor,
-                      &nbioContext,
-                      &valResult,
-                      plContext),
+                      (state, trustAnchor, &nbio, &valResult, plContext),
                       "pkix_Build_ValidateEntireChain failed");
 
-                    if (nbioContext != NULL) {
+                    if (nbio != NULL) {
                             /* IO still pending, resume later */
                             goto cleanup;
                     } else {
@@ -2500,7 +2628,7 @@ pkix_BuildForwardDepthFirstSearch(
                                 (pkix_DefaultCRLCheckerState *) crlCheckerState,
                                 NULL, /* unresolved crit extensions */
                                 state->useOnlyLocal,
-                                &nbioContext,
+                                &nbio,
                                 plContext),
                                 "pkix_DefaultCRLChecker_Check_Helper failed");
 
@@ -2508,7 +2636,7 @@ pkix_BuildForwardDepthFirstSearch(
                             PKIX_DECREF(trustedPubKey);
                             PKIX_DECREF(crlCheckerState);
 
-                            if (nbioContext != NULL) {
+                            if (nbio != NULL) {
                                     /* IO still pending, resume later */
                                     goto cleanup;
                             } else if (PKIX_ERROR_RECEIVED) {
@@ -2535,12 +2663,12 @@ pkix_BuildForwardDepthFirstSearch(
                                     (pkix_Build_ValidateEntireChain
                                     (state,
                                     trustAnchor,
-                                    &nbioContext,
+                                    &nbio,
                                     &valResult,
                                     plContext),
                                     "pkix_Build_ValidateEntireChain failed");
 
-                            if (nbioContext != NULL) {
+                            if (nbio != NULL) {
                                     /* IO still pending, resume later */
                                     goto cleanup;
                             } else {
@@ -2656,6 +2784,19 @@ pkix_BuildForwardDepthFirstSearch(
                             state->status = BUILD_CERTVALIDATING;
                             continue;
                     }
+
+		    /*
+		     * We have no more certs to try. If we got them by
+                     * following an AIA, let's go back and try our
+                     * certStores for certs.
+                     */
+		    if (state->alreadyTriedAIA == PKIX_FALSE) {
+		    	    state->alreadyTriedAIA = PKIX_TRUE;
+                            state->status = BUILD_INITIAL;
+                	    PKIX_DECREF(state->candidateCerts);
+                	    PKIX_DECREF(state->certSel);
+                            continue;
+		    }
             }
 
             /*
@@ -2668,7 +2809,7 @@ pkix_BuildForwardDepthFirstSearch(
                 state->useOnlyLocal = PKIX_FALSE;
                 state->certStoreIndex = 0;
                 state->numFanout = state->buildConstants.maxFanout;
-                state->status = BUILD_COLLECTINGCERTS;
+                state->status = BUILD_TRYAIA;
             } else do {
                 if (state->parentState == NULL) {
                         /* We are at the top level, and can't back up! */
@@ -2733,7 +2874,6 @@ cleanup:
         PKIX_DECREF(candidatePubKey);
         PKIX_DECREF(trustedPubKey);
         PKIX_DECREF(childTraversedSubjNames);
-        PKIX_DECREF(certsFound);
         PKIX_DECREF(certSelParams);
         PKIX_DECREF(subjectNames);
         PKIX_DECREF(subjectName);
@@ -2741,6 +2881,7 @@ cleanup:
         PKIX_DECREF(validityDate);
         PKIX_DECREF(crlCheckerState);
         PKIX_DECREF(currTime);
+	PKIX_DECREF(unfilteredCerts);
 
         PKIX_RETURN(BUILD);
 }
@@ -2981,10 +3122,12 @@ pkix_Build_InitiateBuildChain(
         PKIX_TrustAnchor *matchingAnchor = NULL;
         PKIX_ForwardBuilderState *state = NULL;
         PKIX_CertStore_CheckTrustCallback trustCallback = NULL;
+	PKIX_PL_AIAMgr *aiaMgr = NULL;
 
         PKIX_ENTER(BUILD, "pkix_Build_InitiateBuildChain");
         PKIX_NULLCHECK_FOUR(buildParams, pNBIOContext, pState, pBuildResult);
 
+        nbioContext = *pNBIOContext;
         *pNBIOContext = NULL;
 
         if (*pState != NULL) {
@@ -3119,6 +3262,9 @@ pkix_Build_InitiateBuildChain(
                     }
             }
     
+	    PKIX_CHECK(PKIX_PL_AIAMgr_Create(&aiaMgr, plContext),
+		    "PKIX_PL_AIAMgr_Create failed");
+
             /*
              * We initialize all the fields of buildConstants here, in one place,
              * just to help keep track and ensure that we got everything.
@@ -3135,6 +3281,7 @@ pkix_Build_InitiateBuildChain(
             buildConstants.anchors = anchors;
             buildConstants.userCheckers = userCheckers;
             buildConstants.crlChecker = crlChecker;
+            buildConstants.aiaMgr = aiaMgr;
     
             PKIX_CHECK(pkix_Build_GetResourceLimits(&buildConstants, plContext),
                     "pkix_Build_GetResourceLimits failed");
@@ -3179,6 +3326,7 @@ pkix_Build_InitiateBuildChain(
                     buildConstants.userCheckers;
             PKIX_INCREF(buildConstants.crlChecker);
             state->buildConstants.crlChecker = buildConstants.crlChecker;
+            state->buildConstants.aiaMgr = buildConstants.aiaMgr;
     
             if (buildConstants.maxTime != 0) {
                     PKIX_CHECK(PKIX_PL_Date_Create_CurrentOffBySeconds
@@ -3430,6 +3578,7 @@ pkix_Build_ResumeBuildChain(
         PKIX_ENTER(BUILD, "pkix_Build_ResumeBuildChain");
         PKIX_NULLCHECK_THREE(pState, *pState, pBuildResult);
 
+        nbioContext = *pNBIOContext;
         *pNBIOContext = NULL;
 
         state = *pState;
@@ -3495,6 +3644,7 @@ PKIX_BuildChain(
         PKIX_ENTER(BUILD, "PKIX_BuildChain");
         PKIX_NULLCHECK_FOUR(buildParams, pNBIOContext, pState, pBuildResult);
 
+        nbioContext = *pNBIOContext;
         *pNBIOContext = NULL;
 
         if (*pState == NULL) {

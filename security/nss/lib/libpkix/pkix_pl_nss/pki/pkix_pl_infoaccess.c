@@ -56,6 +56,62 @@ static const unsigned char siaCaRepositoryOID[] = {0x2b, 0x06, 0x01, 0x05,
 /* --Private-InfoAccess-Functions----------------------------------*/
 
 /*
+ * FUNCTION: pkix_pl_InfoAccess_Create
+ * DESCRIPTION:
+ *
+ *  This function creates an InfoAccess from the method provided in "method" and
+ *  the GeneralName provided in "generalName" and stores the result at
+ *  "pInfoAccess".
+ *
+ * PARAMETERS
+ *  "method"
+ *      The UInt32 value to be stored as the method field of the InfoAccess.
+ *  "generalName"
+ *      The GeneralName to be stored as the generalName field of the InfoAccess.
+ *      Must be non-NULL.
+ *  "pInfoAccess"
+ *      Address where the result is stored. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+static PKIX_Error *
+pkix_pl_InfoAccess_Create(
+        PKIX_UInt32 method,
+        PKIX_PL_GeneralName *generalName,
+        PKIX_PL_InfoAccess **pInfoAccess,
+        void *plContext)
+{
+
+        PKIX_PL_InfoAccess *infoAccess = NULL;
+
+        PKIX_ENTER(INFOACCESS, "pkix_pl_InfoAccess_Create");
+        PKIX_NULLCHECK_TWO(generalName, pInfoAccess);
+
+        PKIX_CHECK(PKIX_PL_Object_Alloc
+                (PKIX_INFOACCESS_TYPE,
+                sizeof (PKIX_PL_InfoAccess),
+                (PKIX_PL_Object **)&infoAccess,
+                plContext),
+                "Could not create InfoAccess object");
+
+        infoAccess->method = method;
+
+        PKIX_INCREF(generalName);
+        infoAccess->location = generalName;
+
+        *pInfoAccess = infoAccess;
+
+cleanup:
+
+        PKIX_RETURN(INFOACCESS);
+}
+
+/*
  * FUNCTION: pkix_pl_InfoAccess_Destroy
  * (see comments for PKIX_PL_DestructorCallback in pkix_pl_pki.h)
  */
@@ -69,9 +125,8 @@ pkix_pl_InfoAccess_Destroy(
         PKIX_ENTER(INFOACCESS, "pkix_pl_InfoAccess_Destroy");
         PKIX_NULLCHECK_ONE(object);
 
-        PKIX_CHECK(pkix_CheckType
-                    (object, PKIX_INFOACCESS_TYPE, plContext),
-                    "Object is not a InfoAccess");
+        PKIX_CHECK(pkix_CheckType(object, PKIX_INFOACCESS_TYPE, plContext),
+                "Object is not an InfoAccess");
 
         infoAccess = (PKIX_PL_InfoAccess *)object;
 
@@ -332,6 +387,7 @@ pkix_pl_InfoAccess_CreateList(
         PKIX_List *infoAccessList = NULL;
         PKIX_PL_InfoAccess *infoAccess = NULL;
         PKIX_PL_GeneralName *location = NULL;
+        PKIX_UInt32 method;
         int i;
 
         PKIX_ENTER(INFOACCESS, "PKIX_PL_InfoAccess_CreateList");
@@ -352,25 +408,14 @@ pkix_pl_InfoAccess_CreateList(
                     continue;
                 }
 
-                PKIX_CHECK(PKIX_PL_Object_Alloc
-                    (PKIX_INFOACCESS_TYPE,
-                    sizeof (PKIX_PL_InfoAccess),
-                    (PKIX_PL_Object **)&infoAccess,
-                    plContext),
-                    "Could not create InfoAccess object");
-
                 PKIX_CHECK(pkix_pl_GeneralName_Create
-                    (nssInfoAccess[i]->location, &location, plContext),
-                    "PKIX_PL_GeneralName_Create failed");
-
-                infoAccess->location = location;
-                location = NULL;
+                        (nssInfoAccess[i]->location, &location, plContext),
+                        "PKIX_PL_GeneralName_Create failed");
 
                 PKIX_CERT_DEBUG("\t\tCalling SECOID_FindOIDTag).\n");
-                infoAccess->method = 
-                    SECOID_FindOIDTag(&nssInfoAccess[i]->method);
+                method = SECOID_FindOIDTag(&nssInfoAccess[i]->method);
 
-                if (infoAccess->method == 0) {
+                if (method == 0) {
 
                 /* XXX
                  * This part of code is definitely hacking, need NSS decode
@@ -386,39 +431,41 @@ pkix_pl_InfoAccess_CreateList(
                  * is doing the job.
                  */
 
-                    PKIX_CERT_DEBUG("\t\tCalling PORT_Strncmp).\n");
-                    if (PORT_Strncmp
-                        ((char *)nssInfoAccess[i]->method.data,
-                        (char *)siaTimeStampingOID,
-                         nssInfoAccess[i]->method.len)
-                        == 0) {
-                            infoAccess->method = SEC_OID_PKIX_TIMESTAMPING;
-                    } else if (PORT_Strncmp
-                               ((char *)nssInfoAccess[i]->method.data,
-                               (char *)siaCaRepositoryOID,
-                               nssInfoAccess[i]->method.len)
-                               == 0) {
-                            infoAccess->method = SEC_OID_PKIX_CA_REPOSITORY;
-                    }
+                        PKIX_CERT_DEBUG("\t\tCalling PORT_Strncmp).\n");
+                        if (PORT_Strncmp
+                                ((char *)nssInfoAccess[i]->method.data,
+                                (char *)siaTimeStampingOID,
+                                nssInfoAccess[i]->method.len) == 0) {
+                                method = SEC_OID_PKIX_TIMESTAMPING;
+                        } else if (PORT_Strncmp
+                                ((char *)nssInfoAccess[i]->method.data,
+                                (char *)siaCaRepositoryOID,
+                                nssInfoAccess[i]->method.len) == 0) {
+                                method = SEC_OID_PKIX_CA_REPOSITORY;
+                        }
                 }
 
                 /* Map NSS access method value into PKIX constant */
-                switch(infoAccess->method) {
-                    case SEC_OID_PKIX_CA_ISSUERS:
-                        infoAccess->method = PKIX_INFOACCESS_CA_ISSUERS;
-                        break;
-                    case SEC_OID_PKIX_OCSP:
-                        infoAccess->method = PKIX_INFOACCESS_OCSP;
-                        break;
-                    case SEC_OID_PKIX_TIMESTAMPING:
-                        infoAccess->method = PKIX_INFOACCESS_TIMESTAMPING;
-                        break;
-                    case SEC_OID_PKIX_CA_REPOSITORY:
-                        infoAccess->method = PKIX_INFOACCESS_CA_REPOSITORY;
-                        break;
-                   default:
-                        break;
+                switch(method) {
+                        case SEC_OID_PKIX_CA_ISSUERS:
+                                method = PKIX_INFOACCESS_CA_ISSUERS;
+                                break;
+                        case SEC_OID_PKIX_OCSP:
+                                method = PKIX_INFOACCESS_OCSP;
+                                break;
+                        case SEC_OID_PKIX_TIMESTAMPING:
+                                method = PKIX_INFOACCESS_TIMESTAMPING;
+                                break;
+                        case SEC_OID_PKIX_CA_REPOSITORY:
+                                method = PKIX_INFOACCESS_CA_REPOSITORY;
+                                break;
+                        default:
+                                break;
                 }
+
+                PKIX_CHECK(pkix_pl_InfoAccess_Create
+                        (method, location, &infoAccess, plContext),
+                        "pkix_pl_InfoAccess_Create failed");
 
                 PKIX_CHECK(PKIX_List_AppendItem
                             (infoAccessList,
@@ -518,6 +565,359 @@ PKIX_PL_InfoAccess_GetLocationType(
 cleanup:
 
         PKIX_PL_Free(location, plContext);
+        PKIX_DECREF(locationString);
+
+        PKIX_RETURN(INFOACCESS);
+}
+
+/*
+ * FUNCTION: pkix_pl_InfoAccess_ParseTokens
+ * DESCRIPTION:
+ *
+ *  This function parses the string beginning at "startPos" into tokens using
+ *  the separator contained in "separator" and the terminator contained in
+ *  "terminator", copying the tokens into space allocated from the arena
+ *  pointed to by "arena". It stores in "tokens" a null-terminated array of
+ *  pointers to those tokens.
+ *
+ * PARAMETERS
+ *  "arena"
+ *      Address of a PRArenaPool to be used in populating the LDAPLocation.
+ *      Must be non-NULL.
+ *  "startPos"
+ *      The address of char string that contains a subset of ldap location.
+ *  "tokens"
+ *      The address of an array of char string for storing returned tokens.
+ *      Must be non-NULL.
+ *  "separator"
+ *      The character that is taken as token separator. Must be non-NULL.
+ *  "terminator"
+ *      The character that is taken as parsing terminator. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns an InfoAccess Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+static PKIX_Error *
+pkix_pl_InfoAccess_ParseTokens(
+        PRArenaPool *arena,
+        char **startPos, /* return update */
+        char ***tokens,
+        char separator,
+        char terminator,
+        void *plContext)
+{
+        PKIX_UInt32 len = 0;
+        PKIX_UInt32 numFilters = 0;
+        PKIX_Int32 cmpResult = -1;
+        char *endPos = NULL;
+        char *p = NULL;
+        char **filterP = NULL;
+
+        PKIX_ENTER(INFOACCESS, "pkix_pl_InfoAccess_ParseTokens");
+        PKIX_NULLCHECK_THREE(arena, startPos, tokens);
+
+        endPos = *startPos;
+
+        /* First pass: parse to <terminator> to count number of components */
+        numFilters = 0;
+        while (*endPos != terminator && *endPos != '\0') {
+                endPos++;
+                if (*endPos == separator) {
+                        numFilters++;
+                }
+        }
+
+        if (*endPos != terminator) {
+                PKIX_ERROR("Location string not properly terminated");
+        }
+
+        /* Last one doesn't have a "," as separator, although we allow it */
+        if (*(endPos-1) != ',') {
+                numFilters++;
+        }
+
+        /*
+         * If string is a=xx, b=yy, c=zz, etc., use a=xx for filter,
+         * and everything else for the base
+         */
+        if (numFilters > 2) numFilters = 2;
+
+        PKIX_PL_NSSCALLRV
+                (INFOACCESS, *tokens, PORT_ArenaZAlloc,
+                (arena, (numFilters+1)*sizeof(void *)));
+
+        /* Second pass: parse to fill in components in token array */
+        filterP = *tokens;
+        endPos = *startPos;
+
+        while (numFilters) {
+            if (*endPos == separator || *endPos == terminator) {
+                    len = endPos - *startPos;
+                    PKIX_PL_NSSCALLRV(INFOACCESS, p, PORT_ArenaZAlloc,
+                            (arena, (len+1)));
+
+                    *filterP = p;
+
+                    while (len) {
+                            if (**startPos == '%') {
+                            /* replace %20 by blank */
+                                PKIX_PL_NSSCALLRV(INFOACCESS, cmpResult,
+                                    strncmp, ((void *)*startPos, "%20", 3));
+                                if (cmpResult == 0) {
+                                    *p = ' ';
+                                    *startPos += 3;
+                                    len -= 3;
+                                }
+                            } else {
+                                *p = **startPos;
+                                (*startPos)++;
+                                len--;
+                            }
+                            p++;
+                    }
+
+                    *p = '\0';
+                    filterP++;
+                    numFilters--;
+
+                    separator = terminator;
+
+                    if (endPos == '\0') {
+                        break;
+                    } else {
+                        endPos++;
+                        *startPos = endPos;
+                        continue;
+                    }
+            }
+            endPos++;
+        }
+
+        *filterP = NULL;
+
+cleanup:
+
+        PKIX_RETURN(INFOACCESS);
+}
+
+/*
+ * FUNCTION: pkix_pl_InfoAccess_ParseLocation
+ * DESCRIPTION:
+ *
+ *  This function parses the GeneralName pointed to by "generalName" into the
+ *  fields of the LDAPRequestParams pointed to by "request" and a domainName
+ *  pointed to by "pDomainName", using the PRArenaPool pointed to by "arena" to
+ *  allocate storage for the request components and for the domainName string.
+ *
+ *  The expected GeneralName string should be in the format described by the
+ *  following BNF:
+ *
+ *  ldap://<ldap-server-site>/[cn=<cname>][,o=<org>][,c=<country>]?
+ *  [caCertificate|crossCertificatPair|certificateRevocationList];
+ *  [binary|<other-type>]
+ *  [[,caCertificate|crossCertificatPair|certificateRevocationList]
+ *   [binary|<other-type>]]*
+ *
+ * PARAMETERS
+ *  "generalName"
+ *      Address of the GeneralName whose LDAPLocation is to be parsed. Must be
+ *      non-NULL.
+ *  "arena"
+ *      Address of PRArenaPool to be used for the domainName and for components
+ *      of the LDAPRequest. Must be non-NULL.
+ *  "request"
+ *      Address of the LDAPRequestParams into which request components are
+ *      stored. Must be non-NULL.
+ *  *pDomainName"
+ *      Address at which the domainName is stored. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns an InfoAccess Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+pkix_pl_InfoAccess_ParseLocation(
+        PKIX_PL_GeneralName *generalName,
+        PRArenaPool *arena,
+        LDAPRequestParams *request,
+        char **pDomainName,
+        void *plContext)
+{
+        PKIX_PL_String *locationString = NULL;
+        PKIX_UInt32 len = 0;
+        PKIX_UInt32 ncIndex = 0;
+        char *domainName = NULL;
+        char **avaArray = NULL;
+        char **attrArray = NULL;
+        char *attr = NULL;
+        char *locationAscii = NULL;
+        char *startPos = NULL;
+        char *endPos = NULL;
+        char *avaPtr = NULL;
+        LdapAttrMask attrBit = 0;
+        LDAPNameComponent **setOfNameComponent = NULL;
+        LDAPNameComponent *nameComponent = NULL;
+        void *v = NULL;
+
+        PKIX_ENTER(INFOACCESS, "pkix_pl_InfoAccess_ParseLocation");
+        PKIX_NULLCHECK_FOUR(generalName, arena, request, pDomainName);
+
+        PKIX_TOSTRING(generalName, &locationString, plContext,
+                "pkix_pl_GeneralName_ToString failed");
+
+        PKIX_CHECK(PKIX_PL_String_GetEncoded
+                (locationString,
+                PKIX_ESCASCII,
+                (void **)&locationAscii,
+                &len,
+                plContext),
+                "PKIX_PL_String_GetEncoded failed");
+
+#if 0
+        /* For testing inside the firewall... */
+        locationAscii = "ldap://nss.red.iplanet.com:1389/cn=Good%20CA,o="
+                "Test%20Certificates,c=US?caCertificate;binary";
+#endif
+
+        /* Skip "ldap:" */
+        endPos = locationAscii;
+        while (*endPos != ':' && *endPos != '\0') {
+                endPos++;
+        }
+        if (*endPos == '\0') {
+                PKIX_ERROR("GeneralName string missing location type");
+        }
+
+        /* Skip "//" */
+        endPos++;
+        if (*endPos != '\0' && *(endPos+1) != '0' &&
+            *endPos == '/' && *(endPos+1) == '/') {
+                endPos += 2;
+        } else {
+                PKIX_ERROR("GeneralName string missing double slash");
+        }
+
+        /* Get the server-site */
+        startPos = endPos;
+        while(*endPos != '/' && *(endPos) != '\0') {
+                endPos++;
+        }
+        if (*endPos == '\0') {
+                PKIX_ERROR("GeneralName string missing server-site");
+        }
+
+        len = endPos - startPos;
+        endPos++;
+
+        PKIX_PL_NSSCALLRV(INFOACCESS, domainName, PORT_ArenaZAlloc,
+                (arena, len + 1));
+
+        PKIX_PL_NSSCALL(INFOACCESS, PORT_Memcpy, (domainName, startPos, len));
+
+        domainName[len] = '\0';
+
+        *pDomainName = domainName;
+
+        /*
+         * Get a list of AttrValueAssertions (such as 
+         * "cn=CommonName, o=Organization, c=US" into a null-terminated array
+         */
+        startPos = endPos;
+        PKIX_CHECK(pkix_pl_InfoAccess_ParseTokens
+                (arena,
+                &startPos,
+                (char ***) &avaArray,
+                ',',
+                '?',
+                plContext),
+                "pkix_pl_InfoAccess_ParseTokens failed");
+
+        /* Count how many AVAs we have */
+        for (len = 0; avaArray[len] != NULL; len++) {}
+
+        if (len < 2) {
+                PKIX_ERROR("Not enough name components in GeneralName");
+        }
+
+        /* Use last name component for baseObject */
+        request->baseObject = avaArray[len - 1];
+
+        /* Use only one component for filter. LDAP servers aren't too smart. */
+        len = 2;   /* Eliminate this when servers get smarter. */
+
+        avaArray[len - 1] = NULL;
+
+        /* Get room for null-terminated array of (LdapNameComponent *) */
+        PKIX_PL_NSSCALLRV
+                (INFOACCESS, v, PORT_ArenaZAlloc,
+                (arena, len*sizeof(LDAPNameComponent *)));
+
+        setOfNameComponent = (LDAPNameComponent **)v;
+
+        /* Get room for the remaining LdapNameComponents */
+        PKIX_PL_NSSCALLRV
+                (INFOACCESS, v, PORT_ArenaZNewArray,
+                (arena, LDAPNameComponent, --len));
+
+        nameComponent = (LDAPNameComponent *)v;
+
+        /* Convert remaining AVAs to LDAPNameComponents */
+        for (ncIndex = 0; ncIndex < len; ncIndex ++) {
+                setOfNameComponent[ncIndex] = nameComponent;
+                avaPtr = avaArray[ncIndex];
+                nameComponent->attrType = (unsigned char *)avaPtr;
+                while ((*avaPtr != '=') && (*avaPtr != '\0')) {
+                        avaPtr++;
+                        if (avaPtr == '\0') {
+                                PKIX_ERROR("Name Component with no \"=\"");
+                        }
+                }
+                *(avaPtr++) = '\0';
+                nameComponent->attrValue = (unsigned char *)avaPtr;
+                nameComponent++;
+        }
+
+        setOfNameComponent[len] = NULL;
+        request->nc = setOfNameComponent;
+                
+        /*
+         * Get a list of AttrTypes (such as 
+         * "caCertificate;binary, crossCertificatePair;binary") into
+         * a null-terminated array
+         */
+
+        PKIX_CHECK(pkix_pl_InfoAccess_ParseTokens
+                (arena,
+                (char **) &startPos,
+                (char ***) &attrArray,
+                ',',
+                '\0',
+                plContext),
+                "pkix_pl_InfoAccess_ParseTokens failed");
+
+        /* Convert array of Attr Types into a bit mask */
+        request->attributes = 0;
+        attr = attrArray[0];
+        while (attr != NULL) {
+                PKIX_CHECK(pkix_pl_LdapRequest_AttrStringToBit
+                        (attr, &attrBit, plContext),
+                        "pkix_pl_LdapRequest_AttrStringToBit failed");
+                request->attributes |= attrBit;
+                attr = *(++attrArray);
+        }
+
+cleanup:
+
+        PKIX_PL_Free(locationAscii, plContext);
         PKIX_DECREF(locationString);
 
         PKIX_RETURN(INFOACCESS);

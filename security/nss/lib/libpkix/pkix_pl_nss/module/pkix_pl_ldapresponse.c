@@ -547,7 +547,6 @@ pkix_pl_LdapResponse_Decode(
         void *plContext)
 {
         LDAPMessage *msg;
-        LDAPMessageType selector;
         SECStatus rv = SECFailure;
 
         PKIX_ENTER(LDAPRESPONSE, "PKIX_PL_LdapResponse_Decode");
@@ -562,10 +561,12 @@ pkix_pl_LdapResponse_Decode(
         PKIX_PL_NSSCALL
                 (LDAPRESPONSE, PORT_Memset, (msg, 0, sizeof (LDAPMessage)));
 
-        selector = msg->protocolOp.selector;
-
         PKIX_PL_NSSCALLRV(LDAPRESPONSE, rv, SEC_ASN1DecodeItem,
+#if 0
             (arena, msg, PKIX_PL_LDAPMessageTemplate, &(response->derEncoded)));
+#else
+            (NULL, msg, PKIX_PL_LDAPMessageTemplate, &(response->derEncoded)));
+#endif
 
         *pStatus = rv;
 cleanup:

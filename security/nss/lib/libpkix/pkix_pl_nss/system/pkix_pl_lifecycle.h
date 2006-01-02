@@ -46,6 +46,7 @@
 
 #include "pkix_pl_common.h"
 #include "pkix_pl_oid.h"
+#include "pkix_pl_aiamgr.h"
 #include "pkix_pl_bigint.h"
 #include "pkix_pl_bytearray.h"
 #include "pkix_pl_hashtable.h"
@@ -66,6 +67,7 @@
 #include "pkix_pl_crl.h"
 #include "pkix_pl_colcertstore.h"
 #include "pkix_pl_ldapcertstore.h"
+#include "pkix_pl_ldapdefaultclient.h"
 #include "pkix_pl_ldaprequest.h"
 #include "pkix_pl_ldapresponse.h"
 #include "pkix_pl_socket.h"

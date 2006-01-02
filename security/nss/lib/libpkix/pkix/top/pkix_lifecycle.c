@@ -69,6 +69,7 @@ PKIX_PL_HashTable *cachedCertSigTable = NULL;
 PKIX_PL_HashTable *cachedCertChainTable = NULL;
 PKIX_PL_HashTable *cachedCertTable = NULL;
 PKIX_PL_HashTable *cachedCrlEntryTable = NULL;
+PKIX_PL_HashTable *aiaConnectionCache = NULL;
 
 extern PKIX_List *pkixLoggers;
 extern PKIX_List *pkixLoggersErrors;
@@ -164,6 +165,10 @@ PKIX_Initialize(
                     (32, 10, &cachedCrlEntryTable, plContext),
                     "PKIX_PL_HashTable_Create failed");
 
+        PKIX_CHECK(PKIX_PL_HashTable_Create
+                    (5, 5, &aiaConnectionCache, plContext),
+                    "PKIX_PL_HashTable_Create failed");
+
         if (pkixLoggerLock == NULL) {
                 PKIX_CHECK(PKIX_PL_MonitorLock_Create
                         (&pkixLoggerLock, plContext),
@@ -239,6 +244,7 @@ PKIX_Shutdown(void *plContext)
         PKIX_DECREF(cachedCertChainTable);
         PKIX_DECREF(cachedCertTable);
         PKIX_DECREF(cachedCrlEntryTable);
+        PKIX_DECREF(aiaConnectionCache);
 
         PKIX_CHECK(PKIX_PL_Shutdown(pkixPlatformInit, plContext),
                 "PKIX_PL_Shutdown failed");
