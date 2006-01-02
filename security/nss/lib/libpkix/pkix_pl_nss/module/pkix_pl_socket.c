@@ -638,13 +638,13 @@ pkix_pl_Socket_Destroy(
         socket = (PKIX_PL_Socket *)object;
 
         if (socket->isServer) {
-		if (socket->serverSock) {
-                	PR_Close(socket->serverSock);
-		}
+                if (socket->serverSock) {
+                        PR_Close(socket->serverSock);
+                }
         } else {
-		if (socket->clientSock) {
-                	PR_Close(socket->clientSock);
-		}
+                if (socket->clientSock) {
+                        PR_Close(socket->clientSock);
+                }
         }
 
 cleanup:
@@ -1352,9 +1352,9 @@ pkix_pl_Socket_Create(
         *pSocket = socket;
 
 cleanup:
-	if (PKIX_ERROR_RECEIVED) {
-		PKIX_DECREF(socket);
-	}
+        if (PKIX_ERROR_RECEIVED) {
+                PKIX_DECREF(socket);
+        }
 
         PKIX_RETURN(SOCKET);
 }
@@ -1401,31 +1401,31 @@ PKIX_Error *
 pkix_pl_Socket_CreateByName(
         PKIX_Boolean isServer,
         PRIntervalTime timeout,
-	char *serverName,
+        char *serverName,
         PRErrorCode *pStatus,
         PKIX_PL_Socket **pSocket,
         void *plContext)
 {
         PRNetAddr netAddr;
         PKIX_PL_Socket *socket = NULL;
-	char *sepPtr = NULL;
+        char *sepPtr = NULL;
         PRHostEnt hostent;
-	PRIntn hostenum;
+        PRIntn hostenum;
         PRStatus prstatus = PR_FAILURE;
         char buf[PR_NETDB_BUF_SIZE];
-	PRUint16 portNum = 0;
-	PKIX_UInt32 localCopyLen = 0;
-	char *localCopyName = NULL;
+        PRUint16 portNum = 0;
+        PKIX_UInt32 localCopyLen = 0;
+        char *localCopyName = NULL;
 
         PKIX_ENTER(SOCKET, "pkix_pl_Socket_CreateByName");
         PKIX_NULLCHECK_TWO(serverName, pSocket);
 
-	localCopyName = PL_strdup(serverName);
+        localCopyName = PL_strdup(serverName);
 
-	sepPtr = strchr(localCopyName, ':');
-	/* First strip off the portnum, if present, from the end of the name */
-	if (sepPtr) {
-	        *sepPtr++ = '\0';
+        sepPtr = strchr(localCopyName, ':');
+        /* First strip off the portnum, if present, from the end of the name */
+        if (sepPtr) {
+                *sepPtr++ = '\0';
                  portNum = (PRUint16)atoi(sepPtr);
         } else {
                  portNum = (PRUint16)LDAP_PORT;
@@ -1434,36 +1434,36 @@ pkix_pl_Socket_CreateByName(
         prstatus = PR_GetHostByName(localCopyName, buf, sizeof(buf), &hostent);
 
         if ((prstatus != PR_SUCCESS) || (hostent.h_length != 4)) {
-        	/*
-	         * The hostname may be a fully-qualified name. Try using just
-	         * the leftmost component in our lookup.
-	         */
-	        sepPtr = strchr(localCopyName, '.');
-	        if (sepPtr) {
-	                *sepPtr++ = '\0';
-	        }
-        	prstatus = PR_GetHostByName
-			(localCopyName, buf, sizeof(buf), &hostent);
+                /*
+                 * The hostname may be a fully-qualified name. Try using just
+                 * the leftmost component in our lookup.
+                 */
+                sepPtr = strchr(localCopyName, '.');
+                if (sepPtr) {
+                        *sepPtr++ = '\0';
+                }
+                prstatus = PR_GetHostByName
+                        (localCopyName, buf, sizeof(buf), &hostent);
 
-        	if ((prstatus != PR_SUCCESS) || (hostent.h_length != 4)) {
-			PKIX_ERROR
-				("PR_GetHostByName rejects hostname argument.");
-		}
+                if ((prstatus != PR_SUCCESS) || (hostent.h_length != 4)) {
+                        PKIX_ERROR
+                                ("PR_GetHostByName rejects hostname argument.");
+                }
         }
 
-	netAddr.inet.family = PR_AF_INET;
-       	netAddr.inet.port = PR_htons(portNum);
+        netAddr.inet.family = PR_AF_INET;
+        netAddr.inet.port = PR_htons(portNum);
 
-	if (isServer) {
+        if (isServer) {
 
-       		netAddr.inet.ip = PR_INADDR_ANY;
+                netAddr.inet.ip = PR_INADDR_ANY;
 
-	} else {
+        } else {
 
-	        hostenum = PR_EnumerateHostEnt(0, &hostent, portNum, &netAddr);
-        	if (hostenum == -1) {
-			PKIX_ERROR("PR_EnumerateHostEnt failed.");
-		}
+                hostenum = PR_EnumerateHostEnt(0, &hostent, portNum, &netAddr);
+                if (hostenum == -1) {
+                        PKIX_ERROR("PR_EnumerateHostEnt failed.");
+                }
         }
 
         PKIX_CHECK(PKIX_PL_Object_Alloc
@@ -1502,11 +1502,11 @@ pkix_pl_Socket_CreateByName(
         *pSocket = socket;
 
 cleanup:
-	PL_strfree(localCopyName);
+        PL_strfree(localCopyName);
 
-	if (PKIX_ERROR_RECEIVED) {
-		PKIX_DECREF(socket);
-	}
+        if (PKIX_ERROR_RECEIVED) {
+                PKIX_DECREF(socket);
+        }
 
         PKIX_RETURN(SOCKET);
 }

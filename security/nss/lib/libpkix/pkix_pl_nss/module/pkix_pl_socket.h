@@ -161,7 +161,7 @@ PKIX_Error *
 pkix_pl_Socket_CreateByName(
         PKIX_Boolean isServer,
         PRIntervalTime timeout,
-	char *serverName,
+        char *serverName,
         PRErrorCode *pStatus,
         PKIX_PL_Socket **pSocket,
         void *plContext);
