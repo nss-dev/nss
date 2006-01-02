@@ -274,7 +274,7 @@ PKIX_ValidateChain(
 PKIX_Error *
 PKIX_BuildChain(
         PKIX_BuildParams *params,
-	void **pNBIOContext,
+        void **pNBIOContext,
         void **pState,
         PKIX_BuildResult **pResult,
         void *plContext);

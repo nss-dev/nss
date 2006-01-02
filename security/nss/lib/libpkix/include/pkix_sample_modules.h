@@ -205,7 +205,7 @@ PKIX_PL_LdapDefaultClient_Create(
         PRNetAddr *sockaddr,
         PRIntervalTime timeout,
         LDAPBindAPI *bindAPI,
-	PKIX_PL_LdapDefaultClient **pClient,
+        PKIX_PL_LdapDefaultClient **pClient,
         void *plContext);
 
 /*
@@ -253,7 +253,7 @@ PKIX_PL_LdapDefaultClient_CreateByName(
         char *hostname,
         PRIntervalTime timeout,
         LDAPBindAPI *bindAPI,
-	PKIX_PL_LdapDefaultClient **pClient,
+        PKIX_PL_LdapDefaultClient **pClient,
         void *plContext);
 
 /*
@@ -279,7 +279,7 @@ PKIX_PL_LdapDefaultClient_CreateByName(
  */
 PKIX_Error *
 PKIX_PL_LdapCertStore_Create(
-	PKIX_PL_LdapClient *client,
+        PKIX_PL_LdapClient *client,
         PKIX_CertStore **pCertStore,
         void *plContext);
 
