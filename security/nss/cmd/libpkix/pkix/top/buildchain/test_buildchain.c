@@ -41,6 +41,8 @@
  *
  */
 
+#define	debuggingWithoutRevocation
+
 #include "testutil.h"
 #include "testutil_nss.h"
 
@@ -141,7 +143,8 @@ int main(int argc, char *argv[])
         PKIX_UInt32 j = 0;
         PKIX_UInt32 k = 0;
         PKIX_CertStore *ldapCertStore = NULL;
-        PRIntervalTime timeout = PR_INTERVAL_NO_TIMEOUT; /* 0 for non-blocking */
+        PRIntervalTime timeout = PR_INTERVAL_NO_TIMEOUT; /* blocking */
+        /* PRIntervalTime timeout = PR_INTERVAL_NO_WAIT; =0 for non-blocking */
         PKIX_CertStore *certStore = NULL;
         PKIX_List *certStores = NULL;
         char * asciiResult = NULL;
@@ -306,6 +309,11 @@ int main(int argc, char *argv[])
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_ProcessingParams_SetCertStores
                 (procParams, certStores, plContext));
+
+#ifdef debuggingWithoutRevocation
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_ProcessingParams_SetRevocationEnabled
+                (procParams, PKIX_FALSE, plContext));
+#endif
 
         /* create build params with processing params */
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_BuildParams_Create
