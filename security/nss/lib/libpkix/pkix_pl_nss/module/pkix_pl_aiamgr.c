@@ -359,7 +359,6 @@ PKIX_PL_AIAMgr_GetAIACerts(
         PKIX_List *certs = NULL;
         PKIX_PL_InfoAccess *ia = NULL;
         PKIX_PL_GeneralName *location = NULL;
-        PKIX_PL_LdapDefaultClient *newClient = NULL;
         PKIX_PL_LdapClient *client = NULL;
         void *nbio = NULL;
         PRArenaPool *arena = NULL;
