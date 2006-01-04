@@ -69,6 +69,7 @@
 /* private PKIX_PL_NSS system headers */
 #include "pkix_pl_object.h"
 #include "pkix_pl_string.h"
+#include "pkix_pl_aiamgr.h"
 #include "pkix_pl_bigint.h"
 #include "pkix_pl_oid.h"
 #include "pkix_pl_x500name.h"
