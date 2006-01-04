@@ -225,8 +225,9 @@ static const SEC_ASN1Template LDAPSubstringFilterTemplate[] = {
 
 const SEC_ASN1Template LDAPFilterTemplate[]; /* forward reference */
 
-static const SEC_ASN1Template LDAPSetOfFiltersTemplate[] =
-    { SEC_ASN1_SET_OF, 0, LDAPFilterTemplate };
+static const SEC_ASN1Template LDAPSetOfFiltersTemplate[] = {
+    { SEC_ASN1_SET_OF, 0, LDAPFilterTemplate }
+};
 
 static const SEC_ASN1Template LDAPAVAFilterTemplate[] = {
     { SEC_ASN1_SEQUENCE, 0, NULL, sizeof (LDAPAttributeValueAssertion) },
@@ -235,8 +236,9 @@ static const SEC_ASN1Template LDAPAVAFilterTemplate[] = {
     { 0 }
 };
 
-static const SEC_ASN1Template LDAPPresentFilterTemplate[] =
-    { SEC_ASN1_LDAP_STRING, offsetof(LDAPPresentFilter, attrType) };
+static const SEC_ASN1Template LDAPPresentFilterTemplate[] = {
+    { SEC_ASN1_LDAP_STRING, offsetof(LDAPPresentFilter, attrType) }
+};
 
 #define LDAPEqualFilterTemplate LDAPAVAFilterTemplate
 #define LDAPGreaterOrEqualFilterTemplate LDAPAVAFilterTemplate
