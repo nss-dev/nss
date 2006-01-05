@@ -51,6 +51,42 @@ OS_REL_CFLAGS	= -Dppc
 CPU_ARCH	= ppc
 endif
 
+ifneq (,$(MACOS_SDK_DIR))
+    GCC_VERSION_FULL := $(shell $(CC) -v 2>&1 | grep "gcc version" | sed -e "s/^.*gcc version[  ]*//" | awk '{ print $$1 }')
+    GCC_VERSION_MAJOR := $(shell echo $(GCC_VERSION_FULL) | awk -F. '{ print $$1 }')
+    GCC_VERSION_MINOR := $(shell echo $(GCC_VERSION_FULL) | awk -F. '{ print $$2 }')
+    GCC_VERSION = $(GCC_VERSION_MAJOR).$(GCC_VERSION_MINOR)
+
+    ifeq (,$(filter-out 2 3,$(GCC_VERSION_MAJOR)))
+        # GCC <= 3
+	DARWIN_SDK_FRAMEWORKS = -F$(MACOS_SDK_DIR)/System/Library/Frameworks
+        ifneq (,$(shell find $(MACOS_SDK_DIR)/Library/Frameworks -maxdepth 0))
+            DARWIN_SDK_FRAMEWORKS += -F$(MACOS_SDK_DIR)/Library/Frameworks
+        endif
+        DARWIN_SDK_CFLAGS = -nostdinc -isystem $(MACOS_SDK_DIR)/usr/include/gcc/darwin/$(GCC_VERSION) -isystem $(MACOS_SDK_DIR)/usr/include $(DARWIN_SDK_FRAMEWORKS)
+        DARWIN_SDK_LDFLAGS = -L$(MACOS_SDK_DIR)/usr/lib/gcc/darwin -L$(MACOS_SDK_DIR)/usr/lib/gcc/darwin/$(GCC_VERSION_FULL) -L$(MACOS_SDK_DIR)/usr/lib
+        DARWIN_SDK_DSOFLAGS = $(DARWIN_SDK_LDFLAGS) $(DARWIN_SDK_FRAMEWORKS)
+        NEXT_ROOT = $(MACOS_SDK_DIR)
+        export NEXT_ROOT
+    else
+        # GCC >= 4
+        DARWIN_SDK_CFLAGS = -isysroot $(MACOS_SDK_DIR)
+        ifneq (4.0.0,$(GCC_VERSION_FULL))
+            # gcc > 4.0.0 passes -syslibroot to ld based on -isysroot.
+            # Don't add -isysroot to DARWIN_SDK_LDFLAGS, because the programs
+            # that are linked with those flags also get DARWIN_SDK_CFLAGS.
+            DARWIN_SDK_DSOFLAGS = -isysroot $(MACOS_SDK_DIR)
+        else
+            # gcc 4.0.0 doesn't pass -syslibroot to ld, it needs to be
+            # explicit.
+            DARWIN_SDK_LDFLAGS = -Wl,-syslibroot,$(MACOS_SDK_DIR)
+            DARWIN_SDK_DSOFLAGS = $(DARWIN_SDK_LDFLAGS)
+        endif
+    endif
+
+    LDFLAGS += $(DARWIN_SDK_LDFLAGS)
+endif
+
 # "Commons" are tentative definitions in a global scope, like this:
 #     int x;
 # The meaning of a common is ambiguous.  It may be a true definition:
@@ -61,7 +97,7 @@ endif
 # definitions so that the linker can catch multiply-defined symbols.
 # Also, common symbols are not allowed with Darwin dynamic libraries.
 
-OS_CFLAGS	= $(DSO_CFLAGS) $(OS_REL_CFLAGS) -Wmost -fpascal-strings -no-cpp-precomp -fno-common -pipe -DDARWIN -DHAVE_STRERROR -DHAVE_BSD_FLOCK
+OS_CFLAGS	= $(DSO_CFLAGS) $(OS_REL_CFLAGS) -Wmost -fpascal-strings -no-cpp-precomp -fno-common -pipe -DDARWIN -DHAVE_STRERROR -DHAVE_BSD_FLOCK $(DARWIN_SDK_CFLAGS)
 
 ifdef BUILD_OPT
 OPTIMIZER	= -O2
@@ -70,7 +106,7 @@ endif
 ARCH		= darwin
 
 # May override this with -bundle to create a loadable module.
-DSO_LDOPTS	= -dynamiclib -compatibility_version 1 -current_version 1 -install_name @executable_path/$(notdir $@) -headerpad_max_install_names
+DSO_LDOPTS	= -dynamiclib -compatibility_version 1 -current_version 1 -install_name @executable_path/$(notdir $@) -headerpad_max_install_names $(DARWIN_SDK_DSOFLAGS)
 
 MKSHLIB		= $(CC) -arch $(CPU_ARCH) $(DSO_LDOPTS)
 DLL_SUFFIX	= dylib
