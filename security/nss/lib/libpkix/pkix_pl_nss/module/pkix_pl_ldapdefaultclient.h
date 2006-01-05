@@ -80,7 +80,7 @@ typedef enum {
         ABANDON_PENDING
 } ConnectStatus;
 
-static struct PKIX_PL_LdapDefaultClientStruct {
+struct PKIX_PL_LdapDefaultClientStruct {
         PKIX_PL_LdapClient vtable;
         ConnectStatus connectStatus;
         PKIX_UInt32 messageID;
