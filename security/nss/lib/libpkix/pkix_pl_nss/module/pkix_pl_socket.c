@@ -663,7 +663,6 @@ pkix_pl_Socket_Hashcode(
         void *plContext)
 {
         PKIX_PL_Socket *socket = NULL;
-        PKIX_UInt32 tempHash = 0;
 
         PKIX_ENTER(SOCKET, "pkix_pl_Socket_Hashcode");
         PKIX_NULLCHECK_TWO(object, pHashcode);
@@ -674,9 +673,9 @@ pkix_pl_Socket_Hashcode(
         socket = (PKIX_PL_Socket *)object;
 
         *pHashcode = (((socket->timeout << 3) +
-                 socket->netAddr->inet.family << 3) +
-                (*((PKIX_UInt32 *)&(socket->netAddr->inet.ip)))) +
-                socket->netAddr->inet.port;
+                 (socket->netAddr->inet.family << 3)) +
+                 (*((PKIX_UInt32 *)&(socket->netAddr->inet.ip)))) +
+                 socket->netAddr->inet.port;
 
 cleanup:
 
@@ -1414,7 +1413,6 @@ pkix_pl_Socket_CreateByName(
         PRStatus prstatus = PR_FAILURE;
         char buf[PR_NETDB_BUF_SIZE];
         PRUint16 portNum = 0;
-        PKIX_UInt32 localCopyLen = 0;
         char *localCopyName = NULL;
 
         PKIX_ENTER(SOCKET, "pkix_pl_Socket_CreateByName");

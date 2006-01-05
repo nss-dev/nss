@@ -561,10 +561,11 @@ pkix_pl_LdapResponse_Decode(
         PKIX_PL_NSSCALL
                 (LDAPRESPONSE, PORT_Memset, (msg, 0, sizeof (LDAPMessage)));
 
-        PKIX_PL_NSSCALLRV(LDAPRESPONSE, rv, SEC_ASN1DecodeItem,
 #if 0
+        PKIX_PL_NSSCALLRV(LDAPRESPONSE, rv, SEC_ASN1DecodeItem,
             (arena, msg, PKIX_PL_LDAPMessageTemplate, &(response->derEncoded)));
 #else
+        PKIX_PL_NSSCALLRV(LDAPRESPONSE, rv, SEC_ASN1DecodeItem,
             (NULL, msg, PKIX_PL_LDAPMessageTemplate, &(response->derEncoded)));
 #endif
 

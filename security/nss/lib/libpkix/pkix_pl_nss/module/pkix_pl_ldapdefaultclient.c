@@ -604,7 +604,6 @@ pkix_pl_LdapDefaultClient_CreateHelper(
         PKIX_PL_LdapDefaultClient **pClient,
         void *plContext)
 {
-        PRErrorCode status = 0;
         PKIX_PL_HashTable *ht;
         PKIX_PL_LdapDefaultClient *ldapDefaultClient = NULL;
         PKIX_PL_Socket_Callback *callbackList;
@@ -1104,52 +1103,6 @@ pkix_pl_LdapDefaultClient_GetPollDesc(
 }
 
 /* --Private-Ldap-CertStore-I/O-Functions---------------------------- */
-/*
- * FUNCTION: pkix_pl_LdapDefaultClient_IsIOPending
- * DESCRIPTION:
- *
- *  This function determines whether the state of the connection of the
- *  LdapDefaultClient pointed to by "client" indicates I/O is in progress, and
- *  stores the Boolean result at "pPending".
- *
- * PARAMETERS:
- *  "client"
- *      The address of the LdapDefaultClient object. Must be non-NULL.
- *  "pPending"
- *      The address at which the result is stored. Must be non-NULL.
- *  "plContext"
- *      Platform-specific context pointer.
- * THREAD SAFETY:
- *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
- * RETURNS:
- *  Returns NULL if the function succeeds.
- *  Returns a LdapDefaultClient Error if the function fails in a
- *      non-fatal way.
- *  Returns a Fatal Error if the function fails in an unrecoverable way.
- */
-static PKIX_Error*
-pkix_pl_LdapDefaultClient_IsIOPending(
-        PKIX_PL_LdapDefaultClient *client,
-        PKIX_Boolean *pPending,
-        void *plContext)
-{
-        PKIX_ENTER(LDAPDEFAULTCLIENT, "pkix_pl_LdapDefaultClient_IsIOPending");
-        PKIX_NULLCHECK_TWO(client, pPending);
-
-        if ((client->connectStatus == CONNECT_PENDING) ||
-            (client->connectStatus == BIND_PENDING) ||
-            (client->connectStatus == BIND_RESPONSE_PENDING) ||
-            (client->connectStatus == SEND_PENDING) ||
-            (client->connectStatus == RECV_PENDING) ||
-            (client->connectStatus == ABANDON_PENDING)) {
-                *pPending = PKIX_TRUE;
-        } else {
-                *pPending = PKIX_FALSE;
-        }
-
-        PKIX_RETURN(LDAPDEFAULTCLIENT);
-}
-
 /*
  * FUNCTION: pkix_pl_LdapDefaultClient_ConnectContinue
  * DESCRIPTION:
@@ -2452,9 +2405,6 @@ pkix_pl_LdapDefaultClient_ResumeRequest(
         PKIX_List **pResponse,
         void *plContext)
 {
-        PKIX_List *searchResponseList = NULL;
-        SECItem *encoded = NULL;
-        LDAPFilter *filter = NULL;
         PKIX_PL_LdapDefaultClient *client = 0;
 
         PKIX_ENTER
