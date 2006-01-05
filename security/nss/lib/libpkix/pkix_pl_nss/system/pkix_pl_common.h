@@ -69,6 +69,7 @@
 /* private PKIX_PL_NSS system headers */
 #include "pkix_pl_object.h"
 #include "pkix_pl_string.h"
+#include "pkix_pl_ldapt.h"
 #include "pkix_pl_aiamgr.h"
 #include "pkix_pl_bigint.h"
 #include "pkix_pl_oid.h"
@@ -90,7 +91,6 @@
 #include "pkix_pl_nameconstraints.h"
 #include "pkix_pl_pk11certstore.h"
 #include "pkix_pl_socket.h"
-#include "pkix_pl_ldapt.h"
 #include "pkix_pl_ldapcertstore.h"
 #include "pkix_pl_ldaprequest.h"
 #include "pkix_pl_ldapresponse.h"
