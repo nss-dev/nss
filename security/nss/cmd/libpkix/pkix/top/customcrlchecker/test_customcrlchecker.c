@@ -387,14 +387,14 @@ cleanup:
 
 /*
  * Validate Certificate Chain with Certificate Revocation List
- *      Certiticate Chain is build based on input certs' sequence.
+ *      Certificate Chain is built based on input certs' sequence.
  *      CRL is fetched from the directory specified in CollectionCertStore.
  *      while CollectionCertStore is linked in CertStore Object which then
  *      linked in ProcessParam. During validation, CRLChecker will invoke
  *      the crlCallback (this test uses PKIX_PL_CollectionCertStore_GetCRL)
  *      to get CRL data for revocation check.
  *      This test set criteria in CRLSelector which is linked in
- *      CommonCRLSelectorParam. When CRL data is fetched into casche for
+ *      CommonCRLSelectorParam. When CRL data is fetched into cache for
  *      revocation check, CRL's are filtered based on the criteria set.
  */
 
