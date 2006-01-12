@@ -207,7 +207,7 @@ PKIX_Initialize_SetConfigDir(
  *  algorithm. If successful, this function returns NULL and stores the
  *  ValidateResult at "pResult", which holds additional information, such as
  *  the policy tree and the target's public key. If unsuccessful, an Error is
- *  returned.
+ *  returned. Note: This function does not currently support non-blocking I/O.
  *
  * PARAMETERS:
  *  "params"
