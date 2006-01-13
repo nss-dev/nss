@@ -819,11 +819,17 @@ PKIX_ProcessingParams_GetRevocationCheckers(
             (PROCESSINGPARAMS, "PKIX_ProcessingParams_GetRevocationCheckers");
         PKIX_NULLCHECK_TWO(params, pCheckers);
 
-        if (params->revCheckers) {
-                PKIX_INCREF(params->revCheckers);
-        }
+        if (params->revCheckers == NULL) {
+		PKIX_CHECK(PKIX_List_Create
+			(&(params->revCheckers), plContext),
+			"PKIX_List_Create failed");
+	}
+
+        PKIX_INCREF(params->revCheckers);
 
         *pCheckers = params->revCheckers;
+
+cleanup:
 
         PKIX_RETURN(PROCESSINGPARAMS);
 }
@@ -843,11 +849,9 @@ PKIX_ProcessingParams_SetRevocationCheckers(
             (PROCESSINGPARAMS, "PKIX_ProcessingParams_SetRevocationCheckers");
         PKIX_NULLCHECK_ONE(params);
 
-        if (checkers == NULL) {
-                /* accordingly to spec, nothing done */
-                goto cleanup;
+	PKIX_DECREF(params->revCheckers);
 
-        } else {
+        if (checkers != NULL) {
 
                 PKIX_INCREF(checkers);
 

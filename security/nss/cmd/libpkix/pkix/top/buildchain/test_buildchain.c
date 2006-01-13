@@ -41,7 +41,7 @@
  *
  */
 
-#define	debuggingWithoutRevocation
+#define debuggingWithoutRevocation
 
 #include "testutil.h"
 #include "testutil_nss.h"
@@ -108,8 +108,8 @@ createLdapCertStore(
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_LdapCertStore_Create
                 ((PKIX_PL_LdapClient *)ldapClient,
-		&ldapCertStore,
-		plContext));
+                &ldapCertStore,
+                plContext));
 
         *pLdapCertStore = ldapCertStore;
 cleanup:
@@ -129,8 +129,10 @@ int main(int argc, char *argv[])
         PKIX_ComCertSelParams *certSelParams = NULL;
         PKIX_CertSelector *certSelector = NULL;
         PKIX_TrustAnchor *anchor = NULL;
+        PKIX_PL_PublicKey *trustedPubKey = NULL;
         PKIX_List *anchors = NULL;
         PKIX_List *certs = NULL;
+        PKIX_RevocationChecker *revChecker = NULL;
         PKIX_PL_Cert *cert = NULL;
         PKIX_ProcessingParams *procParams = NULL;
         char *dirName = NULL;
@@ -147,6 +149,7 @@ int main(int argc, char *argv[])
         /* PRIntervalTime timeout = PR_INTERVAL_NO_WAIT; =0 for non-blocking */
         PKIX_CertStore *certStore = NULL;
         PKIX_List *certStores = NULL;
+        PKIX_List *revCheckers = NULL;
         char * asciiResult = NULL;
         PKIX_Boolean result = PKIX_FALSE;
         PKIX_Boolean useArenas = PKIX_FALSE;
@@ -310,6 +313,28 @@ int main(int argc, char *argv[])
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_ProcessingParams_SetCertStores
                 (procParams, certStores, plContext));
 
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_Create(&revCheckers, plContext));
+
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Cert_GetSubjectPublicKey
+                (trustedCert, &trustedPubKey, plContext));
+
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_GetLength
+                (expectedCerts, &numCerts, plContext));
+
+        PKIX_TEST_EXPECT_NO_ERROR(pkix_DefaultRevChecker_Initialize
+                (certStores,
+                NULL, /* testDate, may be NULL */
+                trustedPubKey,
+                numCerts,
+                &revChecker,
+                plContext));
+
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_AppendItem
+                (revCheckers, (PKIX_PL_Object *)revChecker, plContext));
+
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_ProcessingParams_SetRevocationCheckers
+                (procParams, revCheckers, plContext));
+
 #ifdef debuggingWithoutRevocation
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_ProcessingParams_SetRevocationEnabled
                 (procParams, PKIX_FALSE, plContext));
@@ -451,6 +476,8 @@ cleanup:
         PKIX_TEST_DECREF_AC(buildParams);
         PKIX_TEST_DECREF_AC(procParams);
         PKIX_TEST_DECREF_AC(certStores);
+        PKIX_TEST_DECREF_AC(revCheckers);
+        PKIX_TEST_DECREF_AC(revChecker);
         PKIX_TEST_DECREF_AC(ldapCertStore);
         PKIX_TEST_DECREF_AC(certStore);
         PKIX_TEST_DECREF_AC(dirNameString);
@@ -460,6 +487,7 @@ cleanup:
         PKIX_TEST_DECREF_AC(anchors);
         PKIX_TEST_DECREF_AC(anchor);
         PKIX_TEST_DECREF_AC(trustedCert);
+        PKIX_TEST_DECREF_AC(trustedPubKey);
 
         PKIX_TEST_DECREF_AC(certs);
         PKIX_TEST_DECREF_AC(cert);

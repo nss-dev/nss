@@ -131,14 +131,21 @@ extern "C" {
  * DESCRIPTION:
  *
  *  This callback function determines the revocation status of the specified
- *  Cert pointed to by "cert" and stores it at "pResultCode".
+ *  Cert pointed to by "cert" and stores it at "pResultCode". If a checker
+ *  initiates non-blocking I/O, it stores a platform-dependent non-blocking
+ *  I/O context at "pNBIOContext". A subsequent call with that same value on
+ *  input allows the operation to continue. On completion, with no non-blocking
+ *  I/O pending, NULL is stored at "pNBIOContext".
  *
  * PARAMETERS:
- *  "revChecker"
- *      Address of RevocationChecker whose RevCallback logic is to be used.
- *      Must be non-NULL.
+ *  "revCheckerContext"
+ *      Address of RevocationCheckerContext for the RevocationChecker whose
+ *      RevCallback logic is to be used. Must be non-NULL.
  *  "cert"
  *      Address of Cert whose revocation status is to be determined.
+ *      Must be non-NULL.
+ *  "pNBIOContext"
+ *      Address at which platform-dependent non-blocking I/O context is stored.
  *      Must be non-NULL.
  *  "pResultCode"
  *      Address where revocation status will be stored. Must be non-NULL.
@@ -156,8 +163,9 @@ extern "C" {
  */
 typedef PKIX_Error *
 (*PKIX_RevocationChecker_RevCallback)(
-        PKIX_RevocationChecker *revChecker,
+        PKIX_PL_Object *revCheckerContext,
         PKIX_PL_Cert *cert,
+        void **pNBIOContext,
         PKIX_UInt32 *pResultCode,
         void *plContext);
 

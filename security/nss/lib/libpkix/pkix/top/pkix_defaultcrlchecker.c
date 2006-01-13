@@ -491,6 +491,33 @@ cleanup:
         PKIX_RETURN(CERTCHAINCHECKER);
 }
 
+/*
+ * FUNCTION: pkix_DefaultCRLChecker_Check_SetSelector
+ *
+ * DESCRIPTION:
+ *  This function creates a CRLSelector suitable for finding a CRL for
+ *  the Cert pointed to by "cert", setting the result in the
+ *  defaultCRLCheckerState pointed to by "state".
+ *
+ * PARAMETERS
+ *  "cert"
+ *      Address of Cert for which a CRLSelector is to be constructed. Must be
+ *      non-NULL.
+ *  "state"
+ *      Address of defaultCRLCheckerState whose CRLSelector is to be set. Must
+ *      be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ *
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ *
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a DefaultCrlCheckerState Error if the function fails in a
+ *  non-fatal way.
+ *  Returns a Fatal Error
+ */
 PKIX_Error *
 pkix_DefaultCRLChecker_Check_SetSelector(
         PKIX_PL_Cert *cert,
@@ -578,7 +605,44 @@ cleanup:
         PKIX_RETURN(CERTCHAINCHECKER);
 }
 
-PKIX_Error *
+/*
+ * FUNCTION: pkix_DefaultCRLChecker_Check_Store
+ *
+ * DESCRIPTION:
+ *  Checks the certStore pointed to by "certStore" for a CRL that may determine
+ *  whether the Cert pointed to by "cert" has been revoked.
+ *
+ * PARAMETERS
+ *  "checker"
+ *      Address of CertChainChecker which has the state data.
+ *      Must be non-NULL.
+ *  "cert"
+ *      Address of Certificate that is to be validated. Must be non-NULL.
+ *  "prevPublicKey"
+ *      Address of previous public key in the backward chain. May be NULL.
+ *  "state"
+ *      Address of DefaultCrlCheckerState. Must be non-NULL.
+ *  "unresolvedCriticalExtensions"
+ *      A List OIDs. Not **yet** used in this checker function.
+ *  "certStore"
+ *      Address of the CertStore to be queried for a relevant CRL. Must be
+ *      non-NULL.
+ *  "pNBIOContext"
+ *      Address at which platform-dependent information is stored if processing
+ *      is suspended for non-blocking I/O. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ *
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ *
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a DefaultCrlCheckerState Error if the function fails in a
+ *  non-fatal way.
+ *  Returns a Fatal Error
+ */
+static PKIX_Error *
 pkix_DefaultCRLChecker_Check_Store(
         PKIX_CertChainChecker *checker,
         PKIX_PL_Cert *cert,
@@ -756,6 +820,11 @@ cleanup:
  *      Address of DefaultCrlCheckerState. Must be non-NULL.
  *  "unresolvedCriticalExtensions"
  *      A List OIDs. Not **yet** used in this checker function.
+ *  "useOnlyLocal"
+ *      Boolean value indicating whether to use or bypass remote CertStores
+ *  "pNBIOContext"
+ *      Address at which platform-dependent information is stored if processing
+ *      is suspended for non-blocking I/O. Must be non-NULL.
  *  "plContext"
  *      Platform-specific context pointer.
  *

@@ -172,7 +172,7 @@ PKIX_PL_Initialize(
          * if we register them in the same order as their
          * numbers, defined in pkixt.h.
          */
-        (void) pkix_pl_BigInt_RegisterSelf(plContext);
+        (void) pkix_pl_BigInt_RegisterSelf(plContext);   /* 1-10 */
         (void) pkix_pl_ByteArray_RegisterSelf(plContext);
         /* already registered! pkix_Error_RegisterSelf(plContext); */
         (void) pkix_pl_HashTable_RegisterSelf(plContext);
@@ -181,10 +181,9 @@ PKIX_PL_Initialize(
         (void) pkix_pl_Mutex_RegisterSelf(plContext);
         (void) pkix_pl_OID_RegisterSelf(plContext);
         (void) pkix_pl_RWLock_RegisterSelf(plContext);
-        (void) pkix_pl_MonitorLock_RegisterSelf(plContext);
         /* already registered! pkix_pl_String_RegisterSelf(plContext); */
 
-        pkix_pl_CertBasicConstraints_RegisterSelf(plContext);
+        pkix_pl_CertBasicConstraints_RegisterSelf(plContext); /* 11-20 */
         pkix_pl_Cert_RegisterSelf(plContext);
         pkix_CertChain_RegisterSelf(plContext);
         pkix_pl_CRL_RegisterSelf(plContext);
@@ -193,10 +192,11 @@ PKIX_PL_Initialize(
         pkix_pl_GeneralName_RegisterSelf(plContext);
         pkix_pl_CertNameConstraints_RegisterSelf(plContext);
         pkix_pl_PublicKey_RegisterSelf(plContext);
-        pkix_pl_CollectionCertStoreContext_RegisterSelf(plContext);
         pkix_TrustAnchor_RegisterSelf(plContext);
 
-        pkix_pl_X500Name_RegisterSelf(plContext);
+        pkix_pl_X500Name_RegisterSelf(plContext);   /* 21-30 */
+        pkix_BuildParams_RegisterSelf(plContext);
+        pkix_BuildResult_RegisterSelf(plContext);
         pkix_ProcessingParams_RegisterSelf(plContext);
         pkix_ValidateParams_RegisterSelf(plContext);
         pkix_ValidateResult_RegisterSelf(plContext);
@@ -205,7 +205,7 @@ PKIX_PL_Initialize(
         pkix_RevocationChecker_RegisterSelf(plContext);
         pkix_CertSelector_RegisterSelf(plContext);
 
-        pkix_ComCertSelParams_RegisterSelf(plContext);
+        pkix_ComCertSelParams_RegisterSelf(plContext);   /* 31-40 */
         pkix_CRLSelector_RegisterSelf(plContext);
         pkix_ComCRLSelParams_RegisterSelf(plContext);
         pkix_pl_CertPolicyInfo_RegisterSelf(plContext);
@@ -215,19 +215,23 @@ PKIX_PL_Initialize(
         pkix_TargetCertCheckerState_RegisterSelf(plContext);
         pkix_BasicConstraintsCheckerState_RegisterSelf(plContext);
         pkix_PolicyCheckerState_RegisterSelf(plContext);
+
+        pkix_pl_CollectionCertStoreContext_RegisterSelf(plContext); /* 41-50 */
         pkix_DefaultCRLCheckerState_RegisterSelf(plContext);
-        pkix_SignatureCheckerState_RegisterSelf(plContext);
-        pkix_BuildResult_RegisterSelf(plContext);
-        pkix_BuildParams_RegisterSelf(plContext);
         pkix_ForwardBuilderState_RegisterSelf(plContext);
+        pkix_SignatureCheckerState_RegisterSelf(plContext);
         pkix_NameConstraintsCheckerState_RegisterSelf(plContext);
-        pkix_pl_LdapDefaultClient_RegisterSelf(plContext);
+        pkix_DefaultRevocationChecker_RegisterSelf(plContext);
         pkix_pl_LdapRequest_RegisterSelf(plContext);
         pkix_pl_LdapResponse_RegisterSelf(plContext);
+        pkix_pl_LdapDefaultClient_RegisterSelf(plContext);
         pkix_pl_Socket_RegisterSelf(plContext);
-        pkix_ResourceLimits_RegisterSelf(plContext);
+
+        pkix_ResourceLimits_RegisterSelf(plContext); /* 51-55 */
+        (void) pkix_pl_MonitorLock_RegisterSelf(plContext);
         pkix_pl_InfoAccess_RegisterSelf(plContext);
         pkix_pl_AIAMgr_RegisterSelf(plContext);
+        pkix_OcspChecker_RegisterSelf(plContext);
 
         PKIX_CHECK(PKIX_PL_NssContext_Create
                 (0x10, useArenas, NULL, &plContext),

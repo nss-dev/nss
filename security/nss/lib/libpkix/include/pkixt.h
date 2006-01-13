@@ -118,6 +118,8 @@ typedef struct PKIX_PolicyNodeStruct PKIX_PolicyNode;
 typedef struct PKIX_LoggerStruct PKIX_Logger;
 typedef struct PKIX_ListStruct PKIX_List;
 typedef struct PKIX_ForwardBuilderStateStruct PKIX_ForwardBuilderState;
+typedef struct PKIX_DefaultRevocationCheckerStruct PKIX_DefaultRevocationChecker;
+typedef struct PKIX_OcspCheckerStruct PKIX_OcspChecker;
 
 /* Portability Layer (PL) data types
  *
@@ -208,46 +210,47 @@ typedef int PKIX_Boolean;
 #define PKIX_CERTNAMECONSTRAINTS_TYPE   ((PKIX_UInt32) 18)
 #define PKIX_PUBLICKEY_TYPE             ((PKIX_UInt32) 19)
 #define PKIX_TRUSTANCHOR_TYPE           ((PKIX_UInt32) 20)
-#define PKIX_X500NAME_TYPE              ((PKIX_UInt32) 21)
 
+#define PKIX_X500NAME_TYPE              ((PKIX_UInt32) 21)
 #define PKIX_BUILDPARAMS_TYPE           ((PKIX_UInt32) 22)
 #define PKIX_BUILDRESULT_TYPE           ((PKIX_UInt32) 23)
 #define PKIX_PROCESSINGPARAMS_TYPE      ((PKIX_UInt32) 24)
 #define PKIX_VALIDATEPARAMS_TYPE        ((PKIX_UInt32) 25)
 #define PKIX_VALIDATERESULT_TYPE        ((PKIX_UInt32) 26)
-
 #define PKIX_CERTSTORE_TYPE             ((PKIX_UInt32) 27)
 #define PKIX_CERTCHAINCHECKER_TYPE      ((PKIX_UInt32) 28)
 #define PKIX_REVOCATIONCHECKER_TYPE     ((PKIX_UInt32) 29)
 #define PKIX_CERTSELECTOR_TYPE          ((PKIX_UInt32) 30)
+
 #define PKIX_COMCERTSELPARAMS_TYPE      ((PKIX_UInt32) 31)
 #define PKIX_CRLSELECTOR_TYPE           ((PKIX_UInt32) 32)
 #define PKIX_COMCRLSELPARAMS_TYPE       ((PKIX_UInt32) 33)
-
 #define PKIX_CERTPOLICYINFO_TYPE        ((PKIX_UInt32) 34)
 #define PKIX_CERTPOLICYQUALIFIER_TYPE   ((PKIX_UInt32) 35)
 #define PKIX_CERTPOLICYMAP_TYPE         ((PKIX_UInt32) 36)
 #define PKIX_CERTPOLICYNODE_TYPE        ((PKIX_UInt32) 37)
-
 #define PKIX_TARGETCERTCHECKERSTATE_TYPE ((PKIX_UInt32) 38)
 #define PKIX_BASICCONSTRAINTSCHECKERSTATE_TYPE ((PKIX_UInt32) 39)
 #define PKIX_CERTPOLICYCHECKERSTATE_TYPE ((PKIX_UInt32) 40)
+
 #define PKIX_COLLECTIONCERTSTORECONTEXT_TYPE ((PKIX_UInt32) 41)
 #define PKIX_DEFAULTCRLCHECKERSTATE_TYPE ((PKIX_UInt32) 42)
 #define PKIX_FORWARDBUILDERSTATE_TYPE   ((PKIX_UInt32) 43)
 #define PKIX_SIGNATURECHECKERSTATE_TYPE ((PKIX_UInt32) 44)
 #define PKIX_CERTNAMECONSTRAINTSCHECKERSTATE_TYPE ((PKIX_UInt32) 45)
-#define PKIX_LDAPCERTSTORECONTEXT_TYPE  ((PKIX_UInt32) 46)
+#define PKIX_DEFAULTREVOCATIONCHECKER_TYPE ((PKIX_UInt32) 46)
 #define PKIX_LDAPREQUEST_TYPE           ((PKIX_UInt32) 47)
 #define PKIX_LDAPRESPONSE_TYPE          ((PKIX_UInt32) 48)
 #define PKIX_LDAPDEFAULTCLIENT_TYPE     ((PKIX_UInt32) 49)
 #define PKIX_SOCKET_TYPE                ((PKIX_UInt32) 50)
+
 #define PKIX_RESOURCELIMITS_TYPE        ((PKIX_UInt32) 51)
 #define PKIX_MONITORLOCK_TYPE           ((PKIX_UInt32) 52)
 #define PKIX_INFOACCESS_TYPE            ((PKIX_UInt32) 53)
 #define PKIX_AIAMGR_TYPE                ((PKIX_UInt32) 54)
+#define PKIX_OCSPCHECKER_TYPE           ((PKIX_UInt32) 55)
 
-#define PKIX_NUMTYPES                   ((PKIX_UInt32) 55)
+#define PKIX_NUMTYPES                   ((PKIX_UInt32) 56)
 
 /* User Define Object Types
  *
@@ -320,7 +323,7 @@ typedef int PKIX_Boolean;
 #define PKIX_REVOCATIONCHECKER_ERROR    ((PKIX_UInt32) 49)
 #define PKIX_USERDEFINEDMODULES_ERROR   ((PKIX_UInt32) 50)
 #define PKIX_CONTEXT_ERROR              ((PKIX_UInt32) 51)
-#define PKIX_LDAPCERTSTORECONTEXT_ERROR ((PKIX_UInt32) 52)
+#define PKIX_DEFAULTREVOCATIONCHECKER_ERROR ((PKIX_UInt32) 52)
 #define PKIX_LDAPREQUEST_ERROR          ((PKIX_UInt32) 53)
 #define PKIX_LDAPRESPONSE_ERROR         ((PKIX_UInt32) 54)
 #define PKIX_LDAPCLIENT_ERROR           ((PKIX_UInt32) 55)
@@ -331,9 +334,10 @@ typedef int PKIX_Boolean;
 #define PKIX_MONITORLOCK_ERROR          ((PKIX_UInt32) 60)
 #define PKIX_INFOACCESS_ERROR           ((PKIX_UInt32) 61)
 #define PKIX_AIAMGR_ERROR               ((PKIX_UInt32) 62)
+#define PKIX_OCSPCHECKER_ERROR          ((PKIX_UInt32) 63)
 
 /* YOU NEED TO UPDATE NEW ENTRY at pkix_error.c and pkix_logger.c */
-#define PKIX_NUMERRORS                  ((PKIX_UInt32) 63)
+#define PKIX_NUMERRORS                  ((PKIX_UInt32) 64)
 
 /* String Formats
  *

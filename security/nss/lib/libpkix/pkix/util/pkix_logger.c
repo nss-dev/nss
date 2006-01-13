@@ -134,7 +134,7 @@ PKIX_COMPONENTNAMES[PKIX_NUMERRORS] =
         "RevocationChecker",
         "User Defined Modules",
         "Context",
-        "LdapCertStoreContext",
+        "DefaultRevocationChecker",
         "LdapRequest",
         "LdapResponse",
         "LdapClient",
@@ -144,7 +144,8 @@ PKIX_COMPONENTNAMES[PKIX_NUMERRORS] =
         "Logger",
         "MonitorLock",
         "InfoAccess",
-        "AIAMgr"
+        "AIAMgr",
+        "OcspChecker"
 };
 
 /* --Private-Functions-------------------------------------------- */

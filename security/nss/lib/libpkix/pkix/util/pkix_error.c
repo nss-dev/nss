@@ -425,7 +425,7 @@ PKIX_ERRORNAMES[PKIX_NUMERRORS] =
         "RevocationChecker Error",
         "User Defined Modules Error",
         "Context Error",
-        "LdapCertStoreContext Error",
+        "DefaultRevocationChecker Error",
         "LdapRequest Error",
         "LdapResponse Error",
         "LdapClient Error",
@@ -435,7 +435,8 @@ PKIX_ERRORNAMES[PKIX_NUMERRORS] =
         "Logger Error",
         "MonitorLock Error",
         "InfoAccess Error",
-        "AIAMgr Error"
+        "AIAMgr Error",
+        "OcspChecker Error"
 };
 
 /*

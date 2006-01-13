@@ -97,7 +97,7 @@ struct BuildConstantsStruct {
         PKIX_List *anchors;
         PKIX_List *userCheckers;
         PKIX_CertChainChecker *crlChecker;
-	PKIX_PL_AIAMgr *aiaMgr;
+        PKIX_PL_AIAMgr *aiaMgr;
 };
 
 struct PKIX_ForwardBuilderStateStruct{
@@ -105,19 +105,21 @@ struct PKIX_ForwardBuilderStateStruct{
         PKIX_Int32 traversedCACerts;
         PKIX_UInt32 certStoreIndex;
         PKIX_UInt32 numCerts;
-	PKIX_UInt32 numAias;
+        PKIX_UInt32 numAias;
         PKIX_UInt32 certIndex;
-	PKIX_UInt32 aiaIndex;
+        PKIX_UInt32 aiaIndex;
         PKIX_UInt32 anchorIndex;
         PKIX_UInt32 certCheckedIndex;
         PKIX_UInt32 checkerIndex;
         PKIX_UInt32 numFanout;
         PKIX_UInt32 numDepth;
+        PKIX_UInt32 reasonCode;
         PKIX_Boolean dsaParamsNeeded;
         PKIX_Boolean revCheckDelayed;
         PKIX_Boolean canBeCached;
         PKIX_Boolean useOnlyLocal;
         PKIX_Boolean alreadyTriedAIA;
+        PKIX_Boolean revChecking;
         PKIX_PL_Date *validityDate;
         PKIX_PL_Cert *prevCert;
         PKIX_PL_Cert *candidateCert;
@@ -128,8 +130,9 @@ struct PKIX_ForwardBuilderStateStruct{
         PKIX_List *reversedCertChain;
         PKIX_List *checkedCritExtOIDs;
         PKIX_List *checkerChain;
+        PKIX_List *revCheckers;
         PKIX_CertSelector *certSel;
-	void *client; /* messageHandler, such as LDAPClient */
+        void *client; /* messageHandler, such as LDAPClient */
         PKIX_ForwardBuilderState *parentState;
         BuildConstants buildConstants;
 };

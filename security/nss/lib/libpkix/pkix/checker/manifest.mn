@@ -41,6 +41,8 @@ EXPORTS = \
 
 PRIVATE_EXPORTS = \
 	pkix_certchainchecker.h \
+	pkix_defaultrevchecker.h \
+	pkix_ocspchecker.h \
 	pkix_revocationchecker.h \
 	$(NULL)
 
@@ -48,6 +50,8 @@ MODULE = nss
 
 CSRCS = \
 	pkix_certchainchecker.c \
+	pkix_defaultrevchecker.c \
+	pkix_ocspchecker.c \
 	pkix_revocationchecker.c \
 	$(NULL)
 

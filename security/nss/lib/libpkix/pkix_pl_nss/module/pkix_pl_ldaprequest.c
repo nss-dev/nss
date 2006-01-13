@@ -740,7 +740,7 @@ pkix_pl_LdapRequest_Create(
         search->attributes = attrArray;
 
         PKIX_PL_NSSCALLRV
-                (LDAPCERTSTORECONTEXT, ldapRequest->encoded, SEC_ASN1EncodeItem,
+                (LDAPREQUEST, ldapRequest->encoded, SEC_ASN1EncodeItem,
                 (arena, NULL, (void *)&msg, PKIX_PL_LDAPMessageTemplate));
 
         if (!(ldapRequest->encoded)) {

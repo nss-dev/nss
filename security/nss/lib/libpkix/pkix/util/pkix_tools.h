@@ -58,6 +58,7 @@
 #include "pkix_comcrlselparams.h"
 #include "pkix_crlselector.h"
 #include "pkix_defaultcrlchecker.h"
+#include "pkix_defaultrevchecker.h"
 #include "pkix_error.h"
 #include "pkix_expirationchecker.h"
 #include "pkix_list.h"
@@ -434,72 +435,73 @@ extern "C" {
  */
 
 #ifdef PKIX_DEBUGALL
-#define PKIX_REFCOUNTDEBUG              1
-#define PKIX_MEMDEBUG                   1
-#define PKIX_MUTEXDEBUG                 1
-#define PKIX_OBJECTDEBUG                1
-#define PKIX_STRINGDEBUG                1
-#define PKIX_OIDDEBUG                   1
-#define PKIX_LISTDEBUG                  1
-#define PKIX_ERRORDEBUG                 1
-#define PKIX_BYTEARRAYDEBUG             1
-#define PKIX_RWLOCKDEBUG                1
-#define PKIX_BIGINTDEBUG                1
-#define PKIX_HASHTABLEDEBUG             1
-#define PKIX_X500NAMEDEBUG              1
-#define PKIX_GENERALNAMEDEBUG           1
-#define PKIX_PUBLICKEYDEBUG             1
-#define PKIX_CERTDEBUG                  1
-#define PKIX_DATEDEBUG                  1
-#define PKIX_TRUSTANCHORDEBUG           1
-#define PKIX_CERTCHAINDEBUG             1
-#define PKIX_PROCESSINGPARAMSDEBUG      1
-#define PKIX_VALIDATEPARAMSDEBUG        1
-#define PKIX_VALIDATERESULTDEBUG        1
-#define PKIX_VALIDATEDEBUG              1
-#define PKIX_CERTCHAINCHECKERDEBUG      1
-#define PKIX_REVOCATIONCHECKERDEBUG     1
-#define PKIX_CERTSELECTORDEBUG          1
-#define PKIX_COMCERTSELPARAMSDEBUG      1
-#define PKIX_TARGETCERTCHECKERSTATEDEBUG        1
-#define PKIX_INITIALIZEPARAMSDEBUG      1
-#define PKIX_CERTBASICCONSTRAINTSDEBUG  1
-#define PKIX_CERTNAMECONSTRAINTSDEBUG   1
+#define PKIX_REFCOUNTDEBUG                        1
+#define PKIX_MEMDEBUG                             1
+#define PKIX_MUTEXDEBUG                           1
+#define PKIX_OBJECTDEBUG                          1
+#define PKIX_STRINGDEBUG                          1
+#define PKIX_OIDDEBUG                             1
+#define PKIX_LISTDEBUG                            1
+#define PKIX_ERRORDEBUG                           1
+#define PKIX_BYTEARRAYDEBUG                       1
+#define PKIX_RWLOCKDEBUG                          1
+#define PKIX_BIGINTDEBUG                          1
+#define PKIX_HASHTABLEDEBUG                       1
+#define PKIX_X500NAMEDEBUG                        1
+#define PKIX_GENERALNAMEDEBUG                     1
+#define PKIX_PUBLICKEYDEBUG                       1
+#define PKIX_CERTDEBUG                            1
+#define PKIX_DATEDEBUG                            1
+#define PKIX_TRUSTANCHORDEBUG                     1
+#define PKIX_CERTCHAINDEBUG                       1
+#define PKIX_PROCESSINGPARAMSDEBUG                1
+#define PKIX_VALIDATEPARAMSDEBUG                  1
+#define PKIX_VALIDATERESULTDEBUG                  1
+#define PKIX_VALIDATEDEBUG                        1
+#define PKIX_CERTCHAINCHECKERDEBUG                1
+#define PKIX_REVOCATIONCHECKERDEBUG               1
+#define PKIX_CERTSELECTORDEBUG                    1
+#define PKIX_COMCERTSELPARAMSDEBUG                1
+#define PKIX_TARGETCERTCHECKERSTATEDEBUG          1
+#define PKIX_INITIALIZEPARAMSDEBUG                1
+#define PKIX_CERTBASICCONSTRAINTSDEBUG            1
+#define PKIX_CERTNAMECONSTRAINTSDEBUG             1
 #define PKIX_CERTNAMECONSTRAINTSCHECKERSTATEDEBUG 1
-#define PKIX_SUBJALTNAMECHECKERSTATEDEBUG 1
+#define PKIX_SUBJALTNAMECHECKERSTATEDEBUG         1
 
-#define PKIX_CERTPOLICYQUALIFIERDEBUG   1
-#define PKIX_CERTPOLICYINFODEBUG        1
-#define PKIX_CERTPOLICYNODEDEBUG        1
-#define PKIX_CERTPOLICYCHECKERSTATEDEBUG 1
-#define PKIX_LIFECYCLEDEBUG             1
-#define PKIX_BASICCONSTRAINTSCHECKERSTATEDEBUG  1
-#define PKIX_CRLDEBUG                   1
-#define PKIX_CRLENTRYDEBUG              1
-#define PKIX_CRLSELECTORDEBUG           1
-#define PKIX_COMCRLSELPARAMSDEBUG       1
-#define PKIX_CERTSTOREDEBUG             1
-#define PKIX_COLLECTIONCERTSTORECONTEXTDEBUG 1
-#define PKIX_DEFAULTCRLCHECKERSTATEDEBUG 1
-#define PKIX_CERTPOLICYMAPDEBUG         1
-#define PKIX_BUILDDEBUG         1
-#define PKIX_BUILDRESULTDEBUG   1
-#define PKIX_BUILDPARAMSDEBUG   1
-#define PKIX_FORWARDBUILDERSTATEDEBUG 1
-#define PKIX_SIGNATURECHECKERSTATEDEBUG 1
-#define PKIX_USERDEFINEDMODULESDEBUG 1
-#define PKIX_CONTEXTDEBUG 1
-#define PKIX_LDAPCERTSTORECONTEXTDEBUG  1
-#define PKIX_LDAPREQUESTDEBUG           1
-#define PKIX_LDAPRESPONSEDEBUG          1
-#define PKIX_LDAPCLIENTDEBUG            1
-#define PKIX_LDAPDEFAULTCLIENTDEBUG     1
-#define PKIX_SOCKETDEBUG                1
-#define PKIX_RESOURCELIMITSDEBUG        1
-#define PKIX_LOGGERDEBUG                1
-#define PKIX_MONITORLOCKDEBUG           1
-#define PKIX_INFOACCESSDEBUG            1
-#define PKIX_AIAMGRDEBUG            1
+#define PKIX_CERTPOLICYQUALIFIERDEBUG             1
+#define PKIX_CERTPOLICYINFODEBUG                  1
+#define PKIX_CERTPOLICYNODEDEBUG                  1
+#define PKIX_CERTPOLICYCHECKERSTATEDEBUG          1
+#define PKIX_LIFECYCLEDEBUG                       1
+#define PKIX_BASICCONSTRAINTSCHECKERSTATEDEBUG    1
+#define PKIX_CRLDEBUG                             1
+#define PKIX_CRLENTRYDEBUG                        1
+#define PKIX_CRLSELECTORDEBUG                     1
+#define PKIX_COMCRLSELPARAMSDEBUG                 1
+#define PKIX_CERTSTOREDEBUG                       1
+#define PKIX_COLLECTIONCERTSTORECONTEXTDEBUG      1
+#define PKIX_DEFAULTCRLCHECKERSTATEDEBUG          1
+#define PKIX_CERTPOLICYMAPDEBUG                   1
+#define PKIX_BUILDDEBUG                           1
+#define PKIX_BUILDRESULTDEBUG                     1
+#define PKIX_BUILDPARAMSDEBUG                     1
+#define PKIX_FORWARDBUILDERSTATEDEBUG             1
+#define PKIX_SIGNATURECHECKERSTATEDEBUG           1
+#define PKIX_USERDEFINEDMODULESDEBUG              1
+#define PKIX_CONTEXTDEBUG                         1
+#define PKIX_DEFAULTREVOCATIONCHECKERDEBUG        1
+#define PKIX_LDAPREQUESTDEBUG                     1
+#define PKIX_LDAPRESPONSEDEBUG                    1
+#define PKIX_LDAPCLIENTDEBUG                      1
+#define PKIX_LDAPDEFAULTCLIENTDEBUG               1
+#define PKIX_SOCKETDEBUG                          1
+#define PKIX_RESOURCELIMITSDEBUG                  1
+#define PKIX_LOGGERDEBUG                          1
+#define PKIX_MONITORLOCKDEBUG                     1
+#define PKIX_INFOACCESSDEBUG                      1
+#define PKIX_AIAMGRDEBUG                          1
+#define PKIX_OCSPCHECKERDEBUG                     1
 #endif
 
 /*
@@ -1085,14 +1087,14 @@ extern "C" {
 #define PKIX_CONTEXT_DEBUG_ARG(expr, arg)
 #endif
 
-#if PKIX_LDAPCERTSTORECONTEXTDEBUG
-#define PKIX_LDAPCERTSTORECONTEXT_DEBUG(expr) \
+#if PKIX_DEFAULTREVOCATIONCHECKERDEBUG
+#define PKIX_DEFAULTREVOCATIONCHECKER_DEBUG(expr) \
         PKIX_DEBUG(expr)
-#define PKIX_LDAPCERTSTORECONTEXT_DEBUG_ARG(expr, arg) \
+#define PKIX_DEFAULTREVOCATIONCHECKER_DEBUG_ARG(expr, arg) \
         PKIX_DEBUG_ARG(expr, arg)
 #else
-#define PKIX_LDAPCERTSTORECONTEXT_DEBUG(expr)
-#define PKIX_LDAPCERTSTORECONTEXT_DEBUG_ARG(expr, arg)
+#define PKIX_DEFAULTREVOCATIONCHECKER_DEBUG(expr)
+#define PKIX_DEFAULTREVOCATIONCHECKER_DEBUG_ARG(expr, arg)
 #endif
 
 #if PKIX_LDAPREQUESTDEBUG
@@ -1193,6 +1195,16 @@ extern "C" {
 #else
 #define PKIX_AIAMGR_DEBUG(expr)
 #define PKIX_AIAMGR_DEBUG_ARG(expr, arg)
+#endif
+
+#if PKIX_OCSPCHECKERDEBUG
+#define PKIX_OCSPCHECKER_DEBUG(expr) \
+        PKIX_DEBUG(expr)
+#define PKIX_OCSPCHECKER_DEBUG_ARG(expr, arg) \
+        PKIX_DEBUG_ARG(expr, arg)
+#else
+#define PKIX_OCSPCHECKER_DEBUG(expr)
+#define PKIX_OCSPCHECKER_DEBUG_ARG(expr, arg)
 #endif
 
 /*

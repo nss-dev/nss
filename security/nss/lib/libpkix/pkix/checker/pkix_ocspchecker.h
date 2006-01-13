@@ -35,38 +35,40 @@
  *
  * ***** END LICENSE BLOCK ***** */
 /*
- * pkix_validate.h
+ * pkix_ocspchecker.h
  *
- * Header file for validateChain function
+ * OcspChecker Object Type Definition
  *
  */
 
-#ifndef _PKIX_VALIDATE_H
-#define _PKIX_VALIDATE_H
+#ifndef _PKIX_OCSPCHECKER_H
+#define _PKIX_OCSPCHECKER_H
+
 #include "pkix_tools.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+struct PKIX_OcspCheckerStruct {
+        PKIX_RevocationChecker_RevCallback checkCallback;
+        char *http_uri;
+        void *httpClient;
+};
+
+/* see source file for function documentation */
+
+PKIX_Error *pkix_OcspChecker_RegisterSelf(void *plContext);
+
 PKIX_Error *
-pkix_CheckChain(
-        PKIX_List *certs,
-        PKIX_UInt32 numCerts,
-        PKIX_List *checkers,
-        PKIX_List *revCheckers,
-        PKIX_List *buildCheckedExtOIDs,
-        PKIX_UInt32 *pCertCheckedIndex,
-        PKIX_UInt32 *pCheckerIndex,
-        PKIX_Boolean *pRevChecking,
-        PKIX_UInt32 *pReasonCode,
-        void **pNBIOContext,
-        PKIX_PL_PublicKey **pFinalSubjPubKey,
-        PKIX_PolicyNode **pPolicyTree,
-        void *plContext);
+PKIX_OcspChecker_Create(
+    PKIX_RevocationChecker_RevCallback callback,
+    char *http_uri,
+    PKIX_OcspChecker **pChecker,
+    void *plContext);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* _PKIX_VALIDATE_H */
+#endif /* _PKIX_OCSPCHECKER_H */
