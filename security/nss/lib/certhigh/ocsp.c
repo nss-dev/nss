@@ -68,6 +68,18 @@
 #include <stdarg.h>
 
 
+static struct OCSPGlobalStruct {
+    SEC_HttpClientFcn *defaultHttpClientFcn;
+} OCSP_Global = { NULL };
+
+SECStatus
+SEC_RegisterDefaultHttpClient(SEC_HttpClientFcn *fcnTable)
+{
+    OCSP_Global.defaultHttpClientFcn = fcnTable;
+    return SECSuccess;
+}
+
+
 /*
  * The following structure is only used internally.  It is allocated when
  * someone turns on OCSP checking, and hangs off of the status-configuration
@@ -2133,6 +2145,68 @@ ocsp_GetEncodedResponse(PRArenaPool *arena, PRFileDesc *sock)
     return result;
 }
 
+static SECItem *
+fetchOcspHttpClientV1(PRArenaPool *arena, 
+                      SEC_HttpClientFcnV1 *hcv1, 
+                      char *location, 
+                      SECItem *encodedRequest)
+{
+    SECItem *encodedResponse = NULL;
+    void *myHttpClientState;
+    unsigned int myHttpResponseCode;
+    char *myHttpResponseData;
+    size_t myHttpResponseDataLen;
+
+    if (!hcv1)
+        return NULL;
+
+    /* We use a non-zero timeout, which means:
+       - the client will use blocking I/O
+       - TryFcn will not return WOULD_BLOCK nor a poll descriptor
+       - it's sufficient to call TryFcn once
+    */
+
+    if ((*hcv1->createFcn)(
+            arena, 
+            PR_TicksPerSecond() * 60,
+            location,
+            "POST",
+            &myHttpClientState) != SECSuccess)
+    {
+        return NULL;
+    }
+    
+    if ((*hcv1->setPostDataFcn)(
+        myHttpClientState, 
+        (char*)encodedRequest->data,
+        encodedRequest->len,
+        "application/ocsp-request") == SECSuccess)
+    {
+        if ((*hcv1->tryFcn)(
+            myHttpClientState, 
+            NULL,
+            &myHttpResponseCode,
+            NULL,
+            NULL,
+            &myHttpResponseData,
+            &myHttpResponseDataLen) == SECSuccess)
+        {
+            if (myHttpResponseCode == 200)
+            {
+                encodedResponse = SECITEM_AllocItem(arena, NULL, myHttpResponseDataLen);
+
+                if (encodedResponse != NULL)
+                {
+                    PORT_Memcpy(encodedResponse->data, myHttpResponseData, myHttpResponseDataLen);
+                }
+            }
+        }
+    }
+    
+    (*hcv1->freeFcn)(myHttpClientState);
+    
+    return encodedResponse;
+}
 
 /*
  * FUNCTION: CERT_GetEncodedOCSPResponse
@@ -2207,11 +2281,26 @@ CERT_GetEncodedOCSPResponse(PRArenaPool *arena, CERTCertList *certList,
     if (encodedRequest == NULL)
 	goto loser;
 
-    sock = ocsp_SendEncodedRequest(location, encodedRequest);
-    if (sock == NULL)
-	goto loser;
+    if (OCSP_Global.defaultHttpClientFcn
+        &&
+        OCSP_Global.defaultHttpClientFcn->version == 1) {
 
-    encodedResponse = ocsp_GetEncodedResponse(arena, sock);
+        encodedResponse = fetchOcspHttpClientV1(
+                              arena,
+                              &OCSP_Global.defaultHttpClientFcn->fcnTable.ftable1,
+                              location,
+                              encodedRequest);
+    }
+    else {
+      /* use internal http client */
+    
+      sock = ocsp_SendEncodedRequest(location, encodedRequest);
+      if (sock == NULL)
+	  goto loser;
+
+      encodedResponse = ocsp_GetEncodedResponse(arena, sock);
+    }
+
     if (encodedResponse != NULL && pRequest != NULL) {
 	*pRequest = request;
 	request = NULL;			/* avoid destroying below */

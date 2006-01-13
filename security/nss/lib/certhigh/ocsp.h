@@ -56,6 +56,14 @@
 SEC_BEGIN_PROTOS
 
 /*
+ * This function registers the HttpClient with whose functions the
+ * HttpClientFcn structure have been populated as the default Http
+ * client.
+ */
+extern SECStatus
+SEC_RegisterDefaultHttpClient(SEC_HttpClientFcn *fcnTable);
+
+/*
  * FUNCTION: CERT_EnableOCSPChecking
  *   Turns on OCSP checking for the given certificate database.
  * INPUTS:
