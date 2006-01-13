@@ -655,7 +655,7 @@ pkix_CacheCertChain_Lookup(
                     "PKIX_PL_HashTable_Remove failed");
                 cachedKeys = NULL; /* object destroy by hash remove */
                 cachedValues = NULL; /* object destroy by hash remove */
-	    }
+            }
         }
 
 cleanup:
@@ -1326,7 +1326,7 @@ pkix_CacheCrlEntry_Lookup(
                     plContext);
         pkix_ceLookupCount++;
 
-	/* 
+        /* 
          * We don't need check Date to invalidate this cache item,
          * the item is uniquely defined and won't be reverted. Let
          * the FIFO for cleaning up.
