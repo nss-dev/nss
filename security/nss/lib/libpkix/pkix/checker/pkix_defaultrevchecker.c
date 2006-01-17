@@ -41,8 +41,6 @@
  *
  */
 
-#define PKIX_DEFAULTREVOCATIONCHECKERDEBUG 1
-
 #include "pkix_defaultrevchecker.h"
 
 /* --Private-DefaultRevChecker-Functions------------------------------- */
