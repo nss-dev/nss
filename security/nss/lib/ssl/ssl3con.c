@@ -2080,6 +2080,8 @@ ssl3_FlushHandshake(sslSocket *ss, PRInt32 flags)
 	PORT_Assert(rv >= ss->sec.ci.sendBuf.len);
 	PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
 	rv = SECFailure;
+    } else {
+	rv = SECSuccess;
     }
 
     /* Whether we succeeded or failed, toss the old handshake data. */
