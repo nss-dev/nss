@@ -1338,27 +1338,6 @@ extern int ssl_MapLowLevelError(int hiLevelError);
 
 extern PRUint32 ssl_Time(void);
 
-/* emulation of NSPR routines. */
-extern PRInt32 
-ssl_EmulateAcceptRead(	PRFileDesc *   sd, 
-			PRFileDesc **  nd,
-			PRNetAddr **   raddr, 
-			void *         buf, 
-			PRInt32        amount, 
-			PRIntervalTime timeout);
-extern PRInt32 
-ssl_EmulateTransmitFile(    PRFileDesc *        sd, 
-			    PRFileDesc *        fd,
-			    const void *        headers, 
-			    PRInt32             hlen, 
-			    PRTransmitFileFlags flags,
-			    PRIntervalTime      timeout);
-extern PRInt32 
-ssl_EmulateSendFile( PRFileDesc *        sd, 
-		     PRSendFileData *    sfd,
-                     PRTransmitFileFlags flags, 
-		     PRIntervalTime      timeout);
-
 
 SECStatus SSL_DisableDefaultExportCipherSuites(void);
 SECStatus SSL_DisableExportCipherSuites(PRFileDesc * fd);
