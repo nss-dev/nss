@@ -2042,8 +2042,7 @@ ssl3_SendApplicationData(sslSocket *ss, const unsigned char *in,
 
 /* Attempt to send the content of sendBuf buffer in an SSL handshake record.
  * This function returns SECSuccess or SECFailure, never SECWouldBlock.
- * It used to always set sendBuf.len to 0, even when returning SECFailure.
- * Now it does not.
+ * Always set sendBuf.len to 0, even when returning SECFailure.
  *
  * Called from SSL3_SendAlert(), ssl3_SendChangeCipherSpecs(),
  *             ssl3_AppendHandshake(), ssl3_SendClientHello(),
@@ -2053,31 +2052,39 @@ ssl3_SendApplicationData(sslSocket *ss, const unsigned char *in,
 static SECStatus
 ssl3_FlushHandshake(sslSocket *ss, PRInt32 flags)
 {
-    PRInt32 sent = 0;
+    PRInt32 rv = SECSuccess;
 
-    /* only this flag is allowed */
-    PORT_Assert(!(flags & ~ssl_SEND_FLAG_FORCE_INTO_BUFFER));
     PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
     PORT_Assert( ss->opt.noLocks || ssl_HaveXmitBufLock(ss) );
 
     if (!ss->sec.ci.sendBuf.buf || !ss->sec.ci.sendBuf.len)
-	return SECSuccess;
+	return rv;
 
-    while (ss->sec.ci.sendBuf.len > sent) {
-	PRInt32 rv;
-	rv = ssl3_SendRecord(ss, content_handshake, 
-	                     ss->sec.ci.sendBuf.buf + sent,
-			     ss->sec.ci.sendBuf.len - sent, flags);
-	if (rv < 0) { 
-	    if (PR_GetError() != PR_WOULD_BLOCK_ERROR)
-		return SECFailure;	/* error code set by ssl3_SendRecord */
-	    rv = 0;
-	}
-	flags |= ssl_SEND_FLAG_FORCE_INTO_BUFFER;
-	sent  += rv;
+    /* only this flag is allowed */
+    PORT_Assert(!(flags & ~ssl_SEND_FLAG_FORCE_INTO_BUFFER));
+    if ((flags & ~ssl_SEND_FLAG_FORCE_INTO_BUFFER) != 0) {
+	PORT_SetError(SEC_ERROR_INVALID_ARGS);
+	rv = SECFailure;
+    } else {
+	rv = ssl3_SendRecord(ss, content_handshake, ss->sec.ci.sendBuf.buf,
+			     ss->sec.ci.sendBuf.len, flags);
     }
+    if (rv < 0) { 
+    	int err = PORT_GetError();
+	PORT_Assert(err != PR_WOULD_BLOCK_ERROR);
+	if (err == PR_WOULD_BLOCK_ERROR) {
+	    PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+	}
+    } else if (rv < ss->sec.ci.sendBuf.len) {
+    	/* short write should never happen */
+	PORT_Assert(rv >= ss->sec.ci.sendBuf.len);
+	PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+	rv = SECFailure;
+    }
+
+    /* Whether we succeeded or failed, toss the old handshake data. */
     ss->sec.ci.sendBuf.len = 0;
-    return SECSuccess;
+    return rv;
 }
 
 /*
