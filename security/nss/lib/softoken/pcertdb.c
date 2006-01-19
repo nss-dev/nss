@@ -3844,6 +3844,8 @@ UpdateV5DB(NSSLOWCERTCertDBHandle *handle, DB *updatedb)
     
     updatehandle.permCertDB = updatedb;
     updatehandle.dbMon = PZ_NewMonitor(nssILockCertDB);
+    updatehandle.dbVerify = 0;
+    updatehandle.ref      = 1; /* prevent premature close */
     
     rv = nsslowcert_TraversePermCerts(&updatehandle, updateV5Callback,
 			       (void *)handle);
