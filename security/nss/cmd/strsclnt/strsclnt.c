@@ -467,6 +467,7 @@ launch_thread(
     void *	b,
     int         tid)
 {
+    PRUint32 i;
     perThread * slot;
 
     PR_Lock(threadLock);
@@ -477,6 +478,7 @@ launch_thread(
         return SECFailure;
     }
 
+    i = numUsed;
     slot = &threads[numUsed++];
     slot->a = a;
     slot->b = b;
@@ -496,7 +498,7 @@ launch_thread(
 
     slot->inUse   = 1;
     PR_Unlock(threadLock);
-    PRINTF("strsclnt: Launched thread in slot %d \n", numUsed-1);
+    PRINTF("strsclnt: Launched thread in slot %d \n", i);
 
     return SECSuccess;
 }
