@@ -5104,6 +5104,9 @@ nsslowcert_DestroyTrust(NSSLOWCERTTrust *trust)
     if ( entry ) {
 	DestroyDBEntry((certDBEntry *)entry);
     }
+    if (trust->dbhandle) {
+	sftk_freeCertDB(trust->dbhandle);
+    }
     pkcs11_freeStaticData(trust->dbKey.data,trust->dbKeySpace);
     PORT_Memset(trust, 0, sizeof(*trust));
 
