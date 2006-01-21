@@ -170,3 +170,10 @@ endif
 
 -include $(MKDEPENDENCIES)
 
+#######################################################################
+# [16.0] Global environ ment defines
+#######################################################################
+
+ifdef NSS_ENABLE_ECC
+DEFINES += -DNSS_ENABLE_ECC
+endif

@@ -1944,8 +1944,8 @@ SECKEY_ConvertAndDecodePublicKeyAndChallenge(char *pkacstr, char *challenge,
     /* check the signature */
     sig = sd.signature;
     DER_ConvertBitString(&sig);
-    rv = VFY_VerifyData(sd.data.data, sd.data.len, pubKey, &sig,
-			SECOID_GetAlgorithmTag(&(sd.signatureAlgorithm)), wincx);
+    rv = VFY_VerifyDataWithAlgorithmID(sd.data.data, sd.data.len, pubKey, &sig,
+     			&sd.signatureAlgorithm, NULL, wincx);
     if ( rv != SECSuccess ) {
 	goto loser;
     }

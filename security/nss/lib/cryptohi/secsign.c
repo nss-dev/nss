@@ -121,8 +121,23 @@ SGN_NewContext(SECOidTag alg, SECKEYPrivateKey *key)
 	signalg = SEC_OID_MISSI_DSS; /* XXX Is there a better algid? */
 	keyType = fortezzaKey;
 	break;
-      case SEC_OID_ANSIX962_ECDSA_SIGNATURE_WITH_SHA1_DIGEST:
+      case SEC_OID_ANSIX962_ECDSA_SHA1_SIGNATURE:
 	hashalg = SEC_OID_SHA1;
+	signalg = SEC_OID_ANSIX962_EC_PUBLIC_KEY;
+	keyType = ecKey;
+	break;
+      case SEC_OID_ANSIX962_ECDSA_SHA256_SIGNATURE:
+	hashalg = SEC_OID_SHA256;
+	signalg = SEC_OID_ANSIX962_EC_PUBLIC_KEY;
+	keyType = ecKey;
+	break;
+      case SEC_OID_ANSIX962_ECDSA_SHA384_SIGNATURE:
+	hashalg = SEC_OID_SHA384;
+	signalg = SEC_OID_ANSIX962_EC_PUBLIC_KEY;
+	keyType = ecKey;
+	break;
+      case SEC_OID_ANSIX962_ECDSA_SHA512_SIGNATURE:
+	hashalg = SEC_OID_SHA512;
 	signalg = SEC_OID_ANSIX962_EC_PUBLIC_KEY;
 	keyType = ecKey;
 	break;
@@ -373,7 +388,7 @@ SEC_DerSignData(PRArenaPool *arena, SECItem *result,
 	    algID = SEC_OID_ANSIX9_DSA_SIGNATURE_WITH_SHA1_DIGEST;
 	    break;
 	  case ecKey:
-	    algID = SEC_OID_ANSIX962_ECDSA_SIGNATURE_WITH_SHA1_DIGEST;
+	    algID = SEC_OID_ANSIX962_ECDSA_SHA1_SIGNATURE;
 	    break;
 	  default:
 	    PORT_SetError(SEC_ERROR_INVALID_KEY);
@@ -503,8 +518,19 @@ SEC_GetSignatureAlgorithmOidTag(KeyType keyType, SECOidTag hashAlgTag)
 	}
 	break;
     case ecKey:
-        /* XXX For now only ECDSA with SHA1 is supported */
-        sigTag = SEC_OID_ANSIX962_ECDSA_SIGNATURE_WITH_SHA1_DIGEST;
+	switch (hashAlgTag) {
+	case SEC_OID_UNKNOWN:	/* default for ECDSA if hash not specified */
+	case SEC_OID_SHA1:      /*  is ECDSA_SHA1_SIGNTARURE */
+	    sigTag = SEC_OID_ANSIX962_ECDSA_SHA1_SIGNATURE; break;
+	case SEC_OID_SHA256:
+	    sigTag = SEC_OID_ANSIX962_ECDSA_SHA256_SIGNATURE; break;
+	case SEC_OID_SHA384:
+	    sigTag = SEC_OID_ANSIX962_ECDSA_SHA384_SIGNATURE; break;
+	case SEC_OID_SHA512:
+	    sigTag = SEC_OID_ANSIX962_ECDSA_SHA512_SIGNATURE; break;
+	default:
+	    break;
+	}
 	break;
     default:
     	break;
