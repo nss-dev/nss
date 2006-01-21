@@ -53,6 +53,8 @@
  * sides of a message exchange and to figure durations.
  */
 
+#define PKIX_SOCKETTRACE 1
+
 #ifdef PKIX_SOCKETDEBUG
 #define PKIX_SOCKETTRACE 1
 #endif
