@@ -3742,7 +3742,8 @@ ssl2_BeginServerHandshake(sslSocket *ss)
     ss->sec.rcvSequence = 0;
 
     /* don't turn on SSL2 if we don't have an RSA key and cert */
-    if (!rsaAuth->SERVERKEY || !rsaAuth->serverCert) {
+    if (!rsaAuth->serverKeyPair || !rsaAuth->SERVERKEY || 
+        !rsaAuth->serverCert) {
 	ss->opt.enableSSL2 = PR_FALSE;
     }
 
