@@ -222,7 +222,7 @@ nss_ckmk_GetULongAttribute
   CK_ATTRIBUTE_TYPE type,
   CK_ATTRIBUTE *template,
   CK_ULONG templateSize,
-  CK_RV *pError;
+  CK_RV *pError
 );
 
 #define NSS_CKMK_ARRAY_SIZE(x) ((sizeof (x))/(sizeof ((x)[0])))
