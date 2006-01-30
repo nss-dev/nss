@@ -138,11 +138,11 @@ EXTRA_LIBS += \
 	$(DIST)/lib/$(LIB_PREFIX)module.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)store.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)params.$(LIB_SUFFIX) \
+	$(DIST)/lib/$(LIB_PREFIX)checker.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)pki.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)top.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)results.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)certsel.$(LIB_SUFFIX) \
-	$(DIST)/lib/$(LIB_PREFIX)checker.$(LIB_SUFFIX) \
 	$(DIST)/lib/$(LIB_PREFIX)certhi.$(LIB_SUFFIX) \
 	$(NULL)
 

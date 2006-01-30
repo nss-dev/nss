@@ -35,52 +35,76 @@
  *
  * ***** END LICENSE BLOCK ***** */
 /*
- * pkix_ocspchecker.h
+ * pkix_pl_ocspresponse.h
  *
- * OcspChecker Object Type Definition
+ * OcspResponse Object Definitions
  *
  */
 
-#ifndef _PKIX_OCSPCHECKER_H
-#define _PKIX_OCSPCHECKER_H
+#ifndef _PKIX_PL_OCSPRESPONSE_H
+#define _PKIX_PL_OCSPRESPONSE_H
 
-#include "pkix_tools.h"
+#include "pkix_pl_common.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef enum {
-        OCSP_SUCCESS = 0,
-        OCSP_INVALIDRESPONSE,
-        OCSP_BADRESPONSESTATUS,
-        OCSP_BADSIGNATURE,
-        OCSP_CERTREVOKED
-} OCSP_ResultCode;
+#define MAX_OCSP_RESPONSE_LEN (64*1024)
 
-struct PKIX_OcspCheckerStruct {
-        PKIX_PL_Date *validityTime;
+struct PKIX_PL_OcspResponseStruct{
+        const SEC_HttpClientFcn *httpClient;
+        SEC_HTTP_SERVER_SESSION serverSession;
+        SEC_HTTP_REQUEST_SESSION requestSession;
+        /* Use name that differentiates this SECItem from encodedRequest */
+        SECItem *encodedResponse;
+        CERTOCSPResponse *decoded; /* We don't deal with decodedRequest */
+        CERTCertificate *issuerCert;
+        CERTCertificate *signerCert;
         PKIX_Boolean clientIsDefault;
-        void *passwordInfo;
-        void *responder;
-        void *nbioContext;
-        PKIX_PL_Cert *cert;
+        PKIX_PL_Date *validityTime;
+        PRArenaPool *arena;
 };
 
 /* see source file for function documentation */
 
-PKIX_Error *pkix_OcspChecker_RegisterSelf(void *plContext);
+PKIX_Error *
+pkix_pl_OcspResponse_Create(
+        PKIX_PL_OcspRequest *request,
+        void *responder,
+        void **pNBIOContext,
+        PKIX_PL_OcspResponse **pResponse,
+        void *plContext);
 
 PKIX_Error *
-PKIX_OcspChecker_Create(
-        PKIX_PL_Date *validityTime,
-        void *passwordInfo,
-        void *responder,
-        PKIX_OcspChecker **pChecker,
+pkix_pl_OcspResponse_Decode(
+        PKIX_PL_OcspResponse *response,
+        PKIX_Boolean *pPassed,
         void *plContext);
+
+PKIX_Error *
+pkix_pl_OcspResponse_GetStatus(
+        PKIX_PL_OcspResponse *response,
+        PKIX_Boolean *pPassed,
+        void *plContext);
+
+PKIX_Error *
+pkix_pl_OcspResponse_VerifySignature(
+        PKIX_PL_OcspResponse *response,
+        PKIX_PL_Cert *cert,
+        PKIX_Boolean *pPassed,
+        void *plContext);
+
+PKIX_Error *
+pkix_pl_OcspResponse_GetStatusForCert(
+        PKIX_PL_OcspResponse *response,
+        PKIX_Boolean *pPassed,
+        void *plContext);
+
+PKIX_Error *pkix_pl_OcspResponse_RegisterSelf(void *plContext);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* _PKIX_OCSPCHECKER_H */
+#endif /* _PKIX_PL_OCSPRESPONSE_H */

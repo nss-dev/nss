@@ -159,6 +159,8 @@ typedef struct PKIX_PL_LdapDefaultClientStruct PKIX_PL_LdapDefaultClient;
 typedef struct PKIX_PL_SocketStruct PKIX_PL_Socket;
 typedef struct PKIX_PL_InfoAccessStruct PKIX_PL_InfoAccess;
 typedef struct PKIX_PL_AIAMgrStruct PKIX_PL_AIAMgr;
+typedef struct PKIX_PL_OcspRequestStruct PKIX_PL_OcspRequest;
+typedef struct PKIX_PL_OcspResponseStruct PKIX_PL_OcspResponse;
 
 /* Primitive types
  *
@@ -249,8 +251,10 @@ typedef int PKIX_Boolean;
 #define PKIX_INFOACCESS_TYPE            ((PKIX_UInt32) 53)
 #define PKIX_AIAMGR_TYPE                ((PKIX_UInt32) 54)
 #define PKIX_OCSPCHECKER_TYPE           ((PKIX_UInt32) 55)
+#define PKIX_OCSPREQUEST_TYPE           ((PKIX_UInt32) 56)
+#define PKIX_OCSPRESPONSE_TYPE          ((PKIX_UInt32) 57)
 
-#define PKIX_NUMTYPES                   ((PKIX_UInt32) 56)
+#define PKIX_NUMTYPES                   ((PKIX_UInt32) 58)
 
 /* User Define Object Types
  *
@@ -335,9 +339,11 @@ typedef int PKIX_Boolean;
 #define PKIX_INFOACCESS_ERROR           ((PKIX_UInt32) 61)
 #define PKIX_AIAMGR_ERROR               ((PKIX_UInt32) 62)
 #define PKIX_OCSPCHECKER_ERROR          ((PKIX_UInt32) 63)
+#define PKIX_OCSPREQUEST_ERROR          ((PKIX_UInt32) 64)
+#define PKIX_OCSPRESPONSE_ERROR         ((PKIX_UInt32) 65)
 
 /* YOU NEED TO UPDATE NEW ENTRY at pkix_error.c and pkix_logger.c */
-#define PKIX_NUMERRORS                  ((PKIX_UInt32) 64)
+#define PKIX_NUMERRORS                  ((PKIX_UInt32) 66)
 
 /* String Formats
  *

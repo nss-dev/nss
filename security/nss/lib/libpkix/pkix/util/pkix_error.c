@@ -436,7 +436,9 @@ PKIX_ERRORNAMES[PKIX_NUMERRORS] =
         "MonitorLock Error",
         "InfoAccess Error",
         "AIAMgr Error",
-        "OcspChecker Error"
+        "OcspChecker Error",
+        "OcspRequest Error",
+        "OcspResponse Error"
 };
 
 /*

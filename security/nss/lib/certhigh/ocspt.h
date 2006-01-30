@@ -65,7 +65,7 @@ typedef struct CERTOCSPSingleResponseStr CERTOCSPSingleResponse;
  * provide HttpClients with additional functionality accessible only to
  * users with a particular implementation in mind.) The basic behavior
  * is provided by defining a set of functions, listed in an
- * SEC_HttpClientFcnStruct. If the implementor of a SpecificHttpClient
+ * SEC_HttpServerFcnStruct. If the implementor of a SpecificHttpClient
  * registers his SpecificHttpClient as the default HttpClient, then his
  * functions will be called by the user of an HttpClient, such as an
  * OCSPChecker.
@@ -81,34 +81,83 @@ typedef struct CERTOCSPSingleResponseStr CERTOCSPSingleResponse;
  * dependent, and should be opaque to the user.
  */
 
+typedef void * SEC_HTTP_SERVER_SESSION;
+typedef void * SEC_HTTP_REQUEST_SESSION;
+
 /*
- * This function creates a HttpClientState object. The implementer of a
+ * This function creates a SEC_HTTP_SERVER_SESSION object. The implementer of a
  * specific HttpClient will allocate the necessary space, when this
  * function is called, and will free it when the corresponding FreeFcn
- * is called. The user of the client must supply this HttpClientState
- * object to subsequent calls.
+ * is called. The SEC_HTTP_SERVER_SESSION object is passed, as an opaque object,
+ * to subsequent calls.
  *
- * Parameter http_uri may be encoded as UTF-8.
- *
- * An implementation that does not support the requested http_uri or
- * http_request_method should report SECFailure.
- *
- * If the function returns SECSuccess, the returned clientState
- * must cleaned up with a call to SEC_HttpClient_Free,
+ * If the function returns SECSuccess, the returned SEC_HTTP_SERVER_SESSION
+ * must be cleaned up with a call to SEC_HttpServer_FreeSession,
  * after processing is finished.
  */
-typedef SECStatus (*SEC_HttpClient_CreateFcn)(
-	PRArenaPool *arena,
-	const PRIntervalTime timeout, 
-	const char *http_uri,
-	const char *http_request_method, 
-	void **clientState);
+typedef SECStatus (*SEC_HttpServer_CreateSessionFcn)(
+   const char *host,
+   PRUint16 portnum,
+   SEC_HTTP_SERVER_SESSION *pSession);
+
+/*
+ * This function is called to allow the implementation to attempt to keep
+ * the connection alive. Depending on the underlying platform, it might
+ * immediately return SECSuccess without having performed any operations.
+ * (If a connection has not been kept alive, a subsequent call to
+ * SEC_HttpRequest_TrySendAndReceiveFcn should reopen the connection
+ * automatically.)
+ *
+ * If the connection uses nonblocking I/O, this function may return
+ * SECWouldBlock and store a nonzero value at "pPollDesc". In that case
+ * the caller may wait on the poll descriptor, and should call this function
+ * again until SECSuccess (and a zero value at "pPollDesc") is obtained.
+ */ 
+typedef SECStatus (*SEC_HttpServer_KeepAliveSessionFcn)(
+   SEC_HTTP_SERVER_SESSION session,
+   PRPollDesc **pPollDesc);
+
+/*
+ * This function frees the client SEC_HTTP_SERVER_SESSION object, closes all
+ * SEC_HTTP_REQUEST_SESSIONs created for that server, discards all partial results,
+ * frees any memory that was allocated by the client, and invalidates any
+ * response pointers that might have been returned by prior server or request
+ * functions.
+ */ 
+typedef SECStatus (*SEC_HttpServer_FreeSessionFcn)(
+   SEC_HTTP_SERVER_SESSION session);
+
+/*
+ * This function creates a SEC_HTTP_REQUEST_SESSION object. The implementer of a
+ * specific HttpClient will allocate the necessary space, when this
+ * function is called, and will free it when the corresponding FreeFcn
+ * is called. The SEC_HTTP_REQUEST_SESSION object is passed, as an opaque object,
+ * to subsequent calls.
+ *
+ * An implementation that does not support the requested protocol variant
+ * (usually "http", but could eventually allow "https") or request method
+ * should return SECFailure.
+ *
+ * Timeout values may include the constants PR_INTERVAL_NO_TIMEOUT (wait
+ * forever) or PR_INTERVAL_NO_WAIT (nonblocking I/O).
+ *
+ * If the function returns SECSuccess, the returned SEC_HTTP_REQUEST_SESSION
+ * must be cleaned up with a call to SEC_HttpRequest_FreeSession,
+ * after processing is finished.
+ */
+typedef SECStatus (*SEC_HttpRequest_CreateFcn)(
+   SEC_HTTP_SERVER_SESSION session,
+   const char *http_protocol_variant, // usually "http"
+   const char *path_and_query_string,
+   const char *http_request_method, 
+   const PRIntervalTime timeout, 
+   SEC_HTTP_REQUEST_SESSION *pRequest);
 
 /*
  * This function sets data to be sent to the server for an HTTP request
  * of http_request_method == POST. If a particular implementation 
  * supports it, the details for the POST request can be set by calling 
- * this function, prior to activating the request with TryFcn.
+ * this function, prior to activating the request with TrySendAndReceiveFcn.
  *
  * An implementation that does not support the POST method should 
  * implement a SetPostDataFcn function that returns immediately.
@@ -116,11 +165,11 @@ typedef SECStatus (*SEC_HttpClient_CreateFcn)(
  * Setting http_content_type is optional, the parameter may
  * by NULL or the empty string.
  */ 
-typedef SECStatus (*SEC_HttpClient_SetPostDataFcn)(
-	void *clientState,
-	const char *http_data, 
-	const size_t http_data_len,
-	const char *http_content_type);
+typedef SECStatus (*SEC_HttpRequest_SetPostDataFcn)(
+   SEC_HTTP_REQUEST_SESSION request,
+   const char *http_data, 
+   const PRUint32 http_data_len,
+   const char *http_content_type);
 
 /*
  * This function sets an additional HTTP protocol request header.
@@ -129,18 +178,18 @@ typedef SECStatus (*SEC_HttpClient_SetPostDataFcn)(
  * times, prior to activating the request with TryFcn.
  *
  * An implementation that does not support setting additional headers
- * should implement a AddRequestHeaderFcn function that returns immediately.
+ * should implement an AddRequestHeaderFcn function that returns immediately.
  */ 
-typedef SECStatus (*SEC_HttpClient_AddRequestHeaderFcn)(
-	void *clientState,
-	const char *http_header_name, 
-	const char *http_header_value);
+typedef SECStatus (*SEC_HttpRequest_AddHeaderFcn)(
+   SEC_HTTP_REQUEST_SESSION request,
+   const char *http_header_name, 
+   const char *http_header_value);
 
 /*
  * This function initiates or continues an HTTP request. After
  * parameters have been set with the Create function and, optionally,
  * modified or enhanced with the AddParams function, this call creates
- * the socket conection and initiates the communication.
+ * the socket connection and initiates the communication.
  *
  * If a timeout value of zero is specified, indicating non-blocking
  * I/O, the client creates a non-blocking socket, and returns a status
@@ -152,6 +201,28 @@ typedef SECStatus (*SEC_HttpClient_AddRequestHeaderFcn)(
  * value of SECFailure (indicating failure on the network level)
  * is obtained.
  *
+ * http_response_data_len is both input and output parameter.
+ * If a pointer to a PRUint32 is supplied, the http client is
+ * expected to check the given integer value and always set an out
+ * value, even on failure.
+ * An input value of zero means, the caller will accept any response len.
+ * A different input value indicates the maximum response value acceptable
+ * to the caller.
+ * If data is successfully read and the size is acceptable to the caller,
+ * the function will return SECSuccess and set http_response_data_len to
+ * the size of the block returned in http_response_data.
+ * If the data read from the http server is larger than the acceptable
+ * size, the function will return SECFailure.
+ * http_response_data_len will be set to a value different from zero to
+ * indicate the reason of the failure.
+ * An out value of "0" means, the failure was unrelated to the 
+ * acceptable size.
+ * An out value of "1" means, the result data is larger than the
+ * accpeptable size, but the real size is not yet known to the http client 
+ * implementation and it stopped retrieving it,
+ * Any other out value combined with a return value of SECFailure
+ * will indicate the actual size of the server data.
+ *
  * The caller is permitted to provide NULL values for any of the
  * http_response arguments, indicating the caller is not interested in
  * those values. If the caller does provide an address, the HttpClient
@@ -160,60 +231,63 @@ typedef SECStatus (*SEC_HttpClient_AddRequestHeaderFcn)(
  *
  * All returned pointers will be owned by the the HttpClient
  * implementation and will remain valid until the call to 
- * SEC_HttpClient_FreeFcn.
+ * SEC_HttpRequest_FreeFcn.
  */ 
-typedef SECStatus (*SEC_HttpClient_TryFcn)(
-	void *clientState,
-	PRPollDesc **pPollDesc,
-	unsigned int *http_response_code, 
-	char **http_response_content_type, 
-	char **http_response_headers, 
-	char **http_response_data, 
-	size_t *http_response_data_len); 
+typedef SECStatus (*SEC_HttpRequest_TrySendAndReceiveFcn)(
+   SEC_HTTP_REQUEST_SESSION request,
+   PRPollDesc **pPollDesc,
+   PRUint16 *http_response_code, 
+   const char **http_response_content_type, 
+   const char **http_response_headers, 
+   const char **http_response_data, 
+   PRUint32 *http_response_data_len); 
 
 /*
  * Calling CancelFcn asks for premature termination of the request.
  *
- * Future calls to SEC_HttpClient_Try on the clientState should
+ * Future calls to SEC_HttpRequest_TrySendAndReceive should
  * by avoided, but in this case the HttpClient implementation 
  * is expected to return immediately with SECFailure.
  *
- * After calling CancelFcn, a separate call to SEC_HttpClient_FreeFcn 
+ * After calling CancelFcn, a separate call to SEC_HttpRequest_FreeFcn 
  * is still necessary to free resources.
  */ 
-typedef SECStatus (*SEC_HttpClient_CancelFcn)(
-	void *clientState); 
+typedef SECStatus (*SEC_HttpRequest_CancelFcn)(
+   SEC_HTTP_REQUEST_SESSION request);
 
 /*
  * Before calling this function, it must be assured the request
- * has been completed, i.e. either SEC_HttpClient_Try has
+ * has been completed, i.e. either SEC_HttpRequest_TrySendAndReceiveFcn has
  * returned SECSuccess, or the request has been canceled with
- * a call to SEC_HttpClient_CancelFcn.
+ * a call to SEC_HttpRequest_CancelFcn.
  * 
  * This function frees the client state object, closes all sockets, 
  * discards all partial results, frees any memory that was allocated 
  * by the client, and invalidates all response pointers that might
- * have been returned by SEC_HttpClient_TryFcn
+ * have been returned by SEC_HttpRequest_TrySendAndReceiveFcn
  */ 
-typedef SECStatus (*SEC_HttpClient_FreeFcn)(
-	void *clientState); 
+typedef SECStatus (*SEC_HttpRequest_FreeFcn)(
+   SEC_HTTP_REQUEST_SESSION request);
 
 typedef struct SEC_HttpClientFcnV1Struct {
-	SEC_HttpClient_CreateFcn createFcn;
-	SEC_HttpClient_SetPostDataFcn setPostDataFcn;
-	SEC_HttpClient_AddRequestHeaderFcn addRequestHeaderFcn;
-	SEC_HttpClient_TryFcn tryFcn;
-	SEC_HttpClient_CancelFcn cancelFcn;
-	SEC_HttpClient_FreeFcn freeFcn;
+   SEC_HttpServer_CreateSessionFcn createSessionFcn;
+   SEC_HttpServer_KeepAliveSessionFcn keepAliveSessionFcn;
+   SEC_HttpServer_FreeSessionFcn freeSessionFcn;
+   SEC_HttpRequest_CreateFcn createFcn;
+   SEC_HttpRequest_SetPostDataFcn setPostDataFcn;
+   SEC_HttpRequest_AddHeaderFcn addHeaderFcn;
+   SEC_HttpRequest_TrySendAndReceiveFcn trySendAndReceiveFcn;
+   SEC_HttpRequest_CancelFcn cancelFcn;
+   SEC_HttpRequest_FreeFcn freeFcn;
 } SEC_HttpClientFcnV1;
 
 typedef struct SEC_HttpClientFcnStruct {
-	PRInt16 version;
-	union {
-		SEC_HttpClientFcnV1 ftable1;
-		/* SEC_HttpClientFcnV2 ftable2; */
-		/* ...                      */
-	} fcnTable;
+   PRInt16 version;
+   union {
+      SEC_HttpClientFcnV1 ftable1;
+      /* SEC_HttpClientFcnV2 ftable2; */
+      /* ...                      */
+   } fcnTable;
 } SEC_HttpClientFcn;
 
-#endif /* _OCSPT_H_ */
+ #endif /* _OCSPT_H_ */

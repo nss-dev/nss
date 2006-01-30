@@ -19,7 +19,6 @@
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
- *   Sun Microsystems
  *
  * Alternatively, the contents of this file may be used under the terms of
  * either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -35,52 +34,14 @@
  *
  * ***** END LICENSE BLOCK ***** */
 /*
- * pkix_ocspchecker.h
+ * ocspi.h - NSS internal interfaces to OCSP code
  *
- * OcspChecker Object Type Definition
- *
+ * $Id$
  */
 
-#ifndef _PKIX_OCSPCHECKER_H
-#define _PKIX_OCSPCHECKER_H
+#ifndef _OCSPI_H_
+#define _OCSPI_H_
 
-#include "pkix_tools.h"
+SECStatus InitOCSPGlobal(void);
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-typedef enum {
-        OCSP_SUCCESS = 0,
-        OCSP_INVALIDRESPONSE,
-        OCSP_BADRESPONSESTATUS,
-        OCSP_BADSIGNATURE,
-        OCSP_CERTREVOKED
-} OCSP_ResultCode;
-
-struct PKIX_OcspCheckerStruct {
-        PKIX_PL_Date *validityTime;
-        PKIX_Boolean clientIsDefault;
-        void *passwordInfo;
-        void *responder;
-        void *nbioContext;
-        PKIX_PL_Cert *cert;
-};
-
-/* see source file for function documentation */
-
-PKIX_Error *pkix_OcspChecker_RegisterSelf(void *plContext);
-
-PKIX_Error *
-PKIX_OcspChecker_Create(
-        PKIX_PL_Date *validityTime,
-        void *passwordInfo,
-        void *responder,
-        PKIX_OcspChecker **pChecker,
-        void *plContext);
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif /* _PKIX_OCSPCHECKER_H */
+#endif /* _OCSPI_H_ */

@@ -65,6 +65,7 @@
 #include "pkix_logger.h"
 #include "pkix_namechainingchecker.h"
 #include "pkix_nameconstraintschecker.h"
+#include "pkix_ocspchecker.h"
 #include "pkix_policychecker.h"
 #include "pkix_policynode.h"
 #include "pkix_procparams.h"
@@ -502,6 +503,8 @@ extern "C" {
 #define PKIX_INFOACCESSDEBUG                      1
 #define PKIX_AIAMGRDEBUG                          1
 #define PKIX_OCSPCHECKERDEBUG                     1
+#define PKIX_OCSPREQUESTDEBUG                     1
+#define PKIX_OCSPRESPONSEDEBUG                    1
 #endif
 
 /*
@@ -1205,6 +1208,26 @@ extern "C" {
 #else
 #define PKIX_OCSPCHECKER_DEBUG(expr)
 #define PKIX_OCSPCHECKER_DEBUG_ARG(expr, arg)
+#endif
+
+#if PKIX_OCSPREQUESTDEBUG
+#define PKIX_OCSPREQUEST_DEBUG(expr) \
+        PKIX_DEBUG(expr)
+#define PKIX_OCSPREQUEST_DEBUG_ARG(expr, arg) \
+        PKIX_DEBUG_ARG(expr, arg)
+#else
+#define PKIX_OCSPREQUEST_DEBUG(expr)
+#define PKIX_OCSPREQUEST_DEBUG_ARG(expr, arg)
+#endif
+
+#if PKIX_OCSPRESPONSEDEBUG
+#define PKIX_OCSPRESPONSE_DEBUG(expr) \
+        PKIX_DEBUG(expr)
+#define PKIX_OCSPRESPONSE_DEBUG_ARG(expr, arg) \
+        PKIX_DEBUG_ARG(expr, arg)
+#else
+#define PKIX_OCSPRESPONSE_DEBUG(expr)
+#define PKIX_OCSPRESPONSE_DEBUG_ARG(expr, arg)
 #endif
 
 /*

@@ -2436,6 +2436,49 @@ PKIX_PL_AIAMgr_GetAIACerts(
         PKIX_List **pCerts,
         void *plContext);
 
+PKIX_Error *
+pkix_pl_OcspRequest_Create(
+        PKIX_PL_Cert *cert,
+        PKIX_PL_Date *validity,
+        PKIX_Boolean addServiceLocator,
+        PKIX_PL_Cert *signerCert,
+        PKIX_Boolean *pURIFound,
+	PKIX_PL_OcspRequest **pRequest,
+        void *plContext);
+
+PKIX_Error *
+pkix_pl_OcspResponse_Create(
+	PKIX_PL_OcspRequest *request,
+	void *responder,
+	void **pNBIOContext,
+        PKIX_PL_OcspResponse **pResponse,
+        void *plContext);
+
+PKIX_Error *
+pkix_pl_OcspResponse_Decode(
+        PKIX_PL_OcspResponse *response,
+	PKIX_Boolean *passed,
+        void *plContext);
+
+PKIX_Error *
+pkix_pl_OcspResponse_GetStatus(
+        PKIX_PL_OcspResponse *response,
+	PKIX_Boolean *passed,
+        void *plContext);
+
+PKIX_Error *
+pkix_pl_OcspResponse_VerifySignature(
+        PKIX_PL_OcspResponse *response,
+	PKIX_PL_Cert *cert,
+        PKIX_Boolean *pPassed,
+        void *plContext);
+
+PKIX_Error *
+pkix_pl_OcspResponse_GetStatusForCert(
+        PKIX_PL_OcspResponse *response,
+        PKIX_Boolean *pPassed,
+        void *plContext);
+
 #ifdef __cplusplus
 }
 #endif

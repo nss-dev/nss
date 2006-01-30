@@ -856,6 +856,12 @@ NSS_Get_CERT_SignedCrlTemplate;
 ;+    local:
 ;+       *;
 ;+};
+;+NSS_3.11.1 {
+;+    global:
+SEC_RegisterDefaultHttpClient;
+;+    local:
+;+       *;
+;+};
 ;+NSS_3.12 { 	# NSS 3.12 release
 ;+    global:
 CERT_CheckNameSpace;
@@ -1075,6 +1081,12 @@ PKIX_PL_Object_RegisterType;
 PKIX_PL_Object_ToString;
 PKIX_PL_Object_Unlock;
 PKIX_PL_OID_Create;
+pkix_pl_OcspRequest_Create;
+pkix_pl_OcspResponse_Create;
+pkix_pl_OcspResponse_Decode;
+pkix_pl_OcspResponse_GetStatus;
+pkix_pl_OcspResponse_GetStatusForCert;
+pkix_pl_OcspResponse_VerifySignature;
 PKIX_PL_Pk11CertStore_Create;
 PKIX_PL_PolicyQualifier_GetPolicyQualifierId;
 PKIX_PL_PolicyQualifier_GetQualifier;

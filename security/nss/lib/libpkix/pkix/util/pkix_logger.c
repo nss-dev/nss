@@ -145,7 +145,9 @@ PKIX_COMPONENTNAMES[PKIX_NUMERRORS] =
         "MonitorLock",
         "InfoAccess",
         "AIAMgr",
-        "OcspChecker"
+        "OcspChecker",
+        "OcspRequest"
+        "OcspResponse"
 };
 
 /* --Private-Functions-------------------------------------------- */

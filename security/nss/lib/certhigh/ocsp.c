@@ -67,18 +67,57 @@
 #include "pk11func.h"	/* for PK11_HashBuf */
 #include <stdarg.h>
 
-
 static struct OCSPGlobalStruct {
-    SEC_HttpClientFcn *defaultHttpClientFcn;
-} OCSP_Global = { NULL };
+    PRLock *lock;
+    const SEC_HttpClientFcn *defaultHttpClientFcn;
+} OCSP_Global = { NULL, NULL };
 
 SECStatus
-SEC_RegisterDefaultHttpClient(SEC_HttpClientFcn *fcnTable)
+SEC_RegisterDefaultHttpClient(const SEC_HttpClientFcn *fcnTable)
 {
+    if (!OCSP_Global.lock) {
+        return SECFailure;
+    }
+
+    PR_Lock(OCSP_Global.lock);
     OCSP_Global.defaultHttpClientFcn = fcnTable;
+    PR_Unlock(OCSP_Global.lock);
+
     return SECSuccess;
 }
 
+/* this function is called at NSS initialization time */
+SECStatus InitOCSPGlobal(void)
+{
+
+    if (OCSP_Global.lock != NULL) {
+        /* already initialized */
+        return SECSuccess;
+    }
+  
+    OCSP_Global.lock = PR_NewLock();
+
+    return (OCSP_Global.lock) ? SECSuccess : SECFailure;
+}
+
+/*
+ * A return value of NULL means: 
+ *   The application did not register it's own HTTP client.
+ */
+const SEC_HttpClientFcn *GetRegisteredHttpClient()
+{
+    const SEC_HttpClientFcn *retval;
+
+    if (!OCSP_Global.lock) {
+        return NULL;
+    }
+
+    PR_Lock(OCSP_Global.lock);
+    retval = OCSP_Global.defaultHttpClientFcn;
+    PR_Unlock(OCSP_Global.lock);
+    
+    return retval;
+}
 
 /*
  * The following structure is only used internally.  It is allocated when
@@ -92,7 +131,6 @@ typedef struct ocspCheckingContextStr {
     char *defaultResponderNickname;
     CERTCertificate *defaultResponderCert;
 } ocspCheckingContext;
-
 
 /*
  * Forward declarations of sub-types, so I can lay out the types in the
@@ -2145,20 +2183,48 @@ ocsp_GetEncodedResponse(PRArenaPool *arena, PRFileDesc *sock)
     return result;
 }
 
+SECStatus
+CERT_ParseURL(char *url, char **pHostname, PRUint16 *pPort, char **pPath)
+{
+	return ocsp_ParseURL(url, pHostname, pPort, pPath);
+}
+
+/*
+ * Limit the size of http responses we are willing to accept.
+ */
+#define MAX_WANTED_OCSP_RESPONSE_LEN 64*1024
+
 static SECItem *
 fetchOcspHttpClientV1(PRArenaPool *arena, 
-                      SEC_HttpClientFcnV1 *hcv1, 
+                      const SEC_HttpClientFcnV1 *hcv1, 
                       char *location, 
                       SECItem *encodedRequest)
 {
+    char *hostname = NULL;
+    char *path = NULL;
+    PRUint16 port;
     SECItem *encodedResponse = NULL;
-    void *myHttpClientState;
-    unsigned int myHttpResponseCode;
+    SEC_HTTP_SERVER_SESSION pServerSession = NULL;
+    SEC_HTTP_REQUEST_SESSION pRequestSession = NULL;
+    PRUint16 myHttpResponseCode;
     char *myHttpResponseData;
-    size_t myHttpResponseDataLen;
+    PRUint32 myHttpResponseDataLen;
 
-    if (!hcv1)
-        return NULL;
+    if (ocsp_ParseURL(location, &hostname, &port, &path) == SECFailure) {
+        PORT_SetError(SEC_ERROR_OCSP_MALFORMED_REQUEST);
+        goto loser;
+    }
+    
+    PORT_Assert(hostname != NULL);
+    PORT_Assert(path != NULL);
+
+    if ((*hcv1->createSessionFcn)(
+            hostname, 
+            port, 
+            &pServerSession) != SECSuccess) {
+        PORT_SetError(SEC_ERROR_OCSP_SERVER_ERROR);
+        goto loser;
+    }
 
     /* We use a non-zero timeout, which means:
        - the client will use blocking I/O
@@ -2167,43 +2233,64 @@ fetchOcspHttpClientV1(PRArenaPool *arena,
     */
 
     if ((*hcv1->createFcn)(
-            arena, 
-            PR_TicksPerSecond() * 60,
-            location,
+            pServerSession,
+            "http",
+            path,
             "POST",
-            &myHttpClientState) != SECSuccess)
-    {
-        return NULL;
+            PR_TicksPerSecond() * 60,
+            &pRequestSession) != SECSuccess) {
+        PORT_SetError(SEC_ERROR_OCSP_SERVER_ERROR);
+        goto loser;
     }
-    
+
     if ((*hcv1->setPostDataFcn)(
-        myHttpClientState, 
-        (char*)encodedRequest->data,
-        encodedRequest->len,
-        "application/ocsp-request") == SECSuccess)
-    {
-        if ((*hcv1->tryFcn)(
-            myHttpClientState, 
+            pRequestSession, 
+            (char*)encodedRequest->data,
+            encodedRequest->len,
+            "application/ocsp-request") != SECSuccess) {
+        PORT_SetError(SEC_ERROR_OCSP_SERVER_ERROR);
+        goto loser;
+    }
+
+    /* we don't want result objects larger than this: */
+    myHttpResponseDataLen = MAX_WANTED_OCSP_RESPONSE_LEN;
+
+    if ((*hcv1->trySendAndReceiveFcn)(
+            pRequestSession, 
             NULL,
             &myHttpResponseCode,
             NULL,
             NULL,
-            &myHttpResponseData,
-            &myHttpResponseDataLen) == SECSuccess)
-        {
-            if (myHttpResponseCode == 200)
-            {
-                encodedResponse = SECITEM_AllocItem(arena, NULL, myHttpResponseDataLen);
-
-                if (encodedResponse != NULL)
-                {
-                    PORT_Memcpy(encodedResponse->data, myHttpResponseData, myHttpResponseDataLen);
-                }
-            }
-        }
+            (const char **)&myHttpResponseData,
+            &myHttpResponseDataLen) != SECSuccess) {
+        PORT_SetError(SEC_ERROR_OCSP_SERVER_ERROR);
+        goto loser;
     }
-    
-    (*hcv1->freeFcn)(myHttpClientState);
+
+    if (myHttpResponseCode != 200) {
+        PORT_SetError(SEC_ERROR_OCSP_BAD_HTTP_RESPONSE);
+        goto loser;
+    }
+
+    encodedResponse = SECITEM_AllocItem(arena, NULL, myHttpResponseDataLen);
+
+    if (!encodedResponse) {
+        PORT_SetError(SEC_ERROR_NO_MEMORY);
+        goto loser;
+    }
+
+    PORT_Memcpy
+        (encodedResponse->data, myHttpResponseData, myHttpResponseDataLen);
+
+loser:
+    if (pRequestSession != NULL) 
+        (*hcv1->freeFcn)(pRequestSession);
+    if (pServerSession != NULL)
+        (*hcv1->freeSessionFcn)(pServerSession);
+    if (path != NULL)
+	PORT_Free(path);
+    if (hostname != NULL)
+	PORT_Free(hostname);
     
     return encodedResponse;
 }
@@ -2266,6 +2353,7 @@ CERT_GetEncodedOCSPResponse(PRArenaPool *arena, CERTCertList *certList,
     SECItem *encodedResponse = NULL;
     PRFileDesc *sock = NULL;
     SECStatus rv;
+    const SEC_HttpClientFcn *registeredHttpClient = NULL;
 
     request = CERT_CreateOCSPRequest(certList, time, addServiceLocator,
 				     signerCert);
@@ -2281,13 +2369,14 @@ CERT_GetEncodedOCSPResponse(PRArenaPool *arena, CERTCertList *certList,
     if (encodedRequest == NULL)
 	goto loser;
 
-    if (OCSP_Global.defaultHttpClientFcn
-        &&
-        OCSP_Global.defaultHttpClientFcn->version == 1) {
+    registeredHttpClient = GetRegisteredHttpClient();
 
+    if (registeredHttpClient
+            &&
+            registeredHttpClient->version == 1) {
         encodedResponse = fetchOcspHttpClientV1(
                               arena,
-                              &OCSP_Global.defaultHttpClientFcn->fcnTable.ftable1,
+                              &registeredHttpClient->fcnTable.ftable1,
                               location,
                               encodedRequest);
     }
