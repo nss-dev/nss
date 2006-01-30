@@ -233,7 +233,7 @@ cleanup:
  *  Returns a Validate Error if the function fails in a non-fatal way.
  *  Returns a Fatal Error if the function fails in an unrecoverable way.
  */
-static PKIX_Error *
+/* static */ PKIX_Error *
 pkix_RevCheckCert(
         PKIX_PL_Cert *cert,
         PKIX_List *checkers,
@@ -850,7 +850,7 @@ pkix_CheckChain(
                                 &nbioContext,
                                 &reasonCode,
                                 plContext),
-                                "pkix_CheckCert failed");
+                                "pkix_RevCheckCert failed");
 
                         if (nbioContext != NULL) {
                                 *pCertCheckedIndex = j;
