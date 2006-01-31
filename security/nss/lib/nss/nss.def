@@ -856,12 +856,6 @@ NSS_Get_CERT_SignedCrlTemplate;
 ;+    local:
 ;+       *;
 ;+};
-;+NSS_3.11.1 {
-;+    global:
-SEC_RegisterDefaultHttpClient;
-;+    local:
-;+       *;
-;+};
 ;+NSS_3.12 { 	# NSS 3.12 release
 ;+    global:
 CERT_CheckNameSpace;
