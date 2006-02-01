@@ -147,7 +147,7 @@ typedef SECStatus (*SEC_HttpServer_FreeSessionFcn)(
  */
 typedef SECStatus (*SEC_HttpRequest_CreateFcn)(
    SEC_HTTP_SERVER_SESSION session,
-   const char *http_protocol_variant, // usually "http"
+   const char *http_protocol_variant, /* usually "http" */
    const char *path_and_query_string,
    const char *http_request_method, 
    const PRIntervalTime timeout, 
