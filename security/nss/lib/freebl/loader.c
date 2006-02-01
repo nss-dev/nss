@@ -1631,3 +1631,22 @@ RNG_SystemInfoForRNG(void)
   (vector->p_RNG_SystemInfoForRNG)();
 
 }
+
+SECStatus
+FIPS186Change_GenerateX(unsigned char *XKEY, const unsigned char *XSEEDj,
+                        unsigned char *x_j)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return SECFailure;
+  return (vector->p_FIPS186Change_GenerateX)(XKEY, XSEEDj, x_j);
+}
+
+SECStatus
+FIPS186Change_ReduceModQForDSA(const unsigned char *w,
+                               const unsigned char *q,
+                               unsigned char *xj)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return SECFailure;
+  return (vector->p_FIPS186Change_ReduceModQForDSA)(w, q, xj);
+}
