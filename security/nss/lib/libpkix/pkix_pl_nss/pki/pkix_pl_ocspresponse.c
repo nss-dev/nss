@@ -468,7 +468,7 @@ pkix_pl_OcspResponse_Create(
                 PKIX_PL_NSSCALLRV(OCSPRESPONSE, arena, PORT_NewArena,
                         (DER_DEFAULT_CHUNKSIZE));
 
-                if (arena != NULL) {
+                if (arena == NULL) {
                         PKIX_ERROR("Out of Memory");
                 }
 
@@ -480,7 +480,7 @@ pkix_pl_OcspResponse_Create(
                         SECITEM_AllocItem,
                         (arena, NULL, responseDataLen));
 
-                if (ocspResponse->encodedResponse != NULL) {
+                if (ocspResponse->encodedResponse == NULL) {
                         PKIX_ERROR("Out of Memory");
                 }
 
@@ -507,6 +507,7 @@ cleanup:
                 PKIX_DECREF(ocspResponse);
         }
 
+        PKIX_RETURN(OCSPRESPONSE);
 }
 
 /*
