@@ -3541,6 +3541,14 @@ PKIX_Error * pkix_RevCheckCert(
         PKIX_UInt32 *pResultCode,
         void *plContext);
 
+PKIX_Error *
+pkix_OcspChecker_Check(
+        PKIX_PL_Object *checkerObject,
+        PKIX_PL_Cert *cert,
+        void **pNBIOContext,
+        PKIX_UInt32 *pResultCode,
+        void *plContext);
+
 static PKIX_Error *
 pkix_pl_OcspCheckCert(
 	CERTCertificate *cert,
@@ -3561,9 +3569,8 @@ pkix_pl_OcspCheckCert(
         PKIX_ENTER(CERT, "PKIX_PL_OcspCheckCert");
 	PKIX_NULLCHECK_ONE(cert);
 
-        errorResult = pkix_pl_Cert_CreateWithNSSCert(cert, &ppcert, plContext);
-        /* PKIX_CHECK(pkix_pl_Cert_CreateWithNSSCert(cert, &ppcert, plContext),
-		"pkix_pl_Cert_CreateWithNSSCert failed"); */
+        PKIX_CHECK(pkix_pl_Cert_CreateWithNSSCert(cert, &ppcert, plContext),
+		"pkix_pl_Cert_CreateWithNSSCert failed");
 
         PKIX_CHECK(pkix_pl_Date_CreateFromPRTime(time, &validity, plContext),
 		"pkix_pl_Date_CreateFromPRTime failed");

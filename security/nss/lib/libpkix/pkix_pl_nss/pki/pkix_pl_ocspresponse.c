@@ -421,10 +421,6 @@ pkix_pl_OcspResponse_Create(
                         ocspResponse->requestSession = requestSession;
                 }
 
-                /* If yes, uri = default URI and isDefault = PKIX_TRUE */
-                /* else uri = CERT_GetOCSPAuthorityInfoAccessLocation(nssCert) */
-                /* if isDefault, use defaultHttpClient */
-                /* else client = newHttpClient(uri) */
         }
 
         /* begin or resume IO to HTTPClient */
@@ -456,14 +452,6 @@ pkix_pl_OcspResponse_Create(
                         PKIX_ERROR("Bad Http Response");
                 }
 
-#if 0
-        /* xxx
-         * Do we get a value from request or from the decoded response?
-         *    validityTime = XXX;
-         */
-        PKIX_INCREF(validityTime);
-        ocspResponse->validityTime = validityTime;
-#endif
 
                 PKIX_PL_NSSCALLRV(OCSPRESPONSE, arena, PORT_NewArena,
                         (DER_DEFAULT_CHUNKSIZE));
@@ -643,6 +631,8 @@ pkix_pl_OcspResponse_VerifySignature(
         PKIX_ENTER(OCSPRESPONSE, "pkix_pl_OcspResponse_VerifySignature");
         PKIX_NULLCHECK_TWO(response, pPassed);
 
+	PKIX_NULLCHECK_ONE(cert);
+
         PKIX_PL_NSSCALLRV(OCSPRESPONSE, issuerCert, CERT_FindCertIssuer, 
                 (cert->nssCert, PR_Now(), certUsageAnyCA));
 
@@ -651,7 +641,7 @@ pkix_pl_OcspResponse_VerifySignature(
         PKIX_PL_NSSCALLRV
                 (OCSPRESPONSE, rv, CERT_VerifyOCSPResponseSignature, 
                 (response->decoded,
-                NULL,                   /* CERTCertDBHandle *handle */
+                CERT_GetDefaultCertDB(), /* CERTCertDBHandle *handle */
                 NULL,                   /* void *pwArg */
                 &signerCert,
                 issuerCert));
