@@ -43,6 +43,15 @@ CC		= cc
 CCC		= c++
 RANLIB		= ranlib
 
+ifdef CPU_ARCH
+# Cross-compilation.  Override "uname -m" with the closest thing we've got.
+# $(CPU_ARCH) is actually more like our "uname -p", but as long as there's
+# an 86 in it to differentiate between ppc and x86, it's OK.
+OS_TEST		= $(CPU_ARCH)
+endif
+
+# Remember, if $(CPU_ARCH) is already defined (as in a cross compilation),
+# these assignments will not override it.
 ifeq (86,$(findstring 86,$(OS_TEST)))
 OS_REL_CFLAGS	= -Di386
 CPU_ARCH	= i386
@@ -65,7 +74,7 @@ ifneq (,$(MACOS_SDK_DIR))
         endif
         DARWIN_SDK_CFLAGS = -nostdinc -isystem $(MACOS_SDK_DIR)/usr/include/gcc/darwin/$(GCC_VERSION) -isystem $(MACOS_SDK_DIR)/usr/include $(DARWIN_SDK_FRAMEWORKS)
         DARWIN_SDK_LDFLAGS = -L$(MACOS_SDK_DIR)/usr/lib/gcc/darwin -L$(MACOS_SDK_DIR)/usr/lib/gcc/darwin/$(GCC_VERSION_FULL) -L$(MACOS_SDK_DIR)/usr/lib
-        DARWIN_SDK_DSOFLAGS = $(DARWIN_SDK_LDFLAGS) $(DARWIN_SDK_FRAMEWORKS)
+        DARWIN_SDK_SHLIBFLAGS = $(DARWIN_SDK_LDFLAGS) $(DARWIN_SDK_FRAMEWORKS)
         NEXT_ROOT = $(MACOS_SDK_DIR)
         export NEXT_ROOT
     else
@@ -75,12 +84,12 @@ ifneq (,$(MACOS_SDK_DIR))
             # gcc > 4.0.0 passes -syslibroot to ld based on -isysroot.
             # Don't add -isysroot to DARWIN_SDK_LDFLAGS, because the programs
             # that are linked with those flags also get DARWIN_SDK_CFLAGS.
-            DARWIN_SDK_DSOFLAGS = -isysroot $(MACOS_SDK_DIR)
+            DARWIN_SDK_SHLIBFLAGS = -isysroot $(MACOS_SDK_DIR)
         else
             # gcc 4.0.0 doesn't pass -syslibroot to ld, it needs to be
             # explicit.
             DARWIN_SDK_LDFLAGS = -Wl,-syslibroot,$(MACOS_SDK_DIR)
-            DARWIN_SDK_DSOFLAGS = $(DARWIN_SDK_LDFLAGS)
+            DARWIN_SDK_SHLIBFLAGS = $(DARWIN_SDK_LDFLAGS)
         endif
     endif
 
@@ -106,9 +115,9 @@ endif
 ARCH		= darwin
 
 # May override this with -bundle to create a loadable module.
-DSO_LDOPTS	= -dynamiclib -compatibility_version 1 -current_version 1 -install_name @executable_path/$(notdir $@) -headerpad_max_install_names $(DARWIN_SDK_DSOFLAGS)
+DSO_LDOPTS	= -dynamiclib -compatibility_version 1 -current_version 1 -install_name @executable_path/$(notdir $@) -headerpad_max_install_names
 
-MKSHLIB		= $(CC) -arch $(CPU_ARCH) $(DSO_LDOPTS)
+MKSHLIB		= $(CC) -arch $(CPU_ARCH) $(DSO_LDOPTS) $(DARWIN_SDK_SHLIBFLAGS)
 DLL_SUFFIX	= dylib
 PROCESS_MAP_FILE = grep -v ';+' $(LIBRARY_NAME).def | grep -v ';-' | \
                 sed -e 's; DATA ;;' -e 's,;;,,' -e 's,;.*,,' -e 's,^,_,' > $@
