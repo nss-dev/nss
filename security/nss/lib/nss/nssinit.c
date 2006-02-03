@@ -57,6 +57,7 @@
 #include "pki3hack.h"
 #include "certi.h"
 #include "secmodi.h"
+#include "ocspi.h"
 
 /*
  * On Windows nss3.dll needs to export the symbol 'mktemp' to be
@@ -417,6 +418,10 @@ nss_Init(const char *configdir, const char *certPrefix, const char *keyPrefix,
     }
 
     if (SECSuccess != InitCRLCache()) {
+        return SECFailure;
+    }
+    
+    if (SECSuccess != InitOCSPGlobal()) {
         return SECFailure;
     }
 
