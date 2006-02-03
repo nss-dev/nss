@@ -44,7 +44,9 @@
 CORE_DEPTH = ../../..
 
 NAME        = sun-nss
-RELEASE     = 1
+ifndef RPM_RELEASE
+RPM_RELEASE = 1
+endif
 VERSION     = `grep NSS_VERSION $(CORE_DEPTH)/../dist/public/nss/nss.h \
 		| sed -e 's/"$$//' -e 's/.*"//' -e 's/ .*//'`
 PWD         = `pwd`
@@ -52,17 +54,26 @@ BUILDROOT   = $(PWD)\/$(NAME)-root
 
 include $(CORE_DEPTH)/coreconf/config.mk
 
+# Force i386 for non 64 bit build
+ifneq ($(USE_64),1)
+	RPMTARGET = "--target=i386"
+	RPMLIBDIR = lib
+else
+	RPMLIBDIR = lib64
+endif
+
+
 publish:
 	$(MAKE) clean
 	mkdir -p SOURCES SRPMS RPMS BUILD
-	mkdir -p opt/sun/private/lib 
+	mkdir -p opt/sun/private/$(RPMLIBDIR) 
 	find $(CORE_DEPTH)/../dist/$(OBJDIR)/lib -type l \
 		\( -name "*.so" -o -name "*.chk" \) \
-	-exec cp {} opt/sun/private/lib \;
-	rm -f opt/sun/private/lib/libnspr4.so \
-	   opt/sun/private/lib/libplc4.so \
-	   opt/sun/private/lib/libplds4.so \
-	   opt/sun/private/lib/libjss*.so
+	-exec cp {} opt/sun/private/$(RPMLIBDIR) \;
+	rm -f opt/sun/private/$(RPMLIBDIR)/libnspr4.so \
+	   opt/sun/private/$(RPMLIBDIR)/libplc4.so \
+	   opt/sun/private/$(RPMLIBDIR)/libplds4.so \
+	   opt/sun/private/$(RPMLIBDIR)/libjss*.so
 	mkdir -p opt/sun/private/bin
 	(cd $(CORE_DEPTH)/../dist/$(OBJDIR)/bin && tar cphf - \
 		certutil cmsutil crlutil modutil pk12util signtool \
@@ -76,7 +87,7 @@ publish:
 	echo "%define _topdir `pwd`" >temp.spec
 	sed -e "s/NAME_REPLACE/$(NAME)/" \
 		-e "s/VERSION_REPLACE/$(VERSION)/" \
-		-e "s/RELEASE_REPLACE/$(RELEASE)/" \
+		-e "s/RELEASE_REPLACE/$(RPM_RELEASE)/" \
 	<$(NAME).spec >>temp.spec
 	echo "" >>temp.spec
 	echo "%files" >>temp.spec
@@ -84,7 +95,7 @@ publish:
 	echo "%dir /opt" >>temp.spec
 	echo "%dir /opt/sun" >>temp.spec
 	echo "%dir /opt/sun/private" >>temp.spec
-	echo "%dir /opt/sun/private/lib" >>temp.spec
+	echo "%dir /opt/sun/private/$(RPMLIBDIR)" >>temp.spec
 	echo "%dir /opt/sun/private/bin" >>temp.spec
 	find opt \( -name "*.so" -o -name "*.chk" -o -type f \
 		-perm u=rwx,g=rx,o=rx \) | sed -e "s-^-/-" >>temp.spec
@@ -99,7 +110,7 @@ publish:
 	find opt -type f \( -name "*.h" \) \
 		| sed -e "s-^-/-" >>temp.spec
 	cp $(NAME)-$(VERSION).tar.gz SOURCES
-	rpm -ba temp.spec
+	rpmbuild $(RPMTARGET) -bb temp.spec
 
 clean::
 	rm -rf SOURCES SRPMS RPMS BUILD

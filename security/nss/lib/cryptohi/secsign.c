@@ -121,18 +121,16 @@ SGN_NewContext(SECOidTag alg, SECKEYPrivateKey *key)
 	signalg = SEC_OID_MISSI_DSS; /* XXX Is there a better algid? */
 	keyType = fortezzaKey;
 	break;
-#ifdef NSS_ENABLE_ECC
       case SEC_OID_ANSIX962_ECDSA_SIGNATURE_WITH_SHA1_DIGEST:
 	hashalg = SEC_OID_SHA1;
-	signalg = SEC_OID_ANSIX962_ECDSA_SIGNATURE_WITH_SHA1_DIGEST;
+	signalg = SEC_OID_ANSIX962_EC_PUBLIC_KEY;
 	keyType = ecKey;
 	break;
-#endif /* NSS_ENABLE_ECC */
       /* we don't implement MD4 hashes. 
        * we *CERTAINLY* don't want to sign one! */
       case SEC_OID_PKCS1_MD4_WITH_RSA_ENCRYPTION:
       default:
-	PORT_SetError(SEC_ERROR_INVALID_ARGS);
+	PORT_SetError(SEC_ERROR_INVALID_ALGORITHM);
 	return 0;
     }
 
@@ -266,7 +264,7 @@ SGN_End(SGNContext *cx, SECItem *result)
     }
 
     if ((cx->signalg == SEC_OID_ANSIX9_DSA_SIGNATURE) ||
-        (cx->signalg == SEC_OID_ANSIX962_ECDSA_SIGNATURE_WITH_SHA1_DIGEST)) {
+        (cx->signalg == SEC_OID_ANSIX962_EC_PUBLIC_KEY)) {
         /* DSAU_EncodeDerSigWithLen works for DSA and ECDSA */
 	rv = DSAU_EncodeDerSigWithLen(result, &sigitem, signatureLen); 
 	PORT_Free(sigitem.data);
@@ -313,57 +311,6 @@ SEC_SignData(SECItem *res, unsigned char *buf, int len,
 	goto loser;
 
     rv = SGN_End(sgn, res);
-
-  loser:
-    SGN_DestroyContext(sgn, PR_TRUE);
-    return rv;
-}
-
-/*
-** Sign the input file's contents returning in result a bunch of bytes
-** that are the signature. Returns zero on success, an error code on
-** failure.
-*/
-SECStatus
-SEC_SignFile(SECItem *result, FILE *input, 
-	     SECKEYPrivateKey *pk, SECOidTag algid)
-{
-    unsigned char buf[1024];
-    SECStatus rv;
-    int nb;
-    SGNContext *sgn;
-
-    sgn = SGN_NewContext(algid, pk);
-    if (sgn == NULL)
-	return SECFailure;
-    rv = SGN_Begin(sgn);
-    if (rv != SECSuccess)
-	goto loser;
-
-    /*
-    ** Now feed the contents of the input file into the digest
-    ** algorithm, one chunk at a time, until we have exhausted the
-    ** input
-    */
-    for (;;) {
-	if (feof(input)) break;
-	nb = fread(buf, 1, sizeof(buf), input);
-	if (nb == 0) {
-	    if (ferror(input)) {
-		PORT_SetError(SEC_ERROR_IO);
-		rv = SECFailure;
-		goto loser;
-	    }
-	    break;
-	}
-	rv = SGN_Update(sgn, buf, nb);
-	if (rv != SECSuccess)
-	    goto loser;
-    }
-
-    /* Sign the digest */
-    rv = SGN_End(sgn, result);
-    /* FALL THROUGH */
 
   loser:
     SGN_DestroyContext(sgn, PR_TRUE);
@@ -425,14 +372,12 @@ SEC_DerSignData(PRArenaPool *arena, SECItem *result,
 	  case dsaKey:
 	    algID = SEC_OID_ANSIX9_DSA_SIGNATURE_WITH_SHA1_DIGEST;
 	    break;
-#ifdef NSS_ENABLE_ECC
 	  case ecKey:
 	    algID = SEC_OID_ANSIX962_ECDSA_SIGNATURE_WITH_SHA1_DIGEST;
 	    break;
-#endif /* NSS_ENABLE_ECC */
 	  default:
+	    PORT_SetError(SEC_ERROR_INVALID_KEY);
 	    return SECFailure;
-	    break;
 	}
     }
 
@@ -557,12 +502,10 @@ SEC_GetSignatureAlgorithmOidTag(KeyType keyType, SECOidTag hashAlgTag)
 	    break;
 	}
 	break;
-#ifdef NSS_ENABLE_ECC
     case ecKey:
         /* XXX For now only ECDSA with SHA1 is supported */
         sigTag = SEC_OID_ANSIX962_ECDSA_SIGNATURE_WITH_SHA1_DIGEST;
 	break;
-#endif /* NSS_ENABLE_ECC */
     default:
     	break;
     }

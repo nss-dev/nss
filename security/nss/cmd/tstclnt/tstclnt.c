@@ -108,14 +108,14 @@ int ssl2CipherSuites[] = {
 };
 
 int ssl3CipherSuites[] = {
-    SSL_FORTEZZA_DMS_WITH_FORTEZZA_CBC_SHA,	/* a */
-    SSL_FORTEZZA_DMS_WITH_RC4_128_SHA,		/* b */
+    -1, /* SSL_FORTEZZA_DMS_WITH_FORTEZZA_CBC_SHA* a */
+    -1, /* SSL_FORTEZZA_DMS_WITH_RC4_128_SHA,	 * b */
     SSL_RSA_WITH_RC4_128_MD5,			/* c */
     SSL_RSA_WITH_3DES_EDE_CBC_SHA,		/* d */
     SSL_RSA_WITH_DES_CBC_SHA,			/* e */
     SSL_RSA_EXPORT_WITH_RC4_40_MD5,		/* f */
     SSL_RSA_EXPORT_WITH_RC2_CBC_40_MD5,		/* g */
-    SSL_FORTEZZA_DMS_WITH_NULL_SHA,		/* h */
+    -1, /* SSL_FORTEZZA_DMS_WITH_NULL_SHA,	 * h */
     SSL_RSA_WITH_NULL_MD5,			/* i */
     SSL_RSA_FIPS_WITH_3DES_EDE_CBC_SHA,		/* j */
     SSL_RSA_FIPS_WITH_DES_CBC_SHA,		/* k */
@@ -214,7 +214,7 @@ handshakeCallback(PRFileDesc *fd, void *client_data)
 static void Usage(const char *progName)
 {
     fprintf(stderr, 
-"Usage:  %s -h host [-p port] [-d certdir] [-n nickname] [-23Tfovx] \n"
+"Usage:  %s -h host [-p port] [-d certdir] [-n nickname] [-23BTfosvx] \n"
 "                   [-c ciphers] [-w passwd] [-q]\n", progName);
     fprintf(stderr, "%-20s Hostname to connect with\n", "-h host");
     fprintf(stderr, "%-20s Port number for SSL server\n", "-p port");
@@ -223,11 +223,14 @@ static void Usage(const char *progName)
 	    "-d certdir");
     fprintf(stderr, "%-20s Nickname of key and cert for client auth\n", 
                     "-n nickname");
+    fprintf(stderr, 
+            "%-20s Bypass PKCS11 layer for SSL encryption and MACing.\n", "-B");
     fprintf(stderr, "%-20s Disable SSL v2.\n", "-2");
     fprintf(stderr, "%-20s Disable SSL v3.\n", "-3");
     fprintf(stderr, "%-20s Disable TLS (SSL v3.1).\n", "-T");
     fprintf(stderr, "%-20s Client speaks first. \n", "-f");
     fprintf(stderr, "%-20s Override bad server cert. Make it OK.\n", "-o");
+    fprintf(stderr, "%-20s Disable SSL socket locking.\n", "-s");
     fprintf(stderr, "%-20s Verbose progress reporting.\n", "-v");
     fprintf(stderr, "%-20s Use export policy.\n", "-x");
     fprintf(stderr, "%-20s Ping the server and then exit.\n", "-q");
@@ -257,14 +260,11 @@ static void Usage(const char *progName)
 "T    TLS ECDHE RSA WITH AES 128 CBC SHA\n"
 #endif /* NSS_ENABLE_ECC */
 "\n"
-"a    SSL3 FORTEZZA DMS WITH FORTEZZA CBC SHA\n"
-"b    SSL3 FORTEZZA DMS WITH RC4 128 SHA\n"
 "c    SSL3 RSA WITH RC4 128 MD5\n"
 "d    SSL3 RSA WITH 3DES EDE CBC SHA\n"
 "e    SSL3 RSA WITH DES CBC SHA\n"
 "f    SSL3 RSA EXPORT WITH RC4 40 MD5\n"
 "g    SSL3 RSA EXPORT WITH RC2 CBC 40 MD5\n"
-"h    SSL3 FORTEZZA DMS WITH NULL SHA\n"
 "i    SSL3 RSA WITH NULL MD5\n"
 "j    SSL3 RSA FIPS WITH 3DES EDE CBC SHA\n"
 "k    SSL3 RSA FIPS WITH DES CBC SHA\n"
@@ -451,6 +451,8 @@ int main(int argc, char **argv)
     int                disableSSL2 = 0;
     int                disableSSL3 = 0;
     int                disableTLS  = 0;
+    int                bypassPKCS11 = 0;
+    int                disableLocking = 0;
     int                useExportPolicy = 0;
     PRSocketOptionData opt;
     PRNetAddr          addr;
@@ -469,7 +471,7 @@ int main(int argc, char **argv)
 	progName = strrchr(argv[0], '\\');
     progName = progName ? progName+1 : argv[0];
 
-    optstate = PL_CreateOptState(argc, argv, "23Tfc:h:p:d:m:n:oqvw:x");
+    optstate = PL_CreateOptState(argc, argv, "23BTfc:h:p:d:m:n:oqsvw:x");
     while ((optstatus = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
 	switch (optstate->option) {
 	  case '?':
@@ -478,6 +480,8 @@ int main(int argc, char **argv)
           case '2': disableSSL2 = 1; 			break;
 
           case '3': disableSSL3 = 1; 			break;
+
+          case 'B': bypassPKCS11 = 1; 			break;
 
           case 'T': disableTLS  = 1; 			break;
 
@@ -505,6 +509,8 @@ int main(int argc, char **argv)
 	  case 'p': port = strdup(optstate->value);	break;
 
 	  case 'q': pingServerFirst = PR_TRUE;          break;
+
+	  case 's': disableLocking = 1;                 break;
 
 	  case 'v': verbose++;	 			break;
 
@@ -672,7 +678,7 @@ int main(int argc, char **argv)
 	    cptr = islower(ndx) ? ssl3CipherSuites : ssl2CipherSuites;
 	    for (ndx &= 0x1f; (cipher = *cptr++) != 0 && --ndx > 0; ) 
 	    	/* do nothing */;
-	    if (cipher) {
+	    if (cipher > 0) {
 		SECStatus status;
 		status = SSL_CipherPrefSet(s, cipher, SSL_ALLOWED);
 		if (status != SECSuccess) 
@@ -705,6 +711,21 @@ int main(int argc, char **argv)
 	SECU_PrintError(progName, "error disabling v2 compatibility");
 	return 1;
     }
+
+    /* enable PKCS11 bypass */
+    rv = SSL_OptionSet(s, SSL_BYPASS_PKCS11, bypassPKCS11);
+    if (rv != SECSuccess) {
+	SECU_PrintError(progName, "error enabling PKCS11 bypass");
+	return 1;
+    }
+
+    /* disable SSL socket locking */
+    rv = SSL_OptionSet(s, SSL_NO_LOCKS, disableLocking);
+    if (rv != SECSuccess) {
+	SECU_PrintError(progName, "error disabling SSL socket locking");
+	return 1;
+    }
+
 
     if (useCommandLinePassword) {
 	SSL_SetPKCS11PinArg(s, password);

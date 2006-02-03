@@ -231,6 +231,22 @@ mp_err   s_mp_invmod_odd_m( const mp_int *a, const mp_int *m, mp_int *c);
 mp_err   s_mp_invmod_2d(    const mp_int *a, mp_size k,       mp_int *c);
 mp_err   s_mp_invmod_even_m(const mp_int *a, const mp_int *m, mp_int *c);
 
+#ifdef NSS_USE_COMBA
+
+#define IS_POWER_OF_2(a) ((a) && !((a) & ((a)-1)))
+
+void s_mp_mul_comba_4(const mp_int *A, const mp_int *B, mp_int *C);
+void s_mp_mul_comba_8(const mp_int *A, const mp_int *B, mp_int *C);
+void s_mp_mul_comba_16(const mp_int *A, const mp_int *B, mp_int *C);
+void s_mp_mul_comba_32(const mp_int *A, const mp_int *B, mp_int *C);
+
+void s_mp_sqr_comba_4(const mp_int *A, mp_int *B);
+void s_mp_sqr_comba_8(const mp_int *A, mp_int *B);
+void s_mp_sqr_comba_16(const mp_int *A, mp_int *B);
+void s_mp_sqr_comba_32(const mp_int *A, mp_int *B);
+
+#endif /* end NSS_USE_COMBA */
+
 /* ------ mpv functions, operate on arrays of digits, not on mp_int's ------ */
 #if defined (__OS2__) && defined (__IBMC__)
 #define MPI_ASM_DECL __cdecl
@@ -283,6 +299,19 @@ typedef struct {
 mp_err s_mp_mul_mont(const mp_int *a, const mp_int *b, mp_int *c, 
 	               mp_mont_modulus *mmm);
 mp_err s_mp_redc(mp_int *T, mp_mont_modulus *mmm);
+
+/*
+ * s_mpi_getProcessorLineSize() returns the size in bytes of the cache line
+ * if a cache exists, or zero if there is no cache. If more than one
+ * cache line exists, it should return the smallest line size (which is
+ * usually the L1 cache).
+ *
+ * mp_modexp uses this information to make sure that private key information
+ * isn't being leaked through the cache.
+ *
+ * see mpcpucache.c for the implementation.
+ */
+unsigned long s_mpi_getProcessorLineSize();
 
 /* }}} */
 #endif

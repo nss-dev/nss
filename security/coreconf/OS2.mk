@@ -101,19 +101,13 @@ PROCESS_MAP_FILE = \
 	echo CODE    LOADONCALL MOVEABLE DISCARDABLE >> $@; \
 	echo DATA    PRELOAD MOVEABLE MULTIPLE NONSHARED >> $@; \
 	echo EXPORTS >> $@; \
-	grep -v ';+' $(LIBRARY_NAME).def | grep -v ';-' | \
+	grep -v ';+' $< | grep -v ';-' | \
 	sed -e 's; DATA ;;' -e 's,;;,,' -e 's,;.*,,' -e 's,\([\t ]*\),\1_,' | \
 	awk 'BEGIN {ord=1;} { print($$0 " @" ord " RESIDENTNAME"); ord++;}' >> $@
 
 endif   #NO_SHARED_LIB
 
 OS_CFLAGS          = -Wall -W -Wno-unused -Wpointer-arith -Wcast-align -Zomf -DDEBUG -DTRACING -g
-
-# Where the libraries are
-MOZ_COMPONENT_NSPR_LIBS=-L$(DIST)/lib $(NSPR_LIBS)
-NSPR_LIBS	= -lplds4 -lplc4 -lnspr4 
-NSPR_INCLUDE_DIR =   
-
 
 ifdef BUILD_OPT
 OPTIMIZER		= -O2 -s
@@ -174,19 +168,13 @@ PROCESS_MAP_FILE = \
 	echo CODE    LOADONCALL MOVEABLE DISCARDABLE >> $@; \
 	echo DATA    PRELOAD MOVEABLE MULTIPLE NONSHARED >> $@; \
 	echo EXPORTS >> $@; \
-	grep -v ';+' $(LIBRARY_NAME).def | grep -v ';-' | \
+	grep -v ';+' $< | grep -v ';-' | \
 	sed -e 's; DATA ;;' -e 's,;;,,' -e 's,;.*,,' >> $@
 endif   #NO_SHARED_LIB
 
 OS_CFLAGS          = /Q /qlibansi /Gd /Gm /Su4 /Mp /Tl-
 INCLUDES        += -I$(CORE_DEPTH)/../dist/include
 DEFINES         += -DXP_OS2_VACPP -DTCPV40HDRS
-
-# Where the libraries are
-NSPR_LIBS	= $(DIST)/lib/nspr4.lib $(DIST)/lib/plc4.lib $(DIST)/lib/plds4.lib
-MOZ_COMPONENT_NSPR_LIBS=-L$(DIST)/lib $(NSPR_LIBS)
-NSPR_INCLUDE_DIR =   
-
 
 DLLFLAGS    = /DLL /O:$@ /INC:_dllentry /MAP:$(@:.dll=.map)
 EXEFLAGS    = -PMTYPE:VIO -OUT:$@ -MAP:$(@:.exe=.map) -nologo -NOE
@@ -231,8 +219,7 @@ MKDEPENDENCIES  = $(OBJDIR_NAME)/depend.mk
 # defined, the default is "install using relative symbolic
 # links".  The two possible values are "copy", which copies files
 # but preserves source mtime, and "absolute_symlink", which
-# installs using absolute symbolic links.  The "absolute_symlink"
-# option requires NFSPWD.
+# installs using absolute symbolic links.
 #   - THIS IS NOT PART OF THE NEW BINARY RELEASE PLAN for 9/30/97
 #   - WE'RE KEEPING IT ONLY FOR BACKWARDS COMPATIBILITY
 ####################################################################
@@ -245,7 +232,7 @@ else
 	ifeq ($(NSDISTMODE),absolute_symlink)
 		# install using absolute symbolic links
 		INSTALL  = $(NSINSTALL)
-		INSTALL += -L `$(NFSPWD)`
+		INSTALL += -L `pwd`
 	else
 		# install using relative symbolic links
 		INSTALL  = $(NSINSTALL)

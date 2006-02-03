@@ -58,6 +58,7 @@ SEC_BEGIN_PROTOS
  * Generic Slot Lists Management
  ************************************************************/
 void PK11_FreeSlotList(PK11SlotList *list);
+SECStatus PK11_FreeSlotListElement(PK11SlotList *list, PK11SlotListElement *le);
 PK11SlotListElement * PK11_GetFirstSafe(PK11SlotList *list);
 PK11SlotListElement *PK11_GetNextSafe(PK11SlotList *list, 
 				PK11SlotListElement *le, PRBool restart);
@@ -180,6 +181,57 @@ PK11SlotInfo *PK11_GetBestSlotMultiple(CK_MECHANISM_TYPE *type, int count,
 PK11SlotInfo *PK11_GetBestSlot(CK_MECHANISM_TYPE type, void *wincx);
 CK_MECHANISM_TYPE PK11_GetBestWrapMechanism(PK11SlotInfo *slot);
 int PK11_GetBestKeyLength(PK11SlotInfo *slot, CK_MECHANISM_TYPE type);
+/*
+ * Open a new database using the softoken. The caller is responsible for making
+ * sure the module spec is correct and usable. The caller should ask for one
+ * new database per call if the caller wants to get meaningful information
+ * about the new database.
+ *
+ * moduleSpec is the same data that you would pass to softoken at
+ * initialization time under the 'tokens' options. For example, if you were
+ * to specify tokens=<0x4=[configdir='./mybackup' tokenDescription='Backup']>
+ * You would specify "configdir='./mybackup' tokenDescription='Backup'" as your
+ * module spec here. The slot ID will be calculated for you by
+ * SECMOD_OpenUserDB().
+ *
+ * Typical parameters here are configdir, tokenDescription and flags.
+ *
+ * a Full list is below:
+ *
+ *
+ *  configDir - The location of the databases for this token. If configDir is
+ *         not specified, and noCertDB and noKeyDB is not specified, the load
+ *         will fail.
+ *   certPrefix - Cert prefix for this token.
+ *   keyPrefix - Prefix for the key database for this token. (if not specified,
+ *         certPrefix will be used).
+ *   tokenDescription - The label value for this token returned in the
+ *         CK_TOKEN_INFO structure with an internationalize string (UTF8).
+ *         This value will be truncated at 32 bytes (no NULL, partial UTF8
+ *         characters dropped). You should specify a user friendly name here
+ *         as this is the value the token will be refered to in most
+ *         application UI's. You should make sure tokenDescription is unique.
+ *   slotDescription - The slotDescription value for this token returned
+ *         in the CK_SLOT_INFO structure with an internationalize string
+ *         (UTF8). This value will be truncated at 64 bytes (no NULL, partial
+ *         UTF8 characters dropped). This name will not change after the
+ *         database is closed. It should have some number to make this unique.
+ *   minPWLen - minimum password length for this token.
+ *   flags - comma separated list of flag values, parsed case-insensitive.
+ *         Valid flags are:
+ *              readOnly - Databases should be opened read only.
+ *              noCertDB - Don't try to open a certificate database.
+ *              noKeyDB - Don't try to open a key database.
+ *              forceOpen - Don't fail to initialize the token if the
+ *                databases could not be opened.
+ *              passwordRequired - zero length passwords are not acceptable
+ *                (valid only if there is a keyDB).
+ *              optimizeSpace - allocate smaller hash tables and lock tables.
+ *                When this flag is not specified, Softoken will allocate
+ *                large tables to prevent lock contention.
+ */
+PK11SlotInfo *SECMOD_OpenUserDB(const char *moduleSpec);
+SECStatus SECMOD_CloseUserDB(PK11SlotInfo *slot);
 
 /*********************************************************************
  *       Mechanism Mapping functions
@@ -201,12 +253,14 @@ SECOidTag PK11_FortezzaMapSig(SECOidTag algTag);
 SECStatus PK11_ParamToAlgid(SECOidTag algtag, SECItem *param,
                                    PRArenaPool *arena, SECAlgorithmID *algid);
 SECStatus PK11_SeedRandom(PK11SlotInfo *,unsigned char *data,int len);
+SECStatus PK11_GenerateRandomOnSlot(PK11SlotInfo *,unsigned char *data,int len);
 SECStatus PK11_RandomUpdate(void *data, size_t bytes);
 SECStatus PK11_GenerateRandom(unsigned char *data,int len);
 CK_RV PK11_MapPBEMechanismToCryptoMechanism(CK_MECHANISM_PTR pPBEMechanism,
 					    CK_MECHANISM_PTR pCryptoMechanism,
 					    SECItem *pbe_pwd, PRBool bad3DES);
 CK_MECHANISM_TYPE PK11_GetPadMechanism(CK_MECHANISM_TYPE);
+CK_MECHANISM_TYPE PK11_MapSignKeyType(KeyType keyType);
 
 /**********************************************************************
  *                   Symetric, Public, and Private Keys 
@@ -244,6 +298,39 @@ PK11SymKey * PK11_ListFixedKeysInSlot(PK11SlotInfo *slot, char *nickname,
 								void *wincx);
 PK11SymKey *PK11_GetNextSymKey(PK11SymKey *symKey);
 CK_KEY_TYPE PK11_GetSymKeyType(PK11SymKey *key);
+
+/*
+ * PK11_SetSymKeyUserData
+ *   sets generic user data on keys (usually a pointer to a data structure)
+ * that can later be retrieved by PK11_GetSymKeyUserData().
+ *    symKey - key where data will be set.
+ *    data - data to be set.
+ *    freefunc - function used to free the data.
+ * Setting user data on symKeys with existing user data already set will cause 
+ * the existing user data to be freed before the new user data is set.
+ * Freeing user data is done by calling the user specified freefunc. 
+ * If freefunc is NULL, the user data is assumed to be global or static an 
+ * not freed. Passing NULL for user data to PK11_SetSymKeyUserData has the 
+ * effect of freeing any existing user data, and clearing the user data 
+ * pointer. If user data exists when the symKey is finally freed, that 
+ * data will be freed with freefunc.
+ *
+ * Applications should only use this function on keys which the application
+ * has created directly, as there is only one user data value per key.
+ */
+void PK11_SetSymKeyUserData(PK11SymKey *symKey, void *data, 
+                                 PK11FreeDataFunc freefunc);
+/* PK11_GetSymKeyUserData 
+ *   retrieves generic user data which was set on a key by 
+ * PK11_SetSymKeyUserData.
+ *    symKey - key with data to be fetched
+ *
+ * If no data exists, or the data has been cleared, PK11_GetSymKeyUserData
+ * will return NULL. Returned data is still owned and managed by the SymKey,
+ * the caller should not free the data.
+ *
+ */
+void *PK11_GetSymKeyUserData(PK11SymKey *symKey);
 
 SECStatus PK11_PubWrapSymKey(CK_MECHANISM_TYPE type, SECKEYPublicKey *pubKey,
 				PK11SymKey *symKey, SECItem *wrappedKey);
@@ -440,6 +527,8 @@ PK11SymKey *PK11_ConvertSessionSymKeyToTokenSymKey(PK11SymKey *symk,
 	void *wincx);
 SECKEYPrivateKey *PK11_ConvertSessionPrivKeyToTokenPrivKey(
 	SECKEYPrivateKey *privk, void* wincx);
+SECKEYPrivateKey * PK11_CopyTokenPrivKeyToSessionPrivKey(PK11SlotInfo *destSlot,
+				      SECKEYPrivateKey *privKey);
 
 /**********************************************************************
  *                   Certs
@@ -585,7 +674,7 @@ SECStatus PK11_UpdateSlotAttribute(PK11SlotInfo *, PK11DefaultArrayEntry *,
 PK11GenericObject *PK11_FindGenericObjects(PK11SlotInfo *slot, 
 						CK_OBJECT_CLASS objClass);
 PK11GenericObject *PK11_GetNextGenericObject(PK11GenericObject *object);
-PK11GenericObject *PK11_GetPrevtGenericObject(PK11GenericObject *object);
+PK11GenericObject *PK11_GetPrevGenericObject(PK11GenericObject *object);
 SECStatus PK11_UnlinkGenericObject(PK11GenericObject *object);
 SECStatus PK11_LinkGenericObject(PK11GenericObject *list,
 				 PK11GenericObject *object);

@@ -105,16 +105,6 @@ struct NSSUsageStr {
 #endif
 };
 
-typedef struct nssBestCertificateCBStr nssBestCertificateCB;
-
-struct nssBestCertificateCBStr {
-    NSSCertificate *cert;
-    NSSTime *time;
-    NSSTime sTime; /* to avoid allocating when unnecessary */
-    NSSUsage *usage;
-    NSSPolicies *policies;
-};
-
 typedef struct nssPKIObjectCollectionStr nssPKIObjectCollection;
 
 typedef struct

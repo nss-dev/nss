@@ -515,6 +515,11 @@ SHA256_Resurrect(unsigned char *space, void *arg)
     return ctx;
 }
 
+void SHA256_Clone(SHA256Context *dest, SHA256Context *src) 
+{
+    memcpy(dest, src, sizeof *dest);
+}
+
 
 /* ======= SHA512 and SHA384 common constants and defines ================= */
 
@@ -1168,6 +1173,11 @@ SHA512_Resurrect(unsigned char *space, void *arg)
     return ctx;
 }
 
+void SHA512_Clone(SHA512Context *dest, SHA512Context *src) 
+{
+    memcpy(dest, src, sizeof *dest);
+}
+
 /* ======================================================================= */
 /* SHA384 uses a SHA512Context as the real context. 
 ** The only differences between SHA384 an SHA512 are:
@@ -1263,6 +1273,11 @@ SHA384Context *
 SHA384_Resurrect(unsigned char *space, void *arg)
 {
     return SHA512_Resurrect(space, arg);
+}
+
+void SHA384_Clone(SHA384Context *dest, SHA384Context *src) 
+{
+    memcpy(dest, src, sizeof *dest);
 }
 
 /* ======================================================================= */

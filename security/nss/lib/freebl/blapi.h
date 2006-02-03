@@ -43,7 +43,8 @@
 #define _BLAPI_H_
 
 #include "blapit.h"
-
+#include "hasht.h"
+#include "alghmac.h"
 
 SEC_BEGIN_PROTOS
 
@@ -207,7 +208,7 @@ extern SECStatus EC_NewKeyFromSeed(ECParams *  params,
                            int                 seedlen);
 
 /* Validates an EC public key as described in Section 5.2.2 of
- * X9.63. Such validation prevents against small subgroup attacks
+ * X9.62. Such validation prevents against small subgroup attacks
  * when the ECDH primitive is used with the cofactor.
  */
 extern SECStatus EC_ValidatePublicKey(ECParams * params, 
@@ -267,6 +268,15 @@ extern SECStatus ECDSA_SignDigestWithSeed(ECPrivateKey        *key,
 */
 extern RC4Context *RC4_CreateContext(const unsigned char *key, int len);
 
+extern RC4Context *RC4_AllocateContext(void);
+extern SECStatus   RC4_InitContext(RC4Context *cx, 
+				   const unsigned char *key, 
+				   unsigned int keylen,
+				   const unsigned char *, 
+				   int, 
+				   unsigned int ,
+				   unsigned int );
+
 /*
 ** Destroy an RC4 encryption/decryption context.
 **	"cx" the context
@@ -324,6 +334,14 @@ extern SECStatus RC4_Decrypt(RC4Context *cx, unsigned char *output,
 extern RC2Context *RC2_CreateContext(const unsigned char *key, unsigned int len,
 				     const unsigned char *iv, int mode, 
 				     unsigned effectiveKeyLen);
+extern RC2Context *RC2_AllocateContext(void);
+extern SECStatus   RC2_InitContext(RC2Context *cx,
+				   const unsigned char *key, 
+				   unsigned int keylen,
+				   const unsigned char *iv, 
+				   int mode, 
+				   unsigned int effectiveKeyLen,
+				   unsigned int );
 
 /*
 ** Destroy an RC2 encryption/decryption context.
@@ -379,6 +397,14 @@ extern SECStatus RC2_Decrypt(RC2Context *cx, unsigned char *output,
 */
 extern RC5Context *RC5_CreateContext(const SECItem *key, unsigned int rounds,
                      unsigned int wordSize, const unsigned char *iv, int mode);
+extern RC5Context *RC5_AllocateContext(void);
+extern SECStatus   RC5_InitContext(RC5Context *cx, 
+				   const unsigned char *key, 
+				   unsigned int keylen,
+				   const unsigned char *iv, 
+				   int mode,
+				   unsigned int rounds, 
+				   unsigned int wordSize);
 
 /*
 ** Destroy an RC5 encryption/decryption context.
@@ -440,6 +466,14 @@ extern SECStatus RC5_Decrypt(RC5Context *cx, unsigned char *output,
 extern DESContext *DES_CreateContext(const unsigned char *key, 
                                      const unsigned char *iv,
 				     int mode, PRBool encrypt);
+extern DESContext *DES_AllocateContext(void);
+extern SECStatus   DES_InitContext(DESContext *cx,
+				   const unsigned char *key, 
+				   unsigned int keylen,
+				   const unsigned char *iv, 
+				   int mode,
+				   unsigned int encrypt,
+				   unsigned int );
 
 /*
 ** Destroy an DES encryption/decryption context.
@@ -498,6 +532,14 @@ extern AESContext *
 AES_CreateContext(const unsigned char *key, const unsigned char *iv, 
                   int mode, int encrypt,
                   unsigned int keylen, unsigned int blocklen);
+extern AESContext *AES_AllocateContext(void);
+extern SECStatus   AES_InitContext(AESContext *cx,
+				   const unsigned char *key, 
+				   unsigned int keylen, 
+				   const unsigned char *iv, 
+				   int mode, 
+				   unsigned int encrypt,
+				   unsigned int blocklen);
 
 /*
 ** Destroy a AES encryption/decryption context.
@@ -554,6 +596,15 @@ AES_Decrypt(AESContext *cx, unsigned char *output,
 extern AESKeyWrapContext *
 AESKeyWrap_CreateContext(const unsigned char *key, const unsigned char *iv, 
                          int encrypt, unsigned int keylen);
+extern AESKeyWrapContext * AESKeyWrap_AllocateContext(void);
+extern SECStatus  
+     AESKeyWrap_InitContext(AESKeyWrapContext *cx, 
+				   const unsigned char *key, 
+				   unsigned int keylen,
+				   const unsigned char *iv, 
+				   int ,
+				   unsigned int encrypt,
+				   unsigned int );
 
 /*
 ** Destroy a AES KeyWrap context.
@@ -649,6 +700,7 @@ extern void MD5_Update(MD5Context *cx,
 */
 extern void MD5_End(MD5Context *cx, unsigned char *digest,
 		    unsigned int *digestLen, unsigned int maxDigestLen);
+
 /*
  * Return the the size of a buffer needed to flatten the MD5 Context into
  *    "cx" the context
@@ -671,6 +723,7 @@ extern SECStatus MD5_Flatten(MD5Context *cx,unsigned char *space);
  *  returns resurected context;
  */
 extern MD5Context * MD5_Resurrect(unsigned char *space, void *arg);
+extern void MD5_Clone(MD5Context *dest, MD5Context *src);
 
 /*
 ** trace the intermediate state info of the MD5 hash.
@@ -748,6 +801,7 @@ extern SECStatus MD2_Flatten(MD2Context *cx,unsigned char *space);
  *  returns resurected context;
  */
 extern MD2Context * MD2_Resurrect(unsigned char *space, void *arg);
+extern void MD2_Clone(MD2Context *dest, MD2Context *src);
 
 /******************************************/
 /*
@@ -830,6 +884,7 @@ extern SECStatus SHA1_Flatten(SHA1Context *cx,unsigned char *space);
  *  returns resurected context;
  */
 extern SHA1Context * SHA1_Resurrect(unsigned char *space, void *arg);
+extern void SHA1_Clone(SHA1Context *dest, SHA1Context *src);
 
 /******************************************/
 
@@ -847,6 +902,7 @@ extern void SHA256_TraceState(SHA256Context *cx);
 extern unsigned int SHA256_FlattenSize(SHA256Context *cx);
 extern SECStatus SHA256_Flatten(SHA256Context *cx,unsigned char *space);
 extern SHA256Context * SHA256_Resurrect(unsigned char *space, void *arg);
+extern void SHA256_Clone(SHA256Context *dest, SHA256Context *src);
 
 /******************************************/
 
@@ -864,6 +920,7 @@ extern void SHA512_TraceState(SHA512Context *cx);
 extern unsigned int SHA512_FlattenSize(SHA512Context *cx);
 extern SECStatus SHA512_Flatten(SHA512Context *cx,unsigned char *space);
 extern SHA512Context * SHA512_Resurrect(unsigned char *space, void *arg);
+extern void SHA512_Clone(SHA512Context *dest, SHA512Context *src);
 
 /******************************************/
 
@@ -881,6 +938,15 @@ extern void SHA384_TraceState(SHA384Context *cx);
 extern unsigned int SHA384_FlattenSize(SHA384Context *cx);
 extern SECStatus SHA384_Flatten(SHA384Context *cx,unsigned char *space);
 extern SHA384Context * SHA384_Resurrect(unsigned char *space, void *arg);
+extern void SHA384_Clone(SHA384Context *dest, SHA384Context *src);
+
+/****************************************
+ * implement TLS Pseudo Random Function (PRF)
+ */
+
+extern SECStatus
+TLS_PRF(const SECItem *secret, const char *label, SECItem *seed, 
+         SECItem *result, PRBool isFIPS);
 
 /******************************************/
 /*
@@ -916,6 +982,7 @@ extern SECStatus RNG_GenerateGlobalRandomBytes(void *dest, size_t len);
 */
 extern void  RNG_RNGShutdown(void);
 
+extern void RNG_SystemInfoForRNG(void);
 
 /* Generate PQGParams and PQGVerify structs.
  * Length of seed and length of h both equal length of P. 
@@ -986,6 +1053,9 @@ PRBool BLAPI_SHVerify(const char *name, PRFuncPtr addr);
  *  Verify Are Own Shared library signature                               *
  **************************************************************************/
 PRBool BLAPI_VerifySelf(const char *name);
+
+/*********************************************************************/
+extern const SECHashObject * HASH_GetRawHashObject(HASH_HashType hashType);
 
 SEC_END_PROTOS
 

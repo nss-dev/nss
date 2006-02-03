@@ -353,6 +353,7 @@ PK11_GetKeyType(CK_MECHANISM_TYPE type,unsigned long len)
     case CKM_SHA512_RSA_PKCS:
     case CKM_KEY_WRAP_SET_OAEP:
     case CKM_RSA_PKCS_KEY_PAIR_GEN:
+    case CKM_RSA_X9_31_KEY_PAIR_GEN:
 	return CKK_RSA;
     case CKM_DSA:
     case CKM_DSA_SHA1:
@@ -526,6 +527,8 @@ PK11_GetKeyGenWithSize(CK_MECHANISM_TYPE type, int size)
     case CKM_KEY_WRAP_SET_OAEP:
     case CKM_RSA_PKCS_KEY_PAIR_GEN:
 	return CKM_RSA_PKCS_KEY_PAIR_GEN;
+    case CKM_RSA_X9_31_KEY_PAIR_GEN:
+	return CKM_RSA_X9_31_KEY_PAIR_GEN;
     case CKM_DSA:
     case CKM_DSA_SHA1:
     case CKM_DSA_KEY_PAIR_GEN:
@@ -1738,7 +1741,7 @@ have_key_len:
 
 /* Make a Key type to an appropriate signing/verification mechanism */
 CK_MECHANISM_TYPE
-pk11_mapSignKeyType(KeyType keyType)
+PK11_MapSignKeyType(KeyType keyType)
 {
     switch (keyType) {
     case rsaKey:
@@ -1746,10 +1749,8 @@ pk11_mapSignKeyType(KeyType keyType)
     case fortezzaKey:
     case dsaKey:
 	return CKM_DSA;
-#ifdef NSS_ENABLE_ECC
     case ecKey:
 	return CKM_ECDSA;
-#endif /* NSS_ENABLE_ECC */
     case dhKey:
     default:
 	break;

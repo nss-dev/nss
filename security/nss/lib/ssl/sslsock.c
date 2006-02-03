@@ -71,8 +71,6 @@ static cipherPolicy ssl_ciphers[] = {	   /*   Export           France   */
  {  SSL_EN_RC2_128_CBC_EXPORT40_WITH_MD5,   SSL_ALLOWED,     SSL_ALLOWED },
  {  SSL_EN_DES_64_CBC_WITH_MD5,		    SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
  {  SSL_EN_DES_192_EDE3_CBC_WITH_MD5,	    SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
- {  SSL_FORTEZZA_DMS_WITH_FORTEZZA_CBC_SHA, SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
- {  SSL_FORTEZZA_DMS_WITH_RC4_128_SHA,      SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
  {  SSL_RSA_WITH_RC4_128_MD5,		    SSL_RESTRICTED,  SSL_NOT_ALLOWED },
  {  SSL_RSA_WITH_RC4_128_SHA,		    SSL_RESTRICTED,  SSL_NOT_ALLOWED },
  {  SSL_RSA_FIPS_WITH_3DES_EDE_CBC_SHA,	    SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
@@ -81,7 +79,6 @@ static cipherPolicy ssl_ciphers[] = {	   /*   Export           France   */
  {  SSL_RSA_WITH_DES_CBC_SHA,		    SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
  {  SSL_RSA_EXPORT_WITH_RC4_40_MD5,	    SSL_ALLOWED,     SSL_ALLOWED },
  {  SSL_RSA_EXPORT_WITH_RC2_CBC_40_MD5,	    SSL_ALLOWED,     SSL_ALLOWED },
- {  SSL_FORTEZZA_DMS_WITH_NULL_SHA,	    SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
  {  SSL_DHE_RSA_WITH_DES_CBC_SHA,           SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
  {  SSL_DHE_DSS_WITH_DES_CBC_SHA,           SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
  {  SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA,      SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
@@ -164,6 +161,8 @@ static sslOptions ssl_defaults = {
     PR_TRUE,	/* v2CompatibleHello  */
     PR_TRUE,	/* detectRollBack     */
     PR_FALSE,   /* noStepDown         */
+    PR_FALSE,   /* bypassPKCS11       */
+    PR_FALSE,   /* noLocks            */
 };
 
 sslSessionIDLookupFunc  ssl_sid_lookup;
@@ -173,13 +172,17 @@ sslSessionIDUncacheFunc ssl_sid_uncache;
 static PRBool ssl_inited = PR_FALSE;
 static PRDescIdentity ssl_layer_id;
 
+PRBool                  locksEverDisabled; 	/* implicitly PR_FALSE */
+PRBool			ssl_force_locks;  	/* implicitly PR_FALSE */
 int                     ssl_lock_readers	= 1;	/* default true. */
 char                    ssl_debug;
 char                    ssl_trace;
-
+char lockStatus[] = "Locks are ENABLED.  ";
+#define LOCKSTATUS_OFFSET 10 /* offset of ENABLED */
 
 /* forward declarations. */
-static sslSocket *ssl_NewSocket(void);
+static sslSocket *ssl_NewSocket(PRBool makeLocks);
+static SECStatus  ssl_MakeLocks(sslSocket *ss);
 static PRStatus   ssl_PushIOLayer(sslSocket *ns, PRFileDesc *stack, 
                                   PRDescIdentity id);
 
@@ -230,22 +233,10 @@ ssl_DupSocket(sslSocket *os)
     sslSocket *ss;
     SECStatus rv;
 
-    ss = ssl_NewSocket();
+    ss = ssl_NewSocket((PRBool)(!os->opt.noLocks));
     if (ss) {
-	ss->useSocks           = PR_FALSE;
-	ss->useSecurity        = os->useSecurity;
-	ss->requestCertificate = os->requestCertificate;
-	ss->requireCertificate = os->requireCertificate;
-	ss->handshakeAsClient  = os->handshakeAsClient;
-	ss->handshakeAsServer  = os->handshakeAsServer;
-	ss->enableSSL2         = os->enableSSL2;
-	ss->enableSSL3         = os->enableSSL3;
-	ss->enableTLS          = os->enableTLS;
-	ss->noCache            = os->noCache;
-	ss->fdx                = os->fdx;
-	ss->v2CompatibleHello  = os->v2CompatibleHello;
-	ss->detectRollBack     = os->detectRollBack;
-	ss->noStepDown         = os->noStepDown;
+	ss->opt                = os->opt;
+	ss->opt.useSocks       = PR_FALSE;
 
 	ss->peerID             = !os->peerID ? NULL : PORT_Strdup(os->peerID);
 	ss->url                = !os->url    ? NULL : PORT_Strdup(os->url);
@@ -274,7 +265,7 @@ ssl_DupSocket(sslSocket *os)
 	    ss->sizeCipherSpecs    = 0;
 	    ss->preferredCipher    = NULL;
 	}
-	if (ss->useSecurity) {
+	if (ss->opt.useSecurity) {
 	    /* This int should be SSLKEAType, but CC on Irix complains,
 	     * during the for loop.
 	     */
@@ -292,9 +283,9 @@ ssl_DupSocket(sslSocket *os)
 		    sc->serverCert      = NULL;
 		    sc->serverCertChain = NULL;
 		}
-		sc->serverKey = oc->serverKey ?
-				SECKEY_CopyPrivateKey(oc->serverKey) : NULL;
-		if (oc->serverKey && !sc->serverKey)
+		sc->serverKeyPair = oc->serverKeyPair ?
+				ssl3_GetKeyPairRef(oc->serverKeyPair) : NULL;
+		if (oc->serverKeyPair && !sc->serverKeyPair)
 		    goto loser;
 	        sc->serverKeyBits = oc->serverKeyBits;
 	    }
@@ -331,7 +322,6 @@ loser:
 static void
 ssl_DestroyLocks(sslSocket *ss)
 {
-
     /* Destroy locks. */
     if (ss->firstHandshakeLock) {
     	PZ_DestroyMonitor(ss->firstHandshakeLock);
@@ -376,7 +366,7 @@ ssl_DestroySocketContents(sslSocket *ss)
     /* Free up socket */
     ssl_DestroySecurityInfo(&ss->sec);
 
-    ssl3_DestroySSL3Info(ss->ssl3);
+    ssl3_DestroySSL3Info(ss);
 
     PORT_Free(ss->saveBuf.buf);
     PORT_Free(ss->pendingBuf.buf);
@@ -399,8 +389,8 @@ ssl_DestroySocketContents(sslSocket *ss)
 	    CERT_DestroyCertificate(sc->serverCert);
 	if (sc->serverCertChain != NULL)
 	    CERT_DestroyCertificateList(sc->serverCertChain);
-	if (sc->serverKey != NULL)
-	    SECKEY_DestroyPrivateKey(sc->serverKey);
+	if (sc->serverKeyPair != NULL)
+	    ssl3_FreeKeyPair(sc->serverKeyPair);
     }
     if (ss->stepDownKeyPair) {
 	ssl3_FreeKeyPair(ss->stepDownKeyPair);
@@ -479,7 +469,7 @@ ssl_EnableNagleDelay(sslSocket *ss, PRBool enabled)
 static void
 ssl_ChooseOps(sslSocket *ss)
 {
-    ss->ops = ss->useSecurity ? &ssl_secure_ops       : &ssl_default_ops;
+    ss->ops = ss->opt.useSecurity ? &ssl_secure_ops : &ssl_default_ops;
 }
 
 /* Called from SSL_Enable (immediately below) */
@@ -503,18 +493,20 @@ SSL_OptionSet(PRFileDesc *fd, PRInt32 which, PRBool on)
 {
     sslSocket *ss = ssl_FindSocket(fd);
     SECStatus  rv = SECSuccess;
+    PRBool     holdingLocks;
 
     if (!ss) {
 	SSL_DBG(("%d: SSL[%d]: bad socket in Enable", SSL_GETPID(), fd));
 	return SECFailure;
     }
 
+    holdingLocks = (!ss->opt.noLocks);
     ssl_Get1stHandshakeLock(ss);
     ssl_GetSSL3HandshakeLock(ss);
 
     switch (which) {
       case SSL_SOCKS:
-	ss->useSocks = PR_FALSE;
+	ss->opt.useSocks = PR_FALSE;
 	rv = PrepareSocket(ss);
 	if (on) {
 	    PORT_SetError(SEC_ERROR_INVALID_ARGS);
@@ -523,38 +515,38 @@ SSL_OptionSet(PRFileDesc *fd, PRInt32 which, PRBool on)
 	break;
 
       case SSL_SECURITY:
-	ss->useSecurity = on;
+	ss->opt.useSecurity = on;
 	rv = PrepareSocket(ss);
 	break;
 
       case SSL_REQUEST_CERTIFICATE:
-	ss->requestCertificate = on;
+	ss->opt.requestCertificate = on;
 	break;
 
       case SSL_REQUIRE_CERTIFICATE:
-	ss->requireCertificate = on;
+	ss->opt.requireCertificate = on;
 	break;
 
       case SSL_HANDSHAKE_AS_CLIENT:
-	if ( ss->handshakeAsServer && on ) {
+	if ( ss->opt.handshakeAsServer && on ) {
 	    PORT_SetError(SEC_ERROR_INVALID_ARGS);
 	    rv = SECFailure;
 	    break;
 	}
-	ss->handshakeAsClient = on;
+	ss->opt.handshakeAsClient = on;
 	break;
 
       case SSL_HANDSHAKE_AS_SERVER:
-	if ( ss->handshakeAsClient && on ) {
+	if ( ss->opt.handshakeAsClient && on ) {
 	    PORT_SetError(SEC_ERROR_INVALID_ARGS);
 	    rv = SECFailure;
 	    break;
 	}
-	ss->handshakeAsServer = on;
+	ss->opt.handshakeAsServer = on;
 	break;
 
       case SSL_ENABLE_TLS:
-	ss->enableTLS           = on;
+	ss->opt.enableTLS       = on;
 	ss->preferredCipher     = NULL;
 	if (ss->cipherSpecs) {
 	    PORT_Free(ss->cipherSpecs);
@@ -564,7 +556,7 @@ SSL_OptionSet(PRFileDesc *fd, PRInt32 which, PRBool on)
 	break;
 
       case SSL_ENABLE_SSL3:
-	ss->enableSSL3          = on;
+	ss->opt.enableSSL3      = on;
 	ss->preferredCipher     = NULL;
 	if (ss->cipherSpecs) {
 	    PORT_Free(ss->cipherSpecs);
@@ -574,9 +566,9 @@ SSL_OptionSet(PRFileDesc *fd, PRInt32 which, PRBool on)
 	break;
 
       case SSL_ENABLE_SSL2:
-	ss->enableSSL2          = on;
+	ss->opt.enableSSL2       = on;
 	if (on) {
-	    ss->v2CompatibleHello = on;
+	    ss->opt.v2CompatibleHello = on;
 	}
 	ss->preferredCipher     = NULL;
 	if (ss->cipherSpecs) {
@@ -587,28 +579,60 @@ SSL_OptionSet(PRFileDesc *fd, PRInt32 which, PRBool on)
 	break;
 
       case SSL_NO_CACHE:
-	ss->noCache = on;
+	ss->opt.noCache = on;
 	break;
 
       case SSL_ENABLE_FDX:
-      	ss->fdx = on;
+	if (on && ss->opt.noLocks) {
+	    PORT_SetError(SEC_ERROR_INVALID_ARGS);
+	    rv = SECFailure;
+	}
+      	ss->opt.fdx = on;
 	break;
 
       case SSL_V2_COMPATIBLE_HELLO:
-      	ss->v2CompatibleHello = on;
+      	ss->opt.v2CompatibleHello = on;
 	if (!on) {
-	    ss->enableSSL2    = on;
+	    ss->opt.enableSSL2    = on;
 	}
 	break;
 
       case SSL_ROLLBACK_DETECTION:  
-	ss->detectRollBack = on;
+	ss->opt.detectRollBack = on;
         break;
 
       case SSL_NO_STEP_DOWN:        
-	ss->noStepDown     = on;         
+	ss->opt.noStepDown     = on;         
 	if (on) 
 	    SSL_DisableExportCipherSuites(fd);
+	break;
+
+      case SSL_BYPASS_PKCS11:
+	if (ss->handshakeBegun) {
+	    PORT_SetError(PR_INVALID_STATE_ERROR);
+	    rv = SECFailure;
+	} else {
+	    ss->opt.bypassPKCS11   = on;
+	}
+	break;
+
+      case SSL_NO_LOCKS:
+	if (on && ss->opt.fdx) {
+	    PORT_SetError(SEC_ERROR_INVALID_ARGS);
+	    rv = SECFailure;
+	}
+	if (on && ssl_force_locks) 
+	    on = PR_FALSE;	/* silent override */
+	ss->opt.noLocks   = on;
+	if (on) {
+	    locksEverDisabled = PR_TRUE;
+	    strcpy(lockStatus + LOCKSTATUS_OFFSET, "DISABLED.");
+	} else if (!holdingLocks) {
+	    rv = ssl_MakeLocks(ss);
+	    if (rv != SECSuccess) {
+		ss->opt.noLocks   = PR_TRUE;
+	    }
+	}
 	break;
 
       default:
@@ -616,8 +640,15 @@ SSL_OptionSet(PRFileDesc *fd, PRInt32 which, PRBool on)
 	rv = SECFailure;
     }
 
-    ssl_ReleaseSSL3HandshakeLock(ss);
-    ssl_Release1stHandshakeLock(ss);
+    /* We can't use the macros for releasing the locks here,
+     * because ss->opt.noLocks might have changed just above.
+     * We must release these locks (monitors) here, if we aquired them above,
+     * regardless of the current value of ss->opt.noLocks.
+     */
+    if (holdingLocks) {
+	PZ_ExitMonitor((ss)->ssl3HandshakeLock);
+	PZ_ExitMonitor((ss)->firstHandshakeLock);
+    }
 
     return rv;
 }
@@ -644,19 +675,21 @@ SSL_OptionGet(PRFileDesc *fd, PRInt32 which, PRBool *pOn)
 
     switch (which) {
     case SSL_SOCKS:               on = PR_FALSE;               break;
-    case SSL_SECURITY:            on = ss->useSecurity;        break;
-    case SSL_REQUEST_CERTIFICATE: on = ss->requestCertificate; break;
-    case SSL_REQUIRE_CERTIFICATE: on = ss->requireCertificate; break;
-    case SSL_HANDSHAKE_AS_CLIENT: on = ss->handshakeAsClient;  break;
-    case SSL_HANDSHAKE_AS_SERVER: on = ss->handshakeAsServer;  break;
-    case SSL_ENABLE_TLS:          on = ss->enableTLS;          break;
-    case SSL_ENABLE_SSL3:         on = ss->enableSSL3;         break;
-    case SSL_ENABLE_SSL2:         on = ss->enableSSL2;         break;
-    case SSL_NO_CACHE:            on = ss->noCache;            break;
-    case SSL_ENABLE_FDX:          on = ss->fdx;                break;
-    case SSL_V2_COMPATIBLE_HELLO: on = ss->v2CompatibleHello;  break;
-    case SSL_ROLLBACK_DETECTION:  on = ss->detectRollBack;     break;
-    case SSL_NO_STEP_DOWN:        on = ss->noStepDown;         break;
+    case SSL_SECURITY:            on = ss->opt.useSecurity;        break;
+    case SSL_REQUEST_CERTIFICATE: on = ss->opt.requestCertificate; break;
+    case SSL_REQUIRE_CERTIFICATE: on = ss->opt.requireCertificate; break;
+    case SSL_HANDSHAKE_AS_CLIENT: on = ss->opt.handshakeAsClient;  break;
+    case SSL_HANDSHAKE_AS_SERVER: on = ss->opt.handshakeAsServer;  break;
+    case SSL_ENABLE_TLS:          on = ss->opt.enableTLS;          break;
+    case SSL_ENABLE_SSL3:         on = ss->opt.enableSSL3;         break;
+    case SSL_ENABLE_SSL2:         on = ss->opt.enableSSL2;         break;
+    case SSL_NO_CACHE:            on = ss->opt.noCache;            break;
+    case SSL_ENABLE_FDX:          on = ss->opt.fdx;                break;
+    case SSL_V2_COMPATIBLE_HELLO: on = ss->opt.v2CompatibleHello;  break;
+    case SSL_ROLLBACK_DETECTION:  on = ss->opt.detectRollBack;     break;
+    case SSL_NO_STEP_DOWN:        on = ss->opt.noStepDown;         break;
+    case SSL_BYPASS_PKCS11:       on = ss->opt.bypassPKCS11;       break;
+    case SSL_NO_LOCKS:            on = ss->opt.noLocks;            break;
 
     default:
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
@@ -696,6 +729,8 @@ SSL_OptionGetDefault(PRInt32 which, PRBool *pOn)
     case SSL_V2_COMPATIBLE_HELLO: on = ssl_defaults.v2CompatibleHello;  break;
     case SSL_ROLLBACK_DETECTION:  on = ssl_defaults.detectRollBack;     break;
     case SSL_NO_STEP_DOWN:        on = ssl_defaults.noStepDown;         break;
+    case SSL_BYPASS_PKCS11:       on = ssl_defaults.bypassPKCS11;       break;
+    case SSL_NO_LOCKS:            on = ssl_defaults.noLocks;            break;
 
     default:
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
@@ -773,6 +808,10 @@ SSL_OptionSetDefault(PRInt32 which, PRBool on)
 	break;
 
       case SSL_ENABLE_FDX:
+	if (on && ssl_defaults.noLocks) {
+	    PORT_SetError(SEC_ERROR_INVALID_ARGS);
+	    return SECFailure;
+	}
       	ssl_defaults.fdx = on;
 	break;
 
@@ -793,11 +832,43 @@ SSL_OptionSetDefault(PRInt32 which, PRBool on)
 	    SSL_DisableDefaultExportCipherSuites();
 	break;
 
+      case SSL_BYPASS_PKCS11:
+	ssl_defaults.bypassPKCS11   = on;
+	break;
+
+      case SSL_NO_LOCKS:
+	if (on && ssl_defaults.fdx) {
+	    PORT_SetError(SEC_ERROR_INVALID_ARGS);
+	    return SECFailure;
+	}
+	if (on && ssl_force_locks) 
+	    on = PR_FALSE;		/* silent override */
+	ssl_defaults.noLocks        = on;
+	if (on) {
+	    locksEverDisabled = PR_TRUE;
+	    strcpy(lockStatus + LOCKSTATUS_OFFSET, "DISABLED.");
+	}
+	break;
+
       default:
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
 	return SECFailure;
     }
     return SECSuccess;
+}
+
+/* function tells us if the cipher suite is one that we no longer support. */
+static PRBool 
+ssl_IsRemovedCipherSuite(PRInt32 suite)
+{
+    switch (suite) {
+    case SSL_FORTEZZA_DMS_WITH_NULL_SHA:
+    case SSL_FORTEZZA_DMS_WITH_FORTEZZA_CBC_SHA:
+    case SSL_FORTEZZA_DMS_WITH_RC4_128_SHA:
+    	return PR_TRUE;
+    default:
+    	return PR_FALSE;
+    }
 }
 
 /* Part of the public NSS API.
@@ -814,6 +885,8 @@ SSL_SetPolicy(long which, int policy)
 	else if (which == SSL_RSA_OLDFIPS_WITH_DES_CBC_SHA)
 	    which = SSL_RSA_FIPS_WITH_DES_CBC_SHA;
     }
+    if (ssl_IsRemovedCipherSuite(which))
+    	return SECSuccess;
     return SSL_CipherPolicySet(which, policy);
 }
 
@@ -822,7 +895,9 @@ SSL_CipherPolicySet(PRInt32 which, PRInt32 policy)
 {
     SECStatus rv;
 
-    if (SSL_IS_SSL2_CIPHER(which)) {
+    if (ssl_IsRemovedCipherSuite(which)) {
+    	rv = SECSuccess;
+    } else if (SSL_IS_SSL2_CIPHER(which)) {
 	rv = ssl2_SetPolicy(which, policy);
     } else {
 	rv = ssl3_SetPolicy((ssl3CipherSuite)which, policy);
@@ -839,7 +914,10 @@ SSL_CipherPolicyGet(PRInt32 which, PRInt32 *oPolicy)
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
 	return SECFailure;
     }
-    if (SSL_IS_SSL2_CIPHER(which)) {
+    if (ssl_IsRemovedCipherSuite(which)) {
+	*oPolicy = SSL_NOT_ALLOWED;
+    	rv = SECSuccess;
+    } else if (SSL_IS_SSL2_CIPHER(which)) {
 	rv = ssl2_GetPolicy(which, oPolicy);
     } else {
 	rv = ssl3_GetPolicy((ssl3CipherSuite)which, oPolicy);
@@ -862,6 +940,8 @@ SSL_EnableCipher(long which, PRBool enabled)
 	else if (which == SSL_RSA_OLDFIPS_WITH_DES_CBC_SHA)
 	    which = SSL_RSA_FIPS_WITH_DES_CBC_SHA;
     }
+    if (ssl_IsRemovedCipherSuite(which))
+    	return SECSuccess;
     return SSL_CipherPrefSetDefault(which, enabled);
 }
 
@@ -869,7 +949,9 @@ SECStatus
 SSL_CipherPrefSetDefault(PRInt32 which, PRBool enabled)
 {
     SECStatus rv;
-    
+
+    if (ssl_IsRemovedCipherSuite(which))
+    	return SECSuccess;
     if (enabled && ssl_defaults.noStepDown && SSL_IsExportCipherSuite(which)) {
     	PORT_SetError(SEC_ERROR_INVALID_ALGORITHM);
 	return SECFailure;
@@ -891,7 +973,10 @@ SSL_CipherPrefGetDefault(PRInt32 which, PRBool *enabled)
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
 	return SECFailure;
     }
-    if (SSL_IS_SSL2_CIPHER(which)) {
+    if (ssl_IsRemovedCipherSuite(which)) {
+	*enabled = PR_FALSE;
+    	rv = SECSuccess;
+    } else if (SSL_IS_SSL2_CIPHER(which)) {
 	rv = ssl2_CipherPrefGetDefault(which, enabled);
     } else {
 	rv = ssl3_CipherPrefGetDefault((ssl3CipherSuite)which, enabled);
@@ -909,7 +994,9 @@ SSL_CipherPrefSet(PRFileDesc *fd, PRInt32 which, PRBool enabled)
 	SSL_DBG(("%d: SSL[%d]: bad socket in CipherPrefSet", SSL_GETPID(), fd));
 	return SECFailure;
     }
-    if (enabled && ss->noStepDown && SSL_IsExportCipherSuite(which)) {
+    if (ssl_IsRemovedCipherSuite(which))
+    	return SECSuccess;
+    if (enabled && ss->opt.noStepDown && SSL_IsExportCipherSuite(which)) {
     	PORT_SetError(SEC_ERROR_INVALID_ALGORITHM);
 	return SECFailure;
     }
@@ -936,7 +1023,10 @@ SSL_CipherPrefGet(PRFileDesc *fd, PRInt32 which, PRBool *enabled)
 	*enabled = PR_FALSE;
 	return SECFailure;
     }
-    if (SSL_IS_SSL2_CIPHER(which)) {
+    if (ssl_IsRemovedCipherSuite(which)) {
+	*enabled = PR_FALSE;
+    	rv = SECSuccess;
+    } else if (SSL_IS_SSL2_CIPHER(which)) {
 	rv = ssl2_CipherPrefGet(ss, which, enabled);
     } else {
 	rv = ssl3_CipherPrefGet(ss, (ssl3CipherSuite)which, enabled);
@@ -1002,7 +1092,7 @@ SSL_ImportFD(PRFileDesc *model, PRFileDesc *fd)
 
     if (model == NULL) {
 	/* Just create a default socket if we're given NULL for the model */
-	ns = ssl_NewSocket();
+	ns = ssl_NewSocket((PRBool)(!ssl_defaults.noLocks));
     } else {
 	sslSocket * ss = ssl_FindSocket(model);
 	if (ss == NULL) {
@@ -1087,8 +1177,8 @@ ssl_Accept(PRFileDesc *fd, PRNetAddr *sockaddr, PRIntervalTime timeout)
     /* Now start server connection handshake with client.
     ** Don't need locks here because nobody else has a reference to ns yet.
     */
-    if ( ns->useSecurity ) {
-	if ( ns->handshakeAsClient ) {
+    if ( ns->opt.useSecurity ) {
+	if ( ns->opt.handshakeAsClient ) {
 	    ns->handshake = ssl2_BeginClientHandshake;
 	    ss->handshaking = sslHandshakingAsClient;
 	} else {
@@ -1244,7 +1334,7 @@ ssl_Recv(PRFileDesc *fd, void *buf, PRInt32 len, PRIntn flags,
     }
     SSL_LOCK_READER(ss);
     ss->rTimeout = timeout;
-    if (!ss->fdx)
+    if (!ss->opt.fdx)
 	ss->wTimeout = timeout;
     rv = (*ss->ops->recv)(ss, (unsigned char*)buf, len, flags);
     SSL_UNLOCK_READER(ss);
@@ -1265,7 +1355,7 @@ ssl_Send(PRFileDesc *fd, const void *buf, PRInt32 len, PRIntn flags,
     }
     SSL_LOCK_WRITER(ss);
     ss->wTimeout = timeout;
-    if (!ss->fdx)
+    if (!ss->opt.fdx)
 	ss->rTimeout = timeout;
     rv = (*ss->ops->send)(ss, (const unsigned char*)buf, len, flags);
     SSL_UNLOCK_WRITER(ss);
@@ -1285,7 +1375,7 @@ ssl_Read(PRFileDesc *fd, void *buf, PRInt32 len)
     }
     SSL_LOCK_READER(ss);
     ss->rTimeout = PR_INTERVAL_NO_TIMEOUT;
-    if (!ss->fdx)
+    if (!ss->opt.fdx)
 	ss->wTimeout = PR_INTERVAL_NO_TIMEOUT;
     rv = (*ss->ops->read)(ss, (unsigned char*)buf, len);
     SSL_UNLOCK_READER(ss);
@@ -1305,7 +1395,7 @@ ssl_Write(PRFileDesc *fd, const void *buf, PRInt32 len)
     }
     SSL_LOCK_WRITER(ss);
     ss->wTimeout = PR_INTERVAL_NO_TIMEOUT;
-    if (!ss->fdx)
+    if (!ss->opt.fdx)
 	ss->rTimeout = PR_INTERVAL_NO_TIMEOUT;
     rv = (*ss->ops->write)(ss, (const unsigned char*)buf, len);
     SSL_UNLOCK_WRITER(ss);
@@ -1384,6 +1474,29 @@ SSL_SetSockPeerID(PRFileDesc *fd, char *peerID)
     return SECSuccess;
 }
 
+SECStatus PR_CALLBACK
+ssl_SetTimeout(PRFileDesc *fd, PRIntervalTime timeout)
+{
+    sslSocket *ss;
+
+    ss = ssl_GetPrivate(fd);
+    if (!ss) {
+	SSL_DBG(("%d: SSL[%d]: bad socket in SetTimeout", SSL_GETPID(), fd));
+	return SECFailure;
+    }
+    SSL_LOCK_READER(ss);
+    ss->rTimeout = timeout;
+    if (ss->opt.fdx) {
+        SSL_LOCK_WRITER(ss);
+    }
+    ss->wTimeout = timeout;
+    if (ss->opt.fdx) {
+        SSL_UNLOCK_WRITER(ss);
+    }
+    SSL_UNLOCK_READER(ss);
+    return SECSuccess;
+}
+
 #define PR_POLL_RW (PR_POLL_WRITE | PR_POLL_READ)
 
 static PRInt16 PR_CALLBACK
@@ -1401,7 +1514,7 @@ ssl_Poll(PRFileDesc *fd, PRInt16 how_flags, PRInt16 *p_out_flags)
 	return 0;	/* don't poll on this socket */
     }
 
-    if (ss->useSecurity && 
+    if (ss->opt.useSecurity && 
 	ss->handshaking != sslHandshakingUndetermined &&
         !ss->firstHsDone &&
 	(how_flags & PR_POLL_RW)) {
@@ -1843,38 +1956,88 @@ loser:
     return PR_FAILURE;
 }
 
+/* if this fails, caller must destroy socket. */
+static SECStatus
+ssl_MakeLocks(sslSocket *ss)
+{
+    ss->firstHandshakeLock = PZ_NewMonitor(nssILockSSL);
+    if (!ss->firstHandshakeLock) 
+	goto loser;
+    ss->ssl3HandshakeLock  = PZ_NewMonitor(nssILockSSL);
+    if (!ss->ssl3HandshakeLock) 
+	goto loser;
+    ss->specLock           = NSSRWLock_New(SSL_LOCK_RANK_SPEC, NULL);
+    if (!ss->specLock) 
+	goto loser;
+    ss->recvBufLock        = PZ_NewMonitor(nssILockSSL);
+    if (!ss->recvBufLock) 
+	goto loser;
+    ss->xmitBufLock        = PZ_NewMonitor(nssILockSSL);
+    if (!ss->xmitBufLock) 
+	goto loser;
+    ss->writerThread       = NULL;
+    if (ssl_lock_readers) {
+	ss->recvLock       = PZ_NewLock(nssILockSSL);
+	if (!ss->recvLock) 
+	    goto loser;
+	ss->sendLock       = PZ_NewLock(nssILockSSL);
+	if (!ss->sendLock) 
+	    goto loser;
+    }
+    return SECSuccess;
+loser:
+    ssl_DestroyLocks(ss);
+    return SECFailure;
+}
+
+#if (defined(XP_UNIX) || defined(XP_WIN32) || defined(XP_BEOS)) && !defined(_WIN32_WCE)
+#define NSS_HAVE_GETENV 1
+#endif
+
 /*
 ** Create a newsocket structure for a file descriptor.
 */
 static sslSocket *
-ssl_NewSocket(void)
+ssl_NewSocket(PRBool makeLocks)
 {
     sslSocket *ss;
-#ifdef DEBUG
-#if (defined(XP_UNIX) || defined(XP_WIN32) || defined(XP_BEOS)) && !defined(_WIN32_WCE)
+#if defined( NSS_HAVE_GETENV )
     static int firsttime = 1;
 
     if (firsttime) {
+	char * ev;
 	firsttime = 0;
-	{
-	    char *ev = getenv("SSLDEBUG");
-	    if (ev && ev[0]) {
-		ssl_debug = atoi(ev);
-		SSL_TRACE(("SSL: debugging set to %d", ssl_debug));
-	    }
-	}
+#ifdef DEBUG
 #ifdef TRACE
-	{
-	    char *ev = getenv("SSLTRACE");
-	    if (ev && ev[0]) {
-		ssl_trace = atoi(ev);
-		SSL_TRACE(("SSL: tracing set to %d", ssl_trace));
-	    }
+	ev = getenv("SSLTRACE");
+	if (ev && ev[0]) {
+	    ssl_trace = atoi(ev);
+	    SSL_TRACE(("SSL: tracing set to %d", ssl_trace));
 	}
 #endif /* TRACE */
-    }
-#endif /* XP_UNIX || XP_WIN32 */
+	ev = getenv("SSLDEBUG");
+	if (ev && ev[0]) {
+	    ssl_debug = atoi(ev);
+	    SSL_TRACE(("SSL: debugging set to %d", ssl_debug));
+	}
 #endif /* DEBUG */
+	ev = getenv("SSLBYPASS");
+	if (ev && ev[0]) {
+	    ssl_defaults.bypassPKCS11 = (ev[0] == '1');
+	    SSL_TRACE(("SSL: bypass default set to %d", \
+		      ssl_defaults.bypassPKCS11));
+	}
+	ev = getenv("SSLFORCELOCKS");
+	if (ev && ev[0] == '1') {
+	    ssl_force_locks = PR_TRUE;
+	    ssl_defaults.noLocks = 0;
+	    strcpy(lockStatus + LOCKSTATUS_OFFSET, "FORCED.  ");
+	    SSL_TRACE(("SSL: force_locks set to %d", ssl_force_locks));
+	}
+    }
+#endif /* NSS_HAVE_GETENV */
+    if (ssl_force_locks)
+	makeLocks = PR_TRUE;
 
     /* Make a new socket and get it ready */
     ss = (sslSocket*) PORT_ZAlloc(sizeof(sslSocket));
@@ -1885,20 +2048,10 @@ ssl_NewSocket(void)
 	int i;
 	SECStatus status;
  
-	ss->useSecurity        = ssl_defaults.useSecurity;
-	ss->useSocks           = PR_FALSE;
-	ss->requestCertificate = ssl_defaults.requestCertificate;
-	ss->requireCertificate = ssl_defaults.requireCertificate;
-	ss->handshakeAsClient  = ssl_defaults.handshakeAsClient;
-	ss->handshakeAsServer  = ssl_defaults.handshakeAsServer;
-	ss->enableSSL2         = ssl_defaults.enableSSL2;
-	ss->enableSSL3         = ssl_defaults.enableSSL3;
-	ss->enableTLS          = ssl_defaults.enableTLS ;
-	ss->fdx                = ssl_defaults.fdx;
-	ss->v2CompatibleHello  = ssl_defaults.v2CompatibleHello;
-	ss->detectRollBack     = ssl_defaults.detectRollBack;
-	ss->noStepDown         = ssl_defaults.noStepDown;
-	ss->noCache            = ssl_defaults.noCache;
+	ss->opt                = ssl_defaults;
+	ss->opt.useSocks       = PR_FALSE;
+	ss->opt.noLocks        = !makeLocks;
+
 	ss->peerID             = NULL;
 	ss->rTimeout	       = PR_INTERVAL_NO_TIMEOUT;
 	ss->wTimeout	       = PR_INTERVAL_NO_TIMEOUT;
@@ -1912,7 +2065,7 @@ ssl_NewSocket(void)
 	    sslServerCerts * sc = ss->serverCerts + i;
 	    sc->serverCert      = NULL;
 	    sc->serverCertChain = NULL;
-	    sc->serverKey       = NULL;
+	    sc->serverKeyPair   = NULL;
 	    sc->serverKeyBits   = 0;
 	}
 	ss->stepDownKeyPair    = NULL;
@@ -1930,25 +2083,14 @@ ssl_NewSocket(void)
 	ssl2_InitSocketPolicy(ss);
 	ssl3_InitSocketPolicy(ss);
 
-	ss->firstHandshakeLock = PZ_NewMonitor(nssILockSSL);
-	if (!ss->firstHandshakeLock) goto loser;
-	ss->ssl3HandshakeLock  = PZ_NewMonitor(nssILockSSL);
-	if (!ss->ssl3HandshakeLock) goto loser;
-	ss->specLock           = NSSRWLock_New(SSL_LOCK_RANK_SPEC, NULL);
-	if (!ss->specLock) goto loser;
-	ss->recvBufLock        = PZ_NewMonitor(nssILockSSL);
-	if (!ss->recvBufLock) goto loser;
-	ss->xmitBufLock        = PZ_NewMonitor(nssILockSSL);
-	if (!ss->xmitBufLock) goto loser;
-	ss->writerThread       = NULL;
-	if (ssl_lock_readers) {
-	    ss->recvLock       = PZ_NewLock(nssILockSSL);
-	    if (!ss->recvLock) goto loser;
-	    ss->sendLock       = PZ_NewLock(nssILockSSL);
-	    if (!ss->sendLock) goto loser;
+	if (makeLocks) {
+	    status = ssl_MakeLocks(ss);
+	    if (status != SECSuccess)
+		goto loser;
 	}
 	status = ssl_CreateSecurityInfo(ss);
-	if (status != SECSuccess) goto loser;
+	if (status != SECSuccess) 
+	    goto loser;
 	status = ssl_InitGather(&ss->gs);
 	if (status != SECSuccess) {
 loser:

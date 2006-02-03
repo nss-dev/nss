@@ -64,8 +64,8 @@ struct secmodargSlotFlagTable {
     unsigned long value;
 };
 
-#define SFTK_DEFAULT_CIPHER_ORDER 0
-#define SFTK_DEFAULT_TRUST_ORDER 50
+#define SECMOD_DEFAULT_CIPHER_ORDER 0
+#define SECMOD_DEFAULT_TRUST_ORDER 50
 
 
 #define SECMOD_ARG_ENTRY(arg,flag) \
@@ -194,13 +194,20 @@ secmod_argFetchValue(char *string, int *pcount)
     char *end = secmod_argFindEnd(string);
     char *retString, *copyString;
     PRBool lastEscape = PR_FALSE;
+    int len;
 
-    *pcount = (end - string)+1;
+    len = end - string;
+    if (len == 0) {
+	*pcount = 0;
+	return NULL;
+    }
 
-    if (*pcount == 0) return NULL;
+    copyString = retString = (char *)PORT_Alloc(len+1);
 
-    copyString = retString = (char *)PORT_Alloc(*pcount);
+    if (*end) len++;
+    *pcount = len;
     if (retString == NULL) return NULL;
+
 
     if (secmod_argIsQuote(*string)) string++;
     for (; string < end; string++) {
@@ -815,9 +822,9 @@ secmod_mkNSS(char **slotStrings, int slotCount, PRBool internal, PRBool isFIPS,
     ciphers = secmod_mkCipherFlags(ssl0, ssl1);
 
     trustOrderPair=secmod_formatIntPair("trustOrder",trustOrder,
-					SFTK_DEFAULT_TRUST_ORDER);
+					SECMOD_DEFAULT_TRUST_ORDER);
     cipherOrderPair=secmod_formatIntPair("cipherOrder",cipherOrder,
-					SFTK_DEFAULT_CIPHER_ORDER);
+					SECMOD_DEFAULT_CIPHER_ORDER);
     slotPair=secmod_formatPair("slotParams",slotParams,'{'); /* } */
     if (slotParams) PORT_Free(slotParams);
     cipherPair=secmod_formatPair("ciphers",ciphers,'\'');

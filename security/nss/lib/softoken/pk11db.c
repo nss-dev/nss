@@ -120,9 +120,9 @@ secmod_parseTokens(char *tokenParams, sftk_parameters *parsed)
 	tokenIndex += next;
 
 	tokens[i].slotID = secmod_argDecodeNumber(name);
-        tokens[i].readOnly = PR_TRUE;
-	tokens[i].noCertDB = PR_TRUE;
-	tokens[i].noKeyDB = PR_TRUE;
+        tokens[i].readOnly = PR_FALSE;
+	tokens[i].noCertDB = PR_FALSE;
+	tokens[i].noKeyDB = PR_FALSE;
 	if (!secmod_argIsBlank(*tokenIndex)) {
 	    char *args = secmod_argFetchValue(tokenIndex,&next);
 	    tokenIndex += next;
@@ -167,8 +167,8 @@ secmod_parseParameters(char *param, sftk_parameters *parsed, PRBool isFIPS)
         SECMOD_HANDLE_STRING_ARG(index,slotdes,"cryptoSlotDescription=",;)
         SECMOD_HANDLE_STRING_ARG(index,pslotdes,"dbSlotDescription=",;)
         SECMOD_HANDLE_STRING_ARG(index,fslotdes,"FIPSSlotDescription=",;)
-        SECMOD_HANDLE_STRING_ARG(index,minPW,"FIPSTokenDescription=",;)
-	SECMOD_HANDLE_STRING_ARG(index,tmp,"minPWLen=",;)
+        SECMOD_HANDLE_STRING_ARG(index,fpslotdes,"FIPSTokenDescription=",;)
+	SECMOD_HANDLE_STRING_ARG(index,minPW,"minPWLen=",;)
 
 	SECMOD_HANDLE_STRING_ARG(index,tmp,"flags=", 
 		if(tmp) { secmod_parseFlags(param,parsed); PORT_Free(tmp); })
@@ -445,10 +445,10 @@ secmod_EncodeData(DBT *data, char * module)
     encoded->isCritical = (unsigned char) 
 			(secmod_argHasFlag("flags","critical",nss) ? 1 : 0);
 
-    order = secmod_argReadLong("trustOrder", nss, SFTK_DEFAULT_TRUST_ORDER, 
+    order = secmod_argReadLong("trustOrder", nss, SECMOD_DEFAULT_TRUST_ORDER, 
                                NULL);
     SECMOD_PUTLONG(encoded->trustOrder,order);
-    order = secmod_argReadLong("cipherOrder", nss, SFTK_DEFAULT_CIPHER_ORDER, 
+    order = secmod_argReadLong("cipherOrder", nss, SECMOD_DEFAULT_CIPHER_ORDER, 
                                NULL);
     SECMOD_PUTLONG(encoded->cipherOrder,order);
 
@@ -551,8 +551,8 @@ secmod_DecodeData(char *defParams, DBT *data, PRBool *retInternal)
     unsigned long slotID;
     unsigned long defaultFlags;
     unsigned long timeout;
-    unsigned long trustOrder	=SFTK_DEFAULT_TRUST_ORDER;
-    unsigned long cipherOrder	=SFTK_DEFAULT_CIPHER_ORDER;
+    unsigned long trustOrder	=SECMOD_DEFAULT_TRUST_ORDER;
+    unsigned long cipherOrder	=SECMOD_DEFAULT_CIPHER_ORDER;
     unsigned short len;
     unsigned short namesOffset  = 0;	/* start of the names block */
     unsigned long namesRunningOffset;	/* offset to name we are 

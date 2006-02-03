@@ -89,7 +89,7 @@
 #define PORT_Malloc PR_Malloc
 #endif
 
-#define NUM_SID_CACHE_ENTRIES 1024
+int NumSidCacheEntries = 1024;
 
 static int handle_connection( PRFileDesc *, PRFileDesc *, int );
 
@@ -133,14 +133,14 @@ const int ssl2CipherSuites[] = {
 };
 
 const int ssl3CipherSuites[] = {
-    SSL_FORTEZZA_DMS_WITH_FORTEZZA_CBC_SHA,	/* a */
-    SSL_FORTEZZA_DMS_WITH_RC4_128_SHA,		/* b */
+    -1, /* SSL_FORTEZZA_DMS_WITH_FORTEZZA_CBC_SHA* a */
+    -1, /* SSL_FORTEZZA_DMS_WITH_RC4_128_SHA	 * b */
     SSL_RSA_WITH_RC4_128_MD5,			/* c */
     SSL_RSA_WITH_3DES_EDE_CBC_SHA,		/* d */
     SSL_RSA_WITH_DES_CBC_SHA,			/* e */
     SSL_RSA_EXPORT_WITH_RC4_40_MD5,		/* f */
     SSL_RSA_EXPORT_WITH_RC2_CBC_40_MD5,		/* g */
-    SSL_FORTEZZA_DMS_WITH_NULL_SHA,		/* h */
+    -1, /* SSL_FORTEZZA_DMS_WITH_NULL_SHA,	 * h */
     SSL_RSA_WITH_NULL_MD5,			/* i */
     SSL_RSA_FIPS_WITH_3DES_EDE_CBC_SHA,		/* j */
     SSL_RSA_FIPS_WITH_DES_CBC_SHA,		/* k */
@@ -200,16 +200,17 @@ Usage(const char *progName)
 {
     fprintf(stderr, 
 
-"Usage: %s -n rsa_nickname -p port [-3DNRSTbmrvx] [-w password] [-t threads]\n"
+"Usage: %s -n rsa_nickname -p port [-3BDENRSTblmrsvx] [-w password] [-t threads]\n"
 #ifdef NSS_ENABLE_ECC
 "         [-i pid_file] [-c ciphers] [-d dbdir] [-e ec_nickname] \n"
-"         [-f fortezza_nickname] [-L [seconds]] [-M maxProcs] [-l] [-P dbprefix]\n"
+"         [-f fortezza_nickname] [-L [seconds]] [-M maxProcs] [-P dbprefix]\n"
 #else
 "         [-i pid_file] [-c ciphers] [-d dbdir] [-f fortezza_nickname] \n"
-"         [-L [seconds]] [-M maxProcs] [-l] [-P dbprefix]\n"
+"         [-L [seconds]] [-M maxProcs] [-P dbprefix] [-C SSLCacheEntries]\n"
 #endif /* NSS_ENABLE_ECC */
 "-S means disable SSL v2\n"
 "-3 means disable SSL v3\n"
+"-B bypasses the PKCS11 layer for SSL encryption and MACing\n"
 "-D means disable Nagle delays in TCP\n"
 "-E means disable export ciphersuites and SSL step down key gen\n"
 "-T means disable TLS\n"
@@ -221,6 +222,7 @@ Usage(const char *progName)
 "    2 -r's mean request  and require, cert on initial handshake.\n"
 "    3 -r's mean request, not require, cert on second handshake.\n"
 "    4 -r's mean request  and require, cert on second handshake.\n"
+"-s means disable SSL socket locking for performance\n"
 "-v means verbose output\n"
 "-x means use export policy.\n"
 "-L seconds means log statistics every 'seconds' seconds (default=30).\n"
@@ -230,6 +232,7 @@ Usage(const char *progName)
 "-i pid_file file to write the process id of selfserve\n"
 "-c ciphers   Letter(s) chosen from the following list\n"
 "-l means use local threads instead of global threads\n"
+"-C SSLCacheEntries sets the maximum number of entries in the SSL session cache\n"
 "A    SSL2 RC4 128 WITH MD5\n"
 "B    SSL2 RC4 128 EXPORT40 WITH MD5\n"
 "C    SSL2 RC2 128 CBC WITH MD5\n"
@@ -253,14 +256,11 @@ Usage(const char *progName)
 "T    TLS ECDHE RSA WITH AES 128 CBC SHA\n"
 #endif /* NSS_ENABLE_ECC */
 "\n"
-"a    SSL3 FORTEZZA DMS WITH FORTEZZA CBC SHA\n"
-"b    SSL3 FORTEZZA DMS WITH RC4 128 SHA\n"
 "c    SSL3 RSA WITH RC4 128 MD5\n"
 "d    SSL3 RSA WITH 3DES EDE CBC SHA\n"
 "e    SSL3 RSA WITH DES CBC SHA\n"
 "f    SSL3 RSA EXPORT WITH RC4 40 MD5\n"
 "g    SSL3 RSA EXPORT WITH RC2 CBC 40 MD5\n"
-"h    SSL3 FORTEZZA DMS WITH NULL SHA\n"
 "i    SSL3 RSA WITH NULL MD5\n"
 "j    SSL3 RSA FIPS WITH 3DES EDE CBC SHA\n"
 "k    SSL3 RSA FIPS WITH DES CBC SHA\n"
@@ -690,6 +690,8 @@ PRBool disableRollBack = PR_FALSE;
 PRBool NoReuse         = PR_FALSE;
 PRBool hasSidCache     = PR_FALSE;
 PRBool disableStepDown = PR_FALSE;
+PRBool bypassPKCS11    = PR_FALSE;
+PRBool disableLocking  = PR_FALSE;
 
 static const char stopCmd[] = { "GET /stop " };
 static const char getCmd[]  = { "GET " };
@@ -1408,6 +1410,18 @@ server_main(
 	    errExit("error disabling SSL StepDown ");
 	}
     }
+    if (bypassPKCS11) {
+       rv = SSL_OptionSet(model_sock, SSL_BYPASS_PKCS11, PR_TRUE);
+	if (rv != SECSuccess) {
+	    errExit("error enabling PKCS11 bypass ");
+	}
+    }
+    if (disableLocking) {
+       rv = SSL_OptionSet(model_sock, SSL_NO_LOCKS, PR_TRUE);
+	if (rv != SECSuccess) {
+	    errExit("error disabling SSL socket locking ");
+	}
+    } 
 
     for (kea = kt_rsa; kea < kt_kea_size; kea++) {
 	if (cert[kea] != NULL) {
@@ -1650,13 +1664,17 @@ main(int argc, char **argv)
     ** numbers, then capital letters, then lower case, alphabetical. 
     */
     optstate = PL_CreateOptState(argc, argv, 
-    	"2:3DEL:M:NP:RSTbc:d:e:f:hi:lmn:op:rt:vw:xy");
+    	"2:3BC:DEL:M:NP:RSTbc:d:e:f:hi:lmn:op:rst:vw:xy");
     while ((status = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
 	++optionsFound;
 	switch(optstate->option) {
 	case '2': fileName = optstate->value; break;
 
 	case '3': disableSSL3 = PR_TRUE; break;
+
+	case 'B': bypassPKCS11 = PR_TRUE; break;
+
+        case 'C': if (optstate->value) NumSidCacheEntries = PORT_Atoi(optstate->value); break;
 
 	case 'D': noDelay = PR_TRUE; break;
 	case 'E': disableStepDown = PR_TRUE; break;
@@ -1714,6 +1732,8 @@ main(int argc, char **argv)
 	case 'p': port = PORT_Atoi(optstate->value); break;
 
 	case 'r': ++requestCert; break;
+
+	case 's': disableLocking = PR_TRUE; break;
 
 	case 't':
 	    maxThreads = PORT_Atoi(optstate->value);
@@ -1822,7 +1842,7 @@ main(int argc, char **argv)
     } else if (maxProcs > 1) {
 	/* we're going to be the parent in a multi-process server.  */
 	listen_sock = getBoundListenSocket(port);
-	rv = SSL_ConfigMPServerSIDCache(NUM_SID_CACHE_ENTRIES, 0, 0, tmp);
+	rv = SSL_ConfigMPServerSIDCache(NumSidCacheEntries, 0, 0, tmp);
 	if (rv != SECSuccess)
 	    errExit("SSL_ConfigMPServerSIDCache");
     	hasSidCache = PR_TRUE;
@@ -1835,7 +1855,7 @@ main(int argc, char **argv)
 	if (prStatus != PR_SUCCESS)
 	    errExit("PR_SetFDInheritable");
 	if (!NoReuse) {
-	    rv = SSL_ConfigServerSessionIDCache(NUM_SID_CACHE_ENTRIES, 
+	    rv = SSL_ConfigServerSessionIDCache(NumSidCacheEntries, 
 	                                        0, 0, tmp);
 	    if (rv != SECSuccess)
 		errExit("SSL_ConfigServerSessionIDCache");
@@ -1895,7 +1915,7 @@ main(int argc, char **argv)
 	    cptr = islower(ndx) ? ssl3CipherSuites : ssl2CipherSuites;
 	    for (ndx &= 0x1f; (cipher = *cptr++) != 0 && --ndx > 0; ) 
 		/* do nothing */;
-	    if (cipher) {
+	    if (cipher > 0) {
 		SECStatus status;
 		status = SSL_CipherPrefSetDefault(cipher, SSL_ALLOWED);
 		if (status != SECSuccess) 

@@ -43,10 +43,12 @@
 #include "prinit.h"
 #include "prprf.h"
 #include "prmem.h"
+#include "pratom.h"
 #include "pcertt.h"
 #include "lowkeyi.h"
 #include "pcert.h"
 #include "cdbhdl.h"
+#include "keydbi.h"
 #include "pkcs11i.h"
 
 static char *
@@ -164,6 +166,7 @@ sftk_OpenCertDB(const char * configdir, const char *prefix, PRBool readOnly,
     if (certdb == NULL) 
     	goto loser;
 
+    certdb->ref = 1;
 /* fix when we get the DB in */
     rv = nsslowcert_OpenCertDB(certdb, readOnly, appName, prefix,
 				sftk_certdb_name_cb, (void *)name, PR_FALSE);
@@ -254,20 +257,52 @@ loser:
     return crv;
 }
 
+NSSLOWCERTCertDBHandle *
+sftk_getCertDB(SFTKSlot *slot)
+{
+    NSSLOWCERTCertDBHandle *certHandle;
+
+    PZ_Lock(slot->slotLock);
+    certHandle = slot->certDB;
+    if (certHandle) {
+	PR_AtomicIncrement(&certHandle->ref);
+    }
+    PZ_Unlock(slot->slotLock);
+    return certHandle;
+}
+
+NSSLOWKEYDBHandle *
+sftk_getKeyDB(SFTKSlot *slot)
+{
+    NSSLOWKEYDBHandle *keyHandle;
+
+    PZ_Lock(slot->slotLock);
+    keyHandle = slot->keyDB;
+    if (keyHandle) {
+	PR_AtomicIncrement(&keyHandle->ref);
+    }
+    PZ_Unlock(slot->slotLock);
+    return keyHandle;
+}
 
 void
-sftk_DBShutdown(NSSLOWCERTCertDBHandle *certHandle, 
-		NSSLOWKEYDBHandle *keyHandle)
+sftk_freeCertDB(NSSLOWCERTCertDBHandle *certHandle)
 {
-    if (certHandle) {
-    	nsslowcert_ClosePermCertDB(certHandle);
-	PORT_Free(certHandle);
-    }
-
-    if (keyHandle) {
-    	nsslowkey_CloseKeyDB(keyHandle);
-    }
+   PRInt32 ref = PR_AtomicDecrement(&certHandle->ref);
+   if (ref == 0) {
+	nsslowcert_ClosePermCertDB(certHandle);
+   }
 }
+
+void
+sftk_freeKeyDB(NSSLOWKEYDBHandle *keyHandle)
+{
+   PRInt32 ref = PR_AtomicDecrement(&keyHandle->ref);
+   if (ref == 0) {
+	nsslowkey_CloseKeyDB(keyHandle);
+   }
+}
+   
 
 static int rdbmapflags(int flags);
 static rdbfunc sftk_rdbfunc = NULL;

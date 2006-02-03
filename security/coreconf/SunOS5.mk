@@ -50,8 +50,7 @@ endif
 # Sun's WorkShop defines v8, v8plus and v9 architectures.
 # gcc on Solaris defines v8 and v9 "cpus".  
 # gcc's v9 is equivalent to Workshop's v8plus.
-# gcc apparently has no equivalent to Workshop's v9
-# We always use Sun's assembler and linker, which use Sun's naming convention.
+# gcc's -m64 is equivalent to Workshop's v9
 
 ifeq ($(USE_64), 1)
   ifdef NS_USE_GCC
@@ -66,17 +65,9 @@ ifeq ($(USE_64), 1)
 else
   ifneq ($(OS_TEST),i86pc)
     ifdef NS_USE_GCC
-      ifdef USE_HYBRID
-        ARCHFLAG=-mcpu=v9 -Wa,-xarch=v8plus
-      else
-        ARCHFLAG=-mcpu=v8
-      endif
+      ARCHFLAG=-mcpu=v8
     else
-      ifdef USE_HYBRID
-        ARCHFLAG=-xarch=v8plus
-      else
-        ARCHFLAG=-xarch=v8
-      endif
+      ARCHFLAG=-xarch=v8
     endif
   endif
 endif
@@ -113,6 +104,8 @@ ifdef NS_USE_GCC
 	endif
 	ifdef BUILD_OPT
 	    OPTIMIZER = -O2
+	    # Enable this for accurate dtrace profiling
+	    # OPTIMIZER += -mno-omit-leaf-frame-pointer -fno-omit-frame-pointer
 	endif
 else
 	CC         = cc
@@ -157,7 +150,7 @@ else
     MKSHLIB += -M $(MAPFILE)
 endif
 endif
-PROCESS_MAP_FILE = grep -v ';-' $(LIBRARY_NAME).def | \
+PROCESS_MAP_FILE = grep -v ';-' $< | \
          sed -e 's,;+,,' -e 's; DATA ;;' -e 's,;;,,' -e 's,;.*,;,' > $@
 
 
@@ -181,6 +174,7 @@ ifeq ($(USE_64), 1)
 endif
 	DSO_LDOPTS += -G -h $(notdir $@)
 endif
+DSO_LDOPTS += -z combreloc -z defs -z ignore
 
 # -KPIC generates position independent code for use in shared libraries.
 # (Similarly for -fPIC in case of gcc.)

@@ -60,24 +60,17 @@ SSL_GetChannelInfo(PRFileDesc *fd, SSLChannelInfo *info, PRUintn len)
     memset(&inf, 0, sizeof inf);
     inf.length = PR_MIN(sizeof inf, len);
 
-    if (ss->useSecurity && ss->firstHsDone) {
+    if (ss->opt.useSecurity && ss->firstHsDone) {
         sid = ss->sec.ci.sid;
 	inf.protocolVersion  = ss->version;
 	inf.authKeyBits      = ss->sec.authKeyBits;
 	inf.keaKeyBits       = ss->sec.keaKeyBits;
 	if (ss->version < SSL_LIBRARY_VERSION_3_0) { /* SSL2 */
 	    inf.cipherSuite      = ss->sec.cipherType | 0xff00;
-	} else if (ss->ssl3) { 		/* SSL3 and TLS */
+	} else if (ss->ssl3.initialized) { 	/* SSL3 and TLS */
 
 	    /* XXX  These should come from crSpec */
-	    inf.cipherSuite      = ss->ssl3->hs.cipher_suite;
-#if 0
-	    /* misc */
-	    inf.isFIPS =  (inf.symCipher == ssl_calg_des   || inf.symCipher == ssl_calg_3des)
-		       && (inf.macAlgorithm == ssl_mac_sha || inf.macAlgorithm == ssl_hmac_sha)
-		       && (inf.protocolVersion > SSL_LIBRARY_VERSION_3_0 ||
-		           inf.cipherSuite >= 0xfef0);
-#endif
+	    inf.cipherSuite      = ss->ssl3.hs.cipher_suite;
 	}
 	if (sid) {
 	    inf.creationTime   = sid->creationTime;
@@ -85,7 +78,8 @@ SSL_GetChannelInfo(PRFileDesc *fd, SSLChannelInfo *info, PRUintn len)
 	    inf.expirationTime = sid->expirationTime;
 	    if (ss->version < SSL_LIBRARY_VERSION_3_0) { /* SSL2 */
 	        inf.sessionIDLength = SSL2_SESSIONID_BYTES;
-		memcpy(inf.sessionID, sid->u.ssl2.sessionID, SSL2_SESSIONID_BYTES);
+		memcpy(inf.sessionID, sid->u.ssl2.sessionID, 
+		       SSL2_SESSIONID_BYTES);
 	    } else {
 		unsigned int sidLen = sid->u.ssl3.sessionIDLength;
 	        sidLen = PR_MIN(sidLen, sizeof inf.sessionID);
@@ -100,8 +94,6 @@ SSL_GetChannelInfo(PRFileDesc *fd, SSLChannelInfo *info, PRUintn len)
     return SECSuccess;
 }
 
-#define kt_kea kt_fortezza
-#define calg_sj calg_fortezza
 
 #define CS(x) x, #x
 #define CK(x) x | 0xff00, #x
@@ -139,34 +131,31 @@ SSL_GetChannelInfo(PRFileDesc *fd, SSLChannelInfo *info, PRUintn len)
 
 static const SSLCipherSuiteInfo suiteInfo[] = {
 /* <------ Cipher suite --------------------> <auth> <KEA>  <bulk cipher> <MAC> <FIPS> */
-{0,CS(TLS_DHE_RSA_WITH_AES_256_CBC_SHA),      S_RSA, K_DHE, C_AES, B_256, M_SHA, 0, 0, 0, },
-{0,CS(TLS_DHE_DSS_WITH_AES_256_CBC_SHA),      S_DSA, K_DHE, C_AES, B_256, M_SHA, 0, 0, 0, },
-{0,CS(TLS_RSA_WITH_AES_256_CBC_SHA),          S_RSA, K_RSA, C_AES, B_256, M_SHA, 0, 0, 0, },
+{0,CS(TLS_DHE_RSA_WITH_AES_256_CBC_SHA),      S_RSA, K_DHE, C_AES, B_256, M_SHA, 1, 0, 0, },
+{0,CS(TLS_DHE_DSS_WITH_AES_256_CBC_SHA),      S_DSA, K_DHE, C_AES, B_256, M_SHA, 1, 0, 0, },
+{0,CS(TLS_RSA_WITH_AES_256_CBC_SHA),          S_RSA, K_RSA, C_AES, B_256, M_SHA, 1, 0, 0, },
 
-{0,CS(SSL_FORTEZZA_DMS_WITH_RC4_128_SHA),     S_KEA, K_KEA, C_RC4, B_128, M_SHA, 0, 0, 0, },
 {0,CS(TLS_DHE_DSS_WITH_RC4_128_SHA),          S_DSA, K_DHE, C_RC4, B_128, M_SHA, 0, 0, 0, },
-{0,CS(TLS_DHE_RSA_WITH_AES_128_CBC_SHA),      S_RSA, K_DHE, C_AES, B_128, M_SHA, 0, 0, 0, },
-{0,CS(TLS_DHE_DSS_WITH_AES_128_CBC_SHA),      S_DSA, K_DHE, C_AES, B_128, M_SHA, 0, 0, 0, },
+{0,CS(TLS_DHE_RSA_WITH_AES_128_CBC_SHA),      S_RSA, K_DHE, C_AES, B_128, M_SHA, 1, 0, 0, },
+{0,CS(TLS_DHE_DSS_WITH_AES_128_CBC_SHA),      S_DSA, K_DHE, C_AES, B_128, M_SHA, 1, 0, 0, },
 {0,CS(SSL_RSA_WITH_RC4_128_MD5),              S_RSA, K_RSA, C_RC4, B_128, M_MD5, 0, 0, 0, },
 {0,CS(SSL_RSA_WITH_RC4_128_SHA),              S_RSA, K_RSA, C_RC4, B_128, M_SHA, 0, 0, 0, },
-{0,CS(TLS_RSA_WITH_AES_128_CBC_SHA),          S_RSA, K_RSA, C_AES, B_128, M_SHA, 0, 0, 0, },
+{0,CS(TLS_RSA_WITH_AES_128_CBC_SHA),          S_RSA, K_RSA, C_AES, B_128, M_SHA, 1, 0, 0, },
 
-{0,CS(SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA),     S_RSA, K_DHE, C_3DES,B_3DES,M_SHA, 0, 0, 0, },
-{0,CS(SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA),     S_DSA, K_DHE, C_3DES,B_3DES,M_SHA, 0, 0, 0, },
+{0,CS(SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA),     S_RSA, K_DHE, C_3DES,B_3DES,M_SHA, 1, 0, 0, },
+{0,CS(SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA),     S_DSA, K_DHE, C_3DES,B_3DES,M_SHA, 1, 0, 0, },
 {0,CS(SSL_RSA_FIPS_WITH_3DES_EDE_CBC_SHA),    S_RSA, K_RSA, C_3DES,B_3DES,M_SHA, 1, 0, 1, },
 {0,CS(SSL_RSA_WITH_3DES_EDE_CBC_SHA),         S_RSA, K_RSA, C_3DES,B_3DES,M_SHA, 1, 0, 0, },
 
-{0,CS(SSL_FORTEZZA_DMS_WITH_FORTEZZA_CBC_SHA),S_KEA, K_KEA, C_SJ,  B_SJ,  M_SHA, 1, 0, 0, },
 {0,CS(SSL_DHE_RSA_WITH_DES_CBC_SHA),          S_RSA, K_DHE, C_DES, B_DES, M_SHA, 0, 0, 0, },
 {0,CS(SSL_DHE_DSS_WITH_DES_CBC_SHA),          S_DSA, K_DHE, C_DES, B_DES, M_SHA, 0, 0, 0, },
-{0,CS(SSL_RSA_FIPS_WITH_DES_CBC_SHA),         S_RSA, K_RSA, C_DES, B_DES, M_SHA, 1, 0, 1, },
-{0,CS(SSL_RSA_WITH_DES_CBC_SHA),              S_RSA, K_RSA, C_DES, B_DES, M_SHA, 1, 0, 0, },
+{0,CS(SSL_RSA_FIPS_WITH_DES_CBC_SHA),         S_RSA, K_RSA, C_DES, B_DES, M_SHA, 0, 0, 1, },
+{0,CS(SSL_RSA_WITH_DES_CBC_SHA),              S_RSA, K_RSA, C_DES, B_DES, M_SHA, 0, 0, 0, },
 
 {0,CS(TLS_RSA_EXPORT1024_WITH_RC4_56_SHA),    S_RSA, K_RSA, C_RC4, B_56,  M_SHA, 0, 1, 0, },
-{0,CS(TLS_RSA_EXPORT1024_WITH_DES_CBC_SHA),   S_RSA, K_RSA, C_DES, B_DES, M_SHA, 1, 1, 0, },
+{0,CS(TLS_RSA_EXPORT1024_WITH_DES_CBC_SHA),   S_RSA, K_RSA, C_DES, B_DES, M_SHA, 0, 1, 0, },
 {0,CS(SSL_RSA_EXPORT_WITH_RC4_40_MD5),        S_RSA, K_RSA, C_RC4, B_40,  M_MD5, 0, 1, 0, },
 {0,CS(SSL_RSA_EXPORT_WITH_RC2_CBC_40_MD5),    S_RSA, K_RSA, C_RC2, B_40,  M_MD5, 0, 1, 0, },
-{0,CS(SSL_FORTEZZA_DMS_WITH_NULL_SHA),        S_KEA, K_KEA, C_NULL,B_0,   M_SHA, 0, 1, 0, },
 {0,CS(SSL_RSA_WITH_NULL_SHA),                 S_RSA, K_RSA, C_NULL,B_0,   M_SHA, 0, 1, 0, },
 {0,CS(SSL_RSA_WITH_NULL_MD5),                 S_RSA, K_RSA, C_NULL,B_0,   M_MD5, 0, 1, 0, },
 
@@ -175,20 +164,20 @@ static const SSLCipherSuiteInfo suiteInfo[] = {
 {0,CS(TLS_ECDH_ECDSA_WITH_NULL_SHA),          S_ECDSA, K_ECDH, C_NULL, B_0, M_SHA, 0, 0, 0, },
 {0,CS(TLS_ECDH_ECDSA_WITH_RC4_128_SHA),       S_ECDSA, K_ECDH, C_RC4, B_128, M_SHA, 0, 0, 0, },
 {0,CS(TLS_ECDH_ECDSA_WITH_DES_CBC_SHA),       S_ECDSA, K_ECDH, C_DES, B_DES, M_SHA, 0, 0, 0, },
-{0,CS(TLS_ECDH_ECDSA_WITH_3DES_EDE_CBC_SHA),  S_ECDSA, K_ECDH, C_3DES, B_3DES, M_SHA, 0, 0, 0, },
-{0,CS(TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA),   S_ECDSA, K_ECDH, C_AES, B_128, M_SHA, 0, 0, 0, },
-{0,CS(TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA),   S_ECDSA, K_ECDH, C_AES, B_256, M_SHA, 0, 0, 0, },
+{0,CS(TLS_ECDH_ECDSA_WITH_3DES_EDE_CBC_SHA),  S_ECDSA, K_ECDH, C_3DES, B_3DES, M_SHA, 1, 0, 0, },
+{0,CS(TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA),   S_ECDSA, K_ECDH, C_AES, B_128, M_SHA, 1, 0, 0, },
+{0,CS(TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA),   S_ECDSA, K_ECDH, C_AES, B_256, M_SHA, 1, 0, 0, },
 
 {0,CS(TLS_ECDH_RSA_WITH_NULL_SHA),            S_RSA, K_ECDH, C_NULL, B_0, M_SHA, 0, 0, 0, },
 {0,CS(TLS_ECDH_RSA_WITH_RC4_128_SHA),         S_RSA, K_ECDH, C_RC4, B_128, M_SHA, 0, 0, 0, },
 {0,CS(TLS_ECDH_RSA_WITH_DES_CBC_SHA),         S_RSA, K_ECDH, C_DES, B_DES, M_SHA, 0, 0, 0, },
-{0,CS(TLS_ECDH_RSA_WITH_3DES_EDE_CBC_SHA),    S_RSA, K_ECDH, C_3DES, B_3DES, M_SHA, 0, 0, 0, },
-{0,CS(TLS_ECDH_RSA_WITH_AES_128_CBC_SHA),     S_RSA, K_ECDH, C_AES, B_128, M_SHA, 0, 0, 0, },
-{0,CS(TLS_ECDH_RSA_WITH_AES_256_CBC_SHA),     S_RSA, K_ECDH, C_AES, B_256, M_SHA, 0, 0, 0, },
+{0,CS(TLS_ECDH_RSA_WITH_3DES_EDE_CBC_SHA),    S_RSA, K_ECDH, C_3DES, B_3DES, M_SHA, 1, 0, 0, },
+{0,CS(TLS_ECDH_RSA_WITH_AES_128_CBC_SHA),     S_RSA, K_ECDH, C_AES, B_128, M_SHA, 1, 0, 0, },
+{0,CS(TLS_ECDH_RSA_WITH_AES_256_CBC_SHA),     S_RSA, K_ECDH, C_AES, B_256, M_SHA, 1, 0, 0, },
 
-{0,CS(TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA),  S_ECDSA, K_ECDHE, C_AES, B_128, M_SHA, 0, 0, 0, },
+{0,CS(TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA),  S_ECDSA, K_ECDHE, C_AES, B_128, M_SHA, 1, 0, 0, },
 
-{0,CS(TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA),    S_RSA, K_ECDHE, C_AES, B_128, M_SHA, 0, 0, 0, },
+{0,CS(TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA),    S_RSA, K_ECDHE, C_AES, B_128, M_SHA, 1, 0, 0, },
 #endif /* NSS_ENABLE_ECC */
 
 /* SSL 2 table */

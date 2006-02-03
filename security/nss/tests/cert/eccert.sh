@@ -568,7 +568,7 @@ cert_smime_client()
   echo "$SCRIPTNAME: Creating Client CA Issued Certificates =============="
 
   cert_create_certs ${ALICEDIR} "Alice" 30 ${D_ALICE}
-  cert_create_cert ${BOBDIR} "Bob" 40  ${D_BOB}
+  cert_create_certs ${BOBDIR} "Bob" 40  ${D_BOB}
 
   echo "$SCRIPTNAME: Creating Dave's Certificate -------------------------"
   cert_create_cert "${DAVEDIR}" Dave 50 ${D_DAVE}
@@ -595,10 +595,6 @@ cert_smime_client()
   ################# Importing Certificates for S/MIME tests ###############
   #
   echo "$SCRIPTNAME: Importing Certificates =============================="
-  CU_ACTION="Import Alices's cert into Bob's db"
-  certu -E -t "p,p,p" -d ${P_R_BOBDIR} -f ${R_PWFILE} \
-        -i ${R_ALICEDIR}/Alice.cert 2>&1
-
   CU_ACTION="Import Bob's cert into Alice's db"
   certu -E -t "p,p,p" -d ${P_R_ALICEDIR} -f ${R_PWFILE} \
         -i ${R_BOBDIR}/Bob.cert 2>&1

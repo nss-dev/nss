@@ -110,6 +110,8 @@ SSL_IMPORT PRFileDesc *SSL_ImportFD(PRFileDesc *model, PRFileDesc *fd);
                                           /* if step-down keys are needed.  */
 					  /* default: off, generate         */
 					  /* step-down keys if needed.      */
+#define SSL_BYPASS_PKCS11              16 /* use PKCS#11 for pub key only   */
+#define SSL_NO_LOCKS                   17 /* Don't use locks for protection */
 
 #ifdef SSL_DEPRECATED_FUNCTION 
 /* Old deprecated function names */
@@ -171,6 +173,12 @@ SSL_IMPORT SECStatus SSL_ResetHandshake(PRFileDesc *fd, PRBool asServer);
 SSL_IMPORT SECStatus SSL_ForceHandshake(PRFileDesc *fd);
 
 /*
+** Same as above, but with an I/O timeout.
+ */
+SSL_IMPORT SECStatus SSL_ForceHandshakeWithTimeout(PRFileDesc *fd,
+                                                   PRIntervalTime timeout);
+
+/*
 ** Query security status of socket. *on is set to one if security is
 ** enabled. *keySize will contain the stream key size used. *issuer will
 ** contain the RFC1485 verison of the name of the issuer of the
@@ -190,7 +198,7 @@ SSL_IMPORT SECStatus SSL_SecurityStatus(PRFileDesc *fd, int *on, char **cipher,
 #define SSL_SECURITY_STATUS_OFF		0
 #define SSL_SECURITY_STATUS_ON_HIGH	1
 #define SSL_SECURITY_STATUS_ON_LOW	2
-#define SSL_SECURITY_STATUS_FORTEZZA	3
+#define SSL_SECURITY_STATUS_FORTEZZA	3 /* NO LONGER SUPPORTED */
 
 /*
 ** Return the certificate for our SSL peer. If the client calls this
@@ -334,6 +342,14 @@ SSL_IMPORT SECStatus SSL_HandshakeCallback(PRFileDesc *fd,
 ** session keys without doing another private key operation.
 */
 SSL_IMPORT SECStatus SSL_ReHandshake(PRFileDesc *fd, PRBool flushCache);
+
+/*
+** Same as above, but with an I/O timeout.
+ */
+SSL_IMPORT SECStatus SSL_ReHandshakeWithTimeout(PRFileDesc *fd,
+                                                PRBool flushCache,
+                                                PRIntervalTime timeout);
+
 
 #ifdef SSL_DEPRECATED_FUNCTION 
 /* deprecated!

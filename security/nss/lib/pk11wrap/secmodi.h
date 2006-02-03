@@ -59,7 +59,7 @@ void nss_DumpModuleLog(void);
 extern int secmod_PrivateModuleCount;
 
 extern void SECMOD_Init(void);
-SECStatus secmod_ModuleInit(SECMODModule *mod);
+SECStatus secmod_ModuleInit(SECMODModule *mod, PRBool* alreadyLoaded);
 
 /* list managment */
 extern SECStatus SECMOD_AddModuleToList(SECMODModule *newModule);
@@ -135,7 +135,6 @@ unsigned int pk11_AttrFlagsToAttributes(PK11AttrFlags attrFlags,
 PRBool pk11_FindAttrInTemplate(CK_ATTRIBUTE *attr, unsigned int numAttrs,
 					CK_ATTRIBUTE_TYPE target);
 
-CK_MECHANISM_TYPE pk11_mapSignKeyType(KeyType keyType);
 CK_MECHANISM_TYPE pk11_mapWrapKeyType(KeyType keyType);
 PK11SymKey *pk11_KeyExchange(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
 		CK_ATTRIBUTE_TYPE operation, CK_FLAGS flags, PRBool isPerm,

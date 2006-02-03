@@ -51,11 +51,6 @@ CPU_ARCH		:= $(shell uname -Wh)
 OS_CFLAGS		= -DVMS
 OS_CXXFLAGS		= -DVMS
 
-# Maybe this should go into rules.mk or something?
-ifdef NSPR_INCLUDE_DIR
-INCLUDES += -I$(NSPR_INCLUDE_DIR)
-endif
-
 #
 # XCFLAGS are the only CFLAGS that are used during a link operation. Defining
 # OPTIMIZER in XCFLAGS means that each compilation line gets OPTIMIZER
@@ -71,7 +66,7 @@ ifdef MAPFILE
 # Add LD options to restrict exported symbols to those in the map file
 endif
 # Change PROCESS to put the mapfile in the correct format for this platform
-PROCESS_MAP_FILE = cp $(LIBRARY_NAME).def $@
+PROCESS_MAP_FILE = cp $< $@
 
 
 #

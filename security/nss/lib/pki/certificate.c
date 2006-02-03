@@ -481,7 +481,7 @@ nssCertificate_BuildChain (
 {
     NSSCertificate **rvChain = NULL;
     NSSUsage issuerUsage = *usage;
-    nssPKIObjectCollection *collection;
+    nssPKIObjectCollection *collection = NULL;
     PRUint32  rvCount = 0;
     PRStatus  st;
     PRStatus  ret = PR_SUCCESS;
@@ -767,6 +767,26 @@ NSSCertificate_IsPrivateKeyAvailable (
     return isUser;
 }
 
+/* sort the subject cert list from newest to oldest */
+PRIntn
+nssCertificate_SubjectListSort (
+  void *v1,
+  void *v2
+)
+{
+    NSSCertificate *c1 = (NSSCertificate *)v1;
+    NSSCertificate *c2 = (NSSCertificate *)v2;
+    nssDecodedCert *dc1 = nssCertificate_GetDecoding(c1);
+    nssDecodedCert *dc2 = nssCertificate_GetDecoding(c2);
+    if (!dc1) {
+	return dc2 ? 1 : 0;
+    } else if (!dc2) {
+	return -1;
+    } else {
+	return dc1->isNewerThan(dc1, dc2) ? -1 : 1;
+    }
+}
+
 NSS_IMPLEMENT PRBool
 NSSUserCertificate_IsStillPresent (
   NSSUserCertificate *uc,
@@ -858,83 +878,6 @@ NSSUserCertificate_DeriveSymmetricKey (
 {
     nss_SetError(NSS_ERROR_NOT_FOUND);
     return NULL;
-}
-
-NSS_IMPLEMENT void 
-nssBestCertificate_SetArgs (
-  nssBestCertificateCB *best,
-  NSSTime *timeOpt,
-  NSSUsage *usage,
-  NSSPolicies *policies
-)
-{
-    if (timeOpt) {
-	best->time = timeOpt;
-    } else {
-	NSSTime_Now(&best->sTime);
-	best->time = &best->sTime;
-    }
-    best->usage = usage;
-    best->policies = policies;
-    best->cert = NULL;
-}
-
-NSS_IMPLEMENT PRStatus 
-nssBestCertificate_Callback (
-  NSSCertificate *c, 
-  void *arg
-)
-{
-    nssBestCertificateCB *best = (nssBestCertificateCB *)arg;
-    nssDecodedCert *dc, *bestdc;
-    dc = nssCertificate_GetDecoding(c);
-    if (!best->cert) {
-	/* usage */
-	if (best->usage->anyUsage) {
-	    best->cert = nssCertificate_AddRef(c);
-	} else {
-#ifdef NSS_3_4_CODE
-	    /* For this to work in NSS 3.4, we have to go out and fill in
-	     * all of the CERTCertificate fields.  Why?  Because the
-	     * matchUsage function calls CERT_IsCACert, which needs to know
-	     * what the trust values are for the cert.
-	     * Ignore the returned pointer, the refcount is in c anyway.
-	     */
-	    if (STAN_GetCERTCertificate(c) == NULL) {
-		return PR_FAILURE;
-	    }
-#endif
-	    if (dc->matchUsage(dc, best->usage)) {
-		best->cert = nssCertificate_AddRef(c);
-	    }
-	}
-	return PR_SUCCESS;
-    }
-    bestdc = nssCertificate_GetDecoding(best->cert);
-    /* time */
-    if (bestdc->isValidAtTime(bestdc, best->time)) {
-	/* The current best cert is valid at time */
-	if (!dc->isValidAtTime(dc, best->time)) {
-	    /* If the new cert isn't valid at time, it's not better */
-	    return PR_SUCCESS;
-	}
-    } else {
-	/* The current best cert is not valid at time */
-	if (dc->isValidAtTime(dc, best->time)) {
-	    /* If the new cert is valid at time, it's better */
-	    NSSCertificate_Destroy(best->cert);
-	    best->cert = nssCertificate_AddRef(c);
-	    return PR_SUCCESS;
-	}
-    }
-    /* either they are both valid at time, or neither valid; take the newer */
-    /* XXX later -- defer to policies */
-    if (!bestdc->isNewerThan(bestdc, dc)) {
-	NSSCertificate_Destroy(best->cert);
-	best->cert = nssCertificate_AddRef(c);
-    }
-    /* policies */
-    return PR_SUCCESS;
 }
 
 NSS_IMPLEMENT nssSMIMEProfile *

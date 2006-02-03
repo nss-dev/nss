@@ -2296,14 +2296,9 @@ static PRBool
 ocsp_CertHasNoCheckExtension(CERTCertificate *cert)
 {
     SECStatus rv;
-    SECItem extItem;
     
-    extItem.data = NULL;
     rv = CERT_FindCertExtension(cert, SEC_OID_PKIX_OCSP_NO_CHECK, 
-				&extItem);
-    if (extItem.data != NULL) {
-	PORT_Free(extItem.data);
-    }
+				NULL);
     if (rv == SECSuccess) {
 	return PR_TRUE;
     }

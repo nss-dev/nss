@@ -44,7 +44,7 @@
 
 #include "blapi.h"
 
-#define FREEBL_VERSION 0x0307
+#define FREEBL_VERSION 0x0308
 
 struct FREEBLVectorStr {
 
@@ -377,6 +377,78 @@ struct FREEBLVectorStr {
 
   /* Version 3.007 came to here */
 
+ SECStatus (* p_AES_InitContext)(AESContext *cx,
+				 const unsigned char *key, 
+				 unsigned int keylen, 
+				 const unsigned char *iv, 
+				 int mode, 
+				 unsigned int encrypt,
+				 unsigned int blocklen);
+ SECStatus (* p_AESKeyWrap_InitContext)(AESKeyWrapContext *cx,
+				 const unsigned char *key, 
+				 unsigned int keylen, 
+				 const unsigned char *iv, 
+				 int mode, 
+				 unsigned int encrypt,
+				 unsigned int blocklen);
+ SECStatus (* p_DES_InitContext)(DESContext *cx,
+				 const unsigned char *key, 
+				 unsigned int keylen,
+				 const unsigned char *iv, 
+				 int mode,
+				 unsigned int encrypt,
+				 unsigned int );
+ SECStatus (* p_RC2_InitContext)(RC2Context *cx,
+				 const unsigned char *key, 
+				 unsigned int keylen,
+				 const unsigned char *iv, 
+				 int mode, 
+				 unsigned int effectiveKeyLen,
+				 unsigned int );
+ SECStatus (* p_RC4_InitContext)(RC4Context *cx, 
+				 const unsigned char *key, 
+				 unsigned int keylen,
+				 const unsigned char *, 
+				 int, 
+				 unsigned int ,
+				 unsigned int );
+
+ AESContext *(*p_AES_AllocateContext)(void);
+ AESKeyWrapContext *(*p_AESKeyWrap_AllocateContext)(void);
+ DESContext *(*p_DES_AllocateContext)(void);
+ RC2Context *(*p_RC2_AllocateContext)(void);
+ RC4Context *(*p_RC4_AllocateContext)(void);
+
+ void (* p_MD2_Clone)(MD2Context *dest, MD2Context *src);
+ void (* p_MD5_Clone)(MD5Context *dest, MD5Context *src);
+ void (* p_SHA1_Clone)(SHA1Context *dest, SHA1Context *src);
+ void (* p_SHA256_Clone)(SHA256Context *dest, SHA256Context *src);
+ void (* p_SHA384_Clone)(SHA384Context *dest, SHA384Context *src);
+ void (* p_SHA512_Clone)(SHA512Context *dest, SHA512Context *src);
+
+ SECStatus (* p_TLS_PRF)(const SECItem *secret, const char *label, 
+		         SECItem *seed, SECItem *result, PRBool isFIPS);
+
+ const SECHashObject *(* p_HASH_GetRawHashObject)(HASH_HashType hashType);
+
+ HMACContext * (* p_HMAC_Create)(const SECHashObject *hashObj, 
+				 const unsigned char *secret, 
+				 unsigned int secret_len, PRBool isFIPS);
+ SECStatus (* p_HMAC_Init)(HMACContext *cx, const SECHashObject *hash_obj, 
+			   const unsigned char *secret, 
+			   unsigned int secret_len, PRBool isFIPS);
+ void (* p_HMAC_Begin)(HMACContext *cx);
+ void  (* p_HMAC_Update)(HMACContext *cx, const unsigned char *data, 
+			 unsigned int data_len);
+ HMACContext * (* p_HMAC_Clone)(HMACContext *cx);
+ SECStatus (* p_HMAC_Finish)(HMACContext *cx, unsigned char *result, 
+			     unsigned int *result_len, 
+			     unsigned int max_result_len);
+ void (* p_HMAC_Destroy)(HMACContext *cx, PRBool freeit);
+
+ void (* p_RNG_SystemInfoForRNG)(void);
+
+  /* Version 3.008 came to here */
 };
 
 typedef struct FREEBLVectorStr FREEBLVector;

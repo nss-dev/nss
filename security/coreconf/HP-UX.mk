@@ -43,8 +43,17 @@ include $(CORE_DEPTH)/coreconf/UNIX.mk
 
 DEFAULT_COMPILER = cc
 
-CPU_ARCH   = hppa
-DLL_SUFFIX = sl
+ifeq ($(OS_TEST),ia64)
+	CPU_ARCH = ia64
+	CPU_TAG = _$(CPU_ARCH)
+	ifneq ($(USE_64),1)
+		64BIT_TAG = _32
+	endif
+	DLL_SUFFIX = so
+else
+	CPU_ARCH = hppa
+	DLL_SUFFIX = sl
+endif
 CC         = cc
 CCC        = CC
 OS_CFLAGS  += -Ae $(DSO_CFLAGS) -DHPUX -D$(CPU_ARCH) -D_HPUX_SOURCE -D_USE_BIG_FDS
@@ -71,10 +80,13 @@ MKSHLIB			= $(LD) $(DSO_LDOPTS)
 ifdef MAPFILE
 MKSHLIB += -c $(MAPFILE)
 endif
-PROCESS_MAP_FILE = grep -v ';+' $(LIBRARY_NAME).def | grep -v ';-' | \
+PROCESS_MAP_FILE = grep -v ';+' $< | grep -v ';-' | \
          sed -e 's; DATA ;;' -e 's,;;,,' -e 's,;.*,,' -e 's,^,+e ,' > $@
 
 DSO_LDOPTS		= -b +h $(notdir $@)
+ifeq ($(OS_TEST),ia64)
+	DSO_LDOPTS	+= +b '$$ORIGIN'
+endif
 DSO_LDFLAGS		=
 
 # +Z generates position independent code for use in shared libraries.

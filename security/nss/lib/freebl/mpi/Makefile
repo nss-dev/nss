@@ -89,7 +89,8 @@ VERS=1.7p6
 ##
 ## This is the list of source files that need to be packed into
 ## the distribution file
-SRCS=   mpi.c mpprime.c mplogic.c mp_gf2m.c mpmontg.c mpi-test.c primes.c tests/ \
+SRCS=   mpi.c mpprime.c mplogic.c mp_gf2m.c mpmontg.c mpi-test.c primes.c \
+	mpcpucache.c tests/ \
 	utils/gcd.c utils/invmod.c utils/lap.c \
 	utils/ptab.pl utils/sieve.c utils/isprime.c\
 	utils/dec2hex.c utils/hex2dec.c utils/bbs_rand.c \

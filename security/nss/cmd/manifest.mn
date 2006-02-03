@@ -41,7 +41,7 @@ DEPTH	= ../..
 REQUIRES = nss nspr libdbm
 
 DIRS = lib  \
- zlib \
+ $(ZLIB_SRCDIR) \
  addbuiltin \
  atob  \
  bltest \
@@ -50,9 +50,11 @@ DIRS = lib  \
  certutil  \
  checkcert  \
  crlutil  \
+ crmftest \
  dbtest \
  derdump  \
  digest  \
+ fipstest  \
  makepqg  \
  ocspclnt  \
  oidcalc  \
@@ -72,7 +74,6 @@ DIRS = lib  \
  SSLsample \
  ssltap  \
  strsclnt \
- swfort  \
  symkeyutil \
  tstclnt  \
  vfychain \

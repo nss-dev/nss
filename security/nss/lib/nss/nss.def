@@ -857,3 +857,18 @@ PK11_GenerateKeyPairWithFlags;
 ;+    local:
 ;+       *;
 ;+};
+;+NSS_3.11 { 	# NSS 3.11 release
+;+    global:
+CERT_CompareValidityTimes;
+PK11_CopyTokenPrivKeyToSessionPrivKey;
+PK11_FreeSlotListElement;
+PK11_GenerateRandomOnSlot;
+PK11_GetSymKeyUserData;
+PK11_MapSignKeyType;
+PK11_SetSymKeyUserData;
+SECMOD_CloseUserDB;
+SECMOD_HasRootCerts;
+SECMOD_OpenUserDB;
+;+    local:
+;+       *;
+;+};

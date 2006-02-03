@@ -63,8 +63,15 @@ nss_cmsrecipientinfo_usessubjectkeyid(NSSCMSRecipientInfo *ri)
     return PR_FALSE;
 }
 
-
-static SECOidData fakeContent = { 0 };
+/*
+ * NOTE: fakeContent marks CMSMessage structure which is only used as a carrier
+ * of pwfn_arg and arena pools. In an ideal world, NSSCMSMessage would not have
+ * been exported, and we would have added an ordinary enum to handle this 
+ * check. Unfortunatly wo don't have that luxury so we are overloading the
+ * contentTypeTag field. NO code should every try to interpret this content tag
+ * as a real OID tag, or use any fields other than pwfn_arg or poolp of this 
+ * CMSMessage for that matter */
+static const SECOidData fakeContent;
 NSSCMSRecipientInfo *
 nss_cmsrecipientinfo_create(NSSCMSMessage *cmsg, NSSCMSRecipientIDSelector type,
                             CERTCertificate *cert, SECKEYPublicKey *pubKey, 
@@ -183,8 +190,8 @@ nss_cmsrecipientinfo_create(NSSCMSMessage *cmsg, NSSCMSRecipientIDSelector type,
     case SEC_OID_MISSI_KEA_DSS_OLD:
     case SEC_OID_MISSI_KEA_DSS:
     case SEC_OID_MISSI_KEA:
-        PORT_Assert(type != NSSCMSRecipientID_SubjectKeyID);
-	if (type == NSSCMSRecipientID_SubjectKeyID) {
+	PORT_Assert(type == NSSCMSRecipientID_IssuerSN);
+	if (type != NSSCMSRecipientID_IssuerSN) {
 	    rv = SECFailure;
 	    break;
 	}
@@ -199,8 +206,8 @@ nss_cmsrecipientinfo_create(NSSCMSMessage *cmsg, NSSCMSRecipientIDSelector type,
 	}
 	break;
     case SEC_OID_X942_DIFFIE_HELMAN_KEY: /* dh-public-number */
-        PORT_Assert(type != NSSCMSRecipientID_SubjectKeyID);
-	if (type == NSSCMSRecipientID_SubjectKeyID) {
+	PORT_Assert(type == NSSCMSRecipientID_IssuerSN);
+	if (type != NSSCMSRecipientID_IssuerSN) {
 	    rv = SECFailure;
 	    break;
 	}

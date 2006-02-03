@@ -545,6 +545,7 @@ cert_GetCertType(CERTCertificate *cert)
 
     tmpitem.data = NULL;
     CERT_FindNSCertTypeExtension(cert, &tmpitem);
+    encodedExtKeyUsage.data = NULL;
     rv = CERT_FindCertExtension(cert, SEC_OID_X509_EXT_KEY_USAGE, 
 				&encodedExtKeyUsage);
     if (rv == SECSuccess) {
@@ -671,8 +672,10 @@ cert_GetCertType(CERTCertificate *cert)
 	}
     }
 
-    if (extKeyUsage != NULL) {
+    if (encodedExtKeyUsage.data != NULL) {
 	PORT_Free(encodedExtKeyUsage.data);
+    }
+    if (extKeyUsage != NULL) {
 	CERT_DestroyOidSequence(extKeyUsage);
     }
     /* Assert that it is safe to cast &cert->nsCertType to "PRInt32 *" */
@@ -1910,6 +1913,45 @@ CERT_IsRootDERCert(SECItem *derCert)
     return isRoot;
 }
 
+CERTCompareValidityStatus
+CERT_CompareValidityTimes(CERTValidity* val_a, CERTValidity* val_b)
+{
+    PRTime notBeforeA, notBeforeB, notAfterA, notAfterB;
+
+    if (!val_a || !val_b)
+    {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return certValidityUndetermined;
+    }
+
+    if ( SECSuccess != DER_DecodeTimeChoice(&notBeforeA, &val_a->notBefore) ||
+         SECSuccess != DER_DecodeTimeChoice(&notBeforeB, &val_b->notBefore) ||
+         SECSuccess != DER_DecodeTimeChoice(&notAfterA, &val_a->notAfter) ||
+         SECSuccess != DER_DecodeTimeChoice(&notAfterB, &val_b->notAfter) ) {
+        return certValidityUndetermined;
+    }
+
+    /* sanity check */
+    if (LL_CMP(notBeforeA,>,notAfterA) || LL_CMP(notBeforeB,>,notAfterB)) {
+        PORT_SetError(SEC_ERROR_INVALID_TIME);
+        return certValidityUndetermined;
+    }
+
+    if (LL_CMP(notAfterA,!=,notAfterB)) {
+        /* one cert validity goes farther into the future, select it */
+        return LL_CMP(notAfterA,<,notAfterB) ?
+            certValidityChooseB : certValidityChooseA;
+    }
+    /* the two certs have the same expiration date */
+    PORT_Assert(LL_CMP(notAfterA, == , notAfterB));
+    /* do they also have the same start date ? */
+    if (LL_CMP(notBeforeA,==,notBeforeB)) {
+	return certValidityEqual;
+    }
+    /* choose cert with the later start date */
+    return LL_CMP(notBeforeA,<,notBeforeB) ?
+        certValidityChooseB : certValidityChooseA;
+}
 
 /*
  * is certa newer than certb?  If one is expired, pick the other one.

@@ -157,6 +157,13 @@ SEC_CheckCRL(PCERTCertDBHandle *handle,PCERTCertificate *cert,
 
 SECStatus
 SEC_CrlReplaceUrl(PCERTSignedCrl *crl,char *url);
+
+/* Compare two certificate validity structures and return which cert should be
+** preferred, based first on newer notAfter, then on newer notBefore.
+*/
+CERTCompareValidityStatus
+CERT_CompareValidityTimes(CERTValidity* val_a, CERTValidity* val_b);
+
 #endif
 
 SEC_END_PROTOS

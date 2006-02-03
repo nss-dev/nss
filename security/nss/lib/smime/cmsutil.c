@@ -19,6 +19,7 @@
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
+ *   Dr Vipul Gupta <vipul.gupta@sun.com>, Sun Microsystems Laboratories
  *
  * Alternatively, the contents of this file may be used under the terms of
  * either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -115,7 +116,7 @@ NSS_CMSUtil_DERCompare(void *a, void *b)
 {
     SECItem *der1 = (SECItem *)a;
     SECItem *der2 = (SECItem *)b;
-    int j;
+    unsigned int j;
 
     /*
      * Find the lowest (lexigraphically) encoding.  One that is
@@ -252,6 +253,13 @@ NSS_CMSUtil_MakeSignatureAlgorithm(SECOidTag hashalg, SECOidTag encalg)
 	switch (hashalg) {
 	  case SEC_OID_SHA1:
 	    return SEC_OID_ANSIX9_DSA_SIGNATURE_WITH_SHA1_DIGEST;
+	  default:
+	    return SEC_OID_UNKNOWN;
+	}
+      case SEC_OID_ANSIX962_EC_PUBLIC_KEY:
+	switch (hashalg) {
+	  case SEC_OID_SHA1:
+	    return SEC_OID_ANSIX962_ECDSA_SIGNATURE_WITH_SHA1_DIGEST;
 	  default:
 	    return SEC_OID_UNKNOWN;
 	}

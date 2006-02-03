@@ -145,10 +145,15 @@ PK11_NewSlotList(void)
 /*
  * free a list element when all the references go away.
  */
-static void
-pk11_FreeListElement(PK11SlotList *list, PK11SlotListElement *le)
+SECStatus
+PK11_FreeSlotListElement(PK11SlotList *list, PK11SlotListElement *le)
 {
     PRBool freeit = PR_FALSE;
+
+    if (list == NULL || le == NULL) {
+	PORT_SetError(SEC_ERROR_INVALID_ARGS);
+	return SECFailure;
+    }
 
     PZ_Lock(list->lock);
     if (le->refCount-- == 1) {
@@ -159,6 +164,24 @@ pk11_FreeListElement(PK11SlotList *list, PK11SlotListElement *le)
     	PK11_FreeSlot(le->slot);
 	PORT_Free(le);
     }
+    return SECSuccess;
+}
+
+static void
+pk11_FreeSlotListStatic(PK11SlotList *list)
+{
+    PK11SlotListElement *le, *next ;
+    if (list == NULL) return;
+
+    for (le = list->head ; le; le = next) {
+	next = le->next;
+	PK11_FreeSlotListElement(list,le);
+    }
+    if (list->lock) {
+    	PZ_DestroyLock(list->lock);
+    }
+    list->lock = NULL;
+    list->head = NULL;
 }
 
 /*
@@ -168,14 +191,7 @@ pk11_FreeListElement(PK11SlotList *list, PK11SlotListElement *le)
 void
 PK11_FreeSlotList(PK11SlotList *list)
 {
-    PK11SlotListElement *le, *next ;
-    if (list == NULL) return;
-
-    for (le = list->head ; le; le = next) {
-	next = le->next;
-	pk11_FreeListElement(list,le);
-    }
-    PZ_DestroyLock(list->lock);
+    pk11_FreeSlotListStatic(list);
     PORT_Free(list);
 }
 
@@ -213,7 +229,7 @@ PK11_DeleteSlotFromList(PK11SlotList *list,PK11SlotListElement *le)
     if (le->next) le->next->prev = le->prev; else list->tail = le->prev;
     le->next = le->prev = NULL;
     PZ_Unlock(list->lock);
-    pk11_FreeListElement(list,le);
+    PK11_FreeSlotListElement(list,le);
     return SECSuccess;
 }
 
@@ -259,7 +275,7 @@ PK11_GetNextRef(PK11SlotList *list, PK11SlotListElement *le, PRBool restart)
     PK11SlotListElement *new_le;
     new_le = le->next;
     if (new_le) new_le->refCount++;
-    pk11_FreeListElement(list,le);
+    PK11_FreeSlotListElement(list,le);
     return new_le;
 }
 
@@ -300,7 +316,7 @@ PK11_GetNextSafe(PK11SlotList *list, PK11SlotListElement *le, PRBool restart)
     }
     if (new_le) new_le->refCount++;
     PZ_Unlock(list->lock);
-    pk11_FreeListElement(list,le);
+    PK11_FreeSlotListElement(list,le);
     return new_le;
 }
 
@@ -348,6 +364,7 @@ PK11_NewSlotInfo(SECMODModule *mod)
 	PORT_Free(slot);
 	return slot;
     }
+    slot->freeSymKeysWithSessionHead = NULL;
     slot->freeSymKeysHead = NULL;
     slot->keyCount = 0;
     slot->maxKeyCount = 0;
@@ -650,36 +667,53 @@ CK_SESSION_HANDLE PK11_GetRWSession(PK11SlotInfo *slot)
 {
     CK_SESSION_HANDLE rwsession;
     CK_RV crv;
+    PRBool haveMonitor = PR_FALSE;
 
-    if (!slot->isThreadSafe || slot->defRWSession) PK11_EnterSlotMonitor(slot);
-    if (slot->defRWSession) return slot->session;
+    if (!slot->isThreadSafe || slot->defRWSession) {
+    	PK11_EnterSlotMonitor(slot);
+	haveMonitor = PR_TRUE;
+    }
+    if (slot->defRWSession) {
+	PORT_Assert(slot->session != CK_INVALID_SESSION);
+	if (slot->session != CK_INVALID_SESSION) 
+	    return slot->session;
+    }
 
     crv = PK11_GETTAB(slot)->C_OpenSession(slot->slotID,
 				CKF_RW_SESSION|CKF_SERIAL_SESSION,
 				  	  slot, pk11_notify,&rwsession);
-    if (crv == CKR_SESSION_COUNT) {
-	PK11_GETTAB(slot)->C_CloseSession(slot->session);
-	slot->session = CK_INVALID_SESSION;
-    	crv = PK11_GETTAB(slot)->C_OpenSession(slot->slotID,
-				CKF_RW_SESSION|CKF_SERIAL_SESSION,
-				  	  slot,pk11_notify,&rwsession);
-    }
-    if (crv != CKR_OK) {
+    PORT_Assert(rwsession != CK_INVALID_SESSION || crv != CKR_OK);
+    if (crv != CKR_OK || rwsession == CK_INVALID_SESSION) {
+	if (crv == CKR_OK) 
+	    crv = CKR_DEVICE_ERROR;
+	if (haveMonitor)
+	    PK11_ExitSlotMonitor(slot);
 	PORT_SetError(PK11_MapError(crv));
-	if (slot->session == CK_INVALID_SESSION) {
-    	    PK11_GETTAB(slot)->C_OpenSession(slot->slotID,CKF_SERIAL_SESSION,
-				  	 slot,pk11_notify,&slot->session);
-	}
-	if (!slot->isThreadSafe) PK11_ExitSlotMonitor(slot);
 	return CK_INVALID_SESSION;
     }
-
+    if (slot->defRWSession) { /* we have the monitor */
+    	slot->session = rwsession;
+    }
     return rwsession;
 }
 
 PRBool
-PK11_RWSessionHasLock(PK11SlotInfo *slot,CK_SESSION_HANDLE session_handle) {
-    return (PRBool)(!slot->isThreadSafe || slot->defRWSession);
+PK11_RWSessionHasLock(PK11SlotInfo *slot,CK_SESSION_HANDLE session_handle) 
+{
+    PRBool hasLock;
+    hasLock = (PRBool)(!slot->isThreadSafe || 
+    	      (slot->defRWSession && slot->session != CK_INVALID_SESSION));
+    return hasLock;
+}
+
+static PRBool
+pk11_RWSessionIsDefault(PK11SlotInfo *slot,CK_SESSION_HANDLE rwsession)
+{
+    PRBool isDefault;
+    isDefault = (PRBool)(slot->session == rwsession &&
+    	                 slot->defRWSession && 
+			 slot->session != CK_INVALID_SESSION);
+    return isDefault;
 }
 
 /*
@@ -690,16 +724,14 @@ PK11_RWSessionHasLock(PK11SlotInfo *slot,CK_SESSION_HANDLE session_handle) {
 void
 PK11_RestoreROSession(PK11SlotInfo *slot,CK_SESSION_HANDLE rwsession)
 {
-    if (slot->defRWSession) {
-	PK11_ExitSlotMonitor(slot);
-	return;
+    PORT_Assert(rwsession != CK_INVALID_SESSION);
+    if (rwsession != CK_INVALID_SESSION) {
+    	PRBool doExit = PK11_RWSessionHasLock(slot, rwsession);
+	if (!pk11_RWSessionIsDefault(slot, rwsession))
+	    PK11_GETTAB(slot)->C_CloseSession(rwsession);
+	if (doExit)
+	    PK11_ExitSlotMonitor(slot);
     }
-    PK11_GETTAB(slot)->C_CloseSession(rwsession);
-    if (slot->session == CK_INVALID_SESSION) {
-    	 PK11_GETTAB(slot)->C_OpenSession(slot->slotID,CKF_SERIAL_SESSION,
-				  	 slot,pk11_notify,&slot->session);
-    }
-    if (!slot->isThreadSafe) PK11_ExitSlotMonitor(slot);
 }
 
 /************************************************************
@@ -709,75 +741,59 @@ PK11_RestoreROSession(PK11SlotInfo *slot,CK_SESSION_HANDLE rwsession)
 /* Init the static built int slot list (should actually integrate
  * with PK11_NewSlotList */
 static void
-pk11_initSlotList(PK11SlotList *list)
+pk11_InitSlotListStatic(PK11SlotList *list)
 {
     list->lock = PZ_NewLock(nssILockList);
     list->head = NULL;
 }
 
-static void
-pk11_freeSlotList(PK11SlotList *list)
-{
-    PK11SlotListElement *le, *next ;
-    if (list == NULL) return;
-
-    for (le = list->head ; le; le = next) {
-	next = le->next;
-	pk11_FreeListElement(list,le);
-    }
-    if (list->lock) {
-    	PZ_DestroyLock(list->lock);
-    }
-    list->lock = NULL;
-    list->head = NULL;
-}
 
 /* initialize the system slotlists */
 SECStatus
 PK11_InitSlotLists(void)
 {
-    pk11_initSlotList(&pk11_aesSlotList);
-    pk11_initSlotList(&pk11_desSlotList);
-    pk11_initSlotList(&pk11_rc4SlotList);
-    pk11_initSlotList(&pk11_rc2SlotList);
-    pk11_initSlotList(&pk11_rc5SlotList);
-    pk11_initSlotList(&pk11_md5SlotList);
-    pk11_initSlotList(&pk11_md2SlotList);
-    pk11_initSlotList(&pk11_sha1SlotList);
-    pk11_initSlotList(&pk11_rsaSlotList);
-    pk11_initSlotList(&pk11_dsaSlotList);
-    pk11_initSlotList(&pk11_dhSlotList);
-    pk11_initSlotList(&pk11_ecSlotList);
-    pk11_initSlotList(&pk11_ideaSlotList);
-    pk11_initSlotList(&pk11_sslSlotList);
-    pk11_initSlotList(&pk11_tlsSlotList);
-    pk11_initSlotList(&pk11_randomSlotList);
-    pk11_initSlotList(&pk11_sha256SlotList);
-    pk11_initSlotList(&pk11_sha512SlotList);
+    pk11_InitSlotListStatic(&pk11_aesSlotList);
+    pk11_InitSlotListStatic(&pk11_desSlotList);
+    pk11_InitSlotListStatic(&pk11_rc4SlotList);
+    pk11_InitSlotListStatic(&pk11_rc2SlotList);
+    pk11_InitSlotListStatic(&pk11_rc5SlotList);
+    pk11_InitSlotListStatic(&pk11_md5SlotList);
+    pk11_InitSlotListStatic(&pk11_md2SlotList);
+    pk11_InitSlotListStatic(&pk11_sha1SlotList);
+    pk11_InitSlotListStatic(&pk11_rsaSlotList);
+    pk11_InitSlotListStatic(&pk11_dsaSlotList);
+    pk11_InitSlotListStatic(&pk11_dhSlotList);
+    pk11_InitSlotListStatic(&pk11_ecSlotList);
+    pk11_InitSlotListStatic(&pk11_ideaSlotList);
+    pk11_InitSlotListStatic(&pk11_sslSlotList);
+    pk11_InitSlotListStatic(&pk11_tlsSlotList);
+    pk11_InitSlotListStatic(&pk11_randomSlotList);
+    pk11_InitSlotListStatic(&pk11_sha256SlotList);
+    pk11_InitSlotListStatic(&pk11_sha512SlotList);
     return SECSuccess;
 }
 
 void
 PK11_DestroySlotLists(void)
 {
-    pk11_freeSlotList(&pk11_aesSlotList);
-    pk11_freeSlotList(&pk11_desSlotList);
-    pk11_freeSlotList(&pk11_rc4SlotList);
-    pk11_freeSlotList(&pk11_rc2SlotList);
-    pk11_freeSlotList(&pk11_rc5SlotList);
-    pk11_freeSlotList(&pk11_md5SlotList);
-    pk11_freeSlotList(&pk11_md2SlotList);
-    pk11_freeSlotList(&pk11_sha1SlotList);
-    pk11_freeSlotList(&pk11_rsaSlotList);
-    pk11_freeSlotList(&pk11_dsaSlotList);
-    pk11_freeSlotList(&pk11_dhSlotList);
-    pk11_freeSlotList(&pk11_ecSlotList);
-    pk11_freeSlotList(&pk11_ideaSlotList);
-    pk11_freeSlotList(&pk11_sslSlotList);
-    pk11_freeSlotList(&pk11_tlsSlotList);
-    pk11_freeSlotList(&pk11_randomSlotList);
-    pk11_freeSlotList(&pk11_sha256SlotList);
-    pk11_freeSlotList(&pk11_sha512SlotList);
+    pk11_FreeSlotListStatic(&pk11_aesSlotList);
+    pk11_FreeSlotListStatic(&pk11_desSlotList);
+    pk11_FreeSlotListStatic(&pk11_rc4SlotList);
+    pk11_FreeSlotListStatic(&pk11_rc2SlotList);
+    pk11_FreeSlotListStatic(&pk11_rc5SlotList);
+    pk11_FreeSlotListStatic(&pk11_md5SlotList);
+    pk11_FreeSlotListStatic(&pk11_md2SlotList);
+    pk11_FreeSlotListStatic(&pk11_sha1SlotList);
+    pk11_FreeSlotListStatic(&pk11_rsaSlotList);
+    pk11_FreeSlotListStatic(&pk11_dsaSlotList);
+    pk11_FreeSlotListStatic(&pk11_dhSlotList);
+    pk11_FreeSlotListStatic(&pk11_ecSlotList);
+    pk11_FreeSlotListStatic(&pk11_ideaSlotList);
+    pk11_FreeSlotListStatic(&pk11_sslSlotList);
+    pk11_FreeSlotListStatic(&pk11_tlsSlotList);
+    pk11_FreeSlotListStatic(&pk11_randomSlotList);
+    pk11_FreeSlotListStatic(&pk11_sha256SlotList);
+    pk11_FreeSlotListStatic(&pk11_sha512SlotList);
     return;
 }
 
@@ -955,7 +971,7 @@ PK11_ClearSlotList(PK11SlotInfo *slot)
 
 	    if (le) {
 		PK11_DeleteSlotFromList(slotList,le);
-		pk11_FreeListElement(slotList,le);
+		PK11_FreeSlotListElement(slotList,le);
 	    }
 	}
     }
@@ -2065,7 +2081,7 @@ PK11_GetBestSlotMultiple(CK_MECHANISM_TYPE *type, int mech_count, void *wincx)
 	    }
 	    slot = le->slot;
 	    PK11_ReferenceSlot(slot);
-	    pk11_FreeListElement(list,le);
+	    PK11_FreeSlotListElement(list,le);
 	    if (freeit) { PK11_FreeSlotList(list); }
 	    return slot;
 	}
@@ -2106,9 +2122,29 @@ PK11_SeedRandom(PK11SlotInfo *slot, unsigned char *data, int len) {
     CK_RV crv;
 
     PK11_EnterSlotMonitor(slot);
-    crv = PK11_GETTAB(slot)->C_SeedRandom(slot->session,data, (CK_ULONG)len);
+    crv = PK11_GETTAB(slot)->C_SeedRandom(slot->session, data, (CK_ULONG)len);
     PK11_ExitSlotMonitor(slot);
-    return (crv != CKR_OK) ? SECFailure : SECSuccess;
+    if (crv != CKR_OK) {
+	PORT_SetError(PK11_MapError(crv));
+	return SECFailure;
+    }
+    return SECSuccess;
+}
+
+
+SECStatus
+PK11_GenerateRandomOnSlot(PK11SlotInfo *slot, unsigned char *data, int len) {
+    CK_RV crv;
+
+    if (!slot->isInternal) PK11_EnterSlotMonitor(slot);
+    crv = PK11_GETTAB(slot)->C_GenerateRandom(slot->session,data, 
+							(CK_ULONG)len);
+    if (!slot->isInternal) PK11_ExitSlotMonitor(slot);
+    if (crv != CKR_OK) {
+	PORT_SetError(PK11_MapError(crv));
+	return  SECFailure;
+    }
+    return SECSuccess;
 }
 
 /* Attempts to update the Best Slot for "FAKE RANDOM" generation.
@@ -2147,17 +2183,14 @@ PK11_RandomUpdate(void *data, size_t bytes)
 SECStatus
 PK11_GenerateRandom(unsigned char *data,int len) {
     PK11SlotInfo *slot;
-    CK_RV crv;
+    SECStatus rv;
 
     slot = PK11_GetBestSlot(CKM_FAKE_RANDOM,NULL);
     if (slot == NULL) return SECFailure;
 
-    if (!slot->isInternal) PK11_EnterSlotMonitor(slot);
-    crv = PK11_GETTAB(slot)->C_GenerateRandom(slot->session,data, 
-							(CK_ULONG)len);
-    if (!slot->isInternal) PK11_ExitSlotMonitor(slot);
+    rv = PK11_GenerateRandomOnSlot(slot, data, len);
     PK11_FreeSlot(slot);
-    return (crv != CKR_OK) ? SECFailure : SECSuccess;
+    return rv;
 }
 
 /*

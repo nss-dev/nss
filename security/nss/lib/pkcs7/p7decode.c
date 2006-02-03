@@ -19,6 +19,7 @@
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
+ *   Dr Vipul Gupta <vipul.gupta@sun.com>, Sun Microsystems Laboratories
  *
  * Alternatively, the contents of this file may be used under the terms of
  * either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -689,16 +690,6 @@ sec_pkcs7_decoder_start_decrypt (SEC_PKCS7DecoderContext *p7dcx, int depth,
      */
     decryptobj = sec_PKCS7CreateDecryptObject (bulkkey,
 					       &(enccinfo->contentEncAlg));
-
-    /* 
-     * For PKCS5 Encryption Algorithms, the bulkkey is actually a different
-     * structure.  Therefore, we need to set the bulkkey to the actual key 
-     * prior to freeing it.
-     */
-    if ( SEC_PKCS5IsAlgorithmPBEAlg(&(enccinfo->contentEncAlg)) && bulkkey ) {
-	SEC_PKCS5KeyAndPassword *keyPwd = (SEC_PKCS5KeyAndPassword *)bulkkey;
-	bulkkey = keyPwd->key;
-    }
 
     /*
      * We are done with (this) bulkkey now.
@@ -1674,6 +1665,7 @@ sec_pkcs7_verify_signature(SEC_PKCS7ContentInfo *cinfo,
     algiddata = SECOID_FindOID (&(signerinfo->digestEncAlg.algorithm));
     if (algiddata == NULL ||
 	((algiddata->offset != SEC_OID_PKCS1_RSA_ENCRYPTION) &&
+	 (algiddata->offset != SEC_OID_ANSIX962_EC_PUBLIC_KEY) &&
 	 (algiddata->offset != SEC_OID_ANSIX9_DSA_SIGNATURE))) {
 	PORT_SetError (SEC_ERROR_PKCS7_BAD_SIGNATURE);
 	goto done;
@@ -1743,6 +1735,10 @@ sec_pkcs7_verify_signature(SEC_PKCS7ContentInfo *cinfo,
 	    goto done;
 	}
 
+	/*
+	 * XXX the 5th (algid) argument should be the signature algorithm.
+	 * See sec_pkcs7_pick_sign_alg in p7encode.c.
+	 */
 	goodsig = (PRBool)(VFY_VerifyData (encoded_attrs.data, 
 				   encoded_attrs.len,
 				   publickey, &(signerinfo->encDigest),
@@ -1801,6 +1797,10 @@ sec_pkcs7_verify_signature(SEC_PKCS7ContentInfo *cinfo,
 	    sig = &holder;
 	}
 
+	/*
+	 * XXX the 4th (algid) argument should be the signature algorithm.
+	 * See sec_pkcs7_pick_sign_alg in p7encode.c.
+	 */
 	goodsig = (PRBool)(VFY_VerifyDigest (digest, publickey, sig,
 				     SECOID_GetAlgorithmTag(&(signerinfo->digestEncAlg)),
 				     cinfo->pwfn_arg)

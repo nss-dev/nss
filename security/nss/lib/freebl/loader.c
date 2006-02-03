@@ -44,190 +44,242 @@
 #include "prerror.h"
 #include "prinit.h"
 
-#if defined(SOLARIS)
+static const char* default_name =
+    SHLIB_PREFIX"freebl"SHLIB_VERSION"."SHLIB_SUFFIX;
+
+/* getLibName() returns the name of the library to load. */
+
+#if defined(SOLARIS) && defined(__sparc)
 #include <stddef.h>
 #include <strings.h>
 #include <sys/systeminfo.h>
-#if defined(SOLARIS2_5)
-static int
-isHybrid(void)
-{
-    long buflen;
-    int  rv             = 0;    /* false */
-    char buf[256];
-    buflen = sysinfo(SI_MACHINE, buf, sizeof buf);
-    if (buflen > 0) {
-        rv = (!strcmp(buf, "sun4u") || !strcmp(buf, "sun4u1"));
-    }
-    return rv;
-}
-#else   /* SunOS2.6or higher has SI_ISALIST */
 
-static int
-isHybrid(void)
-{
-    long buflen;
-    int  rv             = 0;    /* false */
-    char buf[256];
-    buflen = sysinfo(SI_ISALIST, buf, sizeof buf);
-    if (buflen > 0) {
+
 #if defined(NSS_USE_64)
-        char * found = strstr(buf, "sparcv9+vis");
+
+const static char fpu_hybrid_shared_lib[] = "libfreebl_64fpu_3.so";
+const static char int_hybrid_shared_lib[] = "libfreebl_64int_3.so";
+const static char non_hybrid_shared_lib[] = "libfreebl_64fpu_3.so";
+
+const static char int_hybrid_isa[] = "sparcv9";
+const static char fpu_hybrid_isa[] = "sparcv9+vis";
+
 #else
-        char * found = strstr(buf, "sparcv8plus+vis");
+
+const static char fpu_hybrid_shared_lib[] = "libfreebl_32fpu_3.so";
+const static char int_hybrid_shared_lib[] = "libfreebl_32int64_3.so";
+const static char non_hybrid_shared_lib[] = "libfreebl_32int_3.so";
+
+const static char int_hybrid_isa[] = "sparcv8plus";
+const static char fpu_hybrid_isa[] = "sparcv8plus+vis";
+
 #endif
-        rv = (found != 0);
+
+static const char *
+getLibName(void)
+{
+    char * found_int_hybrid;
+    char * found_fpu_hybrid;
+    long buflen;
+    char buf[256];
+
+    buflen = sysinfo(SI_ISALIST, buf, sizeof buf);
+    if (buflen <= 0) 
+	return NULL;
+    /* The ISA list is a space separated string of names of ISAs and
+     * ISA extensions, in order of decreasing performance.
+     * There are two different ISAs with which NSS's crypto code can be
+     * accelerated. If both are in the list, we take the first one.
+     * If one is in the list, we use it, and if neither then we use
+     * the base unaccelerated code.
+     */
+    found_int_hybrid = strstr(buf, int_hybrid_isa);
+    found_fpu_hybrid = strstr(buf, fpu_hybrid_isa);
+    if (found_fpu_hybrid && 
+	(!found_int_hybrid ||
+	 (found_int_hybrid - found_fpu_hybrid) >= 0)) {
+	return fpu_hybrid_shared_lib;
     }
-    return rv;
+    if (found_int_hybrid) {
+	return int_hybrid_shared_lib;
+    }
+    return non_hybrid_shared_lib;
 }
-#endif
-#elif defined(HPUX)
+
+#elif defined(HPUX) && !defined(NSS_USE_64) && !defined(__ia64)
 /* This code tests to see if we're running on a PA2.x CPU.
 ** It returns true (1) if so, and false (0) otherwise.
 */
-static int 
-isHybrid(void)
+static const char *
+getLibName(void)
 {
     long cpu = sysconf(_SC_CPU_VERSION);
-    return (cpu == CPU_PA_RISC2_0);
+    return (cpu == CPU_PA_RISC2_0) 
+		? "libfreebl_32fpu_3.sl"
+	        : "libfreebl_32int32_3.sl" ;
 }
-
 #else
-#error "code for this platform is missing."
+/* default case, for platforms/ABIs that have only one freebl shared lib. */
+static const char * getLibName(void) { return default_name; }
 #endif
+
+#ifdef XP_UNIX
+#include <unistd.h>
+
+#define BL_MAXSYMLINKS 20
 
 /*
- * On Solaris, if an application using libnss3.so is linked
- * with the -R linker option, the -R search patch is only used
- * to search for the direct dependencies of the application
- * (such as libnss3.so) and is not used to search for the
- * dependencies of libnss3.so.  So we build libnss3.so with
- * the -R '$ORIGIN' linker option to instruct it to search for
- * its dependencies (libfreebl_*.so) in the same directory
- * where it resides.  This requires that libnss3.so, not
- * libnspr4.so, be the shared library that calls dlopen().
- * Therefore we have to duplicate the relevant code in the PR
- * load library functions here.
+ * If 'link' is a symbolic link, this function follows the symbolic links
+ * and returns the pathname of the ultimate source of the symbolic links.
+ * If 'link' is not a symbolic link, this function returns NULL.
+ * The caller should call PR_Free to free the string returned by this
+ * function.
+ */
+static char* bl_GetOriginalPathname(const char* link)
+{
+    char* resolved = NULL;
+    char* input = NULL;
+    PRUint32 iterations = 0;
+    PRInt32 len = 0, retlen = 0;
+    if (!link) {
+        PR_SetError(PR_INVALID_ARGUMENT_ERROR, 0);
+        return NULL;
+    }
+    len = PR_MAX(1024, strlen(link) + 1);
+    resolved = PR_Malloc(len);
+    input = PR_Malloc(len);
+    if (!resolved || !input) {
+        if (resolved) {
+            PR_Free(resolved);
+        }
+        if (input) {
+            PR_Free(input);
+        }
+        return NULL;
+    }
+    strcpy(input, link);
+    while ( (iterations++ < BL_MAXSYMLINKS) &&
+            ( (retlen = readlink(input, resolved, len - 1)) > 0) ) {
+        char* tmp = input;
+        resolved[retlen] = '\0'; /* NULL termination */
+        input = resolved;
+        resolved = tmp;
+    }
+    PR_Free(resolved);
+    if (iterations == 1 && retlen < 0) {
+        PR_Free(input);
+        input = NULL;
+    }
+    return input;
+}
+#endif /* XP_UNIX */
+
+/*
+ * We use PR_GetLibraryFilePathname to get the pathname of the loaded 
+ * shared lib that contains this function, and then do a PR_LoadLibrary
+ * with an absolute pathname for the freebl shared library.
  */
 
-#if defined(SOLARIS)
+#include "prio.h"
+#include "prprf.h"
+#include <stdio.h>
+#include "prsystem.h"
 
-#include <dlfcn.h>
+const char* softoken=SHLIB_PREFIX"softokn"SOFTOKEN_SHLIB_VERSION"."SHLIB_SUFFIX;
 
 typedef struct {
-    void *dlh;
+    PRLibrary *dlh;
 } BLLibrary;
 
-static BLLibrary *
-bl_LoadLibrary(const char *name)
+/*
+ * Load the freebl library with the file name 'name' residing in the same
+ * directory as libsoftoken, whose pathname is 'softokenPath'.
+ */
+static PRLibrary *
+bl_LoadFreeblLibInSoftokenDir(const char *softokenPath, const char *name)
 {
-    BLLibrary *lib;
-    const char *error;
-    Dl_info dli;
+    PRLibrary *dlh = NULL;
+    char *fullName = NULL;
+    char* c;
+    PRLibSpec libSpec;
 
-    lib = PR_NEWZAP(BLLibrary);
-    if (NULL == lib) {
-        PR_SetError(PR_OUT_OF_MEMORY_ERROR, 0);
-        return NULL;
-    }
-
-    /*
-     * In setuid applications, Solaris is unwilling to load freebl unless
-     * we specify an absolute path.  We construct one from the path of the
-     * library that contains this function.
-     */
-    if (dladdr((void *)bl_LoadLibrary, &dli) != 0) {
-        const char *slash = strrchr(dli.dli_fname, '/');
-        if (slash) {
-            size_t dirsize = slash - dli.dli_fname + 1;
-            char *pathname = PR_Malloc(dirsize + strlen(name) + 1);
-            if (NULL == pathname) {
-                PR_Free(lib);
-                PR_SetError(PR_OUT_OF_MEMORY_ERROR, 0);
-                return NULL;
-            }
-            memcpy(pathname, dli.dli_fname, dirsize);
-            strcpy(pathname + dirsize, name);
-            lib->dlh = dlopen(pathname, RTLD_NOW | RTLD_LOCAL);
-            PR_Free(pathname);
-            if (NULL != lib->dlh)
-                return lib;
+    /* Remove "libsoftokn" from the pathname and add the freebl libname */
+    c = strrchr(softokenPath, PR_GetDirectorySeparator());
+    if (c) {
+        size_t softoknPathSize = 1 + c - softokenPath;
+        fullName = (char*) PORT_Alloc(strlen(name) + softoknPathSize + 1);
+        if (fullName) {
+            memcpy(fullName, softokenPath, softoknPathSize);
+            strcpy(fullName + softoknPathSize, name); 
+#ifdef DEBUG_LOADER
+            PR_fprintf(PR_STDOUT, "\nAttempting to load fully-qualified %s\n", 
+                       fullName);
+#endif
+            libSpec.type = PR_LibSpec_Pathname;
+            libSpec.value.pathname = fullName;
+            dlh = PR_LoadLibraryWithFlags(libSpec, PR_LD_NOW | PR_LD_LOCAL);
+            PORT_Free(fullName);
         }
     }
-
-    lib->dlh = dlopen(name, RTLD_NOW | RTLD_LOCAL);
-    if (NULL == lib->dlh) {
-        PR_SetError(PR_LOAD_LIBRARY_ERROR, 0);
-        error = dlerror();
-        if (NULL != error)
-            PR_SetErrorText(strlen(error), error);
-        PR_Free(lib);
-        return NULL;
-    }
-    return lib;
+    return dlh;
 }
-
-static void *
-bl_FindSymbol(BLLibrary *lib, const char *name)
-{
-    void *f;
-    const char *error;
-
-    f = dlsym(lib->dlh, name);
-    if (NULL == f) {
-        PR_SetError(PR_FIND_SYMBOL_ERROR, 0);
-        error = dlerror();
-        if (NULL != error)
-            PR_SetErrorText(strlen(error), error);
-    }
-    return f;
-}
-
-static PRStatus
-bl_UnloadLibrary(BLLibrary *lib)
-{
-    const char *error;
-
-    if (dlclose(lib->dlh) == -1) {
-        PR_SetError(PR_UNLOAD_LIBRARY_ERROR, 0);
-        error = dlerror();
-        if (NULL != error)
-            PR_SetErrorText(strlen(error), error);
-        return PR_FAILURE;
-    }
-    PR_Free(lib);
-    return PR_SUCCESS;
-}
-
-#elif defined(HPUX)
-
-#include <dl.h>
-#include <string.h>
-#include <errno.h>
-
-typedef struct {
-    shl_t dlh;
-} BLLibrary;
 
 static BLLibrary *
 bl_LoadLibrary(const char *name)
 {
-    BLLibrary *lib;
-    const char *error;
+    BLLibrary *lib = NULL;
+    PRFuncPtr fn_addr;
+    char* softokenPath = NULL;
+    PRLibSpec libSpec;
 
     lib = PR_NEWZAP(BLLibrary);
     if (NULL == lib) {
         PR_SetError(PR_OUT_OF_MEMORY_ERROR, 0);
         return NULL;
     }
-    lib->dlh = shl_load(name, DYNAMIC_PATH | BIND_IMMEDIATE, 0L);
+
+    /* Get the pathname for the loaded libsoftokn, i.e. /usr/lib/libsoftokn3.so
+     * PR_GetLibraryFilePathname works with either the base library name or a
+     * function pointer, depending on the platform. We can't query an exported
+     * symbol such as NSC_GetFunctionList, because on some platforms we can't
+     * find symbols in loaded implicit dependencies such as libsoftokn.
+     * But we can just get the address of this function !
+     */
+    fn_addr = (PRFuncPtr) &bl_LoadLibrary;
+    softokenPath = PR_GetLibraryFilePathname(softoken, fn_addr);
+
+    if (softokenPath) {
+        lib->dlh = bl_LoadFreeblLibInSoftokenDir(softokenPath, name);
+#ifdef XP_UNIX
+        if (!lib->dlh) {
+            /*
+             * If softokenPath is a symbolic link, resolve the symbolic
+             * link and try again.
+             */
+            char* originalSoftokenPath = bl_GetOriginalPathname(softokenPath);
+            if (originalSoftokenPath) {
+                PR_Free(softokenPath);
+                softokenPath = originalSoftokenPath;
+                lib->dlh = bl_LoadFreeblLibInSoftokenDir(softokenPath, name);
+            }
+        }
+#endif
+        PR_Free(softokenPath);
+    }
+    if (!lib->dlh) {
+#ifdef DEBUG_LOADER
+        PR_fprintf(PR_STDOUT, "\nAttempting to load %s\n", name);
+#endif
+        libSpec.type = PR_LibSpec_Pathname;
+        libSpec.value.pathname = name;
+        lib->dlh = PR_LoadLibraryWithFlags(libSpec, PR_LD_NOW | PR_LD_LOCAL);
+    }
     if (NULL == lib->dlh) {
-        PR_SetError(PR_LOAD_LIBRARY_ERROR, errno);
-        error = strerror(errno);
-        if (NULL != error)
-            PR_SetErrorText(strlen(error), error);
+#ifdef DEBUG_LOADER
+        PR_fprintf(PR_STDOUT, "\nLoading failed : %s.\n", name);
+#endif
         PR_Free(lib);
-        return NULL;
+        lib = NULL;
     }
     return lib;
 }
@@ -236,37 +288,20 @@ static void *
 bl_FindSymbol(BLLibrary *lib, const char *name)
 {
     void *f;
-    const char *error;
 
-    if (shl_findsym(&lib->dlh, name, TYPE_PROCEDURE, &f) == -1) {
-        f = NULL;
-        PR_SetError(PR_FIND_SYMBOL_ERROR, errno);
-        error = strerror(errno);
-        if (NULL != error)
-            PR_SetErrorText(strlen(error), error);
-    }
+    f = PR_FindSymbol(lib->dlh, name);
     return f;
 }
 
 static PRStatus
 bl_UnloadLibrary(BLLibrary *lib)
 {
-    const char *error;
-
-    if (shl_unload(lib->dlh) == -1) {
-        PR_SetError(PR_UNLOAD_LIBRARY_ERROR, errno);
-        error = strerror(errno);
-        if (NULL != error)
-            PR_SetErrorText(strlen(error), error);
+    if (PR_SUCCESS != PR_UnloadLibrary(lib->dlh)) {
         return PR_FAILURE;
     }
     PR_Free(lib);
     return PR_SUCCESS;
 }
-
-#else
-#error "code for this platform is missing."
-#endif
 
 #define LSB(x) ((x)&0xff)
 #define MSB(x) ((x)>>8)
@@ -279,18 +314,13 @@ static const char *libraryName = NULL;
 static PRStatus
 freebl_LoadDSO( void ) 
 {
-  int          hybrid   = isHybrid();
   BLLibrary *  handle;
-  const char * name;
+  const char * name = getLibName();
 
-  name = hybrid ?
-#if defined( AIX )
-	       "libfreebl_hybrid_3_shr.a" : "libfreebl_pure32_3_shr.a";
-#elif defined( HPUX )
-               "libfreebl_hybrid_3.sl"    : "libfreebl_pure32_3.sl";
-#else
-               "libfreebl_hybrid_3.so"    : "libfreebl_pure32_3.so";
-#endif
+  if (!name) {
+    PR_SetError(PR_LOAD_LIBRARY_ERROR, 0);
+    return PR_FAILURE;
+  }
 
   handle = bl_LoadLibrary(name);
   if (handle) {
@@ -1373,3 +1403,231 @@ ECDSA_SignDigestWithSeed(ECPrivateKey * key, SECItem * signature,
       seed, seedlen );
 }
 
+/* ============== New for 3.008 =============================== */
+
+AESContext *
+AES_AllocateContext(void)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return NULL;
+  return (vector->p_AES_AllocateContext)();
+}
+
+AESKeyWrapContext *
+AESKeyWrap_AllocateContext(void)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return NULL;
+  return (vector->p_AESKeyWrap_AllocateContext)();
+}
+
+DESContext *
+DES_AllocateContext(void)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return NULL;
+  return (vector->p_DES_AllocateContext)();
+}
+
+RC2Context *
+RC2_AllocateContext(void)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return NULL;
+  return (vector->p_RC2_AllocateContext)();
+}
+
+RC4Context *
+RC4_AllocateContext(void)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return NULL;
+  return (vector->p_RC4_AllocateContext)();
+}
+
+SECStatus 
+AES_InitContext(AESContext *cx, const unsigned char *key, 
+		unsigned int keylen, const unsigned char *iv, int mode,
+		unsigned int encrypt, unsigned int blocklen)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return SECFailure;
+  return (vector->p_AES_InitContext)(cx, key, keylen, iv, mode, encrypt, 
+				     blocklen);
+}
+
+SECStatus 
+AESKeyWrap_InitContext(AESKeyWrapContext *cx, const unsigned char *key, 
+		unsigned int keylen, const unsigned char *iv, int mode,
+		unsigned int encrypt, unsigned int blocklen)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return SECFailure;
+  return (vector->p_AESKeyWrap_InitContext)(cx, key, keylen, iv, mode, 
+					    encrypt, blocklen);
+}
+
+SECStatus 
+DES_InitContext(DESContext *cx, const unsigned char *key, 
+		unsigned int keylen, const unsigned char *iv, int mode,
+		unsigned int encrypt, unsigned int xtra)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return SECFailure;
+  return (vector->p_DES_InitContext)(cx, key, keylen, iv, mode, encrypt, xtra);
+}
+
+SECStatus 
+RC2_InitContext(RC2Context *cx, const unsigned char *key, 
+		unsigned int keylen, const unsigned char *iv, int mode,
+		unsigned int effectiveKeyLen, unsigned int xtra)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return SECFailure;
+  return (vector->p_RC2_InitContext)(cx, key, keylen, iv, mode, 
+				     effectiveKeyLen, xtra);
+}
+
+SECStatus 
+RC4_InitContext(RC4Context *cx, const unsigned char *key, 
+		unsigned int keylen, const unsigned char *x1, int x2,
+		unsigned int x3, unsigned int x4)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return SECFailure;
+  return (vector->p_RC4_InitContext)(cx, key, keylen, x1, x2, x3, x4);
+}
+
+void 
+MD2_Clone(MD2Context *dest, MD2Context *src)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return;
+  (vector->p_MD2_Clone)(dest, src);
+}
+
+void 
+MD5_Clone(MD5Context *dest, MD5Context *src)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return;
+  (vector->p_MD5_Clone)(dest, src);
+}
+
+void 
+SHA1_Clone(SHA1Context *dest, SHA1Context *src)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return;
+  (vector->p_SHA1_Clone)(dest, src);
+}
+
+void 
+SHA256_Clone(SHA256Context *dest, SHA256Context *src)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return;
+  (vector->p_SHA256_Clone)(dest, src);
+}
+
+void 
+SHA384_Clone(SHA384Context *dest, SHA384Context *src)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return;
+  (vector->p_SHA384_Clone)(dest, src);
+}
+
+void 
+SHA512_Clone(SHA512Context *dest, SHA512Context *src)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return;
+  (vector->p_SHA512_Clone)(dest, src);
+}
+
+SECStatus 
+TLS_PRF(const SECItem *secret, const char *label, 
+		     SECItem *seed, SECItem *result, PRBool isFIPS)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return SECFailure;
+  return (vector->p_TLS_PRF)(secret, label, seed, result, isFIPS);
+}
+
+const SECHashObject *
+HASH_GetRawHashObject(HASH_HashType hashType)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return NULL;
+  return (vector->p_HASH_GetRawHashObject)(hashType);
+}
+
+
+void
+HMAC_Destroy(HMACContext *cx, PRBool freeit)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return;
+  (vector->p_HMAC_Destroy)(cx, freeit);
+}
+
+HMACContext *
+HMAC_Create(const SECHashObject *hashObj, const unsigned char *secret, 
+	    unsigned int secret_len, PRBool isFIPS)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return NULL;
+  return (vector->p_HMAC_Create)(hashObj, secret, secret_len, isFIPS);
+}
+
+SECStatus
+HMAC_Init(HMACContext *cx, const SECHashObject *hashObj, 
+	  const unsigned char *secret, unsigned int secret_len, PRBool isFIPS)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return SECFailure;
+  return (vector->p_HMAC_Init)(cx, hashObj, secret, secret_len, isFIPS);
+}
+
+void
+HMAC_Begin(HMACContext *cx)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return;
+  (vector->p_HMAC_Begin)(cx);
+}
+
+void 
+HMAC_Update(HMACContext *cx, const unsigned char *data, unsigned int data_len)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return;
+  (vector->p_HMAC_Update)(cx, data, data_len);
+}
+
+SECStatus
+HMAC_Finish(HMACContext *cx, unsigned char *result, unsigned int *result_len,
+	    unsigned int max_result_len)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return SECFailure;
+  return (vector->p_HMAC_Finish)(cx, result, result_len, max_result_len);
+}
+
+HMACContext *
+HMAC_Clone(HMACContext *cx)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return NULL;
+  return (vector->p_HMAC_Clone)(cx);
+}
+
+void
+RNG_SystemInfoForRNG(void)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return ;
+  (vector->p_RNG_SystemInfoForRNG)();
+
+}
