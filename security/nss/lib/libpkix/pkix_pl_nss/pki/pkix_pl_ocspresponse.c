@@ -709,11 +709,11 @@ pkix_pl_OcspResponse_GetStatusForCert(
         }
 
         PKIX_PL_NSSCALLRV(OCSPRESPONSE, rv, CERT_GetOCSPStatusForCertID,
-                (NULL,          /* CERTCertDBHandle *handle */
+                (CERT_GetDefaultCertDB(), /* CERTCertDBHandle *handle */
                 response->decoded,
                 certID,
                 response->signerCert,
-                time));
+                PR_Now()));
 
         *pPassed = ((rv == SECSuccess) ? PKIX_TRUE : PKIX_FALSE );
 
