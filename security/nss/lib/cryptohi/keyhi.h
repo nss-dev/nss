@@ -82,22 +82,22 @@ SECKEY_KEAParamCompare(CERTCertificate *cert1,CERTCertificate *cert2);
 /*
 ** Return the strength of the public key in bytes
 */
-extern unsigned SECKEY_PublicKeyStrength(SECKEYPublicKey *pubk);
+extern unsigned SECKEY_PublicKeyStrength(const SECKEYPublicKey *pubk);
 
 /*
 ** Return the strength of the public key in bits
 */
-extern unsigned SECKEY_PublicKeyStrengthInBits(SECKEYPublicKey *pubk);
+extern unsigned SECKEY_PublicKeyStrengthInBits(const SECKEYPublicKey *pubk);
 
 /*
 ** Make a copy of the private key "privKey"
 */
-extern SECKEYPrivateKey *SECKEY_CopyPrivateKey(SECKEYPrivateKey *privKey);
+extern SECKEYPrivateKey *SECKEY_CopyPrivateKey(const SECKEYPrivateKey *privKey);
 
 /*
 ** Make a copy of the public key "pubKey"
 */
-extern SECKEYPublicKey *SECKEY_CopyPublicKey(SECKEYPublicKey *pubKey);
+extern SECKEYPublicKey *SECKEY_CopyPublicKey(const SECKEYPublicKey *pubKey);
 
 /*
 ** Convert a private key "privateKey" into a public key

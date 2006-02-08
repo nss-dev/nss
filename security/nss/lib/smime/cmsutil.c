@@ -222,54 +222,6 @@ NSS_CMSUtil_GetHashObjByAlgID(SECAlgorithmID *algid)
     return digobj;
 }
 
-/*
- * XXX I would *really* like to not have to do this, but the current
- * signing interface gives me little choice.
- */
-SECOidTag
-NSS_CMSUtil_MakeSignatureAlgorithm(SECOidTag hashalg, SECOidTag encalg)
-{
-    switch (encalg) {
-      case SEC_OID_PKCS1_RSA_ENCRYPTION:
-	switch (hashalg) {
-	  case SEC_OID_MD2:
-	    return SEC_OID_PKCS1_MD2_WITH_RSA_ENCRYPTION;
-	  case SEC_OID_MD5:
-	    return SEC_OID_PKCS1_MD5_WITH_RSA_ENCRYPTION;
-	  case SEC_OID_SHA1:
-	    return SEC_OID_PKCS1_SHA1_WITH_RSA_ENCRYPTION;
-	  case SEC_OID_SHA256:
-	    return SEC_OID_PKCS1_SHA256_WITH_RSA_ENCRYPTION;
-	  case SEC_OID_SHA384:
-	    return SEC_OID_PKCS1_SHA384_WITH_RSA_ENCRYPTION;
-	  case SEC_OID_SHA512:
-	    return SEC_OID_PKCS1_SHA512_WITH_RSA_ENCRYPTION;
-	  default:
-	    return SEC_OID_UNKNOWN;
-	}
-      case SEC_OID_ANSIX9_DSA_SIGNATURE:
-      case SEC_OID_MISSI_KEA_DSS:
-      case SEC_OID_MISSI_DSS:
-	switch (hashalg) {
-	  case SEC_OID_SHA1:
-	    return SEC_OID_ANSIX9_DSA_SIGNATURE_WITH_SHA1_DIGEST;
-	  default:
-	    return SEC_OID_UNKNOWN;
-	}
-      case SEC_OID_ANSIX962_EC_PUBLIC_KEY:
-	switch (hashalg) {
-	  case SEC_OID_SHA1:
-	    return SEC_OID_ANSIX962_ECDSA_SIGNATURE_WITH_SHA1_DIGEST;
-	  default:
-	    return SEC_OID_UNKNOWN;
-	}
-      default:
-	break;
-    }
-
-    return encalg;		/* maybe it is already the right algid */
-}
-
 const SEC_ASN1Template *
 NSS_CMSUtil_GetTemplateByTypeTag(SECOidTag type)
 {
