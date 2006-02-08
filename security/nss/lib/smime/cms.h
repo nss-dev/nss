@@ -410,13 +410,6 @@ NSS_CMSAlgArray_GetIndexByAlgTag(SECAlgorithmID **algorithmArray, SECOidTag algt
 extern const SECHashObject *
 NSS_CMSUtil_GetHashObjByAlgID(SECAlgorithmID *algid);
 
-/*
- * XXX I would *really* like to not have to do this, but the current
- * signing interface gives me little choice.
- */
-extern SECOidTag
-NSS_CMSUtil_MakeSignatureAlgorithm(SECOidTag hashalg, SECOidTag encalg);
-
 extern const SEC_ASN1Template *
 NSS_CMSUtil_GetTemplateByTypeTag(SECOidTag type);
 
