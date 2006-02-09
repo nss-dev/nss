@@ -505,6 +505,7 @@ extern "C" {
 #define PKIX_OCSPCHECKERDEBUG                     1
 #define PKIX_OCSPREQUESTDEBUG                     1
 #define PKIX_OCSPRESPONSEDEBUG                    1
+#define PKIX_HTTPDEFAULTCLIENTDEBUG               1
 #endif
 
 /*
@@ -1228,6 +1229,16 @@ extern "C" {
 #else
 #define PKIX_OCSPRESPONSE_DEBUG(expr)
 #define PKIX_OCSPRESPONSE_DEBUG_ARG(expr, arg)
+#endif
+
+#if PKIX_HTTPDEFAULTCLIENTDEBUG
+#define PKIX_HTTPDEFAULTCLIENT_DEBUG(expr) \
+        PKIX_DEBUG(expr)
+#define PKIX_HTTPDEFAULTCLIENT_DEBUG_ARG(expr, arg) \
+        PKIX_DEBUG_ARG(expr, arg)
+#else
+#define PKIX_HTTPDEFAULTCLIENT_DEBUG(expr)
+#define PKIX_HTTPDEFAULTCLIENT_DEBUG_ARG(expr, arg)
 #endif
 
 /*

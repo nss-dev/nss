@@ -161,6 +161,7 @@ typedef struct PKIX_PL_InfoAccessStruct PKIX_PL_InfoAccess;
 typedef struct PKIX_PL_AIAMgrStruct PKIX_PL_AIAMgr;
 typedef struct PKIX_PL_OcspRequestStruct PKIX_PL_OcspRequest;
 typedef struct PKIX_PL_OcspResponseStruct PKIX_PL_OcspResponse;
+typedef struct PKIX_PL_HttpDefaultClientStruct PKIX_PL_HttpDefaultClient;
 
 /* Primitive types
  *
@@ -253,8 +254,9 @@ typedef int PKIX_Boolean;
 #define PKIX_OCSPCHECKER_TYPE           ((PKIX_UInt32) 55)
 #define PKIX_OCSPREQUEST_TYPE           ((PKIX_UInt32) 56)
 #define PKIX_OCSPRESPONSE_TYPE          ((PKIX_UInt32) 57)
+#define PKIX_HTTPDEFAULTCLIENT_TYPE     ((PKIX_UInt32) 58)
 
-#define PKIX_NUMTYPES                   ((PKIX_UInt32) 58)
+#define PKIX_NUMTYPES                   ((PKIX_UInt32) 59)
 
 /* User Define Object Types
  *
@@ -341,9 +343,10 @@ typedef int PKIX_Boolean;
 #define PKIX_OCSPCHECKER_ERROR          ((PKIX_UInt32) 63)
 #define PKIX_OCSPREQUEST_ERROR          ((PKIX_UInt32) 64)
 #define PKIX_OCSPRESPONSE_ERROR         ((PKIX_UInt32) 65)
+#define PKIX_HTTPDEFAULTCLIENT_ERROR    ((PKIX_UInt32) 66)
 
 /* YOU NEED TO UPDATE NEW ENTRY at pkix_error.c and pkix_logger.c */
-#define PKIX_NUMERRORS                  ((PKIX_UInt32) 66)
+#define PKIX_NUMERRORS                  ((PKIX_UInt32) 67)
 
 /* String Formats
  *

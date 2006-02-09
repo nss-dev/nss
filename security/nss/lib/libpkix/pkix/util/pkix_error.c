@@ -438,7 +438,8 @@ PKIX_ERRORNAMES[PKIX_NUMERRORS] =
         "AIAMgr Error",
         "OcspChecker Error",
         "OcspRequest Error",
-        "OcspResponse Error"
+        "OcspResponse Error",
+        "HttpClient Error"
 };
 
 /*

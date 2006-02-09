@@ -227,11 +227,14 @@ PKIX_PL_Initialize(
         pkix_pl_LdapDefaultClient_RegisterSelf(plContext);
         pkix_pl_Socket_RegisterSelf(plContext);
 
-        pkix_ResourceLimits_RegisterSelf(plContext); /* 51-55 */
+        pkix_ResourceLimits_RegisterSelf(plContext); /* 51-58 */
         (void) pkix_pl_MonitorLock_RegisterSelf(plContext);
         pkix_pl_InfoAccess_RegisterSelf(plContext);
         pkix_pl_AIAMgr_RegisterSelf(plContext);
         pkix_OcspChecker_RegisterSelf(plContext);
+        pkix_pl_OcspRequest_RegisterSelf(plContext);
+        pkix_pl_OcspResponse_RegisterSelf(plContext);
+        pkix_pl_HttpDefaultClient_RegisterSelf(plContext);
 
         PKIX_CHECK(PKIX_PL_NssContext_Create
                 (0x10, useArenas, NULL, &plContext),

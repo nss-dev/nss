@@ -147,7 +147,8 @@ PKIX_COMPONENTNAMES[PKIX_NUMERRORS] =
         "AIAMgr",
         "OcspChecker",
         "OcspRequest"
-        "OcspResponse"
+        "OcspResponse",
+        "HttpClient"
 };
 
 /* --Private-Functions-------------------------------------------- */
