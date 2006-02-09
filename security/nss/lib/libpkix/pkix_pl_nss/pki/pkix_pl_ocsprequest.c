@@ -392,7 +392,7 @@ pkix_pl_OcspRequest_Create(
                 (certList, nssCert));
 
         if (rv == SECFailure) {
-                PKIX_ERROR("Unable to to add Cert to CertList");
+                PKIX_ERROR("Unable to add Cert to CertList");
         }
 
         if (validity == NULL) {
