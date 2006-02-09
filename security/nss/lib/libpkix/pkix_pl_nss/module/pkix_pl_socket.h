@@ -166,6 +166,16 @@ pkix_pl_Socket_CreateByName(
         PKIX_PL_Socket **pSocket,
         void *plContext);
 
+PKIX_Error *
+pkix_pl_Socket_CreateByHostAndPort(
+        PKIX_Boolean isServer,
+        PRIntervalTime timeout,
+        char *hostname,
+        PRUint16 portnum,
+        PRErrorCode *pStatus,
+        PKIX_PL_Socket **pSocket,
+        void *plContext);
+
 /* Do not use these functions directly; use their callback variants instead
  *      static PKIX_Error *
  *      pkix_pl_Socket_Listen(
