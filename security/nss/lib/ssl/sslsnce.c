@@ -750,12 +750,14 @@ ServerSessionIDCache(sslSessionID *sid)
     if (sid->cached == never_cached || sid->cached == invalid_cache) {
 	PRUint32 set;
 
-	PORT_Assert(sid->creationTime != 0 && sid->expirationTime != 0);
+	PORT_Assert(sid->creationTime != 0);
 	if (!sid->creationTime)
 	    sid->lastAccessTime = sid->creationTime = ssl_Time();
 	if (version < SSL_LIBRARY_VERSION_3_0) {
-	    if (!sid->expirationTime)
-		sid->expirationTime = sid->creationTime + ssl_sid_timeout;
+	    /* override caller's expiration time, which uses client timeout
+	     * duration, not server timeout duration.
+	     */
+	    sid->expirationTime = sid->creationTime + cache->ssl2Timeout;
 	    SSL_TRC(8, ("%d: SSL: CacheMT: cached=%d addr=0x%08x%08x%08x%08x time=%x "
 			"cipher=%d", myPid, sid->cached,
 			sid->addr.pr_s6_addr32[0], sid->addr.pr_s6_addr32[1],
@@ -769,8 +771,10 @@ ServerSessionIDCache(sslSessionID *sid)
 			  sid->u.ssl2.cipherArg.len));
 
 	} else {
-	    if (!sid->expirationTime)
-		sid->expirationTime = sid->creationTime + ssl3_sid_timeout;
+	    /* override caller's expiration time, which uses client timeout
+	     * duration, not server timeout duration.
+	     */
+	    sid->expirationTime = sid->creationTime + cache->ssl3Timeout;
 	    SSL_TRC(8, ("%d: SSL: CacheMT: cached=%d addr=0x%08x%08x%08x%08x time=%x "
 			"cipherSuite=%d", myPid, sid->cached,
 			sid->addr.pr_s6_addr32[0], sid->addr.pr_s6_addr32[1],
