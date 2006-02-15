@@ -4598,6 +4598,14 @@ ssl3_HandleCertificateRequest(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
        CERT_DestroyCertificateList(ss->ssl3.clientCertChain);
        ss->ssl3.clientCertChain = NULL;
     }
+    if (ss->ssl3.clientCertificate != NULL) {
+       CERT_DestroyCertificate(ss->ssl3.clientCertificate);
+       ss->ssl3.clientCertificate = NULL;
+    }
+    if (ss->ssl3.clientPrivateKey != NULL) {
+       SECKEY_DestroyPrivateKey(ss->ssl3.clientPrivateKey);
+       ss->ssl3.clientPrivateKey = NULL;
+    }
 
     isTLS = (PRBool)(ss->ssl3.prSpec->version > SSL_LIBRARY_VERSION_3_0);
     rv = ssl3_ConsumeHandshakeVariable(ss, &cert_types, 1, &b, &length);
