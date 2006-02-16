@@ -178,7 +178,7 @@ extern "C" {
  * testError is called with a standard string.
  */
 #define PKIX_TEST_RETURN() \
-        do { \
+        { \
                 if (pkixTestErrorMsg){ \
                         testError(pkixTestErrorMsg); \
                 } else if (pkixTestErrorResult){ \
@@ -200,7 +200,7 @@ extern "C" {
                                 pkixTestErrorResult = NULL; \
                         } \
                 } \
-        } while (0)
+        }
 
 /*
  * PKIX_TEST_EQ_HASH_TOSTR_DUP is a convenience macro which executes the
