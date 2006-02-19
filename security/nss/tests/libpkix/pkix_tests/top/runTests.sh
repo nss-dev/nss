@@ -410,6 +410,10 @@ test_buildchain ${LDAP}  NIST-Test.4.13.35 EE $NIST InvalidURInameConstraintsTes
 test_buildchain ${LDAP}  NIST-Test.4.13.36 ENE $NIST ValidURInameConstraintsTest36EE.crt nameConstraintsURI2CACert.crt TrustAnchorRootCertificate.crt 
 test_buildchain ${LDAP}  NIST-Test.4.13.37 EE $NIST InvalidURInameConstraintsTest37EE.crt nameConstraintsURI2CACert.crt TrustAnchorRootCertificate.crt 
 test_buildchain ${LDAP}  NIST-Test.4.13.38 EE $NIST InvalidDNSnameConstraintsTest38EE.crt nameConstraintsDNS1CACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain_partialchain ${LDAP}  NIST-Test.4.6.14 ENE $NIST ValidpathLenConstraintTest14EE.crt pathLenConstraint6subsubsubCA41XCert.crt pathLenConstraint6subsubCA41Cert.crt pathLenConstraint6subCA4Cert.crt pathLenConstraint6CACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain_partialchain ${LDAP}  NIST-Test.4.6.14 ENE $NIST ValidpathLenConstraintTest14EE.crt pathLenConstraint6subsubsubCA41XCert.crt pathLenConstraint6subsubCA41Cert.crt TrustAnchorRootCertificate.crt pathLenConstraint6subCA4Cert.crt pathLenConstraint6CACert.crt TrustAnchorRootCertificate.crt 
+test_buildchain_partialchain ${LDAP}  NIST-Test.4.13.13 EE $NIST InvalidDNnameConstraintsTest13EE.crt nameConstraintsDN1subCA2Cert.crt nameConstraintsDN1subCA2Cert.crt nameConstraintsDN1CACert.crt TrustAnchorRootCertificate.crt
+test_buildchain_partialchain ${LDAP}  NIST-Test.4.13.27 ENE $NIST ValidDNandRFC822nameConstraintsTest27EE.crt nameConstraintsDN1subCA3Cert.crt nameConstraintsDN1subCA2Cert.crt TrustAnchorRootCertificate.crt 
 EOF
 
 totalErrors=$?

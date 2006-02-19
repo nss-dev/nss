@@ -85,6 +85,7 @@ typedef struct BuildConstantsStruct BuildConstants;
 struct BuildConstantsStruct {
         PKIX_UInt32 numAnchors;
         PKIX_UInt32 numCertStores;
+        PKIX_UInt32 numHintCerts;
         PKIX_UInt32 maxDepth;
         PKIX_UInt32 maxFanout;
         PKIX_UInt32 maxTime;
@@ -96,6 +97,7 @@ struct BuildConstantsStruct {
         PKIX_List *certStores;
         PKIX_List *anchors;
         PKIX_List *userCheckers;
+        PKIX_List *hintCerts;
         PKIX_CertChainChecker *crlChecker;
         PKIX_PL_AIAMgr *aiaMgr;
 };
@@ -111,6 +113,7 @@ struct PKIX_ForwardBuilderStateStruct{
         PKIX_UInt32 anchorIndex;
         PKIX_UInt32 certCheckedIndex;
         PKIX_UInt32 checkerIndex;
+        PKIX_UInt32 hintCertIndex;
         PKIX_UInt32 numFanout;
         PKIX_UInt32 numDepth;
         PKIX_UInt32 reasonCode;
@@ -120,6 +123,7 @@ struct PKIX_ForwardBuilderStateStruct{
         PKIX_Boolean useOnlyLocal;
         PKIX_Boolean alreadyTriedAIA;
         PKIX_Boolean revChecking;
+        PKIX_Boolean usingHintCerts;
         PKIX_PL_Date *validityDate;
         PKIX_PL_Cert *prevCert;
         PKIX_PL_Cert *candidateCert;

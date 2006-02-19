@@ -89,16 +89,26 @@ pkix_ForwardBuilderState_Destroy(
         state->numAias = 0;
         state->certIndex = 0;
         state->aiaIndex = 0;
+        state->anchorIndex = 0;
+        state->certCheckedIndex = 0;
+        state->checkerIndex = 0;
+        state->hintCertIndex = 0;
+        state->numFanout = 0;
+        state->numDepth = 0;
+        state->reasonCode = 0;
         state->dsaParamsNeeded = PKIX_FALSE;
         state->revCheckDelayed = PKIX_FALSE;
         state->canBeCached = PKIX_FALSE;
         state->useOnlyLocal = PKIX_FALSE;
         state->alreadyTriedAIA = PKIX_FALSE;
+        state->revChecking = PKIX_FALSE;
+        state->usingHintCerts = PKIX_FALSE;
         PKIX_DECREF(state->validityDate);
         PKIX_DECREF(state->prevCert);
         PKIX_DECREF(state->candidateCert);
         PKIX_DECREF(state->traversedSubjNames);
         PKIX_DECREF(state->trustChain);
+        PKIX_DECREF(state->aia);
         PKIX_DECREF(state->candidateCerts);
         PKIX_DECREF(state->reversedCertChain);
         PKIX_DECREF(state->checkedCritExtOIDs);
@@ -114,6 +124,7 @@ pkix_ForwardBuilderState_Destroy(
         if (state->parentState == NULL) {
                 state->buildConstants.numAnchors = 0;
                 state->buildConstants.numCertStores = 0;
+                state->buildConstants.numHintCerts = 0;
                 state->buildConstants.procParams = 0;
                 PKIX_DECREF(state->buildConstants.testDate);
                 PKIX_DECREF(state->buildConstants.timeLimit);
@@ -122,6 +133,7 @@ pkix_ForwardBuilderState_Destroy(
                 PKIX_DECREF(state->buildConstants.certStores);
                 PKIX_DECREF(state->buildConstants.anchors);
                 PKIX_DECREF(state->buildConstants.userCheckers);
+                PKIX_DECREF(state->buildConstants.hintCerts);
                 PKIX_DECREF(state->buildConstants.crlChecker);
                 PKIX_DECREF(state->buildConstants.aiaMgr);
         } else {
@@ -212,8 +224,12 @@ pkix_ForwardBuilderState_Create(
         state->certIndex = 0;
         state->aiaIndex = 0;
         state->anchorIndex = 0;
+        state->certCheckedIndex = 0;
+        state->checkerIndex = 0;
+        state->hintCertIndex = 0;
         state->numFanout = numFanout;
         state->numDepth = numDepth;
+        state->reasonCode = 0;
         state->revChecking = numDepth;
         state->dsaParamsNeeded = dsaParamsNeeded;
         state->revCheckDelayed = revCheckDelayed;
@@ -221,6 +237,7 @@ pkix_ForwardBuilderState_Create(
         state->useOnlyLocal = PKIX_TRUE;
         state->alreadyTriedAIA = PKIX_FALSE;
         state->revChecking = PKIX_FALSE;
+        state->usingHintCerts = PKIX_FALSE;
 
         PKIX_INCREF(validityDate);
         state->validityDate = validityDate;
@@ -253,6 +270,8 @@ pkix_ForwardBuilderState_Create(
                          parentState->buildConstants.numAnchors;
                 state->buildConstants.numCertStores = 
                         parentState->buildConstants.numCertStores; 
+                state->buildConstants.numHintCerts = 
+                        parentState->buildConstants.numHintCerts; 
                 state->buildConstants.maxFanout =
                         parentState->buildConstants.maxFanout;
                 state->buildConstants.maxDepth =
@@ -275,6 +294,8 @@ pkix_ForwardBuilderState_Create(
                         parentState->buildConstants.anchors;
                 state->buildConstants.userCheckers =
                         parentState->buildConstants.userCheckers;
+                state->buildConstants.hintCerts =
+                        parentState->buildConstants.hintCerts;
                 state->buildConstants.crlChecker =
                         parentState->buildConstants.crlChecker;
                 state->buildConstants.aiaMgr =
@@ -984,12 +1005,13 @@ pkix_Build_VerifyCertificate(
         PKIX_CHECK(PKIX_List_GetItem
                 (state->candidateCerts,
                 state->certIndex,
-                (PKIX_PL_Object **)&state->candidateCert,
+                (PKIX_PL_Object **)&candidateCert,
                 plContext),
                 "PKIX_List_GetItem failed");
 
-        PKIX_INCREF(state->candidateCert);
-        candidateCert = state->candidateCert;
+        PKIX_DECREF(state->candidateCert);
+        PKIX_INCREF(candidateCert);
+        state->candidateCert = candidateCert;
 
         PKIX_CHECK(PKIX_PL_Cert_IsCertTrusted
                 (candidateCert, &trusted, plContext),
@@ -2240,6 +2262,7 @@ pkix_BuildForwardDepthFirstSearch(
         PKIX_UInt32 numChained = 0;
         PKIX_Int32 cmpTimeResult = 0;
         PKIX_UInt32 i = 0;
+        PKIX_UInt32 certsSoFar = 0;
         PKIX_List *childTraversedSubjNames = NULL;
         PKIX_List *subjectNames = NULL;
         PKIX_List *sortedList = NULL;
@@ -2299,7 +2322,47 @@ pkix_BuildForwardDepthFirstSearch(
                 PKIX_CHECK(pkix_Build_BuildSelectorAndParams(state, plContext),
                         "pkix_Build_BuildSelectorAndParams failed");
 
-                state->status = BUILD_TRYAIA;
+                /*
+                 * If the caller supplied a partial certChain (hintCerts) try
+                 * the next one from that List before we go to the certStores.
+                 */
+                if (state->buildConstants.numHintCerts > 0) {
+                        /* How many Certs does our trust chain have already? */
+                        PKIX_CHECK(PKIX_List_GetLength
+                                (state->trustChain, &certsSoFar, plContext),
+                                "PKIX_List_GetLength failed");
+
+                        /* That includes the target Cert. Don't count it. */
+                        certsSoFar--;
+
+                        /* Are we still within range of the partial chain? */
+                        if (certsSoFar >= state->buildConstants.numHintCerts) {
+                                state->status = BUILD_TRYAIA;
+                        } else {
+                                /*
+                                 * If we already have n certs, we want the n+1th
+                                 * (i.e., index = n) from the list of hints.
+                                 */
+                                PKIX_CHECK(PKIX_List_GetItem
+                                    (state->buildConstants.hintCerts,
+                                    certsSoFar,
+                                    (PKIX_PL_Object **)&state->candidateCert,
+                                    plContext),
+                                    "PKIX_List_GetItem failed");
+
+                                PKIX_CHECK(PKIX_List_AppendItem
+                                    (state->candidateCerts,
+                                    (PKIX_PL_Object *)state->candidateCert,
+                                    plContext),
+                                    "PKIX_List_AppendItem failed");
+
+                                state->numCerts = 1;
+                                state->usingHintCerts = PKIX_TRUE;
+                                state->status = BUILD_CERTVALIDATING;
+                        }
+                } else {
+                        state->status = BUILD_TRYAIA;
+                }
 
             }
 
@@ -2353,7 +2416,7 @@ pkix_BuildForwardDepthFirstSearch(
                                         ("unfilteredCerts = %s\n", unAscii);
                                 PKIX_DECREF(unString);
                                 PKIX_FREE(unAscii);
-}
+                }
 #endif
 
                 if (unfilteredCerts) {
@@ -2844,7 +2907,24 @@ pkix_BuildForwardDepthFirstSearch(
             if (state->status == BUILD_GETNEXTCERT) {
 
                     PKIX_DECREF(state->candidateCert);
-                    if (++(state->certIndex) < (state->numCerts)) {
+
+                    /*
+                     * If we were using a Cert from the callier-supplied partial
+                     * chain, delete it and go to the certStores.
+                     */
+                    if (state->usingHintCerts == PKIX_TRUE) {
+
+                            PKIX_DECREF(state->candidateCerts);
+                            PKIX_CHECK(PKIX_List_Create
+                                (&state->candidateCerts, plContext),
+                                "PKIX_List_Create failed");
+
+                            state->numCerts = 0;
+                            state->usingHintCerts = PKIX_FALSE;
+                            state->status = BUILD_TRYAIA;
+                            continue;
+
+                    } else if (++(state->certIndex) < (state->numCerts)) {
 
                             if ((state->buildConstants.maxFanout != 0) &&
                                 (--(state->numFanout) == 0)) {
@@ -2887,7 +2967,7 @@ pkix_BuildForwardDepthFirstSearch(
                 } else {
 
                         /*
-                         * Try the next cert for this parent, if any.
+                         * Try the next cert, if any, for this parent.
                          * Otherwise keep backing up until we reach a
                          * parent with more certs to try.
                          */
@@ -3160,6 +3240,7 @@ pkix_Build_InitiateBuildChain(
 {
         PKIX_UInt32 numAnchors = 0;
         PKIX_UInt32 numCertStores = 0;
+        PKIX_UInt32 numHintCerts = 0;
         PKIX_UInt32 anchorIndex = 0;
         PKIX_UInt32 i = 0;
         PKIX_Boolean dsaParamsNeeded = PKIX_FALSE;
@@ -3168,6 +3249,7 @@ pkix_Build_InitiateBuildChain(
         PKIX_Boolean validChain = PKIX_FALSE;
         PKIX_Boolean trusted = PKIX_FALSE;
         PKIX_Boolean ioPending = PKIX_FALSE;
+        PKIX_Boolean isDuplicate = PKIX_FALSE;
         PKIX_PL_Cert *trustedCert = NULL;
         PKIX_ProcessingParams *procParams = NULL;
         PKIX_CertSelector *targetConstraints = NULL;
@@ -3175,10 +3257,12 @@ pkix_Build_InitiateBuildChain(
         PKIX_List *anchors = NULL;
         PKIX_List *targetSubjNames = NULL;
         PKIX_PL_Cert *targetCert = NULL;
+        PKIX_PL_Object *firstHintCert = NULL;
         PKIX_CertChainChecker *crlChecker = NULL;
         PKIX_List *certStores = NULL;
         PKIX_CertStore *certStore = NULL;
         PKIX_List *userCheckers = NULL;
+        PKIX_List *hintCerts = NULL;
         PKIX_PL_Date *testDate = NULL;
         PKIX_PL_PublicKey *targetPubKey = NULL;
         void *nbioContext = NULL;
@@ -3243,6 +3327,68 @@ pkix_Build_InitiateBuildChain(
                     (targetParams, &targetCert, plContext),
                     "PKIX_ComCertSelParams_GetCertificate failed");
     
+            PKIX_CHECK(PKIX_ProcessingParams_GetHintCerts
+                        (procParams, &hintCerts, plContext),
+                        "PKIX_ProcessingParams_GetHintCerts");
+    
+            if (hintCerts != NULL) {
+                    PKIX_CHECK(PKIX_List_GetLength
+                            (hintCerts, &numHintCerts, plContext),
+                            "PKIX_List_GetLength failed");
+            }
+
+            /*
+             * Caller must provide either a target Cert
+             * (in ComCertSelParams->Certificate) or a partial Cert
+             * chain (in ProcParams->HintCerts).
+             */
+
+            if (targetCert == NULL) {
+
+                    /* Use first cert of hintCerts as the targetCert */
+                    if (numHintCerts == 0) {
+                            PKIX_ERROR("No target cert supplied");
+                    }
+
+                    PKIX_CHECK(PKIX_List_GetItem
+                            (hintCerts,
+                            0,
+                            (PKIX_PL_Object **)&targetCert,
+                            plContext),
+                            "PKIX_List_GetItem failed");
+
+                    PKIX_CHECK(PKIX_List_DeleteItem(hintCerts, 0, plContext),
+                            "PKIX_List_GetItem failed");
+            } else {
+
+                    /*
+                     * If the first hintCert is the same as the targetCert,
+                     * delete it from hintCerts.
+                     */ 
+                    if (numHintCerts != 0) {
+                            PKIX_CHECK(PKIX_List_GetItem
+                                    (hintCerts, 0, &firstHintCert, plContext),
+                                    "PKIX_List_GetItem failed");
+
+                            PKIX_CHECK(PKIX_PL_Object_Equals
+                                    ((PKIX_PL_Object *)targetCert,
+                                    firstHintCert,
+                                    &isDuplicate,
+                                    plContext),
+                                    "PKIX_PL_Object_Equals failed");
+
+                            if (isDuplicate) {
+                                    PKIX_CHECK(PKIX_List_DeleteItem
+                                    (hintCerts, 0, plContext),
+                                    "PKIX_List_GetItem failed");
+                            }
+                            PKIX_DECREF(firstHintCert);
+                    }
+
+            }
+
+            PKIX_NULLCHECK_ONE(targetCert);
+
             PKIX_CHECK(PKIX_PL_Cert_GetAllSubjectNames
                     (targetCert,
                     &targetSubjNames,
@@ -3255,8 +3401,6 @@ pkix_Build_InitiateBuildChain(
     
             PKIX_CHECK(PKIX_List_Create(&tentativeChain, plContext),
                     "PKIX_List_Create failed");
-    
-            PKIX_NULLCHECK_ONE(targetCert);
     
             PKIX_CHECK(PKIX_List_AppendItem
                     (tentativeChain, (PKIX_PL_Object *)targetCert, plContext),
@@ -3342,6 +3486,7 @@ pkix_Build_InitiateBuildChain(
     
             buildConstants.numAnchors = numAnchors;
             buildConstants.numCertStores = numCertStores;
+            buildConstants.numHintCerts = numHintCerts;
             buildConstants.procParams = procParams;
             buildConstants.testDate = testDate;
             buildConstants.timeLimit = NULL;
@@ -3350,6 +3495,7 @@ pkix_Build_InitiateBuildChain(
             buildConstants.certStores = certStores;
             buildConstants.anchors = anchors;
             buildConstants.userCheckers = userCheckers;
+            buildConstants.hintCerts = hintCerts;
             buildConstants.crlChecker = crlChecker;
             buildConstants.aiaMgr = aiaMgr;
     
@@ -3373,8 +3519,8 @@ pkix_Build_InitiateBuildChain(
                     "pkix_BuildState_Create failed");
     
             state->buildConstants.numAnchors = buildConstants.numAnchors;
-            state->buildConstants.numCertStores =
-                    buildConstants.numCertStores; 
+            state->buildConstants.numCertStores = buildConstants.numCertStores; 
+            state->buildConstants.numHintCerts = buildConstants.numHintCerts;
             state->buildConstants.maxFanout = buildConstants.maxFanout;
             state->buildConstants.maxDepth = buildConstants.maxDepth;
             state->buildConstants.maxTime = buildConstants.maxTime;
@@ -3394,6 +3540,8 @@ pkix_Build_InitiateBuildChain(
             PKIX_INCREF(buildConstants.userCheckers);
             state->buildConstants.userCheckers =
                     buildConstants.userCheckers;
+            PKIX_INCREF(buildConstants.hintCerts);
+            state->buildConstants.hintCerts = buildConstants.hintCerts;
             PKIX_INCREF(buildConstants.crlChecker);
             state->buildConstants.crlChecker = buildConstants.crlChecker;
             state->buildConstants.aiaMgr = buildConstants.aiaMgr;
@@ -3584,6 +3732,8 @@ cleanup:
         PKIX_DECREF(certStores);
         PKIX_DECREF(certStore);
         PKIX_DECREF(userCheckers);
+        PKIX_DECREF(hintCerts);
+        PKIX_DECREF(firstHintCert);
         PKIX_DECREF(testDate);
         PKIX_DECREF(targetPubKey);
         PKIX_DECREF(tentativeChain);

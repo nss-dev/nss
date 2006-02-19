@@ -67,6 +67,7 @@ pkix_ProcessingParams_Destroy(
         params = (PKIX_ProcessingParams *)object;
 
         PKIX_DECREF(params->trustAnchors);
+        PKIX_DECREF(params->hintCerts);
         PKIX_DECREF(params->constraints);
         PKIX_DECREF(params->date);
         PKIX_DECREF(params->initialPolicies);
@@ -128,6 +129,15 @@ pkix_ProcessingParams_Equals(
         PKIX_EQUALS
                 (firstProcParams->trustAnchors,
                 secondProcParams->trustAnchors,
+                &cmpResult,
+                plContext,
+                "PKIX_PL_Object_Equals failed");
+
+        if (!cmpResult) goto cleanup;
+
+        PKIX_EQUALS
+                (firstProcParams->hintCerts,
+                secondProcParams->hintCerts,
                 &cmpResult,
                 plContext,
                 "PKIX_PL_Object_Equals failed");
@@ -204,6 +214,7 @@ pkix_ProcessingParams_Hashcode(
         PKIX_ProcessingParams *procParams = NULL;
         PKIX_UInt32 hash = 0;
         PKIX_UInt32 anchorsHash = 0;
+        PKIX_UInt32 hintCertsHash = 0;
         PKIX_UInt32 dateHash = 0;
         PKIX_UInt32 constraintsHash = 0;
         PKIX_UInt32 initialHash = 0;
@@ -223,6 +234,9 @@ pkix_ProcessingParams_Hashcode(
         procParams = (PKIX_ProcessingParams*)object;
 
         PKIX_HASHCODE(procParams->trustAnchors, &anchorsHash, plContext,
+                "PKIX_PL_Object_Hashcode failed");
+
+        PKIX_HASHCODE(procParams->hintCerts, &hintCertsHash, plContext,
                 "PKIX_PL_Object_Hashcode failed");
 
         PKIX_HASHCODE(procParams->date, &dateHash, plContext,
@@ -246,8 +260,8 @@ pkix_ProcessingParams_Hashcode(
                 plContext,
                 "PKIX_PL_Object_Hashcode failed");
 
-        hash = (31 * ((31 * anchorsHash) + dateHash + constraintsHash)) +
-                initialHash + rejectedHash;
+        hash = (31 * ((31 * anchorsHash) + hintCertsHash + dateHash)) +
+                constraintsHash + initialHash + rejectedHash;
 
         hash += certStoresHash + resourceLimitsHash << 7 +
                 certChainCheckersHash + revCheckersHash +
@@ -443,6 +457,7 @@ PKIX_ProcessingParams_Create(
         PKIX_CHECK(PKIX_List_SetImmutable(params->trustAnchors, plContext),
                     "PKIX_List_SetImmutable failed");
 
+        params->hintCerts = NULL;
         params->constraints = NULL;
         params->date = NULL;
         params->initialPolicies = NULL;
@@ -1258,6 +1273,47 @@ PKIX_ProcessingParams_SetPolicyMappingInhibited(
                     "PKIX_PL_Object_InvalidateCache failed");
 
 cleanup:
+
+        PKIX_RETURN(PROCESSINGPARAMS);
+}
+
+/*
+ * FUNCTION: PKIX_ProcessingParams_SetHintCerts
+ * (see comments in pkix_params.h)
+ */
+PKIX_Error *
+PKIX_ProcessingParams_SetHintCerts(
+        PKIX_ProcessingParams *params,
+        PKIX_List *hintCerts,
+        void *plContext)
+{
+        PKIX_ENTER(PROCESSINGPARAMS, "PKIX_ProcessingParams_SetHintCerts");
+
+        PKIX_NULLCHECK_ONE(params);
+
+        PKIX_DECREF(params->hintCerts);
+        PKIX_INCREF(hintCerts);
+        params->hintCerts = hintCerts;
+
+        PKIX_RETURN(PROCESSINGPARAMS);
+}
+
+/*
+ * FUNCTION: PKIX_ProcessingParams_GetHintCerts
+ * (see comments in pkix_params.h)
+ */
+PKIX_Error *
+PKIX_ProcessingParams_GetHintCerts(
+        PKIX_ProcessingParams *params,
+        PKIX_List **pHintCerts,
+        void *plContext)
+{
+        PKIX_ENTER(PROCESSINGPARAMS, "PKIX_ProcessingParams_GetHintCerts");
+
+        PKIX_NULLCHECK_TWO(params, pHintCerts);
+
+        PKIX_INCREF(params->hintCerts);
+        *pHintCerts = params->hintCerts;
 
         PKIX_RETURN(PROCESSINGPARAMS);
 }

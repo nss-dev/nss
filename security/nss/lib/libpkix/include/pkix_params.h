@@ -704,6 +704,67 @@ PKIX_ProcessingParams_GetTrustAnchors(
         void *plContext);
 
 /*
+ * FUNCTION: PKIX_ProcessingParams_GetHintCerts
+ * DESCRIPTION:
+ *
+ *  Retrieves a pointer to a List of Certs supplied by the user as a suggested
+ *  partial CertChain (subject to verification), that are set in the
+ *  ProcessingParams pointed to by "params", and stores it at "pHintCerts".
+ *  The List returned may be empty or NULL.
+ *
+ * PARAMETERS:
+ *  "params"
+ *      Address of ProcessingParams whose List of TrustAnchors are to
+ *      be stored. Must be non-NULL.
+ *  "pHintCerts"
+ *      Address where object pointer will be stored. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Conditionally Thread Safe
+ *      (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Params Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_ProcessingParams_GetHintCerts(
+        PKIX_ProcessingParams *params,
+        PKIX_List **pHintCerts,
+        void *plContext);
+
+/*
+ * FUNCTION: PKIX_ProcessingParams_SetHintCerts
+ * DESCRIPTION:
+ *
+ *  Stores a pointer to a List of Certs supplied by the user as a suggested
+ *  partial CertChain (subject to verification), as an element in the
+ *  ProcessingParams pointed to by "params". The List may be empty or NULL.
+ *
+ * PARAMETERS:
+ *  "params"
+ *      Address of ProcessingParams whose List of HintCerts is to be stored.
+ *      Must be non-NULL.
+ *  "hintCerts"
+ *      Address where object pointer will be stored. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Conditionally Thread Safe
+ *      (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Params Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_ProcessingParams_SetHintCerts(
+        PKIX_ProcessingParams *params,
+        PKIX_List *hintCerts,
+        void *plContext);
+
+/*
  * FUNCTION: PKIX_ProcessingParams_GetResourceLimits
  * DESCRIPTION:
  *

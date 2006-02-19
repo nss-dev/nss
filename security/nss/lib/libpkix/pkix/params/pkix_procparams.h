@@ -53,6 +53,7 @@ extern "C" {
 
 struct PKIX_ProcessingParamsStruct {
         PKIX_List *trustAnchors;        /* Never NULL */
+	PKIX_List *hintCerts;	/* user-supplied partial chain, may be NULL */
         PKIX_CertSelector *constraints;
         PKIX_PL_Date *date;
         PKIX_List *initialPolicies;     /* list of PKIX_PL_OID */
@@ -63,7 +64,6 @@ struct PKIX_ProcessingParamsStruct {
         PKIX_List *certChainCheckers;
         PKIX_List *revCheckers;
         PKIX_List *certStores;
-        PKIX_List *mutableCertStores;
         PKIX_Boolean isCrlRevocationCheckingEnabled;
         PKIX_ResourceLimits *resourceLimits;
 };
