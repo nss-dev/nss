@@ -300,7 +300,7 @@ pkix_RevCheckCert(
                 }
 
                 PKIX_DECREF(checker);
-        	PKIX_DECREF(checkerContext);
+                PKIX_DECREF(checkerContext);
         }
 
 cleanup:
