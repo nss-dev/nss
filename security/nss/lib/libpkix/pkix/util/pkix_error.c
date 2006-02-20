@@ -417,7 +417,7 @@ PKIX_ERRORNAMES[PKIX_NUMERRORS] =
         "CertPolicyMap Error",
         "Build Error",
         "BuildResult Error",
-        "BuildParams Error",
+        "NoLongerUsed Error",
         "ForwardBuilderState Error",
         "SignatureCheckerState Error",
         "CertNameConstraints Error",

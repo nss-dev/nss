@@ -50,7 +50,6 @@
 
 /* private PKIX system headers */
 #include "pkix_basicconstraintschecker.h"
-#include "pkix_buildparams.h"
 #include "pkix_buildresult.h"
 #include "pkix_certchainchecker.h"
 #include "pkix_certselector.h"
@@ -485,7 +484,6 @@ extern "C" {
 #define PKIX_CERTPOLICYMAPDEBUG                   1
 #define PKIX_BUILDDEBUG                           1
 #define PKIX_BUILDRESULTDEBUG                     1
-#define PKIX_BUILDPARAMSDEBUG                     1
 #define PKIX_FORWARDBUILDERSTATEDEBUG             1
 #define PKIX_SIGNATURECHECKERSTATEDEBUG           1
 #define PKIX_USERDEFINEDMODULESDEBUG              1
@@ -1028,16 +1026,6 @@ extern "C" {
 #else
 #define PKIX_BUILDRESULT_DEBUG(expr)
 #define PKIX_BUILDRESULT_DEBUG_ARG(expr, arg)
-#endif
-
-#if PKIX_BUILDPARAMSDEBUG
-#define PKIX_BUILDPARAMS_DEBUG(expr) \
-        PKIX_DEBUG(expr)
-#define PKIX_BUILDPARAMS_DEBUG_ARG(expr, arg) \
-        PKIX_DEBUG_ARG(expr, arg)
-#else
-#define PKIX_BUILDPARAMS_DEBUG(expr)
-#define PKIX_BUILDPARAMS_DEBUG_ARG(expr, arg)
 #endif
 
 #if PKIX_FORWARDBUILDERSTATEDEBUG

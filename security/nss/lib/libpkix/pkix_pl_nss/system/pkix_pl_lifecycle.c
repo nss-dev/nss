@@ -195,7 +195,7 @@ PKIX_PL_Initialize(
         pkix_TrustAnchor_RegisterSelf(plContext);
 
         pkix_pl_X500Name_RegisterSelf(plContext);   /* 21-30 */
-        pkix_BuildParams_RegisterSelf(plContext);
+        /* pkix_NoLongerUsed_RegisterSelf(plContext); */
         pkix_BuildResult_RegisterSelf(plContext);
         pkix_ProcessingParams_RegisterSelf(plContext);
         pkix_ValidateParams_RegisterSelf(plContext);

@@ -1169,69 +1169,6 @@ PKIX_ValidateParams_GetCertChain(
         PKIX_List **pChain,
         void *plContext);
 
-/* PKIX_BuildParams
- *
- * PKIX_BuildParams simply consist of a ProcessingParams object for now. It
- * may be expanded in future releases to add more fields.
- */
-
-/*
- * FUNCTION: PKIX_BuildParams_Create
- * DESCRIPTION:
- *
- *  Creates a new BuildParams object using the Processingparams pointed to by
- *  "procParams" and stores it at "pParams".
- *
- * PARAMETERS:
- *  "procParams"
- *      Address of ProcessingParams to be use. Must be non-NULL.
- *  "pParams"
- *      Address where object pointer will be stored. Must be non-NULL.
- *  "plContext"
- *      Platform-specific context pointer.
- * THREAD SAFETY:
- *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
- * RETURNS:
- *  Returns NULL if the function succeeds.
- *  Returns a Params Error if the function fails in a non-fatal way.
- *  Returns a Fatal Error if the function fails in an unrecoverable way.
- */
-PKIX_Error *
-PKIX_BuildParams_Create(
-        PKIX_ProcessingParams *procParams,
-        PKIX_BuildParams **pParams,
-        void *plContext);
-
-/*
- * FUNCTION: PKIX_BuildParams_GetProcessingParams
- * DESCRIPTION:
- *
- *  Retrieves a pointer to the ProcessingParams that represent the basic
- *  certificate processing parameters used during chain building from the
- *  BuildParams pointed to by "buildParams" and stores it at "pProcParams".
- *
- * PARAMETERS:
- *  "buildParams"
- *      Address of BuildParams whose ProcessingParams are to be stored.
- *      Must be non-NULL.
- *  "pProcParams"
- *      Address where object pointer will be stored. Must be non-NULL.
- *  "plContext"
- *      Platform-specific context pointer.
- * THREAD SAFETY:
- *  Conditionally Thread Safe
- *      (see Thread Safety Definitions in Programmer's Guide)
- * RETURNS:
- *  Returns NULL if the function succeeds.
- *  Returns a Params Error if the function fails in a non-fatal way.
- *  Returns a Fatal Error if the function fails in an unrecoverable way.
- */
-PKIX_Error *
-PKIX_BuildParams_GetProcessingParams(
-        PKIX_BuildParams *buildParams,
-        PKIX_ProcessingParams **pProcParams,
-        void *plContext);
-
 /* PKIX_TrustAnchor
  *
  * A PKIX_TrustAnchor represents a trusted entity and can be specified using a

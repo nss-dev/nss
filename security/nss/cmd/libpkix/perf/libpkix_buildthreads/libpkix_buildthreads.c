@@ -133,7 +133,6 @@ void ThreadEntry(void* data)
 
         PKIX_List *anchors = NULL;
         PKIX_ProcessingParams *procParams = NULL;
-        PKIX_BuildParams *buildParams = NULL;
         PKIX_BuildResult *buildResult = NULL;
         CERTCertificate* nsseecert;
         PKIX_PL_Cert *eeCert = NULL;
@@ -209,10 +208,8 @@ void ThreadEntry(void* data)
                 PKIX_ProcessingParams_SetCertStores
                         (procParams, certStores, plContext);
 
-                PKIX_BuildParams_Create(procParams, &buildParams, plContext);
-
                 PKIX_BuildChain
-                        (buildParams,
+                        (procParams,
                         &nbioContext,
                         &state,
                         &buildResult,
@@ -234,7 +231,6 @@ void ThreadEntry(void* data)
                 PERF_DECREF(nowDate);
                 PERF_DECREF(anchors);
                 PERF_DECREF(procParams);
-                PERF_DECREF(buildParams);
                 PERF_DECREF(buildResult);
                 PERF_DECREF(certStore);
                 PERF_DECREF(certStores);

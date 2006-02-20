@@ -58,7 +58,6 @@ RunTests <<EOF
 test_valparams ${curdir}/../../certs
 test_procparams ${curdir}/../../certs
 test_trustanchor ${NIST} ${curdir}/../../certs NIST-Test-Files-Used
-test_buildparams  ${curdir}/../../certs
 test_resourcelimits
 EOF
 

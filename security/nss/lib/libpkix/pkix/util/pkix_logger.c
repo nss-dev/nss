@@ -126,7 +126,7 @@ PKIX_COMPONENTNAMES[PKIX_NUMERRORS] =
         "CertPolicyMap",
         "Build",
         "BuildResult",
-        "BuildParams",
+        "NoLongerUsed",
         "ForwardBuilderState",
         "SignatureCheckerState",
         "CertNameConstraints",

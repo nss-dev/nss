@@ -145,7 +145,6 @@ testWithNoLeaf(
         PKIX_CertSelector *certSelector = NULL;
         PKIX_PL_PublicKey *trustedPubKey = NULL;
         PKIX_RevocationChecker *revChecker = NULL;
-        PKIX_BuildParams *buildParams = NULL;
         PKIX_BuildResult *buildResult = NULL;
         PRPollDesc *pollDesc = NULL;
         void *state = NULL;
@@ -216,14 +215,10 @@ testWithNoLeaf(
                 (procParams, PKIX_FALSE, plContext));
 #endif
 
-        /* create build params with processing params */
-        PKIX_TEST_EXPECT_NO_ERROR(PKIX_BuildParams_Create
-                (procParams, &buildParams, plContext));
-
-        /* build cert chain using build params and return buildResult */
+        /* build cert chain using processing params and return buildResult */
 
         pkixTestErrorResult = PKIX_BuildChain
-                (buildParams,
+                (procParams,
                 (void **)&pollDesc,
                 &state,
                 &buildResult,
@@ -236,7 +231,7 @@ testWithNoLeaf(
                 }
 
                 pkixTestErrorResult = PKIX_BuildChain
-                        (buildParams,
+                        (procParams,
                         (void **)&pollDesc,
                         &state,
                         &buildResult,
@@ -296,7 +291,6 @@ cleanup:
 
         PKIX_TEST_DECREF_AC(state);
         PKIX_TEST_DECREF_AC(buildResult);
-        PKIX_TEST_DECREF_AC(buildParams);
         PKIX_TEST_DECREF_AC(procParams);
         PKIX_TEST_DECREF_AC(revCheckers);
         PKIX_TEST_DECREF_AC(revChecker);
@@ -337,7 +331,6 @@ testWithDuplicateLeaf(
         PKIX_CertSelector *certSelector = NULL;
         PKIX_PL_PublicKey *trustedPubKey = NULL;
         PKIX_RevocationChecker *revChecker = NULL;
-        PKIX_BuildParams *buildParams = NULL;
         PKIX_BuildResult *buildResult = NULL;
         PRPollDesc *pollDesc = NULL;
         void *state = NULL;
@@ -411,14 +404,10 @@ testWithDuplicateLeaf(
                 (procParams, PKIX_FALSE, plContext));
 #endif
 
-        /* create build params with processing params */
-        PKIX_TEST_EXPECT_NO_ERROR(PKIX_BuildParams_Create
-                (procParams, &buildParams, plContext));
-
-        /* build cert chain using build params and return buildResult */
+        /* build cert chain using processing params and return buildResult */
 
         pkixTestErrorResult = PKIX_BuildChain
-                (buildParams,
+                (procParams,
                 (void **)&pollDesc,
                 &state,
                 &buildResult,
@@ -431,7 +420,7 @@ testWithDuplicateLeaf(
                 }
 
                 pkixTestErrorResult = PKIX_BuildChain
-                        (buildParams,
+                        (procParams,
                         (void **)&pollDesc,
                         &state,
                         &buildResult,
@@ -491,7 +480,6 @@ cleanup:
 
         PKIX_TEST_DECREF_AC(state);
         PKIX_TEST_DECREF_AC(buildResult);
-        PKIX_TEST_DECREF_AC(buildParams);
         PKIX_TEST_DECREF_AC(procParams);
         PKIX_TEST_DECREF_AC(revCheckers);
         PKIX_TEST_DECREF_AC(revChecker);
@@ -532,7 +520,6 @@ testWithLeafAndChain(
         PKIX_CertSelector *certSelector = NULL;
         PKIX_PL_PublicKey *trustedPubKey = NULL;
         PKIX_RevocationChecker *revChecker = NULL;
-        PKIX_BuildParams *buildParams = NULL;
         PKIX_BuildResult *buildResult = NULL;
         PRPollDesc *pollDesc = NULL;
         void *state = NULL;
@@ -609,14 +596,10 @@ testWithLeafAndChain(
                 (procParams, PKIX_FALSE, plContext));
 #endif
 
-        /* create build params with processing params */
-        PKIX_TEST_EXPECT_NO_ERROR(PKIX_BuildParams_Create
-                (procParams, &buildParams, plContext));
-
-        /* build cert chain using build params and return buildResult */
+        /* build cert chain using processing params and return buildResult */
 
         pkixTestErrorResult = PKIX_BuildChain
-                (buildParams,
+                (procParams,
                 (void **)&pollDesc,
                 &state,
                 &buildResult,
@@ -629,7 +612,7 @@ testWithLeafAndChain(
                 }
 
                 pkixTestErrorResult = PKIX_BuildChain
-                        (buildParams,
+                        (procParams,
                         (void **)&pollDesc,
                         &state,
                         &buildResult,
@@ -688,7 +671,6 @@ cleanup:
 
         PKIX_TEST_DECREF_AC(state);
         PKIX_TEST_DECREF_AC(buildResult);
-        PKIX_TEST_DECREF_AC(buildParams);
         PKIX_TEST_DECREF_AC(procParams);
         PKIX_TEST_DECREF_AC(revCheckers);
         PKIX_TEST_DECREF_AC(revChecker);

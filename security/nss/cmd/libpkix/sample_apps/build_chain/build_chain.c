@@ -135,7 +135,6 @@ cleanup:
 
 int main(int argc, char *argv[])
 {
-        PKIX_BuildParams *buildParams = NULL;
         PKIX_BuildResult *buildResult = NULL;
         PKIX_ComCertSelParams *certSelParams = NULL;
         PKIX_CertSelector *certSelector = NULL;
@@ -227,14 +226,10 @@ int main(int argc, char *argv[])
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_ProcessingParams_SetCertStores
                 (procParams, certStores, plContext));
 
-        /* create build params with processing params */
-        PKIX_TEST_EXPECT_NO_ERROR(PKIX_BuildParams_Create
-                (procParams, &buildParams, plContext));
-
-        /* build cert chain using build params and return buildResult */
+        /* build cert chain using processing params and return buildResult */
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_BuildChain
-                (buildParams,
+                (procParams,
                 &nbioContext,
                 &buildState,
                 &buildResult,
@@ -291,7 +286,6 @@ cleanup:
         PKIX_TEST_DECREF_AC(certSelParams);
         PKIX_TEST_DECREF_AC(certSelector);
         PKIX_TEST_DECREF_AC(buildResult);
-        PKIX_TEST_DECREF_AC(buildParams);
 
         PKIX_TEST_RETURN();
 

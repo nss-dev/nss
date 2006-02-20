@@ -3191,7 +3191,7 @@ cleanup:
  * DESCRIPTION:
  *
  *  This function initiates the search for a BuildChain, using the parameters
- *  provided in "buildParams" and, if continuing a search that was suspended
+ *  provided in "procParams" and, if continuing a search that was suspended
  *  for I/O, using the ForwardBuilderState pointed to by "state".
  *
  *  If a successful chain is built, this function stores the BuildResult at
@@ -3208,8 +3208,8 @@ cleanup:
  *  after non-blocking I/O is via pkix_Build_ResumeBuildChain.
  *
  * PARAMETERS:
- *  "buildParams"
- *      Address of the BuildParams for the search. Must be non-NULL.
+ *  "procParams"
+ *      Address of the ProcessingParams for the search. Must be non-NULL.
  *  "pNBIOContext"
  *      Address at which the NBIOContext is stored indicating whether the
  *      validation is complete. Must be non-NULL.
@@ -3232,7 +3232,7 @@ cleanup:
  */
 static PKIX_Error *
 pkix_Build_InitiateBuildChain(
-        PKIX_BuildParams *buildParams,
+        PKIX_ProcessingParams *procParams,
         void **pNBIOContext,
         PKIX_ForwardBuilderState **pState,
         PKIX_BuildResult **pBuildResult,
@@ -3251,7 +3251,6 @@ pkix_Build_InitiateBuildChain(
         PKIX_Boolean ioPending = PKIX_FALSE;
         PKIX_Boolean isDuplicate = PKIX_FALSE;
         PKIX_PL_Cert *trustedCert = NULL;
-        PKIX_ProcessingParams *procParams = NULL;
         PKIX_CertSelector *targetConstraints = NULL;
         PKIX_ComCertSelParams *targetParams = NULL;
         PKIX_List *anchors = NULL;
@@ -3278,7 +3277,7 @@ pkix_Build_InitiateBuildChain(
         PKIX_PL_AIAMgr *aiaMgr = NULL;
 
         PKIX_ENTER(BUILD, "pkix_Build_InitiateBuildChain");
-        PKIX_NULLCHECK_FOUR(buildParams, pNBIOContext, pState, pBuildResult);
+        PKIX_NULLCHECK_FOUR(procParams, pNBIOContext, pState, pBuildResult);
 
         nbioContext = *pNBIOContext;
         *pNBIOContext = NULL;
@@ -3289,12 +3288,6 @@ pkix_Build_InitiateBuildChain(
             /* attempted shortcut ran into non-blocking I/O */
         } else {
 
-            PKIX_CHECK(PKIX_BuildParams_GetProcessingParams
-                    (buildParams, &procParams, plContext),
-                    "PKIX_BuildParams_GetProcessingParams failed");
-    
-            PKIX_NULLCHECK_ONE(procParams);
-    
             PKIX_CHECK(PKIX_ProcessingParams_GetDate
                     (procParams, &testDate, plContext),
                     "PKIX_ProcessingParams_GetDate");
@@ -3712,7 +3705,6 @@ pkix_Build_InitiateBuildChain(
         *pState = state;
 cleanup:
 
-        PKIX_DECREF(procParams);
         PKIX_DECREF(targetConstraints);
         PKIX_DECREF(targetParams);
         PKIX_DECREF(anchors);
@@ -3741,7 +3733,7 @@ cleanup:
  * DESCRIPTION:
  *
  *  This function continues the search for a BuildChain, using the parameters
- *  provided in "buildParams" and the ForwardBuilderState pointed to by "state".
+ *  provided in "procParams" and the ForwardBuilderState pointed to by "state".
  *
  *  If a successful chain is built, this function stores the BuildResult at
  *  "pBuildResult". Alternatively, if an operation using non-blocking I/O
@@ -3837,7 +3829,7 @@ cleanup:
  */
 PKIX_Error *
 PKIX_BuildChain(
-        PKIX_BuildParams *buildParams,
+        PKIX_ProcessingParams *procParams,
         void **pNBIOContext,
         void **pState,
         PKIX_BuildResult **pBuildResult,
@@ -3849,14 +3841,14 @@ PKIX_BuildChain(
         void *nbioContext = NULL;
 
         PKIX_ENTER(BUILD, "PKIX_BuildChain");
-        PKIX_NULLCHECK_FOUR(buildParams, pNBIOContext, pState, pBuildResult);
+        PKIX_NULLCHECK_FOUR(procParams, pNBIOContext, pState, pBuildResult);
 
         nbioContext = *pNBIOContext;
         *pNBIOContext = NULL;
 
         if (*pState == NULL) {
                 PKIX_CHECK(pkix_Build_InitiateBuildChain
-                        (buildParams,
+                        (procParams,
                         &nbioContext,
                         &state,
                         &buildResult,
@@ -3867,7 +3859,7 @@ PKIX_BuildChain(
                 *pState = NULL; /* no net change in reference count */
                 if (state->status == BUILD_SHORTCUTPENDING) {
                         PKIX_CHECK(pkix_Build_InitiateBuildChain
-                                (buildParams,
+                                (procParams,
                                 &nbioContext,
                                 &state,
                                 &buildResult,

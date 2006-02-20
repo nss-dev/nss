@@ -52,7 +52,6 @@
 ;+    global:
 LIBRARY pkixutil ;-
 EXPORTS	;-
-createBuildParams;
 createBuildResult;
 createCRL;
 createCert;

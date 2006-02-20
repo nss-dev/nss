@@ -38,6 +38,6 @@
 PKIX_DEPTH = ../..
 
 #
-DIRS =  buildparams  procparams  trustanchor  valparams   resourcelimits \
+DIRS =  procparams  trustanchor  valparams   resourcelimits \
 	$(NULL)
 

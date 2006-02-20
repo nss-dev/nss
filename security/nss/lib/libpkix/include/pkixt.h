@@ -103,7 +103,6 @@ typedef struct PKIX_ProcessingParamsStruct PKIX_ProcessingParams;
 typedef struct PKIX_ValidateParamsStruct PKIX_ValidateParams;
 typedef struct PKIX_ValidateResultStruct PKIX_ValidateResult;
 typedef struct PKIX_ResourceLimitsStruct PKIX_ResourceLimits;
-typedef struct PKIX_BuildParamsStruct PKIX_BuildParams;
 typedef struct PKIX_BuildResultStruct PKIX_BuildResult;
 typedef struct PKIX_CertStoreStruct PKIX_CertStore;
 typedef struct PKIX_CertChainCheckerStruct PKIX_CertChainChecker;
@@ -204,7 +203,7 @@ typedef int PKIX_Boolean;
 
 #define PKIX_CERTBASICCONSTRAINTS_TYPE  ((PKIX_UInt32) 11)
 #define PKIX_CERT_TYPE                  ((PKIX_UInt32) 12)
-#define PKIX_NOLONGERUSED_TYPE          ((PKIX_UInt32) 13)
+/* #define PKIX_NOLONGERUSED_TYPE          ((PKIX_UInt32) 13) */
 #define PKIX_CRL_TYPE                   ((PKIX_UInt32) 14)
 #define PKIX_CRLENTRY_TYPE              ((PKIX_UInt32) 15)
 #define PKIX_DATE_TYPE                  ((PKIX_UInt32) 16)
@@ -214,7 +213,7 @@ typedef int PKIX_Boolean;
 #define PKIX_TRUSTANCHOR_TYPE           ((PKIX_UInt32) 20)
 
 #define PKIX_X500NAME_TYPE              ((PKIX_UInt32) 21)
-#define PKIX_BUILDPARAMS_TYPE           ((PKIX_UInt32) 22)
+/* #define PKIX_NOLONGERUSED_TYPE         ((PKIX_UInt32) 22) */
 #define PKIX_BUILDRESULT_TYPE           ((PKIX_UInt32) 23)
 #define PKIX_PROCESSINGPARAMS_TYPE      ((PKIX_UInt32) 24)
 #define PKIX_VALIDATEPARAMS_TYPE        ((PKIX_UInt32) 25)
@@ -295,7 +294,7 @@ typedef int PKIX_Boolean;
 #define PKIX_DATE_ERROR                 ((PKIX_UInt32) 16)
 #define PKIX_TRUSTANCHOR_ERROR          ((PKIX_UInt32) 17)
 #define PKIX_PROCESSINGPARAMS_ERROR     ((PKIX_UInt32) 18)
-#define PKIX_NOLONGERUSED_ERROR         ((PKIX_UInt32) 19)
+/* #define PKIX_NOLONGERUSED_ERROR         ((PKIX_UInt32) 19) */
 #define PKIX_VALIDATEPARAMS_ERROR       ((PKIX_UInt32) 20)
 #define PKIX_VALIDATE_ERROR             ((PKIX_UInt32) 21)
 #define PKIX_VALIDATERESULT_ERROR       ((PKIX_UInt32) 22)
@@ -320,7 +319,7 @@ typedef int PKIX_Boolean;
 #define PKIX_CERTPOLICYMAP_ERROR        ((PKIX_UInt32) 41)
 #define PKIX_BUILD_ERROR                ((PKIX_UInt32) 42)
 #define PKIX_BUILDRESULT_ERROR          ((PKIX_UInt32) 43)
-#define PKIX_BUILDPARAMS_ERROR          ((PKIX_UInt32) 44)
+/* #define PKIX_NOLONGERUSED_ERROR         ((PKIX_UInt32) 44) */
 #define PKIX_FORWARDBUILDERSTATE_ERROR  ((PKIX_UInt32) 45)
 #define PKIX_SIGNATURECHECKERSTATE_ERROR ((PKIX_UInt32) 46)
 #define PKIX_CERTNAMECONSTRAINTS_ERROR ((PKIX_UInt32) 47)

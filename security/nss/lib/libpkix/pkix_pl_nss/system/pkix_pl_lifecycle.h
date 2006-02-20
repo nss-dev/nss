@@ -94,7 +94,6 @@
 #include "pkix_defaultcrlchecker.h"
 #include "pkix_signaturechecker.h"
 #include "pkix_buildresult.h"
-#include "pkix_buildparams.h"
 #include "pkix_build.h"
 #include "pkix_pl_nameconstraints.h"
 #include "pkix_nameconstraintschecker.h"

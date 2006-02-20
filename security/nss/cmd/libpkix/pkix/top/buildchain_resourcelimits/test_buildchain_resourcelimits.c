@@ -118,7 +118,7 @@ cleanup:
 }
 
 static void Test_BuildResult(
-        PKIX_BuildParams *buildParams,
+        PKIX_ProcessingParams *procParams,
         PKIX_Boolean testValid,
         PKIX_List *expectedCerts,
         void *plContext)
@@ -140,7 +140,7 @@ static void Test_BuildResult(
         PKIX_TEST_STD_VARS();
 
         pkixTestErrorResult = PKIX_BuildChain
-                (buildParams,
+                (procParams,
                 (void **)&pollDesc,
                 &state,
                 &buildResult,
@@ -153,7 +153,7 @@ static void Test_BuildResult(
                 }
 
                 pkixTestErrorResult = PKIX_BuildChain
-                        (buildParams,
+                        (procParams,
                         (void **)&pollDesc,
                         &state,
                         &buildResult,
@@ -269,7 +269,6 @@ cleanup:
 
 int main(int argc, char *argv[])
 {
-        PKIX_BuildParams *buildParams = NULL;
         PKIX_ComCertSelParams *certSelParams = NULL;
         PKIX_CertSelector *certSelector = NULL;
         PKIX_TrustAnchor *anchor = NULL;
@@ -504,15 +503,11 @@ int main(int argc, char *argv[])
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_ProcessingParams_SetResourceLimits
                                     (procParams, resourceLimits, plContext));
 
-        /* create build params with processing params */
-        PKIX_TEST_EXPECT_NO_ERROR(PKIX_BuildParams_Create
-                                    (procParams, &buildParams, plContext));
-
-        /* build cert chain using build params and return buildResult */
+        /* build cert chain using processing params and return buildResult */
 
         subTest("Testing ResourceLimits MaxFanout & MaxDepth - <pass>");
         Test_BuildResult
-                (buildParams,
+                (procParams,
                 testValid,
                 expectedCerts,
                 plContext);
@@ -522,7 +517,7 @@ int main(int argc, char *argv[])
 
         subTest("Testing ResourceLimits MaxFanout - <fail>");
         Test_BuildResult
-                (buildParams,
+                (procParams,
                 PKIX_FALSE,
                 expectedCerts,
                 plContext);
@@ -534,7 +529,7 @@ int main(int argc, char *argv[])
 
         subTest("Testing ResourceLimits MaxDepth - <fail>");
         Test_BuildResult
-                (buildParams,
+                (procParams,
                 PKIX_FALSE,
                 expectedCerts,
                 plContext);
@@ -548,7 +543,7 @@ int main(int argc, char *argv[])
 
         subTest("Testing ResourceLimits No checking - <pass>");
         Test_BuildResult
-                (buildParams,
+                (procParams,
                 testValid,
                 expectedCerts,
                 plContext);
@@ -556,7 +551,7 @@ int main(int argc, char *argv[])
 cleanup:
 
         PKIX_TEST_DECREF_AC(expectedCerts);
-        PKIX_TEST_DECREF_AC(buildParams);
+        PKIX_TEST_DECREF_AC(procParams);
         PKIX_TEST_DECREF_AC(procParams);
         PKIX_TEST_DECREF_AC(certStores);
         PKIX_TEST_DECREF_AC(certStore);

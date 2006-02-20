@@ -414,6 +414,7 @@ createProcessingParams(
         char *firstAnchorFileName,
         char *secondAnchorFileName,
         char *dateAscii,
+        PKIX_List *initialPolicies, /* List of PKIX_PL_OID */
         PKIX_Boolean isCrlEnabled,
         void *plContext)
 {
@@ -469,6 +470,9 @@ createProcessingParams(
                         (procParams, testDate, plContext));
         }
 
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_ProcessingParams_SetInitialPolicies
+                (procParams, initialPolicies, plContext));
+
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_ProcessingParams_SetRevocationEnabled
                                     (procParams, isCrlEnabled, plContext));
 
@@ -515,6 +519,7 @@ createValidateParams(
                     firstAnchorFileName,
                     secondAnchorFileName,
                     dateAscii,
+                    NULL,
                     isCrlEnabled,
                     plContext);
 
@@ -614,49 +619,6 @@ cleanup:
         PKIX_TEST_RETURN();
 
         return (generalName);
-}
-
-PKIX_BuildParams *
-createBuildParams(
-        char *dirName,
-        char *firstAnchorFileName,
-        char *secondAnchorFileName,
-        char *dateAscii,
-        PKIX_List *initialPolicies, /* List of PKIX_PL_OID */
-        PKIX_Boolean isCrlEnabled,
-        void *plContext)
-{
-        PKIX_ProcessingParams *procParams = NULL;
-        PKIX_BuildParams *buildParams = NULL;
-
-        PKIX_TEST_STD_VARS();
-
-        procParams =
-            createProcessingParams
-                (dirName,
-                firstAnchorFileName,
-                secondAnchorFileName,
-                dateAscii,
-                isCrlEnabled,
-                plContext);
-
-        PKIX_TEST_EXPECT_NO_ERROR(PKIX_ProcessingParams_SetInitialPolicies
-                (procParams, initialPolicies, plContext));
-
-        PKIX_TEST_EXPECT_NO_ERROR(PKIX_BuildParams_Create
-                (procParams, &buildParams, plContext));
-
-cleanup:
-
-        if (PKIX_TEST_ERROR_RECEIVED){
-                PKIX_TEST_DECREF_AC(buildParams);
-        }
-
-        PKIX_TEST_DECREF_AC(procParams);
-
-        PKIX_TEST_RETURN();
-
-        return (buildParams);
 }
 
 PKIX_BuildResult *

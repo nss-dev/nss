@@ -106,6 +106,7 @@ createProcessingParams(
         char *firstAnchorFileName,
         char *secondAnchorFileName,
         char *dateAscii,
+        PKIX_List *initialPolicies, /* List of PKIX_PL_OID */
         PKIX_Boolean isCrlEnabled,
         void *plContext);
 
@@ -121,16 +122,6 @@ createValidateParams(
         PKIX_Boolean initialExplicitPolicy,
         PKIX_Boolean isCrlEnabled,
         PKIX_List *chain,
-        void *plContext);
-
-PKIX_BuildParams *
-createBuildParams(
-        char *dirName,
-        char *firstAnchorFileName,
-        char *secondAnchorFileName,
-        char *dateAscii,
-        PKIX_List *initialPolicies, /* List of PKIX_PL_OID */
-        PKIX_Boolean isCrlEnabled,
         void *plContext);
 
 PKIX_ValidateResult *

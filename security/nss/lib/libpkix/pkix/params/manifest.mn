@@ -40,7 +40,6 @@ EXPORTS = \
 	$(NULL)
 
 PRIVATE_EXPORTS = \
-	pkix_buildparams.h \
 	pkix_procparams.h \
 	pkix_trustanchor.h \
 	pkix_valparams.h \
@@ -53,7 +52,6 @@ CSRCS = \
 	pkix_trustanchor.c \
 	pkix_procparams.c \
 	pkix_valparams.c \
-	pkix_buildparams.c \
 	pkix_resourcelimits.c \
 	$(NULL)
 

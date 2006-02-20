@@ -485,13 +485,31 @@ int main(int argc, char *argv[]) {
 
         subTest("PKIX_ProcessingParams_Create");
         goodObject = createProcessingParams
-            (dataCentralDir, goodInput, diffInput, NULL, PKIX_FALSE, plContext);
+                (dataCentralDir,
+                goodInput,
+                diffInput,
+                NULL,
+                NULL,
+                PKIX_FALSE,
+                plContext);
 
         equalObject = createProcessingParams
-            (dataCentralDir, goodInput, diffInput, NULL, PKIX_FALSE, plContext);
+                (dataCentralDir,
+                goodInput,
+                diffInput,
+                NULL,
+                NULL,
+                PKIX_FALSE,
+                plContext);
 
         diffObject = createProcessingParams
-            (dataCentralDir, diffInput, goodInput, NULL, PKIX_FALSE, plContext);
+                (dataCentralDir,
+                diffInput,
+                goodInput,
+                NULL,
+                NULL,
+                PKIX_FALSE,
+                plContext);
 
         testGetAnchors(goodObject, equalObject);
         testGetSetDate(goodObject, equalObject);

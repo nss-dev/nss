@@ -234,8 +234,8 @@ PKIX_ValidateChain(
  * DESCRIPTION:
  *
  *  If called with a NULL "state", this function attempts to build and validate
- *  a CertChain according to the BuildParams pointed to by "params", using an
- *  RFC 3280-compliant validation algorithm. If successful, this function
+ *  a CertChain according to the ProcessingParams pointed to by "params", using
+ *  an RFC 3280-compliant validation algorithm. If successful, this function
  *  returns NULL and stores the BuildResult at "pResult", which holds the built
  *  CertChain, as well as additional information, such as the policy tree and
  *  the target's public key. If unsuccessful, an Error is returned.
@@ -252,7 +252,7 @@ PKIX_ValidateChain(
  *
  * PARAMETERS:
  *  "params"
- *      Address of BuildParams used to build and validate CertChain.
+ *      Address of ProcessingParams used to build and validate CertChain.
  *      Must be non-NULL.
  *  "pNBIOContext"
  *      Address where platform-dependent information is store if the build
@@ -273,7 +273,7 @@ PKIX_ValidateChain(
  */
 PKIX_Error *
 PKIX_BuildChain(
-        PKIX_BuildParams *params,
+        PKIX_ProcessingParams *params,
         void **pNBIOContext,
         void **pState,
         PKIX_BuildResult **pResult,

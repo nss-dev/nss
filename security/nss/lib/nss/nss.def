@@ -868,8 +868,6 @@ NSS_Get_PKIX_PL_LDAPMessageTemplate;
 PKIX_PL_LDAPMessageTemplate;
 PKIX_ALLOC_ERROR;
 PKIX_BuildChain;
-PKIX_BuildParams_Create;
-PKIX_BuildParams_GetProcessingParams;
 pkix_BuildResult_Create;
 PKIX_BuildResult_GetCertChain;
 PKIX_BuildResult_GetValidateResult;
