@@ -52,7 +52,7 @@ extern "C" {
 
 struct PKIX_ValidateParamsStruct {
         PKIX_ProcessingParams *procParams;      /* Never NULL */
-        PKIX_CertChain *chain;                  /* Never NULL */
+        PKIX_List *chain;                       /* Never NULL */
 };
 
 /* see source file for function documentation */

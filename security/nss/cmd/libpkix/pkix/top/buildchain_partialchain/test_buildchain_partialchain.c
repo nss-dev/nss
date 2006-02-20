@@ -140,7 +140,6 @@ testWithNoLeaf(
         PKIX_List *revCheckers = NULL;
         PKIX_List *certs = NULL;
         PKIX_PL_Cert *cert = NULL;
-        PKIX_CertChain *chain = NULL;
         PKIX_ProcessingParams *procParams = NULL;
         PKIX_ComCertSelParams *certSelParams = NULL;
         PKIX_CertSelector *certSelector = NULL;
@@ -264,11 +263,7 @@ testWithNoLeaf(
 
                 PKIX_TEST_EXPECT_NO_ERROR
                         (PKIX_BuildResult_GetCertChain
-                        (buildResult, &chain, plContext));
-
-                PKIX_TEST_EXPECT_NO_ERROR
-                        (PKIX_CertChain_GetCertificates
-                        (chain, &certs, plContext));
+                        (buildResult, &certs, plContext));
 
                 PKIX_TEST_EXPECT_NO_ERROR
                         (PKIX_List_GetLength(certs, &numCerts, plContext));
@@ -307,7 +302,6 @@ cleanup:
         PKIX_TEST_DECREF_AC(revChecker);
         PKIX_TEST_DECREF_AC(certSelParams);
         PKIX_TEST_DECREF_AC(certSelector);
-        PKIX_TEST_DECREF_AC(chain);
         PKIX_TEST_DECREF_AC(anchors);
         PKIX_TEST_DECREF_AC(anchor);
         PKIX_TEST_DECREF_AC(hintCerts);
@@ -338,7 +332,6 @@ testWithDuplicateLeaf(
         PKIX_List *revCheckers = NULL;
         PKIX_List *certs = NULL;
         PKIX_PL_Cert *cert = NULL;
-        PKIX_CertChain *chain = NULL;
         PKIX_ProcessingParams *procParams = NULL;
         PKIX_ComCertSelParams *certSelParams = NULL;
         PKIX_CertSelector *certSelector = NULL;
@@ -465,11 +458,7 @@ testWithDuplicateLeaf(
 
                 PKIX_TEST_EXPECT_NO_ERROR
                         (PKIX_BuildResult_GetCertChain
-                        (buildResult, &chain, plContext));
-
-                PKIX_TEST_EXPECT_NO_ERROR
-                        (PKIX_CertChain_GetCertificates
-                        (chain, &certs, plContext));
+                        (buildResult, &certs, plContext));
 
                 PKIX_TEST_EXPECT_NO_ERROR
                         (PKIX_List_GetLength(certs, &numCerts, plContext));
@@ -508,7 +497,6 @@ cleanup:
         PKIX_TEST_DECREF_AC(revChecker);
         PKIX_TEST_DECREF_AC(certSelParams);
         PKIX_TEST_DECREF_AC(certSelector);
-        PKIX_TEST_DECREF_AC(chain);
         PKIX_TEST_DECREF_AC(anchors);
         PKIX_TEST_DECREF_AC(anchor);
         PKIX_TEST_DECREF_AC(hintCerts);
@@ -539,7 +527,6 @@ testWithLeafAndChain(
         PKIX_List *revCheckers = NULL;
         PKIX_List *certs = NULL;
         PKIX_PL_Cert *cert = NULL;
-        PKIX_CertChain *chain = NULL;
         PKIX_ProcessingParams *procParams = NULL;
         PKIX_ComCertSelParams *certSelParams = NULL;
         PKIX_CertSelector *certSelector = NULL;
@@ -669,11 +656,7 @@ testWithLeafAndChain(
 
                 PKIX_TEST_EXPECT_NO_ERROR
                         (PKIX_BuildResult_GetCertChain
-                        (buildResult, &chain, plContext));
-
-                PKIX_TEST_EXPECT_NO_ERROR
-                        (PKIX_CertChain_GetCertificates
-                        (chain, &certs, plContext));
+                        (buildResult, &certs, plContext));
 
                 PKIX_TEST_EXPECT_NO_ERROR
                         (PKIX_List_GetLength(certs, &numCerts, plContext));
@@ -711,7 +694,6 @@ cleanup:
         PKIX_TEST_DECREF_AC(revChecker);
         PKIX_TEST_DECREF_AC(certSelParams);
         PKIX_TEST_DECREF_AC(certSelector);
-        PKIX_TEST_DECREF_AC(chain);
         PKIX_TEST_DECREF_AC(anchors);
         PKIX_TEST_DECREF_AC(anchor);
         PKIX_TEST_DECREF_AC(hintCerts);

@@ -166,7 +166,6 @@ int main(int argc, char *argv[]) {
         PKIX_ValidateResult *goodObject = NULL;
         PKIX_ValidateResult *equalObject = NULL;
         PKIX_ValidateResult *diffObject = NULL;
-        PKIX_CertChain *chain = NULL;
         PKIX_UInt32 actualMinorVersion;
         PKIX_UInt32 j = 0;
         PKIX_Boolean useArenas = PKIX_FALSE;
@@ -235,8 +234,6 @@ int main(int argc, char *argv[]) {
         testDestroy(goodObject, equalObject, diffObject);
 
 cleanup:
-
-        PKIX_TEST_DECREF_AC(chain);
 
         PKIX_Shutdown(plContext);
 

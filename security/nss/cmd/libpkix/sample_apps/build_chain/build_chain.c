@@ -155,7 +155,6 @@ int main(int argc, char *argv[])
         PKIX_CertStore *certStore = NULL;
         PKIX_List *certStores = NULL;
         char * asciiResult = NULL;
-        PKIX_CertChain *chain = NULL;
         PKIX_Boolean useArenas = PKIX_FALSE;
         void *buildState = NULL; /* needed by pkix_build for non-blocking I/O */
         void *nbioContext = NULL;
@@ -247,10 +246,7 @@ int main(int argc, char *argv[])
          */
 
         PKIX_TEST_EXPECT_NO_ERROR
-                (PKIX_BuildResult_GetCertChain(buildResult, &chain, plContext));
-
-        PKIX_TEST_EXPECT_NO_ERROR
-                (PKIX_CertChain_GetCertificates(chain, &certs, plContext));
+                (PKIX_BuildResult_GetCertChain(buildResult, &certs, plContext));
 
         PKIX_TEST_EXPECT_NO_ERROR
                 (PKIX_List_GetLength(certs, &numCerts, plContext));
@@ -282,7 +278,6 @@ cleanup:
 
         PKIX_PL_Free(asciiResult, plContext);
 
-        PKIX_TEST_DECREF_AC(chain);
         PKIX_TEST_DECREF_AC(certs);
         PKIX_TEST_DECREF_AC(cert);
         PKIX_TEST_DECREF_AC(certStore);

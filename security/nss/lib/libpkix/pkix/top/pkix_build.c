@@ -3271,7 +3271,6 @@ pkix_Build_InitiateBuildChain(
         PKIX_List *tentativeChain = NULL;
         PKIX_ValidateResult *valResult = NULL;
         PKIX_BuildResult *buildResult = NULL;
-        PKIX_CertChain *certChain = NULL;
         PKIX_List *certList = NULL;
         PKIX_TrustAnchor *matchingAnchor = NULL;
         PKIX_ForwardBuilderState *state = NULL;
@@ -3593,12 +3592,8 @@ pkix_Build_InitiateBuildChain(
                              * applications, we need to verify the chain again.
                              */
                             PKIX_CHECK(PKIX_BuildResult_GetCertChain
-                                    (buildResult, &certChain, plContext),
+                                    (buildResult, &certList, plContext),
                                     "PKIX_BuildResult_GetCertChain failed");
-    
-                            PKIX_CHECK(PKIX_CertChain_GetCertificates
-                                    (certChain, &certList, plContext),
-                                    "PKIX_CertChain_GetCertificates failed");
     
                             PKIX_CHECK(pkix_Build_ValidationCheckers
                                     (state,
@@ -3641,7 +3636,6 @@ pkix_Build_InitiateBuildChain(
                                     "pkix_CacheCertChain_Remove failed");
                     }
                     PKIX_DECREF(certList);
-                    PKIX_DECREF(certChain);
                     PKIX_DECREF(matchingAnchor);
                     PKIX_DECREF(trustedCert);
                     PKIX_DECREF(buildResult);
@@ -3707,12 +3701,8 @@ pkix_Build_InitiateBuildChain(
 
         } else {
 
-                PKIX_CHECK(PKIX_CertChain_Create
-                        (state->trustChain, &certChain, plContext),
-                        "PKIX_CertChain_Create failed");
-
                 PKIX_CHECK(pkix_BuildResult_Create
-                        (valResult, certChain, &buildResult, plContext),
+                        (valResult, state->trustChain, &buildResult, plContext),
                         "pkix_BuildResult_Create failed");
 
                 *pBuildResult = buildResult;
@@ -3738,7 +3728,6 @@ cleanup:
         PKIX_DECREF(targetPubKey);
         PKIX_DECREF(tentativeChain);
         PKIX_DECREF(valResult);
-        PKIX_DECREF(certChain);
         PKIX_DECREF(certList);
         PKIX_DECREF(matchingAnchor);
         PKIX_DECREF(trustedCert);
@@ -3792,7 +3781,6 @@ pkix_Build_ResumeBuildChain(
         PKIX_Boolean ioPending = PKIX_FALSE;
         PKIX_ForwardBuilderState *state = NULL;
         PKIX_ValidateResult *valResult = NULL;
-        PKIX_CertChain *certChain = NULL;
         PKIX_BuildResult *buildResult = NULL;
         void *nbioContext = NULL;
 
@@ -3823,12 +3811,11 @@ pkix_Build_ResumeBuildChain(
 
         } else {
 
-                PKIX_CHECK(PKIX_CertChain_Create
-                        (state->trustChain, &certChain, plContext),
-                        "PKIX_CertChain_Create failed");
-
                 PKIX_CHECK(pkix_BuildResult_Create
-                        (valResult, certChain, &buildResult, plContext),
+                        (valResult,
+                        state->trustChain,
+                        &buildResult,
+                        plContext),
                         "pkix_BuildResult_Create failed");
 
                 *pBuildResult = buildResult;
@@ -3839,7 +3826,6 @@ pkix_Build_ResumeBuildChain(
 cleanup:
 
         PKIX_DECREF(valResult);
-        PKIX_DECREF(certChain);
 
         PKIX_RETURN(BUILD);
 }

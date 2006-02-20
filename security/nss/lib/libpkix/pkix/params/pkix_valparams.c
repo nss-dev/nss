@@ -290,7 +290,7 @@ pkix_ValidateParams_RegisterSelf(void *plContext)
 PKIX_Error *
 PKIX_ValidateParams_Create(
         PKIX_ProcessingParams *procParams,
-        PKIX_CertChain *chain,
+        PKIX_List *chain,
         PKIX_ValidateParams **pParams,
         void *plContext)
 {
@@ -347,7 +347,7 @@ PKIX_ValidateParams_GetProcessingParams(
 PKIX_Error *
 PKIX_ValidateParams_GetCertChain(
         PKIX_ValidateParams *valParams,
-        PKIX_CertChain **pChain,
+        PKIX_List **pChain,
         void *plContext)
 {
         PKIX_ENTER(VALIDATEPARAMS, "PKIX_ValidateParams_GetCertChain");

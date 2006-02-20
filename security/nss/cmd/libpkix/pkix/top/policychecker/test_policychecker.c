@@ -190,7 +190,7 @@ cleanup:
 
 void testPass(char *dirName, char *goodInput, char *diffInput, char *dateAscii){
 
-        PKIX_CertChain *chain = NULL;
+        PKIX_List *chain = NULL;
         PKIX_ValidateParams *valParams = NULL;
         PKIX_ValidateResult *valResult = NULL;
 
@@ -243,7 +243,7 @@ void testNistTest1(char *dirName)
 
         PKIX_ValidateParams *valParams = NULL;
         PKIX_ValidateResult *valResult = NULL;
-        PKIX_CertChain *chain = NULL;
+        PKIX_List *chain = NULL;
         PKIX_PL_OID *anyPolicyOID = NULL;
         PKIX_List *initialPolicies = NULL;
         char *anchorName = NULL;
@@ -317,7 +317,7 @@ void testNistTest2(char *dirName)
 
         PKIX_ValidateParams *valParams = NULL;
         PKIX_ValidateResult *valResult = NULL;
-        PKIX_CertChain *chain = NULL;
+        PKIX_List *chain = NULL;
         PKIX_PL_OID *Nist1PolicyOID = NULL;
         PKIX_List *initialPolicies = NULL;
         char *anchorName = NULL;
@@ -426,7 +426,7 @@ int main(int argc, char *argv[])
         PKIX_List *userInitialPolicySet = NULL; /* List of PKIX_PL_OID */
         char *certNames[PKIX_TEST_MAX_CERTS];
         PKIX_PL_Cert *certs[PKIX_TEST_MAX_CERTS];
-        PKIX_CertChain *chain = NULL;
+        PKIX_List *chain = NULL;
         PKIX_Error *validationError = NULL;
         char *dirName = NULL;
         char *dataCentralDir = NULL;

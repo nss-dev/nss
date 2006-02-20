@@ -289,7 +289,7 @@ cleanup:
         return (anchor);
 }
 
-PKIX_CertChain *
+PKIX_List *
 createCertChain(
         char *dirName,
         char *firstCertFileName,
@@ -299,7 +299,6 @@ createCertChain(
         PKIX_PL_Cert *firstCert = NULL;
         PKIX_PL_Cert *secondCert = NULL;
         PKIX_List *certList = NULL;
-        PKIX_CertChain *certChain = NULL;
 
         PKIX_TEST_STD_VARS();
 
@@ -317,25 +316,24 @@ createCertChain(
                         (certList, (PKIX_PL_Object *)secondCert, plContext));
         }
 
-        PKIX_TEST_EXPECT_NO_ERROR(PKIX_CertChain_Create
-                                    (certList, &certChain, plContext));
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_SetImmutable
+                                    (certList, plContext));
 
 cleanup:
 
         if (PKIX_TEST_ERROR_RECEIVED){
-                PKIX_TEST_DECREF_AC(certChain);
+                PKIX_TEST_DECREF_AC(certList);
         }
 
         PKIX_TEST_DECREF_AC(firstCert);
         PKIX_TEST_DECREF_AC(secondCert);
-        PKIX_TEST_DECREF_AC(certList);
 
         PKIX_TEST_RETURN();
 
-        return (certChain);
+        return (certList);
 }
 
-PKIX_CertChain *
+PKIX_List *
 createCertChainPlus(
         char *dirName,
         char *certNames[],
@@ -344,7 +342,6 @@ createCertChainPlus(
         void *plContext)
 {
         PKIX_List *certList = NULL;
-        PKIX_CertChain *certChain = NULL;
         PKIX_UInt32 i;
 
         PKIX_TEST_STD_VARS();
@@ -367,25 +364,22 @@ createCertChainPlus(
                                             plContext));
         }
 
-        PKIX_TEST_EXPECT_NO_ERROR(PKIX_CertChain_Create
-                                    (certList, &certChain, plContext));
-
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_SetImmutable
+                                    (certList, plContext));
 
 cleanup:
 
         if (PKIX_TEST_ERROR_RECEIVED){
-                PKIX_TEST_DECREF_AC(certChain);
+                PKIX_TEST_DECREF_AC(certList);
         }
 
         for (i = 0; i < numCerts; i++) {
                 PKIX_TEST_DECREF_AC(certs[i]);
         }
 
-        PKIX_TEST_DECREF_AC(certList);
-
         PKIX_TEST_RETURN();
 
-        return (certChain);
+        return (certList);
 
 }
 
@@ -506,7 +500,7 @@ createValidateParams(
         PKIX_Boolean initialAnyPolicyInhibit,
         PKIX_Boolean initialExplicitPolicy,
         PKIX_Boolean isCrlEnabled,
-        PKIX_CertChain *chain,
+        PKIX_List *chain,
         void *plContext)
 {
 
@@ -539,7 +533,7 @@ createValidateParams(
                 (procParams, initialExplicitPolicy, NULL));
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_ValidateParams_Create
-                                    (procParams, chain, &valParams, plContext));
+                (procParams, chain, &valParams, plContext));
 
 cleanup:
 
@@ -676,7 +670,7 @@ createBuildResult(
 {
         PKIX_BuildResult *buildResult = NULL;
         PKIX_ValidateResult *valResult = NULL;
-        PKIX_CertChain *certChain = NULL;
+        PKIX_List *certChain = NULL;
 
         PKIX_TEST_STD_VARS();
 

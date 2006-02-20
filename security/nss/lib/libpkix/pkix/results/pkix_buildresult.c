@@ -195,7 +195,7 @@ pkix_BuildResult_ToString(
         PKIX_PL_String *buildResultString = NULL;
 
         PKIX_ValidateResult *valResult = NULL;
-        PKIX_CertChain *certChain = NULL;
+        PKIX_List *certChain = NULL;
 
         PKIX_PL_String *valResultString = NULL;
         PKIX_PL_String *certChainString = NULL;
@@ -288,14 +288,14 @@ pkix_BuildResult_RegisterSelf(void *plContext)
  * DESCRIPTION:
  *
  *  Creates a new BuildResult Object using the ValidateResult pointed to by
- *  "valResult" and the CertChain pointed to by "certChain", and stores it at
+ *  "valResult" and the List pointed to by "certChain", and stores it at
  *  "pResult".
  *
  * PARAMETERS
  *  "valResult"
  *      Address of ValidateResult component. Must be non-NULL.
  *  "certChain
- *      Address of CertChain componenet. Must be non-NULL.
+ *      Address of List component. Must be non-NULL.
  *  "pResult"
  *      Address where object pointer will be stored. Must be non-NULL.
  *  "plContext"
@@ -309,7 +309,7 @@ pkix_BuildResult_RegisterSelf(void *plContext)
 PKIX_Error *
 pkix_BuildResult_Create(
         PKIX_ValidateResult *valResult,
-        PKIX_CertChain *certChain,
+        PKIX_List *certChain,
         PKIX_BuildResult **pResult,
         void *plContext)
 {
@@ -332,6 +332,9 @@ pkix_BuildResult_Create(
 
         PKIX_INCREF(certChain);
         result->certChain = certChain;
+
+        PKIX_CHECK(PKIX_List_SetImmutable(result->certChain, plContext),
+                     "PKIX_List_SetImmutable failed");
 
         *pResult = result;
 
@@ -372,7 +375,7 @@ PKIX_BuildResult_GetValidateResult(
 PKIX_Error *
 PKIX_BuildResult_GetCertChain(
         PKIX_BuildResult *result,
-        PKIX_CertChain **pChain,
+        PKIX_List **pChain,
         void *plContext)
 {
         PKIX_ENTER(BUILDRESULT, "PKIX_BuildResult_GetCertChain");

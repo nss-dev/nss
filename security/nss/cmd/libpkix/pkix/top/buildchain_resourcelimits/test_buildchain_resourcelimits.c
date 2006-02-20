@@ -125,7 +125,6 @@ static void Test_BuildResult(
 {
         PKIX_PL_Cert *cert = NULL;
         PKIX_List *certs = NULL;
-        PKIX_CertChain *chain = NULL;
         PKIX_PL_String *actualCertsString = NULL;
         PKIX_PL_String *expectedCertsString = NULL;
         PKIX_BuildResult *buildResult = NULL;
@@ -181,11 +180,7 @@ static void Test_BuildResult(
 
                 PKIX_TEST_EXPECT_NO_ERROR
                         (PKIX_BuildResult_GetCertChain
-                        (buildResult, &chain, NULL));
-
-                PKIX_TEST_EXPECT_NO_ERROR
-                        (PKIX_CertChain_GetCertificates
-                        (chain, &certs, plContext));
+                        (buildResult, &certs, NULL));
 
                 PKIX_TEST_EXPECT_NO_ERROR
                         (PKIX_List_GetLength(certs, &numCerts, plContext));
@@ -263,7 +258,6 @@ cleanup:
         PKIX_PL_Free(expectedCertsAscii, plContext);
         PKIX_TEST_DECREF_AC(state);
         PKIX_TEST_DECREF_AC(buildResult);
-        PKIX_TEST_DECREF_AC(chain);
         PKIX_TEST_DECREF_AC(certs);
         PKIX_TEST_DECREF_AC(cert);
         PKIX_TEST_DECREF_AC(actualCertsString);

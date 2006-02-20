@@ -44,7 +44,6 @@ PRIVATE_EXPORTS = \
 	pkix_error.h \
 	pkix_logger.h \
 	pkix_list.h \
-	pkix_certchain.h \
 	$(NULL)
 
 MODULE = nss
@@ -54,7 +53,6 @@ CSRCS = \
 	pkix_error.c \
 	pkix_logger.c \
 	pkix_list.c \
-	pkix_certchain.c \
 	$(NULL)
 
 REQUIRES = dbm

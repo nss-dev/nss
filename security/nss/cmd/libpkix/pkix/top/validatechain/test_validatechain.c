@@ -140,7 +140,6 @@ cleanup:
 
 int main(int argc, char *argv[]){
 
-        PKIX_CertChain *chain = NULL;
         PKIX_ValidateParams *valParams = NULL;
         PKIX_ValidateResult *valResult = NULL;
         PKIX_UInt32 actualMinorVersion;
@@ -204,9 +203,6 @@ int main(int argc, char *argv[]){
                 PKIX_TEST_DECREF_BC(dirCert);
         }
 
-        PKIX_TEST_EXPECT_NO_ERROR(PKIX_CertChain_Create
-                                    (chainCerts, &chain, plContext));
-
         valParams = createValidateParams
                 (dirName,
                 argv[4+j],
@@ -217,7 +213,7 @@ int main(int argc, char *argv[]){
                 PKIX_FALSE,
                 PKIX_FALSE,
                 PKIX_FALSE,
-                chain,
+                chainCerts,
                 plContext);
 
         testDefaultCertStore(valParams, dirName);
@@ -233,7 +229,6 @@ int main(int argc, char *argv[]){
 
 cleanup:
 
-        PKIX_TEST_DECREF_AC(chain);
         PKIX_TEST_DECREF_AC(chainCerts);
         PKIX_TEST_DECREF_AC(valParams);
         PKIX_TEST_DECREF_AC(valResult);

@@ -97,8 +97,8 @@ void testGetCertChain(
         PKIX_BuildResult *goodObject,
         PKIX_BuildResult *equalObject){
 
-        PKIX_CertChain *goodChain = NULL;
-        PKIX_CertChain *equalChain = NULL;
+        PKIX_List *goodChain = NULL;
+        PKIX_List *equalChain = NULL;
 
         PKIX_TEST_STD_VARS();
         subTest("PKIX_BuildResult_GetCertChain");
@@ -132,7 +132,6 @@ int main(int argc, char *argv[]) {
         PKIX_BuildResult *goodObject = NULL;
         PKIX_BuildResult *equalObject = NULL;
         PKIX_BuildResult *diffObject = NULL;
-        PKIX_CertChain *chain = NULL;
         PKIX_UInt32 actualMinorVersion;
         char *dirName = NULL;
 	PKIX_UInt32 j = 0;
@@ -247,8 +246,6 @@ int main(int argc, char *argv[]) {
         testDestroy(goodObject, equalObject, diffObject);
 
 cleanup:
-
-        PKIX_TEST_DECREF_AC(chain);
 
         PKIX_Shutdown(plContext);
 

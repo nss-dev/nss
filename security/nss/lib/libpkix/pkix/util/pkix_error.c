@@ -392,7 +392,7 @@ PKIX_ERRORNAMES[PKIX_NUMERRORS] =
         "Date Error",
         "TrustAnchor Error",
         "ProcessingParams Error",
-        "CertChain Error",
+        "NoLongerUsed Error",
         "ValidateParams Error",
         "Validate Error",
         "ValidateResult Error",

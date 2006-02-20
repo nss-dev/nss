@@ -185,7 +185,7 @@ PKIX_PL_Initialize(
 
         pkix_pl_CertBasicConstraints_RegisterSelf(plContext); /* 11-20 */
         pkix_pl_Cert_RegisterSelf(plContext);
-        pkix_CertChain_RegisterSelf(plContext);
+        /* pkix_NoLongerUsed_RegisterSelf(plContext); */
         pkix_pl_CRL_RegisterSelf(plContext);
         pkix_pl_CRLEntry_RegisterSelf(plContext);
         pkix_pl_Date_RegisterSelf(plContext);

@@ -102,7 +102,6 @@ int main(int argc, char *argv[])
         PKIX_List *certStores = NULL;
         char * asciiResult = NULL;
         PKIX_Boolean result;
-        PKIX_CertChain *chain = NULL;
         PKIX_Boolean testValid = PKIX_TRUE;
         PKIX_Boolean supportForward = PKIX_FALSE;
         PKIX_List *expectedCerts = NULL;
@@ -321,11 +320,7 @@ int main(int argc, char *argv[])
 
                 PKIX_TEST_EXPECT_NO_ERROR
                         (PKIX_BuildResult_GetCertChain
-                        (buildResult, &chain, NULL));
-
-                PKIX_TEST_EXPECT_NO_ERROR
-                        (PKIX_CertChain_GetCertificates
-                        (chain, &certs, plContext));
+                        (buildResult, &certs, NULL));
 
                 PKIX_TEST_EXPECT_NO_ERROR
                         (PKIX_List_GetLength(certs, &numCerts, plContext));
@@ -410,7 +405,6 @@ cleanup:
         PKIX_TEST_DECREF_AC(actualCertsString);
         PKIX_TEST_DECREF_AC(expectedCertsString);
         PKIX_TEST_DECREF_AC(expectedCerts);
-        PKIX_TEST_DECREF_AC(chain);
         PKIX_TEST_DECREF_AC(certs);
         PKIX_TEST_DECREF_AC(cert);
         PKIX_TEST_DECREF_AC(certStore);

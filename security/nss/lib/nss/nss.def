@@ -873,8 +873,6 @@ PKIX_BuildParams_GetProcessingParams;
 pkix_BuildResult_Create;
 PKIX_BuildResult_GetCertChain;
 PKIX_BuildResult_GetValidateResult;
-PKIX_CertChain_Create;
-PKIX_CertChain_GetCertificates;
 PKIX_CertChainChecker_Create;
 PKIX_CertChainChecker_GetCertChainCheckerState;
 PKIX_CertChainChecker_GetCheckCallback;

@@ -208,9 +208,9 @@ PKIX_BuildResult_GetValidateResult(
  * FUNCTION: PKIX_BuildResult_GetCertChain
  * DESCRIPTION:
  *
- *  Retrieves the CertChain component (representing the built and validated
- *  CertChain) of the BuildResult object pointed to by "result" and stores it
- *  at "pChain".
+ *  Retrieves the List of Certs (certChain) component (representing the built
+ *  and validated CertChain) of the BuildResult object pointed to by "result"
+ *  and stores it at "pChain".
  *
  * PARAMETERS:
  *  "result"
@@ -230,7 +230,7 @@ PKIX_BuildResult_GetValidateResult(
 PKIX_Error *
 PKIX_BuildResult_GetCertChain(
         PKIX_BuildResult *result,
-        PKIX_CertChain **pChain,
+        PKIX_List **pChain,
         void *plContext);
 
 /* PKIX_PolicyNode

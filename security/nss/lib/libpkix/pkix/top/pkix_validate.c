@@ -899,9 +899,6 @@ cleanup:
  *  "valParams"
  *      Address of ValidateParams from which the parameters are extracted.
  *      Must be non-NULL.
- *  "pChain"
- *      Address where object pointer for CertChain will be stored.
- *      Must be non-NULL.
  *  "pCerts"
  *      Address where object pointer for List of Certs will be stored.
  *      Must be non-NULL.
@@ -927,7 +924,6 @@ cleanup:
 static PKIX_Error *
 pkix_ExtractParameters(
         PKIX_ValidateParams *valParams,
-        PKIX_CertChain **pChain,
         PKIX_List **pCerts,
         PKIX_UInt32 *pNumCerts,
         PKIX_ProcessingParams **pProcParams,
@@ -936,16 +932,13 @@ pkix_ExtractParameters(
         void *plContext)
 {
         PKIX_ENTER(VALIDATE, "pkix_ExtractParameters");
-        PKIX_NULLCHECK_FOUR(valParams, pChain, pCerts, pNumCerts);
+        PKIX_NULLCHECK_THREE(valParams, pCerts, pNumCerts);
         PKIX_NULLCHECK_THREE(pProcParams, pAnchors, pNumAnchors);
 
         /* extract relevant parameters from chain */
         PKIX_CHECK(PKIX_ValidateParams_GetCertChain
-                (valParams, pChain, plContext),
+                (valParams, pCerts, plContext),
                 "PKIX_ValidateParams_GetCertChain failed");
-
-        PKIX_CHECK(PKIX_CertChain_GetCertificates(*pChain, pCerts, plContext),
-                "PKIX_CertChain_GetCertificates failed");
 
         PKIX_CHECK(PKIX_List_GetLength(*pCerts, pNumCerts, plContext),
                 "PKIX_List_GetLength failed");
@@ -981,7 +974,6 @@ PKIX_ValidateChain(
         PKIX_Error *chainFailed = NULL;
 
         PKIX_ProcessingParams *procParams = NULL;
-        PKIX_CertChain *chain = NULL;
         PKIX_CertChainChecker *userChecker = NULL;
         PKIX_List *certs = NULL;
         PKIX_List *checkers = NULL;
@@ -1009,7 +1001,6 @@ PKIX_ValidateChain(
         /* extract various parameters from valParams */
         PKIX_CHECK(pkix_ExtractParameters
                     (valParams,
-                    &chain,
                     &certs,
                     &numCerts,
                     &procParams,
@@ -1127,7 +1118,7 @@ PKIX_ValidateChain(
                         PKIX_DECREF(validPolicyTree);
 
                         /* if last anchor, we fail; else, we try next anchor */
-                        if (i == (numAnchors - 1)){ /* last anchor */
+                        if (i == (numAnchors - 1)) { /* last anchor */
                                 PKIX_ERROR("PKIX_ValidateChain failed");
                         }
 
@@ -1158,7 +1149,6 @@ cleanup:
         PKIX_DECREF(checkers);
         PKIX_DECREF(validPolicyTree);
         PKIX_DECREF(chainFailed);
-        PKIX_DECREF(chain);
         PKIX_DECREF(procParams);
         PKIX_DECREF(userCheckers);
         PKIX_DECREF(validateCheckedCritExtOIDsList);

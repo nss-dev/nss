@@ -48,7 +48,7 @@ void *plContext = NULL;
 
 void testPass(char *dirName, char *goodInput, char *diffInput, char *dateAscii){
 
-        PKIX_CertChain *chain = NULL;
+        PKIX_List *chain = NULL;
         PKIX_ValidateParams *valParams = NULL;
         PKIX_ValidateResult *valResult = NULL;
 
@@ -92,7 +92,7 @@ void testNameChainingFail(
         char *diffInput,
         char *dateAscii)
 {
-        PKIX_CertChain *chain = NULL;
+        PKIX_List *chain = NULL;
         PKIX_ValidateParams *valParams = NULL;
         PKIX_ValidateResult *valResult = NULL;
 
@@ -129,7 +129,7 @@ cleanup:
 
 void testDateFail(char *dirName, char *goodInput, char *diffInput){
 
-        PKIX_CertChain *chain = NULL;
+        PKIX_List *chain = NULL;
         PKIX_ValidateParams *valParams = NULL;
         PKIX_ValidateResult *valResult = NULL;
 
@@ -169,7 +169,7 @@ void testSignatureFail(
        char *diffInput,
        char *dateAscii)
 {
-        PKIX_CertChain *chain = NULL;
+        PKIX_List *chain = NULL;
         PKIX_ValidateParams *valParams = NULL;
         PKIX_ValidateResult *valResult = NULL;
 

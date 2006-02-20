@@ -101,7 +101,7 @@ PKIX_COMPONENTNAMES[PKIX_NUMERRORS] =
         "Date",
         "TrustAnchor",
         "ProcessingParams",
-        "CertChain",
+        "NoLongerUsed",
         "ValidateParams",
         "Validate",
         "ValidateResult",

@@ -79,14 +79,14 @@ createTrustAnchor(
         PKIX_Boolean useCert,
         void *plContext);
 
-PKIX_CertChain *
+PKIX_List *
 createCertChain(
         char *dirName,
         char *firstCertFileName,
         char *secondCertFileName,
         void *plContext);
 
-PKIX_CertChain *
+PKIX_List *
 createCertChainPlus(
         char *dirName,
         char *certNames[],
@@ -120,7 +120,7 @@ createValidateParams(
         PKIX_Boolean initialAnyPolicyInhibit,
         PKIX_Boolean initialExplicitPolicy,
         PKIX_Boolean isCrlEnabled,
-        PKIX_CertChain *chain,
+        PKIX_List *chain,
         void *plContext);
 
 PKIX_BuildParams *

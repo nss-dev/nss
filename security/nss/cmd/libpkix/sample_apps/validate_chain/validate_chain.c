@@ -139,7 +139,6 @@ int main(int argc, char *argv[])
         PKIX_List *anchors = NULL;
         PKIX_List *certs = NULL;
         PKIX_ProcessingParams *procParams = NULL;
-        PKIX_CertChain *chain = NULL;
         PKIX_ValidateParams *valParams = NULL;
         PKIX_ValidateResult *valResult = NULL;
         PKIX_PL_X500Name *subject = NULL;
@@ -231,19 +230,15 @@ int main(int argc, char *argv[])
                 PKIX_TEST_DECREF_BC(chainCert);
                 chainCert = NULL;
         }
-        PKIX_TEST_EXPECT_NO_ERROR
-                (PKIX_CertChain_Create(certs, &chain, plContext));
-
         /* create validate params with processing params and cert chain */
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_ValidateParams_Create
-                                    (procParams, chain, &valParams, plContext));
+                                    (procParams, certs, &valParams, plContext));
 
         PKIX_TEST_DECREF_BC(trustedCert); trustedCert = NULL;
         PKIX_TEST_DECREF_BC(anchor); anchor = NULL;
         PKIX_TEST_DECREF_BC(anchors); anchors = NULL;
         PKIX_TEST_DECREF_BC(certs); certs = NULL;
         PKIX_TEST_DECREF_BC(procParams); procParams = NULL;
-        PKIX_TEST_DECREF_BC(chain); chain = NULL;
 
         /* validate cert chain using processing params and return valResult */
 

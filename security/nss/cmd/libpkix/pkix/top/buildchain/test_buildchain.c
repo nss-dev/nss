@@ -153,7 +153,6 @@ int main(int argc, char *argv[])
         char * asciiResult = NULL;
         PKIX_Boolean result = PKIX_FALSE;
         PKIX_Boolean useArenas = PKIX_FALSE;
-        PKIX_CertChain *chain = NULL;
         PKIX_Boolean testValid = PKIX_TRUE;
         PKIX_List *expectedCerts = NULL;
         PKIX_PL_Cert *dirCert = NULL;
@@ -387,11 +386,7 @@ int main(int argc, char *argv[])
 
                 PKIX_TEST_EXPECT_NO_ERROR
                         (PKIX_BuildResult_GetCertChain
-                        (buildResult, &chain, plContext));
-
-                PKIX_TEST_EXPECT_NO_ERROR
-                        (PKIX_CertChain_GetCertificates
-                        (chain, &certs, plContext));
+                        (buildResult, &certs, plContext));
 
                 PKIX_TEST_EXPECT_NO_ERROR
                         (PKIX_List_GetLength(certs, &numCerts, plContext));
@@ -483,7 +478,6 @@ cleanup:
         PKIX_TEST_DECREF_AC(dirNameString);
         PKIX_TEST_DECREF_AC(certSelParams);
         PKIX_TEST_DECREF_AC(certSelector);
-        PKIX_TEST_DECREF_AC(chain);
         PKIX_TEST_DECREF_AC(anchors);
         PKIX_TEST_DECREF_AC(anchor);
         PKIX_TEST_DECREF_AC(trustedCert);

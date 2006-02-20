@@ -99,7 +99,6 @@ extern "C" {
  */
 
 typedef struct PKIX_ErrorStruct PKIX_Error;
-typedef struct PKIX_CertChainStruct PKIX_CertChain;
 typedef struct PKIX_ProcessingParamsStruct PKIX_ProcessingParams;
 typedef struct PKIX_ValidateParamsStruct PKIX_ValidateParams;
 typedef struct PKIX_ValidateResultStruct PKIX_ValidateResult;
@@ -205,7 +204,7 @@ typedef int PKIX_Boolean;
 
 #define PKIX_CERTBASICCONSTRAINTS_TYPE  ((PKIX_UInt32) 11)
 #define PKIX_CERT_TYPE                  ((PKIX_UInt32) 12)
-#define PKIX_CERTCHAIN_TYPE             ((PKIX_UInt32) 13)
+#define PKIX_NOLONGERUSED_TYPE          ((PKIX_UInt32) 13)
 #define PKIX_CRL_TYPE                   ((PKIX_UInt32) 14)
 #define PKIX_CRLENTRY_TYPE              ((PKIX_UInt32) 15)
 #define PKIX_DATE_TYPE                  ((PKIX_UInt32) 16)
@@ -296,7 +295,7 @@ typedef int PKIX_Boolean;
 #define PKIX_DATE_ERROR                 ((PKIX_UInt32) 16)
 #define PKIX_TRUSTANCHOR_ERROR          ((PKIX_UInt32) 17)
 #define PKIX_PROCESSINGPARAMS_ERROR     ((PKIX_UInt32) 18)
-#define PKIX_CERTCHAIN_ERROR            ((PKIX_UInt32) 19)
+#define PKIX_NOLONGERUSED_ERROR         ((PKIX_UInt32) 19)
 #define PKIX_VALIDATEPARAMS_ERROR       ((PKIX_UInt32) 20)
 #define PKIX_VALIDATE_ERROR             ((PKIX_UInt32) 21)
 #define PKIX_VALIDATERESULT_ERROR       ((PKIX_UInt32) 22)

@@ -38,6 +38,6 @@
 PKIX_DEPTH      = ../..
 
 #
-DIRS =  certchain  error  list  list2  logger \
+DIRS =  error  list  list2  logger \
 	$(NULL)
 

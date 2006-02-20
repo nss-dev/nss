@@ -454,7 +454,6 @@ extern "C" {
 #define PKIX_CERTDEBUG                            1
 #define PKIX_DATEDEBUG                            1
 #define PKIX_TRUSTANCHORDEBUG                     1
-#define PKIX_CERTCHAINDEBUG                       1
 #define PKIX_PROCESSINGPARAMSDEBUG                1
 #define PKIX_VALIDATEPARAMSDEBUG                  1
 #define PKIX_VALIDATERESULTDEBUG                  1
@@ -729,16 +728,6 @@ extern "C" {
 #else
 #define PKIX_PROCESSINGPARAMS_DEBUG(expr)
 #define PKIX_PROCESSINGPARAMS_DEBUG_ARG(expr, arg)
-#endif
-
-#if PKIX_CERTCHAINDEBUG
-#define PKIX_CERTCHAIN_DEBUG(expr) \
-        PKIX_DEBUG(expr)
-#define PKIX_CERTCHAIN_DEBUG_ARG(expr, arg) \
-        PKIX_DEBUG_ARG(expr, arg)
-#else
-#define PKIX_CERTCHAIN_DEBUG(expr)
-#define PKIX_CERTCHAIN_DEBUG_ARG(expr, arg)
 #endif
 
 #if PKIX_VALIDATEPARAMSDEBUG

@@ -98,8 +98,8 @@ void testGetCertChain(
         PKIX_ValidateParams *goodObject,
         PKIX_ValidateParams *equalObject){
 
-        PKIX_CertChain *goodChain = NULL;
-        PKIX_CertChain *equalChain = NULL;
+        PKIX_List *goodChain = NULL;
+        PKIX_List *equalChain = NULL;
 
         PKIX_TEST_STD_VARS();
         subTest("PKIX_ValidateParams_GetCertChain");
@@ -133,7 +133,7 @@ int main(int argc, char *argv[]) {
         PKIX_ValidateParams *goodObject = NULL;
         PKIX_ValidateParams *equalObject = NULL;
         PKIX_ValidateParams *diffObject = NULL;
-        PKIX_CertChain *chain = NULL;
+        PKIX_List *chain = NULL;
         PKIX_UInt32 actualMinorVersion;
         PKIX_UInt32 j = 0;
         char *dirName = NULL;

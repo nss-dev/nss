@@ -52,7 +52,7 @@ extern "C" {
 
 struct PKIX_BuildResultStruct {
         PKIX_ValidateResult *valResult;
-        PKIX_CertChain *certChain;
+        PKIX_List *certChain;
 };
 
 /* see source file for function documentation */
@@ -60,7 +60,7 @@ struct PKIX_BuildResultStruct {
 PKIX_Error *
 pkix_BuildResult_Create(
         PKIX_ValidateResult *valResult,
-        PKIX_CertChain *certChain,
+        PKIX_List *certChain,
         PKIX_BuildResult **pResult,
         void *plContext);
 

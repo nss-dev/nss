@@ -1076,7 +1076,7 @@ PKIX_ProcessingParams_SetRevocationEnabled(
 /* PKIX_ValidateParams
  *
  * PKIX_ValidateParams consists of a ProcessingParams object as well as the
- * CertChain that the caller is trying to validate.
+ * List of Certs (certChain) that the caller is trying to validate.
  */
 
 /*
@@ -1089,7 +1089,7 @@ PKIX_ProcessingParams_SetRevocationEnabled(
  *  "procParams"
  *      Address of ProcessingParams to be used. Must be non-NULL.
  *  "chain"
- *      Address of CertChain to be validated. Must be non-NULL.
+ *      Address of List of Certs (certChain) to be validated. Must be non-NULL.
  *  "pParams"
  *      Address where object pointer will be stored. Must be non-NULL.
  *  "plContext"
@@ -1104,7 +1104,7 @@ PKIX_ProcessingParams_SetRevocationEnabled(
 PKIX_Error *
 PKIX_ValidateParams_Create(
         PKIX_ProcessingParams *procParams,
-        PKIX_CertChain *chain,
+        PKIX_List *chain,
         PKIX_ValidateParams **pParams,
         void *plContext);
 
@@ -1143,9 +1143,10 @@ PKIX_ValidateParams_GetProcessingParams(
  * FUNCTION: PKIX_ValidateParams_GetCertChain
  * DESCRIPTION:
  *
- *  Retrieves a pointer to the CertChain that is set in the ValidateParams
- *  pointed to by "valParams" and stores it at "pChain". If the function
- *  succeeds, the pointer to the CertChain is guaranteed to be non-NULL.
+ *  Retrieves a pointer to the List of Certs (certChain) that is set in the
+ *  ValidateParams pointed to by "valParams" and stores it at "pChain". If the
+ *  function succeeds, the pointer to the CertChain is guaranteed to be
+ *  non-NULL.
  *
  * PARAMETERS:
  *  "valParams"
@@ -1165,7 +1166,7 @@ PKIX_ValidateParams_GetProcessingParams(
 PKIX_Error *
 PKIX_ValidateParams_GetCertChain(
         PKIX_ValidateParams *valParams,
-        PKIX_CertChain **pChain,
+        PKIX_List **pChain,
         void *plContext);
 
 /* PKIX_BuildParams
