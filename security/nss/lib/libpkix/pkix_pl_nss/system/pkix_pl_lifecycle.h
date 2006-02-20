@@ -78,7 +78,6 @@
 #include "pkix_list.h"
 #include "pkix_trustanchor.h"
 #include "pkix_procparams.h"
-#include "pkix_certchain.h"
 #include "pkix_valparams.h"
 #include "pkix_valresult.h"
 #include "pkix_resourcelimits.h"
