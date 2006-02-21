@@ -1147,6 +1147,7 @@ cleanup:
         PKIX_DECREF(anchors);
         PKIX_DECREF(anchor);
         PKIX_DECREF(checkers);
+        PKIX_DECREF(revCheckers);
         PKIX_DECREF(validPolicyTree);
         PKIX_DECREF(chainFailed);
         PKIX_DECREF(procParams);
