@@ -123,7 +123,7 @@ int main(int argc, char *argv[]){
                 (dirName, certNames, certs, chainLength, plContext);
 
         /*
-         * Error occurrs when creating Cert, this is critical and test
+         * Error occurs when creating Cert, this is critical and test
          * should not continue. Since we expect error, we assume this
          * error is the one that is expected, so undo the error count.
          *
