@@ -143,7 +143,7 @@ createCert(
 
 cleanup:
 
-        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Free(pathName, plContext));
+        pkixTestErrorResult = PKIX_PL_Free(pathName, plContext);
 
         if (certFile){
                 PR_Close(certFile);
