@@ -577,6 +577,11 @@ pkix_pl_Socket_ConnectContinue(
                 PKIX_ERROR("PR_Poll failed");
         }
 
+        if (numEvents == 0) {
+                *pStatus = PR_IN_PROGRESS_ERROR;
+                goto cleanup;
+        }
+
         PKIX_PL_NSSCALLRV(SOCKET, rv, PR_ConnectContinue,
                 (socket->clientSock, pollDesc.out_flags));
 
