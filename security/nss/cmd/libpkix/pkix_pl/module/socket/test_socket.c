@@ -53,7 +53,8 @@ typedef enum {
         SERVER_POLL3,
         SERVER_SEND4,
         SERVER_POLL4,
-        SERVER_DONE
+        SERVER_DONE,
+	SERVER_FAILED
 } SERVER_STATE;
 
 typedef enum {
@@ -66,7 +67,8 @@ typedef enum {
         CLIENT_POLL3,
         CLIENT_RECV4,
         CLIENT_POLL4,
-        CLIENT_DONE
+        CLIENT_DONE,
+	CLIENT_FAILED
 } CLIENT_STATE;
 
 SERVER_STATE serverState;
@@ -259,17 +261,22 @@ PKIX_Boolean client() {
         switch (clientState) {
         case CLIENT_WAITFORCONNECT:
                 subTest("CLIENT_WAITFORCONNECT");
+		clientState = CLIENT_FAILED;
                 PKIX_TEST_EXPECT_NO_ERROR(cCallbackList->connectcontinueCallback
                         (cSock, &cStat, plContext));
                 if (cStat == 0) {
                         clientState = CLIENT_SEND1;
                         keepGoing = PKIX_TRUE;
-                } else if (--giveUpCount == 0) {
+                } else {
+		    clientState = CLIENT_WAITFORCONNECT;
+		    if (--giveUpCount == 0) {
                         testError("Client unable to connect");
+		    }
                 }
                 break;
         case CLIENT_SEND1:
                 subTest("CLIENT_SEND1");
+		clientState = CLIENT_FAILED;
                 PKIX_TEST_EXPECT_NO_ERROR(cCallbackList->sendCallback
                         (cSock,
                         sendBuf1,
@@ -284,14 +291,18 @@ PKIX_Boolean client() {
                 break;
         case CLIENT_POLL1:
                 subTest("CLIENT_POLL1");
+		clientState = CLIENT_FAILED;
                 PKIX_TEST_EXPECT_NO_ERROR(cCallbackList->pollCallback
                         (cSock, &bytesWritten, NULL, plContext));
                 if (bytesWritten >= 0) {
                         clientState = CLIENT_RECV2;
-                }
+                } else {
+                        clientState = CLIENT_POLL1;
+		}
                 break;
         case CLIENT_RECV2:
                 subTest("CLIENT_RECV2");
+		clientState = CLIENT_FAILED;
                 PKIX_TEST_EXPECT_NO_ERROR(cCallbackList->recvCallback
                         (cSock,
                         rcvBuf2,
@@ -313,6 +324,7 @@ PKIX_Boolean client() {
                 break;
         case CLIENT_POLL2:
                 subTest("CLIENT_POLL2");
+		clientState = CLIENT_FAILED;
                 PKIX_TEST_EXPECT_NO_ERROR(cCallbackList->pollCallback
                         (cSock, NULL, &bytesRead, plContext));
                 if (bytesRead >= 0) {
@@ -322,10 +334,13 @@ PKIX_Boolean client() {
                                 testError("Receive buffer mismatch\n");
                         }
                         clientState = CLIENT_SEND3;
-                }
+                } else {
+                        clientState = CLIENT_POLL2;
+		}
                 break;
         case CLIENT_SEND3:
                 subTest("CLIENT_SEND3");
+		clientState = CLIENT_FAILED;
                 PKIX_TEST_EXPECT_NO_ERROR(cCallbackList->sendCallback
                         (cSock,
                         sendBuf3,
@@ -341,14 +356,18 @@ PKIX_Boolean client() {
                 break;
         case CLIENT_POLL3:
                 subTest("CLIENT_POLL3");
+		clientState = CLIENT_FAILED;
                 PKIX_TEST_EXPECT_NO_ERROR(cCallbackList->pollCallback
                         (cSock, &bytesWritten, NULL, plContext));
                 if (bytesWritten >= 0) {
                         clientState = CLIENT_RECV4;
-                }
+                } else {
+                        clientState = CLIENT_POLL3;
+		}
                 break;
         case CLIENT_RECV4:
                 subTest("CLIENT_RECV4");
+		clientState = CLIENT_FAILED;
                 PKIX_TEST_EXPECT_NO_ERROR(cCallbackList->recvCallback
                         (cSock,
                         rcvBuf2,
@@ -367,6 +386,7 @@ PKIX_Boolean client() {
                 break;
         case CLIENT_POLL4:
                 subTest("CLIENT_POLL4");
+		clientState = CLIENT_FAILED;
                 PKIX_TEST_EXPECT_NO_ERROR(cCallbackList->pollCallback
                         (cSock, NULL, &bytesRead, plContext));
                 if (bytesRead >= 0) {
@@ -374,7 +394,9 @@ PKIX_Boolean client() {
                                 (cSock, plContext));
                         PKIX_TEST_DECREF_BC(cSock);
                         clientState = CLIENT_DONE;
-                }
+                } else {
+		    clientState = CLIENT_POLL4;
+		}
                 break;
         case CLIENT_DONE:
         default:
@@ -396,19 +418,19 @@ void dispatcher()
         PKIX_TEST_STD_VARS();
 
         do {
-                if (serverState != SERVER_DONE) {
+                if (serverState < SERVER_DONE) {
                         do {
                                 keepGoing = server();
                         } while (keepGoing == PKIX_TRUE);
                 }
-                if (clientState != CLIENT_DONE) {
+                if (clientState < CLIENT_DONE) {
                         do {
                                 keepGoing = client();
                         } while (keepGoing == PKIX_TRUE);
                 }
                 do_other_work();
         
-        } while ((serverState != SERVER_DONE) || (clientState != CLIENT_DONE));
+        } while ((serverState < SERVER_DONE) || (clientState < CLIENT_DONE));
 
         PKIX_TEST_RETURN();
 }
