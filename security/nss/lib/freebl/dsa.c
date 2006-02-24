@@ -188,11 +188,12 @@ dsa_SignDigest(DSAPrivateKey *key, SECItem *signature, const SECItem *digest,
     /* FIPS-compliance dictates that digest is a SHA1 hash. */
     /* Check args. */
     if (!key || !signature || !digest ||
-        (signature->len != DSA_SIGNATURE_LEN) ||
+        (signature->len < DSA_SIGNATURE_LEN) ||
 	(digest->len != SHA1_LENGTH)) {
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
 	return SECFailure;
     }
+
     /* Initialize MPI integers. */
     MP_DIGITS(&p) = 0;
     MP_DIGITS(&q) = 0;
@@ -253,6 +254,7 @@ dsa_SignDigest(DSAPrivateKey *key, SECItem *signature, const SECItem *digest,
                                   DSA_SUBPRIME_LEN);
     if (err < 0) goto cleanup; 
     err = MP_OKAY;
+    signature->len = DSA_SIGNATURE_LEN;
 cleanup:
     mp_clear(&p);
     mp_clear(&q);

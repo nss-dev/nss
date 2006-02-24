@@ -408,7 +408,7 @@ PK11_CreateNewObject(PK11SlotInfo *slot, CK_SESSION_HANDLE session,
 
 
 unsigned int
-pk11_FlagsToAttributes(CK_FLAGS flags, CK_ATTRIBUTE *attrs, CK_BBOOL *ckTrue)
+pk11_OpFlagsToAttributes(CK_FLAGS flags, CK_ATTRIBUTE *attrs, CK_BBOOL *ckTrue)
 {
 
     const static CK_ATTRIBUTE_TYPE attrTypes[12] = {
@@ -429,6 +429,52 @@ pk11_FlagsToAttributes(CK_FLAGS flags, CK_ATTRIBUTE *attrs, CK_BBOOL *ckTrue)
     	if (test & flags) {
 	    flags ^= test;
 	    PK11_SETATTRS(attr, *pType, ckTrue, sizeof *ckTrue); 
+	    ++attr;
+	}
+    }
+    return (attr - attrs);
+}
+
+/*
+ * Check for conflicting flags, for example, if both PK11_ATTR_PRIVATE
+ * and PK11_ATTR_PUBLIC are set.
+ */
+PRBool
+pk11_BadAttrFlags(PK11AttrFlags attrFlags)
+{
+    PK11AttrFlags trueFlags = attrFlags & 0x55555555;
+    PK11AttrFlags falseFlags = (attrFlags >> 1) & 0x55555555;
+    return ((trueFlags & falseFlags) != 0);
+}
+
+/*
+ * This function may add a maximum of 5 attributes.
+ * The caller must make sure the attribute flags don't have conflicts.
+ */
+unsigned int
+pk11_AttrFlagsToAttributes(PK11AttrFlags attrFlags, CK_ATTRIBUTE *attrs,
+				CK_BBOOL *ckTrue, CK_BBOOL *ckFalse)
+{
+    const static CK_ATTRIBUTE_TYPE attrTypes[5] = {
+	CKA_TOKEN, CKA_PRIVATE, CKA_MODIFIABLE, CKA_SENSITIVE,
+	CKA_EXTRACTABLE
+    };
+
+    const CK_ATTRIBUTE_TYPE *pType	= attrTypes;
+          CK_ATTRIBUTE      *attr	= attrs;
+          PK11AttrFlags      test	= PK11_ATTR_TOKEN;
+
+    PR_ASSERT(!pk11_BadAttrFlags(attrFlags));
+
+    /* we test two related bitflags in each iteration */
+    for (; attrFlags && test <= PK11_ATTR_EXTRACTABLE; test <<= 2, ++pType) {
+    	if (test & attrFlags) {
+	    attrFlags ^= test;
+	    PK11_SETATTRS(attr, *pType, ckTrue, sizeof *ckTrue); 
+	    ++attr;
+	} else if ((test << 1) & attrFlags) {
+	    attrFlags ^= (test << 1);
+	    PK11_SETATTRS(attr, *pType, ckFalse, sizeof *ckFalse); 
 	    ++attr;
 	}
     }

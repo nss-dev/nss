@@ -277,6 +277,8 @@ SECMOD_LoadPKCS11Module(SECMODModule *mod) {
     /* all 2.0 are a priori *not* thread safe */
     if (info.cryptokiVersion.minor < 1) mod->isThreadSafe = PR_FALSE;
 
+    mod->cryptokiVersion = info.cryptokiVersion;
+
 
     /* If we don't have a common name, get it from the PKCS 11 module */
     if ((mod->commonName == NULL) || (mod->commonName[0] == 0)) {

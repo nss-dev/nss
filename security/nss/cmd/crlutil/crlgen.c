@@ -1362,12 +1362,12 @@ crlgen_setNextDataFn_extension(CRLGENGeneratorData *crlGenData, void *str,
     }
 
     if (extStr->extData == NULL) {
-        extStr->extData = PORT_ZAlloc(MAX_EXT_DATA_LENGTH);
+        extStr->extData = PORT_ZNewArray(char *, MAX_EXT_DATA_LENGTH);
         if (!extStr->extData) {
             return SECFailure;
         }
     }
-    if (extStr->nextUpdatedData > MAX_EXT_DATA_LENGTH) {
+    if (extStr->nextUpdatedData >= MAX_EXT_DATA_LENGTH) {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         crlgen_PrintError(crlGenData->parsedLineNum, 
                           "number of fields in extension "
@@ -1415,7 +1415,7 @@ crlgen_destroyTempData(CRLGENGeneratorData *crlGenData)
               PORT_Free(crlGenData->certEntry);
               break;
           case CRLGEN_ADD_EXTENSION_CONTEXT:
-              if (crlGenData->extensionEntry->nextUpdatedData) {
+              if (crlGenData->extensionEntry->extData) {
                   int i = 0;
                   for (;i < crlGenData->extensionEntry->nextUpdatedData;i++)
                       PORT_Free(*(crlGenData->extensionEntry->extData + i));

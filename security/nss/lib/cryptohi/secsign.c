@@ -201,7 +201,7 @@ SGN_Update(SGNContext *cx, unsigned char *input, unsigned inputLen)
 SECStatus
 SGN_End(SGNContext *cx, SECItem *result)
 {
-    unsigned char digest[32];
+    unsigned char digest[HASH_LENGTH_MAX];
     unsigned part1, signatureLen;
     SECStatus rv;
     SECItem digder, sigitem;
