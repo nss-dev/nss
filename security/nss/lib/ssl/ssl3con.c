@@ -558,7 +558,15 @@ ssl3_config_match_init(sslSocket *ss)
 	     */
 	    switch (cipher_def->key_exchange_alg) {
 	    case kea_ecdhe_rsa:
+#if NSS_SERVER_DHE_IMPLEMENTED
+	    /* XXX NSS does not yet implement the server side of _DHE_
+	     * cipher suites.  Correcting the computation for svrAuth,
+	     * as the case below does, causes NSS SSL servers to begin to
+	     * negotiate cipher suites they do not implement.  So, until
+	     * server side _DHE_ is implemented, keep this disabled.
+	     */
 	    case kea_dhe_rsa:
+#endif
 		svrAuth = ss->serverCerts + kt_rsa;
 		break;
 	    case kea_ecdh_ecdsa:
