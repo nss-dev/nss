@@ -1167,6 +1167,12 @@ pkix_pl_Socket_Poll(
 #endif
                         PKIX_ERROR("PR_Poll failed");
                 }
+		if (pBytesWritten) {
+                        *pBytesWritten = 0;
+		}
+		if (pBytesRead) {
+                        *pBytesRead = 0;
+		}
         }
 
 cleanup:
