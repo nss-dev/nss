@@ -119,7 +119,7 @@ nss_dbm_mdInstance_GetManufacturerID
   CK_RV *pError
 )
 {
-  return "Netscape Communications Corp.";
+  return "Mozilla Foundation";
 }
 
 static NSSUTF8 *
