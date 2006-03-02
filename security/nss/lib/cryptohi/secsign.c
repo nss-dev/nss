@@ -215,7 +215,8 @@ SECStatus
 SGN_End(SGNContext *cx, SECItem *result)
 {
     unsigned char digest[HASH_LENGTH_MAX];
-    unsigned part1, signatureLen;
+    unsigned part1;
+    int signatureLen;
     SECStatus rv;
     SECItem digder, sigitem;
     PRArenaPool *arena = 0;
@@ -263,6 +264,11 @@ SGN_End(SGNContext *cx, SECItem *result)
     ** block
     */
     signatureLen = PK11_SignatureLen(privKey);
+    if (signatureLen <= 0) {
+	PORT_SetError(SEC_ERROR_INVALID_KEY);
+	rv = SECFailure;
+	goto loser;
+    }
     sigitem.len = signatureLen;
     sigitem.data = (unsigned char*) PORT_Alloc(signatureLen);
 
@@ -281,7 +287,7 @@ SGN_End(SGNContext *cx, SECItem *result)
     if ((cx->signalg == SEC_OID_ANSIX9_DSA_SIGNATURE) ||
         (cx->signalg == SEC_OID_ANSIX962_EC_PUBLIC_KEY)) {
         /* DSAU_EncodeDerSigWithLen works for DSA and ECDSA */
-	rv = DSAU_EncodeDerSigWithLen(result, &sigitem, signatureLen); 
+	rv = DSAU_EncodeDerSigWithLen(result, &sigitem, sigitem.len); 
 	PORT_Free(sigitem.data);
 	if (rv != SECSuccess)
 	    goto loser;
@@ -422,7 +428,7 @@ SECStatus
 SGN_Digest(SECKEYPrivateKey *privKey,
 		SECOidTag algtag, SECItem *result, SECItem *digest)
 {
-    unsigned modulusLen;
+    int modulusLen;
     SECStatus rv;
     SECItem digder;
     PRArenaPool *arena = 0;
@@ -461,6 +467,11 @@ SGN_Digest(SECKEYPrivateKey *privKey,
     ** block
     */
     modulusLen = PK11_SignatureLen(privKey);
+    if (modulusLen <= 0) {
+	PORT_SetError(SEC_ERROR_INVALID_KEY);
+	rv = SECFailure;
+	goto loser;
+    }
     result->len = modulusLen;
     result->data = (unsigned char*) PORT_Alloc(modulusLen);
 
