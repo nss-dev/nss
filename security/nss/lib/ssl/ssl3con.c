@@ -7800,8 +7800,7 @@ ssl3_NewKeyPair( SECKEYPrivateKey * privKey, SECKEYPublicKey * pubKey)
 {
     ssl3KeyPair * pair;
 
-    if (!privKey && !pubKey) {
-	/* one or the other may be NULL, but not both. */
+    if (!privKey || !pubKey) {
 	PORT_SetError(PR_INVALID_ARGUMENT_ERROR);
     	return NULL;
     }
