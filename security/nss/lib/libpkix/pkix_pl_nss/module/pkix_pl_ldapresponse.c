@@ -537,8 +537,6 @@ cleanup:
  *  Returns an LdapResponse Error if the function fails in a non-fatal way.
  *  Returns a Fatal Error if the function fails in an unrecoverable way.
  */
-#include <stdio.h>
-
 PKIX_Error *
 pkix_pl_LdapResponse_Decode(
         PRArenaPool *arena,
@@ -561,13 +559,8 @@ pkix_pl_LdapResponse_Decode(
         PKIX_PL_NSSCALL
                 (LDAPRESPONSE, PORT_Memset, (msg, 0, sizeof (LDAPMessage)));
 
-#if 0
-        PKIX_PL_NSSCALLRV(LDAPRESPONSE, rv, SEC_ASN1DecodeItem,
-            (arena, msg, PKIX_PL_LDAPMessageTemplate, &(response->derEncoded)));
-#else
         PKIX_PL_NSSCALLRV(LDAPRESPONSE, rv, SEC_ASN1DecodeItem,
             (NULL, msg, PKIX_PL_LDAPMessageTemplate, &(response->derEncoded)));
-#endif
 
         *pStatus = rv;
 cleanup:
