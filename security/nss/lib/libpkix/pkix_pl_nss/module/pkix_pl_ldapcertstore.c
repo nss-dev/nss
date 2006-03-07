@@ -342,7 +342,6 @@ pkix_pl_LdapCertStore_BuildCertList(
                                 "pkix_pl_LdapCertStore_DecodeCert failed");
                             derCertItem = *attrVal++;
                         }
-#if 1
                     } else if ((LDAPATTR_CROSSPAIRCERT & attrBits) == attrBits){
                         /* Is this attrVal a CrossPairCertificate? */
                         attrVal = sreAttr->val;
@@ -355,7 +354,6 @@ pkix_pl_LdapCertStore_BuildCertList(
                                 " failed");
                             derCertItem = *attrVal++;
                         }
-#endif
                     }
                     sreAttr = *sreAttrArray++;
                 }
@@ -1151,4 +1149,3 @@ cleanup:
 
         PKIX_RETURN(CERTSTORE);
 }
-
