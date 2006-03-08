@@ -42,7 +42,7 @@
  */
 
 /*
- * If PKIX_SOCKETTRACE is defined, messages sent and received will be
+ * If Socket Tracing is active, messages sent and received will be
  * timestamped and dumped (to stdout) in standard hex-dump format. E.g.,
  *
  * 1116612359156140:
@@ -51,6 +51,16 @@
  * The timestamp is not formatted to be meaningful except as an increasing
  * value of seconds.microseconds, which is good enough to correlate two
  * sides of a message exchange and to figure durations.
+ *
+ * Code to perform Socket tracing will be compiled in if PKIX_SOCKETTRACE
+ * is defined, but that doesn't mean socket tracing is active. Tracing also
+ * requires that the Boolean socketTraceFlag is set to PKIX_TRUE. That is
+ * the default value, but it can be overridden by using the debugger to
+ * change its value -- allowing tracing to be turned on and off at various
+ * breakpoints -- or by setting the environment variable SOCKETTRACE. A
+ * value of 1 sets socketTraceFlag to PKIX_TRUE (tracing on), and any other
+ * value sets socketTraceFlag to PKIX_FALSE (tracing off). The environment
+ * value is checked during system initialization.
  */
 
 #ifdef PKIX_SOCKETDEBUG
@@ -62,6 +72,7 @@
 /* --Private-Socket-Functions---------------------------------- */
 
 #ifdef PKIX_SOCKETTRACE
+static PKIX_Boolean socketTraceFlag = PKIX_TRUE;
 
 /*
  * FUNCTION: pkix_pl_socket_timestamp
@@ -254,6 +265,8 @@ void pkix_pl_socket_tracebuff(void *buf, PKIX_UInt32 nBytes) {
         PKIX_UInt32 bytesRemaining = nBytes;
         PKIX_UInt32 offset = 0;
         char *bufptr = (char *)buf;
+
+        if (socketTraceFlag == PKIX_FALSE) return;
 
         pkix_pl_socket_timestamp();
         /*
@@ -772,6 +785,18 @@ pkix_pl_Socket_RegisterSelf(void *plContext)
 
         systemClasses[PKIX_SOCKET_TYPE] = entry;
 
+#ifdef PKIX_SOCKETTRACE
+        {
+                char *val = NULL;
+                val = PR_GetEnv("SOCKETTRACE");
+                /* Is SOCKETTRACE set in the environment? */
+                if ((val != NULL) && (*val != '\0')) {
+                        socketTraceFlag =
+                                ((*val == '1')?PKIX_TRUE:PKIX_FALSE);
+                }
+        }
+#endif
+
         PKIX_RETURN(SOCKET);
 }
 
@@ -1167,12 +1192,12 @@ pkix_pl_Socket_Poll(
 #endif
                         PKIX_ERROR("PR_Poll failed");
                 }
-		if (pBytesWritten) {
+                if (pBytesWritten) {
                         *pBytesWritten = 0;
-		}
-		if (pBytesRead) {
+                }
+                if (pBytesRead) {
                         *pBytesRead = 0;
-		}
+                }
         }
 
 cleanup:
