@@ -671,6 +671,9 @@ pkix_DefaultCRLChecker_Check_Store(
         PKIX_NULLCHECK_TWO(checker, cert);
         PKIX_NULLCHECK_THREE(state, certStore, pNBIOContext);
 
+        nbioContext = *pNBIOContext;
+        *pNBIOContext = NULL;
+
         /* Are this CertStore's entries in cache? */
         PKIX_CHECK(PKIX_CertStore_GetCertStoreCacheFlag
                 (certStore, &cacheFlag, plContext),
@@ -692,7 +695,6 @@ pkix_DefaultCRLChecker_Check_Store(
         if (cacheHit) {
 
                 /* Use cached data */
-                *pNBIOContext = NULL;
 
                 PKIX_CHECK(PKIX_List_GetLength
                         (crlEntryList, &numEntries, plContext),
@@ -736,17 +738,27 @@ pkix_DefaultCRLChecker_Check_Store(
 
        } else {
 
-                PKIX_CHECK(PKIX_CertStore_GetCRLCallback
-                        (certStore, &getCrls, plContext),
-                        "PKIX_CertStore_GetCRLCallback failed");
+                if (nbioContext == NULL) {
+                        PKIX_CHECK(PKIX_CertStore_GetCRLCallback
+                                (certStore, &getCrls, plContext),
+                                "PKIX_CertStore_GetCRLCallback failed");
 
-                PKIX_CHECK(getCrls
-                        (certStore,
-                        state->crlSelector,
-                        &nbioContext,
-                        &crlList,
-                        plContext),
-                        "getCrls failed");
+                        PKIX_CHECK(getCrls
+                                (certStore,
+                                state->crlSelector,
+                                &nbioContext,
+                                &crlList,
+                                plContext),
+                                "getCrls failed");
+                } else {
+                        PKIX_CHECK(PKIX_CertStore_CrlContinue
+                                (certStore,
+                                state->crlSelector,
+                                &nbioContext,
+                                &crlList,
+                                plContext),
+                                "PKIX_CertStore_CrlContinue failed");
+                }
 
                 /*
                  * Verify Certificate validity: if one CertStore provides
@@ -804,7 +816,7 @@ cleanup:
  * FUNCTION: pkix_DefaultCRLChecker_Check_Helper
  *
  * DESCRIPTION:
- *  Check if the Cert has been revoked based the CRLs data. It exhausts all
+ *  Check if the Cert has been revoked based on the CRL's data. It exhausts all
  *  CertStores and match CRLs at those stores for the certificate. It set the
  *  current date and issuer in CRLSelector to fetching CRL data from cache.
  *
@@ -856,13 +868,16 @@ pkix_DefaultCRLChecker_Check_Helper(
 
         PKIX_ENTER(CERTCHAINCHECKER, "pkix_DefaultCRLChecker_Check_Helper");
         PKIX_NULLCHECK_THREE(checker, cert, state);
+
+        nbioContext = *pNBIOContext;
         *pNBIOContext = NULL; /* prepare for Error exit */
+
         while ((state->crlStoreIndex) < (state->numCrlStores)) {
 
                 /*
                  * For Basic CRL work, exit the loop when there is a valid
                  * CRL. For advance CRL, need to exhaust CRL until all
-                 * reason mask are checked or a revoked is issued.
+                 * reason masks are checked or a revocation is found.
                  */
 
                 if (state->certHasValidCrl == PKIX_TRUE) {
@@ -964,6 +979,7 @@ pkix_DefaultCRLChecker_Check(
         PKIX_ENTER(CERTCHAINCHECKER, "pkix_DefaultCRLChecker_Check");
         PKIX_NULLCHECK_THREE(checker, cert, pNBIOContext);
 
+        nbioContext = *pNBIOContext;
         *pNBIOContext = NULL; /* prepare for Error exit */
 
         PKIX_CHECK(PKIX_CertChainChecker_GetCertChainCheckerState

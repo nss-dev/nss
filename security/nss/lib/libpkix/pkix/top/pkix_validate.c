@@ -53,7 +53,7 @@
  *  using the List of CertChainCheckers pointed to by "checkers". If the
  *  certificate does not validate, an Error pointer is returned.
  *
- *  This function should bve called initially with the UInt32 pointed to by
+ *  This function should be called initially with the UInt32 pointed to by
  *  "pCheckerIndex" containing zero, and the pointer at "pNBIOContext"
  *  containing NULL. If a checker does non-blocking I/O, this function will
  *  return with the index of that checker stored at "pCheckerIndex" and a
@@ -108,6 +108,7 @@ pkix_CheckCert(
         PKIX_ENTER(VALIDATE, "pkix_CheckCert");
         PKIX_NULLCHECK_FOUR(cert, checkers, pCheckerIndex, pNBIOContext);
 
+        nbioContext = *pNBIOContext;
         *pNBIOContext = NULL; /* prepare for case of error exit */
 
         PKIX_CHECK(PKIX_PL_Cert_GetCriticalExtensionOIDs
@@ -806,6 +807,8 @@ pkix_CheckChain(
         PKIX_NULLCHECK_THREE(pCheckerIndex, pRevChecking, pReasonCode);
         PKIX_NULLCHECK_THREE(pNBIOContext, pFinalSubjPubKey, pPolicyTree);
 
+        nbioContext = *pNBIOContext;
+        *pNBIOContext = NULL;
         revChecking = *pRevChecking;
 
         for (j = *pCertCheckedIndex; j < numCerts; j++){
@@ -1107,6 +1110,254 @@ PKIX_ValidateChain(
                         &finalPubKey,
                         &validPolicyTree,
                         plContext);
+
+                if (chainFailed || (reasonCode != 0)) {
+
+                        /* cert chain failed to validate */
+
+                        PKIX_DECREF(chainFailed);
+                        PKIX_DECREF(anchor);
+                        PKIX_DECREF(checkers);
+                        PKIX_DECREF(validPolicyTree);
+
+                        /* if last anchor, we fail; else, we try next anchor */
+                        if (i == (numAnchors - 1)) { /* last anchor */
+                                PKIX_ERROR("PKIX_ValidateChain failed");
+                        }
+
+                } else {
+
+                        /* cert chain successfully validated! */
+                        PKIX_CHECK(pkix_ValidateResult_Create
+                                (finalPubKey,
+                                anchor,
+                                validPolicyTree,
+                                &valResult,
+                                plContext),
+                                "pkix_ValidateResult_Create failed");
+
+                        *pResult = valResult;
+
+                        /* no need to try any more anchors in the loop */
+                        goto cleanup;
+                }
+        }
+
+cleanup:
+
+        PKIX_DECREF(finalPubKey);
+        PKIX_DECREF(certs);
+        PKIX_DECREF(anchors);
+        PKIX_DECREF(anchor);
+        PKIX_DECREF(checkers);
+        PKIX_DECREF(revCheckers);
+        PKIX_DECREF(validPolicyTree);
+        PKIX_DECREF(chainFailed);
+        PKIX_DECREF(procParams);
+        PKIX_DECREF(userCheckers);
+        PKIX_DECREF(validateCheckedCritExtOIDsList);
+
+        PKIX_RETURN(VALIDATE);
+}
+
+PKIX_Error *
+pkix_Validate_BuildUserOIDs(
+        PKIX_List *userCheckers,
+        PKIX_List **pUserCritOIDs,
+        void *plContext)
+{
+        PKIX_UInt32 numUserCheckers = 0;
+        PKIX_UInt32 i = 0;
+        PKIX_List *userCritOIDs = NULL;
+        PKIX_List *userCheckerExtOIDs = NULL;
+        PKIX_Boolean supportForwarding = PKIX_FALSE;
+        PKIX_CertChainChecker *userChecker = NULL;
+
+        PKIX_ENTER(VALIDATE, "pkix_Validate_BuildUserOIDs");
+        PKIX_NULLCHECK_ONE(pUserCritOIDs);
+
+        if (userCheckers != NULL) {
+            PKIX_CHECK(PKIX_List_Create(&userCritOIDs, plContext),
+                "PKIX_List_Create failed");
+
+            PKIX_CHECK(PKIX_List_GetLength
+                (userCheckers, &numUserCheckers, plContext),
+                "PKIX_List_GetLength failed");
+
+            for (i = 0; i < numUserCheckers; i++) {
+                PKIX_CHECK(PKIX_List_GetItem
+                    (userCheckers,
+                    i,
+                    (PKIX_PL_Object **) &userChecker,
+                    plContext),
+                    "PKIX_List_GetItem failed");
+
+                PKIX_CHECK(PKIX_CertChainChecker_IsForwardCheckingSupported
+                    (userChecker, &supportForwarding, plContext),
+                    "PKIX_CertChainChecker_IsForwardCheckingSupported failed");
+
+                if (supportForwarding == PKIX_FALSE) {
+
+                    PKIX_CHECK(PKIX_CertChainChecker_GetSupportedExtensions
+                        (userChecker, &userCheckerExtOIDs, plContext),
+                        "PKIX_CertChainChecker_GetSupportedExtensions failed");
+
+                    if (userCheckerExtOIDs != NULL) {
+                        PKIX_CHECK(pkix_List_AppendList
+                            (userCritOIDs, userCheckerExtOIDs, plContext),
+                            "pkix_List_AppendList failed");
+                    }
+                }
+
+                PKIX_DECREF(userCheckerExtOIDs);
+                PKIX_DECREF(userChecker);
+            }
+        }
+
+        *pUserCritOIDs = userCritOIDs;
+
+cleanup:
+
+        if (PKIX_ERROR_RECEIVED){
+                PKIX_DECREF(userCritOIDs);
+        }
+
+        PKIX_DECREF(userCheckerExtOIDs);
+        PKIX_DECREF(userChecker);
+
+        PKIX_RETURN(VALIDATE);
+}
+
+PKIX_Error *
+PKIX_ValidateChain_NB(
+        PKIX_ValidateParams *valParams,
+        PKIX_UInt32 *pCertIndex,
+        PKIX_UInt32 *pAnchorIndex,
+        PKIX_UInt32 *pCheckerIndex,
+        PKIX_Boolean *pRevChecking,
+        PKIX_List **pCheckers,
+        void **pNBIOContext,
+        PKIX_ValidateResult **pResult,
+        void *plContext)
+{
+        PKIX_UInt32 numCerts = 0;
+        PKIX_UInt32 numAnchors = 0;
+        PKIX_UInt32 i = 0;
+        PKIX_UInt32 certIndex = 0;
+        PKIX_UInt32 anchorIndex = 0;
+        PKIX_UInt32 checkerIndex = 0;
+        PKIX_UInt32 reasonCode = 0;
+        PKIX_Boolean revChecking = PKIX_FALSE;
+        PKIX_List *certs = NULL;
+        PKIX_List *anchors = NULL;
+        PKIX_List *checkers = NULL;
+        PKIX_List *userCheckers = NULL;
+        PKIX_List *revCheckers = NULL;
+        PKIX_List *validateCheckedCritExtOIDsList = NULL;
+        PKIX_TrustAnchor *anchor = NULL;
+        PKIX_ValidateResult *valResult = NULL;
+        PKIX_PL_PublicKey *finalPubKey = NULL;
+        PKIX_PolicyNode *validPolicyTree = NULL;
+        PKIX_ProcessingParams *procParams = NULL;
+        PKIX_Error *chainFailed = NULL;
+        void *nbioContext = NULL;
+
+        PKIX_ENTER(VALIDATE, "PKIX_ValidateChain_NB");
+        PKIX_NULLCHECK_FOUR(valParams, pCertIndex, pAnchorIndex, pCheckerIndex);
+        PKIX_NULLCHECK_FOUR(pRevChecking, pCheckers, pNBIOContext, pResult);
+
+        nbioContext = *pNBIOContext;
+        *pNBIOContext = NULL;
+
+        /* extract various parameters from valParams */
+        PKIX_CHECK(pkix_ExtractParameters
+                    (valParams,
+                    &certs,
+                    &numCerts,
+                    &procParams,
+                    &anchors,
+                    &numAnchors,
+                    plContext),
+                    "pkix_ExtractParameters failed");
+
+        /*
+         * Create a List of the OIDs that will be processed by the user
+         * checkers. User checkers are not responsible for removing OIDs from
+         * the List of unresolved critical extensions, as libpkix checkers are.
+         * So we add those user checkers' OIDs to the removal list to be taken
+         * out by CheckChain.
+         */
+        PKIX_CHECK(PKIX_ProcessingParams_GetCertChainCheckers
+                (procParams, &userCheckers, plContext),
+                "PKIX_ProcessingParams_GetCertChainCheckers");
+
+        PKIX_CHECK(pkix_Validate_BuildUserOIDs
+                (userCheckers, &validateCheckedCritExtOIDsList, plContext),
+                "pkix_Validate_BuildUserOIDs failed");
+
+        PKIX_CHECK(PKIX_ProcessingParams_GetRevocationCheckers
+                (procParams, &revCheckers, plContext),
+                "PKIX_ProcessingParams_GetRevocationCheckers");
+
+        /* Are we resuming after a WOULDBLOCK return, or starting anew ? */
+        if (nbioContext != NULL) {
+                /* Resuming */
+                certIndex = *pCertIndex;
+                anchorIndex = *pAnchorIndex;
+                checkerIndex = *pCheckerIndex;
+                revChecking = *pRevChecking;
+                checkers = *pCheckers;
+                *pCheckers = NULL;
+        }
+
+        /* try to validate the chain with each anchor */
+        for (i = anchorIndex; i < numAnchors; i++) {
+
+                /* get trust anchor */
+                PKIX_CHECK(PKIX_List_GetItem
+                        (anchors, i, (PKIX_PL_Object **)&anchor, plContext),
+                        "PKIX_List_GetItem failed");
+
+                /* initialize checkers using information from trust anchor */
+                if (nbioContext == NULL) {
+                        PKIX_CHECK(pkix_InitializeCheckers
+                                (anchor,
+                                procParams,
+                                numCerts,
+                                &checkers,
+                                plContext),
+                                "pkix_InitializeCheckers failed");
+                }
+
+                /*
+                 * Validate the chain using this trust anchor and these
+                 * checkers.
+                 */
+                chainFailed = pkix_CheckChain
+                        (certs,
+                        numCerts,
+                        checkers,
+                        revCheckers,
+                        validateCheckedCritExtOIDsList,
+                        &certIndex,
+                        &checkerIndex,
+                        &revChecking,
+                        &reasonCode,
+                        &nbioContext,
+                        &finalPubKey,
+                        &validPolicyTree,
+                        plContext);
+
+                if (nbioContext != NULL) {
+                        *pCertIndex = certIndex;
+                        *pAnchorIndex = anchorIndex;
+                        *pCheckerIndex = checkerIndex;
+                        *pRevChecking = revChecking;
+                        PKIX_INCREF(checkers);
+                        *pCheckers = checkers;
+                        *pNBIOContext = nbioContext;
+                        goto cleanup;
+                }
 
                 if (chainFailed || (reasonCode != 0)) {
 

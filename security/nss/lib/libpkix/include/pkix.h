@@ -229,6 +229,18 @@ PKIX_ValidateChain(
         PKIX_ValidateResult **pResult,
         void *plContext);
 
+PKIX_Error *
+PKIX_ValidateChain_NB(
+	PKIX_ValidateParams *valParams,
+	PKIX_UInt32 *pCertIndex,
+	PKIX_UInt32 *pAnchorIndex,
+	PKIX_UInt32 *pCheckerIndex,
+	PKIX_Boolean *pRevChecking,
+	PKIX_List **pCheckers,
+	void **pNBIOContext,
+	PKIX_ValidateResult **pResult,
+	void *plContext);
+
 /*
  * FUNCTION: PKIX_BuildChain
  * DESCRIPTION:

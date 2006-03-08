@@ -1151,6 +1151,7 @@ PKIX_TrustAnchor_GetCAPublicKey;
 PKIX_TrustAnchor_GetNameConstraints;
 PKIX_TrustAnchor_GetTrustedCert;
 PKIX_ValidateChain;
+PKIX_ValidateChain_NB;
 PKIX_ValidateParams_Create;
 PKIX_ValidateParams_GetCertChain;
 PKIX_ValidateParams_GetProcessingParams;
