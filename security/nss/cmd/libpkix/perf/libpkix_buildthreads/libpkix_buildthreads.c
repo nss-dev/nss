@@ -69,14 +69,14 @@
 void *plContext = NULL;
 
 #define PERF_DECREF(obj) \
-        do { \
-        PKIX_Error *pkixTempResult = NULL; \
+        { \
+                PKIX_Error *pkixTempResult = NULL; \
                 if (obj){ \
                         pkixTempResult = PKIX_PL_Object_DecRef \
                         ((PKIX_PL_Object *)(obj), plContext); \
                         obj = NULL; \
                 } \
-        } while (0)
+        }
 
 void finish(char* message, int code);
 
@@ -315,14 +315,6 @@ void usage(char* progname)
         finish("", 0);
 }
 
-void
-Test(
-        CERTCertificate* anchor,
-        char* eecert,
-        PRIntervalTime duration,
-        CERTCertDBHandle *handle,
-        PRUint32 threads);
-
 int main(int argc, char** argv)
 {
         CERTCertDBHandle *handle = NULL;
@@ -385,8 +377,6 @@ int main(int argc, char** argv)
          */
 
         Test(NULL, argv[3], duration, handle, threads);
-
-        /* need to free handle XXX */
 
         PERF_DECREF(logger);
 
