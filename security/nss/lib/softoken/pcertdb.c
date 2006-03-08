@@ -3070,6 +3070,7 @@ AddPermSubjectNode(certDBEntrySubject *entry, NSSLOWCERTCertificate *cert,
 	}
 
 	if ( nsslowcert_IsNewer(cert, cmpcert) ) {
+	    nsslowcert_DestroyCertificate(cmpcert);
 	    /* insert before cmpcert */
 	    rv = SECITEM_CopyItem(entry->common.arena, &newCertKeys[new_i],
 				      &cert->certKey);
@@ -3097,6 +3098,7 @@ AddPermSubjectNode(certDBEntrySubject *entry, NSSLOWCERTCertificate *cert,
 	    added = PR_TRUE;
 	    break;
 	}
+	nsslowcert_DestroyCertificate(cmpcert);
 	/* copy this cert entry */
 	newCertKeys[new_i] = entry->certKeys[i];
 	newKeyIDs[new_i] = entry->keyIDs[i];
