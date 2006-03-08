@@ -276,7 +276,7 @@ typedef PKIX_Error *
         void *plContext);
 
 /*
- * FUNCTION: PKIX_CertStore_CRLContinue
+ * FUNCTION: PKIX_CertStore_CrlContinue
  * DESCRIPTION:
  *
  *  This function continues the non-blocking operation initiated by an earlier
@@ -290,7 +290,7 @@ typedef PKIX_Error *
  *
  *  If non-blocking I/O is still pending this function stores platform-dependent
  *  information at "pNBIOContext" and NULL at "pCrls". A subsequent call to
- *  PKIX_CertStore_CRLContinue is required to finish the operation and to
+ *  PKIX_CertStore_CrlContinue is required to finish the operation and to
  *  obtain the List of Crls.
  *
  *  Note that the List returned by this function is immutable.
@@ -320,7 +320,7 @@ typedef PKIX_Error *
  *  Returns a Fatal Error if the function fails in an unrecoverable way.
  */
 PKIX_Error *
-PKIX_CertStore_CRLContinue(
+PKIX_CertStore_CrlContinue(
         PKIX_CertStore *store,
         PKIX_CRLSelector *selector,
         void **pNBIOContext,
@@ -328,7 +328,7 @@ PKIX_CertStore_CRLContinue(
         void *plContext);
 
 typedef PKIX_Error *
-(*PKIX_CertStore_CRLContinueFunction)(
+(*PKIX_CertStore_CrlContinueFunction)(
         PKIX_CertStore *store,
         PKIX_CRLSelector *selector,
         void **pNBIOContext,
@@ -425,7 +425,7 @@ PKIX_CertStore_Create(
         PKIX_CertStore_CertCallback certCallback,
         PKIX_CertStore_CRLCallback crlCallback,
         PKIX_CertStore_CertContinueFunction certContinue,
-        PKIX_CertStore_CRLContinueFunction crlContinue,
+        PKIX_CertStore_CrlContinueFunction crlContinue,
         PKIX_CertStore_CheckTrustCallback trustCallback,
         PKIX_PL_Object *certStoreContext,
         PKIX_Boolean cachedFlag,

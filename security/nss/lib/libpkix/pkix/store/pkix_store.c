@@ -211,7 +211,7 @@ PKIX_CertStore_Create(
         PKIX_CertStore_CertCallback certCallback,
         PKIX_CertStore_CRLCallback crlCallback,
         PKIX_CertStore_CertContinueFunction certContinue,
-        PKIX_CertStore_CRLContinueFunction crlContinue,
+        PKIX_CertStore_CrlContinueFunction crlContinue,
         PKIX_CertStore_CheckTrustCallback trustCallback,
         PKIX_PL_Object *certStoreContext,
         PKIX_Boolean cacheFlag,
