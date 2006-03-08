@@ -97,8 +97,6 @@ test_subjaltnamechecker "NIST-Test-Files-Used" "0U:.gov+U:http://testserver.test
 test_subjaltnamechecker "NIST-Test-Files-Used" "0U:test.testcertificates.gov" EE $NIST TrustAnchorRootCertificate.crt nameConstraintsURI1CACert.crt ValidURInameConstraintsTest34EE.crt
 test_subjaltnamechecker "NIST-Test-Files-Used" "1D:C=US+D:CN=Certificates,C=US" EE $NIST TrustAnchorRootCertificate.crt nameConstraintsDN2CACert.crt ValidDNnameConstraintsTest5EE.crt
 test_subjaltnamechecker "NIST-Test-Files-Used" "0D:O=TestCertificates,C=CN" EE $NIST TrustAnchorRootCertificate.crt nameConstraintsDN2CACert.crt ValidDNnameConstraintsTest5EE.crt
-test_validatechain "CRL-test-without-revocation" ENE ${curdir}/rev_data/crlchecker sci2sci.crt sci2phy.crt phy2prof.crt prof2test.crt
-test_validatechain "CRL-test-with-revocation-reasoncode" EE ${curdir}/rev_data/crlchecker sci2sci.crt sci2chem.crt chem2prof.crt prof2test.crt
 test_validatechain "CRL-test-without-key-usage-cRLsign-bit-NIST-Test-Files-Used" EE $NIST TrustAnchorRootCertificate.crt SeparateCertificateandCRLKeysCertificateSigningCACert.crt SeparateCertificateandCRLKeysCRLSigningCert.crt InvalidSeparateCertificateandCRLKeysTest20EE.crt
 test_validatechain NIST-Test.4.1.1 ENE $NIST TrustAnchorRootCertificate.crt GoodCACert.crt ValidCertificatePathTest1EE.crt
 test_validatechain NIST-Test.4.1.2 EE $NIST TrustAnchorRootCertificate.crt BadSignedCACert.crt InvalidCASignatureTest2EE.crt
@@ -120,7 +118,6 @@ test_validatechain NIST-Test.4.3.3 ENE $NIST TrustAnchorRootCertificate.crt Good
 test_validatechain NIST-Test.4.3.4 ENE $NIST TrustAnchorRootCertificate.crt GoodCACert.crt ValidNameChainingWhitespaceTest4EE.crt
 test_validatechain NIST-Test.4.3.5 ENE $NIST TrustAnchorRootCertificate.crt GoodCACert.crt ValidNameChainingCapitalizationTest5EE.crt
 test_validatechain NIST-Test.4.3.6 ENE $NIST TrustAnchorRootCertificate.crt UIDCACert.crt  ValidNameUIDsTest6EE.crt
-test_validatechain NIST-Test.4.3.7 ENE $NIST TrustAnchorRootCertificate.crt RFC3280MandatoryAttributeTypesCACert.crt ValidRFC3280MandatoryAttributeTypesTest7EE.crt
 test_validatechain NIST-Test.4.3.9 ENE $NIST TrustAnchorRootCertificate.crt UTF8StringEncodedNamesCACert.crt  ValidUTF8StringEncodedNamesTest9EE.crt
 test_validatechain NIST-Test.4.3.10 ENE $NIST TrustAnchorRootCertificate.crt RolloverfromPrintableStringtoUTF8StringCACert.crt  ValidRolloverfromPrintableStringtoUTF8StringTest10EE.crt
 test_validatechain NIST-Test.4.3.11 ENE $NIST TrustAnchorRootCertificate.crt UTF8StringCaseInsensitiveMatchCACert.crt  ValidUTF8StringCaseInsensitiveMatchTest11EE.crt
@@ -148,6 +145,54 @@ test_validatechain NIST-Test.4.5.2 EE $NIST TrustAnchorRootCertificate.crt Basic
 test_validatechain NIST-Test.4.5.5 EE $NIST TrustAnchorRootCertificate.crt BasicSelfIssuedOldKeyCACert.crt BasicSelfIssuedOldKeyNewWithOldCACert.crt InvalidBasicSelfIssuedNewWithOldTest5EE.crt
 test_validatechain NIST-Test.4.5.7 EE $NIST TrustAnchorRootCertificate.crt BasicSelfIssuedCRLSigningKeyCACert.crt BasicSelfIssuedCRLSigningKeyCRLCert.crt InvalidBasicSelfIssuedCRLSigningKeyTest7EE.crt
 test_validatechain NIST-Test.4.5.8 EE $NIST TrustAnchorRootCertificate.crt BasicSelfIssuedCRLSigningKeyCACert.crt BasicSelfIssuedCRLSigningKeyCRLCert.crt InvalidBasicSelfIssuedCRLSigningKeyTest8EE.crt
+test_validatechain_NB "CRL-test-without-key-usage-cRLsign-bit-NIST-Test-Files-Used" EE $NIST TrustAnchorRootCertificate.crt SeparateCertificateandCRLKeysCertificateSigningCACert.crt SeparateCertificateandCRLKeysCRLSigningCert.crt InvalidSeparateCertificateandCRLKeysTest20EE.crt
+test_validatechain_NB NIST-Test.4.1.1 ENE $NIST TrustAnchorRootCertificate.crt GoodCACert.crt ValidCertificatePathTest1EE.crt
+test_validatechain_NB NIST-Test.4.1.2 EE $NIST TrustAnchorRootCertificate.crt BadSignedCACert.crt InvalidCASignatureTest2EE.crt
+test_validatechain_NB NIST-Test.4.1.3 EE $NIST TrustAnchorRootCertificate.crt GoodCACert.crt  InvalidEESignatureTest3EE.crt
+test_validatechain_NB NIST-Test.4.1.4 ENE $NIST TrustAnchorRootCertificate.crt DSACACert.crt ValidDSASignaturesTest4EE.crt
+test_validatechain_NB NIST-Test.4.1.5 ENE $NIST TrustAnchorRootCertificate.crt DSACACert.crt DSAParametersInheritedCACert.crt ValidDSAParameterInheritanceTest5EE.crt
+test_validatechain_NB NIST-Test.4.1.6 EE $NIST TrustAnchorRootCertificate.crt DSACACert.crt InvalidDSASignatureTest6EE.crt
+test_validatechain_NB NIST-Test.4.2.1 EE $NIST TrustAnchorRootCertificate.crt BadnotBeforeDateCACert.crt InvalidCAnotBeforeDateTest1EE.crt
+test_validatechain_NB NIST-Test.4.2.2 EE $NIST TrustAnchorRootCertificate.crt GoodCACert.crt InvalidEEnotBeforeDateTest2EE.crt
+test_validatechain_NB NIST-Test.4.2.3 ENE $NIST TrustAnchorRootCertificate.crt GoodCACert.crt Validpre2000UTCnotBeforeDateTest3EE.crt
+test_validatechain_NB NIST-Test.4.2.4 ENE $NIST TrustAnchorRootCertificate.crt GoodCACert.crt ValidGeneralizedTimenotBeforeDateTest4EE.crt
+test_validatechain_NB NIST-Test.4.2.5 EE $NIST TrustAnchorRootCertificate.crt BadnotAfterDateCACert.crt InvalidCAnotAfterDateTest5EE.crt
+test_validatechain_NB NIST-Test.4.2.6 EE $NIST TrustAnchorRootCertificate.crt GoodCACert.crt InvalidEEnotAfterDateTest6EE.crt
+test_validatechain_NB NIST-Test.4.2.7 EE $NIST TrustAnchorRootCertificate.crt GoodCACert.crt Invalidpre2000UTCEEnotAfterDateTest7EE.crt
+test_validatechain_NB NIST-Test.4.2.8 ENE $NIST TrustAnchorRootCertificate.crt GoodCACert.crt ValidGeneralizedTimenotAfterDateTest8EE.crt
+test_validatechain_NB NIST-Test.4.3.1 EE $NIST TrustAnchorRootCertificate.crt GoodCACert.crt InvalidNameChainingTest1EE.crt
+test_validatechain_NB NIST-Test.4.3.2 EE $NIST TrustAnchorRootCertificate.crt NameOrderingCACert.crt  InvalidNameChainingOrderTest2EE.crt
+test_validatechain_NB NIST-Test.4.3.3 ENE $NIST TrustAnchorRootCertificate.crt GoodCACert.crt ValidNameChainingWhitespaceTest3EE.crt
+test_validatechain_NB NIST-Test.4.3.4 ENE $NIST TrustAnchorRootCertificate.crt GoodCACert.crt ValidNameChainingWhitespaceTest4EE.crt
+test_validatechain_NB NIST-Test.4.3.5 ENE $NIST TrustAnchorRootCertificate.crt GoodCACert.crt ValidNameChainingCapitalizationTest5EE.crt
+test_validatechain_NB NIST-Test.4.3.6 ENE $NIST TrustAnchorRootCertificate.crt UIDCACert.crt  ValidNameUIDsTest6EE.crt
+test_validatechain_NB NIST-Test.4.3.9 ENE $NIST TrustAnchorRootCertificate.crt UTF8StringEncodedNamesCACert.crt  ValidUTF8StringEncodedNamesTest9EE.crt
+test_validatechain_NB NIST-Test.4.3.10 ENE $NIST TrustAnchorRootCertificate.crt RolloverfromPrintableStringtoUTF8StringCACert.crt  ValidRolloverfromPrintableStringtoUTF8StringTest10EE.crt
+test_validatechain_NB NIST-Test.4.3.11 ENE $NIST TrustAnchorRootCertificate.crt UTF8StringCaseInsensitiveMatchCACert.crt  ValidUTF8StringCaseInsensitiveMatchTest11EE.crt
+test_validatechain_NB NIST-Test.4.4.1 EE $NIST TrustAnchorRootCertificate.crt NoCRLCACert.crt InvalidMissingCRLTest1EE.crt
+test_validatechain_NB NIST-Test.4.4.2 EE $NIST TrustAnchorRootCertificate.crt GoodCACert.crt RevokedsubCACert.crt InvalidRevokedCATest2EE.crt
+test_validatechain_NB NIST-Test.4.4.3 EE $NIST TrustAnchorRootCertificate.crt GoodCACert.crt InvalidRevokedEETest3EE.crt
+test_validatechain_NB NIST-Test.4.4.4 EE $NIST TrustAnchorRootCertificate.crt BadCRLSignatureCACert.crt InvalidBadCRLSignatureTest4EE.crt
+test_validatechain_NB NIST-Test.4.4.5 EE $NIST TrustAnchorRootCertificate.crt BadCRLIssuerNameCACert.crt InvalidBadCRLIssuerNameTest5EE.crt
+test_validatechain_NB NIST-Test.4.4.6 EE $NIST TrustAnchorRootCertificate.crt WrongCRLCACert.crt InvalidWrongCRLTest6EE.crt
+test_validatechain_NB NIST-Test.4.4.7 ENE $NIST TrustAnchorRootCertificate.crt TwoCRLsCACert.crt ValidTwoCRLsTest7EE.crt
+test_validatechain_NB NIST-Test.4.4.8 EE $NIST TrustAnchorRootCertificate.crt UnknownCRLEntryExtensionCACert.crt InvalidUnknownCRLEntryExtensionTest8EE.crt
+test_validatechain_NB NIST-Test.4.4.9 EE $NIST TrustAnchorRootCertificate.crt UnknownCRLExtensionCACert.crt InvalidUnknownCRLExtensionTest9EE.crt
+test_validatechain_NB NIST-Test.4.4.10 EE $NIST TrustAnchorRootCertificate.crt UnknownCRLExtensionCACert.crt InvalidUnknownCRLExtensionTest10EE.crt
+test_validatechain_NB NIST-Test.4.4.11 EE $NIST TrustAnchorRootCertificate.crt OldCRLnextUpdateCACert.crt InvalidOldCRLnextUpdateTest11EE.crt
+test_validatechain_NB NIST-Test.4.4.12 EE $NIST TrustAnchorRootCertificate.crt pre2000CRLnextUpdateCACert.crt Invalidpre2000CRLnextUpdateTest12EE.crt
+test_validatechain_NB NIST-Test.4.4.13 ENE $NIST TrustAnchorRootCertificate.crt GeneralizedTimeCRLnextUpdateCACert.crt ValidGeneralizedTimeCRLnextUpdateTest13EE.crt
+test_validatechain_NB NIST-Test.4.4.14 ENE $NIST TrustAnchorRootCertificate.crt NegativeSerialNumberCACert.crt ValidNegativeSerialNumberTest14EE.crt
+test_validatechain_NB NIST-Test.4.4.15 EE $NIST TrustAnchorRootCertificate.crt NegativeSerialNumberCACert.crt InvalidNegativeSerialNumberTest15EE.crt
+test_validatechain_NB NIST-Test.4.4.16 ENE $NIST TrustAnchorRootCertificate.crt LongSerialNumberCACert.crt ValidLongSerialNumberTest16EE.crt
+test_validatechain_NB NIST-Test.4.4.17 ENE $NIST TrustAnchorRootCertificate.crt LongSerialNumberCACert.crt ValidLongSerialNumberTest17EE.crt
+test_validatechain_NB NIST-Test.4.4.18 EE $NIST TrustAnchorRootCertificate.crt LongSerialNumberCACert.crt InvalidLongSerialNumberTest18EE.crt
+test_validatechain_NB NIST-Test.4.4.20 EE $NIST TrustAnchorRootCertificate.crt SeparateCertificateandCRLKeysCertificateSigningCACert.crt SeparateCertificateandCRLKeysCRLSigningCert.crt InvalidSeparateCertificateandCRLKeysTest20EE.crt
+test_validatechain_NB NIST-Test.4.5.1 ENE $NIST TrustAnchorRootCertificate.crt BasicSelfIssuedNewKeyCACert.crt BasicSelfIssuedNewKeyOldWithNewCACert.crt ValidBasicSelfIssuedOldWithNewTest1EE.crt
+test_validatechain_NB NIST-Test.4.5.2 EE $NIST TrustAnchorRootCertificate.crt BasicSelfIssuedNewKeyCACert.crt BasicSelfIssuedNewKeyOldWithNewCACert.crt InvalidBasicSelfIssuedOldWithNewTest2EE.crt
+test_validatechain_NB NIST-Test.4.5.5 EE $NIST TrustAnchorRootCertificate.crt BasicSelfIssuedOldKeyCACert.crt BasicSelfIssuedOldKeyNewWithOldCACert.crt InvalidBasicSelfIssuedNewWithOldTest5EE.crt
+test_validatechain_NB NIST-Test.4.5.7 EE $NIST TrustAnchorRootCertificate.crt BasicSelfIssuedCRLSigningKeyCACert.crt BasicSelfIssuedCRLSigningKeyCRLCert.crt InvalidBasicSelfIssuedCRLSigningKeyTest7EE.crt
+test_validatechain_NB NIST-Test.4.5.8 EE $NIST TrustAnchorRootCertificate.crt BasicSelfIssuedCRLSigningKeyCACert.crt BasicSelfIssuedCRLSigningKeyCRLCert.crt InvalidBasicSelfIssuedCRLSigningKeyTest8EE.crt
 test_basicconstraintschecker NIST-Test.4.6.1 EE $NIST TrustAnchorRootCertificate.crt MissingbasicConstraintsCACert.crt InvalidMissingbasicConstraintsTest1EE.crt
 test_basicconstraintschecker NIST-Test.4.6.2 EE $NIST TrustAnchorRootCertificate.crt basicConstraintsCriticalcAFalseCACert.crt InvalidcAFalseTest2EE.crt
 test_basicconstraintschecker NIST-Test.4.6.3 EE $NIST TrustAnchorRootCertificate.crt basicConstraintsNotCriticalcAFalseCACert.crt InvalidcAFalseTest3EE.crt
@@ -430,6 +475,7 @@ exit ${totalErrors}
 # 4.15.* Delta CRL - not supported
 ##########################################################
 # Following tests are not run because of bugs beyond libpkix:
+#test_validatechain NIST-Test.4.3.7 ENE $NIST TrustAnchorRootCertificate.crt RFC3280MandatoryAttributeTypesCACert.crt ValidRFC3280MandatoryAttributeTypesTest7EE.crt
 # test_buildchain NIST-Test.4.3.8 ENE $NIST ValidRFC3280OptionalAttributeTypesTest8EE.crt RFC3280OptionalAttributeTypesCACert.crt TrustAnchorRootCertificate.crt
 
 # Following tests are not supported by libpkix : separate certificate

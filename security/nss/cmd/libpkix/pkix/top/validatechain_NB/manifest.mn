@@ -35,12 +35,17 @@
 #
 # ***** END LICENSE BLOCK *****
 
-PKIX_DEPTH      = ../..
+PKIX_DEPTH	= ../../..
 
-#
-DIRS =  basicchecker bc_checker buildchain buildchain_uchecker \
-	buildchain_partialchain customcrlchecker defaultcrlchecker2 \
-	policychecker subjaltnamechecker validatechain validatechain_bc \
-	validatechain_NB buildchain_resourcelimits \
-	$(NULL)
+# MODULE public and private header  directories are implicitly REQUIRED.
+MODULE = nss 
+
+DEFINES = -DNSPR20
+
+CSRCS = test_validatechain_NB.c
+
+# this has to be different for NT and UNIX.
+# PROGRAM	=$(OBJDIR)/test_validatechain_NB
+PROGRAM	= test_validatechain_NB
+
 
