@@ -54,6 +54,13 @@ pkix_pl_LdapResponse_Destroy(
         void *plContext)
 {
         PKIX_PL_LdapResponse *ldapRsp = NULL;
+        LDAPMessage *m = NULL;
+        LDAPSearchResponseEntry *entry = NULL;
+        LDAPSearchResponseResult *result = NULL;
+        LDAPSearchResponseAttr **attributes = NULL;
+        LDAPSearchResponseAttr *attr = NULL;
+        SECItem **valp = NULL;
+        SECItem *val = NULL;
 
         PKIX_ENTER(LDAPRESPONSE, "pkix_pl_LdapResponse_Destroy");
         PKIX_NULLCHECK_ONE(object);
@@ -62,6 +69,44 @@ pkix_pl_LdapResponse_Destroy(
                     "Object is not a LdapResponse");
 
         ldapRsp = (PKIX_PL_LdapResponse *)object;
+
+        m = &ldapRsp->decoded;
+
+        if (m->messageID.data != NULL) {
+                PR_Free(m->messageID.data);
+        }
+
+        if (m->protocolOp.selector ==
+                LDAP_SEARCHRESPONSEENTRY_TYPE) {
+                entry = &m->protocolOp.op.searchResponseEntryMsg;
+                if (entry->objectName.data != NULL) {
+                        PR_Free(entry->objectName.data);
+                }
+                if (entry->attributes != NULL) {
+                        for (attributes = entry->attributes;
+                                *attributes != NULL;
+                                attributes++) {
+                                attr = *attributes;
+                                PR_Free(attr->attrType.data);
+                                for (valp = attr->val; *valp != NULL; valp++) {
+                                        val = *valp;
+                                        if (val->data != NULL) {
+                                                PR_Free(val->data);
+                                        }
+                                        PR_Free(val);
+                                }
+                                PR_Free(attr->val);
+                                PR_Free(attr);
+                        }
+                        PR_Free(entry->attributes);
+                }
+        } else if (m->protocolOp.selector ==
+                LDAP_SEARCHRESPONSERESULT_TYPE) {
+                result = &m->protocolOp.op.searchResponseResultMsg;
+                if (result->resultCode.data != NULL) {
+                        PR_Free(result->resultCode.data);
+                }
+        }
 
         PKIX_FREE(ldapRsp->derEncoded.data);
 
