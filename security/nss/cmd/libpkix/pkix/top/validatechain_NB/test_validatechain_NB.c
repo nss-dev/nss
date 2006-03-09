@@ -47,8 +47,8 @@
 void *plContext = NULL;
 
 void printUsage(void){
-        (void) printf("\nUSAGE:\test_validateChain_NB [ENE|EE] "
-                    "<trustedCert> <targetCert> <certStoreDirectory>\n\n");
+        (void) printf("\nUSAGE:\ntest_validateChain_NB TestName [ENE|EE] "
+                    "<certStoreDirectory> <trustedCert> <targetCert>\n\n");
         (void) printf
                 ("Validates a chain of certificates between "
                 "<trustedCert> and <targetCert>\n"
@@ -90,7 +90,7 @@ cleanup:
 }
 
 PKIX_Error *
-testDefaultCertStore(PKIX_ValidateParams *valParams, char *crlDir)
+testSetupCertStore(PKIX_ValidateParams *valParams, char *ldapName)
 {
         PKIX_PL_String *dirString = NULL;
         PKIX_CertStore *certStore = NULL;
@@ -103,7 +103,7 @@ testDefaultCertStore(PKIX_ValidateParams *valParams, char *crlDir)
 
         /* Create LDAPCertStore */
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_LdapDefaultClient_CreateByName
-                ("nss.red.iplanet.com:1389",
+                (ldapName,
                 0,      /* timeout */
                 NULL,   /* bindPtr */
                 &ldapClient,
@@ -158,6 +158,9 @@ int main(int argc, char *argv[]){
         PKIX_Boolean revChecking = PKIX_FALSE;
         PKIX_List *checkers = NULL;
         PRPollDesc *pollDesc = NULL;
+        PRErrorCode errorCode = 0;
+        PKIX_PL_Socket *socket = NULL;
+        char *ldapName = NULL;
 
         PKIX_TEST_STD_VARS();
 
@@ -221,7 +224,32 @@ int main(int argc, char *argv[]){
                 chainCerts,
                 plContext);
 
-        testDefaultCertStore(valParams, dirName);
+        ldapName = PR_GetEnv("LDAP");
+        /* Is LDAP set in the environment? */
+        if ((ldapName == NULL) || (*ldapName == '\0')) {
+                testError("LDAP not set in environment");
+                goto cleanup;
+        }
+
+        pkixTestErrorResult = pkix_pl_Socket_CreateByName
+                (PKIX_FALSE,       /* isServer */
+                PR_SecondsToInterval(10), /* try 10 secs for connect */
+                ldapName,
+                &errorCode,
+                &socket,
+                plContext);
+
+        if (pkixTestErrorResult != NULL) {
+                PKIX_PL_Object_DecRef
+                        ((PKIX_PL_Object *)pkixTestErrorResult, plContext);
+                pkixTestErrorResult = NULL;
+                testError("Unable to connect to LDAP Server");
+                goto cleanup;
+        }
+
+        PKIX_TEST_DECREF_BC(socket);
+
+        testSetupCertStore(valParams, ldapName);
 
         pkixTestErrorResult = PKIX_ValidateChain_NB
                 (valParams,
