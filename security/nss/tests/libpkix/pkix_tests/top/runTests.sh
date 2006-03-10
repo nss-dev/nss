@@ -39,7 +39,7 @@
 # runTests.sh
 #
 
-LDAP='-'
+LDAP='nss.red.iplanet.com:1389'
 curdir=`pwd`
 cd ../../common
 . ./libpkix_init.sh > /dev/null
