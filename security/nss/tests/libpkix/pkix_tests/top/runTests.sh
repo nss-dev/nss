@@ -40,6 +40,7 @@
 #
 
 LDAP='nss.red.iplanet.com:1389'
+export LDAP
 curdir=`pwd`
 cd ../../common
 . ./libpkix_init.sh > /dev/null
@@ -370,7 +371,7 @@ test_buildchain ${LDAP}  NIST-Test.4.3.3 ENE $NIST ValidNameChainingWhitespaceTe
 test_buildchain ${LDAP}  NIST-Test.4.3.4 ENE $NIST ValidNameChainingWhitespaceTest4EE.crt GoodCACert.crt TrustAnchorRootCertificate.crt
 test_buildchain ${LDAP}  NIST-Test.4.3.5 ENE $NIST ValidNameChainingCapitalizationTest5EE.crt GoodCACert.crt TrustAnchorRootCertificate.crt
 test_buildchain ${LDAP}  NIST-Test.4.3.6 ENE $NIST ValidNameUIDsTest6EE.crt UIDCACert.crt TrustAnchorRootCertificate.crt
-test_buildchain ${LDAP}  NIST-Test.4.3.7 ENE $NIST ValidRFC3280MandatoryAttributeTypesTest7EE.crt RFC3280MandatoryAttributeTypesCACert.crt TrustAnchorRootCertificate.crt
+test_buildchain -  NIST-Test.4.3.7 ENE $NIST ValidRFC3280MandatoryAttributeTypesTest7EE.crt RFC3280MandatoryAttributeTypesCACert.crt TrustAnchorRootCertificate.crt
 test_buildchain ${LDAP}  NIST-Test.4.3.9 ENE $NIST ValidUTF8StringEncodedNamesTest9EE.crt UTF8StringEncodedNamesCACert.crt TrustAnchorRootCertificate.crt
 test_buildchain ${LDAP}  NIST-Test.4.3.10 ENE $NIST ValidRolloverfromPrintableStringtoUTF8StringTest10EE.crt RolloverfromPrintableStringtoUTF8StringCACert.crt TrustAnchorRootCertificate.crt
 test_buildchain ${LDAP}  NIST-Test.4.3.11 ENE $NIST ValidUTF8StringCaseInsensitiveMatchTest11EE.crt UTF8StringCaseInsensitiveMatchCACert.crt TrustAnchorRootCertificate.crt
