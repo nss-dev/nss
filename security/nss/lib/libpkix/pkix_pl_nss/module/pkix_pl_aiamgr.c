@@ -158,9 +158,9 @@ pkix_pl_AIAMgr_RegisterSelf(void *plContext)
  * FUNCTION: pkix_pl_AIAMgr_ConvertResponses
  * DESCRIPTION:
  *
- *  This function processes the List of LDAPResponses pointed to by "responses" into
- *  a List of resulting Certs, storing the result at "pCerts". If there are no responses
- *  converted successfully, a NULL may be stored.
+ *  This function processes the List of LDAPResponses pointed to by "responses"
+ *  into a List of resulting Certs, storing the result at "pCerts". If there
+ *  are no responses converted successfully, a NULL may be stored.
  *
  * PARAMETERS:
  *  "responses"
