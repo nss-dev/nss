@@ -166,7 +166,7 @@ pkix_CheckCert(
                                 &length,
                                 plContext),
                                 "PKIX_PL_String_GetEncoded failed");
-                        PKIX_VALIDATE_DEBUG_ARG("unrecognizied critical "
+                        PKIX_VALIDATE_DEBUG_ARG("unrecognized critical "
                                         "extension OIDs: %s\n", oidAscii);
                         PKIX_DECREF(oidString);
                         PKIX_PL_Free(oidAscii, plContext);
