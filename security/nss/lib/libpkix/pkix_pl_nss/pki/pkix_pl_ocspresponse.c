@@ -305,7 +305,6 @@ pkix_pl_OcspResponse_Create(
 {
         void *nbioContext = NULL;
         PKIX_PL_OcspResponse *ocspResponse = NULL;
-        PKIX_PL_Date *validityTime = NULL;
         const SEC_HttpClientFcn *httpClient = NULL;
         const SEC_HttpClientFcnV1 *hcv1 = NULL;
         SECStatus rv = SECFailure;
@@ -419,8 +418,18 @@ pkix_pl_OcspResponse_Create(
                         ocspResponse->httpClient = httpClient;
                         ocspResponse->serverSession = serverSession;
                         ocspResponse->requestSession = requestSession;
-                }
+                        ocspResponse->encodedResponse = NULL;
+                        ocspResponse->decoded = NULL;
+                        ocspResponse->issuerCert = NULL;
+                        ocspResponse->signerCert = NULL;
+                        ocspResponse->clientIsDefault = PKIX_FALSE;
+                        ocspResponse->validityTime = NULL;
+                        ocspResponse->arena = NULL;
 
+                        PKIX_CHECK(pkix_pl_OcspRequest_GetCertID
+                                (request, &ocspResponse->certID, plContext),
+                                "pkix_pl_OcspRequest_GetCertID failed");
+                }
         }
 
         /* begin or resume IO to HTTPClient */
@@ -631,7 +640,7 @@ pkix_pl_OcspResponse_VerifySignature(
         PKIX_ENTER(OCSPRESPONSE, "pkix_pl_OcspResponse_VerifySignature");
         PKIX_NULLCHECK_TWO(response, pPassed);
 
-	PKIX_NULLCHECK_ONE(cert);
+        PKIX_NULLCHECK_ONE(cert);
 
         PKIX_PL_NSSCALLRV(OCSPRESPONSE, issuerCert, CERT_FindCertIssuer, 
                 (cert->nssCert, PR_Now(), certUsageAnyCA));
@@ -685,8 +694,6 @@ pkix_pl_OcspResponse_GetStatusForCert(
         void *plContext)
 {
         SECStatus rv = SECFailure;
-        CERTOCSPCertID *certID;
-        int64 time;
 
         PKIX_ENTER(OCSPRESPONSE, "pkix_pl_OcspResponse_GetStatusForCert");
         PKIX_NULLCHECK_TWO(response, pPassed);
@@ -698,31 +705,16 @@ pkix_pl_OcspResponse_GetStatusForCert(
          */
         PKIX_NULLCHECK_ONE(response->signerCert);
 
-        /* generate an int64 time from a PKIX_PL_Date */
-        /* response->validityTime  =>  time */
-
-        PKIX_PL_NSSCALLRV(OCSPRESPONSE, certID, CERT_CreateOCSPCertID,
-                (response->issuerCert, time));
-
-        if (certID == NULL) {
-                goto cleanup;
-        }
-
         PKIX_PL_NSSCALLRV(OCSPRESPONSE, rv, CERT_GetOCSPStatusForCertID,
                 (CERT_GetDefaultCertDB(), /* CERTCertDBHandle *handle */
                 response->decoded,
-                certID,
+                response->certID,
                 response->signerCert,
                 PR_Now()));
 
         *pPassed = ((rv == SECSuccess) ? PKIX_TRUE : PKIX_FALSE );
 
 cleanup:
-
-        if (certID == NULL) {
-                PKIX_PL_NSSCALLRV
-                        (OCSPRESPONSE, rv, CERT_DestroyOCSPCertID, (certID));
-        }
 
         PKIX_RETURN(OCSPRESPONSE);
 }

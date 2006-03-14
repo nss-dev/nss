@@ -47,8 +47,8 @@
 void *plContext = NULL;
 
 void printUsage(void){
-        (void) printf("\nUSAGE:\validateChain [ENE|EE] "
-                    "<trustedCert> <targetCert> <certStoreDirectory>\n\n");
+        (void) printf("\nUSAGE:\nvalidateChain TestName [ENE|EE] "
+                    "<certStoreDirectory> <trustedCert> <targetCert>\n\n");
         (void) printf
                 ("Validates a chain of certificates between "
                 "<trustedCert> and <targetCert>\n"
@@ -73,9 +73,9 @@ char *createFullPathName(
         dirNameLen = PL_strlen(dirName);
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Malloc
-                                    (dirNameLen + certFileLen + 2,
-                                    (void **)&certPathName,
-                                    plContext));
+                (dirNameLen + certFileLen + 2,
+                (void **)&certPathName,
+                plContext));
 
         PL_strcpy(certPathName, dirName);
         PL_strcat(certPathName, "/");
@@ -95,6 +95,9 @@ testDefaultCertStore(PKIX_ValidateParams *valParams, char *crlDir)
         PKIX_PL_String *dirString = NULL;
         PKIX_CertStore *certStore = NULL;
         PKIX_ProcessingParams *procParams = NULL;
+        PKIX_PL_Date *validity = NULL; 
+        PKIX_List *revCheckers = NULL;
+        PKIX_OcspChecker *ocspChecker = NULL;
 
         PKIX_TEST_STD_VARS();
 
@@ -103,35 +106,52 @@ testDefaultCertStore(PKIX_ValidateParams *valParams, char *crlDir)
         /* Create CollectionCertStore */
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create
-                                    (PKIX_ESCASCII,
-                                    crlDir,
-                                    0,
-                                    &dirString,
-                                    plContext));
+                (PKIX_ESCASCII, crlDir, 0, &dirString, plContext));
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_CollectionCertStore_Create
-                                    (dirString,
-                                    &certStore,
-                                    plContext));
+                (dirString, &certStore, plContext));
 
         /* Create CertStore */
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_ValidateParams_GetProcessingParams
-                                    (valParams, &procParams, plContext));
+                (valParams, &procParams, plContext));
 
         subTest("PKIX_ProcessingParams_AddCertStore");
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_ProcessingParams_AddCertStore
-                                    (procParams, certStore, plContext));
+                (procParams, certStore, plContext));
 
         subTest("PKIX_ProcessingParams_SetRevocationEnabled");
+
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_ProcessingParams_SetRevocationEnabled
-                                    (procParams, PKIX_TRUE, plContext));
+                (procParams, PKIX_TRUE, plContext));
+
+        /* create current Date */
+        PKIX_TEST_EXPECT_NO_ERROR(pkix_pl_Date_CreateFromPRTime
+                (PR_Now(), &validity, plContext));
+
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_Create(&revCheckers, plContext));
+
+        /* create revChecker */
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_OcspChecker_Create
+                (validity,
+                NULL,        /* pwArg */
+                NULL,        /* Use default responder */
+                &ocspChecker,
+                plContext));
+
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_AppendItem
+                (revCheckers, (PKIX_PL_Object *)ocspChecker, plContext));
+
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_ProcessingParams_SetRevocationCheckers
+                (procParams, revCheckers, plContext));
 
 cleanup:
 
         PKIX_TEST_DECREF_AC(dirString);
         PKIX_TEST_DECREF_AC(procParams);
         PKIX_TEST_DECREF_AC(certStore);
+        PKIX_TEST_DECREF_AC(revCheckers);
+        PKIX_TEST_DECREF_AC(ocspChecker);
 
         PKIX_TEST_RETURN();
 
@@ -166,13 +186,13 @@ int main(int argc, char *argv[]){
         useArenas = PKIX_TEST_ARENAS_ARG(argv[1]);
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_Initialize
-                                    (PKIX_TRUE, /* nssInitNeeded */
-                                    useArenas,
-                                    PKIX_MAJOR_VERSION,
-                                    PKIX_MINOR_VERSION,
-                                    PKIX_MINOR_VERSION,
-                                    &actualMinorVersion,
-                                    &plContext));
+                (PKIX_TRUE, /* nssInitNeeded */
+                useArenas,
+                PKIX_MAJOR_VERSION,
+                PKIX_MINOR_VERSION,
+                PKIX_MINOR_VERSION,
+                &actualMinorVersion,
+                &plContext));
 
         /* ENE = expect no error; EE = expect error */
         if (PORT_Strcmp(argv[2+j], "ENE") == 0) {
@@ -192,7 +212,7 @@ int main(int argc, char *argv[]){
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_Create(&chainCerts, plContext));
 
-        for (k = 0; k < chainLength; k++){
+        for (k = 0; k < chainLength; k++) {
 
                 dirCert = createCert(dirName, argv[5+k+j], plContext);
 
@@ -220,10 +240,10 @@ int main(int argc, char *argv[]){
 
         if (testValid == PKIX_TRUE) {
                 PKIX_TEST_EXPECT_NO_ERROR(PKIX_ValidateChain
-                                    (valParams, &valResult, plContext));
+                        (valParams, &valResult, plContext));
         } else {
                 PKIX_TEST_EXPECT_ERROR(PKIX_ValidateChain
-                                    (valParams, &valResult, plContext));
+                        (valParams, &valResult, plContext));
         }
 
 

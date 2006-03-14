@@ -366,7 +366,7 @@ pkix_pl_OcspRequest_Create(
                 }
         } else {
                 ocspRequest->location = location;
-                *pURIFound = PKIX_FALSE;
+                *pURIFound = PKIX_TRUE;
         }
 
         if (signerCert != NULL) {
@@ -395,10 +395,12 @@ pkix_pl_OcspRequest_Create(
                 PKIX_ERROR("Unable to add Cert to CertList");
         }
 
-        if (validity == NULL) {
+        if (validity != NULL) {
+		PKIX_CHECK(pkix_pl_Date_GetPRTime(validity, &time, plContext),
+			"pkix_pl_Date_GetPRTime failed");
+        } else {
                 PKIX_PL_NSSCALLRV(OCSPREQUEST, time, PR_Now, ());
-        }
-        /* XXX else set time from validity */
+	}
 
         addServiceLocatorExtension = 
                 ((addServiceLocator == PKIX_TRUE)? PR_TRUE : PR_FALSE);
@@ -502,6 +504,49 @@ pkix_pl_OcspRequest_GetLocation(
         PKIX_NULLCHECK_TWO(request, pLocation);
 
         *pLocation = request->location;
+
+cleanup:
+
+        PKIX_RETURN(OCSPREQUEST);
+}
+
+/*
+ * FUNCTION: pkix_pl_OcspRequest_GetCertID
+ * DESCRIPTION:
+ *
+ *  This function obtains the certID from the OcspRequest pointed to
+ *  by "request", storing the result at "pCertID".
+ *
+ * PARAMETERS
+ *  "request"
+ *      The address of the OcspRequest whose certID is to be retrieved. Must
+ *      be non-NULL.
+ *  "pCertID"
+ *      The address at which is stored the certID of the request. Must be
+ *      non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+pkix_pl_OcspRequest_GetCertID(
+        PKIX_PL_OcspRequest *request,
+        CERTOCSPCertID **pCertID,
+        void *plContext)
+{
+        ocspTBSRequest *tbsRequest = NULL;
+
+        PKIX_ENTER(OCSPREQUEST, "pkix_pl_OcspRequest_GetCertID");
+        PKIX_NULLCHECK_TWO(request, pCertID);
+
+        PKIX_NULLCHECK_ONE(request->decoded);
+        tbsRequest = request->decoded->tbsRequest;
+        PKIX_NULLCHECK_ONE(tbsRequest);
+        *pCertID = tbsRequest->requestList[0]->reqCert;
 
 cleanup:
 

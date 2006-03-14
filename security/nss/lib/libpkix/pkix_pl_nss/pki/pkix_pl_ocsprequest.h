@@ -85,6 +85,12 @@ pkix_pl_OcspRequest_GetLocation(
         char **pLocation,
         void *plContext);
 
+PKIX_Error *
+pkix_pl_OcspRequest_GetCertID(
+        PKIX_PL_OcspRequest *request,
+        CERTOCSPCertID **pCertID,
+        void *plContext);
+
 PKIX_Error *pkix_pl_OcspRequest_RegisterSelf(void *plContext);
 
 #ifdef __cplusplus

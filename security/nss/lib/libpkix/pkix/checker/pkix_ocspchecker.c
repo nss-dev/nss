@@ -180,6 +180,7 @@ pkix_OcspChecker_Check(
                 if (uriFound == PKIX_FALSE) {
                         passed = PKIX_TRUE;
                         resultCode = 0;
+                        goto cleanup;
                 }
 
         }

@@ -476,7 +476,7 @@ pkix_pl_HttpDefaultClient_Destroy(
         client->rcvHeaders = NULL;
 
         if (client->sendBuf != NULL) {
-                PKIX_PL_NSSCALL(HTTPDEFAULTCLIENT, PORT_Free, (client->sendBuf));
+                PKIX_PL_NSSCALL(HTTPDEFAULTCLIENT, PR_smprintf_free, (client->sendBuf));
                 client->sendBuf = NULL;
         }
 
@@ -997,8 +997,8 @@ pkix_pl_HttpDefaultClient_RecvHdrContinue(
         PKIX_Int32 bytesRead = 0;
 
         PKIX_ENTER
-		(HTTPDEFAULTCLIENT,
-		"pkix_pl_HttpDefaultClient_RecvHdrContinue");
+                (HTTPDEFAULTCLIENT,
+                "pkix_pl_HttpDefaultClient_RecvHdrContinue");
         PKIX_NULLCHECK_TWO(client, pKeepGoing);
 
         PKIX_CHECK(client->callbackList->pollCallback
@@ -1513,6 +1513,7 @@ pkix_pl_HttpDefaultClient_TrySendAndReceive(
                         client->maxResponseLen = *http_response_data_len;
                 }
 
+                client->rcv_http_response_code = http_response_code;
                 client->rcv_http_content_type = http_response_content_type;
                 client->rcv_http_headers = http_response_headers;
                 client->rcv_http_data = http_response_data;
@@ -1567,6 +1568,7 @@ pkix_pl_HttpDefaultClient_TrySendAndReceive(
                         *pSECReturn = SECFailure;
                         break;
                 case HTTP_COMPLETE:
+                        *(client->rcv_http_response_code) = client->responseCode;
                         if (client->maxResponseLen != NULL) {
                                 *http_response_data_len =
                                          client->rcv_http_data_len;

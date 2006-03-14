@@ -60,6 +60,7 @@
 #include "keyhi.h"
 #include "ocsp.h"
 #include "ocspt.h"
+#include "ocspti.h"
 #include "pk11pub.h"
 #include "pkcs11.h"
 #include "pkcs11t.h"

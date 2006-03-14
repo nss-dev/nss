@@ -61,6 +61,7 @@ struct PKIX_PL_OcspResponseStruct{
         CERTOCSPResponse *decoded; /* We don't deal with decodedRequest */
         CERTCertificate *issuerCert;
         CERTCertificate *signerCert;
+        CERTOCSPCertID *certID;
         PKIX_Boolean clientIsDefault;
         PKIX_PL_Date *validityTime;
         PRArenaPool *arena;

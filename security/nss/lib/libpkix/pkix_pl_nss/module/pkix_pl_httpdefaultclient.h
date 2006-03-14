@@ -89,10 +89,11 @@ struct PKIX_PL_HttpDefaultClientStruct {
         const char *path;
         const char *rcvContentType;
         void *rcvHeaders;
-        const char *send_http_data;
         const char *send_http_content_type;
-        const char **rcv_http_headers;
+        const char *send_http_data;
+        PRUint16 *rcv_http_response_code;
         const char **rcv_http_content_type;
+        const char **rcv_http_headers;
         const char **rcv_http_data;
         PKIX_PL_Socket *socket;
         void *plContext;
