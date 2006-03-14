@@ -435,6 +435,7 @@ pkix_pl_HttpDefaultClient_Create(
         client->rcv_http_content_type = NULL;
         client->rcv_http_headers = NULL;
         client->rcv_http_data = NULL;
+        client->socket = NULL;
 
         /*
          * The HttpClient API does not include a plContext argument in its
