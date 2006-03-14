@@ -977,6 +977,7 @@ PKIX_Logger_GetLogCallback;
 PKIX_Logger_GetMaxLoggingLevel;
 PKIX_Logger_SetLoggingComponent;
 PKIX_Logger_SetMaxLoggingLevel;
+PKIX_OcspChecker_Create;
 PKIX_PL_AcquireReaderLock;
 PKIX_PL_AcquireWriterLock;
 PKIX_PL_BasicConstraints_GetCAFlag;
