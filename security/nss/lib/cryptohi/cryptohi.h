@@ -174,9 +174,9 @@ extern SECStatus SEC_DerSignData(PRArenaPool *arena, SECItem *result,
 extern void SEC_DestroySignedData(CERTSignedData *sd, PRBool freeit);
 
 /*
-** Get the hash algorithm tag number for the given type of the key and
-** algorithm tag. Returns SEC_OID_UNKNOWN if key and algorithm
-** are not match.
+** Get the signature algorithm tag number for the given key type and hash
+** algorithm tag. Returns SEC_OID_UNKNOWN if key type and hash algorithm
+** do not match or are not supported.
 */
 extern SECOidTag SEC_GetSignatureAlgorithmOidTag(KeyType keyType,
                                                  SECOidTag hashAlgTag);
