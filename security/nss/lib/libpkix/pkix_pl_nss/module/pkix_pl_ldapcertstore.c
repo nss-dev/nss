@@ -601,6 +601,11 @@ pkix_pl_LdapCertStore_MakeNameAVAList(
                 currentNameComponent++;
         }
 
+        /*
+         * The LDAP specification says we can send multiple name components
+         * in an "AND" filter, but the LDAP Servers don't seem to be able to
+         * handle such requests. So we'll quit after the cn component.
+         */
 #if 0
         /* Try for orgName */
         PKIX_CHECK(pkix_pl_X500Name_GetOrgName
@@ -754,6 +759,28 @@ pkix_pl_LdapCertStore_GetCert(
                         &(requestParams.nc),
                         plContext),
                         "pkix_pl_LdapCertStore_MakeNameAVAList failed");
+
+                if (*requestParams.nc == NULL) {
+                        /*
+                         * The subjectName may not include any components
+                         * that we know how to encode. We do not return
+                         * an error, because the caller did not necessarily
+                         * do anything wrong, but we return an empty List.
+                         */
+                        PKIX_PL_NSSCALL(CERTSTORE, PORT_FreeArena,
+                                (requestArena, PR_FALSE));
+
+                        PKIX_CHECK(PKIX_List_Create(&filteredCerts, plContext),
+                                "PKIX_List_Create failed");
+
+                        PKIX_CHECK(PKIX_List_SetImmutable
+                                (filteredCerts, plContext),
+                                "PKIX_List_SetImmutable failed");
+
+                        *pNBIOContext = NULL;
+                        *pCertList = filteredCerts;
+                        goto cleanup;
+                }
         } else {
                 PKIX_ERROR("Insufficient criteria for Cert query");
         }
@@ -792,6 +819,7 @@ pkix_pl_LdapCertStore_GetCert(
         if (requestArena) {
                 PKIX_PL_NSSCALL(CERTSTORE, PORT_FreeArena,
                         (requestArena, PR_FALSE));
+                requestArena = NULL;
         }
 
         if (pollDesc != NULL) {
@@ -980,7 +1008,37 @@ pkix_pl_LdapCertStore_GetCRL(
                                         "pkix_pl_LdapCertStore_MakeNameAVAList failed");
 
                                 PKIX_DECREF(issuer);
-                                /* XXX haven't figured out yet how to handle more than one */
+
+                                if (*requestParams.nc == NULL) {
+                                        /*
+                                         * The issuer may not include any
+                                         * components that we know how to
+                                         * encode. We do not return an error,
+                                         * because the caller did not
+                                         * necessarily do anything wrong, but
+                                         * we return an empty List.
+                                         */
+                                        PKIX_PL_NSSCALL
+                                                (CERTSTORE, PORT_FreeArena,
+                                                (requestArena, PR_FALSE));
+
+                                        PKIX_CHECK(PKIX_List_Create
+                                                (&filteredCRLs, plContext),
+                                                "PKIX_List_Create failed");
+
+                                        PKIX_CHECK(PKIX_List_SetImmutable
+                                                (filteredCRLs, plContext),
+                                               "PKIX_List_SetImmutable failed");
+
+                                        *pNBIOContext = NULL;
+                                        *pCrlList = filteredCRLs;
+                                        goto cleanup;
+                                }
+
+                                /*
+                                 * LDAP Servers don't seem to be able to handle
+                                 * requests with more than more than one name.
+                                 */
                                 break;
                         }
                 } else {
