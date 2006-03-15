@@ -637,17 +637,38 @@ cleanup:
 
 }
 
+/*
+ * FUNCTION: pkix_pl_LdapCertstore_ConvertCertResponses
+ * DESCRIPTION:
+ *
+ *  This function processes the List of LDAPResponses pointed to by "responses"
+ *  into a List of resulting Certs, storing the result at "pCerts". If there
+ *  are no responses converted successfully, a NULL may be stored.
+ *
+ * PARAMETERS:
+ *  "responses"
+ *      The LDAPResponses whose contents are to be converted. Must be non-NULL.
+ *  "pCerts"
+ *      Address at which the returned List is stored. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a CertStore Error if the function fails in a non-fatal way
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
 PKIX_Error *
 pkix_pl_LdapCertStore_ConvertCertResponses(
         PKIX_List *responses,
-        PKIX_Boolean cacheFlag,
-        PKIX_List **pCertList,
+        PKIX_List **pCerts,
         void *plContext)
 {
         PKIX_List *unfiltered = NULL;
 
         PKIX_ENTER(CERTSTORE, "pkix_pl_LdapCertStore_ConvertCertResponses");
-        PKIX_NULLCHECK_TWO(responses, pCertList);
+        PKIX_NULLCHECK_TWO(responses, pCerts);
 
         /*
          * We have a List of LdapResponse objects that have to be
@@ -657,7 +678,7 @@ pkix_pl_LdapCertStore_ConvertCertResponses(
                 (responses, &unfiltered, plContext),
                 "pkix_pl_LdapCertStore_BuildCertList failed");
 
-        *pCertList = unfiltered;
+        *pCerts = unfiltered;
 
 cleanup:
 
@@ -787,7 +808,7 @@ pkix_pl_LdapCertStore_GetCert(
                         "PKIX_CertStore_GetCertStoreCacheFlag failed");
 
                 PKIX_CHECK(pkix_pl_LdapCertStore_ConvertCertResponses
-                        (responses, cacheFlag, &unfilteredCerts, plContext),
+                        (responses, &unfilteredCerts, plContext),
                         "pkix_pl_LdapCertStore_ConvertCertResponses failed");
 
                 PKIX_CHECK(pkix_CertSelector_Select
@@ -853,7 +874,7 @@ pkix_pl_LdapCertStore_GetCertContinue(
                         "PKIX_CertStore_GetCertStoreCacheFlag failed");
 
                 PKIX_CHECK(pkix_pl_LdapCertStore_ConvertCertResponses
-                        (responses, cacheFlag, &unfilteredCerts, plContext),
+                        (responses, &unfilteredCerts, plContext),
                         "pkix_pl_LdapCertStore_ConvertCertResponses failed");
 
                 PKIX_CHECK(pkix_CertSelector_Select

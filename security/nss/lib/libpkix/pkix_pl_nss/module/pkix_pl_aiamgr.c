@@ -192,7 +192,6 @@ pkix_pl_AIAMgr_ConvertResponses(
          if (responses != NULL) {
                 PKIX_CHECK(pkix_pl_LdapCertStore_ConvertCertResponses
                         (responses,
-                        PKIX_TRUE,
                         &certs,
                         plContext),
                         "pkix_pl_LdapCertStore_ConvertCertResponses failed");

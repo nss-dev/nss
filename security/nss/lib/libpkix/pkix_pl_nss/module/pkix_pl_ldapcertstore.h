@@ -97,7 +97,6 @@ PKIX_Error *pkix_pl_LdapCertStoreContext_RegisterSelf(void *plContext);
 
 PKIX_Error *pkix_pl_LdapCertStore_ConvertCertResponses(
         PKIX_List *responses,
-        PKIX_Boolean cacheFlag,
         PKIX_List **pCertList,
         void *plContext);
 
