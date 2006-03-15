@@ -470,7 +470,7 @@ pkix_pl_LdapDefaultClient_RecvCheckComplete(
 
         if (complete) {
                 PKIX_CHECK(pkix_pl_LdapResponse_Decode
-                        (client->arena, client->currentResponse, &rv, plContext),
+                       (client->arena, client->currentResponse, &rv, plContext),
                         "pkix_pl_LDAPResponse_Decode failed");
 
                 if (rv != SECSuccess) {
@@ -485,8 +485,8 @@ pkix_pl_LdapDefaultClient_RecvCheckComplete(
 
                         if (client->entriesFound == NULL) {
                                 PKIX_CHECK(PKIX_List_Create
-                                        (&(client->entriesFound), plContext),
-                                        "PKIX_List_Create failed");
+                                    (&(client->entriesFound), plContext),
+                                    "PKIX_List_Create failed");
                         }
 
                         PKIX_CHECK(PKIX_List_AppendItem
@@ -504,7 +504,7 @@ pkix_pl_LdapDefaultClient_RecvCheckComplete(
                         } else {
                                 client->connectStatus = RECV_INITIAL;
                                 client->currentInPtr = &((char *)
-                                        (client->currentInPtr))[bytesProcessed];
+                                    (client->currentInPtr))[bytesProcessed];
                                 *pKeepGoing = PKIX_TRUE;
                         }
 
@@ -519,19 +519,20 @@ pkix_pl_LdapDefaultClient_RecvCheckComplete(
                             ((resultCode == SUCCESS) ||
                             (resultCode == NOSUCHOBJECT))) {
                                 PKIX_CHECK(PKIX_List_Create
-                                        (&(client->entriesFound),
-                                        plContext),
-                                        "PKIX_List_Create failed");
+                                    (&(client->entriesFound), plContext),
+                                    "PKIX_List_Create failed");
                         } else if (resultCode == SUCCESS) {
                                 PKIX_CHECK(PKIX_List_SetImmutable
-                                        (client->entriesFound, plContext),
-                                        "PKIX_List_SetImmutable failed");
+                                    (client->entriesFound, plContext),
+                                    "PKIX_List_SetImmutable failed");
                                 PKIX_CHECK(PKIX_PL_HashTable_Add
-                                        (client->cachePtr,
-                                        (PKIX_PL_Object *)client->currentRequest,
-                                        (PKIX_PL_Object *)client->entriesFound,
-                                        plContext),
-                                        "PKIX_PL_HashTable_Add failed");
+                                    (client->cachePtr,
+                                    (PKIX_PL_Object *)client->currentRequest,
+                                    (PKIX_PL_Object *)client->entriesFound,
+                                    plContext),
+                                    "PKIX_PL_HashTable_Add failed");
+                        } else {
+                            PKIX_ERROR("Unexpected result code in Response");
                         }
 
                         client->connectStatus = BOUND;
@@ -874,13 +875,16 @@ pkix_pl_LdapDefaultClient_Destroy(
         switch (client->connectStatus) {
         case CONNECT_PENDING:
                 break;
+        case CONNECTED:
         case BIND_PENDING:
         case BIND_RESPONSE:
         case BIND_RESPONSE_PENDING:
+        case BOUND:
         case SEND_PENDING:
         case RECV:
         case RECV_PENDING:
-        case BOUND:
+        case RECV_INITIAL:
+        case RECV_NONINITIAL:
         case ABANDON_PENDING:
                 if (client->bindAPI != NULL) {
                         PKIX_CHECK(pkix_pl_LdapDefaultClient_MakeUnbind
