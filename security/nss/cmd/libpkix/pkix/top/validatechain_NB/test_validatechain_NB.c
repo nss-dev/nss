@@ -233,7 +233,7 @@ int main(int argc, char *argv[]){
 
         pkixTestErrorResult = pkix_pl_Socket_CreateByName
                 (PKIX_FALSE,       /* isServer */
-                PR_SecondsToInterval(10), /* try 10 secs for connect */
+                PR_SecondsToInterval(30), /* try 30 secs for connect */
                 ldapName,
                 &errorCode,
                 &socket,
@@ -298,11 +298,16 @@ int main(int argc, char *argv[]){
 
 cleanup:
 
+        subTest("DECREF(checkers)");
         PKIX_TEST_DECREF_AC(checkers);
+        subTest("DECREF(chainCerts)");
         PKIX_TEST_DECREF_AC(chainCerts);
+        subTest("DECREF(valParams)");
         PKIX_TEST_DECREF_AC(valParams);
+        subTest("DECREF(valResult)");
         PKIX_TEST_DECREF_AC(valResult);
 
+        subTest("calling Shutdown");
         PKIX_Shutdown(plContext);
 
         PKIX_TEST_RETURN();
