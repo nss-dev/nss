@@ -86,12 +86,12 @@ extern "C" {
  * name of an LDAP server. Note that this certStoreContext must be an
  * Object (although any object type), allowing it to be reference-counted and
  * allowing it to provide the standard Object functions (Equals, Hashcode,
- * ToString, Compare, Duplicate). Please note that each certStoreConext must
+ * ToString, Compare, Duplicate). Please note that each certStoreContext must
  * provide Equals and Hashcode functions in order for the caching (on Cert and
  * CertChain) to work correctly. When providing those two functions, it is not
- * required to have all the elements in object to be hashed or checked for 
- * equality, but to provide an unique identification of this certStoreContext
- * instance.
+ * required that all the components of the object be hashed or checked for 
+ * equality, but merely that the functions distinguish between unique
+ * instances of the certStoreContext.
  *
  * Once the caller has created the CertStore object, the caller then specifies
  * these CertStore objects in a ProcessingParams object and passes that object
@@ -102,7 +102,7 @@ extern "C" {
  * The order of CertStores stored (as a list) at ProcessingParams determines
  * the order in which certificates are retrieved. Trusted CertStores should
  * precede non-trusted ones on the list of CertStores so their certificates
- * are evaluated ahead of other certificates selected based on the same
+ * are evaluated ahead of other certificates selected on the basis of the same
  * selector criteria.
  *
  * The CheckTrustCallback function is used when the CertStore object
