@@ -79,6 +79,19 @@ ParseArgs $*
 Display "\n#    ENE = expect no error (validation should succeed)"
 Display "#    EE = expect error (validation should fail)\n"
 
+LOGGING=1
+export LOGGING
+RunTests <<EOF
+test_validatechain_NB NIST-Test.4.1.1 ENE $NIST TrustAnchorRootCertificate.crt GoodCACert.crt ValidCertificatePathTest1EE.crt
+test_validatechain_NB NIST-Test.4.1.2 EE $NIST TrustAnchorRootCertificate.crt BadSignedCACert.crt InvalidCASignatureTest2EE.crt
+test_validatechain_NB NIST-Test.4.1.3 EE $NIST TrustAnchorRootCertificate.crt GoodCACert.crt  InvalidEESignatureTest3EE.crt
+test_validatechain_NB NIST-Test.4.1.4 ENE $NIST TrustAnchorRootCertificate.crt DSACACert.crt ValidDSASignaturesTest4EE.crt
+test_validatechain_NB NIST-Test.4.1.5 ENE $NIST TrustAnchorRootCertificate.crt DSACACert.crt DSAParametersInheritedCACert.crt ValidDSAParameterInheritanceTest5EE.crt
+EOF
+
+LOGGING=
+export LOGGING
+
 RunTests <<EOF
 test_basicchecker ${curdir}/../../certs
 test_basicconstraintschecker "Two-Certificates-Chain" ENE ${curdir}/../../certs hy2hy-bc0 hy2hc-bc

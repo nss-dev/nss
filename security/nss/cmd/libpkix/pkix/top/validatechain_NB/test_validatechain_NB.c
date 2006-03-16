@@ -73,9 +73,9 @@ char *createFullPathName(
         dirNameLen = PL_strlen(dirName);
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Malloc
-                                    (dirNameLen + certFileLen + 2,
-                                    (void **)&certPathName,
-                                    plContext));
+                (dirNameLen + certFileLen + 2,
+                (void **)&certPathName,
+                plContext));
 
         PL_strcpy(certPathName, dirName);
         PL_strcat(certPathName, "/");
@@ -115,15 +115,15 @@ testSetupCertStore(PKIX_ValidateParams *valParams, char *ldapName)
                 plContext));
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_ValidateParams_GetProcessingParams
-                                    (valParams, &procParams, plContext));
+                (valParams, &procParams, plContext));
 
         subTest("PKIX_ProcessingParams_AddCertStore");
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_ProcessingParams_AddCertStore
-                                    (procParams, certStore, plContext));
+                (procParams, certStore, plContext));
 
         subTest("PKIX_ProcessingParams_SetRevocationEnabled");
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_ProcessingParams_SetRevocationEnabled
-                                    (procParams, PKIX_TRUE, plContext));
+                (procParams, PKIX_TRUE, plContext));
 
 cleanup:
 
@@ -135,6 +135,34 @@ cleanup:
         PKIX_TEST_RETURN();
 
         return (0);
+}
+
+char *levels[] = {
+        "None", "Fatal Error", "Error", "Warning", "Debug", "Trace"
+};
+
+PKIX_Error *loggerCallback(
+        PKIX_Logger *logger,
+        PKIX_PL_String *message,
+        PKIX_UInt32 logLevel,
+        PKIX_PL_String *logComponent,
+        void *plContext)
+{
+        char *comp = NULL;
+        char *msg = NULL;
+        char result[100];
+
+        PKIX_TEST_STD_VARS();
+
+        msg = PKIX_String2ASCII(message, plContext);
+        comp = PKIX_String2ASCII(logComponent, plContext);
+        sprintf(result, "Logging %s (%s): %s", levels[logLevel], comp, msg);
+        subTest(result);
+
+cleanup:
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Free(msg, plContext));
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Free(comp, plContext));
+        PKIX_TEST_RETURN();
 }
 
 int main(int argc, char *argv[]){
@@ -162,6 +190,11 @@ int main(int argc, char *argv[]){
         PKIX_PL_Socket *socket = NULL;
         char *ldapName = NULL;
 
+        PKIX_List *loggers = NULL;
+        PKIX_Logger *logger = NULL;
+        char *logging = NULL;
+        PKIX_PL_String *component = NULL;
+
         PKIX_TEST_STD_VARS();
 
         if (argc < 5) {
@@ -174,13 +207,13 @@ int main(int argc, char *argv[]){
         useArenas = PKIX_TEST_ARENAS_ARG(argv[1]);
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_Initialize
-                                    (PKIX_TRUE, /* nssInitNeeded */
-                                    useArenas,
-                                    PKIX_MAJOR_VERSION,
-                                    PKIX_MINOR_VERSION,
-                                    PKIX_MINOR_VERSION,
-                                    &actualMinorVersion,
-                                    &plContext));
+                (PKIX_TRUE, /* nssInitNeeded */
+                useArenas,
+                PKIX_MAJOR_VERSION,
+                PKIX_MINOR_VERSION,
+                PKIX_MINOR_VERSION,
+                &actualMinorVersion,
+                &plContext));
 
         /* ENE = expect no error; EE = expect error */
         if (PORT_Strcmp(argv[2+j], "ENE") == 0) {
@@ -251,6 +284,26 @@ int main(int argc, char *argv[]){
 
         testSetupCertStore(valParams, ldapName);
 
+        logging = PR_GetEnv("LOGGING");
+        /* Is LOGGING set in the environment? */
+        if ((logging != NULL) && (*logging != '\0')) {
+
+                PKIX_TEST_EXPECT_NO_ERROR
+                        (PKIX_List_Create(&loggers, plContext));
+                PKIX_TEST_EXPECT_NO_ERROR(PKIX_Logger_Create
+                        (loggerCallback, NULL, &logger, plContext));
+                PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create
+                        (PKIX_ESCASCII, "Validate", 0, &component, plContext));
+                PKIX_TEST_EXPECT_NO_ERROR(PKIX_Logger_SetLoggingComponent
+                        (logger, component, plContext));
+                PKIX_TEST_EXPECT_NO_ERROR(PKIX_Logger_SetMaxLoggingLevel
+                        (logger, 5, plContext));
+                PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_AppendItem
+                        (loggers, (PKIX_PL_Object *) logger, plContext));
+                PKIX_TEST_EXPECT_NO_ERROR(PKIX_SetLoggers(loggers, plContext));
+
+        }
+
         pkixTestErrorResult = PKIX_ValidateChain_NB
                 (valParams,
                 &certIndex,
@@ -298,16 +351,11 @@ int main(int argc, char *argv[]){
 
 cleanup:
 
-        subTest("DECREF(checkers)");
         PKIX_TEST_DECREF_AC(checkers);
-        subTest("DECREF(chainCerts)");
         PKIX_TEST_DECREF_AC(chainCerts);
-        subTest("DECREF(valParams)");
         PKIX_TEST_DECREF_AC(valParams);
-        subTest("DECREF(valResult)");
         PKIX_TEST_DECREF_AC(valResult);
 
-        subTest("calling Shutdown");
         PKIX_Shutdown(plContext);
 
         PKIX_TEST_RETURN();
