@@ -315,6 +315,42 @@ int main(int argc, char *argv[]){
                         (loggers, (PKIX_PL_Object *) logger, plContext));
                 PKIX_TEST_DECREF_BC(logger);
 
+                PKIX_TEST_EXPECT_NO_ERROR(PKIX_Logger_Create
+                        (loggerCallback, NULL, &logger, plContext));
+                PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create
+                        (PKIX_ESCASCII, "Cert", 0, &component, plContext));
+                PKIX_TEST_EXPECT_NO_ERROR(PKIX_Logger_SetLoggingComponent
+                        (logger, component, plContext));
+                PKIX_TEST_EXPECT_NO_ERROR(PKIX_Logger_SetMaxLoggingLevel
+                        (logger, 2, plContext));
+                PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_AppendItem
+                        (loggers, (PKIX_PL_Object *) logger, plContext));
+                PKIX_TEST_DECREF_BC(logger);
+
+                PKIX_TEST_EXPECT_NO_ERROR(PKIX_Logger_Create
+                        (loggerCallback, NULL, &logger, plContext));
+                PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create
+                        (PKIX_ESCASCII, "Build", 0, &component, plContext));
+                PKIX_TEST_EXPECT_NO_ERROR(PKIX_Logger_SetLoggingComponent
+                        (logger, component, plContext));
+                PKIX_TEST_EXPECT_NO_ERROR(PKIX_Logger_SetMaxLoggingLevel
+                        (logger, 2, plContext));
+                PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_AppendItem
+                        (loggers, (PKIX_PL_Object *) logger, plContext));
+                PKIX_TEST_DECREF_BC(logger);
+
+                PKIX_TEST_EXPECT_NO_ERROR(PKIX_Logger_Create
+                        (loggerCallback, NULL, &logger, plContext));
+                PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create
+                        (PKIX_ESCASCII, "Validate", 0, &component, plContext));
+                PKIX_TEST_EXPECT_NO_ERROR(PKIX_Logger_SetLoggingComponent
+                        (logger, component, plContext));
+                PKIX_TEST_EXPECT_NO_ERROR(PKIX_Logger_SetMaxLoggingLevel
+                        (logger, 2, plContext));
+                PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_AppendItem
+                        (loggers, (PKIX_PL_Object *) logger, plContext));
+                PKIX_TEST_DECREF_BC(logger);
+
                 PKIX_TEST_EXPECT_NO_ERROR(PKIX_SetLoggers(loggers, plContext));
 
         }
