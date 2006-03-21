@@ -131,6 +131,14 @@ SECStatus RSA_DecryptRaw(NSSLOWKEYPrivateKey *key, unsigned char *output,
 			     unsigned int *output_len,
     			     unsigned int max_output_len,
 			     unsigned char *input, unsigned int input_len);
+#ifdef NSS_ENABLE_ECC
+/*
+** pepare an ECParam structure from DEREncoded params
+ */
+extern SECStatus EC_FillParams(PRArenaPool *arena,
+                               const SECItem *encodedParams, ECParams *params);
+#endif
+
 
 /*
 ** Prepare a buffer for DES encryption, growing to the appropriate boundary,
