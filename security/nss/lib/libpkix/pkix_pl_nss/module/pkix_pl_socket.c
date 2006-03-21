@@ -62,6 +62,7 @@
  * value sets socketTraceFlag to PKIX_FALSE (tracing off). The environment
  * value is checked during system initialization.
  */
+#define PKIX_SOCKETTRACE 1
 
 #ifdef PKIX_SOCKETDEBUG
 #define PKIX_SOCKETTRACE 1
