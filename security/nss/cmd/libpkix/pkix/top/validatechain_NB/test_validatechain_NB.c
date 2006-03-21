@@ -165,6 +165,35 @@ cleanup:
         PKIX_TEST_RETURN();
 }
 
+void testLogErrors(
+	char *module,
+	PKIX_UInt32 loggingLevel,
+        PKIX_List *loggers,
+	void *plContext)
+{
+        PKIX_Logger *logger = NULL;
+        PKIX_PL_String *component = NULL;
+
+        PKIX_TEST_STD_VARS();
+
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_Logger_Create
+                (loggerCallback, NULL, &logger, plContext));
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create
+                (PKIX_ESCASCII, module, 0, &component, plContext));
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_Logger_SetLoggingComponent
+                (logger, component, plContext));
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_Logger_SetMaxLoggingLevel
+                (logger, loggingLevel, plContext));
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_AppendItem
+                (loggers, (PKIX_PL_Object *) logger, plContext));
+
+cleanup:
+        PKIX_TEST_DECREF_AC(logger);
+        PKIX_TEST_DECREF_AC(component);
+
+        PKIX_TEST_RETURN();
+}
+
 int main(int argc, char *argv[]){
 
         PKIX_ValidateParams *valParams = NULL;
@@ -291,65 +320,13 @@ int main(int argc, char *argv[]){
                 PKIX_TEST_EXPECT_NO_ERROR
                         (PKIX_List_Create(&loggers, plContext));
 
-                PKIX_TEST_EXPECT_NO_ERROR(PKIX_Logger_Create
-                        (loggerCallback, NULL, &logger, plContext));
-                PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create
-                        (PKIX_ESCASCII, "Validate", 0, &component, plContext));
-                PKIX_TEST_EXPECT_NO_ERROR(PKIX_Logger_SetLoggingComponent
-                        (logger, component, plContext));
-                PKIX_TEST_EXPECT_NO_ERROR(PKIX_Logger_SetMaxLoggingLevel
-                        (logger, 5, plContext));
-                PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_AppendItem
-                        (loggers, (PKIX_PL_Object *) logger, plContext));
-                PKIX_TEST_DECREF_BC(logger);
-
-                PKIX_TEST_EXPECT_NO_ERROR(PKIX_Logger_Create
-                        (loggerCallback, NULL, &logger, plContext));
-                PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create
-                        (PKIX_ESCASCII, "CertChainChecker", 0, &component, plContext));
-                PKIX_TEST_EXPECT_NO_ERROR(PKIX_Logger_SetLoggingComponent
-                        (logger, component, plContext));
-                PKIX_TEST_EXPECT_NO_ERROR(PKIX_Logger_SetMaxLoggingLevel
-                        (logger, 2, plContext));
-                PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_AppendItem
-                        (loggers, (PKIX_PL_Object *) logger, plContext));
-                PKIX_TEST_DECREF_BC(logger);
-
-                PKIX_TEST_EXPECT_NO_ERROR(PKIX_Logger_Create
-                        (loggerCallback, NULL, &logger, plContext));
-                PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create
-                        (PKIX_ESCASCII, "Cert", 0, &component, plContext));
-                PKIX_TEST_EXPECT_NO_ERROR(PKIX_Logger_SetLoggingComponent
-                        (logger, component, plContext));
-                PKIX_TEST_EXPECT_NO_ERROR(PKIX_Logger_SetMaxLoggingLevel
-                        (logger, 2, plContext));
-                PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_AppendItem
-                        (loggers, (PKIX_PL_Object *) logger, plContext));
-                PKIX_TEST_DECREF_BC(logger);
-
-                PKIX_TEST_EXPECT_NO_ERROR(PKIX_Logger_Create
-                        (loggerCallback, NULL, &logger, plContext));
-                PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create
-                        (PKIX_ESCASCII, "Build", 0, &component, plContext));
-                PKIX_TEST_EXPECT_NO_ERROR(PKIX_Logger_SetLoggingComponent
-                        (logger, component, plContext));
-                PKIX_TEST_EXPECT_NO_ERROR(PKIX_Logger_SetMaxLoggingLevel
-                        (logger, 2, plContext));
-                PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_AppendItem
-                        (loggers, (PKIX_PL_Object *) logger, plContext));
-                PKIX_TEST_DECREF_BC(logger);
-
-                PKIX_TEST_EXPECT_NO_ERROR(PKIX_Logger_Create
-                        (loggerCallback, NULL, &logger, plContext));
-                PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create
-                        (PKIX_ESCASCII, "Validate", 0, &component, plContext));
-                PKIX_TEST_EXPECT_NO_ERROR(PKIX_Logger_SetLoggingComponent
-                        (logger, component, plContext));
-                PKIX_TEST_EXPECT_NO_ERROR(PKIX_Logger_SetMaxLoggingLevel
-                        (logger, 2, plContext));
-                PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_AppendItem
-                        (loggers, (PKIX_PL_Object *) logger, plContext));
-                PKIX_TEST_DECREF_BC(logger);
+		testLogErrors("Validate", 5, loggers, plContext);
+		testLogErrors("CertChainChecker", 2, loggers, plContext);
+		testLogErrors("Cert", 2, loggers, plContext);
+		testLogErrors("Build", 2, loggers, plContext);
+		testLogErrors("Validate", 2, loggers, plContext);
+		testLogErrors("Socket", 2, loggers, plContext);
+		testLogErrors("CertStore", 2, loggers, plContext);
 
                 PKIX_TEST_EXPECT_NO_ERROR(PKIX_SetLoggers(loggers, plContext));
 
