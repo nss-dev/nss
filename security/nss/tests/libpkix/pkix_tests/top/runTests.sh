@@ -80,7 +80,8 @@ Display "\n#    ENE = expect no error (validation should succeed)"
 Display "#    EE = expect error (validation should fail)\n"
 
 LOGGING=1
-export LOGGING
+SOCKETTRACE=1
+export LOGGING SOCKETTRACE
 RunTests <<EOF
 test_validatechain_NB NIST-Test.4.1.1 ENE $NIST TrustAnchorRootCertificate.crt GoodCACert.crt ValidCertificatePathTest1EE.crt
 test_validatechain_NB NIST-Test.4.1.2 EE $NIST TrustAnchorRootCertificate.crt BadSignedCACert.crt InvalidCASignatureTest2EE.crt
@@ -90,7 +91,7 @@ test_validatechain_NB NIST-Test.4.1.5 ENE $NIST TrustAnchorRootCertificate.crt D
 EOF
 
 LOGGING=
-export LOGGING
+SOCKETTRACE=0
 
 RunTests <<EOF
 test_basicchecker ${curdir}/../../certs

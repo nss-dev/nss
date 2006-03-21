@@ -98,6 +98,9 @@ done
 
 ParseArgs $*
 
+SOCKETTRACE=0
+export SOCKETTRACE
+
 RunTests <<EOF
 test_colcertstore NIST-Test-Files-Used ${HOSTDIR}/rev_data/local
 test_pk11certstore ${curdir}/../../pkix_pl_tests/module ${curdir}/../../pkix_tests/top/rev_data/crlchecker

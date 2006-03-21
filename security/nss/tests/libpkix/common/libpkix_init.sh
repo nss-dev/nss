@@ -252,11 +252,12 @@ RunTests()
 
         grep "END OF TESTS FOR" ${testOut} | tail -1 | grep "COMPLETED SUCCESSFULLY" >/dev/null 2>&1
         
-        if [ $? -ne 0 ]; then
-            errors=`expr ${errors} + 1`
-            failedpgms="${failedpgms}\n${testPgm} ${testPurpose} "
+#        if [ $? -ne 0 ]; then
+#            errors=`expr ${errors} + 1`
+#            failedpgms="${failedpgms}\n${testPgm} ${testPurpose} "
+#            cat ${testOut}
+#        fi
             cat ${testOut}
-        fi
 
         if [ ${checkmem} -eq 1 ]; then
             grep "(actual leaks:" ${testOut} > ${testOutMem} 2>&1
