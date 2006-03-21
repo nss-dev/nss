@@ -2988,6 +2988,12 @@ CK_RV nsc_CommonInitialize(CK_VOID_PTR pReserved, PRBool isFIPS)
     }
     RNG_SystemInfoForRNG();
 
+    rv = nsslowcert_InitLocks();
+    if (rv != SECSuccess) {
+	crv = CKR_DEVICE_ERROR;
+	return crv;
+    }
+
 
     /* NOTE:
      * we should be getting out mutexes from this list, not statically binding
