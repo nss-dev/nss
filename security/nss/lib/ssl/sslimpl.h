@@ -170,7 +170,7 @@ typedef enum { SSLAppOpRead = 0,
 #define SSL3_MASTER_SECRET_LENGTH 48
 
 /* number of wrap mechanisms potentially used to wrap master secrets. */
-#define SSL_NUM_WRAP_MECHS              13
+#define SSL_NUM_WRAP_MECHS              14
 
 /* This makes the cert cache entry exactly 4k. */
 #define SSL_MAX_CACHED_CERT_LEN		4060
