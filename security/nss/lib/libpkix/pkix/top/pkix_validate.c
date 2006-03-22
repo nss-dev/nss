@@ -103,6 +103,7 @@ pkix_CheckCert(
         PKIX_UInt32 numCheckers;
         PKIX_UInt32 numUnresCritExtOIDs = 0;
         PKIX_UInt32 checkerIndex = 0;
+	PKIX_Error *checkerError = NULL;
         void *nbioContext = NULL;
 
         PKIX_ENTER(VALIDATE, "pkix_CheckCert");
@@ -133,13 +134,26 @@ pkix_CheckCert(
                         (checker, &checkerCheck, plContext),
                         "PKIX_CertChainChecker_GetCheckCallback failed");
 
-                PKIX_CHECK(checkerCheck
+                checkerError = checkerCheck
                         (checker,
                         cert,
                         unresCritExtOIDs,
                         &nbioContext,
-                        plContext),
-                        "checkerCheck failed");
+                        plContext);
+
+		if (checkerError) {
+			PKIX_PL_String *errorDesc = NULL;
+			void *enc = NULL;
+			PKIX_UInt32 len = 0;
+			(void)PKIX_Error_GetDescription
+			    (checkerError, &errorDesc, plContext);
+			(void)PKIX_PL_String_GetEncoded
+			    (errorDesc, PKIX_ESCASCII, &enc, &len, plContext);
+			PKIX_ERROR(enc);
+			/* PKIX_FREE(enc); */
+			PKIX_DECREF(errorDesc);
+			PKIX_CHECK(checkerError, "checkerCheck failed");
+		}
 
                 if (nbioContext != NULL) {
                         *pCheckerIndex = checkerIndex;
