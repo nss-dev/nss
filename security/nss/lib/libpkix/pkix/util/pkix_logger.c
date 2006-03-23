@@ -162,22 +162,22 @@ PKIX_COMPONENTNAMES[PKIX_NUMERRORS] =
  *  PKIX_Logger. If satisfies, it invokes the callback in PKIX_Logger and
  *  passes a PKIX_PL_String that is the concatenation of "message" and 
  *  "message2" to the application for processing. 
- *  Since this call is inserted into a handful PKIX macros, to avoid recursive
- *  call to itself in those macros, no macros is applied in this function.
- *  If an error occurrs, this call is aborted.
+ *  Since this call is inserted into a handful of PKIX macros, no macros are
+ *  applied in this function, to avoid infinite recursion.
+ *  If an error occurs, this call is aborted.
  *
  * PARAMETERS:
  *  "pkixLoggersList"
- *      A list of PKIX_Logger to be examined for invoking callback. Must be
+ *      A list of PKIX_Loggers to be examined for invoking callback. Must be
  *      non-NULL.
  *  "message"
  *      Address of "message" to be logged. Must be non-NULL.
  *  "message2"
  *      Address of "message2" to be concatenated and logged. May be NULL.
  *  "logComponent"
- *      An PKIX_UInt32 represents the component the message is from.
+ *      A PKIX_UInt32 that indicates the component the message is from.
  *  "maxLevel"
- *      An PKIX_UInt32 represents the level of severity of the message.
+ *      A PKIX_UInt32 that represents the level of severity of the message.
  *  "plContext"
  *      Platform-specific context pointer.
  * THREAD SAFETY:
@@ -208,12 +208,12 @@ pkix_Logger_Check(
         PKIX_UInt32 i, length;
 
         /*
-         * We cannot use any the PKIX_ macros here, since this function
-         * is called in some of these macros. It can create endless recursion.
+         * We cannot use any the PKIX_ macros here, since this function is
+         * called from some of these macros. It can create infinite recursion.
          */
 
-        if (pkixLoggersList == NULL || message == NULL) {
-                return(NULL);;
+        if ((pkixLoggersList == NULL) || (message == NULL)) {
+                return(NULL);
         }
 
         /*
@@ -226,11 +226,11 @@ pkix_Logger_Check(
          * flag at plContext. Then other thread's logging won't be affected.
          *
          * Also we need to use a reentrant Lock. Although we avoid recursion
-         * for TRACE. When there is an ERROR occurrs in subsequent call, this
+         * for TRACE. When there is an ERROR occurs in subsequent call, this
          * function will be called.
          */
 
-         error = PKIX_PL_MonitorLock_Enter(pkixLoggerLock, plContext);
+        error = PKIX_PL_MonitorLock_Enter(pkixLoggerLock, plContext);
         if (error) { return(NULL); }
 
         savedPkixLoggersDebugTrace = pkixLoggersDebugTrace;
@@ -251,12 +251,10 @@ pkix_Logger_Check(
                     (PKIX_ESCASCII, "%s %s", 0, &formatString, plContext);
                 if (error) { goto cleanup; }
 
-
         } else {
                 error = PKIX_PL_String_Create
                     (PKIX_ESCASCII, "%s", 0, &formatString, plContext);
                 if (error) { goto cleanup; }
-
 
         }
 
@@ -270,7 +268,7 @@ pkix_Logger_Check(
 
         /*
          * Convert component to String : see pkixt.h for reason that we have to
-         * use PKXI_NUMERRORS.
+         * use PKIX_NUMERRORS.
          */
         if (logComponent >= PKIX_NUMERRORS) {
                 goto cleanup;
@@ -299,7 +297,7 @@ pkix_Logger_Check(
                 if (error) { goto cleanup; }
 
                 /* Intended logging level less or equal than the max */
-                needLogging = currentLevel <= logger->maxLevel;
+                needLogging = (currentLevel <= logger->maxLevel);
 
                 if (needLogging && logger->callback) {
 
@@ -476,7 +474,6 @@ pkix_Logger_ToString(
                 "PKIX_PL_Sprintf failed");
 
         *pString = loggerString;
-
 
 cleanup:
 
@@ -851,7 +848,7 @@ PKIX_Logger_SetLoggingComponent(
  */
 
 /*
- * FUNCTION: PKIX_Logger__GetLoggers (see comments in pkix_util.h)
+ * FUNCTION: PKIX_Logger_GetLoggers (see comments in pkix_util.h)
  */
 PKIX_Error *
 PKIX_GetLoggers(
@@ -860,6 +857,7 @@ PKIX_GetLoggers(
 {
         PKIX_List *list = NULL;
         PKIX_List *savedPkixLoggersDebugTrace = NULL;
+        PKIX_List *savedPkixLoggersErrors = NULL;
         PKIX_Logger *logger = NULL;
         PKIX_Logger *dupLogger = NULL;
         PKIX_UInt32 i, length;
@@ -872,20 +870,17 @@ PKIX_GetLoggers(
                 "PKIX_PL_MonitorLock_Enter failed");
         locked = PKIX_TRUE;
 
-        if (pkixLoggersDebugTrace != NULL) {
-                /*
-                 * Temporarily disable DEBUG/TRACE Logging to avoid possible
-                 * deadlock:
-                 * When the Logger List is being accessed, e.g. by DECREF,
-                 * pkix_Logger_Check may went through the list for logging
-                 * operation. This may creates deadlock situation. We can
-                 * convert our Object lock to use the reentrant Monitor lock
-                 * to solve this problem when pkix_Logger_Check() is not using
-                 * the same mechanism (instead, plContext).
-                 */
-                savedPkixLoggersDebugTrace = pkixLoggersDebugTrace;
-                pkixLoggersDebugTrace = NULL;
-        }
+        /*
+         * Temporarily disable DEBUG/TRACE Logging to avoid possible
+         * deadlock:
+         * When the Logger List is being accessed, e.g. by PKIX_ENTER or
+         * PKIX_DECREF, pkix_Logger_Check may check whether logging
+         * is requested, creating a deadlock situation.
+         */
+        savedPkixLoggersDebugTrace = pkixLoggersDebugTrace;
+        pkixLoggersDebugTrace = NULL;
+        savedPkixLoggersErrors = pkixLoggersErrors;
+        pkixLoggersErrors = NULL;
 
         if (pkixLoggers == NULL) {
                 length = 0;
@@ -934,10 +929,9 @@ cleanup:
 
         PKIX_DECREF(logger);
 
-        /* Turn pkix_Logging_Check TRACE on until the list is completed */
-        if (savedPkixLoggersDebugTrace != NULL) {
-                pkixLoggersDebugTrace = savedPkixLoggersDebugTrace;
-        }
+        /* Restore logging capability */
+        pkixLoggersDebugTrace = savedPkixLoggersDebugTrace;
+        pkixLoggersErrors = savedPkixLoggersErrors;
 
         if (locked) {
                 PKIX_CHECK(PKIX_PL_MonitorLock_Exit(pkixLoggerLock, plContext),
@@ -969,18 +963,16 @@ PKIX_SetLoggers(
                 "PKIX_PL_MonitorLock_Enter failed");
         locked = PKIX_TRUE;
 
-        /*
-         * We should have our own copy of PKIX_Logger's on the List:
-         * 1) So when Application modifies its list, we won't be affected.
-         * 2) To avoid deadlock. If Application is managing this Logger
-         *    object while the Looger is retrieving it from pkixLoggers
-         *    for logging operation, a deadlock may occurrs.
-         */
+	/* Disable tracing, etc. to avoid recursion and deadlock */
+        savedPkixLoggersDebugTrace = pkixLoggersDebugTrace;
+        pkixLoggersDebugTrace = NULL;
+        savedPkixLoggersErrors = pkixLoggersErrors;
+        pkixLoggersErrors = NULL;
 
-        /* disable the current one */
+        /* discard any prior loggers */
         PKIX_DECREF(pkixLoggers);
-        PKIX_DECREF(pkixLoggersErrors);
-        PKIX_DECREF(pkixLoggersDebugTrace);
+        PKIX_DECREF(savedPkixLoggersErrors);
+        PKIX_DECREF(savedPkixLoggersDebugTrace);
 
         if (loggers != NULL) {
 
@@ -1011,26 +1003,25 @@ PKIX_SetLoggers(
                         plContext),
                         "PKIX_List_AppendItem failed");
 
-                    /* Separate into two lists */
-                    if (logger->maxLevel <= PKIX_LOGGER_LEVEL_WARNING) {
+                    /* Make two lists */
 
-                        /* Put in pkixLoggersErrors */
+                    /* Put in pkixLoggersErrors in any case*/
 
-                        if (savedPkixLoggersErrors == NULL) {
+                    if (savedPkixLoggersErrors == NULL) {
 
-                            PKIX_CHECK(PKIX_List_Create
-                                    (&savedPkixLoggersErrors,
-                                    plContext),
-                                    "PKIX_List_Create failed");
-                        }
-        
-                        PKIX_CHECK(PKIX_List_AppendItem
-                                (savedPkixLoggersErrors,
-                                (PKIX_PL_Object *) dupLogger,
+                        PKIX_CHECK(PKIX_List_Create
+                                (&savedPkixLoggersErrors,
                                 plContext),
-                                "PKIX_List_AppendItem failed");
-                            
-                    } else {
+                                "PKIX_List_Create failed");
+                    }
+        
+                    PKIX_CHECK(PKIX_List_AppendItem
+                            (savedPkixLoggersErrors,
+                            (PKIX_PL_Object *) dupLogger,
+                            plContext),
+                            "PKIX_List_AppendItem failed");
+
+                    if (logger->maxLevel > PKIX_LOGGER_LEVEL_WARNING) {
 
                         /* Put in pkixLoggersDebugTrace */
 
@@ -1067,6 +1058,7 @@ cleanup:
 
         PKIX_DECREF(logger);
 
+        /* Reenable logging capability with new lists */
         pkixLoggersErrors = savedPkixLoggersErrors;
         pkixLoggersDebugTrace = savedPkixLoggersDebugTrace;
 
@@ -1100,8 +1092,13 @@ PKIX_AddLogger(
                 "PKIX_PL_MonitorLock_Enter failed");
         locked = PKIX_TRUE;
 
-        PKIX_DECREF(pkixLoggersErrors);
-        PKIX_DECREF(pkixLoggersDebugTrace);
+        savedPkixLoggersDebugTrace = pkixLoggersDebugTrace;
+        pkixLoggersDebugTrace = NULL;
+        savedPkixLoggersErrors = pkixLoggersErrors;
+        pkixLoggersErrors = NULL;
+
+        PKIX_DECREF(savedPkixLoggersErrors);
+        PKIX_DECREF(savedPkixLoggersDebugTrace);
 
         if (pkixLoggers == NULL) {
 
@@ -1179,6 +1176,7 @@ cleanup:
         PKIX_DECREF(dupLogger);
         PKIX_DECREF(addLogger);
 
+        /* Restore logging capability */
         pkixLoggersErrors = savedPkixLoggersErrors;
         pkixLoggersDebugTrace = savedPkixLoggersDebugTrace;
 
