@@ -321,10 +321,9 @@ int main(int argc, char *argv[]){
                         (PKIX_List_Create(&loggers, plContext));
 
 		testLogErrors("Validate", 5, loggers, plContext);
-		testLogErrors("CertChainChecker", 2, loggers, plContext);
+		testLogErrors("CertChainChecker", 5, loggers, plContext);
 		testLogErrors("Cert", 2, loggers, plContext);
 		testLogErrors("Build", 2, loggers, plContext);
-		testLogErrors("Validate", 2, loggers, plContext);
 		testLogErrors("Socket", 2, loggers, plContext);
 		testLogErrors("CertStore", 2, loggers, plContext);
 
