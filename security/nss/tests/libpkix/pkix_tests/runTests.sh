@@ -86,41 +86,49 @@ echo "RUNNING tests in certsel";
 cd certsel;
 runTests.sh ${arenasArg} ${checkMemArg} ${quietArg}
 certselErrors=$?
+html_msg $? 0 "&nbsp;&nbsp;&nbsp;running tests in certsel"
 
 echo "RUNNING tests in checker";
 cd ../checker;
 runTests.sh ${arenasArg} ${checkMemArg} ${quietArg}
 checkerErrors=$?
+html_msg $? 0 "&nbsp;&nbsp;&nbsp;running tests in checker"
 
 echo "RUNNING tests in results";
 cd ../results;
 runTests.sh ${arenasArg} ${checkMemArg} ${quietArg}
 resultsErrors=$?
+html_msg $? 0 "&nbsp;&nbsp;&nbsp;running tests in results"
 
 echo "RUNNING tests in params";
 cd ../params;
 runTests.sh ${arenasArg} ${checkMemArg} ${quietArg}
 paramsErrors=$?
+html_msg $? 0 "&nbsp;&nbsp;&nbsp;running tests in params"
 
 echo "RUNNING tests in crlsel";
 cd ../crlsel;
 runTests.sh ${arenasArg} ${checkMemArg} ${quietArg}
 crlselErrors=$?
+html_msg $? 0 "&nbsp;&nbsp;&nbsp;running tests in crlsel"
 
 echo "RUNNING tests in store";
 cd ../store;
 runTests.sh ${arenasArg} ${checkMemArg} ${quietArg}
 storeErrors=$?
+html_msg $? 0 "&nbsp;&nbsp;&nbsp;running tests in store"
 
 echo "RUNNING tests in util";
 cd ../util;
 runTests.sh ${arenasArg} ${checkMemArg} ${quietArg}
 utilErrors=$?
+html_msg $? 0 "&nbsp;&nbsp;&nbsp;running tests in util"
 
 echo "RUNNING tests in top";
 cd ../top;
 runTests.sh ${arenasArg} ${checkMemArg} ${quietArg}
 topErrors=$?
+html_msg $? 0 "&nbsp;&nbsp;&nbsp;running tests in top"
 
 totalErrors=`expr $utilErrors + $storeErrors + $crlselErrors + $paramsErrors + $resultsErrors + $topErrors + $checkerErrors + $certselErrors`
 

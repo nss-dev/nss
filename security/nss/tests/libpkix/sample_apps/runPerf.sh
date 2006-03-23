@@ -154,9 +154,11 @@ nss_threads 5 8 ValidCertificatePathTest1EE
 EOF
 
 totalErrors=$?
+html_msg $? 0 "&nbsp;&nbsp;&nbsp;running performance tests"
 
 loopTest
 totalErrors=`expr ${totalErrors} + $?`
+html_msg $? 0 "&nbsp;&nbsp;&nbsp;running sanity check"
 
 testEndingEcho
 
