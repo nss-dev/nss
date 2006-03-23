@@ -47,6 +47,7 @@ cd ${curdir}
 testunit=PERFORMANCE
 
 totalErrors=0
+loopErrors=0
 
 ParseArgs $*
 
@@ -157,8 +158,9 @@ totalErrors=$?
 html_msg $? 0 "&nbsp;&nbsp;&nbsp;running performance tests"
 
 loopTest
-totalErrors=`expr ${totalErrors} + $?`
+loopErrors=$?
 html_msg $? 0 "&nbsp;&nbsp;&nbsp;running sanity check"
+totalErrors=`expr ${totalErrors} + ${loopErrors}`
 
 testEndingEcho
 
