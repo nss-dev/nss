@@ -44,6 +44,8 @@ cd ../common
 . ./libpkix_init.sh > /dev/null
 cd ${curdir}
 
+numtests=0
+passed=0
 testunit=PERFORMANCE
 
 totalErrors=0
@@ -68,6 +70,7 @@ Display "***********************************************************************
     Display ""
 
     while read perfPgm args; do
+        numtests=`expr ${numtests} + 1`
         Display "Running ${perfPgm} ${args}"
         if [ ${checkmem} -eq 1 ]; then
             dbx -C -c "runargs $args; check -all ;run;exit" ${DIST_BIN}/${perfPgm} > ${testOut} 2>&1
@@ -87,6 +90,7 @@ Display "***********************************************************************
             cat ${testOut}
         else
             Display ${outputCount}
+            passed=`expr ${passed} + 1`
         fi
 
         if [ ${checkmem} -eq 1 ]; then
@@ -127,6 +131,7 @@ Display "***********************************************************************
     while [ $iLoop -lt $totalLoop ]
     do
         iLoop=`expr $iLoop + 1`
+        numtests=`expr ${numtests} + 1`
 
         Display "Running ${perfPgm}"
         ${perfPgm} > ${testOut} 2>&1
@@ -138,6 +143,8 @@ Display "***********************************************************************
             errors=`expr ${errors} + 1`
             failedpgms="${failedpgms} ${perfPgm}\n"
             cat ${testOut}
+        else
+            passed=`expr ${passed} + 1`
         fi
     done
 
@@ -155,12 +162,14 @@ nss_threads 5 8 ValidCertificatePathTest1EE
 EOF
 
 totalErrors=$?
-html_msg $? 0 "&nbsp;&nbsp;&nbsp;running performance tests"
+html_msg ${totalErrors} 0 "&nbsp;&nbsp;&nbsp;performance test: passed ${passed} of ${numtests} tests"
 
+numtests=0
+passed=0
 loopTest
 loopErrors=$?
-html_msg $? 0 "&nbsp;&nbsp;&nbsp;running sanity check"
 totalErrors=`expr ${totalErrors} + ${loopErrors}`
+html_msg ${totalErrors} 0 "&nbsp;&nbsp;&nbsp;loop test: passed ${passed} of ${numtests} tests"
 
 testEndingEcho
 

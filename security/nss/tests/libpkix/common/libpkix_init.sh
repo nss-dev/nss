@@ -240,6 +240,8 @@ RunTests()
 
         Display "RUNNING ${testPgm} ${arenaCmd} ${testPurpose}"
 
+        numtests=`expr ${numtests} + 1`
+
         if [ ${checkmem} -eq 1 ]; then
             dbx -C -c "runargs ${arenaCmd} ${args};check -all;run;exit" ${DIST_BIN}/${testPgm} > ${testOut} 2>&1
         else
@@ -256,8 +258,10 @@ RunTests()
             errors=`expr ${errors} + 1`
             failedpgms="${failedpgms}\n${testPgm} ${testPurpose} "
 #            cat ${testOut}
+        else
+            passed=`expr ${passed} + 1`
         fi
-            cat ${testOut}
+        cat ${testOut}
 
         if [ ${checkmem} -eq 1 ]; then
             grep "(actual leaks:" ${testOut} > ${testOutMem} 2>&1

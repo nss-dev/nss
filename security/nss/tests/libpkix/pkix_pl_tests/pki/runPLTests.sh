@@ -46,6 +46,8 @@ doPD=1
 . ./libpkix_init_nist.sh
 cd ${curdir}
 
+numtests=0
+passed=0
 testunit=PKI
 doPki=1
 
@@ -105,6 +107,7 @@ test_subjectinfoaccess NIST-PDTest ${NIST_PDTEST} certs/BasicHTTPURITrustAnchorR
 EOF
 
 totalErrors=$?
+html_msg ${totalErrors} 0 "&nbsp;&nbsp;&nbsp;${testunit}: passed ${passed} of ${numtests} tests"
 exit ${totalErrors}
 
 

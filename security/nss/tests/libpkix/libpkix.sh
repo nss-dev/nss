@@ -129,22 +129,25 @@ echo "**************************************************************************
 echo ""
 
 echo "RUNNING tests in pkix_pl_test";
+html_msg 0 0 "Running tests in pkix_pl_test:"
 cd pkix_pl_tests;
 runPLTests.sh ${arenasArg} ${checkMemArg} ${quietArg}
 pkixplErrors=$?
-html_msg $? 0 "RUNNING tests in pkix_pl_test"
+html_msg $? 0 "Results of tests in pkix_pl_test"
 
 echo "RUNNING tests in pkix_test";
+html_msg 0 0 "Running tests in pkix_test:"
 cd ../pkix_tests;
 runTests.sh ${arenasArg} ${checkMemArg} ${quietArg}
 pkixErrors=$?
-html_msg $? 0 "RUNNING tests in pkix_test"
+html_msg $? 0 "Results of tests in pkix_test"
 
 echo "RUNNING performance tests in sample_apps";
+html_msg 0 0 "Running performance tests in sample_apps:"
 cd ../sample_apps;
 runPerf.sh ${arenasArg} ${checkMemArg} ${quietArg}
 pkixPerfErrors=$?
-html_msg $? 0 "RUNNING performance tests in sample_apps"
+html_msg $? 0 "Results of performance tests in sample_apps"
 
 totalErrors=`expr ${pkixErrors} + ${pkixplErrors} + ${pkixPerfErrors}`
 

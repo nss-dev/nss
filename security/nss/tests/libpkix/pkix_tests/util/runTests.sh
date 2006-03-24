@@ -44,6 +44,8 @@ cd ../../common
 . ./libpkix_init.sh > /dev/null
 cd ${curdir}
 
+numtests=0
+passed=0
 testunit=UTIL
 
 ##########
@@ -59,4 +61,5 @@ test_list2
 EOF
 
 totalErrors=$?
+html_msg ${totalErrors} 0 "&nbsp;&nbsp;&nbsp;${testunit}: passed ${passed} of ${numtests} tests"
 exit ${totalErrors}

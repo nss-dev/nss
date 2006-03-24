@@ -47,6 +47,8 @@ cd ../../common
 . ./libpkix_init_nist.sh
 cd ${curdir}
 
+numtests=0
+passed=0
 testunit=TOP
 doTop=1
 linkMStoreNistFiles="store1/TrustAnchorRootCRL.crl
@@ -477,6 +479,7 @@ test_buildchain_partialchain ${LDAP}  NIST-Test.4.13.27 ENE $NIST ValidDNandRFC8
 EOF
 
 totalErrors=$?
+html_msg ${totalErrors} 0 "&nbsp;&nbsp;&nbsp;${testunit}: passed ${passed} of ${numtests} tests"
 exit ${totalErrors}
 
 ##########################################################

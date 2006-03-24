@@ -45,6 +45,8 @@ cd ../../common
 . ./libpkix_init_nist.sh
 cd ${curdir}
 
+numtests=0
+passed=0
 testunit=CERTSEL
 
 ##########
@@ -59,4 +61,5 @@ test_certselector ${NIST} NIST-Test-Files-Used ${curdir}/../../pkix_pl_tests/mod
 EOF
 
 totalErrors=$?
+html_msg ${totalErrors} 0 "&nbsp;&nbsp;&nbsp;${testunit}: passed ${passed} of ${numtests} tests"
 exit ${totalErrors}

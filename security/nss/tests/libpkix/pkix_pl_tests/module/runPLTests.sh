@@ -45,6 +45,8 @@ cd ../../common
 . ./libpkix_init_nist.sh 
 cd ${curdir}
 
+numtests=0
+passed=0
 testunit=MODULE
 doModule=1
 
@@ -126,6 +128,7 @@ test_socket ${HOSTADDR}:2000
 EOF
 
 totalErrors=$?
+html_msg ${totalErrors} 0 "&nbsp;&nbsp;&nbsp;${testunit}: passed ${passed} of ${numtests} tests"
 exit ${totalErrors}
 
 

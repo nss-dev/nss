@@ -44,6 +44,8 @@ cd ../../common
 . ./libpkix_init.sh > /dev/null
 cd ${curdir}
 
+numtests=0
+passed=0
 testunit=STORE
 
 
@@ -58,4 +60,5 @@ test_store ${HOSTDIR}/rev_data/crlchecker
 EOF
 
 totalErrors=$?
+html_msg ${totalErrors} 0 "&nbsp;&nbsp;&nbsp;${testunit}: passed ${passed} of ${numtests} tests"
 exit ${totalErrors}

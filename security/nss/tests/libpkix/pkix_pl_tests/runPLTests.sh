@@ -80,19 +80,16 @@ echo "RUNNING tests in pki";
 cd pki;
 runPLTests.sh ${arenasArg} ${checkMemArg} ${quietArg}
 pkiErrors=$?
-html_msg $? 0 "&nbsp;&nbsp;&nbsp;running tests in pki"
 
 echo "RUNNING tests in system";
 cd ../system;
 runPLTests.sh ${arenasArg} ${checkMemArg} ${quietArg}
 systemErrors=$?
-html_msg $? 0 "&nbsp;&nbsp;&nbsp;running tests in system"
 
 echo "RUNNING tests in module";
 cd ../module;
 runPLTests.sh ${arenasArg} ${checkMemArg} ${quietArg}
 moduleErrors=$?
-html_msg $? 0 "&nbsp;&nbsp;&nbsp;running tests in module"
 
 totalErrors=`expr $moduleErrors + $systemErrors + $pkiErrors`
 
