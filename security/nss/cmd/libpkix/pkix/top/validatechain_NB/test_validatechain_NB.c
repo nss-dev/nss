@@ -325,7 +325,7 @@ int main(int argc, char *argv[]){
 		testLogErrors("Cert", 2, loggers, plContext);
 		testLogErrors("Build", 2, loggers, plContext);
 		testLogErrors("Socket", 2, loggers, plContext);
-		testLogErrors("CertStore", 2, loggers, plContext);
+		testLogErrors("CertStore", 5, loggers, plContext);
 
                 PKIX_TEST_EXPECT_NO_ERROR(PKIX_SetLoggers(loggers, plContext));
 
