@@ -255,13 +255,16 @@ RunTests()
         grep "END OF TESTS FOR" ${testOut} | tail -1 | grep "COMPLETED SUCCESSFULLY" >/dev/null 2>&1
         
         if [ $? -ne 0 ]; then
+            testFail=1
             errors=`expr ${errors} + 1`
             failedpgms="${failedpgms}\n${testPgm} ${testPurpose} "
 #            cat ${testOut}
         else
+            testFail=0
             passed=`expr ${passed} + 1`
         fi
         cat ${testOut}
+        html_msg ${testFail} 0 "${testPgm} ${arenaCmd} ${testPurpose}"
 
         if [ ${checkmem} -eq 1 ]; then
             grep "(actual leaks:" ${testOut} > ${testOutMem} 2>&1
