@@ -1874,6 +1874,7 @@ pkix_pl_LdapDefaultClient_RecvInitial(
         unsigned char *to = NULL;
         unsigned char *from = NULL;
         PKIX_UInt32 dataIndex = 0;
+        PKIX_UInt32 messageIdLen = 0;
         PKIX_UInt32 messageLength = 0;
         PKIX_UInt32 sizeofLength = 0;
         PKIX_UInt32 bytesProcessed = 0;
@@ -1950,9 +1951,9 @@ pkix_pl_LdapDefaultClient_RecvInitial(
         }
 
         /* How many bytes did the messageID require? */
-        dataIndex += msgBuf[dataIndex + 3];
+        messageIdLen = msgBuf[dataIndex + 3];
 
-        messageChar = msgBuf[dataIndex + 4];
+        messageChar = msgBuf[dataIndex + messageIdLen + 4];
 
         /* Are we looking at an Entry message or a ResultCode message? */
         if ((SEC_ASN1_CONSTRUCTED | SEC_ASN1_APPLICATION |
@@ -1977,7 +1978,7 @@ pkix_pl_LdapDefaultClient_RecvInitial(
          */
         PKIX_CHECK(pkix_pl_LdapResponse_Create
                 (messageType,
-                messageLength + dataIndex + 1,
+                messageLength + dataIndex + 2,
                 client->currentBytesAvailable,
                 msgBuf,
                 &bytesProcessed,
