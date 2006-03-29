@@ -122,12 +122,9 @@ cd ../top;
 runTests.sh ${arenasArg} ${checkMemArg} ${quietArg}
 topErrors=$?
 
-totalErrors=`expr $utilErrors + $storeErrors + $crlselErrors + $paramsErrors + $resultsErrors + $topErrors + $checkerErrors + $certselErrors`
+totalErrors=`expr ${certselErrors} + ${checkerErrors} + ${resultsErrors} + ${paramsErrors} + ${crlselErrors} + ${storeErrors} + ${utilErrors} + ${topErrors}`
 
 testEndingEcho
 
 exit ${totalErrors}
-
-
-
 
