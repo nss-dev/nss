@@ -170,7 +170,11 @@ kill_selfserv()
   else
       PID=`cat ${SERVERPID}`
   fi
-  ${KILL} ${PID}
+  if [ "${OS_ARCH}" = "WINNT" -o "${OS_ARCH}" = "WIN95" -o "${OS_ARCH}" = "OS2" ]; then
+      ${KILL} ${PID}
+  else
+      ${KILL} -USR1 ${PID}
+  fi
   wait ${PID}
   if [ ${fileout} -eq 1 ]; then
       cat ${SERVEROUTFILE}
