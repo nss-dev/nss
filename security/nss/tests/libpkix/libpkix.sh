@@ -152,7 +152,8 @@ html_msg $? 0 "Results of performance tests in sample_apps"
 totalErrors=`expr ${pkixErrors} + ${pkixplErrors} + ${pkixPerfErrors}`
 
 if [ ${totalErrors} -eq 0 ]; then
-    echo "\n************************************************************"
+    echo ""
+    echo "************************************************************"
     echo "END OF ALL TESTS: ALL TESTS COMPLETED SUCCESSFULLY"
     echo "************************************************************"
     html_msg ${totalErrors} 0 "ALL LIBPKIX TESTS COMPLETED SUCCESSFULLY"
@@ -167,7 +168,8 @@ else
 fi
 
 if [ ${totalErrors} -ne 0 ]; then
-    echo "\n************************************************************"
+    echo ""
+    echo "************************************************************"
     echo "END OF ALL TESTS: ${totalErrors} TEST${plural} FAILED"
     echo "************************************************************"
     html_msg 1 0 "${totalErrors} LIBPKIX TEST${plural} FAILED"
