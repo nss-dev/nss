@@ -47,8 +47,6 @@ cd ../../common
 . ./libpkix_init_nist.sh
 cd ${curdir}
 
-part1Errors=0
-part2Errors=0
 numtests=0
 passed=0
 testunit=TOP
@@ -86,18 +84,6 @@ Display "#    EE = expect error (validation should fail)\n"
 LOGGING=1
 SOCKETTRACE=1
 export LOGGING SOCKETTRACE
-RunTests <<EOF
-test_validatechain_NB NIST-Test.4.1.1 ENE $NIST TrustAnchorRootCertificate.crt GoodCACert.crt ValidCertificatePathTest1EE.crt
-test_validatechain_NB NIST-Test.4.1.2 EE $NIST TrustAnchorRootCertificate.crt BadSignedCACert.crt InvalidCASignatureTest2EE.crt
-test_validatechain_NB NIST-Test.4.1.3 EE $NIST TrustAnchorRootCertificate.crt GoodCACert.crt  InvalidEESignatureTest3EE.crt
-test_validatechain_NB NIST-Test.4.1.4 ENE $NIST TrustAnchorRootCertificate.crt DSACACert.crt ValidDSASignaturesTest4EE.crt
-test_validatechain_NB NIST-Test.4.1.5 ENE $NIST TrustAnchorRootCertificate.crt DSACACert.crt DSAParametersInheritedCACert.crt ValidDSAParameterInheritanceTest5EE.crt
-EOF
-
-part1Errors=$?
-
-LOGGING=
-SOCKETTRACE=0
 
 RunTests <<EOF
 test_basicchecker ${curdir}/../../certs
@@ -482,8 +468,7 @@ test_buildchain_partialchain ${LDAP}  NIST-Test.4.13.13 EE $NIST InvalidDNnameCo
 test_buildchain_partialchain ${LDAP}  NIST-Test.4.13.27 ENE $NIST ValidDNandRFC822nameConstraintsTest27EE.crt nameConstraintsDN1subCA3Cert.crt nameConstraintsDN1subCA2Cert.crt TrustAnchorRootCertificate.crt 
 EOF
 
-part2Errors=$?
-totalErrors=`expr ${part1Errors}+${part2Errors}`
+totalErrors=$?
 
 html_msg ${totalErrors} 0 "&nbsp;&nbsp;&nbsp;${testunit}: passed ${passed} of ${numtests} tests"
 exit ${totalErrors}
