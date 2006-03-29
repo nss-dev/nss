@@ -92,10 +92,11 @@ cd ../sample_apps;
 runPerf.sh ${arenasArg} ${checkMemArg} ${quietArg}
 pkixPerfErrors=$?
 
-errors=`expr $pkixPerfErrors + $pkixErrors + $pkixplErrors`
+errors=`expr ${pkixplErrors} + ${pkixErrors} + ${pkixPerfErrors}`
 
 if [ ${errors} -eq 0 ]; then
-    echo "\n************************************************************"
+    echo ""
+    echo "************************************************************"
     echo "END OF ALL TESTS: ALL TESTS COMPLETED SUCCESSFULLY"
     echo "************************************************************"
     exit 0
@@ -107,7 +108,8 @@ else
     plural="S"
 fi
 
-echo "\n************************************************************"
+echo ""
+echo "************************************************************"
 echo "END OF ALL TESTS: ${errors} TEST${plural} FAILED"
 echo "************************************************************"
 exit 1
