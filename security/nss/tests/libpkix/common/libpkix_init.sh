@@ -210,14 +210,16 @@ RunTests()
 
     while read testPgm args; do
 
+        shortTestPurpose=`echo $args | awk '{print $1 " " $2 " "}'`
+        fullTestPurpose=${args}
         if [ ${doTop} -eq 1 -o ${doModule} -eq 1 -o ${doPki} -eq 1 ]; then
-            testPurpose=`echo $args | awk '{print $1 " " $2 " "}'`
+            testPurpose=${shortTestPurpose}
         else
-            testPurpose=${args}
+            testPurpose=${fullTestPurpose}
         fi
 
         # If we want shorter command printout for NIST tests, delete next line
-        testPurpose=${args}
+        testPurpose=${fullTestPurpose}
 
         if [ ${doNIST} -eq 0 ]; then
             hasNIST=`echo ${args} | grep NIST-Test`
@@ -258,13 +260,13 @@ RunTests()
             testFail=1
             errors=`expr ${errors} + 1`
             failedpgms="${failedpgms}\n${testPgm} ${testPurpose} "
-#            cat ${testOut}
+            cat ${testOut}
         else
             testFail=0
             passed=`expr ${passed} + 1`
         fi
-        cat ${testOut}
-        html_msg ${testFail} 0 "${testPgm} ${arenaCmd} ${testPurpose}"
+#        cat ${testOut}
+        html_msg ${testFail} 0 "${testPgm} ${arenaCmd} ${shortTestPurpose}"
 
         if [ ${checkmem} -eq 1 ]; then
             grep "(actual leaks:" ${testOut} > ${testOutMem} 2>&1
