@@ -297,6 +297,8 @@ ssl_DupSocket(sslSocket *os)
 	    }
 	    ss->stepDownKeyPair = !os->stepDownKeyPair ? NULL :
 		                  ssl3_GetKeyPairRef(os->stepDownKeyPair);
+	    ss->ephemeralECDHKeyPair = !os->ephemeralECDHKeyPair ? NULL :
+		                  ssl3_GetKeyPairRef(os->ephemeralECDHKeyPair);
 /*
  * XXX the preceeding CERT_ and SECKEY_ functions can fail and return NULL.
  * XXX We should detect this, and not just march on with NULL pointers.
@@ -401,6 +403,10 @@ ssl_DestroySocketContents(sslSocket *ss)
     if (ss->stepDownKeyPair) {
 	ssl3_FreeKeyPair(ss->stepDownKeyPair);
 	ss->stepDownKeyPair = NULL;
+    }
+    if (ss->ephemeralECDHKeyPair) {
+	ssl3_FreeKeyPair(ss->ephemeralECDHKeyPair);
+	ss->ephemeralECDHKeyPair = NULL;
     }
 }
 
