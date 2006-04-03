@@ -2678,9 +2678,9 @@ ocsp_CheckSignature(ocspSignature *signature, void *tbs,
      */
     DER_ConvertBitString(&rawSignature);
 
-    rv = VFY_VerifyDataWithAlgorithmID(encodedTBS->data, encodedTBS->len, 
-			signerKey, &rawSignature,
-			&signature->signatureAlgorithm, NULL,
+    rv = VFY_VerifyData(encodedTBS->data, encodedTBS->len, signerKey,
+			&rawSignature,
+			SECOID_GetAlgorithmTag(&signature->signatureAlgorithm),
 			pwArg);
 
 finish:
