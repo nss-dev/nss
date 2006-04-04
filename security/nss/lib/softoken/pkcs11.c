@@ -71,11 +71,6 @@
 #include "cdbhdl.h"
 #endif
 
-#ifdef NSS_ENABLE_ECC
-extern SECStatus EC_FillParams(PRArenaPool *arena, 
-    const SECItem *encodedParams, ECParams *params);
-#endif
-
 /*
  * ******************** Static data *******************************
  */
@@ -2766,12 +2761,12 @@ sftk_DBShutdown(SFTKSlot *slot)
     slot->keyDB = NULL;
     PZ_Unlock(slot->slotLock);
     if (certHandle) {
-    	PORT_Assert(certHandle->ref == 1 || slot->slotID > FIPS_SLOT_ID);
+	PORT_Assert(certHandle->ref == 1 || slot->slotID > FIPS_SLOT_ID);
 	sftk_freeCertDB(certHandle);
     }
     if (keyHandle) {
-    	PORT_Assert(keyHandle->ref == 1 || slot->slotID > FIPS_SLOT_ID);
-	sftk_freeKeyDB(keyHandle); /* key handle is freed */
+	PORT_Assert(keyHandle->ref == 1 || slot->slotID > FIPS_SLOT_ID);
+	sftk_freeKeyDB(keyHandle);
     }
 }
 
