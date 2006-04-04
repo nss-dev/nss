@@ -2665,7 +2665,7 @@ cleanup:
                         ((PKIX_PL_Object*)cert, &certString, plContext),
                         "PKIX_PL_Object_ToString failed");
                 PKIX_CHECK(PKIX_PL_String_GetEncoded
-                            (stateString,
+                            (certString,
                             PKIX_ESCASCII,
                             (void **)&certAscii,
                             &length,
