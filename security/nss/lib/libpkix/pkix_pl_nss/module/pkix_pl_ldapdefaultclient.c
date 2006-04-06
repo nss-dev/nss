@@ -915,7 +915,8 @@ pkix_pl_LdapDefaultClient_Destroy(
         PKIX_DECREF(client->currentRequest);
         PKIX_DECREF(client->currentResponse);
 
-        PKIX_CHECK(PKIX_PL_Free(client->rcvBuf, plContext), "PKIX_PL_Free failed");
+        PKIX_CHECK(PKIX_PL_Free
+		(client->rcvBuf, plContext), "PKIX_PL_Free failed");
 
         PKIX_PL_NSSCALL
                 (LDAPDEFAULTCLIENT,
@@ -1904,6 +1905,7 @@ pkix_pl_LdapDefaultClient_RecvInitial(
                  * No! Move these few bytes to the beginning of rcvBuf
                  * and hang another read.
                  */
+
                 to = (unsigned char *)client->rcvBuf;
                 from = client->currentInPtr;
                 for (dataIndex = 0;
@@ -2363,7 +2365,15 @@ pkix_pl_LdapDefaultClient_InitiateRequest(
         PKIX_CHECK(pkix_pl_LdapDefaultClient_Dispatch(client, plContext),
                 "pkix_pl_LdapDefaultClient_Dispatch failed");
 
-        if (client->entriesFound) {
+        /*
+         * It's not enough that we may be done with a particular read.
+         * We're still processing the transaction until we've gotten the
+         * SearchResponseResult message and returned to the BOUND state.
+         * Otherwise we must still have a read pending, and must hold off
+         * on returning results.
+         */
+        if ((client->connectStatus == BOUND) &&
+	    (client->entriesFound != NULL)) {
                 *pPollDesc = NULL;
                 *pResponse = client->entriesFound;
                 client->entriesFound = NULL;
@@ -2427,7 +2437,15 @@ pkix_pl_LdapDefaultClient_ResumeRequest(
         PKIX_CHECK(pkix_pl_LdapDefaultClient_Dispatch(client, plContext),
                 "pkix_pl_LdapDefaultClient_Dispatch failed");
 
-        if (client->entriesFound) {
+        /*
+         * It's not enough that we may be done with a particular read.
+         * We're still processing the transaction until we've gotten the
+         * SearchResponseResult message and returned to the BOUND state.
+         * Otherwise we must still have a read pending, and must hold off
+         * on returning results.
+         */
+        if ((client->connectStatus == BOUND) &&
+	    (client->entriesFound != NULL)) {
                 *pPollDesc = NULL;
                 *pResponse = client->entriesFound;
                 client->entriesFound = NULL;

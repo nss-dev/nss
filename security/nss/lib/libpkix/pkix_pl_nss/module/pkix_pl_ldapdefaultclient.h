@@ -78,11 +78,11 @@ typedef enum {
         RECV_INITIAL,
         RECV_NONINITIAL,
         ABANDON_PENDING
-} ConnectStatus;
+} LdapClientConnectStatus;
 
 struct PKIX_PL_LdapDefaultClientStruct {
         PKIX_PL_LdapClient vtable;
-        ConnectStatus connectStatus;
+        LdapClientConnectStatus connectStatus;
         PKIX_UInt32 messageID;
         PKIX_PL_HashTable *cachePtr;
         PKIX_PL_Socket *clientSocket;
