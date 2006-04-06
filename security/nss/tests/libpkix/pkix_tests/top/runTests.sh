@@ -86,6 +86,19 @@ SOCKETTRACE=1
 export LOGGING SOCKETTRACE
 
 RunTests <<EOF
+test_validatechain_NB NIST-Test.4.1.1 ENE $NIST TrustAnchorRootCertificate.crt GoodCACert.crt ValidCertificatePathTest1EE.crt
+test_validatechain_NB NIST-Test.4.1.2 EE $NIST TrustAnchorRootCertificate.crt BadSignedCACert.crt InvalidCASignatureTest2EE.crt
+test_validatechain_NB NIST-Test.4.1.3 EE $NIST TrustAnchorRootCertificate.crt GoodCACert.crt  InvalidEESignatureTest3EE.crt
+test_validatechain_NB NIST-Test.4.1.4 ENE $NIST TrustAnchorRootCertificate.crt DSACACert.crt ValidDSASignaturesTest4EE.crt
+test_validatechain_NB NIST-Test.4.1.5 ENE $NIST TrustAnchorRootCertificate.crt DSACACert.crt DSAParametersInheritedCACert.crt ValidDSAParameterInheritanceTest5EE.crt
+EOF
+
+tracedErrors=$?
+
+LOGGING=0
+SOCKETTRACE=0
+
+RunTests <<EOF
 test_basicchecker ${curdir}/../../certs
 test_basicconstraintschecker "Two-Certificates-Chain" ENE ${curdir}/../../certs hy2hy-bc0 hy2hc-bc
 test_basicconstraintschecker "Three-Certificates-Chain" ENE ${curdir}/../../certs hy2hy-bc0 hy2hy-bc0 hy2hc-bc
@@ -469,6 +482,7 @@ test_buildchain_partialchain ${LDAP}  NIST-Test.4.13.27 ENE $NIST ValidDNandRFC8
 EOF
 
 totalErrors=$?
+totalErrors=`expr ${totalErrors} + ${tracedErrors}`
 
 html_msg ${totalErrors} 0 "&nbsp;&nbsp;&nbsp;${testunit}: passed ${passed} of ${numtests} tests"
 exit ${totalErrors}
