@@ -3611,10 +3611,10 @@ ssl_UnwrapSymWrappingKey(
         ecWrapped = (ECCWrappedKeyInfo *) pWswk->wrappedSymmetricWrappingkey;
 
         PORT_Assert(ecWrapped->encodedParamLen + ecWrapped->pubValueLen + 
-          ecWrapped->wrappedKeyLen <= MAX_EC_WRAPPED_KEY_BUFLEN);
+            ecWrapped->wrappedKeyLen <= MAX_EC_WRAPPED_KEY_BUFLEN);
 
         if (ecWrapped->encodedParamLen + ecWrapped->pubValueLen + 
-          ecWrapped->wrappedKeyLen > MAX_EC_WRAPPED_KEY_BUFLEN) {
+            ecWrapped->wrappedKeyLen > MAX_EC_WRAPPED_KEY_BUFLEN) {
             PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
             goto loser;
         }
@@ -3625,24 +3625,24 @@ ssl_UnwrapSymWrappingKey(
         pubWrapKey.u.ec.DEREncodedParams.data = ecWrapped->var;
         pubWrapKey.u.ec.publicValue.len = ecWrapped->pubValueLen;
         pubWrapKey.u.ec.publicValue.data = ecWrapped->var + 
-          ecWrapped->encodedParamLen;
+            ecWrapped->encodedParamLen;
 
         wrappedKey.len  = ecWrapped->wrappedKeyLen;
         wrappedKey.data = ecWrapped->var + ecWrapped->encodedParamLen + 
-          ecWrapped->pubValueLen;
+            ecWrapped->pubValueLen;
         
         /* Derive Ks using ECDH */
         Ks = PK11_PubDeriveWithKDF(svrPrivKey, &pubWrapKey, PR_FALSE, NULL,
-          NULL, CKM_ECDH1_DERIVE, masterWrapMech, CKA_DERIVE, 0, CKD_NULL, 
-          NULL, NULL);
+				   NULL, CKM_ECDH1_DERIVE, masterWrapMech, 
+				   CKA_DERIVE, 0, CKD_NULL, NULL, NULL);
         if (Ks == NULL) {
             goto loser;
         }
 
         /*  Use Ks to unwrap the wrapping key */
-        unwrappedWrappingKey =
-          PK11_UnwrapSymKey(Ks, masterWrapMech, NULL, &wrappedKey,
-            masterWrapMech, CKA_UNWRAP, 0);
+        unwrappedWrappingKey = PK11_UnwrapSymKey(Ks, masterWrapMech, NULL, 
+						 &wrappedKey, masterWrapMech, 
+						 CKA_UNWRAP, 0);
         PK11_FreeSymKey(Ks);
         
         break;
@@ -3846,9 +3846,9 @@ getWrappingKey( sslSocket *       ss,
 	}
 
 	PORT_Assert(pubWrapKey->u.ec.DEREncodedParams.len + 
-	  pubWrapKey->u.ec.publicValue.len < MAX_EC_WRAPPED_KEY_BUFLEN);
+	    pubWrapKey->u.ec.publicValue.len < MAX_EC_WRAPPED_KEY_BUFLEN);
 	if (pubWrapKey->u.ec.DEREncodedParams.len + 
-	  pubWrapKey->u.ec.publicValue.len >= MAX_EC_WRAPPED_KEY_BUFLEN) {
+	    pubWrapKey->u.ec.publicValue.len >= MAX_EC_WRAPPED_KEY_BUFLEN) {
 	    PORT_SetError(SEC_ERROR_INVALID_KEY);
 	    rv = SECFailure;
 	    goto ec_cleanup;
@@ -3856,8 +3856,8 @@ getWrappingKey( sslSocket *       ss,
 
 	/* Derive Ks using ECDH */
 	Ks = PK11_PubDeriveWithKDF(svrPrivKey, pubWrapKey, PR_FALSE, NULL,
-	  NULL, CKM_ECDH1_DERIVE, masterWrapMech, CKA_DERIVE, 0, CKD_NULL, 
-	  NULL, NULL);
+				   NULL, CKM_ECDH1_DERIVE, masterWrapMech, 
+				   CKA_DERIVE, 0, CKD_NULL, NULL, NULL);
 	if (Ks == NULL) {
 	    rv = SECFailure;
 	    goto ec_cleanup;
@@ -3867,21 +3867,21 @@ getWrappingKey( sslSocket *       ss,
 	ecWrapped->size = pubWrapKey->u.ec.size;
 	ecWrapped->encodedParamLen = pubWrapKey->u.ec.DEREncodedParams.len;
 	PORT_Memcpy(ecWrapped->var, pubWrapKey->u.ec.DEREncodedParams.data, 
-	  pubWrapKey->u.ec.DEREncodedParams.len);
+	    pubWrapKey->u.ec.DEREncodedParams.len);
 
 	ecWrapped->pubValueLen = pubWrapKey->u.ec.publicValue.len;
 	PORT_Memcpy(ecWrapped->var + ecWrapped->encodedParamLen, 
-	  pubWrapKey->u.ec.publicValue.data, 
-	  pubWrapKey->u.ec.publicValue.len);
+		    pubWrapKey->u.ec.publicValue.data, 
+		    pubWrapKey->u.ec.publicValue.len);
 
 	wrappedKey.len = MAX_EC_WRAPPED_KEY_BUFLEN - 
-	  (ecWrapped->encodedParamLen + ecWrapped->pubValueLen);
+	    (ecWrapped->encodedParamLen + ecWrapped->pubValueLen);
 	wrappedKey.data = ecWrapped->var + ecWrapped->encodedParamLen +
-	  ecWrapped->pubValueLen;
+	    ecWrapped->pubValueLen;
 
 	/* wrap symmetricWrapping key with the local Ks */
 	rv = PK11_WrapSymKey(masterWrapMech, NULL, Ks,
-	  unwrappedWrappingKey, &wrappedKey);
+			     unwrappedWrappingKey, &wrappedKey);
 
 	if (rv != SECSuccess) {
 	    goto ec_cleanup;
