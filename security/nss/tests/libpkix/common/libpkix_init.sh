@@ -260,12 +260,12 @@ RunTests()
             testFail=1
             errors=`expr ${errors} + 1`
             failedpgms="${failedpgms}\n${testPgm} ${testPurpose} "
-            cat ${testOut}
+#            cat ${testOut}
         else
             testFail=0
             passed=`expr ${passed} + 1`
         fi
-#        cat ${testOut}
+        cat ${testOut}
         html_msg ${testFail} 0 "${testPgm} ${arenaCmd} ${shortTestPurpose}"
 
         if [ ${checkmem} -eq 1 ]; then
