@@ -1223,6 +1223,7 @@ extern SECStatus ssl3_CreateRSAStepDownKeys(sslSocket *ss);
 
 #ifdef NSS_ENABLE_ECC
 extern SECStatus ssl3_CreateECDHEphemeralKeys(sslSocket *ss);
+extern void ssl3_FilterECCipherSuitesByServerCerts(sslSocket *ss);
 #endif /* NSS_ENABLE_ECC */
 
 extern SECStatus ssl3_CipherPrefSetDefault(ssl3CipherSuite which, PRBool on);
