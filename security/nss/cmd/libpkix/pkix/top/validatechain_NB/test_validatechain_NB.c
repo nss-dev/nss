@@ -148,15 +148,17 @@ PKIX_Error *loggerCallback(
         PKIX_PL_String *logComponent,
         void *plContext)
 {
+#define resultSize 150
         char *comp = NULL;
         char *msg = NULL;
-        char result[100];
+        char result[resultSize];
 
         PKIX_TEST_STD_VARS();
 
         msg = PKIX_String2ASCII(message, plContext);
         comp = PKIX_String2ASCII(logComponent, plContext);
-        sprintf(result, "Logging %s (%s): %s", levels[logLevel], comp, msg);
+        PR_snprintf(result, resultSize,
+            "Logging %s (%s): %s", levels[logLevel], comp, msg);
         subTest(result);
 
 cleanup:
