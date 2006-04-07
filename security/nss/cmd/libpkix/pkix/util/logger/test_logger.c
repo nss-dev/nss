@@ -71,7 +71,10 @@ PKIX_Error *testLoggerCallback(
 
         msg = PKIX_String2ASCII(message, plContext);
         comp = PKIX_String2ASCII(logComponent, plContext);
-        sprintf(result, "Logging %s (%s): %s", levels[logLevel], comp, msg);
+        PR_snprintf
+                (result,
+                100,
+                "Logging %s (%s): %s", levels[logLevel], comp, msg);
         subTest(result);
 
         callCount++;
