@@ -71,10 +71,8 @@ PKIX_Error *testLoggerCallback(
 
         msg = PKIX_String2ASCII(message, plContext);
         comp = PKIX_String2ASCII(logComponent, plContext);
-        PR_snprintf
-                (result,
-                100,
-                "Logging %s (%s): %s", levels[logLevel], comp, msg);
+        PR_snprintf(result, 100, "Logging %s (%s): %s",
+                levels[logLevel], comp, msg);
         subTest(result);
 
         callCount++;
@@ -104,7 +102,8 @@ PKIX_Error *testLoggerCallback2(
 
         msg = PKIX_String2ASCII(message, plContext);
         comp = PKIX_String2ASCII(logComponent, plContext);
-        sprintf(result, "Logging %s (%s): %s", levels[logLevel], comp, msg);
+        PR_snprintf(result, 100, "Logging %s (%s): %s",
+                levels[logLevel], comp, msg);
         subTest(result);
 
 cleanup:
@@ -151,7 +150,7 @@ testContextCallback(PKIX_Logger *logger, PKIX_Logger *logger2)
 
         if (cb != testLoggerCallback) {
                 testError("Incorrect Logger Callback returned");
-	}
+        }
 
 cleanup:
 
@@ -371,7 +370,7 @@ int main(int argc, char *argv[]) {
         testMaxLoggingLevel(logger);
 
         subTest("Logger List operations");
-	testLogger(logger, logger2);
+        testLogger(logger, logger2);
 
         subTest("PKIX_Logger_Destroy");
         testDestroy(logger);
