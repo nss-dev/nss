@@ -313,18 +313,41 @@ nssCertificateStore_RemoveCertLOCKED (
 
 NSS_IMPLEMENT void
 nssCertificateStore_Lock (
-  nssCertificateStore *store
+  nssCertificateStore *store, nssCertificateStoreTrace* out
 )
 {
+#ifdef DEBUG
+    PORT_Assert(out);
+    out->store = store;
+    out->lock = store->lock;
+    out->locked = PR_TRUE;
+    PZ_Lock(out->lock);
+#else
     PZ_Lock(store->lock);
+#endif
 }
 
 NSS_IMPLEMENT void
 nssCertificateStore_Unlock (
-  nssCertificateStore *store
+  nssCertificateStore *store, nssCertificateStoreTrace* in,
+  nssCertificateStoreTrace* out
 )
 {
+#ifdef DEBUG
+    PORT_Assert(in);
+    PORT_Assert(out);
+    out->store = store;
+    out->lock = store->lock;
+    out->unlocked = PR_TRUE;
+
+    PORT_Assert(in->store == out->store);
+    PORT_Assert(in->lock == out->lock);
+    PORT_Assert(in->locked);
+
+    PZ_Unlock(out->lock);
+#else
     PZ_Unlock(store->lock);
+#endif
 }
 
 static NSSCertificate **
