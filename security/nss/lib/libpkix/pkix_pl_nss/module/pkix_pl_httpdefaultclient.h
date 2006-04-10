@@ -56,9 +56,7 @@ typedef enum {
         HTTP_NOT_CONNECTED,
         HTTP_CONNECT_PENDING,
         HTTP_CONNECTED,
-        HTTP_SEND_HDR_PENDING,
-        HTTP_SEND_BODY,
-        HTTP_SEND_BODY_PENDING,
+        HTTP_SEND_PENDING,
         HTTP_RECV_HDR,
         HTTP_RECV_HDR_PENDING,
         HTTP_RECV_BODY,
@@ -66,6 +64,11 @@ typedef enum {
         HTTP_COMPLETE,
         HTTP_ERROR
 } HttpConnectStatus;
+
+typedef enum {
+	HTTP_POST_METHOD,
+	HTTP_GET_METHOD
+} HttpMethod;
 
 struct PKIX_PL_HttpDefaultClientStruct {
         HttpConnectStatus connectStatus;
@@ -80,15 +83,19 @@ struct PKIX_PL_HttpDefaultClientStruct {
         PKIX_UInt32 currentBytesAvailable;
         PKIX_UInt32 responseCode;
         PKIX_UInt32 maxResponseLen;
+        PKIX_UInt32 GETLen;
+        PKIX_UInt32 POSTLen;
         PRUint32 *pRcv_http_data_len;
         PRPollDesc pollDesc;
-        PKIX_PL_Socket_Callback *callbackList;
-        char *sendBuf;
+        void *callbackList; /* cast this to (PKIX_PL_Socket_Callback *) */
+        char *GETBuf;
+        char *POSTBuf;
         char *rcvBuf;
         const char *host;
         const char *path;
         const char *rcvContentType;
         void *rcvHeaders;
+        HttpMethod send_http_method;
         const char *send_http_content_type;
         const char *send_http_data;
         PRUint16 *rcv_http_response_code;

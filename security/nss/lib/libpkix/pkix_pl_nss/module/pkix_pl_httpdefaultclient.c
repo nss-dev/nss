@@ -419,19 +419,33 @@ pkix_pl_HttpDefaultClient_Create(
                 plContext),
                 "Could not create HttpDefaultClient object");
 
-        client->host = host;
-        client->portnum = portnum;
         client->connectStatus = HTTP_NOT_CONNECTED;
-
-        client->sendBuf = NULL;
-        client->rcvBuf = NULL;
+        client->portnum = portnum;
+        client->timeout = PR_INTERVAL_NO_TIMEOUT;
+        client->bytesToWrite = 0;
+        client->bytesToRead = 0;
+	client->send_http_data_len = 0;
+	client->rcv_http_data_len = 0;
         client->capacity = 0;
         client->alreadyScanned = 0;
         client->currentBytesAvailable = 0;
         client->responseCode = 0;
         client->maxResponseLen = 0;
+        client->GETLen = 0;
+        client->POSTLen = 0;
+        client->pRcv_http_data_len = NULL;
+        client->callbackList = NULL;
+        client->GETBuf = NULL;
+        client->POSTBuf = NULL;
+        client->rcvBuf = NULL;
+        client->host = host;
+        client->path = NULL;
         client->rcvContentType = NULL;
         client->rcvHeaders = NULL;
+	client->send_http_method = NULL;
+	client->send_http_content_type = NULL;
+	client->send_http_data = NULL;
+        client->rcv_http_response_code = NULL;
         client->rcv_http_content_type = NULL;
         client->rcv_http_headers = NULL;
         client->rcv_http_data = NULL;
@@ -476,9 +490,15 @@ pkix_pl_HttpDefaultClient_Destroy(
         PKIX_PL_Free(client->rcvHeaders, plContext);
         client->rcvHeaders = NULL;
 
-        if (client->sendBuf != NULL) {
-                PKIX_PL_NSSCALL(HTTPDEFAULTCLIENT, PR_smprintf_free, (client->sendBuf));
-                client->sendBuf = NULL;
+        if (client->GETBuf != NULL) {
+                PKIX_PL_NSSCALL
+			(HTTPDEFAULTCLIENT, PR_smprintf_free, (client->GETBuf));
+                client->GETBuf = NULL;
+        }
+
+        if (client->POSTBuf != NULL) {
+                PKIX_PL_Free(client->POSTBuf, plContext);
+                client->POSTBuf = NULL;
         }
 
         if (client->rcvBuf != NULL) {
@@ -568,13 +588,16 @@ pkix_pl_HttpDefaultClient_ConnectContinue(
 {
         PRErrorCode status;
         PKIX_Boolean keepGoing = PKIX_FALSE;
+        PKIX_PL_Socket_Callback *callbackList = NULL;
 
         PKIX_ENTER
                 (HTTPDEFAULTCLIENT,
                 "pkix_pl_HttpDefaultClient_ConnectContinue");
         PKIX_NULLCHECK_ONE(client);
 
-        PKIX_CHECK(client->callbackList->connectcontinueCallback
+        callbackList = (PKIX_PL_Socket_Callback *)client->callbackList;
+
+        PKIX_CHECK(callbackList->connectcontinueCallback
                 (client->socket, &status, plContext),
                 "pkix_pl_Socket_ConnectContinue failed");
 
@@ -595,9 +618,9 @@ cleanup:
  * FUNCTION: pkix_pl_HttpDefaultClient_Send
  * DESCRIPTION:
  *
- *  This function creates and sends HTTP-protocol headers for the
- *  HttpDefaultClient "client", and stores in "pKeepGoing" a flag indicating
- *  whether processing can continue without further input, and at
+ *  This function creates and sends HTTP-protocol headers and, if applicable,
+ *  data, for the HttpDefaultClient "client", and stores in "pKeepGoing" a flag
+ *  indicating whether processing can continue without further input, and at
  *  "pBytesTransferred" the number of bytes sent.
  *
  *  If "pBytesTransferred" is zero, it indicates that non-blocking I/O is in use
@@ -631,6 +654,9 @@ pkix_pl_HttpDefaultClient_Send(
         void *plContext)
 {
         PKIX_Int32 bytesWritten = 0;
+        PKIX_Int32 lenToWrite = 0;
+        PKIX_PL_Socket_Callback *callbackList = NULL;
+	char *dataToWrite = NULL;
 
         PKIX_ENTER(HTTPDEFAULTCLIENT, "pkix_pl_HttpDefaultClient_Send");
         PKIX_NULLCHECK_THREE(client, pKeepGoing, pBytesTransferred);
@@ -638,12 +664,22 @@ pkix_pl_HttpDefaultClient_Send(
         *pKeepGoing = PKIX_FALSE;
 
         /* Do we have anything waiting to go? */
-        if (client->sendBuf) {
+        if ((client->GETBuf) || (client->POSTBuf)) {
 
-                PKIX_CHECK(client->callbackList->sendCallback
+		if (client->GETBuf) {
+			dataToWrite = client->GETBuf;
+			lenToWrite = client->GETLen;
+		} else {
+			dataToWrite = client->POSTBuf;
+			lenToWrite = client->POSTLen;
+		}
+
+        	callbackList = (PKIX_PL_Socket_Callback *)client->callbackList;
+
+                PKIX_CHECK(callbackList->sendCallback
                         (client->socket,
-                        client->sendBuf,
-                        client->bytesToWrite,
+                        dataToWrite,
+                        lenToWrite,
                         &bytesWritten,
                         plContext),
                         "pkix_pl_Socket_Send failed");
@@ -659,11 +695,10 @@ pkix_pl_HttpDefaultClient_Send(
                  * to poll for completion later.
                  */
                 if (bytesWritten >= 0) {
-                        client->connectStatus = HTTP_SEND_BODY;
+          		client->connectStatus = HTTP_RECV_HDR;
                         *pKeepGoing = PKIX_TRUE;
-
                 } else {
-                        client->connectStatus = HTTP_SEND_HDR_PENDING;
+                        client->connectStatus = HTTP_SEND_PENDING;
                         *pKeepGoing = PKIX_FALSE;
                 }
 
@@ -679,9 +714,9 @@ cleanup:
  * FUNCTION: pkix_pl_HttpDefaultClient_SendContinue
  * DESCRIPTION:
  *
- *  This function determines whether the sending of the HTTP-protocol headers
- *  for the HttpDefaultClient "client" has completed, and stores in "pKeepGoing"
- *  a flag indicating whether processing can continue without further input, and
+ *  This function determines whether the sending of the HTTP message for the
+ *  HttpDefaultClient "client" has completed, and stores in "pKeepGoing" a
+ *  flag indicating whether processing can continue without further input, and
  *  at "pBytesTransferred" the number of bytes sent.
  *
  *  If "pBytesTransferred" is zero, it indicates that non-blocking I/O is in use
@@ -715,13 +750,16 @@ pkix_pl_HttpDefaultClient_SendContinue(
         void *plContext)
 {
         PKIX_Int32 bytesWritten = 0;
+        PKIX_PL_Socket_Callback *callbackList = NULL;
 
         PKIX_ENTER(HTTPDEFAULTCLIENT, "pkix_pl_HttpDefaultClient_SendContinue");
         PKIX_NULLCHECK_THREE(client, pKeepGoing, pBytesTransferred);
 
         *pKeepGoing = PKIX_FALSE;
 
-        PKIX_CHECK(client->callbackList->pollCallback
+        callbackList = (PKIX_PL_Socket_Callback *)client->callbackList;
+
+        PKIX_CHECK(callbackList->pollCallback
                 (client->socket, &bytesWritten, NULL, plContext),
                 "pkix_pl_Socket_Poll failed");
 
@@ -731,149 +769,7 @@ pkix_pl_HttpDefaultClient_SendContinue(
          * continue to poll.
          */
         if (bytesWritten >= 0) {
-                client->connectStatus = HTTP_SEND_BODY;
-                *pKeepGoing = PKIX_TRUE;
-        }
-
-        *pBytesTransferred = bytesWritten;
-
-cleanup:
-        PKIX_RETURN(HTTPDEFAULTCLIENT);
-}
-
-/*
- * FUNCTION: pkix_pl_HttpDefaultClient_SendBody
- * DESCRIPTION:
- *
- *  This function creates and sends the HTTP message body for the
- *  HttpDefaultClient "client", and stores in "pKeepGoing" a flag indicating
- *  whether processing can continue without further input, and at
- *  "pBytesTransferred" the number of bytes sent.
- *
- *  If "pBytesTransferred" is zero, it indicates that non-blocking I/O is in use
- *  and that transmission has not completed.
- *
- * PARAMETERS:
- *  "client"
- *      The address of the HttpDefaultClient object. Must be non-NULL.
- *  "pKeepGoing"
- *      The address at which the Boolean state machine flag is stored to
- *      indicate whether processing can continue without further input.
- *      Must be non-NULL.
- *  "pBytesTransferred"
- *      The address at which the number of bytes sent is stored. Must be
- *      non-NULL.
- *  "plContext"
- *      Platform-specific context pointer.
- * THREAD SAFETY:
- *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
- * RETURNS:
- *  Returns NULL if the function succeeds.
- *  Returns a HttpDefaultClient Error if the function fails in a
- *      non-fatal way.
- *  Returns a Fatal Error if the function fails in an unrecoverable way.
- */
-static PKIX_Error *
-pkix_pl_HttpDefaultClient_SendBody(
-        PKIX_PL_HttpDefaultClient *client,
-        PKIX_Boolean *pKeepGoing,
-        PKIX_UInt32 *pBytesTransferred,
-        void *plContext)
-{
-        PKIX_Int32 bytesWritten = 0;
-
-        PKIX_ENTER(HTTPDEFAULTCLIENT, "pkix_pl_HttpDefaultClient_SendBody");
-        PKIX_NULLCHECK_THREE(client, pKeepGoing, pBytesTransferred);
-
-        *pKeepGoing = PKIX_FALSE;
-
-        PKIX_CHECK(client->callbackList->sendCallback
-                (client->socket,
-                (void *)client->send_http_data,
-                client->send_http_data_len,
-                &bytesWritten,
-                plContext),
-                "pkix_pl_Socket_Send failed");
-
-        /*
-         * If the send completed we can proceed to try for the
-         * response. If the send did not complete we will have
-         * to poll for completion later.
-         */
-        if (bytesWritten >= 0) {
-                client->connectStatus = HTTP_RECV_HDR;
-                *pKeepGoing = PKIX_TRUE;
-
-        } else {
-                client->connectStatus = HTTP_SEND_BODY_PENDING;
-                *pKeepGoing = PKIX_FALSE;
-        }
-
-        *pBytesTransferred = bytesWritten;
-
-cleanup:
-        PKIX_RETURN(HTTPDEFAULTCLIENT);
-}
-
-/*
- * FUNCTION: pkix_pl_HttpDefaultClient_SendBodyContinue
- * DESCRIPTION:
- *
- *  This function determines whether the sending of the HTTP message body
- *  for the HttpDefaultClient "client" has completed, and stores in "pKeepGoing"
- *  a flag indicating whether processing can continue without further input, and
- *  at "pBytesTransferred" the number of bytes sent.
- *
- *  If "pBytesTransferred" is zero, it indicates that non-blocking I/O is in use
- *  and that transmission has not completed.
- *
- * PARAMETERS:
- *  "client"
- *      The address of the HttpDefaultClient object. Must be non-NULL.
- *  "pKeepGoing"
- *      The address at which the Boolean state machine flag is stored to
- *      indicate whether processing can continue without further input.
- *      Must be non-NULL.
- *  "pBytesTransferred"
- *      The address at which the number of bytes sent is stored. Must be
- *      non-NULL.
- *  "plContext"
- *      Platform-specific context pointer.
- * THREAD SAFETY:
- *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
- * RETURNS:
- *  Returns NULL if the function succeeds.
- *  Returns a HttpDefaultClient Error if the function fails in a
- *      non-fatal way.
- *  Returns a Fatal Error if the function fails in an unrecoverable way.
- */
-static PKIX_Error *
-pkix_pl_HttpDefaultClient_SendBodyContinue(
-        PKIX_PL_HttpDefaultClient *client,
-        PKIX_Boolean *pKeepGoing,
-        PKIX_UInt32 *pBytesTransferred,
-        void *plContext)
-{
-        PKIX_Int32 bytesWritten = 0;
-
-        PKIX_ENTER
-                (HTTPDEFAULTCLIENT,
-                "pkix_pl_HttpDefaultClient_SendBodyContinue");
-        PKIX_NULLCHECK_THREE(client, pKeepGoing, pBytesTransferred);
-
-        *pKeepGoing = PKIX_FALSE;
-
-        PKIX_CHECK(client->callbackList->pollCallback
-                (client->socket, &bytesWritten, NULL, plContext),
-                "pkix_pl_Socket_Poll failed");
-
-        /*
-         * If the send completed we can proceed to try for the
-         * response. If the send did not complete we will have
-         * continue to poll.
-         */
-        if (bytesWritten >= 0) {
-                client->connectStatus = HTTP_RECV_HDR;
+               	client->connectStatus = HTTP_RECV_HDR;
                 *pKeepGoing = PKIX_TRUE;
         }
 
@@ -916,6 +812,7 @@ pkix_pl_HttpDefaultClient_RecvHdr(
 {
         PKIX_UInt32 bytesToRead = 0;
         PKIX_Int32 bytesRead = 0;
+        PKIX_PL_Socket_Callback *callbackList = NULL;
 
         PKIX_ENTER(HTTPDEFAULTCLIENT, "pkix_pl_HttpDefaultClient_RecvHdr");
         PKIX_NULLCHECK_TWO(client, pKeepGoing);
@@ -937,7 +834,9 @@ pkix_pl_HttpDefaultClient_RecvHdr(
 
         bytesToRead = client->capacity - client->alreadyScanned;
 
-        PKIX_CHECK(client->callbackList->recvCallback
+        callbackList = (PKIX_PL_Socket_Callback *)client->callbackList;
+
+        PKIX_CHECK(callbackList->recvCallback
                 (client->socket,
                 (void *)&(client->rcvBuf[client->alreadyScanned]),
                 bytesToRead,
@@ -996,13 +895,16 @@ pkix_pl_HttpDefaultClient_RecvHdrContinue(
         void *plContext)
 {
         PKIX_Int32 bytesRead = 0;
+        PKIX_PL_Socket_Callback *callbackList = NULL;
 
         PKIX_ENTER
                 (HTTPDEFAULTCLIENT,
                 "pkix_pl_HttpDefaultClient_RecvHdrContinue");
         PKIX_NULLCHECK_TWO(client, pKeepGoing);
 
-        PKIX_CHECK(client->callbackList->pollCallback
+        callbackList = (PKIX_PL_Socket_Callback *)client->callbackList;
+
+        PKIX_CHECK(callbackList->pollCallback
                 (client->socket, NULL, &bytesRead, plContext),
                 "pkix_pl_Socket_Poll failed");
 
@@ -1065,11 +967,14 @@ pkix_pl_HttpDefaultClient_RecvBody(
         PKIX_UInt32 sizeofLength = 0;
         PKIX_UInt32 bytesProcessed = 0;
         unsigned char messageChar = 0;
+        PKIX_PL_Socket_Callback *callbackList = NULL;
 
         PKIX_ENTER(HTTPDEFAULTCLIENT, "pkix_pl_HttpDefaultClient_RecvBody");
         PKIX_NULLCHECK_TWO(client, pKeepGoing);
 
-        PKIX_CHECK(client->callbackList->recvCallback
+        callbackList = (PKIX_PL_Socket_Callback *)client->callbackList;
+
+        PKIX_CHECK(callbackList->recvCallback
                 (client->socket,
                 client->rcvBuf,
                 client->bytesToRead,
@@ -1126,13 +1031,16 @@ pkix_pl_HttpDefaultClient_RecvBodyContinue(
         void *plContext)
 {
         PKIX_Int32 bytesRead = 0;
+        PKIX_PL_Socket_Callback *callbackList = NULL;
 
         PKIX_ENTER
                 (HTTPDEFAULTCLIENT,
                 "pkix_pl_HttpDefaultClient_RecvBodyContinue");
         PKIX_NULLCHECK_TWO(client, pKeepGoing);
 
-        PKIX_CHECK(client->callbackList->pollCallback
+        callbackList = (PKIX_PL_Socket_Callback *)client->callbackList;
+
+        PKIX_CHECK(callbackList->pollCallback
                 (client->socket, NULL, &bytesRead, plContext),
                 "pkix_pl_Socket_Poll failed");
 
@@ -1195,20 +1103,10 @@ pkix_pl_HttpDefaultClient_Dispatch(
                         (client, &keepGoing, &bytesTransferred, plContext),
                         "pkix_pl_HttpDefaultClient_Send failed");
                     break;
-                case HTTP_SEND_HDR_PENDING:
+                case HTTP_SEND_PENDING:
                     PKIX_CHECK(pkix_pl_HttpDefaultClient_SendContinue
                         (client, &keepGoing, &bytesTransferred, plContext),
                         "pkix_pl_HttpDefaultClient_SendContinue failed");
-                    break;
-                case HTTP_SEND_BODY:
-                    PKIX_CHECK(pkix_pl_HttpDefaultClient_SendBody
-                        (client, &keepGoing, &bytesTransferred, plContext),
-                        "pkix_pl_HttpDefaultClient_SendBody failed");
-                    break;
-                case HTTP_SEND_BODY_PENDING:
-                    PKIX_CHECK(pkix_pl_HttpDefaultClient_SendBodyContinue
-                        (client, &keepGoing, &bytesTransferred, plContext),
-                        "pkix_pl_HttpDefaultClient_SendBodyContinue failed");
                     break;
                 case HTTP_RECV_HDR:
                     PKIX_CHECK(pkix_pl_HttpDefaultClient_RecvHdr
@@ -1353,8 +1251,12 @@ pkix_pl_HttpDefaultClient_RequestCreate(
                 PKIX_ERROR("Unrecognized protocol requested");
         }
 
-        /* We only know how to do POST */
-        if (PORT_Strncasecmp(http_request_method, "POST", 4) != 0) {
+        if (PORT_Strncasecmp(http_request_method, "POST", 4) == 0) {
+	        client->send_http_method = HTTP_POST_METHOD;
+	} else if (PORT_Strncasecmp(http_request_method, "GET", 3) == 0) {
+	        client->send_http_method = HTTP_GET_METHOD;
+	} else {
+	        /* We only know how to do POST and GET */
                 PKIX_ERROR("Unrecognized request method");
         }
 
@@ -1379,7 +1281,7 @@ pkix_pl_HttpDefaultClient_RequestCreate(
                 (socket, &callbackList, plContext),
                 "pkix_pl_Socket_GetCallbackList failed");
 
-        client->callbackList = callbackList;
+        client->callbackList = (void *)callbackList;
 
         PKIX_CHECK(pkix_pl_Socket_GetPRFileDesc
                 (socket, &fileDesc, plContext),
@@ -1388,6 +1290,10 @@ pkix_pl_HttpDefaultClient_RequestCreate(
         client->pollDesc.fd = fileDesc;
         client->pollDesc.in_flags = 0;
         client->pollDesc.out_flags = 0;
+
+	client->send_http_data = NULL;
+	client->send_http_data_len = 0;
+	client->send_http_content_type = NULL;
 
         client->connectStatus =
                  ((status == 0) ? HTTP_CONNECTED : HTTP_CONNECT_PENDING);
@@ -1482,8 +1388,10 @@ pkix_pl_HttpDefaultClient_TrySendAndReceive(
         void *plContext)        
 {
         PKIX_PL_HttpDefaultClient *client = NULL;
+	PKIX_UInt32 postLen = 0;
         PRPollDesc *pollDesc = NULL;
         char *sendbuf = NULL;
+	void *appendDest = NULL;
 
         PKIX_ENTER
                 (HTTPDEFAULTCLIENT,
@@ -1520,19 +1428,66 @@ pkix_pl_HttpDefaultClient_TrySendAndReceive(
                 client->rcv_http_data = http_response_data;
 
                 /* prepare the message */
-                PKIX_PL_NSSCALLRV(HTTPDEFAULTCLIENT, sendbuf, PR_smprintf,
-                        ("POST %s HTTP/1.0\r\nHost: %s:%d\r\n"
-                        "Content-Type: %s\r\nContent-Length: %u\r\n\r\n",
-                        client->path,
-                        client->host,
-                        client->portnum,
-                        client->send_http_content_type,
-                        client->send_http_data_len));
+		if (client->send_http_method == HTTP_POST_METHOD) {
+			PKIX_PL_NSSCALLRV
+			    (HTTPDEFAULTCLIENT, sendbuf, PR_smprintf,
+	                    ("POST %s HTTP/1.0\r\nHost: %s:%d\r\n"
+	                    "Content-Type: %s\r\nContent-Length: %u\r\n\r\n",
+	                    client->path,
+	                    client->host,
+	                    client->portnum,
+	                    client->send_http_content_type,
+	                    client->send_http_data_len));
 
-                client->sendBuf = sendbuf;
-                PKIX_PL_NSSCALLRV
-                        (HTTPDEFAULTCLIENT, client->bytesToWrite, PORT_Strlen,
-                        (sendbuf));
+                	PKIX_PL_NSSCALLRV
+	                       	(HTTPDEFAULTCLIENT, postLen, PORT_Strlen,
+	                        (sendbuf));
+
+			client->POSTLen = postLen + client->send_http_data_len;
+
+			/* allocate postBuffer big enough for header + data */
+			PKIX_CHECK(PKIX_PL_Malloc
+				(client->POSTLen,
+				(void **)&(client->POSTBuf),
+				plContext),
+				"PKIX_PL_Malloc failed");
+
+			/* copy header into postBuffer */
+			PKIX_CHECK(PKIX_PL_Memcpy
+				(sendbuf,
+				postLen,
+				(void **)&(client->POSTBuf),
+				plContext),
+				"PKIX_PL_Memcpy failed");
+
+			/* append data after header */
+                        appendDest = (void *)&(client->POSTBuf[postLen]);
+			PKIX_CHECK(PKIX_PL_Memcpy
+				((void *)(client->send_http_data),
+				 client->send_http_data_len,
+				 (void **)&appendDest,
+				plContext),
+				"PKIX_PL_Memcpy failed");
+
+			/* PR_smprintf_free original header buffer */
+                	PKIX_PL_NSSCALL
+				(HTTPDEFAULTCLIENT, PR_smprintf_free,
+				(sendbuf));
+			
+		} else if (client->send_http_method == HTTP_GET_METHOD) {
+			PKIX_PL_NSSCALLRV
+			    (HTTPDEFAULTCLIENT, sendbuf, PR_smprintf,
+	                    ("GET %s HTTP/1.0\r\nHost: %s:%d\r\n\r\n",
+	                    client->path,
+	                    client->host,
+	                    client->portnum));
+
+                	client->GETBuf = sendbuf;
+
+	                PKIX_PL_NSSCALLRV
+	                        (HTTPDEFAULTCLIENT, client->GETLen, PORT_Strlen,
+	                        (sendbuf));
+		}
 
         }
 
@@ -1540,11 +1495,9 @@ pkix_pl_HttpDefaultClient_TrySendAndReceive(
         PKIX_CHECK(pkix_pl_HttpDefaultClient_Dispatch(client, plContext),
                 "pkix_pl_HttpDefaultClient_Dispatch failed");
 
-
         switch (client->connectStatus) {
                 case HTTP_CONNECT_PENDING:
-                case HTTP_SEND_HDR_PENDING:
-                case HTTP_SEND_BODY_PENDING:
+                case HTTP_SEND_PENDING:
                 case HTTP_RECV_HDR_PENDING:
                 case HTTP_RECV_BODY_PENDING:
                         *pPollDesc = &(client->pollDesc);
@@ -1582,7 +1535,6 @@ pkix_pl_HttpDefaultClient_TrySendAndReceive(
                         break;
                 case HTTP_NOT_CONNECTED:
                 case HTTP_CONNECTED:
-                case HTTP_SEND_BODY:
                 case HTTP_RECV_HDR:
                 case HTTP_RECV_BODY:
                 default:
