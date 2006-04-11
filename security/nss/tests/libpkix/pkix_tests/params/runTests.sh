@@ -57,9 +57,9 @@ testunit=PARAMS
 ParseArgs $*
 
 RunTests <<EOF
-test_valparams ${curdir}/../../certs
-test_procparams ${curdir}/../../certs
-test_trustanchor ${NIST} ${curdir}/../../certs NIST-Test-Files-Used
+test_valparams ../../certs
+test_procparams ../../certs
+test_trustanchor ${NIST} ../../certs NIST-Test-Files-Used
 test_resourcelimits
 EOF
 

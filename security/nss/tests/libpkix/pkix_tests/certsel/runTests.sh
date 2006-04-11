@@ -57,7 +57,7 @@ ParseArgs $*
 
 RunTests <<EOF
 test_comcertselparams ${NIST} NIST-Test-Files-Used
-test_certselector ${NIST} NIST-Test-Files-Used ${curdir}/../../pkix_pl_tests/module/rev_data
+test_certselector ${NIST} NIST-Test-Files-Used ../../pkix_pl_tests/module/rev_data
 EOF
 
 totalErrors=$?

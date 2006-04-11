@@ -99,16 +99,16 @@ LOGGING=0
 SOCKETTRACE=0
 
 RunTests <<EOF
-test_basicchecker ${curdir}/../../certs
-test_basicconstraintschecker "Two-Certificates-Chain" ENE ${curdir}/../../certs hy2hy-bc0 hy2hc-bc
-test_basicconstraintschecker "Three-Certificates-Chain" ENE ${curdir}/../../certs hy2hy-bc0 hy2hy-bc0 hy2hc-bc
-test_basicconstraintschecker "Four-Certificates-Chain-with-error" EE ${curdir}/../../certs hy2hy-bc0 hy2hy-bc0 hy2hc-bc hy2hc-bc
-test_validatechain_bc  ${curdir}/../../certs/hy2hy-bc0 ${curdir}/../../certs/hy2hc-bc
-test_policychecker NIST-Test-Files-Used ENE $NIST ${curdir}/../../certs
+test_basicchecker ../../certs
+test_basicconstraintschecker "Two-Certificates-Chain" ENE ../../certs hy2hy-bc0 hy2hc-bc
+test_basicconstraintschecker "Three-Certificates-Chain" ENE ../../certs hy2hy-bc0 hy2hy-bc0 hy2hc-bc
+test_basicconstraintschecker "Four-Certificates-Chain-with-error" EE ../../certs hy2hy-bc0 hy2hy-bc0 hy2hc-bc hy2hc-bc
+test_validatechain_bc  ../../certs/hy2hy-bc0 ../../certs/hy2hc-bc
+test_policychecker NIST-Test-Files-Used ENE $NIST ../../certs
 test_defaultcrlchecker2stores NIST-Test.4.4.7-with-multiple-CRL-stores ENE $NIST ${HOSTDIR}/rev_data/multiple_certstores/store1 ${HOSTDIR}/rev_data/multiple_certstores/store2 TrustAnchorRootCertificate.crt TwoCRLsCACert.crt ValidTwoCRLsTest7EE.crt
 test_buildchain_resourcelimits ${LDAP} NIST-Test.4.5.1 ENE $NIST ValidBasicSelfIssuedOldWithNewTest1EE.crt BasicSelfIssuedNewKeyOldWithNewCACert.crt BasicSelfIssuedNewKeyCACert.crt TrustAnchorRootCertificate.crt
-test_customcrlchecker "CRL-test-without-revocation" ENE ${curdir}/rev_data/crlchecker sci2sci.crt sci2phy.crt phy2prof.crt prof2test.crt
-test_customcrlchecker "CRL-test-with-revocation-reasoncode" EE ${curdir}/rev_data/crlchecker sci2sci.crt sci2chem.crt chem2prof.crt prof2test.crt
+test_customcrlchecker "CRL-test-without-revocation" ENE rev_data/crlchecker sci2sci.crt sci2phy.crt phy2prof.crt prof2test.crt
+test_customcrlchecker "CRL-test-with-revocation-reasoncode" EE rev_data/crlchecker sci2sci.crt sci2chem.crt chem2prof.crt prof2test.crt
 test_subjaltnamechecker "NIST-Test-Files-Used" "0R:testcertificates.gov+R:Test23EE@testcertificates.gov" ENE $NIST TrustAnchorRootCertificate.crt nameConstraintsRFC822CA2Cert.crt ValidRFC822nameConstraintsTest23EE.crt
 test_subjaltnamechecker "NIST-Test-Files-Used" "0R:TEST.gov" EE $NIST TrustAnchorRootCertificate.crt nameConstraintsRFC822CA2Cert.crt ValidRFC822nameConstraintsTest23EE.crt
 test_subjaltnamechecker "NIST-Test-Files-Used" "0N:testcertificates.gov+N:testserver.testcertificates.gov" ENE $NIST TrustAnchorRootCertificate.crt nameConstraintsDNS1CACert.crt ValidDNSnameConstraintsTest30EE.crt
@@ -235,98 +235,98 @@ test_validatechain "NIST-Test.4.7.2" EE $NIST TrustAnchorRootCertificate.crt key
 test_validatechain "NIST-Test.4.7.3" ENE $NIST TrustAnchorRootCertificate.crt keyUsageNotCriticalCACert.crt ValidkeyUsageNotCriticalTest3EE.crt
 test_validatechain "NIST-Test.4.7.4" EE $NIST TrustAnchorRootCertificate.crt keyUsageCriticalcRLSignFalseCACert.crt InvalidkeyUsageCriticalcRLSignFalseTest4EE.crt
 test_validatechain "NIST-Test.4.7.5" EE $NIST TrustAnchorRootCertificate.crt  keyUsageNotCriticalcRLSignFalseCACert.crt InvalidkeyUsageNotCriticalcRLSignFalseTest5EE.crt
-test_policychecker NIST-Test.4.8.1.1-1 ENE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt GoodCACert.crt ValidCertificatePathTest1EE.crt
-test_policychecker NIST-Test.4.8.1.1-2 ENE $NIST ${curdir}/../../certs "{2.5.29.32.0}" E TrustAnchorRootCertificate.crt GoodCACert.crt ValidCertificatePathTest1EE.crt
-test_policychecker NIST-Test.4.8.1.2 ENE $NIST ${curdir}/../../certs "{2.16.840.1.101.3.2.1.48.1}" E TrustAnchorRootCertificate.crt GoodCACert.crt ValidCertificatePathTest1EE.crt
-test_policychecker NIST-Test.4.8.1.3 EE $NIST ${curdir}/../../certs "{2.16.840.1.101.3.2.1.48.2}" E TrustAnchorRootCertificate.crt GoodCACert.crt ValidCertificatePathTest1EE.crt
-test_policychecker NIST-Test.4.8.1.4 ENE $NIST ${curdir}/../../certs "{2.16.840.1.101.3.2.1.48.1:2.16.840.1.101.3.2.1.48.2}" E TrustAnchorRootCertificate.crt GoodCACert.crt ValidCertificatePathTest1EE.crt
-test_policychecker NIST-Test.4.8.2.1 ENE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt NoPoliciesCACert.crt AllCertificatesNoPoliciesTest2EE.crt
-test_policychecker NIST-Test.4.8.2.2 EE $NIST ${curdir}/../../certs "{2.5.29.32.0}" E TrustAnchorRootCertificate.crt NoPoliciesCACert.crt AllCertificatesNoPoliciesTest2EE.crt
-test_policychecker NIST-Test.4.8.3.1 ENE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt GoodCACert.crt PoliciesP2subCACert.crt DifferentPoliciesTest3EE.crt
-test_policychecker NIST-Test.4.8.3.2 EE $NIST ${curdir}/../../certs "{2.5.29.32.0}" E TrustAnchorRootCertificate.crt GoodCACert.crt PoliciesP2subCACert.crt DifferentPoliciesTest3EE.crt
-test_policychecker NIST-Test.4.8.3.3 EE $NIST ${curdir}/../../certs "{2.16.840.1.101.3.2.1.48.1:2.16.840.1.101.3.2.1.48.2}" E TrustAnchorRootCertificate.crt GoodCACert.crt PoliciesP2subCACert.crt DifferentPoliciesTest3EE.crt
-test_policychecker NIST-Test.4.8.4 EE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt GoodCACert.crt GoodsubCACert.crt DifferentPoliciesTest4EE.crt
-test_policychecker NIST-Test.4.8.5 EE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt GoodCACert.crt PoliciesP2subCA2Cert.crt DifferentPoliciesTest5EE.crt
-test_policychecker NIST-Test.4.8.6.1 ENE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt PoliciesP1234CACert.crt PoliciesP1234subCAP123Cert.crt PoliciesP1234subsubCAP123P12Cert.crt OverlappingPoliciesTest6EE.crt
-test_policychecker NIST-Test.4.8.6.2 ENE $NIST ${curdir}/../../certs "{2.16.840.1.101.3.2.1.48.1}" TrustAnchorRootCertificate.crt PoliciesP1234CACert.crt PoliciesP1234subCAP123Cert.crt PoliciesP1234subsubCAP123P12Cert.crt OverlappingPoliciesTest6EE.crt
-test_policychecker NIST-Test.4.8.6.3 EE $NIST ${curdir}/../../certs "{2.16.840.1.101.3.2.1.48.2}" TrustAnchorRootCertificate.crt PoliciesP1234CACert.crt PoliciesP1234subCAP123Cert.crt PoliciesP1234subsubCAP123P12Cert.crt OverlappingPoliciesTest6EE.crt
-test_policychecker NIST-Test.4.8.7 EE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt PoliciesP123CACert.crt PoliciesP123subCAP12Cert.crt PoliciesP123subsubCAP12P1Cert.crt DifferentPoliciesTest7EE.crt
-test_policychecker NIST-Test.4.8.8 EE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt PoliciesP12CACert.crt PoliciesP12subCAP1Cert.crt PoliciesP12subsubCAP1P2Cert.crt DifferentPoliciesTest8EE.crt
-test_policychecker NIST-Test.4.8.9 EE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt PoliciesP123CACert.crt PoliciesP123subCAP12Cert.crt PoliciesP123subsubCAP12P2Cert.crt PoliciesP123subsubsubCAP12P2P1Cert.crt
-test_policychecker NIST-Test.4.8.10.1 ENE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt PoliciesP12CACert.crt AllCertificatesSamePoliciesTest10EE.crt
-test_policychecker NIST-Test.4.8.10.2 ENE $NIST ${curdir}/../../certs "{2.16.840.1.101.3.2.1.48.1}" TrustAnchorRootCertificate.crt PoliciesP12CACert.crt AllCertificatesSamePoliciesTest10EE.crt
-test_policychecker NIST-Test.4.8.10.3 ENE $NIST ${curdir}/../../certs "{2.16.840.1.101.3.2.1.48.2}" TrustAnchorRootCertificate.crt PoliciesP12CACert.crt AllCertificatesSamePoliciesTest10EE.crt
-test_policychecker NIST-Test.4.8.11.1 ENE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt anyPolicyCACert.crt AllCertificatesanyPolicyTest11EE.crt
-test_policychecker NIST-Test.4.8.11.2 ENE $NIST ${curdir}/../../certs "{2.16.840.1.101.3.2.1.48.1}" TrustAnchorRootCertificate.crt anyPolicyCACert.crt AllCertificatesanyPolicyTest11EE.crt
-test_policychecker NIST-Test.4.8.12 EE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt PoliciesP3CACert.crt DifferentPoliciesTest12EE.crt
-test_policychecker NIST-Test.4.8.13.1 ENE $NIST ${curdir}/../../certs "{2.16.840.1.101.3.2.1.48.1}" TrustAnchorRootCertificate.crt PoliciesP123CACert.crt AllCertificatesSamePoliciesTest13EE.crt
-test_policychecker NIST-Test.4.8.13.2 ENE $NIST ${curdir}/../../certs "{2.16.840.1.101.3.2.1.48.2}" TrustAnchorRootCertificate.crt PoliciesP123CACert.crt AllCertificatesSamePoliciesTest13EE.crt
-test_policychecker NIST-Test.4.8.13.3 ENE $NIST ${curdir}/../../certs "{2.16.840.1.101.3.2.1.48.3}" TrustAnchorRootCertificate.crt PoliciesP123CACert.crt AllCertificatesSamePoliciesTest13EE.crt
-test_policychecker NIST-Test.4.8.14.1 ENE $NIST ${curdir}/../../certs "{2.16.840.1.101.3.2.1.48.1}" TrustAnchorRootCertificate.crt anyPolicyCACert.crt AnyPolicyTest14EE.crt
-test_policychecker NIST-Test.4.8.14.2 EE $NIST ${curdir}/../../certs "{2.16.840.1.101.3.2.1.48.2}" E TrustAnchorRootCertificate.crt anyPolicyCACert.crt AnyPolicyTest14EE.crt
-test_policychecker NIST-Test.4.8.15.1 ENE $NIST ${curdir}/../../certs "{2.16.840.1.101.3.2.1.48.1}" E TrustAnchorRootCertificate.crt UserNoticeQualifierTest15EE.crt
-test_policychecker NIST-Test.4.8.15.2 EE $NIST ${curdir}/../../certs "{2.16.840.1.101.3.2.1.48.2}" E TrustAnchorRootCertificate.crt UserNoticeQualifierTest15EE.crt
-test_policychecker NIST-Test.4.8.16.1 ENE $NIST ${curdir}/../../certs "{2.16.840.1.101.3.2.1.48.1}" E TrustAnchorRootCertificate.crt GoodCACert.crt UserNoticeQualifierTest16EE.crt
-test_policychecker NIST-Test.4.8.16.2 EE $NIST ${curdir}/../../certs "{2.16.840.1.101.3.2.1.48.2}" E TrustAnchorRootCertificate.crt GoodCACert.crt UserNoticeQualifierTest16EE.crt
-test_policychecker NIST-Test.4.8.17 ENE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt GoodCACert.crt UserNoticeQualifierTest17EE.crt
-test_policychecker NIST-Test.4.8.18.1 ENE $NIST ${curdir}/../../certs "{2.16.840.1.101.3.2.1.48.1}" TrustAnchorRootCertificate.crt PoliciesP12CACert.crt UserNoticeQualifierTest18EE.crt
-test_policychecker NIST-Test.4.8.18.2 ENE $NIST ${curdir}/../../certs "{2.16.840.1.101.3.2.1.48.2}" TrustAnchorRootCertificate.crt PoliciesP12CACert.crt UserNoticeQualifierTest18EE.crt
-test_policychecker NIST-Test.4.8.19 ENE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt UserNoticeQualifierTest19EE.crt
-test_policychecker NIST-Test.4.8.20 ENE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt GoodCACert.crt CPSPointerQualifierTest20EE.crt
-test_policychecker NIST-Test.4.9.1 ENE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt requireExplicitPolicy10CACert.crt requireExplicitPolicy10subCACert.crt requireExplicitPolicy10subsubCACert.crt requireExplicitPolicy10subsubsubCACert.crt ValidrequireExplicitPolicyTest1EE.crt
-test_policychecker NIST-Test.4.9.2 ENE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt requireExplicitPolicy5CACert.crt requireExplicitPolicy5subCACert.crt requireExplicitPolicy5subsubCACert.crt requireExplicitPolicy5subsubsubCACert.crt ValidrequireExplicitPolicyTest2EE.crt
-test_policychecker NIST-Test.4.9.3 EE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt requireExplicitPolicy4CACert.crt requireExplicitPolicy4subCACert.crt requireExplicitPolicy4subsubCACert.crt requireExplicitPolicy4subsubsubCACert.crt InvalidrequireExplicitPolicyTest3EE.crt
-test_policychecker NIST-Test.4.9.4 ENE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt requireExplicitPolicy0CACert.crt requireExplicitPolicy0subCACert.crt requireExplicitPolicy0subsubCACert.crt requireExplicitPolicy0subsubsubCACert.crt ValidrequireExplicitPolicyTest4EE.crt
-test_policychecker NIST-Test.4.9.5 EE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt requireExplicitPolicy7CACert.crt requireExplicitPolicy7subCARE2Cert.crt requireExplicitPolicy7subsubCARE2RE4Cert.crt requireExplicitPolicy7subsubsubCARE2RE4Cert.crt InvalidrequireExplicitPolicyTest5EE.crt
-test_policychecker NIST-Test.4.9.6 ENE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt requireExplicitPolicy2CACert.crt requireExplicitPolicy2SelfIssuedCACert.crt ValidSelfIssuedrequireExplicitPolicyTest6EE.crt
-test_policychecker NIST-Test.4.9.7 EE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt requireExplicitPolicy2CACert.crt requireExplicitPolicy2SelfIssuedCACert.crt requireExplicitPolicy2subCACert.crt InvalidSelfIssuedrequireExplicitPolicyTest7EE.crt
-test_policychecker NIST-Test.4.9.8 EE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt requireExplicitPolicy2CACert.crt requireExplicitPolicy2SelfIssuedCACert.crt requireExplicitPolicy2subCACert.crt requireExplicitPolicy2SelfIssuedsubCACert.crt InvalidSelfIssuedrequireExplicitPolicyTest8EE.crt
-test_policychecker NIST-Test.4.10.1.1 ENE $NIST ${curdir}/../../certs "{2.16.840.1.101.3.2.1.48.1}" TrustAnchorRootCertificate.crt Mapping1to2CACert.crt ValidPolicyMappingTest1EE.crt
-test_policychecker NIST-Test.4.10.1.2 EE $NIST ${curdir}/../../certs "{2.16.840.1.101.3.2.1.48.2}" TrustAnchorRootCertificate.crt Mapping1to2CACert.crt ValidPolicyMappingTest1EE.crt
-test_policychecker NIST-Test.4.10.1.3 EE $NIST ${curdir}/../../certs "{2.5.29.32.0}" P TrustAnchorRootCertificate.crt Mapping1to2CACert.crt ValidPolicyMappingTest1EE.crt
-test_policychecker NIST-Test.4.10.2.1 EE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt Mapping1to2CACert.crt InvalidPolicyMappingTest2EE.crt
-test_policychecker NIST-Test.4.10.2.2 EE $NIST ${curdir}/../../certs "{2.5.29.32.0}" P TrustAnchorRootCertificate.crt Mapping1to2CACert.crt InvalidPolicyMappingTest2EE.crt
-test_policychecker NIST-Test.4.10.3.1 EE $NIST ${curdir}/../../certs "{2.16.840.1.101.3.2.1.48.1}" TrustAnchorRootCertificate.crt P12Mapping1to3CACert.crt P12Mapping1to3subCACert.crt P12Mapping1to3subsubCACert.crt ValidPolicyMappingTest3EE.crt
-test_policychecker NIST-Test.4.10.3.2 ENE $NIST ${curdir}/../../certs "{2.16.840.1.101.3.2.1.48.2}" TrustAnchorRootCertificate.crt P12Mapping1to3CACert.crt P12Mapping1to3subCACert.crt P12Mapping1to3subsubCACert.crt ValidPolicyMappingTest3EE.crt
-test_policychecker NIST-Test.4.10.4 EE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt P12Mapping1to3CACert.crt P12Mapping1to3subCACert.crt P12Mapping1to3subsubCACert.crt InvalidPolicyMappingTest4EE.crt
-test_policychecker NIST-Test.4.10.5.1 ENE $NIST ${curdir}/../../certs "{2.16.840.1.101.3.2.1.48.1}" TrustAnchorRootCertificate.crt P1Mapping1to234CACert.crt P1Mapping1to234subCACert.crt ValidPolicyMappingTest5EE.crt
-test_policychecker NIST-Test.4.10.5.2 EE $NIST ${curdir}/../../certs "{2.16.840.1.101.3.2.1.48.6}" TrustAnchorRootCertificate.crt P1Mapping1to234CACert.crt P1Mapping1to234subCACert.crt ValidPolicyMappingTest5EE.crt
-test_policychecker NIST-Test.4.10.6.1 ENE $NIST ${curdir}/../../certs "{2.16.840.1.101.3.2.1.48.1}" TrustAnchorRootCertificate.crt P1Mapping1to234CACert.crt P1Mapping1to234subCACert.crt ValidPolicyMappingTest6EE.crt
-test_policychecker NIST-Test.4.10.6.2 EE $NIST ${curdir}/../../certs "{2.16.840.1.101.3.2.1.48.6}" TrustAnchorRootCertificate.crt P1Mapping1to234CACert.crt P1Mapping1to234subCACert.crt ValidPolicyMappingTest6EE.crt TrustAnchorRootCertificate.crt
-test_policychecker NIST-Test.4.10.7.1 ENE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt MappingFromanyPolicyCACert.crt
-test_policychecker NIST-Test.4.10.7.2 EE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt MappingFromanyPolicyCACert.crt InvalidMappingFromanyPolicyTest7EE.crt
-test_policychecker NIST-Test.4.10.8.1 ENE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt MappingToanyPolicyCACert.crt
-test_policychecker NIST-Test.4.10.8.2 EE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt MappingToanyPolicyCACert.crt InvalidMappingToanyPolicyTest8EE.crt
-test_policychecker NIST-Test.4.10.9 ENE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt PanyPolicyMapping1to2CACert.crt ValidPolicyMappingTest9EE.crt
-test_policychecker NIST-Test.4.10.10 EE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt GoodCACert.crt GoodsubCAPanyPolicyMapping1to2CACert.crt InvalidPolicyMappingTest10EE.crt
-test_policychecker NIST-Test.4.10.11 ENE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt GoodCACert.crt GoodsubCAPanyPolicyMapping1to2CACert.crt ValidPolicyMappingTest11EE.crt
-test_policychecker NIST-Test.4.10.12.1 ENE $NIST ${curdir}/../../certs "{2.16.840.1.101.3.2.1.48.1}" TrustAnchorRootCertificate.crt P12Mapping1to3CACert.crt ValidPolicyMappingTest12EE.crt
-test_policychecker NIST-Test.4.10.12.2 ENE $NIST ${curdir}/../../certs "{2.16.840.1.101.3.2.1.48.2}" TrustAnchorRootCertificate.crt P12Mapping1to3CACert.crt ValidPolicyMappingTest12EE.crt
-test_policychecker NIST-Test.4.10.13 ENE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt P1anyPolicyMapping1to2CACert.crt ValidPolicyMappingTest13EE.crt
-test_policychecker NIST-Test.4.10.14 ENE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt P1anyPolicyMapping1to2CACert.crt ValidPolicyMappingTest14EE.crt
-test_policychecker NIST-Test.4.11.1.1 ENE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt inhibitPolicyMapping0CACert.crt inhibitPolicyMapping0subCACert.crt
-test_policychecker NIST-Test.4.11.1.2 EE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt inhibitPolicyMapping0CACert.crt inhibitPolicyMapping0subCACert.crt InvalidinhibitPolicyMappingTest1EE.crt
-test_policychecker NIST-Test.4.11.2 ENE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt inhibitPolicyMapping1P12CACert.crt inhibitPolicyMapping1P12subCACert.crt ValidinhibitPolicyMappingTest2EE.crt
-test_policychecker NIST-Test.4.11.3 EE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt inhibitPolicyMapping1P12CACert.crt inhibitPolicyMapping1P12subCACert.crt inhibitPolicyMapping1P12subsubCACert.crt InvalidinhibitPolicyMappingTest3EE.crt
-test_policychecker NIST-Test.4.11.4 ENE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt inhibitPolicyMapping1P12CACert.crt inhibitPolicyMapping1P12subCACert.crt inhibitPolicyMapping1P12subsubCACert.crt ValidinhibitPolicyMappingTest4EE.crt
-test_policychecker NIST-Test.4.11.5 EE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt inhibitPolicyMapping5CACert.crt inhibitPolicyMapping5subCACert.crt inhibitPolicyMapping5subsubCACert.crt inhibitPolicyMapping5subsubsubCACert.crt InvalidinhibitPolicyMappingTest5EE.crt
-test_policychecker NIST-Test.4.11.6 EE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt inhibitPolicyMapping1P12CACert.crt inhibitPolicyMapping1P12subCAIPM5Cert.crt inhibitPolicyMapping1P12subsubCAIPM5Cert.crt InvalidinhibitPolicyMappingTest6EE.crt
-test_policychecker NIST-Test.4.11.7 ENE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt inhibitPolicyMapping1P1CACert.crt inhibitPolicyMapping1P1SelfIssuedCACert.crt inhibitPolicyMapping1P1subCACert.crt ValidSelfIssuedinhibitPolicyMappingTest7EE.crt
-test_policychecker NIST-Test.4.11.8 EE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt inhibitPolicyMapping1P1CACert.crt inhibitPolicyMapping1P1SelfIssuedCACert.crt inhibitPolicyMapping1P1subCACert.crt inhibitPolicyMapping1P1subsubCACert.crt InvalidSelfIssuedinhibitPolicyMappingTest8EE.crt
-test_policychecker NIST-Test.4.11.9 EE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt inhibitPolicyMapping1P1CACert.crt inhibitPolicyMapping1P1SelfIssuedCACert.crt inhibitPolicyMapping1P1subCACert.crt inhibitPolicyMapping1P1subsubCACert.crt InvalidSelfIssuedinhibitPolicyMappingTest9EE.crt
-test_policychecker NIST-Test.4.11.10 EE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt inhibitPolicyMapping1P1CACert.crt inhibitPolicyMapping1P1SelfIssuedCACert.crt inhibitPolicyMapping1P1subCACert.crt inhibitPolicyMapping1P1SelfIssuedsubCACert.crt InvalidSelfIssuedinhibitPolicyMappingTest10EE.crt
-test_policychecker NIST-Test.4.11.11 EE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt inhibitPolicyMapping1P1CACert.crt inhibitPolicyMapping1P1SelfIssuedCACert.crt inhibitPolicyMapping1P1subCACert.crt inhibitPolicyMapping1P1SelfIssuedsubCACert.crt InvalidSelfIssuedinhibitPolicyMappingTest11EE.crt
-test_policychecker NIST-Test.4.12.1 EE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt inhibitAnyPolicy0CACert.crt InvalidinhibitAnyPolicyTest1EE.crt
-test_policychecker NIST-Test.4.12.2 ENE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt inhibitAnyPolicy0CACert.crt ValidinhibitAnyPolicyTest2EE.crt
-test_policychecker NIST-Test.4.12.3.1 ENE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt inhibitAnyPolicy1CACert.crt inhibitAnyPolicy1subCA1Cert.crt inhibitAnyPolicyTest3EE.crt
-test_policychecker NIST-Test.4.12.3.2 EE $NIST ${curdir}/../../certs "{2.5.29.32.0}" A TrustAnchorRootCertificate.crt inhibitAnyPolicy1CACert.crt inhibitAnyPolicy1subCA1Cert.crt inhibitAnyPolicyTest3EE.crt
-test_policychecker NIST-Test.4.12.4 EE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt inhibitAnyPolicy1CACert.crt inhibitAnyPolicy1subCA1Cert.crt InvalidinhibitAnyPolicyTest4EE.crt
-test_policychecker NIST-Test.4.12.5 EE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt inhibitAnyPolicy5CACert.crt inhibitAnyPolicy5subCACert.crt inhibitAnyPolicy5subsubCACert.crt InvalidinhibitAnyPolicyTest5EE.crt
-test_policychecker NIST-Test.4.12.6 EE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt inhibitAnyPolicy1CACert.crt inhibitAnyPolicy1subCAIAP5Cert.crt InvalidinhibitAnyPolicyTest6EE.crt
-test_policychecker NIST-Test.4.12.7 ENE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt inhibitAnyPolicy1CACert.crt inhibitAnyPolicy1SelfIssuedCACert.crt inhibitAnyPolicy1subCA2Cert.crt ValidSelfIssuedinhibitAnyPolicyTest7EE.crt
-test_policychecker NIST-Test.4.12.8 EE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt inhibitAnyPolicy1CACert.crt inhibitAnyPolicy1SelfIssuedCACert.crt inhibitAnyPolicy1subCA2Cert.crt inhibitAnyPolicy1subsubCA2Cert.crt InvalidSelfIssuedinhibitAnyPolicyTest8EE.crt
-test_policychecker NIST-Test.4.12.9 ENE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt inhibitAnyPolicy1CACert.crt inhibitAnyPolicy1SelfIssuedCACert.crt inhibitAnyPolicy1subCA2Cert.crt inhibitAnyPolicy1SelfIssuedsubCA2Cert.crt ValidSelfIssuedinhibitAnyPolicyTest9EE.crt
-test_policychecker NIST-Test.4.12.10 EE $NIST ${curdir}/../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt inhibitAnyPolicy1CACert.crt inhibitAnyPolicy1SelfIssuedCACert.crt inhibitAnyPolicy1subCA2Cert.crt InvalidSelfIssuedinhibitAnyPolicyTest10EE.crt
+test_policychecker NIST-Test.4.8.1.1-1 ENE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt GoodCACert.crt ValidCertificatePathTest1EE.crt
+test_policychecker NIST-Test.4.8.1.1-2 ENE $NIST ../../certs "{2.5.29.32.0}" E TrustAnchorRootCertificate.crt GoodCACert.crt ValidCertificatePathTest1EE.crt
+test_policychecker NIST-Test.4.8.1.2 ENE $NIST ../../certs "{2.16.840.1.101.3.2.1.48.1}" E TrustAnchorRootCertificate.crt GoodCACert.crt ValidCertificatePathTest1EE.crt
+test_policychecker NIST-Test.4.8.1.3 EE $NIST ../../certs "{2.16.840.1.101.3.2.1.48.2}" E TrustAnchorRootCertificate.crt GoodCACert.crt ValidCertificatePathTest1EE.crt
+test_policychecker NIST-Test.4.8.1.4 ENE $NIST ../../certs "{2.16.840.1.101.3.2.1.48.1:2.16.840.1.101.3.2.1.48.2}" E TrustAnchorRootCertificate.crt GoodCACert.crt ValidCertificatePathTest1EE.crt
+test_policychecker NIST-Test.4.8.2.1 ENE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt NoPoliciesCACert.crt AllCertificatesNoPoliciesTest2EE.crt
+test_policychecker NIST-Test.4.8.2.2 EE $NIST ../../certs "{2.5.29.32.0}" E TrustAnchorRootCertificate.crt NoPoliciesCACert.crt AllCertificatesNoPoliciesTest2EE.crt
+test_policychecker NIST-Test.4.8.3.1 ENE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt GoodCACert.crt PoliciesP2subCACert.crt DifferentPoliciesTest3EE.crt
+test_policychecker NIST-Test.4.8.3.2 EE $NIST ../../certs "{2.5.29.32.0}" E TrustAnchorRootCertificate.crt GoodCACert.crt PoliciesP2subCACert.crt DifferentPoliciesTest3EE.crt
+test_policychecker NIST-Test.4.8.3.3 EE $NIST ../../certs "{2.16.840.1.101.3.2.1.48.1:2.16.840.1.101.3.2.1.48.2}" E TrustAnchorRootCertificate.crt GoodCACert.crt PoliciesP2subCACert.crt DifferentPoliciesTest3EE.crt
+test_policychecker NIST-Test.4.8.4 EE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt GoodCACert.crt GoodsubCACert.crt DifferentPoliciesTest4EE.crt
+test_policychecker NIST-Test.4.8.5 EE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt GoodCACert.crt PoliciesP2subCA2Cert.crt DifferentPoliciesTest5EE.crt
+test_policychecker NIST-Test.4.8.6.1 ENE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt PoliciesP1234CACert.crt PoliciesP1234subCAP123Cert.crt PoliciesP1234subsubCAP123P12Cert.crt OverlappingPoliciesTest6EE.crt
+test_policychecker NIST-Test.4.8.6.2 ENE $NIST ../../certs "{2.16.840.1.101.3.2.1.48.1}" TrustAnchorRootCertificate.crt PoliciesP1234CACert.crt PoliciesP1234subCAP123Cert.crt PoliciesP1234subsubCAP123P12Cert.crt OverlappingPoliciesTest6EE.crt
+test_policychecker NIST-Test.4.8.6.3 EE $NIST ../../certs "{2.16.840.1.101.3.2.1.48.2}" TrustAnchorRootCertificate.crt PoliciesP1234CACert.crt PoliciesP1234subCAP123Cert.crt PoliciesP1234subsubCAP123P12Cert.crt OverlappingPoliciesTest6EE.crt
+test_policychecker NIST-Test.4.8.7 EE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt PoliciesP123CACert.crt PoliciesP123subCAP12Cert.crt PoliciesP123subsubCAP12P1Cert.crt DifferentPoliciesTest7EE.crt
+test_policychecker NIST-Test.4.8.8 EE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt PoliciesP12CACert.crt PoliciesP12subCAP1Cert.crt PoliciesP12subsubCAP1P2Cert.crt DifferentPoliciesTest8EE.crt
+test_policychecker NIST-Test.4.8.9 EE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt PoliciesP123CACert.crt PoliciesP123subCAP12Cert.crt PoliciesP123subsubCAP12P2Cert.crt PoliciesP123subsubsubCAP12P2P1Cert.crt
+test_policychecker NIST-Test.4.8.10.1 ENE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt PoliciesP12CACert.crt AllCertificatesSamePoliciesTest10EE.crt
+test_policychecker NIST-Test.4.8.10.2 ENE $NIST ../../certs "{2.16.840.1.101.3.2.1.48.1}" TrustAnchorRootCertificate.crt PoliciesP12CACert.crt AllCertificatesSamePoliciesTest10EE.crt
+test_policychecker NIST-Test.4.8.10.3 ENE $NIST ../../certs "{2.16.840.1.101.3.2.1.48.2}" TrustAnchorRootCertificate.crt PoliciesP12CACert.crt AllCertificatesSamePoliciesTest10EE.crt
+test_policychecker NIST-Test.4.8.11.1 ENE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt anyPolicyCACert.crt AllCertificatesanyPolicyTest11EE.crt
+test_policychecker NIST-Test.4.8.11.2 ENE $NIST ../../certs "{2.16.840.1.101.3.2.1.48.1}" TrustAnchorRootCertificate.crt anyPolicyCACert.crt AllCertificatesanyPolicyTest11EE.crt
+test_policychecker NIST-Test.4.8.12 EE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt PoliciesP3CACert.crt DifferentPoliciesTest12EE.crt
+test_policychecker NIST-Test.4.8.13.1 ENE $NIST ../../certs "{2.16.840.1.101.3.2.1.48.1}" TrustAnchorRootCertificate.crt PoliciesP123CACert.crt AllCertificatesSamePoliciesTest13EE.crt
+test_policychecker NIST-Test.4.8.13.2 ENE $NIST ../../certs "{2.16.840.1.101.3.2.1.48.2}" TrustAnchorRootCertificate.crt PoliciesP123CACert.crt AllCertificatesSamePoliciesTest13EE.crt
+test_policychecker NIST-Test.4.8.13.3 ENE $NIST ../../certs "{2.16.840.1.101.3.2.1.48.3}" TrustAnchorRootCertificate.crt PoliciesP123CACert.crt AllCertificatesSamePoliciesTest13EE.crt
+test_policychecker NIST-Test.4.8.14.1 ENE $NIST ../../certs "{2.16.840.1.101.3.2.1.48.1}" TrustAnchorRootCertificate.crt anyPolicyCACert.crt AnyPolicyTest14EE.crt
+test_policychecker NIST-Test.4.8.14.2 EE $NIST ../../certs "{2.16.840.1.101.3.2.1.48.2}" E TrustAnchorRootCertificate.crt anyPolicyCACert.crt AnyPolicyTest14EE.crt
+test_policychecker NIST-Test.4.8.15.1 ENE $NIST ../../certs "{2.16.840.1.101.3.2.1.48.1}" E TrustAnchorRootCertificate.crt UserNoticeQualifierTest15EE.crt
+test_policychecker NIST-Test.4.8.15.2 EE $NIST ../../certs "{2.16.840.1.101.3.2.1.48.2}" E TrustAnchorRootCertificate.crt UserNoticeQualifierTest15EE.crt
+test_policychecker NIST-Test.4.8.16.1 ENE $NIST ../../certs "{2.16.840.1.101.3.2.1.48.1}" E TrustAnchorRootCertificate.crt GoodCACert.crt UserNoticeQualifierTest16EE.crt
+test_policychecker NIST-Test.4.8.16.2 EE $NIST ../../certs "{2.16.840.1.101.3.2.1.48.2}" E TrustAnchorRootCertificate.crt GoodCACert.crt UserNoticeQualifierTest16EE.crt
+test_policychecker NIST-Test.4.8.17 ENE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt GoodCACert.crt UserNoticeQualifierTest17EE.crt
+test_policychecker NIST-Test.4.8.18.1 ENE $NIST ../../certs "{2.16.840.1.101.3.2.1.48.1}" TrustAnchorRootCertificate.crt PoliciesP12CACert.crt UserNoticeQualifierTest18EE.crt
+test_policychecker NIST-Test.4.8.18.2 ENE $NIST ../../certs "{2.16.840.1.101.3.2.1.48.2}" TrustAnchorRootCertificate.crt PoliciesP12CACert.crt UserNoticeQualifierTest18EE.crt
+test_policychecker NIST-Test.4.8.19 ENE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt UserNoticeQualifierTest19EE.crt
+test_policychecker NIST-Test.4.8.20 ENE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt GoodCACert.crt CPSPointerQualifierTest20EE.crt
+test_policychecker NIST-Test.4.9.1 ENE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt requireExplicitPolicy10CACert.crt requireExplicitPolicy10subCACert.crt requireExplicitPolicy10subsubCACert.crt requireExplicitPolicy10subsubsubCACert.crt ValidrequireExplicitPolicyTest1EE.crt
+test_policychecker NIST-Test.4.9.2 ENE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt requireExplicitPolicy5CACert.crt requireExplicitPolicy5subCACert.crt requireExplicitPolicy5subsubCACert.crt requireExplicitPolicy5subsubsubCACert.crt ValidrequireExplicitPolicyTest2EE.crt
+test_policychecker NIST-Test.4.9.3 EE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt requireExplicitPolicy4CACert.crt requireExplicitPolicy4subCACert.crt requireExplicitPolicy4subsubCACert.crt requireExplicitPolicy4subsubsubCACert.crt InvalidrequireExplicitPolicyTest3EE.crt
+test_policychecker NIST-Test.4.9.4 ENE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt requireExplicitPolicy0CACert.crt requireExplicitPolicy0subCACert.crt requireExplicitPolicy0subsubCACert.crt requireExplicitPolicy0subsubsubCACert.crt ValidrequireExplicitPolicyTest4EE.crt
+test_policychecker NIST-Test.4.9.5 EE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt requireExplicitPolicy7CACert.crt requireExplicitPolicy7subCARE2Cert.crt requireExplicitPolicy7subsubCARE2RE4Cert.crt requireExplicitPolicy7subsubsubCARE2RE4Cert.crt InvalidrequireExplicitPolicyTest5EE.crt
+test_policychecker NIST-Test.4.9.6 ENE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt requireExplicitPolicy2CACert.crt requireExplicitPolicy2SelfIssuedCACert.crt ValidSelfIssuedrequireExplicitPolicyTest6EE.crt
+test_policychecker NIST-Test.4.9.7 EE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt requireExplicitPolicy2CACert.crt requireExplicitPolicy2SelfIssuedCACert.crt requireExplicitPolicy2subCACert.crt InvalidSelfIssuedrequireExplicitPolicyTest7EE.crt
+test_policychecker NIST-Test.4.9.8 EE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt requireExplicitPolicy2CACert.crt requireExplicitPolicy2SelfIssuedCACert.crt requireExplicitPolicy2subCACert.crt requireExplicitPolicy2SelfIssuedsubCACert.crt InvalidSelfIssuedrequireExplicitPolicyTest8EE.crt
+test_policychecker NIST-Test.4.10.1.1 ENE $NIST ../../certs "{2.16.840.1.101.3.2.1.48.1}" TrustAnchorRootCertificate.crt Mapping1to2CACert.crt ValidPolicyMappingTest1EE.crt
+test_policychecker NIST-Test.4.10.1.2 EE $NIST ../../certs "{2.16.840.1.101.3.2.1.48.2}" TrustAnchorRootCertificate.crt Mapping1to2CACert.crt ValidPolicyMappingTest1EE.crt
+test_policychecker NIST-Test.4.10.1.3 EE $NIST ../../certs "{2.5.29.32.0}" P TrustAnchorRootCertificate.crt Mapping1to2CACert.crt ValidPolicyMappingTest1EE.crt
+test_policychecker NIST-Test.4.10.2.1 EE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt Mapping1to2CACert.crt InvalidPolicyMappingTest2EE.crt
+test_policychecker NIST-Test.4.10.2.2 EE $NIST ../../certs "{2.5.29.32.0}" P TrustAnchorRootCertificate.crt Mapping1to2CACert.crt InvalidPolicyMappingTest2EE.crt
+test_policychecker NIST-Test.4.10.3.1 EE $NIST ../../certs "{2.16.840.1.101.3.2.1.48.1}" TrustAnchorRootCertificate.crt P12Mapping1to3CACert.crt P12Mapping1to3subCACert.crt P12Mapping1to3subsubCACert.crt ValidPolicyMappingTest3EE.crt
+test_policychecker NIST-Test.4.10.3.2 ENE $NIST ../../certs "{2.16.840.1.101.3.2.1.48.2}" TrustAnchorRootCertificate.crt P12Mapping1to3CACert.crt P12Mapping1to3subCACert.crt P12Mapping1to3subsubCACert.crt ValidPolicyMappingTest3EE.crt
+test_policychecker NIST-Test.4.10.4 EE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt P12Mapping1to3CACert.crt P12Mapping1to3subCACert.crt P12Mapping1to3subsubCACert.crt InvalidPolicyMappingTest4EE.crt
+test_policychecker NIST-Test.4.10.5.1 ENE $NIST ../../certs "{2.16.840.1.101.3.2.1.48.1}" TrustAnchorRootCertificate.crt P1Mapping1to234CACert.crt P1Mapping1to234subCACert.crt ValidPolicyMappingTest5EE.crt
+test_policychecker NIST-Test.4.10.5.2 EE $NIST ../../certs "{2.16.840.1.101.3.2.1.48.6}" TrustAnchorRootCertificate.crt P1Mapping1to234CACert.crt P1Mapping1to234subCACert.crt ValidPolicyMappingTest5EE.crt
+test_policychecker NIST-Test.4.10.6.1 ENE $NIST ../../certs "{2.16.840.1.101.3.2.1.48.1}" TrustAnchorRootCertificate.crt P1Mapping1to234CACert.crt P1Mapping1to234subCACert.crt ValidPolicyMappingTest6EE.crt
+test_policychecker NIST-Test.4.10.6.2 EE $NIST ../../certs "{2.16.840.1.101.3.2.1.48.6}" TrustAnchorRootCertificate.crt P1Mapping1to234CACert.crt P1Mapping1to234subCACert.crt ValidPolicyMappingTest6EE.crt TrustAnchorRootCertificate.crt
+test_policychecker NIST-Test.4.10.7.1 ENE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt MappingFromanyPolicyCACert.crt
+test_policychecker NIST-Test.4.10.7.2 EE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt MappingFromanyPolicyCACert.crt InvalidMappingFromanyPolicyTest7EE.crt
+test_policychecker NIST-Test.4.10.8.1 ENE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt MappingToanyPolicyCACert.crt
+test_policychecker NIST-Test.4.10.8.2 EE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt MappingToanyPolicyCACert.crt InvalidMappingToanyPolicyTest8EE.crt
+test_policychecker NIST-Test.4.10.9 ENE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt PanyPolicyMapping1to2CACert.crt ValidPolicyMappingTest9EE.crt
+test_policychecker NIST-Test.4.10.10 EE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt GoodCACert.crt GoodsubCAPanyPolicyMapping1to2CACert.crt InvalidPolicyMappingTest10EE.crt
+test_policychecker NIST-Test.4.10.11 ENE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt GoodCACert.crt GoodsubCAPanyPolicyMapping1to2CACert.crt ValidPolicyMappingTest11EE.crt
+test_policychecker NIST-Test.4.10.12.1 ENE $NIST ../../certs "{2.16.840.1.101.3.2.1.48.1}" TrustAnchorRootCertificate.crt P12Mapping1to3CACert.crt ValidPolicyMappingTest12EE.crt
+test_policychecker NIST-Test.4.10.12.2 ENE $NIST ../../certs "{2.16.840.1.101.3.2.1.48.2}" TrustAnchorRootCertificate.crt P12Mapping1to3CACert.crt ValidPolicyMappingTest12EE.crt
+test_policychecker NIST-Test.4.10.13 ENE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt P1anyPolicyMapping1to2CACert.crt ValidPolicyMappingTest13EE.crt
+test_policychecker NIST-Test.4.10.14 ENE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt P1anyPolicyMapping1to2CACert.crt ValidPolicyMappingTest14EE.crt
+test_policychecker NIST-Test.4.11.1.1 ENE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt inhibitPolicyMapping0CACert.crt inhibitPolicyMapping0subCACert.crt
+test_policychecker NIST-Test.4.11.1.2 EE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt inhibitPolicyMapping0CACert.crt inhibitPolicyMapping0subCACert.crt InvalidinhibitPolicyMappingTest1EE.crt
+test_policychecker NIST-Test.4.11.2 ENE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt inhibitPolicyMapping1P12CACert.crt inhibitPolicyMapping1P12subCACert.crt ValidinhibitPolicyMappingTest2EE.crt
+test_policychecker NIST-Test.4.11.3 EE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt inhibitPolicyMapping1P12CACert.crt inhibitPolicyMapping1P12subCACert.crt inhibitPolicyMapping1P12subsubCACert.crt InvalidinhibitPolicyMappingTest3EE.crt
+test_policychecker NIST-Test.4.11.4 ENE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt inhibitPolicyMapping1P12CACert.crt inhibitPolicyMapping1P12subCACert.crt inhibitPolicyMapping1P12subsubCACert.crt ValidinhibitPolicyMappingTest4EE.crt
+test_policychecker NIST-Test.4.11.5 EE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt inhibitPolicyMapping5CACert.crt inhibitPolicyMapping5subCACert.crt inhibitPolicyMapping5subsubCACert.crt inhibitPolicyMapping5subsubsubCACert.crt InvalidinhibitPolicyMappingTest5EE.crt
+test_policychecker NIST-Test.4.11.6 EE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt inhibitPolicyMapping1P12CACert.crt inhibitPolicyMapping1P12subCAIPM5Cert.crt inhibitPolicyMapping1P12subsubCAIPM5Cert.crt InvalidinhibitPolicyMappingTest6EE.crt
+test_policychecker NIST-Test.4.11.7 ENE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt inhibitPolicyMapping1P1CACert.crt inhibitPolicyMapping1P1SelfIssuedCACert.crt inhibitPolicyMapping1P1subCACert.crt ValidSelfIssuedinhibitPolicyMappingTest7EE.crt
+test_policychecker NIST-Test.4.11.8 EE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt inhibitPolicyMapping1P1CACert.crt inhibitPolicyMapping1P1SelfIssuedCACert.crt inhibitPolicyMapping1P1subCACert.crt inhibitPolicyMapping1P1subsubCACert.crt InvalidSelfIssuedinhibitPolicyMappingTest8EE.crt
+test_policychecker NIST-Test.4.11.9 EE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt inhibitPolicyMapping1P1CACert.crt inhibitPolicyMapping1P1SelfIssuedCACert.crt inhibitPolicyMapping1P1subCACert.crt inhibitPolicyMapping1P1subsubCACert.crt InvalidSelfIssuedinhibitPolicyMappingTest9EE.crt
+test_policychecker NIST-Test.4.11.10 EE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt inhibitPolicyMapping1P1CACert.crt inhibitPolicyMapping1P1SelfIssuedCACert.crt inhibitPolicyMapping1P1subCACert.crt inhibitPolicyMapping1P1SelfIssuedsubCACert.crt InvalidSelfIssuedinhibitPolicyMappingTest10EE.crt
+test_policychecker NIST-Test.4.11.11 EE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt inhibitPolicyMapping1P1CACert.crt inhibitPolicyMapping1P1SelfIssuedCACert.crt inhibitPolicyMapping1P1subCACert.crt inhibitPolicyMapping1P1SelfIssuedsubCACert.crt InvalidSelfIssuedinhibitPolicyMappingTest11EE.crt
+test_policychecker NIST-Test.4.12.1 EE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt inhibitAnyPolicy0CACert.crt InvalidinhibitAnyPolicyTest1EE.crt
+test_policychecker NIST-Test.4.12.2 ENE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt inhibitAnyPolicy0CACert.crt ValidinhibitAnyPolicyTest2EE.crt
+test_policychecker NIST-Test.4.12.3.1 ENE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt inhibitAnyPolicy1CACert.crt inhibitAnyPolicy1subCA1Cert.crt inhibitAnyPolicyTest3EE.crt
+test_policychecker NIST-Test.4.12.3.2 EE $NIST ../../certs "{2.5.29.32.0}" A TrustAnchorRootCertificate.crt inhibitAnyPolicy1CACert.crt inhibitAnyPolicy1subCA1Cert.crt inhibitAnyPolicyTest3EE.crt
+test_policychecker NIST-Test.4.12.4 EE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt inhibitAnyPolicy1CACert.crt inhibitAnyPolicy1subCA1Cert.crt InvalidinhibitAnyPolicyTest4EE.crt
+test_policychecker NIST-Test.4.12.5 EE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt inhibitAnyPolicy5CACert.crt inhibitAnyPolicy5subCACert.crt inhibitAnyPolicy5subsubCACert.crt InvalidinhibitAnyPolicyTest5EE.crt
+test_policychecker NIST-Test.4.12.6 EE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt inhibitAnyPolicy1CACert.crt inhibitAnyPolicy1subCAIAP5Cert.crt InvalidinhibitAnyPolicyTest6EE.crt
+test_policychecker NIST-Test.4.12.7 ENE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt inhibitAnyPolicy1CACert.crt inhibitAnyPolicy1SelfIssuedCACert.crt inhibitAnyPolicy1subCA2Cert.crt ValidSelfIssuedinhibitAnyPolicyTest7EE.crt
+test_policychecker NIST-Test.4.12.8 EE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt inhibitAnyPolicy1CACert.crt inhibitAnyPolicy1SelfIssuedCACert.crt inhibitAnyPolicy1subCA2Cert.crt inhibitAnyPolicy1subsubCA2Cert.crt InvalidSelfIssuedinhibitAnyPolicyTest8EE.crt
+test_policychecker NIST-Test.4.12.9 ENE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt inhibitAnyPolicy1CACert.crt inhibitAnyPolicy1SelfIssuedCACert.crt inhibitAnyPolicy1subCA2Cert.crt inhibitAnyPolicy1SelfIssuedsubCA2Cert.crt ValidSelfIssuedinhibitAnyPolicyTest9EE.crt
+test_policychecker NIST-Test.4.12.10 EE $NIST ../../certs "{2.5.29.32.0}" TrustAnchorRootCertificate.crt inhibitAnyPolicy1CACert.crt inhibitAnyPolicy1SelfIssuedCACert.crt inhibitAnyPolicy1subCA2Cert.crt InvalidSelfIssuedinhibitAnyPolicyTest10EE.crt
 test_basicconstraintschecker NIST-Test.4.13.1 ENE $NIST TrustAnchorRootCertificate.crt nameConstraintsDN1CACert.crt ValidDNnameConstraintsTest1EE.crt
 test_basicconstraintschecker NIST-Test.4.13.2 EE $NIST TrustAnchorRootCertificate.crt nameConstraintsDN1CACert.crt InvalidDNnameConstraintsTest2EE.crt
 test_basicconstraintschecker NIST-Test.4.13.3 EE $NIST TrustAnchorRootCertificate.crt nameConstraintsDN1CACert.crt InvalidDNnameConstraintsTest3EE.crt

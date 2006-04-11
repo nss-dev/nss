@@ -95,12 +95,12 @@ TZ=US/Eastern
 ParseArgs $*
 
 RunTests <<EOF
-test_cert NIST-Test-Files-Used ${curdir}/../../certs ${HOSTDIR}/rev_data/local
-test_crl NIST-Test-Files-Used ${curdir}/../../certs ${HOSTDIR}/rev_data/local
+test_cert NIST-Test-Files-Used ../../certs ${HOSTDIR}/rev_data/local
+test_crl NIST-Test-Files-Used ../../certs ${HOSTDIR}/rev_data/local
 test_x500name
 test_generalname
 test_date NIST-Test-Files-Used
-test_crlentry ${curdir}/../../certs
+test_crlentry ../../certs
 test_nameconstraints NIST-Test-Files-Used ${HOSTDIR}/rev_data/local
 test_authorityinfoaccess NIST-PDTest ${NIST_PDTEST} certs/BasicLDAPURIPathDiscoveryOU1EE1.crt certs/BasicHTTPURITrustAnchorRootCert.crt
 test_subjectinfoaccess NIST-PDTest ${NIST_PDTEST} certs/BasicHTTPURITrustAnchorRootCert.crt certs/BasicLDAPURIPathDiscoveryOU1EE1.crt

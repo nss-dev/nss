@@ -105,25 +105,25 @@ export SOCKETTRACE
 
 RunTests <<EOF
 test_colcertstore NIST-Test-Files-Used ${HOSTDIR}/rev_data/local
-test_pk11certstore ${curdir}/../../pkix_pl_tests/module ${curdir}/../../pkix_tests/top/rev_data/crlchecker
-test_ekuchecker "Test-EKU-without-OID" ENE "" ${curdir}/rev_data test_eku_codesigning_clientauth.crt test_eku_clientauth.crt test_eku_clientauthEE.crt
-test_ekuchecker "Test-EKU-with-good-OID" ENE "1.3.6.1.5.5.7.3.3" ${curdir}/rev_data test_eku_codesigning_clientauth.crt test_eku_clientauth.crt test_eku_clientauthEE.crt 
-test_ekuchecker "Test-EKU-with-bad-OID" EE "1.3.6.1.5.5.7.3.4" ${curdir}/rev_data test_eku_codesigning_clientauth.crt test_eku_clientauth.crt test_eku_clientauthEE.crt 
-test_ekuchecker "Test-EKU-with-good-and-bad-OID" EE "1.3.6.1.5.5.7.3.3,1.3.6.1.5.5.7.3.4" ${curdir}/rev_data test_eku_codesigning_clientauth.crt test_eku_clientauth.crt test_eku_clientauthEE.crt
-test_ekuchecker "Test-EKU-only-EE-with-good-OID" ENE "E1.3.6.1.5.5.7.3.3" ${curdir}/rev_data test_eku_codesigning_clientauth.crt test_eku_clientauth.crt test_eku_clientauthEE.crt
-test_ekuchecker "Test-EKU-only-EE-with-bad-OID" EE "E1.3.6.1.5.5.7.3.4" ${curdir}/rev_data test_eku_codesigning_clientauth.crt test_eku_clientauth.crt test_eku_clientauthEE.crt
-test_ekuchecker "Test-EKU-serverAuth" ENE "1.3.6.1.5.5.7.3.1" ${curdir}/rev_data test_eku_all.crt test_eku_allbutcodesigningEE.crt
-test_ekuchecker "Test-EKU-clientAuth" ENE "1.3.6.1.5.5.7.3.2" ${curdir}/rev_data test_eku_all.crt test_eku_allbutcodesigningEE.crt
-test_ekuchecker "Test-EKU-codesigning-without-OID" EE "1.3.6.1.5.5.7.3.3" ${curdir}/rev_data test_eku_all.crt test_eku_allbutcodesigningEE.crt
-test_ekuchecker "Test-EKU-emailProtection" ENE "1.3.6.1.5.5.7.3.4" ${curdir}/rev_data test_eku_all.crt test_eku_allbutcodesigningEE.crt
-test_ekuchecker "Test-EKU-timestamping" ENE "1.3.6.1.5.5.7.3.8" ${curdir}/rev_data test_eku_all.crt test_eku_allbutcodesigningEE.crt
-test_ekuchecker "Test-EKU-OCSPSigning" ENE "1.3.6.1.5.5.7.3.9" ${curdir}/rev_data test_eku_all.crt test_eku_allbutcodesigningEE.crt
-test_ekuchecker "Test-EKU-only-EE-serverAuth" ENE "E1.3.6.1.5.5.7.3.1" ${curdir}/rev_data test_eku_all.crt test_eku_allbutcodesigningEE.crt
-test_ekuchecker "Test-EKU-only-EE-clientAuth" ENE "E1.3.6.1.5.5.7.3.2" ${curdir}/rev_data test_eku_all.crt test_eku_allbutcodesigningEE.crt
-test_ekuchecker "Test-EKU-only-EE-codesigning-without-OID" EE "E1.3.6.1.5.5.7.3.3" ${curdir}/rev_data test_eku_all.crt test_eku_allbutcodesigningEE.crt
-test_ekuchecker "Test-EKU-only-EE-emailProtection" ENE "E1.3.6.1.5.5.7.3.4" ${curdir}/rev_data test_eku_all.crt test_eku_allbutcodesigningEE.crt
-test_ekuchecker "Test-EKU-only-EE-timestamping" ENE "E1.3.6.1.5.5.7.3.8" ${curdir}/rev_data test_eku_all.crt test_eku_allbutcodesigningEE.crt
-test_ekuchecker "Test-EKU-only-EE-ocspSigning" ENE "E1.3.6.1.5.5.7.3.9" ${curdir}/rev_data test_eku_all.crt test_eku_allbutcodesigningEE.crt
+test_pk11certstore ../../pkix_pl_tests/module ../../pkix_tests/top/rev_data/crlchecker
+test_ekuchecker "Test-EKU-without-OID" ENE "" rev_data test_eku_codesigning_clientauth.crt test_eku_clientauth.crt test_eku_clientauthEE.crt
+test_ekuchecker "Test-EKU-with-good-OID" ENE "1.3.6.1.5.5.7.3.3" rev_data test_eku_codesigning_clientauth.crt test_eku_clientauth.crt test_eku_clientauthEE.crt 
+test_ekuchecker "Test-EKU-with-bad-OID" EE "1.3.6.1.5.5.7.3.4" rev_data test_eku_codesigning_clientauth.crt test_eku_clientauth.crt test_eku_clientauthEE.crt 
+test_ekuchecker "Test-EKU-with-good-and-bad-OID" EE "1.3.6.1.5.5.7.3.3,1.3.6.1.5.5.7.3.4" rev_data test_eku_codesigning_clientauth.crt test_eku_clientauth.crt test_eku_clientauthEE.crt
+test_ekuchecker "Test-EKU-only-EE-with-good-OID" ENE "E1.3.6.1.5.5.7.3.3" rev_data test_eku_codesigning_clientauth.crt test_eku_clientauth.crt test_eku_clientauthEE.crt
+test_ekuchecker "Test-EKU-only-EE-with-bad-OID" EE "E1.3.6.1.5.5.7.3.4" rev_data test_eku_codesigning_clientauth.crt test_eku_clientauth.crt test_eku_clientauthEE.crt
+test_ekuchecker "Test-EKU-serverAuth" ENE "1.3.6.1.5.5.7.3.1" rev_data test_eku_all.crt test_eku_allbutcodesigningEE.crt
+test_ekuchecker "Test-EKU-clientAuth" ENE "1.3.6.1.5.5.7.3.2" rev_data test_eku_all.crt test_eku_allbutcodesigningEE.crt
+test_ekuchecker "Test-EKU-codesigning-without-OID" EE "1.3.6.1.5.5.7.3.3" rev_data test_eku_all.crt test_eku_allbutcodesigningEE.crt
+test_ekuchecker "Test-EKU-emailProtection" ENE "1.3.6.1.5.5.7.3.4" rev_data test_eku_all.crt test_eku_allbutcodesigningEE.crt
+test_ekuchecker "Test-EKU-timestamping" ENE "1.3.6.1.5.5.7.3.8" rev_data test_eku_all.crt test_eku_allbutcodesigningEE.crt
+test_ekuchecker "Test-EKU-OCSPSigning" ENE "1.3.6.1.5.5.7.3.9" rev_data test_eku_all.crt test_eku_allbutcodesigningEE.crt
+test_ekuchecker "Test-EKU-only-EE-serverAuth" ENE "E1.3.6.1.5.5.7.3.1" rev_data test_eku_all.crt test_eku_allbutcodesigningEE.crt
+test_ekuchecker "Test-EKU-only-EE-clientAuth" ENE "E1.3.6.1.5.5.7.3.2" rev_data test_eku_all.crt test_eku_allbutcodesigningEE.crt
+test_ekuchecker "Test-EKU-only-EE-codesigning-without-OID" EE "E1.3.6.1.5.5.7.3.3" rev_data test_eku_all.crt test_eku_allbutcodesigningEE.crt
+test_ekuchecker "Test-EKU-only-EE-emailProtection" ENE "E1.3.6.1.5.5.7.3.4" rev_data test_eku_all.crt test_eku_allbutcodesigningEE.crt
+test_ekuchecker "Test-EKU-only-EE-timestamping" ENE "E1.3.6.1.5.5.7.3.8" rev_data test_eku_all.crt test_eku_allbutcodesigningEE.crt
+test_ekuchecker "Test-EKU-only-EE-ocspSigning" ENE "E1.3.6.1.5.5.7.3.9" rev_data test_eku_all.crt test_eku_allbutcodesigningEE.crt
 test_socket ${HOSTADDR}:2000
 EOF
 

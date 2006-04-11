@@ -56,7 +56,7 @@ testunit=CRLSEL
 ParseArgs $*
 
 RunTests <<EOF
-test_comcrlselparams ${curdir}/../../certs
+test_comcrlselparams ../../certs
 test_crlselector
 EOF
 
