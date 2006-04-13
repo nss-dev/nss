@@ -872,3 +872,9 @@ SECMOD_OpenUserDB;
 ;+    local:
 ;+       *;
 ;+};
+;+NSS_3.11.1 {
+;+    global:
+SEC_RegisterDefaultHttpClient;
+;+    local:
+;+       *;
+;+};
