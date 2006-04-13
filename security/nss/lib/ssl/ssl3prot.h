@@ -130,7 +130,14 @@ typedef enum {
     insufficient_security   = 71,
     internal_error          = 80,
     user_canceled           = 90,
-    no_renegotiation        = 100
+    no_renegotiation        = 100,
+
+/* Alerts for client hello extensions */
+    unsupported_extension           = 110,
+    certificate_unobtainable        = 111,
+    unrecognized_name               = 112,
+    bad_certificate_status_response = 113,
+    bad_certificate_hash_value      = 114
 
 } SSL3AlertDescription;
 
