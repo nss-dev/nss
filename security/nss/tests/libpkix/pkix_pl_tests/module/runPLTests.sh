@@ -83,16 +83,16 @@ if [ -n "${NIST_FILES_DIR}" ]; then
          fi
          cp ${NIST_FILES_DIR}/$i ${HOSTDIR}/rev_data/local/$i
      done
-fi
 
-localCRLFiles="crlgood.crl
+    localCRLFiles="crlgood.crl
 	crldiff.crl
 	issuer-hanfei.crl
 	issuer-none.crl"
 
-for i in ${localCRLFiles}; do
-    cp ${curdir}/rev_data/local/$i ${HOSTDIR}/rev_data/local/$i
-done
+    for i in ${localCRLFiles}; do
+        cp ${curdir}/rev_data/local/$i ${HOSTDIR}/rev_data/local/$i
+    done
+fi
 
 ##########
 # main
@@ -130,6 +130,4 @@ EOF
 totalErrors=$?
 html_msg ${totalErrors} 0 "&nbsp;&nbsp;&nbsp;${testunit}: passed ${passed} of ${numtests} tests"
 exit ${totalErrors}
-
-
 
