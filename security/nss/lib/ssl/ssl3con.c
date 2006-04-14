@@ -7409,7 +7409,9 @@ xmit_loser:
 	sid->u.ssl3.cipherSuite = ss->ssl3.hs.cipher_suite;
 	sid->u.ssl3.compression = ss->ssl3.hs.compression;
 	sid->u.ssl3.policy      = ss->ssl3.policy;
+#ifdef NSS_ENABLE_ECC
 	sid->u.ssl3.negotiatedECCurves = ss->ssl3.hs.negotiatedECCurves;
+#endif
 	sid->u.ssl3.exchKeyType = effectiveExchKeyType;
 	sid->version            = ss->version;
 	sid->authAlgorithm      = ss->sec.authAlgorithm;
@@ -8032,7 +8034,9 @@ ssl3_InitState(sslSocket *ss)
     ssl3_InitCipherSpec(ss, ss->ssl3.prSpec);
 
     ss->ssl3.hs.ws = (ss->sec.isServer) ? wait_client_hello : wait_server_hello;
+#ifdef NSS_ENABLE_ECC
     ss->ssl3.hs.negotiatedECCurves = SSL3_SUPPORTED_CURVES_MASK;
+#endif
     ssl_ReleaseSpecWriteLock(ss);
 
     /*

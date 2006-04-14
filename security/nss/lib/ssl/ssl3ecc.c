@@ -59,6 +59,7 @@
 #include "prerror.h"
 #include "pratom.h"
 #include "prthread.h"
+#include "prinit.h"
 
 #include "pk11func.h"
 #include "secmod.h"
