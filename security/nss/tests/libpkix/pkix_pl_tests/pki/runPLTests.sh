@@ -96,7 +96,7 @@ ParseArgs $*
 
 RunTests <<EOF
 test_cert NIST-Test-Files-Used ../../certs ${HOSTDIR}/rev_data/local
-test_crl NIST-Test-Files-Used ../../certs ${HOSTDIR}/rev_data/local
+test_crl NIST-Test-Files-Used ../../certs
 test_x500name
 test_generalname
 test_date NIST-Test-Files-Used

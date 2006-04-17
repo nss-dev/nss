@@ -238,7 +238,7 @@ cleanup:
 }
 
 void printUsage(void) {
-        (void) printf("\nUSAGE:\ttest_crl <test-purpose> <data-central-dir> <data-dir>\n\n");
+        (void) printf("\nUSAGE:\ttest_crl <test-purpose> <data-central-dir>\n\n");
 }
 
 /* Functional tests for CRL public functions */
@@ -251,7 +251,6 @@ int main(int argc, char *argv[]) {
         PKIX_UInt32 actualMinorVersion;
         PKIX_UInt32 j = 0;
 
-        char *dataDir = NULL;
         char *dataCentralDir = NULL;
         char *goodInput = "crlgood.crl";
         char *diffInput = "crldiff.crl";
@@ -308,7 +307,6 @@ int main(int argc, char *argv[]) {
         }
 
         dataCentralDir = argv[2+j];
-        dataDir = argv[3+j];
 
         createCRLs
                 (dataCentralDir,
