@@ -46,6 +46,31 @@
 
 void *plContext = NULL;
 
+static char *catDirName(char *platform, char *dir, void *plContext)
+{
+        char *pathName = NULL;
+        PKIX_UInt32 dirLen;
+        PKIX_UInt32 platformLen;
+
+        PKIX_TEST_STD_VARS();
+
+        dirLen = PL_strlen(dir);
+        platformLen = PL_strlen(platform);
+
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Malloc
+                (platformLen + dirLen + 2, (void **)&pathName, plContext));
+
+        PL_strcpy(pathName, platform);
+        PL_strcat(pathName, "/");
+        PL_strcat(pathName, dir);
+
+cleanup:
+
+        PKIX_TEST_RETURN();
+
+        return (pathName);
+}
+
 static void
 testNameConstraints(char *dataDir)
 {
@@ -83,7 +108,9 @@ cleanup:
 }
 
 void printUsage(void) {
-        (void) printf("\nUSAGE:\ttest_nameconstraints <test-purpose> <data-dir>\n\n");
+        (void) printf
+		("\nUSAGE:\ttest_nameconstraints <test-purpose>"
+                 " <data-dir> <platform-prefix>\n\n");
 }
 
 /* Functional tests for CRL public functions */
@@ -91,7 +118,9 @@ void printUsage(void) {
 int main(int argc, char *argv[]) {
         PKIX_UInt32 actualMinorVersion;
         PKIX_UInt32 j = 0;
+        char *platformDir = NULL;
         char *dataDir = NULL;
+        char *combinedDir = NULL;
         PKIX_Boolean useArenas = PKIX_FALSE;
 
         /* Note XXX serialnumber and reasoncode need debug */
@@ -103,24 +132,28 @@ int main(int argc, char *argv[]) {
         useArenas = PKIX_TEST_ARENAS_ARG(argv[1]);
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_Initialize
-                                    (PKIX_TRUE, /* nssInitNeeded */
-                                    useArenas,
-                                    PKIX_MAJOR_VERSION,
-                                    PKIX_MINOR_VERSION,
-                                    PKIX_MINOR_VERSION,
-                                    &actualMinorVersion,
-                                    &plContext));
+                (PKIX_TRUE, /* nssInitNeeded */
+                useArenas,
+                PKIX_MAJOR_VERSION,
+                PKIX_MINOR_VERSION,
+                PKIX_MINOR_VERSION,
+                &actualMinorVersion,
+                &plContext));
 
-        if (argc < 2+j) {
+        if (argc < 3 + j) {
                 printUsage();
                 return (0);
         }
 
-        dataDir = argv[2+j];
+        dataDir = argv[2 + j];
+        platformDir = argv[3 + j];
+	combinedDir = catDirName(platformDir, dataDir, plContext);
 
-        testNameConstraints(dataDir);
+        testNameConstraints(combinedDir);
 
 cleanup:
+
+        pkixTestErrorResult = PKIX_PL_Free(combinedDir, plContext);
 
         PKIX_Shutdown(plContext);
 

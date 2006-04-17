@@ -86,6 +86,31 @@ PKIX_Error *testCertContinue(
         return (0);
 }
 
+static char *catDirName(char *platform, char *dir, void *plContext)
+{
+        char *pathName = NULL;
+        PKIX_UInt32 dirLen;
+        PKIX_UInt32 platformLen;
+
+        PKIX_TEST_STD_VARS();
+
+        dirLen = PL_strlen(dir);
+        platformLen = PL_strlen(platform);
+
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Malloc
+                (platformLen + dirLen + 2, (void **)&pathName, plContext));
+
+        PL_strcpy(pathName, platform);
+        PL_strcat(pathName, "/");
+        PL_strcat(pathName, dir);
+
+cleanup:
+
+        PKIX_TEST_RETURN();
+
+        return (pathName);
+}
+
 void testCertStore(char *crlDir)
 {
         PKIX_PL_String *dirString = NULL;
@@ -152,21 +177,21 @@ cleanup:
 
 
 void printUsage(char *pName){
-        printf("\nUSAGE: %s <data-dir>\n\n", pName);
+        printf("\nUSAGE: %s testName <data-dir> <platform-dir>\n\n", pName);
 }
 
 /* Functional tests for CertStore public functions */
 
 int main(int argc, char *argv[]) {
 
-        char *crlDir = NULL;
+        char *platformDir = NULL;
+        char *dataDir = NULL;
+        char *combinedDir = NULL;
         PKIX_UInt32 actualMinorVersion;
         PKIX_Boolean useArenas = PKIX_FALSE;
         PKIX_UInt32 j = 0;
 
         PKIX_TEST_STD_VARS();
-
-        startTests("CertStore");
 
         useArenas = PKIX_TEST_ARENAS_ARG(argv[1]);
 
@@ -179,17 +204,23 @@ int main(int argc, char *argv[]) {
                                     &actualMinorVersion,
                                     &plContext));
 
-        if (argc < 2){
+        if (argc < (3 + j)) {
                 printUsage(argv[0]);
                 return (0);
         }
 
-        crlDir = argv[j+1];
+        startTests(argv[1 + j]);
 
-        testCertStore(crlDir);
+        dataDir = argv[2 + j];
+        platformDir = argv[3 + j];
+	combinedDir = catDirName(platformDir, dataDir, plContext);
+
+        testCertStore(combinedDir);
 
 
 cleanup:
+
+        pkixTestErrorResult = PKIX_PL_Free(combinedDir, plContext);
 
         PKIX_Shutdown(plContext);
 

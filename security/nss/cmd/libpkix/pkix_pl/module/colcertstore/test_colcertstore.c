@@ -85,6 +85,30 @@ getCertCallback(
         return (0);
 }
 
+static char *catDirName(char *platform, char *dir, void *plContext)
+{
+        char *pathName = NULL;
+        PKIX_UInt32 dirLen;
+        PKIX_UInt32 platformLen;
+
+        PKIX_TEST_STD_VARS();
+
+        dirLen = PL_strlen(dir);
+        platformLen = PL_strlen(platform);
+
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Malloc
+                (platformLen + dirLen + 2, (void **)&pathName, plContext));
+
+        PL_strcpy(pathName, platform);
+        PL_strcat(pathName, "/");
+        PL_strcat(pathName, dir);
+
+cleanup:
+
+        PKIX_TEST_RETURN();
+
+        return (pathName);
+}
 
 void testGetCRL(char *crlDir)
 {
@@ -213,7 +237,7 @@ cleanup:
 }
 
 void printUsage(char *pName){
-        printf("\nUSAGE: %s test-purpose <data-dir> \n\n", pName);
+        printf("\nUSAGE: %s test-purpose <data-dir> <platform-dir>\n\n", pName);
 }
 
 /* Functional tests for CollectionCertStore public functions */
@@ -223,8 +247,9 @@ int main(int argc, char *argv[]) {
         PKIX_UInt32 actualMinorVersion;
         PKIX_Boolean useArenas = PKIX_FALSE;
         PKIX_UInt32 j = 0;
+        char *platformDir = NULL;
         char *dataDir = NULL;
-
+        char *combinedDir = NULL;
 
         PKIX_TEST_STD_VARS();
 
@@ -233,25 +258,29 @@ int main(int argc, char *argv[]) {
         useArenas = PKIX_TEST_ARENAS_ARG(argv[1]);
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_Initialize
-                                    (PKIX_TRUE, /* nssInitNeeded */
-                                    useArenas,
-                                    PKIX_MAJOR_VERSION,
-                                    PKIX_MINOR_VERSION,
-                                    PKIX_MINOR_VERSION,
-                                    &actualMinorVersion,
-                                    &plContext));
+               (PKIX_TRUE, /* nssInitNeeded */
+               useArenas,
+               PKIX_MAJOR_VERSION,
+               PKIX_MINOR_VERSION,
+               PKIX_MINOR_VERSION,
+               &actualMinorVersion,
+               &plContext));
 
-        if (argc < 3+j) {
+        if (argc < (3 + j)) {
                 printUsage(argv[0]);
                 return (0);
         }
 
-        dataDir = argv[j+2];
+        dataDir = argv[2 + j];
+        platformDir = argv[3 + j];
+	combinedDir = catDirName(platformDir, dataDir, plContext);
 
-        testGetCRL(dataDir);
-        testGetCert(dataDir);
+        testGetCRL(combinedDir);
+        testGetCert(combinedDir);
 
 cleanup:
+
+        pkixTestErrorResult = PKIX_PL_Free(combinedDir, plContext);
 
         PKIX_Shutdown(plContext);
 

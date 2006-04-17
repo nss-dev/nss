@@ -56,7 +56,7 @@ testunit=STORE
 ParseArgs $*
 
 RunTests <<EOF
-test_store ${HOSTDIR}/rev_data/crlchecker
+test_store genericCertStore rev_data/crlchecker ${HOSTDIR}
 EOF
 
 totalErrors=$?
