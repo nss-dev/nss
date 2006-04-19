@@ -1133,9 +1133,8 @@ loser:
     pkcs11_freeStaticData(dbkey.data,buf);    
     dbkey.data = NULL;
     if ( entry ) {
-	
+        DestroyDBEntry((certDBEntry *)entry);
     }
-    DestroyDBEntry((certDBEntry *)entry);
     
     return(NULL);
 }
