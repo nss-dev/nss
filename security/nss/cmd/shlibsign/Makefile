@@ -90,9 +90,13 @@ SRCDIR = $(call abspath,.)
 
 %.chk: %.$(DLL_SUFFIX) 
 ifeq ($(OS_TARGET), OS2)
-	cd $(OBJDIR) ; cmd.exe /c $(SRCDIR)/sign.cmd $(DIST) $(call abspath,$(OBJDIR)) $(OS_TARGET) $(call abspath,$(NSPR_LIB_DIR)) $(call abspath,$<)
+	cd $(OBJDIR) ; cmd.exe /c $(SRCDIR)/sign.cmd $(DIST) \
+	$(call abspath,$(OBJDIR)) $(OS_TARGET) \
+	$(call abspath,$(NSPR_LIB_DIR)) $(call abspath,$<)
 else
-	cd $(OBJDIR) ; sh $(SRCDIR)/sign.sh $(call abspath,$(DIST)) $(call abspath,$(OBJDIR)) $(OS_TARGET) $(call abspath,$(NSPR_LIB_DIR)) $(call abspath,$<)
+	cd $(OBJDIR) ; sh $(SRCDIR)/sign.sh $(call abspath,$(DIST)) \
+	$(call abspath,$(OBJDIR)) $(OS_TARGET) $(call abspath,$(NSPR_LIB_DIR)) \
+	$(call abspath,$<)
 endif
 
 libs install :: $(CHECKLOC)
