@@ -235,7 +235,7 @@ nssCKFWSession_Create
 
  loser:
   if( (NSSArena *)NULL != arena ) {
-    if( (nssCKFWHash *)NULL != fwSession->sessionObjectHash ) {
+    if( fwSession && (nssCKFWHash *)NULL != fwSession->sessionObjectHash ) {
       (void)nssCKFWHash_Destroy(fwSession->sessionObjectHash);
     }
     NSSArena_Destroy(arena);
