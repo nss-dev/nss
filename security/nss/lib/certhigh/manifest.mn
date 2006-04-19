@@ -43,7 +43,6 @@ EXPORTS = \
 
 PRIVATE_EXPORTS = \
 	ocspti.h \
-	ocspi.h \
 	$(NULL)
 
 MODULE = nss

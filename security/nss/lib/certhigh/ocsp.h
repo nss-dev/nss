@@ -56,18 +56,6 @@
 SEC_BEGIN_PROTOS
 
 /*
- * This function registers the HttpClient with whose functions the
- * HttpClientFcn structure have been populated as the default Http
- * client.
- *
- * The function table must be a global object.
- * The caller must ensure that NSS will be able to call
- * the registered functions for the lifetime of the process.
- */
-extern SECStatus
-SEC_RegisterDefaultHttpClient(const SEC_HttpClientFcn *fcnTable);
-
-/*
  * FUNCTION: CERT_EnableOCSPChecking
  *   Turns on OCSP checking for the given certificate database.
  * INPUTS:
