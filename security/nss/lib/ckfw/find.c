@@ -176,22 +176,24 @@ nssCKFWFindObjects_Create
   return fwFindObjects;
 
  loser:
-  nss_ZFreeIf(fwFindObjects);
-
-  if( (NSSCKMDFindObjects *)NULL != mdFindObjects1 ) {
-    if( (void *)NULL != (void *)mdFindObjects1->Final ) {
-      fwFindObjects->mdFindObjects = mdFindObjects1;
-      mdFindObjects1->Final(mdFindObjects1, fwFindObjects, mdSession, 
-        fwSession, mdToken, fwToken, mdInstance, fwInstance);
+  if( fwFindObjects ) {
+    if( NULL != mdFindObjects1 ) {
+      if( NULL != mdFindObjects1->Final ) {
+        fwFindObjects->mdFindObjects = mdFindObjects1;
+        mdFindObjects1->Final(mdFindObjects1, fwFindObjects, mdSession, 
+          fwSession, mdToken, fwToken, mdInstance, fwInstance);
+      }
     }
-  }
 
-  if( (NSSCKMDFindObjects *)NULL != mdFindObjects2 ) {
-    if( (void *)NULL != (void *)mdFindObjects2->Final ) {
-      fwFindObjects->mdFindObjects = mdFindObjects2;
-      mdFindObjects2->Final(mdFindObjects2, fwFindObjects, mdSession, 
-        fwSession, mdToken, fwToken, mdInstance, fwInstance);
+    if( NULL != mdFindObjects2 ) {
+      if( NULL != mdFindObjects2->Final ) {
+        fwFindObjects->mdFindObjects = mdFindObjects2;
+        mdFindObjects2->Final(mdFindObjects2, fwFindObjects, mdSession, 
+          fwSession, mdToken, fwToken, mdInstance, fwInstance);
+      }
     }
+
+    nss_ZFreeIf(fwFindObjects);
   }
 
   if( CKR_OK == *pError ) {
