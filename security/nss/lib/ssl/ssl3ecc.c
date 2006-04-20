@@ -552,14 +552,14 @@ ssl3_HandleECDHServerKeyExchange(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 
     SECItem          ec_params = {siBuffer, NULL, 0};
     SECItem          ec_point  = {siBuffer, NULL, 0};
-    unsigned char    paramBuf[2];
+    unsigned char    paramBuf[3]; /* only for curve_type == named_curve */
 
     isTLS = (PRBool)(ss->ssl3.prSpec->version > SSL_LIBRARY_VERSION_3_0);
 
     /* XXX This works only for named curves, revisit this when
      * we support generic curves.
      */
-    ec_params.len = 3;
+    ec_params.len  = sizeof paramBuf;
     ec_params.data = paramBuf;
     rv = ssl3_ConsumeHandshake(ss, ec_params.data, ec_params.len, &b, &length);
     if (rv != SECSuccess) {
