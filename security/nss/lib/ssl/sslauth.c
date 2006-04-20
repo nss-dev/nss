@@ -116,11 +116,14 @@ SSL_SecurityStatus(PRFileDesc *fd, int *op, char **cp, int *kp0, int *kp1,
 	} else {
 	    cipherName = ssl3_cipherName[ss->sec.cipherType];
 	}
-	if (cipherName && PORT_Strstr(cipherName, "DES")) isDes = PR_TRUE;
+	PORT_Assert(cipherName);
+	if (cipherName) {
+            if (PORT_Strstr(cipherName, "DES")) isDes = PR_TRUE;
 
-	if (cp) {
-	    *cp = PORT_Strdup(cipherName);
-	}
+            if (cp) {
+                *cp = PORT_Strdup(cipherName);
+            }
+        }
 
 	if (kp0) {
 	    *kp0 = ss->sec.keyBits;
