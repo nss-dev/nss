@@ -538,7 +538,7 @@ step_15:
     **  in certifying the proper generation of p and q."
     */
     /* Generate h. */
-    SECITEM_AllocItem(NULL, &hit, seedBytes); /* h is no longer than p */
+    SECITEM_AllocItem(NULL, &hit, L/8); /* h is no longer than p */
     if (!hit.data) goto cleanup;
     do {
 	/* loop generate h until 1<h<p-1 and (h**[(p-1)/q])mod p > 1 */
