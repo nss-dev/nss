@@ -78,6 +78,8 @@ static const unsigned char fips_186_1_a5_pqseed[] = {
 static SECStatus
 getPQseed(SECItem *seed, PRArenaPool* arena)
 {
+    SECStatus rv;
+
     if (!seed->data) {
         seed->data = (unsigned char*)PORT_ArenaZAlloc(arena, seed->len);
     }
@@ -89,7 +91,15 @@ getPQseed(SECItem *seed, PRArenaPool* arena)
     memcpy(seed->data, fips_186_1_a5_pqseed, seed->len);
     return SECSuccess;
 #else
-    return RNG_GenerateGlobalRandomBytes(seed->data, seed->len);
+    rv = RNG_GenerateGlobalRandomBytes(seed->data, seed->len);
+    /*
+     * NIST CMVP disallows a sequence of 20 bytes with the most
+     * significant byte equal to 0.  Perhaps they interpret
+     * "a sequence of at least 160 bits" as "a number >= 2^159".
+     * So we always set the most significant bit to 1. (bug 334533)
+     */
+    seed->data[0] |= 0x80;
+    return rv;
 #endif
 }
 
@@ -392,7 +402,7 @@ PQG_ParamGenSeedLen(unsigned int j, unsigned int seedBytes,
     mp_err    err = MP_OKAY;
     SECStatus rv  = SECFailure;
     int iterations = 0;
-    if (j > 8 || !pParams || !pVfy) {
+    if (j > 8 || seedBytes < 20 || !pParams || !pVfy) {
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
 	return SECFailure;
     }
@@ -538,7 +548,7 @@ step_15:
     **  in certifying the proper generation of p and q."
     */
     /* Generate h. */
-    SECITEM_AllocItem(NULL, &hit, seedBytes); /* h is no longer than p */
+    SECITEM_AllocItem(NULL, &hit, L/8); /* h is no longer than p */
     if (!hit.data) goto cleanup;
     do {
 	/* loop generate h until 1<h<p-1 and (h**[(p-1)/q])mod p > 1 */
