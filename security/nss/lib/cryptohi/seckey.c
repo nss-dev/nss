@@ -1999,7 +1999,6 @@ SECKEY_DecodeDERSubjectPublicKeyInfo(SECItem *spkider)
         }
 	if (rv == SECSuccess)
 	    return spki;
-	SECKEY_DestroySubjectPublicKeyInfo(spki);
     } else {
 	PORT_SetError(SEC_ERROR_NO_MEMORY);
     }
