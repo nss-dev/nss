@@ -2721,11 +2721,9 @@ nsslowcert_UpdateSubjectEmailAddr(NSSLOWCERTCertDBHandle *dbhandle,
 	goto loser;
     } 
 
-    if ( entry->emailAddrs ) {
-	for (i=0; i < (int)(entry->nemailAddrs); i++) {
-	    if (PORT_Strcmp(entry->emailAddrs[i],emailAddr) == 0) {
-		index = i;
-	    }
+    for (i=0; i < (int)(entry->nemailAddrs); i++) {
+        if (PORT_Strcmp(entry->emailAddrs[i],emailAddr) == 0) {
+	    index = i;
 	}
     }
 
@@ -2767,7 +2765,7 @@ nsslowcert_UpdateSubjectEmailAddr(NSSLOWCERTCertDBHandle *dbhandle,
     /* write the new one */
     rv = WriteDBSubjectEntry(dbhandle, entry);
     if ( rv != SECSuccess ) {
-	    goto loser;
+        goto loser;
     }
 
     DestroyDBEntry((certDBEntry *)entry);
