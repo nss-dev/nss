@@ -600,6 +600,8 @@ terminateWorkerThreads(void)
     while (threadCount > 0) {
 	PZ_WaitCondVar(threadCountChangeCv, PR_INTERVAL_NO_TIMEOUT);
     }
+    /* The worker threads empty the jobQ before they terminate. */
+    PORT_Assert(PR_CLIST_IS_EMPTY(&jobQ));
     PZ_Unlock(qLock); 
 
     DESTROY_CONDVAR(jobQNotEmptyCv);
@@ -824,11 +826,8 @@ handle_fdx_connection(
 cleanup:
     if (ssl_sock) {
 	PR_Close(ssl_sock);
-    } else
-    {
-        if (tcp_sock) {
-	    PR_Close(tcp_sock);
-        }
+    } else if (tcp_sock) {
+	PR_Close(tcp_sock);
     }
 
     VLOG(("selfserv: handle_fdx_connection: exiting"));
@@ -886,7 +885,6 @@ reload_crl(PRFileDesc *crlFile)
 void stop_server()
 {
     stopping = 1;
-    VLOG(("selfserv: handle_connection: stop command"));
     PR_Interrupt(acceptorThread);
     PZ_TraceFlush();
 }
@@ -1178,6 +1176,8 @@ handle_connection(
 cleanup:
     if (ssl_sock) {
         PR_Close(ssl_sock);
+    } else if (tcp_sock) {
+        PR_Close(tcp_sock);
     }
     if (local_file_fd)
 	PR_Close(local_file_fd);
@@ -1185,6 +1185,7 @@ cleanup:
 
     /* do a nice shutdown if asked. */
     if (!strncmp(buf, stopCmd, sizeof stopCmd - 1)) {
+        VLOG(("selfserv: handle_connection: stop command"));
         stop_server();
     }
     VLOG(("selfserv: handle_connection: exiting"));
@@ -1195,6 +1196,7 @@ cleanup:
 
 void sigusr1_handler(int sig)
 {
+    VLOG(("selfserv: sigusr1_handler: stop server"));
     stop_server();
 }
 
@@ -1209,6 +1211,7 @@ do_accepts(
 {
     PRNetAddr   addr;
     PRErrorCode  perr;
+    struct sigaction act;
 
     VLOG(("selfserv: do_accepts: starting"));
     PR_SetThreadPriority( PR_GetCurrentThread(), PR_PRIORITY_HIGH);
@@ -1216,7 +1219,10 @@ do_accepts(
     acceptorThread = PR_GetCurrentThread();
 #ifdef XP_UNIX
     /* set up the signal handler */
-    if (signal(SIGUSR1, sigusr1_handler) == SIG_ERR) {
+    act.sa_handler = sigusr1_handler;
+    sigemptyset(&act.sa_mask);
+    act.sa_flags = 0;
+    if (sigaction(SIGUSR1, &act, NULL)) {
         fprintf(stderr, "Error installing signal handler.\n");
         exit(1);
     }
