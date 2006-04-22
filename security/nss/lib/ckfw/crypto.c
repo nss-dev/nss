@@ -347,7 +347,7 @@ nssCKFWCryptoOperation_UpdateFinal
 }
 
 /*
- * nssCKFWCryptoOperation_UpdateFinal
+ * nssCKFWCryptoOperation_UpdateCombo
  */
 NSS_EXTERN CK_RV
 nssCKFWCryptoOperation_UpdateCombo

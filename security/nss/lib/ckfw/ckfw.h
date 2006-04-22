@@ -1655,6 +1655,17 @@ nssCKFWCryptoOperation_UpdateFinal
   NSSItem *outputBuffer
 );
 
+/*
+ * nssCKFWCryptoOperation_UpdateCombo
+ */
+NSS_EXTERN CK_RV
+nssCKFWCryptoOperation_UpdateCombo
+(
+  NSSCKFWCryptoOperation *fwOperation,
+  NSSCKFWCryptoOperation *fwPeerOperation,
+  NSSItem *inputBuffer,
+  NSSItem *outputBuffer
+);
 
 /*
  * NSSCKFWSession
