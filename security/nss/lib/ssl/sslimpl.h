@@ -180,7 +180,11 @@ typedef enum { SSLAppOpRead = 0,
 #define NUM_MIXERS                      9
 
 /* Mask of the 25 named curves we support. */
+#ifdef NSS_ECC_ONLY_SUITE_B
+#define SSL3_SUPPORTED_CURVES_MASK 0x3800000	/* only 3 curves, suite B*/
+#else
 #define SSL3_SUPPORTED_CURVES_MASK 0x3fffffe
+#endif
 
 #ifndef BPB
 #define BPB 8 /* Bits Per Byte */
@@ -1268,7 +1272,6 @@ int ssl3_GatherCompleteHandshake(sslSocket *ss, int flags);
 extern SECStatus ssl3_CreateRSAStepDownKeys(sslSocket *ss);
 
 #ifdef NSS_ENABLE_ECC
-extern SECStatus ssl3_CreateECDHEphemeralKeys(sslSocket *ss);
 extern void      ssl3_FilterECCipherSuitesByServerCerts(sslSocket *ss);
 extern PRBool    ssl3_IsECCEnabled(sslSocket *ss);
 #endif /* NSS_ENABLE_ECC */
