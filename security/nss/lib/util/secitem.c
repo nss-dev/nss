@@ -65,17 +65,17 @@ SECITEM_AllocItem(PRArenaPool *arena, SECItem *item, unsigned int len)
 	    goto loser;
 	}
     } else {
-	PORT_Assert(item->data == NULL);
 	result = item;
     }
 
     result->len = len;
-    if (len) {
-	if (arena != NULL) {
-	    result->data = PORT_ArenaAlloc(arena, len);
-	} else {
-	    result->data = PORT_Alloc(len);
-	}
+    if (arena != NULL) {
+	result->data = PORT_ArenaAlloc(arena, len);
+    } else {
+	result->data = PORT_Alloc(len);
+    }
+    if (result->data == NULL && len) {
+	goto loser;
     }
 
     if (mark) {
@@ -96,6 +96,10 @@ loser:
 	if (result != NULL) {
 	    SECITEM_FreeItem(result, (item == NULL) ? PR_TRUE : PR_FALSE);
 	}
+	/*
+	 * If item is not NULL, the above has set item->data and
+	 * item->len to 0.
+	 */
     }
     return(NULL);
 }
