@@ -49,7 +49,7 @@
 /* --Private-Ldap-CertStore-Database-Functions----------------------- */
 
 /*
- * FUNCTION: pkix_pl_LdapCertStore_DecodeCert
+ * FUNCTION: pkix_pl_ASN1CertStore_DecodeCert
  * DESCRIPTION:
  *
  *  This function decodes a DER-encoded Certificate pointed to by "derCertItem",
@@ -73,7 +73,7 @@
  *  Returns a Fatal Error if the function fails in an unrecoverable way.
  */
 PKIX_Error *
-pkix_pl_LdapCertStore_DecodeCert(
+pkix_pl_ASN1CertStore_DecodeCert(
         SECItem *derCertItem,
         PKIX_List *certList,
         void *plContext)
@@ -81,7 +81,7 @@ pkix_pl_LdapCertStore_DecodeCert(
         CERTCertificate *nssCert = NULL;
         PKIX_PL_Cert *cert = NULL;
 
-        PKIX_ENTER(CERTSTORE, "pkix_pl_LdapCertStore_DecodeCert");
+        PKIX_ENTER(CERTSTORE, "pkix_pl_ASN1CertStore_DecodeCert");
         PKIX_NULLCHECK_TWO(derCertItem, certList);
 
         PKIX_PL_NSSCALLRV(CERTSTORE, nssCert, CERT_DecodeDERCertificate,
@@ -109,7 +109,7 @@ cleanup:
 }
 
 /*
- * FUNCTION: pkix_pl_LdapCertStore_DecodeCrl
+ * FUNCTION: pkix_pl_ASN1CertStore_DecodeCrl
  * DESCRIPTION:
  *
  *  This function decodes a DER-encoded Certificate Revocation List pointed to
@@ -133,7 +133,7 @@ cleanup:
  *  Returns a Fatal Error if the function fails in an unrecoverable way.
  */
 PKIX_Error *
-pkix_pl_LdapCertStore_DecodeCrl(
+pkix_pl_ASN1CertStore_DecodeCrl(
         SECItem *derCrlItem,
         PKIX_List *crlList,
         void *plContext)
@@ -141,7 +141,7 @@ pkix_pl_LdapCertStore_DecodeCrl(
         CERTSignedCrl *nssCrl = NULL;
         PKIX_PL_CRL *crl = NULL;
 
-        PKIX_ENTER(CERTSTORE, "pkix_pl_LdapCertStore_DecodeCrl");
+        PKIX_ENTER(CERTSTORE, "pkix_pl_ASN1CertStore_DecodeCrl");
         PKIX_NULLCHECK_TWO(derCrlItem, crlList);
 
         PKIX_PL_NSSCALLRV(CERTSTORE, nssCrl, CERT_DecodeDERCrl,
@@ -337,9 +337,9 @@ pkix_pl_LdapCertStore_BuildCertList(
                         derCertItem = *attrVal++;
                         while (derCertItem != 0) {
                             /* create a PKIX_PL_Cert from derCert */
-                            PKIX_CHECK(pkix_pl_LdapCertStore_DecodeCert
+                            PKIX_CHECK(pkix_pl_ASN1CertStore_DecodeCert
                                 (derCertItem, certList, plContext),
-                                "pkix_pl_LdapCertStore_DecodeCert failed");
+                                "pkix_pl_ASN1CertStore_DecodeCert failed");
                             derCertItem = *attrVal++;
                         }
                     } else if ((LDAPATTR_CROSSPAIRCERT & attrBits) == attrBits){
@@ -455,9 +455,9 @@ pkix_pl_LdapCertStore_BuildCrlList(
                         derCrlItem = *attrVal++;
                         while (derCrlItem != 0) {
                             /* create a PKIX_PL_Crl from derCrl */
-                            PKIX_CHECK(pkix_pl_LdapCertStore_DecodeCrl
+                            PKIX_CHECK(pkix_pl_ASN1CertStore_DecodeCrl
                                 (derCrlItem, crlList, plContext),
-                                "pkix_pl_LdapCertStore_DecodeCrl failed");
+                                "pkix_pl_ASN1CertStore_DecodeCrl failed");
                             derCrlItem = *attrVal++;
                         }
                     }

@@ -100,6 +100,18 @@ PKIX_Error *pkix_pl_LdapCertStore_ConvertCertResponses(
         PKIX_List **pCertList,
         void *plContext);
 
+PKIX_Error *
+pkix_pl_ASN1CertStore_DecodeCert(
+        SECItem *derCertItem,
+        PKIX_List *certList,
+        void *plContext);
+
+PKIX_Error *
+pkix_pl_ASN1CertStore_DecodeCrl(
+        SECItem *derCrlItem,
+        PKIX_List *crlList,
+        void *plContext);
+
 #ifdef __cplusplus
 }
 #endif
