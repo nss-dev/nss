@@ -865,6 +865,7 @@ pkix_DefaultCRLChecker_Check_Helper(
         PKIX_Boolean certStoreCanBeUsed = PKIX_FALSE;
         PKIX_CertStore *certStore = NULL;
         PKIX_UInt32 numEntries = 0;
+	PKIX_Error *storeError = NULL;
 
         PKIX_ENTER(CERTCHAINCHECKER, "pkix_DefaultCRLChecker_Check_Helper");
         PKIX_NULLCHECK_THREE(checker, cert, state);
@@ -901,16 +902,19 @@ pkix_DefaultCRLChecker_Check_Helper(
 
                 if (certStoreCanBeUsed == PKIX_TRUE)
                 {
-                        PKIX_CHECK(pkix_DefaultCRLChecker_Check_Store
-                                (checker,
-                                cert,
-                                prevPublicKey,
-                                state,
-                                unresolvedCriticalExtensions,
-                                certStore,
-                                &nbioContext,
-                                plContext),
-                                "pkix_DefaultCRLChecker_Check_Store failed");
+			/* Catch and re-throw error to preserve information */
+			storeError = pkix_DefaultCRLChecker_Check_Store
+			        (checker,
+			        cert,
+			        prevPublicKey,
+			        state,
+			        unresolvedCriticalExtensions,
+			        certStore,
+			        &nbioContext,
+			        plContext);
+			PKIX_CHECK
+				(storeError,
+				"pkix_DefaultCRLChecker_Check_Store failed");
 
                         if (nbioContext != NULL) {
                                 /* I/O still pending. Exit and resume later. */
