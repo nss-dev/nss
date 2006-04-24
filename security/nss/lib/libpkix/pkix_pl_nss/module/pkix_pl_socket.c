@@ -1607,7 +1607,7 @@ pkix_pl_Socket_CreateByHostAndPort(
         char *localCopyName = NULL;
 
         PKIX_ENTER(SOCKET, "pkix_pl_Socket_CreateByHostAndPort");
-        PKIX_NULLCHECK_TWO(hostname, pSocket);
+        PKIX_NULLCHECK_THREE(hostname, pStatus, pSocket);
 
 
         prstatus = PR_GetHostByName(hostname, buf, sizeof(buf), &hostent);
