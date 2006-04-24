@@ -233,7 +233,7 @@ pkix_OcspChecker_Check(
         }
 
 cleanup:
-        *pResultCode = (PKIX_UInt32)resultCode;;
+        *pResultCode = (PKIX_UInt32)resultCode;
 
         PKIX_DECREF(request);
         PKIX_DECREF(response);
