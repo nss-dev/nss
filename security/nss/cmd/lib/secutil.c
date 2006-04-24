@@ -3636,7 +3636,7 @@ SECU_FindCrlIssuer(CERTCertDBHandle *dbhandle, SECItem* subject,
                the first (newest) user cert */
             if (cert->trust &&
                 CERT_CheckCertUsage(cert, KU_CRL_SIGN) == SECSuccess &&
-                CERT_IsUserCert(cert) == PR_TRUE) {
+                CERT_IsUserCert(cert)) {
                 
                 issuerCert = CERT_DupCertificate(cert);
                 break;
