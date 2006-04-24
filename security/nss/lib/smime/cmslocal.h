@@ -333,6 +333,13 @@ NSS_CMSAttributeArray_AddAttr(PLArenaPool *poolp, NSSCMSAttribute ***attrs, NSSC
 extern SECStatus
 NSS_CMSAttributeArray_SetAttr(PLArenaPool *poolp, NSSCMSAttribute ***attrs, SECOidTag type, SECItem *value, PRBool encoded);
 
+/*
+ * NSS_CMSSignedData_AddTempCertificate - add temporary certificate references.
+ * They may be needed for signature verification on the data, for example.
+ */
+extern SECStatus
+NSS_CMSSignedData_AddTempCertificate(NSSCMSSignedData *sigd, CERTCertificate *cert);
+
 /************************************************************************/
 SEC_END_PROTOS
 
