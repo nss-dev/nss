@@ -56,6 +56,8 @@ doPD=0
 doTop=0
 doModule=0
 doPki=0
+doOCSP=0
+doOCSPTest=0
 
 combinedErrors=0
 totalErrors=0
@@ -107,6 +109,11 @@ Cleanup()
 
     if [ ${doModule} -eq 1 ]; then
         for i in ${linkModuleNistFiles}; do
+            if [ -f ${HOSTDIR}/rev_data/local/$i ]; then
+                rm -f ${HOSTDIR}/rev_data/local/$i
+            fi
+        done
+        for i in ${localCRLFiles}; do
             if [ -f ${HOSTDIR}/rev_data/local/$i ]; then
                 rm -f ${HOSTDIR}/rev_data/local/$i
             fi
@@ -220,6 +227,15 @@ RunTests()
 
         # If we want shorter command printout for NIST tests, delete next line
         testPurpose=${fullTestPurpose}
+
+        # Skip OCSP tests if OCSP is not defined in the environment
+        if [ ${doOCSPTest} -eq 0 ]; then
+            hasOCSP=`echo ${args} | grep OCSP-Test`
+            if [ ! -z "${hasOCSP}" ]; then
+                Display "SKIPPING ${testPgm} ${testPurpose}"
+	        continue
+	    fi
+        fi
 
         if [ ${doNIST} -eq 0 ]; then
             hasNIST=`echo ${args} | grep NIST-Test`
