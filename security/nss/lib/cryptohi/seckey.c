@@ -1498,13 +1498,13 @@ SECKEY_CopyPrivateKey(SECKEYPrivateKey *privk)
     SECKEYPrivateKey *copyk;
     PRArenaPool *arena;
     
-    if (privk == NULL) {
+    if (!privk || !privk->pkcs11Slot) {
+	PORT_SetError(SEC_ERROR_INVALID_ARGS);
 	return NULL;
     }
     
     arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
     if (arena == NULL) {
-	PORT_SetError (SEC_ERROR_NO_MEMORY);
 	return NULL;
     }
 
