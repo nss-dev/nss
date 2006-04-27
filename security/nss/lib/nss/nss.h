@@ -53,14 +53,14 @@ SEC_BEGIN_PROTOS
  *     "<major version>.<minor version>[.<patch level>] [<Beta>]"
  */
 #ifdef NSS_ENABLE_ECC
-#define NSS_VERSION  "3.11.1 ECC Beta"
+#define NSS_VERSION  "3.11.1 ECC"
 #else
-#define NSS_VERSION  "3.11.1 Beta"
+#define NSS_VERSION  "3.11.1"
 #endif
 #define NSS_VMAJOR   3
 #define NSS_VMINOR   11
 #define NSS_VPATCH   1
-#define NSS_BETA     PR_TRUE
+#define NSS_BETA     PR_FALSE
 
 /*
  * Return a boolean that indicates whether the underlying library
