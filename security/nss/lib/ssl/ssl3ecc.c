@@ -1030,9 +1030,9 @@ ssl3_IsECCEnabled(sslSocket * ss)
 
 #define BE(n) 0, n
 
-#ifdef NSS_ECC_ONLY_SUITE_B
+#ifndef NSS_ECC_MORE_THAN_SUITE_B
 /* Prefabricated TLS client hello extension, Elliptic Curves List,
- * offers only 3 curves, the Suite B curves, 23-35 
+ * offers only 3 curves, the Suite B curves, 23-25 
  */
 static const PRUint8 EClist[12] = {
     BE(10),         /* Extension type */

@@ -164,6 +164,7 @@ ECGroup_consGFp_mont(const mp_int *irr, const mp_int *curvea,
 	return group;
 }
 
+#ifdef NSS_ECC_MORE_THAN_SUITE_B
 /* Construct a generic ECGroup for elliptic curves over binary polynomial
  * fields. */
 ECGroup *
@@ -205,6 +206,7 @@ ECGroup_consGF2m(const mp_int *irr, const unsigned int irr_arr[5],
 	}
 	return group;
 }
+#endif
 
 /* Construct ECGroup from hex parameters and name, if any. Called by
  * ECGroup_fromHex and ECGroup_fromName. */
@@ -246,6 +248,7 @@ ecgroup_fromNameAndHex(const ECCurveName name,
 
 	/* determine which optimizations (if any) to use */
 	if (params->field == ECField_GFp) {
+#ifdef NSS_ECC_MORE_THAN_SUITE_B
 	    switch (name) {
 #ifdef ECL_USE_FP
 		case ECCurve_SECG_PRIME_160R1:
@@ -302,10 +305,12 @@ ecgroup_fromNameAndHex(const ECCurveName name,
 			break;
 		default:
 			/* use generic arithmetic */
+#endif
 			group =
 				ECGroup_consGFp_mont(&irr, &curvea, &curveb, &genx, &geny,
 									 &order, params->cofactor);
 			if (group == NULL) { res = MP_UNDEF; goto CLEANUP; }
+#ifdef NSS_ECC_MORE_THAN_SUITE_B
 		}
 	} else if (params->field == ECField_GF2m) {
 		group = ECGroup_consGF2m(&irr, NULL, &curvea, &curveb, &genx, &geny, &order, params->cofactor);
@@ -321,6 +326,7 @@ ecgroup_fromNameAndHex(const ECCurveName name,
 		           (name == ECCurve_NIST_B233)) {
 			MP_CHECKOK(ec_group_set_gf2m233(group, name));
 		}
+#endif
 	}
 
 	/* set name, if any */
