@@ -370,7 +370,6 @@ ec_GFp_nistp256_mod(const mp_int *a, mp_int *r, const GFMethod *meth)
 		MP_DIGIT(r,0) = r0;
 
 		/* final reduction if necessary */
-#ifdef __hpux
 		if ((r3 > 0xFFFFFFFF00000001ULL) ||
 			((r3 == 0xFFFFFFFF00000001ULL) && 
 			(r2 || (r1 >> 32)|| 
@@ -378,15 +377,6 @@ ec_GFp_nistp256_mod(const mp_int *a, mp_int *r, const GFMethod *meth)
 			/* very rare, just use mp_sub */
 			MP_CHECKOK(mp_sub(r, &meth->irr, r));
 		}
-#else
-		if ((r3 > 0xFFFFFFFF00000001ULL) ||
-			((r3 == 0xFFFFFFFF00000001UL) && 
-			(r2 || (r1 >> 32)|| 
-			       (r1 == 0xFFFFFFFFULL && r0 == MP_DIGIT_MAX)))) {
-			/* very rare, just use mp_sub */
-			MP_CHECKOK(mp_sub(r, &meth->irr, r));
-		}
-#endif
 			
 		s_mp_clamp(r);
 #endif
