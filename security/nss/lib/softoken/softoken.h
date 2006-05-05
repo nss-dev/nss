@@ -177,6 +177,13 @@ extern CK_RV sftk_fipsPowerUpSelfTest( void );
 */	
 unsigned long sftk_MapKeySize(CK_KEY_TYPE keyType);
 
+/*
+** FIPS 140-2 auditing
+*/
+extern PRBool sftk_audit_enabled;
+
+extern void sftk_LogAuditMessage(NSSAuditSeverity severity, const char *msg);
+
 SEC_END_PROTOS
 
 #endif /* _SOFTOKEN_H_ */
