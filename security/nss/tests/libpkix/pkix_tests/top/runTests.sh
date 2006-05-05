@@ -39,11 +39,13 @@
 # runTests.sh
 #
 
+
 LDAP='nss.red.iplanet.com:1389'
 export LDAP
 curdir=`pwd`
 cd ../../common
 . ./libpkix_init.sh > /dev/null
+doOCSP=1
 . ./libpkix_init_nist.sh
 cd ${curdir}
 
@@ -71,6 +73,19 @@ if [ ! -z "${NIST_FILES_DIR}" ] ; then
     done
 fi
 
+ocspFiles="goodcert.crt revokedcert.crt anchorcert.crt
+    secmod.db key3.db cert8.db"
+
+if [ ! -z ${doOCSPTest} ] ; then
+    if [ -d ${HOSTDIR}/ocsp ]; then
+        rm -fr ${HOSTDIR}/ocsp
+    fi
+    mkdir -p ${HOSTDIR}/ocsp
+    for i in ${ocspFiles}; do
+        cp /home/rf156370/mozilla/security/nss/cmd/libpkix/pkix/top/ocspchecker/$i ${HOSTDIR}/ocsp/$i
+
+    done
+fi
 
 ##########
 # main
@@ -78,8 +93,10 @@ fi
 
 ParseArgs $*
 
-Display "\n#    ENE = expect no error (validation should succeed)"
-Display "#    EE = expect error (validation should fail)\n"
+Display ""
+Display "#    ENE = expect no error (validation should succeed)"
+Display "#    EE = expect error (validation should fail)"
+Display ""
 
 LOGGING=1
 SOCKETTRACE=1
@@ -479,6 +496,8 @@ test_buildchain_partialchain ${LDAP}  NIST-Test.4.6.14 ENE $NIST ValidpathLenCon
 test_buildchain_partialchain ${LDAP}  NIST-Test.4.6.14 ENE $NIST ValidpathLenConstraintTest14EE.crt pathLenConstraint6subsubsubCA41XCert.crt pathLenConstraint6subsubCA41Cert.crt TrustAnchorRootCertificate.crt pathLenConstraint6subCA4Cert.crt pathLenConstraint6CACert.crt TrustAnchorRootCertificate.crt 
 test_buildchain_partialchain ${LDAP}  NIST-Test.4.13.13 EE $NIST InvalidDNnameConstraintsTest13EE.crt nameConstraintsDN1subCA2Cert.crt nameConstraintsDN1subCA2Cert.crt nameConstraintsDN1CACert.crt TrustAnchorRootCertificate.crt
 test_buildchain_partialchain ${LDAP}  NIST-Test.4.13.27 ENE $NIST ValidDNandRFC822nameConstraintsTest27EE.crt nameConstraintsDN1subCA3Cert.crt nameConstraintsDN1subCA2Cert.crt TrustAnchorRootCertificate.crt 
+test_ocsp OCSP-Test ENE ${HOSTDIR}/ocsp anchorcert.crt goodcert.crt
+test_ocsp OCSP-Test EE ${HOSTDIR}/ocsp anchorcert.crt revokedcert.crt
 EOF
 
 totalErrors=$?
