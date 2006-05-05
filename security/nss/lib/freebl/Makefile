@@ -132,7 +132,7 @@ ifeq ($(CPU_ARCH),x86_64)
     DEFINES += -DNSS_BEVAND_ARCFOUR -DMPI_AMD64 -DMP_ASSEMBLY_MULTIPLY
     DEFINES += -DNSS_USE_COMBA
     DEFINES += -DMP_CHAR_STORE_SLOW -DMP_IS_LITTLE_ENDIAN
-#    DEFINES += -DMPI_AMD64_ADD
+#   DEFINES += -DMPI_AMD64_ADD
     MPI_SRCS += mpi_amd64.c mp_comba.c
 endif
 ifeq ($(CPU_ARCH),x86)
@@ -253,6 +253,18 @@ ifeq ($(CPU_ARCH),sparc)
 	    SOLARIS_AS_FLAGS = -xarch=v9a -K PIC
 	endif
     else # NS_USE_GCC
+	# FPU_TARGET_OPTIMIZER specifies the target processor and cache
+	# properties of the ABI32_FPU and ABI64_FPU architectures for use
+	# by the optimizer.
+	ifeq (,$(findstring Sun WorkShop 6,$(shell $(CC) -V 2>&1)))
+	    # if the compiler is not Forte 6
+	    FPU_TARGET_OPTIMIZER = -xcache=64/32/4:1024/64/4 -xchip=ultra3
+	else
+	    # Forte 6 C compiler generates incorrect code for rijndael.c
+	    # if -xchip=ultra3 is used (Bugzilla bug 333925).  So we revert
+	    # to what we used in NSS 3.10.
+	    FPU_TARGET_OPTIMIZER = -xchip=ultra2
+	endif
 	ifdef USE_ABI32_INT32
 	    #ARCHFLAG=-xarch=v8 set in coreconf/sunOS5.mk
 	endif
@@ -273,7 +285,7 @@ ifeq ($(CPU_ARCH),sparc)
 	    # the generated flag settings
 	    SOL_CFLAGS += -D__MATHERR_ERRNO_DONTCARE -fns -fsimple=2 -fsingle
 	    SOL_CFLAGS += -xalias_level=basic -xbuiltin=%all
-	    SOL_CFLAGS += -xcache=64/32/4:1024/64/4 -xchip=ultra3 -xdepend
+	    SOL_CFLAGS += $(FPU_TARGET_OPTIMIZER) -xdepend
 	    SOL_CFLAGS += -xlibmil -xmemalign=8s -xO5
 	    ARCHFLAG = -xarch=v8plusa
 	    SOLARIS_AS_FLAGS = -xarch=v8plusa -K PIC
@@ -291,7 +303,7 @@ ifeq ($(CPU_ARCH),sparc)
 	    # See comment for USE_ABI32_FPU.
 	    SOL_CFLAGS += -D__MATHERR_ERRNO_DONTCARE -fns -fsimple=2 -fsingle
 	    SOL_CFLAGS += -xalias_level=basic -xbuiltin=%all
-	    SOL_CFLAGS += -xcache=64/32/4:1024/64/4 -xchip=ultra3 -xdepend
+	    SOL_CFLAGS += $(FPU_TARGET_OPTIMIZER) -xdepend
 	    SOL_CFLAGS += -xlibmil -xmemalign=8s -xO5
 	    ARCHFLAG = -xarch=v9a
 	    SOLARIS_AS_FLAGS = -xarch=v9a -K PIC
