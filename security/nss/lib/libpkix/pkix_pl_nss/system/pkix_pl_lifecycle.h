@@ -101,6 +101,7 @@
 #include "pkix_pl_ocsprequest.h"
 #include "pkix_pl_ocspresponse.h"
 #include "pkix_pl_httpdefaultclient.h"
+#include "pkix_pl_httpcertstore.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -39,5 +39,6 @@ PKIX_DEPTH      = ../..
 
 #
 DIRS =  colcertstore  ekuchecker  pk11certstore socket ldapcertstore \
+	httpcertstore \
 	$(NULL)
 

@@ -2465,9 +2465,25 @@ cleanup:
 
 /*
  * FUNCTION: PKIX_PL_LdapDefaultClient_AbandonRequest
+ * DESCRIPTION:
+ *
+ *  This function creates and sends an LDAP-protocol "Abandon" message to the 
+ *  server connected to the LdapDefaultClient pointed to by "client".
+ *
+ * PARAMETERS:
+ *  "client"
+ *      The LdapDefaultClient whose connection is to be abandoned. Must be
+ *      non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
  */
 PKIX_Error *
-PKIX_PL_LdapCertStore_AbandonRequest(
+PKIX_PL_LdapDefaultClient_AbandonRequest(
         PKIX_PL_LdapDefaultClient *client,
         void *plContext)
 {

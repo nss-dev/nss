@@ -185,7 +185,7 @@ PKIX_PL_Initialize(
 
         pkix_pl_CertBasicConstraints_RegisterSelf(plContext); /* 11-20 */
         pkix_pl_Cert_RegisterSelf(plContext);
-        /* pkix_NoLongerUsed_RegisterSelf(plContext); */
+        /* pkix_HttpClient_RegisterSelf(plContext); */
         pkix_pl_CRL_RegisterSelf(plContext);
         pkix_pl_CRLEntry_RegisterSelf(plContext);
         pkix_pl_Date_RegisterSelf(plContext);
@@ -195,7 +195,7 @@ PKIX_PL_Initialize(
         pkix_TrustAnchor_RegisterSelf(plContext);
 
         pkix_pl_X500Name_RegisterSelf(plContext);   /* 21-30 */
-        /* pkix_NoLongerUsed_RegisterSelf(plContext); */
+        pkix_pl_HttpCertStoreContext_RegisterSelf(plContext);
         pkix_BuildResult_RegisterSelf(plContext);
         pkix_ProcessingParams_RegisterSelf(plContext);
         pkix_ValidateParams_RegisterSelf(plContext);

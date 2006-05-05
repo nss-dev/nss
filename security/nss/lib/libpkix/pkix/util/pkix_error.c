@@ -392,7 +392,7 @@ PKIX_ERRORNAMES[PKIX_NUMERRORS] =
         "Date Error",
         "TrustAnchor Error",
         "ProcessingParams Error",
-        "NoLongerUsed Error",
+        "HttpClient Error",
         "ValidateParams Error",
         "Validate Error",
         "ValidateResult Error",
@@ -417,7 +417,7 @@ PKIX_ERRORNAMES[PKIX_NUMERRORS] =
         "CertPolicyMap Error",
         "Build Error",
         "BuildResult Error",
-        "NoLongerUsed Error",
+        "HttpCertStoreContext Error",
         "ForwardBuilderState Error",
         "SignatureCheckerState Error",
         "CertNameConstraints Error",
@@ -439,7 +439,7 @@ PKIX_ERRORNAMES[PKIX_NUMERRORS] =
         "OcspChecker Error",
         "OcspRequest Error",
         "OcspResponse Error",
-        "HttpClient Error"
+        "HttpDefaultClient Error"
 };
 
 /*

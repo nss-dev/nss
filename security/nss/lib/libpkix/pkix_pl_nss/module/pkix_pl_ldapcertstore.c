@@ -49,20 +49,22 @@
 /* --Private-Ldap-CertStore-Database-Functions----------------------- */
 
 /*
- * FUNCTION: pkix_pl_ASN1CertStore_DecodeCert
+ * FUNCTION: pkix_pl_LdapCertStore_DecodeCrossCertPair
  * DESCRIPTION:
  *
- *  This function decodes a DER-encoded Certificate pointed to by "derCertItem",
- *  adding the resulting PKIX_PL_Cert, if the decoding was successful, to the
- *  List (possibly empty) pointed to by "certList".
+ *  This function decodes a DER-encoded CrossCertPair pointed to by
+ *  "responseList" and extracts and decodes the Certificates in that pair,
+ *  adding the resulting Certs, if the decoding was successful, to the List
+ *  (possibly empty) pointed to by "certList". If none of the objects
+ *  can be decoded into a Cert, the List is returned unchanged.
  *
  * PARAMETERS:
- *  "derCertItem"
- *      The address of the SECItem containing the DER-encoded Certificate. Must
- *      be non-NULL.
+ *  "derCCPItem"
+ *      The address of the SECItem containing the DER representation of the
+ *      CrossCertPair. Must be non-NULL.
  *  "certList"
- *      The address of the List to which the decoded Certificate is added. Must
- *      be non-NULL.
+ *      The address of the List to which the decoded Certs are added. May be
+ *      empty, but must be non-NULL.
  *  "plContext"
  *      Platform-specific context pointer.
  * THREAD SAFETY:
@@ -72,103 +74,6 @@
  *  Returns a CertStore Error if the function fails in a non-fatal way.
  *  Returns a Fatal Error if the function fails in an unrecoverable way.
  */
-PKIX_Error *
-pkix_pl_ASN1CertStore_DecodeCert(
-        SECItem *derCertItem,
-        PKIX_List *certList,
-        void *plContext)
-{
-        CERTCertificate *nssCert = NULL;
-        PKIX_PL_Cert *cert = NULL;
-
-        PKIX_ENTER(CERTSTORE, "pkix_pl_ASN1CertStore_DecodeCert");
-        PKIX_NULLCHECK_TWO(derCertItem, certList);
-
-        PKIX_PL_NSSCALLRV(CERTSTORE, nssCert, CERT_DecodeDERCertificate,
-                (derCertItem, PR_TRUE, NULL));
-
-        if (nssCert) {
-                PKIX_CHECK_ONLY_FATAL(pkix_pl_Cert_CreateWithNSSCert
-                        (nssCert, &cert, plContext),
-                        "pkix_pl_Cert_CreateWithNSSCert failed");
-
-                /* skip bad certs and append good ones */
-                if (!PKIX_ERROR_RECEIVED) {
-                        PKIX_CHECK(PKIX_List_AppendItem
-                                (certList, (PKIX_PL_Object *) cert, plContext),
-                                "PKIX_List_AppendItem failed");
-                }
-
-                PKIX_DECREF(cert);
-        }
-cleanup:
-
-        PKIX_DECREF(cert);
-
-        PKIX_RETURN(CERTSTORE);
-}
-
-/*
- * FUNCTION: pkix_pl_ASN1CertStore_DecodeCrl
- * DESCRIPTION:
- *
- *  This function decodes a DER-encoded Certificate Revocation List pointed to
- *  by "derCrlItem", adding the resulting PKIX_PL_CRL, if the decoding was
- *  successful, to the List (possibly empty) pointed to by "crlList".
- *
- * PARAMETERS:
- *  "derCrlItem"
- *      The address of the SECItem containing the DER-encoded Certificate
- *      Revocation List. Must be non-NULL.
- *  "crlList"
- *      The address of the List to which the decoded CRL is added. Must be
- *      non-NULL.
- *  "plContext"
- *      Platform-specific context pointer.
- * THREAD SAFETY:
- *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
- * RETURNS:
- *  Returns NULL if the function succeeds.
- *  Returns a CertStore Error if the function fails in a non-fatal way.
- *  Returns a Fatal Error if the function fails in an unrecoverable way.
- */
-PKIX_Error *
-pkix_pl_ASN1CertStore_DecodeCrl(
-        SECItem *derCrlItem,
-        PKIX_List *crlList,
-        void *plContext)
-{
-        CERTSignedCrl *nssCrl = NULL;
-        PKIX_PL_CRL *crl = NULL;
-
-        PKIX_ENTER(CERTSTORE, "pkix_pl_ASN1CertStore_DecodeCrl");
-        PKIX_NULLCHECK_TWO(derCrlItem, crlList);
-
-        PKIX_PL_NSSCALLRV(CERTSTORE, nssCrl, CERT_DecodeDERCrl,
-                (NULL, derCrlItem, SEC_CRL_TYPE));
-
-        if (nssCrl) {
-                PKIX_CHECK_ONLY_FATAL(pkix_pl_CRL_CreateWithSignedCRL
-                        (nssCrl, &crl, plContext),
-                        "pkix_pl_CRL_CreateWithSignedCRL failed");
-    
-                /* skip bad crls and append good ones */
-                if (!PKIX_ERROR_RECEIVED) {
-                        PKIX_CHECK(PKIX_List_AppendItem
-                                (crlList, (PKIX_PL_Object *) crl, plContext),
-                                "PKIX_List_AppendItem failed");
-                }
-
-                PKIX_DECREF(crl);
-
-        }
-cleanup:
-
-        PKIX_DECREF(crl);
-
-        PKIX_RETURN(CERTSTORE);
-}
-
 PKIX_Error *
 pkix_pl_LdapCertStore_DecodeCrossCertPair(
         SECItem *derCCPItem,
@@ -254,6 +159,7 @@ cleanup:
 
         PKIX_RETURN(CERTSTORE);
 }
+
 /*
  * FUNCTION: pkix_pl_LdapCertStore_BuildCertList
  * DESCRIPTION:
@@ -337,9 +243,9 @@ pkix_pl_LdapCertStore_BuildCertList(
                         derCertItem = *attrVal++;
                         while (derCertItem != 0) {
                             /* create a PKIX_PL_Cert from derCert */
-                            PKIX_CHECK(pkix_pl_ASN1CertStore_DecodeCert
+                            PKIX_CHECK(pkix_pl_Cert_CreateToList
                                 (derCertItem, certList, plContext),
-                                "pkix_pl_ASN1CertStore_DecodeCert failed");
+                                "pkix_pl_Cert_CreateToList failed");
                             derCertItem = *attrVal++;
                         }
                     } else if ((LDAPATTR_CROSSPAIRCERT & attrBits) == attrBits){
@@ -455,9 +361,9 @@ pkix_pl_LdapCertStore_BuildCrlList(
                         derCrlItem = *attrVal++;
                         while (derCrlItem != 0) {
                             /* create a PKIX_PL_Crl from derCrl */
-                            PKIX_CHECK(pkix_pl_ASN1CertStore_DecodeCrl
+                            PKIX_CHECK(pkix_pl_CRL_CreateToList
                                 (derCrlItem, crlList, plContext),
-                                "pkix_pl_ASN1CertStore_DecodeCrl failed");
+                                "pkix_pl_CRL_CreateToList failed");
                             derCrlItem = *attrVal++;
                         }
                     }
@@ -642,6 +548,7 @@ cleanup:
 
 }
 
+#if 0
 /*
  * FUNCTION: pkix_pl_LdapCertstore_ConvertCertResponses
  * DESCRIPTION:
@@ -689,6 +596,7 @@ cleanup:
 
         PKIX_RETURN(CERTSTORE);
 }
+#endif
 
 /*
  * FUNCTION: pkix_pl_LdapCertStore_GetCert
@@ -835,9 +743,9 @@ pkix_pl_LdapCertStore_GetCert(
                         (store, &cacheFlag, plContext),
                         "PKIX_CertStore_GetCertStoreCacheFlag failed");
 
-                PKIX_CHECK(pkix_pl_LdapCertStore_ConvertCertResponses
+                PKIX_CHECK(pkix_pl_LdapCertStore_BuildCertList
                         (responses, &unfilteredCerts, plContext),
-                        "pkix_pl_LdapCertStore_ConvertCertResponses failed");
+                        "pkix_pl_LdapCertStore_BuildCertList failed");
 
                 PKIX_CHECK(pkix_CertSelector_Select
                         (selector, unfilteredCerts, &filteredCerts, plContext),
@@ -901,9 +809,9 @@ pkix_pl_LdapCertStore_GetCertContinue(
                         (store, &cacheFlag, plContext),
                         "PKIX_CertStore_GetCertStoreCacheFlag failed");
 
-                PKIX_CHECK(pkix_pl_LdapCertStore_ConvertCertResponses
+                PKIX_CHECK(pkix_pl_LdapCertStore_BuildCertList
                         (responses, &unfilteredCerts, plContext),
-                        "pkix_pl_LdapCertStore_ConvertCertResponses failed");
+                        "pkix_pl_LdapCertStore_BuildCertList failed");
 
                 PKIX_CHECK(pkix_CertSelector_Select
                         (selector, unfilteredCerts, &filteredCerts, plContext),

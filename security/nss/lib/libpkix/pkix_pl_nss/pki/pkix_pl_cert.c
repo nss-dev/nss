@@ -1514,6 +1514,68 @@ cleanup:
         PKIX_RETURN(CERT);
 }
 
+/*
+ * FUNCTION: pkix_pl_Cert_CreateToList
+ * DESCRIPTION:
+ *
+ *  Creates a new certificate using the DER-encoding pointed to by "derCertItem"
+ *  and appends it to the list pointed to by "certList". If Cert creation fails,
+ *  the function returns with certList unchanged, but any decoding Error is
+ *  discarded.
+ *
+ * PARAMETERS:
+ *  "derCertItem"
+ *      Address of SECItem containing the DER representation of a certificate.
+ *      Must be non-NULL.
+ *  "certList"
+ *      Address of List to which the Cert will be appended, if successfully
+ *      created. May be empty, but must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Cert Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+pkix_pl_Cert_CreateToList(
+        SECItem *derCertItem,
+        PKIX_List *certList,
+        void *plContext)
+{
+        CERTCertificate *nssCert = NULL;
+        PKIX_PL_Cert *cert = NULL;
+
+        PKIX_ENTER(CERT, "pkix_pl_Cert_CreateToList");
+        PKIX_NULLCHECK_TWO(derCertItem, certList);
+
+        PKIX_PL_NSSCALLRV(CERT, nssCert, CERT_DecodeDERCertificate,
+                (derCertItem, PR_TRUE, NULL));
+
+        if (nssCert) {
+                PKIX_CHECK_ONLY_FATAL(pkix_pl_Cert_CreateWithNSSCert
+                        (nssCert, &cert, plContext),
+                        "pkix_pl_Cert_CreateWithNSSCert failed");
+
+                /* skip bad certs and append good ones */
+                if (!PKIX_ERROR_RECEIVED) {
+                        PKIX_CHECK(PKIX_List_AppendItem
+                                (certList, (PKIX_PL_Object *) cert, plContext),
+                                "PKIX_List_AppendItem failed");
+                }
+
+                PKIX_DECREF(cert);
+        }
+
+cleanup:
+
+        PKIX_DECREF(cert);
+
+        PKIX_RETURN(CERT);
+}
+
 /* --Public-Functions------------------------------------------------------- */
 
 /*

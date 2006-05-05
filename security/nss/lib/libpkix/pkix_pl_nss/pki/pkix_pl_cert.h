@@ -99,6 +99,12 @@ pkix_pl_Cert_CreateWithNSSCert(
         void *plContext);
 
 PKIX_Error *
+pkix_pl_Cert_CreateToList(
+        SECItem *derCertItem,
+        PKIX_List *certList,
+        void *plContext);
+
+PKIX_Error *
 pkix_pl_Cert_CheckSubjectAltNameConstraints(
         PKIX_PL_Cert *cert,
         PKIX_PL_CertNameConstraints *nameConstraints,

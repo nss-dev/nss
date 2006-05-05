@@ -451,6 +451,7 @@ extern "C" {
 #define PKIX_GENERALNAMEDEBUG                     1
 #define PKIX_PUBLICKEYDEBUG                       1
 #define PKIX_CERTDEBUG                            1
+#define PKIX_HTTPCLIENTDEBUG                      1
 #define PKIX_DATEDEBUG                            1
 #define PKIX_TRUSTANCHORDEBUG                     1
 #define PKIX_PROCESSINGPARAMSDEBUG                1
@@ -503,6 +504,7 @@ extern "C" {
 #define PKIX_OCSPREQUESTDEBUG                     1
 #define PKIX_OCSPRESPONSEDEBUG                    1
 #define PKIX_HTTPDEFAULTCLIENTDEBUG               1
+#define PKIX_HTTPCERTSTORECONTEXTDEBUG            1
 #endif
 
 /*
@@ -686,6 +688,16 @@ extern "C" {
 #else
 #define PKIX_CERT_DEBUG(expr)
 #define PKIX_CERT_DEBUG_ARG(expr, arg)
+#endif
+
+#if PKIX_HTTPCLIENTDEBUG
+#define PKIX_HTTPCLIENT_DEBUG(expr) \
+        PKIX_DEBUG(expr)
+#define PKIX_HTTPCLIENT_DEBUG_ARG(expr, arg) \
+        PKIX_DEBUG_ARG(expr, arg)
+#else
+#define PKIX_HTTPCLIENT_DEBUG(expr)
+#define PKIX_HTTPCLIENT_DEBUG_ARG(expr, arg)
 #endif
 
 #if PKIX_BIGINTDEBUG
@@ -1216,6 +1228,16 @@ extern "C" {
 #else
 #define PKIX_HTTPDEFAULTCLIENT_DEBUG(expr)
 #define PKIX_HTTPDEFAULTCLIENT_DEBUG_ARG(expr, arg)
+#endif
+
+#if PKIX_HTTPCERTSTORECONTEXTDEBUG
+#define PKIX_HTTPCERTSTORECONTEXT_DEBUG(expr) \
+        PKIX_DEBUG(expr)
+#define PKIX_HTTPCERTSTORECONTEXT_DEBUG_ARG(expr, arg) \
+        PKIX_DEBUG_ARG(expr, arg)
+#else
+#define PKIX_HTTPCERTSTORECONTEXT_DEBUG(expr)
+#define PKIX_HTTPCERTSTORECONTEXT_DEBUG_ARG(expr, arg)
 #endif
 
 /*

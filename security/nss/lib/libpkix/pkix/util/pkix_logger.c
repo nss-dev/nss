@@ -101,7 +101,7 @@ PKIX_COMPONENTNAMES[PKIX_NUMERRORS] =
         "Date",
         "TrustAnchor",
         "ProcessingParams",
-        "NoLongerUsed",
+        "HttpClient",
         "ValidateParams",
         "Validate",
         "ValidateResult",
@@ -126,7 +126,7 @@ PKIX_COMPONENTNAMES[PKIX_NUMERRORS] =
         "CertPolicyMap",
         "Build",
         "BuildResult",
-        "NoLongerUsed",
+        "HttpCertStoreContext",
         "ForwardBuilderState",
         "SignatureCheckerState",
         "CertNameConstraints",
@@ -148,7 +148,7 @@ PKIX_COMPONENTNAMES[PKIX_NUMERRORS] =
         "OcspChecker",
         "OcspRequest"
         "OcspResponse",
-        "HttpClient"
+        "HttpDefaultClient"
 };
 
 /* --Private-Functions-------------------------------------------- */

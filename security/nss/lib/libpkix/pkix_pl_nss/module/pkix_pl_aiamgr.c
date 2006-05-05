@@ -114,7 +114,7 @@ pkix_pl_AIAMgr_Destroy(
         PKIX_DECREF(aiaMgr->aia);
         PKIX_DECREF(aiaMgr->location);
         PKIX_DECREF(aiaMgr->results);
-        PKIX_DECREF(aiaMgr->client);
+        PKIX_DECREF(aiaMgr->client.ldapClient);
 
 cleanup:
 
@@ -152,56 +152,6 @@ pkix_pl_AIAMgr_RegisterSelf(void *plContext)
         systemClasses[PKIX_AIAMGR_TYPE] = entry;
 
         PKIX_RETURN(AIAMGR);
-}
-
-/*
- * FUNCTION: pkix_pl_AIAMgr_ConvertResponses
- * DESCRIPTION:
- *
- *  This function processes the List of LDAPResponses pointed to by "responses"
- *  into a List of resulting Certs, storing the result at "pCerts". If there
- *  are no responses converted successfully, a NULL may be stored.
- *
- * PARAMETERS:
- *  "responses"
- *      The LDAPResponses whose contents are to be converted. Must be non-NULL.
- *  "pCerts"
- *      Address at which the returned List is stored. Must be non-NULL.
- *  "plContext"
- *      Platform-specific context pointer.
- * THREAD SAFETY:
- *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
- * RETURNS:
- *  Returns NULL if the function succeeds.
- *  Returns an AIAMgr Error if the function fails in a non-fatal way
- *  Returns a Fatal Error if the function fails in an unrecoverable way.
- */
-static PKIX_Error *
-pkix_pl_AIAMgr_ConvertResponses(
-        PKIX_List *responses,
-        PKIX_List **pCerts,
-        void *plContext)
-{
-        PKIX_List *certs = NULL;
-
-        PKIX_ENTER(AIAMGR, "pkix_pl_AIAMgr_ConvertResponses");
-        PKIX_NULLCHECK_TWO(responses, pCerts);
-
-        *pCerts = NULL;
-
-         if (responses != NULL) {
-                PKIX_CHECK(pkix_pl_LdapCertStore_ConvertCertResponses
-                        (responses,
-                        &certs,
-                        plContext),
-                        "pkix_pl_LdapCertStore_ConvertCertResponses failed");
-                *pCerts = certs;
-        }
-
-cleanup:
-
-        PKIX_RETURN(AIAMGR);
-
 }
 
 /*
@@ -263,7 +213,7 @@ pkix_pl_AiaMgr_FindLDAPClient(
                 /* No, create a connection (and cache it) */
                 PKIX_CHECK(PKIX_PL_LdapDefaultClient_CreateByName
                         (domainName,
-                        PR_INTERVAL_NO_TIMEOUT,
+                        PR_INTERVAL_NO_WAIT, /* PR_INTERVAL_NO_TIMEOUT, */
                         NULL,
                         &client,
                         plContext),
@@ -283,6 +233,273 @@ pkix_pl_AiaMgr_FindLDAPClient(
 cleanup:
 
         PKIX_DECREF(domainString);
+
+        PKIX_RETURN(AIAMGR);
+}
+
+PKIX_Error *
+pkix_pl_AIAMgr_GetHTTPCerts(
+        PKIX_PL_AIAMgr *aiaMgr,
+	PKIX_PL_InfoAccess *ia,
+	void **pNBIOContext,
+	PKIX_List **pCerts,
+        void *plContext)
+{
+        PKIX_PL_GeneralName *location = NULL;
+        PKIX_PL_String *locationString = NULL;
+	PKIX_UInt32 len = 0;
+	PRUint16 port = 0;
+	const SEC_HttpClientFcn *httpClient = NULL;
+	const SEC_HttpClientFcnV1 *hcv1 = NULL;
+	SECStatus rv = SECFailure;
+	SEC_HTTP_SERVER_SESSION serverSession = NULL;
+	SEC_HTTP_REQUEST_SESSION requestSession = NULL;	
+	char *path = NULL;
+	char *hostname = NULL;
+	char *locationAscii = NULL;
+	void *nbio = NULL;
+	PRUint16 responseCode = 0;
+	const char *responseContentType = NULL;
+	const char *responseData = NULL;
+	PRUint32 responseDataLen = 0;
+
+        PKIX_ENTER(AIAMGR, "pkix_pl_AIAMgr_GetHTTPCerts");
+        PKIX_NULLCHECK_FOUR(aiaMgr, ia, pNBIOContext, pCerts);
+
+        nbio = *pNBIOContext;
+        *pNBIOContext = NULL;
+        *pCerts = NULL;
+
+        if (nbio == NULL) { /* a new request */
+
+                PKIX_CHECK(PKIX_PL_InfoAccess_GetLocation
+                        (ia, &location, plContext),
+                       "PKIX_PL_InfoAccess_GetLocation failed");
+
+                /* find or create httpClient = default client */
+		httpClient = GetRegisteredHttpClient();
+		aiaMgr->client.hdata.httpClient = httpClient;
+
+		if (httpClient->version == 1) {
+
+			hcv1 = &(httpClient->fcnTable.ftable1);
+
+			/* create server session */
+			PKIX_TOSTRING(location, &locationString, plContext,
+				"PKIX_PL_GeneralName_ToString failed");
+
+			PKIX_CHECK(PKIX_PL_String_GetEncoded
+				(locationString,
+				PKIX_ESCASCII,
+				(void **)&locationAscii,
+				&len,
+				plContext),
+				"PKIX_PL_String_GetEncoded failed");
+
+			PKIX_PL_NSSCALLRV
+				(AIAMGR, rv, CERT_ParseURL,
+				(locationAscii, &hostname, &port, &path));
+
+			if ((rv != SECSuccess) ||
+			    (hostname == NULL) ||
+			    (path == NULL)) {
+				PKIX_ERROR("URL Parsing failed");
+			}
+
+			PKIX_PL_NSSCALLRV
+                        	(AIAMGR, rv, hcv1->createSessionFcn,
+                        	(hostname, port, &serverSession));
+
+	                if (rv != SECSuccess) {
+				PKIX_ERROR("HttpClient->CreateSession failed");
+			}
+
+			aiaMgr->client.hdata.serverSession = serverSession;
+
+			/* create request session */
+			PKIX_PL_NSSCALLRV
+                        	(AIAMGR, rv, hcv1->createFcn,
+                        	(serverSession,
+                        	"http",
+                        	path,
+                        	"GET",
+                        	PR_TicksPerSecond() * 60,
+                        	&requestSession));
+
+                	if (rv != SECSuccess) {
+                        	if (path != NULL) {
+                                	PORT_Free(path);
+                        	}
+                        	PKIX_ERROR("HTTP Server Error");
+                	}
+
+			aiaMgr->client.hdata.requestSession = requestSession;
+		} else {
+			PKIX_ERROR("Unsupported version of Http Client");
+		}
+	}
+
+	httpClient = aiaMgr->client.hdata.httpClient;
+
+	if (httpClient->version == 1) {
+
+		hcv1 = &(httpClient->fcnTable.ftable1);
+		requestSession = aiaMgr->client.hdata.requestSession;
+
+		/* trySendAndReceive */
+		PKIX_PL_NSSCALLRV
+                        (AIAMGR, rv, hcv1->trySendAndReceiveFcn,
+                        (requestSession,
+                        (PRPollDesc **)&nbio,
+                        &responseCode,
+                        (const char **)&responseContentType,
+                        NULL, /* &responseHeaders */
+                        (const char **)&responseData,
+                        &responseDataLen));
+
+                if (rv != SECSuccess) {
+                        PKIX_ERROR("HTTP Server Error");
+                }
+
+                if (nbio != 0) {
+                        *pNBIOContext = nbio;
+                        goto cleanup;
+                }
+
+		PKIX_CHECK(pkix_pl_HttpCertStore_ProcessCertResponse
+	                (responseCode,
+	                responseContentType,
+	                responseData,
+	                responseDataLen,
+	                pCerts,
+	                plContext),
+	                "pkix_pl_HttpCertStore_ProcessCertResponse failed");
+
+		PKIX_DECREF(aiaMgr->client.hdata.requestSession);
+		PKIX_DECREF(aiaMgr->client.hdata.serverSession);
+		aiaMgr->client.hdata.httpClient = 0; /* not an object */
+
+        } else  {
+		PKIX_ERROR("Unsupported version of Http Client");
+	}
+
+cleanup:
+	if (PKIX_ERROR_RECEIVED) {
+		PKIX_DECREF(aiaMgr->client.hdata.requestSession);
+		PKIX_DECREF(aiaMgr->client.hdata.serverSession);
+		aiaMgr->client.hdata.httpClient = 0; /* not an object */
+	}
+
+        PKIX_RETURN(AIAMGR);
+}
+
+PKIX_Error *
+pkix_pl_AIAMgr_GetLDAPCerts(
+        PKIX_PL_AIAMgr *aiaMgr,
+	PKIX_PL_InfoAccess *ia,
+	void **pNBIOContext,
+	PKIX_List **pCerts,
+        void *plContext)
+{
+        PKIX_List *result = NULL;
+        PKIX_PL_GeneralName *location = NULL;
+        PKIX_PL_LdapClient *client = NULL;
+        LDAPRequestParams request;
+        PRArenaPool *arena = NULL;
+        char *domainName = NULL;
+	void *nbio = NULL;
+
+        PKIX_ENTER(AIAMGR, "pkix_pl_AIAMgr_GetLDAPCerts");
+        PKIX_NULLCHECK_FOUR(aiaMgr, ia, pNBIOContext, pCerts);
+
+        nbio = *pNBIOContext;
+        *pNBIOContext = NULL;
+        *pCerts = NULL;
+
+        if (nbio == NULL) { /* a new request */
+
+                /* Initiate an LDAP request */
+
+                request.scope = WHOLE_SUBTREE;
+                request.derefAliases = NEVER_DEREF;
+                request.sizeLimit = 0;
+                request.timeLimit = 0;
+
+                PKIX_CHECK(PKIX_PL_InfoAccess_GetLocation
+                        (ia, &location, plContext),
+                        "PKIX_PL_InfoAccess_GetLocation failed");
+
+                /*
+                 * Get a short-lived arena. We'll be done with
+                 * this space once the request is encoded.
+                 */
+                PKIX_PL_NSSCALLRV(AIAMGR, arena, PORT_NewArena,
+                        (DER_DEFAULT_CHUNKSIZE));
+
+                if (!arena) {
+                        PKIX_ERROR_FATAL("Out of memory");
+                }
+
+                PKIX_CHECK(pkix_pl_InfoAccess_ParseLocation
+                        (location, arena, &request, &domainName, plContext),
+                        "pkix_pl_InfoAccess_ParseLocation failed");
+
+                PKIX_DECREF(location);
+
+                /* Find or create a connection to LDAP server */
+                PKIX_CHECK(pkix_pl_AiaMgr_FindLDAPClient
+                        (aiaMgr, domainName, &client, plContext),
+                        "pkix_pl_AiaMgr_FindLDAPClient failed");
+
+                aiaMgr->client.ldapClient = client;
+
+                PKIX_CHECK(PKIX_PL_LdapClient_InitiateRequest
+                        (aiaMgr->client.ldapClient,
+			&request,
+			&nbio,
+			&result,
+			plContext),
+                        "PKIX_PL_LdapClient_InitiateRequest failed");
+
+                PKIX_PL_NSSCALL(AIAMGR, PORT_FreeArena, (arena, PR_FALSE));
+
+        } else {
+
+                PKIX_CHECK(PKIX_PL_LdapClient_ResumeRequest
+                        (aiaMgr->client.ldapClient, &nbio, &result, plContext),
+                        "PKIX_PL_LdapClient_ResumeRequest failed");
+
+        }
+
+        if (nbio != NULL) { /* WOULDBLOCK */
+                *pNBIOContext = nbio;
+                *pCerts = NULL;
+                goto cleanup;
+        }
+
+	PKIX_DECREF(aiaMgr->client.ldapClient);
+
+	if (result == NULL) {
+		*pCerts = NULL;
+	} else {
+		PKIX_CHECK(pkix_pl_LdapCertStore_BuildCertList
+			(result, pCerts, plContext),
+			"pkix_pl_LdapCertStore_BuildCertList failed");
+	}
+
+	*pNBIOContext = nbio;
+
+cleanup:
+
+        if (arena && (PKIX_ERROR_RECEIVED)) {
+                PKIX_PL_NSSCALL(AIAMGR, PORT_FreeArena, (arena, PR_FALSE));
+        }
+
+        if (PKIX_ERROR_RECEIVED) {
+	        PKIX_DECREF(aiaMgr->client.ldapClient);
+	}
+
+        PKIX_DECREF(location);
 
         PKIX_RETURN(AIAMGR);
 }
@@ -329,7 +546,9 @@ PKIX_PL_AIAMgr_Create(
         aiaMgr->aia = NULL;
         aiaMgr->location = NULL;
         aiaMgr->results = NULL;
-        aiaMgr->client = NULL;
+        aiaMgr->client.hdata.httpClient = NULL;
+	aiaMgr->client.hdata.serverSession = NULL;
+	aiaMgr->client.hdata.requestSession = NULL;
 
         *pAIAMgr = aiaMgr;
 
@@ -354,15 +573,9 @@ PKIX_PL_AIAMgr_GetAIACerts(
         PKIX_UInt32 numAias = 0;
         PKIX_UInt32 aiaIndex = 0;
         PKIX_UInt32 iaType = PKIX_INFOACCESS_LOCATION_UNKNOWN;
-        PKIX_List *result = NULL;
         PKIX_List *certs = NULL;
         PKIX_PL_InfoAccess *ia = NULL;
-        PKIX_PL_GeneralName *location = NULL;
-        PKIX_PL_LdapClient *client = NULL;
         void *nbio = NULL;
-        PRArenaPool *arena = NULL;
-        char *domainName = NULL;
-        LDAPRequestParams request;
 
         PKIX_ENTER(AIAMGR, "PKIX_PL_AIAMgr_GetAIACerts");
         PKIX_NULLCHECK_FOUR(aiaMgr, prevCert, pNBIOContext, pCerts);
@@ -411,77 +624,17 @@ PKIX_PL_AIAMgr_GetAIACerts(
                         (ia, &iaType, plContext),
                         "PKIX_PL_InfoAccess_GetLocationType failed");
 
-                if (iaType == PKIX_INFOACCESS_LOCATION_LDAP) {
-
-                        if (nbio == NULL) { /* a new request */
-
-                                /* Initiate an LDAP request */
-
-                                request.scope = WHOLE_SUBTREE;
-                                request.derefAliases = NEVER_DEREF;
-                                request.sizeLimit = 0;
-                                request.timeLimit = 0;
-
-                                PKIX_CHECK(PKIX_PL_InfoAccess_GetLocation
-                                        (ia, &location, plContext),
-                                       "PKIX_PL_InfoAccess_GetLocation failed");
-
-                                /*
-                                 * Get a short-lived arena. We'll be done with
-                                 * this space once the request is encoded.
-                                 */
-                                PKIX_PL_NSSCALLRV(AIAMGR, arena, PORT_NewArena,
-                                        (DER_DEFAULT_CHUNKSIZE));
-
-                                if (!arena) {
-                                        PKIX_ERROR_FATAL("Out of memory");
-                                }
-
-                                PKIX_CHECK(pkix_pl_InfoAccess_ParseLocation
-                                        (location,
-                                        arena,
-                                        &request,
-                                        &domainName,
-                                        plContext),
-                                        "pkix_pl_InfoAccess_ParseLocation"
-                                        " failed");
-
-                                PKIX_DECREF(location);
-
-                                /* Find or create a connection to LDAP server */
-                                PKIX_CHECK(pkix_pl_AiaMgr_FindLDAPClient
-                                        (aiaMgr,
-                                        domainName,
-                                        &client,
-                                        plContext),
-                                        "pkix_pl_AiaMgr_FindLDAPClient failed");
-
-                                aiaMgr->client = client;
-
-                                PKIX_CHECK(PKIX_PL_LdapClient_InitiateRequest
-                                        (aiaMgr->client,
-                                        &request,
-                                        &nbio,
-                                        &result,
-                                        plContext),
-                                        "PKIX_PL_LdapClient_InitiateRequest"
-                                        " failed");
-
-                                PKIX_PL_NSSCALL(AIAMGR, PORT_FreeArena,
-                                        (arena, PR_FALSE));
-
-                        } else {
-
-                                PKIX_CHECK(PKIX_PL_LdapClient_ResumeRequest
-                                        (aiaMgr->client,
-                                        &nbio,
-                                        &result,
-                                        plContext),
-                                        "PKIX_PL_LdapClient_ResumeRequest failed");
-                        }
-
+                if (iaType == PKIX_INFOACCESS_LOCATION_HTTP) {
+			PKIX_CHECK(pkix_pl_AIAMgr_GetHTTPCerts
+				(aiaMgr, ia, &nbio, &certs, plContext),
+				"pkix_pl_AIAMgr_GetHTTPCerts failed");
+                } else if (iaType == PKIX_INFOACCESS_LOCATION_LDAP) {
+			PKIX_CHECK(pkix_pl_AIAMgr_GetLDAPCerts
+				(aiaMgr, ia, &nbio, &certs, plContext),
+				"pkix_pl_AIAMgr_GetLDAPCerts failed");
                 } else {
-                        /* We only support ldap requests at this time. */
+                        /* We only support http and ldap requests. */
+			PKIX_ERROR("Unknown InfoAccess type");
                 }
 
                 if (nbio != NULL) { /* WOULDBLOCK */
@@ -501,40 +654,28 @@ PKIX_PL_AIAMgr_GetAIACerts(
                                 "PKIX_List_Create failed");
                 }
                 PKIX_CHECK(pkix_List_AppendList
-                        (aiaMgr->results, result, plContext),
+                        (aiaMgr->results, certs, plContext),
                         "pkix_pl_AppendList failed");
-                PKIX_DECREF(result);
+                PKIX_DECREF(certs);
 
                 PKIX_DECREF(ia);
-                PKIX_DECREF(aiaMgr->client);
         }
 
         PKIX_DECREF(aiaMgr->aia);
 
-        if (aiaMgr->results != NULL) {
-                PKIX_CHECK(pkix_pl_AIAMgr_ConvertResponses
-                        (aiaMgr->results, &certs, plContext),
-                        "pkix_pl_AIAMgr_ConvertResponses failed");
-        }
-
         *pNBIOContext = NULL;
-        *pCerts = certs;
-        PKIX_DECREF(aiaMgr->results);
+        *pCerts = aiaMgr->results;
+        aiaMgr->results = NULL;
 
 cleanup:
-
-        if (arena && (PKIX_ERROR_RECEIVED)) {
-                PKIX_PL_NSSCALL(AIAMGR, PORT_FreeArena, (arena, PR_FALSE));
-        }
 
         if (PKIX_ERROR_RECEIVED) {
                 PKIX_DECREF(aiaMgr->aia);
                 PKIX_DECREF(aiaMgr->results);
-                PKIX_DECREF(aiaMgr->client);
+                PKIX_DECREF(aiaMgr->client.ldapClient);
         }
 
         PKIX_DECREF(ia);
-        PKIX_DECREF(location);
 
         PKIX_RETURN(AIAMGR);
 }

@@ -817,6 +817,67 @@ cleanup:
         PKIX_RETURN(CRL);
 }
 
+/*
+ * FUNCTION: pkix_pl_CRL_CreateToList
+ * DESCRIPTION:
+ *
+ *  This function decodes a DER-encoded Certificate Revocation List pointed to
+ *  by "derCrlItem", adding the resulting PKIX_PL_CRL, if the decoding was
+ *  successful, to the List (possibly empty) pointed to by "crlList".
+ *
+ * PARAMETERS:
+ *  "derCrlItem"
+ *      The address of the SECItem containing the DER-encoded Certificate
+ *      Revocation List. Must be non-NULL.
+ *  "crlList"
+ *      The address of the List to which the decoded CRL is added. May be
+ *      empty, but must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a CertStore Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+pkix_pl_CRL_CreateToList(
+        SECItem *derCrlItem,
+        PKIX_List *crlList,
+        void *plContext)
+{
+        CERTSignedCrl *nssCrl = NULL;
+        PKIX_PL_CRL *crl = NULL;
+
+        PKIX_ENTER(CRL, "pkix_pl_CRL_CreateToList");
+        PKIX_NULLCHECK_TWO(derCrlItem, crlList);
+
+        PKIX_PL_NSSCALLRV(CRL, nssCrl, CERT_DecodeDERCrl,
+                (NULL, derCrlItem, SEC_CRL_TYPE));
+
+        if (nssCrl) {
+                PKIX_CHECK_ONLY_FATAL(pkix_pl_CRL_CreateWithSignedCRL
+                        (nssCrl, &crl, plContext),
+                        "pkix_pl_CRL_CreateWithSignedCRL failed");
+
+                /* skip bad crls and append good ones */
+                if (!PKIX_ERROR_RECEIVED) {
+                        PKIX_CHECK(PKIX_List_AppendItem
+                                (crlList, (PKIX_PL_Object *) crl, plContext),
+                                "PKIX_List_AppendItem failed");
+                }
+
+                PKIX_DECREF(crl);
+
+        }
+cleanup:
+
+        PKIX_DECREF(crl);
+
+        PKIX_RETURN(CRL);
+}
+
 /* --Public-CRL-Functions------------------------------------- */
 
 /*

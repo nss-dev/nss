@@ -59,7 +59,15 @@ struct PKIX_PL_AIAMgrStruct {
         PKIX_List *aia;
         PKIX_PL_GeneralName *location;
         PKIX_List *results;
-        PKIX_PL_LdapClient *client;
+	union {
+	        PKIX_PL_LdapClient *ldapClient;
+		struct {
+		        const SEC_HttpClientFcn *httpClient;
+			SEC_HTTP_SERVER_SESSION serverSession;
+			SEC_HTTP_REQUEST_SESSION requestSession;
+			char *path;
+		} hdata;
+	} client;
 };
 
 /* see source file for function documentation */

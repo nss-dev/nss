@@ -99,6 +99,8 @@
 #include "pkix_pl_ldaprequest.h"
 #include "pkix_pl_ldapresponse.h"
 #include "pkix_pl_nsscontext.h"
+#include "pkix_pl_httpcertstore.h"
+#include "pkix_pl_httpdefaultclient.h"
 #include "pkix_pl_infoaccess.h"
 #include "pkix_sample_modules.h"
 
