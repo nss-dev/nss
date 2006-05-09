@@ -292,8 +292,10 @@ pkix_pl_HttpCertStore_ProcessCertResponse(
         cbContext.plContext = plContext;
         encodedResponse = (char *)responseData;
 
+#if 0
         PKIX_PL_NSSCALLRV(HTTPCERTSTORECONTEXT, rv, CERT_DecodeCertPackage,
                 (encodedResponse, responseDataLen, certCallback, &cbContext));
+#endif
 
         if (rv != SECSuccess) {
                 PKIX_ERROR("Error decoding pkcs7-mime data");
