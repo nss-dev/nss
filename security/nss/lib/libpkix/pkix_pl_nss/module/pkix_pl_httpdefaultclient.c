@@ -1278,6 +1278,7 @@ pkix_pl_HttpDefaultClient_RequestCreate(
 
         client->timeout = timeout;
 
+#if 0
 	PKIX_CHECK(pkix_HttpCertStore_FindSocketConnection
                 (timeout,
                 "variation.red.iplanet.com", /* (char *)client->host, */
@@ -1286,6 +1287,16 @@ pkix_pl_HttpDefaultClient_RequestCreate(
                 &socket,
                 plContext),
 		"pkix_HttpCertStore_FindSocketConnection failed");
+#else
+	PKIX_CHECK(pkix_HttpCertStore_FindSocketConnection
+                (timeout,
+                (char *)client->host,
+                client->portnum,
+                &status,
+                &socket,
+                plContext),
+		"pkix_HttpCertStore_FindSocketConnection failed");
+#endif
 
         client->socket = socket;
 
