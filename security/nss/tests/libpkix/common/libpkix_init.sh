@@ -164,9 +164,11 @@ testHeadingEcho()
 testEndingEcho()
 {
     if [ ${totalErrors} -eq 0 ]; then
-        echo "\n************************************************************"
+        echo ""
+        echo "************************************************************"
         echo "END OF TESTS FOR ${testunit}: ALL TESTS COMPLETED SUCCESSFULLY"
-        echo "************************************************************\n"
+        echo "************************************************************"
+        echo ""
         return 0
     fi
 
@@ -176,9 +178,11 @@ testEndingEcho()
         plural="S"
     fi
 
-    echo "\n************************************************************"
+    echo ""
+    echo "************************************************************"
     echo "END OF TESTS FOR ${testunit}: ${totalErrors} TEST${plural} FAILED"
-    echo "************************************************************\n"
+    echo "************************************************************"
+    echo ""
     return ${totalErrors}
 }
 
@@ -306,9 +310,11 @@ RunTests()
 
     if [ ${errors} -eq 0 ]; then
         if [ ${memErrors} -eq 0 ]; then
-            Display "\n************************************************************"
+            Display ""
+            Display "************************************************************"
             Display "END OF TESTS FOR PKIX ${testunit}: ALL TESTS COMPLETED SUCCESSFULLY"
-            Display "************************************************************\n"
+            Display "************************************************************"
+            Display ""
             return 0
         fi
     fi
@@ -319,8 +325,10 @@ RunTests()
         plural="S"
     fi
 
-    Display "\n*******************************************************************************"
-    Display "END OF TESTS FOR PKIX ${testunit}: ${errors} UNIT TEST${plural} FAILED: ${failedpgms}\n"
+    Display ""
+    Display "*******************************************************************************"
+    Display "END OF TESTS FOR PKIX ${testunit}: ${errors} UNIT TEST${plural} FAILED: ${failedpgms}"
+    Display ""
     if [ ${checkmem} -eq 1 ]; then
         if [ ${memErrors} -eq 1 ]; then
             memPlural=""
@@ -339,7 +347,8 @@ RunTests()
         fi
 
     fi
-    Display "*******************************************************************************\n"
+    Display "*******************************************************************************"
+    Display ""
     combinedErrors=`expr ${errors} + ${memErrors} + ${prematureErrors}`
 
     return ${combinedErrors}
