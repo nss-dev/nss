@@ -45,7 +45,7 @@
 
 #include "pkix_pl_httpcertstore.h"
 extern PKIX_PL_HashTable *httpSocketCache;
-const SEC_ASN1Template sec_PKCS7ContentInfoTemplate[];
+static const SEC_ASN1Template sec_PKCS7ContentInfoTemplate[];
 SEC_ASN1_MKSUB(CERT_IssuerAndSNTemplate)
 SEC_ASN1_MKSUB(SECOID_AlgorithmIDTemplate)
 SEC_ASN1_MKSUB(SEC_SetOfAnyTemplate)
@@ -838,7 +838,6 @@ pkix_pl_HttpCertStore_ProcessCertResponse(
         char *encodedResponse = NULL;
         PRIntn compareVal = 0;
         PKIX_List *certs = NULL;
-        SECStatus rv = SECFailure;
         callbackContext cbContext;
 
         PKIX_ENTER
@@ -1433,10 +1432,8 @@ pkix_pl_HttpCertStore_CreateWithAsciiName(
         const SEC_HttpClientFcnV1 *hcv1 = NULL;
         PKIX_PL_HttpCertStoreContext *httpCertStore = NULL;
         PKIX_CertStore *certStore = NULL;
-        PKIX_PL_String *locationString = NULL;
         char *hostname = NULL;
         char *path = NULL;
-        PKIX_UInt32 len = 0;
         PRUint16 port = 0;
         SECStatus rv = SECFailure;
 
