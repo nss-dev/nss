@@ -45,7 +45,7 @@
 
 #include "pkix_pl_httpcertstore.h"
 extern PKIX_PL_HashTable *httpSocketCache;
-static const SEC_ASN1Template sec_PKCS7ContentInfoTemplate[];
+static const SEC_ASN1Template sec_PKCS7ContentInfoTemplate[4];
 SEC_ASN1_MKSUB(CERT_IssuerAndSNTemplate)
 SEC_ASN1_MKSUB(SECOID_AlgorithmIDTemplate)
 SEC_ASN1_MKSUB(SEC_SetOfAnyTemplate)
