@@ -255,8 +255,6 @@ pkix_pl_OcspResponse_RegisterSelf(void *plContext)
 
         systemClasses[PKIX_OCSPRESPONSE_TYPE] = entry;
 
-cleanup:
-
         PKIX_RETURN(OCSPRESPONSE);
 }
 
@@ -553,8 +551,6 @@ pkix_pl_OcspResponse_Decode(
          */
         *pPassed = ((decoded == NULL) ? PKIX_FALSE : PKIX_TRUE);
 
-cleanup:
-
         PKIX_RETURN(OCSPRESPONSE);
 }
 
@@ -597,8 +593,6 @@ pkix_pl_OcspResponse_GetStatus(
                 (response->decoded));
 
         *pPassed = ((rv == SECSuccess) ? PKIX_TRUE : PKIX_FALSE );
-
-cleanup:
 
         PKIX_RETURN(OCSPRESPONSE);
 }
@@ -659,8 +653,6 @@ pkix_pl_OcspResponse_VerifySignature(
 
         *pPassed = ((rv == SECSuccess) ? PKIX_TRUE : PKIX_FALSE );
 
-cleanup:
-
         PKIX_RETURN(OCSPRESPONSE);
 }
 
@@ -713,8 +705,6 @@ pkix_pl_OcspResponse_GetStatusForCert(
                 PR_Now()));
 
         *pPassed = ((rv == SECSuccess) ? PKIX_TRUE : PKIX_FALSE );
-
-cleanup:
 
         PKIX_RETURN(OCSPRESPONSE);
 }

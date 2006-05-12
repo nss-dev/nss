@@ -467,8 +467,6 @@ pkix_pl_OcspRequest_GetEncoded(
 
         *pRequest = request->encoded;
 
-cleanup:
-
         PKIX_RETURN(OCSPREQUEST);
 }
 
@@ -504,8 +502,6 @@ pkix_pl_OcspRequest_GetLocation(
         PKIX_NULLCHECK_TWO(request, pLocation);
 
         *pLocation = request->location;
-
-cleanup:
 
         PKIX_RETURN(OCSPREQUEST);
 }
@@ -547,8 +543,6 @@ pkix_pl_OcspRequest_GetCertID(
         tbsRequest = request->decoded->tbsRequest;
         PKIX_NULLCHECK_ONE(tbsRequest);
         *pCertID = tbsRequest->requestList[0]->reqCert;
-
-cleanup:
 
         PKIX_RETURN(OCSPREQUEST);
 }

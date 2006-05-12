@@ -236,7 +236,6 @@ pkix_pl_InfoAccess_Hashcode(
         void *plContext)
 {
         PKIX_PL_InfoAccess *infoAccess = NULL;
-        SECItem *nssTime = NULL;
         PKIX_UInt32 infoAccessHash;
 
         PKIX_ENTER(INFOACCESS, "pkix_pl_InfoAccess_Hashcode");
@@ -519,8 +518,6 @@ PKIX_PL_InfoAccess_GetLocation(
         PKIX_INCREF(infoAccess->location);
 
         *pLocation = infoAccess->location;
-
-cleanup:
 
         PKIX_RETURN(INFOACCESS);
 }
