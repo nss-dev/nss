@@ -53,13 +53,13 @@ SEC_BEGIN_PROTOS
  *     "<major version>.<minor version>[.<patch level>] [<Beta>]"
  */
 #ifdef NSS_ENABLE_ECC
-#define NSS_VERSION  "3.11.1 ECC"
+#define NSS_VERSION  "3.11.5 ECC"
 #else
-#define NSS_VERSION  "3.11.1"
+#define NSS_VERSION  "3.11.5"
 #endif
 #define NSS_VMAJOR   3
 #define NSS_VMINOR   11
-#define NSS_VPATCH   1
+#define NSS_VPATCH   5
 #define NSS_BETA     PR_FALSE
 
 /*
