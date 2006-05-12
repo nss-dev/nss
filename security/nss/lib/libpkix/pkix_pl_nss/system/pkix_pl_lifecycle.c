@@ -87,6 +87,7 @@ struct PKIX_Alloc_Error_ObjectStruct {
 typedef struct PKIX_Alloc_Error_ObjectStruct PKIX_Alloc_Error_Object;
 
 static PKIX_Alloc_Error_Object pkix_Alloc_Error_Data = {
+    {
         (PKIX_UInt32)PKIX_MAGIC_HEADER, /* PKIX_UInt32 magicHeader */
         (PKIX_UInt32)PKIX_ERROR_TYPE,   /* PKIX_UInt32 type */
         (PKIX_UInt32)1,                 /* PKIX_UInt32 references */
@@ -95,10 +96,12 @@ static PKIX_Alloc_Error_Object pkix_Alloc_Error_Data = {
         (PKIX_PL_String *)0,            /* PKIX_PL_String *stringRep */
         (PKIX_UInt32)0,                 /* PKIX_UInt32 hashcode */
         (PKIX_Boolean)PKIX_FALSE,       /* PKIX_Boolean hashcodeCached */
+    }, {
         PKIX_FATAL_ERROR,               /* PKIX_UInt32 code */
         (PKIX_Error *)0,                /* PKIX_Error *cause */
         (PKIX_PL_Object *)0,            /* PKIX_PL_Object *info */
         &pkix_Alloc_Error_Desc          /* PKIX_PL_String *desc */
+   }
 };
 
 PKIX_Error* PKIX_ALLOC_ERROR(void)
