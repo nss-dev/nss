@@ -2799,8 +2799,7 @@ AddNicknameToSubject(NSSLOWCERTCertDBHandle *dbhandle,
 	goto loser;
     }
     
-    entry->nickname = (nickname) ? 
-			PORT_ArenaStrdup(entry->common.arena, nickname) : NULL;
+    entry->nickname = PORT_ArenaStrdup(entry->common.arena, nickname);
     
     if ( entry->nickname == NULL ) {
 	goto loser;
