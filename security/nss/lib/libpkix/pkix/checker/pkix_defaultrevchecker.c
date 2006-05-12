@@ -153,7 +153,6 @@ pkix_DefaultRevChecker_Create(
         void *plContext)
 {
         PKIX_DefaultRevocationChecker *revChecker = NULL;
-        PKIX_CertChainChecker_CheckCallback check = NULL;
 
         PKIX_ENTER(DEFAULTREVOCATIONCHECKER, "pkix_DefaultRevChecker_Create");
         PKIX_NULLCHECK_THREE(certStores, trustedPubKey, pRevChecker);
