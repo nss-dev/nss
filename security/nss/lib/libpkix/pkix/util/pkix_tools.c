@@ -557,8 +557,6 @@ pkix_CacheCertChain_Lookup(
         PKIX_Error *cachedCertChainError = NULL;
         PKIX_PL_Date *cacheValidUntilDate = NULL;
         PKIX_PL_Date *validityDate = NULL;
-        PKIX_Boolean certChainInHash = PKIX_FALSE;
-        PKIX_Boolean found = PKIX_FALSE;
         PKIX_Int32 cmpValidTimeResult = 0;
         PKIX_Int32 cmpCacheTimeResult = 0;
 
@@ -775,7 +773,7 @@ cleanup:
  *  "validityDate"
  *      Address of PKIX_PL_Date contains the most restriced notAfter time of
  *      all "certs". Must be non-NULL.
- *      Address of KPKIX_Boolean indicating valid data is found.
+ *      Address of PKIX_Boolean indicating valid data is found.
  *      Must be non-NULL.
  *  "buildResult"
  *      Address of BuildResult to be cached. Must be non-NULL.
@@ -801,9 +799,6 @@ pkix_CacheCertChain_Add(
         PKIX_Error *cachedCertChainError = NULL;
         PKIX_PL_Date *date = NULL;
         PKIX_PL_Date *cacheValidUntilDate = NULL;
-        PKIX_Boolean certChainInHash = PKIX_FALSE;
-        PKIX_Boolean found = PKIX_FALSE;
-        PKIX_Int32 cmpValidTimeResult = 0;
 
         PKIX_ENTER(BUILD, "pkix_CacheCertChain_Add");
 
