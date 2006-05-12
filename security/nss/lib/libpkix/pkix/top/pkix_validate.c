@@ -248,7 +248,7 @@ cleanup:
  *  Returns a Validate Error if the function fails in a non-fatal way.
  *  Returns a Fatal Error if the function fails in an unrecoverable way.
  */
-/* static */ PKIX_Error *
+static PKIX_Error *
 pkix_RevCheckCert(
         PKIX_PL_Cert *cert,
         PKIX_List *checkers,
@@ -259,7 +259,6 @@ pkix_RevCheckCert(
 {
         PKIX_RevocationChecker_RevCallback revCheckerCheck = NULL;
         PKIX_RevocationChecker *checker = NULL;
-        PKIX_List *unresCritExtOIDs = NULL;
         PKIX_UInt32 numCheckers;
         PKIX_UInt32 resultCode = 0;
         PKIX_UInt32 checkerIndex = 0;

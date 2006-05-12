@@ -701,8 +701,6 @@ pkix_ForwardBuilderState_IsIOPending(
                 *pPending = PKIX_FALSE;
         }
 
-cleanup:
-
         PKIX_RETURN(FORWARDBUILDERSTATE);
 }
 
@@ -981,7 +979,6 @@ pkix_Build_VerifyCertificate(
         void *plContext)
 {
         PKIX_UInt32 numUserCheckers = 0;
-        PKIX_UInt32 numItems = 0;
         PKIX_UInt32 i = 0;
         PKIX_Boolean loopFound = PKIX_FALSE;
         PKIX_Boolean dsaParamsNeeded = PKIX_FALSE;
@@ -992,7 +989,6 @@ pkix_Build_VerifyCertificate(
         PKIX_PL_PublicKey *candidatePubKey = NULL;
         PKIX_CertChainChecker *userChecker = NULL;
         PKIX_CertChainChecker_CheckCallback checkerCheck = NULL;
-        PKIX_List *unresCritExtOIDs = NULL;
         void *nbioContext = NULL;
 
         PKIX_ENTER(BUILD, "pkix_Build_VerifyCertificate");
@@ -1182,7 +1178,6 @@ pkix_Build_ValidationCheckers(
         PKIX_ProcessingParams *procParams = NULL;
         PKIX_PL_Cert *trustedCert = NULL;
         PKIX_PL_PublicKey *trustedPubKey = NULL;
-        PKIX_ValidateResult *valResult = NULL;
         PKIX_CertChainChecker *sigChecker = NULL;
         PKIX_CertChainChecker *crlChecker = NULL;
         PKIX_CertChainChecker *policyChecker = NULL;
@@ -2255,7 +2250,6 @@ pkix_BuildForwardDepthFirstSearch(
         PKIX_Boolean needsCRLChecking = PKIX_FALSE;
         PKIX_Boolean ioPending = PKIX_FALSE;
         PKIX_PL_Date *validityDate = NULL;
-        PKIX_PL_Date *maxTimeAllowed = NULL;
         PKIX_PL_Date *currTime  = NULL;
         PKIX_Int32 childTraversedCACerts = 0;
         PKIX_UInt32 numSubjectNames = 0;
@@ -2265,7 +2259,6 @@ pkix_BuildForwardDepthFirstSearch(
         PKIX_UInt32 certsSoFar = 0;
         PKIX_List *childTraversedSubjNames = NULL;
         PKIX_List *subjectNames = NULL;
-        PKIX_List *sortedList = NULL;
         PKIX_List *unfilteredCerts = NULL;
         PKIX_List *filteredCerts = NULL;
         PKIX_PL_Object *subjectName = NULL;
@@ -2772,7 +2765,7 @@ pkix_BuildForwardDepthFirstSearch(
                                     /* IO still pending, resume later */
                                     goto cleanup;
                             } else if (PKIX_ERROR_RECEIVED) {
-                                    state->status == BUILD_CHECKWITHANCHORS;
+                                    state->status = BUILD_CHECKWITHANCHORS;
                             } else {
                                     state->status = BUILD_VALCHAIN;
                             }
@@ -2816,7 +2809,7 @@ pkix_BuildForwardDepthFirstSearch(
                                     }
                             }
 
-                            state->status == BUILD_CHECKWITHANCHORS;
+                            state->status = BUILD_CHECKWITHANCHORS;
                     }
 
                     PKIX_DECREF(trustAnchor);
@@ -3241,14 +3234,11 @@ pkix_Build_InitiateBuildChain(
         PKIX_UInt32 numAnchors = 0;
         PKIX_UInt32 numCertStores = 0;
         PKIX_UInt32 numHintCerts = 0;
-        PKIX_UInt32 anchorIndex = 0;
         PKIX_UInt32 i = 0;
         PKIX_Boolean dsaParamsNeeded = PKIX_FALSE;
         PKIX_Boolean isCrlEnabled = PKIX_FALSE;
         PKIX_Boolean cacheHit = PKIX_FALSE;
-        PKIX_Boolean validChain = PKIX_FALSE;
         PKIX_Boolean trusted = PKIX_FALSE;
-        PKIX_Boolean ioPending = PKIX_FALSE;
         PKIX_Boolean isDuplicate = PKIX_FALSE;
         PKIX_PL_Cert *trustedCert = NULL;
         PKIX_CertSelector *targetConstraints = NULL;
@@ -3770,7 +3760,6 @@ pkix_Build_ResumeBuildChain(
         PKIX_BuildResult **pBuildResult,
         void *plContext)
 {
-        PKIX_Boolean ioPending = PKIX_FALSE;
         PKIX_ForwardBuilderState *state = NULL;
         PKIX_ValidateResult *valResult = NULL;
         PKIX_BuildResult *buildResult = NULL;
@@ -3837,7 +3826,6 @@ PKIX_BuildChain(
 {
         PKIX_ForwardBuilderState *state = NULL;
         PKIX_BuildResult *buildResult = NULL;
-        PKIX_ValidateResult *valResult = NULL;
         void *nbioContext = NULL;
 
         PKIX_ENTER(BUILD, "PKIX_BuildChain");
