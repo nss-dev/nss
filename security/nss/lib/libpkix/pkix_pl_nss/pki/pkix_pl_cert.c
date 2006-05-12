@@ -3256,7 +3256,6 @@ PKIX_PL_Cert_IsCertTrusted(
         void *plContext)
 {
         PKIX_CertStore_CheckTrustCallback trustCallback = NULL;
-        PKIX_CertStore *store = NULL;
         SECCertUsage certUsage = 0;
         PKIX_Boolean trusted = PKIX_FALSE;
         SECStatus rv = SECFailure;
@@ -3343,8 +3342,6 @@ PKIX_PL_Cert_GetCacheFlag(
 
         *pCacheFlag = cert->cacheFlag;
 
-cleanup:
-
         PKIX_RETURN(CERT);
 }
 
@@ -3361,8 +3358,6 @@ PKIX_PL_Cert_SetCacheFlag(
         PKIX_NULLCHECK_ONE(cert);
 
         cert->cacheFlag = cacheFlag;
-
-cleanup:
 
         PKIX_RETURN(CERT);
 }
@@ -3382,8 +3377,6 @@ PKIX_PL_Cert_GetTrustCertStore(
         PKIX_INCREF(cert->store);
         *pTrustCertStore = cert->store;
 
-cleanup:
-
         PKIX_RETURN(CERT);
 }
 
@@ -3401,8 +3394,6 @@ PKIX_PL_Cert_SetTrustCertStore(
 
         PKIX_INCREF(trustCertStore);
         cert->store = trustCertStore;
-
-cleanup:
 
         PKIX_RETURN(CERT);
 }
@@ -3618,7 +3609,6 @@ pkix_pl_OcspCheckCert(
 	void *pwArg,
 	void *plContext)
 {
-	SECStatus rv = SECFailure;
         PKIX_UInt32 checkerIndex = 0;
         PKIX_UInt32 reasonCode = 0;
         PKIX_List *revCheckers = NULL;
