@@ -2784,6 +2784,8 @@ SECStatus CERT_UncacheCRL(CERTCertDBHandle* dbhandle, SECItem* olddercrl)
             }
             
             DPCache_UnlockWrite();
+
+            rv = CachedCrl_Destroy(returned);
         }
 
         ReleaseDPCache(cache, writeLocked);
