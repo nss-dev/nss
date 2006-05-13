@@ -8019,9 +8019,9 @@ process_it:
     case content_handshake:
 	rv = ssl3_HandleHandshake(ss, databuf);
 	break;
-    case content_application_data:
-	rv = SECSuccess;
-	break;
+    /*
+    case content_application_data is handled before this switch
+    */
     default:
 	SSL_DBG(("%d: SSL3[%d]: bogus content type=%d",
 		 SSL_GETPID(), ss->fd, cText->type));
