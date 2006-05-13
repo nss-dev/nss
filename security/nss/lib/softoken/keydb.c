@@ -713,7 +713,6 @@ nsslowkey_UpdateKeyDBPass1(NSSLOWKEYDBHandle *handle)
     DBT key;
     DBT data;
     unsigned char version;
-    SECItem *rc4key = NULL;
     NSSLOWKEYDBKey *dbkey = NULL;
     NSSLOWKEYDBHandle *update = NULL;
     SECItem *oldSalt = NULL;
@@ -881,10 +880,6 @@ done:
     ret = keydb_Sync(handle, 0);
 
     nsslowkey_CloseKeyDB(update);
-    
-    if ( rc4key ) {
-	SECITEM_FreeItem(rc4key, PR_TRUE);
-    }
     
     if ( oldSalt ) {
 	SECITEM_FreeItem(oldSalt, PR_TRUE);
