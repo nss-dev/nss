@@ -864,7 +864,6 @@ pkix_DefaultCRLChecker_Check_Helper(
         void *nbioContext = NULL;
         PKIX_Boolean certStoreCanBeUsed = PKIX_FALSE;
         PKIX_CertStore *certStore = NULL;
-        PKIX_UInt32 numEntries = 0;
 	PKIX_Error *storeError = NULL;
 
         PKIX_ENTER(CERTCHAINCHECKER, "pkix_DefaultCRLChecker_Check_Helper");
