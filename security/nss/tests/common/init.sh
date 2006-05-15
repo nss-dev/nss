@@ -102,6 +102,19 @@ if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ]; then
         esac
     }
 
+    detect_core()
+    {
+        [ ! -f $CORELIST_FILE ] && touch $CORELIST_FILE
+        mv $CORELIST_FILE ${CORELIST_FILE}.old
+        coreStr=`find $HOSTDIR -type f -name '*core*'`
+        res=0
+        if [ -n "$coreStr" ]; then
+            sum $coreStr > $CORELIST_FILE
+            res=`cat $CORELIST_FILE ${CORELIST_FILE}.old | sort | uniq -u | wc -l`
+        fi
+        return $res
+    }
+
 #html functions to give the resultfiles a consistant look
     html() #########################    write the results.html file
     {      # 3 functions so we can put targets in the output.log easier
@@ -109,11 +122,23 @@ if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ]; then
     }
     html_passed()
     {
+        html_detect_core "$@" || return
         html "$* ${HTML_PASSED}"
     }
     html_failed()
     {
+        html_detect_core "$@" || return
         html "$* ${HTML_FAILED}"
+    }
+    html_detect_core()
+    {
+        detect_core
+        if [ $? -ne 0 ]; then
+            echo "$*. Core file is detected."
+            html "$* ${HTML_FAILED_CORE}"
+            return 1
+        fi
+        return 0
     }
     html_head()
     {
@@ -136,6 +161,7 @@ if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ]; then
         fi
     }
     HTML_FAILED='</TD><TD bgcolor=red>Failed</TD><TR>'
+    HTML_FAILED_CORE='</TD><TD bgcolor=red>Failed Core</TD><TR>'
     HTML_PASSED='</TD><TD bgcolor=lightGreen>Passed</TD><TR>'
 
 
@@ -176,7 +202,7 @@ if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ]; then
             PATH=.\;${DIST}/${OBJDIR}/bin\;${DIST}/${OBJDIR}/lib\;$PATH
             PATH=`perl ../path_uniq -d ';' "$PATH"`
         else
-            PATH=.:/bin:/usr/bin:${DIST}/${OBJDIR}/bin:${DIST}/${OBJDIR}/lib:$PATH
+            PATH=.:${DIST}/${OBJDIR}/bin:${DIST}/${OBJDIR}/lib:/bin:/usr/bin:$PATH
             # added /bin and /usr/bin in the beginning so a local perl will 
             # be used
             PATH=`perl ../path_uniq -d ':' "$PATH"`
@@ -360,8 +386,11 @@ if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ]; then
     EXT_SERVERDIR=${HOSTDIR}/ext_server
     EXT_CLIENTDIR=${HOSTDIR}/ext_client
 
+    CERT_EXTENSIONS_DIR=${HOSTDIR}/cert_extensions
+
     PWFILE=${TMP}/tests.pw.$$
     NOISE_FILE=${TMP}/tests_noise.$$
+    CORELIST_FILE=${TMP}/clist.$$
 
     FIPSPWFILE=${TMP}/tests.fipspw.$$
     FIPSBADPWFILE=${TMP}/tests.fipsbadpw.$$
@@ -381,6 +410,7 @@ if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ]; then
     D_FIPS="FIPS.$version"
     D_EXT_SERVER="ExtendedServer.$version"
     D_EXT_CLIENT="ExtendedClient.$version"
+    D_CERT_EXTENSTIONS="CertExtensions.$version"
 
     # we need relative pathnames of these files abd directories, since our 
     # tools can't handle the unix style absolut pathnames on cygnus
@@ -394,6 +424,7 @@ if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ]; then
     R_EVEDIR=../eve
     R_EXT_SERVERDIR=../ext_server
     R_EXT_CLIENTDIR=../ext_client
+    R_CERT_EXT=../cert_extensions
 
     #
     # profiles are either paths or domains depending on the setting of

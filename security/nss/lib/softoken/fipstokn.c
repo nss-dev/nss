@@ -55,8 +55,46 @@
 #include "pcert.h"
 #include "pkcs11.h"
 #include "pkcs11i.h"
+#include "prenv.h"
+#include "prprf.h"
 
 #include <ctype.h>
+
+#ifdef XP_UNIX
+#define NSS_AUDIT_WITH_SYSLOG 1
+#include <syslog.h>
+#include <unistd.h>
+#endif
+
+#ifdef LINUX
+#include <pthread.h>
+#include <dlfcn.h>
+#define LIBAUDIT_NAME "libaudit.so.0"
+#ifndef AUDIT_USER
+#define AUDIT_USER 1005  /* message type: message from userspace */
+#endif
+static void *libaudit_handle;
+static int (*audit_open_func)(void);
+static void (*audit_close_func)(int fd);
+static int (*audit_log_user_message_func)(int audit_fd, int type,
+    const char *message, const char *hostname, const char *addr,
+    const char *tty, int result);
+
+static pthread_once_t libaudit_once_control = PTHREAD_ONCE_INIT;
+
+static void
+libaudit_init(void)
+{
+    libaudit_handle = dlopen(LIBAUDIT_NAME, RTLD_LAZY);
+    if (!libaudit_handle) {
+	return;
+    }
+    audit_open_func = dlsym(libaudit_handle, "audit_open");
+    audit_close_func = dlsym(libaudit_handle, "audit_close");
+    audit_log_user_message_func = dlsym(libaudit_handle,
+					"audit_log_user_message");
+}
+#endif /* LINUX */
 
 
 /*
@@ -251,6 +289,76 @@ fips_login_if_key_object(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hObject)
     return rv;
 }
 
+/**********************************************************************
+ *
+ *     FIPS 140 auditable event logging
+ *
+ **********************************************************************/
+
+PRBool sftk_audit_enabled = PR_FALSE;
+
+/*
+ * Each audit record must have the following information:
+ * - Date and time of the event
+ * - Type of event
+ * - user (subject) identity
+ * - outcome (success or failure) of the event
+ * - process ID
+ * - name (ID) of the object
+ * - for changes to data (except for authentication data and CSPs), the new
+ *   and old values of the data
+ * - for authentication attempts, the origin of the attempt (e.g., terminal
+ *   identifier)
+ * - for assuming a role, the type of role, and the location of the request
+ */
+void
+sftk_LogAuditMessage(NSSAuditSeverity severity, const char *msg)
+{
+#ifdef NSS_AUDIT_WITH_SYSLOG
+    int level;
+
+    switch (severity) {
+    case NSS_AUDIT_ERROR:
+	level = LOG_ERR;
+	break;
+    case NSS_AUDIT_WARNING:
+	level = LOG_WARNING;
+	break;
+    default:
+	level = LOG_INFO;
+	break;
+    }
+    /* timestamp is provided by syslog in the message header */
+    syslog(level | LOG_USER /* facility */,
+	   "NSS " SOFTOKEN_LIB_NAME "[pid=%d uid=%d]: %s",
+	   (int)getpid(), (int)getuid(), msg);
+#ifdef LINUX
+    if (pthread_once(&libaudit_once_control, libaudit_init) != 0) {
+	return;
+    }
+    if (libaudit_handle) {
+	int audit_fd;
+	int result = (severity != NSS_AUDIT_ERROR); /* 1=success; 0=failed */
+	char *message = PR_smprintf("NSS " SOFTOKEN_LIB_NAME ": %s", msg);
+	if (!message) {
+	    return;
+	}
+	audit_fd = audit_open_func();
+	if (audit_fd < 0) {
+	    PR_smprintf_free(message);
+	    return;
+	}
+	audit_log_user_message_func(audit_fd, AUDIT_USER, message,
+				    NULL, NULL, NULL, result);
+	audit_close_func(audit_fd);
+	PR_smprintf_free(message);
+    }
+#endif /* LINUX */
+#else
+    /* do nothing */
+#endif
+}
+
 
 /**********************************************************************
  *
@@ -268,10 +376,15 @@ PRBool nsf_init = PR_FALSE;
 
 /* FC_Initialize initializes the PKCS #11 library. */
 CK_RV FC_Initialize(CK_VOID_PTR pReserved) {
+    const char *envp;
     CK_RV crv;
 
     if (nsf_init) {
 	return CKR_CRYPTOKI_ALREADY_INITIALIZED;
+    }
+
+    if ((envp = PR_GetEnv("NSS_ENABLE_AUDIT")) != NULL) {
+	sftk_audit_enabled = (atoi(envp) == 1);
     }
 
     crv = nsc_CommonInitialize(pReserved, PR_TRUE);
@@ -288,6 +401,14 @@ CK_RV FC_Initialize(CK_VOID_PTR pReserved) {
     if (crv != CKR_OK) {
         nsc_CommonFinalize(NULL, PR_TRUE);
 	fatalError = PR_TRUE;
+	if (sftk_audit_enabled) {
+	    char msg[128];
+	    PR_snprintf(msg,sizeof msg,
+			"C_Initialize()=0x%08lX "
+			"self-test: cryptographic algorithm test failed",
+			(PRUint32)crv);
+	    sftk_LogAuditMessage(NSS_AUDIT_ERROR, msg);
+	}
 	return crv;
     }
     nsf_init = PR_TRUE;
@@ -321,15 +442,7 @@ CK_RV FC_GetSlotList(CK_BBOOL tokenPresent,
 	
 /* FC_GetSlotInfo obtains information about a particular slot in the system. */
 CK_RV FC_GetSlotInfo(CK_SLOT_ID slotID, CK_SLOT_INFO_PTR pInfo) {
-
-    CK_RV crv;
-
-    crv = NSC_GetSlotInfo(slotID,pInfo);
-    if (crv != CKR_OK) {
-	return crv;
-    }
-
-    return CKR_OK;
+    return NSC_GetSlotInfo(slotID,pInfo);
 }
 
 
@@ -369,7 +482,20 @@ CK_RV FC_GetSlotInfo(CK_SLOT_ID slotID, CK_SLOT_INFO_PTR pInfo) {
 /* FC_InitToken initializes a token. */
  CK_RV FC_InitToken(CK_SLOT_ID slotID,CK_CHAR_PTR pPin,
  				CK_ULONG usPinLen,CK_CHAR_PTR pLabel) {
-    return NSC_InitToken(slotID,pPin,usPinLen,pLabel);
+    CK_RV crv;
+
+    crv = NSC_InitToken(slotID,pPin,usPinLen,pLabel);
+    if (sftk_audit_enabled) {
+	char msg[128];
+	NSSAuditSeverity severity = (crv == CKR_OK) ?
+		NSS_AUDIT_INFO : NSS_AUDIT_ERROR;
+	/* pLabel points to a 32-byte label, which is not null-terminated */
+	PR_snprintf(msg,sizeof msg,
+		"C_InitToken(slotID=%lu, pLabel=\"%.32s\")=0x%08lX",
+		(PRUint32)slotID,pLabel,(PRUint32)crv);
+	sftk_LogAuditMessage(severity, msg);
+    }
+    return crv;
 }
 
 
@@ -377,9 +503,20 @@ CK_RV FC_GetSlotInfo(CK_SLOT_ID slotID, CK_SLOT_INFO_PTR pInfo) {
  CK_RV FC_InitPIN(CK_SESSION_HANDLE hSession,
     					CK_CHAR_PTR pPin, CK_ULONG ulPinLen) {
     CK_RV rv;
-    SFTK_FIPSFATALCHECK();
-    if ((rv = sftk_newPinCheck(pPin,ulPinLen)) != CKR_OK) return rv;
-    return NSC_InitPIN(hSession,pPin,ulPinLen);
+    if (fatalError) return CKR_DEVICE_ERROR;
+    if ((rv = sftk_newPinCheck(pPin,ulPinLen)) == CKR_OK) {
+	rv = NSC_InitPIN(hSession,pPin,ulPinLen);
+    }
+    if (sftk_audit_enabled) {
+	char msg[128];
+	NSSAuditSeverity severity = (rv == CKR_OK) ?
+		NSS_AUDIT_INFO : NSS_AUDIT_ERROR;
+	PR_snprintf(msg,sizeof msg,
+		"C_InitPIN(hSession=%lu)=0x%08lX",
+		(PRUint32)hSession,(PRUint32)rv);
+	sftk_LogAuditMessage(severity, msg);
+    }
+    return rv;
 }
 
 
@@ -388,9 +525,20 @@ CK_RV FC_GetSlotInfo(CK_SLOT_ID slotID, CK_SLOT_INFO_PTR pInfo) {
  CK_RV FC_SetPIN(CK_SESSION_HANDLE hSession, CK_CHAR_PTR pOldPin,
     CK_ULONG usOldLen, CK_CHAR_PTR pNewPin, CK_ULONG usNewLen) {
     CK_RV rv;
-    if ((rv = sftk_fipsCheck()) != CKR_OK) return rv;
-    if ((rv = sftk_newPinCheck(pNewPin,usNewLen)) != CKR_OK) return rv;
-    return NSC_SetPIN(hSession,pOldPin,usOldLen,pNewPin,usNewLen);
+    if ((rv = sftk_fipsCheck()) == CKR_OK &&
+	(rv = sftk_newPinCheck(pNewPin,usNewLen)) == CKR_OK) {
+	rv = NSC_SetPIN(hSession,pOldPin,usOldLen,pNewPin,usNewLen);
+    }
+    if (sftk_audit_enabled) {
+	char msg[128];
+	NSSAuditSeverity severity = (rv == CKR_OK) ?
+		NSS_AUDIT_INFO : NSS_AUDIT_ERROR;
+	PR_snprintf(msg,sizeof msg,
+		"C_SetPIN(hSession=%lu)=0x%08lX",
+		(PRUint32)hSession,(PRUint32)rv);
+	sftk_LogAuditMessage(severity, msg);
+    }
+    return rv;
 }
 
 /* FC_OpenSession opens a session between an application and a token. */
@@ -435,7 +583,7 @@ CK_RV FC_GetSlotInfo(CK_SLOT_ID slotID, CK_SLOT_INFO_PTR pInfo) {
  CK_RV FC_Login(CK_SESSION_HANDLE hSession, CK_USER_TYPE userType,
 				    CK_CHAR_PTR pPin, CK_ULONG usPinLen) {
     CK_RV rv;
-    SFTK_FIPSFATALCHECK();
+    if (fatalError) return CKR_DEVICE_ERROR;
     rv = NSC_Login(hSession,userType,pPin,usPinLen);
     if (rv == CKR_OK)
 	isLoggedIn = PR_TRUE;
@@ -443,22 +591,50 @@ CK_RV FC_GetSlotInfo(CK_SLOT_ID slotID, CK_SLOT_INFO_PTR pInfo) {
     {
 	isLoggedIn = PR_TRUE;
 
-	/* Provide FIPS PUB 140-1 power-up self-tests on demand. */
+	/* Provide FIPS PUB 140-2 power-up self-tests on demand. */
 	rv = sftk_fipsPowerUpSelfTest();
 	if (rv == CKR_OK)
-		return CKR_USER_ALREADY_LOGGED_IN;
+		rv = CKR_USER_ALREADY_LOGGED_IN;
 	else
 		fatalError = PR_TRUE;
+    }
+    if (sftk_audit_enabled) {
+	char msg[128];
+	NSSAuditSeverity severity;
+	if (fatalError) {
+	    severity = NSS_AUDIT_ERROR;
+	    PR_snprintf(msg,sizeof msg,
+			"C_Login(hSession=%lu, userType=%lu)=0x%08lX ",
+			"self-test: cryptographic algorithm test failed",
+			(PRUint32)hSession,(PRUint32)userType,(PRUint32)rv);
+	} else {
+	    severity = (rv == CKR_OK || rv == CKR_USER_ALREADY_LOGGED_IN) ?
+			NSS_AUDIT_INFO : NSS_AUDIT_ERROR;
+	    PR_snprintf(msg,sizeof msg,
+			"C_Login(hSession=%lu, userType=%lu)=0x%08lX",
+			(PRUint32)hSession,(PRUint32)userType,(PRUint32)rv);
+	}
+	sftk_LogAuditMessage(severity, msg);
     }
     return rv;
 }
 
 /* FC_Logout logs a user out from a token. */
  CK_RV FC_Logout(CK_SESSION_HANDLE hSession) {
-    SFTK_FIPSCHECK();
- 
-    rv = NSC_Logout(hSession);
-    isLoggedIn = PR_FALSE;
+    CK_RV rv;
+    if ((rv = sftk_fipsCheck()) == CKR_OK) {
+	rv = NSC_Logout(hSession);
+	isLoggedIn = PR_FALSE;
+    }
+    if (sftk_audit_enabled) {
+	char msg[128];
+	NSSAuditSeverity severity = (rv == CKR_OK) ?
+		NSS_AUDIT_INFO : NSS_AUDIT_ERROR;
+	PR_snprintf(msg,sizeof msg,
+		    "C_Logout(hSession=%lu)=0x%08lX",
+		    (PRUint32)hSession,(PRUint32)rv);
+	sftk_LogAuditMessage(severity, msg);
+    }
     return rv;
 }
 
@@ -982,13 +1158,23 @@ CK_RV FC_GetSlotInfo(CK_SLOT_ID slotID, CK_SLOT_INFO_PTR pInfo) {
 
 /* FC_GenerateRandom generates random data. */
  CK_RV FC_GenerateRandom(CK_SESSION_HANDLE hSession,
-    CK_BYTE_PTR	pRandomData, CK_ULONG usRandomLen) {
+    CK_BYTE_PTR	pRandomData, CK_ULONG ulRandomLen) {
     CK_RV crv;
 
     SFTK_FIPSFATALCHECK();
-    crv = NSC_GenerateRandom(hSession,pRandomData,usRandomLen);
+    crv = NSC_GenerateRandom(hSession,pRandomData,ulRandomLen);
     if (crv != CKR_OK) {
 	fatalError = PR_TRUE;
+	if (sftk_audit_enabled) {
+	    char msg[128];
+	    PR_snprintf(msg,sizeof msg,
+			"C_GenerateRandom(hSession=%lu, pRandomData=%p, "
+			"ulRandomLen=%lu)=0x%08lX "
+			"self-test: continuous RNG test failed",
+			(PRUint32)hSession,pRandomData,
+			(PRUint32)ulRandomLen,(PRUint32)crv);
+	    sftk_LogAuditMessage(NSS_AUDIT_ERROR, msg);
+	}
     }
     return crv;
 }

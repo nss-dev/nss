@@ -60,8 +60,8 @@
 /* if MP_CHAR_STORE_SLOW is defined, we  */
 /* need to know endianness of this platform. */
 #ifdef MP_CHAR_STORE_SLOW
-#if !defined(MPI_IS_BIG_ENDIAN) && !defined(MPI_IS_LITTLE_ENDIAN)
-#error "You must define MPI_IS_BIG_ENDIAN or MPI_IS_LITTLE_ENDIAN\n" \
+#if !defined(MP_IS_BIG_ENDIAN) && !defined(MP_IS_LITTLE_ENDIAN)
+#error "You must define MP_IS_BIG_ENDIAN or MP_IS_LITTLE_ENDIAN\n" \
        "  if you define MP_CHAR_STORE_SLOW."
 #endif
 #endif
@@ -703,8 +703,8 @@ mp_err mpi_to_weave(const mp_int *a, unsigned char *b,
   count = count/sizeof(mp_weave_word);
 
   /* this code pretty much depends on this ! */
-#if MP_ARGCHK < 2
-  assert(WEAVE_WORD_SIZE == 4);
+#if MP_ARGCHK == 2
+  assert(WEAVE_WORD_SIZE == 4); 
   assert(sizeof(mp_weave_word) == 4);
 #endif
 
@@ -754,19 +754,19 @@ mp_err mpi_to_weave(const mp_int *a, unsigned char *b,
  * NOTE: This code assumes sizeof(mp_weave_word) and MP_WEAVE_WORD_SIZE
  * is 4.
  */
-#ifdef IS_LITTLE_ENDIAN 
+#ifdef MP_IS_LITTLE_ENDIAN 
 #define MPI_WEAVE_ONE_STEP \
-    acc  = (d0 >> (MP_DIGIT_BITS-8))  & 0x000000ff; d0 <<= 8; /*b0*/ \
-    acc |= (d1 >> (MP_DIGIT_BITS-16)) & 0x0000ff00; d1 <<= 8; /*b1*/ \
-    acc |= (d2 >> (MP_DIGIT_BITS-24)) & 0x00ff0000; d2 <<= 8; /*b2*/ \
-    acc |= (d3 >> (MP_DIGIT_BITS-32)) & 0xff000000; d3 <<= 8; /*b3*/ \
+    acc  = (d0 >> (MP_DIGIT_BIT-8))  & 0x000000ff; d0 <<= 8; /*b0*/ \
+    acc |= (d1 >> (MP_DIGIT_BIT-16)) & 0x0000ff00; d1 <<= 8; /*b1*/ \
+    acc |= (d2 >> (MP_DIGIT_BIT-24)) & 0x00ff0000; d2 <<= 8; /*b2*/ \
+    acc |= (d3 >> (MP_DIGIT_BIT-32)) & 0xff000000; d3 <<= 8; /*b3*/ \
     *weaved = acc; weaved += count;
 #else 
 #define MPI_WEAVE_ONE_STEP \
-    acc  = (d0 >> (MP_DIGIT_BITS-32)) & 0xff000000; d0 <<= 8; /*b0*/ \
-    acc |= (d1 >> (MP_DIGIT_BITS-24)) & 0x00ff0000; d1 <<= 8; /*b1*/ \
-    acc |= (d2 >> (MP_DIGIT_BITS-16)) & 0x0000ff00; d2 <<= 8; /*b2*/ \
-    acc |= (d3 >> (MP_DIGIT_BITS-8))  & 0x000000ff; d3 <<= 8; /*b3*/ \
+    acc  = (d0 >> (MP_DIGIT_BIT-32)) & 0xff000000; d0 <<= 8; /*b0*/ \
+    acc |= (d1 >> (MP_DIGIT_BIT-24)) & 0x00ff0000; d1 <<= 8; /*b1*/ \
+    acc |= (d2 >> (MP_DIGIT_BIT-16)) & 0x0000ff00; d2 <<= 8; /*b2*/ \
+    acc |= (d3 >> (MP_DIGIT_BIT-8))  & 0x000000ff; d3 <<= 8; /*b3*/ \
     *weaved = acc; weaved += count;
 #endif 
    switch (sizeof(mp_digit)) {
@@ -921,6 +921,14 @@ mp_err mp_exptmod_safe_i(const mp_int *   montBase,
   unsigned char *powersArray;
   unsigned char *powers;
 
+  MP_DIGITS(&accum1) = 0;
+  MP_DIGITS(&accum2) = 0;
+  MP_DIGITS(&accum[0]) = 0;
+  MP_DIGITS(&accum[1]) = 0;
+  MP_DIGITS(&accum[2]) = 0;
+  MP_DIGITS(&accum[3]) = 0;
+  MP_DIGITS(&tmp) = 0;
+
   powersArray = (unsigned char *)malloc(num_powers*(nLen*sizeof(mp_digit)+1));
   if (powersArray == NULL) {
     res = MP_MEM;
@@ -930,13 +938,6 @@ mp_err mp_exptmod_safe_i(const mp_int *   montBase,
   /* powers[i] = base ** (i); */
   powers = (unsigned char *)MP_ALIGN(powersArray,num_powers);
 
-  MP_DIGITS(&accum1) = 0;
-  MP_DIGITS(&accum2) = 0;
-  MP_DIGITS(&accum[0]) = 0;
-  MP_DIGITS(&accum[1]) = 0;
-  MP_DIGITS(&accum[2]) = 0;
-  MP_DIGITS(&accum[3]) = 0;
-
   /* grab the first window value. This allows us to preload accumulator1
    * and save a conversion, some squares and a multiple*/
   MP_CHECKOK( mpl_get_bits(exponent, 
@@ -945,7 +946,6 @@ mp_err mp_exptmod_safe_i(const mp_int *   montBase,
 
   MP_CHECKOK( mp_init_size(&accum1, 3 * nLen + 2) );
   MP_CHECKOK( mp_init_size(&accum2, 3 * nLen + 2) );
-  MP_DIGITS(&tmp) = 0;
   MP_CHECKOK( mp_init_size(&tmp, 3 * nLen + 2) );
 
   /* build the first WEAVE_WORD powers inline */
@@ -1070,6 +1070,7 @@ CLEANUP:
   mp_clear(&accum[1]);
   mp_clear(&accum[2]);
   mp_clear(&accum[3]);
+  mp_clear(&tmp);
   /* PORT_Memset(powers,0,num_powers*nLen*sizeof(mp_digit)); */
   free(powersArray);
   return res;

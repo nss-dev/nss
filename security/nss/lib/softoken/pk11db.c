@@ -891,7 +891,7 @@ secmod_ReadPermDB(const char *appName, const char *filename,
 	    newModuleList =
 		(char **)PORT_Realloc(moduleList,useCount*sizeof(char *));
 	    if (newModuleList == NULL) goto done;
-            moduleList = newModuleList;
+	    moduleList = newModuleList;
 	    PORT_Memset(&moduleList[moduleCount+1],0,
 						sizeof(char *)*SECMOD_STEP);
 	}

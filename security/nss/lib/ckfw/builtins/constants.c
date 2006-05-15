@@ -62,7 +62,7 @@ nss_builtins_CryptokiVersion =  {
 		NSS_BUILTINS_CRYPTOKI_VERSION_MINOR };
 
 NSS_IMPLEMENT_DATA const NSSUTF8 *
-nss_builtins_ManufacturerID = (NSSUTF8 *) "Netscape Communications Corp.";
+nss_builtins_ManufacturerID = (NSSUTF8 *) "Mozilla Foundation";
 
 NSS_IMPLEMENT_DATA const NSSUTF8 *
 nss_builtins_LibraryDescription = (NSSUTF8 *) "NSS Builtin Object Cryptoki Module";

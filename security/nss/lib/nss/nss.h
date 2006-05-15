@@ -52,12 +52,15 @@ SEC_BEGIN_PROTOS
  * The format of the version string should be
  *     "<major version>.<minor version>[.<patch level>] [<Beta>]"
  */
-#define NSS_VERSION  "3.11.1 Beta"
+#ifdef NSS_ENABLE_ECC
+#define NSS_VERSION  "3.11.2 ECC Beta"
+#else
+#define NSS_VERSION  "3.11.2 Beta"
+#endif
 #define NSS_VMAJOR   3
 #define NSS_VMINOR   11
-#define NSS_VPATCH   1
+#define NSS_VPATCH   2
 #define NSS_BETA     PR_TRUE
-
 
 /*
  * Return a boolean that indicates whether the underlying library
@@ -183,6 +186,31 @@ extern SECStatus NSS_Initialize(const char *configdir,
  * initialize NSS without a creating cert db's, key db's, or secmod db's.
  */
 SECStatus NSS_NoDB_Init(const char *configdir);
+
+/*
+ * Allow applications and libraries to register with NSS so that they are called
+ * when NSS shuts down.
+ *
+ * void *appData application specific data passed in by the application at 
+ * NSS_RegisterShutdown() time.
+ * void *nssData is NULL in this release, but is reserved for future versions of 
+ * NSS to pass some future status information * back to the shutdown function. 
+ *
+ * If the shutdown function returns SECFailure,
+ * Shutdown will still complete, but NSS_Shutdown() will return SECFailure.
+ */
+typedef SECStatus (*NSS_ShutdownFunc)(void *appData, void *nssData);
+
+/*
+ * Register a shutdown function.
+ */
+SECStatus NSS_RegisterShutdown(NSS_ShutdownFunc sFunc, void *appData);
+
+/*
+ * Remove an existing shutdown function (you may do this if your library is
+ * complete and going away, but NSS is still running).
+ */
+SECStatus NSS_UnregisterShutdown(NSS_ShutdownFunc sFunc, void *appData);
 
 /* 
  * Close the Cert, Key databases.

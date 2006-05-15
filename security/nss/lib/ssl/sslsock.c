@@ -48,6 +48,7 @@
 #include "sslimpl.h"
 #include "sslproto.h"
 #include "nspr.h"
+#include "private/pprio.h"
 
 #define SET_ERROR_CODE   /* reminder */
 
@@ -97,18 +98,24 @@ static cipherPolicy ssl_ciphers[] = {	   /*   Export           France   */
 #ifdef NSS_ENABLE_ECC
  {  TLS_ECDH_ECDSA_WITH_NULL_SHA,           SSL_ALLOWED,     SSL_ALLOWED },
  {  TLS_ECDH_ECDSA_WITH_RC4_128_SHA,        SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
- {  TLS_ECDH_ECDSA_WITH_DES_CBC_SHA,        SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
  {  TLS_ECDH_ECDSA_WITH_3DES_EDE_CBC_SHA,   SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
  {  TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA,    SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
  {  TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA,    SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
+ {  TLS_ECDHE_ECDSA_WITH_NULL_SHA,          SSL_ALLOWED,     SSL_ALLOWED },
+ {  TLS_ECDHE_ECDSA_WITH_RC4_128_SHA,       SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
+ {  TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA,  SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
+ {  TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,   SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
+ {  TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,   SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
  {  TLS_ECDH_RSA_WITH_NULL_SHA,             SSL_ALLOWED,     SSL_ALLOWED },
  {  TLS_ECDH_RSA_WITH_RC4_128_SHA,          SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
- {  TLS_ECDH_RSA_WITH_DES_CBC_SHA,          SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
  {  TLS_ECDH_RSA_WITH_3DES_EDE_CBC_SHA,     SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
  {  TLS_ECDH_RSA_WITH_AES_128_CBC_SHA,      SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
  {  TLS_ECDH_RSA_WITH_AES_256_CBC_SHA,      SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
- {  TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,   SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
+ {  TLS_ECDHE_RSA_WITH_NULL_SHA,            SSL_ALLOWED,     SSL_ALLOWED },
+ {  TLS_ECDHE_RSA_WITH_RC4_128_SHA,         SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
+ {  TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,    SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
  {  TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,     SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
+ {  TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,     SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
 #endif /* NSS_ENABLE_ECC */
  {  0,					    SSL_NOT_ALLOWED, SSL_NOT_ALLOWED }
 };
@@ -291,6 +298,8 @@ ssl_DupSocket(sslSocket *os)
 	    }
 	    ss->stepDownKeyPair = !os->stepDownKeyPair ? NULL :
 		                  ssl3_GetKeyPairRef(os->stepDownKeyPair);
+	    ss->ephemeralECDHKeyPair = !os->ephemeralECDHKeyPair ? NULL :
+		                  ssl3_GetKeyPairRef(os->ephemeralECDHKeyPair);
 /*
  * XXX the preceeding CERT_ and SECKEY_ functions can fail and return NULL.
  * XXX We should detect this, and not just march on with NULL pointers.
@@ -395,6 +404,10 @@ ssl_DestroySocketContents(sslSocket *ss)
     if (ss->stepDownKeyPair) {
 	ssl3_FreeKeyPair(ss->stepDownKeyPair);
 	ss->stepDownKeyPair = NULL;
+    }
+    if (ss->ephemeralECDHKeyPair) {
+	ssl3_FreeKeyPair(ss->ephemeralECDHKeyPair);
+	ss->ephemeralECDHKeyPair = NULL;
     }
 }
 
@@ -1586,6 +1599,24 @@ ssl_Poll(PRFileDesc *fd, PRInt16 how_flags, PRInt16 *p_out_flags)
     return new_flags;
 }
 
+static PRInt32 PR_CALLBACK
+ssl_TransmitFile(PRFileDesc *sd, PRFileDesc *fd,
+		 const void *headers, PRInt32 hlen,
+		 PRTransmitFileFlags flags, PRIntervalTime timeout)
+{
+    PRSendFileData sfd;
+
+    sfd.fd = fd;
+    sfd.file_offset = 0;
+    sfd.file_nbytes = 0;
+    sfd.header = headers;
+    sfd.hlen = hlen;
+    sfd.trailer = NULL;
+    sfd.tlen = 0;
+
+    return sd->methods->sendfile(sd, &sfd, flags, timeout);
+}
+
 
 PRBool
 ssl_FdIsBlocking(PRFileDesc *fd)
@@ -1842,15 +1873,15 @@ static const PRIOMethods ssl_methods = {
     ssl_RecvFrom,        	/* recvfrom     */
     ssl_SendTo,          	/* sendto       */
     ssl_Poll,            	/* poll         */
-    ssl_EmulateAcceptRead,      /* acceptread   */
-    ssl_EmulateTransmitFile,    /* transmitfile */
+    PR_EmulateAcceptRead,       /* acceptread   */
+    ssl_TransmitFile,           /* transmitfile */
     ssl_GetSockName,     	/* getsockname  */
     ssl_GetPeerName,     	/* getpeername  */
     NULL,                	/* getsockopt   OBSOLETE */
     NULL,                	/* setsockopt   OBSOLETE */
     NULL,                	/* getsocketoption   */
     NULL,                	/* setsocketoption   */
-    ssl_EmulateSendFile, 	/* Send a (partial) file with header/trailer*/
+    PR_EmulateSendFile, 	/* Send a (partial) file with header/trailer*/
     NULL,                	/* reserved for future use */
     NULL,                	/* reserved for future use */
     NULL,                	/* reserved for future use */

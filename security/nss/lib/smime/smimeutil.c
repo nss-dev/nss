@@ -738,7 +738,7 @@ NSS_SMIMEUtil_GetCertFromEncryptionKeyPreference(CERTCertDBHandle *certdb, SECIt
 	return NULL;
 
     /* decode DERekp */
-    if (SEC_QuickDERDecodeItem(tmppoolp, &ekp, smime_encryptionkeypref_template,
+    if (SEC_ASN1DecodeItem(tmppoolp, &ekp, smime_encryptionkeypref_template,
                                DERekp) != SECSuccess)
 	goto loser;
 

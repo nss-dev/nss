@@ -295,6 +295,9 @@ done:
     return ri;
 
 loser:
+    if (ri && ri->cert) {
+        CERT_DestroyCertificate(ri->cert);
+    }
     if (freeSpki) {
       SECKEY_DestroySubjectPublicKeyInfo(freeSpki);
     }
