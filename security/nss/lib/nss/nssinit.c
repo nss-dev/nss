@@ -776,6 +776,11 @@ NSS_Shutdown(void)
     SECStatus rv;
     PRStatus status;
 
+    if (!nss_IsInitted) {
+	PORT_SetError(SEC_ERROR_NOT_INITIALIZED);
+	return SECFailure;
+    }
+
     rv = nss_ShutdownShutdownList();
     if (rv != SECSuccess) {
 	shutdownRV = SECFailure;
