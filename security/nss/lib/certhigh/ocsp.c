@@ -1755,6 +1755,8 @@ ocsp_ParseURL(char *url, char **pHostname, PRUint16 *pPort, char **pPath)
 	path[len] = '\0';
     } else {
 	path = PORT_Strdup("/");
+	if (path == NULL)
+	    goto loser;
     }
 
     *pHostname = hostname;
@@ -1765,8 +1767,6 @@ ocsp_ParseURL(char *url, char **pHostname, PRUint16 *pPort, char **pPath)
 loser:
     if (hostname != NULL)
 	PORT_Free(hostname);
-    if (path != NULL)
-	PORT_Free(path);
     PORT_SetError(SEC_ERROR_CERT_BAD_ACCESS_LOCATION);
     return SECFailure;
 }
@@ -3764,8 +3764,6 @@ ocsp_InitStatusChecking(CERTCertDBHandle *handle)
     return SECSuccess;
 
 loser:
-    if (statusContext != NULL)
-	PORT_Free(statusContext);
     if (statusConfig != NULL)
 	PORT_Free(statusConfig);
     return SECFailure;

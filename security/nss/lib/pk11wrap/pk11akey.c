@@ -1719,6 +1719,9 @@ pk11_DoKeys(PK11SlotInfo *slot, CK_OBJECT_HANDLE keyHandle, void *arg)
     SECStatus rv = SECSuccess;
     SECKEYPrivateKey *privKey;
     pk11KeyCallback *keycb = (pk11KeyCallback *) arg;
+    if (!arg) {
+        return SECFailure;
+    }
 
     privKey = PK11_MakePrivKey(slot,nullKey,PR_TRUE,keyHandle,keycb->wincx);
 
@@ -1726,7 +1729,7 @@ pk11_DoKeys(PK11SlotInfo *slot, CK_OBJECT_HANDLE keyHandle, void *arg)
 	return SECFailure;
     }
 
-    if (keycb && (keycb->callback)) {
+    if (keycb->callback) {
 	rv = (*keycb->callback)(privKey,keycb->callbackArg);
     }
 
