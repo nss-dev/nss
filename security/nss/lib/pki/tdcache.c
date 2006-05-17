@@ -1150,6 +1150,9 @@ nssTrustDomain_GetCertsFromCache (
 	certList = certListOpt;
     } else {
 	certList = nssList_Create(NULL, PR_FALSE);
+	if (!certList) {
+	    return NULL;
+	}
     }
     PZ_Lock(td->cache->lock);
     nssHash_Iterate(td->cache->issuerAndSN, cert_iter, (void *)certList);
