@@ -933,7 +933,7 @@ openNewDB(const char *appName, const char *prefix, const char *dbname,
      * local database we can update from.
      */
     if (appName) {
-        NSSLOWKEYDBHandle *updateHandle = nsslowkey_NewHandle(updatedb);
+        NSSLOWKEYDBHandle *updateHandle;
 	updatedb = dbopen( dbname, NO_RDONLY, 0600, DB_HASH, 0 );
 	if (!updatedb) {
 	    goto noupdate;
