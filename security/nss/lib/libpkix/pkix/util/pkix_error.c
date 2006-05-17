@@ -228,7 +228,6 @@ pkix_Error_ToString(
         PKIX_PL_String **pString,
         void *plContext)
 {
-        extern const char *PKIX_ERRORNAMES[PKIX_NUMERRORS];
         PKIX_Error *error = NULL;
         PKIX_Error *cause = NULL;
         PKIX_PL_String *desc = NULL;
@@ -291,9 +290,9 @@ pkix_Error_ToString(
 
         /* Create the Format String */
         if (optCauseString != NULL) {
-                format = "*** %s - %s%s";
+                format = "*** %s Error- %s%s";
         } else {
-                format = "*** %s - %s";
+                format = "*** %s Error- %s";
         }
 
         /* Ensure that error code is known, otherwise default to Object */
@@ -365,81 +364,20 @@ pkix_Error_Hashcode(
  * descriptive name for an error code. This is used by the default
  * PKIX_PL_Error_ToString function.
  *
- * Note: These default names are indexed by error type. Therefore, order of
- * these default names MUST match the order of the error types in pkixt.h.
- * For example, since PKIX_ERRORNAMES[2] = "Memory Error", then PKIX_MEM_ERROR
- * must have the value 2 in pkixt.h
+ * Note: PKIX_ERRORNAMES is defined in pkixt.h as a list of error types.
+ * (More precisely, as a list of invocations of ERRMACRO(type).) The
+ * macro is expanded in pkixt.h to define error numbers, and here to
+ * provide corresponding strings. For example, since the fifth ERRMACRO
+ * entry is MUTEX, then PKIX_MUTEX_ERROR is defined in pkixt.h as 4, and
+ * PKIX_ERRORNAMES[4] is initialized here with the value "MUTEX".
  */
+#undef ERRMACRO
+#define ERRMACRO(type) #type
+
 const char *
 PKIX_ERRORNAMES[PKIX_NUMERRORS] =
 {
-        "Object Error",
-        "Fatal Error",
-        "Memory Error",
-        "Error Error",
-        "Mutex Error",
-        "RWLock Error",
-        "String Error",
-        "OID Error",
-        "List Error",
-        "ByteArray Error",
-        "BigInt Error",
-        "HashTable Error",
-        "Cert Error",
-        "X500Name Error",
-        "GeneralName Error",
-        "PublicKey Error",
-        "Date Error",
-        "TrustAnchor Error",
-        "ProcessingParams Error",
-        "HttpClient Error",
-        "ValidateParams Error",
-        "Validate Error",
-        "ValidateResult Error",
-        "CertChainChecker Error",
-        "CertSelector Error",
-        "ComCertSelParams Error",
-        "TargetCertCheckerState Error",
-        "CertBasicConstraints Error",
-        "CertPolicyQualifier Error",
-        "CertPolicyInfo Error",
-        "CertPolicyNode Error",
-        "CertPolicyCheckerState Error",
-        "Lifecycle Error",
-        "BasicConstraintsCheckerState Error",
-        "ComCRLSelParams Error",
-        "CertStore Error",
-        "CollectionCertStoreContext Error",
-        "DefaultCRLCheckerState Error",
-        "CRL Error",
-        "CRLEntry Error",
-        "CRLSelector Error",
-        "CertPolicyMap Error",
-        "Build Error",
-        "BuildResult Error",
-        "HttpCertStoreContext Error",
-        "ForwardBuilderState Error",
-        "SignatureCheckerState Error",
-        "CertNameConstraints Error",
-        "CertNameConstraintsCheckerState Error",
-        "RevocationChecker Error",
-        "User Defined Modules Error",
-        "Context Error",
-        "DefaultRevocationChecker Error",
-        "LdapRequest Error",
-        "LdapResponse Error",
-        "LdapClient Error",
-        "LdapDefaultClient Error",
-        "Socket Error",
-        "Resource Limits Error",
-        "Logger Error",
-        "MonitorLock Error",
-        "InfoAccess Error",
-        "AIAMgr Error",
-        "OcspChecker Error",
-        "OcspRequest Error",
-        "OcspResponse Error",
-        "HttpDefaultClient Error"
+    PKIX_ERRORS
 };
 
 /*

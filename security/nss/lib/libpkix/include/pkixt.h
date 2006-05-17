@@ -267,87 +267,89 @@ typedef int PKIX_Boolean;
 
 /* Error Codes
  *
- * Every PKIX_Error is associated with an integer error code. Therefore
- * this list must correspond, one-to-one, with the strings in the table
- * "const char *PKIX_ERRORNAMES[PKIX_NUMERRORS]" in pkix_error.c and the
- * table "const char PKIX_COMPONENTNAMES[PKIX_NUMERRORS]" in pkix_logger.c.
- *
- * Also, those Error Codes that doesn't have association with Object Types
- * defined earlier are sometimes used as the Object Type for the macro
- * PKIX_ENTER(). This is because there are functions that are not associated
- * with any defined Objects but need to relate to an Object Type.
+ * This list is used to define a set of PKIX_Errors, each associated with an
+ * integer error code. ERRMACRO is redefined to produce a corresponding set of
+ * strings in the table "const char *PKIX_ERRORNAMES[PKIX_NUMERRORS]" in
+ * pkix_error.c. For example, since the fifth ERRMACRO entry is MUTEX, then
+ * PKIX_MUTEX_ERROR is defined in pkixt.h as 4, and PKIX_ERRORNAMES[4] is
+ * initialized in pkix_error.c with the value "MUTEX".
  */
 
-#define PKIX_OBJECT_ERROR               ((PKIX_UInt32) 0)
-#define PKIX_FATAL_ERROR                ((PKIX_UInt32) 1)
-#define PKIX_MEM_ERROR                  ((PKIX_UInt32) 2)
-#define PKIX_ERROR_ERROR                ((PKIX_UInt32) 3)
-#define PKIX_MUTEX_ERROR                ((PKIX_UInt32) 4)
-#define PKIX_RWLOCK_ERROR               ((PKIX_UInt32) 5)
-#define PKIX_STRING_ERROR               ((PKIX_UInt32) 6)
-#define PKIX_OID_ERROR                  ((PKIX_UInt32) 7)
-#define PKIX_LIST_ERROR                 ((PKIX_UInt32) 8)
-#define PKIX_BYTEARRAY_ERROR            ((PKIX_UInt32) 9)
-#define PKIX_BIGINT_ERROR               ((PKIX_UInt32) 10)
-#define PKIX_HASHTABLE_ERROR            ((PKIX_UInt32) 11)
-#define PKIX_CERT_ERROR                 ((PKIX_UInt32) 12)
-#define PKIX_X500NAME_ERROR             ((PKIX_UInt32) 13)
-#define PKIX_GENERALNAME_ERROR          ((PKIX_UInt32) 14)
-#define PKIX_PUBLICKEY_ERROR            ((PKIX_UInt32) 15)
-#define PKIX_DATE_ERROR                 ((PKIX_UInt32) 16)
-#define PKIX_TRUSTANCHOR_ERROR          ((PKIX_UInt32) 17)
-#define PKIX_PROCESSINGPARAMS_ERROR     ((PKIX_UInt32) 18)
-#define PKIX_HTTPCLIENT_ERROR           ((PKIX_UInt32) 19)
-#define PKIX_VALIDATEPARAMS_ERROR       ((PKIX_UInt32) 20)
-#define PKIX_VALIDATE_ERROR             ((PKIX_UInt32) 21)
-#define PKIX_VALIDATERESULT_ERROR       ((PKIX_UInt32) 22)
-#define PKIX_CERTCHAINCHECKER_ERROR     ((PKIX_UInt32) 23)
-#define PKIX_CERTSELECTOR_ERROR         ((PKIX_UInt32) 24)
-#define PKIX_COMCERTSELPARAMS_ERROR     ((PKIX_UInt32) 25)
-#define PKIX_TARGETCERTCHECKERSTATE_ERROR ((PKIX_UInt32) 26)
-#define PKIX_CERTBASICCONSTRAINTS_ERROR ((PKIX_UInt32) 27)
-#define PKIX_CERTPOLICYQUALIFIER_ERROR  ((PKIX_UInt32) 28)
-#define PKIX_CERTPOLICYINFO_ERROR       ((PKIX_UInt32) 29)
-#define PKIX_CERTPOLICYNODE_ERROR       ((PKIX_UInt32) 30)
-#define PKIX_CERTPOLICYCHECKERSTATE_ERROR       ((PKIX_UInt32) 31)
-#define PKIX_LIFECYCLE_ERROR            ((PKIX_UInt32) 32)
-#define PKIX_BASICCONSTRAINTSCHECKERSTATE_ERROR ((PKIX_UInt32) 33)
-#define PKIX_COMCRLSELPARAMS_ERROR      ((PKIX_UInt32) 34)
-#define PKIX_CERTSTORE_ERROR            ((PKIX_UInt32) 35)
-#define PKIX_COLLECTIONCERTSTORECONTEXT_ERROR ((PKIX_UInt32) 36)
-#define PKIX_DEFAULTCRLCHECKERSTATE_ERROR ((PKIX_UInt32) 37)
-#define PKIX_CRL_ERROR                  ((PKIX_UInt32) 38)
-#define PKIX_CRLENTRY_ERROR             ((PKIX_UInt32) 39)
-#define PKIX_CRLSELECTOR_ERROR          ((PKIX_UInt32) 40)
-#define PKIX_CERTPOLICYMAP_ERROR        ((PKIX_UInt32) 41)
-#define PKIX_BUILD_ERROR                ((PKIX_UInt32) 42)
-#define PKIX_BUILDRESULT_ERROR          ((PKIX_UInt32) 43)
-#define PKIX_HTTPCERTSTORECONTEXT_ERROR ((PKIX_UInt32) 44)
-#define PKIX_FORWARDBUILDERSTATE_ERROR  ((PKIX_UInt32) 45)
-#define PKIX_SIGNATURECHECKERSTATE_ERROR ((PKIX_UInt32) 46)
-#define PKIX_CERTNAMECONSTRAINTS_ERROR ((PKIX_UInt32) 47)
-#define PKIX_CERTNAMECONSTRAINTSCHECKERSTATE_ERROR ((PKIX_UInt32) 48)
-#define PKIX_REVOCATIONCHECKER_ERROR    ((PKIX_UInt32) 49)
-#define PKIX_USERDEFINEDMODULES_ERROR   ((PKIX_UInt32) 50)
-#define PKIX_CONTEXT_ERROR              ((PKIX_UInt32) 51)
-#define PKIX_DEFAULTREVOCATIONCHECKER_ERROR ((PKIX_UInt32) 52)
-#define PKIX_LDAPREQUEST_ERROR          ((PKIX_UInt32) 53)
-#define PKIX_LDAPRESPONSE_ERROR         ((PKIX_UInt32) 54)
-#define PKIX_LDAPCLIENT_ERROR           ((PKIX_UInt32) 55)
-#define PKIX_LDAPDEFAULTCLIENT_ERROR    ((PKIX_UInt32) 56)
-#define PKIX_SOCKET_ERROR               ((PKIX_UInt32) 57)
-#define PKIX_RESOURCELIMITS_ERROR       ((PKIX_UInt32) 58)
-#define PKIX_LOGGER_ERROR               ((PKIX_UInt32) 59)
-#define PKIX_MONITORLOCK_ERROR          ((PKIX_UInt32) 60)
-#define PKIX_INFOACCESS_ERROR           ((PKIX_UInt32) 61)
-#define PKIX_AIAMGR_ERROR               ((PKIX_UInt32) 62)
-#define PKIX_OCSPCHECKER_ERROR          ((PKIX_UInt32) 63)
-#define PKIX_OCSPREQUEST_ERROR          ((PKIX_UInt32) 64)
-#define PKIX_OCSPRESPONSE_ERROR         ((PKIX_UInt32) 65)
-#define PKIX_HTTPDEFAULTCLIENT_ERROR    ((PKIX_UInt32) 66)
+#define PKIX_ERRORS \
+   ERRMACRO(OBJECT), \
+   ERRMACRO(FATAL), \
+   ERRMACRO(MEM), \
+   ERRMACRO(ERROR), \
+   ERRMACRO(MUTEX), \
+   ERRMACRO(RWLOCK), \
+   ERRMACRO(STRING), \
+   ERRMACRO(OID), \
+   ERRMACRO(LIST), \
+   ERRMACRO(BYTEARRAY), \
+   ERRMACRO(BIGINT), \
+   ERRMACRO(HASHTABLE), \
+   ERRMACRO(CERT), \
+   ERRMACRO(X500NAME), \
+   ERRMACRO(GENERALNAME), \
+   ERRMACRO(PUBLICKEY), \
+   ERRMACRO(DATE), \
+   ERRMACRO(TRUSTANCHOR), \
+   ERRMACRO(PROCESSINGPARAMS), \
+   ERRMACRO(HTTPCLIENT), \
+   ERRMACRO(VALIDATEPARAMS), \
+   ERRMACRO(VALIDATE), \
+   ERRMACRO(VALIDATERESULT), \
+   ERRMACRO(CERTCHAINCHECKER), \
+   ERRMACRO(CERTSELECTOR), \
+   ERRMACRO(COMCERTSELPARAMS), \
+   ERRMACRO(TARGETCERTCHECKERSTATE), \
+   ERRMACRO(CERTBASICCONSTRAINTS), \
+   ERRMACRO(CERTPOLICYQUALIFIER), \
+   ERRMACRO(CERTPOLICYINFO), \
+   ERRMACRO(CERTPOLICYNODE), \
+   ERRMACRO(CERTPOLICYCHECKERSTATE), \
+   ERRMACRO(LIFECYCLE), \
+   ERRMACRO(BASICCONSTRAINTSCHECKERSTATE), \
+   ERRMACRO(COMCRLSELPARAMS), \
+   ERRMACRO(CERTSTORE), \
+   ERRMACRO(COLLECTIONCERTSTORECONTEXT), \
+   ERRMACRO(DEFAULTCRLCHECKERSTATE), \
+   ERRMACRO(CRL), \
+   ERRMACRO(CRLENTRY), \
+   ERRMACRO(CRLSELECTOR), \
+   ERRMACRO(CERTPOLICYMAP), \
+   ERRMACRO(BUILD), \
+   ERRMACRO(BUILDRESULT), \
+   ERRMACRO(HTTPCERTSTORECONTEXT), \
+   ERRMACRO(FORWARDBUILDERSTATE), \
+   ERRMACRO(SIGNATURECHECKERSTATE), \
+   ERRMACRO(CERTNAMECONSTRAINTS), \
+   ERRMACRO(CERTNAMECONSTRAINTSCHECKERSTATE), \
+   ERRMACRO(REVOCATIONCHECKER), \
+   ERRMACRO(USERDEFINEDMODULES), \
+   ERRMACRO(CONTEXT), \
+   ERRMACRO(DEFAULTREVOCATIONCHECKER), \
+   ERRMACRO(LDAPREQUEST), \
+   ERRMACRO(LDAPRESPONSE), \
+   ERRMACRO(LDAPCLIENT), \
+   ERRMACRO(LDAPDEFAULTCLIENT), \
+   ERRMACRO(SOCKET), \
+   ERRMACRO(RESOURCELIMITS), \
+   ERRMACRO(LOGGER), \
+   ERRMACRO(MONITORLOCK), \
+   ERRMACRO(INFOACCESS), \
+   ERRMACRO(AIAMGR), \
+   ERRMACRO(OCSPCHECKER), \
+   ERRMACRO(OCSPREQUEST), \
+   ERRMACRO(OCSPRESPONSE), \
+   ERRMACRO(HTTPDEFAULTCLIENT)
 
-/* YOU NEED TO UPDATE NEW ENTRY at pkix_error.c and pkix_logger.c */
-#define PKIX_NUMERRORS                  ((PKIX_UInt32) 67)
+#define ERRMACRO(type) PKIX_ ## type ## _ERROR
+
+enum {
+   PKIX_ERRORS,
+   PKIX_NUMERRORS   /* This gets PKIX_NUMERRORS defined as the total number */
+};
 
 /* String Formats
  *

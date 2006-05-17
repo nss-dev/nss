@@ -175,7 +175,7 @@ testComponent(PKIX_Logger *logger)
         }
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create
-                (PKIX_ESCASCII, "List", 0, &compName, plContext));
+                (PKIX_ESCASCII, "LIST", 0, &compName, plContext));
 
 
         subTest("PKIX_Logger_SetLoggingComponent");
@@ -265,7 +265,7 @@ testLogger(PKIX_Logger *logger, PKIX_Logger *logger2)
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_SetLoggers(loggerList, plContext));
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create
-                (PKIX_ESCASCII, "Object", 0, &compName, plContext));
+                (PKIX_ESCASCII, "OBJECT", 0, &compName, plContext));
 
         subTest("PKIX_Logger_SetLoggingComponent");
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_Logger_SetLoggingComponent

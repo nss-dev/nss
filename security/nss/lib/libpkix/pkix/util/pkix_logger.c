@@ -79,78 +79,6 @@ PKIX_List *pkixLoggersDebugTrace = NULL;
 /* To ensure atomic update on pkixLoggers lists */
 PKIX_PL_MonitorLock *pkixLoggerLock = NULL;
 
-const char *
-PKIX_COMPONENTNAMES[PKIX_NUMERRORS] =
-{
-        "Object",
-        "Fatal",
-        "Memory",
-        "Error",
-        "Mutex",
-        "RWLock",
-        "String",
-        "OID",
-        "List",
-        "ByteArray",
-        "BigInt",
-        "HashTable",
-        "Cert",
-        "X500Name",
-        "GeneralName",
-        "PublicKey",
-        "Date",
-        "TrustAnchor",
-        "ProcessingParams",
-        "HttpClient",
-        "ValidateParams",
-        "Validate",
-        "ValidateResult",
-        "CertChainChecker",
-        "CertSelector",
-        "ComCertSelParams",
-        "TargetCertCheckerState",
-        "CertBasicConstraints",
-        "CertPolicyQualifier",
-        "CertPolicyInfo",
-        "CertPolicyNode",
-        "CertPolicyCheckerState",
-        "Lifecycle",
-        "BasicConstraintsCheckerState",
-        "ComCRLSelParams",
-        "CertStore",
-        "CollectionCertStoreContext",
-        "DefaultCRLCheckerState",
-        "CRL",
-        "CRLEntry",
-        "CRLSelector",
-        "CertPolicyMap",
-        "Build",
-        "BuildResult",
-        "HttpCertStoreContext",
-        "ForwardBuilderState",
-        "SignatureCheckerState",
-        "CertNameConstraints",
-        "CertNameConstraintsCheckerState",
-        "RevocationChecker",
-        "User Defined Modules",
-        "Context",
-        "DefaultRevocationChecker",
-        "LdapRequest",
-        "LdapResponse",
-        "LdapClient",
-        "LdapDefaultClient",
-        "Socket",
-        "ResourceLimits",
-        "Logger",
-        "MonitorLock",
-        "InfoAccess",
-        "AIAMgr",
-        "OcspChecker",
-        "OcspRequest"
-        "OcspResponse",
-        "HttpDefaultClient"
-};
-
 /* --Private-Functions-------------------------------------------- */
 
 /*
@@ -276,7 +204,7 @@ pkix_Logger_Check(
 
         error = PKIX_PL_String_Create
                     (PKIX_ESCASCII,
-                    (void *)PKIX_COMPONENTNAMES[logComponent],
+                    (void *)PKIX_ERRORNAMES[logComponent],
                     0,
                     &logComponentString,
                     plContext);
