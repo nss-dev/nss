@@ -119,7 +119,7 @@ pkix_Logger_Check(
         PKIX_List *pkixLoggersList,
         char *message,
         char *message2,
-        PKIX_UInt32 logComponent,
+        PKIX_ERRORNUM logComponent,
         PKIX_UInt32 currentLevel,
         void *plContext)
 {
@@ -130,7 +130,6 @@ pkix_Logger_Check(
         PKIX_PL_String *messageString = NULL;
         PKIX_PL_String *message2String = NULL;
         PKIX_PL_String *msgString = NULL;
-        PKIX_PL_String *logComponentString = NULL;
         PKIX_Error *error = NULL;
         PKIX_Boolean needLogging = PKIX_FALSE;
         PKIX_UInt32 i, length;
@@ -194,22 +193,6 @@ pkix_Logger_Check(
                     message2String);
         if (error) { goto cleanup; }
 
-        /*
-         * Convert component to String : see pkixt.h for reason that we have to
-         * use PKIX_NUMERRORS.
-         */
-        if (logComponent >= PKIX_NUMERRORS) {
-                goto cleanup;
-        }
-
-        error = PKIX_PL_String_Create
-                    (PKIX_ESCASCII,
-                    (void *)PKIX_ERRORNAMES[logComponent],
-                    0,
-                    &logComponentString,
-                    plContext);
-        if (error) { goto cleanup; }
-
         /* Go through the Logger list */
 
         error = PKIX_List_GetLength(pkixLoggersList, &length, plContext);
@@ -227,7 +210,7 @@ pkix_Logger_Check(
                 /* Intended logging level less or equal than the max */
                 needLogging = (currentLevel <= logger->maxLevel);
 
-                if (needLogging && logger->callback) {
+                if (needLogging && (logger->callback)) {
 
                     /*
                      * We separate Logger into two lists based on log level
@@ -238,17 +221,16 @@ pkix_Logger_Check(
                             needLogging = needLogging && 
                                 (currentLevel <= PKIX_LOGGER_LEVEL_WARNING);
                     } else if (pkixLoggersList == pkixLoggersDebugTrace) {
-                            needLogging = needLogging &&
+                            needLogging = needLogging && 
                                 (currentLevel > PKIX_LOGGER_LEVEL_WARNING);
                     }
                 
-                    if (needLogging && logger->logComponent) {
-                        error = PKIX_PL_Object_Equals(
-                            (PKIX_PL_Object *) logComponentString,
-                            (PKIX_PL_Object *) logger->logComponent,
-                            &needLogging,
-                            plContext);
-                        if (error) { goto cleanup; }
+                    if (needLogging) {
+                        if (logComponent == logger->logComponent) {
+                            needLogging = PKIX_TRUE;
+                        } else {
+                            needLogging = PKIX_FALSE;
+                        }
                     }
 
                     if (needLogging) {
@@ -256,11 +238,10 @@ pkix_Logger_Check(
                                 (logger,
                                 msgString,
                                 currentLevel,
-                                logComponentString,
+                                logComponent,
                                 plContext);
                         if (error) { goto cleanup; }
                     }
-
                 }
 
                 error = PKIX_PL_Object_DecRef
@@ -290,11 +271,6 @@ cleanup:
         if (msgString) {
                 error = PKIX_PL_Object_DecRef
                         ((PKIX_PL_Object *)msgString, plContext);
-        }
-
-        if (logComponentString) {
-                error = PKIX_PL_Object_DecRef
-                        ((PKIX_PL_Object *)logComponentString, plContext);
         }
 
         if (logger) {
@@ -341,7 +317,7 @@ pkix_Logger_Destroy(
 
         logger->callback = NULL;
         PKIX_DECREF(logger->context);
-        PKIX_DECREF(logger->logComponent);
+        logger->logComponent = (PKIX_ERRORNUM)NULL;
 
 cleanup:
 
@@ -362,6 +338,7 @@ pkix_Logger_ToString(
         char *asciiFormat = NULL;
         PKIX_PL_String *formatString = NULL;
         PKIX_PL_String *contextString = NULL;
+        PKIX_PL_String *componentString = NULL;
         PKIX_PL_String *loggerString = NULL;
 
         PKIX_ENTER(LOGGER, "pkix_Logger_ToString_Helper");
@@ -378,7 +355,7 @@ pkix_Logger_ToString(
                 "\tLogger: \n"
                 "\tContext:          %s\n"
                 "\tMaximum Level:    %d\n"
-                "\tComponment Name:  %s\n"
+                "\tComponent Name:   %s\n"
                 "]\n";
 
         PKIX_CHECK(PKIX_PL_String_Create
@@ -392,13 +369,21 @@ pkix_Logger_ToString(
         PKIX_TOSTRING(logger->context, &contextString, plContext,
                 "PKIX_PL_Object_ToString failed");
 
+        PKIX_CHECK(PKIX_PL_String_Create
+                (PKIX_ESCASCII,
+                (void *)PKIX_ERRORNAMES[logger->logComponent],
+                0,
+                &componentString,
+                plContext),
+                "PKIX_PL_String_Create failed");
+
         PKIX_CHECK(PKIX_PL_Sprintf
                 (&loggerString,
                 plContext,
                 formatString,
                 contextString,
                 logger->maxLevel,
-                logger->logComponent),
+                componentString),
                 "PKIX_PL_Sprintf failed");
 
         *pString = loggerString;
@@ -461,6 +446,10 @@ pkix_Logger_Equals(
                 goto cleanup;
         }
 
+        if (firstLogger->logComponent != secondLogger->logComponent) {
+                goto cleanup;
+        }
+
         PKIX_EQUALS  
                 (firstLogger->context,
                 secondLogger->context,
@@ -475,13 +464,6 @@ pkix_Logger_Equals(
         if (firstLogger->maxLevel != secondLogger->maxLevel) {
                 goto cleanup;
         }
-
-        PKIX_EQUALS
-                ((PKIX_PL_Object *)firstLogger->logComponent,
-                (PKIX_PL_Object *)secondLogger->logComponent,
-                &cmpResult,
-                plContext,
-                "PKIX_PL_Object_Equals failed");
 
         *pResult = cmpResult;
 
@@ -515,13 +497,8 @@ pkix_Logger_Hashcode(
         PKIX_HASHCODE(logger->context, &tempHash, plContext,
                 "PKIX_PL_Object_Hashcode failed");
 
-        hash = (PKIX_UInt32) logger->callback + tempHash << 7 +
-                logger->maxLevel;
-
-        PKIX_HASHCODE(logger->logComponent, &tempHash, plContext,
-                "PKIX_PL_Object_Hashcode failed");
-
-        hash = hash << 7 + tempHash;
+        hash = ((((PKIX_UInt32) logger->callback + tempHash) << 7) +
+                logger->maxLevel << 7) + (PKIX_UInt32)logger->logComponent;
 
         *pHashcode = hash;
 
@@ -569,11 +546,7 @@ pkix_Logger_Duplicate(
                     plContext,
                     "PKIX_PL_Object_Duplicate failed");
 
-        PKIX_DUPLICATE
-                    (logger->logComponent,
-                    &dupLogger->logComponent,
-                    plContext,
-                    "PKIX_PL_Object_Duplicate failed");
+        dupLogger->logComponent = logger->logComponent;
 
         *pNewObject = (PKIX_PL_Object *) dupLogger;
 
@@ -644,7 +617,7 @@ PKIX_Logger_Create(
 
         logger->callback = callback;
         logger->maxLevel = 0;
-        logger->logComponent = NULL;
+        logger->logComponent = (PKIX_ERRORNUM)NULL;
 
         PKIX_INCREF(loggerContext);
         logger->context = loggerContext;
@@ -737,13 +710,12 @@ cleanup:
 PKIX_Error *
 PKIX_Logger_GetLoggingComponent(
         PKIX_Logger *logger,
-        PKIX_PL_String **pComponent,
+        PKIX_ERRORNUM *pComponent,
         void *plContext)
 {
         PKIX_ENTER(LOGGER, "PKIX_Logger_GetLoggingComponent");
         PKIX_NULLCHECK_TWO(logger, pComponent);
 
-        PKIX_INCREF(logger->logComponent);
         *pComponent = logger->logComponent;
 
         PKIX_RETURN(LOGGER);
@@ -755,14 +727,12 @@ PKIX_Logger_GetLoggingComponent(
 PKIX_Error *
 PKIX_Logger_SetLoggingComponent(
         PKIX_Logger *logger,
-        PKIX_PL_String *component,
+        PKIX_ERRORNUM component,
         void *plContext)
 {
         PKIX_ENTER(LOGGER, "PKIX_Logger_SetLoggingComponent");
         PKIX_NULLCHECK_ONE(logger);
 
-        PKIX_DECREF(logger->logComponent);
-        PKIX_INCREF(component);
         logger->logComponent = component;
 
         PKIX_RETURN(LOGGER);
@@ -891,7 +861,7 @@ PKIX_SetLoggers(
                 "PKIX_PL_MonitorLock_Enter failed");
         locked = PKIX_TRUE;
 
-	/* Disable tracing, etc. to avoid recursion and deadlock */
+        /* Disable tracing, etc. to avoid recursion and deadlock */
         savedPkixLoggersDebugTrace = pkixLoggersDebugTrace;
         pkixLoggersDebugTrace = NULL;
         savedPkixLoggersErrors = pkixLoggersErrors;

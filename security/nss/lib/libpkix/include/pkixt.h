@@ -346,10 +346,10 @@ typedef int PKIX_Boolean;
 
 #define ERRMACRO(type) PKIX_ ## type ## _ERROR
 
-enum {
+typedef enum {
    PKIX_ERRORS,
    PKIX_NUMERRORS   /* This gets PKIX_NUMERRORS defined as the total number */
-};
+} PKIX_ERRORNUM;
 
 /* String Formats
  *

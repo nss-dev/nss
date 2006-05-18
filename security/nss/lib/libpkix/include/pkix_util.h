@@ -127,7 +127,8 @@ extern "C" {
  *      Integer value representing the log level for this entry. The higher the
  *      level, the more detail. Must be non-NULL.
  *  "logComponent"
- *      Address of String representing the log component for this entry.
+ *      PKIXERRORNUM value (defined in pkixt.h) designating the log component
+ *      for this entry.
  *  "plContext"
  *      Platform-specific context pointer.
  * THREAD SAFETY:
@@ -145,7 +146,7 @@ typedef PKIX_Error *
         PKIX_Logger *logger,
         PKIX_PL_String *message,
         PKIX_UInt32 logLevel,
-        PKIX_PL_String *logComponent,
+        PKIX_ERRORNUM logComponent,
         void *plContext);
 
 /*
@@ -310,7 +311,7 @@ PKIX_Logger_SetMaxLoggingLevel(
  *      Address of Logger whose logging component is to be stored.
  *      Must be non-NULL.
  *  "pComponent"
- *      Address where object pointer will be stored. Must be non-NULL.
+ *      Address where PKIXERRORNUM will be stored. Must be non-NULL.
  *  "plContext"
  *      Platform-specific context pointer.
  * THREAD SAFETY:
@@ -324,7 +325,7 @@ PKIX_Logger_SetMaxLoggingLevel(
 PKIX_Error *
 PKIX_Logger_GetLoggingComponent(
         PKIX_Logger *logger,
-        PKIX_PL_String **pComponent,
+        PKIX_ERRORNUM *pComponent,
         void *plContext);
 
 /*
@@ -332,16 +333,15 @@ PKIX_Logger_GetLoggingComponent(
  * DESCRIPTION:
  *
  *  Sets the logging component of the Logger pointed to by "logger" with the
- *  String pointed to by "component". A NULL component matches all components.
- *  To match a small set of components, create a Logger for each.
+ *  PKIXERRORNUM pointed to by "component". To match a small set of components,
+ *  create a Logger for each.
  *
  * PARAMETERS:
  *  "logger"
  *      Address of Logger whose logging component is to be set.
  *      Must be non-NULL.
  *  "component"
- *      Address of String representing logging component to be set.
- *      If NULL, applies to all components.
+ *      PKIXERRORNUM value representing logging component to be set.
  *  "plContext"
  *      Platform-specific context pointer.
  * THREAD SAFETY:
@@ -355,9 +355,8 @@ PKIX_Logger_GetLoggingComponent(
 PKIX_Error *
 PKIX_Logger_SetLoggingComponent(
         PKIX_Logger *logger,
-        PKIX_PL_String *component,
+        PKIX_ERRORNUM component,
         void *plContext);
-
 
 /*
  * FUNCTION: PKIX_GetLoggers

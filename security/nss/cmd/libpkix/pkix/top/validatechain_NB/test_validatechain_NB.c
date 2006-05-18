@@ -145,30 +145,30 @@ PKIX_Error *loggerCallback(
         PKIX_Logger *logger,
         PKIX_PL_String *message,
         PKIX_UInt32 logLevel,
-        PKIX_PL_String *logComponent,
+        PKIX_ERRORNUM logComponent,
         void *plContext)
 {
 #define resultSize 150
-        char *comp = NULL;
         char *msg = NULL;
         char result[resultSize];
 
         PKIX_TEST_STD_VARS();
 
         msg = PKIX_String2ASCII(message, plContext);
-        comp = PKIX_String2ASCII(logComponent, plContext);
         PR_snprintf(result, resultSize,
-            "Logging %s (%s): %s", levels[logLevel], comp, msg);
+            "Logging %s (%s): %s",
+	    levels[logLevel],
+	    PKIX_ERRORNAMES[logComponent],
+	    msg);
         subTest(result);
 
 cleanup:
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Free(msg, plContext));
-        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Free(comp, plContext));
         PKIX_TEST_RETURN();
 }
 
 void testLogErrors(
-	char *module,
+	PKIX_ERRORNUM module,
 	PKIX_UInt32 loggingLevel,
         PKIX_List *loggers,
 	void *plContext)
@@ -180,10 +180,8 @@ void testLogErrors(
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_Logger_Create
                 (loggerCallback, NULL, &logger, plContext));
-        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create
-                (PKIX_ESCASCII, module, 0, &component, plContext));
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_Logger_SetLoggingComponent
-                (logger, component, plContext));
+                (logger, module, plContext));
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_Logger_SetMaxLoggingLevel
                 (logger, loggingLevel, plContext));
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_AppendItem
@@ -322,10 +320,14 @@ int main(int argc, char *argv[]){
                 PKIX_TEST_EXPECT_NO_ERROR
                         (PKIX_List_Create(&loggers, plContext));
 
-		testLogErrors("VALIDATE", 2, loggers, plContext);
-		testLogErrors("CERTCHAINCHECKER", 2, loggers, plContext);
-		testLogErrors("LDAPDEFAULTCLIENT", 2, loggers, plContext);
-		testLogErrors("CERTSTORE", 2, loggers, plContext);
+		testLogErrors
+			(PKIX_VALIDATE_ERROR, 2, loggers, plContext);
+		testLogErrors
+			(PKIX_CERTCHAINCHECKER_ERROR, 2, loggers, plContext);
+		testLogErrors
+			(PKIX_LDAPDEFAULTCLIENT_ERROR, 2, loggers, plContext);
+		testLogErrors
+			(PKIX_CERTSTORE_ERROR, 2, loggers, plContext);
 
                 PKIX_TEST_EXPECT_NO_ERROR(PKIX_SetLoggers(loggers, plContext));
 

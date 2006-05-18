@@ -59,7 +59,7 @@ PKIX_Error *testLoggerCallback(
         PKIX_Logger *logger,
         PKIX_PL_String *message,
         PKIX_UInt32 logLevel,
-        PKIX_PL_String *logComponent,
+        PKIX_ERRORNUM logComponent,
         void *plContext)
 {
         char *comp = NULL;
@@ -70,9 +70,8 @@ PKIX_Error *testLoggerCallback(
         PKIX_TEST_STD_VARS();
 
         msg = PKIX_String2ASCII(message, plContext);
-        comp = PKIX_String2ASCII(logComponent, plContext);
         PR_snprintf(result, 100, "Logging %s (%s): %s",
-                levels[logLevel], comp, msg);
+                levels[logLevel], PKIX_ERRORNAMES[logComponent], msg);
         subTest(result);
 
         callCount++;
@@ -83,7 +82,6 @@ PKIX_Error *testLoggerCallback(
 cleanup:
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Free(msg, plContext));
-        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Free(comp, plContext));
         PKIX_TEST_RETURN();
 }
 
@@ -91,7 +89,7 @@ PKIX_Error *testLoggerCallback2(
         PKIX_Logger *logger,
         PKIX_PL_String *message,
         PKIX_UInt32 logLevel,
-        PKIX_PL_String *logComponent,
+        PKIX_ERRORNUM logComponent,
         void *plContext)
 {
         char *comp = NULL;
@@ -101,14 +99,12 @@ PKIX_Error *testLoggerCallback2(
         PKIX_TEST_STD_VARS();
 
         msg = PKIX_String2ASCII(message, plContext);
-        comp = PKIX_String2ASCII(logComponent, plContext);
         PR_snprintf(result, 100, "Logging %s (%s): %s",
-                levels[logLevel], comp, msg);
+                levels[logLevel], PKIX_ERRORNAMES[logComponent], msg);
         subTest(result);
 
 cleanup:
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Free(msg, plContext));
-        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Free(comp, plContext));
         PKIX_TEST_RETURN();
 }
 
@@ -161,8 +157,8 @@ cleanup:
 void
 testComponent(PKIX_Logger *logger)
 {
-        PKIX_PL_String *compName = NULL;
-        PKIX_PL_String *compNameReturn = NULL;
+        PKIX_ERRORNUM compName = (PKIX_ERRORNUM)NULL;
+        PKIX_ERRORNUM compNameReturn = (PKIX_ERRORNUM)NULL;
         PKIX_Boolean cmpResult = PKIX_FALSE;
         PKIX_TEST_STD_VARS();
 
@@ -170,32 +166,24 @@ testComponent(PKIX_Logger *logger)
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_Logger_GetLoggingComponent
                 (logger, &compName, plContext));
 
-        if (compName != NULL) {
+        if (compName != (PKIX_ERRORNUM)NULL) {
                 testError("Incorrect Logger Component returned. expect <NULL>");
         }
 
-        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create
-                (PKIX_ESCASCII, "LIST", 0, &compName, plContext));
-
-
         subTest("PKIX_Logger_SetLoggingComponent");
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_Logger_SetLoggingComponent
-                (logger, compName, plContext));
+                (logger, PKIX_LIST_ERROR, plContext));
 
         subTest("PKIX_Logger_GetLoggingComponent");
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_Logger_GetLoggingComponent
                 (logger, &compNameReturn, plContext));
 
-        testEqualsHelper
-                ((PKIX_PL_Object *) compName,
-                (PKIX_PL_Object *) compNameReturn,
-                PKIX_TRUE,
-                plContext);
+        if (compNameReturn != PKIX_LIST_ERROR) {
+                testError("Incorrect Logger Component returned.");
+        }
 
 cleanup:
 
-        PKIX_TEST_DECREF_AC(compName);
-        PKIX_TEST_DECREF_AC(compNameReturn);
         PKIX_TEST_RETURN();
 }
 
@@ -235,14 +223,13 @@ testLogger(PKIX_Logger *logger, PKIX_Logger *logger2)
 {
         PKIX_List *loggerList = NULL;
         PKIX_List *checkList = NULL;
-        PKIX_PL_String *compName = NULL;
         PKIX_UInt32 length;
         PKIX_Boolean cmpResult = PKIX_FALSE;
         char *expectedAscii = "[\n"
                 "\tLogger: \n"
                 "\tContext:          (null)\n"
                 "\tMaximum Level:    3\n"
-                "\tComponment Name:  List\n"
+                "\tComponent Name:   LIST\n"
                 "]\n";
 
 
@@ -264,12 +251,9 @@ testLogger(PKIX_Logger *logger, PKIX_Logger *logger2)
         subTest("PKIX_SetLoggers");
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_SetLoggers(loggerList, plContext));
 
-        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create
-                (PKIX_ESCASCII, "OBJECT", 0, &compName, plContext));
-
         subTest("PKIX_Logger_SetLoggingComponent");
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_Logger_SetLoggingComponent
-                (logger2, compName, plContext));
+                (logger2, PKIX_MUTEX_ERROR, plContext));
 
         subTest("PKIX_Logger_SetMaxLoggingLevel");
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_Logger_SetMaxLoggingLevel
@@ -319,7 +303,6 @@ cleanup:
 
         PKIX_TEST_DECREF_AC(loggerList);
         PKIX_TEST_DECREF_AC(checkList);
-        PKIX_TEST_DECREF_AC(compName);
         PKIX_TEST_RETURN();
 }
 void
