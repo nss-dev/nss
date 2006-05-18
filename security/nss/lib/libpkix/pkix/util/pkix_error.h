@@ -61,6 +61,10 @@ struct PKIX_ErrorStruct {
 
 PKIX_Error * pkix_Error_RegisterSelf(void *plContext);
 
+#if defined(_WIN32)
+const char *PKIX_Error_GetErrorString(PKIX_ERRORNUM error);
+#endif
+
 #ifdef __cplusplus
 }
 #endif
