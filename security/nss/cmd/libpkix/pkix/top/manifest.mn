@@ -41,6 +41,6 @@ PKIX_DEPTH      = ../..
 DIRS =  basicchecker bc_checker buildchain buildchain_uchecker \
 	buildchain_partialchain buildchain_resourcelimits customcrlchecker \
 	defaultcrlchecker2 ocspchecker policychecker subjaltnamechecker \
-	validatechain validatechain_bc validatechain_NB \	
+	validatechain validatechain_bc validatechain_NB \
 	$(NULL)
 
