@@ -930,7 +930,8 @@ nssSMIMEProfile_Create (
     }
     return rvProfile;
 loser:
-    nssPKIObject_Destroy(object);
+    if (object) nssPKIObject_Destroy(object);
+    else if (arena)  nssArena_Destroy(arena);
     return (nssSMIMEProfile *)NULL;
 }
 
