@@ -1256,6 +1256,12 @@ regular_string_type:
 	    struct subitem *subitem;
 	    int len;
 
+	    PORT_Assert (item);
+	    if (!item) {
+		PORT_SetError (SEC_ERROR_BAD_DER);
+		state->top->status = decodeError;
+		return;
+	    }
 	    PORT_Assert (item->len == 0 && item->data == NULL);
 	    /*
 	     * Check for and handle an ANY which has stashed aside the
