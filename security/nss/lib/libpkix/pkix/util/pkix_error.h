@@ -61,8 +61,6 @@ struct PKIX_ErrorStruct {
 
 PKIX_Error * pkix_Error_RegisterSelf(void *plContext);
 
-const char *PKIX_Error_GetErrorString(PKIX_ERRORNUM error);
-
 #ifdef __cplusplus
 }
 #endif

@@ -548,9 +548,3 @@ PKIX_Error_GetDescription(
 
         PKIX_RETURN(ERROR);
 }
-
-const char *
-PKIX_Error_GetErrorString(PKIX_ERRORNUM error)
-{
-        return PKIX_ERRORNAMES[error];
-}
