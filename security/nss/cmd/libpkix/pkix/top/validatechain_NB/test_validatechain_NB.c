@@ -44,6 +44,12 @@
 #include "testutil.h"
 #include "testutil_nss.h"
 
+#ifdef _WIN32
+extern __declspec(dllimport) const char *PKIX_ERRORNAMES[];
+#else
+extern const char *PKIX_ERRORNAMES[];
+#endif
+
 void *plContext = NULL;
 
 void printUsage(void){
@@ -158,7 +164,7 @@ PKIX_Error *loggerCallback(
         PR_snprintf(result, resultSize,
             "Logging %s (%s): %s",
 	    levels[logLevel],
-	    PKIX_Error_GetErrorString(logComponent),
+	    PKIX_ERRORNAMES[logComponent],
 	    msg);
         subTest(result);
 
