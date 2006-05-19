@@ -549,10 +549,8 @@ PKIX_Error_GetDescription(
         PKIX_RETURN(ERROR);
 }
 
-#if defined(_WIN32)
 const char *
 PKIX_Error_GetErrorString(PKIX_ERRORNUM error)
 {
         return PKIX_ERRORNAMES[error];
 }
-#endif

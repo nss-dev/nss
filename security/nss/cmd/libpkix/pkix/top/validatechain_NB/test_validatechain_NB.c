@@ -158,11 +158,7 @@ PKIX_Error *loggerCallback(
         PR_snprintf(result, resultSize,
             "Logging %s (%s): %s",
 	    levels[logLevel],
-#if defined(_WIN32)
 	    PKIX_Error_GetErrorString(logComponent),
-#else
-            PKIX_ERRORNAMES[logComponent],
-#endif
 	    msg);
         subTest(result);
 
