@@ -2309,6 +2309,7 @@ finish_rsa:
     }
 
     if (crv != CKR_OK) {
+	if (info) PORT_Free(info);
         PORT_Free(context);
 	sftk_FreeSession(session);
 	return crv;
@@ -5826,7 +5827,9 @@ CK_RV NSC_DigestKey(CK_SESSION_HANDLE hSession, CK_OBJECT_HANDLE hKey)
     /* get the key value */
     att = sftk_FindAttribute(key,CKA_VALUE);
     sftk_FreeObject(key);
-
+    if (!att) {
+        return CKR_KEY_HANDLE_INVALID;        
+    }
     crv = NSC_DigestUpdate(hSession,(CK_BYTE_PTR)att->attrib.pValue,
 			   att->attrib.ulValueLen);
     sftk_FreeAttribute(att);

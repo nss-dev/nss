@@ -301,14 +301,15 @@ static const char *dllname =
 /* Should we have platform ifdefs here??? */
 #define FILE_SEP '/'
 
-static void nss_FindExternalRootPaths(const char *dbpath, const char* secmodprefix,
+static void nss_FindExternalRootPaths(const char *dbpath, 
+                                      const char* secmodprefix,
                               char** retoldpath, char** retnewpath)
 {
     char *path, *oldpath = NULL, *lastsep;
     int len, path_len, secmod_len, dll_len;
 
     path_len = PORT_Strlen(dbpath);
-    secmod_len = PORT_Strlen(secmodprefix);
+    secmod_len = secmodprefix ? PORT_Strlen(secmodprefix) : 0;
     dll_len = PORT_Strlen(dllname);
     len = path_len + secmod_len + dll_len + 2; /* FILE_SEP + NULL */
 
@@ -321,7 +322,7 @@ static void nss_FindExternalRootPaths(const char *dbpath, const char* secmodpref
         path[path_len++] = FILE_SEP;
     }
     PORT_Strcpy(&path[path_len],dllname);
-    if (secmodprefix) {
+    if (secmod_len > 0) {
         lastsep = PORT_Strrchr(secmodprefix, FILE_SEP);
         if (lastsep) {
             int secmoddir_len = lastsep-secmodprefix+1; /* FILE_SEP */
@@ -775,6 +776,11 @@ NSS_Shutdown(void)
     SECStatus shutdownRV = SECSuccess;
     SECStatus rv;
     PRStatus status;
+
+    if (!nss_IsInitted) {
+	PORT_SetError(SEC_ERROR_NOT_INITIALIZED);
+	return SECFailure;
+    }
 
     rv = nss_ShutdownShutdownList();
     if (rv != SECSuccess) {
