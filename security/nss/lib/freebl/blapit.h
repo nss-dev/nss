@@ -110,12 +110,12 @@
 #define NSS_FREEBL_DEFAULT_CHUNKSIZE 2048
 
 /*
- * these values come from the intial key size limits from the PKCS #11
- * module. They may be aribitarily adjusted to any value freebl supports
- * RSA_MAX_MODULUS_BITS is not defined since there is only memory constraints
- * on the largest RSA Modulus that PKCS #11 or freebl may support.
+ * These values come from the initial key size limits from the PKCS #11
+ * module. They may be arbitrarily adjusted to any value freebl supports.
  */
 #define RSA_MIN_MODULUS_BITS   128
+#define RSA_MAX_MODULUS_BITS  8192
+#define RSA_MAX_EXPONENT_BITS   64
 #define DH_MIN_P_BITS	       128
 #define DH_MAX_P_BITS         2236
 
