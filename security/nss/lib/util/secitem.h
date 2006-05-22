@@ -52,9 +52,11 @@ SEC_BEGIN_PROTOS
 /*
 ** Allocate an item.  If "arena" is not NULL, then allocate from there,
 ** otherwise allocate from the heap.  If "item" is not NULL, allocate
-** only the data for the item, not the item itself.  The item structure
-** is allocated zero-filled; the data buffer is not zeroed.  The caller
-** is responsible for initializing the type field of the item.
+** only the data buffer for the item, not the item itself.  If "len" is
+** 0, do not allocate the data buffer for the item; simply set the data
+** field to NULL and the len field to 0.  The item structure is allocated
+** zero-filled; the data buffer is not zeroed.  The caller is responsible
+** for initializing the type field of the item.
 **
 ** The resulting item is returned; NULL if any error occurs.
 **
