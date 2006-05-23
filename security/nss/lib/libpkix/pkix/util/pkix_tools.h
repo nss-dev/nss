@@ -123,8 +123,7 @@ extern "C" {
         PKIX_Boolean objectIsLocked = PKIX_FALSE; \
         PKIX_PL_Object *lockedObject = NULL; \
         PKIX_Boolean mutexIsLocked = PKIX_FALSE; \
-        PKIX_PL_Mutex *lockedMutex = NULL; \
-        pkixTempErrorReceived = PKIX_FALSE; 
+        PKIX_PL_Mutex *lockedMutex = NULL;
 
 #define PKIX_DEBUG_ENTER(type) \
         PKIX_ ## type ## _DEBUG_ARG("( Entering %s).\n", myFuncName)
