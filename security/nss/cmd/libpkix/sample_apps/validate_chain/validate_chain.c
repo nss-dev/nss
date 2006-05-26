@@ -144,6 +144,8 @@ int main(int argc, char *argv[])
         PKIX_PL_X500Name *subject = NULL;
         PKIX_ComCertSelParams *certSelParams = NULL;
         PKIX_CertSelector *certSelector = NULL;
+	PKIX_VerifyNode *verifyTree = NULL;
+	PKIX_PL_String *verifyString = NULL;
 
         char *trustedCertFile = NULL;
         char *chainCertFile = NULL;
@@ -243,7 +245,7 @@ int main(int argc, char *argv[])
         /* validate cert chain using processing params and return valResult */
 
         PKIX_TEST_EXPECT_NO_ERROR
-                (PKIX_ValidateChain(valParams, &valResult, plContext));
+                (PKIX_ValidateChain(valParams, &valResult, &verifyTree, plContext));
 
         if (valResult != NULL){
                 (void) printf("SUCCESSFULLY VALIDATED\n");
@@ -253,8 +255,14 @@ cleanup:
 
         if (PKIX_TEST_ERROR_RECEIVED){
                 (void) printf("FAILED TO VALIDATE\n");
+	        (void) PKIX_PL_Object_ToString
+        	        ((PKIX_PL_Object*)verifyTree, &verifyString, plContext);
+	        (void) printf("verifyTree is\n%s\n", verifyString->escAsciiString);
+	        PKIX_TEST_DECREF_AC(verifyString);
+
         }
 
+        PKIX_TEST_DECREF_AC(verifyTree);
         PKIX_TEST_DECREF_AC(valResult);
         PKIX_TEST_DECREF_AC(valParams);
 
