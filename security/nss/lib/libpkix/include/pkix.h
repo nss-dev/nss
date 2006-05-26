@@ -209,11 +209,18 @@ PKIX_Initialize_SetConfigDir(
  *  the policy tree and the target's public key. If unsuccessful, an Error is
  *  returned. Note: This function does not currently support non-blocking I/O.
  *
+ *  If "pVerifyTree" is non-NULL, a chain of VerifyNodes is created which
+ *  tracks the results of the validation. That is, either each node in the
+ *  chain has a NULL Error component, or the last node contains an Error
+ *  which indicates why the validation failed.
+ *
  * PARAMETERS:
  *  "params"
  *      Address of ValidateParams used to validate CertChain. Must be non-NULL.
  *  "pResult"
  *      Address where object pointer will be stored. Must be non-NULL.
+ *  "pVerifyTree"
+ *      Address where a VerifyTree is stored, if non-NULL.
  *  "plContext"
  *      Platform-specific context pointer.
  * THREAD SAFETY:
@@ -227,11 +234,63 @@ PKIX_Error *
 PKIX_ValidateChain(
         PKIX_ValidateParams *params,
         PKIX_ValidateResult **pResult,
+	PKIX_VerifyNode **pVerifyTree,
         void *plContext);
 
-PKIX_Error *
+/*
+ * FUNCTION: PKIX_ValidateChain_NB
+ * DESCRIPTION:
+ *
+ *  This function is the equivalent of PKIX_ValidateChain, except that it
+ *  supports non-blocking I/O. When called with "pNBIOContext" pointing to NULL
+ *  it initiates a new chain validation as in PKIX_ValidateChain, ignoring the
+ *  value in all input variables except "params". If forced to suspend
+ *  processing by a WOULDBLOCK return from some operation, such as a CertStore
+ *  request, it stores the platform-dependent I/O context at "pNBIOContext" and
+ *  stores other intermediate variables at "pCertIndex", "pAnchorIndex", 
+ *  "pCheckerIndex", "pRevChecking", and "pCheckers".
+ *
+ *  When called subsequently with that non-NULL value at "pNBIOContext", it
+ *  relies on those intermediate values to be untouched, and it resumes chain
+ *  validation where it left off. Its behavior is undefined if any of the
+ *  intermediate values was not preserved.
+ *
+ * PARAMETERS:
+ *  "params"
+ *      Address of ValidateParams used to validate CertChain. Must be non-NULL.
+ *  "pCertIndex"
+ *      The UInt32 value of the index to the Cert chain, indicating which Cert
+ *      is currently being processed.
+ *  "pAnchorIndex"
+ *      The UInt32 value of the index to the Anchor chain, indicating which
+ *      Trust Anchor is currently being processed.
+ *  "pCheckerIndex"
+ *      The UInt32 value of the index to the List of CertChainCheckers,
+ *      indicating which Checker is currently processing.
+ *  "pRevChecking"
+ *      The Boolean flag indicating whether normal checking or revocation
+ *      checking is occurring for the Cert indicated by "pCertIndex".
+ *  "pCheckers"
+ *      The address of the List of CertChainCheckers. Must be non-NULL.
+ *  "pNBIOContext"
+ *      The address of the platform-dependend I/O context. Must be a non-NULL
+ *      pointer to a NULL value for the call to initiate chain validation.
+ *  "pResult"
+ *      Address where ValidateResult object pointer will be stored. Must be
+ *      non-NULL.
+ *  "pVerifyTree"
+ *      Address where a VerifyTree is stored, if non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a VALIDATE Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */PKIX_Error *
 PKIX_ValidateChain_NB(
-	PKIX_ValidateParams *valParams,
+	PKIX_ValidateParams *params,
 	PKIX_UInt32 *pCertIndex,
 	PKIX_UInt32 *pAnchorIndex,
 	PKIX_UInt32 *pCheckerIndex,
@@ -239,6 +298,7 @@ PKIX_ValidateChain_NB(
 	PKIX_List **pCheckers,
 	void **pNBIOContext,
 	PKIX_ValidateResult **pResult,
+	PKIX_VerifyNode **pVerifyTree,
 	void *plContext);
 
 /*

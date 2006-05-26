@@ -119,6 +119,7 @@ typedef struct PKIX_ForwardBuilderStateStruct PKIX_ForwardBuilderState;
 typedef struct PKIX_DefaultRevocationCheckerStruct
                         PKIX_DefaultRevocationChecker;
 typedef struct PKIX_OcspCheckerStruct PKIX_OcspChecker;
+typedef struct PKIX_VerifyNodeStruct PKIX_VerifyNode;
 
 /* Portability Layer (PL) data types
  *
@@ -250,7 +251,8 @@ typedef int PKIX_Boolean;
     TYPEMACRO(OCSPCHECKER), \
     TYPEMACRO(OCSPREQUEST), \
     TYPEMACRO(OCSPRESPONSE), \
-    TYPEMACRO(HTTPDEFAULTCLIENT)
+    TYPEMACRO(HTTPDEFAULTCLIENT), \
+    TYPEMACRO(VERIFYNODE)
 
 #define TYPEMACRO(type) PKIX_ ## type ## _TYPE
 
@@ -342,7 +344,8 @@ typedef enum {     /* Now invoke all those TYPEMACROs to assign the numbers */
    ERRMACRO(OCSPCHECKER), \
    ERRMACRO(OCSPREQUEST), \
    ERRMACRO(OCSPRESPONSE), \
-   ERRMACRO(HTTPDEFAULTCLIENT)
+   ERRMACRO(HTTPDEFAULTCLIENT), \
+   ERRMACRO(VERIFYNODE)
 
 #define ERRMACRO(type) PKIX_ ## type ## _ERROR
 

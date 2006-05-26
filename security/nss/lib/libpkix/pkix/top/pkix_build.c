@@ -1513,6 +1513,7 @@ pkix_Build_ValidateEntireChain(
                     &nbioContext,
                     &subjPubKey,
                     &policyTree,
+		    NULL,
                     plContext),
                     "pkix_CheckChain failed");
 

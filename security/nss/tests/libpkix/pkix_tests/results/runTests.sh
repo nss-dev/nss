@@ -60,6 +60,7 @@ RunTests <<EOF
 test_policynode ${NIST} NIST-Test-Files-Used
 test_valresult ../../certs
 test_buildresult ../../certs
+test_verifynode ${NIST} TrustAnchorRootCertificate.crt GoodCACert.crt ValidCertificatePathTest1EE.crt
 EOF
 
 totalErrors=$?

@@ -170,6 +170,8 @@ int main(int argc, char *argv[]){
         PKIX_Boolean useArenas = PKIX_FALSE;
         PKIX_List *chainCerts = NULL;
         PKIX_PL_Cert *dirCert = NULL;
+	PKIX_VerifyNode *verifyTree = NULL;
+	PKIX_PL_String *verifyString = NULL;
         char *dirCertName = NULL;
         char *anchorCertName = NULL;
         char *dirName = NULL;
@@ -240,14 +242,21 @@ int main(int argc, char *argv[]){
 
         if (testValid == PKIX_TRUE) {
                 PKIX_TEST_EXPECT_NO_ERROR(PKIX_ValidateChain
-                        (valParams, &valResult, plContext));
+                        (valParams, &valResult, &verifyTree, plContext));
         } else {
                 PKIX_TEST_EXPECT_ERROR(PKIX_ValidateChain
-                        (valParams, &valResult, plContext));
+                        (valParams, &valResult, &verifyTree, plContext));
         }
 
+        subTest("Displaying VerifyNode objects");
+
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Object_ToString
+                ((PKIX_PL_Object*)verifyTree, &verifyString, plContext));
+        (void) printf("verifyTree is\n%s\n", verifyString->escAsciiString);
 
 cleanup:
+        PKIX_TEST_DECREF_AC(verifyString);
+        PKIX_TEST_DECREF_AC(verifyTree);
 
         PKIX_TEST_DECREF_AC(chainCerts);
         PKIX_TEST_DECREF_AC(valParams);

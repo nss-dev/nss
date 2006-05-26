@@ -1165,6 +1165,8 @@ pkix_ValidateResult_Create;
 PKIX_ValidateResult_GetPolicyTree;
 PKIX_ValidateResult_GetPublicKey;
 PKIX_ValidateResult_GetTrustAnchor;
+pkix_VerifyNode_AddToChain;
+pkix_VerifyNode_Create;
 PKIX_ResourceLimits_Create;
 PKIX_ResourceLimits_GetMaxDepth;
 PKIX_ResourceLimits_GetMaxFanout;

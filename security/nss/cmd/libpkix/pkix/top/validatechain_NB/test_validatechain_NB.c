@@ -224,6 +224,8 @@ int main(int argc, char *argv[]){
         PRErrorCode errorCode = 0;
         PKIX_PL_Socket *socket = NULL;
         char *ldapName = NULL;
+	PKIX_VerifyNode *verifyTree = NULL;
+	PKIX_PL_String *verifyString = NULL;
 
         PKIX_List *loggers = NULL;
         PKIX_Logger *logger = NULL;
@@ -348,6 +350,7 @@ int main(int argc, char *argv[]){
                 &checkers,
                 (void **)&pollDesc,
                 &valResult,
+		&verifyTree,
                 plContext);
 
         while (pollDesc != NULL) {
@@ -365,6 +368,7 @@ int main(int argc, char *argv[]){
                         &checkers,
                         (void **)&pollDesc,
                         &valResult,
+			&verifyTree,
                         plContext);
         }
 
@@ -375,17 +379,26 @@ int main(int argc, char *argv[]){
                         testError("UNEXPECTED ERROR RECEIVED");
                 }
                 PKIX_TEST_DECREF_BC(pkixTestErrorResult);
-                goto cleanup;
-        }
+        } else {
 
-        if (testValid == PKIX_TRUE) { /* ENE */
-                (void) printf("EXPECTED NON-ERROR RECEIVED!\n");
-        } else { /* EE */
-                (void) printf("UNEXPECTED NON-ERROR RECEIVED!\n");
+	        if (testValid == PKIX_TRUE) { /* ENE */
+        	        (void) printf("EXPECTED NON-ERROR RECEIVED!\n");
+	        } else { /* EE */
+        	        (void) printf("UNEXPECTED NON-ERROR RECEIVED!\n");
+	        }
         }
 
 cleanup:
 
+	if (verifyTree) {
+	        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Object_ToString
+        	    ((PKIX_PL_Object*)verifyTree, &verifyString, plContext));
+	        (void) printf("verifyTree is\n%s\n",
+		    verifyString->escAsciiString);
+	}
+
+        PKIX_TEST_DECREF_AC(verifyString);
+        PKIX_TEST_DECREF_AC(verifyTree);
         PKIX_TEST_DECREF_AC(checkers);
         PKIX_TEST_DECREF_AC(chainCerts);
         PKIX_TEST_DECREF_AC(valParams);

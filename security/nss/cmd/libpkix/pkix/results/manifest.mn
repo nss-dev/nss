@@ -38,6 +38,6 @@
 PKIX_DEPTH      = ../..
 
 #
-DIRS =  buildresult  policynode  valresult \
+DIRS =  buildresult  policynode  verifynode valresult \
 	$(NULL)
 

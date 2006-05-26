@@ -151,6 +151,8 @@ int main(int argc, char *argv[])
         PKIX_UInt32 j = 0;
         PKIX_UInt32 actualMinorVersion;
         PKIX_Boolean useArenas = PKIX_FALSE;
+	PKIX_VerifyNode *verifyTree = NULL;
+	PKIX_PL_String *verifyString = NULL;
 
         PKIX_TEST_STD_VARS();
 
@@ -235,7 +237,7 @@ int main(int argc, char *argv[])
         /* validate cert chain using processing params and return valResult */
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_ValidateChain
-                                    (valParams, &valResult, plContext));
+                (valParams, &valResult, &verifyTree, plContext));
 
         if (valResult != NULL){
                 printf("SUCCESSFULLY VALIDATED with Basic Constraint ");
@@ -243,20 +245,24 @@ int main(int argc, char *argv[])
                 PKIX_TEST_DECREF_BC(valResult);
         }
 
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Object_ToString
+                ((PKIX_PL_Object*)verifyTree, &verifyString, plContext));
+        (void) printf("verifyTree is\n%s\n", verifyString->escAsciiString);
+        PKIX_TEST_DECREF_BC(verifyString);
+        PKIX_TEST_DECREF_BC(verifyTree);
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_ComCertSelParams_SetBasicConstraints
                     (certSelParams, 6, plContext));
 
         /* validate cert chain using processing params and return valResult */
 
-        PKIX_TEST_EXPECT_ERROR
-                (PKIX_ValidateChain(valParams, &valResult, plContext));
+        PKIX_TEST_EXPECT_ERROR(PKIX_ValidateChain
+                (valParams, &valResult, &verifyTree, plContext));
 
         if (valResult != NULL){
                 printf("SUCCESSFULLY VALIDATED with Basic Constraint ");
                 printf("Cert Selector minimum path length to be 6\n");
         }
-
 
         PKIX_TEST_DECREF_BC(trustedCert);
         PKIX_TEST_DECREF_BC(anchor);
@@ -269,6 +275,12 @@ cleanup:
         if (PKIX_TEST_ERROR_RECEIVED){
                 printf("FAILED TO VALIDATE\n");
         }
+
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Object_ToString
+                ((PKIX_PL_Object*)verifyTree, &verifyString, plContext));
+        (void) printf("verifyTree is\n%s\n", verifyString->escAsciiString);
+        PKIX_TEST_DECREF_AC(verifyString);
+        PKIX_TEST_DECREF_AC(verifyTree);
 
         PKIX_TEST_DECREF_AC(certSelParams);
         PKIX_TEST_DECREF_AC(valResult);

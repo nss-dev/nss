@@ -46,6 +46,76 @@
 /* --Private-Functions-------------------------------------------- */
 
 /*
+ * FUNCTION: pkix_AddToVerifyLog
+ * DESCRIPTION:
+ *
+ *  This function returns immediately if the address for the VerifyNode tree
+ *  pointed to by "pVerifyTree" is NULL. Otherwise it creates a new VerifyNode
+ *  from the Cert pointed to by "cert" and the Error pointed to by "error",
+ *  and inserts it at the depth in the VerifyNode tree determined by "depth". A
+ *  depth of zero means that this function creates the root node of a new tree.
+ *
+ *  Note: this function does not include the means of choosing among branches
+ *  of a tree. It is intended for non-branching trees, that is, where each
+ *  parent node has only a single child node.
+ *
+ * PARAMETERS:
+ *  "cert"
+ *      The address of the Cert to be included in the new VerifyNode. Must be
+ *      non-NULL.
+ *  "depth"
+ *      The UInt32 value of the depth.
+ *  "error"
+ *      The address of the Error to be included in the new VerifyNode.
+ *  "pVerifyTree"
+ *      The address of the VerifyNode tree into which the created VerifyNode
+ *      is to be inserted. The node is not created if VerifyTree is NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Validate Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+static PKIX_Error *
+pkix_AddToVerifyLog(
+        PKIX_PL_Cert *cert,
+        PKIX_UInt32 depth,
+	PKIX_Error *error,
+	PKIX_VerifyNode **pVerifyTree,
+        void *plContext)
+{
+
+	PKIX_VerifyNode *verifyNode = NULL;
+
+        PKIX_ENTER(VALIDATE, "pkix_AddToVerifyLog");
+        PKIX_NULLCHECK_ONE(cert);
+
+	if (pVerifyTree) { /* nothing to do if no address given for log */
+
+		PKIX_CHECK(pkix_VerifyNode_Create
+			(cert, depth, error, &verifyNode, plContext),
+			"pkix_VerifyNode_Create failed");
+
+		if (depth == 0) {
+			/* We just created the root node */
+			*pVerifyTree = verifyNode;
+		} else {
+			PKIX_CHECK(pkix_VerifyNode_AddToChain
+				(*pVerifyTree, verifyNode, plContext),
+				"pkix_VerifyNode_AddToChain failed");
+		}
+        }
+
+cleanup:
+
+        PKIX_RETURN(VALIDATE);
+
+}
+
+/*
  * FUNCTION: pkix_CheckCert
  * DESCRIPTION:
  *
@@ -142,17 +212,7 @@ pkix_CheckCert(
                         plContext);
 
 		if (checkerError) {
-			PKIX_PL_String *errorDesc = NULL;
-			void *enc = NULL;
-			PKIX_UInt32 len = 0;
-			(void)PKIX_Error_GetDescription
-			    (checkerError, &errorDesc, plContext);
-			(void)PKIX_PL_String_GetEncoded
-			    (errorDesc, PKIX_ESCASCII, &enc, &len, plContext);
-			PKIX_ERROR(enc);
-			/* PKIX_FREE(enc); */
-			PKIX_DECREF(errorDesc);
-			PKIX_CHECK(checkerError, "checkerCheck failed");
+			goto cleanup;
 		}
 
                 if (nbioContext != NULL) {
@@ -210,6 +270,19 @@ cleanup:
 
         PKIX_DECREF(checker);
         PKIX_DECREF(unresCritExtOIDs);
+
+	if (checkerError) {
+		PKIX_PL_String *errorDesc = NULL;
+		void *enc = NULL;
+		PKIX_UInt32 len = 0;
+		(void)PKIX_Error_GetDescription
+		    (checkerError, &errorDesc, plContext);
+		(void)PKIX_PL_String_GetEncoded
+		    (errorDesc, PKIX_ESCASCII, &enc, &len, plContext);
+		PKIX_LOG_ERROR(enc);
+		PKIX_DECREF(errorDesc);
+		return (checkerError);
+	}
 
         PKIX_RETURN(VALIDATE);
 
@@ -745,6 +818,11 @@ cleanup:
  *  validPolicyTree, which could be NULL, is stored at pPolicyTree. If the List
  *  of Certs fails to validate, an Error pointer is returned.
  *
+ *  If "pVerifyTree" is non-NULL, a chain of VerifyNodes is created which
+ *  tracks the results of the validation. That is, either each node in the
+ *  chain has a NULL Error component, or the last node contains an Error
+ *  which indicates why the validation failed.
+ *
  *  The number of Certs in the List, represented by "numCerts", is used to
  *  determine which Cert is the final Cert.
  *
@@ -784,6 +862,8 @@ cleanup:
  *      Address where the final public key will be stored. Must be non-NULL.
  *  "pPolicyTree"
  *      Address where the final validPolicyTree is stored. Must be non-NULL.
+ *  "pVerifyTree"
+ *      Address where a VerifyTree is stored, if non-NULL.
  *  "plContext"
  *      Platform-specific context pointer.
  * THREAD SAFETY:
@@ -807,11 +887,13 @@ pkix_CheckChain(
         void **pNBIOContext,
         PKIX_PL_PublicKey **pFinalSubjPubKey,
         PKIX_PolicyNode **pPolicyTree,
+	PKIX_VerifyNode **pVerifyTree,
         void *plContext)
 {
         PKIX_UInt32 j = 0;
         PKIX_UInt32 reasonCode = 0;
         PKIX_Boolean revChecking = PKIX_FALSE;
+	PKIX_Error *checkCertError = NULL;
         void *nbioContext = NULL;
         PKIX_PL_Cert *cert = NULL;
 
@@ -824,7 +906,7 @@ pkix_CheckChain(
         *pNBIOContext = NULL;
         revChecking = *pRevChecking;
 
-        for (j = *pCertCheckedIndex; j < numCerts; j++){
+        for (j = *pCertCheckedIndex; j < numCerts; j++) {
                 PKIX_CHECK(PKIX_List_GetItem
                         (certs, j, (PKIX_PL_Object **)&cert, plContext),
                         "PKIX_List_GetItem failed");
@@ -884,6 +966,8 @@ pkix_CheckChain(
                         *pCheckerIndex = 0;
                 }
 
+		PKIX_CHECK(pkix_AddToVerifyLog(cert, j, NULL, pVerifyTree, plContext),
+			"pkix_AddToVerifyLog failed");
                 PKIX_DECREF(cert);
         }
 
@@ -895,6 +979,17 @@ pkix_CheckChain(
         *pNBIOContext = NULL;
 
 cleanup:
+
+	if (PKIX_ERROR_RECEIVED) {
+		PKIX_INCREF(pkixErrorResult);
+		checkCertError = pkixErrorResult;
+	}
+
+	if (checkCertError) {
+		pkixTempResult = pkix_AddToVerifyLog
+			(cert, j, checkCertError, pVerifyTree, plContext);
+		pkixErrorResult = checkCertError;
+	}
 
         PKIX_DECREF(cert);
 
@@ -985,6 +1080,7 @@ PKIX_Error *
 PKIX_ValidateChain(
         PKIX_ValidateParams *valParams,
         PKIX_ValidateResult **pResult,
+	PKIX_VerifyNode **pVerifyTree,
         void *plContext)
 {
         PKIX_Error *chainFailed = NULL;
@@ -1122,6 +1218,7 @@ PKIX_ValidateChain(
                         &nbioContext,
                         &finalPubKey,
                         &validPolicyTree,
+			pVerifyTree,
                         plContext);
 
                 if (chainFailed || (reasonCode != 0)) {
@@ -1173,7 +1270,31 @@ cleanup:
         PKIX_RETURN(VALIDATE);
 }
 
-PKIX_Error *
+/*
+ * FUNCTION: pkix_Validate_BuildUserOIDs
+ * DESCRIPTION:
+ *
+ *  This function creates a List of the OIDs that are processed by the user
+ *  checkers in the List pointed to by "userCheckers", storing the resulting
+ *  List at "pUserCritOIDs". If the List of userCheckers is NULL, the output
+ *  List will be NULL. Otherwise the output List will be non-NULL, but may be
+ *  empty.
+ *
+ * PARAMETERS:
+ *  "userCheckers"
+ *      The address of the List of userCheckers.
+ *  "pUserCritOIDs"
+ *      The address at which the List is stored. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a VALIDATE Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+static PKIX_Error *
 pkix_Validate_BuildUserOIDs(
         PKIX_List *userCheckers,
         PKIX_List **pUserCritOIDs,
@@ -1241,6 +1362,9 @@ cleanup:
         PKIX_RETURN(VALIDATE);
 }
 
+/*
+ * FUNCTION: PKIX_ValidateChain_nb (see comments in pkix.h)
+ */
 PKIX_Error *
 PKIX_ValidateChain_NB(
         PKIX_ValidateParams *valParams,
@@ -1251,6 +1375,7 @@ PKIX_ValidateChain_NB(
         PKIX_List **pCheckers,
         void **pNBIOContext,
         PKIX_ValidateResult **pResult,
+	PKIX_VerifyNode **pVerifyTree,
         void *plContext)
 {
         PKIX_UInt32 numCerts = 0;
@@ -1359,6 +1484,7 @@ PKIX_ValidateChain_NB(
                         &nbioContext,
                         &finalPubKey,
                         &validPolicyTree,
+			pVerifyTree,
                         plContext);
 
                 if (nbioContext != NULL) {

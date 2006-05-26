@@ -217,7 +217,7 @@ void testPass(char *dirName, char *goodInput, char *diffInput, char *dateAscii){
                 plContext);
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_ValidateChain
-                                    (valParams, &valResult, plContext));
+                                    (valParams, &valResult, NULL, plContext));
 
 cleanup:
 
@@ -286,7 +286,7 @@ void testNistTest1(char *dirName)
 
         subTest("testNistTest1: Validating the chain");
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_ValidateChain
-                (valParams, &valResult, plContext));
+                (valParams, &valResult, NULL, plContext));
 
 
 cleanup:
@@ -360,7 +360,7 @@ void testNistTest2(char *dirName)
 
         subTest("testNistTest2: Validating the chain");
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_ValidateChain
-                (valParams, &valResult, plContext));
+                (valParams, &valResult, NULL, plContext));
 
 
 cleanup:
@@ -428,6 +428,8 @@ int main(int argc, char *argv[])
         PKIX_PL_Cert *certs[PKIX_TEST_MAX_CERTS];
         PKIX_List *chain = NULL;
         PKIX_Error *validationError = NULL;
+	PKIX_VerifyNode *verifyTree = NULL;
+	PKIX_PL_String *verifyString = NULL;
         char *dirName = NULL;
         char *dataCentralDir = NULL;
         char *anchorName = NULL;
@@ -555,14 +557,14 @@ int main(int argc, char *argv[])
                 subTest("   (expecting successful validation)");
 
                 PKIX_TEST_EXPECT_NO_ERROR(PKIX_ValidateChain
-                        (valParams, &valResult, plContext));
+                        (valParams, &valResult, &verifyTree, plContext));
 
                 printValidPolicyTree(valResult);
 
         } else {
                 subTest("   (expecting validation to fail)");
                 validationError = PKIX_ValidateChain
-                        (valParams, &valResult, plContext);
+                        (valParams, &valResult, &verifyTree, plContext);
                 if (!validationError) {
                         printValidPolicyTree(valResult);
                         pkixTestErrorMsg = "Should have thrown an error here.";
@@ -570,10 +572,16 @@ int main(int argc, char *argv[])
                 PKIX_TEST_DECREF_BC(validationError);
         }
 
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Object_ToString
+                ((PKIX_PL_Object*)verifyTree, &verifyString, plContext));
+        (void) printf("verifyTree is\n%s\n", verifyString->escAsciiString);
+
 cleanup:
 
         PKIX_PL_Free(anchorName, plContext);
 
+        PKIX_TEST_DECREF_AC(verifyString);
+        PKIX_TEST_DECREF_AC(verifyTree);
         PKIX_TEST_DECREF_AC(userInitialPolicySet);
         PKIX_TEST_DECREF_AC(chain);
         PKIX_TEST_DECREF_AC(valParams);

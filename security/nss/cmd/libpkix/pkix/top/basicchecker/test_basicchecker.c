@@ -51,6 +51,8 @@ void testPass(char *dirName, char *goodInput, char *diffInput, char *dateAscii){
         PKIX_List *chain = NULL;
         PKIX_ValidateParams *valParams = NULL;
         PKIX_ValidateResult *valResult = NULL;
+	PKIX_VerifyNode *verifyTree = NULL;
+	PKIX_PL_String *verifyString = NULL;
 
         PKIX_TEST_STD_VARS();
 
@@ -75,10 +77,16 @@ void testPass(char *dirName, char *goodInput, char *diffInput, char *dateAscii){
                 plContext);
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_ValidateChain
-                                    (valParams, &valResult, plContext));
+                (valParams, &valResult, &verifyTree, plContext));
+
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Object_ToString
+                ((PKIX_PL_Object*)verifyTree, &verifyString, plContext));
+        (void) printf("verifyTree is\n%s\n", verifyString->escAsciiString);
 
 cleanup:
 
+        PKIX_TEST_DECREF_AC(verifyString);
+        PKIX_TEST_DECREF_AC(verifyTree);
         PKIX_TEST_DECREF_AC(chain);
         PKIX_TEST_DECREF_AC(valParams);
         PKIX_TEST_DECREF_AC(valResult);
@@ -95,6 +103,8 @@ void testNameChainingFail(
         PKIX_List *chain = NULL;
         PKIX_ValidateParams *valParams = NULL;
         PKIX_ValidateResult *valResult = NULL;
+	PKIX_VerifyNode *verifyTree = NULL;
+	PKIX_PL_String *verifyString = NULL;
 
         PKIX_TEST_STD_VARS();
 
@@ -116,10 +126,12 @@ void testNameChainingFail(
                 plContext);
 
         PKIX_TEST_EXPECT_ERROR(PKIX_ValidateChain
-                                (valParams, &valResult, plContext));
+                (valParams, &valResult, &verifyTree, plContext));
 
 cleanup:
 
+        PKIX_TEST_DECREF_AC(verifyString);
+        PKIX_TEST_DECREF_AC(verifyTree);
         PKIX_TEST_DECREF_AC(chain);
         PKIX_TEST_DECREF_AC(valParams);
         PKIX_TEST_DECREF_AC(valResult);
@@ -152,7 +164,7 @@ void testDateFail(char *dirName, char *goodInput, char *diffInput){
                 plContext);
 
         PKIX_TEST_EXPECT_ERROR(PKIX_ValidateChain
-                                (valParams, &valResult, plContext));
+                                (valParams, &valResult, NULL, plContext));
 
 cleanup:
 
@@ -193,7 +205,7 @@ void testSignatureFail(
                 plContext);
 
         PKIX_TEST_EXPECT_ERROR(PKIX_ValidateChain
-                                (valParams, &valResult, plContext));
+                                (valParams, &valResult, NULL, plContext));
 
 cleanup:
 

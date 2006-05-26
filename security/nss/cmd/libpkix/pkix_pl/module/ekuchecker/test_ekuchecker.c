@@ -306,10 +306,10 @@ int main(int argc, char *argv[]){
 
         if (testValid == PKIX_TRUE) {
                 PKIX_TEST_EXPECT_NO_ERROR(PKIX_ValidateChain
-                                    (valParams, &valResult, plContext));
+                                    (valParams, &valResult, NULL, plContext));
         } else {
                 PKIX_TEST_EXPECT_ERROR(PKIX_ValidateChain
-                                    (valParams, &valResult, plContext));
+                                    (valParams, &valResult, NULL, plContext));
         }
 
 

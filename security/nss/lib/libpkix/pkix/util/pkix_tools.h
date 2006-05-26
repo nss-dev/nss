@@ -75,6 +75,7 @@
 #include "pkix_targetcertchecker.h"
 #include "pkix_validate.h"
 #include "pkix_valresult.h"
+#include "pkix_verifynode.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -199,13 +200,18 @@ extern "C" {
                 } \
         } while (0)
 
-#define PKIX_ERROR(desc) \
+#define PKIX_LOG_ERROR(desc) \
         { \
                 if (pkixLoggersErrors) { \
                     (pkix_Logger_Check(pkixLoggersErrors, \
                         desc, NULL, pkixType, \
                         PKIX_LOGGER_LEVEL_ERROR, plContext)); \
                 } \
+        }
+
+#define PKIX_ERROR(desc) \
+        { \
+                PKIX_LOG_ERROR(desc) \
                 pkixErrorReceived = PKIX_TRUE; \
                 pkixErrorMsg = (desc); \
                 goto cleanup; \
@@ -504,6 +510,7 @@ extern "C" {
 #define PKIX_OCSPRESPONSEDEBUG                    1
 #define PKIX_HTTPDEFAULTCLIENTDEBUG               1
 #define PKIX_HTTPCERTSTORECONTEXTDEBUG            1
+#define PKIX_VERIFYNODEDEBUG                      1
 #endif
 
 /*
@@ -1237,6 +1244,16 @@ extern "C" {
 #else
 #define PKIX_HTTPCERTSTORECONTEXT_DEBUG(expr)
 #define PKIX_HTTPCERTSTORECONTEXT_DEBUG_ARG(expr, arg)
+#endif
+
+#if PKIX_VERIFYNODEDEBUG
+#define PKIX_VERIFYNODE_DEBUG(expr) \
+        PKIX_DEBUG(expr)
+#define PKIX_VERIFYNODE_DEBUG_ARG(expr, arg) \
+        PKIX_DEBUG_ARG(expr, arg)
+#else
+#define PKIX_VERIFYNODE_DEBUG(expr)
+#define PKIX_VERIFYNODE_DEBUG_ARG(expr, arg)
 #endif
 
 /*

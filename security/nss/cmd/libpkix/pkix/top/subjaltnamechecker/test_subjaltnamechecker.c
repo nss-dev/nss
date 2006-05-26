@@ -136,6 +136,8 @@ int main(int argc, char *argv[]){
         PKIX_Boolean useArenas = PKIX_FALSE;
         char *dirName = NULL;
         char *anchorName = NULL;
+	PKIX_VerifyNode *verifyTree = NULL;
+	PKIX_PL_String *verifyString = NULL;
 
         PKIX_TEST_STD_VARS();
 
@@ -234,7 +236,7 @@ int main(int argc, char *argv[]){
                 name = createGeneralName(nameType, nameStr, plContext);
 
                 PKIX_TEST_EXPECT_NO_ERROR(PKIX_ComCertSelParams_AddSubjAltName
-                                (selParams, name, plContext));
+                        (selParams, name, plContext));
                 PKIX_TEST_DECREF_BC(name);
         }
 
@@ -272,16 +274,18 @@ int main(int argc, char *argv[]){
 
         if (testValid == PKIX_TRUE) {
                 PKIX_TEST_EXPECT_NO_ERROR(PKIX_ValidateChain
-                                    (valParams, &valResult, plContext));
+                        (valParams, &valResult, &verifyTree, plContext));
         } else {
                 PKIX_TEST_EXPECT_ERROR(PKIX_ValidateChain
-                                    (valParams, &valResult, plContext));
+                        (valParams, &valResult, &verifyTree, plContext));
         }
 
 cleanup:
 
         PKIX_PL_Free(anchorName, plContext);
 
+        PKIX_TEST_DECREF_AC(verifyString);
+        PKIX_TEST_DECREF_AC(verifyTree);
         PKIX_TEST_DECREF_AC(chain);
         PKIX_TEST_DECREF_AC(valParams);
         PKIX_TEST_DECREF_AC(valResult);

@@ -66,6 +66,8 @@ int main(int argc, char *argv[]){
         PKIX_UInt32 actualMinorVersion;
         char *certNames[PKIX_TEST_MAX_CERTS];
         PKIX_PL_Cert *certs[PKIX_TEST_MAX_CERTS];
+	PKIX_VerifyNode *verifyTree = NULL;
+	PKIX_PL_String *verifyString = NULL;
         PKIX_UInt32 chainLength = 0;
         PKIX_UInt32 i = 0;
         PKIX_UInt32 j = 0;
@@ -158,14 +160,16 @@ int main(int argc, char *argv[]){
 
         if (testValid == PKIX_TRUE) {
                 PKIX_TEST_EXPECT_NO_ERROR(PKIX_ValidateChain
-                                    (valParams, &valResult, plContext));
+                        (valParams, &valResult, &verifyTree, plContext));
         } else {
                 PKIX_TEST_EXPECT_ERROR(PKIX_ValidateChain
-                                    (valParams, &valResult, plContext));
+                        (valParams, &valResult, &verifyTree, plContext));
         }
 
 cleanup:
 
+        PKIX_TEST_DECREF_AC(verifyString);
+        PKIX_TEST_DECREF_AC(verifyTree);
         PKIX_TEST_DECREF_AC(chain);
         PKIX_TEST_DECREF_AC(valParams);
         PKIX_TEST_DECREF_AC(valResult);

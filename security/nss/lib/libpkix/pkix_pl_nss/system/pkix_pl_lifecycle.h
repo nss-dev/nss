@@ -80,6 +80,7 @@
 #include "pkix_procparams.h"
 #include "pkix_valparams.h"
 #include "pkix_valresult.h"
+#include "pkix_verifynode.h"
 #include "pkix_resourcelimits.h"
 #include "pkix_certchainchecker.h"
 #include "pkix_revocationchecker.h"
