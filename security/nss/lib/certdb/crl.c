@@ -2127,7 +2127,6 @@ static SECStatus DPCache_Create(CRLDPCache** returned, CERTCertificate* issuer,
     }
     *returned = NULL;
     cache = PORT_ZAlloc(sizeof(CRLDPCache));
-    PORT_Assert(cache);
     if (!cache)
     {
         return SECFailure;
@@ -2139,6 +2138,7 @@ static SECStatus DPCache_Create(CRLDPCache** returned, CERTCertificate* issuer,
 #endif
     if (!cache->lock)
     {
+	PORT_Free(cache);
         return SECFailure;
     }
     if (issuer)
@@ -2784,6 +2784,8 @@ SECStatus CERT_UncacheCRL(CERTCertDBHandle* dbhandle, SECItem* olddercrl)
             }
             
             DPCache_UnlockWrite();
+
+            rv = CachedCrl_Destroy(returned);
         }
 
         ReleaseDPCache(cache, writeLocked);

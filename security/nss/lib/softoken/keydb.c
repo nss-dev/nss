@@ -52,12 +52,8 @@
 #include "nsslocks.h"
 
 #include "keydbi.h"
+#include "softoken.h"
 
-#ifdef NSS_ENABLE_ECC
-extern SECStatus EC_FillParams(PRArenaPool *arena, 
-			       const SECItem *encodedParams, 
-			       ECParams *params);
-#endif
 
 /*
  * Record keys for keydb
@@ -717,7 +713,6 @@ nsslowkey_UpdateKeyDBPass1(NSSLOWKEYDBHandle *handle)
     DBT key;
     DBT data;
     unsigned char version;
-    SECItem *rc4key = NULL;
     NSSLOWKEYDBKey *dbkey = NULL;
     NSSLOWKEYDBHandle *update = NULL;
     SECItem *oldSalt = NULL;
@@ -886,10 +881,6 @@ done:
 
     nsslowkey_CloseKeyDB(update);
     
-    if ( rc4key ) {
-	SECITEM_FreeItem(rc4key, PR_TRUE);
-    }
-    
     if ( oldSalt ) {
 	SECITEM_FreeItem(oldSalt, PR_TRUE);
     }
@@ -942,7 +933,7 @@ openNewDB(const char *appName, const char *prefix, const char *dbname,
      * local database we can update from.
      */
     if (appName) {
-        NSSLOWKEYDBHandle *updateHandle = nsslowkey_NewHandle(updatedb);
+        NSSLOWKEYDBHandle *updateHandle;
 	updatedb = dbopen( dbname, NO_RDONLY, 0600, DB_HASH, 0 );
 	if (!updatedb) {
 	    goto noupdate;
@@ -2045,6 +2036,9 @@ seckey_decrypt_private_key(NSSLOWKEYEncryptedPrivateKeyInfo *epki,
 		/* Fill out the rest of EC params */
 		rv = EC_FillParams(permarena, &pk->u.ec.ecParams.DEREncoding,
 				   &pk->u.ec.ecParams);
+
+		if (rv != SECSuccess)
+		    goto loser;
 
 		/* 
 		 * NOTE: Encoding of the publicValue is optional

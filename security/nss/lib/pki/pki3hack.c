@@ -149,6 +149,12 @@ STAN_LoadDefaultNSS3TrustDomain (
     SECMOD_GetReadLock(moduleLock);
     NSSRWLock_LockWrite(td->tokensLock);
     td->tokenList = nssList_Create(td->arena, PR_TRUE);
+    if (!td->tokenList) {
+	NSSRWLock_UnlockWrite(td->tokensLock);
+	SECMOD_ReleaseReadLock(moduleLock);
+	NSSTrustDomain_Destroy(td);
+	return PR_FAILURE;
+    }
     for (mlp = SECMOD_GetDefaultModuleList(); mlp != NULL; mlp=mlp->next) {
 	for (i=0; i < mlp->module->slotCount; i++) {
 	    STAN_InitTokenForSlotInfo(td, mlp->module->slots[i]);

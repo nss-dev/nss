@@ -874,6 +874,9 @@ SECMOD_OpenUserDB;
 ;+};
 ;+NSS_3.11.1 {
 ;+    global:
+NSS_RegisterShutdown;
+NSS_UnregisterShutdown;
+SEC_ASN1EncodeUnsignedInteger;
 SEC_RegisterDefaultHttpClient;
 ;+    local:
 ;+       *;
