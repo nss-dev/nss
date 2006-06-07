@@ -143,17 +143,6 @@ sslMutex_Init(sslMutex *pMutex, int shared)
     if (err) {
 	return err;
     }
-    /* close-on-exec is false by default */
-    if (!shared) {
-	err = fcntl(pMutex->u.pipeStr.mPipes[0], F_SETFD, FD_CLOEXEC);
-	if (err) 
-	    goto loser;
-
-	err = fcntl(pMutex->u.pipeStr.mPipes[1], F_SETFD, FD_CLOEXEC);
-	if (err) 
-	    goto loser;
-    }
-
 #if NONBLOCKING_POSTS
     err = setNonBlocking(pMutex->u.pipeStr.mPipes[1], 1);
     if (err)
