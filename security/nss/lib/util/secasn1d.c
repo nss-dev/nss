@@ -1670,6 +1670,8 @@ sec_asn1d_add_to_subitems (sec_asn1d_state *state,
 	copy = sec_asn1d_alloc (state->top->our_pool, len);
 	if (copy == NULL) {
 	    state->top->status = decodeError;
+	    if (!state->top->our_pool)
+	    	PORT_Free(thing);
 	    return NULL;
 	}
 	PORT_Memcpy (copy, data, len);
