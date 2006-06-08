@@ -896,7 +896,7 @@ ssl3_VerifySignedHashes(SSL3Hashes *hash, CERTCertificate *cert,
 	 * using ASN (unlike DSA where ASN encoding is used
 	 * with TLS but not with SSL3)
 	 */
-	len = SECKEY_PublicKeyStrength(key) * 2;
+	len = SECKEY_SignatureLen(key);
 	if (len == 0) {
 	    SECKEY_DestroyPublicKey(key);
 	    PORT_SetError(SEC_ERROR_UNSUPPORTED_ELLIPTIC_CURVE);

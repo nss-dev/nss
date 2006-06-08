@@ -1293,7 +1293,8 @@ SECKEY_ECParamsToKeySize(const SECItem *encodedParams)
 	return 571;
 
     default:
-	    return 0;
+	PORT_SetError(SEC_ERROR_UNSUPPORTED_ELLIPTIC_CURVE);
+	return 0;
     }
 }
 
@@ -1439,7 +1440,8 @@ SECKEY_ECParamsToBasePointOrderLen(const SECItem *encodedParams)
 	return 570;
 
     default:
-	    return 0;
+	PORT_SetError(SEC_ERROR_UNSUPPORTED_ELLIPTIC_CURVE);
+	return 0;
     }
 }
 
@@ -1476,6 +1478,7 @@ SECKEY_PublicKeyStrength(SECKEYPublicKey *pubk)
     default:
 	break;
     }
+    PORT_SetError(SEC_ERROR_INVALID_KEY);
     return 0;
 }
 
@@ -1498,6 +1501,33 @@ SECKEY_PublicKeyStrengthInBits(SECKEYPublicKey *pubk)
     default:
 	break;
     }
+    PORT_SetError(SEC_ERROR_INVALID_KEY);
+    return 0;
+}
+
+/* returns signature length in bytes (not bits) */
+unsigned
+SECKEY_SignatureLen(const SECKEYPublicKey *pubk)
+{
+    unsigned char b0;
+    unsigned size;
+
+    switch (pubk->keyType) {
+    case rsaKey:
+    	b0 = pubk->u.rsa.modulus.data[0];
+    	return b0 ? pubk->u.rsa.modulus.len : pubk->u.rsa.modulus.len - 1;
+    case fortezzaKey:
+    case dsaKey:
+    	return DSA_SIGNATURE_LEN;
+    case ecKey:
+	/* Get the base point order length in bits and adjust */
+	size =	SECKEY_ECParamsToBasePointOrderLen(
+		&pubk->u.ec.DEREncodedParams);
+	return ((size + 7)/8) * 2;
+    default:
+	break;
+    }
+    PORT_SetError(SEC_ERROR_INVALID_KEY);
     return 0;
 }
 
