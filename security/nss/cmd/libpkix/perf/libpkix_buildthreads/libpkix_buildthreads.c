@@ -107,18 +107,18 @@ PKIX_Error *loggerCallback(
         PKIX_Logger *logger,
         PKIX_PL_String *message,
         PKIX_UInt32 logLevel,
-        PKIX_PL_String *logComponent,
+        PKIX_ERRORNUM logComponent,
         void *plContext)
 {
-        char *comp = NULL;
         char *msg = NULL;
         static int callCount = 0;
 
         msg = PKIX_String2ASCII(message, plContext);
-        comp = PKIX_String2ASCII(logComponent, plContext);
-        printf("Logging %s (%s): %s\n", logLevels[logLevel], comp, msg);
+        printf("Logging %s (%s): %s\n",
+                logLevels[logLevel],
+                PKIX_ERRORNAMES[logComponent],
+                msg);
         PR_Free((void *)msg);
-        PR_Free((void *)comp);
 
         return(NULL);
 }
@@ -213,6 +213,7 @@ void ThreadEntry(void* data)
                         &nbioContext,
                         &state,
                         &buildResult,
+                        NULL,
                         plContext);
 
                 /*
