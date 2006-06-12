@@ -125,18 +125,18 @@ cleanup:
 /* Test with all Certs in the partial list, no leaf */
 static PKIX_Error *
 testWithNoLeaf(
-	PKIX_PL_Cert *trustedCert,
-	PKIX_List *listOfCerts,
-	PKIX_PL_Cert *targetCert,
-	PKIX_List *certStores,
-	PKIX_Boolean testValid,
+        PKIX_PL_Cert *trustedCert,
+        PKIX_List *listOfCerts,
+        PKIX_PL_Cert *targetCert,
+        PKIX_List *certStores,
+        PKIX_Boolean testValid,
         void* plContext)
 {
         PKIX_UInt32 numCerts = 0;
         PKIX_UInt32 i = 0;
         PKIX_TrustAnchor *anchor = NULL;
         PKIX_List *anchors = NULL;
-	PKIX_List *hintCerts = NULL;
+        PKIX_List *hintCerts = NULL;
         PKIX_List *revCheckers = NULL;
         PKIX_List *certs = NULL;
         PKIX_PL_Cert *cert = NULL;
@@ -165,7 +165,7 @@ testWithNoLeaf(
         /* create CertSelector with no target certificate in params */
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_ComCertSelParams_Create
-		(&certSelParams, plContext));
+                (&certSelParams, plContext));
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_CertSelector_Create
                 (NULL, NULL, &certSelector, plContext));
@@ -176,14 +176,14 @@ testWithNoLeaf(
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_ProcessingParams_SetTargetCertConstraints
                 (procParams, certSelector, plContext));
 
-	/* create hintCerts */
-	PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Object_Duplicate
-		((PKIX_PL_Object *)listOfCerts,
-		(PKIX_PL_Object **)&hintCerts,
-		plContext));
+        /* create hintCerts */
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Object_Duplicate
+                ((PKIX_PL_Object *)listOfCerts,
+                (PKIX_PL_Object **)&hintCerts,
+                plContext));
 
-	PKIX_TEST_EXPECT_NO_ERROR(PKIX_ProcessingParams_SetHintCerts
-		(procParams, hintCerts, plContext));
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_ProcessingParams_SetHintCerts
+                (procParams, hintCerts, plContext));
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_ProcessingParams_SetCertStores
                 (procParams, certStores, plContext));
@@ -222,6 +222,7 @@ testWithNoLeaf(
                 (void **)&pollDesc,
                 &state,
                 &buildResult,
+                NULL,
                 plContext);
 
         while (pollDesc != NULL) {
@@ -235,6 +236,7 @@ testWithNoLeaf(
                         (void **)&pollDesc,
                         &state,
                         &buildResult,
+                        NULL,
                         plContext);
         }
 
@@ -284,7 +286,7 @@ testWithNoLeaf(
 
                         PKIX_TEST_DECREF_BC(cert);
                 }
-	}
+        }
 
 cleanup:
         PKIX_PL_Free(asciiResult, NULL);
@@ -311,18 +313,18 @@ cleanup:
 /* Test with all Certs in the partial list, leaf duplicates the first one */
 static PKIX_Error *
 testWithDuplicateLeaf(
-	PKIX_PL_Cert *trustedCert,
-	PKIX_List *listOfCerts,
-	PKIX_PL_Cert *targetCert,
-	PKIX_List *certStores,
-	PKIX_Boolean testValid,
+        PKIX_PL_Cert *trustedCert,
+        PKIX_List *listOfCerts,
+        PKIX_PL_Cert *targetCert,
+        PKIX_List *certStores,
+        PKIX_Boolean testValid,
         void* plContext)
 {
         PKIX_UInt32 numCerts = 0;
         PKIX_UInt32 i = 0;
         PKIX_TrustAnchor *anchor = NULL;
         PKIX_List *anchors = NULL;
-	PKIX_List *hintCerts = NULL;
+        PKIX_List *hintCerts = NULL;
         PKIX_List *revCheckers = NULL;
         PKIX_List *certs = NULL;
         PKIX_PL_Cert *cert = NULL;
@@ -351,7 +353,7 @@ testWithDuplicateLeaf(
         /* create CertSelector with target certificate in params */
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_ComCertSelParams_Create
-		(&certSelParams, plContext));
+                (&certSelParams, plContext));
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_ComCertSelParams_SetCertificate
                 (certSelParams, targetCert, plContext));
@@ -365,14 +367,14 @@ testWithDuplicateLeaf(
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_ProcessingParams_SetTargetCertConstraints
                 (procParams, certSelector, plContext));
 
-	/* create hintCerts */
-	PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Object_Duplicate
-		((PKIX_PL_Object *)listOfCerts,
-		(PKIX_PL_Object **)&hintCerts,
-		plContext));
+        /* create hintCerts */
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Object_Duplicate
+                ((PKIX_PL_Object *)listOfCerts,
+                (PKIX_PL_Object **)&hintCerts,
+                plContext));
 
-	PKIX_TEST_EXPECT_NO_ERROR(PKIX_ProcessingParams_SetHintCerts
-		(procParams, hintCerts, plContext));
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_ProcessingParams_SetHintCerts
+                (procParams, hintCerts, plContext));
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_ProcessingParams_SetCertStores
                 (procParams, certStores, plContext));
@@ -411,6 +413,7 @@ testWithDuplicateLeaf(
                 (void **)&pollDesc,
                 &state,
                 &buildResult,
+                NULL,
                 plContext);
 
         while (pollDesc != NULL) {
@@ -424,6 +427,7 @@ testWithDuplicateLeaf(
                         (void **)&pollDesc,
                         &state,
                         &buildResult,
+                        NULL,
                         plContext);
         }
 
@@ -473,7 +477,7 @@ testWithDuplicateLeaf(
 
                         PKIX_TEST_DECREF_BC(cert);
                 }
-	}
+        }
 
 cleanup:
         PKIX_PL_Free(asciiResult, NULL);
@@ -500,18 +504,18 @@ cleanup:
 /* Test with all Certs except the leaf in the partial list */
 static PKIX_Error *
 testWithLeafAndChain(
-	PKIX_PL_Cert *trustedCert,
-	PKIX_List *listOfCerts,
-	PKIX_PL_Cert *targetCert,
-	PKIX_List *certStores,
-	PKIX_Boolean testValid,
+        PKIX_PL_Cert *trustedCert,
+        PKIX_List *listOfCerts,
+        PKIX_PL_Cert *targetCert,
+        PKIX_List *certStores,
+        PKIX_Boolean testValid,
         void* plContext)
 {
         PKIX_UInt32 numCerts = 0;
         PKIX_UInt32 i = 0;
         PKIX_TrustAnchor *anchor = NULL;
         PKIX_List *anchors = NULL;
-	PKIX_List *hintCerts = NULL;
+        PKIX_List *hintCerts = NULL;
         PKIX_List *revCheckers = NULL;
         PKIX_List *certs = NULL;
         PKIX_PL_Cert *cert = NULL;
@@ -540,7 +544,7 @@ testWithLeafAndChain(
         /* create CertSelector with target certificate in params */
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_ComCertSelParams_Create
-		(&certSelParams, plContext));
+                (&certSelParams, plContext));
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_ComCertSelParams_SetCertificate
                 (certSelParams, targetCert, plContext));
@@ -554,17 +558,17 @@ testWithLeafAndChain(
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_ProcessingParams_SetTargetCertConstraints
                 (procParams, certSelector, plContext));
 
-	/* create hintCerts */
-	PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Object_Duplicate
-		((PKIX_PL_Object *)listOfCerts,
-		(PKIX_PL_Object **)&hintCerts,
-		plContext));
+        /* create hintCerts */
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Object_Duplicate
+                ((PKIX_PL_Object *)listOfCerts,
+                (PKIX_PL_Object **)&hintCerts,
+                plContext));
 
-	PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_DeleteItem
-		(hintCerts, 0, plContext));
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_DeleteItem
+                (hintCerts, 0, plContext));
 
-	PKIX_TEST_EXPECT_NO_ERROR(PKIX_ProcessingParams_SetHintCerts
-		(procParams, hintCerts, plContext));
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_ProcessingParams_SetHintCerts
+                (procParams, hintCerts, plContext));
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_ProcessingParams_SetCertStores
                 (procParams, certStores, plContext));
@@ -603,6 +607,7 @@ testWithLeafAndChain(
                 (void **)&pollDesc,
                 &state,
                 &buildResult,
+                NULL,
                 plContext);
 
         while (pollDesc != NULL) {
@@ -616,6 +621,7 @@ testWithLeafAndChain(
                         (void **)&pollDesc,
                         &state,
                         &buildResult,
+                        NULL,
                         plContext);
         }
 
@@ -665,7 +671,7 @@ testWithLeafAndChain(
 
                         PKIX_TEST_DECREF_BC(cert);
                 }
-	}
+        }
 
 cleanup:
 
@@ -696,7 +702,7 @@ int main(int argc, char *argv[])
         PKIX_UInt32 k = 0;
         PKIX_Boolean useArenas = PKIX_FALSE;
         PKIX_Boolean ene = PKIX_TRUE; /* expect no error */
-	PKIX_List *listOfCerts = NULL;
+        PKIX_List *listOfCerts = NULL;
         PKIX_List *certStores = NULL;
         PKIX_PL_Cert *dirCert = NULL;
         PKIX_PL_Cert *trusted = NULL;
@@ -773,11 +779,11 @@ int main(int argc, char *argv[])
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_Create(&listOfCerts, plContext));
 
-        for (k = ++j; k < argc; k++) {
+        for (k = ++j; k < ((PKIX_UInt32)argc); k++) {
 
                 dirCert = createCert(dirName, argv[k], plContext);
 
-                if (k == (argc - 1)) {
+                if (k == ((PKIX_UInt32)(argc - 1))) {
                         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Object_IncRef
                                 ((PKIX_PL_Object *)dirCert, plContext));
                         trusted = dirCert;
@@ -824,17 +830,17 @@ int main(int argc, char *argv[])
                         (certStores, (PKIX_PL_Object *)certStore, plContext));
         }
 
-	subTest("testWithNoLeaf");
-	PKIX_TEST_EXPECT_NO_ERROR(testWithNoLeaf
-		(trusted, listOfCerts, target, certStores, ene, plContext));
+        subTest("testWithNoLeaf");
+        PKIX_TEST_EXPECT_NO_ERROR(testWithNoLeaf
+                (trusted, listOfCerts, target, certStores, ene, plContext));
 
-	subTest("testWithDuplicateLeaf");
-	PKIX_TEST_EXPECT_NO_ERROR(testWithDuplicateLeaf
-		(trusted, listOfCerts, target, certStores, ene, plContext));
+        subTest("testWithDuplicateLeaf");
+        PKIX_TEST_EXPECT_NO_ERROR(testWithDuplicateLeaf
+                (trusted, listOfCerts, target, certStores, ene, plContext));
 
-	subTest("testWithLeafAndChain");
-	PKIX_TEST_EXPECT_NO_ERROR(testWithLeafAndChain
-		(trusted, listOfCerts, target, certStores, ene, plContext));
+        subTest("testWithLeafAndChain");
+        PKIX_TEST_EXPECT_NO_ERROR(testWithLeafAndChain
+                (trusted, listOfCerts, target, certStores, ene, plContext));
 
 cleanup:
 

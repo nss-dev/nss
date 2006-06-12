@@ -233,6 +233,7 @@ int main(int argc, char *argv[])
                 &nbioContext,
                 &buildState,
                 &buildResult,
+                NULL,
                 plContext));
 
         /*

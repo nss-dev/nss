@@ -137,6 +137,7 @@ static void Test_BuildResult(
                 (void **)&pollDesc,
                 &state,
                 &buildResult,
+                NULL,
                 plContext);
 
         while (pollDesc != NULL) {
@@ -150,6 +151,7 @@ static void Test_BuildResult(
                         (void **)&pollDesc,
                         &state,
                         &buildResult,
+                        NULL,
                         plContext);
         }
 

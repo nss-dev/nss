@@ -322,6 +322,11 @@ PKIX_ValidateChain_NB(
  *  If chain building is completed, either successfully or unsuccessfully, NULL
  *  is stored at "pNBIOContext".
  *
+ *  If "pVerifyTree" is non-NULL, a tree of VerifyNodes is created which
+ *  tracks the results of the building. That is, each node of the tree either
+ *  has a NULL Error component, or it is a leaf node and it contains an Error
+ *  which indicates why the chain building could not proceed on this branch.
+ *
  * PARAMETERS:
  *  "params"
  *      Address of ProcessingParams used to build and validate CertChain.
@@ -334,6 +339,8 @@ PKIX_ValidateChain_NB(
  *      value previously returned on subsequent calls.
  *  "pResult"
  *      Address where object pointer will be stored. Must be non-NULL.
+ *  "pVerifyTree"
+ *      Address where a VerifyTree is stored, if non-NULL.
  *  "plContext"
  *      Platform-specific context pointer.
  * THREAD SAFETY:
@@ -349,6 +356,7 @@ PKIX_BuildChain(
         void **pNBIOContext,
         void **pState,
         PKIX_BuildResult **pResult,
+	PKIX_VerifyNode **pVerifyNode,
         void *plContext);
 
 #ifdef __cplusplus

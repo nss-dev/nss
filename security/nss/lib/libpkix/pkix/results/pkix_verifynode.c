@@ -112,12 +112,15 @@ cleanup:
  * FUNCTION: pkix_VerifyNode_AddToChain
  * DESCRIPTION:
  *
- *  Adds the VerifyNode pointed to by "child" to the List of children of
- *  the VerifyNode pointed to by "parentNode". If "parentNode" had a
- *  NULL pointer for the List of children, a new List is created containing
- *  "child". Otherwise "child" is appended to the existing List. The
- *  parent field in "child" is set to "parent", and the depth field is
- *  set to one more than the corresponding value in "parent".
+ *  Adds the VerifyNode pointed to by "child", at the appropriate depth, to the
+ *  List of children of the VerifyNode pointed to by "parentNode". The chain of
+ *  VerifyNodes is traversed until a VerifyNode is found at a depth one less
+ *  than that specified in "child". An Error is returned if there is no parent
+ *  at a suitable depth.
+ *
+ *  If "parentNode" has a NULL pointer for the List of children, a new List is
+ *  created containing "child". Otherwise "child" is appended to the existing
+ *  List.
  *
  *  Depth, in this context, means distance from the root node, which
  *  is at depth zero.
@@ -146,40 +149,39 @@ pkix_VerifyNode_AddToChain(
 {
         PKIX_VerifyNode *successor = NULL;
         PKIX_List *listOfChildren = NULL;
-	PKIX_UInt32 numChildren = 0;
-	PKIX_UInt32 parentDepth = 0;
+        PKIX_UInt32 numChildren = 0;
+        PKIX_UInt32 parentDepth = 0;
 
         PKIX_ENTER(VERIFYNODE, "pkix_VerifyNode_AddToChain");
-
         PKIX_NULLCHECK_TWO(parentNode, child);
 
         parentDepth = parentNode->depth;
         listOfChildren = parentNode->children;
         if (listOfChildren == NULL) {
 
-		if (parentDepth != (child->depth - 1)) {
-			PKIX_ERROR("Nodes missing from chain");
-		}
+                if (parentDepth != (child->depth - 1)) {
+                        PKIX_ERROR("Nodes missing from chain");
+                }
 
                 PKIX_CHECK(PKIX_List_Create(&listOfChildren, plContext),
                         "PKIX_List_Create failed");
 
-	        PKIX_CHECK(PKIX_List_AppendItem
-        	        (listOfChildren, (PKIX_PL_Object *)child, plContext),
-                	"Could not append child to parent's VerifyNode list");
+                PKIX_CHECK(PKIX_List_AppendItem
+                        (listOfChildren, (PKIX_PL_Object *)child, plContext),
+                        "Could not append child to parent's VerifyNode list");
 
                 parentNode->children = listOfChildren;
         } else {
-		/* get number of children */
-		PKIX_CHECK(PKIX_List_GetLength
-			(listOfChildren, &numChildren, plContext),
-			"PKIX_List_GetLength failed");
+                /* get number of children */
+                PKIX_CHECK(PKIX_List_GetLength
+                        (listOfChildren, &numChildren, plContext),
+                        "PKIX_List_GetLength failed");
 
-		if (numChildren != 1) {
-			PKIX_ERROR("Ambiguous parentage of VerifyNode");
-		}
+                if (numChildren != 1) {
+                        PKIX_ERROR("Ambiguous parentage of VerifyNode");
+                }
 
-		/* successor = listOfChildren[0] */
+                /* successor = listOfChildren[0] */
                 PKIX_CHECK(PKIX_List_GetItem
                         (listOfChildren,
                         0,
@@ -187,21 +189,150 @@ pkix_VerifyNode_AddToChain(
                         plContext),
                         "PKIX_List_GetItem failed");
 
-		PKIX_CHECK(pkix_VerifyNode_AddToChain
-			(successor, child, plContext),
-			"pkix_VerifyNode_AddToChain failed");
-	}
+                PKIX_CHECK(pkix_VerifyNode_AddToChain
+                        (successor, child, plContext),
+                        "pkix_VerifyNode_AddToChain failed");
+        }
 
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                 ((PKIX_PL_Object *)parentNode, plContext),
                 "PKIX_PL_Object_InvalidateCache failed");
 
 cleanup:
-	PKIX_DECREF(successor);
+        PKIX_DECREF(successor);
 
         PKIX_RETURN(VERIFYNODE);
 }
 
+/*
+ * FUNCTION: pkix_VerifyNode_SetDepth
+ * DESCRIPTION:
+ *
+ *  The function sets the depth field of each VerifyNode in the List "children"
+ *  to the value given by "depth", and recursively sets the depth of any
+ *  successive generations to the successive values.
+ *
+ * PARAMETERS:
+ *  "children"
+ *      The List of VerifyNodes. Must be non-NULL.
+ *  "depth"
+ *      The value of the depth field to be set in members of the List.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+static PKIX_Error *
+pkix_VerifyNode_SetDepth(PKIX_List *children,
+        PKIX_UInt32 depth,
+        void *plContext)
+{
+        PKIX_UInt32 numChildren = 0;
+        PKIX_UInt32 chIx = 0;
+        PKIX_VerifyNode *child = NULL;
+
+        PKIX_ENTER(VERIFYNODE, "pkix_VerifyNode_SetDepth");
+        PKIX_NULLCHECK_ONE(children);
+
+        PKIX_CHECK(PKIX_List_GetLength(children, &numChildren, plContext),
+                "PKIX_List_GetLength failed");
+
+        for (chIx = 0; chIx < numChildren; chIx++) {
+               PKIX_CHECK(PKIX_List_GetItem
+                        (children, chIx, (PKIX_PL_Object **)&child, plContext),
+                        "PKIX_List_GetItem failed");
+
+                child->depth = depth;
+
+                if (child->children != NULL) {
+                        PKIX_CHECK(pkix_VerifyNode_SetDepth
+                                (child->children, depth + 1, plContext),
+                                "pkix_VerifyNode_SetDepth failed");
+                }
+
+                PKIX_DECREF(child);
+        }
+
+cleanup:
+
+        PKIX_DECREF(child);
+
+        PKIX_RETURN(VERIFYNODE);
+}
+
+/*
+ * FUNCTION: pkix_VerifyNode_AddToTree
+ * DESCRIPTION:
+ *
+ *  Adds the VerifyNode pointed to by "child" to the List of children of the
+ *  VerifyNode pointed to by "parentNode". If "parentNode" has a NULL pointer
+ *  for the List of children, a new List is created containing "child".
+ *  Otherwise "child" is appended to the existing List. The depth field of
+ *  "child" is set to one more than the corresponding value in "parent", and
+ *  if the "child" itself has child nodes, their depth fields are updated
+ *  accordingly.
+ *
+ *  Depth, in this context, means distance from the root node, which
+ *  is at depth zero.
+ *
+ * PARAMETERS:
+ *  "parentNode"
+ *      Address of VerifyNode whose List of child VerifyNodes is to be
+ *      created or appended to. Must be non-NULL.
+ *  "child"
+ *      Address of VerifyNode to be added to parentNode's List. Must be
+ *      non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Not Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+pkix_VerifyNode_AddToTree(
+        PKIX_VerifyNode *parentNode,
+        PKIX_VerifyNode *child,
+        void *plContext)
+{
+        PKIX_List *listOfChildren = NULL;
+        PKIX_UInt32 numChildren = 0;
+        PKIX_UInt32 parentDepth = 0;
+
+        PKIX_ENTER(VERIFYNODE, "pkix_VerifyNode_AddToTree");
+        PKIX_NULLCHECK_TWO(parentNode, child);
+
+        parentDepth = parentNode->depth;
+        listOfChildren = parentNode->children;
+        if (listOfChildren == NULL) {
+
+                PKIX_CHECK(PKIX_List_Create(&listOfChildren, plContext),
+                        "PKIX_List_Create failed");
+
+                parentNode->children = listOfChildren;
+        }
+
+        child->depth = parentDepth + 1;
+
+        PKIX_CHECK(PKIX_List_AppendItem
+                (parentNode->children, (PKIX_PL_Object *)child, plContext),
+                "Could not append child to parent's VerifyNode list");
+
+        if (child->children != NULL) {
+                PKIX_CHECK(pkix_VerifyNode_SetDepth
+                        (child->children, child->depth + 1, plContext),
+                        "pkix_VerifyNode_SetDepth failed");
+        }
+
+
+cleanup:
+
+        PKIX_RETURN(VERIFYNODE);
+}
 
 /*
  * FUNCTION: pkix_SingleVerifyNode_ToString
@@ -235,37 +366,37 @@ pkix_SingleVerifyNode_ToString(
         PKIX_PL_String *errorString = NULL;
         PKIX_PL_String *outString = NULL;
 
-	PKIX_PL_X500Name *issuerName = NULL;
-	PKIX_PL_X500Name *subjectName = NULL;
-	PKIX_PL_String *issuerString = NULL;
-	PKIX_PL_String *subjectString = NULL;
+        PKIX_PL_X500Name *issuerName = NULL;
+        PKIX_PL_X500Name *subjectName = NULL;
+        PKIX_PL_String *issuerString = NULL;
+        PKIX_PL_String *subjectString = NULL;
 
         PKIX_ENTER(VERIFYNODE, "pkix_SingleVerifyNode_ToString");
         PKIX_NULLCHECK_THREE(node, pString, node->verifyCert);
 
         PKIX_TOSTRING(node->error, &errorString, plContext,
-		"PKIX_Error_ToString failed");
+                "PKIX_Error_ToString failed");
 
-	PKIX_CHECK(PKIX_PL_Cert_GetIssuer
-		(node->verifyCert, &issuerName, plContext),
-		"PKIX_PL_Cert_GetIssuer failed");
+        PKIX_CHECK(PKIX_PL_Cert_GetIssuer
+                (node->verifyCert, &issuerName, plContext),
+                "PKIX_PL_Cert_GetIssuer failed");
 
-	PKIX_TOSTRING(issuerName, &issuerString, plContext,
-		"PKIX_PL_X500Name_ToString failed");
+        PKIX_TOSTRING(issuerName, &issuerString, plContext,
+                "PKIX_PL_X500Name_ToString failed");
 
-	PKIX_CHECK(PKIX_PL_Cert_GetSubject
-		(node->verifyCert, &subjectName, plContext),
-		"PKIX_PL_Cert_GetSubject failed");
+        PKIX_CHECK(PKIX_PL_Cert_GetSubject
+                (node->verifyCert, &subjectName, plContext),
+                "PKIX_PL_Cert_GetSubject failed");
 
-	PKIX_TOSTRING(subjectName, &subjectString, plContext,
-		"PKIX_PL_X500Name_ToString failed");
+        PKIX_TOSTRING(subjectName, &subjectString, plContext,
+                "PKIX_PL_X500Name_ToString failed");
 
-       	PKIX_CHECK(PKIX_PL_String_Create
+        PKIX_CHECK(PKIX_PL_String_Create
                 (PKIX_ESCASCII,
-               	"CERT[Issuer:%s, Subject:%s], depth=%d, error=%s",
+                "CERT[Issuer:%s, Subject:%s], depth=%d, error=%s",
                 0,
-               	&fmtString,
-       	        plContext),
+                &fmtString,
+                plContext),
                 "Can't create PKIX_PL_String");
 
         PKIX_CHECK(PKIX_PL_Sprintf
@@ -284,10 +415,10 @@ cleanup:
 
         PKIX_DECREF(fmtString);
         PKIX_DECREF(errorString);
-	PKIX_DECREF(issuerName);
-	PKIX_DECREF(subjectName);
-	PKIX_DECREF(issuerString);
-	PKIX_DECREF(subjectString);
+        PKIX_DECREF(issuerName);
+        PKIX_DECREF(subjectName);
+        PKIX_DECREF(issuerString);
+        PKIX_DECREF(subjectString);
         PKIX_RETURN(VERIFYNODE);
 }
 
@@ -964,104 +1095,42 @@ pkix_VerifyNode_RegisterSelf(void *plContext)
         PKIX_RETURN(VERIFYNODE);
 }
 
-#if 0
 /* --Public-VerifyNode-Functions----------------------------------- */
 
 /*
- * FUNCTION: PKIX_VerifyNode_GetChildren
- * (see description of this function in pkix_results.h)
+ * FUNCTION: PKIX_VerifyNode_SetError
+ * DESCRIPTION:
+ *
+ *  This function sets the Error field of the VerifyNode pointed to by "node"
+ *  to contain the Error pointed to by "error".
+ *
+ * PARAMETERS:
+ *  "node"
+ *      The address of the VerifyNode to be modified. Must be non-NULL.
+ *  "error"
+ *      The address of the Error to be stored.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Thread Safe (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
  */
 PKIX_Error *
-PKIX_VerifyNode_GetChildren(
+pkix_VerifyNode_SetError(
         PKIX_VerifyNode *node,
-        PKIX_List **pChildren,  /* list of PKIX_VerifyNode */
-        void *plContext)
-{
-        PKIX_List *children = NULL;
-
-        PKIX_ENTER(VERIFYNODE, "PKIX_VerifyNode_GetChildren");
-
-        PKIX_NULLCHECK_TWO(node, pChildren);
-
-        PKIX_INCREF(node->children);
-        children = node->children;
-
-        if (!children) {
-                PKIX_CHECK(PKIX_List_Create(&children, plContext),
-                        "PKIX_List_Create failed");
-        }
-
-        PKIX_CHECK(PKIX_List_SetImmutable(children, plContext),
-                "PKIX_List_SetImmutable failed");
-
-        *pChildren = children;
-
-cleanup:
-        if (PKIX_ERROR_RECEIVED) {
-                PKIX_DECREF(children);
-        }
-
-        PKIX_RETURN(VERIFYNODE);
-}
-
-/*
- * FUNCTION: PKIX_VerifyNode_GetCert
- * (see description of this function in pkix_results.h)
- */
-PKIX_Error *
-PKIX_VerifyNode_GetCert(
-        PKIX_VerifyNode *node,
-        PKIX_PL_Cert **pCert,
+        PKIX_Error *error,
         void *plContext)
 {
 
-        PKIX_ENTER(VERIFYNODE, "PKIX_VerifyNode_GetCert");
+        PKIX_ENTER(VERIFYNODE, "PKIX_VerifyNode_SetError");
 
-        PKIX_NULLCHECK_TWO(node, pCert);
+        PKIX_NULLCHECK_TWO(node, error);
 
-        PKIX_INCREF(node->verifyCert);
-        *pCert = node->verifyCert;
-
-        PKIX_RETURN(VERIFYNODE);
-}
-
-/*
- * FUNCTION: PKIX_VerifyNode_GetError
- * (see description of this function in pkix_results.h)
- */
-PKIX_Error *
-PKIX_VerifyNode_GetError(
-        PKIX_VerifyNode *node,
-        PKIX_Error **pError,
-        void *plContext)
-{
-
-        PKIX_ENTER(VERIFYNODE, "PKIX_VerifyNode_GetError");
-
-        PKIX_NULLCHECK_TWO(node, pError);
-
-        *pError = node->error;
+        PKIX_DECREF(node->error); /* should have been NULL */
+        PKIX_INCREF(error);
+        node->error = error;
 
         PKIX_RETURN(VERIFYNODE);
 }
-
-/*
- * FUNCTION: PKIX_VerifyNode_GetDepth
- * (see description of this function in pkix_results.h)
- */
-PKIX_Error *
-pkix_VerifyNode_GetDepth(
-        PKIX_VerifyNode *node,
-        PKIX_UInt32 *pDepth,
-        void *plContext)
-{
-
-        PKIX_ENTER(VERIFYNODE, "PKIX_VerifyNode_GetDepth");
-
-        PKIX_NULLCHECK_TWO(node, pDepth);
-
-        *pDepth = node->depth;
-
-        PKIX_RETURN(VERIFYNODE);
-}
-#endif

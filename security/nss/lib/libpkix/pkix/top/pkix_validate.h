@@ -63,23 +63,8 @@ pkix_CheckChain(
         void **pNBIOContext,
         PKIX_PL_PublicKey **pFinalSubjPubKey,
         PKIX_PolicyNode **pPolicyTree,
-	PKIX_VerifyNode **pVerifyTree,
+        PKIX_VerifyNode **pVerifyTree,
         void *plContext);
-
-#if 0
-PKIX_Error *
-PKIX_ValidateChain_NB(
-        PKIX_ValidateParams *valParams,
-        PKIX_UInt32 *pCertIndex,
-        PKIX_UInt32 *pAnchorIndex,
-        PKIX_UInt32 *pCheckerIndex,
-        PKIX_Boolean *pRevChecking,
-        PKIX_List **pCheckers,
-        void **pNBIOContext,
-        PKIX_ValidateResult **pResult,
-	PKIX_VerifyNode **pVerifyTree,
-        void *plContext);
-#endif
 
 #ifdef __cplusplus
 }

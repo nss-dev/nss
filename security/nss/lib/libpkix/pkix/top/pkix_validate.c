@@ -83,30 +83,30 @@ static PKIX_Error *
 pkix_AddToVerifyLog(
         PKIX_PL_Cert *cert,
         PKIX_UInt32 depth,
-	PKIX_Error *error,
-	PKIX_VerifyNode **pVerifyTree,
+        PKIX_Error *error,
+        PKIX_VerifyNode **pVerifyTree,
         void *plContext)
 {
 
-	PKIX_VerifyNode *verifyNode = NULL;
+        PKIX_VerifyNode *verifyNode = NULL;
 
         PKIX_ENTER(VALIDATE, "pkix_AddToVerifyLog");
         PKIX_NULLCHECK_ONE(cert);
 
-	if (pVerifyTree) { /* nothing to do if no address given for log */
+        if (pVerifyTree) { /* nothing to do if no address given for log */
 
-		PKIX_CHECK(pkix_VerifyNode_Create
-			(cert, depth, error, &verifyNode, plContext),
-			"pkix_VerifyNode_Create failed");
+                PKIX_CHECK(pkix_VerifyNode_Create
+                        (cert, depth, error, &verifyNode, plContext),
+                        "pkix_VerifyNode_Create failed");
 
-		if (depth == 0) {
-			/* We just created the root node */
-			*pVerifyTree = verifyNode;
-		} else {
-			PKIX_CHECK(pkix_VerifyNode_AddToChain
-				(*pVerifyTree, verifyNode, plContext),
-				"pkix_VerifyNode_AddToChain failed");
-		}
+                if (depth == 0) {
+                        /* We just created the root node */
+                        *pVerifyTree = verifyNode;
+                } else {
+                        PKIX_CHECK(pkix_VerifyNode_AddToChain
+                                (*pVerifyTree, verifyNode, plContext),
+                                "pkix_VerifyNode_AddToChain failed");
+                }
         }
 
 cleanup:
@@ -173,7 +173,7 @@ pkix_CheckCert(
         PKIX_UInt32 numCheckers;
         PKIX_UInt32 numUnresCritExtOIDs = 0;
         PKIX_UInt32 checkerIndex = 0;
-	PKIX_Error *checkerError = NULL;
+        PKIX_Error *checkerError = NULL;
         void *nbioContext = NULL;
 
         PKIX_ENTER(VALIDATE, "pkix_CheckCert");
@@ -211,9 +211,9 @@ pkix_CheckCert(
                         &nbioContext,
                         plContext);
 
-		if (checkerError) {
-			goto cleanup;
-		}
+                if (checkerError) {
+                        goto cleanup;
+                }
 
                 if (nbioContext != NULL) {
                         *pCheckerIndex = checkerIndex;
@@ -271,18 +271,18 @@ cleanup:
         PKIX_DECREF(checker);
         PKIX_DECREF(unresCritExtOIDs);
 
-	if (checkerError) {
-		PKIX_PL_String *errorDesc = NULL;
-		void *enc = NULL;
-		PKIX_UInt32 len = 0;
-		(void)PKIX_Error_GetDescription
-		    (checkerError, &errorDesc, plContext);
-		(void)PKIX_PL_String_GetEncoded
-		    (errorDesc, PKIX_ESCASCII, &enc, &len, plContext);
-		PKIX_LOG_ERROR(enc);
-		PKIX_DECREF(errorDesc);
-		return (checkerError);
-	}
+        if (checkerError) {
+                PKIX_PL_String *errorDesc = NULL;
+                void *enc = NULL;
+                PKIX_UInt32 len = 0;
+                (void)PKIX_Error_GetDescription
+                    (checkerError, &errorDesc, plContext);
+                (void)PKIX_PL_String_GetEncoded
+                    (errorDesc, PKIX_ESCASCII, &enc, &len, plContext);
+                PKIX_LOG_ERROR(enc);
+                PKIX_DECREF(errorDesc);
+                return (checkerError);
+        }
 
         PKIX_RETURN(VALIDATE);
 
@@ -887,13 +887,13 @@ pkix_CheckChain(
         void **pNBIOContext,
         PKIX_PL_PublicKey **pFinalSubjPubKey,
         PKIX_PolicyNode **pPolicyTree,
-	PKIX_VerifyNode **pVerifyTree,
+        PKIX_VerifyNode **pVerifyTree,
         void *plContext)
 {
         PKIX_UInt32 j = 0;
         PKIX_UInt32 reasonCode = 0;
         PKIX_Boolean revChecking = PKIX_FALSE;
-	PKIX_Error *checkCertError = NULL;
+        PKIX_Error *checkCertError = NULL;
         void *nbioContext = NULL;
         PKIX_PL_Cert *cert = NULL;
 
@@ -966,8 +966,8 @@ pkix_CheckChain(
                         *pCheckerIndex = 0;
                 }
 
-		PKIX_CHECK(pkix_AddToVerifyLog(cert, j, NULL, pVerifyTree, plContext),
-			"pkix_AddToVerifyLog failed");
+                PKIX_CHECK(pkix_AddToVerifyLog(cert, j, NULL, pVerifyTree, plContext),
+                        "pkix_AddToVerifyLog failed");
                 PKIX_DECREF(cert);
         }
 
@@ -980,16 +980,16 @@ pkix_CheckChain(
 
 cleanup:
 
-	if (PKIX_ERROR_RECEIVED) {
-		PKIX_INCREF(pkixErrorResult);
-		checkCertError = pkixErrorResult;
-	}
+        if (PKIX_ERROR_RECEIVED) {
+                PKIX_INCREF(pkixErrorResult);
+                checkCertError = pkixErrorResult;
+        }
 
-	if (checkCertError) {
-		pkixTempResult = pkix_AddToVerifyLog
-			(cert, j, checkCertError, pVerifyTree, plContext);
-		pkixErrorResult = checkCertError;
-	}
+        if (checkCertError) {
+                pkixTempResult = pkix_AddToVerifyLog
+                        (cert, j, checkCertError, pVerifyTree, plContext);
+                pkixErrorResult = checkCertError;
+        }
 
         PKIX_DECREF(cert);
 
@@ -1080,7 +1080,7 @@ PKIX_Error *
 PKIX_ValidateChain(
         PKIX_ValidateParams *valParams,
         PKIX_ValidateResult **pResult,
-	PKIX_VerifyNode **pVerifyTree,
+        PKIX_VerifyNode **pVerifyTree,
         void *plContext)
 {
         PKIX_Error *chainFailed = NULL;
@@ -1218,7 +1218,7 @@ PKIX_ValidateChain(
                         &nbioContext,
                         &finalPubKey,
                         &validPolicyTree,
-			pVerifyTree,
+                        pVerifyTree,
                         plContext);
 
                 if (chainFailed || (reasonCode != 0)) {
@@ -1375,7 +1375,7 @@ PKIX_ValidateChain_NB(
         PKIX_List **pCheckers,
         void **pNBIOContext,
         PKIX_ValidateResult **pResult,
-	PKIX_VerifyNode **pVerifyTree,
+        PKIX_VerifyNode **pVerifyTree,
         void *plContext)
 {
         PKIX_UInt32 numCerts = 0;
@@ -1484,7 +1484,7 @@ PKIX_ValidateChain_NB(
                         &nbioContext,
                         &finalPubKey,
                         &validPolicyTree,
-			pVerifyTree,
+                        pVerifyTree,
                         plContext);
 
                 if (nbioContext != NULL) {

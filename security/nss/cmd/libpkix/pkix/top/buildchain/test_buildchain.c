@@ -41,7 +41,7 @@
  *
  */
 
-#define debuggingWithoutRevocation
+/* #define debuggingWithoutRevocation */
 
 #include "testutil.h"
 #include "testutil_nss.h"
@@ -155,6 +155,8 @@ int main(int argc, char *argv[])
         PKIX_Boolean testValid = PKIX_TRUE;
         PKIX_List *expectedCerts = NULL;
         PKIX_PL_Cert *dirCert = NULL;
+	PKIX_VerifyNode *verifyTree = NULL;
+	PKIX_PL_String *verifyString = NULL;
         PKIX_PL_String *actualCertsString = NULL;
         PKIX_PL_String *expectedCertsString = NULL;
         void *state = NULL;
@@ -226,11 +228,11 @@ int main(int argc, char *argv[])
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_Create(&expectedCerts, plContext));
 
-        for (k = ++j; k < argc; k++) {
+        for (k = ++j; k < (PKIX_UInt32)argc; k++) {
 
                 dirCert = createCert(dirName, argv[k], plContext);
 
-                if (k == (argc - 1)) {
+                if (k == (PKIX_UInt32)(argc - 1)) {
                         PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Object_IncRef
                                 ((PKIX_PL_Object *)dirCert, plContext));
                         trustedCert = dirCert;
@@ -345,6 +347,7 @@ int main(int argc, char *argv[])
                 (void **)&pollDesc,
                 &state,
                 &buildResult,
+		&verifyTree,
                 plContext);
 
         while (pollDesc != NULL) {
@@ -358,6 +361,7 @@ int main(int argc, char *argv[])
                         (void **)&pollDesc,
                         &state,
                         &buildResult,
+			&verifyTree,
                         plContext);
         }
 
@@ -367,14 +371,29 @@ int main(int argc, char *argv[])
                 } else { /* ENE */
                         testError("UNEXPECTED ERROR RECEIVED");
                 }
+        } else {
+	        if (testValid == PKIX_TRUE) { /* ENE */
+        	        (void) printf("EXPECTED NON-ERROR RECEIVED!\n");
+	        } else { /* EE */
+        	        (void) printf("UNEXPECTED NON-ERROR RECEIVED!\n");
+	        }
+	}
+
+        subTest("Displaying VerifyNode objects");
+
+	if (verifyTree == NULL) {
+                PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_String_Create
+		    (PKIX_ESCASCII, "(null)", 0, &verifyString, plContext));
+	} else {
+	        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Object_ToString
+        	    ((PKIX_PL_Object*)verifyTree, &verifyString, plContext));
+	}
+
+        (void) printf("verifyTree is\n%s\n", verifyString->escAsciiString);
+
+        if (pkixTestErrorResult) {
                 PKIX_TEST_DECREF_BC(pkixTestErrorResult);
                 goto cleanup;
-        }
-
-        if (testValid == PKIX_TRUE) { /* ENE */
-                (void) printf("EXPECTED NON-ERROR RECEIVED!\n");
-        } else { /* EE */
-                (void) printf("UNEXPECTED NON-ERROR RECEIVED!\n");
         }
 
         if (buildResult) {
@@ -452,8 +471,10 @@ int main(int argc, char *argv[])
 
         }
 
-
 cleanup:
+        PKIX_TEST_DECREF_AC(verifyString);
+        PKIX_TEST_DECREF_AC(verifyTree);
+
         PKIX_PL_Free(asciiResult, NULL);
         PKIX_PL_Free(actualCertsAscii, plContext);
         PKIX_PL_Free(expectedCertsAscii, plContext);

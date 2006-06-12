@@ -54,7 +54,6 @@ extern "C" {
  */
 struct PKIX_VerifyNodeStruct {
     PKIX_PL_Cert *verifyCert;
-/*    PKIX_VerifyNode *parent; */
     PKIX_List *children;                /* VerifyNodes */
     PKIX_UInt32 depth;
     PKIX_Error *error;
@@ -78,6 +77,18 @@ PKIX_Error *
 pkix_VerifyNode_AddToChain(
         PKIX_VerifyNode *parentNode,
         PKIX_VerifyNode *child,
+        void *plContext);
+
+PKIX_Error *
+pkix_VerifyNode_AddToTree(
+        PKIX_VerifyNode *parentNode,
+        PKIX_VerifyNode *child,
+        void *plContext);
+
+PKIX_Error *
+pkix_VerifyNode_SetError(
+        PKIX_VerifyNode *node,
+        PKIX_Error *error,
         void *plContext);
 
 PKIX_Error *

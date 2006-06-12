@@ -293,6 +293,7 @@ int main(int argc, char *argv[])
                 &nbioContext,
                 &buildState,
                 &buildResult,
+                NULL,
                 plContext);
 
         if (testValid == PKIX_TRUE) { /* ENE */

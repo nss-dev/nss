@@ -136,6 +136,7 @@ struct PKIX_ForwardBuilderStateStruct{
         PKIX_List *checkerChain;
         PKIX_List *revCheckers;
         PKIX_CertSelector *certSel;
+        PKIX_VerifyNode *verifyNode;
         void *client; /* messageHandler, such as LDAPClient */
         PKIX_ForwardBuilderState *parentState;
         BuildConstants buildConstants;

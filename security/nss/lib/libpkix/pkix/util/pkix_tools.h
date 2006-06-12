@@ -194,8 +194,8 @@ extern "C" {
 
 #define PKIX_CHECK_FATAL(func, desc) \
         do { \
-                pkixErrorResult = (func); \
-                if (pkixErrorResult) { \
+                pkixTempResult = (func); \
+                if (pkixTempResult) { \
                         PKIX_ERROR_FATAL(desc); \
                 } \
         } while (0)
@@ -324,6 +324,15 @@ extern "C" {
                 if (pkixTempResult) return (pkixTempResult); \
                 else return (pkixReturnResult); \
         }
+
+#define PKIX_ERROR_CREATE(type, desc, error) \
+	{ \
+                pkixTempResult = (PKIX_Error*)pkix_Throw \
+                        (PKIX_ ## type ## _ERROR, myFuncName, (desc), \
+                        NULL, &error, plContext); \
+                if (pkixTempResult) error = pkixTempResult; \
+        }
+		
 
 #define PKIX_ERROR_RECEIVED (pkixErrorReceived || pkixErrorResult ||\
                         pkixTempErrorReceived)
