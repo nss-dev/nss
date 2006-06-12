@@ -198,8 +198,11 @@ SECKEYPrivateKey *
 SECKEY_CreateRSAPrivateKey(int keySizeInBits,SECKEYPublicKey **pubk, void *cx)
 {
     SECKEYPrivateKey *privk;
-    PK11SlotInfo *slot = PK11_GetBestSlot(CKM_RSA_PKCS_KEY_PAIR_GEN,cx);
     PK11RSAGenParams param;
+    PK11SlotInfo *slot = PK11_GetBestSlot(CKM_RSA_PKCS_KEY_PAIR_GEN,cx);
+    if (!slot) {
+	return NULL;
+    }
 
     param.keySizeInBits = keySizeInBits;
     param.pe = 65537L;
@@ -222,6 +225,9 @@ SECKEY_CreateDHPrivateKey(SECKEYDHParams *param, SECKEYPublicKey **pubk, void *c
 {
     SECKEYPrivateKey *privk;
     PK11SlotInfo *slot = PK11_GetBestSlot(CKM_DH_PKCS_KEY_PAIR_GEN,cx);
+    if (!slot) {
+	return NULL;
+    }
 
     privk = PK11_GenerateKeyPair(slot, CKM_DH_PKCS_KEY_PAIR_GEN, param, 
                                  pubk, PR_FALSE, PR_FALSE, cx);
@@ -245,6 +251,9 @@ SECKEY_CreateECPrivateKey(SECKEYECParams *param, SECKEYPublicKey **pubk, void *c
 {
     SECKEYPrivateKey *privk;
     PK11SlotInfo *slot = PK11_GetBestSlot(CKM_EC_KEY_PAIR_GEN,cx);
+    if (!slot) {
+	return NULL;
+    }
 
     privk = PK11_GenerateKeyPair(slot, CKM_EC_KEY_PAIR_GEN, param, 
                                  pubk, PR_FALSE, PR_FALSE, cx);
@@ -1284,7 +1293,8 @@ SECKEY_ECParamsToKeySize(const SECItem *encodedParams)
 	return 571;
 
     default:
-	    return 0;
+	PORT_SetError(SEC_ERROR_UNSUPPORTED_ELLIPTIC_CURVE);
+	return 0;
     }
 }
 
@@ -1430,7 +1440,8 @@ SECKEY_ECParamsToBasePointOrderLen(const SECItem *encodedParams)
 	return 570;
 
     default:
-	    return 0;
+	PORT_SetError(SEC_ERROR_UNSUPPORTED_ELLIPTIC_CURVE);
+	return 0;
     }
 }
 
@@ -1467,6 +1478,7 @@ SECKEY_PublicKeyStrength(SECKEYPublicKey *pubk)
     default:
 	break;
     }
+    PORT_SetError(SEC_ERROR_INVALID_KEY);
     return 0;
 }
 
@@ -1489,6 +1501,33 @@ SECKEY_PublicKeyStrengthInBits(SECKEYPublicKey *pubk)
     default:
 	break;
     }
+    PORT_SetError(SEC_ERROR_INVALID_KEY);
+    return 0;
+}
+
+/* returns signature length in bytes (not bits) */
+unsigned
+SECKEY_SignatureLen(const SECKEYPublicKey *pubk)
+{
+    unsigned char b0;
+    unsigned size;
+
+    switch (pubk->keyType) {
+    case rsaKey:
+    	b0 = pubk->u.rsa.modulus.data[0];
+    	return b0 ? pubk->u.rsa.modulus.len : pubk->u.rsa.modulus.len - 1;
+    case fortezzaKey:
+    case dsaKey:
+    	return DSA_SIGNATURE_LEN;
+    case ecKey:
+	/* Get the base point order length in bits and adjust */
+	size =	SECKEY_ECParamsToBasePointOrderLen(
+		&pubk->u.ec.DEREncodedParams);
+	return ((size + 7)/8) * 2;
+    default:
+	break;
+    }
+    PORT_SetError(SEC_ERROR_INVALID_KEY);
     return 0;
 }
 

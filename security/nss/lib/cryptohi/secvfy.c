@@ -341,13 +341,17 @@ vfy_CreateContextPrivate(const SECKEYPublicKey *key, const SECItem *sig,
 	case ecKey:
 	    if (key->keyType == ecKey) {
 	        cx->type = VFY_ECDSA;
-		/* Unlike DSA, EDSA does not have a fixed signature length
+		/* Unlike DSA, ECDSA does not have a fixed signature length
 		 * (it depends on the key size)
 		 */
-		sigLen = SECKEY_PublicKeyStrength((SECKEYPublicKey *)key) * 2;
+		sigLen = SECKEY_SignatureLen(key);
 	    } else {
 	        cx->type = VFY_DSA;
 		sigLen = DSA_SIGNATURE_LEN;
+	    }
+	    if (sigLen == 0) {
+		rv = SECFailure;
+		break;
 	    }
 	    rv = decodeSigAlg(algid, params, key, &cx->alg);
 	    if (rv != SECSuccess) {
@@ -463,7 +467,10 @@ VFY_EndWithSignature(VFYContext *cx, SECItem *sig)
 	if (cx->type == VFY_DSA) {
 	    dsasig.len = DSA_SIGNATURE_LEN;
 	} else {
-	    dsasig.len = SECKEY_PublicKeyStrength(cx->key) * 2;
+	    dsasig.len = SECKEY_SignatureLen(cx->key);
+	}
+	if (dsasig.len == 0) {
+	    return SECFailure;
 	}
 	if (sig) {
 	    rv = decodeECorDSASignature(cx->sigAlg,sig,dsasig.data,
@@ -540,10 +547,13 @@ VFY_VerifyDigest(SECItem *digest, SECKEYPublicKey *key, SECItem *sig,
 	case ecKey:
 	    dsasig.data = cx->u.buffer;
 	    if (key->keyType == ecKey) {
-		dsasig.len = SECKEY_PublicKeyStrength(cx->key) * 2;
+		dsasig.len = SECKEY_SignatureLen(cx->key);
 	    } else {
 		/* magic size of dsa signature */
 		dsasig.len = DSA_SIGNATURE_LEN;
+	    }
+	    if (dsasig.len == 0) {
+		break;
 	    }
 	    if (PK11_Verify(cx->key, &dsasig, digest, cx->wincx)
 		!= SECSuccess) {

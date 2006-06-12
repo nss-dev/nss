@@ -763,6 +763,9 @@ ValidateCert(CERTCertDBHandle *handle, char *name, char *date,
     }
     
     switch (*certUsage) {
+	case 'O':
+	    usage = certificateUsageStatusResponder;
+	    break;
 	case 'C':
 	    usage = certificateUsageSSLClient;
 	    break;
@@ -994,6 +997,7 @@ Usage(char *progName)
     FPS "Usage:  %s -T [-d certdir] [-P dbprefix] [-h token-name] [-f pwfile]\n", progName);
     FPS "\t%s -A -n cert-name -t trustargs [-d certdir] [-P dbprefix] [-a] [-i input]\n", 
     	progName);
+    FPS "\t%s -B -i batch-file\n", progName);
     FPS "\t%s -C [-c issuer-name | -x] -i cert-request-file -o cert-file\n"
 	"\t\t [-m serial-number] [-w warp-months] [-v months-valid]\n"
         "\t\t [-f pwfile] [-d certdir] [-P dbprefix] [-1] [-2] [-3] [-4] [-5]\n"
@@ -1042,6 +1046,8 @@ static void LongUsage(char *progName)
 
     FPS "%-15s Add a certificate to the database        (create if needed)\n",
 	"-A");
+    FPS "%-15s Run a series of certutil commands from a batch file\n", "-B");
+    FPS "%-20s Specify the batch file\n", "   -i batch-file");
     FPS "%-15s Add an Email certificate to the database (create if needed)\n",
 	"-E");
     FPS "%-20s Specify the nickname of the certificate to add\n",
@@ -1308,6 +1314,7 @@ static void LongUsage(char *progName)
     FPS "%-25s V \t SSL Server\n", "");
     FPS "%-25s S \t Email signer\n", "");
     FPS "%-25s R \t Email Recipient\n", "");   
+    FPS "%-25s O \t OCSP status responder\n", "");   
     FPS "%-20s Cert database directory (default is ~/.netscape)\n",
 	"   -d certdir");
     FPS "%-20s Cert & Key database prefix\n",
@@ -1561,7 +1568,7 @@ AddOidToSequence(CERTOidSequence *os, SECOidTag oidTag)
   return SECSuccess;
 }
 
-SEC_ASN1_MKSUB(SEC_ObjectIDTemplate);
+SEC_ASN1_MKSUB(SEC_ObjectIDTemplate)
 
 const SEC_ASN1Template CERT_OidSeqTemplate[] = {
     { SEC_ASN1_SEQUENCE_OF | SEC_ASN1_XTRN,
@@ -2302,7 +2309,8 @@ enum {
     cmd_ListModules,
     cmd_CheckCertValidity,
     cmd_ChangePassword,
-    cmd_Version
+    cmd_Version,
+    cmd_Batch
 };
 
 /*  Certutil options */
@@ -2344,8 +2352,7 @@ enum {
     opt_RW,
     opt_Exponent,
     opt_NoiseFile,
-    opt_Hash,
-    opt_Batch
+    opt_Hash
 };
 
 static int 
@@ -2402,7 +2409,8 @@ secuCommandFlag certutil_commands[] =
 	{ /* cmd_ListModules         */  'U', PR_FALSE, 0, PR_FALSE },
 	{ /* cmd_CheckCertValidity   */  'V', PR_FALSE, 0, PR_FALSE },
 	{ /* cmd_ChangePassword      */  'W', PR_FALSE, 0, PR_FALSE },
-	{ /* cmd_Version             */  'Y', PR_FALSE, 0, PR_FALSE }
+	{ /* cmd_Version             */  'Y', PR_FALSE, 0, PR_FALSE },
+	{ /* cmd_Batch               */  'B', PR_FALSE, 0, PR_FALSE }
 };
 
 secuCommandFlag certutil_options[] =
@@ -2444,8 +2452,7 @@ secuCommandFlag certutil_options[] =
 	{ /* opt_RW                  */  'X', PR_FALSE, 0, PR_FALSE },
 	{ /* opt_Exponent            */  'y', PR_TRUE,  0, PR_FALSE },
 	{ /* opt_NoiseFile           */  'z', PR_TRUE,  0, PR_FALSE },
-	{ /* opt_Hash                */  'Z', PR_TRUE,  0, PR_FALSE },
-	{ /* opt_Batch               */  'B', PR_TRUE,  0, PR_FALSE }
+	{ /* opt_Hash                */  'Z', PR_TRUE,  0, PR_FALSE }
 };
 
 
@@ -3076,13 +3083,21 @@ shutdown:
      * - each line in the batch file is limited to 512 characters
     */
 
-    if ((SECSuccess == rv) && certutil.options[opt_Batch].activated) {
-	FILE* batchFile = fopen(certutil.options[opt_Batch].arg, "r");
+    if ((SECSuccess == rv) && certutil.commands[cmd_Batch].activated) {
+	FILE* batchFile = NULL;
         char nextcommand[512];
+        if (!certutil.options[opt_InputFile].activated ||
+            !certutil.options[opt_InputFile].arg) {
+	    PR_fprintf(PR_STDERR,
+	               "%s:  no batch input file specified.\n",
+	               progName);
+	    return 255;
+        }
+        batchFile = fopen(certutil.options[opt_InputFile].arg, "r");
         if (!batchFile) {
 	    PR_fprintf(PR_STDERR,
 	               "%s:  unable to open \"%s\" for reading (%ld, %ld).\n",
-	               progName, certutil.options[opt_Batch].arg,
+	               progName, certutil.options[opt_InputFile].arg,
 	               PR_GetError(), PR_GetOSError());
 	    return 255;
         }

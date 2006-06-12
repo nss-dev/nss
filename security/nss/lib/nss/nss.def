@@ -881,3 +881,9 @@ SEC_RegisterDefaultHttpClient;
 ;+    local:
 ;+       *;
 ;+};
+;+NSS_3.11.2 {
+;+    global:
+SECKEY_SignatureLen;
+;+    local:
+;+       *;
+;+};

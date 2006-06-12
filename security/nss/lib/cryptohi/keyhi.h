@@ -90,6 +90,11 @@ extern unsigned SECKEY_PublicKeyStrength(SECKEYPublicKey *pubk);
 extern unsigned SECKEY_PublicKeyStrengthInBits(SECKEYPublicKey *pubk);
 
 /*
+** Return the length of the signature in bytes
+*/
+extern unsigned SECKEY_SignatureLen(const SECKEYPublicKey *pubk);
+
+/*
 ** Make a copy of the private key "privKey"
 */
 extern SECKEYPrivateKey *SECKEY_CopyPrivateKey(SECKEYPrivateKey *privKey);
