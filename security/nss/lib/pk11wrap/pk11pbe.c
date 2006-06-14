@@ -741,8 +741,8 @@ PK11_CreatePBEParams(SECItem *salt, SECItem *pwd, unsigned int iterations)
     if (!paramRV ) {
 	goto loser;
     }
-    PORT_Memcpy(paramRV->data, pbe_params, paramRV->len);
-
+	paramRV->data = (unsigned char*)pbe_params;
+	return paramRV;
 loser:
     if (pbe_params)
         pk11_destroy_ck_pbe_params(pbe_params);
