@@ -704,10 +704,10 @@ pk11_destroy_ck_pbe_params(CK_PBE_PARAMS *pbe_params)
 {
     if (pbe_params) {
 	if (pbe_params->pPassword)
-	    PORT_ZFree(pbe_params->pPassword, PR_FALSE);
+	    PORT_ZFree(pbe_params->pPassword, pbe_params->ulPasswordLen);
 	if (pbe_params->pSalt)
-	    PORT_ZFree(pbe_params->pSalt, PR_FALSE);
-	PORT_ZFree(pbe_params, PR_TRUE);
+	    PORT_ZFree(pbe_params->pSalt, pbe_params->ulSaltLen);
+	PORT_ZFree(pbe_params, sizeof(CK_PBE_PARAMS));
     }
 }
 
@@ -716,30 +716,49 @@ PK11_CreatePBEParams(SECItem *salt, SECItem *pwd, unsigned int iterations)
 {
     CK_PBE_PARAMS *pbe_params = NULL;
     SECItem *paramRV = NULL;
-    pbe_params = (CK_PBE_PARAMS *)PORT_ZAlloc(sizeof(CK_PBE_PARAMS));
-    pbe_params->pPassword = (CK_CHAR_PTR)PORT_ZAlloc(pwd->len);
-    if (pbe_params->pPassword != NULL) {
-	PORT_Memcpy(pbe_params->pPassword, pwd->data, pwd->len);
-	pbe_params->ulPasswordLen = pwd->len;
-    } else goto loser;
-    pbe_params->pSalt = (CK_CHAR_PTR)PORT_ZAlloc(salt->len);
-    if (pbe_params->pSalt != NULL) {
-	PORT_Memcpy(pbe_params->pSalt, salt->data, salt->len);
-	pbe_params->ulSaltLen = salt->len;
-    } else goto loser;
-    pbe_params->ulIteration = (CK_ULONG)iterations;
+
     paramRV = SECITEM_AllocItem(NULL, NULL, sizeof(CK_PBE_PARAMS));
-    paramRV->data = (unsigned char *)pbe_params;
+    if (!paramRV ) {
+	goto loser;
+    }
+    /* init paramRV->data with zeros. SECITEM_AllocItem does not do it */
+    PORT_Memset(paramRV->data, 0, sizeof(CK_PBE_PARAMS));
+
+    pbe_params = (CK_PBE_PARAMS *)paramRV->data;
+    pbe_params->pPassword = (CK_CHAR_PTR)PORT_ZAlloc(pwd->len);
+    if (!pbe_params->pPassword) {
+        goto loser;
+    }
+    PORT_Memcpy(pbe_params->pPassword, pwd->data, pwd->len);
+    pbe_params->ulPasswordLen = pwd->len;
+
+    pbe_params->pSalt = (CK_CHAR_PTR)PORT_ZAlloc(salt->len);
+    if (!pbe_params->pSalt) {
+	goto loser;
+    }
+    PORT_Memcpy(pbe_params->pSalt, salt->data, salt->len);
+    pbe_params->ulSaltLen = salt->len;
+
+    pbe_params->ulIteration = (CK_ULONG)iterations;
     return paramRV;
+
 loser:
-    pk11_destroy_ck_pbe_params(pbe_params);
+    if (pbe_params)
+        pk11_destroy_ck_pbe_params(pbe_params);
+    if (paramRV) 
+    	PORT_ZFree(paramRV, sizeof(SECItem));
     return NULL;
 }
 
 void
-PK11_DestroyPBEParams(SECItem *params)
+PK11_DestroyPBEParams(SECItem *pItem)
 {
-    pk11_destroy_ck_pbe_params((CK_PBE_PARAMS *)params->data);
+    if (pItem) {
+	CK_PBE_PARAMS * params = (CK_PBE_PARAMS *)(pItem->data);
+	if (params)
+	    pk11_destroy_ck_pbe_params(params);
+	PORT_ZFree(pItem, sizeof(SECItem));
+    }
 }
 
 SECAlgorithmID *
@@ -766,6 +785,9 @@ PK11_RawPBEKeyGen(PK11SlotInfo *slot, CK_MECHANISM_TYPE type, SECItem *mech,
     }
 
     pbe_params = (CK_PBE_PARAMS *)mech->data;
+    if (!pbe_params) {
+	return NULL;
+    }
     pbe_params->pPassword = (CK_CHAR_PTR)PORT_ZAlloc(pwitem->len);
     if(pbe_params->pPassword != NULL) {
 	PORT_Memcpy(pbe_params->pPassword, pwitem->data, pwitem->len);
