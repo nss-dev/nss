@@ -646,10 +646,10 @@ loser:
     if (db) {
 	(*db->close)(db);
     }
-    if (dbsp && dbsp->blobdir) {
-	PORT_Free(dbsp->blobdir);
-    }
     if (dbsp) {
+	if (dbsp->blobdir) {
+	    PORT_Free(dbsp->blobdir);
+	}
 	PORT_Free(dbsp);
     }
     return NULL;
