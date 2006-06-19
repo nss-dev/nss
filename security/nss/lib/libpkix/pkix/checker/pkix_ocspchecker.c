@@ -67,6 +67,7 @@ pkix_OcspChecker_Destroy(
         checker = (PKIX_OcspChecker *)object;
 
         PKIX_DECREF(checker->validityTime);
+        PKIX_DECREF(checker->cert);
 
         /* These are not yet ref-counted objects */
         /* PKIX_DECREF(checker->passwordInfo); */
@@ -137,7 +138,7 @@ pkix_OcspChecker_Check(
         PKIX_UInt32 *pResultCode,
         void *plContext)
 {
-        OCSP_ResultCode resultCode = OCSP_SUCCESS;
+        SECErrorCodes resultCode = 0;
         PKIX_Boolean uriFound = PKIX_FALSE;
         PKIX_Boolean passed = PKIX_FALSE;
         PKIX_OcspChecker *checker = NULL;
@@ -189,6 +190,7 @@ pkix_OcspChecker_Check(
         PKIX_CHECK(pkix_pl_OcspResponse_Create
                 (request,
                 checker->responder,
+                checker->verifyFcn,
                 &nbioContext,
                 &response,
                 plContext),
@@ -199,38 +201,33 @@ pkix_OcspChecker_Check(
                 goto cleanup;
         }
 
-        PKIX_CHECK(pkix_pl_OcspResponse_Decode(response, &passed, plContext),
+        PKIX_CHECK(pkix_pl_OcspResponse_Decode
+                (response, &passed, &resultCode, plContext),
                 "pkix_pl_OcspResponse_Decode failed");
                 
         if (passed == PKIX_FALSE) {
-                resultCode = OCSP_INVALIDRESPONSE;
                 goto cleanup;
         }
 
-        PKIX_CHECK(pkix_pl_OcspResponse_GetStatus(response, &passed, plContext),
+        PKIX_CHECK(pkix_pl_OcspResponse_GetStatus
+                (response, &passed, &resultCode, plContext),
                 "pkix_pl_OcspResponse_GetStatus returned an error");
                 
         if (passed == PKIX_FALSE) {
-                resultCode = OCSP_BADRESPONSESTATUS;
                 goto cleanup;
         }
 
         PKIX_CHECK(pkix_pl_OcspResponse_VerifySignature
-                (response, cert, &passed, plContext),
+                (response, cert, &passed, &resultCode, plContext),
                 "pkix_pl_OcspResponse_VerifySignature failed");
 
         if (passed == PKIX_FALSE) {
-                resultCode = OCSP_BADSIGNATURE;
                 goto cleanup;
         }
 
         PKIX_CHECK(pkix_pl_OcspResponse_GetStatusForCert
-                (response, &passed, plContext),
+                (response, &passed, &resultCode, plContext),
                 "pkix_pl_OcspResponse_GetStatusForCert failed");
-
-        if (passed == PKIX_FALSE) {
-                resultCode = OCSP_CERTREVOKED;
-        }
 
 cleanup:
         *pResultCode = (PKIX_UInt32)resultCode;
@@ -269,6 +266,9 @@ PKIX_OcspChecker_Create(
         /* initialize fields */
         PKIX_INCREF(validityTime);
         checkerObject->validityTime = validityTime;
+        checkerObject->clientIsDefault = PKIX_FALSE;
+        checkerObject->verifyFcn = NULL;
+        checkerObject->cert = NULL;
 
         /* These void*'s will need INCREFs if they become PKIX_PL_Objects */
         checkerObject->passwordInfo = passwordInfo;
@@ -284,6 +284,7 @@ PKIX_OcspChecker_Create(
 
         *pChecker = (PKIX_OcspChecker *)revChecker;
 cleanup:
+        PKIX_DECREF(checkerObject);
 
         PKIX_RETURN(OCSPCHECKER);
 

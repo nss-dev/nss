@@ -45,6 +45,8 @@
 #define _PKIX_PL_OCSPRESPONSE_H
 
 #include "pkix_pl_common.h"
+#include "hasht.h"
+#include "cryptohi.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -56,51 +58,16 @@ struct PKIX_PL_OcspResponseStruct{
         const SEC_HttpClientFcn *httpClient;
         SEC_HTTP_SERVER_SESSION serverSession;
         SEC_HTTP_REQUEST_SESSION requestSession;
-        /* Use name that differentiates this SECItem from encodedRequest */
+        PKIX_PL_OcspResponse_VerifyCallback verifyFcn;
         SECItem *encodedResponse;
-        CERTOCSPResponse *decoded; /* We don't deal with decodedRequest */
-        CERTCertificate *issuerCert;
-        CERTCertificate *signerCert;
-        CERTOCSPCertID *certID;
-        PKIX_Boolean clientIsDefault;
-        PKIX_PL_Date *validityTime;
         PRArenaPool *arena;
+        /* These are needed for CERT_GetOCSPStatusForCertID */
+        CERTOCSPResponse *decoded;
+        CERTOCSPCertID *certID;
+        CERTCertificate *signerCert;
 };
 
 /* see source file for function documentation */
-
-PKIX_Error *
-pkix_pl_OcspResponse_Create(
-        PKIX_PL_OcspRequest *request,
-        void *responder,
-        void **pNBIOContext,
-        PKIX_PL_OcspResponse **pResponse,
-        void *plContext);
-
-PKIX_Error *
-pkix_pl_OcspResponse_Decode(
-        PKIX_PL_OcspResponse *response,
-        PKIX_Boolean *pPassed,
-        void *plContext);
-
-PKIX_Error *
-pkix_pl_OcspResponse_GetStatus(
-        PKIX_PL_OcspResponse *response,
-        PKIX_Boolean *pPassed,
-        void *plContext);
-
-PKIX_Error *
-pkix_pl_OcspResponse_VerifySignature(
-        PKIX_PL_OcspResponse *response,
-        PKIX_PL_Cert *cert,
-        PKIX_Boolean *pPassed,
-        void *plContext);
-
-PKIX_Error *
-pkix_pl_OcspResponse_GetStatusForCert(
-        PKIX_PL_OcspResponse *response,
-        PKIX_Boolean *pPassed,
-        void *plContext);
 
 PKIX_Error *pkix_pl_OcspResponse_RegisterSelf(void *plContext);
 

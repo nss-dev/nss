@@ -2436,6 +2436,10 @@ PKIX_PL_AIAMgr_GetAIACerts(
         PKIX_List **pCerts,
         void *plContext);
 
+typedef PKIX_Error *
+(*PKIX_PL_OcspResponse_VerifyCallback)(
+        void *plContext);
+
 PKIX_Error *
 pkix_pl_OcspRequest_Create(
         PKIX_PL_Cert *cert,
@@ -2450,6 +2454,7 @@ PKIX_Error *
 pkix_pl_OcspResponse_Create(
 	PKIX_PL_OcspRequest *request,
 	void *responder,
+        PKIX_PL_OcspResponse_VerifyCallback verifyFcn,
 	void **pNBIOContext,
         PKIX_PL_OcspResponse **pResponse,
         void *plContext);
@@ -2458,12 +2463,14 @@ PKIX_Error *
 pkix_pl_OcspResponse_Decode(
         PKIX_PL_OcspResponse *response,
 	PKIX_Boolean *passed,
+        SECErrorCodes *pReturnCode,
         void *plContext);
 
 PKIX_Error *
 pkix_pl_OcspResponse_GetStatus(
         PKIX_PL_OcspResponse *response,
 	PKIX_Boolean *passed,
+        SECErrorCodes *pReturnCode,
         void *plContext);
 
 PKIX_Error *
@@ -2471,12 +2478,14 @@ pkix_pl_OcspResponse_VerifySignature(
         PKIX_PL_OcspResponse *response,
 	PKIX_PL_Cert *cert,
         PKIX_Boolean *pPassed,
+        SECErrorCodes *pReturnCode,
         void *plContext);
 
 PKIX_Error *
 pkix_pl_OcspResponse_GetStatusForCert(
         PKIX_PL_OcspResponse *response,
         PKIX_Boolean *pPassed,
+        SECErrorCodes *pReturnCode,
         void *plContext);
 
 #ifdef __cplusplus

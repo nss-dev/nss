@@ -891,7 +891,7 @@ pkix_CheckChain(
         void *plContext)
 {
         PKIX_UInt32 j = 0;
-        PKIX_UInt32 reasonCode = 0;
+        SECErrorCodes reasonCode = 0;
         PKIX_Boolean revChecking = PKIX_FALSE;
         PKIX_Error *checkCertError = NULL;
         void *nbioContext = NULL;
@@ -946,7 +946,7 @@ pkix_CheckChain(
                                 revCheckers,
                                 pCheckerIndex,
                                 &nbioContext,
-                                &reasonCode,
+                                (PKIX_UInt32 *)&reasonCode,
                                 plContext),
                                 "pkix_RevCheckCert failed");
 
@@ -958,15 +958,39 @@ pkix_CheckChain(
                         }
 
                         if (reasonCode != 0) {
-                                *pReasonCode = reasonCode;
-                                goto cleanup;
+                            *pReasonCode = (PKIX_UInt32)reasonCode;
+                            pkixErrorReceived = PKIX_TRUE;
+                            if (reasonCode ==
+                                SEC_ERROR_OCSP_INVALID_SIGNING_CERT) {
+                                    pkixErrorMsg =
+                                        "Invalid signing Cert in OCSP response";
+                            } else if (reasonCode ==
+                                SEC_ERROR_OCSP_UNKNOWN_RESPONSE_STATUS) {
+                                    pkixErrorMsg =
+                                        "Unable to find status in OCSP response";
+                            } else if (reasonCode ==
+                                SEC_ERROR_OCSP_MALFORMED_RESPONSE) {
+                                    pkixErrorMsg =
+                                        "Unable to parse OCSP response";
+                            } else if (reasonCode ==
+                                SEC_ERROR_REVOKED_CERTIFICATE_OCSP) {
+                                    pkixErrorMsg =
+                                        "OCSP response says Cert revoked";
+                            } else {
+                                    pkixErrorMsg =
+                                        "Cert rejected by revocation checker";
+                            }
+                            PKIX_ERROR_CREATE
+                                (VALIDATE, pkixErrorMsg, pkixErrorResult);
+                            goto cleanup;
                         }
 
                         revChecking = PKIX_FALSE;
                         *pCheckerIndex = 0;
                 }
 
-                PKIX_CHECK(pkix_AddToVerifyLog(cert, j, NULL, pVerifyTree, plContext),
+                PKIX_CHECK(pkix_AddToVerifyLog
+                        (cert, j, NULL, pVerifyTree, plContext),
                         "pkix_AddToVerifyLog failed");
                 PKIX_DECREF(cert);
         }
@@ -975,13 +999,12 @@ pkix_CheckChain(
                     (checkers, pFinalSubjPubKey, pPolicyTree, plContext),
                     "pkix_RetrieveOutputs failed");
 
-        *pReasonCode = reasonCode;
+        *pReasonCode = (PKIX_UInt32)reasonCode;
         *pNBIOContext = NULL;
 
 cleanup:
 
         if (PKIX_ERROR_RECEIVED) {
-                PKIX_INCREF(pkixErrorResult);
                 checkCertError = pkixErrorResult;
         }
 
@@ -1401,7 +1424,8 @@ PKIX_ValidateChain_NB(
         void *nbioContext = NULL;
 
         PKIX_ENTER(VALIDATE, "PKIX_ValidateChain_NB");
-        PKIX_NULLCHECK_FOUR(valParams, pCertIndex, pAnchorIndex, pCheckerIndex);
+        PKIX_NULLCHECK_FOUR
+                (valParams, pCertIndex, pAnchorIndex, pCheckerIndex);
         PKIX_NULLCHECK_FOUR(pRevChecking, pCheckers, pNBIOContext, pResult);
 
         nbioContext = *pNBIOContext;

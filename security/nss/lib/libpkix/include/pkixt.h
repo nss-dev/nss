@@ -47,6 +47,8 @@
 extern "C" {
 #endif
 
+#include "secerr.h"
+
 /* Types
  *
  * This header file provides typedefs for the abstract types used by libpkix.

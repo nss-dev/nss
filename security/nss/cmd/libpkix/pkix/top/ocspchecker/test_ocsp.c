@@ -152,6 +152,7 @@ cleanup:
         PKIX_TEST_DECREF_AC(certStore);
         PKIX_TEST_DECREF_AC(revCheckers);
         PKIX_TEST_DECREF_AC(ocspChecker);
+        PKIX_TEST_DECREF_AC(validity);
 
         PKIX_TEST_RETURN();
 
@@ -247,24 +248,42 @@ int main(int argc, char *argv[]){
 
         testDefaultCertStore(valParams, dirName);
 
-        if (testValid == PKIX_TRUE) {
-                PKIX_TEST_EXPECT_NO_ERROR(PKIX_ValidateChain
-                        (valParams, &valResult, &verifyTree, plContext));
-        } else {
-                PKIX_TEST_EXPECT_ERROR(PKIX_ValidateChain
-                        (valParams, &valResult, &verifyTree, plContext));
-        }
+        pkixTestErrorResult = PKIX_ValidateChain
+                (valParams, &valResult, &verifyTree, plContext);
 
-        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Object_ToString
-                ((PKIX_PL_Object*)verifyTree, &verifyString, plContext));
-        (void) printf("verifyTree is\n%s\n", verifyString->escAsciiString);
+
+        if (pkixTestErrorResult) {
+                if (testValid == PKIX_FALSE) { /* EE */
+                        (void) printf("EXPECTED ERROR RECEIVED!\n");
+                } else { /* ENE */
+                        testError("UNEXPECTED ERROR RECEIVED");
+                }
+                PKIX_TEST_DECREF_BC(pkixTestErrorResult);
+        } else {
+	        if (testValid == PKIX_TRUE) { /* ENE */
+        	        (void) printf("EXPECTED SUCCESSFUL VALIDATION!\n");
+	        } else { /* EE */
+        	        (void) printf("UNEXPECTED SUCCESSFUL VALIDATION!\n");
+	        }
+	}
+
+        subTest("Displaying VerifyTree");
+
+	if (verifyTree == NULL) {
+                (void) printf("VerifyTree is NULL\n");
+	} else {
+	        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Object_ToString
+        	    ((PKIX_PL_Object *)verifyTree, &verifyString, plContext));
+                (void) printf("verifyTree is\n%s\n",
+                    verifyString->escAsciiString);
+                PKIX_TEST_DECREF_BC(verifyString);
+                PKIX_TEST_DECREF_BC(verifyTree);
+	}
 
 cleanup:
 
-        PKIX_TEST_DECREF_AC(verifyString);
-        PKIX_TEST_DECREF_AC(verifyTree);
-        PKIX_TEST_DECREF_AC(chainCerts);
         PKIX_TEST_DECREF_AC(valParams);
+        PKIX_TEST_DECREF_AC(chainCerts);
         PKIX_TEST_DECREF_AC(valResult);
 
         PKIX_Shutdown(plContext);

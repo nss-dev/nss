@@ -50,19 +50,12 @@
 extern "C" {
 #endif
 
-typedef enum {
-        OCSP_SUCCESS = 0,
-        OCSP_INVALIDRESPONSE,
-        OCSP_BADRESPONSESTATUS,
-        OCSP_BADSIGNATURE,
-        OCSP_CERTREVOKED
-} OCSP_ResultCode;
-
 struct PKIX_OcspCheckerStruct {
         PKIX_PL_Date *validityTime;
         PKIX_Boolean clientIsDefault;
         void *passwordInfo;
         void *responder;
+        PKIX_PL_OcspResponse_VerifyCallback verifyFcn;
         void *nbioContext;
         PKIX_PL_Cert *cert;
 };

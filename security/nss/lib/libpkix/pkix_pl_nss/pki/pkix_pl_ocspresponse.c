@@ -41,6 +41,105 @@
 
 #include "pkix_pl_ocspresponse.h"
 
+/* ----Functions-lifted-from-ocsp.c------------------------------------- */
+/*
+ * The initial version of OcspResponse processing used a legacy routine,
+ * CERT_VerifyOCSPResponseSignature, to verify that the OCSP response was
+ * properly signed. That legacy routine has been moved here, to replace its
+ * call to CERT_VerifyCert with the libpkix version.
+ */
+
+/*
+ * The following structure is only used internally.  It is allocated when
+ * someone turns on OCSP checking, and hangs off of the status-configuration
+ * structure in the certdb structure.  We use it to keep configuration
+ * information specific to OCSP checking.
+ */
+typedef struct ocspCheckingContextStr {
+    PRBool useDefaultResponder;
+    char *defaultResponderURI;
+    char *defaultResponderNickname;
+    CERTCertificate *defaultResponderCert;
+} ocspCheckingContext;
+
+extern const SEC_ASN1Template ocsp_ResponseDataTemplate[];
+
+static PRBool
+ocsp_matchcert(SECItem *certIndex,CERTCertificate *testCert)
+{
+    SECItem item;
+    unsigned char buf[HASH_LENGTH_MAX];
+
+    item.data = buf;
+    item.len = SHA1_LENGTH;
+
+    if (CERT_SPKDigestValueForCert(NULL,testCert,SEC_OID_SHA1, &item) == NULL) {
+	return PR_FALSE;
+    }
+    if  (SECITEM_ItemsAreEqual(certIndex,&item)) {
+	return PR_TRUE;
+    }
+    if (CERT_SPKDigestValueForCert(NULL,testCert,SEC_OID_MD5, &item) == NULL) {
+	return PR_FALSE;
+    }
+    if  (SECITEM_ItemsAreEqual(certIndex,&item)) {
+	return PR_TRUE;
+    }
+    if (CERT_SPKDigestValueForCert(NULL,testCert,SEC_OID_MD2, &item) == NULL) {
+	return PR_FALSE;
+    }
+    if  (SECITEM_ItemsAreEqual(certIndex,&item)) {
+	return PR_TRUE;
+    }
+
+    return PR_FALSE;
+}
+
+/*
+ * Return true if the given signerCert is the default responder for
+ * the given certID.  If not, or if any error, return false.
+ */
+static CERTCertificate *
+ocsp_CertGetDefaultResponder(CERTCertDBHandle *handle,CERTOCSPCertID *certID)
+{
+    CERTStatusConfig *statusConfig;
+    ocspCheckingContext *ocspcx = NULL;
+
+    statusConfig = CERT_GetStatusConfig(handle);
+    if (statusConfig != NULL) {
+	ocspcx = statusConfig->statusContext;
+
+	/*
+	 * This is actually an internal error, because we should never
+	 * have a good statusConfig without a good statusContext, too.
+	 * For lack of anything better, though, we just assert and use
+	 * the same error as if there were no statusConfig (set below).
+	 */
+	PORT_Assert(ocspcx != NULL);
+    }
+
+    if (ocspcx == NULL) {
+	PORT_SetError(SEC_ERROR_OCSP_NOT_ENABLED);
+	goto loser;
+   }
+
+   /*
+    * Right now we have only one default responder.  It applies to
+    * all certs when it is used, so the check is simple and certID
+    * has no bearing on the answer.  Someday in the future we may
+    * allow configuration of different responders for different
+    * issuers, and then we would have to use the issuer specified
+    * in certID to determine if signerCert is the right one.
+    */
+    if (ocspcx->useDefaultResponder) {
+	PORT_Assert(ocspcx->defaultResponderCert != NULL);
+	return ocspcx->defaultResponderCert;
+    }
+
+loser:
+    return NULL;
+}
+
 /* --Private-OcspResponse-Functions------------------------------------- */
 
 /*
@@ -53,6 +152,7 @@ pkix_pl_OcspResponse_Destroy(
         void *plContext)
 {
         PKIX_PL_OcspResponse *ocspRsp = NULL;
+        const SEC_HttpClientFcn *httpClient = NULL;
         const SEC_HttpClientFcnV1 *hcv1 = NULL;
 
         PKIX_ENTER(OCSPRESPONSE, "pkix_pl_OcspResponse_Destroy");
@@ -63,46 +163,46 @@ pkix_pl_OcspResponse_Destroy(
 
         ocspRsp = (PKIX_PL_OcspResponse *)object;
 
-        PKIX_DECREF(ocspRsp->validityTime);
-
-        if (ocspRsp->issuerCert != NULL) {
-                PKIX_PL_NSSCALL(OCSPRESPONSE, CERT_DestroyCertificate,
-                        (ocspRsp->issuerCert));
-        }
-
-        if (ocspRsp->signerCert != NULL) {
-                PKIX_PL_NSSCALL(OCSPRESPONSE, CERT_DestroyCertificate,
-                        (ocspRsp->signerCert));
-        }
-
         if (ocspRsp->encodedResponse != NULL) {
                 PKIX_PL_NSSCALL(OCSPRESPONSE, SECITEM_FreeItem,
                         (ocspRsp->encodedResponse, PR_TRUE));
+                ocspRsp->encodedResponse = NULL;
         }
 
         if (ocspRsp->decoded != NULL) {
                 PKIX_PL_NSSCALL(OCSPRESPONSE, CERT_DestroyOCSPResponse,
                         (ocspRsp->decoded));
+                ocspRsp->decoded = NULL;
         }
 
-        hcv1 = (const SEC_HttpClientFcnV1 *)(ocspRsp->httpClient);
-
-        if (ocspRsp->requestSession != NULL) {
-                PKIX_PL_NSSCALL(OCSPRESPONSE, hcv1->freeFcn,
-                        (ocspRsp->requestSession));
+        if (ocspRsp->signerCert != NULL) {
+                PKIX_PL_NSSCALL(OCSPRESPONSE, CERT_DestroyCertificate,
+                        (ocspRsp->signerCert));
+                ocspRsp->signerCert = NULL;
         }
 
-        if (ocspRsp->serverSession != NULL) {
-                PKIX_PL_NSSCALL(OCSPRESPONSE, hcv1->freeSessionFcn,
-                        (ocspRsp->serverSession));
-        }
+        httpClient = (const SEC_HttpClientFcn *)(ocspRsp->httpClient);
 
-        if (ocspRsp->clientIsDefault == PKIX_FALSE) {
-                /* destroy ocspRsp->httpClient */
+        if (httpClient && (httpClient->version == 1)) {
+
+                hcv1 = &(httpClient->fcnTable.ftable1);
+
+                if (ocspRsp->requestSession != NULL) {
+                        PKIX_PL_NSSCALL(OCSPRESPONSE, hcv1->freeFcn,
+                                (ocspRsp->requestSession));
+                        ocspRsp->requestSession = NULL;
+                }
+
+                if (ocspRsp->serverSession != NULL) {
+                        PKIX_PL_NSSCALL(OCSPRESPONSE, hcv1->freeSessionFcn,
+                                (ocspRsp->serverSession));
+                        ocspRsp->serverSession = NULL;
+                }
         }
 
         if (ocspRsp->arena != NULL) {
                 PORT_FreeArena(ocspRsp->arena, PR_FALSE);
+                ocspRsp->arena = NULL;
         }
 
 cleanup:
@@ -144,7 +244,6 @@ pkix_pl_OcspResponse_Hashcode(
 cleanup:
 
         PKIX_RETURN(OCSPRESPONSE);
-
 }
 
 /*
@@ -273,12 +372,26 @@ pkix_pl_OcspResponse_RegisterSelf(void *plContext)
  *  occur; the caller should persist until a return occurs with NULL stored at
  *  "pNBIOContext".
  *
+ *  If a SEC_HttpClientFcn "responder" is supplied, it is used as the client
+ *  to which the OCSP query is sent. If none is supplied, the default responder
+ *  is used.
+ *
+ *  If an OcspResponse_VerifyCallback "verifyFcn" is supplied, it is used to
+ *  verify the Cert received from the responder as the signer. If none is
+ *  supplied, the default verification function is used.
+ *
  *  The contents of "request" are ignored on calls subsequent to a WOULDBLOCK
  *  return, and the caller is permitted to supply NULL.
  *
  * PARAMETERS
  *  "request"
  *      Address of the OcspRequest for which a response is desired.
+ *  "responder"
+ *      Address, if non-NULL, of the SEC_HttpClientFcn to be sent the OCSP
+ *      query.
+ *  "verifyFcn"
+ *      Address, if non-NULL, of the OcspResponse_VerifyCallback function to be
+ *      used to verify the Cert of the OCSP responder.
  *  "pNBIOContext"
  *      Address at which platform-dependent information is stored for handling
  *      of non-blocking I/O. Must be non-NULL.
@@ -297,6 +410,7 @@ PKIX_Error *
 pkix_pl_OcspResponse_Create(
         PKIX_PL_OcspRequest *request,
         void *responder,
+        PKIX_PL_OcspResponse_VerifyCallback verifyFcn,
         void **pNBIOContext,
         PKIX_PL_OcspResponse **pResponse,
         void *plContext)
@@ -316,7 +430,6 @@ pkix_pl_OcspResponse_Create(
         PRUint16 responseCode = 0;
         char *responseData = NULL;
         PRUint32 responseDataLen = 0;
-        PRArenaPool *arena = NULL;
 
         PKIX_ENTER(OCSPRESPONSE, "pkix_pl_OcspResponse_Create");
         PKIX_NULLCHECK_TWO(pNBIOContext, pResponse);
@@ -416,13 +529,11 @@ pkix_pl_OcspResponse_Create(
                         ocspResponse->httpClient = httpClient;
                         ocspResponse->serverSession = serverSession;
                         ocspResponse->requestSession = requestSession;
+                        ocspResponse->verifyFcn = verifyFcn;
                         ocspResponse->encodedResponse = NULL;
-                        ocspResponse->decoded = NULL;
-                        ocspResponse->issuerCert = NULL;
-                        ocspResponse->signerCert = NULL;
-                        ocspResponse->clientIsDefault = PKIX_FALSE;
-                        ocspResponse->validityTime = NULL;
                         ocspResponse->arena = NULL;
+                        ocspResponse->decoded = NULL;
+                        ocspResponse->signerCert = NULL;
 
                         PKIX_CHECK(pkix_pl_OcspRequest_GetCertID
                                 (request, &ocspResponse->certID, plContext),
@@ -460,20 +571,19 @@ pkix_pl_OcspResponse_Create(
                 }
 
 
-                PKIX_PL_NSSCALLRV(OCSPRESPONSE, arena, PORT_NewArena,
+                PKIX_PL_NSSCALLRV
+                        (OCSPRESPONSE, ocspResponse->arena, PORT_NewArena,
                         (DER_DEFAULT_CHUNKSIZE));
 
-                if (arena == NULL) {
+                if (ocspResponse->arena == NULL) {
                         PKIX_ERROR("Out of Memory");
                 }
-
-                ocspResponse->arena = arena;
 
                 PKIX_PL_NSSCALLRV
                         (OCSPRESPONSE,
                         ocspResponse->encodedResponse,
                         SECITEM_AllocItem,
-                        (arena, NULL, responseDataLen));
+                        (ocspResponse->arena, NULL, responseDataLen));
 
                 if (ocspResponse->encodedResponse == NULL) {
                         PKIX_ERROR("Out of Memory");
@@ -519,6 +629,8 @@ cleanup:
  *      be non-NULL.
  *  "pPassed"
  *      Address at which the Boolean result is stored. Must be non-NULL.
+ *  "pReturnCode"
+ *      Address at which the SECErrorCodes result is stored. Must be non-NULL.
  *  "plContext"
  *      Platform-specific context pointer.
  * THREAD SAFETY:
@@ -533,23 +645,25 @@ PKIX_Error *
 pkix_pl_OcspResponse_Decode(
         PKIX_PL_OcspResponse *response,
         PKIX_Boolean *pPassed,
+        SECErrorCodes *pReturnCode,
         void *plContext)
 {
-        CERTOCSPResponse *decoded = NULL;
 
         PKIX_ENTER(OCSPRESPONSE, "PKIX_PL_OcspResponse_Decode");
         PKIX_NULLCHECK_TWO(response, response->encodedResponse);
 
-        PKIX_PL_NSSCALLRV(OCSPRESPONSE, decoded, CERT_DecodeOCSPResponse,
+        PKIX_PL_NSSCALLRV
+                (OCSPRESPONSE, response->decoded, CERT_DecodeOCSPResponse,
                 (response->encodedResponse));
 
-        response->decoded = decoded;
-
-        /*
-         * If our caller wants better discrimination among the possible
-         * sources of error, we will need to query PORT_GetError.
-         */
-        *pPassed = ((decoded == NULL) ? PKIX_FALSE : PKIX_TRUE);
+	if (response->decoded != NULL) {
+                *pPassed = PKIX_TRUE;
+                *pReturnCode = 0;
+        } else {
+                *pPassed = PKIX_FALSE;
+                PKIX_PL_NSSCALLRV
+                        (OCSPRESPONSE, *pReturnCode, PORT_GetError, ());
+        }
 
         PKIX_RETURN(OCSPRESPONSE);
 }
@@ -582,17 +696,25 @@ PKIX_Error *
 pkix_pl_OcspResponse_GetStatus(
         PKIX_PL_OcspResponse *response,
         PKIX_Boolean *pPassed,
+        SECErrorCodes *pReturnCode,
         void *plContext)
 {
         SECStatus rv = SECFailure;
 
         PKIX_ENTER(OCSPRESPONSE, "PKIX_PL_OcspResponse_GetStatus");
-        PKIX_NULLCHECK_TWO(response, response->decoded);
+        PKIX_NULLCHECK_FOUR(response, response->decoded, pPassed, pReturnCode);
 
         PKIX_PL_NSSCALLRV(OCSPRESPONSE, rv, CERT_GetOCSPResponseStatus,
                 (response->decoded));
 
-        *pPassed = ((rv == SECSuccess) ? PKIX_TRUE : PKIX_FALSE );
+	if (rv == SECSuccess) {
+                *pPassed = PKIX_TRUE;
+                *pReturnCode = 0;
+        } else {
+                *pPassed = PKIX_FALSE;
+                PKIX_PL_NSSCALLRV
+                        (OCSPRESPONSE, *pReturnCode, PORT_GetError, ());
+        }
 
         PKIX_RETURN(OCSPRESPONSE);
 }
@@ -603,7 +725,8 @@ pkix_pl_OcspResponse_GetStatus(
  *
  *  This function verifies the ocspResponse signature field in the OcspResponse
  *  pointed to by "response", storing PKIX_TRUE at "pPassed" if verification
- *  is successful and PKIX_FALSE otherwise.
+ *  is successful and PKIX_FALSE otherwise. If verification is unsuccessful an
+ *  error code (an enumeration of type SECErrorCodes) is stored at *pReturnCode.
  *
  * PARAMETERS
  *  "response"
@@ -611,6 +734,8 @@ pkix_pl_OcspResponse_GetStatus(
  *      retrieved. Must be non-NULL.
  *  "pPassed"
  *      Address at which the Boolean result is stored. Must be non-NULL.
+ *  "pReturnCode"
+ *      Address at which the SECErrorCodes result is stored. Must be non-NULL.
  *  "plContext"
  *      Platform-specific context pointer.
  * THREAD SAFETY:
@@ -625,33 +750,302 @@ pkix_pl_OcspResponse_VerifySignature(
         PKIX_PL_OcspResponse *response,
         PKIX_PL_Cert *cert,
         PKIX_Boolean *pPassed,
+        SECErrorCodes *pReturnCode,
         void *plContext)
 {
+	PKIX_UInt32 certCount = 0;
+	PKIX_UInt32 i = 0;
         SECStatus rv = SECFailure;
+        CERTOCSPResponse *decoded = NULL;
+        ocspBasicOCSPResponse *basic = NULL;
+        ocspSignature *signature = NULL;
+        SECItem rawSignature;
+        ocspResponseData *tbsData = NULL;
+        SECItem *encodedTBS = NULL;
+        CERTCertificate *responder = NULL;
+        CERTCertificate **certs = NULL;
         CERTCertificate *issuerCert = NULL;
         CERTCertificate *signerCert = NULL;
+        SECKEYPublicKey *signerKey = NULL;
+        void *certIndex = NULL;
+        PKIX_Boolean byName = PKIX_FALSE;
+        int64 producedAt = 0;
+        CERTCertDBHandle *handle = NULL;
+	void *pwarg = NULL; /* must modify API if this can be non-NULL */
 
         PKIX_ENTER(OCSPRESPONSE, "pkix_pl_OcspResponse_VerifySignature");
-        PKIX_NULLCHECK_TWO(response, pPassed);
+        PKIX_NULLCHECK_FOUR(response, cert, pPassed, pReturnCode);
 
-        PKIX_NULLCHECK_ONE(cert);
+	*pReturnCode = 0; /* start out with the presumption of success */
 
-        PKIX_PL_NSSCALLRV(OCSPRESPONSE, issuerCert, CERT_FindCertIssuer, 
+        PKIX_PL_NSSCALLRV(OCSPRESPONSE, issuerCert, CERT_FindCertIssuer,
                 (cert->nssCert, PR_Now(), certUsageAnyCA));
 
-        response->issuerCert = issuerCert;
+	if (response->decoded == NULL) {
+		*pReturnCode = SEC_ERROR_OCSP_MALFORMED_RESPONSE;
+		goto cleanup;
+	}
 
-        PKIX_PL_NSSCALLRV
-                (OCSPRESPONSE, rv, CERT_VerifyOCSPResponseSignature, 
-                (response->decoded,
-                CERT_GetDefaultCertDB(), /* CERTCertDBHandle *handle */
-                NULL,                   /* void *pwArg */
-                &signerCert,
-                issuerCert));
+	decoded = response->decoded;
+        PKIX_NULLCHECK_ONE(decoded->responseBytes);
+        if (decoded->responseBytes->responseTypeTag
+		!= SEC_OID_PKIX_OCSP_BASIC_RESPONSE) {
+		*pReturnCode = SEC_ERROR_OCSP_UNKNOWN_RESPONSE_TYPE;
+		goto cleanup;
+	}
 
-        response->signerCert = signerCert;
+        basic = decoded->responseBytes->decodedResponse.basic;
+	if (basic == NULL) {
+		*pReturnCode = SEC_ERROR_OCSP_MALFORMED_RESPONSE;
+		goto cleanup;
+	}
 
-        *pPassed = ((rv == SECSuccess) ? PKIX_TRUE : PKIX_FALSE );
+
+        tbsData = basic->tbsResponseData;
+	signature = &(basic->responseSignature);
+
+	if ((tbsData == NULL) ||
+	    (tbsData->responderID == NULL)) {
+		*pReturnCode = SEC_ERROR_OCSP_MALFORMED_RESPONSE;
+		goto cleanup;
+	}
+
+        switch (tbsData->responderID->responderIDType) {
+            case ocspResponderID_byName:
+	        byName = PKIX_TRUE;
+                certIndex =
+                    &(tbsData->responderID->responderIDValue.name);
+                break;
+
+          case ocspResponderID_byKey:
+                byName = PKIX_FALSE;
+                certIndex = &(tbsData->responderID->responderIDValue.keyHash);
+                break;
+
+          case ocspResponderID_other:
+          default:
+		*pReturnCode = SEC_ERROR_OCSP_MALFORMED_RESPONSE;
+		goto cleanup;
+	}
+
+        /*
+         * We will also verify the signer certificate; we need to specify
+         * *when* that certificate must be valid -- for our purposes we expect
+         * it to be valid when the response was signed. The value of
+         * "producedAt" is the signing time.
+         */
+	PKIX_PL_NSSCALLRV(OCSPRESPONSE, rv, DER_GeneralizedTimeToTime,
+		(&producedAt, &(tbsData->producedAt)));
+        if (rv != SECSuccess) {
+		*pReturnCode = SEC_ERROR_OCSP_MALFORMED_RESPONSE;
+		goto cleanup;
+        }
+
+        /*
+         * If this signature has already gone through verification, just
+         * return the cached result.
+         */
+        if (signature->wasChecked) {
+                if (signature->status == SECSuccess) {
+	                signerCert = CERT_DupCertificate(signature->cert);
+                } else {
+	                *pReturnCode = signature->failureReason;
+			goto cleanup;
+	        }
+        }
+
+        /*
+         * If the signature contains some certificates as well, temporarily
+         * import them in case they are needed for verification.
+         *
+         * Note that the result of this is that each cert in "certs" needs
+         * to be destroyed.
+         */
+        certCount = 0;
+        if (signature->derCerts != NULL) {
+                for (; signature->derCerts[certCount] != NULL; certCount++) {
+                    /* just counting */
+                    /*IMPORT CERT TO SPKI TABLE */
+                }
+        }
+
+        PKIX_PL_NSSCALLRV(OCSPRESPONSE, handle, CERT_GetDefaultCertDB, ());
+
+        PKIX_PL_NSSCALLRV(OCSPRESPONSE, rv, CERT_ImportCerts,
+                (handle,
+                certUsageStatusResponder,
+                certCount,
+                signature->derCerts,
+                &certs,
+                PR_FALSE,
+                PR_FALSE,
+                NULL));
+        if (rv != SECSuccess) {
+                *pReturnCode = SEC_ERROR_OCSP_MALFORMED_RESPONSE;
+                goto cleanup;
+        }
+
+        /*
+         * Now look up the certificate that did the signing.
+         * The signer can be specified either by name or by key hash.
+         */
+        if (byName == PKIX_TRUE) {
+                SECItem *encodedName;
+
+                PKIX_PL_NSSCALLRV
+                        (OCSPRESPONSE, encodedName, SEC_ASN1EncodeItem,
+                        (NULL, NULL, certIndex, CERT_NameTemplate));
+                if (encodedName == NULL) {
+                        *pReturnCode = SEC_ERROR_OCSP_MALFORMED_RESPONSE;
+                        goto cleanup;
+                }
+
+                PKIX_PL_NSSCALLRV
+                        (OCSPRESPONSE, signerCert, CERT_FindCertByName,
+                        (handle, encodedName));
+                PKIX_PL_NSSCALL(OCSPRESPONSE, SECITEM_FreeItem,
+                        (encodedName, PR_TRUE));
+
+        } else {
+
+                /*
+                 * The signer is either 1) a known issuer CA we passed in,
+                 * 2) the default OCSP responder, or 3) an intermediate CA
+                 * passed in the cert list to use. Figure out which it is.
+                 */
+                PKIX_PL_NSSCALLRV
+                        (OCSPRESPONSE, responder, ocsp_CertGetDefaultResponder,
+                        (handle,NULL));
+                if (responder && ocsp_matchcert(certIndex, responder)) {
+                        signerCert = CERT_DupCertificate(responder);
+                } else if (issuerCert &&
+			ocsp_matchcert(certIndex, issuerCert)) {
+                        signerCert = CERT_DupCertificate(issuerCert);
+                } 
+                for (i=0; (signerCert == NULL) && (i < certCount); i++) {
+                        if (ocsp_matchcert(certIndex, certs[i])) {
+                                signerCert = CERT_DupCertificate(certs[i]);
+                        }
+                }
+        }
+
+        if (signerCert == NULL) {
+                *pReturnCode = SEC_ERROR_UNKNOWN_SIGNER;
+                goto cleanup;
+        }
+
+        /*
+         * We could mark this true at the top of this function, or always
+         * below at "finish", but if the problem was just that we could not
+         * find the signer's cert, leave that as if the signature hasn't
+         * been checked in case a subsequent call might have better luck.
+         */
+        signature->wasChecked = PR_TRUE;
+
+        /*
+         * Just because we have a cert does not mean it is any good; check
+         * it for validity, trust and usage. Use the caller-supplied
+         * verification function, if one was supplied.
+         */
+        if (response->verifyFcn != NULL) {
+                PKIX_CHECK((response->verifyFcn)(plContext),
+                        "Caller-supplied verifyFcn failed");
+        } else {
+
+                PKIX_PL_NSSCALLRV(OCSPRESPONSE, rv, CERT_VerifyCert,
+                        (handle,
+		        signerCert,
+        		PKIX_TRUE,
+	        	certUsageStatusResponder,
+		        producedAt,
+        		pwarg,
+	        	NULL));
+                if (rv != SECSuccess) {
+                        *pReturnCode = SEC_ERROR_OCSP_INVALID_SIGNING_CERT;
+                        goto cleanup;
+                }
+        }
+
+        /*
+         * Now get the public key from the signer's certificate; we need
+         * it to perform the verification.
+         */
+        PKIX_PL_NSSCALLRV(OCSPRESPONSE, signerKey, CERT_ExtractPublicKey,
+                (signerCert));
+        if (signerKey == NULL) {
+                *pReturnCode = SEC_ERROR_OCSP_INVALID_SIGNING_CERT;
+                goto cleanup;
+        }
+
+        /*
+         * Prepare the data to be verified; it needs to be DER encoded first.
+         */
+        PKIX_PL_NSSCALLRV(OCSPRESPONSE, encodedTBS, SEC_ASN1EncodeItem,
+                (NULL, NULL, tbsData, ocsp_ResponseDataTemplate));
+        if (encodedTBS == NULL) {
+                *pReturnCode = SEC_ERROR_OCSP_MALFORMED_RESPONSE;
+                goto cleanup;
+        }
+
+        /*
+         * We copy the signature data *pointer* and length, so that we can
+         * modify the length without damaging the original copy.  This is a
+         * simple copy, not a dup, so no destroy/free is necessary.
+         */
+
+        rawSignature = signature->signature;
+
+        /*
+         * The raw signature is a bit string, but we need to represent its
+         * length in bytes, because that is what the verify function expects.
+         * (Note: this is a macro, not a function call.)
+         */
+        DER_ConvertBitString(&rawSignature);
+
+        PKIX_PL_NSSCALLRV(OCSPRESPONSE, rv, VFY_VerifyData,
+                (encodedTBS->data,
+                encodedTBS->len,
+                signerKey,
+                &rawSignature,
+                SECOID_GetAlgorithmTag(&signature->signatureAlgorithm),
+                pwarg));
+
+cleanup:
+        if ((rv == SECSuccess) && (*pReturnCode == 0)) {
+                *pPassed = PKIX_TRUE;
+        } else {
+                *pPassed = PKIX_FALSE;
+        }
+
+        if (signature->wasChecked) {
+                signature->status = rv;
+        }
+
+        if (rv != SECSuccess) {
+                signature->failureReason = *pReturnCode;
+                if (signerCert != NULL) {
+                        CERT_DestroyCertificate(signerCert);
+                }
+        } else {
+                /*
+                 * Save signer's certificate in signature.
+                 */
+                signature->cert = signerCert;
+                response->signerCert = CERT_DupCertificate(signerCert);
+        }
+
+        if (encodedTBS != NULL) {
+                SECITEM_FreeItem(encodedTBS, PR_TRUE);
+        }
+
+        if (signerKey != NULL) {
+                SECKEY_DestroyPublicKey(signerKey);
+        }
+
+        if (certs != NULL) {
+                CERT_DestroyCertArray(certs, certCount);
+                /* Free CERTS from SPKDigest Table */
+        }
 
         PKIX_RETURN(OCSPRESPONSE);
 }
@@ -670,6 +1064,8 @@ pkix_pl_OcspResponse_VerifySignature(
  *      retrieved. Must be non-NULL.
  *  "pPassed"
  *      Address at which the Boolean result is stored. Must be non-NULL.
+ *  "pReturnCode"
+ *      Address at which the SECErrorCodes result is stored. Must be non-NULL.
  *  "plContext"
  *      Platform-specific context pointer.
  * THREAD SAFETY:
@@ -683,12 +1079,13 @@ PKIX_Error *
 pkix_pl_OcspResponse_GetStatusForCert(
         PKIX_PL_OcspResponse *response,
         PKIX_Boolean *pPassed,
+        SECErrorCodes *pReturnCode,
         void *plContext)
 {
         SECStatus rv = SECFailure;
 
         PKIX_ENTER(OCSPRESPONSE, "pkix_pl_OcspResponse_GetStatusForCert");
-        PKIX_NULLCHECK_TWO(response, pPassed);
+        PKIX_NULLCHECK_THREE(response, pPassed, pReturnCode);
 
         /*
          * It is an error to call this function except following a successful
@@ -704,7 +1101,14 @@ pkix_pl_OcspResponse_GetStatusForCert(
                 response->signerCert,
                 PR_Now()));
 
-        *pPassed = ((rv == SECSuccess) ? PKIX_TRUE : PKIX_FALSE );
+	if (rv == SECSuccess) {
+                *pPassed = PKIX_TRUE;
+                *pReturnCode = 0;
+        } else {
+                *pPassed = PKIX_FALSE;
+                PKIX_PL_NSSCALLRV
+                        (OCSPRESPONSE, *pReturnCode, PORT_GetError, ());
+        }
 
         PKIX_RETURN(OCSPRESPONSE);
 }
