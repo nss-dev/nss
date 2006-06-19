@@ -508,12 +508,10 @@ pkix_pl_HttpDefaultClient_Destroy(
                 client->POSTBuf = NULL;
         }
 
-#if 0
         if (client->rcvBuf != NULL) {
                 PKIX_PL_Free(client->rcvBuf, plContext);
                 client->rcvBuf = NULL;
         }
-#endif
 
         PKIX_DECREF(client->socket);
 
