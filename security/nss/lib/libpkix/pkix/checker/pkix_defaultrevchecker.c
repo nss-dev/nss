@@ -117,7 +117,9 @@ pkix_DefaultRevocationChecker_RegisterSelf(void *plContext)
  * FUNCTION: pkix_DefaultRevChecker_Create
  *
  * DESCRIPTION:
- *  This function uses XXX to create a
+ *  This function uses the List of certStores given by "certStores", the Date
+ *  given by "testDate", the PublicKey given by "trustedPubKey", and the number
+ *  of certs remaining in the chain given by "certsRemaining" to create a
  *  DefaultRevocationChecker, which is stored at "pRevChecker".
  *
  * PARAMETERS
