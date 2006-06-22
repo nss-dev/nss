@@ -2438,6 +2438,12 @@ PKIX_PL_AIAMgr_GetAIACerts(
 
 typedef PKIX_Error *
 (*PKIX_PL_OcspResponse_VerifyCallback)(
+        PKIX_PL_Cert *signerCert,
+        PKIX_PL_Date *producedAt,
+        void **pNBIOContext,
+        void **pState,
+        PKIX_BuildResult **pBuildResult,
+        PKIX_VerifyNode **pVerifyTree,
         void *plContext);
 
 PKIX_Error *
@@ -2447,36 +2453,36 @@ pkix_pl_OcspRequest_Create(
         PKIX_Boolean addServiceLocator,
         PKIX_PL_Cert *signerCert,
         PKIX_Boolean *pURIFound,
-	PKIX_PL_OcspRequest **pRequest,
+        PKIX_PL_OcspRequest **pRequest,
         void *plContext);
 
 PKIX_Error *
 pkix_pl_OcspResponse_Create(
-	PKIX_PL_OcspRequest *request,
-	void *responder,
+        PKIX_PL_OcspRequest *request,
+        void *responder,
         PKIX_PL_OcspResponse_VerifyCallback verifyFcn,
-	void **pNBIOContext,
+        void **pNBIOContext,
         PKIX_PL_OcspResponse **pResponse,
         void *plContext);
 
 PKIX_Error *
 pkix_pl_OcspResponse_Decode(
         PKIX_PL_OcspResponse *response,
-	PKIX_Boolean *passed,
+        PKIX_Boolean *passed,
         SECErrorCodes *pReturnCode,
         void *plContext);
 
 PKIX_Error *
 pkix_pl_OcspResponse_GetStatus(
         PKIX_PL_OcspResponse *response,
-	PKIX_Boolean *passed,
+        PKIX_Boolean *passed,
         SECErrorCodes *pReturnCode,
         void *plContext);
 
 PKIX_Error *
 pkix_pl_OcspResponse_VerifySignature(
         PKIX_PL_OcspResponse *response,
-	PKIX_PL_Cert *cert,
+        PKIX_PL_Cert *cert,
         PKIX_Boolean *pPassed,
         SECErrorCodes *pReturnCode,
         void *plContext);

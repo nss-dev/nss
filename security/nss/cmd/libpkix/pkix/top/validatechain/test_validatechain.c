@@ -97,7 +97,7 @@ testDefaultCertStore(PKIX_ValidateParams *valParams, char *crlDir)
         PKIX_ProcessingParams *procParams = NULL;
         PKIX_PL_Date *validity = NULL; 
         PKIX_List *revCheckers = NULL;
-        PKIX_OcspChecker *ocspChecker = NULL;
+        PKIX_RevocationChecker *ocspChecker = NULL;
 
         PKIX_TEST_STD_VARS();
 
@@ -132,7 +132,7 @@ testDefaultCertStore(PKIX_ValidateParams *valParams, char *crlDir)
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_Create(&revCheckers, plContext));
 
         /* create revChecker */
-        PKIX_TEST_EXPECT_NO_ERROR(PKIX_OcspChecker_Create
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_OcspChecker_Initialize
                 (validity,
                 NULL,        /* pwArg */
                 NULL,        /* Use default responder */

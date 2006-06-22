@@ -97,6 +97,8 @@ testDefaultCertStore(PKIX_ValidateParams *valParams, char *crlDir)
         PKIX_ProcessingParams *procParams = NULL;
         PKIX_PL_Date *validity = NULL; 
         PKIX_List *revCheckers = NULL;
+        PKIX_RevocationChecker *revChecker = NULL;
+	PKIX_PL_Object *revCheckerContext = NULL;
         PKIX_OcspChecker *ocspChecker = NULL;
 
         PKIX_TEST_STD_VARS();
@@ -132,15 +134,29 @@ testDefaultCertStore(PKIX_ValidateParams *valParams, char *crlDir)
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_Create(&revCheckers, plContext));
 
         /* create revChecker */
-        PKIX_TEST_EXPECT_NO_ERROR(PKIX_OcspChecker_Create
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_OcspChecker_Initialize
                 (validity,
                 NULL,        /* pwArg */
                 NULL,        /* Use default responder */
-                &ocspChecker,
+                &revChecker,
+                plContext));
+
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_RevocationChecker_GetRevCheckerContext
+                (revChecker, &revCheckerContext, plContext));
+
+        /* Check that this object is a ocsp checker */
+        PKIX_TEST_EXPECT_NO_ERROR(pkix_CheckType
+                    (revCheckerContext, PKIX_OCSPCHECKER_TYPE, plContext));
+
+        ocspChecker = (PKIX_OcspChecker *)revCheckerContext;
+
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_OcspChecker_SetVerifyFcn
+                (ocspChecker,
+                PKIX_PL_OcspResponse_UseBuildChain,
                 plContext));
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_AppendItem
-                (revCheckers, (PKIX_PL_Object *)ocspChecker, plContext));
+                (revCheckers, (PKIX_PL_Object *)revChecker, plContext));
 
         PKIX_TEST_EXPECT_NO_ERROR(PKIX_ProcessingParams_SetRevocationCheckers
                 (procParams, revCheckers, plContext));
@@ -151,6 +167,7 @@ cleanup:
         PKIX_TEST_DECREF_AC(procParams);
         PKIX_TEST_DECREF_AC(certStore);
         PKIX_TEST_DECREF_AC(revCheckers);
+        PKIX_TEST_DECREF_AC(revChecker);
         PKIX_TEST_DECREF_AC(ocspChecker);
         PKIX_TEST_DECREF_AC(validity);
 

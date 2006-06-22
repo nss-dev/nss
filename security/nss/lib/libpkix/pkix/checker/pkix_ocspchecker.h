@@ -65,11 +65,29 @@ struct PKIX_OcspCheckerStruct {
 PKIX_Error *pkix_OcspChecker_RegisterSelf(void *plContext);
 
 PKIX_Error *
-PKIX_OcspChecker_Create(
+PKIX_OcspChecker_SetPasswordInfo(
+        PKIX_OcspChecker *checker,
+        void *passwordInfo,
+        void *plContext);
+
+PKIX_Error *
+PKIX_OcspChecker_SetOCSPResponder(
+        PKIX_OcspChecker *checker,
+        void *ocspResponder,
+        void *plContext);
+
+PKIX_Error *
+PKIX_OcspChecker_SetVerifyFcn(
+        PKIX_OcspChecker *checker,
+        PKIX_PL_OcspResponse_VerifyCallback verifyFcn,
+        void *plContext);
+
+PKIX_Error *
+PKIX_OcspChecker_Initialize(
         PKIX_PL_Date *validityTime,
         void *passwordInfo,
         void *responder,
-        PKIX_OcspChecker **pChecker,
+        PKIX_RevocationChecker **pChecker,
         void *plContext);
 
 #ifdef __cplusplus

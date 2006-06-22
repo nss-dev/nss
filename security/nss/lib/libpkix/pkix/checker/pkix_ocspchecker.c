@@ -43,6 +43,7 @@
 
 #include "pkix_ocspchecker.h"
 
+
 /* --Private-Functions-------------------------------------------- */
 
 /*
@@ -186,7 +187,7 @@ pkix_OcspChecker_Check(
 
         }
 
-        /* send request and create response */
+        /* send request and create a response object */
         PKIX_CHECK(pkix_pl_OcspResponse_Create
                 (request,
                 checker->responder,
@@ -240,10 +241,10 @@ cleanup:
 }
 
 /*
- * FUNCTION: PKIX_OcspChecker_Create (see comments in pkix_checker.h)
+ * FUNCTION: pkix_OcspChecker_Create
  */
 PKIX_Error *
-PKIX_OcspChecker_Create(
+pkix_OcspChecker_Create(
         PKIX_PL_Date *validityTime,
         void *passwordInfo,
         void *responder,
@@ -253,7 +254,7 @@ PKIX_OcspChecker_Create(
         PKIX_OcspChecker *checkerObject = NULL;
         PKIX_RevocationChecker *revChecker = NULL;
 
-        PKIX_ENTER(OCSPCHECKER, "PKIX_OcspChecker_Create");
+        PKIX_ENTER(OCSPCHECKER, "pkix_OcspChecker_Create");
         PKIX_NULLCHECK_ONE(pChecker);
 
         PKIX_CHECK(PKIX_PL_Object_Alloc
@@ -275,16 +276,9 @@ PKIX_OcspChecker_Create(
         checkerObject->responder = responder;
         checkerObject->nbioContext = NULL;
 
-        PKIX_CHECK(PKIX_RevocationChecker_Create
-                (pkix_OcspChecker_Check,
-                (PKIX_PL_Object *)checkerObject,
-                &revChecker,
-                plContext),
-                "PKIX_RevocationChecker_Create failed");
+        *pChecker = checkerObject;
 
-        *pChecker = (PKIX_OcspChecker *)revChecker;
 cleanup:
-        PKIX_DECREF(checkerObject);
 
         PKIX_RETURN(OCSPCHECKER);
 
@@ -325,4 +319,54 @@ PKIX_OcspChecker_SetOCSPResponder(
 
         PKIX_RETURN(OCSPCHECKER);
 }
+
+/*
+ * FUNCTION: PKIX_OcspChecker_SetVerifyFcn
+ *      (see comments in pkix_checker.h)
+ */
+PKIX_Error *
+PKIX_OcspChecker_SetVerifyFcn(
+        PKIX_OcspChecker *checker,
+        PKIX_PL_OcspResponse_VerifyCallback verifyFcn,
+        void *plContext)
+{
+        PKIX_ENTER(OCSPCHECKER, "PKIX_OcspChecker_SetVerifyFcn");
+        PKIX_NULLCHECK_ONE(checker);
+
+        checker->verifyFcn = verifyFcn;
+
+        PKIX_RETURN(OCSPCHECKER);
+}
+
+PKIX_Error *
+PKIX_OcspChecker_Initialize(
+        PKIX_PL_Date *validityTime,
+        void *passwordInfo,
+        void *responder,
+        PKIX_RevocationChecker **pChecker,
+        void *plContext)
+{
+        PKIX_OcspChecker *oChecker = NULL;
+
+        PKIX_ENTER(OCSPCHECKER, "PKIX_OcspChecker_Initialize");
+        PKIX_NULLCHECK_ONE(pChecker);
+
+        PKIX_CHECK(pkix_OcspChecker_Create
+                (validityTime, passwordInfo, responder, &oChecker, plContext),
+                "PKIX_OcspChecker_Create failed");
+
+        PKIX_CHECK(PKIX_RevocationChecker_Create
+                (pkix_OcspChecker_Check,
+                (PKIX_PL_Object *)oChecker,
+                pChecker,
+                plContext),
+                "PKIX_RevocationChecker_Create failed");
+
+cleanup:
+
+        PKIX_DECREF(oChecker);
+
+        PKIX_RETURN(OCSPCHECKER);
+}
+
 

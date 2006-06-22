@@ -71,6 +71,16 @@ struct PKIX_PL_OcspResponseStruct{
 
 PKIX_Error *pkix_pl_OcspResponse_RegisterSelf(void *plContext);
 
+PKIX_Error *
+PKIX_PL_OcspResponse_UseBuildChain(
+        PKIX_PL_Cert *signerCert,
+	PKIX_PL_Date *producedAt,
+        void **pNBIOContext,
+        void **pState,
+        PKIX_BuildResult **pBuildResult,
+        PKIX_VerifyNode **pVerifyTree,
+	void *plContext);
+
 #ifdef __cplusplus
 }
 #endif
