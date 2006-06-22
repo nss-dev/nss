@@ -52,6 +52,10 @@ extern "C" {
 #endif
 
 /* see source file for function documentation */
+PKIX_Error *
+PKIX_PL_Pk11CertStore_Create(
+        PKIX_CertStore **pCertStore,
+        void *plContext);
 
 #ifdef __cplusplus
 }
