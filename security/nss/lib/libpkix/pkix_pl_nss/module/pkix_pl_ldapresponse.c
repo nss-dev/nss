@@ -313,8 +313,6 @@ pkix_pl_LdapResponse_RegisterSelf(void *plContext)
 
         systemClasses[PKIX_LDAPRESPONSE_TYPE] = entry;
 
-cleanup:
-
         PKIX_RETURN(LDAPRESPONSE);
 }
 
@@ -500,8 +498,6 @@ pkix_pl_LdapResponse_Append(
 
         *pBytesConsumed = bytesConsumed;
 
-cleanup:
-
         PKIX_RETURN(LDAPRESPONSE);
 }
 
@@ -548,8 +544,6 @@ pkix_pl_LdapResponse_IsComplete(
         } else {
                 *pIsComplete = PKIX_FALSE;
         }
-
-cleanup:
 
         PKIX_RETURN(LDAPRESPONSE);
 }
@@ -646,8 +640,6 @@ pkix_pl_LdapResponse_GetMessage(
 
         *pMessage = &response->decoded;
 
-cleanup:
-
         PKIX_RETURN(LDAPRESPONSE);
 }
 
@@ -687,8 +679,6 @@ pkix_pl_LdapResponse_GetCapacity(
 
         *pCapacity = response->totalLength - response->partialLength;
 
-cleanup:
-
         PKIX_RETURN(LDAPRESPONSE);
 }
 
@@ -724,8 +714,6 @@ pkix_pl_LdapResponse_GetMessageType(
         PKIX_NULLCHECK_TWO(response, pMessageType);
 
         *pMessageType = response->decoded.protocolOp.selector;
-
-cleanup:
 
         PKIX_RETURN(LDAPRESPONSE);
 }

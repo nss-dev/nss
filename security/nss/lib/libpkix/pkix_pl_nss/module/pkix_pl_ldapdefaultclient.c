@@ -2261,8 +2261,6 @@ pkix_pl_LdapDefaultClient_MakeAndFilter(
 
         *pFilter = andFilter;
 
-cleanup:
-
         PKIX_RETURN(CERTSTORE);
 
 }

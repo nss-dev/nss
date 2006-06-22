@@ -263,9 +263,9 @@ pkix_ProcessingParams_Hashcode(
         hash = (31 * ((31 * anchorsHash) + hintCertsHash + dateHash)) +
                 constraintsHash + initialHash + rejectedHash;
 
-        hash += certStoresHash + resourceLimitsHash << 7 +
+        hash += ((((certStoresHash + resourceLimitsHash) << 7) +
                 certChainCheckersHash + revCheckersHash +
-                (procParams->isCrlRevocationCheckingEnabled << 7);
+                procParams->isCrlRevocationCheckingEnabled) << 7);
 
         *pHashcode = hash;
 

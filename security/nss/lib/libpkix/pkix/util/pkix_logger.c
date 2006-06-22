@@ -497,8 +497,8 @@ pkix_Logger_Hashcode(
         PKIX_HASHCODE(logger->context, &tempHash, plContext,
                 "PKIX_PL_Object_Hashcode failed");
 
-        hash = ((((PKIX_UInt32) logger->callback + tempHash) << 7) +
-                logger->maxLevel << 7) + (PKIX_UInt32)logger->logComponent;
+        hash = (((((PKIX_UInt32) logger->callback + tempHash) << 7) +
+                logger->maxLevel) << 7) + (PKIX_UInt32)logger->logComponent;
 
         *pHashcode = hash;
 

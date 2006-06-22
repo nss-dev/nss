@@ -144,8 +144,8 @@ pkix_ResourceLimits_Hashcode(
 
         rLimits = (PKIX_ResourceLimits*)object;
 
-        hash = 31 * rLimits->maxTime + rLimits->maxFanout << 1 +
-                rLimits->maxDepth << 2 + rLimits->maxCertsNumber << 3 +
+        hash = 31 * rLimits->maxTime + (rLimits->maxFanout << 1) +
+                (rLimits->maxDepth << 2) + (rLimits->maxCertsNumber << 3) +
                 rLimits->maxCrlsNumber;
 
         *pHashcode = hash;

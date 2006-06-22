@@ -426,10 +426,7 @@ pkix_pl_LdapCertStore_DestroyAVAList(
                 currentNC++;
         }
 
-cleanup:
-
         PKIX_RETURN(CERTSTORE);
-
 }
 
 /*

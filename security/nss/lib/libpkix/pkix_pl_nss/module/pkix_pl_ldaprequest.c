@@ -134,7 +134,6 @@ pkix_pl_LdapRequest_AttrTypeToBit(
         }
 
         *pAttrBit = attrBit;
-cleanup:
 
         PKIX_RETURN(LDAPREQUEST);
 }
@@ -208,7 +207,6 @@ pkix_pl_LdapRequest_AttrStringToBit(
         }
 
         *pAttrBit = attrBit;
-cleanup:
 
         PKIX_RETURN(LDAPREQUEST);
 }
@@ -285,8 +283,6 @@ pkix_pl_LdapRequest_EncodeAttrs(
                 attrIndex++;
         }
         attrArray[attrIndex] = (SECItem *)NULL;
-
-cleanup:
 
         PKIX_RETURN(LDAPREQUEST);
 }

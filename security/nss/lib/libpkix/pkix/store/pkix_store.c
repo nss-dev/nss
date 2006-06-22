@@ -112,7 +112,7 @@ pkix_CertStore_Hashcode(
                      (PKIX_UInt32) certStore->certContinue +
                      (PKIX_UInt32) certStore->crlContinue +
                      (PKIX_UInt32) certStore->trustCallback +
-                     tempHash << 7;
+                     (tempHash << 7);
 
 cleanup:
 

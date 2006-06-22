@@ -986,8 +986,8 @@ pkix_pl_HttpDefaultClient_RecvBody(
 		/* We got something. Did we get it all? */
                 client->currentBytesAvailable += bytesRead;
 
-		if (client->bytesToRead > bytesRead) {
-                	client->bytesToRead -= bytesRead;
+		if (client->bytesToRead > (PKIX_UInt32)bytesRead) {
+                	client->bytesToRead -= (PKIX_UInt32)bytesRead;
 			*pKeepGoing = PKIX_TRUE;
 		} else {
 	                client->connectStatus = HTTP_COMPLETE;

@@ -143,8 +143,6 @@ pkix_pl_NssContext_GetCertUsage(
 
         *pCertUsage = nssContext->certificateUsage;
 
-cleanup:
-
         PKIX_RETURN(CONTEXT);
 }
 
@@ -179,8 +177,6 @@ pkix_pl_NssContext_SetCertUsage(
         PKIX_NULLCHECK_ONE(nssContext);
 
         nssContext->certificateUsage = certUsage;
-
-cleanup:
 
         PKIX_RETURN(CONTEXT);
 }
@@ -219,8 +215,6 @@ pkix_pl_NssContext_GetWincx(
 
         *pWincx = context->wincx;
 
-cleanup:
-
         PKIX_RETURN(CONTEXT);
 }
 
@@ -254,8 +248,6 @@ pkix_pl_NssContext_SetWincx(
         PKIX_NULLCHECK_ONE(nssContext);
 
         nssContext->wincx = wincx;
-
-cleanup:
 
         PKIX_RETURN(CONTEXT);
 }
