@@ -364,7 +364,7 @@ pkix_Error_Hashcode(
  * descriptive name for an error code. This is used by the default
  * PKIX_PL_Error_ToString function.
  *
- * Note: PKIX_ERRORNAMES is defined in pkixt.h as a list of error types.
+ * Note: PKIX_ERRORS is defined in pkixt.h as a list of error types.
  * (More precisely, as a list of invocations of ERRMACRO(type).) The
  * macro is expanded in pkixt.h to define error numbers, and here to
  * provide corresponding strings. For example, since the fifth ERRMACRO
