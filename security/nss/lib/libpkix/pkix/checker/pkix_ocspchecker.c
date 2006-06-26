@@ -135,6 +135,7 @@ static PKIX_Error *
 pkix_OcspChecker_Check(
         PKIX_PL_Object *checkerObject,
         PKIX_PL_Cert *cert,
+        PKIX_ProcessingParams *procParams,
         void **pNBIOContext,
         PKIX_UInt32 *pResultCode,
         void *plContext)
@@ -219,7 +220,7 @@ pkix_OcspChecker_Check(
         }
 
         PKIX_CHECK(pkix_pl_OcspResponse_VerifySignature
-                (response, cert, &passed, &resultCode, plContext),
+                (response, cert, procParams, &passed, &resultCode, plContext),
                 "pkix_pl_OcspResponse_VerifySignature failed");
 
         if (passed == PKIX_FALSE) {

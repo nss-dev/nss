@@ -2440,6 +2440,7 @@ typedef PKIX_Error *
 (*PKIX_PL_OcspResponse_VerifyCallback)(
         PKIX_PL_Cert *signerCert,
         PKIX_PL_Date *producedAt,
+        PKIX_ProcessingParams *procParams,
         void **pNBIOContext,
         void **pState,
         PKIX_BuildResult **pBuildResult,
@@ -2483,6 +2484,7 @@ PKIX_Error *
 pkix_pl_OcspResponse_VerifySignature(
         PKIX_PL_OcspResponse *response,
         PKIX_PL_Cert *cert,
+        PKIX_ProcessingParams *procParams,
         PKIX_Boolean *pPassed,
         SECErrorCodes *pReturnCode,
         void *plContext);

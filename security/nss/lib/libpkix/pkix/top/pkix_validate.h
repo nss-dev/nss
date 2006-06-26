@@ -56,6 +56,7 @@ pkix_CheckChain(
         PKIX_List *checkers,
         PKIX_List *revCheckers,
         PKIX_List *buildCheckedExtOIDs,
+        PKIX_ProcessingParams *procParams,
         PKIX_UInt32 *pCertCheckedIndex,
         PKIX_UInt32 *pCheckerIndex,
         PKIX_Boolean *pRevChecking,

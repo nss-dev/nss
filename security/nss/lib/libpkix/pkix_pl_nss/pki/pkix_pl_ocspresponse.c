@@ -149,26 +149,23 @@ PKIX_Error *
 PKIX_PL_OcspResponse_UseBuildChain(
         PKIX_PL_Cert *signerCert,
 	PKIX_PL_Date *producedAt,
+        PKIX_ProcessingParams *procParams,
         void **pNBIOContext,
         void **pState,
         PKIX_BuildResult **pBuildResult,
         PKIX_VerifyNode **pVerifyTree,
 	void *plContext)
 {
-        PKIX_List *anchorsList = NULL;
-        PKIX_List *certStores = NULL;
-        PKIX_List *revCheckers = NULL;
-        PKIX_ProcessingParams *procParams = NULL;
+        PKIX_ProcessingParams *caProcParams = NULL;
         PKIX_PL_Date *date = NULL;
         PKIX_ComCertSelParams *certSelParams = NULL;
         PKIX_CertSelector *certSelector = NULL;
-	PKIX_CertStore *certStore = NULL;
         void *state = NULL;
         void *nbioContext = NULL;
 	PKIX_Error *buildError = NULL;
 
         PKIX_ENTER(OCSPRESPONSE, "pkix_OcspResponse_UseBuildChain");
-        PKIX_NULLCHECK_THREE(signerCert, producedAt, pNBIOContext);
+        PKIX_NULLCHECK_FOUR(signerCert, producedAt, procParams, pNBIOContext);
         PKIX_NULLCHECK_THREE(pState, pBuildResult, pVerifyTree);
 
         nbioContext = *pNBIOContext;
@@ -177,89 +174,40 @@ PKIX_PL_OcspResponse_UseBuildChain(
         /* Are we resuming after a WOULDBLOCK return, or starting anew ? */
         if (nbioContext == NULL) {
                 /* Starting anew */
-		PKIX_CHECK(PKIX_List_Create(&anchorsList, plContext),
-        	        "PKIX_List_Create failed");
-
-		PKIX_CHECK(PKIX_ProcessingParams_Create
-        	        (anchorsList, &procParams, plContext),
-                	"PKIX_ProcessingParams_Create failed");
+		PKIX_CHECK(PKIX_PL_Object_Duplicate
+                        ((PKIX_PL_Object *)procParams,
+                        (PKIX_PL_Object **)&caProcParams,
+                        plContext),
+        	        "PKIX_PL_Object_Duplicate failed");
 
 		PKIX_CHECK(PKIX_ProcessingParams_SetDate(procParams, date, plContext),
 	                "PKIX_ProcessingParams_SetDate failed");
 
-		/*
-		 * Let's hope the default value used in PKIX_ProcessingParams_Create
-	         * is suitable. I don't see how to get a caller-supplied value in here.
-        	 *
-		 *  PKIX_CHECK(PKIX_ProcessingParams_SetRevocationEnabled
-        	 *          (procParams, isCrlEnabled, plContext),
-	         *          "PKIX_ProcessingParams_SetRevocationEnabled failed");
-        	 *
-	         */
-		 PKIX_CHECK(PKIX_ProcessingParams_SetRevocationEnabled
-        	         (procParams, PKIX_FALSE, plContext),
-	                 "PKIX_ProcessingParams_SetRevocationEnabled failed");
-
 	        /* create CertSelector with target certificate in params */
 
-	        PKIX_CHECK(PKIX_ComCertSelParams_Create(&certSelParams, plContext),
-        	        "PKIX_ComCertSelParams_Create failed");
+		PKIX_CHECK(PKIX_CertSelector_Create
+	                (NULL, NULL, &certSelector, plContext),
+	                "PKIX_CertSelector_Create failed");
+
+		PKIX_CHECK(PKIX_ComCertSelParams_Create
+	                (&certSelParams, plContext),
+	                "PKIX_ComCertSelParams_Create failed");
 
 	        PKIX_CHECK(PKIX_ComCertSelParams_SetCertificate
         	        (certSelParams, signerCert, plContext),
                 	"PKIX_ComCertSelParams_SetCertificate failed");
 
-	        PKIX_CHECK(PKIX_CertSelector_Create
-        	        (NULL, NULL, &certSelector, plContext),
-	                "PKIX_CertSelector_Create failed");
-
-		        PKIX_CHECK(PKIX_CertSelector_SetCommonCertSelectorParams
+	        PKIX_CHECK(PKIX_CertSelector_SetCommonCertSelectorParams
 	                (certSelector, certSelParams, plContext),
 	                "PKIX_CertSelector_SetCommonCertSelectorParams failed");
 
 	        PKIX_CHECK(PKIX_ProcessingParams_SetTargetCertConstraints
-        	        (procParams, certSelector, plContext),
+        	        (caProcParams, certSelector, plContext),
                 	"PKIX_ProcessingParams_SetTargetCertConstraints failed");
-
-	        /* create CertStores */
-
-	        PKIX_CHECK(PKIX_List_Create(&certStores, plContext),
-	                "PKIX_List_Create failed");
-
-	        PKIX_CHECK(PKIX_PL_Pk11CertStore_Create(&certStore, plContext),
-        	        "PKIX_PL_Pk11CertStore_Create failed");
-
-	        PKIX_CHECK(PKIX_List_AppendItem
-	                (certStores, (PKIX_PL_Object *)certStore, plContext),
-	                "PKIX_List_AppendItem failed");
-
-	        PKIX_CHECK(PKIX_ProcessingParams_SetCertStores
-	                (procParams, certStores, plContext),
-	                "PKIX_ProcessingParams_SetCertStores failed");
-
-	        /* create RevocationCheckers */
-
-	        /*
-	         * PKIX_CHECK(PKIX_List_Create(&revCheckers, plContext),
-	         *         "PKIX_List_Create failed");
-                 */
-
-	        /*
-	         * PKIX_CHECK(PKIX_List_AppendItem
-	         *         (revCheckers, (PKIX_PL_Object *)revChecker, plContext),
-	         *         "PKIX_List_AppendItem failed");
-                 */
-
-	        /*
-                 * PKIX_CHECK(PKIX_ProcessingParams_SetRevocationCheckers
-	         *         (procParams, revCheckers, plContext),
-	         *         "PKIX_ProcessingParams_SetRevocationCheckers failed");
-                 */
-
 	}
 
         buildError = PKIX_BuildChain
-                (procParams,
+                (caProcParams,
                 &nbioContext,
                 pState,
                 pBuildResult,
@@ -273,6 +221,7 @@ PKIX_PL_OcspResponse_UseBuildChain(
 
         /* no buildResult means the build has failed */
         } else if (buildError || (pBuildResult == NULL)) {
+                PKIX_DECREF(buildError);
                 PKIX_ERROR("Unable to build chain");
         } else {
                 PKIX_DECREF(*pState);
@@ -280,17 +229,12 @@ PKIX_PL_OcspResponse_UseBuildChain(
 
 cleanup:
 
-        PKIX_DECREF(procParams);
+        PKIX_DECREF(caProcParams);
         PKIX_DECREF(date);
-        PKIX_DECREF(anchorsList);
         PKIX_DECREF(certSelParams);
         PKIX_DECREF(certSelector);
-        PKIX_DECREF(certStores);
-        PKIX_DECREF(certStore);
-        PKIX_DECREF(revCheckers);
 
         PKIX_RETURN(OCSPRESPONSE);
-
 }
 
 /* --Private-OcspResponse-Functions------------------------------------- */
@@ -326,6 +270,7 @@ pkix_pl_OcspResponse_Destroy(
                 PKIX_PL_NSSCALL(OCSPRESPONSE, CERT_DestroyOCSPResponse,
                         (ocspRsp->decoded));
                 ocspRsp->decoded = NULL;
+                ocspRsp->signerCert = NULL;
         }
 
         if (ocspRsp->signerCert != NULL) {
@@ -902,6 +847,7 @@ PKIX_Error *
 pkix_pl_OcspResponse_VerifySignature(
         PKIX_PL_OcspResponse *response,
         PKIX_PL_Cert *cert,
+        PKIX_ProcessingParams *procParams,
         PKIX_Boolean *pPassed,
         SECErrorCodes *pReturnCode,
         void *plContext)
@@ -1119,11 +1065,16 @@ pkix_pl_OcspResponse_VerifySignature(
                 verifyError = (response->verifyFcn)
                         (targetCert,
                         producedAtDate,
+                        procParams,
 			&nbioContext,
 			&state,
 			&buildResult,
 			&verifyTree,
                         plContext);
+                PKIX_DECREF(verifyError);
+                PKIX_DECREF(verifyTree);
+                PKIX_DECREF(producedAtDate);
+	        PKIX_DECREF(targetCert);
         } else {
 
                 PKIX_PL_NSSCALLRV(OCSPRESPONSE, rv, CERT_VerifyCert,

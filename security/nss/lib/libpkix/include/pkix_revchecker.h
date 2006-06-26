@@ -144,6 +144,9 @@ extern "C" {
  *  "cert"
  *      Address of Cert whose revocation status is to be determined.
  *      Must be non-NULL.
+ *  "procParams"
+ *      Address of ProcessingParams used to initialize the checker.
+ *      Must be non-NULL.
  *  "pNBIOContext"
  *      Address at which platform-dependent non-blocking I/O context is stored.
  *      Must be non-NULL.
@@ -165,6 +168,7 @@ typedef PKIX_Error *
 (*PKIX_RevocationChecker_RevCallback)(
         PKIX_PL_Object *revCheckerContext,
         PKIX_PL_Cert *cert,
+        PKIX_ProcessingParams *procParams,
         void **pNBIOContext,
         PKIX_UInt32 *pResultCode,
         void *plContext);

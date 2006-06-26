@@ -179,6 +179,9 @@ cleanup:
 int main(int argc, char *argv[]){
 
         PKIX_ValidateParams *valParams = NULL;
+        PKIX_ProcessingParams *procParams = NULL;
+        PKIX_ComCertSelParams *certSelParams = NULL;
+        PKIX_CertSelector *certSelector = NULL;
         PKIX_ValidateResult *valResult = NULL;
         PKIX_UInt32 actualMinorVersion;
         PKIX_UInt32 j = 0;
@@ -190,6 +193,10 @@ int main(int argc, char *argv[]){
 	PKIX_VerifyNode *verifyTree = NULL;
 	PKIX_PL_String *verifyString = NULL;
         PKIX_PL_Cert *dirCert = NULL;
+        PKIX_PL_Cert *trustedCert = NULL;
+        PKIX_PL_Cert *targetCert = NULL;
+        PKIX_TrustAnchor *anchor = NULL;
+        PKIX_List *anchors = NULL;
         char *dirCertName = NULL;
         char *anchorCertName = NULL;
         char *dirName = NULL;
@@ -243,6 +250,12 @@ int main(int argc, char *argv[]){
 
                 dirCert = createCert(dirName, argv[5+k+j], plContext);
 
+                if (k == 0) {
+                        PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Object_IncRef
+                                ((PKIX_PL_Object *)dirCert, plContext));
+                        targetCert = dirCert;
+                }
+
                 PKIX_TEST_EXPECT_NO_ERROR
                         (PKIX_List_AppendItem
                         (chainCerts, (PKIX_PL_Object *)dirCert, plContext));
@@ -250,18 +263,45 @@ int main(int argc, char *argv[]){
                 PKIX_TEST_DECREF_BC(dirCert);
         }
 
-        valParams = createValidateParams
-                (dirName,
-                argv[4+j],
-                NULL,
-                NULL,
-                NULL,
-                PKIX_FALSE,
-                PKIX_FALSE,
-                PKIX_FALSE,
-                PKIX_FALSE,
-                chainCerts,
-                plContext);
+        /* create processing params with list of trust anchors */
+
+        anchorCertName = argv[4+j];
+        trustedCert = createCert(dirName, anchorCertName, plContext);
+
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_TrustAnchor_CreateWithCert
+                (trustedCert, &anchor, plContext));
+
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_List_Create(&anchors, plContext));
+
+        PKIX_TEST_EXPECT_NO_ERROR
+                (PKIX_List_AppendItem
+                (anchors, (PKIX_PL_Object *)anchor, plContext));
+
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_ProcessingParams_Create
+                (anchors, &procParams, plContext));
+
+        /* create CertSelector with target certificate in params */
+
+        PKIX_TEST_EXPECT_NO_ERROR
+                (PKIX_ComCertSelParams_Create(&certSelParams, plContext));
+
+        PKIX_TEST_EXPECT_NO_ERROR
+                (PKIX_ComCertSelParams_SetCertificate
+                (certSelParams, targetCert, plContext));
+
+        PKIX_TEST_EXPECT_NO_ERROR
+                (PKIX_CertSelector_Create
+                (NULL, NULL, &certSelector, plContext));
+
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_CertSelector_SetCommonCertSelectorParams
+                (certSelector, certSelParams, plContext));
+
+        PKIX_TEST_EXPECT_NO_ERROR
+                (PKIX_ProcessingParams_SetTargetCertConstraints
+                (procParams, certSelector, plContext));
+
+        PKIX_TEST_EXPECT_NO_ERROR(PKIX_ValidateParams_Create
+                (procParams, chainCerts, &valParams, plContext));
 
         testDefaultCertStore(valParams, dirName);
 
@@ -300,7 +340,14 @@ int main(int argc, char *argv[]){
 cleanup:
 
         PKIX_TEST_DECREF_AC(valParams);
+        PKIX_TEST_DECREF_AC(procParams);
+        PKIX_TEST_DECREF_AC(certSelParams);
+        PKIX_TEST_DECREF_AC(certSelector);
         PKIX_TEST_DECREF_AC(chainCerts);
+        PKIX_TEST_DECREF_AC(anchors);
+        PKIX_TEST_DECREF_AC(anchor);
+        PKIX_TEST_DECREF_AC(trustedCert);
+        PKIX_TEST_DECREF_AC(targetCert);
         PKIX_TEST_DECREF_AC(valResult);
 
         PKIX_Shutdown(plContext);

@@ -302,6 +302,9 @@ cleanup:
  *  "checkers"
  *      List of RevocationCheckers which must each validate the certificate.
  *      Must be non-NULL.
+ *  "procParams"
+ *      Address of ProcessingParams used to initialize the ExpirationChecker
+ *      and TargetCertChecker. Must be non-NULL.
  *  "pCheckerIndex"
  *      Address at which is stored the the index, within the List "checkers",
  *      of a checker whose processing was interrupted by non-blocking I/O.
@@ -321,10 +324,11 @@ cleanup:
  *  Returns a Validate Error if the function fails in a non-fatal way.
  *  Returns a Fatal Error if the function fails in an unrecoverable way.
  */
-PKIX_Error *
+static PKIX_Error *
 pkix_RevCheckCert(
         PKIX_PL_Cert *cert,
         PKIX_List *checkers,
+        PKIX_ProcessingParams *procParams,
         PKIX_UInt32 *pCheckerIndex,
         void **pNBIOContext,
         PKIX_UInt32 *pResultCode,
@@ -370,6 +374,7 @@ pkix_RevCheckCert(
                 PKIX_CHECK(revCheckerCheck
                         (checkerContext,
                         cert,
+                        procParams,
                         &nbioContext,
                         &resultCode,
                         plContext),
@@ -842,6 +847,9 @@ cleanup:
  *      chain, it is the list of critical extension OIDs that has been
  *      processed prior to validation. Extension OIDs that may be processed by
  *      user defined checker processes are also in the list. May be NULL.
+ *  "procParams"
+ *      Address of ProcessingParams used to initialize various checkers. Must
+ *      be non-NULL.
  *  "pCertCheckedIndex"
  *      Address where Int32 index to the Cert chain is obtained and
  *      returned. Must be non-NULL.
@@ -880,6 +888,7 @@ pkix_CheckChain(
         PKIX_List *checkers,
         PKIX_List *revCheckers,
         PKIX_List *removeCheckedExtOIDs,
+        PKIX_ProcessingParams *procParams,
         PKIX_UInt32 *pCertCheckedIndex,
         PKIX_UInt32 *pCheckerIndex,
         PKIX_Boolean *pRevChecking,
@@ -944,6 +953,7 @@ pkix_CheckChain(
                         PKIX_CHECK(pkix_RevCheckCert
                                 (cert,
                                 revCheckers,
+                                procParams,
                                 pCheckerIndex,
                                 &nbioContext,
                                 (PKIX_UInt32 *)&reasonCode,
@@ -1234,6 +1244,7 @@ PKIX_ValidateChain(
                         checkers,
                         revCheckers,
                         validateCheckedCritExtOIDsList,
+                        procParams,
                         &certCheckedIndex,
                         &checkerIndex,
                         &revChecking,
@@ -1501,6 +1512,7 @@ PKIX_ValidateChain_NB(
                         checkers,
                         revCheckers,
                         validateCheckedCritExtOIDsList,
+                        procParams,
                         &certIndex,
                         &checkerIndex,
                         &revChecking,

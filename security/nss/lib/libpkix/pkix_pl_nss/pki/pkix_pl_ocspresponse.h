@@ -75,6 +75,7 @@ PKIX_Error *
 PKIX_PL_OcspResponse_UseBuildChain(
         PKIX_PL_Cert *signerCert,
 	PKIX_PL_Date *producedAt,
+        PKIX_ProcessingParams *procParams,
         void **pNBIOContext,
         void **pState,
         PKIX_BuildResult **pBuildResult,

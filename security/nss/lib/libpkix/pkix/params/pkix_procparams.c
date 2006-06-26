@@ -396,6 +396,106 @@ cleanup:
 }
 
 /*
+ * FUNCTION: pkix_ProcessingParams_Duplicate
+ * (see comments for PKIX_PL_DuplicateCallback in pkix_pl_system.h)
+ */
+static PKIX_Error *
+pkix_ProcessingParams_Duplicate(
+        PKIX_PL_Object *object,
+        PKIX_PL_Object **pNewObject,
+        void *plContext)
+{
+        PKIX_ProcessingParams *params = NULL;
+        PKIX_ProcessingParams *paramsDuplicate = NULL;
+
+        PKIX_ENTER(PROCESSINGPARAMS, "pkix_ProcessingParams_Duplicate");
+        PKIX_NULLCHECK_TWO(object, pNewObject);
+
+        PKIX_CHECK(pkix_CheckType
+                (object, PKIX_PROCESSINGPARAMS_TYPE, plContext),
+                "Object is not a ProcessingParams");
+
+        params = (PKIX_ProcessingParams *)object;
+
+        PKIX_CHECK(PKIX_PL_Object_Alloc
+                (PKIX_PROCESSINGPARAMS_TYPE,
+                sizeof (PKIX_ProcessingParams),
+                (PKIX_PL_Object **)&paramsDuplicate,
+                plContext),
+                "Could not create ProcessingParams");
+
+        /* initialize fields */
+        PKIX_DUPLICATE
+                (params->trustAnchors,
+                &(paramsDuplicate->trustAnchors),
+                plContext,
+                "PKIX_PL_Object_Duplicate failed");
+
+        PKIX_DUPLICATE
+                (params->hintCerts, &(paramsDuplicate->hintCerts), plContext,
+                "PKIX_PL_Object_Duplicate failed");
+
+        PKIX_DUPLICATE
+                (params->constraints,
+                &(paramsDuplicate->constraints),
+                plContext,
+                "PKIX_PL_Object_Duplicate failed");
+
+        PKIX_DUPLICATE
+                (params->date, &(paramsDuplicate->date), plContext,
+                "PKIX_PL_Object_Duplicate failed");
+
+        PKIX_DUPLICATE
+                (params->initialPolicies,
+                &(paramsDuplicate->initialPolicies),
+                plContext,
+                "PKIX_PL_Object_Duplicate failed");
+
+        paramsDuplicate->initialPolicyMappingInhibit =
+                params->initialPolicyMappingInhibit;
+        paramsDuplicate->initialAnyPolicyInhibit =
+                params->initialAnyPolicyInhibit;
+        paramsDuplicate->initialExplicitPolicy = params->initialExplicitPolicy;
+        paramsDuplicate->qualifiersRejected = params->qualifiersRejected;
+
+        PKIX_DUPLICATE
+                (params->certChainCheckers,
+                &(paramsDuplicate->certChainCheckers),
+                plContext,
+                "PKIX_PL_Object_Duplicate failed");
+
+        PKIX_DUPLICATE
+                (params->revCheckers,
+                &(paramsDuplicate->revCheckers),
+                plContext,
+                "PKIX_PL_Object_Duplicate failed");
+
+        PKIX_DUPLICATE
+                (params->certStores, &(paramsDuplicate->certStores), plContext,
+                "PKIX_PL_Object_Duplicate failed");
+
+        PKIX_DUPLICATE
+                (params->resourceLimits,
+                &(paramsDuplicate->resourceLimits),
+                plContext,
+                "PKIX_PL_Object_Duplicate failed");
+
+        paramsDuplicate->isCrlRevocationCheckingEnabled =
+                params->isCrlRevocationCheckingEnabled;
+
+        *pNewObject = (PKIX_PL_Object *)paramsDuplicate;
+
+cleanup:
+
+        if (PKIX_ERROR_RECEIVED){
+                PKIX_DECREF(paramsDuplicate);
+        }
+
+        PKIX_RETURN(PROCESSINGPARAMS);
+
+}
+
+/*
  * FUNCTION: pkix_ProcessingParams_RegisterSelf
  * DESCRIPTION:
  *  Registers PKIX_PROCESSINGPARAMS_TYPE and its related functions with
@@ -421,7 +521,7 @@ pkix_ProcessingParams_RegisterSelf(void *plContext)
         entry.hashcodeFunction = pkix_ProcessingParams_Hashcode;
         entry.toStringFunction = pkix_ProcessingParams_ToString;
         entry.comparator = NULL;
-        entry.duplicateFunction = NULL; /* XXX should we have a duplicate */
+        entry.duplicateFunction = pkix_ProcessingParams_Duplicate;
 
         systemClasses[PKIX_PROCESSINGPARAMS_TYPE] = entry;
 

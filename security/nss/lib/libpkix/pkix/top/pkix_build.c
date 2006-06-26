@@ -1653,6 +1653,7 @@ pkix_Build_ValidateEntireChain(
                     state->checkerChain,
                     state->revCheckers,
                     state->checkedCritExtOIDs,
+                    state->buildConstants.procParams,
                     &state->certCheckedIndex,
                     &state->checkerIndex,
                     &state->revChecking,
@@ -3200,8 +3201,8 @@ pkix_BuildForwardDepthFirstSearch(
 
                         PKIX_DECREF(childTraversedSubjNames);
                         PKIX_DECREF(certSelParams);
-childState->verifyNode = verifyNode;
-verifyNode = NULL;
+                        childState->verifyNode = verifyNode;
+                        verifyNode = NULL;
                         state = childState; /* state->status == BUILD_INITIAL */
                         continue; /* with while (!outOfOptions) */
             }
