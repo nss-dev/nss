@@ -335,8 +335,8 @@ DB * rdbopen(const char *appName, const char *prefix,
     }
 
     /* get the entry points */
-    sftk_rdbstatusfunc = (rdbstatusfunc) PR_FindSymbol(lib,"rdbstatus");
-    sftk_rdbfunc = (rdbfunc) PR_FindSymbol(lib,"rdbopen");
+    sftk_rdbstatusfunc = (rdbstatusfunc) PR_FindFunctionSymbol(lib,"rdbstatus");
+    sftk_rdbfunc = (rdbfunc) PR_FindFunctionSymbol(lib,"rdbopen");
     if (sftk_rdbfunc) {
 	db = (*sftk_rdbfunc)(appName,prefix,type,rdbmapflags(flags));
 	if (!db && status && sftk_rdbstatusfunc) {

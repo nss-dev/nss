@@ -284,12 +284,12 @@ bl_LoadLibrary(const char *name)
     return lib;
 }
 
-static void *
+static PRFuncPtr
 bl_FindSymbol(BLLibrary *lib, const char *name)
 {
-    void *f;
+    PRFuncPtr f;
 
-    f = PR_FindSymbol(lib->dlh, name);
+    f = PR_FindFunctionSymbol(lib->dlh, name);
     return f;
 }
 
@@ -324,7 +324,7 @@ freebl_LoadDSO( void )
 
   handle = bl_LoadLibrary(name);
   if (handle) {
-    void * address = bl_FindSymbol(handle, "FREEBL_GetVector");
+    PRFuncPtr address = bl_FindSymbol(handle, "FREEBL_GetVector");
     if (address) {
       FREEBLGetVectorFn  * getVector = (FREEBLGetVectorFn *)address;
       const FREEBLVector * dsoVector = getVector();
