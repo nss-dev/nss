@@ -228,8 +228,14 @@ pkix_OcspChecker_Check(
                 procParams,
                 &passed,
                 &resultCode,
+		&nbioContext,
                 plContext),
                 "pkix_pl_OcspResponse_VerifySignature failed");
+
+       	if (nbioContext != 0) {
+               	*pNBIOContext = nbioContext;
+                goto cleanup;
+        }
 
         if (passed == PKIX_FALSE) {
                 goto cleanup;
