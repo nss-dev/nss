@@ -61,6 +61,10 @@ struct PKIX_PL_OcspResponseStruct{
         PKIX_PL_OcspResponse_VerifyCallback verifyFcn;
         SECItem *encodedResponse;
         PRArenaPool *arena;
+        CERTCertDBHandle *handle;
+        int64 producedAt;
+        PKIX_PL_Date *producedAtDate;
+        PKIX_PL_Cert *targetCert;
         /* These are needed for CERT_GetOCSPStatusForCertID */
         CERTOCSPResponse *decoded;
         CERTOCSPCertID *certID;

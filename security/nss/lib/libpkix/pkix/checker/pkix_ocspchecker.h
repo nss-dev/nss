@@ -51,6 +51,7 @@ extern "C" {
 #endif
 
 struct PKIX_OcspCheckerStruct {
+        PKIX_PL_OcspResponse *response;
         PKIX_PL_Date *validityTime;
         PKIX_Boolean clientIsDefault;
         void *passwordInfo;

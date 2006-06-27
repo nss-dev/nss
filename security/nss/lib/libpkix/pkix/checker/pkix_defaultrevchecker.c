@@ -195,10 +195,8 @@ cleanup:
  * FUNCTION: pkix_DefaultRevChecker_Check
  *
  * DESCRIPTION:
-#if 0
- *  Check if the Cert has been revoked based the CRLs data.  This function
+ *  Check if the Cert has been revoked based on the CRLs data.  This function
  *  maintains the checker state to be current.
-#endif
  *
  * PARAMETERS
  *  "checkerContext"
@@ -331,7 +329,6 @@ cleanup:
  *  Create a CertChainChecker with DefaultRevChecker.
  *
  * PARAMETERS
-#if 0
  *  "certStores"
  *      Address of CertStore List to be stored in state. Must be non-NULL.
  *  "testDate"
@@ -340,7 +337,6 @@ cleanup:
  *      Address of Public Key of Trust Anchor. Must be non-NULL.
  *  "certsRemaining"
  *      Number of certificates remaining in the chain.
-#endif
  *  "pChecker"
  *      Address where object pointer will be stored. Must be non-NULL.
  *      Must be non-NULL.

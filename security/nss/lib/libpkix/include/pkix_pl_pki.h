@@ -2487,6 +2487,7 @@ pkix_pl_OcspResponse_VerifySignature(
         PKIX_ProcessingParams *procParams,
         PKIX_Boolean *pPassed,
         SECErrorCodes *pReturnCode,
+        void **pNBIOContext,
         void *plContext);
 
 PKIX_Error *
