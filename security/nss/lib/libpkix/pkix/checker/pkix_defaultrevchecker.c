@@ -206,6 +206,14 @@ cleanup:
  *      Must be non-NULL.
  *  "cert"
  *      Address of Certificate that is to be validated. Must be non-NULL.
+ *  "procParams"
+ *      Address of ProcessingParams used to initialize the ExpirationChecker
+ *      and TargetCertChecker. Must be non-NULL.
+ *  "pNBIOContext"
+ *      Address at which platform-dependent non-blocking I/O context is stored.
+ *      Must be non-NULL.
+ *  "pResultCode"
+ *      Address where revocation status will be stored. Must be non-NULL.
  *  "plContext"
  *      Platform-specific context pointer.
  *
@@ -222,6 +230,7 @@ static PKIX_Error *
 pkix_DefaultRevChecker_Check(
         PKIX_PL_Object *checkerContext,
         PKIX_PL_Cert *cert,
+        PKIX_ProcessingParams *procParams,
         void **pNBIOContext,
         PKIX_UInt32 *pReasonCode,
         void *plContext)
