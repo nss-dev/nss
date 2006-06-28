@@ -165,8 +165,8 @@ PKIX_PL_OcspResponse_UseBuildChain(
 	PKIX_Error *buildError = NULL;
 
         PKIX_ENTER(OCSPRESPONSE, "pkix_OcspResponse_UseBuildChain");
-        PKIX_NULLCHECK_FOUR(signerCert, producedAt, procParams, pNBIOContext);
-        PKIX_NULLCHECK_THREE(pState, pBuildResult, pVerifyTree);
+        PKIX_NULLCHECK_THREE(signerCert, producedAt, procParams);
+        PKIX_NULLCHECK_THREE(pNBIOContext, pState, pBuildResult);
 
         nbioContext = *pNBIOContext;
         *pNBIOContext = NULL;
