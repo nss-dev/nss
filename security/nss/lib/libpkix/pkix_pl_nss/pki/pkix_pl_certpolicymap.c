@@ -86,7 +86,7 @@ pkix_pl_CertPolicyMap_Create(
                 sizeof (PKIX_PL_CertPolicyMap),
                 (PKIX_PL_Object **)&policyMap,
                 plContext),
-                "Could not create a CertPolicyMap object");
+                PKIX_COULDNOTCREATECERTPOLICYMAPOBJECT);
 
         PKIX_INCREF(issuerDomainPolicy);
         policyMap->issuerDomainPolicy = issuerDomainPolicy;
@@ -117,7 +117,7 @@ pkix_pl_CertPolicyMap_Destroy(
         PKIX_NULLCHECK_ONE(object);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_CERTPOLICYMAP_TYPE, plContext),
-                "Object is not a CertPolicyMap");
+                PKIX_OBJECTNOTCERTPOLICYMAP);
 
         certMap = (PKIX_PL_CertPolicyMap*)object;
 
@@ -150,7 +150,7 @@ pkix_pl_CertPolicyMap_ToString(
         PKIX_NULLCHECK_TWO(object, pString);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_CERTPOLICYMAP_TYPE, plContext),
-                "Object is not a CertPolicyMap");
+                PKIX_OBJECTNOTCERTPOLICYMAP);
 
         certMap = (PKIX_PL_CertPolicyMap *)object;
 
@@ -158,22 +158,22 @@ pkix_pl_CertPolicyMap_ToString(
                 (certMap->issuerDomainPolicy,
                 &issuerString,
                 plContext,
-                "PKIX_PL_Object_ToString failed");
+                PKIX_OBJECTTOSTRINGFAILED);
 
         PKIX_TOSTRING
                 (certMap->subjectDomainPolicy,
                 &subjectString,
                 plContext,
-                "PKIX_PL_Object_ToString failed");
+                PKIX_OBJECTTOSTRINGFAILED);
 
         /* Put them together in the form issuerPolicy=>subjectPolicy */
         PKIX_CHECK(PKIX_PL_String_Create
                 (PKIX_ESCASCII, "%s=>%s", 0, &format, plContext),
-                "Error in PKIX_PL_String_Create");
+                PKIX_ERRORINSTRINGCREATE);
 
         PKIX_CHECK(PKIX_PL_Sprintf
                 (&outString, plContext, format, issuerString, subjectString),
-                "Error in PKIX_PL_Sprintf");
+                PKIX_ERRORINSPRINTF);
 
         *pString = outString;
 
@@ -204,7 +204,7 @@ pkix_pl_CertPolicyMap_Hashcode(
         PKIX_NULLCHECK_TWO(object, pHashcode);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_CERTPOLICYMAP_TYPE, plContext),
-                "Object is not a CertPolicyMap");
+                PKIX_OBJECTNOTCERTPOLICYMAP);
 
         certMap = (PKIX_PL_CertPolicyMap *)object;
 
@@ -212,13 +212,13 @@ pkix_pl_CertPolicyMap_Hashcode(
                 (certMap->issuerDomainPolicy,
                 &issuerHash,
                 plContext,
-                "PKIX_PL_Object_Hashcode failed");
+                PKIX_OBJECTHASHCODEFAILED);
 
         PKIX_HASHCODE
                 (certMap->subjectDomainPolicy,
                 &subjectHash,
                 plContext,
-                "PKIX_PL_Object_Hashcode failed");
+                PKIX_OBJECTHASHCODEFAILED);
 
         *pHashcode = issuerHash*31 + subjectHash;
 
@@ -249,7 +249,7 @@ pkix_pl_CertPolicyMap_Equals(
         /* test that firstObject is a CertPolicyMap */
         PKIX_CHECK(pkix_CheckType
                 (firstObject, PKIX_CERTPOLICYMAP_TYPE, plContext),
-                "FirstObject argument is not a CertPolicyMap");
+                PKIX_FIRSTOBJECTNOTCERTPOLICYMAP);
 
         /*
          * Since we know firstObject is a CertPolicyMap,
@@ -266,7 +266,7 @@ pkix_pl_CertPolicyMap_Equals(
          */
         PKIX_CHECK(PKIX_PL_Object_GetType
                 (secondObject, &secondType, plContext),
-                "Could not get type of second argument");
+                PKIX_COULDNOTGETTYPEOFSECONDARGUMENT);
         if (secondType != PKIX_CERTPOLICYMAP_TYPE) {
                 *pResult = PKIX_FALSE;
                 goto cleanup;
@@ -280,7 +280,7 @@ pkix_pl_CertPolicyMap_Equals(
                 secondCertMap->issuerDomainPolicy,
                 &compare,
                 plContext,
-                "PKIX_PL_Object_Equals failed");
+                PKIX_OBJECTEQUALSFAILED);
 
         if (compare) {
                 PKIX_EQUALS
@@ -288,7 +288,7 @@ pkix_pl_CertPolicyMap_Equals(
                         secondCertMap->subjectDomainPolicy,
                         &compare,
                         plContext,
-                        "PKIX_PL_Object_Equals failed");
+                        PKIX_OBJECTEQUALSFAILED);
         }
 
         *pResult = compare;
@@ -317,7 +317,7 @@ pkix_pl_CertPolicyMap_Duplicate(
 
         PKIX_CHECK(pkix_CheckType
                 (object, PKIX_CERTPOLICYMAP_TYPE, plContext),
-                "object argument is not a PolicyMap");
+                PKIX_OBJECTARGUMENTNOTPOLICYMAP);
 
         original = (PKIX_PL_CertPolicyMap *)object;
 
@@ -326,7 +326,7 @@ pkix_pl_CertPolicyMap_Duplicate(
                 original->subjectDomainPolicy,
                 &copy,
                 plContext),
-                "pkix_pl_CertPolicyMap_Create failed");
+                PKIX_CERTPOLICYMAPCREATEFAILED);
 
         *pNewObject = (PKIX_PL_Object *)copy;
 

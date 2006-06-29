@@ -102,7 +102,7 @@ pkix_pl_CertNameConstraints_GetPermitted(
             if (nameConstraints->permittedList == NULL) {
 
                 PKIX_CHECK(PKIX_List_Create(&permittedList, plContext),
-                        "PKIX_List_Create failed");
+                        PKIX_LISTCREATEFAILED);
 
                 numItems = nameConstraints->numNssNameConstraints;
                 nssNameConstraintsList =
@@ -123,13 +123,13 @@ pkix_pl_CertNameConstraints_GetPermitted(
 
                             PKIX_CHECK(pkix_pl_GeneralName_Create
                                 (&nssPermitted->name, &name, plContext),
-                                "pkix_pl_GeneralName_Create failed");
+                                PKIX_GENERALNAMECREATEFAILED);
 
                             PKIX_CHECK(PKIX_List_AppendItem
                                 (permittedList,
                                 (PKIX_PL_Object *)name,
                                 plContext),
-                                "PKIX_List_AppendItem failed");
+                                PKIX_LISTAPPENDITEMFAILED);
 
                             PKIX_DECREF(name);
 
@@ -144,7 +144,7 @@ pkix_pl_CertNameConstraints_GetPermitted(
                 }
 
                 PKIX_CHECK(PKIX_List_SetImmutable(permittedList, plContext),
-                            "PKIX_List_SetImmutable failed");
+                            PKIX_LISTSETIMMUTABLEFAILED);
 
                 nameConstraints->permittedList = permittedList;
 
@@ -213,7 +213,7 @@ pkix_pl_CertNameConstraints_GetExcluded(
             if (nameConstraints->excludedList == NULL) {
 
                 PKIX_CHECK(PKIX_List_Create(&excludedList, plContext),
-                            "PKIX_List_Create failed");
+                            PKIX_LISTCREATEFAILED);
 
                 numItems = nameConstraints->numNssNameConstraints;
                 nssNameConstraintsList =
@@ -234,13 +234,13 @@ pkix_pl_CertNameConstraints_GetExcluded(
 
                             PKIX_CHECK(pkix_pl_GeneralName_Create
                                 (&nssExcluded->name, &name, plContext),
-                                "pkix_pl_GeneralName_Create failed");
+                                PKIX_GENERALNAMECREATEFAILED);
 
                             PKIX_CHECK(PKIX_List_AppendItem
                                 (excludedList,
                                 (PKIX_PL_Object *)name,
                                 plContext),
-                                "PKIX_List_AppendItem failed");
+                                PKIX_LISTAPPENDITEMFAILED);
 
                             PKIX_DECREF(name);
 
@@ -255,7 +255,7 @@ pkix_pl_CertNameConstraints_GetExcluded(
 
                 }
                 PKIX_CHECK(PKIX_List_SetImmutable(excludedList, plContext),
-                            "PKIX_List_SetImmutable failed");
+                            PKIX_LISTSETIMMUTABLEFAILED);
 
                 nameConstraints->excludedList = excludedList;
 
@@ -325,11 +325,11 @@ pkix_pl_CertNameConstraints_CheckNameSpaceNssNames(
         PKIX_CERTNAMECONSTRAINTS_DEBUG("\t\tCalling PORT_NewArena\n");
         arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
         if (arena == NULL) {
-                PKIX_ERROR("PORT_NewArena failed");
+                PKIX_ERROR(PKIX_PORTNEWARENAFAILED);
         }
 
         if (nssSubjectNames == NULL) {
-                PKIX_ERROR("CERT_GetCertificateNames return NULL");
+                PKIX_ERROR(PKIX_CERTGETCERTIFICATENAMESRETURNNULL);
         }
 
         nssMatchName = nssSubjectNames;
@@ -410,13 +410,13 @@ pkix_pl_CertNameConstraints_Destroy(
 
         PKIX_CHECK(pkix_CheckType
                 (object, PKIX_CERTNAMECONSTRAINTS_TYPE, plContext),
-                "Object is not a CertNameConstraints");
+                PKIX_OBJECTNOTCERTNAMECONSTRAINTS);
 
         nameConstraints = (PKIX_PL_CertNameConstraints *)object;
 
         PKIX_CHECK(PKIX_PL_Free
                     (nameConstraints->nssNameConstraintsList, plContext),
-                    "PKIX_PL_Free failed");
+                    PKIX_FREEFAILED);
 
         if (nameConstraints->arena){
                 PKIX_CERTNAMECONSTRAINTS_DEBUG
@@ -485,21 +485,21 @@ pkix_pl_CertNameConstraints_ToString_Helper(
                     0,
                     &formatString,
                     plContext),
-                    "PKIX_PL_String_Create failed");
+                    PKIX_STRINGCREATEFAILED);
 
         PKIX_CHECK(pkix_pl_CertNameConstraints_GetPermitted
                     (nameConstraints, &permittedList, plContext),
-                    "pkix_pl_CertNameConstraints_GetPermitted failed");
+                    PKIX_CERTNAMECONSTRAINTSGETPERMITTEDFAILED);
 
         PKIX_TOSTRING(permittedList, &permittedListString, plContext,
-                    "PKIX_List_ToString failed");
+                    PKIX_LISTTOSTRINGFAILED);
 
         PKIX_CHECK(pkix_pl_CertNameConstraints_GetExcluded
                     (nameConstraints, &excludedList, plContext),
-                    "pkix_pl_CertNameConstraints_GetExcluded failed");
+                    PKIX_CERTNAMECONSTRAINTSGETEXCLUDEDFAILED);
 
         PKIX_TOSTRING(excludedList, &excludedListString, plContext,
-                    "PKIX_List_ToString failed");
+                    PKIX_LISTTOSTRINGFAILED);
 
         PKIX_CHECK(PKIX_PL_Sprintf
                     (&nameConstraintsString,
@@ -507,7 +507,7 @@ pkix_pl_CertNameConstraints_ToString_Helper(
                     formatString,
                     permittedListString,
                     excludedListString),
-                    "PKIX_PL_Sprintf failed");
+                    PKIX_SPRINTFFAILED);
 
         *pString = nameConstraintsString;
 
@@ -540,13 +540,13 @@ pkix_pl_CertNameConstraints_ToString(
 
         PKIX_CHECK(pkix_CheckType(
                     object, PKIX_CERTNAMECONSTRAINTS_TYPE, plContext),
-                    "Object is not a CertNameConstraints");
+                    PKIX_OBJECTNOTCERTNAMECONSTRAINTS);
 
         nameConstraints = (PKIX_PL_CertNameConstraints *)object;
 
         PKIX_CHECK(pkix_pl_CertNameConstraints_ToString_Helper
                     (nameConstraints, &nameConstraintsString, plContext),
-                    "pkix_pl_CertNameConstraints_ToString_Helper failed");
+                    PKIX_CERTNAMECONSTRAINTSTOSTRINGHELPERFAILED);
 
         *pString = nameConstraintsString;
 
@@ -576,23 +576,23 @@ pkix_pl_CertNameConstraints_Hashcode(
 
         PKIX_CHECK(pkix_CheckType
                     (object, PKIX_CERTNAMECONSTRAINTS_TYPE, plContext),
-                    "Object is not a CertNameConstraints");
+                    PKIX_OBJECTNOTCERTNAMECONSTRAINTS);
 
         nameConstraints = (PKIX_PL_CertNameConstraints *)object;
 
         PKIX_CHECK(pkix_pl_CertNameConstraints_GetPermitted
                     (nameConstraints, &permittedList, plContext),
-                    "pkix_pl_CertNameConstraints_GetPermitted failed");
+                    PKIX_CERTNAMECONSTRAINTSGETPERMITTEDFAILED);
 
         PKIX_HASHCODE(permittedList, &permitHash, plContext,
-                    "PKIX_PL_Object_Hashcode failed");
+                    PKIX_OBJECTHASHCODEFAILED);
 
         PKIX_CHECK(pkix_pl_CertNameConstraints_GetExcluded
                     (nameConstraints, &excludedList, plContext),
-                    "pkix_pl_CertNameConstraints_GetExcluded failed");
+                    PKIX_CERTNAMECONSTRAINTSGETEXCLUDEDFAILED);
 
         PKIX_HASHCODE(excludedList, &excludeHash, plContext,
-                    "PKIX_PL_Object_Hashcode failed");
+                    PKIX_OBJECTHASHCODEFAILED);
 
         *pHashcode = (((permitHash << 7) + excludeHash) << 7) +
                 nameConstraints->numNssNameConstraints;
@@ -629,8 +629,8 @@ pkix_pl_CertNameConstraints_Equals(
 
         /* test that firstObject is a CertNameConstraints */
         PKIX_CHECK(pkix_CheckType
-                    (firstObject, PKIX_CERTNAMECONSTRAINTS_TYPE, plContext),
-                    "FirstObject argument is not a CertNameConstraints");
+                (firstObject, PKIX_CERTNAMECONSTRAINTS_TYPE, plContext),
+                PKIX_FIRSTOBJECTNOTCERTNAMECONSTRAINTS);
 
         firstNC = (PKIX_PL_CertNameConstraints *)firstObject;
         secondNC = (PKIX_PL_CertNameConstraints *)secondObject;
@@ -652,7 +652,7 @@ pkix_pl_CertNameConstraints_Equals(
 
         PKIX_CHECK(PKIX_PL_Object_GetType
                     ((PKIX_PL_Object *)secondNC, &secondType, plContext),
-                    "Could not get type of second argument");
+                    PKIX_COULDNOTGETTYPEOFSECONDARGUMENT);
 
         if (secondType != PKIX_CERTNAMECONSTRAINTS_TYPE) {
                 goto cleanup;
@@ -660,15 +660,15 @@ pkix_pl_CertNameConstraints_Equals(
 
         PKIX_CHECK(pkix_pl_CertNameConstraints_GetPermitted
                     (firstNC, &firstPermittedList, plContext),
-                    "pkix_pl_CertNameConstraints_GetPermitted failed");
+                    PKIX_CERTNAMECONSTRAINTSGETPERMITTEDFAILED);
 
         PKIX_CHECK(pkix_pl_CertNameConstraints_GetPermitted
                     (secondNC, &secondPermittedList, plContext),
-                    "pkix_pl_CertNameConstraints_GetPermitted failed");
+                    PKIX_CERTNAMECONSTRAINTSGETPERMITTEDFAILED);
 
         PKIX_EQUALS
                 (firstPermittedList, secondPermittedList, &cmpResult, plContext,
-                "PKIX_PL_Object_Equals failed");
+                PKIX_OBJECTEQUALSFAILED);
 
         if (cmpResult != PKIX_TRUE) {
                 goto cleanup;
@@ -676,15 +676,15 @@ pkix_pl_CertNameConstraints_Equals(
 
         PKIX_CHECK(pkix_pl_CertNameConstraints_GetExcluded
                     (firstNC, &firstExcludedList, plContext),
-                    "pkix_pl_CertNameConstraints_GetExcluded failed");
+                    PKIX_CERTNAMECONSTRAINTSGETEXCLUDEDFAILED);
 
         PKIX_CHECK(pkix_pl_CertNameConstraints_GetExcluded
                     (secondNC, &secondExcludedList, plContext),
-                    "pkix_pl_CertNameConstraints_GetExcluded failed");
+                    PKIX_CERTNAMECONSTRAINTSGETEXCLUDEDFAILED);
 
         PKIX_EQUALS
                 (firstExcludedList, secondExcludedList, &cmpResult, plContext,
-                "PKIX_PL_Object_Equals failed");
+                PKIX_OBJECTEQUALSFAILED);
 
         if (cmpResult != PKIX_TRUE) {
                 goto cleanup;
@@ -783,13 +783,13 @@ pkix_pl_CertNameConstraints_Create_Helper(
                     sizeof (PKIX_PL_CertNameConstraints),
                     (PKIX_PL_Object **)&nameConstraints,
                     plContext),
-                    "Could not create CertNameConstraints object");
+                    PKIX_COULDNOTCREATECERTNAMECONSTRAINTSOBJECT);
 
         PKIX_CHECK(PKIX_PL_Malloc
                     (sizeof (CERTNameConstraint *),
                     (void *)&nssNameConstraintPtr,
                     plContext),
-                    "PKIX_PL_Malloc failed");
+                    PKIX_MALLOCFAILED);
 
         nameConstraints->numNssNameConstraints = 1;
         nameConstraints->nssNameConstraintsList = nssNameConstraintPtr;
@@ -850,7 +850,7 @@ pkix_pl_CertNameConstraints_Create(
         PKIX_CERTNAMECONSTRAINTS_DEBUG("\t\tCalling PORT_NewArena).\n");
         arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
         if (arena == NULL) {
-                PKIX_ERROR("PORT_NewArena failed");
+                PKIX_ERROR(PKIX_PORTNEWARENAFAILED);
         }
 
         PKIX_CERTNAMECONSTRAINTS_DEBUG
@@ -859,7 +859,7 @@ pkix_pl_CertNameConstraints_Create(
                 (arena, nssCert, &nssNameConstraints);
 
         if (status != SECSuccess) {
-                PKIX_ERROR("Decoding Cert NameConstraints failed");
+                PKIX_ERROR(PKIX_DECODINGCERTNAMECONSTRAINTSFAILED);
         }
 
         if (nssNameConstraints == NULL) {
@@ -874,7 +874,7 @@ pkix_pl_CertNameConstraints_Create(
 
         PKIX_CHECK(pkix_pl_CertNameConstraints_Create_Helper
                     (nssNameConstraints, &nameConstraints, plContext),
-                    "pkix_pl_CertNameConstraints_Create_Helper failed");
+                    PKIX_CERTNAMECONSTRAINTSCREATEHELPERFAILED);
 
         nameConstraints->arena = arena;
 
@@ -932,13 +932,13 @@ pkix_pl_CertNameConstraints_CreateByMerge(
         PKIX_CERTNAMECONSTRAINTS_DEBUG("\t\tCalling PORT_NewArena).\n");
         arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
         if (arena == NULL) {
-                PKIX_ERROR("PORT_NewArena failed");
+                PKIX_ERROR(PKIX_PORTNEWARENAFAILED);
         }
 
         PKIX_CERTNAMECONSTRAINTS_DEBUG("\t\tCalling PORT_ArenaZNew).\n");
         nssNameConstraints = PORT_ArenaZNew(arena, CERTNameConstraints);
         if (nssNameConstraints == NULL) {
-                PKIX_ERROR("Allocate space for CERTNameConstraints failed");
+                PKIX_ERROR(PKIX_ALLOCATESPACEFORCERTNAMECONSTRAINTSFAILED);
         }
 
         nssNameConstraints->permited = NULL;
@@ -948,7 +948,7 @@ pkix_pl_CertNameConstraints_CreateByMerge(
 
         PKIX_CHECK(pkix_pl_CertNameConstraints_Create_Helper
                     (nssNameConstraints, &nameConstraints, plContext),
-                    "pkix_pl_CertNameConstraints_Create_Helper failed");
+                    PKIX_CERTNAMECONSTRAINTSCREATEHELPERFAILED);
 
         nameConstraints->arena = arena;
 
@@ -1015,7 +1015,7 @@ pkix_pl_CertNameConstraints_CopyNssNameConstraints(
         PKIX_CERTNAMECONSTRAINTS_DEBUG("\t\tCalling PORT_ArenaZNew).\n");
         nssNameConstraints = PORT_ArenaZNew(arena, CERTNameConstraints);
         if (nssNameConstraints == NULL) {
-                PKIX_ERROR("Allocate space for CERTNameConstraints failed");
+                PKIX_ERROR(PKIX_ALLOCATESPACEFORCERTNAMECONSTRAINTSFAILED);
         }
 
         if (srcNC->permited) {
@@ -1030,7 +1030,7 @@ pkix_pl_CertNameConstraints_CopyNssNameConstraints(
                 nssCopyTo = CERT_CopyNameConstraint
                         (arena, nssCopyTo, nssCopyFrom);
                 if (nssCopyTo == NULL) {
-                        PKIX_ERROR("CERT_CopyNameConstraint failed");
+                        PKIX_ERROR(PKIX_CERTCOPYNAMECONSTRAINTFAILED);
                 }
                 if (nssCurrent == NULL) {
                         nssCurrent = nssNameConstraintHead = nssCopyTo;
@@ -1069,7 +1069,7 @@ pkix_pl_CertNameConstraints_CopyNssNameConstraints(
                 nssCopyTo = CERT_CopyNameConstraint
                         (arena, nssCopyTo, nssCopyFrom);
                 if (nssCopyTo == NULL) {
-                        PKIX_ERROR("CERT_CopyNameConstraint failed");
+                        PKIX_ERROR(PKIX_CERTCOPYNAMECONSTRAINTFAILED);
                 }
                 if (nssCurrent == NULL) {
                         nssCurrent = nssNameConstraintHead = nssCopyTo;
@@ -1140,7 +1140,7 @@ pkix_pl_CertNameConstraints_Merge(
 
         PKIX_CHECK(pkix_pl_CertNameConstraints_CreateByMerge
                     (&nameConstraints, plContext),
-                    "pkix_pl_CertNameConstraints_CreateByMerge failed");
+                    PKIX_CERTNAMECONSTRAINTSCREATEBYMERGEFAILED);
 
         /* Merge NSSCertConstraint lists */
 
@@ -1150,14 +1150,14 @@ pkix_pl_CertNameConstraints_Merge(
         /* Free the default space (only one entry) allocated by create */
         PKIX_CHECK(PKIX_PL_Free
                     (nameConstraints->nssNameConstraintsList, plContext),
-                    "PKIX_PL_Free failed");
+                    PKIX_FREEFAILED);
 
         /* Reallocate the size we need */
         PKIX_CHECK(PKIX_PL_Malloc
                     (numNssItems * sizeof (CERTNameConstraint *),
                     (void *)&nssNCto,
                     plContext),
-                    "PKIX_PL_Malloc failed");
+                    PKIX_MALLOCFAILED);
 
         nameConstraints->nssNameConstraintsList = nssNCto;
 
@@ -1170,8 +1170,7 @@ pkix_pl_CertNameConstraints_Merge(
                         *nssNCfrom,
                         &nssNameConstraints,
                         plContext),
-                        "pkix_pl_CertNameConstraints_CopyNssNameConstraints"
-                        " failed");
+                        PKIX_CERTNAMECONSTRAINTSCOPYNSSNAMECONSTRAINTSFAILED);
 
                 *nssNCto = nssNameConstraints;
 
@@ -1188,8 +1187,7 @@ pkix_pl_CertNameConstraints_Merge(
                         *nssNCfrom,
                         &nssNameConstraints,
                         plContext),
-                        "pkix_pl_CertNameConstraints_CopyNssNameConstraints"
-                        " failed");
+                        PKIX_CERTNAMECONSTRAINTSCOPYNSSNAMECONSTRAINTSFAILED);
 
                 *nssNCto = nssNameConstraints;
 
@@ -1246,7 +1244,7 @@ PKIX_PL_CertNameConstraints_CheckNamesInNameSpace(
                 PKIX_CERTNAMECONSTRAINTS_DEBUG("\t\tCalling PORT_NewArena\n");
                 arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
                 if (arena == NULL) {
-                        PKIX_ERROR("PORT_NewArena failed");
+                        PKIX_ERROR(PKIX_PORTNEWARENAFAILED);
                 }
 
                 nssNameConstraintsList =
@@ -1256,7 +1254,7 @@ PKIX_PL_CertNameConstraints_CheckNamesInNameSpace(
 
                 PKIX_CHECK(PKIX_List_GetLength
                         (nameList, &numNameItems, plContext),
-                        "PKIX_List_GetLength failed");
+                        PKIX_LISTGETLENGTHFAILED);
 
                 for (i = 0; i < numNameItems; i++) {
 
@@ -1265,11 +1263,11 @@ PKIX_PL_CertNameConstraints_CheckNamesInNameSpace(
                                 i,
                                 (PKIX_PL_Object **) &name,
                                 plContext),
-                                "PKIX_List_GetItem failed");
+                                PKIX_LISTGETITEMFAILED);
 
                         PKIX_CHECK(pkix_pl_GeneralName_GetNssGeneralName
                                 (name, &nssMatchName, plContext),
-                                "pkix_pl_GeneralName_GetNssGeneralName failed");
+                                PKIX_GENERALNAMEGETNSSGENERALNAMEFAILED);
 
                         PKIX_DECREF(name);
 

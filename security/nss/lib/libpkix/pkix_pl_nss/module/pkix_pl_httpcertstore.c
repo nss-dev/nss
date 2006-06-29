@@ -99,7 +99,7 @@ pkix_pl_HttpCertStoreContext_Destroy(
 
         PKIX_CHECK(pkix_CheckType
                     (object, PKIX_HTTPCERTSTORECONTEXT_TYPE, plContext),
-                    "Object is not an HttpCertStoreContext");
+                    PKIX_OBJECTNOTANHTTPCERTSTORECONTEXT);
 
         context = (PKIX_PL_HttpCertStoreContext *)object;
 
@@ -726,13 +726,13 @@ pkix_pl_HttpCertStore_DecodeCertPackage
                 if ( seqLen || seqLenLen ) {
                         if ( certlen != ( seqLen + seqLenLen + 2 ) ) {
                             if (certlen > ( seqLen + seqLenLen + 2 )) {
-                                PKIX_ERROR("Too much data in DER Sequence");
+                                PKIX_ERROR(PKIX_TOOMUCHDATAINDERSEQUENCE);
                             } else {
-                                PKIX_ERROR("Too little data in DER Sequence");
+                                PKIX_ERROR(PKIX_TOOLITTLEDATAINDERSEQUENCE);
                             }
                         }
                 } else {
-                        PKIX_ERROR("Not a DER package");
+                        PKIX_ERROR(PKIX_NOTDERPACKAGE);
 		}
 
                 if ( cp[0] == SEC_ASN1_OBJECT_ID ) {
@@ -745,7 +745,7 @@ pkix_pl_HttpCertStore_DecodeCertPackage
 				(HTTPCERTSTORECONTEXT, oiddata, SECOID_FindOID,
 				(&oiditem));
             		if ( oiddata == NULL ) {
-				PKIX_ERROR("Unknown object OID");
+				PKIX_ERROR(PKIX_UNKNOWNOBJECTOID);
             		}
 
             		certitem.data = (unsigned char*)certbuf;
@@ -760,11 +760,11 @@ pkix_pl_HttpCertStore_DecodeCertPackage
 						(&certitem, f, arg));
 		                        if (rv != SECSuccess) {
                 	                    PKIX_ERROR
-						("SEC_ReadPKCS7Certs failed");
+						(PKIX_SECREADPKCS7CERTSFAILED);
 					}
                 		break;
               		default:
-				PKIX_ERROR("Unknown object OID");
+				PKIX_ERROR(PKIX_UNKNOWNOBJECTOID);
                       		break;
             		}
             
@@ -776,7 +776,7 @@ pkix_pl_HttpCertStore_DecodeCertPackage
 	        	rv = (* f)(arg, &pcertitem, 1);
                         if (rv != SECSuccess) {
                                 PKIX_ERROR
-				    ("CERTImportCertificate function failed");
+				    (PKIX_CERTIMPORTCERTIFICATEFUNCTIONFAILED);
 			}
                 }
         }
@@ -846,34 +846,34 @@ pkix_pl_HttpCertStore_ProcessCertResponse(
         PKIX_NULLCHECK_ONE(pCertList);
 
         if (responseCode != 200) {
-                PKIX_ERROR("Bad Http Response");
+                PKIX_ERROR(PKIX_BADHTTPRESPONSE);
         }
 
         /* check that response type is application/pkcs7-mime */
         if (responseContentType == NULL) {
-                PKIX_ERROR("No content type in Http Response");
+                PKIX_ERROR(PKIX_NOCONTENTTYPEINHTTPRESPONSE);
         }
 
         PKIX_PL_NSSCALLRV(HTTPCERTSTORECONTEXT, compareVal, PORT_Strcasecmp,
                 (responseContentType, "application/pkcs7-mime"));
 
         if (compareVal != 0) {
-                PKIX_ERROR("Content type is not application/pkcs7-mime");
+                PKIX_ERROR(PKIX_CONTENTTYPENOTPKCS7MIME);
         }
 
         PKIX_PL_NSSCALLRV(HTTPCERTSTORECONTEXT, arena, PORT_NewArena,
                 (DER_DEFAULT_CHUNKSIZE));
 
         if (arena == NULL) {
-                PKIX_ERROR("Out of Memory");
+                PKIX_ERROR(PKIX_OUTOFMEMORY);
         }
 
         if (responseData == NULL) {
-                PKIX_ERROR("No responseData in Http Response");
+                PKIX_ERROR(PKIX_NORESPONSEDATAINHTTPRESPONSE);
         }
 
         PKIX_CHECK(PKIX_List_Create(&certs, plContext),
-                "PKIX_List_Create failed");
+                PKIX_LISTCREATEFAILED);
 
         cbContext.pkixCertList = certs;
         cbContext.plContext = plContext;
@@ -885,7 +885,7 @@ pkix_pl_HttpCertStore_ProcessCertResponse(
                 certCallback,
                 &cbContext,
                 plContext),
-		"pkix_pl_HttpCertStore_DecodeCertPackage failed");
+		PKIX_HTTPCERTSTOREDECODECERTPACKAGEFAILED);
 
         *pCertList = cbContext.pkixCertList;
 
@@ -951,12 +951,12 @@ pkix_pl_HttpCertStore_ProcessCrlResponse(
         PKIX_NULLCHECK_ONE(pCrlList);
 
         if (responseCode != 200) {
-                PKIX_ERROR("Bad Http Response");
+                PKIX_ERROR(PKIX_BADHTTPRESPONSE);
         }
 
         /* check that response type is application/pkix-crl */
         if (responseContentType == NULL) {
-                PKIX_ERROR("No content type in Http Response");
+                PKIX_ERROR(PKIX_NOCONTENTTYPEINHTTPRESPONSE);
         }
 
         PKIX_PL_NSSCALLRV
@@ -964,7 +964,7 @@ pkix_pl_HttpCertStore_ProcessCrlResponse(
                 (responseContentType, "application/pkix-crl"));
 
         if (compareVal != 0) {
-                PKIX_ERROR("Content type is not application/pkix-crl");
+                PKIX_ERROR(PKIX_CONTENTTYPENOTPKIXCRL);
         }
 
         /* Make a SECItem of the response data */
@@ -972,11 +972,11 @@ pkix_pl_HttpCertStore_ProcessCrlResponse(
                 (DER_DEFAULT_CHUNKSIZE));
 
         if (arena == NULL) {
-                PKIX_ERROR("Out of Memory");
+                PKIX_ERROR(PKIX_OUTOFMEMORY);
         }
 
         if (responseData == NULL) {
-                PKIX_ERROR("No responseData in Http Response");
+                PKIX_ERROR(PKIX_NORESPONSEDATAINHTTPRESPONSE);
         }
 
         PKIX_PL_NSSCALLRV
@@ -984,18 +984,18 @@ pkix_pl_HttpCertStore_ProcessCrlResponse(
                 (arena, NULL, responseDataLen));
 
         if (encodedResponse == NULL) {
-                PKIX_ERROR("Out of Memory");
+                PKIX_ERROR(PKIX_OUTOFMEMORY);
         }
 
         PKIX_PL_NSSCALL(HTTPCERTSTORECONTEXT, PORT_Memcpy,
                 (encodedResponse->data, responseData, responseDataLen));
 
         PKIX_CHECK(PKIX_List_Create(&crls, plContext),
-                "PKIX_List_Create failed");
+                PKIX_LISTCREATEFAILED);
 
         PKIX_CHECK(pkix_pl_CRL_CreateToList
                 (encodedResponse, crls, plContext),
-                "pkix_pl_CRL_CreateToList failed");
+                PKIX_CRLCREATETOLISTFAILED);
 
         *pCrlList = crls;
 
@@ -1070,10 +1070,10 @@ pkix_pl_HttpCertStore_CreateRequestSession(
                         if (pathString != NULL) {
                                 PORT_Free(pathString);
                         }
-                        PKIX_ERROR("HTTP Server Error");
+                        PKIX_ERROR(PKIX_HTTPSERVERERROR);
                 }
         } else {
-                PKIX_ERROR("Unsupported version of Http Client");
+                PKIX_ERROR(PKIX_UNSUPPORTEDVERSIONOFHTTPCLIENT);
         }
 
 cleanup:
@@ -1112,14 +1112,14 @@ pkix_pl_HttpCertStore_GetCert(
 
         PKIX_CHECK(PKIX_CertStore_GetCertStoreContext
                 (store, (PKIX_PL_Object **)&context, plContext),
-                "PKIX_CertStore_GetCertStoreContext failed");
+                PKIX_CERTSTOREGETCERTSTORECONTEXTFAILED);
 
         if (context->client->version == 1) {
                 hcv1 = &(context->client->fcnTable.ftable1);
 
                 PKIX_CHECK(pkix_pl_HttpCertStore_CreateRequestSession
                         (context, plContext),
-                        "pkix_pl_HttpCertStore_CreateRequestSession failed");
+                        PKIX_HTTPCERTSTORECREATEREQUESTSESSIONFAILED);
 
                 PKIX_PL_NSSCALLRV
                         (HTTPCERTSTORECONTEXT, rv, hcv1->trySendAndReceiveFcn,
@@ -1132,7 +1132,7 @@ pkix_pl_HttpCertStore_GetCert(
                         &responseDataLen));
 
                 if (rv != SECSuccess) {
-                        PKIX_ERROR("HTTP Server Error");
+                        PKIX_ERROR(PKIX_HTTPSERVERERROR);
                 }
 
                 if (nbioContext != 0) {
@@ -1141,7 +1141,7 @@ pkix_pl_HttpCertStore_GetCert(
                 }
 
         } else {
-                PKIX_ERROR("Unsupported version of Http Client");
+                PKIX_ERROR(PKIX_UNSUPPORTEDVERSIONOFHTTPCLIENT);
         }
 
         PKIX_CHECK(pkix_pl_HttpCertStore_ProcessCertResponse
@@ -1151,7 +1151,7 @@ pkix_pl_HttpCertStore_GetCert(
                 responseDataLen,
                 &certList,
                 plContext),
-                "pkix_pl_HttpCertStore_ProcessCertResponse failed");
+                PKIX_HTTPCERTSTOREPROCESSCERTRESPONSEFAILED);
 
         *pCertList = certList;
 
@@ -1190,7 +1190,7 @@ pkix_pl_HttpCertStore_GetCertContinue(
 
         PKIX_CHECK(PKIX_CertStore_GetCertStoreContext
                 (store, (PKIX_PL_Object **)&context, plContext),
-                "PKIX_CertStore_GetCertStoreContext failed");
+                PKIX_CERTSTOREGETCERTSTORECONTEXTFAILED);
 
         if (context->client->version == 1) {
                 hcv1 = &(context->client->fcnTable.ftable1);
@@ -1208,7 +1208,7 @@ pkix_pl_HttpCertStore_GetCertContinue(
                         &responseDataLen));
 
                 if (rv != SECSuccess) {
-                        PKIX_ERROR("HTTP Server Error");
+                        PKIX_ERROR(PKIX_HTTPSERVERERROR);
                 }
 
                 if (nbioContext != 0) {
@@ -1217,7 +1217,7 @@ pkix_pl_HttpCertStore_GetCertContinue(
                 }
 
         } else {
-                PKIX_ERROR("Unsupported version of Http Client");
+                PKIX_ERROR(PKIX_UNSUPPORTEDVERSIONOFHTTPCLIENT);
         }
 
         PKIX_CHECK(pkix_pl_HttpCertStore_ProcessCertResponse
@@ -1227,7 +1227,7 @@ pkix_pl_HttpCertStore_GetCertContinue(
                 responseDataLen,
                 &certList,
                 plContext),
-                "pkix_pl_HttpCertStore_ProcessCertResponse failed");
+                PKIX_HTTPCERTSTOREPROCESSCERTRESPONSEFAILED);
 
         *pCertList = certList;
 
@@ -1267,14 +1267,14 @@ pkix_pl_HttpCertStore_GetCRL(
 
         PKIX_CHECK(PKIX_CertStore_GetCertStoreContext
                 (store, (PKIX_PL_Object **)&context, plContext),
-                "PKIX_CertStore_GetCertStoreContext failed");
+                PKIX_CERTSTOREGETCERTSTORECONTEXTFAILED);
 
         if (context->client->version == 1) {
                 hcv1 = &(context->client->fcnTable.ftable1);
 
                 PKIX_CHECK(pkix_pl_HttpCertStore_CreateRequestSession
                         (context, plContext),
-                        "pkix_pl_HttpCertStore_CreateRequestSession failed");
+                        PKIX_HTTPCERTSTORECREATEREQUESTSESSIONFAILED);
 
                 PKIX_PL_NSSCALLRV
                         (HTTPCERTSTORECONTEXT, rv, hcv1->trySendAndReceiveFcn,
@@ -1287,7 +1287,7 @@ pkix_pl_HttpCertStore_GetCRL(
                         &responseDataLen));
 
                 if (rv != SECSuccess) {
-                        PKIX_ERROR("HTTP Server Error");
+                        PKIX_ERROR(PKIX_HTTPSERVERERROR);
                 }
 
                 if (nbioContext != 0) {
@@ -1296,7 +1296,7 @@ pkix_pl_HttpCertStore_GetCRL(
                 }
 
         } else {
-                PKIX_ERROR("Unsupported version of Http Client");
+                PKIX_ERROR(PKIX_UNSUPPORTEDVERSIONOFHTTPCLIENT);
         }
 
         PKIX_CHECK(pkix_pl_HttpCertStore_ProcessCrlResponse
@@ -1306,7 +1306,7 @@ pkix_pl_HttpCertStore_GetCRL(
                 responseDataLen,
                 &crlList,
                 plContext),
-                "pkix_pl_HttpCertStore_ProcessCrlResponse failed");
+                PKIX_HTTPCERTSTOREPROCESSCRLRESPONSEFAILED);
 
         *pCrlList = crlList;
 
@@ -1345,14 +1345,14 @@ pkix_pl_HttpCertStore_GetCRLContinue(
 
         PKIX_CHECK(PKIX_CertStore_GetCertStoreContext
                 (store, (PKIX_PL_Object **)&context, plContext),
-                "PKIX_CertStore_GetCertStoreContext failed");
+                PKIX_CERTSTOREGETCERTSTORECONTEXTFAILED);
 
         if (context->client->version == 1) {
                 hcv1 = &(context->client->fcnTable.ftable1);
 
                 PKIX_CHECK(pkix_pl_HttpCertStore_CreateRequestSession
                         (context, plContext),
-                        "pkix_pl_HttpCertStore_CreateRequestSession failed");
+                        PKIX_HTTPCERTSTORECREATEREQUESTSESSIONFAILED);
 
                 PKIX_PL_NSSCALLRV
                         (HTTPCERTSTORECONTEXT, rv, hcv1->trySendAndReceiveFcn,
@@ -1365,7 +1365,7 @@ pkix_pl_HttpCertStore_GetCRLContinue(
                         &responseDataLen));
 
                 if (rv != SECSuccess) {
-                        PKIX_ERROR("HTTP Server Error");
+                        PKIX_ERROR(PKIX_HTTPSERVERERROR);
                 }
 
                 if (nbioContext != 0) {
@@ -1374,7 +1374,7 @@ pkix_pl_HttpCertStore_GetCRLContinue(
                 }
 
         } else {
-                PKIX_ERROR("Unsupported version of Http Client");
+                PKIX_ERROR(PKIX_UNSUPPORTEDVERSIONOFHTTPCLIENT);
         }
 
         PKIX_CHECK(pkix_pl_HttpCertStore_ProcessCrlResponse
@@ -1384,7 +1384,7 @@ pkix_pl_HttpCertStore_GetCRLContinue(
                 responseDataLen,
                 &crlList,
                 plContext),
-                "pkix_pl_HttpCertStore_ProcessCrlResponse failed");
+                PKIX_HTTPCERTSTOREPROCESSCRLRESPONSEFAILED);
 
         *pCrlList = crlList;
 
@@ -1443,7 +1443,7 @@ pkix_pl_HttpCertStore_CreateWithAsciiName(
         if (client == NULL) {
                 clientFcn = GetRegisteredHttpClient();
                 if (clientFcn == NULL) {
-                        PKIX_ERROR("No registered Http Client");
+                        PKIX_ERROR(PKIX_NOREGISTEREDHTTPCLIENT);
                 }
         } else {
                 clientFcn = (const SEC_HttpClientFcn *)client;
@@ -1455,7 +1455,7 @@ pkix_pl_HttpCertStore_CreateWithAsciiName(
                   sizeof (PKIX_PL_HttpCertStoreContext),
                   (PKIX_PL_Object **)&httpCertStore,
                   plContext),
-                  "Could not create object");
+                  PKIX_COULDNOTCREATEOBJECT);
 
         /* Initialize fields */
         httpCertStore->client = clientFcn; /* not a PKIX object! */
@@ -1465,7 +1465,7 @@ pkix_pl_HttpCertStore_CreateWithAsciiName(
                 (locationAscii, &hostname, &port, &path));
 
         if ((hostname == NULL) || (path == NULL)) {
-                PKIX_ERROR("URL Parsing failed");
+                PKIX_ERROR(PKIX_URLPARSINGFAILED);
         }
 
         httpCertStore->path = path;
@@ -1481,10 +1481,10 @@ pkix_pl_HttpCertStore_CreateWithAsciiName(
                         (hostname, port, &(httpCertStore->serverSession)));
 
                 if (rv != SECSuccess) {
-                        PKIX_ERROR("HttpClient->CreateSession failed");
+                        PKIX_ERROR(PKIX_HTTPCLIENTCREATESESSIONFAILED);
                 }
         } else {
-                PKIX_ERROR("Unsupported version of Http Client");
+                PKIX_ERROR(PKIX_UNSUPPORTEDVERSIONOFHTTPCLIENT);
         }
 
         httpCertStore->requestSession = NULL;
@@ -1500,7 +1500,7 @@ pkix_pl_HttpCertStore_CreateWithAsciiName(
                 PKIX_FALSE, /* not local */
                 &certStore,
                 plContext),
-                "PKIX_CertStore_Create failed");
+                PKIX_CERTSTORECREATEFAILED);
 
         *pCertStore = certStore;
 
@@ -1532,7 +1532,7 @@ PKIX_PL_HttpCertStore_Create(
         PKIX_NULLCHECK_TWO(location, pCertStore);
 
         PKIX_TOSTRING(location, &locationString, plContext,
-                "PKIX_PL_GeneralName_ToString failed");
+                PKIX_GENERALNAMETOSTRINGFAILED);
 
         PKIX_CHECK(PKIX_PL_String_GetEncoded
                 (locationString,
@@ -1540,11 +1540,11 @@ PKIX_PL_HttpCertStore_Create(
                 (void **)&locationAscii,
                 &len,
                 plContext),
-                "PKIX_PL_String_GetEncoded failed");
+                PKIX_STRINGGETENCODEDFAILED);
 
         PKIX_CHECK(pkix_pl_HttpCertStore_CreateWithAsciiName
                 (client, locationAscii, pCertStore, plContext),
-                "PKIX_PL_HttpCertStore_CreateWithAsciiName failed");
+                PKIX_HTTPCERTSTORECREATEWITHASCIINAMEFAILED);
 
 cleanup:
 
@@ -1611,7 +1611,7 @@ pkix_HttpCertStore_FindSocketConnection(
         /* create PKIX_PL_String from hostname and port */
         PKIX_CHECK(PKIX_PL_String_Create
                 (PKIX_ESCASCII, "%s:%d", 0, &formatString, plContext),
-                "PKIX_PL_String_Create failed");
+                PKIX_STRINGCREATEFAILED);
 
 #if 0
 hostname = "variation.red.iplanet.com";
@@ -1620,11 +1620,11 @@ portnum = 2001;
 
         PKIX_CHECK(PKIX_PL_String_Create
                 (PKIX_ESCASCII, hostname, 0, &hostString, plContext),
-                "PKIX_PL_String_Create failed");
+                PKIX_STRINGCREATEFAILED);
 
         PKIX_CHECK(PKIX_PL_Sprintf
                 (&domainString, plContext, formatString, hostString, portnum),
-                "PKIX_PL_String_Create failed");
+                PKIX_STRINGCREATEFAILED);
 
         /* Is this domainName already in cache? */
         PKIX_CHECK(PKIX_PL_HashTable_Lookup
@@ -1632,7 +1632,7 @@ portnum = 2001;
                 (PKIX_PL_Object *)domainString,
                 (PKIX_PL_Object **)&socket,
                 plContext),
-                "PKIX_PL_HashTable_Lookup failed");
+                PKIX_HASHTABLELOOKUPFAILED);
 
         if (socket == NULL) {
 
@@ -1645,14 +1645,14 @@ portnum = 2001;
                         pStatus,
                         &socket,
                         plContext),
-                        "pkix_pl_Socket_CreateByHostAndPort failed");
+                        PKIX_SOCKETCREATEBYHOSTANDPORTFAILED);
 
                 PKIX_CHECK(PKIX_PL_HashTable_Add
                         (httpSocketCache,
                         (PKIX_PL_Object *)domainString,
                         (PKIX_PL_Object *)socket,
                         plContext),
-                        "PKIX_PL_HashTable_Add failed");
+                        PKIX_HASHTABLEADDFAILED);
 
         }
 

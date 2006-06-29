@@ -61,7 +61,7 @@ pkix_SignatureCheckerState_Destroy(
         /* Check that this object is a signature checker state */
         PKIX_CHECK(pkix_CheckType
                     (object, PKIX_SIGNATURECHECKERSTATE_TYPE, plContext),
-                    "Object is not a signature checker state");
+                    PKIX_OBJECTNOTSIGNATURECHECKERSTATE);
 
         state = (pkix_SignatureCheckerState *) object;
 
@@ -155,14 +155,14 @@ pkix_SignatureCheckerState_Create(
                     (PKIX_CERTKEYUSAGE_OID,
                     &keyUsageOID,
                     plContext),
-                    "PKIX_PL_OID_Create failed");
+                    PKIX_OIDCREATEFAILED);
 
         PKIX_CHECK(PKIX_PL_Object_Alloc
                     (PKIX_SIGNATURECHECKERSTATE_TYPE,
                     sizeof (pkix_SignatureCheckerState),
                     (PKIX_PL_Object **)&state,
                     plContext),
-                    "Could not create SignatureCheckerState object");
+                    PKIX_COULDNOTCREATESIGNATURECHECKERSTATEOBJECT);
 
         /* Initialize fields */
 
@@ -217,7 +217,7 @@ pkix_SignatureChecker_Check(
 
         PKIX_CHECK(PKIX_CertChainChecker_GetCertChainCheckerState
                     (checker, (PKIX_PL_Object **)&state, plContext),
-                    "PKIX_CertChainChecker_GetCertChainCheckerState failed");
+                    PKIX_CERTCHAINCHECKERGETCERTCHAINCHECKERSTATEFAILED);
 
         (state->certsRemaining)--;
 
@@ -231,8 +231,7 @@ pkix_SignatureChecker_Check(
          */
         if (state->prevCertCertSign == PKIX_FALSE &&
                 state->prevPublicKeyList == NULL) {
-                    PKIX_ERROR("Validation failed: "
-                            "KeyUsage KeyCertSign bit is not on");
+                    PKIX_ERROR(PKIX_KEYUSAGEKEYCERTSIGNBITNOTON);
         }
 
         /* Previous Cert is valid for signature verification, try it first */
@@ -279,7 +278,7 @@ pkix_SignatureChecker_Check(
                 /* Verify from keys on the list */
                 PKIX_CHECK(PKIX_List_GetLength
                         (state->prevPublicKeyList, &numKeys, plContext),
-                        "PKIX_List_GetLength failed");
+                        PKIX_LISTGETLENGTHFAILED);
 
                 for (i = numKeys - 1; i >= 0; i--) {
 
@@ -288,7 +287,7 @@ pkix_SignatureChecker_Check(
                                 i,
                                 (PKIX_PL_Object **) &pKey,
                                 plContext),
-                                "PKIX_List_GetItem failed");
+                                PKIX_LISTGETITEMFAILED);
 
                         verifyFail = PKIX_PL_Cert_VerifySignature
                                 (cert, pKey, plContext);
@@ -307,7 +306,7 @@ pkix_SignatureChecker_Check(
 #endif
 
         if (certVerified == PKIX_FALSE) {
-                PKIX_ERROR("Validation failed: Cert Signature checking");
+                PKIX_ERROR(PKIX_VALIDATIONFAILEDCERTSIGNATURECHECKING);
         }
 
 #ifdef NIST_TEST_4_5_4_AND_4_5_6
@@ -316,7 +315,7 @@ pkix_SignatureChecker_Check(
          * conjunction to the new key, for verifying CERT validity later.
          */
         PKIX_CHECK(pkix_IsCertSelfIssued(cert, &selfIssued, plContext),
-                    "pkix_IsCertSelfIssue failed");
+                    PKIX_ISCERTSELFISSUEFAILED);
 
         /*
          * Check if Cert is self-issued. If so, the public key of the Cert
@@ -336,7 +335,7 @@ pkix_SignatureChecker_Check(
 
                         PKIX_CHECK(PKIX_List_Create
                                 (&state->prevPublicKeyList, plContext),
-                                "PKIX_List_Create falied");
+                                PKIX_LISTCREATEFALIED);
 
                 }
 
@@ -344,7 +343,7 @@ pkix_SignatureChecker_Check(
                             (state->prevPublicKeyList,
                             (PKIX_PL_Object *) state->prevPublicKey,
                             plContext),
-                            "PKIX_List_AppendItem failed");
+                            PKIX_LISTAPPENDITEMFAILED);
             }
 
         } else {
@@ -356,11 +355,11 @@ pkix_SignatureChecker_Check(
         /* Save current key as prevPublicKey */
         PKIX_CHECK(PKIX_PL_Cert_GetSubjectPublicKey
                     (cert, &currPubKey, plContext),
-                    "PKIX_PL_Cert_GetSubjectPublicKey failed");
+                    PKIX_CERTGETSUBJECTPUBLICKEYFAILED);
 
         PKIX_CHECK(PKIX_PL_PublicKey_MakeInheritedDSAPublicKey
                     (currPubKey, prevPubKey, &newPubKey, plContext),
-                    "PKIX_PL_PublicKey_MakeInheritedDSAPublicKey failed");
+                    PKIX_PUBLICKEYMAKEINHERITEDDSAPUBLICKEYFAILED);
 
         if (newPubKey == NULL){
                 PKIX_INCREF(currPubKey);
@@ -390,12 +389,12 @@ pkix_SignatureChecker_Check(
                             (unresolvedCriticalExtensions,
                             (PKIX_PL_Object *) state->keyUsageOID,
                             plContext),
-                            "PKIX_List_Remove failed");
+                            PKIX_LISTREMOVEFAILED);
         }
 
         PKIX_CHECK(PKIX_CertChainChecker_SetCertChainCheckerState
                     (checker, (PKIX_PL_Object *)state, plContext),
-                    "PKIX_CertChainChecker_SetCertChainCheckerState failed");
+                    PKIX_CERTCHAINCHECKERSETCERTCHAINCHECKERSTATEFAILED);
 
 cleanup:
 
@@ -452,7 +451,7 @@ pkix_SignatureChecker_Initialize(
 
         PKIX_CHECK(pkix_SignatureCheckerState_Create
                     (trustedPubKey, certsRemaining, &state, plContext),
-                    "pkix_SignatureCheckerState_Create failed");
+                    PKIX_SIGNATURECHECKERSTATECREATEFAILED);
 
         PKIX_CHECK(PKIX_CertChainChecker_Create
                     (pkix_SignatureChecker_Check,
@@ -462,7 +461,7 @@ pkix_SignatureChecker_Initialize(
                     (PKIX_PL_Object *) state,
                     pChecker,
                     plContext),
-                    "PKIX_CertChainChecker_Create failed");
+                    PKIX_CERTCHAINCHECKERCREATEFAILED);
 
 cleanup:
 

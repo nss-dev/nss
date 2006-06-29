@@ -82,7 +82,7 @@ pkix_List_Create_Internal(
                     (PKIX_LIST_TYPE,
                     ((PKIX_UInt32)(sizeof (PKIX_List))),
                     (PKIX_PL_Object **)&list, plContext),
-                    "Error Creating List Item");
+                    PKIX_ERRORCREATINGLISTITEM);
 
         list->item = NULL;
         list->next = NULL;
@@ -113,7 +113,7 @@ pkix_List_Destroy(
 
         /* Check that this object is a list */
         PKIX_CHECK(pkix_CheckType(object, PKIX_LIST_TYPE, plContext),
-                    "Object is not a list");
+                    PKIX_OBJECTNOTLIST);
 
         list = (PKIX_List *)object;
 
@@ -170,7 +170,7 @@ pkix_List_ToString_Helper(
         if (list->isHeader){
 
                 PKIX_CHECK(PKIX_List_IsEmpty(list, &empty, plContext),
-                            "PKIX_List_IsEmpty failed");
+                            PKIX_LISTISEMPTYFAILED);
 
                 if (empty){
                         PKIX_CHECK(PKIX_PL_String_Create
@@ -179,24 +179,24 @@ pkix_List_ToString_Helper(
                                     0,
                                     &itemString,
                                     plContext),
-                                    "Error creating item string");
+                                    PKIX_ERRORCREATINGITEMSTRING);
                         (*pString) = itemString;
                         PKIX_DEBUG_EXIT(LIST);
                         return (NULL);
                 } else {
                         PKIX_CHECK(pkix_List_ToString_Helper
                                     (list->next, &itemString, plContext),
-                                    "pkix_List_ToString_Helper failed");
+                                    PKIX_LISTTOSTRINGHELPERFAILED);
                 }
 
                 /* Create a string object from the format */
                 PKIX_CHECK(PKIX_PL_String_Create
                             (PKIX_ESCASCII, "%s", 0, &format, plContext),
-                            "PKIX_PL_String_Create failed");
+                            PKIX_STRINGCREATEFAILED);
 
                 PKIX_CHECK(PKIX_PL_Sprintf
                             (pString, plContext, format, itemString),
-                            "PKIX_PL_Sprintf failed");
+                            PKIX_SPRINTFFAILED);
         } else {
                 /* Get a string for this list's item */
                 if (list->item == NULL) {
@@ -206,13 +206,13 @@ pkix_List_ToString_Helper(
                                     0,
                                     &itemString,
                                     plContext),
-                                    "PKIX_PL_String_Create failed");
+                                    PKIX_STRINGCREATEFAILED);
                 } else {
                         PKIX_CHECK(PKIX_PL_Object_ToString
                                     ((PKIX_PL_Object*)list->item,
                                     &itemString,
                                     plContext),
-                                    "PKIX_PL_Object_ToString failed");
+                                    PKIX_OBJECTTOSTRINGFAILED);
                 }
                 if (list->next == NULL) {
                         /* Just return the itemstring */
@@ -224,7 +224,7 @@ pkix_List_ToString_Helper(
                 /* Recursive call to get string for this list's next pointer */
                 PKIX_CHECK(pkix_List_ToString_Helper
                             (list->next, &nextString, plContext),
-                            "pkix_List_ToString_Helper failed");
+                            PKIX_LISTTOSTRINGHELPERFAILED);
 
                 /* Create a string object from the format */
                 PKIX_CHECK(PKIX_PL_String_Create
@@ -233,7 +233,7 @@ pkix_List_ToString_Helper(
                             0,
                             &format,
                             plContext),
-                            "PKIX_PL_String_Create failed");
+                            PKIX_STRINGCREATEFAILED);
 
                 PKIX_CHECK(PKIX_PL_Sprintf
                             (pString,
@@ -241,7 +241,7 @@ pkix_List_ToString_Helper(
                             format,
                             itemString,
                             nextString),
-                            "PKIX_PL_Sprintf failed");
+                            PKIX_SPRINTFFAILED);
         }
 
 cleanup:
@@ -271,23 +271,23 @@ pkix_List_ToString(
         PKIX_NULLCHECK_TWO(object, pString);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_LIST_TYPE, plContext),
-                    "Object is not a list");
+                    PKIX_OBJECTNOTLIST);
 
         list = (PKIX_List *)object;
 
         if (!list->isHeader){
-                PKIX_ERROR("Input List must be header");
+                PKIX_ERROR(PKIX_INPUTLISTMUSTBEHEADER);
         }
 
         PKIX_CHECK(pkix_List_ToString_Helper(list, &listString, plContext),
-                    "pkix_List_ToString Helper failed");
+                    PKIX_LISTTOSTRINGHELPERFAILED);
 
         PKIX_CHECK(PKIX_PL_String_Create
                     (PKIX_ESCASCII, "(%s)", 0, &format, plContext),
-                    "PKIX_PL_String_Create failed");
+                    PKIX_STRINGCREATEFAILED);
 
         PKIX_CHECK(PKIX_PL_Sprintf(pString, plContext, format, listString),
-                    "PKIX_PL_Sprintf failed");
+                    PKIX_SPRINTFFAILED);
 
 cleanup:
 
@@ -323,7 +323,7 @@ pkix_List_Equals(
 
         /* test that first is a List */
         PKIX_CHECK(pkix_CheckType(first, PKIX_LIST_TYPE, plContext),
-                    "First Argument is not a List");
+                PKIX_FIRSTOBJECTNOTLIST);
 
         /*
          * Since we know first is a List, if both references are
@@ -340,14 +340,14 @@ pkix_List_Equals(
          */
         *pResult = PKIX_FALSE;
         PKIX_CHECK(PKIX_PL_Object_GetType(second, &secondType, plContext),
-                    "Could not get type of second argument");
+                    PKIX_COULDNOTGETTYPEOFSECONDARGUMENT);
         if (secondType != PKIX_LIST_TYPE) goto cleanup;
 
         firstList = (PKIX_List *)first;
         secondList = (PKIX_List *)second;
 
         if ((!firstList->isHeader) && (!secondList->isHeader)){
-                PKIX_ERROR("Input Lists must be list headers");
+                PKIX_ERROR(PKIX_INPUTLISTSMUSTBELISTHEADERS);
         }
 
         firstLength = firstList->length;
@@ -360,11 +360,11 @@ pkix_List_Equals(
                     i++){
                         PKIX_CHECK(PKIX_List_GetItem
                                     (firstList, i, &firstItem, plContext),
-                                    "PKIX_List_GetItem failed");
+                                    PKIX_LISTGETITEMFAILED);
 
                         PKIX_CHECK(PKIX_List_GetItem
                                     (secondList, i, &secondItem, plContext),
-                                    "PKIX_List_GetItem failed");
+                                    PKIX_LISTGETITEMFAILED);
 
                         if ((!firstItem && secondItem) ||
                             (firstItem && !secondItem)){
@@ -377,7 +377,7 @@ pkix_List_Equals(
                                             secondItem,
                                             &cmpResult,
                                             plContext),
-                                            "PKIX_PL_Object_Equals failed");
+                                            PKIX_OBJECTEQUALSFAILED);
 
                                 PKIX_DECREF(firstItem);
                                 PKIX_DECREF(secondItem);
@@ -415,26 +415,26 @@ pkix_List_Hashcode(
         PKIX_NULLCHECK_TWO(object, pHashcode);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_LIST_TYPE, plContext),
-                    "Object is not a list");
+                    PKIX_OBJECTNOTLIST);
 
         list = (PKIX_List *)object;
 
         if (!list->isHeader){
-                PKIX_ERROR("Input List must be header");
+                PKIX_ERROR(PKIX_INPUTLISTMUSTBEHEADER);
         }
 
         length = list->length;
 
         for (i = 0; i < length; i++){
                 PKIX_CHECK(PKIX_List_GetItem(list, i, &element, plContext),
-                            "PKIX_List_GetItem failed");
+                            PKIX_LISTGETITEMFAILED);
 
                 if (!element){
                         tempHash = 100;
                 } else {
                         PKIX_CHECK(PKIX_PL_Object_Hashcode
                                     (element, &tempHash, plContext),
-                                    "pkix_List_Hashcode failed");
+                                    PKIX_LISTHASHCODEFAILED);
                 }
 
                 hash = 31 * hash + tempHash;
@@ -467,19 +467,19 @@ pkix_List_Duplicate(
         PKIX_NULLCHECK_TWO(object, pNewObject);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_LIST_TYPE, plContext),
-                    "Object is not a list");
+                    PKIX_OBJECTNOTLIST);
 
         list = (PKIX_List *)object;
 
         if (list->immutable){
                 PKIX_CHECK(pkix_duplicateImmutable
                             (object, pNewObject, plContext),
-                            "pkix_duplicateImmutable failed");
+                            PKIX_DUPLICATEIMMUTABLEFAILED);
         } else {
 
                 PKIX_CHECK(pkix_List_Create_Internal
                             (list->isHeader, &listDuplicate, plContext),
-                            "pkix_List_Create_Internal failed");
+                            PKIX_LISTCREATEINTERNALFAILED);
 
                 listDuplicate->length = list->length;
 
@@ -494,7 +494,7 @@ pkix_List_Duplicate(
                                     ((PKIX_PL_Object *)list->next,
                                     (PKIX_PL_Object **)&listDuplicate->next,
                                     plContext),
-                                    "pkix_List_Duplicate failed");
+                                    PKIX_LISTDUPLICATEFAILED);
                 }
 
                 *pNewObject = (PKIX_PL_Object *)listDuplicate;
@@ -552,13 +552,13 @@ pkix_List_GetElement(
         PKIX_NULLCHECK_TWO(list, pElement);
 
         if (!list->isHeader){
-                PKIX_ERROR("Input List must be header");
+                PKIX_ERROR(PKIX_INPUTLISTMUSTBEHEADER);
         }
 
         length = list->length;
 
         if (index >= length) {
-                PKIX_ERROR("Index out of bounds");
+                PKIX_ERROR(PKIX_INDEXOUTOFBOUNDS);
         }
 
         for (iterator = list; position++ <= index; iterator = iterator->next)
@@ -644,17 +644,17 @@ pkix_List_Contains(
         PKIX_NULLCHECK_THREE(list, object, pFound);
 
         PKIX_CHECK(PKIX_List_GetLength(list, &numEntries, plContext),
-                "PKIX_List_GetLength failed");
+                PKIX_LISTGETLENGTHFAILED);
 
         for (index = 0; index < numEntries; index++) {
                 PKIX_CHECK(PKIX_List_GetItem
                         (list, index, &current, plContext),
-                        "PKIX_List_GetItem failed");
+                        PKIX_LISTGETITEMFAILED);
 
                 if (current) {
                         PKIX_CHECK(PKIX_PL_Object_Equals
                                 (object, current, &match, plContext),
-                                "PKIX_PL_Object_Equals failed");
+                                PKIX_OBJECTEQUALSFAILED);
 
                         PKIX_DECREF(current);
                 }
@@ -709,17 +709,17 @@ pkix_List_Remove(
         PKIX_NULLCHECK_TWO(list, object);
 
         PKIX_CHECK(PKIX_List_GetLength(list, &numEntries, plContext),
-                "PKIX_List_GetLength failed");
+                PKIX_LISTGETLENGTHFAILED);
 
         for (index = 0; index < numEntries; index++) {
                 PKIX_CHECK(PKIX_List_GetItem
                         (list, index, &current, plContext),
-                        "PKIX_List_GetItem failed");
+                        PKIX_LISTGETITEMFAILED);
 
                 if (current) {
                         PKIX_CHECK(PKIX_PL_Object_Equals
                                 (object, current, &match, plContext),
-                                "PKIX_PL_Object_Equals failed");
+                                PKIX_OBJECTEQUALSFAILED);
 
                         PKIX_DECREF(current);
                 }
@@ -727,7 +727,7 @@ pkix_List_Remove(
                 if (match) {
                         PKIX_CHECK(PKIX_List_DeleteItem
                                 (list, index, plContext),
-                                "PKIX_List_DeleteItem failed");
+                                PKIX_LISTDELETEITEMFAILED);
                         break;
                 }
         }
@@ -775,17 +775,17 @@ pkix_List_RemoveItems(
         PKIX_NULLCHECK_TWO(list, deleteList);
 
         PKIX_CHECK(PKIX_List_GetLength(deleteList, &numEntries, plContext),
-                "PKIX_List_GetLength failed");
+                PKIX_LISTGETLENGTHFAILED);
 
         for (index = 0; index < numEntries; index++) {
                 PKIX_CHECK(PKIX_List_GetItem
                         (deleteList, index, &current, plContext),
-                        "PKIX_List_GetItem failed");
+                        PKIX_LISTGETITEMFAILED);
 
                 if (current) {
                         PKIX_CHECK(pkix_List_Remove
                                 (list, current, plContext),
-                                "PKIX_PL_Object_Equals failed");
+                                PKIX_OBJECTEQUALSFAILED);
 
                         PKIX_DECREF(current);
                 }
@@ -839,21 +839,21 @@ pkix_List_MergeLists(
         *pMergedList = NULL;
 
         PKIX_CHECK(PKIX_List_Create(&list, plContext),
-                    "PKIX_List_Create failed");
+                    PKIX_LISTCREATEFAILED);
 
         if (firstList != NULL) {
 
                 PKIX_CHECK(PKIX_List_GetLength(firstList, &numItems, plContext),
-                    "PKIX_List_GetLength failed");
+                    PKIX_LISTGETLENGTHFAILED);
         }
 
         for (i = 0; i < numItems; i++) {
 
                 PKIX_CHECK(PKIX_List_GetItem(firstList, i, &item, plContext),
-                        "PKIX_List_GetItem failed");
+                        PKIX_LISTGETITEMFAILED);
 
                 PKIX_CHECK(PKIX_List_AppendItem(list, item, plContext),
-                        "PKIX_List_AppendItem failed");
+                        PKIX_LISTAPPENDITEMFAILED);
 
                 PKIX_DECREF(item);
         }
@@ -865,7 +865,7 @@ pkix_List_MergeLists(
                         (secondList,
                         &numItems,
                         plContext),
-                        "PKIX_List_GetLength failed");
+                        PKIX_LISTGETLENGTHFAILED);
 
         }
 
@@ -873,10 +873,10 @@ pkix_List_MergeLists(
 
                 PKIX_CHECK(PKIX_List_GetItem
                         (secondList, i, &item, plContext),
-                        "PKIX_List_GetItem failed");
+                        PKIX_LISTGETITEMFAILED);
 
                 PKIX_CHECK(PKIX_List_AppendItem
-                        (list, item, plContext), "PKIX_List_AppendItem failed");
+                        (list, item, plContext), PKIX_LISTAPPENDITEMFAILED);
 
                 PKIX_DECREF(item);
         }
@@ -934,7 +934,7 @@ pkix_List_AppendList(
         }
 
         PKIX_CHECK(PKIX_List_GetLength(fromList, &numItems, plContext),
-                    "PKIX_List_GetLength failed");
+                    PKIX_LISTGETLENGTHFAILED);
 
         if (numItems == 0) {
                 goto cleanup;
@@ -944,10 +944,10 @@ pkix_List_AppendList(
 
                 PKIX_CHECK(PKIX_List_GetItem
                         (fromList, i, &item, plContext),
-                        "PKIX_List_GetItem failed");
+                        PKIX_LISTGETITEMFAILED);
 
                 PKIX_CHECK(PKIX_List_AppendItem(toList, item, plContext),
-                            "PKIX_List_AppendItem failed");
+                            PKIX_LISTAPPENDITEMFAILED);
 
                 PKIX_DECREF(item);
         }
@@ -996,22 +996,22 @@ pkix_List_AppendUnique(
         PKIX_NULLCHECK_TWO(fromList, toList);
 
         PKIX_CHECK(PKIX_List_GetLength(fromList, &listLen, plContext),
-                "PKIX_List_GetLength failed");
+                PKIX_LISTGETLENGTHFAILED);
 
         for (listIx = 0; listIx < listLen; listIx++) {
 
                 PKIX_CHECK(PKIX_List_GetItem
                         (fromList, listIx, &object, plContext),
-                        "PKIX_List_GetItem failed");
+                        PKIX_LISTGETITEMFAILED);
 
                 PKIX_CHECK(pkix_List_Contains
                         (toList, object, &isContained, plContext),
-                        "PKIX_List_Contains failed");
+                        PKIX_LISTCONTAINSFAILED);
 
                 if (isContained == PKIX_FALSE) {
                         PKIX_CHECK(PKIX_List_AppendItem
                                 (toList, object, plContext),
-                                "PKIX_List_AppendItem failed");
+                                PKIX_LISTAPPENDITEMFAILED);
                 }
 
                 PKIX_DECREF(object);
@@ -1075,17 +1075,17 @@ pkix_List_QuickSort(
         PKIX_NULLCHECK_THREE(fromList, comparator, pSortedList);
 
         PKIX_CHECK(PKIX_List_GetLength(fromList, &size, plContext),
-                "PKIX_List_GetLength failed");
+                PKIX_LISTGETLENGTHFAILED);
 
         PKIX_CHECK(PKIX_List_Create(&lessList, plContext),
-                    "PKIX_List_Create failed");
+                    PKIX_LISTCREATEFAILED);
 
         PKIX_CHECK(PKIX_List_Create(&greaterList, plContext),
-                    "PKIX_List_Create failed");
+                    PKIX_LISTCREATEFAILED);
 
         PKIX_CHECK(PKIX_List_GetItem
                 (fromList, 0, &object, plContext),
-                "PKIX_List_GetItem failed");
+                PKIX_LISTGETITEMFAILED);
 
         /*
          * Pick the first item on the list as the one to be compared.
@@ -1098,63 +1098,63 @@ pkix_List_QuickSort(
 
                 PKIX_CHECK(PKIX_List_GetItem
                         (fromList, i, &cmpObj, plContext),
-                        "PKIX_List_GetItem failed");
+                        PKIX_LISTGETITEMFAILED);
 
                 PKIX_CHECK(comparator(object, cmpObj, &cmpResult, plContext),
-                        "comparator callback failed");
+                        PKIX_COMPARATORCALLBACKFAILED);
 
                 if (cmpResult >= 0) {
                         PKIX_CHECK(PKIX_List_AppendItem
                                 (lessList, cmpObj, plContext),
-                                "PKIX_List_AppendItem failed");
+                                PKIX_LISTAPPENDITEMFAILED);
                 } else {
                         PKIX_CHECK(PKIX_List_AppendItem
                                 (greaterList, cmpObj, plContext),
-                                "PKIX_List_AppendItem failed");
+                                PKIX_LISTAPPENDITEMFAILED);
                 }
                 PKIX_DECREF(cmpObj);
         }
 
         PKIX_CHECK(PKIX_List_Create(&sortedList, plContext),
-                    "PKIX_List_Create failed");
+                    PKIX_LISTCREATEFAILED);
 
         PKIX_CHECK(PKIX_List_GetLength(lessList, &size, plContext),
-                "PKIX_List_GetLength failed");
+                PKIX_LISTGETLENGTHFAILED);
 
         if (size > 1) {
 
                 PKIX_CHECK(pkix_List_QuickSort
                         (lessList, comparator, &sortedLessList, plContext),
-                        "pkix_List_QuickSort failed");
+                        PKIX_LISTQUICKSORTFAILED);
 
                 PKIX_CHECK(pkix_List_AppendList
                         (sortedList, sortedLessList, plContext),
-                        "pkix_List_AppendList failed");
+                        PKIX_LISTAPPENDLISTFAILED);
         } else {
                 PKIX_CHECK(pkix_List_AppendList
                         (sortedList, lessList, plContext),
-                        "pkix_List_AppendList failed");
+                        PKIX_LISTAPPENDLISTFAILED);
         }
 
         PKIX_CHECK(PKIX_List_AppendItem(sortedList, object, plContext),
-                "PKIX_List_Append failed");
+                PKIX_LISTAPPENDFAILED);
 
         PKIX_CHECK(PKIX_List_GetLength(greaterList, &size, plContext),
-                "PKIX_List_GetLength failed");
+                PKIX_LISTGETLENGTHFAILED);
 
         if (size > 1) {
 
                 PKIX_CHECK(pkix_List_QuickSort
                         (greaterList, comparator, &sortedGreaterList, plContext),
-                        "pkix_List_QuickSort failed");
+                        PKIX_LISTQUICKSORTFAILED);
 
                 PKIX_CHECK(pkix_List_AppendList
                         (sortedList, sortedGreaterList, plContext),
-                        "pkix_List_AppendList failed");
+                        PKIX_LISTAPPENDLISTFAILED);
         } else {
                 PKIX_CHECK(pkix_List_AppendList
                         (sortedList, greaterList, plContext),
-                        "pkix_List_AppendList failed");
+                        PKIX_LISTAPPENDLISTFAILED);
         }
 
         *pSortedList = sortedList;
@@ -1221,10 +1221,10 @@ pkix_List_BubbleSort(
                 ((PKIX_PL_Object *) fromList,
                 (PKIX_PL_Object **) &sortedList,
                  plContext),
-                "pkix_List_Duplicate failed");
+                PKIX_LISTDUPLICATEFAILED);
 
         PKIX_CHECK(PKIX_List_GetLength(sortedList, &size, plContext),
-                "PKIX_List_GetLength failed");
+                PKIX_LISTGETLENGTHFAILED);
 
         if (size > 1) {
 
@@ -1237,26 +1237,26 @@ pkix_List_BubbleSort(
 
                 PKIX_CHECK(PKIX_List_GetItem
                         (fromList, i, &leastObj, plContext),
-                        "PKIX_List_GetItem failed");
+                        PKIX_LISTGETITEMFAILED);
 
                 for (j = i + 1; j < size; j++) {
 
                         PKIX_CHECK(PKIX_List_GetItem
                                 (fromList, j, &cmpObj, plContext),
-                                "PKIX_List_GetItem failed");
+                                PKIX_LISTGETITEMFAILED);
 
                         PKIX_CHECK(comparator
                                 (leastObj, cmpObj, &cmpResult, plContext),
-                                "comparator callback failed");
+                                PKIX_COMPARATORCALLBACKFAILED);
 
                         if (cmpResult > 0) {
 
                                 PKIX_CHECK(PKIX_List_SetItem
                                     (sortedList, i, cmpObj, plContext),
-                                    "PKIX_List_SetItem failed");
+                                    PKIX_LISTSETITEMFAILED);
                                 PKIX_CHECK(PKIX_List_SetItem
                                     (sortedList, j, leastObj, plContext),
-                                    "PKIX_List_SetItem failed");
+                                    PKIX_LISTSETITEMFAILED);
 
                                 PKIX_DECREF(leastObj);
                                 PKIX_INCREF(cmpObj);
@@ -1299,7 +1299,7 @@ PKIX_List_Create(
         PKIX_NULLCHECK_ONE(pList);
 
         PKIX_CHECK(pkix_List_Create_Internal(isHeader, &list, plContext),
-                    "pkix_List_Create_Internal failed");
+                    PKIX_LISTCREATEINTERNALFAILED);
 
         *pList = list;
 
@@ -1320,7 +1320,7 @@ PKIX_List_SetImmutable(
         PKIX_NULLCHECK_ONE(list);
 
         if (!list->isHeader){
-                PKIX_ERROR("Input List must be header");
+                PKIX_ERROR(PKIX_INPUTLISTMUSTBEHEADER);
         }
 
         list->immutable = PKIX_TRUE;
@@ -1343,7 +1343,7 @@ PKIX_List_IsImmutable(
         PKIX_NULLCHECK_TWO(list, pImmutable);
 
         if (!list->isHeader){
-                PKIX_ERROR("Input List must be header");
+                PKIX_ERROR(PKIX_INPUTLISTMUSTBEHEADER);
         }
 
         *pImmutable = list->immutable;
@@ -1366,7 +1366,7 @@ PKIX_List_GetLength(
         PKIX_NULLCHECK_TWO(list, pLength);
 
         if (!list->isHeader){
-                PKIX_ERROR("Input List must be header");
+                PKIX_ERROR(PKIX_INPUTLISTMUSTBEHEADER);
         }
 
         *pLength = list->length;
@@ -1391,7 +1391,7 @@ PKIX_List_IsEmpty(
         PKIX_NULLCHECK_TWO(list, pEmpty);
 
         if (!list->isHeader){
-                PKIX_ERROR("Input List must be header");
+                PKIX_ERROR(PKIX_INPUTLISTMUSTBEHEADER);
         }
 
         length = list->length;
@@ -1423,11 +1423,11 @@ PKIX_List_AppendItem(
         PKIX_NULLCHECK_ONE(list);
 
         if (list->immutable){
-                PKIX_ERROR("Cannot call AppendItem on Immutable List");
+                PKIX_ERROR(PKIX_CANNOTCALLAPPENDITEMONIMMUTABLELIST);
         }
 
         if (!list->isHeader){
-                PKIX_ERROR("Input List must be header");
+                PKIX_ERROR(PKIX_INPUTLISTMUSTBEHEADER);
         }
 
         length = list->length;
@@ -1441,14 +1441,14 @@ PKIX_List_AppendItem(
 
         PKIX_CHECK(pkix_List_Create_Internal
                     (PKIX_FALSE, &lastElement->next, plContext),
-                    "pkix_List_Create_Internal failed");
+                    PKIX_LISTCREATEINTERNALFAILED);
 
         PKIX_INCREF(item);
         lastElement->next->item = item;
 
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                     ((PKIX_PL_Object *)list, plContext),
-                    "PKIX_PL_Object_InvalidateCache failed");
+                    PKIX_OBJECTINVALIDATECACHEFAILED);
 
         list->length = list->length + 1;
 
@@ -1475,19 +1475,19 @@ PKIX_List_InsertItem(
 
 
         if (list->immutable){
-                PKIX_ERROR("Cannot call InsertItem on Immutable List");
+                PKIX_ERROR(PKIX_CANNOTCALLINSERTITEMONIMMUTABLELIST);
         }
 
         if (!list->isHeader){
-                PKIX_ERROR("Input List must be header");
+                PKIX_ERROR(PKIX_INPUTLISTMUSTBEHEADER);
         }
 
         PKIX_CHECK(pkix_List_GetElement(list, index, &element, plContext),
-                    "pkix_List_GetElement failed");
+                    PKIX_LISTGETELEMENTFAILED);
 
         /* Create a new list object */
         PKIX_CHECK(pkix_List_Create_Internal(PKIX_FALSE, &newElem, plContext),
-                    "pkix_List_Create_Internal failed");
+                    PKIX_LISTCREATEINTERNALFAILED);
 
         /* Copy the old element's contents into the new element */
         newElem->item = element->item;
@@ -1503,7 +1503,7 @@ PKIX_List_InsertItem(
 
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                     ((PKIX_PL_Object *)list, plContext),
-                    "PKIX_PL_Object_InvalidateCache failed");
+                    PKIX_OBJECTINVALIDATECACHEFAILED);
 
         list->length = list->length + 1;
 
@@ -1532,11 +1532,11 @@ PKIX_List_GetItem(
         PKIX_NULLCHECK_TWO(list, pItem);
 
         if (!list->isHeader){
-                PKIX_ERROR("Input List must be header");
+                PKIX_ERROR(PKIX_INPUTLISTMUSTBEHEADER);
         }
 
         PKIX_CHECK(pkix_List_GetElement(list, index, &element, plContext),
-                    "pkix_List_GetElement failed");
+                    PKIX_LISTGETELEMENTFAILED);
 
         PKIX_INCREF(element->item);
         *pItem = element->item;
@@ -1562,15 +1562,15 @@ PKIX_List_SetItem(
         PKIX_NULLCHECK_ONE(list);
 
         if (list->immutable){
-                PKIX_ERROR("Cannot call SetItem on Immutable List");
+                PKIX_ERROR(PKIX_CANNOTCALLSETITEMONIMMUTABLELIST);
         }
 
         if (!list->isHeader){
-                PKIX_ERROR("Input List must be header");
+                PKIX_ERROR(PKIX_INPUTLISTMUSTBEHEADER);
         }
 
         PKIX_CHECK(pkix_List_GetElement(list, index, &element, plContext),
-                    "pkix_List_GetElement failed");
+                    PKIX_LISTGETELEMENTFAILED);
 
         /* DecRef old contents */
         PKIX_DECREF(element->item);
@@ -1581,7 +1581,7 @@ PKIX_List_SetItem(
 
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                     ((PKIX_PL_Object *)list, plContext),
-                    "PKIX_PL_Object_InvalidateCache failed");
+                    PKIX_OBJECTINVALIDATECACHEFAILED);
 
 cleanup:
 
@@ -1605,15 +1605,15 @@ PKIX_List_DeleteItem(
         PKIX_NULLCHECK_ONE(list);
 
         if (list->immutable){
-                PKIX_ERROR("Cannot call DeleteItem on Immutable List");
+                PKIX_ERROR(PKIX_CANNOTCALLDELETEITEMONIMMUTABLELIST);
         }
 
         if (!list->isHeader){
-                PKIX_ERROR("Input List must be header");
+                PKIX_ERROR(PKIX_INPUTLISTMUSTBEHEADER);
         }
 
         PKIX_CHECK(pkix_List_GetElement(list, index, &element, plContext),
-                    "pkix_List_GetElement failed");
+                    PKIX_LISTGETELEMENTFAILED);
 
         /* DecRef old contents */
         PKIX_DECREF(element->item);
@@ -1637,7 +1637,7 @@ PKIX_List_DeleteItem(
                 if (index != 0) {
                         PKIX_CHECK(pkix_List_GetElement
                                     (list, index-1, &prevElement, plContext),
-                                    "pkix_List_GetElement failed");
+                                    PKIX_LISTGETELEMENTFAILED);
                 } else if (index == 0){ /* prevElement must be header */
                         prevElement = list;
                 }
@@ -1649,7 +1649,7 @@ PKIX_List_DeleteItem(
 
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                     ((PKIX_PL_Object *)list, plContext),
-                    "PKIX_PL_Object_InvalidateCache failed");
+                    PKIX_OBJECTINVALIDATECACHEFAILED);
 
         list->length = list->length - 1;
 
@@ -1676,14 +1676,14 @@ PKIX_List_ReverseList(
         PKIX_NULLCHECK_TWO(list, pReversedList);
 
         if (!list->isHeader){
-                PKIX_ERROR("Input List must be header");
+                PKIX_ERROR(PKIX_INPUTLISTMUSTBEHEADER);
         }
 
         length = list->length;
 
         /* Create a new list object */
         PKIX_CHECK(PKIX_List_Create(&reversedList, plContext),
-                    "pkix_List_Create_Internal failed");
+                    PKIX_LISTCREATEINTERNALFAILED);
 
         /*
          * Starting with the last item and traversing backwards (from
@@ -1693,15 +1693,15 @@ PKIX_List_ReverseList(
         for (i = 1; i <= length; i++){
                 PKIX_CHECK(PKIX_List_GetItem
                             (list, (length - i), &item, plContext),
-                            "PKIX_List_GetItem failed");
+                            PKIX_LISTGETITEMFAILED);
 
                 PKIX_CHECK(PKIX_PL_Object_Duplicate
                             (item, &duplicateItem, plContext),
-                            "pkix_List_Duplicate failed");
+                            PKIX_LISTDUPLICATEFAILED);
 
                 PKIX_CHECK(PKIX_List_AppendItem
                             (reversedList, duplicateItem, plContext),
-                            "PKIX_List_AppendItem failed");
+                            PKIX_LISTAPPENDITEMFAILED);
 
                 PKIX_DECREF(item);
                 PKIX_DECREF(duplicateItem);

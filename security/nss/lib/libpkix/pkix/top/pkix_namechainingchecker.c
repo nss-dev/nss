@@ -70,28 +70,28 @@ pkix_NameChainingChecker_Check(
 
         PKIX_CHECK(PKIX_CertChainChecker_GetCertChainCheckerState
                     (checker, (PKIX_PL_Object **)&prevSubject, plContext),
-                    "PKIX_CertChainChecker_GetCertChainCheckerState failed");
+                    PKIX_CERTCHAINCHECKERGETCERTCHAINCHECKERSTATEFAILED);
 
         PKIX_CHECK(PKIX_PL_Cert_GetIssuer(cert, &currIssuer, plContext),
-                    "PKIX_PL_Cert_GetIssuer failed");
+                    PKIX_CERTGETISSUERFAILED);
 
         if (prevSubject){
                 PKIX_CHECK(PKIX_PL_X500Name_Match
                             (prevSubject, currIssuer, &result, plContext),
-                            "PKIX_PL_X500Name_Match failed");
+                            PKIX_X500NAMEMATCHFAILED);
                 if (!result){
-                        PKIX_ERROR("Name Chaining Check failed");
+                        PKIX_ERROR(PKIX_NAMECHAININGCHECKFAILED);
                 }
         } else {
-                PKIX_ERROR("Name Chaining Check failed");
+                PKIX_ERROR(PKIX_NAMECHAININGCHECKFAILED);
         }
 
         PKIX_CHECK(PKIX_PL_Cert_GetSubject(cert, &currSubject, plContext),
-                    "PKIX_PL_Cert_GetSubject failed");
+                    PKIX_CERTGETSUBJECTFAILED);
 
         PKIX_CHECK(PKIX_CertChainChecker_SetCertChainCheckerState
                     (checker, (PKIX_PL_Object *)currSubject, plContext),
-                    "PKIX_CertChainChecker_SetCertChainCheckerState");
+                    PKIX_CERTCHAINCHECKERSETCERTCHAINCHECKERSTATEFAILED);
 
 cleanup:
 
@@ -145,7 +145,7 @@ pkix_NameChainingChecker_Initialize(
                     (PKIX_PL_Object *)trustedCAName,
                     pChecker,
                     plContext),
-                    "PKIX_CertChainChecker_Create failed");
+                    PKIX_CERTCHAINCHECKERCREATEFAILED);
 
 cleanup:
 

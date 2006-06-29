@@ -63,7 +63,7 @@ pkix_NameConstraintsCheckerState_Destroy(
         /* Check that object type */
         PKIX_CHECK(pkix_CheckType
             (object, PKIX_CERTNAMECONSTRAINTSCHECKERSTATE_TYPE, plContext),
-            "Object is not a name constraints checker state");
+            PKIX_OBJECTNOTNAMECONSTRAINTSCHECKERSTATE);
 
         state = (pkix_NameConstraintsCheckerState *)object;
 
@@ -155,7 +155,7 @@ pkix_NameConstraintsCheckerState_Create(
                     sizeof (pkix_NameConstraintsCheckerState),
                     (PKIX_PL_Object **)&state,
                     plContext),
-                    "Could not create NameConstraintsCheckerState object");
+                    PKIX_COULDNOTCREATENAMECONSTRAINTSCHECKERSTATEOBJECT);
 
         /* Initialize fields */
 
@@ -163,7 +163,7 @@ pkix_NameConstraintsCheckerState_Create(
                     (PKIX_NAMECONSTRAINTS_OID,
                     &state->nameConstraintsOID,
                     plContext),
-                    "PKIX_PL_OID_Create failed");
+                    PKIX_OIDCREATEFAILED);
 
         PKIX_INCREF(nameConstraints);
 
@@ -203,27 +203,27 @@ pkix_NameConstraintsChecker_Check(
 
         PKIX_CHECK(PKIX_CertChainChecker_GetCertChainCheckerState
                     (checker, (PKIX_PL_Object **)&state, plContext),
-                    "PKIX_CertChainChecker_GetCertChainCheckerState failed");
+                    PKIX_CERTCHAINCHECKERGETCERTCHAINCHECKERSTATEFAILED);
 
         state->certsRemaining--;
 
         /* Get status of self issued */
         PKIX_CHECK(pkix_IsCertSelfIssued(cert, &selfIssued, plContext),
-                    "pkix_IsCertSelfIssued failed");
+                    PKIX_ISCERTSELFISSUEDFAILED);
 
         /* Check on non self-issued and if so only for last cert */
         if (selfIssued == PKIX_FALSE ||
             (selfIssued == PKIX_TRUE && state->certsRemaining == 0)) {
                 PKIX_CHECK(PKIX_PL_Cert_CheckNameConstraints
                     (cert, state->nameConstraints, plContext),
-                    "PKIX_PL_Cert_CheckNameConstraints failed");
+                    PKIX_CERTCHECKNAMECONSTRAINTSFAILED);
         }
 
         if (state->certsRemaining != 0) {
 
             PKIX_CHECK(PKIX_PL_Cert_GetNameConstraints
                     (cert, &nameConstraints, plContext),
-                    "PKIX_PL_Cert_GetNameConstraints failed");
+                    PKIX_CERTGETNAMECONSTRAINTSFAILED);
 
             /* Merge with previous name constraints kept in state */
 
@@ -240,7 +240,7 @@ pkix_NameConstraintsChecker_Check(
                                 state->nameConstraints,
                                 &mergedNameConstraints,
                                 plContext),
-                                "PKIX_PL_Cert_MergeNameConstraints failed");
+                                PKIX_CERTMERGENAMECONSTRAINTSFAILED);
 
                         PKIX_DECREF(nameConstraints);
                         PKIX_DECREF(state->nameConstraints);
@@ -254,14 +254,14 @@ pkix_NameConstraintsChecker_Check(
                                     (unresolvedCriticalExtensions,
                                     (PKIX_PL_Object *)state->nameConstraintsOID,
                                     plContext),
-                                    "PKIX_List_Remove failed");
+                                    PKIX_LISTREMOVEFAILED);
                 }
             }
         }
 
         PKIX_CHECK(PKIX_CertChainChecker_SetCertChainCheckerState
                     (checker, (PKIX_PL_Object *)state, plContext),
-                    "PKIX_CertChainChecker_SetCertChainCheckerState failed");
+                    PKIX_CERTCHAINCHECKERSETCERTCHAINCHECKERSTATEFAILED);
 
 cleanup:
 
@@ -313,7 +313,7 @@ pkix_NameConstraintsChecker_Initialize(
 
         PKIX_CHECK(pkix_NameConstraintsCheckerState_Create
                     (trustedNC, numCerts, &state, plContext),
-                    "pkix_NameConstraintsCheckerState_Create failed");
+                    PKIX_NAMECONSTRAINTSCHECKERSTATECREATEFAILED);
 
         PKIX_CHECK(PKIX_CertChainChecker_Create
                     (pkix_NameConstraintsChecker_Check,
@@ -323,7 +323,7 @@ pkix_NameConstraintsChecker_Initialize(
                     (PKIX_PL_Object *) state,
                     pChecker,
                     plContext),
-                    "PKIX_CertChainChecker_Create failed");
+                    PKIX_CERTCHAINCHECKERCREATEFAILED);
 
 cleanup:
 

@@ -174,7 +174,7 @@ pkix_pl_CollectionCertStoreContext_Create(
                     sizeof (PKIX_PL_CollectionCertStoreContext),
                     (PKIX_PL_Object **)&colCertStoreContext,
                     plContext),
-                    "Could not create CollectionCertStoreContext object");
+                    PKIX_COULDNOTCREATECOLLECTIONCERTSTORECONTEXTOBJECT);
 
         PKIX_INCREF(storeDir);
         colCertStoreContext->storeDir = storeDir;
@@ -206,7 +206,7 @@ pkix_pl_CollectionCertStoreContext_Destroy(
 
         PKIX_CHECK(pkix_CheckType
                     (object, PKIX_COLLECTIONCERTSTORECONTEXT_TYPE, plContext),
-                    "Object is not a Collection Cert Store Context");
+                    PKIX_OBJECTNOTCOLLECTIONCERTSTORECONTEXT);
 
         colCertStoreContext = (PKIX_PL_CollectionCertStoreContext *)object;
 
@@ -240,7 +240,7 @@ pkix_pl_CollectionCertStoreContext_Hashcode(
                     (object,
                     PKIX_COLLECTIONCERTSTORECONTEXT_TYPE,
                     plContext),
-                    "Object is not a CollectionCertStoreContext");
+                    PKIX_OBJECTNOTCOLLECTIONCERTSTORECONTEXT);
 
         collectionCSContext = (PKIX_PL_CollectionCertStoreContext *)object;
 
@@ -248,7 +248,7 @@ pkix_pl_CollectionCertStoreContext_Hashcode(
                     ((PKIX_PL_Object *) collectionCSContext->storeDir,
                     &tempHash,
                     plContext),
-                   "pkix_pl_String_Hashcode failed");
+                   PKIX_STRINGHASHCODEFAILED);
 
         *pHashcode = tempHash << 7;
 
@@ -283,7 +283,7 @@ pkix_pl_CollectionCertStoreContext_Equals(
                     secondObject,
                     PKIX_COLLECTIONCERTSTORECONTEXT_TYPE,
                     plContext),
-                    "Object is not a CollectionCertStoreContext");
+                    PKIX_OBJECTNOTCOLLECTIONCERTSTORECONTEXT);
 
         firstCCSContext = (PKIX_PL_CollectionCertStoreContext *)firstObject;
         secondCCSContext = (PKIX_PL_CollectionCertStoreContext *)secondObject;
@@ -299,7 +299,7 @@ pkix_pl_CollectionCertStoreContext_Equals(
                     (PKIX_PL_Object *) secondCCSContext->storeDir,
                     &cmpResult,
                     plContext),
-                    "pkix_pl_String_Equals failed");
+                    PKIX_STRINGEQUALSFAILED);
         }
 
         *pResult = cmpResult;
@@ -394,7 +394,7 @@ pkix_pl_CollectionCertStoreContext_CreateCert(
         inFile = PR_Open(certFileName, PR_RDONLY, 0);
 
         if (!inFile){
-                PKIX_ERROR("Unable to open cert file");
+                PKIX_ERROR(PKIX_UNABLETOOPENCERTFILE);
         } else {
                 PKIX_COLLECTIONCERTSTORECONTEXT_DEBUG
                         ("\t\t Calling SECU_ReadDerFromFile.\n");
@@ -405,18 +405,18 @@ pkix_pl_CollectionCertStoreContext_CreateCert(
 
                         PKIX_CHECK(PKIX_PL_ByteArray_Create
                                     (buf, len, &byteArray, plContext),
-                                    "PKIX_PL_ByteArray_Create failed");
+                                    PKIX_BYTEARRAYCREATEFAILED);
 
                         PKIX_CHECK(PKIX_PL_Cert_Create
                                     (byteArray, &cert, plContext),
-                                    "PKIX_PL_Cert_Create failed");
+                                    PKIX_CERTCREATEFAILED);
 
                         PKIX_COLLECTIONCERTSTORECONTEXT_DEBUG
                                 ("\t\t Calling SECITEM_FreeItem.\n");
                         SECITEM_FreeItem(&certDER, PR_FALSE);
 
                 } else {
-                        PKIX_ERROR("Unable to read DER from cert file");
+                        PKIX_ERROR(PKIX_UNABLETOREADDERFROMCERTFILE);
                 }
         }
 
@@ -489,7 +489,7 @@ pkix_pl_CollectionCertStoreContext_CreateCRL(
         inFile = PR_Open(crlFileName, PR_RDONLY, 0);
 
         if (!inFile){
-                PKIX_ERROR("Unable to open crl file");
+                PKIX_ERROR(PKIX_UNABLETOOPENCRLFILE);
         } else {
                 PKIX_COLLECTIONCERTSTORECONTEXT_DEBUG
                         ("\t\t Calling SECU_ReadDerFromFile.\n");
@@ -500,18 +500,18 @@ pkix_pl_CollectionCertStoreContext_CreateCRL(
 
                         PKIX_CHECK(PKIX_PL_ByteArray_Create
                                 (buf, len, &byteArray, plContext),
-                                "PKIX_PL_ByteArray_Create failed");
+                                PKIX_BYTEARRAYCREATEFAILED);
 
                         PKIX_CHECK(PKIX_PL_CRL_Create
                                 (byteArray, &crl, plContext),
-                                "PKIX_PL_CRL_Create failed");
+                                PKIX_CRLCREATEFAILED);
 
                         PKIX_COLLECTIONCERTSTORECONTEXT_DEBUG
                                 ("\t\t Calling SECITEM_FreeItem.\n");
                         SECITEM_FreeItem(&crlDER, PR_FALSE);
 
                 } else {
-                        PKIX_ERROR("Unable to read DER from crl file");
+                        PKIX_ERROR(PKIX_UNABLETOREADDERFROMCRLFILE);
                 }
         }
 
@@ -592,12 +592,12 @@ pkix_pl_CollectionCertStoreContext_PopulateCert(
                     (void **)&dirName,
                     &dirNameLen,
                     plContext),
-                    "PKIX_PL_String_GetEncoded failed");
+                    PKIX_STRINGGETENCODEDFAILED);
 
         /* create cert list, if no cert file, should return an empty list */
 
         PKIX_CHECK(PKIX_List_Create(&certList, plContext),
-                    "PKIX_List_Create failed");
+                    PKIX_LISTCREATEFAILED);
 
         /* open directory and read in .crt files */
 
@@ -607,7 +607,7 @@ pkix_pl_CollectionCertStoreContext_PopulateCert(
         if (!dir) {
                 PKIX_COLLECTIONCERTSTORECONTEXT_DEBUG_ARG
                         ("\t\t Directory Name:%s\n", dirName);
-                PKIX_ERROR("Cannot open CollectionCertStoreContext directory");
+                PKIX_ERROR(PKIX_CANNOTOPENCOLLECTIONCERTSTORECONTEXTDIRECTORY);
         }
 
         PKIX_COLLECTIONCERTSTORECONTEXT_DEBUG("\t\t Calling PR_ReadDir.\n");
@@ -633,7 +633,7 @@ pkix_pl_CollectionCertStoreContext_PopulateCert(
                                 (dirNameLen + PL_strlen(dirEntry->name) + 2,
                                 (void **)&pathName,
                                 plContext),
-                                "PKIX_PL_Malloc failed");
+                                PKIX_MALLOCFAILED);
 
                         if ((!PKIX_ERROR_RECEIVED) && (pathName != NULL)){
 
@@ -650,8 +650,7 @@ pkix_pl_CollectionCertStoreContext_PopulateCert(
                                 PKIX_CHECK_ONLY_FATAL
                                 (pkix_pl_CollectionCertStoreContext_CreateCert
                                     (pathName, &certItem, plContext),
-                                    "pkix_pl_CollectionCertStoreContext_"
-                                    "CreateCert failed");
+                              PKIX_COLLECTIONCERTSTORECONTEXTCREATECERTFAILED);
 
                                 if (!PKIX_ERROR_RECEIVED){
                                         PKIX_CHECK_ONLY_FATAL
@@ -659,8 +658,7 @@ pkix_pl_CollectionCertStoreContext_PopulateCert(
                                                 (certList,
                                                 (PKIX_PL_Object *)certItem,
                                                 plContext),
-                                                "PKIX_List_AppendItem "
-                                                "failed");
+                                                PKIX_LISTAPPENDITEMFAILED);
                                 }
                         }
 
@@ -687,11 +685,14 @@ pkix_pl_CollectionCertStoreContext_PopulateCert(
                 PKIX_COLLECTIONCERTSTORECONTEXT_DEBUG
                         ("\t\t Calling PR_GetErrorText.\n");
                 prErrorTextLen = PR_GetErrorText(prErrorText);
-                PKIX_ERROR(prErrorText);
+                /* PKIX_ERROR(prErrorText); */
+                pkixErrorReceived = PKIX_TRUE;
+                pkixErrorMsg = prErrorText;
+                goto cleanup;
         }
 
         PKIX_CHECK(PKIX_List_SetImmutable(certList, plContext),
-                    "PKIX_List_SetImmutable failed");
+                    PKIX_LISTSETIMMUTABLEFAILED);
 
         PKIX_INCREF(certList);
         colCertStoreContext->certList = certList;
@@ -769,12 +770,12 @@ pkix_pl_CollectionCertStoreContext_PopulateCRL(
                     (void **)&dirName,
                     &dirNameLen,
                     plContext),
-                    "PKIX_PL_String_GetEncoded failed");
+                    PKIX_STRINGGETENCODEDFAILED);
 
         /* create CRL list, if no CRL file, should return an empty list */
 
         PKIX_CHECK(PKIX_List_Create(&crlList, plContext),
-                    "PKIX_List_Create failed");
+                    PKIX_LISTCREATEFAILED);
 
         /* open directory and read in .crl files */
 
@@ -784,7 +785,7 @@ pkix_pl_CollectionCertStoreContext_PopulateCRL(
         if (!dir) {
                 PKIX_COLLECTIONCERTSTORECONTEXT_DEBUG_ARG
                         ("\t\t Directory Name:%s\n", dirName);
-                PKIX_ERROR("Cannot open CollectionCertStoreContext directory");
+                PKIX_ERROR(PKIX_CANNOTOPENCOLLECTIONCERTSTORECONTEXTDIRECTORY);
         }
 
         PKIX_COLLECTIONCERTSTORECONTEXT_DEBUG("\t\t Calling PR_ReadDir.\n");
@@ -810,7 +811,7 @@ pkix_pl_CollectionCertStoreContext_PopulateCRL(
                                 (dirNameLen + PL_strlen(dirEntry->name) + 2,
                                 (void **)&pathName,
                                 plContext),
-                                "PKIX_PL_Malloc failed");
+                                PKIX_MALLOCFAILED);
 
                         if ((!PKIX_ERROR_RECEIVED) && (pathName != NULL)){
 
@@ -827,8 +828,7 @@ pkix_pl_CollectionCertStoreContext_PopulateCRL(
                         PKIX_CHECK_ONLY_FATAL
                                 (pkix_pl_CollectionCertStoreContext_CreateCRL
                                 (pathName, &crlItem, plContext),
-                                "pkix_pl_CollectionCertStoreContext_CreateCRL "
-                                "failed");
+                                PKIX_COLLECTIONCERTSTORECONTEXTCREATECRLFAILED);
 
                                 if (!PKIX_ERROR_RECEIVED){
                                         PKIX_CHECK_ONLY_FATAL
@@ -836,7 +836,7 @@ pkix_pl_CollectionCertStoreContext_PopulateCRL(
                                                 (crlList,
                                                 (PKIX_PL_Object *)crlItem,
                                                 plContext),
-                                                "PKIX_List_AppendItem failed");
+                                                PKIX_LISTAPPENDITEMFAILED);
                                 }
                         }
 
@@ -863,11 +863,15 @@ pkix_pl_CollectionCertStoreContext_PopulateCRL(
                 PKIX_COLLECTIONCERTSTORECONTEXT_DEBUG
                         ("\t\t Calling PR_GetErrorText.\n");
                 prErrorTextLen = PR_GetErrorText(prErrorText);
-                PKIX_ERROR(prErrorText);
+
+                /* PKIX_ERROR(prErrorText); */
+                pkixErrorReceived = PKIX_TRUE;
+                pkixErrorMsg = prErrorText;
+                goto cleanup;
         }
 
         PKIX_CHECK(PKIX_List_SetImmutable(crlList, plContext),
-                    "PKIX_List_SetImmutable failed");
+                    PKIX_LISTSETIMMUTABLEFAILED);
 
         PKIX_INCREF(crlList);
         colCertStoreContext->crlList = crlList;
@@ -941,15 +945,15 @@ pkix_pl_CollectionCertStoreContext_GetSelectedCert(
 
         PKIX_CHECK(PKIX_CertSelector_GetMatchCallback
                     (selector, &certSelectorMatch, plContext),
-                    "PKIX_CertSelector_GetMatchCallback failed");
+                    PKIX_CERTSELECTORGETMATCHCALLBACKFAILED);
 
         PKIX_CHECK(PKIX_List_GetLength(certList, &numCerts, plContext),
-                    "PKIX_List_GetLength failed");
+                    PKIX_LISTGETLENGTHFAILED);
 
         if (certSelectorMatch) {
 
                 PKIX_CHECK(PKIX_List_Create(&selectCertList, plContext),
-                            "PKIX_List_Create failed");
+                            PKIX_LISTCREATEFAILED);
 
                 for (i = 0; i < numCerts; i++) {
                         PKIX_CHECK_ONLY_FATAL
@@ -958,13 +962,13 @@ pkix_pl_CollectionCertStoreContext_GetSelectedCert(
                                 i,
                                 (PKIX_PL_Object **) &certItem,
                                 plContext),
-                                "PKIX_List_GetItem failed");
+                                PKIX_LISTGETITEMFAILED);
 
                         if (!PKIX_ERROR_RECEIVED){
                                 PKIX_CHECK_ONLY_FATAL
                                         (certSelectorMatch
                                         (selector, certItem, &pass, plContext),
-                                        "certSelectorMatch failed");
+                                        PKIX_CERTSELECTORMATCHFAILED);
 
                                 if (!PKIX_ERROR_RECEIVED && pass){
                                         PKIX_CHECK_ONLY_FATAL
@@ -972,7 +976,7 @@ pkix_pl_CollectionCertStoreContext_GetSelectedCert(
                                                 (selectCertList,
                                                 (PKIX_PL_Object *)certItem,
                                                 plContext),
-                                                "PKIX_List_AppendItem failed");
+                                                PKIX_LISTAPPENDITEMFAILED);
                                 }
                         }
 
@@ -1038,15 +1042,15 @@ pkix_pl_CollectionCertStoreContext_GetSelectedCRL(
 
         PKIX_CHECK(PKIX_CRLSelector_GetMatchCallback
                     (selector, &crlSelectorMatch, plContext),
-                    "PKIX_CRLSelector_GetMatchCallback failed");
+                    PKIX_CRLSELECTORGETMATCHCALLBACKFAILED);
 
         PKIX_CHECK(PKIX_List_GetLength(crlList, &numCrls, plContext),
-                    "PKIX_List_GetLength failed");
+                    PKIX_LISTGETLENGTHFAILED);
 
         if (crlSelectorMatch) {
 
                 PKIX_CHECK(PKIX_List_Create(&selectCrlList, plContext),
-                            "PKIX_List_Create failed");
+                            PKIX_LISTCREATEFAILED);
 
                 for (i = 0; i < numCrls; i++) {
                         PKIX_CHECK_ONLY_FATAL(PKIX_List_GetItem
@@ -1054,13 +1058,13 @@ pkix_pl_CollectionCertStoreContext_GetSelectedCRL(
                                 i,
                                 (PKIX_PL_Object **) &crlItem,
                                 plContext),
-                                "PKIX_List_GetItem failed");
+                                PKIX_LISTGETITEMFAILED);
 
                         if (!PKIX_ERROR_RECEIVED){
                                 PKIX_CHECK_ONLY_FATAL
                                         (crlSelectorMatch
                                         (selector, crlItem, &match, plContext),
-                                        "crlSelectorMatch failed");
+                                        PKIX_CRLSELECTORMATCHFAILED);
 
                                 if (!(PKIX_ERROR_RECEIVED) && match) {
                                         PKIX_CHECK_ONLY_FATAL
@@ -1068,7 +1072,7 @@ pkix_pl_CollectionCertStoreContext_GetSelectedCRL(
                                                 (selectCrlList,
                                                 (PKIX_PL_Object *)crlItem,
                                                 plContext),
-                                                "PKIX_List_AppendItem failed");
+                                                PKIX_LISTAPPENDITEMFAILED);
                                 }
                         }
 
@@ -1137,7 +1141,7 @@ pkix_pl_CollectionCertStore_GetCert(
                     (certStore,
                     (PKIX_PL_Object **) &colCertStoreContext,
                     plContext),
-                    "PKIX_CertStore_GetCertStoreContext failed");
+                    PKIX_CERTSTOREGETCERTSTORECONTEXTFAILED);
 
         if (colCertStoreContext->certList == NULL) {
 
@@ -1151,8 +1155,7 @@ pkix_pl_CollectionCertStore_GetCert(
                 if (colCertStoreContext->certList == NULL){
                     PKIX_CHECK(pkix_pl_CollectionCertStoreContext_PopulateCert
                             (colCertStoreContext, plContext),
-                            "pkix_pl_CollectionCertStoreContext_PopulateCert "
-                            "failed");
+                            PKIX_COLLECTIONCERTSTORECONTEXTPOPULATECERTFAILED);
                 }
 
                 PKIX_OBJECT_UNLOCK(colCertStoreContext);
@@ -1163,7 +1166,7 @@ pkix_pl_CollectionCertStore_GetCert(
                     selector,
                     &selectedCerts,
                     plContext),
-                    "pkix_pl_CollectionCertStoreContext_GetSelectCert failed");
+                    PKIX_COLLECTIONCERTSTORECONTEXTGETSELECTCERTFAILED);
 
         *pCerts = selectedCerts;
 
@@ -1223,7 +1226,7 @@ pkix_pl_CollectionCertStore_GetCRL(
                     (certStore,
                     (PKIX_PL_Object **) &colCertStoreContext,
                     plContext),
-                    "PKIX_CertStore_GetCertStoreContext failed");
+                    PKIX_CERTSTOREGETCERTSTORECONTEXTFAILED);
 
         if (colCertStoreContext->crlList == NULL) {
 
@@ -1237,8 +1240,7 @@ pkix_pl_CollectionCertStore_GetCRL(
                 if (colCertStoreContext->crlList == NULL){
                     PKIX_CHECK(pkix_pl_CollectionCertStoreContext_PopulateCRL
                             (colCertStoreContext, plContext),
-                            "pkix_pl_CollectionCertStoreContext_PopulateCRL "
-                            "failed");
+                            PKIX_COLLECTIONCERTSTORECONTEXTPOPULATECRLFAILED);
                 }
 
                 PKIX_OBJECT_UNLOCK(colCertStoreContext);
@@ -1250,7 +1252,7 @@ pkix_pl_CollectionCertStore_GetCRL(
                     selector,
                     &selectCrl,
                     plContext),
-                    "pkix_pl_CollectionCertStoreContext_GetSelectCRL failed");
+                    PKIX_COLLECTIONCERTSTORECONTEXTGETSELECTCRLFAILED);
 
         *pCrlList = selectCrl;
 
@@ -1320,7 +1322,7 @@ PKIX_PL_CollectionCertStore_Create(
 
         PKIX_CHECK(pkix_pl_CollectionCertStoreContext_Create
                     (storeDir, &colCertStoreContext, plContext),
-                    "Could not create CollectionCertStoreContext object");
+                    PKIX_COULDNOTCREATECOLLECTIONCERTSTORECONTEXTOBJECT);
 
         PKIX_CHECK(PKIX_CertStore_Create
                     (pkix_pl_CollectionCertStore_GetCert,
@@ -1333,7 +1335,7 @@ PKIX_PL_CollectionCertStore_Create(
                     PKIX_TRUE, /* local - no network I/O */
                     &certStore,
                     plContext),
-                    "PKIX_CertStore_Create failed");
+                    PKIX_CERTSTORECREATEFAILED);
 
         PKIX_DECREF(colCertStoreContext);
 

@@ -309,7 +309,7 @@ pkix_Logger_Destroy(
 
         /* Check that this object is a logger */
         PKIX_CHECK(pkix_CheckType(object, PKIX_LOGGER_TYPE, plContext),
-                    "Object is not a Logger");
+                    PKIX_OBJECTNOTLOGGER);
 
         logger = (PKIX_Logger *)object;
 
@@ -346,7 +346,7 @@ pkix_Logger_ToString(
 
         /* Check that this object is a logger */
         PKIX_CHECK(pkix_CheckType(object, PKIX_LOGGER_TYPE, plContext),
-                    "Object is not a Logger");
+                    PKIX_OBJECTNOTLOGGER);
 
         logger = (PKIX_Logger *)object;
 
@@ -364,10 +364,10 @@ pkix_Logger_ToString(
                     0,
                     &formatString,
                     plContext),
-                    "PKIX_PL_String_Create failed");
+                    PKIX_STRINGCREATEFAILED);
 
         PKIX_TOSTRING(logger->context, &contextString, plContext,
-                "PKIX_PL_Object_ToString failed");
+                PKIX_OBJECTTOSTRINGFAILED);
 
         PKIX_CHECK(PKIX_PL_String_Create
                 (PKIX_ESCASCII,
@@ -375,7 +375,7 @@ pkix_Logger_ToString(
                 0,
                 &componentString,
                 plContext),
-                "PKIX_PL_String_Create failed");
+                PKIX_STRINGCREATEFAILED);
 
         PKIX_CHECK(PKIX_PL_Sprintf
                 (&loggerString,
@@ -384,7 +384,7 @@ pkix_Logger_ToString(
                 contextString,
                 logger->maxLevel,
                 componentString),
-                "PKIX_PL_Sprintf failed");
+                PKIX_SPRINTFFAILED);
 
         *pString = loggerString;
 
@@ -417,7 +417,7 @@ pkix_Logger_Equals(
 
         /* test that first is a Logger */
         PKIX_CHECK(pkix_CheckType(first, PKIX_LOGGER_TYPE, plContext),
-                    "First Argument is not a Logger");
+                PKIX_FIRSTOBJECTNOTLOGGER);
 
         /*
          * Since we know first is a Logger, if both references are
@@ -434,7 +434,7 @@ pkix_Logger_Equals(
          */
         *pResult = PKIX_FALSE;
         PKIX_CHECK(PKIX_PL_Object_GetType(second, &secondType, plContext),
-                    "Could not get type of second argument");
+                    PKIX_COULDNOTGETTYPEOFSECONDARGUMENT);
         if (secondType != PKIX_LOGGER_TYPE) goto cleanup;
 
         firstLogger = (PKIX_Logger *)first;
@@ -455,7 +455,7 @@ pkix_Logger_Equals(
                 secondLogger->context,
                 &cmpResult,
                 plContext,
-                "PKIX_PL_Object_Equals failed");
+                PKIX_OBJECTEQUALSFAILED);
 
         if (cmpResult == PKIX_FALSE) {
                 goto cleanup;
@@ -490,12 +490,12 @@ pkix_Logger_Hashcode(
         PKIX_NULLCHECK_TWO(object, pHashcode);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_LOGGER_TYPE, plContext),
-                    "Object is not a logger");
+                    PKIX_OBJECTNOTLOGGER);
 
         logger = (PKIX_Logger *)object;
 
         PKIX_HASHCODE(logger->context, &tempHash, plContext,
-                "PKIX_PL_Object_Hashcode failed");
+                PKIX_OBJECTHASHCODEFAILED);
 
         hash = (((((PKIX_UInt32) logger->callback + tempHash) << 7) +
                 logger->maxLevel) << 7) + (PKIX_UInt32)logger->logComponent;
@@ -526,7 +526,7 @@ pkix_Logger_Duplicate(
 
         PKIX_CHECK(pkix_CheckType
                     ((PKIX_PL_Object *)object, PKIX_LOGGER_TYPE, plContext),
-                    "Object is not a Logger");
+                    PKIX_OBJECTNOTLOGGER);
 
         logger = (PKIX_Logger *) object;
 
@@ -535,7 +535,7 @@ pkix_Logger_Duplicate(
                     sizeof (PKIX_Logger),
                     (PKIX_PL_Object **)&dupLogger,
                     plContext),
-                    "Could not create Logger object");
+                    PKIX_COULDNOTCREATELOGGEROBJECT);
 
         dupLogger->callback = logger->callback;
         dupLogger->maxLevel = logger->maxLevel;
@@ -544,7 +544,7 @@ pkix_Logger_Duplicate(
                     (logger->context,
                     &dupLogger->context,
                     plContext,
-                    "PKIX_PL_Object_Duplicate failed");
+                    PKIX_OBJECTDUPLICATEFAILED);
 
         dupLogger->logComponent = logger->logComponent;
 
@@ -613,7 +613,7 @@ PKIX_Logger_Create(
                     sizeof (PKIX_Logger),
                     (PKIX_PL_Object **)&logger,
                     plContext),
-                    "Could not create Logger object");
+                    PKIX_COULDNOTCREATELOGGEROBJECT);
 
         logger->callback = callback;
         logger->maxLevel = 0;
@@ -694,7 +694,7 @@ PKIX_Logger_SetMaxLoggingLevel(
         PKIX_NULLCHECK_ONE(logger);
 
         if (level > PKIX_LOGGER_LEVEL_MAX) {
-                PKIX_ERROR("Logging Level exceeds Maximum");
+                PKIX_ERROR(PKIX_LOGGINGLEVELEXCEEDSMAXIMUM);
         } else {
                 logger->maxLevel = level;
         }
@@ -765,7 +765,7 @@ PKIX_GetLoggers(
         PKIX_NULLCHECK_ONE(pLoggers);
 
         PKIX_CHECK(PKIX_PL_MonitorLock_Enter(pkixLoggerLock, plContext),
-                "PKIX_PL_MonitorLock_Enter failed");
+                PKIX_MONITORLOCKENTERFAILED);
         locked = PKIX_TRUE;
 
         /*
@@ -785,12 +785,12 @@ PKIX_GetLoggers(
         } else {
                 PKIX_CHECK(PKIX_List_GetLength
                     (pkixLoggers, &length, plContext),
-                    "PKIX_List_GetLength failed");
+                    PKIX_LISTGETLENGTHFAILED);
         }
 
         /* Create a list and copy the pkixLoggers item to the list */
         PKIX_CHECK(PKIX_List_Create(&list, plContext),
-                    "PKIX_List_Create failed");
+                    PKIX_LISTCREATEFAILED);
 
         for (i = 0; i < length; i++) {
 
@@ -799,19 +799,19 @@ PKIX_GetLoggers(
                         i,
                         (PKIX_PL_Object **) &logger,
                         plContext),
-                        "PKIX_List_GetItem failed");
+                        PKIX_LISTGETITEMFAILED);
 
             PKIX_CHECK(pkix_Logger_Duplicate
                         ((PKIX_PL_Object *)logger,
                         (PKIX_PL_Object **)&dupLogger,
                         plContext),
-                        "pkix_Logger_Duplicate failed");
+                        PKIX_LOGGERDUPLICATEFAILED);
 
             PKIX_CHECK(PKIX_List_AppendItem
                         (list,
                         (PKIX_PL_Object *) dupLogger,
                         plContext),
-                        "PKIX_List_AppendItem failed");
+                        PKIX_LISTAPPENDITEMFAILED);
 
             PKIX_DECREF(logger);
             PKIX_DECREF(dupLogger);
@@ -819,7 +819,7 @@ PKIX_GetLoggers(
 
         /* Set the list to be immutable */
         PKIX_CHECK(PKIX_List_SetImmutable(list, plContext),
-                        "PKIX_List_SetImmutable failed");
+                        PKIX_LISTSETIMMUTABLEFAILED);
 
         *pLoggers = list;
 
@@ -833,7 +833,7 @@ cleanup:
 
         if (locked) {
                 PKIX_CHECK(PKIX_PL_MonitorLock_Exit(pkixLoggerLock, plContext),
-                        "PKIX_PL_MonitorLock_Exit failed");
+                        PKIX_MONITORLOCKEXITFAILED);
         }
 
         PKIX_RETURN(LOGGER);
@@ -858,7 +858,7 @@ PKIX_SetLoggers(
         PKIX_ENTER(LOGGER, "PKIX_SetLoggers");
 
         PKIX_CHECK(PKIX_PL_MonitorLock_Enter(pkixLoggerLock, plContext),
-                "PKIX_PL_MonitorLock_Enter failed");
+                PKIX_MONITORLOCKENTERFAILED);
         locked = PKIX_TRUE;
 
         /* Disable tracing, etc. to avoid recursion and deadlock */
@@ -875,10 +875,10 @@ PKIX_SetLoggers(
         if (loggers != NULL) {
 
                 PKIX_CHECK(PKIX_List_Create(&list, plContext),
-                    "PKIX_List_Create failed");
+                    PKIX_LISTCREATEFAILED);
 
                 PKIX_CHECK(PKIX_List_GetLength(loggers, &length, plContext),
-                    "PKIX_List_GetLength failed");
+                    PKIX_LISTGETLENGTHFAILED);
 
                 for (i = 0; i < length; i++) {
 
@@ -887,19 +887,19 @@ PKIX_SetLoggers(
                         i,
                         (PKIX_PL_Object **) &logger,
                         plContext),
-                        "PKIX_List_GetItem failed");
+                        PKIX_LISTGETITEMFAILED);
 
                     PKIX_CHECK(pkix_Logger_Duplicate
                         ((PKIX_PL_Object *)logger,
                         (PKIX_PL_Object **)&dupLogger,
                         plContext),
-                        "pkix_Logger_Duplicate failed");
+                        PKIX_LOGGERDUPLICATEFAILED);
 
                     PKIX_CHECK(PKIX_List_AppendItem
                         (list,
                         (PKIX_PL_Object *) dupLogger,
                         plContext),
-                        "PKIX_List_AppendItem failed");
+                        PKIX_LISTAPPENDITEMFAILED);
 
                     /* Make two lists */
 
@@ -910,14 +910,14 @@ PKIX_SetLoggers(
                         PKIX_CHECK(PKIX_List_Create
                                 (&savedPkixLoggersErrors,
                                 plContext),
-                                "PKIX_List_Create failed");
+                                PKIX_LISTCREATEFAILED);
                     }
         
                     PKIX_CHECK(PKIX_List_AppendItem
                             (savedPkixLoggersErrors,
                             (PKIX_PL_Object *) dupLogger,
                             plContext),
-                            "PKIX_List_AppendItem failed");
+                            PKIX_LISTAPPENDITEMFAILED);
 
                     if (logger->maxLevel > PKIX_LOGGER_LEVEL_WARNING) {
 
@@ -928,14 +928,14 @@ PKIX_SetLoggers(
                             PKIX_CHECK(PKIX_List_Create
                                     (&savedPkixLoggersDebugTrace,
                                     plContext),
-                                    "PKIX_List_Create failed");
+                                    PKIX_LISTCREATEFAILED);
                         }
         
                         PKIX_CHECK(PKIX_List_AppendItem
                                 (savedPkixLoggersDebugTrace,
                                 (PKIX_PL_Object *) dupLogger,
                                 plContext),
-                                "PKIX_List_AppendItem failed");
+                                PKIX_LISTAPPENDITEMFAILED);
                     }
                     PKIX_DECREF(logger);
                     PKIX_DECREF(dupLogger);
@@ -962,7 +962,7 @@ cleanup:
 
         if (locked) {
                 PKIX_CHECK(PKIX_PL_MonitorLock_Exit(pkixLoggerLock, plContext),
-                        "PKIX_PL_MonitorLock_Exit failed");
+                        PKIX_MONITORLOCKEXITFAILED);
         }
 
         PKIX_RETURN(LOGGER);
@@ -987,7 +987,7 @@ PKIX_AddLogger(
         PKIX_NULLCHECK_ONE(logger);
 
         PKIX_CHECK(PKIX_PL_MonitorLock_Enter(pkixLoggerLock, plContext),
-                "PKIX_PL_MonitorLock_Enter failed");
+                PKIX_MONITORLOCKENTERFAILED);
         locked = PKIX_TRUE;
 
         savedPkixLoggersDebugTrace = pkixLoggersDebugTrace;
@@ -1001,23 +1001,23 @@ PKIX_AddLogger(
         if (pkixLoggers == NULL) {
 
             PKIX_CHECK(PKIX_List_Create(&pkixLoggers, plContext),
-                    "PKIX_List_Create failed");
+                    PKIX_LISTCREATEFAILED);
         }
 
         PKIX_CHECK(pkix_Logger_Duplicate
                     ((PKIX_PL_Object *)logger,
                     (PKIX_PL_Object **)&dupLogger,
                     plContext),
-                    "pkix_Logger_Duplicate failed");
+                    PKIX_LOGGERDUPLICATEFAILED);
 
         PKIX_CHECK(PKIX_List_AppendItem
                     (pkixLoggers,
                     (PKIX_PL_Object *) dupLogger,
                     plContext),
-                    "PKIX_List_AppendItem failed");
+                    PKIX_LISTAPPENDITEMFAILED);
 
         PKIX_CHECK(PKIX_List_GetLength(pkixLoggers, &length, plContext),
-                    "PKIX_List_GetLength failed");
+                    PKIX_LISTGETLENGTHFAILED);
 
         /* Reconstruct pkixLoggersErrors and pkixLoggersDebugTrace */
         for (i = 0; i < length; i++) {
@@ -1027,7 +1027,7 @@ PKIX_AddLogger(
                         i,
                         (PKIX_PL_Object **) &addLogger,
                         plContext),
-                        "PKIX_List_GetItem failed");
+                        PKIX_LISTGETITEMFAILED);
 
 
                 /* Put in pkixLoggersErrors */
@@ -1037,14 +1037,14 @@ PKIX_AddLogger(
                         PKIX_CHECK(PKIX_List_Create
                                     (&savedPkixLoggersErrors,
                                     plContext),
-                                    "PKIX_List_Create failed");
+                                    PKIX_LISTCREATEFAILED);
                 }
         
                 PKIX_CHECK(PKIX_List_AppendItem
                         (savedPkixLoggersErrors,
                         (PKIX_PL_Object *) addLogger,
                         plContext),
-                        "PKIX_List_AppendItem failed");
+                        PKIX_LISTAPPENDITEMFAILED);
                             
                 if (addLogger->maxLevel > PKIX_LOGGER_LEVEL_WARNING) {
 
@@ -1055,14 +1055,14 @@ PKIX_AddLogger(
                             PKIX_CHECK(PKIX_List_Create
                                     (&savedPkixLoggersDebugTrace,
                                     plContext),
-                                    "PKIX_List_Create failed");
+                                    PKIX_LISTCREATEFAILED);
                         }
 
                         PKIX_CHECK(PKIX_List_AppendItem
                                 (savedPkixLoggersDebugTrace,
                                 (PKIX_PL_Object *) addLogger,
                                 plContext),
-                                "PKIX_List_AppendItem failed");
+                                PKIX_LISTAPPENDITEMFAILED);
                 }
 
                 PKIX_DECREF(addLogger);
@@ -1080,7 +1080,7 @@ cleanup:
 
         if (locked) {
                 PKIX_CHECK(PKIX_PL_MonitorLock_Exit(pkixLoggerLock, plContext),
-                        "PKIX_PL_MonitorLock_Exit failed");
+                        PKIX_MONITORLOCKEXITFAILED);
         }
 
        PKIX_RETURN(LOGGER);

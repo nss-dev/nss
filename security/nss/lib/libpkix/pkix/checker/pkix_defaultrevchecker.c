@@ -63,7 +63,7 @@ pkix_DefaultRevChecker_Destroy(
         /* Check that this object is a DefaultRevocationChecker */
         PKIX_CHECK(pkix_CheckType
                 (object, PKIX_DEFAULTREVOCATIONCHECKER_TYPE, plContext),
-                "Object is not a DefaultRevocationChecker");
+                PKIX_OBJECTNOTDEFAULTREVOCATIONCHECKER);
 
         revChecker = (PKIX_DefaultRevocationChecker *)object;
 
@@ -164,7 +164,7 @@ pkix_DefaultRevChecker_Create(
                 sizeof (PKIX_DefaultRevocationChecker),
                 (PKIX_PL_Object **)&revChecker,
                 plContext),
-                "Could not create DefaultRevocationChecker object");
+                PKIX_COULDNOTCREATEDEFAULTREVOCATIONCHECKEROBJECT);
 
         /* Initialize fields */
 
@@ -247,7 +247,7 @@ pkix_DefaultRevChecker_Check(
                 ((PKIX_PL_Object *)checkerContext,
                 PKIX_DEFAULTREVOCATIONCHECKER_TYPE,
                 plContext),
-                "Object is not a DefaultRevocationChecker");
+                PKIX_OBJECTNOTDEFAULTREVOCATIONCHECKER);
 
         defaultRevChecker = (PKIX_DefaultRevocationChecker *)checkerContext;
 
@@ -267,11 +267,11 @@ pkix_DefaultRevChecker_Check(
                         defaultRevChecker->certsRemaining,
                         &crlChecker,
                         plContext),
-                        "pkix_DefaultCRLChecker_Initialize failed");
+                        PKIX_DEFAULTCRLCHECKERINITIALIZEFAILED);
 
                 PKIX_CHECK(PKIX_CertChainChecker_GetCheckCallback
                         (crlChecker, &check, plContext),
-                        "PKIX_CertChainChecker_GetCheckCallback failed");
+                        PKIX_CERTCHAINCHECKERGETCHECKCALLBACKFAILED);
 
                 defaultRevChecker->certChainChecker = crlChecker;
                 defaultRevChecker->check = check;
@@ -285,25 +285,25 @@ pkix_DefaultRevChecker_Check(
                 (defaultRevChecker->certChainChecker,
                 &crlCheckerState,
                 plContext),
-                "PKIX_CertChainChecker_GetCertChainCheckerState failed");
+                PKIX_CERTCHAINCHECKERGETCERTCHAINCHECKERSTATEFAILED);
 
         PKIX_CHECK(pkix_CheckType
                 (crlCheckerState, PKIX_DEFAULTCRLCHECKERSTATE_TYPE, plContext),
-                "Object is not a DefaultCRLCheckerState object");
+                PKIX_OBJECTNOTDEFAULTCRLCHECKERSTATE);
 
         /* Set up CRLSelector */
         PKIX_CHECK(pkix_DefaultCRLChecker_Check_SetSelector
                 (cert,
                 (pkix_DefaultCRLCheckerState *)crlCheckerState,
                 plContext),
-                "pkix_DefaultCRLChecker_Check_SetSelector failed");
+                PKIX_DEFAULTCRLCHECKERCHECKSETSELECTORFAILED);
 
         PKIX_CHECK
                 (PKIX_CertChainChecker_SetCertChainCheckerState
                 (defaultRevChecker->certChainChecker,
                 crlCheckerState,
                 plContext),
-                "PKIX_CertChainChecker_SetCertChainCheckerState failed");
+                PKIX_CERTCHAINCHECKERSETCERTCHAINCHECKERSTATEFAILED);
 
         PKIX_CHECK(defaultRevChecker->check
                 (defaultRevChecker->certChainChecker,
@@ -311,7 +311,7 @@ pkix_DefaultRevChecker_Check(
                 NULL,
                 &nbioContext,
                 plContext),
-                "PKIX_CertChainChecker_CheckCallback failed");
+                PKIX_CERTCHAINCHECKERCHECKCALLBACKFAILED);
 
         *pNBIOContext = nbioContext;
 
@@ -372,14 +372,14 @@ pkix_DefaultRevChecker_Initialize(
                 certsRemaining,
                 &revChecker,
                 plContext),
-                "pkix_DefaultRevChecker_Create failed");
+                PKIX_DEFAULTREVCHECKERCREATEFAILED);
 
         PKIX_CHECK(PKIX_RevocationChecker_Create
                 (pkix_DefaultRevChecker_Check,
                 (PKIX_PL_Object *)revChecker,
                 pChecker,
                 plContext),
-                "PKIX_RevocationChecker_Create failed");
+                PKIX_REVOCATIONCHECKERCREATEFAILED);
 
 cleanup:
 

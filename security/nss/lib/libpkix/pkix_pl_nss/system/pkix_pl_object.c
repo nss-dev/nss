@@ -124,13 +124,13 @@ pkix_pl_Object_GetHeader(
                             NULL,
                             (void **)&ctEntry,
                             plContext),
-                            "Error getting class table entry");
+                            PKIX_ERRORGETTINGCLASSTABLEENTRY);
 
                 PKIX_OBJECT_DEBUG("\tCalling PR_Unlock).\n");
                 PR_Unlock(classTableLock);
 
                 if (ctEntry == NULL) {
-                        PKIX_ERROR_FATAL("Unknown object type");
+                        PKIX_ERROR_FATAL(PKIX_UNKNOWNOBJECTTYPE);
                 }
         }
 
@@ -176,18 +176,18 @@ pkix_pl_Object_Destroy(
         PKIX_NULLCHECK_ONE(object);
 
         PKIX_CHECK(pkix_pl_Object_GetHeader(object, &objectHeader, plContext),
-                    "Received corrupted object argument");
+                    PKIX_RECEIVEDCORRUPTEDOBJECTARGUMENT);
 
         /* Attempt to delete an object still being used */
         if (objectHeader->references != 0) {
-                PKIX_ERROR_FATAL("Object is still referenced");
+                PKIX_ERROR_FATAL(PKIX_OBJECTSTILLREFERENCED);
         }
 
         objectHeader->magicHeader = 0;
         PKIX_DECREF(objectHeader->stringRep);
 
         PKIX_CHECK(pkix_UnlockObject(object, plContext),
-                    "Error unlocking object");
+                    PKIX_ERRORUNLOCKINGOBJECT);
 
         /* Destroy this object's lock */
         PKIX_OBJECT_DEBUG("\tCalling PR_DestroyLock).\n");
@@ -284,7 +284,7 @@ pkix_pl_Object_ToString_Default(
         PKIX_NULLCHECK_TWO(object, pString);
 
         PKIX_CHECK(PKIX_PL_Object_GetType(object, &type, plContext),
-                    "PKIX_PL_Object_GetType failed");
+                    PKIX_OBJECTGETTYPEFAILED);
 
         /* Ensure that type code is known. Otherwise, default to Object */
         /* See pkixt.h for all known types. */
@@ -309,11 +309,11 @@ pkix_pl_Object_ToString_Default(
                 PKIX_OBJECT_DEBUG("\tCalling PR_Unlock).\n");
                 PR_Unlock(classTableLock);
                 if (pkixErrorResult){
-                        PKIX_ERROR_FATAL("Error getting class table entry");
+                        PKIX_ERROR_FATAL(PKIX_ERRORGETTINGCLASSTABLEENTRY);
                 }
 
                 if (ctEntry == NULL){
-                        PKIX_ERROR_FATAL("Undefined class table entry");
+                        PKIX_ERROR_FATAL(PKIX_UNDEFINEDCLASSTABLEENTRY);
                 } else {
                         description = ctEntry->description;
                 }
@@ -325,7 +325,7 @@ pkix_pl_Object_ToString_Default(
                     0,
                     &formatString,
                     plContext),
-                    "PKIX_PL_String_Create failed");
+                    PKIX_STRINGCREATEFAILED);
 
         PKIX_CHECK(PKIX_PL_String_Create
                     (PKIX_ESCASCII,
@@ -333,7 +333,7 @@ pkix_pl_Object_ToString_Default(
                     0,
                     &descString,
                     plContext),
-                    "PKIX_PL_String_Create failed");
+                    PKIX_STRINGCREATEFAILED);
 
         PKIX_CHECK(PKIX_PL_Sprintf
                     (pString,
@@ -341,7 +341,7 @@ pkix_pl_Object_ToString_Default(
                     formatString,
                     descString,
                     object),
-                    "PKIX_PL_Sprintf failed");
+                    PKIX_SPRINTFFAILED);
 
 cleanup:
 
@@ -442,7 +442,7 @@ pkix_pl_Object_RetrieveEqualsCallback(
 
         PKIX_CHECK(pkix_pl_Object_GetHeader
                     (object, &objectHeader, plContext),
-                    "Received corrupted object argument");
+                    PKIX_RECEIVEDCORRUPTEDOBJECTARGUMENT);
 
         /* first, special handling for system types */
         if (objectHeader->type < PKIX_NUMTYPES){
@@ -465,11 +465,11 @@ pkix_pl_Object_RetrieveEqualsCallback(
                 PKIX_OBJECT_DEBUG("\tCalling PR_Unlock).\n");
                 PR_Unlock(classTableLock);
                 if (pkixErrorResult){
-                        PKIX_ERROR("Error getting class table entry");
+                        PKIX_ERROR(PKIX_ERRORGETTINGCLASSTABLEENTRY);
                 }
 
                 if ((ctEntry == NULL) || (ctEntry->equalsFunction == NULL)) {
-                        PKIX_ERROR("Undefined equals callback");
+                        PKIX_ERROR(PKIX_UNDEFINEDEQUALSCALLBACK);
                 } else {
                         *pEqualsCallback = ctEntry->equalsFunction;
                 }
@@ -517,13 +517,13 @@ PKIX_PL_Object_Alloc(
                 PKIX_OBJECT_DEBUG("\tCalling PR_Unlock).\n");
                 PR_Unlock(classTableLock);
                 if (pkixErrorResult){
-                        PKIX_ERROR_FATAL("Could not lookup in hashtable");
+                        PKIX_ERROR_FATAL(PKIX_COULDNOTLOOKUPINHASHTABLE);
                 }
 
                 typeRegistered = (ctEntry != NULL);
 
                 if (!typeRegistered) {
-                        PKIX_ERROR_FATAL("Unknown type argument");
+                        PKIX_ERROR_FATAL(PKIX_UNKNOWNTYPEARGUMENT);
                 }
         }
 
@@ -532,7 +532,7 @@ PKIX_PL_Object_Alloc(
                     (((PKIX_UInt32)sizeof (PKIX_PL_Object))+size,
                     (void **)&object,
                     plContext),
-                    "PKIX_PL_Malloc failed");
+                    PKIX_MALLOCFAILED);
 
         /* Initialize all object fields */
         object->magicHeader = PKIX_MAGIC_HEADER;
@@ -600,7 +600,7 @@ PKIX_PL_Object_IsTypeRegistered(
         PR_Unlock(classTableLock);
 
         if (pkixErrorResult){
-                PKIX_ERROR_FATAL("Could not lookup in hashtable");
+                PKIX_ERROR_FATAL(PKIX_COULDNOTLOOKUPINHASHTABLE);
         }
 
         *pBool = (ctEntry != NULL);
@@ -636,7 +636,7 @@ PKIX_PL_Object_RegisterType(
          */
 
         if (type < PKIX_NUMTYPES) { /* if this is a system type */
-                PKIX_ERROR("Can't re-register system type");
+                PKIX_ERROR(PKIX_CANTREREGISTERSYSTEMTYPE);
         }
 
         PKIX_OBJECT_DEBUG("\tCalling PR_Lock).\n");
@@ -648,18 +648,18 @@ PKIX_PL_Object_RegisterType(
                     NULL,
                     (void **)&ctEntry,
                     plContext),
-                    "pkix_pl_PrimHashTable_Lookup failed");
+                    PKIX_PRIMHASHTABLELOOKUPFAILED);
 
         /* If the type is already registered, throw an error */
         if (ctEntry) {
-                PKIX_ERROR("Type is already registered");
+                PKIX_ERROR(PKIX_TYPEALREADYREGISTERED);
         }
 
         PKIX_CHECK(PKIX_PL_Malloc
                     (((PKIX_UInt32)sizeof (pkix_ClassTable_Entry)),
                     (void **)&ctEntry,
                     plContext),
-                    "PKIX_PL_Malloc failed");
+                    PKIX_MALLOCFAILED);
 
         /* Set Default Values if none specified */
 
@@ -691,7 +691,7 @@ PKIX_PL_Object_RegisterType(
                     (((PKIX_UInt32)sizeof (pkix_pl_Integer)),
                     (void **)&key,
                     plContext),
-                    "Could not malloc new key");
+                    PKIX_COULDNOTMALLOCNEWKEY);
 
         key->ht_int = type;
 
@@ -702,7 +702,7 @@ PKIX_PL_Object_RegisterType(
                     type,
                     NULL,
                     plContext),
-                    "pkix_pl_PrimHashTable_Add failed");
+                    PKIX_PRIMHASHTABLEADDFAILED);
 
 cleanup:
         PKIX_OBJECT_DEBUG("\tCalling PR_Unlock).\n");
@@ -739,17 +739,17 @@ PKIX_PL_Object_IncRef(
         }
 
         if (object == (PKIX_PL_Object*)PKIX_ALLOC_ERROR()) {
-                PKIX_ERROR_FATAL("Attempt to IncRef Alloc Error");
+                PKIX_ERROR_FATAL(PKIX_ATTEMPTTOINCREFALLOCERROR);
         }
 
         /* Shift pointer from user data to object header */
         PKIX_CHECK(pkix_pl_Object_GetHeader(object, &objectHeader, plContext),
-                    "Received corrupted object argument");
+                    PKIX_RECEIVEDCORRUPTEDOBJECTARGUMENT);
 
         /* Lock the test and increment */
         PKIX_OBJECT_DEBUG("\tAcquiring object lock).\n");
         PKIX_CHECK(pkix_LockObject(object, plContext),
-                    "Error locking object");
+                    PKIX_ERRORLOCKINGOBJECT);
 
         /* This object should never have zero references */
         refCountError = (objectHeader->references == 0);
@@ -762,10 +762,12 @@ PKIX_PL_Object_IncRef(
         }
 
         PKIX_CHECK(pkix_UnlockObject(object, plContext),
-                    "Error unlocking object");
+                    PKIX_ERRORUNLOCKINGOBJECT);
 
         if (refCountError) {
-                PKIX_THROW(FATAL, "Object with non-positive references");
+                PKIX_THROW
+                    (FATAL,
+                    PKIX_ErrorText[PKIX_OBJECTWITHNONPOSITIVEREFERENCES]);
         }
 
 cleanup:
@@ -806,17 +808,17 @@ PKIX_PL_Object_DecRef(
         }
 
         if (object == (PKIX_PL_Object*)PKIX_ALLOC_ERROR()) {
-                PKIX_ERROR_FATAL("Attempt to DecRef Alloc Error");
+                PKIX_ERROR_FATAL(PKIX_ATTEMPTTODECREFALLOCERROR);
         }
 
         /* Shift pointer from user data to object header */
         PKIX_CHECK(pkix_pl_Object_GetHeader(object, &objectHeader, plContext),
-                    "Received corrupted object argument");
+                    PKIX_RECEIVEDCORRUPTEDOBJECTARGUMENT);
 
         /* Lock the test for the reference count and the decrement */
         PKIX_OBJECT_DEBUG("\tAcquiring object lock).\n");
         PKIX_CHECK(pkix_LockObject(object, plContext),
-                    "Error locking object");
+                    PKIX_ERRORLOCKINGOBJECT);
 
         refCountError = (objectHeader->references == 0);
 
@@ -835,8 +837,7 @@ PKIX_PL_Object_DecRef(
                                 if (func != NULL){
                                 /* Call destructor on user data if necessary */
                                     PKIX_CHECK_FATAL(func(object, plContext),
-                                                    "Error in object-defined "
-                                                    "destroy callback");
+                                             PKIX_ERRORINOBJECTDEFINEDESTROY);
                                 }
                         } else {
                                 PKIX_OBJECT_DEBUG("\tCalling PR_Lock).\n");
@@ -853,7 +854,7 @@ PKIX_PL_Object_DecRef(
                                 PR_Unlock(classTableLock);
                                 if (pkixErrorResult){
                                     PKIX_ERROR_FATAL
-                                            ("Error in getting destructor");
+                                            (PKIX_ERRORINGETTINGDESTRUCTOR);
                                 }
 
                                 if (ctEntry != NULL){
@@ -863,10 +864,8 @@ PKIX_PL_Object_DecRef(
                                 if (destructor != NULL) {
                                 /* Call destructor on user data if necessary */
                                         PKIX_CHECK_FATAL(destructor
-                                                        (object, plContext),
-                                                        "Error in "
-                                                        "object-defined "
-                                                        "destroy callback");
+                                                (object, plContext),
+                                                PKIX_ERRORINOBJECTDEFINEDESTROY);
                                 }
                         }
 
@@ -879,7 +878,7 @@ PKIX_PL_Object_DecRef(
 
         PKIX_OBJECT_DEBUG("\tReleasing object lock).\n");
         PKIX_CHECK(pkix_UnlockObject(object, plContext),
-                    "Error unlocking object");
+                    PKIX_ERRORUNLOCKINGOBJECT);
 
         /* if a reference count was already zero, throw an error */
         if (refCountError) {
@@ -915,11 +914,11 @@ PKIX_PL_Object_Equals(
 
         PKIX_CHECK(pkix_pl_Object_GetHeader
                     (firstObject, &firstObjectHeader, plContext),
-                    "Received corrupted object argument");
+                    PKIX_RECEIVEDCORRUPTEDOBJECTARGUMENT);
 
         PKIX_CHECK(pkix_pl_Object_GetHeader
                     (secondObject, &secondObjectHeader, plContext),
-                    "Received corrupted object argument");
+                    PKIX_RECEIVEDCORRUPTEDOBJECTARGUMENT);
 
         /* if hashcodes are cached but not equal, objects can't be equal */
         if (firstObjectHeader->hashcodeCached &&
@@ -952,18 +951,18 @@ PKIX_PL_Object_Equals(
                 PR_Unlock(classTableLock);
 
                 if (pkixErrorResult){
-                        PKIX_ERROR_FATAL("Error getting class table entry");
+                        PKIX_ERROR_FATAL(PKIX_ERRORGETTINGCLASSTABLEENTRY);
                 }
 
                 if ((ctEntry == NULL) || (ctEntry->equalsFunction == NULL)) {
-                        PKIX_ERROR_FATAL("Undefined callback");
+                        PKIX_ERROR_FATAL(PKIX_UNDEFINEDCALLBACK);
                 } else {
                         func = ctEntry->equalsFunction;
                 }
         }
 
         PKIX_CHECK(func(firstObject, secondObject, pResult, plContext),
-                    "object-specific function failed");
+                    PKIX_OBJECTSPECIFICFUNCTIONFAILED);
 
 cleanup:
 
@@ -990,14 +989,14 @@ PKIX_PL_Object_Duplicate(
 
         PKIX_CHECK(pkix_pl_Object_GetHeader
                     (firstObject, &firstObjectHeader, plContext),
-                    "Received corrupted object argument");
+                    PKIX_RECEIVEDCORRUPTEDOBJECTARGUMENT);
 
         /* first, special handling for system types */
         if (firstObjectHeader->type < PKIX_NUMTYPES){
                 entry = systemClasses[firstObjectHeader->type];
                 func = entry.duplicateFunction;
                 if (!func){
-                        PKIX_ERROR_FATAL("Undefined Duplicate function");
+                        PKIX_ERROR_FATAL(PKIX_UNDEFINEDDUPLICATEFUNCTION);
                 }
         } else {
                 PKIX_OBJECT_DEBUG("\tCalling PR_Lock).\n");
@@ -1013,18 +1012,18 @@ PKIX_PL_Object_Duplicate(
                 PR_Unlock(classTableLock);
 
                 if (pkixErrorResult){
-                        PKIX_ERROR_FATAL("Error getting class table entry");
+                        PKIX_ERROR_FATAL(PKIX_ERRORGETTINGCLASSTABLEENTRY);
                 }
 
                 if ((ctEntry == NULL) || (ctEntry->duplicateFunction == NULL)) {
-                        PKIX_ERROR_FATAL("Undefined callback");
+                        PKIX_ERROR_FATAL(PKIX_UNDEFINEDCALLBACK);
                 } else {
                         func = ctEntry->duplicateFunction;
                 }
         }
 
         PKIX_CHECK(func(firstObject, pNewObject, plContext),
-                    "object-specific function failed");
+                    PKIX_OBJECTSPECIFICFUNCTIONFAILED);
 
 cleanup:
 
@@ -1053,7 +1052,7 @@ PKIX_PL_Object_Hashcode(
 
         /* Shift pointer from user data to object header */
         PKIX_CHECK(pkix_pl_Object_GetHeader(object, &objectHeader, plContext),
-                    "Received corrupted object argument");
+                    PKIX_RECEIVEDCORRUPTEDOBJECTARGUMENT);
 
         /* if we don't have a cached copy from before, we create one */
         if (!objectHeader->hashcodeCached){
@@ -1080,24 +1079,24 @@ PKIX_PL_Object_Hashcode(
 
                         if (pkixErrorResult){
                                 PKIX_ERROR_FATAL
-                                        ("Error getting class table entry");
+                                        (PKIX_ERRORGETTINGCLASSTABLEENTRY);
                         }
 
                         if ((ctEntry == NULL) ||
                             (ctEntry->hashcodeFunction == NULL)) {
-                                PKIX_ERROR_FATAL("Undefined callback");
+                                PKIX_ERROR_FATAL(PKIX_UNDEFINEDCALLBACK);
                         }
 
                         func = ctEntry->hashcodeFunction;
                 }
 
                 PKIX_CHECK(func(object, &objectHash, plContext),
-                            "object-specific function failed");
+                            PKIX_OBJECTSPECIFICFUNCTIONFAILED);
 
                 if (!objectHeader->hashcodeCached){
 
                         PKIX_CHECK(pkix_LockObject(object, plContext),
-                                    "Error locking object");
+                                    PKIX_ERRORLOCKINGOBJECT);
                         objectLocked = PKIX_TRUE;
 
                         if (!objectHeader->hashcodeCached){
@@ -1107,7 +1106,7 @@ PKIX_PL_Object_Hashcode(
                         }
 
                         PKIX_CHECK(pkix_UnlockObject(object, plContext),
-                                    "Error unlocking object");
+                                    PKIX_ERRORUNLOCKINGOBJECT);
                         objectLocked = PKIX_FALSE;
                 }
         }
@@ -1146,7 +1145,7 @@ PKIX_PL_Object_ToString(
 
         /* Shift pointer from user data to object header */
         PKIX_CHECK(pkix_pl_Object_GetHeader(object, &objectHeader, plContext),
-                    "Received corrupted object argument");
+                    PKIX_RECEIVEDCORRUPTEDOBJECTARGUMENT);
 
         /* if we don't have a cached copy from before, we create one */
         if (!objectHeader->stringRep){
@@ -1172,24 +1171,24 @@ PKIX_PL_Object_ToString(
                         PR_Unlock(classTableLock);
                         if (pkixErrorResult){
                                 PKIX_ERROR_FATAL
-                                        ("Error getting class table entry");
+                                        (PKIX_ERRORGETTINGCLASSTABLEENTRY);
                         }
 
                         if ((ctEntry == NULL) ||
                             (ctEntry->toStringFunction == NULL)) {
-                                PKIX_ERROR_FATAL("Undefined callback");
+                                PKIX_ERROR_FATAL(PKIX_UNDEFINEDCALLBACK);
                         }
 
                         func = ctEntry->toStringFunction;
                 }
 
                 PKIX_CHECK(func(object, &objectString, plContext),
-                            "object-specific function failed");
+                            PKIX_OBJECTSPECIFICFUNCTIONFAILED);
 
                 if (!objectHeader->stringRep){
 
                         PKIX_CHECK(pkix_LockObject(object, plContext),
-                                    "Error locking object");
+                                    PKIX_ERRORLOCKINGOBJECT);
                         objectLocked = PKIX_TRUE;
 
                         if (!objectHeader->stringRep){
@@ -1198,7 +1197,7 @@ PKIX_PL_Object_ToString(
                         }
 
                         PKIX_CHECK(pkix_UnlockObject(object, plContext),
-                                    "Error unlocking object");
+                                    PKIX_ERRORUNLOCKINGOBJECT);
                         objectLocked = PKIX_FALSE;
                 }
         }
@@ -1227,10 +1226,10 @@ PKIX_PL_Object_InvalidateCache(
 
         /* Shift pointer from user data to object header */
         PKIX_CHECK(pkix_pl_Object_GetHeader(object, &objectHeader, plContext),
-                    "Received corrupted object argument");
+                    PKIX_RECEIVEDCORRUPTEDOBJECTARGUMENT);
 
         PKIX_CHECK(pkix_LockObject(object, plContext),
-                    "Error locking object");
+                    PKIX_ERRORLOCKINGOBJECT);
         objectLocked = PKIX_TRUE;
 
         /* invalidate hashcode */
@@ -1240,7 +1239,7 @@ PKIX_PL_Object_InvalidateCache(
         PKIX_DECREF(objectHeader->stringRep);
 
         PKIX_CHECK(pkix_UnlockObject(object, plContext),
-                    "Error unlocking object");
+                    PKIX_ERRORUNLOCKINGOBJECT);
         objectLocked = PKIX_FALSE;
 
 
@@ -1272,19 +1271,19 @@ PKIX_PL_Object_Compare(
         /* Shift pointer from user data to object header */
         PKIX_CHECK(pkix_pl_Object_GetHeader
                     (firstObject, &firstObjectHeader, plContext),
-                    "Received corrupted object argument");
+                    PKIX_RECEIVEDCORRUPTEDOBJECTARGUMENT);
 
         /* Shift pointer from user data to object header */
         PKIX_CHECK(pkix_pl_Object_GetHeader
                     (secondObject, &secondObjectHeader, plContext),
-                    "Received corrupted object argument");
+                    PKIX_RECEIVEDCORRUPTEDOBJECTARGUMENT);
 
         /* first, special handling for system types */
         if (firstObjectHeader->type < PKIX_NUMTYPES){
                 entry = systemClasses[firstObjectHeader->type];
                 func = entry.comparator;
                 if (!func){
-                        PKIX_ERROR("Undefined Comparator");
+                        PKIX_ERROR(PKIX_UNDEFINEDCOMPARATOR);
                 }
         } else {
                 PKIX_OBJECT_DEBUG("\tCalling PR_Lock).\n");
@@ -1299,18 +1298,18 @@ PKIX_PL_Object_Compare(
                 PKIX_OBJECT_DEBUG("\tCalling PR_Unlock).\n");
                 PR_Unlock(classTableLock);
                 if (pkixErrorResult){
-                        PKIX_ERROR_FATAL("Error getting class table entry");
+                        PKIX_ERROR_FATAL(PKIX_ERRORGETTINGCLASSTABLEENTRY);
                 }
 
                 if ((ctEntry == NULL) || (ctEntry->comparator == NULL)) {
-                        PKIX_ERROR_FATAL("Undefined Comparator");
+                        PKIX_ERROR_FATAL(PKIX_UNDEFINEDCOMPARATOR);
                 }
 
                 func = ctEntry->comparator;
         }
 
         PKIX_CHECK(func(firstObject, secondObject, pResult, plContext),
-                    "object-specific function failed");
+                    PKIX_OBJECTSPECIFICFUNCTIONFAILED);
 
 cleanup:
 
@@ -1329,7 +1328,7 @@ PKIX_PL_Object_Lock(
         PKIX_NULLCHECK_ONE(object);
 
         PKIX_CHECK(pkix_LockObject(object, plContext),
-                    "pkix_LockObject failed");
+                    PKIX_LOCKOBJECTFAILED);
 
 cleanup:
 
@@ -1348,7 +1347,7 @@ PKIX_PL_Object_Unlock(
         PKIX_NULLCHECK_ONE(object);
 
         PKIX_CHECK(pkix_UnlockObject(object, plContext),
-                    "pkix_UnlockObject failed");
+                    PKIX_UNLOCKOBJECTFAILED);
 
 cleanup:
 
@@ -1372,7 +1371,7 @@ PKIX_PL_Object_GetType(
 
         /* Shift pointer from user data to object header */
         PKIX_CHECK(pkix_pl_Object_GetHeader(object, &objectHeader, plContext),
-                    "Received corrupted object argument");
+                    PKIX_RECEIVEDCORRUPTEDOBJECTARGUMENT);
 
         *pType = objectHeader->type;
 

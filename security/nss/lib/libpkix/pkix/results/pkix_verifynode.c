@@ -89,7 +89,7 @@ pkix_VerifyNode_Create(
                 sizeof (PKIX_VerifyNode),
                 (PKIX_PL_Object **)&node,
                 plContext),
-                "Could not create a VerifyNode object");
+                PKIX_COULDNOTCREATEVERIFYNODEOBJECT);
 
         PKIX_INCREF(cert);
         node->verifyCert = cert;
@@ -160,25 +160,25 @@ pkix_VerifyNode_AddToChain(
         if (listOfChildren == NULL) {
 
                 if (parentDepth != (child->depth - 1)) {
-                        PKIX_ERROR("Nodes missing from chain");
+                        PKIX_ERROR(PKIX_NODESMISSINGFROMCHAIN);
                 }
 
                 PKIX_CHECK(PKIX_List_Create(&listOfChildren, plContext),
-                        "PKIX_List_Create failed");
+                        PKIX_LISTCREATEFAILED);
 
                 PKIX_CHECK(PKIX_List_AppendItem
                         (listOfChildren, (PKIX_PL_Object *)child, plContext),
-                        "Could not append child to parent's VerifyNode list");
+                        PKIX_COULDNOTAPPENDCHILDTOPARENTSVERIFYNODELIST);
 
                 parentNode->children = listOfChildren;
         } else {
                 /* get number of children */
                 PKIX_CHECK(PKIX_List_GetLength
                         (listOfChildren, &numChildren, plContext),
-                        "PKIX_List_GetLength failed");
+                        PKIX_LISTGETLENGTHFAILED);
 
                 if (numChildren != 1) {
-                        PKIX_ERROR("Ambiguous parentage of VerifyNode");
+                        PKIX_ERROR(PKIX_AMBIGUOUSPARENTAGEOFVERIFYNODE);
                 }
 
                 /* successor = listOfChildren[0] */
@@ -187,16 +187,16 @@ pkix_VerifyNode_AddToChain(
                         0,
                         (PKIX_PL_Object **)&successor,
                         plContext),
-                        "PKIX_List_GetItem failed");
+                        PKIX_LISTGETITEMFAILED);
 
                 PKIX_CHECK(pkix_VerifyNode_AddToChain
                         (successor, child, plContext),
-                        "pkix_VerifyNode_AddToChain failed");
+                        PKIX_VERIFYNODEADDTOCHAINFAILED);
         }
 
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                 ((PKIX_PL_Object *)parentNode, plContext),
-                "PKIX_PL_Object_InvalidateCache failed");
+                PKIX_OBJECTINVALIDATECACHEFAILED);
 
 cleanup:
         PKIX_DECREF(successor);
@@ -238,19 +238,19 @@ pkix_VerifyNode_SetDepth(PKIX_List *children,
         PKIX_NULLCHECK_ONE(children);
 
         PKIX_CHECK(PKIX_List_GetLength(children, &numChildren, plContext),
-                "PKIX_List_GetLength failed");
+                PKIX_LISTGETLENGTHFAILED);
 
         for (chIx = 0; chIx < numChildren; chIx++) {
                PKIX_CHECK(PKIX_List_GetItem
                         (children, chIx, (PKIX_PL_Object **)&child, plContext),
-                        "PKIX_List_GetItem failed");
+                        PKIX_LISTGETITEMFAILED);
 
                 child->depth = depth;
 
                 if (child->children != NULL) {
                         PKIX_CHECK(pkix_VerifyNode_SetDepth
                                 (child->children, depth + 1, plContext),
-                                "pkix_VerifyNode_SetDepth failed");
+                                PKIX_VERIFYNODESETDEPTHFAILED);
                 }
 
                 PKIX_DECREF(child);
@@ -311,7 +311,7 @@ pkix_VerifyNode_AddToTree(
         if (listOfChildren == NULL) {
 
                 PKIX_CHECK(PKIX_List_Create(&listOfChildren, plContext),
-                        "PKIX_List_Create failed");
+                        PKIX_LISTCREATEFAILED);
 
                 parentNode->children = listOfChildren;
         }
@@ -320,12 +320,12 @@ pkix_VerifyNode_AddToTree(
 
         PKIX_CHECK(PKIX_List_AppendItem
                 (parentNode->children, (PKIX_PL_Object *)child, plContext),
-                "Could not append child to parent's VerifyNode list");
+                PKIX_COULDNOTAPPENDCHILDTOPARENTSVERIFYNODELIST);
 
         if (child->children != NULL) {
                 PKIX_CHECK(pkix_VerifyNode_SetDepth
                         (child->children, child->depth + 1, plContext),
-                        "pkix_VerifyNode_SetDepth failed");
+                        PKIX_VERIFYNODESETDEPTHFAILED);
         }
 
 
@@ -375,21 +375,21 @@ pkix_SingleVerifyNode_ToString(
         PKIX_NULLCHECK_THREE(node, pString, node->verifyCert);
 
         PKIX_TOSTRING(node->error, &errorString, plContext,
-                "PKIX_Error_ToString failed");
+                PKIX_ERRORTOSTRINGFAILED);
 
         PKIX_CHECK(PKIX_PL_Cert_GetIssuer
                 (node->verifyCert, &issuerName, plContext),
-                "PKIX_PL_Cert_GetIssuer failed");
+                PKIX_CERTGETISSUERFAILED);
 
         PKIX_TOSTRING(issuerName, &issuerString, plContext,
-                "PKIX_PL_X500Name_ToString failed");
+                PKIX_X500NAMETOSTRINGFAILED);
 
         PKIX_CHECK(PKIX_PL_Cert_GetSubject
                 (node->verifyCert, &subjectName, plContext),
-                "PKIX_PL_Cert_GetSubject failed");
+                PKIX_CERTGETSUBJECTFAILED);
 
         PKIX_TOSTRING(subjectName, &subjectString, plContext,
-                "PKIX_PL_X500Name_ToString failed");
+                PKIX_X500NAMETOSTRINGFAILED);
 
         PKIX_CHECK(PKIX_PL_String_Create
                 (PKIX_ESCASCII,
@@ -397,7 +397,7 @@ pkix_SingleVerifyNode_ToString(
                 0,
                 &fmtString,
                 plContext),
-                "Can't create PKIX_PL_String");
+                PKIX_CANTCREATESTRING);
 
         PKIX_CHECK(PKIX_PL_Sprintf
                 (&outString,
@@ -407,7 +407,7 @@ pkix_SingleVerifyNode_ToString(
                 subjectString,
                 node->depth,
                 errorString),
-                "PKIX_PL_Sprintf failed");
+                PKIX_SPRINTFFAILED);
 
         *pString = outString;
 
@@ -475,7 +475,7 @@ pkix_VerifyNode_ToString_Helper(
         /* Create a string for this node */
         PKIX_CHECK(pkix_SingleVerifyNode_ToString
                 (rootNode, &thisItemString, plContext),
-                "Error in pkix_SingleVerifyNode_ToString");
+                PKIX_ERRORINSINGLEVERIFYNODETOSTRING);
 
         if (indent) {
                 PKIX_CHECK(PKIX_PL_String_Create
@@ -484,7 +484,7 @@ pkix_VerifyNode_ToString_Helper(
                         0,
                         &thisNodeFormat,
                         plContext),
-                        "Error creating format string");
+                        PKIX_ERRORCREATINGFORMATSTRING);
 
                 PKIX_CHECK(PKIX_PL_Sprintf
                         (&resultString,
@@ -492,7 +492,7 @@ pkix_VerifyNode_ToString_Helper(
                         thisNodeFormat,
                         indent,
                         thisItemString),
-                        "Error in Sprintf");
+                        PKIX_ERRORINSPRINTF);
         } else {
                 PKIX_CHECK(PKIX_PL_String_Create
                         (PKIX_ESCASCII,
@@ -500,14 +500,14 @@ pkix_VerifyNode_ToString_Helper(
                         0,
                         &thisNodeFormat,
                         plContext),
-                        "Error creating format string");
+                        PKIX_ERRORCREATINGFORMATSTRING);
 
                 PKIX_CHECK(PKIX_PL_Sprintf
                         (&resultString,
                         plContext,
                         thisNodeFormat,
                         thisItemString),
-                        "Error in Sprintf");
+                        PKIX_ERRORINSPRINTF);
         }
 
         PKIX_DECREF(thisItemString);
@@ -517,7 +517,7 @@ pkix_VerifyNode_ToString_Helper(
         if (rootNode->children) {
                 PKIX_CHECK(PKIX_List_GetLength
                         (rootNode->children, &numberOfChildren, plContext),
-                        "Error in PKIX_List_GetLength");
+                        PKIX_LISTGETLENGTHFAILED);
         }
 
         if (numberOfChildren != 0) {
@@ -534,14 +534,14 @@ pkix_VerifyNode_ToString_Helper(
                                 0,
                                 &nextIndentFormat,
                                 plContext),
-                                "Error creating format string");
+                                PKIX_ERRORCREATINGFORMATSTRING);
 
                         PKIX_CHECK(PKIX_PL_Sprintf
                                 (&nextIndentString,
                                 plContext,
                                 nextIndentFormat,
                                 indent),
-                                "Error in Sprintf");
+                                PKIX_ERRORINSPRINTF);
                 } else {
                         PKIX_CHECK(PKIX_PL_String_Create
                                 (PKIX_ESCASCII,
@@ -549,7 +549,7 @@ pkix_VerifyNode_ToString_Helper(
                                 0,
                                 &nextIndentString,
                                 plContext),
-                                "Error creating indent string");
+                                PKIX_ERRORCREATINGINDENTSTRING);
                 }
 
                 /* Prepare the format for concatenation. */
@@ -559,7 +559,7 @@ pkix_VerifyNode_ToString_Helper(
                         0,
                         &childrenFormat,
                         plContext),
-                        "Error creating format string");
+                        PKIX_ERRORCREATINGFORMATSTRING);
 
                 for (childIndex = 0;
                         childIndex < numberOfChildren;
@@ -569,14 +569,14 @@ pkix_VerifyNode_ToString_Helper(
                                 childIndex,
                                 (PKIX_PL_Object **)&childNode,
                                 plContext),
-                                "Error in PKIX_List_GetItem");
+                                PKIX_LISTGETITEMFAILED);
 
                         PKIX_CHECK(pkix_VerifyNode_ToString_Helper
                                 (childNode,
                                 nextIndentString,
                                 &childString,
                                 plContext),
-                                "Error creating child string");
+                                PKIX_ERRORCREATINGCHILDSTRING);
 
 
                         PKIX_CHECK(PKIX_PL_Sprintf
@@ -585,7 +585,7 @@ pkix_VerifyNode_ToString_Helper(
                                 childrenFormat,
                                 thisItemString,
                                 childString),
-                        "Error in Sprintf");
+                        PKIX_ERRORINSPRINTF);
 
                         PKIX_DECREF(childNode);
                         PKIX_DECREF(childString);
@@ -630,13 +630,13 @@ pkix_VerifyNode_ToString(
         PKIX_NULLCHECK_TWO(object, pTreeString);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_VERIFYNODE_TYPE, plContext),
-                "Object is not a VerifyNode");
+                PKIX_OBJECTNOTVERIFYNODE);
 
         rootNode = (PKIX_VerifyNode *)object;
 
         PKIX_CHECK(pkix_VerifyNode_ToString_Helper
                 (rootNode, NULL, &resultString, plContext),
-                "Error creating subtree string");
+                PKIX_ERRORCREATINGSUBTREESTRING);
 
         *pTreeString = resultString;
 
@@ -661,7 +661,7 @@ pkix_VerifyNode_Destroy(
         PKIX_NULLCHECK_ONE(object);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_VERIFYNODE_TYPE, plContext),
-                "Object is not a VerifyNode");
+                PKIX_OBJECTNOTVERIFYNODE);
 
         node = (PKIX_VerifyNode*)object;
 
@@ -715,13 +715,13 @@ pkix_SingleVerifyNode_Hashcode(
                 (node->verifyCert,
                 &nodeHash,
                 plContext,
-                "Failure hashing Cert");
+                PKIX_FAILUREHASHINGCERT);
 
         PKIX_CHECK(PKIX_PL_Object_Hashcode
                 ((PKIX_PL_Object *)node->error,
                 &errorHash,
                 plContext),
-                "Failure hashing Error");
+                PKIX_FAILUREHASHINGERROR);
 
         nodeHash = 31*nodeHash + errorHash;
         *pHashcode = nodeHash;
@@ -750,19 +750,19 @@ pkix_VerifyNode_Hashcode(
 
         PKIX_CHECK(pkix_CheckType
                 (object, PKIX_VERIFYNODE_TYPE, plContext),
-                "Object is not a VerifyNode");
+                PKIX_OBJECTNOTVERIFYNODE);
 
         node = (PKIX_VerifyNode *)object;
 
         PKIX_CHECK(pkix_SingleVerifyNode_Hashcode
                 (node, &nodeHash, plContext),
-                "pkix_SingleVerifyNode_Hashcode failed");
+                PKIX_SINGLEVERIFYNODEHASHCODEFAILED);
 
         PKIX_HASHCODE
                 (node->children,
                 &childrenHash,
                 plContext,
-                "PKIX_PL_Object_Hashcode failed");
+                PKIX_OBJECTHASHCODEFAILED);
 
         nodeHash = 31*nodeHash + childrenHash;
 
@@ -833,7 +833,7 @@ pkix_SingleVerifyNode_Equals(
                 secondVN->verifyCert,
                 &compResult,
                 plContext,
-                "PKIX_PL_Object_Equals failed");
+                PKIX_OBJECTEQUALSFAILED);
 
         if (compResult == PKIX_FALSE) {
                 goto cleanup;
@@ -844,7 +844,7 @@ pkix_SingleVerifyNode_Equals(
                 secondVN->error,
                 &compResult,
                 plContext,
-                "PKIX_PL_Object_Equals failed");
+                PKIX_OBJECTEQUALSFAILED);
 
 cleanup:
 
@@ -875,7 +875,7 @@ pkix_VerifyNode_Equals(
         /* test that firstObject is a VerifyNode */
         PKIX_CHECK(pkix_CheckType
                 (firstObject, PKIX_VERIFYNODE_TYPE, plContext),
-                "FirstObject argument is not a VerifyNode");
+                PKIX_FIRSTOBJECTNOTVERIFYNODE);
 
         /*
          * Since we know firstObject is a VerifyNode,
@@ -892,7 +892,7 @@ pkix_VerifyNode_Equals(
          */
         PKIX_CHECK(PKIX_PL_Object_GetType
                     (secondObject, &secondType, plContext),
-                    "Could not get type of second argument");
+                    PKIX_COULDNOTGETTYPEOFSECONDARGUMENT);
 
         if (secondType != PKIX_VERIFYNODE_TYPE) {
                 goto cleanup;
@@ -907,7 +907,7 @@ pkix_VerifyNode_Equals(
 
         PKIX_CHECK(pkix_SingleVerifyNode_Equals
                 (firstVN, secondVN, &compResult, plContext),
-                "PKIX_PL_SingleVerifyNode_Equals failed");
+                PKIX_SINGLEVERIFYNODEEQUALSFAILED);
 
         if (compResult == PKIX_FALSE) {
                 goto cleanup;
@@ -918,7 +918,7 @@ pkix_VerifyNode_Equals(
                 secondVN->children,
                 &compResult,
                 plContext,
-                "PKIX_PL_Object_Equals failed on children");
+                PKIX_OBJECTEQUALSFAILEDONCHILDREN);
 
 cleanup:
 
@@ -988,14 +988,14 @@ pkix_VerifyNode_DuplicateHelper(
                 original->error,
                 &copy,
                 plContext),
-                "pkix_VerifyNode_Create failed");
+                PKIX_VERIFYNODECREATEFAILED);
 
         /* Are there any children to duplicate? */
         children = original->children;
 
         if (children) {
             PKIX_CHECK(PKIX_List_GetLength(children, &numChildren, plContext),
-                "PKIX_List_GetLength failed");
+                PKIX_LISTGETLENGTHFAILED);
         }
 
         for (childIndex = 0; childIndex < numChildren; childIndex++) {
@@ -1004,11 +1004,11 @@ pkix_VerifyNode_DuplicateHelper(
                         childIndex,
                         (PKIX_PL_Object **)&child,
                         plContext),
-                        "PKIX_List_GetItem failed");
+                        PKIX_LISTGETITEMFAILED);
 
                 PKIX_CHECK(pkix_VerifyNode_DuplicateHelper
                         (child, copy, NULL, plContext),
-                        "pkix_VerifyNode_DuplicateHelper failed");
+                        PKIX_VERIFYNODEDUPLICATEHELPERFAILED);
 
                 PKIX_DECREF(child);
         }
@@ -1044,13 +1044,13 @@ pkix_VerifyNode_Duplicate(
 
         PKIX_CHECK(pkix_CheckType
                 (object, PKIX_VERIFYNODE_TYPE, plContext),
-                "Object is not a VerifyNode");
+                PKIX_OBJECTNOTVERIFYNODE);
 
         original = (PKIX_VerifyNode *)object;
 
         PKIX_CHECK(pkix_VerifyNode_DuplicateHelper
                 (original, NULL, &copy, plContext),
-                "pkix_VerifyNode_DuplicateHelper failed");
+                PKIX_VERIFYNODEDUPLICATEHELPERFAILED);
 
         *pNewObject = (PKIX_PL_Object *)copy;
 

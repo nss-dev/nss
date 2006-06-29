@@ -62,7 +62,7 @@ pkix_ProcessingParams_Destroy(
         /* Check that this object is a processing params object */
         PKIX_CHECK(pkix_CheckType
                     (object, PKIX_PROCESSINGPARAMS_TYPE, plContext),
-                    "Object is not a processing params object");
+                    PKIX_OBJECTNOTPROCESSINGPARAMS);
 
         params = (PKIX_ProcessingParams *)object;
 
@@ -101,10 +101,10 @@ pkix_ProcessingParams_Equals(
         PKIX_NULLCHECK_THREE(first, second, pResult);
 
         PKIX_CHECK(pkix_CheckType(first, PKIX_PROCESSINGPARAMS_TYPE, plContext),
-                    "First Argument is not a ProcessingParams");
+                    PKIX_FIRSTOBJECTNOTPROCESSINGPARAMS);
 
         PKIX_CHECK(PKIX_PL_Object_GetType(second, &secondType, plContext),
-                    "Could not get type of second argument");
+                    PKIX_COULDNOTGETTYPEOFSECONDARGUMENT);
 
         *pResult = PKIX_FALSE;
 
@@ -131,7 +131,7 @@ pkix_ProcessingParams_Equals(
                 secondProcParams->trustAnchors,
                 &cmpResult,
                 plContext,
-                "PKIX_PL_Object_Equals failed");
+                PKIX_OBJECTEQUALSFAILED);
 
         if (!cmpResult) goto cleanup;
 
@@ -140,7 +140,7 @@ pkix_ProcessingParams_Equals(
                 secondProcParams->hintCerts,
                 &cmpResult,
                 plContext,
-                "PKIX_PL_Object_Equals failed");
+                PKIX_OBJECTEQUALSFAILED);
 
         if (!cmpResult) goto cleanup;
 
@@ -149,7 +149,7 @@ pkix_ProcessingParams_Equals(
                 secondProcParams->date,
                 &cmpResult,
                 plContext,
-                "PKIX_PL_Object_Equals failed");
+                PKIX_OBJECTEQUALSFAILED);
 
         if (!cmpResult) goto cleanup;
 
@@ -158,7 +158,7 @@ pkix_ProcessingParams_Equals(
                 secondProcParams->constraints,
                 &cmpResult,
                 plContext,
-                "PKIX_PL_Object_Equals failed");
+                PKIX_OBJECTEQUALSFAILED);
 
         if (!cmpResult) goto cleanup;
 
@@ -167,7 +167,7 @@ pkix_ProcessingParams_Equals(
                 secondProcParams->initialPolicies,
                 &cmpResult,
                 plContext,
-                "PKIX_PL_Object_Equals failed");
+                PKIX_OBJECTEQUALSFAILED);
 
         if (!cmpResult) goto cleanup;
 
@@ -178,7 +178,7 @@ pkix_ProcessingParams_Equals(
                     (PKIX_PL_Object *)secondProcParams->certStores,
                     &cmpResult,
                     plContext,
-                    "PKIX_PL_Object_Equals failed");
+                    PKIX_OBJECTEQUALSFAILED);
 
         if (!cmpResult) goto cleanup;
 
@@ -187,7 +187,7 @@ pkix_ProcessingParams_Equals(
                 secondProcParams->resourceLimits,
                 &cmpResult,
                 plContext,
-                "PKIX_PL_Object_Equals failed");
+                PKIX_OBJECTEQUALSFAILED);
 
         if (cmpResult == PKIX_FALSE) {
                 *pResult = PKIX_FALSE;
@@ -229,36 +229,36 @@ pkix_ProcessingParams_Hashcode(
 
         PKIX_CHECK(pkix_CheckType
                     (object, PKIX_PROCESSINGPARAMS_TYPE, plContext),
-                    "Object is not a processingParams");
+                    PKIX_OBJECTNOTPROCESSINGPARAMS);
 
         procParams = (PKIX_ProcessingParams*)object;
 
         PKIX_HASHCODE(procParams->trustAnchors, &anchorsHash, plContext,
-                "PKIX_PL_Object_Hashcode failed");
+                PKIX_OBJECTHASHCODEFAILED);
 
         PKIX_HASHCODE(procParams->hintCerts, &hintCertsHash, plContext,
-                "PKIX_PL_Object_Hashcode failed");
+                PKIX_OBJECTHASHCODEFAILED);
 
         PKIX_HASHCODE(procParams->date, &dateHash, plContext,
-                "PKIX_PL_Object_Hashcode failed");
+                PKIX_OBJECTHASHCODEFAILED);
 
         PKIX_HASHCODE(procParams->constraints, &constraintsHash, plContext,
-                "PKIX_PL_Object_Hashcode failed");
+                PKIX_OBJECTHASHCODEFAILED);
 
         PKIX_HASHCODE(procParams->initialPolicies, &initialHash, plContext,
-                "PKIX_PL_Object_Hashcode failed");
+                PKIX_OBJECTHASHCODEFAILED);
 
         rejectedHash = procParams->qualifiersRejected;
 
         /* There is no Hash function for CertChainCheckers */
 
         PKIX_HASHCODE(procParams->certStores, &certStoresHash, plContext,
-                "PKIX_PL_Object_Hashcode failed");
+                PKIX_OBJECTHASHCODEFAILED);
 
         PKIX_HASHCODE(procParams->resourceLimits,
                 &resourceLimitsHash,
                 plContext,
-                "PKIX_PL_Object_Hashcode failed");
+                PKIX_OBJECTHASHCODEFAILED);
 
         hash = (31 * ((31 * anchorsHash) + hintCertsHash + dateHash)) +
                 constraintsHash + initialHash + rejectedHash;
@@ -302,7 +302,7 @@ pkix_ProcessingParams_ToString(
 
         PKIX_CHECK(pkix_CheckType
                     (object, PKIX_PROCESSINGPARAMS_TYPE, plContext),
-                    "Object not a ProcessingParams");
+                    PKIX_OBJECTNOTPROCESSINGPARAMS);
 
         asciiFormat =
                 "[\n"
@@ -325,22 +325,22 @@ pkix_ProcessingParams_ToString(
                     0,
                     &formatString,
                     plContext),
-                    "PKIX_PL_String_Create failed");
+                    PKIX_STRINGCREATEFAILED);
 
         procParams = (PKIX_ProcessingParams*)object;
 
         PKIX_TOSTRING(procParams->trustAnchors, &anchorsString, plContext,
-                "PKIX_PL_Object_ToString failed");
+                PKIX_OBJECTTOSTRINGFAILED);
 
         PKIX_TOSTRING(procParams->date, &dateString, plContext,
-                "PKIX_PL_Object_ToString failed");
+                PKIX_OBJECTTOSTRINGFAILED);
 
         PKIX_TOSTRING(procParams->constraints, &constraintsString, plContext,
-                "PKIX_PL_Object_ToString failed");
+                PKIX_OBJECTTOSTRINGFAILED);
 
         PKIX_TOSTRING
                 (procParams->initialPolicies, &InitialPoliciesString, plContext,
-                "PKIX_PL_Object_ToString failed");
+                PKIX_OBJECTTOSTRINGFAILED);
 
         PKIX_CHECK(PKIX_PL_String_Create
                 (PKIX_ESCASCII,
@@ -348,21 +348,21 @@ pkix_ProcessingParams_ToString(
                 0,
                 &qualsRejectedString,
                 plContext),
-                "PKIX_PL_String_Create failed");
+                PKIX_STRINGCREATEFAILED);
 
         /* There is no ToString function for CertChainCheckers */
 
        PKIX_CHECK(PKIX_ProcessingParams_GetCertStores
                 (procParams, &certStores, plContext),
-                "PKIX_ProcessingParams_GetCertStores failed");
+                PKIX_PROCESSINGPARAMSGETCERTSTORESFAILED);
 
         PKIX_TOSTRING(certStores, &certStoresString, plContext,
-                "PKIX_LIST_ToString failed");
+                PKIX_LISTTOSTRINGFAILED);
 
         PKIX_TOSTRING(procParams->resourceLimits,
                 &resourceLimitsString,
                 plContext,
-                "PKIX_PL_Object_ToString failed");
+                PKIX_OBJECTTOSTRINGFAILED);
 
         PKIX_CHECK(PKIX_PL_Sprintf
                 (&procParamsString,
@@ -376,7 +376,7 @@ pkix_ProcessingParams_ToString(
                 certStoresString,
                 resourceLimitsString,
                 procParams->isCrlRevocationCheckingEnabled),
-                "PKIX_PL_Sprintf failed");
+                PKIX_SPRINTFFAILED);
 
         *pString = procParamsString;
 
@@ -413,7 +413,7 @@ pkix_ProcessingParams_Duplicate(
 
         PKIX_CHECK(pkix_CheckType
                 (object, PKIX_PROCESSINGPARAMS_TYPE, plContext),
-                "Object is not a ProcessingParams");
+                PKIX_OBJECTNOTPROCESSINGPARAMS);
 
         params = (PKIX_ProcessingParams *)object;
 
@@ -422,34 +422,34 @@ pkix_ProcessingParams_Duplicate(
                 sizeof (PKIX_ProcessingParams),
                 (PKIX_PL_Object **)&paramsDuplicate,
                 plContext),
-                "Could not create ProcessingParams");
+                PKIX_PROCESSINGPARAMSCREATEFAILED);
 
         /* initialize fields */
         PKIX_DUPLICATE
                 (params->trustAnchors,
                 &(paramsDuplicate->trustAnchors),
                 plContext,
-                "PKIX_PL_Object_Duplicate failed");
+                PKIX_OBJECTDUPLICATEFAILED);
 
         PKIX_DUPLICATE
                 (params->hintCerts, &(paramsDuplicate->hintCerts), plContext,
-                "PKIX_PL_Object_Duplicate failed");
+                PKIX_OBJECTDUPLICATEFAILED);
 
         PKIX_DUPLICATE
                 (params->constraints,
                 &(paramsDuplicate->constraints),
                 plContext,
-                "PKIX_PL_Object_Duplicate failed");
+                PKIX_OBJECTDUPLICATEFAILED);
 
         PKIX_DUPLICATE
                 (params->date, &(paramsDuplicate->date), plContext,
-                "PKIX_PL_Object_Duplicate failed");
+                PKIX_OBJECTDUPLICATEFAILED);
 
         PKIX_DUPLICATE
                 (params->initialPolicies,
                 &(paramsDuplicate->initialPolicies),
                 plContext,
-                "PKIX_PL_Object_Duplicate failed");
+                PKIX_OBJECTDUPLICATEFAILED);
 
         paramsDuplicate->initialPolicyMappingInhibit =
                 params->initialPolicyMappingInhibit;
@@ -462,23 +462,23 @@ pkix_ProcessingParams_Duplicate(
                 (params->certChainCheckers,
                 &(paramsDuplicate->certChainCheckers),
                 plContext,
-                "PKIX_PL_Object_Duplicate failed");
+                PKIX_OBJECTDUPLICATEFAILED);
 
         PKIX_DUPLICATE
                 (params->revCheckers,
                 &(paramsDuplicate->revCheckers),
                 plContext,
-                "PKIX_PL_Object_Duplicate failed");
+                PKIX_OBJECTDUPLICATEFAILED);
 
         PKIX_DUPLICATE
                 (params->certStores, &(paramsDuplicate->certStores), plContext,
-                "PKIX_PL_Object_Duplicate failed");
+                PKIX_OBJECTDUPLICATEFAILED);
 
         PKIX_DUPLICATE
                 (params->resourceLimits,
                 &(paramsDuplicate->resourceLimits),
                 plContext,
-                "PKIX_PL_Object_Duplicate failed");
+                PKIX_OBJECTDUPLICATEFAILED);
 
         paramsDuplicate->isCrlRevocationCheckingEnabled =
                 params->isCrlRevocationCheckingEnabled;
@@ -549,13 +549,13 @@ PKIX_ProcessingParams_Create(
                     sizeof (PKIX_ProcessingParams),
                     (PKIX_PL_Object **)&params,
                     plContext),
-                    "Could not create processing params object");
+                    PKIX_COULDNOTCREATEPROCESSINGPARAMSOBJECT);
 
         /* initialize fields */
         PKIX_INCREF(anchors);
         params->trustAnchors = anchors;
         PKIX_CHECK(PKIX_List_SetImmutable(params->trustAnchors, plContext),
-                    "PKIX_List_SetImmutable failed");
+                    PKIX_LISTSETIMMUTABLEFAILED);
 
         params->hintCerts = NULL;
         params->constraints = NULL;
@@ -646,7 +646,7 @@ PKIX_ProcessingParams_SetDate(
 
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                     ((PKIX_PL_Object *)params, plContext),
-                    "PKIX_PL_Object_InvalidateCache failed");
+                    PKIX_OBJECTINVALIDATECACHEFAILED);
 cleanup:
 
         if (PKIX_ERROR_RECEIVED){
@@ -701,7 +701,7 @@ PKIX_ProcessingParams_SetTargetCertConstraints(
 
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                     ((PKIX_PL_Object *)params, plContext),
-                    "PKIX_PL_Object_InvalidateCache failed");
+                    PKIX_OBJECTINVALIDATECACHEFAILED);
 
 cleanup:
 
@@ -727,13 +727,13 @@ PKIX_ProcessingParams_GetInitialPolicies(
         if (params->initialPolicies == NULL) {
                 PKIX_CHECK(PKIX_List_Create
                         (&params->initialPolicies, plContext),
-                        "Unable to create list");
+                        PKIX_UNABLETOCREATELIST);
                 PKIX_CHECK(PKIX_List_SetImmutable
                         (params->initialPolicies, plContext),
-                        "Unable to make list immutable");
+                        PKIX_UNABLETOMAKELISTIMMUTABLE);
                 PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                         ((PKIX_PL_Object *)params, plContext),
-                        "PKIX_PL_Object_InvalidateCache failed");
+                        PKIX_OBJECTINVALIDATECACHEFAILED);
         }
 
         PKIX_INCREF(params->initialPolicies);
@@ -766,7 +766,7 @@ PKIX_ProcessingParams_SetInitialPolicies(
 
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                 ((PKIX_PL_Object *)params, plContext),
-                "PKIX_PL_Object_InvalidateCache failed");
+                PKIX_OBJECTINVALIDATECACHEFAILED);
 
 cleanup:
 
@@ -812,7 +812,7 @@ PKIX_ProcessingParams_SetPolicyQualifiersRejected(
 
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                 ((PKIX_PL_Object *)params, plContext),
-                "PKIX_PL_Object_InvalidateCache failed");
+                PKIX_OBJECTINVALIDATECACHEFAILED);
 
 cleanup:
 
@@ -871,7 +871,7 @@ PKIX_ProcessingParams_SetCertChainCheckers(
 
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                 ((PKIX_PL_Object *)params, plContext),
-                "PKIX_PL_Object_InvalidateCache failed");
+                PKIX_OBJECTINVALIDATECACHEFAILED);
 
 cleanup:
 
@@ -897,7 +897,7 @@ PKIX_ProcessingParams_AddCertChainChecker(
         if (params->certChainCheckers == NULL) {
 
                 PKIX_CHECK(PKIX_List_Create(&list, plContext),
-                    "PKIX_List_Create failed");
+                    PKIX_LISTCREATEFAILED);
 
                 PKIX_INCREF(list);
 
@@ -907,11 +907,11 @@ PKIX_ProcessingParams_AddCertChainChecker(
 
         PKIX_CHECK(PKIX_List_AppendItem
             (params->certChainCheckers, (PKIX_PL_Object *)checker, plContext),
-            "PKIX_List_AppendItem failed");
+            PKIX_LISTAPPENDITEMFAILED);
 
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
             ((PKIX_PL_Object *)params, plContext),
-            "PKIX_PL_Object_InvalidateCache failed");
+            PKIX_OBJECTINVALIDATECACHEFAILED);
 
 cleanup:
 
@@ -937,7 +937,7 @@ PKIX_ProcessingParams_GetRevocationCheckers(
         if (params->revCheckers == NULL) {
 		PKIX_CHECK(PKIX_List_Create
 			(&(params->revCheckers), plContext),
-			"PKIX_List_Create failed");
+			PKIX_LISTCREATEFAILED);
 	}
 
         PKIX_INCREF(params->revCheckers);
@@ -975,7 +975,7 @@ PKIX_ProcessingParams_SetRevocationCheckers(
 
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                 ((PKIX_PL_Object *)params, plContext),
-                "PKIX_PL_Object_InvalidateCache failed");
+                PKIX_OBJECTINVALIDATECACHEFAILED);
 
 cleanup:
 
@@ -1001,7 +1001,7 @@ PKIX_ProcessingParams_AddRevocationChecker(
         if (params->certChainCheckers == NULL) {
 
                 PKIX_CHECK(PKIX_List_Create(&list, plContext),
-                    "PKIX_List_Create failed");
+                    PKIX_LISTCREATEFAILED);
 
                 PKIX_INCREF(list);
 
@@ -1011,11 +1011,11 @@ PKIX_ProcessingParams_AddRevocationChecker(
 
         PKIX_CHECK(PKIX_List_AppendItem
             (params->certChainCheckers, (PKIX_PL_Object *)checker, plContext),
-            "PKIX_List_AppendItem failed");
+            PKIX_LISTAPPENDITEMFAILED);
 
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
             ((PKIX_PL_Object *)params, plContext),
-            "PKIX_PL_Object_InvalidateCache failed");
+            PKIX_OBJECTINVALIDATECACHEFAILED);
 
 cleanup:
 
@@ -1039,7 +1039,7 @@ PKIX_ProcessingParams_GetCertStores(
 
         if (!params->certStores){
                 PKIX_CHECK(PKIX_List_Create(&params->certStores, plContext),
-                            "Unable to create list");
+                            PKIX_UNABLETOCREATELIST);
         }
 
         PKIX_INCREF(params->certStores);
@@ -1071,7 +1071,7 @@ PKIX_ProcessingParams_SetCertStores(
 
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                 ((PKIX_PL_Object *)params, plContext),
-                "PKIX_PL_Object_InvalidateCache failed");
+                PKIX_OBJECTINVALIDATECACHEFAILED);
 
 cleanup:
 
@@ -1095,15 +1095,15 @@ PKIX_ProcessingParams_AddCertStore(
 
         PKIX_CHECK(PKIX_ProcessingParams_GetCertStores
                     (params, &certStores, plContext),
-                    "PKIX_ProcessingParams_GetCertStores failed");
+                    PKIX_PROCESSINGPARAMSGETCERTSTORESFAILED);
 
         PKIX_CHECK(PKIX_List_AppendItem
                     (certStores, (PKIX_PL_Object *)store, plContext),
-                    "PKIX_List_AppendItem failed");
+                    PKIX_LISTAPPENDITEMFAILED);
 
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                     ((PKIX_PL_Object *)params, plContext),
-                    "PKIX_PL_Object_InvalidateCache failed");
+                    PKIX_OBJECTINVALIDATECACHEFAILED);
 
 cleanup:
 
@@ -1150,7 +1150,7 @@ PKIX_ProcessingParams_SetRevocationEnabled(
 
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                     ((PKIX_PL_Object *)params, plContext),
-                    "PKIX_PL_Object_InvalidateCache failed");
+                    PKIX_OBJECTINVALIDATECACHEFAILED);
 
 cleanup:
 
@@ -1278,7 +1278,7 @@ PKIX_ProcessingParams_SetAnyPolicyInhibited(
 
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                     ((PKIX_PL_Object *)params, plContext),
-                    "PKIX_PL_Object_InvalidateCache failed");
+                    PKIX_OBJECTINVALIDATECACHEFAILED);
 
 cleanup:
 
@@ -1324,7 +1324,7 @@ PKIX_ProcessingParams_SetExplicitPolicyRequired(
 
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                     ((PKIX_PL_Object *)params, plContext),
-                    "PKIX_PL_Object_InvalidateCache failed");
+                    PKIX_OBJECTINVALIDATECACHEFAILED);
 
 cleanup:
 
@@ -1370,7 +1370,7 @@ PKIX_ProcessingParams_SetPolicyMappingInhibited(
 
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                     ((PKIX_PL_Object *)params, plContext),
-                    "PKIX_PL_Object_InvalidateCache failed");
+                    PKIX_OBJECTINVALIDATECACHEFAILED);
 
 cleanup:
 

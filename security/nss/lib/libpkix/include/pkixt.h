@@ -356,6 +356,18 @@ typedef enum {     /* Now invoke all those ERRMACROs to assign the numbers */
    PKIX_NUMERRORS   /* This gets PKIX_NUMERRORS defined as the total number */
 } PKIX_ERRORNUM;
 
+/* Now define error strings (for internationalization) */
+
+#define PKIX_ERRORENTRY(name,desc) PKIX_ ## name
+
+/* Define all the error numbers */
+typedef enum    {
+#include "pkix_errorstrings.h"
+} PKIX_ERRSTRINGNUM;
+
+extern char *PKIX_ErrorText[];
+
+
 /* String Formats
  *
  * These formats specify supported encoding formats for Strings.

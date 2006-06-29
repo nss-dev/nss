@@ -56,7 +56,7 @@ pkix_pl_RWLock_Destroy(
         PKIX_NULLCHECK_ONE(object);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_RWLOCK_TYPE, plContext),
-                    "Object is not a RWLock");
+                    PKIX_OBJECTNOTRWLOCK);
 
         rwlock = (PKIX_PL_RWLock*) object;
 
@@ -120,14 +120,14 @@ PKIX_PL_RWLock_Create(
                     sizeof (PKIX_PL_RWLock),
                     (PKIX_PL_Object **)&rwLock,
                     plContext),
-                    "Error Allocating RWLock");
+                    PKIX_ERRORALLOCATINGRWLOCK);
 
         PKIX_RWLOCK_DEBUG("\tCalling PR_NewRWLock)\n");
         rwLock->lock = PR_NewRWLock(PR_RWLOCK_RANK_NONE, "PKIX RWLock");
 
         if (rwLock->lock == NULL) {
                 PKIX_DECREF(rwLock);
-                PKIX_ERROR("Error Allocating PR_RWLock");
+                PKIX_ERROR(PKIX_ERRORALLOCATINGPRRWLOCK);
         }
 
         rwLock->readCount = 0;
@@ -198,7 +198,7 @@ PKIX_PL_AcquireWriterLock(
         (void) PR_RWLock_Wlock(lock->lock);
 
         if (lock->readCount > 0) {
-                PKIX_ERROR("Lock has non-zero read count");
+                PKIX_ERROR(PKIX_LOCKHASNONZEROREADCOUNT);
         }
 
         /* We should never acquire a write lock if the lock is held */
@@ -218,7 +218,7 @@ PKIX_PL_ReleaseWriterLock(
         PKIX_NULLCHECK_ONE(lock);
 
         if (lock->readCount > 0) {
-                PKIX_ERROR("Lock has non-zero read count");
+                PKIX_ERROR(PKIX_LOCKHASNONZEROREADCOUNT);
         }
 
         PKIX_RWLOCK_DEBUG("\tCalling PR_RWLock_Unlock)\n");

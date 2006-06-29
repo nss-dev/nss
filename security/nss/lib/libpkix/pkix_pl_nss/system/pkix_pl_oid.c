@@ -65,7 +65,7 @@ pkix_pl_OID_Comparator(
 
         PKIX_CHECK(pkix_CheckTypes
                     (firstObject, secondObject, PKIX_OID_TYPE, plContext),
-                    "Arguments are not OIDs");
+                    PKIX_ARGUMENTSNOTOIDS);
 
         firstOID = (PKIX_PL_OID*)firstObject;
         secondOID = (PKIX_PL_OID*)secondObject;
@@ -102,7 +102,7 @@ pkix_pl_OID_Destroy(
         PKIX_NULLCHECK_ONE(object);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_OID_TYPE, plContext),
-                    "Object is not an OID");
+                    PKIX_OBJECTNOTANOID);
 
         oid = (PKIX_PL_OID*)object;
 
@@ -130,7 +130,7 @@ pkix_pl_OID_Hashcode(
         PKIX_NULLCHECK_TWO(object, pHashcode);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_OID_TYPE, plContext),
-                    "Object is not an OID");
+                    PKIX_OBJECTNOTANOID);
 
         pkixOID = (PKIX_PL_OID *)object;
 
@@ -139,7 +139,7 @@ pkix_pl_OID_Hashcode(
                     pkixOID->length * sizeof (PKIX_UInt32),
                     pHashcode,
                     plContext),
-                    "pkix_hash failed");
+                    PKIX_HASHFAILED);
 cleanup:
 
         PKIX_RETURN(OID);
@@ -163,10 +163,10 @@ pkix_pl_OID_Equals(
         PKIX_NULLCHECK_THREE(first, second, pResult);
 
         PKIX_CHECK(pkix_CheckType(first, PKIX_OID_TYPE, plContext),
-                    "First argument is not an OID");
+                    PKIX_FIRSTARGUMENTNOTANOID);
 
         PKIX_CHECK(PKIX_PL_Object_GetType(second, &secondType, plContext),
-                    "Could not get type of second argument");
+                    PKIX_COULDNOTGETTYPEOFSECONDARGUMENT);
 
         *pResult = PKIX_FALSE;
 
@@ -182,7 +182,7 @@ pkix_pl_OID_Equals(
 
         PKIX_CHECK(pkix_pl_OID_Comparator
                     (first, second, &cmpResult, plContext),
-                    "pkix_pl_OID_Comparator failed");
+                    PKIX_OIDCOMPARATORFAILED);
 
         *pResult = (cmpResult == 0);
 
@@ -209,18 +209,18 @@ pkix_pl_OID_ToString(
         PKIX_NULLCHECK_TWO(object, pString);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_OID_TYPE, plContext),
-                    "Object is not an OID");
+                    PKIX_OBJECTNOTANOID);
 
         components = ((PKIX_PL_OID*)object)->components;
         length = ((PKIX_PL_OID*)object)->length;
 
         PKIX_CHECK(pkix_pl_helperBytes2Ascii
                     (components, length, &ascii, plContext),
-                    "pkix_pl_helperBytes2Ascii failed");
+                    PKIX_HELPERBYTES2ASCIIFAILED);
 
         PKIX_CHECK(PKIX_PL_String_Create
                 (PKIX_ESCASCII, ascii, 0, pString, plContext),
-                "PKIX_PL_String_Create failed");
+                PKIX_STRINGCREATEFAILED);
 
 cleanup:
 
@@ -365,7 +365,7 @@ pkix_pl_OID_GetCriticalExtensionOIDs(
         PKIX_NULLCHECK_ONE(pOidsList);
 
         PKIX_CHECK(PKIX_List_Create(&oidsList, plContext),
-                    "PKIX_List_Create failed");
+                    PKIX_LISTCREATEFAILED);
 
         if (extensions){
 
@@ -384,17 +384,17 @@ pkix_pl_OID_GetCriticalExtensionOIDs(
 
                             PKIX_CHECK(pkix_pl_oidBytes2Ascii
                                     (&oid, &oidAscii, plContext),
-                                    "pkix_pl_oidBytes2Ascii failed");
+                                    PKIX_OIDBYTES2ASCIIFAILED);
 
                             PKIX_CHECK(PKIX_PL_OID_Create
                                     (oidAscii, &pkixOID, plContext),
-                                    "PKIX_PL_OID_Create failed");
+                                    PKIX_OIDCREATEFAILED);
 
                             PKIX_CHECK(PKIX_List_AppendItem
                                     (oidsList,
                                     (PKIX_PL_Object *)pkixOID,
                                     plContext),
-                                    "PKIX_List_AppendItem failed");
+                                    PKIX_LISTAPPENDITEMFAILED);
                             }
                     }
 
@@ -440,12 +440,12 @@ PKIX_PL_OID_Create(
         length = PL_strlen(stringRep);
 
         if (length < 3) {
-                PKIX_ERROR("OID length too short");
+                PKIX_ERROR(PKIX_OIDLENGTHTOOSHORT);
         }
 
         for (i = 0; i < length; i++) {
                 if ((!PKIX_ISDIGIT(stringRep[i]))&&(stringRep[i] != '.')) {
-                        PKIX_ERROR("Illegal character in OID");
+                        PKIX_ERROR(PKIX_ILLEGALCHARACTERINOID);
                 }
         }
 
@@ -453,7 +453,7 @@ PKIX_PL_OID_Create(
         if ((stringRep[0] == '.') ||
             (stringRep[length-1] == '.')||
             (PL_strstr(stringRep, "..") != NULL)) {
-                PKIX_ERROR("Illegal \".\" in OID");
+                PKIX_ERROR(PKIX_ILLEGALDOTINOID);
         }
 
         PKIX_OID_DEBUG("\tCalling PL_strdup).\n");
@@ -465,7 +465,7 @@ PKIX_PL_OID_Create(
 
         PKIX_CHECK(pkix_pl_OID_GetNextToken
                     (strCpy1, &token, &rem, plContext),
-                    "pkix_pl_OID_GetNextToken failed");
+                    PKIX_OIDGETNEXTTOKENFAILED);
 
         for (numTokens = 0; token != NULL; numTokens++){
                 if (numTokens == 0) {
@@ -473,7 +473,7 @@ PKIX_PL_OID_Create(
                         PKIX_OID_DEBUG("\tCalling PORT_Atoi).\n");
                         value = PORT_Atoi(token);
                         if (value > 2) {
-                                PKIX_ERROR("First field must be between 0-2");
+                                PKIX_ERROR(PKIX_FIRSTFIELDMUSTBEBETWEEN02);
                         }
 
                         /* Set a flag if the first field is 2 */
@@ -483,33 +483,32 @@ PKIX_PL_OID_Create(
                         value = PORT_Atoi(token);
                         if ((!firstFieldTwo)&&(value > 39)) {
                                 PKIX_ERROR
-                                        ("Second field must be between 0-39");
+                                        (PKIX_SECONDFIELDMUSTBEBETWEEN039);
                         }
                 }
 
                 /* Check for 32-bit overflow */
                 if (pkix_pl_UInt32_Overflows(token)){
-                        PKIX_ERROR("Overflow error:"
-                                    "OID component > 2^32");
+                        PKIX_ERROR(PKIX_OIDCOMPONENTTOOBIG);
                 }
 
                 PKIX_CHECK(pkix_pl_OID_GetNextToken
                             (rem, &token, &rem, plContext),
-                            "pkix_pl_OID_GetNextToken failed");
+                            PKIX_OIDGETNEXTTOKENFAILED);
         }
 
         if (numTokens < 2) {
-                PKIX_ERROR("OID needs 2 or more fields");
+                PKIX_ERROR(PKIX_OIDNEEDS2ORMOREFIELDS);
         }
 
         PKIX_CHECK(PKIX_PL_Malloc
                     (numTokens * sizeof (PKIX_UInt32),
                     (void **)&components, plContext),
-                    "PKIX_PL_Malloc failed");
+                    PKIX_MALLOCFAILED);
 
         PKIX_CHECK(pkix_pl_OID_GetNextToken
                     (strCpy2, &token, &rem, plContext),
-                    "pkix_pl_OID_GetNextToken failed");
+                    PKIX_OIDGETNEXTTOKENFAILED);
 
         for (i = 0; token != NULL; i++){
                 PKIX_OID_DEBUG("\tCalling PORT_Atoi).\n");
@@ -517,7 +516,7 @@ PKIX_PL_OID_Create(
 
                 PKIX_CHECK(pkix_pl_OID_GetNextToken
                             (rem, &token, &rem, plContext),
-                            "pkix_pl_OID_GetNextToken failed");
+                            PKIX_OIDGETNEXTTOKENFAILED);
         }
 
         PKIX_CHECK(PKIX_PL_Object_Alloc
@@ -525,7 +524,7 @@ PKIX_PL_OID_Create(
                     sizeof (PKIX_PL_OID),
                     (PKIX_PL_Object **)&oid,
                     plContext),
-                    "Could not create object");
+                    PKIX_COULDNOTCREATEOBJECT);
 
         oid->length = numTokens;
         oid->components = components;

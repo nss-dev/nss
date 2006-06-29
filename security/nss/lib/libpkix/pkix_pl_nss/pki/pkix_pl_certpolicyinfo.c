@@ -87,7 +87,7 @@ pkix_pl_CertPolicyInfo_Create(
                 sizeof (PKIX_PL_CertPolicyInfo),
                 (PKIX_PL_Object **)&policyInfo,
                 plContext),
-                "Could not create a CertPolicyInfo object");
+                PKIX_COULDNOTCREATECERTPOLICYINFOOBJECT);
 
         PKIX_INCREF(oid);
         policyInfo->cpID = oid;
@@ -118,7 +118,7 @@ pkix_pl_CertPolicyInfo_Destroy(
         PKIX_NULLCHECK_ONE(object);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_CERTPOLICYINFO_TYPE, plContext),
-                "Object is not a CertPolicyInfo");
+                PKIX_OBJECTNOTCERTPOLICYINFO);
 
         certPI = (PKIX_PL_CertPolicyInfo*)object;
 
@@ -151,7 +151,7 @@ pkix_pl_CertPolicyInfo_ToString(
         PKIX_NULLCHECK_TWO(object, pString);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_CERTPOLICYINFO_TYPE, plContext),
-                "Object is not a CertPolicyInfo");
+                PKIX_OBJECTNOTCERTPOLICYINFO);
 
         certPI = (PKIX_PL_CertPolicyInfo *)object;
 
@@ -161,22 +161,22 @@ pkix_pl_CertPolicyInfo_ToString(
                 (certPI->cpID,
                 &oidString,
                 plContext,
-                "PKIX_PL_OID_ToString failed");
+                PKIX_OIDTOSTRINGFAILED);
 
         PKIX_TOSTRING
                 (certPI->policyQualifiers,
                 &listString,
                 plContext,
-                "PKIX_List_ToString failed");
+                PKIX_LISTTOSTRINGFAILED);
 
         /* Put them together in the form OID[Qualifiers] */
         PKIX_CHECK(PKIX_PL_String_Create
                 (PKIX_ESCASCII, "%s[%s]", 0, &format, plContext),
-                "Error in PKIX_PL_String_Create");
+                PKIX_ERRORINSTRINGCREATE);
 
         PKIX_CHECK(PKIX_PL_Sprintf
                 (&outString, plContext, format, oidString, listString),
-                "Error in PKIX_PL_Sprintf");
+                PKIX_ERRORINSPRINTF);
 
         *pString = outString;
 
@@ -207,7 +207,7 @@ pkix_pl_CertPolicyInfo_Hashcode(
         PKIX_NULLCHECK_TWO(object, pHashcode);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_CERTPOLICYINFO_TYPE, plContext),
-                "Object is not a CertPolicyInfo");
+                PKIX_OBJECTNOTCERTPOLICYINFO);
 
         certPI = (PKIX_PL_CertPolicyInfo *)object;
 
@@ -217,13 +217,13 @@ pkix_pl_CertPolicyInfo_Hashcode(
                 (certPI->cpID,
                 &oidHash,
                 plContext,
-                "Error in PKIX_PL_OID_Hashcode");
+                PKIX_ERRORINOIDHASHCODE);
 
         PKIX_HASHCODE
                 (certPI->policyQualifiers,
                 &listHash,
                 plContext,
-                "Error in PKIX_List_Hashcode");
+                PKIX_ERRORINLISTHASHCODE);
 
         *pHashcode = (31 * oidHash) + listHash;
 
@@ -255,7 +255,7 @@ pkix_pl_CertPolicyInfo_Equals(
         /* test that firstObject is a CertPolicyInfo */
         PKIX_CHECK(pkix_CheckType
                 (firstObject, PKIX_CERTPOLICYINFO_TYPE, plContext),
-                "FirstObject argument is not a CertPolicyInfo");
+                PKIX_FIRSTOBJECTNOTCERTPOLICYINFO);
 
         /*
          * Since we know firstObject is a CertPolicyInfo,
@@ -272,7 +272,7 @@ pkix_pl_CertPolicyInfo_Equals(
          */
         PKIX_CHECK(PKIX_PL_Object_GetType
                 (secondObject, &secondType, plContext),
-                "Could not get type of second argument");
+                PKIX_COULDNOTGETTYPEOFSECONDARGUMENT);
         if (secondType != PKIX_CERTPOLICYINFO_TYPE) {
                 *pResult = PKIX_FALSE;
                 goto cleanup;
@@ -292,7 +292,7 @@ pkix_pl_CertPolicyInfo_Equals(
                 secondCPI->cpID,
                 &compare,
                 plContext,
-                "PKIX_PL_OID_Equals failed");
+                PKIX_OIDEQUALSFAILED);
 
         /*
          * If the OIDs did not match, we don't need to
@@ -306,7 +306,7 @@ pkix_pl_CertPolicyInfo_Equals(
                         secondCPI->policyQualifiers,
                         &compare,
                         plContext,
-                        "PKIX_List_Equals failed");
+                        PKIX_LISTEQUALSFAILED);
         }
 
         *pResult = compare;

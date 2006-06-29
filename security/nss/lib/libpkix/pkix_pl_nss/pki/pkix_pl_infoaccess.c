@@ -97,7 +97,7 @@ pkix_pl_InfoAccess_Create(
                 sizeof (PKIX_PL_InfoAccess),
                 (PKIX_PL_Object **)&infoAccess,
                 plContext),
-                "Could not create InfoAccess object");
+                PKIX_COULDNOTCREATEINFOACCESSOBJECT);
 
         infoAccess->method = method;
 
@@ -126,7 +126,7 @@ pkix_pl_InfoAccess_Destroy(
         PKIX_NULLCHECK_ONE(object);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_INFOACCESS_TYPE, plContext),
-                "Object is not an InfoAccess");
+                PKIX_OBJECTNOTANINFOACCESS);
 
         infoAccess = (PKIX_PL_InfoAccess *)object;
 
@@ -160,7 +160,7 @@ pkix_pl_InfoAccess_ToString(
 
         PKIX_CHECK(pkix_CheckType
                     (object, PKIX_INFOACCESS_TYPE, plContext),
-                    "Object is not a InfoAccess");
+                    PKIX_OBJECTNOTINFOACCESS);
 
         infoAccess = (PKIX_PL_InfoAccess *)object;
 
@@ -176,7 +176,7 @@ pkix_pl_InfoAccess_ToString(
                     0,
                     &formatString,
                     plContext),
-                    "PKIX_PL_String_Create failed");
+                    PKIX_STRINGCREATEFAILED);
 
         switch(infoAccess->method) {
             case PKIX_INFOACCESS_CA_ISSUERS:
@@ -201,10 +201,10 @@ pkix_pl_InfoAccess_ToString(
                     0,
                     &methodString,
                     plContext),
-                    "PKIX_PL_String_Create failed");
+                    PKIX_STRINGCREATEFAILED);
 
         PKIX_TOSTRING(infoAccess->location, &locationString, plContext,
-                    "pkix_pl_GeneralName_ToString failed");
+                    PKIX_GENERALNAMETOSTRINGFAILED);
 
         PKIX_CHECK(PKIX_PL_Sprintf
                     (&infoAccessString,
@@ -212,7 +212,7 @@ pkix_pl_InfoAccess_ToString(
                     formatString,
                     methodString,
                     locationString),
-                    "PKIX_PL_Sprintf failed");
+                    PKIX_SPRINTFFAILED);
 
         *pString = infoAccessString;
 
@@ -243,12 +243,12 @@ pkix_pl_InfoAccess_Hashcode(
 
         PKIX_CHECK(pkix_CheckType
                     (object, PKIX_INFOACCESS_TYPE, plContext),
-                    "Object is not a InfoAccess");
+                    PKIX_OBJECTNOTINFOACCESS);
 
         infoAccess = (PKIX_PL_InfoAccess *)object;
 
         PKIX_HASHCODE(infoAccess->location, &infoAccessHash, plContext,
-                    "PKIX_PL_Object_Hashcode failed");
+                    PKIX_OBJECTHASHCODEFAILED);
 
         infoAccessHash += (infoAccess->method << 7);
 
@@ -281,8 +281,8 @@ pkix_pl_InfoAccess_Equals(
 
         /* test that firstObject is a InfoAccess */
         PKIX_CHECK(pkix_CheckType
-                    (firstObject, PKIX_INFOACCESS_TYPE, plContext),
-                    "FirstObject argument is not a InfoAccess");
+                (firstObject, PKIX_INFOACCESS_TYPE, plContext),
+                PKIX_FIRSTOBJECTNOTINFOACCESS);
 
         /*
          * Since we know firstObject is a InfoAccess, if both references are
@@ -300,7 +300,7 @@ pkix_pl_InfoAccess_Equals(
         *pResult = PKIX_FALSE;
         PKIX_CHECK(PKIX_PL_Object_GetType
                     (secondObject, &secondType, plContext),
-                    "Could not get type of second argument");
+                    PKIX_COULDNOTGETTYPEOFSECONDARGUMENT);
         if (secondType != PKIX_INFOACCESS_TYPE) goto cleanup;
 
         firstInfoAccess = (PKIX_PL_InfoAccess *)firstObject;
@@ -313,7 +313,7 @@ pkix_pl_InfoAccess_Equals(
         }
 
         PKIX_EQUALS(firstInfoAccess, secondInfoAccess, &cmpResult, plContext,
-                "PKIX_PL_Object_Equals failed");
+                PKIX_OBJECTEQUALSFAILED);
 
         *pResult = cmpResult;
 
@@ -393,7 +393,7 @@ pkix_pl_InfoAccess_CreateList(
         PKIX_NULLCHECK_ONE(pInfoAccessList);
 
         PKIX_CHECK(PKIX_List_Create(&infoAccessList, plContext),
-                "PKIX_List_Create failed");
+                PKIX_LISTCREATEFAILED);
 
         *pInfoAccessList = infoAccessList;
 
@@ -409,7 +409,7 @@ pkix_pl_InfoAccess_CreateList(
 
                 PKIX_CHECK(pkix_pl_GeneralName_Create
                         (nssInfoAccess[i]->location, &location, plContext),
-                        "PKIX_PL_GeneralName_Create failed");
+                        PKIX_GENERALNAMECREATEFAILED);
 
                 PKIX_CERT_DEBUG("\t\tCalling SECOID_FindOIDTag).\n");
                 method = SECOID_FindOIDTag(&nssInfoAccess[i]->method);
@@ -464,13 +464,13 @@ pkix_pl_InfoAccess_CreateList(
 
                 PKIX_CHECK(pkix_pl_InfoAccess_Create
                         (method, location, &infoAccess, plContext),
-                        "pkix_pl_InfoAccess_Create failed");
+                        PKIX_INFOACCESSCREATEFAILED);
 
                 PKIX_CHECK(PKIX_List_AppendItem
                             (infoAccessList,
                             (PKIX_PL_Object *)infoAccess,
                             plContext),
-                            "PKIX_List_AppendItem failed");
+                            PKIX_LISTAPPENDITEMFAILED);
                 PKIX_DECREF(infoAccess);
         }
 
@@ -542,11 +542,11 @@ PKIX_PL_InfoAccess_GetLocationType(
         if (infoAccess->location != NULL) {
 
                 PKIX_TOSTRING(infoAccess->location, &locationString, plContext,
-                    "pkix_pl_GeneralName_ToString failed");
+                    PKIX_GENERALNAMETOSTRINGFAILED);
 
                 PKIX_CHECK(PKIX_PL_String_GetEncoded
                     (locationString, PKIX_ESCASCII, &location, &len, plContext),
-                    "PKIX_PL_String_GetEncoded failed");
+                    PKIX_STRINGGETENCODEDFAILED);
 
                 PKIX_OID_DEBUG("\tCalling PORT_Strcmp).\n");
                 if (PORT_Strncmp(location, "ldap:", 5) == 0){
@@ -630,7 +630,7 @@ pkix_pl_InfoAccess_ParseTokens(
         }
 
         if (*endPos != terminator) {
-                PKIX_ERROR("Location string not properly terminated");
+                PKIX_ERROR(PKIX_LOCATIONSTRINGNOTPROPERLYTERMINATED);
         }
 
         /* Last one doesn't have a "," as separator, although we allow it */
@@ -769,7 +769,7 @@ pkix_pl_InfoAccess_ParseLocation(
         PKIX_NULLCHECK_FOUR(generalName, arena, request, pDomainName);
 
         PKIX_TOSTRING(generalName, &locationString, plContext,
-                "pkix_pl_GeneralName_ToString failed");
+                PKIX_GENERALNAMETOSTRINGFAILED);
 
         PKIX_CHECK(PKIX_PL_String_GetEncoded
                 (locationString,
@@ -777,7 +777,7 @@ pkix_pl_InfoAccess_ParseLocation(
                 (void **)&locationAscii,
                 &len,
                 plContext),
-                "PKIX_PL_String_GetEncoded failed");
+                PKIX_STRINGGETENCODEDFAILED);
 
 #if 0
         /* For testing inside the firewall... */
@@ -791,7 +791,7 @@ pkix_pl_InfoAccess_ParseLocation(
                 endPos++;
         }
         if (*endPos == '\0') {
-                PKIX_ERROR("GeneralName string missing location type");
+                PKIX_ERROR(PKIX_GENERALNAMESTRINGMISSINGLOCATIONTYPE);
         }
 
         /* Skip "//" */
@@ -800,7 +800,7 @@ pkix_pl_InfoAccess_ParseLocation(
             *endPos == '/' && *(endPos+1) == '/') {
                 endPos += 2;
         } else {
-                PKIX_ERROR("GeneralName string missing double slash");
+                PKIX_ERROR(PKIX_GENERALNAMESTRINGMISSINGDOUBLESLASH);
         }
 
         /* Get the server-site */
@@ -809,7 +809,7 @@ pkix_pl_InfoAccess_ParseLocation(
                 endPos++;
         }
         if (*endPos == '\0') {
-                PKIX_ERROR("GeneralName string missing server-site");
+                PKIX_ERROR(PKIX_GENERALNAMESTRINGMISSINGSERVERSITE);
         }
 
         len = endPos - startPos;
@@ -836,13 +836,13 @@ pkix_pl_InfoAccess_ParseLocation(
                 ',',
                 '?',
                 plContext),
-                "pkix_pl_InfoAccess_ParseTokens failed");
+                PKIX_INFOACCESSPARSETOKENSFAILED);
 
         /* Count how many AVAs we have */
         for (len = 0; avaArray[len] != NULL; len++) {}
 
         if (len < 2) {
-                PKIX_ERROR("Not enough name components in GeneralName");
+                PKIX_ERROR(PKIX_NOTENOUGHNAMECOMPONENTSINGENERALNAME);
         }
 
         /* Use last name component for baseObject */
@@ -875,7 +875,7 @@ pkix_pl_InfoAccess_ParseLocation(
                 while ((*avaPtr != '=') && (*avaPtr != '\0')) {
                         avaPtr++;
                         if (avaPtr == '\0') {
-                                PKIX_ERROR("Name Component with no \"=\"");
+                                PKIX_ERROR(PKIX_NAMECOMPONENTWITHNOEQ);
                         }
                 }
                 *(avaPtr++) = '\0';
@@ -899,7 +899,7 @@ pkix_pl_InfoAccess_ParseLocation(
                 ',',
                 '\0',
                 plContext),
-                "pkix_pl_InfoAccess_ParseTokens failed");
+                PKIX_INFOACCESSPARSETOKENSFAILED);
 
         /* Convert array of Attr Types into a bit mask */
         request->attributes = 0;
@@ -907,7 +907,7 @@ pkix_pl_InfoAccess_ParseLocation(
         while (attr != NULL) {
                 PKIX_CHECK(pkix_pl_LdapRequest_AttrStringToBit
                         (attr, &attrBit, plContext),
-                        "pkix_pl_LdapRequest_AttrStringToBit failed");
+                        PKIX_LDAPREQUESTATTRSTRINGTOBITFAILED);
                 request->attributes |= attrBit;
                 attr = *(++attrArray);
         }

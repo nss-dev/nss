@@ -97,7 +97,7 @@ pkix_AddToVerifyLog(
 
                 PKIX_CHECK(pkix_VerifyNode_Create
                         (cert, depth, error, &verifyNode, plContext),
-                        "pkix_VerifyNode_Create failed");
+                        PKIX_VERIFYNODECREATEFAILED);
 
                 if (depth == 0) {
                         /* We just created the root node */
@@ -105,7 +105,7 @@ pkix_AddToVerifyLog(
                 } else {
                         PKIX_CHECK(pkix_VerifyNode_AddToChain
                                 (*pVerifyTree, verifyNode, plContext),
-                                "pkix_VerifyNode_AddToChain failed");
+                                PKIX_VERIFYNODEADDTOCHAINFAILED);
                 }
         }
 
@@ -184,10 +184,10 @@ pkix_CheckCert(
 
         PKIX_CHECK(PKIX_PL_Cert_GetCriticalExtensionOIDs
                     (cert, &unresCritExtOIDs, plContext),
-                    "PKIX_PL_Cert_GetCriticalExtensionOIDs failed");
+                    PKIX_CERTGETCRITICALEXTENSIONOIDSFAILED);
 
         PKIX_CHECK(PKIX_List_GetLength(checkers, &numCheckers, plContext),
-                    "PKIX_List_GetLength failed");
+                    PKIX_LISTGETLENGTHFAILED);
 
         for (checkerIndex = *pCheckerIndex;
                 checkerIndex < numCheckers;
@@ -198,11 +198,11 @@ pkix_CheckCert(
                         checkerIndex,
                         (PKIX_PL_Object **)&checker,
                         plContext),
-                        "PKIX_List_GetItem failed");
+                        PKIX_LISTGETITEMFAILED);
 
                 PKIX_CHECK(PKIX_CertChainChecker_GetCheckCallback
                         (checker, &checkerCheck, plContext),
-                        "PKIX_CertChainChecker_GetCheckCallback failed");
+                        PKIX_CERTCHAINCHECKERGETCHECKCALLBACKFAILED);
 
                 checkerError = checkerCheck
                         (checker,
@@ -232,16 +232,17 @@ pkix_CheckCert(
                         PKIX_UInt32 length;
                         char *oidAscii = NULL;
                         PKIX_TOSTRING(unresCritExtOIDs, &oidString, plContext,
-                                "PKIX_PL_List_ToString failed");
+                                PKIX_LISTTOSTRINGFAILED);
                         PKIX_CHECK(PKIX_PL_String_GetEncoded
                                 (oidString,
                                 PKIX_ESCASCII,
                                 (void **) &oidAscii,
                                 &length,
                                 plContext),
-                                "PKIX_PL_String_GetEncoded failed");
-                        PKIX_VALIDATE_DEBUG_ARG("unrecognized critical "
-                                        "extension OIDs: %s\n", oidAscii);
+                                PKIX_STRINGGETENCODEDFAILED);
+                        PKIX_VALIDATE_DEBUG_ARG
+                                ("unrecognized critical extension OIDs:"
+                                " %s\n", oidAscii);
                         PKIX_DECREF(oidString);
                         PKIX_PL_Free(oidAscii, plContext);
                 }
@@ -253,15 +254,15 @@ pkix_CheckCert(
                                 (unresCritExtOIDs,
                                 checkedExtOIDsList,
                                 plContext),
-                                "pkix_List_RemoveFromList");
+                                PKIX_LISTREMOVEITEMSFAILED);
                 }
 
                 PKIX_CHECK(PKIX_List_GetLength
                         (unresCritExtOIDs, &numUnresCritExtOIDs, plContext),
-                        "PKIX_List_GetLength failed");
+                        PKIX_LISTGETLENGTHFAILED);
 
                 if (numUnresCritExtOIDs != 0){
-                        PKIX_ERROR("Unrecognized Critical Extension");
+                        PKIX_ERROR(PKIX_UNRECOGNIZEDCRITICALEXTENSION);
                 }
 
         }
@@ -279,7 +280,15 @@ cleanup:
                     (checkerError, &errorDesc, plContext);
                 (void)PKIX_PL_String_GetEncoded
                     (errorDesc, PKIX_ESCASCII, &enc, &len, plContext);
-                PKIX_LOG_ERROR(enc);
+                if (pkixLoggersErrors) {
+                        pkix_Logger_Check
+                                (pkixLoggersErrors,
+                                enc,
+                                NULL,
+                                pkixType,
+                                PKIX_LOGGER_LEVEL_ERROR,
+                                plContext);
+                }
                 PKIX_DECREF(errorDesc);
                 return (checkerError);
         }
@@ -350,7 +359,7 @@ pkix_RevCheckCert(
         *pNBIOContext = NULL; /* prepare for case of error exit */
 
         PKIX_CHECK(PKIX_List_GetLength(checkers, &numCheckers, plContext),
-                    "PKIX_List_GetLength failed");
+                    PKIX_LISTGETLENGTHFAILED);
 
         for (checkerIndex = *pCheckerIndex;
                 checkerIndex < numCheckers;
@@ -361,15 +370,15 @@ pkix_RevCheckCert(
                         checkerIndex,
                         (PKIX_PL_Object **)&checker,
                         plContext),
-                        "PKIX_List_GetItem failed");
+                        PKIX_LISTGETITEMFAILED);
 
                 PKIX_CHECK(PKIX_RevocationChecker_GetRevCallback
                         (checker, &revCheckerCheck, plContext),
-                        "PKIX_RevocationChecker_GetRevCallback failed");
+                        PKIX_REVOCATIONCHECKERGETREVCALLBACKFAILED);
 
                 PKIX_CHECK(PKIX_RevocationChecker_GetRevCheckerContext
                         (checker, &checkerContext, plContext),
-                        "PKIX_RevocationChecker_GetRevCheckerContext failed");
+                        PKIX_REVOCATIONCHECKERGETREVCHECKERCONTEXTFAILED);
 
                 PKIX_CHECK(revCheckerCheck
                         (checkerContext,
@@ -378,7 +387,7 @@ pkix_RevCheckCert(
                         &nbioContext,
                         &resultCode,
                         plContext),
-                        "revCheckerCheck failed");
+                        PKIX_REVCHECKERCHECKFAILED);
 
                 if (nbioContext != NULL) {
                         *pCheckerIndex = checkerIndex;
@@ -472,7 +481,7 @@ pkix_InitializeCheckers(
         PKIX_ENTER(VALIDATE, "pkix_InitializeCheckers");
         PKIX_NULLCHECK_THREE(anchor, procParams, pCheckers);
         PKIX_CHECK(PKIX_List_Create(&checkers, plContext),
-                    "PKIX_List_Create failed");
+                    PKIX_LISTCREATEFAILED);
 
         /*
          * The TrustAnchor may have been created using CreateWithCert
@@ -484,92 +493,92 @@ pkix_InitializeCheckers(
 
         PKIX_CHECK(PKIX_TrustAnchor_GetTrustedCert
                 (anchor, &trustedCert, plContext),
-                    "PKIX_TrustAnchor_GetTrustedCert failed");
+                    PKIX_TRUSTANCHORGETTRUSTEDCERTFAILED);
 
         if (trustedCert){
                 PKIX_CHECK(PKIX_PL_Cert_GetSubjectPublicKey
                             (trustedCert, &trustedPubKey, plContext),
-                            "PKIX_PL_Cert_GetSubjectPublicKey failed");
+                            PKIX_CERTGETSUBJECTPUBLICKEYFAILED);
 
                 PKIX_CHECK(PKIX_PL_Cert_GetSubject
                             (trustedCert, &trustedCAName, plContext),
-                            "PKIX_PL_Cert_GetSubject failed");
+                            PKIX_CERTGETSUBJECTFAILED);
         } else {
                 PKIX_CHECK(PKIX_TrustAnchor_GetCAPublicKey
                             (anchor, &trustedPubKey, plContext),
-                            "PKIX_TrustAnchor_GetCAPublicKey failed");
+                            PKIX_TRUSTANCHORGETCAPUBLICKEYFAILED);
 
                 PKIX_CHECK(PKIX_TrustAnchor_GetCAName
                             (anchor, &trustedCAName, plContext),
-                            "PKIX_TrustAnchor_GetCAName failed");
+                            PKIX_TRUSTANCHORGETCANAMEFAILED);
         }
 
         PKIX_NULLCHECK_TWO(trustedPubKey, trustedCAName);
 
         PKIX_CHECK(PKIX_TrustAnchor_GetNameConstraints
                 (anchor, &trustedNC, plContext),
-                "PKIX_TrustAnchor_GetNameConstraints failed");
+                PKIX_TRUSTANCHORGETNAMECONSTRAINTSFAILED);
 
         PKIX_CHECK(PKIX_ProcessingParams_GetTargetCertConstraints
                 (procParams, &certSelector, plContext),
-                "PKIX_ProcessingParams_GetTargetCertConstraints");
+                PKIX_PROCESSINGPARAMSGETTARGETCERTCONSTRAINTSFAILED);
 
         PKIX_CHECK(PKIX_ProcessingParams_GetDate
                 (procParams, &testDate, plContext),
-                "PKIX_ProcessingParams_GetDate");
+                PKIX_PROCESSINGPARAMSGETDATEFAILED);
 
         PKIX_CHECK(PKIX_ProcessingParams_GetInitialPolicies
                 (procParams, &initialPolicies, plContext),
-                "PKIX_ProcessingParams_GetInitialPolicies");
+                PKIX_PROCESSINGPARAMSGETINITIALPOLICIESFAILED);
 
         PKIX_CHECK(PKIX_ProcessingParams_GetPolicyQualifiersRejected
                 (procParams, &policyQualifiersRejected, plContext),
-                "PKIX_ProcessingParams_GetPolicyQualifiersRejected");
+                PKIX_PROCESSINGPARAMSGETPOLICYQUALIFIERSREJECTEDFAILED);
 
         PKIX_CHECK(PKIX_ProcessingParams_IsPolicyMappingInhibited
                 (procParams, &initialPolicyMappingInhibit, plContext),
-                "PKIX_ProcessingParams_IsPolicyMappingInhibited");
+                PKIX_PROCESSINGPARAMSISPOLICYMAPPINGINHIBITEDFAILED);
 
         PKIX_CHECK(PKIX_ProcessingParams_IsAnyPolicyInhibited
                 (procParams, &initialAnyPolicyInhibit, plContext),
-                "PKIX_ProcessingParams_IsAnyPolicyInhibited");
+                PKIX_PROCESSINGPARAMSISANYPOLICYINHIBITEDFAILED);
 
         PKIX_CHECK(PKIX_ProcessingParams_IsExplicitPolicyRequired
                 (procParams, &initialExplicitPolicy, plContext),
-                "PKIX_ProcessingParams_IsExplicitPolicyRequired");
+                PKIX_PROCESSINGPARAMSISEXPLICITPOLICYREQUIREDFAILED);
 
         PKIX_CHECK(PKIX_ProcessingParams_GetCertStores
                 (procParams, &certStores, plContext),
-                "PKIX_ProcessingParams_GetCertStores");
+                PKIX_PROCESSINGPARAMSGETCERTSTORESFAILED);
 
         PKIX_CHECK(PKIX_ProcessingParams_GetCertChainCheckers
                 (procParams, &userCheckersList, plContext),
-                "PKIX_ProcessingParams_GetCertChainCheckers");
+                PKIX_PROCESSINGPARAMSGETCERTCHAINCHECKERSFAILED);
 
         PKIX_CHECK(pkix_ProcessingParams_GetRevocationEnabled
                 (procParams, &isCrlEnabled, plContext),
-                "PKIX_ProcessingParams_GetRevocationEnabled");
+                PKIX_PROCESSINGPARAMSGETREVOCATIONENABLEDFAILED);
 
         /* now, initialize all the checkers */
         PKIX_CHECK(pkix_TargetCertChecker_Initialize
                 (certSelector, numCerts, &targetCertChecker, plContext),
-                "pkix_TargetCertChecker_Initialize failed");
+                PKIX_TARGETCERTCHECKERINITIALIZEFAILED);
 
         PKIX_CHECK(pkix_ExpirationChecker_Initialize
                 (testDate, &expirationChecker, plContext),
-                "pkix_ExpirationChecker_Initialize failed");
+                PKIX_EXPIRATIONCHECKERINITIALIZEFAILED);
 
         PKIX_CHECK(pkix_NameChainingChecker_Initialize
                 (trustedCAName, &nameChainingChecker, plContext),
-                "pkix_NameChainingChecker_Initialize");
+                PKIX_NAMECHAININGCHECKERINITIALIZEFAILED);
 
         PKIX_CHECK(pkix_NameConstraintsChecker_Initialize
                 (trustedNC, numCerts, &nameConstraintsChecker, plContext),
-                "pkix_NameConstraintsChecker_Initialize");
+                PKIX_NAMECONSTRAINTSCHECKERINITIALIZEFAILED);
 
         PKIX_CHECK(pkix_BasicConstraintsChecker_Initialize
                 (numCerts, &basicConstraintsChecker, plContext),
-                "pkix_BasicConstraintsChecker_Initialize failed");
+                PKIX_BASICCONSTRAINTSCHECKERINITIALIZEFAILED);
 
         PKIX_CHECK(pkix_PolicyChecker_Initialize
                 (initialPolicies,
@@ -580,17 +589,17 @@ pkix_InitializeCheckers(
                 numCerts,
                 &policyChecker,
                 plContext),
-                "pkix_PolicyChecker_Initialize failed");
+                PKIX_POLICYCHECKERINITIALIZEFAILED);
 
         PKIX_CHECK(pkix_SignatureChecker_Initialize
                     (trustedPubKey, numCerts, &sigChecker, plContext),
-                    "pkix_SignatureChecker_Initialize failed");
+                    PKIX_SIGNATURECHECKERINITIALIZEFAILED);
 
         if (isCrlEnabled) {
 
                 PKIX_CHECK(PKIX_List_GetLength
                     (certStores, &numCertStores, plContext),
-                    "PKIX_List_GetLength failed");
+                    PKIX_LISTGETLENGTHFAILED);
 
                 if (numCertStores > 0) {
 
@@ -601,15 +610,15 @@ pkix_InitializeCheckers(
                             numCerts,
                             &defaultCrlChecker,
                             plContext),
-                            "pkix_DefaultCRLChecker_Initialize failed");
+                            PKIX_DEFAULTCRLCHECKERINITIALIZEFAILED);
 
                         PKIX_CHECK(PKIX_List_AppendItem
                             (checkers,
                             (PKIX_PL_Object *)defaultCrlChecker,
                             plContext),
-                            "PKIX_List_AppendItem failed");
+                            PKIX_LISTAPPENDITEMFAILED);
                 } else {
-                        PKIX_ERROR("Enable Revocation without CertStore");
+                        PKIX_ERROR(PKIX_ENABLEREVOCATIONWITHOUTCERTSTORE);
                 }
         }
 
@@ -617,7 +626,7 @@ pkix_InitializeCheckers(
 
                 PKIX_CHECK(PKIX_List_GetLength
                     (userCheckersList, &numCertCheckers, plContext),
-                    "PKIX_List_GetLength failed");
+                    PKIX_LISTGETLENGTHFAILED);
 
                 for (i = 0; i < numCertCheckers; i++) {
 
@@ -626,13 +635,13 @@ pkix_InitializeCheckers(
                             i,
                             (PKIX_PL_Object **) &userChecker,
                             plContext),
-                            "PKIX_List_GetItem failed");
+                            PKIX_LISTGETITEMFAILED);
 
                         PKIX_CHECK(PKIX_List_AppendItem
                             (checkers,
                             (PKIX_PL_Object *)userChecker,
                             plContext),
-                            "PKIX_List_AppendItem failed");
+                            PKIX_LISTAPPENDITEMFAILED);
 
                         PKIX_DECREF(userChecker);
                 }
@@ -640,31 +649,31 @@ pkix_InitializeCheckers(
 
         PKIX_CHECK(PKIX_List_AppendItem
             (checkers, (PKIX_PL_Object *)targetCertChecker, plContext),
-            "PKIX_List_AppendItem failed");
+            PKIX_LISTAPPENDITEMFAILED);
 
         PKIX_CHECK(PKIX_List_AppendItem
             (checkers, (PKIX_PL_Object *)expirationChecker, plContext),
-            "PKIX_List_AppendItem failed");
+            PKIX_LISTAPPENDITEMFAILED);
 
         PKIX_CHECK(PKIX_List_AppendItem
             (checkers, (PKIX_PL_Object *)nameChainingChecker, plContext),
-            "PKIX_List_AppendItem failed");
+            PKIX_LISTAPPENDITEMFAILED);
 
         PKIX_CHECK(PKIX_List_AppendItem
             (checkers, (PKIX_PL_Object *)nameConstraintsChecker, plContext),
-            "PKIX_List_AppendItem failed");
+            PKIX_LISTAPPENDITEMFAILED);
 
         PKIX_CHECK(PKIX_List_AppendItem
             (checkers, (PKIX_PL_Object *)basicConstraintsChecker, plContext),
-            "PKIX_List_AppendItem failed");
+            PKIX_LISTAPPENDITEMFAILED);
 
         PKIX_CHECK(PKIX_List_AppendItem
             (checkers, (PKIX_PL_Object *)policyChecker, plContext),
-            "PKIX_List_AppendItem failed");
+            PKIX_LISTAPPENDITEMFAILED);
 
         PKIX_CHECK(PKIX_List_AppendItem
             (checkers, (PKIX_PL_Object *)sigChecker, plContext),
-            "PKIX_List_AppendItem failed");
+            PKIX_LISTAPPENDITEMFAILED);
 
         *pCheckers = checkers;
 
@@ -748,26 +757,22 @@ pkix_RetrieveOutputs(
          */
 
         PKIX_CHECK(PKIX_List_GetLength(checkers, &numCheckers, plContext),
-                "PKIX_List_GetLength failed");
+                PKIX_LISTGETLENGTHFAILED);
 
         for (j = numCheckers - 1; j >= 0; j--){
                 PKIX_CHECK(PKIX_List_GetItem
-                            (checkers,
-                            j,
-                            (PKIX_PL_Object **)&checker,
-                            plContext),
-                            "PKIX_List_GetItem failed");
+                        (checkers, j, (PKIX_PL_Object **)&checker, plContext),
+                        PKIX_LISTGETITEMFAILED);
 
                 PKIX_CHECK(PKIX_CertChainChecker_GetCertChainCheckerState
-                            (checker, &state, plContext),
-                            "PKIX_CertChainChecker_GetCertChainCheckerState "
-                            "failed");
+                        (checker, &state, plContext),
+                        PKIX_CERTCHAINCHECKERGETCERTCHAINCHECKERSTATEFAILED);
 
                 /* user defined checker may have no state */
                 if (state != NULL) {
 
                     PKIX_CHECK(PKIX_PL_Object_GetType(state, &type, plContext),
-                            "PKIX_PL_Object_GetType failed");
+                            PKIX_OBJECTGETTYPEFAILED);
 
                     if (type == PKIX_SIGNATURECHECKERSTATE_TYPE){
                         /* final pubKey will include any inherited DSA params */
@@ -918,12 +923,12 @@ pkix_CheckChain(
         for (j = *pCertCheckedIndex; j < numCerts; j++) {
                 PKIX_CHECK(PKIX_List_GetItem
                         (certs, j, (PKIX_PL_Object **)&cert, plContext),
-                        "PKIX_List_GetItem failed");
+                        PKIX_LISTGETITEMFAILED);
 
                 /* check if cert pointer is valid */
                 if (cert == NULL) {
                         PKIX_ERROR_FATAL
-                                ("Validation failed: NULL Cert pointer");
+                                (PKIX_VALIDATIONFAILEDNULLCERTPOINTER);
                 }
 
                 if (revChecking == PKIX_FALSE) {
@@ -935,7 +940,7 @@ pkix_CheckChain(
                                 pCheckerIndex,
                                 &nbioContext,
                                 plContext),
-                                "pkix_CheckCert failed");
+                                PKIX_CHECKCERTFAILED);
 
                         if (nbioContext != NULL) {
                                 *pCertCheckedIndex = j;
@@ -958,7 +963,7 @@ pkix_CheckChain(
                                 &nbioContext,
                                 (PKIX_UInt32 *)&reasonCode,
                                 plContext),
-                                "pkix_RevCheckCert failed");
+                                PKIX_REVCHECKCERTFAILED);
 
                         if (nbioContext != NULL) {
                                 *pCertCheckedIndex = j;
@@ -972,26 +977,26 @@ pkix_CheckChain(
                             pkixErrorReceived = PKIX_TRUE;
                             if (reasonCode ==
                                 SEC_ERROR_OCSP_INVALID_SIGNING_CERT) {
-                                    pkixErrorMsg =
-                                        "Invalid signing Cert in OCSP response";
+                                    pkixErrMsgNum =
+                                        PKIX_INVALIDSIGNINGCERTINOCSPRESPONSE;
                             } else if (reasonCode ==
                                 SEC_ERROR_OCSP_UNKNOWN_RESPONSE_STATUS) {
-                                    pkixErrorMsg =
-                                        "Unable to find status in OCSP response";
+                                    pkixErrMsgNum =
+                                        PKIX_UNABLETOFINDSTATUSINOCSPRESPONSE;
                             } else if (reasonCode ==
                                 SEC_ERROR_OCSP_MALFORMED_RESPONSE) {
-                                    pkixErrorMsg =
-                                        "Unable to parse OCSP response";
+                                    pkixErrMsgNum =
+                                        PKIX_UNABLETOPARSEOCSPRESPONSE;
                             } else if (reasonCode ==
                                 SEC_ERROR_REVOKED_CERTIFICATE_OCSP) {
-                                    pkixErrorMsg =
-                                        "OCSP response says Cert revoked";
+                                    pkixErrMsgNum =
+                                        PKIX_OCSPRESPONSESAYSCERTREVOKED;
                             } else {
-                                    pkixErrorMsg =
-                                        "Cert rejected by revocation checker";
+                                    pkixErrMsgNum =
+                                        PKIX_CERTREJECTEDBYREVOCATIONCHECKER;
                             }
                             PKIX_ERROR_CREATE
-                                (VALIDATE, pkixErrorMsg, pkixErrorResult);
+                                (VALIDATE, pkixErrMsgNum, pkixErrorResult);
                             goto cleanup;
                         }
 
@@ -1001,13 +1006,13 @@ pkix_CheckChain(
 
                 PKIX_CHECK(pkix_AddToVerifyLog
                         (cert, j, NULL, pVerifyTree, plContext),
-                        "pkix_AddToVerifyLog failed");
+                        PKIX_ADDTOVERIFYLOGFAILED);
                 PKIX_DECREF(cert);
         }
 
         PKIX_CHECK(pkix_RetrieveOutputs
                     (checkers, pFinalSubjPubKey, pPolicyTree, plContext),
-                    "pkix_RetrieveOutputs failed");
+                    PKIX_RETRIEVEOUTPUTSFAILED);
 
         *pReasonCode = (PKIX_UInt32)reasonCode;
         *pNBIOContext = NULL;
@@ -1082,22 +1087,22 @@ pkix_ExtractParameters(
         /* extract relevant parameters from chain */
         PKIX_CHECK(PKIX_ValidateParams_GetCertChain
                 (valParams, pCerts, plContext),
-                "PKIX_ValidateParams_GetCertChain failed");
+                PKIX_VALIDATEPARAMSGETCERTCHAINFAILED);
 
         PKIX_CHECK(PKIX_List_GetLength(*pCerts, pNumCerts, plContext),
-                "PKIX_List_GetLength failed");
+                PKIX_LISTGETLENGTHFAILED);
 
         /* extract relevant parameters from procParams */
         PKIX_CHECK(PKIX_ValidateParams_GetProcessingParams
                 (valParams, pProcParams, plContext),
-                "PKIX_ValidateParams_GetProcessingParams failed");
+                PKIX_VALIDATEPARAMSGETPROCESSINGPARAMSFAILED);
 
         PKIX_CHECK(PKIX_ProcessingParams_GetTrustAnchors
                 (*pProcParams, pAnchors, plContext),
-                "PKIX_ProcessingParams_GetTrustAnchors failed");
+                PKIX_PROCESSINGPARAMSGETTRUSTANCHORSFAILED);
 
         PKIX_CHECK(PKIX_List_GetLength(*pAnchors, pNumAnchors, plContext),
-                "PKIX_List_GetLength failed");
+                PKIX_LISTGETLENGTHFAILED);
 
 cleanup:
 
@@ -1152,7 +1157,7 @@ PKIX_ValidateChain(
                     &anchors,
                     &numAnchors,
                     plContext),
-                    "pkix_ExtractParameters failed");
+                    PKIX_EXTRACTPARAMETERSFAILED);
 
         /*
          * setup an extension OID list that user had defined for his checker
@@ -1163,59 +1168,57 @@ PKIX_ValidateChain(
          */
         PKIX_CHECK(PKIX_ProcessingParams_GetCertChainCheckers
                     (procParams, &userCheckers, plContext),
-                    "PKIX_ProcessingParams_GetCertChainCheckers");
+                    PKIX_PROCESSINGPARAMSGETCERTCHAINCHECKERSFAILED);
 
         if (userCheckers != NULL) {
 
                 PKIX_CHECK(PKIX_List_Create
                     (&validateCheckedCritExtOIDsList,
                     plContext),
-                    "PKIX_List_Create failed");
+                    PKIX_LISTCREATEFAILED);
 
                 PKIX_CHECK(PKIX_List_GetLength
                     (userCheckers, &numUserCheckers, plContext),
-                    "PKIX_List_GetLength failed");
+                    PKIX_LISTGETLENGTHFAILED);
 
                 for (i = 0; i < numUserCheckers; i++) {
 
-                        PKIX_CHECK(PKIX_List_GetItem
-                            (userCheckers,
-                            i,
-                            (PKIX_PL_Object **) &userChecker,
-                            plContext),
-                            "PKIX_List_GetItem failed");
+                    PKIX_CHECK(PKIX_List_GetItem
+                        (userCheckers,
+                        i,
+                        (PKIX_PL_Object **) &userChecker,
+                        plContext),
+                        PKIX_LISTGETITEMFAILED);
+
+                    PKIX_CHECK
+                        (PKIX_CertChainChecker_IsForwardCheckingSupported
+                        (userChecker, &supportForwarding, plContext),
+                        PKIX_CERTCHAINCHECKERISFORWARDCHECKINGSUPPORTEDFAILED);
+
+                    if (supportForwarding == PKIX_FALSE) {
 
                         PKIX_CHECK
-                            (PKIX_CertChainChecker_IsForwardCheckingSupported
-                            (userChecker, &supportForwarding, plContext),
-                            "PKIX_CertChainChecker_IsForwardCheckingSupported "
-                            "failed");
+                            (PKIX_CertChainChecker_GetSupportedExtensions
+                            (userChecker, &userCheckerExtOIDs, plContext),
+                            PKIX_CERTCHAINCHECKERGETSUPPORTEDEXTENSIONSFAILED);
 
-                        if (supportForwarding == PKIX_FALSE) {
-
-                            PKIX_CHECK
-                                (PKIX_CertChainChecker_GetSupportedExtensions
-                                (userChecker, &userCheckerExtOIDs, plContext),
-                                "PKIX_CertChainChecker_GetSupportedExtensions "
-                                "failed");
-
-                            if (userCheckerExtOIDs != NULL) {
-                                PKIX_CHECK(pkix_List_AppendList
-                                    (validateCheckedCritExtOIDsList,
-                                    userCheckerExtOIDs,
-                                    plContext),
-                                    "pkix_List_AppendList failed");
-                            }
+                        if (userCheckerExtOIDs != NULL) {
+                            PKIX_CHECK(pkix_List_AppendList
+                                (validateCheckedCritExtOIDsList,
+                                userCheckerExtOIDs,
+                                plContext),
+                                PKIX_LISTAPPENDLISTFAILED);
                         }
+                    }
 
-                        PKIX_DECREF(userCheckerExtOIDs);
-                        PKIX_DECREF(userChecker);
+                    PKIX_DECREF(userCheckerExtOIDs);
+                    PKIX_DECREF(userChecker);
                 }
         }
 
         PKIX_CHECK(PKIX_ProcessingParams_GetRevocationCheckers
-                    (procParams, &revCheckers, plContext),
-                    "PKIX_ProcessingParams_GetRevocationCheckers");
+                (procParams, &revCheckers, plContext),
+                PKIX_PROCESSINGPARAMSGETREVOCATIONCHECKERSFAILED);
 
         /* try to validate the chain with each anchor */
         for (i = 0; i < numAnchors; i++){
@@ -1223,12 +1226,12 @@ PKIX_ValidateChain(
                 /* get trust anchor */
                 PKIX_CHECK(PKIX_List_GetItem
                         (anchors, i, (PKIX_PL_Object **)&anchor, plContext),
-                        "PKIX_List_GetItem failed");
+                        PKIX_LISTGETITEMFAILED);
 
                 /* initialize checkers using information from trust anchor */
                 PKIX_CHECK(pkix_InitializeCheckers
                         (anchor, procParams, numCerts, &checkers, plContext),
-                        "pkix_InitializeCheckers failed");
+                        PKIX_INITIALIZECHECKERSFAILED);
 
                 /*
                  * Validate the chain using this trust anchor and these
@@ -1266,7 +1269,7 @@ PKIX_ValidateChain(
 
                         /* if last anchor, we fail; else, we try next anchor */
                         if (i == (numAnchors - 1)) { /* last anchor */
-                                PKIX_ERROR("PKIX_ValidateChain failed");
+                                PKIX_ERROR(PKIX_VALIDATECHAINFAILED);
                         }
 
                 } else {
@@ -1278,7 +1281,7 @@ PKIX_ValidateChain(
                                 validPolicyTree,
                                 &valResult,
                                 plContext),
-                                "pkix_ValidateResult_Create failed");
+                                PKIX_VALIDATERESULTCREATEFAILED);
 
                         *pResult = valResult;
 
@@ -1346,11 +1349,11 @@ pkix_Validate_BuildUserOIDs(
 
         if (userCheckers != NULL) {
             PKIX_CHECK(PKIX_List_Create(&userCritOIDs, plContext),
-                "PKIX_List_Create failed");
+                PKIX_LISTCREATEFAILED);
 
             PKIX_CHECK(PKIX_List_GetLength
                 (userCheckers, &numUserCheckers, plContext),
-                "PKIX_List_GetLength failed");
+                PKIX_LISTGETLENGTHFAILED);
 
             for (i = 0; i < numUserCheckers; i++) {
                 PKIX_CHECK(PKIX_List_GetItem
@@ -1358,22 +1361,22 @@ pkix_Validate_BuildUserOIDs(
                     i,
                     (PKIX_PL_Object **) &userChecker,
                     plContext),
-                    "PKIX_List_GetItem failed");
+                    PKIX_LISTGETITEMFAILED);
 
                 PKIX_CHECK(PKIX_CertChainChecker_IsForwardCheckingSupported
                     (userChecker, &supportForwarding, plContext),
-                    "PKIX_CertChainChecker_IsForwardCheckingSupported failed");
+                    PKIX_CERTCHAINCHECKERISFORWARDCHECKINGSUPPORTEDFAILED);
 
                 if (supportForwarding == PKIX_FALSE) {
 
                     PKIX_CHECK(PKIX_CertChainChecker_GetSupportedExtensions
                         (userChecker, &userCheckerExtOIDs, plContext),
-                        "PKIX_CertChainChecker_GetSupportedExtensions failed");
+                        PKIX_CERTCHAINCHECKERGETSUPPORTEDEXTENSIONSFAILED);
 
                     if (userCheckerExtOIDs != NULL) {
                         PKIX_CHECK(pkix_List_AppendList
                             (userCritOIDs, userCheckerExtOIDs, plContext),
-                            "pkix_List_AppendList failed");
+                            PKIX_LISTAPPENDLISTFAILED);
                     }
                 }
 
@@ -1451,7 +1454,7 @@ PKIX_ValidateChain_NB(
                     &anchors,
                     &numAnchors,
                     plContext),
-                    "pkix_ExtractParameters failed");
+                    PKIX_EXTRACTPARAMETERSFAILED);
 
         /*
          * Create a List of the OIDs that will be processed by the user
@@ -1462,15 +1465,15 @@ PKIX_ValidateChain_NB(
          */
         PKIX_CHECK(PKIX_ProcessingParams_GetCertChainCheckers
                 (procParams, &userCheckers, plContext),
-                "PKIX_ProcessingParams_GetCertChainCheckers");
+                PKIX_PROCESSINGPARAMSGETCERTCHAINCHECKERSFAILED);
 
         PKIX_CHECK(pkix_Validate_BuildUserOIDs
                 (userCheckers, &validateCheckedCritExtOIDsList, plContext),
-                "pkix_Validate_BuildUserOIDs failed");
+                PKIX_VALIDATEBUILDUSEROIDSFAILED);
 
         PKIX_CHECK(PKIX_ProcessingParams_GetRevocationCheckers
                 (procParams, &revCheckers, plContext),
-                "PKIX_ProcessingParams_GetRevocationCheckers");
+                PKIX_PROCESSINGPARAMSGETREVOCATIONCHECKERSFAILED);
 
         /* Are we resuming after a WOULDBLOCK return, or starting anew ? */
         if (nbioContext != NULL) {
@@ -1489,7 +1492,7 @@ PKIX_ValidateChain_NB(
                 /* get trust anchor */
                 PKIX_CHECK(PKIX_List_GetItem
                         (anchors, i, (PKIX_PL_Object **)&anchor, plContext),
-                        "PKIX_List_GetItem failed");
+                        PKIX_LISTGETITEMFAILED);
 
                 /* initialize checkers using information from trust anchor */
                 if (nbioContext == NULL) {
@@ -1499,7 +1502,7 @@ PKIX_ValidateChain_NB(
                                 numCerts,
                                 &checkers,
                                 plContext),
-                                "pkix_InitializeCheckers failed");
+                                PKIX_INITIALIZECHECKERSFAILED);
                 }
 
                 /*
@@ -1545,7 +1548,7 @@ PKIX_ValidateChain_NB(
 
                         /* if last anchor, we fail; else, we try next anchor */
                         if (i == (numAnchors - 1)) { /* last anchor */
-                                PKIX_ERROR("PKIX_ValidateChain failed");
+                                PKIX_ERROR(PKIX_VALIDATECHAINFAILED);
                         }
 
                 } else {
@@ -1557,7 +1560,7 @@ PKIX_ValidateChain_NB(
                                 validPolicyTree,
                                 &valResult,
                                 plContext),
-                                "pkix_ValidateResult_Create failed");
+                                PKIX_VALIDATERESULTCREATEFAILED);
 
                         *pResult = valResult;
 

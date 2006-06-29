@@ -62,7 +62,7 @@ pkix_pl_HashTable_Destroy(
         PKIX_NULLCHECK_ONE(object);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_HASHTABLE_TYPE, plContext),
-                    "Object is not a hashtable");
+                    PKIX_OBJECTNOTHASHTABLE);
 
         ht = (PKIX_PL_HashTable*) object;
 
@@ -77,7 +77,7 @@ pkix_pl_HashTable_Destroy(
         }
 
         PKIX_CHECK(pkix_pl_PrimHashTable_Destroy(ht->primHash, plContext),
-                    "pkix_pl_PrimHashTable_Destroy failed");
+                    PKIX_PRIMHASHTABLEDESTROYFAILED);
 
         PKIX_DECREF(ht->tableLock);
 
@@ -138,7 +138,7 @@ PKIX_PL_HashTable_Create(
         PKIX_NULLCHECK_ONE(pResult);
 
         if (numBuckets == 0) {
-                PKIX_ERROR("NumBuckets equals zero");
+                PKIX_ERROR(PKIX_NUMBUCKETSEQUALSZERO);
         }
 
         /* Allocate a new hashtable */
@@ -147,16 +147,16 @@ PKIX_PL_HashTable_Create(
                 sizeof (PKIX_PL_HashTable),
                 (PKIX_PL_Object **)&hashTable,
                 plContext),
-                "Could not create HashTable object");
+                PKIX_COULDNOTCREATEHASHTABLEOBJECT);
 
         /* Create the underlying primitive hash table type */
         PKIX_CHECK(pkix_pl_PrimHashTable_Create
                     (numBuckets, &hashTable->primHash, plContext),
-                    "pkix_pl_PrimHashTable_Create failed");
+                    PKIX_PRIMHASHTABLECREATEFAILED);
 
         /* Create a lock for this table */
         PKIX_CHECK(PKIX_PL_Mutex_Create(&hashTable->tableLock, plContext),
-                    "Error creating table lock");
+                    PKIX_ERRORCREATINGTABLELOCK);
 
         hashTable->maxEntriesPerBucket = maxEntriesPerBucket;
 
@@ -194,18 +194,18 @@ PKIX_PL_HashTable_Add(
         /* Insert into primitive hashtable */
 
         PKIX_CHECK(PKIX_PL_Object_Hashcode(key, &hashCode, plContext),
-                    "PKIX_PL_Object_Hashcode failed");
+                    PKIX_OBJECTHASHCODEFAILED);
 
         PKIX_CHECK(pkix_pl_Object_RetrieveEqualsCallback
                     (key, &keyComp, plContext),
-                    "pkix_pl_Object_RetrieveEqualsCallback failed");
+                    PKIX_OBJECTRETRIEVEEQUALSCALLBACKFAILED);
 
         PKIX_CHECK(pkix_pl_PrimHashTable_GetBucketSize
                 (ht->primHash,
                 hashCode,
                 &bucketSize,
                 plContext),
-                "pkix_pl_PrimHashTable_GetBucketSize failed");
+                PKIX_PRIMHASHTABLEGETBUCKETSIZEFAILED);
 
         if (ht->maxEntriesPerBucket != 0 &&
             bucketSize >= ht->maxEntriesPerBucket) {
@@ -216,7 +216,7 @@ PKIX_PL_HashTable_Add(
                         (void **) &deletedKey,
                         (void **) &deletedValue,
                         plContext),
-                        "pkix_pl_PrimHashTable_GetBucketSize failed");
+                        PKIX_PRIMHASHTABLEGETBUCKETSIZEFAILED);
                 PKIX_DECREF(deletedKey);
                 PKIX_DECREF(deletedValue);
         }
@@ -231,7 +231,7 @@ PKIX_PL_HashTable_Add(
                 hashCode,
                 keyComp,
                 plContext),
-                "pkix_pl_PrimHashTable_Add failed");
+                PKIX_PRIMHASHTABLEADDFAILED);
 
         PKIX_MUTEX_UNLOCK(ht->tableLock);
         tableLocked = PKIX_FALSE;
@@ -271,24 +271,24 @@ PKIX_PL_HashTable_Remove(
         PKIX_NULLCHECK_TWO(ht, key);
 
         PKIX_CHECK(PKIX_PL_Object_Hashcode(key, &hashCode, plContext),
-                    "PKIX_PL_Object_Hashcode failed");
+                    PKIX_OBJECTHASHCODEFAILED);
 
         PKIX_CHECK(pkix_pl_Object_RetrieveEqualsCallback
                     (key, &keyComp, plContext),
-                    "pkix_pl_Object_RetrieveEqualsCallback failed");
+                    PKIX_OBJECTRETRIEVEEQUALSCALLBACKFAILED);
 
         PKIX_MUTEX_LOCK(ht->tableLock);
         tableLocked = PKIX_TRUE;
 
         /* Remove from primitive hashtable */
         PKIX_CHECK(pkix_pl_PrimHashTable_Remove
-                    (ht->primHash,
-                    (void *)key,
-                    hashCode,
-                    keyComp,
-                    (void **)&result,
-                    plContext),
-                    "pkix_pl_PrimHashTable_Remove");
+                (ht->primHash,
+                (void *)key,
+                hashCode,
+                keyComp,
+                (void **)&result,
+                plContext),
+                PKIX_PRIMHASHTABLEREMOVEFAILED);
 
         PKIX_MUTEX_UNLOCK(ht->tableLock);
         tableLocked = PKIX_FALSE;
@@ -297,7 +297,7 @@ PKIX_PL_HashTable_Remove(
                 PKIX_DECREF(key);
                 PKIX_DECREF(result);
         } else {
-                PKIX_ERROR("Attempt to remove non-existant item");
+                PKIX_ERROR(PKIX_ATTEMPTTOREMOVENONEXISTANTITEM);
         }
 
         /*
@@ -333,11 +333,11 @@ PKIX_PL_HashTable_Lookup(
         PKIX_NULLCHECK_THREE(ht, key, pResult);
 
         PKIX_CHECK(PKIX_PL_Object_Hashcode(key, &hashCode, plContext),
-                    "PKIX_PL_Object_Hashcode failed");
+                    PKIX_OBJECTHASHCODEFAILED);
 
         PKIX_CHECK(pkix_pl_Object_RetrieveEqualsCallback
                     (key, &keyComp, plContext),
-                    "pkix_pl_Object_RetrieveEqualsCallback failed");
+                    PKIX_OBJECTRETRIEVEEQUALSCALLBACKFAILED);
 
         PKIX_MUTEX_LOCK(ht->tableLock);
         tableLocked = PKIX_TRUE;
@@ -350,7 +350,7 @@ PKIX_PL_HashTable_Lookup(
                 keyComp,
                 (void **)&result,
                 plContext),
-                "pkix_pl_PrimHashTable_Lookup failed");
+                PKIX_PRIMHASHTABLELOOKUPFAILED);
 
         PKIX_MUTEX_UNLOCK(ht->tableLock);
         tableLocked = PKIX_FALSE;

@@ -143,7 +143,7 @@ pkix_pl_LdapDefaultClient_MakeBind(
         PKIX_PL_NSSCALLRV(LDAPDEFAULTCLIENT, encoded, SEC_ASN1EncodeItem,
                 (arena, NULL, (void *)&msg, PKIX_PL_LDAPMessageTemplate));
         if (!encoded) {
-                PKIX_ERROR("failed in encoding bindRequest");
+                PKIX_ERROR(PKIX_FAILEDINENCODINGBINDREQUEST);
         }
 
         *pBindMsg = encoded;
@@ -214,7 +214,7 @@ pkix_pl_LdapDefaultClient_MakeUnbind(
         PKIX_PL_NSSCALLRV(LDAPDEFAULTCLIENT, encoded, SEC_ASN1EncodeItem,
                 (arena, NULL, (void *)&msg, PKIX_PL_LDAPMessageTemplate));
         if (!encoded) {
-                PKIX_ERROR("failed in encoding unbind");
+                PKIX_ERROR(PKIX_FAILEDINENCODINGUNBIND);
         }
 
         *pUnbindMsg = encoded;
@@ -281,7 +281,7 @@ pkix_pl_LdapDefaultClient_MakeAbandon(
         PKIX_PL_NSSCALLRV(LDAPDEFAULTCLIENT, encoded, SEC_ASN1EncodeItem,
                 (arena, NULL, (void *)&msg, PKIX_PL_LDAPMessageTemplate));
         if (!encoded) {
-                PKIX_ERROR("failed in encoding Abandon");
+                PKIX_ERROR(PKIX_FAILEDINENCODINGABANDON);
         }
 
         *pAbandonMsg = encoded;
@@ -397,17 +397,17 @@ pkix_pl_LdapDefaultClient_VerifyBindResponse(
 
         PKIX_CHECK(pkix_pl_LdapDefaultClient_DecodeBindResponse
                 (client->arena, &decode, &msg, &rv, plContext),
-                "pkix_pl_LdapDefaultClient_DecodeBindResponse failed");
+                PKIX_LDAPDEFAULTCLIENTDECODEBINDRESPONSEFAILED);
 
         if (rv == SECSuccess) {
                 ldapBindResponse = &msg.protocolOp.op.bindResponseMsg;
                 if (*(ldapBindResponse->resultCode.data) == SUCCESS) {
                         client->connectStatus = BOUND;
                 } else {
-                        PKIX_ERROR("BIND rejected by server");
+                        PKIX_ERROR(PKIX_BINDREJECTEDBYSERVER);
                 }
         } else {
-                PKIX_ERROR("Can't decode BIND response from server");
+                PKIX_ERROR(PKIX_CANTDECODEBINDRESPONSEFROMSERVER);
         }
 
 cleanup:
@@ -466,34 +466,34 @@ pkix_pl_LdapDefaultClient_RecvCheckComplete(
 
         PKIX_CHECK(pkix_pl_LdapResponse_IsComplete
                 (client->currentResponse, &complete, plContext),
-                "pkix_pl_LdapResponse_IsComplete failed");
+                PKIX_LDAPRESPONSEISCOMPLETEFAILED);
 
         if (complete) {
                 PKIX_CHECK(pkix_pl_LdapResponse_Decode
                        (client->arena, client->currentResponse, &rv, plContext),
-                        "pkix_pl_LDAPResponse_Decode failed");
+                        PKIX_LDAPRESPONSEDECODEFAILED);
 
                 if (rv != SECSuccess) {
-                        PKIX_ERROR("Can't decode SEARCH response from server");
+                        PKIX_ERROR(PKIX_CANTDECODESEARCHRESPONSEFROMSERVER);
                 }
 
                 PKIX_CHECK(pkix_pl_LdapResponse_GetMessageType
                         (client->currentResponse, &messageType, plContext),
-                        "pkix_pl_LdapResponse_GetMessageType failed");
+                        PKIX_LDAPRESPONSEGETMESSAGETYPEFAILED);
 
                 if (messageType == LDAP_SEARCHRESPONSEENTRY_TYPE) {
 
                         if (client->entriesFound == NULL) {
                                 PKIX_CHECK(PKIX_List_Create
                                     (&(client->entriesFound), plContext),
-                                    "PKIX_List_Create failed");
+                                    PKIX_LISTCREATEFAILED);
                         }
 
                         PKIX_CHECK(PKIX_List_AppendItem
                                 (client->entriesFound,
                                 (PKIX_PL_Object *)client->currentResponse,
                                 plContext),
-                                "PKIX_List_AppendItem failed");
+                                PKIX_LISTAPPENDITEMFAILED);
 
                         PKIX_DECREF(client->currentResponse);
 
@@ -513,26 +513,26 @@ pkix_pl_LdapDefaultClient_RecvCheckComplete(
                                 (client->currentResponse,
                                 &resultCode,
                                 plContext),
-                                "pkix_pl_LdapResponse_GetResultCode failed");
+                                PKIX_LDAPRESPONSEGETRESULTCODEFAILED);
 
                         if ((client->entriesFound == NULL) &&
                             ((resultCode == SUCCESS) ||
                             (resultCode == NOSUCHOBJECT))) {
                                 PKIX_CHECK(PKIX_List_Create
                                     (&(client->entriesFound), plContext),
-                                    "PKIX_List_Create failed");
+                                    PKIX_LISTCREATEFAILED);
                         } else if (resultCode == SUCCESS) {
                                 PKIX_CHECK(PKIX_List_SetImmutable
                                     (client->entriesFound, plContext),
-                                    "PKIX_List_SetImmutable failed");
+                                    PKIX_LISTSETIMMUTABLEFAILED);
                                 PKIX_CHECK(PKIX_PL_HashTable_Add
                                     (client->cachePtr,
                                     (PKIX_PL_Object *)client->currentRequest,
                                     (PKIX_PL_Object *)client->entriesFound,
                                     plContext),
-                                    "PKIX_PL_HashTable_Add failed");
+                                    PKIX_HASHTABLEADDFAILED);
                         } else {
-                            PKIX_ERROR("Unexpected result code in Response");
+                            PKIX_ERROR(PKIX_UNEXPECTEDRESULTCODEINRESPONSE);
                         }
 
                         client->connectStatus = BOUND;
@@ -540,7 +540,7 @@ pkix_pl_LdapDefaultClient_RecvCheckComplete(
                         PKIX_DECREF(client->currentResponse);
 
                 } else {
-                        PKIX_ERROR("SearchResponse packet of unknown type");
+                        PKIX_ERROR(PKIX_SEARCHRESPONSEPACKETOFUNKNOWNTYPE);
                 }
         } else {
                 client->connectStatus = RECV;
@@ -619,7 +619,7 @@ pkix_pl_LdapDefaultClient_CreateHelper(
                     sizeof (PKIX_PL_LdapDefaultClient),
                     (PKIX_PL_Object **)&ldapDefaultClient,
                     plContext),
-                    "Could not create LdapDefaultClient object");
+                    PKIX_COULDNOTCREATELDAPDEFAULTCLIENTOBJECT);
 
         ldapDefaultClient->vtable.initiateFcn =
                 pkix_pl_LdapDefaultClient_InitiateRequest;
@@ -628,7 +628,7 @@ pkix_pl_LdapDefaultClient_CreateHelper(
 
         PKIX_CHECK(pkix_pl_Socket_GetPRFileDesc
                 (socket, &fileDesc, plContext),
-                "pkix_pl_Socket_GetPRFileDesc failed");
+                PKIX_SOCKETGETPRFILEDESCFAILED);
 
         ldapDefaultClient->pollDesc.fd = fileDesc;
         ldapDefaultClient->pollDesc.in_flags = 0;
@@ -638,14 +638,14 @@ pkix_pl_LdapDefaultClient_CreateHelper(
 
         PKIX_CHECK(PKIX_PL_HashTable_Create
                 (LDAP_CACHEBUCKETS, 0, &ht, plContext),
-                "PKIX_PL_HashTable_Create failed");
+                PKIX_HASHTABLECREATEFAILED);
 
         PKIX_INCREF(ht);
         ldapDefaultClient->cachePtr = ht;
 
         PKIX_CHECK(pkix_pl_Socket_GetCallbackList
                 (socket, &callbackList, plContext),
-                "pkix_pl_Socket_GetCallbackList failed");
+                PKIX_SOCKETGETCALLBACKLISTFAILED);
 
         ldapDefaultClient->callbackList = callbackList;
 
@@ -659,7 +659,7 @@ pkix_pl_LdapDefaultClient_CreateHelper(
         PKIX_PL_NSSCALLRV
             (LDAPDEFAULTCLIENT, arena, PORT_NewArena, (DER_DEFAULT_CHUNKSIZE));
         if (!arena) {
-            PKIX_ERROR_FATAL("Out of memory");
+            PKIX_ERROR_FATAL(PKIX_OUTOFMEMORY);
         }
         ldapDefaultClient->arena = arena;
 
@@ -668,7 +668,7 @@ pkix_pl_LdapDefaultClient_CreateHelper(
 
         PKIX_CHECK(PKIX_PL_Malloc
                 (RCVBUFSIZE, &ldapDefaultClient->rcvBuf, plContext),
-                "PKIX_PL_Malloc failed");
+                PKIX_MALLOCFAILED);
         ldapDefaultClient->capacity = RCVBUFSIZE;
 
         ldapDefaultClient->bindMsg = NULL;
@@ -740,11 +740,11 @@ PKIX_PL_LdapDefaultClient_Create(
 
         PKIX_CHECK(pkix_pl_Socket_Create
                 (PKIX_FALSE, timeout, sockaddr, &status, &socket, plContext),
-                "pkix_pl_Socket_Create failed");
+                PKIX_SOCKETCREATEFAILED);
 
         PKIX_CHECK(pkix_pl_LdapDefaultClient_CreateHelper
                 (socket, bindAPI, &client, plContext),
-                "pkix_pl_LdapDefaultClient_CreateHelper failed");
+                PKIX_LDAPDEFAULTCLIENTCREATEHELPERFAILED);
 
         /* Did Socket_Create say the connection was made? */
         if (status == 0) {
@@ -819,11 +819,11 @@ PKIX_PL_LdapDefaultClient_CreateByName(
 
         PKIX_CHECK(pkix_pl_Socket_CreateByName
                 (PKIX_FALSE, timeout, hostname, &status, &socket, plContext),
-                "pkix_pl_Socket_CreateByName failed");
+                PKIX_SOCKETCREATEBYNAMEFAILED);
 
         PKIX_CHECK(pkix_pl_LdapDefaultClient_CreateHelper
                 (socket, bindAPI, &client, plContext),
-                "pkix_pl_LdapDefaultClient_CreateHelper failed");
+                PKIX_LDAPDEFAULTCLIENTCREATEHELPERFAILED);
 
         /* Did Socket_Create say the connection was made? */
         if (status == 0) {
@@ -868,7 +868,7 @@ pkix_pl_LdapDefaultClient_Destroy(
 
         PKIX_CHECK(pkix_CheckType
                     (object, PKIX_LDAPDEFAULTCLIENT_TYPE, plContext),
-                    "Object is not an LdapDefaultClient");
+                    PKIX_OBJECTNOTANLDAPDEFAULTCLIENT);
 
         client = (PKIX_PL_LdapDefaultClient *)object;
 
@@ -892,7 +892,7 @@ pkix_pl_LdapDefaultClient_Destroy(
                                 ++(client->messageID),
                                 &encoded,
                                 plContext),
-                                "pkix_pl_LdapDefaultClient_MakeUnbind failed");
+                                PKIX_LDAPDEFAULTCLIENTMAKEUNBINDFAILED);
 
                         callbackList =
                                 (PKIX_PL_Socket_Callback *)(client->callbackList);
@@ -902,11 +902,11 @@ pkix_pl_LdapDefaultClient_Destroy(
                                 encoded->len,
                                 &bytesWritten,
                                 plContext),
-                                "pkix_pl_Socket_Send failed");
+                                PKIX_SOCKETSENDFAILED);
                 }
                 break;
         default:
-                PKIX_ERROR("LDAP DefaultClient in illegal state");
+                PKIX_ERROR(PKIX_LDAPDEFAULTCLIENTINILLEGALSTATE);
         }
 
         PKIX_DECREF(client->cachePtr);
@@ -916,7 +916,7 @@ pkix_pl_LdapDefaultClient_Destroy(
         PKIX_DECREF(client->currentResponse);
 
         PKIX_CHECK(PKIX_PL_Free
-		(client->rcvBuf, plContext), "PKIX_PL_Free failed");
+		(client->rcvBuf, plContext), PKIX_FREEFAILED);
 
         PKIX_PL_NSSCALL
                 (LDAPDEFAULTCLIENT,
@@ -947,7 +947,7 @@ pkix_pl_LdapDefaultClient_Hashcode(
 
         PKIX_CHECK(pkix_CheckType
                 (object, PKIX_LDAPDEFAULTCLIENT_TYPE, plContext),
-                "Object is not an LdapDefaultClient");
+                PKIX_OBJECTNOTANLDAPDEFAULTCLIENT);
 
         ldapDefaultClient = (PKIX_PL_LdapDefaultClient *)object;
 
@@ -955,7 +955,7 @@ pkix_pl_LdapDefaultClient_Hashcode(
                 ((PKIX_PL_Object *)ldapDefaultClient->clientSocket,
                 &tempHash,
                 plContext),
-                "PKIX_PL_Socket_Hashcode failed");
+                PKIX_SOCKETHASHCODEFAILED);
 
         if (ldapDefaultClient->bindAPI != NULL) {
                 tempHash = (tempHash << 7) +
@@ -994,7 +994,7 @@ pkix_pl_LdapDefaultClient_Equals(
                 secondObject,
                 PKIX_LDAPDEFAULTCLIENT_TYPE,
                 plContext),
-                "Object is not an LdapDefaultClient");
+                PKIX_OBJECTNOTANLDAPDEFAULTCLIENT);
 
         firstClientContext = (PKIX_PL_LdapDefaultClient *)firstObject;
         secondClientContext = (PKIX_PL_LdapDefaultClient *)secondObject;
@@ -1009,7 +1009,7 @@ pkix_pl_LdapDefaultClient_Equals(
                 (PKIX_PL_Object *)secondClientContext->clientSocket,
                 &compare,
                 plContext),
-                "PKIX_PL_Socket_Equals failed");
+                PKIX_SOCKETEQUALSFAILED);
 
         if (!compare) {
                 goto cleanup;
@@ -1153,7 +1153,7 @@ pkix_pl_LdapDefaultClient_ConnectContinue(
 
         PKIX_CHECK(callbackList->connectcontinueCallback
                 (client->clientSocket, &status, plContext),
-                "pkix_pl_Socket_ConnectContinue failed");
+                PKIX_SOCKETCONNECTCONTINUEFAILED);
 
         if (status == 0) {
                 if (client->bindAPI != NULL) {
@@ -1163,12 +1163,12 @@ pkix_pl_LdapDefaultClient_ConnectContinue(
                 }
                 keepGoing = PKIX_FALSE;
         } else if (status != PR_IN_PROGRESS_ERROR) {
-                PKIX_ERROR("Unexpected error in establishing connection");
+                PKIX_ERROR(PKIX_UNEXPECTEDERRORINESTABLISHINGCONNECTION);
         }
 
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                 ((PKIX_PL_Object *)client, plContext),
-                "PKIX_PL_Object_InvalidateCache failed");
+                PKIX_OBJECTINVALIDATECACHEFAILED);
 
         *pKeepGoing = keepGoing;
 
@@ -1224,7 +1224,7 @@ pkix_pl_LdapDefaultClient_Bind(
                         client->messageID,
                         &encoded,
                         plContext),
-                        "pkix_pl_LdapDefaultClient_MakeBind failed");
+                        PKIX_LDAPDEFAULTCLIENTMAKEBINDFAILED);
                 client->bindMsg = encoded->data;
                 client->bindMsgLen = encoded->len;
         }
@@ -1237,7 +1237,7 @@ pkix_pl_LdapDefaultClient_Bind(
                 client->bindMsgLen,
                 &bytesWritten,
                 plContext),
-                "pkix_pl_Socket_Send failed");
+                PKIX_SOCKETSENDFAILED);
 
         client->lastIO = PR_Now();
 
@@ -1251,7 +1251,7 @@ pkix_pl_LdapDefaultClient_Bind(
 
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                 ((PKIX_PL_Object *)client, plContext),
-                "PKIX_PL_Object_InvalidateCache failed");
+                PKIX_OBJECTINVALIDATECACHEFAILED);
 
 cleanup:
         PKIX_RETURN(LDAPDEFAULTCLIENT);
@@ -1300,7 +1300,7 @@ PKIX_Error *pkix_pl_LdapDefaultClient_BindContinue(
 
         PKIX_CHECK(callbackList->pollCallback
                 (client->clientSocket, &bytesWritten, NULL, plContext),
-                "pkix_pl_Socket_Poll failed");
+                PKIX_SOCKETPOLLFAILED);
 
         /*
          * If the send completed we can proceed to try for the
@@ -1313,7 +1313,7 @@ PKIX_Error *pkix_pl_LdapDefaultClient_BindContinue(
 
                 PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                         ((PKIX_PL_Object *)client, plContext),
-                        "PKIX_PL_Object_InvalidateCache failed");
+                        PKIX_OBJECTINVALIDATECACHEFAILED);
 
                 *pKeepGoing = PKIX_TRUE;
         }
@@ -1373,14 +1373,14 @@ pkix_pl_LdapDefaultClient_BindResponse(
                 client->capacity,
                 &bytesRead,
                 plContext),
-                "pkix_pl_Socket_Recv failed");
+                PKIX_SOCKETRECVFAILED);
 
         client->lastIO = PR_Now();
 
         if (bytesRead > 0) {
                 PKIX_CHECK(pkix_pl_LdapDefaultClient_VerifyBindResponse
                         (client, bytesRead, plContext),
-                        "pkix_pl_LdapDefaultClient_VerifyBindResponse failed");
+                        PKIX_LDAPDEFAULTCLIENTVERIFYBINDRESPONSEFAILED);
                 /*
                  * XXX What should we do if failure? At present if
                  * VerifyBindResponse throws an Error, we do too.
@@ -1392,7 +1392,7 @@ pkix_pl_LdapDefaultClient_BindResponse(
 
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                 ((PKIX_PL_Object *)client, plContext),
-                "PKIX_PL_Object_InvalidateCache failed");
+                PKIX_OBJECTINVALIDATECACHEFAILED);
 
         *pKeepGoing = PKIX_TRUE;
 
@@ -1444,17 +1444,17 @@ pkix_pl_LdapDefaultClient_BindResponseContinue(
 
         PKIX_CHECK(callbackList->pollCallback
                 (client->clientSocket, NULL, &bytesRead, plContext),
-                "pkix_pl_Socket_Poll failed");
+                PKIX_SOCKETPOLLFAILED);
 
         if (bytesRead > 0) {
                 PKIX_CHECK(pkix_pl_LdapDefaultClient_VerifyBindResponse
                         (client, bytesRead, plContext),
-                        "pkix_pl_LdapDefaultClient_VerifyBindResponse failed");
+                        PKIX_LDAPDEFAULTCLIENTVERIFYBINDRESPONSEFAILED);
                 client->connectStatus = BOUND;
 
                 PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                         ((PKIX_PL_Object *)client, plContext),
-                        "PKIX_PL_Object_InvalidateCache failed");
+                        PKIX_OBJECTINVALIDATECACHEFAILED);
 
                 *pKeepGoing = PKIX_TRUE;
         } else {
@@ -1522,7 +1522,7 @@ pkix_pl_LdapDefaultClient_Send(
                         client->bytesToWrite,
                         &bytesWritten,
                         plContext),
-                        "pkix_pl_Socket_Send failed");
+                        PKIX_SOCKETSENDFAILED);
 
                 client->lastIO = PR_Now();
 
@@ -1545,7 +1545,7 @@ pkix_pl_LdapDefaultClient_Send(
 
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                 ((PKIX_PL_Object *)client, plContext),
-                "PKIX_PL_Object_InvalidateCache failed");
+                PKIX_OBJECTINVALIDATECACHEFAILED);
 
         *pBytesTransferred = bytesWritten;
 
@@ -1604,7 +1604,7 @@ pkix_pl_LdapDefaultClient_SendContinue(
 
         PKIX_CHECK(callbackList->pollCallback
                 (client->clientSocket, &bytesWritten, NULL, plContext),
-                "pkix_pl_Socket_Poll failed");
+                PKIX_SOCKETPOLLFAILED);
 
         /*
          * If the send completed we can proceed to try for the
@@ -1617,7 +1617,7 @@ pkix_pl_LdapDefaultClient_SendContinue(
 
                 PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                         ((PKIX_PL_Object *)client, plContext),
-                        "PKIX_PL_Object_InvalidateCache failed");
+                        PKIX_OBJECTINVALIDATECACHEFAILED);
 
                 *pKeepGoing = PKIX_TRUE;
         }
@@ -1680,7 +1680,7 @@ pkix_pl_LdapDefaultClient_Recv(
         if (client->currentResponse) {
                 PKIX_CHECK(pkix_pl_LdapResponse_GetCapacity
                         (client->currentResponse, &bytesToRead, plContext),
-                        "pkix_pl_LdapResponse_GetCapacity failed");
+                        PKIX_LDAPRESPONSEGETCAPACITYFAILED);
                 if ((bytesToRead > client->capacity) ||
                     ((bytesToRead + MINIMUM_MSG_LENGTH) < client->capacity)) {
                         bytesToRead = client->capacity;
@@ -1697,7 +1697,7 @@ pkix_pl_LdapDefaultClient_Recv(
                 bytesToRead,
                 &bytesRead,
                 plContext),
-                "pkix_pl_Socket_Recv failed");
+                PKIX_SOCKETRECVFAILED);
 
         client->currentInPtr = client->rcvBuf;
         client->lastIO = PR_Now();
@@ -1713,7 +1713,7 @@ pkix_pl_LdapDefaultClient_Recv(
 
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                 ((PKIX_PL_Object *)client, plContext),
-                "PKIX_PL_Object_InvalidateCache failed");
+                PKIX_OBJECTINVALIDATECACHEFAILED);
 
 cleanup:
         PKIX_RETURN(LDAPDEFAULTCLIENT);
@@ -1761,7 +1761,7 @@ pkix_pl_LdapDefaultClient_RecvContinue(
 
         PKIX_CHECK(callbackList->pollCallback
                 (client->clientSocket, NULL, &bytesRead, plContext),
-                "pkix_pl_Socket_Poll failed");
+                PKIX_SOCKETPOLLFAILED);
 
         if (bytesRead > 0) {
                 client->currentBytesAvailable += bytesRead;
@@ -1770,7 +1770,7 @@ pkix_pl_LdapDefaultClient_RecvContinue(
 
                 PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                         ((PKIX_PL_Object *)client, plContext),
-                        "PKIX_PL_Object_InvalidateCache failed");
+                        PKIX_OBJECTINVALIDATECACHEFAILED);
         } else {
                 *pKeepGoing = PKIX_FALSE;
         }
@@ -1822,7 +1822,7 @@ pkix_pl_LdapDefaultClient_AbandonContinue(
 
         PKIX_CHECK(callbackList->pollCallback
                 (client->clientSocket, &bytesWritten, NULL, plContext),
-                "pkix_pl_Socket_Poll failed");
+                PKIX_SOCKETPOLLFAILED);
 
         if (bytesWritten > 0) {
                 client->connectStatus = BOUND;
@@ -1830,7 +1830,7 @@ pkix_pl_LdapDefaultClient_AbandonContinue(
 
                 PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                         ((PKIX_PL_Object *)client, plContext),
-                        "PKIX_PL_Object_InvalidateCache failed");
+                        PKIX_OBJECTINVALIDATECACHEFAILED);
         } else {
                 *pKeepGoing = PKIX_FALSE;
         }
@@ -1920,7 +1920,7 @@ pkix_pl_LdapDefaultClient_RecvInitial(
                         client->capacity - client->currentBytesAvailable,
                         &bytesRead,
                         plContext),
-                        "pkix_pl_Socket_Recv failed");
+                        PKIX_SOCKETRECVFAILED);
 
                 client->currentInPtr = client->rcvBuf;
                 client->lastIO = PR_Now();
@@ -1970,7 +1970,7 @@ pkix_pl_LdapDefaultClient_RecvInitial(
 
         } else {
 
-                PKIX_ERROR("SearchResponse packet of unknown type");
+                PKIX_ERROR(PKIX_SEARCHRESPONSEPACKETOFUNKNOWNTYPE);
 
         }
 
@@ -1986,13 +1986,13 @@ pkix_pl_LdapDefaultClient_RecvInitial(
                 &bytesProcessed,
                 &(client->currentResponse),
                 plContext),
-                "pkix_pl_LdapResponseCreate failed");
+                PKIX_LDAPRESPONSECREATEFAILED);
 
         client->currentBytesAvailable -= bytesProcessed;
 
         PKIX_CHECK(pkix_pl_LdapDefaultClient_RecvCheckComplete
                 (client, bytesProcessed, pKeepGoing, plContext),
-                "pkix_pl_LdapDefaultClient_RecvCheckComplete failed");
+                PKIX_LDAPDEFAULTCLIENTRECVCHECKCOMPLETEFAILED);
 
 cleanup:
 
@@ -2044,13 +2044,13 @@ pkix_pl_LdapDefaultClient_RecvNonInitial(
                 client->currentInPtr,
                 &bytesProcessed,
                 plContext),
-                "pkix_pl_LdapResponse_Append failed");
+                PKIX_LDAPRESPONSEAPPENDFAILED);
 
         client->currentBytesAvailable -= bytesProcessed;
 
         PKIX_CHECK(pkix_pl_LdapDefaultClient_RecvCheckComplete
                 (client, bytesProcessed, pKeepGoing, plContext),
-                "pkix_pl_LdapDefaultClient_RecvCheckComplete failed");
+                PKIX_LDAPDEFAULTCLIENTRECVCHECKCOMPLETEFAILED);
 
 cleanup:
 
@@ -2095,77 +2095,76 @@ pkix_pl_LdapDefaultClient_Dispatch(
                         PKIX_CHECK
                                 (pkix_pl_LdapDefaultClient_ConnectContinue
                                 (client, &keepGoing, plContext),
-                                "pkix_pl_LdapDefaultClient_ConnectContinue failed");
+                                PKIX_LDAPDEFAULTCLIENTCONNECTCONTINUEFAILED);
                         break;
                 case CONNECTED:
                         PKIX_CHECK
                                 (pkix_pl_LdapDefaultClient_Bind
                                 (client, &keepGoing, plContext),
-                                "pkix_pl_LdapDefaultClient_Bind failed");
+                                PKIX_LDAPDEFAULTCLIENTBINDFAILED);
                         break;
                 case BIND_PENDING:
                         PKIX_CHECK
                                 (pkix_pl_LdapDefaultClient_BindContinue
                                 (client, &keepGoing, plContext),
-                                "pkix_pl_LdapDefaultClient_BindContinue failed");
+                                PKIX_LDAPDEFAULTCLIENTBINDCONTINUEFAILED);
                         break;
                 case BIND_RESPONSE:
                         PKIX_CHECK
                                 (pkix_pl_LdapDefaultClient_BindResponse
                                 (client, &keepGoing, plContext),
-                                "pkix_pl_LdapDefaultClient_BindResponse failed");
+                                PKIX_LDAPDEFAULTCLIENTBINDRESPONSEFAILED);
                         break;
                 case BIND_RESPONSE_PENDING:
                         PKIX_CHECK
                                 (pkix_pl_LdapDefaultClient_BindResponseContinue
                                 (client, &keepGoing, plContext),
-                                "pkix_pl_LdapDefaultClient_BindResponseContinue"
-                                " failed");
+                                PKIX_LDAPDEFAULTCLIENTBINDRESPONSECONTINUEFAILED);
                         break;
                 case BOUND:
                         PKIX_CHECK
                                 (pkix_pl_LdapDefaultClient_Send
                                 (client, &keepGoing, &bytesTransferred, plContext),
-                                "pkix_pl_LdapDefaultClient_Send failed");
+                                PKIX_LDAPDEFAULTCLIENTSENDFAILED);
                         break;
                 case SEND_PENDING:
                         PKIX_CHECK
                                 (pkix_pl_LdapDefaultClient_SendContinue
                                 (client, &keepGoing, &bytesTransferred, plContext),
-                                "pkix_pl_LdapDefaultClient_SendContinue failed");
+                                PKIX_LDAPDEFAULTCLIENTSENDCONTINUEFAILED);
                         break;
                 case RECV:
                         PKIX_CHECK
                                 (pkix_pl_LdapDefaultClient_Recv
                                 (client, &keepGoing, plContext),
-                                "pkix_pl_LdapDefaultClient_Recv failed");
+                                PKIX_LDAPDEFAULTCLIENTRECVFAILED);
                         break;
                 case RECV_PENDING:
                         PKIX_CHECK
                                 (pkix_pl_LdapDefaultClient_RecvContinue
                                 (client, &keepGoing, plContext),
-                                "pkix_pl_LdapDefaultClient_RecvContinue failed");
+                                PKIX_LDAPDEFAULTCLIENTRECVCONTINUEFAILED);
                         break;
                 case RECV_INITIAL:
                         PKIX_CHECK
                                 (pkix_pl_LdapDefaultClient_RecvInitial
                                 (client, &keepGoing, plContext),
-                                "pkix_pl_LdapDefaultClient_RecvInitial failed");
+                                PKIX_LDAPDEFAULTCLIENTRECVINITIALFAILED);
                         break;
                 case RECV_NONINITIAL:
                         PKIX_CHECK
                                 (pkix_pl_LdapDefaultClient_RecvNonInitial
                                 (client, &keepGoing, plContext),
-                                "pkix_pl_LdapDefaultClient_RecvNonInitial failed");
+                                PKIX_LDAPDEFAULTCLIENTRECVNONINITIALFAILED);
                         break;
                 case ABANDON_PENDING:
                         PKIX_CHECK
                                 (pkix_pl_LdapDefaultClient_AbandonContinue
                                 (client, &keepGoing, plContext),
-                                "pkix_pl_LdapDefaultClient_AbandonContinue failed");
+                                PKIX_LDAPDEFAULTCLIENTABANDONCONTINUEFAILED);
                         break;
                 default:
-                        PKIX_ERROR("LDAP CertStore in illegal state");
+                        PKIX_ERROR(PKIX_LDAPCERTSTOREINILLEGALSTATE);
                 }
         }
 
@@ -2313,13 +2312,13 @@ pkix_pl_LdapDefaultClient_InitiateRequest(
                 ((PKIX_PL_Object *)genericClient,
                 PKIX_LDAPDEFAULTCLIENT_TYPE,
                 plContext),
-                "genericClient is not an LdapDefaultClient");
+                PKIX_GENERICCLIENTNOTANLDAPDEFAULTCLIENT);
 
         client = (PKIX_PL_LdapDefaultClient *)genericClient;
 
         PKIX_CHECK(pkix_pl_LdapDefaultClient_MakeAndFilter
                 (client->arena, requestParams->nc, &filter, plContext),
-                "pkix_pl_LdapDefaultClient_MakeAndFilter failed");
+                PKIX_LDAPDEFAULTCLIENTMAKEANDFILTERFAILED);
 
         PKIX_CHECK(pkix_pl_LdapRequest_Create
                 (client->arena,
@@ -2334,7 +2333,7 @@ pkix_pl_LdapDefaultClient_InitiateRequest(
                 requestParams->attributes,
                 &client->currentRequest,
                 plContext),
-                "pkix_pl_LdapRequest_Create failed");
+                PKIX_LDAPREQUESTCREATEFAILED);
 
         /* check hashtable for matching request */
         PKIX_CHECK(PKIX_PL_HashTable_Lookup
@@ -2342,7 +2341,7 @@ pkix_pl_LdapDefaultClient_InitiateRequest(
                 (PKIX_PL_Object *)(client->currentRequest),
                 (PKIX_PL_Object **)&searchResponseList,
                 plContext),
-                "PKIX_PL_HashTable_Lookup failed");
+                PKIX_HASHTABLELOOKUPFAILED);
 
         if (searchResponseList != NULL) {
                 *pPollDesc = NULL;
@@ -2355,13 +2354,13 @@ pkix_pl_LdapDefaultClient_InitiateRequest(
 
         PKIX_CHECK(pkix_pl_LdapRequest_GetEncoded
                 (client->currentRequest, &encoded, plContext),
-                "pkix_pl_LdapRequest_GetEncoded failed");
+                PKIX_LDAPREQUESTGETENCODEDFAILED);
 
         client->sendBuf = encoded->data;
         client->bytesToWrite = encoded->len;
 
         PKIX_CHECK(pkix_pl_LdapDefaultClient_Dispatch(client, plContext),
-                "pkix_pl_LdapDefaultClient_Dispatch failed");
+                PKIX_LDAPDEFAULTCLIENTDISPATCHFAILED);
 
         /*
          * It's not enough that we may be done with a particular read.
@@ -2428,12 +2427,12 @@ pkix_pl_LdapDefaultClient_ResumeRequest(
                 ((PKIX_PL_Object *)genericClient,
                 PKIX_LDAPDEFAULTCLIENT_TYPE,
                 plContext),
-                "genericClient is not an LdapDefaultClient");
+                PKIX_GENERICCLIENTNOTANLDAPDEFAULTCLIENT);
 
         client = (PKIX_PL_LdapDefaultClient *)genericClient;
 
         PKIX_CHECK(pkix_pl_LdapDefaultClient_Dispatch(client, plContext),
-                "pkix_pl_LdapDefaultClient_Dispatch failed");
+                PKIX_LDAPDEFAULTCLIENTDISPATCHFAILED);
 
         /*
          * It's not enough that we may be done with a particular read.
@@ -2498,7 +2497,7 @@ PKIX_PL_LdapDefaultClient_AbandonRequest(
                         (client->messageID) - 1,
                         &encoded,
                         plContext),
-                        "pkix_pl_LdapDefaultClient_MakeAbandon failed");
+                        PKIX_LDAPDEFAULTCLIENTMAKEABANDONFAILED);
 
                 callbackList = (PKIX_PL_Socket_Callback *)(client->callbackList);
                 PKIX_CHECK(callbackList->sendCallback
@@ -2507,7 +2506,7 @@ PKIX_PL_LdapDefaultClient_AbandonRequest(
                         encoded->len,
                         &bytesWritten,
                         plContext),
-                        "pkix_pl_Socket_Send failed");
+                        PKIX_SOCKETSENDFAILED);
 
                 if (bytesWritten < 0) {
                         client->connectStatus = ABANDON_PENDING;

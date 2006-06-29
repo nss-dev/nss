@@ -84,7 +84,7 @@ pkix_pl_ByteArray_ToHexString(
         if ((array->length) == 0) {
                 PKIX_CHECK(PKIX_PL_String_Create
                         (PKIX_ESCASCII, "[]", 0, pString, plContext),
-                        "Could not create string");
+                        PKIX_COULDNOTCREATESTRING);
         } else {
                 /*
                  * Allocate space for format string
@@ -94,7 +94,7 @@ pkix_pl_ByteArray_ToHexString(
 
                 PKIX_CHECK(PKIX_PL_Malloc
                         (bufferSize, (void **)&stringText, plContext),
-                        "Could not allocate memory");
+                        PKIX_COULDNOTALLOCATEMEMORY);
 
                 stringText[0] = 0;
                 outputLen = 0;
@@ -117,7 +117,7 @@ pkix_pl_ByteArray_ToHexString(
                                 (" %02X", (0x0FF&((char *)(array->array))[i]));
 
                         if (tempText == NULL){
-                                PKIX_ERROR("PR_smprintf failed");
+                                PKIX_ERROR(PKIX_PRSMPRINTFFAILED);
                         }
 
                         PKIX_BYTEARRAY_DEBUG("\tCalling PL_strlen).\n");
@@ -140,7 +140,7 @@ pkix_pl_ByteArray_ToHexString(
                         0,
                         pString,
                         plContext),
-                        "Could not create string");
+                        PKIX_COULDNOTCREATESTRING);
         }
 
 cleanup:
@@ -177,7 +177,7 @@ pkix_pl_ByteArray_Comparator(
 
         PKIX_CHECK(pkix_CheckTypes
                 (firstObject, secondObject, PKIX_BYTEARRAY_TYPE, plContext),
-                "Arguments are not Byte Arrays");
+                PKIX_ARGUMENTSNOTBYTEARRAYS);
 
         /* It's safe to cast */
         firstByteArray = (PKIX_PL_ByteArray *)firstObject;
@@ -228,14 +228,14 @@ pkix_pl_ByteArray_ToString(
         PKIX_NULLCHECK_TWO(object, pString);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_BYTEARRAY_TYPE, plContext),
-                    "Object is not a bytearray");
+                    PKIX_OBJECTNOTBYTEARRAY);
 
         array = (PKIX_PL_ByteArray *)object;
 
         if ((array->length) == 0) {
                 PKIX_CHECK(PKIX_PL_String_Create
                         (PKIX_ESCASCII, "[]", 0, pString, plContext),
-                        "Could not create string");
+                        PKIX_COULDNOTCREATESTRING);
         } else {
                 /* Allocate space for "XXX, ". */
                 bufferSize = 2+5*array->length;
@@ -243,7 +243,7 @@ pkix_pl_ByteArray_ToString(
                 /* Allocate space for format string */
                 PKIX_CHECK(PKIX_PL_Malloc
                         (bufferSize, (void **)&stringText, plContext),
-                        "PKIX_PL_Malloc failed");
+                        PKIX_MALLOCFAILED);
 
                 stringText[0] = 0;
                 outputLen = 0;
@@ -268,7 +268,7 @@ pkix_pl_ByteArray_ToString(
                                 (0x0FF&((char *)(array->array))[i]));
 
                         if (tempText == NULL){
-                                PKIX_ERROR("PR_smprintf failed");
+                                PKIX_ERROR(PKIX_PRSMPRINTFFAILED);
                         }
 
                         PKIX_BYTEARRAY_DEBUG("\tCalling PL_strlen).\n");
@@ -287,7 +287,7 @@ pkix_pl_ByteArray_ToString(
 
                 PKIX_CHECK(PKIX_PL_String_Create
                         (PKIX_ESCASCII, stringText, 0, pString, plContext),
-                        "PKIX_PL_String_Create failed");
+                        PKIX_STRINGCREATEFAILED);
 
         }
 
@@ -316,10 +316,10 @@ pkix_pl_ByteArray_Equals(
 
         /* Sanity check: Test that "first" is a ByteArray */
         PKIX_CHECK(pkix_CheckType(first, PKIX_BYTEARRAY_TYPE, plContext),
-                    "First argument not a ByteArray");
+                    PKIX_FIRSTARGUMENTNOTBYTEARRAY);
 
         PKIX_CHECK(PKIX_PL_Object_GetType(second, &secondType, plContext),
-                    "Could not get type of second argument");
+                    PKIX_COULDNOTGETTYPEOFSECONDARGUMENT);
 
         /* If types differ, then we will return false */
         *pResult = PKIX_FALSE;
@@ -330,7 +330,7 @@ pkix_pl_ByteArray_Equals(
         /* It's safe to cast here */
         PKIX_CHECK(pkix_pl_ByteArray_Comparator
                 (first, second, &cmpResult, plContext),
-                "pkix_pl_ByteArray_Comparator failed");
+                PKIX_BYTEARRAYCOMPARATORFAILED);
 
         /* ByteArrays are equal iff Comparator Result is 0 */
         *pResult = (cmpResult == 0);
@@ -355,7 +355,7 @@ pkix_pl_ByteArray_Destroy(
         PKIX_NULLCHECK_ONE(object);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_BYTEARRAY_TYPE, plContext),
-                    "Object is not a bytearray");
+                    PKIX_OBJECTNOTBYTEARRAY);
 
         array = (PKIX_PL_ByteArray*)object;
 
@@ -384,7 +384,7 @@ pkix_pl_ByteArray_Hashcode(
         PKIX_NULLCHECK_TWO(object, pHashcode);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_BYTEARRAY_TYPE, plContext),
-                    "Object is not a bytearray");
+                    PKIX_OBJECTNOTBYTEARRAY);
 
         array = (PKIX_PL_ByteArray*)object;
 
@@ -393,7 +393,7 @@ pkix_pl_ByteArray_Hashcode(
                 array->length,
                 pHashcode,
                 plContext),
-                "pkix_hash failed");
+                PKIX_HASHFAILED);
 
 cleanup:
 
@@ -455,7 +455,7 @@ PKIX_PL_ByteArray_Create(
                 sizeof (PKIX_PL_ByteArray),
                 (PKIX_PL_Object **)&byteArray,
                 plContext),
-                "Could not create object storage");
+                PKIX_COULDNOTCREATEOBJECTSTORAGE);
 
         byteArray->length = length;
         byteArray->array = NULL;
@@ -466,7 +466,7 @@ PKIX_PL_ByteArray_Create(
 
                 PKIX_CHECK(PKIX_PL_Malloc
                             (length, (void**)&(byteArray->array), plContext),
-                            "PKIX_PL_Malloc failed");
+                            PKIX_MALLOCFAILED);
 
                 PKIX_BYTEARRAY_DEBUG("\tCalling PORT_Memcpy).\n");
                 (void) PORT_Memcpy(byteArray->array, array, length);
@@ -499,7 +499,7 @@ PKIX_PL_ByteArray_GetPointer(
         if (byteArray->length != 0){
                 PKIX_CHECK(PKIX_PL_Malloc
                             (byteArray->length, &bytes, plContext),
-                            "PKIX_PL_Malloc failed");
+                            PKIX_MALLOCFAILED);
 
                 PKIX_BYTEARRAY_DEBUG("\tCalling PORT_Memcpy).\n");
                 (void) PORT_Memcpy

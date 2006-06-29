@@ -61,7 +61,7 @@ pkix_ValidateParams_Destroy(
 
         /* Check that this object is a validate params object */
         PKIX_CHECK(pkix_CheckType(object, PKIX_VALIDATEPARAMS_TYPE, plContext),
-                    "Object is not a validate params object");
+                    PKIX_OBJECTNOTVALIDATEPARAMS);
 
         params = (PKIX_ValidateParams *)object;
 
@@ -93,10 +93,10 @@ pkix_ValidateParams_Equals(
         PKIX_NULLCHECK_THREE(first, second, pResult);
 
         PKIX_CHECK(pkix_CheckType(first, PKIX_VALIDATEPARAMS_TYPE, plContext),
-                    "First Argument is not a ValidateParams object");
+                    PKIX_FIRSTOBJECTNOTVALIDATEPARAMS);
 
         PKIX_CHECK(PKIX_PL_Object_GetType(second, &secondType, plContext),
-                    "Could not get type of second argument");
+                    PKIX_COULDNOTGETTYPEOFSECONDARGUMENT);
 
         *pResult = PKIX_FALSE;
 
@@ -110,7 +110,7 @@ pkix_ValidateParams_Equals(
                     (PKIX_PL_Object *)secondValParams->procParams,
                     &cmpResult,
                     plContext),
-                    "PKIX_PL_Object_Equals failed");
+                    PKIX_OBJECTEQUALSFAILED);
 
         if (!cmpResult) goto cleanup;
 
@@ -119,7 +119,7 @@ pkix_ValidateParams_Equals(
                     (PKIX_PL_Object *)secondValParams->chain,
                     &cmpResult,
                     plContext),
-                    "PKIX_PL_Object_Equals failed");
+                    PKIX_OBJECTEQUALSFAILED);
 
         if (!cmpResult) goto cleanup;
 
@@ -149,7 +149,7 @@ pkix_ValidateParams_Hashcode(
         PKIX_NULLCHECK_TWO(object, pHashcode);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_VALIDATEPARAMS_TYPE, plContext),
-                    "Object is not a processingParams object");
+                    PKIX_OBJECTNOTVALIDATEPARAMS);
 
         valParams = (PKIX_ValidateParams*)object;
 
@@ -157,13 +157,13 @@ pkix_ValidateParams_Hashcode(
                     ((PKIX_PL_Object *)valParams->procParams,
                     &procParamsHash,
                     plContext),
-                    "PKIX_PL_Object_Hashcode failed");
+                    PKIX_OBJECTHASHCODEFAILED);
 
         PKIX_CHECK(PKIX_PL_Object_Hashcode
                     ((PKIX_PL_Object *)valParams->chain,
                     &chainHash,
                     plContext),
-                    "PKIX_PL_Object_Hashcode failed");
+                    PKIX_OBJECTHASHCODEFAILED);
 
         hash = 31 * procParamsHash + chainHash;
 
@@ -196,7 +196,7 @@ pkix_ValidateParams_ToString(
         PKIX_NULLCHECK_TWO(object, pString);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_VALIDATEPARAMS_TYPE, plContext),
-                    "Object not a ValidateParams");
+                    PKIX_OBJECTNOTVALIDATEPARAMS);
 
         asciiFormat =
                 "[\n"
@@ -213,7 +213,7 @@ pkix_ValidateParams_ToString(
                     0,
                     &formatString,
                     plContext),
-                    "PKIX_PL_String_Create failed");
+                    PKIX_STRINGCREATEFAILED);
 
         valParams = (PKIX_ValidateParams*)object;
 
@@ -221,13 +221,13 @@ pkix_ValidateParams_ToString(
                     ((PKIX_PL_Object*)valParams->procParams,
                     &procParamsString,
                     plContext),
-                    "PKIX_PL_Object_ToString failed");
+                    PKIX_OBJECTTOSTRINGFAILED);
 
         PKIX_CHECK(PKIX_PL_Object_ToString
                     ((PKIX_PL_Object *)valParams->chain,
                     &chainString,
                     plContext),
-                    "PKIX_PL_Object_ToString failed");
+                    PKIX_OBJECTTOSTRINGFAILED);
 
         PKIX_CHECK(PKIX_PL_Sprintf
                     (&valParamsString,
@@ -235,7 +235,7 @@ pkix_ValidateParams_ToString(
                     formatString,
                     procParamsString,
                     chainString),
-                    "PKIX_PL_Sprintf failed");
+                    PKIX_SPRINTFFAILED);
 
         *pString = valParamsString;
 
@@ -304,7 +304,7 @@ PKIX_ValidateParams_Create(
                     sizeof (PKIX_ValidateParams),
                     (PKIX_PL_Object **)&params,
                     plContext),
-                    "Could not create validate params object");
+                    PKIX_COULDNOTCREATEVALIDATEPARAMSOBJECT);
 
         /* initialize fields */
         PKIX_INCREF(procParams);

@@ -60,7 +60,7 @@ pkix_pl_CRLEntry_Destroy(
         PKIX_NULLCHECK_ONE(object);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_CRLENTRY_TYPE, plContext),
-                    "Object is not a CRLEntry");
+                    PKIX_OBJECTNOTCRLENTRY);
 
         crlEntry = (PKIX_PL_CRLEntry*)object;
 
@@ -134,34 +134,34 @@ pkix_pl_CRLEntry_ToString_Helper(
                     0,
                     &formatString,
                     plContext),
-                    "PKIX_PL_String_Create failed");
+                    PKIX_STRINGCREATEFAILED);
 
         /* SerialNumber */
         PKIX_CHECK(PKIX_PL_Object_ToString
                     ((PKIX_PL_Object *)crlEntry->serialNumber,
                     &crlSerialNumberString,
                     plContext),
-                    "PKIX_PL_BigInt_ToString_Helper failed");
+                    PKIX_BIGINTTOSTRINGHELPERFAILED);
 
         /* RevocationDate - No Date object created, use nss data directly */
         PKIX_CHECK(pkix_pl_Date_ToString_Helper
                     (&(crlEntry->nssCrlEntry->revocationDate),
                     &crlRevocationDateString,
                     plContext),
-                    "pkix_pl_Date_ToString_Helper failed");
+                    PKIX_DATETOSTRINGHELPERFAILED);
 
         /* CriticalExtensionOIDs */
         PKIX_CHECK(PKIX_PL_CRLEntry_GetCriticalExtensionOIDs
                     (crlEntry, &critExtOIDs, plContext),
-                    "PKIX_PL_CRLEntry_GetCriticalExtensionOIDs failed");
+                    PKIX_CRLENTRYGETCRITICALEXTENSIONOIDSFAILED);
 
         PKIX_TOSTRING(critExtOIDs, &critExtOIDsString, plContext,
-                    "PKIX_List_ToString failed");
+                    PKIX_LISTTOSTRINGFAILED);
 
         /* Revocation Reason Code */
         PKIX_CHECK(PKIX_PL_CRLEntry_GetCRLEntryReasonCode
                             (crlEntry, &reasonCode, plContext),
-                            "PKIX_PL_CRLEntry_GetCRLEntryReasonCode failed");
+                            PKIX_CRLENTRYGETCRLENTRYREASONCODEFAILED);
 
         PKIX_CHECK(PKIX_PL_Sprintf
                     (&crlEntryString,
@@ -171,7 +171,7 @@ pkix_pl_CRLEntry_ToString_Helper(
                     reasonCode,
                     crlRevocationDateString,
                     critExtOIDsString),
-                    "PKIX_PL_Sprintf failed");
+                    PKIX_SPRINTFFAILED);
 
         *pString = crlEntryString;
 
@@ -203,13 +203,13 @@ pkix_pl_CRLEntry_ToString(
         PKIX_NULLCHECK_TWO(object, pString);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_CRLENTRY_TYPE, plContext),
-                    "Object is not a CRLEntry");
+                    PKIX_OBJECTNOTCRLENTRY);
 
         crlEntry = (PKIX_PL_CRLEntry *) object;
 
         PKIX_CHECK(pkix_pl_CRLEntry_ToString_Helper
                     (crlEntry, &crlEntryString, plContext),
-                    "pkix_pl_CRLEntry_ToString_Helper failed");
+                    PKIX_CRLENTRYTOSTRINGHELPERFAILED);
 
         *pString = crlEntryString;
 
@@ -265,7 +265,7 @@ pkix_pl_CRLEntry_Extensions_Hashcode(
                 PKIX_CRLENTRY_DEBUG("\t\tCalling PORT_NewArena\n");
                 arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
                 if (arena == NULL) {
-                        PKIX_ERROR("PORT_NewArena failed");
+                        PKIX_ERROR(PKIX_PORTNEWARENAFAILED);
                 }
 
                 while (*extensions) {
@@ -277,7 +277,7 @@ pkix_pl_CRLEntry_Extensions_Hashcode(
                         PKIX_CRLENTRY_DEBUG("\t\tCalling PORT_ArenaZNew\n");
                         derBytes = PORT_ArenaZNew(arena, SECItem);
                         if (derBytes == NULL) {
-                                PKIX_ERROR("PORT_ArenaZNew failed");
+                                PKIX_ERROR(PKIX_PORTARENAZNEWFAILED);
                         }
 
                         PKIX_CRLENTRY_DEBUG
@@ -289,7 +289,7 @@ pkix_pl_CRLEntry_Extensions_Hashcode(
                                 CERT_CertExtensionTemplate);
 
                         if (resultSecItem == NULL){
-                                PKIX_ERROR("SEC_ASN1EncodeItem failed");
+                                PKIX_ERROR(PKIX_SECASN1ENCODEITEMFAILED);
                         }
 
                         PKIX_CHECK(pkix_hash
@@ -297,7 +297,7 @@ pkix_pl_CRLEntry_Extensions_Hashcode(
                                 derBytes->len,
                                 &extHash,
                                 plContext),
-                                "pkix_hash failed");
+                                PKIX_HASHFAILED);
 
                         hashValue += (extHash << 7);
 
@@ -337,7 +337,7 @@ pkix_pl_CRLEntry_Hashcode(
         PKIX_NULLCHECK_TWO(object, pHashcode);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_CRLENTRY_TYPE, plContext),
-                    "Object is not a CRLEntry");
+                    PKIX_OBJECTNOTCRLENTRY);
 
         crlEntry = (PKIX_PL_CRLEntry *)object;
 
@@ -351,13 +351,13 @@ pkix_pl_CRLEntry_Hashcode(
                 nssDate->len,
                 &crlEntryHash,
                 plContext),
-                "Error getting hashcode");
+                PKIX_ERRORGETTINGHASHCODE);
 
         PKIX_CHECK(PKIX_PL_Object_Hashcode
                 ((PKIX_PL_Object *)crlEntry->serialNumber,
                 &hashValue,
                 plContext),
-                "PKIX_PL_Object_Hashcode failed");
+                PKIX_OBJECTHASHCODEFAILED);
 
         crlEntryHash += (hashValue << 7);
 
@@ -367,14 +367,14 @@ pkix_pl_CRLEntry_Hashcode(
 
                 PKIX_CHECK(pkix_pl_CRLEntry_Extensions_Hashcode
                     (crlEntry->nssCrlEntry->extensions, &hashValue, plContext),
-                    "pkix_pl_CRLEntry_Extensions_Hashcode failed");
+                    PKIX_CRLENTRYEXTENSIONSHASHCODEFAILED);
         }
 
         crlEntryHash += (hashValue << 7);
 
         PKIX_CHECK(PKIX_PL_CRLEntry_GetCRLEntryReasonCode
                 (crlEntry, &reasonCode, plContext),
-                "PKIX_PL_CRLEntry_GetCRLEntryReasonCode failed");
+                PKIX_CRLENTRYGETCRLENTRYREASONCODEFAILED);
 
         crlEntryHash += (reasonCode + 777) << 3;
 
@@ -476,7 +476,7 @@ pkix_pl_CRLEntry_Extensions_Equals(
         PKIX_CRLENTRY_DEBUG("\t\tCalling PORT_NewArena\n");
         arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE*2);
         if (arena == NULL) {
-                PKIX_ERROR("PORT_NewArena failed");
+                PKIX_ERROR(PKIX_PORTNEWARENAFAILED);
         }
 
         while (firstNumExt--) {
@@ -489,13 +489,13 @@ pkix_pl_CRLEntry_Extensions_Equals(
                 PKIX_CRLENTRY_DEBUG("\t\tCalling PORT_ArenaZNew\n");
                 firstDerBytes = PORT_ArenaZNew(arena, SECItem);
                 if (firstDerBytes == NULL) {
-                        PKIX_ERROR("PORT_ArenaZNew failed");
+                        PKIX_ERROR(PKIX_PORTARENAZNEWFAILED);
                 }
 
                 PKIX_CRLENTRY_DEBUG("\t\tCalling PORT_ArenaZNew\n");
                 secondDerBytes = PORT_ArenaZNew(arena, SECItem);
                 if (secondDerBytes == NULL) {
-                        PKIX_ERROR("PORT_ArenaZNew failed");
+                        PKIX_ERROR(PKIX_PORTARENAZNEWFAILED);
                 }
 
                 PKIX_CRLENTRY_DEBUG
@@ -507,7 +507,7 @@ pkix_pl_CRLEntry_Extensions_Equals(
                         CERT_CertExtensionTemplate);
 
                 if (firstResultSecItem == NULL){
-                        PKIX_ERROR("SEC_ASN1EncodeItem failed");
+                        PKIX_ERROR(PKIX_SECASN1ENCODEITEMFAILED);
                 }
 
                 PKIX_CRLENTRY_DEBUG
@@ -519,7 +519,7 @@ pkix_pl_CRLEntry_Extensions_Equals(
                         CERT_CertExtensionTemplate);
 
                 if (secondResultSecItem == NULL){
-                        PKIX_ERROR("SEC_ASN1EncodeItem failed");
+                        PKIX_ERROR(PKIX_SECASN1ENCODEITEMFAILED);
                 }
 
                 PKIX_CRLENTRY_DEBUG("\t\tCalling SECITEM_CompareItem\n");
@@ -568,7 +568,7 @@ pkix_pl_CRLEntry_Equals(
 
         /* test that firstObject is a CRLEntry */
         PKIX_CHECK(pkix_CheckType(firstObject, PKIX_CRLENTRY_TYPE, plContext),
-                    "FirstObject argument is not a CRLEntry");
+                PKIX_FIRSTOBJECTNOTCRLENTRY);
 
         firstCrlEntry = (PKIX_PL_CRLEntry *)firstObject;
         secondCrlEntry = (PKIX_PL_CRLEntry *)secondObject;
@@ -592,7 +592,7 @@ pkix_pl_CRLEntry_Equals(
         *pResult = PKIX_FALSE;
         PKIX_CHECK(PKIX_PL_Object_GetType
                     ((PKIX_PL_Object *)secondCrlEntry, &secondType, plContext),
-                    "Could not get type of second argument");
+                    PKIX_COULDNOTGETTYPEOFSECONDARGUMENT);
         if (secondType != PKIX_CRLENTRY_TYPE) goto cleanup;
 
         /* Compare userSerialNumber */
@@ -623,7 +623,7 @@ pkix_pl_CRLEntry_Equals(
                     secondCrlEntry->nssCrlEntry->extensions,
                     &cmpResult,
                     plContext),
-                    "PKIX_PL_CRLEntry_Extensions_Equals failed");
+                    PKIX_CRLENTRYEXTENSIONSEQUALSFAILED);
 
         if (cmpResult != PKIX_TRUE){
                 *pResult = PKIX_FALSE;
@@ -717,7 +717,7 @@ pkix_pl_CRLEntry_CreateEntry(
                     sizeof (PKIX_PL_CRLEntry),
                     (PKIX_PL_Object **)&crlEntry,
                     plContext),
-                    "Could not create CRLENTRY object");
+                    PKIX_COULDNOTCREATECRLENTRYOBJECT);
 
         crlEntry->nssCrlEntry = nssCrlEntry;
         crlEntry->serialNumber = NULL;
@@ -775,13 +775,13 @@ pkix_pl_CRLEntry_Create(
         entries = nssCrlEntries;
 
         PKIX_CHECK(PKIX_List_Create(&entryList, plContext),
-                    "PKIX_List_Create failed");
+                    PKIX_LISTCREATEFAILED);
 
         if (entries) {
             while (*entries){
                 PKIX_CHECK(pkix_pl_CRLEntry_CreateEntry
                             (*entries, &crlEntry, plContext),
-                            "Could not create CRLENTRY object");
+                            PKIX_COULDNOTCREATECRLENTRYOBJECT);
 
                 /* Get Serial Number */
                 serialNumberItem = (*entries)->serialNumber;
@@ -790,14 +790,14 @@ pkix_pl_CRLEntry_Create(
 
                 PKIX_CHECK(pkix_pl_BigInt_CreateWithBytes
                             (bytes, length, &serialNumber, plContext),
-                            "pkix_pl_BigInt_CreateWithBytes failed");
+                            PKIX_BIGINTCREATEWITHBYTESFAILED);
 
                 crlEntry->serialNumber = serialNumber;
                 crlEntry->nssCrlEntry = *entries;
 
                 PKIX_CHECK(PKIX_List_AppendItem
                             (entryList, (PKIX_PL_Object *)crlEntry, plContext),
-                            "PKIX_List_AppendItem failed");
+                            PKIX_LISTAPPENDITEMFAILED);
 
                 PKIX_DECREF(crlEntry);
 
@@ -892,7 +892,7 @@ PKIX_PL_CRLEntry_GetCriticalExtensionOIDs (
 
                         PKIX_CHECK(pkix_pl_OID_GetCriticalExtensionOIDs
                                     (extensions, &oidsList, plContext),
-                                    "pkix_GetCriticalExtensionOIDs failed");
+                                    PKIX_GETCRITICALEXTENSIONOIDSFAILED);
 
                         crlEntry->critExtOids = oidsList;
                 }
@@ -903,7 +903,7 @@ PKIX_PL_CRLEntry_GetCriticalExtensionOIDs (
 
         /* We should return a copy of the List since this list changes */
         PKIX_DUPLICATE(crlEntry->critExtOids, pList, plContext,
-                "PKIX_PL_Object_Duplicate List failed");
+                PKIX_OBJECTDUPLICATELISTFAILED);
 
 cleanup:
 

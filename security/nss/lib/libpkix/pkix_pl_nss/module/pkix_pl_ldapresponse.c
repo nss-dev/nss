@@ -66,7 +66,7 @@ pkix_pl_LdapResponse_Destroy(
         PKIX_NULLCHECK_ONE(object);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_LDAPRESPONSE_TYPE, plContext),
-                    "Object is not a LdapResponse");
+                    PKIX_OBJECTNOTLDAPRESPONSE);
 
         ldapRsp = (PKIX_PL_LdapResponse *)object;
 
@@ -136,7 +136,7 @@ pkix_pl_LdapResponse_Hashcode(
         PKIX_NULLCHECK_TWO(object, pHashcode);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_LDAPRESPONSE_TYPE, plContext),
-                    "Object is not a LdapResponse");
+                    PKIX_OBJECTNOTLDAPRESPONSE);
 
         ldapRsp = (PKIX_PL_LdapResponse *)object;
 
@@ -165,7 +165,7 @@ pkix_pl_LdapResponse_Hashcode(
                 msgBuf = &msgBuf[dindex + 2];
 
                 PKIX_CHECK(pkix_hash(msgBuf, dataLen, pHashcode, plContext),
-                        "pkix_hash failed");
+                        PKIX_HASHFAILED);
         }
 
 cleanup:
@@ -200,7 +200,7 @@ pkix_pl_LdapResponse_Equals(
 
         /* test that firstObj is a LdapResponse */
         PKIX_CHECK(pkix_CheckType(firstObj, PKIX_LDAPRESPONSE_TYPE, plContext),
-                    "firstObj argument is not a LdapResponse");
+                    PKIX_FIRSTOBJARGUMENTNOTLDAPRESPONSE);
 
         /*
          * Since we know firstObj is a LdapResponse, if both references are
@@ -217,7 +217,7 @@ pkix_pl_LdapResponse_Equals(
          */
         *pResult = PKIX_FALSE;
         PKIX_CHECK(PKIX_PL_Object_GetType(secondObj, &secondType, plContext),
-                "Could not get type of second argument");
+                PKIX_COULDNOTGETTYPEOFSECONDARGUMENT);
         if (secondType != PKIX_LDAPRESPONSE_TYPE) {
                 goto cleanup;
         }
@@ -390,7 +390,7 @@ pkix_pl_LdapResponse_Create(
                     sizeof (PKIX_PL_LdapResponse),
                     (PKIX_PL_Object **)&ldapResponse,
                     plContext),
-                    "Could not create object");
+                    PKIX_COULDNOTCREATEOBJECT);
 
         ldapResponse->decoded.protocolOp.selector = responseType;
         ldapResponse->totalLength = totalLength;
@@ -404,7 +404,7 @@ pkix_pl_LdapResponse_Create(
                     (totalLength,
                     &data,
                     plContext),
-                    "PKIX_PL_Malloc failed");
+                    PKIX_MALLOCFAILED);
 
                 PKIX_PL_NSSCALL
                     (LDAPRESPONSE,
@@ -590,7 +590,7 @@ pkix_pl_LdapResponse_Decode(
         PKIX_NULLCHECK_THREE(arena, response, pStatus);
 
         if (response->totalLength != response->partialLength) {
-                PKIX_ERROR("Attempt to decode an incomplete response");
+                PKIX_ERROR(PKIX_ATTEMPTTODECODEANINCOMPLETERESPONSE);
         }
 
         msg = &(response->decoded);
@@ -756,7 +756,7 @@ pkix_pl_LdapResponse_GetResultCode(
         messageType = response->decoded.protocolOp.selector;
 
         if (messageType != LDAP_SEARCHRESPONSERESULT_TYPE) {
-                PKIX_ERROR("GetResultCode called for non-Result message");
+                PKIX_ERROR(PKIX_GETRESULTCODECALLEDFORNONRESULTMESSAGE);
         }
 
         resultMsg = &response->decoded.protocolOp.op.searchResponseResultMsg;
@@ -805,7 +805,7 @@ pkix_pl_LdapResponse_GetAttributes(
         messageType = response->decoded.protocolOp.selector;
 
         if (messageType != LDAP_SEARCHRESPONSEENTRY_TYPE) {
-                PKIX_ERROR("GetAttributes called for non-Entry message");
+                PKIX_ERROR(PKIX_GETATTRIBUTESCALLEDFORNONENTRYMESSAGE);
         }
 
         *pAttributes = response->

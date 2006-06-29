@@ -67,10 +67,10 @@ pkix_ExpirationChecker_Check(
 
         PKIX_CHECK(PKIX_CertChainChecker_GetCertChainCheckerState
                     (checker, (PKIX_PL_Object **)&testDate, plContext),
-                    "PKIX_CertChainChecker_GetCertChainCheckerState failed");
+                    PKIX_CERTCHAINCHECKERGETCERTCHAINCHECKERSTATEFAILED);
 
         PKIX_CHECK(PKIX_PL_Cert_CheckValidity(cert, testDate, plContext),
-                    "PKIX_PL_Cert_CheckValidity failed");
+                    PKIX_CERTCHECKVALIDITYFAILED);
 
 cleanup:
 
@@ -121,7 +121,7 @@ pkix_ExpirationChecker_Initialize(
         if (!testDate){
                 PKIX_CHECK(PKIX_PL_Date_Create_UTCTime
                             (NULL, &nowDate, plContext),
-                            "PKIX_PL_Date_Create_UTCTime failed");
+                            PKIX_DATECREATEUTCTIMEFAILED);
                 myDate = nowDate;
         } else {
                 myDate = testDate;
@@ -135,7 +135,7 @@ pkix_ExpirationChecker_Initialize(
                     (PKIX_PL_Object *)myDate,
                     pChecker,
                     plContext),
-                    "PKIX_CertChainChecker_Create failed");
+                    PKIX_CERTCHAINCHECKERCREATEFAILED);
 
 cleanup:
 

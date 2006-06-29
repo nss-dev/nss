@@ -61,7 +61,7 @@ pkix_BuildResult_Destroy(
 
         /* Check that this object is a build result object */
         PKIX_CHECK(pkix_CheckType(object, PKIX_BUILDRESULT_TYPE, plContext),
-                    "Object is not a build result object");
+                    PKIX_OBJECTNOTBUILDRESULT);
 
         result = (PKIX_BuildResult *)object;
 
@@ -93,10 +93,10 @@ pkix_BuildResult_Equals(
         PKIX_NULLCHECK_THREE(first, second, pResult);
 
         PKIX_CHECK(pkix_CheckType(first, PKIX_BUILDRESULT_TYPE, plContext),
-                    "First Argument is not a BuildResult");
+                    PKIX_FIRSTOBJECTNOTBUILDRESULT);
 
         PKIX_CHECK(PKIX_PL_Object_GetType(second, &secondType, plContext),
-                    "Could not get type of second argument");
+                    PKIX_COULDNOTGETTYPEOFSECONDARGUMENT);
 
         *pResult = PKIX_FALSE;
 
@@ -110,7 +110,7 @@ pkix_BuildResult_Equals(
                     (PKIX_PL_Object *)secondBuildResult->valResult,
                     &cmpResult,
                     plContext),
-                    "PKIX_PL_Object_Equals failed");
+                    PKIX_OBJECTEQUALSFAILED);
 
         if (!cmpResult) goto cleanup;
 
@@ -119,7 +119,7 @@ pkix_BuildResult_Equals(
                     (PKIX_PL_Object *)secondBuildResult->certChain,
                     &cmpResult,
                     plContext),
-                    "PKIX_PL_Object_Equals failed");
+                    PKIX_OBJECTEQUALSFAILED);
 
         if (!cmpResult) goto cleanup;
 
@@ -155,7 +155,7 @@ pkix_BuildResult_Hashcode(
         PKIX_NULLCHECK_TWO(object, pHashcode);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_BUILDRESULT_TYPE, plContext),
-                    "Object is not a build result object");
+                    PKIX_OBJECTNOTBUILDRESULT);
 
         buildResult = (PKIX_BuildResult*)object;
 
@@ -163,13 +163,13 @@ pkix_BuildResult_Hashcode(
                     ((PKIX_PL_Object *)buildResult->valResult,
                     &valResultHash,
                     plContext),
-                    "PKIX_PL_Object_Hashcode failed");
+                    PKIX_OBJECTHASHCODEFAILED);
 
         PKIX_CHECK(PKIX_PL_Object_Hashcode
                     ((PKIX_PL_Object *)buildResult->certChain,
                     &certChainHash,
                     plContext),
-                    "PKIX_PL_Object_Hashcode failed");
+                    PKIX_OBJECTHASHCODEFAILED);
 
         hash = 31*(31 * valResultHash + certChainHash);
 
@@ -210,7 +210,7 @@ pkix_BuildResult_ToString(
         PKIX_NULLCHECK_TWO(object, pString);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_BUILDRESULT_TYPE, plContext),
-                    "Object not a BuildResult object");
+                PKIX_OBJECTNOTBUILDRESULT);
 
         buildResult = (PKIX_BuildResult*)object;
 
@@ -218,17 +218,17 @@ pkix_BuildResult_ToString(
 
         PKIX_CHECK(PKIX_PL_String_Create
                 (PKIX_ESCASCII, asciiFormat, 0, &formatString, plContext),
-                "PKIX_PL_String_Create failed");
+                PKIX_STRINGCREATEFAILED);
 
         PKIX_CHECK(PKIX_PL_Object_ToString
                 ((PKIX_PL_Object *)valResult, &valResultString, plContext),
-                "PKIX_PL_Object_ToString failed");
+                PKIX_OBJECTTOSTRINGFAILED);
 
         certChain = buildResult->certChain;
 
         PKIX_CHECK(PKIX_PL_Object_ToString
                 ((PKIX_PL_Object *)certChain, &certChainString, plContext),
-                "PKIX_PL_Object_ToString failed");
+                PKIX_OBJECTTOSTRINGFAILED);
 
         PKIX_CHECK(PKIX_PL_Sprintf
                 (&buildResultString,
@@ -236,7 +236,7 @@ pkix_BuildResult_ToString(
                 formatString,
                 valResultString,
                 certChainString),
-                "PKIX_PL_Sprintf failed");
+                PKIX_SPRINTFFAILED);
 
         *pString = buildResultString;
 
@@ -323,7 +323,7 @@ pkix_BuildResult_Create(
                     sizeof (PKIX_BuildResult),
                     (PKIX_PL_Object **)&result,
                     plContext),
-                    "Could not create build result object");
+                    PKIX_COULDNOTCREATEBUILDRESULTOBJECT);
 
         /* initialize fields */
 
@@ -334,7 +334,7 @@ pkix_BuildResult_Create(
         result->certChain = certChain;
 
         PKIX_CHECK(PKIX_List_SetImmutable(result->certChain, plContext),
-                     "PKIX_List_SetImmutable failed");
+                     PKIX_LISTSETIMMUTABLEFAILED);
 
         *pResult = result;
 

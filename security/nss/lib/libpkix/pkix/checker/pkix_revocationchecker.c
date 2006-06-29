@@ -62,7 +62,7 @@ pkix_RevocationChecker_Destroy(
         /* Check that this object is a revocation checker */
         PKIX_CHECK(pkix_CheckType
                     (object, PKIX_REVOCATIONCHECKER_TYPE, plContext),
-                    "Object is not a revocation checker");
+                    PKIX_OBJECTNOTREVOCATIONCHECKER);
 
         checker = (PKIX_RevocationChecker *)object;
 
@@ -92,7 +92,7 @@ pkix_RevocationChecker_Duplicate(
 
         PKIX_CHECK(pkix_CheckType
                     (object, PKIX_REVOCATIONCHECKER_TYPE, plContext),
-                    "Object is not a cert chain checker");
+                    PKIX_OBJECTNOTCERTCHAINCHECKER);
 
         checker = (PKIX_RevocationChecker *)object;
 
@@ -101,7 +101,7 @@ pkix_RevocationChecker_Duplicate(
                             ((PKIX_PL_Object *)checker->revCheckerContext,
                             (PKIX_PL_Object **)&contextDuplicate,
                             plContext),
-                            "PKIX_PL_Object_Duplicate failed");
+                            PKIX_OBJECTDUPLICATEFAILED);
         }
 
         PKIX_CHECK(PKIX_RevocationChecker_Create
@@ -109,7 +109,7 @@ pkix_RevocationChecker_Duplicate(
                     contextDuplicate,
                     &checkerDuplicate,
                     plContext),
-                    "PKIX_RevocationChecker_Create failed");
+                    PKIX_REVOCATIONCHECKERCREATEFAILED);
 
         *pNewObject = (PKIX_PL_Object *)checkerDuplicate;
 
@@ -176,7 +176,7 @@ PKIX_RevocationChecker_Create(
                     sizeof (PKIX_RevocationChecker),
                     (PKIX_PL_Object **)&checker,
                     plContext),
-                    "Could not create cert chain checker object");
+                    PKIX_COULDNOTCREATECERTCHAINCHECKEROBJECT);
 
         /* initialize fields */
         checker->checkCallback = callback;

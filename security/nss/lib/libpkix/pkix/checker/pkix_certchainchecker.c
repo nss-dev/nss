@@ -62,7 +62,7 @@ pkix_CertChainChecker_Destroy(
         /* Check that this object is a cert chain checker */
         PKIX_CHECK(pkix_CheckType
                     (object, PKIX_CERTCHAINCHECKER_TYPE, plContext),
-                    "Object is not a cert chain checker");
+                    PKIX_OBJECTNOTCERTCHAINCHECKER);
 
         checker = (PKIX_CertChainChecker *)object;
 
@@ -94,7 +94,7 @@ pkix_CertChainChecker_Duplicate(
 
         PKIX_CHECK(pkix_CheckType
                     (object, PKIX_CERTCHAINCHECKER_TYPE, plContext),
-                    "Object is not a cert chain checker");
+                    PKIX_OBJECTNOTCERTCHAINCHECKER);
 
         checker = (PKIX_CertChainChecker *)object;
 
@@ -103,7 +103,7 @@ pkix_CertChainChecker_Duplicate(
                             ((PKIX_PL_Object *)checker->extensions,
                             (PKIX_PL_Object **)&extensionsDuplicate,
                             plContext),
-                            "PKIX_PL_Object_Duplicate failed");
+                            PKIX_OBJECTDUPLICATEFAILED);
         }
 
         if (checker->state){
@@ -111,7 +111,7 @@ pkix_CertChainChecker_Duplicate(
                             ((PKIX_PL_Object *)checker->state,
                             (PKIX_PL_Object **)&stateDuplicate,
                             plContext),
-                            "PKIX_PL_Object_Duplicate failed");
+                            PKIX_OBJECTDUPLICATEFAILED);
         }
 
         PKIX_CHECK(PKIX_CertChainChecker_Create
@@ -122,7 +122,7 @@ pkix_CertChainChecker_Duplicate(
                     stateDuplicate,
                     &checkerDuplicate,
                     plContext),
-                    "PKIX_CertChainChecker_Create failed");
+                    PKIX_CERTCHAINCHECKERCREATEFAILED);
 
         *pNewObject = (PKIX_PL_Object *)checkerDuplicate;
 
@@ -193,7 +193,7 @@ PKIX_CertChainChecker_Create(
                     sizeof (PKIX_CertChainChecker),
                     (PKIX_PL_Object **)&checker,
                     plContext),
-                    "Could not create cert chain checker object");
+                    PKIX_COULDNOTCREATECERTCHAINCHECKEROBJECT);
 
         /* initialize fields */
         checker->checkCallback = callback;
@@ -318,7 +318,7 @@ PKIX_CertChainChecker_SetCertChainCheckerState(
 
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                     ((PKIX_PL_Object *)checker, plContext),
-                    "PKIX_PL_Object_InvalidateCache failed");
+                    PKIX_OBJECTINVALIDATECACHEFAILED);
 
 cleanup:
 

@@ -61,7 +61,7 @@ pkix_TrustAnchor_Destroy(
 
         /* Check that this object is a trust anchor */
         PKIX_CHECK(pkix_CheckType(object, PKIX_TRUSTANCHOR_TYPE, plContext),
-                    "Object is not a trust anchor");
+                    PKIX_OBJECTNOTTRUSTANCHOR);
 
         anchor = (PKIX_TrustAnchor *)object;
 
@@ -97,10 +97,10 @@ pkix_TrustAnchor_Equals(
         PKIX_NULLCHECK_THREE(first, second, pResult);
 
         PKIX_CHECK(pkix_CheckType(first, PKIX_TRUSTANCHOR_TYPE, plContext),
-                    "First Argument is not a TrustAnchor");
+                    PKIX_FIRSTOBJECTNOTTRUSTANCHOR);
 
         PKIX_CHECK(PKIX_PL_Object_GetType(second, &secondType, plContext),
-                    "Could not get type of second argument");
+                    PKIX_COULDNOTGETTYPEOFSECONDARGUMENT);
 
         *pResult = PKIX_FALSE;
 
@@ -122,14 +122,14 @@ pkix_TrustAnchor_Equals(
                             (PKIX_PL_Object *)secondCert,
                             &cmpResult,
                             plContext),
-                            "PKIX_PL_Object_Equals failed");
+                            PKIX_OBJECTEQUALSFAILED);
         } else {
                 PKIX_CHECK(PKIX_PL_Object_Equals
                             ((PKIX_PL_Object *)firstAnchor->caName,
                             (PKIX_PL_Object *)secondAnchor->caName,
                             &cmpResult,
                             plContext),
-                            "PKIX_PL_Object_Equals failed");
+                            PKIX_OBJECTEQUALSFAILED);
 
                 if (!cmpResult) goto cleanup;
 
@@ -138,7 +138,7 @@ pkix_TrustAnchor_Equals(
                             (PKIX_PL_Object *)secondAnchor->caPubKey,
                             &cmpResult,
                             plContext),
-                            "PKIX_PL_Object_Equals failed");
+                            PKIX_OBJECTEQUALSFAILED);
 
                 if (!cmpResult) goto cleanup;
 
@@ -147,7 +147,7 @@ pkix_TrustAnchor_Equals(
                         secondAnchor->nameConstraints,
                         &cmpResult,
                         plContext,
-                        "PKIX_PL_Object_Equals failed");
+                        PKIX_OBJECTEQUALSFAILED);
 
                 if (!cmpResult) goto cleanup;
 
@@ -182,7 +182,7 @@ pkix_TrustAnchor_Hashcode(
         PKIX_NULLCHECK_TWO(object, pHashcode);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_TRUSTANCHOR_TYPE, plContext),
-                    "Object is not a trustAnchor");
+                    PKIX_OBJECTNOTTRUSTANCHOR);
 
         anchor = (PKIX_TrustAnchor*)object;
         cert = anchor->trustedCert;
@@ -192,7 +192,7 @@ pkix_TrustAnchor_Hashcode(
                             ((PKIX_PL_Object *)cert,
                             &certHash,
                             plContext),
-                            "PKIX_PL_Object_Hashcode failed");
+                            PKIX_OBJECTHASHCODEFAILED);
 
                 hash = certHash;
 
@@ -201,16 +201,16 @@ pkix_TrustAnchor_Hashcode(
                             ((PKIX_PL_Object *)anchor->caName,
                             &nameHash,
                             plContext),
-                            "PKIX_PL_Object_Hashcode failed");
+                            PKIX_OBJECTHASHCODEFAILED);
 
                 PKIX_CHECK(PKIX_PL_Object_Hashcode
                             ((PKIX_PL_Object *)anchor->caPubKey,
                             &pubKeyHash,
                             plContext),
-                            "PKIX_PL_Object_Hashcode failed");
+                            PKIX_OBJECTHASHCODEFAILED);
 
                 PKIX_HASHCODE(anchor->nameConstraints, &ncHash, plContext,
-                        "PKIX_PL_Object_Hashcode failed");
+                        PKIX_OBJECTHASHCODEFAILED);
 
                 hash = 31 * nameHash + pubKeyHash + ncHash;
 
@@ -246,7 +246,7 @@ pkix_TrustAnchor_ToString(
         PKIX_NULLCHECK_TWO(object, pString);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_TRUSTANCHOR_TYPE, plContext),
-                    "Object not a trustAnchor");
+                    PKIX_OBJECTNOTTRUSTANCHOR);
 
         anchor = (PKIX_TrustAnchor*)object;
 
@@ -262,20 +262,20 @@ pkix_TrustAnchor_ToString(
                             0,
                             &formatString,
                             plContext),
-                            "PKIX_PL_String_Create failed");
+                            PKIX_STRINGCREATEFAILED);
 
                 PKIX_CHECK(PKIX_PL_Object_ToString
                             ((PKIX_PL_Object *)anchor->trustedCert,
                             &certString,
                             plContext),
-                            "PKIX_PL_Object_ToString failed");
+                            PKIX_OBJECTTOSTRINGFAILED);
 
                 PKIX_CHECK(PKIX_PL_Sprintf
                             (&anchorString,
                             plContext,
                             formatString,
                             certString),
-                            "PKIX_PL_Sprintf failed");
+                            PKIX_SPRINTFFAILED);
         } else {
                 asciiFormat =
                         "[\n"
@@ -290,25 +290,25 @@ pkix_TrustAnchor_ToString(
                             0,
                             &formatString,
                             plContext),
-                            "PKIX_PL_String_Create failed");
+                            PKIX_STRINGCREATEFAILED);
 
                 PKIX_CHECK(PKIX_PL_Object_ToString
                             ((PKIX_PL_Object *)anchor->caName,
                             &nameString,
                             plContext),
-                            "PKIX_PL_Object_ToString failed");
+                            PKIX_OBJECTTOSTRINGFAILED);
 
                 PKIX_CHECK(PKIX_PL_Object_ToString
                             ((PKIX_PL_Object *)anchor->caPubKey,
                             &pubKeyString,
                             plContext),
-                            "PKIX_PL_Object_ToString failed");
+                            PKIX_OBJECTTOSTRINGFAILED);
 
                 PKIX_TOSTRING
                         (anchor->nameConstraints,
                         &nameConstraintsString,
                         plContext,
-                        "PKIX_PL_Object_ToString failed");
+                        PKIX_OBJECTTOSTRINGFAILED);
 
                 PKIX_CHECK(PKIX_PL_Sprintf
                             (&anchorString,
@@ -317,7 +317,7 @@ pkix_TrustAnchor_ToString(
                             nameString,
                             pubKeyString,
                             nameConstraintsString),
-                            "PKIX_PL_Sprintf failed");
+                            PKIX_SPRINTFFAILED);
         }
 
         *pString = anchorString;
@@ -388,7 +388,7 @@ PKIX_TrustAnchor_CreateWithCert(
                     sizeof (PKIX_TrustAnchor),
                     (PKIX_PL_Object **)&anchor,
                     plContext),
-                    "Could not create trust anchor object");
+                    PKIX_COULDNOTCREATETRUSTANCHOROBJECT);
 
         /* initialize fields */
         PKIX_INCREF(cert);
@@ -428,7 +428,7 @@ PKIX_TrustAnchor_CreateWithNameKeyPair(
                     sizeof (PKIX_TrustAnchor),
                     (PKIX_PL_Object **)&anchor,
                     plContext),
-                    "Could not create trust anchor object");
+                    PKIX_COULDNOTCREATETRUSTANCHOROBJECT);
 
         /* initialize fields */
         anchor->trustedCert = NULL;

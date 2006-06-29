@@ -67,7 +67,7 @@ pkix_pl_BigInt_Comparator(
 
         PKIX_CHECK(pkix_CheckTypes
                     (firstObject, secondObject, PKIX_BIGINT_TYPE, plContext),
-                    "Arguments are not BigInts");
+                    PKIX_ARGUMENTSNOTBIGINTS);
 
         /* It's safe to cast */
         firstBigInt = (PKIX_PL_BigInt*)firstObject;
@@ -108,7 +108,7 @@ pkix_pl_BigInt_Destroy(
         PKIX_NULLCHECK_ONE(object);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_BIGINT_TYPE, plContext),
-                    "Object is not a BigInt");
+                    PKIX_OBJECTNOTBIGINT);
 
         bigInt = (PKIX_PL_BigInt*)object;
 
@@ -140,7 +140,7 @@ pkix_pl_BigInt_ToString(
         PKIX_NULLCHECK_TWO(object, pString);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_BIGINT_TYPE, plContext),
-                    "Object is not a BigInt");
+                    PKIX_OBJECTNOTBIGINT);
 
         bigInt = (PKIX_PL_BigInt*)object;
 
@@ -149,7 +149,7 @@ pkix_pl_BigInt_ToString(
 
         PKIX_CHECK(PKIX_PL_Malloc
                     (lengthChars, (void **)&outputText, plContext),
-                    "PKIX_PL_Malloc failed");
+                    PKIX_MALLOCFAILED);
 
         for (i = 0, j = 0; i < bigInt->length; i += 1, j += 2){
                 outputText[j] = pkix_i2hex
@@ -166,7 +166,7 @@ pkix_pl_BigInt_ToString(
                     0,
                     pString,
                     plContext),
-                    "PKIX_PL_String_Create failed");
+                    PKIX_STRINGCREATEFAILED);
 
 cleanup:
 
@@ -192,7 +192,7 @@ pkix_pl_BigInt_Hashcode(
         PKIX_NULLCHECK_TWO(object, pHashcode);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_BIGINT_TYPE, plContext),
-                    "Object is not a BigInt");
+                    PKIX_OBJECTNOTBIGINT);
 
         bigInt = (PKIX_PL_BigInt*)object;
 
@@ -201,7 +201,7 @@ pkix_pl_BigInt_Hashcode(
                     bigInt->length,
                     pHashcode,
                     plContext),
-                    "pkix_hash failed");
+                    PKIX_HASHFAILED);
 
 cleanup:
 
@@ -226,18 +226,18 @@ pkix_pl_BigInt_Equals(
         PKIX_NULLCHECK_THREE(first, second, pResult);
 
         PKIX_CHECK(pkix_CheckType(first, PKIX_BIGINT_TYPE, plContext),
-                    "First Argument is not a BigInt");
+                PKIX_FIRSTOBJECTNOTBIGINT);
 
         PKIX_CHECK(PKIX_PL_Object_GetType(second, &secondType, plContext),
-                    "Could not get type of second argument");
+                PKIX_COULDNOTGETTYPEOFSECONDARGUMENT);
 
         *pResult = PKIX_FALSE;
 
         if (secondType != PKIX_BIGINT_TYPE) goto cleanup;
 
         PKIX_CHECK(pkix_pl_BigInt_Comparator
-                    (first, second, &cmpResult, plContext),
-                    "pkix_pl_BigInt_Comparator failed");
+                (first, second, &cmpResult, plContext),
+                PKIX_BIGINTCOMPARATORFAILED);
 
         *pResult = (cmpResult == 0);
 
@@ -317,7 +317,7 @@ pkix_pl_BigInt_CreateWithBytes(
         PKIX_NULLCHECK_TWO(pBigInt, bytes);
 
         if (length == 0) {
-                PKIX_ERROR("BigInt length 0 is invalid")
+                PKIX_ERROR(PKIX_BIGINTLENGTH0INVALID)
         }
 
         PKIX_CHECK(PKIX_PL_Object_Alloc
@@ -325,11 +325,11 @@ pkix_pl_BigInt_CreateWithBytes(
                 sizeof (PKIX_PL_BigInt),
                 (PKIX_PL_Object **)&bigInt,
                 plContext),
-                "Could not create object");
+                PKIX_COULDNOTCREATEOBJECT);
 
         PKIX_CHECK(PKIX_PL_Malloc
                     (length, (void **)&(bigInt->dataRep), plContext),
-                    "PKIX_PL_Malloc failed");
+                    PKIX_MALLOCFAILED);
 
         PKIX_BIGINT_DEBUG("\t\tCalling PORT_Memcpy).\n");
         (void) PORT_Memcpy(bigInt->dataRep, bytes, length);
@@ -374,22 +374,22 @@ PKIX_PL_BigInt_Create(
                 (void **)&asciiString,
                 &lengthString,
                 plContext),
-                "PKIX_PL_String_GetEncoded failed");
+                PKIX_STRINGGETENCODEDFAILED);
 
         if ((lengthString == 0) || ((lengthString % 2) != 0)){
-                PKIX_ERROR("Source string has invalid length");
+                PKIX_ERROR(PKIX_SOURCESTRINGHASINVALIDLENGTH);
         }
 
         if (lengthString != 2){
                 if ((asciiString[0] == '0') && (asciiString[1] == '0')){
-                        PKIX_ERROR("First DoubleHex MUST NOT be 00");
+                        PKIX_ERROR(PKIX_FIRSTDOUBLEHEXMUSTNOTBE00);
                 }
         }
 
         for (i = 0; i < lengthString; i++) {
                 currChar = asciiString[i];
                 if (!PKIX_ISXDIGIT(currChar)){
-                        PKIX_ERROR("Invalid character in BigInt");
+                        PKIX_ERROR(PKIX_INVALIDCHARACTERINBIGINT);
                 }
         }
 
@@ -398,14 +398,14 @@ PKIX_PL_BigInt_Create(
                 sizeof (PKIX_PL_BigInt),
                 (PKIX_PL_Object **)&bigInt,
                 plContext),
-                "Could not create object");
+                PKIX_COULDNOTCREATEOBJECT);
 
         /* number of bytes = 0.5 * (number of chars) */
         lengthBytes = lengthString/2;
 
         PKIX_CHECK(PKIX_PL_Malloc
                     (lengthBytes, (void **)&(bigInt->dataRep), plContext),
-                    "PKIX_PL_Malloc failed");
+                    PKIX_MALLOCFAILED);
 
         for (i = 0; i < lengthString; i += 2){
                 (bigInt->dataRep)[i/2] =

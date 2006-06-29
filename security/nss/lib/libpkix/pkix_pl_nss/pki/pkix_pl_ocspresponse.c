@@ -178,32 +178,32 @@ PKIX_PL_OcspResponse_UseBuildChain(
                         ((PKIX_PL_Object *)procParams,
                         (PKIX_PL_Object **)&caProcParams,
                         plContext),
-        	        "PKIX_PL_Object_Duplicate failed");
+        	        PKIX_OBJECTDUPLICATEFAILED);
 
 		PKIX_CHECK(PKIX_ProcessingParams_SetDate(procParams, date, plContext),
-	                "PKIX_ProcessingParams_SetDate failed");
+	                PKIX_PROCESSINGPARAMSSETDATEFAILED);
 
 	        /* create CertSelector with target certificate in params */
 
 		PKIX_CHECK(PKIX_CertSelector_Create
 	                (NULL, NULL, &certSelector, plContext),
-	                "PKIX_CertSelector_Create failed");
+	                PKIX_CERTSELECTORCREATEFAILED);
 
 		PKIX_CHECK(PKIX_ComCertSelParams_Create
 	                (&certSelParams, plContext),
-	                "PKIX_ComCertSelParams_Create failed");
+	                PKIX_COMCERTSELPARAMSCREATEFAILED);
 
 	        PKIX_CHECK(PKIX_ComCertSelParams_SetCertificate
         	        (certSelParams, signerCert, plContext),
-                	"PKIX_ComCertSelParams_SetCertificate failed");
+                	PKIX_COMCERTSELPARAMSSETCERTIFICATEFAILED);
 
 	        PKIX_CHECK(PKIX_CertSelector_SetCommonCertSelectorParams
 	                (certSelector, certSelParams, plContext),
-	                "PKIX_CertSelector_SetCommonCertSelectorParams failed");
+	                PKIX_CERTSELECTORSETCOMMONCERTSELECTORPARAMSFAILED);
 
 	        PKIX_CHECK(PKIX_ProcessingParams_SetTargetCertConstraints
         	        (caProcParams, certSelector, plContext),
-                	"PKIX_ProcessingParams_SetTargetCertConstraints failed");
+                	PKIX_PROCESSINGPARAMSSETTARGETCERTCONSTRAINTSFAILED);
 	}
 
         buildError = PKIX_BuildChain
@@ -222,7 +222,7 @@ PKIX_PL_OcspResponse_UseBuildChain(
         /* no buildResult means the build has failed */
         } else if (buildError || (pBuildResult == NULL)) {
                 PKIX_DECREF(buildError);
-                PKIX_ERROR("Unable to build chain");
+                PKIX_ERROR(PKIX_UNABLETOBUILDCHAIN);
         } else {
                 PKIX_DECREF(*pState);
         }
@@ -256,7 +256,7 @@ pkix_pl_OcspResponse_Destroy(
         PKIX_NULLCHECK_ONE(object);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_OCSPRESPONSE_TYPE, plContext),
-                    "Object is not an OcspResponse");
+                    PKIX_OBJECTNOTANOCSPRESPONSE);
 
         ocspRsp = (PKIX_PL_OcspResponse *)object;
 
@@ -327,7 +327,7 @@ pkix_pl_OcspResponse_Hashcode(
         PKIX_NULLCHECK_TWO(object, pHashcode);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_OCSPRESPONSE_TYPE, plContext),
-                    "Object is not an OcspResponse");
+                    PKIX_OBJECTNOTANOCSPRESPONSE);
 
         ocspRsp = (PKIX_PL_OcspResponse *)object;
 
@@ -339,7 +339,7 @@ pkix_pl_OcspResponse_Hashcode(
                         ocspRsp->encodedResponse->len,
                         pHashcode,
                         plContext),
-                        "pkix_hash failed");
+                        PKIX_HASHFAILED);
         }
 
 cleanup:
@@ -371,7 +371,7 @@ pkix_pl_OcspResponse_Equals(
 
         /* test that firstObj is a OcspResponse */
         PKIX_CHECK(pkix_CheckType(firstObj, PKIX_OCSPRESPONSE_TYPE, plContext),
-                    "firstObj argument is not an OcspResponse");
+                    PKIX_FIRSTOBJARGUMENTNOTANOCSPRESPONSE);
 
         /*
          * Since we know firstObj is a OcspResponse, if both references are
@@ -388,7 +388,7 @@ pkix_pl_OcspResponse_Equals(
          */
         *pResult = PKIX_FALSE;
         PKIX_CHECK(PKIX_PL_Object_GetType(secondObj, &secondType, plContext),
-                "Could not get type of second argument");
+                PKIX_COULDNOTGETTYPEOFSECONDARGUMENT);
         if (secondType != PKIX_OCSPRESPONSE_TYPE) {
                 goto cleanup;
         }
@@ -554,7 +554,7 @@ pkix_pl_OcspResponse_Create(
 
                 PKIX_CHECK(pkix_pl_OcspRequest_GetEncoded
                         (request, &encodedRequest, plContext),
-                        "pkix_pl_OcspRequest_GetEncoded failed");
+                        PKIX_OCSPREQUESTGETENCODEDFAILED);
 
                 /* prepare initial message to HTTPClient */
 
@@ -575,14 +575,14 @@ pkix_pl_OcspResponse_Create(
 
                         PKIX_CHECK(pkix_pl_OcspRequest_GetLocation
                                 (request, &location, plContext),
-                                "pkix_pl_OcspRequest_GetLocation failed");
+                                PKIX_OCSPREQUESTGETLOCATIONFAILED);
 
                         /* parse location -> hostname, port, path */    
                         PKIX_PL_NSSCALLRV(OCSPRESPONSE, rv, CERT_ParseURL,
                                 (location, &hostname, &port, &path));
 
                         if ((hostname == NULL) || (path == NULL)) {
-                                PKIX_ERROR("URL Parsing failed");
+                                PKIX_ERROR(PKIX_URLPARSINGFAILED);
                         }
 
                         PKIX_PL_NSSCALLRV
@@ -592,7 +592,7 @@ pkix_pl_OcspResponse_Create(
                                 (hostname, port, &serverSession));
 
                         if (rv != SECSuccess) {
-                                PKIX_ERROR("OCSP Server Error");
+                                PKIX_ERROR(PKIX_OCSPSERVERERROR);
                         }       
 
                         PKIX_PL_NSSCALLRV
@@ -605,7 +605,7 @@ pkix_pl_OcspResponse_Create(
                                 &requestSession));
 
                         if (rv != SECSuccess) {
-                                PKIX_ERROR("OCSP Server Error");
+                                PKIX_ERROR(PKIX_OCSPSERVERERROR);
                         }       
 
                         PKIX_PL_NSSCALLRV
@@ -616,7 +616,7 @@ pkix_pl_OcspResponse_Create(
                                 "application/ocsp-request"));
 
                         if (rv != SECSuccess) {
-                                PKIX_ERROR("OCSP Server Error");
+                                PKIX_ERROR(PKIX_OCSPSERVERERROR);
                         }       
 
                         /* create a PKIX_PL_OcspResponse object */
@@ -625,7 +625,7 @@ pkix_pl_OcspResponse_Create(
                                     sizeof (PKIX_PL_OcspResponse),
                                     (PKIX_PL_Object **)&ocspResponse,
                                     plContext),
-                                    "Could not create object");
+                                    PKIX_COULDNOTCREATEOBJECT);
 
                         ocspResponse->httpClient = httpClient;
                         ocspResponse->serverSession = serverSession;
@@ -646,7 +646,7 @@ pkix_pl_OcspResponse_Create(
 
                         PKIX_CHECK(pkix_pl_OcspRequest_GetCertID
                                 (request, &ocspResponse->certID, plContext),
-                                "pkix_pl_OcspRequest_GetCertID failed");
+                                PKIX_OCSPREQUESTGETCERTIDFAILED);
                 }
         }
 
@@ -667,7 +667,7 @@ pkix_pl_OcspResponse_Create(
                         &responseDataLen));
 
                 if (rv != SECSuccess) {
-                        PKIX_ERROR("OCSP Server Error");
+                        PKIX_ERROR(PKIX_OCSPSERVERERROR);
                 }       
 
                 if (nbioContext != NULL) {
@@ -676,7 +676,7 @@ pkix_pl_OcspResponse_Create(
                 }
 
                 if (responseCode != 200) {
-                        PKIX_ERROR("Bad Http Response");
+                        PKIX_ERROR(PKIX_BADHTTPRESPONSE);
                 }
 
 
@@ -685,7 +685,7 @@ pkix_pl_OcspResponse_Create(
                         (DER_DEFAULT_CHUNKSIZE));
 
                 if (ocspResponse->arena == NULL) {
-                        PKIX_ERROR("Out of Memory");
+                        PKIX_ERROR(PKIX_OUTOFMEMORY);
                 }
 
                 PKIX_PL_NSSCALLRV
@@ -695,7 +695,7 @@ pkix_pl_OcspResponse_Create(
                         (ocspResponse->arena, NULL, responseDataLen));
 
                 if (ocspResponse->encodedResponse == NULL) {
-                        PKIX_ERROR("Out of Memory");
+                        PKIX_ERROR(PKIX_OUTOFMEMORY);
                 }
 
                 PKIX_PL_NSSCALL(OCSPRESPONSE, PORT_Memcpy,
@@ -1118,13 +1118,13 @@ pkix_pl_OcspResponse_VerifySignature(
 	                        ((PRTime)(response->producedAt),
 				&(response->producedAtDate),
 				plContext),
-	        	        "pkix_pl_Date_CreateFromPRTime failed");
+	        	        PKIX_DATECREATEFROMPRTIMEFAILED);
 
 		        PKIX_CHECK(pkix_pl_Cert_CreateWithNSSCert
 		                (response->signerCert,
 				&(response->targetCert),
 				plContext),
-	        	        "pkix_pl_Cert_CreateWithNSSCert failed");
+	        	        PKIX_CERTCREATEWITHNSSCERTFAILED);
 		}
 	}
 

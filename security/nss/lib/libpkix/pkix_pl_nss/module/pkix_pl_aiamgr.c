@@ -59,7 +59,7 @@ PKIX_PL_LdapClient_InitiateRequest(
 
         PKIX_CHECK(client->initiateFcn
                 (client, requestParams, pNBIO, pResponse, plContext),
-                "PKIX_PL_LdapClient_InitiateRequest failed");
+                PKIX_LDAPCLIENTINITIATEREQUESTFAILED);
 cleanup:
 
         PKIX_RETURN(LDAPCLIENT);
@@ -78,7 +78,7 @@ PKIX_PL_LdapClient_ResumeRequest(
 
         PKIX_CHECK(client->resumeFcn
                 (client, pNBIO, pResponse, plContext),
-                "PKIX_PL_LdapClient_ResumeRequest failed");
+                PKIX_LDAPCLIENTRESUMEREQUESTFAILED);
 cleanup:
 
         PKIX_RETURN(LDAPCLIENT);
@@ -102,7 +102,7 @@ pkix_pl_AIAMgr_Destroy(
         PKIX_NULLCHECK_ONE(object);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_AIAMGR_TYPE, plContext),
-                "Object is not a AIAMgr");
+                PKIX_OBJECTNOTAIAMGR);
 
         aiaMgr = (PKIX_PL_AIAMgr *)object;
 
@@ -198,7 +198,7 @@ pkix_pl_AiaMgr_FindLDAPClient(
         /* create PKIX_PL_String from domain name */
         PKIX_CHECK(PKIX_PL_String_Create
                 (PKIX_ESCASCII, domainName, 0, &domainString, plContext),
-                "PKIX_PL_String_Create failed");
+                PKIX_STRINGCREATEFAILED);
 
         /* Is this domainName already in cache? */
         PKIX_CHECK(PKIX_PL_HashTable_Lookup
@@ -206,7 +206,7 @@ pkix_pl_AiaMgr_FindLDAPClient(
                 (PKIX_PL_Object *)domainString,
                 (PKIX_PL_Object **)&client,
                 plContext),
-                "PKIX_PL_HashTable_Lookup failed");
+                PKIX_HASHTABLELOOKUPFAILED);
 
         if (client == NULL) {
 
@@ -217,14 +217,14 @@ pkix_pl_AiaMgr_FindLDAPClient(
                         NULL,
                         &client,
                         plContext),
-                        "PKIX_PL_LdapDefaultClient_CreateByName failed");
+                        PKIX_LDAPDEFAULTCLIENTCREATEBYNAMEFAILED);
 
                 PKIX_CHECK(PKIX_PL_HashTable_Add
                         (aiaConnectionCache,
                         (PKIX_PL_Object *)domainString,
                         (PKIX_PL_Object *)client,
                         plContext),
-                        "PKIX_PL_HashTable_Add failed");
+                        PKIX_HASHTABLEADDFAILED);
 
         }
 
@@ -274,7 +274,7 @@ pkix_pl_AIAMgr_GetHTTPCerts(
 
                 PKIX_CHECK(PKIX_PL_InfoAccess_GetLocation
                         (ia, &location, plContext),
-                       "PKIX_PL_InfoAccess_GetLocation failed");
+                       PKIX_INFOACCESSGETLOCATIONFAILED);
 
                 /* find or create httpClient = default client */
 		httpClient = GetRegisteredHttpClient();
@@ -286,7 +286,7 @@ pkix_pl_AIAMgr_GetHTTPCerts(
 
 			/* create server session */
 			PKIX_TOSTRING(location, &locationString, plContext,
-				"PKIX_PL_GeneralName_ToString failed");
+				PKIX_GENERALNAMETOSTRINGFAILED);
 
 			PKIX_CHECK(PKIX_PL_String_GetEncoded
 				(locationString,
@@ -294,7 +294,7 @@ pkix_pl_AIAMgr_GetHTTPCerts(
 				(void **)&locationAscii,
 				&len,
 				plContext),
-				"PKIX_PL_String_GetEncoded failed");
+				PKIX_STRINGGETENCODEDFAILED);
 
 			PKIX_PL_NSSCALLRV
 				(AIAMGR, rv, CERT_ParseURL,
@@ -303,7 +303,7 @@ pkix_pl_AIAMgr_GetHTTPCerts(
 			if ((rv != SECSuccess) ||
 			    (hostname == NULL) ||
 			    (path == NULL)) {
-				PKIX_ERROR("URL Parsing failed");
+				PKIX_ERROR(PKIX_URLPARSINGFAILED);
 			}
 
 			PKIX_PL_NSSCALLRV
@@ -311,7 +311,7 @@ pkix_pl_AIAMgr_GetHTTPCerts(
                         	(hostname, port, &serverSession));
 
 	                if (rv != SECSuccess) {
-				PKIX_ERROR("HttpClient->CreateSession failed");
+				PKIX_ERROR(PKIX_HTTPCLIENTCREATESESSIONFAILED);
 			}
 
 			aiaMgr->client.hdata.serverSession = serverSession;
@@ -330,12 +330,12 @@ pkix_pl_AIAMgr_GetHTTPCerts(
                         	if (path != NULL) {
                                 	PORT_Free(path);
                         	}
-                        	PKIX_ERROR("HTTP Server Error");
+                        	PKIX_ERROR(PKIX_HTTPSERVERERROR);
                 	}
 
 			aiaMgr->client.hdata.requestSession = requestSession;
 		} else {
-			PKIX_ERROR("Unsupported version of Http Client");
+			PKIX_ERROR(PKIX_UNSUPPORTEDVERSIONOFHTTPCLIENT);
 		}
 	}
 
@@ -358,7 +358,7 @@ pkix_pl_AIAMgr_GetHTTPCerts(
                         &responseDataLen));
 
                 if (rv != SECSuccess) {
-                        PKIX_ERROR("HTTP Server Error");
+                        PKIX_ERROR(PKIX_HTTPSERVERERROR);
                 }
 
                 if (nbio != 0) {
@@ -373,14 +373,14 @@ pkix_pl_AIAMgr_GetHTTPCerts(
 	                responseDataLen,
 	                pCerts,
 	                plContext),
-	                "pkix_pl_HttpCertStore_ProcessCertResponse failed");
+	                PKIX_HTTPCERTSTOREPROCESSCERTRESPONSEFAILED);
 
 		PKIX_DECREF(aiaMgr->client.hdata.requestSession);
 		PKIX_DECREF(aiaMgr->client.hdata.serverSession);
 		aiaMgr->client.hdata.httpClient = 0; /* not an object */
 
         } else  {
-		PKIX_ERROR("Unsupported version of Http Client");
+		PKIX_ERROR(PKIX_UNSUPPORTEDVERSIONOFHTTPCLIENT);
 	}
 
 cleanup:
@@ -427,7 +427,7 @@ pkix_pl_AIAMgr_GetLDAPCerts(
 
                 PKIX_CHECK(PKIX_PL_InfoAccess_GetLocation
                         (ia, &location, plContext),
-                        "PKIX_PL_InfoAccess_GetLocation failed");
+                        PKIX_INFOACCESSGETLOCATIONFAILED);
 
                 /*
                  * Get a short-lived arena. We'll be done with
@@ -437,19 +437,19 @@ pkix_pl_AIAMgr_GetLDAPCerts(
                         (DER_DEFAULT_CHUNKSIZE));
 
                 if (!arena) {
-                        PKIX_ERROR_FATAL("Out of memory");
+                        PKIX_ERROR_FATAL(PKIX_OUTOFMEMORY);
                 }
 
                 PKIX_CHECK(pkix_pl_InfoAccess_ParseLocation
                         (location, arena, &request, &domainName, plContext),
-                        "pkix_pl_InfoAccess_ParseLocation failed");
+                        PKIX_INFOACCESSPARSELOCATIONFAILED);
 
                 PKIX_DECREF(location);
 
                 /* Find or create a connection to LDAP server */
                 PKIX_CHECK(pkix_pl_AiaMgr_FindLDAPClient
                         (aiaMgr, domainName, &client, plContext),
-                        "pkix_pl_AiaMgr_FindLDAPClient failed");
+                        PKIX_AIAMGRFINDLDAPCLIENTFAILED);
 
                 aiaMgr->client.ldapClient = client;
 
@@ -459,7 +459,7 @@ pkix_pl_AIAMgr_GetLDAPCerts(
 			&nbio,
 			&result,
 			plContext),
-                        "PKIX_PL_LdapClient_InitiateRequest failed");
+                        PKIX_LDAPCLIENTINITIATEREQUESTFAILED);
 
                 PKIX_PL_NSSCALL(AIAMGR, PORT_FreeArena, (arena, PR_FALSE));
 
@@ -467,7 +467,7 @@ pkix_pl_AIAMgr_GetLDAPCerts(
 
                 PKIX_CHECK(PKIX_PL_LdapClient_ResumeRequest
                         (aiaMgr->client.ldapClient, &nbio, &result, plContext),
-                        "PKIX_PL_LdapClient_ResumeRequest failed");
+                        PKIX_LDAPCLIENTRESUMEREQUESTFAILED);
 
         }
 
@@ -484,7 +484,7 @@ pkix_pl_AIAMgr_GetLDAPCerts(
 	} else {
 		PKIX_CHECK(pkix_pl_LdapCertStore_BuildCertList
 			(result, pCerts, plContext),
-			"pkix_pl_LdapCertStore_BuildCertList failed");
+			PKIX_LDAPCERTSTOREBUILDCERTLISTFAILED);
 	}
 
 	*pNBIOContext = nbio;
@@ -537,7 +537,7 @@ PKIX_PL_AIAMgr_Create(
                 sizeof(PKIX_PL_AIAMgr),
                 (PKIX_PL_Object **)&aiaMgr,
                 plContext),
-                "Could not create AiaMgr object");
+                PKIX_COULDNOTCREATEAIAMGROBJECT);
         /* pointer to cert cache */
         /* pointer to crl cache */
         aiaMgr->method = 0;
@@ -589,12 +589,12 @@ PKIX_PL_AIAMgr_GetAIACerts(
                 /* Does this Cert have an AIA extension? */
                 PKIX_CHECK(PKIX_PL_Cert_GetAuthorityInfoAccess
                         (prevCert, &aiaMgr->aia, plContext),
-                        "PKIX_PL_Cert_GetAuthorityInfoAccess failed");
+                        PKIX_CERTGETAUTHORITYINFOACCESSFAILED);
 
                 if (aiaMgr->aia != NULL) {
                         PKIX_CHECK(PKIX_List_GetLength
                                 (aiaMgr->aia, &numAias, plContext),
-                                "PKIX_List_GetLength failed");
+                                PKIX_LISTGETLENGTHFAILED);
                 }
 
                 /* And if so, does it have any entries? */
@@ -618,23 +618,23 @@ PKIX_PL_AIAMgr_GetAIACerts(
                         aiaIndex,
                         (PKIX_PL_Object **)&ia,
                         plContext),
-                        "PKIX_List_GetItem failed");
+                        PKIX_LISTGETITEMFAILED);
 
                 PKIX_CHECK(PKIX_PL_InfoAccess_GetLocationType
                         (ia, &iaType, plContext),
-                        "PKIX_PL_InfoAccess_GetLocationType failed");
+                        PKIX_INFOACCESSGETLOCATIONTYPEFAILED);
 
                 if (iaType == PKIX_INFOACCESS_LOCATION_HTTP) {
 			PKIX_CHECK(pkix_pl_AIAMgr_GetHTTPCerts
 				(aiaMgr, ia, &nbio, &certs, plContext),
-				"pkix_pl_AIAMgr_GetHTTPCerts failed");
+				PKIX_AIAMGRGETHTTPCERTSFAILED);
                 } else if (iaType == PKIX_INFOACCESS_LOCATION_LDAP) {
 			PKIX_CHECK(pkix_pl_AIAMgr_GetLDAPCerts
 				(aiaMgr, ia, &nbio, &certs, plContext),
-				"pkix_pl_AIAMgr_GetLDAPCerts failed");
+				PKIX_AIAMGRGETLDAPCERTSFAILED);
                 } else {
                         /* We only support http and ldap requests. */
-			PKIX_ERROR("Unknown InfoAccess type");
+			PKIX_ERROR(PKIX_UNKNOWNINFOACCESSTYPE);
                 }
 
                 if (nbio != NULL) { /* WOULDBLOCK */
@@ -651,11 +651,11 @@ PKIX_PL_AIAMgr_GetAIACerts(
                 if (aiaMgr->results == NULL) {
                         PKIX_CHECK(PKIX_List_Create
                                 (&(aiaMgr->results), plContext),
-                                "PKIX_List_Create failed");
+                                PKIX_LISTCREATEFAILED);
                 }
                 PKIX_CHECK(pkix_List_AppendList
                         (aiaMgr->results, certs, plContext),
-                        "pkix_pl_AppendList failed");
+                        PKIX_APPENDLISTFAILED);
                 PKIX_DECREF(certs);
 
                 PKIX_DECREF(ia);

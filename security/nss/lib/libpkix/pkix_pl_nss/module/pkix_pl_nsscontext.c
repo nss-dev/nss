@@ -66,7 +66,7 @@ PKIX_PL_NssContext_Create(
 
         PKIX_CHECK(PKIX_PL_Malloc
                    (sizeof(PKIX_PL_NssContext), (void **)&context, NULL),
-                   "PKIX_PL_Malloc failed");
+                   PKIX_MALLOCFAILED);
 
         if (useNssArena == PKIX_TRUE) {
                 PKIX_CONTEXT_DEBUG("\t\tCalling PORT_NewArena\n");

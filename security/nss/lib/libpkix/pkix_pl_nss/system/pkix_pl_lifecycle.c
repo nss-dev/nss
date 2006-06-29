@@ -242,7 +242,7 @@ PKIX_PL_Initialize(
 
         PKIX_CHECK(PKIX_PL_NssContext_Create
                 (0x10, useArenas, NULL, &plContext),
-                "PKIX_PL_NssContext_Create failed");
+                PKIX_NSSCONTEXTCREATEFAILED);
 
         *pPlContext = plContext;
 

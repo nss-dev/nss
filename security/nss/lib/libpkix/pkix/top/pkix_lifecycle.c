@@ -125,18 +125,17 @@ PKIX_Initialize(
 
         PKIX_CHECK(PKIX_PL_Initialize
                 (platformInitNeeded, useArenas, &plContext),
-                "PKIX_PL_Initialize failed");
+                PKIX_INITIALIZEFAILED);
 
         *pPlContext = plContext;
 
         if (desiredMajorVersion != PKIX_MAJOR_VERSION){
-                PKIX_ERROR("Major versions don't match");
+                PKIX_ERROR(PKIX_MAJORVERSIONSDONTMATCH);
         }
 
         if ((minDesiredMinorVersion > PKIX_MINOR_VERSION) ||
             (maxDesiredMinorVersion < PKIX_MINOR_VERSION)){
-                PKIX_ERROR("Minor version doesn't fall between desired "
-                            "minimum and maximum");
+                PKIX_ERROR(PKIX_MINORVERSIONNOTBETWEENDESIREDMINANDMAX);
         }
 
         *pActualMinorVersion = PKIX_MINOR_VERSION;
@@ -148,36 +147,36 @@ PKIX_Initialize(
         /* Create Cache Tables */
         PKIX_CHECK(PKIX_PL_HashTable_Create
                     (32, 0, &cachedCertSigTable, plContext),
-                    "PKIX_PL_HashTable_Create failed");
+                    PKIX_HASHTABLECREATEFAILED);
 
         PKIX_CHECK(PKIX_PL_HashTable_Create
                     (32, 0, &cachedCrlSigTable, plContext),
-                    "PKIX_PL_HashTable_Create failed");
+                    PKIX_HASHTABLECREATEFAILED);
 
         PKIX_CHECK(PKIX_PL_HashTable_Create
                     (32, 10, &cachedCertChainTable, plContext),
-                    "PKIX_PL_HashTable_Create failed");
+                    PKIX_HASHTABLECREATEFAILED);
 
         PKIX_CHECK(PKIX_PL_HashTable_Create
                     (32, 10, &cachedCertTable, plContext),
-                    "PKIX_PL_HashTable_Create failed");
+                    PKIX_HASHTABLECREATEFAILED);
 
         PKIX_CHECK(PKIX_PL_HashTable_Create
                     (32, 10, &cachedCrlEntryTable, plContext),
-                    "PKIX_PL_HashTable_Create failed");
+                    PKIX_HASHTABLECREATEFAILED);
 
         PKIX_CHECK(PKIX_PL_HashTable_Create
                     (5, 5, &aiaConnectionCache, plContext),
-                    "PKIX_PL_HashTable_Create failed");
+                    PKIX_HASHTABLECREATEFAILED);
 
         PKIX_CHECK(PKIX_PL_HashTable_Create
                     (5, 5, &httpSocketCache, plContext),
-                    "PKIX_PL_HashTable_Create failed");
+                    PKIX_HASHTABLECREATEFAILED);
 
         if (pkixLoggerLock == NULL) {
                 PKIX_CHECK(PKIX_PL_MonitorLock_Create
                         (&pkixLoggerLock, plContext),
-                        "PKIX_PL_MonitorLock_Create failed");
+                        PKIX_MONITORLOCKCREATEFAILED);
         }
 
 cleanup:
@@ -205,7 +204,7 @@ PKIX_Initialize_SetConfigDir(
                 break;
 
             default:
-                PKIX_ERROR("Invalid Store type for Setting ConfigDir");
+                PKIX_ERROR(PKIX_INVALIDSTORETYPEFORSETTINGCONFIGDIR);
                 break;
         }
 
@@ -253,7 +252,7 @@ PKIX_Shutdown(void *plContext)
         PKIX_DECREF(httpSocketCache);
 
         PKIX_CHECK(PKIX_PL_Shutdown(pkixPlatformInit, plContext),
-                "PKIX_PL_Shutdown failed");
+                PKIX_SHUTDOWNFAILED);
 
         pkixIsInitialized = PKIX_FALSE;
 

@@ -61,7 +61,7 @@ pkix_ResourceLimits_Destroy(
 
         /* Check that this object is a ResourceLimits object */
         PKIX_CHECK(pkix_CheckType(object, PKIX_RESOURCELIMITS_TYPE, plContext),
-                    "Object is not a ResourceLimits object");
+                    PKIX_OBJECTNOTRESOURCELIMITS);
 
         rLimits = (PKIX_ResourceLimits *)object;
 
@@ -96,10 +96,10 @@ pkix_ResourceLimits_Equals(
         PKIX_NULLCHECK_THREE(first, second, pResult);
 
         PKIX_CHECK(pkix_CheckType(first, PKIX_RESOURCELIMITS_TYPE, plContext),
-                    "First Argument is not a ResourceLimits object");
+                    PKIX_FIRSTOBJECTNOTRESOURCELIMITS);
 
         PKIX_CHECK(PKIX_PL_Object_GetType(second, &secondType, plContext),
-                    "Could not get type of second argument");
+                    PKIX_COULDNOTGETTYPEOFSECONDARGUMENT);
 
         *pResult = PKIX_FALSE;
 
@@ -140,7 +140,7 @@ pkix_ResourceLimits_Hashcode(
         PKIX_NULLCHECK_TWO(object, pHashcode);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_RESOURCELIMITS_TYPE, plContext),
-                    "Object is not a ResourceLimits object");
+                    PKIX_OBJECTNOTRESOURCELIMITS);
 
         rLimits = (PKIX_ResourceLimits*)object;
 
@@ -174,7 +174,7 @@ pkix_ResourceLimits_ToString(
         PKIX_NULLCHECK_TWO(object, pString);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_RESOURCELIMITS_TYPE, plContext),
-                    "Object not a ResourceLimits");
+                    PKIX_OBJECTNOTRESOURCELIMITS);
 
         /* maxCertsNumber and maxCrlsNumber are not supported */
         asciiFormat =
@@ -190,7 +190,7 @@ pkix_ResourceLimits_ToString(
                     0,
                     &formatString,
                     plContext),
-                    "PKIX_PL_String_Create failed");
+                    PKIX_STRINGCREATEFAILED);
 
         rLimits = (PKIX_ResourceLimits*)object;
 
@@ -201,7 +201,7 @@ pkix_ResourceLimits_ToString(
                     rLimits->maxTime,
                     rLimits->maxFanout,
                     rLimits->maxDepth),
-                    "PKIX_PL_Sprintf failed");
+                    PKIX_SPRINTFFAILED);
 
         *pString = rLimitsString;
 
@@ -266,7 +266,7 @@ PKIX_ResourceLimits_Create(
                     sizeof (PKIX_ResourceLimits),
                     (PKIX_PL_Object **)&rLimits,
                     plContext),
-                    "Could not create ResourceLimit object");
+                    PKIX_COULDNOTCREATERESOURCELIMITOBJECT);
 
         /* initialize fields */
         rLimits->maxTime = 0;

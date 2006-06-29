@@ -64,7 +64,7 @@ pkix_BasicConstraintsCheckerState_Destroy(
         /* Check that this object is a basic constraints checker state */
         PKIX_CHECK(pkix_CheckType
                 (object, PKIX_BASICCONSTRAINTSCHECKERSTATE_TYPE, plContext),
-                "Object is not a basic constraints checker state");
+                PKIX_OBJECTNOTBASICCONSTRAINTSCHECKERSTATE);
 
         state = (pkix_BasicConstraintsCheckerState *)object;
 
@@ -148,7 +148,7 @@ pkix_BasicConstraintsCheckerState_Create(
                     sizeof (pkix_BasicConstraintsCheckerState),
                     (PKIX_PL_Object **)&state,
                     plContext),
-                    "Could not create basic constraints state object");
+                    PKIX_COULDNOTCREATEBASICCONSTRAINTSSTATEOBJECT);
 
         /* initialize fields */
         state->certsRemaining = certsRemaining;
@@ -158,7 +158,7 @@ pkix_BasicConstraintsCheckerState_Create(
                     (PKIX_BASICCONSTRAINTS_OID,
                     &state->basicConstraintsOID,
                     plContext),
-                    "PKIX_PL_OID_Create failed");
+                    PKIX_OIDCREATEFAILED);
 
         *pState = state;
 
@@ -199,7 +199,7 @@ pkix_BasicConstraintsChecker_Check(
 
         PKIX_CHECK(PKIX_CertChainChecker_GetCertChainCheckerState
                     (checker, (PKIX_PL_Object **)&state, plContext),
-                    "PKIX_CertChainChecker_GetCertChainCheckerState failed");
+                    PKIX_CERTCHAINCHECKERGETCERTCHAINCHECKERSTATEFAILED);
 
         state->certsRemaining--;
 
@@ -207,7 +207,7 @@ pkix_BasicConstraintsChecker_Check(
 
                 PKIX_CHECK(PKIX_PL_Cert_GetBasicConstraints
                     (cert, &basicConstraints, plContext),
-                    "PKIX_PL_Cert_GetBasicConstraints failed");
+                    PKIX_CERTGETBASICCONSTRAINTSFAILED);
 
                 /* get CA Flag and path length */
                 if (basicConstraints != NULL) {
@@ -215,15 +215,15 @@ pkix_BasicConstraintsChecker_Check(
                             (basicConstraints,
                             &caFlag,
                             plContext),
-                            "PKIX_PL_BasicConstraints_GetCAFlag failed");
+                            PKIX_BASICCONSTRAINTSGETCAFLAGFAILED);
 
                 if (caFlag == PKIX_TRUE) {
-                        PKIX_CHECK(PKIX_PL_BasicConstraints_GetPathLenConstraint
+                        PKIX_CHECK
+                            (PKIX_PL_BasicConstraints_GetPathLenConstraint
                             (basicConstraints,
                             &pathLength,
                             plContext),
-                            "PKIX_PL_BasicConstraints_GetPathLenConstraint "
-                            "failed");
+                            PKIX_BASICCONSTRAINTSGETPATHLENCONSTRAINTFAILED);
                 }
 
                 }else{
@@ -235,7 +235,7 @@ pkix_BasicConstraintsChecker_Check(
                         (cert,
                         &isSelfIssued,
                         plContext),
-                        "pkix_IsCertSelfIssued failed");
+                        PKIX_ISCERTSELFISSUEDFAILED);
 
                 maxPathLength_now = state->maxPathLength;
 
@@ -243,13 +243,11 @@ pkix_BasicConstraintsChecker_Check(
 
                     /* Not last CA Cert, but maxPathLength is down to zero */
                     if (maxPathLength_now == 0) {
-                        PKIX_ERROR("PKIX_BasicConstraints validation failed: "
-                                "maximum length mismatch");
+                        PKIX_ERROR(PKIX_BASICCONSTRAINTSVALIDATIONFAILEDLN);
                     }
 
                     if (caFlag == PKIX_FALSE) {
-                        PKIX_ERROR("PKIX_BaseConstraints validation failed: "
-                                "CA Flag not set");
+                        PKIX_ERROR(PKIX_BASICCONSTRAINTSVALIDATIONFAILEDCA);
                     }
 
                     if (maxPathLength_now > 0) { /* can be unlimited (-1) */
@@ -281,13 +279,13 @@ pkix_BasicConstraintsChecker_Check(
                             (unresolvedCriticalExtensions,
                             (PKIX_PL_Object *) state->basicConstraintsOID,
                             plContext),
-                            "PKIX_List_Remove failed");
+                            PKIX_LISTREMOVEFAILED);
         }
 
 
         PKIX_CHECK(PKIX_CertChainChecker_SetCertChainCheckerState
                     (checker, (PKIX_PL_Object *)state, plContext),
-                    "PKIX_CertChainChecker_SetCertChainCheckerState failed");
+                    PKIX_CERTCHAINCHECKERSETCERTCHAINCHECKERSTATEFAILED);
 
 
 cleanup:
@@ -321,7 +319,7 @@ pkix_BasicConstraintsChecker_Initialize(
 
         PKIX_CHECK(pkix_BasicConstraintsCheckerState_Create
                     (certsRemaining, &state, plContext),
-                    "PKIX_BasicConstraintsCheckerState_Create failed");
+                    PKIX_BASICCONSTRAINTSCHECKERSTATECREATEFAILED);
 
         PKIX_CHECK(PKIX_CertChainChecker_Create
                     (pkix_BasicConstraintsChecker_Check,
@@ -331,7 +329,7 @@ pkix_BasicConstraintsChecker_Initialize(
                     (PKIX_PL_Object *)state,
                     pChecker,
                     plContext),
-                    "PKIX_CertChainChecker_Check failed");
+                    PKIX_CERTCHAINCHECKERCHECKFAILED);
 
 cleanup:
         PKIX_DECREF(state);

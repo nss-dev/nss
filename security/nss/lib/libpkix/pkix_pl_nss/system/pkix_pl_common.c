@@ -131,7 +131,7 @@ pkix_UnlockObject(
 
         if (result == PR_FAILURE) {
                 PKIX_OBJECT_DEBUG("\tPR_Unlock failed.).\n");
-                PKIX_ERROR_FATAL("Error unlocking object");
+                PKIX_ERROR_FATAL(PKIX_ERRORUNLOCKINGOBJECT);
         }
 
 cleanup:
@@ -268,7 +268,7 @@ pkix_pl_getOIDToken(
             }
         }
 
-        PKIX_ERROR("Invalid encoding: OID token value too big");
+        PKIX_ERROR(PKIX_INVALIDENCODINGOIDTOKENVALUETOOBIG);
 
 cleanup:
 
@@ -323,8 +323,7 @@ pkix_pl_helperBytes2Ascii(
         PKIX_NULLCHECK_TWO(tokens, pAscii);
 
         if (numTokens == 0) {
-                PKIX_ERROR_FATAL("pkix_pl_helperBytes2Ascii: "
-                "numTokens is zero");
+                PKIX_ERROR_FATAL(PKIX_HELPERBYTES2ASCIINUMTOKENSZERO);
         }
 
         /*
@@ -337,7 +336,7 @@ pkix_pl_helperBytes2Ascii(
 
         PKIX_CHECK(PKIX_PL_Malloc
                     (MAX_DIGITS_32 + 1, (void **)&tempString, plContext),
-                    "PKIX_PL_Malloc failed");
+                    PKIX_MALLOCFAILED);
 
         for (i = 0; i < numTokens; i++){
                 PKIX_OBJECT_DEBUG("\tCalling PR_snprintf).\n");
@@ -346,7 +345,7 @@ pkix_pl_helperBytes2Ascii(
                                     format,
                                     tokens[i]);
                 if (error == -1){
-                        PKIX_ERROR("PR_snprintf failed");
+                        PKIX_ERROR(PKIX_PRSNPRINTFFAILED);
                 }
 
                 PKIX_OBJECT_DEBUG("\tCalling PL_strlen).\n");
@@ -359,7 +358,7 @@ pkix_pl_helperBytes2Ascii(
         /* Allocate space for the destination string */
         PKIX_CHECK(PKIX_PL_Malloc
                     (outputLen, (void **)&outputString, plContext),
-                    "PKIX_PL_Malloc failed");
+                    PKIX_MALLOCFAILED);
 
         *outputString = '\0';
 
@@ -372,7 +371,7 @@ pkix_pl_helperBytes2Ascii(
                                     format,
                                     tokens[i]);
                 if (error == -1){
-                        PKIX_ERROR("PR_snprintf failed");
+                        PKIX_ERROR(PKIX_PRSNPRINTFFAILED);
                 }
 
                 PKIX_OBJECT_DEBUG("\tCalling PL_strcat).\n");
@@ -443,8 +442,7 @@ pkix_pl_ipAddrBytes2Ascii(
         PKIX_NULLCHECK_THREE(secItem, pAscii, secItem->data);
 
         if (secItem->len == 0) {
-                PKIX_ERROR_FATAL("pkix_pl_ipAddrBytes2Ascii: "
-                "data length is zero");
+                PKIX_ERROR_FATAL(PKIX_IPADDRBYTES2ASCIIDATALENGTHZERO);
         }
 
         data = (char *)(secItem->data);
@@ -455,7 +453,7 @@ pkix_pl_ipAddrBytes2Ascii(
                     (numTokens * sizeof (PKIX_UInt32),
                     (void **)&tokens,
                     plContext),
-                    "PKIX_PL_Malloc failed");
+                    PKIX_MALLOCFAILED);
 
         /* populate array of integers */
         for (i = 0; i < numTokens; i++){
@@ -465,7 +463,7 @@ pkix_pl_ipAddrBytes2Ascii(
         /* convert array of integers to ASCII */
         PKIX_CHECK(pkix_pl_helperBytes2Ascii
                     (tokens, numTokens, &asciiString, plContext),
-                    "pkix_pl_helperBytes2Ascii failed");
+                    PKIX_HELPERBYTES2ASCIIFAILED);
 
         *pAscii = asciiString;
 
@@ -527,8 +525,7 @@ pkix_pl_oidBytes2Ascii(
         PKIX_NULLCHECK_THREE(secItem, pAscii, secItem->data);
 
         if (secItem->len == 0) {
-                PKIX_ERROR_FATAL("pkix_pl_oidBytes2Ascii: "
-                "data length is zero");
+                PKIX_ERROR_FATAL(PKIX_OIDBYTES2ASCIIDATALENGTHZERO);
         }
 
         data = (char *)(secItem->data);
@@ -544,7 +541,7 @@ pkix_pl_oidBytes2Ascii(
 
         /* if we are unable to retrieve any tokens at all, we throw an error */
         if (numTokens == 0){
-                PKIX_ERROR("Invalid DER-encoding for OID");
+                PKIX_ERROR(PKIX_INVALIDDERENCODINGFOROID);
         }
 
         /* add one more token b/c the first byte always contains two tokens */
@@ -555,7 +552,7 @@ pkix_pl_oidBytes2Ascii(
                     (numTokens * sizeof (PKIX_UInt32),
                     (void **)&tokens,
                     plContext),
-                    "PKIX_PL_Malloc failed");
+                    PKIX_MALLOCFAILED);
 
         /* populate array of integers */
         for (i = 0; i < numTokens; i++){
@@ -563,7 +560,7 @@ pkix_pl_oidBytes2Ascii(
                 /* retrieve integer token */
                 PKIX_CHECK(pkix_pl_getOIDToken
                             (data, index, &token, &index, plContext),
-                            "pkix_pl_getOIDToken failed");
+                            PKIX_GETOIDTOKENFAILED);
 
                 if (i == 0){
 
@@ -593,7 +590,7 @@ pkix_pl_oidBytes2Ascii(
         /* convert array of integers to ASCII */
         PKIX_CHECK(pkix_pl_helperBytes2Ascii
                     (tokens, numTokens, &asciiString, plContext),
-                    "pkix_pl_helperBytes2Ascii failed");
+                    PKIX_HELPERBYTES2ASCIIFAILED);
 
         *pAscii = asciiString;
 
@@ -658,7 +655,7 @@ pkix_UTF16_to_EscASCII(
 
         /* utf16Lenght must be even */
         if ((utf16Length % 2) != 0){
-                PKIX_ERROR("UTF16 Alignment Error");
+                PKIX_ERROR(PKIX_UTF16ALIGNMENTERROR);
         }
 
         /* Count how many bytes we need */
@@ -674,7 +671,7 @@ pkix_UTF16_to_EscASCII(
                         }
                 } else if ((utf16Char[i] >= 0xD8) && (utf16Char[i] <= 0xDB)) {
                         if ((i+3) >= utf16Length) {
-                                PKIX_ERROR("UTF16 High Zone Alignment Error");
+                                PKIX_ERROR(PKIX_UTF16HIGHZONEALIGNMENTERROR);
                         } else if ((utf16Char[i+2] >= 0xDC)&&
                                 (utf16Char[i+2] <= 0xDF)) {
                                 /* Quartet of bytes will become &#xNNNNNNNN; */
@@ -683,7 +680,7 @@ pkix_UTF16_to_EscASCII(
                                 i += 2;
                         } else {
                                 /* Second pair should be DC00-DFFF */
-                                PKIX_ERROR("UTF16 Low Zone Error");
+                                PKIX_ERROR(PKIX_UTF16LOWZONEERROR);
                         }
                 }
         }
@@ -695,7 +692,7 @@ pkix_UTF16_to_EscASCII(
 
         /* Allocate space for character array */
         PKIX_CHECK(PKIX_PL_Malloc(charLen, (void **)pDest, plContext),
-                    "PKIX_PL_Malloc failed");
+                    PKIX_MALLOCFAILED);
 
         destPtr = *pDest;
         for (i = 0; i < utf16Length; i += 2) {
@@ -727,7 +724,7 @@ pkix_UTF16_to_EscASCII(
                         PKIX_STRING_DEBUG("\tCalling PR_snprintf).\n");
                         if (PR_snprintf(destPtr, 13, "&#x%08X;", z) ==
                             (PKIX_UInt32)(-1)) {
-                                PKIX_ERROR("Error in snprintf");
+                                PKIX_ERROR(PKIX_ERRORINSNPRINTF);
                         }
                         i += 2;
                         destPtr += 12;
@@ -741,7 +738,7 @@ pkix_UTF16_to_EscASCII(
                             utf16Char[i],
                             utf16Char[i+1]) ==
                             (PKIX_UInt32)(-1)) {
-                                PKIX_ERROR("Error in snprintf");
+                                PKIX_ERROR(PKIX_ERRORINSNPRINTF);
                         }
                         destPtr += 8;
                 }
@@ -807,7 +804,7 @@ pkix_EscASCII_to_UTF16(
 
         if (escAsciiLen == 0) {
                 PKIX_CHECK(PKIX_PL_Malloc(escAsciiLen, pDest, plContext),
-                            "PKIX_PL_Malloc failed");
+                            PKIX_MALLOCFAILED);
                 goto cleanup;
         }
 
@@ -818,8 +815,7 @@ pkix_EscASCII_to_UTF16(
         for (i = 0; i < escAsciiLen; i++) {
                 if (!pkix_isPlaintext(stringData[i], debug)&&
                     (stringData[i] != '&')) {
-                        PKIX_ERROR("Illegal character in Escaped ASCII "
-                                    "String");
+                        PKIX_ERROR(PKIX_ILLEGALCHARACTERINESCAPEDASCII);
                 } else if (PL_strstr(escAsciiString+i, "&amp;") ==
                             escAsciiString+i) {
                         /* Convert EscAscii "&amp;" to two bytes */
@@ -840,13 +836,13 @@ pkix_EscASCII_to_UTF16(
                                 newLen -= 20;
                                 i += 11;
                         } else {
-                                PKIX_ERROR("Illegal use of &amp;#x...");
+                                PKIX_ERROR(PKIX_ILLEGALUSEOFAMP);
                         }
                 }
         }
 
         PKIX_CHECK(PKIX_PL_Malloc(newLen, pDest, plContext),
-                    "PKIX_PL_Malloc failed");
+                    PKIX_MALLOCFAILED);
 
         /* Copy into newly allocated space */
         destPtr = (unsigned char *)*pDest;
@@ -878,14 +874,13 @@ pkix_EscASCII_to_UTF16(
                         /* Make sure there is a terminating semi-colon */
                         if (((i+charSize) > escAsciiLen)||
                             (escAsciiString[i+charSize] != ';')) {
-                                PKIX_ERROR("Truncated Unicode in EscapedASCII");
+                                PKIX_ERROR(PKIX_TRUNCATEDUNICODEINESCAPEDASCII);
                         }
 
                         for (j = 0; j < charSize; j++) {
                                 if (!PKIX_ISXDIGIT
                                     (escAsciiString[i+j])) {
-                                        PKIX_ERROR("Illegal Unicode character"
-                                                    " in EscapedASCII");
+                                        PKIX_ERROR(PKIX_ILLEGALUNICODECHARACTER);
                                 } else if (charSize == 8) {
                                         x |= (pkix_hex2i
                                                         (escAsciiString[i+j]))
@@ -903,13 +898,11 @@ pkix_EscASCII_to_UTF16(
                         if (charSize == 4) {
                                 if ((testChar >= 0xD8)&&
                                     (testChar <= 0xDF)) {
-                                        PKIX_ERROR("Illegal surrogate pair "
-                                                    "in EscapedASCII");
+                                        PKIX_ERROR(PKIX_ILLEGALSURROGATEPAIR);
                                 } else if ((testChar == 0x00)&&
-                                            pkix_isPlaintext
-                                            (testChar2, debug)){
-                                            PKIX_ERROR("Illegal &amp;#x "
-                                                    "value in EscapedASCII");
+                                  pkix_isPlaintext(testChar2, debug)) {
+                                      PKIX_ERROR(
+                                          PKIX_ILLEGALCHARACTERINESCAPEDASCII);
                                 }
                                 *destPtr++ = testChar;
                                 *destPtr++ = testChar2;
@@ -918,8 +911,8 @@ pkix_EscASCII_to_UTF16(
                                 if (!((testChar == 0x00)&&
                                     ((testChar2 >= 0x01)&&
                                     (testChar2 <= 0x10)))) {
-                                        PKIX_ERROR("Illegal &amp;#x value in "
-                                                    "EscapedASCII");
+                                      PKIX_ERROR(
+                                          PKIX_ILLEGALCHARACTERINESCAPEDASCII);
                                 }
                                 /*
                                  * Unicode Strings of the form:
@@ -942,7 +935,7 @@ pkix_EscASCII_to_UTF16(
                         i += charSize+1;
                 } else {
                         /* Do not allow any other non-plaintext character */
-                        PKIX_ERROR("Illegal &amp;-Character in EscASCII");
+                        PKIX_ERROR(PKIX_ILLEGALCHARACTERINESCAPEDASCII);
                 }
         }
 
@@ -1005,7 +998,7 @@ pkix_UTF16_to_UTF8(
 
         /* XXX How big can a UTF8 string be compared to a UTF16? */
         PKIX_CHECK(PKIX_PL_Calloc(1, utf16Length*2, pDest, plContext),
-                    "PKIX_PL_Calloc failed");
+                    PKIX_CALLOCFAILED);
 
         PKIX_STRING_DEBUG("\tCalling PORT_UCS2_UTF8Conversion).\n");
         result = PORT_UCS2_UTF8Conversion
@@ -1016,7 +1009,7 @@ pkix_UTF16_to_UTF8(
                 utf16Length*2, /* Max Size */
                 pLength);
         if (result == PR_FALSE){
-                PKIX_ERROR("PORT_UCS2_UTF8Conversion failed.");
+                PKIX_ERROR(PKIX_PORTUCS2UTF8CONVERSIONFAILED);
         }
 
         reallocLen = *pLength;
@@ -1026,7 +1019,7 @@ pkix_UTF16_to_UTF8(
         }
 
         PKIX_CHECK(PKIX_PL_Realloc(*pDest, reallocLen, pDest, plContext),
-                    "PKIX_PL_Realloc failed");
+                    PKIX_REALLOCFAILED);
 
         if (null_term){
                 endPtr = (char*)*pDest + reallocLen - 1;
@@ -1084,7 +1077,7 @@ pkix_UTF8_to_UTF16(
 
         /* XXX How big can a UTF8 string be compared to a UTF16? */
         PKIX_CHECK(PKIX_PL_Calloc(1, utf8Length*2, pDest, plContext),
-                    "PKIX_PL_Malloc failed");
+                    PKIX_MALLOCFAILED);
 
         PKIX_STRING_DEBUG("\tCalling PORT_UCS2_UTF8Conversion).\n");
         result = PORT_UCS2_UTF8Conversion
@@ -1095,11 +1088,11 @@ pkix_UTF8_to_UTF16(
                 utf8Length*2, /* Max Size */
                 pLength);
         if (result == PR_FALSE){
-                PKIX_ERROR("PORT_UCS2_UTF8Conversion failed.");
+                PKIX_ERROR(PKIX_PORTUCS2UTF8CONVERSIONFAILED);
         }
 
         PKIX_CHECK(PKIX_PL_Realloc(*pDest, *pLength, pDest, plContext),
-                    "PKIX_PL_Realloc failed");
+                    PKIX_REALLOCFAILED);
 
 cleanup:
 

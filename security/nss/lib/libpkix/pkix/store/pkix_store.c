@@ -61,7 +61,7 @@ pkix_CertStore_Destroy(
 
         /* Check that this object is a CertStore object */
         PKIX_CHECK(pkix_CheckType(object, PKIX_CERTSTORE_TYPE, plContext),
-                    "Object is not a CertStore object");
+                PKIX_OBJECTNOTCERTSTORE);
 
         certStore = (PKIX_CertStore *)object;
 
@@ -95,7 +95,7 @@ pkix_CertStore_Hashcode(
         PKIX_NULLCHECK_TWO(object, pHashcode);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_CERTSTORE_TYPE, plContext),
-                    "Object is not a CertStore");
+                    PKIX_OBJECTNOTCERTSTORE);
 
         certStore = (PKIX_CertStore *)object;
 
@@ -104,7 +104,7 @@ pkix_CertStore_Hashcode(
                     ((PKIX_PL_Object *) certStore->certStoreContext,
                     &tempHash,
                     plContext),
-                   "pkix_CertStore_Hashcode failed");
+                   PKIX_CERTSTOREHASHCODEFAILED);
         }
 
         *pHashcode = (PKIX_UInt32) certStore->certCallback +
@@ -139,7 +139,7 @@ pkix_CertStore_Equals(
 
         PKIX_CHECK(pkix_CheckTypes
                     (firstObject, secondObject, PKIX_CERTSTORE_TYPE, plContext),
-                    "Arguments are not Dates");
+                    PKIX_ARGUMENTSNOTDATES);
 
         firstCS = (PKIX_CertStore *)firstObject;
         secondCS = (PKIX_CertStore *)secondObject;
@@ -158,7 +158,7 @@ pkix_CertStore_Equals(
                     (PKIX_PL_Object *) secondCS->certStoreContext,
                     &cmpResult,
                     plContext),
-                    "pkix_CertStore_Equals failed");
+                    PKIX_CERTSTOREEQUALSFAILED);
         }
 
         *pResult = cmpResult;
@@ -229,7 +229,7 @@ PKIX_CertStore_Create(
                     sizeof (PKIX_CertStore),
                     (PKIX_PL_Object **)&certStore,
                     plContext),
-                    "Could not create CertStore object");
+                    PKIX_COULDNOTCREATECERTSTOREOBJECT);
 
         certStore->certCallback = certCallback;
         certStore->crlCallback = crlCallback;
@@ -299,7 +299,7 @@ PKIX_CertStore_CertContinue(
 
         PKIX_CHECK(store->certContinue
                 (store, selector, pNBIOContext, pCertList, plContext),
-                "PKIX_CertStore_CertContinueFunction failed");
+                PKIX_CERTSTORECERTCONTINUEFUNCTIONFAILED);
 
 cleanup:
 
@@ -322,7 +322,7 @@ PKIX_CertStore_CrlContinue(
 
         PKIX_CHECK(store->crlContinue
                 (store, selector, pNBIOContext, pCrlList, plContext),
-                "PKIX_CertStore_CrlContinue failed");
+                PKIX_CERTSTORECRLCONTINUEFAILED);
 
 cleanup:
 

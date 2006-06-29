@@ -59,7 +59,7 @@ pkix_pl_OcspRequest_Destroy(
         PKIX_NULLCHECK_ONE(object);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_OCSPREQUEST_TYPE, plContext),
-                    "Object is not a OcspRequest");
+                    PKIX_OBJECTNOTOCSPREQUEST);
 
         ocspReq = (PKIX_PL_OcspRequest *)object;
 
@@ -118,24 +118,24 @@ pkix_pl_OcspRequest_Hashcode(
         PKIX_NULLCHECK_TWO(object, pHashcode);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_OCSPREQUEST_TYPE, plContext),
-                    "Object is not a OcspRequest");
+                    PKIX_OBJECTNOTOCSPREQUEST);
 
         ocspRq = (PKIX_PL_OcspRequest *)object;
 
         *pHashcode = 0;
 
         PKIX_HASHCODE(ocspRq->cert, &certHash, plContext,
-                "PKIX_PL_Cert_Hashcode failed");
+                PKIX_CERTHASHCODEFAILED);
 
         PKIX_HASHCODE(ocspRq->validity, &dateHash, plContext,
-                "PKIX_PL_Date_Hashcode failed");
+                PKIX_DATEHASHCODEFAILED);
 
         if (ocspRq->addServiceLocator == PKIX_TRUE) {
                 extensionHash = 0xff;
         }
 
         PKIX_HASHCODE(ocspRq->signerCert, &signerHash, plContext,
-                "PKIX_PL_Cert_Hashcode failed");
+                PKIX_CERTHASHCODEFAILED);
 
         *pHashcode = (((((extensionHash << 8) || certHash) << 8) ||
                 dateHash) << 8) || signerHash;
@@ -167,7 +167,7 @@ pkix_pl_OcspRequest_Equals(
 
         /* test that firstObj is a OcspRequest */
         PKIX_CHECK(pkix_CheckType(firstObj, PKIX_OCSPREQUEST_TYPE, plContext),
-                    "firstObj argument is not a OcspRequest");
+                    PKIX_FIRSTOBJARGUMENTNOTOCSPREQUEST);
 
         /*
          * Since we know firstObj is a OcspRequest, if both references are
@@ -184,7 +184,7 @@ pkix_pl_OcspRequest_Equals(
          */
         PKIX_CHECK(PKIX_PL_Object_GetType
                     (secondObj, &secondType, plContext),
-                    "Could not get type of second argument");
+                    PKIX_COULDNOTGETTYPEOFSECONDARGUMENT);
         if (secondType != PKIX_OCSPREQUEST_TYPE) {
                 goto cleanup;
         }
@@ -197,14 +197,14 @@ pkix_pl_OcspRequest_Equals(
         }
 
         PKIX_EQUALS(firstReq->cert, secondReq->cert, &match, plContext,
-                "PKIX_PL_Cert_Equals failed");
+                PKIX_CERTEQUALSFAILED);
 
         if (match == PKIX_FALSE) {
                 goto cleanup;
         }
 
         PKIX_EQUALS(firstReq->validity, secondReq->validity, &match, plContext,
-                "PKIX_PL_Date_Equals failed");
+                PKIX_DATEEQUALSFAILED);
 
         if (match == PKIX_FALSE) {
                 goto cleanup;
@@ -212,7 +212,7 @@ pkix_pl_OcspRequest_Equals(
 
         PKIX_EQUALS
                 (firstReq->signerCert, secondReq->signerCert, &match, plContext,
-                "PKIX_PL_Cert_Equals failed");
+                PKIX_CERTEQUALSFAILED);
 
 cleanup:
 
@@ -330,7 +330,7 @@ pkix_pl_OcspRequest_Create(
                     sizeof (PKIX_PL_OcspRequest),
                     (PKIX_PL_Object **)&ocspRequest,
                     plContext),
-                    "Could not create object");
+                    PKIX_COULDNOTCREATEOBJECT);
 
         PKIX_INCREF(cert);
         ocspRequest->cert = cert;
@@ -362,7 +362,7 @@ pkix_pl_OcspRequest_Create(
                         *pURIFound = PKIX_FALSE;
                         goto cleanup;
                 } else {
-                        PKIX_ERROR("Error finding or processing URI");
+                        PKIX_ERROR(PKIX_ERRORFINDINGORPROCESSINGURI);
                 }
         } else {
                 ocspRequest->location = location;
@@ -383,7 +383,7 @@ pkix_pl_OcspRequest_Create(
          */
         PKIX_PL_NSSCALLRV(OCSPREQUEST, certList, CERT_NewCertList, ());
         if (certList == NULL) {
-                PKIX_ERROR("Unable to create a new CertList");
+                PKIX_ERROR(PKIX_UNABLETOCREATENEWCERTLIST);
         }
 
         ocspRequest->certList = certList;
@@ -392,12 +392,12 @@ pkix_pl_OcspRequest_Create(
                 (certList, nssCert));
 
         if (rv == SECFailure) {
-                PKIX_ERROR("Unable to add Cert to CertList");
+                PKIX_ERROR(PKIX_UNABLETOADDCERTTOCERTLIST);
         }
 
         if (validity != NULL) {
 		PKIX_CHECK(pkix_pl_Date_GetPRTime(validity, &time, plContext),
-			"pkix_pl_Date_GetPRTime failed");
+			PKIX_DATEGETPRTIMEFAILED);
         } else {
                 PKIX_PL_NSSCALLRV(OCSPREQUEST, time, PR_Now, ());
 	}
@@ -409,7 +409,7 @@ pkix_pl_OcspRequest_Create(
                 (certList, time, addServiceLocatorExtension, nssSignerCert));
 
         if (certRequest == NULL) {
-                PKIX_ERROR("Unable to create a CertOCSPRequest");
+                PKIX_ERROR(PKIX_UNABLETOCREATECERTOCSPREQUEST);
         }
 
         PKIX_PL_NSSCALLRV
@@ -417,7 +417,7 @@ pkix_pl_OcspRequest_Create(
                 (certRequest, SEC_OID_PKIX_OCSP_BASIC_RESPONSE));
 
         if (rv == SECFailure) {
-                PKIX_ERROR("Unable to add acceptableResponses to request");
+                PKIX_ERROR(PKIX_UNABLETOADDACCEPTABLERESPONSESTOREQUEST);
         }
 
         ocspRequest->decoded = certRequest;

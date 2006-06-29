@@ -153,7 +153,7 @@ pkix_PolicyNode_Create(
                 sizeof (PKIX_PolicyNode),
                 (PKIX_PL_Object **)&node,
                 plContext),
-                "Could not create a PolicyNode object");
+                PKIX_COULDNOTCREATEPOLICYNODEOBJECT);
 
         PKIX_INCREF(validPolicy);
         node->validPolicy = validPolicy;
@@ -162,7 +162,7 @@ pkix_PolicyNode_Create(
         node->qualifierSet = qualifierSet;
         if (qualifierSet) {
                 PKIX_CHECK(PKIX_List_SetImmutable(qualifierSet, plContext),
-                        "PKIX_List_SetImmutable failed");
+                        PKIX_LISTSETIMMUTABLEFAILED);
         }
 
         node->criticality = criticality;
@@ -170,7 +170,7 @@ pkix_PolicyNode_Create(
         PKIX_INCREF(expectedPolicySet);
         node->expectedPolicySet = expectedPolicySet;
         PKIX_CHECK(PKIX_List_SetImmutable(expectedPolicySet, plContext),
-                "PKIX_List_SetImmutable failed");
+                PKIX_LISTSETIMMUTABLEFAILED);
 
         node->parent = NULL;
         node->children = NULL;
@@ -231,7 +231,7 @@ pkix_PolicyNode_AddToParent(
         listOfChildren = parentNode->children;
         if (listOfChildren == NULL) {
                 PKIX_CHECK(PKIX_List_Create(&listOfChildren, plContext),
-                        "PKIX_List_Create failed");
+                        PKIX_LISTCREATEFAILED);
                 parentNode->children = listOfChildren;
         }
 
@@ -247,15 +247,15 @@ pkix_PolicyNode_AddToParent(
 
         PKIX_CHECK(PKIX_List_AppendItem
                 (listOfChildren, (PKIX_PL_Object *)child, plContext),
-                "Could not append child to parent's PolicyNode list");
+                PKIX_COULDNOTAPPENDCHILDTOPARENTSPOLICYNODELIST);
 
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                 ((PKIX_PL_Object *)parentNode, plContext),
-                "PKIX_PL_Object_InvalidateCache failed");
+                PKIX_OBJECTINVALIDATECACHEFAILED);
 
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                 ((PKIX_PL_Object *)child, plContext),
-                "PKIX_PL_Object_InvalidateCache failed");
+                PKIX_OBJECTINVALIDATECACHEFAILED);
 
 cleanup:
 
@@ -329,7 +329,7 @@ pkix_PolicyNode_Prune(
         if (height > 1) {
                 PKIX_CHECK(PKIX_List_GetLength
                         (node->children, &listSize, plContext),
-                        "PKIX_List_GetLength failed");
+                        PKIX_LISTGETLENGTHFAILED);
                 /*
                  * By working backwards from the end of the list,
                  * we avoid having to worry about possible
@@ -345,21 +345,21 @@ pkix_PolicyNode_Prune(
                                 (listIndex - 1),
                                 (PKIX_PL_Object **)&candidate,
                                 plContext),
-                                "PKIX_List_GetItem failed");
+                                PKIX_LISTGETITEMFAILED);
 
                         PKIX_CHECK(pkix_PolicyNode_Prune
                                 (candidate,
                                 height - 1,
                                 &shouldBePruned,
                                 plContext),
-                                "pkix_PolicyNode_Prune failed");
+                                PKIX_POLICYNODEPRUNEFAILED);
 
                         if (shouldBePruned == PKIX_TRUE) {
                                 PKIX_CHECK(PKIX_List_DeleteItem
                                         (node->children,
                                         (listIndex - 1),
                                         plContext),
-                                        "PKIX_List_DeleteItem failed");
+                                        PKIX_LISTDELETEITEMFAILED);
                         }
 
                         PKIX_DECREF(candidate);
@@ -369,7 +369,7 @@ pkix_PolicyNode_Prune(
         /* Prune if this node has *become* childless */
         PKIX_CHECK(PKIX_List_GetLength
                 (node->children, &listSize, plContext),
-                "PKIX_List_GetLength failed");
+                PKIX_LISTGETLENGTHFAILED);
         if (listSize == 0) {
                 childless = PKIX_TRUE;
         }
@@ -380,7 +380,7 @@ pkix_PolicyNode_Prune(
          */
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                 ((PKIX_PL_Object *)node, plContext),
-                "PKIX_PL_Object_InvalidateCache failed");
+                PKIX_OBJECTINVALIDATECACHEFAILED);
 
 cleanup:
         *pDelete = childless;
@@ -436,26 +436,26 @@ pkix_SinglePolicyNode_ToString(
                 0,
                 &fmtString,
                 plContext),
-                "Can't create PKIX_PL_String");
+                PKIX_CANTCREATESTRING);
 
         PKIX_CHECK(PKIX_PL_Object_ToString
                 ((PKIX_PL_Object *)(node->validPolicy),
                 &validString,
                 plContext),
-                "PKIX_PL_OID_ToString failed");
+                PKIX_OIDTOSTRINGFAILED);
 
         PKIX_CHECK(PKIX_PL_Object_ToString
                 ((PKIX_PL_Object *)(node->expectedPolicySet),
                 &expectedString,
                 plContext),
-                "PKIX_List_ToString failed");
+                PKIX_LISTTOSTRINGFAILED);
 
         if (node->qualifierSet) {
                 PKIX_CHECK(PKIX_PL_Object_ToString
                         ((PKIX_PL_Object *)(node->qualifierSet),
                         &qualifierString,
                         plContext),
-                        "PKIX_List_ToString failed");
+                        PKIX_LISTTOSTRINGFAILED);
         } else {
                 PKIX_CHECK(PKIX_PL_String_Create
                         (PKIX_ESCASCII,
@@ -463,7 +463,7 @@ pkix_SinglePolicyNode_ToString(
                         0,
                         &qualifierString,
                         plContext),
-                        "Can't create PKIX_PL_String");
+                        PKIX_CANTCREATESTRING);
         }
 
         PKIX_CHECK(PKIX_PL_String_Create
@@ -472,7 +472,7 @@ pkix_SinglePolicyNode_ToString(
                 0,
                 &criticalityString,
                 plContext),
-                "Can't create PKIX_PL_String");
+                PKIX_CANTCREATESTRING);
 
         PKIX_CHECK(PKIX_PL_Sprintf
                 (&outString,
@@ -483,7 +483,7 @@ pkix_SinglePolicyNode_ToString(
                 criticalityString,
                 expectedString,
                 node->depth),
-                "PKIX_PL_Sprintf failed");
+                PKIX_SPRINTFFAILED);
 
         *pString = outString;
 
@@ -550,7 +550,7 @@ pkix_PolicyNode_ToString_Helper(
         /* Create a string for this node */
         PKIX_CHECK(pkix_SinglePolicyNode_ToString
                 (rootNode, &thisItemString, plContext),
-                "Error in pkix_SinglePolicyNode_ToString");
+                PKIX_ERRORINSINGLEPOLICYNODETOSTRING);
 
         if (indent) {
                 PKIX_CHECK(PKIX_PL_String_Create
@@ -559,7 +559,7 @@ pkix_PolicyNode_ToString_Helper(
                         0,
                         &thisNodeFormat,
                         plContext),
-                        "Error creating format string");
+                        PKIX_ERRORCREATINGFORMATSTRING);
 
                 PKIX_CHECK(PKIX_PL_Sprintf
                         (&resultString,
@@ -567,7 +567,7 @@ pkix_PolicyNode_ToString_Helper(
                         thisNodeFormat,
                         indent,
                         thisItemString),
-                        "Error in Sprintf");
+                        PKIX_ERRORINSPRINTF);
         } else {
                 PKIX_CHECK(PKIX_PL_String_Create
                         (PKIX_ESCASCII,
@@ -575,14 +575,14 @@ pkix_PolicyNode_ToString_Helper(
                         0,
                         &thisNodeFormat,
                         plContext),
-                        "Error creating format string");
+                        PKIX_ERRORCREATINGFORMATSTRING);
 
                 PKIX_CHECK(PKIX_PL_Sprintf
                         (&resultString,
                         plContext,
                         thisNodeFormat,
                         thisItemString),
-                        "Error in Sprintf");
+                        PKIX_ERRORINSPRINTF);
         }
 
         PKIX_DECREF(thisItemString);
@@ -592,7 +592,7 @@ pkix_PolicyNode_ToString_Helper(
         if (rootNode->children) {
                 PKIX_CHECK(PKIX_List_GetLength
                         (rootNode->children, &numberOfChildren, plContext),
-                        "Error in PKIX_List_GetLength");
+                        PKIX_LISTGETLENGTHFAILED);
         }
 
         if (numberOfChildren != 0) {
@@ -609,14 +609,14 @@ pkix_PolicyNode_ToString_Helper(
                                 0,
                                 &nextIndentFormat,
                                 plContext),
-                                "Error creating format string");
+                                PKIX_ERRORCREATINGFORMATSTRING);
 
                         PKIX_CHECK(PKIX_PL_Sprintf
                                 (&nextIndentString,
                                 plContext,
                                 nextIndentFormat,
                                 indent),
-                                "Error in Sprintf");
+                                PKIX_ERRORINSPRINTF);
                 } else {
                         PKIX_CHECK(PKIX_PL_String_Create
                                 (PKIX_ESCASCII,
@@ -624,7 +624,7 @@ pkix_PolicyNode_ToString_Helper(
                                 0,
                                 &nextIndentString,
                                 plContext),
-                                "Error creating indent string");
+                                PKIX_ERRORCREATINGINDENTSTRING);
                 }
 
                 /* Prepare the format for concatenation. */
@@ -634,7 +634,7 @@ pkix_PolicyNode_ToString_Helper(
                         0,
                         &childrenFormat,
                         plContext),
-                        "Error creating format string");
+                        PKIX_ERRORCREATINGFORMATSTRING);
 
                 for (childIndex = 0;
                         childIndex < numberOfChildren;
@@ -644,14 +644,14 @@ pkix_PolicyNode_ToString_Helper(
                                 childIndex,
                                 (PKIX_PL_Object **)&childNode,
                                 plContext),
-                                "Error in PKIX_List_GetItem");
+                                PKIX_LISTGETITEMFAILED);
 
                         PKIX_CHECK(pkix_PolicyNode_ToString_Helper
                                 (childNode,
                                 nextIndentString,
                                 &childString,
                                 plContext),
-                                "Error creating child string");
+                                PKIX_ERRORCREATINGCHILDSTRING);
 
 
                         PKIX_CHECK(PKIX_PL_Sprintf
@@ -660,7 +660,7 @@ pkix_PolicyNode_ToString_Helper(
                                 childrenFormat,
                                 thisItemString,
                                 childString),
-                        "Error in Sprintf");
+                        PKIX_ERRORINSPRINTF);
 
                         PKIX_DECREF(childNode);
                         PKIX_DECREF(childString);
@@ -705,13 +705,13 @@ pkix_PolicyNode_ToString(
         PKIX_NULLCHECK_TWO(object, pTreeString);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_CERTPOLICYNODE_TYPE, plContext),
-                "Object is not a PolicyNode");
+                PKIX_OBJECTNOTPOLICYNODE);
 
         rootNode = (PKIX_PolicyNode *)object;
 
         PKIX_CHECK(pkix_PolicyNode_ToString_Helper
                 (rootNode, NULL, &resultString, plContext),
-                "Error creating subtree string");
+                PKIX_ERRORCREATINGSUBTREESTRING);
 
         *pTreeString = resultString;
 
@@ -736,7 +736,7 @@ pkix_PolicyNode_Destroy(
         PKIX_NULLCHECK_ONE(object);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_CERTPOLICYNODE_TYPE, plContext),
-                "Object is not a PolicyNode");
+                PKIX_OBJECTNOTPOLICYNODE);
 
         node = (PKIX_PolicyNode*)object;
 
@@ -798,7 +798,7 @@ pkix_SinglePolicyNode_Hashcode(
                 (node->qualifierSet,
                 &nodeHash,
                 plContext,
-                "Failure hashing PKIX_List qualifierSet");
+                PKIX_FAILUREHASHINGLISTQUALIFIERSET);
 
         if (PKIX_TRUE == (node->criticality)) {
                 nodeHash = 31*nodeHash + 0xff;
@@ -810,7 +810,7 @@ pkix_SinglePolicyNode_Hashcode(
                 ((PKIX_PL_Object *)node->validPolicy,
                 &componentHash,
                 plContext),
-                "Failure hashing PKIX_PL_OID validPolicy");
+                PKIX_FAILUREHASHINGOIDVALIDPOLICY);
 
         nodeHash = 31*nodeHash + componentHash;
 
@@ -818,7 +818,7 @@ pkix_SinglePolicyNode_Hashcode(
                 ((PKIX_PL_Object *)node->expectedPolicySet,
                 &componentHash,
                 plContext),
-                "Failure hashing PKIX_List expectedPolicySet");
+                PKIX_FAILUREHASHINGLISTEXPECTEDPOLICYSET);
 
         nodeHash = 31*nodeHash + componentHash;
 
@@ -848,13 +848,13 @@ pkix_PolicyNode_Hashcode(
 
         PKIX_CHECK(pkix_CheckType
                 (object, PKIX_CERTPOLICYNODE_TYPE, plContext),
-                "Object is not a PolicyNode");
+                PKIX_OBJECTNOTPOLICYNODE);
 
         node = (PKIX_PolicyNode *)object;
 
         PKIX_CHECK(pkix_SinglePolicyNode_Hashcode
                 (node, &nodeHash, plContext),
-                "pkix_SinglePolicyNode_Hashcode failed");
+                PKIX_SINGLEPOLICYNODEHASHCODEFAILED);
 
         nodeHash = 31*nodeHash + (PKIX_UInt32)(node->parent);
 
@@ -862,7 +862,7 @@ pkix_PolicyNode_Hashcode(
                 (node->children,
                 &childrenHash,
                 plContext,
-                "PKIX_PL_Object_Hashcode failed");
+                PKIX_OBJECTHASHCODEFAILED);
 
         nodeHash = 31*nodeHash + childrenHash;
 
@@ -933,7 +933,7 @@ pkix_SinglePolicyNode_Equals(
                 secondPN->qualifierSet,
                 &compResult,
                 plContext,
-                "PKIX_PL_Object_Equals failed");
+                PKIX_OBJECTEQUALSFAILED);
 
         if (compResult == PKIX_FALSE) {
                 goto cleanup;
@@ -947,7 +947,7 @@ pkix_SinglePolicyNode_Equals(
                 secondPN->validPolicy,
                 &compResult,
                 plContext,
-                "PKIX_PL_Object_Equals failed");
+                PKIX_OBJECTEQUALSFAILED);
 
         if (compResult == PKIX_FALSE) {
                 goto cleanup;
@@ -962,7 +962,7 @@ pkix_SinglePolicyNode_Equals(
                 secondPN->expectedPolicySet,
                 &compResult,
                 plContext,
-                "PKIX_PL_Object_Equals failed on expectedPolicySets");
+                PKIX_OBJECTEQUALSFAILEDONEXPECTEDPOLICYSETS);
 
 cleanup:
 
@@ -993,7 +993,7 @@ pkix_PolicyNode_Equals(
         /* test that firstObject is a PolicyNode */
         PKIX_CHECK(pkix_CheckType
                 (firstObject, PKIX_CERTPOLICYNODE_TYPE, plContext),
-                "FirstObject argument is not a PolicyNode");
+                PKIX_FIRSTOBJECTNOTPOLICYNODE);
 
         /*
          * Since we know firstObject is a PolicyNode,
@@ -1010,7 +1010,7 @@ pkix_PolicyNode_Equals(
          */
         PKIX_CHECK(PKIX_PL_Object_GetType
                     (secondObject, &secondType, plContext),
-                    "Could not get type of second argument");
+                    PKIX_COULDNOTGETTYPEOFSECONDARGUMENT);
 
         if (secondType != PKIX_CERTPOLICYNODE_TYPE) {
                 goto cleanup;
@@ -1035,7 +1035,7 @@ pkix_PolicyNode_Equals(
                 secondPN->children,
                 &compResult,
                 plContext,
-                "PKIX_PL_Object_Equals failed on children");
+                PKIX_OBJECTEQUALSFAILEDONCHILDREN);
 
         if (compResult == PKIX_FALSE) {
                 goto cleanup;
@@ -1043,7 +1043,7 @@ pkix_PolicyNode_Equals(
 
         PKIX_CHECK(pkix_SinglePolicyNode_Equals
                 (firstPN, secondPN, &compResult, plContext),
-                "PKIX_PL_SinglePolicyNode_Equals failed");
+                PKIX_SINGLEPOLICYNODEEQUALSFAILED);
 
 cleanup:
 
@@ -1114,11 +1114,11 @@ pkix_PolicyNode_DuplicateHelper(
                 original->expectedPolicySet,
                 &copy,
                 plContext),
-                "pkix_PolicyNode_Create failed");
+                PKIX_POLICYNODECREATEFAILED);
 
         if (parent) {
                 PKIX_CHECK(pkix_PolicyNode_AddToParent(parent, copy, plContext),
-                        "pkix_PolicyNode_AddToParent failed");
+                        PKIX_POLICYNODEADDTOPARENTFAILED);
         }
 
         /* Are there any children to duplicate? */
@@ -1126,7 +1126,7 @@ pkix_PolicyNode_DuplicateHelper(
 
         if (children) {
             PKIX_CHECK(PKIX_List_GetLength(children, &numChildren, plContext),
-                "PKIX_List_GetLength failed");
+                PKIX_LISTGETLENGTHFAILED);
         }
 
         for (childIndex = 0; childIndex < numChildren; childIndex++) {
@@ -1135,11 +1135,11 @@ pkix_PolicyNode_DuplicateHelper(
                         childIndex,
                         (PKIX_PL_Object **)&child,
                         plContext),
-                        "PKIX_List_GetItem failed");
+                        PKIX_LISTGETITEMFAILED);
 
                 PKIX_CHECK(pkix_PolicyNode_DuplicateHelper
                         (child, copy, NULL, plContext),
-                        "pkix_PolicyNode_DuplicateHelper failed");
+                        PKIX_POLICYNODEDUPLICATEHELPERFAILED);
 
                 PKIX_DECREF(child);
         }
@@ -1175,13 +1175,13 @@ pkix_PolicyNode_Duplicate(
 
         PKIX_CHECK(pkix_CheckType
                 (object, PKIX_CERTPOLICYNODE_TYPE, plContext),
-                "Object is not a PolicyNode");
+                PKIX_OBJECTNOTPOLICYNODE);
 
         original = (PKIX_PolicyNode *)object;
 
         PKIX_CHECK(pkix_PolicyNode_DuplicateHelper
                 (original, NULL, &copy, plContext),
-                "pkix_PolicyNode_DuplicateHelper failed");
+                PKIX_POLICYNODEDUPLICATEHELPERFAILED);
 
         *pNewObject = (PKIX_PL_Object *)copy;
 
@@ -1250,11 +1250,11 @@ PKIX_PolicyNode_GetChildren(
 
         if (!children) {
                 PKIX_CHECK(PKIX_List_Create(&children, plContext),
-                        "PKIX_List_Create failed");
+                        PKIX_LISTCREATEFAILED);
         }
 
         PKIX_CHECK(PKIX_List_SetImmutable(children, plContext),
-                "PKIX_List_SetImmutable failed");
+                PKIX_LISTSETIMMUTABLEFAILED);
 
         *pChildren = children;
 
@@ -1329,11 +1329,11 @@ PKIX_PolicyNode_GetPolicyQualifiers(
 
         if (!qualifiers) {
                 PKIX_CHECK(PKIX_List_Create(&qualifiers, plContext),
-                        "PKIX_List_Create failed");
+                        PKIX_LISTCREATEFAILED);
         }
 
         PKIX_CHECK(PKIX_List_SetImmutable(qualifiers, plContext),
-                "PKIX_List_SetImmutable failed");
+                PKIX_LISTSETIMMUTABLEFAILED);
 
         *pQualifiers = qualifiers;
 

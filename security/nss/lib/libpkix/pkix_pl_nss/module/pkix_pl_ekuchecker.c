@@ -79,7 +79,7 @@ pkix_pl_EkuCheckerState_Destroy(
         PKIX_NULLCHECK_ONE(object);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_EKUCHECKERSTATE_TYPE, plContext),
-                    "Object is not an EKU Checker State");
+                    PKIX_OBJECTNOTANEKUCHECKERSTATE);
 
         ekuCheckerState = (pkix_pl_EkuCheckerState *)object;
 
@@ -138,13 +138,13 @@ pkix_pl_EkuChecker_GetRequiredEku(
         /* Get initial EKU OIDs from ComCertSelParams, if set */
         PKIX_CHECK(PKIX_CertSelector_GetCommonCertSelectorParams
                     (certSelector, &comCertSelParams, plContext),
-                    "PKIX_CertSelector_GetCommonCertSelectorParams failed");
+                    PKIX_CERTSELECTORGETCOMMONCERTSELECTORPARAMSFAILED);
 
         if (comCertSelParams != NULL) {
 
                 PKIX_CHECK(PKIX_ComCertSelParams_GetExtendedKeyUsage
                         (comCertSelParams, &requiredOid, plContext),
-                        "PKIX_ComCertSelParams_GetExtendedKeyUsage failed");
+                        PKIX_COMCERTSELPARAMSGETEXTENDEDKEYUSAGEFAILED);
 
         }
 
@@ -153,7 +153,7 @@ pkix_pl_EkuChecker_GetRequiredEku(
         if (requiredOid != NULL) {
 
             PKIX_CHECK(PKIX_List_Create(&supportedOids, plContext),
-                        "PKIX_List_Create failed");
+                        PKIX_LISTCREATEFAILED);
 
             /* Create a supported OIDs list */
             i = 0;
@@ -163,13 +163,13 @@ pkix_pl_EkuChecker_GetRequiredEku(
                                 (ekuOidStrings[i],
                                 &ekuOid,
                                 plContext),
-                                "PKIX_PL_OID_Create failed");
+                                PKIX_OIDCREATEFAILED);
 
                     PKIX_CHECK(PKIX_List_AppendItem
                                 (supportedOids,
                                 (PKIX_PL_Object *)ekuOid,
                                 plContext),
-                                "PKIX_List_AppendItem failed");
+                                PKIX_LISTAPPENDITEMFAILED);
 
                     PKIX_DECREF(ekuOid);
                     i++;
@@ -178,7 +178,7 @@ pkix_pl_EkuChecker_GetRequiredEku(
             /* Map from OID's to SECCertUsageEnum */
             PKIX_CHECK(PKIX_List_GetLength
                         (supportedOids, &numItems, plContext),
-                        "PKIX_List_GetLength failed");
+                        PKIX_LISTGETLENGTHFAILED);
 
             for (i = 0; i < numItems; i++) {
 
@@ -187,14 +187,14 @@ pkix_pl_EkuChecker_GetRequiredEku(
                         i,
                         (PKIX_PL_Object **)&ekuOid,
                         plContext),
-                        "PKIX_List_GetItem failed");
+                        PKIX_LISTGETITEMFAILED);
 
                     PKIX_CHECK(pkix_List_Contains
                         (requiredOid,
                         (PKIX_PL_Object *)ekuOid,
                         &isContained,
                         plContext),
-                        "PKIX_List_Contains failed");
+                        PKIX_LISTCONTAINSFAILED);
 
                     PKIX_DECREF(ekuOid);
 
@@ -260,25 +260,25 @@ pkix_pl_EkuCheckerState_Create(
                     sizeof (pkix_pl_EkuCheckerState),
                     (PKIX_PL_Object **)&state,
                     plContext),
-                    "Could not create EkuCheckerState object");
+                    PKIX_COULDNOTCREATEEKUCHECKERSTATEOBJECT);
 
 
         PKIX_CHECK(PKIX_ProcessingParams_GetTargetCertConstraints
                     (params, &certSelector, plContext),
-                    "PKIX_ProcessingParams_GetTargetCertConstraints failed");
+                    PKIX_PROCESSINGPARAMSGETTARGETCERTCONSTRAINTSFAILED);
 
         if (certSelector != NULL) {
 
                 PKIX_CHECK(pkix_pl_EkuChecker_GetRequiredEku
                             (certSelector, &requiredExtKeyUsage, plContext),
-                            "pkix_pl_EkuChecker_GetRequiredEku failed");
+                            PKIX_EKUCHECKERGETREQUIREDEKUFAILED);
         }
 
         PKIX_CHECK(PKIX_PL_OID_Create
                     (PKIX_EXTENDEDKEYUSAGE_OID,
                     &state->ekuOID,
                     plContext),
-                    "PKIX_PL_OID_Create failed");
+                    PKIX_OIDCREATEFAILED);
 
         state->requiredExtKeyUsage = requiredExtKeyUsage;
 
@@ -339,7 +339,7 @@ pkix_pl_EkuChecker_Check(
 
         PKIX_CHECK(PKIX_CertChainChecker_GetCertChainCheckerState
                     (checker, (PKIX_PL_Object **)&state, plContext),
-                    "PKIX_CertChainChecker_GetCertChainCheckerState failed");
+                    PKIX_CERTCHAINCHECKERGETCERTCHAINCHECKERSTATEFAILED);
 
         if (state->requiredExtKeyUsage != 0) {
 
@@ -348,10 +348,10 @@ pkix_pl_EkuChecker_Check(
                         state->requiredExtKeyUsage,
                         &checkPassed,
                         plContext),
-                        "pkix_pl_Cert_CheckExtendedKeyUsage failed");
+                        PKIX_CERTCHECKEXTENDEDKEYUSAGEFAILED);
 
                 if (checkPassed == PKIX_FALSE) {
-                        PKIX_ERROR("Extended Key Usage Checking failed");
+                        PKIX_ERROR(PKIX_EXTENDEDKEYUSAGECHECKINGFAILED);
                 }
 
         }
@@ -388,7 +388,7 @@ PKIX_PL_EkuChecker_Initialize(
         /* Register user type object for EKU Checker State */
         PKIX_CHECK(PKIX_PL_Object_RegisterType
                     (PKIX_EKUCHECKERSTATE_TYPE,
-                    "Extended Key Usage User Object",
+                    PKIX_EXTENDEDKEYUSAGEUSEROBJECT,
                     pkix_pl_EkuCheckerState_Destroy,
                     NULL,
                     NULL,
@@ -396,20 +396,20 @@ PKIX_PL_EkuChecker_Initialize(
                     NULL,
                     pkix_duplicateImmutable,
                     plContext),
-                    "PkIX_PL_Object_RegisterType failed");
+                    PKIX_OBJECTREGISTERTYPEFAILED);
 
         PKIX_CHECK(pkix_pl_EkuCheckerState_Create
                     (params, &state, plContext),
-                    "pkix_pl_EkuCheckerState_Create failed");
+                    PKIX_EKUCHECKERSTATECREATEFAILED);
 
         PKIX_CHECK(PKIX_List_Create(&critExtOIDsList, plContext),
-                    "PKIX_List_Create failed");
+                    PKIX_LISTCREATEFAILED);
 
         PKIX_CHECK(PKIX_List_AppendItem
                     (critExtOIDsList,
                     (PKIX_PL_Object *)state->ekuOID,
                     plContext),
-                    "PKIX_List_AppendItem failed");
+                    PKIX_LISTAPPENDITEMFAILED);
 
         PKIX_CHECK(PKIX_CertChainChecker_Create
                 (pkix_pl_EkuChecker_Check,
@@ -419,11 +419,11 @@ PKIX_PL_EkuChecker_Initialize(
                 (PKIX_PL_Object *) state,
                 &checker,
                 plContext),
-                "PKIX_CertChainChecker_Create failed");
+                PKIX_CERTCHAINCHECKERCREATEFAILED);
 
         PKIX_CHECK(PKIX_ProcessingParams_AddCertChainChecker
                     (params, checker, plContext),
-                    "PKIX_ProcessingParams_AddCertChainChecker failed");
+                    PKIX_PROCESSINGPARAMSADDCERTCHAINCHECKERFAILED);
 
 cleanup:
 

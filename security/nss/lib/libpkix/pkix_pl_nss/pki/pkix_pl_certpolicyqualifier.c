@@ -84,7 +84,7 @@ pkix_pl_CertPolicyQualifier_Create(
                 sizeof (PKIX_PL_CertPolicyQualifier),
                 (PKIX_PL_Object **)&qual,
                 plContext),
-                "Could not create a CertPolicyQualifier object");
+                PKIX_COULDNOTCREATECERTPOLICYQUALIFIEROBJECT);
 
         PKIX_INCREF(oid);
         qual->policyQualifierId = oid;
@@ -116,7 +116,7 @@ pkix_pl_CertPolicyQualifier_Destroy(
 
         PKIX_CHECK(pkix_CheckType
                 (object, PKIX_CERTPOLICYQUALIFIER_TYPE, plContext),
-                "Object is not a CertPolicyQualifier");
+                PKIX_OBJECTNOTCERTPOLICYQUALIFIER);
 
         certPQ = (PKIX_PL_CertPolicyQualifier*)object;
 
@@ -151,7 +151,7 @@ pkix_pl_CertPolicyQualifier_ToString(
 
         PKIX_CHECK(pkix_CheckType
                 (object, PKIX_CERTPOLICYQUALIFIER_TYPE, plContext),
-                "Object is not a CertPolicyQualifier");
+                PKIX_OBJECTNOTCERTPOLICYQUALIFIER);
 
         certPQ = (PKIX_PL_CertPolicyQualifier *)object;
 
@@ -163,18 +163,18 @@ pkix_pl_CertPolicyQualifier_ToString(
 
         PKIX_CHECK(PKIX_PL_String_Create
                 (PKIX_ESCASCII, asciiFormat, 0, &formatString, plContext),
-                "PKIX_PL_String_Create failed");
+                PKIX_STRINGCREATEFAILED);
 
         PKIX_TOSTRING(certPQ->policyQualifierId, &pqIDString, plContext,
-                "PKIX_PL_OID_ToString failed");
+                PKIX_OIDTOSTRINGFAILED);
 
         PKIX_CHECK(pkix_pl_ByteArray_ToHexString
                 (certPQ->qualifier, &pqValString, plContext),
-                "pkix_pl_ByteArray_ToHexString failed");
+                PKIX_BYTEARRAYTOHEXSTRINGFAILED);
 
         PKIX_CHECK(PKIX_PL_Sprintf
                 (&outString, plContext, formatString, pqIDString, pqValString),
-                "PKIX_PL_Sprintf failed");
+                PKIX_SPRINTFFAILED);
 
         *pString = outString;
 
@@ -205,17 +205,17 @@ pkix_pl_CertPolicyQualifier_Hashcode(
 
         PKIX_CHECK(pkix_CheckType
                 (object, PKIX_CERTPOLICYQUALIFIER_TYPE, plContext),
-                "Object is not a CertPolicyQualifier");
+                PKIX_OBJECTNOTCERTPOLICYQUALIFIER);
 
         certPQ = (PKIX_PL_CertPolicyQualifier *)object;
 
         PKIX_NULLCHECK_TWO(certPQ->policyQualifierId, certPQ->qualifier);
 
         PKIX_HASHCODE(certPQ->policyQualifierId, &cpidHash, plContext,
-                "Error in PKIX_PL_OID_Hashcode");
+                PKIX_ERRORINOIDHASHCODE);
 
         PKIX_HASHCODE(certPQ->qualifier, &cpqHash, plContext,
-                "Error in PKIX_PL_ByteArray_Hashcode");
+                PKIX_ERRORINBYTEARRAYHASHCODE);
 
         *pHashcode = cpidHash*31 + cpqHash;
 
@@ -247,7 +247,7 @@ pkix_pl_CertPolicyQualifier_Equals(
         /* test that firstObject is a CertPolicyQualifier */
         PKIX_CHECK(pkix_CheckType
                 (firstObject, PKIX_CERTPOLICYQUALIFIER_TYPE, plContext),
-                "FirstObject argument is not a CertPolicyQualifier");
+                PKIX_FIRSTOBJECTNOTCERTPOLICYQUALIFIER);
 
         /*
          * Since we know firstObject is a CertPolicyQualifier,
@@ -264,7 +264,7 @@ pkix_pl_CertPolicyQualifier_Equals(
          */
         PKIX_CHECK(PKIX_PL_Object_GetType
                 (secondObject, &secondType, plContext),
-                "Could not get type of second argument");
+                PKIX_COULDNOTGETTYPEOFSECONDARGUMENT);
         if (secondType != PKIX_CERTPOLICYQUALIFIER_TYPE) {
                 *pResult = PKIX_FALSE;
                 goto cleanup;
@@ -285,7 +285,7 @@ pkix_pl_CertPolicyQualifier_Equals(
                 secondCPQ->policyQualifierId,
                 &compare,
                 plContext,
-                "PKIX_PL_OID_Equals failed");
+                PKIX_OIDEQUALSFAILED);
 
         /*
          * If the OIDs did not match, we don't need to
@@ -301,7 +301,7 @@ pkix_pl_CertPolicyQualifier_Equals(
                         secondCPQ->qualifier,
                         &compare,
                         plContext,
-                        "PKIX_PL_ByteArray_Equals failed");
+                        PKIX_BYTEARRAYEQUALSFAILED);
         }
 
         *pResult = compare;

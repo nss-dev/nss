@@ -61,7 +61,7 @@ pkix_ComCRLSelParams_Destroy(
 
         PKIX_CHECK(pkix_CheckType
                     (object, PKIX_COMCRLSELPARAMS_TYPE, plContext),
-                    "Object is not a ComCRLSelParams object");
+                    PKIX_OBJECTNOTCOMCRLSELPARAMS);
 
         params = (PKIX_ComCRLSelParams *)object;
 
@@ -133,25 +133,25 @@ pkix_ComCRLSelParams_ToString_Helper(
                     0,
                     &formatString,
                     plContext),
-                    "PKIX_PL_String_Create failed");
+                    PKIX_STRINGCREATEFAILED);
 
         PKIX_TOSTRING
                 (crlParams->issuerNames, &crlIssuerNamesString, plContext,
-                "PKIX_List_ToString failed");
+                PKIX_LISTTOSTRINGFAILED);
 
         PKIX_TOSTRING(crlParams->date, &crlDateString, plContext,
-                "PKIX_Date_ToString failed");
+                PKIX_DATETOSTRINGFAILED);
 
         PKIX_TOSTRING
                 (crlParams->maxCRLNumber, &crlMaxCRLNumberString, plContext,
-                "PKIX_BigInt_ToString failed");
+                PKIX_BIGINTTOSTRINGFAILED);
 
         PKIX_TOSTRING
                 (crlParams->minCRLNumber, &crlMinCRLNumberString, plContext,
-                "PKIX_BigInt_ToString failed");
+                PKIX_BIGINTTOSTRINGFAILED);
 
         PKIX_TOSTRING(crlParams->cert, &crlCertString, plContext,
-                "PKIX_PL_Cert_ToString failed");
+                PKIX_CERTTOSTRINGFAILED);
 
         PKIX_CHECK(PKIX_PL_Sprintf
                     (&crlParamsString,
@@ -162,7 +162,7 @@ pkix_ComCRLSelParams_ToString_Helper(
                     crlMaxCRLNumberString,
                     crlMinCRLNumberString,
                     crlCertString),
-                    "PKIX_PL_Sprintf failed");
+                    PKIX_SPRINTFFAILED);
 
         *pString = crlParamsString;
 
@@ -195,13 +195,13 @@ pkix_ComCRLSelParams_ToString(
         PKIX_NULLCHECK_TWO(object, pString);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_COMCRLSELPARAMS_TYPE, plContext),
-                    "Object is not a ComCRLSelParams");
+                    PKIX_OBJECTNOTCOMCRLSELPARAMS);
 
         crlParams = (PKIX_ComCRLSelParams *) object;
 
         PKIX_CHECK(pkix_ComCRLSelParams_ToString_Helper
                     (crlParams, &crlParamsString, plContext),
-                    "pkix_ComCRLSelParams_ToString_Helper failed");
+                    PKIX_COMCRLSELPARAMSTOSTRINGHELPERFAILED);
 
         *pString = crlParamsString;
 
@@ -232,24 +232,24 @@ pkix_ComCRLSelParams_Hashcode(
         PKIX_NULLCHECK_TWO(object, pHashcode);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_COMCRLSELPARAMS_TYPE, plContext),
-                    "Object is not a ComCRLSelParams");
+                    PKIX_OBJECTNOTCOMCRLSELPARAMS);
 
         crlParams = (PKIX_ComCRLSelParams *)object;
 
         PKIX_HASHCODE(crlParams->issuerNames, &namesHash, plContext,
-                    "PKIX_PL_Object_Hashcode failed");
+                    PKIX_OBJECTHASHCODEFAILED);
 
         PKIX_HASHCODE(crlParams->cert, &certHash, plContext,
-                    "PKIX_PL_Object_Hashcode failed");
+                    PKIX_OBJECTHASHCODEFAILED);
 
         PKIX_HASHCODE(crlParams->date, &dateHash, plContext,
-                    "PKIX_PL_Object_Hashcode failed");
+                    PKIX_OBJECTHASHCODEFAILED);
 
         PKIX_HASHCODE(crlParams->maxCRLNumber, &maxCRLNumberHash, plContext,
-                    "PKIX_PL_Object_Hashcode failed");
+                    PKIX_OBJECTHASHCODEFAILED);
 
         PKIX_HASHCODE(crlParams->minCRLNumber, &minCRLNumberHash, plContext,
-                    "PKIX_PL_Object_Hashcode failed");
+                    PKIX_OBJECTHASHCODEFAILED);
 
 
         hash = (((namesHash << 3) + certHash) << 3) + dateHash;
@@ -284,7 +284,7 @@ pkix_ComCRLSelParams_Equals(
         /* test that firstObject is a ComCRLSelParams */
         PKIX_CHECK(pkix_CheckType
                     (firstObject, PKIX_COMCRLSELPARAMS_TYPE, plContext),
-                    "FirstObject argument is not a ComCRLSelParams");
+                    PKIX_FIRSTOBJECTNOTCOMCRLSELPARAMS);
 
         firstCrlParams = (PKIX_ComCRLSelParams *)firstObject;
         secondCrlParams = (PKIX_ComCRLSelParams *)secondObject;
@@ -305,7 +305,7 @@ pkix_ComCRLSelParams_Equals(
         *pResult = PKIX_FALSE;
         PKIX_CHECK(PKIX_PL_Object_GetType
                     ((PKIX_PL_Object *)secondCrlParams, &secondType, plContext),
-                    "Could not get type of second argument");
+                    PKIX_COULDNOTGETTYPEOFSECONDARGUMENT);
 
         if (secondType != PKIX_COMCRLSELPARAMS_TYPE) {
                 goto cleanup;
@@ -317,7 +317,7 @@ pkix_ComCRLSelParams_Equals(
                     secondCrlParams->issuerNames,
                     &cmpResult,
                     plContext,
-                    "PKIX_List_Equals failed");
+                    PKIX_LISTEQUALSFAILED);
 
         if (cmpResult != PKIX_TRUE) {
                 goto cleanup;
@@ -329,7 +329,7 @@ pkix_ComCRLSelParams_Equals(
                     secondCrlParams->date,
                     &cmpResult,
                     plContext,
-                    "PKIX_PL_Date_Equals failed");
+                    PKIX_DATEEQUALSFAILED);
 
         if (cmpResult != PKIX_TRUE) {
                 goto cleanup;
@@ -341,7 +341,7 @@ pkix_ComCRLSelParams_Equals(
                     secondCrlParams->maxCRLNumber,
                     &cmpResult,
                     plContext,
-                    "PKIX_PL_BigInt_Equals failed");
+                    PKIX_BIGINTEQUALSFAILED);
 
         if (cmpResult != PKIX_TRUE) {
                 goto cleanup;
@@ -353,7 +353,7 @@ pkix_ComCRLSelParams_Equals(
                     secondCrlParams->minCRLNumber,
                     &cmpResult,
                     plContext,
-                    "PKIX_PL_BigInt_Equals failed");
+                    PKIX_BIGINTEQUALSFAILED);
 
         if (cmpResult != PKIX_TRUE) {
                 goto cleanup;
@@ -365,7 +365,7 @@ pkix_ComCRLSelParams_Equals(
                     secondCrlParams->cert,
                     &cmpResult,
                     plContext,
-                    "pkix_pl_Cert_Equals failed");
+                    PKIX_CERTEQUALSFAILED);
 
         *pResult = cmpResult;
 
@@ -391,7 +391,7 @@ pkix_ComCRLSelParams_Duplicate(
         PKIX_NULLCHECK_TWO(object, pNewObject);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_COMCRLSELPARAMS_TYPE, plContext),
-                    "Object is not a ComCRLSelParams");
+                    PKIX_OBJECTNOTCOMCRLSELPARAMS);
 
         old = (PKIX_ComCRLSelParams *)object;
 
@@ -400,22 +400,22 @@ pkix_ComCRLSelParams_Duplicate(
                     (PKIX_UInt32)(sizeof (PKIX_ComCRLSelParams)),
                     (PKIX_PL_Object **)&new,
                     plContext),
-                    "PKIX_PL_Object_Alloc failed");
+                    PKIX_OBJECTALLOCFAILED);
 
         PKIX_DUPLICATE(old->cert, &new->cert, plContext,
-                    "PKIX_PL_Object_Duplicate Cert failed");
+                    PKIX_OBJECTDUPLICATECERTFAILED);
 
         PKIX_DUPLICATE(old->issuerNames, &new->issuerNames, plContext,
-                    "PKIX_PL_Object_Duplicate IssuerNames failed");
+                    PKIX_OBJECTDUPLICATEISSUERNAMESFAILED);
 
         PKIX_DUPLICATE(old->date, &new->date, plContext,
-                    "PKIX_PL_Object_Duplicate Date failed");
+                    PKIX_OBJECTDUPLICATEDATEFAILED);
 
         PKIX_DUPLICATE(old->maxCRLNumber, &new->maxCRLNumber, plContext,
-                    "PKIX_PL_Object_Duplicate maxCRLNumber failed");
+                    PKIX_OBJECTDUPLICATEMAXCRLNUMBERFAILED);
 
         PKIX_DUPLICATE(old->minCRLNumber, &new->minCRLNumber, plContext,
-                    "PKIX_PL_Object_Duplicate minCRLNumber failed");
+                    PKIX_OBJECTDUPLICATEMINCRLNUMBERFAILED);
 
         *pNewObject = (PKIX_PL_Object *)new;
 
@@ -481,7 +481,7 @@ PKIX_ComCRLSelParams_Create(
                     sizeof (PKIX_ComCRLSelParams),
                     (PKIX_PL_Object **)&params,
                     plContext),
-                    "Could not create common crl selector params object");
+                    PKIX_COULDNOTCREATECOMMONCRLSELECTORPARAMSOBJECT);
 
         /* initialize fields */
         params->issuerNames = NULL;
@@ -536,7 +536,7 @@ PKIX_ComCRLSelParams_SetIssuerNames(
 
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                     ((PKIX_PL_Object *)params, plContext),
-                    "PKIX_PL_Object_InvalidateCache failed");
+                    PKIX_OBJECTINVALIDATECACHEFAILED);
 
 cleanup:
 
@@ -562,17 +562,17 @@ PKIX_ComCRLSelParams_AddIssuerName(
                 if (params->issuerNames == NULL) {
 
                     PKIX_CHECK(PKIX_List_Create(&list, plContext),
-                        "PKIX_List_Create failed");
+                        PKIX_LISTCREATEFAILED);
                         params->issuerNames = list;
                 }
 
                 PKIX_CHECK(PKIX_List_AppendItem
                     (params->issuerNames, (PKIX_PL_Object *)name, plContext),
-                    "PKIX_List_AppendItem failed");
+                    PKIX_LISTAPPENDITEMFAILED);
 
                 PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                     ((PKIX_PL_Object *)params, plContext),
-                    "PKIX_PL_Object_InvalidateCache failed");
+                    PKIX_OBJECTINVALIDATECACHEFAILED);
 
         }
 
@@ -625,7 +625,7 @@ PKIX_ComCRLSelParams_SetCertificateChecking(
 
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                     ((PKIX_PL_Object *)params, plContext),
-                    "PKIX_PL_Object_InvalidateCache failed");
+                    PKIX_OBJECTINVALIDATECACHEFAILED);
 
 cleanup:
 
@@ -674,7 +674,7 @@ PKIX_ComCRLSelParams_SetDateAndTime(
 
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                     ((PKIX_PL_Object *)params, plContext),
-                    "PKIX_PL_Object_InvalidateCache failed");
+                    PKIX_OBJECTINVALIDATECACHEFAILED);
 
 cleanup:
 
@@ -725,7 +725,7 @@ PKIX_ComCRLSelParams_SetMaxCRLNumber(
 
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                     ((PKIX_PL_Object *)params, plContext),
-                    "PKIX_PL_Object_InvalidateCache failed");
+                    PKIX_OBJECTINVALIDATECACHEFAILED);
 
 cleanup:
 
@@ -776,7 +776,7 @@ PKIX_ComCRLSelParams_SetMinCRLNumber(
 
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                     ((PKIX_PL_Object *)params, plContext),
-                    "PKIX_PL_Object_InvalidateCache failed");
+                    PKIX_OBJECTINVALIDATECACHEFAILED);
 
 cleanup:
 

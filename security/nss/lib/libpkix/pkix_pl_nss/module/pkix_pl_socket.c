@@ -327,7 +327,7 @@ pkix_pl_Socket_SetNonBlocking(
                 (fileDesc, &sockOptionData));
 
         if (rv != PR_SUCCESS) {
-                PKIX_ERROR("Unable to set socket to non-blocking I/O");
+                PKIX_ERROR(PKIX_UNABLETOSETSOCKETTONONBLOCKING);
         }
 cleanup:
 
@@ -375,7 +375,7 @@ pkix_pl_Socket_CreateClient(
                         ("pkix_pl_Socket_CreateClient: %s\n",
                         PR_ErrorToString(errorcode, PR_LANGUAGE_EN));
 #endif
-                PKIX_ERROR("PR_NewTCPSocket failed");
+                PKIX_ERROR(PKIX_PRNEWTCPSOCKETFAILED);
         }
 
 #ifdef PKIX_SOCKETDEBUG
@@ -386,7 +386,7 @@ pkix_pl_Socket_CreateClient(
         socket->status = SOCKET_UNCONNECTED;
         if (socket->timeout == 0) {
                 PKIX_CHECK(pkix_pl_Socket_SetNonBlocking(mySock, plContext),
-                        "pkix_pl_Socket_SetNonBlocking failed");
+                        PKIX_SOCKETSETNONBLOCKINGFAILED);
         }
 
 cleanup:
@@ -440,7 +440,7 @@ pkix_pl_Socket_CreateServer(
                         ("pkix_pl_Socket_CreateServer: %s\n",
                         PR_ErrorToString(errorcode, PR_LANGUAGE_EN));
 #endif
-                PKIX_ERROR("PR_NewTCPSocket failed");
+                PKIX_ERROR(PKIX_PRNEWTCPSOCKETFAILED);
         }
 
         socket->serverSock = serverSock;
@@ -451,7 +451,7 @@ pkix_pl_Socket_CreateServer(
 
         if (socket->timeout == 0) {
                 PKIX_CHECK(pkix_pl_Socket_SetNonBlocking(serverSock, plContext),
-                        "pkix_pl_Socket_SetNonBlocking failed");
+                        PKIX_SOCKETSETNONBLOCKINGFAILED);
         }
 
         sockOptionData.option = PR_SockOpt_Reuseaddr;
@@ -461,7 +461,7 @@ pkix_pl_Socket_CreateServer(
                 (serverSock, &sockOptionData));
 
         if (rv != PR_SUCCESS) {
-                PKIX_ERROR("Unable to set socket to non-blocking I/O");
+                PKIX_ERROR(PKIX_UNABLETOSETSOCKETTONONBLOCKING);
         }
 
         PKIX_PL_NSSCALLRV(SOCKET, rv, PR_Bind, (serverSock, socket->netAddr));
@@ -473,7 +473,7 @@ pkix_pl_Socket_CreateServer(
                         ("pkix_pl_Socket_CreateServer: %s\n",
                         PR_ErrorToString(errorcode, PR_LANGUAGE_EN));
 /* #endif */
-                PKIX_ERROR("PR_Bind failed");
+                PKIX_ERROR(PKIX_PRBINDFAILED);
         }
 
 #ifdef PKIX_SOCKETDEBUG
@@ -534,7 +534,7 @@ pkix_pl_Socket_Connect(
                                 ("pkix_pl_Socket_Connect: %s\n",
                                 PR_ErrorToString(errorcode, PR_LANGUAGE_EN));
 #endif
-                        PKIX_ERROR("PR_Connect failed");
+                        PKIX_ERROR(PKIX_PRCONNECTFAILED);
                 }
         }
 
@@ -590,7 +590,7 @@ pkix_pl_Socket_ConnectContinue(
         pollDesc.out_flags = 0;
         PKIX_PL_NSSCALLRV(SOCKET, numEvents, PR_Poll, (&pollDesc, 1, 0));
         if (numEvents < 0) {
-                PKIX_ERROR("PR_Poll failed");
+                PKIX_ERROR(PKIX_PRPOLLFAILED);
         }
 
         if (numEvents == 0) {
@@ -622,7 +622,7 @@ pkix_pl_Socket_ConnectContinue(
                                 ("pkix_pl_Socket_ConnectContinue: %s\n",
                                 PR_ErrorToString(errorcode, PR_LANGUAGE_EN));
 #endif
-                        PKIX_ERROR("PR_ConnectContinue failed");
+                        PKIX_ERROR(PKIX_PRCONNECTCONTINUEFAILED);
                 }
         }
 
@@ -654,7 +654,7 @@ pkix_pl_Socket_Destroy(
 
         PKIX_CHECK(pkix_CheckType
                     (object, PKIX_SOCKET_TYPE, plContext),
-                    "Object is not an Socket");
+                    PKIX_OBJECTNOTANSOCKET);
 
         socket = (PKIX_PL_Socket *)object;
 
@@ -689,7 +689,7 @@ pkix_pl_Socket_Hashcode(
         PKIX_NULLCHECK_TWO(object, pHashcode);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_SOCKET_TYPE, plContext),
-                "Object is not a Socket");
+                PKIX_OBJECTNOTSOCKET);
 
         socket = (PKIX_PL_Socket *)object;
 
@@ -724,7 +724,7 @@ pkix_pl_Socket_Equals(
 
         PKIX_CHECK(pkix_CheckTypes
                 (firstObject, secondObject, PKIX_SOCKET_TYPE, plContext),
-                "Object is not a Socket");
+                PKIX_OBJECTNOTSOCKET);
 
         firstSocket = (PKIX_PL_Socket *)firstObject;
         secondSocket = (PKIX_PL_Socket *)secondObject;
@@ -849,7 +849,7 @@ pkix_pl_Socket_Listen(
                         ("pkix_pl_Socket_Listen: %s\n",
                         PR_ErrorToString(errorcode, PR_LANGUAGE_EN));
 #endif
-                PKIX_ERROR("PR_Listen failed");
+                PKIX_ERROR(PKIX_PRLISTENFAILED);
         }
 
 #ifdef PKIX_SOCKETDEBUG
@@ -906,7 +906,7 @@ pkix_pl_Socket_Shutdown(
                         ("pkix_pl_Socket_Shutdown: %s\n",
                         PR_ErrorToString(errorcode, PR_LANGUAGE_EN));
 #endif
-                PKIX_ERROR("PR_Shutdown failed");
+                PKIX_ERROR(PKIX_PRSHUTDOWNFAILED);
         }
         socket->status = SOCKET_SHUTDOWN;
 
@@ -982,7 +982,7 @@ pkix_pl_Socket_Send(
                                 ("pkix_pl_Socket_Send: %s\n",
                                 PR_ErrorToString(errorcode, PR_LANGUAGE_EN));
 #endif
-                        PKIX_ERROR("PR_Send failed");
+                        PKIX_ERROR(PKIX_PRSENDFAILED);
                 }
 
                 sendSock->writeBuf = buf;
@@ -1063,7 +1063,7 @@ pkix_pl_Socket_Recv(
                 pkix_pl_socket_tracebuff(buf, bytesRead);
 #endif
         } else if (bytesRead == 0) {
-                PKIX_ERROR("PR_Recv reports network connection is closed");
+                PKIX_ERROR(PKIX_PRRECVREPORTSNETWORKCONNECTIONCLOSED);
         } else {
                 errorcode = PR_GetError();
                 if (errorcode != PR_WOULD_BLOCK_ERROR) {
@@ -1072,7 +1072,7 @@ pkix_pl_Socket_Recv(
                                 ("pkix_pl_Socket_Recv: %s\n",
                                 PR_ErrorToString(errorcode, PR_LANGUAGE_EN));
 #endif
-                        PKIX_ERROR("PR_Recv failed");
+                        PKIX_ERROR(PKIX_PRRECVFAILED);
                 }
                 rcvSock->readBuf = buf;
                 rcvSock->readBufSize = capacity;
@@ -1154,7 +1154,7 @@ pkix_pl_Socket_Poll(
         PKIX_PL_NSSCALLRV(SOCKET, numEvents, PR_Poll, (&pollDesc, 1, 0));
 
         if (numEvents < 0) {
-                PKIX_ERROR("PR_Poll failed");
+                PKIX_ERROR(PKIX_PRPOLLFAILED);
         } else if (numEvents > 0) {
                 if (pollDesc.out_flags & PR_POLL_WRITE) {
                         PKIX_CHECK(pkix_pl_Socket_Send
@@ -1163,7 +1163,7 @@ pkix_pl_Socket_Poll(
                                 sock->writeBufSize,
                                 &bytesWritten,
                                 plContext),
-                                "pkix_pl_Socket_Send failed");
+                                PKIX_SOCKETSENDFAILED);
                         *pBytesWritten = (PKIX_Int32)bytesWritten;
                         if (bytesWritten >= 0) {
                                 sock->writeBuf = NULL;
@@ -1178,7 +1178,7 @@ pkix_pl_Socket_Poll(
                                 sock->readBufSize,
                                 &bytesRead,
                                 plContext),
-                                "pkix_pl_Socket_Recv failed");
+                                PKIX_SOCKETRECVFAILED);
                         *pBytesRead = (PKIX_Int32)bytesRead;
                         if (bytesRead >= 0) {
                                 sock->readBuf = NULL;
@@ -1193,7 +1193,7 @@ pkix_pl_Socket_Poll(
                                 ("pkix_pl_Socket_Poll: %s\n",
                                 PR_ErrorToString(errorcode, PR_LANGUAGE_EN));
 #endif
-                        PKIX_ERROR("PR_Poll failed");
+                        PKIX_ERROR(PKIX_PRPOLLFAILED);
                 }
                 if (pBytesWritten) {
                         *pBytesWritten = 0;
@@ -1260,7 +1260,7 @@ pkix_pl_Socket_Accept(
                                 ("pkix_pl_Socket_Accept: %s\n",
                                 PR_ErrorToString(errorcode, PR_LANGUAGE_EN));
 #endif
-                        PKIX_ERROR("PR_Accept failed");
+                        PKIX_ERROR(PKIX_PRACCEPTFAILED);
                 }
                 serverSocket->status = SOCKET_ACCEPTPENDING;
                 *pRendezvousSocket = NULL;
@@ -1277,7 +1277,7 @@ pkix_pl_Socket_Accept(
                     sizeof (PKIX_PL_Socket),
                     (PKIX_PL_Object **)&newSocket,
                     plContext),
-                    "Could not create Socket object");
+                    PKIX_COULDNOTCREATESOCKETOBJECT);
 
         newSocket->isServer = PKIX_FALSE;
         newSocket->timeout = serverSocket->timeout;
@@ -1297,7 +1297,7 @@ pkix_pl_Socket_Accept(
         if (serverSocket->timeout == 0) {
                 PKIX_CHECK(pkix_pl_Socket_SetNonBlocking
                         (rendezvousSock, plContext),
-                        "pkix_pl_Socket_SetNonBlocking failed");
+                        PKIX_SOCKETSETNONBLOCKINGFAILED);
         }
 
         *pRendezvousSocket = newSocket;
@@ -1358,7 +1358,7 @@ pkix_pl_Socket_Create(
                     sizeof (PKIX_PL_Socket),
                     (PKIX_PL_Object **)&socket,
                     plContext),
-                    "Could not create Socket object");
+                    PKIX_COULDNOTCREATESOCKETOBJECT);
 
         socket->isServer = isServer;
         socket->timeout = timeout;
@@ -1377,14 +1377,14 @@ pkix_pl_Socket_Create(
 
         if (isServer) {
                 PKIX_CHECK(pkix_pl_Socket_CreateServer(socket, plContext),
-                        "pkix_pl_Socket_CreateServer failed");
+                        PKIX_SOCKETCREATESERVERFAILED);
                 *status = 0;
         } else {
                 socket->timeout = timeout;
                 PKIX_CHECK(pkix_pl_Socket_CreateClient(socket, plContext),
-                        "pkix_pl_Socket_CreateClient failed");
+                        PKIX_SOCKETCREATECLIENTFAILED);
                 PKIX_CHECK(pkix_pl_Socket_Connect(socket, status, plContext),
-                        "pkix_pl_Socket_Connect failed");
+                        PKIX_SOCKETCONNECTFAILED);
         }
 
         *pSocket = socket;
@@ -1484,7 +1484,7 @@ pkix_pl_Socket_CreateByName(
 
                 if ((prstatus != PR_SUCCESS) || (hostent.h_length != 4)) {
                         PKIX_ERROR
-                                ("PR_GetHostByName rejects hostname argument.");
+                                (PKIX_PRGETHOSTBYNAMEREJECTSHOSTNAMEARGUMENT);
                 }
         }
 
@@ -1499,7 +1499,7 @@ pkix_pl_Socket_CreateByName(
 
                 hostenum = PR_EnumerateHostEnt(0, &hostent, portNum, &netAddr);
                 if (hostenum == -1) {
-                        PKIX_ERROR("PR_EnumerateHostEnt failed.");
+                        PKIX_ERROR(PKIX_PRENUMERATEHOSTENTFAILED);
                 }
         }
 
@@ -1508,7 +1508,7 @@ pkix_pl_Socket_CreateByName(
                 sizeof (PKIX_PL_Socket),
                 (PKIX_PL_Object **)&socket,
                 plContext),
-                "Could not create Socket object");
+                PKIX_COULDNOTCREATESOCKETOBJECT);
 
         socket->isServer = isServer;
         socket->timeout = timeout;
@@ -1527,13 +1527,13 @@ pkix_pl_Socket_CreateByName(
 
         if (isServer) {
                 PKIX_CHECK(pkix_pl_Socket_CreateServer(socket, plContext),
-                        "pkix_pl_Socket_CreateServer failed");
+                        PKIX_SOCKETCREATESERVERFAILED);
                 *pStatus = 0;
         } else {
                 PKIX_CHECK(pkix_pl_Socket_CreateClient(socket, plContext),
-                        "pkix_pl_Socket_CreateClient failed");
+                        PKIX_SOCKETCREATECLIENTFAILED);
                 PKIX_CHECK(pkix_pl_Socket_Connect(socket, pStatus, plContext),
-                        "pkix_pl_Socket_Connect failed");
+                        PKIX_SOCKETCONNECTFAILED);
         }
 
         *pSocket = socket;
@@ -1625,7 +1625,7 @@ pkix_pl_Socket_CreateByHostAndPort(
 
                 if ((prstatus != PR_SUCCESS) || (hostent.h_length != 4)) {
                         PKIX_ERROR
-                                ("PR_GetHostByName rejects hostname argument.");
+                                (PKIX_PRGETHOSTBYNAMEREJECTSHOSTNAMEARGUMENT);
                 }
         }
 
@@ -1640,7 +1640,7 @@ pkix_pl_Socket_CreateByHostAndPort(
 
                 hostenum = PR_EnumerateHostEnt(0, &hostent, portnum, &netAddr);
                 if (hostenum == -1) {
-                        PKIX_ERROR("PR_EnumerateHostEnt failed.");
+                        PKIX_ERROR(PKIX_PRENUMERATEHOSTENTFAILED);
                 }
         }
 
@@ -1649,7 +1649,7 @@ pkix_pl_Socket_CreateByHostAndPort(
                 sizeof (PKIX_PL_Socket),
                 (PKIX_PL_Object **)&socket,
                 plContext),
-                "Could not create Socket object");
+                PKIX_COULDNOTCREATESOCKETOBJECT);
 
         socket->isServer = isServer;
         socket->timeout = timeout;
@@ -1668,13 +1668,13 @@ pkix_pl_Socket_CreateByHostAndPort(
 
         if (isServer) {
                 PKIX_CHECK(pkix_pl_Socket_CreateServer(socket, plContext),
-                        "pkix_pl_Socket_CreateServer failed");
+                        PKIX_SOCKETCREATESERVERFAILED);
                 *pStatus = 0;
         } else {
                 PKIX_CHECK(pkix_pl_Socket_CreateClient(socket, plContext),
-                        "pkix_pl_Socket_CreateClient failed");
+                        PKIX_SOCKETCREATECLIENTFAILED);
                 PKIX_CHECK(pkix_pl_Socket_Connect(socket, pStatus, plContext),
-                        "pkix_pl_Socket_Connect failed");
+                        PKIX_SOCKETCONNECTFAILED);
         }
 
         *pSocket = socket;

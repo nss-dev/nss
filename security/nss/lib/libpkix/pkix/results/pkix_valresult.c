@@ -61,7 +61,7 @@ pkix_ValidateResult_Destroy(
 
         /* Check that this object is a validate result object */
         PKIX_CHECK(pkix_CheckType(object, PKIX_VALIDATERESULT_TYPE, plContext),
-                    "Object is not a validate result object");
+                PKIX_OBJECTNOTVALIDATERESULT);
 
         result = (PKIX_ValidateResult *)object;
 
@@ -96,10 +96,10 @@ pkix_ValidateResult_Equals(
         PKIX_NULLCHECK_THREE(first, second, pResult);
 
         PKIX_CHECK(pkix_CheckType(first, PKIX_VALIDATERESULT_TYPE, plContext),
-                    "First Argument is not a ValidateResult");
+                PKIX_FIRSTOBJECTNOTVALIDATERESULT);
 
         PKIX_CHECK(PKIX_PL_Object_GetType(second, &secondType, plContext),
-                    "Could not get type of second argument");
+                PKIX_COULDNOTGETTYPEOFSECONDARGUMENT);
 
         *pResult = PKIX_FALSE;
 
@@ -109,20 +109,20 @@ pkix_ValidateResult_Equals(
         secondValResult = (PKIX_ValidateResult *)second;
 
         PKIX_CHECK(PKIX_PL_Object_Equals
-                    ((PKIX_PL_Object *)firstValResult->pubKey,
-                    (PKIX_PL_Object *)secondValResult->pubKey,
-                    &cmpResult,
-                    plContext),
-                    "PKIX_PL_Object_Equals failed");
+                ((PKIX_PL_Object *)firstValResult->pubKey,
+                (PKIX_PL_Object *)secondValResult->pubKey,
+                &cmpResult,
+                plContext),
+                PKIX_OBJECTEQUALSFAILED);
 
         if (!cmpResult) goto cleanup;
 
         PKIX_CHECK(PKIX_PL_Object_Equals
-                    ((PKIX_PL_Object *)firstValResult->anchor,
-                    (PKIX_PL_Object *)secondValResult->anchor,
-                    &cmpResult,
-                    plContext),
-                    "PKIX_PL_Object_Equals failed");
+                ((PKIX_PL_Object *)firstValResult->anchor,
+                (PKIX_PL_Object *)secondValResult->anchor,
+                &cmpResult,
+                plContext),
+                PKIX_OBJECTEQUALSFAILED);
 
         if (!cmpResult) goto cleanup;
 
@@ -135,7 +135,7 @@ pkix_ValidateResult_Equals(
                         (PKIX_PL_Object *)secondTree,
                         &cmpResult,
                         plContext),
-                        "PKIX_PL_Object_Equals failed");
+                        PKIX_OBJECTEQUALSFAILED);
         } else {
                 if (PKIX_EXACTLY_ONE_NULL(firstTree, secondTree)) {
                         cmpResult = PKIX_FALSE;
@@ -176,21 +176,17 @@ pkix_ValidateResult_Hashcode(
         PKIX_NULLCHECK_TWO(object, pHashcode);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_VALIDATERESULT_TYPE, plContext),
-                    "Object is not a validateParams object");
+                PKIX_OBJECTNOTVALIDATERESULT);
 
         valResult = (PKIX_ValidateResult*)object;
 
         PKIX_CHECK(PKIX_PL_Object_Hashcode
-                    ((PKIX_PL_Object *)valResult->pubKey,
-                    &pubKeyHash,
-                    plContext),
-                    "PKIX_PL_Object_Hashcode failed");
+                ((PKIX_PL_Object *)valResult->pubKey, &pubKeyHash, plContext),
+                PKIX_OBJECTHASHCODEFAILED);
 
         PKIX_CHECK(PKIX_PL_Object_Hashcode
-                    ((PKIX_PL_Object *)valResult->anchor,
-                    &anchorHash,
-                    plContext),
-                    "PKIX_PL_Object_Hashcode failed");
+                ((PKIX_PL_Object *)valResult->anchor, &anchorHash, plContext),
+                PKIX_OBJECTHASHCODEFAILED);
 
         policyTree = valResult->policyTree;
         if (policyTree) {
@@ -198,7 +194,7 @@ pkix_ValidateResult_Hashcode(
                         ((PKIX_PL_Object *)valResult->policyTree,
                         &policyTreeHash,
                         plContext),
-                        "PKIX_PL_Object_Hashcode failed");
+                        PKIX_OBJECTHASHCODEFAILED);
         }
 
         hash = 31*(31 * pubKeyHash + anchorHash) + policyTreeHash;
@@ -243,7 +239,7 @@ pkix_ValidateResult_ToString(
         PKIX_NULLCHECK_TWO(object, pString);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_VALIDATERESULT_TYPE, plContext),
-                    "Object not a ValidateResult object");
+                PKIX_OBJECTNOTVALIDATERESULT);
 
         valResult = (PKIX_ValidateResult*)object;
 
@@ -251,26 +247,26 @@ pkix_ValidateResult_ToString(
 
         PKIX_CHECK(PKIX_PL_String_Create
                 (PKIX_ESCASCII, asciiFormat, 0, &formatString, plContext),
-                "PKIX_PL_String_Create failed");
+                PKIX_STRINGCREATEFAILED);
 
         PKIX_CHECK(PKIX_PL_Object_ToString
-                        ((PKIX_PL_Object *)anchor, &anchorString, plContext),
-                        "PKIX_PL_Object_ToString failed");
+                ((PKIX_PL_Object *)anchor, &anchorString, plContext),
+                PKIX_OBJECTTOSTRINGFAILED);
 
         pubKey = valResult->pubKey;
 
         PKIX_CHECK(PKIX_PL_Object_ToString
-                        ((PKIX_PL_Object *)pubKey, &pubKeyString, plContext),
-                        "PKIX_PL_Object_ToString failed");
+                ((PKIX_PL_Object *)pubKey, &pubKeyString, plContext),
+                PKIX_OBJECTTOSTRINGFAILED);
 
         PKIX_CHECK(PKIX_ValidateResult_GetPolicyTree
-                        (valResult, &policyTree, plContext),
-                        "PKIX_ValidateResult_GetPolicyTree failed");
+                (valResult, &policyTree, plContext),
+                PKIX_VALIDATERESULTGETPOLICYTREEFAILED);
 
         if (policyTree) {
                 PKIX_CHECK(PKIX_PL_Object_ToString
                         ((PKIX_PL_Object *)policyTree, &treeString, plContext),
-                        "PKIX_PL_Object_ToString failed");
+                        PKIX_OBJECTTOSTRINGFAILED);
         } else {
                 PKIX_CHECK(PKIX_PL_String_Create
                         (PKIX_ESCASCII,
@@ -278,7 +274,7 @@ pkix_ValidateResult_ToString(
                         0,
                         &treeString,
                         plContext),
-                        "PKIX_PL_String_Create failed");
+                        PKIX_STRINGCREATEFAILED);
         }
 
         PKIX_CHECK(PKIX_PL_Sprintf
@@ -288,7 +284,7 @@ pkix_ValidateResult_ToString(
                 anchorString,
                 pubKeyString,
                 treeString),
-                "PKIX_PL_Sprintf failed");
+                PKIX_SPRINTFFAILED);
 
         *pString = valResultString;
 
@@ -380,7 +376,7 @@ pkix_ValidateResult_Create(
                     sizeof (PKIX_ValidateResult),
                     (PKIX_PL_Object **)&result,
                     plContext),
-                    "Could not create validate result object");
+                    PKIX_COULDNOTCREATEVALIDATERESULTOBJECT);
 
         /* initialize fields */
 

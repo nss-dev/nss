@@ -69,7 +69,7 @@ pkix_PolicyCheckerState_Destroy(
 
         PKIX_CHECK(pkix_CheckType
                 (object, PKIX_CERTPOLICYCHECKERSTATE_TYPE, plContext),
-                "Object is not a PKIX_PolicyCheckerState");
+                PKIX_OBJECTNOTPOLICYCHECKERSTATE);
 
         checkerState = (PKIX_PolicyCheckerState *)object;
 
@@ -164,7 +164,7 @@ pkix_PolicyCheckerState_ToString(
 
         PKIX_CHECK(pkix_CheckType
                 (object, PKIX_CERTPOLICYCHECKERSTATE_TYPE, plContext),
-                "Object is not a PKIX_PolicyCheckerState");
+                PKIX_OBJECTNOTPOLICYCHECKERSTATE);
 
         state = (PKIX_PolicyCheckerState *)object;
         PKIX_NULLCHECK_THREE
@@ -178,7 +178,7 @@ pkix_PolicyCheckerState_ToString(
 
         PKIX_CHECK(PKIX_PL_String_Create
                 (PKIX_ESCASCII, asciiFormat, 0, &formatString, plContext),
-                "PKIX_PL_String_Create failed");
+                PKIX_STRINGCREATEFAILED);
         /*
          * Create TRUE, FALSE, and "NULL" PKIX_PL_Strings. But creating a
          * PKIX_PL_String is complicated enough, it's worth checking, for
@@ -196,67 +196,67 @@ pkix_PolicyCheckerState_ToString(
             policyQualifiersRejected || certPoliciesCritical) {
                 PKIX_CHECK(PKIX_PL_String_Create
                         (PKIX_ESCASCII, "TRUE", 0, &trueString, plContext),
-                        "PKIX_PL_String_Create failed");
+                        PKIX_STRINGCREATEFAILED);
         }
         if (!initialPolicyMappingInhibit || !initialExplicitPolicy ||
             !initialAnyPolicyInhibit || !initialIsAnyPolicy ||
             !policyQualifiersRejected || !certPoliciesCritical) {
                 PKIX_CHECK(PKIX_PL_String_Create
                         (PKIX_ESCASCII, "FALSE", 0, &falseString, plContext),
-                        "PKIX_PL_String_Create failed");
+                        PKIX_STRINGCREATEFAILED);
         }
         if (!(state->anyPolicyNodeAtBottom) || !(state->newAnyPolicyNode)) {
                 PKIX_CHECK(PKIX_PL_String_Create
                         (PKIX_ESCASCII, "(null)", 0, &nullString, plContext),
-                        "PKIX_PL_String_Create failed");
+                        PKIX_STRINGCREATEFAILED);
         }
 
         PKIX_TOSTRING
                 (state->certPoliciesExtension, &policiesExtOIDString, plContext,
-                "PKIX_PL_Object_ToString failed");
+                PKIX_OBJECTTOSTRINGFAILED);
 
         PKIX_TOSTRING
                 (state->policyMappingsExtension,
                 &policyMapOIDString,
                 plContext,
-                "PKIX_PL_Object_ToString failed");
+                PKIX_OBJECTTOSTRINGFAILED);
 
         PKIX_TOSTRING
                 (state->policyConstraintsExtension,
                 &policyConstrOIDString,
                 plContext,
-                "PKIX_PL_Object_ToString failed");
+                PKIX_OBJECTTOSTRINGFAILED);
 
         PKIX_TOSTRING
                 (state->inhibitAnyPolicyExtension,
                 &inhAnyPolOIDString,
                 plContext,
-                "PKIX_PL_Object_ToString failed");
+                PKIX_OBJECTTOSTRINGFAILED);
 
         PKIX_TOSTRING(state->anyPolicyOID, &anyPolicyOIDString, plContext,
-                "PKIX_PL_Object_ToString failed");
+                PKIX_OBJECTTOSTRINGFAILED);
 
         PKIX_TOSTRING(state->validPolicyTree, &validPolicyTreeString, plContext,
-                "PKIX_PL_Object_ToString failed");
+                PKIX_OBJECTTOSTRINGFAILED);
 
         PKIX_TOSTRING
                 (state->userInitialPolicySet,
                 &userInitialPolicySetString,
                 plContext,
-                "PKIX_PL_Object_ToString failed");
+                PKIX_OBJECTTOSTRINGFAILED);
 
         PKIX_TOSTRING
                 (state->mappedUserInitialPolicySet,
                 &mappedUserPolicySetString,
                 plContext,
-                "PKIX_PL_Object_ToString failed");
+                PKIX_OBJECTTOSTRINGFAILED);
 
         if (state->anyPolicyNodeAtBottom) {
                 PKIX_CHECK(pkix_SinglePolicyNode_ToString
                         (state->anyPolicyNodeAtBottom,
                         &anyAtBottomString,
                         plContext),
-                        "pkix_SinglePolicyNode_ToString failed");
+                        PKIX_SINGLEPOLICYNODETOSTRINGFAILED);
         } else {
                 PKIX_INCREF(nullString);
                 anyAtBottomString = nullString;
@@ -267,7 +267,7 @@ pkix_PolicyCheckerState_ToString(
                         (state->newAnyPolicyNode,
                         &newAnyPolicyString,
                         plContext),
-                        "pkix_SinglePolicyNode_ToString failed");
+                        PKIX_SINGLEPOLICYNODETOSTRINGFAILED);
         } else {
                 PKIX_INCREF(nullString);
                 newAnyPolicyString = nullString;
@@ -277,7 +277,7 @@ pkix_PolicyCheckerState_ToString(
                 (state->mappedPolicyOIDs,
                 &mappedPolicyOIDsString,
                 plContext,
-                "PKIX_PL_Object_ToString failed");
+                PKIX_OBJECTTOSTRINGFAILED);
 
         PKIX_CHECK(PKIX_PL_Sprintf
                 (&resultString,
@@ -305,7 +305,7 @@ pkix_PolicyCheckerState_ToString(
                 newAnyPolicyString,
                 certPoliciesCritical?trueString:falseString,
                 mappedPolicyOIDsString),
-                "PKIX_PL_Sprintf failed");
+                PKIX_SPRINTFFAILED);
 
         *pCheckerStateString = resultString;
 
@@ -432,7 +432,7 @@ pkix_PolicyCheckerState_Create(
                 sizeof (PKIX_PolicyCheckerState),
                 (PKIX_PL_Object **)&checkerState,
                 plContext),
-                "Could not create policyChecker state object");
+                PKIX_COULDNOTCREATEPOLICYCHECKERSTATEOBJECT);
 
         /* Create constant PKIX_PL_OIDs: */
 
@@ -440,31 +440,31 @@ pkix_PolicyCheckerState_Create(
                 (PKIX_CERTIFICATEPOLICIES_OID,
                 &(checkerState->certPoliciesExtension),
                 plContext),
-                "PKIX_PL_OID_Create failed");
+                PKIX_OIDCREATEFAILED);
 
         PKIX_CHECK(PKIX_PL_OID_Create
                 (PKIX_POLICYMAPPINGS_OID,
                 &(checkerState->policyMappingsExtension),
                 plContext),
-                "PKIX_PL_OID_Create failed");
+                PKIX_OIDCREATEFAILED);
 
         PKIX_CHECK(PKIX_PL_OID_Create
                 (PKIX_POLICYCONSTRAINTS_OID,
                 &(checkerState->policyConstraintsExtension),
                 plContext),
-                "PKIX_PL_OID_Create failed");
+                PKIX_OIDCREATEFAILED);
 
         PKIX_CHECK(PKIX_PL_OID_Create
                 (PKIX_INHIBITANYPOLICY_OID,
                 &(checkerState->inhibitAnyPolicyExtension),
                 plContext),
-                "PKIX_PL_OID_Create failed");
+                PKIX_OIDCREATEFAILED);
 
         PKIX_CHECK(PKIX_PL_OID_Create
                 (PKIX_CERTIFICATEPOLICIES_ANYPOLICY_OID,
                 &(checkerState->anyPolicyOID),
                 plContext),
-                "PKIX_PL_OID_Create failed");
+                PKIX_OIDCREATEFAILED);
 
         /* Create an initial policy set from argument supplied */
         PKIX_INCREF(initialPolicies);
@@ -477,7 +477,7 @@ pkix_PolicyCheckerState_Create(
                 (PKIX_PL_Object *)(checkerState->anyPolicyOID),
                 &(checkerState->initialIsAnyPolicy),
                 plContext),
-                "pkix_List_Contains failed");
+                PKIX_LISTCONTAINSFAILED);
 
         checkerState->policyQualifiersRejected =
                 policyQualifiersRejected;
@@ -501,7 +501,7 @@ pkix_PolicyCheckerState_Create(
                 PKIX_TRUE,
                 &anyPolicyList,
                 plContext),
-                "pkix_PolicyChecker_MakeSingleton failed");
+                PKIX_POLICYCHECKERMAKESINGLETONFAILED);
 
         PKIX_CHECK(pkix_PolicyNode_Create
                 (checkerState->anyPolicyOID,    /* validPolicy */
@@ -510,7 +510,7 @@ pkix_PolicyCheckerState_Create(
                 anyPolicyList,                  /* expectedPolicySet */
                 &policyNode,
                 plContext),
-                "pkix_PolicyNode_Create failed");
+                PKIX_POLICYNODECREATEFAILED);
         checkerState->validPolicyTree = policyNode;
 
         /*
@@ -587,32 +587,31 @@ pkix_PolicyChecker_MapContains(
         PKIX_NULLCHECK_THREE(certPolicyMaps, policy, pFound);
 
         PKIX_CHECK(PKIX_List_GetLength(certPolicyMaps, &numEntries, plContext),
-                "PKIX_List_GetLength failed");
+                PKIX_LISTGETLENGTHFAILED);
 
         for (index = 0; (!match) && (index < numEntries); index++) {
                 PKIX_CHECK(PKIX_List_GetItem
                     (certPolicyMaps, index, (PKIX_PL_Object **)&map, plContext),
-                    "PKIX_List_GetItem failed");
+                    PKIX_LISTGETITEMFAILED);
 
                 PKIX_NULLCHECK_ONE(map);
 
                 PKIX_CHECK(PKIX_PL_CertPolicyMap_GetIssuerDomainPolicy
                         (map, &issuerDomainPolicy, plContext),
-                        "PKIX_PL_CertPolicyMap_GetIssuerDomainPolicy failed");
+                        PKIX_CERTPOLICYMAPGETISSUERDOMAINPOLICYFAILED);
 
                 PKIX_EQUALS
                         (policy, issuerDomainPolicy, &match, plContext,
-                        "PKIX_PL_Object_Equals failed");
+                        PKIX_OBJECTEQUALSFAILED);
 
                 if (!match) {
                         PKIX_CHECK(PKIX_PL_CertPolicyMap_GetSubjectDomainPolicy
                                 (map, &subjectDomainPolicy, plContext),
-                                "PKIX_PL_CertPolicyMap_GetSubjectDomainPolicy"
-                                " failed");
+                                PKIX_CERTPOLICYMAPGETSUBJECTDOMAINPOLICYFAILED);
 
                         PKIX_EQUALS
                                 (policy, subjectDomainPolicy, &match, plContext,
-                                "PKIX_PL_Object_Equals failed");
+                                PKIX_OBJECTEQUALSFAILED);
                 }
 
                 PKIX_DECREF(map);
@@ -687,39 +686,39 @@ pkix_PolicyChecker_MapGetSubjectDomainPolicies(
                     (certPolicyMaps,
                     &numEntries,
                     plContext),
-                    "PKIX_List_GetLength failed");
+                    PKIX_LISTGETLENGTHFAILED);
         }
 
         for (index = 0; index < numEntries; index++) {
                 PKIX_CHECK(PKIX_List_GetItem
                     (certPolicyMaps, index, (PKIX_PL_Object **)&map, plContext),
-                    "PKIX_List_GetItem failed");
+                    PKIX_LISTGETITEMFAILED);
 
                 PKIX_NULLCHECK_ONE(map);
 
                 PKIX_CHECK(PKIX_PL_CertPolicyMap_GetIssuerDomainPolicy
                         (map, &issuerDomainPolicy, plContext),
-                        "PKIX_PL_CertPolicyMap_GetIssuerDomainPolicy failed");
+                        PKIX_CERTPOLICYMAPGETISSUERDOMAINPOLICYFAILED);
 
                 PKIX_EQUALS
                     (policy, issuerDomainPolicy, &match, plContext,
-                    "PKIX_PL_Object_Equals failed");
+                    PKIX_OBJECTEQUALSFAILED);
 
                 if (match) {
                     if (!subjectList) {
                         PKIX_CHECK(PKIX_List_Create(&subjectList, plContext),
-                                "PKIX_List_Create failed");
+                                PKIX_LISTCREATEFAILED);
                     }
 
                     PKIX_CHECK(PKIX_PL_CertPolicyMap_GetSubjectDomainPolicy
                         (map, &subjectDomainPolicy, plContext),
-                        "PKIX_PL_CertPolicyMap_GetSubjectDomainPolicy failed");
+                        PKIX_CERTPOLICYMAPGETSUBJECTDOMAINPOLICYFAILED);
 
                     PKIX_CHECK(PKIX_List_AppendItem
                         (subjectList,
                         (PKIX_PL_Object *)subjectDomainPolicy,
                         plContext),
-                        "PKIX_List_AppendItem failed");
+                        PKIX_LISTAPPENDITEMFAILED);
                 }
 
                 PKIX_DECREF(map);
@@ -729,7 +728,7 @@ pkix_PolicyChecker_MapGetSubjectDomainPolicies(
 
         if (subjectList) {
                 PKIX_CHECK(PKIX_List_SetImmutable(subjectList, plContext),
-                        "PKIX_List_SetImmutable failed");
+                        PKIX_LISTSETIMMUTABLEFAILED);
         }
 
         *pSubjectDomainPolicies = subjectList;
@@ -793,35 +792,35 @@ pkix_PolicyChecker_MapGetMappedPolicies(
         PKIX_NULLCHECK_TWO(certPolicyMaps, pMappedPolicies);
 
         PKIX_CHECK(PKIX_List_Create(&mappedList, plContext),
-                "PKIX_List_Create failed");
+                PKIX_LISTCREATEFAILED);
 
         PKIX_CHECK(PKIX_List_GetLength(certPolicyMaps, &numEntries, plContext),
-                "PKIX_List_GetLength failed");
+                PKIX_LISTGETLENGTHFAILED);
 
         for (index = 0; index < numEntries; index++) {
                 PKIX_CHECK(PKIX_List_GetItem
                     (certPolicyMaps, index, (PKIX_PL_Object **)&map, plContext),
-                    "PKIX_List_GetItem failed");
+                    PKIX_LISTGETITEMFAILED);
 
                 PKIX_NULLCHECK_ONE(map);
 
                 PKIX_CHECK(PKIX_PL_CertPolicyMap_GetIssuerDomainPolicy
                         (map, &issuerDomainPolicy, plContext),
-                        "PKIX_PL_CertPolicyMap_GetIssuerDomainPolicy failed");
+                        PKIX_CERTPOLICYMAPGETISSUERDOMAINPOLICYFAILED);
 
                 PKIX_CHECK(pkix_List_Contains
                         (mappedList,
                         (PKIX_PL_Object *)issuerDomainPolicy,
                         &isContained,
                         plContext),
-                        "PKIX_List_Contains failed");
+                        PKIX_LISTCONTAINSFAILED);
 
                 if (isContained == PKIX_FALSE) {
                         PKIX_CHECK(PKIX_List_AppendItem
                                 (mappedList,
                                 (PKIX_PL_Object *)issuerDomainPolicy,
                                 plContext),
-                                "PKIX_List_AppendItem failed");
+                                PKIX_LISTAPPENDITEMFAILED);
                 }
 
                 PKIX_DECREF(map);
@@ -878,18 +877,18 @@ pkix_PolicyChecker_MakeMutableCopy(
         PKIX_NULLCHECK_TWO(list, pMutableCopy);
 
         PKIX_CHECK(PKIX_List_Create(&newList, plContext),
-                "PKIX_List_Create failed");
+                PKIX_LISTCREATEFAILED);
 
         PKIX_CHECK(PKIX_List_GetLength(list, &listLen, plContext),
-                "PKIX_List_GetLength failed");
+                PKIX_LISTGETLENGTHFAILED);
 
         for (listIx = 0; listIx < listLen; listIx++) {
 
                 PKIX_CHECK(PKIX_List_GetItem(list, listIx, &object, plContext),
-                        "PKIX_List_GetItem failed");
+                        PKIX_LISTGETITEMFAILED);
 
                 PKIX_CHECK(PKIX_List_AppendItem(newList, object, plContext),
-                        "PKIX_List_AppendItem failed");
+                        PKIX_LISTAPPENDITEMFAILED);
 
                 PKIX_DECREF(object);
         }
@@ -941,15 +940,15 @@ pkix_PolicyChecker_MakeSingleton(
         PKIX_NULLCHECK_TWO(listItem, pList);
 
         PKIX_CHECK(PKIX_List_Create(&newList, plContext),
-                "PKIX_List_Create failed");
+                PKIX_LISTCREATEFAILED);
 
         PKIX_CHECK(PKIX_List_AppendItem
                 (newList, (PKIX_PL_Object *)listItem, plContext),
-                "PKIX_List_AppendItem failed");
+                PKIX_LISTAPPENDITEMFAILED);
 
         if (immutability) {
                 PKIX_CHECK(PKIX_List_SetImmutable(newList, plContext),
-                        "PKIX_List_SetImmutable failed");
+                        PKIX_LISTSETIMMUTABLEFAILED);
         }
 
         *pList = newList;
@@ -1038,7 +1037,7 @@ pkix_PolicyChecker_Spawn(
                         PKIX_TRUE,      /* make expectedPolicySet immutable */
                         &expectedSet,
                         plContext),
-                        "pkix_PolicyChecker_MakeSingleton failed");
+                        PKIX_POLICYCHECKERMAKESINGLETONFAILED);
         }
 
         PKIX_CHECK(pkix_PolicyNode_Create
@@ -1048,7 +1047,7 @@ pkix_PolicyChecker_Spawn(
                 expectedSet,
                 &childNode,
                 plContext),
-                "pkix_PolicyNode_Create failed");
+                PKIX_POLICYNODECREATEFAILED);
 
         /*
          * If we had a non-empty mapping, we know the new node could not
@@ -1058,7 +1057,7 @@ pkix_PolicyChecker_Spawn(
          */
         if (!subjectDomainPolicies) {
                 PKIX_EQUALS(policyOID, state->anyPolicyOID, &match, plContext,
-                        "PKIX_PL_Object_Equals failed");
+                        PKIX_OBJECTEQUALSFAILED);
 
                 if (match) {
                         PKIX_DECREF(state->newAnyPolicyNode);
@@ -1068,11 +1067,11 @@ pkix_PolicyChecker_Spawn(
         }
 
         PKIX_CHECK(pkix_PolicyNode_AddToParent(parent, childNode, plContext),
-                "pkix_PolicyNode_AddToParent failed");
+                PKIX_POLICYNODEADDTOPARENTFAILED);
 
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                 ((PKIX_PL_Object *)state, plContext),
-                "PKIX_PL_Object_InvalidateCache failed");
+                PKIX_OBJECTINVALIDATECACHEFAILED);
 
 cleanup:
         PKIX_DECREF(childNode);
@@ -1157,17 +1156,17 @@ pkix_PolicyChecker_CheckPolicyRecursive(
         /* if not at the bottom of the tree */
         PKIX_CHECK(PKIX_PolicyNode_GetDepth
                 (currentNode, &depth, plContext),
-                "PKIX_PolicyNode_GetDepth failed");
+                PKIX_POLICYNODEGETDEPTHFAILED);
 
         if (depth < (state->certsProcessed)) {
                 PKIX_CHECK(pkix_PolicyNode_GetChildrenMutable
                         (currentNode, &children, plContext),
-                        "pkix_PolicyNode_GetChildrenMutable failed");
+                        PKIX_POLICYNODEGETCHILDRENMUTABLEFAILED);
 
                 if (children) {
                         PKIX_CHECK(PKIX_List_GetLength
                                 (children, &numChildren, plContext),
-                                "PKIX_List_GetLength failed");
+                                PKIX_LISTGETLENGTHFAILED);
                 }
 
                 for (childIx = 0; childIx < numChildren; childIx++) {
@@ -1177,7 +1176,7 @@ pkix_PolicyChecker_CheckPolicyRecursive(
                             childIx,
                             (PKIX_PL_Object **)&childNode,
                             plContext),
-                            "PKIX_List_GetItem failed");
+                            PKIX_LISTGETITEMFAILED);
 
                         PKIX_CHECK(pkix_PolicyChecker_CheckPolicyRecursive
                             (policyOID,
@@ -1187,7 +1186,7 @@ pkix_PolicyChecker_CheckPolicyRecursive(
                             state,
                             pChildNodeCreated,
                             plContext),
-                            "pkix_PolicyChecker_CheckPolicyRecursive failed");
+                            PKIX_POLICYCHECKERCHECKPOLICYRECURSIVEFAILED);
 
                         PKIX_DECREF(childNode);
                 }
@@ -1196,7 +1195,7 @@ pkix_PolicyChecker_CheckPolicyRecursive(
                 /* Check whether policy is in this node's expectedPolicySet */
                 PKIX_CHECK(PKIX_PolicyNode_GetExpectedPolicies
                         (currentNode, &expectedPolicies, plContext),
-                        "PKIX_PolicyNode_GetExpectedPolicies failed");
+                        PKIX_POLICYNODEGETEXPECTEDPOLICIESFAILED);
 
                 PKIX_NULLCHECK_ONE(expectedPolicies);
 
@@ -1205,7 +1204,7 @@ pkix_PolicyChecker_CheckPolicyRecursive(
                         (PKIX_PL_Object *)policyOID,
                         &isIncluded,
                         plContext),
-                        "pkix_List_Contains failed");
+                        PKIX_LISTCONTAINSFAILED);
 
                 if (isIncluded) {
                         PKIX_CHECK(pkix_PolicyChecker_Spawn
@@ -1215,7 +1214,7 @@ pkix_PolicyChecker_CheckPolicyRecursive(
                                 subjectDomainPolicies,
                                 state,
                                 plContext),
-                                "pkix_PolicyChecker_Spawn failed");
+                                PKIX_POLICYCHECKERSPAWNFAILED);
 
                         *pChildNodeCreated = PKIX_TRUE;
                 }
@@ -1293,7 +1292,7 @@ pkix_PolicyChecker_CheckPolicy(
         if (state->certsProcessed != (state->numCerts - 1)) {
             PKIX_CHECK(pkix_PolicyChecker_MapGetSubjectDomainPolicies
                 (maps, policyOID, &subjectDomainPolicies, plContext),
-                "pkix_PolicyChecker_MapGetSubjectDomainPolicies failed");
+                PKIX_POLICYCHECKERMAPGETSUBJECTDOMAINPOLICIESFAILED);
         }
 
         /*
@@ -1316,7 +1315,7 @@ pkix_PolicyChecker_CheckPolicy(
                 state,
                 &childNodeCreated,
                 plContext),
-                "pkix_PolicyChecker_CheckPolicyRecursive failed");
+                PKIX_POLICYCHECKERCHECKPOLICYRECURSIVEFAILED);
 
         if (!childNodeCreated) {
                 /*
@@ -1341,7 +1340,7 @@ pkix_PolicyChecker_CheckPolicy(
                                         (PKIX_PL_Object *)policyOID,
                                         &okToSpawn,
                                         plContext),
-                                        "pkix_List_Contains failed");
+                                        PKIX_LISTCONTAINSFAILED);
                         }
                         if (okToSpawn) {
                                 PKIX_CHECK(pkix_PolicyChecker_Spawn
@@ -1351,7 +1350,7 @@ pkix_PolicyChecker_CheckPolicy(
                                         subjectDomainPolicies,
                                         state,
                                         plContext),
-                                        "pkix_PolicyChecker_Spawn failed");
+                                        PKIX_POLICYCHECKERSPAWNFAILED);
                                 childNodeCreated = PKIX_TRUE;
                         }
                 }
@@ -1367,7 +1366,7 @@ pkix_PolicyChecker_CheckPolicy(
                     state->certPoliciesCritical &&
                     state->policyQualifiersRejected) {
                     PKIX_ERROR
-                        ("Qualifiers in critical Certificate Policy extension");
+                        (PKIX_QUALIFIERSINCRITICALCERTIFICATEPOLICYEXTENSION);
                 }
                 /*
                  * If the policy we just propagated was in the list of mapped
@@ -1380,13 +1379,13 @@ pkix_PolicyChecker_CheckPolicy(
                                 (PKIX_PL_Object *)policyOID,
                                 &found,
                                 plContext),
-                                "pkix_List_Contains failed");
+                                PKIX_LISTCONTAINSFAILED);
                         if (found) {
                                 PKIX_CHECK(pkix_List_Remove
                                         (state->mappedPolicyOIDs,
                                         (PKIX_PL_Object *)policyOID,
                                         plContext),
-                                        "pkix_List_Remove failed");
+                                        PKIX_LISTREMOVEFAILED);
                         }
                 }
         }
@@ -1471,16 +1470,16 @@ pkix_PolicyChecker_CheckAny(
 
         PKIX_CHECK(PKIX_PolicyNode_GetDepth
                 (currentNode, &depth, plContext),
-                "PKIX_PolicyNode_GetDepth failed");
+                PKIX_POLICYNODEGETDEPTHFAILED);
 
         PKIX_CHECK(pkix_PolicyNode_GetChildrenMutable
                 (currentNode, &children, plContext),
-                "pkix_PolicyNode_GetChildrenMutable failed");
+                PKIX_POLICYNODEGETCHILDRENMUTABLEFAILED);
 
         if (children) {
                 PKIX_CHECK(PKIX_List_GetLength
                         (children, &numChildren, plContext),
-                        "PKIX_List_GetLength failed");
+                        PKIX_LISTGETLENGTHFAILED);
         }
 
         if (depth < (state->certsProcessed)) {
@@ -1491,7 +1490,7 @@ pkix_PolicyChecker_CheckAny(
                                 childIx,
                                 (PKIX_PL_Object **)&childNode,
                                 plContext),
-                                "PKIX_List_GetItem failed");
+                                PKIX_LISTGETITEMFAILED);
 
                         PKIX_NULLCHECK_ONE(childNode);
                         PKIX_CHECK(pkix_PolicyChecker_CheckAny
@@ -1500,7 +1499,7 @@ pkix_PolicyChecker_CheckAny(
                                 policyMaps,
                                 state,
                                 plContext),
-                                "pkix_PolicyChecker_CheckAny failed");
+                                PKIX_POLICYCHECKERCHECKANYFAILED);
 
                         PKIX_DECREF(childNode);
                 }
@@ -1508,14 +1507,14 @@ pkix_PolicyChecker_CheckAny(
 
             PKIX_CHECK(PKIX_PolicyNode_GetExpectedPolicies
                 (currentNode, &expectedPolicies, plContext),
-                "PKIX_PolicyNode_GetExpectedPolicies failed");
+                PKIX_POLICYNODEGETEXPECTEDPOLICIESFAILED);
 
             /* Expected Policy Set is not allowed to be NULL */
             PKIX_NULLCHECK_ONE(expectedPolicies);
 
             PKIX_CHECK(PKIX_List_GetLength
                 (expectedPolicies, &numPolicies, plContext),
-                "PKIX_List_GetLength failed");
+                PKIX_LISTGETLENGTHFAILED);
 
             for (polx = 0; polx < numPolicies; polx++) {
                 PKIX_CHECK(PKIX_List_GetItem
@@ -1523,7 +1522,7 @@ pkix_PolicyChecker_CheckAny(
                     polx,
                     (PKIX_PL_Object **)&policyOID,
                     plContext),
-                    "PKIX_List_GetItem failed");
+                    PKIX_LISTGETITEMFAILED);
 
                 PKIX_NULLCHECK_ONE(policyOID);
 
@@ -1538,18 +1537,18 @@ pkix_PolicyChecker_CheckAny(
                         childIx,
                         (PKIX_PL_Object **)&childNode,
                         plContext),
-                        "PKIX_List_GetItem failed");
+                        PKIX_LISTGETITEMFAILED);
 
                     PKIX_NULLCHECK_ONE(childNode);
 
                     PKIX_CHECK(PKIX_PolicyNode_GetValidPolicy
                         (childNode, &childPolicy, plContext),
-                        "pkix_PolicyNode_GetValidPolicy failed");
+                        PKIX_POLICYNODEGETVALIDPOLICYFAILED);
 
                     PKIX_NULLCHECK_ONE(childPolicy);
 
                     PKIX_EQUALS(policyOID, childPolicy, &isIncluded, plContext,
-                        "PKIX_PL_Object_Equals failed");
+                        PKIX_OBJECTEQUALSFAILED);
 
                     PKIX_DECREF(childNode);
                     PKIX_DECREF(childPolicy);
@@ -1558,13 +1557,12 @@ pkix_PolicyChecker_CheckAny(
                 if (!isIncluded) {
                     if (policyMaps) {
                         PKIX_CHECK
-                            (pkix_PolicyChecker_MapGetSubjectDomainPolicies
-                            (policyMaps,
-                            policyOID,
-                            &subjectDomainPolicies,
-                            plContext),
-                            "pkix_PolicyChecker_MapGetSubjectDomainPolicies"
-                            " failed");
+                          (pkix_PolicyChecker_MapGetSubjectDomainPolicies
+                          (policyMaps,
+                          policyOID,
+                          &subjectDomainPolicies,
+                          plContext),
+                          PKIX_POLICYCHECKERMAPGETSUBJECTDOMAINPOLICIESFAILED);
                     }
                     PKIX_CHECK(pkix_PolicyChecker_Spawn
                         (currentNode,
@@ -1573,7 +1571,7 @@ pkix_PolicyChecker_CheckAny(
                         subjectDomainPolicies,
                         state,
                         plContext),
-                        "pkix_PolicyChecker_Spawn failed");
+                        PKIX_POLICYCHECKERSPAWNFAILED);
                     PKIX_DECREF(subjectDomainPolicies);
                 }
 
@@ -1671,7 +1669,7 @@ pkix_PolicyChecker_CalculateIntersection(
 
         PKIX_CHECK(PKIX_PolicyNode_GetValidPolicy
                 (currentNode, &currentPolicy, plContext),
-                "PKIX_PolicyNode_GetValidPolicy failed");
+                PKIX_POLICYNODEGETVALIDPOLICYFAILED);
 
         PKIX_NULLCHECK_TWO(state->anyPolicyOID, currentPolicy);
 
@@ -1680,10 +1678,10 @@ pkix_PolicyChecker_CalculateIntersection(
                 currentPolicy,
                 &currentPolicyIsAny,
                 plContext,
-                "PKIX_PL_Object_Equals failed");
+                PKIX_OBJECTEQUALSFAILED);
 
         PKIX_CHECK(PKIX_PolicyNode_GetParent(currentNode, &parent, plContext),
-                "PKIX_PolicyNode_GetParent failed");
+                PKIX_POLICYNODEGETPARENTFAILED);
 
         if (currentPolicyIsAny == PKIX_FALSE) {
 
@@ -1695,7 +1693,7 @@ pkix_PolicyChecker_CalculateIntersection(
                 if (parent) {
                         PKIX_CHECK(PKIX_PolicyNode_GetValidPolicy
                                 (parent, &parentPolicy, plContext),
-                                "PKIX_PolicyNode_GetValidPolicy failed");
+                                PKIX_POLICYNODEGETVALIDPOLICYFAILED);
 
                         PKIX_NULLCHECK_ONE(parentPolicy);
 
@@ -1704,7 +1702,7 @@ pkix_PolicyChecker_CalculateIntersection(
                                 parentPolicy,
                                 &parentPolicyIsAny,
                                 plContext,
-                                "PKIX_PL_Object_Equals failed");
+                                PKIX_OBJECTEQUALSFAILED);
                 }
 
                 /*
@@ -1718,7 +1716,7 @@ pkix_PolicyChecker_CalculateIntersection(
                                 (PKIX_PL_Object *)currentPolicy,
                                 &currentPolicyIsValid,
                                 plContext),
-                                "pkix_List_Contains failed");
+                                PKIX_LISTCONTAINSFAILED);
                         if (!currentPolicyIsValid) {
                                 *pShouldBePruned = PKIX_TRUE;
                                 goto cleanup;
@@ -1734,7 +1732,7 @@ pkix_PolicyChecker_CalculateIntersection(
                                 (nominees,
                                 (PKIX_PL_Object *)currentPolicy,
                                 plContext),
-                                "pkix_List_Remove failed");
+                                PKIX_LISTREMOVEFAILED);
                 }
         }
 
@@ -1743,7 +1741,7 @@ pkix_PolicyChecker_CalculateIntersection(
 
         PKIX_CHECK(PKIX_PolicyNode_GetDepth
                 (currentNode, &depth, plContext),
-                "PKIX_PolicyNode_GetDepth failed");
+                PKIX_POLICYNODEGETDEPTHFAILED);
 
         if (depth == (state->numCerts)) {
                 /*
@@ -1756,7 +1754,7 @@ pkix_PolicyChecker_CalculateIntersection(
 
                         PKIX_CHECK(PKIX_List_GetLength
                             (nominees, &numNominees, plContext),
-                            "PKIX_List_GetLength failed");
+                            PKIX_LISTGETLENGTHFAILED);
 
                         if (numNominees) {
 
@@ -1764,11 +1762,11 @@ pkix_PolicyChecker_CalculateIntersection(
                                 (currentNode,
                                 &policyQualifiers,
                                 plContext),
-                                "PKIX_PolicyNode_GetPolicyQualifiers failed");
+                                PKIX_POLICYNODEGETPOLICYQUALIFIERSFAILED);
 
                             PKIX_CHECK(PKIX_PolicyNode_IsCritical
                                 (currentNode, &priorCriticality, plContext),
-                                "PKIX_PolicyNode_IsCritical failed");
+                                PKIX_POLICYNODEISCRITICALFAILED);
                         }
 
                         PKIX_NULLCHECK_ONE(parent);
@@ -1780,7 +1778,7 @@ pkix_PolicyChecker_CalculateIntersection(
                                 polIx,
                                 (PKIX_PL_Object **)&substPolicy,
                                 plContext),
-                                "PKIX_List_GetItem failed");
+                                PKIX_LISTGETITEMFAILED);
 
                             PKIX_CHECK(pkix_PolicyChecker_Spawn
                                 (parent,
@@ -1789,7 +1787,7 @@ pkix_PolicyChecker_CalculateIntersection(
                                 NULL,
                                 state,
                                 plContext),
-                                "pkix_PolicyChecker_Spawn failed");
+                                PKIX_POLICYCHECKERSPAWNFAILED);
 
                             PKIX_DECREF(substPolicy);
 
@@ -1809,14 +1807,14 @@ pkix_PolicyChecker_CalculateIntersection(
                  */
                 PKIX_CHECK(pkix_PolicyNode_GetChildrenMutable
                         (currentNode, &children, plContext),
-                        "pkix_PolicyNode_GetChildrenMutable failed");
+                        PKIX_POLICYNODEGETCHILDRENMUTABLEFAILED);
 
                 /* CurrentNode should have been pruned if childless. */
                 PKIX_NULLCHECK_ONE(children);
 
                 PKIX_CHECK(PKIX_List_GetLength
                         (children, &numChildren, plContext),
-                        "PKIX_List_GetLength failed");
+                        PKIX_LISTGETLENGTHFAILED);
 
                 for (childIndex = numChildren; childIndex > 0; childIndex--) {
 
@@ -1825,20 +1823,20 @@ pkix_PolicyChecker_CalculateIntersection(
                         childIndex - 1,
                         (PKIX_PL_Object **)&child,
                         plContext),
-                        "PKIX_List_GetItem failed");
+                        PKIX_LISTGETITEMFAILED);
 
                     PKIX_CHECK(pkix_PolicyChecker_CalculateIntersection
                         (child, state, nominees, &shouldBePruned, plContext),
-                        "pkix_PolicyChecker_CalculateIntersection failed");
+                        PKIX_POLICYCHECKERCALCULATEINTERSECTIONFAILED);
 
                     if (PKIX_TRUE == shouldBePruned) {
 
                         PKIX_CHECK(PKIX_List_DeleteItem
                                 (children, childIndex - 1, plContext),
-                                "PKIX_List_DeleteItem failed");
+                                PKIX_LISTDELETEITEMFAILED);
                         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                                 ((PKIX_PL_Object *)state, plContext),
-                                "PKIX_PL_Object_InvalidateCache failed");
+                                PKIX_OBJECTINVALIDATECACHEFAILED);
                     }
 
                     PKIX_DECREF(child);
@@ -1846,7 +1844,7 @@ pkix_PolicyChecker_CalculateIntersection(
 
                 PKIX_CHECK(PKIX_List_GetLength
                         (children, &numChildren, plContext),
-                        "PKIX_List_GetLength failed");
+                        PKIX_LISTGETLENGTHFAILED);
 
                 if (numChildren == 0) {
                         *pShouldBePruned = PKIX_TRUE;
@@ -1926,13 +1924,13 @@ pkix_PolicyChecker_PolicyMapProcessing(
          */
         PKIX_CHECK(PKIX_List_Create
                 (&newMappedPolicies, plContext),
-                "PKIX_List_Create failed");
+                PKIX_LISTCREATEFAILED);
 
         PKIX_CHECK(PKIX_List_GetLength
                 (state->mappedUserInitialPolicySet,
                 &numPolicies,
                 plContext),
-                "PKIX_List_GetLength failed");
+                PKIX_LISTGETLENGTHFAILED);
 
         for (polX = 0; polX < numPolicies; polX++) {
 
@@ -1941,14 +1939,14 @@ pkix_PolicyChecker_PolicyMapProcessing(
                 polX,
                 (PKIX_PL_Object **)&policyOID,
                 plContext),
-                "PKIX_List_GetItem failed");
+                PKIX_LISTGETITEMFAILED);
 
             PKIX_CHECK(pkix_PolicyChecker_MapGetSubjectDomainPolicies
                 (policyMaps,
                 policyOID,
                 &subjectDomainPolicies,
                 plContext),
-                "pkix_PolicyChecker_MapGetSubjectDomainPolicies failed");
+                PKIX_POLICYCHECKERMAPGETSUBJECTDOMAINPOLICIESFAILED);
 
             if (subjectDomainPolicies) {
 
@@ -1956,7 +1954,7 @@ pkix_PolicyChecker_PolicyMapProcessing(
                         (newMappedPolicies,
                         subjectDomainPolicies,
                         plContext),
-                        "pkix_List_AppendUnique failed");
+                        PKIX_LISTAPPENDUNIQUEFAILED);
 
                 PKIX_DECREF(subjectDomainPolicies);
 
@@ -1965,7 +1963,7 @@ pkix_PolicyChecker_PolicyMapProcessing(
                         (newMappedPolicies,
                         (PKIX_PL_Object *)policyOID,
                         plContext),
-                        "PKIX_List_AppendItem failed");
+                        PKIX_LISTAPPENDITEMFAILED);
             }
             PKIX_DECREF(policyOID);
         }
@@ -1989,7 +1987,7 @@ pkix_PolicyChecker_PolicyMapProcessing(
                     (state->mappedPolicyOIDs,
                     &numPolicies,
                     plContext),
-                    "PKIX_List_GetLength failed");
+                    PKIX_LISTGETLENGTHFAILED);
 
                 for (polX = 0; polX < numPolicies; polX++) {
 
@@ -1998,15 +1996,14 @@ pkix_PolicyChecker_PolicyMapProcessing(
                         polX,
                         (PKIX_PL_Object **)&policyOID,
                         plContext),
-                        "PKIX_List_GetItem failed");
+                        PKIX_LISTGETITEMFAILED);
 
                     PKIX_CHECK(pkix_PolicyChecker_MapGetSubjectDomainPolicies
                         (policyMaps,
                         policyOID,
                         &subjectDomainPolicies,
                         plContext),
-                        "pkix_PolicyChecker_MapGetSubjectDomainPolicies"
-                        " failed");
+                        PKIX_POLICYCHECKERMAPGETSUBJECTDOMAINPOLICIESFAILED);
 
                     PKIX_CHECK(pkix_PolicyChecker_Spawn
                         (state->anyPolicyNodeAtBottom,
@@ -2015,13 +2012,13 @@ pkix_PolicyChecker_PolicyMapProcessing(
                         subjectDomainPolicies,
                         state,
                         plContext),
-                        "pkix_PolicyChecker_Spawn failed");
+                        PKIX_POLICYCHECKERSPAWNFAILED);
 
                     PKIX_CHECK(pkix_List_AppendUnique
                         (newMappedPolicies,
                         subjectDomainPolicies,
                         plContext),
-                        "pkix_List_AppendUnique failed");
+                        PKIX_LISTAPPENDUNIQUEFAILED);
 
                     PKIX_DECREF(subjectDomainPolicies);
                     PKIX_DECREF(policyOID);
@@ -2029,7 +2026,7 @@ pkix_PolicyChecker_PolicyMapProcessing(
         }
 
         PKIX_CHECK(PKIX_List_SetImmutable(newMappedPolicies, plContext),
-                "PKIX_List_SetImmutable failed");
+                PKIX_LISTSETIMMUTABLEFAILED);
 
         PKIX_DECREF(state->mappedUserInitialPolicySet);
         PKIX_INCREF(newMappedPolicies);
@@ -2096,7 +2093,7 @@ pkix_PolicyChecker_WrapUpProcessing(
 #if PKIX_CERTPOLICYCHECKERSTATEDEBUG
         PKIX_CHECK(PKIX_PL_Object_ToString
                 ((PKIX_PL_Object*)state, &stateString, plContext),
-                "PKIX_PL_Object_ToString failed");
+                PKIX_OBJECTTOSTRINGFAILED);
 
         PKIX_CHECK(PKIX_PL_String_GetEncoded
                     (stateString,
@@ -2104,7 +2101,7 @@ pkix_PolicyChecker_WrapUpProcessing(
                     (void **)&stateAscii,
                     &length,
                     plContext),
-                    "PKIX_PL_String_GetEncoded failed");
+                    PKIX_STRINGGETENCODEDFAILED);
 
         PKIX_DEBUG_ARG("%s\n", stateAscii);
 
@@ -2115,7 +2112,7 @@ pkix_PolicyChecker_WrapUpProcessing(
         /* Section 6.1.5(a) ... */
         PKIX_CHECK(pkix_IsCertSelfIssued
                 (cert, &isSelfIssued, plContext),
-                "pkix_IsCertSelfIssued failed");
+                PKIX_ISCERTSELFISSUEDFAILED);
 
         if (!isSelfIssued) {
                 if (state->explicitPolicy > 0) {
@@ -2124,14 +2121,14 @@ pkix_PolicyChecker_WrapUpProcessing(
 
                         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                                 ((PKIX_PL_Object *)state, plContext),
-                                "PKIX_PL_Object_InvalidateCache failed");
+                                PKIX_OBJECTINVALIDATECACHEFAILED);
                 }
         }
 
         /* Section 6.1.5(b) ... */
         PKIX_CHECK(PKIX_PL_Cert_GetRequireExplicitPolicy
                 (cert, &explicitPolicySkipCerts, plContext),
-                "PKIX_PL_Cert_GetRequireExplicitPolicy failed");
+                PKIX_CERTGETREQUIREEXPLICITPOLICYFAILED);
 
         if (explicitPolicySkipCerts  == 0) {
                 state->explicitPolicy = 0;
@@ -2156,7 +2153,7 @@ pkix_PolicyChecker_WrapUpProcessing(
          */
         PKIX_CHECK(pkix_PolicyChecker_MakeMutableCopy
                 (state->userInitialPolicySet, &nominees, plContext),
-                "pkix_PolicyChecker_MakeMutableCopy failed");
+                PKIX_POLICYCHECKERMAKEMUTABLECOPYFAILED);
 
         PKIX_CHECK(pkix_PolicyChecker_CalculateIntersection
                 (state->validPolicyTree, /* node at top of tree */
@@ -2164,7 +2161,7 @@ pkix_PolicyChecker_WrapUpProcessing(
                 nominees,
                 &shouldBePruned,
                 plContext),
-                "pkix_PolicyChecker_CalculateIntersection failed");
+                PKIX_POLICYCHECKERCALCULATEINTERSECTIONFAILED);
 
         if (PKIX_TRUE == shouldBePruned) {
                 PKIX_DECREF(state->validPolicyTree);
@@ -2173,18 +2170,18 @@ pkix_PolicyChecker_WrapUpProcessing(
         if (state->validPolicyTree) {
                 PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                         ((PKIX_PL_Object *)state->validPolicyTree, plContext),
-                        "PKIX_PL_Object_InvalidateCache failed");
+                        PKIX_OBJECTINVALIDATECACHEFAILED);
         }
 
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                 ((PKIX_PL_Object *)state, plContext),
-                "PKIX_PL_Object_InvalidateCache failed");
+                PKIX_OBJECTINVALIDATECACHEFAILED);
 
 #if PKIX_CERTPOLICYCHECKERSTATEDEBUG
         if (state->validPolicyTree) {
                 PKIX_CHECK(PKIX_PL_Object_ToString
                         ((PKIX_PL_Object*)state, &stateString, plContext),
-                        "PKIX_PL_Object_ToString failed");
+                        PKIX_OBJECTTOSTRINGFAILED);
 
                 PKIX_CHECK(PKIX_PL_String_GetEncoded
                             (stateString,
@@ -2192,7 +2189,7 @@ pkix_PolicyChecker_WrapUpProcessing(
                             (void **)&stateAscii,
                             &length,
                             plContext),
-                            "PKIX_PL_String_GetEncoded failed");
+                            PKIX_STRINGGETENCODEDFAILED);
 
                 PKIX_DEBUG_ARG
                         ("After CalculateIntersection:\n%s\n", stateAscii);
@@ -2213,7 +2210,7 @@ pkix_PolicyChecker_WrapUpProcessing(
                         state->numCerts,
                         &shouldBePruned,
                         plContext),
-                        "pkix_PolicyNode_Prune failed");
+                        PKIX_POLICYNODEPRUNEFAILED);
 
                 if (shouldBePruned) {
                         PKIX_DECREF(state->validPolicyTree);
@@ -2223,24 +2220,24 @@ pkix_PolicyChecker_WrapUpProcessing(
         if (state->validPolicyTree) {
                 PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                         ((PKIX_PL_Object *)state->validPolicyTree, plContext),
-                        "PKIX_PL_Object_InvalidateCache failed");
+                        PKIX_OBJECTINVALIDATECACHEFAILED);
         }
 
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                 ((PKIX_PL_Object *)state, plContext),
-                "PKIX_PL_Object_InvalidateCache failed");
+                PKIX_OBJECTINVALIDATECACHEFAILED);
 
 #if PKIX_CERTPOLICYCHECKERSTATEDEBUG
         PKIX_CHECK(PKIX_PL_Object_ToString
                 ((PKIX_PL_Object*)state, &stateString, plContext),
-                "PKIX_PL_Object_ToString failed");
+                PKIX_OBJECTTOSTRINGFAILED);
         PKIX_CHECK(PKIX_PL_String_GetEncoded
                     (stateString,
                     PKIX_ESCASCII,
                     (void **)&stateAscii,
                     &length,
                     plContext),
-                    "PKIX_PL_String_GetEncoded failed");
+                    PKIX_STRINGGETENCODEDFAILED);
         PKIX_DEBUG_ARG("%s\n", stateAscii);
 
         PKIX_FREE(stateAscii);
@@ -2312,21 +2309,21 @@ pkix_PolicyChecker_Check(
 
         PKIX_CHECK(PKIX_CertChainChecker_GetCertChainCheckerState
                     (checker, (PKIX_PL_Object **)&state, plContext),
-                    "PKIX_CertChainChecker_GetCertChainCheckerState failed");
+                    PKIX_CERTCHAINCHECKERGETCERTCHAINCHECKERSTATEFAILED);
 
         PKIX_NULLCHECK_TWO(state, state->certPoliciesExtension);
 
 #if PKIX_CERTPOLICYCHECKERSTATEDEBUG
         PKIX_CHECK(PKIX_PL_Object_ToString
                 ((PKIX_PL_Object*)state, &stateString, plContext),
-                "PKIX_PL_Object_ToString failed");
+                PKIX_OBJECTTOSTRINGFAILED);
         PKIX_CHECK(PKIX_PL_String_GetEncoded
                     (stateString,
                     PKIX_ESCASCII,
                     (void **)&stateAscii,
                     &length,
                     plContext),
-                    "PKIX_PL_String_GetEncoded failed");
+                    PKIX_STRINGGETENCODEDFAILED);
         PKIX_DEBUG_ARG("On entry %s\n", stateAscii);
         PKIX_FREE(stateAscii);
         PKIX_DECREF(stateString);
@@ -2342,22 +2339,22 @@ pkix_PolicyChecker_Check(
         if (state->certsProcessed != (state->numCerts - 1)) {
                 PKIX_CHECK(PKIX_PL_Cert_GetPolicyMappings
                         (cert, &policyMaps, plContext),
-                        "PKIX_PL_Cert_GetPolicyMappings failed");
+                        PKIX_CERTGETPOLICYMAPPINGSFAILED);
         }
 
         if (policyMaps) {
 
                 PKIX_CHECK(pkix_PolicyChecker_MapContains
                         (policyMaps, state->anyPolicyOID, &result, plContext),
-                        "pkix_PolicyChecker_MapContains failed");
+                        PKIX_POLICYCHECKERMAPCONTAINSFAILED);
 
                 if (result) {
-                        PKIX_ERROR("Invalid policyMapping includes anyPolicy");
+                        PKIX_ERROR(PKIX_INVALIDPOLICYMAPPINGINCLUDESANYPOLICY);
                 }
 
                 PKIX_CHECK(pkix_PolicyChecker_MapGetMappedPolicies
                         (policyMaps, &mappedPolicies, plContext),
-                        "pkix_PolicyChecker_MapGetMappedPolicies failed");
+                        PKIX_POLICYCHECKERMAPGETMAPPEDPOLICIESFAILED);
 
                 PKIX_DECREF(state->mappedPolicyOIDs);
                 PKIX_INCREF(mappedPolicies);
@@ -2369,19 +2366,19 @@ pkix_PolicyChecker_Check(
 
             PKIX_CHECK(PKIX_PL_Cert_GetPolicyInformation
                 (cert, &certPolicyInfos, plContext),
-                "PKIX_PL_Cert_GetPolicyInformation failed");
+                PKIX_CERTGETPOLICYINFORMATIONFAILED);
 
             if (certPolicyInfos) {
                 PKIX_CHECK(PKIX_List_GetLength
                         (certPolicyInfos, &numPolicies, plContext),
-                        "PKIX_List_GetLength failed");
+                        PKIX_LISTGETLENGTHFAILED);
             }
 
             if (numPolicies > 0) {
 
                 PKIX_CHECK(PKIX_PL_Cert_AreCertPoliciesCritical
                         (cert, &(state->certPoliciesCritical), plContext),
-                        "PKIX_PL_Cert_AreCertPoliciesCritical failed");
+                        PKIX_CERTARECERTPOLICIESCRITICALFAILED);
 
                 /* Section 6.1.3(d)(1) For each policy not equal to anyPolicy */
                 for (polX = 0; polX < numPolicies; polX++) {
@@ -2391,22 +2388,22 @@ pkix_PolicyChecker_Check(
                         polX,
                         (PKIX_PL_Object **)&policy,
                         plContext),
-                        "PKIX_List_GetItem failed");
+                        PKIX_LISTGETITEMFAILED);
 
                     PKIX_CHECK(PKIX_PL_CertPolicyInfo_GetPolicyId
                         (policy, &policyOID, plContext),
-                        "PKIX_PL_CertPolicyInfo_GetPolicyId failed");
+                        PKIX_CERTPOLICYINFOGETPOLICYIDFAILED);
 
                     PKIX_CHECK(PKIX_PL_CertPolicyInfo_GetPolQualifiers
                         (policy, &policyQualifiers, plContext),
-                        "PKIX_PL_CertPolicyInfo_GetPolQualifiers failed");
+                        PKIX_CERTPOLICYINFOGETPOLQUALIFIERSFAILED);
 
                     PKIX_EQUALS
                         (state->anyPolicyOID,
                         policyOID,
                         &result,
                         plContext,
-                        "PKIX_PL_OID_Equal failed");
+                        PKIX_OIDEQUALFAILED);
 
                     if (result == PKIX_FALSE) {
 
@@ -2450,7 +2447,7 @@ pkix_PolicyChecker_Check(
                                         (cert,
                                         &doAnyPolicyProcessing,
                                         plContext),
-                                        "pkix_IsCertSelfIssued failed");
+                                        PKIX_ISCERTSELFISSUEDFAILED);
                             }
                         }
                         if (doAnyPolicyProcessing) {
@@ -2484,7 +2481,7 @@ pkix_PolicyChecker_Check(
 
                 PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                         ((PKIX_PL_Object *)state, plContext),
-                        "PKIX_PL_Object_InvalidateCache failed");
+                        PKIX_OBJECTINVALIDATECACHEFAILED);
 
             } else {
                 /* Section 6.1.3(e) */
@@ -2494,13 +2491,13 @@ pkix_PolicyChecker_Check(
 
                 PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                         ((PKIX_PL_Object *)state, plContext),
-                        "PKIX_PL_Object_InvalidateCache failed");
+                        PKIX_OBJECTINVALIDATECACHEFAILED);
             }
         }
 
         /* Section 6.1.3(f) */
         if ((0 == state->explicitPolicy) && (!state->validPolicyTree)) {
-                PKIX_ERROR("CertChain fails Certificate Policy validation");
+                PKIX_ERROR(PKIX_CERTCHAINFAILSCERTIFICATEPOLICYVALIDATION);
         }
 
         /*
@@ -2511,25 +2508,25 @@ pkix_PolicyChecker_Check(
                 (unresolvedCriticals,
                 (PKIX_PL_Object *)state->certPoliciesExtension,
                 plContext),
-                "PKIX_List_Remove failed");
+                PKIX_LISTREMOVEFAILED);
 
         PKIX_CHECK(pkix_List_Remove
                 (unresolvedCriticals,
                 (PKIX_PL_Object *)state->policyMappingsExtension,
                 plContext),
-                "PKIX_List_Remove failed");
+                PKIX_LISTREMOVEFAILED);
 
         PKIX_CHECK(pkix_List_Remove
                 (unresolvedCriticals,
                 (PKIX_PL_Object *)state->policyConstraintsExtension,
                 plContext),
-                "PKIX_List_Remove failed");
+                PKIX_LISTREMOVEFAILED);
 
         PKIX_CHECK(pkix_List_Remove
                 (unresolvedCriticals,
                 (PKIX_PL_Object *)state->inhibitAnyPolicyExtension,
                 plContext),
-                "PKIX_List_Remove failed");
+                PKIX_LISTREMOVEFAILED);
 
         state->certsProcessed++;
 
@@ -2556,7 +2553,7 @@ pkix_PolicyChecker_Check(
                 /* Section 6.1.4(h) */
                 PKIX_CHECK(pkix_IsCertSelfIssued
                         (cert, &isSelfIssued, plContext),
-                        "pkix_IsCertSelfIssued failed");
+                        PKIX_ISCERTSELFISSUEDFAILED);
 
                 if (!isSelfIssued) {
                         if (state->explicitPolicy > 0) {
@@ -2573,7 +2570,7 @@ pkix_PolicyChecker_Check(
                 /* Section 6.1.4(i) */
                 PKIX_CHECK(PKIX_PL_Cert_GetRequireExplicitPolicy
                         (cert, &explicitPolicySkipCerts, plContext),
-                        "PKIX_PL_Cert_GetRequireExplicitPolicy failed");
+                        PKIX_CERTGETREQUIREEXPLICITPOLICYFAILED);
 
                 if (explicitPolicySkipCerts != -1) {
                         if (((PKIX_UInt32)explicitPolicySkipCerts) <
@@ -2585,7 +2582,7 @@ pkix_PolicyChecker_Check(
 
                 PKIX_CHECK(PKIX_PL_Cert_GetPolicyMappingInhibited
                         (cert, &inhibitMappingSkipCerts, plContext),
-                        "PKIX_PL_Cert_GetPolicyMappingInhibited failed");
+                        PKIX_CERTGETPOLICYMAPPINGINHIBITEDFAILED);
 
                 if (inhibitMappingSkipCerts != -1) {
                         if (((PKIX_UInt32)inhibitMappingSkipCerts) <
@@ -2597,7 +2594,7 @@ pkix_PolicyChecker_Check(
 
                 PKIX_CHECK(PKIX_PL_Cert_GetInhibitAnyPolicy
                         (cert, &inhibitAnyPolicySkipCerts, plContext),
-                        "PKIX_PL_Cert_GetInhibitAnyPolicy failed");
+                        PKIX_CERTGETINHIBITANYPOLICYFAILED);
 
                 if (inhibitAnyPolicySkipCerts != -1) {
                         if (((PKIX_UInt32)inhibitAnyPolicySkipCerts) <
@@ -2609,7 +2606,7 @@ pkix_PolicyChecker_Check(
 
                 PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                         ((PKIX_PL_Object *)state, plContext),
-                        "PKIX_PL_Object_InvalidateCache failed");
+                        PKIX_OBJECTINVALIDATECACHEFAILED);
 
         } else { /* If this was the last certificate, do wrap-up processing */
 
@@ -2621,7 +2618,7 @@ pkix_PolicyChecker_Check(
                 }
 
                 if ((0 == state->explicitPolicy) && (!state->validPolicyTree)) {
-                    PKIX_ERROR("CertChain fails Certificate Policy validation");
+                    PKIX_ERROR(PKIX_CERTCHAINFAILSCERTIFICATEPOLICYVALIDATION);
                 }
 
                 PKIX_DECREF(state->anyPolicyNodeAtBottom);
@@ -2637,7 +2634,8 @@ subrErrorCleanup:
                         (subroutineErr, &pkixErrorCode, plContext);
                 if (pkixTempResult) return pkixTempResult;
                 if (pkixErrorCode == PKIX_FATAL_ERROR) {
-                        PKIX_THROW(FATAL, "PolicyChecker Error");
+                    PKIX_THROW
+                        (FATAL, PKIX_ErrorText[PKIX_POLICYCHECKERERROR]);
                 }
                 /*
                  * Abort policy processing, and then determine whether
@@ -2647,15 +2645,15 @@ subrErrorCleanup:
                 PKIX_DECREF(state->anyPolicyNodeAtBottom);
                 PKIX_DECREF(state->newAnyPolicyNode);
                 if (state->explicitPolicy == 0) {
-                        PKIX_ERROR
-                            ("CertChain fails Certificate Policy validation");
+                    PKIX_ERROR
+                        (PKIX_CERTCHAINFAILSCERTIFICATEPOLICYVALIDATION);
                 }
         }
 
         /* Checking is complete. Save state for the next certificate. */
         PKIX_CHECK(PKIX_CertChainChecker_SetCertChainCheckerState
                 (checker, (PKIX_PL_Object *)state, plContext),
-                "PKIX_CertChainChecker_SetCertChainCheckerState failed");
+                PKIX_CERTCHAINCHECKERSETCERTCHAINCHECKERSTATEFAILED);
 
 cleanup:
 
@@ -2663,14 +2661,14 @@ cleanup:
         if (cert) {
                 PKIX_CHECK(PKIX_PL_Object_ToString
                         ((PKIX_PL_Object*)cert, &certString, plContext),
-                        "PKIX_PL_Object_ToString failed");
+                        PKIX_OBJECTTOSTRINGFAILED);
                 PKIX_CHECK(PKIX_PL_String_GetEncoded
                             (certString,
                             PKIX_ESCASCII,
                             (void **)&certAscii,
                             &length,
                             plContext),
-                            "PKIX_PL_String_GetEncoded failed");
+                            PKIX_STRINGGETENCODEDFAILED);
                 PKIX_DEBUG_ARG("Cert was %s\n", certAscii);
                 PKIX_FREE(certAscii);
                 PKIX_DECREF(certString);
@@ -2678,14 +2676,14 @@ cleanup:
         if (state) {
                 PKIX_CHECK(PKIX_PL_Object_ToString
                         ((PKIX_PL_Object*)state, &stateString, plContext),
-                        "PKIX_PL_Object_ToString failed");
+                        PKIX_OBJECTTOSTRINGFAILED);
                 PKIX_CHECK(PKIX_PL_String_GetEncoded
                             (stateString,
                             PKIX_ESCASCII,
                             (void **)&stateAscii,
                             &length,
                             plContext),
-                            "PKIX_PL_String_GetEncoded failed");
+                            PKIX_STRINGGETENCODEDFAILED);
                 PKIX_DEBUG_ARG("On exit %s\n", stateAscii);
                 PKIX_FREE(stateAscii);
                 PKIX_DECREF(stateString);
@@ -2769,7 +2767,7 @@ pkix_PolicyChecker_Initialize(
                 numCerts,
                 &polCheckerState,
                 plContext),
-                "PKIX_PolicyCheckerState_Create failed");
+                PKIX_POLICYCHECKERSTATECREATEFAILED);
 
         /* Create the list of extensions that we handle */
         PKIX_CHECK(pkix_PolicyChecker_MakeSingleton
@@ -2777,7 +2775,7 @@ pkix_PolicyChecker_Initialize(
                 PKIX_TRUE,
                 &policyExtensions,
                 plContext),
-                "pkix_PolicyChecker_MakeSingleton failed");
+                PKIX_POLICYCHECKERMAKESINGLETONFAILED);
 
         PKIX_CHECK(PKIX_CertChainChecker_Create
                 (pkix_PolicyChecker_Check,
@@ -2787,7 +2785,7 @@ pkix_PolicyChecker_Initialize(
                 (PKIX_PL_Object *)polCheckerState,
                 pChecker,
                 plContext),
-                "PKIX_CertChainChecker_Create failed");
+                PKIX_CERTCHAINCHECKERCREATEFAILED);
 
 cleanup:
         PKIX_DECREF(polCheckerState);

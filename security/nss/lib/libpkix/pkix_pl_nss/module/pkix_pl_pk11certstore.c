@@ -168,17 +168,17 @@ pkix_pl_Pk11CertStore_CertQuery(
 
         PKIX_CHECK(PKIX_ComCertSelParams_GetSubject
                 (params, &subjectName, plContext),
-                "PKIX_ComCertSelParams_GetSubject failed");
+                PKIX_COMCERTSELPARAMSGETSUBJECTFAILED);
 
         PKIX_CHECK(PKIX_ComCertSelParams_GetCertificateValid
                 (params, &certValid, plContext),
-                "PKIX_ComCertSelParams_GetCertificateValid failed");
+                PKIX_COMCERTSELPARAMSGETCERTIFICATEVALIDFAILED);
 
         /* If caller specified a Date, convert it to PRTime */
         if (certValid) {
                 PKIX_CHECK(pkix_pl_Date_GetPRTime
                         (certValid, &prtime, plContext),
-                        "pkix_pl_Date_GetPRTime failed");
+                        PKIX_DATEGETPRTIMEFAILED);
                 validOnly = PR_TRUE;
         }
 
@@ -193,7 +193,7 @@ pkix_pl_Pk11CertStore_CertQuery(
 
                         PKIX_CHECK(pkix_pl_X500Name_GetSECName
                                 (subjectName, arena, &nameItem, plContext),
-                                "pkix_pl_X500Name_GetSECName failed");
+                                PKIX_X500NAMEGETSECNAMEFAILED);
 
                         if (nameItem) {
 
@@ -211,7 +211,7 @@ pkix_pl_Pk11CertStore_CertQuery(
 
                 PKIX_CHECK(pkix_pl_NssContext_GetWincx
                         ((PKIX_PL_NssContext *)plContext, &wincx),
-                        "pkix_pl_NssContext_GetWincx failed");
+                        PKIX_NSSCONTEXTGETWINCXFAILED);
 
                 PKIX_PL_NSSCALLRV
                         (CERTSTORE,
@@ -223,7 +223,7 @@ pkix_pl_Pk11CertStore_CertQuery(
         if (pk11CertList) {
 
                 PKIX_CHECK(PKIX_List_Create(&certList, plContext),
-                        "PKIX_List_Create failed");
+                        PKIX_LISTCREATEFAILED);
 
                 for (node = CERT_LIST_HEAD(pk11CertList);
                     !(CERT_LIST_END(node, pk11CertList));
@@ -245,7 +245,7 @@ pkix_pl_Pk11CertStore_CertQuery(
 
                         PKIX_CHECK_ONLY_FATAL(pkix_pl_Cert_CreateWithNSSCert
                                 (nssCert, &cert, plContext),
-                                "pkix_pl_Cert_CreateWithNSSCert failed");
+                                PKIX_CERTCREATEWITHNSSCERTFAILED);
 
                         if (PKIX_ERROR_RECEIVED) {
                                 continue; /* just skip bad certs */
@@ -253,7 +253,7 @@ pkix_pl_Pk11CertStore_CertQuery(
 
                         PKIX_CHECK_ONLY_FATAL(PKIX_List_AppendItem
                                 (certList, (PKIX_PL_Object *)cert, plContext),
-                                "PKIX_List_AppendItem failed");
+                                PKIX_LISTAPPENDITEMFAILED);
 
                         PKIX_DECREF(cert);
 
@@ -344,7 +344,7 @@ pkix_pl_Pk11CertStore_CrlQuery(
 
         PKIX_CHECK(pkix_pl_NssContext_GetWincx
                 ((PKIX_PL_NssContext *)plContext, &wincx),
-                "pkix_pl_NssContext_GetWincx failed");
+                PKIX_NSSCONTEXTGETWINCXFAILED);
 
         /*
          * If we have <info> for <a smart query>,
@@ -352,7 +352,7 @@ pkix_pl_Pk11CertStore_CrlQuery(
          */
         PKIX_CHECK(PKIX_ComCRLSelParams_GetIssuerNames
                 (params, &issuerNames, plContext),
-                "PKIX_ComCRLSelParams_GetIssuerNames failed");
+                PKIX_COMCRLSELPARAMSGETISSUERNAMESFAILED);
 
         /*
          * The specification for PKIX_ComCRLSelParams_GetIssuerNames in
@@ -364,11 +364,11 @@ pkix_pl_Pk11CertStore_CrlQuery(
         if (issuerNames) {
 
             PKIX_CHECK(PKIX_List_Create(&crlList, plContext),
-                        "PKIX_List_Create failed");
+                        PKIX_LISTCREATEFAILED);
 
             PKIX_CHECK(PKIX_List_GetLength
                         (issuerNames, &numNames, plContext),
-                        "PKIX_List_GetLength failed");
+                        PKIX_LISTGETLENGTHFAILED);
             arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
             if (arena) {
 
@@ -378,10 +378,10 @@ pkix_pl_Pk11CertStore_CrlQuery(
                         nameIx,
                         (PKIX_PL_Object **)&issuer,
                         plContext),
-                        "PKIX_List_GetItem failed");
+                        PKIX_LISTGETITEMFAILED);
                     PKIX_CHECK(pkix_pl_X500Name_GetSECName
                         (issuer, arena, &nameItem, plContext),
-                        "pkix_pl_X500Name_GetSECName failed");
+                        PKIX_X500NAMEGETSECNAMEFAILED);
                     if (nameItem) {
                         /*
                          * Successive calls append CRLs to
@@ -403,7 +403,7 @@ pkix_pl_Pk11CertStore_CrlQuery(
                             (dpcache, arena, &crls, &status));
 
                         if ((status & (~CRL_CACHE_INVALID_CRLS)) != 0) {
-                            PKIX_ERROR("Fetching Cached CRLfailed");
+                            PKIX_ERROR(PKIX_FETCHINGCACHEDCRLFAILED);
                         }
 
                         while (*crls != NULL) {
@@ -411,7 +411,7 @@ pkix_pl_Pk11CertStore_CrlQuery(
                             PKIX_CHECK_ONLY_FATAL
                                 (pkix_pl_CRL_CreateWithSignedCRL
                                 (*crls, &crl, plContext),
-                                "pkix_pl_CRL_CreateWithSignedCRL failed");
+                                PKIX_CRLCREATEWITHSIGNEDCRLFAILED);
 
                             if (PKIX_ERROR_RECEIVED) {
                                 PKIX_DECREF(crl);
@@ -421,7 +421,7 @@ pkix_pl_Pk11CertStore_CrlQuery(
 
                             PKIX_CHECK_ONLY_FATAL(PKIX_List_AppendItem
                                 (crlList, (PKIX_PL_Object *)crl, plContext),
-                                "PKIX_List_AppendItem failed");
+                                PKIX_LISTAPPENDITEMFAILED);
 
                             PKIX_DECREF(crl);
                             crls++;
@@ -436,7 +436,7 @@ pkix_pl_Pk11CertStore_CrlQuery(
 
             }
         } else {
-                PKIX_ERROR("Insufficient criteria for Crl Query");
+                PKIX_ERROR(PKIX_INSUFFICIENTCRITERIAFORCRLQUERY);
         }
 
         *pSelected = crlList;
@@ -491,31 +491,31 @@ pkix_pl_Pk11CertStore_GetCert(
 
         PKIX_CHECK(PKIX_CertSelector_GetMatchCallback
                 (selector, &callback, plContext),
-                "PKIX_CertSelector_GetMatchCallback failed");
+                PKIX_CERTSELECTORGETMATCHCALLBACKFAILED);
 
         PKIX_CHECK(PKIX_CertSelector_GetCommonCertSelectorParams
                 (selector, &params, plContext),
-                "PKIX_CertSelector_GetComCertSelParams failed");
+                PKIX_CERTSELECTORGETCOMCERTSELPARAMSFAILED);
 
         PKIX_CHECK(pkix_pl_Pk11CertStore_CertQuery
                 (params, &selected, plContext),
-                "pkix_pl_Pk11CertStore_CertQuery failed");
+                PKIX_PK11CERTSTORECERTQUERYFAILED);
 
         if (selected) {
                 PKIX_CHECK(PKIX_List_GetLength(selected, &numFound, plContext),
-                        "PKIX_List_GetLength failed");
+                        PKIX_LISTGETLENGTHFAILED);
         }
 
         PKIX_CHECK(PKIX_CertStore_GetCertStoreCacheFlag
                 (store, &cacheFlag, plContext),
-                "PKIX_CertStore_GetCertStoreCacheFlag failed");
+                PKIX_CERTSTOREGETCERTSTORECACHEFLAGFAILED);
 
         PKIX_CHECK(PKIX_CertStore_GetTrustCallback
                 (store, &trustCallback, plContext),
-                "PKIX_CertStore_GetTrustCallback failed");
+                PKIX_CERTSTOREGETTRUSTCALLBACKFAILED);
 
         PKIX_CHECK(PKIX_List_Create(&filtered, plContext),
-                "PKIX_List_Create failed");
+                PKIX_LISTCREATEFAILED);
 
         for (i = 0; i < numFound; i++) {
                 PKIX_CHECK_ONLY_FATAL(PKIX_List_GetItem
@@ -523,7 +523,7 @@ pkix_pl_Pk11CertStore_GetCert(
                         i,
                         (PKIX_PL_Object **)&candidate,
                         plContext),
-                        "PKIX_List_GetItem failed");
+                        PKIX_LISTGETITEMFAILED);
 
                 if (PKIX_ERROR_RECEIVED) {
                         continue; /* just skip bad certs */
@@ -531,25 +531,25 @@ pkix_pl_Pk11CertStore_GetCert(
 
                 PKIX_CHECK_ONLY_FATAL(callback
                         (selector, candidate, &pass, plContext),
-                        "certSelector failed");
+                        PKIX_CERTSELECTORFAILED);
 
                 if (!(PKIX_ERROR_RECEIVED) && pass) {
 
                         PKIX_CHECK(PKIX_PL_Cert_SetCacheFlag
                                 (candidate, cacheFlag, plContext),
-                                "PKIX_PL_Cert_SetCacheFlag failed");
+                                PKIX_CERTSETCACHEFLAGFAILED);
 
                         if (trustCallback) {
                                 PKIX_CHECK(PKIX_PL_Cert_SetTrustCertStore
                                     (candidate, store, plContext),
-                                    "PKIX_PL_Cert_SetTrustCertStore failed");
+                                    PKIX_CERTSETTRUSTCERTSTOREFAILED);
                         }
 
                         PKIX_CHECK_ONLY_FATAL(PKIX_List_AppendItem
                                 (filtered,
                                 (PKIX_PL_Object *)candidate,
                                 plContext),
-                                "PKIX_List_AppendItem failed");
+                                PKIX_LISTAPPENDITEMFAILED);
                 }
 
                 PKIX_DECREF(candidate);
@@ -559,7 +559,7 @@ pkix_pl_Pk11CertStore_GetCert(
         pkixTempErrorReceived = PKIX_FALSE;
 
         PKIX_CHECK(PKIX_List_SetImmutable(filtered, plContext),
-                "PKIX_List_SetImmutable failed");
+                PKIX_LISTSETIMMUTABLEFAILED);
 
         *pCertList = filtered;
 
@@ -602,23 +602,23 @@ pkix_pl_Pk11CertStore_GetCRL(
 
         PKIX_CHECK(PKIX_CRLSelector_GetMatchCallback
                 (selector, &callback, plContext),
-                "PKIX_CRLSelector_GetMatchCallback failed");
+                PKIX_CRLSELECTORGETMATCHCALLBACKFAILED);
 
         PKIX_CHECK(PKIX_CRLSelector_GetCommonCRLSelectorParams
                 (selector, &params, plContext),
-                "PKIX_CRLSelector_GetComCertSelParams failed");
+                PKIX_CRLSELECTORGETCOMCERTSELPARAMSFAILED);
 
         PKIX_CHECK(pkix_pl_Pk11CertStore_CrlQuery
                 (params, &selected, plContext),
-                "pkix_pl_Pk11CertStore_CrlQuery failed");
+                PKIX_PK11CERTSTORECRLQUERYFAILED);
 
         if (selected) {
                 PKIX_CHECK(PKIX_List_GetLength(selected, &numFound, plContext),
-                        "PKIX_List_GetLength failed");
+                        PKIX_LISTGETLENGTHFAILED);
         }
 
         PKIX_CHECK(PKIX_List_Create(&filtered, plContext),
-                "PKIX_List_Create failed");
+                PKIX_LISTCREATEFAILED);
 
         for (i = 0; i < numFound; i++) {
                 PKIX_CHECK_ONLY_FATAL(PKIX_List_GetItem
@@ -626,7 +626,7 @@ pkix_pl_Pk11CertStore_GetCRL(
                         i,
                         (PKIX_PL_Object **)&candidate,
                         plContext),
-                        "PKIX_List_GetItem failed");
+                        PKIX_LISTGETITEMFAILED);
 
                 if (PKIX_ERROR_RECEIVED) {
                         continue; /* just skip bad CRLs */
@@ -634,14 +634,14 @@ pkix_pl_Pk11CertStore_GetCRL(
 
                 PKIX_CHECK_ONLY_FATAL(callback
                         (selector, candidate, &match, plContext),
-                        "crlSelector failed");
+                        PKIX_CRLSELECTORFAILED);
 
                 if (!(PKIX_ERROR_RECEIVED) && match) {
                         PKIX_CHECK_ONLY_FATAL(PKIX_List_AppendItem
                                 (filtered,
                                 (PKIX_PL_Object *)candidate,
                                 plContext),
-                                "PKIX_List_AppendItem failed");
+                                PKIX_LISTAPPENDITEMFAILED);
                 }
 
                 PKIX_DECREF(candidate);
@@ -651,7 +651,7 @@ pkix_pl_Pk11CertStore_GetCRL(
         pkixTempErrorReceived = PKIX_FALSE;
 
         PKIX_CHECK(PKIX_List_SetImmutable(filtered, plContext),
-                "PKIX_List_SetImmutable failed");
+                PKIX_LISTSETIMMUTABLEFAILED);
 
         *pCrlList = filtered;
 
@@ -693,7 +693,7 @@ PKIX_PL_Pk11CertStore_Create(
                 PKIX_TRUE, /* local - no network I/O */
                 &certStore,
                 plContext),
-                "PKIX_CertStore_Create failed");
+                PKIX_CERTSTORECREATEFAILED);
 
         *pCertStore = certStore;
 

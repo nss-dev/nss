@@ -201,7 +201,7 @@ pkix_pl_X500Name_ToString_Helper(
         /* this should really be called CERT_NameToUTF8 */
         utf8String = CERT_NameToAscii(nssDN);
         if (!utf8String){
-                PKIX_ERROR("CERT_NameToAscii failed");
+                PKIX_ERROR(PKIX_CERTNAMETOASCIIFAILED);
         }
 
         PKIX_X500NAME_DEBUG("\t\tCalling PL_strlen).\n");
@@ -209,7 +209,7 @@ pkix_pl_X500Name_ToString_Helper(
 
         PKIX_CHECK(PKIX_PL_String_Create
                     (PKIX_UTF8, utf8String, utf8Length, pString, plContext),
-                    "PKIX_PL_String_Create failed");
+                    PKIX_STRINGCREATEFAILED);
 
 cleanup:
 
@@ -233,7 +233,7 @@ pkix_pl_X500Name_Destroy(
         PKIX_NULLCHECK_ONE(object);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_X500NAME_TYPE, plContext),
-                    "Object is not an X500Name");
+                    PKIX_OBJECTNOTANX500NAME);
 
         name = (PKIX_PL_X500Name *)object;
 
@@ -263,13 +263,13 @@ pkix_pl_X500Name_ToString(
         PKIX_NULLCHECK_TWO(object, pString);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_X500NAME_TYPE, plContext),
-                    "Object is not an X500Name");
+                    PKIX_OBJECTNOTANX500NAME);
 
         name = (PKIX_PL_X500Name *)object;
 
         PKIX_CHECK(pkix_pl_X500Name_ToString_Helper
                     (name, &nameString, plContext),
-                    "pkix_pl_X500Name_ToString_Helper failed");
+                    PKIX_X500NAMETOSTRINGHELPERFAILED);
 
         *pString = nameString;
 
@@ -299,7 +299,7 @@ pkix_pl_X500Name_Hashcode(
         PKIX_NULLCHECK_TWO(object, pHashcode);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_X500NAME_TYPE, plContext),
-                    "Object is not an X500Name");
+                    PKIX_OBJECTNOTANX500NAME);
 
         name = (PKIX_PL_X500Name *)object;
 
@@ -310,13 +310,13 @@ pkix_pl_X500Name_Hashcode(
         PKIX_X500NAME_DEBUG("\t\tCalling PORT_NewArena).\n");
         arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
         if (arena == NULL) {
-                PKIX_ERROR("PORT_NewArena failed");
+                PKIX_ERROR(PKIX_PORTNEWARENAFAILED);
         }
 
         PKIX_X500NAME_DEBUG("\t\tCalling PORT_ArenaZNew).\n");
         derBytes = PORT_ArenaZNew(arena, SECItem);
         if (derBytes == NULL) {
-                PKIX_ERROR("PORT_ArenaZNew failed");
+                PKIX_ERROR(PKIX_PORTARENAZNEWFAILED);
         }
 
         PKIX_X500NAME_DEBUG("\t\tCalling SEC_ASN1EncodeItem).\n");
@@ -324,12 +324,12 @@ pkix_pl_X500Name_Hashcode(
                 SEC_ASN1EncodeItem(arena, derBytes, nssDN, CERT_NameTemplate);
 
         if (resultSecItem == NULL){
-                PKIX_ERROR("SEC_ASN1EncodeItem failed");
+                PKIX_ERROR(PKIX_SECASN1ENCODEITEMFAILED);
         }
 
         PKIX_CHECK(pkix_hash
                     (derBytes->data, derBytes->len, &nameHash, plContext),
-                    "pkix_hash failed");
+                    PKIX_HASHFAILED);
 
         *pHashcode = nameHash;
 
@@ -365,7 +365,7 @@ pkix_pl_X500Name_Equals(
 
         /* test that firstObject is an X500Name */
         PKIX_CHECK(pkix_CheckType(firstObject, PKIX_X500NAME_TYPE, plContext),
-                    "firstObject argument is not an X500Name");
+                    PKIX_FIRSTOBJECTARGUMENTNOTANX500NAME);
 
         /*
          * Since we know firstObject is an X500Name, if both references are
@@ -383,7 +383,7 @@ pkix_pl_X500Name_Equals(
         *pResult = PKIX_FALSE;
         PKIX_CHECK(PKIX_PL_Object_GetType
                     (secondObject, &secondType, plContext),
-                    "Could not get type of second argument");
+                    PKIX_COULDNOTGETTYPEOFSECONDARGUMENT);
         if (secondType != PKIX_X500NAME_TYPE) goto cleanup;
 
         firstX500Name = (PKIX_PL_X500Name *)firstObject;
@@ -392,7 +392,7 @@ pkix_pl_X500Name_Equals(
         /* we simply do byte comparison on DER encodings of DN's */
         PKIX_CHECK(pkix_pl_X500Name_CompareDERBytes
                     (firstX500Name, secondX500Name, pResult, plContext),
-                    "pkix_pl_X500Name_CompareDERBytes failed");
+                    PKIX_X500NAMECOMPAREDERBYTESFAILED);
 
 cleanup:
 
@@ -466,13 +466,13 @@ PKIX_PL_X500Name_Create(
                     (void **)&utf8String,
                     &utf8Length,
                     plContext),
-                    "PKIX_PL_String_GetEncoded failed");
+                    PKIX_STRINGGETENCODEDFAILED);
 
         PKIX_X500NAME_DEBUG("\t\tCalling CERT_AsciiToName).\n");
         /* this should be really be called CERT_UTF8ToName */
         nssDN = CERT_AsciiToName(utf8String);
         if (nssDN == NULL) {
-                PKIX_ERROR("Could not create NSS DN");
+                PKIX_ERROR(PKIX_COULDNOTCREATENSSDN);
         }
 
         /* create a PKIX_PL_X500Name object */
@@ -481,7 +481,7 @@ PKIX_PL_X500Name_Create(
                     sizeof (PKIX_PL_X500Name),
                     (PKIX_PL_Object **)&x500Name,
                     plContext),
-                    "Could not create X500Name object");
+                    PKIX_COULDNOTCREATEX500NAMEOBJECT);
 
         /* populate the nssDN field */
         x500Name->nssDN = nssDN;
@@ -627,7 +627,7 @@ pkix_pl_X500Name_CreateFromUtf8(
         PKIX_PL_NSSCALLRV(X500NAME, nssDN, CERT_AsciiToName, (stringRep));
 
         if (nssDN == NULL) {
-                PKIX_ERROR("Could not create NSS DN");
+                PKIX_ERROR(PKIX_COULDNOTCREATENSSDN);
         }
 
         /* create a PKIX_PL_X500Name object */
@@ -636,7 +636,7 @@ pkix_pl_X500Name_CreateFromUtf8(
                     sizeof (PKIX_PL_X500Name),
                     (PKIX_PL_Object **)&x500Name,
                     plContext),
-                    "Could not create X500Name object");
+                    PKIX_COULDNOTCREATEX500NAMEOBJECT);
 
         /* populate the nssDN field */
         x500Name->nssDN = nssDN;

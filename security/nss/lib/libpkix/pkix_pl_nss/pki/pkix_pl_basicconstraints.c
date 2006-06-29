@@ -85,7 +85,7 @@ pkix_pl_CertBasicConstraints_Create(
                     sizeof (PKIX_PL_CertBasicConstraints),
                     (PKIX_PL_Object **)&basic,
                     plContext),
-                    "Could not create a CertBasicConstraints object");
+                    PKIX_COULDNOTCREATECERTBASICCONSTRAINTSOBJECT);
 
         basic->isCA = isCA;
 
@@ -116,7 +116,7 @@ pkix_pl_CertBasicConstraints_Destroy(
 
         PKIX_CHECK(pkix_CheckType
                     (object, PKIX_CERTBASICCONSTRAINTS_TYPE, plContext),
-                    "Object is not a CertBasicConstraints Object");
+                    PKIX_OBJECTNOTCERTBASICCONSTRAINTS);
 
         certB = (PKIX_PL_CertBasicConstraints*)object;
 
@@ -152,7 +152,7 @@ pkix_pl_CertBasicConstraints_ToString(
 
         PKIX_CHECK(pkix_CheckType
                     (object, PKIX_CERTBASICCONSTRAINTS_TYPE, plContext),
-                    "First argument is not a CertBasicConstraints Object");
+                    PKIX_FIRSTARGUMENTNOTCERTBASICCONSTRAINTSOBJECT);
 
         certB = (PKIX_PL_CertBasicConstraints *)object;
 
@@ -190,7 +190,7 @@ pkix_pl_CertBasicConstraints_ToString(
                     0,
                     &certBasicConstraintsString,
                     plContext),
-                    "PKIX_PL_String_Create failed");
+                    PKIX_STRINGCREATEFAILED);
 
         if (pathlenArg) {
                 PKIX_CHECK(PKIX_PL_Sprintf
@@ -198,13 +198,13 @@ pkix_pl_CertBasicConstraints_ToString(
                             plContext,
                             certBasicConstraintsString,
                             pathLen),
-                            "PKIX_PL_Sprintf failed");
+                            PKIX_SPRINTFFAILED);
         } else {
                 PKIX_CHECK(PKIX_PL_Sprintf
                             (&outString,
                             plContext,
                             certBasicConstraintsString),
-                            "PKIX_PL_Sprintf failed");
+                            PKIX_SPRINTFFAILED);
         }
 
         *pString = outString;
@@ -238,7 +238,7 @@ pkix_pl_CertBasicConstraints_Hashcode(
 
         PKIX_CHECK(pkix_CheckType
                     (object, PKIX_CERTBASICCONSTRAINTS_TYPE, plContext),
-                    "Object is not a CertBasicConstraints Object");
+                    PKIX_OBJECTNOTCERTBASICCONSTRAINTS);
 
         certB = (PKIX_PL_CertBasicConstraints *)object;
 
@@ -261,7 +261,7 @@ pkix_pl_CertBasicConstraints_Hashcode(
                     sizeof (hashInput),
                     &cbcHash,
                     plContext),
-                    "pkix_hash failed");
+                    PKIX_HASHFAILED);
 
         *pHashcode = cbcHash;
 
@@ -297,7 +297,7 @@ pkix_pl_CertBasicConstraints_Equals(
         /* test that firstObject is a CertBasicConstraints */
         PKIX_CHECK(pkix_CheckType
                     (firstObject, PKIX_CERTBASICCONSTRAINTS_TYPE, plContext),
-                    "FirstObject argument is not a CertBasicConstraints");
+                    PKIX_FIRSTOBJECTNOTCERTBASICCONSTRAINTS);
 
         /*
          * Since we know firstObject is a CertBasicConstraints,
@@ -314,7 +314,7 @@ pkix_pl_CertBasicConstraints_Equals(
          */
         PKIX_CHECK(PKIX_PL_Object_GetType
                     (secondObject, &secondType, plContext),
-                    "Could not get type of second argument");
+                    PKIX_COULDNOTGETTYPEOFSECONDARGUMENT);
         if (secondType != PKIX_CERTBASICCONSTRAINTS_TYPE) {
                 *pResult = PKIX_FALSE;
                 goto cleanup;

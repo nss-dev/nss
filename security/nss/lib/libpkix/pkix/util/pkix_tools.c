@@ -104,10 +104,10 @@ pkix_IsCertSelfIssued(
         PKIX_NULLCHECK_TWO(cert, pSelfIssued);
 
         PKIX_CHECK(PKIX_PL_Cert_GetSubject(cert, &subject, plContext),
-                    "PKIX_PL_Cert_GetSubject failed");
+                    PKIX_CERTGETSUBJECTFAILED);
 
         PKIX_CHECK(PKIX_PL_Cert_GetIssuer(cert, &issuer, plContext),
-                    "PKIX_PL_Cert_GetIssuer failed");
+                    PKIX_CERTGETISSUERFAILED);
 
         if (subject == NULL || issuer == NULL) {
                 *pSelfIssued = PKIX_FALSE;
@@ -115,7 +115,7 @@ pkix_IsCertSelfIssued(
 
                 PKIX_CHECK(PKIX_PL_X500Name_Match
                     (subject, issuer, pSelfIssued, plContext),
-                    "PKIX_PL_X500Name_Match failed");
+                    PKIX_X500NAMEMATCHFAILED);
         }
 
 cleanup:
@@ -142,9 +142,8 @@ cleanup:
  *  "funcName"
  *      Address of EscASCII array representing name of function throwing error.
  *      Must be non-NULL.
- *  "errorText"
- *      Address of EscASCII array error description for new error.
- *      Must be non-NULL.
+ *  "errnum"
+ *      PKIX_ERRMSGNUM of error description for new error.
  *  "cause"
  *      Address of Error representing error's cause.
  *  "pError"
@@ -175,7 +174,7 @@ pkix_Throw(
         char *format = NULL;
 
         PKIX_ENTER(ERROR, "pkix_Throw");
-        PKIX_NULLCHECK_THREE(funcName, errorText, pError);
+        PKIX_NULLCHECK_TWO(funcName, pError);
 
         *pError = NULL;
 
@@ -193,32 +192,32 @@ pkix_Throw(
 
         format = "%s: %s";
 
-        pkixTempResult = PKIX_PL_String_Create(PKIX_ESCASCII,
-                                                (void *)format,
-                                                0,
-                                                &formatString,
-                                                plContext);
+        pkixTempResult = PKIX_PL_String_Create
+                (PKIX_ESCASCII, (void *)format, 0, &formatString, plContext);
         if (pkixTempResult) goto cleanup;
 
-        pkixTempResult = PKIX_PL_String_Create(PKIX_ESCASCII,
-                                                (void *)funcName,
-                                                0,
-                                                &funcNameString,
-                                                plContext);
+        pkixTempResult = PKIX_PL_String_Create
+                (PKIX_ESCASCII,
+                (void *)funcName,
+                0,
+                &funcNameString,
+                plContext);
         if (pkixTempResult) goto cleanup;
 
-        pkixTempResult = PKIX_PL_String_Create(PKIX_ESCASCII,
-                                                (void *)errorText,
-                                                0,
-                                                &textString,
-                                                plContext);
+        pkixTempResult = PKIX_PL_String_Create
+                (PKIX_ESCASCII,
+                (void *)errorText,
+                0,
+                &textString,
+                plContext);
         if (pkixTempResult) goto cleanup;
 
-        pkixTempResult = PKIX_PL_Sprintf(&errorString,
-                                plContext,
-                                formatString,
-                                funcNameString,
-                                textString);
+        pkixTempResult = PKIX_PL_Sprintf
+                (&errorString,
+                plContext,
+                formatString,
+                funcNameString,
+                textString);
 
         pkixTempResult = PKIX_Error_Create
                 (errorCode, cause, NULL, errorString, pError, plContext);
@@ -271,13 +270,13 @@ pkix_CheckTypes(
         PKIX_NULLCHECK_TWO(first, second);
 
         PKIX_CHECK(PKIX_PL_Object_GetType(first, &firstType, plContext),
-                    "Could not get first object type");
+                    PKIX_COULDNOTGETFIRSTOBJECTTYPE);
 
         PKIX_CHECK(PKIX_PL_Object_GetType(second, &secondType, plContext),
-                    "Could not get second object type");
+                    PKIX_COULDNOTGETSECONDOBJECTTYPE);
 
         if ((firstType != type)||(firstType != secondType)) {
-                PKIX_ERROR("Object types do not match");
+                PKIX_ERROR(PKIX_OBJECTTYPESDONOTMATCH);
         }
 
 cleanup:
@@ -569,19 +568,19 @@ pkix_CacheCertChain_Lookup(
         /* use trust anchors and target cert as hash key */
 
         PKIX_CHECK(PKIX_List_Create(&cachedKeys, plContext),
-                    "PKIX_List_Create failed");
+                    PKIX_LISTCREATEFAILED);
 
         PKIX_CHECK(PKIX_List_AppendItem
                     (cachedKeys,
                     (PKIX_PL_Object *)targetCert,
                     plContext),
-                    "PKIX_List_AppendItem failed");
+                    PKIX_LISTAPPENDITEMFAILED);
 
         PKIX_CHECK(PKIX_List_AppendItem
                     (cachedKeys,
                     (PKIX_PL_Object *)anchors,
                     plContext),
-                    "PKIX_List_AppendItem failed");
+                    PKIX_LISTAPPENDITEMFAILED);
 
         cachedCertChainError = PKIX_PL_HashTable_Lookup
                     (cachedCertChainTable,
@@ -600,7 +599,7 @@ pkix_CacheCertChain_Lookup(
                     0,
                     (PKIX_PL_Object **) &cacheValidUntilDate,
                     plContext),
-                    "PKIX_List_GetItem");
+                    PKIX_LISTGETITEMFAILED);
 
             /* check validity time and cache age time */
             PKIX_CHECK(PKIX_List_GetItem
@@ -608,7 +607,7 @@ pkix_CacheCertChain_Lookup(
                     1,
                     (PKIX_PL_Object **) &validityDate,
                     plContext),
-                    "PKIX_List_GetItem");
+                    PKIX_LISTGETITEMFAILED);
 
             /* if testDate is not set, this cache item is not out-dated */
             if (testDate) {
@@ -618,14 +617,14 @@ pkix_CacheCertChain_Lookup(
                      (PKIX_PL_Object *)cacheValidUntilDate,
                      &cmpCacheTimeResult,
                      plContext),
-                     "PKIX_PL_Object_Comparator failed");
+                     PKIX_OBJECTCOMPARATORFAILED);
 
                 PKIX_CHECK(PKIX_PL_Object_Compare
                      ((PKIX_PL_Object *)testDate,
                      (PKIX_PL_Object *)validityDate,
                      &cmpValidTimeResult,
                      plContext),
-                     "PKIX_PL_Object_Comparator failed");
+                     PKIX_OBJECTCOMPARATORFAILED);
             }
 
             /* certs' date are all valid and cache item is not old */
@@ -636,7 +635,7 @@ pkix_CacheCertChain_Lookup(
                     2,
                     (PKIX_PL_Object **) pBuildResult,
                     plContext),
-                    "PKIX_List_GetItem");
+                    PKIX_LISTGETITEMFAILED);
 
                 *pFound = PKIX_TRUE;
 
@@ -650,7 +649,7 @@ pkix_CacheCertChain_Lookup(
                     (cachedCertChainTable,
                     (PKIX_PL_Object *) cachedKeys,
                     plContext),
-                    "PKIX_PL_HashTable_Remove failed");
+                    PKIX_HASHTABLEREMOVEFAILED);
                 cachedKeys = NULL; /* object destroy by hash remove */
                 cachedValues = NULL; /* object destroy by hash remove */
             }
@@ -715,25 +714,25 @@ pkix_CacheCertChain_Remove(
         /* use trust anchors and target cert as hash key */
 
         PKIX_CHECK(PKIX_List_Create(&cachedKeys, plContext),
-                    "PKIX_List_Create failed");
+                    PKIX_LISTCREATEFAILED);
 
         PKIX_CHECK(PKIX_List_AppendItem
                     (cachedKeys,
                     (PKIX_PL_Object *)targetCert,
                     plContext),
-                    "PKIX_List_AppendItem failed");
+                    PKIX_LISTAPPENDITEMFAILED);
 
         PKIX_CHECK(PKIX_List_AppendItem
                     (cachedKeys,
                     (PKIX_PL_Object *)anchors,
                     plContext),
-                    "PKIX_List_AppendItem failed");
+                    PKIX_LISTAPPENDITEMFAILED);
 
         PKIX_CHECK_ONLY_FATAL(PKIX_PL_HashTable_Remove
                     (cachedCertChainTable,
                     (PKIX_PL_Object *) cachedKeys,
                     plContext),
-                    "PKIX_PL_HashTable_Remove failed");
+                    PKIX_HASHTABLEREMOVEFAILED);
 
         pkix_ccRemoveCount++;
 
@@ -805,38 +804,38 @@ pkix_CacheCertChain_Add(
         PKIX_NULLCHECK_FOUR(targetCert, anchors, validityDate, buildResult);
 
         PKIX_CHECK(PKIX_List_Create(&cachedKeys, plContext),
-                "PKIX_List_Create failed");
+                PKIX_LISTCREATEFAILED);
 
         PKIX_CHECK(PKIX_List_AppendItem
                 (cachedKeys, (PKIX_PL_Object *)targetCert, plContext),
-                "PKIX_List_AppendItem failed");
+                PKIX_LISTAPPENDITEMFAILED);
 
         PKIX_CHECK(PKIX_List_AppendItem
                 (cachedKeys, (PKIX_PL_Object *)anchors, plContext),
-                "PKIX_List_AppendItem failed");
+                PKIX_LISTAPPENDITEMFAILED);
 
         PKIX_CHECK(PKIX_List_Create(&cachedValues, plContext),
-                "PKIX_List_Create failed");
+                PKIX_LISTCREATEFAILED);
 
         PKIX_CHECK(PKIX_PL_Date_Create_CurrentOffBySeconds
                 (CACHE_ITEM_PERIOD_SECONDS,
                 &cacheValidUntilDate,
                 plContext),
-               "PKIX_PL_Date_Create_CurrentOffBySeconds failed");
+               PKIX_DATECREATECURRENTOFFBYSECONDSFAILED);
 
         PKIX_CHECK(PKIX_List_AppendItem
                 (cachedValues,
                 (PKIX_PL_Object *)cacheValidUntilDate,
                 plContext),
-                "PKIX_List_AppendItem failed");
+                PKIX_LISTAPPENDITEMFAILED);
 
         PKIX_CHECK(PKIX_List_AppendItem
                 (cachedValues, (PKIX_PL_Object *)validityDate, plContext),
-                "PKIX_List_AppendItem failed");
+                PKIX_LISTAPPENDITEMFAILED);
 
         PKIX_CHECK(PKIX_List_AppendItem
                 (cachedValues, (PKIX_PL_Object *)buildResult, plContext),
-                "PKIX_List_AppendItem failed");
+                PKIX_LISTAPPENDITEMFAILED);
 
         cachedCertChainError = PKIX_PL_HashTable_Add
                 (cachedCertChainTable,
@@ -941,21 +940,21 @@ pkix_CacheCert_Lookup(
         *pFound = PKIX_FALSE;
 
         PKIX_CHECK(PKIX_List_Create(&cachedKeys, plContext),
-                "PKIX_List_Create failed");
+                PKIX_LISTCREATEFAILED);
 
         PKIX_CHECK(PKIX_List_AppendItem
                 (cachedKeys, (PKIX_PL_Object *)store, plContext),
-                "PKIX_List_AppendItem failed");
+                PKIX_LISTAPPENDITEMFAILED);
 
         PKIX_CHECK(PKIX_ComCertSelParams_GetSubject
                 (certSelParams, &subject, plContext),
-                "PKIX_ComCertSelParams_GetSubject failed");
+                PKIX_COMCERTSELPARAMSGETSUBJECTFAILED);
 
         PKIX_NULLCHECK_ONE(subject);
 
         PKIX_CHECK(PKIX_List_AppendItem
                 (cachedKeys, (PKIX_PL_Object *)subject, plContext),
-                "PKIX_List_AppendItem failed");
+                PKIX_LISTAPPENDITEMFAILED);
 
         cachedCertError = PKIX_PL_HashTable_Lookup
                     (cachedCertTable,
@@ -971,7 +970,7 @@ pkix_CacheCert_Lookup(
                         0,
                         (PKIX_PL_Object **) &cacheValidUntilDate,
                         plContext),
-                        "PKIX_List_GetItem");
+                        PKIX_LISTGETITEMFAILED);
 
                 if (testDate) {
                     PKIX_CHECK(PKIX_PL_Object_Compare
@@ -979,7 +978,7 @@ pkix_CacheCert_Lookup(
                          (PKIX_PL_Object *)cacheValidUntilDate,
                          &cmpCacheTimeResult,
                          plContext),
-                         "PKIX_PL_Object_Comparator failed");
+                         PKIX_OBJECTCOMPARATORFAILED);
                 }
 
                 if (cmpCacheTimeResult <= 0) {
@@ -989,27 +988,26 @@ pkix_CacheCert_Lookup(
                         1,
                         (PKIX_PL_Object **) &cachedCertList,
                         plContext),
-                        "PKIX_List_GetItem");
+                        PKIX_LISTGETITEMFAILED);
 
                     /*
                      * Certs put on cache satifies only for Subject,
                      * user selector and ComCertSelParams to filter.
                      */
                     PKIX_CHECK(PKIX_CertSelector_Create
-                            (NULL, NULL, &certSel, plContext),
-                            "PKIX_CertSelector_Create failed");
+                          (NULL, NULL, &certSel, plContext),
+                          PKIX_CERTSELECTORCREATEFAILED);
 
                     PKIX_CHECK(PKIX_CertSelector_SetCommonCertSelectorParams
-                            (certSel, certSelParams, plContext),
-                            "PKIX_CertSelector_SetCommonCertSelectorParams "
-                            "failed");
+                          (certSel, certSelParams, plContext),
+                          PKIX_CERTSELECTORSETCOMMONCERTSELECTORPARAMSFAILED);
 
                     PKIX_CHECK(PKIX_CertSelector_GetMatchCallback
-                            (certSel, &selectorMatch, plContext),
-                            "PKIX_CertSelector_GetMatchCallback failed");
+                          (certSel, &selectorMatch, plContext),
+                          PKIX_CERTSELECTORGETMATCHCALLBACKFAILED);
 
                     PKIX_CHECK(PKIX_List_Create(&selCertList, plContext),
-                            "PKIX_List_Create failed");
+                            PKIX_LISTCREATEFAILED);
 
                     /* 
                      * If any of the Cert on the list is out-dated, invalidate
@@ -1017,7 +1015,7 @@ pkix_CacheCert_Lookup(
                      */
                     PKIX_CHECK(PKIX_List_GetLength
                         (cachedCertList, &numItems, plContext),
-                        "PKIX_List_GetLength failed");
+                        PKIX_LISTGETLENGTHFAILED);
 
                     for (i = 0; i < numItems; i++){
 
@@ -1026,11 +1024,11 @@ pkix_CacheCert_Lookup(
                             i,
                             (PKIX_PL_Object **)&cert,
                             plContext),
-                            "PKIX_List_GetItem failed");
+                            PKIX_LISTGETITEMFAILED);
 
                         PKIX_CHECK(PKIX_PL_Cert_GetValidityNotAfter
                             (cert, &invalidAfterDate, plContext),
-                            "PKIX_PL_Cert_GetValidityNotAfter failed");
+                            PKIX_CERTGETVALIDITYNOTAFTERFAILED);
 
                         if (testDate) {
                             PKIX_CHECK(PKIX_PL_Object_Compare
@@ -1038,7 +1036,7 @@ pkix_CacheCert_Lookup(
                                 (PKIX_PL_Object *)testDate,
                                 &cmpValidTimeResult,
                                 plContext),
-                                "PKIX_PL_Object_Comparator failed");
+                                PKIX_OBJECTCOMPARATORFAILED);
                         }
 
                         if (cmpValidTimeResult < 0) {
@@ -1051,7 +1049,7 @@ pkix_CacheCert_Lookup(
                                     (cachedCertTable,
                                     (PKIX_PL_Object *) cachedKeys,
                                     plContext),
-                                    "PKIX_PL_HashTable_Remove failed");
+                                    PKIX_HASHTABLEREMOVEFAILED);
                            cachedKeys = NULL; /* object destroy by remove */
                            cachedValues = NULL; /* object destroy by remove */
                             goto cleanup;
@@ -1062,7 +1060,7 @@ pkix_CacheCert_Lookup(
                                     cert,
                                     &certMatch,
                                     plContext),
-                                    "selectorMatch failed");
+                                    PKIX_SELECTORMATCHFAILED);
 
                         if (certMatch){
                             /* put on the return list */
@@ -1070,7 +1068,7 @@ pkix_CacheCert_Lookup(
                                    (selCertList,
                                    (PKIX_PL_Object *)cert,
                                    plContext),
-                                  "PKIX_List_AppendItem failed");
+                                  PKIX_LISTAPPENDITEMFAILED);
 
                             *pFound = PKIX_TRUE;
                         }
@@ -1094,7 +1092,7 @@ pkix_CacheCert_Lookup(
                                 (cachedCertTable,
                                 (PKIX_PL_Object *) cachedKeys,
                                 plContext),
-                                "PKIX_PL_HashTable_Remove failed");
+                                PKIX_HASHTABLEREMOVEFAILED);
                     cachedKeys = NULL; /* object destroy by hash remove */
                     cachedValues = NULL; /* object destroy by hash remove */
                 }
@@ -1172,28 +1170,28 @@ pkix_CacheCert_Add(
         PKIX_NULLCHECK_THREE(store, certSelParams, certs);
 
         PKIX_CHECK(PKIX_List_Create(&cachedKeys, plContext),
-                "PKIX_List_Create failed");
+                PKIX_LISTCREATEFAILED);
 
         PKIX_CHECK(PKIX_List_AppendItem
                 (cachedKeys, (PKIX_PL_Object *)store, plContext),
-                "PKIX_List_AppendItem failed");
+                PKIX_LISTAPPENDITEMFAILED);
 
         PKIX_CHECK(PKIX_ComCertSelParams_GetSubject
                 (certSelParams, &subject, plContext),
-                "PKIX_ComCertSelParams_GetSubject failed");
+                PKIX_COMCERTSELPARAMSGETSUBJECTFAILED);
 
         PKIX_NULLCHECK_ONE(subject);
 
         PKIX_CHECK(PKIX_List_AppendItem
                 (cachedKeys, (PKIX_PL_Object *)subject, plContext),
-                "PKIX_List_AppendItem failed");
+                PKIX_LISTAPPENDITEMFAILED);
 
         PKIX_CHECK(PKIX_List_Create(&cachedValues, plContext),
-                "PKIX_List_Create failed");
+                PKIX_LISTCREATEFAILED);
 
         PKIX_CHECK(PKIX_CertStore_GetTrustCallback
                 (store, &trustCallback, plContext),
-                "PKIX_CertStore_GetTrustCallback failed");
+                PKIX_CERTSTOREGETTRUSTCALLBACKFAILED);
 
         if (trustCallback) {
                 cachePeriod = CACHE_TRUST_ITEM_PERIOD_SECONDS;
@@ -1201,19 +1199,19 @@ pkix_CacheCert_Add(
 
         PKIX_CHECK(PKIX_PL_Date_Create_CurrentOffBySeconds
                (cachePeriod, &cacheValidUntilDate, plContext),
-               "PKIX_PL_Date_Create_CurrentOffBySeconds failed");
+               PKIX_DATECREATECURRENTOFFBYSECONDSFAILED);
 
         PKIX_CHECK(PKIX_List_AppendItem
                 (cachedValues,
                 (PKIX_PL_Object *)cacheValidUntilDate,
                 plContext),
-                "PKIX_List_AppendItem failed");
+                PKIX_LISTAPPENDITEMFAILED);
 
         PKIX_CHECK(PKIX_List_AppendItem
                 (cachedValues,
                 (PKIX_PL_Object *)certs,
                 plContext),
-                "PKIX_List_AppendItem failed");
+                PKIX_LISTAPPENDITEMFAILED);
 
         cachedCertError = PKIX_PL_HashTable_Add
                     (cachedCertTable,
@@ -1298,21 +1296,21 @@ pkix_CacheCrlEntry_Lookup(
         /* Find CrlEntry(s) by issuer and serial number */
          
         PKIX_CHECK(PKIX_List_Create(&cachedKeys, plContext),
-                    "PKIX_List_Create failed");
+                    PKIX_LISTCREATEFAILED);
 
         PKIX_CHECK(PKIX_List_AppendItem
                     (cachedKeys, (PKIX_PL_Object *)store, plContext),
-                    "PKIX_List_AppendItem failed");
+                    PKIX_LISTAPPENDITEMFAILED);
 
         PKIX_CHECK(PKIX_List_AppendItem
                     (cachedKeys, (PKIX_PL_Object *)certIssuer, plContext),
-                    "PKIX_List_AppendItem failed");
+                    PKIX_LISTAPPENDITEMFAILED);
 
         PKIX_CHECK(PKIX_List_AppendItem
                     (cachedKeys,
                     (PKIX_PL_Object *)certSerialNumber,
                     plContext),
-                    "PKIX_List_AppendItem failed");
+                    PKIX_LISTAPPENDITEMFAILED);
 
         cachedCrlEntryError = PKIX_PL_HashTable_Lookup
                     (cachedCrlEntryTable,
@@ -1400,21 +1398,21 @@ pkix_CacheCrlEntry_Add(
         /* Add CrlEntry(s) by issuer and serial number */
          
         PKIX_CHECK(PKIX_List_Create(&cachedKeys, plContext),
-                    "PKIX_List_Create failed");
+                    PKIX_LISTCREATEFAILED);
 
         PKIX_CHECK(PKIX_List_AppendItem
                     (cachedKeys, (PKIX_PL_Object *)store, plContext),
-                    "PKIX_List_AppendItem failed");
+                    PKIX_LISTAPPENDITEMFAILED);
 
         PKIX_CHECK(PKIX_List_AppendItem
                     (cachedKeys, (PKIX_PL_Object *)certIssuer, plContext),
-                    "PKIX_List_AppendItem failed");
+                    PKIX_LISTAPPENDITEMFAILED);
 
         PKIX_CHECK(PKIX_List_AppendItem
                     (cachedKeys,
                     (PKIX_PL_Object *)certSerialNumber,
                     plContext),
-                    "PKIX_List_AppendItem failed");
+                    PKIX_LISTAPPENDITEMFAILED);
 
         cachedCrlEntryError = PKIX_PL_HashTable_Add
                     (cachedCrlEntryTable,

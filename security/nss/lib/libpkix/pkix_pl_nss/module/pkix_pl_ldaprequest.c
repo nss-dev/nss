@@ -302,7 +302,7 @@ pkix_pl_LdapRequest_Destroy(
         PKIX_NULLCHECK_ONE(object);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_LDAPREQUEST_TYPE, plContext),
-                    "Object is not a LdapRequest");
+                    PKIX_OBJECTNOTLDAPREQUEST);
 
         ldapRq = (PKIX_PL_LdapRequest *)object;
 
@@ -337,7 +337,7 @@ pkix_pl_LdapRequest_Hashcode(
         PKIX_NULLCHECK_TWO(object, pHashcode);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_LDAPREQUEST_TYPE, plContext),
-                    "Object is not a LdapRequest");
+                    PKIX_OBJECTNOTLDAPREQUEST);
 
         ldapRq = (PKIX_PL_LdapRequest *)object;
 
@@ -366,7 +366,7 @@ pkix_pl_LdapRequest_Hashcode(
                 msgBuf = &msgBuf[dindex + 2];
 
                 PKIX_CHECK(pkix_hash(msgBuf, dataLen, pHashcode, plContext),
-                        "pkix_hash failed");
+                        PKIX_HASHFAILED);
         }
 
 cleanup:
@@ -401,7 +401,7 @@ pkix_pl_LdapRequest_Equals(
 
         /* test that firstObj is a LdapRequest */
         PKIX_CHECK(pkix_CheckType(firstObj, PKIX_LDAPREQUEST_TYPE, plContext),
-                    "firstObj argument is not a LdapRequest");
+                    PKIX_FIRSTOBJARGUMENTNOTLDAPREQUEST);
 
         /*
          * Since we know firstObj is a LdapRequest, if both references are
@@ -419,7 +419,7 @@ pkix_pl_LdapRequest_Equals(
         *pResult = PKIX_FALSE;
         PKIX_CHECK(PKIX_PL_Object_GetType
                     (secondObj, &secondType, plContext),
-                    "Could not get type of second argument");
+                    PKIX_COULDNOTGETTYPEOFSECONDARGUMENT);
         if (secondType != PKIX_LDAPREQUEST_TYPE) {
                 goto cleanup;
         }
@@ -675,7 +675,7 @@ pkix_pl_LdapRequest_Create(
                     sizeof (PKIX_PL_LdapRequest),
                     (PKIX_PL_Object **)&ldapRequest,
                     plContext),
-                    "Could not create object");
+                    PKIX_COULDNOTCREATEOBJECT);
 
         ldapRequest->arena = arena;
         ldapRequest->msgnum = msgnum;
@@ -692,7 +692,7 @@ pkix_pl_LdapRequest_Create(
 
         PKIX_CHECK(pkix_pl_LdapRequest_EncodeAttrs
                 (ldapRequest, plContext),
-                "pkix_pl_LdapRequest_EncodeAttrs failed");
+                PKIX_LDAPREQUESTENCODEATTRSFAILED);
 
         PKIX_PL_NSSCALL
                 (LDAPREQUEST, PORT_Memset, (&msg, 0, sizeof (LDAPMessage)));
@@ -740,7 +740,7 @@ pkix_pl_LdapRequest_Create(
                 (arena, NULL, (void *)&msg, PKIX_PL_LDAPMessageTemplate));
 
         if (!(ldapRequest->encoded)) {
-                PKIX_ERROR("failed in encoding searchRequest");
+                PKIX_ERROR(PKIX_FAILEDINENCODINGSEARCHREQUEST);
         }
 
         *pRequestMsg = ldapRequest;

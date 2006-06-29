@@ -80,7 +80,7 @@ pkix_pl_Date_GetPRTime(
         rv = DER_DecodeTimeChoice(pPRTime, &date->nssTime);
 
         if (rv == SECFailure) {
-                PKIX_ERROR("DER_DecodeTimeChoice failed");
+                PKIX_ERROR(PKIX_DERDECODETIMECHOICEFAILED);
         }
 
 cleanup:
@@ -125,7 +125,7 @@ pkix_pl_Date_CreateFromPRTime(
         rv = DER_EncodeTimeChoice(NULL, &nssTime, prtime);
 
         if (rv == SECFailure) {
-                PKIX_ERROR("DER_EncodeTimeChoice failed");
+                PKIX_ERROR(PKIX_DERENCODETIMECHOICEFAILED);
         }
 
         /* create a PKIX_PL_Date object */
@@ -134,7 +134,7 @@ pkix_pl_Date_CreateFromPRTime(
                     sizeof (PKIX_PL_Date),
                     (PKIX_PL_Object **)&date,
                     plContext),
-                    "Could not create object");
+                    PKIX_COULDNOTCREATEOBJECT);
 
         /* populate the nssTime field */
         date->nssTime = nssTime;
@@ -187,7 +187,7 @@ pkix_pl_Date_ToString_Helper(
                 PKIX_PL_NSSCALLRV
                         (DATE, asciiDate, DER_UTCDayToAscii, (nssTime));
                 if (!asciiDate){
-                        PKIX_ERROR("DER_UTCTimeToAscii failed");
+                        PKIX_ERROR(PKIX_DERUTCTIMETOASCIIFAILED);
                 }
                 break;
         case siGeneralizedTime:
@@ -199,16 +199,16 @@ pkix_pl_Date_ToString_Helper(
                 PKIX_PL_NSSCALLRV
                         (DATE, asciiDate, DER_GeneralizedDayToAscii, (nssTime));
                 if (!asciiDate){
-                        PKIX_ERROR("DER_GeneralizedDayToAscii failed");
+                        PKIX_ERROR(PKIX_DERGENERALIZEDDAYTOASCIIFAILED);
                 }
                 break;
         default:
-                PKIX_ERROR("Unrecognized time type");
+                PKIX_ERROR(PKIX_UNRECOGNIZEDTIMETYPE);
         }
 
         PKIX_CHECK(PKIX_PL_String_Create
                     (PKIX_ESCASCII, asciiDate, 0, pString, plContext),
-                    "PKIX_PL_String_Create failed");
+                    PKIX_STRINGCREATEFAILED);
 
 cleanup:
 
@@ -233,7 +233,7 @@ pkix_pl_Date_Destroy(
         PKIX_NULLCHECK_ONE(object);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_DATE_TYPE, plContext),
-                    "Object is not a Date");
+                    PKIX_OBJECTNOTDATE);
 
         date = (PKIX_PL_Date *)object;
 
@@ -263,7 +263,7 @@ pkix_pl_Date_ToString(
         PKIX_NULLCHECK_TWO(object, pString);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_DATE_TYPE, plContext),
-                    "Object is not a Date");
+                    PKIX_OBJECTNOTDATE);
 
         date = (PKIX_PL_Date *)object;
 
@@ -271,7 +271,7 @@ pkix_pl_Date_ToString(
 
         PKIX_CHECK(pkix_pl_Date_ToString_Helper
                     (nssTime, &dateString, plContext),
-                    "pkix_pl_Date_ToString_Helper failed");
+                    PKIX_DATETOSTRINGHELPERFAILED);
 
         *pString = dateString;
 
@@ -300,7 +300,7 @@ pkix_pl_Date_Hashcode(
         PKIX_NULLCHECK_TWO(object, pHashcode);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_DATE_TYPE, plContext),
-                    "Object is not a Date");
+                    PKIX_OBJECTNOTDATE);
 
         date = (PKIX_PL_Date *)object;
 
@@ -312,7 +312,7 @@ pkix_pl_Date_Hashcode(
                 nssTime->len,
                 &dateHash,
                 plContext),
-                "pkix_hash failed");
+                PKIX_HASHFAILED);
 
         *pHashcode = dateHash;
 
@@ -342,7 +342,7 @@ pkix_pl_Date_Comparator(
 
         PKIX_CHECK(pkix_CheckTypes
                     (firstObject, secondObject, PKIX_DATE_TYPE, plContext),
-                    "Arguments are not Dates");
+                    PKIX_ARGUMENTSNOTDATES);
 
         firstTime = &((PKIX_PL_Date *)firstObject)->nssTime;
         secondTime = &((PKIX_PL_Date *)secondObject)->nssTime;
@@ -381,7 +381,7 @@ pkix_pl_Date_Equals(
 
         /* test that firstObject is a Date */
         PKIX_CHECK(pkix_CheckType(firstObject, PKIX_DATE_TYPE, plContext),
-                    "FirstObject argument is not a Date");
+                PKIX_FIRSTOBJECTNOTDATE);
 
         /*
          * Since we know firstObject is a Date, if both references are
@@ -399,7 +399,7 @@ pkix_pl_Date_Equals(
         *pResult = PKIX_FALSE;
         PKIX_CHECK(PKIX_PL_Object_GetType
                     (secondObject, &secondType, plContext),
-                    "Could not get type of second argument");
+                    PKIX_COULDNOTGETTYPEOFSECONDARGUMENT);
         if (secondType != PKIX_DATE_TYPE) goto cleanup;
 
         firstTime = &((PKIX_PL_Date *)firstObject)->nssTime;
@@ -479,20 +479,20 @@ PKIX_PL_Date_Create_UTCTime(
                             (void **)&asciiString,
                             &escAsciiLength,
                             plContext),
-                            "PKIX_PL_String_GetEncoded failed");
+                            PKIX_STRINGGETENCODEDFAILED);
 
                 PKIX_DATE_DEBUG("\t\tCalling DER_AsciiToTime).\n");
                 /* DER_AsciiToTime only supports UTCTime (2-digit years) */
                 rv = DER_AsciiToTime(&time, asciiString);
                 if (rv != SECSuccess){
-                        PKIX_ERROR("DER_AsciiToTime failed");
+                        PKIX_ERROR(PKIX_DERASCIITOTIMEFAILED);
                 }
         }
 
         PKIX_DATE_DEBUG("\t\tCalling DER_TimeToUTCTime).\n");
         rv = DER_TimeToUTCTime(&nssTime, time);
         if (rv != SECSuccess){
-                PKIX_ERROR("DER_TimeToUTCTime failed");
+                PKIX_ERROR(PKIX_DERTIMETOUTCTIMEFAILED);
         }
 
         /* create a PKIX_PL_Date object */
@@ -501,7 +501,7 @@ PKIX_PL_Date_Create_UTCTime(
                     sizeof (PKIX_PL_Date),
                     (PKIX_PL_Object **)&date,
                     plContext),
-                    "Could not create object");
+                    PKIX_COULDNOTCREATEOBJECT);
 
         /* populate the nssTime field */
         date->nssTime = nssTime;
@@ -545,7 +545,7 @@ PKIX_PL_Date_Create_CurrentOffBySeconds(
         PKIX_DATE_DEBUG("\t\tCalling DER_TimeToUTCTime).\n");
         rv = DER_TimeToUTCTime(&nssTime, time);
         if (rv != SECSuccess){
-                PKIX_ERROR("DER_TimeToUTCTime failed");
+                PKIX_ERROR(PKIX_DERTIMETOUTCTIMEFAILED);
         }
 
         /* create a PKIX_PL_Date object */
@@ -554,7 +554,7 @@ PKIX_PL_Date_Create_CurrentOffBySeconds(
                     sizeof (PKIX_PL_Date),
                     (PKIX_PL_Object **)&date,
                     plContext),
-                    "Could not create object");
+                    PKIX_COULDNOTCREATEOBJECT);
 
         /* populate the nssTime field */
         date->nssTime = nssTime;

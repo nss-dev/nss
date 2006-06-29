@@ -95,7 +95,7 @@ pkix_BuildParams_Equals(
                     "First Argument is not a BuildParams object");
 
         PKIX_CHECK(PKIX_PL_Object_GetType(second, &secondType, plContext),
-                    "Could not get type of second argument");
+                    PKIX_COULDNOTGETTYPEOFSECONDARGUMENT);
 
         *pResult = PKIX_FALSE;
 
@@ -109,7 +109,7 @@ pkix_BuildParams_Equals(
                     (PKIX_PL_Object *)secondBuildParams->procParams,
                     &cmpResult,
                     plContext),
-                    "PKIX_PL_Object_Equals failed");
+                    PKIX_OBJECTEQUALSFAILED);
 
         if (!cmpResult) goto cleanup;
 
@@ -146,7 +146,7 @@ pkix_BuildParams_Hashcode(
                     ((PKIX_PL_Object *)buildParams->procParams,
                     &procParamsHash,
                     plContext),
-                    "PKIX_PL_Object_Hashcode failed");
+                    PKIX_OBJECTHASHCODEFAILED);
 
         hash = 31 * procParamsHash;
 
@@ -178,7 +178,7 @@ pkix_BuildParams_ToString(
         PKIX_NULLCHECK_TWO(object, pString);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_BUILDPARAMS_TYPE, plContext),
-                    "Object not a BuildParams");
+                    PKIX_OBJECTNOTBUILDPARAMS);
 
         asciiFormat =
                 "[\n"
@@ -194,7 +194,7 @@ pkix_BuildParams_ToString(
                     0,
                     &formatString,
                     plContext),
-                    "PKIX_PL_String_Create failed");
+                    PKIX_STRINGCREATEFAILED);
 
         buildParams = (PKIX_BuildParams*)object;
 
@@ -202,14 +202,14 @@ pkix_BuildParams_ToString(
                     ((PKIX_PL_Object*)buildParams->procParams,
                     &procParamsString,
                     plContext),
-                    "PKIX_PL_Object_ToString failed");
+                    PKIX_OBJECTTOSTRINGFAILED);
 
         PKIX_CHECK(PKIX_PL_Sprintf
                     (&buildParamsString,
                     plContext,
                     formatString,
                     procParamsString),
-                    "PKIX_PL_Sprintf failed");
+                    PKIX_SPRINTFFAILED);
 
         *pString = buildParamsString;
 
@@ -276,7 +276,7 @@ PKIX_BuildParams_Create(
                     sizeof (PKIX_BuildParams),
                     (PKIX_PL_Object **)&params,
                     plContext),
-                    "Could not create build params object");
+                    PKIX_COULDNOTCREATEBUILDPARAMSOBJECT);
 
         /* initialize fields */
         PKIX_INCREF(procParams);

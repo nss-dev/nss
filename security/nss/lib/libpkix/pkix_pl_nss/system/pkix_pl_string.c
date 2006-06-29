@@ -114,7 +114,7 @@ pkix_pl_String_Destroy(
         PKIX_NULLCHECK_ONE(object);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_STRING_TYPE, plContext),
-                    "Argument is not a String");
+                    PKIX_ARGUMENTNOTSTRING);
 
         string = (PKIX_PL_String*)object;
 
@@ -155,17 +155,17 @@ pkix_pl_String_ToString(
         PKIX_NULLCHECK_TWO(object, pString);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_STRING_TYPE, plContext),
-                    "Argument is not a String");
+                    PKIX_ARGUMENTNOTSTRING);
 
         string = (PKIX_PL_String*)object;
 
         PKIX_CHECK(PKIX_PL_String_GetEncoded
                 (string, PKIX_ESCASCII, (void **)&ascii, &length, plContext),
-                "PKIX_PL_String_GetEncoded failed");
+                PKIX_STRINGGETENCODEDFAILED);
 
         PKIX_CHECK(PKIX_PL_String_Create
                     (PKIX_ESCASCII, ascii, 0, pString, plContext),
-                    "PKIX_PL_String_Create failed");
+                    PKIX_STRINGCREATEFAILED);
 
         goto cleanup;
 
@@ -195,12 +195,12 @@ pkix_pl_String_Equals(
 
         /* Sanity check: Test that "firstObject" is a Strings */
         PKIX_CHECK(pkix_CheckType(firstObject, PKIX_STRING_TYPE, plContext),
-                    "FirstObject argument is not a String");
+                PKIX_FIRSTOBJECTNOTSTRING);
 
         /* "SecondObject" doesn't have to be a string */
         PKIX_CHECK(PKIX_PL_Object_GetType
-                    (secondObject, &secondType, plContext),
-                    "Could not get type of second argument");
+                (secondObject, &secondType, plContext),
+                PKIX_COULDNOTGETTYPEOFSECONDARGUMENT);
 
         /* If types differ, then we will return false */
         *pResult = PKIX_FALSE;
@@ -209,11 +209,11 @@ pkix_pl_String_Equals(
 
         /* It's safe to cast here */
         PKIX_CHECK(pkix_pl_String_Comparator
-                    ((PKIX_PL_String*)firstObject,
-                    (PKIX_PL_String*)secondObject,
-                    &cmpResult,
-                    plContext),
-                    "pkix_pl_String_Comparator failed");
+                ((PKIX_PL_String*)firstObject,
+                (PKIX_PL_String*)secondObject,
+                &cmpResult,
+                plContext),
+                PKIX_STRINGCOMPARATORFAILED);
 
         /* Strings are equal iff Comparator Result is 0 */
         *pResult = (cmpResult == 0);
@@ -239,16 +239,16 @@ pkix_pl_String_Hashcode(
         PKIX_NULLCHECK_TWO(object, pHashcode);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_STRING_TYPE, plContext),
-                    "Object is not a string");
+                PKIX_OBJECTNOTSTRING);
 
         string = (PKIX_PL_String*)object;
 
         PKIX_CHECK(pkix_hash
-                    ((const unsigned char *)string->utf16String,
-                    string->utf16Length,
-                    pHashcode,
-                    plContext),
-                    "pkix_hash failed");
+                ((const unsigned char *)string->utf16String,
+                string->utf16Length,
+                pHashcode,
+                plContext),
+                PKIX_HASHFAILED);
 
 cleanup:
 
@@ -314,7 +314,7 @@ PKIX_PL_String_Create(
                     sizeof (PKIX_PL_String),
                     (PKIX_PL_Object **)&string,
                     plContext),
-                    "Could not allocate new string object");
+                    PKIX_COULDNOTALLOCATENEWSTRINGOBJECT);
 
         string->utf16String = NULL;
         string->utf16Length = 0;
@@ -333,7 +333,7 @@ PKIX_PL_String_Create(
                             ((string->escAsciiLength)+1,
                             (void **)&string->escAsciiString,
                             plContext),
-                            "PKIX_PL_Malloc failed");
+                            PKIX_MALLOCFAILED);
 
                 (void) PORT_Memcpy
                         (string->escAsciiString,
@@ -348,7 +348,7 @@ PKIX_PL_String_Create(
                             &string->utf16String,
                             &string->utf16Length,
                             plContext),
-                            "pkix_EscASCII_to_UTF16 failed");
+                            PKIX_ESCASCIITOUTF16FAILED);
                 break;
         case PKIX_UTF8:
                 /* Convert the UTF8 string to UTF16 */
@@ -358,13 +358,13 @@ PKIX_PL_String_Create(
                             &string->utf16String,
                             &string->utf16Length,
                             plContext),
-                            "pkix_UTF8_to_UTF16 failed");
+                            PKIX_UTF8TOUTF16FAILED);
                 break;
         case PKIX_UTF16:
                 /* UTF16 Strings must be even in length */
                 if (stringLen%2 == 1) {
                         PKIX_DECREF(string);
-                        PKIX_ERROR("UTF16 Alignment Error");
+                        PKIX_ERROR(PKIX_UTF16ALIGNMENTERROR);
                 }
 
                 utf16Char = (unsigned char *)stringRep;
@@ -377,15 +377,14 @@ PKIX_PL_String_Create(
                         if ((utf16Char[i] >= 0xD8)&&
                             (utf16Char[i] <= 0xDB)) {
                                 if ((i+2) >= stringLen) {
-                                        PKIX_ERROR("UTF16 High Zone "
-                                                    "Alignment Error");
-                                        /* Second pair should be DC00-DFFF */
+                                  PKIX_ERROR(PKIX_UTF16HIGHZONEALIGNMENTERROR);
+                                  /* Second pair should be DC00-DFFF */
                                 } else if (!((utf16Char[i+2] >= 0xDC)&&
-                                            (utf16Char[i+2] <= 0xDF))) {
-                                        PKIX_ERROR("UTF16 Low Zone Error");
+                                      (utf16Char[i+2] <= 0xDF))) {
+                                  PKIX_ERROR(PKIX_UTF16LOWZONEERROR);
                                 } else {
-                                        /*  Surrogate quartet is valid. */
-                                        i += 2;
+                                  /*  Surrogate quartet is valid. */
+                                  i += 2;
                                 }
                         }
                 }
@@ -396,7 +395,7 @@ PKIX_PL_String_Create(
                 /* Alloc space for string */
                 PKIX_CHECK(PKIX_PL_Malloc
                             (stringLen, &string->utf16String, plContext),
-                            "PKIX_PL_Malloc failed");
+                            PKIX_MALLOCFAILED);
 
                 PKIX_STRING_DEBUG("\tCalling PORT_Memcpy).\n");
                 (void) PORT_Memcpy
@@ -404,7 +403,7 @@ PKIX_PL_String_Create(
                 break;
 
         default:
-                PKIX_ERROR("Unknown format");
+                PKIX_ERROR(PKIX_UNKNOWNFORMAT);
         }
 
         *pString = string;
@@ -447,7 +446,7 @@ PKIX_PL_Sprintf(
                     (void **)&asciiFormat,
                     &length,
                     plContext),
-                    "PKIX_PL_String_GetEncoded failed");
+                    PKIX_STRINGGETENCODEDFAILED);
 
         PKIX_STRING_DEBUG("\tCalling PR_Malloc).\n");
         convertedAsciiFormat = PR_Malloc(length + 1);
@@ -470,14 +469,13 @@ PKIX_PL_Sprintf(
                                 tempString = va_arg(args, PKIX_PL_String *);
                                 if (tempString != NULL) {
                                         PKIX_CHECK(PKIX_PL_String_GetEncoded
-                                                    ((PKIX_PL_String*)
-                                                    tempString,
-                                                    PKIX_ESCASCII,
-                                                    &pArg,
-                                                    &dummyLen,
-                                                    plContext),
-                                                    "PKIX_PL_String_GetEncoded"
-                                                    " failed");
+                                                ((PKIX_PL_String*)
+                                                tempString,
+                                                PKIX_ESCASCII,
+                                                &pArg,
+                                                &dummyLen,
+                                                plContext),
+                                                PKIX_STRINGGETENCODEDFAILED);
                                 } else {
                                         /* there may be a NULL in var_args */
                                         pArg = NULL;
@@ -547,7 +545,7 @@ PKIX_PL_Sprintf(
         /* Copy temporary char * into a string object */
         PKIX_CHECK(PKIX_PL_String_Create
                 (PKIX_ESCASCII, (void *)asciiText, 0, pOut, plContext),
-                "PKIX_PL_String_Create failed");
+                PKIX_STRINGCREATEFAILED);
 
 cleanup:
 
@@ -581,7 +579,7 @@ PKIX_PL_GetString(
         /* XXX Optimization - use stringID for caching */
         PKIX_CHECK(PKIX_PL_String_Create
                     (PKIX_ESCASCII, defaultString, 0, pString, plContext),
-                    "PKIX_PL_String_Create failed");
+                    PKIX_STRINGCREATEFAILED);
 
 cleanup:
 
@@ -611,7 +609,7 @@ PKIX_PL_String_GetEncoded(
                             (char **)pStringRep,
                             pLength,
                             plContext),
-                            "pkix_UTF16_to_EscASCII failed");
+                            PKIX_UTF16TOESCASCIIFAILED);
                 break;
         case PKIX_UTF8:
                 PKIX_CHECK(pkix_UTF16_to_UTF8
@@ -621,7 +619,7 @@ PKIX_PL_String_GetEncoded(
                             pStringRep,
                             pLength,
                             plContext),
-                            "pkix_UTF16_to_UTF8 failed");
+                            PKIX_UTF16TOUTF8FAILED);
                 break;
         case PKIX_UTF8_NULL_TERM:
                 PKIX_CHECK(pkix_UTF16_to_UTF8
@@ -631,19 +629,19 @@ PKIX_PL_String_GetEncoded(
                             pStringRep,
                             pLength,
                             plContext),
-                            "pkix_UTF16_to_UTF8 failed");
+                            PKIX_UTF16TOUTF8FAILED);
                 break;
         case PKIX_UTF16:
                 *pLength = string->utf16Length;
 
                 PKIX_CHECK(PKIX_PL_Malloc(*pLength, pStringRep, plContext),
-                            "PKIX_PL_Malloc failed");
+                            PKIX_MALLOCFAILED);
 
                 PKIX_STRING_DEBUG("\tCalling PORT_Memcpy).\n");
                 (void) PORT_Memcpy(*pStringRep, string->utf16String, *pLength);
                 break;
         default:
-                PKIX_ERROR("Unknown format");
+                PKIX_ERROR(PKIX_UNKNOWNFORMAT);
         }
 
 cleanup:

@@ -87,7 +87,7 @@ pkix_pl_CRL_GetVersion(
         myVersion = *(crl->nssSignedCrl->crl.version.data);
 
         if (myVersion > 1) {
-                PKIX_ERROR("Version value must be V1(0) or V2(1)");
+                PKIX_ERROR(PKIX_VERSIONVALUEMUSTBEV1ORV2);
         }
 
         *pVersion = myVersion;
@@ -129,7 +129,7 @@ PKIX_PL_CRL_GetCRLNumber(
                 PKIX_CRL_DEBUG("\t\tCalling PORT_NewArena).\n");
                 arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
                 if (arena == NULL) {
-                        PKIX_ERROR("PORT_NewArena failed");
+                        PKIX_ERROR(PKIX_PORTNEWARENAFAILED);
                 }
 
                 PKIX_CRL_DEBUG("\t\tCalling CERT_FindCRLNumberExten\n");
@@ -143,7 +143,7 @@ PKIX_PL_CRL_GetCRLNumber(
 
                         PKIX_CHECK(pkix_pl_BigInt_CreateWithBytes
                                     (bytes, length, &crlNumber, plContext),
-                                    "pkix_pl_BigInt_CreateWithBytes failed");
+                                    PKIX_BIGINTCREATEWITHBYTESFAILED);
 
                         /* arena release does the job 
                         PKIX_CRL_DEBUG("\t\tCalling SECITEM_FreeItem\n");
@@ -229,16 +229,16 @@ pkix_pl_CRL_GetSignatureAlgId(
 
                         PKIX_NULLCHECK_ONE(algBytes.data);
                         if (algBytes.len == 0) {
-                                PKIX_ERROR_FATAL("Oid bytes length is 0");
+                                PKIX_ERROR_FATAL(PKIX_OIDBYTESLENGTH0);
                         }
 
                         PKIX_CHECK(pkix_pl_oidBytes2Ascii
                                     (&algBytes, &asciiOID, plContext),
-                                    "pkix_pl_oidBytes2Ascii failed");
+                                    PKIX_OIDBYTES2ASCIIFAILED);
 
                         PKIX_CHECK(PKIX_PL_OID_Create
                                     (asciiOID, &signatureAlgId, plContext),
-                                    "PKIX_PL_OID_Create failed");
+                                    PKIX_OIDCREATEFAILED);
 
                         /* save a cached copy in case it is asked for again */
                         crl->signatureAlgId = signatureAlgId;
@@ -304,11 +304,11 @@ pkix_pl_CRL_GetCRLEntries(
 
                         PKIX_CHECK(pkix_pl_CRLEntry_Create
                                     (nssCrl->entries, &entryList, plContext),
-                                    "pkix_pl_CRLEntry_Create failed");
+                                    PKIX_CRLENTRYCREATEFAILED);
 
                         PKIX_CHECK(PKIX_List_SetImmutable
                                     (entryList, plContext),
-                                    "PKIX_List_SetImmutable failed");
+                                    PKIX_LISTSETIMMUTABLEFAILED);
 
                         crl->crlEntryList = entryList;
                 }
@@ -341,7 +341,7 @@ pkix_pl_CRL_Destroy(
         PKIX_NULLCHECK_ONE(object);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_CRL_TYPE, plContext),
-                    "Object is not a CRL");
+                    PKIX_OBJECTNOTCRL);
 
         crl = (PKIX_PL_CRL*)object;
 
@@ -431,67 +431,67 @@ pkix_pl_CRL_ToString_Helper(
                     0,
                     &formatString,
                     plContext),
-                    "PKIX_PL_String_Create failed");
+                    PKIX_STRINGCREATEFAILED);
 
         /* Version */
         PKIX_CHECK(pkix_pl_CRL_GetVersion(crl, &crlVersion, plContext),
-                    "pkix_pl_CRL_GetVersion failed");
+                    PKIX_CRLGETVERSIONFAILED);
 
         /* Issuer */
         PKIX_CHECK(PKIX_PL_CRL_GetIssuer(crl, &crlIssuer, plContext),
-                    "PKIX_PL_CRL_GetIssuer failed");
+                    PKIX_CRLGETISSUERFAILED);
 
         PKIX_CHECK(PKIX_PL_Object_ToString
                     ((PKIX_PL_Object *)crlIssuer, &crlIssuerString, plContext),
-                    "PKIX_PL_X500Name_ToString failed");
+                    PKIX_X500NAMETOSTRINGFAILED);
 
         /* This update - No Date object created, use nss data directly */
         PKIX_CHECK(pkix_pl_Date_ToString_Helper
                     (&(crl->nssSignedCrl->crl.lastUpdate),
                     &lastUpdateString,
                     plContext),
-                    "pkix_pl_Date_ToString_Helper failed");
+                    PKIX_DATETOSTRINGHELPERFAILED);
 
         /* Next update - No Date object created, use nss data directly */
         PKIX_CHECK(pkix_pl_Date_ToString_Helper
                     (&(crl->nssSignedCrl->crl.nextUpdate),
                     &nextUpdateString,
                     plContext),
-                    "pkix_pl_Date_ToString_Helper failed");
+                    PKIX_DATETOSTRINGHELPERFAILED);
 
         /* Signature Algorithm Id */
         PKIX_CHECK(pkix_pl_CRL_GetSignatureAlgId
                     (crl, &nssSignatureAlgId, plContext),
-                    "pkix_pl_CRL_GetSignatureAlgId failed");
+                    PKIX_CRLGETSIGNATUREALGIDFAILED);
 
         PKIX_CHECK(PKIX_PL_Object_ToString
                     ((PKIX_PL_Object *)nssSignatureAlgId,
                     &nssSignatureAlgIdString,
                     plContext),
-                    "PKIX_PL_OID_ToString failed");
+                    PKIX_OIDTOSTRINGFAILED);
 
         /* CRL Number */
         PKIX_CHECK(PKIX_PL_CRL_GetCRLNumber
                     (crl, &crlNumber, plContext),
-                    "PKIX_PL_CRL_GetCRLNumber failed");
+                    PKIX_CRLGETCRLNUMBERFAILED);
 
         PKIX_TOSTRING(crlNumber, &crlNumberString, plContext,
-                    "pkix_pl_BigInt_ToString failed");
+                    PKIX_BIGINTTOSTRINGFAILED);
 
         /* CRL Entries */
         PKIX_CHECK(pkix_pl_CRL_GetCRLEntries(crl, &crlEntryList, plContext),
-                    "pkix_pl_CRL_GetCRLEntries failed");
+                    PKIX_CRLGETCRLENTRIESFAILED);
 
         PKIX_TOSTRING(crlEntryList, &crlEntryListString, plContext,
-                    "PKIX_List_ToString failed");
+                    PKIX_LISTTOSTRINGFAILED);
 
         /* CriticalExtensionOIDs */
         PKIX_CHECK(PKIX_PL_CRL_GetCriticalExtensionOIDs
                     (crl, &critExtOIDs, plContext),
-                    "PKIX_PL_CRL_GetCriticalExtensionOIDs failed");
+                    PKIX_CRLGETCRITICALEXTENSIONOIDSFAILED);
 
         PKIX_TOSTRING(critExtOIDs, &critExtOIDsString, plContext,
-                    "PKIX_PL_List_ToString failed");
+                    PKIX_LISTTOSTRINGFAILED);
 
         PKIX_CHECK(PKIX_PL_Sprintf
                     (&crlString,
@@ -505,7 +505,7 @@ pkix_pl_CRL_ToString_Helper(
                     crlNumberString,
                     crlEntryListString,
                     critExtOIDsString),
-                    "PKIX_PL_Sprintf failed");
+                    PKIX_SPRINTFFAILED);
 
         *pString = crlString;
 
@@ -545,12 +545,12 @@ pkix_pl_CRL_ToString(
         PKIX_NULLCHECK_TWO(object, pString);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_CRL_TYPE, plContext),
-                    "Object is not a CRL");
+                    PKIX_OBJECTNOTCRL);
 
         crl = (PKIX_PL_CRL *) object;
 
         PKIX_CHECK(pkix_pl_CRL_ToString_Helper(crl, &crlString, plContext),
-                    "pkix_pl_CRL_ToString_Helper failed");
+                    PKIX_CRLTOSTRINGHELPERFAILED);
 
         *pString = crlString;
 
@@ -578,7 +578,7 @@ pkix_pl_CRL_Hashcode(
         PKIX_NULLCHECK_TWO(object, pHashcode);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_CRL_TYPE, plContext),
-                    "Object is not a CRL");
+                    PKIX_OBJECTNOTCRL);
 
         crl = (PKIX_PL_CRL *)object;
 
@@ -589,7 +589,7 @@ pkix_pl_CRL_Hashcode(
 
         PKIX_NULLCHECK_ONE(derBytes);
         PKIX_CHECK(pkix_hash(derBytes, derLength, &certHash, plContext),
-                    "Error in pkix_hash");
+                    PKIX_ERRORINHASH);
 
         *pHashcode = certHash;
 
@@ -618,7 +618,7 @@ pkix_pl_CRL_Equals(
 
         /* test that firstObject is a CRL */
         PKIX_CHECK(pkix_CheckType(firstObject, PKIX_CRL_TYPE, plContext),
-                    "FirstObject argument is not a CRL");
+                    PKIX_FIRSTOBJECTNOTCRL);
 
         firstCrl = (PKIX_PL_CRL *)firstObject;
         secondCrl = (PKIX_PL_CRL *)secondObject;
@@ -639,7 +639,7 @@ pkix_pl_CRL_Equals(
         *pResult = PKIX_FALSE;
         PKIX_CHECK(PKIX_PL_Object_GetType
                     ((PKIX_PL_Object *)secondCrl, &secondType, plContext),
-                    "Could not get type of second argument");
+                    PKIX_COULDNOTGETTYPEOFSECONDARGUMENT);
         if (secondType != PKIX_CRL_TYPE) goto cleanup;
 
         /* Compare DER Bytes */
@@ -721,19 +721,19 @@ PKIX_PL_CRL_VerifyUpdateTime(
         PKIX_CRL_DEBUG("\t\tCalling DER_DecodeTimeChoice on date\n");
         status = DER_DecodeTimeChoice(&timeToCheck, &(date->nssTime));
         if (status != SECSuccess) {
-                PKIX_ERROR("DER_DecodeTimeChoice failed");
+                PKIX_ERROR(PKIX_DERDECODETIMECHOICEFAILED);
         }
 
         PKIX_CRL_DEBUG("\t\tCalling DER_DecodeTimeChoice on nextUpdate\n");
         status = DER_DecodeTimeChoice(&nextUpdate, &(nssCrl->nextUpdate));
         if (status != SECSuccess) {
-                PKIX_ERROR("DER_DecodeTimeChoice for nextUpdate failed");
+                PKIX_ERROR(PKIX_DERDECODETIMECHOICEFORNEXTUPDATEFAILED);
         }
 
         PKIX_CRL_DEBUG("\t\tCalling DER_DecodeTimeChoice on lastUpdate\n");
         status = DER_DecodeTimeChoice(&lastUpdate, &(nssCrl->lastUpdate));
         if (status != SECSuccess) {
-                PKIX_ERROR("DER_DecodeTimeChoice for lastUpdate failed");
+                PKIX_ERROR(PKIX_DERDECODETIMECHOICEFORLASTUPDATEFAILED);
         }
 
         if (lastUpdate <= timeToCheck && nextUpdate > timeToCheck) {
@@ -787,7 +787,7 @@ pkix_pl_CRL_CreateWithSignedCRL(
                     sizeof (PKIX_PL_CRL),
                     (PKIX_PL_Object **)&crl,
                     plContext),
-                    "Could not create CRL object");
+                    PKIX_COULDNOTCREATECRLOBJECT);
 
         /* populate the nssSignedCrl field */
         crl->nssSignedCrl = nssSignedCrl;
@@ -796,7 +796,7 @@ pkix_pl_CRL_CreateWithSignedCRL(
         status = CERT_CompleteCRLDecodeEntries(crl->nssSignedCrl);
 
         if (status != SECSuccess) {
-                PKIX_ERROR("CERT_CompleteCRLDecodedEntries failed");
+                PKIX_ERROR(PKIX_CERTCOMPLETECRLDECODEDENTRIESFAILED);
         }
 
         crl->issuer = NULL;
@@ -859,13 +859,13 @@ pkix_pl_CRL_CreateToList(
         if (nssCrl) {
                 PKIX_CHECK_ONLY_FATAL(pkix_pl_CRL_CreateWithSignedCRL
                         (nssCrl, &crl, plContext),
-                        "pkix_pl_CRL_CreateWithSignedCRL failed");
+                        PKIX_CRLCREATEWITHSIGNEDCRLFAILED);
 
                 /* skip bad crls and append good ones */
                 if (!PKIX_ERROR_RECEIVED) {
                         PKIX_CHECK(PKIX_List_AppendItem
                                 (crlList, (PKIX_PL_Object *) crl, plContext),
-                                "PKIX_List_AppendItem failed");
+                                PKIX_LISTAPPENDITEMFAILED);
                 }
 
                 PKIX_DECREF(crl);
@@ -900,20 +900,20 @@ PKIX_PL_CRL_Create(
 
         PKIX_CHECK(PKIX_PL_ByteArray_GetLength
                     (byteArray, &derLength, plContext),
-                    "PKIX_PL_ByteArray_GetLength failed");
+                    PKIX_BYTEARRAYGETLENGTHFAILED);
 
         if (derLength == 0){
-                PKIX_ERROR("Zero-length ByteArray for CRL encoding");
+                PKIX_ERROR(PKIX_ZEROLENGTHBYTEARRAYFORCRLENCODING);
         }
 
         PKIX_CHECK(PKIX_PL_ByteArray_GetPointer
                     (byteArray, &derBytes, plContext),
-                    "PKIX_PL_ByteArray_GetPointer failed");
+                    PKIX_BYTEARRAYGETPOINTERFAILED);
 
         PKIX_CRL_DEBUG("\t\tCalling SECITEM_AllocItem\n");
         derCrlItem = SECITEM_AllocItem(NULL, NULL, derLength);
         if (derCrlItem == NULL){
-                PKIX_ERROR("SECITEM_AllocItem for CRL der return NULL");
+                PKIX_ERROR(PKIX_SECITEMALLOCITEMFORCRLDERRETURNNULL);
         }
 
         PKIX_CRL_DEBUG("\t\tCalling PORT_Memcpy\n");
@@ -922,12 +922,12 @@ PKIX_PL_CRL_Create(
         PKIX_CRL_DEBUG("\t\tCalling CERT_DecodeDERCrl\n");
         nssSignedCrl = CERT_DecodeDERCrl(NULL, derCrlItem, SEC_CRL_TYPE);
         if (nssSignedCrl == NULL){
-                PKIX_ERROR("CERT_DecodeDERCrl failed");
+                PKIX_ERROR(PKIX_CERTDECODEDERCRLFAILED);
         }
 
         PKIX_CHECK(pkix_pl_CRL_CreateWithSignedCRL
                 (nssSignedCrl, &crl, plContext),
-                "pkix_pl_CRL_CreateWithSignedCRL failed");
+                PKIX_CRLCREATEWITHSIGNEDCRLFAILED);
 
         *pCrl = crl;
 
@@ -991,13 +991,13 @@ PKIX_PL_CRL_GetIssuer(
                                     utf8Length,
                                     &crlString,
                                     plContext),
-                                    "Unable to create crlString");
+                                    PKIX_UNABLETOCREATECRLSTRING);
 
                         PKIX_CHECK(PKIX_PL_X500Name_Create
                                     (crlString,
                                     &issuer,
                                     plContext),
-                                    "Unable to create Issuer");
+                                    PKIX_UNABLETOCREATEISSUER);
 
                         /* save a cached copy in case it is asked for again */
                         crl->issuer = issuer;
@@ -1054,7 +1054,7 @@ PKIX_PL_CRL_GetCriticalExtensionOIDs(
 
                         PKIX_CHECK(pkix_pl_OID_GetCriticalExtensionOIDs
                                     (extensions, &oidsList, plContext),
-                                    "pkix_GetCriticalExtensionOIDs failed");
+                                    PKIX_GETCRITICALEXTENSIONOIDSFAILED);
 
                         crl->critExtOids = oidsList;
                 }
@@ -1065,7 +1065,7 @@ PKIX_PL_CRL_GetCriticalExtensionOIDs(
 
         /* We should return a copy of the List since this list changes */
         PKIX_DUPLICATE(crl->critExtOids, pExtensions, plContext,
-                "PKIX_PL_Object_Duplicate List failed");
+                PKIX_OBJECTDUPLICATELISTFAILED);
 
 cleanup:
 
@@ -1097,14 +1097,14 @@ PKIX_PL_CRL_GetCRLEntryForSerialNumber(
         *pCRLEntry = NULL;
 
         PKIX_CHECK(pkix_pl_CRL_GetCRLEntries(crl, &crlEntryList, plContext),
-                    "pkix_pl_CRL_GetCRLEntries failed");
+                    PKIX_CRLGETCRLENTRIESFAILED);
 
         if (crlEntryList == NULL) {
                 goto cleanup;
         }
 
         PKIX_CHECK(PKIX_List_GetLength(crlEntryList, &numEntries, plContext),
-                    "PKIX_List_GetLength failed");
+                    PKIX_LISTGETLENGTHFAILED);
 
         for (i = 0; i < numEntries; i++){
 
@@ -1113,14 +1113,14 @@ PKIX_PL_CRL_GetCRLEntryForSerialNumber(
                             i,
                             (PKIX_PL_Object **)&crlEntry,
                             plContext),
-                            "PKIX_List_GetItem failed");
+                            PKIX_LISTGETITEMFAILED);
 
                 PKIX_CHECK(PKIX_PL_Object_Equals
                             ((PKIX_PL_Object *)crlEntry->serialNumber,
                             (PKIX_PL_Object *)serialNumber,
                             &cmpResult,
                             plContext),
-                            "PKIX_PL_Object_Equals failed");
+                            PKIX_OBJECTEQUALSFAILED);
 
                 /* Found the entry for Serial Number */
                 if (cmpResult == PKIX_TRUE) {
@@ -1173,7 +1173,7 @@ PKIX_PL_CRL_VerifySignature(
         if (cachedCrl != NULL && verifySig == NULL) {
                 /* Cached Signature Table lookup succeed */
                 PKIX_EQUALS(crl, cachedCrl, &crlEqual, plContext,
-                            "PKIX_PL_Object_Equals failed");
+                            PKIX_OBJECTEQUALSFAILED);
                 if (crlEqual == PKIX_TRUE) {
                         goto cleanup;
                 }
@@ -1187,14 +1187,14 @@ PKIX_PL_CRL_VerifySignature(
         PKIX_CRL_DEBUG("\t\tCalling SECKEY_ExtractPublicKey\n");
         nssPubKey = SECKEY_ExtractPublicKey(pubKey->nssSPKI);
         if (!nssPubKey){
-                PKIX_ERROR("SECKEY_ExtractPublicKey failed");
+                PKIX_ERROR(PKIX_SECKEYEXTRACTPUBLICKEYFAILED);
         }
 
         PKIX_CRL_DEBUG("\t\tCalling CERT_VerifySignedDataWithPublicKey\n");
         status = CERT_VerifySignedDataWithPublicKey(tbsCrl, nssPubKey, NULL);
 
         if (status != SECSuccess) {
-                PKIX_ERROR("Signature did not verify with the public key");
+                PKIX_ERROR(PKIX_SIGNATUREDIDNOTVERIFYWITHTHEPUBLICKEY);
         }
 
         if (crlInHash == PKIX_FALSE) {

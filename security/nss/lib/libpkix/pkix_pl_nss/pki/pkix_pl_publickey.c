@@ -102,19 +102,19 @@ pkix_pl_PublicKey_ToString_Helper(
                         ("\t\tCalling SECOID_FindOIDTagDescription).\n");
                 asciiOID = (char *)SECOID_FindOIDTagDescription(pubKeyTag);
                 if (!asciiOID){
-                        PKIX_ERROR("SECOID_FindOIDTag Description failed");
+                        PKIX_ERROR(PKIX_SECOIDFINDOIDTAGDESCRIPTIONFAILED);
                 }
         } else { /* pubKeyTag == SEC_OID_UNKNOWN */
                 oidBytes = algorithm.algorithm;
                 PKIX_CHECK(pkix_pl_oidBytes2Ascii
                             (&oidBytes, &asciiOID, plContext),
-                            "pkix_pl_oidBytes2Ascii failed");
+                            PKIX_OIDBYTES2ASCIIFAILED);
                 freeAsciiOID = PKIX_TRUE;
         }
 
         PKIX_CHECK(PKIX_PL_String_Create
                 (PKIX_ESCASCII, (void *)asciiOID, 0, pString, plContext),
-                "Unable to create pString");
+                PKIX_UNABLETOCREATEPSTRING);
 
 cleanup:
 
@@ -178,14 +178,14 @@ pkix_pl_PublicKey_Destroy(
         PKIX_NULLCHECK_ONE(object);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_PUBLICKEY_TYPE, plContext),
-                    "Object is not a PublicKey");
+                    PKIX_OBJECTNOTPUBLICKEY);
 
         pubKey = (PKIX_PL_PublicKey *)object;
 
         PKIX_NULLCHECK_ONE(pubKey->nssSPKI);
 
         PKIX_CHECK(pkix_pl_DestroySPKI(pubKey->nssSPKI, plContext),
-                    "pkix_pl_DestroySPKI failed");
+                    PKIX_DESTROYSPKIFAILED);
 
         PKIX_FREE(pubKey->nssSPKI);
 
@@ -211,13 +211,13 @@ pkix_pl_PublicKey_ToString(
         PKIX_NULLCHECK_TWO(object, pString);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_PUBLICKEY_TYPE, plContext),
-                    "Object is not a PublicKey");
+                    PKIX_OBJECTNOTPUBLICKEY);
 
         pkixPubKey = (PKIX_PL_PublicKey *)object;
 
         PKIX_CHECK(pkix_pl_PublicKey_ToString_Helper
                     (pkixPubKey, &pubKeyString, plContext),
-                    "pkix_pl_PublicKey_ToString_Helper failed");
+                    PKIX_PUBLICKEYTOSTRINGHELPERFAILED);
 
         *pString = pubKeyString;
 
@@ -249,7 +249,7 @@ pkix_pl_PublicKey_Hashcode(
         PKIX_NULLCHECK_TWO(object, pHashcode);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_PUBLICKEY_TYPE, plContext),
-                    "Object is not a PublicKey");
+                    PKIX_OBJECTNOTPUBLICKEY);
 
         pkixPubKey = (PKIX_PL_PublicKey *)object;
 
@@ -261,15 +261,15 @@ pkix_pl_PublicKey_Hashcode(
 
         PKIX_CHECK(pkix_hash
                     (algOID.data, algOID.len, &algOIDHash, plContext),
-                    "pkix_hash failed");
+                    PKIX_HASHFAILED);
 
         PKIX_CHECK(pkix_hash
                     (algParams.data, algParams.len, &algParamsHash, plContext),
-                    "pkix_hash failed");
+                    PKIX_HASHFAILED);
 
         PKIX_CHECK(pkix_hash
                     (nssPubKey.data, nssPubKey.len, &pubKeyHash, plContext),
-                    "pkix_hash failed");
+                    PKIX_HASHFAILED);
 
         fullHash = algOIDHash + algParamsHash + pubKeyHash;
 
@@ -304,7 +304,7 @@ pkix_pl_PublicKey_Equals(
 
         /* test that firstObject is a PublicKey */
         PKIX_CHECK(pkix_CheckType(firstObject, PKIX_PUBLICKEY_TYPE, plContext),
-                    "FirstObject argument is not a PublicKey");
+                PKIX_FIRSTOBJECTNOTPUBLICKEY);
 
         /*
          * Since we know firstObject is a PublicKey, if both references are
@@ -322,7 +322,7 @@ pkix_pl_PublicKey_Equals(
         *pResult = PKIX_FALSE;
         PKIX_CHECK(PKIX_PL_Object_GetType
                     (secondObject, &secondType, plContext),
-                    "Could not get type of second argument");
+                    PKIX_COULDNOTGETTYPEOFSECONDARGUMENT);
         if (secondType != PKIX_PUBLICKEY_TYPE) goto cleanup;
 
         firstPKIXPubKey = ((PKIX_PL_PublicKey *)firstObject);
@@ -406,7 +406,7 @@ PKIX_PL_PublicKey_NeedsDSAParameters(
         PKIX_PUBLICKEY_DEBUG("\t\tCalling CERT_GetCertKeyType).\n");
         pubKeyType = CERT_GetCertKeyType(nssSPKI);
         if (!pubKeyType){
-                PKIX_ERROR("pubKeyType is nullKey");
+                PKIX_ERROR(PKIX_PUBKEYTYPENULLKEY);
         }
 
         if ((pubKeyType == dsaKey) &&
@@ -450,30 +450,29 @@ PKIX_PL_PublicKey_MakeInheritedDSAPublicKey(
         PKIX_PUBLICKEY_DEBUG("\t\tCalling CERT_GetCertKeyType).\n");
         firstPubKeyType = CERT_GetCertKeyType(firstSPKI);
         if (!firstPubKeyType){
-                PKIX_ERROR("firstPubKeyType is nullKey");
+                PKIX_ERROR(PKIX_FIRSTPUBKEYTYPENULLKEY);
         }
 
         PKIX_PUBLICKEY_DEBUG("\t\tCalling CERT_GetCertKeyType).\n");
         secondPubKeyType = CERT_GetCertKeyType(secondSPKI);
         if (!secondPubKeyType){
-                PKIX_ERROR("secondPubKeyType is nullKey");
+                PKIX_ERROR(PKIX_SECONDPUBKEYTYPENULLKEY);
         }
 
         if ((firstPubKeyType == dsaKey) &&
             (firstSPKI->algorithm.parameters.len == 0)){
                 if (secondPubKeyType != dsaKey) {
-                        PKIX_ERROR("Second key is not a DSA public key");
+                        PKIX_ERROR(PKIX_SECONDKEYNOTDSAPUBLICKEY);
                 } else if (secondSPKI->algorithm.parameters.len == 0) {
                         PKIX_ERROR
-                                ("Second key is a DSA public key"
-                                "but has null parameters");
+                                (PKIX_SECONDKEYDSAPUBLICKEY);
                 } else {
                         PKIX_CHECK(PKIX_PL_Calloc
                                     (1,
                                     sizeof (CERTSubjectPublicKeyInfo),
                                     (void **)&thirdSPKI,
                                     plContext),
-                                    "PKIX_PL_Calloc failed");
+                                    PKIX_CALLOCFAILED);
 
                         PKIX_PUBLICKEY_DEBUG
                                 ("\t\tCalling"
@@ -482,7 +481,7 @@ PKIX_PL_PublicKey_MakeInheritedDSAPublicKey(
                                 (NULL, thirdSPKI, firstSPKI);
                         if (rv != SECSuccess) {
                             PKIX_ERROR
-                                    ("SECKEY_CopySubjectPublicKeyInfo failed");
+                                    (PKIX_SECKEYCOPYSUBJECTPUBLICKEYINFOFAILED);
                         }
 
                         PKIX_PUBLICKEY_DEBUG
@@ -492,7 +491,7 @@ PKIX_PL_PublicKey_MakeInheritedDSAPublicKey(
                                             &secondSPKI->algorithm.parameters);
 
                         if (rv != SECSuccess) {
-                                PKIX_ERROR("SECITEM_CopyItem failed");
+                                PKIX_ERROR(PKIX_SECITEMCOPYITEMFAILED);
                         }
 
                         /* create a PKIX_PL_PublicKey object */
@@ -501,7 +500,7 @@ PKIX_PL_PublicKey_MakeInheritedDSAPublicKey(
                                     sizeof (PKIX_PL_PublicKey),
                                     (PKIX_PL_Object **)&resultKey,
                                     plContext),
-                                    "Could not create object");
+                                    PKIX_COULDNOTCREATEOBJECT);
 
                         /* populate the SPKI field */
                         resultKey->nssSPKI = thirdSPKI;
@@ -515,7 +514,7 @@ cleanup:
 
         if (thirdSPKI && PKIX_ERROR_RECEIVED){
                 PKIX_CHECK(pkix_pl_DestroySPKI(thirdSPKI, plContext),
-                            "pkix_pl_DestroySPKI failed");
+                            PKIX_DESTROYSPKIFAILED);
                 PKIX_FREE(thirdSPKI);
         }
 

@@ -60,7 +60,7 @@ pkix_CRLSelector_Destroy(
         PKIX_NULLCHECK_ONE(object);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_CRLSELECTOR_TYPE, plContext),
-                    "Object is not a CRLSelector");
+                    PKIX_OBJECTNOTCRLSELECTOR);
 
         selector = (PKIX_CRLSelector *)object;
 
@@ -128,18 +128,18 @@ pkix_CRLSelector_ToString_Helper(
                     0,
                     &formatString,
                     plContext),
-                    "PKIX_PL_String_Create failed");
+                    PKIX_STRINGCREATEFAILED);
 
         /* Params */
         PKIX_TOSTRING
                     ((PKIX_PL_Object *)crlSelector->params,
                     &crlParamsString,
                     plContext,
-                    "pkix_ComCRLSelParams_ToString failed");
+                    PKIX_COMCRLSELPARAMSTOSTRINGFAILED);
 
         /* Context */
         PKIX_TOSTRING(crlSelector->context, &crlContextString, plContext,
-                    "PKIX_LIST_ToString failed");
+                    PKIX_LISTTOSTRINGFAILED);
 
         PKIX_CHECK(PKIX_PL_Sprintf
                     (&crlSelectorString,
@@ -148,7 +148,7 @@ pkix_CRLSelector_ToString_Helper(
                     crlSelector->matchCallback,
                     crlParamsString,
                     crlContextString),
-                    "PKIX_PL_Sprintf failed");
+                    PKIX_SPRINTFFAILED);
 
         *pString = crlSelectorString;
 
@@ -178,13 +178,13 @@ pkix_CRLSelector_ToString(
         PKIX_NULLCHECK_TWO(object, pString);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_CRLSELECTOR_TYPE, plContext),
-                    "Object is not a CRLSelector");
+                    PKIX_OBJECTNOTCRLSELECTOR);
 
         crlSelector = (PKIX_CRLSelector *) object;
 
         PKIX_CHECK(pkix_CRLSelector_ToString_Helper
                     (crlSelector, &crlSelectorString, plContext),
-                    "pkix_CRLSelector_ToString_Helper failed");
+                    PKIX_CRLSELECTORTOSTRINGHELPERFAILED);
 
         *pString = crlSelectorString;
 
@@ -213,15 +213,15 @@ pkix_CRLSelector_Hashcode(
         PKIX_NULLCHECK_TWO(object, pHashcode);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_CRLSELECTOR_TYPE, plContext),
-                    "Object is not a CRLSelector");
+                    PKIX_OBJECTNOTCRLSELECTOR);
 
         crlSelector = (PKIX_CRLSelector *)object;
 
         PKIX_HASHCODE(crlSelector->params, &paramsHash, plContext,
-                "PKIX_PL_Object_Hashcode failed");
+                PKIX_OBJECTHASHCODEFAILED);
 
         PKIX_HASHCODE(crlSelector->context, &contextHash, plContext,
-                "PKIX_PL_Object_Hashcode failed");
+                PKIX_OBJECTHASHCODEFAILED);
 
         hash = 31 * ((PKIX_UInt32)crlSelector->matchCallback +
                     (contextHash << 3)) + paramsHash;
@@ -255,7 +255,7 @@ pkix_CRLSelector_Equals(
         /* test that firstObject is a CRLSelector */
         PKIX_CHECK(pkix_CheckType
                     (firstObject, PKIX_CRLSELECTOR_TYPE, plContext),
-                    "FirstObject argument is not a CRLSelector");
+                    PKIX_FIRSTOBJECTNOTCRLSELECTOR);
 
         firstCrlSelector = (PKIX_CRLSelector *)firstObject;
         secondCrlSelector = (PKIX_CRLSelector *)secondObject;
@@ -278,7 +278,7 @@ pkix_CRLSelector_Equals(
                     ((PKIX_PL_Object *)secondCrlSelector,
                     &secondType,
                     plContext),
-                    "Could not get type of second argument");
+                    PKIX_COULDNOTGETTYPEOFSECONDARGUMENT);
 
         if (secondType != PKIX_CRLSELECTOR_TYPE) {
                 goto cleanup;
@@ -298,7 +298,7 @@ pkix_CRLSelector_Equals(
                 secondCrlSelector->params,
                 &cmpResult,
                 plContext,
-                "pkix_ComCRLSelParams_Equals failed");
+                PKIX_COMCRLSELPARAMSEQUALSFAILED);
 
 
         if (cmpResult == PKIX_FALSE) {
@@ -311,7 +311,7 @@ pkix_CRLSelector_Equals(
                 secondCrlSelector->context,
                 &cmpResult,
                 plContext,
-                "pkix_ComCRLSelParams_Equals failed");
+                PKIX_COMCRLSELPARAMSEQUALSFAILED);
 
         *pResult = cmpResult;
 
@@ -338,7 +338,7 @@ pkix_CRLSelector_Duplicate(
 
         PKIX_CHECK(pkix_CheckType
                     (object, PKIX_CRLSELECTOR_TYPE, plContext),
-                    "Object is not a CRLSelector");
+                    PKIX_OBJECTNOTCRLSELECTOR);
 
         old = (PKIX_CRLSelector *)object;
 
@@ -347,15 +347,15 @@ pkix_CRLSelector_Duplicate(
                     (PKIX_UInt32)(sizeof (PKIX_CRLSelector)),
                     (PKIX_PL_Object **)&new,
                     plContext),
-                    "Create CRLSelector Duplicate Object failed");
+                    PKIX_CREATECRLSELECTORDUPLICATEOBJECTFAILED);
 
         new->matchCallback = old->matchCallback;
 
         PKIX_DUPLICATE(old->params, &new->params, plContext,
-                    "PKIX_PL_Object_Duplicate Params failed");
+                    PKIX_OBJECTDUPLICATEPARAMSFAILED);
 
         PKIX_DUPLICATE(old->context, &new->context, plContext,
-                "PKIX_PL_Object_Duplicate Context failed");
+                PKIX_OBJECTDUPLICATECONTEXTFAILED);
 
         *pNewObject = (PKIX_PL_Object *)new;
 
@@ -431,7 +431,7 @@ pkix_CRLSelector_DefaultMatch(
 
         PKIX_CHECK(PKIX_ComCRLSelParams_GetIssuerNames
                     (params, &selIssuerNames, plContext),
-                    "PKIX_ComCRLSelParams_GetIssuerNames failed");
+                    PKIX_COMCRLSELPARAMSGETISSUERNAMESFAILED);
 
         /* Check for Issuers */
         if (selIssuerNames != NULL){
@@ -440,11 +440,11 @@ pkix_CRLSelector_DefaultMatch(
 
                 PKIX_CHECK(PKIX_PL_CRL_GetIssuer
                             (crl, &crlIssuerName, plContext),
-                            "PKIX_PL_CRL_GetIssuer failed");
+                            PKIX_CRLGETISSUERFAILED);
 
                 PKIX_CHECK(PKIX_List_GetLength
                             (selIssuerNames, &numIssuers, plContext),
-                            "PKIX_List_GetLength failed");
+                            PKIX_LISTGETLENGTHFAILED);
 
                 for (i = 0; i < numIssuers; i++){
 
@@ -453,14 +453,14 @@ pkix_CRLSelector_DefaultMatch(
                                     i,
                                     (PKIX_PL_Object **)&issuerName,
                                     plContext),
-                                    "PKIX_List_GetItem failed");
+                                    PKIX_LISTGETITEMFAILED);
 
                         PKIX_CHECK(PKIX_PL_X500Name_Match
                                     (crlIssuerName,
                                     issuerName,
                                     &result,
                                     plContext),
-                                    "PKIX_PL_X500Name_Match failed");
+                                    PKIX_X500NAMEMATCHFAILED);
 
                         PKIX_DECREF(issuerName);
 
@@ -479,7 +479,7 @@ pkix_CRLSelector_DefaultMatch(
 
         PKIX_CHECK(PKIX_ComCRLSelParams_GetDateAndTime
                     (params, &selDate, plContext),
-                    "PKIX_ComCRLSelParams_GetDateAndTime failed");
+                    PKIX_COMCRLSELPARAMSGETDATEANDTIMEFAILED);
 
         /* Check for Date */
         if (selDate != NULL){
@@ -488,7 +488,7 @@ pkix_CRLSelector_DefaultMatch(
 
                 PKIX_CHECK(PKIX_PL_CRL_VerifyUpdateTime
                             (crl, selDate, &result, plContext),
-                            "pkix_pl_CRL_VerifyUpdateTime failed");
+                            PKIX_CRLVERIFYUPDATETIMEFAILED);
 
                 if (result == PKIX_FALSE) {
                         PKIX_CRLSELECTOR_DEBUG("DateAndTime match Failed\n");
@@ -500,14 +500,14 @@ pkix_CRLSelector_DefaultMatch(
 
         /* Check for CRL number in range */
         PKIX_CHECK(PKIX_PL_CRL_GetCRLNumber(crl, &crlNumber, plContext),
-                    "PKIX_PL_CRL_GetCRLNumber failed");
+                    PKIX_CRLGETCRLNUMBERFAILED);
 
         if (crlNumber != NULL) {
                 result = PKIX_FALSE;
 
                 PKIX_CHECK(PKIX_ComCRLSelParams_GetMinCRLNumber
                             (params, &minCRLNumber, plContext),
-                            "PKIX_ComCRLSelParams_GetMinCRLNumber failed");
+                            PKIX_COMCRLSELPARAMSGETMINCRLNUMBERFAILED);
 
                 if (minCRLNumber != NULL) {
 
@@ -516,7 +516,7 @@ pkix_CRLSelector_DefaultMatch(
                                     (PKIX_PL_Object *)crlNumber,
                                     &result,
                                     plContext),
-                                    "PKIX_PL_Object_Comparator failed");
+                                    PKIX_OBJECTCOMPARATORFAILED);
 
                         if (result == 1) {
                                 PKIX_CRLSELECTOR_DEBUG
@@ -528,7 +528,7 @@ pkix_CRLSelector_DefaultMatch(
 
                 PKIX_CHECK(PKIX_ComCRLSelParams_GetMaxCRLNumber
                             (params, &maxCRLNumber, plContext),
-                            "PKIX_ComCRLSelParams_GetMaxCRLNumber failed");
+                            PKIX_COMCRLSELPARAMSGETMAXCRLNUMBERFAILED);
 
                 if (maxCRLNumber != NULL) {
 
@@ -537,11 +537,11 @@ pkix_CRLSelector_DefaultMatch(
                                     (PKIX_PL_Object *)maxCRLNumber,
                                     &result,
                                     plContext),
-                                    "PKIX_PL_Object_Comparator failed");
+                                    PKIX_OBJECTCOMPARATORFAILED);
 
                         if (result == 1) {
                                PKIX_CRLSELECTOR_DEBUG 
-					("CRL MaxNumber Range Match Failed");
+					(PKIX_CRLMAXNUMBERRANGEMATCHFAILED);
                         	*pMatch = PKIX_FALSE;
 	                        goto cleanup;
                         }
@@ -616,7 +616,7 @@ PKIX_CRLSelector_Create(
                     sizeof (PKIX_CRLSelector),
                     (PKIX_PL_Object **)&selector,
                     plContext),
-                    "Could not create CRLSelector object");
+                    PKIX_COULDNOTCREATECRLSELECTOROBJECT);
 
         /*
          * if user specified a particular match callback, we use that one.
@@ -724,7 +724,7 @@ PKIX_CRLSelector_SetCommonCRLSelectorParams(
 
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                     ((PKIX_PL_Object *)selector, plContext),
-                    "PKIX_PL_Object_InvalidateCache failed");
+                    PKIX_OBJECTINVALIDATECACHEFAILED);
 
 cleanup:
 
@@ -776,20 +776,20 @@ pkix_CRLSelector_Select(
         PKIX_NULLCHECK_THREE(selector, before, pAfter);
 
         PKIX_CHECK(PKIX_List_Create(&filtered, plContext),
-                "PKIX_List_Create failed");
+                PKIX_LISTCREATEFAILED);
 
         PKIX_CHECK(PKIX_List_GetLength(before, &numBefore, plContext),
-                "PKIX_List_GetLength failed");
+                PKIX_LISTGETLENGTHFAILED);
 
         for (i = 0; i < numBefore; i++) {
 
                 PKIX_CHECK(PKIX_List_GetItem
                         (before, i, (PKIX_PL_Object **)&candidate, plContext),
-                        "PKIX_List_GetItem failed");
+                        PKIX_LISTGETITEMFAILED);
 
                 PKIX_CHECK_ONLY_FATAL(selector->matchCallback
                         (selector, candidate, &match, plContext),
-                        "PKIX_CRLSelector_MatchCallback failed");
+                        PKIX_CRLSELECTORMATCHCALLBACKFAILED);
 
                 if ((!(PKIX_ERROR_RECEIVED)) && (match == PKIX_TRUE)) {
 
@@ -797,7 +797,7 @@ pkix_CRLSelector_Select(
                                 (filtered,
                                 (PKIX_PL_Object *)candidate,
                                 plContext),
-                                "PKIX_List_AppendItem failed");
+                                PKIX_LISTAPPENDITEMFAILED);
                 }
 
                 pkixTempErrorReceived = PKIX_FALSE;
@@ -805,7 +805,7 @@ pkix_CRLSelector_Select(
         }
 
         PKIX_CHECK(PKIX_List_SetImmutable(filtered, plContext),
-                "PKIX_List_SetImmutable failed");
+                PKIX_LISTSETIMMUTABLEFAILED);
 
         /* Don't throw away the list if one CRL was bad! */
         pkixTempErrorReceived = PKIX_FALSE;

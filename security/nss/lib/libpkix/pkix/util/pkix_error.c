@@ -43,6 +43,14 @@
 
 #include "pkix_error.h"
 
+#undef PKIX_ERRORENTRY
+
+#define PKIX_ERRORENTRY(name,desc) #desc
+char *PKIX_ErrorText[] =
+{
+#include "pkix_errorstrings.h"
+};
+
 /* --Private-Functions-------------------------------------------- */
 
 /*
@@ -82,11 +90,11 @@ pkix_Error_Equals(
         }
 
         PKIX_CHECK(pkix_CheckType(firstObject, PKIX_ERROR_TYPE, plContext),
-                    "First Object is not an Error object");
+                    PKIX_FIRSTOBJECTNOTANERROROBJECT);
 
         PKIX_CHECK(PKIX_PL_Object_GetType
                     (secondObject, &secondType, plContext),
-                    "Error getting second object type");
+                    PKIX_ERRORGETTINGSECONDOBJECTTYPE);
 
         /* If types differ, then return false. Result is already set */
         if (secondType != PKIX_ERROR_TYPE) goto cleanup;
@@ -117,7 +125,7 @@ pkix_Error_Equals(
                             (PKIX_PL_Object*)secondCause,
                             &boolResult,
                             plContext),
-                            "Error in recursive equals call");
+                            PKIX_ERRORINRECURSIVEEQUALSCALL);
 
                 /* Set the unequalFlag so that we return after dec refing */
                 if (boolResult == 0) unequalFlag = PKIX_TRUE;
@@ -144,7 +152,7 @@ pkix_Error_Equals(
                             (PKIX_PL_Object*)secondInfo,
                             &boolResult,
                             plContext),
-                            "Error in recursive equals call");
+                            PKIX_ERRORINRECURSIVEEQUALSCALL);
 
                 /* Set the unequalFlag so that we return after dec refing */
                 if (boolResult == 0) unequalFlag = PKIX_TRUE;
@@ -167,7 +175,7 @@ pkix_Error_Equals(
                             (PKIX_PL_Object*) secondDesc,
                             &boolResult,
                             plContext),
-                            "Error in recursive equals call");
+                            PKIX_ERRORINRECURSIVEEQUALSCALL);
 
                 /* If the desc errors are not equal, return null */
                 if (boolResult == 0) unequalFlag = PKIX_TRUE;
@@ -199,7 +207,7 @@ pkix_Error_Destroy(
         PKIX_NULLCHECK_ONE(object);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_ERROR_TYPE, plContext),
-                    "Object is not an Error object");
+                PKIX_OBJECTNOTANERROR);
 
         error = (PKIX_Error *)object;
 
@@ -242,7 +250,7 @@ pkix_Error_ToString(
         PKIX_NULLCHECK_TWO(object, pString);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_ERROR_TYPE, plContext),
-                    "Object is not an Error object");
+                PKIX_OBJECTNOTANERROR);
 
         error = (PKIX_Error *)object;
 
@@ -262,7 +270,7 @@ pkix_Error_ToString(
                 /* Get the cause string */
                 PKIX_CHECK(PKIX_PL_Object_ToString
                             ((PKIX_PL_Object*)cause, &causeString, plContext),
-                            "Error getting cause string");
+                            PKIX_ERRORGETTINGCAUSESTRING);
 
                 format = "\n*** Cause (%d): %s";
 
@@ -272,7 +280,7 @@ pkix_Error_ToString(
                             0,
                             &formatString,
                             plContext),
-                            "PKIX_PL_String_Create failed");
+                            PKIX_STRINGCREATEFAILED);
 
                 /* Create the optional Cause String */
                 PKIX_CHECK(PKIX_PL_Sprintf
@@ -281,7 +289,7 @@ pkix_Error_ToString(
                             formatString,
                             pkix_error_cause_depth,
                             causeString),
-                            "PKIX_PL_Sprintf failed");
+                            PKIX_SPRINTFFAILED);
 
                 PKIX_DECREF(formatString);
 
@@ -306,7 +314,7 @@ pkix_Error_ToString(
                     0,
                     &errorNameString,
                     plContext),
-                    "PKIX_PL_String_Create failed");
+                    PKIX_STRINGCREATEFAILED);
 
         PKIX_CHECK(PKIX_PL_String_Create
                     (PKIX_ESCASCII,
@@ -314,7 +322,7 @@ pkix_Error_ToString(
                     0,
                     &formatString,
                     plContext),
-                    "PKIX_PL_String_Create failed");
+                    PKIX_STRINGCREATEFAILED);
 
 
         /* Create the output String */
@@ -325,7 +333,7 @@ pkix_Error_ToString(
                     errorNameString,
                     desc,
                     optCauseString),
-                    "PKIX_PL_Sprintf failed");
+                    PKIX_SPRINTFFAILED);
 
 cleanup:
 

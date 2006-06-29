@@ -63,7 +63,7 @@ pkix_OcspChecker_Destroy(
         /* Check that this object is a ocsp checker */
         PKIX_CHECK(pkix_CheckType
                     (object, PKIX_OCSPCHECKER_TYPE, plContext),
-                    "Object is not an ocsp checker");
+                    PKIX_OBJECTNOTOCSPCHECKER);
 
         checker = (PKIX_OcspChecker *)object;
 
@@ -153,7 +153,7 @@ pkix_OcspChecker_Check(
 
         PKIX_CHECK(pkix_CheckType
                 (checkerObject, PKIX_OCSPCHECKER_TYPE, plContext),
-                "Object is not a OCSPChecker object");
+                PKIX_OBJECTNOTOCSPCHECKER);
 
         checker = (PKIX_OcspChecker *)checkerObject;
 
@@ -177,7 +177,7 @@ pkix_OcspChecker_Check(
                         &uriFound,
                         &request,
                         plContext),
-                        "PKIX_PL_OcspRequest_Create failed");
+                        PKIX_OCSPREQUESTCREATEFAILED);
                 
                 /* No uri to check is considered passing! */
                 if (uriFound == PKIX_FALSE) {
@@ -198,7 +198,7 @@ pkix_OcspChecker_Check(
 	                &nbioContext,
 	                &(checker->response),
 	                plContext),
-	                "pkix_pl_OcspResponse_Create failed");
+	                PKIX_OCSPRESPONSECREATEFAILED);
 
         	if (nbioContext != 0) {
                 	*pNBIOContext = nbioContext;
@@ -207,7 +207,7 @@ pkix_OcspChecker_Check(
 
 	        PKIX_CHECK(pkix_pl_OcspResponse_Decode
         	        ((checker->response), &passed, &resultCode, plContext),
-                	"pkix_pl_OcspResponse_Decode failed");
+                	PKIX_OCSPRESPONSEDECODEFAILED);
                 
 	        if (passed == PKIX_FALSE) {
         	        goto cleanup;
@@ -215,7 +215,7 @@ pkix_OcspChecker_Check(
 
         	PKIX_CHECK(pkix_pl_OcspResponse_GetStatus
                 	((checker->response), &passed, &resultCode, plContext),
-	                "pkix_pl_OcspResponse_GetStatus returned an error");
+	                PKIX_OCSPRESPONSEGETSTATUSRETURNEDANERROR);
                 
         	if (passed == PKIX_FALSE) {
                 	goto cleanup;
@@ -230,7 +230,7 @@ pkix_OcspChecker_Check(
                 &resultCode,
 		&nbioContext,
                 plContext),
-                "pkix_pl_OcspResponse_VerifySignature failed");
+                PKIX_OCSPRESPONSEVERIFYSIGNATUREFAILED);
 
        	if (nbioContext != 0) {
                	*pNBIOContext = nbioContext;
@@ -243,7 +243,7 @@ pkix_OcspChecker_Check(
 
         PKIX_CHECK(pkix_pl_OcspResponse_GetStatusForCert
                 ((checker->response), &passed, &resultCode, plContext),
-                "pkix_pl_OcspResponse_GetStatusForCert failed");
+                PKIX_OCSPRESPONSEGETSTATUSFORCERTFAILED);
 
 cleanup:
         *pResultCode = (PKIX_UInt32)resultCode;
@@ -277,7 +277,7 @@ pkix_OcspChecker_Create(
                     sizeof (PKIX_OcspChecker),
                     (PKIX_PL_Object **)&checkerObject,
                     plContext),
-                    "Could not create cert chain checker object");
+                    PKIX_COULDNOTCREATECERTCHAINCHECKEROBJECT);
 
         /* initialize fields */
         checkerObject->response = NULL;
@@ -369,14 +369,14 @@ PKIX_OcspChecker_Initialize(
 
         PKIX_CHECK(pkix_OcspChecker_Create
                 (validityTime, passwordInfo, responder, &oChecker, plContext),
-                "PKIX_OcspChecker_Create failed");
+                PKIX_OCSPCHECKERCREATEFAILED);
 
         PKIX_CHECK(PKIX_RevocationChecker_Create
                 (pkix_OcspChecker_Check,
                 (PKIX_PL_Object *)oChecker,
                 pChecker,
                 plContext),
-                "PKIX_RevocationChecker_Create failed");
+                PKIX_REVOCATIONCHECKERCREATEFAILED);
 
 cleanup:
 

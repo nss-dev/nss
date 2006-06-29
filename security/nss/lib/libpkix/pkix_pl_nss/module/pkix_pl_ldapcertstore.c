@@ -112,7 +112,7 @@ pkix_pl_LdapCertStore_DecodeCrossCertPair(
                 if (nssCert) {
                         PKIX_CHECK_ONLY_FATAL(pkix_pl_Cert_CreateWithNSSCert
                                 (nssCert, &cert, plContext),
-                                "pkix_pl_Cert_CreateWithNSSCert failed");
+                                PKIX_CERTCREATEWITHNSSCERTFAILED);
 
                         /* skip bad certs and append good ones */
                         if (!PKIX_ERROR_RECEIVED) {
@@ -120,7 +120,7 @@ pkix_pl_LdapCertStore_DecodeCrossCertPair(
                                         (certList,
                                         (PKIX_PL_Object *) cert,
                                         plContext),
-                                        "PKIX_List_AppendItem failed");
+                                        PKIX_LISTAPPENDITEMFAILED);
                         }
 
                         PKIX_DECREF(cert);
@@ -136,7 +136,7 @@ pkix_pl_LdapCertStore_DecodeCrossCertPair(
                 if (nssCert) {
                         PKIX_CHECK_ONLY_FATAL(pkix_pl_Cert_CreateWithNSSCert
                                 (nssCert, &cert, plContext),
-                                "pkix_pl_Cert_CreateWithNSSCert failed");
+                                PKIX_CERTCREATEWITHNSSCERTFAILED);
 
                         /* skip bad certs and append good ones */
                         if (!PKIX_ERROR_RECEIVED) {
@@ -144,7 +144,7 @@ pkix_pl_LdapCertStore_DecodeCrossCertPair(
                                         (certList,
                                         (PKIX_PL_Object *) cert,
                                         plContext),
-                                        "PKIX_List_AppendItem failed");
+                                        PKIX_LISTAPPENDITEMFAILED);
                         }
 
                         PKIX_DECREF(cert);
@@ -207,12 +207,12 @@ pkix_pl_LdapCertStore_BuildCertList(
         PKIX_NULLCHECK_TWO(responseList, pCerts);
 
         PKIX_CHECK(PKIX_List_Create(&certList, plContext),
-                "PKIX_List_Create failed");
+                PKIX_LISTCREATEFAILED);
 
         /* extract certs from response */
         PKIX_CHECK(PKIX_List_GetLength
                 (responseList, &numResponses, plContext),
-                "PKIX_List_GetLength failed");
+                PKIX_LISTGETLENGTHFAILED);
 
         for (respIx = 0; respIx < numResponses; respIx++) {
                 PKIX_CHECK(PKIX_List_GetItem
@@ -220,11 +220,11 @@ pkix_pl_LdapCertStore_BuildCertList(
                         respIx,
                         (PKIX_PL_Object **)&response,
                         plContext),
-                        "PKIX_List_GetItem failed");
+                        PKIX_LISTGETITEMFAILED);
 
                 PKIX_CHECK(pkix_pl_LdapResponse_GetMessage
                         (response, &message, plContext),
-                        "pkix_pl_LdapResponse_GetMessage failed");
+                        PKIX_LDAPRESPONSEGETMESSAGEFAILED);
 
                 sre = &(message->protocolOp.op.searchResponseEntryMsg);
                 sreAttrArray = sre->attributes;
@@ -235,7 +235,7 @@ pkix_pl_LdapCertStore_BuildCertList(
                     attrType = &(sreAttr->attrType);
                     PKIX_CHECK(pkix_pl_LdapRequest_AttrTypeToBit
                         (attrType, &attrBits, plContext),
-                        "pkix_pl_LdapRequest_AttrTypeToBit failed");
+                        PKIX_LDAPREQUESTATTRTYPETOBITFAILED);
                     /* Is this attrVal a Certificate? */
                     if (((LDAPATTR_CACERT | LDAPATTR_USERCERT) &
                             attrBits) == attrBits) {
@@ -245,7 +245,7 @@ pkix_pl_LdapCertStore_BuildCertList(
                             /* create a PKIX_PL_Cert from derCert */
                             PKIX_CHECK(pkix_pl_Cert_CreateToList
                                 (derCertItem, certList, plContext),
-                                "pkix_pl_Cert_CreateToList failed");
+                                PKIX_CERTCREATETOLISTFAILED);
                             derCertItem = *attrVal++;
                         }
                     } else if ((LDAPATTR_CROSSPAIRCERT & attrBits) == attrBits){
@@ -256,8 +256,7 @@ pkix_pl_LdapCertStore_BuildCertList(
                             /* create PKIX_PL_Certs from derCert */
                             PKIX_CHECK(pkix_pl_LdapCertStore_DecodeCrossCertPair
                                 (derCertItem, certList, plContext),
-                                "pkix_pl_LdapCertStore_DecodeCrossCertPair"
-                                " failed");
+                                PKIX_LDAPCERTSTOREDECODECROSSCERTPAIRFAILED);
                             derCertItem = *attrVal++;
                         }
                     }
@@ -325,12 +324,12 @@ pkix_pl_LdapCertStore_BuildCrlList(
         PKIX_NULLCHECK_TWO(responseList, pCrls);
 
         PKIX_CHECK(PKIX_List_Create(&crlList, plContext),
-                "PKIX_List_Create failed");
+                PKIX_LISTCREATEFAILED);
 
         /* extract crls from response */
         PKIX_CHECK(PKIX_List_GetLength
                 (responseList, &numResponses, plContext),
-                "PKIX_List_GetLength failed");
+                PKIX_LISTGETLENGTHFAILED);
 
         for (respIx = 0; respIx < numResponses; respIx++) {
                 PKIX_CHECK(PKIX_List_GetItem
@@ -338,11 +337,11 @@ pkix_pl_LdapCertStore_BuildCrlList(
                         respIx,
                         (PKIX_PL_Object **)&response,
                         plContext),
-                        "PKIX_List_GetItem failed");
+                        PKIX_LISTGETITEMFAILED);
 
                 PKIX_CHECK(pkix_pl_LdapResponse_GetMessage
                         (response, &message, plContext),
-                        "pkix_pl_LdapResponse_GetMessage failed");
+                        PKIX_LDAPRESPONSEGETMESSAGEFAILED);
 
                 sre = &(message->protocolOp.op.searchResponseEntryMsg);
                 sreAttrArray = sre->attributes;
@@ -353,7 +352,7 @@ pkix_pl_LdapCertStore_BuildCrlList(
                     attrType = &(sreAttr->attrType);
                     PKIX_CHECK(pkix_pl_LdapRequest_AttrTypeToBit
                         (attrType, &attrBits, plContext),
-                        "pkix_pl_LdapRequest_AttrTypeToBit failed");
+                        PKIX_LDAPREQUESTATTRTYPETOBITFAILED);
                     /* Is this attrVal a Revocation List? */
                     if (((LDAPATTR_CERTREVLIST | LDAPATTR_AUTHREVLIST) &
                             attrBits) == attrBits) {
@@ -363,7 +362,7 @@ pkix_pl_LdapCertStore_BuildCrlList(
                             /* create a PKIX_PL_Crl from derCrl */
                             PKIX_CHECK(pkix_pl_CRL_CreateToList
                                 (derCrlItem, crlList, plContext),
-                                "pkix_pl_CRL_CreateToList failed");
+                                PKIX_CRLCREATETOLISTFAILED);
                             derCrlItem = *attrVal++;
                         }
                     }
@@ -495,7 +494,7 @@ pkix_pl_LdapCertStore_MakeNameAVAList(
         /* Try for commonName */
         PKIX_CHECK(pkix_pl_X500Name_GetCommonName
                 (subjectName, &component, plContext),
-                "pkix_pl_X500Name_GetCommonName failed");
+                PKIX_X500NAMEGETCOMMONNAMEFAILED);
         if (component) {
                 setOfNameComponents[componentsPresent] = currentNameComponent;
                 currentNameComponent->attrType = (unsigned char *)"cn";
@@ -513,7 +512,7 @@ pkix_pl_LdapCertStore_MakeNameAVAList(
         /* Try for orgName */
         PKIX_CHECK(pkix_pl_X500Name_GetOrgName
                 (subjectName, &component, plContext),
-                "pkix_pl_X500Name_GetOrgName failed");
+                PKIX_X500NAMEGETORGNAMEFAILED);
         if (component) {
                 setOfNameComponents[componentsPresent] = currentNameComponent;
                 currentNameComponent->attrType = (unsigned char *)"o";
@@ -525,7 +524,7 @@ pkix_pl_LdapCertStore_MakeNameAVAList(
         /* Try for countryName */
         PKIX_CHECK(pkix_pl_X500Name_GetCountryName
                 (subjectName, &component, plContext),
-                "pkix_pl_X500Name_GetCountryName failed");
+                PKIX_X500NAMEGETCOUNTRYNAMEFAILED);
         if (component) {
                 setOfNameComponents[componentsPresent] = currentNameComponent;
                 currentNameComponent->attrType = (unsigned char *)"c";
@@ -585,7 +584,7 @@ pkix_pl_LdapCertStore_ConvertCertResponses(
          */
         PKIX_CHECK(pkix_pl_LdapCertStore_BuildCertList
                 (responses, &unfiltered, plContext),
-                "pkix_pl_LdapCertStore_BuildCertList failed");
+                PKIX_LDAPCERTSTOREBUILDCERTLISTFAILED);
 
         *pCerts = unfiltered;
 
@@ -638,12 +637,12 @@ pkix_pl_LdapCertStore_GetCert(
             (CERTSTORE, requestArena, PORT_NewArena, (DER_DEFAULT_CHUNKSIZE));
 
         if (!requestArena) {
-                PKIX_ERROR_FATAL("Out of memory");
+                PKIX_ERROR_FATAL(PKIX_OUTOFMEMORY);
         }
 
         PKIX_CHECK(PKIX_CertSelector_GetCommonCertSelectorParams
                 (selector, &params, plContext),
-                "PKIX_CertSelector_GetComCertSelParams failed");
+                PKIX_CERTSELECTORGETCOMCERTSELPARAMSFAILED);
 
         /*
          * If we have the subject name for the desired subject,
@@ -651,11 +650,11 @@ pkix_pl_LdapCertStore_GetCert(
          */
         PKIX_CHECK(PKIX_ComCertSelParams_GetSubject
                 (params, &subjectName, plContext),
-                "PKIX_ComCertSelParams_GetSubject failed");
+                PKIX_COMCERTSELPARAMSGETSUBJECTFAILED);
 
         PKIX_CHECK(PKIX_ComCertSelParams_GetBasicConstraints
                 (params, &minPathLen, plContext),
-                "PKIX_ComCertSelParams_GetBasicConstraints failed");
+                PKIX_COMCERTSELPARAMSGETBASICCONSTRAINTSFAILED);
 
         if (subjectName) {
                 PKIX_CHECK(pkix_pl_LdapCertStore_MakeNameAVAList
@@ -663,7 +662,7 @@ pkix_pl_LdapCertStore_GetCert(
                         subjectName,
                         &(requestParams.nc),
                         plContext),
-                        "pkix_pl_LdapCertStore_MakeNameAVAList failed");
+                        PKIX_LDAPCERTSTOREMAKENAMEAVALISTFAILED);
 
                 if (*requestParams.nc == NULL) {
                         /*
@@ -676,18 +675,18 @@ pkix_pl_LdapCertStore_GetCert(
                                 (requestArena, PR_FALSE));
 
                         PKIX_CHECK(PKIX_List_Create(&filteredCerts, plContext),
-                                "PKIX_List_Create failed");
+                                PKIX_LISTCREATEFAILED);
 
                         PKIX_CHECK(PKIX_List_SetImmutable
                                 (filteredCerts, plContext),
-                                "PKIX_List_SetImmutable failed");
+                                PKIX_LISTSETIMMUTABLEFAILED);
 
                         *pNBIOContext = NULL;
                         *pCertList = filteredCerts;
                         goto cleanup;
                 }
         } else {
-                PKIX_ERROR("Insufficient criteria for Cert query");
+                PKIX_ERROR(PKIX_INSUFFICIENTCRITERIAFORCERTQUERY);
         }
 
         /* Prepare attribute field of request */
@@ -707,7 +706,7 @@ pkix_pl_LdapCertStore_GetCert(
 
         PKIX_CHECK(PKIX_CertStore_GetCertStoreContext
                 (store, (PKIX_PL_Object **)&lcs, plContext),
-                "PKIX_CertStore_GetCertStoreContext failed");
+                PKIX_CERTSTOREGETCERTSTORECONTEXTFAILED);
 
         PKIX_CHECK(PKIX_PL_LdapClient_InitiateRequest
                 ((PKIX_PL_LdapClient *)lcs,
@@ -715,11 +714,11 @@ pkix_pl_LdapCertStore_GetCert(
                 &pollDesc,
                 &responses,
                 plContext),
-                "PKIX_PL_LdapClient_InitiateRequest failed");
+                PKIX_LDAPCLIENTINITIATEREQUESTFAILED);
 
         PKIX_CHECK(pkix_pl_LdapCertStore_DestroyAVAList
                 (requestParams.nc, plContext),
-                "pkix_pl_LdapCertStore_DestroyAVAList failed");
+                PKIX_LDAPCERTSTOREDESTROYAVALISTFAILED);
 
         if (requestArena) {
                 PKIX_PL_NSSCALL(CERTSTORE, PORT_FreeArena,
@@ -738,15 +737,15 @@ pkix_pl_LdapCertStore_GetCert(
         if (responses) {
                 PKIX_CHECK(PKIX_CertStore_GetCertStoreCacheFlag
                         (store, &cacheFlag, plContext),
-                        "PKIX_CertStore_GetCertStoreCacheFlag failed");
+                        PKIX_CERTSTOREGETCERTSTORECACHEFLAGFAILED);
 
                 PKIX_CHECK(pkix_pl_LdapCertStore_BuildCertList
                         (responses, &unfilteredCerts, plContext),
-                        "pkix_pl_LdapCertStore_BuildCertList failed");
+                        PKIX_LDAPCERTSTOREBUILDCERTLISTFAILED);
 
                 PKIX_CHECK(pkix_CertSelector_Select
                         (selector, unfilteredCerts, &filteredCerts, plContext),
-                        "pkix_CertSelector_Select failed");
+                        PKIX_CERTSELECTORSELECTFAILED);
         }
 
         *pNBIOContext = NULL;
@@ -787,11 +786,11 @@ pkix_pl_LdapCertStore_GetCertContinue(
 
         PKIX_CHECK(PKIX_CertStore_GetCertStoreContext
                 (store, (PKIX_PL_Object **)&lcs, plContext),
-                "PKIX_CertStore_GetCertStoreContext failed");
+                PKIX_CERTSTOREGETCERTSTORECONTEXTFAILED);
 
         PKIX_CHECK(PKIX_PL_LdapClient_ResumeRequest
                 ((PKIX_PL_LdapClient *)lcs, &pollDesc, &responses, plContext),
-                "PKIX_PL_LdapClient_ResumeRequest failed");
+                PKIX_LDAPCLIENTRESUMEREQUESTFAILED);
 
         if (pollDesc != NULL) {
                 /* client is waiting for non-blocking I/O to complete */
@@ -804,15 +803,15 @@ pkix_pl_LdapCertStore_GetCertContinue(
         if (responses) {
                 PKIX_CHECK(PKIX_CertStore_GetCertStoreCacheFlag
                         (store, &cacheFlag, plContext),
-                        "PKIX_CertStore_GetCertStoreCacheFlag failed");
+                        PKIX_CERTSTOREGETCERTSTORECACHEFLAGFAILED);
 
                 PKIX_CHECK(pkix_pl_LdapCertStore_BuildCertList
                         (responses, &unfilteredCerts, plContext),
-                        "pkix_pl_LdapCertStore_BuildCertList failed");
+                        PKIX_LDAPCERTSTOREBUILDCERTLISTFAILED);
 
                 PKIX_CHECK(pkix_CertSelector_Select
                         (selector, unfilteredCerts, &filteredCerts, plContext),
-                        "pkix_CertSelector_Select failed");
+                        PKIX_CERTSELECTORSELECTFAILED);
         }
 
         *pNBIOContext = NULL;
@@ -872,16 +871,16 @@ pkix_pl_LdapCertStore_GetCRL(
             (CERTSTORE, requestArena, PORT_NewArena, (DER_DEFAULT_CHUNKSIZE));
 
         if (!requestArena) {
-                PKIX_ERROR_FATAL("Out of memory");
+                PKIX_ERROR_FATAL(PKIX_OUTOFMEMORY);
         }
 
         PKIX_CHECK(PKIX_CRLSelector_GetCommonCRLSelectorParams
                 (selector, &params, plContext),
-                "PKIX_CRLSelector_GetComCertSelParams failed");
+                PKIX_CRLSELECTORGETCOMCERTSELPARAMSFAILED);
 
         PKIX_CHECK(PKIX_ComCRLSelParams_GetIssuerNames
                 (params, &issuerNames, plContext),
-                "PKIX_ComCRLSelParams_GetIssuerNames failed");
+                PKIX_COMCRLSELPARAMSGETISSUERNAMESFAILED);
 
         /*
          * The specification for PKIX_ComCRLSelParams_GetIssuerNames in
@@ -893,7 +892,7 @@ pkix_pl_LdapCertStore_GetCRL(
 
                 PKIX_CHECK(PKIX_List_GetLength
                         (issuerNames, &numNames, plContext),
-                        "PKIX_List_GetLength failed");
+                        PKIX_LISTGETLENGTHFAILED);
 
                 if (numNames > 0) {
                         for (thisName = 0; thisName < numNames; thisName++) {
@@ -902,7 +901,7 @@ pkix_pl_LdapCertStore_GetCRL(
                                 thisName,
                                 (PKIX_PL_Object **)&issuer,
                                 plContext),
-                                "PKIX_List_GetItem failed");
+                                PKIX_LISTGETITEMFAILED);
 
                                 PKIX_CHECK
                                         (pkix_pl_LdapCertStore_MakeNameAVAList
@@ -910,7 +909,7 @@ pkix_pl_LdapCertStore_GetCRL(
                                         issuer,
                                         &(requestParams.nc),
                                         plContext),
-                                        "pkix_pl_LdapCertStore_MakeNameAVAList failed");
+                                        PKIX_LDAPCERTSTOREMAKENAMEAVALISTFAILED);
 
                                 PKIX_DECREF(issuer);
 
@@ -929,11 +928,11 @@ pkix_pl_LdapCertStore_GetCRL(
 
                                         PKIX_CHECK(PKIX_List_Create
                                                 (&filteredCRLs, plContext),
-                                                "PKIX_List_Create failed");
+                                                PKIX_LISTCREATEFAILED);
 
                                         PKIX_CHECK(PKIX_List_SetImmutable
                                                 (filteredCRLs, plContext),
-                                               "PKIX_List_SetImmutable failed");
+                                               PKIX_LISTSETIMMUTABLEFAILED);
 
                                         *pNBIOContext = NULL;
                                         *pCrlList = filteredCRLs;
@@ -947,17 +946,17 @@ pkix_pl_LdapCertStore_GetCRL(
                                 break;
                         }
                 } else {
-                        PKIX_ERROR("Impossible criterion for Crl Query");
+                        PKIX_ERROR(PKIX_IMPOSSIBLECRITERIONFORCRLQUERY);
                 }
         } else {
-                PKIX_ERROR("Impossible criterion for Crl Query");
+                PKIX_ERROR(PKIX_IMPOSSIBLECRITERIONFORCRLQUERY);
         }
 
         /* All request fields are done */
 
         PKIX_CHECK(PKIX_CertStore_GetCertStoreContext
                 (store, (PKIX_PL_Object **)&lcs, plContext),
-                "PKIX_CertStore_GetCertStoreContext failed");
+                PKIX_CERTSTOREGETCERTSTORECONTEXTFAILED);
 
         PKIX_CHECK(PKIX_PL_LdapClient_InitiateRequest
                 ((PKIX_PL_LdapClient *)lcs,
@@ -965,11 +964,11 @@ pkix_pl_LdapCertStore_GetCRL(
                 &pollDesc,
                 &responses,
                 plContext),
-                "PKIX_PL_LdapClient_InitiateRequest failed");
+                PKIX_LDAPCLIENTINITIATEREQUESTFAILED);
 
         PKIX_CHECK(pkix_pl_LdapCertStore_DestroyAVAList
                 (requestParams.nc, plContext),
-                "pkix_pl_LdapCertStore_DestroyAVAList failed");
+                PKIX_LDAPCERTSTOREDESTROYAVALISTFAILED);
 
         if (requestArena) {
                 PKIX_PL_NSSCALL(CERTSTORE, PORT_FreeArena,
@@ -992,11 +991,11 @@ pkix_pl_LdapCertStore_GetCRL(
                  */
                 PKIX_CHECK(pkix_pl_LdapCertStore_BuildCrlList
                         (responses, &unfilteredCRLs, plContext),
-                        "pkix_pl_LdapCertStore_BuildCrlList failed");
+                        PKIX_LDAPCERTSTOREBUILDCRLLISTFAILED);
 
                 PKIX_CHECK(pkix_CRLSelector_Select
                         (selector, unfilteredCRLs, &filteredCRLs, plContext),
-                        "pkix_CRLSelector_Select failed");
+                        PKIX_CRLSELECTORSELECTFAILED);
 
         }
 
@@ -1046,11 +1045,11 @@ pkix_pl_LdapCertStore_GetCRLContinue(
 
         PKIX_CHECK(PKIX_CertStore_GetCertStoreContext
                 (store, (PKIX_PL_Object **)&lcs, plContext),
-                "PKIX_CertStore_GetCertStoreContext failed");
+                PKIX_CERTSTOREGETCERTSTORECONTEXTFAILED);
 
         PKIX_CHECK(PKIX_PL_LdapClient_ResumeRequest
                 ((PKIX_PL_LdapClient *)lcs, &nbio, &responses, plContext),
-                "PKIX_PL_LdapClient_ResumeRequest failed");
+                PKIX_LDAPCLIENTRESUMEREQUESTFAILED);
 
         if (nbio != NULL) {
                 /* client is waiting for non-blocking I/O to complete */
@@ -1068,14 +1067,14 @@ pkix_pl_LdapCertStore_GetCRLContinue(
                  */
                 PKIX_CHECK(pkix_pl_LdapCertStore_BuildCrlList
                         (responses, &unfilteredCRLs, plContext),
-                        "pkix_pl_LdapCertStore_BuildCrlList failed");
+                        PKIX_LDAPCERTSTOREBUILDCRLLISTFAILED);
 
                 PKIX_CHECK(pkix_CRLSelector_Select
                         (selector, unfilteredCRLs, &filteredCRLs, plContext),
-                        "pkix_CRLSelector_Select failed");
+                        PKIX_CRLSELECTORSELECTFAILED);
 
                 PKIX_CHECK(PKIX_List_SetImmutable(filteredCRLs, plContext),
-                        "PKIX_List_SetImmutable failed");
+                        PKIX_LISTSETIMMUTABLEFAILED);
 
         }
 
@@ -1125,7 +1124,7 @@ PKIX_PL_LdapCertStore_Create(
                 PKIX_FALSE, /* not local */
                 &certStore,
                 plContext),
-                "PKIX_CertStore_Create failed");
+                PKIX_CERTSTORECREATEFAILED);
 
         *pCertStore = certStore;
 

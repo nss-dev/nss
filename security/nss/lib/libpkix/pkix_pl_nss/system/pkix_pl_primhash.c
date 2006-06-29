@@ -125,7 +125,7 @@ pkix_pl_PrimHashTable_Create(
         PKIX_NULLCHECK_ONE(pResult);
 
         if (numBuckets == 0) {
-                PKIX_ERROR("NumBuckets equals zero");
+                PKIX_ERROR(PKIX_NUMBUCKETSEQUALSZERO);
         }
 
         /* Allocate a new hashtable */
@@ -133,7 +133,7 @@ pkix_pl_PrimHashTable_Create(
                     (sizeof (pkix_pl_PrimHashTable),
                     (void **)&primHashTable,
                     plContext),
-                    "PKIX_PL_Malloc failed");
+                    PKIX_MALLOCFAILED);
 
         primHashTable->size = numBuckets;
 
@@ -142,7 +142,7 @@ pkix_pl_PrimHashTable_Create(
                     (numBuckets * sizeof (pkix_pl_HT_Elem*),
                     (void **)&primHashTable->buckets,
                     plContext),
-                    "PKIX_PL_Malloc failed");
+                    PKIX_MALLOCFAILED);
 
         for (i = 0; i < numBuckets; i++) {
                 primHashTable->buckets[i] = NULL;
@@ -218,36 +218,36 @@ pkix_pl_PrimHashTable_Add(
 
                 if (keyComp == NULL){
                         PKIX_CHECK(pkix_pl_KeyComparator_Default
-                                    ((PKIX_UInt32 *)key,
-                                    (PKIX_UInt32 *)(element->key),
-                                    &compResult,
-                                    plContext),
-                                    "Could not test whether keys are equal.");
+                                ((PKIX_UInt32 *)key,
+                                (PKIX_UInt32 *)(element->key),
+                                &compResult,
+                                plContext),
+                                PKIX_COULDNOTTESTWHETHERKEYSEQUAL);
                 } else {
                         PKIX_CHECK(keyComp
-                                    ((PKIX_PL_Object *)key,
-                                    (PKIX_PL_Object *)(element->key),
-                                    &compResult,
-                                    plContext),
-                                    "Could not test whether keys are equal.");
+                                ((PKIX_PL_Object *)key,
+                                (PKIX_PL_Object *)(element->key),
+                                &compResult,
+                                plContext),
+                                PKIX_COULDNOTTESTWHETHERKEYSEQUAL);
                 }
 
                 if ((element->hashCode == hashCode) &&
                     (compResult == PKIX_TRUE)){
                         /* Same key already exists in the table */
-                        PKIX_ERROR("Attempt to add duplicate key");
+                        PKIX_ERROR(PKIX_ATTEMPTTOADDDUPLICATEKEY);
                 }
         }
 
         /* Next Element should be NULL at this point */
         if (element != NULL) {
-                PKIX_ERROR("Error traversing bucket");
+                PKIX_ERROR(PKIX_ERRORTRAVERSINGBUCKET);
         }
 
         /* Create a new HT_Elem */
         PKIX_CHECK(PKIX_PL_Malloc
                     (sizeof (pkix_pl_HT_Elem), (void **)elemPtr, plContext),
-                    "PKIX_PL_Malloc failed");
+                    PKIX_MALLOCFAILED);
 
         element = *elemPtr;
 
@@ -323,18 +323,18 @@ pkix_pl_PrimHashTable_Remove(
 
                 if (keyComp == NULL){
                         PKIX_CHECK(pkix_pl_KeyComparator_Default
-                                    ((PKIX_UInt32 *)key,
-                                    (PKIX_UInt32 *)(element->key),
-                                    &compResult,
-                                    plContext),
-                                    "Could not test whether keys are equal.");
+                                ((PKIX_UInt32 *)key,
+                                (PKIX_UInt32 *)(element->key),
+                                &compResult,
+                                plContext),
+                                PKIX_COULDNOTTESTWHETHERKEYSEQUAL);
                 } else {
                         PKIX_CHECK(keyComp
-                                    ((PKIX_PL_Object *)key,
-                                    (PKIX_PL_Object *)(element->key),
-                                    &compResult,
-                                    plContext),
-                                    "Could not test whether keys are equal.");
+                                ((PKIX_PL_Object *)key,
+                                (PKIX_PL_Object *)(element->key),
+                                &compResult,
+                                plContext),
+                                PKIX_COULDNOTTESTWHETHERKEYSEQUAL);
                 }
 
                 if ((element->hashCode == hashCode) &&
@@ -422,18 +422,18 @@ pkix_pl_PrimHashTable_Lookup(
 
                 if (keyComp == NULL){
                         PKIX_CHECK(pkix_pl_KeyComparator_Default
-                                    ((PKIX_UInt32 *)key,
-                                    (PKIX_UInt32 *)(element->key),
-                                    &compResult,
-                                    plContext),
-                                    "Could not test whether keys are equal.");
+                                ((PKIX_UInt32 *)key,
+                                (PKIX_UInt32 *)(element->key),
+                                &compResult,
+                                plContext),
+                                PKIX_COULDNOTTESTWHETHERKEYSEQUAL);
                 } else {
                         PKIX_CHECK_FATAL(keyComp
-                                        ((PKIX_PL_Object *)key,
-                                        (PKIX_PL_Object *)(element->key),
-                                        &compResult,
-                                        plContext),
-                                        "Could not test whether keys equal");
+                                ((PKIX_PL_Object *)key,
+                                (PKIX_PL_Object *)(element->key),
+                                &compResult,
+                                plContext),
+                                PKIX_COULDNOTTESTWHETHERKEYSEQUAL);
                 }
 
                 if ((element->hashCode == hashCode) &&

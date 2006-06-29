@@ -62,7 +62,7 @@ pkix_ComCertSelParams_Destroy(
         /* Check that this object is a comCertSelParams object */
         PKIX_CHECK(pkix_CheckType
                     (object, PKIX_COMCERTSELPARAMS_TYPE, plContext),
-                    "Object is not a comCertSelParams object");
+                    PKIX_OBJECTNOTCOMCERTSELPARAMS);
 
         params = (PKIX_ComCertSelParams *)object;
 
@@ -105,54 +105,54 @@ pkix_ComCertSelParams_Duplicate(
 
         PKIX_CHECK(pkix_CheckType
                     (object, PKIX_COMCERTSELPARAMS_TYPE, plContext),
-                    "Object is not a comCertSelParams object");
+                    PKIX_OBJECTNOTCOMCERTSELPARAMS);
 
         params = (PKIX_ComCertSelParams *)object;
 
         PKIX_CHECK(PKIX_ComCertSelParams_Create(&paramsDuplicate, plContext),
-                    "PKIX_ComCertSelParams_Create failed");
+                    PKIX_COMCERTSELPARAMSCREATEFAILED);
 
         paramsDuplicate->minPathLength = params->minPathLength;
         paramsDuplicate->matchAllSubjAltNames = params->matchAllSubjAltNames;
 
         PKIX_DUPLICATE(params->subject, &paramsDuplicate->subject, plContext,
-                "PKIX_PL_Object_Duplicate failed");
+                PKIX_OBJECTDUPLICATEFAILED);
 
         PKIX_DUPLICATE(params->policies, &paramsDuplicate->policies, plContext,
-                "PKIX_PL_Object_Duplicate failed");
+                PKIX_OBJECTDUPLICATEFAILED);
 
         if (params->cert){
                 PKIX_CHECK(PKIX_PL_Object_Duplicate
                             ((PKIX_PL_Object *)params->cert,
                             (PKIX_PL_Object **)&paramsDuplicate->cert,
                             plContext),
-                            "PKIX_PL_Object_Duplicate failed");
+                            PKIX_OBJECTDUPLICATEFAILED);
         }
 
         PKIX_DUPLICATE
                 (params->nameConstraints,
                 &paramsDuplicate->nameConstraints,
                 plContext,
-                "PKIX_PL_Object_Duplicate failed");
+                PKIX_OBJECTDUPLICATEFAILED);
 
         PKIX_DUPLICATE
                 (params->pathToNames,
                 &paramsDuplicate->pathToNames,
                 plContext,
-                "PKIX_PL_Object_Duplicate failed");
+                PKIX_OBJECTDUPLICATEFAILED);
 
         PKIX_DUPLICATE
                 (params->subjAltNames,
                 &paramsDuplicate->subjAltNames,
                 plContext,
-                "PKIX_PL_Object_Duplicate failed");
+                PKIX_OBJECTDUPLICATEFAILED);
 
         if (params->date){
                 PKIX_CHECK(PKIX_PL_Object_Duplicate
                             ((PKIX_PL_Object *)params->date,
                             (PKIX_PL_Object **)&paramsDuplicate->date,
                             plContext),
-                            "PKIX_PL_Object_Duplicate failed");
+                            PKIX_OBJECTDUPLICATEFAILED);
         }
 
         paramsDuplicate->keyUsage = params->keyUsage;
@@ -160,37 +160,37 @@ pkix_ComCertSelParams_Duplicate(
         PKIX_DUPLICATE(params->certValid,
                 &paramsDuplicate->certValid,
                 plContext,
-                "PKIX_PL_Object_Duplicate failed");
+                PKIX_OBJECTDUPLICATEFAILED);
 
         PKIX_DUPLICATE(params->issuer,
                 &paramsDuplicate->issuer,
                 plContext,
-                "PKIX_PL_Object_Duplicate failed");
+                PKIX_OBJECTDUPLICATEFAILED);
 
         PKIX_DUPLICATE(params->serialNumber,
                 &paramsDuplicate->serialNumber,
                 plContext,
-                "PKIX_PL_Object_Duplicate failed");
+                PKIX_OBJECTDUPLICATEFAILED);
 
         PKIX_DUPLICATE(params->authKeyId,
                 &paramsDuplicate->authKeyId,
                 plContext,
-                "PKIX_PL_Object_Duplicate failed");
+                PKIX_OBJECTDUPLICATEFAILED);
 
         PKIX_DUPLICATE(params->subjKeyId,
                 &paramsDuplicate->subjKeyId,
                 plContext,
-                "PKIX_PL_Object_Duplicate failed");
+                PKIX_OBJECTDUPLICATEFAILED);
 
         PKIX_DUPLICATE(params->subjPubKey,
                 &paramsDuplicate->subjPubKey,
                 plContext,
-                "PKIX_PL_Object_Duplicate failed");
+                PKIX_OBJECTDUPLICATEFAILED);
 
         PKIX_DUPLICATE(params->subjPKAlgId,
                 &paramsDuplicate->subjPKAlgId,
                 plContext,
-                "PKIX_PL_Object_Duplicate failed");
+                PKIX_OBJECTDUPLICATEFAILED);
 
         *pNewObject = (PKIX_PL_Object *)paramsDuplicate;
 
@@ -257,7 +257,7 @@ PKIX_ComCertSelParams_Create(
                     sizeof (PKIX_ComCertSelParams),
                     (PKIX_PL_Object **)&params,
                     plContext),
-                    "Could not create common certsel params object");
+                    PKIX_COULDNOTCREATECOMMONCERTSELPARAMSOBJECT);
 
         /* initialize fields */
         params->version = 0xFFFFFFFF;
@@ -329,7 +329,7 @@ PKIX_ComCertSelParams_SetSubject(
 
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                     ((PKIX_PL_Object *)params, plContext),
-                    "PKIX_PL_Object_InvalidateCache failed");
+                    PKIX_OBJECTINVALIDATECACHEFAILED);
 
 cleanup:
 
@@ -375,7 +375,7 @@ PKIX_ComCertSelParams_SetBasicConstraints(
 
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                     ((PKIX_PL_Object *)params, plContext),
-                    "PKIX_PL_Object_InvalidateCache failed");
+                    PKIX_OBJECTINVALIDATECACHEFAILED);
 
 cleanup:
 
@@ -419,7 +419,7 @@ PKIX_ComCertSelParams_SetPolicy(
 
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                     ((PKIX_PL_Object *)params, plContext),
-                    "PKIX_PL_Object_InvalidateCache failed");
+                    PKIX_OBJECTINVALIDATECACHEFAILED);
 cleanup:
 
         PKIX_RETURN(COMCERTSELPARAMS);
@@ -463,7 +463,7 @@ PKIX_ComCertSelParams_SetCertificate(
 
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                     ((PKIX_PL_Object *)params, plContext),
-                    "PKIX_PL_Object_InvalidateCache failed");
+                    PKIX_OBJECTINVALIDATECACHEFAILED);
 cleanup:
 
         PKIX_RETURN(COMCERTSELPARAMS);
@@ -510,7 +510,7 @@ PKIX_ComCertSelParams_SetCertificateValid(
 
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                     ((PKIX_PL_Object *)params, plContext),
-                    "PKIX_PL_Object_InvalidateCache failed");
+                    PKIX_OBJECTINVALIDATECACHEFAILED);
 cleanup:
 
         PKIX_RETURN(COMCERTSELPARAMS);
@@ -557,7 +557,7 @@ PKIX_ComCertSelParams_SetNameConstraints(
 
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                     ((PKIX_PL_Object *)params, plContext),
-                    "PKIX_PL_Object_InvalidateCache failed");
+                    PKIX_OBJECTINVALIDATECACHEFAILED);
 
 cleanup:
 
@@ -603,7 +603,7 @@ PKIX_ComCertSelParams_SetPathToNames(
 
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                     ((PKIX_PL_Object *)params, plContext),
-                    "PKIX_PL_Object_InvalidateCache failed");
+                    PKIX_OBJECTINVALIDATECACHEFAILED);
 
 cleanup:
 
@@ -632,18 +632,18 @@ PKIX_ComCertSelParams_AddPathToName(
         if (params->pathToNames == NULL) {
                 /* Create a list for name item */
                 PKIX_CHECK(PKIX_List_Create(&pathToNamesList, plContext),
-                    "PKIX_List_Create failed");
+                    PKIX_LISTCREATEFAILED);
 
                 params->pathToNames = pathToNamesList;
         }
 
         PKIX_CHECK(PKIX_List_AppendItem
                     (params->pathToNames, (PKIX_PL_Object *)name, plContext),
-                    "pkix_List_AppendItem failed");
+                    PKIX_LISTAPPENDITEMFAILED);
 
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                     ((PKIX_PL_Object *)params, plContext),
-                    "PKIX_PL_Object_InvalidateCache failed");
+                    PKIX_OBJECTINVALIDATECACHEFAILED);
 
 cleanup:
 
@@ -708,13 +708,13 @@ PKIX_ComCertSelParams_AddSubjAltName(
 
         if (params->subjAltNames == NULL) {
                 PKIX_CHECK(PKIX_List_Create(&list, plContext),
-                        "PKIX_List_Create failed");
+                        PKIX_LISTCREATEFAILED);
                 params->subjAltNames = list;
         }
 
         PKIX_CHECK(PKIX_List_AppendItem
                     (params->subjAltNames, (PKIX_PL_Object *)name, plContext),
-                    "PKIX_List_AppendItem failed");
+                    PKIX_LISTAPPENDITEMFAILED);
 
 cleanup:
 
@@ -877,7 +877,7 @@ PKIX_ComCertSelParams_SetIssuer(
 
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                     ((PKIX_PL_Object *)params, plContext),
-                    "PKIX_PL_Object_InvalidateCache failed");
+                    PKIX_OBJECTINVALIDATECACHEFAILED);
 
 cleanup:
 
@@ -922,7 +922,7 @@ PKIX_ComCertSelParams_SetSerialNumber(
 
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                     ((PKIX_PL_Object *)params, plContext),
-                    "PKIX_PL_Object_InvalidateCache failed");
+                    PKIX_OBJECTINVALIDATECACHEFAILED);
 
 cleanup:
 
@@ -964,7 +964,7 @@ PKIX_ComCertSelParams_SetVersion(
 
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                     ((PKIX_PL_Object *)params, plContext),
-                    "PKIX_PL_Object_InvalidateCache failed");
+                    PKIX_OBJECTINVALIDATECACHEFAILED);
 
 cleanup:
 
@@ -1013,7 +1013,7 @@ PKIX_ComCertSelParams_SetSubjKeyIdentifier(
 
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                     ((PKIX_PL_Object *)params, plContext),
-                    "PKIX_PL_Object_InvalidateCache failed");
+                    PKIX_OBJECTINVALIDATECACHEFAILED);
 
 cleanup:
 
@@ -1062,7 +1062,7 @@ PKIX_ComCertSelParams_SetAuthorityKeyIdentifier(
 
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                     ((PKIX_PL_Object *)params, plContext),
-                    "PKIX_PL_Object_InvalidateCache failed");
+                    PKIX_OBJECTINVALIDATECACHEFAILED);
 
 cleanup:
 
@@ -1110,7 +1110,7 @@ PKIX_ComCertSelParams_SetSubjPubKey(
 
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                     ((PKIX_PL_Object *)params, plContext),
-                    "PKIX_PL_Object_InvalidateCache failed");
+                    PKIX_OBJECTINVALIDATECACHEFAILED);
 
 cleanup:
 
@@ -1157,7 +1157,7 @@ PKIX_ComCertSelParams_SetSubjPKAlgId(
 
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                     ((PKIX_PL_Object *)params, plContext),
-                    "PKIX_PL_Object_InvalidateCache failed");
+                    PKIX_OBJECTINVALIDATECACHEFAILED);
 
 cleanup:
 

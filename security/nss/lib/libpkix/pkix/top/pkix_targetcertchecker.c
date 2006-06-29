@@ -64,7 +64,7 @@ pkix_TargetCertCheckerState_Destroy(
         /* Check that this object is a target cert checker state */
         PKIX_CHECK(pkix_CheckType
                     (object, PKIX_TARGETCERTCHECKERSTATE_TYPE, plContext),
-                    "Object is not a target cert checker state");
+                    PKIX_OBJECTNOTTARGETCERTCHECKERSTATE);
 
         state = (pkix_TargetCertCheckerState *)object;
 
@@ -164,20 +164,20 @@ pkix_TargetCertCheckerState_Create(
                     (PKIX_EXTENDEDKEYUSAGE_OID,
                     &extKeyUsageOID,
                     plContext),
-                    "PKIX_PL_OID_Create failed");
+                    PKIX_OIDCREATEFAILED);
 
         PKIX_CHECK(PKIX_PL_OID_Create
                     (PKIX_CERTSUBJALTNAME_OID,
                     &subjAltNameOID,
                     plContext),
-                    "PKIX_PL_OID_Create failed");
+                    PKIX_OIDCREATEFAILED);
 
         PKIX_CHECK(PKIX_PL_Object_Alloc
                     (PKIX_TARGETCERTCHECKERSTATE_TYPE,
                     sizeof (pkix_TargetCertCheckerState),
                     (PKIX_PL_Object **)&state,
                     plContext),
-                    "Could not create target cert checker state object");
+                    PKIX_COULDNOTCREATETARGETCERTCHECKERSTATEOBJECT);
 
         /* initialize fields */
 
@@ -185,7 +185,7 @@ pkix_TargetCertCheckerState_Create(
 
                 PKIX_CHECK(PKIX_CertSelector_GetCommonCertSelectorParams
                         (certSelector, &certSelectorParams, plContext),
-                        "PKIX_CertSelector_GetCommonCertSelectorParam failed");
+                        PKIX_CERTSELECTORGETCOMMONCERTSELECTORPARAMFAILED);
 
                 if (certSelectorParams != NULL) {
 
@@ -193,25 +193,25 @@ pkix_TargetCertCheckerState_Create(
                             (certSelectorParams,
                             &pathToNameList,
                             plContext),
-                            "PKIX_ComCertSelParams_GetPathToNames failed");
+                            PKIX_COMCERTSELPARAMSGETPATHTONAMESFAILED);
 
                         PKIX_CHECK(PKIX_ComCertSelParams_GetExtendedKeyUsage
                             (certSelectorParams,
                             &extKeyUsageList,
                             plContext),
-                            "PKIX_ComCertSelParams_GetExtendedKeyUsage failed");
+                            PKIX_COMCERTSELPARAMSGETEXTENDEDKEYUSAGEFAILED);
 
                         PKIX_CHECK(PKIX_ComCertSelParams_GetSubjAltNames
                             (certSelectorParams,
                             &subjAltNameList,
                             plContext),
-                            "PKIX_ComCertSelParams_GetSubjAltNames failed");
+                            PKIX_COMCERTSELPARAMSGETSUBJALTNAMESFAILED);
 
                         PKIX_CHECK(PKIX_ComCertSelParams_GetMatchAllSubjAltNames
                             (certSelectorParams,
                             &subjAltNameMatchAll,
                             plContext),
-                            "PKIX_ComCertSelParams_GetSubjAltNames failed");
+                            PKIX_COMCERTSELPARAMSGETSUBJALTNAMESFAILED);
                 }
         }
 
@@ -276,7 +276,7 @@ pkix_TargetCertChecker_Check(
 
         PKIX_CHECK(PKIX_CertChainChecker_GetCertChainCheckerState
                     (checker, (PKIX_PL_Object **)&state, plContext),
-                    "PKIX_CertChainChecker_GetCertChainCheckerState failed");
+                    PKIX_CERTCHAINCHECKERGETCERTCHAINCHECKERSTATEFAILED);
 
         (state->certsRemaining)--;
 
@@ -284,7 +284,7 @@ pkix_TargetCertChecker_Check(
 
                 PKIX_CHECK(PKIX_PL_Cert_GetNameConstraints
                     (cert, &nameConstraints, plContext),
-                    "PKIX_PL_Cert_GetNameConstraints failed");
+                    PKIX_CERTGETNAMECONSTRAINTSFAILED);
 
                 /*
                  * XXX We should either make the following call a public one
@@ -297,24 +297,23 @@ pkix_TargetCertChecker_Check(
                     nameConstraints,
                     &checkPassed,
                     plContext),
-                    "PKIX_PL_CertNameConstraints_CheckNameInNameSpace "
-                    "failed");
+                    PKIX_CERTNAMECONSTRAINTSCHECKNAMEINNAMESPACEFAILED);
 
                 if (checkPassed != PKIX_TRUE) {
-                    PKIX_ERROR("Validation failed: PathToName check failed");
+                    PKIX_ERROR(PKIX_VALIDATIONFAILEDPATHTONAMECHECKFAILED);
                 }
 
         }
 
         PKIX_CHECK(PKIX_PL_Cert_GetSubjectAltNames
                     (cert, &certSubjAltNames, plContext),
-                    "PKIX_PL_Cert_GetSubjAltNames failed");
+                    PKIX_CERTGETSUBJALTNAMESFAILED);
 
         if (state->subjAltNameList != NULL && certSubjAltNames != NULL) {
 
                 PKIX_CHECK(PKIX_List_GetLength
                         (state->subjAltNameList, &numItems, plContext),
-                        "PKIX_List_GetLength failed");
+                        PKIX_LISTGETLENGTHFAILED);
 
                 for (i = 0; i < numItems; i++) {
 
@@ -323,14 +322,14 @@ pkix_TargetCertChecker_Check(
                             i,
                             (PKIX_PL_Object **) &name,
                             plContext),
-                            "PKIX_List_GetItem failed");
+                            PKIX_LISTGETITEMFAILED);
 
                         PKIX_CHECK(pkix_List_Contains
                             (certSubjAltNames,
                             (PKIX_PL_Object *) name,
                             &checkPassed,
                             plContext),
-                            "PKIX_List_Contains failed");
+                            PKIX_LISTCONTAINSFAILED);
 
                         PKIX_DECREF(name);
 
@@ -348,8 +347,7 @@ pkix_TargetCertChecker_Check(
                 }
 
                 if (matchCount != numItems) {
-                        PKIX_ERROR("Validation failed: "
-                                    "SubjAltNamecheck failed");
+                        PKIX_ERROR(PKIX_SUBJALTNAMECHECKFAILED);
 
                 }
 
@@ -363,18 +361,17 @@ pkix_TargetCertChecker_Check(
                             (state->certSelector,
                             &certSelectorMatch,
                             plContext),
-                            "PKIX_CertSelector_GetMatchCallback failed");
+                            PKIX_CERTSELECTORGETMATCHCALLBACKFAILED);
 
                         PKIX_CHECK(certSelectorMatch
                             (state->certSelector,
                             cert,
                             &checkPassed,
                             plContext),
-                            "certSelectorMatch failed");
+                            PKIX_CERTSELECTORMATCHFAILED);
 
                         if (checkPassed != PKIX_TRUE){
-                                PKIX_ERROR("Validation failed: "
-                                        "Cert Selector check failed");
+                                PKIX_ERROR(PKIX_CERTSELECTORCHECKFAILED);
                         }
 
                         /*
@@ -401,7 +398,7 @@ pkix_TargetCertChecker_Check(
 
                         PKIX_CHECK(PKIX_PL_Cert_GetExtendedKeyUsage
                             (cert, &certExtKeyUsageList, plContext),
-                            "PKIX_PL_Cert_GetExtendedKeyUsage failed");
+                            PKIX_CERTGETEXTENDEDKEYUSAGEFAILED);
 
 
                         if (state->extKeyUsageList != NULL &&
@@ -409,7 +406,7 @@ pkix_TargetCertChecker_Check(
 
                             PKIX_CHECK(PKIX_List_GetLength
                                 (state->extKeyUsageList, &numItems, plContext),
-                                "PKIX_List_GetLength failed");
+                                PKIX_LISTGETLENGTHFAILED);
 
                             for (i = 0; i < numItems; i++) {
 
@@ -418,20 +415,20 @@ pkix_TargetCertChecker_Check(
                                         i,
                                         (PKIX_PL_Object **) &name,
                                         plContext),
-                                        "PKIX_List_GetItem failed");
+                                        PKIX_LISTGETITEMFAILED);
 
                                 PKIX_CHECK(pkix_List_Contains
                                         (certExtKeyUsageList,
                                         (PKIX_PL_Object *) name,
                                         &checkPassed,
                                         plContext),
-                                        "PKIX_List_Contains failed");
+                                        PKIX_LISTCONTAINSFAILED);
 
                                 PKIX_DECREF(name);
 
                                 if (checkPassed != PKIX_TRUE) {
-                                    PKIX_ERROR("Validation failed: "
-                                        "Extended Key Usage check failed");
+                                    PKIX_ERROR
+                                        (PKIX_EXTENDEDKEYUSAGECHECKINGFAILED);
 
                                 }
                             }
@@ -448,18 +445,18 @@ pkix_TargetCertChecker_Check(
                             (unresolvedCriticalExtensions,
                             (PKIX_PL_Object *) state->extKeyUsageOID,
                             plContext),
-                            "PKIX_List_Remove failed");
+                            PKIX_LISTREMOVEFAILED);
 
                 PKIX_CHECK(PKIX_PL_Cert_GetSubject
                             (cert, &certSubjectName, plContext),
-                            "PKIX_PL_Cert_GetSubject failed");
+                            PKIX_CERTGETSUBJECTFAILED);
 
                 if (certSubjAltNames != NULL) {
                         PKIX_CHECK(pkix_List_Remove
                             (unresolvedCriticalExtensions,
                             (PKIX_PL_Object *) state->subjAltNameOID,
                             plContext),
-                            "PKIX_List_Remove failed");
+                            PKIX_LISTREMOVEFAILED);
                 }
 
         }
@@ -517,7 +514,7 @@ pkix_TargetCertChecker_Initialize(
 
         PKIX_CHECK(pkix_TargetCertCheckerState_Create
                     (certSelector, certsRemaining, &state, plContext),
-                    "pkix_TargetCertCheckerState_Create failed");
+                    PKIX_TARGETCERTCHECKERSTATECREATEFAILED);
 
         PKIX_CHECK(PKIX_CertChainChecker_Create
                     (pkix_TargetCertChecker_Check,
@@ -527,7 +524,7 @@ pkix_TargetCertChecker_Initialize(
                     (PKIX_PL_Object *)state,
                     pChecker,
                     plContext),
-                    "PKIX_CertChainChecker_Create failed");
+                    PKIX_CERTCHAINCHECKERCREATEFAILED);
 
 cleanup:
 

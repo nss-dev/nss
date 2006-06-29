@@ -56,7 +56,7 @@ pkix_pl_MonitorLock_Destroy(
         PKIX_NULLCHECK_ONE(object);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_MONITORLOCK_TYPE, plContext),
-                    "Object is not a MonitorLock");
+                    PKIX_OBJECTNOTMONITORLOCK);
 
         monitorLock = (PKIX_PL_MonitorLock*) object;
 
@@ -121,14 +121,14 @@ PKIX_PL_MonitorLock_Create(
                     sizeof (PKIX_PL_MonitorLock),
                     (PKIX_PL_Object **)&monitorLock,
                     plContext),
-                    "Error Allocating MonitorLock");
+                    PKIX_ERRORALLOCATINGMONITORLOCK);
 
         PKIX_MONITORLOCK_DEBUG("\tCalling PR_NewMonitor)\n");
         monitorLock->lock = PR_NewMonitor();
 
         if (monitorLock->lock == NULL) {
                 PKIX_DECREF(monitorLock);
-                PKIX_ERROR("Error Allocating PR_MonitorLock");
+                PKIX_ERROR(PKIX_ERRORALLOCATINGPRMONITORLOCK);
         }
 
         *pNewLock = monitorLock;
@@ -164,7 +164,7 @@ PKIX_PL_MonitorLock_Exit(
         PKIX_MONITORLOCK_DEBUG("\tCalling PR_ExitMonitor)\n");
         prStatus = PR_ExitMonitor(monitorLock->lock);
         if (prStatus != PR_SUCCESS) {
-                PKIX_ERROR("PKIX_PL_MonitorLock_Exit failed");
+                PKIX_ERROR(PKIX_MONITORLOCKEXITFAILED);
         }
 
 cleanup:

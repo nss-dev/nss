@@ -39,6 +39,7 @@ CORE_DEPTH = ../../../..
 EXPORTS = \
 	pkix.h \
 	pkix_crlsel.h \
+	pkix_errorstrings.h \
 	pkix_results.h \
 	pkixt.h \
 	pkix_certsel.h \

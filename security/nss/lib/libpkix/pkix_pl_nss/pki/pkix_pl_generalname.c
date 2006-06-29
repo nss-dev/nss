@@ -120,14 +120,14 @@ pkix_pl_OtherName_Create(
 
         PKIX_CHECK(PKIX_PL_Malloc
                     (sizeof (OtherName), (void **)&otherName, plContext),
-                    "PKIX_PL_Malloc failed");
+                    PKIX_MALLOCFAILED);
 
         /* make a copy of the name field */
         PKIX_GENERALNAME_DEBUG("\t\tCalling SECITEM_CopyItem).\n");
         rv = SECITEM_CopyItem
                 (NULL, &otherName->name, &nssAltName->name.OthName.name);
         if (rv != SECSuccess) {
-                PKIX_ERROR("SECITEM_CopyItem failed");
+                PKIX_ERROR(PKIX_SECITEMCOPYITEMFAILED);
         }
 
         /* make a copy of the oid field */
@@ -135,7 +135,7 @@ pkix_pl_OtherName_Create(
         rv = SECITEM_CopyItem
                 (NULL, &otherName->oid, &nssAltName->name.OthName.oid);
         if (rv != SECSuccess) {
-                PKIX_ERROR("SECITEM_CopyItem failed");
+                PKIX_ERROR(PKIX_SECITEMCOPYITEMFAILED);
         }
 
         *pOtherName = otherName;
@@ -198,7 +198,7 @@ pkix_pl_DirectoryName_Create(
         utf8String = CERT_NameToAscii(&nssAltName->name.directoryName);
 
         if (!utf8String){
-                PKIX_ERROR("CERT_NameToAscii failed");
+                PKIX_ERROR(PKIX_CERTNAMETOASCIIFAILED);
         }
 
         PKIX_GENERALNAME_DEBUG("\t\tCalling PL_strlen).\n");
@@ -210,10 +210,10 @@ pkix_pl_DirectoryName_Create(
                     utf8Length,
                     &pkixDNString,
                     plContext),
-                    "PKIX_PL_String_Create failed");
+                    PKIX_STRINGCREATEFAILED);
 
         PKIX_CHECK(PKIX_PL_X500Name_Create(pkixDNString, &pkixDN, plContext),
-                    "PKIX_PL_X500Name_Create failed");
+                    PKIX_X500NAMECREATEFAILED);
 
         *pX500Name = pkixDN;
 
@@ -270,7 +270,7 @@ pkix_pl_GeneralName_Create(
                     sizeof (PKIX_PL_GeneralName),
                     (PKIX_PL_Object **)&genName,
                     plContext),
-                    "Could not create object");
+                    PKIX_COULDNOTCREATEOBJECT);
 
         nameType = nssAltName->type;
 
@@ -293,7 +293,7 @@ pkix_pl_GeneralName_Create(
         nssGenNameList = CERT_CreateGeneralNameList(nssAltName);
 
         if (nssGenNameList == NULL) {
-                PKIX_ERROR("CERT_CreateGeneralNameList failed");
+                PKIX_ERROR(PKIX_CERTCREATEGENERALNAMELISTFAILED);
         }
 
         genName->nssGeneralNameList = nssGenNameList;
@@ -310,7 +310,7 @@ pkix_pl_GeneralName_Create(
 
                 PKIX_CHECK(pkix_pl_OtherName_Create
                             (nssAltName, &otherName, plContext),
-                            "pkix_pl_OtherName_Create failed");
+                            PKIX_OTHERNAMECREATEFAILED);
 
                 genName->OthName = otherName;
                 break;
@@ -319,7 +319,7 @@ pkix_pl_GeneralName_Create(
 
                 PKIX_CHECK(pkix_pl_DirectoryName_Create
                             (nssAltName, &pkixDN, plContext),
-                            "pkix_pl_DirectoryName_Create failed");
+                            PKIX_DIRECTORYNAMECREATEFAILED);
 
                 genName->directoryName = pkixDN;
                 break;
@@ -327,10 +327,10 @@ pkix_pl_GeneralName_Create(
 
                 PKIX_CHECK(pkix_pl_oidBytes2Ascii
                             (&nssAltName->name.other, &asciiName, plContext),
-                            "pkix_pl_oidBytes2Ascii failed");
+                            PKIX_OIDBYTES2ASCIIFAILED);
 
                 PKIX_CHECK(PKIX_PL_OID_Create(asciiName, &pkixOID, plContext),
-                            "PKIX_PL_OID_Create failed");
+                            PKIX_OIDCREATEFAILED);
 
                 genName->oid = pkixOID;
                 break;
@@ -344,19 +344,19 @@ pkix_pl_GeneralName_Create(
                 PKIX_GENERALNAME_DEBUG("\t\tCalling SECITEM_AllocItem).\n");
                 secItem = SECITEM_AllocItem(NULL, NULL, 0);
                 if (secItem == NULL){
-                        PKIX_ERROR("SECITEM_AllocItem failed");
+                        PKIX_ERROR(PKIX_SECITEMALLOCITEMFAILED);
                 }
 
                 PKIX_GENERALNAME_DEBUG("\t\tCalling SECITEM_CopyItem).\n");
                 rv = SECITEM_CopyItem(NULL, secItem, &nssAltName->name.other);
                 if (rv != SECSuccess) {
-                        PKIX_ERROR("SECITEM_CopyItem failed");
+                        PKIX_ERROR(PKIX_SECITEMCOPYITEMFAILED);
                 }
 
                 genName->other = secItem;
                 break;
         default:
-                PKIX_ERROR("name type not supported");
+                PKIX_ERROR(PKIX_NAMETYPENOTSUPPORTED);
         }
 
         *pGenName = genName;
@@ -430,7 +430,7 @@ pkix_pl_GeneralName_ToString_Helper(
                                                 (name->other)->len,
                                                 pString,
                                                 plContext),
-                            "PKIX_PL_String_Create failed.");
+                            PKIX_STRINGCREATEFAILED);
                 break;
         case certEDIPartyName:
                 /* XXX print out the actual bytes */
@@ -440,7 +440,7 @@ pkix_pl_GeneralName_ToString_Helper(
                                                 0,
                                                 pString,
                                                 plContext),
-                            "PKIX_PL_String_Create failed.");
+                            PKIX_STRINGCREATEFAILED);
                 break;
         case certX400Address:
                 /* XXX print out the actual bytes */
@@ -450,19 +450,19 @@ pkix_pl_GeneralName_ToString_Helper(
                                                 0,
                                                 pString,
                                                 plContext),
-                            "PKIX_PL_String_Create failed.");
+                            PKIX_STRINGCREATEFAILED);
                 break;
         case certIPAddress:
                 PKIX_CHECK(pkix_pl_ipAddrBytes2Ascii
                             (name->other, &asciiName, plContext),
-                            "pkix_pl_ipAddrBytes2Ascii failed");
+                            PKIX_IPADDRBYTES2ASCIIFAILED);
 
                 PKIX_CHECK(PKIX_PL_String_Create(PKIX_ESCASCII,
                                                 asciiName,
                                                 0,
                                                 pString,
                                                 plContext),
-                            "PKIX_PL_String_Create failed.");
+                            PKIX_STRINGCREATEFAILED);
                 break;
         case certOtherName:
                 PKIX_NULLCHECK_ONE(name->OthName);
@@ -471,7 +471,7 @@ pkix_pl_GeneralName_ToString_Helper(
                 /* XXX print out the bytes of the value */
                 PKIX_CHECK(pkix_pl_oidBytes2Ascii
                             (&name->OthName->oid, &asciiName, plContext),
-                            "pkix_pl_oidBytes2Ascii failed");
+                            PKIX_OIDBYTES2ASCIIFAILED);
 
                 PKIX_CHECK(PKIX_PL_String_Create
                             (PKIX_ESCASCII,
@@ -479,23 +479,23 @@ pkix_pl_GeneralName_ToString_Helper(
                             0,
                             pString,
                             plContext),
-                            "PKIX_PL_String_Create failed.");
+                            PKIX_STRINGCREATEFAILED);
                 break;
         case certRegisterID:
                 pkixOID = name->oid;
                 PKIX_CHECK(PKIX_PL_Object_ToString
                             ((PKIX_PL_Object *)pkixOID, pString, plContext),
-                            "PKIX_PL_OID_ToString failed");
+                            PKIX_OIDTOSTRINGFAILED);
                 break;
         case certDirectoryName:
                 pkixDN = name->directoryName;
                 PKIX_CHECK(PKIX_PL_Object_ToString
                             ((PKIX_PL_Object *)pkixDN, pString, plContext),
-                            "PKIX_PL_X500Name_ToString failed");
+                            PKIX_X500NAMETOSTRINGFAILED);
                 break;
         default:
                 PKIX_ERROR
-                        ("ToString for this GeneralName type not supported");
+                        (PKIX_TOSTRINGFORTHISGENERALNAMETYPENOTSUPPORTED);
         }
 
 cleanup:
@@ -522,7 +522,7 @@ pkix_pl_GeneralName_Destroy(
         PKIX_NULLCHECK_ONE(object);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_GENERALNAME_TYPE, plContext),
-                    "Object is not a GeneralName");
+                    PKIX_OBJECTNOTGENERALNAME);
 
         name = (PKIX_PL_GeneralName *)object;
 
@@ -575,13 +575,13 @@ pkix_pl_GeneralName_ToString(
         PKIX_NULLCHECK_TWO(object, pString);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_GENERALNAME_TYPE, plContext),
-                    "Object is not a GeneralName");
+                    PKIX_OBJECTNOTGENERALNAME);
 
         name = (PKIX_PL_GeneralName *)object;
 
         PKIX_CHECK(pkix_pl_GeneralName_ToString_Helper
                     (name, &nameString, plContext),
-                    "pkix_pl_GeneralName_ToString_Helper failed");
+                    PKIX_GENERALNAMETOSTRINGHELPERFAILED);
 
         *pString = nameString;
 
@@ -609,7 +609,7 @@ pkix_pl_GeneralName_Hashcode(
         PKIX_NULLCHECK_TWO(object, pHashcode);
 
         PKIX_CHECK(pkix_CheckType(object, PKIX_GENERALNAME_TYPE, plContext),
-                    "Object is not a GeneralName");
+                    PKIX_OBJECTNOTGENERALNAME);
 
         name = (PKIX_PL_GeneralName *)object;
 
@@ -627,14 +627,14 @@ pkix_pl_GeneralName_Hashcode(
                             name->other->len,
                             &nameHash,
                             plContext),
-                            "pkix_hash failed");
+                            PKIX_HASHFAILED);
                 break;
         case certRegisterID:
                 PKIX_CHECK(PKIX_PL_Object_Hashcode
                             ((PKIX_PL_Object *)name->oid,
                             &nameHash,
                             plContext),
-                            "PKIX_PL_OID_Hashcode failed");
+                            PKIX_OIDHASHCODEFAILED);
                 break;
         case certOtherName:
                 PKIX_NULLCHECK_ONE(name->OthName);
@@ -644,7 +644,7 @@ pkix_pl_GeneralName_Hashcode(
                             name->OthName->oid.len,
                             &firstHash,
                             plContext),
-                            "pkix_hash failed");
+                            PKIX_HASHFAILED);
 
                 PKIX_CHECK(pkix_hash
                             ((const unsigned char *)
@@ -652,7 +652,7 @@ pkix_pl_GeneralName_Hashcode(
                             name->OthName->name.len,
                             &secondHash,
                             plContext),
-                            "pkix_hash failed");
+                            PKIX_HASHFAILED);
 
                 nameHash = firstHash + secondHash;
                 break;
@@ -662,7 +662,7 @@ pkix_pl_GeneralName_Hashcode(
                             name->directoryName,
                             &nameHash,
                             plContext),
-                            "PKIX_PL_X500Name_Hashcode failed");
+                            PKIX_X500NAMEHASHCODEFAILED);
                 break;
         }
 
@@ -695,7 +695,7 @@ pkix_pl_GeneralName_Equals(
         /* test that firstObject is a GeneralName */
         PKIX_CHECK(pkix_CheckType
                     (firstObject, PKIX_GENERALNAME_TYPE, plContext),
-                    "FirstObject argument is not a GeneralName");
+                    PKIX_FIRSTOBJECTNOTGENERALNAME);
 
         /*
          * Since we know firstObject is a GeneralName, if both references are
@@ -713,7 +713,7 @@ pkix_pl_GeneralName_Equals(
         *pResult = PKIX_FALSE;
         PKIX_CHECK(PKIX_PL_Object_GetType
                     (secondObject, &secondType, plContext),
-                    "Could not get type of second argument");
+                    PKIX_COULDNOTGETTYPEOFSECONDARGUMENT);
         if (secondType != PKIX_GENERALNAME_TYPE){
                 goto cleanup;
         }
@@ -744,7 +744,7 @@ pkix_pl_GeneralName_Equals(
                             (PKIX_PL_Object *)secondName->oid,
                             pResult,
                             plContext),
-                            "PKIX_PL_OID_Equals failed");
+                            PKIX_OIDEQUALSFAILED);
                 goto cleanup;
         case certOtherName:
                 PKIX_NULLCHECK_TWO(firstName->OthName, secondName->OthName);
@@ -764,7 +764,7 @@ pkix_pl_GeneralName_Equals(
                             (PKIX_PL_Object *)secondName->directoryName,
                             pResult,
                             plContext),
-                            "PKIX_PL_X500Name_Equals failed");
+                            PKIX_X500NAMEEQUALSFAILED);
                 goto cleanup;
         }
 
@@ -840,7 +840,7 @@ PKIX_PL_GeneralName_Create(
                     (void **)&asciiString,
                     &length,
                     plContext),
-                    "PKIX_PL_String_GetEncoded failed");
+                    PKIX_STRINGGETENCODEDFAILED);
 
         /* Create a temporary CERTGeneralName */
         PKIX_GENERALNAME_DEBUG("\t\tCalling PL_strlen).\n");
@@ -852,12 +852,12 @@ PKIX_PL_GeneralName_Create(
         PKIX_CERT_DEBUG("\t\tCalling PORT_NewArena).\n");
         arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
         if (arena == NULL) {
-                PKIX_ERROR("PORT_NewArena failed");
+                PKIX_ERROR(PKIX_PORTNEWARENAFAILED);
         }
         PKIX_GENERALNAME_DEBUG("\t\tCalling cert_NewGeneralName).\n");
         nssGenName = cert_NewGeneralName(arena, nameType);
         if (nssGenName == NULL) {
-                PKIX_ERROR("Allocate new CERTGeneralName failed");
+                PKIX_ERROR(PKIX_ALLOCATENEWCERTGENERALNAMEFAILED);
         }
 
         switch (nameType) {
@@ -876,7 +876,7 @@ PKIX_PL_GeneralName_Create(
 
                 PKIX_CHECK(PKIX_PL_X500Name_Create
                             (stringRep, &pkixDN, plContext),
-                            "PKIX_PL_X500Name_Create failed");
+                            PKIX_X500NAMECREATEFAILED);
 
                 PKIX_GENERALNAME_DEBUG("\t\tCalling CERT_AsciiToName).\n");
                 nssCertName = CERT_AsciiToName(asciiString);
@@ -886,12 +886,12 @@ PKIX_PL_GeneralName_Create(
         case certRegisterID:
                 PKIX_CHECK(PKIX_PL_OID_Create
                             (asciiString, &pkixOID, plContext),
-                            "PKIX_PL_OID_Create failed");
+                            PKIX_OIDCREATEFAILED);
                 nssGenName->name.other = *secItem;
                 break;
         default:
                 /* including IPAddress, EDIPartyName, OtherName, X400Address */
-                PKIX_ERROR("Unable to create GeneralName of this type");
+                PKIX_ERROR(PKIX_UNABLETOCREATEGENERALNAMEOFTHISTYPE);
         }
 
         /* create a PKIX_PL_GeneralName object */
@@ -900,14 +900,14 @@ PKIX_PL_GeneralName_Create(
                     sizeof (PKIX_PL_GeneralName),
                     (PKIX_PL_Object **)&genName,
                     plContext),
-                    "Could not create object");
+                    PKIX_COULDNOTCREATEOBJECT);
 
         /* create a CERTGeneralNameList */
         nssGenName->type = nameType;
         PKIX_GENERALNAME_DEBUG("\t\tCalling CERT_CreateGeneralNameList).\n");
         nssGenNameList = CERT_CreateGeneralNameList(nssGenName);
         if (nssGenNameList == NULL) {
-                PKIX_ERROR("CERT_CreateGeneralNameList failed");
+                PKIX_ERROR(PKIX_CERTCREATEGENERALNAMELISTFAILED);
         }
         genName->nssGeneralNameList = nssGenNameList;
 

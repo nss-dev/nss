@@ -61,7 +61,7 @@ pkix_pl_Mutex_Destroy(
 
         /* Sanity check: Test that "object" is a mutex */
         PKIX_CHECK(pkix_CheckType(object, PKIX_MUTEX_TYPE, plContext),
-                    "Object is not a Mutex");
+                    PKIX_OBJECTNOTMUTEX);
 
         mutex = (PKIX_PL_Mutex*) object;
 
@@ -128,7 +128,7 @@ PKIX_PL_Mutex_Create(
                     sizeof (PKIX_PL_Mutex),
                     (PKIX_PL_Object **)&mutex,
                     plContext),
-                    "Could not create lock object");
+                    PKIX_COULDNOTCREATELOCKOBJECT);
 
         PKIX_MUTEX_DEBUG("\tCalling PR_NewLock).\n");
         mutex->lock = PR_NewLock();
@@ -186,7 +186,7 @@ PKIX_PL_Mutex_Unlock(
                         (PKIX_UInt32)PR_GetCurrentThread());
 
         if (result == PR_FAILURE) {
-                PKIX_ERROR_FATAL("Error unlocking mutex");
+                PKIX_ERROR_FATAL(PKIX_ERRORUNLOCKINGMUTEX);
         }
 
         PKIX_RETURN(MUTEX);
