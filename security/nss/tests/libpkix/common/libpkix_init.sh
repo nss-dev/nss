@@ -274,7 +274,7 @@ RunTests()
         # of failures and names of failed tests. This assumes that the test
         # uses our utility library for displaying information
 
-        grep "END OF TESTS FOR" ${testOut} | tail -1 | grep "COMPLETED SUCCESSFULLY" >/dev/null 2>&1
+        cat ${testOut} | tail -2 | grep "COMPLETED SUCCESSFULLY" >/dev/null 2>&1
         
         if [ $? -ne 0 ]; then
             testFail=1
