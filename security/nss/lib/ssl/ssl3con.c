@@ -6783,23 +6783,25 @@ ssl3_SendCertificate(sslSocket *ss)
     if (rv != SECSuccess) {
 	return rv; 		/* err set by AppendHandshake. */
     }
-    for (i = 0; i < certChain->len; i++) {
+    if (certChain) {
+        for (i = 0; i < certChain->len; i++) {
 #ifdef NISCC_TEST
-	if (fakeCert.len > 0 && i == ndex) {
-	    rv = ssl3_AppendHandshakeVariable(ss, fakeCert.data, fakeCert.len, 
-	                                      3);
-	    SECITEM_FreeItem(&fakeCert, PR_FALSE);
-	} else {
-	    rv = ssl3_AppendHandshakeVariable(ss, certChain->certs[i].data,
-					      certChain->certs[i].len, 3);
-	}
+            if (fakeCert.len > 0 && i == ndex) {
+                rv = ssl3_AppendHandshakeVariable(ss, fakeCert.data,
+                                                  fakeCert.len, 3);
+                SECITEM_FreeItem(&fakeCert, PR_FALSE);
+            } else {
+                rv = ssl3_AppendHandshakeVariable(ss, certChain->certs[i].data,
+                                                  certChain->certs[i].len, 3);
+            }
 #else
-	rv = ssl3_AppendHandshakeVariable(ss, certChain->certs[i].data,
-					  certChain->certs[i].len, 3);
+            rv = ssl3_AppendHandshakeVariable(ss, certChain->certs[i].data,
+                                              certChain->certs[i].len, 3);
 #endif
-	if (rv != SECSuccess) {
-	    return rv; 		/* err set by AppendHandshake. */
-	}
+            if (rv != SECSuccess) {
+                return rv; 		/* err set by AppendHandshake. */
+            }
+        }
     }
 
     return SECSuccess;
