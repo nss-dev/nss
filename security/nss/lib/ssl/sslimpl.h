@@ -1274,6 +1274,8 @@ extern SECStatus ssl3_CreateRSAStepDownKeys(sslSocket *ss);
 #ifdef NSS_ENABLE_ECC
 extern void      ssl3_FilterECCipherSuitesByServerCerts(sslSocket *ss);
 extern PRBool    ssl3_IsECCEnabled(sslSocket *ss);
+extern SECStatus ssl3_DisableECCSuites(sslSocket * ss, 
+                                       const ssl3CipherSuite * suite);
 #endif /* NSS_ENABLE_ECC */
 
 extern SECStatus ssl3_CipherPrefSetDefault(ssl3CipherSuite which, PRBool on);
