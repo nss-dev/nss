@@ -3507,6 +3507,11 @@ ssl3_SendClientHello(sslSocket *ss)
 	if (total_exten_len > 0)
 	    total_exten_len += 2;
     }
+#ifndef NSS_ECC_MORE_THAN_SUITE_B
+    else { /* SSL3 only */
+    	ssl3_DisableECCSuites(ss, NULL); /* disable all ECC suites */
+    }
+#endif
 
     /* how many suites are permitted by policy and user preference? */
     num_suites = count_cipher_suites(ss, ss->ssl3.policy, PR_TRUE);
