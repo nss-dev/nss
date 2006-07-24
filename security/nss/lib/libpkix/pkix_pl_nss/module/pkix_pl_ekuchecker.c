@@ -388,7 +388,8 @@ PKIX_PL_EkuChecker_Initialize(
         /* Register user type object for EKU Checker State */
         PKIX_CHECK(PKIX_PL_Object_RegisterType
                     (PKIX_EKUCHECKERSTATE_TYPE,
-                    PKIX_EXTENDEDKEYUSAGEUSEROBJECT,
+                    /* PKIX_EXTENDEDKEYUSAGEUSEROBJECT, */
+                    "PKIXEXTENDEDKEYUSAGEUSEROBJECT",
                     pkix_pl_EkuCheckerState_Destroy,
                     NULL,
                     NULL,
