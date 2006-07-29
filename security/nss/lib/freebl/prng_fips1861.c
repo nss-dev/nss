@@ -466,7 +466,7 @@ RNG_RandomUpdate(const void *data, size_t bytes)
 ** Generate some random bytes, using the global random number generator
 ** object.
 */
-SECStatus 
+static SECStatus 
 prng_GenerateGlobalRandomBytes(RNGContext *rng,
                                void *dest, size_t len)
 {
