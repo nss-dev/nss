@@ -580,13 +580,18 @@ makeGlobalSalt(NSSLOWKEYDBHandle *handle)
     DBT saltData;
     unsigned char saltbuf[16];
     int status;
+    SECStatus rv;
     
     saltKey.data = SALT_STRING;
     saltKey.size = sizeof(SALT_STRING) - 1;
 
     saltData.data = (void *)saltbuf;
     saltData.size = sizeof(saltbuf);
-    RNG_GenerateGlobalRandomBytes(saltbuf, sizeof(saltbuf));
+    rv = RNG_GenerateGlobalRandomBytes(saltbuf, sizeof(saltbuf));
+    if ( rv != SECSuccess ) {
+	sftk_fatalError = PR_TRUE;
+	return(rv);
+    }
 
     /* put global salt into the database now */
     status = keydb_Put(handle, &saltKey, &saltData, 0);
@@ -1522,11 +1527,12 @@ seckey_create_rc4_salt(void)
     if(salt->data != NULL)
     {
 	salt->len = SALT_LENGTH;
-	RNG_GenerateGlobalRandomBytes(salt->data, salt->len);
-	rv = SECSuccess;
+	rv = RNG_GenerateGlobalRandomBytes(salt->data, salt->len);
+	if(rv != SECSuccess)
+	    sftk_fatalError = PR_TRUE;
     }
 	
-    if(rv == SECFailure)
+    if(rv != SECSuccess)
     {
 	SECITEM_FreeItem(salt, PR_TRUE);
 	salt = NULL;
