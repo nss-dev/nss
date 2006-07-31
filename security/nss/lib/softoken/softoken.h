@@ -184,6 +184,11 @@ extern PRBool sftk_audit_enabled;
 
 extern void sftk_LogAuditMessage(NSSAuditSeverity severity, const char *msg);
 
+/*
+** FIPS 140-2 Error state
+*/
+extern PRBool sftk_fatalError;
+
 SEC_END_PROTOS
 
 #endif /* _SOFTOKEN_H_ */
