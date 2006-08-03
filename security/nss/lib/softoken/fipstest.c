@@ -1831,6 +1831,19 @@ sftk_fips_RNG_PowerUpSelfTest( void )
    return( CKR_OK ); 
 }
 
+static CK_RV
+sftk_fipsSoftwareIntegrityTest(void)
+{
+    CK_RV crv = CKR_OK;
+
+    /* make sure that our check file signatures are OK */
+    if( !BLAPI_VerifySelf( NULL ) || 
+	!BLAPI_SHVerify( SOFTOKEN_LIB_NAME, (PRFuncPtr) sftk_fips_HMAC ) ) {
+	crv = CKR_DEVICE_ERROR; /* better error code? checksum error? */
+    }
+    return crv;
+}
+
 CK_RV
 sftk_fipsPowerUpSelfTest( void )
 {
@@ -1927,6 +1940,12 @@ sftk_fipsPowerUpSelfTest( void )
     if( rv != CKR_OK )
         return rv;
 #endif
+
+    /* Software/Firmware Integrity Test. */
+    rv = sftk_fipsSoftwareIntegrityTest();
+
+    if( rv != CKR_OK )
+        return rv;
 
     /* Passed Power-Up SelfTest(s). */
     return( CKR_OK );
