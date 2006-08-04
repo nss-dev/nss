@@ -1537,6 +1537,9 @@ sftk_GenerateSecretCKA_ID(NSSLOWKEYDBHandle *handle, SECItem *id, char *label)
 				(++retries <= SFTK_KEY_MAX_RETRIES));
 
     if ((rv != SECSuccess) || (retries > SFTK_KEY_MAX_RETRIES)) {
+	if (rv != SECSuccess) {
+	    sftk_fatalError = PR_TRUE;
+	}
 	crv = CKR_DEVICE_ERROR; /* random number generator is bad */
 	PORT_Free(id->data);
 	id->data = NULL;

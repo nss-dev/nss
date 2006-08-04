@@ -955,6 +955,8 @@ static const ssl3CipherSuite ecSuites[] = {
 SECStatus
 ssl3_DisableECCSuites(sslSocket * ss, const ssl3CipherSuite * suite)
 {
+    if (!suite)
+    	suite = ecSuites;
     for (; *suite; ++suite) {
 	SECStatus rv      = ssl3_CipherPrefSet(ss, *suite, PR_FALSE);
 

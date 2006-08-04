@@ -854,6 +854,7 @@ ocsp_AddServiceLocatorExtension(ocspSingleRequest *singleRequest,
 
     /* prepare for following loser gotos */
     rv = SECFailure;
+    PORT_SetError(0);
 
     extensionHandle = cert_StartExtensions(singleRequest,
                        singleRequest->arena, SetSingleReqExts);
@@ -2442,6 +2443,7 @@ ocsp_CertIsOCSPSigner(CERTCertificate *cert)
 
 loser:
     retval = PR_FALSE;
+    PORT_SetError(SEC_ERROR_OCSP_INVALID_SIGNING_CERT);
     goto done;
 success:
     retval = PR_TRUE;
@@ -2627,7 +2629,7 @@ ocsp_CheckSignature(ocspSignature *signature, void *tbs,
 	rv = SECFailure;
 	if (PORT_GetError() == SEC_ERROR_UNKNOWN_CERT) {
 	    /* Make the error a little more specific. */
-	    PORT_SetError(SEC_ERROR_UNKNOWN_SIGNER);
+	    PORT_SetError(SEC_ERROR_OCSP_INVALID_SIGNING_CERT);
 	}
 	goto finish;
     }
@@ -3199,7 +3201,7 @@ ocsp_VerifySingleResponse(CERTOCSPSingleResponse *single,
  *   char *
  *     A copy of the URI for the OCSP method, if found.  If either the
  *     extension is not present or it does not contain an entry for OCSP,
- *     SEC_ERROR_EXTENSION_NOT_FOUND will be set and a NULL returned.
+ *     SEC_ERROR_CERT_BAD_ACCESS_LOCATION will be set and a NULL returned.
  *     Any other error will also result in a NULL being returned.
  *     
  *     This result should be freed (via PORT_Free) when no longer in use.
@@ -3227,8 +3229,10 @@ CERT_GetOCSPAuthorityInfoAccessLocation(CERTCertificate *cert)
 
     rv = CERT_FindCertExtension(cert, SEC_OID_X509_AUTH_INFO_ACCESS,
 				encodedAuthInfoAccess);
-    if (rv == SECFailure)
+    if (rv == SECFailure) {
+	PORT_SetError(SEC_ERROR_CERT_BAD_ACCESS_LOCATION);
 	goto loser;
+    }
 
     /*
      * The rest of the things allocated in the routine will come out of
@@ -3258,7 +3262,7 @@ CERT_GetOCSPAuthorityInfoAccessLocation(CERTCertificate *cert)
      * not there at all.
      */
     if (locname == NULL) {
-	PORT_SetError(SEC_ERROR_EXTENSION_NOT_FOUND);
+	PORT_SetError(SEC_ERROR_CERT_BAD_ACCESS_LOCATION);
 	goto loser;
     }
 
@@ -3275,7 +3279,7 @@ CERT_GetOCSPAuthorityInfoAccessLocation(CERTCertificate *cert)
 	 * this should probably be something more like the extension was
 	 * badly formed.
 	 */
-	PORT_SetError(SEC_ERROR_EXTENSION_NOT_FOUND);
+	PORT_SetError(SEC_ERROR_CERT_BAD_ACCESS_LOCATION);
 	goto loser;
     }
 
@@ -3481,10 +3485,13 @@ CERT_CheckOCSPStatus(CERTCertDBHandle *handle, CERTCertificate *cert,
      */
     location = ocsp_GetResponderLocation(handle, cert, &locationIsDefault);
     if (location == NULL) {
-	if (PORT_GetError() == SEC_ERROR_EXTENSION_NOT_FOUND)
+	int err = PORT_GetError();
+	if (err == SEC_ERROR_EXTENSION_NOT_FOUND ||
+	    err == SEC_ERROR_CERT_BAD_ACCESS_LOCATION) {
+	    PORT_SetError(0);
 	    return SECSuccess;
-	else
-	    return SECFailure;
+	}
+	return SECFailure;
     }
 
     /*

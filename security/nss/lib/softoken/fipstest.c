@@ -117,6 +117,9 @@ EC_CopyParams(PRArenaPool *arena, ECParams *dstParams,
 #define FIPS_DSA_PRIME_LENGTH                   64  /* 512-bits */
 #define FIPS_DSA_BASE_LENGTH                    64  /* 512-bits */
 
+/* FIPS preprocessor directives for RNG.                        */
+#define FIPS_RNG_XKEY_LENGTH                    32  /* 512-bits */
+
 static CK_RV
 sftk_fips_RC2_PowerUpSelfTest( void )
 {
@@ -1767,6 +1770,66 @@ sftk_fips_DSA_PowerUpSelfTest( void )
 
 }
 
+static CK_RV
+sftk_fips_RNG_PowerUpSelfTest( void )
+{
+   static const PRUint8 XKeyValue[] = {
+                     0x8d,0xf2,0xa4,0x94,0x49,0x22,0x76,0xaa,
+                     0x3d,0x25,0x75,0x9b,0xb0,0x68,0x69,0xcb,
+                     0xea,0xc0,0xd8,0x3a,0xfb,0x8d,0x0c,0xf7,
+                     0xcb,0xb8,0x32,0x4f,0x0d,0x78,0x82,0xe5};
+   static const PRUint8 XSeed[] = {
+                     0xea,0xc0,0xd8,0x3a,0xfb,0x8d,0x0c,0xf7,
+                     0xcb,0xb8,0x32,0x4f,0x0d,0x78,0x82,0xe5,
+                     0xd0,0x76,0x2f,0xc5,0xb7,0x21,0x0e,0xaf,
+                     0xc2,0xe9,0xad,0xac,0x32,0xab,0x7a,0xac};
+   static const PRUint8 Q[] = {   
+                     0x85,0x89,0x9c,0x77,0xa3,0x79,0xff,0x1a,
+                     0x86,0x6f,0x2f,0x3e,0x2e,0xf9,0x8c,0x9c,
+                     0x9d,0xef,0xeb,0xed};
+   static const PRUint8 rng_known_GENX[] = {
+                     0x65,0x48,0xe3,0xca,0xac,0x64,0x2d,0xf7,
+                     0x7b,0xd3,0x4e,0x79,0xc9,0x7d,0xa6,0xa8,
+                     0xa2,0xc2,0x1f,0x8f,0xe9,0xb9,0xd3,0xa1,
+                     0x3f,0xf7,0x0c,0xcd,0xa6,0xca,0xbf,0xce,
+                     0x84,0x0e,0xb6,0xf1,0x0d,0xbe,0xa9,0xa3};
+   static const PRUint8 rng_known_DSAX[] = {
+                     0x7a,0x86,0xf1,0x7f,0xbd,0x4e,0x6e,0xd9,
+                     0x0a,0x26,0x21,0xd0,0x19,0xcb,0x86,0x73,
+                     0x10,0x1f,0x60,0xd7};
+
+   SECStatus rng_status = SECSuccess;
+   PRUint8 GENX[2*SHA1_LENGTH];
+   PRUint8 DSAX[FIPS_DSA_SUBPRIME_LENGTH];
+   PRUint8 XKey[FIPS_RNG_XKEY_LENGTH];
+  
+   PORT_Memcpy (XKey, XKeyValue, FIPS_RNG_XKEY_LENGTH);
+   
+   /*******************************************/
+   /* Generate X with a known seed.           */
+   /*******************************************/
+   rng_status = FIPS186Change_GenerateX(XKey, XSeed, GENX);
+
+   /* Verify GENX to perform the RNG integrity check */
+   if( ( rng_status != SECSuccess ) ||
+       ( PORT_Memcmp( GENX, rng_known_GENX,
+                      (2*SHA1_LENGTH) ) != 0 ) )
+       return( CKR_DEVICE_ERROR );
+
+   /*******************************************/
+   /* Generate DSAX fow given Q.              */
+   /*******************************************/
+
+   rng_status = FIPS186Change_ReduceModQForDSA(GENX, Q, DSAX);
+
+   /* Verify DSAX to perform the RNG integrity check */
+   if( ( rng_status != SECSuccess ) ||
+       ( PORT_Memcmp( DSAX, rng_known_DSAX,
+                      (FIPS_DSA_SUBPRIME_LENGTH) ) != 0 ) )
+       return( CKR_DEVICE_ERROR );
+       
+   return( CKR_OK ); 
+}
 
 CK_RV
 sftk_fipsPowerUpSelfTest( void )
@@ -1847,6 +1910,12 @@ sftk_fipsPowerUpSelfTest( void )
 
     /* DSA Power-Up SelfTest(s). */
     rv = sftk_fips_DSA_PowerUpSelfTest();
+
+    if( rv != CKR_OK )
+        return rv;
+
+    /* RNG Power-Up SelfTest(s). */
+    rv = sftk_fips_RNG_PowerUpSelfTest();
 
     if( rv != CKR_OK )
         return rv;

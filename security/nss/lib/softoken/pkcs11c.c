@@ -1666,6 +1666,9 @@ nsc_DSA_Sign_Stub(void *ctx, void *sigBuf,
     digest.data = (unsigned char *)dataBuf;
     digest.len = dataLen;
     rv = DSA_SignDigest(&(key->u.dsa), &signature, &digest);
+    if (rv != SECSuccess && PORT_GetError() == SEC_ERROR_LIBRARY_FAILURE) {
+	sftk_fatalError = PR_TRUE;
+    }
     *sigLen = signature.len;
     return rv;
 }
@@ -1699,6 +1702,9 @@ nsc_ECDSASignStub(void *ctx, void *sigBuf,
     digest.data = (unsigned char *)dataBuf;
     digest.len = dataLen;
     rv = ECDSA_SignDigest(&(key->u.ec), &signature, &digest);
+    if (rv != SECSuccess && PORT_GetError() == SEC_ERROR_LIBRARY_FAILURE) {
+	sftk_fatalError = PR_TRUE;
+    }
     *sigLen = signature.len;
     return rv;
 }
@@ -2604,6 +2610,9 @@ nsc_parameter_gen(CK_KEY_TYPE key_type, SFTKObject *key)
     }
 
     if (rv != SECSuccess) {
+	if (PORT_GetError() == SEC_ERROR_LIBRARY_FAILURE) {
+	    sftk_fatalError = PR_TRUE;
+	}
 	return CKR_DEVICE_ERROR;
     }
     crv = sftk_AddAttributeType(key,CKA_PRIME,
@@ -3432,6 +3441,9 @@ CK_RV NSC_GenerateKeyPair (CK_SESSION_HANDLE hSession,
 	rsaPriv = RSA_NewKey(public_modulus_bits, &pubExp);
 	PORT_Free(pubExp.data);
 	if (rsaPriv == NULL) {
+	    if (PORT_GetError() == SEC_ERROR_LIBRARY_FAILURE) {
+		sftk_fatalError = PR_TRUE;
+	    }
 	    crv = CKR_DEVICE_ERROR;
 	    break;
 	}
@@ -3548,7 +3560,13 @@ kpg_done:
 	PORT_Free(pqgParam.subPrime.data);
 	PORT_Free(pqgParam.base.data);
 
-	if (rv != SECSuccess) { crv = CKR_DEVICE_ERROR; break; }
+	if (rv != SECSuccess) {
+	    if (PORT_GetError() == SEC_ERROR_LIBRARY_FAILURE) {
+		sftk_fatalError = PR_TRUE;
+	    }
+	    crv = CKR_DEVICE_ERROR;
+	    break;
+	}
 
 	/* store the generated key into the attributes */
         crv = sftk_AddAttributeType(publicKey,CKA_VALUE,
@@ -3616,6 +3634,9 @@ dsagn_done:
 	PORT_Free(dhParam.prime.data);
 	PORT_Free(dhParam.base.data);
 	if (rv != SECSuccess) { 
+	    if (PORT_GetError() == SEC_ERROR_LIBRARY_FAILURE) {
+		sftk_fatalError = PR_TRUE;
+	    }
 	    crv = CKR_DEVICE_ERROR;
 	    break;
 	}
@@ -3665,8 +3686,11 @@ dhgn_done:
 	rv = EC_NewKey(ecParams, &ecPriv);
 	PORT_FreeArena(ecParams->arena, PR_TRUE);
 	if (rv != SECSuccess) { 
-	  crv = CKR_DEVICE_ERROR;
-	  break;
+	    if (PORT_GetError() == SEC_ERROR_LIBRARY_FAILURE) {
+		sftk_fatalError = PR_TRUE;
+	    }
+	    crv = CKR_DEVICE_ERROR;
+	    break;
 	}
 
 	crv = sftk_AddAttributeType(publicKey, CKA_EC_POINT, 
@@ -4790,15 +4814,16 @@ CK_RV NSC_DeriveKey( CK_SESSION_HANDLE hSession,
 
         if (isTLS) {
 	    SECStatus status;
- 	    SECItem crsr   = { siBuffer, crsrdata, sizeof crsrdata };
- 	    SECItem master = { siBuffer, key_block, SSL3_MASTER_SECRET_LENGTH};
- 	    SECItem pms    = { siBuffer };
+ 	    SECItem crsr   = { siBuffer, NULL, 0 };
+ 	    SECItem master = { siBuffer, NULL, 0 };
+ 	    SECItem pms    = { siBuffer, NULL, 0 };
 
-	    /* HPUX won't let a structure member be initialized with the 
-	     * value of a variable, but the address of a local variable. :-/
-	     */
- 	    pms.data = (unsigned char*)att->attrib.pValue;
-	    pms.len  =                 att->attrib.ulValueLen;
+ 	    crsr.data   = crsrdata;
+	    crsr.len    = sizeof crsrdata;
+ 	    master.data = key_block;
+	    master.len  = SSL3_MASTER_SECRET_LENGTH;
+ 	    pms.data    = (unsigned char*)att->attrib.pValue;
+	    pms.len     =                 att->attrib.ulValueLen;
 
 	    status = TLS_PRF(&pms, "master secret", &crsr, &master, isFIPS);
 	    if (status != SECSuccess) {
@@ -4939,10 +4964,13 @@ CK_RV NSC_DeriveKey( CK_SESSION_HANDLE hSession,
 	 */
 	if (isTLS) {
 	    SECStatus     status;
-	    SECItem       srcr   = { siBuffer, srcrdata, sizeof srcrdata };
-	    SECItem       keyblk = { siBuffer, key_block };
-	    SECItem       master = { siBuffer }; 
+	    SECItem       srcr   = { siBuffer, NULL, 0 };
+	    SECItem       keyblk = { siBuffer, NULL, 0 };
+	    SECItem       master = { siBuffer, NULL, 0 }; 
 
+	    srcr.data   = srcrdata;
+	    srcr.len    = sizeof srcrdata;
+	    keyblk.data = key_block;
 	    keyblk.len  = block_needed;
 	    master.data = (unsigned char*)att->attrib.pValue;
 	    master.len  =                 att->attrib.ulValueLen;
@@ -5109,7 +5137,7 @@ CK_RV NSC_DeriveKey( CK_SESSION_HANDLE hSession,
 		*/
 		SECStatus     status;
 		SECItem       secret = { siBuffer, NULL, 0 };
-		SECItem       crsr   = { siBuffer, crsrdata, sizeof crsrdata };
+		SECItem       crsr   = { siBuffer, NULL, 0 };
 		SECItem       keyblk = { siBuffer, NULL, 0 };
 
 		/*
@@ -5121,6 +5149,8 @@ CK_RV NSC_DeriveKey( CK_SESSION_HANDLE hSession,
 		secret.data = &key_block[i];
 		secret.len  = effKeySize;
 		i          += effKeySize;
+		crsr.data   = crsrdata;
+		crsr.len    = sizeof crsrdata;
 		keyblk.data = key_block2;
 		keyblk.len  = sizeof key_block2;
 		status = TLS_PRF(&secret, "client write key", &crsr, &keyblk,
