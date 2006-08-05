@@ -367,6 +367,8 @@ ssl3_SendECDHClientKeyExchange(sslSocket * ss, SECKEYPublicKey * svrPubKey)
 			    CKD_NULL, NULL, NULL);
 
     if (pms == NULL) {
+	SSL3AlertDescription desc  = illegal_parameter;
+	(void)SSL3_SendAlert(ss, alert_fatal, desc);
 	ssl_MapLowLevelError(SSL_ERROR_CLIENT_KEY_EXCHANGE_FAILURE);
 	goto loser;
     }
