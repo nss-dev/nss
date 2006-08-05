@@ -206,6 +206,7 @@ static NSSCMSMessage *
 decode(FILE *out, SECItem *input, const struct decodeOptionsStr *decodeOptions)
 {
     NSSCMSDecoderContext *dcx;
+    SECStatus rv;
     NSSCMSMessage *cmsg;
     int nlevels, i;
     SECItem sitem = { 0, 0, 0 };
@@ -216,7 +217,16 @@ decode(FILE *out, SECItem *input, const struct decodeOptionsStr *decodeOptions)
                                pwcb, pwcb_arg,     /* password callback    */
 			       decodeOptions->dkcb, /* decrypt key callback */
                                decodeOptions->bulkkey);
-    (void)NSS_CMSDecoder_Update(dcx, (char *)input->data, input->len);
+    if (dcx == NULL) {
+	fprintf(stderr, "%s: failed to set up message decoder.\n", progName);
+	return NULL;
+    }
+    rv = NSS_CMSDecoder_Update(dcx, (char *)input->data, input->len);
+    if (rv != SECSuccess) {
+	fprintf(stderr, "%s: failed to decode message.\n", progName);
+	NSS_CMSDecoder_Cancel(dcx);
+	return NULL;
+    }
     cmsg = NSS_CMSDecoder_Finish(dcx);
     if (cmsg == NULL) {
 	fprintf(stderr, "%s: failed to decode message.\n", progName);
