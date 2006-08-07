@@ -1292,7 +1292,7 @@ ocsp_FinishDecodingSingleResponses(PRArenaPool *reqArena,
 
     if (!reqArena) {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
-        return NULL;
+        return SECFailure;
     }
 
     if (responses == NULL)			/* nothing to do */
