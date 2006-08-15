@@ -180,7 +180,7 @@ SGN_DecodeDigestInfo(SECItem *didata)
 	
     if((di == NULL) || (rv != SECSuccess))
     {
-	PORT_FreeArena(arena, PR_TRUE);
+	PORT_FreeArena(arena, PR_FALSE);
 	di = NULL;
     }
 
