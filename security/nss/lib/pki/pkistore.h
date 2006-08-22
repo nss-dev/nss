@@ -81,11 +81,14 @@ nssCertificateStore_Destroy
   nssCertificateStore *store
 );
 
-NSS_EXTERN PRStatus
-nssCertificateStore_Add
+/* Atomic Find cert in store, or add this cert to the store.
+** Ref counts properly maintained.
+*/
+NSS_EXTERN NSSCertificate *
+nssCertificateStore_FindOrAdd 
 (
   nssCertificateStore *store,
-  NSSCertificate *cert
+  NSSCertificate *c
 );
 
 NSS_EXTERN void
