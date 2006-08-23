@@ -1222,7 +1222,7 @@ nssTrustDomain_FindTrustForCertificate (
 	                                      nssTokenSearchType_TokenOnly);
 	    if (to) {
 		if (!pkio) {
-		    pkio = nssPKIObject_Create(NULL, to, td, NULL);
+		    pkio = nssPKIObject_Create(NULL, to, td, NULL, nssPKILock);
 		    if (!pkio) {
 			nssToken_Destroy(token);
 			nssCryptokiObject_Destroy(to);

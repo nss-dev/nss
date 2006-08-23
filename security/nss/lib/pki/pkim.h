@@ -72,6 +72,12 @@ PR_BEGIN_EXTERN_C
  * nssPKIObject_DeleteStoredObject
  */
 
+NSS_EXTERN void     nssPKIObject_Lock       (nssPKIObject * object);
+NSS_EXTERN void     nssPKIObject_Unlock     (nssPKIObject * object);
+NSS_EXTERN PRStatus nssPKIObject_NewLock    (nssPKIObject * object,
+                                             nssPKILockType lockType);
+NSS_EXTERN void     nssPKIObject_DestroyLock(nssPKIObject * object);
+
 /* nssPKIObject_Create
  *
  * A generic PKI object.  It must live in a trust domain.  It may be
@@ -83,7 +89,8 @@ nssPKIObject_Create
   NSSArena *arenaOpt,
   nssCryptokiObject *instanceOpt,
   NSSTrustDomain *td,
-  NSSCryptoContext *ccOpt
+  NSSCryptoContext *ccOpt,
+  nssPKILockType lockType
 );
 
 /* nssPKIObject_AddRef
