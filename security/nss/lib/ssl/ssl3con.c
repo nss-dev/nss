@@ -4102,6 +4102,19 @@ sendRSAClientKeyExchange(sslSocket * ss, SECKEYPublicKey * svrPubKey)
 	goto loser;
     }
 
+#if defined(TRACE)
+    if (ssl_trace >= 100) {
+	SECStatus extractRV = PK11_ExtractKeyValue(pms);
+	if (extractRV == SECSuccess) {
+	    SECItem * keyData = PK11_GetKeyData(pms);
+	    if (keyData && keyData->data && keyData->len) {
+		ssl_PrintBuf(ss, "Pre-Master Secret", 
+			     keyData->data, keyData->len);
+	    }
+    	}
+    }
+#endif
+
     /* Get the wrapped (encrypted) pre-master secret, enc_pms */
     enc_pms.len  = SECKEY_PublicKeyStrength(svrPubKey);
     enc_pms.data = (unsigned char*)PORT_Alloc(enc_pms.len);
