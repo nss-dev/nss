@@ -125,7 +125,7 @@ static const SEC_ASN1Template smime_encryptionkeypref_template[] = {
           | SEC_ASN1_CONSTRUCTED,
 	  offsetof(NSSSMIMEEncryptionKeyPreference,id.recipientKeyID),
 	  NSSCMSRecipientKeyIdentifierTemplate,
-	  NSSSMIMEEncryptionKeyPref_IssuerSN },
+	  NSSSMIMEEncryptionKeyPref_RKeyID },
     { SEC_ASN1_POINTER | SEC_ASN1_CONTEXT_SPECIFIC | SEC_ASN1_XTRN | 2
           | SEC_ASN1_CONSTRUCTED,
 	  offsetof(NSSSMIMEEncryptionKeyPreference,id.subjectKeyID),
