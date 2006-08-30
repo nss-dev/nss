@@ -1201,6 +1201,9 @@ nssTrustDomain_TraverseCertificatesBySubject (
     NSSCertificate *c;
     PRIntn i;
     tmpArena = NSSArena_Create();
+    if (!tmpArena) {
+        return PR_FAILURE;
+    }
     subjectCerts = NSSTrustDomain_FindCertificatesBySubject(td, subject, NULL,
                                                             0, tmpArena);
     if (subjectCerts) {
@@ -1228,6 +1231,9 @@ nssTrustDomain_TraverseCertificatesByNickname (
     NSSCertificate *c;
     PRIntn i;
     tmpArena = NSSArena_Create();
+    if (!tmpArena) {
+        return PR_FAILURE;
+    }
     nickCerts = NSSTrustDomain_FindCertificatesByNickname(td, nickname, NULL,
                                                           0, tmpArena);
     if (nickCerts) {
