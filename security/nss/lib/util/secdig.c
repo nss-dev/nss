@@ -166,20 +166,25 @@ SGN_DecodeDigestInfo(SECItem *didata)
     PRArenaPool *arena;
     SGNDigestInfo *di;
     SECStatus rv = SECFailure;
+    SECItem      diCopy   = {siBuffer, NULL, 0};
 
     arena = PORT_NewArena(SEC_ASN1_DEFAULT_ARENA_SIZE);
     if(arena == NULL)
 	return NULL;
 
+    rv = SECITEM_CopyItem(arena, &diCopy, didata);
+    if (rv != SECSuccess) {
+	PORT_FreeArena(arena, PR_FALSE);
+    	return NULL;
+    }
+
     di = (SGNDigestInfo *)PORT_ArenaZAlloc(arena, sizeof(SGNDigestInfo));
-    if(di != NULL)
-    {
+    if (di != NULL) {
 	di->arena = arena;
-	rv = SEC_ASN1DecodeItem(arena, di, sgn_DigestInfoTemplate, didata);
+	rv = SEC_QuickDERDecodeItem(arena, di, sgn_DigestInfoTemplate, &diCopy);
     }
 	
-    if((di == NULL) || (rv != SECSuccess))
-    {
+    if ((di == NULL) || (rv != SECSuccess)) {
 	PORT_FreeArena(arena, PR_FALSE);
 	di = NULL;
     }
