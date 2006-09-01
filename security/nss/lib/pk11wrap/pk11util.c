@@ -1060,6 +1060,13 @@ SECMOD_WaitForAnyTokenEvent(SECMODModule *mod, unsigned long flags,
     CK_RV crv;
     PK11SlotInfo *slot;
 
+    if ((mod->cryptokiVersion.major == 2) &&
+        (mod->cryptokiVersion.minor < 1)) {
+	/* if the module is version 2.0,
+         * C_WaitForSlotEvent() doesn't exist */
+	return secmod_HandleWaitForSlotEvent(mod, flags, latency);
+    }
+
     /* first the the PKCS #11 call */
     PZ_Lock(mod->refLock);
     if (mod->evControlMask & SECMOD_END_WAIT) {

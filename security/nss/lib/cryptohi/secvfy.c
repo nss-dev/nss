@@ -83,7 +83,7 @@ DecryptSigBlock(SECOidTag *tagp, unsigned char *digest, SECKEYPublicKey *key,
     */
     tag = SECOID_GetAlgorithmTag(&di->digestAlgorithm);
     /* XXX Check that tag is an appropriate algorithm? */
-    if (di->digest.len > 32) {
+    if (di->digest.len > HASH_LENGTH_MAX) {
 	PORT_SetError(SEC_ERROR_OUTPUT_LEN);
 	goto loser;
     }
@@ -110,8 +110,11 @@ struct VFYContextStr {
     SECOidTag alg;
     VerifyType type;
     SECKEYPublicKey *key;
-    /* digest holds the full dsa signature... 40 bytes */
-    unsigned char digest[DSA_SIGNATURE_LEN];
+    /*
+     * digest holds either the hash (<= HASH_LENGTH_MAX=64 bytes)
+     * in the RSA signature, or the full DSA signature (40 bytes).
+     */
+    unsigned char digest[HASH_LENGTH_MAX];
     void * wincx;
     void *hashcx;
     const SECHashObject *hashobj;
@@ -350,7 +353,7 @@ VFY_Update(VFYContext *cx, unsigned char *input, unsigned inputLen)
 SECStatus
 VFY_EndWithSignature(VFYContext *cx, SECItem *sig)
 {
-    unsigned char final[32];
+    unsigned char final[HASH_LENGTH_MAX];
     unsigned part;
     SECItem hash,dsasig; /* dsasig is also used for ECDSA */
     SECStatus rv;
