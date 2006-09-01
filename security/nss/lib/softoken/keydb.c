@@ -1425,50 +1425,6 @@ nsslowkey_DeriveKeyDBPassword(NSSLOWKEYDBHandle *keydb, char *pw)
     return nsslowkey_HashPassword(pw, keydb->global_salt);
 }
 
-#if 0
-/* Appears obsolete - TNH */
-/* get the algorithm with which a private key
- * is encrypted.
- */
-SECOidTag 
-seckey_get_private_key_algorithm(NSSLOWKEYDBHandle *keydb, DBT *index)   
-{
-    NSSLOWKEYDBKey *dbkey = NULL;
-    SECOidTag algorithm = SEC_OID_UNKNOWN;
-    NSSLOWKEYEncryptedPrivateKeyInfo *epki = NULL;
-    PLArenaPool *poolp = NULL;
-    SECStatus rv;
-
-    poolp = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
-    if(poolp == NULL)
-	return (SECOidTag)SECFailure;  /* TNH - this is bad */
-
-    dbkey = get_dbkey(keydb, index);
-    if(dbkey == NULL)
-	return (SECOidTag)SECFailure;
-
-    epki = (NSSLOWKEYEncryptedPrivateKeyInfo *)PORT_ArenaZAlloc(poolp, 
-	sizeof(NSSLOWKEYEncryptedPrivateKeyInfo));
-    if(epki == NULL)
-	goto loser;
-    rv = SEC_ASN1DecodeItem(poolp, epki, 
-	nsslowkey_EncryptedPrivateKeyInfoTemplate, &dbkey->derPK);
-    if(rv == SECFailure)
-	goto loser;
-
-    algorithm = SECOID_GetAlgorithmTag(&epki->algorithm);
-
-    /* let success fall through */
-loser:
-    if(poolp != NULL)
-	PORT_FreeArena(poolp, PR_TRUE);\
-    if(dbkey != NULL)
-	sec_destroy_dbkey(dbkey);
-
-    return algorithm;
-}
-#endif
-	
 /*
  * Derive an RC4 key from a password key and a salt.  This
  * was the method to used to encrypt keys in the version 2?
@@ -1813,7 +1769,7 @@ seckey_put_private_key(NSSLOWKEYDBHandle *keydb, DBT *index, SECItem *pwitem,
 {
     NSSLOWKEYDBKey *dbkey = NULL;
     NSSLOWKEYEncryptedPrivateKeyInfo *epki = NULL;
-    PLArenaPool *temparena = NULL, *permarena = NULL;
+    PLArenaPool  *arena = NULL;
     SECItem *dummy = NULL;
     SECItem *salt = NULL;
     SECStatus rv = SECFailure;
@@ -1822,14 +1778,14 @@ seckey_put_private_key(NSSLOWKEYDBHandle *keydb, DBT *index, SECItem *pwitem,
 	(pk == NULL))
 	return SECFailure;
 	
-    permarena = PORT_NewArena(SEC_ASN1_DEFAULT_ARENA_SIZE);
-    if(permarena == NULL)
+    arena = PORT_NewArena(SEC_ASN1_DEFAULT_ARENA_SIZE);
+    if(arena == NULL)
 	return SECFailure;
 
-    dbkey = (NSSLOWKEYDBKey *)PORT_ArenaZAlloc(permarena, sizeof(NSSLOWKEYDBKey));
+    dbkey = (NSSLOWKEYDBKey *)PORT_ArenaZAlloc(arena, sizeof(NSSLOWKEYDBKey));
     if(dbkey == NULL)
 	goto loser;
-    dbkey->arena = permarena;
+    dbkey->arena = arena;
     dbkey->nickname = nickname;
 
     /* TNH - for RC4, the salt should be created here */
@@ -1837,15 +1793,14 @@ seckey_put_private_key(NSSLOWKEYDBHandle *keydb, DBT *index, SECItem *pwitem,
     epki = seckey_encrypt_private_key(pk, pwitem, keydb, algorithm, &salt);
     if(epki == NULL)
 	goto loser;
-    temparena = epki->arena;
 
     if(salt != NULL)
     {
-	rv = SECITEM_CopyItem(permarena, &(dbkey->salt), salt);
+	rv = SECITEM_CopyItem(arena, &(dbkey->salt), salt);
 	SECITEM_ZfreeItem(salt, PR_TRUE);
     }
 
-    dummy = SEC_ASN1EncodeItem(permarena, &(dbkey->derPK), epki, 
+    dummy = SEC_ASN1EncodeItem(arena, &(dbkey->derPK), epki, 
 	nsslowkey_EncryptedPrivateKeyInfoTemplate);
     if(dummy == NULL)
 	rv = SECFailure;
@@ -1854,11 +1809,10 @@ seckey_put_private_key(NSSLOWKEYDBHandle *keydb, DBT *index, SECItem *pwitem,
 
     /* let success fall through */
 loser:
-    if(rv != SECSuccess)
-	if(permarena != NULL)
-	    PORT_FreeArena(permarena, PR_TRUE);
-    if(temparena != NULL)
-	PORT_FreeArena(temparena, PR_TRUE);
+    if(arena != NULL)
+        PORT_FreeArena(arena, PR_TRUE);
+    if(epki != NULL)
+        PORT_FreeArena(epki->arena, PR_TRUE);
 
     return rv;
 }
