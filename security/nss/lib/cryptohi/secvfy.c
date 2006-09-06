@@ -82,7 +82,14 @@ DecryptSigBlock(SECOidTag *tagp, unsigned char *digest, SECKEYPublicKey *key,
     ** ID and the signature block
     */
     tag = SECOID_GetAlgorithmTag(&di->digestAlgorithm);
-    /* XXX Check that tag is an appropriate algorithm? */
+    /* Check that tag is an appropriate algorithm */
+    if (tag == SEC_OID_UNKNOWN) {
+       goto sigloser;
+    }
+    /* make sure the "parameters" are not too bogus. */
+    if (di->digestAlgorithm.parameters.len > 2) {
+       goto sigloser;
+    }
     if (di->digest.len > HASH_LENGTH_MAX) {
 	PORT_SetError(SEC_ERROR_OUTPUT_LEN);
 	goto loser;
