@@ -360,13 +360,16 @@ ssl_stress()
 
   while read ectype value sparam cparam testname
   do
+      if [ -z "$ectype" ]; then
+          continue
+      fi
       p=`echo "$testname" | sed -e "s/Stress //" -e "s/ .*//"`   #sonmi, only run extended test on SSL3 and TLS
       if [ "$p" = "SSL2" -a "$NORM_EXT" = "Extended Test" ] ; then
           echo "$SCRIPTNAME: skipping  $testname for $NORM_EXT"
       elif [ "$ectype" = "ECC" -a  -z "$NSS_ENABLE_ECC" ] ; then
           echo "$SCRIPTNAME: skipping  $testname (ECC only)"
       elif [ "$ectype" != "#" ]; then
-          cparam=`echo $cparam | sed -e 's;_; ;g'`
+          cparam=`echo $cparam | sed -e 's;_; ;g' -e "s/TestUser/$USER_NICKNAME/g" `
 
 # This test needs the mixed cert 
 # Stress TLS ECDH-RSA AES 128 CBC with SHA (no reuse)
