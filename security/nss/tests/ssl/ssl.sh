@@ -221,7 +221,6 @@ start_selfserv()
   echo "selfserv starting at `date`"
   echo "selfserv -D -p ${PORT} -d ${P_R_SERVERDIR} -n ${HOSTADDR} ${SERVER_OPTIONS} \\"
   echo "         ${ECC_OPTIONS} -w nss ${sparam} -i ${R_SERVERPID} $verbose &"
-  echo "selfserv started at `date`"
   if [ ${fileout} -eq 1 ]; then
       selfserv -D -p ${PORT} -d ${P_R_SERVERDIR} -n ${HOSTADDR} ${SERVER_OPTIONS} \
                ${ECC_OPTIONS} -w nss ${sparam} -i ${R_SERVERPID} $verbose \
