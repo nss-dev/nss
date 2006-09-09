@@ -379,6 +379,7 @@ ssl_stress()
   while read ectype value sparam cparam testname
   do
       if [ -z "$ectype" ]; then
+          # silently ignore blank lines
           continue
       fi
       p=`echo "$testname" | sed -e "s/Stress //" -e "s/ .*//"`   #sonmi, only run extended test on SSL3 and TLS
@@ -389,9 +390,11 @@ ssl_stress()
       elif [ "$ectype" != "#" ]; then
           cparam=`echo $cparam | sed -e 's;_; ;g' -e "s/TestUser/$USER_NICKNAME/g" `
 
-# This test needs the mixed cert 
+# These tests need the mixed cert 
 # Stress TLS ECDH-RSA AES 128 CBC with SHA (no reuse)
-          if [ "${sparam}" = "-c_:C00E" ]; then
+# Stress TLS ECDH-RSA AES 128 CBC with SHA (no reuse, client auth)
+          p=`echo "$sparam" | sed -e "s/\(.*\)\(-c_:C0..\)\(.*\)/\2/"`;
+          if [ "$p" = "-c_:C00E" ]; then
               start_selfserv mixed
           else
               start_selfserv
