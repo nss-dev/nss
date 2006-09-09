@@ -54,11 +54,12 @@
 ** Decrypt signature block using public key
 ** Store the hash algorithm oid tag in *tagp
 ** Store the digest in the digest buffer
+** Store the digest length in *digestlen
 ** XXX this is assuming that the signature algorithm has WITH_RSA_ENCRYPTION
 */
 static SECStatus
 DecryptSigBlock(SECOidTag *tagp, unsigned char *digest,
-	        unsigned int *digestlen, unsigned int len,
+		unsigned int *digestlen, unsigned int maxdigestlen,
 		SECKEYPublicKey *key, const SECItem *sig, char *wincx)
 {
     SGNDigestInfo *di   = NULL;
@@ -94,7 +95,7 @@ DecryptSigBlock(SECOidTag *tagp, unsigned char *digest,
     if (di->digestAlgorithm.parameters.len > 2) {
 	goto sigloser;
     }
-    if (di->digest.len > len) {
+    if (di->digest.len > maxdigestlen) {
 	PORT_SetError(SEC_ERROR_OUTPUT_LEN);
 	goto loser;
     }
