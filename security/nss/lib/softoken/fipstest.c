@@ -1547,9 +1547,14 @@ sftk_fips_ECDSA_PowerUpSelfTest() {
      * performing a scalar point multiplication of that value with 
      * the curve's base point.
      */
-    if (EC_NewKeyFromSeed(ecparams, &ecdsa_private_key, ecdsa_Known_Seed, 
-        sizeof(ecdsa_Known_Seed)) != SECSuccess) {
-        return( CKR_DEVICE_ERROR );
+    ecdsaStatus = EC_NewKeyFromSeed(ecparams, &ecdsa_private_key, 
+                                   ecdsa_Known_Seed, 
+                                   sizeof(ecdsa_Known_Seed));
+    /* free the ecparams they are no longer needed */
+    PORT_FreeArena(ecparams->arena, PR_FALSE);
+    ecparams = NULL;
+    if (ecdsaStatus != SECSuccess) {
+        return ( CKR_DEVICE_ERROR );    
     }
 
     /* construct public key from private key. */
@@ -1614,7 +1619,7 @@ sftk_fips_ECDSA_PowerUpSelfTest() {
 
 loser:
     /* free the memory for the private key arena*/
-    if (ecdsa_private_key->ecParams.arena != NULL) {
+    if (ecdsa_private_key != NULL) {
         PORT_FreeArena(ecdsa_private_key->ecParams.arena, PR_FALSE);
     }
 
