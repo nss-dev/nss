@@ -54,7 +54,8 @@
 ** XXX this is assuming that the signature algorithm has WITH_RSA_ENCRYPTION
 */
 static SECStatus
-DecryptSigBlock(SECOidTag *tagp, unsigned char *digest, SECKEYPublicKey *key,
+DecryptSigBlock(SECOidTag *tagp, unsigned char *digest,
+                unsigned int *digestlen, SECKEYPublicKey *key,
 		SECItem *sig, char *wincx)
 {
     SGNDigestInfo *di   = NULL;
@@ -96,6 +97,7 @@ DecryptSigBlock(SECOidTag *tagp, unsigned char *digest, SECKEYPublicKey *key,
     }
     PORT_Memcpy(digest, di->digest.data, di->digest.len);
     *tagp = tag;
+    *digestlen = di->digest.len;
     goto done;
 
   sigloser:
@@ -122,6 +124,7 @@ struct VFYContextStr {
      * in the RSA signature, or the full DSA signature (40 bytes).
      */
     unsigned char digest[HASH_LENGTH_MAX];
+    unsigned int rsadigestlen;
     void * wincx;
     void *hashcx;
     const SECHashObject *hashobj;
@@ -256,9 +259,11 @@ VFY_CreateContext(SECKEYPublicKey *key, SECItem *sig, SECOidTag algid,
 	    cx->key = SECKEY_CopyPublicKey(key); /* extra safety precautions */
 	    if (sig) {
 		SECOidTag hashid = SEC_OID_UNKNOWN;
-	    	rv = DecryptSigBlock(&hashid, &cx->digest[0], 
+		unsigned int digestlen = 0;
+	    	rv = DecryptSigBlock(&hashid, &cx->digest[0], &digestlen,
 						cx->key, sig, (char*)wincx);
 		cx->alg = hashid;
+		cx->rsadigestlen = digestlen;
 	    } else {
 		rv = decodeSigAlg(algid,&cx->alg);
 	    }
@@ -403,14 +408,15 @@ VFY_EndWithSignature(VFYContext *cx, SECItem *sig)
       case VFY_RSA:
 	if (sig) {
 	    SECOidTag hashid = SEC_OID_UNKNOWN;
-	    rv = DecryptSigBlock(&hashid, &cx->digest[0], 
+	    rv = DecryptSigBlock(&hashid, &cx->digest[0], &cx->rsadigestlen,
 					    cx->key, sig, (char*)cx->wincx);
 	    if ((rv != SECSuccess) || (hashid != cx->alg)) {
 		PORT_SetError(SEC_ERROR_BAD_SIGNATURE);
 		return SECFailure;
 	    }
 	}
-	if (PORT_Memcmp(final, cx->digest, part)) {
+	if ((part != cx->rsadigestlen) ||
+		PORT_Memcmp(final, cx->digest, part)) {
 	    PORT_SetError(SEC_ERROR_BAD_SIGNATURE);
 	    return SECFailure;
 	}
@@ -452,7 +458,8 @@ VFY_VerifyDigest(SECItem *digest, SECKEYPublicKey *key, SECItem *sig,
     if (cx != NULL) {
 	switch (key->keyType) {
 	case rsaKey:
-	    if (PORT_Memcmp(digest->data, cx->digest, digest->len)) {
+	    if ((digest->len != cx->rsadigestlen) ||
+		PORT_Memcmp(digest->data, cx->digest, digest->len)) {
 		PORT_SetError(SEC_ERROR_BAD_SIGNATURE);
 	    } else {
 		rv = SECSuccess;
