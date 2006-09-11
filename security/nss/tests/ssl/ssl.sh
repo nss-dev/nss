@@ -130,12 +130,11 @@ is_selfserv_alive()
   else
       PID=`cat ${SERVERPID}`
   fi
-  #if  [ "${OS_ARCH}" = "Linux" ]; then
-      kill -0 $PID >/dev/null 2>/dev/null || Exit 10 "Fatal - selfserv process not detectable"
-  #else
-      #$PS -e | grep $PID >/dev/null || \
-          #Exit 10 "Fatal - selfserv process not detectable"
-  #fi
+
+  echo "kill -0 ${PID} >/dev/null 2>/dev/null" 
+  kill -0 ${PID} >/dev/null 2>/dev/null || Exit 10 "Fatal - selfserv process not detectable"
+
+  echo "selfserv with PID ${PID} found at `date`"
 }
 
 ########################### wait_for_selfserv ##########################
@@ -143,9 +142,9 @@ is_selfserv_alive()
 ########################################################################
 wait_for_selfserv()
 {
+  echo "waiting for selfserv at `date`"
   echo "tstclnt -p ${PORT} -h ${HOSTADDR} ${CLIENT_OPTIONS} -q \\"
   echo "        -d ${P_R_CLIENTDIR} < ${REQUEST_FILE}"
-  #echo "tstclnt -q started at `date`"
   tstclnt -p ${PORT} -h ${HOSTADDR} ${CLIENT_OPTIONS} -q \
           -d ${P_R_CLIENTDIR} < ${REQUEST_FILE}
   if [ $? -ne 0 ]; then
@@ -170,22 +169,33 @@ kill_selfserv()
   else
       PID=`cat ${SERVERPID}`
   fi
+
+  echo "trying to kill selfserv with PID ${PID} at `date`"
+
   if [ "${OS_ARCH}" = "WINNT" -o "${OS_ARCH}" = "WIN95" -o "${OS_ARCH}" = "OS2" ]; then
+      echo "${KILL} ${PID}"
       ${KILL} ${PID}
   else
+      echo "${KILL} -USR1 ${PID}"
       ${KILL} -USR1 ${PID}
   fi
   wait ${PID}
   if [ ${fileout} -eq 1 ]; then
       cat ${SERVEROUTFILE}
   fi
+
   # On Linux selfserv needs up to 30 seconds to fully die and free
   # the port.  Wait until the port is free. (Bug 129701)
   if [ "${OS_ARCH}" = "Linux" ]; then
+      echo "selfserv -b -p ${PORT} 2>/dev/null;"
       until selfserv -b -p ${PORT} 2>/dev/null; do
+          echo "RETRY: selfserv -b -p ${PORT} 2>/dev/null;"
           sleep 1
       done
   fi
+
+  echo "selfserv with PID ${PID} killed at `date`"
+
   rm ${SERVERPID}
 }
 
@@ -205,9 +215,12 @@ start_selfserv()
   else
       ECC_OPTIONS=""
   fi
+  if [ "$1" = "mixed" ]; then
+      ECC_OPTIONS="-e ${HOSTADDR}-ecmixed"
+  fi
+  echo "selfserv starting at `date`"
   echo "selfserv -D -p ${PORT} -d ${P_R_SERVERDIR} -n ${HOSTADDR} ${SERVER_OPTIONS} \\"
   echo "         ${ECC_OPTIONS} -w nss ${sparam} -i ${R_SERVERPID} $verbose &"
-  echo "selfserv started at `date`"
   if [ ${fileout} -eq 1 ]; then
       selfserv -D -p ${PORT} -d ${P_R_SERVERDIR} -n ${HOSTADDR} ${SERVER_OPTIONS} \
                ${ECC_OPTIONS} -w nss ${sparam} -i ${R_SERVERPID} $verbose \
@@ -230,6 +243,14 @@ start_selfserv()
   # other than the MKS shell.)
   SHELL_SERVERPID=$!
   wait_for_selfserv
+
+  if [ "${OS_ARCH}" = "WINNT" -a "$OS_NAME" = "CYGWIN_NT" ]; then
+      PID=${SHELL_SERVERPID}
+  else
+      PID=`cat ${SERVERPID}`
+  fi
+
+  echo "selfserv with PID ${PID} started at `date`"
 }
 
 ############################## ssl_cov #################################
@@ -245,6 +266,8 @@ ssl_cov()
   else
       sparam="$CSHORT"
   fi
+
+  mixed=0
   start_selfserv # Launch the server
                
   p=""
@@ -264,7 +287,34 @@ ssl_cov()
               TLS_FLAG=""
           fi
 
-          is_selfserv_alive
+# These five tests need an EC cert signed with RSA
+# This requires a different certificate loaded in selfserv
+# due to a (current) NSS limitation of only loaded one cert
+# per type so the default selfserv setup will not work.
+#:C00B TLS ECDH RSA WITH NULL SHA
+#:C00C TLS ECDH RSA WITH RC4 128 SHA
+#:C00D TLS ECDH RSA WITH 3DES EDE CBC SHA
+#:C00E TLS ECDH RSA WITH AES 128 CBC SHA
+#:C00F TLS ECDH RSA WITH AES 256 CBC SHA
+
+          if [ $mixed -eq 0 ]; then
+            if [ "${param}" = ":C00B" -o "${param}" = ":C00C" -o "${param}" = ":C00D" -o "${param}" = ":C00E" -o "${param}" = ":C00F" ]; then
+              kill_selfserv
+              start_selfserv mixed
+              mixed=1
+            else
+              is_selfserv_alive
+            fi
+          else 
+            if [ "${param}" = ":C00B" -o "${param}" = ":C00C" -o "${param}" = ":C00D" -o "${param}" = ":C00E" -o "${param}" = ":C00F" ]; then
+              is_selfserv_alive
+            else
+              kill_selfserv
+              start_selfserv
+              mixed=0
+            fi
+          fi
+
           echo "tstclnt -p ${PORT} -h ${HOSTADDR} -c ${param} ${TLS_FLAG} ${CLIENT_OPTIONS} \\"
           echo "        -f -d ${P_R_CLIENTDIR} < ${REQUEST_FILE}"
 
@@ -328,14 +378,28 @@ ssl_stress()
 
   while read ectype value sparam cparam testname
   do
+      if [ -z "$ectype" ]; then
+          # silently ignore blank lines
+          continue
+      fi
       p=`echo "$testname" | sed -e "s/Stress //" -e "s/ .*//"`   #sonmi, only run extended test on SSL3 and TLS
       if [ "$p" = "SSL2" -a "$NORM_EXT" = "Extended Test" ] ; then
           echo "$SCRIPTNAME: skipping  $testname for $NORM_EXT"
       elif [ "$ectype" = "ECC" -a  -z "$NSS_ENABLE_ECC" ] ; then
           echo "$SCRIPTNAME: skipping  $testname (ECC only)"
       elif [ "$ectype" != "#" ]; then
-          cparam=`echo $cparam | sed -e 's;_; ;g'`
-          start_selfserv
+          cparam=`echo $cparam | sed -e 's;_; ;g' -e "s/TestUser/$USER_NICKNAME/g" `
+
+# These tests need the mixed cert 
+# Stress TLS ECDH-RSA AES 128 CBC with SHA (no reuse)
+# Stress TLS ECDH-RSA AES 128 CBC with SHA (no reuse, client auth)
+          p=`echo "$sparam" | sed -e "s/\(.*\)\(-c_:C0..\)\(.*\)/\2/"`;
+          if [ "$p" = "-c_:C00E" ]; then
+              start_selfserv mixed
+          else
+              start_selfserv
+          fi
+
           if [ "`uname -n`" = "sjsu" ] ; then
               echo "debugging disapering selfserv... ps -ef | grep selfserv"
               ps -ef | grep selfserv
