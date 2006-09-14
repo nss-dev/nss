@@ -65,6 +65,7 @@
 #include "softoken.h"
 #include "secasn1.h"
 #include "secmodi.h"
+#include "secerr.h"
 
 #include "certdb.h"
 #include "ssl3prot.h" 	/* for SSL3_RANDOM_LENGTH */
@@ -2519,12 +2520,17 @@ pk11_hashCheckSign(PK11HashVerifyInfo *info, unsigned char *sig,
     if (SECOID_GetAlgorithmTag(&di->digestAlgorithm) != info->hashOid) {
 	goto loser;
     }
+    /* make sure the "parameters" are not too bogus. */
+    if (di->digestAlgorithm.parameters.len > 2) {
+       goto loser;
+    }
     /* Now check the signature */
     if (PORT_Memcmp(digest, di->digest.data, di->digest.len) == 0) {
 	goto done;
     }
 
   loser:
+    PORT_SetError(SEC_ERROR_BAD_SIGNATURE);
     rv = SECFailure;
 
   done:

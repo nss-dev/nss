@@ -1,35 +1,38 @@
-/*
- * The contents of this file are subject to the Mozilla Public
- * License Version 1.1 (the "License"); you may not use this file
- * except in compliance with the License. You may obtain a copy of
- * the License at http://www.mozilla.org/MPL/
- * 
- * Software distributed under the License is distributed on an "AS
- * IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
- * implied. See the License for the specific language governing
- * rights and limitations under the License.
- * 
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
  * The Original Code is the Netscape security libraries.
- * 
- * The Initial Developer of the Original Code is Netscape
- * Communications Corporation.  Portions created by Netscape are 
- * Copyright (C) 1994-2000 Netscape Communications Corporation.  All
- * Rights Reserved.
- * 
+ *
+ * The Initial Developer of the Original Code is
+ * Netscape Communications Corporation.
+ * Portions created by the Initial Developer are Copyright (C) 1994-2000
+ * the Initial Developer. All Rights Reserved.
+ *
  * Contributor(s):
- * 
- * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
- * "GPL"), in which case the provisions of the GPL are applicable 
- * instead of those above.  If you wish to allow use of your 
- * version of this file only under the terms of the GPL and not to
- * allow others to use your version of this file under the MPL,
- * indicate your decision by deleting the provisions above and
- * replace them with the notice and other provisions required by
- * the GPL.  If you do not delete the provisions above, a recipient
- * may use your version of this file under either the MPL or the
- * GPL.
- */
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 /* General security error codes  */
 /* Caller must #include "secerr.h" */
@@ -355,7 +358,8 @@ ER3(SEC_ERROR_BAD_NICKNAME,			(SEC_ERROR_BASE + 103),
 ER3(SEC_ERROR_NOT_FORTEZZA_ISSUER,       	(SEC_ERROR_BASE + 104),
 "Peer FORTEZZA chain has a non-FORTEZZA Certificate.")
 
-/* ER3(SEC_ERROR_UNKNOWN, 			(SEC_ERROR_BASE + 105), */
+ER3(SEC_ERROR_CANNOT_MOVE_SENSITIVE_KEY, 	(SEC_ERROR_BASE + 105),
+"A sensitive key cannot be moved to the slot where it is needed.")
 
 ER3(SEC_ERROR_JS_INVALID_MODULE_NAME, 		(SEC_ERROR_BASE + 106),
 "Invalid module name.")
@@ -439,3 +443,74 @@ ER3(SEC_ERROR_OCSP_FUTURE_RESPONSE,		(SEC_ERROR_BASE + 131),
 
 ER3(SEC_ERROR_OCSP_OLD_RESPONSE,		(SEC_ERROR_BASE + 132),
 "The OCSP response contains out-of-date information.")
+
+ER3(SEC_ERROR_DIGEST_NOT_FOUND,			(SEC_ERROR_BASE + 133),
+"The CMS or PKCS #7 Digest was not found in signed message.")
+
+ER3(SEC_ERROR_UNSUPPORTED_MESSAGE_TYPE,		(SEC_ERROR_BASE + 134),
+"The CMS or PKCS #7 Message type is unsupported.")
+
+ER3(SEC_ERROR_MODULE_STUCK,			(SEC_ERROR_BASE + 135),
+"PKCS #11 module could not be removed because it is still in use.")
+
+ER3(SEC_ERROR_BAD_TEMPLATE,			(SEC_ERROR_BASE + 136),
+"Could not decode ASN.1 data. Specified template was invalid.")
+
+ER3(SEC_ERROR_CRL_NOT_FOUND,			(SEC_ERROR_BASE + 137),
+"No matching CRL was found.")
+
+ER3(SEC_ERROR_REUSED_ISSUER_AND_SERIAL,        (SEC_ERROR_BASE + 138),
+"You are attempting to import a cert with the same issuer/serial as \
+an existing cert, but that is not the same cert.")
+
+ER3(SEC_ERROR_BUSY,				(SEC_ERROR_BASE + 139),
+"NSS could not shutdown. Objects are still in use.")
+
+ER3(SEC_ERROR_EXTRA_INPUT,			(SEC_ERROR_BASE + 140),
+"DER-encoded message contained extra unused data.")
+
+ER3(SEC_ERROR_UNSUPPORTED_ELLIPTIC_CURVE,	(SEC_ERROR_BASE + 141),
+"Unsupported elliptic curve.")
+
+ER3(SEC_ERROR_UNSUPPORTED_EC_POINT_FORM,	(SEC_ERROR_BASE + 142),
+"Unsupported elliptic curve point form.")
+
+ER3(SEC_ERROR_UNRECOGNIZED_OID,			(SEC_ERROR_BASE + 143),
+"Unrecognized Object IDentifier.")
+
+ER3(SEC_ERROR_OCSP_INVALID_SIGNING_CERT,	(SEC_ERROR_BASE + 144),
+"Invalid OCSP signing certificate in OCSP response.")
+
+ER3(SEC_ERROR_REVOKED_CERTIFICATE_CRL,          (SEC_ERROR_BASE + 145),
+"Certificate is revoked in issuer's certificate revocation list.")
+
+ER3(SEC_ERROR_REVOKED_CERTIFICATE_OCSP,         (SEC_ERROR_BASE + 146),
+"Issuer's OCSP responder reports certificate is revoked.")
+
+ER3(SEC_ERROR_CRL_INVALID_VERSION,              (SEC_ERROR_BASE + 147),
+"Issuer's Certificate Revocation List has an unknown version number.")
+
+ER3(SEC_ERROR_CRL_V1_CRITICAL_EXTENSION,        (SEC_ERROR_BASE + 148),
+"Issuer's V1 Certificate Revocation List has a critical extension.")
+
+ER3(SEC_ERROR_CRL_UNKNOWN_CRITICAL_EXTENSION,   (SEC_ERROR_BASE + 149),
+"Issuer's V2 Certificate Revocation List has an unknown critical extension.")
+
+ER3(SEC_ERROR_UNKNOWN_OBJECT_TYPE,	        (SEC_ERROR_BASE + 150),
+"Unknown object type specified.")
+
+ER3(SEC_ERROR_INCOMPATIBLE_PKCS11,	        (SEC_ERROR_BASE + 151),
+"PKCS #11 driver violates the spec in an incompatible way.")
+
+ER3(SEC_ERROR_NO_EVENT,	        		(SEC_ERROR_BASE + 152),
+"No new slot event is available at this time.")
+
+ER3(SEC_ERROR_CRL_ALREADY_EXISTS,      		(SEC_ERROR_BASE + 153),
+"CRL already exists.")
+
+ER3(SEC_ERROR_NOT_INITIALIZED,      		(SEC_ERROR_BASE + 154),
+"NSS is not initialized.")
+
+ER3(SEC_ERROR_TOKEN_NOT_LOGGED_IN,  		(SEC_ERROR_BASE + 155),
+"The operation failed because the PKCS#11 token is not logged in.")
+

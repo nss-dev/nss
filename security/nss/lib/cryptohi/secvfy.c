@@ -45,12 +45,17 @@
 #include "secdig.h"
 #include "secerr.h"
 
+#ifndef HASH_LENGTH_MAX
+#define HASH_LENGTH_MAX 64 /* bytes, 512 bits */
+#endif
+
 /*
 ** Decrypt signature block using public key (in place)
 ** XXX this is assuming that the signature algorithm has WITH_RSA_ENCRYPTION
 */
 static SECStatus
-DecryptSigBlock(int *tagp, unsigned char *digest, SECKEYPublicKey *key,
+DecryptSigBlock(SECOidTag *tagp, unsigned char *digest,
+		unsigned int *digestlen, SECKEYPublicKey *key,
 		SECItem *sig, char *wincx)
 {
     SGNDigestInfo *di   = NULL;
@@ -83,13 +88,21 @@ DecryptSigBlock(int *tagp, unsigned char *digest, SECKEYPublicKey *key,
     ** ID and the signature block
     */
     tag = SECOID_GetAlgorithmTag(&di->digestAlgorithm);
-    /* XXX Check that tag is an appropriate algorithm? */
-    if (di->digest.len > 32) {
+    /* Check that tag is an appropriate algorithm */
+    if (tag == SEC_OID_UNKNOWN) {
+       goto sigloser;
+    }
+    /* make sure the "parameters" are not too bogus. */
+    if (di->digestAlgorithm.parameters.len > 2) {
+       goto sigloser;
+    }
+    if (di->digest.len > HASH_LENGTH_MAX) {
 	PORT_SetError(SEC_ERROR_OUTPUT_LEN);
 	goto loser;
     }
     PORT_Memcpy(digest, di->digest.data, di->digest.len);
     *tagp = tag;
+    *digestlen = di->digest.len;
     goto done;
 
   sigloser:
@@ -112,8 +125,12 @@ struct VFYContextStr {
     SECOidTag alg;
     VerifyType type;
     SECKEYPublicKey *key;
-    /* digest holds the full dsa signature... 40 bytes */
-    unsigned char digest[DSA_SIGNATURE_LEN];
+    /*
+     * digest holds either the hash (<= HASH_LENGTH_MAX=64 bytes)
+     * in the RSA signature, or the full DSA signature (40 bytes).
+     */
+    unsigned char digest[HASH_LENGTH_MAX];
+    unsigned int digestlen;
     void * wincx;
     void *hashcx;
     const SECHashObject *hashobj;
@@ -218,10 +235,12 @@ VFY_CreateContext(SECKEYPublicKey *key, SECItem *sig, SECOidTag algid,
 	    cx->type = VFY_RSA;
 	    cx->key = SECKEY_CopyPublicKey(key); /* extra safety precautions */
 	    if (sig) {
-		int hashid;
-	    	rv = DecryptSigBlock(&hashid, &cx->digest[0], 
-						key, sig, (char*)wincx);
+		SECOidTag hashid = SEC_OID_UNKNOWN;
+		unsigned int digestlen = 0;
+	    	rv = DecryptSigBlock(&hashid, &cx->digest[0], &digestlen,
+						cx->key, sig, (char*)wincx);
 		cx->alg = hashid;
+		cx->digestlen = digestlen;
 	    } else {
 		rv = decodeSigAlg(algid,&cx->alg);
 	    }
@@ -355,15 +374,16 @@ VFY_EndWithSignature(VFYContext *cx, SECItem *sig)
 	break;
       case VFY_RSA:
 	if (sig) {
-	    int hashid;
-	    rv = DecryptSigBlock(&hashid, &cx->digest[0], 
+	    SECOidTag hashid = SEC_OID_UNKNOWN;
+	    rv = DecryptSigBlock(&hashid, &cx->digest[0], &cx->digestlen,
 					    cx->key, sig, (char*)cx->wincx);
 	    if ((rv != SECSuccess) || (hashid != cx->alg)) {
 		PORT_SetError(SEC_ERROR_BAD_SIGNATURE);
 		return SECFailure;
 	    }
 	}
-	if (PORT_Memcmp(final, cx->digest, part)) {
+	if ((part != cx->digestlen) ||
+		PORT_Memcmp(final, cx->digest, part)) {
 	    PORT_SetError(SEC_ERROR_BAD_SIGNATURE);
 	    return SECFailure;
 	}
@@ -402,7 +422,8 @@ VFY_VerifyDigest(SECItem *digest, SECKEYPublicKey *key, SECItem *sig,
     if (cx != NULL) {
 	switch (key->keyType) {
 	case rsaKey:
-	    if (PORT_Memcmp(digest->data, cx->digest, digest->len)) {
+	    if ((digest->len != cx->digestlen) ||
+		PORT_Memcmp(digest->data, cx->digest, digest->len)) {
 		PORT_SetError(SEC_ERROR_BAD_SIGNATURE);
 	    } else {
 		rv = SECSuccess;

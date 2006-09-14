@@ -78,7 +78,7 @@ cipher_init()
 ########################################################################
 cipher_main()
 {
-  cat ${CIPHER_TXT} | while read EXP_RET PARAM TESTNAME
+  while read EXP_RET PARAM TESTNAME
   do
       if [ -n "$EXP_RET" -a "$EXP_RET" != "#" ] ; then
           PARAM=`echo $PARAM | sed -e "s/_-/ -/g"`
@@ -89,7 +89,7 @@ cipher_main()
           bltest -T -m $PARAM -d .
           html_msg $? $EXP_RET "$TESTNAME"
       fi
-  done
+  done < ${CIPHER_TXT}
 }
 
 ############################## cipher_cleanup ############################

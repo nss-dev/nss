@@ -63,6 +63,7 @@ EXPORTS = \
 MODULE = security
 
 CSRCS = \
+	quickder.c \
 	secdig.c \
 	derdec.c \
 	derenc.c \

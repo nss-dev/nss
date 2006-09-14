@@ -184,6 +184,11 @@ typedef struct sec_ASN1Template_struct {
                                            to solve ambiguities with potential
                                            streaming entries that are 
                                            optional */
+#define SEC_ASN1_DEBUG_BREAK   0X400000 /* put this in your template and the
+                                           decoder will assert when it
+                                           processes it. Only for use with
+                                           SEC_QuickDERDecodeItem */
+
                                           
 
 /* Shorthand/Aliases */

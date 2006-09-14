@@ -572,7 +572,6 @@ rsaperf()
     echo ''
     echo '<td><b><font size=+1>QA time / #</font></b></td>'
     echo '</tr>'
-    cat $PERFLIST | 
     while read MACHINE BUILDPLATFORM no_iter t1 t2 total total_unit t3 \
                t4 t5 average average_unit
     do
@@ -598,7 +597,7 @@ rsaperf()
         echo '<td>'$TESTDATE $TESTNUMBER'</td>'
         echo ''
         echo '</tr>'
-    done
+    done < $PERFLIST 
     echo '</table>'
 }
 
