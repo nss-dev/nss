@@ -683,8 +683,9 @@ NSS_RegisterShutdown(NSS_ShutdownFunc sFunc, void *appData)
 	nssShutdownList.funcs = funcs;
 	nssShutdownList.maxFuncs += NSS_SHUTDOWN_STEP;
     }
-    nssShutdownList.funcs[nssShutdownList.numFuncs++].func = sFunc;
-    nssShutdownList.funcs[nssShutdownList.numFuncs++].appData = appData;
+    nssShutdownList.funcs[nssShutdownList.numFuncs].func = sFunc;
+    nssShutdownList.funcs[nssShutdownList.numFuncs].appData = appData;
+    nssShutdownList.numFuncs++;
     PZ_Unlock(nssShutdownList.lock);
     return SECSuccess;
 }
