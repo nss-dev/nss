@@ -42,6 +42,10 @@
 #ifndef __ecl_curve_h_
 #define __ecl_curve_h_
 
+#ifndef NSS_ECC_MORE_THAN_SUITE_B
+#error This source file is for Extended ECC only .
+#endif
+
 /* NIST prime curves */
 static const ECCurveParams ecCurve_NIST_P192 = {
 	"NIST-P192", ECField_GFp, 192,
