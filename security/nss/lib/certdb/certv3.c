@@ -102,8 +102,8 @@ char *
 CERT_FindCertURLExtension(CERTCertificate *cert, int tag, int catag)
 {
     SECStatus rv;
-    SECItem urlitem;
-    SECItem baseitem;
+    SECItem urlitem = {siBuffer,0};
+    SECItem baseitem = {siBuffer,0};
     SECItem urlstringitem = {siBuffer,0};
     SECItem basestringitem = {siBuffer,0};
     PRArenaPool *arena = NULL;
@@ -121,8 +121,6 @@ CERT_FindCertURLExtension(CERTCertificate *cert, int tag, int catag)
     }
     
     hasbase = PR_FALSE;
-    urlitem.data = NULL;
-    baseitem.data = NULL;
     
     rv = cert_FindExtension(cert->extensions, tag, &urlitem);
     if ( rv == SECSuccess ) {
