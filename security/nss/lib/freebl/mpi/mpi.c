@@ -1003,10 +1003,13 @@ mp_err mp_div(const mp_int *a, const mp_int *b, mp_int *q, mp_int *r)
   mp_int   *pQ, *pR;
   mp_int   qtmp, rtmp, btmp;
   int      cmp;
-  mp_sign  signA = MP_SIGN(a);
-  mp_sign  signB = MP_SIGN(b);
+  mp_sign  signA;
+  mp_sign  signB;
 
   ARGCHK(a != NULL && b != NULL, MP_BADARG);
+  
+  signA = MP_SIGN(a);
+  signB = MP_SIGN(b);
 
   if(mp_cmp_z(b) == MP_EQ)
     return MP_RANGE;
