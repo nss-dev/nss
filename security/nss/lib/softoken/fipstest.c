@@ -45,6 +45,8 @@
 #include "lowkeyi.h"    /* Required for RSA and DSA. */
 #include "pkcs11.h"     /* Required for PKCS #11. */
 #include "secerr.h"
+#include "prenv.h"
+#include "prprf.h"
 
 #ifdef NSS_ENABLE_ECC
 #include "secdert.h"    /* Required for ECDSA */
@@ -147,6 +149,12 @@ sftk_fips_RC2_PowerUpSelfTest( void )
     unsigned int   rc2_bytes_decrypted;
     SECStatus      rc2_status;
 
+    const char *envp = NULL;
+
+    if ((envp = PR_GetEnv("sftk_fips_RC2_PowerUpSelfTest")) != NULL) {
+        PR_fprintf(PR_STDERR, "sftk_fips_RC2_PowerUpSelfTest failing\n");
+             return CKR_DEVICE_ERROR;
+    }
 
     /******************************************************/
     /* RC2-ECB Single-Round Known Answer Encryption Test: */
@@ -271,6 +279,12 @@ sftk_fips_RC4_PowerUpSelfTest( void )
     unsigned int   rc4_bytes_encrypted;
     unsigned int   rc4_bytes_decrypted;
     SECStatus      rc4_status;
+    const char *envp = NULL;
+
+    if ((envp = PR_GetEnv("sftk_fips_RC4_PowerUpSelfTest")) != NULL) {
+        PR_fprintf(PR_STDERR, "sftk_fips_RC4_PowerUpSelfTest failing\n");
+             return CKR_DEVICE_ERROR;
+    }
 
 
     /**************************************************/
@@ -346,6 +360,12 @@ sftk_fips_DES_PowerUpSelfTest( void )
     unsigned int   des_bytes_encrypted;
     unsigned int   des_bytes_decrypted;
     SECStatus      des_status;
+    const char *envp = NULL;
+
+    if ((envp = PR_GetEnv("sftk_fips_DES_PowerUpSelfTest")) != NULL) {
+        PR_fprintf(PR_STDERR, "sftk_fips_DES_PowerUpSelfTest failing\n");
+             return CKR_DEVICE_ERROR;
+    }
 
 
     /******************************************************/
@@ -473,6 +493,12 @@ sftk_fips_DES3_PowerUpSelfTest( void )
     unsigned int   des3_bytes_encrypted;
     unsigned int   des3_bytes_decrypted;
     SECStatus      des3_status;
+    const char *envp = NULL;
+
+    if ((envp = PR_GetEnv("sftk_fips_DES3_PowerUpSelfTest")) != NULL) {
+        PR_fprintf(PR_STDERR, "sftk_fips_DES3_PowerUpSelfTest failing\n");
+             return CKR_DEVICE_ERROR;
+    }
 
 
     /*******************************************************/
@@ -635,7 +661,12 @@ sftk_fips_AES_PowerUpSelfTest( int aes_key_size )
     unsigned int   aes_bytes_encrypted;
     unsigned int   aes_bytes_decrypted;
     SECStatus      aes_status;
+    const char *envp = NULL;
 
+    if ((envp = PR_GetEnv("sftk_fips_AES_PowerUpSelfTest")) != NULL) {
+        PR_fprintf(PR_STDERR, "sftk_fips_AES_PowerUpSelfTest failing\n");
+             return CKR_DEVICE_ERROR;
+    }
     /*check if aes_key_size is 128, 192, or 256 bits */
     if ((aes_key_size != FIPS_AES_128_KEY_SIZE) && 
         (aes_key_size != FIPS_AES_192_KEY_SIZE) && 
@@ -761,6 +792,12 @@ sftk_fips_MD2_PowerUpSelfTest( void )
     MD2Context * md2_context;
     unsigned int md2_bytes_hashed;
     PRUint8      md2_computed_digest[MD2_LENGTH];
+    const char *envp = NULL;
+
+    if ((envp = PR_GetEnv("sftk_fips_MD2_PowerUpSelfTest")) != NULL) {
+        PR_fprintf(PR_STDERR, "sftk_fips_MD2_PowerUpSelfTest failing\n");
+             return CKR_DEVICE_ERROR;
+    }
 
 
     /***********************************************/
@@ -801,6 +838,12 @@ sftk_fips_MD5_PowerUpSelfTest( void )
     /* MD5 variables. */
     PRUint8        md5_computed_digest[MD5_LENGTH];
     SECStatus      md5_status;
+    const char *envp = NULL;
+
+    if ((envp = PR_GetEnv("sftk_fips_MD5_PowerUpSelfTest")) != NULL) {
+        PR_fprintf(PR_STDERR, "sftk_fips_MD5_PowerUpSelfTest failing\n");
+             return CKR_DEVICE_ERROR;
+    }
 
 
     /***********************************************/
@@ -900,6 +943,12 @@ sftk_fips_HMAC_PowerUpSelfTest( void )
 
     SECStatus    hmac_status;
     PRUint8      hmac_computed[HASH_LENGTH_MAX]; 
+    const char *envp = NULL;
+
+    if ((envp = PR_GetEnv("sftk_fips_HMAC_PowerUpSelfTest")) != NULL) {
+        PR_fprintf(PR_STDERR, "sftk_fips_HMAC_PowerUpSelfTest failing\n");
+             return CKR_DEVICE_ERROR;
+    }
 
     /***************************************************/
     /* HMAC SHA-1 Single-Round Known Answer HMAC Test. */
@@ -1007,6 +1056,12 @@ sftk_fips_SHA_PowerUpSelfTest( void )
     /* SHA-X variables. */
     PRUint8        sha_computed_digest[HASH_LENGTH_MAX];
     SECStatus      sha_status;
+    const char *envp = NULL;
+
+    if ((envp = PR_GetEnv("sftk_fips_SHA_PowerUpSelfTest")) != NULL) {
+        PR_fprintf(PR_STDERR, "sftk_fips_SHA_PowerUpSelfTest failing\n");
+             return CKR_DEVICE_ERROR;
+    }
 
     /*************************************************/
     /* SHA-1 Single-Round Known Answer Hashing Test. */
@@ -1076,6 +1131,12 @@ sftk_fips_RSA_PowerUpSigSelfTest (HASH_HashType  shaAlg,
     unsigned int   rsa_bytes_signed;
     unsigned char  rsa_computed_signature[FIPS_RSA_SIGNATURE_LENGTH];
     SECStatus      rv;
+    const char *envp = NULL;
+
+    if ((envp = PR_GetEnv("sftk_fips_RSA_PowerUpSigSelfTest")) != NULL) {
+        PR_fprintf(PR_STDERR, "sftk_fips_RSA_PowerUpSigSelfTest failing\n");
+             return CKR_DEVICE_ERROR;
+    }
 
     if (shaAlg == HASH_AlgSHA1) {
         if (SHA1_HashBuf(sha, rsa_known_msg, rsa_kmsg_length)
@@ -1392,6 +1453,12 @@ sftk_fips_RSA_PowerUpSelfTest( void )
     NSSLOWKEYPrivateKey   low_private_key  = { NULL, NSSLOWKEYRSAKey, };
     PRUint8               rsa_computed_ciphertext[FIPS_RSA_ENCRYPT_LENGTH];
     PRUint8               rsa_computed_plaintext[FIPS_RSA_DECRYPT_LENGTH];
+    const char *envp = NULL;
+
+    if ((envp = PR_GetEnv("sftk_fips_RSA_PowerUpSelfTest")) != NULL) {
+        PR_fprintf(PR_STDERR, "sftk_fips_RSA_PowerUpSelfTest failing\n");
+             return CKR_DEVICE_ERROR;
+    }
 
     /****************************************/
     /* Compose RSA Public/Private Key Pair. */
@@ -1521,6 +1588,12 @@ sftk_fips_ECDSA_Test(const PRUint8 *encodedParams,
     ECPrivateKey *ecdsa_private_key = NULL;
     ECPublicKey ecdsa_public_key;
     SECStatus ecdsaStatus = SECSuccess;
+    const char *envp = NULL;
+
+    if ((envp = PR_GetEnv("sftk_fips_ECDSA_PowerUpSelfTest")) != NULL) {
+        PR_fprintf(PR_STDERR, "sftk_fips_ECDSA_PowerUpSelfTest failing\n");
+             return CKR_DEVICE_ERROR;
+    }
 
     /* construct the ECDSA private/public key pair */
     encodedparams.type = siBuffer;
@@ -1755,6 +1828,13 @@ sftk_fips_DSA_PowerUpSelfTest( void )
 			    { FIPS_DSA_TYPE, (unsigned char *)dsa_Q, FIPS_DSA_SUBPRIME_LENGTH },
 			    { FIPS_DSA_TYPE, (unsigned char *)dsa_G, FIPS_DSA_BASE_LENGTH }};
 
+    const char *envp = NULL;
+            
+    if ((envp = PR_GetEnv("sftk_fips_DSA_PowerUpSelfTest")) != NULL) {
+        PR_fprintf(PR_STDERR, "sftk_fips_DSA_PowerUpSelfTest failing\n");
+        return CKR_DEVICE_ERROR;
+    }
+
     /*******************************************/
     /* Generate a DSA public/private key pair. */
     /*******************************************/
@@ -1847,6 +1927,12 @@ sftk_fips_RNG_PowerUpSelfTest( void )
    PRUint8 GENX[2*SHA1_LENGTH];
    PRUint8 DSAX[FIPS_DSA_SUBPRIME_LENGTH];
    PRUint8 XKey[FIPS_RNG_XKEY_LENGTH];
+   const char *envp = NULL;
+
+   if ((envp = PR_GetEnv("sftk_fips_RNG_PowerUpSelfTest")) != NULL) {
+       PR_fprintf(PR_STDERR, "sftk_fips_RNG_PowerUpSelfTest failing\n");
+            return CKR_DEVICE_ERROR;
+   }
   
    PORT_Memcpy (XKey, XKeyValue, FIPS_RNG_XKEY_LENGTH);
    
