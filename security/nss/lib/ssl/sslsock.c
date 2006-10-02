@@ -508,7 +508,8 @@ static PRCallOnceType setupBypassOnce;
 
 static SECStatus SSL_BypassShutdown(void* appData, void* nssData)
 {
-    BL_Cleanup();
+    /* unload freeBL shared library from memory */
+    BL_Unload();
     setupBypassOnce = pristineCallOnce;
     return SECSuccess;
 }
