@@ -978,8 +978,19 @@ BL_Cleanup(void)
   if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
       return;
   (vector->p_BL_Cleanup)();
+}
+
+void
+BL_Unload(void)
+{
+  /* This function is not thread-safe, but doesn't need to be, because it is
+   * only called from functions that are also defined as not thread-safe,
+   * namely C_Finalize in softoken, and the SSL bypass shutdown callback called
+   * from NSS_Shutdown. */
   vector = NULL;
-  PORT_Assert(blLib);
+  /* If an SSL socket is configured with SSL_BYPASS_PKCS11, but the application
+   * never does a handshake on it, BL_Unload will be called even though freebl
+   * was never loaded. So, don't assert blLib. */
   if (blLib) {
       PRStatus status = PR_UnloadLibrary(blLib);
       PORT_Assert(PR_SUCCESS == status);

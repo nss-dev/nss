@@ -1087,6 +1087,8 @@ extern SECStatus   PQG_VerifyParams(const PQGParams *params,
  */
 extern void BL_Cleanup(void);
 
+/* unload freebl shared library from memory */
+extern void BL_Unload(void);
 
 /**************************************************************************
  *  Verify a given Shared library signature                               *
