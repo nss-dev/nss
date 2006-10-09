@@ -940,6 +940,9 @@ nssCertificateList_DoCallback (
     NSSCertificate *cert;
     PRStatus nssrv;
     certs = nssList_CreateIterator(certList);
+    if (!certs) {
+        return PR_FAILURE;
+    }
     for (cert  = (NSSCertificate *)nssListIterator_Start(certs);
          cert != (NSSCertificate *)NULL;
          cert  = (NSSCertificate *)nssListIterator_Next(certs))
