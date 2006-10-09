@@ -1457,8 +1457,10 @@ static SECStatus
 ocsp_DecodeResponseBytes(PRArenaPool *arena, ocspResponseBytes *rbytes)
 {
     PORT_Assert(rbytes != NULL);		/* internal error, really */
-    if (rbytes == NULL)
+    if (rbytes == NULL) {
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);	/* XXX set better error? */
+	return SECFailure;
+    }
 
     rbytes->responseTypeTag = SECOID_FindOIDTag(&rbytes->responseType);
     switch (rbytes->responseTypeTag) {
