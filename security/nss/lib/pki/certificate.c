@@ -493,10 +493,10 @@ nssCertificate_BuildChain (
     PRStatus  st;
     PRStatus  ret = PR_SUCCESS;
 
-    if (!td)
-	td = NSSCertificate_GetTrustDomain(c);
-    if (!td || !c || !cc) 
+    if (!c || !cc ||
+        (!td && (td = NSSCertificate_GetTrustDomain(c)) == NULL)) {
 	goto loser;
+    }
 #ifdef NSS_3_4_CODE
     /* bump the usage up to CA level */
     issuerUsage.nss3lookingForCA = PR_TRUE;
