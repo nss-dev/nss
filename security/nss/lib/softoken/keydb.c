@@ -1082,6 +1082,10 @@ nsslowkey_OpenKeyDB(PRBool readOnly, const char *appName, const char *prefix,
 
 
     handle = nsslowkey_NewHandle(NULL);
+    if (!handle) {
+        /* error code is set */
+        return NULL;
+    }
 
     openflags = readOnly ? NO_RDONLY : NO_RDWR;
 
