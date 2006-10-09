@@ -1239,6 +1239,10 @@ SEC_PKCS7DecodeItem(SECItem *p7item,
 
     p7dcx = SEC_PKCS7DecoderStart(cb, cb_arg, pwfn, pwfn_arg, decrypt_key_cb,
 				  decrypt_key_cb_arg, decrypt_allowed_cb);
+    if (!p7dcx) {
+        /* error code is set */
+        return NULL;
+    }
     (void) SEC_PKCS7DecoderUpdate(p7dcx, (char *) p7item->data, p7item->len);
     return SEC_PKCS7DecoderFinish(p7dcx);
 }
