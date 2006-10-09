@@ -898,6 +898,9 @@ collect_subject_certs (
     nssCertificateList_AddReferences(subjectList);
     if (rvCertListOpt) {
 	nssListIterator *iter = nssList_CreateIterator(subjectList);
+	if (!iter) {
+	    return (NSSCertificate **)NULL;
+	}
 	for (c  = (NSSCertificate *)nssListIterator_Start(iter);
 	     c != (NSSCertificate *)NULL;
 	     c  = (NSSCertificate *)nssListIterator_Next(iter)) {
