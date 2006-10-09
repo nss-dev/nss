@@ -1651,7 +1651,7 @@ ssl3_ComputeRecordMAC(
     } else {
 	/* bypass version */
 	const SECHashObject *hashObj = NULL;
-	unsigned int       pad_bytes;
+	unsigned int       pad_bytes = 0;
 	PRUint64           write_mac_context[MAX_MAC_CONTEXT_LLONGS];
 
 	switch (mac_def->mac) {
@@ -3942,7 +3942,7 @@ getWrappingKey( sslSocket *       ss,
     /* wrap symmetric wrapping key in server's public key. */
     switch (exchKeyType) {
 #ifdef NSS_ENABLE_ECC
-    PK11SymKey *      Ks;
+    PK11SymKey *      Ks = NULL;
     SECKEYPublicKey   *pubWrapKey = NULL;
     SECKEYPrivateKey  *privWrapKey = NULL;
     ECCWrappedKeyInfo *ecWrapped;
