@@ -347,7 +347,7 @@ static const PRCallOnceType pristineCallOnce;
 static PRCallOnceType coRNGInit;
 static PRStatus rng_init(void)
 {
-    unsigned char bytes[120];
+    unsigned char bytes[SYSTEM_RNG_SEED_COUNT];
     unsigned int numBytes;
     if (globalrng == NULL) {
 	/* create a new global RNG context */
@@ -362,7 +362,31 @@ static PRStatus rng_init(void)
 	}
 	/* the RNG is in a valid state */
 	globalrng->isValid = PR_TRUE;
-	/* Try to get some seed data for the RNG */
+	/*
+	 * Try to get some seed data for the RNG.
+	 *
+	 * The very first RNG_RandomUpdate call initializes all FIPS_B
+	 * bits of the RNG's seed-key.  Subsequent RNG_RandomUpdate calls
+	 * only modify the low FIPS_G bits of the seed-key.  So it's
+	 * important to pass high entropy to the first RNG_RandomUpdate
+	 * call.
+	 *
+	 * RNG_GetNoise only reads the high-resolution clocks, which
+	 * have low entropy.  So if RNG_SystemRNG fails, the RNG will
+	 * have at most slightly more than FIPS_G bits of entropy.
+	 */
+	numBytes = RNG_SystemRNG(bytes, sizeof bytes);
+	PORT_Assert(numBytes == 0 || numBytes == sizeof bytes);
+	if (numBytes != 0) {
+	    RNG_RandomUpdate(bytes, numBytes);
+	    memset(bytes, 0, numBytes);
+	} else if (PORT_GetError() != PR_NOT_IMPLEMENTED_ERROR) {
+	    PZ_DestroyLock(globalrng->lock);
+	    globalrng->lock = NULL;
+	    globalrng->isValid = PR_FALSE;
+	    globalrng = NULL;
+	    return PR_FAILURE;
+	}
 	numBytes = RNG_GetNoise(bytes, sizeof bytes);
 	RNG_RandomUpdate(bytes, numBytes);
     }
