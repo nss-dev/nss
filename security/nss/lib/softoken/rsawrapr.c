@@ -145,6 +145,7 @@ oaep_xor_with_h1(unsigned char *data, unsigned int datalen,
 	end_octet++;
     }
 
+    SHA1_DestroyContext (sha1cx, PR_TRUE);
     return SECSuccess;
 }
 
