@@ -691,7 +691,7 @@ create_object (
 
     slot = nssToken_GetSlot(object->token);
     if (!slot) {
-        nss_SetError(NSS_ERROR_INVALUD_POINTER);
+        nss_SetError(NSS_ERROR_INVALID_POINTER);
         goto loser;
     }
     session = nssToken_GetDefaultSession(object->token);
