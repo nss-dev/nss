@@ -690,6 +690,10 @@ create_object (
     nssCryptokiObjectAndAttributes *rvCachedObject = NULL;
 
     slot = nssToken_GetSlot(object->token);
+    if (!slot) {
+        nss_SetError(NSS_ERROR_INVALUD_POINTER);
+        goto loser;
+    }
     session = nssToken_GetDefaultSession(object->token);
 
     arena = nssArena_Create();
@@ -724,9 +728,8 @@ create_object (
     }
     rvCachedObject->numAttributes = numTypes;
     *status = PR_SUCCESS;
-    if (slot) {
-	nssSlot_Destroy(slot);
-    }
+    nssSlot_Destroy(slot);
+
     return rvCachedObject;
 loser:
     *status = PR_FAILURE;
