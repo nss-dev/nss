@@ -3123,6 +3123,11 @@ ssl2_BeginClientHandshake(sslSocket *ss)
 #if defined(NSS_ENABLE_ECC) && !defined(NSS_ECC_MORE_THAN_SUITE_B)
     /* ensure we don't neogtiate ECC cipher suites with SSL2 hello */
     ssl3_DisableECCSuites(ss, NULL); /* disable all ECC suites */
+    if (ss->cipherSpecs != NULL) {
+	PORT_Free(ss->cipherSpecs);
+	ss->cipherSpecs     = NULL;
+	ss->sizeCipherSpecs = 0;
+    }
 #endif
 
     if (!ss->cipherSpecs) {

@@ -2419,6 +2419,8 @@ sftk_SlotFromID(CK_SLOT_ID slotID, PRBool all)
 {
     SFTKSlot *slot;
     int index = sftk_GetModuleIndex(slotID);
+    
+    if (nscSlotHashTable[index] == NULL) return NULL;
     slot = (SFTKSlot *)PL_HashTableLookupConst(nscSlotHashTable[index], 
 							(void *)slotID);
     /* cleared slots shouldn't 'show up' */
@@ -3115,21 +3117,13 @@ CK_RV nsc_CommonFinalize (CK_VOID_PTR pReserved, PRBool isFIPS)
     nsslowcert_DestroyFreeLists();
     nsslowcert_DestroyGlobalLocks();
 
-#ifdef LEAK_TEST
-    /*
-     * do we really want to throw away all our hard earned entropy here!!?
-     * No we don't! Not calling RNG_RNGShutdown only 'leaks' data on the 
-     * initial call to RNG_Init(). So the only reason to call this is to clean
-     * up leak detection warnings on shutdown. In many cases we *don't* want
-     * to free up the global RNG context because the application has Finalized
-     * simply to swap profiles. We don't want to loose the entropy we've 
-     * already collected.
-     */
+    /* This function does not discard all our previously aquired entropy. */
     RNG_RNGShutdown();
-#endif
 
     /* tell freeBL to clean up after itself */
     BL_Cleanup();
+    /* unload freeBL shared library from memory */
+    BL_Unload();
     /* clean up the default OID table */
     SECOID_Shutdown();
     nsc_init = PR_FALSE;
@@ -3244,9 +3238,11 @@ sftk_checkNeedLogin(SFTKSlot *slot, NSSLOWKEYDBHandle *keyHandle)
  * the system. */
 CK_RV NSC_GetTokenInfo(CK_SLOT_ID slotID,CK_TOKEN_INFO_PTR pInfo)
 {
-    SFTKSlot *slot = sftk_SlotFromID(slotID, PR_FALSE);
+    SFTKSlot *slot; 
     NSSLOWKEYDBHandle *handle;
 
+    if (!nsc_init && !nsf_init) return CKR_CRYPTOKI_NOT_INITIALIZED;
+    slot = sftk_SlotFromID(slotID, PR_FALSE);
     if (slot == NULL) return CKR_SLOT_ID_INVALID;
 
     PORT_Memcpy(pInfo->manufacturerID,manufacturerID,32);

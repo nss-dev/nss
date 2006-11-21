@@ -46,6 +46,7 @@
 #include "nssilock.h"
 #include "secitem.h"
 #include "sha_fast.h"
+#include "sha256.h"
 #include "secrng.h"	/* for RNG_GetNoise() */
 #include "secmpi.h"
 
@@ -74,8 +75,10 @@
  * SHA-256, or SHA-512).
  */
 #define FIPS_B     256
-#define B_HASH_BUF SHA256_HashBuf
 #define BSIZE      (FIPS_B / PR_BITS_PER_BYTE)
+#if BSIZE != SHA256_LENGTH
+#error "this file requires that BSIZE and SHA256_LENGTH be equal"
+#endif
 
 /* Output size of the G function */
 #define FIPS_G     160
@@ -169,15 +172,26 @@ struct RNGContextStr {
 };
 typedef struct RNGContextStr RNGContext;
 static RNGContext *globalrng = NULL;
+static RNGContext theGlobalRng;
 
 /*
- * Free the global RNG context
+ * Clean up the global RNG context
  */
 static void
 freeRNGContext()
 {
+    unsigned char inputhash[BSIZE];
+    SECStatus rv;
+
+    /* destroy context lock */
     PZ_DestroyLock(globalrng->lock);
-    PORT_ZFree(globalrng, sizeof *globalrng);
+
+    /* zero global RNG context except for XKEY to preserve entropy */
+    rv = SHA256_HashBuf(inputhash, globalrng->XKEY, BSIZE);
+    PORT_Assert(SECSuccess == rv);
+    memset(globalrng, 0, sizeof(*globalrng));
+    memcpy(globalrng->XKEY, inputhash, BSIZE);
+
     globalrng = NULL;
 }
 
@@ -332,22 +346,19 @@ done:
 /* Use NSPR to prevent RNG_RNGInit from being called from separate
  * threads, creating a race condition.
  */
-static PRCallOnceType coRNGInit = { 0, 0, 0 };
+static const PRCallOnceType pristineCallOnce;
+static PRCallOnceType coRNGInit;
 static PRStatus rng_init(void)
 {
-    unsigned char bytes[120];
+    unsigned char bytes[SYSTEM_RNG_SEED_COUNT];
     unsigned int numBytes;
     if (globalrng == NULL) {
 	/* create a new global RNG context */
-	globalrng = (RNGContext *)PORT_ZAlloc(sizeof(RNGContext));
-	if (globalrng == NULL) {
-	    PORT_SetError(PR_OUT_OF_MEMORY_ERROR);
-	    return PR_FAILURE;
-	}
+	globalrng = &theGlobalRng;
+        PORT_Assert(NULL == globalrng->lock);
 	/* create a lock for it */
 	globalrng->lock = PZ_NewLock(nssILockOther);
 	if (globalrng->lock == NULL) {
-	    PORT_Free(globalrng);
 	    globalrng = NULL;
 	    PORT_SetError(PR_OUT_OF_MEMORY_ERROR);
 	    return PR_FAILURE;
@@ -355,6 +366,18 @@ static PRStatus rng_init(void)
 	/* the RNG is in a valid state */
 	globalrng->isValid = PR_TRUE;
 	/* Try to get some seed data for the RNG */
+	numBytes = RNG_SystemRNG(bytes, sizeof bytes);
+	PORT_Assert(numBytes == 0 || numBytes == sizeof bytes);
+	if (numBytes != 0) {
+	    RNG_RandomUpdate(bytes, numBytes);
+	    memset(bytes, 0, numBytes);
+	} else if (PORT_GetError() != PR_NOT_IMPLEMENTED_ERROR) {
+	    PZ_DestroyLock(globalrng->lock);
+	    globalrng->lock = NULL;
+	    globalrng->isValid = PR_FALSE;
+	    globalrng = NULL;
+	    return PR_FAILURE;
+	}
 	numBytes = RNG_GetNoise(bytes, sizeof bytes);
 	RNG_RandomUpdate(bytes, numBytes);
     }
@@ -387,7 +410,6 @@ static SECStatus
 prng_RandomUpdate(RNGContext *rng, const void *data, size_t bytes)
 {
     SECStatus rv = SECSuccess;
-    unsigned char inputhash[BSIZE];
     /* check for a valid global RNG context */
     PORT_Assert(rng != NULL);
     if (rng == NULL) {
@@ -397,17 +419,6 @@ prng_RandomUpdate(RNGContext *rng, const void *data, size_t bytes)
     /* RNG_SystemInfoForRNG() sometimes does this, not really an error */
     if (bytes == 0)
 	return SECSuccess;
-    /* If received 20 bytes of input, use it, else hash the input before 
-     * locking.
-     */
-    if (bytes == BSIZE)
-	memcpy(inputhash, data, BSIZE);
-    else
-	rv = B_HASH_BUF(inputhash, data, bytes);
-    if (rv != SECSuccess) {
-	/* B_HASH_BUF set error */
-	return SECFailure;
-    }
     /* --- LOCKED --- */
     PZ_Lock(rng->lock);
     /*
@@ -417,20 +428,17 @@ prng_RandomUpdate(RNGContext *rng, const void *data, size_t bytes)
      * Algorithm 1 of FIPS 186-2 Change Notice 1, step 1 specifies that
      * a secret value for the seed-key must be chosen before the
      * generator can begin.  The size of XKEY is b bits, so fill it
-     * with the first b bits sent to RNG_RandomUpdate().
+     * with the b-bit hash of the input to the first RNG_RandomUpdate()
+     * call.
      */
     if (rng->seedCount == 0) {
 	/* This is the first call to RandomUpdate().  Use a hash
-	 * of the input to set the seed, XKEY.
+	 * of the input to set the seed-key, XKEY.
 	 *
-	 * <Step 1> copy seed bytes into context's XKEY
+	 * <Step 1> copy hash of seed bytes into context's XKEY
 	 */
-	memcpy(rng->XKEY, inputhash, BSIZE);
-	/* 
-	 * Now continue with algorithm.  Since the input was used to
-	 * initialize XKEY, the "optional user input" at this stage
-	 * will be a pad of zeros, XSEEDj = 0.
-	 */
+	SHA256_HashBuf(rng->XKEY, data, bytes);
+	/* Now continue with algorithm. */
 	rv = alg_fips186_2_cn_1(rng, NULL);
 	/* As per FIPS 140-2 continuous RNG test requirement, the first
 	 * iteration of output is discarded.  So here there is really
@@ -438,17 +446,28 @@ prng_RandomUpdate(RNGContext *rng, const void *data, size_t bytes)
 	 * before any bytes can be extracted from the generator.
 	 */
 	rng->avail = 0;
+    } else if (bytes == BSIZE && memcmp(rng->XKEY, data, BSIZE) == 0) {
+	/* Should we add the error code SEC_ERROR_BAD_RNG_SEED? */
+	PORT_SetError(SEC_ERROR_INVALID_ARGS);
+	rv = SECFailure;
     } else {
-	/* Execute the algorithm from FIPS 186-2 Change Notice 1 */
-	rv = alg_fips186_2_cn_1(rng, inputhash);
+	/*
+	 * FIPS 186-2 does not specify how to reseed the RNG.  We retrofit
+	 * our RNG with a reseed function from NIST SP 800-90.
+	 *
+	 * Use a hash of the seed-key and the input to reseed the RNG.
+	 */
+	SHA256Context ctx;
+	SHA256_Begin(&ctx);
+	SHA256_Update(&ctx, rng->XKEY, BSIZE);
+	SHA256_Update(&ctx, data, bytes);
+	SHA256_End(&ctx, rng->XKEY, NULL, BSIZE);
     }
     /* If got this far, have added bytes of seed data. */
     if (rv == SECSuccess)
 	rng->seedCount += bytes;
     PZ_Unlock(rng->lock);
     /* --- UNLOCKED --- */
-    /* housekeeping */
-    memset(inputhash, 0, BSIZE);
     return rv;
 }
 
@@ -466,7 +485,7 @@ RNG_RandomUpdate(const void *data, size_t bytes)
 ** Generate some random bytes, using the global random number generator
 ** object.
 */
-SECStatus 
+static SECStatus 
 prng_GenerateGlobalRandomBytes(RNGContext *rng,
                                void *dest, size_t len)
 {
@@ -538,8 +557,8 @@ RNG_RNGShutdown(void)
     }
     /* clear */
     freeRNGContext();
-    /* zero the callonce struct to allow a new call to RNG_RNGInit() */
-    memset(&coRNGInit, 0, sizeof coRNGInit);
+    /* reset the callonce struct to allow a new call to RNG_RNGInit() */
+    coRNGInit = pristineCallOnce;
 }
 
 /*

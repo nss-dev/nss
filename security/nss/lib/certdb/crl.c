@@ -570,9 +570,13 @@ CERT_DecodeDERCrlWithFlags(PRArenaPool *narena, SECItem *derSignedCrl,
     
 loser:
     if (options & CRL_DECODE_KEEP_BAD_CRL) {
-        extended->decodingError = PR_TRUE;
-        crl->referenceCount = 1;
-        return(crl);
+        if (extended) {
+            extended->decodingError = PR_TRUE;
+        }
+        if (crl) {
+            crl->referenceCount = 1;
+            return(crl);
+        }
     }
 
     if ((narena == NULL) && arena ) {

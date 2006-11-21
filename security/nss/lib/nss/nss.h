@@ -54,16 +54,16 @@ SEC_BEGIN_PROTOS
  */
 #ifdef NSS_ENABLE_ECC
 #ifdef NSS_ECC_MORE_THAN_SUITE_B
-#define NSS_VERSION  "3.11.3 Extended ECC"
+#define NSS_VERSION  "3.11.4 Extended ECC"
 #else
-#define NSS_VERSION  "3.11.3 Basic ECC"
+#define NSS_VERSION  "3.11.4 Basic ECC"
 #endif
 #else
-#define NSS_VERSION  "3.11.3"
+#define NSS_VERSION  "3.11.4"
 #endif
 #define NSS_VMAJOR   3
 #define NSS_VMINOR   11
-#define NSS_VPATCH   3
+#define NSS_VPATCH   4
 #define NSS_BETA     PR_FALSE
 
 /*

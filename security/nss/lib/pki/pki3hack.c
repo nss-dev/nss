@@ -706,8 +706,13 @@ STAN_GetCERTCertificateNameForInstance (
 char * 
 STAN_GetCERTCertificateName(PLArenaPool *arenaOpt, NSSCertificate *c)
 {
+    char * result;
     nssCryptokiInstance *instance = get_cert_instance(c);
-    return STAN_GetCERTCertificateNameForInstance(arenaOpt, c, instance);
+    /* It's OK to call this function, even if instance is NULL */
+    result = STAN_GetCERTCertificateNameForInstance(arenaOpt, c, instance);
+    if (instance)
+	nssCryptokiObject_Destroy(instance);
+    return result;
 }
 
 static void
