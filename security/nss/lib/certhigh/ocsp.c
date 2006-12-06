@@ -2682,8 +2682,7 @@ ocsp_CheckSignature(ocspSignature *signature, void *tbs,
 
     rv = VFY_VerifyDataWithAlgorithmID(encodedTBS->data, encodedTBS->len, 
 			signerKey, &rawSignature,
-			&signature->signatureAlgorithm, NULL,
-			pwArg);
+			&signature->signatureAlgorithm, NULL, pwArg);
 
 finish:
     if (signature->wasChecked)
@@ -2821,8 +2820,14 @@ ocsp_CertIDsMatch(CERTCertDBHandle *handle,
 	goto done;
     }
 
-    if (SECOID_CompareAlgorithmID(&certID1->hashAlgorithm,
-				  &certID2->hashAlgorithm) == SECEqual) {
+    /*
+     * For all the supported hash algorithms, 'parameters' is NULL (two
+     * bytes 0x05 0x00), but we allow it to be missing (zero length).
+     */
+    if ((SECITEM_CompareItem(&certID1->hashAlgorithm.algorithm,
+			     &certID2->hashAlgorithm.algorithm) == SECEqual)
+      && (certID1->hashAlgorithm.parameters.len <= 2)
+      && (certID2->hashAlgorithm.parameters.len <= 2)) {
 	/*
 	 * If the hash algorithms match then we can do a simple compare
 	 * of the hash values themselves.
