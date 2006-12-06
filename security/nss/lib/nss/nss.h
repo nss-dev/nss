@@ -45,26 +45,29 @@
 
 SEC_BEGIN_PROTOS
 
+/* The private macro _NSS_ECC_STRING is for NSS internal use only. */
+#ifdef NSS_ENABLE_ECC
+#ifdef NSS_ECC_MORE_THAN_SUITE_B
+#define _NSS_ECC_STRING " Extended ECC"
+#else
+#define _NSS_ECC_STRING " Basic ECC"
+#endif
+#else
+#define _NSS_ECC_STRING ""
+#endif
+
 /*
  * NSS's major version, minor version, patch level, and whether
  * this is a beta release.
  *
  * The format of the version string should be
- *     "<major version>.<minor version>[.<patch level>] [<Beta>]"
+ *     "<major version>.<minor version>[.<patch level>][ <ECC>][ <Beta>]"
  */
-#ifdef NSS_ENABLE_ECC
-#ifdef NSS_ECC_MORE_THAN_SUITE_B
-#define NSS_VERSION  "3.11.4 Extended ECC"
-#else
-#define NSS_VERSION  "3.11.4 Basic ECC"
-#endif
-#else
-#define NSS_VERSION  "3.11.4"
-#endif
+#define NSS_VERSION  "3.11.5" _NSS_ECC_STRING " Beta"
 #define NSS_VMAJOR   3
 #define NSS_VMINOR   11
-#define NSS_VPATCH   4
-#define NSS_BETA     PR_FALSE
+#define NSS_VPATCH   5
+#define NSS_BETA     PR_TRUE
 
 /*
  * Return a boolean that indicates whether the underlying library
