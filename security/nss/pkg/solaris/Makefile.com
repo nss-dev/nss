@@ -58,7 +58,7 @@ PACKAGE = $(shell basename `pwd`)
 
 PRODUCT_VERSION = $(shell grep NSS_VERSION $(CORE_DEPTH)/../dist/public/nss/nss.h \
 	| head -1 \
-	| sed -e 's/"$$//' -e 's/.*"//' -e 's/ .*//')
+	| sed -e 's/[^"]*"//' -e 's/".*//' -e 's/ .*//')
 
 LN = /usr/bin/ln
 CP = /usr/bin/cp
