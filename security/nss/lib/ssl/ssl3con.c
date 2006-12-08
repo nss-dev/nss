@@ -4195,6 +4195,10 @@ sendDHClientKeyExchange(sslSocket * ss, SECKEYPublicKey * svrPubKey)
 
     /* Copy DH parameters from server key */
 
+    if (svrPubKey->keyType != dhKey) {
+	PORT_SetError(SEC_ERROR_BAD_KEY);
+	goto loser;
+    }
     dhParam.prime.data = svrPubKey->u.dh.prime.data;
     dhParam.prime.len = svrPubKey->u.dh.prime.len;
     dhParam.base.data = svrPubKey->u.dh.base.data;

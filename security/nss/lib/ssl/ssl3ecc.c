@@ -346,6 +346,10 @@ ssl3_SendECDHClientKeyExchange(sslSocket * ss, SECKEYPublicKey * svrPubKey)
     isTLS = (PRBool)(ss->ssl3.pwSpec->version > SSL_LIBRARY_VERSION_3_0);
 
     /* Generate ephemeral EC keypair */
+    if (svrPubKey->keyType != ecKey) {
+	PORT_SetError(SEC_ERROR_BAD_KEY);
+	goto loser;
+    }
     /* XXX SHOULD CALL ssl3_CreateECDHEphemeralKeys here, instead! */
     privKey = SECKEY_CreateECPrivateKey(&svrPubKey->u.ec.DEREncodedParams, 
 	                                &pubKey, NULL);
