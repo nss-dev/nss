@@ -2021,7 +2021,7 @@ sec_asn1d_next_in_sequence (sec_asn1d_state *state)
 	}
 	state->top->current = child;
 	child = sec_asn1d_init_state_based_on_template (child);
-	if (child_missing) {
+	if (child_missing && child) {
 	    child->place = afterIdentifier;
 	    child->found_tag_modifiers = child_found_tag_modifiers;
 	    child->found_tag_number = child_found_tag_number;
