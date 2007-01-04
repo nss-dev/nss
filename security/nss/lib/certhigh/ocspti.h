@@ -281,6 +281,7 @@ struct ocspResponseBytesStr {
 struct ocspBasicOCSPResponseStr {
     ocspResponseData *tbsResponseData;	/* "tbs" == To Be Signed */
     ocspSignature responseSignature;
+    SECItem tbsResponseDataDER;
 };
 
 /*
