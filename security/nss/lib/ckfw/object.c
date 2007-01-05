@@ -169,6 +169,10 @@ nssCKFWObject_Create
   }
 #endif /* NSSDEBUG */
 
+  if( (NSSCKFWToken *)NULL == fwToken ) {
+    *pError = CKR_ARGUMENTS_BAD;
+    return fwObject;
+  }
   mdObjectHash = nssCKFWToken_GetMDObjectHash(fwToken);
   if( (nssCKFWHash *)NULL == mdObjectHash ) {
     *pError = CKR_GENERAL_ERROR;
@@ -195,11 +199,7 @@ nssCKFWObject_Create
   }
 
   fwObject->fwToken = fwToken;
-
-  if( (NSSCKFWToken *)NULL != fwToken ) {
-    fwObject->mdToken = nssCKFWToken_GetMDToken(fwToken);
-  }
-
+  fwObject->mdToken = nssCKFWToken_GetMDToken(fwToken);
   fwObject->fwInstance = fwInstance;
   fwObject->mdInstance = nssCKFWInstance_GetMDInstance(fwInstance);
   fwObject->mutex = nssCKFWInstance_CreateMutex(fwInstance, arena, pError);
