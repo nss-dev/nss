@@ -1157,7 +1157,7 @@ nssCRL_GetEncoding (
   NSSCRL *crl
 )
 {
-    if (crl->encoding.data != NULL && crl->encoding.size > 0) {
+    if (crl && crl->encoding.data != NULL && crl->encoding.size > 0) {
 	return &crl->encoding;
     } else {
 	return (NSSDER *)NULL;
