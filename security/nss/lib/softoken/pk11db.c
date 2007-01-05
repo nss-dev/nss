@@ -74,7 +74,7 @@ CK_RV
 secmod_parseTokenParameters(char *param, sftk_token_parameters *parsed) 
 {
     int next;
-    char *tmp = NULL;
+    char *tmp;
     char *index;
     index = secmod_argStrip(param);
 
@@ -85,14 +85,12 @@ secmod_parseTokenParameters(char *param, sftk_token_parameters *parsed)
 	SECMOD_HANDLE_STRING_ARG(index,parsed->tokdes,"tokenDescription=",;)
 	SECMOD_HANDLE_STRING_ARG(index,parsed->slotdes,"slotDescription=",;)
 	SECMOD_HANDLE_STRING_ARG(index,tmp,"minPWLen=", 
-			               if (tmp) { parsed->minPW=atoi(tmp); })
+			if(tmp) { parsed->minPW=atoi(tmp); PORT_Free(tmp); })
 	SECMOD_HANDLE_STRING_ARG(index,tmp,"flags=", 
-	                  if (tmp) { secmod_parseTokenFlags(param,parsed); })
+	   if(tmp) { secmod_parseTokenFlags(param,parsed); PORT_Free(tmp); })
 	SECMOD_HANDLE_FINAL_ARG(index)
-    }
-    if (tmp) 
-	PORT_Free(tmp);
-    return CKR_OK;
+   }
+   return CKR_OK;
 }
 
 static void
@@ -145,7 +143,7 @@ CK_RV
 secmod_parseParameters(char *param, sftk_parameters *parsed, PRBool isFIPS) 
 {
     int next;
-    char *tmp = NULL;
+    char *tmp;
     char *index;
     char *certPrefix = NULL, *keyPrefix = NULL;
     char *tokdes = NULL, *ptokdes = NULL;
@@ -173,13 +171,11 @@ secmod_parseParameters(char *param, sftk_parameters *parsed, PRBool isFIPS)
 	SECMOD_HANDLE_STRING_ARG(index,minPW,"minPWLen=",;)
 
 	SECMOD_HANDLE_STRING_ARG(index,tmp,"flags=", 
-		             if (tmp) { secmod_parseFlags(param,parsed); })
+		if(tmp) { secmod_parseFlags(param,parsed); PORT_Free(tmp); })
 	SECMOD_HANDLE_STRING_ARG(index,tmp,"tokens=", 
-		             if (tmp) { secmod_parseTokens(tmp,parsed); })
+		if(tmp) { secmod_parseTokens(tmp,parsed); PORT_Free(tmp); })
 	SECMOD_HANDLE_FINAL_ARG(index)
     }
-    if (tmp) 
-	PORT_Free(tmp); 
     if (parsed->tokens == NULL) {
 	int  count = isFIPS ? 1 : 2;
 	int  index = count-1;
@@ -267,7 +263,7 @@ secmod_getSecmodName(char *param, char **appName, char **filename,PRBool *rw)
     char *secmodName = NULL;
     char *value = NULL;
     char *save_params = param;
-    const char *lconfigdir = NULL;
+    const char *lconfigdir;
     param = secmod_argStrip(param);
 	
 
@@ -287,9 +283,7 @@ secmod_getSecmodName(char *param, char **appName, char **filename,PRBool *rw)
    }
    *filename = secmodName;
 
-   if (configdir) {
-       lconfigdir = sftk_EvaluateConfigDir(configdir, appName);
-   }
+   lconfigdir = sftk_EvaluateConfigDir(configdir, appName);
 
    if (lconfigdir) {
 	value = PR_smprintf("%s" PATH_SEPARATOR "%s",lconfigdir,secmodName);
