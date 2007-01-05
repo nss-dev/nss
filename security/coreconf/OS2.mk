@@ -80,10 +80,6 @@ DEFINES 		+= -Uunix -U__unix -U__unix__
 
 DEFINES			+= -DXP_OS2_EMX -DTCPV40HDRS
 
-ifeq ($(MOZ_OS2_HIGH_MEMORY),1)
-HIGHMEM_LDFLAG          = -Zhigh-mem
-endif
-
 ifndef NO_SHARED_LIB
 WRAP_MALLOC_LIB         = 
 WRAP_MALLOC_CFLAGS      = 
@@ -93,7 +89,7 @@ MKSHLIB                 = $(CXX) $(CXXFLAGS) $(DSO_LDOPTS) -o $@
 MKCSHLIB                = $(CC) $(CFLAGS) $(DSO_LDOPTS) -o $@
 MKSHLIB_FORCE_ALL       = 
 MKSHLIB_UNFORCE_ALL     = 
-DSO_LDOPTS              = -Zomf -Zdll -Zmap $(HIGHMEM_LDFLAG)
+DSO_LDOPTS              = -Zomf -Zdll -Zmap
 SHLIB_LDSTARTFILE	= 
 SHLIB_LDENDFILE		= 
 ifdef MAPFILE
@@ -116,16 +112,16 @@ OS_CFLAGS          = -Wall -W -Wno-unused -Wpointer-arith -Wcast-align -Zomf -DD
 ifdef BUILD_OPT
 OPTIMIZER		= -O2 -s
 DEFINES 		+= -UDEBUG -U_DEBUG -DNDEBUG
-DLLFLAGS		= -DLL -OUT:$@ -MAP:$(@:.dll=.map) $(HIGHMEM_LDFLAG)
-EXEFLAGS    		= -PMTYPE:VIO -OUT:$@ -MAP:$(@:.exe=.map) -nologo -NOE $(HIGHMEM_LDFLAG)
+DLLFLAGS		= -DLL -OUT:$@ -MAP:$(@:.dll=.map)
+EXEFLAGS    		= -PMTYPE:VIO -OUT:$@ -MAP:$(@:.exe=.map) -nologo -NOE
 OBJDIR_TAG 		= _OPT
 else
 #OPTIMIZER		= -O+ -Oi
 DEFINES 		+= -DDEBUG -D_DEBUG -DDEBUGPRINTS     #HCT Need += to avoid overidding manifest.mn 
-DLLFLAGS		= -DEBUG -DLL -OUT:$@ -MAP:$(@:.dll=.map) $(HIGHMEM_LDFLAG)
-EXEFLAGS    		= -DEBUG -PMTYPE:VIO -OUT:$@ -MAP:$(@:.exe=.map) -nologo -NOE $(HIGHMEM_LDFLAG)
+DLLFLAGS		= -DEBUG -DLL -OUT:$@ -MAP:$(@:.dll=.map)
+EXEFLAGS    		= -DEBUG -PMTYPE:VIO -OUT:$@ -MAP:$(@:.exe=.map) -nologo -NOE
 OBJDIR_TAG 		= _DBG
-LDFLAGS 		= -DEBUG $(HIGHMEM_LDFLAG)
+LDFLAGS 		= -DEBUG 
 endif   # BUILD_OPT
 
 else    # XP_OS2_VACPP
