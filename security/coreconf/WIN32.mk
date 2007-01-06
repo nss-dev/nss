@@ -156,7 +156,7 @@ endif
 	# Purify requires /FIXED:NO when linking EXEs.
 	LDFLAGS    += /FIXED:NO
     endif
-    DEFINES += -D_CRT_SECURE_NO_WARNINGS
+#   DEFINES += -D_CRT_SECURE_NO_WARNINGS
 endif # NS_USE_GCC
 
 DEFINES += -DWIN32
