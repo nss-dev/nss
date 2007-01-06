@@ -2797,14 +2797,12 @@ CERT_VerifyOCSPResponseSignature(CERTOCSPResponse *response,
 }
 
 /*
- * See if the request's certID and the single response's certID match.
- * This can be easy or difficult, depending on whether the same hash
- * algorithm was used.
+ * See if two certIDs match.  This can be easy or difficult, depending
+ * on whether the same hash algorithm was used.
  */
 static PRBool
 ocsp_CertIDsMatch(CERTCertDBHandle *handle,
-		  CERTOCSPCertID *requestCertID,
-		  CERTOCSPCertID *responseCertID)
+		  CERTOCSPCertID *certID1, CERTOCSPCertID *certID2)
 {
     PRBool match = PR_FALSE;
     SECOidTag hashAlg;
@@ -2817,54 +2815,51 @@ ocsp_CertIDsMatch(CERTCertDBHandle *handle,
      *
      * We just compare the easier things first.
      */
-    if (SECITEM_CompareItem(&requestCertID->serialNumber,
-			    &responseCertID->serialNumber) != SECEqual) {
+    if (SECITEM_CompareItem(&certID1->serialNumber,
+			    &certID2->serialNumber) != SECEqual) {
 	goto done;
     }
 
     /*
-     * Make sure the "parameters" are not too bogus.  Since we encoded
-     * requestCertID->hashAlgorithm, we don't need to check it.
+     * For all the supported hash algorithms, 'parameters' is NULL (two
+     * bytes 0x05 0x00), but we allow it to be missing (zero length).
      */
-    if (responseCertID->hashAlgorithm.parameters.len > 2) {
-	goto done;
-    }
-    if (SECITEM_CompareItem(&requestCertID->hashAlgorithm.algorithm,
-		&responseCertID->hashAlgorithm.algorithm) == SECEqual) {
+    if ((SECITEM_CompareItem(&certID1->hashAlgorithm.algorithm,
+			     &certID2->hashAlgorithm.algorithm) == SECEqual)
+      && (certID1->hashAlgorithm.parameters.len <= 2)
+      && (certID2->hashAlgorithm.parameters.len <= 2)) {
 	/*
 	 * If the hash algorithms match then we can do a simple compare
 	 * of the hash values themselves.
 	 */
-	if ((SECITEM_CompareItem(&requestCertID->issuerNameHash,
-				&responseCertID->issuerNameHash) == SECEqual)
-	    && (SECITEM_CompareItem(&requestCertID->issuerKeyHash,
-				&responseCertID->issuerKeyHash) == SECEqual)) {
+	if ((SECITEM_CompareItem(&certID1->issuerNameHash,
+				 &certID2->issuerNameHash) == SECEqual)
+	    && (SECITEM_CompareItem(&certID1->issuerKeyHash,
+				    &certID2->issuerKeyHash) == SECEqual)) {
 	    match = PR_TRUE;
 	}
 	goto done;
     }
 
-    hashAlg = SECOID_FindOIDTag(&responseCertID->hashAlgorithm.algorithm);
+    hashAlg = SECOID_FindOIDTag(&certID2->hashAlgorithm.algorithm);
     switch (hashAlg) {
     case SEC_OID_SHA1:
-	keyHash = &requestCertID->issuerSHA1KeyHash;
-	nameHash = &requestCertID->issuerSHA1NameHash;
+	keyHash = &certID1->issuerSHA1KeyHash;
+	nameHash = &certID1->issuerSHA1NameHash;
 	break;
     case SEC_OID_MD5:
-	keyHash = &requestCertID->issuerMD5KeyHash;
-	nameHash = &requestCertID->issuerMD5NameHash;
+	keyHash = &certID1->issuerMD5KeyHash;
+	nameHash = &certID1->issuerMD5NameHash;
 	break;
     case SEC_OID_MD2:
-	keyHash = &requestCertID->issuerMD2KeyHash;
-	nameHash = &requestCertID->issuerMD2NameHash;
+	keyHash = &certID1->issuerMD2KeyHash;
+	nameHash = &certID1->issuerMD2NameHash;
 	break;
     }
 
     if ((keyHash != NULL)
-	&& (SECITEM_CompareItem(nameHash,
-				&responseCertID->issuerNameHash) == SECEqual)
-	&& (SECITEM_CompareItem(keyHash,
-				&responseCertID->issuerKeyHash) == SECEqual)) {
+      && (SECITEM_CompareItem(nameHash, &certID2->issuerNameHash) == SECEqual)
+      && (SECITEM_CompareItem(keyHash, &certID2->issuerKeyHash) == SECEqual)) {
 	match = PR_TRUE;
     }
 
