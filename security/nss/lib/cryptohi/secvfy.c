@@ -645,7 +645,7 @@ VFY_VerifyDigestDirect(const SECItem *digest, const SECKEYPublicKey *key,
 		       const SECItem *sig, SECOidTag encAlg, 
 		       SECOidTag hashAlg, void *wincx)
 {
-    return VFY_VerifyDigestDirect(digest, key, sig, encAlg, hashAlg, wincx);
+    return vfy_VerifyDigest(digest, key, sig, encAlg, hashAlg, wincx);
 }
 
 SECStatus
