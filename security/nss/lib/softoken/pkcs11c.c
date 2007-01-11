@@ -59,7 +59,6 @@
 #include "pkcs11.h"
 #include "pkcs11i.h"
 #include "lowkeyi.h"
-#include "pcert.h"
 #include "sechash.h"
 #include "secder.h"
 #include "secdig.h"
@@ -71,7 +70,6 @@
 #include "secasn1.h"
 #include "secerr.h"
 
-#include "pcert.h"
 #include "ssl3prot.h" 	/* for SSL3_RANDOM_LENGTH */
 #include "prprf.h"
 
