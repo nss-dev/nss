@@ -3723,7 +3723,7 @@ CK_RV NSC_SetAttributeValue (CK_SESSION_HANDLE hSession,
     return crv;
 }
 
-CK_RV
+static CK_RV
 sftk_expandSearchList(SFTKSearchResults *search, int count)
 {
     search->array_size += count;
@@ -3731,6 +3731,8 @@ sftk_expandSearchList(SFTKSearchResults *search, int count)
 			sizeof(CK_OBJECT_HANDLE)*search->array_size);
     return search->handles ? CKR_OK : CKR_HOST_MEMORY;
 }
+
+
 
 static CK_RV
 sftk_searchDatabase(SFTKDBHandle *handle, SFTKSearchResults *search,
@@ -3758,8 +3760,105 @@ sftk_searchDatabase(SFTKDBHandle *handle, SFTKSearchResults *search,
 	array = &search->handles[search->size];
     } while (crv == CKR_OK);
     sftkdb_FindObjectsFinal(handle, find);
+
     return crv;
 }
+
+/* softoken used to search the SMimeEntries automatically instead of
+ * doing this in pk11wrap. This code should really be up in
+ * pk11wrap so that it will work with other tokens other than softoken.
+ */
+CK_RV
+sftk_emailhack(SFTKSlot *slot, SFTKDBHandle *handle, 
+    SFTKSearchResults *search, CK_ATTRIBUTE *pTemplate, CK_LONG ulCount)
+{
+    PRBool isCert = PR_FALSE;
+    int emailIndex = -1;
+    int i, count;
+    SFTKSearchResults smime_search;
+    CK_ATTRIBUTE smime_template[2];
+    CK_OBJECT_CLASS smime_class = CKO_NETSCAPE_SMIME;
+    SFTKAttribute *attribute = NULL;
+    SFTKObject *object = NULL;
+    CK_RV crv = CKR_OK;
+
+
+    smime_search.handles = NULL; /* paranoia, some one is bound to add a goto
+				  * loser before this gets initialized */
+
+    /* see if we are looking for email certs */
+    for (i=0; i < count; i++) {
+	if (pTemplate[i].type == CKA_CLASS) {
+	   if ((pTemplate[i].ulValueLen != sizeof(CK_OBJECT_CLASS) ||
+	       (*(CK_OBJECT_CLASS *)pTemplate[i].pValue) != CKO_CERTIFICATE)) {
+		/* not a cert, skip out */
+		break;
+	   }
+	   isCert = PR_TRUE;
+	} else if (pTemplate[i].type == CKA_NETSCAPE_EMAIL) {
+	   emailIndex = i;
+	 
+	}
+	if (isCert && (emailIndex != -1)) break;
+    }
+
+    if (!isCert || (emailIndex == -1)) {
+	return CKR_OK;
+    }
+
+    /* we are doing a cert and email search, find the SMimeEntry */
+    smime_template[0].type = CKA_CLASS;
+    smime_template[0].pValue = &smime_class;
+    smime_template[0].ulValueLen = sizeof(smime_class);
+    smime_template[1] = pTemplate[emailIndex];
+
+    smime_search.handles = (CK_OBJECT_HANDLE *)
+		PORT_Alloc(sizeof(CK_OBJECT_HANDLE) * NSC_SEARCH_BLOCK_SIZE);
+    if (smime_search.handles == NULL) {
+	crv = CKR_HOST_MEMORY;
+	goto loser;
+    }
+    smime_search.index = 0;
+    smime_search.size = 0;
+    smime_search.array_size = NSC_SEARCH_BLOCK_SIZE;
+	
+    crv = sftk_searchDatabase(handle, &smime_search, smime_template, 2);
+    if (crv != CKR_OK || smime_search.size == 0) {
+	goto loser;
+    }
+
+    /* get the SMime subject */
+    object = sftk_NewTokenObject(slot, NULL, smime_search.handles[0]);
+    if (object == NULL) {
+	crv = CKR_HOST_MEMORY; /* is there any other reason for this failure? */
+	goto loser;
+    }
+    attribute = sftk_FindAttribute(object,CKA_SUBJECT);
+    if (attribute == NULL) {
+	crv = CKR_ATTRIBUTE_TYPE_INVALID;
+	goto loser;
+    }
+
+    /* now find the certs with that subject */
+    pTemplate[emailIndex] = attribute->attrib;
+    /* now add the appropriate certs to the search list */
+    crv = sftk_searchDatabase(handle, search, pTemplate, ulCount);
+    pTemplate[emailIndex] = smime_template[1]; /* restore the user's template*/
+
+loser:
+    if (attribute) {
+	sftk_FreeAttribute(attribute);
+    }
+    if (object) {
+	sftk_FreeObject(object);
+    }
+    if (smime_search.handles) {
+	PORT_Free(smime_search.handles);
+    }
+
+    return crv;
+}
+	
 
 static CK_RV
 sftk_searchTokenList(SFTKSlot *slot, SFTKSearchResults *search,
@@ -3767,8 +3866,11 @@ sftk_searchTokenList(SFTKSlot *slot, SFTKSearchResults *search,
                         PRBool *tokenOnly, PRBool isLoggedIn)
 {
     CK_RV crv;
+    CK_RV crv2;
     SFTKDBHandle *certHandle = sftk_getCertDB(slot);
     crv = sftk_searchDatabase(certHandle, search, pTemplate, ulCount);
+    crv2 = sftk_emailhack(slot, certHandle, search, pTemplate, ulCount);
+    if (crv == CKR_OK) crv2 = crv;
     sftk_freeDB(certHandle);
 
     if (crv == CKR_OK && isLoggedIn) {

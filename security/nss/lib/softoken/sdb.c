@@ -695,7 +695,6 @@ sdb_DestroyObject(SDB *sdb, CK_OBJECT_HANDLE object_id)
 	return CKR_TOKEN_WRITE_PROTECTED;
     }
 
-printf("DESTROY OBJECT CALLED for %x\n", object_id);
     error = sdb_openDB(sdb_p->sqlDBName, sdb_p->type, &sqlDB, sdb_p);
     if (error != CKR_OK) {
 	goto loser;
@@ -999,20 +998,6 @@ static int tableExists(sqlite3 *sqlDB, const char *tableName)
  "ALTER TABLE %s ADD COLUMN a%x"
 
 
-int 
-sdb_fileExists(char *dbname)
-{
-   PRFileInfo info;
-   PRStatus ret;
-
-   ret = PR_GetFileInfo(dbname, &info);
-   if (ret == PR_SUCCESS) {
-	return (info.type == PR_FILE_FILE);
-   }
-   return 0;
-
-}
-
 CK_RV 
 sdb_init(char *dbname, char *table, sdbDataType type, int *inUpdate,
 	 int *needUpdate, int flags, SDB **pSdb)
@@ -1033,7 +1018,7 @@ sdb_init(char *dbname, char *table, sdbDataType type, int *inUpdate,
      * open the database read only. If the db doesn't exist,
      * sqlite3 will always create it.
      */
-    if ((flags == SDB_RDONLY) && !sdb_fileExists(dbname)) {
+    if ((flags == SDB_RDONLY) && PR_Access(dbname, PR_ACCESS_EXISTS)) {
 	error = sdb_mapSQLError(type, SQLITE_CANTOPEN);
 	goto loser;
     }
@@ -1169,11 +1154,8 @@ s_open(const char *directory, int cert_version,
     /*
      * open the cert data base
      */
-printf("directory = %s\n", directory);
-printf("CERTDB = %s\n", cert);
-printf("KEYDB = %s\n", key);
     if (certdb) {
-/* initialize Certificate database */
+	/* initialize Certificate database */
 	error = sdb_init(cert, "nssPublic", SDB_CERT, &inUpdate,
 			 &needUpdate, flags, certdb);
 	if (error != CKR_OK) {
