@@ -1617,9 +1617,10 @@ ocsp_GetResponseData(CERTOCSPResponse *response, SECItem **tbsResponseDataDER)
 
     if (tbsResponseDataDER) {
         *tbsResponseDataDER = &basic->tbsResponseDataDER;
+
+        PORT_Assert((*tbsResponseDataDER)->data != NULL);
+        PORT_Assert((*tbsResponseDataDER)->len != 0);
     }
-    PORT_Assert((*tbsResponseDataDER)->data != NULL);
-    PORT_Assert((*tbsResponseDataDER)->len != 0);
 
     return responseData;
 }
