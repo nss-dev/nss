@@ -410,12 +410,14 @@ typedef struct {
 #define SEC_DB_CONTENT_VERSION_KEY_LEN sizeof(SEC_DB_CONTENT_VERSION_KEY)
 
 typedef union {
-    certDBEntryCommon common;
-    certDBEntryVersion version;
-    certDBEntryCert cert;
-    certDBEntryNickname nickname;
-    certDBEntrySubject subject;
-    certDBEntryRevocation revocation;
+    certDBEntryCommon         common;
+    certDBEntryCert           cert;
+    certDBEntryContentVersion content;
+    certDBEntryNickname       nickname;
+    certDBEntryRevocation     revocation;
+    certDBEntrySMime          smime;
+    certDBEntrySubject        subject;
+    certDBEntryVersion        version;
 } certDBEntry;
 
 /* length of the fixed part of a database entry */

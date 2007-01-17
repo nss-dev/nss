@@ -67,9 +67,8 @@
 
 #include "keydbi.h" 
 
-#ifdef NSS_ENABLE_ECC
-extern SECStatus EC_FillParams(PRArenaPool *arena, 
-    const SECItem *encodedParams, ECParams *params);
+#ifdef DEBUG
+#include "cdbhdl.h"
 #endif
 
 /*
@@ -77,7 +76,7 @@ extern SECStatus EC_FillParams(PRArenaPool *arena,
  */
 
 /* The next three strings must be exactly 32 characters long */
-static char *manufacturerID      = "mozilla.org                     ";
+static char *manufacturerID      = "Mozilla Foundation              ";
 static char manufacturerID_space[33];
 static char *libraryDescription  = "NSS Internal Crypto Services    ";
 static char libraryDescription_space[33];
@@ -1228,6 +1227,7 @@ sftk_handlePrivateKeyObject(SFTKSession *session,SFTKObject *object,CK_KEY_TYPE 
 {
     CK_BBOOL cktrue = CK_TRUE;
     CK_BBOOL encrypt = CK_TRUE;
+    CK_BBOOL sign = CK_FALSE;
     CK_BBOOL recover = CK_TRUE;
     CK_BBOOL wrap = CK_TRUE;
     CK_BBOOL derive = CK_FALSE;
@@ -1268,15 +1268,18 @@ sftk_handlePrivateKeyObject(SFTKSession *session,SFTKObject *object,CK_KEY_TYPE 
 						sftk_item_expand(&mod));
 	if (mod.data) PORT_Free(mod.data);
 	if (crv != CKR_OK) return crv;
-	
+
+	sign = CK_TRUE;
 	break;
     case CKK_DSA:
 	if ( !sftk_hasAttribute(object, CKA_SUBPRIME)) {
 	    return CKR_TEMPLATE_INCOMPLETE;
 	}
-	if ( !sftk_hasAttribute(object, CKA_NETSCAPE_DB)) {
+	if (sftk_isTrue(object,CKA_TOKEN) &&
+		!sftk_hasAttribute(object, CKA_NETSCAPE_DB)) {
 	    return CKR_TEMPLATE_INCOMPLETE;
 	}
+	sign = CK_TRUE;
 	/* fall through */
     case CKK_DH:
 	if ( !sftk_hasAttribute(object, CKA_PRIME)) {
@@ -1300,10 +1303,12 @@ sftk_handlePrivateKeyObject(SFTKSession *session,SFTKObject *object,CK_KEY_TYPE 
 	if ( !sftk_hasAttribute(object, CKA_VALUE)) {
 	    return CKR_TEMPLATE_INCOMPLETE;
 	}
-	if ( !sftk_hasAttribute(object, CKA_NETSCAPE_DB)) {
+	if (sftk_isTrue(object,CKA_TOKEN) &&
+		!sftk_hasAttribute(object, CKA_NETSCAPE_DB)) {
 	    return CKR_TEMPLATE_INCOMPLETE;
 	}
 	encrypt = CK_FALSE;
+	sign = CK_TRUE;
 	recover = CK_FALSE;
 	wrap = CK_FALSE;
 	derive = CK_TRUE;
@@ -1320,7 +1325,7 @@ sftk_handlePrivateKeyObject(SFTKSession *session,SFTKObject *object,CK_KEY_TYPE 
     if (crv != CKR_OK)  return crv; 
     crv = sftk_defaultAttribute(object,CKA_DECRYPT,&encrypt,sizeof(CK_BBOOL));
     if (crv != CKR_OK)  return crv; 
-    crv = sftk_defaultAttribute(object,CKA_SIGN,&cktrue,sizeof(CK_BBOOL));
+    crv = sftk_defaultAttribute(object,CKA_SIGN,&sign,sizeof(CK_BBOOL));
     if (crv != CKR_OK)  return crv; 
     crv = sftk_defaultAttribute(object,CKA_SIGN_RECOVER,&recover,
 							     sizeof(CK_BBOOL));
@@ -1532,6 +1537,9 @@ sftk_GenerateSecretCKA_ID(NSSLOWKEYDBHandle *handle, SECItem *id, char *label)
 				(++retries <= SFTK_KEY_MAX_RETRIES));
 
     if ((rv != SECSuccess) || (retries > SFTK_KEY_MAX_RETRIES)) {
+	if (rv != SECSuccess) {
+	    sftk_fatalError = PR_TRUE;
+	}
 	crv = CKR_DEVICE_ERROR; /* random number generator is bad */
 	PORT_Free(id->data);
 	id->data = NULL;
@@ -1644,6 +1652,9 @@ sftk_handleKeyObject(SFTKSession *session, SFTKObject *object)
 
     /* get the key type */
     attribute = sftk_FindAttribute(object,CKA_KEY_TYPE);
+    if (!attribute) {
+        return CKR_ATTRIBUTE_VALUE_INVALID;
+    }
     key_type = *(CK_KEY_TYPE *)attribute->attrib.pValue;
     sftk_FreeAttribute(attribute);
 
@@ -1750,6 +1761,9 @@ sftk_handleKeyParameterObject(SFTKSession *session, SFTKObject *object)
 
     /* get the key type */
     attribute = sftk_FindAttribute(object,CKA_KEY_TYPE);
+    if (!attribute) {
+        return CKR_ATTRIBUTE_VALUE_INVALID;
+    }
     key_type = *(CK_KEY_TYPE *)attribute->attrib.pValue;
     sftk_FreeAttribute(attribute);
 
@@ -1952,7 +1966,10 @@ NSSLOWKEYPublicKey *sftk_GetPubKey(SFTKObject *object,CK_KEY_TYPE key_type,
 	 * based on the encoded params
 	 */
 	if (EC_FillParams(arena, &pubKey->u.ec.ecParams.DEREncoding,
-	    &pubKey->u.ec.ecParams) != SECSuccess) break;
+		    &pubKey->u.ec.ecParams) != SECSuccess) {
+	    crv = CKR_DOMAIN_PARAMS_INVALID;
+	    break;
+	}
 	    
 	crv = sftk_Attribute2SSecItem(arena,&pubKey->u.ec.publicValue,
 	                              object,CKA_EC_POINT);
@@ -2045,9 +2062,12 @@ sftk_mkPrivKey(SFTKObject *object, CK_KEY_TYPE key_type, CK_RV *crvp)
     	crv = sftk_Attribute2SSecItem(arena,&privKey->u.dsa.privateValue,
 							object,CKA_VALUE);
     	if (crv != CKR_OK) break;
-    	crv = sftk_Attribute2SSecItem(arena,&privKey->u.dsa.publicValue,
-							object,CKA_NETSCAPE_DB);
-	/* can't set the public value.... */
+	if (sftk_hasAttribute(object,CKA_NETSCAPE_DB)) {
+	    crv = sftk_Attribute2SSecItem(arena, &privKey->u.dsa.publicValue,
+				      object,CKA_NETSCAPE_DB);
+	    /* privKey was zero'd so public value is already set to NULL, 0
+	     * if we don't set it explicitly */
+	}
 	break;
 
     case CKK_DH:
@@ -2061,8 +2081,12 @@ sftk_mkPrivKey(SFTKObject *object, CK_KEY_TYPE key_type, CK_RV *crvp)
     	crv = sftk_Attribute2SSecItem(arena,&privKey->u.dh.privateValue,
 							object,CKA_VALUE);
     	if (crv != CKR_OK) break;
-    	crv = sftk_Attribute2SSecItem(arena,&privKey->u.dh.publicValue,
-							object,CKA_NETSCAPE_DB);
+	if (sftk_hasAttribute(object,CKA_NETSCAPE_DB)) {
+	    crv = sftk_Attribute2SSecItem(arena, &privKey->u.dh.publicValue,
+				      object,CKA_NETSCAPE_DB);
+	    /* privKey was zero'd so public value is already set to NULL, 0
+	     * if we don't set it explicitly */
+	}
 	break;
 
 #ifdef NSS_ENABLE_ECC
@@ -2077,13 +2101,20 @@ sftk_mkPrivKey(SFTKObject *object, CK_KEY_TYPE key_type, CK_RV *crvp)
 	 * based on the encoded params
 	 */
 	if (EC_FillParams(arena, &privKey->u.ec.ecParams.DEREncoding,
-	    &privKey->u.ec.ecParams) != SECSuccess) break;
+		    &privKey->u.ec.ecParams) != SECSuccess) {
+	    crv = CKR_DOMAIN_PARAMS_INVALID;
+	    break;
+	}
 	crv = sftk_Attribute2SSecItem(arena,&privKey->u.ec.privateValue,
 							object,CKA_VALUE);
 	if (crv != CKR_OK) break;
-	crv = sftk_Attribute2SSecItem(arena, &privKey->u.ec.publicValue,
+	if (sftk_hasAttribute(object,CKA_NETSCAPE_DB)) {
+	    crv = sftk_Attribute2SSecItem(arena, &privKey->u.ec.publicValue,
 				      object,CKA_NETSCAPE_DB);
-	if (crv != CKR_OK) break;
+	    if (crv != CKR_OK) break;
+	    /* privKey was zero'd so public value is already set to NULL, 0
+	     * if we don't set it explicitly */
+	}
         rv = DER_SetUInteger(privKey->arena, &privKey->u.ec.version,
                           NSSLOWKEY_EC_PRIVATE_KEY_VERSION);
 	if (rv != SECSuccess) crv = CKR_HOST_MEMORY;
@@ -2333,7 +2364,7 @@ sftk_getDefTokName(CK_SLOT_ID slotID)
     case PRIVATE_KEY_SLOT_ID:
 	return "NSS Certificate DB              ";
     case FIPS_SLOT_ID:
-        return "NSS FIPS-140-1 Certificate DB   ";
+        return "NSS FIPS 140-2 Certificate DB   ";
     default:
 	break;
     }
@@ -2355,7 +2386,7 @@ sftk_getDefSlotName(CK_SLOT_ID slotID)
 	 "NSS User Private Key and Certificate Services                   ";
     case FIPS_SLOT_ID:
         return 
-         "Netscape FIPS-140-1 User Private Key Services                   ";
+         "NSS FIPS 140-2 User Private Key Services                        ";
     default:
 	break;
     }
@@ -2388,6 +2419,8 @@ sftk_SlotFromID(CK_SLOT_ID slotID, PRBool all)
 {
     SFTKSlot *slot;
     int index = sftk_GetModuleIndex(slotID);
+    
+    if (nscSlotHashTable[index] == NULL) return NULL;
     slot = (SFTKSlot *)PL_HashTableLookupConst(nscSlotHashTable[index], 
 							(void *)slotID);
     /* cleared slots shouldn't 'show up' */
@@ -2756,9 +2789,11 @@ sftk_DBShutdown(SFTKSlot *slot)
     slot->keyDB = NULL;
     PZ_Unlock(slot->slotLock);
     if (certHandle) {
+	PORT_Assert(certHandle->ref == 1 || slot->slotID > FIPS_SLOT_ID);
 	sftk_freeCertDB(certHandle);
     }
     if (keyHandle) {
+	PORT_Assert(keyHandle->ref == 1 || slot->slotID > FIPS_SLOT_ID);
 	sftk_freeKeyDB(keyHandle);
     }
 }
@@ -2953,13 +2988,6 @@ CK_RV nsc_CommonInitialize(CK_VOID_PTR pReserved, PRBool isFIPS)
 
 
     if (isFIPS) {
-	/* make sure that our check file signatures are OK */
-	if (!BLAPI_VerifySelf(NULL) || 
-	    !BLAPI_SHVerify(SOFTOKEN_LIB_NAME, (PRFuncPtr) sftk_closePeer)) {
-	    crv = CKR_DEVICE_ERROR; /* better error code? checksum error? */
-	    return crv;
-	}
-
 	loginWaitTime = PR_SecondsToInterval(1);
     }
 
@@ -2975,6 +3003,12 @@ CK_RV nsc_CommonInitialize(CK_VOID_PTR pReserved, PRBool isFIPS)
 	return crv;
     }
     RNG_SystemInfoForRNG();
+
+    rv = nsslowcert_InitLocks();
+    if (rv != SECSuccess) {
+	crv = CKR_DEVICE_ERROR;
+	return crv;
+    }
 
 
     /* NOTE:
@@ -3022,6 +3056,13 @@ CK_RV nsc_CommonInitialize(CK_VOID_PTR pReserved, PRBool isFIPS)
 	 * don't clobber each other. */
 	if ((isFIPS && nsc_init) || (!isFIPS && nsf_init)) {
 	    sftk_closePeer(isFIPS);
+	    if (sftk_audit_enabled) {
+		if (isFIPS && nsc_init) {
+		    sftk_LogAuditMessage(NSS_AUDIT_INFO, "enabled FIPS mode");
+		} else {
+		    sftk_LogAuditMessage(NSS_AUDIT_INFO, "disabled FIPS mode");
+		}
+	    }
 	}
 
 	for (i=0; i < paramStrings.token_count; i++) {
@@ -3076,21 +3117,13 @@ CK_RV nsc_CommonFinalize (CK_VOID_PTR pReserved, PRBool isFIPS)
     nsslowcert_DestroyFreeLists();
     nsslowcert_DestroyGlobalLocks();
 
-#ifdef LEAK_TEST
-    /*
-     * do we really want to throw away all our hard earned entropy here!!?
-     * No we don't! Not calling RNG_RNGShutdown only 'leaks' data on the 
-     * initial call to RNG_Init(). So the only reason to call this is to clean
-     * up leak detection warnings on shutdown. In many cases we *don't* want
-     * to free up the global RNG context because the application has Finalized
-     * simply to swap profiles. We don't want to loose the entropy we've 
-     * already collected.
-     */
+    /* This function does not discard all our previously aquired entropy. */
     RNG_RNGShutdown();
-#endif
 
     /* tell freeBL to clean up after itself */
     BL_Cleanup();
+    /* unload freeBL shared library from memory */
+    BL_Unload();
     /* clean up the default OID table */
     SECOID_Shutdown();
     nsc_init = PR_FALSE;
@@ -3178,7 +3211,6 @@ CK_RV NSC_GetSlotInfo(CK_SLOT_ID slotID, CK_SLOT_INFO_PTR pInfo)
     return CKR_OK;
 }
 
-#define CKF_THREAD_SAFE 0x8000 /* for now */
 /*
  * check the current state of the 'needLogin' flag in case the database has
  * been changed underneath us.
@@ -3206,14 +3238,17 @@ sftk_checkNeedLogin(SFTKSlot *slot, NSSLOWKEYDBHandle *keyHandle)
  * the system. */
 CK_RV NSC_GetTokenInfo(CK_SLOT_ID slotID,CK_TOKEN_INFO_PTR pInfo)
 {
-    SFTKSlot *slot = sftk_SlotFromID(slotID, PR_FALSE);
+    SFTKSlot *slot; 
     NSSLOWKEYDBHandle *handle;
 
+    if (!nsc_init && !nsf_init) return CKR_CRYPTOKI_NOT_INITIALIZED;
+    slot = sftk_SlotFromID(slotID, PR_FALSE);
     if (slot == NULL) return CKR_SLOT_ID_INVALID;
 
     PORT_Memcpy(pInfo->manufacturerID,manufacturerID,32);
     PORT_Memcpy(pInfo->model,"NSS 3           ",16);
     PORT_Memcpy(pInfo->serialNumber,"0000000000000000",16);
+    PORT_Memcpy(pInfo->utcTime,"0000000000000000",16);
     pInfo->ulMaxSessionCount = 0; /* arbitrarily large */
     pInfo->ulSessionCount = slot->sessionCount;
     pInfo->ulMaxRwSessionCount = 0; /* arbitarily large */
@@ -3222,8 +3257,9 @@ CK_RV NSC_GetTokenInfo(CK_SLOT_ID slotID,CK_TOKEN_INFO_PTR pInfo)
     pInfo->firmwareVersion.minor = 0;
     PORT_Memcpy(pInfo->label,slot->tokDescription,32);
     handle = sftk_getKeyDB(slot);
+    pInfo->flags = CKF_RNG | CKF_DUAL_CRYPTO_OPERATIONS;
     if (handle == NULL) {
-        pInfo->flags= CKF_RNG | CKF_WRITE_PROTECTED | CKF_THREAD_SAFE;
+	pInfo->flags |= CKF_WRITE_PROTECTED;
 	pInfo->ulMaxPinLen = 0;
 	pInfo->ulMinPinLen = 0;
 	pInfo->ulTotalPublicMemory = 0;
@@ -3243,12 +3279,11 @@ CK_RV NSC_GetTokenInfo(CK_SLOT_ID slotID,CK_TOKEN_INFO_PTR pInfo)
 	 *   we will need to prompt for it.
 	 */
 	if (nsslowkey_HasKeyDBPassword(handle) == SECFailure) {
-	    pInfo->flags = CKF_THREAD_SAFE | CKF_LOGIN_REQUIRED;
+	    pInfo->flags |= CKF_LOGIN_REQUIRED;
 	} else if (!sftk_checkNeedLogin(slot,handle)) {
-	    pInfo->flags = CKF_THREAD_SAFE | CKF_USER_PIN_INITIALIZED;
+	    pInfo->flags |= CKF_USER_PIN_INITIALIZED;
 	} else {
-	    pInfo->flags = CKF_THREAD_SAFE | 
-				CKF_LOGIN_REQUIRED | CKF_USER_PIN_INITIALIZED;
+	    pInfo->flags |= CKF_LOGIN_REQUIRED | CKF_USER_PIN_INITIALIZED;
 	}
 	pInfo->ulMaxPinLen = SFTK_MAX_PIN;
 	pInfo->ulMinPinLen = (CK_ULONG)slot->minimumPinLen;
@@ -3259,6 +3294,18 @@ CK_RV NSC_GetTokenInfo(CK_SLOT_ID slotID,CK_TOKEN_INFO_PTR pInfo)
 	pInfo->hardwareVersion.major = CERT_DB_FILE_VERSION;
 	pInfo->hardwareVersion.minor = handle->version;
         sftk_freeKeyDB(handle);
+    }
+    /*
+     * CKF_LOGIN_REQUIRED CKF_USER_PIN_INITIALIZED  how CKF_TOKEN_INITIALIZED
+     *                                              should be set
+     *         0                   0                           1
+     *         1                   0                           0
+     *         0                   1                           1
+     *         1                   1                           1
+     */
+    if (!(pInfo->flags & CKF_LOGIN_REQUIRED) ||
+	(pInfo->flags & CKF_USER_PIN_INITIALIZED)) {
+	pInfo->flags |= CKF_TOKEN_INITIALIZED;
     }
     return CKR_OK;
 }
@@ -3551,7 +3598,7 @@ CK_RV NSC_SetPIN(CK_SESSION_HANDLE hSession, CK_CHAR_PTR pOldPin,
     handle = sftk_getKeyDB(slot);
     if (handle == NULL) {
 	sftk_FreeSession(sp);
-	return CKR_PIN_LEN_RANGE;
+	return CKR_PIN_LEN_RANGE; /* XXX FIXME wrong return value */
     }
 
     if (slot->needLogin && sp->info.state != CKS_RW_USER_FUNCTIONS) {
@@ -3927,7 +3974,7 @@ static CK_RV sftk_CreateNewSlot(SFTKSlot *slot, CK_OBJECT_CLASS class,
     if (attribute == NULL) {
 	return CKR_TEMPLATE_INCOMPLETE;
     }
-    paramString = (unsigned char *)attribute->attrib.pValue;
+    paramString = (char *)attribute->attrib.pValue;
     crv = secmod_parseParameters(paramString, &paramStrings, isFIPS);
     if (crv != CKR_OK) {
 	goto loser;
@@ -3990,7 +4037,9 @@ CK_RV NSC_CreateObject(CK_SESSION_HANDLE hSession,
     SFTKSlot *slot = sftk_SlotFromSessionHandle(hSession);
     SFTKSession *session;
     SFTKObject *object;
-    CK_OBJECT_CLASS class;
+    /* make sure class isn't randomly CKO_NETSCAPE_NEWSLOT or
+     * CKO_NETSCPE_DELSLOT. */
+    CK_OBJECT_CLASS class = CKO_VENDOR_DEFINED;
     CK_RV crv;
     int i;
 
