@@ -1639,7 +1639,7 @@ SEC_ASN1EncodeInteger(PRArenaPool *poolp, SECItem *dest, long value)
 }
 
 
-extern SECItem *
+SECItem *
 SEC_ASN1EncodeUnsignedInteger(PRArenaPool *poolp,
 			      SECItem *dest, unsigned long value)
 {

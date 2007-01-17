@@ -67,6 +67,7 @@ sftk_NewAttribute(SFTKObject *object,
     if (so == NULL)  {
 	/* allocate new attribute in a buffer */
 	PORT_Assert(0);
+	return NULL;
     }
     /* 
      * We attempt to keep down contention on Malloc and Arena locks by
@@ -891,6 +892,11 @@ sftk_FindDSAPrivateKeyAttribute(NSSLOWKEYPrivateKey *key,
     case CKA_BASE:
 	return sftk_NewTokenAttributeSigned(type,key->u.dsa.params.base.data,
 					key->u.dsa.params.base.len, PR_FALSE);
+    case CKA_NETSCAPE_DB:
+	return sftk_NewTokenAttributeSigned(type,
+					key->u.dsa.publicValue.data,
+					key->u.dsa.publicValue.len,
+					PR_FALSE);
     default:
 	break;
     }
@@ -925,6 +931,11 @@ sftk_FindDHPrivateKeyAttribute(NSSLOWKEYPrivateKey *key, CK_ATTRIBUTE_TYPE type)
     case CKA_BASE:
 	return sftk_NewTokenAttributeSigned(type,key->u.dh.base.data,
 					key->u.dh.base.len, PR_FALSE);
+    case CKA_NETSCAPE_DB:
+	return sftk_NewTokenAttributeSigned(type,
+					key->u.dh.publicValue.data,
+					key->u.dh.publicValue.len,
+					PR_FALSE);
     default:
 	break;
     }
@@ -959,6 +970,11 @@ sftk_FindECPrivateKeyAttribute(NSSLOWKEYPrivateKey *key, CK_ATTRIBUTE_TYPE type)
 	return sftk_NewTokenAttributeSigned(type,
 					key->u.ec.ecParams.DEREncoding.data,
 					key->u.ec.ecParams.DEREncoding.len,
+					PR_FALSE);
+    case CKA_NETSCAPE_DB:
+	return sftk_NewTokenAttributeSigned(type,
+					key->u.ec.publicValue.data,
+					key->u.ec.publicValue.len,
 					PR_FALSE);
     default:
 	break;
@@ -1502,7 +1518,6 @@ sftk_DeleteAttribute(SFTKObject *object, SFTKAttribute *attribute)
 				sessObject->head, sessObject->hashSize);
     }
     PZ_Unlock(sessObject->attributeLock);
-    sftk_FreeAttribute(attribute);
 }
 
 /*
@@ -2749,7 +2764,7 @@ stfk_CopyTokenPrivateKey(SFTKObject *destObject,SFTKTokenObject *src_to)
     }
     /* copy the common attributes for all private keys next */
     crv = stfk_CopyTokenAttributes(destObject, src_to, commonPrivKeyAttrs,
-							commonKeyAttrsCount);
+						commonPrivKeyAttrsCount);
     if (crv != CKR_OK) {
 	goto fail;
     }

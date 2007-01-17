@@ -94,35 +94,14 @@ CRMF_CertReqMsgSetRAVerifiedPOP(CRMFCertReqMsg *inCertReqMsg)
 }
 
 SECOidTag
-crmf_map_keytag_to_signtag(SECOidTag inTag)
-{
-    switch (inTag) {
-    case SEC_OID_PKCS1_RSA_ENCRYPTION:
-        return SEC_OID_PKCS1_SHA1_WITH_RSA_ENCRYPTION;
-    case SEC_OID_ANSIX9_DSA_SIGNATURE:
-    case SEC_OID_MISSI_KEA_DSS:
-    case SEC_OID_MISSI_DSS:
-        return SEC_OID_ANSIX9_DSA_SIGNATURE_WITH_SHA1_DIGEST;
-    default:
-        /* Put this in here to kill warnings. */
-        break;
-    }
-    return inTag;
-}
-
-SECOidTag
 crmf_get_key_sign_tag(SECKEYPublicKey *inPubKey)
 {
-    CERTSubjectPublicKeyInfo *spki;
-    SECOidTag                 tag;
-
-    spki = SECKEY_CreateSubjectPublicKeyInfo(inPubKey);
-    if (spki == NULL) {
-        return SEC_OID_UNKNOWN;
+    /* maintain backward compatibility with older
+     * implementations */
+    if (inPubKey->keyType == rsaKey) {
+        return SEC_OID_PKCS1_SHA1_WITH_RSA_ENCRYPTION;
     }
-    tag = SECOID_GetAlgorithmTag(&spki->algorithm);
-    SECKEY_DestroySubjectPublicKeyInfo(spki);
-    return crmf_map_keytag_to_signtag(tag);
+    return SEC_GetSignatureAlgorithmOidTag(inPubKey->keyType, SEC_OID_UNKNOWN);
 }
 
 SECAlgorithmID*
@@ -206,8 +185,8 @@ crmf_sign_certreq(PRArenaPool        *poolp,
 		  SECKEYPrivateKey   *inKey,
 		  SECAlgorithmID     *inAlgId)
 {
-    SECItem                      derCertReq;
-    SECItem                      certReqSig;
+    SECItem                      derCertReq = { siBuffer, NULL, 0 };
+    SECItem                      certReqSig = { siBuffer, NULL, 0 };
     SECStatus                    rv = SECSuccess;
 
     rv = crmf_encode_certreq(certReq, &derCertReq);
@@ -282,7 +261,7 @@ CRMF_CertReqMsgSetSignaturePOP(CRMFCertReqMsg   *inCertReqMsg,
 {
     SECAlgorithmID  *algID;
     PRArenaPool     *poolp;
-    SECItem          derDest = {siBuffer, NULL, 0};
+    SECItem          derTemp = {siBuffer, NULL, 0};
     void            *mark;
     SECStatus        rv;
     CRMFPOPOSigningKeyInput *signKeyInput = NULL;
@@ -325,7 +304,7 @@ CRMF_CertReqMsgSetSignaturePOP(CRMFCertReqMsg   *inCertReqMsg,
     pop->popChoice.signature.algorithmIdentifier = algID;
     inCertReqMsg->pop = pop;
   
-    rv = crmf_init_encoder_callback_arg (&encoderArg, &derDest);
+    rv = crmf_init_encoder_callback_arg (&encoderArg, &derTemp);
     if (rv != SECSuccess) {
         goto loser;
     }
@@ -335,18 +314,18 @@ CRMF_CertReqMsgSetSignaturePOP(CRMFCertReqMsg   *inCertReqMsg,
     if (rv != SECSuccess) {
         goto loser;
     }
-    rv = SECITEM_CopyItem(poolp, &(inCertReqMsg->derPOP), &derDest);
-    PORT_Free (derDest.data);
+    rv = SECITEM_CopyItem(poolp, &(inCertReqMsg->derPOP), &derTemp);
     if (rv != SECSuccess) {
         goto loser;
     }
+    PORT_Free (derTemp.data);
     PORT_ArenaUnmark(poolp,mark);
     return SECSuccess;
 
  loser:
     PORT_ArenaRelease(poolp,mark);
-    if (derDest.data != NULL) {
-        PORT_Free(derDest.data);
+    if (derTemp.data != NULL) {
+        PORT_Free(derTemp.data);
     }
     return SECFailure;
 }
@@ -379,13 +358,13 @@ crmf_encode_popoprivkey(PRArenaPool            *poolp,
 			const SEC_ASN1Template *privKeyTemplate)
 {
     struct crmfEncoderArg   encoderArg;
-    SECItem                 derDest; 
+    SECItem                 derTemp; 
     SECStatus               rv;
     void                   *mark;
     const SEC_ASN1Template *subDerTemplate;
 
     mark = PORT_ArenaMark(poolp);
-    rv = crmf_init_encoder_callback_arg(&encoderArg, &derDest);
+    rv = crmf_init_encoder_callback_arg(&encoderArg, &derTemp);
     if (rv != SECSuccess) {
         goto loser;
     }
@@ -399,32 +378,32 @@ crmf_encode_popoprivkey(PRArenaPool            *poolp,
     if (rv != SECSuccess) {
         goto loser;
     }
-    if (encoderArg.allocatedLen > derDest.len+2) {
-        void *dummy = PORT_Realloc(derDest.data, derDest.len+2);
+    if (encoderArg.allocatedLen > derTemp.len+2) {
+        void *dummy = PORT_Realloc(derTemp.data, derTemp.len+2);
 	if (dummy == NULL) {
 	    goto loser;
 	}
-	derDest.data = dummy;
+	derTemp.data = dummy;
     }
-    PORT_Memmove(&derDest.data[2], &derDest.data[0], derDest.len);
+    PORT_Memmove(&derTemp.data[2], &derTemp.data[0], derTemp.len);
     /* I couldn't figure out how to get the ASN1 encoder to implicitly
      * tag an implicitly tagged der blob.  So I'm putting in the outter-
      * most tag myself. -javi
      */
-    derDest.data[0] = (unsigned char)privKeyTemplate->kind;
-    derDest.data[1] = (unsigned char)derDest.len;
-    derDest.len += 2;
-    rv = SECITEM_CopyItem(poolp, &inCertReqMsg->derPOP, &derDest);
+    derTemp.data[0] = (unsigned char)privKeyTemplate->kind;
+    derTemp.data[1] = (unsigned char)derTemp.len;
+    derTemp.len += 2;
+    rv = SECITEM_CopyItem(poolp, &inCertReqMsg->derPOP, &derTemp);
     if (rv != SECSuccess) {
         goto loser;
     }
-    PORT_Free(derDest.data);
+    PORT_Free(derTemp.data);
     PORT_ArenaUnmark(poolp, mark);
     return SECSuccess;
  loser:
     PORT_ArenaRelease(poolp, mark);
-    if (derDest.data) {
-        PORT_Free(derDest.data);
+    if (derTemp.data) {
+        PORT_Free(derTemp.data);
     }
     return SECFailure;
 }
@@ -479,6 +458,47 @@ crmf_add_privkey_thismessage(CRMFCertReqMsg *inCertReqMsg, SECItem *encPrivKey,
     inCertReqMsg->pop = pop;
     rv = crmf_encode_popoprivkey(poolp, inCertReqMsg, popoPrivKey,
 				 crmf_get_template_for_privkey(inChoice));
+    if (rv != SECSuccess) {
+        goto loser;
+    }
+    PORT_ArenaUnmark(poolp, mark);
+    return SECSuccess;
+    
+ loser:
+    PORT_ArenaRelease(poolp, mark);
+    return SECFailure;
+}
+
+static SECStatus
+crmf_add_privkey_dhmac(CRMFCertReqMsg *inCertReqMsg, SECItem *dhmac,
+                             CRMFPOPChoice inChoice)
+{
+    PRArenaPool           *poolp;
+    void                  *mark;
+    CRMFPOPOPrivKey       *popoPrivKey;
+    CRMFProofOfPossession *pop;
+    SECStatus              rv;
+
+    PORT_Assert(inCertReqMsg != NULL && dhmac != NULL);
+    poolp = inCertReqMsg->poolp;
+    mark = PORT_ArenaMark(poolp);
+    pop = PORT_ArenaZNew(poolp, CRMFProofOfPossession);
+    if (pop == NULL) {
+        goto loser;
+    }
+    pop->popUsed = inChoice;
+    popoPrivKey = &pop->popChoice.keyAgreement;
+
+    rv = SECITEM_CopyItem(poolp, &(popoPrivKey->message.dhMAC),
+                          dhmac);
+    if (rv != SECSuccess) {
+        goto loser;
+    }
+    popoPrivKey->message.dhMAC.len <<= 3;
+    popoPrivKey->messageChoice = crmfDHMAC;
+    inCertReqMsg->pop = pop;
+    rv = crmf_encode_popoprivkey(poolp, inCertReqMsg, popoPrivKey,
+                                 crmf_get_template_for_privkey(inChoice));
     if (rv != SECSuccess) {
         goto loser;
     }
@@ -599,7 +619,11 @@ CRMF_CertReqMsgSetKeyAgreementPOP (CRMFCertReqMsg        *inCertReqMsg,
 					    crmfKeyAgreement);
 	break;
     case crmfDHMAC:
-        /* This case should be added in the future. */
+        /* In this case encPrivKey should be the calculated dhMac
+         * as specified in RFC 2511 */
+        rv = crmf_add_privkey_dhmac(inCertReqMsg, encPrivKey,
+                                    crmfKeyAgreement);
+        break;
     default:
         rv = SECFailure;
     }

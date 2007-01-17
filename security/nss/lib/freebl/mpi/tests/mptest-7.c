@@ -47,7 +47,7 @@
 #include <limits.h>
 #include <time.h>
 
-#define MP_IOFUNC
+#define MP_IOFUNC 1
 #include "mpi.h"
 
 #include "mpprime.h"

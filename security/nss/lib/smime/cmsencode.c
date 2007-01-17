@@ -563,8 +563,10 @@ NSS_CMSEncoder_Start(NSSCMSMessage *cmsg,
 	rv = SECFailure;
 	break;
     }
-    if (rv != SECSuccess)
+    if (rv != SECSuccess) {
+	PORT_Free(p7ecx);
 	return NULL;
+    }
 
     /* Initialize the BER encoder.
      * Note that this will not encode anything until the first call to SEC_ASN1EncoderUpdate */

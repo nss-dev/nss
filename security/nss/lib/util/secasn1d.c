@@ -1256,6 +1256,12 @@ regular_string_type:
 	    struct subitem *subitem;
 	    int len;
 
+	    PORT_Assert (item);
+	    if (!item) {
+		PORT_SetError (SEC_ERROR_BAD_DER);
+		state->top->status = decodeError;
+		return;
+	    }
 	    PORT_Assert (item->len == 0 && item->data == NULL);
 	    /*
 	     * Check for and handle an ANY which has stashed aside the
@@ -1408,7 +1414,7 @@ sec_asn1d_free_child (sec_asn1d_state *state, PRBool error)
     if (state->child != NULL) {
 	PORT_Assert (error || state->child->consumed == 0);
 	PORT_Assert (state->our_mark != NULL);
-	PORT_ArenaRelease (state->top->our_pool, state->our_mark);
+	PORT_ArenaZRelease (state->top->our_pool, state->our_mark);
 	if (error && state->top->their_pool == NULL) {
 	    /*
 	     * XXX We need to free anything allocated.
@@ -1664,6 +1670,8 @@ sec_asn1d_add_to_subitems (sec_asn1d_state *state,
 	copy = sec_asn1d_alloc (state->top->our_pool, len);
 	if (copy == NULL) {
 	    state->top->status = decodeError;
+	    if (!state->top->our_pool)
+	    	PORT_Free(thing);
 	    return NULL;
 	}
 	PORT_Memcpy (copy, data, len);
@@ -2841,7 +2849,7 @@ SEC_ASN1DecoderFinish (SEC_ASN1DecoderContext *cx)
      * XXX anything else that needs to be finished?
      */
 
-    PORT_FreeArena (cx->our_pool, PR_FALSE);
+    PORT_FreeArena (cx->our_pool, PR_TRUE);
 
     return rv;
 }
