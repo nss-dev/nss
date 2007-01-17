@@ -20,6 +20,7 @@
  *
  * Contributor(s):
  *   Dr Vipul Gupta <vipul.gupta@sun.com>, Sun Microsystems Laboratories
+ *   Douglas Stebila <douglas@stebila.ca>, Sun Microsystems Laboratories
  *
  * Alternatively, the contents of this file may be used under the terms of
  * either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -76,6 +77,8 @@
 #define MAX_WAIT_FOR_SERVER 600
 #define WAIT_INTERVAL       100
 
+PRIntervalTime maxInterval    = PR_INTERVAL_NO_TIMEOUT;
+
 int ssl2CipherSuites[] = {
     SSL_EN_RC4_128_WITH_MD5,			/* A */
     SSL_EN_RC4_128_EXPORT40_WITH_MD5,		/* B */
@@ -83,27 +86,6 @@ int ssl2CipherSuites[] = {
     SSL_EN_RC2_128_CBC_EXPORT40_WITH_MD5,	/* D */
     SSL_EN_DES_64_CBC_WITH_MD5,			/* E */
     SSL_EN_DES_192_EDE3_CBC_WITH_MD5,		/* F */
-#ifdef NSS_ENABLE_ECC
-    /* NOTE: Since no new SSL2 ciphersuites are being 
-     * invented, and we've run out of lowercase letters
-     * for SSL3 ciphers, we use letters G and beyond
-     * for new SSL3 ciphers.
-     */
-    TLS_ECDH_ECDSA_WITH_NULL_SHA,       	/* G */
-    TLS_ECDH_ECDSA_WITH_RC4_128_SHA,       	/* H */
-    TLS_ECDH_ECDSA_WITH_DES_CBC_SHA,       	/* I */
-    TLS_ECDH_ECDSA_WITH_3DES_EDE_CBC_SHA,    	/* J */
-    TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA,     	/* K */
-    TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA,     	/* L */
-    TLS_ECDH_RSA_WITH_NULL_SHA,          	/* M */
-    TLS_ECDH_RSA_WITH_RC4_128_SHA,       	/* N */
-    TLS_ECDH_RSA_WITH_DES_CBC_SHA,       	/* O */
-    TLS_ECDH_RSA_WITH_3DES_EDE_CBC_SHA,      	/* P */
-    TLS_ECDH_RSA_WITH_AES_128_CBC_SHA,       	/* Q */
-    TLS_ECDH_RSA_WITH_AES_256_CBC_SHA,       	/* R */
-    TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,    	/* S */
-    TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,      	/* T */
-#endif /* NSS_ENABLE_ECC */
     0
 };
 
@@ -243,22 +225,6 @@ static void Usage(const char *progName)
 "D    SSL2 RC2 128 CBC EXPORT40 WITH MD5\n"
 "E    SSL2 DES 64 CBC WITH MD5\n"
 "F    SSL2 DES 192 EDE3 CBC WITH MD5\n"
-#ifdef NSS_ENABLE_ECC
-"G    TLS ECDH ECDSA WITH NULL SHA\n"
-"H    TLS ECDH ECDSA WITH RC4 128 SHA\n"
-"I    TLS ECDH ECDSA WITH DES CBC SHA\n"
-"J    TLS ECDH ECDSA WITH 3DES EDE CBC SHA\n"
-"K    TLS ECDH ECDSA WITH AES 128 CBC SHA\n"
-"L    TLS ECDH ECDSA WITH AES 256 CBC SHA\n"
-"M    TLS ECDH RSA WITH NULL SHA\n"
-"N    TLS ECDH RSA WITH RC4 128 SHA\n"
-"O    TLS ECDH RSA WITH DES CBC SHA\n"
-"P    TLS ECDH RSA WITH 3DES EDE CBC SHA\n"
-"Q    TLS ECDH RSA WITH AES 128 CBC SHA\n"
-"R    TLS ECDH RSA WITH AES 256 CBC SHA\n"
-"S    TLS ECDHE ECDSA WITH AES 128 CBC SHA\n"
-"T    TLS ECDHE RSA WITH AES 128 CBC SHA\n"
-#endif /* NSS_ENABLE_ECC */
 "\n"
 "c    SSL3 RSA WITH RC4 128 MD5\n"
 "d    SSL3 RSA WITH 3DES EDE CBC SHA\n"
@@ -283,6 +249,8 @@ static void Usage(const char *progName)
 "x    SSL3 DHE RSA WITH AES 256 CBC SHA\n"
 "y    SSL3 RSA WITH AES 256 CBC SHA\n"
 "z    SSL3 RSA WITH NULL SHA\n"
+"\n"
+":WXYZ  Use cipher with hex code { 0xWX , 0xYZ } in TLS\n"
 	);
     exit(1);
 }
@@ -408,7 +376,7 @@ thread_main(void * arg)
 	rc = PR_Read(std_in, buf, sizeof buf);
 	if (rc <= 0)
 	    break;
-	wc = PR_Write(ps, buf, rc);
+	wc = PR_Send(ps, buf, rc, 0, maxInterval);
     } while (wc == rc);
     PR_Close(ps);
 }
@@ -432,6 +400,17 @@ printHostNameAndAddr(const char * host, const PRNetAddr * addr)
 #define SSOCK_FD 0
 #define STDIN_FD 1
 
+#define HEXCHAR_TO_INT(c, i) \
+    if (((c) >= '0') && ((c) <= '9')) { \
+	i = (c) - '0'; \
+    } else if (((c) >= 'a') && ((c) <= 'f')) { \
+	i = (c) - 'a' + 10; \
+    } else if (((c) >= 'A') && ((c) <= 'F')) { \
+	i = (c) - 'A' + 10; \
+    } else { \
+	Usage(progName); \
+    }
+
 int main(int argc, char **argv)
 {
     PRFileDesc *       s;
@@ -442,6 +421,7 @@ int main(int argc, char **argv)
     char *             certDir  =  NULL;
     char *             nickname =  NULL;
     char *             cipherString = NULL;
+    char *             tmp;
     int                multiplier = 0;
     SECStatus          rv;
     PRStatus           status;
@@ -470,6 +450,14 @@ int main(int argc, char **argv)
     if (!progName)
 	progName = strrchr(argv[0], '\\');
     progName = progName ? progName+1 : argv[0];
+
+    tmp = PR_GetEnv("NSS_DEBUG_TIMEOUT");
+    if (tmp && tmp[0]) {
+       int sec = PORT_Atoi(tmp);
+       if (sec > 0) {
+           maxInterval = PR_SecondsToInterval(sec);
+       }
+    }
 
     optstate = PL_CreateOptState(argc, argv, "23BTfc:h:p:d:m:n:oqsvw:x");
     while ((optstatus = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
@@ -670,19 +658,40 @@ int main(int argc, char **argv)
     	int ndx;
 
 	while (0 != (ndx = *cipherString++)) {
-	    int *cptr;
 	    int  cipher;
 
-	    if (! isalpha(ndx))
-	     	Usage(progName);
-	    cptr = islower(ndx) ? ssl3CipherSuites : ssl2CipherSuites;
-	    for (ndx &= 0x1f; (cipher = *cptr++) != 0 && --ndx > 0; ) 
-	    	/* do nothing */;
+	    if (ndx == ':') {
+		int ctmp;
+
+		cipher = 0;
+		HEXCHAR_TO_INT(*cipherString, ctmp)
+		cipher |= (ctmp << 12);
+		cipherString++;
+		HEXCHAR_TO_INT(*cipherString, ctmp)
+		cipher |= (ctmp << 8);
+		cipherString++;
+		HEXCHAR_TO_INT(*cipherString, ctmp)
+		cipher |= (ctmp << 4);
+		cipherString++;
+		HEXCHAR_TO_INT(*cipherString, ctmp)
+		cipher |= ctmp;
+		cipherString++;
+	    } else {
+		const int *cptr;
+
+		if (! isalpha(ndx))
+		    Usage(progName);
+		cptr = islower(ndx) ? ssl3CipherSuites : ssl2CipherSuites;
+		for (ndx &= 0x1f; (cipher = *cptr++) != 0 && --ndx > 0; ) 
+		    /* do nothing */;
+	    }
 	    if (cipher > 0) {
 		SECStatus status;
 		status = SSL_CipherPrefSet(s, cipher, SSL_ALLOWED);
 		if (status != SECSuccess) 
 		    SECU_PrintError(progName, "SSL_CipherPrefSet()");
+	    } else {
+		Usage(progName);
 	    }
 	}
     }
@@ -788,7 +797,8 @@ int main(int argc, char **argv)
     }
 
     pollset[SSOCK_FD].fd        = s;
-    pollset[SSOCK_FD].in_flags  = clientSpeaksFirst ? 0 : PR_POLL_READ;
+    pollset[SSOCK_FD].in_flags  = PR_POLL_EXCEPT |
+                                  (clientSpeaksFirst ? 0 : PR_POLL_READ);
     pollset[STDIN_FD].fd        = PR_GetSpecialFD(PR_StandardInput);
     pollset[STDIN_FD].in_flags  = PR_POLL_READ;
     npds                 = 2;
@@ -877,7 +887,7 @@ int main(int argc, char **argv)
 		FPRINTF(stderr, "%s: Writing %d bytes to server\n", 
 		        progName, nb);
 		do {
-		    PRInt32 cc = PR_Write(s, bufp, nb);
+		    PRInt32 cc = PR_Send(s, bufp, nb, 0, maxInterval);
 		    if (cc < 0) {
 		    	PRErrorCode err = PR_GetError();
 			if (err != PR_WOULD_BLOCK_ERROR) {
@@ -918,7 +928,7 @@ int main(int argc, char **argv)
 #endif
 	    ) {
 	    /* Read from socket and write to stdout */
-	    nb = PR_Read(pollset[SSOCK_FD].fd, buf, sizeof(buf));
+	    nb = PR_Recv(pollset[SSOCK_FD].fd, buf, sizeof buf, 0, maxInterval);
 	    FPRINTF(stderr, "%s: Read from server %d bytes\n", progName, nb);
 	    if (nb < 0) {
 		if (PR_GetError() != PR_WOULD_BLOCK_ERROR) {

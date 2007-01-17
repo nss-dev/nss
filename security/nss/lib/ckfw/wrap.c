@@ -647,7 +647,8 @@ NSSCKFWC_GetTokenInfo
   switch( error ) {
   case CKR_DEVICE_REMOVED:
   case CKR_TOKEN_NOT_PRESENT:
-    (void)nssCKFWToken_Destroy(fwToken);
+    if (fwToken)
+      nssCKFWToken_Destroy(fwToken);
     break;
   case CKR_CRYPTOKI_NOT_INITIALIZED:
   case CKR_DEVICE_ERROR:
@@ -841,7 +842,8 @@ NSSCKFWC_GetMechanismList
   switch( error ) {
   case CKR_DEVICE_REMOVED:
   case CKR_TOKEN_NOT_PRESENT:
-    (void)nssCKFWToken_Destroy(fwToken);
+    if (fwToken)
+      nssCKFWToken_Destroy(fwToken);
     break;
   case CKR_BUFFER_TOO_SMALL:
   case CKR_CRYPTOKI_NOT_INITIALIZED:
@@ -944,7 +946,8 @@ NSSCKFWC_GetMechanismInfo
   switch( error ) {
   case CKR_DEVICE_REMOVED:
   case CKR_TOKEN_NOT_PRESENT:
-    (void)nssCKFWToken_Destroy(fwToken);
+    if (fwToken)
+      nssCKFWToken_Destroy(fwToken);
     break;
   case CKR_CRYPTOKI_NOT_INITIALIZED:
   case CKR_DEVICE_ERROR:
@@ -1034,7 +1037,8 @@ NSSCKFWC_InitToken
   switch( error ) {
   case CKR_DEVICE_REMOVED:
   case CKR_TOKEN_NOT_PRESENT:
-    (void)nssCKFWToken_Destroy(fwToken);
+    if (fwToken)
+      nssCKFWToken_Destroy(fwToken);
     break;
   case CKR_CRYPTOKI_NOT_INITIALIZED:
   case CKR_DEVICE_ERROR:

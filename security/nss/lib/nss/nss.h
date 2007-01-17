@@ -45,19 +45,29 @@
 
 SEC_BEGIN_PROTOS
 
+/* The private macro _NSS_ECC_STRING is for NSS internal use only. */
+#ifdef NSS_ENABLE_ECC
+#ifdef NSS_ECC_MORE_THAN_SUITE_B
+#define _NSS_ECC_STRING " Extended ECC"
+#else
+#define _NSS_ECC_STRING " Basic ECC"
+#endif
+#else
+#define _NSS_ECC_STRING ""
+#endif
+
 /*
  * NSS's major version, minor version, patch level, and whether
  * this is a beta release.
  *
  * The format of the version string should be
- *     "<major version>.<minor version>[.<patch level>] [<Beta>]"
+ *     "<major version>.<minor version>[.<patch level>][ <ECC>][ <Beta>]"
  */
-#define NSS_VERSION  "3.11"
+#define NSS_VERSION  "3.11.5" _NSS_ECC_STRING
 #define NSS_VMAJOR   3
 #define NSS_VMINOR   11
-#define NSS_VPATCH   0
+#define NSS_VPATCH   5
 #define NSS_BETA     PR_FALSE
-
 
 /*
  * Return a boolean that indicates whether the underlying library
@@ -183,6 +193,31 @@ extern SECStatus NSS_Initialize(const char *configdir,
  * initialize NSS without a creating cert db's, key db's, or secmod db's.
  */
 SECStatus NSS_NoDB_Init(const char *configdir);
+
+/*
+ * Allow applications and libraries to register with NSS so that they are called
+ * when NSS shuts down.
+ *
+ * void *appData application specific data passed in by the application at 
+ * NSS_RegisterShutdown() time.
+ * void *nssData is NULL in this release, but is reserved for future versions of 
+ * NSS to pass some future status information * back to the shutdown function. 
+ *
+ * If the shutdown function returns SECFailure,
+ * Shutdown will still complete, but NSS_Shutdown() will return SECFailure.
+ */
+typedef SECStatus (*NSS_ShutdownFunc)(void *appData, void *nssData);
+
+/*
+ * Register a shutdown function.
+ */
+SECStatus NSS_RegisterShutdown(NSS_ShutdownFunc sFunc, void *appData);
+
+/*
+ * Remove an existing shutdown function (you may do this if your library is
+ * complete and going away, but NSS is still running).
+ */
+SECStatus NSS_UnregisterShutdown(NSS_ShutdownFunc sFunc, void *appData);
 
 /* 
  * Close the Cert, Key databases.
