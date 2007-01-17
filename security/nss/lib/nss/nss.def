@@ -872,3 +872,18 @@ SECMOD_OpenUserDB;
 ;+    local:
 ;+       *;
 ;+};
+;+NSS_3.11.1 {
+;+    global:
+NSS_RegisterShutdown;
+NSS_UnregisterShutdown;
+SEC_ASN1EncodeUnsignedInteger;
+SEC_RegisterDefaultHttpClient;
+;+    local:
+;+       *;
+;+};
+;+NSS_3.11.2 {
+;+    global:
+SECKEY_SignatureLen;
+;+    local:
+;+       *;
+;+};
