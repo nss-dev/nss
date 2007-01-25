@@ -353,6 +353,8 @@ const SEC_ASN1Template ocsp_PointerToResponseBytesTemplate[] = {
 static const SEC_ASN1Template ocsp_BasicOCSPResponseTemplate[] = {
     { SEC_ASN1_SEQUENCE,
 	0, NULL, sizeof(ocspBasicOCSPResponse) },
+    { SEC_ASN1_ANY | SEC_ASN1_SAVE,
+	offsetof(ocspBasicOCSPResponse, tbsResponseDataDER) },
     { SEC_ASN1_POINTER,
 	offsetof(ocspBasicOCSPResponse, tbsResponseData),
 	ocsp_ResponseDataTemplate },
@@ -1571,9 +1573,19 @@ loser:
  * is only used internally.  When this interface is officially exported,
  * each assertion below will need to be followed-up with setting an error
  * and returning (null).
+ *
+ * FUNCTION: ocsp_GetResponseData
+ *   Returns ocspResponseData structure and a pointer to tbs response
+ *   data DER from a valid ocsp response. 
+ * INPUTS:
+ *   CERTOCSPResponse *response
+ *     structure of a valid ocsp response
+ * RETURN:
+ *   decoded OCSP response data and a pointer(tbsResponseDataDER) to its
+ *   undecoded data DER.
  */
 static ocspResponseData *
-ocsp_GetResponseData(CERTOCSPResponse *response)
+ocsp_GetResponseData(CERTOCSPResponse *response, SECItem **tbsResponseDataDER)
 {
     ocspBasicOCSPResponse *basic;
     ocspResponseData *responseData;
@@ -1590,6 +1602,13 @@ ocsp_GetResponseData(CERTOCSPResponse *response)
 
     responseData = basic->tbsResponseData;
     PORT_Assert(responseData != NULL);
+
+    if (tbsResponseDataDER) {
+        *tbsResponseDataDER = &basic->tbsResponseDataDER;
+
+        PORT_Assert((*tbsResponseDataDER)->data != NULL);
+        PORT_Assert((*tbsResponseDataDER)->len != 0);
+    }
 
     return responseData;
 }
@@ -2541,15 +2560,13 @@ ocsp_CertGetDefaultResponder(CERTCertDBHandle *handle,CERTOCSPCertID *certID);
  * verifying the signer's cert, or low-level problems (no memory, etc.)
  */
 static SECStatus
-ocsp_CheckSignature(ocspSignature *signature, void *tbs,
-		    const SEC_ASN1Template *encodeTemplate,
+ocsp_CheckSignature(ocspSignature *signature, SECItem *encodedTBS,
 		    CERTCertDBHandle *handle, SECCertUsage certUsage,
 		    int64 checkTime, PRBool lookupByName, void *certIndex,
 		    void *pwArg, CERTCertificate **pSignerCert,
 		    CERTCertificate *issuer)
 {
     SECItem rawSignature;
-    SECItem *encodedTBS = NULL;
     CERTCertificate *responder = NULL;
     CERTCertificate *signerCert = NULL;
     SECKEYPublicKey *signerKey = NULL;
@@ -2662,13 +2679,6 @@ ocsp_CheckSignature(ocspSignature *signature, void *tbs,
 	goto finish;
 
     /*
-     * Prepare the data to be verified; it needs to be DER encoded first.
-     */
-    encodedTBS = SEC_ASN1EncodeItem(NULL, NULL, tbs, encodeTemplate);
-    if (encodedTBS == NULL)
-	goto finish;
-
-    /*
      * We copy the signature data *pointer* and length, so that we can
      * modify the length without damaging the original copy.  This is a
      * simple copy, not a dup, so no destroy/free is necessary.
@@ -2705,9 +2715,6 @@ finish:
 	    *pSignerCert = CERT_DupCertificate(signerCert);
 	}
     }
-
-    if (encodedTBS != NULL)
-	SECITEM_FreeItem(encodedTBS, PR_TRUE);
 
     if (signerKey != NULL)
 	SECKEY_DestroyPublicKey(signerKey);
@@ -2756,12 +2763,13 @@ CERT_VerifyOCSPResponseSignature(CERTOCSPResponse *response,
 				 CERTCertificate *issuer)
 {
     ocspResponseData *tbsData;		/* this is what is signed */
+    SECItem *tbsResponseDataDER;
     PRBool byName;
     void *certIndex;
     int64 producedAt;
     SECStatus rv;
 
-    tbsData = ocsp_GetResponseData(response);
+    tbsData = ocsp_GetResponseData(response, &tbsResponseDataDER);
 
     PORT_Assert(tbsData->responderID != NULL);
     switch (tbsData->responderID->responderIDType) {
@@ -2791,7 +2799,7 @@ CERT_VerifyOCSPResponseSignature(CERTOCSPResponse *response,
 	return rv;
 
     return ocsp_CheckSignature(ocsp_GetResponseSignature(response),
-			       tbsData, ocsp_ResponseDataTemplate,
+			       tbsResponseDataDER,
 			       handle, certUsageStatusResponder, producedAt,
 			       byName, certIndex, pwArg, pSignerCert, issuer);
 }
@@ -3621,7 +3629,7 @@ CERT_GetOCSPStatusForCertID(CERTCertDBHandle *handle,
     /*
      * The ResponseData part is the real guts of the response.
      */
-    responseData = ocsp_GetResponseData(response);
+    responseData = ocsp_GetResponseData(response, NULL);
     if (responseData == NULL) {
 	rv = SECFailure;
 	goto loser;
