@@ -306,6 +306,7 @@ loser:
         fclose(outFile);
     }
     if (NSS_Shutdown() != SECSuccess) {
+        SECU_PrintError(progName, "NSS shutdown:");
         exit(1);
     }
 
