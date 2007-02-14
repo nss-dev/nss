@@ -493,6 +493,7 @@ typedef enum SECCertUsageEnum {
 
 typedef PRInt64 SECCertificateUsage;
 
+#define certificateUsageCheckAllUsages         (0x0000)
 #define certificateUsageSSLClient              (0x0001)
 #define certificateUsageSSLServer              (0x0002)
 #define certificateUsageSSLServerWithStepUp    (0x0004)
