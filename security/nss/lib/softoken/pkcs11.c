@@ -656,31 +656,6 @@ sftk_handleCertObject(SFTKSession *session,SFTKObject *object)
 
     return CKR_OK;
 }
-
-unsigned int
-sftk_MapTrust(CK_TRUST trust, PRBool clientAuth)
-{
-    unsigned int trustCA = clientAuth ? CERTDB_TRUSTED_CLIENT_CA :
-							CERTDB_TRUSTED_CA;
-    switch (trust) {
-    case CKT_NETSCAPE_TRUSTED:
-	return CERTDB_VALID_PEER|CERTDB_TRUSTED;
-    case CKT_NETSCAPE_TRUSTED_DELEGATOR:
-	return CERTDB_VALID_CA|trustCA;
-    case CKT_NETSCAPE_UNTRUSTED:
-	return CERTDB_NOT_TRUSTED;
-    case CKT_NETSCAPE_MUST_VERIFY:
-	return 0;
-    case CKT_NETSCAPE_VALID: /* implies must verify */
-	return CERTDB_VALID_PEER;
-    case CKT_NETSCAPE_VALID_DELEGATOR: /* implies must verify */
-	return CERTDB_VALID_CA;
-    default:
-	break;
-    }
-    return CERTDB_TRUSTED_UNKNOWN;
-}
-    
 	
 /*
  * check the consistancy and initialize a Trust Object 
@@ -2717,10 +2692,11 @@ CK_RV NSC_GetTokenInfo(CK_SLOT_ID slotID,CK_TOKEN_INFO_PTR pInfo)
 	pInfo->ulFreePublicMemory = 1;
 	pInfo->ulTotalPrivateMemory = 1;
 	pInfo->ulFreePrivateMemory = 1;
-	pInfo->hardwareVersion.major = CERT_DB_FILE_VERSION;
 #ifdef SHDB_FIXME
+	pInfo->hardwareVersion.major = CERT_DB_FILE_VERSION;
 	pInfo->hardwareVersion.minor = handle->version;
 else
+	pInfo->hardwareVersion.major = 0;
 	pInfo->hardwareVersion.minor = 0;
 #endif
         sftk_freeDB(handle);

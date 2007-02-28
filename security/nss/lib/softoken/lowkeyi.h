@@ -42,7 +42,6 @@
 #include "prtypes.h"
 #include "seccomon.h"
 #include "secoidt.h"
-#include "pcertt.h"
 #include "lowkeyti.h"
 
 SEC_BEGIN_PROTOS

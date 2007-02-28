@@ -44,7 +44,6 @@
 #include "secoidt.h"
 #include "lowkeyti.h"
 #include "pkcs11t.h"
-#include "pcertt.h"
 
 #include "sftkdbt.h"
 
