@@ -69,6 +69,10 @@
 #define NSS_AES                 0
 #define NSS_AES_CBC             1
 
+/* Camellia operation modes */
+#define NSS_CAMELLIA                 0
+#define NSS_CAMELLIA_CBC             1
+
 #define DSA_SIGNATURE_LEN 	40	/* Bytes */
 #define DSA_SUBPRIME_LEN	20	/* Bytes */
 
@@ -106,6 +110,8 @@
 #define AES_KEY_WRAP_IV_BYTES    8
 #define AES_KEY_WRAP_BLOCK_SIZE  8  /* bytes */
 #define AES_BLOCK_SIZE          16  /* bytes */
+
+#define CAMELLIA_BLOCK_SIZE          16  /* bytes */
 
 #define NSS_FREEBL_DEFAULT_CHUNKSIZE 2048
 
@@ -170,6 +176,7 @@ struct RC2ContextStr        ;
 struct RC4ContextStr        ;
 struct RC5ContextStr        ;
 struct AESContextStr        ;
+struct CamelliaContextStr   ;
 struct MD2ContextStr        ;
 struct MD5ContextStr        ;
 struct SHA1ContextStr       ;
@@ -182,6 +189,7 @@ typedef struct RC2ContextStr        RC2Context;
 typedef struct RC4ContextStr        RC4Context;
 typedef struct RC5ContextStr        RC5Context;
 typedef struct AESContextStr        AESContext;
+typedef struct CamelliaContextStr   CamelliaContext;
 typedef struct MD2ContextStr        MD2Context;
 typedef struct MD5ContextStr        MD5Context;
 typedef struct SHA1ContextStr       SHA1Context;
