@@ -959,12 +959,13 @@ sdb_Close(SDB *sdb)
 {
     SDBPrivate *sdb_p = sdb->private;
     int sqlerr = SQLITE_OK;
+    sdbDataType type = sdb_p->type;
 
     /* sqlerr = sqlite3_close(sqlDB); */
     PORT_Free(sdb_p->sqlDBName);
     free(sdb_p);
     free(sdb);
-    return sdb_mapSQLError(sdb_p->type, sqlerr);
+    return sdb_mapSQLError(type, sqlerr);
 }
 
 
@@ -1013,6 +1014,7 @@ sdb_init(char *dbname, char *table, sdbDataType type, int *inUpdate,
     CK_RV error = CKR_OK;
 
     *pSdb = NULL;
+    *inUpdate = 0;
 
     /* sqlite3 doesn't have a flag to specify that we want to 
      * open the database read only. If the db doesn't exist,

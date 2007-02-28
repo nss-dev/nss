@@ -3774,7 +3774,7 @@ sftk_emailhack(SFTKSlot *slot, SFTKDBHandle *handle,
 {
     PRBool isCert = PR_FALSE;
     int emailIndex = -1;
-    int i, count;
+    int i;
     SFTKSearchResults smime_search;
     CK_ATTRIBUTE smime_template[2];
     CK_OBJECT_CLASS smime_class = CKO_NETSCAPE_SMIME;
@@ -3787,7 +3787,7 @@ sftk_emailhack(SFTKSlot *slot, SFTKDBHandle *handle,
 				  * loser before this gets initialized */
 
     /* see if we are looking for email certs */
-    for (i=0; i < count; i++) {
+    for (i=0; i < ulCount; i++) {
 	if (pTemplate[i].type == CKA_CLASS) {
 	   if ((pTemplate[i].ulValueLen != sizeof(CK_OBJECT_CLASS) ||
 	       (*(CK_OBJECT_CLASS *)pTemplate[i].pValue) != CKO_CERTIFICATE)) {
@@ -3868,6 +3868,7 @@ sftk_searchTokenList(SFTKSlot *slot, SFTKSearchResults *search,
     CK_RV crv;
     CK_RV crv2;
     SFTKDBHandle *certHandle = sftk_getCertDB(slot);
+
     crv = sftk_searchDatabase(certHandle, search, pTemplate, ulCount);
     crv2 = sftk_emailhack(slot, certHandle, search, pTemplate, ulCount);
     if (crv == CKR_OK) crv2 = crv;
