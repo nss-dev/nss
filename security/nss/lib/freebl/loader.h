@@ -458,6 +458,32 @@ struct FREEBLVectorStr {
                                                 unsigned char *xj);
 
   /* Version 3.009 came to here */
+ SECStatus (* p_Camellia_InitContext)(CamelliaContext *cx,
+				 const unsigned char *key, 
+				 unsigned int keylen, 
+				 const unsigned char *iv, 
+				 int mode, 
+				 unsigned int encrypt,
+				 unsigned int unused);
+
+ CamelliaContext *(*p_Camellia_AllocateContext)(void);
+ CamelliaContext * (* p_Camellia_CreateContext)(const unsigned char *key, 
+						const unsigned char *iv, 
+						int mode, int encrypt,
+						unsigned int keylen);
+ void (* p_Camellia_DestroyContext)(CamelliaContext *cx, PRBool freeit);
+
+ SECStatus (* p_Camellia_Encrypt)(CamelliaContext *cx, unsigned char *output,
+				  unsigned int *outputLen,
+				  unsigned int maxOutputLen,
+				  const unsigned char *input,
+				  unsigned int inputLen);
+
+ SECStatus (* p_Camellia_Decrypt)(CamelliaContext *cx, unsigned char *output,
+				  unsigned int *outputLen,
+				  unsigned int maxOutputLen,
+				  const unsigned char *input,
+				  unsigned int inputLen);
 };
 
 typedef struct FREEBLVectorStr FREEBLVector;
