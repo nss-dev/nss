@@ -1622,7 +1622,7 @@ sftk_mkPrivKey(SFTKObject *object, CK_KEY_TYPE key_type, CK_RV *crvp)
 							      CKA_COEFFICIENT);
 	if (crv != CKR_OK) break;
         rv = DER_SetUInteger(privKey->arena, &privKey->u.rsa.version,
-                          NSSLOWKEY_VERSION);
+                          NSSLOWKEY_PRIVATE_KEY_INFO_VERSION);
 	if (rv != SECSuccess) crv = CKR_HOST_MEMORY;
 	break;
 
