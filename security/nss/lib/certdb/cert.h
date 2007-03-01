@@ -1511,8 +1511,8 @@ CERT_UnlockCertTrust(CERTCertificate *cert);
  * results in a NULL being returned (and an appropriate error set).
  */ 
 extern SECItem *
-CERT_SPKDigestValueForCert(PRArenaPool *arena, CERTCertificate *cert,
-			   SECOidTag digestAlg, SECItem *fill);
+CERT_GetSPKIDigest(PRArenaPool *arena, const CERTCertificate *cert,
+                   SECOidTag digestAlg, SECItem *fill);
 
 /*
  * fill in nsCertType field of the cert based on the cert extension
