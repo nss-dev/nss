@@ -264,6 +264,7 @@ struct SDBFindStr {
 
 
 #define FIND_OBJECTS_CMD "SELECT ALL * FROM %s WHERE %s;"
+#define FIND_OBJECTS_ALL_CMD "SELECT ALL * FROM %s;"
 CK_RV
 sdb_FindObjectsInit(SDB *sdb, const CK_ATTRIBUTE *template, int count, 
 				SDBFind **find)
@@ -295,7 +296,11 @@ sdb_FindObjectsInit(SDB *sdb, const CK_ATTRIBUTE *template, int count,
 	goto loser;
     }
 
-    newStr = sqlite3_mprintf(FIND_OBJECTS_CMD, sdb_p->table, findStr);
+    if (count == 0) {
+	newStr = sqlite3_mprintf(FIND_OBJECTS_ALL_CMD, sdb_p->table);
+    } else {
+	newStr = sqlite3_mprintf(FIND_OBJECTS_CMD, sdb_p->table, findStr);
+    }
     sqlite3_free(findStr);
     if (newStr == NULL) {
 	error = CKR_HOST_MEMORY;

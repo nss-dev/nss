@@ -422,17 +422,19 @@ CK_RV
 sftkdb_FindObjectsInit(SFTKDBHandle *handle, const CK_ATTRIBUTE *template,
 				 int count, SDBFind **find) 
 {
-    unsigned char *data;
-    CK_ATTRIBUTE *ntemplate;
+    unsigned char *data = NULL;
+    CK_ATTRIBUTE *ntemplate = NULL;
     CK_RV crv;
 
     if (handle == NULL) {
 	return CKR_OK;
     }
 
-    ntemplate = sftkdb_fixupTemplateIn(template, count, &data);
-    if (ntemplate == NULL) {
-	return CKR_HOST_MEMORY;
+    if (count !=  0) {
+	ntemplate = sftkdb_fixupTemplateIn(template, count, &data);
+	if (ntemplate == NULL) {
+	    return CKR_HOST_MEMORY;
+	}
     }
 	
     crv = (*handle->db->sdb_FindObjectsInit)(handle->db, ntemplate, 
@@ -484,6 +486,10 @@ sftkdb_GetAttributeValue(SFTKDBHandle *handle, CK_OBJECT_HANDLE object_id,
     if (handle == NULL) {
 	return CKR_GENERAL_ERROR;
     }
+    /* nothing to do */
+    if (count == 0) {
+	return CKR_OK;
+    }
     ntemplate = sftkdb_fixupTemplateIn(template, count, &data);
     if (ntemplate == NULL) {
 	return CKR_HOST_MEMORY;
@@ -511,6 +517,10 @@ sftkdb_SetAttributeValue(SFTKDBHandle *handle, CK_OBJECT_HANDLE object_id,
 
     if (handle == NULL) {
 	return CKR_TOKEN_WRITE_PROTECTED;
+    }
+    /* nothing to do */
+    if (count == 0) {
+	return CKR_OK;
     }
     ntemplate = sftkdb_fixupTemplateIn(template, count, &data);
     if (ntemplate == NULL) {
