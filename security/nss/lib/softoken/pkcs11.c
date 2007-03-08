@@ -85,6 +85,7 @@ static char libraryDescription_space[33];
  * failure so that there are at most 60 login attempts per minute.
  */
 static PRIntervalTime loginWaitTime;
+static PRUint32	      minSessionObjectHandle = 1U;
 
 #define __PASTE(x,y)    x##y
 
@@ -255,11 +256,11 @@ static const struct mechanismList mechanisms[] = {
       * The second argument is Mechanism info structure. It includes:
       *    The minimum key size,
       *       in bits for RSA, DSA, DH, EC*, KEA, RC2 and RC4 * algs.
-      *       in bytes for RC5, AES, and CAST*
+      *       in bytes for RC5, AES, Camellia, and CAST*
       *       ignored for DES*, IDEA and FORTEZZA based
       *    The maximum key size,
       *       in bits for RSA, DSA, DH, EC*, KEA, RC2 and RC4 * algs.
-      *       in bytes for RC5, AES, and CAST*
+      *       in bytes for RC5, AES, Camellia, and CAST*
       *       ignored for DES*, IDEA and FORTEZZA based
       *     Flags
       *	      What operations are supported by this mechanism.
@@ -350,6 +351,13 @@ static const struct mechanismList mechanisms[] = {
      {CKM_AES_MAC,		{16, 32, CKF_SN_VR},		PR_TRUE},
      {CKM_AES_MAC_GENERAL,	{16, 32, CKF_SN_VR},		PR_TRUE},
      {CKM_AES_CBC_PAD,		{16, 32, CKF_EN_DE_WR_UN},	PR_TRUE},
+     /* ------------------------- Camellia Operations --------------------- */
+     {CKM_CAMELLIA_KEY_GEN,	{16, 32, CKF_GENERATE},         PR_TRUE},
+     {CKM_CAMELLIA_ECB,  	{16, 32, CKF_EN_DE_WR_UN},      PR_TRUE},
+     {CKM_CAMELLIA_CBC, 	{16, 32, CKF_EN_DE_WR_UN},      PR_TRUE},
+     {CKM_CAMELLIA_MAC, 	{16, 32, CKF_SN_VR},            PR_TRUE},
+     {CKM_CAMELLIA_MAC_GENERAL,	{16, 32, CKF_SN_VR},            PR_TRUE},
+     {CKM_CAMELLIA_CBC_PAD,	{16, 32, CKF_EN_DE_WR_UN},      PR_TRUE},
      /* ------------------------- Hashing Operations ----------------------- */
      {CKM_MD2,			{0,   0, CKF_DIGEST},		PR_FALSE},
      {CKM_MD2_HMAC,		{1, 128, CKF_SN_VR},		PR_TRUE},
@@ -1047,7 +1055,7 @@ sftk_handlePrivateKeyObject(SFTKSession *session,SFTKObject *object,CK_KEY_TYPE 
     return CKR_OK;
 }
 
-/* forward delcare the DES formating function for handleSecretKey */
+/* forward declare the DES formating function for handleSecretKey */
 void sftk_FormatDESKey(unsigned char *key, int length);
 
 /* Validate secret key data, and set defaults */
@@ -1340,9 +1348,11 @@ CK_RV
 sftk_handleObject(SFTKObject *object, SFTKSession *session)
 {
     SFTKSlot *slot = session->slot;
+    SFTKAttribute *attribute;
+    SFTKObject *duplicateObject = NULL;
+    CK_OBJECT_HANDLE handle;
     CK_BBOOL ckfalse = CK_FALSE;
     CK_BBOOL cktrue = CK_TRUE;
-    SFTKAttribute *attribute;
     CK_RV crv;
 
     /* make sure all the base object types are defined. If not set the
@@ -1368,11 +1378,37 @@ sftk_handleObject(SFTKObject *object, SFTKSession *session)
 	return CKR_SESSION_READ_ONLY;
     }
 	
-    /* PKCS #11 object ID's are unique for all objects on a
-     * token */
-    PZ_Lock(slot->objectLock);
-    object->handle = slot->tokenIDCount++;
-    PZ_Unlock(slot->objectLock);
+    /* Assign a unique SESSION object handle to every new object,
+     * whether it is a session object or a token object.  
+     * At this point, all new objects are structured as session objects.
+     * Objects with the CKA_TOKEN attribute true will be turned into 
+     * token objects and will have a token object handle assigned to 
+     * them by a call to sftk_mkHandle in the handler for each object 
+     * class, invoked below.
+     *
+     * It may be helpful to note/remember that 
+     * sftk_narrowToXxxObject uses sftk_isToken,
+     * sftk_isToken examines the sign bit of the object's handle, but
+     * sftk_isTrue(...,CKA_TOKEN) examines the CKA_TOKEN attribute.
+     */
+    do {
+	PRUint32 wrappedAround;
+
+	duplicateObject = NULL;
+	PZ_Lock(slot->objectLock);
+	wrappedAround = slot->sessionObjectHandleCount &  SFTK_TOKEN_MASK;
+	handle        = slot->sessionObjectHandleCount & ~SFTK_TOKEN_MASK;
+	if (!handle) /* don't allow zero handle */
+	    handle = minSessionObjectHandle;  
+	slot->sessionObjectHandleCount = (handle + 1U) | wrappedAround;
+	/* Is there already a session object with this handle? */
+	if (wrappedAround) {
+	    sftkqueue_find(duplicateObject, handle, slot->sessObjHashTable, \
+	                   slot->sessObjHashSize);
+	}
+	PZ_Unlock(slot->objectLock);
+    } while (duplicateObject != NULL);
+    object->handle = handle;
 
     /* get the object class */
     attribute = sftk_FindAttribute(object,CKA_CLASS);
@@ -1382,8 +1418,10 @@ sftk_handleObject(SFTKObject *object, SFTKSession *session)
     object->objclass = *(CK_OBJECT_CLASS *)attribute->attrib.pValue;
     sftk_FreeAttribute(attribute);
 
-    /* now handle the specific. Get a session handle for these functions
-     * to use */
+    /* Now handle the specific object class. 
+     * At this point, all objects are session objects, and the session
+     * number must be passed to the object class handlers.
+     */
     switch (object->objclass) {
     case CKO_DATA:
 	crv = sftk_handleDataObject(session,object);
@@ -1419,7 +1457,11 @@ sftk_handleObject(SFTKObject *object, SFTKSession *session)
 	return crv;
     }
 
-    /* now link the object into the slot and session structures */
+    /* Now link the object into the slot and session structures.
+     * If the object has a true CKA_TOKEN attribute, the above object
+     * class handlers will have set the sign bit in the object handle,
+     * causing the following test to be true.
+     */
     if (sftk_isToken(object->handle)) {
 	sftk_convertSessionToToken(object);
     } else {
@@ -2061,11 +2103,11 @@ SFTK_SlotInit(char *configdir,sftk_token_parameters *params, int moduleIndex)
 
     slot->optimizeSpace = params->optimizeSpace;
     if (slot->optimizeSpace) {
-	slot->tokObjHashSize = SPACE_TOKEN_OBJECT_HASH_SIZE;
+	slot->sessObjHashSize = SPACE_SESSION_OBJECT_HASH_SIZE;
 	slot->sessHashSize = SPACE_SESSION_HASH_SIZE;
 	slot->numSessionLocks = 1;
     } else {
-	slot->tokObjHashSize = TIME_TOKEN_OBJECT_HASH_SIZE;
+	slot->sessObjHashSize = TIME_SESSION_OBJECT_HASH_SIZE;
 	slot->sessHashSize = TIME_SESSION_HASH_SIZE;
 	slot->numSessionLocks = slot->sessHashSize/BUCKETS_PER_SESSION_LOCK;
     }
@@ -2091,16 +2133,16 @@ SFTK_SlotInit(char *configdir,sftk_token_parameters *params, int moduleIndex)
     slot->head = PORT_ZNewArray(SFTKSession *, slot->sessHashSize);
     if (slot->head == NULL) 
 	goto mem_loser;
-    slot->tokObjects = PORT_ZNewArray(SFTKObject *, slot->tokObjHashSize);
-    if (slot->tokObjects == NULL) 
+    slot->sessObjHashTable = PORT_ZNewArray(SFTKObject *, slot->sessObjHashSize);
+    if (slot->sessObjHashTable == NULL) 
 	goto mem_loser;
-    slot->tokenHashTable = PL_NewHashTable(64,sftk_HashNumber,PL_CompareValues,
+    slot->tokObjHashTable = PL_NewHashTable(64,sftk_HashNumber,PL_CompareValues,
 					SECITEM_HashCompare, NULL, 0);
-    if (slot->tokenHashTable == NULL) 
+    if (slot->tokObjHashTable == NULL) 
 	goto mem_loser;
 
     slot->sessionIDCount = 0;
-    slot->tokenIDCount = 1;
+    slot->sessionObjectHandleCount = minSessionObjectHandle;
     slot->slotID = slotID;
     sftk_setStringName(params->slotdes ? params->slotdes : 
 	      sftk_getDefSlotName(slotID), slot->slotDescription, 
@@ -2217,9 +2259,9 @@ SFTK_ShutdownSlot(SFTKSlot *slot)
 
     /* clear all objects.. session objects are cleared as a result of
      * closing all the sessions. We just need to clear the token object
-     * cache. slot->tokenHashTable guarentees we have the token 
+     * cache. slot->tokObjHashTable guarentees we have the token 
      * infrastructure set up. */
-    if (slot->tokenHashTable) {
+    if (slot->tokObjHashTable) {
 	SFTK_ClearTokenKeyHashTable(slot);
     }
 
@@ -2241,16 +2283,16 @@ SFTK_DestroySlotData(SFTKSlot *slot)
 
     SFTK_ShutdownSlot(slot);
 
-    if (slot->tokenHashTable) {
-	PL_HashTableDestroy(slot->tokenHashTable);
-	slot->tokenHashTable = NULL;
+    if (slot->tokObjHashTable) {
+	PL_HashTableDestroy(slot->tokObjHashTable);
+	slot->tokObjHashTable = NULL;
     }
 
-    if (slot->tokObjects) {
-	PORT_Free(slot->tokObjects);
-	slot->tokObjects = NULL;
+    if (slot->sessObjHashTable) {
+	PORT_Free(slot->sessObjHashTable);
+	slot->sessObjHashTable = NULL;
     }
-    slot->tokObjHashSize = 0;
+    slot->sessObjHashSize = 0;
 
     if (slot->head) {
 	PORT_Free(slot->head);
@@ -2826,15 +2868,15 @@ CK_RV NSC_InitToken(CK_SLOT_ID slotID,CK_CHAR_PTR pPin,
     /* first, delete all our loaded key and cert objects from our 
      * internal list. */
     PZ_Lock(slot->objectLock);
-    for (i=0; i < slot->tokObjHashSize; i++) {
+    for (i=0; i < slot->sessObjHashSize; i++) {
 	do {
-	    object = slot->tokObjects[i];
+	    object = slot->sessObjHashTable[i];
 	    /* hand deque */
 	    /* this duplicates function of NSC_close session functions, but 
 	     * because we know that we are freeing all the sessions, we can
 	     * do more efficient processing */
 	    if (object) {
-		slot->tokObjects[i] = object->next;
+		slot->sessObjHashTable[i] = object->next;
 
 		if (object->next) object->next->prev = NULL;
 		object->next = object->prev = NULL;
@@ -3903,8 +3945,8 @@ CK_RV NSC_FindObjectsInit(CK_SESSION_HANDLE hSession,
     
     /* build list of found objects in the session */
     if (!tokenOnly) {
-	crv = sftk_searchObjectList(search, slot->tokObjects, 
-				slot->tokObjHashSize, slot->objectLock, 
+	crv = sftk_searchObjectList(search, slot->sessObjHashTable, 
+				slot->sessObjHashSize, slot->objectLock, 
 					pTemplate, ulCount, isLoggedIn);
     }
     if (crv != CKR_OK) {

@@ -1764,8 +1764,8 @@ sftk_DBInit(const char *configdir, const char *certPrefix,
     }
     confdir = sftk_EvaluateConfigDir(configdir, &dbType, &appName);
     /* FIXME_ -- prefixes */
-    crv = s_open(confdir, 9, 4, flags, noCertDB? NULL : &certSDB, 
-				      noKeyDB ? NULL : &keySDB);
+    crv = s_open(confdir, certPrefix, keyPrefix, 9, 4, flags, 
+	noCertDB? NULL : &certSDB, noKeyDB ? NULL : &keySDB);
     if (crv != CKR_OK) {
 	goto loser;
     }

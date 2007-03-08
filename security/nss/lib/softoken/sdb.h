@@ -99,7 +99,8 @@ struct SDBPasswordEntryStr {
 
 #define SDB_INTERNAL 1
 
-CK_RV s_open(const char *directory, int cert_version, int key_version, 
+CK_RV s_open(const char *directory, char *certPrefix, char *keyPrefix,
+	     int cert_version, int key_version, 
 	     int flags, SDB **certdb, SDB **keydb);
 
 

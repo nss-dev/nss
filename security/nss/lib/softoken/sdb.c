@@ -71,11 +71,13 @@ typedef enum {
 } sdbDataType;
 
 struct SDBPrivateStr {
-    char *sqlDBName;
-    sqlite3 *sqlTmpDB;
-    sdbDataType type;
-    char *table;
-    PRLock *lock;
+    char *sqlDBName;		/* invarient, path to this database */
+    sqlite3 *sqlXactDB;		/* protected by lock, current transaction db*/
+    PRThread *sqlXactThread;	/* protected by lock,
+			         * current transaiction thred*/
+    sdbDataType type;		/* invariant, database type */
+    char *table;	        /* invariant, SQL table which contains the db */
+    PRLock *lock;		/* invariant, lock to protect sqlXact* fields*/
 };
 
 typedef struct SDBPrivateStr SDBPrivate;
@@ -128,25 +130,10 @@ int known_attributes_size= sizeof(known_attributes)/
  * a value that has no meaning to any existing PKCS #11 attributes.
  * This value is 1) not a valid string (imbedded '\0'). 2) not a U_LONG
  * or a normal key (too short). 3) not a bool (too long). 4) not an RSA
- * exponent (too many bits).
+ * public exponent (too many bits).
  */
 const unsigned char SQLITE_EXPLICIT_NULL[] = { 0xa5, 0x0, 0x5a };
 #define SQLITE_EXPLICIT_NULL_LEN 3
-
-/*
- * This should query the column name list to build the table
- */
-int 
-sdb_mapColumn(SDBPrivate *sdb_p, CK_ATTRIBUTE_TYPE attr)
-{
-   int i;
-   for (i=0; i < known_attributes_size; i++) {
-	if (attr == known_attributes[i]) {
-	   return i+1;
-	}
-   }
-   return -1;
-}
 
 /*
  * determine when we've completed our tasks
@@ -188,7 +175,7 @@ sdb_mapSQLError(sdbDataType type, int sqlerr)
     /* close matches */
     case SQLITE_AUTH:
     case SQLITE_PERM:
-	return CKR_USER_NOT_LOGGED_IN;
+	/*return CKR_USER_NOT_LOGGED_IN; */
     case SQLITE_CANTOPEN:
     case SQLITE_NOTFOUND:
 	/* NSS distiguishes between failure to open the cert and the key db */
@@ -203,25 +190,40 @@ sdb_mapSQLError(sdbDataType type, int sqlerr)
 }
 
 /*
- *  sqlite3 cannot share handles across threads. PKCS #11 modules can be called
- *  on any OS, thread, so we need to constantly open and close the sqlite
- *  database.
+ *  sqlite3 cannot share handles across threads, in general. 
+ *  PKCS #11 modules can be called thread, so we need to constantly open and 
+ *  close the sqlite database.
+ * 
+ *  The one exception is transactions. When we are in a transaction, we must
+ *  use the same database pointer for that entire transation. In this case
+ *  we save the transaction database and use it for all accesses on the
+ *  transaction thread. Other threads still get their own database.
+ *
+ *  There can only be once active transaction on the database at a time.
  */
 static CK_RV 
-sdb_openDB(char *dbname, sdbDataType type, sqlite3 **sqlDB, SDBPrivate *sdb_p) 
+sdb_openDBLocal(SDBPrivate *sdb_p, sqlite3 **sqlDB)
 {
     int sqlerr = SQLITE_OK;
     CK_RV error = CKR_OK;
 
+    char *dbname = sdb_p->sqlDBName;
+    sdbDataType type = sdb_p->type;
+
     *sqlDB = NULL;
 
-    if (sdb_p) PR_Lock(sdb_p->lock);
+    PR_Lock(sdb_p->lock);
 
-    /* caller has already supplied a database, use it */
-    if (sdb_p && sdb_p->sqlTmpDB) {
-	*sqlDB =sdb_p->sqlTmpDB;
+    /* We're in a transaction, use the transaction DB */
+    if ((sdb_p->sqlXactDB) && (sdb_p->sqlXactThread == PR_GetCurrentThread())) {
+	*sqlDB =sdb_p->sqlXactDB;
+	/* only one thread can get here, safe to unlock */
+        PR_Unlock(sdb_p->lock);
 	return CKR_OK;
     }
+
+    /* we're and independent operation, get our own db handle */
+    PR_Unlock(sdb_p->lock);
 
     sqlerr = sqlite3_open(dbname, sqlDB);
     if (sqlerr != SQLITE_OK) {
@@ -244,20 +246,22 @@ loser:
     return error;
 }
 
-struct SDBFindStr {
-    sqlite3 *sqlDB;
-    sqlite3_stmt *findstmt;
-}
-;
+/* down with the local database, free it if we allocated it, otherwise
+ * free unlock our use the the transaction database */
 static CK_RV 
 sdb_closeDBLocal(SDBPrivate *sdb_p, sqlite3 *sqlDB) 
 {
-   if (sdb_p->sqlTmpDB != sqlDB) {
+   if (sdb_p->sqlXactDB != sqlDB) {
 	sqlite3_close(sqlDB);
    }
-   PR_Unlock(sdb_p->lock);
    return CKR_OK;
 }
+
+struct SDBFindStr {
+    sqlite3 *sqlDB;
+    sqlite3_stmt *findstmt;
+};
+
 
 #define FIND_OBJECTS_CMD "SELECT ALL * FROM %s WHERE %s;"
 CK_RV
@@ -265,7 +269,7 @@ sdb_FindObjectsInit(SDB *sdb, const CK_ATTRIBUTE *template, int count,
 				SDBFind **find)
 {
     SDBPrivate *sdb_p = sdb->private;
-    sqlite3  *sqlDB = sdb_p->sqlTmpDB;
+    sqlite3  *sqlDB = NULL;
     char *newStr, *findStr = sqlite3_mprintf("");
     sqlite3_stmt *findstmt = NULL;
     char *join="";
@@ -274,7 +278,7 @@ sdb_FindObjectsInit(SDB *sdb, const CK_ATTRIBUTE *template, int count,
     int i;
 
     *find = NULL;
-    error = sdb_openDB(sdb_p->sqlDBName, sdb_p->type, &sqlDB, sdb_p);
+    error = sdb_openDBLocal(sdb_p, &sqlDB);
     if (error != CKR_OK) {
 	goto loser;
     }
@@ -390,7 +394,6 @@ sdb_GetAttributeValue(SDB *sdb, CK_OBJECT_HANDLE object_id,
 {
     SDBPrivate *sdb_p = sdb->private;
     sqlite3  *sqlDB = NULL;
-    sqlite3  *tsqlDB = sdb_p->sqlTmpDB;
     sqlite3_stmt *stmt = NULL;
     char *getStr = sqlite3_mprintf("");
     char *newStr = NULL;
@@ -420,7 +423,7 @@ sdb_GetAttributeValue(SDB *sdb, CK_OBJECT_HANDLE object_id,
 	goto loser;
     }
     /* open a new db if necessary */
-    error = sdb_openDB(sdb_p->sqlDBName, sdb_p->type, &sqlDB, sdb_p);
+    error = sdb_openDBLocal(sdb_p,&sqlDB);
     if (error != CKR_OK) {
 	goto loser;
     }
@@ -486,9 +489,6 @@ loser:
 
     /* if we had to open a new database, free it now */
     if (sqlDB) {
-	if (tsqlDB) {
-		PORT_Assert(sdb_p->sqlTmpDB == tsqlDB);
-	}
 	sdb_closeDBLocal(sdb_p, sqlDB) ;
     }
     return error;
@@ -500,7 +500,7 @@ sdb_SetAttributeValue(SDB *sdb, CK_OBJECT_HANDLE object_id,
 			const CK_ATTRIBUTE *template, int count)
 {
     SDBPrivate *sdb_p = sdb->private;
-    sqlite3  *sqlDB = sdb_p->sqlTmpDB;
+    sqlite3  *sqlDB = NULL;
     sqlite3_stmt *stmt = NULL;
     char *setStr = sqlite3_mprintf("");
     char *newStr = NULL;
@@ -535,7 +535,7 @@ sdb_SetAttributeValue(SDB *sdb, CK_OBJECT_HANDLE object_id,
     if (newStr == NULL) {
 	return CKR_HOST_MEMORY;
     }
-    error = sdb_openDB(sdb_p->sqlDBName, sdb_p->type, &sqlDB, sdb_p);
+    error = sdb_openDBLocal(sdb_p, &sqlDB);
     if (error != CKR_OK) {
 	goto loser;
     }
@@ -589,7 +589,7 @@ sdb_CreateObject(SDB *sdb, CK_OBJECT_HANDLE *object_id,
 		 const CK_ATTRIBUTE *template, int count)
 {
     SDBPrivate *sdb_p = sdb->private;
-    sqlite3  *sqlDB = sdb_p->sqlTmpDB;
+    sqlite3  *sqlDB = NULL;
     sqlite3_stmt *stmt = NULL;
     char *columnStr = sqlite3_mprintf("");
     char *valueStr = sqlite3_mprintf("");
@@ -633,7 +633,7 @@ sdb_CreateObject(SDB *sdb, CK_OBJECT_HANDLE *object_id,
     newStr =  sqlite3_mprintf(CREATE_CMD, sdb_p->table, columnStr, valueStr);
     sqlite3_free(columnStr);
     sqlite3_free(valueStr);
-    error = sdb_openDB(sdb_p->sqlDBName, sdb_p->type, &sqlDB, sdb_p);
+    error = sdb_openDBLocal(sdb_p, &sqlDB);
     if (error != CKR_OK) {
 	goto loser;
     }
@@ -684,7 +684,7 @@ CK_RV
 sdb_DestroyObject(SDB *sdb, CK_OBJECT_HANDLE object_id)
 {
     SDBPrivate *sdb_p = sdb->private;
-    sqlite3  *sqlDB = sdb_p->sqlTmpDB;
+    sqlite3  *sqlDB = NULL;
     sqlite3_stmt *stmt = NULL;
     char *newStr = NULL;
     int sqlerr = SQLITE_OK;
@@ -695,7 +695,7 @@ sdb_DestroyObject(SDB *sdb, CK_OBJECT_HANDLE object_id)
 	return CKR_TOKEN_WRITE_PROTECTED;
     }
 
-    error = sdb_openDB(sdb_p->sqlDBName, sdb_p->type, &sqlDB, sdb_p);
+    error = sdb_openDBLocal(sdb_p, &sqlDB);
     if (error != CKR_OK) {
 	goto loser;
     }
@@ -737,11 +737,20 @@ loser:
 #define BEGIN_CMD    "BEGIN EXCLUSIVE TRANSACTION;"
 #define ROLLBACK_CMD "ROLLBACK TRANSACTION;"
 #define COMMIT_CMD   "COMMIT TRANSACTION;"
-static CK_RV 
-sdb_exec(SDB *sdb, const char *cmd, PRBool saveDB)
+
+
+/*
+ * start a transaction.
+ *
+ * We need to open a new database, then store that new database into
+ * the private data structure. We open the database first, then use locks
+ * to protect storing the data to prevent deadlocks.
+ */
+CK_RV
+sdb_Begin(SDB *sdb)
 {
     SDBPrivate *sdb_p = sdb->private;
-    sqlite3  *sqlDB = sdb_p->sqlTmpDB;
+    sqlite3  *sqlDB = NULL;
     sqlite3_stmt *stmt = NULL;
     int sqlerr = SQLITE_OK;
     CK_RV error = CKR_OK;
@@ -752,15 +761,19 @@ sdb_exec(SDB *sdb, const char *cmd, PRBool saveDB)
 	return CKR_TOKEN_WRITE_PROTECTED;
     }
 
-    if (saveDB) PR_Lock(sdb_p->lock);
 
-    error = sdb_openDB(sdb_p->sqlDBName, sdb_p->type, &sqlDB, 
-						saveDB ? NULL : sdb_p);
-    if (error != CKR_OK) {
+    /* get a new version that we will use for the entire transaction */
+    sqlerr = sqlite3_open(sdb_p->sqlDBName, &sqlDB);
+    if (sqlerr != SQLITE_OK) {
 	goto loser;
     }
 
-    sqlerr =sqlite3_prepare(sqlDB, cmd, -1, &stmt, NULL);
+    sqlerr = sqlite3_busy_timeout(sqlDB, 1000);
+    if (sqlerr != CKR_OK) {
+	goto loser;
+    }
+
+    sqlerr =sqlite3_prepare(sqlDB, BEGIN_CMD, -1, &stmt, NULL);
 
     do {
 	sqlerr = sqlite3_step(stmt);
@@ -775,31 +788,103 @@ sdb_exec(SDB *sdb, const char *cmd, PRBool saveDB)
     }
 
 loser:
-    if (error == CKR_OK) {
-	error = sdb_mapSQLError(sdb_p->type, sqlerr);
-    }
+    error = sdb_mapSQLError(sdb_p->type, sqlerr);
 
-    /* if we are starting a new transaction, 
+    /* we are starting a new transaction, 
      * and if we succeeded, then save this database for the rest of
      * our transaction */
-    if (saveDB && (error == CKR_OK)) {
-	PORT_Assert(sdb_p->sqlTmpDB == NULL);
-	sdb_p->sqlTmpDB = sqlDB;
-	sqlDB = NULL; /* we'll free it on commit or abort */
-    }
-
-    /* if we have a database to free at this point, either we failed
-     * to start our transaction, or we just finished one. In either
-     * case free the database. */
-    if (sqlDB) {
-	if (sqlDB == sdb_p->sqlTmpDB) {
-	    sdb_p->sqlTmpDB = NULL;
+    if (error == CKR_OK) {
+	/* we hold a 'BEGIN TRANSACTION' and a sdb_p->lock. At this point
+	 * sdb_p->sqlXactDB MUST be null */
+	PR_Lock(sdb_p->lock);
+	PORT_Assert(sdb_p->sqlXactDB == NULL);
+	sdb_p->sqlXactDB = sqlDB;
+	sdb_p->sqlXactThread = PR_GetCurrentThread();
+	PR_Unlock(sdb_p->lock);
+    } else {
+	/* we failed to start our transaction,
+	 * free any databases we openned. */
+	if (sqlDB) {
+	    sqlite3_close(sqlDB);
 	}
-	sqlite3_close(sqlDB);
     }
-    PR_Unlock(sdb_p->lock);
 
     return error;
+}
+
+/*
+ * Complete a transaction. Basically undo everything we did in begin.
+ * There are 2 flavors Abort and Commit. Basically the only differerence between
+ * these 2 are what the database will show. (no change in to former, change in
+ * the latter).
+ */
+static CK_RV 
+sdb_complete(SDB *sdb, const char *cmd)
+{
+    SDBPrivate *sdb_p = sdb->private;
+    sqlite3  *sqlDB = NULL;
+    sqlite3_stmt *stmt = NULL;
+    int sqlerr = SQLITE_OK;
+    CK_RV error = CKR_OK;
+    int retry = 0;
+
+
+    if (sdb->sdb_flags == SDB_RDONLY) {
+	return CKR_TOKEN_WRITE_PROTECTED;
+    }
+
+    /* We must have a transation database, or we shouldn't have arrived here */
+    PR_Lock(sdb_p->lock);
+    PORT_Assert(sdb_p->sqlXactDB);
+    if (sdb_p->sqlXactDB == NULL) {
+	PR_Unlock(sdb_p->lock);
+	return CKR_GENERAL_ERROR; /* shouldn't happen */
+    }
+    PORT_Assert( sdb_p->sqlXactThread == PR_GetCurrentThread());
+    if ( sdb_p->sqlXactThread != PR_GetCurrentThread()) {
+	PR_Unlock(sdb_p->lock);
+	return CKR_GENERAL_ERROR; /* shouldn't happen */
+    }
+    sqlDB = sdb_p->sqlXactDB;
+    sdb_p->sqlXactDB = NULL; /* no one else can get to this DB, safe to unlock */
+    sdb_p->sqlXactThread = NULL; 
+    PR_Unlock(sdb_p->lock);  
+
+    sqlerr =sqlite3_prepare(sqlDB, cmd, -1, &stmt, NULL);
+
+    do {
+	sqlerr = sqlite3_step(stmt);
+	if (sqlerr == SQLITE_BUSY) {
+	    PR_Sleep(5);
+	}
+    } while (!sdb_done(sqlerr,&retry));
+
+    /* Pending BEGIN TRANSACTIONS Can move forward at this point. */
+
+    if (stmt) {
+	sqlite3_reset(stmt);
+	sqlite3_finalize(stmt);
+    }
+
+    error = sdb_mapSQLError(sdb_p->type, sqlerr);
+
+    /* We just finished a transaction.
+     * Free the database, and remove it from the list */
+    sqlite3_close(sqlDB);
+
+    return error;
+}
+
+CK_RV
+sdb_Commit(SDB *sdb)
+{
+    return sdb_complete(sdb,COMMIT_CMD);
+}
+
+CK_RV
+sdb_Abort(SDB *sdb)
+{
+    return sdb_complete(sdb,ROLLBACK_CMD);
 }
 
 #define GET_PW_CMD "SELECT ALL * FROM password WHERE id='password';"
@@ -807,7 +892,7 @@ CK_RV
 sdb_GetPWEntry(SDB *sdb, SDBPasswordEntry *entry)
 {
     SDBPrivate *sdb_p = sdb->private;
-    sqlite3  *sqlDB = sdb_p->sqlTmpDB;
+    sqlite3  *sqlDB = sdb_p->sqlXactDB;
     sqlite3_stmt *stmt = NULL;
     int sqlerr = SQLITE_OK;
     CK_RV error = CKR_OK;
@@ -819,7 +904,7 @@ sdb_GetPWEntry(SDB *sdb, SDBPasswordEntry *entry)
 	return CKR_OBJECT_HANDLE_INVALID;
     }
 
-    error = sdb_openDB(sdb_p->sqlDBName, sdb_p->type, &sqlDB, sdb_p);
+    error = sdb_openDBLocal(sdb_p, &sqlDB);
     if (error != CKR_OK) {
 	goto loser;
     }
@@ -882,7 +967,7 @@ CK_RV
 sdb_PutPWEntry(SDB *sdb, SDBPasswordEntry *entry)
 {
     SDBPrivate *sdb_p = sdb->private;
-    sqlite3  *sqlDB = sdb_p->sqlTmpDB;
+    sqlite3  *sqlDB = sdb_p->sqlXactDB;
     sqlite3_stmt *stmt = NULL;
     int sqlerr = SQLITE_OK;
     CK_RV error = CKR_OK;
@@ -893,7 +978,7 @@ sdb_PutPWEntry(SDB *sdb, SDBPasswordEntry *entry)
 	return CKR_OBJECT_HANDLE_INVALID;
     }
 
-    error = sdb_openDB(sdb_p->sqlDBName, sdb_p->type, &sqlDB, sdb_p);
+    error = sdb_openDBLocal(sdb_p, &sqlDB);
     if (error != CKR_OK) {
 	goto loser;
     }
@@ -934,24 +1019,6 @@ loser:
     }
 
     return error;
-}
-
-CK_RV
-sdb_Begin(SDB *sdb)
-{
-    return sdb_exec(sdb,BEGIN_CMD,PR_TRUE);
-}
-
-CK_RV
-sdb_Commit(SDB *sdb)
-{
-    return sdb_exec(sdb,COMMIT_CMD,PR_FALSE);
-}
-
-CK_RV
-sdb_Abort(SDB *sdb)
-{
-    return sdb_exec(sdb,ROLLBACK_CMD,PR_FALSE);
 }
 
 CK_RV 
@@ -1024,9 +1091,15 @@ sdb_init(char *dbname, char *table, sdbDataType type, int *inUpdate,
 	error = sdb_mapSQLError(type, SQLITE_CANTOPEN);
 	goto loser;
     }
+    sqlerr = sqlite3_open(dbname, &sqlDB);
+    if (sqlerr != SQLITE_OK) {
+	error = sdb_mapSQLError(type, sqlerr);
+	goto loser;
+    }
 
-    error = sdb_openDB(dbname, type, &sqlDB, NULL);
-    if (error != CKR_OK) {
+    sqlerr = sqlite3_busy_timeout(sqlDB, 1000);
+    if (sqlerr != CKR_OK) {
+	error = sdb_mapSQLError(type, sqlerr); 
 	goto loser;
     }
 
@@ -1071,11 +1144,14 @@ sdb_init(char *dbname, char *table, sdbDataType type, int *inUpdate,
     }
     sdb = (SDB *) malloc(sizeof(SDB));
     sdb_p = (SDBPrivate *) malloc(sizeof(SDBPrivate));
+    /* invariant fields */
     sdb_p->sqlDBName = PORT_Strdup(dbname);
-    sdb_p->sqlTmpDB = NULL;
     sdb_p->type = type;
     sdb_p->table = table;
     sdb_p->lock = PR_NewLock();
+    /* these fields are protected by the lock */
+    sdb_p->sqlXactDB = NULL;
+    sdb_p->sqlXactThread = NULL;
     sdb->private = sdb_p;
     sdb->sdb_type = SDB_INTERNAL;
     sdb->sdb_flags = flags;
@@ -1131,22 +1207,26 @@ loser:
 
 }
 
-static char *sdb_BuildFileName(const char * directory, const char *type, 
-				int version, int flags)
+static char *sdb_BuildFileName(const char * directory, 
+			const char *prefix, const char *type, 
+			int version, int flags)
 {
     char *dbname = NULL;
     /* build the full dbname */
-    dbname = sqlite3_mprintf("%s/%s%d.sdb",directory, type, version);
+    dbname = sqlite3_mprintf("%s/%s%s%d.sdb",directory, prefix, type, version);
     return dbname;
 }
 
 /* sdbopen */
 CK_RV
-s_open(const char *directory, int cert_version, 
-	int key_version, int flags, SDB **certdb, SDB **keydb)
+s_open(const char *directory, char *certPrefix, char *keyPrefix,
+	int cert_version, int key_version, int flags, 
+	SDB **certdb, SDB **keydb)
 {
-    char *cert = sdb_BuildFileName(directory, "cert", cert_version, flags);
-    char *key = sdb_BuildFileName(directory, "key", key_version, flags);
+    char *cert = sdb_BuildFileName(directory, certPrefix,
+				   "cert", cert_version, flags);
+    char *key = sdb_BuildFileName(directory, keyPrefix,
+				   "key", key_version, flags);
     CK_RV error = CKR_OK;
     int inUpdate, needUpdate;
 
