@@ -56,6 +56,13 @@ SEC_BEGIN_PROTOS
 #define _NSS_ECC_STRING ""
 #endif
 
+/* The private macro _NSS_CUSTOMIZED is for NSS internal use only. */
+#if defined(NSS_ALLOW_UNSUPPORTED_CRITICAL)
+#define _NSS_CUSTOMIZED " (Customized build)"
+#else
+#define _NSS_CUSTOMIZED 
+#endif
+
 /*
  * NSS's major version, minor version, patch level, and whether
  * this is a beta release.
@@ -63,11 +70,11 @@ SEC_BEGIN_PROTOS
  * The format of the version string should be
  *     "<major version>.<minor version>[.<patch level>][ <ECC>][ <Beta>]"
  */
-#define NSS_VERSION  "3.11.6" _NSS_ECC_STRING
+#define NSS_VERSION  "3.11.7" _NSS_ECC_STRING " Beta" _NSS_CUSTOMIZED
 #define NSS_VMAJOR   3
 #define NSS_VMINOR   11
-#define NSS_VPATCH   6
-#define NSS_BETA     PR_FALSE
+#define NSS_VPATCH   7
+#define NSS_BETA     PR_TRUE
 
 /*
  * Return a boolean that indicates whether the underlying library

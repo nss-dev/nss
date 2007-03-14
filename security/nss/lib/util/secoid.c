@@ -316,6 +316,7 @@ CONST_OID netscapeRecoveryRequest[] 	= { NETSCAPE_CERT_SERVER_CRMF, 0x01 };
 
 
 /* Standard x.509 v3 Certificate Extensions */
+/* Standard x.509 v3 CRL Extensions */
 CONST_OID x509SubjectDirectoryAttr[]  		= { ID_CE_OID,  9 };
 CONST_OID x509SubjectKeyID[]          		= { ID_CE_OID, 14 };
 CONST_OID x509KeyUsage[]              		= { ID_CE_OID, 15 };
@@ -323,6 +324,13 @@ CONST_OID x509PrivateKeyUsagePeriod[] 		= { ID_CE_OID, 16 };
 CONST_OID x509SubjectAltName[]        		= { ID_CE_OID, 17 };
 CONST_OID x509IssuerAltName[]         		= { ID_CE_OID, 18 };
 CONST_OID x509BasicConstraints[]      		= { ID_CE_OID, 19 };
+CONST_OID x509CrlNumber[]                    	= { ID_CE_OID, 20 };
+CONST_OID x509ReasonCode[]                   	= { ID_CE_OID, 21 };
+CONST_OID x509HoldInstructionCode[]             = { ID_CE_OID, 23 };
+CONST_OID x509InvalidDate[]                     = { ID_CE_OID, 24 };
+CONST_OID x509DeltaCRLIndicator[]               = { ID_CE_OID, 27 };
+CONST_OID x509IssuingDistributionPoint[]        = { ID_CE_OID, 28 };
+CONST_OID x509CertIssuer[]                      = { ID_CE_OID, 29 };
 CONST_OID x509NameConstraints[]       		= { ID_CE_OID, 30 };
 CONST_OID x509CRLDistPoints[]         		= { ID_CE_OID, 31 };
 CONST_OID x509CertificatePolicies[]   		= { ID_CE_OID, 32 };
@@ -330,12 +338,11 @@ CONST_OID x509PolicyMappings[]        		= { ID_CE_OID, 33 };
 CONST_OID x509PolicyConstraints[]     		= { ID_CE_OID, 34 };
 CONST_OID x509AuthKeyID[]             		= { ID_CE_OID, 35 };
 CONST_OID x509ExtKeyUsage[]           		= { ID_CE_OID, 37 };
-CONST_OID x509AuthInfoAccess[]        		= { PKIX_CERT_EXTENSIONS, 1 };
+CONST_OID x509FreshestCRL[]           		= { ID_CE_OID, 46 };
+CONST_OID x509InhibitAnyPolicy[]           	= { ID_CE_OID, 54 };
 
-/* Standard x.509 v3 CRL Extensions */
-CONST_OID x509CrlNumber[]                    	= { ID_CE_OID, 20};
-CONST_OID x509ReasonCode[]                   	= { ID_CE_OID, 21};
-CONST_OID x509InvalidDate[]                  	= { ID_CE_OID, 24};
+CONST_OID x509AuthInfoAccess[]        		= { PKIX_CERT_EXTENSIONS,  1 };
+CONST_OID x509SubjectInfoAccess[]               = { PKIX_CERT_EXTENSIONS, 11 };
 
 /* pkcs 12 additions */
 CONST_OID pkcs12[]                           = { PKCS12 };
@@ -780,7 +787,7 @@ const static SECOidData oids[] = {
         CKM_INVALID_MECHANISM, SUPPORTED_CERT_EXTENSION ),
     OD( x509IssuerAltName, SEC_OID_X509_ISSUER_ALT_NAME, 
 	"Certificate Issuer Alt Name",
-        CKM_INVALID_MECHANISM, UNSUPPORTED_CERT_EXTENSION ),
+        CKM_INVALID_MECHANISM, FAKE_SUPPORTED_CERT_EXTENSION ),
     OD( x509BasicConstraints, SEC_OID_X509_BASIC_CONSTRAINTS, 
 	"Certificate Basic Constraints",
 	CKM_INVALID_MECHANISM, SUPPORTED_CERT_EXTENSION ),
@@ -789,16 +796,16 @@ const static SECOidData oids[] = {
 	CKM_INVALID_MECHANISM, SUPPORTED_CERT_EXTENSION ),
     OD( x509CRLDistPoints, SEC_OID_X509_CRL_DIST_POINTS, 
 	"CRL Distribution Points",
-	CKM_INVALID_MECHANISM, UNSUPPORTED_CERT_EXTENSION ),
+	CKM_INVALID_MECHANISM, FAKE_SUPPORTED_CERT_EXTENSION ),
     OD( x509CertificatePolicies, SEC_OID_X509_CERTIFICATE_POLICIES,
 	"Certificate Policies",
-        CKM_INVALID_MECHANISM, UNSUPPORTED_CERT_EXTENSION ),
+        CKM_INVALID_MECHANISM, FAKE_SUPPORTED_CERT_EXTENSION ),
     OD( x509PolicyMappings, SEC_OID_X509_POLICY_MAPPINGS, 
 	"Certificate Policy Mappings",
         CKM_INVALID_MECHANISM, UNSUPPORTED_CERT_EXTENSION ),
     OD( x509PolicyConstraints, SEC_OID_X509_POLICY_CONSTRAINTS, 
 	"Certificate Policy Constraints",
-        CKM_INVALID_MECHANISM, UNSUPPORTED_CERT_EXTENSION ),
+        CKM_INVALID_MECHANISM, FAKE_SUPPORTED_CERT_EXTENSION ),
     OD( x509AuthKeyID, SEC_OID_X509_AUTH_KEY_ID, 
 	"Certificate Authority Key Identifier",
 	CKM_INVALID_MECHANISM, SUPPORTED_CERT_EXTENSION ),
@@ -1469,6 +1476,29 @@ const static SECOidData oids[] = {
 	SEC_OID_ANSIX962_ECDSA_SHA512_SIGNATURE,
 	"X9.62 ECDSA signature with SHA512", CKM_INVALID_MECHANISM,
 	INVALID_CERT_EXTENSION ),
+
+    /* More id-ce and id-pe OIDs from RfC 3280 */
+    OD( x509HoldInstructionCode,      SEC_OID_X509_HOLD_INSTRUCTION_CODE,
+        "CRL Hold Instruction Code",  CKM_INVALID_MECHANISM,
+	UNSUPPORTED_CERT_EXTENSION ),
+    OD( x509DeltaCRLIndicator,        SEC_OID_X509_DELTA_CRL_INDICATOR,
+        "Delta CRL Indicator",        CKM_INVALID_MECHANISM,
+	FAKE_SUPPORTED_CERT_EXTENSION ),
+    OD( x509IssuingDistributionPoint, SEC_OID_X509_ISSUING_DISTRIBUTION_POINT,
+        "Issuing Distribution Point", CKM_INVALID_MECHANISM,
+	FAKE_SUPPORTED_CERT_EXTENSION ),
+    OD( x509CertIssuer,               SEC_OID_X509_CERT_ISSUER,
+        "Certificate Issuer Extension",CKM_INVALID_MECHANISM,
+	FAKE_SUPPORTED_CERT_EXTENSION ),
+    OD( x509FreshestCRL,              SEC_OID_X509_FRESHEST_CRL,
+        "Freshest CRL",               CKM_INVALID_MECHANISM,
+	UNSUPPORTED_CERT_EXTENSION ),
+    OD( x509InhibitAnyPolicy,         SEC_OID_X509_INHIBIT_ANY_POLICY,
+        "Inhibit Any Policy",         CKM_INVALID_MECHANISM,
+	FAKE_SUPPORTED_CERT_EXTENSION ),
+    OD( x509SubjectInfoAccess,        SEC_OID_X509_SUBJECT_INFO_ACCESS,
+        "Subject Info Access",        CKM_INVALID_MECHANISM,
+	UNSUPPORTED_CERT_EXTENSION ),
 };
 
 /*
