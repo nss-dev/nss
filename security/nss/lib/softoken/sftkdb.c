@@ -251,6 +251,7 @@ sftkdb_fixupTemplateOut(CK_ATTRIBUTE *template, CK_ATTRIBUTE *ntemplate,
 		PORT_Memset(template[i].pValue, 0, template[i].ulValueLen);
 		template[i].ulValueLen = -1;
 		crv = CKR_GENERAL_ERROR;
+		continue;
 	    }
 	    PORT_Memcpy(template[i].pValue, plainText->data, plainText->len);
 	    template[i].ulValueLen = plainText->len;
@@ -345,6 +346,7 @@ sftk_ExtractTemplate(PLArenaPool *arena, SFTKObject *object,
 		    *crv = CKR_GENERAL_ERROR; /* better error code here? */
 		    break;
 		}
+		PORT_Memset(plainText.data, 0, plainText.len);
 	    }
 	}
     }
@@ -584,6 +586,33 @@ sftkdb_CloseDB(SFTKDBHandle *handle)
     PORT_Free(handle);
     return CKR_OK;
 }
+
+/*
+ * reset a database to it's uninitialized state. 
+ */
+static CK_RV
+sftkdb_ResetDB(SFTKDBHandle *handle)
+{
+    CK_RV crv = CKR_OK;
+    if (handle == NULL) {
+	return CKR_TOKEN_WRITE_PROTECTED;
+    }
+    crv = (*handle->db->sdb_Begin)(handle->db);
+    if (crv != CKR_OK) {
+	goto loser;
+    }
+    crv = (*handle->db->sdb_Reset)(handle->db);
+    if (crv != CKR_OK) {
+	goto loser;
+    }
+    crv = (*handle->db->sdb_Commit)(handle->db);
+loser:
+    if (crv != CKR_OK) {
+	(*handle->db->sdb_Abort)(handle->db);
+    }
+    return crv;
+}
+
 
 CK_RV
 sftkdb_Begin(SFTKDBHandle *handle)
@@ -1546,16 +1575,176 @@ sftkdb_PWCached(SFTKDBHandle *keydb)
     return keydb->passwordKey.data ? SECSuccess : SECFailure;
 }
 
-/*
- * reset the key database to it's uninitialized state. This call
- * will clear all the key entried.
- */
-SECStatus
-sftkdb_ResetKeyDB(SFTKDBHandle *keydb)
+static SECStatus
+sftk_convertPrivateAttributes(SFTKDBHandle *keydb, CK_OBJECT_HANDLE id, 
+	                      SECItem *newKey)
 {
-    /* add legacy hook */
+    CK_RV crv = CKR_OK;
+    CK_RV crv2;
+    CK_ATTRIBUTE *first, *last;
+    CK_ATTRIBUTE privAttrs[] = {
+	{CKA_VALUE, NULL, 0},
+	{CKA_PRIVATE_EXPONENT, NULL, 0},
+	{CKA_PRIME_1, NULL, 0},
+	{CKA_PRIME_2, NULL, 0},
+	{CKA_EXPONENT_1, NULL, 0},
+	{CKA_EXPONENT_2, NULL, 0},
+	{CKA_COEFFICIENT, NULL, 0} };
+    CK_ULONG privAttrCount = sizeof(privAttrs)/sizeof(CK_ATTRIBUTE);
+    PLArenaPool *arena = NULL;
+    int i, count;
+
+
+    /* get a new arena to simplify cleanup */
+    arena = PORT_NewArena(1024);
+    if (!arena) {
+	return SECFailure;
+    }
+
+    /*
+     * STEP 1. Read the old attributes in the clear.
+     */
+
+    /* Get the attribute sizes.
+     *  ignore the error code, we will have unknown attributes here */
+    crv2 = sftkdb_GetAttributeValue(keydb, id, privAttrs, privAttrCount);
+
+    /*
+     * find the valid block of attributes and fill allocate space for
+     * their data */
+    first = last = NULL;
+    for (i=0; i < privAttrCount; i++) {
+         /* find the block of attributes that are appropriate for this 
+          * objects. There should only be once contiguous block, if not 
+          * there's an error.
+          *
+          * find the first and last good entry.
+          */
+	if ((privAttrs[i].ulValueLen == -1) || (privAttrs[i].ulValueLen == 0)){
+	    if (!first) continue;
+	    if (!last) {
+		/* previous entry was last good entry */
+		last= &privAttrs[i-1];
+	    }
+	    continue;
+	}
+	if (!first) {
+	    first = &privAttrs[i];
+	}
+	if (last) {
+	   /* OOPS, we've found another good entry beyond the end of the
+	    * last good entry, we need to fail here. */
+	   crv = CKR_GENERAL_ERROR;
+	   break;
+	}
+        privAttrs[i].pValue = PORT_ArenaAlloc(arena,privAttrs[i].ulValueLen);
+	if (privAttrs[i].pValue == NULL) {
+	    crv = CKR_HOST_MEMORY;
+	    break;
+	}
+    }
+    if (first == NULL) {
+	/* no valid entries found, return error based on crv2 */
+	/* set error */
+	goto loser;
+    }
+    if (last == NULL) {
+	last = &privAttrs[privAttrCount-1];
+    }
+    if (crv != CKR_OK) {
+        /* set error */
+	goto loser;
+    }
+    /* read the attributes */
+    count = (last-first)+1;
+    crv = sftkdb_GetAttributeValue(keydb, id, first, count);
+    if (crv != CKR_OK) {
+        /* set error */
+	goto loser;
+    }
+
+    /*
+     * STEP 2: read the encrypt the attributes with the new key.
+     */
+    for (i=0; i < count; i++) {
+	SECItem plainText;
+	SECItem *result;
+	SECStatus rv;
+
+	plainText.data = first[i].pValue;
+	plainText.len = first[i].ulValueLen;
+    	rv = sftkdb_encrypt(arena, newKey, &plainText, &result);
+	if (rv != SECSuccess) {
+	   goto loser;
+	}
+	first[i].pValue = result->data;
+	first[i].ulValueLen = result->len;
+	/* clear our sensitive data out */
+	PORT_Memset(plainText.data, 0, plainText.len);
+    }
+
+    /*
+     * STEP 3: write the newly encrypted attributes out directly
+     */
+    id &= SFTK_OBJ_ID_MASK;
+    crv = (*keydb->db->sdb_SetAttributeValue)(keydb->db, id, first, count);
+    if (crv != CKR_OK) {
+        /* set error */
+	goto loser;
+    }
+
+    /* free up our mess */
+    /* NOTE: at this point we know we've cleared out any unencrypted data */
+    PORT_FreeArena(arena, PR_FALSE);
+    return SECSuccess;
+
+loser:
+    /* there may be unencrypted data, clear it out down */
+    PORT_FreeArena(arena, PR_TRUE);
     return SECFailure;
 }
+
+
+/*
+ * must be called with the old key active.
+ */
+#define MAX_IDS 10
+SECStatus 
+sftkdb_convertPrivateObjects(SFTKDBHandle *keydb, SECItem *newKey)
+{
+    SDBFind *find = NULL;
+    int idCount = MAX_IDS;
+    CK_OBJECT_HANDLE ids[MAX_IDS];
+    CK_RV crv, crv2;
+    int i;
+
+    /* find all the private objects */
+    crv = sftkdb_FindObjectsInit(keydb, NULL, 0, &find);
+
+    if (crv != CKR_OK) {
+	/* set error */
+	return SECFailure;
+    }
+    while ((crv == CKR_OK) && (idCount == MAX_IDS)) {
+	crv = sftkdb_FindObjects(keydb, find, ids, MAX_IDS, &idCount);
+	for (i=0; (crv == CKR_OK) && (i < idCount); i++) {
+	    SECStatus rv;
+	    rv = sftk_convertPrivateAttributes(keydb, ids[i], newKey);
+	    if (rv != SECSuccess) {
+		crv = CKR_GENERAL_ERROR;
+		/* error should be already set here */
+	    }
+	}
+    }
+    crv2 = sftkdb_FindObjectsFinal(keydb, find);
+    if (crv == CKR_OK) crv = crv2;
+    if (crv != CKR_OK) {
+	/* set error */
+	return SECFailure;
+    }
+    return SECSuccess;
+}
+
 
 /*
  * change the database password.
@@ -1595,8 +1784,11 @@ sftkdb_ChangePassword(SFTKDBHandle *keydb, char *oldPin, char *newPin)
 
     /*
      * convert encrypted entries here.
-     * SDB_FIXME
      */
+    rv = sftkdb_convertPrivateObjects(keydb, &newKey);
+    if (rv != SECSuccess) {
+	goto loser;
+    }
 
     plainText.data = (unsigned char *)SFTK_PW_CHECK_STRING;
     plainText.len = SFTK_PW_CHECK_LEN;
@@ -1745,6 +1937,26 @@ sftk_NewDBHandle(SDB *sdb, int type)
    return handle;
 }
 
+/*
+ * reset the key database to it's uninitialized state. This call
+ * will clear all the key entried.
+ */
+SECStatus
+sftkdb_ResetKeyDB(SFTKDBHandle *handle)
+{
+    CK_RV crv;
+
+    /* only rest the key db */
+    if (handle->type != SFTK_KEYDB_TYPE) {
+	return SECFailure;
+    }
+    crv = sftkdb_ResetDB(handle);
+    if (crv != CKR_OK) {
+	/* set error */
+	return SECFailure;
+    }
+    return SECSuccess;
+}
 
 /*
  * initialize certificate and key database handles

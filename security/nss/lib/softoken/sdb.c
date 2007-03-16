@@ -271,7 +271,7 @@ sdb_FindObjectsInit(SDB *sdb, const CK_ATTRIBUTE *template, int count,
 {
     SDBPrivate *sdb_p = sdb->private;
     sqlite3  *sqlDB = NULL;
-    char *newStr, *findStr = sqlite3_mprintf("");
+    char *newStr, *findStr = NULL;
     sqlite3_stmt *findstmt = NULL;
     char *join="";
     int sqlerr = SQLITE_OK;
@@ -284,6 +284,7 @@ sdb_FindObjectsInit(SDB *sdb, const CK_ATTRIBUTE *template, int count,
 	goto loser;
     }
 
+    findStr = sqlite3_mprintf("");
     for (i=0; findStr && i < count; i++) {
 	newStr = sqlite3_mprintf("%s%sa%x=$DATA%d", findStr, join,
 				template[i].type, i);
@@ -291,6 +292,7 @@ sdb_FindObjectsInit(SDB *sdb, const CK_ATTRIBUTE *template, int count,
 	sqlite3_free(findStr);
 	findStr = newStr;
     }
+
     if (findStr == NULL) {
 	error = CKR_HOST_MEMORY;
 	goto loser;
@@ -400,7 +402,7 @@ sdb_GetAttributeValue(SDB *sdb, CK_OBJECT_HANDLE object_id,
     SDBPrivate *sdb_p = sdb->private;
     sqlite3  *sqlDB = NULL;
     sqlite3_stmt *stmt = NULL;
-    char *getStr = sqlite3_mprintf("");
+    char *getStr = NULL;
     char *newStr = NULL;
     int sqlerr = SQLITE_OK;
     CK_RV error = CKR_OK;
@@ -408,9 +410,17 @@ sdb_GetAttributeValue(SDB *sdb, CK_OBJECT_HANDLE object_id,
     int retry = 0;
     int i;
 
+    if (count == 0) {
+	return CKR_OK;
+    }
+
+    getStr = sqlite3_mprintf("");
     for (i=0; getStr && i < count; i++) {
-	newStr = sqlite3_mprintf("%s a%x", getStr, 
-				template[i].type);
+	if (i==0) {
+	    newStr = sqlite3_mprintf("a%x", template[i].type);
+	} else {
+	    newStr = sqlite3_mprintf("%s, a%x", getStr, template[i].type);
+	}
 	sqlite3_free(getStr);
 	getStr = newStr;
     }
@@ -507,7 +517,7 @@ sdb_SetAttributeValue(SDB *sdb, CK_OBJECT_HANDLE object_id,
     SDBPrivate *sdb_p = sdb->private;
     sqlite3  *sqlDB = NULL;
     sqlite3_stmt *stmt = NULL;
-    char *setStr = sqlite3_mprintf("");
+    char *setStr = NULL;
     char *newStr = NULL;
     int sqlerr = SQLITE_OK;
     int retry = 0;
@@ -518,6 +528,11 @@ sdb_SetAttributeValue(SDB *sdb, CK_OBJECT_HANDLE object_id,
 	return CKR_TOKEN_WRITE_PROTECTED;
     }
 
+    if (count == 0) {
+	return CKR_OK;
+    }
+
+    setStr = sqlite3_mprintf("");
     for (i=0; setStr && i < count; i++) {
 	if (i==0) {
 	    sqlite3_free(setStr);
@@ -596,8 +611,8 @@ sdb_CreateObject(SDB *sdb, CK_OBJECT_HANDLE *object_id,
     SDBPrivate *sdb_p = sdb->private;
     sqlite3  *sqlDB = NULL;
     sqlite3_stmt *stmt = NULL;
-    char *columnStr = sqlite3_mprintf("");
-    char *valueStr = sqlite3_mprintf("");
+    char *columnStr = NULL;
+    char *valueStr = NULL;
     char *newStr = NULL;
     int sqlerr = SQLITE_OK;
     CK_RV error = CKR_OK;
@@ -616,6 +631,8 @@ sdb_CreateObject(SDB *sdb, CK_OBJECT_HANDLE *object_id,
 
 	next_obj = (CK_ULONG)(time & 0x3ffffffL);
     }
+    columnStr = sqlite3_mprintf("");
+    valueStr = sqlite3_mprintf("");
     *object_id = next_obj++;
     for (i=0; columnStr && valueStr && i < count; i++) {
    	newStr = sqlite3_mprintf("%s,a%x", columnStr, template[i].type);
@@ -739,11 +756,7 @@ loser:
     return error;
 }
    
-#define BEGIN_CMD    "BEGIN EXCLUSIVE TRANSACTION;"
-#define ROLLBACK_CMD "ROLLBACK TRANSACTION;"
-#define COMMIT_CMD   "COMMIT TRANSACTION;"
-
-
+#define BEGIN_CMD    "BEGIN IMMEDIATE TRANSACTION;"
 /*
  * start a transaction.
  *
@@ -880,12 +893,15 @@ sdb_complete(SDB *sdb, const char *cmd)
     return error;
 }
 
+#define COMMIT_CMD   "COMMIT TRANSACTION;"
+
 CK_RV
 sdb_Commit(SDB *sdb)
 {
     return sdb_complete(sdb,COMMIT_CMD);
 }
 
+#define ROLLBACK_CMD "ROLLBACK TRANSACTION;"
 CK_RV
 sdb_Abort(SDB *sdb)
 {
@@ -1025,6 +1041,55 @@ loser:
 
     return error;
 }
+
+#define RESET_CMD "DROP TABLE IF EXISTS %s;"
+CK_RV
+sdb_Reset(SDB *sdb)
+{
+    SDBPrivate *sdb_p = sdb->private;
+    sqlite3  *sqlDB = NULL;
+    char *newStr;
+    int sqlerr = SQLITE_OK;
+    CK_RV error = CKR_OK;
+
+    /* only Key databases can be reset */
+    if (sdb_p->type != SDB_KEY) {
+	return CKR_OBJECT_HANDLE_INVALID;
+    }
+
+    error = sdb_openDBLocal(sdb_p, &sqlDB);
+    if (error != CKR_OK) {
+	goto loser;
+    }
+
+    /* delete the key table */
+    newStr =  sqlite3_mprintf(RESET_CMD, sdb_p->table);
+    if (newStr == NULL) {
+	error = CKR_HOST_MEMORY;
+	goto loser;
+    }
+    sqlerr = sqlite3_exec(sqlDB, newStr, NULL, 0, NULL);
+    sqlite3_free(newStr);
+
+    if (sqlerr != SQLITE_OK) goto loser;
+
+    /* delete the password entry table */
+    sqlerr = sqlite3_exec(sqlDB, "DROP TABLE IF EXISTS password;", 
+                          NULL, 0, NULL);
+
+loser:
+    /* fix up the error is necessary */
+    if (error == CKR_OK) {
+	error = sdb_mapSQLError(sdb_p->type, sqlerr);
+    }
+
+    if (sqlDB) {
+	sdb_closeDBLocal(sdb_p, sqlDB) ;
+    }
+
+    return error;
+}
+
 
 CK_RV 
 sdb_Close(SDB *sdb) 
@@ -1224,7 +1289,7 @@ static char *sdb_BuildFileName(const char * directory,
 
 /* sdbopen */
 CK_RV
-s_open(const char *directory, char *certPrefix, char *keyPrefix,
+s_open(const char *directory, const char *certPrefix, const char *keyPrefix,
 	int cert_version, int key_version, int flags, 
 	SDB **certdb, SDB **keydb)
 {

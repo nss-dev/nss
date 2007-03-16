@@ -88,6 +88,7 @@ struct SDBStr {
     CK_RV (*sdb_Begin)(SDB *sdb);
     CK_RV (*sdb_Commit)(SDB *sdb);
     CK_RV (*sdb_Abort)(SDB *sdb);
+    CK_RV (*sdb_Reset)(SDB *sdb);
     CK_RV (*sdb_Close)(SDB *sdb);
 };
 
@@ -99,7 +100,8 @@ struct SDBPasswordEntryStr {
 
 #define SDB_INTERNAL 1
 
-CK_RV s_open(const char *directory, char *certPrefix, char *keyPrefix,
+CK_RV s_open(const char *directory, const char *certPrefix, 
+	     const char *keyPrefix,
 	     int cert_version, int key_version, 
 	     int flags, SDB **certdb, SDB **keydb);
 
