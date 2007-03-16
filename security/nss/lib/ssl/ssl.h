@@ -474,6 +474,22 @@ SSL_IMPORT SECStatus SSL_GetCipherSuiteInfo(PRUint16 cipherSuite,
 */
 SSL_IMPORT CERTCertificate * SSL_LocalCertificate(PRFileDesc *fd);
 
+/* Check the key exchange algorithm for each cipher in the list to see if
+** a master secret key can be extracted. If the KEA will use keys from the 
+** specified cert make sure the extract operation is attempted from the slot
+** where the private key resides.
+** If MS can be extracted for all ciphers, (*pcanbypass) is set to TRUE and
+** SECSuccess is returned. In all other cases but one (*pcanbypass) is
+** set to FALSE and SECFailure is returned.
+** In that last case Derive() has been called successfully but the MS is null, 
+** CanBypass sets (*pcanbypass) to FALSE and returns SECSuccess indicating the
+** arguments were all valid but the slot cannot be bypassed.
+*/
+SSL_IMPORT SECStatus SSL_CanBypass(CERTCertificate *cert,
+                                   SECKEYPrivateKey *privKey,
+				   PRUint16 *ciphers, int nciphers,
+                                   PRBool *pcanbypass, void *pwArg);
+
 SEC_END_PROTOS
 
 #endif /* __ssl_h_ */
