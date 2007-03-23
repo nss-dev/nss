@@ -788,7 +788,6 @@ NSS_Shutdown(void)
 	shutdownRV = SECFailure;
     }
     ShutdownCRLCache();
-    ShutdownOCSPCache();
     SECOID_Shutdown();
     status = STAN_Shutdown();
     cert_DestroySubjectKeyIDHashTable();
