@@ -10,29 +10,30 @@
 /* raw database stuff */
 CK_RV sftkdb_write(SFTKDBHandle *handle, SFTKObject *,CK_OBJECT_HANDLE *);
 CK_RV sftkdb_FindObjectsInit(SFTKDBHandle *sdb, const CK_ATTRIBUTE *template,
-				 int count, SDBFind **find);
+				 CK_ULONG count, SDBFind **find);
 CK_RV sftkdb_FindObjects(SFTKDBHandle *sdb, SDBFind *find, 
-			CK_OBJECT_HANDLE *ids, int arraySize, int *count);
+			CK_OBJECT_HANDLE *ids, int arraySize, CK_ULONG *count);
 CK_RV sftkdb_FindObjectsFinal(SFTKDBHandle *sdb, SDBFind *find);
 CK_RV sftkdb_GetAttributeValue(SFTKDBHandle *handle,
-	 CK_OBJECT_HANDLE object_id, CK_ATTRIBUTE *template, int count);
+	 CK_OBJECT_HANDLE object_id, CK_ATTRIBUTE *template, CK_ULONG count);
 CK_RV sftkdb_SetAttributeValue(SFTKDBHandle *handle, 
-	 CK_OBJECT_HANDLE object_id, const CK_ATTRIBUTE *template, int count);
+	 CK_OBJECT_HANDLE object_id, const CK_ATTRIBUTE *template, 
+	 CK_ULONG count);
 CK_RV sftkdb_DestroyObject(SFTKDBHandle *handle, CK_OBJECT_HANDLE object_id);
 CK_RV sftkdb_closeDB(SFTKDBHandle *handle);
 
 
 /* secmod.db functions */
-char ** sftkdb_ReadSecmodDB(const char *dbType, const char *appName, 
+char ** sftkdb_ReadSecmodDB(SDBType dbType, const char *appName, 
 			    const char *filename, const char *dbname, 
 			    char *params, PRBool rw);
-SECStatus sftkdb_ReleaseSecmodDBData(const char *dbType, const char *appName, 
+SECStatus sftkdb_ReleaseSecmodDBData(SDBType dbType, const char *appName, 
 				     const char *filename, const char *dbname, 
 				     char **moduleSpecList, PRBool rw);
-SECStatus sftkdb_DeleteSecmodDB(const char *dbType, const char *appName, 
+SECStatus sftkdb_DeleteSecmodDB(SDBType dbType, const char *appName, 
 				const char *filename, const char *dbname, 
 				char *args, PRBool rw);
-SECStatus sftkdb_AddSecmodDB(const char *dbType, const char *appName, 
+SECStatus sftkdb_AddSecmodDB(SDBType dbType, const char *appName, 
 			     const char *filename, const char *dbname, 
 			     char *module, PRBool rw);
 
@@ -68,10 +69,21 @@ CK_RV sftk_DBInit(const char *configdir, const char *certPrefix,
 	 	const char *keyPrefix, PRBool readOnly, PRBool noCertDB, 
 		PRBool noKeyDB, PRBool forceOpen, 
 		SFTKDBHandle **certDB, SFTKDBHandle **keyDB);
+CK_RV sftkdb_Shutdown(void);
+
 SFTKDBHandle *sftk_getCertDB(SFTKSlot *slot);
 SFTKDBHandle *sftk_getKeyDB(SFTKSlot *slot);
 SFTKDBHandle *sftk_getDBForObject(SFTKSlot *slot, CK_OBJECT_HANDLE objectID);
 void sftk_freeDB(SFTKDBHandle *certHandle);
+
+/*
+ * for lgglue, stubs to encrypt and decrypt password entries
+ */
+SECStatus sftkdb_encrypt_stub(PRArenaPool *arena, SDB *sdb, SECItem *plainText,
+                    SECItem **cipherText);
+SECStatus sftkdb_decrypt_stub(SDB *sdb, SECItem *cipherText, 
+		    SECItem **plainText);
+
 
 
 

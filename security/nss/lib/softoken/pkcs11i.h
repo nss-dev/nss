@@ -349,7 +349,6 @@ struct SFTKSlotStr {
     unsigned long	sessionLockMask;	/* invariant */
     PZLock		*objectLock;		/* invariant */
     PRLock		*pwCheckLock;		/* invariant */
-    SECItem		*password;		/* variable - reset */
     PRBool		present;		/* variable -set */
     PRBool		hasTokens;		/* per load */
     PRBool		isLoggedIn;		/* variable - reset */

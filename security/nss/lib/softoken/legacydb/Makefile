@@ -1,4 +1,5 @@
-# 
+#! gmake
+#
 # ***** BEGIN LICENSE BLOCK *****
 # Version: MPL 1.1/GPL 2.0/LGPL 2.1
 #
@@ -34,65 +35,46 @@
 # the terms of any one of the MPL, the GPL or the LGPL.
 #
 # ***** END LICENSE BLOCK *****
-CORE_DEPTH = ../../..
 
-MODULE = nss
-DIRS = legacydb
+#######################################################################
+# (1) Include initial platform-independent assignments (MANDATORY).   #
+#######################################################################
 
-REQUIRES = dbm
+include manifest.mn
 
-LIBRARY_NAME = softokn
-LIBRARY_VERSION = 3
-MAPFILE = $(OBJDIR)/softokn.def
+#######################################################################
+# (2) Include "global" configuration information. (OPTIONAL)          #
+#######################################################################
 
-DEFINES += -DSHLIB_SUFFIX=\"$(DLL_SUFFIX)\" -DSHLIB_PREFIX=\"$(DLL_PREFIX)\" -DSOFTOKEN_LIB_NAME=\"$(notdir $(SHARED_LIBRARY))\" -DSHLIB_VERSION=\"$(LIBRARY_VERSION)\"
+include $(CORE_DEPTH)/coreconf/config.mk
+
+#######################################################################
+# (3) Include "component" configuration information. (OPTIONAL)       #
+#######################################################################
 
 
-EXPORTS = \
-	pkcs11.h \
-	pkcs11f.h \
-	pkcs11p.h \
-	pkcs11t.h \
-	pkcs11n.h \
-	pkcs11u.h \
-	sdb.h \
-	sftkdbt.h \
-	$(NULL)
 
-PRIVATE_EXPORTS = \
-	lgglue.h  \
-	pk11pars.h \
-	pkcs11ni.h \
-	softoken.h \
-	softoknt.h \
-	softkver.h \
-	$(NULL)
+#######################################################################
+# (4) Include "local" platform-dependent assignments (OPTIONAL).      #
+#######################################################################
 
-CSRCS = \
-	ecdecode.c \
-	fipsaudt.c \
-	fipstest.c \
-	fipstokn.c \
-	lgglue.c   \
-	lowkey.c   \
-	lowpbe.c   \
-	padbuf.c   \
-	pkcs11.c   \
-	pkcs11c.c  \
-	pkcs11u.c  \
-	rsawrapr.c  \
-	sdb.c  \
-	sftkdb.c  \
-	sftkpars.c  \
-	softkver.c  \
-	tlsprf.c   \
-	$(NULL)
+include config.mk
 
-ifdef NSS_ENABLE_ECC
-DEFINES += -DNSS_ENABLE_ECC
-endif
+#######################################################################
+# (5) Execute "global" rules. (OPTIONAL)                              #
+#######################################################################
 
-ifdef SQLITE_UNSAFE_THREADS
-DEFINES += -DSQLITE_UNSAFE_THREADS
-endif
+include $(CORE_DEPTH)/coreconf/rules.mk
+
+#######################################################################
+# (6) Execute "component" rules. (OPTIONAL)                           #
+#######################################################################
+
+
+
+#######################################################################
+# (7) Execute "local" rules. (OPTIONAL).                              #
+#######################################################################
+
+export:: private_export
 

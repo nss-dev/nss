@@ -95,8 +95,6 @@ static void sftk_Null(void *data, PRBool freeit)
 } 
 
 #ifdef NSS_ENABLE_ECC
-extern SECStatus EC_DecodeParams(const SECItem *encodedParams, 
-				 ECParams **ecparams);
 #ifdef EC_DEBUG
 #define SEC_PRINT(str1, str2, num, sitem) \
     printf("pkcs11c.c:%s:%s (keytype=%d) [len=%d]\n", \

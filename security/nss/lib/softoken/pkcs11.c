@@ -2170,16 +2170,21 @@ loser:
 
 static CK_RV sft_CloseAllSession(SFTKSlot *slot)
 {
-    SECItem *pw = NULL;
     SFTKSession *session;
     unsigned int i;
+    SFTKDBHandle *handle;
+
     /* first log out the card */
+    handle = sftk_getKeyDB(slot);
     PZ_Lock(slot->slotLock);
-    pw = slot->password;
     slot->isLoggedIn = PR_FALSE;
-    slot->password = NULL;
+    if (handle) {
+	sftkdb_ClearPassword(handle);
+    }
     PZ_Unlock(slot->slotLock);
-    if (pw) SECITEM_ZfreeItem(pw, PR_TRUE);
+    if (handle) {
+        sftk_freeDB(handle);
+    }
 
     /* now close all the current sessions */
     /* NOTE: If you try to open new sessions before NSC_CloseAllSessions
@@ -2335,7 +2340,7 @@ NSC_ModuleDBFunc(unsigned long function,char *parameters, void *args)
     char *secmod = NULL;
     char *appName = NULL;
     char *filename = NULL;
-    const char *dbType = NULL;
+    SDBType dbType = SDB_LEGACY;
     PRBool rw;
     static char *success="Success";
     char **rvstr = NULL;
@@ -2449,14 +2454,6 @@ CK_RV nsc_CommonInitialize(CK_VOID_PTR pReserved, PRBool isFIPS)
     }
     RNG_SystemInfoForRNG();
 
-#ifdef SHDB_FIXME
-    rv = nsslowcert_InitLocks();
-    if (rv != SECSuccess) {
-	crv = CKR_DEVICE_ERROR;
-	return crv;
-    }
-#endif
-
 
     /* NOTE:
      * we should be getting out mutexes from this list, not statically binding
@@ -2465,10 +2462,6 @@ CK_RV nsc_CommonInitialize(CK_VOID_PTR pReserved, PRBool isFIPS)
      */
 
     /* initialize the key and cert db's */
-#ifdef SHDB_FIXME
-    nsslowkey_SetDefaultKeyDBAlg
-			     (SEC_OID_PKCS12_PBE_WITH_SHA1_AND_TRIPLE_DES_CBC);
-#endif
     if (init_args && (!(init_args->flags & CKF_OS_LOCKING_OK))) {
         if (init_args->CreateMutex && init_args->DestroyMutex &&
             init_args->LockMutex && init_args->UnlockMutex) {
@@ -2563,11 +2556,7 @@ CK_RV nsc_CommonFinalize (CK_VOID_PTR pReserved, PRBool isFIPS)
     }
 
     sftk_CleanupFreeLists();
-#ifdef SHDB_FIXME
-    /* shdb shutdown code here */
-    nsslowcert_DestroyFreeLists();
-    nsslowcert_DestroyGlobalLocks();
-#endif
+    sftkdb_Shutdown();
 
     /* This function does not discard all our previously aquired entropy. */
     RNG_RNGShutdown();
@@ -3127,7 +3116,6 @@ CK_RV NSC_CloseSession(CK_SESSION_HANDLE hSession)
 {
     SFTKSlot *slot;
     SFTKSession *session;
-    SECItem *pw = NULL;
     PRBool sessionFound;
     PZLock *lock;
 
@@ -3148,20 +3136,25 @@ CK_RV NSC_CloseSession(CK_SESSION_HANDLE hSession)
     PZ_Unlock(lock);
 
     if (sessionFound) {
+	SFTKDBHandle *handle;
+	handle = sftk_getKeyDB(slot);
 	PZ_Lock(slot->slotLock);
 	if (--slot->sessionCount == 0) {
-	    pw = slot->password;
 	    slot->isLoggedIn = PR_FALSE;
-	    slot->password = NULL;
+	    if (handle) {
+		sftkdb_ClearPassword(handle);
+	    }
 	}
 	PZ_Unlock(slot->slotLock);
+	if (handle) {
+	    sftk_freeDB(handle);
+	}
 	if (session->info.flags & CKF_RW_SESSION) {
 	    PR_AtomicDecrement(&slot->rwSessionCount);
 	}
     }
 
     sftk_FreeSession(session);
-    if (pw) SECITEM_ZfreeItem(pw, PR_TRUE);
     return CKR_OK;
 }
 
@@ -3309,7 +3302,7 @@ CK_RV NSC_Logout(CK_SESSION_HANDLE hSession)
 {
     SFTKSlot *slot = sftk_SlotFromSessionHandle(hSession);
     SFTKSession *session;
-    SECItem *pw = NULL;
+    SFTKDBHandle *handle;
 
     if (slot == NULL) {
 	return CKR_SESSION_HANDLE_INVALID;
@@ -3321,13 +3314,17 @@ CK_RV NSC_Logout(CK_SESSION_HANDLE hSession)
 
     if (!slot->isLoggedIn) return CKR_USER_NOT_LOGGED_IN;
 
+    handle = sftk_getKeyDB(slot);
     PZ_Lock(slot->slotLock);
-    pw = slot->password;
     slot->isLoggedIn = PR_FALSE;
     slot->ssoLoggedIn = PR_FALSE;
-    slot->password = NULL;
+    if (handle) {
+	sftkdb_ClearPassword(handle);
+    }
     PZ_Unlock(slot->slotLock);
-    if (pw) SECITEM_ZfreeItem(pw, PR_TRUE);
+    if (handle) {
+	sftk_freeDB(handle);
+    }
 
     sftk_update_all_states(slot);
     return CKR_OK;
@@ -3754,13 +3751,13 @@ sftk_expandSearchList(SFTKSearchResults *search, int count)
 
 static CK_RV
 sftk_searchDatabase(SFTKDBHandle *handle, SFTKSearchResults *search,
-                        CK_ATTRIBUTE *pTemplate, CK_LONG ulCount)
+                        const CK_ATTRIBUTE *pTemplate, CK_LONG ulCount)
 {
     CK_RV crv;
     int objectListSize = search->array_size-search->size;
     CK_OBJECT_HANDLE *array = &search->handles[search->size];
     SDBFind *find;
-    int count;
+    CK_ULONG count;
 
     crv = sftkdb_FindObjectsInit(handle, pTemplate, ulCount, &find);
     if (crv != CKR_OK)

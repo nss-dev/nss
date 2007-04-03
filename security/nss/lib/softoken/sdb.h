@@ -59,6 +59,7 @@
 #define _SDB_H 1
 #include "pkcs11t.h"
 #include "secitem.h"
+#include "sftkdbt.h"
 #include <sqlite3.h>
 
 #define STATIC_CMD_SIZE 2048
@@ -69,19 +70,21 @@ typedef struct SDBPasswordEntryStr SDBPasswordEntry;
 
 struct SDBStr {
     void *private;
-    int  sdb_type;
+    int  version;
+    SDBType sdb_type;
     int  sdb_flags;
+    void *app_private;
     CK_RV (*sdb_FindObjectsInit)(SDB *sdb, const CK_ATTRIBUTE *template, 
-				 int count, SDBFind **find);
+				 CK_ULONG count, SDBFind **find);
     CK_RV (*sdb_FindObjects)(SDB *sdb, SDBFind *find, CK_OBJECT_HANDLE *ids, 
-				int arraySize, int *count);
+				CK_ULONG arraySize, CK_ULONG *count);
     CK_RV (*sdb_FindObjectsFinal)(SDB *sdb, SDBFind *find);
     CK_RV (*sdb_GetAttributeValue)(SDB *sdb, CK_OBJECT_HANDLE object, 
-				CK_ATTRIBUTE *template, int count);
+				CK_ATTRIBUTE *template, CK_ULONG count);
     CK_RV (*sdb_SetAttributeValue)(SDB *sdb, CK_OBJECT_HANDLE object, 
-				const CK_ATTRIBUTE *template, int count);
+				const CK_ATTRIBUTE *template, CK_ULONG count);
     CK_RV (*sdb_CreateObject)(SDB *sdb, CK_OBJECT_HANDLE *object, 
-				const CK_ATTRIBUTE *template, int count);
+				const CK_ATTRIBUTE *template, CK_ULONG count);
     CK_RV (*sdb_DestroyObject)(SDB *sdb, CK_OBJECT_HANDLE object);
     CK_RV (*sdb_GetPWEntry)(SDB *sdb, SDBPasswordEntry *entry);
     CK_RV (*sdb_PutPWEntry)(SDB *sdb, SDBPasswordEntry *entry);
@@ -98,13 +101,11 @@ struct SDBPasswordEntryStr {
     unsigned char data[128];
 };
 
-#define SDB_INTERNAL 1
-
 CK_RV s_open(const char *directory, const char *certPrefix, 
 	     const char *keyPrefix,
 	     int cert_version, int key_version, 
 	     int flags, SDB **certdb, SDB **keydb);
-
+CK_RV s_shutdown();
 
 /* flags */
 #define SDB_RDONLY      1

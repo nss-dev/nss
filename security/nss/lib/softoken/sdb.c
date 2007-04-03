@@ -64,6 +64,20 @@
 
 #include "prlock.h"
 
+#ifdef SQLITE_UNSAFE_THREADS
+/*
+ * SQLite can be compiled to be thread safe or not.
+ * turn on SQLITE_UNSAFE_THREADS if the OS does not support
+ * a thread safe version of sqlite.
+ */
+static PRLock *sqlite_lock = NULL;
+
+#define LOCK_SQLITE()  PR_Lock(sqlite_lock);
+#define UNLOCK_SQLITE()  PR_Unlock(sqlite_lock);
+#else
+#define LOCK_SQLITE()  
+#define UNLOCK_SQLITE()  
+#endif
 
 typedef enum {
 	SDB_CERT = 1,
@@ -266,7 +280,7 @@ struct SDBFindStr {
 #define FIND_OBJECTS_CMD "SELECT ALL * FROM %s WHERE %s;"
 #define FIND_OBJECTS_ALL_CMD "SELECT ALL * FROM %s;"
 CK_RV
-sdb_FindObjectsInit(SDB *sdb, const CK_ATTRIBUTE *template, int count, 
+sdb_FindObjectsInit(SDB *sdb, const CK_ATTRIBUTE *template, CK_ULONG count, 
 				SDBFind **find)
 {
     SDBPrivate *sdb_p = sdb->private;
@@ -278,6 +292,7 @@ sdb_FindObjectsInit(SDB *sdb, const CK_ATTRIBUTE *template, int count,
     CK_RV error = CKR_OK;
     int i;
 
+    LOCK_SQLITE()
     *find = NULL;
     error = sdb_openDBLocal(sdb_p, &sqlDB);
     if (error != CKR_OK) {
@@ -322,6 +337,7 @@ sdb_FindObjectsInit(SDB *sdb, const CK_ATTRIBUTE *template, int count,
 	}
 	(*find)->findstmt = findstmt;
 	(*find)->sqlDB = sqlDB;
+	UNLOCK_SQLITE()  
 	return CKR_OK;
     } 
     error = sdb_mapSQLError(sdb_p->type, sqlerr);
@@ -333,13 +349,14 @@ loser:
     if (sqlDB) {
 	sdb_closeDBLocal(sdb_p, sqlDB) ;
     }
+    UNLOCK_SQLITE()  
     return error;
 }
 
 
 CK_RV
 sdb_FindObjects(SDB *sdb, SDBFind *sdbFind, CK_OBJECT_HANDLE *object, 
-		int arraySize, int *count)
+		CK_ULONG arraySize, CK_ULONG *count)
 {
     SDBPrivate *sdb_p = sdb->private;
     sqlite3_stmt *stmt = sdbFind->findstmt;
@@ -351,6 +368,7 @@ sdb_FindObjects(SDB *sdb, SDBFind *sdbFind, CK_OBJECT_HANDLE *object,
     if (arraySize == 0) {
 	return CKR_OK;
     }
+    LOCK_SQLITE()  
 
     do {
 	sqlerr = sqlite3_step(stmt);
@@ -370,6 +388,7 @@ sdb_FindObjects(SDB *sdb, SDBFind *sdbFind, CK_OBJECT_HANDLE *object,
     if (sqlerr == SQLITE_ROW && arraySize == 0) {
 	sqlerr = SQLITE_DONE;
     }
+    UNLOCK_SQLITE()  
 
     return sdb_mapSQLError(sdb_p->type, sqlerr);
 }
@@ -382,6 +401,7 @@ sdb_FindObjectsFinal(SDB *sdb, SDBFind *sdbFind)
     sqlite3 *sqlDB = sdbFind->sqlDB;
     int sqlerr = SQLITE_OK;
 
+    LOCK_SQLITE()  
     if (stmt) {
 	sqlite3_reset(stmt);
 	sqlerr = sqlite3_finalize(stmt);
@@ -391,13 +411,14 @@ sdb_FindObjectsFinal(SDB *sdb, SDBFind *sdbFind)
     }
     PORT_Free(sdbFind);
 
+    UNLOCK_SQLITE()  
     return sdb_mapSQLError(sdb_p->type, sqlerr);
 }
 
 #define GET_ATTRIBUTE_CMD "SELECT ALL %s FROM %s WHERE id=$ID;"
 CK_RV
 sdb_GetAttributeValue(SDB *sdb, CK_OBJECT_HANDLE object_id, 
-				CK_ATTRIBUTE *template, int count)
+				CK_ATTRIBUTE *template, CK_ULONG count)
 {
     SDBPrivate *sdb_p = sdb->private;
     sqlite3  *sqlDB = NULL;
@@ -414,6 +435,7 @@ sdb_GetAttributeValue(SDB *sdb, CK_OBJECT_HANDLE object_id,
 	return CKR_OK;
     }
 
+    LOCK_SQLITE()  
     getStr = sqlite3_mprintf("");
     for (i=0; getStr && i < count; i++) {
 	if (i==0) {
@@ -506,13 +528,14 @@ loser:
     if (sqlDB) {
 	sdb_closeDBLocal(sdb_p, sqlDB) ;
     }
+    UNLOCK_SQLITE()  
     return error;
 }
    
 #define SET_ATTRIBUTE_CMD "UPDATE %s SET %s WHERE id=$ID;"
 CK_RV
 sdb_SetAttributeValue(SDB *sdb, CK_OBJECT_HANDLE object_id, 
-			const CK_ATTRIBUTE *template, int count)
+			const CK_ATTRIBUTE *template, CK_ULONG count)
 {
     SDBPrivate *sdb_p = sdb->private;
     sqlite3  *sqlDB = NULL;
@@ -532,6 +555,7 @@ sdb_SetAttributeValue(SDB *sdb, CK_OBJECT_HANDLE object_id,
 	return CKR_OK;
     }
 
+    LOCK_SQLITE()  
     setStr = sqlite3_mprintf("");
     for (i=0; setStr && i < count; i++) {
 	if (i==0) {
@@ -553,6 +577,7 @@ sdb_SetAttributeValue(SDB *sdb, CK_OBJECT_HANDLE object_id,
     newStr =  sqlite3_mprintf(SET_ATTRIBUTE_CMD, sdb_p->table, setStr);
     sqlite3_free(setStr);
     if (newStr == NULL) {
+	UNLOCK_SQLITE()  
 	return CKR_HOST_MEMORY;
     }
     error = sdb_openDBLocal(sdb_p, &sqlDB);
@@ -598,6 +623,7 @@ loser:
 	sdb_closeDBLocal(sdb_p, sqlDB) ;
     }
 
+    UNLOCK_SQLITE()  
     return error;
 }
 
@@ -606,7 +632,7 @@ static CK_OBJECT_HANDLE next_obj = 0;
 #define CREATE_CMD "INSERT INTO %s (id%s) VALUES($ID%s);"
 CK_RV
 sdb_CreateObject(SDB *sdb, CK_OBJECT_HANDLE *object_id, 
-		 const CK_ATTRIBUTE *template, int count)
+		 const CK_ATTRIBUTE *template, CK_ULONG count)
 {
     SDBPrivate *sdb_p = sdb->private;
     sqlite3  *sqlDB = NULL;
@@ -623,8 +649,9 @@ sdb_CreateObject(SDB *sdb, CK_OBJECT_HANDLE *object_id,
 	return CKR_TOKEN_WRITE_PROTECTED;
     }
 
+    LOCK_SQLITE()  
     /* This needs to get the next object ID from the database */
-    /* reviewers don't let this code through as is */
+    /* SDB_FIX_ME reviewers don't let this code through as is */
     if (next_obj == 0) {
         PRTime time;
 	time = PR_Now();
@@ -650,6 +677,7 @@ sdb_CreateObject(SDB *sdb, CK_OBJECT_HANDLE *object_id,
 	if (valueStr) {
 	    sqlite3_free(valueStr);
 	}
+	UNLOCK_SQLITE()  
 	return CKR_HOST_MEMORY;
     }
     newStr =  sqlite3_mprintf(CREATE_CMD, sdb_p->table, columnStr, valueStr);
@@ -697,6 +725,7 @@ loser:
     if (sqlDB) {
 	sdb_closeDBLocal(sdb_p, sqlDB) ;
     }
+    UNLOCK_SQLITE()  
 
     return error;
 }
@@ -717,6 +746,7 @@ sdb_DestroyObject(SDB *sdb, CK_OBJECT_HANDLE object_id)
 	return CKR_TOKEN_WRITE_PROTECTED;
     }
 
+    LOCK_SQLITE()  
     error = sdb_openDBLocal(sdb_p, &sqlDB);
     if (error != CKR_OK) {
 	goto loser;
@@ -753,6 +783,7 @@ loser:
 	sdb_closeDBLocal(sdb_p, sqlDB) ;
     }
 
+    UNLOCK_SQLITE()  
     return error;
 }
    
@@ -780,6 +811,7 @@ sdb_Begin(SDB *sdb)
     }
 
 
+    LOCK_SQLITE()  
     /* get a new version that we will use for the entire transaction */
     sqlerr = sqlite3_open(sdb_p->sqlDBName, &sqlDB);
     if (sqlerr != SQLITE_OK) {
@@ -827,6 +859,7 @@ loser:
 	}
     }
 
+    UNLOCK_SQLITE()  
     return error;
 }
 
@@ -851,6 +884,7 @@ sdb_complete(SDB *sdb, const char *cmd)
 	return CKR_TOKEN_WRITE_PROTECTED;
     }
 
+
     /* We must have a transation database, or we shouldn't have arrived here */
     PR_Lock(sdb_p->lock);
     PORT_Assert(sdb_p->sqlXactDB);
@@ -864,7 +898,8 @@ sdb_complete(SDB *sdb, const char *cmd)
 	return CKR_GENERAL_ERROR; /* shouldn't happen */
     }
     sqlDB = sdb_p->sqlXactDB;
-    sdb_p->sqlXactDB = NULL; /* no one else can get to this DB, safe to unlock */
+    sdb_p->sqlXactDB = NULL; /* no one else can get to this DB, 
+			      * safe to unlock */
     sdb_p->sqlXactThread = NULL; 
     PR_Unlock(sdb_p->lock);  
 
@@ -894,18 +929,25 @@ sdb_complete(SDB *sdb, const char *cmd)
 }
 
 #define COMMIT_CMD   "COMMIT TRANSACTION;"
-
 CK_RV
 sdb_Commit(SDB *sdb)
 {
-    return sdb_complete(sdb,COMMIT_CMD);
+    CK_RV crv;
+    LOCK_SQLITE()  
+    crv = sdb_complete(sdb,COMMIT_CMD);
+    UNLOCK_SQLITE()  
+    return crv;
 }
 
 #define ROLLBACK_CMD "ROLLBACK TRANSACTION;"
 CK_RV
 sdb_Abort(SDB *sdb)
 {
-    return sdb_complete(sdb,ROLLBACK_CMD);
+    CK_RV crv;
+    LOCK_SQLITE()  
+    crv = sdb_complete(sdb,ROLLBACK_CMD);
+    UNLOCK_SQLITE()  
+    return crv;
 }
 
 #define GET_PW_CMD "SELECT ALL * FROM password WHERE id='password';"
@@ -925,6 +967,7 @@ sdb_GetPWEntry(SDB *sdb, SDBPasswordEntry *entry)
 	return CKR_OBJECT_HANDLE_INVALID;
     }
 
+    LOCK_SQLITE()  
     error = sdb_openDBLocal(sdb_p, &sqlDB);
     if (error != CKR_OK) {
 	goto loser;
@@ -975,6 +1018,7 @@ loser:
     if (sqlDB) {
 	sdb_closeDBLocal(sdb_p, sqlDB) ;
     }
+    UNLOCK_SQLITE()  
 
     return error;
 }
@@ -999,6 +1043,7 @@ sdb_PutPWEntry(SDB *sdb, SDBPasswordEntry *entry)
 	return CKR_OBJECT_HANDLE_INVALID;
     }
 
+    LOCK_SQLITE()  
     error = sdb_openDBLocal(sdb_p, &sqlDB);
     if (error != CKR_OK) {
 	goto loser;
@@ -1038,6 +1083,7 @@ loser:
     if (sqlDB) {
 	sdb_closeDBLocal(sdb_p, sqlDB) ;
     }
+    UNLOCK_SQLITE()  
 
     return error;
 }
@@ -1057,6 +1103,7 @@ sdb_Reset(SDB *sdb)
 	return CKR_OBJECT_HANDLE_INVALID;
     }
 
+    LOCK_SQLITE()  
     error = sdb_openDBLocal(sdb_p, &sqlDB);
     if (error != CKR_OK) {
 	goto loser;
@@ -1087,6 +1134,7 @@ loser:
 	sdb_closeDBLocal(sdb_p, sqlDB) ;
     }
 
+    UNLOCK_SQLITE()  
     return error;
 }
 
@@ -1157,6 +1205,7 @@ sdb_init(char *dbname, char *table, sdbDataType type, int *inUpdate,
      * open the database read only. If the db doesn't exist,
      * sqlite3 will always create it.
      */
+    LOCK_SQLITE();
     if ((flags == SDB_RDONLY) && PR_Access(dbname, PR_ACCESS_EXISTS)) {
 	error = sdb_mapSQLError(type, SQLITE_CANTOPEN);
 	goto loser;
@@ -1223,7 +1272,7 @@ sdb_init(char *dbname, char *table, sdbDataType type, int *inUpdate,
     sdb_p->sqlXactDB = NULL;
     sdb_p->sqlXactThread = NULL;
     sdb->private = sdb_p;
-    sdb->sdb_type = SDB_INTERNAL;
+    sdb->sdb_type = SDB_SHARED;
     sdb->sdb_flags = flags;
     sdb->sdb_FindObjectsInit = sdb_FindObjectsInit;
     sdb->sdb_FindObjects = sdb_FindObjects;
@@ -1257,6 +1306,7 @@ sdb_init(char *dbname, char *table, sdbDataType type, int *inUpdate,
     sqlite3_close(sqlDB);
 
     *pSdb = sdb;
+    UNLOCK_SQLITE();
     return CKR_OK;
 
 loser:
@@ -1273,6 +1323,7 @@ loser:
     if (sqlDB) {
 	sqlite3_close(sqlDB);
     }
+    UNLOCK_SQLITE();
     return error;
 
 }
@@ -1303,6 +1354,16 @@ s_open(const char *directory, const char *certPrefix, const char *keyPrefix,
     *certdb = NULL;
     *keydb = NULL;
 
+#ifdef SQLITE_UNSAFE_THREADS
+    if (sqlite_lock == NULL) {
+	sqlite_lock = PR_NewLock();
+	if (sqlite_lock == NULL) {
+	    error = CKR_HOST_MEMORY;
+	    goto loser;
+	}
+    }
+#endif
+
     /*
      * open the cert data base
      */
@@ -1332,6 +1393,7 @@ s_open(const char *directory, const char *certPrefix, const char *keyPrefix,
 	} 
     }
 
+
 loser:
     if (cert) {
 	sqlite3_free(cert);
@@ -1352,4 +1414,16 @@ loser:
     }
 
     return error;
+}
+
+CK_RV
+s_shutdown()
+{
+#ifdef SQLITE_UNSAFE_THREADS
+    if (sqlite_lock) {
+	PR_DestroyLock(sqlite_lock);
+	sqlite_lock = NULL;
+    }
+#endif
+    return CKR_OK;
 }

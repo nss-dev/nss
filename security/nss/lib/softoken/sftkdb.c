@@ -50,6 +50,9 @@
 #include "secoid.h"
 #include "sechash.h"
 #include "lowpbe.h"
+#include "secdert.h"
+#include "prsystem.h"
+#include "lgglue.h"
 
 /*
  * private defines
@@ -95,6 +98,24 @@ sftkdb_isULONG(CK_ATTRIBUTE_TYPE type)
     case CKA_CERTIFICATE_CATEGORY:
     case CKA_KEY_TYPE:
     case CKA_JAVA_MIDP_SECURITY_DOMAIN:
+
+    case CKA_TRUST_DIGITAL_SIGNATURE:
+    case CKA_TRUST_NON_REPUDIATION:
+    case CKA_TRUST_KEY_ENCIPHERMENT:
+    case CKA_TRUST_DATA_ENCIPHERMENT:
+    case CKA_TRUST_KEY_AGREEMENT:
+    case CKA_TRUST_KEY_CERT_SIGN:
+    case CKA_TRUST_CRL_SIGN:
+
+    case CKA_TRUST_SERVER_AUTH:
+    case CKA_TRUST_CLIENT_AUTH:
+    case CKA_TRUST_CODE_SIGNING:
+    case CKA_TRUST_EMAIL_PROTECTION:
+    case CKA_TRUST_IPSEC_END_SYSTEM:
+    case CKA_TRUST_IPSEC_TUNNEL:
+    case CKA_TRUST_IPSEC_USER:
+    case CKA_TRUST_TIME_STAMPING:
+    case CKA_TRUST_STEP_UP_APPROVED:
 	return PR_TRUE;
     default:
 	break;
@@ -179,7 +200,7 @@ sftkdb_fixupTemplateIn(const CK_ATTRIBUTE *template, int count,
 	    if ( sftkdb_isULONG(template[i].type) ) {
 		CK_ULONG value = *(CK_ULONG *) template[i].pValue;
 		for (j=0; j < DB_ULONG_SIZE; j++) {
-		    data[j] = (value >> (DB_ULONG_SIZE-j)*BBP) & 0xff;
+		    data[j] = (value >> (DB_ULONG_SIZE-1-j)*BBP) & 0xff;
 		}
 		ntemplate[i].pValue = data;
 		ntemplate[i].ulValueLen = DB_ULONG_SIZE;
@@ -215,7 +236,7 @@ sftkdb_fixupTemplateOut(CK_ATTRIBUTE *template, CK_ATTRIBUTE *ntemplate,
 
 		    data = (unsigned char *)ntemplate[i].pValue;
 		    for (j=0; j < DB_ULONG_SIZE; j++) {
-			value |= (((CK_ULONG)data[j]) << (DB_ULONG_SIZE-j)*BBP);
+			value |= (((CK_ULONG)data[j]) << (DB_ULONG_SIZE-1-j)*BBP);
 		    }
 		    if (length < sizeof(CK_ULONG)) {
 			template[i].ulValueLen = -1;
@@ -232,6 +253,8 @@ sftkdb_fixupTemplateOut(CK_ATTRIBUTE *template, CK_ATTRIBUTE *ntemplate,
 	  (template[i].pValue != NULL) &&  (template[i].ulValueLen != -1)
 	  && sftkdb_isPrivate(ntemplate[i].type)) {
 	    /* we have a private attribute */
+	    /* This code depends on the fact that the cipherText is bigger
+	     * than the plain text */
 	    SECItem cipherText;
 	    SECItem *plainText;
 	    SECStatus rv;
@@ -253,6 +276,16 @@ sftkdb_fixupTemplateOut(CK_ATTRIBUTE *template, CK_ATTRIBUTE *ntemplate,
 		crv = CKR_GENERAL_ERROR;
 		continue;
 	    }
+	    PORT_Assert(template[i].ulValueLen >= plainText->len);
+	    if (template[i].ulValueLen < plainText->len) {
+		SECITEM_FreeItem(plainText,PR_TRUE);
+		PORT_Memset(template[i].pValue, 0, template[i].ulValueLen);
+		template[i].ulValueLen = -1;
+		crv = CKR_GENERAL_ERROR;
+		continue;
+	    }
+		
+	    /* copy the plain text back into the template */
 	    PORT_Memcpy(template[i].pValue, plainText->data, plainText->len);
 	    template[i].ulValueLen = plainText->len;
 	    SECITEM_FreeItem(plainText,PR_TRUE);
@@ -314,7 +347,7 @@ sftk_ExtractTemplate(PLArenaPool *arena, SFTKObject *object,
 		    break;
 		}
 		for (j=0; j < DB_ULONG_SIZE; j++) {
-		    data[j] = (value >> (DB_ULONG_SIZE-j)*BBP) & 0xff;
+		    data[j] = (value >> (DB_ULONG_SIZE-1-j)*BBP) & 0xff;
 		}
 		tp->ulValueLen = DB_ULONG_SIZE;
 	    }
@@ -422,7 +455,7 @@ loser:
 
 CK_RV 
 sftkdb_FindObjectsInit(SFTKDBHandle *handle, const CK_ATTRIBUTE *template,
-				 int count, SDBFind **find) 
+				 CK_ULONG count, SDBFind **find) 
 {
     unsigned char *data = NULL;
     CK_ATTRIBUTE *ntemplate = NULL;
@@ -450,7 +483,7 @@ sftkdb_FindObjectsInit(SFTKDBHandle *handle, const CK_ATTRIBUTE *template,
 
 CK_RV 
 sftkdb_FindObjects(SFTKDBHandle *handle, SDBFind *find, 
-			CK_OBJECT_HANDLE *ids, int arraySize, int *count)
+			CK_OBJECT_HANDLE *ids, int arraySize, CK_ULONG *count)
 {
     CK_RV crv;
     if (handle == NULL) {
@@ -479,7 +512,7 @@ CK_RV sftkdb_FindObjectsFinal(SFTKDBHandle *handle, SDBFind *find)
 
 CK_RV
 sftkdb_GetAttributeValue(SFTKDBHandle *handle, CK_OBJECT_HANDLE object_id,
-                                CK_ATTRIBUTE *template, int count)
+                                CK_ATTRIBUTE *template, CK_ULONG count)
 {
     CK_RV crv,crv2;
     CK_ATTRIBUTE *ntemplate;
@@ -511,7 +544,7 @@ sftkdb_GetAttributeValue(SFTKDBHandle *handle, CK_OBJECT_HANDLE object_id,
 
 CK_RV
 sftkdb_SetAttributeValue(SFTKDBHandle *handle, CK_OBJECT_HANDLE object_id,
-                                const CK_ATTRIBUTE *template, int count)
+                                const CK_ATTRIBUTE *template, CK_ULONG count)
 {
     CK_RV crv = CKR_OK;
     CK_ATTRIBUTE *ntemplate;
@@ -673,7 +706,6 @@ sftkdb_Abort(SFTKDBHandle *handle)
  * name="My other PKCS#11 module"
  */
 
-
 static char *
 sftkdb_quote(const char *string, char quote)
 {
@@ -759,7 +791,7 @@ sftkdb_releaseSpecList(char **moduleSpecList)
  * Read all the existing modules in out of the file.
  */
 char **
-sftkdb_ReadSecmodDB(const char *dbType, const char *appName, 
+sftkdb_ReadSecmodDB(SDBType dbType, const char *appName, 
 		    const char *filename, const char *dbname, 
 		    char *params, PRBool rw)
 {
@@ -774,9 +806,8 @@ sftkdb_ReadSecmodDB(const char *dbType, const char *appName,
     char *paramsValue=NULL;
     PRBool failed = PR_TRUE;
 
-    if ((dbType == NULL) || (PORT_Strcmp(dbType, MULTIACCESS) == 0)) {
-	/* SHDB_FIXME: Handle Legacy code */
-    	return moduleList;
+    if ((dbType == SDB_LEGACY) || (dbType == SDB_MULTIACCESS)) {
+	return sftkdbCall_ReadSecmodDB(appName, filename, dbname, params, rw);
     }
 
     moduleList = (char **) PORT_ZAlloc(useCount*sizeof(char **));
@@ -987,10 +1018,14 @@ loser:
 }
 
 SECStatus
-sftkdb_ReleaseSecmodDBData(const char *dbType, const char *appName, 
+sftkdb_ReleaseSecmodDBData(SDBType dbType, const char *appName, 
 			const char *filename, const char *dbname, 
 			char **moduleSpecList, PRBool rw)
 {
+    if ((dbType == SDB_LEGACY) || (dbType == SDB_MULTIACCESS)) {
+	return sftkdbCall_ReleaseSecmodDBData(appName, filename, dbname, 
+					  moduleSpecList, rw);
+    }
     if (moduleSpecList) {
 	sftkdb_releaseSpecList(moduleSpecList);
     }
@@ -1002,7 +1037,7 @@ sftkdb_ReleaseSecmodDBData(const char *dbType, const char *appName,
  * Delete a module from the Data Base
  */
 SECStatus
-sftkdb_DeleteSecmodDB(const char *dbType, const char *appName, 
+sftkdb_DeleteSecmodDB(SDBType dbType, const char *appName, 
 		      const char *filename, const char *dbname, 
 		      char *args, PRBool rw)
 {
@@ -1018,9 +1053,8 @@ sftkdb_DeleteSecmodDB(const char *dbType, const char *appName,
     PRBool skip = PR_FALSE;
     PRBool found = PR_FALSE;
 
-    if ((dbType == NULL) || (PORT_Strcmp(dbType, MULTIACCESS) == 0)) {
-	/* SHDB_FIXME: Handle Legacy code */
-    	return SECFailure;
+    if ((dbType == SDB_LEGACY) || (dbType == SDB_MULTIACCESS)) {
+	return sftkdbCall_DeleteSecmodDB(appName, filename, dbname, args, rw);
     }
 
     if (!rw) {
@@ -1127,7 +1161,7 @@ loser:
  * Add a module to the Data base 
  */
 SECStatus
-sftkdb_AddSecmodDB(const char *dbType, const char *appName, 
+sftkdb_AddSecmodDB(SDBType dbType, const char *appName, 
 		   const char *filename, const char *dbname, 
 		   char *module, PRBool rw)
 {
@@ -1135,9 +1169,8 @@ sftkdb_AddSecmodDB(const char *dbType, const char *appName,
     char *block = NULL;
     PRBool libFound = PR_FALSE;
 
-    if ((dbType == NULL) || (PORT_Strcmp(dbType, MULTIACCESS) == 0)) {
-	/* SHDB_FIXME: Handle Legacy code */
-    	return SECFailure;
+    if ((dbType == SDB_LEGACY) || (dbType == SDB_MULTIACCESS)) {
+	return sftkdbCall_AddSecmodDB(appName, filename, dbname, module, rw);
     }
 
     /* can't write to a read only module */
@@ -1259,12 +1292,31 @@ loser:
  */
 typedef struct sftkCipherValueStr sftkCipherValue;
 struct sftkCipherValueStr {
+    PLArenaPool *arena;
     SECOidTag  alg;
+    NSSPKCS5PBEParameter *param;
     SECItem    salt;
     SECItem    value;
 };
 
 #define SFTK_CIPHERTEXT_VERSION 3
+
+struct SFTKDBEncryptedDataInfoStr {
+    SECAlgorithmID algorithm;
+    SECItem encryptedData;
+};
+typedef struct SFTKDBEncryptedDataInfoStr SFTKDBEncryptedDataInfo;
+
+const SEC_ASN1Template sftkdb_EncryptedDataInfoTemplate[] = {
+    { SEC_ASN1_SEQUENCE,
+        0, NULL, sizeof(SFTKDBEncryptedDataInfo) },
+    { SEC_ASN1_INLINE,
+        offsetof(SFTKDBEncryptedDataInfo,algorithm),
+        SECOID_AlgorithmIDTemplate },
+    { SEC_ASN1_OCTET_STRING,
+        offsetof(SFTKDBEncryptedDataInfo,encryptedData) },
+    { 0 }
+};
 
 /*
  * This parses the cipherText into cipher value. NOTE: cipherValue will point
@@ -1288,43 +1340,43 @@ struct sftkCipherValueStr {
 static SECStatus
 sftkdb_decodeCipherText(SECItem *cipherText, sftkCipherValue *cipherValue)
 {
-    int slen, olen, vlen, nlen;
-    SECItem oid;
+    PLArenaPool *arena = NULL;
+    SFTKDBEncryptedDataInfo edi;
+    SECStatus rv;
 
-    /* make sure we have data to check */
-    if (cipherText->data == NULL || cipherText->len <= 3 ) {
-	goto loser;
+    arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
+    if (arena == NULL) {
+	return SECFailure;
     }
-    if (cipherText->data[0] != SFTK_CIPHERTEXT_VERSION) {
-	goto loser;
-    }
+    cipherValue->arena = NULL;
+    cipherValue->param = NULL;
 
-    /* parse the header */
-    slen = cipherText->data[1];
-    nlen = cipherText->data[2];
-    if (cipherText->len <= (3+nlen+slen) ) {
+    rv = SEC_QuickDERDecodeItem(arena, &edi, sftkdb_EncryptedDataInfoTemplate,
+                            cipherText);
+    if (rv != SECSuccess) {
 	goto loser;
     }
-    olen = cipherText->data[3+nlen+slen];
-    vlen = cipherText->len - (4+nlen+slen+olen);
-    if (vlen <= 0 ) {
+    cipherValue->alg = SECOID_GetAlgorithmTag(&edi.algorithm);
+    cipherValue->param = nsspkcs5_AlgidToParam(&edi.algorithm);
+    if (cipherValue->param == NULL) {
 	goto loser;
     }
-    cipherValue->salt.data = &cipherText->data[3];
-    cipherValue->salt.len = slen;
-    oid.data = &cipherText->data[4+nlen+slen];
-    oid.len = olen;
-    cipherValue->value.data = &cipherText->data[4+nlen+slen+olen];
-    cipherValue->value.len = vlen;
-    cipherValue->alg = SECOID_FindOIDTag(&oid);
-    if (cipherValue->alg == SEC_OID_UNKNOWN) {
-	goto loser;
-    }
+    cipherValue->value = edi.encryptedData;
+    cipherValue->arena = arena;
+
     return SECSuccess;
 loser:
-    /* PORT_SETERROR */
+    if (cipherValue->param) {
+	nsspkcs5_DestroyPBEParameter(cipherValue->param);
+	cipherValue->param = NULL;
+    }
+    if (arena) {
+	PORT_FreeArena(arena,PR_FALSE);
+    }
     return SECFailure;
 }
+
+
 
 /* 
  * unlike decode, Encode actually allocates a SECItem the caller must free
@@ -1335,38 +1387,42 @@ static SECStatus
 sftkdb_encodeCipherText(PLArenaPool *arena, sftkCipherValue *cipherValue, 
                         SECItem **cipherText)
 {
-    int slen, olen, vlen, len;
-    SECOidData *oid;
+    SFTKDBEncryptedDataInfo edi;
+    SECAlgorithmID *algid;
+    SECStatus rv;
+    PLArenaPool *localArena = NULL;
 
-    /* First get the entire length */
-    oid = SECOID_FindOIDByTag(cipherValue->alg);
-    if (oid == NULL) {
-	goto loser;
+
+    localArena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
+    if (localArena == NULL) {
+	return SECFailure;
     }
 
-    slen = cipherValue->salt.len;
-    olen = oid->oid.len;
-    vlen = cipherValue->value.len;
-    /* now get the total length */
-    len = 4 + slen + olen + vlen;
+    algid = nsspkcs5_CreateAlgorithmID(localArena, cipherValue->alg, 
+					cipherValue->param);
+    if (algid == NULL) {
+	rv = SECFailure;
+	goto loser;
+    }
+    rv = SECOID_CopyAlgorithmID(localArena, &edi.algorithm, algid);
+    SECOID_DestroyAlgorithmID(algid, PR_TRUE);
+    if (rv != SECSuccess) {
+	goto loser;
+    }
+    edi.encryptedData = cipherValue->value;
 
-    /* get our new secitem */
-    *cipherText = SECITEM_AllocItem(arena, NULL, len);
+    *cipherText = SEC_ASN1EncodeItem(arena, NULL, &edi, 
+				    sftkdb_EncryptedDataInfoTemplate);
     if (*cipherText == NULL) {
-	goto loser;
+	rv = SECFailure;
     }
-    (*cipherText)->data[0] = SFTK_CIPHERTEXT_VERSION;
-    (*cipherText)->data[1] = slen;
-    (*cipherText)->data[2] = 0;
-    PORT_Memcpy(&(*cipherText)->data[3],cipherValue->salt.data,slen);
-    (*cipherText)->data[3+slen] = olen;
-    PORT_Memcpy(&(*cipherText)->data[4+slen],oid->oid.data,olen);
-    PORT_Memcpy(&(*cipherText)->data[4+slen+olen],cipherValue->value.data,vlen);
-
-    return SECSuccess;
 
 loser:
-    return SECFailure;
+    if (localArena) {
+	PORT_FreeArena(localArena,PR_FALSE);
+    }
+
+    return rv;
 }
 
 
@@ -1381,7 +1437,6 @@ sftkdb_decrypt(SECItem *passKey, SECItem *cipherText, SECItem **plain)
 {
     SECStatus rv;
     sftkCipherValue cipherValue;
-    NSSPKCS5PBEParameter *param = NULL;
 
     /* First get the cipher type */
     rv = sftkdb_decodeCipherText(cipherText, &cipherValue);
@@ -1389,12 +1444,7 @@ sftkdb_decrypt(SECItem *passKey, SECItem *cipherText, SECItem **plain)
 	goto loser;
     }
 
-    param = nsspkcs5_NewParam(cipherValue.alg, &cipherValue.salt, 1);
-    if (param == NULL) {
-	rv = SECFailure;
-	goto loser;
-    }
-    *plain = nsspkcs5_CipherData(param, passKey, &cipherValue.value, 
+    *plain = nsspkcs5_CipherData(cipherValue.param, passKey, &cipherValue.value, 
 				    PR_FALSE, NULL);
     if (*plain == NULL) {
 	rv = SECFailure;
@@ -1402,8 +1452,11 @@ sftkdb_decrypt(SECItem *passKey, SECItem *cipherText, SECItem **plain)
     } 
 
 loser:
-    if (param) {
-	nsspkcs5_DestroyPBEParameter(param);
+    if (cipherValue.param) {
+	nsspkcs5_DestroyPBEParameter(cipherValue.param);
+    }
+    if (cipherValue.arena) {
+	PORT_FreeArena(cipherValue.arena,PR_FALSE);
     }
     return rv;
 }
@@ -1441,8 +1494,8 @@ sftkdb_encrypt(PLArenaPool *arena, SECItem *passKey, SECItem *plainText,
 	rv = SECFailure;
 	goto loser;
     } 
-    cipherValue.value.data = cipher->data;
-    cipherValue.value.len = cipher->len;
+    cipherValue.value = *cipher;
+    cipherValue.param = param;
 
     rv = sftkdb_encodeCipherText(arena, &cipherValue, cipherText);
     if (rv != SECSuccess) {
@@ -1456,6 +1509,61 @@ loser:
     if (param) {
 	nsspkcs5_DestroyPBEParameter(param);
     }
+    return rv;
+}
+
+
+/*
+ * stub files for legacy db's to be able to encrypt and decrypt
+ * various keys and attributes.
+ */
+SECStatus
+sftkdb_encrypt_stub(PRArenaPool *arena, SDB *sdb, SECItem *plainText,
+		    SECItem **cipherText)
+{
+    SFTKDBHandle *handle = sdb->app_private;
+    SECStatus rv;
+
+    /* not a key handle */
+    if (handle == NULL || handle->passwordLock == NULL) {
+	return SECFailure;
+    }
+
+    PZ_Lock(handle->passwordLock);
+    if (handle->passwordKey.data == NULL) {
+	PZ_Unlock(handle->passwordLock);
+	/* PORT_SetError */
+	return SECFailure;
+    }
+    rv = sftkdb_encrypt(arena, &handle->passwordKey, plainText, cipherText);
+    PZ_Unlock(handle->passwordLock);
+
+    return rv;
+}
+
+/*
+ * stub files for legacy db's to be able to encrypt and decrypt
+ * various keys and attributes.
+ */
+SECStatus
+sftkdb_decrypt_stub(SDB *sdb, SECItem *cipherText, SECItem **plainText) 
+{
+    SFTKDBHandle *handle = sdb->app_private;
+    SECStatus rv;
+
+    if (handle == NULL || handle->passwordLock == NULL) {
+	return SECFailure;
+    }
+
+    PZ_Lock(handle->passwordLock);
+    if (handle->passwordKey.data == NULL) {
+	PZ_Unlock(handle->passwordLock);
+	/* PORT_SetError */
+	return SECFailure;
+    }
+    rv = sftkdb_decrypt(&handle->passwordKey, cipherText, plainText);
+    PZ_Unlock(handle->passwordLock);
+
     return rv;
 }
   
@@ -1713,7 +1821,7 @@ SECStatus
 sftkdb_convertPrivateObjects(SFTKDBHandle *keydb, SECItem *newKey)
 {
     SDBFind *find = NULL;
-    int idCount = MAX_IDS;
+    CK_ULONG idCount = MAX_IDS;
     CK_OBJECT_HANDLE ids[MAX_IDS];
     CK_RV crv, crv2;
     int i;
@@ -1758,6 +1866,8 @@ sftkdb_ChangePassword(SFTKDBHandle *keydb, char *oldPin, char *newPin)
     SECItem *result = NULL;
     SDBPasswordEntry entry;
     CK_RV crv;
+
+    newKey.data = NULL;
 
     /* make sure we have a valid old pin */
     crv = (*keydb->db->sdb_Begin)(keydb->db);
@@ -1934,6 +2044,7 @@ sftk_NewDBHandle(SDB *sdb, int type)
    if (type == SFTK_KEYDB_TYPE) {
 	handle->passwordLock = PZ_NewLock();
    }
+   sdb->app_private = handle;
    return handle;
 }
 
@@ -1968,7 +2079,7 @@ sftk_DBInit(const char *configdir, const char *certPrefix,
                 SFTKDBHandle **certDB, SFTKDBHandle **keyDB)
 {
     const char *confdir;
-    const char *dbType = NULL;
+    SDBType dbType;
     char *appName = NULL;
     SDB *keySDB, *certSDB;
     CK_RV crv = CKR_OK;
@@ -1985,9 +2096,29 @@ sftk_DBInit(const char *configdir, const char *certPrefix,
 	return CKR_OK;
     }
     confdir = sftk_EvaluateConfigDir(configdir, &dbType, &appName);
-    /* FIXME_ -- prefixes */
-    crv = s_open(confdir, certPrefix, keyPrefix, 9, 4, flags, 
-	noCertDB? NULL : &certSDB, noKeyDB ? NULL : &keySDB);
+
+    /*
+     * now initialize the appropriate database
+     */
+    switch (dbType) {
+    case SDB_LEGACY:
+	crv = sftkdbCall_open(confdir, certPrefix, keyPrefix, 8, 3, flags,
+		noCertDB? NULL : &certSDB, noKeyDB ? NULL: &keySDB);
+	break;
+    case SDB_MULTIACCESS:
+	crv = sftkdbCall_open(configdir, certPrefix, keyPrefix, 8, 3, flags,
+		noCertDB? NULL : &certSDB, noKeyDB ? NULL: &keySDB);
+	break;
+    case SDB_SHARED:
+    case SDB_LOADABLE: /* SHOULD open a loadable db */
+	crv = s_open(confdir, certPrefix, keyPrefix, 9, 4, flags, 
+		noCertDB? NULL : &certSDB, noKeyDB ? NULL : &keySDB);
+	break;
+    default:
+	crv = CKR_GENERAL_ERROR; /* can't happen, EvaluationConfigDir MUST 
+				  * return one of the types we already 
+				  * specified. */
+    }
     if (crv != CKR_OK) {
 	goto loser;
     }
@@ -1998,6 +2129,9 @@ sftk_DBInit(const char *configdir, const char *certPrefix,
     }
     if (!noKeyDB) {
 	*keyDB = sftk_NewDBHandle(keySDB, SFTK_KEYDB_TYPE);
+	if (certSDB) {
+	    certSDB->app_private = *keyDB;
+	}
     } else {
 	*keyDB = NULL;
     }
@@ -2007,5 +2141,12 @@ loser:
 	PORT_Free(appName);
     }
    return forceOpen ? CKR_OK : crv;
+}
+
+CK_RV 
+sftkdb_Shutdown(void)
+{
+  s_shutdown();
+  sftkdbCall_Shutdown();
 }
 

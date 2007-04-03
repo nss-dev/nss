@@ -42,6 +42,7 @@
 #include "pkcs11i.h"
 #include "sdb.h"
 #include "prprf.h" 
+#include "prenv.h"
 
 /*
  * this file contains routines for parsing PKCS #11 module spec
@@ -519,14 +520,15 @@ sftk_freeParams(sftk_parameters *params)
 
 #define SHAREDB "shared:"
 #define LOADABLE "load:"
+#define LEGACY "dbm:"
 const char *
-sftk_EvaluateConfigDir(const char *configdir, const char **dbType, char **appName)
+sftk_EvaluateConfigDir(const char *configdir, SDBType *dbType, char **appName)
 {
     *appName = NULL;
-    *dbType = NULL;
+    *dbType = SDB_LEGACY;
     if (PORT_Strncmp(configdir, MULTIACCESS, sizeof(MULTIACCESS)-1) == 0) {
 	char *cdir;
-	*dbType = MULTIACCESS;
+	*dbType = SDB_MULTIACCESS;
 
 	*appName = PORT_Strdup(configdir+sizeof(MULTIACCESS)-1);
 	if (*appName == NULL) {
@@ -542,16 +544,35 @@ sftk_EvaluateConfigDir(const char *configdir, const char **dbType, char **appNam
 	}
 	configdir = cdir;
     } else if (PORT_Strncmp(configdir, SHAREDB, sizeof(SHAREDB)-1) == 0) {
-	*dbType = SHAREDB;
+	*dbType = SDB_SHARED;
 	configdir = configdir + sizeof(SHAREDB) -1;
+    } else if (PORT_Strncmp(configdir, LOADABLE, sizeof(LOADABLE)-1) == 0) {
+	*dbType = SDB_LOADABLE;
+	configdir = configdir + sizeof(LOADABLE) -1;
+    } else if (PORT_Strncmp(configdir, LEGACY, sizeof(LEGACY)-1) == 0) {
+	*dbType = SDB_LEGACY;
+	configdir = configdir + sizeof(LEGACY) -1;
+    } else {
+	/* look up the default from the environment */
+	char *defaultType = PR_GetEnv("NSS_DEFAULT_DB_TYPE");
+	if (defaultType == NULL) {
+	    /* none specified, go with the legacy */
+	    return configdir;
+	}
+	if (PORT_Strncmp(defaultType, SHAREDB, sizeof(SHAREDB)-2) == 0) {
+	    *dbType = SDB_SHARED;
+	} else if (PORT_Strncmp(defaultType,LOADABLE,sizeof(LOADABLE)-2)==0) {
+	    *dbType = SDB_LOADABLE;
+	} else if (PORT_Strncmp(defaultType, LEGACY, sizeof(LEGACY)-2) == 0) {
+	    *dbType = SDB_LEGACY;
+	}
     }
-    /* comment this out to support legacy */
-    *dbType = SHAREDB;
     return configdir;
 }
 
 char *
-sftk_getSecmodName(char *param, const char **dbType, char **appName, char **filename,PRBool *rw)
+sftk_getSecmodName(char *param, SDBType *dbType, char **appName,
+		   char **filename,PRBool *rw)
 {
     int next;
     char *configdir = NULL;

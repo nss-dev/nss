@@ -178,13 +178,14 @@ sftk_FindTokenAttribute(SFTKTokenObject *object,CK_ATTRIBUTE_TYPE type)
 	myattribute->freeData = PR_TRUE;
     	crv = sftkdb_GetAttributeValue(dbHandle, object->obj.handle,
 		 &myattribute->attrib, 1);
-    }
+    } 
 loser:
     if (dbHandle) {
 	sftk_freeDB(dbHandle);
     }
     if (crv != CKR_OK) {
 	if (myattribute) {
+	    myattribute->attrib.ulValueLen = 0;
 	    sftk_FreeAttribute(myattribute);
 	    myattribute = NULL;
 	}

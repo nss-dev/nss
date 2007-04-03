@@ -49,11 +49,6 @@
 #ifdef NSS_ENABLE_ECC
 #include "secdert.h"    /* Required for ECDSA */
 #include "ec.h"         /* Required for ECDSA */
-extern SECStatus
-EC_DecodeParams(const SECItem *encodedParams, ECParams **ecparams);
-extern SECStatus
-EC_CopyParams(PRArenaPool *arena, ECParams *dstParams,
-              const ECParams *srcParams);
 #endif
 
 
