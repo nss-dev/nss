@@ -430,7 +430,7 @@ nss_Init(const char *configdir, const char *certPrefix, const char *keyPrefix,
         return SECFailure;
     }
     
-    if (SECSuccess != InitOCSPGlobal()) {
+    if (SECSuccess != OCSP_InitGlobal()) {
         return SECFailure;
     }
 
@@ -788,7 +788,7 @@ NSS_Shutdown(void)
 	shutdownRV = SECFailure;
     }
     ShutdownCRLCache();
-    ShutdownOCSPCache();
+    OCSP_ShutdownCache();
     SECOID_Shutdown();
     status = STAN_Shutdown();
     cert_DestroySubjectKeyIDHashTable();
