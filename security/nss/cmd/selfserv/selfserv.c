@@ -190,6 +190,7 @@ Usage(const char *progName)
 "-S means disable SSL v2\n"
 "-3 means disable SSL v3\n"
 "-B bypasses the PKCS11 layer for SSL encryption and MACing\n"
+"-q checks for bypassability\n"
 "-D means disable Nagle delays in TCP\n"
 "-E means disable export ciphersuites and SSL step down key gen\n"
 "-T means disable TLS\n"
@@ -659,6 +660,7 @@ PRBool hasSidCache     = PR_FALSE;
 PRBool disableStepDown = PR_FALSE;
 PRBool bypassPKCS11    = PR_FALSE;
 PRBool disableLocking  = PR_FALSE;
+PRBool testbypass     = PR_FALSE;
 
 static const char stopCmd[] = { "GET /stop " };
 static const char getCmd[]  = { "GET " };
@@ -671,6 +673,17 @@ static const char outHeader[] = {
     "\r\n"
 };
 static const char crlCacheErr[]  = { "CRL ReCache Error: " };
+
+PRUint16 cipherlist[100];
+int nciphers;
+
+void
+savecipher(int c)
+{
+    if (nciphers < sizeof cipherlist / sizeof (cipherlist[0]))
+	cipherlist[nciphers++] = (PRUint16)c;
+}
+
 
 #ifdef FULL_DUPLEX_CAPABLE
 
@@ -725,6 +738,7 @@ lockedVars_AddToCount(lockedVars * lv, int addend)
     PZ_Unlock(lv->lock);
     return rv;
 }
+
 
 int
 do_writes(
@@ -1687,7 +1701,7 @@ main(int argc, char **argv)
     ** numbers, then capital letters, then lower case, alphabetical. 
     */
     optstate = PL_CreateOptState(argc, argv, 
-    	"2:3BC:DEL:M:NP:RSTbc:d:e:f:hi:lmn:op:rst:vw:xy");
+    	"2:3BC:DEL:M:NP:RSTbc:d:e:f:hi:lmn:op:qrst:vw:xy");
     while ((status = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
 	++optionsFound;
 	switch(optstate->option) {
@@ -1753,6 +1767,8 @@ main(int argc, char **argv)
 	case 'o': MakeCertOK = 1; break;
 
 	case 'p': port = PORT_Atoi(optstate->value); break;
+	
+	case 'q': testbypass = PR_TRUE; break;
 
 	case 'r': ++requestCert; break;
 
@@ -1974,6 +1990,18 @@ main(int argc, char **argv)
 	}
     }
 
+    if (testbypass) {
+	const PRUint16 *cipherSuites = SSL_ImplementedCiphers;
+	int             i            = SSL_NumImplementedCiphers;
+	PRBool		enabled;
+
+	for (i=0; i < SSL_NumImplementedCiphers; i++, cipherSuites++) {
+	    if (SSL_CipherPrefGetDefault(*cipherSuites, &enabled) == SECSuccess
+				    && enabled)
+		savecipher(*cipherSuites);		    
+	}
+    }
+    
     if (nickName) {
 	cert[kt_rsa] = PK11_FindCertFromNickname(nickName, passwd);
 	if (cert[kt_rsa] == NULL) {
@@ -1986,7 +2014,18 @@ main(int argc, char **argv)
 	            nickName);
 	    exit(11);
 	}
+	if (testbypass) {
+	    PRBool bypassOK;
+	    if (SSL_CanBypass(cert[kt_rsa], privKey[kt_rsa], cipherlist, 
+	                      nciphers, &bypassOK, passwd) != SECSuccess) {
+		SECU_PrintError(progName, "Bypass test failed %s\n", nickName);
+		exit(14);
+	    }
+	    fprintf(stderr, "selfserv: %s can%s bypass\n", nickName,
+		    bypassOK ? "" : "not");
+	}
     }
+    
     if (fNickName) {
 	cert[kt_fortezza] = PK11_FindCertFromNickname(fNickName, NULL);
 	if (cert[kt_fortezza] == NULL) {
@@ -1997,16 +2036,34 @@ main(int argc, char **argv)
     }
 #ifdef NSS_ENABLE_ECC
     if (ecNickName) {
-	cert[kt_ecdh] = PK11_FindCertFromNickname(ecNickName, NULL);
+	cert[kt_ecdh] = PK11_FindCertFromNickname(ecNickName, passwd);
 	if (cert[kt_ecdh] == NULL) {
 	    fprintf(stderr, "selfserv: Can't find certificate %s\n",
 		    ecNickName);
 	    exit(13);
 	}
-	privKey[kt_ecdh] = PK11_FindKeyByAnyCert(cert[kt_ecdh], NULL);
+	privKey[kt_ecdh] = PK11_FindKeyByAnyCert(cert[kt_ecdh], passwd);
+	if (privKey[kt_ecdh] == NULL) {
+	    fprintf(stderr, "selfserv: Can't find Private Key for cert %s\n", 
+	            ecNickName);
+	    exit(11);
+	}	    
+	if (testbypass) {
+	    PRBool bypassOK;
+	    if (SSL_CanBypass(cert[kt_ecdh], privKey[kt_ecdh], cipherlist,
+			      nciphers, &bypassOK, passwd) != SECSuccess) {
+		SECU_PrintError(progName, "Bypass test failed %s\n", ecNickName);
+		exit(15);
+	    }
+	    fprintf(stderr, "selfserv: %s can%s bypass\n", ecNickName,
+		    bypassOK ? "" : "not");
+       }
     }
 #endif /* NSS_ENABLE_ECC */
 
+    if (testbypass)
+	goto cleanup;
+    
     /* allocate the array of thread slots, and launch the worker threads. */
     rv = launch_threads(&jobLoop, 0, 0, requestCert, useLocalThreads);
 
@@ -2026,7 +2083,7 @@ main(int argc, char **argv)
     }
 
     VLOG(("selfserv: server_thread: exiting"));
-
+cleanup:
     {
 	int i;
 	for (i=0; i<kt_kea_size; i++) {
