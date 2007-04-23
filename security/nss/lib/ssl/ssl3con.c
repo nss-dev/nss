@@ -194,9 +194,6 @@ static const /*SSL3ClientCertificateType */ uint8 certificate_types [] = {
  */
 #define SSL3_BUFFER_FUDGE     100
 
-#define EXPORT_RSA_KEY_LENGTH 64	/* bytes */
-
-
 /* This is a hack to make sure we don't do double handshakes for US policy */
 PRBool ssl3_global_policy_some_restricted = PR_FALSE;
 

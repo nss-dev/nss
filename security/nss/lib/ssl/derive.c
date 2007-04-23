@@ -50,6 +50,7 @@
 #include "secasn1.h"
 #include "cert.h"
 #include "secmodt.h"
+#include "keythi.h"
 
 #include "sslproto.h"
 #include "sslerr.h"
@@ -501,7 +502,7 @@ ssl3_MasterKeyDeriveBypass(
     return rv;
 }
 
-static PRBool
+static SECStatus
 ssl_canExtractMS(PK11SymKey *pms, PRBool isDH, PRBool *pcbp)
 {   SECStatus	      rv;
     PK11SymKey *    ms = NULL;
@@ -529,14 +530,13 @@ ssl_canExtractMS(PK11SymKey *pms, PRBool isDH, PRBool *pcbp)
 			      CKM_TLS_KEY_AND_MAC_DERIVE, CKA_DERIVE, 0,
 			      0);
     if (ms == NULL)
-	return(PR_FALSE);
+	return(SECFailure);
 
     rv = PK11_ExtractKeyValue(ms);
-
+    *pcbp = (rv == SECSuccess);
     PK11_FreeSymKey(ms);
     
-    *pcbp = (rv == SECSuccess);
-    return(PR_TRUE);
+    return(rv);
 
 }
 
@@ -573,6 +573,7 @@ SSL_CanBypass(CERTCertificate *cert, SECKEYPrivateKey *srvPrivkey,
     SSLCipherSuiteInfo csdef;
     PRBool	      extractable;
     PRBool	      testrsa = PR_FALSE;
+    PRBool	      testrsa_export = PR_FALSE;
     PRBool	      testecdh = PR_FALSE;
     PRBool	      testecdhe = PR_FALSE;
 
@@ -590,6 +591,13 @@ SSL_CanBypass(CERTCertificate *cert, SECKEYPrivateKey *srvPrivkey,
 	switch (csdef.keaType) {
 	case ssl_kea_rsa:
 	    testrsa = PR_TRUE;
+	    switch (csdef.cipherSuite) {
+	    case TLS_RSA_EXPORT1024_WITH_RC4_56_SHA:
+	    case TLS_RSA_EXPORT1024_WITH_DES_CBC_SHA:
+	    case SSL_RSA_EXPORT_WITH_RC4_40_MD5:
+	    case SSL_RSA_EXPORT_WITH_RC2_CBC_40_MD5:
+		testrsa_export = PR_TRUE;
+	    }
 	    break;
 	case ssl_kea_ecdh:
 	    if (strcmp(csdef.keaTypeName, "ECDHE") == 0) /* ephemeral? */
@@ -598,6 +606,7 @@ SSL_CanBypass(CERTCertificate *cert, SECKEYPrivateKey *srvPrivkey,
 		testecdh = PR_TRUE;
 	    break;
 	case ssl_kea_dh:
+	    /* this is actually DHE */
 	default:
 	    continue;
 	}
@@ -606,9 +615,15 @@ SSL_CanBypass(CERTCertificate *cert, SECKEYPrivateKey *srvPrivkey,
     srvPubkey = CERT_ExtractPublicKey(cert);
     privKeytype = SECKEY_GetPrivateKeyType(srvPrivkey);
     
-    switch (privKeytype) {
+    if (privKeytype == rsaKey && testrsa) {
+	/* TLS_RSA */
 	int irv;
-    case rsaKey:
+	
+	if (testrsa_export && PK11_GetPrivateModulusLen(srvPrivkey)
+			      > EXPORT_RSA_KEY_LENGTH) {
+	    rv = SECSuccess;
+	    goto done;
+	}
 	mechanism_array[0] = CKM_SSL3_PRE_MASTER_KEY_GEN;
 	mechanism_array[1] = CKM_RSA_PKCS;
 
@@ -619,8 +634,8 @@ SSL_CanBypass(CERTCertificate *cert, SECKEYPrivateKey *srvPrivkey,
 	}
 
 	/* Generate the pre-master secret ...  (client side) */
-	version.major = 3 /*MSB(ss->clientHelloVersion)*/;
-	version.minor = 0 /*LSB(ss->clientHelloVersion)*/;
+	version.major = 3 /*MSB(clientHelloVersion)*/;
+	version.minor = 0 /*LSB(clientHelloVersion)*/;
 	param.data = (unsigned char *)&version;
 	param.len  = sizeof version;
 	pms = PK11_KeyGen(slot, CKM_SSL3_PRE_MASTER_KEY_GEN, &param, 0, pwArg);
@@ -637,55 +652,106 @@ SSL_CanBypass(CERTCertificate *cert, SECKEYPrivateKey *srvPrivkey,
 	 * but we're only testing the double bypass case */
 	pms = PK11_PubUnwrapSymKey(srvPrivkey, &enc_pms,
 				   CKM_SSL3_MASTER_KEY_DERIVE, CKA_DERIVE, 0);
-	break;
-    case ecKey: {
+	rv = ssl_canExtractMS(pms, PR_FALSE, pcanbypass);
+	if (rv != SECSuccess)
+	    goto done;
+    }
+#ifdef NSS_ENABLE_ECC
+    if ((privKeytype == ecKey && ( testecdh || testecdhe)) ||
+	(privKeytype == rsaKey && testecdhe) ) {
+	SECKEYPublicKey	*keapub;
+	SECKEYPrivateKey *keapriv;
 	SECKEYPublicKey	*cpub = NULL;	/* client's ephemeral ECDH keys */
 	SECKEYPrivateKey *cpriv = NULL;
+	SECKEYECParams    ecParams = { siBuffer, NULL, 0 },
+			  *pecParams;
 
-	/* perform client side KEA ops */
-	/* generate a pair of ephemeral keys using server's parms */
-	cpriv = SECKEY_CreateECPrivateKey(&srvPubkey->u.ec.DEREncodedParams, 
-					    &cpub, NULL);
-	if (!cpriv || !cpub) {
-		PORT_SetError(SEC_ERROR_KEYGEN_FAIL);
+	if (privKeytype == ecKey && testecdhe) {
+	    /* TLS_ECDHE_ECDSA */
+	    pecParams = &srvPubkey->u.ec.DEREncodedParams;
+	} else if (privKeytype == rsaKey && testecdhe) {
+	    /* TLS_ECDHE_RSA */
+	    ECName       ec_curve;
+	    int		 serverKeyStrengthInBits;
+	    int		 signatureKeyStrength;
+	    int		 requiredECCbits;
+	    
+	    /* find a curve of equivalent strength to the RSA key's */
+	    requiredECCbits = PK11_GetPrivateModulusLen(srvPrivkey) * BPB;
+	    serverKeyStrengthInBits = srvPubkey->u.rsa.modulus.len;
+	    if (srvPubkey->u.rsa.modulus.data[0] == 0) {
+		serverKeyStrengthInBits--;
+	    }
+	    /* convert to strength in bits */
+	    serverKeyStrengthInBits *= BPB;
+
+	    signatureKeyStrength =
+		SSL_RSASTRENGTH_TO_ECSTRENGTH(serverKeyStrengthInBits);
+
+	    if ( requiredECCbits > signatureKeyStrength ) 
+		 requiredECCbits = signatureKeyStrength;
+
+	    ec_curve = ssl3_GetCurveWithECKeyStrength(SSL3_SUPPORTED_CURVES_MASK,
+						    requiredECCbits);
+	    rv = ssl_ECName2Params(NULL, ec_curve, &ecParams);
+	    if (rv == SECFailure) {
 		goto done;
+	    }
+	    pecParams = &ecParams;
+	}
+	
+	if (testecdhe) {
+	    /* generate server's ephemeral keys */
+	    keapriv = SECKEY_CreateECPrivateKey(pecParams, &keapub, NULL); 
+	    if (!keapriv || !keapub) {
+		if (keapriv)
+		    SECKEY_DestroyPrivateKey(keapriv);
+		if (keapub)
+		    SECKEY_DestroyPublicKey(keapub);
+		PORT_SetError(SEC_ERROR_KEYGEN_FAIL);
+		rv = SECFailure;
+		goto done;
+	    }
+	} else {
+	    /* TLS_ECDH_ECDSA */
+	    keapub = srvPubkey;
+	    keapriv = srvPrivkey;
+	    pecParams = &srvPubkey->u.ec.DEREncodedParams;
+	}
+	    
+	/* perform client side ops */
+	/* generate a pair of ephemeral keys using server's parms */
+	cpriv = SECKEY_CreateECPrivateKey(pecParams, &cpub, NULL);
+	if (!cpriv || !cpub) {
+	    if (testecdhe) {
+		SECKEY_DestroyPrivateKey(keapriv);
+		SECKEY_DestroyPublicKey(keapub);
+	    }
+	    PORT_SetError(SEC_ERROR_KEYGEN_FAIL);
+	    rv = SECFailure;
+	    goto done;
 	}
 	/* now do the server side */
 	/* determine the PMS using client's public value */
-	pms = PK11_PubDeriveWithKDF(srvPrivkey, cpub, PR_FALSE, NULL, NULL,
+	pms = PK11_PubDeriveWithKDF(keapriv, cpub, PR_FALSE, NULL, NULL,
 				CKM_ECDH1_DERIVE,
 				CKM_TLS_MASTER_KEY_DERIVE_DH,
 				CKA_DERIVE, 0, CKD_NULL, NULL, NULL);
+        rv = ssl_canExtractMS(pms, PR_TRUE, pcanbypass);
 	SECKEY_DestroyPrivateKey(cpriv);
 	SECKEY_DestroyPublicKey(cpub);
+	if (testecdhe) {
+	    SECKEY_DestroyPrivateKey(keapriv);
+	    SECKEY_DestroyPublicKey(keapub);
+	    if (privKeytype == rsaKey)
+		PORT_Free(ecParams.data);
 	}
-	isDH = PR_TRUE;
-	break;
-    case dsaKey:
-    default:
-	break;	    /*can't bypass */
+	if (rv != SECSuccess)
+	    goto done;
     }
+#endif /* NSS_ENABLE_ECC */
 
-    if (pms == NULL) {
-	/*fprintf(stderr, "could not generate PMS"); */
-	goto done;
-    }
-    
-    if (testrsa && privKeytype == rsaKey
-        && !ssl_canExtractMS(pms, PR_FALSE, pcanbypass) && ! *pcanbypass) {
-	goto done;
-    }
-    if (testecdhe) {
-	/* treat this like the non-ephemeral case since the server's cert
-	   must be an ecKey */
-	testecdh = PR_TRUE;
-    }
-    if (testecdh && privKeytype == ecKey
-	&& !ssl_canExtractMS(pms, PR_TRUE, pcanbypass) && !*pcanbypass) {
-	goto done;
-    }
-
-    /* *pcanbypass = PR_TRUE; set by ssl_canExtractMS() */
+    /* *pcanbypass has been set */
     rv = SECSuccess;
     
   done:
