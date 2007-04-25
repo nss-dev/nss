@@ -887,3 +887,11 @@ SECKEY_SignatureLen;
 ;+    local:
 ;+       *;
 ;+};
+;+NSS_3.11.7 {
+;+    global:
+CERT_SetOCSPFailureMode;
+CERT_OCSPCacheSettings;
+CERT_ClearOCSPCache;
+;+    local:
+;+       *;
+;+};

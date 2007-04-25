@@ -290,4 +290,27 @@ typedef struct SEC_HttpClientFcnStruct {
    } fcnTable;
 } SEC_HttpClientFcn;
 
+/*
+ * ocspMode_FailureIsVerificationFailure:
+ * This is the classic behaviour of NSS.
+ * Any OCSP failure is a verification failure (classic mode, default).
+ * Without a good response, OCSP networking will be retried each time
+ * it is required for verifying a cert.
+ *
+ * ocspMode_FailureIsNotAVerificationFailure:
+ * If we fail to obtain a valid OCSP response, consider the
+ * cert as good.
+ * Failed OCSP attempts might get cached and not retried until
+ * minimumSecondsToNextFetchAttempt.
+ * If we are able to obtain a valid response, the cert
+ * will be considered good, if either status is "good"
+ * or the cert was not yet revoked at verification time.
+ *
+ * Additional failure modes might be added in the future.
+ */
+typedef enum {
+    ocspMode_FailureIsVerificationFailure = 0,
+    ocspMode_FailureIsNotAVerificationFailure = 1
+} SEC_OcspFailureMode;
+
 #endif /* _OCSPT_H_ */
