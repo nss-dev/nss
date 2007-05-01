@@ -724,6 +724,7 @@ const ssl3CipherSuiteDef *suite_def;
     PRBool                usedStepDownKey;  /* we did a server key exchange. */
     sslBuffer             msgState;    /* current state for handshake messages*/
                                        /* protected by recvBufLock */
+    sslBuffer             messages;    /* Accumulated handshake messages */
 #ifdef NSS_ENABLE_ECC
     PRUint32              negotiatedECCurves; /* bit mask */
 #endif /* NSS_ENABLE_ECC */
@@ -1147,6 +1148,8 @@ extern SECStatus ssl2_BeginServerHandshake(sslSocket *ss);
 extern int       ssl_Do1stHandshake(sslSocket *ss);
 
 extern SECStatus sslBuffer_Grow(sslBuffer *b, unsigned int newLen);
+extern SECStatus sslBuffer_Append(sslBuffer *b, const void * data, 
+		                  unsigned int len);
 
 extern void      ssl2_UseClearSendFunc(sslSocket *ss);
 extern void      ssl_ChooseSessionIDProcs(sslSecurityInfo *sec);
