@@ -56,7 +56,7 @@ endif
 # nssckft.h: ck.api ckapi.perl
 # nssckg.h: ck.api ckapi.perl
 # nssck.api: ck.api ckapi.perl
-# 	$(PERL) ckapi.perl ck.api
+# 	perl ckapi.perl ck.api
 
 export:: private_export
 
