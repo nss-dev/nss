@@ -80,7 +80,7 @@ include $(CORE_DEPTH)/coreconf/rules.mk
 
 # Generate certdata.c.
 generate:
-	perl certdata.perl < certdata.txt
+	$(PERL) certdata.perl < certdata.txt
 
 # This'll need some help from a build person.
 
