@@ -55,7 +55,7 @@
 ## might work ... I haven't tested it.
 ##
 #PERL=/usr/bin/perl
-PERL=perl
+#PERL=perl
 
 include target.mk
 
