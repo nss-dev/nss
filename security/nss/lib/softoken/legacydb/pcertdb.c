@@ -4972,6 +4972,7 @@ DestroyCertificate(NSSLOWCERTCertificate *cert, PRBool lockdb)
             }
 
 	    pkcs11_freeNickname(cert->nickname,cert->nicknameSpace);
+	    pkcs11_freeNickname(cert->emailAddr,cert->emailAddrSpace);
 	    pkcs11_freeStaticData(cert->certKey.data,cert->certKeySpace);
 	    cert->certKey.data = NULL;
 	    cert->nickname = NULL;

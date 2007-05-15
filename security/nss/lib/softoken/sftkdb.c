@@ -35,8 +35,19 @@
  * ***** END LICENSE BLOCK ***** */
 /* 
  *  The following code handles the storage of PKCS 11 modules used by the
- * NSS. This file is written to abstract away how the modules are
- * stored so we can deside that later.
+ * NSS. For the rest of NSS, only one kind of database handle exists:
+ *
+ *     SFTKDBHandle
+ *
+ * There is one SFTKDBHandle for the each key database and one for each cert 
+ * database. These databases are opened as associated pairs, one pair per
+ * slot. SFTKDBHandles are reference counted objects.
+ *
+ * Each SFTKDBHandle points to a low level database handle (SDB). This handle
+ * represents the underlying physical database. These objects are not 
+ * reference counted, an are 'owned' by their respective SFTKDBHandles.
+ *
+ *  
  */
 #include "sftkdb.h"
 #include "pkcs11t.h"
@@ -60,9 +71,11 @@
 struct SFTKDBHandleStr {
     SDB   *db;
     PRInt32 ref;
-    CK_OBJECT_HANDLE type;
+    CK_OBJECT_HANDLE  type;
     SECItem passwordKey;
     PZLock *passwordLock;
+    SFTKDBHandle *peerDB;
+    SDB   *update;
 };
 
 #define SFTK_KEYDB_TYPE 0x40000000
@@ -294,6 +307,37 @@ sftkdb_fixupTemplateOut(CK_ATTRIBUTE *template, CK_ATTRIBUTE *ntemplate,
     return crv;
 }
 
+static CK_RV
+sftkdb_CreateObject(SFTKDBHandle *handle, SDB *db, CK_OBJECT_HANDLE *objectID,
+        CK_ATTRIBUTE *template, CK_ULONG count)
+{
+    PRBool inTransaction = PR_FALSE;
+    CK_RV crv;
+
+    crv = (*db->sdb_Begin)(db);
+    if (crv != CKR_OK) {
+	goto loser;
+    }
+    inTransaction = PR_TRUE;
+    crv = (*db->sdb_CreateObject)(db, objectID, template, count);
+    if (crv != CKR_OK) {
+	goto loser;
+    }
+    crv = (*db->sdb_Commit)(db);
+    inTransaction = PR_FALSE;
+
+loser:
+    if (inTransaction) {
+	(*handle->db->sdb_Abort)(handle->db);
+	/* It is trivial to show the following code cannot
+	 * happen unless something is horribly wrong with our compilier or
+	 * hardware */
+	PORT_Assert(crv != CKR_OK);
+	if (crv == CKR_OK) crv = CKR_GENERAL_ERROR;
+    }
+    return crv;
+}
+
 CK_ATTRIBUTE * 
 sftk_ExtractTemplate(PLArenaPool *arena, SFTKObject *object, 
 		     SFTKDBHandle *handle,CK_ULONG *pcount, 
@@ -396,6 +440,8 @@ sftk_ExtractTemplate(PLArenaPool *arena, SFTKObject *object,
 
 }
 
+#define GET_SDB(handle) ((handle)->update ? (handle)->update : (handle)->db)
+
 CK_RV
 sftkdb_write(SFTKDBHandle *handle, SFTKObject *object, 
 	     CK_OBJECT_HANDLE *objectID)
@@ -403,12 +449,15 @@ sftkdb_write(SFTKDBHandle *handle, SFTKObject *object,
     CK_ATTRIBUTE *template;
     PLArenaPool *arena;
     CK_ULONG count;
-    PRBool inTransaction = PR_FALSE;
     CK_RV crv;
+    SDB *db;
+
+    *objectID = CK_INVALID_HANDLE;
 
     if (handle == NULL) {
 	return  CKR_TOKEN_WRITE_PROTECTED;
     }
+    db = GET_SDB(handle);
 
     arena = PORT_NewArena(256);
     if (arena ==  NULL) {
@@ -419,18 +468,8 @@ sftkdb_write(SFTKDBHandle *handle, SFTKObject *object,
     if (!template) {
 	goto loser;
     }
-    crv = (*handle->db->sdb_Begin)(handle->db);
-    if (crv != CKR_OK) {
-	goto loser;
-    }
-    inTransaction = PR_TRUE;
-    crv = (*handle->db->sdb_CreateObject)(handle->db, objectID, 
-					  template, count);
-    if (crv != CKR_OK) {
-	goto loser;
-    }
-    crv = (*handle->db->sdb_Commit)(handle->db);
-    inTransaction = PR_FALSE;
+
+    crv = sftkdb_CreateObject(handle, db, objectID, template, count);
 
 loser:
     if (arena) {
@@ -439,14 +478,6 @@ loser:
     if (crv == CKR_OK) {
 	*objectID |= (handle->type | SFTK_TOKEN_TYPE);
     } 
-    if (inTransaction) {
-	(*handle->db->sdb_Abort)(handle->db);
-	/* It should be trivial to show the following code cannot
-	 * happen unless something is horribly wrong with our compilier or
-	 * hardware */
-	PORT_Assert(crv != CKR_OK);
-	if (crv == CKR_OK) crv = CKR_GENERAL_ERROR;
-    }
     return crv;
 }
 
@@ -460,10 +491,12 @@ sftkdb_FindObjectsInit(SFTKDBHandle *handle, const CK_ATTRIBUTE *template,
     unsigned char *data = NULL;
     CK_ATTRIBUTE *ntemplate = NULL;
     CK_RV crv;
+    SDB *db;
 
     if (handle == NULL) {
 	return CKR_OK;
     }
+    db = GET_SDB(handle);
 
     if (count !=  0) {
 	ntemplate = sftkdb_fixupTemplateIn(template, count, &data);
@@ -472,7 +505,7 @@ sftkdb_FindObjectsInit(SFTKDBHandle *handle, const CK_ATTRIBUTE *template,
 	}
     }
 	
-    crv = (*handle->db->sdb_FindObjectsInit)(handle->db, ntemplate, 
+    crv = (*db->sdb_FindObjectsInit)(db, ntemplate, 
 					     count, find);
     if (data) {
 	PORT_Free(ntemplate);
@@ -486,12 +519,15 @@ sftkdb_FindObjects(SFTKDBHandle *handle, SDBFind *find,
 			CK_OBJECT_HANDLE *ids, int arraySize, CK_ULONG *count)
 {
     CK_RV crv;
+    SDB *db;
+
     if (handle == NULL) {
 	*count = 0;
 	return CKR_OK;
     }
+    db = GET_SDB(handle);
 
-    crv = (*handle->db->sdb_FindObjects)(handle->db, find, ids, 
+    crv = (*db->sdb_FindObjects)(db, find, ids, 
 					    arraySize, count);
     if (crv == CKR_OK) {
 	int i;
@@ -504,10 +540,12 @@ sftkdb_FindObjects(SFTKDBHandle *handle, SDBFind *find,
 
 CK_RV sftkdb_FindObjectsFinal(SFTKDBHandle *handle, SDBFind *find)
 {
+    SDB *db;
     if (handle == NULL) {
 	return CKR_OK;
     }
-    return (*handle->db->sdb_FindObjectsFinal)(handle->db, find);
+    db = GET_SDB(handle);
+    return (*db->sdb_FindObjectsFinal)(db, find);
 }
 
 CK_RV
@@ -517,10 +555,13 @@ sftkdb_GetAttributeValue(SFTKDBHandle *handle, CK_OBJECT_HANDLE object_id,
     CK_RV crv,crv2;
     CK_ATTRIBUTE *ntemplate;
     unsigned char *data = NULL;
+    SDB *db;
 
     if (handle == NULL) {
 	return CKR_GENERAL_ERROR;
     }
+
+    db = GET_SDB(handle);
     /* nothing to do */
     if (count == 0) {
 	return CKR_OK;
@@ -530,7 +571,7 @@ sftkdb_GetAttributeValue(SFTKDBHandle *handle, CK_OBJECT_HANDLE object_id,
 	return CKR_HOST_MEMORY;
     }
     object_id &= SFTK_OBJ_ID_MASK;
-    crv = (*handle->db->sdb_GetAttributeValue)(handle->db, object_id, 
+    crv = (*db->sdb_GetAttributeValue)(db, object_id, 
 						ntemplate, count);
     crv2 = sftkdb_fixupTemplateOut(template, ntemplate, count, handle);
     if (crv == CKR_OK) crv = crv2;
@@ -549,10 +590,13 @@ sftkdb_SetAttributeValue(SFTKDBHandle *handle, CK_OBJECT_HANDLE object_id,
     CK_RV crv = CKR_OK;
     CK_ATTRIBUTE *ntemplate;
     unsigned char *data = NULL;
+    SDB *db;
 
     if (handle == NULL) {
 	return CKR_TOKEN_WRITE_PROTECTED;
     }
+
+    db = GET_SDB(handle);
     /* nothing to do */
     if (count == 0) {
 	return CKR_OK;
@@ -562,19 +606,19 @@ sftkdb_SetAttributeValue(SFTKDBHandle *handle, CK_OBJECT_HANDLE object_id,
 	return CKR_HOST_MEMORY;
     }
     object_id &= SFTK_OBJ_ID_MASK;
-    crv = (*handle->db->sdb_Begin)(handle->db);
+    crv = (*db->sdb_Begin)(db);
     if (crv != CKR_OK) {
 	goto loser;
     }
-    crv = (*handle->db->sdb_SetAttributeValue)(handle->db, object_id, 
+    crv = (*db->sdb_SetAttributeValue)(db, object_id, 
 						ntemplate, count);
     if (crv != CKR_OK) {
 	goto loser;
     }
-    crv = (*handle->db->sdb_Commit)(handle->db);
+    crv = (*db->sdb_Commit)(db);
 loser:
     if (crv != CKR_OK) {
-	(*handle->db->sdb_Abort)(handle->db);
+	(*db->sdb_Abort)(db);
     }
     if (data) {
 	PORT_Free(ntemplate);
@@ -587,22 +631,25 @@ CK_RV
 sftkdb_DestroyObject(SFTKDBHandle *handle, CK_OBJECT_HANDLE object_id)
 {
     CK_RV crv = CKR_OK;
+    SDB *db;
+
     if (handle == NULL) {
 	return CKR_TOKEN_WRITE_PROTECTED;
     }
+    db = GET_SDB(handle);
     object_id &= SFTK_OBJ_ID_MASK;
-    crv = (*handle->db->sdb_Begin)(handle->db);
+    crv = (*db->sdb_Begin)(db);
     if (crv != CKR_OK) {
 	goto loser;
     }
-    crv = (*handle->db->sdb_DestroyObject)(handle->db, object_id);
+    crv = (*db->sdb_DestroyObject)(db, object_id);
     if (crv != CKR_OK) {
 	goto loser;
     }
-    crv = (*handle->db->sdb_Commit)(handle->db);
+    crv = (*db->sdb_Commit)(db);
 loser:
     if (crv != CKR_OK) {
-	(*handle->db->sdb_Abort)(handle->db);
+	(*db->sdb_Abort)(db);
     }
     return crv;
 }
@@ -612,6 +659,9 @@ sftkdb_CloseDB(SFTKDBHandle *handle)
 {
     if (handle == NULL) {
 	return CKR_OK;
+    }
+    if (handle->update) {
+	(*handle->update->sdb_Close)(handle->update);
     }
     if (handle->db) {
 	(*handle->db->sdb_Close)(handle->db);
@@ -627,21 +677,23 @@ static CK_RV
 sftkdb_ResetDB(SFTKDBHandle *handle)
 {
     CK_RV crv = CKR_OK;
+    SDB *db;
     if (handle == NULL) {
 	return CKR_TOKEN_WRITE_PROTECTED;
     }
-    crv = (*handle->db->sdb_Begin)(handle->db);
+    db = GET_SDB(handle);
+    crv = (*db->sdb_Begin)(db);
     if (crv != CKR_OK) {
 	goto loser;
     }
-    crv = (*handle->db->sdb_Reset)(handle->db);
+    crv = (*db->sdb_Reset)(db);
     if (crv != CKR_OK) {
 	goto loser;
     }
-    crv = (*handle->db->sdb_Commit)(handle->db);
+    crv = (*db->sdb_Commit)(db);
 loser:
     if (crv != CKR_OK) {
-	(*handle->db->sdb_Abort)(handle->db);
+	(*db->sdb_Abort)(db);
     }
     return crv;
 }
@@ -650,40 +702,49 @@ loser:
 CK_RV
 sftkdb_Begin(SFTKDBHandle *handle)
 {
+    CK_RV crv = CKR_OK;
+    SDB *db;
+
     if (handle == NULL) {
 	return CKR_OK;
     }
-    if (handle->db) {
-	(*handle->db->sdb_Begin)(handle->db);
+    db = GET_SDB(handle);
+    if (db) {
+	crv = (*db->sdb_Begin)(db);
     }
-    PORT_Free(handle);
-    return CKR_OK;
+    return crv;
 }
 
 CK_RV
 sftkdb_Commit(SFTKDBHandle *handle)
 {
+    CK_RV crv = CKR_OK;
+    SDB *db;
+
     if (handle == NULL) {
 	return CKR_OK;
     }
-    if (handle->db) {
-	(*handle->db->sdb_Commit)(handle->db);
+    db = GET_SDB(handle);
+    if (db) {
+	(*db->sdb_Commit)(db);
     }
-    PORT_Free(handle);
-    return CKR_OK;
+    return crv;
 }
 
 CK_RV
 sftkdb_Abort(SFTKDBHandle *handle)
 {
+    CK_RV crv = CKR_OK;
+    SDB *db;
+
     if (handle == NULL) {
 	return CKR_OK;
     }
-    if (handle->db) {
-	(*handle->db->sdb_Abort)(handle->db);
+    db = GET_SDB(handle);
+    if (db) {
+	crv = (db->sdb_Abort)(db);
     }
-    PORT_Free(handle);
-    return CKR_OK;
+    return crv;
 }
 
 
@@ -783,10 +844,49 @@ sftkdb_releaseSpecList(char **moduleSpecList)
 }
 
 #define SECMOD_STEP 10
+static SECStatus
+sftkdb_growList(char ***pModuleList, int *useCount, int last)
+{
+    char **newModuleList;
+
+    *useCount += SECMOD_STEP;
+    newModuleList = (char **)PORT_Realloc(*pModuleList,
+					  *useCount*sizeof(char *));
+    if (newModuleList == NULL) {
+	return SECFailure;
+    }
+    PORT_Memset(&newModuleList[last],0, sizeof(char *)*SECMOD_STEP);
+    *pModuleList = newModuleList;
+    return SECSuccess;
+}
+
+static 
+char *sftk_getOldSecmodName(const char *dbname,const char *filename)
+{
+    char *file = NULL;
+    char *dirPath = PORT_Strdup(dbname);
+    char *sep;
+
+    sep = PORT_Strrchr(dirPath,*PATH_SEPARATOR);
+#ifdef WINDOWS
+    if (!sep) {
+	sep = PORT_Strrchr(dirPath,'/');
+    }
+#endif
+    if (sep) {
+	*(sep)=0;
+    }
+    file= PR_smprintf("%s"PATH_SEPARATOR"%s", dirPath, filename);
+    PORT_Free(dirPath);
+    return file;
+}
+
 #define MAX_LINE_LENGTH 2048
 #define SFTK_DEFAULT_INTERNAL_INIT1 "library= name=\"NSS Internal PKCS #11 Module\" parameters="
 #define SFTK_DEFAULT_INTERNAL_INIT2 " NSS=\"Flags=internal,critical trustOrder=75 cipherOrder=100 slotParams=(1={"
 #define SFTK_DEFAULT_INTERNAL_INIT3 " askpw=any timeout=30})\""
+
+#include <unistd.h>
 /*
  * Read all the existing modules in out of the file.
  */
@@ -796,7 +896,7 @@ sftkdb_ReadSecmodDB(SDBType dbType, const char *appName,
 		    char *params, PRBool rw)
 {
     FILE *fd = NULL;
-    char **moduleList = NULL, **newModuleList = NULL;
+    char **moduleList = NULL;
     int moduleCount = 1;
     int useCount = SECMOD_STEP;
     char line[MAX_LINE_LENGTH];
@@ -946,14 +1046,13 @@ sftkdb_ReadSecmodDB(SDBType dbType, const char *appName,
 	}
 
 	if ((moduleCount+1) >= useCount) {
-	    useCount += SECMOD_STEP;
-	    newModuleList =
-		(char **)PORT_Realloc(moduleList,useCount*sizeof(char *));
-	    if (newModuleList == NULL) goto loser;
-	    moduleList = newModuleList;
-	    PORT_Memset(&moduleList[moduleCount+1],0,
-						sizeof(char *)*SECMOD_STEP);
+	    SECStatus rv;
+	    rv = sftkdb_growList(&moduleList, &useCount,  moduleCount+1);
+	    if (rv != SECSuccess) {
+		goto loser;
+	    }
 	}
+
 	if (internal) {
 	    moduleList[0] = moduleString;
 	} else {
@@ -970,6 +1069,61 @@ sftkdb_ReadSecmodDB(SDBType dbType, const char *appName,
 	moduleString = NULL;
     }
 done:
+    /* if we couldn't open a pkcs11 database, look for the old one */
+    if (fd == NULL) {
+	char *olddbname = sftk_getOldSecmodName(dbname,filename);
+	PRStatus status;
+	char **oldModuleList;
+	int i;
+
+	/* couldn't get the old name */
+	if (!olddbname) {
+	    goto bail;
+	}
+
+	/* old one doesn't exist */
+	status = PR_Access(olddbname, PR_ACCESS_EXISTS);
+	if (status != PR_SUCCESS) {
+	    goto bail;
+	}
+
+	oldModuleList = sftkdbCall_ReadSecmodDB(appName, filename, 
+					olddbname, params, rw);
+	/* old one had no modules */
+	if (!oldModuleList) {
+	    goto bail;
+	}
+
+	/* count the modules */
+	for (i=0; oldModuleList[i]; i++) { }
+
+	/* grow the moduleList if necessary */
+	if (i >= useCount) {
+	    SECStatus rv;
+	    rv = sftkdb_growList(&moduleList,&useCount,moduleCount+1);
+	    if (rv != SECSuccess) {
+		goto loser;
+	    }
+	}
+	
+	/* write each module out, and copy it */
+	for (i=0; oldModuleList[i]; i++) {
+	    if (rw) {
+		sftkdb_AddSecmodDB(dbType,appName,filename,dbname,
+				oldModuleList[i],rw);
+	    }
+	    if (moduleList[i]) {
+		PORT_Free(moduleList[i]);
+	    }
+	    moduleList[i] = PORT_Strdup(oldModuleList[i]);
+	}
+
+	/* done with the old module list */
+	sftkdbCall_ReleaseSecmodDBData(appName, filename, olddbname, 
+				  oldModuleList, rw);
+    }
+bail:
+	
     if (!moduleList[0]) {
 	char * newParams;
 	moduleString = PORT_Strdup(SFTK_DEFAULT_INTERNAL_INIT1);
@@ -1071,8 +1225,6 @@ sftkdb_DeleteSecmodDB(SDBType dbType, const char *appName,
     fd2 = fopen(dbname2, "w+");
     if (fd2 == NULL) goto loser;
 
-printf("args=|%s|\n", args);
-
     name = sftk_argGetParamValue("name",args);
     if (name) {
 	name_len = PORT_Strlen(name);
@@ -1082,8 +1234,6 @@ printf("args=|%s|\n", args);
 	lib_len = PORT_Strlen(lib);
     }
 
-if (name) printf("name=|%s|\n",name);
-if (lib) printf("lib=|%s|\n",lib);
 
     /*
      * the following loop takes line separated config files and colapses
@@ -1177,6 +1327,9 @@ sftkdb_AddSecmodDB(SDBType dbType, const char *appName,
     if (!rw) {
 	return SECFailure;
     }
+
+    /* remove the previous version if it exists */
+    (void) sftkdb_DeleteSecmodDB(dbType, appName, filename, dbname, module, rw);
 
     /* do we really want to use streams here */
     fd = fopen(dbname, "a+");
@@ -1524,6 +1677,15 @@ sftkdb_encrypt_stub(PRArenaPool *arena, SDB *sdb, SECItem *plainText,
     SFTKDBHandle *handle = sdb->app_private;
     SECStatus rv;
 
+    if (handle == NULL) {
+	return SECFailure;
+    }
+
+    /* if we aren't th handle, try the other handle */
+    if (handle->type != SFTK_KEYDB_TYPE) {
+	handle = handle->peerDB;
+    }
+
     /* not a key handle */
     if (handle == NULL || handle->passwordLock == NULL) {
 	return SECFailure;
@@ -1551,6 +1713,16 @@ sftkdb_decrypt_stub(SDB *sdb, SECItem *cipherText, SECItem **plainText)
     SFTKDBHandle *handle = sdb->app_private;
     SECStatus rv;
 
+    if (handle == NULL) {
+	return SECFailure;
+    }
+
+    /* if we aren't th handle, try the other handle */
+    if (handle->type != SFTK_KEYDB_TYPE) {
+	handle = handle->peerDB;
+    }
+
+    /* not a key handle */
     if (handle == NULL || handle->passwordLock == NULL) {
 	return SECFailure;
     }
@@ -1595,7 +1767,237 @@ sftkdb_switchKeys(SFTKDBHandle *keydb, SECItem *passKey)
     passKey->len = len;
     PZ_Unlock(keydb->passwordLock);
 }
+ 
+/*
+ * known attributes
+ */
+static const CK_ATTRIBUTE_TYPE known_attributes[] = {
+    CKA_CLASS, CKA_TOKEN, CKA_PRIVATE, CKA_LABEL, CKA_APPLICATION,
+    CKA_VALUE, CKA_OBJECT_ID, CKA_CERTIFICATE_TYPE, CKA_ISSUER,
+    CKA_SERIAL_NUMBER, CKA_AC_ISSUER, CKA_OWNER, CKA_ATTR_TYPES, CKA_TRUSTED,
+    CKA_CERTIFICATE_CATEGORY, CKA_JAVA_MIDP_SECURITY_DOMAIN, CKA_URL,
+    CKA_HASH_OF_SUBJECT_PUBLIC_KEY, CKA_HASH_OF_ISSUER_PUBLIC_KEY,
+    CKA_CHECK_VALUE, CKA_KEY_TYPE, CKA_SUBJECT, CKA_ID, CKA_SENSITIVE,
+    CKA_ENCRYPT, CKA_DECRYPT, CKA_WRAP, CKA_UNWRAP, CKA_SIGN, CKA_SIGN_RECOVER,
+    CKA_VERIFY, CKA_VERIFY_RECOVER, CKA_DERIVE, CKA_START_DATE, CKA_END_DATE,
+    CKA_MODULUS, CKA_MODULUS_BITS, CKA_PUBLIC_EXPONENT, CKA_PRIVATE_EXPONENT,
+    CKA_PRIME_1, CKA_PRIME_2, CKA_EXPONENT_1, CKA_EXPONENT_2, CKA_COEFFICIENT,
+    CKA_PRIME, CKA_SUBPRIME, CKA_BASE, CKA_PRIME_BITS, 
+    CKA_SUB_PRIME_BITS, CKA_VALUE_BITS, CKA_VALUE_LEN, CKA_EXTRACTABLE,
+    CKA_LOCAL, CKA_NEVER_EXTRACTABLE, CKA_ALWAYS_SENSITIVE,
+    CKA_KEY_GEN_MECHANISM, CKA_MODIFIABLE, CKA_EC_PARAMS,
+    CKA_EC_POINT, CKA_SECONDARY_AUTH, CKA_AUTH_PIN_FLAGS,
+    CKA_ALWAYS_AUTHENTICATE, CKA_WRAP_WITH_TRUSTED, CKA_WRAP_TEMPLATE,
+    CKA_UNWRAP_TEMPLATE, CKA_HW_FEATURE_TYPE, CKA_RESET_ON_INIT,
+    CKA_HAS_RESET, CKA_PIXEL_X, CKA_PIXEL_Y, CKA_RESOLUTION, CKA_CHAR_ROWS,
+    CKA_CHAR_COLUMNS, CKA_COLOR, CKA_BITS_PER_PIXEL, CKA_CHAR_SETS,
+    CKA_ENCODING_METHODS, CKA_MIME_TYPES, CKA_MECHANISM_TYPE,
+    CKA_REQUIRED_CMS_ATTRIBUTES, CKA_DEFAULT_CMS_ATTRIBUTES,
+    CKA_SUPPORTED_CMS_ATTRIBUTES, CKA_NETSCAPE_URL, CKA_NETSCAPE_EMAIL,
+    CKA_NETSCAPE_SMIME_INFO, CKA_NETSCAPE_SMIME_TIMESTAMP,
+    CKA_NETSCAPE_PKCS8_SALT, CKA_NETSCAPE_PASSWORD_CHECK, CKA_NETSCAPE_EXPIRES,
+    CKA_NETSCAPE_KRL, CKA_NETSCAPE_PQG_COUNTER, CKA_NETSCAPE_PQG_SEED,
+    CKA_NETSCAPE_PQG_H, CKA_NETSCAPE_PQG_SEED_BITS, CKA_NETSCAPE_MODULE_SPEC,
+    CKA_TRUST_DIGITAL_SIGNATURE, CKA_TRUST_NON_REPUDIATION,
+    CKA_TRUST_KEY_ENCIPHERMENT, CKA_TRUST_DATA_ENCIPHERMENT,
+    CKA_TRUST_KEY_AGREEMENT, CKA_TRUST_KEY_CERT_SIGN, CKA_TRUST_CRL_SIGN,
+    CKA_TRUST_SERVER_AUTH, CKA_TRUST_CLIENT_AUTH, CKA_TRUST_CODE_SIGNING,
+    CKA_TRUST_EMAIL_PROTECTION, CKA_TRUST_IPSEC_END_SYSTEM,
+    CKA_TRUST_IPSEC_TUNNEL, CKA_TRUST_IPSEC_USER, CKA_TRUST_TIME_STAMPING,
+    CKA_TRUST_STEP_UP_APPROVED, CKA_CERT_SHA1_HASH, CKA_CERT_MD5_HASH,
+    CKA_NETSCAPE_DB, CKA_NETSCAPE_TRUST
+};
+
+static int known_attributes_size= sizeof(known_attributes)/
+			   sizeof(known_attributes[0]);
+
+static CK_RV
+sftkdb_GetObjectTemplate(SDB *source, CK_OBJECT_HANDLE id,
+		CK_ATTRIBUTE *ptemplate, CK_ULONG *max)
+{
+    int i,j;
+    CK_RV crv;
+
+    if (*max < known_attributes_size) {
+	*max = known_attributes_size;
+	return CKR_BUFFER_TOO_SMALL;
+    }
+    for (i=0; i < known_attributes_size; i++) {
+	ptemplate[i].type = known_attributes[i];
+	ptemplate[i].pValue = NULL;
+	ptemplate[i].ulValueLen = 0;
+    }
+
+    crv = (*source->sdb_GetAttributeValue)(source, id, 
+					ptemplate, known_attributes_size);
+
+    if ((crv != CKR_OK) && (crv != CKR_ATTRIBUTE_TYPE_INVALID)) {
+	return crv;
+    }
+
+    for (i=0, j=0; i < known_attributes_size; i++, j++) {
+	while (i < known_attributes_size && (ptemplate[i].ulValueLen == -1)) {
+	    i++;
+	}
+	if (i >= known_attributes_size) {
+	    break;
+	}
+	/* cheap optimization */
+	if (i == j) {
+	   continue;
+	}
+	ptemplate[j] = ptemplate[i];
+    }
+    *max = j;
+    return CKR_OK;
+}
+
+#ifdef notdef
+static void
+dump_attribute(CK_ATTRIBUTE *attr)
+{
+  unsigned char *buf = attr->pValue;
+  int count,i;
+
+  printf("%08x: (%d) ",attr->type, attr->ulValueLen);
+  count = attr->ulValueLen;
+  if (count > 10) count = 10;
+  for (i=0; i < count; i++) {
+	printf("%02x",buf[i]);
+  }
+  printf("\n");
+}
+#endif
+
+
+#define MAX_ATTRIBUTES 500
+static CK_RV
+sftkdb_copyObject(SFTKDBHandle *handle, CK_OBJECT_HANDLE id, SECItem *key)
+{
+    CK_ATTRIBUTE template[MAX_ATTRIBUTES];
+    CK_ATTRIBUTE *ptemplate;
+    CK_ULONG max_attributes = MAX_ATTRIBUTES;
+    SDB *source = handle->update;
+    SDB *target = handle->db;
+    int i;
+    CK_RV crv;
+
+    ptemplate = &template[0];
+    id &= SFTK_OBJ_ID_MASK;
+    crv = sftkdb_GetObjectTemplate(source, id, ptemplate, &max_attributes);
+    if (crv == CKR_BUFFER_TOO_SMALL) {
+	ptemplate = PORT_NewArray(CK_ATTRIBUTE, max_attributes);
+	if (ptemplate == NULL) {
+	    crv = CKR_HOST_MEMORY;
+	} else {
+            crv = sftkdb_GetObjectTemplate(source, id, 
+					   ptemplate, &max_attributes);
+	}
+    }
+    if (crv != CKR_OK) {
+	goto loser;
+    }
+
+    for (i=0; i < max_attributes; i++) {
+	ptemplate[i].pValue = PORT_Alloc(ptemplate[i].ulValueLen);
+	if (ptemplate[i].pValue == NULL) {
+	    crv = CKR_HOST_MEMORY;
+	    goto loser;
+	}
+    }
+    crv = (*source->sdb_GetAttributeValue)(source, id, 
+					   ptemplate, max_attributes);
+    if (crv != CKR_OK) {
+	goto loser;
+    }
+
+    crv = sftkdb_CreateObject(handle, target, &id, ptemplate, max_attributes);
+    if (ptemplate && ptemplate != template) {
+	PORT_Free(ptemplate);
+    }
+
+loser:
+    if (ptemplate) {
+	for (i=0; i < max_attributes; i++) {
+	    if (ptemplate[i].pValue) {
+		PORT_Memset(ptemplate[i].pValue, 0, ptemplate[i].ulValueLen);
+		PORT_Free(ptemplate[i].pValue);
+	    }
+	}
+	if (ptemplate != template) {
+	    PORT_Free(ptemplate);
+	}
+    }
+    return crv;
+}
+	
+
+#define MAX_IDS 10
+/*
+ * update a new database from an old one, now that we have the key
+ */
+static CK_RV
+sftkdb_update(SFTKDBHandle *handle, SECItem *key)
+{
+    SDBFind *find = NULL;
+    CK_ULONG idCount = MAX_IDS;
+    CK_OBJECT_HANDLE ids[MAX_IDS];
+    CK_RV crv, crv2;
+    PRBool inTransaction = PR_FALSE;
+    int i;
+
+    if (handle == NULL) {
+	return CKR_OK;
+    }
+    if (handle->update == NULL) {
+	return CKR_OK;
+    }
     
+    /* find all the objects */
+    crv = sftkdb_FindObjectsInit(handle, NULL, 0, &find);
+
+    if (crv != CKR_OK) {
+	goto loser;
+    }
+    while ((crv == CKR_OK) && (idCount == MAX_IDS)) {
+	crv = sftkdb_FindObjects(handle, find, ids, MAX_IDS, &idCount);
+	for (i=0; (crv == CKR_OK) && (i < idCount); i++) {
+	    crv = sftkdb_copyObject(handle, ids[i], key);
+	}
+    }
+    crv2 = sftkdb_FindObjectsFinal(handle, find);
+    if (crv == CKR_OK) crv = crv2;
+
+loser:
+    /* update Meta data - even if we didn't update objects */
+    if (handle->type == SFTK_KEYDB_TYPE) {
+	SDBPasswordEntry entry;
+	crv = (*handle->db->sdb_Begin)(handle->db);
+	if (crv != CKR_OK) {
+	    goto loser2;
+	}
+	inTransaction = PR_TRUE;
+	crv = (*handle->update->sdb_GetPWEntry)(handle->update, & entry);
+	if (crv != CKR_OK) {
+	    goto loser2;
+	}
+	crv = (*handle->db->sdb_PutPWEntry)(handle->db, &entry);
+	if (crv != CKR_OK) {
+	    goto loser2;
+	}
+	crv = (*handle->db->sdb_Commit)(handle->db);
+	inTransaction = PR_FALSE;
+    }
+loser2:
+    if (inTransaction) {
+	(*handle->db->sdb_Abort)(handle->db);
+    }
+    if (handle->update) {
+	(*handle->update->sdb_Close)(handle->update);
+	handle->update = NULL;
+    }
+    return crv;
+}
 
 /*
  * return success if we have a valid password entry.
@@ -1607,11 +2009,18 @@ sftkdb_HasPasswordSet(SFTKDBHandle *keydb)
 {
     SDBPasswordEntry entry;
     CK_RV crv;
+    SDB *db;
 
-    if (keydb == NULL || keydb->db == NULL) {
+    if (keydb == NULL) {
 	return SECFailure;
     }
-    crv = (*keydb->db->sdb_GetPWEntry)(keydb->db, &entry);
+
+    db = GET_SDB(keydb);
+    if (db == NULL) {
+	return SECFailure;
+    }
+
+    crv = (*db->sdb_GetPWEntry)(db, &entry);
     return (crv == CKR_OK) ? SECSuccess : SECFailure;
 }
 
@@ -1628,7 +2037,17 @@ sftkdb_CheckPassword(SFTKDBHandle *keydb, const char *pw)
     SDBPasswordEntry entry;
     SECItem key;
     SECItem *result = NULL;
+    SDB *db;
     CK_RV crv;
+
+    if (keydb == NULL) {
+	return SECFailure;
+    }
+
+    db = GET_SDB(keydb);
+    if (db == NULL) {
+	return SECFailure;
+    }
 
     key.data = NULL;
     key.len = 0;
@@ -1636,7 +2055,7 @@ sftkdb_CheckPassword(SFTKDBHandle *keydb, const char *pw)
     if (pw == NULL) pw="";
 
     /* get the entry from the database */
-    crv = (*keydb->db->sdb_GetPWEntry)(keydb->db, &entry);
+    crv = (*db->sdb_GetPWEntry)(db, &entry);
     if (crv != CKR_OK) {
 	rv = SECFailure;
 	goto loser;
@@ -1658,7 +2077,15 @@ sftkdb_CheckPassword(SFTKDBHandle *keydb, const char *pw)
      * return Success */
     if ((result->len == SFTK_PW_CHECK_LEN) &&
       PORT_Memcmp(result->data, SFTK_PW_CHECK_STRING, SFTK_PW_CHECK_LEN) == 0){
+	/* load the keys, so the keydb can parse it's key set */
 	sftkdb_switchKeys(keydb, &key);
+	if (keydb->update) {
+	    /* update the peer certdb if it exists */
+	    if (keydb->peerDB) {
+		sftkdb_update(keydb->peerDB, &key);
+	    }
+	    sftkdb_update(keydb, &key);
+	}
     } else {
         rv = SECFailure;
 	/*PORT_SetError( bad password); */
@@ -1816,7 +2243,6 @@ loser:
 /*
  * must be called with the old key active.
  */
-#define MAX_IDS 10
 SECStatus 
 sftkdb_convertPrivateObjects(SFTKDBHandle *keydb, SECItem *newKey)
 {
@@ -1866,6 +2292,16 @@ sftkdb_ChangePassword(SFTKDBHandle *keydb, char *oldPin, char *newPin)
     SECItem *result = NULL;
     SDBPasswordEntry entry;
     CK_RV crv;
+    SDB *db;
+
+    if (keydb == NULL) {
+	return SECFailure;
+    }
+
+    db = GET_SDB(keydb);
+    if (db == NULL) {
+	return SECFailure;
+    }
 
     newKey.data = NULL;
 
@@ -1875,7 +2311,7 @@ sftkdb_ChangePassword(SFTKDBHandle *keydb, char *oldPin, char *newPin)
 	rv = SECFailure;
 	goto loser;
     }
-    crv = (*keydb->db->sdb_GetPWEntry)(keydb->db, &entry);
+    crv = (*db->sdb_GetPWEntry)(db, &entry);
     if (crv == CKR_OK) {
 	rv = sftkdb_CheckPassword(keydb, oldPin);
 	if (rv == SECFailure) {
@@ -2037,6 +2473,8 @@ sftk_NewDBHandle(SDB *sdb, int type)
    SFTKDBHandle *handle = PORT_New(SFTKDBHandle);
    handle->ref = 1;
    handle->db = sdb;
+   handle->update = NULL;
+   handle->peerDB = NULL;
    handle->type = type;
    handle->passwordKey.data = NULL;
    handle->passwordKey.len = 0;
@@ -2069,8 +2507,61 @@ sftkdb_ResetKeyDB(SFTKDBHandle *handle)
     return SECSuccess;
 }
 
+static PRBool
+sftk_oldVersionExists(const char *dir, int version)
+{
+    int i;
+    PRStatus exists = PR_FAILURE;
+    char *file = NULL;
+
+    for (i=version; i > 1 ; i--) {
+	file = PR_smprintf("%s%d.db",dir,i);
+	if (file == NULL) {
+	    continue;
+	}
+	exists = PR_Access(file, PR_ACCESS_EXISTS);
+	PR_smprintf_free(file);
+	if (exists == PR_SUCCESS) {
+	    return PR_TRUE;
+	}
+    }
+    return PR_FALSE;
+}
+
+static PRBool
+sftk_hasLegacyDB(const char *confdir, const char *certPrefix, 
+		 const char *keyPrefix, int certVersion, int keyVersion)
+{
+    char *dir;
+    PRBool exists;
+
+    dir= PR_smprintf("%s/%scert", confdir, certPrefix);
+    if (dir == NULL) {
+	return PR_FALSE;
+    }
+
+    exists = sftk_oldVersionExists(dir, certVersion);
+    PR_smprintf_free(dir);
+    if (exists) {
+	return PR_TRUE;
+    }
+
+    dir= PR_smprintf("%s/%skey", confdir, keyPrefix);
+    if (dir == NULL) {
+	return PR_FALSE;
+    }
+
+    exists = sftk_oldVersionExists(dir, keyVersion);
+    PR_smprintf_free(dir);
+    return exists;
+}
+
 /*
- * initialize certificate and key database handles
+ * initialize certificate and key database handles as a pair.
+ *
+ * This function figures out what type of database we are opening and
+ * calls the appropriate low level function to open the database.
+ * It also figures out whether or not to setup up automatic update.
  */
 CK_RV 
 sftk_DBInit(const char *configdir, const char *certPrefix,
@@ -2084,6 +2575,8 @@ sftk_DBInit(const char *configdir, const char *certPrefix,
     SDB *keySDB, *certSDB;
     CK_RV crv = CKR_OK;
     int flags = SDB_RDONLY;
+    PRBool newInit = PR_FALSE;
+    PRBool needUpdate = PR_FALSE;
 
     if (!readOnly) {
 	flags = SDB_CREATE;
@@ -2109,10 +2602,31 @@ sftk_DBInit(const char *configdir, const char *certPrefix,
 	crv = sftkdbCall_open(configdir, certPrefix, keyPrefix, 8, 3, flags,
 		noCertDB? NULL : &certSDB, noKeyDB ? NULL: &keySDB);
 	break;
-    case SDB_SHARED:
-    case SDB_LOADABLE: /* SHOULD open a loadable db */
+    case SDB_SQL:
+    case SDB_EXTERN: /* SHOULD open a loadable db */
 	crv = s_open(confdir, certPrefix, keyPrefix, 9, 4, flags, 
-		noCertDB? NULL : &certSDB, noKeyDB ? NULL : &keySDB);
+		noCertDB? NULL : &certSDB, noKeyDB ? NULL : &keySDB, &newInit);
+
+        /*
+	 * if we failed to open the DB's read only, use the old ones if
+	 * the exists.
+	 */
+	if (crv != CKR_OK && (flags == SDB_RDONLY)) {
+	    if (sftk_hasLegacyDB(confdir, certPrefix, keyPrefix, 8, 3)) {
+	    /* we have legacy databases, if we failed to open the new format 
+	     * DB's read only, just use the legacy ones */
+		crv = sftkdbCall_open(confdir, certPrefix, 
+			keyPrefix, 8, 3, flags, noCertDB? NULL : &certSDB,
+			noKeyDB ? NULL : &keySDB);
+	    }
+	} else if (newInit && crv == CKR_OK) {
+	    /* if the new format DB was also a newly created DB, and we
+	     * succeeded, then need to update that new database with data
+	     * from the existing legacy DB */
+	    if (sftk_hasLegacyDB(confdir, certPrefix, keyPrefix, 8, 3)) {
+		needUpdate = 1;
+	    }
+	}
 	break;
     default:
 	crv = CKR_GENERAL_ERROR; /* can't happen, EvaluationConfigDir MUST 
@@ -2129,13 +2643,39 @@ sftk_DBInit(const char *configdir, const char *certPrefix,
     }
     if (!noKeyDB) {
 	*keyDB = sftk_NewDBHandle(keySDB, SFTK_KEYDB_TYPE);
-	if (certSDB) {
-	    certSDB->app_private = *keyDB;
-	}
     } else {
 	*keyDB = NULL;
     }
 
+    /* link them together */
+    if (*certDB) {
+	(*certDB)->peerDB = *keyDB;
+    }
+    if (*keyDB) {
+	(*keyDB)->peerDB = *certDB;
+    }
+
+    if (needUpdate) {
+	SDB *updateCert = NULL;
+	SDB *updateKey = NULL;
+	CK_RV crv2;
+
+	crv2 = sftkdbCall_open(confdir, certPrefix, keyPrefix, 8, 3, flags,
+		noCertDB ? NULL : &updateCert, noKeyDB ? NULL : &updateKey);
+	if (crv2 == CKR_OK) {
+	    if (*certDB) {
+		(*certDB)->update = updateCert;
+		updateCert->app_private = (*certDB);
+	    }
+	    if (*keyDB) {
+		(*keyDB)->update = updateKey;
+		updateKey->app_private = (*keyDB);
+	    } else {
+		/* we don't have a key DB, update the certificate DB now */
+		sftkdb_update(*certDB, NULL);
+	    }
+	}
+    }
 loser:
     if (appName) {
 	PORT_Free(appName);
@@ -2148,5 +2688,6 @@ sftkdb_Shutdown(void)
 {
   s_shutdown();
   sftkdbCall_Shutdown();
+  return CKR_OK;
 }
 

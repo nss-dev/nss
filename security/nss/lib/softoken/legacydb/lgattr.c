@@ -351,20 +351,15 @@ lg_getCert(LGObjectCache *obj, NSSLOWCERTCertDBHandle *certHandle)
 }
 
 static NSSLOWCERTTrust *
-lg_getTrust(LGObjectCache *obj)
+lg_getTrust(LGObjectCache *obj, NSSLOWCERTCertDBHandle *certHandle)
 {
     NSSLOWCERTTrust *trust;
-    NSSLOWCERTCertDBHandle *certHandle;
 
     if (obj->objclass != CKO_NETSCAPE_TRUST) {
 	return NULL;
     }
     if (obj->objectInfo) {
 	return (NSSLOWCERTTrust *)obj->objectInfo;
-    }
-    certHandle = lg_getCertDB(obj->sdb);
-    if (!certHandle) {
-	return NULL;
     }
     trust = nsslowcert_FindTrustByKey(certHandle, &obj->dbKey);
     obj->objectInfo = (void *)trust;
@@ -1086,8 +1081,11 @@ lg_FindTrustAttribute(LGObjectCache *obj, CK_ATTRIBUTE_TYPE type,
 				CK_ATTRIBUTE *attribute)
 {
     NSSLOWCERTTrust *trust;
+    NSSLOWCERTCertDBHandle *certHandle;
+    NSSLOWCERTCertificate *cert;
     unsigned char hash[SHA1_LENGTH];
     unsigned int trustFlags;
+    CK_RV crv;
 
     switch (type) {
     case CKA_PRIVATE:
@@ -1101,11 +1099,17 @@ lg_FindTrustAttribute(LGObjectCache *obj, CK_ATTRIBUTE_TYPE type,
     case CKA_TRUST_EMAIL_PROTECTION:
     case CKA_TRUST_CODE_SIGNING:
     case CKA_TRUST_STEP_UP_APPROVED:
+    case CKA_ISSUER:
+    case CKA_SERIAL_NUMBER:
 	break;
     default:
         return lg_invalidAttribute(attribute);
     }
-    trust = lg_getTrust(obj);
+    certHandle = lg_getCertDB(obj->sdb);
+    if (!certHandle) {
+	return CKR_OBJECT_HANDLE_INVALID;
+    }
+    trust = lg_getTrust(obj, certHandle);
     if (trust == NULL) {
 	return CKR_OBJECT_HANDLE_INVALID;
     }
@@ -1161,27 +1165,28 @@ trust:
 	break;
     }
 
-#ifdef notdef
+
     switch (type) {
     case CKA_ISSUER:
-	cert = lg_getCertObject(object);
+	cert = lg_getCert(obj, certHandle);
 	if (cert == NULL) break;
-	attr = lg_CopyAttribute(attribute,type,cert->derIssuer.data,
+	crv = lg_CopyAttribute(attribute,type,cert->derIssuer.data,
 						cert->derIssuer.len);
-	
+	break;
     case CKA_SERIAL_NUMBER:
-	cert = lg_getCertObject(object);
+	cert = lg_getCert(obj, certHandle);
 	if (cert == NULL) break;
-	item = SEC_ASN1EncodeItem(NULL,NULL,cert,lg_SerialTemplate);
-	if (item == NULL) break;
-	attr = lg_CopyAttribute(attribute, type, item->data, item->len);
-	SECITEM_FreeItem(item,PR_TRUE);
+	crv =  lg_CopyAttribute(attribute,type,cert->derSN.data,
+						cert->derSN.len);
+	break;
+    default:
+	cert = NULL;
+	break;
     }
     if (cert) {
-	NSSLOWCERTDestroyCertificate(cert);	
-	return attr;
+	nsslowcert_DestroyCertificate(cert);
+	return crv;
     }
-#endif
     return lg_invalidAttribute(attribute);
 }
 

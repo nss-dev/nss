@@ -518,8 +518,8 @@ sftk_freeParams(sftk_parameters *params)
     FREE_CLEAR(params->tokens);
 }
 
-#define SHAREDB "shared:"
-#define LOADABLE "load:"
+#define SQLDB "sql:"
+#define EXTERNDB "extern:"
 #define LEGACY "dbm:"
 const char *
 sftk_EvaluateConfigDir(const char *configdir, SDBType *dbType, char **appName)
@@ -543,12 +543,12 @@ sftk_EvaluateConfigDir(const char *configdir, SDBType *dbType, char **appName)
 	   cdir++;
 	}
 	configdir = cdir;
-    } else if (PORT_Strncmp(configdir, SHAREDB, sizeof(SHAREDB)-1) == 0) {
-	*dbType = SDB_SHARED;
-	configdir = configdir + sizeof(SHAREDB) -1;
-    } else if (PORT_Strncmp(configdir, LOADABLE, sizeof(LOADABLE)-1) == 0) {
-	*dbType = SDB_LOADABLE;
-	configdir = configdir + sizeof(LOADABLE) -1;
+    } else if (PORT_Strncmp(configdir, SQLDB, sizeof(SQLDB)-1) == 0) {
+	*dbType = SDB_SQL;
+	configdir = configdir + sizeof(SQLDB) -1;
+    } else if (PORT_Strncmp(configdir, EXTERNDB, sizeof(EXTERNDB)-1) == 0) {
+	*dbType = SDB_EXTERN;
+	configdir = configdir + sizeof(EXTERNDB) -1;
     } else if (PORT_Strncmp(configdir, LEGACY, sizeof(LEGACY)-1) == 0) {
 	*dbType = SDB_LEGACY;
 	configdir = configdir + sizeof(LEGACY) -1;
@@ -559,10 +559,10 @@ sftk_EvaluateConfigDir(const char *configdir, SDBType *dbType, char **appName)
 	    /* none specified, go with the legacy */
 	    return configdir;
 	}
-	if (PORT_Strncmp(defaultType, SHAREDB, sizeof(SHAREDB)-2) == 0) {
-	    *dbType = SDB_SHARED;
-	} else if (PORT_Strncmp(defaultType,LOADABLE,sizeof(LOADABLE)-2)==0) {
-	    *dbType = SDB_LOADABLE;
+	if (PORT_Strncmp(defaultType, SQLDB, sizeof(SQLDB)-2) == 0) {
+	    *dbType = SDB_SQL;
+	} else if (PORT_Strncmp(defaultType,EXTERNDB,sizeof(EXTERNDB)-2)==0) {
+	    *dbType = SDB_EXTERN;
 	} else if (PORT_Strncmp(defaultType, LEGACY, sizeof(LEGACY)-2) == 0) {
 	    *dbType = SDB_LEGACY;
 	}
@@ -572,7 +572,7 @@ sftk_EvaluateConfigDir(const char *configdir, SDBType *dbType, char **appName)
 
 char *
 sftk_getSecmodName(char *param, SDBType *dbType, char **appName,
-		   char **filename,PRBool *rw)
+		   char **filename, PRBool *rw)
 {
     int next;
     char *configdir = NULL;
@@ -597,9 +597,14 @@ sftk_getSecmodName(char *param, SDBType *dbType, char **appName,
 	if (secmodName) PORT_Free(secmodName);
 	secmodName = PORT_Strdup(SECMOD_DB);
    }
-   *filename = secmodName;
 
+   *filename = secmodName;
    lconfigdir = sftk_EvaluateConfigDir(configdir, dbType, appName);
+
+   /* only use the renamed secmod for legacy databases */
+   if ((*dbType != SDB_LEGACY) && (*dbType != SDB_MULTIACCESS)) {
+	secmodName="pkcs11.txt";
+   }
 
    if (lconfigdir) {
 	value = PR_smprintf("%s" PATH_SEPARATOR "%s",lconfigdir,secmodName);

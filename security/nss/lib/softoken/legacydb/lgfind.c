@@ -98,22 +98,22 @@ lg_addHandle(SDBFind *search, CK_OBJECT_HANDLE handle)
 /*
  * structure to collect key handles.
  */
-typedef struct lgCrlDataStr {
+typedef struct lgEntryDataStr {
     SDB *sdb;
     SDBFind *searchHandles;
     const CK_ATTRIBUTE *template;
     CK_ULONG templ_count;
-} lgCrlData;
+} lgEntryData;
 
 
 static SECStatus
 lg_crl_collect(SECItem *data, SECItem *key, certDBEntryType type, void *arg)
 {
-    lgCrlData *crlData;
+    lgEntryData *crlData;
     CK_OBJECT_HANDLE class_handle;
     SDB *sdb;
     
-    crlData = (lgCrlData *)arg;
+    crlData = (lgEntryData *)arg;
     sdb = crlData->sdb;
 
     class_handle = (type == certDBEntryTypeRevocation) ? LG_TOKEN_TYPE_CRL :
@@ -147,7 +147,7 @@ lg_searchCrls(SDB *sdb, SECItem *derSubject, PRBool isKrl,
 	    nsslowcert_DestroyDBEntry((certDBEntry *)crl);
 	}
     } else {
-	lgCrlData crlData;
+	lgEntryData crlData;
 
 	/* traverse */
 	crlData.sdb = sdb;
@@ -195,9 +195,11 @@ lg_key_collect(DBT *key, DBT *data, void *arg)
     NSSLOWKEYPrivateKey *privKey = NULL;
     SECItem tmpDBKey;
     SDB *sdb;
+    unsigned long classFlags;
     
     keyData = (lgKeyData *)arg;
     sdb = keyData->sdb;
+    classFlags = keyData->classFlags;
 
     tmpDBKey.data = key->data;
     tmpDBKey.len = key->size;
@@ -216,10 +218,11 @@ lg_key_collect(DBT *key, DBT *data, void *arg)
 	    privKey = nsslowkey_FindKeyByPublicKey(keyData->keyHandle, 
 					&tmpDBKey, keyData->sdb/*->password*/);
 	    if (privKey) {
-		haveMatch = isSecretKey(privKey) ?
-				(PRBool)(keyData->classFlags & LG_KEY) != 0:
-				(PRBool)(keyData->classFlags & 
-					      (LG_PRIVATE|LG_PUBLIC)) != 0;
+		/* turn off the unneeded class flags */
+		classFlags &= isSecretKey(privKey) ?  ~(LG_PRIVATE|LG_PUBLIC) :
+							~LG_KEY;
+		haveMatch = (PRBool)
+			((classFlags & (LG_KEY|LG_PRIVATE|LG_PUBLIC)) != 0);
 		nsslowkey_DestroyPrivateKey(privKey);
 	    }
 	} else {
@@ -240,15 +243,15 @@ lg_key_collect(DBT *key, DBT *data, void *arg)
 	    }
 	}
 	if (haveMatch) {
-	    if (keyData->classFlags & LG_PRIVATE)  {
+	    if (classFlags & LG_PRIVATE)  {
 		lg_addHandle(keyData->searchHandles,
 			lg_mkHandle(sdb,&tmpDBKey,LG_TOKEN_TYPE_PRIV));
 	    }
-	    if (keyData->classFlags & LG_PUBLIC) {
+	    if (classFlags & LG_PUBLIC) {
 		lg_addHandle(keyData->searchHandles,
 			lg_mkHandle(sdb,&tmpDBKey,LG_TOKEN_TYPE_PUB));
 	    }
-	    if (keyData->classFlags & LG_KEY) {
+	    if (classFlags & LG_KEY) {
 		lg_addHandle(keyData->searchHandles,
 			lg_mkHandle(sdb,&tmpDBKey,LG_TOKEN_TYPE_KEY));
 	    }
@@ -263,20 +266,20 @@ lg_key_collect(DBT *key, DBT *data, void *arg)
     }
 
     if (isSecretKey(privKey)) {
-	if ((keyData->classFlags & LG_KEY) && 
+	if ((classFlags & LG_KEY) && 
 		lg_tokenMatch(keyData->sdb, &tmpDBKey, LG_TOKEN_TYPE_KEY,
 			keyData->template, keyData->templ_count)) {
 	    lg_addHandle(keyData->searchHandles,
 		lg_mkHandle(keyData->sdb, &tmpDBKey, LG_TOKEN_TYPE_KEY));
 	}
     } else {
-	if ((keyData->classFlags & LG_PRIVATE) && 
+	if ((classFlags & LG_PRIVATE) && 
 		lg_tokenMatch(keyData->sdb, &tmpDBKey, LG_TOKEN_TYPE_PRIV,
 			keyData->template, keyData->templ_count)) {
 	    lg_addHandle(keyData->searchHandles,
 		lg_mkHandle(keyData->sdb,&tmpDBKey,LG_TOKEN_TYPE_PRIV));
 	}
-	if ((keyData->classFlags & LG_PUBLIC) && 
+	if ((classFlags & LG_PUBLIC) && 
 		lg_tokenMatch(keyData->sdb, &tmpDBKey, LG_TOKEN_TYPE_PUB,
 			keyData->template, keyData->templ_count)) {
 	    lg_addHandle(keyData->searchHandles,
@@ -579,6 +582,23 @@ lg_searchCertsAndTrust(SDB *sdb, SECItem *derCert, SECItem *name,
     return;
 }
 
+static SECStatus
+lg_smime_collect(SECItem *data, SECItem *key, certDBEntryType type, void *arg)
+{
+    lgEntryData *smimeData;
+    SDB *sdb;
+    
+    smimeData = (lgEntryData *)arg;
+    sdb = smimeData->sdb;
+
+    if (lg_tokenMatch(sdb, key, LG_TOKEN_TYPE_SMIME,
+			smimeData->template, smimeData->templ_count)) {
+	lg_addHandle(smimeData->searchHandles,
+				 lg_mkHandle(sdb,key,LG_TOKEN_TYPE_SMIME));
+    }
+    return(SECSuccess);
+}
+
 static void
 lg_searchSMime(SDB *sdb, SECItem *email, SDBFind *handles, 
 			const CK_ATTRIBUTE *pTemplate, CK_LONG ulCount)
@@ -610,6 +630,17 @@ lg_searchSMime(SDB *sdb, SECItem *email, SDBFind *handles,
 	    nsslowcert_DestroyDBEntry((certDBEntry *)entry);
 	}
 	PORT_Free(tmp_name);
+    } else {
+	/* traverse */
+	lgEntryData smimeData;
+
+	/* traverse */
+	smimeData.sdb = sdb;
+	smimeData.searchHandles = handles;
+	smimeData.template = pTemplate;
+	smimeData.templ_count = ulCount;
+	nsslowcert_TraverseDBEntries(certHandle, certDBEntryTypeSMimeProfile,
+		lg_smime_collect, (void *)&smimeData);
     }
     return;
 }

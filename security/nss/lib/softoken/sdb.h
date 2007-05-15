@@ -104,7 +104,7 @@ struct SDBPasswordEntryStr {
 CK_RV s_open(const char *directory, const char *certPrefix, 
 	     const char *keyPrefix,
 	     int cert_version, int key_version, 
-	     int flags, SDB **certdb, SDB **keydb);
+	     int flags, SDB **certdb, SDB **keydb, int *newInit);
 CK_RV s_shutdown();
 
 /* flags */

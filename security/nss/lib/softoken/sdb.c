@@ -136,7 +136,7 @@ static const CK_ATTRIBUTE_TYPE known_attributes[] = {
     CKA_NETSCAPE_DB, CKA_NETSCAPE_TRUST
 };
 
-int known_attributes_size= sizeof(known_attributes)/
+static int known_attributes_size= sizeof(known_attributes)/
 			   sizeof(known_attributes[0]);
 
 /* Magic for an explicit NULL. NOTE: ideally this should be
@@ -627,7 +627,60 @@ loser:
     return error;
 }
 
-static CK_OBJECT_HANDLE next_obj = 0;
+/*
+ * check to see if a candidate object handle already exists.
+ */
+static PRBool
+sdb_objectExists(SDB *sdb, CK_OBJECT_HANDLE candidate)
+{
+    CK_RV crv;
+    CK_ATTRIBUTE template = { CKA_LABEL, NULL, 0 };
+
+    crv = sdb_GetAttributeValue(sdb,candidate,&template, 1);
+    if (crv == CKR_OBJECT_HANDLE_INVALID) {
+	return PR_FALSE;
+    }
+    return PR_TRUE;
+}
+
+/*
+ * if we're here, we are in a transaction, so it's safe
+ * to examine the current state of the database
+ */
+static CK_OBJECT_HANDLE
+sdb_getObjectId(SDB *sdb)
+{
+    CK_OBJECT_HANDLE candidate;
+    static CK_OBJECT_HANDLE next_obj = CK_INVALID_HANDLE;
+    int count;
+    /*
+     * get an initial object handle to use
+     */
+    if (next_obj == CK_INVALID_HANDLE) {
+        PRTime time;
+	time = PR_Now();
+
+	next_obj = (CK_OBJECT_HANDLE)(time & 0x3fffffffL);
+    }
+    candidate = next_obj++;
+    /* detect that we've looped through all the handles... */
+    for (count = 0; count < 0x40000000; count++, candidate = next_obj++) {
+	/* mask off excess bits */
+	candidate &= 0x3fffffff;
+	/* if we hit zero, go to the next entry */
+	if (candidate == CK_INVALID_HANDLE) {
+	    continue;
+	}
+	/* make sure we aren't already using */
+	if (!sdb_objectExists(sdb, candidate)) {
+	    /* this one is free */
+	    return candidate;
+	}
+    }
+
+    /* no handle is free, fail */
+    return CK_INVALID_HANDLE;
+}
 
 #define CREATE_CMD "INSERT INTO %s (id%s) VALUES($ID%s);"
 CK_RV
@@ -642,6 +695,7 @@ sdb_CreateObject(SDB *sdb, CK_OBJECT_HANDLE *object_id,
     char *newStr = NULL;
     int sqlerr = SQLITE_OK;
     CK_RV error = CKR_OK;
+    CK_OBJECT_HANDLE this_object;
     int retry = 0;
     int i;
 
@@ -650,17 +704,19 @@ sdb_CreateObject(SDB *sdb, CK_OBJECT_HANDLE *object_id,
     }
 
     LOCK_SQLITE()  
-    /* This needs to get the next object ID from the database */
-    /* SDB_FIX_ME reviewers don't let this code through as is */
-    if (next_obj == 0) {
-        PRTime time;
-	time = PR_Now();
-
-	next_obj = (CK_ULONG)(time & 0x3ffffffL);
+    if ((*object_id != CK_INVALID_HANDLE) && 
+		!sdb_objectExists(sdb, *object_id)) {
+	this_object = *object_id;
+    } else {
+	this_object = sdb_getObjectId(sdb);
+    }
+    if (this_object == CK_INVALID_HANDLE) {
+	UNLOCK_SQLITE();
+	return CKR_HOST_MEMORY;
     }
     columnStr = sqlite3_mprintf("");
     valueStr = sqlite3_mprintf("");
-    *object_id = next_obj++;
+    *object_id = this_object;
     for (i=0; columnStr && valueStr && i < count; i++) {
    	newStr = sqlite3_mprintf("%s,a%x", columnStr, template[i].type);
 	sqlite3_free(columnStr);
@@ -1186,7 +1242,7 @@ static int tableExists(sqlite3 *sqlDB, const char *tableName)
 
 CK_RV 
 sdb_init(char *dbname, char *table, sdbDataType type, int *inUpdate,
-	 int *needUpdate, int flags, SDB **pSdb)
+	 int *newInit, int flags, SDB **pSdb)
 {
     int i;
     char *initStr = NULL;
@@ -1231,6 +1287,7 @@ sdb_init(char *dbname, char *table, sdbDataType type, int *inUpdate,
 	inTransaction = 1;
     }
     if (!tableExists(sqlDB,table)) {
+	*newInit = 1;
 	if (flags != SDB_CREATE) {
 	    error = sdb_mapSQLError(type, SQLITE_CANTOPEN);
 	    goto loser;
@@ -1272,7 +1329,7 @@ sdb_init(char *dbname, char *table, sdbDataType type, int *inUpdate,
     sdb_p->sqlXactDB = NULL;
     sdb_p->sqlXactThread = NULL;
     sdb->private = sdb_p;
-    sdb->sdb_type = SDB_SHARED;
+    sdb->sdb_type = SDB_SQL;
     sdb->sdb_flags = flags;
     sdb->sdb_FindObjectsInit = sdb_FindObjectsInit;
     sdb->sdb_FindObjects = sdb_FindObjects;
@@ -1342,17 +1399,18 @@ static char *sdb_BuildFileName(const char * directory,
 CK_RV
 s_open(const char *directory, const char *certPrefix, const char *keyPrefix,
 	int cert_version, int key_version, int flags, 
-	SDB **certdb, SDB **keydb)
+	SDB **certdb, SDB **keydb, int *newInit)
 {
     char *cert = sdb_BuildFileName(directory, certPrefix,
 				   "cert", cert_version, flags);
     char *key = sdb_BuildFileName(directory, keyPrefix,
 				   "key", key_version, flags);
     CK_RV error = CKR_OK;
-    int inUpdate, needUpdate;
+    int inUpdate;
 
     *certdb = NULL;
     *keydb = NULL;
+    *newInit = 0;
 
 #ifdef SQLITE_UNSAFE_THREADS
     if (sqlite_lock == NULL) {
@@ -1370,7 +1428,7 @@ s_open(const char *directory, const char *certPrefix, const char *keyPrefix,
     if (certdb) {
 	/* initialize Certificate database */
 	error = sdb_init(cert, "nssPublic", SDB_CERT, &inUpdate,
-			 &needUpdate, flags, certdb);
+			 newInit, flags, certdb);
 	if (error != CKR_OK) {
 	    goto loser;
 	}
@@ -1387,7 +1445,7 @@ s_open(const char *directory, const char *certPrefix, const char *keyPrefix,
     if (keydb) {
 	/* initialize the Key database */
 	error = sdb_init(key, "nssPrivate", SDB_KEY, &inUpdate, 
-			&needUpdate, flags, keydb);
+			newInit, flags, keydb);
 	if (error != CKR_OK) {
 	    goto loser;
 	} 

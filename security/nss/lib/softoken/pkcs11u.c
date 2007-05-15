@@ -815,7 +815,8 @@ sftk_PutObjectToList(SFTKObject *object, SFTKObjectFreeList *list,
      */
     PRBool optimizeSpace = isSessionObject && 
 				((SFTKSessionObject *)object)->optimizeSpace; 
-    if (!optimizeSpace && (list->count < MAX_OBJECT_LIST_SIZE)) {
+    if (object->refLock && !optimizeSpace 
+	               && (list->count < MAX_OBJECT_LIST_SIZE)) {
 	PZ_Lock(list->lock);
 	object->next = list->head;
 	list->head = object;
@@ -1805,18 +1806,18 @@ sftk_addHandle(SFTKSearchResults *search, CK_OBJECT_HANDLE handle)
     search->size++;
 }
 
-static  CK_OBJECT_CLASS
-handleToClass(SFTKSlot *slot, CK_OBJECT_HANDLE handle)
+static  CK_RV
+handleToClass(SFTKSlot *slot, CK_OBJECT_HANDLE handle, 
+	      CK_OBJECT_CLASS *objClass)
 {
    SFTKDBHandle *dbHandle = sftk_getDBForObject(slot, handle);
    CK_ATTRIBUTE objClassTemplate;
-   CK_OBJECT_CLASS objClass = CKO_DATA;
+   *objClass = CKO_DATA;
 
    objClassTemplate.type = CKA_CLASS;
-   objClassTemplate.pValue = &objClass;
-   objClassTemplate.ulValueLen = sizeof(objClass);
-   sftkdb_GetAttributeValue(dbHandle, handle, &objClassTemplate, 1);
-   return objClass;
+   objClassTemplate.pValue = objClass;
+   objClassTemplate.ulValueLen = sizeof(*objClass);
+   return sftkdb_GetAttributeValue(dbHandle, handle, &objClassTemplate, 1);
 }
 
 SFTKObject *
@@ -1825,6 +1826,7 @@ sftk_NewTokenObject(SFTKSlot *slot, SECItem *dbKey, CK_OBJECT_HANDLE handle)
     SFTKObject *object = NULL;
     SFTKTokenObject *tokObject = NULL;
     PRBool hasLocks = PR_FALSE;
+    CK_RV crv;
 
     object = sftk_GetObjectFromList(&hasLocks, PR_FALSE, &tokenObjectList,  0,
 							PR_FALSE);
@@ -1833,8 +1835,13 @@ sftk_NewTokenObject(SFTKSlot *slot, SECItem *dbKey, CK_OBJECT_HANDLE handle)
     }
     tokObject = (SFTKTokenObject *) object;
 
-    object->objclass = handleToClass(slot, handle);
     object->handle = handle;
+    /* every object must have a class, if we can't get it, the object
+     * doesn't exist */
+    crv = handleToClass(slot, handle, &object->objclass);
+    if (crv != CKR_OK) {
+	goto loser;
+    }
     object->slot = slot;
     object->objectInfo = NULL;
     object->infoFree = NULL;

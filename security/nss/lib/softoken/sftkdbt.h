@@ -8,8 +8,8 @@
 typedef struct SFTKDBHandleStr SFTKDBHandle;
 
 typedef enum {
-   SDB_SHARED,
-   SDB_LOADABLE,
+   SDB_SQL,
+   SDB_EXTERN,
    SDB_LEGACY,
    SDB_MULTIACCESS
 } SDBType;
