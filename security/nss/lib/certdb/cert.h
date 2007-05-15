@@ -731,16 +731,6 @@ extern SECStatus
 CERT_DecodeCertPackage(char *certbuf, int certlen, CERTImportCertificateFunc f,
 		       void *arg);
 
-/*
-** Pretty print a certificate in HTML
-**	"cert" is the certificate to print
-**	"showImages" controls whether or not to use about:security URLs
-**		for subject and issuer images.  This should only be true
-**		in the browser.
-*/
-extern char *CERT_HTMLCertInfo(CERTCertificate *cert, PRBool showImages,
-			       PRBool showIssuer);
-
 /* 
 ** Returns the value of an AVA.  This was a formerly static 
 ** function that has been exposed due to the need to decode
