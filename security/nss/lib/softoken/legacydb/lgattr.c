@@ -1531,7 +1531,8 @@ done:
 
 static CK_RV
 lg_SetPrivateKeyAttribute(LGObjectCache *obj, CK_ATTRIBUTE_TYPE type, 
-					const void *value, unsigned int len)
+			const void *value, unsigned int len, 
+			PRBool *writePrivate)
 {
     NSSLOWKEYPrivateKey *privKey;
     NSSLOWKEYDBHandle   *keyHandle;
@@ -1550,28 +1551,45 @@ lg_SetPrivateKeyAttribute(LGObjectCache *obj, CK_ATTRIBUTE_TYPE type,
 	crv = CKR_TOKEN_WRITE_PROTECTED;
 	goto done;
     }
-    if (type != CKA_LABEL) {
-	crv = CKR_ATTRIBUTE_READ_ONLY;
-	goto done;
-    }
 
     privKey = lg_GetPrivateKeyWithDB(obj, keyHandle);
     if (privKey == NULL) {
 	crv = CKR_OBJECT_HANDLE_INVALID;
 	goto done;
     }
-    if (value != NULL) {
-	nickname = PORT_ZAlloc(len+1);
-	if (nickname == NULL) {
-	    crv = CKR_HOST_MEMORY;
-	    goto done;
+
+    crv = CKR_ATTRIBUTE_READ_ONLY;
+    switch(type) {
+    case CKA_LABEL:
+	if (value != NULL) {
+	    nickname = PORT_ZAlloc(len+1);
+	    if (nickname == NULL) {
+		crv = CKR_HOST_MEMORY;
+		goto done;
+	    }
+	    PORT_Memcpy(nickname,value,len);
+	    nickname[len] = 0;
 	}
-	PORT_Memcpy(nickname,value,len);
-	nickname[len] = 0;
-    }
-    rv = nsslowkey_UpdateNickname(keyHandle, privKey, &obj->dbKey, 
+	rv = nsslowkey_UpdateNickname(keyHandle, privKey, &obj->dbKey, 
 					nickname, obj->sdb);
-    crv = (rv == SECSuccess) ? CKR_OK :  CKR_DEVICE_ERROR;
+	crv = (rv == SECSuccess) ? CKR_OK :  CKR_DEVICE_ERROR;
+	break;
+    case CKA_VALUE:
+    case CKA_PRIVATE_EXPONENT:
+    case CKA_PRIME_1:
+    case CKA_PRIME_2:
+    case CKA_EXPONENT_1:
+    case CKA_EXPONENT_2:
+    case CKA_COEFFICIENT:
+	/* We aren't really changing these values, we are just triggering
+	 * the database to update it's entry */
+	*writePrivate = 1;
+	crv = CKR_OK;
+	break;
+    default:
+	crv = CKR_ATTRIBUTE_READ_ONLY;
+	break;
+    }
 done:
     if (nickname) {
 	PORT_Free(nickname);
@@ -1639,7 +1657,8 @@ done:
 }
 
 static CK_RV
-lg_SetSingleAttribute(LGObjectCache *obj, const CK_ATTRIBUTE *attr)
+lg_SetSingleAttribute(LGObjectCache *obj, const CK_ATTRIBUTE *attr, 
+		      PRBool *writePrivate)
 {
     CK_ATTRIBUTE attribLocal;
     CK_RV crv;
@@ -1678,7 +1697,7 @@ lg_SetSingleAttribute(LGObjectCache *obj, const CK_ATTRIBUTE *attr)
     case CKO_PRIVATE_KEY:
     case CKO_SECRET_KEY:
 	crv = lg_SetPrivateKeyAttribute(obj,attr->type,
-					attr->pValue,attr->ulValueLen);
+			attr->pValue,attr->ulValueLen, writePrivate);
 	break;
     }
     return crv;
@@ -1693,6 +1712,7 @@ lg_SetAttributeValue(SDB *sdb, CK_OBJECT_HANDLE handle,
 {
     LGObjectCache *obj = lg_NewObjectCache(sdb, NULL, handle & ~LG_TOKEN_MASK);
     CK_RV crv, crvCollect = CKR_OK;
+    PRBool writePrivate = PR_FALSE;
     int i;
 
     if (obj == NULL) {
@@ -1700,8 +1720,24 @@ lg_SetAttributeValue(SDB *sdb, CK_OBJECT_HANDLE handle,
     }
 
     for (i=0; i < count; i++) {
-	crv = lg_SetSingleAttribute(obj, &templ[i]);
+	crv = lg_SetSingleAttribute(obj, &templ[i], &writePrivate);
 	if (crvCollect == CKR_OK) crvCollect = crv;
+    }
+
+    /* Write any collected changes out for private and secret keys.
+     *  don't do the write for just the label */
+    if (writePrivate) {
+	NSSLOWKEYPrivateKey *privKey = lg_GetPrivateKey(obj);
+	SECStatus rv = SECFailure;
+	char * label = lg_FindKeyNicknameByPublicKey(obj->sdb, &obj->dbKey);
+
+	if (privKey) {
+	    rv = nsslowkey_StoreKeyByPublicKey(lg_getKeyDB(sdb), privKey, 
+		&obj->dbKey, label, sdb );
+	}
+	if (rv != SECSuccess) {
+	    crv = CKR_DEVICE_ERROR;
+	}
     }
 
     lg_DestroyObjectCache(obj);

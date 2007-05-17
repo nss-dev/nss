@@ -133,7 +133,7 @@ static const CK_ATTRIBUTE_TYPE known_attributes[] = {
     CKA_TRUST_EMAIL_PROTECTION, CKA_TRUST_IPSEC_END_SYSTEM,
     CKA_TRUST_IPSEC_TUNNEL, CKA_TRUST_IPSEC_USER, CKA_TRUST_TIME_STAMPING,
     CKA_TRUST_STEP_UP_APPROVED, CKA_CERT_SHA1_HASH, CKA_CERT_MD5_HASH,
-    CKA_NETSCAPE_DB, CKA_NETSCAPE_TRUST
+    CKA_NETSCAPE_DB, CKA_NETSCAPE_TRUST, CKA_NSS_OVERRIDE_EXTENSIONS
 };
 
 static int known_attributes_size= sizeof(known_attributes)/
@@ -511,7 +511,7 @@ loser:
     if (newStr) {
 	sqlite3_free(newStr);
     }
-    /* fix up the error is necessary */
+    /* fix up the error if necessary */
     if (error == CKR_OK) {
 	error = sdb_mapSQLError(sdb_p->type, sqlerr);
 	if (!found && error == CKR_OK) {
@@ -1058,7 +1058,7 @@ sdb_GetPWEntry(SDB *sdb, SDBPasswordEntry *entry)
     } while (!sdb_done(sqlerr,&retry));
 
 loser:
-    /* fix up the error is necessary */
+    /* fix up the error if necessary */
     if (error == CKR_OK) {
 	error = sdb_mapSQLError(sdb_p->type, sqlerr);
 	if (!found && error == CKR_OK) {
@@ -1126,7 +1126,7 @@ sdb_PutPWEntry(SDB *sdb, SDBPasswordEntry *entry)
     } while (!sdb_done(sqlerr,&retry));
 
 loser:
-    /* fix up the error is necessary */
+    /* fix up the error if necessary */
     if (error == CKR_OK) {
 	error = sdb_mapSQLError(sdb_p->type, sqlerr);
     }
@@ -1181,7 +1181,7 @@ sdb_Reset(SDB *sdb)
                           NULL, 0, NULL);
 
 loser:
-    /* fix up the error is necessary */
+    /* fix up the error if necessary */
     if (error == CKR_OK) {
 	error = sdb_mapSQLError(sdb_p->type, sqlerr);
     }
@@ -1391,7 +1391,7 @@ static char *sdb_BuildFileName(const char * directory,
 {
     char *dbname = NULL;
     /* build the full dbname */
-    dbname = sqlite3_mprintf("%s/%s%s%d.sdb",directory, prefix, type, version);
+    dbname = sqlite3_mprintf("%s/%s%s%d.db",directory, prefix, type, version);
     return dbname;
 }
 

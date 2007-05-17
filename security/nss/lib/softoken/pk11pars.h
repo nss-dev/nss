@@ -85,7 +85,7 @@ static struct secmodargSlotFlagTable secmod_argSlotFlagTable[] = {
 	SECMOD_ARG_ENTRY(SSL,SECMOD_SSL_FLAG),
 	SECMOD_ARG_ENTRY(TLS,SECMOD_TLS_FLAG),
 	SECMOD_ARG_ENTRY(AES,SECMOD_AES_FLAG),
-	SECMOD_ARG_ENTRY(Camellia,SECMOD_AES_FLAG),
+	SECMOD_ARG_ENTRY(Camellia,SECMOD_CAMELLIA_FLAG),
 	SECMOD_ARG_ENTRY(PublicCerts,SECMOD_FRIENDLY_FLAG),
 	SECMOD_ARG_ENTRY(RANDOM,SECMOD_RANDOM_FLAG),
 };
@@ -93,6 +93,7 @@ static struct secmodargSlotFlagTable secmod_argSlotFlagTable[] = {
 #define SECMOD_HANDLE_STRING_ARG(param,target,value,command) \
     if (PORT_Strncasecmp(param,value,sizeof(value)-1) == 0) { \
 	param += sizeof(value)-1; \
+	if (target) PORT_Free(target); \
 	target = secmod_argFetchValue(param,&next); \
 	param += next; \
 	command ;\

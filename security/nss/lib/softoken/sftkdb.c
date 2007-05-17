@@ -73,6 +73,7 @@ struct SFTKDBHandleStr {
     PRInt32 ref;
     CK_OBJECT_HANDLE  type;
     SECItem passwordKey;
+    SECItem *newKey;
     PZLock *passwordLock;
     SFTKDBHandle *peerDB;
     SDB   *update;
@@ -1697,7 +1698,10 @@ sftkdb_encrypt_stub(PRArenaPool *arena, SDB *sdb, SECItem *plainText,
 	/* PORT_SetError */
 	return SECFailure;
     }
-    rv = sftkdb_encrypt(arena, &handle->passwordKey, plainText, cipherText);
+
+    rv = sftkdb_encrypt(arena, 
+	handle->newKey?handle->newKey:&handle->passwordKey, 
+	plainText, cipherText);
     PZ_Unlock(handle->passwordLock);
 
     return rv;
@@ -1805,7 +1809,7 @@ static const CK_ATTRIBUTE_TYPE known_attributes[] = {
     CKA_TRUST_EMAIL_PROTECTION, CKA_TRUST_IPSEC_END_SYSTEM,
     CKA_TRUST_IPSEC_TUNNEL, CKA_TRUST_IPSEC_USER, CKA_TRUST_TIME_STAMPING,
     CKA_TRUST_STEP_UP_APPROVED, CKA_CERT_SHA1_HASH, CKA_CERT_MD5_HASH,
-    CKA_NETSCAPE_DB, CKA_NETSCAPE_TRUST
+    CKA_NETSCAPE_DB, CKA_NETSCAPE_TRUST, CKA_NSS_OVERRIDE_EXTENSIONS
 };
 
 static int known_attributes_size= sizeof(known_attributes)/
@@ -2198,6 +2202,7 @@ sftk_convertPrivateAttributes(SFTKDBHandle *keydb, CK_OBJECT_HANDLE id,
 	goto loser;
     }
 
+
     /*
      * STEP 2: read the encrypt the attributes with the new key.
      */
@@ -2218,11 +2223,14 @@ sftk_convertPrivateAttributes(SFTKDBHandle *keydb, CK_OBJECT_HANDLE id,
 	PORT_Memset(plainText.data, 0, plainText.len);
     }
 
+
     /*
      * STEP 3: write the newly encrypted attributes out directly
      */
     id &= SFTK_OBJ_ID_MASK;
+    keydb->newKey = newKey;
     crv = (*keydb->db->sdb_SetAttributeValue)(keydb->db, id, first, count);
+    keydb->newKey = NULL;
     if (crv != CKR_OK) {
         /* set error */
 	goto loser;
@@ -2328,6 +2336,7 @@ sftkdb_ChangePassword(SFTKDBHandle *keydb, char *oldPin, char *newPin)
 	goto loser;
     }
 
+
     /*
      * convert encrypted entries here.
      */
@@ -2335,6 +2344,7 @@ sftkdb_ChangePassword(SFTKDBHandle *keydb, char *oldPin, char *newPin)
     if (rv != SECSuccess) {
 	goto loser;
     }
+
 
     plainText.data = (unsigned char *)SFTK_PW_CHECK_STRING;
     plainText.len = SFTK_PW_CHECK_LEN;
@@ -2355,6 +2365,8 @@ sftkdb_ChangePassword(SFTKDBHandle *keydb, char *oldPin, char *newPin)
 	rv = SECFailure;
 	goto loser;
     }
+
+    keydb->newKey = NULL;
 
     sftkdb_switchKeys(keydb, &newKey);
 
@@ -2475,6 +2487,7 @@ sftk_NewDBHandle(SDB *sdb, int type)
    handle->db = sdb;
    handle->update = NULL;
    handle->peerDB = NULL;
+   handle->newKey = NULL;
    handle->type = type;
    handle->passwordKey.data = NULL;
    handle->passwordKey.len = 0;
