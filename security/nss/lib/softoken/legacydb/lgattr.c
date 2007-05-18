@@ -708,6 +708,9 @@ lg_FindSecretKeyAttribute(LGObjectCache *obj, CK_ATTRIBUTE_TYPE type,
 	crv = lg_CopyAttribute(attribute,type,label,PORT_Strlen(label));
 	PORT_Free(label);
 	return crv;
+    case CKA_ID:
+	return lg_CopyAttribute(attribute,type,obj->dbKey.data,
+						obj->dbKey.len);
     case CKA_KEY_TYPE:
     case CKA_VALUE_LEN:
     case CKA_VALUE:
