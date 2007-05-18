@@ -433,6 +433,7 @@ sftk_forceTokenAttribute(SFTKObject *object,CK_ATTRIBUTE_TYPE type,
     CK_ATTRIBUTE attribute;
     SFTKDBHandle *dbHandle = NULL;
     SFTKTokenObject *to = sftk_narrowToTokenObject(object);
+    CK_RV crv;
 
     PORT_Assert(to);
     if (to == NULL) {
@@ -445,8 +446,10 @@ sftk_forceTokenAttribute(SFTKObject *object,CK_ATTRIBUTE_TYPE type,
     attribute.pValue = value;
     attribute.ulValueLen = len;
 
-    return sftkdb_SetAttributeValue(dbHandle, object->handle,
+    crv = sftkdb_SetAttributeValue(dbHandle, object->handle,
 		&attribute, 1);
+    sftk_freeDB(dbHandle);
+    return crv;
 }
 	
 /*
@@ -1810,14 +1813,17 @@ static  CK_RV
 handleToClass(SFTKSlot *slot, CK_OBJECT_HANDLE handle, 
 	      CK_OBJECT_CLASS *objClass)
 {
-   SFTKDBHandle *dbHandle = sftk_getDBForObject(slot, handle);
-   CK_ATTRIBUTE objClassTemplate;
-   *objClass = CKO_DATA;
+    SFTKDBHandle *dbHandle = sftk_getDBForObject(slot, handle);
+    CK_ATTRIBUTE objClassTemplate;
+    CK_RV crv;
 
-   objClassTemplate.type = CKA_CLASS;
-   objClassTemplate.pValue = objClass;
-   objClassTemplate.ulValueLen = sizeof(*objClass);
-   return sftkdb_GetAttributeValue(dbHandle, handle, &objClassTemplate, 1);
+    *objClass = CKO_DATA;
+    objClassTemplate.type = CKA_CLASS;
+    objClassTemplate.pValue = objClass;
+    objClassTemplate.ulValueLen = sizeof(*objClass);
+    crv = sftkdb_GetAttributeValue(dbHandle, handle, &objClassTemplate, 1);
+    sftk_freeDB(dbHandle);
+    return crv;
 }
 
 SFTKObject *

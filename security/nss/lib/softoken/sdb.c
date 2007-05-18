@@ -64,6 +64,7 @@
 
 #include "prlock.h"
 
+#define SQLITE_THREAD_SHARE_DB 1
 #ifdef SQLITE_UNSAFE_THREADS
 /*
  * SQLite can be compiled to be thread safe or not.
@@ -218,6 +219,11 @@ sdb_mapSQLError(sdbDataType type, int sqlerr)
 static CK_RV 
 sdb_openDBLocal(SDBPrivate *sdb_p, sqlite3 **sqlDB)
 {
+#ifdef SQLITE_THREAD_SHARE_DB
+    *sqlDB = sdb_p->sqlXactDB;
+    return CKR_OK;
+#else
+    
     int sqlerr = SQLITE_OK;
     CK_RV error = CKR_OK;
 
@@ -258,6 +264,7 @@ loser:
 	*sqlDB = NULL;
     }
     return error;
+#endif
 }
 
 /* down with the local database, free it if we allocated it, otherwise
@@ -265,9 +272,11 @@ loser:
 static CK_RV 
 sdb_closeDBLocal(SDBPrivate *sdb_p, sqlite3 *sqlDB) 
 {
+#ifndef SQLITE_THREAD_SHARE_DB
    if (sdb_p->sqlXactDB != sqlDB) {
 	sqlite3_close(sqlDB);
    }
+#endif
    return CKR_OK;
 }
 
@@ -868,11 +877,15 @@ sdb_Begin(SDB *sdb)
 
 
     LOCK_SQLITE()  
+#ifdef SQLITE_THREAD_SHARE_DB
+    sqlDB = sdb_p->sqlXactDB;
+#else
     /* get a new version that we will use for the entire transaction */
     sqlerr = sqlite3_open(sdb_p->sqlDBName, &sqlDB);
     if (sqlerr != SQLITE_OK) {
 	goto loser;
     }
+#endif
 
     sqlerr = sqlite3_busy_timeout(sqlDB, 1000);
     if (sqlerr != CKR_OK) {
@@ -896,6 +909,7 @@ sdb_Begin(SDB *sdb)
 loser:
     error = sdb_mapSQLError(sdb_p->type, sqlerr);
 
+#ifndef SQLITE_THREAD_SHARE_DB
     /* we are starting a new transaction, 
      * and if we succeeded, then save this database for the rest of
      * our transaction */
@@ -914,6 +928,7 @@ loser:
 	    sqlite3_close(sqlDB);
 	}
     }
+#endif
 
     UNLOCK_SQLITE()  
     return error;
@@ -941,6 +956,7 @@ sdb_complete(SDB *sdb, const char *cmd)
     }
 
 
+#ifndef SQLITE_THREAD_SHARE_DB
     /* We must have a transation database, or we shouldn't have arrived here */
     PR_Lock(sdb_p->lock);
     PORT_Assert(sdb_p->sqlXactDB);
@@ -958,6 +974,9 @@ sdb_complete(SDB *sdb, const char *cmd)
 			      * safe to unlock */
     sdb_p->sqlXactThread = NULL; 
     PR_Unlock(sdb_p->lock);  
+#else
+    sqlDB = sdb_p->sqlXactDB;
+#endif
 
     sqlerr =sqlite3_prepare(sqlDB, cmd, -1, &stmt, NULL);
 
@@ -977,9 +996,11 @@ sdb_complete(SDB *sdb, const char *cmd)
 
     error = sdb_mapSQLError(sdb_p->type, sqlerr);
 
+#ifndef SQLITE_THREAD_SHARE_DB
     /* We just finished a transaction.
      * Free the database, and remove it from the list */
     sqlite3_close(sqlDB);
+#endif
 
     return error;
 }
@@ -1358,9 +1379,13 @@ sdb_init(char *dbname, char *table, sdbDataType type, int *inUpdate,
 	    PR_Sleep(5);
 	}
     }
+#ifdef SQLITE_THREAD_SHARE_DB
+    sdb_p->sqlXactDB = sqlDB;
+#else
     /* sqlite3 cannot share sqlDB references across threads, open the
      * db only when we need to read or update it (sigh) */
     sqlite3_close(sqlDB);
+#endif
 
     *pSdb = sdb;
     UNLOCK_SQLITE();

@@ -3610,6 +3610,18 @@ CK_RV NSC_GetAttributeValue(CK_SESSION_HANDLE hSession,
         return CKR_SESSION_HANDLE_INVALID;
     }
 
+    /* short circuit everything for token objects */
+    if (sftk_isToken(hObject)) {
+	SFTKSlot *slot = sftk_SlotFromSession(session);
+	SFTKDBHandle *dbHandle = sftk_getDBForObject(slot, hObject);
+
+	crv = sftkdb_GetAttributeValue(dbHandle, hObject, pTemplate, ulCount);
+
+	sftk_FreeSession(session);
+	sftk_freeDB(dbHandle);
+	return crv;
+    }
+	
     object = sftk_ObjectFromHandle(hObject,session);
     sftk_FreeSession(session);
     if (object == NULL) {

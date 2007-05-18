@@ -557,9 +557,39 @@ sftkdb_GetAttributeValue(SFTKDBHandle *handle, CK_OBJECT_HANDLE object_id,
     CK_ATTRIBUTE *ntemplate;
     unsigned char *data = NULL;
     SDB *db;
+    int i;
 
     if (handle == NULL) {
 	return CKR_GENERAL_ERROR;
+    }
+
+    /* short circuit common attributes */
+    if (count == 1 && 
+	  (template[0].type == CKA_TOKEN || 
+	   template[0].type == CKA_PRIVATE ||
+	   template[0].type == CKA_SENSITIVE)) {
+	CK_BBOOL boolVal = CK_TRUE;
+
+	if (template[0].pValue == NULL) {
+	    template[0].ulValueLen = sizeof(CK_BBOOL);
+	    return CKR_OK;
+	}
+	if (template[0].ulValueLen < sizeof(CK_BBOOL)) {
+	    template[0].ulValueLen = -1;
+	    return CKR_BUFFER_TOO_SMALL;
+	}
+
+	if ((template[0].type == CKA_PRIVATE) &&
+    				(handle->type != SFTK_KEYDB_TYPE)) {
+	    boolVal = CK_FALSE;
+	}
+	if ((template[0].type == CKA_SENSITIVE) &&
+    				(handle->type != SFTK_KEYDB_TYPE)) {
+	    boolVal = CK_FALSE;
+	}
+	*(CK_BBOOL *)template[0].pValue = boolVal;
+	template[0].ulValueLen = sizeof(CK_BBOOL);
+	return CKR_OK;
     }
 
     db = GET_SDB(handle);
