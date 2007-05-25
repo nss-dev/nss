@@ -3724,9 +3724,9 @@ CERT_VerifyOCSPResponseSignature(CERTOCSPResponse *response,
         rv = SECSuccess;
     } else {
         if (CERT_IsCACert(signerCert, NULL)) {
-            rv = CERT_VerifyCACertForUsage(handle, signerCert, PR_TRUE,
-                                           certUsageStatusResponder,
-                                           producedAt, pwArg, NULL);
+            rv = CERT_VerifyCert(handle, signerCert, PR_TRUE,
+                                 certUsageVerifyCA,
+                                 producedAt, pwArg, NULL);
         } else {
             rv = CERT_VerifyCert(handle, signerCert, PR_TRUE,
                                  certUsageStatusResponder,
