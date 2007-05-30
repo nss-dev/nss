@@ -206,8 +206,10 @@ ocsp_iopr_run() {
             if [ -z "`echo $ocspTestType | grep -i ocsp`" ]; then
                 continue
             fi
+
             ocsp_iopr $ocspTestType ${IOPR_HOSTADDR} \
                 ${IOPR_OCSP_CLIENTDIR}_${IOPR_HOSTADDR}
+
         done
         echo "================================================"
         echo "Done testing ocsp interoperability with $IOPR_HOSTADDR"

@@ -1212,7 +1212,8 @@ nssdone:
     }
 
     if (handle != NULL) {
-	(void) CERT_DisableOCSPChecking (handle);
+ 	CERT_DisableOCSPDefaultResponder(handle);        
+ 	CERT_DisableOCSPChecking (handle);
     }
 
     if (NSS_Shutdown () != SECSuccess) {

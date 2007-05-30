@@ -75,6 +75,9 @@ cert_init()
       cd ../common
       . ./init.sh
   fi
+  if [ -z "${IOPR_CERT_SOURCED}" ]; then                                        
+      . ../iopr/cert_iopr.sh                                                   
+  fi                                                                            
   SCRIPTNAME="cert.sh"
   CRL_GRP_DATE=`date "+%Y%m%d%H%M%SZ"`
   if [ -n "$NSS_ENABLE_ECC" ] ; then
@@ -1327,5 +1330,7 @@ fi
 if [ -n "$DO_DIST_ST" -a "$DO_DIST_ST" = "TRUE" ] ; then
     cert_stresscerts 
 fi
+
+cert_iopr_setup
 
 cert_cleanup
