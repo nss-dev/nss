@@ -3614,14 +3614,39 @@ CK_RV NSC_GetAttributeValue(CK_SESSION_HANDLE hSession,
     if (sftk_isToken(hObject)) {
 	SFTKSlot *slot = sftk_SlotFromSession(session);
 	SFTKDBHandle *dbHandle = sftk_getDBForObject(slot, hObject);
+	SFTKDBHandle *keydb = NULL;
+
+	if (dbHandle == NULL) {
+	    sftk_FreeSession(session);
+	    return CKR_OBJECT_HANDLE_INVALID;
+	}
 
 	crv = sftkdb_GetAttributeValue(dbHandle, hObject, pTemplate, ulCount);
 
+	/* make sure we don't export any sensitive information */
+	keydb = sftk_getKeyDB(slot);
+	if (dbHandle == keydb) {
+	    for (i=0; i < (int) ulCount; i++) {
+		if (sftk_isSensitive(pTemplate[i].type,CKO_PRIVATE_KEY)) {
+		    crv = CKR_ATTRIBUTE_SENSITIVE;
+		    if (pTemplate[i].pValue && (pTemplate[i].ulValueLen!= -1)){
+			PORT_Memset(pTemplate[i].pValue, 0, 
+					pTemplate[i].ulValueLen);
+		    }
+		    pTemplate[i].ulValueLen = -1;
+		}
+	    }
+	}
+
 	sftk_FreeSession(session);
 	sftk_freeDB(dbHandle);
+	if (keydb) {
+	    sftk_freeDB(keydb);
+	}
 	return crv;
     }
-	
+
+    /* handle the session object */
     object = sftk_ObjectFromHandle(hObject,session);
     sftk_FreeSession(session);
     if (object == NULL) {

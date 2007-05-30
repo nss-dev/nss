@@ -64,7 +64,6 @@
 
 #include "prlock.h"
 
-#define SQLITE_THREAD_SHARE_DB 1
 #ifdef SQLITE_UNSAFE_THREADS
 /*
  * SQLite can be compiled to be thread safe or not.
