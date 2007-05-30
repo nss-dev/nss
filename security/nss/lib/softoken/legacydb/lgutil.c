@@ -298,8 +298,9 @@ lg_freeHashItem(PLHashEntry* entry, PRIntn index, void *arg)
 CK_RV
 LG_ClearTokenKeyHashTable(SDB *sdb)
 {
+    PLHashTable *hashTable;
     lg_DBLock(sdb);
-    PLHashTable *hashTable= lg_GetHashTable(sdb);
+    hashTable= lg_GetHashTable(sdb);
     PL_HashTableEnumerateEntries(hashTable, lg_freeHashItem, NULL);
     lg_DBLock(sdb);
     return CKR_OK;

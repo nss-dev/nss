@@ -55,9 +55,6 @@
 #include "pkcs11t.h"
 #include "seccomon.h"
 #include <sqlite3.h>
-#include <errno.h>
-#include <sys/stat.h>
-#include <unistd.h>
 #include "prthread.h"
 #include "prio.h"
 #include "stdio.h"
@@ -425,7 +422,7 @@ sdb_FindObjectsFinal(SDB *sdb, SDBFind *sdbFind)
 
 #define GET_ATTRIBUTE_CMD "SELECT ALL %s FROM %s WHERE id=$ID;"
 CK_RV
-sdb_GetAttributeValue(SDB *sdb, CK_OBJECT_HANDLE object_id, 
+sdb_GetAttributeValueNoLock(SDB *sdb, CK_OBJECT_HANDLE object_id, 
 				CK_ATTRIBUTE *template, CK_ULONG count)
 {
     SDBPrivate *sdb_p = sdb->private;
@@ -439,11 +436,6 @@ sdb_GetAttributeValue(SDB *sdb, CK_OBJECT_HANDLE object_id,
     int retry = 0;
     int i;
 
-    if (count == 0) {
-	return CKR_OK;
-    }
-
-    LOCK_SQLITE()  
     getStr = sqlite3_mprintf("");
     for (i=0; getStr && i < count; i++) {
 	if (i==0) {
@@ -516,15 +508,23 @@ sdb_GetAttributeValue(SDB *sdb, CK_OBJECT_HANDLE object_id,
     } while (!sdb_done(sqlerr,&retry));
 
 loser:
-    if (newStr) {
-	sqlite3_free(newStr);
-    }
     /* fix up the error if necessary */
     if (error == CKR_OK) {
 	error = sdb_mapSQLError(sdb_p->type, sqlerr);
 	if (!found && error == CKR_OK) {
 	    error = CKR_OBJECT_HANDLE_INVALID;
 	}
+	if (error != CKR_OK) {
+	    printf("error %x sqlerr=%d\n", error, sqlerr);
+	    if (newStr) {
+		printf("cmd: %s\n",newStr);
+	    } else {
+		printf("cmd: FREED already\n");
+	    }
+	}
+    }
+    if (newStr) {
+	sqlite3_free(newStr);
     }
 
     if (stmt) {
@@ -536,8 +536,23 @@ loser:
     if (sqlDB) {
 	sdb_closeDBLocal(sdb_p, sqlDB) ;
     }
-    UNLOCK_SQLITE()  
     return error;
+}
+
+CK_RV
+sdb_GetAttributeValue(SDB *sdb, CK_OBJECT_HANDLE object_id, 
+				CK_ATTRIBUTE *template, CK_ULONG count)
+{
+    CK_RV crv;
+
+    if (count == 0) {
+	return CKR_OK;
+    }
+
+    LOCK_SQLITE()  
+    crv = sdb_GetAttributeValueNoLock(sdb, object_id, template, count);
+    UNLOCK_SQLITE()  
+    return crv;
 }
    
 #define SET_ATTRIBUTE_CMD "UPDATE %s SET %s WHERE id=$ID;"
@@ -644,7 +659,7 @@ sdb_objectExists(SDB *sdb, CK_OBJECT_HANDLE candidate)
     CK_RV crv;
     CK_ATTRIBUTE template = { CKA_LABEL, NULL, 0 };
 
-    crv = sdb_GetAttributeValue(sdb,candidate,&template, 1);
+    crv = sdb_GetAttributeValueNoLock(sdb,candidate,&template, 1);
     if (crv == CKR_OBJECT_HANDLE_INVALID) {
 	return PR_FALSE;
     }

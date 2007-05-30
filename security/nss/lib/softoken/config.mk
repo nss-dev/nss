@@ -43,10 +43,15 @@ ifdef MOZILLA_SECURITY_BUILD
 	CRYPTODIR=../crypto
 endif
 
+SQLITE_LIB = -lsqlite3
+ifdef BUILD_LOCAL_SQLITE
+    SQLITE_LIB = $(DIST)/lib/$(LIB_PREFIX)sqlite3.$(LIB_SUFFIX) 
+endif
+
 EXTRA_LIBS += \
 	$(CRYPTOLIB) \
 	$(DIST)/lib/$(LIB_PREFIX)secutil.$(LIB_SUFFIX) \
-	$(DIST)/lib/$(LIB_PREFIX)dbm.$(LIB_SUFFIX) \
+	$(SQLITE_LIB) \
 	$(NULL)
 
 # can't do this in manifest.mn because OS_TARGET isn't defined there.
@@ -81,7 +86,6 @@ else
 # $(EXTRA_SHARED_LIBS) come before $(OS_LIBS), except on AIX.
 EXTRA_SHARED_LIBS += \
 	-L$(NSPR_LIB_DIR) \
-	-lsqlite3 \
 	-lplc4 \
 	-lplds4 \
 	-lnspr4 \

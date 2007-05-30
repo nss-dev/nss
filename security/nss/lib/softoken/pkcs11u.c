@@ -832,8 +832,10 @@ sftk_PutObjectToList(SFTKObject *object, SFTKObjectFreeList *list,
 	PZ_DestroyLock(so->attributeLock);
 	so->attributeLock = NULL;
     }
-    PZ_DestroyLock(object->refLock);
-    object->refLock = NULL;
+    if (object->refLock) {
+	PZ_DestroyLock(object->refLock);
+	object->refLock = NULL;
+    }
     PORT_Free(object);
 }
 

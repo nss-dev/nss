@@ -917,7 +917,9 @@ char *sftk_getOldSecmodName(const char *dbname,const char *filename)
 #define SFTK_DEFAULT_INTERNAL_INIT2 " NSS=\"Flags=internal,critical trustOrder=75 cipherOrder=100 slotParams=(1={"
 #define SFTK_DEFAULT_INTERNAL_INIT3 " askpw=any timeout=30})\""
 
+#ifdef XP_UNIX
 #include <unistd.h>
+#endif
 /*
  * Read all the existing modules in out of the file.
  */
