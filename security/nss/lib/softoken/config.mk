@@ -43,9 +43,9 @@ ifdef MOZILLA_SECURITY_BUILD
 	CRYPTODIR=../crypto
 endif
 
-SQLITE_LIB = -lsqlite3
-ifdef BUILD_LOCAL_SQLITE
-    SQLITE_LIB = $(DIST)/lib/$(LIB_PREFIX)sqlite3.$(LIB_SUFFIX) 
+SQLITE_LIB = $(DIST)/lib/$(LIB_PREFIX)sqlite3.$(LIB_SUFFIX) 
+ifdef NSS_USE_SYTEM_SQLITE
+	SQLITE_LIB = -lsqlite3
 endif
 
 EXTRA_LIBS += \
