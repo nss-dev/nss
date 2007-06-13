@@ -484,6 +484,14 @@ lg_HashNumber(const void *key)
     return (PLHashNumber) key;
 }
 
+PRIntn
+lg_CompareValues(const void *v1, const void *v2)
+{
+    PLHashNumber value1 = (PLHashNumber) v1;
+    PLHashNumber value2 = (PLHashNumber) v2;
+    return (value1 == value2);
+}
+
 
 /*
  * helper function to wrap a NSSLOWCERTCertDBHandle or a NSSLOWKEYDBHandle
@@ -513,7 +521,7 @@ lg_init(SDB **pSdb, int flags, NSSLOWCERTCertDBHandle *certdbPtr,
     if (lgdb_p->dbLock == NULL) {
 	goto loser;
     }
-    lgdb_p->hashTable = PL_NewHashTable(64, lg_HashNumber, PL_CompareValues,
+    lgdb_p->hashTable = PL_NewHashTable(64, lg_HashNumber, lg_CompareValues,
 			SECITEM_HashCompare, NULL, 0);
     if (lgdb_p->hashTable == NULL) {
 	goto loser;
@@ -641,4 +649,5 @@ legacy_Shutdown(void)
 {
     nsslowcert_DestroyFreeLists();
     nsslowcert_DestroyGlobalLocks();
+    return CKR_OK;
 }
