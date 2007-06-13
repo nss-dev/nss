@@ -1436,6 +1436,7 @@ nsslowkey_PutPWCheckEntry(NSSLOWKEYDBHandle *handle,SDBPasswordEntry *entry)
     SECOidTag algid;
     SECStatus rv = SECFailure;
     PLArenaPool *arena;
+    int ret;
 
     if (handle == NULL) {
 	/* PORT_SetError */
@@ -1484,6 +1485,11 @@ nsslowkey_PutPWCheckEntry(NSSLOWKEYDBHandle *handle,SDBPasswordEntry *entry)
     }
     rv = StoreKeyDBGlobalSalt(handle, &entry->salt);
     if (rv != SECSuccess) {
+	goto loser;
+    }
+    ret = keydb_Sync(handle, 0);
+    if ( ret ) {
+	rv = SECFailure;
 	goto loser;
     }
     handle->global_salt = GetKeyDBGlobalSalt(handle);
