@@ -146,6 +146,7 @@ struct NSSLOWCERTCertificateStr {
     SECItem validity;
     certDBEntryCert *dbEntry;		/* database entry struct */
     SECItem subjectKeyID;	/* x509v3 subject key identifier */
+    SECItem extensions;
     char *nickname;
     char *emailAddr;
     NSSLOWCERTCertTrust *trust;
@@ -156,6 +157,7 @@ struct NSSLOWCERTCertificateStr {
     int referenceCount;
 
     char nicknameSpace[200];
+    char emailAddrSpace[200];
     unsigned char certKeySpace[512];
 };
 

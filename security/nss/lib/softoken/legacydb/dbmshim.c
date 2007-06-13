@@ -41,20 +41,11 @@
  */
 #include "mcom_db.h"
 #include "secitem.h"
-#include "secder.h"
-#include "prprf.h"
-#include "cdbhdl.h"
-
-/* Call to SFTK_FreeSlot below */
-
-#include "pcertt.h"
-#include "secasn1.h"
-#include "secerr.h"
 #include "nssb64.h"
 #include "blapi.h"
-#include "sechash.h"
+#include "secerr.h"
 
-#include "pkcs11i.h"
+#include "lgdb.h"
 
 /*
  *   Blob block:
