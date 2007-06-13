@@ -40,265 +40,11 @@
  */
 
 #include "pk11pars.h"
-#include "pkcs11i.h"
+#include "lgdb.h"
 #include "mcom_db.h"
-#include "cdbhdl.h"
 #include "secerr.h"
 
 #define FREE_CLEAR(p) if (p) { PORT_Free(p); p = NULL; }
-
-static void
-secmod_parseTokenFlags(char *tmp, sftk_token_parameters *parsed) { 
-    parsed->readOnly = secmod_argHasFlag("flags","readOnly",tmp);
-    parsed->noCertDB = secmod_argHasFlag("flags","noCertDB",tmp);
-    parsed->noKeyDB = secmod_argHasFlag("flags","noKeyDB",tmp);
-    parsed->forceOpen = secmod_argHasFlag("flags","forceOpen",tmp);
-    parsed->pwRequired = secmod_argHasFlag("flags","passwordRequired",tmp);
-    parsed->optimizeSpace = secmod_argHasFlag("flags","optimizeSpace",tmp);
-    return;
-}
-
-static void
-secmod_parseFlags(char *tmp, sftk_parameters *parsed) { 
-    parsed->noModDB = secmod_argHasFlag("flags","noModDB",tmp);
-    parsed->readOnly = secmod_argHasFlag("flags","readOnly",tmp);
-    /* keep legacy interface working */
-    parsed->noCertDB = secmod_argHasFlag("flags","noCertDB",tmp);
-    parsed->forceOpen = secmod_argHasFlag("flags","forceOpen",tmp);
-    parsed->pwRequired = secmod_argHasFlag("flags","passwordRequired",tmp);
-    parsed->optimizeSpace = secmod_argHasFlag("flags","optimizeSpace",tmp);
-    return;
-}
-
-CK_RV
-secmod_parseTokenParameters(char *param, sftk_token_parameters *parsed) 
-{
-    int next;
-    char *tmp = NULL;
-    char *index;
-    index = secmod_argStrip(param);
-
-    while (*index) {
-	SECMOD_HANDLE_STRING_ARG(index,parsed->configdir,"configDir=",;)
-	SECMOD_HANDLE_STRING_ARG(index,parsed->certPrefix,"certPrefix=",;)
-	SECMOD_HANDLE_STRING_ARG(index,parsed->keyPrefix,"keyPrefix=",;)
-	SECMOD_HANDLE_STRING_ARG(index,parsed->tokdes,"tokenDescription=",;)
-	SECMOD_HANDLE_STRING_ARG(index,parsed->slotdes,"slotDescription=",;)
-	SECMOD_HANDLE_STRING_ARG(index,tmp,"minPWLen=", 
-			               if (tmp) { parsed->minPW=atoi(tmp); })
-	SECMOD_HANDLE_STRING_ARG(index,tmp,"flags=", 
-	                  if (tmp) { secmod_parseTokenFlags(param,parsed); })
-	SECMOD_HANDLE_FINAL_ARG(index)
-    }
-    if (tmp) 
-	PORT_Free(tmp);
-    return CKR_OK;
-}
-
-static void
-secmod_parseTokens(char *tokenParams, sftk_parameters *parsed)
-{
-    char *tokenIndex;
-    sftk_token_parameters *tokens = NULL;
-    int i=0,count = 0,next;
-
-    if ((tokenParams == NULL) || (*tokenParams == 0))  return;
-
-    /* first count the number of slots */
-    for (tokenIndex = secmod_argStrip(tokenParams); *tokenIndex;
-	 tokenIndex = secmod_argStrip(secmod_argSkipParameter(tokenIndex))) {
-	count++;
-    }
-
-    /* get the data structures */
-    tokens = (sftk_token_parameters *) 
-			PORT_ZAlloc(count*sizeof(sftk_token_parameters));
-    if (tokens == NULL) return;
-
-    for (tokenIndex = secmod_argStrip(tokenParams), i = 0;
-					*tokenIndex && i < count ; i++ ) {
-	char *name;
-	name = secmod_argGetName(tokenIndex,&next);
-	tokenIndex += next;
-
-	tokens[i].slotID = secmod_argDecodeNumber(name);
-        tokens[i].readOnly = PR_FALSE;
-	tokens[i].noCertDB = PR_FALSE;
-	tokens[i].noKeyDB = PR_FALSE;
-	if (!secmod_argIsBlank(*tokenIndex)) {
-	    char *args = secmod_argFetchValue(tokenIndex,&next);
-	    tokenIndex += next;
-	    if (args) {
-		secmod_parseTokenParameters(args,&tokens[i]);
-		PORT_Free(args);
-	    }
-	}
-	if (name) PORT_Free(name);
-	tokenIndex = secmod_argStrip(tokenIndex);
-    }
-    parsed->token_count = i;
-    parsed->tokens = tokens;
-    return; 
-}
-
-CK_RV
-secmod_parseParameters(char *param, sftk_parameters *parsed, PRBool isFIPS) 
-{
-    int next;
-    char *tmp = NULL;
-    char *index;
-    char *certPrefix = NULL, *keyPrefix = NULL;
-    char *tokdes = NULL, *ptokdes = NULL;
-    char *slotdes = NULL, *pslotdes = NULL;
-    char *fslotdes = NULL, *fpslotdes = NULL;
-    char *minPW = NULL;
-    index = secmod_argStrip(param);
-
-    PORT_Memset(parsed, 0, sizeof(sftk_parameters));
-
-    while (*index) {
-	SECMOD_HANDLE_STRING_ARG(index,parsed->configdir,"configDir=",;)
-	SECMOD_HANDLE_STRING_ARG(index,parsed->secmodName,"secmod=",;)
-	SECMOD_HANDLE_STRING_ARG(index,parsed->man,"manufacturerID=",;)
-	SECMOD_HANDLE_STRING_ARG(index,parsed->libdes,"libraryDescription=",;)
-	/* constructed values, used so legacy interfaces still work */
-	SECMOD_HANDLE_STRING_ARG(index,certPrefix,"certPrefix=",;)
-        SECMOD_HANDLE_STRING_ARG(index,keyPrefix,"keyPrefix=",;)
-        SECMOD_HANDLE_STRING_ARG(index,tokdes,"cryptoTokenDescription=",;)
-        SECMOD_HANDLE_STRING_ARG(index,ptokdes,"dbTokenDescription=",;)
-        SECMOD_HANDLE_STRING_ARG(index,slotdes,"cryptoSlotDescription=",;)
-        SECMOD_HANDLE_STRING_ARG(index,pslotdes,"dbSlotDescription=",;)
-        SECMOD_HANDLE_STRING_ARG(index,fslotdes,"FIPSSlotDescription=",;)
-        SECMOD_HANDLE_STRING_ARG(index,fpslotdes,"FIPSTokenDescription=",;)
-	SECMOD_HANDLE_STRING_ARG(index,minPW,"minPWLen=",;)
-
-	SECMOD_HANDLE_STRING_ARG(index,tmp,"flags=", 
-		             if (tmp) { secmod_parseFlags(param,parsed); })
-	SECMOD_HANDLE_STRING_ARG(index,tmp,"tokens=", 
-		             if (tmp) { secmod_parseTokens(tmp,parsed); })
-	SECMOD_HANDLE_FINAL_ARG(index)
-    }
-    if (tmp) 
-	PORT_Free(tmp); 
-    if (parsed->tokens == NULL) {
-	int  count = isFIPS ? 1 : 2;
-	int  index = count-1;
-	sftk_token_parameters *tokens = NULL;
-
-	tokens = (sftk_token_parameters *) 
-			PORT_ZAlloc(count*sizeof(sftk_token_parameters));
-	if (tokens == NULL) {
-	    goto loser;
-	}
-	parsed->tokens = tokens;
-    	parsed->token_count = count;
-	tokens[index].slotID = isFIPS ? FIPS_SLOT_ID : PRIVATE_KEY_SLOT_ID;
-	tokens[index].certPrefix = certPrefix;
-	tokens[index].keyPrefix = keyPrefix;
-	tokens[index].minPW = minPW ? atoi(minPW) : 0;
-	tokens[index].readOnly = parsed->readOnly;
-	tokens[index].noCertDB = parsed->noCertDB;
-	tokens[index].noKeyDB = parsed->noCertDB;
-	tokens[index].forceOpen = parsed->forceOpen;
-	tokens[index].pwRequired = parsed->pwRequired;
-	tokens[index].optimizeSpace = parsed->optimizeSpace;
-	tokens[0].optimizeSpace = parsed->optimizeSpace;
-	certPrefix = NULL;
-	keyPrefix = NULL;
-	if (isFIPS) {
-	    tokens[index].tokdes = fslotdes;
-	    tokens[index].slotdes = fpslotdes;
-	    fslotdes = NULL;
-	    fpslotdes = NULL;
-	} else {
-	    tokens[index].tokdes = ptokdes;
-	    tokens[index].slotdes = pslotdes;
-	    tokens[0].slotID = NETSCAPE_SLOT_ID;
-	    tokens[0].tokdes = tokdes;
-	    tokens[0].slotdes = slotdes;
-	    tokens[0].noCertDB = PR_TRUE;
-	    tokens[0].noKeyDB = PR_TRUE;
-	    ptokdes = NULL;
-	    pslotdes = NULL;
-	    tokdes = NULL;
-	    slotdes = NULL;
-	}
-    }
-
-loser:
-    FREE_CLEAR(certPrefix);
-    FREE_CLEAR(keyPrefix);
-    FREE_CLEAR(tokdes);
-    FREE_CLEAR(ptokdes);
-    FREE_CLEAR(slotdes);
-    FREE_CLEAR(pslotdes);
-    FREE_CLEAR(fslotdes);
-    FREE_CLEAR(fpslotdes);
-    FREE_CLEAR(minPW);
-    return CKR_OK;
-}
-
-void
-secmod_freeParams(sftk_parameters *params)
-{
-    int i;
-
-    for (i=0; i < params->token_count; i++) {
-	FREE_CLEAR(params->tokens[i].configdir);
-	FREE_CLEAR(params->tokens[i].certPrefix);
-	FREE_CLEAR(params->tokens[i].keyPrefix);
-	FREE_CLEAR(params->tokens[i].tokdes);
-	FREE_CLEAR(params->tokens[i].slotdes);
-    }
-
-    FREE_CLEAR(params->configdir);
-    FREE_CLEAR(params->secmodName);
-    FREE_CLEAR(params->man);
-    FREE_CLEAR(params->libdes); 
-    FREE_CLEAR(params->tokens);
-}
-
-
-char *
-secmod_getSecmodName(char *param, char **appName, char **filename,PRBool *rw)
-{
-    int next;
-    char *configdir = NULL;
-    char *secmodName = NULL;
-    char *value = NULL;
-    char *save_params = param;
-    const char *lconfigdir = NULL;
-    param = secmod_argStrip(param);
-	
-
-    while (*param) {
-	SECMOD_HANDLE_STRING_ARG(param,configdir,"configDir=",;)
-	SECMOD_HANDLE_STRING_ARG(param,secmodName,"secmod=",;)
-	SECMOD_HANDLE_FINAL_ARG(param)
-   }
-
-   *rw = PR_TRUE;
-   if (secmod_argHasFlag("flags","readOnly",save_params) ||
-	secmod_argHasFlag("flags","noModDB",save_params)) *rw = PR_FALSE;
-
-   if (!secmodName || *secmodName == '\0') {
-	if (secmodName) PORT_Free(secmodName);
-	secmodName = PORT_Strdup(SECMOD_DB);
-   }
-   *filename = secmodName;
-
-   if (configdir) {
-       lconfigdir = sftk_EvaluateConfigDir(configdir, appName);
-   }
-
-   if (lconfigdir) {
-	value = PR_smprintf("%s" PATH_SEPARATOR "%s",lconfigdir,secmodName);
-   } else {
-	value = PR_smprintf("%s",secmodName);
-   }
-   if (configdir) PORT_Free(configdir);
-   return value;
-}
 
 /* Construct a database key for a given module */
 static SECStatus secmod_MakeKey(DBT *key, char * module) {
@@ -768,8 +514,6 @@ loser:
     return NULL;
 }
 
-
-
 static DB *
 secmod_OpenDB(const char *appName, const char *filename, const char *dbName, 
 				PRBool readOnly, PRBool update)
@@ -862,13 +606,16 @@ secmod_addEscape(const char *string, char quote)
     return newString;
 }
 
+SECStatus legacy_AddSecmodDB(const char *appName, const char *filename, 
+			const char *dbname, char *module, PRBool rw);
+
 #define SECMOD_STEP 10
 #define SFTK_DEFAULT_INTERNAL_INIT "library= name=\"NSS Internal PKCS #11 Module\" parameters=\"%s\" NSS=\"Flags=internal,critical trustOrder=75 cipherOrder=100 slotParams=(1={%s askpw=any timeout=30})\""
 /*
  * Read all the existing modules in
  */
 char **
-secmod_ReadPermDB(const char *appName, const char *filename,
+legacy_ReadSecmodDB(const char *appName, const char *filename,
 				const char *dbname, char *params, PRBool rw)
 {
     DBT key,data;
@@ -924,7 +671,7 @@ done:
     if (pkcs11db) {
 	secmod_CloseDB(pkcs11db);
     } else if (moduleList[0] && rw) {
-	secmod_AddPermDB(appName,filename,dbname,moduleList[0], rw) ;
+	legacy_AddSecmodDB(appName,filename,dbname,moduleList[0], rw) ;
     }
     if (!moduleList[0]) {
 	PORT_Free(moduleList);
@@ -934,7 +681,7 @@ done:
 }
 
 SECStatus
-secmod_ReleasePermDBData(const char *appName, const char *filename, 
+legacy_ReleaseSecmodDBData(const char *appName, const char *filename, 
 			const char *dbname, char **moduleSpecList, PRBool rw)
 {
     if (moduleSpecList) {
@@ -951,7 +698,7 @@ secmod_ReleasePermDBData(const char *appName, const char *filename,
  * Delete a module from the Data Base
  */
 SECStatus
-secmod_DeletePermDB(const char *appName, const char *filename, 
+legacy_DeleteSecmodDB(const char *appName, const char *filename, 
 			const char *dbname, char *args, PRBool rw)
 {
     DBT key;
@@ -987,7 +734,7 @@ done:
  * Add a module to the Data base 
  */
 SECStatus
-secmod_AddPermDB(const char *appName, const char *filename, 
+legacy_AddSecmodDB(const char *appName, const char *filename, 
 			const char *dbname, char *module, PRBool rw)
 {
     DBT key,data;

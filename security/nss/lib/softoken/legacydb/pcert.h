@@ -85,7 +85,7 @@ nsslowcert_FindCrlByKey(NSSLOWCERTCertDBHandle *handle,
 					 SECItem *crlKey, PRBool isKRL);
 
 SECStatus
-nsslowcert_DeletePermCRL(NSSLOWCERTCertDBHandle *handle,SECItem *derName,
+nsslowcert_DeletePermCRL(NSSLOWCERTCertDBHandle *handle,const SECItem *derName,
 								PRBool isKRL);
 SECStatus
 nsslowcert_AddCrl(NSSLOWCERTCertDBHandle *handle, SECItem *derCrl ,
@@ -110,7 +110,7 @@ void nsslowcert_DestroyTrust(NSSLOWCERTTrust *Trust);
  * traversal.
  */
 NSSLOWCERTCertificate *
-nsslowcert_FindCertByKey(NSSLOWCERTCertDBHandle *handle, SECItem *certKey);
+nsslowcert_FindCertByKey(NSSLOWCERTCertDBHandle *handle, const SECItem *certKey);
 
 /*
  * Lookup trust for a certificate in the databases without locking
@@ -120,7 +120,7 @@ nsslowcert_FindCertByKey(NSSLOWCERTCertDBHandle *handle, SECItem *certKey);
  * traversal.
  */
 NSSLOWCERTTrust *
-nsslowcert_FindTrustByKey(NSSLOWCERTCertDBHandle *handle, SECItem *certKey);
+nsslowcert_FindTrustByKey(NSSLOWCERTCertDBHandle *handle, const SECItem *certKey);
 
 /*
 ** Generate a certificate key from the issuer and serialnumber, then look it
@@ -253,7 +253,7 @@ NSSLOWCERTCertificate *
 nsslowcert_CreateCert(void);
 
 certDBEntry *
-nsslowcert_DecodeAnyDBEntry(SECItem *dbData, SECItem *dbKey, 
+nsslowcert_DecodeAnyDBEntry(SECItem *dbData, const SECItem *dbKey, 
                             certDBEntryType entryType, void *pdata);
 
 SEC_END_PROTOS

@@ -147,6 +147,10 @@ SECStatus RSA_DecryptRaw(NSSLOWKEYPrivateKey *key, unsigned char *output,
  */
 extern SECStatus EC_FillParams(PRArenaPool *arena,
                                const SECItem *encodedParams, ECParams *params);
+extern SECStatus EC_DecodeParams(const SECItem *encodedParams, 
+				ECParams **ecparams);
+extern SECStatus EC_CopyParams(PRArenaPool *arena, ECParams *dstParams,
+              			const ECParams *srcParams);
 #endif
 
 

@@ -57,8 +57,6 @@ struct NSSLOWCERTCertDBHandleStr {
     PRInt32  ref; /* reference count */
 };
 
-#define nsslowcert_reference(x) (PR_AtomicIncrement(&(x)->ref) , (x))
-
 #ifdef DBM_USING_NSPR
 #define NO_RDONLY	PR_RDONLY
 #define NO_RDWR		PR_RDWR
@@ -82,8 +80,6 @@ DB * rdbopen(const char *appName, const char *prefix,
 DB *dbsopen (const char *dbname , int flags, int mode, DBTYPE type, 
 						const void * appData);
 SECStatus db_Copy(DB *dest,DB *src);
-int db_BeginTransaction(DB *db);
-int db_FinishTransaction(DB *db, PRBool abort);
 int db_InitComplete(DB *db);
 
 #endif
