@@ -460,7 +460,6 @@ CK_RV
 lg_Close(SDB *sdb)
 {
     LGPrivate *lgdb_p = (LGPrivate *)sdb->private;
-    lg_ClearTokenKeyHashTable(sdb);
     if (lgdb_p) {
     	if (lgdb_p->certDB) {
 	    nsslowcert_ClosePermCertDB(lgdb_p->certDB);
