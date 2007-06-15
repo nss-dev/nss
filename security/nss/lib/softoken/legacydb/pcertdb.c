@@ -4462,6 +4462,7 @@ nsslowcert_ClosePermCertDB(NSSLOWCERTCertDBHandle *handle)
     	    PZ_DestroyMonitor(handle->dbMon);
 	    handle->dbMon = NULL;
 	}
+	PORT_Free(handle);
     }
     return;
 }
@@ -5263,6 +5264,9 @@ nsslowcert_SaveSMimeProfile(NSSLOWCERTCertDBHandle *dbhandle, char *emailAddr,
 void
 nsslowcert_DestroyFreeLists(void)
 {
+    if (freeListLock == NULL) {
+	return;
+    }
     DestroyCertEntryFreeList();
     DestroyTrustFreeList();
     DestroyCertFreeList();
