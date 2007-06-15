@@ -4462,6 +4462,7 @@ nsslowcert_ClosePermCertDB(NSSLOWCERTCertDBHandle *handle)
     	    PZ_DestroyMonitor(handle->dbMon);
 	    handle->dbMon = NULL;
 	}
+	PORT_Free(handle);
     }
     return;
 }
