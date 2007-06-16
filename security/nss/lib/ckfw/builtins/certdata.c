@@ -42,7 +42,7 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$""; @(#) $RCSfile$
 #include "builtins.h"
 #endif /* BUILTINS_H */
 
-static const CK_TRUST ckt_netscape_valid = CKT_NETSCAPE_VALID;
+static const CK_TRUST ckt_netscape_trust_unknown = CKT_NETSCAPE_TRUST_UNKNOWN;
 static const CK_OBJECT_CLASS cko_certificate = CKO_CERTIFICATE;
 static const CK_TRUST ckt_netscape_trusted_delegator = CKT_NETSCAPE_TRUSTED_DELEGATOR;
 static const CK_OBJECT_CLASS cko_netscape_trust = CKO_NETSCAPE_TRUST;
@@ -255,7 +255,7 @@ static const CK_ATTRIBUTE_TYPE nss_builtins_types_66 [] = {
  CKA_CLASS,  CKA_TOKEN,  CKA_PRIVATE,  CKA_MODIFIABLE,  CKA_LABEL,  CKA_CERTIFICATE_TYPE,  CKA_SUBJECT,  CKA_ID,  CKA_ISSUER,  CKA_SERIAL_NUMBER,  CKA_VALUE
 };
 static const CK_ATTRIBUTE_TYPE nss_builtins_types_67 [] = {
- CKA_CLASS,  CKA_TOKEN,  CKA_PRIVATE,  CKA_MODIFIABLE,  CKA_LABEL,  CKA_CERT_SHA1_HASH,  CKA_CERT_MD5_HASH,  CKA_ISSUER,  CKA_SERIAL_NUMBER,  CKA_TRUST_SERVER_AUTH,  CKA_TRUST_EMAIL_PROTECTION,  CKA_TRUST_CODE_SIGNING
+ CKA_CLASS,  CKA_TOKEN,  CKA_PRIVATE,  CKA_MODIFIABLE,  CKA_LABEL,  CKA_CERT_SHA1_HASH,  CKA_CERT_MD5_HASH,  CKA_ISSUER,  CKA_SERIAL_NUMBER,  CKA_TRUST_SERVER_AUTH,  CKA_TRUST_EMAIL_PROTECTION,  CKA_TRUST_CODE_SIGNING,  CKA_TRUST_STEP_UP_APPROVED
 };
 static const CK_ATTRIBUTE_TYPE nss_builtins_types_68 [] = {
  CKA_CLASS,  CKA_TOKEN,  CKA_PRIVATE,  CKA_MODIFIABLE,  CKA_LABEL,  CKA_CERTIFICATE_TYPE,  CKA_SUBJECT,  CKA_ID,  CKA_ISSUER,  CKA_SERIAL_NUMBER,  CKA_VALUE
@@ -273,7 +273,7 @@ static const CK_ATTRIBUTE_TYPE nss_builtins_types_72 [] = {
  CKA_CLASS,  CKA_TOKEN,  CKA_PRIVATE,  CKA_MODIFIABLE,  CKA_LABEL,  CKA_CERTIFICATE_TYPE,  CKA_SUBJECT,  CKA_ID,  CKA_ISSUER,  CKA_SERIAL_NUMBER,  CKA_VALUE
 };
 static const CK_ATTRIBUTE_TYPE nss_builtins_types_73 [] = {
- CKA_CLASS,  CKA_TOKEN,  CKA_PRIVATE,  CKA_MODIFIABLE,  CKA_LABEL,  CKA_CERT_SHA1_HASH,  CKA_CERT_MD5_HASH,  CKA_ISSUER,  CKA_SERIAL_NUMBER,  CKA_TRUST_SERVER_AUTH,  CKA_TRUST_EMAIL_PROTECTION,  CKA_TRUST_CODE_SIGNING
+ CKA_CLASS,  CKA_TOKEN,  CKA_PRIVATE,  CKA_MODIFIABLE,  CKA_LABEL,  CKA_CERT_SHA1_HASH,  CKA_CERT_MD5_HASH,  CKA_ISSUER,  CKA_SERIAL_NUMBER,  CKA_TRUST_SERVER_AUTH,  CKA_TRUST_EMAIL_PROTECTION,  CKA_TRUST_CODE_SIGNING,  CKA_TRUST_STEP_UP_APPROVED
 };
 static const CK_ATTRIBUTE_TYPE nss_builtins_types_74 [] = {
  CKA_CLASS,  CKA_TOKEN,  CKA_PRIVATE,  CKA_MODIFIABLE,  CKA_LABEL,  CKA_CERTIFICATE_TYPE,  CKA_SUBJECT,  CKA_ID,  CKA_ISSUER,  CKA_SERIAL_NUMBER,  CKA_VALUE
@@ -303,7 +303,7 @@ static const CK_ATTRIBUTE_TYPE nss_builtins_types_82 [] = {
  CKA_CLASS,  CKA_TOKEN,  CKA_PRIVATE,  CKA_MODIFIABLE,  CKA_LABEL,  CKA_CERTIFICATE_TYPE,  CKA_SUBJECT,  CKA_ID,  CKA_ISSUER,  CKA_SERIAL_NUMBER,  CKA_VALUE
 };
 static const CK_ATTRIBUTE_TYPE nss_builtins_types_83 [] = {
- CKA_CLASS,  CKA_TOKEN,  CKA_PRIVATE,  CKA_MODIFIABLE,  CKA_LABEL,  CKA_CERT_SHA1_HASH,  CKA_CERT_MD5_HASH,  CKA_ISSUER,  CKA_SERIAL_NUMBER,  CKA_TRUST_SERVER_AUTH,  CKA_TRUST_EMAIL_PROTECTION,  CKA_TRUST_CODE_SIGNING
+ CKA_CLASS,  CKA_TOKEN,  CKA_PRIVATE,  CKA_MODIFIABLE,  CKA_LABEL,  CKA_CERT_SHA1_HASH,  CKA_CERT_MD5_HASH,  CKA_ISSUER,  CKA_SERIAL_NUMBER,  CKA_TRUST_SERVER_AUTH,  CKA_TRUST_EMAIL_PROTECTION,  CKA_TRUST_CODE_SIGNING,  CKA_TRUST_STEP_UP_APPROVED
 };
 static const CK_ATTRIBUTE_TYPE nss_builtins_types_84 [] = {
  CKA_CLASS,  CKA_TOKEN,  CKA_PRIVATE,  CKA_MODIFIABLE,  CKA_LABEL,  CKA_CERTIFICATE_TYPE,  CKA_SUBJECT,  CKA_ID,  CKA_ISSUER,  CKA_SERIAL_NUMBER,  CKA_VALUE
@@ -623,6 +623,108 @@ static const CK_ATTRIBUTE_TYPE nss_builtins_types_188 [] = {
 static const CK_ATTRIBUTE_TYPE nss_builtins_types_189 [] = {
  CKA_CLASS,  CKA_TOKEN,  CKA_PRIVATE,  CKA_MODIFIABLE,  CKA_LABEL,  CKA_CERT_SHA1_HASH,  CKA_CERT_MD5_HASH,  CKA_ISSUER,  CKA_SERIAL_NUMBER,  CKA_TRUST_SERVER_AUTH,  CKA_TRUST_EMAIL_PROTECTION,  CKA_TRUST_CODE_SIGNING,  CKA_TRUST_STEP_UP_APPROVED
 };
+static const CK_ATTRIBUTE_TYPE nss_builtins_types_190 [] = {
+ CKA_CLASS,  CKA_TOKEN,  CKA_PRIVATE,  CKA_MODIFIABLE,  CKA_LABEL,  CKA_CERTIFICATE_TYPE,  CKA_SUBJECT,  CKA_ID,  CKA_ISSUER,  CKA_SERIAL_NUMBER,  CKA_VALUE
+};
+static const CK_ATTRIBUTE_TYPE nss_builtins_types_191 [] = {
+ CKA_CLASS,  CKA_TOKEN,  CKA_PRIVATE,  CKA_MODIFIABLE,  CKA_LABEL,  CKA_CERT_SHA1_HASH,  CKA_CERT_MD5_HASH,  CKA_ISSUER,  CKA_SERIAL_NUMBER,  CKA_TRUST_SERVER_AUTH,  CKA_TRUST_EMAIL_PROTECTION,  CKA_TRUST_CODE_SIGNING,  CKA_TRUST_STEP_UP_APPROVED
+};
+static const CK_ATTRIBUTE_TYPE nss_builtins_types_192 [] = {
+ CKA_CLASS,  CKA_TOKEN,  CKA_PRIVATE,  CKA_MODIFIABLE,  CKA_LABEL,  CKA_CERTIFICATE_TYPE,  CKA_SUBJECT,  CKA_ID,  CKA_ISSUER,  CKA_SERIAL_NUMBER,  CKA_VALUE
+};
+static const CK_ATTRIBUTE_TYPE nss_builtins_types_193 [] = {
+ CKA_CLASS,  CKA_TOKEN,  CKA_PRIVATE,  CKA_MODIFIABLE,  CKA_LABEL,  CKA_CERT_SHA1_HASH,  CKA_CERT_MD5_HASH,  CKA_ISSUER,  CKA_SERIAL_NUMBER,  CKA_TRUST_SERVER_AUTH,  CKA_TRUST_EMAIL_PROTECTION,  CKA_TRUST_CODE_SIGNING,  CKA_TRUST_STEP_UP_APPROVED
+};
+static const CK_ATTRIBUTE_TYPE nss_builtins_types_194 [] = {
+ CKA_CLASS,  CKA_TOKEN,  CKA_PRIVATE,  CKA_MODIFIABLE,  CKA_LABEL,  CKA_CERTIFICATE_TYPE,  CKA_SUBJECT,  CKA_ID,  CKA_ISSUER,  CKA_SERIAL_NUMBER,  CKA_VALUE
+};
+static const CK_ATTRIBUTE_TYPE nss_builtins_types_195 [] = {
+ CKA_CLASS,  CKA_TOKEN,  CKA_PRIVATE,  CKA_MODIFIABLE,  CKA_LABEL,  CKA_CERT_SHA1_HASH,  CKA_CERT_MD5_HASH,  CKA_ISSUER,  CKA_SERIAL_NUMBER,  CKA_TRUST_SERVER_AUTH,  CKA_TRUST_EMAIL_PROTECTION,  CKA_TRUST_CODE_SIGNING,  CKA_TRUST_STEP_UP_APPROVED
+};
+static const CK_ATTRIBUTE_TYPE nss_builtins_types_196 [] = {
+ CKA_CLASS,  CKA_TOKEN,  CKA_PRIVATE,  CKA_MODIFIABLE,  CKA_LABEL,  CKA_CERTIFICATE_TYPE,  CKA_SUBJECT,  CKA_ID,  CKA_ISSUER,  CKA_SERIAL_NUMBER,  CKA_VALUE
+};
+static const CK_ATTRIBUTE_TYPE nss_builtins_types_197 [] = {
+ CKA_CLASS,  CKA_TOKEN,  CKA_PRIVATE,  CKA_MODIFIABLE,  CKA_LABEL,  CKA_CERT_SHA1_HASH,  CKA_CERT_MD5_HASH,  CKA_ISSUER,  CKA_SERIAL_NUMBER,  CKA_TRUST_SERVER_AUTH,  CKA_TRUST_EMAIL_PROTECTION,  CKA_TRUST_CODE_SIGNING,  CKA_TRUST_STEP_UP_APPROVED
+};
+static const CK_ATTRIBUTE_TYPE nss_builtins_types_198 [] = {
+ CKA_CLASS,  CKA_TOKEN,  CKA_PRIVATE,  CKA_MODIFIABLE,  CKA_LABEL,  CKA_CERTIFICATE_TYPE,  CKA_SUBJECT,  CKA_ID,  CKA_ISSUER,  CKA_SERIAL_NUMBER,  CKA_VALUE
+};
+static const CK_ATTRIBUTE_TYPE nss_builtins_types_199 [] = {
+ CKA_CLASS,  CKA_TOKEN,  CKA_PRIVATE,  CKA_MODIFIABLE,  CKA_LABEL,  CKA_CERT_SHA1_HASH,  CKA_CERT_MD5_HASH,  CKA_ISSUER,  CKA_SERIAL_NUMBER,  CKA_TRUST_SERVER_AUTH,  CKA_TRUST_EMAIL_PROTECTION,  CKA_TRUST_CODE_SIGNING,  CKA_TRUST_STEP_UP_APPROVED
+};
+static const CK_ATTRIBUTE_TYPE nss_builtins_types_200 [] = {
+ CKA_CLASS,  CKA_TOKEN,  CKA_PRIVATE,  CKA_MODIFIABLE,  CKA_LABEL,  CKA_CERTIFICATE_TYPE,  CKA_SUBJECT,  CKA_ID,  CKA_ISSUER,  CKA_SERIAL_NUMBER,  CKA_VALUE
+};
+static const CK_ATTRIBUTE_TYPE nss_builtins_types_201 [] = {
+ CKA_CLASS,  CKA_TOKEN,  CKA_PRIVATE,  CKA_MODIFIABLE,  CKA_LABEL,  CKA_CERT_SHA1_HASH,  CKA_CERT_MD5_HASH,  CKA_ISSUER,  CKA_SERIAL_NUMBER,  CKA_TRUST_SERVER_AUTH,  CKA_TRUST_EMAIL_PROTECTION,  CKA_TRUST_CODE_SIGNING,  CKA_TRUST_STEP_UP_APPROVED
+};
+static const CK_ATTRIBUTE_TYPE nss_builtins_types_202 [] = {
+ CKA_CLASS,  CKA_TOKEN,  CKA_PRIVATE,  CKA_MODIFIABLE,  CKA_LABEL,  CKA_CERTIFICATE_TYPE,  CKA_SUBJECT,  CKA_ID,  CKA_ISSUER,  CKA_SERIAL_NUMBER,  CKA_VALUE
+};
+static const CK_ATTRIBUTE_TYPE nss_builtins_types_203 [] = {
+ CKA_CLASS,  CKA_TOKEN,  CKA_PRIVATE,  CKA_MODIFIABLE,  CKA_LABEL,  CKA_CERT_SHA1_HASH,  CKA_CERT_MD5_HASH,  CKA_ISSUER,  CKA_SERIAL_NUMBER,  CKA_TRUST_SERVER_AUTH,  CKA_TRUST_EMAIL_PROTECTION,  CKA_TRUST_CODE_SIGNING,  CKA_TRUST_STEP_UP_APPROVED
+};
+static const CK_ATTRIBUTE_TYPE nss_builtins_types_204 [] = {
+ CKA_CLASS,  CKA_TOKEN,  CKA_PRIVATE,  CKA_MODIFIABLE,  CKA_LABEL,  CKA_CERTIFICATE_TYPE,  CKA_SUBJECT,  CKA_ID,  CKA_ISSUER,  CKA_SERIAL_NUMBER,  CKA_VALUE
+};
+static const CK_ATTRIBUTE_TYPE nss_builtins_types_205 [] = {
+ CKA_CLASS,  CKA_TOKEN,  CKA_PRIVATE,  CKA_MODIFIABLE,  CKA_LABEL,  CKA_CERT_SHA1_HASH,  CKA_CERT_MD5_HASH,  CKA_ISSUER,  CKA_SERIAL_NUMBER,  CKA_TRUST_SERVER_AUTH,  CKA_TRUST_EMAIL_PROTECTION,  CKA_TRUST_CODE_SIGNING,  CKA_TRUST_STEP_UP_APPROVED
+};
+static const CK_ATTRIBUTE_TYPE nss_builtins_types_206 [] = {
+ CKA_CLASS,  CKA_TOKEN,  CKA_PRIVATE,  CKA_MODIFIABLE,  CKA_LABEL,  CKA_CERTIFICATE_TYPE,  CKA_SUBJECT,  CKA_ID,  CKA_ISSUER,  CKA_SERIAL_NUMBER,  CKA_VALUE
+};
+static const CK_ATTRIBUTE_TYPE nss_builtins_types_207 [] = {
+ CKA_CLASS,  CKA_TOKEN,  CKA_PRIVATE,  CKA_MODIFIABLE,  CKA_LABEL,  CKA_CERT_SHA1_HASH,  CKA_CERT_MD5_HASH,  CKA_ISSUER,  CKA_SERIAL_NUMBER,  CKA_TRUST_SERVER_AUTH,  CKA_TRUST_EMAIL_PROTECTION,  CKA_TRUST_CODE_SIGNING,  CKA_TRUST_STEP_UP_APPROVED
+};
+static const CK_ATTRIBUTE_TYPE nss_builtins_types_208 [] = {
+ CKA_CLASS,  CKA_TOKEN,  CKA_PRIVATE,  CKA_MODIFIABLE,  CKA_LABEL,  CKA_CERTIFICATE_TYPE,  CKA_SUBJECT,  CKA_ID,  CKA_ISSUER,  CKA_SERIAL_NUMBER,  CKA_VALUE
+};
+static const CK_ATTRIBUTE_TYPE nss_builtins_types_209 [] = {
+ CKA_CLASS,  CKA_TOKEN,  CKA_PRIVATE,  CKA_MODIFIABLE,  CKA_LABEL,  CKA_CERT_SHA1_HASH,  CKA_CERT_MD5_HASH,  CKA_ISSUER,  CKA_SERIAL_NUMBER,  CKA_TRUST_SERVER_AUTH,  CKA_TRUST_EMAIL_PROTECTION,  CKA_TRUST_CODE_SIGNING,  CKA_TRUST_STEP_UP_APPROVED
+};
+static const CK_ATTRIBUTE_TYPE nss_builtins_types_210 [] = {
+ CKA_CLASS,  CKA_TOKEN,  CKA_PRIVATE,  CKA_MODIFIABLE,  CKA_LABEL,  CKA_CERTIFICATE_TYPE,  CKA_SUBJECT,  CKA_ID,  CKA_ISSUER,  CKA_SERIAL_NUMBER,  CKA_VALUE
+};
+static const CK_ATTRIBUTE_TYPE nss_builtins_types_211 [] = {
+ CKA_CLASS,  CKA_TOKEN,  CKA_PRIVATE,  CKA_MODIFIABLE,  CKA_LABEL,  CKA_CERT_SHA1_HASH,  CKA_CERT_MD5_HASH,  CKA_ISSUER,  CKA_SERIAL_NUMBER,  CKA_TRUST_SERVER_AUTH,  CKA_TRUST_EMAIL_PROTECTION,  CKA_TRUST_CODE_SIGNING,  CKA_TRUST_STEP_UP_APPROVED
+};
+static const CK_ATTRIBUTE_TYPE nss_builtins_types_212 [] = {
+ CKA_CLASS,  CKA_TOKEN,  CKA_PRIVATE,  CKA_MODIFIABLE,  CKA_LABEL,  CKA_CERTIFICATE_TYPE,  CKA_SUBJECT,  CKA_ID,  CKA_ISSUER,  CKA_SERIAL_NUMBER,  CKA_VALUE
+};
+static const CK_ATTRIBUTE_TYPE nss_builtins_types_213 [] = {
+ CKA_CLASS,  CKA_TOKEN,  CKA_PRIVATE,  CKA_MODIFIABLE,  CKA_LABEL,  CKA_CERT_SHA1_HASH,  CKA_CERT_MD5_HASH,  CKA_ISSUER,  CKA_SERIAL_NUMBER,  CKA_TRUST_SERVER_AUTH,  CKA_TRUST_EMAIL_PROTECTION,  CKA_TRUST_CODE_SIGNING,  CKA_TRUST_STEP_UP_APPROVED
+};
+static const CK_ATTRIBUTE_TYPE nss_builtins_types_214 [] = {
+ CKA_CLASS,  CKA_TOKEN,  CKA_PRIVATE,  CKA_MODIFIABLE,  CKA_LABEL,  CKA_CERTIFICATE_TYPE,  CKA_SUBJECT,  CKA_ID,  CKA_ISSUER,  CKA_SERIAL_NUMBER,  CKA_VALUE
+};
+static const CK_ATTRIBUTE_TYPE nss_builtins_types_215 [] = {
+ CKA_CLASS,  CKA_TOKEN,  CKA_PRIVATE,  CKA_MODIFIABLE,  CKA_LABEL,  CKA_CERT_SHA1_HASH,  CKA_CERT_MD5_HASH,  CKA_ISSUER,  CKA_SERIAL_NUMBER,  CKA_TRUST_SERVER_AUTH,  CKA_TRUST_EMAIL_PROTECTION,  CKA_TRUST_CODE_SIGNING,  CKA_TRUST_STEP_UP_APPROVED
+};
+static const CK_ATTRIBUTE_TYPE nss_builtins_types_216 [] = {
+ CKA_CLASS,  CKA_TOKEN,  CKA_PRIVATE,  CKA_MODIFIABLE,  CKA_LABEL,  CKA_CERTIFICATE_TYPE,  CKA_SUBJECT,  CKA_ID,  CKA_ISSUER,  CKA_SERIAL_NUMBER,  CKA_VALUE
+};
+static const CK_ATTRIBUTE_TYPE nss_builtins_types_217 [] = {
+ CKA_CLASS,  CKA_TOKEN,  CKA_PRIVATE,  CKA_MODIFIABLE,  CKA_LABEL,  CKA_CERT_SHA1_HASH,  CKA_CERT_MD5_HASH,  CKA_ISSUER,  CKA_SERIAL_NUMBER,  CKA_TRUST_SERVER_AUTH,  CKA_TRUST_EMAIL_PROTECTION,  CKA_TRUST_CODE_SIGNING,  CKA_TRUST_STEP_UP_APPROVED
+};
+static const CK_ATTRIBUTE_TYPE nss_builtins_types_218 [] = {
+ CKA_CLASS,  CKA_TOKEN,  CKA_PRIVATE,  CKA_MODIFIABLE,  CKA_LABEL,  CKA_CERTIFICATE_TYPE,  CKA_SUBJECT,  CKA_ID,  CKA_ISSUER,  CKA_SERIAL_NUMBER,  CKA_VALUE
+};
+static const CK_ATTRIBUTE_TYPE nss_builtins_types_219 [] = {
+ CKA_CLASS,  CKA_TOKEN,  CKA_PRIVATE,  CKA_MODIFIABLE,  CKA_LABEL,  CKA_CERT_SHA1_HASH,  CKA_CERT_MD5_HASH,  CKA_ISSUER,  CKA_SERIAL_NUMBER,  CKA_TRUST_SERVER_AUTH,  CKA_TRUST_EMAIL_PROTECTION,  CKA_TRUST_CODE_SIGNING,  CKA_TRUST_STEP_UP_APPROVED
+};
+static const CK_ATTRIBUTE_TYPE nss_builtins_types_220 [] = {
+ CKA_CLASS,  CKA_TOKEN,  CKA_PRIVATE,  CKA_MODIFIABLE,  CKA_LABEL,  CKA_CERTIFICATE_TYPE,  CKA_SUBJECT,  CKA_ID,  CKA_ISSUER,  CKA_SERIAL_NUMBER,  CKA_VALUE
+};
+static const CK_ATTRIBUTE_TYPE nss_builtins_types_221 [] = {
+ CKA_CLASS,  CKA_TOKEN,  CKA_PRIVATE,  CKA_MODIFIABLE,  CKA_LABEL,  CKA_CERT_SHA1_HASH,  CKA_CERT_MD5_HASH,  CKA_ISSUER,  CKA_SERIAL_NUMBER,  CKA_TRUST_SERVER_AUTH,  CKA_TRUST_EMAIL_PROTECTION,  CKA_TRUST_CODE_SIGNING,  CKA_TRUST_STEP_UP_APPROVED
+};
+static const CK_ATTRIBUTE_TYPE nss_builtins_types_222 [] = {
+ CKA_CLASS,  CKA_TOKEN,  CKA_PRIVATE,  CKA_MODIFIABLE,  CKA_LABEL,  CKA_CERTIFICATE_TYPE,  CKA_SUBJECT,  CKA_ID,  CKA_ISSUER,  CKA_SERIAL_NUMBER,  CKA_VALUE
+};
+static const CK_ATTRIBUTE_TYPE nss_builtins_types_223 [] = {
+ CKA_CLASS,  CKA_TOKEN,  CKA_PRIVATE,  CKA_MODIFIABLE,  CKA_LABEL,  CKA_CERT_SHA1_HASH,  CKA_CERT_MD5_HASH,  CKA_ISSUER,  CKA_SERIAL_NUMBER,  CKA_TRUST_SERVER_AUTH,  CKA_TRUST_EMAIL_PROTECTION,  CKA_TRUST_CODE_SIGNING,  CKA_TRUST_STEP_UP_APPROVED
+};
 #ifdef DEBUG
 static const NSSItem nss_builtins_items_0 [] = {
   { (void *)&cko_data, (PRUint32)sizeof(CK_OBJECT_CLASS) },
@@ -631,7 +733,7 @@ static const NSSItem nss_builtins_items_0 [] = {
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)"CVS ID", (PRUint32)7 },
   { (void *)"NSS", (PRUint32)4 },
-  { (void *)"@(#) $RCSfile$ $Revision$ $Date$""; @(#) $RCSfile$ $Revision$ $Date$", (PRUint32)160 }
+  { (void *)"@(#) $RCSfile$ $Revision$ $Date$""; @(#) $RCSfile$ $Revision$ $Date$", (PRUint32)165 }
 };
 #endif /* DEBUG */
 static const NSSItem nss_builtins_items_1 [] = {
@@ -730,7 +832,7 @@ static const NSSItem nss_builtins_items_3 [] = {
 , (PRUint32)18 },
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
-  { (void *)&ckt_netscape_valid, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trust_unknown, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) }
 };
 static const NSSItem nss_builtins_items_4 [] = {
@@ -1026,7 +1128,7 @@ static const NSSItem nss_builtins_items_9 [] = {
 , (PRUint32)206 },
   { (void *)"\002\001\000"
 , (PRUint32)3 },
-  { (void *)&ckt_netscape_valid, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trust_unknown, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
@@ -1152,7 +1254,7 @@ static const NSSItem nss_builtins_items_11 [] = {
 , (PRUint32)210 },
   { (void *)"\002\001\000"
 , (PRUint32)3 },
-  { (void *)&ckt_netscape_valid, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trust_unknown, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
@@ -1279,9 +1381,9 @@ static const NSSItem nss_builtins_items_13 [] = {
 , (PRUint32)212 },
   { (void *)"\002\001\000"
 , (PRUint32)3 },
-  { (void *)&ckt_netscape_valid, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trust_unknown, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
-  { (void *)&ckt_netscape_valid, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trust_unknown, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
 static const NSSItem nss_builtins_items_14 [] = {
@@ -1402,7 +1504,7 @@ static const NSSItem nss_builtins_items_15 [] = {
   { (void *)"\002\001\001"
 , (PRUint32)3 },
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
-  { (void *)&ckt_netscape_valid, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trust_unknown, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) }
 };
@@ -1528,7 +1630,7 @@ static const NSSItem nss_builtins_items_17 [] = {
   { (void *)"\002\001\001"
 , (PRUint32)3 },
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
-  { (void *)&ckt_netscape_valid, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trust_unknown, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) }
 };
@@ -2299,9 +2401,9 @@ static const NSSItem nss_builtins_items_31 [] = {
   { (void *)"\002\021\000\315\272\177\126\360\337\344\274\124\376\042\254\263"
 "\162\252\125"
 , (PRUint32)19 },
-  { (void *)&ckt_netscape_valid, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trust_unknown, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
-  { (void *)&ckt_netscape_valid, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trust_unknown, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
 static const NSSItem nss_builtins_items_32 [] = {
@@ -2391,7 +2493,7 @@ static const NSSItem nss_builtins_items_33 [] = {
   { (void *)"\002\020\055\033\374\112\027\215\243\221\353\347\377\365\213\105"
 "\276\013"
 , (PRUint32)18 },
-  { (void *)&ckt_netscape_valid, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trust_unknown, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
@@ -2606,9 +2708,9 @@ static const NSSItem nss_builtins_items_37 [] = {
   { (void *)"\002\020\114\307\352\252\230\076\161\323\223\020\370\075\072\211"
 "\221\222"
 , (PRUint32)18 },
-  { (void *)&ckt_netscape_valid, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trust_unknown, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
-  { (void *)&ckt_netscape_valid, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trust_unknown, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
 static const NSSItem nss_builtins_items_38 [] = {
@@ -2729,7 +2831,7 @@ static const NSSItem nss_builtins_items_39 [] = {
   { (void *)"\002\021\000\271\057\140\314\210\237\241\172\106\011\270\133\160"
 "\154\212\257"
 , (PRUint32)19 },
-  { (void *)&ckt_netscape_valid, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trust_unknown, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
@@ -3092,6 +3194,114 @@ static const NSSItem nss_builtins_items_46 [] = {
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)"GlobalSign Root CA - R2", (PRUint32)24 },
+  { (void *)&ckc_x_509, (PRUint32)sizeof(CK_CERTIFICATE_TYPE) },
+  { (void *)"\060\114\061\040\060\036\006\003\125\004\013\023\027\107\154\157"
+"\142\141\154\123\151\147\156\040\122\157\157\164\040\103\101\040"
+"\055\040\122\062\061\023\060\021\006\003\125\004\012\023\012\107"
+"\154\157\142\141\154\123\151\147\156\061\023\060\021\006\003\125"
+"\004\003\023\012\107\154\157\142\141\154\123\151\147\156"
+, (PRUint32)78 },
+  { (void *)"0", (PRUint32)2 },
+  { (void *)"\060\114\061\040\060\036\006\003\125\004\013\023\027\107\154\157"
+"\142\141\154\123\151\147\156\040\122\157\157\164\040\103\101\040"
+"\055\040\122\062\061\023\060\021\006\003\125\004\012\023\012\107"
+"\154\157\142\141\154\123\151\147\156\061\023\060\021\006\003\125"
+"\004\003\023\012\107\154\157\142\141\154\123\151\147\156"
+, (PRUint32)78 },
+  { (void *)"\002\013\004\000\000\000\000\001\017\206\046\346\015"
+, (PRUint32)13 },
+  { (void *)"\060\202\003\272\060\202\002\242\240\003\002\001\002\002\013\004"
+"\000\000\000\000\001\017\206\046\346\015\060\015\006\011\052\206"
+"\110\206\367\015\001\001\005\005\000\060\114\061\040\060\036\006"
+"\003\125\004\013\023\027\107\154\157\142\141\154\123\151\147\156"
+"\040\122\157\157\164\040\103\101\040\055\040\122\062\061\023\060"
+"\021\006\003\125\004\012\023\012\107\154\157\142\141\154\123\151"
+"\147\156\061\023\060\021\006\003\125\004\003\023\012\107\154\157"
+"\142\141\154\123\151\147\156\060\036\027\015\060\066\061\062\061"
+"\065\060\070\060\060\060\060\132\027\015\062\061\061\062\061\065"
+"\060\070\060\060\060\060\132\060\114\061\040\060\036\006\003\125"
+"\004\013\023\027\107\154\157\142\141\154\123\151\147\156\040\122"
+"\157\157\164\040\103\101\040\055\040\122\062\061\023\060\021\006"
+"\003\125\004\012\023\012\107\154\157\142\141\154\123\151\147\156"
+"\061\023\060\021\006\003\125\004\003\023\012\107\154\157\142\141"
+"\154\123\151\147\156\060\202\001\042\060\015\006\011\052\206\110"
+"\206\367\015\001\001\001\005\000\003\202\001\017\000\060\202\001"
+"\012\002\202\001\001\000\246\317\044\016\276\056\157\050\231\105"
+"\102\304\253\076\041\124\233\013\323\177\204\160\372\022\263\313"
+"\277\207\137\306\177\206\323\262\060\134\326\375\255\361\173\334"
+"\345\370\140\226\011\222\020\365\320\123\336\373\173\176\163\210"
+"\254\122\210\173\112\246\312\111\246\136\250\247\214\132\021\274"
+"\172\202\353\276\214\351\263\254\226\045\007\227\112\231\052\007"
+"\057\264\036\167\277\212\017\265\002\174\033\226\270\305\271\072"
+"\054\274\326\022\271\353\131\175\342\320\006\206\137\136\111\152"
+"\265\071\136\210\064\354\274\170\014\010\230\204\154\250\315\113"
+"\264\240\175\014\171\115\360\270\055\313\041\312\325\154\133\175"
+"\341\240\051\204\241\371\323\224\111\313\044\142\221\040\274\335"
+"\013\325\331\314\371\352\047\012\053\163\221\306\235\033\254\310"
+"\313\350\340\240\364\057\220\213\115\373\260\066\033\366\031\172"
+"\205\340\155\362\141\023\210\134\237\340\223\012\121\227\212\132"
+"\316\257\253\325\367\252\011\252\140\275\334\331\137\337\162\251"
+"\140\023\136\000\001\311\112\372\077\244\352\007\003\041\002\216"
+"\202\312\003\302\233\217\002\003\001\000\001\243\201\234\060\201"
+"\231\060\016\006\003\125\035\017\001\001\377\004\004\003\002\001"
+"\006\060\017\006\003\125\035\023\001\001\377\004\005\060\003\001"
+"\001\377\060\035\006\003\125\035\016\004\026\004\024\233\342\007"
+"\127\147\034\036\300\152\006\336\131\264\232\055\337\334\031\206"
+"\056\060\066\006\003\125\035\037\004\057\060\055\060\053\240\051"
+"\240\047\206\045\150\164\164\160\072\057\057\143\162\154\056\147"
+"\154\157\142\141\154\163\151\147\156\056\156\145\164\057\162\157"
+"\157\164\055\162\062\056\143\162\154\060\037\006\003\125\035\043"
+"\004\030\060\026\200\024\233\342\007\127\147\034\036\300\152\006"
+"\336\131\264\232\055\337\334\031\206\056\060\015\006\011\052\206"
+"\110\206\367\015\001\001\005\005\000\003\202\001\001\000\231\201"
+"\123\207\034\150\227\206\221\354\340\112\270\104\013\253\201\254"
+"\047\117\326\301\270\034\103\170\263\014\232\374\352\054\074\156"
+"\141\033\115\113\051\365\237\005\035\046\301\270\351\203\000\142"
+"\105\266\251\010\223\271\251\063\113\030\232\302\370\207\210\116"
+"\333\335\161\064\032\301\124\332\106\077\340\323\052\253\155\124"
+"\042\365\072\142\315\040\157\272\051\211\327\335\221\356\323\134"
+"\242\076\241\133\101\365\337\345\144\103\055\351\325\071\253\322"
+"\242\337\267\213\320\300\200\031\034\105\300\055\214\350\370\055"
+"\244\164\126\111\305\005\265\117\025\336\156\104\170\071\207\250"
+"\176\273\363\171\030\221\273\364\157\235\301\360\214\065\214\135"
+"\001\373\303\155\271\357\104\155\171\106\061\176\012\376\251\202"
+"\301\377\357\253\156\040\304\120\311\137\235\115\233\027\214\014"
+"\345\001\311\240\101\152\163\123\372\245\120\264\156\045\017\373"
+"\114\030\364\375\122\331\216\151\261\350\021\017\336\210\330\373"
+"\035\111\367\252\336\225\317\040\170\302\140\022\333\045\100\214"
+"\152\374\176\102\070\100\144\022\367\236\201\341\223\056"
+, (PRUint32)958 }
+};
+static const NSSItem nss_builtins_items_47 [] = {
+  { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
+  { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)"GlobalSign Root CA - R2", (PRUint32)24 },
+  { (void *)"\165\340\253\266\023\205\022\047\034\004\370\137\335\336\070\344"
+"\267\044\056\376"
+, (PRUint32)20 },
+  { (void *)"\224\024\167\176\076\136\375\217\060\275\101\260\317\347\320\060"
+, (PRUint32)16 },
+  { (void *)"\060\114\061\040\060\036\006\003\125\004\013\023\027\107\154\157"
+"\142\141\154\123\151\147\156\040\122\157\157\164\040\103\101\040"
+"\055\040\122\062\061\023\060\021\006\003\125\004\012\023\012\107"
+"\154\157\142\141\154\123\151\147\156\061\023\060\021\006\003\125"
+"\004\003\023\012\107\154\157\142\141\154\123\151\147\156"
+, (PRUint32)78 },
+  { (void *)"\002\013\004\000\000\000\000\001\017\206\046\346\015"
+, (PRUint32)13 },
+  { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
+};
+static const NSSItem nss_builtins_items_48 [] = {
+  { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
+  { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)"ValiCert Class 1 VA", (PRUint32)20 },
   { (void *)&ckc_x_509, (PRUint32)sizeof(CK_CERTIFICATE_TYPE) },
   { (void *)"\060\201\273\061\044\060\042\006\003\125\004\007\023\033\126\141"
@@ -3172,7 +3382,7 @@ static const NSSItem nss_builtins_items_46 [] = {
 "\161\202\053\231\317\072\267\365\055\162\310"
 , (PRUint32)747 }
 };
-static const NSSItem nss_builtins_items_47 [] = {
+static const NSSItem nss_builtins_items_49 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -3203,7 +3413,7 @@ static const NSSItem nss_builtins_items_47 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_48 [] = {
+static const NSSItem nss_builtins_items_50 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -3288,7 +3498,7 @@ static const NSSItem nss_builtins_items_48 [] = {
 "\276\355\164\114\274\133\325\142\037\103\335"
 , (PRUint32)747 }
 };
-static const NSSItem nss_builtins_items_49 [] = {
+static const NSSItem nss_builtins_items_51 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -3319,7 +3529,7 @@ static const NSSItem nss_builtins_items_49 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_50 [] = {
+static const NSSItem nss_builtins_items_52 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -3404,7 +3614,7 @@ static const NSSItem nss_builtins_items_50 [] = {
 "\040\017\105\176\153\242\177\243\214\025\356"
 , (PRUint32)747 }
 };
-static const NSSItem nss_builtins_items_51 [] = {
+static const NSSItem nss_builtins_items_53 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -3435,7 +3645,7 @@ static const NSSItem nss_builtins_items_51 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_52 [] = {
+static const NSSItem nss_builtins_items_54 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -3542,7 +3752,7 @@ static const NSSItem nss_builtins_items_52 [] = {
 "\113\336\006\226\161\054\362\333\266\037\244\357\077\356"
 , (PRUint32)1054 }
 };
-static const NSSItem nss_builtins_items_53 [] = {
+static const NSSItem nss_builtins_items_55 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -3570,12 +3780,12 @@ static const NSSItem nss_builtins_items_53 [] = {
   { (void *)"\002\021\000\213\133\165\126\204\124\205\013\000\317\257\070\110"
 "\316\261\244"
 , (PRUint32)19 },
-  { (void *)&ckt_netscape_valid, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trust_unknown, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
-  { (void *)&ckt_netscape_valid, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trust_unknown, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_54 [] = {
+static const NSSItem nss_builtins_items_56 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -3682,7 +3892,7 @@ static const NSSItem nss_builtins_items_54 [] = {
 "\311\130\020\371\252\357\132\266\317\113\113\337\052"
 , (PRUint32)1053 }
 };
-static const NSSItem nss_builtins_items_55 [] = {
+static const NSSItem nss_builtins_items_57 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -3710,12 +3920,12 @@ static const NSSItem nss_builtins_items_55 [] = {
   { (void *)"\002\020\141\160\313\111\214\137\230\105\051\347\260\246\331\120"
 "\133\172"
 , (PRUint32)18 },
-  { (void *)&ckt_netscape_valid, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trust_unknown, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_56 [] = {
+static const NSSItem nss_builtins_items_58 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -3822,7 +4032,7 @@ static const NSSItem nss_builtins_items_56 [] = {
 "\153\271\012\172\116\117\113\204\356\113\361\175\335\021"
 , (PRUint32)1054 }
 };
-static const NSSItem nss_builtins_items_57 [] = {
+static const NSSItem nss_builtins_items_59 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -3855,7 +4065,7 @@ static const NSSItem nss_builtins_items_57 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_58 [] = {
+static const NSSItem nss_builtins_items_60 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -3962,7 +4172,7 @@ static const NSSItem nss_builtins_items_58 [] = {
 "\367\146\103\363\236\203\076\040\252\303\065\140\221\316"
 , (PRUint32)1054 }
 };
-static const NSSItem nss_builtins_items_59 [] = {
+static const NSSItem nss_builtins_items_61 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -3995,7 +4205,7 @@ static const NSSItem nss_builtins_items_59 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_60 [] = {
+static const NSSItem nss_builtins_items_62 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -4113,7 +4323,7 @@ static const NSSItem nss_builtins_items_60 [] = {
 "\155\055\105\013\367\012\223\352\355\006\371\262"
 , (PRUint32)1244 }
 };
-static const NSSItem nss_builtins_items_61 [] = {
+static const NSSItem nss_builtins_items_63 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -4145,7 +4355,7 @@ static const NSSItem nss_builtins_items_61 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_62 [] = {
+static const NSSItem nss_builtins_items_64 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -4265,7 +4475,7 @@ static const NSSItem nss_builtins_items_62 [] = {
 "\354"
 , (PRUint32)1265 }
 };
-static const NSSItem nss_builtins_items_63 [] = {
+static const NSSItem nss_builtins_items_65 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -4297,7 +4507,7 @@ static const NSSItem nss_builtins_items_63 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_64 [] = {
+static const NSSItem nss_builtins_items_66 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -4405,7 +4615,7 @@ static const NSSItem nss_builtins_items_64 [] = {
 "\275\114\105\236\141\272\277\204\201\222\003\321\322\151\174\305"
 , (PRUint32)1120 }
 };
-static const NSSItem nss_builtins_items_65 [] = {
+static const NSSItem nss_builtins_items_67 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -4436,7 +4646,7 @@ static const NSSItem nss_builtins_items_65 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_66 [] = {
+static const NSSItem nss_builtins_items_68 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -4518,7 +4728,7 @@ static const NSSItem nss_builtins_items_66 [] = {
 "\347\201\035\031\303\044\102\352\143\071\251"
 , (PRUint32)891 }
 };
-static const NSSItem nss_builtins_items_67 [] = {
+static const NSSItem nss_builtins_items_69 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -4540,9 +4750,10 @@ static const NSSItem nss_builtins_items_67 [] = {
 , (PRUint32)6 },
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
-  { (void *)&ckt_netscape_valid, (PRUint32)sizeof(CK_TRUST) }
+  { (void *)&ckt_netscape_trust_unknown, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_68 [] = {
+static const NSSItem nss_builtins_items_70 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -4610,7 +4821,7 @@ static const NSSItem nss_builtins_items_68 [] = {
 "\126\224\251\125"
 , (PRUint32)660 }
 };
-static const NSSItem nss_builtins_items_69 [] = {
+static const NSSItem nss_builtins_items_71 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -4635,7 +4846,7 @@ static const NSSItem nss_builtins_items_69 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_70 [] = {
+static const NSSItem nss_builtins_items_72 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -4702,7 +4913,7 @@ static const NSSItem nss_builtins_items_70 [] = {
 "\132\052\202\262\067\171"
 , (PRUint32)646 }
 };
-static const NSSItem nss_builtins_items_71 [] = {
+static const NSSItem nss_builtins_items_73 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -4727,7 +4938,7 @@ static const NSSItem nss_builtins_items_71 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_72 [] = {
+static const NSSItem nss_builtins_items_74 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -4802,7 +5013,7 @@ static const NSSItem nss_builtins_items_72 [] = {
 "\221\060\352\315"
 , (PRUint32)804 }
 };
-static const NSSItem nss_builtins_items_73 [] = {
+static const NSSItem nss_builtins_items_75 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -4823,9 +5034,10 @@ static const NSSItem nss_builtins_items_73 [] = {
 , (PRUint32)6 },
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
-  { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) }
+  { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_74 [] = {
+static const NSSItem nss_builtins_items_76 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -4910,7 +5122,7 @@ static const NSSItem nss_builtins_items_74 [] = {
 "\265\314\255\006"
 , (PRUint32)900 }
 };
-static const NSSItem nss_builtins_items_75 [] = {
+static const NSSItem nss_builtins_items_77 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -4933,10 +5145,10 @@ static const NSSItem nss_builtins_items_75 [] = {
 , (PRUint32)4 },
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
-  { (void *)&ckt_netscape_valid, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trust_unknown, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_76 [] = {
+static const NSSItem nss_builtins_items_78 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -5045,7 +5257,7 @@ static const NSSItem nss_builtins_items_76 [] = {
 "\043\020\077\041\020\131\267\344\100\335\046\014\043\366\252\256"
 , (PRUint32)1328 }
 };
-static const NSSItem nss_builtins_items_77 [] = {
+static const NSSItem nss_builtins_items_79 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -5070,7 +5282,7 @@ static const NSSItem nss_builtins_items_77 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_78 [] = {
+static const NSSItem nss_builtins_items_80 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -5164,7 +5376,7 @@ static const NSSItem nss_builtins_items_78 [] = {
 "\065\341\035\026\034\320\274\053\216\326\161\331"
 , (PRUint32)1052 }
 };
-static const NSSItem nss_builtins_items_79 [] = {
+static const NSSItem nss_builtins_items_81 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -5187,10 +5399,10 @@ static const NSSItem nss_builtins_items_79 [] = {
 , (PRUint32)3 },
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
-  { (void *)&ckt_netscape_valid, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trust_unknown, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_80 [] = {
+static const NSSItem nss_builtins_items_82 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -5288,7 +5500,7 @@ static const NSSItem nss_builtins_items_80 [] = {
 "\027\132\173\320\274\307\217\116\206\004"
 , (PRUint32)1082 }
 };
-static const NSSItem nss_builtins_items_81 [] = {
+static const NSSItem nss_builtins_items_83 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -5315,7 +5527,7 @@ static const NSSItem nss_builtins_items_81 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_82 [] = {
+static const NSSItem nss_builtins_items_84 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -5409,7 +5621,7 @@ static const NSSItem nss_builtins_items_82 [] = {
 "\116\072\063\014\053\263\055\220\006"
 , (PRUint32)1049 }
 };
-static const NSSItem nss_builtins_items_83 [] = {
+static const NSSItem nss_builtins_items_85 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -5420,22 +5632,22 @@ static const NSSItem nss_builtins_items_83 [] = {
 , (PRUint32)20 },
   { (void *)"\301\142\076\043\305\202\163\234\003\131\113\053\351\167\111\177"
 , (PRUint32)16 },
-  { (void *)"\060\157\061\013\060\011\006\003\125\004\006\023\002\123\105\061"
+  { (void *)"\060\144\061\013\060\011\006\003\125\004\006\023\002\123\105\061"
 "\024\060\022\006\003\125\004\012\023\013\101\144\144\124\162\165"
-"\163\164\040\101\102\061\046\060\044\006\003\125\004\013\023\035"
-"\101\144\144\124\162\165\163\164\040\105\170\164\145\162\156\141"
-"\154\040\124\124\120\040\116\145\164\167\157\162\153\061\042\060"
-"\040\006\003\125\004\003\023\031\101\144\144\124\162\165\163\164"
-"\040\105\170\164\145\162\156\141\154\040\103\101\040\122\157\157"
-"\164"
-, (PRUint32)113 },
+"\163\164\040\101\102\061\035\060\033\006\003\125\004\013\023\024"
+"\101\144\144\124\162\165\163\164\040\124\124\120\040\116\145\164"
+"\167\157\162\153\061\040\060\036\006\003\125\004\003\023\027\101"
+"\144\144\124\162\165\163\164\040\120\165\142\154\151\143\040\103"
+"\101\040\122\157\157\164"
+, (PRUint32)102 },
   { (void *)"\002\001\001"
 , (PRUint32)3 },
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
-  { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) }
+  { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_84 [] = {
+static const NSSItem nss_builtins_items_86 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -5530,7 +5742,7 @@ static const NSSItem nss_builtins_items_84 [] = {
 "\306\241"
 , (PRUint32)1058 }
 };
-static const NSSItem nss_builtins_items_85 [] = {
+static const NSSItem nss_builtins_items_87 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -5556,7 +5768,7 @@ static const NSSItem nss_builtins_items_85 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_86 [] = {
+static const NSSItem nss_builtins_items_88 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -5648,7 +5860,7 @@ static const NSSItem nss_builtins_items_86 [] = {
 "\051\303"
 , (PRUint32)930 }
 };
-static const NSSItem nss_builtins_items_87 [] = {
+static const NSSItem nss_builtins_items_89 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -5675,7 +5887,7 @@ static const NSSItem nss_builtins_items_87 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_88 [] = {
+static const NSSItem nss_builtins_items_90 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -5767,7 +5979,7 @@ static const NSSItem nss_builtins_items_88 [] = {
 "\064\215"
 , (PRUint32)930 }
 };
-static const NSSItem nss_builtins_items_89 [] = {
+static const NSSItem nss_builtins_items_91 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -5794,7 +6006,7 @@ static const NSSItem nss_builtins_items_89 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_90 [] = {
+static const NSSItem nss_builtins_items_92 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -5886,7 +6098,7 @@ static const NSSItem nss_builtins_items_90 [] = {
 "\116\101\325\226\343\116"
 , (PRUint32)934 }
 };
-static const NSSItem nss_builtins_items_91 [] = {
+static const NSSItem nss_builtins_items_93 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -5913,7 +6125,7 @@ static const NSSItem nss_builtins_items_91 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_92 [] = {
+static const NSSItem nss_builtins_items_94 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -6005,7 +6217,7 @@ static const NSSItem nss_builtins_items_92 [] = {
 "\316\324\357"
 , (PRUint32)931 }
 };
-static const NSSItem nss_builtins_items_93 [] = {
+static const NSSItem nss_builtins_items_95 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -6032,7 +6244,7 @@ static const NSSItem nss_builtins_items_93 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_94 [] = {
+static const NSSItem nss_builtins_items_96 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -6133,7 +6345,7 @@ static const NSSItem nss_builtins_items_94 [] = {
 "\024"
 , (PRUint32)977 }
 };
-static const NSSItem nss_builtins_items_95 [] = {
+static const NSSItem nss_builtins_items_97 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -6166,7 +6378,7 @@ static const NSSItem nss_builtins_items_95 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_96 [] = {
+static const NSSItem nss_builtins_items_98 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -6241,7 +6453,7 @@ static const NSSItem nss_builtins_items_96 [] = {
 "\011\254\211\111\323"
 , (PRUint32)677 }
 };
-static const NSSItem nss_builtins_items_97 [] = {
+static const NSSItem nss_builtins_items_99 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -6269,7 +6481,7 @@ static const NSSItem nss_builtins_items_97 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_98 [] = {
+static const NSSItem nss_builtins_items_100 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -6381,7 +6593,7 @@ static const NSSItem nss_builtins_items_98 [] = {
 "\005\377\154\211\063\360\354\025\017"
 , (PRUint32)1177 }
 };
-static const NSSItem nss_builtins_items_99 [] = {
+static const NSSItem nss_builtins_items_101 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -6412,7 +6624,7 @@ static const NSSItem nss_builtins_items_99 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_100 [] = {
+static const NSSItem nss_builtins_items_102 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -6523,7 +6735,7 @@ static const NSSItem nss_builtins_items_100 [] = {
 "\316\145\146\227\256\046\136"
 , (PRUint32)1159 }
 };
-static const NSSItem nss_builtins_items_101 [] = {
+static const NSSItem nss_builtins_items_103 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -6554,7 +6766,7 @@ static const NSSItem nss_builtins_items_101 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_102 [] = {
+static const NSSItem nss_builtins_items_104 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -6649,7 +6861,7 @@ static const NSSItem nss_builtins_items_102 [] = {
 "\071\050\150\016\163\335\045\232\336\022"
 , (PRUint32)1002 }
 };
-static const NSSItem nss_builtins_items_103 [] = {
+static const NSSItem nss_builtins_items_105 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -6677,7 +6889,7 @@ static const NSSItem nss_builtins_items_103 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_104 [] = {
+static const NSSItem nss_builtins_items_106 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -6804,7 +7016,7 @@ static const NSSItem nss_builtins_items_104 [] = {
 "\204\327\372\334\162\133\367\301\072\150"
 , (PRUint32)1514 }
 };
-static const NSSItem nss_builtins_items_105 [] = {
+static const NSSItem nss_builtins_items_107 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -6832,7 +7044,7 @@ static const NSSItem nss_builtins_items_105 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_106 [] = {
+static const NSSItem nss_builtins_items_108 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -6947,7 +7159,7 @@ static const NSSItem nss_builtins_items_106 [] = {
 "\061\210\027\120\237\311\304\016\213\330\250\002\143\015"
 , (PRUint32)1390 }
 };
-static const NSSItem nss_builtins_items_107 [] = {
+static const NSSItem nss_builtins_items_109 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -6973,7 +7185,7 @@ static const NSSItem nss_builtins_items_107 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_108 [] = {
+static const NSSItem nss_builtins_items_110 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -7103,7 +7315,7 @@ static const NSSItem nss_builtins_items_108 [] = {
 "\254\142\127\251\367"
 , (PRUint32)1621 }
 };
-static const NSSItem nss_builtins_items_109 [] = {
+static const NSSItem nss_builtins_items_111 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -7129,7 +7341,7 @@ static const NSSItem nss_builtins_items_109 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_110 [] = {
+static const NSSItem nss_builtins_items_112 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -7245,7 +7457,7 @@ static const NSSItem nss_builtins_items_110 [] = {
 "\230\150\373\001\103\326\033\342\011\261\227\034"
 , (PRUint32)1388 }
 };
-static const NSSItem nss_builtins_items_111 [] = {
+static const NSSItem nss_builtins_items_113 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -7272,7 +7484,7 @@ static const NSSItem nss_builtins_items_111 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_112 [] = {
+static const NSSItem nss_builtins_items_114 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -7350,7 +7562,7 @@ static const NSSItem nss_builtins_items_112 [] = {
 "\354\040\005\141\336"
 , (PRUint32)869 }
 };
-static const NSSItem nss_builtins_items_113 [] = {
+static const NSSItem nss_builtins_items_115 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -7374,7 +7586,7 @@ static const NSSItem nss_builtins_items_113 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_114 [] = {
+static const NSSItem nss_builtins_items_116 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -7435,7 +7647,7 @@ static const NSSItem nss_builtins_items_114 [] = {
 "\215\210\043\361\025\101\015\245\106\076\221\077\213\353\367\161"
 , (PRUint32)608 }
 };
-static const NSSItem nss_builtins_items_115 [] = {
+static const NSSItem nss_builtins_items_117 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -7459,7 +7671,7 @@ static const NSSItem nss_builtins_items_115 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_116 [] = {
+static const NSSItem nss_builtins_items_118 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -7537,7 +7749,7 @@ static const NSSItem nss_builtins_items_116 [] = {
 "\302\005\146\200\241\313\346\063"
 , (PRUint32)856 }
 };
-static const NSSItem nss_builtins_items_117 [] = {
+static const NSSItem nss_builtins_items_119 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -7561,7 +7773,380 @@ static const NSSItem nss_builtins_items_117 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_118 [] = {
+static const NSSItem nss_builtins_items_120 [] = {
+  { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
+  { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)"GeoTrust Global CA 2", (PRUint32)21 },
+  { (void *)&ckc_x_509, (PRUint32)sizeof(CK_CERTIFICATE_TYPE) },
+  { (void *)"\060\104\061\013\060\011\006\003\125\004\006\023\002\125\123\061"
+"\026\060\024\006\003\125\004\012\023\015\107\145\157\124\162\165"
+"\163\164\040\111\156\143\056\061\035\060\033\006\003\125\004\003"
+"\023\024\107\145\157\124\162\165\163\164\040\107\154\157\142\141"
+"\154\040\103\101\040\062"
+, (PRUint32)70 },
+  { (void *)"0", (PRUint32)2 },
+  { (void *)"\060\104\061\013\060\011\006\003\125\004\006\023\002\125\123\061"
+"\026\060\024\006\003\125\004\012\023\015\107\145\157\124\162\165"
+"\163\164\040\111\156\143\056\061\035\060\033\006\003\125\004\003"
+"\023\024\107\145\157\124\162\165\163\164\040\107\154\157\142\141"
+"\154\040\103\101\040\062"
+, (PRUint32)70 },
+  { (void *)"\002\001\001"
+, (PRUint32)3 },
+  { (void *)"\060\202\003\146\060\202\002\116\240\003\002\001\002\002\001\001"
+"\060\015\006\011\052\206\110\206\367\015\001\001\005\005\000\060"
+"\104\061\013\060\011\006\003\125\004\006\023\002\125\123\061\026"
+"\060\024\006\003\125\004\012\023\015\107\145\157\124\162\165\163"
+"\164\040\111\156\143\056\061\035\060\033\006\003\125\004\003\023"
+"\024\107\145\157\124\162\165\163\164\040\107\154\157\142\141\154"
+"\040\103\101\040\062\060\036\027\015\060\064\060\063\060\064\060"
+"\065\060\060\060\060\132\027\015\061\071\060\063\060\064\060\065"
+"\060\060\060\060\132\060\104\061\013\060\011\006\003\125\004\006"
+"\023\002\125\123\061\026\060\024\006\003\125\004\012\023\015\107"
+"\145\157\124\162\165\163\164\040\111\156\143\056\061\035\060\033"
+"\006\003\125\004\003\023\024\107\145\157\124\162\165\163\164\040"
+"\107\154\157\142\141\154\040\103\101\040\062\060\202\001\042\060"
+"\015\006\011\052\206\110\206\367\015\001\001\001\005\000\003\202"
+"\001\017\000\060\202\001\012\002\202\001\001\000\357\074\115\100"
+"\075\020\337\073\123\000\341\147\376\224\140\025\076\205\210\361"
+"\211\015\220\310\050\043\231\005\350\053\040\235\306\363\140\106"
+"\330\301\262\325\214\061\331\334\040\171\044\201\277\065\062\374"
+"\143\151\333\261\052\153\356\041\130\362\010\351\170\313\157\313"
+"\374\026\122\310\221\304\377\075\163\336\261\076\247\302\175\146"
+"\301\365\176\122\044\032\342\325\147\221\320\202\020\327\170\113"
+"\117\053\102\071\275\144\055\100\240\260\020\323\070\110\106\210"
+"\241\014\273\072\063\052\142\230\373\000\235\023\131\177\157\073"
+"\162\252\356\246\017\206\371\005\141\352\147\177\014\067\226\213"
+"\346\151\026\107\021\302\047\131\003\263\246\140\302\041\100\126"
+"\372\240\307\175\072\023\343\354\127\307\263\326\256\235\211\200"
+"\367\001\347\054\366\226\053\023\015\171\054\331\300\344\206\173"
+"\113\214\014\162\202\212\373\027\315\000\154\072\023\074\260\204"
+"\207\113\026\172\051\262\117\333\035\324\013\363\146\067\275\330"
+"\366\127\273\136\044\172\270\074\213\271\372\222\032\032\204\236"
+"\330\164\217\252\033\177\136\364\376\105\042\041\002\003\001\000"
+"\001\243\143\060\141\060\017\006\003\125\035\023\001\001\377\004"
+"\005\060\003\001\001\377\060\035\006\003\125\035\016\004\026\004"
+"\024\161\070\066\362\002\061\123\107\053\156\272\145\106\251\020"
+"\025\130\040\005\011\060\037\006\003\125\035\043\004\030\060\026"
+"\200\024\161\070\066\362\002\061\123\107\053\156\272\145\106\251"
+"\020\025\130\040\005\011\060\016\006\003\125\035\017\001\001\377"
+"\004\004\003\002\001\206\060\015\006\011\052\206\110\206\367\015"
+"\001\001\005\005\000\003\202\001\001\000\003\367\265\053\253\135"
+"\020\374\173\262\262\136\254\233\016\176\123\170\131\076\102\004"
+"\376\165\243\255\254\201\116\327\002\213\136\304\055\310\122\166"
+"\307\054\037\374\201\062\230\321\113\306\222\223\063\065\061\057"
+"\374\330\035\104\335\340\201\177\235\351\213\341\144\221\142\013"
+"\071\010\214\254\164\235\131\331\172\131\122\227\021\271\026\173"
+"\157\105\323\226\331\061\175\002\066\017\234\073\156\317\054\015"
+"\003\106\105\353\240\364\177\110\104\306\010\100\314\336\033\160"
+"\265\051\255\272\213\073\064\145\165\033\161\041\035\054\024\012"
+"\260\226\225\270\326\352\362\145\373\051\272\117\352\221\223\164"
+"\151\266\362\377\341\032\320\014\321\166\205\313\212\045\275\227"
+"\136\054\157\025\231\046\347\266\051\377\042\354\311\002\307\126"
+"\000\315\111\271\263\154\173\123\004\032\342\250\311\252\022\005"
+"\043\302\316\347\273\004\002\314\300\107\242\344\304\051\057\133"
+"\105\127\211\121\356\074\353\122\010\377\007\065\036\237\065\152"
+"\107\112\126\230\321\132\205\037\214\365\042\277\253\316\203\363"
+"\342\042\051\256\175\203\100\250\272\154"
+, (PRUint32)874 }
+};
+static const NSSItem nss_builtins_items_121 [] = {
+  { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
+  { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)"GeoTrust Global CA 2", (PRUint32)21 },
+  { (void *)"\251\351\170\010\024\067\130\210\362\005\031\260\155\053\015\053"
+"\140\026\220\175"
+, (PRUint32)20 },
+  { (void *)"\016\100\247\154\336\003\135\217\321\017\344\321\215\371\154\251"
+, (PRUint32)16 },
+  { (void *)"\060\104\061\013\060\011\006\003\125\004\006\023\002\125\123\061"
+"\026\060\024\006\003\125\004\012\023\015\107\145\157\124\162\165"
+"\163\164\040\111\156\143\056\061\035\060\033\006\003\125\004\003"
+"\023\024\107\145\157\124\162\165\163\164\040\107\154\157\142\141"
+"\154\040\103\101\040\062"
+, (PRUint32)70 },
+  { (void *)"\002\001\001"
+, (PRUint32)3 },
+  { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
+};
+static const NSSItem nss_builtins_items_122 [] = {
+  { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
+  { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)"GeoTrust Universal CA", (PRUint32)22 },
+  { (void *)&ckc_x_509, (PRUint32)sizeof(CK_CERTIFICATE_TYPE) },
+  { (void *)"\060\105\061\013\060\011\006\003\125\004\006\023\002\125\123\061"
+"\026\060\024\006\003\125\004\012\023\015\107\145\157\124\162\165"
+"\163\164\040\111\156\143\056\061\036\060\034\006\003\125\004\003"
+"\023\025\107\145\157\124\162\165\163\164\040\125\156\151\166\145"
+"\162\163\141\154\040\103\101"
+, (PRUint32)71 },
+  { (void *)"0", (PRUint32)2 },
+  { (void *)"\060\105\061\013\060\011\006\003\125\004\006\023\002\125\123\061"
+"\026\060\024\006\003\125\004\012\023\015\107\145\157\124\162\165"
+"\163\164\040\111\156\143\056\061\036\060\034\006\003\125\004\003"
+"\023\025\107\145\157\124\162\165\163\164\040\125\156\151\166\145"
+"\162\163\141\154\040\103\101"
+, (PRUint32)71 },
+  { (void *)"\002\001\001"
+, (PRUint32)3 },
+  { (void *)"\060\202\005\150\060\202\003\120\240\003\002\001\002\002\001\001"
+"\060\015\006\011\052\206\110\206\367\015\001\001\005\005\000\060"
+"\105\061\013\060\011\006\003\125\004\006\023\002\125\123\061\026"
+"\060\024\006\003\125\004\012\023\015\107\145\157\124\162\165\163"
+"\164\040\111\156\143\056\061\036\060\034\006\003\125\004\003\023"
+"\025\107\145\157\124\162\165\163\164\040\125\156\151\166\145\162"
+"\163\141\154\040\103\101\060\036\027\015\060\064\060\063\060\064"
+"\060\065\060\060\060\060\132\027\015\062\071\060\063\060\064\060"
+"\065\060\060\060\060\132\060\105\061\013\060\011\006\003\125\004"
+"\006\023\002\125\123\061\026\060\024\006\003\125\004\012\023\015"
+"\107\145\157\124\162\165\163\164\040\111\156\143\056\061\036\060"
+"\034\006\003\125\004\003\023\025\107\145\157\124\162\165\163\164"
+"\040\125\156\151\166\145\162\163\141\154\040\103\101\060\202\002"
+"\042\060\015\006\011\052\206\110\206\367\015\001\001\001\005\000"
+"\003\202\002\017\000\060\202\002\012\002\202\002\001\000\246\025"
+"\125\240\243\306\340\037\214\235\041\120\327\301\276\053\133\265"
+"\244\236\241\331\162\130\275\000\033\114\277\141\311\024\035\105"
+"\202\253\306\035\200\326\075\353\020\234\072\257\155\044\370\274"
+"\161\001\236\006\365\174\137\036\301\016\125\312\203\232\131\060"
+"\256\031\313\060\110\225\355\042\067\215\364\112\232\162\146\076"
+"\255\225\300\340\026\000\340\020\037\053\061\016\327\224\124\323"
+"\102\063\240\064\035\036\105\166\335\117\312\030\067\354\205\025"
+"\172\031\010\374\325\307\234\360\362\251\056\020\251\222\346\075"
+"\130\075\251\026\150\074\057\165\041\030\177\050\167\245\341\141"
+"\027\267\246\351\370\036\231\333\163\156\364\012\242\041\154\356"
+"\332\252\205\222\146\257\366\172\153\202\332\272\042\010\065\017"
+"\317\102\361\065\372\152\356\176\053\045\314\072\021\344\155\257"
+"\163\262\166\035\255\320\262\170\147\032\244\071\034\121\013\147"
+"\126\203\375\070\135\015\316\335\360\273\053\226\037\336\173\062"
+"\122\375\035\273\265\006\241\262\041\136\245\326\225\150\177\360"
+"\231\236\334\105\010\076\347\322\011\015\065\224\335\200\116\123"
+"\227\327\265\011\104\040\144\026\027\003\002\114\123\015\150\336"
+"\325\252\162\115\223\155\202\016\333\234\275\317\264\363\134\135"
+"\124\172\151\011\226\326\333\021\301\215\165\250\264\317\071\310"
+"\316\074\274\044\174\346\142\312\341\275\175\247\275\127\145\013"
+"\344\376\045\355\266\151\020\334\050\032\106\275\001\035\320\227"
+"\265\341\230\073\300\067\144\326\075\224\356\013\341\365\050\256"
+"\013\126\277\161\213\043\051\101\216\206\305\113\122\173\330\161"
+"\253\037\212\025\246\073\203\132\327\130\001\121\306\114\101\331"
+"\177\330\101\147\162\242\050\337\140\203\251\236\310\173\374\123"
+"\163\162\131\365\223\172\027\166\016\316\367\345\134\331\013\125"
+"\064\242\252\133\265\152\124\347\023\312\127\354\227\155\364\136"
+"\006\057\105\213\130\324\043\026\222\344\026\156\050\143\131\060"
+"\337\120\001\234\143\211\032\237\333\027\224\202\160\067\303\044"
+"\236\232\107\326\132\312\116\250\151\211\162\037\221\154\333\176"
+"\236\033\255\307\037\163\335\054\117\031\145\375\177\223\100\020"
+"\056\322\360\355\074\236\056\050\076\151\046\063\305\173\002\003"
+"\001\000\001\243\143\060\141\060\017\006\003\125\035\023\001\001"
+"\377\004\005\060\003\001\001\377\060\035\006\003\125\035\016\004"
+"\026\004\024\332\273\056\252\260\014\270\210\046\121\164\134\155"
+"\003\323\300\330\217\172\326\060\037\006\003\125\035\043\004\030"
+"\060\026\200\024\332\273\056\252\260\014\270\210\046\121\164\134"
+"\155\003\323\300\330\217\172\326\060\016\006\003\125\035\017\001"
+"\001\377\004\004\003\002\001\206\060\015\006\011\052\206\110\206"
+"\367\015\001\001\005\005\000\003\202\002\001\000\061\170\346\307"
+"\265\337\270\224\100\311\161\304\250\065\354\106\035\302\205\363"
+"\050\130\206\260\013\374\216\262\071\217\104\125\253\144\204\134"
+"\151\251\320\232\070\074\372\345\037\065\345\104\343\200\171\224"
+"\150\244\273\304\237\075\341\064\315\060\106\213\124\053\225\245"
+"\357\367\077\231\204\375\065\346\317\061\306\334\152\277\247\327"
+"\043\010\341\230\136\303\132\010\166\251\246\257\167\057\267\140"
+"\275\104\106\152\357\227\377\163\225\301\216\350\223\373\375\061"
+"\267\354\127\021\021\105\233\060\361\032\210\071\301\117\074\247"
+"\000\325\307\374\253\155\200\042\160\245\014\340\135\004\051\002"
+"\373\313\240\221\321\174\326\303\176\120\325\235\130\276\101\070"
+"\353\271\165\074\025\331\233\311\112\203\131\300\332\123\375\063"
+"\273\066\030\233\205\017\025\335\356\055\254\166\223\271\331\001"
+"\215\110\020\250\373\365\070\206\361\333\012\306\275\204\243\043"
+"\101\336\326\167\157\205\324\205\034\120\340\256\121\212\272\215"
+"\076\166\342\271\312\047\362\137\237\357\156\131\015\006\330\053"
+"\027\244\322\174\153\273\137\024\032\110\217\032\114\347\263\107"
+"\034\216\114\105\053\040\356\110\337\347\335\011\216\030\250\332"
+"\100\215\222\046\021\123\141\163\135\353\275\347\304\115\051\067"
+"\141\353\254\071\055\147\056\026\326\365\000\203\205\241\314\177"
+"\166\304\175\344\267\113\146\357\003\105\140\151\266\014\122\226"
+"\222\204\136\246\243\265\244\076\053\331\314\330\033\107\252\362"
+"\104\332\117\371\003\350\360\024\313\077\363\203\336\320\301\124"
+"\343\267\350\012\067\115\213\040\131\003\060\031\241\054\310\275"
+"\021\037\337\256\311\112\305\363\047\146\146\206\254\150\221\377"
+"\331\346\123\034\017\213\134\151\145\012\046\310\036\064\303\135"
+"\121\173\327\251\234\006\241\066\335\325\211\224\274\331\344\055"
+"\014\136\011\154\010\227\174\243\075\174\223\377\077\241\024\247"
+"\317\265\135\353\333\333\034\304\166\337\210\271\275\105\005\225"
+"\033\256\374\106\152\114\257\110\343\316\256\017\322\176\353\346"
+"\154\234\117\201\152\172\144\254\273\076\325\347\313\166\056\305"
+"\247\110\301\134\220\017\313\310\077\372\346\062\341\215\033\157"
+"\244\346\216\330\371\051\110\212\316\163\376\054"
+, (PRUint32)1388 }
+};
+static const NSSItem nss_builtins_items_123 [] = {
+  { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
+  { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)"GeoTrust Universal CA", (PRUint32)22 },
+  { (void *)"\346\041\363\065\103\171\005\232\113\150\060\235\212\057\164\042"
+"\025\207\354\171"
+, (PRUint32)20 },
+  { (void *)"\222\145\130\213\242\032\061\162\163\150\134\264\245\172\007\110"
+, (PRUint32)16 },
+  { (void *)"\060\105\061\013\060\011\006\003\125\004\006\023\002\125\123\061"
+"\026\060\024\006\003\125\004\012\023\015\107\145\157\124\162\165"
+"\163\164\040\111\156\143\056\061\036\060\034\006\003\125\004\003"
+"\023\025\107\145\157\124\162\165\163\164\040\125\156\151\166\145"
+"\162\163\141\154\040\103\101"
+, (PRUint32)71 },
+  { (void *)"\002\001\001"
+, (PRUint32)3 },
+  { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
+};
+static const NSSItem nss_builtins_items_124 [] = {
+  { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
+  { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)"GeoTrust Universal CA 2", (PRUint32)24 },
+  { (void *)&ckc_x_509, (PRUint32)sizeof(CK_CERTIFICATE_TYPE) },
+  { (void *)"\060\107\061\013\060\011\006\003\125\004\006\023\002\125\123\061"
+"\026\060\024\006\003\125\004\012\023\015\107\145\157\124\162\165"
+"\163\164\040\111\156\143\056\061\040\060\036\006\003\125\004\003"
+"\023\027\107\145\157\124\162\165\163\164\040\125\156\151\166\145"
+"\162\163\141\154\040\103\101\040\062"
+, (PRUint32)73 },
+  { (void *)"0", (PRUint32)2 },
+  { (void *)"\060\107\061\013\060\011\006\003\125\004\006\023\002\125\123\061"
+"\026\060\024\006\003\125\004\012\023\015\107\145\157\124\162\165"
+"\163\164\040\111\156\143\056\061\040\060\036\006\003\125\004\003"
+"\023\027\107\145\157\124\162\165\163\164\040\125\156\151\166\145"
+"\162\163\141\154\040\103\101\040\062"
+, (PRUint32)73 },
+  { (void *)"\002\001\001"
+, (PRUint32)3 },
+  { (void *)"\060\202\005\154\060\202\003\124\240\003\002\001\002\002\001\001"
+"\060\015\006\011\052\206\110\206\367\015\001\001\005\005\000\060"
+"\107\061\013\060\011\006\003\125\004\006\023\002\125\123\061\026"
+"\060\024\006\003\125\004\012\023\015\107\145\157\124\162\165\163"
+"\164\040\111\156\143\056\061\040\060\036\006\003\125\004\003\023"
+"\027\107\145\157\124\162\165\163\164\040\125\156\151\166\145\162"
+"\163\141\154\040\103\101\040\062\060\036\027\015\060\064\060\063"
+"\060\064\060\065\060\060\060\060\132\027\015\062\071\060\063\060"
+"\064\060\065\060\060\060\060\132\060\107\061\013\060\011\006\003"
+"\125\004\006\023\002\125\123\061\026\060\024\006\003\125\004\012"
+"\023\015\107\145\157\124\162\165\163\164\040\111\156\143\056\061"
+"\040\060\036\006\003\125\004\003\023\027\107\145\157\124\162\165"
+"\163\164\040\125\156\151\166\145\162\163\141\154\040\103\101\040"
+"\062\060\202\002\042\060\015\006\011\052\206\110\206\367\015\001"
+"\001\001\005\000\003\202\002\017\000\060\202\002\012\002\202\002"
+"\001\000\263\124\122\301\311\076\362\331\334\261\123\032\131\051"
+"\347\261\303\105\050\345\327\321\355\305\305\113\241\252\164\173"
+"\127\257\112\046\374\330\365\136\247\156\031\333\164\014\117\065"
+"\133\062\013\001\343\333\353\172\167\065\352\252\132\340\326\350"
+"\241\127\224\360\220\243\164\126\224\104\060\003\036\134\116\053"
+"\205\046\164\202\172\014\166\240\157\115\316\101\055\240\025\006"
+"\024\137\267\102\315\173\217\130\141\064\334\052\010\371\056\303"
+"\001\246\042\104\034\114\007\202\346\133\316\320\112\174\004\323"
+"\031\163\047\360\252\230\177\056\257\116\353\207\036\044\167\152"
+"\135\266\350\133\105\272\334\303\241\005\157\126\216\217\020\046"
+"\245\111\303\056\327\101\207\042\340\117\206\312\140\265\352\241"
+"\143\300\001\227\020\171\275\000\074\022\155\053\025\261\254\113"
+"\261\356\030\271\116\226\334\334\166\377\073\276\317\137\003\300"
+"\374\073\350\276\106\033\377\332\100\302\122\367\376\343\072\367"
+"\152\167\065\320\332\215\353\136\030\152\061\307\036\272\074\033"
+"\050\326\153\124\306\252\133\327\242\054\033\031\314\242\002\366"
+"\233\131\275\067\153\206\265\155\202\272\330\352\311\126\274\251"
+"\066\130\375\076\031\363\355\014\046\251\223\070\370\117\301\135"
+"\042\006\320\227\352\341\255\306\125\340\201\053\050\203\072\372"
+"\364\173\041\121\000\276\122\070\316\315\146\171\250\364\201\126"
+"\342\320\203\011\107\121\133\120\152\317\333\110\032\135\076\367"
+"\313\366\145\367\154\361\225\370\002\073\062\126\202\071\172\133"
+"\275\057\211\033\277\241\264\350\377\177\215\214\337\003\361\140"
+"\116\130\021\114\353\243\077\020\053\203\232\001\163\331\224\155"
+"\204\000\047\146\254\360\160\100\011\102\222\255\117\223\015\141"
+"\011\121\044\330\222\325\013\224\141\262\207\262\355\377\232\065"
+"\377\205\124\312\355\104\103\254\033\074\026\153\110\112\012\034"
+"\100\210\037\222\302\013\000\005\377\362\310\002\112\244\252\251"
+"\314\231\226\234\057\130\340\175\341\276\273\007\334\137\004\162"
+"\134\061\064\303\354\137\055\340\075\144\220\042\346\321\354\270"
+"\056\335\131\256\331\241\067\277\124\065\334\163\062\117\214\004"
+"\036\063\262\311\106\361\330\134\310\125\120\311\150\275\250\272"
+"\066\011\002\003\001\000\001\243\143\060\141\060\017\006\003\125"
+"\035\023\001\001\377\004\005\060\003\001\001\377\060\035\006\003"
+"\125\035\016\004\026\004\024\166\363\125\341\372\244\066\373\360"
+"\237\134\142\161\355\074\364\107\070\020\053\060\037\006\003\125"
+"\035\043\004\030\060\026\200\024\166\363\125\341\372\244\066\373"
+"\360\237\134\142\161\355\074\364\107\070\020\053\060\016\006\003"
+"\125\035\017\001\001\377\004\004\003\002\001\206\060\015\006\011"
+"\052\206\110\206\367\015\001\001\005\005\000\003\202\002\001\000"
+"\146\301\306\043\363\331\340\056\156\137\350\317\256\260\260\045"
+"\115\053\370\073\130\233\100\044\067\132\313\253\026\111\377\263"
+"\165\171\063\241\057\155\160\027\064\221\376\147\176\217\354\233"
+"\345\136\202\251\125\037\057\334\324\121\007\022\376\254\026\076"
+"\054\065\306\143\374\334\020\353\015\243\252\320\174\314\321\320"
+"\057\121\056\304\024\132\336\350\031\341\076\306\314\244\051\347"
+"\056\204\252\006\060\170\166\124\163\050\230\131\070\340\000\015"
+"\142\323\102\175\041\237\256\075\072\214\325\372\167\015\030\053"
+"\026\016\137\066\341\374\052\265\060\044\317\340\143\014\173\130"
+"\032\376\231\272\102\022\261\221\364\174\150\342\310\350\257\054"
+"\352\311\176\256\273\052\075\015\025\334\064\225\266\030\164\250"
+"\152\017\307\264\364\023\304\344\133\355\012\322\244\227\114\052"
+"\355\057\154\022\211\075\361\047\160\252\152\003\122\041\237\100"
+"\250\147\120\362\363\132\037\337\337\043\366\334\170\116\346\230"
+"\117\125\072\123\343\357\362\364\237\307\174\330\130\257\051\042"
+"\227\270\340\275\221\056\260\166\354\127\021\317\357\051\104\363"
+"\351\205\172\140\143\344\135\063\211\027\331\061\252\332\326\363"
+"\030\065\162\317\207\053\057\143\043\204\135\204\214\077\127\240"
+"\210\374\231\221\050\046\151\231\324\217\227\104\276\216\325\110"
+"\261\244\050\051\361\025\264\341\345\236\335\370\217\246\157\046"
+"\327\011\074\072\034\021\016\246\154\067\367\255\104\207\054\050"
+"\307\330\164\202\263\320\157\112\127\273\065\051\047\240\213\350"
+"\041\247\207\144\066\135\314\330\026\254\307\262\047\100\222\125"
+"\070\050\215\121\156\335\024\147\123\154\161\134\046\204\115\165"
+"\132\266\176\140\126\251\115\255\373\233\036\227\363\015\331\322"
+"\227\124\167\332\075\022\267\340\036\357\010\006\254\371\205\207"
+"\351\242\334\257\176\030\022\203\375\126\027\101\056\325\051\202"
+"\175\231\364\061\366\161\251\317\054\001\047\245\005\271\252\262"
+"\110\116\052\357\237\223\122\121\225\074\122\163\216\126\114\027"
+"\100\300\011\050\344\213\152\110\123\333\354\315\125\125\361\306"
+"\370\351\242\054\114\246\321\046\137\176\257\132\114\332\037\246"
+"\362\034\054\176\256\002\026\322\126\320\057\127\123\107\350\222"
+, (PRUint32)1392 }
+};
+static const NSSItem nss_builtins_items_125 [] = {
+  { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
+  { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)"GeoTrust Universal CA 2", (PRUint32)24 },
+  { (void *)"\067\232\031\173\101\205\105\065\014\246\003\151\363\074\056\257"
+"\107\117\040\171"
+, (PRUint32)20 },
+  { (void *)"\064\374\270\320\066\333\236\024\263\302\362\333\217\344\224\307"
+, (PRUint32)16 },
+  { (void *)"\060\107\061\013\060\011\006\003\125\004\006\023\002\125\123\061"
+"\026\060\024\006\003\125\004\012\023\015\107\145\157\124\162\165"
+"\163\164\040\111\156\143\056\061\040\060\036\006\003\125\004\003"
+"\023\027\107\145\157\124\162\165\163\164\040\125\156\151\166\145"
+"\162\163\141\154\040\103\101\040\062"
+, (PRUint32)73 },
+  { (void *)"\002\001\001"
+, (PRUint32)3 },
+  { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
+};
+static const NSSItem nss_builtins_items_126 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -7669,7 +8254,7 @@ static const NSSItem nss_builtins_items_118 [] = {
 "\152\372\246\070\254\037\304\204"
 , (PRUint32)1128 }
 };
-static const NSSItem nss_builtins_items_119 [] = {
+static const NSSItem nss_builtins_items_127 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -7700,7 +8285,7 @@ static const NSSItem nss_builtins_items_119 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_120 [] = {
+static const NSSItem nss_builtins_items_128 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -7787,7 +8372,7 @@ static const NSSItem nss_builtins_items_120 [] = {
 "\200\072\231\355\165\314\106\173"
 , (PRUint32)936 }
 };
-static const NSSItem nss_builtins_items_121 [] = {
+static const NSSItem nss_builtins_items_129 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -7813,7 +8398,7 @@ static const NSSItem nss_builtins_items_121 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_122 [] = {
+static const NSSItem nss_builtins_items_130 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -7932,7 +8517,7 @@ static const NSSItem nss_builtins_items_122 [] = {
 "\105\217\046\221\242\216\376\251"
 , (PRUint32)1448 }
 };
-static const NSSItem nss_builtins_items_123 [] = {
+static const NSSItem nss_builtins_items_131 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -7958,7 +8543,7 @@ static const NSSItem nss_builtins_items_123 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_124 [] = {
+static const NSSItem nss_builtins_items_132 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -8046,7 +8631,7 @@ static const NSSItem nss_builtins_items_124 [] = {
 "\222\340\134\366\007\017"
 , (PRUint32)934 }
 };
-static const NSSItem nss_builtins_items_125 [] = {
+static const NSSItem nss_builtins_items_133 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -8073,7 +8658,7 @@ static const NSSItem nss_builtins_items_125 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_126 [] = {
+static const NSSItem nss_builtins_items_134 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -8165,7 +8750,7 @@ static const NSSItem nss_builtins_items_126 [] = {
 "\367\115\146\177\247\360\034\001\046\170\262\146\107\160\121\144"
 , (PRUint32)864 }
 };
-static const NSSItem nss_builtins_items_127 [] = {
+static const NSSItem nss_builtins_items_135 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -8196,7 +8781,7 @@ static const NSSItem nss_builtins_items_127 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_128 [] = {
+static const NSSItem nss_builtins_items_136 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -8288,7 +8873,7 @@ static const NSSItem nss_builtins_items_128 [] = {
 "\030\122\051\213\107\064\022\011\324\273\222\065\357\017\333\064"
 , (PRUint32)864 }
 };
-static const NSSItem nss_builtins_items_129 [] = {
+static const NSSItem nss_builtins_items_137 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -8319,7 +8904,7 @@ static const NSSItem nss_builtins_items_129 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_130 [] = {
+static const NSSItem nss_builtins_items_138 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -8390,7 +8975,7 @@ static const NSSItem nss_builtins_items_130 [] = {
 "\350\140\052\233\205\112\100\363\153\212\044\354\006\026\054\163"
 , (PRUint32)784 }
 };
-static const NSSItem nss_builtins_items_131 [] = {
+static const NSSItem nss_builtins_items_139 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -8413,7 +8998,7 @@ static const NSSItem nss_builtins_items_131 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_132 [] = {
+static const NSSItem nss_builtins_items_140 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -8511,7 +9096,7 @@ static const NSSItem nss_builtins_items_132 [] = {
 "\225\351\066\226\230\156"
 , (PRUint32)1078 }
 };
-static const NSSItem nss_builtins_items_133 [] = {
+static const NSSItem nss_builtins_items_141 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -8538,7 +9123,7 @@ static const NSSItem nss_builtins_items_133 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_134 [] = {
+static const NSSItem nss_builtins_items_142 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -8637,7 +9222,7 @@ static const NSSItem nss_builtins_items_134 [] = {
 "\354\375\051"
 , (PRUint32)1091 }
 };
-static const NSSItem nss_builtins_items_135 [] = {
+static const NSSItem nss_builtins_items_143 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -8664,7 +9249,7 @@ static const NSSItem nss_builtins_items_135 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_136 [] = {
+static const NSSItem nss_builtins_items_144 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -8765,7 +9350,7 @@ static const NSSItem nss_builtins_items_136 [] = {
 "\160\136\310\304\170\260\142"
 , (PRUint32)1095 }
 };
-static const NSSItem nss_builtins_items_137 [] = {
+static const NSSItem nss_builtins_items_145 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -8793,7 +9378,7 @@ static const NSSItem nss_builtins_items_137 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_138 [] = {
+static const NSSItem nss_builtins_items_146 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -8971,7 +9556,7 @@ static const NSSItem nss_builtins_items_138 [] = {
 "\001\177\046\304\143\365\045\102\136\142\275"
 , (PRUint32)2043 }
 };
-static const NSSItem nss_builtins_items_139 [] = {
+static const NSSItem nss_builtins_items_147 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -9008,7 +9593,7 @@ static const NSSItem nss_builtins_items_139 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_140 [] = {
+static const NSSItem nss_builtins_items_148 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -9185,7 +9770,7 @@ static const NSSItem nss_builtins_items_140 [] = {
 "\206\063\076\346\057\110\156\257\124\220\116\255\261\045"
 , (PRUint32)2030 }
 };
-static const NSSItem nss_builtins_items_141 [] = {
+static const NSSItem nss_builtins_items_149 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -9222,7 +9807,7 @@ static const NSSItem nss_builtins_items_141 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_142 [] = {
+static const NSSItem nss_builtins_items_150 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -9399,7 +9984,7 @@ static const NSSItem nss_builtins_items_142 [] = {
 "\257\175\310\352\351\324\126\331\016\023\262\305\105\120"
 , (PRUint32)2030 }
 };
-static const NSSItem nss_builtins_items_143 [] = {
+static const NSSItem nss_builtins_items_151 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -9436,7 +10021,7 @@ static const NSSItem nss_builtins_items_143 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_144 [] = {
+static const NSSItem nss_builtins_items_152 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -9614,7 +10199,7 @@ static const NSSItem nss_builtins_items_144 [] = {
 "\336\007\043\162\346\275\040\024\113\264\206"
 , (PRUint32)2043 }
 };
-static const NSSItem nss_builtins_items_145 [] = {
+static const NSSItem nss_builtins_items_153 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -9651,7 +10236,7 @@ static const NSSItem nss_builtins_items_145 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_146 [] = {
+static const NSSItem nss_builtins_items_154 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -9829,7 +10414,7 @@ static const NSSItem nss_builtins_items_146 [] = {
 "\311\024\025\014\343\007\203\233\046\165\357"
 , (PRUint32)2043 }
 };
-static const NSSItem nss_builtins_items_147 [] = {
+static const NSSItem nss_builtins_items_155 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -9866,7 +10451,7 @@ static const NSSItem nss_builtins_items_147 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_148 [] = {
+static const NSSItem nss_builtins_items_156 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -9946,7 +10531,7 @@ static const NSSItem nss_builtins_items_148 [] = {
 "\134\152\371\162\224\325\001\117\240\333\102"
 , (PRUint32)699 }
 };
-static const NSSItem nss_builtins_items_149 [] = {
+static const NSSItem nss_builtins_items_157 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -9976,7 +10561,7 @@ static const NSSItem nss_builtins_items_149 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_150 [] = {
+static const NSSItem nss_builtins_items_158 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -10160,7 +10745,7 @@ static const NSSItem nss_builtins_items_150 [] = {
 "\207\112\137\334\357\351\126\360\012\014\350\165"
 , (PRUint32)2108 }
 };
-static const NSSItem nss_builtins_items_151 [] = {
+static const NSSItem nss_builtins_items_159 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -10198,7 +10783,7 @@ static const NSSItem nss_builtins_items_151 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_152 [] = {
+static const NSSItem nss_builtins_items_160 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -10324,7 +10909,7 @@ static const NSSItem nss_builtins_items_152 [] = {
 "\112\164\066\371"
 , (PRUint32)1492 }
 };
-static const NSSItem nss_builtins_items_153 [] = {
+static const NSSItem nss_builtins_items_161 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -10352,7 +10937,302 @@ static const NSSItem nss_builtins_items_153 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_154 [] = {
+static const NSSItem nss_builtins_items_162 [] = {
+  { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
+  { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)"QuoVadis Root CA 2", (PRUint32)19 },
+  { (void *)&ckc_x_509, (PRUint32)sizeof(CK_CERTIFICATE_TYPE) },
+  { (void *)"\060\105\061\013\060\011\006\003\125\004\006\023\002\102\115\061"
+"\031\060\027\006\003\125\004\012\023\020\121\165\157\126\141\144"
+"\151\163\040\114\151\155\151\164\145\144\061\033\060\031\006\003"
+"\125\004\003\023\022\121\165\157\126\141\144\151\163\040\122\157"
+"\157\164\040\103\101\040\062"
+, (PRUint32)71 },
+  { (void *)"0", (PRUint32)2 },
+  { (void *)"\060\105\061\013\060\011\006\003\125\004\006\023\002\102\115\061"
+"\031\060\027\006\003\125\004\012\023\020\121\165\157\126\141\144"
+"\151\163\040\114\151\155\151\164\145\144\061\033\060\031\006\003"
+"\125\004\003\023\022\121\165\157\126\141\144\151\163\040\122\157"
+"\157\164\040\103\101\040\062"
+, (PRUint32)71 },
+  { (void *)"\002\002\005\011"
+, (PRUint32)4 },
+  { (void *)"\060\202\005\267\060\202\003\237\240\003\002\001\002\002\002\005"
+"\011\060\015\006\011\052\206\110\206\367\015\001\001\005\005\000"
+"\060\105\061\013\060\011\006\003\125\004\006\023\002\102\115\061"
+"\031\060\027\006\003\125\004\012\023\020\121\165\157\126\141\144"
+"\151\163\040\114\151\155\151\164\145\144\061\033\060\031\006\003"
+"\125\004\003\023\022\121\165\157\126\141\144\151\163\040\122\157"
+"\157\164\040\103\101\040\062\060\036\027\015\060\066\061\061\062"
+"\064\061\070\062\067\060\060\132\027\015\063\061\061\061\062\064"
+"\061\070\062\063\063\063\132\060\105\061\013\060\011\006\003\125"
+"\004\006\023\002\102\115\061\031\060\027\006\003\125\004\012\023"
+"\020\121\165\157\126\141\144\151\163\040\114\151\155\151\164\145"
+"\144\061\033\060\031\006\003\125\004\003\023\022\121\165\157\126"
+"\141\144\151\163\040\122\157\157\164\040\103\101\040\062\060\202"
+"\002\042\060\015\006\011\052\206\110\206\367\015\001\001\001\005"
+"\000\003\202\002\017\000\060\202\002\012\002\202\002\001\000\232"
+"\030\312\113\224\015\000\055\257\003\051\212\360\017\201\310\256"
+"\114\031\205\035\010\237\253\051\104\205\363\057\201\255\062\036"
+"\220\106\277\243\206\046\032\036\376\176\034\030\072\134\234\140"
+"\027\052\072\164\203\063\060\175\141\124\021\313\355\253\340\346"
+"\322\242\176\365\153\157\030\267\012\013\055\375\351\076\357\012"
+"\306\263\020\351\334\302\106\027\370\135\375\244\332\377\236\111"
+"\132\234\346\063\346\044\226\367\077\272\133\053\034\172\065\302"
+"\326\147\376\253\146\120\213\155\050\140\053\357\327\140\303\307"
+"\223\274\215\066\221\363\177\370\333\021\023\304\234\167\166\301"
+"\256\267\002\152\201\172\251\105\203\342\005\346\271\126\301\224"
+"\067\217\110\161\143\042\354\027\145\007\225\212\113\337\217\306"
+"\132\012\345\260\343\137\136\153\021\253\014\371\205\353\104\351"
+"\370\004\163\362\351\376\134\230\214\365\163\257\153\264\176\315"
+"\324\134\002\053\114\071\341\262\225\225\055\102\207\327\325\263"
+"\220\103\267\154\023\361\336\335\366\304\370\211\077\321\165\365"
+"\222\303\221\325\212\210\320\220\354\334\155\336\211\302\145\161"
+"\226\213\015\003\375\234\277\133\026\254\222\333\352\376\171\174"
+"\255\353\257\367\026\313\333\315\045\053\345\037\373\232\237\342"
+"\121\314\072\123\014\110\346\016\275\311\264\166\006\122\346\021"
+"\023\205\162\143\003\004\340\004\066\053\040\031\002\350\164\247"
+"\037\266\311\126\146\360\165\045\334\147\301\016\141\140\210\263"
+"\076\321\250\374\243\332\035\260\321\261\043\124\337\104\166\155"
+"\355\101\330\301\262\042\266\123\034\337\065\035\334\241\167\052"
+"\061\344\055\365\345\345\333\310\340\377\345\200\327\013\143\240"
+"\377\063\241\017\272\054\025\025\352\227\263\322\242\265\276\362"
+"\214\226\036\032\217\035\154\244\141\067\271\206\163\063\327\227"
+"\226\236\043\175\202\244\114\201\342\241\321\272\147\137\225\007"
+"\243\047\021\356\026\020\173\274\105\112\114\262\004\322\253\357"
+"\325\375\014\121\316\120\152\010\061\371\221\332\014\217\144\134"
+"\003\303\072\213\040\077\156\215\147\075\072\326\376\175\133\210"
+"\311\136\373\314\141\334\213\063\167\323\104\062\065\011\142\004"
+"\222\026\020\330\236\047\107\373\073\041\343\370\353\035\133\002"
+"\003\001\000\001\243\201\260\060\201\255\060\017\006\003\125\035"
+"\023\001\001\377\004\005\060\003\001\001\377\060\013\006\003\125"
+"\035\017\004\004\003\002\001\006\060\035\006\003\125\035\016\004"
+"\026\004\024\032\204\142\274\110\114\063\045\004\324\356\320\366"
+"\003\304\031\106\321\224\153\060\156\006\003\125\035\043\004\147"
+"\060\145\200\024\032\204\142\274\110\114\063\045\004\324\356\320"
+"\366\003\304\031\106\321\224\153\241\111\244\107\060\105\061\013"
+"\060\011\006\003\125\004\006\023\002\102\115\061\031\060\027\006"
+"\003\125\004\012\023\020\121\165\157\126\141\144\151\163\040\114"
+"\151\155\151\164\145\144\061\033\060\031\006\003\125\004\003\023"
+"\022\121\165\157\126\141\144\151\163\040\122\157\157\164\040\103"
+"\101\040\062\202\002\005\011\060\015\006\011\052\206\110\206\367"
+"\015\001\001\005\005\000\003\202\002\001\000\076\012\026\115\237"
+"\006\133\250\256\161\135\057\005\057\147\346\023\105\203\304\066"
+"\366\363\300\046\014\015\265\107\144\135\370\264\162\311\106\245"
+"\003\030\047\125\211\170\175\166\352\226\064\200\027\040\334\347"
+"\203\370\215\374\007\270\332\137\115\056\147\262\204\375\331\104"
+"\374\167\120\201\346\174\264\311\015\013\162\123\370\166\007\007"
+"\101\107\226\014\373\340\202\046\223\125\214\376\042\037\140\145"
+"\174\137\347\046\263\367\062\220\230\120\324\067\161\125\366\222"
+"\041\170\367\225\171\372\370\055\046\207\146\126\060\167\246\067"
+"\170\063\122\020\130\256\077\141\216\362\152\261\357\030\176\112"
+"\131\143\312\215\242\126\325\247\057\274\126\037\317\071\301\342"
+"\373\012\250\025\054\175\115\172\143\306\154\227\104\074\322\157"
+"\303\112\027\012\370\220\322\127\242\031\121\245\055\227\101\332"
+"\007\117\251\120\332\220\215\224\106\341\076\360\224\375\020\000"
+"\070\365\073\350\100\341\264\156\126\032\040\314\157\130\215\355"
+"\056\105\217\326\351\223\077\347\261\054\337\072\326\042\214\334"
+"\204\273\042\157\320\370\344\306\071\351\004\210\074\303\272\353"
+"\125\172\155\200\231\044\365\154\001\373\370\227\260\224\133\353"
+"\375\322\157\361\167\150\015\065\144\043\254\270\125\241\003\321"
+"\115\102\031\334\370\165\131\126\243\371\250\111\171\370\257\016"
+"\271\021\240\174\267\152\355\064\320\266\046\142\070\032\207\014"
+"\370\350\375\056\323\220\177\007\221\052\035\326\176\134\205\203"
+"\231\260\070\010\077\351\136\371\065\007\344\311\142\156\127\177"
+"\247\120\225\367\272\310\233\346\216\242\001\305\326\146\277\171"
+"\141\363\074\034\341\271\202\134\135\240\303\351\330\110\275\031"
+"\242\021\024\031\156\262\206\033\150\076\110\067\032\210\267\135"
+"\226\136\234\307\357\047\142\010\342\221\031\134\322\361\041\335"
+"\272\027\102\202\227\161\201\123\061\251\237\366\175\142\277\162"
+"\341\243\223\035\314\212\046\132\011\070\320\316\327\015\200\026"
+"\264\170\245\072\207\114\215\212\245\325\106\227\362\054\020\271"
+"\274\124\042\300\001\120\151\103\236\364\262\357\155\370\354\332"
+"\361\343\261\357\337\221\217\124\052\013\045\301\046\031\304\122"
+"\020\005\145\325\202\020\352\302\061\315\056"
+, (PRUint32)1467 }
+};
+static const NSSItem nss_builtins_items_163 [] = {
+  { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
+  { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)"QuoVadis Root CA 2", (PRUint32)19 },
+  { (void *)"\312\072\373\317\022\100\066\113\104\262\026\040\210\200\110\071"
+"\031\223\174\367"
+, (PRUint32)20 },
+  { (void *)"\136\071\173\335\370\272\354\202\351\254\142\272\014\124\000\053"
+, (PRUint32)16 },
+  { (void *)"\060\105\061\013\060\011\006\003\125\004\006\023\002\102\115\061"
+"\031\060\027\006\003\125\004\012\023\020\121\165\157\126\141\144"
+"\151\163\040\114\151\155\151\164\145\144\061\033\060\031\006\003"
+"\125\004\003\023\022\121\165\157\126\141\144\151\163\040\122\157"
+"\157\164\040\103\101\040\062"
+, (PRUint32)71 },
+  { (void *)"\002\002\005\011"
+, (PRUint32)4 },
+  { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
+};
+static const NSSItem nss_builtins_items_164 [] = {
+  { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
+  { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)"QuoVadis Root CA 3", (PRUint32)19 },
+  { (void *)&ckc_x_509, (PRUint32)sizeof(CK_CERTIFICATE_TYPE) },
+  { (void *)"\060\105\061\013\060\011\006\003\125\004\006\023\002\102\115\061"
+"\031\060\027\006\003\125\004\012\023\020\121\165\157\126\141\144"
+"\151\163\040\114\151\155\151\164\145\144\061\033\060\031\006\003"
+"\125\004\003\023\022\121\165\157\126\141\144\151\163\040\122\157"
+"\157\164\040\103\101\040\063"
+, (PRUint32)71 },
+  { (void *)"0", (PRUint32)2 },
+  { (void *)"\060\105\061\013\060\011\006\003\125\004\006\023\002\102\115\061"
+"\031\060\027\006\003\125\004\012\023\020\121\165\157\126\141\144"
+"\151\163\040\114\151\155\151\164\145\144\061\033\060\031\006\003"
+"\125\004\003\023\022\121\165\157\126\141\144\151\163\040\122\157"
+"\157\164\040\103\101\040\063"
+, (PRUint32)71 },
+  { (void *)"\002\002\005\306"
+, (PRUint32)4 },
+  { (void *)"\060\202\006\235\060\202\004\205\240\003\002\001\002\002\002\005"
+"\306\060\015\006\011\052\206\110\206\367\015\001\001\005\005\000"
+"\060\105\061\013\060\011\006\003\125\004\006\023\002\102\115\061"
+"\031\060\027\006\003\125\004\012\023\020\121\165\157\126\141\144"
+"\151\163\040\114\151\155\151\164\145\144\061\033\060\031\006\003"
+"\125\004\003\023\022\121\165\157\126\141\144\151\163\040\122\157"
+"\157\164\040\103\101\040\063\060\036\027\015\060\066\061\061\062"
+"\064\061\071\061\061\062\063\132\027\015\063\061\061\061\062\064"
+"\061\071\060\066\064\064\132\060\105\061\013\060\011\006\003\125"
+"\004\006\023\002\102\115\061\031\060\027\006\003\125\004\012\023"
+"\020\121\165\157\126\141\144\151\163\040\114\151\155\151\164\145"
+"\144\061\033\060\031\006\003\125\004\003\023\022\121\165\157\126"
+"\141\144\151\163\040\122\157\157\164\040\103\101\040\063\060\202"
+"\002\042\060\015\006\011\052\206\110\206\367\015\001\001\001\005"
+"\000\003\202\002\017\000\060\202\002\012\002\202\002\001\000\314"
+"\127\102\026\124\234\346\230\323\323\115\356\376\355\307\237\103"
+"\071\112\145\263\350\026\210\064\333\015\131\221\164\317\222\270"
+"\004\100\255\002\113\061\253\274\215\221\150\330\040\016\032\001"
+"\342\032\173\116\027\135\342\212\267\077\231\032\315\353\141\253"
+"\302\145\246\037\267\267\275\267\217\374\375\160\217\013\240\147"
+"\276\001\242\131\317\161\346\017\051\166\377\261\126\171\105\053"
+"\037\236\172\124\350\243\051\065\150\244\001\117\017\244\056\067"
+"\357\033\277\343\217\020\250\162\253\130\127\347\124\206\310\311"
+"\363\133\332\054\332\135\216\156\074\243\076\332\373\202\345\335"
+"\362\134\262\005\063\157\212\066\316\320\023\116\377\277\112\014"
+"\064\114\246\303\041\275\120\004\125\353\261\273\235\373\105\036"
+"\144\025\336\125\001\214\002\166\265\313\241\077\102\151\274\057"
+"\275\150\103\026\126\211\052\067\141\221\375\246\256\116\300\313"
+"\024\145\224\067\113\222\006\357\004\320\310\234\210\333\013\173"
+"\201\257\261\075\052\304\145\072\170\266\356\334\200\261\322\323"
+"\231\234\072\356\153\132\153\263\215\267\325\316\234\302\276\245"
+"\113\057\026\261\236\150\073\006\157\256\175\237\370\336\354\314"
+"\051\247\230\243\045\103\057\357\361\137\046\341\210\115\370\136"
+"\156\327\331\024\156\031\063\151\247\073\204\211\223\304\123\125"
+"\023\241\121\170\100\370\270\311\242\356\173\272\122\102\203\236"
+"\024\355\005\122\132\131\126\247\227\374\235\077\012\051\330\334"
+"\117\221\016\023\274\336\225\244\337\213\231\276\254\233\063\210"
+"\357\265\201\257\033\306\042\123\310\366\307\356\227\024\260\305"
+"\174\170\122\310\360\316\156\167\140\204\246\351\052\166\040\355"
+"\130\001\027\060\223\351\032\213\340\163\143\331\152\222\224\111"
+"\116\264\255\112\205\304\243\042\060\374\011\355\150\042\163\246"
+"\210\014\125\041\130\305\341\072\237\052\335\312\341\220\340\331"
+"\163\253\154\200\270\350\013\144\223\240\234\214\031\377\263\322"
+"\014\354\221\046\207\212\263\242\341\160\217\054\012\345\315\155"
+"\150\121\353\332\077\005\177\213\062\346\023\134\153\376\137\100"
+"\342\042\310\264\264\144\117\326\272\175\110\076\250\151\014\327"
+"\273\206\161\311\163\270\077\073\235\045\113\332\377\100\353\002"
+"\003\001\000\001\243\202\001\225\060\202\001\221\060\017\006\003"
+"\125\035\023\001\001\377\004\005\060\003\001\001\377\060\201\341"
+"\006\003\125\035\040\004\201\331\060\201\326\060\201\323\006\011"
+"\053\006\001\004\001\276\130\000\003\060\201\305\060\201\223\006"
+"\010\053\006\001\005\005\007\002\002\060\201\206\032\201\203\101"
+"\156\171\040\165\163\145\040\157\146\040\164\150\151\163\040\103"
+"\145\162\164\151\146\151\143\141\164\145\040\143\157\156\163\164"
+"\151\164\165\164\145\163\040\141\143\143\145\160\164\141\156\143"
+"\145\040\157\146\040\164\150\145\040\121\165\157\126\141\144\151"
+"\163\040\122\157\157\164\040\103\101\040\063\040\103\145\162\164"
+"\151\146\151\143\141\164\145\040\120\157\154\151\143\171\040\057"
+"\040\103\145\162\164\151\146\151\143\141\164\151\157\156\040\120"
+"\162\141\143\164\151\143\145\040\123\164\141\164\145\155\145\156"
+"\164\056\060\055\006\010\053\006\001\005\005\007\002\001\026\041"
+"\150\164\164\160\072\057\057\167\167\167\056\161\165\157\166\141"
+"\144\151\163\147\154\157\142\141\154\056\143\157\155\057\143\160"
+"\163\060\013\006\003\125\035\017\004\004\003\002\001\006\060\035"
+"\006\003\125\035\016\004\026\004\024\362\300\023\340\202\103\076"
+"\373\356\057\147\062\226\065\134\333\270\313\002\320\060\156\006"
+"\003\125\035\043\004\147\060\145\200\024\362\300\023\340\202\103"
+"\076\373\356\057\147\062\226\065\134\333\270\313\002\320\241\111"
+"\244\107\060\105\061\013\060\011\006\003\125\004\006\023\002\102"
+"\115\061\031\060\027\006\003\125\004\012\023\020\121\165\157\126"
+"\141\144\151\163\040\114\151\155\151\164\145\144\061\033\060\031"
+"\006\003\125\004\003\023\022\121\165\157\126\141\144\151\163\040"
+"\122\157\157\164\040\103\101\040\063\202\002\005\306\060\015\006"
+"\011\052\206\110\206\367\015\001\001\005\005\000\003\202\002\001"
+"\000\117\255\240\054\114\372\300\362\157\367\146\125\253\043\064"
+"\356\347\051\332\303\133\266\260\203\331\320\320\342\041\373\363"
+"\140\247\073\135\140\123\047\242\233\366\010\042\052\347\277\240"
+"\162\345\234\044\152\061\261\220\172\047\333\204\021\211\047\246"
+"\167\132\070\327\277\254\206\374\356\135\203\274\006\306\321\167"
+"\153\017\155\044\057\113\172\154\247\007\226\312\343\204\237\255"
+"\210\213\035\253\026\215\133\146\027\331\026\364\213\200\322\335"
+"\370\262\166\303\374\070\023\252\014\336\102\151\053\156\363\074"
+"\353\200\047\333\365\246\104\015\237\132\125\131\013\325\015\122"
+"\110\305\256\237\362\057\200\305\352\062\120\065\022\227\056\301"
+"\341\377\361\043\210\121\070\237\362\146\126\166\347\017\121\227"
+"\245\122\014\115\111\121\225\066\075\277\242\113\014\020\035\206"
+"\231\114\252\363\162\021\223\344\352\366\233\332\250\135\247\115"
+"\267\236\002\256\163\000\310\332\043\003\350\371\352\031\164\142"
+"\000\224\313\042\040\276\224\247\131\265\202\152\276\231\171\172"
+"\251\362\112\044\122\367\164\375\272\116\346\250\035\002\156\261"
+"\015\200\104\301\256\323\043\067\137\273\205\174\053\222\056\350"
+"\176\245\213\335\231\341\277\047\157\055\135\252\173\207\376\012"
+"\335\113\374\216\365\046\344\156\160\102\156\063\354\061\236\173"
+"\223\301\344\311\151\032\075\300\153\116\042\155\356\253\130\115"
+"\306\320\101\301\053\352\117\022\207\136\353\105\330\154\365\230"
+"\002\323\240\330\125\212\006\231\031\242\240\167\321\060\236\254"
+"\314\165\356\203\365\260\142\071\317\154\127\342\114\322\221\013"
+"\016\165\050\033\232\277\375\032\103\361\312\167\373\073\217\141"
+"\270\151\050\026\102\004\136\160\052\034\041\330\217\341\275\043"
+"\133\055\164\100\222\331\143\031\015\163\335\151\274\142\107\274"
+"\340\164\053\262\353\175\276\101\033\265\300\106\305\241\042\313"
+"\137\116\301\050\222\336\030\272\325\052\050\273\021\213\027\223"
+"\230\231\140\224\134\043\317\132\047\227\136\013\005\006\223\067"
+"\036\073\151\066\353\251\236\141\035\217\062\332\216\014\326\164"
+"\076\173\011\044\332\001\167\107\304\073\315\064\214\231\365\312"
+"\341\045\141\063\262\131\033\342\156\327\067\127\266\015\251\022"
+"\332"
+, (PRUint32)1697 }
+};
+static const NSSItem nss_builtins_items_165 [] = {
+  { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
+  { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)"QuoVadis Root CA 3", (PRUint32)19 },
+  { (void *)"\037\111\024\367\330\164\225\035\335\256\002\300\276\375\072\055"
+"\202\165\121\205"
+, (PRUint32)20 },
+  { (void *)"\061\205\074\142\224\227\143\271\252\375\211\116\257\157\340\317"
+, (PRUint32)16 },
+  { (void *)"\060\105\061\013\060\011\006\003\125\004\006\023\002\102\115\061"
+"\031\060\027\006\003\125\004\012\023\020\121\165\157\126\141\144"
+"\151\163\040\114\151\155\151\164\145\144\061\033\060\031\006\003"
+"\125\004\003\023\022\121\165\157\126\141\144\151\163\040\122\157"
+"\157\164\040\103\101\040\063"
+, (PRUint32)71 },
+  { (void *)"\002\002\005\306"
+, (PRUint32)4 },
+  { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
+};
+static const NSSItem nss_builtins_items_166 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -10432,7 +11312,7 @@ static const NSSItem nss_builtins_items_154 [] = {
 "\057\317\246\356\311\160\042\024\275\375\276\154\013\003"
 , (PRUint32)862 }
 };
-static const NSSItem nss_builtins_items_155 [] = {
+static const NSSItem nss_builtins_items_167 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -10457,7 +11337,7 @@ static const NSSItem nss_builtins_items_155 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_156 [] = {
+static const NSSItem nss_builtins_items_168 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -10530,7 +11410,7 @@ static const NSSItem nss_builtins_items_156 [] = {
 "\127\275\125\232"
 , (PRUint32)804 }
 };
-static const NSSItem nss_builtins_items_157 [] = {
+static const NSSItem nss_builtins_items_169 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -10548,12 +11428,12 @@ static const NSSItem nss_builtins_items_157 [] = {
 , (PRUint32)59 },
   { (void *)"\002\001\044"
 , (PRUint32)3 },
-  { (void *)&ckt_netscape_valid, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trust_unknown, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
-  { (void *)&ckt_netscape_valid, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trust_unknown, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_158 [] = {
+static const NSSItem nss_builtins_items_170 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -10626,7 +11506,7 @@ static const NSSItem nss_builtins_items_158 [] = {
 "\160\254\337\114"
 , (PRUint32)804 }
 };
-static const NSSItem nss_builtins_items_159 [] = {
+static const NSSItem nss_builtins_items_171 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -10649,7 +11529,7 @@ static const NSSItem nss_builtins_items_159 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_160 [] = {
+static const NSSItem nss_builtins_items_172 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -10735,7 +11615,7 @@ static const NSSItem nss_builtins_items_160 [] = {
 "\025\301\044\174\062\174\003\035\073\241\130\105\062\223"
 , (PRUint32)958 }
 };
-static const NSSItem nss_builtins_items_161 [] = {
+static const NSSItem nss_builtins_items_173 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -10760,7 +11640,7 @@ static const NSSItem nss_builtins_items_161 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_162 [] = {
+static const NSSItem nss_builtins_items_174 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -10851,7 +11731,7 @@ static const NSSItem nss_builtins_items_162 [] = {
 "\151\003\142\270\231\005\005\075\153\170\022\275\260\157\145"
 , (PRUint32)1071 }
 };
-static const NSSItem nss_builtins_items_163 [] = {
+static const NSSItem nss_builtins_items_175 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -10875,7 +11755,7 @@ static const NSSItem nss_builtins_items_163 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_164 [] = {
+static const NSSItem nss_builtins_items_176 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -10979,7 +11859,7 @@ static const NSSItem nss_builtins_items_164 [] = {
 "\004\243\103\055\332\374\013\142\352\057\137\142\123"
 , (PRUint32)1309 }
 };
-static const NSSItem nss_builtins_items_165 [] = {
+static const NSSItem nss_builtins_items_177 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -11002,7 +11882,7 @@ static const NSSItem nss_builtins_items_165 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_166 [] = {
+static const NSSItem nss_builtins_items_178 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -11108,7 +11988,7 @@ static const NSSItem nss_builtins_items_166 [] = {
 "\364\010"
 , (PRUint32)1122 }
 };
-static const NSSItem nss_builtins_items_167 [] = {
+static const NSSItem nss_builtins_items_179 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -11134,11 +12014,11 @@ static const NSSItem nss_builtins_items_167 [] = {
 "\255\151"
 , (PRUint32)18 },
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
-  { (void *)&ckt_netscape_valid, (PRUint32)sizeof(CK_TRUST) },
-  { (void *)&ckt_netscape_valid, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trust_unknown, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trust_unknown, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_168 [] = {
+static const NSSItem nss_builtins_items_180 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -11252,7 +12132,7 @@ static const NSSItem nss_builtins_items_168 [] = {
 "\005\323\312\003\112\124"
 , (PRUint32)1190 }
 };
-static const NSSItem nss_builtins_items_169 [] = {
+static const NSSItem nss_builtins_items_181 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -11279,12 +12159,12 @@ static const NSSItem nss_builtins_items_169 [] = {
   { (void *)"\002\020\104\276\014\213\120\000\044\264\021\323\066\045\045\147"
 "\311\211"
 , (PRUint32)18 },
-  { (void *)&ckt_netscape_valid, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trust_unknown, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
-  { (void *)&ckt_netscape_valid, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trust_unknown, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_170 [] = {
+static const NSSItem nss_builtins_items_182 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -11391,7 +12271,7 @@ static const NSSItem nss_builtins_items_170 [] = {
 "\062\234\036\273\235\370\146\250"
 , (PRUint32)1144 }
 };
-static const NSSItem nss_builtins_items_171 [] = {
+static const NSSItem nss_builtins_items_183 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -11417,11 +12297,11 @@ static const NSSItem nss_builtins_items_171 [] = {
 "\012\375"
 , (PRUint32)18 },
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
-  { (void *)&ckt_netscape_valid, (PRUint32)sizeof(CK_TRUST) },
-  { (void *)&ckt_netscape_valid, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trust_unknown, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trust_unknown, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_172 [] = {
+static const NSSItem nss_builtins_items_184 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -11527,7 +12407,7 @@ static const NSSItem nss_builtins_items_172 [] = {
 "\275\023\122\035\250\076\315\000\037\310"
 , (PRUint32)1130 }
 };
-static const NSSItem nss_builtins_items_173 [] = {
+static const NSSItem nss_builtins_items_185 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -11552,12 +12432,12 @@ static const NSSItem nss_builtins_items_173 [] = {
   { (void *)"\002\020\104\276\014\213\120\000\044\264\021\323\066\055\340\263"
 "\137\033"
 , (PRUint32)18 },
-  { (void *)&ckt_netscape_valid, (PRUint32)sizeof(CK_TRUST) },
-  { (void *)&ckt_netscape_valid, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trust_unknown, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trust_unknown, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_174 [] = {
+static const NSSItem nss_builtins_items_186 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -11666,7 +12546,7 @@ static const NSSItem nss_builtins_items_174 [] = {
 "\334"
 , (PRUint32)1217 }
 };
-static const NSSItem nss_builtins_items_175 [] = {
+static const NSSItem nss_builtins_items_187 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -11694,7 +12574,7 @@ static const NSSItem nss_builtins_items_175 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_176 [] = {
+static const NSSItem nss_builtins_items_188 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -11801,7 +12681,7 @@ static const NSSItem nss_builtins_items_176 [] = {
 "\166\135\165\220\032\365\046\217\360"
 , (PRUint32)1225 }
 };
-static const NSSItem nss_builtins_items_177 [] = {
+static const NSSItem nss_builtins_items_189 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -11828,7 +12708,189 @@ static const NSSItem nss_builtins_items_177 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_178 [] = {
+static const NSSItem nss_builtins_items_190 [] = {
+  { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
+  { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)"NetLock Qualified (Class QA) Root", (PRUint32)34 },
+  { (void *)&ckc_x_509, (PRUint32)sizeof(CK_CERTIFICATE_TYPE) },
+  { (void *)"\060\201\311\061\013\060\011\006\003\125\004\006\023\002\110\125"
+"\061\021\060\017\006\003\125\004\007\023\010\102\165\144\141\160"
+"\145\163\164\061\047\060\045\006\003\125\004\012\023\036\116\145"
+"\164\114\157\143\153\040\110\141\154\157\172\141\164\142\151\172"
+"\164\157\156\163\141\147\151\040\113\146\164\056\061\032\060\030"
+"\006\003\125\004\013\023\021\124\141\156\165\163\151\164\166\141"
+"\156\171\153\151\141\144\157\153\061\102\060\100\006\003\125\004"
+"\003\023\071\116\145\164\114\157\143\153\040\115\151\156\157\163"
+"\151\164\145\164\164\040\113\157\172\152\145\147\171\172\157\151"
+"\040\050\103\154\141\163\163\040\121\101\051\040\124\141\156\165"
+"\163\151\164\166\141\156\171\153\151\141\144\157\061\036\060\034"
+"\006\011\052\206\110\206\367\015\001\011\001\026\017\151\156\146"
+"\157\100\156\145\164\154\157\143\153\056\150\165"
+, (PRUint32)204 },
+  { (void *)"0", (PRUint32)2 },
+  { (void *)"\060\201\311\061\013\060\011\006\003\125\004\006\023\002\110\125"
+"\061\021\060\017\006\003\125\004\007\023\010\102\165\144\141\160"
+"\145\163\164\061\047\060\045\006\003\125\004\012\023\036\116\145"
+"\164\114\157\143\153\040\110\141\154\157\172\141\164\142\151\172"
+"\164\157\156\163\141\147\151\040\113\146\164\056\061\032\060\030"
+"\006\003\125\004\013\023\021\124\141\156\165\163\151\164\166\141"
+"\156\171\153\151\141\144\157\153\061\102\060\100\006\003\125\004"
+"\003\023\071\116\145\164\114\157\143\153\040\115\151\156\157\163"
+"\151\164\145\164\164\040\113\157\172\152\145\147\171\172\157\151"
+"\040\050\103\154\141\163\163\040\121\101\051\040\124\141\156\165"
+"\163\151\164\166\141\156\171\153\151\141\144\157\061\036\060\034"
+"\006\011\052\206\110\206\367\015\001\011\001\026\017\151\156\146"
+"\157\100\156\145\164\154\157\143\153\056\150\165"
+, (PRUint32)204 },
+  { (void *)"\002\001\173"
+, (PRUint32)3 },
+  { (void *)"\060\202\006\321\060\202\005\271\240\003\002\001\002\002\001\173"
+"\060\015\006\011\052\206\110\206\367\015\001\001\005\005\000\060"
+"\201\311\061\013\060\011\006\003\125\004\006\023\002\110\125\061"
+"\021\060\017\006\003\125\004\007\023\010\102\165\144\141\160\145"
+"\163\164\061\047\060\045\006\003\125\004\012\023\036\116\145\164"
+"\114\157\143\153\040\110\141\154\157\172\141\164\142\151\172\164"
+"\157\156\163\141\147\151\040\113\146\164\056\061\032\060\030\006"
+"\003\125\004\013\023\021\124\141\156\165\163\151\164\166\141\156"
+"\171\153\151\141\144\157\153\061\102\060\100\006\003\125\004\003"
+"\023\071\116\145\164\114\157\143\153\040\115\151\156\157\163\151"
+"\164\145\164\164\040\113\157\172\152\145\147\171\172\157\151\040"
+"\050\103\154\141\163\163\040\121\101\051\040\124\141\156\165\163"
+"\151\164\166\141\156\171\153\151\141\144\157\061\036\060\034\006"
+"\011\052\206\110\206\367\015\001\011\001\026\017\151\156\146\157"
+"\100\156\145\164\154\157\143\153\056\150\165\060\036\027\015\060"
+"\063\060\063\063\060\060\061\064\067\061\061\132\027\015\062\062"
+"\061\062\061\065\060\061\064\067\061\061\132\060\201\311\061\013"
+"\060\011\006\003\125\004\006\023\002\110\125\061\021\060\017\006"
+"\003\125\004\007\023\010\102\165\144\141\160\145\163\164\061\047"
+"\060\045\006\003\125\004\012\023\036\116\145\164\114\157\143\153"
+"\040\110\141\154\157\172\141\164\142\151\172\164\157\156\163\141"
+"\147\151\040\113\146\164\056\061\032\060\030\006\003\125\004\013"
+"\023\021\124\141\156\165\163\151\164\166\141\156\171\153\151\141"
+"\144\157\153\061\102\060\100\006\003\125\004\003\023\071\116\145"
+"\164\114\157\143\153\040\115\151\156\157\163\151\164\145\164\164"
+"\040\113\157\172\152\145\147\171\172\157\151\040\050\103\154\141"
+"\163\163\040\121\101\051\040\124\141\156\165\163\151\164\166\141"
+"\156\171\153\151\141\144\157\061\036\060\034\006\011\052\206\110"
+"\206\367\015\001\011\001\026\017\151\156\146\157\100\156\145\164"
+"\154\157\143\153\056\150\165\060\202\001\042\060\015\006\011\052"
+"\206\110\206\367\015\001\001\001\005\000\003\202\001\017\000\060"
+"\202\001\012\002\202\001\001\000\307\122\045\262\330\075\324\204"
+"\125\011\247\033\275\154\271\024\364\212\002\333\166\374\152\052"
+"\170\253\345\167\360\156\340\214\043\147\333\245\144\231\271\335"
+"\001\076\157\357\055\232\074\042\360\135\311\127\240\125\101\177"
+"\362\103\136\130\202\123\061\145\316\036\362\046\272\000\124\036"
+"\257\260\274\034\344\122\214\240\062\257\267\067\261\123\147\150"
+"\164\147\120\366\055\056\144\336\256\046\171\337\337\231\206\253"
+"\253\177\205\354\240\373\200\314\364\270\014\036\223\105\143\271"
+"\334\270\133\233\355\133\071\324\137\142\260\247\216\174\146\070"
+"\054\252\261\010\143\027\147\175\314\275\263\361\303\077\317\120"
+"\071\355\321\031\203\025\333\207\022\047\226\267\332\352\345\235"
+"\274\272\352\071\117\213\357\164\232\347\305\320\322\352\206\121"
+"\034\344\376\144\010\050\004\171\005\353\312\305\161\016\013\357"
+"\253\352\354\022\021\241\030\005\062\151\321\014\054\032\075\045"
+"\231\077\265\174\312\155\260\256\231\231\372\010\140\347\031\302"
+"\362\275\121\323\314\323\002\254\301\021\014\200\316\253\334\224"
+"\235\153\243\071\123\072\326\205\002\003\000\305\175\243\202\002"
+"\300\060\202\002\274\060\022\006\003\125\035\023\001\001\377\004"
+"\010\060\006\001\001\377\002\001\004\060\016\006\003\125\035\017"
+"\001\001\377\004\004\003\002\001\006\060\202\002\165\006\011\140"
+"\206\110\001\206\370\102\001\015\004\202\002\146\026\202\002\142"
+"\106\111\107\131\105\114\105\115\041\040\105\172\145\156\040\164"
+"\141\156\165\163\151\164\166\141\156\171\040\141\040\116\145\164"
+"\114\157\143\153\040\113\146\164\056\040\115\151\156\157\163\151"
+"\164\145\164\164\040\123\172\157\154\147\141\154\164\141\164\141"
+"\163\151\040\123\172\141\142\141\154\171\172\141\164\141\142\141"
+"\156\040\154\145\151\162\164\040\145\154\152\141\162\141\163\157"
+"\153\040\141\154\141\160\152\141\156\040\153\145\163\172\165\154"
+"\164\056\040\101\040\155\151\156\157\163\151\164\145\164\164\040"
+"\145\154\145\153\164\162\157\156\151\153\165\163\040\141\154\141"
+"\151\162\141\163\040\152\157\147\150\141\164\141\163\040\145\162"
+"\166\145\156\171\145\163\165\154\145\163\145\156\145\153\054\040"
+"\166\141\154\141\155\151\156\164\040\145\154\146\157\147\141\144"
+"\141\163\141\156\141\153\040\146\145\154\164\145\164\145\154\145"
+"\040\141\040\115\151\156\157\163\151\164\145\164\164\040\123\172"
+"\157\154\147\141\154\164\141\164\141\163\151\040\123\172\141\142"
+"\141\154\171\172\141\164\142\141\156\054\040\141\172\040\101\154"
+"\164\141\154\141\156\157\163\040\123\172\145\162\172\157\144\145"
+"\163\151\040\106\145\154\164\145\164\145\154\145\153\142\145\156"
+"\040\145\154\157\151\162\164\040\145\154\154\145\156\157\162\172"
+"\145\163\151\040\145\154\152\141\162\141\163\040\155\145\147\164"
+"\145\164\145\154\145\056\040\101\040\144\157\153\165\155\145\156"
+"\164\165\155\157\153\040\155\145\147\164\141\154\141\154\150\141"
+"\164\157\153\040\141\040\150\164\164\160\163\072\057\057\167\167"
+"\167\056\156\145\164\154\157\143\153\056\150\165\057\144\157\143"
+"\163\057\040\143\151\155\145\156\040\166\141\147\171\040\153\145"
+"\162\150\145\164\157\153\040\141\172\040\151\156\146\157\100\156"
+"\145\164\154\157\143\153\056\156\145\164\040\145\055\155\141\151"
+"\154\040\143\151\155\145\156\056\040\127\101\122\116\111\116\107"
+"\041\040\124\150\145\040\151\163\163\165\141\156\143\145\040\141"
+"\156\144\040\164\150\145\040\165\163\145\040\157\146\040\164\150"
+"\151\163\040\143\145\162\164\151\146\151\143\141\164\145\040\141"
+"\162\145\040\163\165\142\152\145\143\164\040\164\157\040\164\150"
+"\145\040\116\145\164\114\157\143\153\040\121\165\141\154\151\146"
+"\151\145\144\040\103\120\123\040\141\166\141\151\154\141\142\154"
+"\145\040\141\164\040\150\164\164\160\163\072\057\057\167\167\167"
+"\056\156\145\164\154\157\143\153\056\150\165\057\144\157\143\163"
+"\057\040\157\162\040\142\171\040\145\055\155\141\151\154\040\141"
+"\164\040\151\156\146\157\100\156\145\164\154\157\143\153\056\156"
+"\145\164\060\035\006\003\125\035\016\004\026\004\024\011\152\142"
+"\026\222\260\132\273\125\016\313\165\062\072\062\345\262\041\311"
+"\050\060\015\006\011\052\206\110\206\367\015\001\001\005\005\000"
+"\003\202\001\001\000\221\152\120\234\333\170\201\233\077\213\102"
+"\343\073\374\246\303\356\103\340\317\363\342\200\065\111\105\166"
+"\002\342\343\057\005\305\361\052\347\300\101\063\306\266\233\320"
+"\063\071\315\300\333\241\255\154\067\002\114\130\101\073\362\227"
+"\222\306\110\250\315\345\212\071\211\141\371\122\227\351\275\366"
+"\371\224\164\350\161\016\274\167\206\303\006\314\132\174\112\176"
+"\064\120\060\056\373\177\062\232\215\075\363\040\133\370\152\312"
+"\206\363\061\114\054\131\200\002\175\376\070\311\060\165\034\267"
+"\125\343\274\237\272\250\155\204\050\005\165\263\213\015\300\221"
+"\124\041\347\246\013\264\231\365\121\101\334\315\243\107\042\331"
+"\307\001\201\304\334\107\117\046\352\037\355\333\315\015\230\364"
+"\243\234\264\163\062\112\226\231\376\274\177\310\045\130\370\130"
+"\363\166\146\211\124\244\246\076\304\120\134\272\211\030\202\165"
+"\110\041\322\117\023\350\140\176\007\166\333\020\265\121\346\252"
+"\271\150\252\315\366\235\220\165\022\352\070\032\312\104\350\267"
+"\231\247\052\150\225\146\225\253\255\357\211\313\140\251\006\022"
+"\306\224\107\351\050"
+, (PRUint32)1749 }
+};
+static const NSSItem nss_builtins_items_191 [] = {
+  { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
+  { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)"NetLock Qualified (Class QA) Root", (PRUint32)34 },
+  { (void *)"\001\150\227\341\240\270\362\303\261\064\146\134\040\247\047\267"
+"\241\130\342\217"
+, (PRUint32)20 },
+  { (void *)"\324\200\145\150\044\371\211\042\050\333\365\244\232\027\217\024"
+, (PRUint32)16 },
+  { (void *)"\060\201\311\061\013\060\011\006\003\125\004\006\023\002\110\125"
+"\061\021\060\017\006\003\125\004\007\023\010\102\165\144\141\160"
+"\145\163\164\061\047\060\045\006\003\125\004\012\023\036\116\145"
+"\164\114\157\143\153\040\110\141\154\157\172\141\164\142\151\172"
+"\164\157\156\163\141\147\151\040\113\146\164\056\061\032\060\030"
+"\006\003\125\004\013\023\021\124\141\156\165\163\151\164\166\141"
+"\156\171\153\151\141\144\157\153\061\102\060\100\006\003\125\004"
+"\003\023\071\116\145\164\114\157\143\153\040\115\151\156\157\163"
+"\151\164\145\164\164\040\113\157\172\152\145\147\171\172\157\151"
+"\040\050\103\154\141\163\163\040\121\101\051\040\124\141\156\165"
+"\163\151\164\166\141\156\171\153\151\141\144\157\061\036\060\034"
+"\006\011\052\206\110\206\367\015\001\011\001\026\017\151\156\146"
+"\157\100\156\145\164\154\157\143\153\056\150\165"
+, (PRUint32)204 },
+  { (void *)"\002\001\173"
+, (PRUint32)3 },
+  { (void *)&ckt_netscape_trust_unknown, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
+};
+static const NSSItem nss_builtins_items_192 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -11971,7 +13033,7 @@ static const NSSItem nss_builtins_items_178 [] = {
 "\210"
 , (PRUint32)1665 }
 };
-static const NSSItem nss_builtins_items_179 [] = {
+static const NSSItem nss_builtins_items_193 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -12002,7 +13064,7 @@ static const NSSItem nss_builtins_items_179 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_180 [] = {
+static const NSSItem nss_builtins_items_194 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -12121,7 +13183,7 @@ static const NSSItem nss_builtins_items_180 [] = {
 "\066\053\143\254\130\001\153\063\051\120\206\203\361\001\110"
 , (PRUint32)1359 }
 };
-static const NSSItem nss_builtins_items_181 [] = {
+static const NSSItem nss_builtins_items_195 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -12150,7 +13212,7 @@ static const NSSItem nss_builtins_items_181 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_182 [] = {
+static const NSSItem nss_builtins_items_196 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -12270,7 +13332,7 @@ static const NSSItem nss_builtins_items_182 [] = {
 "\063\004\324"
 , (PRUint32)1363 }
 };
-static const NSSItem nss_builtins_items_183 [] = {
+static const NSSItem nss_builtins_items_197 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -12299,7 +13361,7 @@ static const NSSItem nss_builtins_items_183 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_184 [] = {
+static const NSSItem nss_builtins_items_198 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -12400,7 +13462,7 @@ static const NSSItem nss_builtins_items_184 [] = {
 "\264\003\045\274"
 , (PRUint32)1076 }
 };
-static const NSSItem nss_builtins_items_185 [] = {
+static const NSSItem nss_builtins_items_199 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -12429,7 +13491,7 @@ static const NSSItem nss_builtins_items_185 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_186 [] = {
+static const NSSItem nss_builtins_items_200 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -12522,7 +13584,7 @@ static const NSSItem nss_builtins_items_186 [] = {
 "\177\333\275\237"
 , (PRUint32)1028 }
 };
-static const NSSItem nss_builtins_items_187 [] = {
+static const NSSItem nss_builtins_items_201 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -12548,7 +13610,7 @@ static const NSSItem nss_builtins_items_187 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
-static const NSSItem nss_builtins_items_188 [] = {
+static const NSSItem nss_builtins_items_202 [] = {
   { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -12642,7 +13704,7 @@ static const NSSItem nss_builtins_items_188 [] = {
 "\037\027\224"
 , (PRUint32)1043 }
 };
-static const NSSItem nss_builtins_items_189 [] = {
+static const NSSItem nss_builtins_items_203 [] = {
   { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
   { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
@@ -12666,6 +13728,1337 @@ static const NSSItem nss_builtins_items_189 [] = {
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
+};
+static const NSSItem nss_builtins_items_204 [] = {
+  { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
+  { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)"StartCom Ltd.", (PRUint32)14 },
+  { (void *)&ckc_x_509, (PRUint32)sizeof(CK_CERTIFICATE_TYPE) },
+  { (void *)"\060\201\260\061\013\060\011\006\003\125\004\006\023\002\111\114"
+"\061\017\060\015\006\003\125\004\010\023\006\111\163\162\141\145"
+"\154\061\016\060\014\006\003\125\004\007\023\005\105\151\154\141"
+"\164\061\026\060\024\006\003\125\004\012\023\015\123\164\141\162"
+"\164\103\157\155\040\114\164\144\056\061\032\060\030\006\003\125"
+"\004\013\023\021\103\101\040\101\165\164\150\157\162\151\164\171"
+"\040\104\145\160\056\061\051\060\047\006\003\125\004\003\023\040"
+"\106\162\145\145\040\123\123\114\040\103\145\162\164\151\146\151"
+"\143\141\164\151\157\156\040\101\165\164\150\157\162\151\164\171"
+"\061\041\060\037\006\011\052\206\110\206\367\015\001\011\001\026"
+"\022\141\144\155\151\156\100\163\164\141\162\164\143\157\155\056"
+"\157\162\147"
+, (PRUint32)179 },
+  { (void *)"0", (PRUint32)2 },
+  { (void *)"\060\201\260\061\013\060\011\006\003\125\004\006\023\002\111\114"
+"\061\017\060\015\006\003\125\004\010\023\006\111\163\162\141\145"
+"\154\061\016\060\014\006\003\125\004\007\023\005\105\151\154\141"
+"\164\061\026\060\024\006\003\125\004\012\023\015\123\164\141\162"
+"\164\103\157\155\040\114\164\144\056\061\032\060\030\006\003\125"
+"\004\013\023\021\103\101\040\101\165\164\150\157\162\151\164\171"
+"\040\104\145\160\056\061\051\060\047\006\003\125\004\003\023\040"
+"\106\162\145\145\040\123\123\114\040\103\145\162\164\151\146\151"
+"\143\141\164\151\157\156\040\101\165\164\150\157\162\151\164\171"
+"\061\041\060\037\006\011\052\206\110\206\367\015\001\011\001\026"
+"\022\141\144\155\151\156\100\163\164\141\162\164\143\157\155\056"
+"\157\162\147"
+, (PRUint32)179 },
+  { (void *)"\002\001\000"
+, (PRUint32)3 },
+  { (void *)"\060\202\005\026\060\202\004\177\240\003\002\001\002\002\001\000"
+"\060\015\006\011\052\206\110\206\367\015\001\001\004\005\000\060"
+"\201\260\061\013\060\011\006\003\125\004\006\023\002\111\114\061"
+"\017\060\015\006\003\125\004\010\023\006\111\163\162\141\145\154"
+"\061\016\060\014\006\003\125\004\007\023\005\105\151\154\141\164"
+"\061\026\060\024\006\003\125\004\012\023\015\123\164\141\162\164"
+"\103\157\155\040\114\164\144\056\061\032\060\030\006\003\125\004"
+"\013\023\021\103\101\040\101\165\164\150\157\162\151\164\171\040"
+"\104\145\160\056\061\051\060\047\006\003\125\004\003\023\040\106"
+"\162\145\145\040\123\123\114\040\103\145\162\164\151\146\151\143"
+"\141\164\151\157\156\040\101\165\164\150\157\162\151\164\171\061"
+"\041\060\037\006\011\052\206\110\206\367\015\001\011\001\026\022"
+"\141\144\155\151\156\100\163\164\141\162\164\143\157\155\056\157"
+"\162\147\060\036\027\015\060\065\060\063\061\067\061\067\063\067"
+"\064\070\132\027\015\063\065\060\063\061\060\061\067\063\067\064"
+"\070\132\060\201\260\061\013\060\011\006\003\125\004\006\023\002"
+"\111\114\061\017\060\015\006\003\125\004\010\023\006\111\163\162"
+"\141\145\154\061\016\060\014\006\003\125\004\007\023\005\105\151"
+"\154\141\164\061\026\060\024\006\003\125\004\012\023\015\123\164"
+"\141\162\164\103\157\155\040\114\164\144\056\061\032\060\030\006"
+"\003\125\004\013\023\021\103\101\040\101\165\164\150\157\162\151"
+"\164\171\040\104\145\160\056\061\051\060\047\006\003\125\004\003"
+"\023\040\106\162\145\145\040\123\123\114\040\103\145\162\164\151"
+"\146\151\143\141\164\151\157\156\040\101\165\164\150\157\162\151"
+"\164\171\061\041\060\037\006\011\052\206\110\206\367\015\001\011"
+"\001\026\022\141\144\155\151\156\100\163\164\141\162\164\143\157"
+"\155\056\157\162\147\060\201\237\060\015\006\011\052\206\110\206"
+"\367\015\001\001\001\005\000\003\201\215\000\060\201\211\002\201"
+"\201\000\355\204\140\000\043\236\310\112\121\051\047\336\072\241"
+"\071\265\151\253\011\262\057\064\375\141\334\075\323\260\317\261"
+"\327\302\304\302\261\344\226\126\304\276\252\024\016\347\314\072"
+"\120\310\072\142\235\303\243\254\131\173\216\356\125\032\034\107"
+"\276\243\227\071\263\265\357\043\054\010\350\330\257\163\057\271"
+"\311\203\350\355\000\017\310\165\245\057\064\114\030\350\166\210"
+"\043\111\212\333\266\355\150\332\303\265\142\051\114\245\113\267"
+"\230\264\011\024\020\240\370\376\142\166\042\025\013\244\326\010"
+"\057\065\002\003\001\000\001\243\202\002\074\060\202\002\070\060"
+"\017\006\003\125\035\023\001\001\377\004\005\060\003\001\001\377"
+"\060\013\006\003\125\035\017\004\004\003\002\001\346\060\035\006"
+"\003\125\035\016\004\026\004\024\034\211\303\226\314\275\376\062"
+"\325\015\214\201\061\266\230\235\215\050\144\215\060\201\335\006"
+"\003\125\035\043\004\201\325\060\201\322\200\024\034\211\303\226"
+"\314\275\376\062\325\015\214\201\061\266\230\235\215\050\144\215"
+"\241\201\266\244\201\263\060\201\260\061\013\060\011\006\003\125"
+"\004\006\023\002\111\114\061\017\060\015\006\003\125\004\010\023"
+"\006\111\163\162\141\145\154\061\016\060\014\006\003\125\004\007"
+"\023\005\105\151\154\141\164\061\026\060\024\006\003\125\004\012"
+"\023\015\123\164\141\162\164\103\157\155\040\114\164\144\056\061"
+"\032\060\030\006\003\125\004\013\023\021\103\101\040\101\165\164"
+"\150\157\162\151\164\171\040\104\145\160\056\061\051\060\047\006"
+"\003\125\004\003\023\040\106\162\145\145\040\123\123\114\040\103"
+"\145\162\164\151\146\151\143\141\164\151\157\156\040\101\165\164"
+"\150\157\162\151\164\171\061\041\060\037\006\011\052\206\110\206"
+"\367\015\001\011\001\026\022\141\144\155\151\156\100\163\164\141"
+"\162\164\143\157\155\056\157\162\147\202\001\000\060\035\006\003"
+"\125\035\021\004\026\060\024\201\022\141\144\155\151\156\100\163"
+"\164\141\162\164\143\157\155\056\157\162\147\060\035\006\003\125"
+"\035\022\004\026\060\024\201\022\141\144\155\151\156\100\163\164"
+"\141\162\164\143\157\155\056\157\162\147\060\021\006\011\140\206"
+"\110\001\206\370\102\001\001\004\004\003\002\000\007\060\057\006"
+"\011\140\206\110\001\206\370\102\001\015\004\042\026\040\106\162"
+"\145\145\040\123\123\114\040\103\145\162\164\151\146\151\143\141"
+"\164\151\157\156\040\101\165\164\150\157\162\151\164\171\060\062"
+"\006\011\140\206\110\001\206\370\102\001\004\004\045\026\043\150"
+"\164\164\160\072\057\057\143\145\162\164\056\163\164\141\162\164"
+"\143\157\155\056\157\162\147\057\143\141\055\143\162\154\056\143"
+"\162\154\060\050\006\011\140\206\110\001\206\370\102\001\002\004"
+"\033\026\031\150\164\164\160\072\057\057\143\145\162\164\056\163"
+"\164\141\162\164\143\157\155\056\157\162\147\057\060\071\006\011"
+"\140\206\110\001\206\370\102\001\010\004\054\026\052\150\164\164"
+"\160\072\057\057\143\145\162\164\056\163\164\141\162\164\143\157"
+"\155\056\157\162\147\057\151\156\144\145\170\056\160\150\160\077"
+"\141\160\160\075\061\061\061\060\015\006\011\052\206\110\206\367"
+"\015\001\001\004\005\000\003\201\201\000\154\161\045\341\236\064"
+"\221\041\357\333\154\275\001\010\126\217\210\330\101\072\123\365"
+"\162\337\047\127\113\166\204\367\150\244\376\353\077\011\176\050"
+"\270\127\352\037\301\252\342\377\226\237\111\231\346\262\225\163"
+"\226\306\110\307\136\215\007\162\126\370\203\217\237\167\257\051"
+"\323\105\016\244\356\260\066\164\055\360\315\230\043\173\067\113"
+"\332\376\121\230\304\036\064\074\210\375\231\073\120\247\301\213"
+"\063\307\302\122\026\022\225\123\145\042\357\272\213\316\142\333"
+"\160\043\261\200\337\032\040\070\347\176"
+, (PRUint32)1306 }
+};
+static const NSSItem nss_builtins_items_205 [] = {
+  { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
+  { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)"StartCom Ltd.", (PRUint32)14 },
+  { (void *)"\225\346\255\370\327\161\106\002\115\325\152\041\262\347\077\315"
+"\362\073\065\377"
+, (PRUint32)20 },
+  { (void *)"\010\174\130\037\122\053\104\264\073\171\315\001\370\305\303\311"
+, (PRUint32)16 },
+  { (void *)"\060\201\260\061\013\060\011\006\003\125\004\006\023\002\111\114"
+"\061\017\060\015\006\003\125\004\010\023\006\111\163\162\141\145"
+"\154\061\016\060\014\006\003\125\004\007\023\005\105\151\154\141"
+"\164\061\026\060\024\006\003\125\004\012\023\015\123\164\141\162"
+"\164\103\157\155\040\114\164\144\056\061\032\060\030\006\003\125"
+"\004\013\023\021\103\101\040\101\165\164\150\157\162\151\164\171"
+"\040\104\145\160\056\061\051\060\047\006\003\125\004\003\023\040"
+"\106\162\145\145\040\123\123\114\040\103\145\162\164\151\146\151"
+"\143\141\164\151\157\156\040\101\165\164\150\157\162\151\164\171"
+"\061\041\060\037\006\011\052\206\110\206\367\015\001\011\001\026"
+"\022\141\144\155\151\156\100\163\164\141\162\164\143\157\155\056"
+"\157\162\147"
+, (PRUint32)179 },
+  { (void *)"\002\001\000"
+, (PRUint32)3 },
+  { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trust_unknown, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
+};
+static const NSSItem nss_builtins_items_206 [] = {
+  { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
+  { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)"StartCom Certification Authority", (PRUint32)33 },
+  { (void *)&ckc_x_509, (PRUint32)sizeof(CK_CERTIFICATE_TYPE) },
+  { (void *)"\060\175\061\013\060\011\006\003\125\004\006\023\002\111\114\061"
+"\026\060\024\006\003\125\004\012\023\015\123\164\141\162\164\103"
+"\157\155\040\114\164\144\056\061\053\060\051\006\003\125\004\013"
+"\023\042\123\145\143\165\162\145\040\104\151\147\151\164\141\154"
+"\040\103\145\162\164\151\146\151\143\141\164\145\040\123\151\147"
+"\156\151\156\147\061\051\060\047\006\003\125\004\003\023\040\123"
+"\164\141\162\164\103\157\155\040\103\145\162\164\151\146\151\143"
+"\141\164\151\157\156\040\101\165\164\150\157\162\151\164\171"
+, (PRUint32)127 },
+  { (void *)"0", (PRUint32)2 },
+  { (void *)"\060\175\061\013\060\011\006\003\125\004\006\023\002\111\114\061"
+"\026\060\024\006\003\125\004\012\023\015\123\164\141\162\164\103"
+"\157\155\040\114\164\144\056\061\053\060\051\006\003\125\004\013"
+"\023\042\123\145\143\165\162\145\040\104\151\147\151\164\141\154"
+"\040\103\145\162\164\151\146\151\143\141\164\145\040\123\151\147"
+"\156\151\156\147\061\051\060\047\006\003\125\004\003\023\040\123"
+"\164\141\162\164\103\157\155\040\103\145\162\164\151\146\151\143"
+"\141\164\151\157\156\040\101\165\164\150\157\162\151\164\171"
+, (PRUint32)127 },
+  { (void *)"\002\001\001"
+, (PRUint32)3 },
+  { (void *)"\060\202\007\311\060\202\005\261\240\003\002\001\002\002\001\001"
+"\060\015\006\011\052\206\110\206\367\015\001\001\005\005\000\060"
+"\175\061\013\060\011\006\003\125\004\006\023\002\111\114\061\026"
+"\060\024\006\003\125\004\012\023\015\123\164\141\162\164\103\157"
+"\155\040\114\164\144\056\061\053\060\051\006\003\125\004\013\023"
+"\042\123\145\143\165\162\145\040\104\151\147\151\164\141\154\040"
+"\103\145\162\164\151\146\151\143\141\164\145\040\123\151\147\156"
+"\151\156\147\061\051\060\047\006\003\125\004\003\023\040\123\164"
+"\141\162\164\103\157\155\040\103\145\162\164\151\146\151\143\141"
+"\164\151\157\156\040\101\165\164\150\157\162\151\164\171\060\036"
+"\027\015\060\066\060\071\061\067\061\071\064\066\063\066\132\027"
+"\015\063\066\060\071\061\067\061\071\064\066\063\066\132\060\175"
+"\061\013\060\011\006\003\125\004\006\023\002\111\114\061\026\060"
+"\024\006\003\125\004\012\023\015\123\164\141\162\164\103\157\155"
+"\040\114\164\144\056\061\053\060\051\006\003\125\004\013\023\042"
+"\123\145\143\165\162\145\040\104\151\147\151\164\141\154\040\103"
+"\145\162\164\151\146\151\143\141\164\145\040\123\151\147\156\151"
+"\156\147\061\051\060\047\006\003\125\004\003\023\040\123\164\141"
+"\162\164\103\157\155\040\103\145\162\164\151\146\151\143\141\164"
+"\151\157\156\040\101\165\164\150\157\162\151\164\171\060\202\002"
+"\042\060\015\006\011\052\206\110\206\367\015\001\001\001\005\000"
+"\003\202\002\017\000\060\202\002\012\002\202\002\001\000\301\210"
+"\333\011\274\154\106\174\170\237\225\173\265\063\220\362\162\142"
+"\326\301\066\040\042\044\136\316\351\167\362\103\012\242\006\144"
+"\244\314\216\066\370\070\346\043\360\156\155\261\074\335\162\243"
+"\205\034\241\323\075\264\063\053\323\057\257\376\352\260\101\131"
+"\147\266\304\006\175\012\236\164\205\326\171\114\200\067\172\337"
+"\071\005\122\131\367\364\033\106\103\244\322\205\205\322\303\161"
+"\363\165\142\064\272\054\212\177\036\217\356\355\064\320\021\307"
+"\226\315\122\075\272\063\326\335\115\336\013\073\112\113\237\302"
+"\046\057\372\265\026\034\162\065\167\312\074\135\346\312\341\046"
+"\213\032\066\166\134\001\333\164\024\045\376\355\265\240\210\017"
+"\335\170\312\055\037\007\227\060\001\055\162\171\372\106\326\023"
+"\052\250\271\246\253\203\111\035\345\362\357\335\344\001\216\030"
+"\012\217\143\123\026\205\142\251\016\031\072\314\265\146\246\302"
+"\153\164\007\344\053\341\166\076\264\155\330\366\104\341\163\142"
+"\037\073\304\276\240\123\126\045\154\121\011\367\252\253\312\277"
+"\166\375\155\233\363\235\333\277\075\146\274\014\126\252\257\230"
+"\110\225\072\113\337\247\130\120\331\070\165\251\133\352\103\014"
+"\002\377\231\353\350\154\115\160\133\051\145\234\335\252\135\314"
+"\257\001\061\354\014\353\322\215\350\352\234\173\346\156\367\047"
+"\146\014\032\110\327\156\102\343\077\336\041\076\173\341\015\160"
+"\373\143\252\250\154\032\124\264\134\045\172\311\242\311\213\026"
+"\246\273\054\176\027\136\005\115\130\156\022\035\001\356\022\020"
+"\015\306\062\177\030\377\374\364\372\315\156\221\350\066\111\276"
+"\032\110\151\213\302\226\115\032\022\262\151\027\301\012\220\326"
+"\372\171\042\110\277\272\173\151\370\160\307\372\172\067\330\330"
+"\015\322\166\117\127\377\220\267\343\221\322\335\357\302\140\267"
+"\147\072\335\376\252\234\360\324\213\177\162\042\316\306\237\227"
+"\266\370\257\212\240\020\250\331\373\030\306\266\265\134\122\074"
+"\211\266\031\052\163\001\012\017\003\263\022\140\362\172\057\201"
+"\333\243\156\377\046\060\227\365\213\335\211\127\266\255\075\263"
+"\257\053\305\267\166\002\360\245\326\053\232\206\024\052\162\366"
+"\343\063\214\135\011\113\023\337\273\214\164\023\122\113\002\003"
+"\001\000\001\243\202\002\122\060\202\002\116\060\014\006\003\125"
+"\035\023\004\005\060\003\001\001\377\060\013\006\003\125\035\017"
+"\004\004\003\002\001\256\060\035\006\003\125\035\016\004\026\004"
+"\024\116\013\357\032\244\100\133\245\027\151\207\060\312\064\150"
+"\103\320\101\256\362\060\144\006\003\125\035\037\004\135\060\133"
+"\060\054\240\052\240\050\206\046\150\164\164\160\072\057\057\143"
+"\145\162\164\056\163\164\141\162\164\143\157\155\056\157\162\147"
+"\057\163\146\163\143\141\055\143\162\154\056\143\162\154\060\053"
+"\240\051\240\047\206\045\150\164\164\160\072\057\057\143\162\154"
+"\056\163\164\141\162\164\143\157\155\056\157\162\147\057\163\146"
+"\163\143\141\055\143\162\154\056\143\162\154\060\202\001\135\006"
+"\003\125\035\040\004\202\001\124\060\202\001\120\060\202\001\114"
+"\006\013\053\006\001\004\001\201\265\067\001\001\001\060\202\001"
+"\073\060\057\006\010\053\006\001\005\005\007\002\001\026\043\150"
+"\164\164\160\072\057\057\143\145\162\164\056\163\164\141\162\164"
+"\143\157\155\056\157\162\147\057\160\157\154\151\143\171\056\160"
+"\144\146\060\065\006\010\053\006\001\005\005\007\002\001\026\051"
+"\150\164\164\160\072\057\057\143\145\162\164\056\163\164\141\162"
+"\164\143\157\155\056\157\162\147\057\151\156\164\145\162\155\145"
+"\144\151\141\164\145\056\160\144\146\060\201\320\006\010\053\006"
+"\001\005\005\007\002\002\060\201\303\060\047\026\040\123\164\141"
+"\162\164\040\103\157\155\155\145\162\143\151\141\154\040\050\123"
+"\164\141\162\164\103\157\155\051\040\114\164\144\056\060\003\002"
+"\001\001\032\201\227\114\151\155\151\164\145\144\040\114\151\141"
+"\142\151\154\151\164\171\054\040\162\145\141\144\040\164\150\145"
+"\040\163\145\143\164\151\157\156\040\052\114\145\147\141\154\040"
+"\114\151\155\151\164\141\164\151\157\156\163\052\040\157\146\040"
+"\164\150\145\040\123\164\141\162\164\103\157\155\040\103\145\162"
+"\164\151\146\151\143\141\164\151\157\156\040\101\165\164\150\157"
+"\162\151\164\171\040\120\157\154\151\143\171\040\141\166\141\151"
+"\154\141\142\154\145\040\141\164\040\150\164\164\160\072\057\057"
+"\143\145\162\164\056\163\164\141\162\164\143\157\155\056\157\162"
+"\147\057\160\157\154\151\143\171\056\160\144\146\060\021\006\011"
+"\140\206\110\001\206\370\102\001\001\004\004\003\002\000\007\060"
+"\070\006\011\140\206\110\001\206\370\102\001\015\004\053\026\051"
+"\123\164\141\162\164\103\157\155\040\106\162\145\145\040\123\123"
+"\114\040\103\145\162\164\151\146\151\143\141\164\151\157\156\040"
+"\101\165\164\150\157\162\151\164\171\060\015\006\011\052\206\110"
+"\206\367\015\001\001\005\005\000\003\202\002\001\000\026\154\231"
+"\364\146\014\064\365\320\205\136\175\012\354\332\020\116\070\034"
+"\136\337\246\045\005\113\221\062\301\350\073\361\075\335\104\011"
+"\133\007\111\212\051\313\146\002\267\261\232\367\045\230\011\074"
+"\216\033\341\335\066\207\053\113\273\150\323\071\146\075\240\046"
+"\307\362\071\221\035\121\253\202\173\176\325\316\132\344\342\003"
+"\127\160\151\227\010\371\136\130\246\012\337\214\006\232\105\026"
+"\026\070\012\136\127\366\142\307\172\002\005\346\274\036\265\362"
+"\236\364\251\051\203\370\262\024\343\156\050\207\104\303\220\032"
+"\336\070\251\074\254\103\115\144\105\316\335\050\251\134\362\163"
+"\173\004\370\027\350\253\261\363\056\134\144\156\163\061\072\022"
+"\270\274\263\021\344\175\217\201\121\232\073\215\211\364\115\223"
+"\146\173\074\003\355\323\232\035\232\363\145\120\365\240\320\165"
+"\237\057\257\360\352\202\103\230\370\151\234\211\171\304\103\216"
+"\106\162\343\144\066\022\257\367\045\036\070\211\220\167\176\303"
+"\153\152\271\303\313\104\113\254\170\220\213\347\307\054\036\113"
+"\021\104\310\064\122\047\315\012\135\237\205\301\211\325\032\170"
+"\362\225\020\123\062\335\200\204\146\165\331\265\150\050\373\141"
+"\056\276\204\250\070\300\231\022\206\245\036\147\144\255\006\056"
+"\057\251\160\205\307\226\017\174\211\145\365\216\103\124\016\253"
+"\335\245\200\071\224\140\300\064\311\226\160\054\243\022\365\037"
+"\110\173\275\034\176\153\267\235\220\364\042\073\256\370\374\052"
+"\312\372\202\122\240\357\257\113\125\223\353\301\265\360\042\213"
+"\254\064\116\046\042\004\241\207\054\165\112\267\345\175\023\327"
+"\270\014\144\300\066\322\311\057\206\022\214\043\011\301\033\202"
+"\073\163\111\243\152\127\207\224\345\326\170\305\231\103\143\343"
+"\115\340\167\055\341\145\231\162\151\004\032\107\011\346\017\001"
+"\126\044\373\037\277\016\171\251\130\056\271\304\011\001\176\225"
+"\272\155\000\006\076\262\352\112\020\071\330\320\053\365\277\354"
+"\165\277\227\002\305\011\033\010\334\125\067\342\201\373\067\204"
+"\103\142\040\312\347\126\113\145\352\376\154\301\044\223\044\241"
+"\064\353\005\377\232\042\256\233\175\077\361\145\121\012\246\060"
+"\152\263\364\210\034\200\015\374\162\212\350\203\136"
+, (PRUint32)1997 }
+};
+static const NSSItem nss_builtins_items_207 [] = {
+  { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
+  { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)"StartCom Certification Authority", (PRUint32)33 },
+  { (void *)"\076\053\367\362\003\033\226\363\214\346\304\330\250\135\076\055"
+"\130\107\152\017"
+, (PRUint32)20 },
+  { (void *)"\042\115\217\212\374\367\065\302\273\127\064\220\173\213\042\026"
+, (PRUint32)16 },
+  { (void *)"\060\175\061\013\060\011\006\003\125\004\006\023\002\111\114\061"
+"\026\060\024\006\003\125\004\012\023\015\123\164\141\162\164\103"
+"\157\155\040\114\164\144\056\061\053\060\051\006\003\125\004\013"
+"\023\042\123\145\143\165\162\145\040\104\151\147\151\164\141\154"
+"\040\103\145\162\164\151\146\151\143\141\164\145\040\123\151\147"
+"\156\151\156\147\061\051\060\047\006\003\125\004\003\023\040\123"
+"\164\141\162\164\103\157\155\040\103\145\162\164\151\146\151\143"
+"\141\164\151\157\156\040\101\165\164\150\157\162\151\164\171"
+, (PRUint32)127 },
+  { (void *)"\002\001\001"
+, (PRUint32)3 },
+  { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trust_unknown, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
+};
+static const NSSItem nss_builtins_items_208 [] = {
+  { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
+  { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)"Taiwan GRCA", (PRUint32)12 },
+  { (void *)&ckc_x_509, (PRUint32)sizeof(CK_CERTIFICATE_TYPE) },
+  { (void *)"\060\077\061\013\060\011\006\003\125\004\006\023\002\124\127\061"
+"\060\060\056\006\003\125\004\012\014\047\107\157\166\145\162\156"
+"\155\145\156\164\040\122\157\157\164\040\103\145\162\164\151\146"
+"\151\143\141\164\151\157\156\040\101\165\164\150\157\162\151\164"
+"\171"
+, (PRUint32)65 },
+  { (void *)"0", (PRUint32)2 },
+  { (void *)"\060\077\061\013\060\011\006\003\125\004\006\023\002\124\127\061"
+"\060\060\056\006\003\125\004\012\014\047\107\157\166\145\162\156"
+"\155\145\156\164\040\122\157\157\164\040\103\145\162\164\151\146"
+"\151\143\141\164\151\157\156\040\101\165\164\150\157\162\151\164"
+"\171"
+, (PRUint32)65 },
+  { (void *)"\002\020\037\235\131\132\327\057\302\006\104\245\200\010\151\343"
+"\136\366"
+, (PRUint32)18 },
+  { (void *)"\060\202\005\162\060\202\003\132\240\003\002\001\002\002\020\037"
+"\235\131\132\327\057\302\006\104\245\200\010\151\343\136\366\060"
+"\015\006\011\052\206\110\206\367\015\001\001\005\005\000\060\077"
+"\061\013\060\011\006\003\125\004\006\023\002\124\127\061\060\060"
+"\056\006\003\125\004\012\014\047\107\157\166\145\162\156\155\145"
+"\156\164\040\122\157\157\164\040\103\145\162\164\151\146\151\143"
+"\141\164\151\157\156\040\101\165\164\150\157\162\151\164\171\060"
+"\036\027\015\060\062\061\062\060\065\061\063\062\063\063\063\132"
+"\027\015\063\062\061\062\060\065\061\063\062\063\063\063\132\060"
+"\077\061\013\060\011\006\003\125\004\006\023\002\124\127\061\060"
+"\060\056\006\003\125\004\012\014\047\107\157\166\145\162\156\155"
+"\145\156\164\040\122\157\157\164\040\103\145\162\164\151\146\151"
+"\143\141\164\151\157\156\040\101\165\164\150\157\162\151\164\171"
+"\060\202\002\042\060\015\006\011\052\206\110\206\367\015\001\001"
+"\001\005\000\003\202\002\017\000\060\202\002\012\002\202\002\001"
+"\000\232\045\270\354\314\242\165\250\173\367\316\133\131\212\311"
+"\321\206\022\010\124\354\234\362\347\106\366\210\363\174\351\245"
+"\337\114\107\066\244\033\001\034\177\036\127\212\215\303\305\321"
+"\041\343\332\044\077\110\053\373\237\056\241\224\347\054\034\223"
+"\321\277\033\001\207\123\231\316\247\365\012\041\166\167\377\251"
+"\267\306\163\224\117\106\367\020\111\067\372\250\131\111\135\152"
+"\201\007\126\362\212\371\006\320\367\160\042\115\264\267\101\271"
+"\062\270\261\360\261\303\234\077\160\375\123\335\201\252\330\143"
+"\170\366\330\123\156\241\254\152\204\044\162\124\206\306\322\262"
+"\312\034\016\171\201\326\265\160\142\010\001\056\116\117\016\325"
+"\021\257\251\257\345\232\277\334\314\207\155\046\344\311\127\242"
+"\373\226\371\314\341\077\123\214\154\114\176\233\123\010\013\154"
+"\027\373\147\310\302\255\261\315\200\264\227\334\166\001\026\025"
+"\351\152\327\244\341\170\107\316\206\325\373\061\363\372\061\276"
+"\064\252\050\373\160\114\035\111\307\257\054\235\155\146\246\266"
+"\215\144\176\265\040\152\235\073\201\266\217\100\000\147\113\211"
+"\206\270\314\145\376\025\123\351\004\301\326\137\035\104\327\012"
+"\057\047\232\106\175\241\015\165\255\124\206\025\334\111\073\361"
+"\226\316\017\233\240\354\243\172\135\276\325\052\165\102\345\173"
+"\336\245\266\252\257\050\254\254\220\254\070\267\325\150\065\046"
+"\172\334\367\073\363\375\105\233\321\273\103\170\156\157\361\102"
+"\124\152\230\360\015\255\227\351\122\136\351\325\152\162\336\152"
+"\367\033\140\024\364\245\344\266\161\147\252\037\352\342\115\301"
+"\102\100\376\147\106\027\070\057\107\077\161\234\256\345\041\312"
+"\141\055\155\007\250\204\174\055\356\121\045\361\143\220\236\375"
+"\341\127\210\153\357\212\043\155\261\346\275\077\255\321\075\226"
+"\013\205\215\315\153\047\273\267\005\233\354\273\221\251\012\007"
+"\022\002\227\116\040\220\360\377\015\036\342\101\073\323\100\072"
+"\347\215\135\332\146\344\002\260\007\122\230\134\016\216\063\234"
+"\302\246\225\373\125\031\156\114\216\256\113\017\275\301\070\115"
+"\136\217\204\035\146\315\305\140\226\264\122\132\005\211\216\225"
+"\172\230\301\221\074\225\043\262\016\364\171\264\311\174\301\112"
+"\041\002\003\001\000\001\243\152\060\150\060\035\006\003\125\035"
+"\016\004\026\004\024\314\314\357\314\051\140\244\073\261\222\266"
+"\074\372\062\142\217\254\045\025\073\060\014\006\003\125\035\023"
+"\004\005\060\003\001\001\377\060\071\006\004\147\052\007\000\004"
+"\061\060\057\060\055\002\001\000\060\011\006\005\053\016\003\002"
+"\032\005\000\060\007\006\005\147\052\003\000\000\004\024\003\233"
+"\360\042\023\377\225\050\066\323\334\236\300\062\373\061\072\212"
+"\121\145\060\015\006\011\052\206\110\206\367\015\001\001\005\005"
+"\000\003\202\002\001\000\100\200\112\372\046\311\316\136\060\335"
+"\117\206\164\166\130\365\256\263\203\063\170\244\172\164\027\031"
+"\116\351\122\265\271\340\012\164\142\252\150\312\170\240\114\232"
+"\216\054\043\056\325\152\022\044\277\324\150\323\212\320\330\234"
+"\237\264\037\014\336\070\176\127\070\374\215\342\117\136\014\237"
+"\253\073\322\377\165\227\313\244\343\147\010\377\345\300\026\265"
+"\110\001\175\351\371\012\377\033\345\152\151\277\170\041\250\302"
+"\247\043\251\206\253\166\126\350\016\014\366\023\335\052\146\212"
+"\144\111\075\032\030\207\220\004\237\102\122\267\117\313\376\107"
+"\101\166\065\357\377\000\166\066\105\062\233\306\106\205\135\342"
+"\044\260\036\343\110\226\230\127\107\224\125\172\017\101\261\104"
+"\044\363\301\376\032\153\277\210\375\301\246\332\223\140\136\201"
+"\112\231\040\234\110\146\031\265\000\171\124\017\270\054\057\113"
+"\274\251\135\133\140\177\214\207\245\340\122\143\052\276\330\073"
+"\205\100\025\376\036\266\145\077\305\113\332\176\265\172\065\051"
+"\243\056\172\230\140\042\243\364\175\047\116\055\352\264\164\074"
+"\351\017\244\063\017\020\021\274\023\001\326\345\016\323\277\265"
+"\022\242\341\105\043\300\314\010\156\141\267\211\253\203\343\044"
+"\036\346\135\007\347\037\040\076\317\147\310\347\254\060\155\047"
+"\113\150\156\113\052\134\002\010\064\333\370\166\344\147\243\046"
+"\234\077\242\062\302\112\305\201\030\061\020\126\252\204\357\055"
+"\012\377\270\037\167\322\277\245\130\240\142\344\327\113\221\165"
+"\215\211\200\230\176\155\313\123\116\136\257\366\262\227\205\227"
+"\271\332\125\006\271\044\356\327\306\070\036\143\033\022\073\225"
+"\341\130\254\362\337\204\325\137\231\057\015\125\133\346\070\333"
+"\056\077\162\351\110\205\313\273\051\023\217\036\070\125\271\363"
+"\262\304\060\231\043\116\135\362\110\241\022\014\334\022\220\011"
+"\220\124\221\003\074\107\345\325\311\145\340\267\113\175\354\107"
+"\323\263\013\076\255\236\320\164\000\016\353\275\121\255\300\336"
+"\054\300\303\152\376\357\334\013\247\372\106\337\140\333\234\246"
+"\131\120\165\043\151\163\223\262\371\374\002\323\107\346\161\316"
+"\020\002\356\047\214\204\377\254\105\015\023\134\203\062\340\045"
+"\245\206\054\174\364\022"
+, (PRUint32)1398 }
+};
+static const NSSItem nss_builtins_items_209 [] = {
+  { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
+  { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)"Taiwan GRCA", (PRUint32)12 },
+  { (void *)"\364\213\021\277\336\253\276\224\124\040\161\346\101\336\153\276"
+"\210\053\100\271"
+, (PRUint32)20 },
+  { (void *)"\067\205\104\123\062\105\037\040\360\363\225\341\045\304\103\116"
+, (PRUint32)16 },
+  { (void *)"\060\077\061\013\060\011\006\003\125\004\006\023\002\124\127\061"
+"\060\060\056\006\003\125\004\012\014\047\107\157\166\145\162\156"
+"\155\145\156\164\040\122\157\157\164\040\103\145\162\164\151\146"
+"\151\143\141\164\151\157\156\040\101\165\164\150\157\162\151\164"
+"\171"
+, (PRUint32)65 },
+  { (void *)"\002\020\037\235\131\132\327\057\302\006\104\245\200\010\151\343"
+"\136\366"
+, (PRUint32)18 },
+  { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
+};
+static const NSSItem nss_builtins_items_210 [] = {
+  { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
+  { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)"Firmaprofesional Root CA", (PRUint32)25 },
+  { (void *)&ckc_x_509, (PRUint32)sizeof(CK_CERTIFICATE_TYPE) },
+  { (void *)"\060\201\235\061\013\060\011\006\003\125\004\006\023\002\105\123"
+"\061\042\060\040\006\003\125\004\007\023\031\103\057\040\115\165"
+"\156\164\141\156\145\162\040\062\064\064\040\102\141\162\143\145"
+"\154\157\156\141\061\102\060\100\006\003\125\004\003\023\071\101"
+"\165\164\157\162\151\144\141\144\040\144\145\040\103\145\162\164"
+"\151\146\151\143\141\143\151\157\156\040\106\151\162\155\141\160"
+"\162\157\146\145\163\151\157\156\141\154\040\103\111\106\040\101"
+"\066\062\066\063\064\060\066\070\061\046\060\044\006\011\052\206"
+"\110\206\367\015\001\011\001\026\027\143\141\100\146\151\162\155"
+"\141\160\162\157\146\145\163\151\157\156\141\154\056\143\157\155"
+, (PRUint32)160 },
+  { (void *)"0", (PRUint32)2 },
+  { (void *)"\060\201\235\061\013\060\011\006\003\125\004\006\023\002\105\123"
+"\061\042\060\040\006\003\125\004\007\023\031\103\057\040\115\165"
+"\156\164\141\156\145\162\040\062\064\064\040\102\141\162\143\145"
+"\154\157\156\141\061\102\060\100\006\003\125\004\003\023\071\101"
+"\165\164\157\162\151\144\141\144\040\144\145\040\103\145\162\164"
+"\151\146\151\143\141\143\151\157\156\040\106\151\162\155\141\160"
+"\162\157\146\145\163\151\157\156\141\154\040\103\111\106\040\101"
+"\066\062\066\063\064\060\066\070\061\046\060\044\006\011\052\206"
+"\110\206\367\015\001\011\001\026\027\143\141\100\146\151\162\155"
+"\141\160\162\157\146\145\163\151\157\156\141\154\056\143\157\155"
+, (PRUint32)160 },
+  { (void *)"\002\001\001"
+, (PRUint32)3 },
+  { (void *)"\060\202\004\127\060\202\003\077\240\003\002\001\002\002\001\001"
+"\060\015\006\011\052\206\110\206\367\015\001\001\005\005\000\060"
+"\201\235\061\013\060\011\006\003\125\004\006\023\002\105\123\061"
+"\042\060\040\006\003\125\004\007\023\031\103\057\040\115\165\156"
+"\164\141\156\145\162\040\062\064\064\040\102\141\162\143\145\154"
+"\157\156\141\061\102\060\100\006\003\125\004\003\023\071\101\165"
+"\164\157\162\151\144\141\144\040\144\145\040\103\145\162\164\151"
+"\146\151\143\141\143\151\157\156\040\106\151\162\155\141\160\162"
+"\157\146\145\163\151\157\156\141\154\040\103\111\106\040\101\066"
+"\062\066\063\064\060\066\070\061\046\060\044\006\011\052\206\110"
+"\206\367\015\001\011\001\026\027\143\141\100\146\151\162\155\141"
+"\160\162\157\146\145\163\151\157\156\141\154\056\143\157\155\060"
+"\036\027\015\060\061\061\060\062\064\062\062\060\060\060\060\132"
+"\027\015\061\063\061\060\062\064\062\062\060\060\060\060\132\060"
+"\201\235\061\013\060\011\006\003\125\004\006\023\002\105\123\061"
+"\042\060\040\006\003\125\004\007\023\031\103\057\040\115\165\156"
+"\164\141\156\145\162\040\062\064\064\040\102\141\162\143\145\154"
+"\157\156\141\061\102\060\100\006\003\125\004\003\023\071\101\165"
+"\164\157\162\151\144\141\144\040\144\145\040\103\145\162\164\151"
+"\146\151\143\141\143\151\157\156\040\106\151\162\155\141\160\162"
+"\157\146\145\163\151\157\156\141\154\040\103\111\106\040\101\066"
+"\062\066\063\064\060\066\070\061\046\060\044\006\011\052\206\110"
+"\206\367\015\001\011\001\026\027\143\141\100\146\151\162\155\141"
+"\160\162\157\146\145\163\151\157\156\141\154\056\143\157\155\060"
+"\202\001\042\060\015\006\011\052\206\110\206\367\015\001\001\001"
+"\005\000\003\202\001\017\000\060\202\001\012\002\202\001\001\000"
+"\347\043\003\157\157\043\245\136\170\316\225\054\355\224\036\156"
+"\012\236\001\307\352\060\321\054\235\335\067\350\233\230\171\126"
+"\323\374\163\337\320\212\336\125\217\121\371\132\352\336\265\160"
+"\304\355\244\355\377\243\015\156\017\144\120\061\257\001\047\130"
+"\256\376\154\247\112\057\027\055\323\163\325\023\034\217\131\245"
+"\064\054\035\124\004\105\315\150\270\240\300\003\245\317\205\102"
+"\107\225\050\133\317\357\200\154\340\220\227\212\001\074\035\363"
+"\207\020\060\046\110\175\327\374\351\235\221\161\377\101\232\251"
+"\100\265\067\234\051\040\117\037\122\343\240\175\023\155\124\267"
+"\012\336\351\152\116\007\254\254\031\137\334\176\142\164\366\262"
+"\005\000\272\205\240\375\035\070\156\313\132\273\206\274\224\147"
+"\063\065\203\054\037\043\315\370\310\221\161\314\227\213\357\256"
+"\017\334\051\003\033\300\071\353\160\355\301\156\016\330\147\013"
+"\211\251\274\065\344\357\266\064\264\245\266\304\055\245\276\320"
+"\303\224\044\110\333\337\226\323\000\265\146\032\213\146\005\017"
+"\335\077\077\313\077\252\136\232\112\370\264\112\357\225\067\033"
+"\002\003\001\000\001\243\201\237\060\201\234\060\052\006\003\125"
+"\035\021\004\043\060\041\206\037\150\164\164\160\072\057\057\167"
+"\167\167\056\146\151\162\155\141\160\162\157\146\145\163\151\157"
+"\156\141\154\056\143\157\155\060\022\006\003\125\035\023\001\001"
+"\377\004\010\060\006\001\001\377\002\001\001\060\053\006\003\125"
+"\035\020\004\044\060\042\200\017\062\060\060\061\061\060\062\064"
+"\062\062\060\060\060\060\132\201\017\062\060\061\063\061\060\062"
+"\064\062\062\060\060\060\060\132\060\016\006\003\125\035\017\001"
+"\001\377\004\004\003\002\001\006\060\035\006\003\125\035\016\004"
+"\026\004\024\063\013\240\146\321\352\332\316\336\142\223\004\050"
+"\122\265\024\177\070\150\267\060\015\006\011\052\206\110\206\367"
+"\015\001\001\005\005\000\003\202\001\001\000\107\163\376\215\047"
+"\124\360\365\324\167\234\047\171\127\127\267\025\126\354\307\330"
+"\130\267\001\002\364\063\355\223\120\210\236\174\106\261\275\077"
+"\024\157\361\263\107\110\213\214\227\006\327\352\176\243\134\052"
+"\273\115\057\107\342\370\071\006\311\234\056\061\032\003\170\364"
+"\274\070\306\042\213\063\061\360\026\004\004\175\371\166\344\113"
+"\327\300\346\203\354\131\314\077\336\377\117\153\267\147\176\246"
+"\206\201\062\043\003\235\310\367\137\301\112\140\245\222\251\261"
+"\244\240\140\303\170\207\263\042\363\052\353\133\251\355\005\253"
+"\067\017\261\342\323\225\166\143\126\164\214\130\162\033\067\345"
+"\144\241\276\115\014\223\230\014\227\366\207\155\263\077\347\313"
+"\200\246\355\210\307\137\120\142\002\350\231\164\026\320\346\264"
+"\071\361\047\313\310\100\326\343\206\020\251\043\022\222\340\151"
+"\101\143\247\257\045\013\300\305\222\313\036\230\243\132\272\305"
+"\063\017\240\227\001\335\177\340\173\326\006\124\317\241\342\115"
+"\070\353\113\120\265\313\046\364\312\332\160\112\152\241\342\171"
+"\252\341\247\063\366\375\112\037\366\331\140"
+, (PRUint32)1115 }
+};
+static const NSSItem nss_builtins_items_211 [] = {
+  { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
+  { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)"Firmaprofesional Root CA", (PRUint32)25 },
+  { (void *)"\251\142\217\113\230\251\033\110\065\272\322\301\106\062\206\273"
+"\146\144\152\214"
+, (PRUint32)20 },
+  { (void *)"\021\222\171\100\074\261\203\100\345\253\146\112\147\222\200\337"
+, (PRUint32)16 },
+  { (void *)"\060\201\235\061\013\060\011\006\003\125\004\006\023\002\105\123"
+"\061\042\060\040\006\003\125\004\007\023\031\103\057\040\115\165"
+"\156\164\141\156\145\162\040\062\064\064\040\102\141\162\143\145"
+"\154\157\156\141\061\102\060\100\006\003\125\004\003\023\071\101"
+"\165\164\157\162\151\144\141\144\040\144\145\040\103\145\162\164"
+"\151\146\151\143\141\143\151\157\156\040\106\151\162\155\141\160"
+"\162\157\146\145\163\151\157\156\141\154\040\103\111\106\040\101"
+"\066\062\066\063\064\060\066\070\061\046\060\044\006\011\052\206"
+"\110\206\367\015\001\011\001\026\027\143\141\100\146\151\162\155"
+"\141\160\162\157\146\145\163\151\157\156\141\154\056\143\157\155"
+, (PRUint32)160 },
+  { (void *)"\002\001\001"
+, (PRUint32)3 },
+  { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trust_unknown, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
+};
+static const NSSItem nss_builtins_items_212 [] = {
+  { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
+  { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)"Wells Fargo Root CA", (PRUint32)20 },
+  { (void *)&ckc_x_509, (PRUint32)sizeof(CK_CERTIFICATE_TYPE) },
+  { (void *)"\060\201\202\061\013\060\011\006\003\125\004\006\023\002\125\123"
+"\061\024\060\022\006\003\125\004\012\023\013\127\145\154\154\163"
+"\040\106\141\162\147\157\061\054\060\052\006\003\125\004\013\023"
+"\043\127\145\154\154\163\040\106\141\162\147\157\040\103\145\162"
+"\164\151\146\151\143\141\164\151\157\156\040\101\165\164\150\157"
+"\162\151\164\171\061\057\060\055\006\003\125\004\003\023\046\127"
+"\145\154\154\163\040\106\141\162\147\157\040\122\157\157\164\040"
+"\103\145\162\164\151\146\151\143\141\164\145\040\101\165\164\150"
+"\157\162\151\164\171"
+, (PRUint32)133 },
+  { (void *)"0", (PRUint32)2 },
+  { (void *)"\060\201\202\061\013\060\011\006\003\125\004\006\023\002\125\123"
+"\061\024\060\022\006\003\125\004\012\023\013\127\145\154\154\163"
+"\040\106\141\162\147\157\061\054\060\052\006\003\125\004\013\023"
+"\043\127\145\154\154\163\040\106\141\162\147\157\040\103\145\162"
+"\164\151\146\151\143\141\164\151\157\156\040\101\165\164\150\157"
+"\162\151\164\171\061\057\060\055\006\003\125\004\003\023\046\127"
+"\145\154\154\163\040\106\141\162\147\157\040\122\157\157\164\040"
+"\103\145\162\164\151\146\151\143\141\164\145\040\101\165\164\150"
+"\157\162\151\164\171"
+, (PRUint32)133 },
+  { (void *)"\002\004\071\344\227\236"
+, (PRUint32)6 },
+  { (void *)"\060\202\003\345\060\202\002\315\240\003\002\001\002\002\004\071"
+"\344\227\236\060\015\006\011\052\206\110\206\367\015\001\001\005"
+"\005\000\060\201\202\061\013\060\011\006\003\125\004\006\023\002"
+"\125\123\061\024\060\022\006\003\125\004\012\023\013\127\145\154"
+"\154\163\040\106\141\162\147\157\061\054\060\052\006\003\125\004"
+"\013\023\043\127\145\154\154\163\040\106\141\162\147\157\040\103"
+"\145\162\164\151\146\151\143\141\164\151\157\156\040\101\165\164"
+"\150\157\162\151\164\171\061\057\060\055\006\003\125\004\003\023"
+"\046\127\145\154\154\163\040\106\141\162\147\157\040\122\157\157"
+"\164\040\103\145\162\164\151\146\151\143\141\164\145\040\101\165"
+"\164\150\157\162\151\164\171\060\036\027\015\060\060\061\060\061"
+"\061\061\066\064\061\062\070\132\027\015\062\061\060\061\061\064"
+"\061\066\064\061\062\070\132\060\201\202\061\013\060\011\006\003"
+"\125\004\006\023\002\125\123\061\024\060\022\006\003\125\004\012"
+"\023\013\127\145\154\154\163\040\106\141\162\147\157\061\054\060"
+"\052\006\003\125\004\013\023\043\127\145\154\154\163\040\106\141"
+"\162\147\157\040\103\145\162\164\151\146\151\143\141\164\151\157"
+"\156\040\101\165\164\150\157\162\151\164\171\061\057\060\055\006"
+"\003\125\004\003\023\046\127\145\154\154\163\040\106\141\162\147"
+"\157\040\122\157\157\164\040\103\145\162\164\151\146\151\143\141"
+"\164\145\040\101\165\164\150\157\162\151\164\171\060\202\001\042"
+"\060\015\006\011\052\206\110\206\367\015\001\001\001\005\000\003"
+"\202\001\017\000\060\202\001\012\002\202\001\001\000\325\250\063"
+"\073\046\371\064\377\315\233\176\345\004\107\316\000\342\175\167"
+"\347\061\302\056\047\245\115\150\271\061\272\215\103\131\227\307"
+"\163\252\177\075\134\100\236\005\345\241\342\211\331\114\270\077"
+"\233\371\014\264\310\142\031\054\105\256\221\036\163\161\101\304"
+"\113\023\375\160\302\045\254\042\365\165\013\267\123\344\245\053"
+"\335\316\275\034\072\172\303\367\023\217\046\124\234\026\153\153"
+"\257\373\330\226\261\140\232\110\340\045\042\044\171\064\316\016"
+"\046\000\013\116\253\375\213\316\202\327\057\010\160\150\301\250"
+"\012\371\164\117\007\253\244\371\342\203\176\047\163\164\076\270"
+"\371\070\102\374\245\250\133\110\043\263\353\343\045\262\200\256"
+"\226\324\012\234\302\170\232\306\150\030\256\067\142\067\136\121"
+"\165\250\130\143\300\121\356\100\170\176\250\257\032\240\341\260"
+"\170\235\120\214\173\347\263\374\216\043\260\333\145\000\160\204"
+"\001\010\000\024\156\124\206\232\272\314\371\067\020\366\340\336"
+"\204\055\235\244\205\067\323\207\343\025\320\301\027\220\176\031"
+"\041\152\022\251\166\375\022\002\351\117\041\136\027\002\003\001"
+"\000\001\243\141\060\137\060\017\006\003\125\035\023\001\001\377"
+"\004\005\060\003\001\001\377\060\114\006\003\125\035\040\004\105"
+"\060\103\060\101\006\013\140\206\110\001\206\373\173\207\007\001"
+"\013\060\062\060\060\006\010\053\006\001\005\005\007\002\001\026"
+"\044\150\164\164\160\072\057\057\167\167\167\056\167\145\154\154"
+"\163\146\141\162\147\157\056\143\157\155\057\143\145\162\164\160"
+"\157\154\151\143\171\060\015\006\011\052\206\110\206\367\015\001"
+"\001\005\005\000\003\202\001\001\000\322\047\335\234\012\167\053"
+"\273\042\362\002\265\112\112\221\371\321\055\276\344\273\032\150"
+"\357\016\244\000\351\356\347\357\356\366\371\345\164\244\302\330"
+"\122\130\304\164\373\316\153\265\073\051\171\030\132\357\233\355"
+"\037\153\066\356\110\045\045\024\266\126\242\020\350\356\247\177"
+"\320\077\243\320\303\135\046\356\007\314\303\301\044\041\207\036"
+"\337\052\022\123\157\101\026\347\355\256\224\372\214\162\372\023"
+"\107\360\074\176\256\175\021\072\023\354\355\372\157\162\144\173"
+"\235\175\177\046\375\172\373\045\255\352\076\051\177\114\343\000"
+"\127\062\260\263\351\355\123\027\331\213\262\024\016\060\350\345"
+"\325\023\306\144\257\304\000\325\330\130\044\374\365\217\354\361"
+"\307\175\245\333\017\047\321\306\362\100\210\346\037\366\141\250"
+"\364\102\310\271\067\323\251\276\054\126\170\302\162\233\131\135"
+"\065\100\212\350\116\143\032\266\351\040\152\121\342\316\244\220"
+"\337\166\160\231\134\160\103\115\267\266\247\031\144\116\222\267"
+"\305\221\074\177\110\026\145\173\026\375\313\374\373\331\325\326"
+"\117\041\145\073\112\177\107\243\373"
+, (PRUint32)1001 }
+};
+static const NSSItem nss_builtins_items_213 [] = {
+  { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
+  { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)"Wells Fargo Root CA", (PRUint32)20 },
+  { (void *)"\223\346\253\042\003\003\265\043\050\334\332\126\236\272\344\321"
+"\321\314\373\145"
+, (PRUint32)20 },
+  { (void *)"\040\013\112\172\210\247\251\102\206\212\137\164\126\173\210\005"
+, (PRUint32)16 },
+  { (void *)"\060\201\202\061\013\060\011\006\003\125\004\006\023\002\125\123"
+"\061\024\060\022\006\003\125\004\012\023\013\127\145\154\154\163"
+"\040\106\141\162\147\157\061\054\060\052\006\003\125\004\013\023"
+"\043\127\145\154\154\163\040\106\141\162\147\157\040\103\145\162"
+"\164\151\146\151\143\141\164\151\157\156\040\101\165\164\150\157"
+"\162\151\164\171\061\057\060\055\006\003\125\004\003\023\046\127"
+"\145\154\154\163\040\106\141\162\147\157\040\122\157\157\164\040"
+"\103\145\162\164\151\146\151\143\141\164\145\040\101\165\164\150"
+"\157\162\151\164\171"
+, (PRUint32)133 },
+  { (void *)"\002\004\071\344\227\236"
+, (PRUint32)6 },
+  { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
+};
+static const NSSItem nss_builtins_items_214 [] = {
+  { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
+  { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)"Swisscom Root CA 1", (PRUint32)19 },
+  { (void *)&ckc_x_509, (PRUint32)sizeof(CK_CERTIFICATE_TYPE) },
+  { (void *)"\060\144\061\013\060\011\006\003\125\004\006\023\002\143\150\061"
+"\021\060\017\006\003\125\004\012\023\010\123\167\151\163\163\143"
+"\157\155\061\045\060\043\006\003\125\004\013\023\034\104\151\147"
+"\151\164\141\154\040\103\145\162\164\151\146\151\143\141\164\145"
+"\040\123\145\162\166\151\143\145\163\061\033\060\031\006\003\125"
+"\004\003\023\022\123\167\151\163\163\143\157\155\040\122\157\157"
+"\164\040\103\101\040\061"
+, (PRUint32)102 },
+  { (void *)"0", (PRUint32)2 },
+  { (void *)"\060\144\061\013\060\011\006\003\125\004\006\023\002\143\150\061"
+"\021\060\017\006\003\125\004\012\023\010\123\167\151\163\163\143"
+"\157\155\061\045\060\043\006\003\125\004\013\023\034\104\151\147"
+"\151\164\141\154\040\103\145\162\164\151\146\151\143\141\164\145"
+"\040\123\145\162\166\151\143\145\163\061\033\060\031\006\003\125"
+"\004\003\023\022\123\167\151\163\163\143\157\155\040\122\157\157"
+"\164\040\103\101\040\061"
+, (PRUint32)102 },
+  { (void *)"\002\020\134\013\205\134\013\347\131\101\337\127\314\077\177\235"
+"\250\066"
+, (PRUint32)18 },
+  { (void *)"\060\202\005\331\060\202\003\301\240\003\002\001\002\002\020\134"
+"\013\205\134\013\347\131\101\337\127\314\077\177\235\250\066\060"
+"\015\006\011\052\206\110\206\367\015\001\001\005\005\000\060\144"
+"\061\013\060\011\006\003\125\004\006\023\002\143\150\061\021\060"
+"\017\006\003\125\004\012\023\010\123\167\151\163\163\143\157\155"
+"\061\045\060\043\006\003\125\004\013\023\034\104\151\147\151\164"
+"\141\154\040\103\145\162\164\151\146\151\143\141\164\145\040\123"
+"\145\162\166\151\143\145\163\061\033\060\031\006\003\125\004\003"
+"\023\022\123\167\151\163\163\143\157\155\040\122\157\157\164\040"
+"\103\101\040\061\060\036\027\015\060\065\060\070\061\070\061\062"
+"\060\066\062\060\132\027\015\062\065\060\070\061\070\062\062\060"
+"\066\062\060\132\060\144\061\013\060\011\006\003\125\004\006\023"
+"\002\143\150\061\021\060\017\006\003\125\004\012\023\010\123\167"
+"\151\163\163\143\157\155\061\045\060\043\006\003\125\004\013\023"
+"\034\104\151\147\151\164\141\154\040\103\145\162\164\151\146\151"
+"\143\141\164\145\040\123\145\162\166\151\143\145\163\061\033\060"
+"\031\006\003\125\004\003\023\022\123\167\151\163\163\143\157\155"
+"\040\122\157\157\164\040\103\101\040\061\060\202\002\042\060\015"
+"\006\011\052\206\110\206\367\015\001\001\001\005\000\003\202\002"
+"\017\000\060\202\002\012\002\202\002\001\000\320\271\260\250\014"
+"\331\273\077\041\370\033\325\063\223\200\026\145\040\165\262\075"
+"\233\140\155\106\310\214\061\157\027\303\372\232\154\126\355\074"
+"\305\221\127\303\315\253\226\111\220\052\031\113\036\243\155\127"
+"\335\361\053\142\050\165\105\136\252\326\133\372\013\045\330\241"
+"\026\371\034\304\056\346\225\052\147\314\320\051\156\074\205\064"
+"\070\141\111\261\000\237\326\072\161\137\115\155\316\137\271\251"
+"\344\211\177\152\122\372\312\233\362\334\251\371\235\231\107\077"
+"\116\051\137\264\246\215\135\173\013\231\021\003\003\376\347\333"
+"\333\243\377\035\245\315\220\036\001\037\065\260\177\000\333\220"
+"\157\306\176\173\321\356\172\172\247\252\014\127\157\244\155\305"
+"\023\073\260\245\331\355\062\034\264\136\147\213\124\334\163\207"
+"\345\323\027\174\146\120\162\135\324\032\130\301\331\317\330\211"
+"\002\157\247\111\264\066\135\320\244\336\007\054\266\165\267\050"
+"\221\326\227\276\050\365\230\036\352\133\046\311\275\260\227\163"
+"\332\256\221\046\353\150\301\371\071\025\326\147\113\012\155\117"
+"\313\317\260\344\102\161\214\123\171\347\356\341\333\035\240\156"
+"\035\214\032\167\065\134\026\036\053\123\037\064\213\321\154\374"
+"\362\147\007\172\365\255\355\326\232\253\241\261\113\341\314\067"
+"\137\375\177\315\115\256\270\037\234\103\371\052\130\125\103\105"
+"\274\226\315\160\016\374\311\343\146\272\116\215\073\201\313\025"
+"\144\173\271\224\350\135\063\122\205\161\056\117\216\242\006\021"
+"\121\311\343\313\241\156\061\010\144\014\302\322\074\365\066\350"
+"\327\320\016\170\043\040\221\311\044\052\145\051\133\042\367\041"
+"\316\203\136\244\363\336\113\323\150\217\106\165\134\203\011\156"
+"\051\153\304\160\214\365\235\327\040\057\377\106\322\053\070\302"
+"\057\165\034\075\176\332\245\357\036\140\205\151\102\323\314\370"
+"\143\376\036\103\071\205\246\266\143\101\020\263\163\036\274\323"
+"\372\312\175\026\107\342\247\325\320\243\212\012\010\226\142\126"
+"\156\064\333\331\002\271\060\165\343\004\322\347\217\302\260\021"
+"\100\012\254\325\161\002\142\213\061\276\335\306\043\130\061\102"
+"\103\055\164\371\306\236\246\212\017\351\376\277\203\346\103\127"
+"\044\272\357\106\064\252\327\022\001\070\355\002\003\001\000\001"
+"\243\201\206\060\201\203\060\016\006\003\125\035\017\001\001\377"
+"\004\004\003\002\001\206\060\035\006\003\125\035\041\004\026\060"
+"\024\060\022\006\007\140\205\164\001\123\000\001\006\007\140\205"
+"\164\001\123\000\001\060\022\006\003\125\035\023\001\001\377\004"
+"\010\060\006\001\001\377\002\001\007\060\037\006\003\125\035\043"
+"\004\030\060\026\200\024\003\045\057\336\157\202\001\072\134\054"
+"\334\053\241\151\265\147\324\214\323\375\060\035\006\003\125\035"
+"\016\004\026\004\024\003\045\057\336\157\202\001\072\134\054\334"
+"\053\241\151\265\147\324\214\323\375\060\015\006\011\052\206\110"
+"\206\367\015\001\001\005\005\000\003\202\002\001\000\065\020\313"
+"\354\246\004\015\015\017\315\300\333\253\250\362\210\227\014\337"
+"\223\057\115\174\100\126\061\172\353\244\017\140\315\172\363\276"
+"\303\047\216\003\076\244\335\022\357\176\036\164\006\074\077\061"
+"\362\034\173\221\061\041\264\360\320\154\227\324\351\227\262\044"
+"\126\036\126\303\065\275\210\005\017\133\020\032\144\341\307\202"
+"\060\371\062\255\236\120\054\347\170\005\320\061\261\132\230\212"
+"\165\116\220\134\152\024\052\340\122\107\202\140\346\036\332\201"
+"\261\373\024\013\132\361\237\322\225\272\076\320\033\326\025\035"
+"\243\276\206\325\333\017\300\111\144\273\056\120\031\113\322\044"
+"\370\335\036\007\126\320\070\240\225\160\040\166\214\327\335\036"
+"\336\237\161\304\043\357\203\023\134\243\044\025\115\051\100\074"
+"\152\304\251\330\267\246\104\245\015\364\340\235\167\036\100\160"
+"\046\374\332\331\066\344\171\344\265\077\274\233\145\276\273\021"
+"\226\317\333\306\050\071\072\010\316\107\133\123\132\305\231\376"
+"\135\251\335\357\114\324\306\245\255\002\346\214\007\022\036\157"
+"\003\321\157\240\243\363\051\275\022\307\120\242\260\177\210\251"
+"\231\167\232\261\300\245\071\056\134\174\151\342\054\260\352\067"
+"\152\244\341\132\341\365\120\345\203\357\245\273\052\210\347\214"
+"\333\375\155\136\227\031\250\176\146\165\153\161\352\277\261\307"
+"\157\240\364\216\244\354\064\121\133\214\046\003\160\241\167\325"
+"\001\022\127\000\065\333\043\336\016\212\050\231\375\261\020\157"
+"\113\377\070\055\140\116\054\234\353\147\265\255\111\356\113\037"
+"\254\257\373\015\220\132\146\140\160\135\252\315\170\324\044\356"
+"\310\101\240\223\001\222\234\152\236\374\271\044\305\263\025\202"
+"\176\276\256\225\053\353\261\300\332\343\001\140\013\136\151\254"
+"\204\126\141\276\161\027\376\035\023\017\376\306\207\105\351\376"
+"\062\240\032\015\023\244\224\125\161\245\026\213\272\312\211\260"
+"\262\307\374\217\330\124\265\223\142\235\316\317\131\373\075\030"
+"\316\052\313\065\025\202\135\377\124\042\133\161\122\373\267\311"
+"\376\140\233\000\101\144\360\252\052\354\266\102\103\316\211\146"
+"\201\310\213\237\071\124\003\045\323\026\065\216\204\320\137\372"
+"\060\032\365\232\154\364\016\123\371\072\133\321\034"
+, (PRUint32)1501 }
+};
+static const NSSItem nss_builtins_items_215 [] = {
+  { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
+  { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)"Swisscom Root CA 1", (PRUint32)19 },
+  { (void *)"\137\072\374\012\213\144\366\206\147\064\164\337\176\251\242\376"
+"\371\372\172\121"
+, (PRUint32)20 },
+  { (void *)"\370\070\174\167\210\337\054\026\150\056\302\342\122\113\270\371"
+, (PRUint32)16 },
+  { (void *)"\060\144\061\013\060\011\006\003\125\004\006\023\002\143\150\061"
+"\021\060\017\006\003\125\004\012\023\010\123\167\151\163\163\143"
+"\157\155\061\045\060\043\006\003\125\004\013\023\034\104\151\147"
+"\151\164\141\154\040\103\145\162\164\151\146\151\143\141\164\145"
+"\040\123\145\162\166\151\143\145\163\061\033\060\031\006\003\125"
+"\004\003\023\022\123\167\151\163\163\143\157\155\040\122\157\157"
+"\164\040\103\101\040\061"
+, (PRUint32)102 },
+  { (void *)"\002\020\134\013\205\134\013\347\131\101\337\127\314\077\177\235"
+"\250\066"
+, (PRUint32)18 },
+  { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
+};
+static const NSSItem nss_builtins_items_216 [] = {
+  { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
+  { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)"DigiCert Assured ID Root CA", (PRUint32)28 },
+  { (void *)&ckc_x_509, (PRUint32)sizeof(CK_CERTIFICATE_TYPE) },
+  { (void *)"\060\145\061\013\060\011\006\003\125\004\006\023\002\125\123\061"
+"\025\060\023\006\003\125\004\012\023\014\104\151\147\151\103\145"
+"\162\164\040\111\156\143\061\031\060\027\006\003\125\004\013\023"
+"\020\167\167\167\056\144\151\147\151\143\145\162\164\056\143\157"
+"\155\061\044\060\042\006\003\125\004\003\023\033\104\151\147\151"
+"\103\145\162\164\040\101\163\163\165\162\145\144\040\111\104\040"
+"\122\157\157\164\040\103\101"
+, (PRUint32)103 },
+  { (void *)"0", (PRUint32)2 },
+  { (void *)"\060\145\061\013\060\011\006\003\125\004\006\023\002\125\123\061"
+"\025\060\023\006\003\125\004\012\023\014\104\151\147\151\103\145"
+"\162\164\040\111\156\143\061\031\060\027\006\003\125\004\013\023"
+"\020\167\167\167\056\144\151\147\151\143\145\162\164\056\143\157"
+"\155\061\044\060\042\006\003\125\004\003\023\033\104\151\147\151"
+"\103\145\162\164\040\101\163\163\165\162\145\144\040\111\104\040"
+"\122\157\157\164\040\103\101"
+, (PRUint32)103 },
+  { (void *)"\002\020\014\347\340\345\027\330\106\376\217\345\140\374\033\360"
+"\060\071"
+, (PRUint32)18 },
+  { (void *)"\060\202\003\267\060\202\002\237\240\003\002\001\002\002\020\014"
+"\347\340\345\027\330\106\376\217\345\140\374\033\360\060\071\060"
+"\015\006\011\052\206\110\206\367\015\001\001\005\005\000\060\145"
+"\061\013\060\011\006\003\125\004\006\023\002\125\123\061\025\060"
+"\023\006\003\125\004\012\023\014\104\151\147\151\103\145\162\164"
+"\040\111\156\143\061\031\060\027\006\003\125\004\013\023\020\167"
+"\167\167\056\144\151\147\151\143\145\162\164\056\143\157\155\061"
+"\044\060\042\006\003\125\004\003\023\033\104\151\147\151\103\145"
+"\162\164\040\101\163\163\165\162\145\144\040\111\104\040\122\157"
+"\157\164\040\103\101\060\036\027\015\060\066\061\061\061\060\060"
+"\060\060\060\060\060\132\027\015\063\061\061\061\061\060\060\060"
+"\060\060\060\060\132\060\145\061\013\060\011\006\003\125\004\006"
+"\023\002\125\123\061\025\060\023\006\003\125\004\012\023\014\104"
+"\151\147\151\103\145\162\164\040\111\156\143\061\031\060\027\006"
+"\003\125\004\013\023\020\167\167\167\056\144\151\147\151\143\145"
+"\162\164\056\143\157\155\061\044\060\042\006\003\125\004\003\023"
+"\033\104\151\147\151\103\145\162\164\040\101\163\163\165\162\145"
+"\144\040\111\104\040\122\157\157\164\040\103\101\060\202\001\042"
+"\060\015\006\011\052\206\110\206\367\015\001\001\001\005\000\003"
+"\202\001\017\000\060\202\001\012\002\202\001\001\000\255\016\025"
+"\316\344\103\200\134\261\207\363\267\140\371\161\022\245\256\334"
+"\046\224\210\252\364\316\365\040\071\050\130\140\014\370\200\332"
+"\251\025\225\062\141\074\265\261\050\204\212\212\334\237\012\014"
+"\203\027\172\217\220\254\212\347\171\123\134\061\204\052\366\017"
+"\230\062\066\166\314\336\335\074\250\242\357\152\373\041\362\122"
+"\141\337\237\040\327\037\342\261\331\376\030\144\322\022\133\137"
+"\371\130\030\065\274\107\315\241\066\371\153\177\324\260\070\076"
+"\301\033\303\214\063\331\330\057\030\376\050\017\263\247\203\326"
+"\303\156\104\300\141\065\226\026\376\131\234\213\166\155\327\361"
+"\242\113\015\053\377\013\162\332\236\140\320\216\220\065\306\170"
+"\125\207\040\241\317\345\155\012\310\111\174\061\230\063\154\042"
+"\351\207\320\062\132\242\272\023\202\021\355\071\027\235\231\072"
+"\162\241\346\372\244\331\325\027\061\165\256\205\175\042\256\077"
+"\001\106\206\366\050\171\310\261\332\344\127\027\304\176\034\016"
+"\260\264\222\246\126\263\275\262\227\355\252\247\360\267\305\250"
+"\077\225\026\320\377\241\226\353\010\137\030\167\117\002\003\001"
+"\000\001\243\143\060\141\060\016\006\003\125\035\017\001\001\377"
+"\004\004\003\002\001\206\060\017\006\003\125\035\023\001\001\377"
+"\004\005\060\003\001\001\377\060\035\006\003\125\035\016\004\026"
+"\004\024\105\353\242\257\364\222\313\202\061\055\121\213\247\247"
+"\041\235\363\155\310\017\060\037\006\003\125\035\043\004\030\060"
+"\026\200\024\105\353\242\257\364\222\313\202\061\055\121\213\247"
+"\247\041\235\363\155\310\017\060\015\006\011\052\206\110\206\367"
+"\015\001\001\005\005\000\003\202\001\001\000\242\016\274\337\342"
+"\355\360\343\162\163\172\144\224\277\367\162\146\330\062\344\102"
+"\165\142\256\207\353\362\325\331\336\126\263\237\314\316\024\050"
+"\271\015\227\140\134\022\114\130\344\323\075\203\111\105\130\227"
+"\065\151\032\250\107\352\126\306\171\253\022\330\147\201\204\337"
+"\177\011\074\224\346\270\046\054\040\275\075\263\050\211\367\137"
+"\377\042\342\227\204\037\351\145\357\207\340\337\301\147\111\263"
+"\135\353\262\011\052\353\046\355\170\276\175\077\053\363\267\046"
+"\065\155\137\211\001\266\111\133\237\001\005\233\253\075\045\301"
+"\314\266\177\302\361\157\206\306\372\144\150\353\201\055\224\353"
+"\102\267\372\214\036\335\142\361\276\120\147\267\154\275\363\361"
+"\037\153\014\066\007\026\177\067\174\251\133\155\172\361\022\106"
+"\140\203\327\047\004\276\113\316\227\276\303\147\052\150\021\337"
+"\200\347\014\063\146\277\023\015\024\156\363\177\037\143\020\036"
+"\372\215\033\045\155\154\217\245\267\141\001\261\322\243\046\241"
+"\020\161\235\255\342\303\371\303\231\121\267\053\007\010\316\056"
+"\346\120\262\247\372\012\105\057\242\360\362"
+, (PRUint32)955 }
+};
+static const NSSItem nss_builtins_items_217 [] = {
+  { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
+  { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)"DigiCert Assured ID Root CA", (PRUint32)28 },
+  { (void *)"\005\143\270\143\015\142\327\132\273\310\253\036\113\337\265\250"
+"\231\262\115\103"
+, (PRUint32)20 },
+  { (void *)"\207\316\013\173\052\016\111\000\341\130\161\233\067\250\223\162"
+, (PRUint32)16 },
+  { (void *)"\060\145\061\013\060\011\006\003\125\004\006\023\002\125\123\061"
+"\025\060\023\006\003\125\004\012\023\014\104\151\147\151\103\145"
+"\162\164\040\111\156\143\061\031\060\027\006\003\125\004\013\023"
+"\020\167\167\167\056\144\151\147\151\143\145\162\164\056\143\157"
+"\155\061\044\060\042\006\003\125\004\003\023\033\104\151\147\151"
+"\103\145\162\164\040\101\163\163\165\162\145\144\040\111\104\040"
+"\122\157\157\164\040\103\101"
+, (PRUint32)103 },
+  { (void *)"\002\020\014\347\340\345\027\330\106\376\217\345\140\374\033\360"
+"\060\071"
+, (PRUint32)18 },
+  { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trust_unknown, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
+};
+static const NSSItem nss_builtins_items_218 [] = {
+  { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
+  { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)"DigiCert Global Root CA", (PRUint32)24 },
+  { (void *)&ckc_x_509, (PRUint32)sizeof(CK_CERTIFICATE_TYPE) },
+  { (void *)"\060\141\061\013\060\011\006\003\125\004\006\023\002\125\123\061"
+"\025\060\023\006\003\125\004\012\023\014\104\151\147\151\103\145"
+"\162\164\040\111\156\143\061\031\060\027\006\003\125\004\013\023"
+"\020\167\167\167\056\144\151\147\151\143\145\162\164\056\143\157"
+"\155\061\040\060\036\006\003\125\004\003\023\027\104\151\147\151"
+"\103\145\162\164\040\107\154\157\142\141\154\040\122\157\157\164"
+"\040\103\101"
+, (PRUint32)99 },
+  { (void *)"0", (PRUint32)2 },
+  { (void *)"\060\141\061\013\060\011\006\003\125\004\006\023\002\125\123\061"
+"\025\060\023\006\003\125\004\012\023\014\104\151\147\151\103\145"
+"\162\164\040\111\156\143\061\031\060\027\006\003\125\004\013\023"
+"\020\167\167\167\056\144\151\147\151\143\145\162\164\056\143\157"
+"\155\061\040\060\036\006\003\125\004\003\023\027\104\151\147\151"
+"\103\145\162\164\040\107\154\157\142\141\154\040\122\157\157\164"
+"\040\103\101"
+, (PRUint32)99 },
+  { (void *)"\002\020\010\073\340\126\220\102\106\261\241\165\152\311\131\221"
+"\307\112"
+, (PRUint32)18 },
+  { (void *)"\060\202\003\257\060\202\002\227\240\003\002\001\002\002\020\010"
+"\073\340\126\220\102\106\261\241\165\152\311\131\221\307\112\060"
+"\015\006\011\052\206\110\206\367\015\001\001\005\005\000\060\141"
+"\061\013\060\011\006\003\125\004\006\023\002\125\123\061\025\060"
+"\023\006\003\125\004\012\023\014\104\151\147\151\103\145\162\164"
+"\040\111\156\143\061\031\060\027\006\003\125\004\013\023\020\167"
+"\167\167\056\144\151\147\151\143\145\162\164\056\143\157\155\061"
+"\040\060\036\006\003\125\004\003\023\027\104\151\147\151\103\145"
+"\162\164\040\107\154\157\142\141\154\040\122\157\157\164\040\103"
+"\101\060\036\027\015\060\066\061\061\061\060\060\060\060\060\060"
+"\060\132\027\015\063\061\061\061\061\060\060\060\060\060\060\060"
+"\132\060\141\061\013\060\011\006\003\125\004\006\023\002\125\123"
+"\061\025\060\023\006\003\125\004\012\023\014\104\151\147\151\103"
+"\145\162\164\040\111\156\143\061\031\060\027\006\003\125\004\013"
+"\023\020\167\167\167\056\144\151\147\151\143\145\162\164\056\143"
+"\157\155\061\040\060\036\006\003\125\004\003\023\027\104\151\147"
+"\151\103\145\162\164\040\107\154\157\142\141\154\040\122\157\157"
+"\164\040\103\101\060\202\001\042\060\015\006\011\052\206\110\206"
+"\367\015\001\001\001\005\000\003\202\001\017\000\060\202\001\012"
+"\002\202\001\001\000\342\073\341\021\162\336\250\244\323\243\127"
+"\252\120\242\217\013\167\220\311\242\245\356\022\316\226\133\001"
+"\011\040\314\001\223\247\116\060\267\123\367\103\304\151\000\127"
+"\235\342\215\042\335\207\006\100\000\201\011\316\316\033\203\277"
+"\337\315\073\161\106\342\326\146\307\005\263\166\047\026\217\173"
+"\236\036\225\175\356\267\110\243\010\332\326\257\172\014\071\006"
+"\145\177\112\135\037\274\027\370\253\276\356\050\327\164\177\172"
+"\170\231\131\205\150\156\134\043\062\113\277\116\300\350\132\155"
+"\343\160\277\167\020\277\374\001\366\205\331\250\104\020\130\062"
+"\251\165\030\325\321\242\276\107\342\047\152\364\232\063\370\111"
+"\010\140\213\324\137\264\072\204\277\241\252\112\114\175\076\317"
+"\117\137\154\166\136\240\113\067\221\236\334\042\346\155\316\024"
+"\032\216\152\313\376\315\263\024\144\027\307\133\051\236\062\277"
+"\362\356\372\323\013\102\324\253\267\101\062\332\014\324\357\370"
+"\201\325\273\215\130\077\265\033\350\111\050\242\160\332\061\004"
+"\335\367\262\026\362\114\012\116\007\250\355\112\075\136\265\177"
+"\243\220\303\257\047\002\003\001\000\001\243\143\060\141\060\016"
+"\006\003\125\035\017\001\001\377\004\004\003\002\001\206\060\017"
+"\006\003\125\035\023\001\001\377\004\005\060\003\001\001\377\060"
+"\035\006\003\125\035\016\004\026\004\024\003\336\120\065\126\321"
+"\114\273\146\360\243\342\033\033\303\227\262\075\321\125\060\037"
+"\006\003\125\035\043\004\030\060\026\200\024\003\336\120\065\126"
+"\321\114\273\146\360\243\342\033\033\303\227\262\075\321\125\060"
+"\015\006\011\052\206\110\206\367\015\001\001\005\005\000\003\202"
+"\001\001\000\313\234\067\252\110\023\022\012\372\335\104\234\117"
+"\122\260\364\337\256\004\365\171\171\010\243\044\030\374\113\053"
+"\204\300\055\271\325\307\376\364\301\037\130\313\270\155\234\172"
+"\164\347\230\051\253\021\265\343\160\240\241\315\114\210\231\223"
+"\214\221\160\342\253\017\034\276\223\251\377\143\325\344\007\140"
+"\323\243\277\235\133\011\361\325\216\343\123\364\216\143\372\077"
+"\247\333\264\146\337\142\146\326\321\156\101\215\362\055\265\352"
+"\167\112\237\235\130\342\053\131\300\100\043\355\055\050\202\105"
+"\076\171\124\222\046\230\340\200\110\250\067\357\360\326\171\140"
+"\026\336\254\350\016\315\156\254\104\027\070\057\111\332\341\105"
+"\076\052\271\066\123\317\072\120\006\367\056\350\304\127\111\154"
+"\141\041\030\325\004\255\170\074\054\072\200\153\247\353\257\025"
+"\024\351\330\211\301\271\070\154\342\221\154\212\377\144\271\167"
+"\045\127\060\300\033\044\243\341\334\351\337\107\174\265\264\044"
+"\010\005\060\354\055\275\013\277\105\277\120\271\251\363\353\230"
+"\001\022\255\310\210\306\230\064\137\215\012\074\306\351\325\225"
+"\225\155\336"
+, (PRUint32)947 }
+};
+static const NSSItem nss_builtins_items_219 [] = {
+  { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
+  { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)"DigiCert Global Root CA", (PRUint32)24 },
+  { (void *)"\250\230\135\072\145\345\345\304\262\327\326\155\100\306\335\057"
+"\261\234\124\066"
+, (PRUint32)20 },
+  { (void *)"\171\344\251\204\015\175\072\226\327\300\117\342\103\114\211\056"
+, (PRUint32)16 },
+  { (void *)"\060\141\061\013\060\011\006\003\125\004\006\023\002\125\123\061"
+"\025\060\023\006\003\125\004\012\023\014\104\151\147\151\103\145"
+"\162\164\040\111\156\143\061\031\060\027\006\003\125\004\013\023"
+"\020\167\167\167\056\144\151\147\151\143\145\162\164\056\143\157"
+"\155\061\040\060\036\006\003\125\004\003\023\027\104\151\147\151"
+"\103\145\162\164\040\107\154\157\142\141\154\040\122\157\157\164"
+"\040\103\101"
+, (PRUint32)99 },
+  { (void *)"\002\020\010\073\340\126\220\102\106\261\241\165\152\311\131\221"
+"\307\112"
+, (PRUint32)18 },
+  { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trust_unknown, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
+};
+static const NSSItem nss_builtins_items_220 [] = {
+  { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
+  { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)"DigiCert High Assurance EV Root CA", (PRUint32)35 },
+  { (void *)&ckc_x_509, (PRUint32)sizeof(CK_CERTIFICATE_TYPE) },
+  { (void *)"\060\154\061\013\060\011\006\003\125\004\006\023\002\125\123\061"
+"\025\060\023\006\003\125\004\012\023\014\104\151\147\151\103\145"
+"\162\164\040\111\156\143\061\031\060\027\006\003\125\004\013\023"
+"\020\167\167\167\056\144\151\147\151\143\145\162\164\056\143\157"
+"\155\061\053\060\051\006\003\125\004\003\023\042\104\151\147\151"
+"\103\145\162\164\040\110\151\147\150\040\101\163\163\165\162\141"
+"\156\143\145\040\105\126\040\122\157\157\164\040\103\101"
+, (PRUint32)110 },
+  { (void *)"0", (PRUint32)2 },
+  { (void *)"\060\154\061\013\060\011\006\003\125\004\006\023\002\125\123\061"
+"\025\060\023\006\003\125\004\012\023\014\104\151\147\151\103\145"
+"\162\164\040\111\156\143\061\031\060\027\006\003\125\004\013\023"
+"\020\167\167\167\056\144\151\147\151\143\145\162\164\056\143\157"
+"\155\061\053\060\051\006\003\125\004\003\023\042\104\151\147\151"
+"\103\145\162\164\040\110\151\147\150\040\101\163\163\165\162\141"
+"\156\143\145\040\105\126\040\122\157\157\164\040\103\101"
+, (PRUint32)110 },
+  { (void *)"\002\020\002\254\134\046\152\013\100\233\217\013\171\362\256\106"
+"\045\167"
+, (PRUint32)18 },
+  { (void *)"\060\202\003\305\060\202\002\255\240\003\002\001\002\002\020\002"
+"\254\134\046\152\013\100\233\217\013\171\362\256\106\045\167\060"
+"\015\006\011\052\206\110\206\367\015\001\001\005\005\000\060\154"
+"\061\013\060\011\006\003\125\004\006\023\002\125\123\061\025\060"
+"\023\006\003\125\004\012\023\014\104\151\147\151\103\145\162\164"
+"\040\111\156\143\061\031\060\027\006\003\125\004\013\023\020\167"
+"\167\167\056\144\151\147\151\143\145\162\164\056\143\157\155\061"
+"\053\060\051\006\003\125\004\003\023\042\104\151\147\151\103\145"
+"\162\164\040\110\151\147\150\040\101\163\163\165\162\141\156\143"
+"\145\040\105\126\040\122\157\157\164\040\103\101\060\036\027\015"
+"\060\066\061\061\061\060\060\060\060\060\060\060\132\027\015\063"
+"\061\061\061\061\060\060\060\060\060\060\060\132\060\154\061\013"
+"\060\011\006\003\125\004\006\023\002\125\123\061\025\060\023\006"
+"\003\125\004\012\023\014\104\151\147\151\103\145\162\164\040\111"
+"\156\143\061\031\060\027\006\003\125\004\013\023\020\167\167\167"
+"\056\144\151\147\151\143\145\162\164\056\143\157\155\061\053\060"
+"\051\006\003\125\004\003\023\042\104\151\147\151\103\145\162\164"
+"\040\110\151\147\150\040\101\163\163\165\162\141\156\143\145\040"
+"\105\126\040\122\157\157\164\040\103\101\060\202\001\042\060\015"
+"\006\011\052\206\110\206\367\015\001\001\001\005\000\003\202\001"
+"\017\000\060\202\001\012\002\202\001\001\000\306\314\345\163\346"
+"\373\324\273\345\055\055\062\246\337\345\201\077\311\315\045\111"
+"\266\161\052\303\325\224\064\147\242\012\034\260\137\151\246\100"
+"\261\304\267\262\217\320\230\244\251\101\131\072\323\334\224\326"
+"\074\333\164\070\244\112\314\115\045\202\367\112\245\123\022\070"
+"\356\363\111\155\161\221\176\143\266\253\246\137\303\244\204\370"
+"\117\142\121\276\370\305\354\333\070\222\343\006\345\010\221\014"
+"\304\050\101\125\373\313\132\211\025\176\161\350\065\277\115\162"
+"\011\075\276\072\070\120\133\167\061\033\215\263\307\044\105\232"
+"\247\254\155\000\024\132\004\267\272\023\353\121\012\230\101\101"
+"\042\116\145\141\207\201\101\120\246\171\134\211\336\031\112\127"
+"\325\056\346\135\034\123\054\176\230\315\032\006\026\244\150\163"
+"\320\064\004\023\134\241\161\323\132\174\125\333\136\144\341\067"
+"\207\060\126\004\345\021\264\051\200\022\361\171\071\210\242\002"
+"\021\174\047\146\267\210\267\170\362\312\012\250\070\253\012\144"
+"\302\277\146\135\225\204\301\241\045\036\207\135\032\120\013\040"
+"\022\314\101\273\156\013\121\070\270\113\313\002\003\001\000\001"
+"\243\143\060\141\060\016\006\003\125\035\017\001\001\377\004\004"
+"\003\002\001\206\060\017\006\003\125\035\023\001\001\377\004\005"
+"\060\003\001\001\377\060\035\006\003\125\035\016\004\026\004\024"
+"\261\076\303\151\003\370\277\107\001\324\230\046\032\010\002\357"
+"\143\144\053\303\060\037\006\003\125\035\043\004\030\060\026\200"
+"\024\261\076\303\151\003\370\277\107\001\324\230\046\032\010\002"
+"\357\143\144\053\303\060\015\006\011\052\206\110\206\367\015\001"
+"\001\005\005\000\003\202\001\001\000\034\032\006\227\334\327\234"
+"\237\074\210\146\006\010\127\041\333\041\107\370\052\147\252\277"
+"\030\062\166\100\020\127\301\212\363\172\331\021\145\216\065\372"
+"\236\374\105\265\236\331\114\061\113\270\221\350\103\054\216\263"
+"\170\316\333\343\123\171\161\326\345\041\224\001\332\125\207\232"
+"\044\144\366\212\146\314\336\234\067\315\250\064\261\151\233\043"
+"\310\236\170\042\053\160\103\343\125\107\061\141\031\357\130\305"
+"\205\057\116\060\366\240\061\026\043\310\347\342\145\026\063\313"
+"\277\032\033\240\075\370\312\136\213\061\213\140\010\211\055\014"
+"\006\134\122\267\304\371\012\230\321\025\137\237\022\276\174\066"
+"\143\070\275\104\244\177\344\046\053\012\304\227\151\015\351\214"
+"\342\300\020\127\270\310\166\022\221\125\362\110\151\330\274\052"
+"\002\133\017\104\324\040\061\333\364\272\160\046\135\220\140\236"
+"\274\113\027\011\057\264\313\036\103\150\311\007\047\301\322\134"
+"\367\352\041\271\150\022\234\074\234\277\236\374\200\134\233\143"
+"\315\354\107\252\045\047\147\240\067\363\000\202\175\124\327\251"
+"\370\351\056\023\243\167\350\037\112"
+, (PRUint32)969 }
+};
+static const NSSItem nss_builtins_items_221 [] = {
+  { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
+  { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)"DigiCert High Assurance EV Root CA", (PRUint32)35 },
+  { (void *)"\137\267\356\006\063\342\131\333\255\014\114\232\346\323\217\032"
+"\141\307\334\045"
+, (PRUint32)20 },
+  { (void *)"\324\164\336\127\134\071\262\323\234\205\203\305\300\145\111\212"
+, (PRUint32)16 },
+  { (void *)"\060\154\061\013\060\011\006\003\125\004\006\023\002\125\123\061"
+"\025\060\023\006\003\125\004\012\023\014\104\151\147\151\103\145"
+"\162\164\040\111\156\143\061\031\060\027\006\003\125\004\013\023"
+"\020\167\167\167\056\144\151\147\151\143\145\162\164\056\143\157"
+"\155\061\053\060\051\006\003\125\004\003\023\042\104\151\147\151"
+"\103\145\162\164\040\110\151\147\150\040\101\163\163\165\162\141"
+"\156\143\145\040\105\126\040\122\157\157\164\040\103\101"
+, (PRUint32)110 },
+  { (void *)"\002\020\002\254\134\046\152\013\100\233\217\013\171\362\256\106"
+"\045\167"
+, (PRUint32)18 },
+  { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trust_unknown, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
+};
+static const NSSItem nss_builtins_items_222 [] = {
+  { (void *)&cko_certificate, (PRUint32)sizeof(CK_OBJECT_CLASS) },
+  { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)"Certplus Class 2 Primary CA", (PRUint32)28 },
+  { (void *)&ckc_x_509, (PRUint32)sizeof(CK_CERTIFICATE_TYPE) },
+  { (void *)"\060\075\061\013\060\011\006\003\125\004\006\023\002\106\122\061"
+"\021\060\017\006\003\125\004\012\023\010\103\145\162\164\160\154"
+"\165\163\061\033\060\031\006\003\125\004\003\023\022\103\154\141"
+"\163\163\040\062\040\120\162\151\155\141\162\171\040\103\101"
+, (PRUint32)63 },
+  { (void *)"0", (PRUint32)2 },
+  { (void *)"\060\075\061\013\060\011\006\003\125\004\006\023\002\106\122\061"
+"\021\060\017\006\003\125\004\012\023\010\103\145\162\164\160\154"
+"\165\163\061\033\060\031\006\003\125\004\003\023\022\103\154\141"
+"\163\163\040\062\040\120\162\151\155\141\162\171\040\103\101"
+, (PRUint32)63 },
+  { (void *)"\002\021\000\205\275\113\363\330\332\343\151\366\224\327\137\303"
+"\245\104\043"
+, (PRUint32)19 },
+  { (void *)"\060\202\003\222\060\202\002\172\240\003\002\001\002\002\021\000"
+"\205\275\113\363\330\332\343\151\366\224\327\137\303\245\104\043"
+"\060\015\006\011\052\206\110\206\367\015\001\001\005\005\000\060"
+"\075\061\013\060\011\006\003\125\004\006\023\002\106\122\061\021"
+"\060\017\006\003\125\004\012\023\010\103\145\162\164\160\154\165"
+"\163\061\033\060\031\006\003\125\004\003\023\022\103\154\141\163"
+"\163\040\062\040\120\162\151\155\141\162\171\040\103\101\060\036"
+"\027\015\071\071\060\067\060\067\061\067\060\065\060\060\132\027"
+"\015\061\071\060\067\060\066\062\063\065\071\065\071\132\060\075"
+"\061\013\060\011\006\003\125\004\006\023\002\106\122\061\021\060"
+"\017\006\003\125\004\012\023\010\103\145\162\164\160\154\165\163"
+"\061\033\060\031\006\003\125\004\003\023\022\103\154\141\163\163"
+"\040\062\040\120\162\151\155\141\162\171\040\103\101\060\202\001"
+"\042\060\015\006\011\052\206\110\206\367\015\001\001\001\005\000"
+"\003\202\001\017\000\060\202\001\012\002\202\001\001\000\334\120"
+"\226\320\022\370\065\322\010\170\172\266\122\160\375\157\356\317"
+"\271\021\313\135\167\341\354\351\176\004\215\326\314\157\163\103"
+"\127\140\254\063\012\104\354\003\137\034\200\044\221\345\250\221"
+"\126\022\202\367\340\053\364\333\256\141\056\211\020\215\153\154"
+"\272\263\002\275\325\066\305\110\067\043\342\360\132\067\122\063"
+"\027\022\342\321\140\115\276\057\101\021\343\366\027\045\014\213"
+"\221\300\033\231\173\231\126\015\257\356\322\274\107\127\343\171"
+"\111\173\064\211\047\044\204\336\261\354\351\130\116\376\116\337"
+"\132\276\101\255\254\010\305\030\016\357\322\123\356\154\320\235"
+"\022\001\023\215\334\200\142\367\225\251\104\210\112\161\116\140"
+"\125\236\333\043\031\171\126\007\014\077\143\013\134\260\342\276"
+"\176\025\374\224\063\130\101\070\164\304\341\217\213\337\046\254"
+"\037\265\213\073\267\103\131\153\260\044\246\155\220\213\304\162"
+"\352\135\063\230\267\313\336\136\173\357\224\361\033\076\312\311"
+"\041\301\305\230\002\252\242\366\133\167\233\365\176\226\125\064"
+"\034\147\151\300\361\102\343\107\254\374\050\034\146\125\002\003"
+"\001\000\001\243\201\214\060\201\211\060\017\006\003\125\035\023"
+"\004\010\060\006\001\001\377\002\001\012\060\013\006\003\125\035"
+"\017\004\004\003\002\001\006\060\035\006\003\125\035\016\004\026"
+"\004\024\343\163\055\337\313\016\050\014\336\335\263\244\312\171"
+"\270\216\273\350\060\211\060\021\006\011\140\206\110\001\206\370"
+"\102\001\001\004\004\003\002\001\006\060\067\006\003\125\035\037"
+"\004\060\060\056\060\054\240\052\240\050\206\046\150\164\164\160"
+"\072\057\057\167\167\167\056\143\145\162\164\160\154\165\163\056"
+"\143\157\155\057\103\122\114\057\143\154\141\163\163\062\056\143"
+"\162\154\060\015\006\011\052\206\110\206\367\015\001\001\005\005"
+"\000\003\202\001\001\000\247\124\317\210\104\031\313\337\324\177"
+"\000\337\126\063\142\265\367\121\001\220\353\303\077\321\210\104"
+"\351\044\135\357\347\024\275\040\267\232\074\000\376\155\237\333"
+"\220\334\327\364\142\326\213\160\135\347\345\004\110\251\150\174"
+"\311\361\102\363\154\177\305\172\174\035\121\210\272\322\012\076"
+"\047\135\336\055\121\116\323\023\144\151\344\056\343\323\347\233"
+"\011\231\246\340\225\233\316\032\327\177\276\074\316\122\263\021"
+"\025\301\017\027\315\003\273\234\045\025\272\242\166\211\374\006"
+"\361\030\320\223\113\016\174\202\267\245\364\366\137\376\355\100"
+"\246\235\204\164\071\271\334\036\205\026\332\051\033\206\043\000"
+"\311\273\211\176\156\200\210\036\057\024\264\003\044\250\062\157"
+"\003\232\107\054\060\276\126\306\247\102\002\160\033\352\100\330"
+"\272\005\003\160\007\244\226\377\375\110\063\012\341\334\245\201"
+"\220\233\115\335\175\347\347\262\315\134\310\152\225\370\245\366"
+"\215\304\135\170\010\276\173\006\326\111\317\031\066\120\043\056"
+"\010\346\236\005\115\107\030\325\026\351\261\326\266\020\325\273"
+"\227\277\242\216\264\124"
+, (PRUint32)918 }
+};
+static const NSSItem nss_builtins_items_223 [] = {
+  { (void *)&cko_netscape_trust, (PRUint32)sizeof(CK_OBJECT_CLASS) },
+  { (void *)&ck_true, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) },
+  { (void *)"Certplus Class 2 Primary CA", (PRUint32)28 },
+  { (void *)"\164\040\164\101\162\234\335\222\354\171\061\330\043\020\215\302"
+"\201\222\342\273"
+, (PRUint32)20 },
+  { (void *)"\210\054\214\122\270\242\074\363\367\273\003\352\256\254\102\013"
+, (PRUint32)16 },
+  { (void *)"\060\075\061\013\060\011\006\003\125\004\006\023\002\106\122\061"
+"\021\060\017\006\003\125\004\012\023\010\103\145\162\164\160\154"
+"\165\163\061\033\060\031\006\003\125\004\003\023\022\103\154\141"
+"\163\163\040\062\040\120\162\151\155\141\162\171\040\103\101"
+, (PRUint32)63 },
+  { (void *)"\002\021\000\205\275\113\363\330\332\343\151\366\224\327\137\303"
+"\245\104\043"
+, (PRUint32)19 },
+  { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trusted_delegator, (PRUint32)sizeof(CK_TRUST) },
+  { (void *)&ckt_netscape_trust_unknown, (PRUint32)sizeof(CK_TRUST) },
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
 
@@ -12740,13 +15133,13 @@ nss_builtins_data[] = {
   { 11, nss_builtins_types_64, nss_builtins_items_64, {NULL} },
   { 13, nss_builtins_types_65, nss_builtins_items_65, {NULL} },
   { 11, nss_builtins_types_66, nss_builtins_items_66, {NULL} },
-  { 12, nss_builtins_types_67, nss_builtins_items_67, {NULL} },
+  { 13, nss_builtins_types_67, nss_builtins_items_67, {NULL} },
   { 11, nss_builtins_types_68, nss_builtins_items_68, {NULL} },
   { 13, nss_builtins_types_69, nss_builtins_items_69, {NULL} },
   { 11, nss_builtins_types_70, nss_builtins_items_70, {NULL} },
   { 13, nss_builtins_types_71, nss_builtins_items_71, {NULL} },
   { 11, nss_builtins_types_72, nss_builtins_items_72, {NULL} },
-  { 12, nss_builtins_types_73, nss_builtins_items_73, {NULL} },
+  { 13, nss_builtins_types_73, nss_builtins_items_73, {NULL} },
   { 11, nss_builtins_types_74, nss_builtins_items_74, {NULL} },
   { 13, nss_builtins_types_75, nss_builtins_items_75, {NULL} },
   { 11, nss_builtins_types_76, nss_builtins_items_76, {NULL} },
@@ -12756,7 +15149,7 @@ nss_builtins_data[] = {
   { 11, nss_builtins_types_80, nss_builtins_items_80, {NULL} },
   { 13, nss_builtins_types_81, nss_builtins_items_81, {NULL} },
   { 11, nss_builtins_types_82, nss_builtins_items_82, {NULL} },
-  { 12, nss_builtins_types_83, nss_builtins_items_83, {NULL} },
+  { 13, nss_builtins_types_83, nss_builtins_items_83, {NULL} },
   { 11, nss_builtins_types_84, nss_builtins_items_84, {NULL} },
   { 13, nss_builtins_types_85, nss_builtins_items_85, {NULL} },
   { 11, nss_builtins_types_86, nss_builtins_items_86, {NULL} },
@@ -12862,11 +15255,45 @@ nss_builtins_data[] = {
   { 11, nss_builtins_types_186, nss_builtins_items_186, {NULL} },
   { 13, nss_builtins_types_187, nss_builtins_items_187, {NULL} },
   { 11, nss_builtins_types_188, nss_builtins_items_188, {NULL} },
-  { 13, nss_builtins_types_189, nss_builtins_items_189, {NULL} }
+  { 13, nss_builtins_types_189, nss_builtins_items_189, {NULL} },
+  { 11, nss_builtins_types_190, nss_builtins_items_190, {NULL} },
+  { 13, nss_builtins_types_191, nss_builtins_items_191, {NULL} },
+  { 11, nss_builtins_types_192, nss_builtins_items_192, {NULL} },
+  { 13, nss_builtins_types_193, nss_builtins_items_193, {NULL} },
+  { 11, nss_builtins_types_194, nss_builtins_items_194, {NULL} },
+  { 13, nss_builtins_types_195, nss_builtins_items_195, {NULL} },
+  { 11, nss_builtins_types_196, nss_builtins_items_196, {NULL} },
+  { 13, nss_builtins_types_197, nss_builtins_items_197, {NULL} },
+  { 11, nss_builtins_types_198, nss_builtins_items_198, {NULL} },
+  { 13, nss_builtins_types_199, nss_builtins_items_199, {NULL} },
+  { 11, nss_builtins_types_200, nss_builtins_items_200, {NULL} },
+  { 13, nss_builtins_types_201, nss_builtins_items_201, {NULL} },
+  { 11, nss_builtins_types_202, nss_builtins_items_202, {NULL} },
+  { 13, nss_builtins_types_203, nss_builtins_items_203, {NULL} },
+  { 11, nss_builtins_types_204, nss_builtins_items_204, {NULL} },
+  { 13, nss_builtins_types_205, nss_builtins_items_205, {NULL} },
+  { 11, nss_builtins_types_206, nss_builtins_items_206, {NULL} },
+  { 13, nss_builtins_types_207, nss_builtins_items_207, {NULL} },
+  { 11, nss_builtins_types_208, nss_builtins_items_208, {NULL} },
+  { 13, nss_builtins_types_209, nss_builtins_items_209, {NULL} },
+  { 11, nss_builtins_types_210, nss_builtins_items_210, {NULL} },
+  { 13, nss_builtins_types_211, nss_builtins_items_211, {NULL} },
+  { 11, nss_builtins_types_212, nss_builtins_items_212, {NULL} },
+  { 13, nss_builtins_types_213, nss_builtins_items_213, {NULL} },
+  { 11, nss_builtins_types_214, nss_builtins_items_214, {NULL} },
+  { 13, nss_builtins_types_215, nss_builtins_items_215, {NULL} },
+  { 11, nss_builtins_types_216, nss_builtins_items_216, {NULL} },
+  { 13, nss_builtins_types_217, nss_builtins_items_217, {NULL} },
+  { 11, nss_builtins_types_218, nss_builtins_items_218, {NULL} },
+  { 13, nss_builtins_types_219, nss_builtins_items_219, {NULL} },
+  { 11, nss_builtins_types_220, nss_builtins_items_220, {NULL} },
+  { 13, nss_builtins_types_221, nss_builtins_items_221, {NULL} },
+  { 11, nss_builtins_types_222, nss_builtins_items_222, {NULL} },
+  { 13, nss_builtins_types_223, nss_builtins_items_223, {NULL} }
 };
 PR_IMPLEMENT_DATA(const PRUint32)
 #ifdef DEBUG
-  nss_builtins_nObjects = 189+1;
+  nss_builtins_nObjects = 223+1;
 #else
-  nss_builtins_nObjects = 189;
+  nss_builtins_nObjects = 223;
 #endif /* DEBUG */

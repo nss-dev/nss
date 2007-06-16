@@ -68,6 +68,59 @@
 #include <stdarg.h>
 
 
+static struct OCSPGlobalStruct {
+    PRLock *lock;
+    const SEC_HttpClientFcn *defaultHttpClientFcn;
+} OCSP_Global = { NULL, NULL };
+
+SECStatus
+SEC_RegisterDefaultHttpClient(const SEC_HttpClientFcn *fcnTable)
+{
+    if (!OCSP_Global.lock) {
+      PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+      return SECFailure;
+    }
+    
+    PR_Lock(OCSP_Global.lock);
+    OCSP_Global.defaultHttpClientFcn = fcnTable;
+    PR_Unlock(OCSP_Global.lock);
+    
+    return SECSuccess;
+}
+
+/* this function is called at NSS initialization time */
+SECStatus InitOCSPGlobal(void)
+{
+  if (OCSP_Global.lock != NULL) {
+    /* already initialized */
+    return SECSuccess;
+  }
+  
+  OCSP_Global.lock = PR_NewLock();
+  
+  return (OCSP_Global.lock) ? SECSuccess : SECFailure;
+}
+
+/*
+ * A return value of NULL means: 
+ *   The application did not register it's own HTTP client.
+ */
+static const SEC_HttpClientFcn *GetRegisteredHttpClient()
+{
+    const SEC_HttpClientFcn *retval;
+
+    if (!OCSP_Global.lock) {
+      PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+      return NULL;
+    }
+
+    PR_Lock(OCSP_Global.lock);
+    retval = OCSP_Global.defaultHttpClientFcn;
+    PR_Unlock(OCSP_Global.lock);
+    
+    return retval;
+}
+
 /*
  * The following structure is only used internally.  It is allocated when
  * someone turns on OCSP checking, and hangs off of the status-configuration
@@ -801,6 +854,7 @@ ocsp_AddServiceLocatorExtension(ocspSingleRequest *singleRequest,
 
     /* prepare for following loser gotos */
     rv = SECFailure;
+    PORT_SetError(0);
 
     extensionHandle = cert_StartExtensions(singleRequest,
                        singleRequest->arena, SetSingleReqExts);
@@ -1702,6 +1756,8 @@ ocsp_ParseURL(char *url, char **pHostname, PRUint16 *pPort, char **pPath)
 	path[len] = '\0';
     } else {
 	path = PORT_Strdup("/");
+	if (path == NULL)
+	    goto loser;
     }
 
     *pHostname = hostname;
@@ -1712,8 +1768,6 @@ ocsp_ParseURL(char *url, char **pHostname, PRUint16 *pPort, char **pPath)
 loser:
     if (hostname != NULL)
 	PORT_Free(hostname);
-    if (path != NULL)
-	PORT_Free(path);
     PORT_SetError(SEC_ERROR_CERT_BAD_ACCESS_LOCATION);
     return SECFailure;
 }
@@ -2133,6 +2187,110 @@ ocsp_GetEncodedResponse(PRArenaPool *arena, PRFileDesc *sock)
     return result;
 }
 
+/*
+ * Limit the size of http responses we are willing to accept.
+ */
+#define MAX_WANTED_OCSP_RESPONSE_LEN 64*1024
+
+static SECItem *
+fetchOcspHttpClientV1(PRArenaPool *arena, 
+                      const SEC_HttpClientFcnV1 *hcv1, 
+                      char *location, 
+                      SECItem *encodedRequest)
+{
+    char *hostname = NULL;
+    char *path = NULL;
+    PRUint16 port;
+    SECItem *encodedResponse = NULL;
+    SEC_HTTP_SERVER_SESSION pServerSession = NULL;
+    SEC_HTTP_REQUEST_SESSION pRequestSession = NULL;
+    PRUint16 myHttpResponseCode;
+    const char *myHttpResponseData;
+    PRUint32 myHttpResponseDataLen;
+
+    if (ocsp_ParseURL(location, &hostname, &port, &path) == SECFailure) {
+        PORT_SetError(SEC_ERROR_OCSP_MALFORMED_REQUEST);
+        goto loser;
+    }
+    
+    PORT_Assert(hostname != NULL);
+    PORT_Assert(path != NULL);
+
+    if ((*hcv1->createSessionFcn)(
+            hostname, 
+            port, 
+            &pServerSession) != SECSuccess) {
+        PORT_SetError(SEC_ERROR_OCSP_SERVER_ERROR);
+        goto loser;
+    }
+
+    /* We use a non-zero timeout, which means:
+       - the client will use blocking I/O
+       - TryFcn will not return WOULD_BLOCK nor a poll descriptor
+       - it's sufficient to call TryFcn once
+    */
+
+    if ((*hcv1->createFcn)(
+            pServerSession,
+            "http",
+            path,
+            "POST",
+            PR_TicksPerSecond() * 60,
+            &pRequestSession) != SECSuccess) {
+        PORT_SetError(SEC_ERROR_OCSP_SERVER_ERROR);
+        goto loser;
+    }
+
+    if ((*hcv1->setPostDataFcn)(
+            pRequestSession, 
+            (char*)encodedRequest->data,
+            encodedRequest->len,
+            "application/ocsp-request") != SECSuccess) {
+        PORT_SetError(SEC_ERROR_OCSP_SERVER_ERROR);
+        goto loser;
+    }
+
+    /* we don't want result objects larger than this: */
+    myHttpResponseDataLen = MAX_WANTED_OCSP_RESPONSE_LEN;
+
+    if ((*hcv1->trySendAndReceiveFcn)(
+            pRequestSession, 
+            NULL,
+            &myHttpResponseCode,
+            NULL,
+            NULL,
+            &myHttpResponseData,
+            &myHttpResponseDataLen) != SECSuccess) {
+        PORT_SetError(SEC_ERROR_OCSP_SERVER_ERROR);
+        goto loser;
+    }
+
+    if (myHttpResponseCode != 200) {
+        PORT_SetError(SEC_ERROR_OCSP_BAD_HTTP_RESPONSE);
+        goto loser;
+    }
+
+    encodedResponse = SECITEM_AllocItem(arena, NULL, myHttpResponseDataLen);
+
+    if (!encodedResponse) {
+        PORT_SetError(SEC_ERROR_NO_MEMORY);
+        goto loser;
+    }
+
+    PORT_Memcpy(encodedResponse->data, myHttpResponseData, myHttpResponseDataLen);
+
+loser:
+    if (pRequestSession != NULL) 
+        (*hcv1->freeFcn)(pRequestSession);
+    if (pServerSession != NULL)
+        (*hcv1->freeSessionFcn)(pServerSession);
+    if (path != NULL)
+	PORT_Free(path);
+    if (hostname != NULL)
+	PORT_Free(hostname);
+    
+    return encodedResponse;
+}
 
 /*
  * FUNCTION: CERT_GetEncodedOCSPResponse
@@ -2192,6 +2350,7 @@ CERT_GetEncodedOCSPResponse(PRArenaPool *arena, CERTCertList *certList,
     SECItem *encodedResponse = NULL;
     PRFileDesc *sock = NULL;
     SECStatus rv;
+    const SEC_HttpClientFcn *registeredHttpClient = NULL;
 
     request = CERT_CreateOCSPRequest(certList, time, addServiceLocator,
 				     signerCert);
@@ -2207,11 +2366,27 @@ CERT_GetEncodedOCSPResponse(PRArenaPool *arena, CERTCertList *certList,
     if (encodedRequest == NULL)
 	goto loser;
 
-    sock = ocsp_SendEncodedRequest(location, encodedRequest);
-    if (sock == NULL)
-	goto loser;
+    registeredHttpClient = GetRegisteredHttpClient();
 
-    encodedResponse = ocsp_GetEncodedResponse(arena, sock);
+    if (registeredHttpClient
+            &&
+            registeredHttpClient->version == 1) {
+        encodedResponse = fetchOcspHttpClientV1(
+                              arena,
+                              &registeredHttpClient->fcnTable.ftable1,
+                              location,
+                              encodedRequest);
+    }
+    else {
+      /* use internal http client */
+    
+      sock = ocsp_SendEncodedRequest(location, encodedRequest);
+      if (sock == NULL)
+	  goto loser;
+
+      encodedResponse = ocsp_GetEncodedResponse(arena, sock);
+    }
+
     if (encodedResponse != NULL && pRequest != NULL) {
 	*pRequest = request;
 	request = NULL;			/* avoid destroying below */
@@ -2268,6 +2443,7 @@ ocsp_CertIsOCSPSigner(CERTCertificate *cert)
 
 loser:
     retval = PR_FALSE;
+    PORT_SetError(SEC_ERROR_OCSP_INVALID_SIGNING_CERT);
     goto done;
 success:
     retval = PR_TRUE;
@@ -2453,7 +2629,7 @@ ocsp_CheckSignature(ocspSignature *signature, void *tbs,
 	rv = SECFailure;
 	if (PORT_GetError() == SEC_ERROR_UNKNOWN_CERT) {
 	    /* Make the error a little more specific. */
-	    PORT_SetError(SEC_ERROR_UNKNOWN_SIGNER);
+	    PORT_SetError(SEC_ERROR_OCSP_INVALID_SIGNING_CERT);
 	}
 	goto finish;
     }
@@ -2504,10 +2680,9 @@ ocsp_CheckSignature(ocspSignature *signature, void *tbs,
      */
     DER_ConvertBitString(&rawSignature);
 
-    rv = VFY_VerifyData(encodedTBS->data, encodedTBS->len, signerKey,
-			&rawSignature,
-			SECOID_GetAlgorithmTag(&signature->signatureAlgorithm),
-			pwArg);
+    rv = VFY_VerifyDataWithAlgorithmID(encodedTBS->data, encodedTBS->len, 
+			signerKey, &rawSignature,
+			&signature->signatureAlgorithm, NULL, pwArg);
 
 finish:
     if (signature->wasChecked)
@@ -2622,15 +2797,16 @@ CERT_VerifyOCSPResponseSignature(CERTOCSPResponse *response,
 }
 
 /*
- * See if two certIDs match.  This can be easy or difficult, depending
- * on whether the same hash algorithm was used.
+ * See if the request's certID and the single response's certID match.
+ * This can be easy or difficult, depending on whether the same hash
+ * algorithm was used.
  */
 static PRBool
 ocsp_CertIDsMatch(CERTCertDBHandle *handle,
-		  CERTOCSPCertID *certID1, CERTOCSPCertID *certID2)
+		  CERTOCSPCertID *requestCertID,
+		  CERTOCSPCertID *responseCertID)
 {
     PRBool match = PR_FALSE;
-    SECItem *foundHash = NULL;
     SECOidTag hashAlg;
     SECItem *keyHash = NULL;
     SECItem *nameHash = NULL;
@@ -2641,52 +2817,54 @@ ocsp_CertIDsMatch(CERTCertDBHandle *handle,
      *
      * We just compare the easier things first.
      */
-    if (SECITEM_CompareItem(&certID1->serialNumber,
-			    &certID2->serialNumber) != SECEqual) {
+    if (SECITEM_CompareItem(&requestCertID->serialNumber,
+			    &responseCertID->serialNumber) != SECEqual) {
 	goto done;
     }
 
-    if (SECOID_CompareAlgorithmID(&certID1->hashAlgorithm,
-				  &certID2->hashAlgorithm) == SECEqual) {
+    /*
+     * Make sure the "parameters" are not too bogus.  Since we encoded
+     * requestCertID->hashAlgorithm, we don't need to check it.
+     */
+    if (responseCertID->hashAlgorithm.parameters.len > 2) {
+	goto done;
+    }
+    if (SECITEM_CompareItem(&requestCertID->hashAlgorithm.algorithm,
+		&responseCertID->hashAlgorithm.algorithm) == SECEqual) {
 	/*
 	 * If the hash algorithms match then we can do a simple compare
 	 * of the hash values themselves.
 	 */
-	if ((SECITEM_CompareItem(&certID1->issuerNameHash,
-				 &certID2->issuerNameHash) == SECEqual)
-	    && (SECITEM_CompareItem(&certID1->issuerKeyHash,
-				    &certID2->issuerKeyHash) == SECEqual)) {
+	if ((SECITEM_CompareItem(&requestCertID->issuerNameHash,
+				&responseCertID->issuerNameHash) == SECEqual)
+	    && (SECITEM_CompareItem(&requestCertID->issuerKeyHash,
+				&responseCertID->issuerKeyHash) == SECEqual)) {
 	    match = PR_TRUE;
 	}
 	goto done;
     }
 
-    hashAlg = SECOID_FindOIDTag(&certID2->hashAlgorithm.algorithm);
+    hashAlg = SECOID_FindOIDTag(&responseCertID->hashAlgorithm.algorithm);
     switch (hashAlg) {
     case SEC_OID_SHA1:
-	keyHash = &certID1->issuerSHA1KeyHash;
-	nameHash = &certID1->issuerSHA1NameHash;
+	keyHash = &requestCertID->issuerSHA1KeyHash;
+	nameHash = &requestCertID->issuerSHA1NameHash;
 	break;
     case SEC_OID_MD5:
-	keyHash = &certID1->issuerMD5KeyHash;
-	nameHash = &certID1->issuerMD5NameHash;
+	keyHash = &requestCertID->issuerMD5KeyHash;
+	nameHash = &requestCertID->issuerMD5NameHash;
 	break;
     case SEC_OID_MD2:
-	keyHash = &certID1->issuerMD2KeyHash;
-	nameHash = &certID1->issuerMD2NameHash;
-	break;
-    default:
-	foundHash = NULL;
+	keyHash = &requestCertID->issuerMD2KeyHash;
+	nameHash = &requestCertID->issuerMD2NameHash;
 	break;
     }
 
-    if (foundHash == NULL) {
-	goto done;
-    }
-    PORT_Assert(keyHash && nameHash);
-
-    if ((SECITEM_CompareItem(nameHash, &certID2->issuerNameHash) == SECEqual)
-      && (SECITEM_CompareItem(keyHash, &certID2->issuerKeyHash) == SECEqual)) {
+    if ((keyHash != NULL)
+	&& (SECITEM_CompareItem(nameHash,
+				&responseCertID->issuerNameHash) == SECEqual)
+	&& (SECITEM_CompareItem(keyHash,
+				&responseCertID->issuerKeyHash) == SECEqual)) {
 	match = PR_TRUE;
     }
 
@@ -3025,7 +3203,7 @@ ocsp_VerifySingleResponse(CERTOCSPSingleResponse *single,
  *   char *
  *     A copy of the URI for the OCSP method, if found.  If either the
  *     extension is not present or it does not contain an entry for OCSP,
- *     SEC_ERROR_EXTENSION_NOT_FOUND will be set and a NULL returned.
+ *     SEC_ERROR_CERT_BAD_ACCESS_LOCATION will be set and a NULL returned.
  *     Any other error will also result in a NULL being returned.
  *     
  *     This result should be freed (via PORT_Free) when no longer in use.
@@ -3053,8 +3231,10 @@ CERT_GetOCSPAuthorityInfoAccessLocation(CERTCertificate *cert)
 
     rv = CERT_FindCertExtension(cert, SEC_OID_X509_AUTH_INFO_ACCESS,
 				encodedAuthInfoAccess);
-    if (rv == SECFailure)
+    if (rv == SECFailure) {
+	PORT_SetError(SEC_ERROR_CERT_BAD_ACCESS_LOCATION);
 	goto loser;
+    }
 
     /*
      * The rest of the things allocated in the routine will come out of
@@ -3084,7 +3264,7 @@ CERT_GetOCSPAuthorityInfoAccessLocation(CERTCertificate *cert)
      * not there at all.
      */
     if (locname == NULL) {
-	PORT_SetError(SEC_ERROR_EXTENSION_NOT_FOUND);
+	PORT_SetError(SEC_ERROR_CERT_BAD_ACCESS_LOCATION);
 	goto loser;
     }
 
@@ -3101,7 +3281,7 @@ CERT_GetOCSPAuthorityInfoAccessLocation(CERTCertificate *cert)
 	 * this should probably be something more like the extension was
 	 * badly formed.
 	 */
-	PORT_SetError(SEC_ERROR_EXTENSION_NOT_FOUND);
+	PORT_SetError(SEC_ERROR_CERT_BAD_ACCESS_LOCATION);
 	goto loser;
     }
 
@@ -3307,10 +3487,13 @@ CERT_CheckOCSPStatus(CERTCertDBHandle *handle, CERTCertificate *cert,
      */
     location = ocsp_GetResponderLocation(handle, cert, &locationIsDefault);
     if (location == NULL) {
-	if (PORT_GetError() == SEC_ERROR_EXTENSION_NOT_FOUND)
+	int err = PORT_GetError();
+	if (err == SEC_ERROR_EXTENSION_NOT_FOUND ||
+	    err == SEC_ERROR_CERT_BAD_ACCESS_LOCATION) {
+	    PORT_SetError(0);
 	    return SECSuccess;
-	else
-	    return SECFailure;
+	}
+	return SECFailure;
     }
 
     /*
@@ -3590,8 +3773,6 @@ ocsp_InitStatusChecking(CERTCertDBHandle *handle)
     return SECSuccess;
 
 loser:
-    if (statusContext != NULL)
-	PORT_Free(statusContext);
     if (statusConfig != NULL)
 	PORT_Free(statusConfig);
     return SECFailure;

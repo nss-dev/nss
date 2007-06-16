@@ -78,7 +78,11 @@ FILTER			= emxexp -o
 # GCC for OS/2 currently predefines these, but we don't want them
 DEFINES 		+= -Uunix -U__unix -U__unix__
 
-DEFINES			+= -DTCPV40HDRS
+DEFINES			+= -DXP_OS2_EMX -DTCPV40HDRS
+
+ifeq ($(MOZ_OS2_HIGH_MEMORY),1)
+HIGHMEM_LDFLAG          = -Zhigh-mem
+endif
 
 ifndef NO_SHARED_LIB
 WRAP_MALLOC_LIB         = 
@@ -89,7 +93,7 @@ MKSHLIB                 = $(CXX) $(CXXFLAGS) $(DSO_LDOPTS) -o $@
 MKCSHLIB                = $(CC) $(CFLAGS) $(DSO_LDOPTS) -o $@
 MKSHLIB_FORCE_ALL       = 
 MKSHLIB_UNFORCE_ALL     = 
-DSO_LDOPTS              = -Zomf -Zdll -Zmap
+DSO_LDOPTS              = -Zomf -Zdll -Zmap $(HIGHMEM_LDFLAG)
 SHLIB_LDSTARTFILE	= 
 SHLIB_LDENDFILE		= 
 ifdef MAPFILE
@@ -112,16 +116,16 @@ OS_CFLAGS          = -Wall -W -Wno-unused -Wpointer-arith -Wcast-align -Zomf -DD
 ifdef BUILD_OPT
 OPTIMIZER		= -O2 -s
 DEFINES 		+= -UDEBUG -U_DEBUG -DNDEBUG
-DLLFLAGS		= -DLL -OUT:$@ -MAP:$(@:.dll=.map)
-EXEFLAGS    		= -PMTYPE:VIO -OUT:$@ -MAP:$(@:.exe=.map) -nologo -NOE
+DLLFLAGS		= -DLL -OUT:$@ -MAP:$(@:.dll=.map) $(HIGHMEM_LDFLAG)
+EXEFLAGS    		= -PMTYPE:VIO -OUT:$@ -MAP:$(@:.exe=.map) -nologo -NOE $(HIGHMEM_LDFLAG)
 OBJDIR_TAG 		= _OPT
 else
 #OPTIMIZER		= -O+ -Oi
 DEFINES 		+= -DDEBUG -D_DEBUG -DDEBUGPRINTS     #HCT Need += to avoid overidding manifest.mn 
-DLLFLAGS		= -DEBUG -DLL -OUT:$@ -MAP:$(@:.dll=.map)
-EXEFLAGS    		= -DEBUG -PMTYPE:VIO -OUT:$@ -MAP:$(@:.exe=.map) -nologo -NOE
+DLLFLAGS		= -DEBUG -DLL -OUT:$@ -MAP:$(@:.dll=.map) $(HIGHMEM_LDFLAG)
+EXEFLAGS    		= -DEBUG -PMTYPE:VIO -OUT:$@ -MAP:$(@:.exe=.map) -nologo -NOE $(HIGHMEM_LDFLAG)
 OBJDIR_TAG 		= _DBG
-LDFLAGS 		= -DEBUG 
+LDFLAGS 		= -DEBUG $(HIGHMEM_LDFLAG)
 endif   # BUILD_OPT
 
 else    # XP_OS2_VACPP
@@ -239,8 +243,6 @@ else
 		INSTALL += -R
 	endif
 endif
-
-DEFINES += -DXP_OS2
 
 define MAKE_OBJDIR
 if test ! -d $(@D); then rm -rf $(@D); $(NSINSTALL) -D $(@D); fi
