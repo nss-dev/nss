@@ -42,6 +42,7 @@
 #include "pcert.h"
 #include "keydbi.h"
 #include "lgdb.h"
+#include "secoid.h"
 
 typedef struct LGPrivateStr {
     NSSLOWCERTCertDBHandle *certDB;
@@ -650,5 +651,6 @@ legacy_Shutdown(void)
 {
     nsslowcert_DestroyFreeLists();
     nsslowcert_DestroyGlobalLocks();
+    SECOID_Shutdown();
     return CKR_OK;
 }
