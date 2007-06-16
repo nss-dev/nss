@@ -81,11 +81,14 @@ nssCertificateStore_Destroy
   nssCertificateStore *store
 );
 
-NSS_EXTERN PRStatus
-nssCertificateStore_Add
+/* Atomic Find cert in store, or add this cert to the store.
+** Ref counts properly maintained.
+*/
+NSS_EXTERN NSSCertificate *
+nssCertificateStore_FindOrAdd 
 (
   nssCertificateStore *store,
-  NSSCertificate *cert
+  NSSCertificate *c
 );
 
 NSS_EXTERN void
@@ -95,14 +98,36 @@ nssCertificateStore_RemoveCertLOCKED
   NSSCertificate *cert
 );
 
+struct nssCertificateStoreTraceStr {
+    nssCertificateStore* store;
+    PZLock* lock;
+    PRBool locked;
+    PRBool unlocked;
+};
+
+typedef struct nssCertificateStoreTraceStr nssCertificateStoreTrace;
+
+static void nssCertificateStore_Check(nssCertificateStoreTrace* a,
+				      nssCertificateStoreTrace* b) {
+    PORT_Assert(a->locked);
+    PORT_Assert(b->unlocked);
+
+    PORT_Assert(!a->unlocked);
+    PORT_Assert(!b->locked);
+
+    PORT_Assert(a->lock == b->lock);
+    PORT_Assert(a->store == b->store);
+};
+
 NSS_EXTERN void
 nssCertificateStore_Lock (
-  nssCertificateStore *store
+  nssCertificateStore *store, nssCertificateStoreTrace* out
 );
 
 NSS_EXTERN void
 nssCertificateStore_Unlock (
-  nssCertificateStore *store
+  nssCertificateStore *store, nssCertificateStoreTrace* in,
+  nssCertificateStoreTrace* out
 );
 
 NSS_EXTERN NSSCertificate **
