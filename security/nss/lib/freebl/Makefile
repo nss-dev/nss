@@ -98,7 +98,7 @@ ifdef NS_USE_GCC
     ASFILES  =
     DEFINES += -DMP_NO_MP_WORD -DMP_USE_UINT_DIGIT
 else
-    ASFILES  = mpi_x86.asm
+    MPI_SRCS += mpi_x86_asm.c
     DEFINES += -DMP_ASSEMBLY_MULTIPLY -DMP_ASSEMBLY_SQUARE 
     DEFINES += -DMP_ASSEMBLY_DIV_2DX1D -DMP_USE_UINT_DIGIT -DMP_NO_MP_WORD
     ifdef BUILD_OPT
@@ -110,12 +110,6 @@ endif
 ifeq ($(OS_TARGET),WINCE)
     DEFINES += -DMP_ARGCHK=0	# no assert in WinCE
     DEFINES += -DSHA_NO_LONG_LONG # avoid 64-bit arithmetic in SHA512
-endif
-
-ifdef XP_OS2_VACPP
-    ASFILES  = mpi_x86.asm
-    DEFINES += -DMP_ASSEMBLY_MULTIPLY -DMP_ASSEMBLY_SQUARE 
-    DEFINES += -DMP_ASSEMBLY_DIV_2DX1D -DMP_USE_UINT_DIGIT -DMP_NO_MP_WORD
 endif
 
 ifeq ($(OS_TARGET),IRIX)
@@ -137,12 +131,15 @@ ifeq ($(CPU_ARCH),x86_64)
     ASFLAGS += -march=opteron -m64 -fPIC
     DEFINES += -DNSS_BEVAND_ARCFOUR -DMPI_AMD64 -DMP_ASSEMBLY_MULTIPLY
     DEFINES += -DNSS_USE_COMBA
+    DEFINES += -DMP_CHAR_STORE_SLOW -DMP_IS_LITTLE_ENDIAN
+#   DEFINES += -DMPI_AMD64_ADD
     MPI_SRCS += mpi_amd64.c mp_comba.c
 endif
 ifeq ($(CPU_ARCH),x86)
     ASFILES  = mpi_x86.s
     DEFINES += -DMP_ASSEMBLY_MULTIPLY -DMP_ASSEMBLY_SQUARE 
     DEFINES += -DMP_ASSEMBLY_DIV_2DX1D
+    DEFINES += -DMP_CHAR_STORE_SLOW -DMP_IS_LITTLE_ENDIAN
     # The floating point ECC code doesn't work on Linux x86 (bug 311432).
     #ECL_USE_FP = 1
 endif
@@ -171,13 +168,13 @@ ifdef USE_ABI32_INT32
     DEFINES += -DSHA_NO_LONG_LONG # avoid 64-bit arithmetic in SHA512
 else
 ifdef USE_64
-# this builds for DA2.0W (HP PA 2.0 Wide), the LP64 ABI, using 32-bit digits 
+# this builds for DA2.0W (HP PA 2.0 Wide), the LP64 ABI, using 64-bit digits 
     MPI_SRCS += mpi_hp.c 
     ASFILES  += hpma512.s hppa20.s 
     DEFINES  += -DMP_ASSEMBLY_MULTIPLY -DMP_ASSEMBLY_SQUARE
 else
 # this builds for DA2.0 (HP PA 2.0 Narrow) ABI32_FPU model 
-# (the 32-bit ABI with 64-bit registers) using 32-bit digits
+# (the 32-bit ABI with 64-bit registers) using 64-bit digits
     MPI_SRCS += mpi_hp.c 
     ASFILES  += hpma512.s hppa20.s 
     DEFINES  += -DMP_ASSEMBLY_MULTIPLY -DMP_ASSEMBLY_SQUARE
@@ -186,6 +183,17 @@ endif
 endif
 endif
 endif
+endif
+
+# The blapi functions are defined not only in the freebl shared
+# libraries but also in the shared libraries linked with loader.c
+# (libsoftokn3.so and libssl3.so).  We need to use GNU ld's
+# -Bsymbolic option or the equivalent option for other linkers
+# to bind the blapi function references in FREEBLVector vector
+# (ldvector.c) to the blapi functions defined in the freebl
+# shared libraries.
+ifeq (,$(filter-out BSD_OS FreeBSD Linux NetBSD, $(OS_TARGET)))
+    MKSHLIB += -Wl,-Bsymbolic
 endif
 
 ifeq ($(OS_TARGET),SunOS)
@@ -227,18 +235,36 @@ ifeq ($(CPU_ARCH),sparc)
 	endif
 	ifdef USE_ABI32_INT64
 	    ARCHFLAG=-mcpu=v9 -Wa,-xarch=v8plus
+	    SOLARIS_AS_FLAGS = -xarch=v8plus -K PIC
 	endif
 	ifdef USE_ABI32_FPU
-	    ARCHFLAG=-mcpu=v9 -Wa,-xarch=v8plus
+	    ARCHFLAG=-mcpu=v9 -Wa,-xarch=v8plusa
+	    SOLARIS_AS_FLAGS = -xarch=v8plusa -K PIC
 	endif # USE_ABI32_FPU
 	ifdef USE_ABI64_INT
 	    # this builds for Sparc v9a pure 64-bit architecture
+	    ARCHFLAG += -mcpu=v9 -Wa,-xarch=v9
+	    SOLARIS_AS_FLAGS = -xarch=v9 -K PIC
 	endif
 	ifdef USE_ABI64_FPU
 	    # this builds for Sparc v9a pure 64-bit architecture
 	    # It uses floating point, and 32-bit word size
+	    ARCHFLAG += -mcpu=v9 -Wa,-xarch=v9a
+	    SOLARIS_AS_FLAGS = -xarch=v9a -K PIC
 	endif
     else # NS_USE_GCC
+	# FPU_TARGET_OPTIMIZER specifies the target processor and cache
+	# properties of the ABI32_FPU and ABI64_FPU architectures for use
+	# by the optimizer.
+	ifeq (,$(findstring Sun WorkShop 6,$(shell $(CC) -V 2>&1)))
+	    # if the compiler is not Forte 6
+	    FPU_TARGET_OPTIMIZER = -xcache=64/32/4:1024/64/4 -xchip=ultra3
+	else
+	    # Forte 6 C compiler generates incorrect code for rijndael.c
+	    # if -xchip=ultra3 is used (Bugzilla bug 333925).  So we revert
+	    # to what we used in NSS 3.10.
+	    FPU_TARGET_OPTIMIZER = -xchip=ultra2
+	endif
 	ifdef USE_ABI32_INT32
 	    #ARCHFLAG=-xarch=v8 set in coreconf/sunOS5.mk
 	endif
@@ -248,7 +274,10 @@ ifeq ($(CPU_ARCH),sparc)
 	    # no FPU (non-VIS cpus).
 	    # These flags were suggested by the compiler group for building
 	    # with SunStudio 10.
- 	    SOL_CFLAGS += -xO4 -xtarget=generic
+	    ifdef BUILD_OPT
+                SOL_CFLAGS += -xO4
+	    endif
+ 	    SOL_CFLAGS += -xtarget=generic
 	    ARCHFLAG = -xarch=v8plus
 	    SOLARIS_AS_FLAGS = -xarch=v8plus -K PIC
 	endif
@@ -257,17 +286,23 @@ ifeq ($(CPU_ARCH),sparc)
 	    # 32-bit ABI, it uses FPU code, and 32-bit word size.
 	    # these flags were determined by running cc -### -fast and copying
 	    # the generated flag settings
-	    SOL_CFLAGS += -D__MATHERR_ERRNO_DONTCARE -fns -fsimple=2 -fsingle
-	    SOL_CFLAGS += -xalias_level=basic -xbuiltin=%all
-	    SOL_CFLAGS += -xcache=64/32/4:1024/64/4 -xchip=ultra3 -xdepend
-	    SOL_CFLAGS += -xlibmil -xmemalign=8s -xO5
+	    SOL_CFLAGS += -fsingle -xmemalign=8s
+	    ifdef BUILD_OPT
+                SOL_CFLAGS += -D__MATHERR_ERRNO_DONTCARE -fsimple=1
+                SOL_CFLAGS += -xalias_level=basic -xbuiltin=%all
+                SOL_CFLAGS += $(FPU_TARGET_OPTIMIZER) -xdepend
+                SOL_CFLAGS += -xlibmil -xO5
+	    endif
 	    ARCHFLAG = -xarch=v8plusa
 	    SOLARIS_AS_FLAGS = -xarch=v8plusa -K PIC
 	endif
 	ifdef USE_ABI64_INT
 	    # this builds for Sparc v9a pure 64-bit architecture,
 	    # no FPU (non-VIS cpus). For building with SunStudio 10.
- 	    SOL_CFLAGS += -xO4 -xtarget=generic
+	    ifdef BUILD_OPT
+                SOL_CFLAGS += -xO4
+	    endif
+ 	    SOL_CFLAGS += -xtarget=generic
 	    ARCHFLAG = -xarch=v9
 	    SOLARIS_AS_FLAGS = -xarch=v9 -K PIC
 	endif
@@ -275,16 +310,19 @@ ifeq ($(CPU_ARCH),sparc)
 	    # this builds for Sparc v9a pure 64-bit architecture
 	    # It uses floating point, and 32-bit word size.
 	    # See comment for USE_ABI32_FPU.
-	    SOL_CFLAGS += -D__MATHERR_ERRNO_DONTCARE -fns -fsimple=2 -fsingle
-	    SOL_CFLAGS += -xalias_level=basic -xbuiltin=%all
-	    SOL_CFLAGS += -xcache=64/32/4:1024/64/4 -xchip=ultra3 -xdepend
-	    SOL_CFLAGS += -xlibmil -xmemalign=8s -xO5
+	    SOL_CFLAGS += -fsingle -xmemalign=8s
+	    ifdef BUILD_OPT
+                SOL_CFLAGS += -D__MATHERR_ERRNO_DONTCARE -fsimple=1
+                SOL_CFLAGS += -xalias_level=basic -xbuiltin=%all
+                SOL_CFLAGS += $(FPU_TARGET_OPTIMIZER) -xdepend
+                SOL_CFLAGS += -xlibmil -xO5
+	    endif
 	    ARCHFLAG = -xarch=v9a
 	    SOLARIS_AS_FLAGS = -xarch=v9a -K PIC
 	endif
     endif # NS_USE_GCC
 
-    ### set MP_ flags for both GCC and Sun cc
+    ### set flags for both GCC and Sun cc
     ifdef USE_ABI32_INT32
 	# this builds for Sparc v8 pure 32-bit architecture
 	DEFINES += -DMP_USE_UINT_DIGIT -DMP_ASSEMBLY_MULTIPLY
@@ -303,6 +341,7 @@ ifeq ($(CPU_ARCH),sparc)
 	ASFILES  = mpv_sparcv8.s montmulfv8.s
 	DEFINES  += -DMP_NO_MP_WORD -DMP_USE_UINT_DIGIT -DMP_ASSEMBLY_MULTIPLY
 	DEFINES  += -DMP_USING_MONT_MULF -DMP_MONT_USE_MP_MUL
+	ECL_USE_FP = 1
     endif
     ifdef USE_ABI64_INT
 	# this builds for Sparc v9a pure 64-bit architecture
@@ -315,9 +354,9 @@ ifeq ($(CPU_ARCH),sparc)
 	ASFILES   = mpv_sparcv9.s montmulfv9.s
 	DEFINES  += -DMP_NO_MP_WORD -DMP_USE_UINT_DIGIT -DMP_ASSEMBLY_MULTIPLY
 	DEFINES  += -DMP_USING_MONT_MULF -DMP_MONT_USE_MP_MUL
+	ECL_USE_FP = 1
     endif
 
-    ECL_USE_FP = 1
 else
     # Solaris for non-sparc family CPUs
     ifdef NS_USE_GCC
@@ -392,7 +431,6 @@ vpath %.h mpi ecl
 vpath %.c mpi ecl
 vpath %.S mpi ecl
 vpath %.s mpi ecl
-vpath %.asm mpi ecl
 INCLUDES += -Impi -Iecl
 
 
@@ -533,5 +571,19 @@ endif  # FREEBL_CHILD_BUILD
 ifdef XP_OS2_VACPP
 $(OBJDIR)/alg2268.obj: alg2268.c
 	@$(MAKE_OBJDIR)
-	$(CC) -Fo$@ -c $(filter-out /O+, $(CFLAGS)) $(call abspath,$<)
+	$(CC) -Fo$@ -c $(filter-out /O+, $(CFLAGS)) $(call core_abspath,$<)
+endif
+
+# Bugzilla Bug 333917: the non-x86 code in desblapi.c seems to violate
+# ANSI C's strict aliasing rules.
+ifeq ($(OS_TARGET),Linux)
+ifneq ($(CPU_ARCH),x86)
+$(OBJDIR)/$(PROG_PREFIX)desblapi$(OBJ_SUFFIX): desblapi.c
+	@$(MAKE_OBJDIR)
+ifdef NEED_ABSOLUTE_PATH
+	$(CC) -o $@ -c $(CFLAGS) -fno-strict-aliasing $(call core_abspath,$<)
+else
+	$(CC) -o $@ -c $(CFLAGS) -fno-strict-aliasing $<
+endif
+endif
 endif
