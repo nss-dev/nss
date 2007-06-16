@@ -2235,15 +2235,24 @@ NSSCryptoContext_GetTrustDomain
 /* Importing things */
 
 /*
- * NSSCryptoContext_ImportCertificate
+ * NSSCryptoContext_FindOrImportCertificate
  *
- * If there's not a "distinguished certificate" for this context, this
- * sets the specified one to be it.
+ * If the certificate store already contains this DER cert, return the 
+ * address of the matching NSSCertificate that is already in the store,
+ * and bump its reference count.
+ *
+ * If this DER cert is NOT already in the store, then add the new
+ * NSSCertificate to the store and bump its reference count, 
+ * then return its address. 
+ *
+ * if this DER cert is not in the store and cannot be added to it, 
+ * return NULL;
+ *
+ * Record the associated crypto context in the certificate.
  */
 
-NSS_EXTERN PRStatus
-NSSCryptoContext_ImportCertificate
-(
+NSS_EXTERN NSSCertificate *
+NSSCryptoContext_FindOrImportCertificate (
   NSSCryptoContext *cc,
   NSSCertificate *c
 );

@@ -409,7 +409,7 @@ crmf_copy_poposigningkey(PRArenaPool        *poolp,
     }
     return SECSuccess;
  loser:
-    if (destPopoSignKey && poolp == NULL) {
+    if (poolp == NULL) {
         CRMF_DestroyPOPOSigningKey(destPopoSignKey);
     }
     return SECFailure;
@@ -440,13 +440,10 @@ crmf_copy_popoprivkey(PRArenaPool     *poolp,
         rv = SECFailure;
     }
 
-    if (rv != SECSuccess) {
-        if (destPrivKey && poolp == NULL) {
-	    CRMF_DestroyPOPOPrivKey(destPrivKey);
-	}
-	return SECFailure;
+    if (rv != SECSuccess && poolp == NULL) {
+        CRMF_DestroyPOPOPrivKey(destPrivKey);
     }
-    return SECSuccess;
+    return rv;
 }
 
 static CRMFProofOfPossession*
@@ -510,10 +507,11 @@ crmf_copy_cert_req_msg(CRMFCertReqMsg *srcReqMsg)
         return NULL;
     }
     newReqMsg = PORT_ArenaZNew(poolp, CRMFCertReqMsg);
-    newReqMsg->poolp = poolp;
     if (newReqMsg == NULL) {
         goto loser;
     }
+
+    newReqMsg->poolp = poolp;
     newReqMsg->certReq = crmf_copy_cert_request(poolp, srcReqMsg->certReq);
     if (newReqMsg->certReq == NULL) {
         goto loser;

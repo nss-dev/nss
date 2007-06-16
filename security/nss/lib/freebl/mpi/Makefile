@@ -112,7 +112,7 @@ DOCS=README doc utils/README utils/PRIMES
 TOOLS=gcd invmod isprime lap dec2hex hex2dec primegen prng \
 	basecvt fact exptmod pi makeprime identest
 
-LIBOBJS = mpprime.o mpmontg.o mplogic.o mp_gf2m.o mpi.o $(AS_OBJS)
+LIBOBJS = mpprime.o mpmontg.o mplogic.o mp_gf2m.o mpi.o mpcpucache.o $(AS_OBJS)
 LIBHDRS = mpi-config.h mpi-priv.h mpi.h
 APPHDRS = mpi-config.h mpi.h mplogic.h mp_gf2m.h mpprime.h
 
@@ -153,6 +153,8 @@ mp_gf2m.o: mp_gf2m.c mpi-priv.h mp_gf2m.h mp_gf2m-priv.h $(LIBHDRS)
 mpmontg.o: mpmontg.c mpi-priv.h mplogic.h mpprime.h $(LIBHDRS)
 
 mpprime.o: mpprime.c mpi-priv.h mpprime.h mplogic.h primes.c $(LIBHDRS)
+
+mpcpucache.o: mpcpucache.c $(LIBHDRS)
 
 mpi_mips.o: mpi_mips.s
 	$(CC) -o $@ $(ASFLAGS) -c mpi_mips.s

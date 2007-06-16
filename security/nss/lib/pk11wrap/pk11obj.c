@@ -571,11 +571,14 @@ PK11_SignatureLen(SECKEYPrivateKey *key)
 	    if (theTemplate.pValue != NULL) {
 	        params.len = theTemplate.ulValueLen;
 		params.data = (unsigned char *) theTemplate.pValue;
-	        length = SECKEY_ECParamsToKeySize(&params);
+	        length = SECKEY_ECParamsToBasePointOrderLen(&params);
 	        PORT_Free(theTemplate.pValue);
+		if (length == 0) {
+		    return pk11_backupGetSignLength(key);
+		}
+		length = ((length + 7)/8) * 2;
+		return length;
 	    }
-	    length = ((length + 7)/8) * 2;
-	    return length;
 	}
 	break;
     default:
@@ -948,7 +951,9 @@ PK11_UnwrapPrivKey(PK11SlotInfo *slot, PK11SymKey *wrappingKey,
 					 sizeof(cktrue)); attrs++;
     PK11_SETATTRS(attrs, CKA_SENSITIVE, sensitive ? &cktrue : &ckfalse,
 					sizeof(cktrue)); attrs++;
-    PK11_SETATTRS(attrs, CKA_LABEL, label->data, label->len); attrs++;
+    if (label && label->data) {
+	PK11_SETATTRS(attrs, CKA_LABEL, label->data, label->len); attrs++;
+    }
     PK11_SETATTRS(attrs, CKA_ID, ck_id->data, ck_id->len); attrs++;
     for (i=0; i < usageCount; i++) {
     	PK11_SETATTRS(attrs, usage[i], &cktrue, sizeof(cktrue)); attrs++;
@@ -1568,8 +1573,8 @@ PK11_TraverseSlot(PK11SlotInfo *slot, void *arg)
  * Traverse all the objects in all slots.
  */
 SECStatus
-pk11_TraverseAllSlots( SECStatus (*callback)(PK11SlotInfo *,void *),
-						void *arg,void *wincx) {
+pk11_TraverseAllSlots( SECStatus (*callback)(PK11SlotInfo *,void *), 
+				void *arg, PRBool forceLogin, void *wincx) {
     PK11SlotList *list;
     PK11SlotListElement *le;
     SECStatus rv;
@@ -1580,9 +1585,11 @@ pk11_TraverseAllSlots( SECStatus (*callback)(PK11SlotInfo *,void *),
 
     /* look at each slot and authenticate as necessary */
     for (le = list->head ; le; le = le->next) {
-	rv = pk11_AuthenticateUnfriendly(le->slot, PR_FALSE, wincx);
-	if (rv != SECSuccess) {
-	    continue;
+	if (forceLogin) {
+	    rv = pk11_AuthenticateUnfriendly(le->slot, PR_FALSE, wincx);
+	    if (rv != SECSuccess) {
+		continue;
+	    }
 	}
 	if (callback) {
 	    (*callback)(le->slot,arg);
