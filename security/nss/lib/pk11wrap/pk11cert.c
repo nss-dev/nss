@@ -273,7 +273,7 @@ static CERTCertificate
     }
 
     /* Create a PKI object from the cryptoki instance */
-    pkio = nssPKIObject_Create(NULL, co, td, NULL);
+    pkio = nssPKIObject_Create(NULL, co, td, NULL, nssPKIMonitor);
     if (!pkio) {
 	nssCryptokiObject_Destroy(co);
 	return NULL;
@@ -481,7 +481,7 @@ PK11_TraverseSlotCerts(SECStatus(* callback)(CERTCertificate*,SECItem *,void *),
     struct nss3_cert_cbstr pk11cb;
 
     /* authenticate to the tokens first */
-    (void) pk11_TraverseAllSlots( NULL, NULL, wincx);
+    (void) pk11_TraverseAllSlots( NULL, NULL, PR_TRUE, wincx);
 
     fda.callback = callback;
     fda.arg = arg;
@@ -702,7 +702,30 @@ PK11_FindCertsFromNickname(char *nickname, void *wincx)
 	                                                &status);
 	nssPKIObjectCollection_AddInstances(collection, instances, 0);
 	nss_ZFreeIf(instances);
-	nssList_Destroy(nameList);
+
+        /* if it wasn't found, repeat the process for email address */
+        if (nssPKIObjectCollection_Count(collection) == 0 &&
+            PORT_Strchr(nickname, '@') != NULL) 
+        {
+            char* lowercaseName = CERT_FixupEmailAddr(nickname);
+            if (lowercaseName) {
+                (void)nssTrustDomain_GetCertsForEmailAddressFromCache(defaultTD, 
+                                                                      lowercaseName, 
+                                                                      nameList);
+                transfer_token_certs_to_collection(nameList, token, collection);
+                instances = nssToken_FindCertificatesByEmail(token,
+                                                             NULL,
+                                                             lowercaseName,
+                                                             tokenOnly,
+                                                             0,
+                                                             &status);
+                nssPKIObjectCollection_AddInstances(collection, instances, 0);
+                nss_ZFreeIf(instances);
+                PORT_Free(lowercaseName);
+            }
+        }
+
+        nssList_Destroy(nameList);
 	foundCerts = nssPKIObjectCollection_GetCertificates(collection,
 	                                                    NULL, 0, NULL);
 	nssPKIObjectCollection_Destroy(collection);
@@ -796,6 +819,8 @@ PK11_ImportCert(PK11SlotInfo *slot, CERTCertificate *cert,
     NSSToken *token = PK11Slot_GetNSSToken(slot);
     SECItem *keyID = pk11_mkcertKeyID(cert);
     char *emailAddr = NULL;
+    nssCertificateStoreTrace lockTrace = {NULL, NULL, PR_FALSE, PR_FALSE};
+    nssCertificateStoreTrace unlockTrace = {NULL, NULL, PR_FALSE, PR_FALSE};
 
     if (keyID == NULL) {
 	goto loser;
@@ -815,9 +840,10 @@ PK11_ImportCert(PK11SlotInfo *slot, CERTCertificate *cert,
     if (c->object.cryptoContext) {
 	/* Delete the temp instance */
 	NSSCryptoContext *cc = c->object.cryptoContext;
-	nssCertificateStore_Lock(cc->certStore);
+	nssCertificateStore_Lock(cc->certStore, &lockTrace);
 	nssCertificateStore_RemoveCertLOCKED(cc->certStore, c);
-	nssCertificateStore_Unlock(cc->certStore);
+	nssCertificateStore_Unlock(cc->certStore, &lockTrace, &unlockTrace);
+        nssCertificateStore_Check(&lockTrace, &unlockTrace);
 	c->object.cryptoContext = NULL;
 	cert->istemp = PR_FALSE;
 	cert->isperm = PR_TRUE;
@@ -925,6 +951,7 @@ pk11_getcerthandle(PK11SlotInfo *slot, CERTCertificate *cert,
 SECKEYPrivateKey *
 PK11_FindPrivateKeyFromCert(PK11SlotInfo *slot, CERTCertificate *cert,
 								 void *wincx) {
+    int err;
     CK_OBJECT_CLASS certClass = CKO_CERTIFICATE;
     CK_ATTRIBUTE theTemplate[] = {
 	{ CKA_VALUE, NULL, 0 },
@@ -935,6 +962,7 @@ PK11_FindPrivateKeyFromCert(PK11SlotInfo *slot, CERTCertificate *cert,
     CK_OBJECT_HANDLE certh;
     CK_OBJECT_HANDLE keyh;
     CK_ATTRIBUTE *attrs = theTemplate;
+    PRBool needLogin;
     SECStatus rv;
 
     PK11_SETATTRS(attrs, CKA_VALUE, cert->derCert.data, 
@@ -953,10 +981,18 @@ PK11_FindPrivateKeyFromCert(PK11SlotInfo *slot, CERTCertificate *cert,
     if (certh == CK_INVALID_HANDLE) {
 	return NULL;
     }
+    /*
+     * prevent a login race condition. If slot is logged in between
+     * our call to pk11_LoginStillRequired and the 
+     * PK11_MatchItem. The matchItem call will either succeed, or
+     * we will call it one more time after calling PK11_Authenticate 
+     * (which is a noop on an authenticated token).
+     */
+    needLogin = pk11_LoginStillRequired(slot,wincx);
     keyh = PK11_MatchItem(slot,certh,CKO_PRIVATE_KEY);
-    if ((keyh == CK_INVALID_HANDLE) && 
-			(PORT_GetError() == SSL_ERROR_NO_CERTIFICATE) && 
-			pk11_LoginStillRequired(slot, wincx)) {
+    if ((keyh == CK_INVALID_HANDLE) && needLogin &&
+                        (SSL_ERROR_NO_CERTIFICATE == (err = PORT_GetError()) ||
+			 SEC_ERROR_TOKEN_NOT_LOGGED_IN == err )) {
 	/* try it again authenticated */
 	rv = PK11_Authenticate(slot, PR_TRUE, wincx);
 	if (rv != SECSuccess) {
@@ -983,6 +1019,7 @@ PK11_KeyForCertExists(CERTCertificate *cert, CK_OBJECT_HANDLE *keyPtr,
     CK_OBJECT_HANDLE key;
     PK11SlotInfo *slot = NULL;
     SECStatus rv;
+    int err;
 
     keyID = pk11_mkcertKeyID(cert);
     /* get them all! */
@@ -995,10 +1032,18 @@ PK11_KeyForCertExists(CERTCertificate *cert, CK_OBJECT_HANDLE *keyPtr,
 
     /* Look for the slot that holds the Key */
     for (le = list->head ; le; le = le->next) {
+	/*
+	 * prevent a login race condition. If le->slot is logged in between
+	 * our call to pk11_LoginStillRequired and the 
+	 * pk11_FindPrivateKeyFromCertID, the find will either succeed, or
+	 * we will call it one more time after calling PK11_Authenticate 
+	 * (which is a noop on an authenticated token).
+	 */
+	PRBool needLogin = pk11_LoginStillRequired(le->slot,wincx);
 	key = pk11_FindPrivateKeyFromCertID(le->slot,keyID);
-	if ((key == CK_INVALID_HANDLE) && 
-			(PORT_GetError() == SSL_ERROR_NO_CERTIFICATE) && 
-			pk11_LoginStillRequired(le->slot,wincx)) {
+	if ((key == CK_INVALID_HANDLE) && needLogin &&
+            		(SSL_ERROR_NO_CERTIFICATE == (err = PORT_GetError()) ||
+			 SEC_ERROR_TOKEN_NOT_LOGGED_IN == err )) {
 	    /* authenticate and try again */
 	    rv = PK11_Authenticate(le->slot, PR_TRUE, wincx);
 	    if (rv != SECSuccess) continue;
@@ -1084,7 +1129,6 @@ pk11_FindCertObjectByTemplate(PK11SlotInfo **slotPtr,
     /* get them all! */
     list = PK11_GetAllTokens(CKM_INVALID_MECHANISM,PR_FALSE,PR_TRUE,wincx);
     if (list == NULL) {
-	if (list) PK11_FreeSlotList(list);
     	return CK_INVALID_HANDLE;
     }
 
@@ -1159,7 +1203,7 @@ PK11_FindCertByIssuerAndSNOnToken(PK11SlotInfo *slot,
     if (!instance) {
 	goto loser;
     }
-    object = nssPKIObject_Create(NULL, instance, td, NULL);
+    object = nssPKIObject_Create(NULL, instance, td, NULL, nssPKIMonitor);
     if (!object) {
 	goto loser;
     }
@@ -1248,7 +1292,6 @@ pk11_AllFindCertObjectByRecipientNew(NSSCMSRecipient **recipientlist, void *winc
     /* get them all! */
     list = PK11_GetAllTokens(CKM_INVALID_MECHANISM,PR_FALSE,PR_TRUE,wincx);
     if (list == NULL) {
-	if (list) PK11_FreeSlotList(list);
     	return CK_INVALID_HANDLE;
     }
 
@@ -1319,7 +1362,6 @@ pk11_AllFindCertObjectByRecipient(PK11SlotInfo **slotPtr,
     /* get them all! */
     list = PK11_GetAllTokens(CKM_INVALID_MECHANISM,PR_FALSE,PR_TRUE,wincx);
     if (list == NULL) {
-	if (list) PK11_FreeSlotList(list);
     	return CK_INVALID_HANDLE;
     }
 
@@ -1553,16 +1595,26 @@ PK11_FindKeyByAnyCert(CERTCertificate *cert, void *wincx)
     CK_OBJECT_HANDLE keyHandle;
     PK11SlotInfo *slot = NULL;
     SECKEYPrivateKey *privKey = NULL;
+    PRBool needLogin;
     SECStatus rv;
+    int err;
 
     certHandle = PK11_FindObjectForCert(cert, wincx, &slot);
     if (certHandle == CK_INVALID_HANDLE) {
 	 return NULL;
     }
+    /*
+     * prevent a login race condition. If slot is logged in between
+     * our call to pk11_LoginStillRequired and the 
+     * PK11_MatchItem. The matchItem call will either succeed, or
+     * we will call it one more time after calling PK11_Authenticate 
+     * (which is a noop on an authenticated token).
+     */
+    needLogin = pk11_LoginStillRequired(slot,wincx);
     keyHandle = PK11_MatchItem(slot,certHandle,CKO_PRIVATE_KEY);
-    if ((keyHandle == CK_INVALID_HANDLE) && 
-			(PORT_GetError() == SSL_ERROR_NO_CERTIFICATE) && 
-			pk11_LoginStillRequired(slot,wincx)) {
+    if ((keyHandle == CK_INVALID_HANDLE) &&  needLogin &&
+			(SSL_ERROR_NO_CERTIFICATE == (err = PORT_GetError()) ||
+			 SEC_ERROR_TOKEN_NOT_LOGGED_IN == err ) ) {
 	/* authenticate and try again */
 	rv = PK11_Authenticate(slot, PR_TRUE, wincx);
 	if (rv == SECSuccess) {
@@ -1947,6 +1999,8 @@ pk11_findKeyObjectByDERCert(PK11SlotInfo *slot, CERTCertificate *cert,
     SECItem *keyID;
     CK_OBJECT_HANDLE key;
     SECStatus rv;
+    PRBool needLogin;
+    int err;
 
     if((slot == NULL) || (cert == NULL)) {
 	return CK_INVALID_HANDLE;
@@ -1957,10 +2011,18 @@ pk11_findKeyObjectByDERCert(PK11SlotInfo *slot, CERTCertificate *cert,
 	return CK_INVALID_HANDLE;
     }
 
+    /*
+     * prevent a login race condition. If slot is logged in between
+     * our call to pk11_LoginStillRequired and the 
+     * pk11_FindPrivateKeyFromCerID. The matchItem call will either succeed, or
+     * we will call it one more time after calling PK11_Authenticate 
+     * (which is a noop on an authenticated token).
+     */
+    needLogin = pk11_LoginStillRequired(slot,wincx);
     key = pk11_FindPrivateKeyFromCertID(slot, keyID);
-    if ((key == CK_INVALID_HANDLE) && 
-			(PORT_GetError() == SSL_ERROR_NO_CERTIFICATE) && 
-			pk11_LoginStillRequired(slot,wincx)) {
+    if ((key == CK_INVALID_HANDLE) && needLogin &&
+			(SSL_ERROR_NO_CERTIFICATE == (err = PORT_GetError()) ||
+			 SEC_ERROR_TOKEN_NOT_LOGGED_IN == err )) {
 	/* authenticate and try again */
 	rv = PK11_Authenticate(slot, PR_TRUE, wincx);
 	if (rv != SECSuccess) goto loser;
@@ -2284,7 +2346,7 @@ PK11_ListCerts(PK11CertListType type, void *pwarg)
     listCerts.certList = certList;
 
     /* authenticate to the slots */
-    (void) pk11_TraverseAllSlots( NULL, NULL, pwarg);
+    (void) pk11_TraverseAllSlots( NULL, NULL, PR_TRUE, pwarg);
     NSSTrustDomain_TraverseCertificates(defaultTD, pk11ListCertCallback,
 								 &listCerts);
     return certList;
@@ -2348,6 +2410,9 @@ listCertsCallback(CERTCertificate* cert, void*arg)
     NSSCertificate *c = STAN_GetNSSCertificate(cert);
 
     instances = nssPKIObject_GetInstances(&c->object);
+    if (!instances) {
+        return SECFailure;
+    }
     instance = NULL;
     for (ci = instances; *ci; ci++) {
 	if ((*ci)->token->pk11slot == cdata->slot) {

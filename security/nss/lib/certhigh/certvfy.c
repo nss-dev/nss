@@ -101,7 +101,6 @@ CERT_VerifySignedDataWithPublicKey(CERTSignedData *sd,
 		                   void *wincx)
 {
     SECStatus        rv;
-    SECOidTag        algid;
     SECItem          sig;
 
     if ( !pubKey || !sd ) {
@@ -114,9 +113,8 @@ CERT_VerifySignedDataWithPublicKey(CERTSignedData *sd,
     /* convert sig->len from bit counts to byte count. */
     DER_ConvertBitString(&sig);
 
-    algid = SECOID_GetAlgorithmTag(&sd->signatureAlgorithm);
-    rv = VFY_VerifyData(sd->data.data, sd->data.len, pubKey, &sig,
-			algid, wincx);
+    rv = VFY_VerifyDataWithAlgorithmID(sd->data.data, sd->data.len, pubKey, 
+			&sig, &sd->signatureAlgorithm, NULL, wincx);
 
     return rv ? SECFailure : SECSuccess;
 }
@@ -362,20 +360,20 @@ loser:
                                     chain, 2, NULL, &status, td, cc);
     nss_ZFreeIf(nssTime);
     if (status == PR_SUCCESS) {
+	PORT_Assert(me == chain[0]);
 	/* if it's a root, the chain will only have one cert */
 	if (!chain[1]) {
 	    /* already has a reference from the call to BuildChain */
 	    return cert;
-	} else {
-	    CERT_DestroyCertificate(cert); /* the first cert in the chain */
-	    return STAN_GetCERTCertificate(chain[1]); /* return the 2nd */
-	}
-    } else {
-	if (chain[0]) {
-	    CERT_DestroyCertificate(cert);
-	}
-	PORT_SetError (SEC_ERROR_UNKNOWN_ISSUER);
+	} 
+	NSSCertificate_Destroy(chain[0]); /* the first cert in the chain */
+	return STAN_GetCERTCertificate(chain[1]); /* return the 2nd */
+    } 
+    if (chain[0]) {
+	PORT_Assert(me == chain[0]);
+	NSSCertificate_Destroy(chain[0]); /* the first cert in the chain */
     }
+    PORT_SetError (SEC_ERROR_UNKNOWN_ISSUER);
     return NULL;
 #endif
 }
@@ -729,6 +727,13 @@ cert_VerifyCertChain(CERTCertDBHandle *handle, CERTCertificate *cert,
 	    namesCount += subjectNameListLen;
 	    namesList = cert_CombineNamesLists(namesList, subjectNameList);
 	}
+
+        /* check if the cert has an unsupported critical extension */
+	if ( subjectCert->options.bits.hasUnsupportedCriticalExt ) {
+	    PORT_SetError(SEC_ERROR_UNKNOWN_CRITICAL_EXTENSION);
+	    LOG_ERROR_OR_EXIT(log,subjectCert,count,0);
+	}
+
 	/* find the certificate of the issuer */
 	issuerCert = CERT_FindCertIssuer(subjectCert, t, certUsage);
 	if ( ! issuerCert ) {
@@ -1207,30 +1212,21 @@ CERT_VerifyCertificate(CERTCertDBHandle *handle, CERTCertificate *cert,
     }
     valid = SECSuccess ; /* start off assuming cert is valid */
    
-#ifdef notdef 
-    /* check if this cert is in the Evil list */
-    rv = CERT_CheckForEvilCert(cert);
-    if ( rv != SECSuccess ) {
-	PORT_SetError(SEC_ERROR_REVOKED_CERTIFICATE);
-	LOG_ERROR(log,cert,0,0);
-	return SECFailure;
-    }
-#endif
-    
     /* make sure that the cert is valid at time t */
     allowOverride = (PRBool)((requiredUsages & certificateUsageSSLServer) ||
                              (requiredUsages & certificateUsageSSLServerWithStepUp));
     validity = CERT_CheckCertValidTimes(cert, t, allowOverride);
     if ( validity != secCertTimeValid ) {
-        LOG_ERROR(log,cert,0,validity);
-	return SECFailure;
+        valid = SECFailure;
+        LOG_ERROR_OR_EXIT(log,cert,0,validity);
     }
 
     /* check key usage and netscape cert type */
     cert_GetCertType(cert);
     certType = cert->nsCertType;
 
-    for (i=1;i<=certificateUsageHighest && !(SECFailure == valid && !returnedUsages) ;) {
+    for (i=1; i<=certificateUsageHighest && 
+              (SECSuccess == valid || returnedUsages || log) ; ) {
         PRBool requiredUsage = (i & requiredUsages) ? PR_TRUE : PR_FALSE;
         if (PR_FALSE == requiredUsage && PR_FALSE == checkAllUsages) {
             NEXT_USAGE();
@@ -1394,7 +1390,7 @@ CERT_VerifyCertificate(CERTCertDBHandle *handle, CERTCertificate *cert,
         if (PR_FALSE == checkedOCSP) {
             checkedOCSP = PR_TRUE; /* only check OCSP once */
             statusConfig = CERT_GetStatusConfig(handle);
-            if ( (! (requiredUsages & certificateUsageStatusResponder)) &&
+            if ( (! (requiredUsages == certificateUsageStatusResponder)) &&
                 statusConfig != NULL) {
                 if (statusConfig->statusChecker != NULL) {
                     rv = (* statusConfig->statusChecker)(handle, cert,
@@ -1411,6 +1407,7 @@ CERT_VerifyCertificate(CERTCertDBHandle *handle, CERTCertificate *cert,
         NEXT_USAGE();
     }
     
+loser:
     return(valid);
 }
 			

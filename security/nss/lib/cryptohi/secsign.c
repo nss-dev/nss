@@ -121,8 +121,23 @@ SGN_NewContext(SECOidTag alg, SECKEYPrivateKey *key)
 	signalg = SEC_OID_MISSI_DSS; /* XXX Is there a better algid? */
 	keyType = fortezzaKey;
 	break;
-      case SEC_OID_ANSIX962_ECDSA_SIGNATURE_WITH_SHA1_DIGEST:
+      case SEC_OID_ANSIX962_ECDSA_SHA1_SIGNATURE:
 	hashalg = SEC_OID_SHA1;
+	signalg = SEC_OID_ANSIX962_EC_PUBLIC_KEY;
+	keyType = ecKey;
+	break;
+      case SEC_OID_ANSIX962_ECDSA_SHA256_SIGNATURE:
+	hashalg = SEC_OID_SHA256;
+	signalg = SEC_OID_ANSIX962_EC_PUBLIC_KEY;
+	keyType = ecKey;
+	break;
+      case SEC_OID_ANSIX962_ECDSA_SHA384_SIGNATURE:
+	hashalg = SEC_OID_SHA384;
+	signalg = SEC_OID_ANSIX962_EC_PUBLIC_KEY;
+	keyType = ecKey;
+	break;
+      case SEC_OID_ANSIX962_ECDSA_SHA512_SIGNATURE:
+	hashalg = SEC_OID_SHA512;
 	signalg = SEC_OID_ANSIX962_EC_PUBLIC_KEY;
 	keyType = ecKey;
 	break;
@@ -141,6 +156,13 @@ SGN_NewContext(SECOidTag alg, SECKEYPrivateKey *key)
 	PORT_SetError(SEC_ERROR_INVALID_ALGORITHM);
 	return 0;
     }
+
+#ifndef NSS_ECC_MORE_THAN_SUITE_B
+    if (key->keyType == ecKey) {
+	PORT_SetError(SEC_ERROR_INVALID_ALGORITHM);
+	return 0;
+    }
+#endif
 
     cx = (SGNContext*) PORT_ZAlloc(sizeof(SGNContext));
     if (cx) {
@@ -200,7 +222,8 @@ SECStatus
 SGN_End(SGNContext *cx, SECItem *result)
 {
     unsigned char digest[HASH_LENGTH_MAX];
-    unsigned part1, signatureLen;
+    unsigned part1;
+    int signatureLen;
     SECStatus rv;
     SECItem digder, sigitem;
     PRArenaPool *arena = 0;
@@ -248,6 +271,11 @@ SGN_End(SGNContext *cx, SECItem *result)
     ** block
     */
     signatureLen = PK11_SignatureLen(privKey);
+    if (signatureLen <= 0) {
+	PORT_SetError(SEC_ERROR_INVALID_KEY);
+	rv = SECFailure;
+	goto loser;
+    }
     sigitem.len = signatureLen;
     sigitem.data = (unsigned char*) PORT_Alloc(signatureLen);
 
@@ -266,7 +294,7 @@ SGN_End(SGNContext *cx, SECItem *result)
     if ((cx->signalg == SEC_OID_ANSIX9_DSA_SIGNATURE) ||
         (cx->signalg == SEC_OID_ANSIX962_EC_PUBLIC_KEY)) {
         /* DSAU_EncodeDerSigWithLen works for DSA and ECDSA */
-	rv = DSAU_EncodeDerSigWithLen(result, &sigitem, signatureLen); 
+	rv = DSAU_EncodeDerSigWithLen(result, &sigitem, sigitem.len); 
 	PORT_Free(sigitem.data);
 	if (rv != SECSuccess)
 	    goto loser;
@@ -373,7 +401,7 @@ SEC_DerSignData(PRArenaPool *arena, SECItem *result,
 	    algID = SEC_OID_ANSIX9_DSA_SIGNATURE_WITH_SHA1_DIGEST;
 	    break;
 	  case ecKey:
-	    algID = SEC_OID_ANSIX962_ECDSA_SIGNATURE_WITH_SHA1_DIGEST;
+	    algID = SEC_OID_ANSIX962_ECDSA_SHA1_SIGNATURE;
 	    break;
 	  default:
 	    PORT_SetError(SEC_ERROR_INVALID_KEY);
@@ -407,7 +435,7 @@ SECStatus
 SGN_Digest(SECKEYPrivateKey *privKey,
 		SECOidTag algtag, SECItem *result, SECItem *digest)
 {
-    unsigned modulusLen;
+    int modulusLen;
     SECStatus rv;
     SECItem digder;
     PRArenaPool *arena = 0;
@@ -446,6 +474,11 @@ SGN_Digest(SECKEYPrivateKey *privKey,
     ** block
     */
     modulusLen = PK11_SignatureLen(privKey);
+    if (modulusLen <= 0) {
+	PORT_SetError(SEC_ERROR_INVALID_KEY);
+	rv = SECFailure;
+	goto loser;
+    }
     result->len = modulusLen;
     result->data = (unsigned char*) PORT_Alloc(modulusLen);
 
@@ -503,8 +536,19 @@ SEC_GetSignatureAlgorithmOidTag(KeyType keyType, SECOidTag hashAlgTag)
 	}
 	break;
     case ecKey:
-        /* XXX For now only ECDSA with SHA1 is supported */
-        sigTag = SEC_OID_ANSIX962_ECDSA_SIGNATURE_WITH_SHA1_DIGEST;
+	switch (hashAlgTag) {
+	case SEC_OID_UNKNOWN:	/* default for ECDSA if hash not specified */
+	case SEC_OID_SHA1:      /*  is ECDSA_SHA1_SIGNTARURE */
+	    sigTag = SEC_OID_ANSIX962_ECDSA_SHA1_SIGNATURE; break;
+	case SEC_OID_SHA256:
+	    sigTag = SEC_OID_ANSIX962_ECDSA_SHA256_SIGNATURE; break;
+	case SEC_OID_SHA384:
+	    sigTag = SEC_OID_ANSIX962_ECDSA_SHA384_SIGNATURE; break;
+	case SEC_OID_SHA512:
+	    sigTag = SEC_OID_ANSIX962_ECDSA_SHA512_SIGNATURE; break;
+	default:
+	    break;
+	}
 	break;
     default:
     	break;
