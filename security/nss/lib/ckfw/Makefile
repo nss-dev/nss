@@ -67,6 +67,6 @@ DIRS += capi
 endif
 endif
 
-ifeq ($(OS_ARCH), Darwin)
-DIRS += nssmkey
-endif
+#ifeq ($(OS_ARCH), Darwin)
+#DIRS += nssmkey
+#endif
