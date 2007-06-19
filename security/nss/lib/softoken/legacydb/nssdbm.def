@@ -48,9 +48,9 @@
 ;+#    And for AIX, the first ";" will also be removed.
 ;+#  This file is passed directly to windows. Since ';' is a comment, all UNIX
 ;+#   directives are hidden behind ";", ";+", and ";-"
-;+LGDBM_3.12 {       # NSS 3.12 release
+;+NSSDBM_3.12 {       # NSS 3.12 release
 ;+    global:
-LIBRARY lgdbm3 ;-
+LIBRARY nssdbm3 ;-
 EXPORTS ;-
 legacy_Open;
 legacy_Shutdown;

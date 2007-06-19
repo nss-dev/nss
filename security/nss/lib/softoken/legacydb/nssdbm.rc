@@ -37,7 +37,7 @@
 #include "../softkver.h"
 #include <winver.h>
 
-#define MY_LIBNAME "legacydb"
+#define MY_LIBNAME "nssdbm"
 #define MY_FILEDESCRIPTION "Legacy Database Driver"
 
 #define STRINGIZE(x) #x
