@@ -288,7 +288,7 @@ ssl2_GatherData(sslSocket *ss, sslGather *gs, int flags)
 	    */
 	    macLen = ss->sec.hash->length;
 	    if (gs->offset >= macLen) {
-		uint32           sequenceNumber = ss->sec.rcvSequence++;
+		PRUint32           sequenceNumber = ss->sec.rcvSequence++;
 		unsigned char    seq[4];
 
 		seq[0] = (unsigned char) (sequenceNumber >> 24);
