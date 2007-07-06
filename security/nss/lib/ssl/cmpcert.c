@@ -81,7 +81,7 @@ NSS_CmpCertChainWCANames(CERTCertificate *cert, CERTDistNames *caNames)
      * enterprise server, which send the CA names without
      * the outer layer of DER hearder
      */
-    rv = DER_Lengths(&issuerName, &headerlen, (uint32 *)&contentlen);
+    rv = DER_Lengths(&issuerName, &headerlen, (PRUint32 *)&contentlen);
     if ( rv == SECSuccess ) {
       compatIssuerName.data = &issuerName.data[headerlen];
       compatIssuerName.len = issuerName.len - headerlen;

@@ -484,8 +484,8 @@ typedef enum { type_stream, type_block } CipherType;
  * Do not depend upon 64 bit arithmetic in the underlying machine. 
  */
 typedef struct {
-    uint32         high;
-    uint32         low;
+    PRUint32         high;
+    PRUint32         low;
 } SSL3SequenceNumber;
 
 #define MAX_MAC_CONTEXT_BYTES 400
@@ -899,8 +899,8 @@ struct sslSecurityInfoStr {
     ** This stuff is equivalent to SSL3's "spec", and is protected by the 
     ** same "Spec Lock" as used for SSL3's specs.
     */
-    uint32           sendSequence;		/*xmitBufLock*/	/* ssl2 only */
-    uint32           rcvSequence;		/*recvBufLock*/	/* ssl2 only */
+    PRUint32           sendSequence;		/*xmitBufLock*/	/* ssl2 only */
+    PRUint32           rcvSequence;		/*recvBufLock*/	/* ssl2 only */
 
     /* Hash information; used for one-way-hash functions (MD2, MD5, etc.) */
     const SECHashObject   *hash;		/* Spec Lock */ /* ssl2 only */
