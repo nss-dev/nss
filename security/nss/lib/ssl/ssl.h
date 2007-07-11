@@ -187,7 +187,7 @@ SSL_IMPORT SECStatus SSL_ForceHandshakeWithTimeout(PRFileDesc *fd,
 ** issuer of the client's certificate (if any). Subject is the subject of
 ** the other end's certificate. The pointers can be zero if the desired
 ** data is not needed.  All strings returned by this function are owned
-** by SSL, and will be freed when the socket is closed.
+** by the caller, and need to be freed with PORT_Free.
 */
 SSL_IMPORT SECStatus SSL_SecurityStatus(PRFileDesc *fd, int *on, char **cipher,
 			                int *keySize, int *secretKeySize,
