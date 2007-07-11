@@ -520,7 +520,7 @@ nssToken_FindCertificatesByNickname
 (
   NSSToken *token,
   nssSession *sessionOpt,
-  NSSUTF8 *name,
+  const NSSUTF8 *name,
   nssTokenSearchType searchType,
   PRUint32 maximumOpt,
   PRStatus *statusOpt

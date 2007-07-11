@@ -464,7 +464,7 @@ static void match_nickname(const void *k, void *v, void *a)
 NSS_IMPLEMENT NSSCertificate **
 nssCertificateStore_FindCertificatesByNickname (
   nssCertificateStore *store,
-  NSSUTF8 *nickname,
+  const NSSUTF8 *nickname,
   NSSCertificate *rvOpt[],
   PRUint32 maximumOpt,
   NSSArena *arenaOpt
@@ -472,7 +472,7 @@ nssCertificateStore_FindCertificatesByNickname (
 {
     NSSCertificate **rvArray = NULL;
     struct nickname_template_str nt;
-    nt.nickname = nickname;
+    nt.nickname = (char*) nickname;
     nt.subjectList = NULL;
     PZ_Lock(store->lock);
     nssHash_Iterate(store->subject, match_nickname, &nt);

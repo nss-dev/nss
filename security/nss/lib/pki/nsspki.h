@@ -1709,7 +1709,7 @@ NSS_EXTERN NSSCertificate *
 NSSTrustDomain_FindBestCertificateByNickname
 (
   NSSTrustDomain *td,
-  NSSUTF8 *name,
+  const NSSUTF8 *name,
   NSSTime *timeOpt, /* NULL for "now" */
   NSSUsage *usage,
   NSSPolicies *policiesOpt /* NULL for none */
@@ -2305,7 +2305,7 @@ NSS_EXTERN NSSCertificate *
 NSSCryptoContext_FindBestCertificateByNickname
 (
   NSSCryptoContext *cc,
-  NSSUTF8 *name,
+  const NSSUTF8 *name,
   NSSTime *timeOpt, /* NULL for "now" */
   NSSUsage *usage,
   NSSPolicies *policiesOpt /* NULL for none */

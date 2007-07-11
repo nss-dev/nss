@@ -245,7 +245,7 @@ nssCryptoContext_ImportSMIMEProfile (
 NSS_IMPLEMENT NSSCertificate *
 NSSCryptoContext_FindBestCertificateByNickname (
   NSSCryptoContext *cc,
-  NSSUTF8 *name,
+  const NSSUTF8 *name,
   NSSTime *timeOpt, /* NULL for "now" */
   NSSUsage *usage,
   NSSPolicies *policiesOpt /* NULL for none */
