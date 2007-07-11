@@ -61,10 +61,6 @@
 #include "ocspti.h"	/* internals for pretty-printing routines *only* */
 #endif	/* NO_PP */
 
-#if defined(XP_UNIX)
-#include <unistd.h>
-#endif
-
 #if defined(_WIN32)
 #include "fcntl.h"
 #include "io.h"
