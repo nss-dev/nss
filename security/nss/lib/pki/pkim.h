@@ -656,7 +656,7 @@ NSS_EXTERN NSSCertificate **
 nssTrustDomain_GetCertsForNicknameFromCache
 (
   NSSTrustDomain *td,
-  NSSUTF8 *nickname,
+  const NSSUTF8 *nickname,
   nssList *certListOpt
 );
 

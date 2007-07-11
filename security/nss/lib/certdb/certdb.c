@@ -2036,7 +2036,7 @@ CERT_DestroyCertArray(CERTCertificate **certs, unsigned int ncerts)
 }
 
 char *
-CERT_FixupEmailAddr(char *emailAddr)
+CERT_FixupEmailAddr(const char *emailAddr)
 {
     char *retaddr;
     char *str;
