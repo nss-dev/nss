@@ -544,7 +544,7 @@ lg_init(SDB **pSdb, int flags, NSSLOWCERTCertDBHandle *certdbPtr,
     sdb->sdb_Begin = lg_Begin;
     sdb->sdb_Commit = lg_Commit;
     sdb->sdb_Abort = lg_Abort;
-    sdb->sdb_Close = lg_Reset;
+    sdb->sdb_Reset = lg_Reset;
     sdb->sdb_Close = lg_Close;
 
 
