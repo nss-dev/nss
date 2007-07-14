@@ -1470,7 +1470,6 @@ PRBool    SSL_IsExportCipherSuite(PRUint16 cipherSuite);
 #endif
 
 void ssl_Trace(const char *format, ...);
-ECName	ssl3_GetCurveWithECKeyStrength(PRUint32 curvemsk, int requiredECCbits);
 
 SEC_END_PROTOS
 
