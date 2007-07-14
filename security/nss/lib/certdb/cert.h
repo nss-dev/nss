@@ -1101,10 +1101,6 @@ CERT_ImportCerts(CERTCertDBHandle *certdb, SECCertUsage usage,
 		 CERTCertificate ***retCerts, PRBool keepCerts,
 		 PRBool caOnly, char *nickname);
 
-SECStatus
-CERT_SaveImportedCert(CERTCertificate *cert, SECCertUsage usage,
-		      PRBool caOnly, char *nickname);
-
 char *
 CERT_MakeCANickname(CERTCertificate *cert);
 
