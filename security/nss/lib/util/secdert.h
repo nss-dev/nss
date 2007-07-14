@@ -43,6 +43,8 @@
  * $Id$
  */
 
+#include "seccomon.h"
+
 typedef struct DERTemplateStr DERTemplate;
 
 /*
