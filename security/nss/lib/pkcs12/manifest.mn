@@ -50,7 +50,6 @@ MODULE = nss
 CSRCS = \
 	p12local.c \
 	p12creat.c \
-	p12dec.c \
 	p12plcy.c \
 	p12tmpl.c \
 	p12e.c \
