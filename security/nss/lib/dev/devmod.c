@@ -303,9 +303,15 @@ nssModule_Unload (
 )
 {
     PRStatus nssrv = PR_SUCCESS;
+    char *disableUnload = NULL;
     if (mod->library) {
 	(void)CKAPI(mod->epv)->C_Finalize(NULL);
-	nssrv = PR_UnloadLibrary(mod->library);
+#ifdef DEBUG
+	disableUnload = PR_GetEnv("NSS_DISABLE_UNLOAD");
+#endif
+	if (!disableUnload) {
+	    nssrv = PR_UnloadLibrary(mod->library);
+	}
     }
     /* Free the slots, yes? */
     mod->library = NULL;
