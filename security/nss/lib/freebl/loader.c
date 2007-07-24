@@ -849,9 +849,8 @@ BL_Unload(void)
    * only called from functions that are also defined as not thread-safe,
    * namely C_Finalize in softoken, and the SSL bypass shutdown callback called
    * from NSS_Shutdown. */
-  vector = NULL;
-  PRStatus status = PR_SUCCESS;
   char *disableUnload = NULL;
+  vector = NULL;
   /* If an SSL socket is configured with SSL_BYPASS_PKCS11, but the application
    * never does a handshake on it, BL_Unload will be called even though freebl
    * was never loaded. So, don't assert blLib. */
@@ -860,9 +859,9 @@ BL_Unload(void)
       disableUnload = PR_GetEnv("NSS_DISABLE_UNLOAD");
 #endif
       if (!disableUnload) {
-          status = PR_UnloadLibrary(blLib);
+          PRStatus status = PR_UnloadLibrary(blLib);
+          PORT_Assert(PR_SUCCESS == status);
       }
-      PORT_Assert(PR_SUCCESS == status);
       blLib = NULL;
   }
   loadFreeBLOnce = pristineCallOnce;
