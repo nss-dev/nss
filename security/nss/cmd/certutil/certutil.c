@@ -2829,6 +2829,21 @@ secuCommandFlag certutil_options[] =
 	slot = PK11_GetInternalKeySlot();
     else if (slotname != NULL)
 	slot = PK11_FindSlotByName(slotname);
+   
+    if ( !slot && (certutil.commands[cmd_NewDBs].activated ||
+         certutil.commands[cmd_ModifyCertTrust].activated  || 
+         certutil.commands[cmd_ChangePassword].activated   ||
+         certutil.commands[cmd_TokenReset].activated       ||
+         certutil.commands[cmd_CreateAndAddCert].activated ||
+         certutil.commands[cmd_AddCert].activated          ||
+         certutil.commands[cmd_AddEmailCert].activated)) {
+      
+         SECU_PrintError(progName, "could not find the slot %s",slotname);
+         rv = SECFailure;
+         goto shutdown;
+    }
+
+
 
     /*  If creating new database, initialize the password.  */
     if (certutil.commands[cmd_NewDBs].activated) {
