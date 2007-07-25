@@ -776,6 +776,13 @@ safe_popen(char *cmd)
     if (pipe(p) < 0)
 	return 0;
 
+    fp = fdopen(p[0], "r");
+    if (fp == 0) {
+	close(p[0]);
+	close(p[1]);
+	return 0;
+    }
+
     /* Setup signals so that SIGCHLD is ignored as we want to do waitpid */
     newact.sa_handler = SIG_DFL;
     newact.sa_flags = 0;
@@ -784,8 +791,10 @@ safe_popen(char *cmd)
 
     pid = fork();
     switch (pid) {
+      int ndesc;
+
       case -1:
-	close(p[0]);
+	fclose(fp); /* this closes p[0], the fd associated with fp */
 	close(p[1]);
 	sigaction (SIGCHLD, &oldact, NULL);
 	return 0;
@@ -794,11 +803,15 @@ safe_popen(char *cmd)
 	/* dup write-side of pipe to stderr and stdout */
 	if (p[1] != 1) dup2(p[1], 1);
 	if (p[1] != 2) dup2(p[1], 2);
-	close(0);
-        {
-            int ndesc = getdtablesize();
-            for (fd = PR_MIN(65536, ndesc); --fd > 2; close(fd));
-        }
+
+	/* 
+	 * close the other file descriptors, except stdin which we
+	 * try reassociating with /dev/null, first (bug 174993)
+	 */
+	if (!freopen("/dev/null", "r", stdin))
+	    close(0);
+	ndesc = getdtablesize();
+	for (fd = PR_MIN(65536, ndesc); --fd > 2; close(fd));
 
 	/* clean up environment in the child process */
 	putenv("PATH=/bin:/usr/bin:/sbin:/usr/sbin:/etc:/usr/etc");
@@ -827,12 +840,6 @@ safe_popen(char *cmd)
 
       default:
 	close(p[1]);
-	fp = fdopen(p[0], "r");
-	if (fp == 0) {
-	    close(p[0]);
-	    sigaction (SIGCHLD, &oldact, NULL);
-	    return 0;
-	}
 	break;
     }
 
