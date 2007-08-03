@@ -47,6 +47,9 @@ MAPFILE = $(OBJDIR)/softokn.def
 
 DEFINES += -DSHLIB_SUFFIX=\"$(DLL_SUFFIX)\" -DSHLIB_PREFIX=\"$(DLL_PREFIX)\" -DSOFTOKEN_LIB_NAME=\"$(notdir $(SHARED_LIBRARY))\" -DSHLIB_VERSION=\"$(LIBRARY_VERSION)\"
 
+ifdef MOZILLA_CLIENT
+INCLUDES += -I$(DIST)/include/sqlite3
+endif
 
 EXPORTS = \
 	pkcs11.h \
@@ -89,10 +92,6 @@ CSRCS = \
 	softkver.c  \
 	tlsprf.c   \
 	$(NULL)
-
-ifdef NSS_ENABLE_ECC
-DEFINES += -DNSS_ENABLE_ECC
-endif
 
 ifdef SQLITE_UNSAFE_THREADS
 DEFINES += -DSQLITE_UNSAFE_THREADS
