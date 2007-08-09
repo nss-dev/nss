@@ -265,5 +265,12 @@ SECStatus DPCache_GetCRLEntry(CRLDPCache* cache, PRBool readlocked,
                               CERTSignedCrl* crl, SECItem* sn,
                               CERTCrlEntry** returned);
 
+/*
+ * map Stan errors into NSS errors
+ * This function examines the stan error stack and automatically sets
+ * PORT_SetError(); to the appropriate SEC_ERROR value.
+ */
+void CERT_MapStanError();
+
 #endif /* _CERTI_H_ */
 

@@ -428,6 +428,16 @@ typedef enum {
     SEC_OID_CAMELLIA_192_CBC                = 289,
     SEC_OID_CAMELLIA_256_CBC                = 290,
 
+    /* PKCS 5 V2 OIDS */
+    SEC_OID_PKCS5_PBKDF2                    = 291,
+    SEC_OID_PKCS5_PBES2                     = 292,
+    SEC_OID_PKCS5_PBMAC1                    = 293,
+    SEC_OID_HMAC_SHA1                       = 294,
+    SEC_OID_HMAC_SHA224                     = 295,
+    SEC_OID_HMAC_SHA256                     = 296,
+    SEC_OID_HMAC_SHA384                     = 297,
+    SEC_OID_HMAC_SHA512                     = 298,
+
     SEC_OID_TOTAL
 } SECOidTag;
 
