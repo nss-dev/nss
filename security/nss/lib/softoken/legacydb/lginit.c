@@ -546,8 +546,8 @@ lg_init(SDB **pSdb, int flags, NSSLOWCERTCertDBHandle *certdbPtr,
     sdb->sdb_SetAttributeValue = lg_SetAttributeValue;
     sdb->sdb_CreateObject = lg_CreateObject;
     sdb->sdb_DestroyObject = lg_DestroyObject;
-    sdb->sdb_GetPWEntry = lg_GetPWEntry;
-    sdb->sdb_PutPWEntry = lg_PutPWEntry;
+    sdb->sdb_GetMetaData = lg_GetMetaData;
+    sdb->sdb_PutMetaData = lg_PutMetaData;
     sdb->sdb_Begin = lg_Begin;
     sdb->sdb_Commit = lg_Commit;
     sdb->sdb_Abort = lg_Abort;
