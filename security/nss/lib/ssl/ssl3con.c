@@ -3614,7 +3614,7 @@ ssl3_SendClientHello(sslSocket *ss)
     if (!num_suites)
     	return SECFailure;	/* ssl3_config_match_init has set error code. */
 
-    if (ss->opt.enableTLS) {
+    if (ss->opt.enableTLS && ss->version > SSL_LIBRARY_VERSION_3_0) {
 	PRUint32 maxBytes = 65535; /* 2^16 - 1 */
 	PRInt32  extLen;
 
