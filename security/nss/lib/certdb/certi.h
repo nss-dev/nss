@@ -245,6 +245,10 @@ cert_FindDERCertBySubjectKeyID(SECItem *subjKeyID);
 /* return maximum length of AVA value based on its type OID tag. */
 extern int cert_AVAOidTagToMaxLen(SECOidTag tag);
 
+/* Make an AVA, allocated from pool, from OID and DER encoded value */
+extern CERTAVA * CERT_CreateAVAFromRaw(PRArenaPool *pool, 
+                               const SECItem * OID, const SECItem * value);
+
 /*
  * get a DPCache object for the given issuer subject and dp
  * Automatically creates the cache object if it doesn't exist yet.
