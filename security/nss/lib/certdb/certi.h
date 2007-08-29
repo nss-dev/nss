@@ -287,23 +287,13 @@ PRBool cert_UsePKIXValidation();
 /* Interface function for libpkix cert validation engine:
  * cert_verify wrapper. */
 SECStatus
-cert_VerifyCertPkix(CERTCertificate *cert,
-                    PRBool checkSig,
-                    SECCertUsage     requiredUsage,
-                    PRUint64         time,
-                    PRBool           asCA,
-                    void            *wincx,
-                    CERTVerifyLog   *log);
-
-/* Interface function for libpkix cert validation engine:
- * cert_verify wrapper. */
-SECStatus
-cert_VerifyCertificatePkix(CERTCertificate *cert,
-                           PRBool checkSig,
-                           SECCertificateUsage requiredUsage,
-                           PRUint64 time,
-                           void *wincx,
-                           CERTVerifyLog *log,
-                           SECCertificateUsage *returnedUsages);
+cert_VerifyCertChainPkix(CERTCertificate *cert,
+                         PRBool checkSig,
+                         SECCertUsage     requiredUsage,
+                         PRUint64         time,
+                         void            *wincx,
+                         CERTVerifyLog   *log,
+                         PRBool          *sigError,
+                         PRBool          *revoked);
 #endif /* _CERTI_H_ */
 
