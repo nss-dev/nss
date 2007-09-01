@@ -186,6 +186,29 @@ ssl_SetAlwaysBlock(sslSocket *ss)
     }
 }
 
+static SECStatus 
+ssl_SetTimeout(PRFileDesc *fd, PRIntervalTime timeout)
+{
+    sslSocket *ss;
+
+    ss = ssl_FindSocket(fd);
+    if (!ss) {
+	SSL_DBG(("%d: SSL[%d]: bad socket in SetTimeout", SSL_GETPID(), fd));
+	return SECFailure;
+    }
+    SSL_LOCK_READER(ss);
+    ss->rTimeout = timeout;
+    if (ss->opt.fdx) {
+        SSL_LOCK_WRITER(ss);
+    }
+    ss->wTimeout = timeout;
+    if (ss->opt.fdx) {
+        SSL_UNLOCK_WRITER(ss);
+    }
+    SSL_UNLOCK_READER(ss);
+    return SECSuccess;
+}
+
 /* Acquires and releases HandshakeLock.
 */
 SECStatus
