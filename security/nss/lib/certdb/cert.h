@@ -1558,6 +1558,44 @@ CERT_FindNameConstraintsExten(PRArenaPool      *arena,
 extern CERTGeneralName *
 CERT_NewGeneralName(PLArenaPool *arena, CERTGeneralNameType type);
 
+/*
+ * PKIX extension encoding routines
+ */
+extern SECStatus
+CERT_EncodePolicyConstraintsExtension(PRArenaPool *arena,
+                                      CERTCertificatePolicyConstraints *constr,
+                                      SECItem *dest);
+extern SECStatus
+CERT_EncodeInhibitAnyExtension(PRArenaPool *arena,
+                               CERTCertificateInhibitAny *inhibitAny,
+                               SECItem *dest);
+extern SECStatus
+CERT_EncodePolicyMappingExtension(PRArenaPool *arena,
+                                  CERTCertificatePolicyMappings *maps,
+                                  SECItem *dest);
+
+extern SECStatus CERT_EncodeInfoAccessExtension(PRArenaPool *arena,
+                                                    CERTAuthInfoAccess **info,
+                                                    SECItem *dest);
+extern SECStatus
+CERT_EncodeUserNotice(PRArenaPool *arena,
+                      CERTUserNotice *notice,
+                      SECItem *dest);
+
+extern SECStatus
+CERT_EncodeDisplayText(PRArenaPool *arena,
+                       SECItem *text,
+                       SECItem *dest);
+
+extern SECStatus
+CERT_EncodeCertPoliciesExtension(PRArenaPool *arena,
+                                 CERTPolicyInfo **info,
+                                 SECItem *dest);
+extern SECStatus
+CERT_EncodeNoticeReference(PRArenaPool *arena,
+                           CERTNoticeReference *reference,
+                           SECItem *dest);
+
 SEC_END_PROTOS
 
 #endif /* _CERT_H_ */
