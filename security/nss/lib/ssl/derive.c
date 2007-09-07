@@ -44,6 +44,7 @@
 #include "sslimpl.h"
 #include "blapi.h"
 
+#include "keyhi.h"
 #include "pk11func.h"
 #include "secasn1.h"
 #include "cert.h"
