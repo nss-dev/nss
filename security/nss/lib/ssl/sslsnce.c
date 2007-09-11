@@ -108,10 +108,6 @@
 #include "nsslocks.h"
 #include "sslmutex.h"
 
-#ifdef XP_OS2_VACPP
-#pragma pack(1)
-#endif
-
 /*
 ** Format of a cache entry in the shared memory.
 */ 
