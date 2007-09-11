@@ -47,6 +47,7 @@
 #include "secoid.h"	/* for SECOID_GetALgorithmTag */
 #include "pk11func.h"	/* for PK11_GenerateRandom */
 #include "nss.h"        /* for NSS_RegisterShutdown */
+#include "prinit.h"     /* for PR_CallOnceWithArg */
 
 #define MAX_BLOCK_CYPHER_SIZE	32
 
