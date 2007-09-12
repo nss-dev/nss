@@ -1760,6 +1760,12 @@ sdb_init(char *dbname, char *table, sdbDataType type, int *inUpdate,
     /*
      * detect the case where we have created the database, but have
      * not yet updated it.
+     *
+     * We only check the Key database because only the key database has
+     * a metaData table. The metaData table is created when a password
+     * is set, or in the case of update, when a password is supplied.
+     * If no key database exists, then the update would have happened immediately
+     * on noticing that the cert database didn't exist (see newInit set above).
      */
     if (type == SDB_KEY && !tableExists(sqlDB, "metaData")) {
 	*newInit = 1;
