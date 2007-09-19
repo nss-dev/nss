@@ -811,7 +811,13 @@ NSS_Shutdown(void)
     }
     ShutdownCRLCache();
     OCSP_ShutdownCache();
+
+/* ifdef PKIX_Shutdown until bug 391815(undetected leaks by NSS leak testing)
+ * is fixed */
+#ifdef BUILD_LIBPKIX_TESTS
     PKIX_Shutdown(plContext);
+#endif /* BUILD_LIBPKIX_TESTS */
+
     SECOID_Shutdown();
     status = STAN_Shutdown();
     cert_DestroySubjectKeyIDHashTable();
@@ -892,5 +898,3 @@ NSS_VersionCheck(const char *importedVersion)
     }
     return PR_TRUE;
 }
-
-
