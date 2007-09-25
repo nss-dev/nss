@@ -1596,6 +1596,31 @@ CERT_EncodeNoticeReference(PRArenaPool *arena,
                            CERTNoticeReference *reference,
                            SECItem *dest);
 
+
+/*
+ * Verify a Cert with libpkix
+ *  paramsIn control the verification options. If a value isn't specified
+ *   in paramsIn, it reverts to the application default.
+ *  paramsOut specifies the parameters the caller would like to get back.
+ *   the caller may pass NULL, in which case no parameters are returned.
+ */
+extern SECStatus CERT_PKIXVerifyCert(
+	CERTCertificate *cert,
+	SECCertificateUsage usages,
+	CERTValInParam *paramsIn,
+	CERTValOutParam *paramsOut,
+	void *wincx);
+/*
+ * This function changes the application defaults for the Verify function.
+ * It should be called once at app initialization time, and only changes
+ * if the default configuration changes.
+ *
+ * This changes the default values for the parameters specified. These
+ * defaults can be overridden in CERT_PKIXVerifyCert() by explicitly 
+ * setting the value in paramsIn.
+ */
+extern SECStatus CERT_PKIXSetDefaults(CERTValInParam *paramsIn);
+
 SEC_END_PROTOS
 
 #endif /* _CERT_H_ */
