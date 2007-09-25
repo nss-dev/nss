@@ -1362,6 +1362,7 @@ nsslowkey_GetPWCheckEntry(NSSLOWKEYDBHandle *handle,NSSLOWKEYPasswordEntry *entr
     SECItem   *global_salt = NULL; 
     SECItem   *item = NULL; 
     SECItem   entryData, oid;
+    SECItem   none = { siBuffer, NULL, 0 };
     SECStatus rv = SECFailure;
     SECOidTag algorithm;
 
@@ -1372,7 +1373,7 @@ nsslowkey_GetPWCheckEntry(NSSLOWKEYDBHandle *handle,NSSLOWKEYPasswordEntry *entr
 
     global_salt = GetKeyDBGlobalSalt(handle);
     if (!global_salt) {
-	return SECFailure;
+	global_salt = &none;
     }
     if (global_salt->len > sizeof(entry->data)) {
 	/* PORT_SetError */
