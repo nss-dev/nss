@@ -644,6 +644,32 @@ ssl_FindCertKEAType(CERTCertificate * cert)
 
 }
 
+static const PRCallOnceType pristineCallOnce;
+static       PRCallOnceType setupServerCAListOnce;
+
+static SECStatus serverCAListShutdown(void* appData, void* nssData)
+{
+    PORT_Assert(ssl3_server_ca_list);
+    if (ssl3_server_ca_list) {
+	CERT_FreeDistNames(ssl3_server_ca_list);
+	ssl3_server_ca_list = NULL;
+    }
+    setupServerCAListOnce = pristineCallOnce;
+    return SECSuccess;
+}
+
+static PRStatus serverCAListSetup(void *arg)
+{
+    CERTCertDBHandle *dbHandle = (CERTCertDBHandle *)arg;
+    SECStatus rv = NSS_RegisterShutdown(serverCAListShutdown, NULL);
+    PORT_Assert(SECSuccess == rv);
+    if (SECSuccess == rv) {
+	ssl3_server_ca_list = CERT_GetSSLCACerts(dbHandle);
+	return PR_SUCCESS;
+    }
+    return PR_FAILURE;
+}
+
 
 /* XXX need to protect the data that gets changed here.!! */
 
@@ -763,10 +789,11 @@ SSL_ConfigSecureServer(PRFileDesc *fd, CERTCertificate *cert,
     }
 
     /* Only do this once because it's global. */
-    if (ssl3_server_ca_list == NULL)
-	ssl3_server_ca_list = CERT_GetSSLCACerts(ss->dbHandle);
-
-    return SECSuccess;
+    if (PR_SUCCESS == PR_CallOnceWithArg(&setupServerCAListOnce, 
+                                         &serverCAListSetup,
+                                         (void *)(ss->dbHandle))) {
+	return SECSuccess;
+    }
 
 loser:
     if (pubKey) {
