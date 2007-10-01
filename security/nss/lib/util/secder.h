@@ -59,25 +59,6 @@
 SEC_BEGIN_PROTOS
 
 /*
-** Decode a piece of der encoded data.
-** 	"dest" points to a structure that will be filled in with the
-**	   decoding results.  (NOTE: it should be zeroed before calling;
-**	   optional/missing fields are not zero-filled by DER_Decode.)
-**	"t" is a template structure which defines the shape of the
-**	   expected data.
-**	"src" is the der encoded data.
-** NOTE: substructures of "dest" will be allocated as needed from
-** "arena", but data subfields will point directly into the buffer
-** passed in as src->data.  That is, the resulting "dest" structure
-** will contain pointers back into src->data, which must remain
-** active (allocated) and unmodified for as long as "dest" is active.
-** If this is a potential problem, you may want to just dup the buffer
-** (allocated from "arena", probably) and pass *that* in instead.
-*/
-extern SECStatus DER_Decode(PRArenaPool *arena, void *dest, DERTemplate *t,
-			   SECItem *src);
-
-/*
 ** Encode a data structure into DER.
 **	"dest" will be filled in (and memory allocated) to hold the der
 **	   encoded structure in "src"
