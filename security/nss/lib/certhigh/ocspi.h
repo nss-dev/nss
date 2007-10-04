@@ -43,6 +43,6 @@
 #define _OCSPI_H_
 
 SECStatus OCSP_InitGlobal(void);
-SECStatus OCSP_ShutdownCache(void);
+SECStatus OCSP_ShutdownGlobal(void);
 
 #endif /* _OCSPI_H_ */

@@ -810,7 +810,7 @@ NSS_Shutdown(void)
 	shutdownRV = SECFailure;
     }
     ShutdownCRLCache();
-    OCSP_ShutdownCache();
+    OCSP_ShutdownGlobal();
 
 /* ifdef PKIX_Shutdown until bug 391815(undetected leaks by NSS leak testing)
  * is fixed */
