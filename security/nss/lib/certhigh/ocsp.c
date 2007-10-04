@@ -874,7 +874,7 @@ SECStatus OCSP_InitGlobal(void)
     return rv;
 }
 
-SECStatus OCSP_ShutdownCache(void)
+SECStatus OCSP_ShutdownGlobal(void)
 {
     if (!OCSP_Global.monitor)
         return SECSuccess;
@@ -888,7 +888,19 @@ SECStatus OCSP_ShutdownCache(void)
     PORT_Assert(OCSP_Global.cache.numberOfEntries == 0);
     OCSP_Global.cache.MRUitem = NULL;
     OCSP_Global.cache.LRUitem = NULL;
+
+    OCSP_Global.defaultHttpClientFcn = NULL;
+    OCSP_Global.maxCacheEntries = DEFAULT_OCSP_CACHE_SIZE;
+    OCSP_Global.minimumSecondsToNextFetchAttempt = 
+      DEFAULT_MINIMUM_SECONDS_TO_NEXT_OCSP_FETCH_ATTEMPT;
+    OCSP_Global.maximumSecondsToNextFetchAttempt =
+      DEFAULT_MAXIMUM_SECONDS_TO_NEXT_OCSP_FETCH_ATTEMPT;
+    OCSP_Global.ocspFailureMode =
+      ocspMode_FailureIsVerificationFailure;
     PR_ExitMonitor(OCSP_Global.monitor);
+
+    PR_DestroyMonitor(OCSP_Global.monitor);
+    OCSP_Global.monitor = NULL;
     return SECSuccess;
 }
 
