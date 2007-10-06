@@ -2198,7 +2198,8 @@ nssCKFWObject_Create
 NSS_EXTERN void
 nssCKFWObject_Finalize
 (
-  NSSCKFWObject *fwObject
+  NSSCKFWObject *fwObject,
+  PRBool removeFromHash
 );
 
 /*

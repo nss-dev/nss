@@ -253,7 +253,7 @@ nss_ckfw_session_object_destroy_iterator
 )
 {
   NSSCKFWObject *fwObject = (NSSCKFWObject *)value;
-  nssCKFWObject_Finalize(fwObject);
+  nssCKFWObject_Finalize(fwObject, PR_TRUE);
 }
 
 /*
@@ -1384,7 +1384,7 @@ nssCKFWSession_CreateObject
     if( CK_FALSE == nssCKFWHash_Exists(fwSession->sessionObjectHash, fwObject) ) {
       *pError = nssCKFWHash_Add(fwSession->sessionObjectHash, fwObject, fwObject);
       if( CKR_OK != *pError ) {
-        nssCKFWObject_Finalize(fwObject);
+        nssCKFWObject_Finalize(fwObject, PR_TRUE);
         return (NSSCKFWObject *)NULL;
       }
     }
@@ -1500,7 +1500,7 @@ nssCKFWSession_CopyObject
       if( CK_FALSE == nssCKFWHash_Exists(fwSession->sessionObjectHash, rv) ) {
         *pError = nssCKFWHash_Add(fwSession->sessionObjectHash, rv, rv);
         if( CKR_OK != *pError ) {
-          nssCKFWObject_Finalize(rv);
+          nssCKFWObject_Finalize(rv, PR_TRUE);
           return (NSSCKFWObject *)NULL;
         }
       }
