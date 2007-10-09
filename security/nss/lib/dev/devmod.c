@@ -306,9 +306,7 @@ nssModule_Unload (
     char *disableUnload = NULL;
     if (mod->library) {
 	(void)CKAPI(mod->epv)->C_Finalize(NULL);
-#ifdef DEBUG
 	disableUnload = PR_GetEnv("NSS_DISABLE_UNLOAD");
-#endif
 	if (!disableUnload) {
 	    nssrv = PR_UnloadLibrary(mod->library);
 	}
