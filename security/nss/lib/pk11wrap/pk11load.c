@@ -390,9 +390,7 @@ fail2:
     }
 fail:
     mod->functionList = NULL;
-#ifdef DEBUG
     disableUnload = PR_GetEnv("NSS_DISABLE_UNLOAD");
-#endif
     if (library && !disableUnload) {
         PR_UnloadLibrary(library);
     }
@@ -426,9 +424,7 @@ SECMOD_UnloadModule(SECMODModule *mod) {
 	return SECFailure;
     }
 
-#ifdef DEBUG
     disableUnload = PR_GetEnv("NSS_DISABLE_UNLOAD");
-#endif
     if (!disableUnload) {
         PR_UnloadLibrary(library);
     }
