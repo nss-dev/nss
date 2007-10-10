@@ -684,24 +684,65 @@ log_compare()
 ########################################################################
 check_ignored()
 {
-	ret=0
-
-	while read stack
-	do
-		log_compare < ${IGNORED_STACKS}
-		if [ $? -eq 0 ] ; then
-			if [ ${BUG_ID} != "" ] ; then
-				echo "IGNORED STACK (${BUG_ID}): ${stack}"
-			else
-				echo "IGNORED STACK: ${stack}"
-			fi
-		else
-			ret=1
-			echo "NEW STACK: ${stack}"
-		fi
-	done
-
-	return ${ret}
+    ${AWK} -F/ '
+	BEGIN {
+		ignore = "'${IGNORED_STACKS}'"
+		# read in the ignore file
+		BUGNUM = ""
+		count = 0
+		new = 0
+		while ((getline line < ignore) > 0)  {
+			if (line ~ "^#[0-9]+") {
+				BUGNUM = line
+			} else if (line ~ "^#") {
+				continue
+			} else if (line == "") {
+				continue
+			} else {
+				bugnum_array[count] = BUGNUM
+ 				# Create a regular expression for the ignored stack:
+ 				# replace * with % so we can later replace them with regular expressions
+ 				# without messing up everything (the regular expressions contain *)
+ 				gsub("\\*","%",line)
+ 				# replace %% with .*
+ 				gsub("%%",".*",line)
+ 				# replace % with [^/]*
+ 				gsub("%","[^/]*",line)
+ 				# add ^ at the beginning
+ 				# add $ at the end
+ 				line_array[count] = "^" line "$"
+				count++
+			}
+		}
+	}
+	{
+		match_found=0
+		# Look for matching ignored stack
+	 	for (i=0 ; i < count; i++) {
+			if ($0 ~ line_array[i]) {
+				# found a match
+				match_found = 1
+				bug_found = bugnum_array[i]
+				break
+			}
+		}
+		# Process result
+		if (match_found == 1 ) {
+				if (bug_found != "") {
+					print "IGNORED STACK (" bug_found "): " $0
+				} else {
+					print "IGNORED STACK: " $0
+				}
+		} else {
+				print "NEW STACK: " $0
+				new = 1
+		}
+	}
+	END {
+		exit new
+	}'
+	ret=$?
+	return $ret
 }
 
 ############################### parse_log ##############################
