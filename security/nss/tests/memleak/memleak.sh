@@ -107,6 +107,7 @@ memleak_init()
 	case "${OS_NAME}" in
 	"SunOS")
 		DBX=`which dbx`
+		AWK=nawk
 		
 		if [ $? -eq 0 ] ; then
 			echo "${SCRIPTNAME}: DBX found: ${DBX}"
@@ -141,6 +142,7 @@ memleak_init()
 		;;
 	"Linux")
 		VALGRIND=`which valgrind`
+		AWK=awk
 		
 		if [ $? -eq 0 ] ; then
 			echo "${SCRIPTNAME}: Valgrind found: ${VALGRIND}"
