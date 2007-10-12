@@ -49,6 +49,9 @@
 #include "secerr.h"
 #include "nspr.h"
 
+SEC_ASN1_MKSUB(SEC_IntegerTemplate);
+SEC_ASN1_MKSUB(SEC_ObjectIDTemplate);
+
 const SEC_ASN1Template CERT_DisplayTextTypeTemplate[] = {
     { SEC_ASN1_CHOICE, offsetof(SECItem, type), 0, sizeof(SECItem) },
     { SEC_ASN1_IA5_STRING, 0, 0, siAsciiString},
@@ -64,9 +67,9 @@ const SEC_ASN1Template CERT_NoticeReferenceTemplate[] = {
     { SEC_ASN1_INLINE,
 	  offsetof(CERTNoticeReference, organization),
            CERT_DisplayTextTypeTemplate, 0 },
-    { SEC_ASN1_SEQUENCE_OF,
+    { SEC_ASN1_SEQUENCE_OF | SEC_ASN1_XTRN,
            offsetof(CERTNoticeReference, noticeNumbers),
-           SEC_IntegerTemplate }, 
+           SEC_ASN1_SUB(SEC_IntegerTemplate) }, 
     { 0 }
 };
 
@@ -126,12 +129,12 @@ const SEC_ASN1Template CERT_PolicyMappingsTemplate[] = {
 
 const SEC_ASN1Template CERT_PolicyConstraintsTemplate[] = {
     { SEC_ASN1_SEQUENCE, 0, NULL, sizeof(CERTCertificatePolicyConstraints) },
-    { SEC_ASN1_OPTIONAL | SEC_ASN1_CONTEXT_SPECIFIC | 0,
+    { SEC_ASN1_OPTIONAL | SEC_ASN1_CONTEXT_SPECIFIC | SEC_ASN1_XTRN | 0,
 	  offsetof(CERTCertificatePolicyConstraints, explicitPolicySkipCerts),
-	  SEC_IntegerTemplate },
-    { SEC_ASN1_OPTIONAL | SEC_ASN1_CONTEXT_SPECIFIC | 1,
+	  SEC_ASN1_SUB(SEC_IntegerTemplate) },
+    { SEC_ASN1_OPTIONAL | SEC_ASN1_CONTEXT_SPECIFIC | SEC_ASN1_XTRN | 1,
 	  offsetof(CERTCertificatePolicyConstraints, inhibitMappingSkipCerts),
-	  SEC_IntegerTemplate },
+	  SEC_ASN1_SUB(SEC_IntegerTemplate) },
     { 0 }
 };
 
@@ -626,9 +629,9 @@ nopolicy:
 
 
 const SEC_ASN1Template CERT_OidSeqTemplate[] = {
-    { SEC_ASN1_SEQUENCE_OF,
+    { SEC_ASN1_SEQUENCE_OF | SEC_ASN1_XTRN,
 	  offsetof(CERTOidSequence, oids),
-	  SEC_ObjectIDTemplate }
+	  SEC_ASN1_SUB(SEC_ObjectIDTemplate) }
 };
 
 CERTOidSequence *

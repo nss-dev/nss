@@ -43,6 +43,8 @@
 #ifndef _SECPORT_H_
 #define _SECPORT_H_
 
+#include "utilrename.h"
+
 /*
  * define XP_MAC, XP_WIN, XP_BEOS, or XP_UNIX, in case they are not defined
  * by anyone else

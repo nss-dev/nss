@@ -76,12 +76,6 @@ __nss_InitLock(   PZLock    **ppLock, nssILockType ltype )
     return (*ppLock != NULL) ? SECSuccess : SECFailure;
 }
 
-SECStatus 
-nss_InitLock(   PZLock    **ppLock, nssILockType ltype )
-{
-    return __nss_InitLock(ppLock, ltype);
-}
-
 /* Given the address of a (global) pointer to a PZMonitor, 
  * atomicly create the monitor and initialize the (global) pointer, 
  * if it is not already created/initialized.
