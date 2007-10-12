@@ -41,6 +41,7 @@
 #ifndef _SECDIG_H_
 #define _SECDIG_H_
 
+#include "utilrename.h"
 #include "secdigt.h"
 
 #include "seccomon.h"
@@ -56,6 +57,7 @@ SEC_ASN1_CHOOSER_DECLARE(sgn_DigestInfoTemplate)
 
 extern DERTemplate SGNDigestInfoTemplate[];
 
+SEC_ASN1_CHOOSER_DECLARE(SGNDigestInfoTemplate)
 
 /****************************************/
 /*

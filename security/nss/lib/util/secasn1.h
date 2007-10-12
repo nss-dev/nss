@@ -45,6 +45,7 @@
 #ifndef _SECASN1_H_
 #define _SECASN1_H_
 
+#include "utilrename.h"
 #include "plarena.h"
 
 #include "seccomon.h"
@@ -306,5 +307,14 @@ SEC_ASN1_CHOOSER_DECLARE(SEC_PointerToOctetStringTemplate)
 
 SEC_ASN1_CHOOSER_DECLARE(SEC_SetOfAnyTemplate)
 
+SEC_ASN1_CHOOSER_DECLARE(SEC_EnumeratedTemplate)
+SEC_ASN1_CHOOSER_DECLARE(SEC_PointerToEnumeratedTemplate)
+SEC_ASN1_CHOOSER_DECLARE(SEC_SequenceOfAnyTemplate)
+SEC_ASN1_CHOOSER_DECLARE(SEC_SequenceOfObjectIDTemplate)
+SEC_ASN1_CHOOSER_DECLARE(SEC_SkipTemplate)
+SEC_ASN1_CHOOSER_DECLARE(SEC_UniversalStringTemplate)
+SEC_ASN1_CHOOSER_DECLARE(SEC_PrintableStringTemplate)
+SEC_ASN1_CHOOSER_DECLARE(SEC_T61StringTemplate)
+SEC_ASN1_CHOOSER_DECLARE(SEC_PointerToGeneralizedTimeTemplate)
 SEC_END_PROTOS
 #endif /* _SECASN1_H_ */

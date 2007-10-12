@@ -43,6 +43,7 @@
 #ifndef _CERT_H_
 #define _CERT_H_
 
+#include "utilrename.h"
 #include "plarena.h"
 #include "plhash.h"
 #include "prlong.h"

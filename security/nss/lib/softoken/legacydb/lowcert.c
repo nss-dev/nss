@@ -50,10 +50,13 @@
 #include "secerr.h"
 #include "pcert.h"
 
+SEC_ASN1_MKSUB(SECOID_AlgorithmIDTemplate);
+
 static const SEC_ASN1Template nsslowcert_SubjectPublicKeyInfoTemplate[] = {
     { SEC_ASN1_SEQUENCE, 0, NULL, sizeof(NSSLOWCERTSubjectPublicKeyInfo) },
-    { SEC_ASN1_INLINE, offsetof(NSSLOWCERTSubjectPublicKeyInfo,algorithm),
-          SECOID_AlgorithmIDTemplate },
+    { SEC_ASN1_INLINE | SEC_ASN1_XTRN,
+        offsetof(NSSLOWCERTSubjectPublicKeyInfo,algorithm),
+        SEC_ASN1_SUB(SECOID_AlgorithmIDTemplate) },
     { SEC_ASN1_BIT_STRING,
           offsetof(NSSLOWCERTSubjectPublicKeyInfo,subjectPublicKey), },
     { 0, }

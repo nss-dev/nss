@@ -36,7 +36,8 @@
 #ifndef _PQGUTIL_H_
 #define _PQGUTIL_H_ 1
 
-#include "blapi.h"
+#include "utilrename.h"
+#include "blapit.h"
 
 /**************************************************************************
  *  Return a pointer to a new PQGParams struct that is a duplicate of     *

@@ -44,6 +44,8 @@
 #ifndef _SECASN1T_H_
 #define _SECASN1T_H_
 
+#include "utilrename.h"
+
 /*
 ** An array of these structures defines a BER/DER encoding for an object.
 **

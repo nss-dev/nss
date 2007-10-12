@@ -45,6 +45,7 @@
 #ifndef _NSSLOCKS_H_
 #define _NSSLOCKS_H_
 
+#include "utilrename.h"
 #include "seccomon.h"
 #include "nssilock.h"
 #include "prmon.h"
@@ -52,7 +53,7 @@
 SEC_BEGIN_PROTOS
 
 /* Given the address of a (global) pointer to a PZLock, 
- * atomicly create the lock and initialize the (global) pointer, 
+ * atomically create the lock and initialize the (global) pointer, 
  * if it is not already created/initialized.
  */
 

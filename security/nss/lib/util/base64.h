@@ -43,6 +43,7 @@
 #ifndef _BASE64_H_
 #define _BASE64_H_
 
+#include "utilrename.h"
 #include "seccomon.h"
 
 SEC_BEGIN_PROTOS
