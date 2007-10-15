@@ -183,6 +183,7 @@ memleak_init()
 
 	tbytes=0
 	tblocks=0
+	truns=0
 }
 
 ########################### memleak_cleanup ############################
@@ -799,6 +800,7 @@ cnt_total()
 	echo ""
 	echo "TinderboxPrint:${OPT} Lk bytes: ${tbytes}"
 	echo "TinderboxPrint:${OPT} Lk blocks: ${tblocks}"
+	echo "TinderboxPrint:${OPT} Lk runs: ${runs}"
 	echo ""
 }
 
