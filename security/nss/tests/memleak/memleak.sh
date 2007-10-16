@@ -79,6 +79,7 @@ memleak_init()
 	OLD_LIBRARY_PATH=${LD_LIBRARY_PATH}
 	TMP_LIBDIR="${HOSTDIR}/tmp$$"
 	TMP_STACKS="${HOSTDIR}/stacks$$"
+	TMP_COUNT="${HOSTDIR}/count$$"
 	
 	PORT=${PORT:-8443}
 	
