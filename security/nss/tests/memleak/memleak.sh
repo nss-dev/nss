@@ -577,138 +577,69 @@ parse_logfile_dbx()
 ########################################################################
 parse_logfile_valgrind()
 {
-	in_mel=0
-	in_sum=0
-	bin_name=""
+	${AWK} '
+	 BEGIN {
+		 in_mel=0;
+		 in_sum=0;
+		 bytes=0;
+		 blocks=0;
+		 runs=0;
+		 stack_string="";
+		 bin_name=""; }
+	 !/==[0-9]*==/ { 
+		if ( $1 == "'${VALGRIND}'" ) 
+			bin_name = $8 ; 
+		next;
+	 }
+	 /blocks are/ {
+		in_mel = 1;
+		stack_string="";
+		next;
+	 }
+	 /LEAK SUMMARY/ {
+		in_sum=1;
+		runs += 1;
+		next;
+	 }
+	 /^==[0-9]*== *$/ { 
+	    	if (in_mel)
+			print bin_name stack_string;
+		in_sum = 0;
+		in_mel = 0;
+		next;
+	 }
+	 in_mel == 1 {	
+		new_line = $4;
+		if ( new_line == "(within")
+			new_line = "*";
+		stack_string = "/" new_line stack_string;
+	 }
+	 in_sum == 1 {
+		for (i=2; i <= NF; i++) {
+			if ($i == "bytes") {
+				str = $(i-1);
+				gsub(",","",str);
+				bytes += str;
+			}
+			if ($i == "blocks.") {
+				str = $(i-1);
+				gsub(",","",str);
+				blocks += str;
+			}
+		}
+	 }
+	 END {
+		print "# " bytes " bytes " blocks " blocks in " runs " runs" > "/dev/stderr";
+	 }' 2> ${TMP_COUNT}
 
-	while read line
-	do
-		gline=`echo "${line}" | grep "^=="`
-		if [ -z "${gline}" ] ; then
-			gline=`echo "${line}" | grep "^${VALGRIND} "`
-			if [ -n "${gline}" ] ; then
-				bin_name=`echo "${line}" | cut -d" " -f8`
-			fi
-			continue
-		fi
-
-		line=`echo "${line}" | sed "s/==[0-9]*==\s*\(.*\)/\1/"`
-
-		gline=`echo "${line}" | grep "blocks are"`
-		if [ -n "${gline}" ] ; then
-			in_mel=1
-			mel_line=0
-			stack_string=""
-		else
-			gline=`echo "${line}" | grep "LEAK SUMMARY"`
-			if [ -n "${gline}" ] ; then
-				in_sum=1
-				mel_line=0
-			fi
-		fi
-		
-		if [ -z "${line}" ] ; then
-			if [ ${in_mel} -eq 1 ] ; then
-				in_mel=0
-				echo "${bin_name}${stack_string}"
-			elif [ ${in_sum} -eq 1 ] ; then
-				in_sum=0
-			fi
-		fi
-			
-		if [ ${in_mel} -eq 1 ] ; then
-			mel_line=`expr ${mel_line} + 1`
-			
-			if [ ${mel_line} -ge 2 ] ; then
-				new_line=`echo "${line}" | sed "s/[^:]*:\ \(\S*\).*/\1/"`
-				if [ "${new_line}" = "(within" ] ; then
-					new_line="*"
-				fi
-				stack_string="/${new_line}${stack_string}"
-			fi
-		elif [ ${in_sum} -eq 1 ] ; then
-			mel_line=`expr ${mel_line} + 1`
-			
-			if [ ${mel_line} -ge 2 ] ; then
-				gline=`echo "${line}" | grep "bytes.*blocks"`
-				if [ -n "${gline}" ] ; then
-					lbytes=`echo "${line}" | sed "s/.*: \(.*\) bytes.*/\1/" | sed "s/,//g"`
-					lblocks=`echo "${line}" | sed "s/.*bytes in \(.*\) blocks.*/\1/" | sed "s/,//g"`
-
-					tbytes=`expr "${tbytes}" + "${lbytes}"`
-					tblocks=`expr "${tblocks}" + "${lblocks}"`
-				else
-					in_sum=0
-				fi
-			fi
-		fi
-	done
-}
-
-############################# log_compare ##############################
-# local shell function to check if selected stack is found in the list
-# of ignored stacks
-########################################################################
-log_compare()
-{
-	BUG_ID=""
-
-	while read line
-	do
-		LINE="${line}"
-		STACK="${stack}"
-
-		if [ "${LINE}" = "${STACK}" ] ; then
-			return 0
-		fi
-		
-		NEXT=0
-
-		gline=`echo "${LINE}" | grep '^#'`
-		if [ -n "${gline}" ] ; then
-			BUG_ID="${LINE}"
-			NEXT=1
-		fi
-		
-		gline=`echo "${LINE}" | grep '*'`
-		if [ -z "${gline}" ] ; then
-			NEXT=1
-		fi
-		
-		while [ "${LINE}" != "" -a ${NEXT} -ne 1 ]
-		do
-			L_WORD=`echo "${LINE}" | cut -d '/' -f1`
-			gline=`echo "${LINE}" | grep '/'`
-			if [ -n "${gline}" ] ; then
-				LINE=`echo "${LINE}" | cut -d '/' -f2-`
-			else
-				LINE=""
-			fi
-
-			S_WORD=`echo "${STACK}" | cut -d '/' -f1`
-			gline=`echo "${STACK}" | grep '/'`
-			if [ -n "${gline}" ] ; then
-				STACK=`echo "${STACK}" | cut -d '/' -f2-`
-			else
-				STACK=""
-			fi
-			
-			if [ "${L_WORD}" = "**" ] ; then
-				return 0
-			fi
-			
-			if [ "${L_WORD}" != "${S_WORD}" -a "${L_WORD}" != "*" -a "${S_WORD}" != "*" ] ; then
-				NEXT=1
-				break
-			fi
-		done
-
-		if [ "${LINE}" = "" -a "${STACK}" = "" ] ; then
-			return 0
-		fi
-	done
-
-	return 1
+	# sigh it would be nice to just pipe stderr and let stdout go by I've never been 
+	# able to convince any shell to do that correctly, so we are reduced to using a temp
+	# file
+	read hash lbytes bytes_str lblocks blocks_str in_str lruns rest < ${TMP_COUNT}
+	tbytes=`expr "${tbytes}" + "${lbytes}"`
+	tblocks=`expr "${tblocks}" + "${lblocks}"`
+	truns=`expr "${truns}" + "${lruns}"`
+	rm ${TMP_COUNT}
 }
 
 ############################# check_ignored ############################
@@ -800,7 +731,7 @@ cnt_total()
 	echo ""
 	echo "TinderboxPrint:${OPT} Lk bytes: ${tbytes}"
 	echo "TinderboxPrint:${OPT} Lk blocks: ${tblocks}"
-	echo "TinderboxPrint:${OPT} Lk runs: ${runs}"
+	echo "TinderboxPrint:${OPT} # of runs: ${truns}"
 	echo ""
 }
 
