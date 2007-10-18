@@ -54,6 +54,7 @@ selfserv/PK11_TraverseSlotCerts/NSSTrustDomain_TraverseCertificates/nssPKIObject
 selfserv/main/launch_threads/PR_CreateThread/_PR_CreateThread/pthread_create@@GLIBC_2.1/**
 selfserv/main/launch_threads/PR_CreateThread/_PR_CreateThread/PR_Calloc/calloc
 selfserv/main/launch_threads/_PR_CreateThread/pthread_create@@GLIBC_2.1/**
+selfserv/main/PR_CreateThread/_PR_CreateThread/calloc
 strsclnt/main/client_main/launch_thread/PR_CreateThread/_PR_CreateThread/pthread_create@@GLIBC_2.1/**
 strsclnt/main/client_main/launch_thread/_PR_CreateThread/pthread_create@@GLIBC_2.1/**
 
