@@ -817,7 +817,9 @@ SSL_CanBypass(CERTCertificate *cert, SECKEYPrivateKey *srvPrivkey,
   done:
     if (pms)
 	PK11_FreeSymKey(pms);
-    
+
+    SECITEM_FreeItem(&enc_pms, PR_FALSE);
+
     if (srvPubkey) {
     	SECKEY_DestroyPublicKey(srvPubkey);
 	srvPubkey = NULL;
