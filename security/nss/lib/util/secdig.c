@@ -40,34 +40,6 @@
 #include "secasn1.h" 
 #include "secerr.h"
 
-/* XXX Old template; want to expunge it eventually. */
-static DERTemplate SECAlgorithmIDTemplate[] = {
-    { DER_SEQUENCE,
-	  0, NULL, sizeof(SECAlgorithmID) },
-    { DER_OBJECT_ID,
-	  offsetof(SECAlgorithmID,algorithm), },
-    { DER_OPTIONAL | DER_ANY,
-	  offsetof(SECAlgorithmID,parameters), },
-    { 0, }
-};
-
-/*
- * XXX OLD Template.  Once all uses have been switched over to new one,
- * remove this.
- */
-DERTemplate SGNDigestInfoTemplate[] = {
-    { DER_SEQUENCE,
-	  0, NULL, sizeof(SGNDigestInfo) },
-    { DER_INLINE,
-	  offsetof(SGNDigestInfo,digestAlgorithm),
-	  SECAlgorithmIDTemplate, },
-    { DER_OCTET_STRING,
-	  offsetof(SGNDigestInfo,digest), },
-    { 0, }
-};
-
-SEC_ASN1_CHOOSER_IMPLEMENT(SGNDigestInfoTemplate)
-
 /*
  * XXX Want to have a SGN_DecodeDigestInfo, like:
  *	SGNDigestInfo *SGN_DecodeDigestInfo(SECItem *didata);

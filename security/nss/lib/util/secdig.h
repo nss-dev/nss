@@ -55,10 +55,6 @@ extern const SEC_ASN1Template sgn_DigestInfoTemplate[];
 
 SEC_ASN1_CHOOSER_DECLARE(sgn_DigestInfoTemplate)
 
-extern DERTemplate SGNDigestInfoTemplate[];
-
-SEC_ASN1_CHOOSER_DECLARE(SGNDigestInfoTemplate)
-
 /****************************************/
 /*
 ** Digest-info functions
