@@ -838,16 +838,16 @@ void
 PQG_DestroyParams(PQGParams *params)
 {
   if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
-      return SECFailure;
-  return (vector->p_PQG_DestroyParams)(params);
+      return;
+  (vector->p_PQG_DestroyParams)(params);
 }
 
 void   
 PQG_DestroyVerify(PQGVerify *vfy)
 {
   if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
-      return SECFailure;
-  return (vector->p_PQG_DestroyVerify)(vfy);
+      return;
+  (vector->p_PQG_DestroyVerify)(vfy);
 }
 
 void 
