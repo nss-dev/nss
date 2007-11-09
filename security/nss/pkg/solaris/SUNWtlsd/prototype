@@ -132,7 +132,6 @@ f none usr/include/mps/pkcs12.h 0644 root bin
 f none usr/include/mps/pkcs12t.h 0644 root bin
 f none usr/include/mps/pkcs7t.h 0644 root bin
 f none usr/include/mps/portreg.h 0644 root bin
-#f none usr/include/mps/pqgutil.h 0644 root bin
 f none usr/include/mps/preenc.h 0644 root bin
 f none usr/include/mps/secasn1.h 0644 root bin
 f none usr/include/mps/secasn1t.h 0644 root bin
