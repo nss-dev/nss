@@ -1141,6 +1141,10 @@ PQG_ParamGenSeedLen(
 extern SECStatus   PQG_VerifyParams(const PQGParams *params, 
                                     const PQGVerify *vfy, SECStatus *result);
 
+extern void PQG_DestroyParams(PQGParams *params);
+
+extern void PQG_DestroyVerify(PQGVerify *vfy);
+
 
 /*
  * clean-up any global tables freebl may have allocated after it starts up.

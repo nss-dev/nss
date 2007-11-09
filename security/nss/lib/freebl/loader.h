@@ -44,7 +44,7 @@
 
 #include "blapi.h"
 
-#define FREEBL_VERSION 0x0309
+#define FREEBL_VERSION 0x0310
 
 struct FREEBLVectorStr {
 
@@ -484,6 +484,11 @@ struct FREEBLVectorStr {
 				  unsigned int maxOutputLen,
 				  const unsigned char *input,
 				  unsigned int inputLen);
+
+  /* Version 3.010 came to here */
+ void (* p_PQG_DestroyParams)(PQGParams *params);
+
+ void (* p_PQG_DestroyVerify)(PQGVerify *vfy);
 };
 
 typedef struct FREEBLVectorStr FREEBLVector;
