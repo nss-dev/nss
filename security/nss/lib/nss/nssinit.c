@@ -432,6 +432,10 @@ nss_Init(const char *configdir, const char *certPrefix, const char *keyPrefix,
     /* New option bits must not change the size of CERTCertificate. */
     PORT_Assert(sizeof(dummyCert.options) == sizeof(void *));
 
+    if (SECSuccess != cert_InitLocks()) {
+        return SECFailure;
+    }
+
     if (SECSuccess != InitCRLCache()) {
         return SECFailure;
     }
@@ -809,6 +813,7 @@ NSS_Shutdown(void)
     if (rv != SECSuccess) {
 	shutdownRV = SECFailure;
     }
+    cert_DestroyLocks();
     ShutdownCRLCache();
     OCSP_ShutdownGlobal();
     PKIX_Shutdown(plContext);
