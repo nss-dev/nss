@@ -295,5 +295,10 @@ cert_VerifyCertChainPkix(CERTCertificate *cert,
                          CERTVerifyLog   *log,
                          PRBool          *sigError,
                          PRBool          *revoked);
+
+SECStatus cert_InitLocks(void);
+
+SECStatus cert_DestroyLocks(void);
+
 #endif /* _CERTI_H_ */
 
