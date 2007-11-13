@@ -2738,7 +2738,7 @@ SECStatus
 cert_InitLocks(void)
 {
     if ( certRefCountLock == NULL ) {
-        nss_InitLock(&certRefCountLock, nssILockRefLock);
+        certRefCountLock = PZ_NewLock(nssILockRefLock);
         PORT_Assert(certRefCountLock != NULL);
         if (!certRefCountLock) {
             return SECFailure;
@@ -2746,7 +2746,7 @@ cert_InitLocks(void)
     }
 
     if ( certTrustLock == NULL ) {
-        nss_InitLock(&certTrustLock, nssILockCertDB);
+        certTrustLock = PZ_NewLock(nssILockCertDB);
         PORT_Assert(certTrustLock != NULL);
         if (!certTrustLock) {
             PZ_DestroyLock(certRefCountLock);
