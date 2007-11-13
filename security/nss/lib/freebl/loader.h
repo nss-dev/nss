@@ -44,7 +44,7 @@
 
 #include "blapi.h"
 
-#define FREEBL_VERSION 0x0310
+#define FREEBL_VERSION 0x030A
 
 struct FREEBLVectorStr {
 
@@ -458,6 +458,7 @@ struct FREEBLVectorStr {
                                                 unsigned char *xj);
 
   /* Version 3.009 came to here */
+
  SECStatus (* p_Camellia_InitContext)(CamelliaContext *cx,
 				 const unsigned char *key, 
 				 unsigned int keylen, 
@@ -485,10 +486,11 @@ struct FREEBLVectorStr {
 				  const unsigned char *input,
 				  unsigned int inputLen);
 
-  /* Version 3.010 came to here */
  void (* p_PQG_DestroyParams)(PQGParams *params);
 
  void (* p_PQG_DestroyVerify)(PQGVerify *vfy);
+
+  /* Version 3.010 came to here */
 };
 
 typedef struct FREEBLVectorStr FREEBLVector;
