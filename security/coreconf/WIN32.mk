@@ -160,7 +160,12 @@ endif
 #   DEFINES += -D_CRT_SECURE_NO_WARNINGS
 endif # NS_USE_GCC
 
+ifdef USE_64
+DEFINES += -DWIN64
+else
 DEFINES += -DWIN32
+endif
+
 ifdef MAPFILE
 ifndef NS_USE_GCC
 DLLFLAGS += -DEF:$(MAPFILE)
