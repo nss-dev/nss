@@ -64,7 +64,7 @@ memleak_init()
 	fi
 	
 	if [ ! -r ${CERT_LOG_FILE} ]; then
-		cd ../cert
+		cd ${QADIR}/cert
 		. ./cert.sh
 	fi
 
@@ -137,8 +137,7 @@ memleak_init()
 			FREEBL_LIST="${FREEBL_DEFAULT}"
 		fi
 		
-		RUN_SELFSERV_DBG="run_selfserv_dbx"
-		RUN_STRSCLNT_DBG="run_strsclnt_dbx"
+		RUN_COMMAND_DBG="run_command_dbx"
 		PARSE_LOGFILE="parse_logfile_dbx"
 		;;
 	"Linux")
@@ -160,8 +159,7 @@ memleak_init()
 		FREEBL_DEFAULT="libfreebl_3"
 		FREEBL_LIST="${FREEBL_DEFAULT}"
 				
-		RUN_SELFSERV_DBG="run_selfserv_valgrind"
-		RUN_STRSCLNT_DBG="run_strsclnt_valgrind"
+		RUN_COMMAND_DBG="run_command_valgrind"
 		PARSE_LOGFILE="parse_logfile_valgrind"
 		;;
 	*)
@@ -185,6 +183,9 @@ memleak_init()
 	tbytes=0
 	tblocks=0
 	truns=0
+	
+	MEMLEAK_DBG=1
+	export MEMLEAK_DBG
 }
 
 ########################### memleak_cleanup ############################
@@ -284,6 +285,45 @@ clear_freebl()
 	fi
 }
 
+############################ run_command_dbx ###########################
+# local shell function to run command under dbx tool
+########################################################################
+run_command_dbx()
+{
+	COMMAND=$1
+	shift
+	ATTR=$*
+
+	COMMAND=`which ${COMMAND}`
+	DBX_CMD="dbxenv follow_fork_mode parent
+dbxenv rtc_mel_at_exit verbose
+dbxenv rtc_biu_at_exit verbose
+check -memuse -match 16 -frames 16
+run ${ATTR}
+"
+
+	echo "${SCRIPTNAME}: -------- Running ${COMMAND} under DBX:"
+	echo "${DBX} ${COMMAND}"
+	echo "${SCRIPTNAME}: -------- DBX commands:"
+	echo "${DBX_CMD}"
+	echo "${DBX_CMD}" | ${DBX} ${COMMAND} 2>/dev/null | grep -v Reading
+}
+
+######################### run_command_valgrind #########################
+# local shell function to run command under valgrind tool
+########################################################################
+run_command_valgrind()
+{
+	COMMAND=$1
+	shift
+	ATTR=$*
+
+	echo "${SCRIPTNAME}: -------- Running ${COMMAND} under Valgrind:"
+	echo "${VALGRIND} --tool=memcheck --leak-check=yes --show-reachable=yes --partial-loads-ok=yes --leak-resolution=high --num-callers=50 ${COMMAND} ${ATTR}"
+	${VALGRIND} --tool=memcheck --leak-check=yes --show-reachable=yes --partial-loads-ok=yes --leak-resolution=high --num-callers=50 ${COMMAND} ${ATTR}
+	echo "==0==" 
+}
+
 ############################# run_selfserv #############################
 # local shell function to start selfserv
 ########################################################################
@@ -296,50 +336,14 @@ run_selfserv()
 	selfserv ${SELFSERV_ATTR}
 }
 
-########################### run_selfserv_dbx ###########################
-# local shell function to start selfserv under dbx tool
+########################### run_selfserv_dbg ###########################
+# local shell function to start selfserv under debug tool
 ########################################################################
-run_selfserv_dbx()
+run_selfserv_dbg()
 {
-	DBX_CMD="${HOSTDIR}/run_selfserv$$.dbx"
-	
-	cat << EOF_DBX > ${DBX_CMD}
-dbxenv follow_fork_mode parent
-dbxenv rtc_mel_at_exit verbose
-dbxenv rtc_biu_at_exit verbose
-check -memuse -match 16 -frames 16
-run ${SERVER_OPTION} ${SELFSERV_ATTR}
-EOF_DBX
-	
-	SELFSERV=`which selfserv`
 	echo "PATH=${PATH}"
 	echo "LD_LIBRARY_PATH=${LD_LIBRARY_PATH}"
-	echo "${SCRIPTNAME}: -------- Running selfserv under DBX:"
-	echo "${DBX} ${SELFSERV} < ${DBX_CMD}"
-	echo "${SCRIPTNAME}: -------- DBX commands (${DBX_CMD}):"
-	cat ${DBX_CMD}
-	${DBX} ${SELFSERV} < ${DBX_CMD} 2>/dev/null | grep -v Reading
-	rm ${DBX_CMD}
-}
-
-######################### run_selfserv_valgrind ########################
-# local shell function to start selfserv under valgrind tool
-########################################################################
-run_selfserv_valgrind()
-{	
-	echo "PATH=${PATH}"
-	echo "LD_LIBRARY_PATH=${LD_LIBRARY_PATH}"
-	echo "${SCRIPTNAME}: -------- Running selfserv under Valgrind:"
-	echo "${VALGRIND} --tool=memcheck --leak-check=yes --show-reachable=yes --partial-loads-ok=yes --leak-resolution=high --num-callers=50 selfserv ${SELFSERV_ATTR}"
-	${VALGRIND} --tool=memcheck --leak-check=yes --show-reachable=yes --partial-loads-ok=yes --leak-resolution=high --num-callers=50 selfserv ${SELFSERV_ATTR}
-}
-
-############################ strsclnt_attr #############################
-# local shell function to set strsclnt attributes and parameters
-########################################################################
-strsclnt_attr()
-{
-	STRSCLNT_ATTR="-q -p ${PORT} -d ${CLIENT_DB} -w nss -c 1000 -C ${cipher} ${HOSTADDR}"
+	${RUN_COMMAND_DBG} selfserv ${SERVER_OPTION} ${SELFSERV_ATTR}
 }
 
 ############################# run_strsclnt #############################
@@ -349,70 +353,27 @@ strsclnt_attr()
 run_strsclnt()
 {
 	for cipher in ${cipher_list}; do
-		strsclnt_attr ${cipher}
+		STRSCLNT_ATTR="-q -p ${PORT} -d ${CLIENT_DB} -w nss -c 1000 -C ${cipher} ${HOSTADDR}"
 		echo "${SCRIPTNAME}: -------- Trying cipher ${cipher}:"
 		echo "strsclnt ${STRSCLNT_ATTR}"
 		strsclnt ${STRSCLNT_ATTR}
 	done
 	
-	echo "PATH=${PATH}"
-	echo "LD_PATH=${LD_LIBRARY_PATH}"
-
 	echo "${SCRIPTNAME}: -------- Stopping server:"
 	echo "tstclnt ${TSTCLNT_ATTR} < ${REQUEST_FILE}"
 	tstclnt ${TSTCLNT_ATTR} < ${REQUEST_FILE}
 }
 
-########################### run_strsclnt_dbx ###########################
-# local shell function to run strsclnt under dbx for all ciphers and 
-# send stop command to selfserv over tstclnt
-########################################################################
-run_strsclnt_dbx()
-{
-	DBX_CMD="${HOSTDIR}/run_strsclnt$$.dbx"
-		
-	for cipher in ${cipher_list}; do
-		strsclnt_attr ${cipher}
-		cat << EOF_DBX > ${DBX_CMD}
-dbxenv follow_fork_mode parent
-dbxenv rtc_mel_at_exit verbose
-dbxenv rtc_biu_at_exit verbose
-check -memuse -match 16 -frames 16
-run ${CLIENT_OPTION} ${STRSCLNT_ATTR}
-EOF_DBX
-
-		STRSCLNT=`which strsclnt`
-		echo "${SCRIPTNAME}: -------- Trying cipher ${cipher} under DBX:"
-		echo "${DBX} ${STRSCLNT} < ${DBX_CMD}"
-		echo "${SCRIPTNAME}: -------- DBX comands (${DBX_CMD}):"
-		cat ${DBX_CMD}
-		${DBX} ${STRSCLNT} < ${DBX_CMD} 2>/dev/null | grep -v Reading
-	done
-	
-	echo "PATH=${PATH}"
-	echo "LD_PATH=${LD_LIBRARY_PATH}"
-	
-	echo "${SCRIPTNAME}: -------- Stopping server:"
-	echo "tstclnt ${TSTCLNT_ATTR} < ${REQUEST_FILE}"
-	tstclnt ${TSTCLNT_ATTR} < ${REQUEST_FILE}
-	rm ${DBX_CMD}
-}
-
-######################## run_strsclnt_valgrind #########################
-# local shell function to run strsclnt under valgrind for all ciphers 
+########################### run_strsclnt_dbg ###########################
+# local shell function to run strsclnt under debug tool for all ciphers 
 # and send stop command to selfserv over tstclnt
 ########################################################################
-run_strsclnt_valgrind()
+run_strsclnt_dbg()
 {
 	for cipher in ${cipher_list}; do
-		strsclnt_attr ${cipher}
-		echo "${SCRIPTNAME}: -------- Trying cipher ${cipher} under Valgrind:"
-		echo "${VALGRIND} --tool=memcheck --leak-check=yes --show-reachable=yes --partial-loads-ok=yes --leak-resolution=high --num-callers=50 strsclnt ${STRSCLNT_ATTR}"
-		${VALGRIND} --tool=memcheck --leak-check=yes --show-reachable=yes --partial-loads-ok=yes --leak-resolution=high --num-callers=50 strsclnt ${STRSCLNT_ATTR}
+		STRSCLNT_ATTR="-q -p ${PORT} -d ${CLIENT_DB} -w nss -c 1001 -C ${cipher} ${HOSTADDR}"
+		${RUN_COMMAND_DBG} strsclnt ${CLIENT_OPTION} ${STRSCLNT_ATTR}
 	done
-
-	echo "PATH=${PATH}"
-	echo "LD_PATH=${LD_LIBRARY_PATH}"
 	
 	echo "${SCRIPTNAME}: -------- Stopping server:"
 	echo "tstclnt ${TSTCLNT_ATTR} < ${REQUEST_FILE}"
@@ -437,18 +398,13 @@ run_ciphers_server()
 			LOGFILE=${LOGDIR}/${LOGNAME}.log
 			echo "Running ${LOGNAME}"
 			
-			${RUN_SELFSERV_DBG} 2>&1 | tee ${LOGFILE} &
+			run_selfserv_dbg 2>&1 | tee ${LOGFILE} &
 			sleep 5
 			run_strsclnt
 			
 			sleep 20
 			clear_freebl
 			
-			if [ ${OS_NAME} = "Linux" ]; then
-				echo "==0==" >> ${LOGFILE}
-			fi
-			echo "" >> ${LOGFILE}
-
 			log_parse >> ${FOUNDLEAKS}
 			ret=$?
 			html_msg ${ret} 0 "${LOGNAME}" "produced a returncode of $ret, expected is 0"
@@ -478,15 +434,10 @@ run_ciphers_client()
 			
 			run_selfserv &
 			sleep 5
-			${RUN_STRSCLNT_DBG} 2>&1 | tee ${LOGFILE}
+			run_strsclnt_dbg 2>&1 | tee ${LOGFILE}
 			
 			sleep 20
 			clear_freebl
-
-			if [ ${OS_NAME} = "Linux" ]; then
-				echo "==0==" >> ${LOGFILE}
-			fi
-			echo "" >> ${LOGFILE}
 
 			log_parse >> ${FOUNDLEAKS}
 			ret=$?
@@ -736,10 +687,24 @@ cnt_total()
 	echo ""
 }
 
+############################### run_ocsp ###############################
+# local shell function to run ocsp tests
+########################################################################
+run_ocsp()
+{
+	cd ${QADIR}/iopr
+	. ./ocsp_iopr.sh
+	ocsp_iopr_run
+}
+
 ################################# main #################################
 
 memleak_init
+
 run_ciphers_server
 run_ciphers_client
+run_ocsp
+
 cnt_total
 memleak_cleanup
+
