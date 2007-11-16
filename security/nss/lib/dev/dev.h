@@ -952,8 +952,6 @@ nssSlotList_GetBestSlotForAlgorithmsAndParameters
   NSSAlgorithmAndParameters **ap
 );
 
-#ifdef NSS_3_4_CODE
-
 NSS_EXTERN PRBool
 nssToken_IsPresent
 (
@@ -995,9 +993,6 @@ nssToken_IsPrivateKeyAvailable
   NSSCertificate *c,
   nssCryptokiObject *instance
 );
-
-
-#endif
 
 PR_END_EXTERN_C
 
