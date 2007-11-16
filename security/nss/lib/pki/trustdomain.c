@@ -129,6 +129,10 @@ NSSTrustDomain_Destroy (
 	if (status == PR_FAILURE) {
 	    return status;
 	}
+	if (td->statusConfig) {
+	    td->statusConfig->statusDestroy(td->statusConfig);
+	    td->statusConfig = NULL;
+	}
 	/* Destroy the trust domain */
 	nssArena_Destroy(td->arena);
     }
