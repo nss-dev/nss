@@ -50,28 +50,12 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$";
 #include "pki1t.h"
 #endif /* PKI1T_H */
 
-#ifdef NSS_3_4_CODE
 #include "cert.h"
 #include "pki3hack.h"
-#endif
 
 #include "nssrwlk.h"
 
 #define NSSTRUSTDOMAIN_DEFAULT_CACHE_SIZE 32
-
-#ifdef PURE_STAN_BUILD
-struct NSSTrustDomainStr {
-    PRInt32 refCount;
-    NSSArena *arena;
-    NSSCallback *defaultCallback;
-    struct {
-	nssSlotList *forCerts;
-	nssSlotList *forCiphers;
-	nssSlotList *forTrust;
-    } slots;
-    nssCertificateCache *cache;
-};
-#endif
 
 extern const NSSError NSS_ERROR_NOT_FOUND;
 
@@ -103,9 +87,7 @@ NSSTrustDomain_Create (
     nssTrustDomain_InitializeCache(rvTD, NSSTRUSTDOMAIN_DEFAULT_CACHE_SIZE);
     rvTD->arena = arena;
     rvTD->refCount = 1;
-#ifdef NSS_3_4_CODE
     rvTD->statusConfig = NULL;
-#endif
     return rvTD;
 loser:
     if (rvTD && rvTD->tokensLock) {
