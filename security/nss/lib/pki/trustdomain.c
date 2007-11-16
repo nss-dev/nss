@@ -59,20 +59,6 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$";
 
 #define NSSTRUSTDOMAIN_DEFAULT_CACHE_SIZE 32
 
-#ifdef PURE_STAN_BUILD
-struct NSSTrustDomainStr {
-    PRInt32 refCount;
-    NSSArena *arena;
-    NSSCallback *defaultCallback;
-    struct {
-	nssSlotList *forCerts;
-	nssSlotList *forCiphers;
-	nssSlotList *forTrust;
-    } slots;
-    nssCertificateCache *cache;
-};
-#endif
-
 extern const NSSError NSS_ERROR_NOT_FOUND;
 
 typedef PRUint32 nssUpdateLevel;

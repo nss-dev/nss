@@ -65,9 +65,6 @@
 #include "pk11func.h"
 #include "xconst.h"   /* for  CERT_DecodeAltNameExtension */
 
-#ifndef NSS_3_4_CODE
-#define NSS_3_4_CODE
-#endif /* NSS_3_4_CODE */
 #include "pki.h"
 #include "pki3hack.h"
 

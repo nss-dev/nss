@@ -186,13 +186,11 @@ nssPKIObject_DeleteStoredObject
   PRBool isFriendly
 );
 
-#ifdef NSS_3_4_CODE
 NSS_EXTERN nssCryptokiObject **
 nssPKIObject_GetInstances
 (
   nssPKIObject *object
 );
-#endif
 
 NSS_EXTERN NSSCertificate **
 nssTrustDomain_FindCertificatesByID

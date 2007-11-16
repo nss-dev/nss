@@ -45,9 +45,6 @@
 #include "certdb.h"
 #include "cryptohi.h"
 
-#ifndef NSS_3_4_CODE
-#define NSS_3_4_CODE
-#endif /* NSS_3_4_CODE */
 #include "nsspki.h"
 #include "pkitm.h"
 #include "pkim.h"
