@@ -49,7 +49,6 @@
 #include "lowpbe.h"
 #include "secerr.h"
 #include "cdbhdl.h"
-#include "nsslocks.h"
 
 #include "keydbi.h"
 #include "softoken.h"
@@ -171,7 +170,7 @@ static void
 keydb_InitLocks(NSSLOWKEYDBHandle *handle) 
 {
     if (handle->lock == NULL) {
-	nss_InitLock(&handle->lock, nssILockKeyDB);
+	handle->lock = PZ_NewLock(nssILockKeyDB);
     }
 
     return;

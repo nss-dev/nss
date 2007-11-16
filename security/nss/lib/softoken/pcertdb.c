@@ -54,7 +54,6 @@
 #include "secerr.h"
 #include "nssilock.h"
 #include "prmon.h"
-#include "nsslocks.h"
 #include "base64.h"
 #include "sechash.h"
 #include "plhash.h"
@@ -99,7 +98,7 @@ void
 certdb_InitDBLock(NSSLOWCERTCertDBHandle *handle)
 {
     if (dbLock == NULL) {
-	nss_InitLock(&dbLock, nssILockCertDB);
+	dbLock = PZ_NewLock(nssILockCertDB);
 	PORT_Assert(dbLock != NULL);
     }
 }
@@ -108,19 +107,19 @@ SECStatus
 nsslowcert_InitLocks(void)
 {
     if (freeListLock == NULL) {
-	nss_InitLock(&freeListLock, nssILockRefLock);
+	freeListLock = PZ_NewLock(nssILockRefLock);
 	if (freeListLock == NULL) {
 	    return SECFailure;
 	}
     }
     if (certRefCountLock == NULL) {
-	nss_InitLock(&certRefCountLock, nssILockRefLock);
+	certRefCountLock = PZ_NewLock(nssILockRefLock);
 	if (certRefCountLock == NULL) {
 	    return SECFailure;
 	}
     }
     if (certTrustLock == NULL ) {
-	nss_InitLock(&certTrustLock, nssILockCertDB);
+	certTrustLock = PZ_NewLock(nssILockCertDB);
 	if (certTrustLock == NULL) {
 	    return SECFailure;
 	}
