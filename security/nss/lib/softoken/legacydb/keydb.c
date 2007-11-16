@@ -45,7 +45,6 @@
 #include "pcert.h"
 #include "mcom_db.h"
 #include "secerr.h"
-#include "nsslocks.h"
 
 #include "keydbi.h"
 #include "lgdb.h"
@@ -63,7 +62,7 @@
 /* Size of the global salt for key database */
 #define SALT_LENGTH     16
 
-SEC_ASN1_MKSUB(SECOID_AlgorithmIDTemplate);
+SEC_ASN1_MKSUB(SECOID_AlgorithmIDTemplate)
 
 const SEC_ASN1Template nsslowkey_EncryptedPrivateKeyInfoTemplate[] = {
     { SEC_ASN1_SEQUENCE,
@@ -115,7 +114,7 @@ static void
 keydb_InitLocks(NSSLOWKEYDBHandle *handle) 
 {
     if (handle->lock == NULL) {
-	nss_InitLock(&handle->lock, nssILockKeyDB);
+	handle->lock = PZ_NewLock(nssILockKeyDB);
     }
 
     return;
