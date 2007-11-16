@@ -69,9 +69,6 @@ strsclnt/main/client_main/launch_thread/_PR_CreateThread/pthread_create@@GLIBC_2
 */main/NSS_Initialize/*/PKIX_Initialize/PKIX_PL_MonitorLock_Create/PKIX_PL_Object_Alloc/PR_NewLock/**
 */main/NSS_Initialize/*/PKIX_Initialize/PKIX_PL_MonitorLock_Create/PR_NewMonitor/**
 
-#393174
-ocspclnt/main/get_cert_status/CERT_CheckOCSPStatus/ocsp_GetOCSPStatusFromNetwork/ocsp_GetEncodedOCSPResponseForSingleCert/ocsp_GetEncodedOCSPResponseFromRequest/ocsp_SendEncodedRequest/ocsp_ConnectToHost/PR_GetHostByName/gethostbyname_r/__rpc_getconfip/setnetconfig/getnetlist/fgetnetconfig/**
-
 #393181
 ocspclnt/main/CERT_SetOCSPDefaultResponder/PORT_Strdup/**
 ocspclnt/main/CERT_SetOCSPDefaultResponder/PORT_Strdup_Util**
@@ -109,8 +106,5 @@ strsclnt/_lwp_start/_pt_root/thread_wrapper/do_connects/ssl_Send/ssl_SecureSend/
 ocspclnt/main/CERT_EnableOCSPDefaultResponder/CERT_VerifyCertificateNow/CERT_VerifyCertificate/cert_VerifyCertChain/cert_VerifyCertChainPkix/cert_BuildAndValidateChain/PKIX_BuildChain/pkix_Build_InitiateBuildChain/pkix_BuildForwardDepthFirstSearch/pkix_Build_VerifyCertificate/PKIX_PL_Cert_IsCertTrusted/pkix_pl_Pk11CertStore_CheckTrust/CERT_GetCertTrust/CERT_LockCertTrust/__nss_InitLock_Util/PR_NewLock/PR_Calloc/calloc
 
 #397487
-strsclnt/main/client_main/PR_GetAddrInfoByName/getaddrinfo/get_addr/getipnodebyname/__rpc_getconfip/setnetconfig/**
-strsclnt/main/client_main/PR_GetAddrInfoByName/_getaddrinfo/get_addr/getipnodebyname/__rpc_getconfip/setnetconfig/**
-strsclnt/main/client_main/PR_GetAddrInfoByName/getaddrinfo/_getaddrinfo/get_addr/getipnodebyname/__rpc_getconfip/setnetconfig/**
-
+**/__rpc_getconfip/setnetconfig/**
 
