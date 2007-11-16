@@ -110,27 +110,6 @@ static int keydb_Seq(NSSLOWKEYDBHandle *db, DBT *key, DBT *data,
 		     unsigned int flags);
 static void keydb_Close(NSSLOWKEYDBHandle *db);
 
-static void
-keydb_InitLocks(NSSLOWKEYDBHandle *handle) 
-{
-    if (handle->lock == NULL) {
-	handle->lock = PZ_NewLock(nssILockKeyDB);
-    }
-
-    return;
-}
-
-static void
-keydb_DestroyLocks(NSSLOWKEYDBHandle *handle)
-{
-    if (handle->lock != NULL) {
-	PZ_DestroyLock(handle->lock);
-	handle->lock = NULL;
-    }
-
-    return;
-}
-
 /*
  * format of key database entries for version 3 of database:
  *	byte offset	field
@@ -979,8 +958,8 @@ nsslowkey_NewHandle(DB *dbHandle)
     handle->updatedb = NULL;
     handle->db = dbHandle;
     handle->ref = 1;
+    handle->lock = PZ_NewLock(nssILockKeyDB);
 
-    keydb_InitLocks(handle);
     return handle;
 }
 
@@ -1071,7 +1050,9 @@ nsslowkey_CloseKeyDB(NSSLOWKEYDBHandle *handle)
 	if (handle->global_salt) {
 	    SECITEM_FreeItem(handle->global_salt,PR_TRUE);
 	}
-	keydb_DestroyLocks(handle);
+	if (handle->lock != NULL) {
+	    PZ_DestroyLock(handle->lock);
+	}
 	    
 	PORT_Free(handle);
     }
