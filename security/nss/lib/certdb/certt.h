@@ -1068,8 +1068,10 @@ typedef struct {
 #define CERT_REV_FLAG_CRL_LEAF_ONLY     8
 /* set if we don't want to fail because we were unable to get revocation
  * data */
-#define CERT_REV_FAIL_SOFT           0x10
-#define CERT_REV_NIST		(CERT_REV_FLAG_OCSP|CERT_REV_FLAG_CRL)
+#define CERT_REV_FAIL_SOFT_OCSP         0x10
+#define CERT_REV_FAIL_SOFT_CRL          0x20
+/* REV_NIST is CRL and !CRL_LEAF_ONLY and !FAIL_SOFT_CRL */
+#define CERT_REV_NIST		   (CERT_REV_FLAG_CRL)
 
 /*
  * CertStore flags
