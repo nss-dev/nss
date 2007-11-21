@@ -41,7 +41,7 @@ CORE_DEPTH = ../../..
 PRIVATE_EXPORTS = \
 	ckhelper.h \
 	devm.h     \
-	devtm.h      \
+	devtm.h    \
 	devt.h     \
 	dev.h      \
 	nssdevt.h  \
