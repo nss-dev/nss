@@ -62,11 +62,9 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$";
 #include "base.h"
 #endif /* BASE_H */
 
-#ifdef NSS_3_4_CODE
 #include "cert.h"
 #include "dev.h"
 #include "pki3hack.h"
-#endif
 
 #ifdef DEBUG_CACHE
 static PRLogModuleInfo *s_log = NULL;
@@ -1073,7 +1071,6 @@ nssTrustDomain_GetCertForIssuerAndSNFromCache (
     return rvCert;
 }
 
-#ifdef NSS_3_4_CODE
 static PRStatus
 issuer_and_serial_from_encoding (
   NSSBER *encoding, 
@@ -1099,7 +1096,6 @@ issuer_and_serial_from_encoding (
     serial->size = derSerial.len;
     return PR_SUCCESS;
 }
-#endif
 
 /*
  * Look for a specific cert in the cache
@@ -1113,9 +1109,7 @@ nssTrustDomain_GetCertByDERFromCache (
     PRStatus nssrv = PR_FAILURE;
     NSSDER issuer, serial;
     NSSCertificate *rvCert;
-#ifdef NSS_3_4_CODE
     nssrv = issuer_and_serial_from_encoding(der, &issuer, &serial);
-#endif
     if (nssrv != PR_SUCCESS) {
 	return NULL;
     }
@@ -1124,10 +1118,8 @@ nssTrustDomain_GetCertByDERFromCache (
 #endif
     rvCert = nssTrustDomain_GetCertForIssuerAndSNFromCache(td, 
                                                            &issuer, &serial);
-#ifdef NSS_3_4_CODE
     PORT_Free(issuer.data);
     PORT_Free(serial.data);
-#endif
     return rvCert;
 }
 

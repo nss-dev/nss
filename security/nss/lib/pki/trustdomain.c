@@ -50,10 +50,8 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$";
 #include "pki1t.h"
 #endif /* PKI1T_H */
 
-#ifdef NSS_3_4_CODE
 #include "cert.h"
 #include "pki3hack.h"
-#endif
 
 #include "nssrwlk.h"
 
@@ -89,9 +87,7 @@ NSSTrustDomain_Create (
     nssTrustDomain_InitializeCache(rvTD, NSSTRUSTDOMAIN_DEFAULT_CACHE_SIZE);
     rvTD->arena = arena;
     rvTD->refCount = 1;
-#ifdef NSS_3_4_CODE
     rvTD->statusConfig = NULL;
-#endif
     return rvTD;
 loser:
     if (rvTD && rvTD->tokensLock) {
