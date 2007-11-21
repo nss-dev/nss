@@ -974,8 +974,7 @@ nssPKIObjectCollection_AddInstanceAsObject (
 	    return PR_FAILURE;
 	}
 	node->haveObject = PR_TRUE;
-    }
-    else if (!foundIt) {
+    } else if (!foundIt) {
 	/* The instance was added to a pre-existing node.  This
 	 * function is *only* being used for certificates, and having
 	 * multiple instances of certs in 3.X requires updating the
