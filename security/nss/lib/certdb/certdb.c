@@ -1367,14 +1367,8 @@ CERTCertificate *
 CERT_DupCertificate(CERTCertificate *c)
 {
     if (c) {
-#ifdef NSS_CLASSIC
-	CERT_LockCertRefCount(c);
-	++c->referenceCount;
-	CERT_UnlockCertRefCount(c);
-#else
 	NSSCertificate *tmp = STAN_GetNSSCertificate(c);
 	nssCertificate_AddRef(tmp);
-#endif
     }
     return c;
 }
