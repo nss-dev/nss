@@ -95,6 +95,13 @@ const SEC_ASN1Template CERT_SequenceOfCertExtensionTemplate[] = {
     { SEC_ASN1_SEQUENCE_OF, 0, CERT_CertExtensionTemplate }
 };
 
+const SEC_ASN1Template CERT_TimeChoiceTemplate[] = {
+  { SEC_ASN1_CHOICE, offsetof(SECItem, type), 0, sizeof(SECItem) },
+  { SEC_ASN1_UTC_TIME, 0, 0, siUTCTime },
+  { SEC_ASN1_GENERALIZED_TIME, 0, 0, siGeneralizedTime },
+  { 0 }
+};
+
 const SEC_ASN1Template CERT_ValidityTemplate[] = {
     { SEC_ASN1_SEQUENCE,
 	  0, NULL, sizeof(CERTValidity) },
@@ -233,6 +240,7 @@ const SEC_ASN1Template CERT_CertKeyTemplate[] = {
     { 0 }
 };
 
+SEC_ASN1_CHOOSER_IMPLEMENT(CERT_TimeChoiceTemplate)
 SEC_ASN1_CHOOSER_IMPLEMENT(CERT_CertificateTemplate)
 SEC_ASN1_CHOOSER_IMPLEMENT(SEC_SignedCertificateTemplate)
 SEC_ASN1_CHOOSER_IMPLEMENT(CERT_SequenceOfCertExtensionTemplate)
