@@ -1050,6 +1050,8 @@ main (int argc, char **argv)
 	}
     }
 
+    PL_DestroyOptState(optstate);
+
     if ((crequest + dresponse + prequest + presponse + ccert + vcert) != 1) {
 	PR_fprintf (PR_STDERR, "%s: must specify exactly one command\n\n",
 		    program_name);
@@ -1217,7 +1219,7 @@ nssdone:
     }
 
     if (NSS_Shutdown () != SECSuccess) {
-	exit(1);
+	retval = 1;
     }
 
 prdone:
