@@ -127,7 +127,7 @@ nss_makeFlags(PRBool readOnly, PRBool noCertDB,
 }
 
 /*
- * statics to remember the PKCS11_ConfigurePKCS11()
+ * statics to remember the PK11_ConfigurePKCS11()
  * info.
  */
 static char * pk11_config_strings = NULL;
@@ -226,6 +226,18 @@ PK11_ConfigurePKCS11(const char *man, const char *libdes, const char *tokdes,
     pk11_password_required = pwRequired;
 
     return;
+}
+
+void PK11_UnconfigurePKCS11(void)
+{
+    if (pk11_config_strings != NULL) {
+	PR_smprintf_free(pk11_config_strings);
+        pk11_config_strings = NULL;
+    }
+    if (pk11_config_name) {
+        PORT_Free(pk11_config_name);
+        pk11_config_name = NULL;
+    }
 }
 
 static char *
