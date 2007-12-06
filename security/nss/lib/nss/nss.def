@@ -897,5 +897,11 @@ DER_TimeChoiceDayToAscii;
 DER_TimeToGeneralizedTime;
 DER_TimeToGeneralizedTimeArena;
 ;+    local:
+;+};
+;+NSS_3.11.9 {
+;+    global:
+PK11_UnconfigurePKCS11;
+;+    local:
 ;+       *;
 ;+};
+
