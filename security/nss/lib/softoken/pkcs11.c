@@ -4476,7 +4476,7 @@ sftk_key_collect(DBT *key, DBT *data, void *arg)
     tmpDBKey.type = siBuffer;
 
     PORT_Assert(keyData->keyHandle);
-    if (!keyData->strict && keyData->id) {
+    if (!keyData->strict && keyData->id && keyData->id->data) {
 	SECItem result;
 	PRBool haveMatch= PR_FALSE;
 	unsigned char hashKey[SHA1_LENGTH];
@@ -5089,7 +5089,7 @@ sftk_searchTokenList(SFTKSlot *slot, SFTKSearchResults *search,
 
     /* keys */
     if (classFlags & (NSC_PRIVATE|NSC_PUBLIC|NSC_KEY)) {
-	PRBool mustStrict = ((classFlags & NSC_KEY) != 0) && (name.len != 0);
+	PRBool mustStrict = (name.len != 0);
 	sftk_searchKeys(slot, &key_id, isLoggedIn, classFlags, search,
 			 mustStrict, pTemplate, ulCount);
     }
