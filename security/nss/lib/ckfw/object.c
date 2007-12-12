@@ -171,7 +171,7 @@ nssCKFWObject_Create
 
   if( (NSSCKFWToken *)NULL == fwToken ) {
     *pError = CKR_ARGUMENTS_BAD;
-    return fwObject;
+    return (NSSCKFWObject *)NULL;
   }
   mdObjectHash = nssCKFWToken_GetMDObjectHash(fwToken);
   if( (nssCKFWHash *)NULL == mdObjectHash ) {
