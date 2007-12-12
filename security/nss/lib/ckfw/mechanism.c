@@ -716,9 +716,6 @@ nssCKFWMechanism_VerifyInit
   if ( (void *)NULL == (void *)fwMechanism->mdMechanism->VerifyInit) {
     return CKR_FUNCTION_FAILED;
   }
-  if ((NSSCKMDCryptoOperation *)NULL == mdOperation) {
-    goto loser;
-  }
 
   mdSession = nssCKFWSession_GetMDSession(fwSession);
   mdObject = nssCKFWObject_GetMDObject(fwObject);
@@ -736,6 +733,9 @@ nssCKFWMechanism_VerifyInit
         fwObject,
         &error
   );
+  if ((NSSCKMDCryptoOperation *)NULL == mdOperation) {
+    goto loser;
+  }
 
   fwOperation = nssCKFWCryptoOperation_Create(mdOperation, 
         mdSession, fwSession, fwMechanism->mdToken, fwMechanism->fwToken,
