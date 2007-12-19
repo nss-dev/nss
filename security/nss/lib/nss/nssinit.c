@@ -60,6 +60,7 @@
 #include "pki3hack.h"
 #include "certi.h"
 #include "secmodi.h"
+#include "ocspti.h"
 #include "ocspi.h"
 
 /*
