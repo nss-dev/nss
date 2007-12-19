@@ -45,4 +45,22 @@
 SECStatus OCSP_InitGlobal(void);
 SECStatus OCSP_ShutdownGlobal(void);
 
+ocspResponseData *
+ocsp_GetResponseData(CERTOCSPResponse *response, SECItem **tbsResponseDataDER);
+
+ocspSignature *
+ocsp_GetResponseSignature(CERTOCSPResponse *response);
+
+PRBool
+ocsp_CertIsOCSPDefaultResponder(CERTCertDBHandle *handle, CERTCertificate *cert);
+
+CERTCertificate *
+ocsp_GetSignerCertificate(CERTCertDBHandle *handle, ocspResponseData *tbsData,
+                          ocspSignature *signature, CERTCertificate *issuer);
+
+SECStatus
+ocsp_VerifyResponseSignature(CERTCertificate *signerCert,
+                             ocspSignature *signature,
+                             SECItem *tbsResponseDataDER,
+                             void *pwArg);
 #endif /* _OCSPI_H_ */
