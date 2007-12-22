@@ -176,7 +176,7 @@ typedef enum { SSLAppOpRead = 0,
 /* This makes the cert cache entry exactly 4k. */
 #define SSL_MAX_CACHED_CERT_LEN		4060
 
-#define MAX_EXTENSION_SENDERS		3
+#define MAX_EXTENSION_SENDERS		8
 
 #define NUM_MIXERS                      9
 
@@ -336,6 +336,7 @@ typedef struct sslOptionsStr {
     unsigned int noStepDown             : 1;  /* 15 */
     unsigned int bypassPKCS11           : 1;  /* 16 */
     unsigned int noLocks                : 1;  /* 17 */
+    unsigned int enableSessionTicketExtension : 1; /* 18 */
 } sslOptions;
 
 typedef enum { sslHandshakingUndetermined = 0,
@@ -631,6 +632,10 @@ struct sslSessionIDStr {
             char              masterValid;
 	    char              clAuthValid;
 
+	    /* Session ticket if we have one, is sent as an extension in the
+	     * ClientHello message.  This field is used by clients.
+	     */
+	    NewSessionTicket session_ticket;
 	} ssl3;
     } u;
 };
@@ -693,8 +698,29 @@ typedef enum {
     wait_server_key,
     wait_cert_request, 
     wait_hello_done,
+    wait_new_session_ticket,
     idle_handshake
 } SSL3WaitState;
+
+/*
+ * TLS1 Extension related constants and data structures.
+ */
+typedef struct TLS1ExtensionDataStr      TLS1ExtensionData;
+typedef struct SessionTicketDataStr      SessionTicketData;
+
+struct TLS1ExtensionDataStr {
+    /* registered callbacks that send server hello extensions */
+    ssl3HelloExtensionSender serverExtensionSenders[MAX_EXTENSION_SENDERS];
+    /* Keep track of the extensions that are negotiated. */
+    PRUint16 numAdvertisedClientExtensions;
+    PRUint16 numNegotiatedExtensions;
+    PRUint16 advertisedClientExtensions[MAX_EXTENSION_SENDERS];
+    PRUint16 negotiatedExtensions[MAX_EXTENSION_SENDERS];
+
+    /* SessionTicket Extension related data. */
+    PRBool ticket_timestamp_verified;
+    PRBool empty_session_ticket;
+};
 
 /*
 ** This is the "hs" member of the "ssl3" struct.
@@ -771,6 +797,13 @@ struct ssl3StateStr {
     PRBool               initialized;
     SSL3HandshakeState   hs;
     ssl3CipherSpec       specs[2];	/* one is current, one is pending. */
+
+    /*
+     * TLS1 Extension related data.
+     */
+    /* True when the current session is a stateless resume. */
+    PRBool               stateless_resume;
+    TLS1ExtensionData    extension_data;
 };
 
 typedef struct {
@@ -799,14 +832,28 @@ typedef struct SSLWrappedSymWrappingKeyStr {
     PRUint16          wrapIVLen;
 } SSLWrappedSymWrappingKey;
 
-
-
-
-
-
-
-
-
+typedef struct SessionTicket {
+    uint16                ticket_version;
+    SSL3ProtocolVersion   ssl_version;
+    ssl3CipherSuite       cipher_suite;
+    SSL3CompressionMethod compression_method;
+    SSLSignType           authAlgorithm;
+    uint32                authKeyBits;
+    SSLKEAType            keaType;
+    uint32                keaKeyBits;
+    /*
+     * exchKeyType and msWrapMech contain meaningful values only if
+     * ms_is_wrapped is true.
+     */
+    uint8                 ms_is_wrapped;
+    SSLKEAType            exchKeyType; /* XXX(wtc): same as keaType above? */
+    CK_MECHANISM_TYPE     msWrapMech;
+    uint16                ms_length;
+    SSL3Opaque            master_secret[48];
+    ClientIdentity        client_identity;
+    SECItem               peer_cert;
+    uint32                timestamp;
+}  SessionTicket;
 
 /*
  * SSL2 buffers used in SSL3.
@@ -965,9 +1012,6 @@ struct sslSocketStr {
     sslHandshakeFunc nextHandshake;			/*firstHandshakeLock*/
     sslHandshakeFunc securityHandshake;			/*firstHandshakeLock*/
 
-    /* registered callbacks that send server hello extensions */
-    ssl3HelloExtensionSender serverExtensionSenders[MAX_EXTENSION_SENDERS];
-
     /* the following variable is only used with socks or other proxies. */
     char *           peerID;	/* String uniquely identifies target server. */
 
@@ -1045,7 +1089,6 @@ const unsigned char *  preferredCipher;
     /* SSL3 state info.  Formerly was a pointer */
     ssl3State        ssl3;
 };
-
 
 
 /* All the global data items declared here should be protected using the 
@@ -1156,6 +1199,7 @@ extern SECStatus sslBuffer_Append(sslBuffer *b, const void * data,
 extern void      ssl2_UseClearSendFunc(sslSocket *ss);
 extern void      ssl_ChooseSessionIDProcs(sslSecurityInfo *sec);
 
+extern sslSessionID *ssl3_NewSessionID(sslSocket *ss, PRBool is_server);
 extern sslSessionID *ssl_LookupSID(const PRIPv6Addr *addr, PRUint16 port, 
                                    const char *peerID, const char *urlSvrName);
 extern void      ssl_FreeSID(sslSessionID *sid);
@@ -1399,14 +1443,54 @@ extern SECStatus ssl3_SignHashes(SSL3Hashes *hash, SECKEYPrivateKey *key,
 extern SECStatus ssl3_VerifySignedHashes(SSL3Hashes *hash, 
 			CERTCertificate *cert, SECItem *buf, PRBool isTLS, 
 			void *pwArg);
+extern SECStatus ssl3_CacheWrappedMasterSecret(sslSocket *ss,
+            sslSessionID *sid, ssl3CipherSpec *spec,
+            SSL3KEAType effectiveExchKeyType);
 
-/* functions that append extensions to hello messages. */
-extern PRInt32   ssl3_SendServerNameIndicationExtension( sslSocket * ss,
-			PRBool append, PRUint32 maxBytes);
+/* Functions that handle ClientHello and ServerHello extensions. */
+extern SECStatus ssl3_HandleServerNameExt(sslSocket * ss,
+    PRUint16 ex_type, SECItem *data);
+extern SECStatus ssl3_HandleSupportedCurvesExt(sslSocket * ss,
+    PRUint16 ex_type, SECItem *data);
+extern SECStatus ssl3_HandleSupportedPointExt(sslSocket * ss,
+    PRUint16 ex_type, SECItem *data);
+extern SECStatus ssl3_ClientHandleSessionTicketExt(sslSocket *ss,
+    PRUint16 ex_type, SECItem *data);
+extern SECStatus ssl3_ServerHandleSessionTicketExt(sslSocket *ss,
+    PRUint16 ex_type, SECItem *data);
+
+/* ClientHello and ServerHello extension senders.
+ * Note that not all extension senders are exposed here; only those that
+ * that need exposure.
+ */
+extern PRInt32 ssl3_SendSessionTicketExt(sslSocket *ss, PRBool append,
+    PRUint32 maxBytes);
+#ifdef NSS_ENABLE_ECC
+extern PRInt32 ssl3_SendSupportedCurvesExt(sslSocket *ss,
+    PRBool append, PRUint32 maxBytes);
+extern PRInt32 ssl3_SendSupportedPointExt(sslSocket *ss,
+    PRBool append, PRUint32 maxBytes);
+#endif
 
 /* call the registered extension handlers. */
-extern SECStatus ssl3_HandleClientHelloExtensions(sslSocket *ss, 
+extern SECStatus ssl3_HandleHelloExtensions(sslSocket *ss, 
 			SSL3Opaque **b, PRUint32 *length);
+
+/* Hello Extension related routines. */
+extern PRBool ssl3_ClientExtensionAdvertised(sslSocket *ss, PRUint16 ex_type);
+extern PRBool ssl3_ExtensionNegotiated(sslSocket *ss, PRUint16 ex_type);
+extern SECStatus ssl3_GetSessionTicketKeysPKCS11(PK11SymKey **aes_key,
+    PK11SymKey **mac_key);
+extern SECStatus ssl3_GetSessionTicketKeys(const unsigned char **aes_key,
+    PRUint32 *aes_key_length, const unsigned char **mac_key,
+    PRUint32 *mac_key_length);
+extern SECStatus ssl3_SetSIDSessionTicket(sslSessionID *sid,
+    NewSessionTicket *session_ticket);
+extern SECStatus ssl3_SendNewSessionTicket(sslSocket *ss);
+
+/* Tell clients to consider tickets valid for this long. */
+#define TLS1_EX_SESS_TICKET_LIFETIME_HINT   (2 * 24 * 60 * 60) /* 2 days */
+#define TLS1_EX_SESS_TICKET_VERSION         (0x0100)
 
 /* Construct a new NSPR socket for the app to use */
 extern PRFileDesc *ssl_NewPRSocket(sslSocket *ss, PRFileDesc *fd);

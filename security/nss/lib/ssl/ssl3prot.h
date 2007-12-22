@@ -150,13 +150,14 @@ typedef enum {
     hello_request	= 0, 
     client_hello	= 1, 
     server_hello	= 2,
+    new_session_ticket  = 4,
     certificate 	= 11, 
     server_key_exchange = 12,
     certificate_request	= 13, 
     server_hello_done	= 14,
     certificate_verify	= 15, 
     client_key_exchange	= 16, 
-    finished		= 20
+    finished		= 20,
 } SSL3HandshakeType;
 
 typedef struct {
@@ -306,5 +307,50 @@ typedef SSL3Hashes SSL3Finished;
 typedef struct {
     SSL3Opaque verify_data[12];
 } TLSFinished;
+
+/*
+ * TLS1 extension related data structures and constants.
+ */ 
+
+/* SessionTicket extension related data structures. */
+
+/* NewSessionTicket handshake message. */
+typedef struct {
+  uint32 received_timestamp;
+  uint32 ticket_lifetime_hint;
+  SECItem  ticket;
+} NewSessionTicket;
+
+typedef enum {
+    CLIENT_AUTH_ANONYMOUS   = 0,
+    CLIENT_AUTH_CERTIFICATE = 1
+} ClientAuthenticationType;
+
+typedef struct {
+    ClientAuthenticationType client_auth_type  : 1;
+    union {
+	SSL3Opaque *certificate_list;
+    } identity;
+}  ClientIdentity;
+
+typedef struct {
+    unsigned char *key_name;
+    unsigned char *iv;
+    SECItem encrypted_state;
+    unsigned char *mac;
+} EncryptedSessionTicket;
+
+/* Supported extensions. */
+typedef enum {
+    server_name_xtn              = 0,
+#ifdef NSS_ENABLE_ECC
+    elliptic_curves_xtn          = 10,
+    elliptic_point_formats_xtn   = 11,
+#endif
+    session_ticket_xtn           = 35
+} ExtensionType;
+
+#define TLS1_EX_SESS_TICKET_KEY_NAME        "NSS_SESS_TICKET!"
+#define TLS1_EX_SESS_TICKET_MAC_LENGTH      32
 
 #endif /* __ssl3proto_h_ */

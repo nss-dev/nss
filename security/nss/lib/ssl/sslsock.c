@@ -178,6 +178,7 @@ static sslOptions ssl_defaults = {
     PR_FALSE,   /* noStepDown         */
     PR_FALSE,   /* bypassPKCS11       */
     PR_FALSE,   /* noLocks            */
+    PR_FALSE,   /* enableSessionTicketExtension */
 };
 
 sslSessionIDLookupFunc  ssl_sid_lookup;
@@ -699,6 +700,10 @@ SSL_OptionSet(PRFileDesc *fd, PRInt32 which, PRBool on)
 	}
 	break;
 
+      case SSL_ENABLE_SESSION_TICKET_EXTENSION:
+	ss->opt.enableSessionTicketExtension = on;
+	break;
+
       default:
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
 	rv = SECFailure;
@@ -754,7 +759,9 @@ SSL_OptionGet(PRFileDesc *fd, PRInt32 which, PRBool *pOn)
     case SSL_NO_STEP_DOWN:        on = ss->opt.noStepDown;         break;
     case SSL_BYPASS_PKCS11:       on = ss->opt.bypassPKCS11;       break;
     case SSL_NO_LOCKS:            on = ss->opt.noLocks;            break;
-
+    case SSL_ENABLE_SESSION_TICKET_EXTENSION:
+	on = ss->opt.enableSessionTicketExtension;
+	break;
     default:
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
 	rv = SECFailure;
@@ -795,6 +802,9 @@ SSL_OptionGetDefault(PRInt32 which, PRBool *pOn)
     case SSL_NO_STEP_DOWN:        on = ssl_defaults.noStepDown;         break;
     case SSL_BYPASS_PKCS11:       on = ssl_defaults.bypassPKCS11;       break;
     case SSL_NO_LOCKS:            on = ssl_defaults.noLocks;            break;
+    case SSL_ENABLE_SESSION_TICKET_EXTENSION:
+	on = ssl_defaults.enableSessionTicketExtension;
+	break;
 
     default:
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
@@ -920,6 +930,10 @@ SSL_OptionSetDefault(PRInt32 which, PRBool on)
 	    locksEverDisabled = PR_TRUE;
 	    strcpy(lockStatus + LOCKSTATUS_OFFSET, "DISABLED.");
 	}
+	break;
+
+      case SSL_ENABLE_SESSION_TICKET_EXTENSION:
+	ssl_defaults.enableSessionTicketExtension = on;
 	break;
 
       default:
@@ -2176,4 +2190,3 @@ loser:
     }
     return ss;
 }
-
