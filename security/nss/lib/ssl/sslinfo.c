@@ -47,7 +47,8 @@ SSL_GetChannelInfo(PRFileDesc *fd, SSLChannelInfo *info, PRUintn len)
     sslSessionID *   sid;
 
     if (!info || len < sizeof inf.length) { 
-    	return SECSuccess;
+	PORT_SetError(SEC_ERROR_INVALID_ARGS);
+	return SECFailure;
     }
 
     ss = ssl_FindSocket(fd);
