@@ -1650,6 +1650,10 @@ cert_CountDNSPatterns(CERTGeneralName *firstName)
     return count;
 }
 
+#ifndef INET6_ADDRSTRLEN
+#define INET6_ADDRSTRLEN 46
+#endif
+
 /* will fill nickNames, 
  * will allocate all data from nickNames->arena,
  * numberOfGeneralNames should have been obtained from cert_CountDNSPatterns,
