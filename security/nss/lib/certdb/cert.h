@@ -397,6 +397,16 @@ extern SECStatus CERT_OpenCertDBFilename(CERTCertDBHandle *handle,
 extern SECStatus CERT_OpenVolatileCertDB(CERTCertDBHandle *handle);
 
 /*
+** Extract the list of host names, host name patters, IP address strings
+** this cert is valid for.
+** This function does NOT return nicknames.
+** Type CERTCertNicknames is being used because it's a convenient 
+** data structure to carry a list of strings and its count.
+*/
+extern CERTCertNicknames *
+  CERT_GetValidDNSPatternsFromCert(CERTCertificate *cert);
+
+/*
 ** Check the hostname to make sure that it matches the shexp that
 ** is given in the common name of the certificate.
 */
