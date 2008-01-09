@@ -253,16 +253,16 @@ arrayContainsExtension(PRUint16 *array, PRUint32 array_len, PRUint16 ex_type)
 
 PRBool
 ssl3_ExtensionNegotiated(sslSocket *ss, PRUint16 ex_type) {
-    TLS1ExtensionData *extension_data = &ss->ssl3.extension_data;
-    return arrayContainsExtension(extension_data->negotiatedExtensions,
-	extension_data->numNegotiatedExtensions, ex_type);
+    TLS1ExtensionData *xtnData = &ss->xtnData;
+    return arrayContainsExtension(xtnData->negotiated,
+	xtnData->numNegotiated, ex_type);
 }
 
 PRBool
 ssl3_ClientExtensionAdvertised(sslSocket *ss, PRUint16 ex_type) {
-    TLS1ExtensionData *extension_data = &ss->ssl3.extension_data;
-    return arrayContainsExtension(extension_data->advertisedClientExtensions,
-	extension_data->numAdvertisedClientExtensions, ex_type);
+    TLS1ExtensionData *xtnData = &ss->xtnData;
+    return arrayContainsExtension(xtnData->advertised,
+	xtnData->numAdvertised, ex_type);
 }
 
 /* Format an SNI extension, using the name from the socket's URL,
@@ -303,10 +303,8 @@ ssl3_SendServerNameExt(
 	rv = ssl3_AppendHandshakeVariable(ss, (unsigned char *)ss->url, len, 2);
 	if (rv != SECSuccess) return -1;
 	if (!ss->sec.isServer) {
-	    TLS1ExtensionData *ex_data = &ss->ssl3.extension_data;
-	    ex_data->advertisedClientExtensions[
-		    ex_data->numAdvertisedClientExtensions++] =
-		server_name_xtn;
+	    TLS1ExtensionData *xtnData = &ss->xtnData;
+	    xtnData->advertised[xtnData->numAdvertised++] = server_name_xtn;
 	}
     }
     return len + 9;
@@ -351,14 +349,14 @@ ssl3_SendSessionTicketExt(
 	sid = ss->sec.ci.sid;
 	session_ticket = &sid->u.ssl3.session_ticket;
 	if (session_ticket->ticket.data) {
-	    if (ss->ssl3.extension_data.ticket_timestamp_verified) {
+	    if (ss->xtnData.ticketTimestampVerified) {
 		extension_length += session_ticket->ticket.len;
 	    } else if (!append &&
 		(session_ticket->ticket_lifetime_hint == 0 ||
 		(session_ticket->ticket_lifetime_hint +
 		    session_ticket->received_timestamp > ssl_Time()))) {
 		extension_length += session_ticket->ticket.len;
-		ss->ssl3.extension_data.ticket_timestamp_verified = PR_TRUE;
+		ss->xtnData.ticketTimestampVerified = PR_TRUE;
 	    }
 	}
     }
@@ -370,10 +368,10 @@ ssl3_SendSessionTicketExt(
         if (rv != SECSuccess)
 	    goto loser;
 	if (session_ticket && session_ticket->ticket.data &&
-	    ss->ssl3.extension_data.ticket_timestamp_verified) {
+	    ss->xtnData.ticketTimestampVerified) {
 	    rv = ssl3_AppendHandshakeVariable(ss, session_ticket->ticket.data,
 		session_ticket->ticket.len, 2);
-	    ss->ssl3.extension_data.ticket_timestamp_verified = PR_FALSE;
+	    ss->xtnData.ticketTimestampVerified = PR_FALSE;
 	} else {
 	    rv = ssl3_AppendHandshakeNumber(ss, 0, 2);
 	}
@@ -381,10 +379,8 @@ ssl3_SendSessionTicketExt(
 	    goto loser;
 
 	if (!ss->sec.isServer) {
-	    TLS1ExtensionData *ex_data = &ss->ssl3.extension_data;
-	    ex_data->advertisedClientExtensions[
-		    ex_data->numAdvertisedClientExtensions++] =
-		session_ticket_xtn;
+	    TLS1ExtensionData *xtnData = &ss->xtnData;
+	    xtnData->advertised[xtnData->numAdvertised++] = session_ticket_xtn;
 	}
     } else if (maxBytes < extension_length) {
 	PORT_Assert(0);
@@ -393,7 +389,7 @@ ssl3_SendSessionTicketExt(
     return extension_length;
 
  loser:
-    ss->ssl3.extension_data.ticket_timestamp_verified = PR_FALSE;
+    ss->xtnData.ticketTimestampVerified = PR_FALSE;
     return -1;
 }
 
@@ -712,14 +708,11 @@ SECStatus
 ssl3_ClientHandleSessionTicketExt(sslSocket *ss, PRUint16 ex_type,
     SECItem *data)
 {
-    TLS1ExtensionData *ex_data;
     if (data->len != 0)
 	return SECFailure;
 
     /* Keep track of negotiated extensions. */
-    ex_data = &ss->ssl3.extension_data;
-    ex_data->negotiatedExtensions[ex_data->numNegotiatedExtensions++] =
-	ex_type;
+    ss->xtnData.negotiated[ss->xtnData.numNegotiated++] = ex_type;
     return SECSuccess;
 }
 
@@ -738,15 +731,14 @@ ssl3_ServerHandleSessionTicketExt(sslSocket *ss, PRUint16 ex_type,
 	return SECSuccess;
 
     /* Keep track of negotiated extensions. */
-    ss->ssl3.extension_data.negotiatedExtensions[
-	    ss->ssl3.extension_data.numNegotiatedExtensions++] = ex_type;
+    ss->xtnData.negotiated[ss->xtnData.numNegotiated++] = ex_type;
 
     /* Parse the received ticket sent in by the client.  We are
      * lenient about some parse errors, falling back to a fullshake
      * instead of terminating the current connection.
      */
     if (data->len == 0) {
-	ss->ssl3.extension_data.empty_session_ticket = PR_TRUE;
+	ss->xtnData.emptySessionTicket = PR_TRUE;
     } else {
 	int                    i;
 	SECItem                extension_data;
@@ -1036,7 +1028,7 @@ ssl3_ServerHandleSessionTicketExt(sslSocket *ss, PRUint16 ex_type,
 		    goto loser;
 		}
 	    }
-	    ss->ssl3.stateless_resume = PR_TRUE;
+	    ss->statelessResume = PR_TRUE;
 	    ss->sec.ci.sid = sid;
 	}
     }
@@ -1122,7 +1114,7 @@ ssl3_HandleHelloExtensions(sslSocket *ss,
 	SECStatus rv;
 	PRInt32   extension_type;
 	SECItem   extension_data;
-	TLS1ExtensionData *ex_data = &ss->ssl3.extension_data;
+	TLS1ExtensionData *xtnData = &ss->xtnData;
 	const ssl3HelloExtensionHandler * handler;
 
 	/* Get the extension's type field */
@@ -1143,8 +1135,8 @@ ssl3_HandleHelloExtensions(sslSocket *ss,
 	    return SECFailure;
 
 	/* Check whether an extension has been sent multiple times. */
-	if (arrayContainsExtension(ex_data->negotiatedExtensions,
-		ex_data->numNegotiatedExtensions, extension_type))
+	if (arrayContainsExtension(xtnData->negotiated,
+		xtnData->numNegotiated, extension_type))
 	    return SECFailure;
 
 	/* find extension_type in table of Client Hello Extension Handlers */
@@ -1169,8 +1161,7 @@ ssl3_RegisterServerHelloExtensionSender(sslSocket *ss, PRUint16 ex_type,
 				        ssl3HelloExtensionSenderFunc cb)
 {
     int i;
-    ssl3HelloExtensionSender *sender =
-        &ss->ssl3.extension_data.serverExtensionSenders[0];
+    ssl3HelloExtensionSender *sender = &ss->xtnData.senders[0];
 
     for (i = 0; i < MAX_EXTENSION_SENDERS; ++i, ++sender) {
         if (!sender->ex_sender) {

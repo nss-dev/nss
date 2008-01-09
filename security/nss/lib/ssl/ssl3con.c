@@ -3507,7 +3507,7 @@ ssl3_SendClientHello(sslSocket *ss)
     /* We might be starting a session renegotiation in which case we should
      * clear previous state.
      */
-    PORT_Memset(&ss->ssl3.extension_data, 0, sizeof(TLS1ExtensionData));
+    PORT_Memset(&ss->xtnData, 0, sizeof(TLS1ExtensionData));
 
     SSL_TRC(30,("%d: SSL3[%d]: reset handshake hashes",
 	    SSL_GETPID(), ss->fd ));
@@ -4662,8 +4662,6 @@ ssl3_HandleServerHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	    goto alert_loser;
 	rv = ssl3_HandleHelloExtensions(ss, &extensions.data, &extensions.len);
 	if (rv != SECSuccess) goto alert_loser;
-    } else if (length > 0) {
-	goto alert_loser;
     }
 #endif
 
@@ -5629,8 +5627,8 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     /* We might be starting a session renegotiation in which case we should
      * clear previous state.
      */
-    PORT_Memset(&ss->ssl3.extension_data, 0, sizeof(TLS1ExtensionData));
-    ss->ssl3.stateless_resume = PR_FALSE;
+    PORT_Memset(&ss->xtnData, 0, sizeof(TLS1ExtensionData));
+    ss->statelessResume = PR_FALSE;
 
     /* OpenSSL 0.9.8g sends TLS extensions even when negotiating SSL3,
      * so we simply ignore any trailing bytes if the negotiated
@@ -5658,7 +5656,7 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
      * ticket extension, but sent an empty ticket.
      */
     if (!ssl3_ExtensionNegotiated(ss, session_ticket_xtn) ||
-	ss->ssl3.extension_data.empty_session_ticket) {
+	ss->xtnData.emptySessionTicket) {
 	if (sidBytes.len > 0 && !ss->opt.noCache) {
 	    SSL_TRC(7, ("%d: SSL3[%d]: server, lookup client session-id for 0x%08x%08x%08x%08x",
 			SSL_GETPID(), ss->fd, ss->sec.ci.peer.pr_s6_addr32[0],
@@ -5673,7 +5671,7 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 		goto loser;
 	    }
 	}
-    } else if (ss->ssl3.stateless_resume) {
+    } else if (ss->statelessResume) {
 	/* Fill in the client's session ID if doing a stateless resume.
 	 * (When doing stateless resumes, server echos client's SessionID.)
 	 */
@@ -5926,7 +5924,7 @@ compression_found:
 	 * XXX make sure compression still matches
 	 */
 	SSL_AtomicIncrementLong(& ssl3stats.hch_sid_cache_hits );
-	if (ss->ssl3.stateless_resume)
+	if (ss->statelessResume)
 	    SSL_AtomicIncrementLong(&ssl3stats.hch_sid_stateless_resumes);
 
 	ss->ssl3.hs.isResuming = PR_TRUE;
@@ -6235,7 +6233,7 @@ ssl3_SendServerHello(sslSocket *ss)
     sid = ss->sec.ci.sid;
 
     extensions_len = ssl3_CallHelloExtensionSenders(ss, PR_FALSE, maxBytes,
-	&ss->ssl3.extension_data.serverExtensionSenders[0]);
+	&ss->xtnData.senders[0]);
     if (extensions_len > 0)
     	extensions_len += 2; /* Add sizeof total extension length */
 
@@ -6287,7 +6285,7 @@ ssl3_SendServerHello(sslSocket *ss)
 	if (rv != SECSuccess) 
 	    return rv;	/* err set by ssl3_SetupPendingCipherSpec */
 	sent_len = ssl3_CallHelloExtensionSenders(ss, PR_TRUE, extensions_len,
-	    &ss->ssl3.extension_data.serverExtensionSenders[0]);
+	    &ss->xtnData.senders[0]);
         PORT_Assert(sent_len == extensions_len);
 	if (sent_len != extensions_len) {
 	    if (sent_len >= 0)
@@ -8413,7 +8411,7 @@ ssl3_InitState(sslSocket *ss)
 #endif
     ssl_ReleaseSpecWriteLock(ss);
 
-    PORT_Memset(&ss->ssl3.extension_data, 0, sizeof(TLS1ExtensionData));
+    PORT_Memset(&ss->xtnData, 0, sizeof(TLS1ExtensionData));
 
     rv = ssl3_NewHandshakeHashes(ss);
     if (rv == SECSuccess) {

@@ -710,16 +710,16 @@ typedef struct SessionTicketDataStr      SessionTicketData;
 
 struct TLS1ExtensionDataStr {
     /* registered callbacks that send server hello extensions */
-    ssl3HelloExtensionSender serverExtensionSenders[MAX_EXTENSION_SENDERS];
+    ssl3HelloExtensionSender senders[MAX_EXTENSION_SENDERS];
     /* Keep track of the extensions that are negotiated. */
-    PRUint16 numAdvertisedClientExtensions;
-    PRUint16 numNegotiatedExtensions;
-    PRUint16 advertisedClientExtensions[MAX_EXTENSION_SENDERS];
-    PRUint16 negotiatedExtensions[MAX_EXTENSION_SENDERS];
+    PRUint16 numAdvertised;
+    PRUint16 numNegotiated;
+    PRUint16 advertised[MAX_EXTENSION_SENDERS];
+    PRUint16 negotiated[MAX_EXTENSION_SENDERS];
 
     /* SessionTicket Extension related data. */
-    PRBool ticket_timestamp_verified;
-    PRBool empty_session_ticket;
+    PRBool ticketTimestampVerified;
+    PRBool emptySessionTicket;
 };
 
 /*
@@ -797,13 +797,6 @@ struct ssl3StateStr {
     PRBool               initialized;
     SSL3HandshakeState   hs;
     ssl3CipherSpec       specs[2];	/* one is current, one is pending. */
-
-    /*
-     * TLS1 Extension related data.
-     */
-    /* True when the current session is a stateless resume. */
-    PRBool               stateless_resume;
-    TLS1ExtensionData    extension_data;
 };
 
 typedef struct {
@@ -1088,6 +1081,13 @@ const unsigned char *  preferredCipher;
 
     /* SSL3 state info.  Formerly was a pointer */
     ssl3State        ssl3;
+
+    /*
+     * TLS1 Extension related data.
+     */
+    /* True when the current session is a stateless resume. */
+    PRBool               statelessResume;
+    TLS1ExtensionData    xtnData;
 };
 
 
