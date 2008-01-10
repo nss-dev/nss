@@ -99,13 +99,13 @@ ssl3_AppendNumberToItem(SECItem *item, PRUint32 num, PRInt32 lenSize)
 
     switch (lenSize) {
     case 4:
-	*p++ = (num >> 24) & 0xff;
+	*p++ = (uint8) (num >> 24);
     case 3:
-	*p++ = (num >> 16) & 0xff;
+	*p++ = (uint8) (num >> 16);
     case 2:
-	*p++ = (num >> 8) & 0xff;
+	*p++ = (uint8) (num >> 8);
     case 1:
-	*p = num & 0xff;
+	*p = (uint8) num;
     }
     rv = ssl3_AppendToItem(item, &b[0], lenSize);
     return rv;
@@ -130,6 +130,7 @@ ssl3_GenerateSessionTicketKeysPKCS11(void)
 {
     PK11SlotInfo *slot;
     SECStatus rv;
+    CK_MECHANISM_TYPE mechanism_array[2];
 
     slot = PK11_GetBestSlot(CKM_AES_CBC, NULL);
     /* no parameter, 128-bit key size */
@@ -138,7 +139,10 @@ ssl3_GenerateSessionTicketKeysPKCS11(void)
     PK11_FreeSlot(slot);
     if (!session_ticket_enc_key_pkcs11)
 	return PR_FAILURE;
-    slot = PK11_GetBestSlot(CKM_SHA256_HMAC, NULL);
+
+    mechanism_array[0] = CKM_SHA256_HMAC;
+    mechanism_array[1] = CKM_GENERIC_SECRET_KEY_GEN;
+    slot = PK11_GetBestSlotMultiple(mechanism_array, 2, NULL);
     /* no parameter, 256-bit key size */
     session_ticket_mac_key_pkcs11 =
 	PK11_KeyGen(slot, CKM_GENERIC_SECRET_KEY_GEN, NULL, 32, NULL);

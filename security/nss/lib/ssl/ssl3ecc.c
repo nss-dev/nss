@@ -463,7 +463,6 @@ ssl3_GetCurveNameForServerSocket(sslSocket *ss)
     ECName ec_curve = ec_noName;
     int    signatureKeyStrength = 521;
     int    requiredECCbits = ss->sec.secretKeyBits * 2;
-    int    i;
 
     if (ss->ssl3.hs.kea_def->kea == kea_ecdhe_ecdsa) {
 	svrPublicKey = SSL_GET_SERVER_PUBLIC_KEY(ss, kt_ecdh);
@@ -1060,10 +1059,8 @@ ssl3_SendSupportedCurvesExt(
 	if (rv != SECSuccess)
 	    return -1;
 	if (!ss->sec.isServer) {
-	    TLS1ExtensionData *ex_data = &ss->ssl3.extension_data;
-	    ex_data->advertisedClientExtensions[
-		    ex_data->numAdvertisedClientExtensions++] =
-		elliptic_curves_xtn;
+	    TLS1ExtensionData *xtnData = &ss->xtnData;
+	    xtnData->advertised[xtnData->numAdvertised++] = elliptic_curves_xtn;
 	}
     }
     return (sizeof EClist);
@@ -1085,9 +1082,8 @@ ssl3_SendSupportedPointExt(
 	if (rv != SECSuccess)
 	    return -1;
 	if (!ss->sec.isServer) {
-	    TLS1ExtensionData *ex_data = &ss->ssl3.extension_data;
-	    ex_data->advertisedClientExtensions[
-		    ex_data->numAdvertisedClientExtensions++] =
+	    TLS1ExtensionData *xtnData = &ss->xtnData;
+	    xtnData->advertised[xtnData->numAdvertised++] =
 		elliptic_point_formats_xtn;
 	}
     }
