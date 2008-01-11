@@ -333,7 +333,7 @@ ssl3_SendSessionTicketExt(
 			PRBool      append,
 			PRUint32    maxBytes)
 {
-    sslSessionID *sid;
+    PRInt32 extension_length;
     NewSessionTicket *session_ticket = NULL;
 
     /* Ignore the SessionTicket extension if processing is disabled. */
@@ -343,14 +343,14 @@ ssl3_SendSessionTicketExt(
     /* Empty extension length = extension_type (2-bytes) +
      * length(extension_data) (2-bytes)
      */
-    PRInt32 extension_length = 4;
+    extension_length = 4;
 
     /* If we are a client then send a session ticket if one is availble.
      * Servers that support the extension and are willing to negotiate the
      * the extension always respond with an empty extension.
      */
     if (!ss->sec.isServer) {
-	sid = ss->sec.ci.sid;
+	sslSessionID *sid = ss->sec.ci.sid;
 	session_ticket = &sid->u.ssl3.session_ticket;
 	if (session_ticket->ticket.data) {
 	    if (ss->xtnData.ticketTimestampVerified) {
