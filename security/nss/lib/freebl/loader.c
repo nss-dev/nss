@@ -87,6 +87,11 @@ getLibName(void)
     buflen = sysinfo(SI_ISALIST, buf, sizeof buf);
     if (buflen <= 0) 
 	return NULL;
+    /* sysinfo output is always supposed to be NUL terminated, but ... */
+    if (buflen < sizeof buf) 
+    	buf[buflen] = '\0';
+    else
+    	buf[(sizeof buf) - 1] = '\0';
     /* The ISA list is a space separated string of names of ISAs and
      * ISA extensions, in order of decreasing performance.
      * There are two different ISAs with which NSS's crypto code can be
