@@ -15520,7 +15520,7 @@ static const NSSItem nss_builtins_items_229 [] = {
   { (void *)&ck_false, (PRUint32)sizeof(CK_BBOOL) }
 };
 
-PR_IMPLEMENT_DATA(builtinsInternalObject)
+builtinsInternalObject
 nss_builtins_data[] = {
 #ifdef DEBUG
   { 7, nss_builtins_types_0, nss_builtins_items_0, {NULL} },
@@ -15755,7 +15755,7 @@ nss_builtins_data[] = {
   { 11, nss_builtins_types_228, nss_builtins_items_228, {NULL} },
   { 13, nss_builtins_types_229, nss_builtins_items_229, {NULL} }
 };
-PR_IMPLEMENT_DATA(const PRUint32)
+const PRUint32
 #ifdef DEBUG
   nss_builtins_nObjects = 229+1;
 #else

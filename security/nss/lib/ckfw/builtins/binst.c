@@ -121,7 +121,7 @@ builtins_mdInstance_GetSlots
   return CKR_OK;
 }
 
-NSS_IMPLEMENT_DATA const NSSCKMDInstance
+const NSSCKMDInstance
 nss_builtins_mdInstance = {
   (void *)NULL, /* etc */
   NULL, /* Initialize */

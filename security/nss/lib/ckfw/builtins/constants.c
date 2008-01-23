@@ -56,42 +56,42 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$";
 #include "nssckbi.h"
 #endif /* NSSCKBI_H */
 
-NSS_IMPLEMENT_DATA const CK_VERSION
+const CK_VERSION
 nss_builtins_CryptokiVersion =  {
 		NSS_BUILTINS_CRYPTOKI_VERSION_MAJOR,
 		NSS_BUILTINS_CRYPTOKI_VERSION_MINOR };
 
-NSS_IMPLEMENT_DATA const NSSUTF8 *
-nss_builtins_ManufacturerID = (NSSUTF8 *) "Mozilla Foundation";
-
-NSS_IMPLEMENT_DATA const NSSUTF8 *
-nss_builtins_LibraryDescription = (NSSUTF8 *) "NSS Builtin Object Cryptoki Module";
-
-NSS_IMPLEMENT_DATA const CK_VERSION
+const CK_VERSION
 nss_builtins_LibraryVersion = {
 	NSS_BUILTINS_LIBRARY_VERSION_MAJOR,
 	NSS_BUILTINS_LIBRARY_VERSION_MINOR};
 
-NSS_IMPLEMENT_DATA const NSSUTF8 *
-nss_builtins_SlotDescription = (NSSUTF8 *) "NSS Builtin Objects";
-
-NSS_IMPLEMENT_DATA const CK_VERSION
+const CK_VERSION
 nss_builtins_HardwareVersion = { 
 	NSS_BUILTINS_HARDWARE_VERSION_MAJOR,
 	NSS_BUILTINS_HARDWARE_VERSION_MINOR };
 
-NSS_IMPLEMENT_DATA const CK_VERSION
+const CK_VERSION
 nss_builtins_FirmwareVersion = { 
 	NSS_BUILTINS_FIRMWARE_VERSION_MAJOR,
 	NSS_BUILTINS_FIRMWARE_VERSION_MINOR };
 
-NSS_IMPLEMENT_DATA const NSSUTF8 *
-nss_builtins_TokenLabel = (NSSUTF8 *) "Builtin Object Token";
+const NSSUTF8 
+nss_builtins_ManufacturerID[] = { "Mozilla Foundation" };
 
-NSS_IMPLEMENT_DATA const NSSUTF8 *
-nss_builtins_TokenModel = (NSSUTF8 *) "1";
+const NSSUTF8 
+nss_builtins_LibraryDescription[] = { "NSS Builtin Object Cryptoki Module" };
+
+const NSSUTF8 
+nss_builtins_SlotDescription[] = { "NSS Builtin Objects" };
+
+const NSSUTF8 
+nss_builtins_TokenLabel[] = { "Builtin Object Token" };
+
+const NSSUTF8 
+nss_builtins_TokenModel[] = { "1" };
 
 /* should this be e.g. the certdata.txt RCS revision number? */
-NSS_IMPLEMENT_DATA const NSSUTF8 *
-nss_builtins_TokenSerialNumber = (NSSUTF8 *) "1";
+const NSSUTF8 
+nss_builtins_TokenSerialNumber[] = { "1" };
 
