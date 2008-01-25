@@ -134,10 +134,15 @@ NSSTrustDomain_Destroy (
 	/* Destroy each token in the list of tokens */
 	if (td->tokens) {
 	    nssListIterator_Destroy(td->tokens);
+	    td->tokens = NULL;
+	}
+	if (td->tokenList) {
 	    nssList_Clear(td->tokenList, token_destructor);
 	    nssList_Destroy(td->tokenList);
+	    td->tokenList = NULL;
 	}
 	NSSRWLock_Destroy(td->tokensLock);
+	td->tokensLock = NULL;
 	status = nssTrustDomain_DestroyCache(td);
 	if (status == PR_FAILURE) {
 	    return status;
@@ -1217,7 +1222,7 @@ nssTrustDomain_FindTrustForCertificate (
 	                                      nssTokenSearchType_TokenOnly);
 	    if (to) {
 		if (!pkio) {
-		    pkio = nssPKIObject_Create(NULL, to, td, NULL);
+		    pkio = nssPKIObject_Create(NULL, to, td, NULL, nssPKILock);
 		    if (!pkio) {
 			nssToken_Destroy(token);
 			nssCryptokiObject_Destroy(to);

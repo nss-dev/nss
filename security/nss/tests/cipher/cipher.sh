@@ -75,7 +75,7 @@ cipher_init()
 
   mkdir -p ${CIPHERDIR}
 
-  cd ${CIPHERTESTDIR}
+  cd ${CIPHERDIR}
   P_CIPHER=.
   if [ -n "${MULTIACCESS_DBM}" ]; then
     P_CIPHER="multiaccess:${D_CIPHER}"
@@ -93,10 +93,29 @@ cipher_main()
           PARAM=`echo $PARAM | sed -e "s/_-/ -/g"`
           TESTNAME=`echo $TESTNAME | sed -e "s/_/ /g"`
           echo "$SCRIPTNAME: $TESTNAME --------------------------------"
-          echo "bltest -T -m $PARAM -d ${P_CIPHER}"
-
-          bltest -T -m $PARAM -d ${P_CIPHER} 
-          html_msg $? $EXP_RET "$TESTNAME"
+          failedStr=""
+          inOff=0
+          res=0
+          while [ $inOff -lt 8 ]
+          do
+             outOff=0
+             while [ $outOff -lt 8 ]
+             do
+                 echo "bltest -T -m $PARAM -d $CIPHERTESTDIR -1 $inOff -2 $outOff"
+                 bltest -T -m $PARAM -d $CIPHERTESTDIR -1 $inOff -2 $outOff
+                 if [ $? -ne 0 ]; then
+                     failedStr="$failedStr[$inOff:$outOff]"
+                 fi
+                 outOff=`expr $outOff + 1`
+             done
+             inOff=`expr $inOff + 1`
+          done
+          if [ -n "$failedStr" ]; then
+              html_msg 1 $EXP_RET "$TESTNAME (Failed in/out offset pairs:" \
+                        " $failedStr)"
+          else
+              html_msg $res $EXP_RET "$TESTNAME"
+          fi
       fi
   done < ${CIPHER_TXT}
 }

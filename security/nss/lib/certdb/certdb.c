@@ -864,8 +864,7 @@ CERT_DecodeDERCertificate(SECItem *derSignedCert, PRBool copyDER,
     }
 
     if (cert_HasUnknownCriticalExten (cert->extensions) == PR_TRUE) {
-	PORT_SetError(SEC_ERROR_UNKNOWN_CRITICAL_EXTENSION);
-	goto loser;
+        cert->options.bits.hasUnsupportedCriticalExt = PR_TRUE;
     }
 
     /* generate and save the database key for the cert */

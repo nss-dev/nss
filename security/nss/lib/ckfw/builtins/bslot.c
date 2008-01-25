@@ -110,7 +110,7 @@ builtins_mdSlot_GetToken
   return (NSSCKMDToken *)&nss_builtins_mdToken;
 }
 
-NSS_IMPLEMENT_DATA const NSSCKMDSlot
+const NSSCKMDSlot
 nss_builtins_mdSlot = {
   (void *)NULL, /* etc */
   NULL, /* Initialize */
