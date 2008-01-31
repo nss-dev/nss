@@ -406,14 +406,6 @@ dbs_readBlob(DBS *dbsp, DBT *data)
 loser:
     /* preserve the error code */
     error = PR_GetError();
-    if (addr) {
-	if (mapfile) {
-	    PORT_Assert(len != -1);
-	    PR_MemUnmap(addr,len);
-	} else {
-	    PORT_Free(addr);
-	}
-    }
     if (mapfile) {
 	PR_CloseFileMap(mapfile);
     }

@@ -259,7 +259,13 @@ NSS_CMSUtil_MakeSignatureAlgorithm(SECOidTag hashalg, SECOidTag encalg)
       case SEC_OID_ANSIX962_EC_PUBLIC_KEY:
 	switch (hashalg) {
 	  case SEC_OID_SHA1:
-	    return SEC_OID_ANSIX962_ECDSA_SIGNATURE_WITH_SHA1_DIGEST;
+	    return SEC_OID_ANSIX962_ECDSA_SHA1_SIGNATURE;
+	  case SEC_OID_SHA256:
+	    return SEC_OID_ANSIX962_ECDSA_SHA256_SIGNATURE;
+	  case SEC_OID_SHA384:
+	    return SEC_OID_ANSIX962_ECDSA_SHA384_SIGNATURE;
+	  case SEC_OID_SHA512:
+	    return SEC_OID_ANSIX962_ECDSA_SHA512_SIGNATURE;
 	  default:
 	    return SEC_OID_UNKNOWN;
 	}

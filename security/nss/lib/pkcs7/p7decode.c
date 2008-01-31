@@ -1665,7 +1665,9 @@ sec_pkcs7_verify_signature(SEC_PKCS7ContentInfo *cinfo,
     algiddata = SECOID_FindOID (&(signerinfo->digestEncAlg.algorithm));
     if (algiddata == NULL ||
 	((algiddata->offset != SEC_OID_PKCS1_RSA_ENCRYPTION) &&
+#ifdef NSS_ECC_MORE_THAN_SUITE_B
 	 (algiddata->offset != SEC_OID_ANSIX962_EC_PUBLIC_KEY) &&
+#endif
 	 (algiddata->offset != SEC_OID_ANSIX9_DSA_SIGNATURE))) {
 	PORT_SetError (SEC_ERROR_PKCS7_BAD_SIGNATURE);
 	goto done;

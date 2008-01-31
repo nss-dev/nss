@@ -54,9 +54,6 @@
 #include "plhash.h"
 #include "pk11func.h" /* sigh */
 
-#ifndef NSS_3_4_CODE
-#define NSS_3_4_CODE
-#endif /* NSS_3_4_CODE */
 #include "nsspki.h"
 #include "pki.h"
 #include "pkim.h"
@@ -155,6 +152,9 @@ __CERT_AddTempCertToPerm(CERTCertificate *cert, char *nickname,
     NSSCryptoContext *context;
     nssCryptokiObject *permInstance;
     NSSCertificate *c = STAN_GetNSSCertificate(cert);
+    nssCertificateStoreTrace lockTrace = {NULL, NULL, PR_FALSE, PR_FALSE};
+    nssCertificateStoreTrace unlockTrace = {NULL, NULL, PR_FALSE, PR_FALSE};
+
     context = c->object.cryptoContext;
     if (!context) {
 	PORT_SetError(SEC_ERROR_ADDING_CERT); 
@@ -170,9 +170,10 @@ __CERT_AddTempCertToPerm(CERTCertificate *cert, char *nickname,
 	stanNick = nssUTF8_Duplicate((NSSUTF8 *)nickname, c->object.arena);
     }
     /* Delete the temp instance */
-    nssCertificateStore_Lock(context->certStore);
+    nssCertificateStore_Lock(context->certStore, &lockTrace);
     nssCertificateStore_RemoveCertLOCKED(context->certStore, c);
-    nssCertificateStore_Unlock(context->certStore);
+    nssCertificateStore_Unlock(context->certStore, &lockTrace, &unlockTrace);
+    nssCertificateStore_Check(&lockTrace, &unlockTrace);
     c->object.cryptoContext = NULL;
     /* Import the perm instance onto the internal token */
     slot = PK11_GetInternalKeySlot();
@@ -225,7 +226,7 @@ __CERT_NewTempCertificate(CERTCertDBHandle *handle, SECItem *derCert,
     PRStatus nssrv;
     NSSCertificate *c;
     CERTCertificate *cc;
-    NSSCertificate *tempCert;
+    NSSCertificate *tempCert = NULL;
     nssPKIObject *pkio;
     NSSCryptoContext *gCC = STAN_GetDefaultCryptoContext();
     NSSTrustDomain *gTD = STAN_GetDefaultTrustDomain();
@@ -256,7 +257,7 @@ __CERT_NewTempCertificate(CERTCertDBHandle *handle, SECItem *derCert,
 	    return cc;
 	}
     }
-    pkio = nssPKIObject_Create(NULL, NULL, gTD, gCC);
+    pkio = nssPKIObject_Create(NULL, NULL, gTD, gCC, nssPKIMonitor);
     if (!pkio) {
 	return NULL;
     }
@@ -307,33 +308,26 @@ __CERT_NewTempCertificate(CERTCertDBHandle *handle, SECItem *derCert,
 	                          (NSSUTF8 *)cc->emailAddr, 
 	                          PORT_Strlen(cc->emailAddr));
     }
-    /* this function cannot detect if the cert exists as a temp cert now, but
-     * didn't when CERT_NewTemp was first called.
-     */
-    nssrv = NSSCryptoContext_ImportCertificate(gCC, c);
-    if (nssrv != PR_SUCCESS) {
+
+    tempCert = NSSCryptoContext_FindOrImportCertificate(gCC, c);
+    if (!tempCert) {
 	goto loser;
     }
-    /* so find the entry in the temp store */
-    tempCert = NSSCryptoContext_FindCertificateByIssuerAndSerialNumber(gCC,
-                                                                   &c->issuer,
-                                                                   &c->serial);
-    /* destroy the copy */
+    /* destroy our copy */
     NSSCertificate_Destroy(c);
-    if (tempCert) {
-	/* and use the "official" entry */
-	c = tempCert;
-    	cc = STAN_GetCERTCertificateOrRelease(c);
-        if (!cc) {
-            return NULL;
-        }
-    } else {
+    /* and use the stored entry */
+    c = tempCert;
+    cc = STAN_GetCERTCertificateOrRelease(c);
+    if (!cc) {
+	/* STAN_GetCERTCertificateOrRelease destroys c on failure. */
 	return NULL;
     }
+
     cc->istemp = PR_TRUE;
     cc->isperm = PR_FALSE;
     return cc;
 loser:
+    /* Perhaps this should be nssCertificate_Destroy(c) */
     nssPKIObject_Destroy(&c->object);
     return NULL;
 }
@@ -811,23 +805,10 @@ certdb_SaveSingleProfile(CERTCertificate *cert, const char *emailAddr,
 		                                          emailProfile->data);
 	    } else if (profileTime && emailProfile) {
 		PRStatus nssrv;
-		NSSDER subject;
 		NSSItem profTime, profData;
-		NSSItem *pprofTime, *pprofData;
-		NSSITEM_FROM_SECITEM(&subject, &cert->derSubject);
-		if (profileTime) {
-		    NSSITEM_FROM_SECITEM(&profTime, profileTime);
-		    pprofTime = &profTime;
-		} else {
-		    pprofTime = NULL;
-		}
-		if (emailProfile) {
-		    NSSITEM_FROM_SECITEM(&profData, emailProfile);
-		    pprofData = &profData;
-		} else {
-		    pprofData = NULL;
-		}
-		stanProfile = nssSMIMEProfile_Create(c, pprofTime, pprofData);
+		NSSITEM_FROM_SECITEM(&profTime, profileTime);
+		NSSITEM_FROM_SECITEM(&profData, emailProfile);
+		stanProfile = nssSMIMEProfile_Create(c, &profTime, &profData);
 		if (!stanProfile) goto loser;
 		nssrv = nssCryptoContext_ImportSMIMEProfile(cc, stanProfile);
 		rv = (nssrv == PR_SUCCESS) ? SECSuccess : SECFailure;

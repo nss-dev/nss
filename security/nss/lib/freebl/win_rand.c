@@ -35,6 +35,7 @@
  * ***** END LICENSE BLOCK ***** */
 
 #include "secrng.h"
+#include "secerr.h"
 #ifdef XP_WIN
 #include <windows.h>
 
@@ -56,6 +57,7 @@
 #endif
 
 #include "prio.h"
+#include "prerror.h"
 
 static PRInt32  filesToRead;
 static DWORD    totalFileBytes;
@@ -245,8 +247,8 @@ EnumSystemFiles(PRInt32 (*func)(const char *))
     char                szSysDir[_MAX_PATH];
     char                szFileName[_MAX_PATH];
 #ifdef _WIN32
-    struct _finddata_t  fdData;
-    long                lFindHandle;
+    WIN32_FIND_DATA     fdData;
+    HANDLE              lFindHandle;
 #else
     struct _find_t  fdData;
 #endif
@@ -260,28 +262,27 @@ EnumSystemFiles(PRInt32 (*func)(const char *))
     strcat(szFileName, "\\*.*");
 
 #ifdef _WIN32
-    lFindHandle = _findfirst(szFileName, &fdData);
-    if (lFindHandle == -1)
+    lFindHandle = FindFirstFile(szFileName, &fdData);
+    if (lFindHandle == INVALID_HANDLE_VALUE)
         return FALSE;
+    do {
+        // pass the full pathname to the callback
+        sprintf(szFileName, "%s\\%s", szSysDir, fdData.cFileName);
+        (*func)(szFileName);
+        iStatus = FindNextFile(lFindHandle, &fdData);
+    } while (iStatus != 0);
+    FindClose(lFindHandle);
 #else
-    if (_dos_findfirst(szFileName, _A_NORMAL | _A_RDONLY | _A_ARCH | _A_SUBDIR, &fdData) != 0)
+    if (_dos_findfirst(szFileName, 
+             _A_NORMAL | _A_RDONLY | _A_ARCH | _A_SUBDIR, &fdData) != 0)
         return FALSE;
-#endif
-
     do {
         // pass the full pathname to the callback
         sprintf(szFileName, "%s\\%s", szSysDir, fdData.name);
         (*func)(szFileName);
-
-#ifdef _WIN32
-        iStatus = _findnext(lFindHandle, &fdData);
-#else
         iStatus = _dos_findnext(&fdData);
-#endif
     } while (iStatus == 0);
-
-#ifdef _WIN32
-    _findclose(lFindHandle);
+    _dos_findclose(&fdData);
 #endif
 
     return TRUE;
@@ -545,4 +546,98 @@ void RNG_FileForRNG(const char *filename)
 }
 
 #endif  /* not WinCE */
+
+/*
+ * CryptoAPI requires Windows NT 4.0 or Windows 95 OSR2 and later.
+ * Until we drop support for Windows 95, we need to emulate some
+ * definitions and declarations in <wincrypt.h> and look up the
+ * functions in advapi32.dll at run time.
+ */
+
+#ifndef WIN64
+typedef unsigned long HCRYPTPROV;
+#endif
+
+#define CRYPT_VERIFYCONTEXT 0xF0000000
+
+#define PROV_RSA_FULL 1
+
+typedef BOOL
+(WINAPI *CryptAcquireContextAFn)(
+    HCRYPTPROV *phProv,
+    LPCSTR pszContainer,
+    LPCSTR pszProvider,
+    DWORD dwProvType,
+    DWORD dwFlags);
+
+typedef BOOL
+(WINAPI *CryptReleaseContextFn)(
+    HCRYPTPROV hProv,
+    DWORD dwFlags);
+
+typedef BOOL
+(WINAPI *CryptGenRandomFn)(
+    HCRYPTPROV hProv,
+    DWORD dwLen,
+    BYTE *pbBuffer);
+
+/*
+ * Windows XP and Windows Server 2003 and later have RtlGenRandom,
+ * which must be looked up by the name SystemFunction036.
+ */
+typedef BOOLEAN
+(APIENTRY *RtlGenRandomFn)(
+    PVOID RandomBuffer,
+    ULONG RandomBufferLength);
+
+size_t RNG_SystemRNG(void *dest, size_t maxLen)
+{
+    HMODULE hModule;
+    RtlGenRandomFn pRtlGenRandom;
+    CryptAcquireContextAFn pCryptAcquireContextA;
+    CryptReleaseContextFn pCryptReleaseContext;
+    CryptGenRandomFn pCryptGenRandom;
+    HCRYPTPROV hCryptProv;
+    size_t bytes = 0;
+
+    hModule = LoadLibrary("advapi32.dll");
+    if (hModule == NULL) {
+	PORT_SetError(PR_NOT_IMPLEMENTED_ERROR);
+	return 0;
+    }
+    pRtlGenRandom = (RtlGenRandomFn)
+	GetProcAddress(hModule, "SystemFunction036");
+    if (pRtlGenRandom) {
+	if (pRtlGenRandom(dest, maxLen)) {
+	    bytes = maxLen;
+	} else {
+	    PORT_SetError(SEC_ERROR_NEED_RANDOM);  /* system RNG failed */
+	}
+	goto done;
+    }
+    pCryptAcquireContextA = (CryptAcquireContextAFn)
+	GetProcAddress(hModule, "CryptAcquireContextA");
+    pCryptReleaseContext = (CryptReleaseContextFn)
+	GetProcAddress(hModule, "CryptReleaseContext");
+    pCryptGenRandom = (CryptGenRandomFn)
+	GetProcAddress(hModule, "CryptGenRandom");
+    if (!pCryptAcquireContextA || !pCryptReleaseContext || !pCryptGenRandom) {
+	PORT_SetError(PR_NOT_IMPLEMENTED_ERROR);
+	goto done;
+    }
+    if (pCryptAcquireContextA(&hCryptProv, NULL, NULL,
+	PROV_RSA_FULL, CRYPT_VERIFYCONTEXT)) {
+	if (pCryptGenRandom(hCryptProv, maxLen, dest)) {
+	    bytes = maxLen;
+	}
+	pCryptReleaseContext(hCryptProv, 0);
+    }
+    if (bytes == 0) {
+	PORT_SetError(SEC_ERROR_NEED_RANDOM);  /* system RNG failed */
+    }
+done:
+    FreeLibrary(hModule);
+    return bytes;
+}
+
 #endif  /* is XP_WIN */

@@ -152,11 +152,10 @@ struct sidCacheEntryStr {
 /*  4 */    SSL3KEAType exchKeyType;
 /*  4 */    PRInt32     certIndex;
 /*116 */} ssl3;
-#if defined(LINUX)                      /* XXX Why only on Linux ? */
-	struct {
-	    PRUint8     filler[144];	/* XXX why this number ? */
+/* force sizeof(sidCacheEntry) to be a multiple of cache line size */
+        struct {
+/*120 */    PRUint8     filler[120]; /* 72+120==196, a multiple of 16 */
 	} forceSize;
-#endif
     } u;
 };
 typedef struct sidCacheEntryStr sidCacheEntry;
@@ -224,6 +223,7 @@ struct cacheDescStr {
     struct cacheDescStr *      sharedCache;  /* shared copy of this struct */
     PRFileMap *                cacheMemMap;
     PRThread  *                poller;
+    PRUint32                   mutexTimeout;
     PRBool                     shared;
 };
 typedef struct cacheDescStr cacheDesc;
@@ -270,6 +270,7 @@ static PRUint32  ssl_max_sid_cache_locks = MAX_SID_CACHE_LOCKS;
 static PRUint32 SIDindex(cacheDesc *cache, const PRIPv6Addr *addr, PRUint8 *s, 
                          unsigned nl);
 static SECStatus LaunchLockPoller(cacheDesc *cache);
+static SECStatus StopLockPoller(cacheDesc *cache);
 
 
 struct inheritanceStr {
@@ -750,12 +751,14 @@ ServerSessionIDCache(sslSessionID *sid)
     if (sid->cached == never_cached || sid->cached == invalid_cache) {
 	PRUint32 set;
 
-	PORT_Assert(sid->creationTime != 0 && sid->expirationTime != 0);
+	PORT_Assert(sid->creationTime != 0);
 	if (!sid->creationTime)
 	    sid->lastAccessTime = sid->creationTime = ssl_Time();
 	if (version < SSL_LIBRARY_VERSION_3_0) {
-	    if (!sid->expirationTime)
-		sid->expirationTime = sid->creationTime + ssl_sid_timeout;
+	    /* override caller's expiration time, which uses client timeout
+	     * duration, not server timeout duration.
+	     */
+	    sid->expirationTime = sid->creationTime + cache->ssl2Timeout;
 	    SSL_TRC(8, ("%d: SSL: CacheMT: cached=%d addr=0x%08x%08x%08x%08x time=%x "
 			"cipher=%d", myPid, sid->cached,
 			sid->addr.pr_s6_addr32[0], sid->addr.pr_s6_addr32[1],
@@ -769,8 +772,10 @@ ServerSessionIDCache(sslSessionID *sid)
 			  sid->u.ssl2.cipherArg.len));
 
 	} else {
-	    if (!sid->expirationTime)
-		sid->expirationTime = sid->creationTime + ssl3_sid_timeout;
+	    /* override caller's expiration time, which uses client timeout
+	     * duration, not server timeout duration.
+	     */
+	    sid->expirationTime = sid->creationTime + cache->ssl3Timeout;
 	    SSL_TRC(8, ("%d: SSL: CacheMT: cached=%d addr=0x%08x%08x%08x%08x time=%x "
 			"cipherSuite=%d", myPid, sid->cached,
 			sid->addr.pr_s6_addr32[0], sid->addr.pr_s6_addr32[1],
@@ -888,7 +893,8 @@ CloseCache(cacheDesc *cache)
 	** be) in use by multiple processes.  We do not wish to destroy
 	** the mutexes while they are still in use.  
 	*/
-	if (PR_FALSE == cache->sharedCache->everInherited) {
+	if (cache->sharedCache &&
+            PR_FALSE == cache->sharedCache->everInherited) {
 	    sidCacheLock *pLock = cache->sidCacheLocks;
 	    for (; locks_initialized > 0; --locks_initialized, ++pLock ) {
 		sslMutex_Destroy(&pLock->mutex);
@@ -936,6 +942,13 @@ InitCache(cacheDesc *cache, int maxCacheEntries, PRUint32 ssl2_timeout,
     cache->cacheMem    = cacheMem    = NULL;
     cache->cacheMemMap = cacheMemMap = NULL;
     cache->sharedCache = (cacheDesc *)0;
+
+    cache->numSIDCacheLocksInitialized = 0;
+    cache->nextCertCacheEntry = 0;
+    cache->stopPolling = PR_FALSE;
+    cache->everInherited = PR_FALSE;
+    cache->poller = NULL;
+    cache->mutexTimeout = 0;
 
     cache->numSIDCacheEntries = maxCacheEntries ? maxCacheEntries 
                                                 : DEF_SID_CACHE_ENTRIES;
@@ -1139,11 +1152,7 @@ SSL_ConfigServerSessionIDCacheInstance(	cacheDesc *cache,
 #if defined(DEBUG_nelsonb)
     printf("sizeof(sidCacheEntry) == %u\n", sizeof(sidCacheEntry));
 #endif
-#if !(defined(SOLARIS) && defined(i386))
-#ifndef XP_OS2
-    PORT_Assert(sizeof(sidCacheEntry) % 8 == 0);
-#endif
-#endif
+    PORT_Assert(sizeof(sidCacheEntry) == 192);
     PORT_Assert(sizeof(certCacheEntry) == 4096);
 
     myPid = SSL_GETPID();
@@ -1185,6 +1194,10 @@ SSL_ShutdownServerSessionIDCacheInstance(cacheDesc *cache)
 SECStatus
 SSL_ShutdownServerSessionIDCache(void)
 {
+#if defined(XP_UNIX) || defined(XP_BEOS)
+    /* Stop the thread that polls cache for expired locks on Unix */
+    StopLockPoller(&globalCache);
+#endif
     SSL3_ShutdownServerCache();
     return SSL_ShutdownServerSessionIDCacheInstance(&globalCache);
 }
@@ -1436,23 +1449,12 @@ LockPoller(void * arg)
     cacheDesc *    cache         = (cacheDesc *)arg;
     cacheDesc *    sharedCache   = cache->sharedCache;
     sidCacheLock * pLock;
-    const char *   timeoutString;
     PRIntervalTime timeout;
     PRUint32       now;
     PRUint32       then;
     int            locks_polled  = 0;
     int            locks_to_poll = cache->numSIDCacheLocks + 2;
-    PRUint32       expiration    = SID_LOCK_EXPIRATION_TIMEOUT;
-
-    timeoutString = getenv("NSS_SSL_SERVER_CACHE_MUTEX_TIMEOUT");
-    if (timeoutString) {
-	long newTime = strtol(timeoutString, 0, 0);
-	if (newTime == 0) 
-	    return;  /* application doesn't want this function */
-	if (newTime > 0)
-	    expiration = (PRUint32)newTime;
-	/* if error (newTime < 0) ignore it and use default */
-    }
+    PRUint32       expiration    = cache->mutexTimeout;
 
     timeout = PR_SecondsToInterval(expiration);
     while(!sharedCache->stopPolling) {
@@ -1494,15 +1496,45 @@ LockPoller(void * arg)
 static SECStatus 
 LaunchLockPoller(cacheDesc *cache)
 {
-    PRThread * pollerThread;
+    const char * timeoutString;
+    PRThread *   pollerThread;
+
+    cache->mutexTimeout = SID_LOCK_EXPIRATION_TIMEOUT;
+    timeoutString       = getenv("NSS_SSL_SERVER_CACHE_MUTEX_TIMEOUT");
+    if (timeoutString) {
+	long newTime = strtol(timeoutString, 0, 0);
+	if (newTime == 0) 
+	    return SECSuccess;  /* application doesn't want poller thread */
+	if (newTime > 0)
+	    cache->mutexTimeout = (PRUint32)newTime;
+	/* if error (newTime < 0) ignore it and use default */
+    }
 
     pollerThread = 
 	PR_CreateThread(PR_USER_THREAD, LockPoller, cache, PR_PRIORITY_NORMAL, 
-	                PR_GLOBAL_THREAD, PR_UNJOINABLE_THREAD, 0);
+	                PR_GLOBAL_THREAD, PR_JOINABLE_THREAD, 0);
     if (!pollerThread) {
     	return SECFailure;
     }
     cache->poller = pollerThread;
+    return SECSuccess;
+}
+
+/* Stop the thread that polls cache for expired locks */
+static SECStatus 
+StopLockPoller(cacheDesc *cache)
+{
+    if (!cache->poller) {
+	return SECSuccess;
+    }
+    cache->sharedCache->stopPolling = PR_TRUE;
+    if (PR_Interrupt(cache->poller) != PR_SUCCESS) {
+	return SECFailure;
+    }
+    if (PR_JoinThread(cache->poller) != PR_SUCCESS) {
+	return SECFailure;
+    }
+    cache->poller = NULL;
     return SECSuccess;
 }
 #endif
