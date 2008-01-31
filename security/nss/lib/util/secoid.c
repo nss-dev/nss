@@ -166,6 +166,8 @@
 #define ANSI_X962_CURVE_OID     ANSI_X962_OID, 0x03
 #define ANSI_X962_GF2m_OID      ANSI_X962_CURVE_OID, 0x00
 #define ANSI_X962_GFp_OID       ANSI_X962_CURVE_OID, 0x01
+#define ANSI_X962_SIGNATURE_OID ANSI_X962_OID, 0x04
+#define ANSI_X962_SPECIFY_OID   ANSI_X962_SIGNATURE_OID, 0x03
 
 #define CONST_OID static const unsigned char
 
@@ -313,7 +315,7 @@ CONST_OID netscapeAOLScreenname[] 	= { NETSCAPE_NAME_COMPONENTS, 0x02 };
 CONST_OID netscapeRecoveryRequest[] 	= { NETSCAPE_CERT_SERVER_CRMF, 0x01 };
 
 
-/* Standard x.509 v3 Certificate Extensions */
+/* Standard x.509 v3 Certificate & CRL Extensions */
 CONST_OID x509SubjectDirectoryAttr[]  		= { ID_CE_OID,  9 };
 CONST_OID x509SubjectKeyID[]          		= { ID_CE_OID, 14 };
 CONST_OID x509KeyUsage[]              		= { ID_CE_OID, 15 };
@@ -321,19 +323,25 @@ CONST_OID x509PrivateKeyUsagePeriod[] 		= { ID_CE_OID, 16 };
 CONST_OID x509SubjectAltName[]        		= { ID_CE_OID, 17 };
 CONST_OID x509IssuerAltName[]         		= { ID_CE_OID, 18 };
 CONST_OID x509BasicConstraints[]      		= { ID_CE_OID, 19 };
+CONST_OID x509CRLNumber[]                    	= { ID_CE_OID, 20 };
+CONST_OID x509ReasonCode[]                   	= { ID_CE_OID, 21 };
+CONST_OID x509HoldInstructionCode[]             = { ID_CE_OID, 23 };
+CONST_OID x509InvalidDate[]                     = { ID_CE_OID, 24 };
+CONST_OID x509DeltaCRLIndicator[]               = { ID_CE_OID, 27 };
+CONST_OID x509IssuingDistributionPoint[]        = { ID_CE_OID, 28 };
+CONST_OID x509CertIssuer[]                      = { ID_CE_OID, 29 };
 CONST_OID x509NameConstraints[]       		= { ID_CE_OID, 30 };
 CONST_OID x509CRLDistPoints[]         		= { ID_CE_OID, 31 };
 CONST_OID x509CertificatePolicies[]   		= { ID_CE_OID, 32 };
 CONST_OID x509PolicyMappings[]        		= { ID_CE_OID, 33 };
-CONST_OID x509PolicyConstraints[]     		= { ID_CE_OID, 34 };
 CONST_OID x509AuthKeyID[]             		= { ID_CE_OID, 35 };
+CONST_OID x509PolicyConstraints[]     		= { ID_CE_OID, 36 };
 CONST_OID x509ExtKeyUsage[]           		= { ID_CE_OID, 37 };
-CONST_OID x509AuthInfoAccess[]        		= { PKIX_CERT_EXTENSIONS, 1 };
+CONST_OID x509FreshestCRL[]           		= { ID_CE_OID, 46 };
+CONST_OID x509InhibitAnyPolicy[]           	= { ID_CE_OID, 54 };
 
-/* Standard x.509 v3 CRL Extensions */
-CONST_OID x509CrlNumber[]                    	= { ID_CE_OID, 20};
-CONST_OID x509ReasonCode[]                   	= { ID_CE_OID, 21};
-CONST_OID x509InvalidDate[]                  	= { ID_CE_OID, 24};
+CONST_OID x509AuthInfoAccess[]        		= { PKIX_CERT_EXTENSIONS,  1 };
+CONST_OID x509SubjectInfoAccess[]               = { PKIX_CERT_EXTENSIONS, 11 };
 
 /* pkcs 12 additions */
 CONST_OID pkcs12[]                           = { PKCS12 };
@@ -379,6 +387,9 @@ CONST_OID pkcs12V1CRLBag[]              	= { PKCS12_V1_BAG_IDS, 0x04 };
 CONST_OID pkcs12V1SecretBag[]           	= { PKCS12_V1_BAG_IDS, 0x05 };
 CONST_OID pkcs12V1SafeContentsBag[]     	= { PKCS12_V1_BAG_IDS, 0x06 };
 
+/* The following encoding is INCORRECT, but correcting it would create a
+ * duplicate OID in the table.  So, we will leave it alone.
+ */
 CONST_OID pkcs12KeyUsageAttr[]          	= { 2, 5, 29, 15 };
 
 CONST_OID ansix9DSASignature[]               	= { ANSI_X9_ALGORITHM, 0x01 };
@@ -453,8 +464,14 @@ CONST_OID sha256[]                              = { SHAXXX, 1 };
 CONST_OID sha384[]                              = { SHAXXX, 2 };
 CONST_OID sha512[]                              = { SHAXXX, 3 };
 
-CONST_OID ansix962ECPublicKey[]                 = { ANSI_X962_OID, 0x02, 0x01 };
-CONST_OID ansix962ECDSASignaturewithSHA1Digest[] = { ANSI_X962_OID, 0x04, 0x01 };
+CONST_OID ansix962ECPublicKey[]             = { ANSI_X962_OID, 0x02, 0x01 };
+CONST_OID ansix962SignaturewithSHA1Digest[] = { ANSI_X962_SIGNATURE_OID, 0x01 };
+CONST_OID ansix962SignatureRecommended[]    = { ANSI_X962_SIGNATURE_OID, 0x02 };
+CONST_OID ansix962SignatureSpecified[]      = { ANSI_X962_SPECIFY_OID };
+CONST_OID ansix962SignaturewithSHA224Digest[] = { ANSI_X962_SPECIFY_OID, 0x01 };
+CONST_OID ansix962SignaturewithSHA256Digest[] = { ANSI_X962_SPECIFY_OID, 0x02 };
+CONST_OID ansix962SignaturewithSHA384Digest[] = { ANSI_X962_SPECIFY_OID, 0x03 };
+CONST_OID ansix962SignaturewithSHA512Digest[] = { ANSI_X962_SPECIFY_OID, 0x04 };
 
 /* ANSI X9.62 prime curve OIDs */
 /* NOTE: prime192v1 is the same as secp192r1, prime256v1 is the
@@ -530,6 +547,12 @@ CONST_OID secgECsect571r1[] = {SECG_OID, 0x27 };
 #define OD(oid,tag,desc,mech,ext) { OI(oid), tag, desc, mech, ext }
 #else
 #define OD(oid,tag,desc,mech,ext) { OI(oid), tag, 0, mech, ext }
+#endif
+
+#if defined(NSS_ALLOW_UNSUPPORTED_CRITICAL)
+#define FAKE_SUPPORTED_CERT_EXTENSION   SUPPORTED_CERT_EXTENSION
+#else
+#define FAKE_SUPPORTED_CERT_EXTENSION UNSUPPORTED_CERT_EXTENSION
 #endif
 
 /*
@@ -772,7 +795,7 @@ const static SECOidData oids[] = {
         CKM_INVALID_MECHANISM, SUPPORTED_CERT_EXTENSION ),
     OD( x509IssuerAltName, SEC_OID_X509_ISSUER_ALT_NAME, 
 	"Certificate Issuer Alt Name",
-        CKM_INVALID_MECHANISM, UNSUPPORTED_CERT_EXTENSION ),
+        CKM_INVALID_MECHANISM, FAKE_SUPPORTED_CERT_EXTENSION ),
     OD( x509BasicConstraints, SEC_OID_X509_BASIC_CONSTRAINTS, 
 	"Certificate Basic Constraints",
 	CKM_INVALID_MECHANISM, SUPPORTED_CERT_EXTENSION ),
@@ -781,16 +804,16 @@ const static SECOidData oids[] = {
 	CKM_INVALID_MECHANISM, SUPPORTED_CERT_EXTENSION ),
     OD( x509CRLDistPoints, SEC_OID_X509_CRL_DIST_POINTS, 
 	"CRL Distribution Points",
-	CKM_INVALID_MECHANISM, UNSUPPORTED_CERT_EXTENSION ),
+	CKM_INVALID_MECHANISM, FAKE_SUPPORTED_CERT_EXTENSION ),
     OD( x509CertificatePolicies, SEC_OID_X509_CERTIFICATE_POLICIES,
 	"Certificate Policies",
-        CKM_INVALID_MECHANISM, UNSUPPORTED_CERT_EXTENSION ),
+        CKM_INVALID_MECHANISM, FAKE_SUPPORTED_CERT_EXTENSION ),
     OD( x509PolicyMappings, SEC_OID_X509_POLICY_MAPPINGS, 
 	"Certificate Policy Mappings",
         CKM_INVALID_MECHANISM, UNSUPPORTED_CERT_EXTENSION ),
     OD( x509PolicyConstraints, SEC_OID_X509_POLICY_CONSTRAINTS, 
 	"Certificate Policy Constraints",
-        CKM_INVALID_MECHANISM, UNSUPPORTED_CERT_EXTENSION ),
+        CKM_INVALID_MECHANISM, FAKE_SUPPORTED_CERT_EXTENSION ),
     OD( x509AuthKeyID, SEC_OID_X509_AUTH_KEY_ID, 
 	"Certificate Authority Key Identifier",
 	CKM_INVALID_MECHANISM, SUPPORTED_CERT_EXTENSION ),
@@ -802,7 +825,7 @@ const static SECOidData oids[] = {
         CKM_INVALID_MECHANISM, SUPPORTED_CERT_EXTENSION ),
 
     /* x.509 v3 CRL extensions */
-    OD( x509CrlNumber, SEC_OID_X509_CRL_NUMBER, 
+    OD( x509CRLNumber, SEC_OID_X509_CRL_NUMBER, 
 	"CRL Number", CKM_INVALID_MECHANISM, SUPPORTED_CERT_EXTENSION ),
     OD( x509ReasonCode, SEC_OID_X509_REASON_CODE, 
 	"CRL reason code", CKM_INVALID_MECHANISM, SUPPORTED_CERT_EXTENSION ),
@@ -1067,8 +1090,8 @@ const static SECOidData oids[] = {
     OD( pkcs9LocalKeyID, SEC_OID_PKCS9_LOCAL_KEY_ID,
 	"PKCS #9 Local Key ID", 
 	CKM_INVALID_MECHANISM, INVALID_CERT_EXTENSION ), 
-    OD( pkcs12KeyUsageAttr, SEC_OID_PKCS12_KEY_USAGE,
-	"PKCS 12 Key Usage", CKM_INVALID_MECHANISM, INVALID_CERT_EXTENSION ),
+    OD( pkcs12KeyUsageAttr, SEC_OID_BOGUS_KEY_USAGE,
+	"Bogus Key Usage", CKM_INVALID_MECHANISM, INVALID_CERT_EXTENSION ),
     OD( dhPublicKey, SEC_OID_X942_DIFFIE_HELMAN_KEY,
 	"Diffie-Helman Public Key", CKM_DH_PKCS_DERIVE,
 	INVALID_CERT_EXTENSION ),
@@ -1150,8 +1173,8 @@ const static SECOidData oids[] = {
     OD( ansix962ECPublicKey, SEC_OID_ANSIX962_EC_PUBLIC_KEY,
 	"X9.62 elliptic curve public key", CKM_ECDH1_DERIVE,
 	INVALID_CERT_EXTENSION ),
-    OD( ansix962ECDSASignaturewithSHA1Digest, 
-	SEC_OID_ANSIX962_ECDSA_SIGNATURE_WITH_SHA1_DIGEST,
+    OD( ansix962SignaturewithSHA1Digest, 
+	SEC_OID_ANSIX962_ECDSA_SHA1_SIGNATURE,
 	"X9.62 ECDSA signature with SHA1", CKM_ECDSA_SHA1,
 	INVALID_CERT_EXTENSION ),
 
@@ -1435,6 +1458,56 @@ const static SECOidData oids[] = {
     OD( pkcs9ExtensionRequest, SEC_OID_PKCS9_EXTENSION_REQUEST,
     	"PKCS #9 Extension Request",
         CKM_INVALID_MECHANISM, INVALID_CERT_EXTENSION ),
+
+    /* more ECC Signature Oids */
+    OD( ansix962SignatureRecommended,
+	SEC_OID_ANSIX962_ECDSA_SIGNATURE_RECOMMENDED_DIGEST,
+	"X9.62 ECDSA signature with recommended digest", CKM_INVALID_MECHANISM,
+	INVALID_CERT_EXTENSION ),
+    OD( ansix962SignatureSpecified,
+	SEC_OID_ANSIX962_ECDSA_SIGNATURE_SPECIFIED_DIGEST,
+	"X9.62 ECDSA signature with specified digest", CKM_ECDSA,
+	INVALID_CERT_EXTENSION ),
+    OD( ansix962SignaturewithSHA224Digest,
+	SEC_OID_ANSIX962_ECDSA_SHA224_SIGNATURE,
+	"X9.62 ECDSA signature with SHA224", CKM_INVALID_MECHANISM,
+	INVALID_CERT_EXTENSION ),
+    OD( ansix962SignaturewithSHA256Digest,
+	SEC_OID_ANSIX962_ECDSA_SHA256_SIGNATURE,
+	"X9.62 ECDSA signature with SHA256", CKM_INVALID_MECHANISM,
+	INVALID_CERT_EXTENSION ),
+    OD( ansix962SignaturewithSHA384Digest,
+	SEC_OID_ANSIX962_ECDSA_SHA384_SIGNATURE,
+	"X9.62 ECDSA signature with SHA384", CKM_INVALID_MECHANISM,
+	INVALID_CERT_EXTENSION ),
+    OD( ansix962SignaturewithSHA512Digest,
+	SEC_OID_ANSIX962_ECDSA_SHA512_SIGNATURE,
+	"X9.62 ECDSA signature with SHA512", CKM_INVALID_MECHANISM,
+	INVALID_CERT_EXTENSION ),
+
+    /* More id-ce and id-pe OIDs from RFC 3280 */
+    OD( x509HoldInstructionCode,      SEC_OID_X509_HOLD_INSTRUCTION_CODE,
+        "CRL Hold Instruction Code",  CKM_INVALID_MECHANISM,
+	UNSUPPORTED_CERT_EXTENSION ),
+    OD( x509DeltaCRLIndicator,        SEC_OID_X509_DELTA_CRL_INDICATOR,
+        "Delta CRL Indicator",        CKM_INVALID_MECHANISM,
+	FAKE_SUPPORTED_CERT_EXTENSION ),
+    OD( x509IssuingDistributionPoint, SEC_OID_X509_ISSUING_DISTRIBUTION_POINT,
+        "Issuing Distribution Point", CKM_INVALID_MECHANISM,
+	FAKE_SUPPORTED_CERT_EXTENSION ),
+    OD( x509CertIssuer,               SEC_OID_X509_CERT_ISSUER,
+        "Certificate Issuer Extension",CKM_INVALID_MECHANISM,
+	FAKE_SUPPORTED_CERT_EXTENSION ),
+    OD( x509FreshestCRL,              SEC_OID_X509_FRESHEST_CRL,
+        "Freshest CRL",               CKM_INVALID_MECHANISM,
+	UNSUPPORTED_CERT_EXTENSION ),
+    OD( x509InhibitAnyPolicy,         SEC_OID_X509_INHIBIT_ANY_POLICY,
+        "Inhibit Any Policy",         CKM_INVALID_MECHANISM,
+	FAKE_SUPPORTED_CERT_EXTENSION ),
+    OD( x509SubjectInfoAccess,        SEC_OID_X509_SUBJECT_INFO_ACCESS,
+        "Subject Info Access",        CKM_INVALID_MECHANISM,
+	UNSUPPORTED_CERT_EXTENSION ),
+
 };
 
 /*
@@ -1809,7 +1882,7 @@ SECOID_Shutdown(void)
     /* Have to handle the case where the lock was created, but
     ** the pool wasn't. 
     ** I'm not going to attempt to create the lock, just to protect
-    ** the destruction of data the probably isn't inisialized anyway.
+    ** the destruction of data that probably isn't initialized anyway.
     */
     if (dynOidLock) {
 	NSSRWLock_LockWrite(dynOidLock);

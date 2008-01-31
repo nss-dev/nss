@@ -70,7 +70,7 @@ fips_init()
       . ./cert.sh
   fi
   SCRIPTNAME=fips.sh
-  html_head "FIPS 140-1 Compliance Tests"
+  html_head "FIPS 140 Compliance Tests"
 
   grep "SUCCESS: FIPS passed" $CERT_LOG_FILE >/dev/null || {
       Exit 15 "Fatal - FIPS of cert.sh needs to pass first"
@@ -92,111 +92,212 @@ fips_init()
   cd ${FIPSDIR}
 }
 
-############################## fips_140_1 ##############################
+############################## fips_140 ##############################
 # local shell function to test basic functionality of NSS while in
-# FIPS 140-1 compliant mode
+# FIPS 140 compliant mode
 ########################################################################
-fips_140_1()
+fips_140()
 {
   echo "$SCRIPTNAME: Verify this module is in FIPS mode  -----------------"
   echo "modutil -dbdir ${P_R_FIPSDIR} -list"
   modutil -dbdir ${P_R_FIPSDIR} -list 2>&1
   modutil -dbdir ${P_R_FIPSDIR} -chkfips true 2>&1
-  html_msg $? 0 "Verify this module is in FIPS mode (modutil -chkfips true)"
+  html_msg $? 0 "Verify this module is in FIPS mode (modutil -chkfips true)" "."
 
   echo "$SCRIPTNAME: List the FIPS module certificates -----------------"
   echo "certutil -d ${P_R_FIPSDIR} -L"
   certutil -d ${P_R_FIPSDIR} -L 2>&1
-  html_msg $? 0 "List the FIPS module certificates (certutil -L)"
+  html_msg $? 0 "List the FIPS module certificates (certutil -L)" "."
 
   echo "$SCRIPTNAME: List the FIPS module keys -------------------------"
   echo "certutil -d ${P_R_FIPSDIR} -K -f ${R_FIPSPWFILE}"
   certutil -d ${P_R_FIPSDIR} -K -f ${R_FIPSPWFILE} 2>&1
-  html_msg $? 0 "List the FIPS module keys (certutil -K)"
+  html_msg $? 0 "List the FIPS module keys (certutil -K)" "."
 
   echo "$SCRIPTNAME: Attempt to list FIPS module keys with incorrect password"
   echo "certutil -d ${P_R_FIPSDIR} -K -f ${FIPSBADPWFILE}"
   certutil -d ${P_R_FIPSDIR} -K -f ${FIPSBADPWFILE} 2>&1
   RET=$?
-  html_msg $RET 255 "Attempt to list FIPS module keys with incorrect password (certutil -K)"
+  html_msg $RET 255 "Attempt to list FIPS module keys with incorrect password (certutil -K)" "."
   echo "certutil -K returned $RET"
 
   echo "$SCRIPTNAME: Validate the certificate --------------------------"
   echo "certutil -d ${P_R_FIPSDIR} -V -n ${FIPSCERTNICK} -u SR -e -f ${R_FIPSPWFILE}"
   certutil -d ${P_R_FIPSDIR} -V -n ${FIPSCERTNICK} -u SR -e -f ${R_FIPSPWFILE}
-  html_msg $? 0 "Validate the certificate (certutil -V -e)"
+  html_msg $? 0 "Validate the certificate (certutil -V -e)" "."
 
   echo "$SCRIPTNAME: Export the certificate and key as a PKCS#12 file --"
   echo "pk12util -d ${P_R_FIPSDIR} -o fips140.p12 -n ${FIPSCERTNICK} -w ${R_FIPSP12PWFILE} -k ${R_FIPSPWFILE}"
   pk12util -d ${P_R_FIPSDIR} -o fips140.p12 -n ${FIPSCERTNICK} -w ${R_FIPSP12PWFILE} -k ${R_FIPSPWFILE} 2>&1
-  html_msg $? 0 "Export the certificate and key as a PKCS#12 file (pk12util -o)"
+  html_msg $? 0 "Export the certificate and key as a PKCS#12 file (pk12util -o)" "."
 
   echo "$SCRIPTNAME: Export the certificate as a DER-encoded file ------"
   echo "certutil -d ${P_R_FIPSDIR} -L -n ${FIPSCERTNICK} -r -o fips140.crt"
   certutil -d ${P_R_FIPSDIR} -L -n ${FIPSCERTNICK} -r -o fips140.crt 2>&1
-  html_msg $? 0 "Export the certificate as a DER (certutil -L -r)"
+  html_msg $? 0 "Export the certificate as a DER (certutil -L -r)" "."
 
   echo "$SCRIPTNAME: List the FIPS module certificates -----------------"
   echo "certutil -d ${P_R_FIPSDIR} -L"
-  certutil -d ${P_R_FIPSDIR} -L 2>&1
-  html_msg $? 0 "List the FIPS module certificates (certutil -L)"
+  certs=`certutil -d ${P_R_FIPSDIR} -L 2>&1`
+  ret=$?
+  echo "${certs}" 
+  if [ ${ret} -eq 0 ]; then
+    echo "${certs}" | grep FIPS_PUB_140_Test_Certificate > /dev/null
+    ret=$?
+  fi
+  html_msg $ret 0 "List the FIPS module certificates (certutil -L)" "."
+
 
   echo "$SCRIPTNAME: Delete the certificate and key from the FIPS module"
   echo "certutil -d ${P_R_FIPSDIR} -F -n ${FIPSCERTNICK} -f ${R_FIPSPWFILE}"
   certutil -d ${P_R_FIPSDIR} -F -n ${FIPSCERTNICK} -f ${R_FIPSPWFILE} 2>&1
-  html_msg $? 0 "Delete the certificate and key from the FIPS module (certutil -D)"
-
+  html_msg $? 0 "Delete the certificate and key from the FIPS module (certutil -F)" "."
 
   echo "$SCRIPTNAME: List the FIPS module certificates -----------------"
   echo "certutil -d ${P_R_FIPSDIR} -L"
-  certutil -d ${P_R_FIPSDIR} -L 2>&1
-  html_msg $? 0 "List the FIPS module certificates (certutil -L)"
+  certs=`certutil -d ${P_R_FIPSDIR} -L 2>&1`
+  ret=$?
+  echo "${certs}" 
+  if [ ${ret} -eq 0 ]; then
+    echo "${certs}" | grep FIPS_PUB_140_Test_Certificate > /dev/null
+    if [ $? -eq 0 ]; then
+      ret=255
+    fi
+  fi
+  html_msg $ret 0 "List the FIPS module certificates (certutil -L)" "."
 
   echo "$SCRIPTNAME: List the FIPS module keys."
   echo "certutil -d ${P_R_FIPSDIR} -K -f ${R_FIPSPWFILE}"
   certutil -d ${P_R_FIPSDIR} -K -f ${R_FIPSPWFILE} 2>&1
   # certutil -K now returns a failure if no keys are found. This verifies that
   # our delete succeded.
-  html_msg $? 255 "List the FIPS module keys (certutil -K)"
+  html_msg $? 255 "List the FIPS module keys (certutil -K)" "."
+
 
   echo "$SCRIPTNAME: Import the certificate and key from the PKCS#12 file"
   echo "pk12util -d ${P_R_FIPSDIR} -i fips140.p12 -w ${R_FIPSP12PWFILE} -k ${R_FIPSPWFILE}"
   pk12util -d ${P_R_FIPSDIR} -i fips140.p12 -w ${R_FIPSP12PWFILE} -k ${R_FIPSPWFILE} 2>&1
-  html_msg $? 0 "Import the certificate and key from the PKCS#12 file (pk12util -i)"
+  html_msg $? 0 "Import the certificate and key from the PKCS#12 file (pk12util -i)" "."
 
   echo "$SCRIPTNAME: List the FIPS module certificates -----------------"
   echo "certutil -d ${P_R_FIPSDIR} -L"
-  certutil -d ${P_R_FIPSDIR} -L 2>&1
-  html_msg $? 0 "List the FIPS module certificates (certutil -L)"
+  certs=`certutil -d ${P_R_FIPSDIR} -L 2>&1`
+  ret=$?
+  echo "${certs}" 
+  if [ ${ret} -eq 0 ]; then
+    echo "${certs}" | grep FIPS_PUB_140_Test_Certificate > /dev/null
+    ret=$?
+  fi
+  html_msg $ret 0 "List the FIPS module certificates (certutil -L)" "."
 
   echo "$SCRIPTNAME: List the FIPS module keys --------------------------"
   echo "certutil -d ${P_R_FIPSDIR} -K -f ${R_FIPSPWFILE}"
   certutil -d ${P_R_FIPSDIR} -K -f ${R_FIPSPWFILE} 2>&1
-  html_msg $? 0 "List the FIPS module keys (certutil -K)"
+  html_msg $? 0 "List the FIPS module keys (certutil -K)" "."
 
-#
-# This test was interfering with QA running on more than one machine pointing
-# to the same binary file. Turn it off for now.
-#
-#  echo "$SCRIPTNAME: Detect mangled database --------------------------"
-#  SOFTOKEN=${DIST}/${OBJDIR}/lib/${DLL_PREFIX}softokn3.${DLL_SUFFIX}
-#  echo "cp ${SOFTOKEN} ${TMP}/softokn3.sav"
-#  cp ${SOFTOKEN} ${TMP}/softokn3.sav
-#  echo "mangling ${SOFTOKEN}"
-#  echo "mangle -i ${SOFTOKEN} -o 60000 -b 5"
-#  mangle -i ${SOFTOKEN} -o 60000 -b 5 2>&1
-#  if [ $? -eq 0 ]; then
-#    echo "dbtest -r  -d ${P_R_FIPSDIR} "
-# suppress the expected failure message
-#    dbtest -r  -d ${P_R_FIPSDIR}  > ${TMP}/dbtestoutput.txt 2>&1
-#    html_msg $? 46 "Init NSS with a corrupted library (dbtest -r)"
-#    echo "cp ${TMP}/softokn3.sav ${SOFTOKEN}"
-#    cp ${TMP}/softokn3.sav ${SOFTOKEN}
-#  else
-#    html_msg 0 0 "Skipping corruption test, can't open ${DLL_PREFIX}softokn3.${DLL_SUFFIX}"
-#  fi
-#  echo "rm ${TMP}/softokn3.sav"
-#  rm ${TMP}/softokn3.sav
+
+  echo "$SCRIPTNAME: Delete the certificate from the FIPS module"
+  echo "certutil -d ${P_R_FIPSDIR} -D -n ${FIPSCERTNICK}"
+  certutil -d ${P_R_FIPSDIR} -D -n ${FIPSCERTNICK} 2>&1
+  html_msg $? 0 "Delete the certificate from the FIPS module (certutil -D)" "."
+
+  echo "$SCRIPTNAME: List the FIPS module certificates -----------------"
+  echo "certutil -d ${P_R_FIPSDIR} -L"
+  certs=`certutil -d ${P_R_FIPSDIR} -L 2>&1`
+  ret=$?
+  echo "${certs}" 
+  if [ ${ret} -eq 0 ]; then
+    echo "${certs}" | grep FIPS_PUB_140_Test_Certificate > /dev/null
+    if [ $? -eq 0 ]; then
+      ret=255
+    fi
+  fi
+  html_msg $ret 0 "List the FIPS module certificates (certutil -L)" "."
+
+
+  echo "$SCRIPTNAME: Import the certificate and key from the PKCS#12 file"
+  echo "pk12util -d ${P_R_FIPSDIR} -i fips140.p12 -w ${R_FIPSP12PWFILE} -k ${R_FIPSPWFILE}"
+  pk12util -d ${P_R_FIPSDIR} -i fips140.p12 -w ${R_FIPSP12PWFILE} -k ${R_FIPSPWFILE} 2>&1
+  html_msg $? 0 "Import the certificate and key from the PKCS#12 file (pk12util -i)" "."
+
+  echo "$SCRIPTNAME: List the FIPS module certificates -----------------"
+  echo "certutil -d ${P_R_FIPSDIR} -L"
+  certs=`certutil -d ${P_R_FIPSDIR} -L 2>&1`
+  ret=$?
+  echo "${certs}" 
+  if [ ${ret} -eq 0 ]; then
+    echo "${certs}" | grep FIPS_PUB_140_Test_Certificate > /dev/null
+    ret=$?
+  fi
+  html_msg $ret 0 "List the FIPS module certificates (certutil -L)" "."
+
+  echo "$SCRIPTNAME: List the FIPS module keys --------------------------"
+  echo "certutil -d ${P_R_FIPSDIR} -K -f ${R_FIPSPWFILE}"
+  certutil -d ${P_R_FIPSDIR} -K -f ${R_FIPSPWFILE} 2>&1
+  html_msg $? 0 "List the FIPS module keys (certutil -K)" "."
+
+
+  echo "$SCRIPTNAME: Run PK11MODE in FIPSMODE  -----------------"
+  echo "pk11mode -d ${P_R_FIPSDIR} -p fips- -f ${R_FIPSPWFILE}"
+  pk11mode -d ${P_R_FIPSDIR} -p fips- -f ${R_FIPSPWFILE}  2>&1
+  html_msg $? 0 "Run PK11MODE in FIPS mode (pk11mode)" "."
+
+  echo "$SCRIPTNAME: Run PK11MODE in Non FIPSMODE  -----------------"
+  echo "pk11mode -d ${P_R_FIPSDIR} -p nonfips- -f ${R_FIPSPWFILE} -n"
+  pk11mode -d ${P_R_FIPSDIR} -p nonfips- -f ${R_FIPSPWFILE} -n 2>&1
+  html_msg $? 0 "Run PK11MODE in Non FIPS mode (pk11mode -n)" "."
+
+  LIBDIR="${DIST}/${OBJDIR}/lib"
+  MANGLEDIR="${FIPSDIR}/mangle"
+   
+  # There are different versions of cp command on different systems, some of them 
+  # copies only symlinks, others doesn't have option to disable links, so there
+  # is needed to copy files one by one. 
+  echo "mkdir ${MANGLEDIR}"
+  mkdir ${MANGLEDIR}
+  for lib in `ls ${LIBDIR}`; do
+    echo "cp ${LIBDIR}/${lib} ${MANGLEDIR}"
+    cp ${LIBDIR}/${lib} ${MANGLEDIR}
+  done
+    
+  echo "$SCRIPTNAME: Detect mangled database --------------------------"
+  SOFTOKEN=${MANGLEDIR}/${DLL_PREFIX}softokn3.${DLL_SUFFIX}
+
+  echo "mangling ${SOFTOKEN}"
+  echo "mangle -i ${SOFTOKEN} -o -8 -b 5"
+  mangle -i ${SOFTOKEN} -o -8 -b 5 2>&1
+  if [ $? -eq 0 ]; then
+    if [ "${OS_ARCH}" = "WINNT" ]; then
+      DBTEST=`which dbtest`
+	  if [ "${OS_ARCH}" = "WINNT" -a "$OS_NAME" = "CYGWIN_NT" ]; then
+		DBTEST=`cygpath -m ${DBTEST}`
+		MANGLEDIR=`cygpath -u ${MANGLEDIR}`
+	  fi
+      echo "PATH=${MANGLEDIR} ${DBTEST} -r -d ${P_R_FIPSDIR}"
+      PATH="${MANGLEDIR}" ${DBTEST} -r -d ${P_R_FIPSDIR} > ${TMP}/dbtestoutput.txt 2>&1
+      RESULT=$?
+    elif [ "${OS_ARCH}" = "HP-UX" ]; then
+      echo "SHLIB_PATH=${MANGLEDIR} dbtest -r -d ${P_R_FIPSDIR}"
+      LD_LIBRARY_PATH="" SHLIB_PATH="${MANGLEDIR}" dbtest -r -d ${P_R_FIPSDIR} > ${TMP}/dbtestoutput.txt 2>&1
+      RESULT=$?
+    elif [ "${OS_ARCH}" = "AIX" ]; then
+      echo "LIBPATH=${MANGLEDIR} dbtest -r -d ${P_R_FIPSDIR}"
+      LIBPATH="${MANGLEDIR}" dbtest -r -d ${P_R_FIPSDIR} > ${TMP}/dbtestoutput.txt 2>&1
+      RESULT=$?
+    elif [ "${OS_ARCH}" = "Darwin" ]; then
+      echo "DYLD_LIBRARY_PATH=${MANGLEDIR} dbtest -r -d ${P_R_FIPSDIR}"
+      DYLD_LIBRARY_PATH="${MANGLEDIR}" dbtest -r -d ${P_R_FIPSDIR} > ${TMP}/dbtestoutput.txt 2>&1
+      RESULT=$?
+    else
+      echo "LD_LIBRARY_PATH=${MANGLEDIR} dbtest -r -d ${P_R_FIPSDIR}"
+      LD_LIBRARY_PATH="${MANGLEDIR}" dbtest -r -d ${P_R_FIPSDIR} > ${TMP}/dbtestoutput.txt 2>&1
+      RESULT=$?
+    fi  
+
+    html_msg ${RESULT} 46 "Init NSS with a corrupted library (dbtest -r)" "."
+  else
+    html_msg 0 0 "Skipping corruption test, can't open ${DLL_PREFIX}softokn3.${DLL_SUFFIX}"
+  fi
 }
 
 ############################## fips_cleanup ############################
@@ -213,7 +314,6 @@ fips_cleanup()
 ################## main #################################################
 
 fips_init
-
-fips_140_1
+fips_140
 fips_cleanup
-
+echo "fips.sh done"

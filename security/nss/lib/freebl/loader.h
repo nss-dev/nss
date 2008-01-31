@@ -44,7 +44,7 @@
 
 #include "blapi.h"
 
-#define FREEBL_VERSION 0x0308
+#define FREEBL_VERSION 0x0309
 
 struct FREEBLVectorStr {
 
@@ -449,6 +449,15 @@ struct FREEBLVectorStr {
  void (* p_RNG_SystemInfoForRNG)(void);
 
   /* Version 3.008 came to here */
+
+ SECStatus (* p_FIPS186Change_GenerateX)(unsigned char *XKEY,
+                                         const unsigned char *XSEEDj,
+                                         unsigned char *x_j);
+ SECStatus (* p_FIPS186Change_ReduceModQForDSA)(const unsigned char *w,
+                                                const unsigned char *q,
+                                                unsigned char *xj);
+
+  /* Version 3.009 came to here */
 };
 
 typedef struct FREEBLVectorStr FREEBLVector;

@@ -78,7 +78,8 @@
 #
 ########################################################################
 
-TESTS="cert ssl sdr cipher smime crmf perf tools fips dbtests"
+tests="cipher perf cert dbtests tools fips sdr crmf smime ssl ocsp"
+TESTS=${TESTS:-$tests}
 SCRIPTNAME=all.sh
 CLEANUP="${SCRIPTNAME}"
 cd `dirname $0`	# will cause problems if sourced 
@@ -89,15 +90,33 @@ if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ]; then
     . ./init.sh
 fi
 
+# Since in make at the top level, modutil is the last file
+# created, we check for modutil to know whether the build
+# is complete. If a new file is created after that, the 
+# following test for modutil should check for that instead.
+
+if [ ! -f ${DIST}/${OBJDIR}/bin/modutil -a  \
+     ! -f ${DIST}/${OBJDIR}/bin/modutil.exe ]; then
+	echo "Build Incomplete. Aborting test." >> ${LOGFILE}
+	html_head "Testing Initialization"
+	Exit "Checking for build"
+fi
+
+
 for i in ${TESTS}
 do
     SCRIPTNAME=${i}.sh
-    echo "Running Tests for $i"
     if [ "$O_CRON" = "ON" ]
     then
+        echo "Running tests for $i" >> ${LOGFILE}
+        echo "TIMESTAMP $i BEGIN: `date`" >> ${LOGFILE}
         (cd ${QADIR}/$i ; . ./$SCRIPTNAME all file >> ${LOGFILE} 2>&1)
+        echo "TIMESTAMP $i END: `date`" >> ${LOGFILE}
     else
+        echo "Running tests for $i" | tee -a ${LOGFILE}
+        echo "TIMESTAMP $i BEGIN: `date`" | tee -a ${LOGFILE}
         (cd ${QADIR}/$i ; . ./$SCRIPTNAME all file 2>&1 | tee -a ${LOGFILE})
+        echo "TIMESTAMP $i END: `date`" | tee -a ${LOGFILE}
     fi
 done
 

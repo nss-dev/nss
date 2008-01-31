@@ -196,7 +196,7 @@ ER3(SSL_ERROR_RX_UNEXPECTED_CERT_VERIFY     , (SSL_ERROR_BASE + 48),
 "SSL received an unexpected Certificate Verify handshake message.")
 
 ER3(SSL_ERROR_RX_UNEXPECTED_CLIENT_KEY_EXCH , (SSL_ERROR_BASE + 49),
-"SSL received an unexpected Cllient Key Exchange handshake message.")
+"SSL received an unexpected Client Key Exchange handshake message.")
 
 ER3(SSL_ERROR_RX_UNEXPECTED_FINISHED        , (SSL_ERROR_BASE + 50),
 "SSL received an unexpected Finished handshake message.")
@@ -238,7 +238,7 @@ ER3(SSL_ERROR_HANDSHAKE_UNEXPECTED_ALERT    , (SSL_ERROR_BASE + 59),
 "SSL peer was not expecting a handshake message it received.")
 
 ER3(SSL_ERROR_DECOMPRESSION_FAILURE_ALERT   , (SSL_ERROR_BASE + 60),
-"SSL peer was unable to succesfully decompress an SSL record it received.")
+"SSL peer was unable to successfully decompress an SSL record it received.")
 
 ER3(SSL_ERROR_HANDSHAKE_FAILURE_ALERT       , (SSL_ERROR_BASE + 61),
 "SSL peer was unable to negotiate an acceptable set of security parameters.")
@@ -370,3 +370,17 @@ ER3(SSL_ERROR_NO_RENEGOTIATION_ALERT      , (SSL_ERROR_BASE + 102),
 ER3(SSL_ERROR_SERVER_CACHE_NOT_CONFIGURED , (SSL_ERROR_BASE + 103),
 "SSL server cache not configured and not disabled for this socket.")
 
+ER3(SSL_ERROR_UNSUPPORTED_EXTENSION_ALERT    , (SSL_ERROR_BASE + 104),
+"SSL peer does not support requested TLS hello extension.")
+
+ER3(SSL_ERROR_CERTIFICATE_UNOBTAINABLE_ALERT , (SSL_ERROR_BASE + 105),
+"SSL peer could not obtain your certificate from the supplied URL.")
+
+ER3(SSL_ERROR_UNRECOGNIZED_NAME_ALERT        , (SSL_ERROR_BASE + 106),
+"SSL peer has no certificate for the requested DNS name.")
+
+ER3(SSL_ERROR_BAD_CERT_STATUS_RESPONSE_ALERT , (SSL_ERROR_BASE + 107),
+"SSL peer was unable to get an OCSP response for its certificate.")
+
+ER3(SSL_ERROR_BAD_CERT_HASH_VALUE_ALERT      , (SSL_ERROR_BASE + 108),
+"SSL peer reported bad certificate hash value.")

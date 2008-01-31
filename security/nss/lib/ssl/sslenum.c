@@ -47,6 +47,10 @@
 const PRUint16 SSL_ImplementedCiphers[] = {
 
     /* 256-bit */
+#ifdef NSS_ENABLE_ECC
+    TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
+    TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+#endif /* NSS_ENABLE_ECC */
     TLS_DHE_RSA_WITH_AES_256_CBC_SHA,
     TLS_DHE_DSS_WITH_AES_256_CBC_SHA,
 #ifdef NSS_ENABLE_ECC
@@ -57,7 +61,9 @@ const PRUint16 SSL_ImplementedCiphers[] = {
 
     /* 128-bit */
 #ifdef NSS_ENABLE_ECC
+    TLS_ECDHE_ECDSA_WITH_RC4_128_SHA,
     TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
+    TLS_ECDHE_RSA_WITH_RC4_128_SHA,
     TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
 #endif /* NSS_ENABLE_ECC */
     TLS_DHE_DSS_WITH_RC4_128_SHA,
@@ -74,6 +80,10 @@ const PRUint16 SSL_ImplementedCiphers[] = {
     TLS_RSA_WITH_AES_128_CBC_SHA,
 
     /* 112-bit 3DES */
+#ifdef NSS_ENABLE_ECC
+    TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA,
+    TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,
+#endif /* NSS_ENABLE_ECC */
     SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA,
     SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA,
 #ifdef NSS_ENABLE_ECC
@@ -86,10 +96,6 @@ const PRUint16 SSL_ImplementedCiphers[] = {
     /* 56-bit DES "domestic" cipher suites */
     SSL_DHE_RSA_WITH_DES_CBC_SHA,
     SSL_DHE_DSS_WITH_DES_CBC_SHA,
-#ifdef NSS_ENABLE_ECC
-    TLS_ECDH_RSA_WITH_DES_CBC_SHA,
-    TLS_ECDH_ECDSA_WITH_DES_CBC_SHA,
-#endif /* NSS_ENABLE_ECC */
     SSL_RSA_FIPS_WITH_DES_CBC_SHA,
     SSL_RSA_WITH_DES_CBC_SHA,
 
@@ -103,6 +109,8 @@ const PRUint16 SSL_ImplementedCiphers[] = {
 
     /* ciphersuites with no encryption */
 #ifdef NSS_ENABLE_ECC
+    TLS_ECDHE_ECDSA_WITH_NULL_SHA,
+    TLS_ECDHE_RSA_WITH_NULL_SHA,
     TLS_ECDH_RSA_WITH_NULL_SHA,
     TLS_ECDH_ECDSA_WITH_NULL_SHA,
 #endif /* NSS_ENABLE_ECC */
