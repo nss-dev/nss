@@ -86,27 +86,6 @@ int ssl2CipherSuites[] = {
     SSL_EN_RC2_128_CBC_EXPORT40_WITH_MD5,       /* D */
     SSL_EN_DES_64_CBC_WITH_MD5,                 /* E */
     SSL_EN_DES_192_EDE3_CBC_WITH_MD5,           /* F */
-#ifdef NSS_ENABLE_ECC
-    /* NOTE: Since no new SSL2 ciphersuites are being 
-     * invented, and we've run out of lowercase letters
-     * for SSL3 ciphers, we use letters G and beyond
-     * for new SSL3 ciphers.
-     */
-    TLS_ECDH_ECDSA_WITH_NULL_SHA,       	/* G */
-    TLS_ECDH_ECDSA_WITH_RC4_128_SHA,       	/* H */
-    TLS_ECDH_ECDSA_WITH_DES_CBC_SHA,       	/* I */
-    TLS_ECDH_ECDSA_WITH_3DES_EDE_CBC_SHA,    	/* J */
-    TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA,     	/* K */
-    TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA,     	/* L */
-    TLS_ECDH_RSA_WITH_NULL_SHA,          	/* M */
-    TLS_ECDH_RSA_WITH_RC4_128_SHA,       	/* N */
-    TLS_ECDH_RSA_WITH_DES_CBC_SHA,       	/* O */
-    TLS_ECDH_RSA_WITH_3DES_EDE_CBC_SHA,      	/* P */
-    TLS_ECDH_RSA_WITH_AES_128_CBC_SHA,       	/* Q */
-    TLS_ECDH_RSA_WITH_AES_256_CBC_SHA,       	/* R */
-    TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,    	/* S */
-    TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,      	/* T */
-#endif /* NSS_ENABLE_ECC */
     0
 };
 
@@ -136,6 +115,7 @@ int ssl3CipherSuites[] = {
     TLS_DHE_DSS_WITH_AES_256_CBC_SHA, 	    	/* w */
     TLS_DHE_RSA_WITH_AES_256_CBC_SHA,       	/* x */
     TLS_RSA_WITH_AES_256_CBC_SHA,     	    	/* y */
+    SSL_RSA_WITH_NULL_SHA,			/* z */
     0
 };
 
@@ -147,7 +127,7 @@ int ssl3CipherSuites[] = {
 
 static const char *cipherString;
 
-static int certsTested;
+static PRInt32 certsTested;
 static int MakeCertOK;
 static int NoReuse;
 static int fullhs = NO_FULLHS_PERCENTAGE; /* percentage of full handshakes to
@@ -165,20 +145,25 @@ static PRLock    * threadLock; /* protects the global variables below */
 static PRTime lastConnectFailure;
 static PRTime lastConnectSuccess;
 static PRTime lastThrottleUp;
-static int remaining_connections;  /* number of connections left */
+static PRInt32 remaining_connections;  /* number of connections left */
 static int active_threads = 8; /* number of threads currently trying to
                                ** connect */
-static int numUsed;
+static PRInt32 numUsed;
 /* end of variables protected by threadLock */
 
 static SSL3Statistics * ssl3stats;
 
 static int failed_already = 0;
+static PRBool disableSSL2     = PR_FALSE;
 static PRBool disableSSL3     = PR_FALSE;
 static PRBool disableTLS      = PR_FALSE;
 static PRBool bypassPKCS11    = PR_FALSE;
 static PRBool disableLocking  = PR_FALSE;
+static PRBool ignoreErrors    = PR_FALSE;
 
+PRIntervalTime maxInterval    = PR_INTERVAL_NO_TIMEOUT;
+
+char * progName;
 
 char * ownPasswd( PK11SlotInfo *slot, PRBool retry, void *arg)
 {
@@ -203,7 +188,7 @@ Usage(const char *progName)
 {
     fprintf(stderr, 
     	"Usage: %s [-n nickname] [-p port] [-d dbdir] [-c connections]\n"
- 	"          [-3BDNTovqs] [-2 filename] [-P fullhandshakespercentage | -N]\n"
+ 	"          [-23BDNTovqs] [-f filename] [-N | -P percentage]\n"
 	"          [-w dbpasswd] [-C cipher(s)] [-t threads] hostname\n"
 	" where -v means verbose\n"
         "       -o flag is interpreted as follows:\n"
@@ -214,6 +199,7 @@ Usage(const char *progName)
 	"       -s means disable SSL socket locking\n"
 	"       -N means no session reuse\n"
 	"       -P means do a specified percentage of full handshakes (0-100)\n"
+        "       -2 means disable SSL2\n"
         "       -3 means disable SSL3\n"
         "       -T means disable TLS\n"
         "       -U means enable throttling up threads\n"
@@ -293,7 +279,7 @@ mySSLAuthCertificate(void *arg, PRFileDesc *fd, PRBool checkSig,
     /* invoke the "default" AuthCert handler. */
     rv = SSL_AuthCertificate(arg, fd, checkSig, isServer);
 
-    ++certsTested;
+    PR_AtomicIncrement(&certsTested);
     if (rv == SECSuccess) {
 	fputs("strsclnt: -- SSL: Server Certificate Validated.\n", stderr);
     }
@@ -403,7 +389,7 @@ void
 thread_wrapper(void * arg)
 {
     perThread * slot = (perThread *)arg;
-    PRBool die = PR_FALSE;
+    PRBool done = PR_FALSE;
 
     do {
         PRBool doop = PR_FALSE;
@@ -415,7 +401,7 @@ thread_wrapper(void * arg)
             /* this thread isn't supposed to be running */
             if (!ThrottleUp) {
                 /* we'll never need this thread again, so abort it */
-                die = PR_TRUE;
+                done = PR_TRUE;
             } else if (remaining_connections > 0) {
                 /* we may still need this thread, so just sleep for 1s */
                 dosleep = PR_TRUE;
@@ -438,14 +424,14 @@ thread_wrapper(void * arg)
                 }
             } else {
                 /* no more connections left, we are done */
-                die = PR_TRUE;
+                done = PR_TRUE;
             }
         } else {
             /* this thread should run */
-            if (--remaining_connections >= 0) {
+            if (--remaining_connections >= 0) { /* protected by threadLock */
                 doop = PR_TRUE;
             } else {
-                die = PR_TRUE;
+                done = PR_TRUE;
             }
         }
         PR_Unlock(threadLock);
@@ -457,7 +443,7 @@ thread_wrapper(void * arg)
         if (dosleep) {
             PR_Sleep(PR_SecondsToInterval(1));
         }
-    } while (!die);
+    } while (!done && (!failed_already || ignoreErrors));
 }
 
 SECStatus
@@ -467,8 +453,8 @@ launch_thread(
     void *	b,
     int         tid)
 {
+    PRUint32 i;
     perThread * slot;
-    int         i;
 
     PR_Lock(threadLock);
 
@@ -478,7 +464,8 @@ launch_thread(
         return SECFailure;
     }
 
-    slot = &threads[numUsed++];
+    i = numUsed++;
+    slot = &threads[i];
     slot->a = a;
     slot->b = b;
     slot->tid = tid;
@@ -506,7 +493,6 @@ launch_thread(
 int 
 reap_threads(void)
 {
-    perThread * slot;
     int         i;
 
     for (i = 0; i < MAX_THREADS; ++i) {
@@ -615,12 +601,13 @@ do_writes(
 
     while (sent < bigBuf.len) {
 
-	count = PR_Write(ssl_sock, bigBuf.data + sent, bigBuf.len - sent);
+	count = PR_Send(ssl_sock, bigBuf.data + sent, bigBuf.len - sent, 
+	                0, maxInterval);
 	if (count < 0) {
-	    errWarn("PR_Write bigBuf");
+	    errWarn("PR_Send bigBuf");
 	    break;
 	}
-	FPRINTF(stderr, "strsclnt: PR_Write wrote %d bytes from bigBuf\n", 
+	FPRINTF(stderr, "strsclnt: PR_Send wrote %d bytes from bigBuf\n", 
 		count );
 	sent += count;
     }
@@ -659,9 +646,9 @@ handle_fdx_connection( PRFileDesc * ssl_sock, int connection)
 	    /* do reads here. */
 	    PRInt32 count;
 
-	    count = PR_Read(ssl_sock, buf, RD_BUF_SIZE);
+	    count = PR_Recv(ssl_sock, buf, RD_BUF_SIZE, 0, maxInterval);
 	    if (count < 0) {
-		errWarn("PR_Read");
+		errWarn("PR_Recv");
 		break;
 	    }
 	    countRead += count;
@@ -706,9 +693,9 @@ handle_connection( PRFileDesc *ssl_sock, int tid)
 
     /* compose the http request here. */
 
-    rv = PR_Write(ssl_sock, request, strlen(request));
+    rv = PR_Send(ssl_sock, request, strlen(request), 0, maxInterval);
     if (rv <= 0) {
-	errWarn("PR_Write");
+	errWarn("PR_Send");
 	PR_Free(buf);
 	buf = 0;
         failed_already = 1;
@@ -718,12 +705,13 @@ handle_connection( PRFileDesc *ssl_sock, int tid)
 
     /* read until EOF */
     while (1) {
-	rv = PR_Read(ssl_sock, buf, RD_BUF_SIZE);
+	rv = PR_Recv(ssl_sock, buf, RD_BUF_SIZE, 0, maxInterval);
 	if (rv == 0) {
 	    break;	/* EOF */
 	}
 	if (rv < 0) {
-	    errWarn("PR_Read");
+	    errWarn("PR_Recv");
+	    failed_already = 1;
 	    break;
 	}
 
@@ -780,9 +768,9 @@ do_connects(
 
 retry:
 
-    tcp_sock = PR_NewTCPSocket();
+    tcp_sock = PR_OpenTCPSocket(addr->raw.family);
     if (tcp_sock == NULL) {
-	errExit("PR_NewTCPSocket");
+	errExit("PR_OpenTCPSocket");
     }
 
     opt.option             = PR_SockOpt_Nonblocking;
@@ -841,7 +829,7 @@ retry:
 	goto done;
     } else {
         if (ThrottleUp) {
-            PRTime now;
+            PRTime now = PR_Now();
             PR_Lock(threadLock);
             lastConnectSuccess = PR_MAX(now, lastConnectSuccess);
             PR_Unlock(threadLock);
@@ -910,32 +898,6 @@ done:
     return SECSuccess;
 }
 
-/* Returns IP address for hostname as PRUint32 in Host Byte Order.
-** Since the value returned is an integer (not a string of bytes), 
-** it is inherently in Host Byte Order. 
-*/
-PRUint32
-getIPAddress(const char * hostName) 
-{
-    const unsigned char *p;
-    PRStatus	         prStatus;
-    PRUint32	         rv;
-    PRHostEnt	         prHostEnt;
-    char                 scratch[PR_NETDB_BUF_SIZE];
-
-    prStatus = PR_GetHostByName(hostName, scratch, sizeof scratch, &prHostEnt);
-    if (prStatus != PR_SUCCESS)
-	errExit("PR_GetHostByName");
-
-#undef  h_addr
-#define h_addr  h_addr_list[0]   /* address, for backward compatibility */
-
-    p = (const unsigned char *)(prHostEnt.h_addr); /* in Network Byte order */
-    FPRINTF(stderr, "strsclnt: %s -> %d.%d.%d.%d\n", hostName, 
-	    p[0], p[1], p[2], p[3]);
-    rv = (p[0] << 24) | (p[1] << 16) | (p[2] << 8) | p[3];
-    return rv;
-}
 
 typedef struct {
     PRLock* lock;
@@ -1108,6 +1070,19 @@ StressClient_GetClientAuthData(void * arg,
     }
 }
 
+int 
+hexchar_to_int(int c) 
+{
+    if (((c) >= '0') && ((c) <= '9'))
+	return (c) - '0'; 
+    if (((c) >= 'a') && ((c) <= 'f'))
+	return (c) - 'a' + 10;
+    if (((c) >= 'A') && ((c) <= 'F'))
+	return (c) - 'A' + 10; 
+    failed_already = 1;
+    return -1;
+}
+
 void
 client_main(
     unsigned short      port, 
@@ -1118,15 +1093,34 @@ client_main(
     PRFileDesc *model_sock	= NULL;
     int         i;
     int         rv;
-    PRUint32	ipAddress;	/* in host byte order */
+    PRStatus    status;
     PRNetAddr   addr;
 
-    /* Assemble NetAddr struct for connections. */
-    ipAddress = getIPAddress(hostName);
+    status = PR_StringToNetAddr(hostName, &addr);
+    if (status == PR_SUCCESS) {
+    	addr.inet.port = PR_htons(port);
+    } else {
+	/* Lookup host */
+	PRAddrInfo *addrInfo;
+	void       *enumPtr   = NULL;
 
-    addr.inet.family = PR_AF_INET;
-    addr.inet.port   = PR_htons(port);
-    addr.inet.ip     = PR_htonl(ipAddress);
+	addrInfo = PR_GetAddrInfoByName(hostName, PR_AF_UNSPEC, 
+	                                PR_AI_ADDRCONFIG | PR_AI_NOCANONNAME);
+	if (!addrInfo) {
+	    SECU_PrintError(progName, "error looking up host");
+	    return;
+	}
+	do {
+	    enumPtr = PR_EnumerateAddrInfo(enumPtr, addrInfo, port, &addr);
+	} while (enumPtr != NULL &&
+		 addr.raw.family != PR_AF_INET &&
+		 addr.raw.family != PR_AF_INET6);
+	PR_FreeAddrInfo(addrInfo);
+	if (enumPtr == NULL) {
+	    SECU_PrintError(progName, "error looking up host address");
+	    return;
+	}
+    }
 
     /* all suites except RSA_NULL_MD5 are enabled by Domestic Policy */
     NSS_SetDomesticPolicy();
@@ -1138,33 +1132,56 @@ client_main(
         /* disable all the ciphers, then enable the ones we want. */
         disableAllSSLCiphers();
 
-        while (0 != (ndx = *cipherString++)) {
-            int *cptr;
-            int  cipher;
+        while (0 != (ndx = *cipherString)) {
+	    const char * startCipher = cipherString++;
+            int  cipher = 0;
+	    SECStatus rv;
 
-            if (! isalpha(ndx))
-                Usage("strsclnt");
-            cptr = islower(ndx) ? ssl3CipherSuites : ssl2CipherSuites;
-            for (ndx &= 0x1f; (cipher = *cptr++) != 0 && --ndx > 0; )
-                /* do nothing */;
-            if (cipher > 0) {
-		SECStatus rv;
-                rv = SSL_CipherPrefSetDefault(cipher, PR_TRUE);
-		if (rv != SECSuccess) {
-		    fprintf(stderr, 
-		"strsclnt: SSL_CipherPrefSetDefault failed with value 0x%04x\n",
-			    cipher);
-		    exit(1);
+	    if (ndx == ':') {
+		cipher  = hexchar_to_int(*cipherString++);
+		cipher <<= 4;
+		cipher |= hexchar_to_int(*cipherString++);
+		cipher <<= 4;
+		cipher |= hexchar_to_int(*cipherString++);
+		cipher <<= 4;
+		cipher |= hexchar_to_int(*cipherString++);
+		if (cipher <= 0) {
+		    fprintf(stderr, "strsclnt: Invalid cipher value: %-5.5s\n",
+		                    startCipher);
+		    failed_already = 1;
+		    return;
 		}
-            }
+	    } else {
+		if (isalpha(ndx)) {
+		    const int *cptr;
+
+		    cptr = islower(ndx) ? ssl3CipherSuites : ssl2CipherSuites;
+		    for (ndx &= 0x1f; (cipher = *cptr++) != 0 && --ndx > 0; ) 
+			/* do nothing */;
+		}
+	    	if (cipher <= 0) {
+		    fprintf(stderr, "strsclnt: Invalid cipher letter: %c\n", 
+		                    *startCipher);
+		    failed_already = 1;
+		    return;
+		}
+	    }
+	    rv = SSL_CipherPrefSetDefault(cipher, PR_TRUE);
+	    if (rv != SECSuccess) {
+		fprintf(stderr, 
+			"strsclnt: SSL_CipherPrefSetDefault(0x%04x) failed\n",
+			cipher);
+		failed_already = 1;
+		return;
+	    }
         }
     }
 
     /* configure model SSL socket. */
 
-    model_sock = PR_NewTCPSocket();
+    model_sock = PR_OpenTCPSocket(addr.raw.family);
     if (model_sock == NULL) {
-	errExit("PR_NewTCPSocket on model socket");
+	errExit("PR_OpenTCPSocket for model socket");
     }
 
     model_sock = SSL_ImportFD(NULL, model_sock);
@@ -1177,6 +1194,12 @@ client_main(
     rv = SSL_OptionSet(model_sock, SSL_SECURITY, 1);
     if (rv < 0) {
 	errExit("SSL_OptionSet SSL_SECURITY");
+    }
+
+    /* disabling SSL2 compatible hellos also disables SSL2 */
+    rv = SSL_OptionSet(model_sock, SSL_V2_COMPATIBLE_HELLO, !disableSSL2);
+    if (rv != SECSuccess) {
+	errExit("error enabling SSLv2 compatible hellos ");
     }
 
     rv = SSL_OptionSet(model_sock, SSL_ENABLE_SSL3, !disableSSL3);
@@ -1302,7 +1325,6 @@ main(int argc, char **argv)
     const char *         fileName    = NULL;
     char *               hostName    = NULL;
     char *               nickName    = NULL;
-    char *               progName    = NULL;
     char *               tmp         = NULL;
     char *		 passwd      = NULL;
     int                  connections = 1;
@@ -1323,11 +1345,11 @@ main(int argc, char **argv)
     progName = progName ? progName + 1 : tmp;
  
 
-    optstate = PL_CreateOptState(argc, argv, "2:3BC:DNP:TUc:d:n:op:qst:vw:");
+    optstate = PL_CreateOptState(argc, argv, "23BC:DNP:TUc:d:f:in:op:qst:vw:");
     while ((status = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
 	switch(optstate->option) {
 
-	case '2': fileName = optstate->value; break;
+	case '2': disableSSL2 = PR_TRUE; break;
 
 	case '3': disableSSL3 = PR_TRUE; break;
 
@@ -1348,6 +1370,10 @@ main(int argc, char **argv)
 	case 'c': connections = PORT_Atoi(optstate->value); break;
 
 	case 'd': dir = optstate->value; break;
+
+	case 'f': fileName = optstate->value; break;
+
+	case 'i': ignoreErrors = PR_TRUE; break;
 
         case 'n': nickName = PL_strdup(optstate->value); break;
 
@@ -1383,6 +1409,8 @@ main(int argc, char **argv)
 
 	}
     }
+    PL_DestroyOptState(optstate);
+
     if (!hostName || status == PL_OPT_BAD)
     	Usage(progName);
 
@@ -1400,6 +1428,14 @@ main(int argc, char **argv)
 	PK11_SetPasswordFunc(ownPasswd);
     } else {
 	PK11_SetPasswordFunc(SECU_GetModulePassword);
+    }
+
+    tmp = PR_GetEnv("NSS_DEBUG_TIMEOUT");
+    if (tmp && tmp[0]) {
+        int sec = PORT_Atoi(tmp);
+	if (sec > 0) {
+	    maxInterval = PR_SecondsToInterval(sec);
+    	}
     }
 
     /* Call the libsec initialization routines */
@@ -1439,13 +1475,24 @@ main(int argc, char **argv)
     if (Cert_And_Key.key) {
 	SECKEY_DestroyPrivateKey(Cert_And_Key.key);
     }
+
     PR_DestroyLock(Cert_And_Key.lock);
+
+    if (Cert_And_Key.password) {
+        PL_strfree(Cert_And_Key.password);
+    }
+    if (Cert_And_Key.nickname) {
+        PL_strfree(Cert_And_Key.nickname);
+    }
+
+    PL_strfree(hostName);
 
     /* some final stats. */
     if (ssl3stats->hsh_sid_cache_hits + ssl3stats->hsh_sid_cache_misses +
         ssl3stats->hsh_sid_cache_not_ok == 0) {
 	/* presumably we were testing SSL2. */
-	printf("strsclnt: %d server certificates tested.\n", certsTested);
+	printf("strsclnt: SSL2 - %d server certificates tested.\n",
+               certsTested);
     } else {
 	printf(
 	"strsclnt: %ld cache hits; %ld cache misses, %ld cache not reusable\n",
@@ -1458,13 +1505,22 @@ main(int argc, char **argv)
 	exitVal = (ssl3stats->hsh_sid_cache_misses > 1) ||
                 (ssl3stats->hsh_sid_cache_not_ok != 0) ||
                 (certsTested > 1);
-    else
-	exitVal = (ssl3stats->hsh_sid_cache_misses != connections) ||
+    else {
+	printf("strsclnt: NoReuse - %d server certificates tested.\n",
+               certsTested);
+        if (ssl3stats->hsh_sid_cache_hits + ssl3stats->hsh_sid_cache_misses +
+            ssl3stats->hsh_sid_cache_not_ok > 0) {
+            exitVal = (ssl3stats->hsh_sid_cache_misses != connections) ||
                 (certsTested != connections);
+        } else {                /* ssl2 connections */
+            exitVal = (certsTested != connections);
+        }
+    }
 
     exitVal = ( exitVal || failed_already );
     SSL_ClearSessionCache();
     if (NSS_Shutdown() != SECSuccess) {
+        printf("strsclnt: NSS_Shutdown() failed.\n");
         exit(1);
     }
 

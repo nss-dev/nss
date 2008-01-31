@@ -291,6 +291,7 @@ sftk_freeCertDB(NSSLOWCERTCertDBHandle *certHandle)
    PRInt32 ref = PR_AtomicDecrement(&certHandle->ref);
    if (ref == 0) {
 	nsslowcert_ClosePermCertDB(certHandle);
+	PORT_Free(certHandle);
    }
 }
 

@@ -101,6 +101,11 @@ builtins_mdInstance_GetLibraryVersion
   NSSCKFWInstance *fwInstance
 )
 {
+  extern const char __nss_builtins_rcsid[];
+  extern const char __nss_builtins_sccsid[];
+  volatile char c; /* force a reference that won't get optimized away */
+
+  c = __nss_builtins_rcsid[0] + __nss_builtins_sccsid[0];
   return nss_builtins_LibraryVersion;
 }
 
@@ -116,7 +121,7 @@ builtins_mdInstance_GetSlots
   return CKR_OK;
 }
 
-NSS_IMPLEMENT_DATA const NSSCKMDInstance
+const NSSCKMDInstance
 nss_builtins_mdInstance = {
   (void *)NULL, /* etc */
   NULL, /* Initialize */

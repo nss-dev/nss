@@ -46,6 +46,7 @@
 #include "secmodti.h"
 #include "nssilock.h"
 #include "secerr.h"
+#include "prenv.h"
 
 extern void FC_GetFunctionList(void);
 extern void NSC_GetFunctionList(void);
@@ -233,6 +234,7 @@ SECMOD_LoadPKCS11Module(SECMODModule *mod) {
     CK_ULONG slotCount = 0;
     SECStatus rv;
     PRBool alreadyLoaded = PR_FALSE;
+    char *disableUnload = NULL;
 
     if (mod->loaded) return SECSuccess;
 
@@ -388,13 +390,17 @@ fail2:
     }
 fail:
     mod->functionList = NULL;
-    if (library) PR_UnloadLibrary(library);
+    disableUnload = PR_GetEnv("NSS_DISABLE_UNLOAD");
+    if (library && !disableUnload) {
+        PR_UnloadLibrary(library);
+    }
     return SECFailure;
 }
 
 SECStatus
 SECMOD_UnloadModule(SECMODModule *mod) {
     PRLibrary *library;
+    char *disableUnload = NULL;
 
     if (!mod->loaded) {
 	return SECFailure;
@@ -418,7 +424,10 @@ SECMOD_UnloadModule(SECMODModule *mod) {
 	return SECFailure;
     }
 
-    PR_UnloadLibrary(library);
+    disableUnload = PR_GetEnv("NSS_DISABLE_UNLOAD");
+    if (!disableUnload) {
+        PR_UnloadLibrary(library);
+    }
     return SECSuccess;
 }
 

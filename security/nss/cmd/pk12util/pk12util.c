@@ -282,23 +282,33 @@ P12U_UnicodeConversion(PRArenaPool *arena, SECItem *dest, SECItem *src,
 SECItem *
 P12U_GetP12FilePassword(PRBool confirmPw, secuPWData *p12FilePw)
 {
-    char *p0 = NULL, *p1 = NULL;
+    char *p0 = NULL;
     SECItem *pwItem = NULL;
 
     if (p12FilePw == NULL || p12FilePw->source == PW_NONE) {
+	char *p1 = NULL;
+	int   rc;
 	for (;;) {
 	    p0 = SECU_GetPasswordString(NULL,
 					"Enter password for PKCS12 file: ");
-	    if (!confirmPw)
+	    if (!confirmPw || p0 == NULL)
 		break;
 	    p1 = SECU_GetPasswordString(NULL, "Re-enter password: ");
-	    if (PL_strcmp(p0, p1) == 0)
+	    if (p1 == NULL) {
+		PORT_ZFree(p0, PL_strlen(p0));
+		p0 = NULL;
 		break;
+	    }
+	    rc = PL_strcmp(p0, p1);
+	    PORT_ZFree(p1, PL_strlen(p1));
+	    if (rc == 0)
+		break;
+	    PORT_ZFree(p0, PL_strlen(p0));
 	}
     } else if (p12FilePw->source == PW_FROMFILE) {
 	p0 = SECU_FilePasswd(NULL, PR_FALSE, p12FilePw->data);
     } else { /* Plaintext */
-	p0 = p12FilePw->data;
+	p0 = PORT_Strdup(p12FilePw->data);
     }
 
     if (p0 == NULL) {
@@ -307,11 +317,7 @@ P12U_GetP12FilePassword(PRBool confirmPw, secuPWData *p12FilePw)
     pwItem = SECITEM_AllocItem(NULL, NULL, PL_strlen(p0) + 1);
     memcpy(pwItem->data, p0, pwItem->len);
 
-    PORT_Memset(p0, 0, PL_strlen(p0));
-    PORT_Free(p0);
-
-    PORT_Memset(p1, 0, PL_strlen(p1));
-    PORT_Free(p1);
+    PORT_ZFree(p0, PL_strlen(p0));
 
     return pwItem;
 }
@@ -344,6 +350,121 @@ P12U_InitSlot(PK11SlotInfo *slot, secuPWData *slotPw)
     return SECSuccess;
 }
 
+/* This routine takes care of getting the PKCS12 file password, then reading and
+ * verifying the file. It returns the decoder context and a filled in password.
+ * (The password is needed by P12U_ImportPKCS12Object() to import the private
+ * key.)
+ */
+SEC_PKCS12DecoderContext *
+p12U_ReadPKCS12File(SECItem *uniPwp, char *in_file, PK11SlotInfo *slot,
+                    secuPWData *slotPw, secuPWData *p12FilePw)
+{
+    SEC_PKCS12DecoderContext *p12dcx = NULL;
+    p12uContext *p12cxt = NULL;
+    SECItem *pwitem = NULL;
+    SECItem p12file = { 0 };
+    SECStatus rv = SECFailure;
+    PRBool swapUnicode = PR_FALSE;
+    PRBool trypw;
+    int error;
+    
+#ifdef IS_LITTLE_ENDIAN
+    swapUnicode = PR_TRUE;
+#endif
+
+    p12cxt = p12u_InitContext(PR_TRUE, in_file);
+    if(!p12cxt) {
+	SECU_PrintError(progName,"File Open failed: %s", in_file);
+	pk12uErrno = PK12UERR_INIT_FILE;
+        return NULL;
+    }
+
+    /* get the password */
+    pwitem = P12U_GetP12FilePassword(PR_FALSE, p12FilePw);
+    if (!pwitem) {
+	pk12uErrno = PK12UERR_USER_CANCELLED;
+	goto done;
+    }
+
+    if(P12U_UnicodeConversion(NULL, uniPwp, pwitem, PR_TRUE,
+                              swapUnicode) != SECSuccess) {
+	SECU_PrintError(progName,"Unicode conversion failed");
+	pk12uErrno = PK12UERR_UNICODECONV;
+	goto done;
+    }
+    rv = SECU_FileToItem(&p12file, p12cxt->file);
+    if (rv != SECSuccess) {
+        SECU_PrintError(progName,"Failed to read from import file");
+        goto done;
+    }
+
+    do {
+        trypw = PR_FALSE;                  /* normally we do this once */
+        rv = SECFailure;
+        /* init the decoder context */
+        p12dcx = SEC_PKCS12DecoderStart(uniPwp, slot, slotPw,
+                                        NULL, NULL, NULL, NULL, NULL);
+        if(!p12dcx) {
+            SECU_PrintError(progName,"PKCS12 decoder start failed");
+            pk12uErrno = PK12UERR_PK12DECODESTART;
+            break;
+        }
+
+        /* decode the item */
+        rv = SEC_PKCS12DecoderUpdate(p12dcx, p12file.data, p12file.len);
+
+        if(rv != SECSuccess) {
+            error = PR_GetError();
+            if(error == SEC_ERROR_DECRYPTION_DISALLOWED) {
+                PR_SetError(error, 0);
+                break;
+            }
+            SECU_PrintError(progName,"PKCS12 decoding failed");
+            pk12uErrno = PK12UERR_DECODE;
+        }
+
+        /* does the blob authenticate properly? */
+        rv = SEC_PKCS12DecoderVerify(p12dcx);
+        if (rv != SECSuccess) {
+            if(uniPwp->len == 2) {
+                /* this is a null PW, try once more with a zero-length PW
+                   instead of a null string */
+                SEC_PKCS12DecoderFinish(p12dcx);
+                uniPwp->len = 0;
+                trypw = PR_TRUE;
+            }
+            else {
+                SECU_PrintError(progName,"PKCS12 decode not verified");
+                pk12uErrno = PK12UERR_DECODEVERIFY;
+                break;
+            }
+        }
+    } while (trypw == PR_TRUE);
+    /* rv has been set at this point */
+
+
+done:
+    if (rv != SECSuccess) {
+        if (p12dcx != NULL) {
+            SEC_PKCS12DecoderFinish(p12dcx);
+            p12dcx = NULL;
+        }
+        if (uniPwp->data) {
+            SECITEM_ZfreeItem(uniPwp, PR_FALSE);
+            uniPwp->data = NULL;
+        }
+    }
+    PR_Close(p12cxt->file);
+    p12cxt->file = NULL;
+    /* PK11_FreeSlot(slot); */
+    p12u_DestroyContext(&p12cxt, PR_FALSE);
+
+    if (pwitem) {
+	SECITEM_ZfreeItem(pwitem, PR_TRUE);
+    }
+    return p12dcx;
+}
+
 /*
  * given a filename for pkcs12 file, imports certs and keys
  *
@@ -356,94 +477,29 @@ PRIntn
 P12U_ImportPKCS12Object(char *in_file, PK11SlotInfo *slot,
 			secuPWData *slotPw, secuPWData *p12FilePw)
 {
-    p12uContext *p12cxt = NULL;
     SEC_PKCS12DecoderContext *p12dcx = NULL;
-    SECItem *pwitem = NULL, uniPwitem = { 0 };
-    SECItem p12file = { 0 };
+    SECItem uniPwitem = { 0 };
     SECStatus rv = SECFailure;
-    PRBool swapUnicode = PR_FALSE;
     int error;
-
-#ifdef IS_LITTLE_ENDIAN
-    swapUnicode = PR_TRUE;
-#endif
 
     rv = P12U_InitSlot(slot, slotPw);
     if (rv != SECSuccess) {
 	SECU_PrintError(progName, "Failed to authenticate to \"%s\"",
 			       			 PK11_GetSlotName(slot));
 	pk12uErrno = PK12UERR_PK11GETSLOT;
-	goto loser;
-    }
-
-    p12cxt = p12u_InitContext(PR_TRUE, in_file);
-    if(!p12cxt) {
-	SECU_PrintError(progName,"File Open failed: %s", in_file);
-	pk12uErrno = PK12UERR_INIT_FILE;
-	goto loser;
-    }
-
-    /* get the password */
-    pwitem = P12U_GetP12FilePassword(PR_FALSE, p12FilePw);
-    if (!pwitem) {
-	pk12uErrno = PK12UERR_USER_CANCELLED;
-	goto loser;
-    }
-
-    if(P12U_UnicodeConversion(NULL, &uniPwitem, pwitem, PR_TRUE,
-			      swapUnicode) != SECSuccess) {
-	SECU_PrintError(progName,"Unicode conversion failed");
-	pk12uErrno = PK12UERR_UNICODECONV;
-	goto loser;
-    }
-
-    /* init the decoder context */
-    p12dcx = SEC_PKCS12DecoderStart(&uniPwitem, slot, slotPw,
-				    NULL, NULL, NULL, NULL, NULL);
-    if(!p12dcx) {
-	SECU_PrintError(progName,"PKCS12 decoder start failed");
-	pk12uErrno = PK12UERR_PK12DECODESTART;
-	goto loser;
-    }
-
-    /* decode the item */
-    rv = SECU_FileToItem(&p12file, p12cxt->file);
-    if (rv != SECSuccess) {
-	SECU_PrintError(progName,"Failed to read from import file");
-	goto loser;
-    }
-    rv = SEC_PKCS12DecoderUpdate(p12dcx, p12file.data, p12file.len);
-
-    if(rv != SECSuccess) {
-	error = PR_GetError();
-	if(error == SEC_ERROR_DECRYPTION_DISALLOWED) {
-	    PR_SetError(error, 0);
-	    goto loser;
-	}
-#ifdef EXTRA
-	/* unable to import as a new blob, it might be an old one */
-	if(p12u_TryToImportOldPDU(p12cxt, pwitem, slot, import_arg->nickCb,
-				  import_arg->proto_win) != SECSuccess) {
-	    goto loser;
-	}
-	goto tried_pdu_import;
-#endif /* EXTRA */
-	SECU_PrintError(progName,"PKCS12 decoding failed");
-	pk12uErrno = PK12UERR_DECODE;
+	return rv;
     }
 
     rv = SECFailure;
-
-    /* does the blob authenticate properly? */
-    if(SEC_PKCS12DecoderVerify(p12dcx) != SECSuccess) {
-	SECU_PrintError(progName,"PKCS12 decode not verified");
-	pk12uErrno = PK12UERR_DECODEVERIFY;
-	goto loser;
+    p12dcx = p12U_ReadPKCS12File(&uniPwitem, in_file, slot, slotPw, p12FilePw);
+    
+    if(p12dcx == NULL) {
+        goto loser;
     }
-
+    
     /* make sure the bags are okey dokey -- nicknames correct, etc. */
-    if (SEC_PKCS12DecoderValidateBags(p12dcx, P12U_NicknameCollisionCallback)
-	 != SECSuccess) {
+    rv = SEC_PKCS12DecoderValidateBags(p12dcx, P12U_NicknameCollisionCallback);
+    if (rv != SECSuccess) {
 	if (PORT_GetError() == SEC_ERROR_PKCS12_DUPLICATE_DATA) {
 	    pk12uErrno = PK12UERR_CERTALREADYEXISTS;
 	} else {
@@ -454,49 +510,25 @@ P12U_ImportPKCS12Object(char *in_file, PK11SlotInfo *slot,
     }
 
     /* stuff 'em in */
-    if(SEC_PKCS12DecoderImportBags(p12dcx) != SECSuccess) {
+    rv = SEC_PKCS12DecoderImportBags(p12dcx);
+    if (rv != SECSuccess) {
 	SECU_PrintError(progName,"PKCS12 decode import bags failed");
 	pk12uErrno = PK12UERR_DECODEIMPTBAGS;
 	goto loser;
     }
 
-#if 0
-    /* important - to add the password hash into the key database */
-    rv = PK11_CheckUserPassword(slot, pw_string);
-    if( rv != SECSuccess ) {
-	SECU_PrintError(progName,"Failed to CheckUserPassword");
-	exit(-1);
-    }
-#endif
-
-    PR_Close(p12cxt->file);
-    p12cxt->file = NULL;
-    /* PK11_FreeSlot(slot); */
-
     fprintf(stdout, "%s: PKCS12 IMPORT SUCCESSFUL\n", progName);
     rv = SECSuccess;
 
 loser:
-    if (rv != SECSuccess) {
-      /* pk12u_report_failure */
-    } else {
-      /* pk12u_report_success ? */
-    }
-
     if (p12dcx) {
 	SEC_PKCS12DecoderFinish(p12dcx);
     }
-    p12u_DestroyContext(&p12cxt, PR_FALSE);
-
+    
     if (uniPwitem.data) {
 	SECITEM_ZfreeItem(&uniPwitem, PR_FALSE);
     }
-
-    if (pwitem) {
-	SECITEM_ZfreeItem(pwitem, PR_TRUE);
-    }
-
-
+    
     return rv;
 }
 
@@ -544,6 +576,7 @@ p12u_WriteToExportFile(void *arg, const char *buf, unsigned long len)
 	p12cxt->error = PR_TRUE;
     }
 }
+
 
 void
 P12U_ExportPKCS12Object(char *nn, char *outfile, PK11SlotInfo *inSlot,
@@ -678,12 +711,6 @@ loser:
         certlist = NULL;
     }    
 
-    if (slotPw)
-        PR_Free(slotPw->data);
-
-    if (p12FilePw)
-        PR_Free(p12FilePw->data);
-
     p12u_DestroyContext(&p12cxt, PR_TRUE);
     if(pwitem) {
         SECITEM_ZfreeItem(pwitem, PR_TRUE);
@@ -697,78 +724,22 @@ PRIntn
 P12U_ListPKCS12File(char *in_file, PK11SlotInfo *slot,
 			secuPWData *slotPw, secuPWData *p12FilePw)
 {
-    p12uContext *p12cxt = NULL;
     SEC_PKCS12DecoderContext *p12dcx = NULL;
-    SECItem *pwitem = NULL, uniPwitem = { 0 };
-    SECItem p12file = { 0 };
+    SECItem uniPwitem = { 0 };
     SECStatus rv = SECFailure;
-    PRBool swapUnicode = PR_FALSE;
     const SEC_PKCS12DecoderItem *dip;
-
     int error;
 
-#ifdef IS_LITTLE_ENDIAN
-    swapUnicode = PR_TRUE;
-#endif
-
-    p12cxt = p12u_InitContext(PR_TRUE, in_file);
-    if(!p12cxt) {
-	SECU_PrintError(progName,"File Open failed: %s", in_file);
-	pk12uErrno = PK12UERR_INIT_FILE;
-	goto loser;
-    }
-
-    /* get the password */
-    pwitem = P12U_GetP12FilePassword(PR_FALSE, p12FilePw);
-    if (!pwitem) {
-	pk12uErrno = PK12UERR_USER_CANCELLED;
-	goto loser;
-    }
-
-    if(P12U_UnicodeConversion(NULL, &uniPwitem, pwitem, PR_TRUE,
-			      swapUnicode) != SECSuccess) {
-	SECU_PrintError(progName,"Unicode conversion failed");
-	pk12uErrno = PK12UERR_UNICODECONV;
-	goto loser;
-    }
-
-    /* init the decoder context */
-    p12dcx = SEC_PKCS12DecoderStart(&uniPwitem, slot, slotPw,
-				    NULL, NULL, NULL, NULL, NULL);
-    if(!p12dcx) {
-	SECU_PrintError(progName,"PKCS12 decoder start failed");
-	pk12uErrno = PK12UERR_PK12DECODESTART;
-	goto loser;
-    }
-
-    /* read the item */
-    rv = SECU_FileToItem(&p12file, p12cxt->file);
-    PR_Close(p12cxt->file);
-    p12cxt->file = NULL;
-    
-    if (rv != SECSuccess) {
-	SECU_PrintError(progName,"Failed to read from import file");
-	goto loser;
-    }
-
-    rv = SEC_PKCS12DecoderUpdate(p12dcx, p12file.data, p12file.len);
-    if(rv != SECSuccess) {
-	error = PR_GetError();
-	if(error == SEC_ERROR_DECRYPTION_DISALLOWED) {
-	    PR_SetError(error, 0);
-	    goto loser;
-	}
-	SECU_PrintError(progName,"PKCS12 decoding failed");
-	pk12uErrno = PK12UERR_DECODE;
-    }
-
-    /* does the blob authenticate properly? */
-    if(SEC_PKCS12DecoderVerify(p12dcx) != SECSuccess) {
+    p12dcx = p12U_ReadPKCS12File(&uniPwitem, in_file, slot, slotPw,
+                             p12FilePw);
+    /* did the blob authenticate properly? */
+    if(p12dcx == NULL) {
 	SECU_PrintError(progName,"PKCS12 decode not verified");
 	pk12uErrno = PK12UERR_DECODEVERIFY;
-        rv = SECFailure;
+        goto loser;
     }
-    else if (SEC_PKCS12DecoderIterateInit(p12dcx) != SECSuccess) {
+    rv = SEC_PKCS12DecoderIterateInit(p12dcx);
+    if(rv != SECSuccess) {
 	SECU_PrintError(progName,"PKCS12 decode iterate bags failed");
 	pk12uErrno = PK12UERR_DECODEIMPTBAGS;
         rv = SECFailure;
@@ -813,16 +784,11 @@ loser:
     if (p12dcx) {
 	SEC_PKCS12DecoderFinish(p12dcx);
     }
-    p12u_DestroyContext(&p12cxt, PR_FALSE);
-
+    
     if (uniPwitem.data) {
 	SECITEM_ZfreeItem(&uniPwitem, PR_FALSE);
     }
-
-    if (pwitem) {
-	SECITEM_ZfreeItem(pwitem, PR_TRUE);
-    }
-
+    
     return rv;
 }
 
@@ -999,6 +965,10 @@ main(int argc, char **argv)
     }
 
 done:
+    if (slotPw.data != NULL)
+	PORT_ZFree(slotPw.data, PL_strlen(slotPw.data));
+    if (p12FilePw.data != NULL)
+	PORT_ZFree(p12FilePw.data, PL_strlen(p12FilePw.data));
     if (slot) PK11_FreeSlot(slot);
     if (NSS_Shutdown() != SECSuccess) {
 	pk12uErrno = 1;

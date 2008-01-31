@@ -63,6 +63,20 @@ crmf_encode_integer(PRArenaPool *poolp, SECItem *dest, long value)
     return SECSuccess;
 }
 
+SECStatus
+crmf_encode_unsigned_integer(PRArenaPool *poolp, SECItem *dest, 
+                             unsigned long value) 
+{
+    SECItem *dummy;
+
+    dummy = SEC_ASN1EncodeUnsignedInteger(poolp, dest, value);
+    PORT_Assert (dummy == dest);
+    if (dummy != dest) {
+        return SECFailure;
+    }
+    return SECSuccess;
+}
+
 static SECStatus
 crmf_copy_secitem (PRArenaPool *poolp, SECItem *dest, SECItem *src)
 {
@@ -104,7 +118,8 @@ CRMF_DoesRequestHaveField (CRMFCertRequest       *inCertReq,
 }
 
 CRMFCertRequest *
-CRMF_CreateCertRequest (long inRequestID) {
+CRMF_CreateCertRequest (PRUint32 inRequestID)
+{
     PRArenaPool     *poolp;
     CRMFCertRequest *certReq;
     SECStatus        rv;
@@ -122,7 +137,8 @@ CRMF_CreateCertRequest (long inRequestID) {
     certReq->poolp = poolp;
     certReq->requestID = inRequestID;
     
-    rv = crmf_encode_integer(poolp, &(certReq->certReqId), inRequestID);
+    rv = crmf_encode_unsigned_integer(poolp, &(certReq->certReqId), 
+                                      inRequestID);
     if (rv != SECSuccess) {
         goto loser;
     }
@@ -177,9 +193,12 @@ crmf_template_copy_secalg (PRArenaPool *poolp, SECAlgorithmID **dest,
     void             *mark = NULL;
     SECAlgorithmID   *mySecAlg;
 
-    if (poolp != NULL) {
-        mark = PORT_ArenaMark(poolp);
+    if (!poolp) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
     }
+
+    mark = PORT_ArenaMark(poolp);
     *dest = mySecAlg = PORT_ArenaZNew(poolp, SECAlgorithmID);
     if (mySecAlg == NULL) {
         goto loser;
@@ -310,29 +329,28 @@ crmf_template_add_public_key(PRArenaPool *poolp,
 }
 
 static SECStatus
-crmf_copy_bitstring (PRArenaPool *poolp, SECItem *dest, SECItem *src)
+crmf_copy_bitstring (PRArenaPool *poolp, SECItem *dest, const SECItem *src)
 {
     SECStatus rv;
-    int origLenBits, numBytesToCopy;
+    SECItem  byteSrc;
     
-    origLenBits = src->len;
-    numBytesToCopy = CRMF_BITS_TO_BYTES(origLenBits);
-    rv = crmf_copy_secitem(poolp, dest, src);
-    src->len = origLenBits;
-    dest->len = origLenBits;
+    byteSrc = *src;
+    byteSrc.len = CRMF_BITS_TO_BYTES(byteSrc.len);
+    rv = crmf_copy_secitem(poolp, dest, &byteSrc);
+    dest->len = src->len;
     return rv;
 }
 
 static SECStatus
 crmf_template_add_issuer_uid(PRArenaPool *poolp, SECItem *dest,
-			     SECItem *issuerUID)
+			     const SECItem *issuerUID)
 {
     return crmf_copy_bitstring (poolp, dest, issuerUID);
 }
 
 static SECStatus
 crmf_template_add_subject_uid(PRArenaPool *poolp, SECItem *dest, 
-			      SECItem *subjectUID)
+			      const SECItem *subjectUID)
 {
     return crmf_copy_bitstring (poolp, dest, subjectUID);
 }
