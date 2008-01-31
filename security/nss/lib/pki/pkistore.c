@@ -58,9 +58,7 @@ static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$";
 #include "pkistore.h"
 #endif /* PKISTORE_H */
 
-#ifdef NSS_3_4_CODE
 #include "cert.h"
-#endif
 
 /* 
  * Certificate Store
@@ -88,6 +86,14 @@ struct certificate_hash_entry_str
     NSSTrust *trust;
     nssSMIMEProfile *profile;
 };
+
+/* forward static declarations */
+static NSSCertificate *
+nssCertStore_FindCertByIssuerAndSerialNumberLocked (
+  nssCertificateStore *store,
+  NSSDER *issuer,
+  NSSDER *serial
+);
 
 NSS_IMPLEMENT nssCertificateStore *
 nssCertificateStore_Create (
@@ -225,27 +231,44 @@ remove_certificate_entry (
   NSSCertificate *cert
 );
 
-NSS_IMPLEMENT PRStatus
-nssCertificateStore_Add (
+/* Caller must hold store->lock */
+static PRStatus
+nssCertificateStore_AddLocked (
   nssCertificateStore *store,
   NSSCertificate *cert
 )
 {
-    PRStatus nssrv;
-    PZ_Lock(store->lock);
-    if (nssHash_Exists(store->issuer_and_serial, cert)) {
-	PZ_Unlock(store->lock);
-	return PR_SUCCESS;
-    }
-    nssrv = add_certificate_entry(store, cert);
+    PRStatus nssrv = add_certificate_entry(store, cert);
     if (nssrv == PR_SUCCESS) {
 	nssrv = add_subject_entry(store, cert);
 	if (nssrv == PR_FAILURE) {
 	    remove_certificate_entry(store, cert);
 	}
     }
-    PZ_Unlock(store->lock);
     return nssrv;
+}
+
+
+NSS_IMPLEMENT NSSCertificate *
+nssCertificateStore_FindOrAdd (
+  nssCertificateStore *store,
+  NSSCertificate *c
+)
+{
+    PRStatus nssrv;
+    NSSCertificate *rvCert = NULL;
+
+    PZ_Lock(store->lock);
+    rvCert = nssCertStore_FindCertByIssuerAndSerialNumberLocked(
+					   store, &c->issuer, &c->serial);
+    if (!rvCert) {
+	nssrv = nssCertificateStore_AddLocked(store, c);
+	if (PR_SUCCESS == nssrv) {
+	    rvCert = nssCertificate_AddRef(c);
+	}
+    }
+    PZ_Unlock(store->lock);
+    return rvCert;
 }
 
 static void
@@ -313,18 +336,41 @@ nssCertificateStore_RemoveCertLOCKED (
 
 NSS_IMPLEMENT void
 nssCertificateStore_Lock (
-  nssCertificateStore *store
+  nssCertificateStore *store, nssCertificateStoreTrace* out
 )
 {
+#ifdef DEBUG
+    PORT_Assert(out);
+    out->store = store;
+    out->lock = store->lock;
+    out->locked = PR_TRUE;
+    PZ_Lock(out->lock);
+#else
     PZ_Lock(store->lock);
+#endif
 }
 
 NSS_IMPLEMENT void
 nssCertificateStore_Unlock (
-  nssCertificateStore *store
+  nssCertificateStore *store, nssCertificateStoreTrace* in,
+  nssCertificateStoreTrace* out
 )
 {
+#ifdef DEBUG
+    PORT_Assert(in);
+    PORT_Assert(out);
+    out->store = store;
+    out->lock = store->lock;
+    out->unlocked = PR_TRUE;
+
+    PORT_Assert(in->store == out->store);
+    PORT_Assert(in->lock == out->lock);
+    PORT_Assert(in->locked);
+
+    PZ_Unlock(out->lock);
+#else
     PZ_Unlock(store->lock);
+#endif
 }
 
 static NSSCertificate **
@@ -501,6 +547,28 @@ nssCertificateStore_FindCertificatesByEmail (
     return rvArray;
 }
 
+/* Caller holds store->lock */
+static NSSCertificate *
+nssCertStore_FindCertByIssuerAndSerialNumberLocked (
+  nssCertificateStore *store,
+  NSSDER *issuer,
+  NSSDER *serial
+)
+{
+    certificate_hash_entry *entry;
+    NSSCertificate *rvCert = NULL;
+    NSSCertificate index;
+
+    index.issuer = *issuer;
+    index.serial = *serial;
+    entry = (certificate_hash_entry *)
+                           nssHash_Lookup(store->issuer_and_serial, &index);
+    if (entry) {
+	rvCert = nssCertificate_AddRef(entry->cert);
+    }
+    return rvCert;
+}
+
 NSS_IMPLEMENT NSSCertificate *
 nssCertificateStore_FindCertificateByIssuerAndSerialNumber (
   nssCertificateStore *store,
@@ -508,22 +576,15 @@ nssCertificateStore_FindCertificateByIssuerAndSerialNumber (
   NSSDER *serial
 )
 {
-    certificate_hash_entry *entry;
-    NSSCertificate index;
     NSSCertificate *rvCert = NULL;
-    index.issuer = *issuer;
-    index.serial = *serial;
+
     PZ_Lock(store->lock);
-    entry = (certificate_hash_entry *)
-                           nssHash_Lookup(store->issuer_and_serial, &index);
-    if (entry) {
-	rvCert = nssCertificate_AddRef(entry->cert);
-    }
+    rvCert = nssCertStore_FindCertByIssuerAndSerialNumberLocked (
+                           store, issuer, serial);
     PZ_Unlock(store->lock);
     return rvCert;
 }
 
-#ifdef NSS_3_4_CODE
 static PRStatus
 issuer_and_serial_from_encoding (
   NSSBER *encoding, 
@@ -550,7 +611,6 @@ issuer_and_serial_from_encoding (
     serial->size = derSerial.len;
     return PR_SUCCESS;
 }
-#endif
 
 NSS_IMPLEMENT NSSCertificate *
 nssCertificateStore_FindCertificateByEncodedCertificate (
@@ -561,19 +621,15 @@ nssCertificateStore_FindCertificateByEncodedCertificate (
     PRStatus nssrv = PR_FAILURE;
     NSSDER issuer, serial;
     NSSCertificate *rvCert = NULL;
-#ifdef NSS_3_4_CODE
     nssrv = issuer_and_serial_from_encoding(encoding, &issuer, &serial);
-#endif
     if (nssrv != PR_SUCCESS) {
 	return NULL;
     }
     rvCert = nssCertificateStore_FindCertificateByIssuerAndSerialNumber(store, 
                                                                      &issuer, 
                                                                      &serial);
-#ifdef NSS_3_4_CODE
     PORT_Free(issuer.data);
     PORT_Free(serial.data);
-#endif
     return rvCert;
 }
 

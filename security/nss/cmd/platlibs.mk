@@ -35,6 +35,43 @@
 #
 # ***** END LICENSE BLOCK *****
 
+# set RPATH-type linker instructions here so they can be used in the shared
+# version and in the mixed (static nss libs/shared NSPR libs) version.
+
+ifeq ($(OS_ARCH), SunOS) 
+ifeq ($(BUILD_SUN_PKG), 1)
+ifeq ($(USE_64), 1)
+EXTRA_SHARED_LIBS += -R '$$ORIGIN/../lib:/usr/lib/mps/secv1/64:/usr/lib/mps/64'
+else
+EXTRA_SHARED_LIBS += -R '$$ORIGIN/../lib:/usr/lib/mps/secv1:/usr/lib/mps'
+endif
+else
+EXTRA_SHARED_LIBS += -R '$$ORIGIN/../lib'
+endif
+endif
+
+ifeq ($(OS_ARCH), Linux)
+ifeq ($(USE_64), 1)
+EXTRA_SHARED_LIBS += -Wl,-rpath,'$$ORIGIN/../lib64:$$ORIGIN/../lib'
+else
+EXTRA_SHARED_LIBS += -Wl,-rpath,'$$ORIGIN/../lib'
+endif
+endif
+
+ifeq ($(OS_ARCH), HP-UX) 
+ifeq ($(OS_TEST), ia64)
+EXTRA_SHARED_LIBS += -Wl,+b,'$$ORIGIN/../lib'
+else
+# pa-risc
+ifeq ($(USE_64), 1)
+EXTRA_SHARED_LIBS += \
+-Wl,+b,'$$ORIGIN/../../lib/pa20_64:$$ORIGIN/../../lib/64:$$ORIGIN/../lib'
+else
+EXTRA_SHARED_LIBS += -Wl,+b,'$$ORIGIN/../lib'
+endif
+endif
+endif
+
 
 ifdef USE_STATIC_LIBS
 
@@ -136,6 +173,10 @@ EXTRA_SHARED_LIBS += \
 	-lnspr4 \
 	$(NULL)
 endif
+
+ifeq ($(OS_TARGET), SunOS)
+OS_LIBS += -lbsm
+endif
 endif
 
 else # USE_STATIC_LIBS
@@ -181,24 +222,6 @@ ifdef NS_USE_GCC
 ifdef GCC_USE_GNU_LD
 EXTRA_SHARED_LIBS += -Wl,-rpath-link,$(DIST)/lib
 endif
-endif
-endif
-
-ifeq ($(OS_ARCH), SunOS) 
-ifeq ($(BUILD_SUN_PKG), 1)
-ifeq ($(USE_64), 1)
-EXTRA_SHARED_LIBS += -R '$$ORIGIN/../lib:/usr/lib/mps/secv1/64:/usr/lib/mps/64'
-else
-EXTRA_SHARED_LIBS += -R '$$ORIGIN/../lib:/usr/lib/mps/secv1:/usr/lib/mps'
-endif
-else
-EXTRA_SHARED_LIBS += -R '$$ORIGIN/../lib'
-endif
-endif
-
-ifeq ($(OS_ARCH), HP-UX) 
-ifeq ($(OS_TEST), ia64)
-EXTRA_SHARED_LIBS += -Wl,+b,'$$ORIGIN/../lib'
 endif
 endif
 

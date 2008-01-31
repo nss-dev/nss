@@ -99,10 +99,8 @@ struct nssDecodedCertStr {
 
 struct NSSUsageStr {
     PRBool anyUsage;
-#ifdef NSS_3_4_CODE
     SECCertUsage nss3usage;
     PRBool nss3lookingForCA;
-#endif
 };
 
 typedef struct nssPKIObjectCollectionStr nssPKIObjectCollection;

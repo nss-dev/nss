@@ -55,10 +55,8 @@ static const char PKIT_CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$";
 #include "baset.h"
 #endif /* BASET_H */
 
-#ifdef NSS_3_4_CODE
 #include "certt.h"
 #include "pkcs11t.h"
-#endif /* NSS_3_4_CODE */
 
 #ifndef NSSPKIT_H
 #include "nsspkit.h"
@@ -93,6 +91,11 @@ PR_BEGIN_EXTERN_C
  * for each object.
  */
 
+typedef enum {
+    nssPKILock = 1,
+    nssPKIMonitor = 2
+} nssPKILockType;
+
 /* nssPKIObject
  *
  * This is the base object class, common to all PKI objects defined in
@@ -105,7 +108,11 @@ struct nssPKIObjectStr
     /* Atomically incremented/decremented reference counting */
     PRInt32 refCount;
     /* lock protects the array of nssCryptokiInstance's of the object */
-    PZLock *lock;
+    union {
+        PZLock* lock;
+        PZMonitor *mlock;
+    } sync;
+    nssPKILockType lockType;
     /* XXX with LRU cache, this cannot be guaranteed up-to-date.  It cannot
      * be compared against the update level of the trust domain, since it is
      * also affected by import/export.  Where is this array needed?
@@ -179,10 +186,8 @@ struct NSSTrustDomainStr {
     nssListIterator *tokens;
     nssTDCertificateCache *cache;
     NSSRWLock *tokensLock;
-#ifdef NSS_3_4_CODE
     void *spkDigestInfo;
     CERTStatusConfig *statusConfig;
-#endif
 };
 
 struct NSSCryptoContextStr

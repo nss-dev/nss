@@ -269,6 +269,25 @@ extern SECStatus VFY_VerifyData(unsigned char *buf, int len,
 				SECKEYPublicKey *key, SECItem *sig,
 				SECOidTag algid, void *wincx);
 
+/*
+ * NOTE: This function is private in NSS 3.11.x
+** Verify the signature on a block of data. 
+**      "buf" the input data
+**      "len" the length of the input data
+**      "key" the public key to check the signature with
+**      "sig" the encrypted signature data
+**      "algid" specifies the signing algorithm and parameters to use.
+**         This must match the key type.
+**      "reserved" must be NULL in this version.
+**      "wincx" void pointer to the window context
+*/
+extern SECStatus VFY_VerifyDataWithAlgorithmID(const unsigned char *buf,
+				int len, const SECKEYPublicKey *key,
+				const SECItem *sig,
+				const SECAlgorithmID *algid, 
+				SECOidTag *reserved,
+				void *wincx);
+
 
 SEC_END_PROTOS
 

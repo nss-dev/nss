@@ -41,7 +41,14 @@
 #include "prlong.h"
 #include "pcertt.h"
 
+#include "lowkeyti.h" 	/* for struct NSSLOWKEYPublicKeyStr */
+
 SEC_BEGIN_PROTOS
+
+/*
+ * initialize any global certificate locks
+ */
+SECStatus nsslowcert_InitLocks(void);
 
 /*
 ** Add a DER encoded certificate to the permanent database.
@@ -244,6 +251,11 @@ pkcs11_copyStaticData(unsigned char *data, int datalen, unsigned char *space,
 						int spaceLen);
 NSSLOWCERTCertificate *
 nsslowcert_CreateCert(void);
+
+certDBEntry *
+nsslowcert_DecodeAnyDBEntry(SECItem *dbData, SECItem *dbKey, 
+                            certDBEntryType entryType, void *pdata);
+
 SEC_END_PROTOS
 
  #endif /* _PCERTDB_H_ */
