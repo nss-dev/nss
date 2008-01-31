@@ -19,6 +19,7 @@
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
+ *   Douglas Stebila <douglas@stebila.ca>, Sun Microsystems Laboratories
  *
  * Alternatively, the contents of this file may be used under the terms of
  * either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -67,6 +68,7 @@
 #include "prnetdb.h"
 #include "nss.h"
 #include "secutil.h"
+#include "ocsp.h"
 
 #include "vfyserv.h"
 
@@ -80,13 +82,48 @@ char *certNickname = NULL;
 char *hostName = NULL;
 char *password = NULL;
 unsigned short port = 0;
+PRBool dumpChain;
 
 static void
 Usage(const char *progName)
 {
-	fprintf(stderr, 
-	  "Usage: %s [-p port] [-c connections] [-C cipher(s)] hostname\n",
-	progName);
+    PRFileDesc *pr_stderr;
+
+    pr_stderr = PR_STDERR;
+
+    PR_fprintf(pr_stderr, "Usage:\n"
+               "   %s  [-c ] [-o] [-p port] [-d dbdir] [-w password]\n"
+               "   \t\t[-C cipher(s)]  [-l <url> -t <nickname> ] hostname",
+               progName);
+    PR_fprintf (pr_stderr, "\nWhere:\n");
+    PR_fprintf (pr_stderr,
+                "  %-13s dump server cert chain into files\n",
+                "-c");
+    PR_fprintf (pr_stderr,
+                "  %-13s perform server cert OCSP check\n",
+                "-o");
+    PR_fprintf (pr_stderr,
+                "  %-13s server port to be used\n",
+                "-p");
+    PR_fprintf (pr_stderr,
+                "  %-13s use security databases in \"dbdir\"\n",
+                "-d dbdir");
+    PR_fprintf (pr_stderr,
+                "  %-13s key database password\n",
+                "-w password");
+    PR_fprintf (pr_stderr,
+                "  %-13s communication cipher list\n",
+                "-C cipher(s)");
+    PR_fprintf (pr_stderr,
+                "  %-13s OCSP responder location. This location is used to\n"
+                "  %-13s check  status  of a server  certificate.  If  not \n"
+                "  %-13s specified, location  will  be taken  from the AIA\n"
+                "  %-13s server certificate extension.\n",
+                "-l url", "", "", "");
+    PR_fprintf (pr_stderr,
+                "  %-13s OCSP Trusted Responder Cert nickname\n\n",
+                "-t nickname");
+
 	exit(1);
 }
 
@@ -334,10 +371,10 @@ client_main(unsigned short      port,
 	PRInt32     rv;
 	PRNetAddr	addr;
 	PRHostEnt   hostEntry;
-	char        buffer[256];
+	char        buffer[PR_NETDB_BUF_SIZE];
 
 	/* Setup network connection. */
-	prStatus = PR_GetHostByName(hostName, buffer, 256, &hostEntry);
+	prStatus = PR_GetHostByName(hostName, buffer, sizeof(buffer), &hostEntry);
 	if (prStatus != PR_SUCCESS) {
 		exitErr("PR_GetHostByName");
 	}
@@ -368,6 +405,17 @@ client_main(unsigned short      port,
 	destroy_thread_data(&threadMGR);
 }
 
+#define HEXCHAR_TO_INT(c, i) \
+    if (((c) >= '0') && ((c) <= '9')) { \
+	i = (c) - '0'; \
+    } else if (((c) >= 'a') && ((c) <= 'f')) { \
+	i = (c) - 'a' + 10; \
+    } else if (((c) >= 'A') && ((c) <= 'F')) { \
+	i = (c) - 'A' + 10; \
+    } else { \
+	Usage(progName); \
+    }
+
 int
 main(int argc, char **argv)
 {
@@ -375,9 +423,12 @@ main(int argc, char **argv)
 	char *               progName     = NULL;
 	int                  connections  = 1;
 	char *               cipherString = NULL;
+	char *               respUrl = NULL;
+	char *               respCertName = NULL;
 	SECStatus            secStatus;
 	PLOptState *         optstate;
 	PLOptStatus          status;
+	PRBool               doOcspCheck = PR_FALSE;
 
 	/* Call the NSPR initialization routines */
 	PR_Init( PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
@@ -385,14 +436,17 @@ main(int argc, char **argv)
 	progName = PORT_Strdup(argv[0]);
 
 	hostName = NULL;
-	optstate = PL_CreateOptState(argc, argv, "C:c:d:n:p:w:");
+	optstate = PL_CreateOptState(argc, argv, "C:cd:l:n:p:ot:w:");
 	while ((status = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
 		switch(optstate->option) {
 		case 'C' : cipherString = PL_strdup(optstate->value); break;
-		case 'c' : connections = PORT_Atoi(optstate->value);  break;
+ 		case 'c' : dumpChain = PR_TRUE;                       break;
 		case 'd' : certDir = PL_strdup(optstate->value);      break;
+		case 'l' : respUrl = PL_strdup(optstate->value);      break;
 		case 'p' : port = PORT_Atoi(optstate->value);         break;
-		case 'w' : password = PL_strdup(optstate->value);      break;
+		case 'o' : doOcspCheck = PR_TRUE;                     break;
+		case 't' : respCertName = PL_strdup(optstate->value); break;
+		case 'w' : password = PL_strdup(optstate->value);     break;
 		case '\0': hostName = PL_strdup(optstate->value);     break;
 		default  : Usage(progName);
 		}
@@ -405,6 +459,14 @@ main(int argc, char **argv)
 	if (port == 0 || hostName == NULL)
 		Usage(progName);
 
+        if (doOcspCheck &&
+            ((respCertName != NULL && respUrl == NULL) ||
+             (respUrl != NULL && respCertName == NULL))) {
+	    SECU_PrintError (progName, "options -l <url> and -t "
+	                     "<responder> must be used together");
+	    Usage(progName);
+        }
+    
 	/* Set our password function callback. */
 	PK11_SetPasswordFunc(myPasswd);
 
@@ -423,6 +485,38 @@ main(int argc, char **argv)
 	}
 	SECU_RegisterDynamicOids();
 
+	if (doOcspCheck == PR_TRUE) {
+            SECStatus rv;
+            CERTCertDBHandle *handle = CERT_GetDefaultCertDB();
+            if (handle == NULL) {
+                SECU_PrintError (progName, "problem getting certdb handle");
+                goto cleanup;
+            }
+            
+            rv = CERT_EnableOCSPChecking (handle);
+            if (rv != SECSuccess) {
+                SECU_PrintError (progName, "error enabling OCSP checking");
+                goto cleanup;
+            }
+
+            if (respUrl != NULL) {
+                rv = CERT_SetOCSPDefaultResponder (handle, respUrl,
+                                                   respCertName);
+                if (rv != SECSuccess) {
+                    SECU_PrintError (progName,
+                                     "error setting default responder");
+                    goto cleanup;
+                }
+                
+                rv = CERT_EnableOCSPDefaultResponder (handle);
+                if (rv != SECSuccess) {
+                    SECU_PrintError (progName,
+                                     "error enabling default responder");
+                    goto cleanup;
+                }
+            }
+	}
+
 	/* All cipher suites except RSA_NULL_MD5 are enabled by 
 	 * Domestic Policy. */
 	NSS_SetDomesticPolicy();
@@ -436,21 +530,48 @@ main(int argc, char **argv)
 	    disableAllSSLCiphers();
 
 	    while (0 != (ndx = *cipherString++)) {
-		int *cptr;
 		int  cipher;
 
-		if (! isalpha(ndx))
-		    Usage(progName);
-		cptr = islower(ndx) ? ssl3CipherSuites : ssl2CipherSuites;
-		for (ndx &= 0x1f; (cipher = *cptr++) != 0 && --ndx > 0; )
-		    /* do nothing */;
+		if (ndx == ':') {
+		    int ctmp;
+
+		    cipher = 0;
+		    HEXCHAR_TO_INT(*cipherString, ctmp)
+		    cipher |= (ctmp << 12);
+		    cipherString++;
+		    HEXCHAR_TO_INT(*cipherString, ctmp)
+		    cipher |= (ctmp << 8);
+		    cipherString++;
+		    HEXCHAR_TO_INT(*cipherString, ctmp)
+		    cipher |= (ctmp << 4);
+		    cipherString++;
+		    HEXCHAR_TO_INT(*cipherString, ctmp)
+		    cipher |= ctmp;
+		    cipherString++;
+		} else {
+		    const int *cptr;
+		    if (! isalpha(ndx))
+			Usage(progName);
+		    cptr = islower(ndx) ? ssl3CipherSuites : ssl2CipherSuites;
+		    for (ndx &= 0x1f; (cipher = *cptr++) != 0 && --ndx > 0; )
+			/* do nothing */;
+		}
 		if (cipher > 0) {
 		    SSL_CipherPrefSetDefault(cipher, PR_TRUE);
+		} else {
+		    Usage(progName);
 		}
 	    }
 	}
 
 	client_main(port, connections, hostName);
+
+cleanup:
+        if (doOcspCheck) {
+            CERTCertDBHandle *handle = CERT_GetDefaultCertDB();
+            CERT_DisableOCSPDefaultResponder(handle);        
+            CERT_DisableOCSPChecking (handle);
+        }
 
         if (NSS_Shutdown() != SECSuccess) {
             exit(1);

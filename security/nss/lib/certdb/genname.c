@@ -1454,7 +1454,7 @@ CERT_CompareNameSpace(CERTCertificate  *cert,
  		      PRArenaPool      *arena,
  		      CERTCertificate **pBadCert)
 {
-    SECStatus            rv;
+    SECStatus            rv = SECSuccess;
     SECItem              constraintsExtension;
     CERTNameConstraints  *constraints;
     CERTGeneralName      *currentName;
@@ -1462,6 +1462,9 @@ CERT_CompareNameSpace(CERTCertificate  *cert,
     CERTNameConstraint  *matchingConstraints;
     CERTCertificate      *badCert = NULL;
     
+    /* If no names to check, then no names can be bad. */
+    if (!namesList)
+    	goto done;
     constraintsExtension.data = NULL;
     rv = CERT_FindCertExtension(cert, SEC_OID_X509_NAME_CONSTRAINTS, 
                                 &constraintsExtension);

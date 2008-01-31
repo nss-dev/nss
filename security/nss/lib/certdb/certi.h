@@ -243,5 +243,9 @@ cert_FindDERCertBySubjectKeyID(SECItem *subjKeyID);
 /* return maximum length of AVA value based on its type OID tag. */
 extern int cert_AVAOidTagToMaxLen(SECOidTag tag);
 
+SECStatus cert_InitLocks(void);
+
+SECStatus cert_DestroyLocks(void);
+
 #endif /* _CERTI_H_ */
 

@@ -872,3 +872,36 @@ SECMOD_OpenUserDB;
 ;+    local:
 ;+       *;
 ;+};
+;+NSS_3.11.1 {
+;+    global:
+NSS_RegisterShutdown;
+NSS_UnregisterShutdown;
+SEC_ASN1EncodeUnsignedInteger;
+SEC_RegisterDefaultHttpClient;
+;+    local:
+;+       *;
+;+};
+;+NSS_3.11.2 {
+;+    global:
+SECKEY_SignatureLen;
+;+    local:
+;+       *;
+;+};
+;+NSS_3.11.7 {
+;+    global:
+CERT_SetOCSPFailureMode;
+CERT_OCSPCacheSettings;
+CERT_ClearOCSPCache;
+DER_GeneralizedDayToAscii;
+DER_TimeChoiceDayToAscii;
+DER_TimeToGeneralizedTime;
+DER_TimeToGeneralizedTimeArena;
+;+    local:
+;+       *;
+;+};
+;+NSS_3.11.9 {
+;+    global:
+PK11_UnconfigurePKCS11;
+;+    local:
+;+       *;
+;+};

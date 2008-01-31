@@ -70,7 +70,8 @@
 #include "nss.h"
 
 #define MIN_KEY_BITS		512
-#define MAX_KEY_BITS		2048
+/* MAX_KEY_BITS should agree with MAX_RSA_MODULUS in freebl */
+#define MAX_KEY_BITS		8192
 #define DEFAULT_KEY_BITS	1024
 
 #define GEN_BREAK(e) rv=e; break;
@@ -762,6 +763,9 @@ ValidateCert(CERTCertDBHandle *handle, char *name, char *date,
     }
     
     switch (*certUsage) {
+	case 'O':
+	    usage = certificateUsageStatusResponder;
+	    break;
 	case 'C':
 	    usage = certificateUsageSSLClient;
 	    break;
@@ -993,6 +997,7 @@ Usage(char *progName)
     FPS "Usage:  %s -T [-d certdir] [-P dbprefix] [-h token-name] [-f pwfile]\n", progName);
     FPS "\t%s -A -n cert-name -t trustargs [-d certdir] [-P dbprefix] [-a] [-i input]\n", 
     	progName);
+    FPS "\t%s -B -i batch-file\n", progName);
     FPS "\t%s -C [-c issuer-name | -x] -i cert-request-file -o cert-file\n"
 	"\t\t [-m serial-number] [-w warp-months] [-v months-valid]\n"
         "\t\t [-f pwfile] [-d certdir] [-P dbprefix] [-1] [-2] [-3] [-4] [-5]\n"
@@ -1041,6 +1046,9 @@ static void LongUsage(char *progName)
 
     FPS "%-15s Add a certificate to the database        (create if needed)\n",
 	"-A");
+    FPS "%-20s\n", "   All options under -E apply");
+    FPS "%-15s Run a series of certutil commands from a batch file\n", "-B");
+    FPS "%-20s Specify the batch file\n", "   -i batch-file");
     FPS "%-15s Add an Email certificate to the database (create if needed)\n",
 	"-E");
     FPS "%-20s Specify the nickname of the certificate to add\n",
@@ -1133,23 +1141,26 @@ static void LongUsage(char *progName)
 #ifdef NSS_ENABLE_ECC
     FPS "%-20s Elliptic curve name (ec only)\n",
 	"   -q curve-name");
-    FPS "%-20s One of sect163k1, nistk163, sect163r1, sect163r2,\n", "");
+    FPS "%-20s One of nistp256, nistp384, nistp521\n", "");
+#ifdef NSS_ECC_MORE_THAN_SUITE_B
+    FPS "%-20s sect163k1, nistk163, sect163r1, sect163r2,\n", "");
     FPS "%-20s nistb163, sect193r1, sect193r2, sect233k1, nistk233,\n", "");
     FPS "%-20s sect233r1, nistb233, sect239k1, sect283k1, nistk283,\n", "");
     FPS "%-20s sect283r1, nistb283, sect409k1, nistk409, sect409r1,\n", "");
     FPS "%-20s nistb409, sect571k1, nistk571, sect571r1, nistb571,\n", "");
-    FPS "%-20s secp169k1, secp160r1, secp160r2, secp192k1, secp192r1,\n", "");
+    FPS "%-20s secp160k1, secp160r1, secp160r2, secp192k1, secp192r1,\n", "");
     FPS "%-20s nistp192, secp224k1, secp224r1, nistp224, secp256k1,\n", "");
-    FPS "%-20s secp256r1, nistp256, secp384r1, nistp384, secp521r1,\n", "");
-    FPS "%-20s nistp521, prime192v1, prime192v2, prime192v3, \n", "");
+    FPS "%-20s secp256r1, secp384r1, secp521r1,\n", "");
+    FPS "%-20s prime192v1, prime192v2, prime192v3, \n", "");
     FPS "%-20s prime239v1, prime239v2, prime239v3, c2pnb163v1, \n", "");
     FPS "%-20s c2pnb163v2, c2pnb163v3, c2pnb176v1, c2tnb191v1, \n", "");
-    FPS "%-20s c2tnb191v2, c2tnb191v3, c2onb191v4, c2onb191v5, \n", "");
+    FPS "%-20s c2tnb191v2, c2tnb191v3,  \n", "");
     FPS "%-20s c2pnb208w1, c2tnb239v1, c2tnb239v2, c2tnb239v3, \n", "");
-    FPS "%-20s c2onb239v4, c2onb239v5, c2pnb272w1, c2pnb304w1, \n", "");
+    FPS "%-20s c2pnb272w1, c2pnb304w1, \n", "");
     FPS "%-20s c2tnb359w1, c2pnb368w1, c2tnb431r1, secp112r1, \n", "");
     FPS "%-20s secp112r2, secp128r1, secp128r2, sect113r1, sect113r2\n", "");
     FPS "%-20s sect131r1, sect131r2\n", "");
+#endif /* NSS_ECC_MORE_THAN_SUITE_B */
 #endif
     FPS "%-20s Key database directory (default is ~/.netscape)\n",
 	"   -d keydir");
@@ -1292,6 +1303,8 @@ static void LongUsage(char *progName)
 	"   -p phone");
     FPS "%-20s Output the cert request in ASCII (RFC1113); default is binary\n",
 	"   -a");
+    FPS "%-20s \n",
+	"   See -S for available extension options");
     FPS "\n");
 
     FPS "%-15s Validate a certificate\n",
@@ -1307,6 +1320,7 @@ static void LongUsage(char *progName)
     FPS "%-25s V \t SSL Server\n", "");
     FPS "%-25s S \t Email signer\n", "");
     FPS "%-25s R \t Email Recipient\n", "");   
+    FPS "%-25s O \t OCSP status responder\n", "");   
     FPS "%-20s Cert database directory (default is ~/.netscape)\n",
 	"   -d certdir");
     FPS "%-20s Cert & Key database prefix\n",
@@ -1390,7 +1404,7 @@ MakeV1Cert(	CERTCertDBHandle *	handle,
 		PRBool 			selfsign, 
 		unsigned int 		serialNumber,
 		int 			warpmonths,
-                int                     validitylength)
+                int                     validityMonths)
 {
     CERTCertificate *issuerCert = NULL;
     CERTValidity *validity;
@@ -1414,19 +1428,19 @@ MakeV1Cert(	CERTCertDBHandle *	handle,
 	now = PR_ImplodeTime (&printableTime);
 	PR_ExplodeTime (now, PR_GMTParameters, &printableTime);
     }
-    printableTime.tm_month += validitylength;
-    printableTime.tm_month += 3;
+    printableTime.tm_month += validityMonths;
     after = PR_ImplodeTime (&printableTime);
 
     /* note that the time is now in micro-second unit */
     validity = CERT_CreateValidity (now, after);
-
-    cert = CERT_CreateCertificate(serialNumber, 
+    if (validity) {
+        cert = CERT_CreateCertificate(serialNumber, 
 				  (selfsign ? &req->subject 
 				            : &issuerCert->subject), 
 	                          validity, req);
     
-    CERT_DestroyValidity(validity);
+        CERT_DestroyValidity(validity);
+    }
     if ( issuerCert ) {
 	CERT_DestroyCertificate (issuerCert);
     }
@@ -1561,7 +1575,7 @@ AddOidToSequence(CERTOidSequence *os, SECOidTag oidTag)
   return SECSuccess;
 }
 
-SEC_ASN1_MKSUB(SEC_ObjectIDTemplate);
+SEC_ASN1_MKSUB(SEC_ObjectIDTemplate)
 
 const SEC_ASN1Template CERT_OidSeqTemplate[] = {
     { SEC_ASN1_SEQUENCE_OF | SEC_ASN1_XTRN,
@@ -2189,7 +2203,7 @@ CreateCert(
 	SECOidTag hashAlgTag,
 	unsigned int serialNumber, 
 	int     warpmonths,
-	int     validitylength,
+	int     validityMonths,
 	const char *emailAddrs,
 	const char *dnsNames,
 	PRBool  ascii,
@@ -2224,7 +2238,7 @@ CreateCert(
 	}
 
 	subjectCert = MakeV1Cert (handle, certReq, issuerNickName, selfsign,
-				  serialNumber, warpmonths, validitylength);
+				  serialNumber, warpmonths, validityMonths);
 	if (subjectCert == NULL) {
 	    GEN_BREAK (SECFailure)
 	}
@@ -2302,7 +2316,8 @@ enum {
     cmd_ListModules,
     cmd_CheckCertValidity,
     cmd_ChangePassword,
-    cmd_Version
+    cmd_Version,
+    cmd_Batch
 };
 
 /*  Certutil options */
@@ -2344,8 +2359,7 @@ enum {
     opt_RW,
     opt_Exponent,
     opt_NoiseFile,
-    opt_Hash,
-    opt_Batch
+    opt_Hash
 };
 
 static int 
@@ -2367,11 +2381,12 @@ certutil_main(int argc, char **argv, PRBool initialize)
     int         publicExponent  = 0x010001;
     unsigned int serialNumber   = 0;
     int         warpmonths      = 0;
-    int         validitylength  = 0;
+    int         validityMonths  = 3;
     int         commandsEntered = 0;
     char        commandToRun    = '\0';
     secuPWData  pwdata          = { PW_NONE, 0 };
     PRBool 	readOnly	= PR_FALSE;
+    PRBool      initialized     = PR_FALSE;
 
     SECKEYPrivateKey *privkey = NULL;
     SECKEYPublicKey *pubkey = NULL;
@@ -2401,7 +2416,8 @@ secuCommandFlag certutil_commands[] =
 	{ /* cmd_ListModules         */  'U', PR_FALSE, 0, PR_FALSE },
 	{ /* cmd_CheckCertValidity   */  'V', PR_FALSE, 0, PR_FALSE },
 	{ /* cmd_ChangePassword      */  'W', PR_FALSE, 0, PR_FALSE },
-	{ /* cmd_Version             */  'Y', PR_FALSE, 0, PR_FALSE }
+	{ /* cmd_Version             */  'Y', PR_FALSE, 0, PR_FALSE },
+	{ /* cmd_Batch               */  'B', PR_FALSE, 0, PR_FALSE }
 };
 
 secuCommandFlag certutil_options[] =
@@ -2443,8 +2459,7 @@ secuCommandFlag certutil_options[] =
 	{ /* opt_RW                  */  'X', PR_FALSE, 0, PR_FALSE },
 	{ /* opt_Exponent            */  'y', PR_TRUE,  0, PR_FALSE },
 	{ /* opt_NoiseFile           */  'z', PR_TRUE,  0, PR_FALSE },
-	{ /* opt_Hash                */  'Z', PR_TRUE,  0, PR_FALSE },
-	{ /* opt_Batch               */  'B', PR_TRUE,  0, PR_FALSE }
+	{ /* opt_Hash                */  'Z', PR_TRUE,  0, PR_FALSE }
 };
 
 
@@ -2576,8 +2591,8 @@ secuCommandFlag certutil_options[] =
 
     /*  -v validity period  */
     if (certutil.options[opt_Validity].activated) {
-	validitylength = PORT_Atoi(certutil.options[opt_Validity].arg);
-	if (validitylength < 0) {
+	validityMonths = PORT_Atoi(certutil.options[opt_Validity].arg);
+	if (validityMonths < 0) {
 	    PR_fprintf(PR_STDERR, "%s -v: incorrect validity period: \"%s\"\n",
 	               progName, certutil.options[opt_Validity].arg);
 	    return 255;
@@ -2801,6 +2816,7 @@ secuCommandFlag certutil_options[] =
 	    rv = SECFailure;
 	    goto shutdown;
         }
+        initialized = PR_TRUE;
     	SECU_RegisterDynamicOids();
     }
     certHandle = CERT_GetDefaultCertDB();
@@ -2813,6 +2829,21 @@ secuCommandFlag certutil_options[] =
 	slot = PK11_GetInternalKeySlot();
     else if (slotname != NULL)
 	slot = PK11_FindSlotByName(slotname);
+   
+    if ( !slot && (certutil.commands[cmd_NewDBs].activated ||
+         certutil.commands[cmd_ModifyCertTrust].activated  || 
+         certutil.commands[cmd_ChangePassword].activated   ||
+         certutil.commands[cmd_TokenReset].activated       ||
+         certutil.commands[cmd_CreateAndAddCert].activated ||
+         certutil.commands[cmd_AddCert].activated          ||
+         certutil.commands[cmd_AddEmailCert].activated)) {
+      
+         SECU_PrintError(progName, "could not find the slot %s",slotname);
+         rv = SECFailure;
+         goto shutdown;
+    }
+
+
 
     /*  If creating new database, initialize the password.  */
     if (certutil.commands[cmd_NewDBs].activated) {
@@ -2994,7 +3025,7 @@ secuCommandFlag certutil_options[] =
 	rv = CreateCert(certHandle, 
 	                certutil.options[opt_IssuerName].arg,
 	                inFile, outFile, privkey, &pwdata, hashAlgTag,
-	                serialNumber, warpmonths, validitylength,
+	                serialNumber, warpmonths, validityMonths,
 		        certutil.options[opt_ExtendedEmailAddrs].arg,
 		        certutil.options[opt_ExtendedDNSNames].arg,
 	                certutil.options[opt_ASCIIForIO].activated,
@@ -3074,13 +3105,21 @@ shutdown:
      * - each line in the batch file is limited to 512 characters
     */
 
-    if ((SECSuccess == rv) && certutil.options[opt_Batch].activated) {
-	FILE* batchFile = fopen(certutil.options[opt_Batch].arg, "r");
+    if ((SECSuccess == rv) && certutil.commands[cmd_Batch].activated) {
+	FILE* batchFile = NULL;
         char nextcommand[512];
+        if (!certutil.options[opt_InputFile].activated ||
+            !certutil.options[opt_InputFile].arg) {
+	    PR_fprintf(PR_STDERR,
+	               "%s:  no batch input file specified.\n",
+	               progName);
+	    return 255;
+        }
+        batchFile = fopen(certutil.options[opt_InputFile].arg, "r");
         if (!batchFile) {
 	    PR_fprintf(PR_STDERR,
 	               "%s:  unable to open \"%s\" for reading (%ld, %ld).\n",
-	               progName, certutil.options[opt_Batch].arg,
+	               progName, certutil.options[opt_InputFile].arg,
 	               PR_GetError(), PR_GetOSError());
 	    return 255;
         }
@@ -3144,7 +3183,7 @@ shutdown:
         fclose(batchFile);
     }
 
-    if ((initialize == PR_TRUE) && NSS_Shutdown() != SECSuccess) {
+    if ((initialized == PR_TRUE) && NSS_Shutdown() != SECSuccess) {
         exit(1);
     }
 

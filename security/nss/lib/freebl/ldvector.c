@@ -222,6 +222,11 @@ static const struct FREEBLVectorStr vector =
     RNG_SystemInfoForRNG,
 
     /* End of Version 3.008. */
+
+    FIPS186Change_GenerateX,
+    FIPS186Change_ReduceModQForDSA,
+
+    /* End of Version 3.009. */
 };
 
 const FREEBLVector * 
