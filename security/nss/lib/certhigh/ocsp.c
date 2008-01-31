@@ -19,6 +19,7 @@
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
+ *   Kai Engert (kengert@redhat.com)
  *
  * Alternatively, the contents of this file may be used under the terms of
  * either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -66,7 +67,850 @@
 #include "certxutl.h"
 #include "pk11func.h"	/* for PK11_HashBuf */
 #include <stdarg.h>
+#include <plhash.h>
 
+#define DEFAULT_OCSP_CACHE_SIZE 1000
+#define DEFAULT_MINIMUM_SECONDS_TO_NEXT_OCSP_FETCH_ATTEMPT 1*60*60L
+#define DEFAULT_MAXIMUM_SECONDS_TO_NEXT_OCSP_FETCH_ATTEMPT 24*60*60L
+#define MICROSECONDS_PER_SECOND 1000000L
+
+typedef struct OCSPCacheItemStr OCSPCacheItem;
+typedef struct OCSPCacheDataStr OCSPCacheData;
+
+struct OCSPCacheItemStr {
+    /* LRU linking */
+    OCSPCacheItem *moreRecent;
+    OCSPCacheItem *lessRecent;
+
+    /* key */
+    CERTOCSPCertID *certID;
+    /* CertID's arena also used to allocate "this" cache item */
+
+    /* cache control information */
+    PRTime nextFetchAttemptTime;
+
+    /* Cached contents. Use a separate arena, because lifetime is different */
+    PRArenaPool *certStatusArena; /* NULL means: no cert status cached */
+    ocspCertStatus certStatus;
+
+    PRPackedBool haveThisUpdate;
+    PRPackedBool haveNextUpdate;
+    PRTime thisUpdate;
+    PRTime nextUpdate;
+};
+
+struct OCSPCacheDataStr {
+    PLHashTable *entries;
+    PRUint32 numberOfEntries;
+    OCSPCacheItem *MRUitem; /* most recently used cache item */
+    OCSPCacheItem *LRUitem; /* least recently used cache item */
+};
+
+static struct OCSPGlobalStruct {
+    PRMonitor *monitor;
+    const SEC_HttpClientFcn *defaultHttpClientFcn;
+    PRInt32 maxCacheEntries;
+    PRUint32 minimumSecondsToNextFetchAttempt;
+    PRUint32 maximumSecondsToNextFetchAttempt;
+    OCSPCacheData cache;
+    SEC_OcspFailureMode ocspFailureMode;
+} OCSP_Global = { NULL, 
+                  NULL, 
+                  DEFAULT_OCSP_CACHE_SIZE, 
+                  DEFAULT_MINIMUM_SECONDS_TO_NEXT_OCSP_FETCH_ATTEMPT,
+                  DEFAULT_MAXIMUM_SECONDS_TO_NEXT_OCSP_FETCH_ATTEMPT,
+                  {NULL, 0, NULL, NULL},
+                  ocspMode_FailureIsVerificationFailure
+                };
+
+/* Forward declarations */
+static SECItem *
+ocsp_GetEncodedOCSPResponseFromRequest(PRArenaPool *arena, 
+                                       CERTOCSPRequest *request,
+                                       char *location, int64 time,
+                                       PRBool addServiceLocator,
+                                       void *pwArg,
+                                       CERTOCSPRequest **pRequest);
+static SECStatus
+ocsp_GetOCSPStatusFromNetwork(CERTCertDBHandle *handle, 
+                              CERTOCSPCertID *certID, 
+                              CERTCertificate *cert, 
+                              int64 time, 
+                              void *pwArg,
+                              PRBool *certIDWasConsumed,
+                              SECStatus *rv_ocsp);
+static SECStatus
+ocsp_GetVerifiedSingleResponseForCertID(CERTCertDBHandle *handle, 
+                                        CERTOCSPResponse *response, 
+                                        CERTOCSPCertID   *certID,
+                                        CERTCertificate  *signerCert,
+                                        int64             time,
+                                        CERTOCSPSingleResponse **pSingleResponse);
+
+#ifndef DEBUG
+#define OCSP_TRACE(msg)
+#define OCSP_TRACE_TIME(msg, time)
+#define OCSP_TRACE_CERT(cert)
+#else
+#define OCSP_TRACE(msg) ocsp_Trace msg
+#define OCSP_TRACE_TIME(msg, time) ocsp_dumpStringWithTime(msg, time)
+#define OCSP_TRACE_CERT(cert) dumpCertificate(cert)
+
+#if (defined(XP_UNIX) || defined(XP_WIN32) || defined(XP_BEOS) \
+     || defined(XP_MACOSX)) && !defined(_WIN32_WCE)
+#define NSS_HAVE_GETENV 1
+#endif
+
+static PRBool wantOcspTrace()
+{
+    static PRBool firstTime = PR_TRUE;
+    static PRBool wantTrace = PR_FALSE;
+
+#ifdef NSS_HAVE_GETENV
+    if (firstTime) {
+        char *ev = getenv("NSS_TRACE_OCSP");
+        if (ev && ev[0]) {
+            wantTrace = PR_TRUE;
+        }
+        firstTime = PR_FALSE;
+    }
+#endif
+    return wantTrace;
+}
+
+static void
+ocsp_Trace(const char *format, ...)
+{
+    char buf[2000];
+    va_list args;
+  
+    if (!wantOcspTrace())
+        return;
+    va_start(args, format);
+    PR_vsnprintf(buf, sizeof(buf), format, args);
+    va_end(args);
+    PR_LogPrint("%s", buf);
+}
+
+static void
+ocsp_dumpStringWithTime(const char *str, int64 time)
+{
+    PRExplodedTime timePrintable;
+    char timestr[100];
+
+    if (!wantOcspTrace())
+        return;
+    PR_ExplodeTime(time, PR_GMTParameters, &timePrintable);
+    PR_FormatTime(timestr, 100, "%a %b %d %H:%M:%S %Y", 
+                  &timePrintable);
+    ocsp_Trace("OCSP %s %s\n", str, timestr);
+}
+
+static void
+printHexString(const char *prefix, SECItem *hexval)
+{
+    unsigned int i;
+    char *hexbuf = NULL;
+
+    for (i = 0; i < hexval->len; i++) {
+        if (i != hexval->len - 1) {
+            PR_sprintf_append(hexbuf, "%02x:", hexval->data[i]);
+        } else {
+            PR_sprintf_append(hexbuf, "%02x", hexval->data[i]);
+        }
+    }
+    if (hexbuf) {
+        ocsp_Trace("%s %s\n", prefix, hexbuf);
+        PR_smprintf_free(hexbuf);
+    }
+}
+
+static void
+dumpCertificate(CERTCertificate *cert)
+{
+    if (!wantOcspTrace())
+        return;
+
+    ocsp_Trace("OCSP ----------------\n");
+    ocsp_Trace("OCSP ## SUBJECT:  %s\n", cert->subjectName);
+    {
+        int64 timeBefore, timeAfter;
+        PRExplodedTime beforePrintable, afterPrintable;
+        char beforestr[100], afterstr[100];
+        DER_DecodeTimeChoice(&timeBefore, &cert->validity.notBefore);
+        DER_DecodeTimeChoice(&timeAfter, &cert->validity.notAfter);
+        PR_ExplodeTime(timeBefore, PR_GMTParameters, &beforePrintable);
+        PR_ExplodeTime(timeAfter, PR_GMTParameters, &afterPrintable);
+        PR_FormatTime(beforestr, 100, "%a %b %d %H:%M:%S %Y", 
+                      &beforePrintable);
+        PR_FormatTime(afterstr, 100, "%a %b %d %H:%M:%S %Y", 
+                      &afterPrintable);
+        ocsp_Trace("OCSP ## VALIDITY:  %s to %s\n", beforestr, afterstr);
+    }
+    ocsp_Trace("OCSP ## ISSUER:  %s\n", cert->issuerName);
+    printHexString("OCSP ## SERIAL NUMBER:", &cert->serialNumber);
+}
+#endif
+
+SECStatus
+SEC_RegisterDefaultHttpClient(const SEC_HttpClientFcn *fcnTable)
+{
+    if (!OCSP_Global.monitor) {
+      PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+      return SECFailure;
+    }
+    
+    PR_EnterMonitor(OCSP_Global.monitor);
+    OCSP_Global.defaultHttpClientFcn = fcnTable;
+    PR_ExitMonitor(OCSP_Global.monitor);
+    
+    return SECSuccess;
+}
+
+static PLHashNumber PR_CALLBACK
+ocsp_CacheKeyHashFunction(const void *key)
+{
+    CERTOCSPCertID *cid = (CERTOCSPCertID *)key;
+    PLHashNumber hash = 0;
+    unsigned int i;
+    unsigned char *walk;
+  
+    /* a very simple hash calculation for the initial coding phase */
+    walk = (unsigned char*)cid->issuerNameHash.data;
+    for (i=0; i < cid->issuerNameHash.len; ++i, ++walk) {
+        hash += *walk;
+    }
+    walk = (unsigned char*)cid->issuerKeyHash.data;
+    for (i=0; i < cid->issuerKeyHash.len; ++i, ++walk) {
+        hash += *walk;
+    }
+    walk = (unsigned char*)cid->serialNumber.data;
+    for (i=0; i < cid->serialNumber.len; ++i, ++walk) {
+        hash += *walk;
+    }
+    return hash;
+}
+
+static PRIntn PR_CALLBACK
+ocsp_CacheKeyCompareFunction(const void *v1, const void *v2)
+{
+    CERTOCSPCertID *cid1 = (CERTOCSPCertID *)v1;
+    CERTOCSPCertID *cid2 = (CERTOCSPCertID *)v2;
+  
+    return (SECEqual == SECITEM_CompareItem(&cid1->issuerNameHash, 
+                                            &cid2->issuerNameHash)
+            && SECEqual == SECITEM_CompareItem(&cid1->issuerKeyHash, 
+                                               &cid2->issuerKeyHash)
+            && SECEqual == SECITEM_CompareItem(&cid1->serialNumber, 
+                                               &cid2->serialNumber));
+}
+
+static SECStatus
+ocsp_CopyRevokedInfo(PRArenaPool *arena, ocspCertStatus *dest, 
+                     ocspRevokedInfo *src)
+{
+    SECStatus rv = SECFailure;
+    void *mark;
+  
+    mark = PORT_ArenaMark(arena);
+  
+    dest->certStatusInfo.revokedInfo = 
+        (ocspRevokedInfo *) PORT_ArenaZAlloc(arena, sizeof(ocspRevokedInfo));
+    if (!dest->certStatusInfo.revokedInfo) {
+        goto loser;
+    }
+  
+    rv = SECITEM_CopyItem(arena, 
+                          &dest->certStatusInfo.revokedInfo->revocationTime, 
+                          &src->revocationTime);
+    if (rv != SECSuccess) {
+        goto loser;
+    }
+  
+    if (src->revocationReason) {
+        dest->certStatusInfo.revokedInfo->revocationReason = 
+            SECITEM_ArenaDupItem(arena, src->revocationReason);
+        if (!dest->certStatusInfo.revokedInfo->revocationReason) {
+            goto loser;
+        }
+    }  else {
+        dest->certStatusInfo.revokedInfo->revocationReason = NULL;
+    }
+  
+    PORT_ArenaUnmark(arena, mark);
+    return SECSuccess;
+
+loser:
+    PORT_ArenaRelease(arena, mark);
+    return SECFailure;
+}
+
+static SECStatus
+ocsp_CopyCertStatus(PRArenaPool *arena, ocspCertStatus *dest, 
+                    ocspCertStatus*src)
+{
+    SECStatus rv = SECFailure;
+    dest->certStatusType = src->certStatusType;
+  
+    switch (src->certStatusType) {
+    case ocspCertStatus_good:
+        dest->certStatusInfo.goodInfo = 
+            SECITEM_ArenaDupItem(arena, src->certStatusInfo.goodInfo);
+        if (dest->certStatusInfo.goodInfo != NULL) {
+            rv = SECSuccess;
+        }
+        break;
+    case ocspCertStatus_revoked:
+        rv = ocsp_CopyRevokedInfo(arena, dest, 
+                                  src->certStatusInfo.revokedInfo);
+        break;
+    case ocspCertStatus_unknown:
+        dest->certStatusInfo.unknownInfo = 
+            SECITEM_ArenaDupItem(arena, src->certStatusInfo.unknownInfo);
+        if (dest->certStatusInfo.unknownInfo != NULL) {
+            rv = SECSuccess;
+        }
+        break;
+    case ocspCertStatus_other:
+    default:
+        PORT_Assert(src->certStatusType == ocspCertStatus_other);
+        dest->certStatusInfo.otherInfo = 
+            SECITEM_ArenaDupItem(arena, src->certStatusInfo.otherInfo);
+        if (dest->certStatusInfo.otherInfo != NULL) {
+            rv = SECSuccess;
+        }
+        break;
+    }
+    return rv;
+}
+
+static void
+ocsp_AddCacheItemToLinkedList(OCSPCacheData *cache, OCSPCacheItem *new_most_recent)
+{
+    PR_EnterMonitor(OCSP_Global.monitor);
+
+    if (!cache->LRUitem) {
+        cache->LRUitem = new_most_recent;
+    }
+    new_most_recent->lessRecent = cache->MRUitem;
+    new_most_recent->moreRecent = NULL;
+
+    if (cache->MRUitem) {
+        cache->MRUitem->moreRecent = new_most_recent;
+    }
+    cache->MRUitem = new_most_recent;
+
+    PR_ExitMonitor(OCSP_Global.monitor);
+}
+
+static void
+ocsp_RemoveCacheItemFromLinkedList(OCSPCacheData *cache, OCSPCacheItem *item)
+{
+    PR_EnterMonitor(OCSP_Global.monitor);
+
+    if (!item->lessRecent && !item->moreRecent) {
+        /*
+         * Fail gracefully on attempts to remove an item from the list,
+         * which is currently not part of the list.
+         * But check for the edge case it is the single entry in the list.
+         */
+        if (item == cache->LRUitem &&
+            item == cache->MRUitem) {
+            /* remove the single entry */
+            PORT_Assert(cache->numberOfEntries == 1);
+            PORT_Assert(item->moreRecent == NULL);
+            cache->MRUitem = NULL;
+            cache->LRUitem = NULL;
+        }
+        PR_ExitMonitor(OCSP_Global.monitor);
+        return;
+    }
+
+    PORT_Assert(cache->numberOfEntries > 1);
+  
+    if (item == cache->LRUitem) {
+        PORT_Assert(item != cache->MRUitem);
+        PORT_Assert(item->lessRecent == NULL);
+        PORT_Assert(item->moreRecent != NULL);
+        PORT_Assert(item->moreRecent->lessRecent == item);
+        cache->LRUitem = item->moreRecent;
+        cache->LRUitem->lessRecent = NULL;
+    }
+    else if (item == cache->MRUitem) {
+        PORT_Assert(item->moreRecent == NULL);
+        PORT_Assert(item->lessRecent != NULL);
+        PORT_Assert(item->lessRecent->moreRecent == item);
+        cache->MRUitem = item->lessRecent;
+        cache->MRUitem->moreRecent = NULL;
+    } else {
+        /* remove an entry in the middle of the list */
+        PORT_Assert(item->moreRecent != NULL);
+        PORT_Assert(item->lessRecent != NULL);
+        PORT_Assert(item->lessRecent->moreRecent == item);
+        PORT_Assert(item->moreRecent->lessRecent == item);
+        item->moreRecent->lessRecent = item->lessRecent;
+        item->lessRecent->moreRecent = item->moreRecent;
+    }
+
+    item->lessRecent = NULL;
+    item->moreRecent = NULL;
+
+    PR_ExitMonitor(OCSP_Global.monitor);
+}
+
+static void
+ocsp_MakeCacheEntryMostRecent(OCSPCacheData *cache, OCSPCacheItem *new_most_recent)
+{
+    OCSP_TRACE(("OCSP ocsp_MakeCacheEntryMostRecent THREADID %p\n", 
+                PR_GetCurrentThread()));
+    PR_EnterMonitor(OCSP_Global.monitor);
+    if (cache->MRUitem == new_most_recent) {
+        OCSP_TRACE(("OCSP ocsp_MakeCacheEntryMostRecent ALREADY MOST\n"));
+        PR_ExitMonitor(OCSP_Global.monitor);
+        return;
+    }
+    OCSP_TRACE(("OCSP ocsp_MakeCacheEntryMostRecent NEW entry\n"));
+    ocsp_RemoveCacheItemFromLinkedList(cache, new_most_recent);
+    ocsp_AddCacheItemToLinkedList(cache, new_most_recent);
+    PR_ExitMonitor(OCSP_Global.monitor);
+}
+
+static PRBool
+ocsp_IsCacheDisabled()
+{
+    /* 
+     * maxCacheEntries == 0 means unlimited cache entries
+     * maxCacheEntries  < 0 means cache is disabled
+     */
+    PRBool retval;
+    PR_EnterMonitor(OCSP_Global.monitor);
+    retval = (OCSP_Global.maxCacheEntries < 0);
+    PR_ExitMonitor(OCSP_Global.monitor);
+    return retval;
+}
+
+static OCSPCacheItem *
+ocsp_FindCacheEntry(OCSPCacheData *cache, CERTOCSPCertID *certID)
+{
+    OCSPCacheItem *found_ocsp_item = NULL;
+    OCSP_TRACE(("OCSP ocsp_FindCacheEntry\n"));
+    PR_EnterMonitor(OCSP_Global.monitor);
+    if (ocsp_IsCacheDisabled())
+        goto loser;
+  
+    found_ocsp_item = (OCSPCacheItem *)PL_HashTableLookup(
+                          cache->entries, certID);
+    if (!found_ocsp_item)
+        goto loser;
+  
+    OCSP_TRACE(("OCSP ocsp_FindCacheEntry FOUND!\n"));
+    ocsp_MakeCacheEntryMostRecent(cache, found_ocsp_item);
+
+loser:
+    PR_ExitMonitor(OCSP_Global.monitor);
+    return found_ocsp_item;
+}
+
+static void
+ocsp_FreeCacheItem(OCSPCacheItem *item)
+{
+    OCSP_TRACE(("OCSP ocsp_FreeCacheItem\n"));
+    if (item->certStatusArena) {
+        PORT_FreeArena(item->certStatusArena, PR_FALSE);
+    }
+    if (item->certID->poolp) {
+        /* freeing this poolp arena will also free item */
+        PORT_FreeArena(item->certID->poolp, PR_FALSE);
+    }
+}
+
+static void
+ocsp_RemoveCacheItem(OCSPCacheData *cache, OCSPCacheItem *item)
+{
+    /* The item we're removing could be either the least recently used item,
+     * or it could be an item that couldn't get updated with newer status info
+     * because of an allocation failure, or it could get removed because we're 
+     * cleaning up.
+     */
+    PRBool couldRemoveFromHashTable;
+    OCSP_TRACE(("OCSP ocsp_RemoveCacheItem, THREADID %p\n", PR_GetCurrentThread()));
+    PR_EnterMonitor(OCSP_Global.monitor);
+
+    ocsp_RemoveCacheItemFromLinkedList(cache, item);
+    couldRemoveFromHashTable = PL_HashTableRemove(cache->entries, 
+                                                  item->certID);
+    PORT_Assert(couldRemoveFromHashTable);
+    --cache->numberOfEntries;
+    ocsp_FreeCacheItem(item);
+    PR_ExitMonitor(OCSP_Global.monitor);
+}
+
+static void
+ocsp_CheckCacheSize(OCSPCacheData *cache)
+{
+    OCSP_TRACE(("OCSP ocsp_CheckCacheSize\n"));
+    PR_EnterMonitor(OCSP_Global.monitor);
+    if (OCSP_Global.maxCacheEntries <= 0) /* disabled or unlimited */
+        return;
+    while (cache->numberOfEntries > OCSP_Global.maxCacheEntries) {
+        ocsp_RemoveCacheItem(cache, cache->LRUitem);
+    }
+    PR_ExitMonitor(OCSP_Global.monitor);
+}
+
+SECStatus
+CERT_ClearOCSPCache()
+{
+    OCSP_TRACE(("OCSP CERT_ClearOCSPCache\n"));
+    PR_EnterMonitor(OCSP_Global.monitor);
+    while (OCSP_Global.cache.numberOfEntries > 0) {
+        ocsp_RemoveCacheItem(&OCSP_Global.cache, 
+                             OCSP_Global.cache.LRUitem);
+    }
+    PR_ExitMonitor(OCSP_Global.monitor);
+    return SECSuccess;
+}
+
+static SECStatus
+ocsp_CreateCacheItemAndConsumeCertID(OCSPCacheData *cache,
+                                     CERTOCSPCertID *certID, 
+                                     OCSPCacheItem **pCacheItem)
+{
+    PRArenaPool *arena;
+    void *mark;
+    PLHashEntry *new_hash_entry;
+    OCSPCacheItem *item;
+  
+    PORT_Assert(pCacheItem != NULL);
+    *pCacheItem = NULL;
+
+    PR_EnterMonitor(OCSP_Global.monitor);
+    arena = certID->poolp;
+    mark = PORT_ArenaMark(arena);
+  
+    /* ZAlloc will init all Bools to False and all Pointers to NULL */
+    item = (OCSPCacheItem *)PORT_ArenaZAlloc(certID->poolp, 
+                                             sizeof(OCSPCacheItem));
+    if (!item) {
+        goto loser; 
+    }
+    item->certID = certID;
+    new_hash_entry = PL_HashTableAdd(cache->entries, item->certID, 
+                                     item);
+    if (!new_hash_entry) {
+        goto loser;
+    }
+    ++cache->numberOfEntries;
+    PORT_ArenaUnmark(arena, mark);
+    ocsp_AddCacheItemToLinkedList(cache, item);
+    *pCacheItem = item;
+
+    PR_ExitMonitor(OCSP_Global.monitor);
+    return SECSuccess;
+  
+loser:
+    PORT_ArenaRelease(arena, mark);
+    PR_ExitMonitor(OCSP_Global.monitor);
+    return SECFailure;
+}
+
+static SECStatus
+ocsp_SetCacheItemResponse(OCSPCacheItem *item,
+                          const CERTOCSPSingleResponse *response)
+{
+    if (item->certStatusArena) {
+        PORT_FreeArena(item->certStatusArena, PR_FALSE);
+        item->certStatusArena = NULL;
+    }
+    item->haveThisUpdate = item->haveNextUpdate = PR_FALSE;
+    if (response) {
+        SECStatus rv;
+        item->certStatusArena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
+        if (item->certStatusArena == NULL) {
+            return SECFailure;
+        }
+        rv = ocsp_CopyCertStatus(item->certStatusArena, &item->certStatus, 
+                                 response->certStatus);
+        if (rv != SECSuccess) {
+            PORT_FreeArena(item->certStatusArena, PR_FALSE);
+            item->certStatusArena = NULL;
+            return rv;
+        }
+        rv = DER_GeneralizedTimeToTime(&item->thisUpdate, 
+                                       &response->thisUpdate);
+        item->haveThisUpdate = (rv == SECSuccess);
+        if (response->nextUpdate) {
+            rv = DER_GeneralizedTimeToTime(&item->nextUpdate, 
+                                           response->nextUpdate);
+            item->haveNextUpdate = (rv == SECSuccess);
+        } else {
+            item->haveNextUpdate = PR_FALSE;
+        }
+    }
+    return SECSuccess;
+}
+
+static void
+ocsp_FreshenCacheItemNextFetchAttemptTime(OCSPCacheItem *cacheItem)
+{
+    PRTime now;
+    PRTime earliestAllowedNextFetchAttemptTime;
+    PRTime latestTimeWhenResponseIsConsideredFresh;
+  
+    OCSP_TRACE(("OCSP ocsp_FreshenCacheItemNextFetchAttemptTime\n"));
+
+    PR_EnterMonitor(OCSP_Global.monitor);
+  
+    now = PR_Now();
+    OCSP_TRACE_TIME("now:", now);
+  
+    if (cacheItem->haveThisUpdate) {
+        OCSP_TRACE_TIME("thisUpdate:", cacheItem->thisUpdate);
+        latestTimeWhenResponseIsConsideredFresh = cacheItem->thisUpdate +
+            OCSP_Global.maximumSecondsToNextFetchAttempt * 
+                MICROSECONDS_PER_SECOND;
+        OCSP_TRACE_TIME("latestTimeWhenResponseIsConsideredFresh:", 
+                        latestTimeWhenResponseIsConsideredFresh);
+    } else {
+        latestTimeWhenResponseIsConsideredFresh = now +
+            OCSP_Global.minimumSecondsToNextFetchAttempt *
+                MICROSECONDS_PER_SECOND;
+        OCSP_TRACE_TIME("no thisUpdate, "
+                        "latestTimeWhenResponseIsConsideredFresh:", 
+                        latestTimeWhenResponseIsConsideredFresh);
+    }
+  
+    if (cacheItem->haveNextUpdate) {
+        OCSP_TRACE_TIME("have nextUpdate:", cacheItem->thisUpdate);
+    }
+  
+    if (cacheItem->haveNextUpdate &&
+        cacheItem->nextUpdate < latestTimeWhenResponseIsConsideredFresh) {
+        latestTimeWhenResponseIsConsideredFresh = cacheItem->nextUpdate;
+        OCSP_TRACE_TIME("nextUpdate is smaller than latestFresh, setting "
+                        "latestTimeWhenResponseIsConsideredFresh:", 
+                        latestTimeWhenResponseIsConsideredFresh);
+    }
+  
+    earliestAllowedNextFetchAttemptTime = now +
+        OCSP_Global.minimumSecondsToNextFetchAttempt * 
+            MICROSECONDS_PER_SECOND;
+    OCSP_TRACE_TIME("earliestAllowedNextFetchAttemptTime:", 
+                    earliestAllowedNextFetchAttemptTime);
+  
+    if (latestTimeWhenResponseIsConsideredFresh < 
+        earliestAllowedNextFetchAttemptTime) {
+        latestTimeWhenResponseIsConsideredFresh = 
+            earliestAllowedNextFetchAttemptTime;
+        OCSP_TRACE_TIME("latest < earliest, setting latest to:", 
+                        latestTimeWhenResponseIsConsideredFresh);
+    }
+  
+    cacheItem->nextFetchAttemptTime = 
+        latestTimeWhenResponseIsConsideredFresh;
+    OCSP_TRACE_TIME("nextFetchAttemptTime", 
+        latestTimeWhenResponseIsConsideredFresh);
+
+    PR_ExitMonitor(OCSP_Global.monitor);
+}
+
+static PRBool
+ocsp_IsCacheItemFresh(OCSPCacheItem *cacheItem)
+{
+    PRTime now;
+    PRBool retval;
+
+    PR_EnterMonitor(OCSP_Global.monitor);
+    now = PR_Now();
+    retval = (cacheItem->nextFetchAttemptTime > now);
+    OCSP_TRACE(("OCSP ocsp_IsCacheItemFresh: %d\n", retval));
+    PR_ExitMonitor(OCSP_Global.monitor);
+    return retval;
+}
+
+/*
+ * Status in *certIDWasConsumed will always be correct, regardless of 
+ * return value.
+ */
+static SECStatus
+ocsp_CreateOrUpdateCacheEntry(OCSPCacheData *cache, 
+                              CERTOCSPCertID *certID,
+                              CERTOCSPSingleResponse *single,
+                              PRBool *certIDWasConsumed)
+{
+    SECStatus rv;
+    OCSPCacheItem *cacheItem;
+    OCSP_TRACE(("OCSP ocsp_CreateOrUpdateCacheEntry\n"));
+  
+    if (!certIDWasConsumed) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+    *certIDWasConsumed = PR_FALSE;
+  
+    PR_EnterMonitor(OCSP_Global.monitor);
+    PORT_Assert(OCSP_Global.maxCacheEntries >= 0);
+  
+    cacheItem = ocsp_FindCacheEntry(cache, certID);
+    if (!cacheItem) {
+        rv = ocsp_CreateCacheItemAndConsumeCertID(cache, certID, 
+                                                  &cacheItem);
+        if (rv != SECSuccess) {
+            PR_ExitMonitor(OCSP_Global.monitor);
+            return rv;
+        }
+        *certIDWasConsumed = PR_TRUE;
+    }
+    if (single) {
+        rv = ocsp_SetCacheItemResponse(cacheItem, single);
+        if (rv != SECSuccess) {
+            ocsp_RemoveCacheItem(cache, cacheItem);
+            PR_ExitMonitor(OCSP_Global.monitor);
+            return rv;
+        }
+    }
+    ocsp_FreshenCacheItemNextFetchAttemptTime(cacheItem);
+    ocsp_CheckCacheSize(cache);
+
+    PR_ExitMonitor(OCSP_Global.monitor);
+    return SECSuccess;
+}
+
+extern SECStatus
+CERT_SetOCSPFailureMode(SEC_OcspFailureMode ocspFailureMode)
+{
+    switch (ocspFailureMode) {
+    case ocspMode_FailureIsVerificationFailure:
+    case ocspMode_FailureIsNotAVerificationFailure:
+        break;
+    default:
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+
+    PR_EnterMonitor(OCSP_Global.monitor);
+    OCSP_Global.ocspFailureMode = ocspFailureMode;
+    PR_ExitMonitor(OCSP_Global.monitor);
+    return SECSuccess;
+}
+
+SECStatus
+CERT_OCSPCacheSettings(PRInt32 maxCacheEntries,
+                       PRUint32 minimumSecondsToNextFetchAttempt,
+                       PRUint32 maximumSecondsToNextFetchAttempt)
+{
+    if (minimumSecondsToNextFetchAttempt > maximumSecondsToNextFetchAttempt
+        || maxCacheEntries < -1) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+  
+    PR_EnterMonitor(OCSP_Global.monitor);
+  
+    if (maxCacheEntries < 0) {
+        OCSP_Global.maxCacheEntries = -1; /* disable cache */
+    } else if (maxCacheEntries == 0) {
+        OCSP_Global.maxCacheEntries = 0; /* unlimited cache entries */
+    } else {
+        OCSP_Global.maxCacheEntries = maxCacheEntries;
+    }
+  
+    if (minimumSecondsToNextFetchAttempt < 
+            OCSP_Global.minimumSecondsToNextFetchAttempt
+        || maximumSecondsToNextFetchAttempt < 
+            OCSP_Global.maximumSecondsToNextFetchAttempt) {
+        /*
+         * Ensure our existing cache entries are not used longer than the 
+         * new settings allow, we're lazy and just clear the cache
+         */
+        CERT_ClearOCSPCache();
+    }
+  
+    OCSP_Global.minimumSecondsToNextFetchAttempt = 
+        minimumSecondsToNextFetchAttempt;
+    OCSP_Global.maximumSecondsToNextFetchAttempt = 
+        maximumSecondsToNextFetchAttempt;
+    ocsp_CheckCacheSize(&OCSP_Global.cache);
+  
+    PR_ExitMonitor(OCSP_Global.monitor);
+    return SECSuccess;
+}
+
+/* this function is called at NSS initialization time */
+SECStatus OCSP_InitGlobal(void)
+{
+    SECStatus rv = SECFailure;
+
+    if (OCSP_Global.monitor == NULL) {
+        OCSP_Global.monitor = PR_NewMonitor();
+    }
+    if (!OCSP_Global.monitor)
+        return SECFailure;
+
+    PR_EnterMonitor(OCSP_Global.monitor);
+    if (!OCSP_Global.cache.entries) {
+        OCSP_Global.cache.entries = 
+            PL_NewHashTable(0, 
+                            ocsp_CacheKeyHashFunction, 
+                            ocsp_CacheKeyCompareFunction, 
+                            PL_CompareValues, 
+                            NULL, 
+                            NULL);
+        OCSP_Global.ocspFailureMode = ocspMode_FailureIsVerificationFailure;
+        OCSP_Global.cache.numberOfEntries = 0;
+        OCSP_Global.cache.MRUitem = NULL;
+        OCSP_Global.cache.LRUitem = NULL;
+    } else {
+        /*
+         * NSS might call this function twice while attempting to init.
+         * But it's not allowed to call this again after any activity.
+         */
+        PORT_Assert(OCSP_Global.cache.numberOfEntries == 0);
+        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+    }
+    if (OCSP_Global.cache.entries)
+        rv = SECSuccess;
+    PR_ExitMonitor(OCSP_Global.monitor);
+    return rv;
+}
+
+SECStatus OCSP_ShutdownCache(void)
+{
+    if (!OCSP_Global.monitor)
+        return SECSuccess;
+
+    PR_EnterMonitor(OCSP_Global.monitor);
+    if (OCSP_Global.cache.entries) {
+        CERT_ClearOCSPCache();
+        PL_HashTableDestroy(OCSP_Global.cache.entries);
+        OCSP_Global.cache.entries = NULL;
+    }
+    PORT_Assert(OCSP_Global.cache.numberOfEntries == 0);
+    OCSP_Global.cache.MRUitem = NULL;
+    OCSP_Global.cache.LRUitem = NULL;
+    PR_ExitMonitor(OCSP_Global.monitor);
+    return SECSuccess;
+}
+
+/*
+ * A return value of NULL means: 
+ *   The application did not register it's own HTTP client.
+ */
+static const SEC_HttpClientFcn *GetRegisteredHttpClient()
+{
+    const SEC_HttpClientFcn *retval;
+
+    if (!OCSP_Global.monitor) {
+      PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+      return NULL;
+    }
+
+    PR_EnterMonitor(OCSP_Global.monitor);
+    retval = OCSP_Global.defaultHttpClientFcn;
+    PR_ExitMonitor(OCSP_Global.monitor);
+    
+    return retval;
+}
 
 /*
  * The following structure is only used internally.  It is allocated when
@@ -300,6 +1144,8 @@ const SEC_ASN1Template ocsp_PointerToResponseBytesTemplate[] = {
 static const SEC_ASN1Template ocsp_BasicOCSPResponseTemplate[] = {
     { SEC_ASN1_SEQUENCE,
 	0, NULL, sizeof(ocspBasicOCSPResponse) },
+    { SEC_ASN1_ANY | SEC_ASN1_SAVE,
+	offsetof(ocspBasicOCSPResponse, tbsResponseDataDER) },
     { SEC_ASN1_POINTER,
 	offsetof(ocspBasicOCSPResponse, tbsResponseData),
 	ocsp_ResponseDataTemplate },
@@ -376,6 +1222,12 @@ static const SEC_ASN1Template ocsp_ResponderIDByKeyTemplate[] = {
 static const SEC_ASN1Template ocsp_ResponderIDOtherTemplate[] = {
     { SEC_ASN1_ANY,
 	offsetof(ocspResponderID, responderIDValue.other) }
+};
+
+/* Decode choice container, but leave x509 name object encoded */
+static const SEC_ASN1Template ocsp_ResponderIDDerNameTemplate[] = {
+    { SEC_ASN1_EXPLICIT | SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC | 1,
+	0, SEC_AnyTemplate }
 };
 
 /*
@@ -616,6 +1468,112 @@ CERT_DestroyOCSPCertID(CERTOCSPCertID* certID)
     return SECFailure;
 }
 
+/*
+ * Digest data using the specified algorithm.
+ * The necessary storage for the digest data is allocated.  If "fill" is
+ * non-null, the data is put there, otherwise a SECItem is allocated.
+ * Allocation from "arena" if it is non-null, heap otherwise.  Any problem
+ * results in a NULL being returned (and an appropriate error set).
+ */
+
+static SECItem *
+ocsp_DigestValue(PRArenaPool *arena, SECOidTag digestAlg, 
+                 SECItem *fill, const SECItem *src)
+{
+    const SECHashObject *digestObject;
+    SECItem *result = NULL;
+    void *mark = NULL;
+    void *digestBuff = NULL;
+
+    if ( arena != NULL ) {
+        mark = PORT_ArenaMark(arena);
+    }
+
+    digestObject = HASH_GetHashObjectByOidTag(digestAlg);
+    if ( digestObject == NULL ) {
+        goto loser;
+    }
+
+    if (fill == NULL || fill->data == NULL) {
+	result = SECITEM_AllocItem(arena, fill, digestObject->length);
+	if ( result == NULL ) {
+	   goto loser;
+	}
+	digestBuff = result->data;
+    } else {
+	if (fill->len < digestObject->length) {
+	    PORT_SetError(SEC_ERROR_INVALID_ARGS);
+	    goto loser;
+	}
+	digestBuff = fill->data;
+    }
+
+    if (PK11_HashBuf(digestAlg, digestBuff,
+                     src->data, src->len) != SECSuccess) {
+        goto loser;
+    }
+
+    if ( arena != NULL ) {
+        PORT_ArenaUnmark(arena, mark);
+    }
+
+    if (result == NULL) {
+        result = fill;
+    }
+    return result;
+
+loser:
+    if (arena != NULL) {
+        PORT_ArenaRelease(arena, mark);
+    } else {
+        if (result != NULL) {
+            SECITEM_FreeItem(result, (fill == NULL) ? PR_TRUE : PR_FALSE);
+        }
+    }
+    return(NULL);
+}
+
+/*
+ * Digest the cert's subject public key using the specified algorithm.
+ * The necessary storage for the digest data is allocated.  If "fill" is
+ * non-null, the data is put there, otherwise a SECItem is allocated.
+ * Allocation from "arena" if it is non-null, heap otherwise.  Any problem
+ * results in a NULL being returned (and an appropriate error set).
+ */
+SECItem *
+cert_GetSPKIDigest(PRArenaPool *arena, const CERTCertificate *cert,
+                           SECOidTag digestAlg, SECItem *fill)
+{
+    SECItem spk;
+
+    /*
+     * Copy just the length and data pointer (nothing needs to be freed)
+     * of the subject public key so we can convert the length from bits
+     * to bytes, which is what the digest function expects.
+     */
+    spk = cert->subjectPublicKeyInfo.subjectPublicKey;
+    DER_ConvertBitString(&spk);
+
+    return ocsp_DigestValue(arena, digestAlg, fill, &spk);
+}
+
+/*
+ * Digest the cert's subject name using the specified algorithm.
+ */
+static SECItem *
+cert_GetSubjectNameDigest(PRArenaPool *arena, const CERTCertificate *cert,
+                           SECOidTag digestAlg, SECItem *fill)
+{
+    SECItem name;
+
+    /*
+     * Copy just the length and data pointer (nothing needs to be freed)
+     * of the subject name
+     */
+    name = cert->derSubject;
+
+    return ocsp_DigestValue(arena, digestAlg, fill, &name);
+}
 
 /*
  * Create and fill-in a CertID.  This function fills in the hash values
@@ -654,58 +1612,35 @@ ocsp_CreateCertID(PRArenaPool *arena, CERTCertificate *cert, int64 time)
 	goto loser;
     }
 
-    tempItem = SEC_ASN1EncodeItem(NULL, NULL, &issuerCert->subject,
-				  CERT_NameTemplate);
-    if (tempItem == NULL) {
-	goto loser;
-    }
-
-    if (SECITEM_AllocItem(arena, &(certID->issuerNameHash),
-			  SHA1_LENGTH) == NULL) {
-	goto loser;
-    }
-    rv = PK11_HashBuf(SEC_OID_SHA1, certID->issuerNameHash.data,
-		      tempItem->data, tempItem->len);
-    if (rv != SECSuccess) {
-	goto loser; 
+    if (cert_GetSubjectNameDigest(arena, issuerCert, SEC_OID_SHA1,
+                                  &(certID->issuerNameHash)) == NULL) {
+        goto loser;
     }
     certID->issuerSHA1NameHash.data = certID->issuerNameHash.data;
     certID->issuerSHA1NameHash.len = certID->issuerNameHash.len;
-    /* cache the other two hash algorithms as well */
-    if (SECITEM_AllocItem(arena, &(certID->issuerMD5NameHash),
-			  MD5_LENGTH) == NULL) {
-	goto loser;
-    }
-    rv = PK11_HashBuf(SEC_OID_MD5, certID->issuerMD5NameHash.data,
-		      tempItem->data, tempItem->len);
-    if (rv != SECSuccess) {
-	goto loser; 
-    }
-    if (SECITEM_AllocItem(arena, &(certID->issuerMD2NameHash),
-			  MD2_LENGTH) == NULL) {
-	goto loser;
-    }
-    rv = PK11_HashBuf(SEC_OID_MD2, certID->issuerMD2NameHash.data,
-		      tempItem->data, tempItem->len);
-    if (rv != SECSuccess) {
-	goto loser; 
+
+    if (cert_GetSubjectNameDigest(arena, issuerCert, SEC_OID_MD5,
+                                  &(certID->issuerMD5NameHash)) == NULL) {
+        goto loser;
     }
 
-    SECITEM_FreeItem(tempItem, PR_TRUE);
-    tempItem = NULL;
+    if (cert_GetSubjectNameDigest(arena, issuerCert, SEC_OID_MD2,
+                                  &(certID->issuerMD2NameHash)) == NULL) {
+        goto loser;
+    }
 
-    if (CERT_SPKDigestValueForCert(arena, issuerCert, SEC_OID_SHA1,
+    if (cert_GetSPKIDigest(arena, issuerCert, SEC_OID_SHA1,
 				   &(certID->issuerKeyHash)) == NULL) {
 	goto loser;
     }
     certID->issuerSHA1KeyHash.data = certID->issuerKeyHash.data;
     certID->issuerSHA1KeyHash.len = certID->issuerKeyHash.len;
     /* cache the other two hash algorithms as well */
-    if (CERT_SPKDigestValueForCert(arena, issuerCert, SEC_OID_MD5,
+    if (cert_GetSPKIDigest(arena, issuerCert, SEC_OID_MD5,
 				   &(certID->issuerMD5KeyHash)) == NULL) {
 	goto loser;
     }
-    if (CERT_SPKDigestValueForCert(arena, issuerCert, SEC_OID_MD2,
+    if (cert_GetSPKIDigest(arena, issuerCert, SEC_OID_MD2,
 				   &(certID->issuerMD2KeyHash)) == NULL) {
 	goto loser;
     }
@@ -801,6 +1736,7 @@ ocsp_AddServiceLocatorExtension(ocspSingleRequest *singleRequest,
 
     /* prepare for following loser gotos */
     rv = SECFailure;
+    PORT_SetError(0);
 
     extensionHandle = cert_StartExtensions(singleRequest,
                        singleRequest->arena, SetSingleReqExts);
@@ -844,21 +1780,21 @@ loser:
  * it deserves to be mentioned.
  *
  * Any problem causes a null return and error set:
- *	SEC_ERROR_UNKNOWN_ISSUER
+ *      SEC_ERROR_UNKNOWN_ISSUER
  * Other errors are low-level problems (no memory, bad database, etc.).
  */
 static ocspSingleRequest **
 ocsp_CreateSingleRequestList(PRArenaPool *arena, CERTCertList *certList,
-			     int64 time, PRBool includeLocator)
+                             int64 time, PRBool includeLocator)
 {
     ocspSingleRequest **requestList = NULL;
-    CERTCertListNode *node;
+    CERTCertListNode *node = NULL;
     int i, count;
     void *mark = PORT_ArenaMark(arena);
  
     node = CERT_LIST_HEAD(certList);
     for (count = 0; !CERT_LIST_END(node, certList); count++) {
-	node = CERT_LIST_NEXT(node);
+        node = CERT_LIST_NEXT(node);
     }
 
     if (count == 0)
@@ -871,23 +1807,23 @@ ocsp_CreateSingleRequestList(PRArenaPool *arena, CERTCertList *certList,
     node = CERT_LIST_HEAD(certList);
     for (i = 0; !CERT_LIST_END(node, certList); i++) {
         requestList[i] = PORT_ArenaZNew(arena, ocspSingleRequest);
-	if (requestList[i] == NULL)
-	    goto loser;
+        if (requestList[i] == NULL)
+            goto loser;
 
-	requestList[i]->arena = arena;
-	requestList[i]->reqCert = ocsp_CreateCertID(arena, node->cert, time);
-	if (requestList[i]->reqCert == NULL)
-	    goto loser;
+        requestList[i]->arena = arena;
+        requestList[i]->reqCert = ocsp_CreateCertID(arena, node->cert, time);
+        if (requestList[i]->reqCert == NULL)
+            goto loser;
 
-	if (includeLocator == PR_TRUE) {
-	    SECStatus rv;
+        if (includeLocator == PR_TRUE) {
+            SECStatus rv;
 
-	    rv = ocsp_AddServiceLocatorExtension(requestList[i], node->cert);
-	    if (rv != SECSuccess)
-		goto loser;
-	}
+            rv = ocsp_AddServiceLocatorExtension(requestList[i], node->cert);
+            if (rv != SECSuccess)
+                goto loser;
+        }
 
-	node = CERT_LIST_NEXT(node);
+        node = CERT_LIST_NEXT(node);
     }
 
     PORT_Assert(i == count);
@@ -901,6 +1837,102 @@ loser:
     return NULL;
 }
 
+static ocspSingleRequest **
+ocsp_CreateRequestFromCert(PRArenaPool *arena, 
+                           CERTOCSPCertID *certID, 
+                           CERTCertificate *singleCert,
+                           int64 time, 
+                           PRBool includeLocator)
+{
+    ocspSingleRequest **requestList = NULL;
+    void *mark = PORT_ArenaMark(arena);
+    PORT_Assert(certID != NULL && singleCert != NULL);
+
+    /* meaning of value 2: one entry + one end marker */
+    requestList = PORT_ArenaNewArray(arena, ocspSingleRequest *, 2);
+    if (requestList == NULL)
+        goto loser;
+    requestList[0] = PORT_ArenaZNew(arena, ocspSingleRequest);
+    if (requestList[0] == NULL)
+        goto loser;
+    requestList[0]->arena = arena;
+    /* certID will live longer than the request */
+    requestList[0]->reqCert = certID; 
+
+    if (includeLocator == PR_TRUE) {
+        SECStatus rv;
+        rv = ocsp_AddServiceLocatorExtension(requestList[0], singleCert);
+        if (rv != SECSuccess)
+            goto loser;
+    }
+
+    PORT_ArenaUnmark(arena, mark);
+    requestList[1] = NULL;
+    return requestList;
+
+loser:
+    PORT_ArenaRelease(arena, mark);
+    return NULL;
+}
+
+static CERTOCSPRequest *
+ocsp_prepareEmptyOCSPRequest()
+{
+    PRArenaPool *arena = NULL;
+    CERTOCSPRequest *request = NULL;
+    ocspTBSRequest *tbsRequest = NULL;
+
+    arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
+    if (arena == NULL) {
+        goto loser;
+    }
+    request = PORT_ArenaZNew(arena, CERTOCSPRequest);
+    if (request == NULL) {
+        goto loser;
+    }
+    request->arena = arena;
+
+    tbsRequest = PORT_ArenaZNew(arena, ocspTBSRequest);
+    if (tbsRequest == NULL) {
+        goto loser;
+    }
+    request->tbsRequest = tbsRequest;
+    /* version 1 is the default, so we need not fill in a version number */
+    return request;
+
+loser:
+    if (arena != NULL) {
+        PORT_FreeArena(arena, PR_FALSE);
+    }
+    return NULL;
+}
+
+static CERTOCSPRequest *
+cert_CreateSingleCertOCSPRequest(CERTOCSPCertID *certID, 
+                                 CERTCertificate *singleCert, 
+                                 int64 time, 
+                                 PRBool addServiceLocator)
+{
+    CERTOCSPRequest *request;
+    request = ocsp_prepareEmptyOCSPRequest();
+    if (!request)
+        return NULL;
+    /*
+     * Version 1 is the default, so we need not fill in a version number.
+     * Now create the list of single requests, one for each cert.
+     */
+    request->tbsRequest->requestList = 
+        ocsp_CreateRequestFromCert(request->arena, 
+                                   certID,
+                                   singleCert,
+                                   time,
+                                   addServiceLocator);
+    if (request->tbsRequest->requestList == NULL) {
+        PORT_FreeArena(request->arena, PR_FALSE);
+        return NULL;
+    }
+    return request;
+}
 
 /*
  * FUNCTION: CERT_CreateOCSPRequest
@@ -938,10 +1970,12 @@ CERT_CreateOCSPRequest(CERTCertList *certList, int64 time,
 		       PRBool addServiceLocator,
 		       CERTCertificate *signerCert)
 {
-    PRArenaPool *arena = NULL;
     CERTOCSPRequest *request = NULL;
-    ocspTBSRequest *tbsRequest = NULL;
 
+    if (!certList) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return NULL;
+    }
     /*
      * XXX This should set an error, but since it is only temporary and
      * since PSM will not initially provide a way to turn on signing of
@@ -954,46 +1988,25 @@ CERT_CreateOCSPRequest(CERTCertList *certList, int64 time,
      * field of the tbsRequest.
      */
     if (signerCert != NULL) {
-	return NULL;
+        return NULL;
     }
-
-    arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
-    if (arena == NULL) {
-	goto loser;
-    }
-
-    request = PORT_ArenaZNew(arena, CERTOCSPRequest);
-    if (request == NULL) {
-	goto loser;
-    }
-    request->arena = arena;
-
-    tbsRequest = PORT_ArenaZNew(arena, ocspTBSRequest);
-    if (tbsRequest == NULL) {
-	goto loser;
-    }
-    request->tbsRequest = tbsRequest;
-
-    /* version 1 is the default, so we need not fill in a version number */
-
+    request = ocsp_prepareEmptyOCSPRequest();
+    if (!request)
+        return NULL;
     /*
      * Now create the list of single requests, one for each cert.
      */
-    tbsRequest->requestList = ocsp_CreateSingleRequestList(arena, certList,
-							   time,
-							   addServiceLocator);
-    if (tbsRequest->requestList == NULL) {
-	goto loser;
+    request->tbsRequest->requestList = 
+        ocsp_CreateSingleRequestList(request->arena, 
+                                     certList,
+                                     time,
+                                     addServiceLocator);
+    if (request->tbsRequest->requestList == NULL) {
+        PORT_FreeArena(request->arena, PR_FALSE);
+        return NULL;
     }
     return request;
-
-loser:
-    if (arena != NULL) {
-	PORT_FreeArena(arena, PR_FALSE);
-    }
-    return NULL;
 }
-
 
 /*
  * FUNCTION: CERT_AddOCSPAcceptableResponses
@@ -1517,9 +2530,19 @@ loser:
  * is only used internally.  When this interface is officially exported,
  * each assertion below will need to be followed-up with setting an error
  * and returning (null).
+ *
+ * FUNCTION: ocsp_GetResponseData
+ *   Returns ocspResponseData structure and a pointer to tbs response
+ *   data DER from a valid ocsp response. 
+ * INPUTS:
+ *   CERTOCSPResponse *response
+ *     structure of a valid ocsp response
+ * RETURN:
+ *   decoded OCSP response data and a pointer(tbsResponseDataDER) to its
+ *   undecoded data DER.
  */
 static ocspResponseData *
-ocsp_GetResponseData(CERTOCSPResponse *response)
+ocsp_GetResponseData(CERTOCSPResponse *response, SECItem **tbsResponseDataDER)
 {
     ocspBasicOCSPResponse *basic;
     ocspResponseData *responseData;
@@ -1536,6 +2559,13 @@ ocsp_GetResponseData(CERTOCSPResponse *response)
 
     responseData = basic->tbsResponseData;
     PORT_Assert(responseData != NULL);
+
+    if (tbsResponseDataDER) {
+        *tbsResponseDataDER = &basic->tbsResponseDataDER;
+
+        PORT_Assert((*tbsResponseDataDER)->data != NULL);
+        PORT_Assert((*tbsResponseDataDER)->len != 0);
+    }
 
     return responseData;
 }
@@ -1702,6 +2732,8 @@ ocsp_ParseURL(char *url, char **pHostname, PRUint16 *pPort, char **pPath)
 	path[len] = '\0';
     } else {
 	path = PORT_Strdup("/");
+	if (path == NULL)
+	    goto loser;
     }
 
     *pHostname = hostname;
@@ -1712,8 +2744,6 @@ ocsp_ParseURL(char *url, char **pHostname, PRUint16 *pPort, char **pPath)
 loser:
     if (hostname != NULL)
 	PORT_Free(hostname);
-    if (path != NULL)
-	PORT_Free(path);
     PORT_SetError(SEC_ERROR_CERT_BAD_ACCESS_LOCATION);
     return SECFailure;
 }
@@ -2133,6 +3163,110 @@ ocsp_GetEncodedResponse(PRArenaPool *arena, PRFileDesc *sock)
     return result;
 }
 
+/*
+ * Limit the size of http responses we are willing to accept.
+ */
+#define MAX_WANTED_OCSP_RESPONSE_LEN 64*1024
+
+static SECItem *
+fetchOcspHttpClientV1(PRArenaPool *arena, 
+                      const SEC_HttpClientFcnV1 *hcv1, 
+                      char *location, 
+                      SECItem *encodedRequest)
+{
+    char *hostname = NULL;
+    char *path = NULL;
+    PRUint16 port;
+    SECItem *encodedResponse = NULL;
+    SEC_HTTP_SERVER_SESSION pServerSession = NULL;
+    SEC_HTTP_REQUEST_SESSION pRequestSession = NULL;
+    PRUint16 myHttpResponseCode;
+    const char *myHttpResponseData;
+    PRUint32 myHttpResponseDataLen;
+
+    if (ocsp_ParseURL(location, &hostname, &port, &path) == SECFailure) {
+        PORT_SetError(SEC_ERROR_OCSP_MALFORMED_REQUEST);
+        goto loser;
+    }
+    
+    PORT_Assert(hostname != NULL);
+    PORT_Assert(path != NULL);
+
+    if ((*hcv1->createSessionFcn)(
+            hostname, 
+            port, 
+            &pServerSession) != SECSuccess) {
+        PORT_SetError(SEC_ERROR_OCSP_SERVER_ERROR);
+        goto loser;
+    }
+
+    /* We use a non-zero timeout, which means:
+       - the client will use blocking I/O
+       - TryFcn will not return WOULD_BLOCK nor a poll descriptor
+       - it's sufficient to call TryFcn once
+    */
+
+    if ((*hcv1->createFcn)(
+            pServerSession,
+            "http",
+            path,
+            "POST",
+            PR_TicksPerSecond() * 60,
+            &pRequestSession) != SECSuccess) {
+        PORT_SetError(SEC_ERROR_OCSP_SERVER_ERROR);
+        goto loser;
+    }
+
+    if ((*hcv1->setPostDataFcn)(
+            pRequestSession, 
+            (char*)encodedRequest->data,
+            encodedRequest->len,
+            "application/ocsp-request") != SECSuccess) {
+        PORT_SetError(SEC_ERROR_OCSP_SERVER_ERROR);
+        goto loser;
+    }
+
+    /* we don't want result objects larger than this: */
+    myHttpResponseDataLen = MAX_WANTED_OCSP_RESPONSE_LEN;
+
+    if ((*hcv1->trySendAndReceiveFcn)(
+            pRequestSession, 
+            NULL,
+            &myHttpResponseCode,
+            NULL,
+            NULL,
+            &myHttpResponseData,
+            &myHttpResponseDataLen) != SECSuccess) {
+        PORT_SetError(SEC_ERROR_OCSP_SERVER_ERROR);
+        goto loser;
+    }
+
+    if (myHttpResponseCode != 200) {
+        PORT_SetError(SEC_ERROR_OCSP_BAD_HTTP_RESPONSE);
+        goto loser;
+    }
+
+    encodedResponse = SECITEM_AllocItem(arena, NULL, myHttpResponseDataLen);
+
+    if (!encodedResponse) {
+        PORT_SetError(SEC_ERROR_NO_MEMORY);
+        goto loser;
+    }
+
+    PORT_Memcpy(encodedResponse->data, myHttpResponseData, myHttpResponseDataLen);
+
+loser:
+    if (pRequestSession != NULL) 
+        (*hcv1->freeFcn)(pRequestSession);
+    if (pServerSession != NULL)
+        (*hcv1->freeSessionFcn)(pServerSession);
+    if (path != NULL)
+	PORT_Free(path);
+    if (hostname != NULL)
+	PORT_Free(hostname);
+    
+    return encodedResponse;
+}
 
 /*
  * FUNCTION: CERT_GetEncodedOCSPResponse
@@ -2187,16 +3321,29 @@ CERT_GetEncodedOCSPResponse(PRArenaPool *arena, CERTCertList *certList,
 			    CERTCertificate *signerCert, void *pwArg,
 			    CERTOCSPRequest **pRequest)
 {
-    CERTOCSPRequest *request = NULL;
+    CERTOCSPRequest *request;
+    request = CERT_CreateOCSPRequest(certList, time, addServiceLocator,
+                                     signerCert);
+    if (!request)
+        return NULL;
+    return ocsp_GetEncodedOCSPResponseFromRequest(arena, request, location, 
+                                                  time, addServiceLocator, 
+                                                  pwArg, pRequest);
+}
+
+static SECItem *
+ocsp_GetEncodedOCSPResponseFromRequest(PRArenaPool *arena, 
+                                       CERTOCSPRequest *request,
+                                       char *location, int64 time,
+                                       PRBool addServiceLocator,
+                                       void *pwArg,
+                                       CERTOCSPRequest **pRequest)
+{
     SECItem *encodedRequest = NULL;
     SECItem *encodedResponse = NULL;
     PRFileDesc *sock = NULL;
     SECStatus rv;
-
-    request = CERT_CreateOCSPRequest(certList, time, addServiceLocator,
-				     signerCert);
-    if (request == NULL)
-	goto loser;
+    const SEC_HttpClientFcn *registeredHttpClient = NULL;
 
     rv = CERT_AddOCSPAcceptableResponses(request,
 					 SEC_OID_PKIX_OCSP_BASIC_RESPONSE);
@@ -2207,11 +3354,27 @@ CERT_GetEncodedOCSPResponse(PRArenaPool *arena, CERTCertList *certList,
     if (encodedRequest == NULL)
 	goto loser;
 
-    sock = ocsp_SendEncodedRequest(location, encodedRequest);
-    if (sock == NULL)
-	goto loser;
+    registeredHttpClient = GetRegisteredHttpClient();
 
-    encodedResponse = ocsp_GetEncodedResponse(arena, sock);
+    if (registeredHttpClient
+            &&
+            registeredHttpClient->version == 1) {
+        encodedResponse = fetchOcspHttpClientV1(
+                              arena,
+                              &registeredHttpClient->fcnTable.ftable1,
+                              location,
+                              encodedRequest);
+    }
+    else {
+      /* use internal http client */
+    
+      sock = ocsp_SendEncodedRequest(location, encodedRequest);
+      if (sock == NULL)
+	  goto loser;
+
+      encodedResponse = ocsp_GetEncodedResponse(arena, sock);
+    }
+
     if (encodedResponse != NULL && pRequest != NULL) {
 	*pRequest = request;
 	request = NULL;			/* avoid destroying below */
@@ -2228,10 +3391,28 @@ loser:
     return encodedResponse;
 }
 
+static SECItem *
+ocsp_GetEncodedOCSPResponseForSingleCert(PRArenaPool *arena, 
+                                         CERTOCSPCertID *certID, 
+                                         CERTCertificate *singleCert, 
+                                         char *location, int64 time,
+                                         PRBool addServiceLocator,
+                                         void *pwArg,
+                                         CERTOCSPRequest **pRequest)
+{
+    CERTOCSPRequest *request;
+    request = cert_CreateSingleCertOCSPRequest(certID, singleCert, time, 
+                                               addServiceLocator);
+    if (!request)
+        return NULL;
+    return ocsp_GetEncodedOCSPResponseFromRequest(arena, request, location, 
+                                                  time, addServiceLocator, 
+                                                  pwArg, pRequest);
+}
 
 /* Checks a certificate for the key usage extension of OCSP signer. */
 static PRBool
-ocsp_CertIsOCSPSigner(CERTCertificate *cert)
+ocsp_CertIsOCSPDesignatedResponder(CERTCertificate *cert)
 {
     SECStatus rv;
     SECItem extItem;
@@ -2268,6 +3449,7 @@ ocsp_CertIsOCSPSigner(CERTCertificate *cert)
 
 loser:
     retval = PR_FALSE;
+    PORT_SetError(SEC_ERROR_OCSP_INVALID_SIGNING_CERT);
     goto done;
 success:
     retval = PR_TRUE;
@@ -2315,19 +3497,19 @@ ocsp_matchcert(SECItem *certIndex,CERTCertificate *testCert)
     item.data = buf;
     item.len = SHA1_LENGTH;
 
-    if (CERT_SPKDigestValueForCert(NULL,testCert,SEC_OID_SHA1, &item) == NULL) {
+    if (cert_GetSPKIDigest(NULL,testCert,SEC_OID_SHA1, &item) == NULL) {
 	return PR_FALSE;
     }
     if  (SECITEM_ItemsAreEqual(certIndex,&item)) {
 	return PR_TRUE;
     }
-    if (CERT_SPKDigestValueForCert(NULL,testCert,SEC_OID_MD5, &item) == NULL) {
+    if (cert_GetSPKIDigest(NULL,testCert,SEC_OID_MD5, &item) == NULL) {
 	return PR_FALSE;
     }
     if  (SECITEM_ItemsAreEqual(certIndex,&item)) {
 	return PR_TRUE;
     }
-    if (CERT_SPKDigestValueForCert(NULL,testCert,SEC_OID_MD2, &item) == NULL) {
+    if (cert_GetSPKIDigest(NULL,testCert,SEC_OID_MD2, &item) == NULL) {
 	return PR_FALSE;
     }
     if  (SECITEM_ItemsAreEqual(certIndex,&item)) {
@@ -2337,213 +3519,11 @@ ocsp_matchcert(SECItem *certIndex,CERTCertificate *testCert)
     return PR_FALSE;
 }
 
+static PRBool
+ocsp_CertIsOCSPDefaultResponder(CERTCertDBHandle *handle, CERTCertificate *cert);
+
 static CERTCertificate *
 ocsp_CertGetDefaultResponder(CERTCertDBHandle *handle,CERTOCSPCertID *certID);
-
-/*
- * Check the signature on some OCSP data.  This is a helper function that
- * can be used to check either a request or a response.  The result is
- * saved in the signature structure itself for future reference (to avoid
- * repeating the expensive verification operation), as well as returned.
- * In addition to checking the signature, the certificate (and its chain)
- * are also checked for validity (at the specified time) and usage.
- *
- * The type of cert lookup to be performed is specified by "lookupByName":
- * if true, then "certIndex" is actually a CERTName; otherwise it is a
- * SECItem which contains a key hash.
- *
- * If the signature verifies okay, and the argument "pSignerCert" is not
- * null, that parameter will be filled-in with a pointer to the signer's
- * certificate.  The caller is then responsible for destroying the cert.
- *
- * A return of SECSuccess means the verification succeeded.  If not,
- * an error will be set with the reason.  Most likely are:
- *	SEC_ERROR_UNKNOWN_SIGNER - signer's cert could not be found
- *	SEC_ERROR_BAD_SIGNATURE - the signature did not verify
- * Other errors are any of the many possible failures in cert verification
- * (e.g. SEC_ERROR_REVOKED_CERTIFICATE, SEC_ERROR_UNTRUSTED_ISSUER) when
- * verifying the signer's cert, or low-level problems (no memory, etc.)
- */
-static SECStatus
-ocsp_CheckSignature(ocspSignature *signature, void *tbs,
-		    const SEC_ASN1Template *encodeTemplate,
-		    CERTCertDBHandle *handle, SECCertUsage certUsage,
-		    int64 checkTime, PRBool lookupByName, void *certIndex,
-		    void *pwArg, CERTCertificate **pSignerCert,
-		    CERTCertificate *issuer)
-{
-    SECItem rawSignature;
-    SECItem *encodedTBS = NULL;
-    CERTCertificate *responder = NULL;
-    CERTCertificate *signerCert = NULL;
-    SECKEYPublicKey *signerKey = NULL;
-    CERTCertificate **certs = NULL;
-    SECStatus rv = SECFailure;
-    int certCount;
-    int i;
-
-    /*
-     * If this signature has already gone through verification, just
-     * return the cached result.
-     */
-    if (signature->wasChecked) {
-	if (signature->status == SECSuccess) {
-	    if (pSignerCert != NULL)
-		*pSignerCert = CERT_DupCertificate(signature->cert);
-	} else {
-	    PORT_SetError(signature->failureReason);
-	}
-	return signature->status;
-    }
-
-    /*
-     * If the signature contains some certificates as well, temporarily
-     * import them in case they are needed for verification.
-     *
-     * Note that the result of this is that each cert in "certs" needs
-     * to be destroyed.
-     */
-    certCount = 0;
-    if (signature->derCerts != NULL) {
-	for (; signature->derCerts[certCount] != NULL; certCount++) {
-	    /* just counting */
-	    /*IMPORT CERT TO SPKI TABLE */
-	}
-    }
-    rv = CERT_ImportCerts(handle, certUsage, certCount,
-			  signature->derCerts, &certs,
-			  PR_FALSE, PR_FALSE, NULL);
-    if (rv != SECSuccess)
-	goto finish;
-
-    /*
-     * Now look up the certificate that did the signing.
-     * The signer can be specified either by name or by key hash.
-     */
-    if (lookupByName) {
-	SECItem *encodedName;
-
-	encodedName = SEC_ASN1EncodeItem(NULL, NULL, certIndex,
-					 CERT_NameTemplate);
-	if (encodedName == NULL)
-	    goto finish;
-
-	signerCert = CERT_FindCertByName(handle, encodedName);
-	SECITEM_FreeItem(encodedName, PR_TRUE);
-    } else {
-	/*
-	 * The signer is either 1) a known issuer CA we passed in,
-	 * 2) the default OCSP responder, or 3) an intermediate CA
-	 * passed in the cert list to use. Figure out which it is.
-	 */
-	responder = ocsp_CertGetDefaultResponder(handle,NULL);
-	if (responder && ocsp_matchcert(certIndex,responder)) {
-	    signerCert = CERT_DupCertificate(responder);
-	} else if (issuer && ocsp_matchcert(certIndex,issuer)) {
-	    signerCert = CERT_DupCertificate(issuer);
-	} 
-	for (i=0; (signerCert == NULL) && (i < certCount); i++) {
-	    if (ocsp_matchcert(certIndex,certs[i])) {
-		signerCert = CERT_DupCertificate(certs[i]);
-	    }
-	}
-    }
-
-    if (signerCert == NULL) {
-	rv = SECFailure;
-	if (PORT_GetError() == SEC_ERROR_UNKNOWN_CERT) {
-	    /* Make the error a little more specific. */
-	    PORT_SetError(SEC_ERROR_UNKNOWN_SIGNER);
-	}
-	goto finish;
-    }
-
-    /*
-     * We could mark this true at the top of this function, or always
-     * below at "finish", but if the problem was just that we could not
-     * find the signer's cert, leave that as if the signature hasn't
-     * been checked in case a subsequent call might have better luck.
-     */
-    signature->wasChecked = PR_TRUE;
-
-    /*
-     * Just because we have a cert does not mean it is any good; check
-     * it for validity, trust and usage.
-     */
-    rv = CERT_VerifyCert(handle, signerCert, PR_TRUE, certUsage, checkTime,
-			 pwArg, NULL);
-    if (rv != SECSuccess) {
-        PORT_SetError(SEC_ERROR_OCSP_INVALID_SIGNING_CERT);
-	goto finish;
-    }
-
-    /*
-     * Now get the public key from the signer's certificate; we need
-     * it to perform the verification.
-     */
-    signerKey = CERT_ExtractPublicKey(signerCert);
-    if (signerKey == NULL)
-	goto finish;
-
-    /*
-     * Prepare the data to be verified; it needs to be DER encoded first.
-     */
-    encodedTBS = SEC_ASN1EncodeItem(NULL, NULL, tbs, encodeTemplate);
-    if (encodedTBS == NULL)
-	goto finish;
-
-    /*
-     * We copy the signature data *pointer* and length, so that we can
-     * modify the length without damaging the original copy.  This is a
-     * simple copy, not a dup, so no destroy/free is necessary.
-     */
-    rawSignature = signature->signature;
-    /*
-     * The raw signature is a bit string, but we need to represent its
-     * length in bytes, because that is what the verify function expects.
-     */
-    DER_ConvertBitString(&rawSignature);
-
-    rv = VFY_VerifyData(encodedTBS->data, encodedTBS->len, signerKey,
-			&rawSignature,
-			SECOID_GetAlgorithmTag(&signature->signatureAlgorithm),
-			pwArg);
-
-finish:
-    if (signature->wasChecked)
-	signature->status = rv;
-
-    if (rv != SECSuccess) {
-	signature->failureReason = PORT_GetError();
-	if (signerCert != NULL)
-	    CERT_DestroyCertificate(signerCert);
-    } else {
-	/*
-	 * Save signer's certificate in signature.
-	 */
-	signature->cert = signerCert;
-	if (pSignerCert != NULL) {
-	    /*
-	     * Pass pointer to signer's certificate back to our caller,
-	     * who is also now responsible for destroying it.
-	     */
-	    *pSignerCert = CERT_DupCertificate(signerCert);
-	}
-    }
-
-    if (encodedTBS != NULL)
-	SECITEM_FreeItem(encodedTBS, PR_TRUE);
-
-    if (signerKey != NULL)
-	SECKEY_DestroyPublicKey(signerKey);
-
-    if (certs != NULL)
-	CERT_DestroyCertArray(certs, certCount);
-	/* Free CERTS from SPKDigest Table */
-
-    return rv;
-}
-
 
 /*
  * FUNCTION: CERT_VerifyOCSPResponseSignature
@@ -2580,57 +3560,243 @@ CERT_VerifyOCSPResponseSignature(CERTOCSPResponse *response,
 				 CERTCertificate **pSignerCert,
 				 CERTCertificate *issuer)
 {
-    ocspResponseData *tbsData;		/* this is what is signed */
-    PRBool byName;
+    SECItem rawSignature;
+    SECItem *tbsResponseDataDER;
+    CERTCertificate *responder = NULL;
+    CERTCertificate *signerCert = NULL;
+    SECKEYPublicKey *signerKey = NULL;
+    CERTCertificate **certs = NULL;
+    SECStatus rv = SECFailure;
+    int certCount = 0;
+    PRBool lookupByName;
     void *certIndex;
     int64 producedAt;
-    SECStatus rv;
 
-    tbsData = ocsp_GetResponseData(response);
+    /* ocsp_DecodeBasicOCSPResponse will fail if asn1 decoder is unable
+     * to properly decode tbsData (see the function and
+     * ocsp_BasicOCSPResponseTemplate). Thus, tbsData can not be
+     * equal to null */
+    ocspResponseData *tbsData = ocsp_GetResponseData(response,
+                                                     &tbsResponseDataDER);
+    ocspSignature *signature = ocsp_GetResponseSignature(response);
+
+    if (!signature) {
+        PORT_SetError(SEC_ERROR_OCSP_BAD_SIGNATURE);
+        return SECFailure;
+    }
+
+    /*
+     * If this signature has already gone through verification, just
+     * return the cached result.
+     */
+    if (signature->wasChecked) {
+	if (signature->status == SECSuccess) {
+	    if (pSignerCert != NULL)
+		*pSignerCert = CERT_DupCertificate(signature->cert);
+	} else {
+	    PORT_SetError(signature->failureReason);
+	}
+	return signature->status;
+    }
 
     PORT_Assert(tbsData->responderID != NULL);
     switch (tbsData->responderID->responderIDType) {
-      case ocspResponderID_byName:
-	byName = PR_TRUE;
-	certIndex = &tbsData->responderID->responderIDValue.name;
+    case ocspResponderID_byName:
+	lookupByName = PR_TRUE;
+	certIndex = &tbsData->derResponderID;
 	break;
-      case ocspResponderID_byKey:
-	byName = PR_FALSE;
+    case ocspResponderID_byKey:
+	lookupByName = PR_FALSE;
 	certIndex = &tbsData->responderID->responderIDValue.keyHash;
 	break;
-      case ocspResponderID_other:
-      default:
+    case ocspResponderID_other:
+    default:
 	PORT_Assert(0);
 	PORT_SetError(SEC_ERROR_OCSP_MALFORMED_RESPONSE);
 	return SECFailure;
     }
 
     /*
-     * ocsp_CheckSignature will also verify the signer certificate; we
+     * If the signature contains some certificates as well, temporarily
+     * import them in case they are needed for verification.
+     *
+     * Note that the result of this is that each cert in "certs" needs
+     * to be destroyed.
+     */
+    if (signature->derCerts != NULL) {
+	for (; signature->derCerts[certCount] != NULL; certCount++) {
+	    /* just counting */
+	}
+	rv = CERT_ImportCerts(handle, certUsageStatusResponder, certCount,
+	                      signature->derCerts, &certs,
+	                      PR_FALSE, PR_FALSE, NULL);
+	if (rv != SECSuccess)
+	     goto finish;
+    }
+
+    /*
+     * Now look up the certificate that did the signing.
+     * The signer can be specified either by name or by key hash.
+     */
+    if (lookupByName) {
+	SECItem *crIndex = (SECItem*)certIndex;
+	SECItem encodedName;
+	PLArenaPool *arena;
+
+	arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
+	if (arena != NULL) {
+
+	    rv = SEC_QuickDERDecodeItem(arena, &encodedName,
+	                                ocsp_ResponderIDDerNameTemplate,
+	                                crIndex);
+	    if (rv != SECSuccess) {
+	        if (PORT_GetError() == SEC_ERROR_BAD_DER)
+	            PORT_SetError(SEC_ERROR_OCSP_MALFORMED_RESPONSE);
+	    } else {
+	            signerCert = CERT_FindCertByName(handle, &encodedName);
+	    }
+	    PORT_FreeArena(arena, PR_FALSE);
+	}
+    } else {
+	/*
+	 * The signer is either 1) a known issuer CA we passed in,
+	 * 2) the default OCSP responder, or 3) an intermediate CA
+	 * passed in the cert list to use. Figure out which it is.
+	 */
+	int i;
+	responder = ocsp_CertGetDefaultResponder(handle,NULL);
+	if (responder && ocsp_matchcert(certIndex,responder)) {
+	    signerCert = CERT_DupCertificate(responder);
+	} else if (issuer && ocsp_matchcert(certIndex,issuer)) {
+	    signerCert = CERT_DupCertificate(issuer);
+	} 
+	for (i=0; (signerCert == NULL) && (i < certCount); i++) {
+	    if (ocsp_matchcert(certIndex,certs[i])) {
+		signerCert = CERT_DupCertificate(certs[i]);
+	    }
+	}
+    }
+
+    if (signerCert == NULL) {
+	rv = SECFailure;
+	if (PORT_GetError() == SEC_ERROR_UNKNOWN_CERT) {
+	    /* Make the error a little more specific. */
+	    PORT_SetError(SEC_ERROR_OCSP_INVALID_SIGNING_CERT);
+	}
+	goto finish;
+    }
+
+    /*
+     * We could mark this true at the top of this function, or always
+     * below at "finish", but if the problem was just that we could not
+     * find the signer's cert, leave that as if the signature hasn't
+     * been checked in case a subsequent call might have better luck.
+     */
+    signature->wasChecked = PR_TRUE;
+
+    /*
+     * The function will also verify the signer certificate; we
      * need to tell it *when* that certificate must be valid -- for our
      * purposes we expect it to be valid when the response was signed.
      * The value of "producedAt" is the signing time.
      */
     rv = DER_GeneralizedTimeToTime(&producedAt, &tbsData->producedAt);
     if (rv != SECSuccess)
-	return rv;
+        goto finish;
 
-    return ocsp_CheckSignature(ocsp_GetResponseSignature(response),
-			       tbsData, ocsp_ResponseDataTemplate,
-			       handle, certUsageStatusResponder, producedAt,
-			       byName, certIndex, pwArg, pSignerCert, issuer);
+    /*
+     * Just because we have a cert does not mean it is any good; check
+     * it for validity, trust and usage.
+     */
+    if (ocsp_CertIsOCSPDefaultResponder(handle, signerCert)) {
+        rv = SECSuccess;
+    } else {
+        if (CERT_IsCACert(signerCert, NULL)) {
+            rv = CERT_VerifyCert(handle, signerCert, PR_TRUE,
+                                 certUsageVerifyCA,
+                                 producedAt, pwArg, NULL);
+        } else {
+            rv = CERT_VerifyCert(handle, signerCert, PR_TRUE,
+                                 certUsageStatusResponder,
+                                 producedAt, pwArg, NULL);
+        }
+        if (rv != SECSuccess) {
+            PORT_SetError(SEC_ERROR_OCSP_INVALID_SIGNING_CERT);
+            goto finish;
+        }
+    }
+
+    /*
+     * Now get the public key from the signer's certificate; we need
+     * it to perform the verification.
+     */
+    signerKey = CERT_ExtractPublicKey(signerCert);
+    if (signerKey == NULL)
+	goto finish;
+    /*
+     * We copy the signature data *pointer* and length, so that we can
+     * modify the length without damaging the original copy.  This is a
+     * simple copy, not a dup, so no destroy/free is necessary.
+     */
+    rawSignature = signature->signature;
+    /*
+     * The raw signature is a bit string, but we need to represent its
+     * length in bytes, because that is what the verify function expects.
+     */
+    DER_ConvertBitString(&rawSignature);
+
+    rv = VFY_VerifyDataWithAlgorithmID(tbsResponseDataDER->data,
+                                       tbsResponseDataDER->len,
+                                       signerKey, &rawSignature,
+                                       &signature->signatureAlgorithm,
+                                       NULL, pwArg);
+    if (rv != SECSuccess && PORT_GetError() == SEC_ERROR_BAD_SIGNATURE) {
+        PORT_SetError(SEC_ERROR_OCSP_BAD_SIGNATURE);
+    }
+
+finish:
+    if (signature->wasChecked)
+	signature->status = rv;
+
+    if (rv != SECSuccess) {
+	signature->failureReason = PORT_GetError();
+	if (signerCert != NULL)
+	    CERT_DestroyCertificate(signerCert);
+    } else {
+	/*
+	 * Save signer's certificate in signature.
+	 */
+	signature->cert = signerCert;
+	if (pSignerCert != NULL) {
+	    /*
+	     * Pass pointer to signer's certificate back to our caller,
+	     * who is also now responsible for destroying it.
+	     */
+	    *pSignerCert = CERT_DupCertificate(signerCert);
+	}
+    }
+
+    if (signerKey != NULL)
+	SECKEY_DestroyPublicKey(signerKey);
+
+    if (certs != NULL)
+	CERT_DestroyCertArray(certs, certCount);
+	/* Free CERTS from SPKDigest Table */
+
+    return rv;
 }
 
 /*
- * See if two certIDs match.  This can be easy or difficult, depending
- * on whether the same hash algorithm was used.
+ * See if the request's certID and the single response's certID match.
+ * This can be easy or difficult, depending on whether the same hash
+ * algorithm was used.
  */
 static PRBool
 ocsp_CertIDsMatch(CERTCertDBHandle *handle,
-		  CERTOCSPCertID *certID1, CERTOCSPCertID *certID2)
+		  CERTOCSPCertID *requestCertID,
+		  CERTOCSPCertID *responseCertID)
 {
     PRBool match = PR_FALSE;
-    SECItem *foundHash = NULL;
     SECOidTag hashAlg;
     SECItem *keyHash = NULL;
     SECItem *nameHash = NULL;
@@ -2641,52 +3807,57 @@ ocsp_CertIDsMatch(CERTCertDBHandle *handle,
      *
      * We just compare the easier things first.
      */
-    if (SECITEM_CompareItem(&certID1->serialNumber,
-			    &certID2->serialNumber) != SECEqual) {
+    if (SECITEM_CompareItem(&requestCertID->serialNumber,
+			    &responseCertID->serialNumber) != SECEqual) {
 	goto done;
     }
 
-    if (SECOID_CompareAlgorithmID(&certID1->hashAlgorithm,
-				  &certID2->hashAlgorithm) == SECEqual) {
+    /*
+     * Make sure the "parameters" are not too bogus.  Since we encoded
+     * requestCertID->hashAlgorithm, we don't need to check it.
+     */
+    if (responseCertID->hashAlgorithm.parameters.len > 2) {
+	goto done;
+    }
+    if (SECITEM_CompareItem(&requestCertID->hashAlgorithm.algorithm,
+		&responseCertID->hashAlgorithm.algorithm) == SECEqual) {
 	/*
 	 * If the hash algorithms match then we can do a simple compare
 	 * of the hash values themselves.
 	 */
-	if ((SECITEM_CompareItem(&certID1->issuerNameHash,
-				 &certID2->issuerNameHash) == SECEqual)
-	    && (SECITEM_CompareItem(&certID1->issuerKeyHash,
-				    &certID2->issuerKeyHash) == SECEqual)) {
+	if ((SECITEM_CompareItem(&requestCertID->issuerNameHash,
+				&responseCertID->issuerNameHash) == SECEqual)
+	    && (SECITEM_CompareItem(&requestCertID->issuerKeyHash,
+				&responseCertID->issuerKeyHash) == SECEqual)) {
 	    match = PR_TRUE;
 	}
 	goto done;
     }
 
-    hashAlg = SECOID_FindOIDTag(&certID2->hashAlgorithm.algorithm);
+    hashAlg = SECOID_FindOIDTag(&responseCertID->hashAlgorithm.algorithm);
     switch (hashAlg) {
     case SEC_OID_SHA1:
-	keyHash = &certID1->issuerSHA1KeyHash;
-	nameHash = &certID1->issuerSHA1NameHash;
+	keyHash = &requestCertID->issuerSHA1KeyHash;
+	nameHash = &requestCertID->issuerSHA1NameHash;
 	break;
     case SEC_OID_MD5:
-	keyHash = &certID1->issuerMD5KeyHash;
-	nameHash = &certID1->issuerMD5NameHash;
+	keyHash = &requestCertID->issuerMD5KeyHash;
+	nameHash = &requestCertID->issuerMD5NameHash;
 	break;
     case SEC_OID_MD2:
-	keyHash = &certID1->issuerMD2KeyHash;
-	nameHash = &certID1->issuerMD2NameHash;
+	keyHash = &requestCertID->issuerMD2KeyHash;
+	nameHash = &requestCertID->issuerMD2NameHash;
 	break;
     default:
-	foundHash = NULL;
-	break;
+	PORT_SetError(SEC_ERROR_INVALID_ALGORITHM);
+ 	return SECFailure;
     }
 
-    if (foundHash == NULL) {
-	goto done;
-    }
-    PORT_Assert(keyHash && nameHash);
-
-    if ((SECITEM_CompareItem(nameHash, &certID2->issuerNameHash) == SECEqual)
-      && (SECITEM_CompareItem(keyHash, &certID2->issuerKeyHash) == SECEqual)) {
+    if ((keyHash != NULL)
+	&& (SECITEM_CompareItem(nameHash,
+				&responseCertID->issuerNameHash) == SECEqual)
+	&& (SECITEM_CompareItem(keyHash,
+				&responseCertID->issuerKeyHash) == SECEqual)) {
 	match = PR_TRUE;
     }
 
@@ -2713,7 +3884,7 @@ ocsp_GetSingleResponseForCertID(CERTOCSPSingleResponse **responses,
 
     for (i = 0; responses[i] != NULL; i++) {
 	single = responses[i];
-	if (ocsp_CertIDsMatch(handle, certID, single->certID) == PR_TRUE) {
+	if (ocsp_CertIDsMatch(handle, certID, single->certID)) {
 	    return single;
 	}
     }
@@ -2754,12 +3925,13 @@ ocsp_GetCheckingContext(CERTCertDBHandle *handle)
 
     return ocspcx;
 }
+
 /*
- * Return true if the given signerCert is the default responder for
- * the given certID.  If not, or if any error, return false.
+ * Return cert reference if the given signerCert is the default responder for
+ * the given certID.  If not, or if any error, return NULL.
  */
 static CERTCertificate *
-ocsp_CertGetDefaultResponder(CERTCertDBHandle *handle,CERTOCSPCertID *certID)
+ocsp_CertGetDefaultResponder(CERTCertDBHandle *handle, CERTOCSPCertID *certID)
 {
     ocspCheckingContext *ocspcx;
 
@@ -2785,18 +3957,32 @@ loser:
 }
 
 /*
- * Return true if the given signerCert is the default responder for
- * the given certID.  If not, or if any error, return false.
+ * Return true if the cert is one of the default responders configured for
+ * ocsp context. If not, or if any error, return false.
  */
 static PRBool
-ocsp_CertIsDefaultResponderForCertID(CERTCertDBHandle *handle,
-				     CERTCertificate *signerCert,
-				     CERTOCSPCertID *certID)
+ocsp_CertIsOCSPDefaultResponder(CERTCertDBHandle *handle, CERTCertificate *cert)
 {
-    CERTCertificate *defaultResponderCert;
+    ocspCheckingContext *ocspcx;
 
-    defaultResponderCert = ocsp_CertGetDefaultResponder(handle, certID);
-    return (PRBool) (defaultResponderCert == signerCert);
+    ocspcx = ocsp_GetCheckingContext(handle);
+    if (ocspcx == NULL)
+	return PR_FALSE;
+
+   /*
+    * Right now we have only one default responder.  It applies to
+    * all certs when it is used, so the check is simple and certID
+    * has no bearing on the answer.  Someday in the future we may
+    * allow configuration of different responders for different
+    * issuers, and then we would have to use the issuer specified
+    * in certID to determine if signerCert is the right one.
+    */
+    if (ocspcx->useDefaultResponder &&
+        CERT_CompareCerts(ocspcx->defaultResponderCert, cert)) {
+	return PR_TRUE;
+    }
+
+    return PR_FALSE;
 }
 
 /*
@@ -2822,67 +4008,109 @@ ocsp_AuthorizedResponderForCertID(CERTCertDBHandle *handle,
 				  CERTOCSPCertID *certID,
 				  int64 thisUpdate)
 {
-    CERTCertificate *issuerCert = NULL;
-    SECItem *issuerKeyHash = NULL;
+    CERTCertificate *issuerCert = NULL, *defRespCert;
+    SECItem *keyHash = NULL;
+    SECItem *nameHash = NULL;
     SECOidTag hashAlg;
-    PRBool okay = PR_FALSE;
+    PRBool keyHashEQ = PR_FALSE, nameHashEQ = PR_FALSE;
 
     /*
      * Check first for a trusted responder, which overrides everything else.
      */
-    if (ocsp_CertIsDefaultResponderForCertID(handle, signerCert, certID))
-	return PR_TRUE;
+    if ((defRespCert = ocsp_CertGetDefaultResponder(handle, certID)) &&
+        CERT_CompareCerts(defRespCert, signerCert)) {
+        return PR_TRUE;
+    }
 
     /*
      * In the other two cases, we need to do an issuer comparison.
      * How we do it depends on whether the signer certificate has the
      * special extension (for a designated responder) or not.
+     *
+     * First, lets check if signer of the response is the actual issuer
+     * of the cert. For that we will use signer cert key hash and cert subj
+     * name hash and will compare them with already calculated issuer key
+     * hash and issuer name hash. The hash algorithm is picked from response
+     * certID hash to avoid second hash calculation.
      */
 
-    if (ocsp_CertIsOCSPSigner(signerCert)) {
-	/*
-	 * The signer is a designated responder.  Its issuer must match
-	 * the issuer of the cert being checked.
-	 */
-	issuerCert = CERT_FindCertIssuer(signerCert, thisUpdate,
-					 certUsageAnyCA);
-	if (issuerCert == NULL) {
-	    /*
-	     * We could leave the SEC_ERROR_UNKNOWN_ISSUER error alone,
-	     * but the following will give slightly more information.
-	     * Once we have an error stack, things will be much better.
-	     */
-	    PORT_SetError(SEC_ERROR_OCSP_UNAUTHORIZED_RESPONSE);
-	    goto loser;
-	}
-    } else {
-	/*
-	 * The signer must *be* the issuer of the cert being checked.
-	 */
-	issuerCert = signerCert;
-    }
-
     hashAlg = SECOID_FindOIDTag(&certID->hashAlgorithm.algorithm);
-    issuerKeyHash = CERT_SPKDigestValueForCert(NULL, issuerCert, hashAlg, NULL);
-    if (issuerKeyHash == NULL)
-	goto loser;
 
-    if (SECITEM_CompareItem(issuerKeyHash,
-			    &certID->issuerKeyHash) != SECEqual) {
-	PORT_SetError(SEC_ERROR_OCSP_UNAUTHORIZED_RESPONSE);
-	goto loser;
+    keyHash = cert_GetSPKIDigest(NULL, signerCert, hashAlg, NULL);
+    if (keyHash != NULL) {
+
+        keyHashEQ =
+            (SECITEM_CompareItem(keyHash,
+                                 &certID->issuerKeyHash) == SECEqual);
+        SECITEM_FreeItem(keyHash, PR_TRUE);
+    }
+    if (keyHashEQ &&
+        (nameHash = cert_GetSubjectNameDigest(NULL, signerCert,
+                                              hashAlg, NULL))) {
+        nameHashEQ =
+            (SECITEM_CompareItem(nameHash,
+                                 &certID->issuerNameHash) == SECEqual);
+            
+        SECITEM_FreeItem(nameHash, PR_TRUE);
+        if (nameHashEQ) {
+            /* The issuer of the cert is the the signer of the response */
+            return PR_TRUE;
+        }
     }
 
-    okay = PR_TRUE;
 
-loser:
-    if (issuerKeyHash != NULL)
-	SECITEM_FreeItem(issuerKeyHash, PR_TRUE);
+    keyHashEQ = PR_FALSE;
+    nameHashEQ = PR_FALSE;
 
-    if (issuerCert != NULL && issuerCert != signerCert)
-	CERT_DestroyCertificate(issuerCert);
+    if (!ocsp_CertIsOCSPDesignatedResponder(signerCert)) {
+        PORT_SetError(SEC_ERROR_OCSP_UNAUTHORIZED_RESPONSE);
+        return PR_FALSE;
+    }
 
-    return okay;
+    /*
+     * The signer is a designated responder.  Its issuer must match
+     * the issuer of the cert being checked.
+     */
+    issuerCert = CERT_FindCertIssuer(signerCert, thisUpdate,
+                                     certUsageAnyCA);
+    if (issuerCert == NULL) {
+        /*
+         * We could leave the SEC_ERROR_UNKNOWN_ISSUER error alone,
+         * but the following will give slightly more information.
+         * Once we have an error stack, things will be much better.
+         */
+        PORT_SetError(SEC_ERROR_OCSP_UNAUTHORIZED_RESPONSE);
+        return PR_FALSE;
+    }
+
+    keyHash = cert_GetSPKIDigest(NULL, issuerCert, hashAlg, NULL);
+    nameHash = cert_GetSubjectNameDigest(NULL, issuerCert, hashAlg, NULL);
+
+    CERT_DestroyCertificate(issuerCert);
+
+    if (keyHash != NULL && nameHash != NULL) {
+        keyHashEQ = 
+            (SECITEM_CompareItem(keyHash,
+                                 &certID->issuerKeyHash) == SECEqual);
+
+        nameHashEQ =
+            (SECITEM_CompareItem(nameHash,
+                                 &certID->issuerNameHash) == SECEqual);
+    }
+
+    if (keyHash) {
+        SECITEM_FreeItem(keyHash, PR_TRUE);
+    }
+    if (nameHash) {
+        SECITEM_FreeItem(nameHash, PR_TRUE);
+    }
+
+    if (keyHashEQ && nameHashEQ) {
+        return PR_TRUE;
+    }
+
+    PORT_SetError(SEC_ERROR_OCSP_UNAUTHORIZED_RESPONSE);
+    return PR_FALSE;
 }
 
 /*
@@ -2954,6 +4182,8 @@ ocsp_VerifySingleResponse(CERTOCSPSingleResponse *single,
     int64 now, thisUpdate, nextUpdate, tmstamp, tmp;
     SECStatus rv;
 
+    OCSP_TRACE(("OCSP ocsp_VerifySingleResponse, nextUpdate: %d\n", 
+               ((single->nextUpdate) != 0)));
     /*
      * If all the responder said was that the given cert was unknown to it,
      * that is a valid response.  Not very interesting to us, of course,
@@ -3025,7 +4255,7 @@ ocsp_VerifySingleResponse(CERTOCSPSingleResponse *single,
  *   char *
  *     A copy of the URI for the OCSP method, if found.  If either the
  *     extension is not present or it does not contain an entry for OCSP,
- *     SEC_ERROR_EXTENSION_NOT_FOUND will be set and a NULL returned.
+ *     SEC_ERROR_CERT_BAD_ACCESS_LOCATION will be set and a NULL returned.
  *     Any other error will also result in a NULL being returned.
  *     
  *     This result should be freed (via PORT_Free) when no longer in use.
@@ -3053,8 +4283,10 @@ CERT_GetOCSPAuthorityInfoAccessLocation(CERTCertificate *cert)
 
     rv = CERT_FindCertExtension(cert, SEC_OID_X509_AUTH_INFO_ACCESS,
 				encodedAuthInfoAccess);
-    if (rv == SECFailure)
+    if (rv == SECFailure) {
+	PORT_SetError(SEC_ERROR_CERT_BAD_ACCESS_LOCATION);
 	goto loser;
+    }
 
     /*
      * The rest of the things allocated in the routine will come out of
@@ -3084,7 +4316,7 @@ CERT_GetOCSPAuthorityInfoAccessLocation(CERTCertificate *cert)
      * not there at all.
      */
     if (locname == NULL) {
-	PORT_SetError(SEC_ERROR_EXTENSION_NOT_FOUND);
+	PORT_SetError(SEC_ERROR_CERT_BAD_ACCESS_LOCATION);
 	goto loser;
     }
 
@@ -3101,7 +4333,7 @@ CERT_GetOCSPAuthorityInfoAccessLocation(CERTCertificate *cert)
 	 * this should probably be something more like the extension was
 	 * badly formed.
 	 */
-	PORT_SetError(SEC_ERROR_EXTENSION_NOT_FOUND);
+	PORT_SetError(SEC_ERROR_CERT_BAD_ACCESS_LOCATION);
 	goto loser;
     }
 
@@ -3198,35 +4430,75 @@ ocsp_CertRevokedAfter(ocspRevokedInfo *revokedInfo, int64 time)
  * at the specified time.
  */
 static SECStatus
-ocsp_CertHasGoodStatus(CERTOCSPSingleResponse *single, int64 time)
+ocsp_CertHasGoodStatus(ocspCertStatus *status, int64 time)
 {
-    ocspCertStatus *status;
     SECStatus rv;
-
-    status = single->certStatus;
-
     switch (status->certStatusType) {
-      case ocspCertStatus_good:
-	rv = SECSuccess;
-	break;
-      case ocspCertStatus_revoked:
-	rv = ocsp_CertRevokedAfter(status->certStatusInfo.revokedInfo, time);
-	break;
-      case ocspCertStatus_unknown:
-	PORT_SetError(SEC_ERROR_OCSP_UNKNOWN_CERT);
-	rv = SECFailure;
-	break;
-      case ocspCertStatus_other:
-      default:
-	PORT_Assert(0);
-	PORT_SetError(SEC_ERROR_OCSP_MALFORMED_RESPONSE);
-	rv = SECFailure;
-	break;
+    case ocspCertStatus_good:
+        rv = SECSuccess;
+        break;
+    case ocspCertStatus_revoked:
+        rv = ocsp_CertRevokedAfter(status->certStatusInfo.revokedInfo, time);
+        break;
+    case ocspCertStatus_unknown:
+        PORT_SetError(SEC_ERROR_OCSP_UNKNOWN_CERT);
+        rv = SECFailure;
+        break;
+    case ocspCertStatus_other:
+    default:
+        PORT_Assert(0);
+        PORT_SetError(SEC_ERROR_OCSP_MALFORMED_RESPONSE);
+        rv = SECFailure;
+        break;
     }
-
     return rv;
 }
 
+static SECStatus
+ocsp_SingleResponseCertHasGoodStatus(CERTOCSPSingleResponse *single, int64 time)
+{
+    return ocsp_CertHasGoodStatus(single->certStatus, time);
+}
+
+/* return value SECFailure means: not found or not fresh */
+static SECStatus
+ocsp_GetCachedOCSPResponseStatusIfFresh(CERTOCSPCertID *certID, 
+                                        int64 time, 
+                                        SECStatus *rv_ocsp)
+{
+    OCSPCacheItem *cacheItem = NULL;
+    SECStatus rv = SECFailure;
+  
+    if (!certID || !rv_ocsp) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+    *rv_ocsp = SECFailure;
+  
+    PR_EnterMonitor(OCSP_Global.monitor);
+    cacheItem = ocsp_FindCacheEntry(&OCSP_Global.cache, certID);
+    if (cacheItem && ocsp_IsCacheItemFresh(cacheItem)) {
+        /* having an arena means, we have a cached certStatus */
+        if (cacheItem->certStatusArena) {
+            *rv_ocsp = ocsp_CertHasGoodStatus(&cacheItem->certStatus, time);
+            rv = SECSuccess;
+        } else {
+            /*
+             * No status cached, the previous attempt failed.
+             * If OCSP is required, we never decide based on a failed attempt 
+             * However, if OCSP is optional, a recent OCSP failure is
+             * an allowed good state.
+             */
+            if (OCSP_Global.ocspFailureMode == 
+                    ocspMode_FailureIsNotAVerificationFailure) {
+                rv = SECSuccess;
+                *rv_ocsp = SECSuccess;
+            }
+        }
+    }
+    PR_ExitMonitor(OCSP_Global.monitor);
+    return rv;
+}
 
 /*
  * FUNCTION: CERT_CheckOCSPStatus
@@ -3282,17 +4554,70 @@ SECStatus
 CERT_CheckOCSPStatus(CERTCertDBHandle *handle, CERTCertificate *cert,
 		     int64 time, void *pwArg)
 {
+    CERTOCSPCertID *certID;
+    PRBool certIDWasConsumed = PR_FALSE;
+    SECStatus rv = SECFailure;
+    SECStatus rv_ocsp;
+  
+    OCSP_TRACE_CERT(cert);
+    OCSP_TRACE_TIME("## requested validity time:", time);
+  
+    certID = CERT_CreateOCSPCertID(cert, time);
+    if (!certID)
+        return SECFailure;
+    rv = ocsp_GetCachedOCSPResponseStatusIfFresh(certID, time, &rv_ocsp);
+    if (rv == SECSuccess) {
+        CERT_DestroyOCSPCertID(certID);
+        return rv_ocsp;
+    }
+    rv = ocsp_GetOCSPStatusFromNetwork(handle, certID, cert, time, pwArg, 
+                                       &certIDWasConsumed, &rv_ocsp);
+    if (rv != SECSuccess) {
+        /* we were unable to obtain ocsp status */
+        PR_EnterMonitor(OCSP_Global.monitor);
+        if (OCSP_Global.ocspFailureMode ==
+                ocspMode_FailureIsVerificationFailure) {
+            rv_ocsp = SECFailure;
+        } else {
+            rv_ocsp = SECSuccess;
+        }
+        PR_ExitMonitor(OCSP_Global.monitor);
+    }
+    if (!certIDWasConsumed) {
+        CERT_DestroyOCSPCertID(certID);
+    }
+    return rv_ocsp;
+}
+
+/*
+ * Status in *certIDWasConsumed will always be correct, regardless of 
+ * return value.
+ */
+static SECStatus
+ocsp_GetOCSPStatusFromNetwork(CERTCertDBHandle *handle, 
+                              CERTOCSPCertID *certID, 
+                              CERTCertificate *cert, 
+                              int64 time, 
+                              void *pwArg,
+                              PRBool *certIDWasConsumed,
+                              SECStatus *rv_ocsp)
+{
     char *location = NULL;
     PRBool locationIsDefault;
-    CERTCertList *certList = NULL;
     SECItem *encodedResponse = NULL;
     CERTOCSPRequest *request = NULL;
     CERTOCSPResponse *response = NULL;
     CERTCertificate *signerCert = NULL;
     CERTCertificate *issuerCert = NULL;
-    CERTOCSPCertID *certID;
     SECStatus rv = SECFailure;
+    CERTOCSPSingleResponse *single = NULL;
 
+    if (!certIDWasConsumed || !rv_ocsp) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+    *certIDWasConsumed = PR_FALSE;
+    *rv_ocsp = SECFailure;
 
     /*
      * The first thing we need to do is find the location of the responder.
@@ -3307,14 +4632,17 @@ CERT_CheckOCSPStatus(CERTCertDBHandle *handle, CERTCertificate *cert,
      */
     location = ocsp_GetResponderLocation(handle, cert, &locationIsDefault);
     if (location == NULL) {
-	if (PORT_GetError() == SEC_ERROR_EXTENSION_NOT_FOUND)
-	    return SECSuccess;
-	else
-	    return SECFailure;
+       int err = PORT_GetError();
+       if (err == SEC_ERROR_EXTENSION_NOT_FOUND ||
+           err == SEC_ERROR_CERT_BAD_ACCESS_LOCATION) {
+           PORT_SetError(0);
+           *rv_ocsp = SECSuccess;
+           return SECSuccess;
+       }
+       return SECFailure;
     }
 
     /*
-     * For now, create a cert-list of one.
      * XXX In the fullness of time, we will want/need to handle a
      * certificate chain.  This will be done either when a new parameter
      * tells us to, or some configuration variable tells us to.  In any
@@ -3329,31 +4657,18 @@ CERT_CheckOCSPStatus(CERTCertDBHandle *handle, CERTCertificate *cert,
      * if you do not understand this.)
      */
 
-    certList = CERT_NewCertList();
-    if (certList == NULL)
-	goto loser;
-
-    /* dup it because freeing the list will destroy the cert, too */
-    cert = CERT_DupCertificate(cert);
-    if (cert == NULL)
-	goto loser;
-
-    if (CERT_AddCertToListTail(certList, cert) != SECSuccess) {
-	CERT_DestroyCertificate(cert);
-	goto loser;
-    }
-
     /*
      * XXX If/when signing of requests is supported, that second NULL
      * should be changed to be the signer certificate.  Not sure if that
      * should be passed into this function or retrieved via some operation
      * on the handle/context.
      */
-    encodedResponse = CERT_GetEncodedOCSPResponse(NULL, certList, location,
-						  time, locationIsDefault,
-						  NULL, pwArg, &request);
+    encodedResponse = 
+        ocsp_GetEncodedOCSPResponseForSingleCert(NULL, certID, cert, location,
+                                                 time, locationIsDefault,
+                                                 pwArg, &request);
     if (encodedResponse == NULL) {
-	goto loser;
+        goto loser;
     }
 
     response = CERT_DecodeOCSPResponse(encodedResponse);
@@ -3392,20 +4707,26 @@ CERT_CheckOCSPStatus(CERTCertDBHandle *handle, CERTCertificate *cert,
      * Again, we are only doing one request for one cert.
      * XXX When we handle cert chains, the following code will obviously
      * have to be modified, in coordation with the code above that will
-     * have to determine how to make multiple requests, etc.  It will need
-     * to loop, and for each certID in the request, find the matching
-     * single response and check the status specified by it.
-     *
-     * We are helped here in that we know that the requests are made with
-     * the request list in the same order as the order of the certs we hand
-     * to it.  This is why I can directly access the first member of the
-     * single request array for the one cert I care about.
+     * have to determine how to make multiple requests, etc. 
      */
 
-    certID = request->tbsRequest->requestList[0]->reqCert;
-    rv = CERT_GetOCSPStatusForCertID(handle, response, certID, 
-                                     signerCert, time);
+    rv = ocsp_GetVerifiedSingleResponseForCertID(handle, response, certID, 
+                                                 signerCert, time, &single);
+    if (rv != SECSuccess)
+        goto loser;
+
+    *rv_ocsp = ocsp_SingleResponseCertHasGoodStatus(single, time);
+
 loser:
+    PR_EnterMonitor(OCSP_Global.monitor);
+    if (OCSP_Global.maxCacheEntries >= 0) {
+        /* single == NULL means: remember response failure */
+        ocsp_CreateOrUpdateCacheEntry(&OCSP_Global.cache, certID, single, 
+                                      certIDWasConsumed);
+        /* ignore cache update failures */
+    }
+    PR_ExitMonitor(OCSP_Global.monitor);
+
     if (issuerCert != NULL)
 	CERT_DestroyCertificate(issuerCert);
     if (signerCert != NULL)
@@ -3416,10 +4737,57 @@ loser:
 	CERT_DestroyOCSPRequest(request);
     if (encodedResponse != NULL)
 	SECITEM_FreeItem(encodedResponse, PR_TRUE);
-    if (certList != NULL)
-	CERT_DestroyCertList(certList);
     if (location != NULL)
 	PORT_Free(location);
+    return rv;
+}
+
+static SECStatus
+ocsp_GetVerifiedSingleResponseForCertID(CERTCertDBHandle *handle, 
+                                        CERTOCSPResponse *response, 
+                                        CERTOCSPCertID   *certID,
+                                        CERTCertificate  *signerCert,
+                                        int64             time,
+                                        CERTOCSPSingleResponse 
+                                            **pSingleResponse)
+{
+    SECStatus rv;
+    ocspResponseData *responseData;
+    int64 producedAt;
+    CERTOCSPSingleResponse *single;
+
+    /*
+     * The ResponseData part is the real guts of the response.
+     */
+    responseData = ocsp_GetResponseData(response, NULL);
+    if (responseData == NULL) {
+        rv = SECFailure;
+        goto loser;
+    }
+
+    /*
+     * There is one producedAt time for the entire response (and a separate
+     * thisUpdate time for each individual single response).  We need to
+     * compare them, so get the overall time to pass into the check of each
+     * single response.
+     */
+    rv = DER_GeneralizedTimeToTime(&producedAt, &responseData->producedAt);
+    if (rv != SECSuccess)
+        goto loser;
+
+    single = ocsp_GetSingleResponseForCertID(responseData->responses,
+                                             handle, certID);
+    if (single == NULL) {
+        rv = SECFailure;
+        goto loser;
+    }
+
+    rv = ocsp_VerifySingleResponse(single, handle, signerCert, producedAt);
+    if (rv != SECSuccess)
+        goto loser;
+    *pSingleResponse = single;
+
+loser:
     return rv;
 }
 
@@ -3431,50 +4799,19 @@ CERT_GetOCSPStatusForCertID(CERTCertDBHandle *handle,
                             int64             time)
 {
     SECStatus rv;
-    ocspResponseData *responseData;
-    int64 producedAt;
     CERTOCSPSingleResponse *single;
 
-    /*
-     * The ResponseData part is the real guts of the response.
-     */
-    responseData = ocsp_GetResponseData(response);
-    if (responseData == NULL) {
-	rv = SECFailure;
-	goto loser;
-    }
-
-    /*
-     * There is one producedAt time for the entire response (and a separate
-     * thisUpdate time for each individual single response).  We need to
-     * compare them, so get the overall time to pass into the check of each
-     * single response.
-     */
-    rv = DER_GeneralizedTimeToTime(&producedAt, &responseData->producedAt);
+    rv = ocsp_GetVerifiedSingleResponseForCertID(handle, response, certID, 
+                                                 signerCert, time, &single);
     if (rv != SECSuccess)
-	goto loser;
-
-    single = ocsp_GetSingleResponseForCertID(responseData->responses,
-					     handle, certID);
-    if (single == NULL) {
-	rv = SECFailure;
-	goto loser;
-    }
-
-    rv = ocsp_VerifySingleResponse(single, handle, signerCert, producedAt);
-    if (rv != SECSuccess)
-	goto loser;
-
+        return rv;
     /*
      * Okay, the last step is to check whether the status says revoked,
      * and if so how that compares to the time value passed into this routine.
      */
-
-    rv = ocsp_CertHasGoodStatus(single, time);
-loser:
+    rv = ocsp_SingleResponseCertHasGoodStatus(single, time);
     return rv;
 }
-
 
 /*
  * Disable status checking and destroy related structures/data.
@@ -3548,6 +4885,9 @@ CERT_DisableOCSPChecking(CERTCertDBHandle *handle)
 	return SECFailure;
     }
 
+    /* cache no longer necessary */
+    CERT_ClearOCSPCache();
+
     /*
      * This is how we disable status checking.  Everything else remains
      * in place in case we are enabled again.
@@ -3590,8 +4930,6 @@ ocsp_InitStatusChecking(CERTCertDBHandle *handle)
     return SECSuccess;
 
 loser:
-    if (statusContext != NULL)
-	PORT_Free(statusContext);
     if (statusConfig != NULL)
 	PORT_Free(statusConfig);
     return SECFailure;
@@ -3754,9 +5092,12 @@ CERT_SetOCSPDefaultResponder(CERTCertDBHandle *handle,
     if (statusContext->defaultResponderCert != NULL) {
 	CERT_DestroyCertificate(statusContext->defaultResponderCert);
 	statusContext->defaultResponderCert = cert;
+        /*OCSP enabled, switching responder: clear cache*/
+        CERT_ClearOCSPCache();
     } else {
 	PORT_Assert(statusContext->useDefaultResponder == PR_FALSE);
 	CERT_DestroyCertificate(cert);
+        /*OCSP currently not enabled, no need to clear cache*/
     }
 
     return SECSuccess;
@@ -3793,6 +5134,8 @@ CERT_EnableOCSPDefaultResponder(CERTCertDBHandle *handle)
 {
     ocspCheckingContext *statusContext;
     CERTCertificate *cert;
+    SECStatus rv;
+    SECCertificateUsage usage;
 
     if (handle == NULL) {
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
@@ -3837,10 +5180,32 @@ CERT_EnableOCSPDefaultResponder(CERTCertDBHandle *handle)
     if (cert == NULL)
 	return SECFailure;
 
+   /*
+    * Supplied cert should at least have  a signing capability in order for us
+    * to use it as a trusted responder cert. Ability to sign is guarantied  if
+    * cert is validated to have any set of the usages below.
+    */
+    rv = CERT_VerifyCertificateNow(handle, cert, PR_TRUE,
+                                   certificateUsageCheckAllUsages,
+                                   NULL, &usage);
+    if (rv != SECSuccess || (usage & (certificateUsageSSLClient |
+                                      certificateUsageSSLServer |
+                                      certificateUsageSSLServerWithStepUp |
+                                      certificateUsageEmailSigner |
+                                      certificateUsageObjectSigner |
+                                      certificateUsageStatusResponder |
+                                      certificateUsageSSLCA)) == 0) {
+	PORT_SetError(SEC_ERROR_OCSP_RESPONDER_CERT_INVALID);
+	return SECFailure;
+    }
+
     /*
      * And hang onto it.
      */
     statusContext->defaultResponderCert = cert;
+
+    /* we don't allow a mix of cache entries from different responders */
+    CERT_ClearOCSPCache();
 
     /*
      * Finally, record the fact that we now have a default responder enabled.
@@ -3867,6 +5232,7 @@ CERT_DisableOCSPDefaultResponder(CERTCertDBHandle *handle)
 {
     CERTStatusConfig *statusConfig;
     ocspCheckingContext *statusContext;
+    CERTCertificate *tmpCert;
 
     if (handle == NULL) {
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
@@ -3882,9 +5248,12 @@ CERT_DisableOCSPDefaultResponder(CERTCertDBHandle *handle)
     if (statusContext == NULL)
 	return SECFailure;
 
-    if (statusContext->defaultResponderCert != NULL) {
-	CERT_DestroyCertificate(statusContext->defaultResponderCert);
+    tmpCert = statusContext->defaultResponderCert;
+    if (tmpCert) {
 	statusContext->defaultResponderCert = NULL;
+	CERT_DestroyCertificate(tmpCert);
+        /* we don't allow a mix of cache entries from different responders */
+        CERT_ClearOCSPCache();
     }
 
     /*
@@ -3894,75 +5263,6 @@ CERT_DisableOCSPDefaultResponder(CERTCertDBHandle *handle)
     return SECSuccess;
 }
 
-/*
- * Digest the cert's subject public key using the specified algorithm.
- * The necessary storage for the digest data is allocated.  If "fill" is
- * non-null, the data is put there, otherwise a SECItem is allocated.
- * Allocation from "arena" if it is non-null, heap otherwise.  Any problem
- * results in a NULL being returned (and an appropriate error set).
- */
-SECItem *
-CERT_SPKDigestValueForCert(PRArenaPool *arena, CERTCertificate *cert,
-                           SECOidTag digestAlg, SECItem *fill)
-{
-    const SECHashObject *digestObject;
-    void *digestContext;
-    SECItem *result = NULL;
-    void *mark = NULL;
-    SECItem spk;
-
-    if ( arena != NULL ) {
-        mark = PORT_ArenaMark(arena);
-    }
-
-    digestObject = HASH_GetHashObjectByOidTag(digestAlg);
-    if ( digestObject == NULL ) {
-        goto loser;
-    }
-
-    if ((fill == NULL) || (fill->data == NULL)) {
-	result = SECITEM_AllocItem(arena, fill, digestObject->length);
-	if ( result == NULL ) {
-	   goto loser;
-	}
-	fill = result;
-    }
-
-    /*
-     * Copy just the length and data pointer (nothing needs to be freed)
-     * of the subject public key so we can convert the length from bits
-     * to bytes, which is what the digest function expects.
-     */
-    spk = cert->subjectPublicKeyInfo.subjectPublicKey;
-    DER_ConvertBitString(&spk);
-
-    /*
-     * Now digest the value, using the specified algorithm.
-     */
-    digestContext = digestObject->create();
-    if ( digestContext == NULL ) {
-        goto loser;
-    }
-    digestObject->begin(digestContext);
-    digestObject->update(digestContext, spk.data, spk.len);
-    digestObject->end(digestContext, fill->data, &(fill->len), fill->len);
-    digestObject->destroy(digestContext, PR_TRUE);
-
-    if ( arena != NULL ) {
-        PORT_ArenaUnmark(arena, mark);
-    }
-    return(fill);
-
-loser:
-    if ( arena != NULL ) {
-        PORT_ArenaRelease(arena, mark);
-    } else {
-        if ( result != NULL ) {
-            SECITEM_FreeItem(result, (fill == NULL) ? PR_TRUE : PR_FALSE);
-        }
-    }
-    return(NULL);
-}
 
 SECStatus
 CERT_GetOCSPResponseStatus(CERTOCSPResponse *response)

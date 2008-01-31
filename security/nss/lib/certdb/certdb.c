@@ -65,9 +65,6 @@
 #include "pk11func.h"
 #include "xconst.h"   /* for  CERT_DecodeAltNameExtension */
 
-#ifndef NSS_3_4_CODE
-#define NSS_3_4_CODE
-#endif /* NSS_3_4_CODE */
 #include "pki.h"
 #include "pki3hack.h"
 
@@ -864,8 +861,7 @@ CERT_DecodeDERCertificate(SECItem *derSignedCert, PRBool copyDER,
     }
 
     if (cert_HasUnknownCriticalExten (cert->extensions) == PR_TRUE) {
-	PORT_SetError(SEC_ERROR_UNKNOWN_CRITICAL_EXTENSION);
-	goto loser;
+        cert->options.bits.hasUnsupportedCriticalExt = PR_TRUE;
     }
 
     /* generate and save the database key for the cert */
@@ -1283,14 +1279,8 @@ CERTCertificate *
 CERT_DupCertificate(CERTCertificate *c)
 {
     if (c) {
-#ifdef NSS_CLASSIC
-	CERT_LockCertRefCount(c);
-	++c->referenceCount;
-	CERT_UnlockCertRefCount(c);
-#else
 	NSSCertificate *tmp = STAN_GetNSSCertificate(c);
 	nssCertificate_AddRef(tmp);
-#endif
     }
     return c;
 }
@@ -2741,11 +2731,7 @@ static PZLock *certRefCountLock = NULL;
 void
 CERT_LockCertRefCount(CERTCertificate *cert)
 {
-    if ( certRefCountLock == NULL ) {
-	nss_InitLock(&certRefCountLock, nssILockRefLock);
-	PORT_Assert(certRefCountLock != NULL);
-    }
-    
+    PORT_Assert(certRefCountLock != NULL);
     PZ_Lock(certRefCountLock);
     return;
 }
@@ -2778,13 +2764,55 @@ static PZLock *certTrustLock = NULL;
 void
 CERT_LockCertTrust(CERTCertificate *cert)
 {
-    if ( certTrustLock == NULL ) {
-	nss_InitLock(&certTrustLock, nssILockCertDB);
-	PORT_Assert(certTrustLock != NULL);
-    }
-    
+    PORT_Assert(certTrustLock != NULL);
     PZ_Lock(certTrustLock);
     return;
+}
+
+SECStatus
+cert_InitLocks(void)
+{
+    if ( certRefCountLock == NULL ) {
+        certRefCountLock = PZ_NewLock(nssILockRefLock);
+        PORT_Assert(certRefCountLock != NULL);
+        if (!certRefCountLock) {
+            return SECFailure;
+        }
+    }
+
+    if ( certTrustLock == NULL ) {
+        certTrustLock = PZ_NewLock(nssILockCertDB);
+        PORT_Assert(certTrustLock != NULL);
+        if (!certTrustLock) {
+            PZ_DestroyLock(certRefCountLock);
+            return SECFailure;
+        }
+    }    
+
+    return SECSuccess;
+}
+
+SECStatus
+cert_DestroyLocks(void)
+{
+    SECStatus rv = SECSuccess;
+
+    PORT_Assert(certRefCountLock != NULL);
+    if (certRefCountLock) {
+        PZ_DestroyLock(certRefCountLock);
+        certRefCountLock = NULL;
+    } else {
+        rv = SECFailure;
+    }
+
+    PORT_Assert(certTrustLock != NULL);
+    if (certTrustLock) {
+        PZ_DestroyLock(certTrustLock);
+        certTrustLock = NULL;
+    } else {
+        rv = SECFailure;
+    }
+    return rv;
 }
 
 /*

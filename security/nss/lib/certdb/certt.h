@@ -62,11 +62,7 @@ typedef struct CERTAttributeStr                  CERTAttribute;
 typedef struct CERTAuthInfoAccessStr             CERTAuthInfoAccess;
 typedef struct CERTAuthKeyIDStr                  CERTAuthKeyID;
 typedef struct CERTBasicConstraintsStr           CERTBasicConstraints;
-#ifdef NSS_CLASSIC
-typedef struct CERTCertDBHandleStr               CERTCertDBHandle;
-#else
 typedef struct NSSTrustDomainStr                 CERTCertDBHandle;
-#endif
 typedef struct CERTCertExtensionStr              CERTCertExtension;
 typedef struct CERTCertKeyStr                    CERTCertKey;
 typedef struct CERTCertListStr                   CERTCertList;
@@ -301,7 +297,13 @@ struct CERTCertificateStr {
      * XXX - these should be moved into some sort of application specific
      *       data structure.  They are only used by the browser right now.
      */
-    struct SECSocketNode *authsocketlist;
+    union {
+        void* apointer; /* was struct SECSocketNode* authsocketlist */
+        struct {
+            unsigned int hasUnsupportedCriticalExt :1;
+            /* add any new option bits needed here */
+        } bits;
+    } options;
     int series; /* was int authsocketcount; record the series of the pkcs11ID */
 
     /* This is PKCS #11 stuff. */
@@ -487,6 +489,7 @@ typedef enum SECCertUsageEnum {
 
 typedef PRInt64 SECCertificateUsage;
 
+#define certificateUsageCheckAllUsages         (0x0000)
 #define certificateUsageSSLClient              (0x0001)
 #define certificateUsageSSLServer              (0x0002)
 #define certificateUsageSSLServerWithStepUp    (0x0004)
@@ -611,7 +614,10 @@ struct CERTBasicConstraintsStr {
 /* Maximum length of a certificate chain */
 #define CERT_MAX_CERT_CHAIN 20
 
-/* x.509 v3 Reason Falgs, used in CRLDistributionPoint Extension */
+#define CERT_MAX_SERIAL_NUMBER_BYTES  20    /* from RFC 3280 */
+#define CERT_MAX_DN_BYTES             4096  /* arbitrary */
+
+/* x.509 v3 Reason Flags, used in CRLDistributionPoint Extension */
 #define RF_UNUSED			(0x80)	/* bit 0 */
 #define RF_KEY_COMPROMISE		(0x40)  /* bit 1 */
 #define RF_CA_COMPROMISE		(0x20)  /* bit 2 */

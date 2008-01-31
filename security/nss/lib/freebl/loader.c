@@ -43,6 +43,7 @@
 #include "prmem.h"
 #include "prerror.h"
 #include "prinit.h"
+#include "prenv.h"
 
 static const char* default_name =
     SHLIB_PREFIX"freebl"SHLIB_VERSION"."SHLIB_SUFFIX;
@@ -86,6 +87,11 @@ getLibName(void)
     buflen = sysinfo(SI_ISALIST, buf, sizeof buf);
     if (buflen <= 0) 
 	return NULL;
+    /* sysinfo output is always supposed to be NUL terminated, but ... */
+    if (buflen < sizeof buf) 
+    	buf[buflen] = '\0';
+    else
+    	buf[(sizeof buf) - 1] = '\0';
     /* The ISA list is a space separated string of names of ISAs and
      * ISA extensions, in order of decreasing performance.
      * There are two different ISAs with which NSS's crypto code can be
@@ -125,20 +131,18 @@ static const char * getLibName(void) { return default_name; }
 
 #ifdef XP_UNIX
 #include <unistd.h>
-#endif
 
 #define BL_MAXSYMLINKS 20
 
 /*
  * If 'link' is a symbolic link, this function follows the symbolic links
  * and returns the pathname of the ultimate source of the symbolic links.
- * If 'link' is not a symbolic link, this function returns a copy of 'link'.
+ * If 'link' is not a symbolic link, this function returns NULL.
  * The caller should call PR_Free to free the string returned by this
  * function.
  */
 static char* bl_GetOriginalPathname(const char* link)
 {
-#ifdef XP_UNIX
     char* resolved = NULL;
     char* input = NULL;
     PRUint32 iterations = 0;
@@ -168,16 +172,13 @@ static char* bl_GetOriginalPathname(const char* link)
         resolved = tmp;
     }
     PR_Free(resolved);
-    return input;
-#else
-    if (link) {
-        return PL_strdup(link);
-    } else {
-        PR_SetError(PR_INVALID_ARGUMENT_ERROR, 0);
-        return NULL;
+    if (iterations == 1 && retlen < 0) {
+        PR_Free(input);
+        input = NULL;
     }
-#endif
+    return input;
 }
+#endif /* XP_UNIX */
 
 /*
  * We use PR_GetLibraryFilePathname to get the pathname of the loaded 
@@ -192,25 +193,48 @@ static char* bl_GetOriginalPathname(const char* link)
 
 const char* softoken=SHLIB_PREFIX"softokn"SOFTOKEN_SHLIB_VERSION"."SHLIB_SUFFIX;
 
-typedef struct {
-    PRLibrary *dlh;
-} BLLibrary;
+static PRLibrary* blLib;
 
-static BLLibrary *
-bl_LoadLibrary(const char *name)
+/*
+ * Load the freebl library with the file name 'name' residing in the same
+ * directory as libsoftoken, whose pathname is 'softokenPath'.
+ */
+static PRLibrary *
+bl_LoadFreeblLibInSoftokenDir(const char *softokenPath, const char *name)
 {
-    BLLibrary *lib = NULL;
-    PRFuncPtr fn_addr;
-    char* softokenPath = NULL;
-    char* fullName = NULL;
+    PRLibrary *dlh = NULL;
+    char *fullName = NULL;
+    char* c;
     PRLibSpec libSpec;
 
-    libSpec.type = PR_LibSpec_Pathname;
-    lib = PR_NEWZAP(BLLibrary);
-    if (NULL == lib) {
-        PR_SetError(PR_OUT_OF_MEMORY_ERROR, 0);
-        return NULL;
+    /* Remove "libsoftokn" from the pathname and add the freebl libname */
+    c = strrchr(softokenPath, PR_GetDirectorySeparator());
+    if (c) {
+        size_t softoknPathSize = 1 + c - softokenPath;
+        fullName = (char*) PORT_Alloc(strlen(name) + softoknPathSize + 1);
+        if (fullName) {
+            memcpy(fullName, softokenPath, softoknPathSize);
+            strcpy(fullName + softoknPathSize, name); 
+#ifdef DEBUG_LOADER
+            PR_fprintf(PR_STDOUT, "\nAttempting to load fully-qualified %s\n", 
+                       fullName);
+#endif
+            libSpec.type = PR_LibSpec_Pathname;
+            libSpec.value.pathname = fullName;
+            dlh = PR_LoadLibraryWithFlags(libSpec, PR_LD_NOW | PR_LD_LOCAL);
+            PORT_Free(fullName);
+        }
     }
+    return dlh;
+}
+
+static PRLibrary *
+bl_LoadLibrary(const char *name)
+{
+    PRLibrary *lib = NULL;
+    PRFuncPtr fn_addr;
+    char* softokenPath = NULL;
+    PRLibSpec libSpec;
 
     /* Get the pathname for the loaded libsoftokn, i.e. /usr/lib/libsoftokn3.so
      * PR_GetLibraryFilePathname works with either the base library name or a
@@ -222,68 +246,38 @@ bl_LoadLibrary(const char *name)
     fn_addr = (PRFuncPtr) &bl_LoadLibrary;
     softokenPath = PR_GetLibraryFilePathname(softoken, fn_addr);
 
-    /* Remove "libsoftokn" from the pathname and add the freebl libname */
     if (softokenPath) {
-       char* c;
-       char* originalSoftokenPath = bl_GetOriginalPathname(softokenPath);
-       if (originalSoftokenPath) {
-           PR_Free(softokenPath);
-           softokenPath = originalSoftokenPath;
-       }
-       c = strrchr(softokenPath, PR_GetDirectorySeparator());
-       if (c) {
-           size_t softoknPathSize = 1 + c - softokenPath;
-           fullName = (char*) PORT_Alloc(strlen(name) + softoknPathSize + 1);
-           if (fullName) {
-               memcpy(fullName, softokenPath, softoknPathSize);
-               strcpy(fullName + softoknPathSize, name); 
-           }
-       }
-       PR_Free(softokenPath);
-    }
-    if (fullName) {
-#ifdef DEBUG_LOADER
-        PR_fprintf(PR_STDOUT, "\nAttempting to load fully-qualified %s\n", 
-                   fullName);
+        lib = bl_LoadFreeblLibInSoftokenDir(softokenPath, name);
+#ifdef XP_UNIX
+        if (!lib) {
+            /*
+             * If softokenPath is a symbolic link, resolve the symbolic
+             * link and try again.
+             */
+            char* originalSoftokenPath = bl_GetOriginalPathname(softokenPath);
+            if (originalSoftokenPath) {
+                PR_Free(softokenPath);
+                softokenPath = originalSoftokenPath;
+                lib = bl_LoadFreeblLibInSoftokenDir(softokenPath, name);
+            }
+        }
 #endif
-        libSpec.value.pathname = fullName;
-        lib->dlh = PR_LoadLibraryWithFlags(libSpec, PR_LD_NOW | PR_LD_LOCAL);
-        PORT_Free(fullName);
+        PR_Free(softokenPath);
     }
-    if (!lib->dlh) {
+    if (!lib) {
 #ifdef DEBUG_LOADER
         PR_fprintf(PR_STDOUT, "\nAttempting to load %s\n", name);
 #endif
+        libSpec.type = PR_LibSpec_Pathname;
         libSpec.value.pathname = name;
-        lib->dlh = PR_LoadLibraryWithFlags(libSpec, PR_LD_NOW | PR_LD_LOCAL);
+        lib = PR_LoadLibraryWithFlags(libSpec, PR_LD_NOW | PR_LD_LOCAL);
     }
-    if (NULL == lib->dlh) {
+    if (NULL == lib) {
 #ifdef DEBUG_LOADER
         PR_fprintf(PR_STDOUT, "\nLoading failed : %s.\n", name);
 #endif
-        PR_Free(lib);
-        lib = NULL;
     }
     return lib;
-}
-
-static void *
-bl_FindSymbol(BLLibrary *lib, const char *name)
-{
-    void *f;
-
-    f = PR_FindSymbol(lib->dlh, name);
-    return f;
-}
-
-static PRStatus
-bl_UnloadLibrary(BLLibrary *lib)
-{
-    if (PR_SUCCESS != PR_UnloadLibrary(lib->dlh)) {
-        return PR_FAILURE;
-    }
-    PR_Free(lib);
-    return PR_SUCCESS;
 }
 
 #define LSB(x) ((x)&0xff)
@@ -297,7 +291,7 @@ static const char *libraryName = NULL;
 static PRStatus
 freebl_LoadDSO( void ) 
 {
-  BLLibrary *  handle;
+  PRLibrary *  handle;
   const char * name = getLibName();
 
   if (!name) {
@@ -307,7 +301,8 @@ freebl_LoadDSO( void )
 
   handle = bl_LoadLibrary(name);
   if (handle) {
-    void * address = bl_FindSymbol(handle, "FREEBL_GetVector");
+    PRFuncPtr address = PR_FindFunctionSymbol(handle, "FREEBL_GetVector");
+    PRStatus status;
     if (address) {
       FREEBLGetVectorFn  * getVector = (FREEBLGetVectorFn *)address;
       const FREEBLVector * dsoVector = getVector();
@@ -319,22 +314,26 @@ freebl_LoadDSO( void )
 	    dsoVector->length >= sizeof(FREEBLVector)) {
           vector = dsoVector;
 	  libraryName = name;
+	  blLib = handle;
 	  return PR_SUCCESS;
 	}
       }
     }
-    bl_UnloadLibrary(handle);
+    status = PR_UnloadLibrary(handle);
+    PORT_Assert(PR_SUCCESS == status);
   }
   return PR_FAILURE;
 }
+
+static const PRCallOnceType pristineCallOnce;
+static PRCallOnceType loadFreeBLOnce;
 
 static PRStatus
 freebl_RunLoaderOnce( void )
 {
   PRStatus status;
-  static PRCallOnceType once;
 
-  status = PR_CallOnce(&once, &freebl_LoadDSO);
+  status = PR_CallOnce(&loadFreeBLOnce, &freebl_LoadDSO);
   return status;
 }
 
@@ -987,6 +986,29 @@ BL_Cleanup(void)
   (vector->p_BL_Cleanup)();
 }
 
+void
+BL_Unload(void)
+{
+  /* This function is not thread-safe, but doesn't need to be, because it is
+   * only called from functions that are also defined as not thread-safe,
+   * namely C_Finalize in softoken, and the SSL bypass shutdown callback called
+   * from NSS_Shutdown. */
+  char *disableUnload = NULL;
+  vector = NULL;
+  /* If an SSL socket is configured with SSL_BYPASS_PKCS11, but the application
+   * never does a handshake on it, BL_Unload will be called even though freebl
+   * was never loaded. So, don't assert blLib. */
+  if (blLib) {
+      disableUnload = PR_GetEnv("NSS_DISABLE_UNLOAD");
+      if (!disableUnload) {
+          PRStatus status = PR_UnloadLibrary(blLib);
+          PORT_Assert(PR_SUCCESS == status);
+      }
+      blLib = NULL;
+  }
+  loadFreeBLOnce = pristineCallOnce;
+}
+
 /* ============== New for 3.003 =============================== */
 
 SECStatus 
@@ -1613,4 +1635,23 @@ RNG_SystemInfoForRNG(void)
       return ;
   (vector->p_RNG_SystemInfoForRNG)();
 
+}
+
+SECStatus
+FIPS186Change_GenerateX(unsigned char *XKEY, const unsigned char *XSEEDj,
+                        unsigned char *x_j)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return SECFailure;
+  return (vector->p_FIPS186Change_GenerateX)(XKEY, XSEEDj, x_j);
+}
+
+SECStatus
+FIPS186Change_ReduceModQForDSA(const unsigned char *w,
+                               const unsigned char *q,
+                               unsigned char *xj)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return SECFailure;
+  return (vector->p_FIPS186Change_ReduceModQForDSA)(w, q, xj);
 }

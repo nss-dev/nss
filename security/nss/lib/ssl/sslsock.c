@@ -48,6 +48,9 @@
 #include "sslimpl.h"
 #include "sslproto.h"
 #include "nspr.h"
+#include "private/pprio.h"
+#include "blapi.h"
+#include "nss.h"
 
 #define SET_ERROR_CODE   /* reminder */
 
@@ -97,18 +100,24 @@ static cipherPolicy ssl_ciphers[] = {	   /*   Export           France   */
 #ifdef NSS_ENABLE_ECC
  {  TLS_ECDH_ECDSA_WITH_NULL_SHA,           SSL_ALLOWED,     SSL_ALLOWED },
  {  TLS_ECDH_ECDSA_WITH_RC4_128_SHA,        SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
- {  TLS_ECDH_ECDSA_WITH_DES_CBC_SHA,        SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
  {  TLS_ECDH_ECDSA_WITH_3DES_EDE_CBC_SHA,   SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
  {  TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA,    SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
  {  TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA,    SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
+ {  TLS_ECDHE_ECDSA_WITH_NULL_SHA,          SSL_ALLOWED,     SSL_ALLOWED },
+ {  TLS_ECDHE_ECDSA_WITH_RC4_128_SHA,       SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
+ {  TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA,  SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
+ {  TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,   SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
+ {  TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,   SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
  {  TLS_ECDH_RSA_WITH_NULL_SHA,             SSL_ALLOWED,     SSL_ALLOWED },
  {  TLS_ECDH_RSA_WITH_RC4_128_SHA,          SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
- {  TLS_ECDH_RSA_WITH_DES_CBC_SHA,          SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
  {  TLS_ECDH_RSA_WITH_3DES_EDE_CBC_SHA,     SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
  {  TLS_ECDH_RSA_WITH_AES_128_CBC_SHA,      SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
  {  TLS_ECDH_RSA_WITH_AES_256_CBC_SHA,      SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
- {  TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,   SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
+ {  TLS_ECDHE_RSA_WITH_NULL_SHA,            SSL_ALLOWED,     SSL_ALLOWED },
+ {  TLS_ECDHE_RSA_WITH_RC4_128_SHA,         SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
+ {  TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,    SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
  {  TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,     SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
+ {  TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,     SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
 #endif /* NSS_ENABLE_ECC */
  {  0,					    SSL_NOT_ALLOWED, SSL_NOT_ALLOWED }
 };
@@ -177,6 +186,7 @@ PRBool			ssl_force_locks;  	/* implicitly PR_FALSE */
 int                     ssl_lock_readers	= 1;	/* default true. */
 char                    ssl_debug;
 char                    ssl_trace;
+FILE *                  ssl_trace_iob;
 char lockStatus[] = "Locks are ENABLED.  ";
 #define LOCKSTATUS_OFFSET 10 /* offset of ENABLED */
 
@@ -202,11 +212,22 @@ ssl_GetPrivate(PRFileDesc *fd)
     PORT_Assert(fd->methods->file_type == PR_DESC_LAYERED);
     PORT_Assert(fd->identity == ssl_layer_id);
 
+    if (fd->methods->file_type != PR_DESC_LAYERED ||
+        fd->identity != ssl_layer_id) {
+	PORT_SetError(PR_BAD_DESCRIPTOR_ERROR);
+	return NULL;
+    }
+
     ss = (sslSocket *)fd->secret;
     ss->fd = fd;
     return ss;
 }
 
+/* This function tries to find the SSL layer in the stack. 
+ * It searches for the first SSL layer at or below the argument fd,
+ * and failing that, it searches for the nearest SSL layer above the 
+ * argument fd.  It returns the private sslSocket from the found layer.
+ */
 sslSocket *
 ssl_FindSocket(PRFileDesc *fd)
 {
@@ -291,6 +312,8 @@ ssl_DupSocket(sslSocket *os)
 	    }
 	    ss->stepDownKeyPair = !os->stepDownKeyPair ? NULL :
 		                  ssl3_GetKeyPairRef(os->stepDownKeyPair);
+	    ss->ephemeralECDHKeyPair = !os->ephemeralECDHKeyPair ? NULL :
+		                  ssl3_GetKeyPairRef(os->ephemeralECDHKeyPair);
 /*
  * XXX the preceeding CERT_ and SECKEY_ functions can fail and return NULL.
  * XXX We should detect this, and not just march on with NULL pointers.
@@ -396,6 +419,10 @@ ssl_DestroySocketContents(sslSocket *ss)
 	ssl3_FreeKeyPair(ss->stepDownKeyPair);
 	ss->stepDownKeyPair = NULL;
     }
+    if (ss->ephemeralECDHKeyPair) {
+	ssl3_FreeKeyPair(ss->ephemeralECDHKeyPair);
+	ss->ephemeralECDHKeyPair = NULL;
+    }
 }
 
 /*
@@ -486,6 +513,29 @@ SECStatus
 SSL_Enable(PRFileDesc *fd, int which, PRBool on)
 {
     return SSL_OptionSet(fd, which, on);
+}
+
+static const PRCallOnceType pristineCallOnce;
+static PRCallOnceType setupBypassOnce;
+
+static SECStatus SSL_BypassShutdown(void* appData, void* nssData)
+{
+    /* unload freeBL shared library from memory */
+    BL_Unload();
+    setupBypassOnce = pristineCallOnce;
+    return SECSuccess;
+}
+
+static PRStatus SSL_BypassRegisterShutdown(void)
+{
+    SECStatus rv = NSS_RegisterShutdown(SSL_BypassShutdown, NULL);
+    PORT_Assert(SECSuccess == rv);
+    return SECSuccess == rv ? PR_SUCCESS : PR_FAILURE;
+}
+
+static PRStatus SSL_BypassSetup(void)
+{
+    return PR_CallOnce(&setupBypassOnce, &SSL_BypassRegisterShutdown);
 }
 
 SECStatus
@@ -612,7 +662,15 @@ SSL_OptionSet(PRFileDesc *fd, PRInt32 which, PRBool on)
 	    PORT_SetError(PR_INVALID_STATE_ERROR);
 	    rv = SECFailure;
 	} else {
-	    ss->opt.bypassPKCS11   = on;
+            if (PR_FALSE != on) {
+                if (PR_SUCCESS == SSL_BypassSetup() ) {
+                    ss->opt.bypassPKCS11   = on;
+                } else {
+                    rv = SECFailure;
+                }
+            } else {
+                ss->opt.bypassPKCS11   = PR_FALSE;
+            }
 	}
 	break;
 
@@ -833,7 +891,15 @@ SSL_OptionSetDefault(PRInt32 which, PRBool on)
 	break;
 
       case SSL_BYPASS_PKCS11:
-	ssl_defaults.bypassPKCS11   = on;
+        if (PR_FALSE != on) {
+            if (PR_SUCCESS == SSL_BypassSetup()) {
+                ssl_defaults.bypassPKCS11   = on;
+            } else {
+                return SECFailure;
+            }
+        } else {
+            ssl_defaults.bypassPKCS11   = PR_FALSE;
+        }
 	break;
 
       case SSL_NO_LOCKS:
@@ -1474,29 +1540,6 @@ SSL_SetSockPeerID(PRFileDesc *fd, char *peerID)
     return SECSuccess;
 }
 
-SECStatus PR_CALLBACK
-ssl_SetTimeout(PRFileDesc *fd, PRIntervalTime timeout)
-{
-    sslSocket *ss;
-
-    ss = ssl_GetPrivate(fd);
-    if (!ss) {
-	SSL_DBG(("%d: SSL[%d]: bad socket in SetTimeout", SSL_GETPID(), fd));
-	return SECFailure;
-    }
-    SSL_LOCK_READER(ss);
-    ss->rTimeout = timeout;
-    if (ss->opt.fdx) {
-        SSL_LOCK_WRITER(ss);
-    }
-    ss->wTimeout = timeout;
-    if (ss->opt.fdx) {
-        SSL_UNLOCK_WRITER(ss);
-    }
-    SSL_UNLOCK_READER(ss);
-    return SECSuccess;
-}
-
 #define PR_POLL_RW (PR_POLL_WRITE | PR_POLL_READ)
 
 static PRInt16 PR_CALLBACK
@@ -1586,6 +1629,24 @@ ssl_Poll(PRFileDesc *fd, PRInt16 how_flags, PRInt16 *p_out_flags)
     return new_flags;
 }
 
+static PRInt32 PR_CALLBACK
+ssl_TransmitFile(PRFileDesc *sd, PRFileDesc *fd,
+		 const void *headers, PRInt32 hlen,
+		 PRTransmitFileFlags flags, PRIntervalTime timeout)
+{
+    PRSendFileData sfd;
+
+    sfd.fd = fd;
+    sfd.file_offset = 0;
+    sfd.file_nbytes = 0;
+    sfd.header = headers;
+    sfd.hlen = hlen;
+    sfd.trailer = NULL;
+    sfd.tlen = 0;
+
+    return sd->methods->sendfile(sd, &sfd, flags, timeout);
+}
+
 
 PRBool
 ssl_FdIsBlocking(PRFileDesc *fd)
@@ -1646,7 +1707,7 @@ ssl_WriteV(PRFileDesc *fd, const PRIOVec *iov, PRInt32 vectors,
 	} \
 	/* Only a nonblocking socket can have partial sends */ \
 	PR_ASSERT(!blocking); \
-	return sent; \
+	return sent + rv; \
     } 
 #define SEND(bfr, len) \
     do { \
@@ -1842,15 +1903,15 @@ static const PRIOMethods ssl_methods = {
     ssl_RecvFrom,        	/* recvfrom     */
     ssl_SendTo,          	/* sendto       */
     ssl_Poll,            	/* poll         */
-    ssl_EmulateAcceptRead,      /* acceptread   */
-    ssl_EmulateTransmitFile,    /* transmitfile */
+    PR_EmulateAcceptRead,       /* acceptread   */
+    ssl_TransmitFile,           /* transmitfile */
     ssl_GetSockName,     	/* getsockname  */
     ssl_GetPeerName,     	/* getpeername  */
     NULL,                	/* getsockopt   OBSOLETE */
     NULL,                	/* setsockopt   OBSOLETE */
     NULL,                	/* getsocketoption   */
     NULL,                	/* setsocketoption   */
-    ssl_EmulateSendFile, 	/* Send a (partial) file with header/trailer*/
+    PR_EmulateSendFile, 	/* Send a (partial) file with header/trailer*/
     NULL,                	/* reserved for future use */
     NULL,                	/* reserved for future use */
     NULL,                	/* reserved for future use */
@@ -2008,6 +2069,13 @@ ssl_NewSocket(PRBool makeLocks)
 	char * ev;
 	firsttime = 0;
 #ifdef DEBUG
+	ev = getenv("SSLDEBUGFILE");
+	if (ev && ev[0]) {
+	    ssl_trace_iob = fopen(ev, "w");
+	}
+	if (!ssl_trace_iob) {
+	    ssl_trace_iob = stderr;
+	}
 #ifdef TRACE
 	ev = getenv("SSLTRACE");
 	if (ev && ev[0]) {

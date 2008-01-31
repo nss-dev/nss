@@ -88,10 +88,10 @@
  * NSS is a shared library.
  */
 #define SPACE_ATTRIBUTE_HASH_SIZE 32 
-#define SPACE_TOKEN_OBJECT_HASH_SIZE 32
+#define SPACE_SESSION_OBJECT_HASH_SIZE 32
 #define SPACE_SESSION_HASH_SIZE 32
 #define TIME_ATTRIBUTE_HASH_SIZE 32
-#define TIME_TOKEN_OBJECT_HASH_SIZE 1024
+#define TIME_SESSION_OBJECT_HASH_SIZE 1024
 #define TIME_SESSION_HASH_SIZE 1024
 #define MAX_OBJECT_LIST_SIZE 800  
 				  /* how many objects to keep on the free list
@@ -319,8 +319,9 @@ struct SFTKSessionStr {
  *
  * The array of sessionLock's protect the session hash table (head[])
  * as well as the reference count of session objects in that bucket
- * (head[]->refCount),  objectLock protects all elements of the token
- * object hash table (tokObjects[], tokenIDCount, and tokenHashTable),
+ * (head[]->refCount),  objectLock protects all elements of the slot's
+ * object hash tables (sessObjHashTable[] and tokObjHashTable), and
+ * sessionObjectHandleCount.
  * slotLock protects the remaining protected elements:
  * password, isLoggedIn, ssoLoggedIn, and sessionCount,
  * and pwCheckLock serializes the key database password checks in
@@ -366,11 +367,11 @@ struct SFTKSlotStr {
     int			sessionCount;           /* variable - reset */
     PRInt32             rwSessionCount;    	/* set by atomic operations */
                                           	/* (reset) */
-    int			tokenIDCount;      	/* variable - perserved */
+    PRUint32		sessionObjectHandleCount; /* variable - preserved */
     int			index;			/* invariant */
-    PLHashTable		*tokenHashTable;	/* invariant */
-    SFTKObject		**tokObjects;		/* variable - reset */
-    unsigned int	tokObjHashSize;		/* invariant */
+    PLHashTable		*tokObjHashTable;	/* invariant */
+    SFTKObject		**sessObjHashTable;	/* variable - reset */
+    unsigned int	sessObjHashSize;	/* invariant */
     SFTKSession		**head;			/* variable -reset */
     unsigned int	sessHashSize;		/* invariant */
     char		tokDescription[33];	/* per load */
@@ -555,8 +556,8 @@ typedef struct sftk_parametersStr {
 
 SEC_BEGIN_PROTOS
 
-/* shared functions between PKCS11.c and SFTKFIPS.c */
-extern int nsf_init;
+/* shared functions between pkcs11.c and fipstokn.c */
+extern PRBool nsf_init;
 extern CK_RV nsc_CommonInitialize(CK_VOID_PTR pReserved, PRBool isFIPS);
 extern CK_RV nsc_CommonFinalize(CK_VOID_PTR pReserved, PRBool isFIPS);
 extern CK_RV nsc_CommonGetSlotList(CK_BBOOL tokPresent, 
