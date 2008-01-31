@@ -130,7 +130,14 @@ typedef enum {
     insufficient_security   = 71,
     internal_error          = 80,
     user_canceled           = 90,
-    no_renegotiation        = 100
+    no_renegotiation        = 100,
+
+/* Alerts for client hello extensions */
+    unsupported_extension           = 110,
+    certificate_unobtainable        = 111,
+    unrecognized_name               = 112,
+    bad_certificate_status_response = 113,
+    bad_certificate_hash_value      = 114
 
 } SSL3AlertDescription;
 
@@ -210,7 +217,8 @@ typedef enum {
     kea_ecdh_ecdsa,
     kea_ecdhe_ecdsa,
     kea_ecdh_rsa,
-    kea_ecdhe_rsa
+    kea_ecdhe_rsa,
+    kea_ecdh_anon
 } SSL3KeyExchangeAlgorithm;
      
 typedef struct {
@@ -250,13 +258,9 @@ typedef enum {
     ct_DSS_fixed_DH 	=  4, 
     ct_RSA_ephemeral_DH =  5, 
     ct_DSS_ephemeral_DH =  6,
-    /* XXX The numbers assigned to the following EC-based 
-     * certificate types might change before the ECC in TLS
-     * draft becomes an IETF RFC.
-     */
-    ct_ECDSA_sign	=  7, 
-    ct_RSA_fixed_ECDH	=  8, 
-    ct_ECDSA_fixed_ECDH	=  9 
+    ct_ECDSA_sign	=  64, 
+    ct_RSA_fixed_ECDH	=  65, 
+    ct_ECDSA_fixed_ECDH	=  66 
 
 } SSL3ClientCertificateType;
      

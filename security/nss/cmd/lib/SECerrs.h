@@ -131,7 +131,7 @@ ER3(SEC_ERROR_EXPIRED_ISSUER_CERTIFICATE,	(SEC_ERROR_BASE + 30),
 "The certificate issuer's certificate has expired.  Check your system date and time.")
 
 ER3(SEC_ERROR_CRL_EXPIRED,			(SEC_ERROR_BASE + 31),
-"The CRL for the certificate's issuer has expired.  Update it or check your system data and time.")
+"The CRL for the certificate's issuer has expired.  Update it or check your system date and time.")
 
 ER3(SEC_ERROR_CRL_BAD_SIGNATURE,		(SEC_ERROR_BASE + 32),
 "The CRL for the certificate's issuer has an invalid signature.")
@@ -476,7 +476,7 @@ ER3(SEC_ERROR_UNSUPPORTED_EC_POINT_FORM,	(SEC_ERROR_BASE + 142),
 "Unsupported elliptic curve point form.")
 
 ER3(SEC_ERROR_UNRECOGNIZED_OID,			(SEC_ERROR_BASE + 143),
-"Unrecognized Object IDentifier.")
+"Unrecognized Object Identifier.")
 
 ER3(SEC_ERROR_OCSP_INVALID_SIGNING_CERT,	(SEC_ERROR_BASE + 144),
 "Invalid OCSP signing certificate in OCSP response.")
@@ -504,3 +504,18 @@ ER3(SEC_ERROR_INCOMPATIBLE_PKCS11,	        (SEC_ERROR_BASE + 151),
 
 ER3(SEC_ERROR_NO_EVENT,	        		(SEC_ERROR_BASE + 152),
 "No new slot event is available at this time.")
+
+ER3(SEC_ERROR_CRL_ALREADY_EXISTS,      		(SEC_ERROR_BASE + 153),
+"CRL already exists.")
+
+ER3(SEC_ERROR_NOT_INITIALIZED,      		(SEC_ERROR_BASE + 154),
+"NSS is not initialized.")
+
+ER3(SEC_ERROR_TOKEN_NOT_LOGGED_IN,  		(SEC_ERROR_BASE + 155),
+"The operation failed because the PKCS#11 token is not logged in.")
+
+ER3(SEC_ERROR_OCSP_RESPONDER_CERT_INVALID,  	(SEC_ERROR_BASE + 156),
+"Configured OCSP responder's certificate is invalid.")
+
+ER3(SEC_ERROR_OCSP_BAD_SIGNATURE,      		(SEC_ERROR_BASE + 157),
+"OCSP response has an invalid signature.")

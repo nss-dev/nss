@@ -45,51 +45,21 @@
 #include "certdb.h"
 #include "cryptohi.h"
 
-#ifndef NSS_3_4_CODE
-#define NSS_3_4_CODE
-#endif /* NSS_3_4_CODE */
 #include "nsspki.h"
 #include "pkitm.h"
 #include "pkim.h"
 #include "pki3hack.h"
 #include "base.h"
 
-#define PENDING_SLOP (24L*60L*60L)
 
 /*
- * WARNING - this function is depricated, and will go away in the near future.
- *	It has been superseded by CERT_CheckCertValidTimes().
- *
  * Check the validity times of a certificate
  */
 SECStatus
 CERT_CertTimesValid(CERTCertificate *c)
 {
-    int64 now, notBefore, notAfter, pendingSlop;
-    SECStatus rv;
-    
-    /* if cert is already marked OK, then don't bother to check */
-    if ( c->timeOK ) {
-	return(SECSuccess);
-    }
-    
-    /* get current time */
-    now = PR_Now();
-    rv = CERT_GetCertTimes(c, &notBefore, &notAfter);
-    
-    if (rv) {
-	return(SECFailure);
-    }
-    
-    LL_I2L(pendingSlop, PENDING_SLOP);
-    LL_SUB(notBefore, notBefore, pendingSlop);
-
-    if (LL_CMP(now, <, notBefore) || LL_CMP(now, >, notAfter)) {
-	PORT_SetError(SEC_ERROR_EXPIRED_CERTIFICATE);
-	return(SECFailure);
-    }
-
-    return(SECSuccess);
+    SECCertTimeValidity valid = CERT_CheckCertValidTimes(c, PR_Now(), PR_TRUE);
+    return (valid == secCertTimeValid) ? SECSuccess : SECFailure;
 }
 
 /*
@@ -101,7 +71,6 @@ CERT_VerifySignedDataWithPublicKey(CERTSignedData *sd,
 		                   void *wincx)
 {
     SECStatus        rv;
-    SECOidTag        algid;
     SECItem          sig;
 
     if ( !pubKey || !sd ) {
@@ -114,9 +83,8 @@ CERT_VerifySignedDataWithPublicKey(CERTSignedData *sd,
     /* convert sig->len from bit counts to byte count. */
     DER_ConvertBitString(&sig);
 
-    algid = SECOID_GetAlgorithmTag(&sd->signatureAlgorithm);
-    rv = VFY_VerifyData(sd->data.data, sd->data.len, pubKey, &sig,
-			algid, wincx);
+    rv = VFY_VerifyDataWithAlgorithmID(sd->data.data, sd->data.len, pubKey, 
+			&sig, &sd->signatureAlgorithm, NULL, wincx);
 
     return rv ? SECFailure : SECSuccess;
 }
@@ -254,90 +222,6 @@ SEC_CheckCRL(CERTCertDBHandle *handle,CERTCertificate *cert,
 CERTCertificate *
 CERT_FindCertIssuer(CERTCertificate *cert, int64 validTime, SECCertUsage usage)
 {
-#ifdef NSS_CLASSIC
-    CERTAuthKeyID *   authorityKeyID = NULL;  
-    CERTCertificate * issuerCert     = NULL;
-    SECItem *         caName;
-    PRArenaPool       *tmpArena = NULL;
-
-    tmpArena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
-    
-    if ( !tmpArena ) {
-	goto loser;
-    }
-    authorityKeyID = CERT_FindAuthKeyIDExten(tmpArena,cert);
-
-    if ( authorityKeyID != NULL ) {
-	/* has the authority key ID extension */
-	if ( authorityKeyID->keyID.data != NULL ) {
-	    /* extension contains a key ID, so lookup based on it */
-	    issuerCert = CERT_FindCertByKeyID(cert->dbhandle, &cert->derIssuer,
-					      &authorityKeyID->keyID);
-	    if ( issuerCert == NULL ) {
-		PORT_SetError (SEC_ERROR_UNKNOWN_ISSUER);
-		goto loser;
-	    }
-	    
-	} else if ( authorityKeyID->authCertIssuer != NULL ) {
-	    /* no key ID, so try issuer and serial number */
-	    caName = (SECItem*)CERT_GetGeneralNameByType(authorityKeyID->authCertIssuer,
-					       		 certDirectoryName, PR_TRUE);
-
-	    /*
-	     * caName is NULL when the authCertIssuer field is not
-	     * being used, or other name form is used instead.
-	     * If the directoryName format and serialNumber fields are
-	     * used, we use them to find the CA cert.
-	     * Note:
-	     *	By the time it gets here, we known for sure that if the
-	     *	authCertIssuer exists, then the authCertSerialNumber
-	     *	must also exists (CERT_DecodeAuthKeyID() ensures this).
-	     *	We don't need to check again. 
-	     */
-
-	    if (caName != NULL) {
-		CERTIssuerAndSN issuerSN;
-
-		issuerSN.derIssuer.data = caName->data;
-		issuerSN.derIssuer.len = caName->len;
-		issuerSN.serialNumber.data = 
-			authorityKeyID->authCertSerialNumber.data;
-		issuerSN.serialNumber.len = 
-			authorityKeyID->authCertSerialNumber.len;
-		issuerCert = CERT_FindCertByIssuerAndSN(cert->dbhandle,
-								&issuerSN);
-		if ( issuerCert == NULL ) {
-		    PORT_SetError (SEC_ERROR_UNKNOWN_ISSUER);
-		    goto loser;
-		}
-	    }
-	}
-    }
-    if ( issuerCert == NULL ) {
-	/* if there is not authorityKeyID, then try to find the issuer */
-	/* find a valid CA cert with correct usage */
-	issuerCert = CERT_FindMatchingCert(cert->dbhandle,
-					   &cert->derIssuer,
-					   certOwnerCA, usage, PR_TRUE,
-					   validTime, PR_TRUE);
-
-	/* if that fails, then fall back to grabbing any cert with right name*/
-	if ( issuerCert == NULL ) {
-	    issuerCert = CERT_FindCertByName(cert->dbhandle, &cert->derIssuer);
-	    if ( issuerCert == NULL ) {
-		PORT_SetError (SEC_ERROR_UNKNOWN_ISSUER);
-	    }
-	}
-    }
-
-loser:
-    if (tmpArena != NULL) {
-	PORT_FreeArena(tmpArena, PR_FALSE);
-	tmpArena = NULL;
-    }
-
-    return(issuerCert);
-#else
     NSSCertificate *me;
     NSSTime *nssTime;
     NSSTrustDomain *td;
@@ -362,22 +246,21 @@ loser:
                                     chain, 2, NULL, &status, td, cc);
     nss_ZFreeIf(nssTime);
     if (status == PR_SUCCESS) {
+	PORT_Assert(me == chain[0]);
 	/* if it's a root, the chain will only have one cert */
 	if (!chain[1]) {
 	    /* already has a reference from the call to BuildChain */
 	    return cert;
-	} else {
-	    CERT_DestroyCertificate(cert); /* the first cert in the chain */
-	    return STAN_GetCERTCertificate(chain[1]); /* return the 2nd */
-	}
-    } else {
-	if (chain[0]) {
-	    CERT_DestroyCertificate(cert);
-	}
-	PORT_SetError (SEC_ERROR_UNKNOWN_ISSUER);
+	} 
+	NSSCertificate_Destroy(chain[0]); /* the first cert in the chain */
+	return STAN_GetCERTCertificate(chain[1]); /* return the 2nd */
+    } 
+    if (chain[0]) {
+	PORT_Assert(me == chain[0]);
+	NSSCertificate_Destroy(chain[0]); /* the first cert in the chain */
     }
+    PORT_SetError (SEC_ERROR_UNKNOWN_ISSUER);
     return NULL;
-#endif
 }
 
 /*
@@ -711,7 +594,11 @@ cert_VerifyCertChain(CERTCertDBHandle *handle, CERTCertificate *cert,
 	    int subjectNameListLen;
 	    int i;
 	    subjectNameList    = CERT_GetCertificateNames(subjectCert, arena);
+	    if (!subjectNameList)
+		goto loser;
 	    subjectNameListLen = CERT_GetNamesLength(subjectNameList);
+	    if (!subjectNameListLen)
+		goto loser;
 	    if (certsListLen <= namesCount + subjectNameListLen) {
 		CERTCertificate **tmpCertsList;
 		certsListLen = (namesCount + subjectNameListLen) * 2;
@@ -729,6 +616,13 @@ cert_VerifyCertChain(CERTCertDBHandle *handle, CERTCertificate *cert,
 	    namesCount += subjectNameListLen;
 	    namesList = cert_CombineNamesLists(namesList, subjectNameList);
 	}
+
+        /* check if the cert has an unsupported critical extension */
+	if ( subjectCert->options.bits.hasUnsupportedCriticalExt ) {
+	    PORT_SetError(SEC_ERROR_UNKNOWN_CRITICAL_EXTENSION);
+	    LOG_ERROR_OR_EXIT(log,subjectCert,count,0);
+	}
+
 	/* find the certificate of the issuer */
 	issuerCert = CERT_FindCertIssuer(subjectCert, t, certUsage);
 	if ( ! issuerCert ) {
@@ -1207,30 +1101,21 @@ CERT_VerifyCertificate(CERTCertDBHandle *handle, CERTCertificate *cert,
     }
     valid = SECSuccess ; /* start off assuming cert is valid */
    
-#ifdef notdef 
-    /* check if this cert is in the Evil list */
-    rv = CERT_CheckForEvilCert(cert);
-    if ( rv != SECSuccess ) {
-	PORT_SetError(SEC_ERROR_REVOKED_CERTIFICATE);
-	LOG_ERROR(log,cert,0,0);
-	return SECFailure;
-    }
-#endif
-    
     /* make sure that the cert is valid at time t */
     allowOverride = (PRBool)((requiredUsages & certificateUsageSSLServer) ||
                              (requiredUsages & certificateUsageSSLServerWithStepUp));
     validity = CERT_CheckCertValidTimes(cert, t, allowOverride);
     if ( validity != secCertTimeValid ) {
-        LOG_ERROR(log,cert,0,validity);
-	return SECFailure;
+        valid = SECFailure;
+        LOG_ERROR_OR_EXIT(log,cert,0,validity);
     }
 
     /* check key usage and netscape cert type */
     cert_GetCertType(cert);
     certType = cert->nsCertType;
 
-    for (i=1;i<=certificateUsageHighest && !(SECFailure == valid && !returnedUsages) ;) {
+    for (i=1; i<=certificateUsageHighest && 
+              (SECSuccess == valid || returnedUsages || log) ; ) {
         PRBool requiredUsage = (i & requiredUsages) ? PR_TRUE : PR_FALSE;
         if (PR_FALSE == requiredUsage && PR_FALSE == checkAllUsages) {
             NEXT_USAGE();
@@ -1394,7 +1279,7 @@ CERT_VerifyCertificate(CERTCertDBHandle *handle, CERTCertificate *cert,
         if (PR_FALSE == checkedOCSP) {
             checkedOCSP = PR_TRUE; /* only check OCSP once */
             statusConfig = CERT_GetStatusConfig(handle);
-            if ( (! (requiredUsages & certificateUsageStatusResponder)) &&
+            if ( (! (requiredUsages == certificateUsageStatusResponder)) &&
                 statusConfig != NULL) {
                 if (statusConfig->statusChecker != NULL) {
                     rv = (* statusConfig->statusChecker)(handle, cert,
@@ -1411,6 +1296,7 @@ CERT_VerifyCertificate(CERTCertDBHandle *handle, CERTCertificate *cert,
         NEXT_USAGE();
     }
     
+loser:
     return(valid);
 }
 			
