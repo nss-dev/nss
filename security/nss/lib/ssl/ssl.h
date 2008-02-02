@@ -112,8 +112,8 @@ SSL_IMPORT PRFileDesc *SSL_ImportFD(PRFileDesc *model, PRFileDesc *fd);
 					  /* step-down keys if needed.      */
 #define SSL_BYPASS_PKCS11              16 /* use PKCS#11 for pub key only   */
 #define SSL_NO_LOCKS                   17 /* Don't use locks for protection */
-#define SSL_ENABLE_SESSION_TICKET_EXTENSION 18 /* Enable TLS1 SessionTicket *
-                                                * extension (off by default) */
+#define SSL_ENABLE_SESSION_TICKETS     18 /* Enable TLS1 SessionTicket *
+                                           * extension (off by default) */
 
 #ifdef SSL_DEPRECATED_FUNCTION 
 /* Old deprecated function names */

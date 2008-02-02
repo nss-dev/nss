@@ -1238,9 +1238,9 @@ client_main(
 
     if (enableSessionTicketExtension) {
 	rv = SSL_OptionSet(model_sock,
-	    SSL_ENABLE_SESSION_TICKET_EXTENSION, PR_TRUE);
+	    SSL_ENABLE_SESSION_TICKETS, PR_TRUE);
 	if (rv != SECSuccess)
-	    errExit("SSL_OptionSet SSL_ENABLE_SESSION_TICKET_EXTENSION");
+	    errExit("SSL_OptionSet SSL_ENABLE_SESSION_TICKETS");
     }
 
     SSL_SetURL(model_sock, hostName);

@@ -1479,14 +1479,14 @@ extern SECStatus ssl3_HandleHelloExtensions(sslSocket *ss,
 /* Hello Extension related routines. */
 extern PRBool ssl3_ClientExtensionAdvertised(sslSocket *ss, PRUint16 ex_type);
 extern PRBool ssl3_ExtensionNegotiated(sslSocket *ss, PRUint16 ex_type);
-extern SECStatus ssl3_GetSessionTicketKeysPKCS11(PK11SymKey **aes_key,
-    PK11SymKey **mac_key);
-extern SECStatus ssl3_GetSessionTicketKeys(const unsigned char **aes_key,
-    PRUint32 *aes_key_length, const unsigned char **mac_key,
-    PRUint32 *mac_key_length);
 extern SECStatus ssl3_SetSIDSessionTicket(sslSessionID *sid,
     NewSessionTicket *session_ticket);
 extern SECStatus ssl3_SendNewSessionTicket(sslSocket *ss);
+extern PRBool ssl_GetSessionTicketKeys(uint8 *key_name, unsigned char *encKey,
+                                       unsigned char *macKey);
+extern PRBool ssl_GetSessionTicketKeysPKCS11(SECKEYPrivateKey *svrPrivKey,
+    SECKEYPublicKey *svrPubKey, void *pwArg, unsigned char *keyName,
+    PK11SymKey **aesKey, PK11SymKey **macKey);
 
 /* Tell clients to consider tickets valid for this long. */
 #define TLS1_EX_SESS_TICKET_LIFETIME_HINT   (2 * 24 * 60 * 60) /* 2 days */

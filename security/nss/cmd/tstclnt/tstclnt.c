@@ -837,7 +837,7 @@ int main(int argc, char **argv)
     }
 
     /* enable Session Ticket extension. */
-    rv = SSL_OptionSet(s, SSL_ENABLE_SESSION_TICKET_EXTENSION,
+    rv = SSL_OptionSet(s, SSL_ENABLE_SESSION_TICKETS,
 	enableSessionTicketExtension);
     if (rv != SECSuccess) {
 	SECU_PrintError(progName, "error enabling Session Ticket extension");

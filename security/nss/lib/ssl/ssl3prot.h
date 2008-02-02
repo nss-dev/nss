@@ -333,6 +333,10 @@ typedef struct {
     } identity;
 }  ClientIdentity;
 
+#define SESS_TICKET_KEY_NAME_PREFIX    "NSS!"
+#define SESS_TICKET_KEY_NAME_LEN       16
+#define SESS_TICKET_KEY_VAR_NAME_LEN   12
+
 typedef struct {
     unsigned char *key_name;
     unsigned char *iv;
@@ -350,7 +354,7 @@ typedef enum {
     session_ticket_xtn           = 35
 } ExtensionType;
 
-#define TLS1_EX_SESS_TICKET_KEY_NAME        "NSS_SESS_TICKET!"
+
 #define TLS1_EX_SESS_TICKET_MAC_LENGTH      32
 
 #endif /* __ssl3proto_h_ */

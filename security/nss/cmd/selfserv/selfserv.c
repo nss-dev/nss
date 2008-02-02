@@ -1451,7 +1451,7 @@ server_main(
 	}
     } 
     if (enableSessionTicketExtension) {
-	rv = SSL_OptionSet(model_sock, SSL_ENABLE_SESSION_TICKET_EXTENSION,
+	rv = SSL_OptionSet(model_sock, SSL_ENABLE_SESSION_TICKETS,
 	    PR_TRUE);
 	if (rv != SECSuccess) {
 	    errExit("error enabling Session Ticket extension ");

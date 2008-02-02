@@ -50,12 +50,14 @@
 #include "pk11pub.h"
 #include "blapi.h"
 
+static uint8          key_name[SESS_TICKET_KEY_NAME_LEN];
 static PK11SymKey    *session_ticket_enc_key_pkcs11 = NULL;
 static PK11SymKey    *session_ticket_mac_key_pkcs11 = NULL;
-static PRCallOnceType generate_session_keys_once_pkcs11;
 
 static unsigned char  session_ticket_enc_key[32];
 static unsigned char  session_ticket_mac_key[SHA256_LENGTH];
+
+static PRBool         session_ticket_keys_initialized = PR_FALSE;
 static PRCallOnceType generate_session_keys_once;
 
 static PRInt32 ssl3_SendServerNameExt(sslSocket * ss,
@@ -66,7 +68,11 @@ static SECStatus ssl3_AppendToItem(SECItem *item, const unsigned char *buf,
     PRUint32 bytes);
 static SECStatus ssl3_AppendNumberToItem(SECItem *item, PRUint32 num,
     PRInt32 lenSize);
-
+static SECStatus ssl3_GetSessionTicketKeysPKCS11(sslSocket *ss,
+    PK11SymKey **aes_key, PK11SymKey **mac_key);
+static SECStatus ssl3_GetSessionTicketKeys(const unsigned char **aes_key,
+    PRUint32 *aes_key_length, const unsigned char **mac_key,
+    PRUint32 *mac_key_length);
 
 /*
  * Write bytes.  Using this function means the SECItem structure
@@ -121,37 +127,38 @@ static SECStatus ssl3_SessionTicketShutdown(void* appData, void* nssData)
 	PK11_FreeSymKey(session_ticket_mac_key_pkcs11);
 	session_ticket_mac_key_pkcs11 = NULL;
     }
-    memset(&generate_session_keys_once_pkcs11, 0, sizeof(PRCallOnceType));
+    PORT_Memset(&generate_session_keys_once, 0,
+	sizeof(generate_session_keys_once));
     return SECSuccess;
 }
 
-static PRStatus
-ssl3_GenerateSessionTicketKeysPKCS11(void)
-{
-    PK11SlotInfo *slot;
-    SECStatus rv;
-    CK_MECHANISM_TYPE mechanism_array[2];
 
-    slot = PK11_GetBestSlot(CKM_AES_CBC, NULL);
-    /* no parameter, 128-bit key size */
-    session_ticket_enc_key_pkcs11 =
-	PK11_KeyGen(slot, CKM_AES_KEY_GEN, NULL, 16, NULL);
-    PK11_FreeSlot(slot);
-    if (!session_ticket_enc_key_pkcs11)
+static PRStatus
+ssl3_GenerateSessionTicketKeysPKCS11(void *data)
+{
+    SECStatus rv;
+    sslSocket *ss = (sslSocket *)data;
+    SECKEYPrivateKey *svrPrivKey = ss->serverCerts[kt_rsa].SERVERKEY;
+    SECKEYPublicKey *svrPubKey = ss->serverCerts[kt_rsa].serverKeyPair->pubKey;
+
+    if (svrPrivKey == NULL || svrPubKey == NULL) {
+	SSL_DBG(("%d: SSL[%d]: Pub or priv key(s) is NULL.",
+			SSL_GETPID(), ss->fd));
+	goto loser;
+    }
+
+    /* Get a copy of the session keys from shared memory. */
+    PORT_Memcpy(key_name, SESS_TICKET_KEY_NAME_PREFIX,
+	sizeof(SESS_TICKET_KEY_NAME_PREFIX));
+    if (!ssl_GetSessionTicketKeysPKCS11(svrPrivKey, svrPubKey, ss->pkcs11PinArg,
+	    &key_name[4], &session_ticket_enc_key_pkcs11,
+	    &session_ticket_mac_key_pkcs11))
 	return PR_FAILURE;
 
-    mechanism_array[0] = CKM_SHA256_HMAC;
-    mechanism_array[1] = CKM_GENERIC_SECRET_KEY_GEN;
-    slot = PK11_GetBestSlotMultiple(mechanism_array, 2, NULL);
-    /* no parameter, 256-bit key size */
-    session_ticket_mac_key_pkcs11 =
-	PK11_KeyGen(slot, CKM_GENERIC_SECRET_KEY_GEN, NULL, 32, NULL);
-    PK11_FreeSlot(slot);
-    if (!session_ticket_mac_key_pkcs11)
-	goto loser;
     rv = NSS_RegisterShutdown(ssl3_SessionTicketShutdown, NULL);
     if (rv != SECSuccess)
 	goto loser;
+
     return PR_SUCCESS;
 
 loser:
@@ -159,41 +166,47 @@ loser:
     return PR_FAILURE;
 }
 
-SECStatus
-ssl3_GetSessionTicketKeysPKCS11(PK11SymKey **aes_key, PK11SymKey **mac_key)
+static SECStatus
+ssl3_GetSessionTicketKeysPKCS11(sslSocket *ss, PK11SymKey **aes_key,
+                                PK11SymKey **mac_key)
 {
-    PRStatus rv;
-    rv = PR_CallOnce(&generate_session_keys_once_pkcs11,
-	ssl3_GenerateSessionTicketKeysPKCS11);
-    if (rv != PR_SUCCESS)
+    if (PR_CallOnceWithArg(&generate_session_keys_once,
+	    ssl3_GenerateSessionTicketKeysPKCS11, ss) != PR_SUCCESS)
+	return SECFailure;
+
+    if (session_ticket_enc_key_pkcs11 == NULL ||
+	session_ticket_mac_key_pkcs11 == NULL)
 	return SECFailure;
 
     *aes_key = session_ticket_enc_key_pkcs11;
     *mac_key = session_ticket_mac_key_pkcs11;
-
     return SECSuccess;
 }
 
 static PRStatus
 ssl3_GenerateSessionTicketKeys(void)
 {
-    SECStatus rv = PK11_GenerateRandom(session_ticket_enc_key,
-	sizeof(session_ticket_enc_key));
-    if (rv != SECSuccess) return PR_FAILURE;
-    rv = PK11_GenerateRandom(session_ticket_mac_key,
-	sizeof(session_ticket_mac_key));
-    return rv == SECSuccess ? PR_SUCCESS : PR_FAILURE;
+    PORT_Memcpy(key_name, SESS_TICKET_KEY_NAME_PREFIX,
+	sizeof(SESS_TICKET_KEY_NAME_PREFIX));
+
+    if (!ssl_GetSessionTicketKeys(&key_name[4], session_ticket_enc_key,
+	    session_ticket_mac_key))
+	return PR_FAILURE;
+
+    session_ticket_keys_initialized = PR_TRUE;
+    return PR_SUCCESS;
 }
 
-SECStatus
+static SECStatus
 ssl3_GetSessionTicketKeys(const unsigned char **aes_key,
     PRUint32 *aes_key_length, const unsigned char **mac_key,
     PRUint32 *mac_key_length)
 {
-    PRStatus rv;
-    rv = PR_CallOnce(&generate_session_keys_once,
-	ssl3_GenerateSessionTicketKeys);
-    if (rv != PR_SUCCESS)
+    if (PR_CallOnce(&generate_session_keys_once,
+	    ssl3_GenerateSessionTicketKeys) != SECSuccess)
+	return SECFailure;
+
+    if (!session_ticket_keys_initialized)
 	return SECFailure;
 
     *aes_key = session_ticket_enc_key;
@@ -462,7 +475,7 @@ ssl3_SendNewSessionTicket(sslSocket *ss)
 	rv = ssl3_GetSessionTicketKeys(&aes_key, &aes_key_length,
 	    &mac_key, &mac_key_length);
     } else {
-	rv = ssl3_GetSessionTicketKeysPKCS11(&aes_key_pkcs11,
+	rv = ssl3_GetSessionTicketKeysPKCS11(ss, &aes_key_pkcs11,
 	    &mac_key_pkcs11);
     }
     if (rv != SECSuccess) goto loser;
@@ -521,7 +534,7 @@ ssl3_SendNewSessionTicket(sslSocket *ss)
     message_length =
 	sizeof(ticket.ticket_lifetime_hint)    /* ticket_lifetime_hint */
 	+ 2 /* length field for NewSessionTicket.ticket */
-	+ sizeof(TLS1_EX_SESS_TICKET_KEY_NAME) /* key_name */
+	+ SESS_TICKET_KEY_NAME_LEN             /* key_name */
 	+ AES_BLOCK_SIZE                       /* iv */
 	+ 2 /* length field for NewSessionTicket.ticket.encrypted_state */
 	+ ciphertext_length                    /* encrypted_state */
@@ -621,7 +634,7 @@ ssl3_SendNewSessionTicket(sslSocket *ss)
 	if (!aes_ctx_pkcs11) 
 	    goto loser;
 
-	rv = PK11_CipherOp(aes_ctx_pkcs11, ciphertext.data, &ciphertext.len,
+	rv = PK11_CipherOp(aes_ctx_pkcs11, ciphertext.data, (int *)&ciphertext.len,
 	    ciphertext.len, plaintext_item.data, plaintext_item.len);
 	PK11_Finalize(aes_ctx_pkcs11);
 	PK11_DestroyContext(aes_ctx_pkcs11, PR_TRUE);
@@ -641,8 +654,7 @@ ssl3_SendNewSessionTicket(sslSocket *ss)
 	    goto loser;
 
 	HMAC_Begin(hmac_ctx);
-	HMAC_Update(hmac_ctx, (unsigned char *)TLS1_EX_SESS_TICKET_KEY_NAME, 
-	    sizeof(TLS1_EX_SESS_TICKET_KEY_NAME));
+	HMAC_Update(hmac_ctx, key_name, SESS_TICKET_KEY_NAME_LEN);
 	HMAC_Update(hmac_ctx, iv, sizeof(iv));
 	HMAC_Update(hmac_ctx, (unsigned char *)length_buf, 2);
 	HMAC_Update(hmac_ctx, ciphertext.data, ciphertext.len);
@@ -658,9 +670,8 @@ ssl3_SendNewSessionTicket(sslSocket *ss)
 	    goto loser;
 
 	rv = PK11_DigestBegin(hmac_ctx_pkcs11);
-	rv = PK11_DigestOp(hmac_ctx_pkcs11,
-	    (unsigned char *)TLS1_EX_SESS_TICKET_KEY_NAME,
-	    sizeof(TLS1_EX_SESS_TICKET_KEY_NAME));
+	rv = PK11_DigestOp(hmac_ctx_pkcs11, key_name,
+	    SESS_TICKET_KEY_NAME_LEN);
 	rv = PK11_DigestOp(hmac_ctx_pkcs11, iv, sizeof(iv));
 	rv = PK11_DigestOp(hmac_ctx_pkcs11, (unsigned char *)length_buf, 2);
 	rv = PK11_DigestOp(hmac_ctx_pkcs11, ciphertext.data, ciphertext.len);
@@ -682,9 +693,7 @@ ssl3_SendNewSessionTicket(sslSocket *ss)
 	message_length - sizeof(ticket.ticket_lifetime_hint) - 2, 2);
     if (rv != SECSuccess) goto loser;
 
-    rv = ssl3_AppendHandshake(ss, 
-	(unsigned char *)TLS1_EX_SESS_TICKET_KEY_NAME,
-	sizeof(TLS1_EX_SESS_TICKET_KEY_NAME));
+    rv = ssl3_AppendHandshake(ss, key_name, SESS_TICKET_KEY_NAME_LEN);
     if (rv != SECSuccess) goto loser;
 
     rv = ssl3_AppendHandshake(ss, iv, sizeof(iv));
@@ -750,6 +759,12 @@ ssl3_ServerHandleSessionTicketExt(sslSocket *ss, PRUint16 ex_type,
 	unsigned char          computed_mac[TLS1_EX_SESS_TICKET_MAC_LENGTH];
 	unsigned int           computed_mac_length;
 	const SECHashObject   *hashObj;
+	const unsigned char   *aes_key;
+	const unsigned char   *mac_key;
+	PK11SymKey            *aes_key_pkcs11;
+	PK11SymKey            *mac_key_pkcs11;
+	PRUint32               aes_key_length;
+	PRUint32               mac_key_length;
 	PRUint64               hmac_ctx_buf[MAX_MAC_CONTEXT_LLONGS];
 	HMACContext           *hmac_ctx;
 	PK11Context           *hmac_ctx_pkcs11;
@@ -783,13 +798,37 @@ ssl3_ServerHandleSessionTicketExt(sslSocket *ss, PRUint16 ex_type,
 	    != SECSuccess)
 	    return SECFailure;
 
+	/* Get session ticket keys. */
+	if (ss->opt.bypassPKCS11) {
+	    rv = ssl3_GetSessionTicketKeys(&aes_key, &aes_key_length,
+		&mac_key, &mac_key_length);
+	} else {
+	    rv = ssl3_GetSessionTicketKeysPKCS11(ss, &aes_key_pkcs11,
+		&mac_key_pkcs11);
+	}
+	if (rv != SECSuccess) {
+	    SSL_DBG(("%d: SSL[%d]: Unable to get/generate session ticket keys.",
+			SSL_GETPID(), ss->fd));
+	    goto no_ticket;
+	}
+
+	/* If the ticket sent by the client was generated under a key different
+	 * from the one we have, bypass ticket processing.
+	 */
+	if (PORT_Memcmp(enc_session_ticket.key_name, key_name,
+		SESS_TICKET_KEY_NAME_LEN) != 0) {
+	    SSL_DBG(("%d: SSL[%d]: Session ticket key_name sent mismatch.",
+			SSL_GETPID(), ss->fd));
+	    goto no_ticket;
+	}
+
 	/* Verify the MAC on the ticket.  MAC verification may also
 	 * fail if the MAC key has been recently refreshed.
 	 */
 	if (ss->opt.bypassPKCS11) {
 	    hmac_ctx = (HMACContext *)hmac_ctx_buf;
 	    hashObj = HASH_GetRawHashObject(HASH_AlgSHA256);
-	    if (HMAC_Init(hmac_ctx, hashObj, session_ticket_mac_key,
+	    if (HMAC_Init(hmac_ctx, hashObj, mac_key,
 		    sizeof(session_ticket_mac_key), PR_FALSE) != SECSuccess)
 		goto no_ticket;
 	    HMAC_Begin(hmac_ctx);
@@ -803,9 +842,15 @@ ssl3_ServerHandleSessionTicketExt(sslSocket *ss, PRUint16 ex_type,
 	    macParam.data = NULL;
 	    macParam.len = 0;
 	    hmac_ctx_pkcs11 = PK11_CreateContextBySymKey(macMech,
-		CKA_SIGN, session_ticket_mac_key_pkcs11, &macParam);
-	    if (!hmac_ctx_pkcs11)
+		CKA_SIGN, mac_key_pkcs11, &macParam);
+	    if (!hmac_ctx_pkcs11) {
+		SSL_DBG(("%d: SSL[%d]: Unable to create HMAC context: %d.",
+			    SSL_GETPID(), ss->fd, PORT_GetError()));
 		goto no_ticket;
+	    } else {
+		SSL_DBG(("%d: SSL[%d]: Successfully created HMAC context.",
+			    SSL_GETPID(), ss->fd));
+	    }
 	    rv = PK11_DigestBegin(hmac_ctx_pkcs11);
 	    rv = PK11_DigestOp(hmac_ctx_pkcs11, extension_data.data,
 		extension_data.len - TLS1_EX_SESS_TICKET_MAC_LENGTH);
@@ -820,8 +865,11 @@ ssl3_ServerHandleSessionTicketExt(sslSocket *ss, PRUint16 ex_type,
 		goto no_ticket;
 	}
 	if (PORT_Memcmp(computed_mac, enc_session_ticket.mac,
-		computed_mac_length) != 0)
+		computed_mac_length) != 0) {
+	    SSL_DBG(("%d: SSL[%d]: Session ticket MAC mismatch.",
+			SSL_GETPID(), ss->fd));
 	    goto no_ticket;
+	}
 
 	/* We ignore key_name for now.
 	 * This is ok as MAC verification succeeded.
@@ -835,11 +883,14 @@ ssl3_ServerHandleSessionTicketExt(sslSocket *ss, PRUint16 ex_type,
 
 	if (ss->opt.bypassPKCS11) {
 	    aes_ctx = (AESContext *)aes_ctx_buf;
-	    rv = AES_InitContext(aes_ctx, session_ticket_enc_key,
+	    rv = AES_InitContext(aes_ctx, aes_key,
 		sizeof(session_ticket_enc_key), enc_session_ticket.iv,
 		NSS_AES_CBC, 0,AES_BLOCK_SIZE);
-	    if (rv != SECSuccess)
+	    if (rv != SECSuccess) {
+		SSL_DBG(("%d: SSL[%d]: Unable to create AES context.",
+			    SSL_GETPID(), ss->fd));
 		goto no_ticket;
+	    }
 
 	    rv = AES_Decrypt(aes_ctx, decrypted_state->data,
 		&decrypted_state->len, decrypted_state->len,
@@ -852,12 +903,15 @@ ssl3_ServerHandleSessionTicketExt(sslSocket *ss, PRUint16 ex_type,
 	    ivItem.data = enc_session_ticket.iv;
 	    ivItem.len = AES_BLOCK_SIZE;
 	    aes_ctx_pkcs11 = PK11_CreateContextBySymKey(cipherMech,
-		CKA_DECRYPT, session_ticket_enc_key_pkcs11, &ivItem);
-	    if (!aes_ctx_pkcs11)
+		CKA_DECRYPT, aes_key_pkcs11, &ivItem);
+	    if (!aes_ctx_pkcs11) {
+		SSL_DBG(("%d: SSL[%d]: Unable to create AES context.",
+			    SSL_GETPID(), ss->fd));
 		goto no_ticket;
+	    }
 
 	    rv = PK11_CipherOp(aes_ctx_pkcs11, decrypted_state->data,
-		&decrypted_state->len, decrypted_state->len,
+		(int *)&decrypted_state->len, decrypted_state->len,
 		enc_session_ticket.encrypted_state.data,
 		enc_session_ticket.encrypted_state.len);
 	    PK11_Finalize(aes_ctx_pkcs11);
@@ -985,7 +1039,8 @@ ssl3_ServerHandleSessionTicketExt(sslSocket *ss, PRUint16 ex_type,
 	 * memory since the ticket is of no use.
 	 */
 	if (parsed_session_ticket->timestamp != 0 &&
-	    parsed_session_ticket->timestamp + TLS1_EX_SESS_TICKET_LIFETIME_HINT > ssl_Time()) {
+	    parsed_session_ticket->timestamp +
+	    TLS1_EX_SESS_TICKET_LIFETIME_HINT > ssl_Time()) {
 
 	    sid = ssl3_NewSessionID(ss, PR_TRUE);
 	    if (sid == NULL) {
@@ -1039,6 +1094,8 @@ ssl3_ServerHandleSessionTicketExt(sslSocket *ss, PRUint16 ex_type,
 
     if (0) {
 no_ticket:
+	SSL_DBG(("%d: SSL[%d]: Session ticket parsing failed.",
+			SSL_GETPID(), ss->fd));
 	if (sid) {
 	    ssl_FreeSID(sid);
 	    sid = NULL;
@@ -1084,7 +1141,7 @@ ssl3_ParseEncryptedSessionTicket(sslSocket *ss, SECItem *data,
     EncryptedSessionTicket *enc_session_ticket)
 {
     if (ssl3_ConsumeFromItem(data, &enc_session_ticket->key_name,
-	    sizeof(TLS1_EX_SESS_TICKET_KEY_NAME)) != SECSuccess)
+	    SESS_TICKET_KEY_NAME_LEN) != SECSuccess)
 	return SECFailure;
     if (ssl3_ConsumeFromItem(data, &enc_session_ticket->iv,
 	    AES_BLOCK_SIZE) != SECSuccess)

@@ -700,7 +700,7 @@ SSL_OptionSet(PRFileDesc *fd, PRInt32 which, PRBool on)
 	}
 	break;
 
-      case SSL_ENABLE_SESSION_TICKET_EXTENSION:
+      case SSL_ENABLE_SESSION_TICKETS:
 	ss->opt.enableSessionTicketExtension = on;
 	break;
 
@@ -759,7 +759,7 @@ SSL_OptionGet(PRFileDesc *fd, PRInt32 which, PRBool *pOn)
     case SSL_NO_STEP_DOWN:        on = ss->opt.noStepDown;         break;
     case SSL_BYPASS_PKCS11:       on = ss->opt.bypassPKCS11;       break;
     case SSL_NO_LOCKS:            on = ss->opt.noLocks;            break;
-    case SSL_ENABLE_SESSION_TICKET_EXTENSION:
+    case SSL_ENABLE_SESSION_TICKETS:
 	on = ss->opt.enableSessionTicketExtension;
 	break;
     default:
@@ -802,7 +802,7 @@ SSL_OptionGetDefault(PRInt32 which, PRBool *pOn)
     case SSL_NO_STEP_DOWN:        on = ssl_defaults.noStepDown;         break;
     case SSL_BYPASS_PKCS11:       on = ssl_defaults.bypassPKCS11;       break;
     case SSL_NO_LOCKS:            on = ssl_defaults.noLocks;            break;
-    case SSL_ENABLE_SESSION_TICKET_EXTENSION:
+    case SSL_ENABLE_SESSION_TICKETS:
 	on = ssl_defaults.enableSessionTicketExtension;
 	break;
 
@@ -932,7 +932,7 @@ SSL_OptionSetDefault(PRInt32 which, PRBool on)
 	}
 	break;
 
-      case SSL_ENABLE_SESSION_TICKET_EXTENSION:
+      case SSL_ENABLE_SESSION_TICKETS:
 	ssl_defaults.enableSessionTicketExtension = on;
 	break;
 
