@@ -3507,7 +3507,7 @@ ssl3_SendClientHello(sslSocket *ss)
     /* We might be starting a session renegotiation in which case we should
      * clear previous state.
      */
-    PORT_Memset(&ss->xtnData, 0, sizeof(TLS1ExtensionData));
+    PORT_Memset(&ss->xtnData, 0, sizeof(TLSExtensionData));
 
     SSL_TRC(30,("%d: SSL3[%d]: reset handshake hashes",
 	    SSL_GETPID(), ss->fd ));
@@ -5627,7 +5627,7 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     /* We might be starting a session renegotiation in which case we should
      * clear previous state.
      */
-    PORT_Memset(&ss->xtnData, 0, sizeof(TLS1ExtensionData));
+    PORT_Memset(&ss->xtnData, 0, sizeof(TLSExtensionData));
     ss->statelessResume = PR_FALSE;
 
     /* OpenSSL 0.9.8g sends TLS extensions even when negotiating SSL3,
@@ -8411,7 +8411,7 @@ ssl3_InitState(sslSocket *ss)
 #endif
     ssl_ReleaseSpecWriteLock(ss);
 
-    PORT_Memset(&ss->xtnData, 0, sizeof(TLS1ExtensionData));
+    PORT_Memset(&ss->xtnData, 0, sizeof(TLSExtensionData));
 
     rv = ssl3_NewHandshakeHashes(ss);
     if (rv == SECSuccess) {

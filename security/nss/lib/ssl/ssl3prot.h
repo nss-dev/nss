@@ -309,7 +309,7 @@ typedef struct {
 } TLSFinished;
 
 /*
- * TLS1 extension related data structures and constants.
+ * TLS extension related data structures and constants.
  */ 
 
 /* SessionTicket extension related data structures. */
@@ -355,6 +355,6 @@ typedef enum {
 } ExtensionType;
 
 
-#define TLS1_EX_SESS_TICKET_MAC_LENGTH      32
+#define TLS_EX_SESS_TICKET_MAC_LENGTH       32
 
 #endif /* __ssl3proto_h_ */

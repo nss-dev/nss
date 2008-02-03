@@ -336,7 +336,7 @@ typedef struct sslOptionsStr {
     unsigned int noStepDown             : 1;  /* 15 */
     unsigned int bypassPKCS11           : 1;  /* 16 */
     unsigned int noLocks                : 1;  /* 17 */
-    unsigned int enableSessionTicketExtension : 1; /* 18 */
+    unsigned int enableSessionTickets   : 1;  /* 18 */
 } sslOptions;
 
 typedef enum { sslHandshakingUndetermined = 0,
@@ -703,12 +703,12 @@ typedef enum {
 } SSL3WaitState;
 
 /*
- * TLS1 Extension related constants and data structures.
+ * TLS extension related constants and data structures.
  */
-typedef struct TLS1ExtensionDataStr      TLS1ExtensionData;
+typedef struct TLSExtensionDataStr       TLSExtensionData;
 typedef struct SessionTicketDataStr      SessionTicketData;
 
-struct TLS1ExtensionDataStr {
+struct TLSExtensionDataStr {
     /* registered callbacks that send server hello extensions */
     ssl3HelloExtensionSender senders[MAX_EXTENSION_SENDERS];
     /* Keep track of the extensions that are negotiated. */
@@ -1083,11 +1083,11 @@ const unsigned char *  preferredCipher;
     ssl3State        ssl3;
 
     /*
-     * TLS1 Extension related data.
+     * TLS extension related data.
      */
     /* True when the current session is a stateless resume. */
     PRBool               statelessResume;
-    TLS1ExtensionData    xtnData;
+    TLSExtensionData     xtnData;
 };
 
 
@@ -1489,8 +1489,8 @@ extern PRBool ssl_GetSessionTicketKeysPKCS11(SECKEYPrivateKey *svrPrivKey,
     PK11SymKey **aesKey, PK11SymKey **macKey);
 
 /* Tell clients to consider tickets valid for this long. */
-#define TLS1_EX_SESS_TICKET_LIFETIME_HINT   (2 * 24 * 60 * 60) /* 2 days */
-#define TLS1_EX_SESS_TICKET_VERSION         (0x0100)
+#define TLS_EX_SESS_TICKET_LIFETIME_HINT    (2 * 24 * 60 * 60) /* 2 days */
+#define TLS_EX_SESS_TICKET_VERSION          (0x0100)
 
 /* Construct a new NSPR socket for the app to use */
 extern PRFileDesc *ssl_NewPRSocket(sslSocket *ss, PRFileDesc *fd);

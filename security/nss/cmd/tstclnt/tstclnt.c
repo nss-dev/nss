@@ -519,7 +519,7 @@ int main(int argc, char **argv)
     int                bypassPKCS11 = 0;
     int                disableLocking = 0;
     int                useExportPolicy = 0;
-    int                enableSessionTicketExtension = 0;
+    int                enableSessionTickets = 0;
     PRSocketOptionData opt;
     PRNetAddr          addr;
     PRPollDesc         pollset[2];
@@ -588,7 +588,7 @@ int main(int argc, char **argv)
 
 	  case 's': disableLocking = 1;                 break;
 
-	  case 'u': enableSessionTicketExtension = PR_TRUE;	break;
+	  case 'u': enableSessionTickets = PR_TRUE;	break;
 
 	  case 'v': verbose++;	 			break;
 
@@ -837,8 +837,7 @@ int main(int argc, char **argv)
     }
 
     /* enable Session Ticket extension. */
-    rv = SSL_OptionSet(s, SSL_ENABLE_SESSION_TICKETS,
-	enableSessionTicketExtension);
+    rv = SSL_OptionSet(s, SSL_ENABLE_SESSION_TICKETS, enableSessionTickets);
     if (rv != SECSuccess) {
 	SECU_PrintError(progName, "error enabling Session Ticket extension");
 	return 1;

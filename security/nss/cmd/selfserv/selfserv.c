@@ -199,7 +199,7 @@ Usage(const char *progName)
 "    3 -r's mean request, not require, cert on second handshake.\n"
 "    4 -r's mean request  and require, cert on second handshake.\n"
 "-s means disable SSL socket locking for performance\n"
-"-u means enable Session Ticket extension for TLS1.\n"
+"-u means enable Session Ticket extension for TLS.\n"
 "-v means verbose output\n"
 "-x means use export policy.\n"
 "-L seconds means log statistics every 'seconds' seconds (default=30).\n"
@@ -667,7 +667,7 @@ PRBool disableStepDown = PR_FALSE;
 PRBool bypassPKCS11    = PR_FALSE;
 PRBool disableLocking  = PR_FALSE;
 PRBool testbypass      = PR_FALSE;
-PRBool enableSessionTicketExtension = PR_FALSE;
+PRBool enableSessionTickets = PR_FALSE;
 
 static const char stopCmd[] = { "GET /stop " };
 static const char getCmd[]  = { "GET " };
@@ -1450,9 +1450,8 @@ server_main(
 	    errExit("error disabling SSL socket locking ");
 	}
     } 
-    if (enableSessionTicketExtension) {
-	rv = SSL_OptionSet(model_sock, SSL_ENABLE_SESSION_TICKETS,
-	    PR_TRUE);
+    if (enableSessionTickets) {
+	rv = SSL_OptionSet(model_sock, SSL_ENABLE_SESSION_TICKETS, PR_TRUE);
 	if (rv != SECSuccess) {
 	    errExit("error enabling Session Ticket extension ");
 	}
@@ -1794,7 +1793,7 @@ main(int argc, char **argv)
 	    if ( maxThreads < MIN_THREADS ) maxThreads = MIN_THREADS;
 	    break;
 
-	case 'u': enableSessionTicketExtension = PR_TRUE; break;
+	case 'u': enableSessionTickets = PR_TRUE; break;
 
 	case 'v': verbose++; break;
 

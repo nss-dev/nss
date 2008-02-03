@@ -160,7 +160,7 @@ static PRBool disableTLS      = PR_FALSE;
 static PRBool bypassPKCS11    = PR_FALSE;
 static PRBool disableLocking  = PR_FALSE;
 static PRBool ignoreErrors    = PR_FALSE;
-static PRBool enableSessionTicketExtension = PR_FALSE;
+static PRBool enableSessionTickets = PR_FALSE;
 
 PRIntervalTime maxInterval    = PR_INTERVAL_NO_TIMEOUT;
 
@@ -1236,9 +1236,8 @@ client_main(
 	}
     }
 
-    if (enableSessionTicketExtension) {
-	rv = SSL_OptionSet(model_sock,
-	    SSL_ENABLE_SESSION_TICKETS, PR_TRUE);
+    if (enableSessionTickets) {
+	rv = SSL_OptionSet(model_sock, SSL_ENABLE_SESSION_TICKETS, PR_TRUE);
 	if (rv != SECSuccess)
 	    errExit("SSL_OptionSet SSL_ENABLE_SESSION_TICKETS");
     }
@@ -1394,7 +1393,7 @@ main(int argc, char **argv)
 	        max_threads = active_threads = tmpInt;
 	    break;
 
-	case 'u': enableSessionTicketExtension = PR_TRUE; break;
+	case 'u': enableSessionTickets = PR_TRUE; break;
 
 	case 'v': verbose++; break;
 
@@ -1511,9 +1510,9 @@ main(int argc, char **argv)
     }
 
     if (!NoReuse)
-	exitVal = (enableSessionTicketExtension &&
+	exitVal = (enableSessionTickets &&
                 (connections - ssl3stats->hsh_sid_stateless_resumes > 1)) ||
-                (!enableSessionTicketExtension &&
+                (!enableSessionTickets &&
                 ((ssl3stats->hsh_sid_cache_misses > 1) ||
                 (ssl3stats->hsh_sid_stateless_resumes != 0))) ||
                 (ssl3stats->hsh_sid_cache_not_ok != 0) ||

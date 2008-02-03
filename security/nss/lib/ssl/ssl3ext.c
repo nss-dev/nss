@@ -270,14 +270,14 @@ arrayContainsExtension(PRUint16 *array, PRUint32 array_len, PRUint16 ex_type)
 
 PRBool
 ssl3_ExtensionNegotiated(sslSocket *ss, PRUint16 ex_type) {
-    TLS1ExtensionData *xtnData = &ss->xtnData;
+    TLSExtensionData *xtnData = &ss->xtnData;
     return arrayContainsExtension(xtnData->negotiated,
 	xtnData->numNegotiated, ex_type);
 }
 
 PRBool
 ssl3_ClientExtensionAdvertised(sslSocket *ss, PRUint16 ex_type) {
-    TLS1ExtensionData *xtnData = &ss->xtnData;
+    TLSExtensionData *xtnData = &ss->xtnData;
     return arrayContainsExtension(xtnData->advertised,
 	xtnData->numAdvertised, ex_type);
 }
@@ -320,7 +320,7 @@ ssl3_SendServerNameExt(
 	rv = ssl3_AppendHandshakeVariable(ss, (unsigned char *)ss->url, len, 2);
 	if (rv != SECSuccess) return -1;
 	if (!ss->sec.isServer) {
-	    TLS1ExtensionData *xtnData = &ss->xtnData;
+	    TLSExtensionData *xtnData = &ss->xtnData;
 	    xtnData->advertised[xtnData->numAdvertised++] = server_name_xtn;
 	}
     }
@@ -350,7 +350,7 @@ ssl3_SendSessionTicketExt(
     NewSessionTicket *session_ticket = NULL;
 
     /* Ignore the SessionTicket extension if processing is disabled. */
-    if (!ss->opt.enableSessionTicketExtension)
+    if (!ss->opt.enableSessionTickets)
 	return 0;
 
     /* Empty extension length = extension_type (2-bytes) +
@@ -396,7 +396,7 @@ ssl3_SendSessionTicketExt(
 	    goto loser;
 
 	if (!ss->sec.isServer) {
-	    TLS1ExtensionData *xtnData = &ss->xtnData;
+	    TLSExtensionData *xtnData = &ss->xtnData;
 	    xtnData->advertised[xtnData->numAdvertised++] = session_ticket_xtn;
 	}
     } else if (maxBytes < extension_length) {
@@ -448,7 +448,7 @@ ssl3_SendNewSessionTicket(sslSocket *ss)
     HMACContext         *hmac_ctx;
     CK_MECHANISM_TYPE    macMech = CKM_SHA256_HMAC;
     PK11Context         *hmac_ctx_pkcs11;
-    unsigned char        computed_mac[TLS1_EX_SESS_TICKET_MAC_LENGTH];
+    unsigned char        computed_mac[TLS_EX_SESS_TICKET_MAC_LENGTH];
     unsigned int         computed_mac_length;
     unsigned char        iv[AES_BLOCK_SIZE];
     SECItem              ivItem;
@@ -461,7 +461,7 @@ ssl3_SendNewSessionTicket(sslSocket *ss)
     PORT_Assert( ss->opt.noLocks || ssl_HaveXmitBufLock(ss));
     PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss));
 
-    ticket.ticket_lifetime_hint = TLS1_EX_SESS_TICKET_LIFETIME_HINT;
+    ticket.ticket_lifetime_hint = TLS_EX_SESS_TICKET_LIFETIME_HINT;
     cert_length = (ss->opt.requestCertificate && ss->sec.ci.sid->peerCert) ?
 	3 + ss->sec.ci.sid->peerCert->derCert.len : 0;
 
@@ -538,7 +538,7 @@ ssl3_SendNewSessionTicket(sslSocket *ss)
 	+ AES_BLOCK_SIZE                       /* iv */
 	+ 2 /* length field for NewSessionTicket.ticket.encrypted_state */
 	+ ciphertext_length                    /* encrypted_state */
-	+ TLS1_EX_SESS_TICKET_MAC_LENGTH;      /* mac */
+	+ TLS_EX_SESS_TICKET_MAC_LENGTH;       /* mac */
 
     if (SECITEM_AllocItem(NULL, &plaintext_item, ciphertext_length) == NULL)
 	goto loser;
@@ -546,7 +546,7 @@ ssl3_SendNewSessionTicket(sslSocket *ss)
     plaintext = plaintext_item;
 
     /* ticket_version */
-    rv = ssl3_AppendNumberToItem(&plaintext, TLS1_EX_SESS_TICKET_VERSION,
+    rv = ssl3_AppendNumberToItem(&plaintext, TLS_EX_SESS_TICKET_VERSION,
 	sizeof(PRUint16));
     if (rv != SECSuccess) goto loser;
 
@@ -634,8 +634,9 @@ ssl3_SendNewSessionTicket(sslSocket *ss)
 	if (!aes_ctx_pkcs11) 
 	    goto loser;
 
-	rv = PK11_CipherOp(aes_ctx_pkcs11, ciphertext.data, (int *)&ciphertext.len,
-	    ciphertext.len, plaintext_item.data, plaintext_item.len);
+	rv = PK11_CipherOp(aes_ctx_pkcs11, ciphertext.data,
+	    (int *)&ciphertext.len, ciphertext.len,
+	    plaintext_item.data, plaintext_item.len);
 	PK11_Finalize(aes_ctx_pkcs11);
 	PK11_DestroyContext(aes_ctx_pkcs11, PR_TRUE);
 	if (rv != SECSuccess) goto loser;
@@ -740,7 +741,7 @@ ssl3_ServerHandleSessionTicketExt(sslSocket *ss, PRUint16 ex_type,
 
 
     /* Ignore the SessionTicket extension if processing is disabled. */
-    if (!ss->opt.enableSessionTicketExtension)
+    if (!ss->opt.enableSessionTickets)
 	return SECSuccess;
 
     /* Keep track of negotiated extensions. */
@@ -756,7 +757,7 @@ ssl3_ServerHandleSessionTicketExt(sslSocket *ss, PRUint16 ex_type,
 	int                    i;
 	SECItem                extension_data;
 	EncryptedSessionTicket enc_session_ticket;
-	unsigned char          computed_mac[TLS1_EX_SESS_TICKET_MAC_LENGTH];
+	unsigned char          computed_mac[TLS_EX_SESS_TICKET_MAC_LENGTH];
 	unsigned int           computed_mac_length;
 	const SECHashObject   *hashObj;
 	const unsigned char   *aes_key;
@@ -833,7 +834,7 @@ ssl3_ServerHandleSessionTicketExt(sslSocket *ss, PRUint16 ex_type,
 		goto no_ticket;
 	    HMAC_Begin(hmac_ctx);
 	    HMAC_Update(hmac_ctx, extension_data.data,
-		extension_data.len - TLS1_EX_SESS_TICKET_MAC_LENGTH);
+		extension_data.len - TLS_EX_SESS_TICKET_MAC_LENGTH);
 	    if (HMAC_Finish(hmac_ctx, computed_mac, &computed_mac_length,
 		    sizeof(computed_mac)) != SECSuccess)
 		goto no_ticket;
@@ -853,7 +854,7 @@ ssl3_ServerHandleSessionTicketExt(sslSocket *ss, PRUint16 ex_type,
 	    }
 	    rv = PK11_DigestBegin(hmac_ctx_pkcs11);
 	    rv = PK11_DigestOp(hmac_ctx_pkcs11, extension_data.data,
-		extension_data.len - TLS1_EX_SESS_TICKET_MAC_LENGTH);
+		extension_data.len - TLS_EX_SESS_TICKET_MAC_LENGTH);
 	    if (rv != SECSuccess) {
 		PK11_DestroyContext(hmac_ctx_pkcs11, PR_TRUE);
 		goto no_ticket;
@@ -1040,7 +1041,7 @@ ssl3_ServerHandleSessionTicketExt(sslSocket *ss, PRUint16 ex_type,
 	 */
 	if (parsed_session_ticket->timestamp != 0 &&
 	    parsed_session_ticket->timestamp +
-	    TLS1_EX_SESS_TICKET_LIFETIME_HINT > ssl_Time()) {
+	    TLS_EX_SESS_TICKET_LIFETIME_HINT > ssl_Time()) {
 
 	    sid = ssl3_NewSessionID(ss, PR_TRUE);
 	    if (sid == NULL) {
@@ -1150,7 +1151,7 @@ ssl3_ParseEncryptedSessionTicket(sslSocket *ss, SECItem *data,
 	    2, &data->data, &data->len) != SECSuccess)
 	return SECFailure;
     if (ssl3_ConsumeFromItem(data, &enc_session_ticket->mac,
-	    TLS1_EX_SESS_TICKET_MAC_LENGTH) != SECSuccess)
+	    TLS_EX_SESS_TICKET_MAC_LENGTH) != SECSuccess)
 	return SECFailure;
     if (data->len != 0)  /* Make sure that we have consumed all bytes. */
 	return SECFailure;
@@ -1175,7 +1176,7 @@ ssl3_HandleHelloExtensions(sslSocket *ss,
 	SECStatus rv;
 	PRInt32   extension_type;
 	SECItem   extension_data;
-	TLS1ExtensionData *xtnData = &ss->xtnData;
+	TLSExtensionData *xtnData = &ss->xtnData;
 	const ssl3HelloExtensionHandler * handler;
 
 	/* Get the extension's type field */

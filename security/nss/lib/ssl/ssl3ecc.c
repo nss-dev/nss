@@ -1059,7 +1059,7 @@ ssl3_SendSupportedCurvesExt(
 	if (rv != SECSuccess)
 	    return -1;
 	if (!ss->sec.isServer) {
-	    TLS1ExtensionData *xtnData = &ss->xtnData;
+	    TLSExtensionData *xtnData = &ss->xtnData;
 	    xtnData->advertised[xtnData->numAdvertised++] = elliptic_curves_xtn;
 	}
     }
@@ -1082,7 +1082,7 @@ ssl3_SendSupportedPointExt(
 	if (rv != SECSuccess)
 	    return -1;
 	if (!ss->sec.isServer) {
-	    TLS1ExtensionData *xtnData = &ss->xtnData;
+	    TLSExtensionData *xtnData = &ss->xtnData;
 	    xtnData->advertised[xtnData->numAdvertised++] =
 		elliptic_point_formats_xtn;
 	}
