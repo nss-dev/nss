@@ -103,7 +103,7 @@ nss_item_hash
   NSSItem *it = (NSSItem *)key;
   h = 0;
   for (i=0; i<it->size; i++)
-    h = PR_ROTATE_RIGHT32(h, 28) ^ ((unsigned char *)it->data)[i];
+    h = PR_ROTATE_LEFT32(h, 4) ^ ((unsigned char *)it->data)[i];
   return h;
 }
 
