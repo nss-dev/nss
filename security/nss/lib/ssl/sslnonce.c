@@ -40,6 +40,7 @@
 
 #include "nssrenam.h"
 #include "cert.h"
+#include "pk11func.h"
 #include "secitem.h"
 #include "ssl.h"
 
@@ -47,9 +48,6 @@
 #include "sslproto.h"
 #include "nssilock.h"
 #include "nsslocks.h"
-
-#include "pk11func.h"
-
 #if (defined(XP_UNIX) || defined(XP_WIN) || defined(_WINDOWS) || defined(XP_BEOS)) && !defined(_WIN32_WCE)
 #include <time.h>
 #endif

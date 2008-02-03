@@ -1091,6 +1091,7 @@ const unsigned char *  preferredCipher;
 };
 
 
+
 /* All the global data items declared here should be protected using the 
 ** ssl_global_data_lock, which is a reader/writer lock.
 */
@@ -1444,8 +1445,8 @@ extern SECStatus ssl3_VerifySignedHashes(SSL3Hashes *hash,
 			CERTCertificate *cert, SECItem *buf, PRBool isTLS, 
 			void *pwArg);
 extern SECStatus ssl3_CacheWrappedMasterSecret(sslSocket *ss,
-            sslSessionID *sid, ssl3CipherSpec *spec,
-            SSL3KEAType effectiveExchKeyType);
+			sslSessionID *sid, ssl3CipherSpec *spec,
+			SSL3KEAType effectiveExchKeyType);
 
 /* Functions that handle ClientHello and ServerHello extensions. */
 extern SECStatus ssl3_HandleServerNameExt(sslSocket * ss,
