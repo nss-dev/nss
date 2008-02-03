@@ -68,8 +68,8 @@
  *     certCacheEntry           certCacheData[numCertCacheEntries];
  *     SSLWrappedSymWrappingKey keyCacheData[kt_kea_size][SSL_NUM_WRAP_MECHS];
  *     uint8                    keyNameSuffix[SESS_TICKET_KEY_VAR_NAME_LEN]
- *     encKeyCacheEntry         ticketEncKey; /* Wrapped in non-bypass mode */
- *     encKeyCacheEntry         ticketMacKey; /* Wrapped in non-bypass mode */
+ *     encKeyCacheEntry         ticketEncKey; // Wrapped in non-bypass mode
+ *     encKeyCacheEntry         ticketMacKey; // Wrapped in non-bypass mode
  *     PRBool                   ticketKeysValid;
  * } cacheMemCacheData;
  */
