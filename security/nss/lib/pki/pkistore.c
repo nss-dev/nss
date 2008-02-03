@@ -721,9 +721,9 @@ nss_certificate_hash (
     NSSCertificate *c = (NSSCertificate *)key;
     h = 0;
     for (i=0; i<c->issuer.size; i++)
-	h = PR_ROTATE_RIGHT32(h, 28) ^ ((unsigned char *)c->issuer.data)[i];
+	h = PR_ROTATE_LEFT32(h, 4) ^ ((unsigned char *)c->issuer.data)[i];
     for (i=0; i<c->serial.size; i++)
-	h = PR_ROTATE_RIGHT32(h, 28) ^ ((unsigned char *)c->serial.data)[i];
+	h = PR_ROTATE_LEFT32(h, 4) ^ ((unsigned char *)c->serial.data)[i];
     return h;
 }
 
