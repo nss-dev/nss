@@ -1094,8 +1094,7 @@ ssl3_SendSupportedPointExt(
  * Since that is all we support.  Disable ECC cipher suites if it doesn't.
  */
 SECStatus
-ssl3_HandleSupportedPointExt(sslSocket * ss, PRUint16 ex_type, 
-                             SECItem *data)
+ssl3_HandleSupportedPointExt(sslSocket *ss, PRUint16 ex_type, SECItem *data)
 {
     int i;
 
@@ -1141,8 +1140,7 @@ ECName ssl3_GetSvrCertCurveName(sslSocket *ss)
  * by the remote client, and disable all ECC cipher suites if not.
  */
 SECStatus
-ssl3_HandleSupportedCurvesExt(sslSocket * ss, PRUint16 ex_type, 
-                              SECItem *data)
+ssl3_HandleSupportedCurvesExt(sslSocket *ss, PRUint16 ex_type, SECItem *data)
 {
     PRInt32  list_len;
     PRUint32 peerCurves   = 0;

@@ -150,14 +150,14 @@ typedef enum {
     hello_request	= 0, 
     client_hello	= 1, 
     server_hello	= 2,
-    new_session_ticket  = 4,
+    new_session_ticket	= 4,
     certificate 	= 11, 
     server_key_exchange = 12,
     certificate_request	= 13, 
     server_hello_done	= 14,
     certificate_verify	= 15, 
     client_key_exchange	= 16, 
-    finished		= 20,
+    finished		= 20
 } SSL3HandshakeType;
 
 typedef struct {
@@ -316,9 +316,9 @@ typedef struct {
 
 /* NewSessionTicket handshake message. */
 typedef struct {
-  uint32 received_timestamp;
-  uint32 ticket_lifetime_hint;
-  SECItem  ticket;
+    uint32  received_timestamp;
+    uint32  ticket_lifetime_hint;
+    SECItem ticket;
 } NewSessionTicket;
 
 typedef enum {
@@ -331,7 +331,7 @@ typedef struct {
     union {
 	SSL3Opaque *certificate_list;
     } identity;
-}  ClientIdentity;
+} ClientIdentity;
 
 #define SESS_TICKET_KEY_NAME_PREFIX    "NSS!"
 #define SESS_TICKET_KEY_NAME_LEN       16
@@ -353,7 +353,6 @@ typedef enum {
 #endif
     session_ticket_xtn           = 35
 } ExtensionType;
-
 
 #define TLS_EX_SESS_TICKET_MAC_LENGTH       32
 

@@ -115,7 +115,7 @@ ssl_DestroySID(sslSessionID *sid)
     if (sid->u.ssl3.session_ticket.ticket.data) {
 	SECITEM_FreeItem(&sid->u.ssl3.session_ticket.ticket, PR_FALSE);
     }
-
+    
     PORT_ZFree(sid, sizeof(sslSessionID));
 }
 

@@ -182,9 +182,10 @@ void printSecurityInfo(PRFileDesc *fd)
 	CERT_DestroyCertificate(cert);
 	cert = NULL;
     }
-    fprintf(stderr, "%ld cache hits; %ld stateless resumes; %ld cache misses, "
-	"%ld cache not reusable\n",	ssl3stats->hsh_sid_cache_hits,
-	ssl3stats->hsh_sid_stateless_resumes,
+    fprintf(stderr,
+	"%ld cache hits; %ld stateless resumes; "
+	"%ld cache misses, %ld cache not reusable\n",
+	ssl3stats->hsh_sid_cache_hits, ssl3stats->hsh_sid_stateless_resumes,
 	ssl3stats->hsh_sid_cache_misses, ssl3stats->hsh_sid_cache_not_ok);
 }
 
@@ -592,7 +593,7 @@ int main(int argc, char **argv)
 
 	  case 'v': verbose++;	 			break;
 
-	  case 'r': renegotiate = atoi(optstate->value);			break;
+	  case 'r': renegotiate = atoi(optstate->value);	break;
 
 	  case 'w':
 		password = PORT_Strdup(optstate->value);

@@ -762,6 +762,7 @@ SSL_OptionGet(PRFileDesc *fd, PRInt32 which, PRBool *pOn)
     case SSL_ENABLE_SESSION_TICKETS:
 	on = ss->opt.enableSessionTickets;
 	break;
+
     default:
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
 	rv = SECFailure;
@@ -2190,3 +2191,4 @@ loser:
     }
     return ss;
 }
+

@@ -68,8 +68,8 @@
  *     certCacheEntry           certCacheData[numCertCacheEntries];
  *     SSLWrappedSymWrappingKey keyCacheData[kt_kea_size][SSL_NUM_WRAP_MECHS];
  *     uint8                    keyNameSuffix[SESS_TICKET_KEY_VAR_NAME_LEN]
- *     encKeyCacheEntry         ticketEncKey; // Wrapped in non-bypass mode
- *     encKeyCacheEntry         ticketMacKey; // Wrapped in non-bypass mode
+ *     encKeyCacheEntry         ticketEncKey; /* Wrapped in non-bypass mode */
+ *     encKeyCacheEntry         ticketMacKey; /* Wrapped in non-bypass mode */
  *     PRBool                   ticketKeysValid;
  * } cacheMemCacheData;
  */
@@ -183,8 +183,8 @@ struct sidCacheSetStr {
 typedef struct sidCacheSetStr sidCacheSet;
 
 struct encKeyCacheEntryStr {
-    PRUint8     bytes[512];
-    PRInt32     length;
+    PRUint8	bytes[512];
+    PRInt32	length;
 };
 typedef struct encKeyCacheEntryStr encKeyCacheEntry;
 
@@ -1034,7 +1034,6 @@ InitCache(cacheDesc *cache, int maxCacheEntries, PRUint32 ssl2_timeout,
 
     cache->cacheMemSize = ptr;
 
-
     if (ssl2_timeout) {   
 	if (ssl2_timeout > MAX_SSL2_TIMEOUT) {
 	    ssl2_timeout = MAX_SSL2_TIMEOUT;
@@ -1121,8 +1120,8 @@ InitCache(cacheDesc *cache, int maxCacheEntries, PRUint32 ssl2_timeout,
     *(ptrdiff_t *)(&cache->certCacheData) += ptr;
     *(ptrdiff_t *)(&cache->keyCacheData ) += ptr;
     *(ptrdiff_t *)(&cache->ticketKeyNameSuffix) += ptr;
-    *(ptrdiff_t *)(&cache->ticketEncKey) += ptr;
-    *(ptrdiff_t *)(&cache->ticketMacKey) += ptr;
+    *(ptrdiff_t *)(&cache->ticketEncKey ) += ptr;
+    *(ptrdiff_t *)(&cache->ticketMacKey ) += ptr;
     *(ptrdiff_t *)(&cache->ticketKeysValid) += ptr;
 
     /* initialize the locks */
@@ -1404,8 +1403,8 @@ SSL_InheritMPServerSIDCacheInstance(cacheDesc *cache, const char * envString)
     *(ptrdiff_t *)(&cache->certCacheData) += ptr;
     *(ptrdiff_t *)(&cache->keyCacheData ) += ptr;
     *(ptrdiff_t *)(&cache->ticketKeyNameSuffix) += ptr;
-    *(ptrdiff_t *)(&cache->ticketEncKey) += ptr;
-    *(ptrdiff_t *)(&cache->ticketMacKey) += ptr;
+    *(ptrdiff_t *)(&cache->ticketEncKey ) += ptr;
+    *(ptrdiff_t *)(&cache->ticketMacKey ) += ptr;
     *(ptrdiff_t *)(&cache->ticketKeysValid) += ptr;
 
     cache->cacheMemMap = my.cacheMemMap;

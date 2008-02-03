@@ -635,7 +635,7 @@ struct sslSessionIDStr {
 	    /* Session ticket if we have one, is sent as an extension in the
 	     * ClientHello message.  This field is used by clients.
 	     */
-	    NewSessionTicket session_ticket;
+	    NewSessionTicket  session_ticket;
 	} ssl3;
     } u;
 };

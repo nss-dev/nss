@@ -4777,12 +4777,12 @@ ssl3_HandleServerHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	    sid->u.ssl3.session_ticket.ticket.data != NULL)
 	    SSL_AtomicIncrementLong(& ssl3stats.hsh_sid_stateless_resumes );
 
-	ss->ssl3.hs.isResuming = PR_TRUE;
-
 	if (ssl3_ExtensionNegotiated(ss, session_ticket_xtn))
 	    ss->ssl3.hs.ws = wait_new_session_ticket;
 	else
-	    ss->ssl3.hs.ws         = wait_change_cipher;
+	    ss->ssl3.hs.ws = wait_change_cipher;
+
+	ss->ssl3.hs.isResuming = PR_TRUE;
 
 	/* copy the peer cert from the SID */
 	if (sid->peerCert != NULL) {
@@ -5665,7 +5665,7 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 			ss->sec.ci.peer.pr_s6_addr32[3]));
 	    if (ssl_sid_lookup) {
 		sid = (*ssl_sid_lookup)(&ss->sec.ci.peer, sidBytes.data, 
-		    sidBytes.len, ss->dbHandle);
+					sidBytes.len, ss->dbHandle);
 	    } else {
 		errCode = SSL_ERROR_SERVER_CACHE_NOT_CONFIGURED;
 		goto loser;
@@ -5856,7 +5856,6 @@ compression_found:
 
 	ssl_GetSpecWriteLock(ss);  haveSpecWriteLock = PR_TRUE;
 	pwSpec = ss->ssl3.pwSpec;
-
 	if (sid->u.ssl3.keys.msIsWrapped) {
 	    PK11SymKey *    wrapKey; 	/* wrapping key */
 	    CK_FLAGS        keyFlags      = 0;
@@ -5926,7 +5925,6 @@ compression_found:
 	SSL_AtomicIncrementLong(& ssl3stats.hch_sid_cache_hits );
 	if (ss->statelessResume)
 	    SSL_AtomicIncrementLong(&ssl3stats.hch_sid_stateless_resumes);
-
 	ss->ssl3.hs.isResuming = PR_TRUE;
 
         ss->sec.authAlgorithm = sid->authAlgorithm;
@@ -5962,13 +5960,11 @@ compression_found:
 	    goto loser;
 	}
 
-
 	rv = ssl3_SendChangeCipherSpecs(ss);
 	if (rv != SECSuccess) {
 	    errCode = PORT_GetError();
 	    goto loser;
 	}
-
 	rv = ssl3_SendFinished(ss, 0);
 	ss->ssl3.hs.ws = wait_change_cipher;
 	if (rv != SECSuccess) {
@@ -7506,7 +7502,6 @@ ssl3_ComputeTLSFinished(ssl3CipherSpec *spec,
 
 	inData.data  = (unsigned char *)hashes->md5;
 	inData.len   = sizeof hashes[0];
-
 	outData.data = tlsFinished->verify_data;
 	outData.len  = sizeof tlsFinished->verify_data;
 	rv = TLS_PRF(&spec->msItem, label, &inData, &outData, isFIPS);

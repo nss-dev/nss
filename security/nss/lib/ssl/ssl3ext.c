@@ -1165,9 +1165,7 @@ ssl3_ParseEncryptedSessionTicket(sslSocket *ss, SECItem *data,
  * ignore any extensions with unknown extension types.
  */
 SECStatus 
-ssl3_HandleHelloExtensions(sslSocket *ss, 
-                                 SSL3Opaque **b, 
-				 PRUint32 *length)
+ssl3_HandleHelloExtensions(sslSocket *ss, SSL3Opaque **b, PRUint32 *length)
 {
     const ssl3HelloExtensionHandler * handlers =
 	ss->sec.isServer ? server_handlers : client_handlers;
