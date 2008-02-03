@@ -183,10 +183,10 @@ void printSecurityInfo(PRFileDesc *fd)
 	cert = NULL;
     }
     fprintf(stderr,
-	"%ld cache hits; %ld stateless resumes; "
-	"%ld cache misses, %ld cache not reusable\n",
-	ssl3stats->hsh_sid_cache_hits, ssl3stats->hsh_sid_stateless_resumes,
-	ssl3stats->hsh_sid_cache_misses, ssl3stats->hsh_sid_cache_not_ok);
+    	"%ld cache hits; %ld cache misses, %ld cache not reusable\n"
+	"%ld stateless resumes\n",
+    	ssl3stats->hsh_sid_cache_hits, ssl3stats->hsh_sid_cache_misses,
+	ssl3stats->hsh_sid_cache_not_ok, ssl3stats->hsh_sid_stateless_resumes);
 }
 
 void
