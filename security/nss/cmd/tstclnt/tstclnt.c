@@ -711,7 +711,8 @@ int main(int argc, char **argv)
 	    }
 	    err = PR_GetError();
 	    if ((err != PR_CONNECT_REFUSED_ERROR) && 
-	        (err != PR_CONNECT_RESET_ERROR)) {
+	        (err != PR_CONNECT_RESET_ERROR) &&
+	        (err != PR_ADDRESS_IN_USE_ERROR)) {
 		SECU_PrintError(progName, "TCP Connection failed");
 		return 1;
 	    }

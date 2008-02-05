@@ -799,7 +799,8 @@ retry:
             PR_Unlock(threadLock);
         }
         if ((err == PR_CONNECT_REFUSED_ERROR) || 
-	    (err == PR_CONNECT_RESET_ERROR)      ) {
+	    (err == PR_CONNECT_RESET_ERROR)   ||
+	    (err == PR_ADDRESS_IN_USE_ERROR)     ) {
 	    int connections = numConnected;
 
 	    PR_Close(tcp_sock);
