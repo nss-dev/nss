@@ -274,7 +274,9 @@ create_objects_from_handles (
 		for (--i; i>0; --i) {
 		    nssCryptokiObject_Destroy(objects[i]);
 		}
-		return (nssCryptokiObject **)NULL;
+		nss_ZFreeIf(objects);
+		objects = NULL;
+		break;
 	    }
 	}
     }
