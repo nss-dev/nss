@@ -261,6 +261,24 @@ extern void sftk_AuditDigestKey(CK_SESSION_HANDLE hSession,
 */
 extern PRBool sftk_fatalError;
 
+/*
+** macros to check for forked child after C_Initialize
+*/
+#if defined(XP_UNIX) && !defined(NO_PTHREADS)
+
+extern PRBool forked;
+
+extern void ForkedChild(void);
+
+#define CHECK_FORK() \
+    do { if (forked) return CKR_DEVICE_ERROR; } while (0)
+
+#else
+
+#define CHECK_FORK()
+
+#endif
+
 SEC_END_PROTOS
 
 #endif /* _SOFTOKEN_H_ */
