@@ -327,7 +327,7 @@ typedef enum {
 } ClientAuthenticationType;
 
 typedef struct {
-    ClientAuthenticationType client_auth_type  : 1;
+    ClientAuthenticationType client_auth_type;
     union {
 	SSL3Opaque *certificate_list;
     } identity;
