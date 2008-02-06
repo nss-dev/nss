@@ -70,11 +70,11 @@ SEC_BEGIN_PROTOS
  * The format of the version string should be
  *     "<major version>.<minor version>[.<patch level>][ <ECC>][ <Beta>]"
  */
-#define NSS_VERSION  "3.11.9.0" _NSS_ECC_STRING _NSS_CUSTOMIZED
+#define NSS_VERSION  "3.11.10.0" _NSS_ECC_STRING " Beta" _NSS_CUSTOMIZED
 #define NSS_VMAJOR   3
 #define NSS_VMINOR   11
-#define NSS_VPATCH   9
-#define NSS_BETA     PR_FALSE
+#define NSS_VPATCH  10 
+#define NSS_BETA     PR_TRUE
 
 /*
  * Return a boolean that indicates whether the underlying library
