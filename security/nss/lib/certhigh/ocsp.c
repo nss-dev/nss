@@ -4558,7 +4558,7 @@ ocsp_SingleResponseCertHasGoodStatus(CERTOCSPSingleResponse *single,
 /* Return value SECFailure means: not found or not fresh.
  * On SECSuccess, the out parameters contain the OCSP status.
  * rvOcsp contains the overall result of the OCSP operation.
- * Depending on input parameter ignoreOcspFailureMode,
+ * Depending on input parameter ignoreGlobalOcspFailureSetting,
  * a soft failure might be converted into *rvOcsp=SECSuccess.
  * If the cached attempt to obtain OCSP information had resulted
  * in a failure, missingResponseError shows the error code of
@@ -4567,7 +4567,7 @@ ocsp_SingleResponseCertHasGoodStatus(CERTOCSPSingleResponse *single,
 SECStatus
 ocsp_GetCachedOCSPResponseStatusIfFresh(CERTOCSPCertID *certID, 
                                         int64 time, 
-                                        PRBool ignoreOcspFailureMode,
+                                        PRBool ignoreGlobalOcspFailureSetting,
                                         SECStatus *rvOcsp,
                                         SECErrorCodes *missingResponseError)
 {
@@ -4595,7 +4595,7 @@ ocsp_GetCachedOCSPResponseStatusIfFresh(CERTOCSPCertID *certID,
              * However, if OCSP is optional, a recent OCSP failure is
              * an allowed good state.
              */
-            if (!ignoreOcspFailureMode &&
+            if (!ignoreGlobalOcspFailureSetting &&
                 OCSP_Global.ocspFailureMode == 
                     ocspMode_FailureIsNotAVerificationFailure) {
                 rv = SECSuccess;
@@ -4675,7 +4675,7 @@ CERT_CheckOCSPStatus(CERTCertDBHandle *handle, CERTCertificate *cert,
     if (!certID)
         return SECFailure;
     rv = ocsp_GetCachedOCSPResponseStatusIfFresh(
-        certID, time, PR_FALSE, /* do not ignore global failure mode */
+        certID, time, PR_FALSE, /* ignoreGlobalOcspFailureSetting */
         &rvOcsp, &dummy_error_code);
     if (rv == SECSuccess) {
         CERT_DestroyOCSPCertID(certID);
