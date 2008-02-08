@@ -49,8 +49,8 @@
 #include "secerr.h"
 #include "nspr.h"
 
-SEC_ASN1_MKSUB(SEC_IntegerTemplate);
-SEC_ASN1_MKSUB(SEC_ObjectIDTemplate);
+SEC_ASN1_MKSUB(SEC_IntegerTemplate)
+SEC_ASN1_MKSUB(SEC_ObjectIDTemplate)
 
 const SEC_ASN1Template CERT_DisplayTextTypeTemplate[] = {
     { SEC_ASN1_CHOICE, offsetof(SECItem, type), 0, sizeof(SECItem) },
