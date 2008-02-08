@@ -5538,6 +5538,8 @@ ssl3_HandleClientHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	return rv;		/* error code is set. */
     }
 
+    memset(&ss->serverExtensionSenders[0], 0,
+           sizeof ss->serverExtensionSenders);
     rv = ssl3_InitState(ss);
     if (rv != SECSuccess) {
 	return rv;		/* ssl3_InitState has set the error code. */
@@ -5981,6 +5983,9 @@ ssl3_HandleV2ClientHello(sslSocket *ss, unsigned char *buffer, int length)
     PORT_Assert( ss->opt.noLocks || ssl_HaveRecvBufLock(ss) );
 
     ssl_GetSSL3HandshakeLock(ss);
+
+    memset(&ss->serverExtensionSenders[0], 0,
+           sizeof ss->serverExtensionSenders);
 
     rv = ssl3_InitState(ss);
     if (rv != SECSuccess) {
