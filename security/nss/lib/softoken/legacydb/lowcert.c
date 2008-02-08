@@ -50,7 +50,7 @@
 #include "secerr.h"
 #include "pcert.h"
 
-SEC_ASN1_MKSUB(SECOID_AlgorithmIDTemplate);
+SEC_ASN1_MKSUB(SECOID_AlgorithmIDTemplate)
 
 static const SEC_ASN1Template nsslowcert_SubjectPublicKeyInfoTemplate[] = {
     { SEC_ASN1_SEQUENCE, 0, NULL, sizeof(NSSLOWCERTSubjectPublicKeyInfo) },

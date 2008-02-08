@@ -956,13 +956,13 @@ typedef struct ocspCheckingContextStr {
     CERTCertificate *defaultResponderCert;
 } ocspCheckingContext;
 
-SEC_ASN1_MKSUB(SEC_AnyTemplate);
-SEC_ASN1_MKSUB(SEC_IntegerTemplate);
-SEC_ASN1_MKSUB(SEC_NullTemplate);
-SEC_ASN1_MKSUB(SEC_OctetStringTemplate);
-SEC_ASN1_MKSUB(SEC_PointerToAnyTemplate);
-SEC_ASN1_MKSUB(SECOID_AlgorithmIDTemplate);
-SEC_ASN1_MKSUB(SEC_SequenceOfAnyTemplate);
+SEC_ASN1_MKSUB(SEC_AnyTemplate)
+SEC_ASN1_MKSUB(SEC_IntegerTemplate)
+SEC_ASN1_MKSUB(SEC_NullTemplate)
+SEC_ASN1_MKSUB(SEC_OctetStringTemplate)
+SEC_ASN1_MKSUB(SEC_PointerToAnyTemplate)
+SEC_ASN1_MKSUB(SECOID_AlgorithmIDTemplate)
+SEC_ASN1_MKSUB(SEC_SequenceOfAnyTemplate)
 SEC_ASN1_MKSUB(SEC_PointerToGeneralizedTimeTemplate)
 SEC_ASN1_MKSUB(SEC_PointerToEnumeratedTemplate)
 

@@ -103,8 +103,8 @@ static const SEC_ASN1Template cert_KrlEntryTemplate[] = {
     { 0 }
 };
 
-SEC_ASN1_MKSUB(SECOID_AlgorithmIDTemplate);
-SEC_ASN1_MKSUB(CERT_TimeChoiceTemplate);
+SEC_ASN1_MKSUB(SECOID_AlgorithmIDTemplate)
+SEC_ASN1_MKSUB(CERT_TimeChoiceTemplate)
 
 static const SEC_ASN1Template cert_KrlTemplate[] = {
     { SEC_ASN1_SEQUENCE,
