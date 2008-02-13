@@ -77,10 +77,11 @@ const SEC_ASN1Template CERT_UserNoticeTemplate[] = {
     { SEC_ASN1_SEQUENCE,
 	  0, NULL, sizeof(CERTUserNotice) },
     { SEC_ASN1_INLINE | SEC_ASN1_OPTIONAL,
+	  offsetof(CERTUserNotice, noticeReference),
+           CERT_NoticeReferenceTemplate, 0 },
+    { SEC_ASN1_INLINE | SEC_ASN1_OPTIONAL,
 	  offsetof(CERTUserNotice, displayText),
            CERT_DisplayTextTypeTemplate, 0 }, 
-    { SEC_ASN1_OPTIONAL | SEC_ASN1_ANY,
-	  offsetof(CERTUserNotice, derNoticeReference) },
     { 0 }
 };
 
