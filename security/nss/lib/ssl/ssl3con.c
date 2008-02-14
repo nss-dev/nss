@@ -4654,16 +4654,21 @@ ssl3_HandleServerHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     }
     ss->ssl3.hs.compression = (SSL3CompressionMethod)temp;
 
-#ifndef DISALLOW_SERVER_HELLO_EXTENSIONS
-    if (isTLS && length > 0) {
+    /* Note that if !isTLS && length != 0, we do NOT goto alert_loser.
+     * There are some old SSL 3.0 implementations that do send stuff
+     * after the end of the server hello, and we deliberately ignore
+     * such stuff in the interest of maximal interoperability (being
+     * "generous in what you accept").
+     */
+    if (isTLS && length != 0) {
 	SECItem extensions;
 	rv = ssl3_ConsumeHandshakeVariable(ss, &extensions, 2, &b, &length);
 	if (rv != SECSuccess || length != 0)
 	    goto alert_loser;
 	rv = ssl3_HandleHelloExtensions(ss, &extensions.data, &extensions.len);
-	if (rv != SECSuccess) goto alert_loser;
+	if (rv != SECSuccess)
+	    goto alert_loser;
     }
-#endif
 
     /* Any errors after this point are not "malformed" errors. */
     desc    = handshake_failure;
