@@ -218,8 +218,7 @@ ssl3_GetSessionTicketKeys(const unsigned char **aes_key,
     return SECSuccess;
 }
 
-/* Table of handlers for received TLS hello extensions, one
- * per extension.
+/* Table of handlers for received TLS hello extensions, one per extension.
  * In the second generation, this table will be dynamic, and functions
  * will be registered here.
  */
@@ -256,7 +255,6 @@ ssl3HelloExtensionSender clientHelloSenders[MAX_EXTENSION_SENDERS] = {
     { session_ticket_xtn, ssl3_SendSessionTicketExt },
     { -1, NULL }
 };
-
 
 static PRBool
 arrayContainsExtension(PRUint16 *array, PRUint32 array_len, PRUint16 ex_type)
@@ -330,8 +328,7 @@ ssl3_SendServerNameExt(
 
 /* handle an incoming SNI extension, by ignoring it. */
 SECStatus
-ssl3_HandleServerNameExt(sslSocket * ss, PRUint16 ex_type, 
-                         SECItem *data)
+ssl3_HandleServerNameExt(sslSocket * ss, PRUint16 ex_type, SECItem *data)
 {
     /* For now, we ignore this, as if we didn't understand it. :-)  */
     return SECSuccess;
