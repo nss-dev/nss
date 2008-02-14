@@ -40,7 +40,7 @@
 
 #include "nssrenam.h"
 #include "cert.h"
-#include "pk11func.h"
+#include "pk11pub.h"
 #include "secitem.h"
 #include "ssl.h"
 
