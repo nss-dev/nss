@@ -355,9 +355,10 @@ printSSLStatistics()
 
     printf(
 	"selfserv: %ld cache hits; %ld cache misses, %ld cache not reusable\n"
-	"          %ld stateless resumes\n",
+	"          %ld stateless resumes, %ld ticket parse failures\n",
 	ssl3stats->hch_sid_cache_hits, ssl3stats->hch_sid_cache_misses,
-	ssl3stats->hch_sid_cache_not_ok, ssl3stats->hch_sid_stateless_resumes);
+	ssl3stats->hch_sid_cache_not_ok, ssl3stats->hch_sid_stateless_resumes,
+	ssl3stats->hch_sid_ticket_parse_failures);
 }
 
 void 
@@ -1702,6 +1703,7 @@ main(int argc, char **argv)
     char                 emptyString[] = { "" };
     char*                certPrefix = emptyString;
     PRUint32		 protos = 0;
+    SSL3Statistics      *ssl3stats;
  
     tmp = strrchr(argv[0], '/');
     tmp = tmp ? tmp + 1 : argv[0];
@@ -2105,6 +2107,11 @@ main(int argc, char **argv)
 
 cleanup:
     printSSLStatistics();
+    ssl3stats = SSL_GetStatistics();
+    if (ssl3stats->hch_sid_ticket_parse_failures != 0) {
+	fprintf(stderr, "selfserv: Experienced ticket parse failure(s)\n");
+	exit(1);
+    }
 
     {
 	int i;

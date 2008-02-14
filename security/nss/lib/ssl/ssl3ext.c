@@ -740,7 +740,6 @@ ssl3_ServerHandleSessionTicketExt(sslSocket *ss, PRUint16 ex_type,
     SessionTicket *parsed_session_ticket = NULL;
     sslSessionID *sid = NULL;
 
-
     /* Ignore the SessionTicket extension if processing is disabled. */
     if (!ss->opt.enableSessionTickets)
 	return SECSuccess;
@@ -811,7 +810,7 @@ ssl3_ServerHandleSessionTicketExt(sslSocket *ss, PRUint16 ex_type,
 	if (rv != SECSuccess) {
 	    SSL_DBG(("%d: SSL[%d]: Unable to get/generate session ticket keys.",
 			SSL_GETPID(), ss->fd));
-	    goto no_ticket;
+	    goto loser;
 	}
 
 	/* If the ticket sent by the client was generated under a key different
@@ -1098,6 +1097,7 @@ ssl3_ServerHandleSessionTicketExt(sslSocket *ss, PRUint16 ex_type,
 no_ticket:
 	SSL_DBG(("%d: SSL[%d]: Session ticket parsing failed.",
 			SSL_GETPID(), ss->fd));
+	SSL_AtomicIncrementLong(& ssl3stats.hch_sid_ticket_parse_failures );
 	if (sid) {
 	    ssl_FreeSID(sid);
 	    sid = NULL;

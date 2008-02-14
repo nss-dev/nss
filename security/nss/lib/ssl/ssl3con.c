@@ -209,7 +209,7 @@ PRBool ssl3_global_policy_some_restricted = PR_FALSE;
 ** SSL_ConfigSecureServer(), and is used in ssl3_SendCertificateRequest().
 */
 CERTDistNames *ssl3_server_ca_list = NULL;
-static SSL3Statistics ssl3stats;
+SSL3Statistics ssl3stats;
 
 /* indexed by SSL3BulkCipher */
 static const ssl3BulkCipherDef bulk_cipher_defs[] = {
@@ -529,7 +529,7 @@ typedef struct tooLongStr {
 #endif
 } tooLong;
 
-static void SSL_AtomicIncrementLong(long * x)
+void SSL_AtomicIncrementLong(long * x)
 {
     if ((sizeof *x) == sizeof(PRInt32)) {
         PR_AtomicIncrement((PRInt32 *)x);
@@ -3577,7 +3577,7 @@ ssl3_SendClientHello(sslSocket *ss)
 	/* Are we attempting a stateless session resume? */
 	if (sid->version > SSL_LIBRARY_VERSION_3_0 &&
 	    sid->u.ssl3.session_ticket.ticket.data)
-	    SSL_AtomicIncrementLong(&ssl3stats.sch_sid_stateless_resumes);
+	    SSL_AtomicIncrementLong(& ssl3stats.sch_sid_stateless_resumes );
 
 	rv = ssl3_NegotiateVersion(ss, sid->version);
 	if (rv != SECSuccess)
@@ -5924,7 +5924,7 @@ compression_found:
 	 */
 	SSL_AtomicIncrementLong(& ssl3stats.hch_sid_cache_hits );
 	if (ss->statelessResume)
-	    SSL_AtomicIncrementLong(&ssl3stats.hch_sid_stateless_resumes);
+	    SSL_AtomicIncrementLong(& ssl3stats.hch_sid_stateless_resumes );
 	ss->ssl3.hs.isResuming = PR_TRUE;
 
         ss->sec.authAlgorithm = sid->authAlgorithm;

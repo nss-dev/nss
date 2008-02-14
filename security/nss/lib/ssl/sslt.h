@@ -64,6 +64,7 @@ typedef struct SSL3StatisticsStr {
     long sch_sid_stateless_resumes;
     long hsh_sid_stateless_resumes;
     long hch_sid_stateless_resumes;
+    long hch_sid_ticket_parse_failures;
 } SSL3Statistics;
 
 /* Key Exchange algorithm values */

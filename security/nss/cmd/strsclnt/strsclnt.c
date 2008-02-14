@@ -148,6 +148,10 @@ static PRTime lastThrottleUp;
 static PRInt32 remaining_connections;  /* number of connections left */
 static int active_threads = 8; /* number of threads currently trying to
                                ** connect */
+static PRInt32 addr_in_use_errors = 0; /* Accomodate a Winsock bug that
+                                       ** results in ports being bound to
+                                       ** despite being in use. */
+
 static PRInt32 numUsed;
 /* end of variables protected by threadLock */
 
@@ -799,8 +803,7 @@ retry:
             PR_Unlock(threadLock);
         }
         if ((err == PR_CONNECT_REFUSED_ERROR) || 
-	    (err == PR_CONNECT_RESET_ERROR)   ||
-	    (err == PR_ADDRESS_IN_USE_ERROR)     ) {
+	    (err == PR_CONNECT_RESET_ERROR)      ) {
 	    int connections = numConnected;
 
 	    PR_Close(tcp_sock);
@@ -820,6 +823,8 @@ retry:
 	    PR_Sleep(PR_MillisecondsToInterval(sleepInterval));
 	    sleepInterval <<= 1;
 	    goto retry;
+	} else if (err == PR_ADDRESS_IN_USE_ERROR) {
+	    PR_AtomicIncrement(&addr_in_use_errors);
 	}
 	errWarn("PR_Connect");
 	rv = SECFailure;
@@ -1512,7 +1517,8 @@ main(int argc, char **argv)
 
     if (!NoReuse)
 	exitVal = (enableSessionTickets &&
-                (connections - ssl3stats->hsh_sid_stateless_resumes > 1)) ||
+                (ssl3stats->hsh_sid_stateless_resumes !=
+                connections - addr_in_use_errors - 1)) ||
                 (!enableSessionTickets &&
                 ((ssl3stats->hsh_sid_cache_misses > 1) ||
                 (ssl3stats->hsh_sid_stateless_resumes != 0))) ||

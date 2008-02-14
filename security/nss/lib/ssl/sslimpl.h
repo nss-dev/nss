@@ -1111,6 +1111,9 @@ extern sslSessionIDLookupFunc  ssl_sid_lookup;
 extern sslSessionIDCacheFunc   ssl_sid_cache;
 extern sslSessionIDUncacheFunc ssl_sid_uncache;
 
+/* Protected using atomic operations. */
+extern SSL3Statistics          ssl3stats;
+
 /************************************************************************/
 
 SEC_BEGIN_PROTOS
@@ -1543,6 +1546,7 @@ extern int ssl_MapLowLevelError(int hiLevelError);
 
 extern PRUint32 ssl_Time(void);
 
+extern void SSL_AtomicIncrementLong(long * x);
 
 SECStatus SSL_DisableDefaultExportCipherSuites(void);
 SECStatus SSL_DisableExportCipherSuites(PRFileDesc * fd);
