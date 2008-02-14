@@ -143,9 +143,7 @@ extern void PORT_ArenaZRelease(PLArenaPool *arena, void *mark);
 extern void PORT_ArenaUnmark(PLArenaPool *arena, void *mark);
 extern char *PORT_ArenaStrdup(PLArenaPool *arena, const char *str);
 
-#ifdef __cplusplus
-}
-#endif
+SEC_END_PROTOS
 
 #define PORT_Assert PR_ASSERT
 #define PORT_ZNew(type) (type*)PORT_ZAlloc(sizeof(type))
@@ -203,9 +201,7 @@ typedef PRBool (PR_CALLBACK * PORTCharConversionFunc) (PRBool toUnicode,
 			unsigned char *outBuf, unsigned int maxOutBufLen,
 			unsigned int *outBufLen);
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+SEC_BEGIN_PROTOS
 
 void PORT_SetUCS4_UTF8ConversionFunction(PORTCharConversionFunc convFunc);
 void PORT_SetUCS2_ASCIIConversionFunction(PORTCharConversionWSwapFunc convFunc);
