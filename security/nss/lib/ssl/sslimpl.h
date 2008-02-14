@@ -825,7 +825,7 @@ typedef struct SSLWrappedSymWrappingKeyStr {
     PRUint16          wrapIVLen;
 } SSLWrappedSymWrappingKey;
 
-typedef struct SessionTicket {
+typedef struct SessionTicketStr {
     uint16                ticket_version;
     SSL3ProtocolVersion   ssl_version;
     ssl3CipherSuite       cipher_suite;
