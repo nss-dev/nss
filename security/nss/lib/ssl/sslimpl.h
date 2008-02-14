@@ -1111,9 +1111,6 @@ extern sslSessionIDLookupFunc  ssl_sid_lookup;
 extern sslSessionIDCacheFunc   ssl_sid_cache;
 extern sslSessionIDUncacheFunc ssl_sid_uncache;
 
-/* Protected using atomic operations. */
-extern SSL3Statistics          ssl3stats;
-
 /************************************************************************/
 
 SEC_BEGIN_PROTOS

@@ -736,6 +736,7 @@ ssl3_ServerHandleSessionTicketExt(sslSocket *ss, PRUint16 ex_type,
     SECItem *decrypted_state = NULL;
     SessionTicket *parsed_session_ticket = NULL;
     sslSessionID *sid = NULL;
+    SSL3Statistics *ssl3stats;
 
     /* Ignore the SessionTicket extension if processing is disabled. */
     if (!ss->opt.enableSessionTickets)
@@ -1094,7 +1095,8 @@ ssl3_ServerHandleSessionTicketExt(sslSocket *ss, PRUint16 ex_type,
 no_ticket:
 	SSL_DBG(("%d: SSL[%d]: Session ticket parsing failed.",
 			SSL_GETPID(), ss->fd));
-	SSL_AtomicIncrementLong(& ssl3stats.hch_sid_ticket_parse_failures );
+	ssl3stats = SSL_GetStatistics();
+	SSL_AtomicIncrementLong(& ssl3stats->hch_sid_ticket_parse_failures );
 	if (sid) {
 	    ssl_FreeSID(sid);
 	    sid = NULL;

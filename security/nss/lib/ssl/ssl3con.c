@@ -209,7 +209,7 @@ PRBool ssl3_global_policy_some_restricted = PR_FALSE;
 ** SSL_ConfigSecureServer(), and is used in ssl3_SendCertificateRequest().
 */
 CERTDistNames *ssl3_server_ca_list = NULL;
-SSL3Statistics ssl3stats;
+static SSL3Statistics ssl3stats;
 
 /* indexed by SSL3BulkCipher */
 static const ssl3BulkCipherDef bulk_cipher_defs[] = {
