@@ -95,7 +95,7 @@ static const PRUint32 H256[8] = {
 
 #if defined(_MSC_VER) && defined(_X86_)
 #ifndef FORCEINLINE
-#if (MSC_VER >= 1200)
+#if (_MSC_VER >= 1200)
 #define FORCEINLINE __forceinline
 #else
 #define FORCEINLINE __inline
