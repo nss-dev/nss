@@ -708,7 +708,7 @@ NSS_RegisterShutdown(NSS_ShutdownFunc sFunc, void *appData)
 	nssShutdownList.funcs[i].func = sFunc;
 	nssShutdownList.funcs[i].appData = appData;
 	PZ_Unlock(nssShutdownList.lock);
-	return SECFailure;
+	return SECSuccess;
     }
     if (nssShutdownList.maxFuncs == nssShutdownList.numFuncs) {
 	struct NSSShutdownFuncPair *funcs = 
