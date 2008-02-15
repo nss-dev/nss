@@ -3944,6 +3944,8 @@ SSL3_ShutdownServerCache(void)
     }
 
     PZ_Unlock(symWrapKeysLock);
+    PZ_DestroyLock(symWrapKeysLock);
+    symWrapKeysLock = NULL;
     return SECSuccess;
 }
 
