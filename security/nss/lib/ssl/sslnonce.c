@@ -42,6 +42,7 @@
 #include "cert.h"
 #include "secitem.h"
 #include "ssl.h"
+#include "nss.h" /* for NSS_RegisterShutdown */
 
 #include "sslimpl.h"
 #include "sslproto.h"
@@ -68,10 +69,34 @@ static PZLock *      cacheLock = NULL;
 #define LOCK_CACHE 	lock_cache()
 #define UNLOCK_CACHE	PZ_Unlock(cacheLock)
 
+static const PRCallOnceType pristineCallOnce;
+static       PRCallOnceType setupClientCacheLockOnce;
+
+static SECStatus clientCacheLockShutdown(void* appData, void* nssData)
+{
+    if (cacheLock) {
+	PZ_DestroyLock(cacheLock);
+	cacheLock = NULL;
+    }
+    setupClientCacheLockOnce = pristineCallOnce;
+    return SECSuccess;
+}
+
+static PRStatus clientCacheLockSetup(void)
+{
+    SECStatus rv = NSS_RegisterShutdown(clientCacheLockShutdown, NULL);
+    PORT_Assert(SECSuccess == rv);
+    if (SECSuccess == rv) {
+	nss_InitLock(&cacheLock, nssILockCache);
+	return PR_SUCCESS;
+    }
+    return PR_FAILURE;
+}
+
 void ssl_InitClientSessionCacheLock(void)
 {
     if (!cacheLock)
-	nss_InitLock(&cacheLock, nssILockCache);
+	PR_CallOnce(&setupClientCacheLockOnce, &clientCacheLockSetup);
 }
 
 static void 
@@ -359,7 +384,7 @@ ssl_Time(void)
 {
     PRUint32 myTime;
 #if (defined(XP_UNIX) || defined(XP_WIN) || defined(_WINDOWS) || defined(XP_BEOS)) && !defined(_WIN32_WCE)
-    myTime = time(NULL);	/* accurate until the year 2038. */
+    myTime = (PRUint32)time(NULL);	/* accurate until the year 2038. */
 #else
     /* portable, but possibly slower */
     PRTime now;
