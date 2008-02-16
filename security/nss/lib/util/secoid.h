@@ -122,6 +122,11 @@ extern const char *SECOID_FindOIDTagDescription(SECOidTag tagnum);
 extern SECOidTag SECOID_AddEntry(const SECOidData * src);
 
 /*
+ * initialize the oid data structures.
+ */
+extern SECStatus SECOID_Init(void);
+
+/*
  * free up the oid data structures.
  */
 extern SECStatus SECOID_Shutdown(void);

@@ -413,7 +413,6 @@ nss_FindExternalRoot(const char *dbpath, const char* secmodprefix)
 static PRBool nss_IsInitted = PR_FALSE;
 static void* plContext = NULL;
 
-extern SECStatus secoid_Init(void);
 static SECStatus nss_InitShutdownList(void);
 
 #ifdef DEBUG
@@ -510,7 +509,7 @@ loser:
     }
 
     if (rv == SECSuccess) {
-	if (secoid_Init() != SECSuccess) {
+	if (SECOID_Init() != SECSuccess) {
 	    return SECFailure;
 	}
 	if (STAN_LoadDefaultNSS3TrustDomain() != PR_SUCCESS) {

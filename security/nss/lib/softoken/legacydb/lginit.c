@@ -573,8 +573,6 @@ loser:
 
 }
 
-extern SECStatus secoid_Init(void); /* util *REALLY* needs 
-				     * to be a shared library */
 /*
  * OK there are now lots of options here, lets go through them all:
  *
@@ -598,9 +596,13 @@ legacy_Open(const char *configdir, const char *certPrefix,
 	    int flags, SDB **certDB, SDB **keyDB)
 {
     CK_RV crv = CKR_OK;
+    SECStatus rv;
     PRBool readOnly = (flags == SDB_RDONLY)? PR_TRUE: PR_FALSE;
 
-    secoid_Init();
+    rv = SECOID_Init();
+    if (SECSuccess != rv) {
+        return CKR_DEVICE_ERROR;
+    }
     nsslowcert_InitLocks();
 
     if (keyDB) *keyDB = NULL;
