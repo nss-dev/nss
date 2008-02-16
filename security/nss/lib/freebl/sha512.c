@@ -93,7 +93,12 @@ static const PRUint32 H256[8] = {
     0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
 };
 
-#if defined(_MSC_VER) && defined(_X86_)
+#if (_MSC_VER >= 1300)
+#include <stdlib.h>
+#pragma intrinsic(_byteswap_ulong)
+#define SHA_HTONL(x) _byteswap_ulong(x)
+#define BYTESWAP4(x)  x = SHA_HTONL(x)
+#elif defined(_MSC_VER) && defined(_X86_)
 #ifndef FORCEINLINE
 #if (_MSC_VER >= 1200)
 #define FORCEINLINE __forceinline
