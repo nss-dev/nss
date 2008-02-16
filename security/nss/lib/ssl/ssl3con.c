@@ -60,7 +60,6 @@
 
 #include "pk11func.h"
 #include "secmod.h"
-#include "nsslocks.h"
 #include "ec.h"
 #include "blapi.h"
 
@@ -3949,11 +3948,12 @@ SSL3_ShutdownServerCache(void)
     return SECSuccess;
 }
 
-void ssl_InitSymWrapKeysLock(void)
+SECStatus ssl_InitSymWrapKeysLock(void)
 {
-    /* atomically initialize the lock */
-    if (!symWrapKeysLock)
-	nss_InitLock(&symWrapKeysLock, nssILockOther);
+    if (!symWrapKeysLock) {
+        symWrapKeysLock = PZ_NewLock(nssILockOther);
+    }
+    return symWrapKeysLock ? SECSuccess:SECFailure;
 }
 
 /* Try to get wrapping key for mechanism from in-memory array.
@@ -3992,7 +3992,7 @@ getWrappingKey( sslSocket *       ss,
 
     pSymWrapKey = &symWrapKeys[symWrapMechIndex].symWrapKey[exchKeyType];
 
-    ssl_InitSymWrapKeysLock();
+    ssl_InitLocks(PR_TRUE);
 
     PZ_Lock(symWrapKeysLock);
 

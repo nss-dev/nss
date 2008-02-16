@@ -50,7 +50,7 @@
 #include "plarena.h"
 #include "secerr.h"
 #include "prmon.h"
-#include "nsslocks.h"
+#include "nssilock.h"
 #include "secport.h"
 #include "prvrsion.h"
 #include "prenv.h"

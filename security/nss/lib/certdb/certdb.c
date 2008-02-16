@@ -61,7 +61,6 @@
 #include "portreg.h"
 #include "secerr.h"
 #include "sslerr.h"
-#include "nsslocks.h"
 #include "pk11func.h"
 #include "xconst.h"   /* for  CERT_DecodeAltNameExtension */
 
